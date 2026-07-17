@@ -20,23 +20,22 @@
   canvas{
     width:100%; height:100%; display:block;
     image-rendering:pixelated; image-rendering:crisp-edges;
-    background:#2a3540; touch-action:none; cursor:pointer;
+    background:#2a3540; touch-action:none; cursor:crosshair;
   }
   canvas:focus-visible{outline:2px solid var(--accent); outline-offset:4px;}
-  footer{font-size:11px; color:var(--dim); letter-spacing:.08em; text-align:center; line-height:1.7; max-width:640px;}
+  footer{font-size:11px; color:var(--dim); letter-spacing:.08em; text-align:center; line-height:1.7; max-width:680px;}
   footer kbd{
     color:var(--ink); border:1px solid #2a363d; border-bottom-width:2px;
     border-radius:3px; padding:0 5px; font-family:inherit; font-size:10px;
   }
-  @media (prefers-reduced-motion: reduce){ .blink{animation:none !important;} }
 </style>
 
-<header>■ <b>RASANTE</b> · prototipo jugable · Atlántico Sur, 1982</header>
-<div class="stage"><canvas id="g" width="320" height="180" tabindex="0" aria-label="Juego Rasante: mantené apretado para subir, soltá para bajar, X para disparar"></canvas></div>
+<header>■ <b>RASANTE</b> · vista frontal · Atlántico Sur, 1982</header>
+<div class="stage"><canvas id="g" width="320" height="180" tabindex="0" aria-label="Juego Rasante: flechas para maniobrar, X dispara, Shift turbo"></canvas></div>
 <footer>
-  <kbd>ESPACIO</kbd> / mantener clic (izquierda): subir &nbsp;·&nbsp; <kbd>X</kbd> / tocar (derecha): cañón 20mm<br>
-  Volar bajo multiplica el puntaje. Tocar el agua es fatal. Subir demasiado te expone al radar.<br>
-  <span style="color:#3a464c">Arte placeholder generado por código — reemplazable por tus PNG de Photoshop.</span>
+  <kbd>ARRIBA</kbd>/<kbd>W</kbd>: gas — si soltás, el avión cae &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: esquivar &nbsp;·&nbsp; <kbd>ABAJO</kbd>: picada &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>ESPACIO</kbd>: cañón &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: turbo<br>
+  Táctil: arrastrá a la izquierda para volar · derecha arriba: fuego · derecha abajo: turbo<br>
+  Volar bajo multiplica. Rozar obstáculos da bonus. El turbo duplica puntos y quema combustible.
 </footer>
 
 <script>
@@ -44,37 +43,23 @@
 'use strict';
 const cv = document.getElementById('g');
 const ctx = cv.getContext('2d');
-const W = 320, H = 180, WATER = 150, PXM = 2.4;
+const W = 320, H = 180, HOR = 64, F = 90, PZ = 14;
+const COAST = 230; // metros de tierra firme (pista de Puerto Argentino) antes del mar
 
 // ---------- paleta ----------
 const P = {
-  skyTop:'#242f3a', skyMid:'#3a4650', horizon:'#7d6a4e', sunGlow:'#b06a35',
-  sea:'#2e4a4e', seaDeep:'#22383c', crest:'#7fa3a0', foam:'#cfe3df',
+  skyTop:'#242f3a', skyMid:'#3a4650', horizon:'#7d6a4e', sunGlow:'#b06a35', sun:'#e8c07a',
+  sea:'#2e4a4e', sea2:'#33545a', seaDeep:'#22383c', crest:'#7fa3a0', foam:'#cfe3df',
   body:'#93a7ab', bodyDark:'#4c5b60', canopy:'#cfe8f2',
   accent:'#e8a33d', warn:'#d94f30', ink:'#e8eef0', dim:'#8a9ba1',
   cloud:'#4a5761', island:'#1b2429'
 };
 
-// ---------- sprite del avión (placeholder 16x8) ----------
-const PLANE_SPR = [
-"...7............",
-"...77...........",
-"...777..........",
-".7777777777cc7..",
-"777777o777777c7.",
-"7777777777777777",
-"..87777777778...",
-"...8........8..."
-];
-const SPR_COL = {'7':P.body,'8':P.bodyDark,'c':P.canopy,'o':P.accent};
-
-// ---------- estado ----------
-let state = 'menu';       // menu | play | dead
-let t = 0, dist = 0, spd = 85;
-let plane, fuel, heat, overheat, detection, score, mult, best = 0;
-let obstacles, bullets, missiles, parts, popups;
-let spawnT, fuelT, fireT, shake, deathCause, deathT, factIdx = 0;
-try { best = +localStorage.getItem('rasante_best') || 0; } catch(e){}
+// agua estilo "malla de puntos" (efecto onda). 'sea' = tono Atlántico; 'violet' = neón tipo boostivity.
+const WATER_STYLE = 'sea';
+const WATER = WATER_STYLE === 'violet'
+  ? { base0:'#0d0a1e', base1:'#171034', base2:'#241a52', deep:'#3a2f7a', mid:'#6a54d6', crest:'#a99cf5', spark:'#eae6ff' }
+  : { base0:'#122123', base1:'#182a2d', base2:'#203438', deep:'#3a5f63', mid:'#6f9a95', crest:'#aed2cc', spark:'#e8f4f0' };
 
 const FACTS = [
 "Los A-4 Skyhawk atacaban a menos de 15 metros sobre el mar para evadir los radares de la flota.",
@@ -85,18 +70,46 @@ const FACTS = [
 "Cada mision se volaba al limite del combustible: minutos sobre el objetivo, a 700 km de las bases."
 ];
 
+// ---------- estado ----------
+let state = 'menu', t = 0, dist = 0, spd = 62;
+let plane, fuel, heat, overheat, detection, score, mult, boost;
+let obstacles, bullets, missiles, parts, streaks, popups, wake;
+let nextSpawn, fuelDist, fireT, shake, deathCause, deathT, factIdx = 0, best = 0;
+let streak, graceT, rasLevel, multShow;
+let windT, windF, gusts;
+let toT = 0, toCount = 4;
+try { best = +localStorage.getItem('rasante_frontal_best') || 0; } catch(e){}
+
 function reset(){
-  t = 0; dist = 0; spd = 85;
-  plane = { x:64, y:90, vy:0 };
+  t = 0; dist = 0; spd = 6;
+  plane = { x:0, y:1.2, vx:0, vy:0 };
   fuel = 100; heat = 0; overheat = false; detection = 0;
-  score = 0; mult = 1;
-  obstacles = []; bullets = []; missiles = []; parts = []; popups = [];
-  spawnT = 1.6; fuelT = 0; fireT = 0; shake = 0;
+  score = 0; mult = 1; boost = false;
+  obstacles = []; bullets = []; missiles = []; parts = []; streaks = []; popups = []; wake = [];
+  nextSpawn = 320; fuelDist = 0; fireT = 0; shake = 0;
+  streak = 0; graceT = 0; rasLevel = 0; multShow = 1;
+  windT = 0; windF = 1; gusts = [];
+  toT = 0; toCount = 4;
+  cam.x = 0; cam.y = 4;
 }
+const cam = { x:0, y:14 };
 
 // ---------- audio ----------
-let AC = null;
-function audio(){ if (!AC) { try { AC = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} } if (AC && AC.state==='suspended') AC.resume(); }
+let AC = null, eng = null;
+function audio(){
+  if (!AC){ try { AC = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} }
+  if (AC && AC.state === 'suspended') AC.resume();
+  if (AC && !eng){
+    try {
+      const o = AC.createOscillator(), g = AC.createGain(), f = AC.createBiquadFilter();
+      o.type = 'sawtooth'; o.frequency.value = 70;
+      f.type = 'lowpass'; f.frequency.value = 320;
+      g.gain.value = 0;
+      o.connect(f); f.connect(g); g.connect(AC.destination); o.start();
+      eng = { o, g };
+    } catch(e){}
+  }
+}
 function beep(f, dur, type, vol, slide){
   if (!AC) return;
   try {
@@ -105,94 +118,115 @@ function beep(f, dur, type, vol, slide){
     if (slide) o.frequency.linearRampToValueAtTime(slide, AC.currentTime+dur);
     g.gain.value = vol||0.04;
     g.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime+dur);
-    o.connect(g); g.connect(AC.destination);
-    o.start(); o.stop(AC.currentTime+dur);
+    o.connect(g); g.connect(AC.destination); o.start(); o.stop(AC.currentTime+dur);
   } catch(e){}
 }
-function boom(vol){
+function boom(vol, hi){
   if (!AC) return;
   try {
-    const n = AC.sampleRate*0.25, buf = AC.createBuffer(1,n,AC.sampleRate), d = buf.getChannelData(0);
+    const n = AC.sampleRate*0.22, buf = AC.createBuffer(1,n,AC.sampleRate), d = buf.getChannelData(0);
     for (let i=0;i<n;i++) d[i] = (Math.random()*2-1)*(1-i/n);
     const s = AC.createBufferSource(), g = AC.createGain(), fl = AC.createBiquadFilter();
-    fl.type='lowpass'; fl.frequency.value=900;
+    fl.type = hi ? 'highpass' : 'lowpass'; fl.frequency.value = hi ? 1800 : 900;
     g.gain.value = vol||0.12;
     s.buffer = buf; s.connect(fl); fl.connect(g); g.connect(AC.destination); s.start();
   } catch(e){}
 }
 
 // ---------- input ----------
-const input = { up:false, fire:false };
+const inp = { l:0, r:0, u:0, d:0, fire:false, turbo:false };
 let anyPress = false;
+const KEYMAP = {
+  ArrowLeft:'l', KeyA:'l', ArrowRight:'r', KeyD:'r',
+  ArrowUp:'u', KeyW:'u', ArrowDown:'d', KeyS:'d'
+};
 addEventListener('keydown', e => {
-  if (e.repeat) return;
-  if (e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'){ input.up=true; anyPress=true; e.preventDefault(); }
-  if (e.code==='KeyX'||e.code==='KeyK'||e.code==='Enter'){ input.fire=true; anyPress=true; }
+  audio();
+  if (KEYMAP[e.code] !== undefined){ inp[KEYMAP[e.code]] = 1; anyPress = true; e.preventDefault(); }
+  if (e.code==='KeyX'||e.code==='KeyK'||e.code==='Space'){ inp.fire = true; anyPress = true; e.preventDefault(); }
+  if (e.code==='ShiftLeft'||e.code==='ShiftRight'||e.code==='KeyC'){ inp.turbo = true; anyPress = true; }
+  if (e.code==='Enter') anyPress = true;
 });
 addEventListener('keyup', e => {
-  if (e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW') input.up=false;
-  if (e.code==='KeyX'||e.code==='KeyK'||e.code==='Enter') input.fire=false;
+  if (KEYMAP[e.code] !== undefined) inp[KEYMAP[e.code]] = 0;
+  if (e.code==='KeyX'||e.code==='KeyK'||e.code==='Space') inp.fire = false;
+  if (e.code==='ShiftLeft'||e.code==='ShiftRight'||e.code==='KeyC') inp.turbo = false;
 });
-const ptrs = new Map();
+
+// táctil: arrastre a la izquierda = volar; derecha arriba = fuego; derecha abajo = turbo
+let steerPtr = null, steerTarget = null;
+const zonePtr = new Map();
+function canvasPos(e){
+  const r = cv.getBoundingClientRect();
+  return { x:(e.clientX-r.left)/r.width*W, y:(e.clientY-r.top)/r.height*H };
+}
 cv.addEventListener('pointerdown', e => {
-  e.preventDefault(); cv.focus(); audio();
-  const zone = (e.offsetX / cv.clientWidth) < 0.6 ? 'up' : 'fire';
-  ptrs.set(e.pointerId, zone); input[zone] = true; anyPress = true;
+  e.preventDefault(); cv.focus(); audio(); anyPress = true;
+  const p = canvasPos(e);
+  if (p.x < W*0.62){ steerPtr = e.pointerId; steerTarget = p; }
+  else {
+    const z = p.y < H/2 ? 'fire' : 'turbo';
+    zonePtr.set(e.pointerId, z); inp[z] = true;
+  }
+});
+cv.addEventListener('pointermove', e => {
+  if (e.pointerId === steerPtr) steerTarget = canvasPos(e);
 });
 function ptrEnd(e){
-  const z = ptrs.get(e.pointerId);
-  if (z){ ptrs.delete(e.pointerId); if (![...ptrs.values()].includes(z)) input[z] = false; }
+  if (e.pointerId === steerPtr){ steerPtr = null; steerTarget = null; }
+  const z = zonePtr.get(e.pointerId);
+  if (z){ zonePtr.delete(e.pointerId); if (![...zonePtr.values()].includes(z)) inp[z] = false; }
 }
 cv.addEventListener('pointerup', ptrEnd);
 cv.addEventListener('pointercancel', ptrEnd);
-addEventListener('keydown', () => audio(), { once:true });
 
 // ---------- mundo ----------
-function waveY(sx){
-  const wx = sx + dist;
-  return WATER
-    + Math.sin(wx*0.045 + t*1.2)*3.0
-    + Math.sin(wx*0.013 - t*0.7)*2.6
-    + Math.sin(wx*0.09  + t*2.1)*1.2;
+function waveNow(){ return 1.1 + Math.sin(t*1.1)*0.5 + Math.sin(t*2.3)*0.3; }
+// campo de altura de la superficie para la malla de puntos (ondas superpuestas)
+function seaH(wx, wz){
+  return 1.0
+    + Math.sin(wz*0.035 - t*1.1)*0.9           // marejada larga que rueda hacia la cámara
+    + Math.sin(wz*0.22 + t*2.2)*0.65
+    + Math.sin(wz*0.09 - t*1.5 + wx*0.15)*0.5
+    + Math.sin(wx*0.30 + wz*0.05 + t*1.9)*0.35;
 }
-const clouds = Array.from({length:7}, (_,i)=>({ x: Math.random()*W, y: 12+Math.random()*46, w: 26+Math.random()*36 }));
-const isles  = Array.from({length:5}, (_,i)=>({ x: i*90+Math.random()*40, w: 50+Math.random()*70, h: 8+Math.random()*14 }));
+function multOf(alt){ return alt<=4.5 ? 10 : alt<=9 ? 5 : alt<=16 ? 2 : 1; }
+const clouds = Array.from({length:6}, ()=>({ x:Math.random()*W, y:8+Math.random()*34, w:24+Math.random()*40 }));
+const isles  = Array.from({length:4}, (_,i)=>({ x:i*90+Math.random()*50, w:40+Math.random()*70, h:5+Math.random()*10 }));
 
-function altOf(y){ return (WATER - y) / PXM; }
-function multOf(alt){ return alt<=4 ? 10 : alt<=8 ? 5 : alt<=15 ? 2 : 1; }
-
-// ---------- spawn ----------
 function spawn(){
-  const needFuel = fuelT > 6;
+  const lane = (Math.random()*52-26);
+  if (fuelDist > 700){ obstacles.push({ type:'fuel', x:lane, y:4+Math.random()*22, z:250, done:false }); fuelDist = 0; return; }
   const r = Math.random();
-  if (needFuel || r < 0.20){
-    obstacles.push({ type:'fuel', x:W+16, y: WATER-(18+Math.random()*72) });
-    fuelT = 0;
-  } else if (r < 0.50){
-    obstacles.push({ type:'mast', x:W+24, h: 34+Math.random()*48 });
-  } else if (r < 0.80){
-    obstacles.push({ type:'balloon', x:W+16, y: WATER-(30+Math.random()*88), hp:1, ph:Math.random()*6 });
-  } else {
-    obstacles.push({ type:'helo', x:W+20, y: WATER-(25+Math.random()*62), hp:2, ph:Math.random()*6 });
-  }
+  if (r < 0.34)      obstacles.push({ type:'mast', x:lane, h:11+Math.random()*17, z:250, done:false });
+  else if (r < 0.60) obstacles.push({ type:'balloon', x:lane, y:6+Math.random()*24, z:250, hp:1, done:false, ph:Math.random()*6 });
+  else if (r < 0.78) obstacles.push({ type:'helo', x:lane, y:5+Math.random()*16, z:250, hp:2, done:false, ph:Math.random()*6 });
+  else               obstacles.push({ type:'fuel', x:lane, y:4+Math.random()*22, z:250, done:false });
 }
 
-function explode(x, y, big){
-  for (let i=0, n=big?26:14; i<n; i++){
-    const a = Math.random()*6.283, v = 20+Math.random()*70;
-    parts.push({ x, y, vx:Math.cos(a)*v, vy:Math.sin(a)*v-20, life:0.4+Math.random()*0.5,
-                 c: Math.random()<0.6 ? P.accent : (Math.random()<0.5?P.warn:P.dim), r: big?2.5:1.8 });
-  }
-  shake = Math.min(6, shake + (big?5:2.5)); boom(big?0.16:0.09);
+function proj(x, y, z){
+  const k = F/z;
+  return { x: W/2 + (x-cam.x)*k, y: HOR + (cam.y-y)*k, k };
 }
-function popup(x, y, txt, c){ popups.push({x, y, txt, c:c||P.accent, life:1.1}); }
+function explodeAt(x, y, z, big){
+  const s = proj(x, y, z);
+  for (let i=0, n=big?24:12; i<n; i++){
+    const a = Math.random()*6.283, v = (14+Math.random()*55)*Math.min(1.6, s.k/3+0.4);
+    parts.push({ x:s.x, y:s.y, vx:Math.cos(a)*v, vy:Math.sin(a)*v-15, life:0.4+Math.random()*0.5,
+                 c: Math.random()<0.6 ? P.accent : (Math.random()<0.5?P.warn:P.dim), r: Math.max(1, s.k*0.35) });
+  }
+  shake = Math.min(6, shake + (big?4.5:2)); boom(big?0.16:0.08);
+}
+function popup(x, y, txt, c){ popups.push({ x, y, txt, c:c||P.accent, life:1.1 }); }
 
 function die(cause){
   state = 'dead'; deathCause = cause; deathT = 0;
   factIdx = (factIdx+1) % FACTS.length;
-  explode(plane.x, plane.y, true);
-  for (let i=0;i<16;i++) parts.push({ x:plane.x+Math.random()*20-10, y:waveY(plane.x), vx:(Math.random()-0.5)*40, vy:-40-Math.random()*60, life:0.6, c:P.foam, r:1.6 });
-  if (score > best){ best = Math.floor(score); try{ localStorage.setItem('rasante_best', best); }catch(e){} }
+  explodeAt(plane.x, plane.y, PZ, true);
+  const s = proj(plane.x, 0, PZ);
+  for (let i=0;i<16;i++) parts.push({ x:s.x+(Math.random()-0.5)*24, y:s.y, vx:(Math.random()-0.5)*40, vy:-40-Math.random()*60, life:0.6, c:P.foam, r:1.6 });
+  if (Math.floor(score) > best){ best = Math.floor(score); try{ localStorage.setItem('rasante_frontal_best', best); }catch(e){} }
+  if (eng) eng.g.gain.value = 0;
   beep(180, 0.5, 'sawtooth', 0.06, 40);
 }
 
@@ -200,150 +234,428 @@ function die(cause){
 function update(dt){
   t += dt;
 
+  // despegue automático desde Puerto Argentino: el control llega a los 3 s
+  if (state === 'takeoff'){
+    toT += dt;
+    const spdBase0 = Math.min(150, 62 + t*2.8);
+    spd = 6 + spdBase0 * Math.min(1, toT/2.0);
+    dist += spd*dt;
+    if (toT > 1.35 && plane.y < 12) plane.y += 7.2*dt;   // rotación y ascenso
+    cam.x += (plane.x*0.86 - cam.x)*Math.min(1, dt*7);
+    cam.y += (plane.y+2.6 - cam.y)*Math.min(1, dt*7);
+    if (cam.y < 3.4) cam.y = 3.4;
+    // polvo del carreteo
+    if (plane.y < 2.5 && Math.random() < 0.6){
+      const s = proj(plane.x + (Math.random()-0.5)*3, 0, PZ - Math.random()*1.5);
+      parts.push({ x:s.x, y:s.y-1, vx:(Math.random()-0.5)*30, vy:-(15+Math.random()*25), life:0.4, c:'#6b6f62', r:1.2 });
+    }
+    const cn = 3 - Math.floor(toT);
+    if (cn !== toCount && cn >= 0){ toCount = cn; beep(cn > 0 ? 520 : 980, 0.14, 'square', 0.06); }
+    if (eng){ eng.o.frequency.value = 46 + spd*0.55; eng.g.gain.value = 0.017*Math.min(1, toT); }
+    if (toT >= 3){ state = 'play'; popup(W/2, 54, 'CONTROL LIBRE!', P.accent); shake = Math.min(6, shake+1); }
+    parts.forEach(p => { p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=90*dt; p.life-=dt; });
+    parts = parts.filter(p => p.life>0);
+    popups.forEach(p => { p.y -= 14*dt; p.life -= dt; });
+    popups = popups.filter(p => p.life>0);
+    shake = Math.max(0, shake - dt*10);
+    anyPress = false;
+    return;
+  }
+
   if (state !== 'play'){
     if (state === 'dead') deathT += dt;
     parts.forEach(p => { p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=90*dt; p.life-=dt; });
     parts = parts.filter(p => p.life>0);
-    if (anyPress && (state==='menu' || deathT>0.7)){ reset(); state='play'; beep(600,0.08,'square',0.05); }
+    if (eng) eng.g.gain.value = 0;
+    if (anyPress && (state==='menu' || deathT>0.7)){ reset(); state='takeoff'; beep(600,0.08,'square',0.05); }
     anyPress = false;
     return;
   }
   anyPress = false;
 
-  spd = Math.min(170, 85 + t*2.2);
+  // velocidad — el multiplicador y la racha rasante aceleran el avión
+  const spdBase = Math.min(150, 62 + t*2.8);
+  boost = inp.turbo && fuel > 0;
+  // viento en contra: cuanto más tiempo arriba, más resistencia (hasta -35%)
+  if (plane.y > 16) windT = Math.min(6, windT + dt);
+  else windT = Math.max(0, windT - dt*2);
+  windF = 1 - Math.min(0.35, Math.max(0, windT - 0.8) * 0.075);
+  const rachaVel = 1 + rasLevel*0.12 + (mult >= 10 ? 0.10 : mult >= 5 ? 0.05 : 0);
+  const spdTarget = Math.min(280, spdBase * rachaVel * windF * (boost ? 1.5 : 1));
+  spd += (spdTarget - spd) * Math.min(1, dt*3);
+  // turbulencia: el viento sacude el avión
+  if (windF < 0.97){
+    plane.vx += (Math.random()-0.5)*95*(1-windF)*dt*4;
+    plane.vy += (Math.random()-0.5)*70*(1-windF)*dt*4;
+    shake = Math.max(shake, (1-windF)*3.5);
+    if (Math.random() < 0.02) boom(0.03, true);
+  }
+  // ráfagas visibles cruzando el cielo
+  if (windT > 0.8 && Math.random() < (windT/6)*0.9)
+    gusts.push({ x: W+10, y: 4+Math.random()*(HOR+26), v: 260+Math.random()*170, len: 10+Math.random()*18, life: 2 });
+  gusts.forEach(g => { g.x -= g.v*dt; g.life -= dt; });
+  gusts = gusts.filter(g => g.x > -32 && g.life > 0);
   dist += spd*dt;
-  fuelT += dt;
+  fuelDist += spd*dt;
 
-  // avión
-  const thrust = input.up && fuel > 0;
-  plane.vy += (thrust ? -560 : 300) * dt;
-  plane.vy = Math.max(-85, Math.min(100, plane.vy));
+  // maniobra
+  if (steerTarget){
+    const wx = (steerTarget.x - W/2)/(F/PZ) + cam.x;
+    const wy = cam.y - (steerTarget.y - HOR)/(F/PZ);
+    plane.vx = Math.max(-30, Math.min(30, (wx - plane.x)*5));
+    plane.vy = Math.max(-24, Math.min(24, (wy - plane.y)*5));
+  } else {
+    plane.vx += (inp.r - inp.l)*115*dt;
+    if (!inp.r && !inp.l) plane.vx *= Math.max(0, 1-4.5*dt);
+    plane.vx = Math.max(-30, Math.min(30, plane.vx));
+    // gas: mantener ARRIBA empuja hacia arriba; al soltar, la gravedad gana y el avión cae
+    const G = 22, TH = 55, DIVE = 30;
+    plane.vy += (((inp.u && fuel > 0) ? TH : 0) - G - (inp.d ? DIVE : 0)) * dt;
+    plane.vy = Math.max(-20, Math.min(18, plane.vy));
+  }
+  fuel -= (3.2 + (boost?4.2:0))*dt;
+  if (fuel <= 0){ fuel = 0; plane.vy = Math.min(plane.vy, -5); }
+  plane.x += plane.vx*dt;
   plane.y += plane.vy*dt;
-  if (plane.y < 6){ plane.y = 6; plane.vy = 0; }
+  if (plane.x < -30){ plane.x = -30; plane.vx = 0; }
+  if (plane.x >  30){ plane.x =  30; plane.vx = 0; }
+  if (plane.y >  46){ plane.y =  46; plane.vy = 0; }
 
-  fuel -= dt*5;
-  if (fuel < 0) fuel = 0;
+  cam.x += (plane.x*0.86 - cam.x)*Math.min(1, dt*7);
+  cam.y += (plane.y+2.6 - cam.y)*Math.min(1, dt*7);
+  if (cam.y < 3.4) cam.y = 3.4;
 
-  const alt = altOf(plane.y);
+  // puntaje por altitud + racha rasante
+  const alt = plane.y;
   mult = multOf(alt);
-  score += 10 * mult * dt;
+  if (alt <= 4.5){ streak += dt; graceT = 0.45; }
+  else if (graceT > 0) graceT -= dt;
+  else { streak = 0; rasLevel = 0; }
+  const newLevel = Math.min(4, Math.floor(streak/2));
+  if (newLevel > rasLevel){
+    rasLevel = newLevel;
+    const s = proj(plane.x, plane.y, PZ);
+    popup(s.x, s.y-16, 'RASANTE x'+(10+rasLevel*5)+'!', P.accent);
+    beep(500+rasLevel*180, 0.14, 'square', 0.06, 750+rasLevel*180);
+    shake = Math.min(6, shake+1.4);
+    // oleada de líneas de velocidad al subir de nivel
+    for (let i=0;i<14;i++){
+      const a = Math.random()*6.283;
+      streaks.push({ a, r:24+Math.random()*16, v:280+Math.random()*180, life:0.5 });
+    }
+  }
+  multShow = mult === 10 ? 10 + rasLevel*5 : mult;
+  score += (boost?2:1) * 12 * multShow * dt;
+  const overLand = dist + PZ < COAST;
+  if (plane.y <= (overLand ? 0.9 : waveNow()))
+    return die(overLand ? 'Chocaste el terreno' : 'Impactaste el mar');
 
-  // rocío al volar muy bajo
-  if (alt < 5 && Math.random() < 0.6)
-    parts.push({ x:plane.x-8, y:waveY(plane.x-8)-1, vx:-spd*0.4, vy:-20-Math.random()*30, life:0.3, c:P.foam, r:1 });
+  // estela sobre el agua
+  const lowI = Math.max(0, 1 - alt/9);
+  if (lowI > 0 && !overLand){
+    wake.push({ x:plane.x, z:PZ, i:lowI });
+    if (wake.length > 150) wake.shift();
+  }
+  for (const wp of wake) wp.z -= spd*dt;
+  wake = wake.filter(w => w.z > 2.4);
+
+  // rocío a ras del agua (escala con la cercanía)
+  const nSpray = alt < 2.8 ? 6 : alt < 4.5 ? 3 : alt < 7 ? 1 : 0;
+  for (let i=0;i<nSpray;i++){
+    const s = proj(plane.x + (Math.random()-0.5)*4, 0, PZ - Math.random()*2);
+    parts.push({ x:s.x, y:s.y-1, vx:(Math.random()-0.5)*70, vy:-(50+Math.random()*110)*(0.5+lowI),
+                 life:0.25+Math.random()*0.3, c:Math.random()<0.7?P.foam:P.crest, r:1+Math.random()*1.3 });
+  }
+  if (alt < 4.5) shake = Math.max(shake, (4.5-alt)*0.3);
 
   // radar
-  if (alt > 34) detection += dt/1.4; else detection -= dt/0.9;
+  if (alt > 30) detection += dt/1.4; else detection -= dt/0.9;
   detection = Math.max(0, Math.min(1, detection));
   if (detection >= 1){
     detection = 0.35;
-    missiles.push({ x:W+12, y: 20+Math.random()*40, vx:-(spd*0.55+120), hp:1 });
+    missiles.push({ x:plane.x+(Math.random()*24-12), y:plane.y+4, z:230, done:false });
     beep(880,0.12,'square',0.06); setTimeout(()=>beep(880,0.12,'square',0.06), 160);
   }
 
   // cañón
   fireT -= dt;
-  heat -= dt * (input.fire ? 0.22 : 0.5);
+  heat -= dt * (inp.fire ? 0.22 : 0.5);
   if (heat < 0) heat = 0;
   if (overheat && heat < 0.3) overheat = false;
-  if (input.fire && !overheat && fireT <= 0){
+  if (inp.fire && !overheat && fireT <= 0){
     fireT = 1/9;
-    bullets.push({ x:plane.x+9, y:plane.y+1, vx:340 });
-    heat += 0.11;
+    bullets.push({ x:plane.x, y:plane.y, z:PZ+3 });
+    heat += 0.10;
     if (heat >= 1){ overheat = true; beep(140,0.3,'sawtooth',0.05); }
-    else beep(1200+Math.random()*300, 0.04, 'square', 0.03);
+    else beep(1100+Math.random()*300, 0.04, 'square', 0.028);
   }
 
-  // scroll y spawns
-  spawnT -= dt;
-  if (spawnT <= 0){ spawn(); spawnT = (1.1 + Math.random()*0.8) * Math.max(0.6, 1 - t*0.004); }
+  // spawn por distancia
+  nextSpawn -= spd*dt;
+  if (nextSpawn <= 0){
+    spawn();
+    nextSpawn = Math.max(34, (52 + Math.random()*42) - t*0.8);
+  }
 
-  obstacles.forEach(o => o.x -= spd*dt);
-  obstacles = obstacles.filter(o => o.x > -40);
-  bullets.forEach(b => b.x += b.vx*dt);
-  bullets = bullets.filter(b => b.x < W+8);
-  missiles.forEach(m => {
-    m.x += m.vx*dt;
-    const dy = plane.y - m.y;
-    m.y += Math.max(-52, Math.min(52, dy*2.2)) * dt;
-    if (Math.random()<0.7) parts.push({ x:m.x+6, y:m.y, vx:20, vy:(Math.random()-0.5)*8, life:0.5, c:P.dim, r:1.3 });
-  });
-  missiles = missiles.filter(m => m.x > -20);
+  // obstáculos
+  for (const o of obstacles){
+    o.z -= spd*dt;
+    if (!o.done && o.z <= PZ+1.5){
+      o.done = true;
+      let hw, hh, oy;
+      if (o.type === 'mast'){ hw = 0.9; hh = o.h; oy = o.h/2; }
+      else { hw = o.type==='helo' ? 3 : 2.6; hh = o.type==='helo' ? 1.6 : 1.9; oy = o.y; }
+      const dx = Math.abs(plane.x - o.x) - (hw + 2.6);
+      const dy = Math.abs(plane.y - oy) - (hh + 1.2);
+      const hullHit = o.type==='mast' && Math.abs(plane.x-o.x) < 5+2.6 && plane.y < 3.6;
+      if (o.type === 'fuel'){
+        if (dx < 1.5 && dy < 1.5){
+          fuel = Math.min(100, fuel+30);
+          const s = proj(o.x, o.y, PZ); popup(s.x, s.y, '+COMB', P.foam);
+          beep(700,0.1,'triangle',0.05,1000); o.z = -99;
+        }
+      } else if ((dx < 0 && dy < 0) || hullHit){
+        return die(o.type==='mast' ? 'Chocaste una fragata' : o.type==='helo' ? 'Colision con helicoptero' : 'Globo de barrera');
+      } else if (dx < 3 && dy < 3){
+        score += 75; shake = Math.min(6, shake+1.5);
+        const s = proj(o.x, oy, PZ); popup(s.x, s.y-8, 'ROZASTE +75', P.foam);
+        boom(0.06, true);
+      }
+    }
+  }
+  obstacles = obstacles.filter(o => o.z > 2);
 
-  // colisiones balas
+  // misiles
+  for (const m of missiles){
+    m.z -= (spd + 85)*dt;
+    m.x += Math.max(-20, Math.min(20, (plane.x - m.x)*2.4))*dt;
+    m.y += Math.max(-14, Math.min(14, (plane.y - m.y)*2.0))*dt;
+    if (!m.done && m.z <= PZ+1.2){
+      m.done = true;
+      if (Math.abs(plane.x-m.x) < 3 && Math.abs(plane.y-m.y) < 2.2) return die('Te alcanzo un misil');
+      score += 75; const s = proj(m.x, m.y, PZ); popup(s.x, s.y-8, 'LO ESQUIVASTE +75', P.foam); boom(0.06, true);
+    }
+    if (Math.random() < 0.6){
+      const s = proj(m.x, m.y, m.z+2);
+      parts.push({ x:s.x, y:s.y, vx:(Math.random()-0.5)*6, vy:(Math.random()-0.5)*6, life:0.45, c:P.dim, r:Math.max(1, s.k*0.3) });
+    }
+  }
+  missiles = missiles.filter(m => m.z > 2);
+
+  // balas
   for (const b of bullets){
+    const z0 = b.z;
+    b.z += 300*dt;
     for (const o of obstacles){
       if (o.hp === undefined) continue;
-      const oy = o.y + (o.type==='helo' ? Math.sin(t*2+o.ph)*3 : 0);
-      if (Math.abs(b.x-o.x) < 9 && Math.abs(b.y-oy) < 9){
-        o.hp--; b.x = W+99;
+      if (o.z < z0-2 || o.z > b.z+2) continue;
+      const oy = o.y;
+      if (Math.abs(b.x-o.x) < (o.type==='helo'?3.4:3) && Math.abs(b.y-oy) < 2.4){
+        o.hp--; b.z = 999;
         if (o.hp <= 0){
           const pts = o.type==='helo' ? 300 : 150;
-          score += pts; popup(o.x, oy-10, '+'+pts);
-          explode(o.x, oy, o.type==='helo');
-          o.x = -99;
-        } else { parts.push({x:b.x,y:b.y,vx:-30,vy:-20,life:0.2,c:P.accent,r:1.5}); beep(300,0.05,'triangle',0.04); }
+          score += pts;
+          const s = proj(o.x, oy, o.z); popup(s.x, s.y-8, '+'+pts);
+          explodeAt(o.x, oy, o.z, o.type==='helo');
+          o.z = -99;
+        } else { beep(300,0.05,'triangle',0.04); }
+        break;
       }
     }
+    if (b.z >= 999) continue;
     for (const m of missiles){
-      if (Math.abs(b.x-m.x) < 8 && Math.abs(b.y-m.y) < 6){
-        const mx = m.x, my = m.y;
-        b.x = W+99; m.x = -99;
-        score += 400; popup(mx, my-10, '+400', P.warn);
-        explode(mx, my, true);
+      if (m.z < z0-2 || m.z > b.z+2) continue;
+      if (Math.abs(b.x-m.x) < 2.6 && Math.abs(b.y-m.y) < 2.2){
+        b.z = 999; score += 400;
+        const s = proj(m.x, m.y, m.z); popup(s.x, s.y-8, '+400', P.warn);
+        explodeAt(m.x, m.y, m.z, true);
+        m.z = -99;
+        break;
       }
     }
   }
+  bullets = bullets.filter(b => b.z < 240);
 
-  // colisiones avión (hitbox 14x6)
-  const px1 = plane.x-6, px2 = plane.x+8, py1 = plane.y-2, py2 = plane.y+4;
-  if (py2 >= waveY(plane.x)) return die('Tocaste el agua');
-  for (const o of obstacles){
-    if (o.type === 'mast'){
-      const wy = waveY(o.x);
-      if (px2 > o.x-3 && px1 < o.x+3 && py2 > wy - o.h) return die('Chocaste un mastil');
-      if (px2 > o.x-14 && px1 < o.x+14 && py2 > wy-7) return die('Chocaste una fragata');
-    } else if (o.type === 'fuel'){
-      if (px2 > o.x-5 && px1 < o.x+5 && py2 > o.y-6 && py1 < o.y+6){
-        fuel = Math.min(100, fuel+34); o.x = -99;
-        popup(o.x, o.y, '+COMB', P.foam); beep(700,0.1,'triangle',0.05,1000);
-      }
-    } else {
-      const oy = o.y + (o.type==='helo' ? Math.sin(t*2+o.ph)*3 : 0);
-      if (px2 > o.x-8 && px1 < o.x+8 && py2 > oy-7 && py1 < oy+7)
-        return die(o.type==='helo' ? 'Colision con helicoptero' : 'Chocaste un globo de barrera');
+  // líneas de velocidad
+  if (boost || rasLevel > 0 || spd > 115){
+    const n = (boost ? 3 : 1) + rasLevel;
+    for (let i=0;i<n;i++){
+      const a = Math.random()*6.283;
+      streaks.push({ a, r: 26+Math.random()*20, v: 240+Math.random()*160, life:0.5 });
     }
   }
-  for (const m of missiles)
-    if (px2 > m.x-5 && px1 < m.x+5 && py2 > m.y-3 && py1 < m.y+3) return die('Impacto de misil');
+  streaks.forEach(s => { s.r += s.v*dt; s.life -= dt; });
+  streaks = streaks.filter(s => s.life>0 && s.r < 260);
 
-  // partículas y popups
   parts.forEach(p => { p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=90*dt; p.life-=dt; });
   parts = parts.filter(p => p.life>0);
   popups.forEach(p => { p.y -= 14*dt; p.life -= dt; });
   popups = popups.filter(p => p.life>0);
-  shake = Math.max(0, shake - dt*12);
+  shake = Math.max(0, shake - dt*10);
+  if (boost) shake = Math.max(shake, 0.8 + (plane.y<5 ? 0.7 : 0));
 
+  if (eng){
+    eng.o.frequency.value = 46 + spd*0.55 + (boost?28:0);
+    eng.g.gain.value = boost ? 0.030 : 0.017;
+  }
   if (fuel <= 0 && Math.random()<0.05) beep(90,0.08,'sawtooth',0.03);
 }
 
 // ---------- render ----------
-function px(x,y,w,h,c){ ctx.fillStyle=c; ctx.fillRect(Math.round(x),Math.round(y),w,h); }
+function px(x,y,w,h,c){ ctx.fillStyle=c; ctx.fillRect(Math.round(x),Math.round(y),Math.max(1,Math.round(w)),Math.max(1,Math.round(h))); }
 
-function drawPlane(){
-  ctx.save();
-  ctx.translate(Math.round(plane.x), Math.round(plane.y));
-  ctx.rotate(Math.max(-0.45, Math.min(0.45, plane.vy/220)));
-  // llama del motor
-  if (fuel > 0 && Math.random()<0.8) px(-10, 1, 3+Math.random()*3, 2, Math.random()<0.5?P.accent:P.warn);
-  for (let r=0; r<PLANE_SPR.length; r++)
-    for (let c=0; c<16; c++){
-      const ch = PLANE_SPR[r][c];
-      if (ch !== '.') px(c-8, r-4, 1, 1, SPR_COL[ch]);
+function drawSea(){
+  const landVisible = dist < COAST + 80;
+  for (let y = HOR+1; y < H; y++){
+    const dy = y - HOR;
+    const z = cam.y * F / dy;
+    const wz = z + dist;
+    if (landVisible && wz < COAST){
+      // turba malvinense con la pista de la BAM
+      const vl = Math.sin(wz*0.22) + Math.sin(wz*0.07);
+      px(0, y, W, 1, vl > 0.8 ? '#39402f' : vl < -0.8 ? '#2b3226' : '#323a2b');
+      const k = F/z;
+      const x1 = W/2 + (-7 - cam.x)*k, x2 = W/2 + (7 - cam.x)*k;
+      px(x1, y, x2-x1, 1, '#41474b');                                   // asfalto
+      if (Math.floor(wz/9) % 2 === 0)
+        px(W/2 + (0-cam.x)*k - Math.max(1,0.5*k)/2, y, Math.max(1,0.5*k), 1, '#9aa39b'); // eje
+      if (Math.floor(wz/14) % 2 === 0){                                  // balizas
+        px(x1 - Math.max(1,0.5*k), y, Math.max(1,0.5*k), 1, P.accent);
+        px(x2, y, Math.max(1,0.5*k), 1, P.accent);
+      }
+      continue;
     }
-  // fogonazo
-  if (input.fire && !overheat && fireT > 0.06) px(9, 0, 3, 2, P.ink);
+    if (landVisible && wz < COAST + 7){ px(0, y, W, 1, P.foam); continue; }  // rompiente
+    // base oscura del mar (degradado por profundidad) para que los puntos resalten
+    const f = dy/(H-HOR);
+    px(0, y, W, 1, f < 0.22 ? WATER.base0 : f < 0.5 ? WATER.base1 : WATER.base2);
+  }
+  drawSeaDots(landVisible);
+}
+
+// malla de puntos que forma la onda del mar en perspectiva (estilo boostivity)
+function drawSeaDots(landVisible){
+  const SPX = 2.8, SPZ = 3.0, farZ = 190;
+  const startZ = Math.ceil((dist + 4) / SPZ) * SPZ;
+  for (let wz = startZ; wz < dist + farZ; wz += SPZ){
+    if (landVisible && wz < COAST + 6) continue;           // sin puntos sobre tierra/rompiente
+    const camZ = wz - dist;
+    const k = F / camZ;
+    const fade = Math.min(1, (camZ - 3) / 9) * (1 - (camZ / farZ) * 0.8);
+    if (fade <= 0.03) continue;
+    const dotW = Math.max(1, k * 0.48);
+    const xL = cam.x - 74, xR = cam.x + 74;
+    const x0 = Math.ceil(xL / SPX) * SPX;
+    for (let wx = x0; wx < xR; wx += SPX){
+      const h = seaH(wx, wz);
+      const s = proj(wx, h, camZ);
+      if (s.x < -4 || s.x > W + 4 || s.y < HOR - 2) continue;
+      let hn = (h + 1.4) / 4.8;                              // altura normalizada ~0..1
+      hn = hn < 0 ? 0 : hn > 1 ? 1 : hn;
+      // bandas de luz que viajan por la superficie (movimiento visible aun en la distancia)
+      const shimmer = Math.sin(wz*0.06 - t*2.6 + wx*0.045);
+      if (shimmer > 0.6) hn = Math.min(1, hn + 0.24);
+      const col = hn > 0.72 ? WATER.crest : hn > 0.42 ? WATER.mid : WATER.deep;
+      ctx.globalAlpha = fade * (0.25 + hn * 0.6 + (shimmer > 0.6 ? 0.15 : 0));
+      px(s.x - dotW / 2, s.y, dotW, dotW, col);
+      // destello en las crestas cercanas (titileo determinista, sin flicker feo)
+      if (hn > 0.78 && k > 1.6 && Math.sin(wx * 12.9 + wz * 7.3 + t * 6) > 0.7){
+        ctx.globalAlpha = fade * 0.55;
+        px(s.x - dotW / 2 - 1, s.y - 1, dotW + 2, Math.max(1, dotW * 0.6), WATER.spark);
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawWake(){
+  for (const wp of wake){
+    const trail = PZ - wp.z;                       // metros que quedaron atrás
+    const s = proj(wp.x, 0, wp.z);
+    const spread = (0.6 + trail*0.34) * s.k;       // apertura de la V
+    ctx.globalAlpha = Math.min(0.85, wp.i*(0.3 + trail*0.055));
+    px(s.x - s.k*0.7, s.y, s.k*1.4, Math.max(1, s.k*0.2), P.foam);       // centro batido
+    px(s.x - spread - s.k*0.7, s.y, s.k*1.4, 1, P.crest);                // brazo izq
+    px(s.x + spread - s.k*0.7, s.y, s.k*1.4, 1, P.crest);                // brazo der
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawPlaneSprite(){
+  const s = proj(plane.x, plane.y, PZ);
+  // sombra sobre el agua (referencia de altura)
+  const sh = proj(plane.x, 0, PZ);
+  ctx.globalAlpha = Math.max(0.08, 0.4 - plane.y*0.009);
+  px(sh.x-9, sh.y, 18, 2, '#101c1e');
+  // espuma batida justo debajo cuando vuela bajo
+  const churn = Math.max(0, 1 - plane.y/7);
+  if (churn > 0 && state === 'play'){
+    ctx.globalAlpha = churn*0.7;
+    px(sh.x-11, sh.y-1, 22, 2, P.foam);
+    px(sh.x-15, sh.y, 30, 1, P.crest);
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.save();
+  ctx.translate(Math.round(s.x), Math.round(s.y));
+  ctx.rotate(Math.max(-0.5, Math.min(0.5, plane.vx/58)));
+  // fuselaje y alas (vista trasera)
+  px(-2, -7, 4, 5, P.bodyDark);          // deriva
+  px(-1, -8, 2, 2, P.warn);              // baliza
+  px(-20, -1, 40, 3, P.body);            // ala
+  px(-20, 0, 6, 2, P.bodyDark);          // puntera izq
+  px(14, 0, 6, 2, P.bodyDark);           // puntera der
+  px(-3, -3, 6, 6, P.body);              // fuselaje
+  px(-2, -4, 4, 2, P.canopy);            // cabina
+  px(-12, 1, 3, 2, P.accent);            // escarapela
+  // toberas
+  const fl = boost ? 5+Math.random()*4 : (fuel>0 ? 2+Math.random()*2 : 0);
+  if (fl > 0){ px(-2, 3, 4, fl, boost ? P.foam : P.accent); px(-1, 3, 2, fl*0.6, P.accent); }
+  // fogonazos del cañón
+  if (inp.fire && !overheat && fireT > 0.06){ px(-16, -2, 3, 2, P.ink); px(13, -2, 3, 2, P.ink); }
   ctx.restore();
+
+  // mira
+  if (state === 'play'){
+    const c = proj(plane.x, plane.y, 70);
+    ctx.globalAlpha = 0.7;
+    px(c.x-3, c.y, 2, 1, P.accent); px(c.x+2, c.y, 2, 1, P.accent);
+    px(c.x, c.y-3, 1, 2, P.accent); px(c.x, c.y+2, 1, 2, P.accent);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawObstacle(o){
+  const k = F/o.z;
+  if (o.type === 'mast'){
+    const base = proj(o.x, 0, o.z);
+    px(base.x - 5*k, base.y - 2.5*k, 10*k, 2.5*k, P.bodyDark);          // casco
+    px(base.x - 5*k, base.y - 2.5*k, 10*k, Math.max(1,0.6*k), '#5c6e73');
+    px(base.x - 0.45*k, base.y - o.h*k, Math.max(1,0.9*k), o.h*k, P.bodyDark); // mástil
+    px(base.x - 2.2*k, base.y - (o.h-2)*k, 4.4*k, Math.max(1,0.5*k), P.bodyDark);
+    px(base.x - 0.45*k, base.y - o.h*k, Math.max(1,0.9*k), Math.max(1,0.7*k), P.warn);
+  } else if (o.type === 'balloon'){
+    const oy = o.y + Math.sin(t*1.3+o.ph)*0.6;
+    const s = proj(o.x, oy, o.z), base = proj(o.x, 0, o.z);
+    ctx.strokeStyle = P.bodyDark; ctx.beginPath();
+    ctx.moveTo(s.x, s.y+1.6*k); ctx.lineTo(base.x, base.y); ctx.stroke();
+    px(s.x-2.6*k, s.y-1.6*k, 5.2*k, 3.2*k, P.dim);
+    px(s.x-2.6*k, s.y-1.6*k, 5.2*k, Math.max(1,1.1*k), P.body);
+    px(s.x+1.8*k, s.y-0.4*k, 1.8*k, Math.max(1,1.1*k), P.bodyDark);
+  } else if (o.type === 'helo'){
+    const oy = o.y + Math.sin(t*2+o.ph)*0.8;
+    const s = proj(o.x, oy, o.z);
+    px(s.x-3*k, s.y-0.8*k, 6*k, 2*k, P.bodyDark);
+    px(s.x+2.4*k, s.y-0.4*k, 2.4*k, Math.max(1,0.8*k), P.bodyDark);
+    px(s.x-1.4*k, s.y-1.4*k, 2*k, Math.max(1,0.8*k), P.canopy);
+    const r = Math.sin(t*40)*4;
+    px(s.x-(4+r*0.2)*k, s.y-2*k, (8+r*0.4)*k, 1, P.body);
+  } else if (o.type === 'fuel'){
+    const oy = o.y + Math.sin(t*2)*0.5;
+    const s = proj(o.x, oy, o.z);
+    px(s.x-1.4*k, s.y-1.8*k, 2.8*k, 3.6*k, P.accent);
+    px(s.x-1.4*k, s.y-0.4*k, 2.8*k, Math.max(1,0.7*k), P.ink);
+  }
 }
 
 function draw(){
@@ -351,84 +663,76 @@ function draw(){
   ctx.save(); ctx.translate(Math.round(sx), Math.round(sy));
 
   // cielo
-  const g = ctx.createLinearGradient(0,0,0,WATER);
-  g.addColorStop(0,P.skyTop); g.addColorStop(0.65,P.skyMid); g.addColorStop(1,P.horizon);
-  ctx.fillStyle = g; ctx.fillRect(-4,-4,W+8,WATER+8);
-  // resplandor del ocaso
-  ctx.fillStyle = P.sunGlow; ctx.globalAlpha = 0.35;
-  ctx.fillRect(-4, WATER-16, W+8, 16); ctx.globalAlpha = 1;
-
-  // nubes (parallax)
-  ctx.fillStyle = P.cloud;
+  const g = ctx.createLinearGradient(0,0,0,HOR);
+  g.addColorStop(0,P.skyTop); g.addColorStop(0.6,P.skyMid); g.addColorStop(1,P.horizon);
+  ctx.fillStyle = g; ctx.fillRect(-4,-4,W+8,HOR+8);
+  ctx.globalAlpha = 0.4; px(-4, HOR-10, W+8, 10, P.sunGlow); ctx.globalAlpha = 1;
+  // sol bajo
+  const sunX = W/2 - cam.x*1.4;
+  px(sunX-7, HOR-11, 14, 8, P.sun);
+  ctx.globalAlpha = 0.35; px(sunX-10, HOR-13, 20, 12, P.sunGlow); ctx.globalAlpha = 1;
+  // nubes
   for (const c of clouds){
-    const cx = ((c.x - dist*0.25) % (W+80) + W+80) % (W+80) - 40;
-    px(cx, c.y, c.w, 4, P.cloud); px(cx+6, c.y-3, c.w*0.55, 3, P.cloud);
+    const cx = ((c.x - cam.x*2.2 - t*2) % (W+80) + W+80) % (W+80) - 40;
+    px(cx, c.y, c.w, 3, P.cloud); px(cx+5, c.y-2, c.w*0.5, 2, P.cloud);
   }
-  // islas (parallax)
+  // islas en el horizonte
   for (const is of isles){
-    const ix = ((is.x - dist*0.5) % (W+160) + W+160) % (W+160) - 80;
+    const ix = ((is.x - cam.x*3.5) % (W+160) + W+160) % (W+160) - 80;
     ctx.fillStyle = P.island;
     ctx.beginPath();
-    ctx.moveTo(ix, WATER); ctx.lineTo(ix+is.w*0.3, WATER-is.h);
-    ctx.lineTo(ix+is.w*0.7, WATER-is.h*0.6); ctx.lineTo(ix+is.w, WATER);
+    ctx.moveTo(ix, HOR+1); ctx.lineTo(ix+is.w*0.35, HOR+1-is.h); ctx.lineTo(ix+is.w*0.7, HOR+1-is.h*0.5); ctx.lineTo(ix+is.w, HOR+1);
     ctx.fill();
   }
 
-  // mar
-  for (let x=0; x<W; x++){
-    const wy = Math.round(waveY(x));
-    px(x, wy, 1, H-wy, P.sea);
-    px(x, wy+8, 1, H-wy-8, P.seaDeep);
-    px(x, wy, 1, 1, P.crest);
-    if (Math.sin((x+dist)*0.045 + t*1.2) > 0.93) px(x, wy, 1, 1, P.foam);
-  }
+  drawSea();
+  drawWake();
 
-  // obstáculos
-  for (const o of obstacles){
-    if (o.type === 'mast'){
-      const wy = waveY(o.x);
-      px(o.x-14, wy-7, 28, 8, P.bodyDark);              // casco
-      px(o.x-14, wy-7, 28, 2, '#5c6e73');
-      px(o.x-1, wy-o.h, 3, o.h, P.bodyDark);            // mástil
-      px(o.x-6, wy-o.h+4, 13, 2, P.bodyDark);           // cruceta
-      px(o.x-1, wy-o.h, 3, 2, P.warn);                  // baliza
-    } else if (o.type === 'balloon'){
-      const oy = o.y + Math.sin(t*1.3+o.ph)*2;
-      ctx.strokeStyle = P.bodyDark; ctx.beginPath();
-      ctx.moveTo(o.x, oy+5); ctx.lineTo(o.x, waveY(o.x)); ctx.stroke();
-      px(o.x-7, oy-4, 14, 9, P.dim);
-      px(o.x-7, oy-4, 14, 3, P.body);
-      px(o.x+5, oy-1, 5, 3, P.bodyDark);                // aleta
-    } else if (o.type === 'helo'){
-      const oy = o.y + Math.sin(t*2+o.ph)*3;
-      px(o.x-6, oy-2, 12, 5, P.bodyDark);
-      px(o.x+4, oy-1, 6, 2, P.bodyDark);                // cola
-      px(o.x-3, oy-3, 4, 2, P.canopy);
-      const r = Math.sin(t*40)*8;
-      px(o.x-8+r*0.3, oy-5, 16, 1, P.body);             // rotor
-    } else if (o.type === 'fuel'){
-      const oy = o.y + Math.sin(t*2)*1.5;
-      px(o.x-4, oy-5, 9, 11, P.accent);
-      px(o.x-4, oy-2, 9, 2, P.ink);
-      px(o.x-2, oy-7, 5, 2, P.bodyDark);
-    }
+  // ráfagas de viento
+  ctx.globalAlpha = 0.35;
+  for (const g2 of gusts){
+    px(g2.x, g2.y, g2.len, 1, P.crest);
+    px(g2.x+3, g2.y+1, g2.len*0.5, 1, P.dim);
   }
+  ctx.globalAlpha = 1;
 
-  // balas y misiles
-  for (const b of bullets){ px(b.x-3, b.y, 4, 1, P.ink); px(b.x-6, b.y, 3, 1, P.accent); }
+  // obstáculos de lejos a cerca
+  const all = obstacles.slice().sort((a,b) => b.z - a.z);
+  for (const o of all) if (o.z > 3) drawObstacle(o);
+
+  // misiles
   for (const m of missiles){
-    px(m.x-4, m.y-1, 9, 2, P.ink);
-    px(m.x+5, m.y-1, 2, 2, P.warn);
-    if (Math.random()<0.8) px(m.x+7, m.y-1, 3, 2, P.accent);
+    if (m.z <= 3) continue;
+    const s = proj(m.x, m.y, m.z), k = s.k;
+    px(s.x-0.8*k, s.y-0.8*k, 1.6*k, 1.6*k, P.ink);
+    px(s.x-0.4*k, s.y+0.8*k, 0.8*k, Math.max(1,1.2*k), P.accent);
+  }
+  // balas (trazadoras hacia el horizonte)
+  for (const b of bullets){
+    if (b.z >= 240) continue;
+    const s = proj(b.x, b.y, b.z);
+    px(s.x, s.y, Math.max(1, s.k*0.4), Math.max(1, s.k*0.4), P.ink);
+    const s2 = proj(b.x, b.y, b.z-6);
+    ctx.strokeStyle = P.accent; ctx.globalAlpha = 0.5;
+    ctx.beginPath(); ctx.moveTo(s2.x, s2.y); ctx.lineTo(s.x, s.y); ctx.stroke();
+    ctx.globalAlpha = 1;
   }
 
-  if (state !== 'dead') drawPlane();
+  if (state !== 'dead') drawPlaneSprite();
 
-  // partículas
+  // líneas de velocidad
+  ctx.globalAlpha = 0.5;
+  for (const s of streaks){
+    const x1 = W/2 + Math.cos(s.a)*s.r, y1 = HOR-4 + Math.sin(s.a)*s.r*0.62;
+    const x2 = W/2 + Math.cos(s.a)*(s.r+9), y2 = HOR-4 + Math.sin(s.a)*(s.r+9)*0.62;
+    ctx.strokeStyle = P.foam;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
   for (const p of parts){ ctx.globalAlpha = Math.min(1, p.life*2); px(p.x, p.y, p.r, p.r, p.c); }
   ctx.globalAlpha = 1;
 
-  // popups
   ctx.font = '7px monospace'; ctx.textAlign = 'center';
   for (const p of popups){ ctx.globalAlpha = Math.min(1, p.life); ctx.fillStyle = p.c; ctx.fillText(p.txt, p.x, p.y); }
   ctx.globalAlpha = 1;
@@ -436,8 +740,24 @@ function draw(){
   if (state === 'play') drawHUD();
   ctx.restore();
 
+  if (state === 'takeoff') drawTakeoff();
   if (state === 'menu') drawMenu();
   if (state === 'dead') drawDead();
+}
+
+function drawTakeoff(){
+  ctx.textAlign = 'center';
+  ctx.fillStyle = P.dim; ctx.font = '7px monospace';
+  ctx.fillText('DESPEGUE · PUERTO ARGENTINO · BAM MALVINAS', W/2, 26);
+  const cn = 3 - Math.floor(toT);
+  if (cn >= 1){
+    const frac = toT % 1;
+    ctx.fillStyle = P.accent;
+    ctx.font = 'bold ' + Math.round(30 - frac*10) + 'px monospace';
+    ctx.fillText(String(cn), W/2, 68);
+  }
+  ctx.fillStyle = '#5c6e73'; ctx.font = '6px monospace';
+  ctx.fillText('rumbo al estrecho de San Carlos', W/2, 80);
 }
 
 function bar(x, y, w, val, c, label){
@@ -450,20 +770,51 @@ function bar(x, y, w, val, c, label){
 function drawHUD(){
   ctx.font = '8px monospace'; ctx.textAlign = 'left'; ctx.fillStyle = P.ink;
   const digits = String(Math.floor(score)).padStart(6,'0');
-  for (let i=0; i<digits.length; i++) ctx.fillText(digits[i], 6+i*6, 12);
+  for (let i=0;i<digits.length;i++) ctx.fillText(digits[i], 6+i*6, 12);
   ctx.textAlign = 'right'; ctx.fillStyle = P.dim;
   ctx.fillText('MEJOR ' + best, W-6, 12);
 
-  // multiplicador
-  const alt = altOf(plane.y);
-  if (mult > 1){
-    ctx.textAlign = 'left';
-    ctx.font = mult >= 5 ? 'bold 11px monospace' : 'bold 9px monospace';
-    ctx.fillStyle = mult >= 10 ? P.accent : mult >= 5 ? '#d9b06a' : P.dim;
-    if (mult < 10 || Math.sin(t*10) > -0.6) ctx.fillText('x'+mult, plane.x+14, plane.y-8);
+  // velocidad
+  ctx.textAlign = 'center'; ctx.font = '7px monospace';
+  ctx.fillStyle = boost || rasLevel > 0 ? P.accent : windF < 0.97 ? P.crest : P.dim;
+  ctx.fillText(Math.round(spd*4.2) + ' KM/H' + (boost ? ' TURBO' : windF < 0.97 ? ' ▼' : ''), W/2, H-4);
+
+  // aviso de viento en contra
+  if (windF < 0.97){
+    ctx.textAlign = 'center'; ctx.font = 'bold 7px monospace';
+    ctx.fillStyle = Math.sin(t*8) > 0 ? P.crest : P.dim;
+    ctx.fillText('~ VIENTO EN CONTRA ~', W/2, 27);
   }
 
-  // radar
+  // multiplicador junto al avión — crece con la racha rasante
+  if (multShow > 1){
+    const s = proj(plane.x, plane.y, PZ);
+    ctx.textAlign = 'left';
+    const size = multShow >= 15 ? 12 + rasLevel : multShow >= 10 ? 11 : multShow >= 5 ? 10 : 9;
+    ctx.font = 'bold ' + size + 'px monospace';
+    ctx.fillStyle = multShow >= 25 ? (Math.sin(t*16)>0 ? P.warn : P.accent)
+                  : multShow >= 15 ? P.accent
+                  : multShow >= 10 ? P.accent
+                  : multShow >= 5 ? '#d9b06a' : P.dim;
+    const jx = rasLevel > 0 ? (Math.random()-0.5)*rasLevel : 0;
+    const jy = rasLevel > 0 ? (Math.random()-0.5)*rasLevel : 0;
+    if (multShow < 10 || Math.sin(t*10) > -0.6)
+      ctx.fillText('x'+multShow+(boost?' x2':''), s.x+24+jx, s.y-6+jy);
+    // barra de progreso hacia el próximo nivel de racha
+    if (mult === 10 && rasLevel < 4){
+      const prog = (streak % 2) / 2;
+      ctx.fillStyle = '#00000066'; ctx.fillRect(s.x+24, s.y-3, 26, 3);
+      px(s.x+25, s.y-2, Math.round(24*prog), 1, P.accent);
+    }
+  }
+  // borde encendido según la racha
+  if (rasLevel > 0){
+    ctx.globalAlpha = 0.05*rasLevel + Math.max(0, Math.sin(t*6))*0.04*rasLevel;
+    px(0, 0, W, 3, P.accent); px(0, H-3, W, 3, P.accent);
+    px(0, 0, 3, H, P.accent); px(W-3, 0, 3, H, P.accent);
+    ctx.globalAlpha = 1;
+  }
+
   if (detection > 0.3){
     ctx.textAlign = 'center'; ctx.font = 'bold 8px monospace';
     ctx.fillStyle = Math.sin(t*14) > 0 ? P.warn : '#7d2f1e';
@@ -482,16 +833,18 @@ function drawMenu(){
   panel();
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = 'bold 26px monospace';
-  ctx.fillText('R A S A N T E', W/2, 58);
+  ctx.fillText('R A S A N T E', W/2, 52);
   ctx.fillStyle = P.dim; ctx.font = '7px monospace';
-  ctx.fillText('vuelo rasante · Atlantico Sur · 1982', W/2, 72);
+  ctx.fillText('vista frontal · Atlantico Sur · 1982', W/2, 66);
   ctx.fillStyle = P.ink; ctx.font = '7px monospace';
-  ctx.fillText('MANTENE APRETADO: subir · SOLTA: bajar · X: canon', W/2, 100);
-  ctx.fillText('Mas bajo = mas puntos. El agua no perdona.', W/2, 112);
-  ctx.fillText('Muy alto = te detecta el radar.', W/2, 122);
+  ctx.fillText('ARRIBA: gas (si soltas, caes) · IZQ/DER: esquivar', W/2, 92);
+  ctx.fillText('ABAJO: picada · X: canon · SHIFT: turbo', W/2, 102);
+  ctx.fillText('Mas bajo = mas puntos. Rozar obstaculos da bonus.', W/2, 114);
+  ctx.fillText('El turbo duplica el puntaje y quema combustible.', W/2, 124);
+  ctx.fillText('Muy alto = te detecta el radar.', W/2, 134);
   if (Math.sin(t*4) > -0.3){
     ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-    ctx.fillText('ESPACIO o TOCAR para despegar', W/2, 145);
+    ctx.fillText('CUALQUIER TECLA o TOCAR para despegar', W/2, 148);
   }
   ctx.fillStyle = '#5c6e73'; ctx.font = '6px monospace';
   ctx.fillText('En homenaje a los pilotos y veteranos de Malvinas', W/2, 168);
@@ -518,13 +871,11 @@ function drawDead(){
   ctx.fillStyle = Math.floor(score) >= best && best > 0 ? P.accent : P.dim;
   ctx.font = '8px monospace';
   ctx.fillText((Math.floor(score) >= best && best > 0 ? '★ NUEVO RECORD ★' : 'MEJOR  ' + best), W/2, 92);
-
   ctx.fillStyle = '#8a9ba1'; ctx.font = '6px monospace';
   wrapText('» ' + FACTS[factIdx], W/2, 116, 260, 9);
-
   if (deathT > 0.7 && Math.sin(t*4) > -0.3){
     ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-    ctx.fillText('ESPACIO o TOCAR para volver a volar', W/2, 152);
+    ctx.fillText('CUALQUIER TECLA o TOCAR para volver a volar', W/2, 152);
   }
 }
 
