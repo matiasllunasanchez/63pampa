@@ -18,7 +18,10 @@ histórico sobrio (fichas con hechos reales). Arte pixel-art que el autor hará 
 
 - **Autor:** Matias.
 - **Stack:** un único archivo HTML autocontenido, Canvas 2D + Web Audio, sin dependencias ni build.
-- **Resolución nativa:** 320×180 px, escalada con `image-rendering: pixelated`.
+- **Resolución:** se dibuja en coords lógicas **320×180**, pero el buffer del canvas es **2× (640×360)**
+  (`const SC=2`; `ctx.setTransform(SC,0,0,SC,0,0)` al inicio de `draw()`) → texto y arte más nítidos sin
+  cambiar el código de dibujo. Escalado a pantalla con `image-rendering: pixelated`. El input mapea por
+  el ancho CSS (`canvasPos`), independiente del buffer — no cambia. (Header/footer siguen siendo HTML, nítidos.)
 - **Estado general:** prototipo jugable y bastante pulido en gamefeel. Falta reemplazar arte
   placeholder por sprites propios y sumar las mecánicas de "clímax" (bombardeo, desafío diario).
 

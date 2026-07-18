@@ -66,6 +66,7 @@
 const cv = document.getElementById('g');
 const ctx = cv.getContext('2d');
 const W = 320, H = 180, HOR = 64, F = 90, PZ = 14;
+const SC = 2; cv.width = W*SC; cv.height = H*SC;   // buffer 2× (se dibuja en coords 320×180): texto/arte más nítidos
 // la longitud de tierra firme (pista de Puerto Argentino) antes del mar es cfg.coast (ver config)
 
 // ---------- paleta ----------
@@ -1087,6 +1088,7 @@ function drawObstacle(o){
 }
 
 function draw(){
+  ctx.setTransform(SC, 0, 0, SC, 0, 0);   // buffer 2×: todo el dibujo sigue en coords 320×180
   const sx = (Math.random()-0.5)*shake, sy = (Math.random()-0.5)*shake;
   ctx.save(); ctx.translate(Math.round(sx), Math.round(sy));
 
