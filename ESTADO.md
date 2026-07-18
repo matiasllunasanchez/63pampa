@@ -1,6 +1,6 @@
 # RASANTE — Estado del proyecto
 
-_Documento de continuidad. Última actualización: 17 de julio de 2026._
+_Documento de continuidad. Última actualización: 18 de julio de 2026._
 
 Resumen de todo lo construido, cómo está armado y por dónde seguir. Pensado para
 retomar el proyecto sin tener que releer todo el código.
@@ -48,7 +48,7 @@ histórico sobrio (fichas con hechos reales). Arte pixel-art que el autor hará 
 | `lateral.html` | Primer prototipo, scroll lateral (Flappy-like). Conservado de referencia. |
 | `README.md`    | Doc de jugador + controles + tuning + pipeline de arte.                |
 | `ESTADO.md`    | Este documento.                                                        |
-| `assets/`      | Arte fuente. `pampav1_op.webp` = sprite del avión (embebido en index.html). |
+| `assets/`      | Arte fuente. 5 sprites de avión `*.webp` (embebidos en index.html como data URI). |
 
 ---
 
@@ -82,6 +82,15 @@ te frena (viento), te expone (radar) y te sacude (turbulencia). No hay refugio g
 - **Cañón 20 mm** con calentamiento (`heat` / `overheat`): globos +150, helicópteros +300 (2 impactos),
   aviones enemigos +250 (2 impactos), misiles +400. Mástiles, fragatas y agua **no** se destruyen
   (esquivar sigue siendo la habilidad central).
+- **Misiles del jugador** (arma secundaria): tecla `Z` o botón táctil `#msl` (abajo-izq, solo en juego).
+  Munición limitada `msl` (máx `MSL_MAX`=3, recarga 1 cada 7 s, cooldown 0.5 s), pips en el HUD. One-shot con
+  hitbox amplio + guiado leve; +100 de bonus sobre el valor del blanco; interceptan misiles enemigos.
+  Array **propio** `pmissiles`, **jamás** chequeado contra el hitbox del avión (no pueden autoeliminarte).
+- **🐞 FIX (bug de munición = choque):** al derribar un obstáculo/misil con munición se seteaba `o.z=-99`
+  pero NO `o.done`, así que el frame siguiente el loop de colisión del avión procesaba el objeto muerto y,
+  si el avión estaba en su carril, disparaba `die()`. Ahora se marca `.done=true` al destruir (balas,
+  misiles del jugador e intercepción de misiles enemigos). Verificado con simulación numérica del orden de
+  frames: sin fix → el avión moría por su propia munición; con fix → no.
 - **Avión enemigo de frente (`jet`)**: reemplaza parte de los helos en el spawn (helo 10 %, jet 8 %;
   antes helo 18 %). Viene **de frente y cierra más rápido** (`spd+45`) para dar sensación de combate
   aéreo. Blanco aéreo con el mismo trato que el helo (auto-apuntado vertical + hitbox horizontal `5.6`
@@ -114,6 +123,39 @@ te frena (viento), te expone (radar) y te sacude (turbulencia). No hay refugio g
   refleja ARRIBA, en táctil usa `vy>0` como proxy; muestra "SIN GAS" con combustible en 0.
 - **Récord local** (`localStorage: rasante_frontal_best`).
 - **Fichas históricas** reales en la pantalla de derribo (array `L().facts`, ver i18n).
+- **Música + botón de sonido:** dos pistas (`musLobby`=`the_weight_of_honor.mp3`, vol 0.55; `musGame`=
+  `weight_of_honor_v2.mp3`, vol 0.30), vía `<audio>` (aparte del SFX WebAudio). **El lobby suena SOLO en
+  `modeselect` + `menu` (`inLobby()`)**; desde takeoff/play y en las pantallas de fin (derribado, nivel,
+  victoria, objetivo) suena la del juego — nunca el lobby. `updateMusic()` cambia de pista según `inLobby()`; arranca en la primera interacción
+  (`startMusicOnce`, política de autoplay). Botón HTML `#snd` (esquina sup. der. del stage) togglea `muted`
+  (persistido en `localStorage: rasante_muted`); mutear también silencia SFX y motor. **A futuro:**
+  soundtracks por nivel/momento/secuencia (una pista por contexto).
+  ⚠️ **Los MP3 (~3.7MB c/u) están embebidos como data URI → `index.html` pesa ~10MB.** Es el precio de
+  que suene en el artifact autocontenido, y **la señal más fuerte hacia el pipeline de assets** (ver §9 y
+  la nota de arquitectura): al migrar, los MP3 salen del base64 y se cargan como archivos.
+- **Flujo de pantallas:** estado inicial `'modeselect'` (3 modos, `MODES`, `drawModeSelect`, `modeSel`).
+  CAMPAÑA → `startCampaign()` (avión `CAMPAIGN_PLANE`=A-4 + `CAMPAIGN_CFG` fijos, directo a `takeoff`).
+  CICLO DE MUERTE → `goCycle()` (aleatoriza mapa con `randomizeCfg()`, va al `'menu'`). SUPERVIVENCIA →
+  `goSurvival()` (`'menu'`). `'menu'` (avión + `[M]` config) lo comparten CICLO y SUPERVIVENCIA; `[ESC]`
+  vuelve a modeselect. Router `confirmMode()`.
+- **Objetivo final (diferencia entre modos):** `objectiveDist` (0 = infinito) + `objectiveShip` (de `SHIPS`,
+  buques británicos reales). Con objetivo (campaña + ciclo): barra de misión **centrada, 30% del ancho**
+  `drawObjectiveBar()` en el HUD (avión avanza por `dist/objectiveDist`, turbo con líneas, nombre del buque
+  arriba). Puerto/avión/barcaza son **assets configurables** (`OBJ_ASSETS` = {port, barge, plane}, `src`
+  vacío → fallback dibujado vía `drawHudAsset`; el usuario dará las imágenes, se embeben como data URI). Al llegar: campaña → `levelclear`/`victory`;
+  ciclo → estado `'objective'` (`drawObjective`, "BARCAZA DESTRUIDA") → vuelve al menú con `randomizeCfg()`.
+  `setRunObjective()` define el objetivo del run según modo. Supervivencia: sin objetivo, junta puntos.
+  **Ciclo POR AHORA finaliza al llegar; sube complejidad a futuro (README).** Metros ajustables: fila `METROS`
+  del `[M]` (`cfg.meters`), solo visible en ciclo (`getCfgRows()` filtra por `cycleOnly`).
+- **Modos: supervivencia (actual) + campaña** (`gameMode`). Campaña por niveles (`LEVELS`, 2 de prueba),
+  con label `NIVEL n` arriba, meta por distancia (`goalDist`), tarjeta de transición placeholder
+  (estados `'levelclear'`/`'victory'`, funciones `drawLevelClear`/`drawVictory`), puntaje acumulado, y
+  al terminar vuelve a `'modeselect'`. **POR AHORA todos los niveles usan la MISMA config** (`CAMPAIGN_CFG`);
+  solo cambia el label. **Cinemáticas reales, X niveles y cfg por nivel = PENDIENTE** (ver README).
+  Textos de modo en i18n; los de config/tarjetas hardcodeados en ES (falta pasar a i18n).
+- **Config de mapa `[M]`** (solo en el menú de supervivencia): objeto `cfg` (sky, water, wind, obstacles,
+  coast) que lee todo el juego; se edita con `CFG_ROWS`/`drawCfg`. `applyCfg()` recalcula `WATER`/`SKY`.
+  Presets: `WATER_STYLES`, `SKY_PRESETS`. `COAST` pasó a `cfg.coast`; el viejo `WATER_STYLE` → `WATER_STYLES`+`cfg.water`.
 - **Multi-idioma (i18n):** TODOS los textos visibles viven en la tabla `STRINGS` (bloque al inicio del
   script), agrupados por código ISO. Hoy están `es` (base) y `en`. Nada de texto suelto en el resto del
   código: todo pasa por `T('clave', {params})` (interpola `{n}`) o `L().facts`. Las causas de muerte se
@@ -213,13 +255,19 @@ Todo en el `<script>` de `index.html`:
 
 - El resto del arte (obstáculos, mar, pista) sigue **dibujado por código**. Trabajar a **320×180**,
   paleta corta (16–32 colores), exportar PNG/WEBP con transparencia a `assets/`.
-- **Avión: sprite propio del Pampa** (`assets/pampav1_op.webp`, 977×448, vista trasera, con alfa).
-  Se **embebe como data URI** dentro de `index.html` (constante `PLANE_SRC`) para que el artifact
-  sea autocontenido — la CSP del artifact bloquea recursos externos. `drawPlaneSprite()` lo dibuja
-  a `PW=54` px con `drawImage`, conserva el alabeo (rotación por `plane.vx`), la sombra sobre el agua
-  y los fogonazos; el postquemador extra sale solo con turbo. Si la imagen no carga, cae al sprite
-  de rects (fallback). Para actualizar el sprite: reemplazar el webp y re-inyectar el base64
-  (`python3` reemplazando `PLANE_SRC`), o correr de nuevo el paso de embebido.
+- **Aviones: 5 sprites propios seleccionables** (vista trasera, con alfa, ~977×471). Array `PLANES`
+  (key, name, `desc{es,en}`, img). Todos **embebidos como data URI** en `index.html` para que el
+  artifact sea autocontenido (la CSP bloquea recursos externos). El elegido es `selPlane`;
+  `drawPlaneSprite()` usa `PLANES[selPlane]` a `PW=54` px con `drawImage`, calcula el alto por imagen
+  (`PH=PW*h/w`), conserva el alabeo (rotación por `plane.vx`), la sombra sobre el agua y los fogonazos;
+  el postquemador extra sale solo con turbo. Fallback a rects si la imagen no cargó.
+  **Pantalla de selección** = estado `'menu'` (`drawMenu`): preview grande con cabeceo, nombre + desc,
+  puntos del carrusel, flechas. Input: `←`/`→` o tap izq/der cambian `selPlane`; `ENTER`/`X`/`ESPACIO`
+  o tap central ponen `startReq` → despega. Textos en i18n: `selTitle`, `selHint`.
+  **Nota:** hoy los 5 aviones son solo estéticos (mismas físicas). Características por avión = pendiente
+  documentado en README (agregar stats al array `PLANES` y leerlos en la física; desbloqueo del Étendard).
+  Para actualizar/agregar sprites: dejar el webp en `assets/`, y re-inyectar el base64 con `python3`
+  reemplazando el placeholder correspondiente en el array `PLANES` (ver README).
 - **Obstáculos:** se dibujan escalados por distancia (factor `k`). Dibujarlos grandes (~48 px) y
   dejar que el juego los achique.
 - Paleta actual en el objeto `P`: cielo `#2a3540`, mar `#2e4a4e`, metal/bruma `#93a7ab`, acento `#e8a33d`.
