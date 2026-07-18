@@ -85,6 +85,22 @@ te frena (viento), te expone (radar) y te sacude (turbulencia). No hay refugio g
 - **Cañón 20 mm** con calentamiento (`heat` / `overheat`): globos +150, helicópteros +300 (2 impactos),
   aviones enemigos +250 (2 impactos), misiles +400. Mástiles, fragatas y agua **no** se destruyen
   (esquivar sigue siendo la habilidad central).
+- **Terreno TIERRA** (`cfg.terrain: 'sea'|'land'`, fila TERRENO del `[M]`, randomizable en ciclo): además
+  del mar. Sobre tierra el suelo **ES LETAL igual que el agua** (tocar el suelo = explota, `groundY=0.5`,
+  sin clamp/rebote). Hay que volar en una **banda baja y arriesgada**: arriba de 0.5 (no chocar) pero bajo
+  para matar soldados (`plane.y<3` = clip de cabeza / impacto de aire). Se dibuja moorland (`LAND` palette,
+  `drawLand()` con matas/rocas de parallax). El rocío/estela/espuma se desactivan (levanta polvo).
+- **Soldados** (`soldiers`, array propio — atropellarlos NO mata al avión): spawnean en grupos sobre tierra,
+  corren en diagonal. Tres formas de eliminarlos:
+  - **Atropellar** a ras (`plane.y<2.6`, alineado, al llegar a `z≈PZ`): **puntos × multiplicador** (a x30 =
+    brutal, `120*multShow`). Es la jugada de riesgo/recompensa.
+  - **Sangre + tierra:** cada baja lanza `bloodBurst()` (partículas rojas de sangre + marrones de tierra).
+    Atropellar además **mancha el sprite** (`bloodSplat`, se acumula y se desvanece ~3 s; se dibuja como
+    manchas rojas sobre el morro en `drawPlaneSprite`). Placeholder — el autor hará un sprite ensangrentado.
+  - **Metralleta** (cañón): la bala hitea al soldado si va **baja** (`b.y<4`) y **alineada** → hay que estar
+    de frente y a distancia. +60 (×2 con multiplicador alto).
+  - **Misil**: ahora tiene **caída/arco** (`pm.vy -= 26*dt`), así se puede estar un poco más arriba; explota
+    contra el suelo o cerca de soldados con **splash** (mata varios), +130 por soldado.
 - **Misiles del jugador** (arma secundaria): tecla `Z` o botón táctil `#msl` (abajo-izq, solo en juego).
   Munición limitada `msl` (máx `MSL_MAX`=3, recarga 1 cada 7 s, cooldown 0.5 s), pips en el HUD. One-shot con
   hitbox amplio + guiado leve; +100 de bonus sobre el valor del blanco; interceptan misiles enemigos.

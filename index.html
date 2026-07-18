@@ -94,7 +94,9 @@ const SKY_PRESETS = {
 
 // cfg = características ACTIVAS del mapa (las lee el juego). Se editan en vivo con el menú [M]
 // o se cargan desde un nivel de campaña. Base para prototipar niveles.
-const cfg = { sky:'dusk', water:'sea', wind:true, obstacles:1, coast:230, meters:3000 };
+const cfg = { sky:'dusk', water:'sea', terrain:'sea', wind:true, obstacles:1, coast:230, meters:3000 };
+// paleta de tierra (turba malvinense). Se vuela A RAS del suelo para atropellar soldados (no es letal).
+const LAND = { far:'#2f3527', mid:'#3c4330', near:'#4a5138', tuft:'#6d7748', rock:'#524d3e', furrow:'#262b1e' };
 let WATER = WATER_STYLES[cfg.water];
 let SKY   = SKY_PRESETS[cfg.sky];
 function applyCfg(){ WATER = WATER_STYLES[cfg.water] || WATER_STYLES.sea; SKY = SKY_PRESETS[cfg.sky] || SKY_PRESETS.dusk; }
@@ -109,6 +111,7 @@ function randomizeCfg(){
   cfg.water = Math.random()<0.25 ? 'violet' : 'sea';
   cfg.wind = Math.random()<0.7;
   cfg.obstacles = obs[Math.floor(Math.random()*obs.length)];
+  cfg.terrain = Math.random()<0.4 ? 'land' : 'sea';
   applyCfg();
 }
 
@@ -153,6 +156,7 @@ function setRunObjective(){
 const CFG_ROWS = [
   { label:'METROS',     opts:[800,1500,3000,5000,8000], names:['800 m','1500 m','3000 m','5000 m','8000 m'], get:()=>cfg.meters, set:v=>cfg.meters=v, cycleOnly:true },
   { label:'FONDO',      opts:['dusk','night','storm','clear'], names:['ATARDECER','NOCHE','TORMENTA','DESPEJADO'], get:()=>cfg.sky, set:v=>{cfg.sky=v;applyCfg();} },
+  { label:'TERRENO',    opts:['sea','land'], names:['MAR','TIERRA'], get:()=>cfg.terrain, set:v=>cfg.terrain=v },
   { label:'AGUA',       opts:['sea','violet'], names:['MAR','VIOLETA'], get:()=>cfg.water, set:v=>{cfg.water=v;applyCfg();} },
   { label:'VIENTO',     opts:[true,false], names:['SI','NO'], get:()=>cfg.wind, set:v=>cfg.wind=v },
   { label:'OBSTACULOS', opts:[0,0.5,1,1.7], names:['NINGUNO','POCOS','NORMAL','MUCHOS'], get:()=>cfg.obstacles, set:v=>cfg.obstacles=v },
@@ -319,6 +323,8 @@ let state = 'modeselect', t = 0, dist = 0, spd = 62;
 let plane, fuel, heat, overheat, detection, score, mult, boost;
 let obstacles, bullets, missiles, parts, streaks, popups, wake;
 let pmissiles;                       // MISILES DEL JUGADOR (array propio; nunca tocan el hitbox del avión)
+let soldiers, nextSoldier = 0;       // soldados en tierra (array propio; atropellarlos NO mata al avión)
+let bloodSplat = 0;                  // mancha de sangre temporal sobre el sprite (se acumula y se desvanece)
 let msl = 0, mslCd = 0, mslRegen = 0;   // munición de misiles, cooldown y temporizador de recarga
 const MSL_MAX = 3;
 let nextSpawn, fuelDist, fireT, shake, deathCause, deathT, factIdx = 0, best = 0;
@@ -334,7 +340,7 @@ function reset(){
   fuel = 100; heat = 0; overheat = false; detection = 0;
   score = 0; mult = 1; boost = false;
   obstacles = []; bullets = []; missiles = []; parts = []; streaks = []; popups = []; wake = [];
-  pmissiles = []; msl = MSL_MAX; mslCd = 0; mslRegen = 0;
+  pmissiles = []; msl = MSL_MAX; mslCd = 0; mslRegen = 0; soldiers = []; nextSoldier = 60; bloodSplat = 0;
   nextSpawn = 320; fuelDist = 0; fireT = 0; shake = 0;
   streak = 0; graceT = 0; rasLevel = 0; multShow = 1; throttle = 0;
   windT = 0; windF = 1; gusts = [];
@@ -542,6 +548,15 @@ function explodeAt(x, y, z, big){
 }
 function popup(x, y, txt, c){ popups.push({ x, y, txt, c:c||P.accent, life:1.1 }); }
 
+// salpicadura de sangre + tierra al eliminar un soldado
+function bloodBurst(sx, sy, n){
+  for (let i=0;i<n;i++){
+    const a = Math.random()*6.283, sp = 22 + Math.random()*55, blood = Math.random() < 0.55;
+    parts.push({ x:sx + (Math.random()-0.5)*3, y:sy, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 24, life:0.35 + Math.random()*0.45,
+                 c: blood ? (Math.random()<0.5?'#a81b1b':'#7a1212') : (Math.random()<0.5?'#6b5a3a':'#463a26'), r:1 + Math.random()*1.6 });
+  }
+}
+
 // lanza un misil del jugador (arma secundaria: limitada, one-shot, con leve guiado)
 function tryLaunchMissile(){
   if (state !== 'play' || msl <= 0 || mslCd > 0) return;
@@ -551,7 +566,7 @@ function tryLaunchMissile(){
     const d = Math.abs(o.x - plane.x);
     if (d < td){ td = d; tx = o.x; }
   }
-  pmissiles.push({ x:plane.x, y:plane.y, z:PZ+4, tx });
+  pmissiles.push({ x:plane.x, y:plane.y, z:PZ+4, tx, vy:0 });   // vy: cae con el vuelo (arco) para lobbear soldados
   msl--; mslCd = 0.5;
   beep(200, 0.2, 'sawtooth', 0.05, 80); boom(0.05, true);
 }
@@ -709,25 +724,31 @@ function update(dt){
   }
   multShow = mult === 10 ? 10 + rasLevel*5 : mult;
   score += (boost?2:1) * 12 * multShow * dt;
-  const overLand = dist + PZ < cfg.coast;
-  if (plane.y <= (overLand ? 0.9 : waveNow()))
-    return die(overLand ? 'death_land' : 'death_sea');
+  // superficie LETAL: tocar el suelo (o el agua) = explotar. Sobre tierra hay que volar en la banda
+  // baja y arriesgada (arriba del suelo, pero bajo para clipear/matar soldados con el pase rasante).
+  const overRunway = dist + PZ < cfg.coast;
+  let groundY, deathMsg;
+  if (cfg.terrain === 'land'){ groundY = 0.5; deathMsg = 'death_land'; }
+  else if (overRunway){ groundY = 0.9; deathMsg = 'death_land'; }
+  else { groundY = waveNow(); deathMsg = 'death_sea'; }
+  if (plane.y <= groundY) return die(deathMsg);
 
   // estela sobre el agua
   const lowI = Math.max(0, 1 - alt/9);
-  if (lowI > 0 && !overLand){
+  if (lowI > 0 && !overRunway && cfg.terrain !== 'land'){
     wake.push({ x:plane.x, z:PZ, i:lowI });
     if (wake.length > 150) wake.shift();
   }
   for (const wp of wake) wp.z -= spd*dt;
   wake = wake.filter(w => w.z > 2.4);
 
-  // rocío a ras del agua (escala con la cercanía)
+  // rocío a ras del agua (escala con la cercanía) — solo sobre agua; sobre tierra levanta polvo
   const nSpray = alt < 2.8 ? 6 : alt < 4.5 ? 3 : alt < 7 ? 1 : 0;
   for (let i=0;i<nSpray;i++){
     const s = proj(plane.x + (Math.random()-0.5)*4, 0, PZ - Math.random()*2);
+    const onLand = cfg.terrain === 'land';
     parts.push({ x:s.x, y:s.y-1, vx:(Math.random()-0.5)*70, vy:-(50+Math.random()*110)*(0.5+lowI),
-                 life:0.25+Math.random()*0.3, c:Math.random()<0.7?P.foam:P.crest, r:1+Math.random()*1.3 });
+                 life:0.25+Math.random()*0.3, c:onLand ? (Math.random()<0.6?'#6b6250':'#4a4636') : (Math.random()<0.7?P.foam:P.crest), r:1+Math.random()*1.3 });
   }
   if (alt < 4.5) shake = Math.max(shake, (4.5-alt)*0.3);
 
@@ -771,6 +792,32 @@ function update(dt){
     spawn();
     nextSpawn = Math.max(34, (52 + Math.random()*42) - t*0.8) / cfg.obstacles;
   }
+
+  // spawn de soldados (solo sobre tierra) — en grupos que corren
+  if (cfg.terrain === 'land'){
+    nextSoldier -= spd*dt;
+    if (nextSoldier <= 0){
+      const lane = Math.random()*44 - 22, n = 2 + (Math.random()*3|0);
+      for (let i=0;i<n;i++) soldiers.push({ x:lane + (Math.random()*12-6), z:250 + Math.random()*24, ph:Math.random()*6, dir:Math.random()<0.5?-1:1 });
+      nextSoldier = 40 + Math.random()*55;
+    }
+  }
+  // soldados: corren y se acercan; atropellarlos a ras del suelo = MUCHÍSIMOS puntos
+  for (const sd of soldiers){
+    if (sd.dead) continue;
+    sd.z -= spd*dt;
+    sd.x += sd.dir * 6 * dt;                                  // corren en diagonal
+    if (sd.z <= PZ+1 && sd.z > PZ-4 && Math.abs(plane.x - sd.x) < 4 && plane.y < 3){
+      sd.dead = true;                                        // pase rasante: cabeza / impacto de aire (banda 0.5–3)
+      const pts = Math.round(120 * multShow);                // escala con el multiplicador (a ras = brutal)
+      score += pts;
+      const s = proj(sd.x, 0, PZ); popup(s.x, s.y-10, '+'+pts, P.warn);
+      bloodBurst(s.x, s.y, 18);                               // sangre + tierra
+      bloodSplat = Math.min(1, bloodSplat + 0.5);             // mancha el sprite (se desvanece)
+      shake = Math.min(6, shake+1.2); boom(0.05);
+    }
+  }
+  soldiers = soldiers.filter(sd => sd.z > -6 && !sd.dead);
 
   // obstáculos
   for (const o of obstacles){
@@ -850,6 +897,20 @@ function update(dt){
         break;
       }
     }
+    if (b.z >= 999) continue;
+    // ametralla soldados en tierra: bala baja y alineada (por eso hay que estar de frente y a distancia)
+    if (cfg.terrain === 'land' && b.y < 4){
+      for (const sd of soldiers){
+        if (sd.dead || sd.z < z0-2 || sd.z > b.z+2) continue;
+        if (Math.abs(b.x - sd.x) < 2.6){
+          sd.dead = true; b.z = 999;
+          const pts = Math.round(60 * (multShow>=5?2:1));
+          score += pts; const s = proj(sd.x, 0, sd.z); popup(s.x, s.y-8, '+'+pts, P.foam);
+          bloodBurst(s.x, s.y, 8);
+          beep(240,0.05,'square',0.04); break;
+        }
+      }
+    }
   }
   bullets = bullets.filter(b => b.z < 240);
 
@@ -858,6 +919,7 @@ function update(dt){
   for (const pm of pmissiles){
     const z0 = pm.z;
     pm.z += 360*dt;
+    pm.vy -= 26*dt; pm.y += pm.vy*dt;                                     // caída/arco
     if (pm.tx !== undefined) pm.x += (pm.tx - pm.x) * Math.min(1, dt*6);   // guiado leve al blanco
     if (Math.random() < 0.7){ const s = proj(pm.x, pm.y, pm.z-3); parts.push({ x:s.x, y:s.y, vx:0, vy:0, life:0.3, c:P.accent, r:Math.max(1, s.k*0.35) }); }
     // impacto con obstáculos aéreos (hitbox amplio, one-shot)
@@ -883,8 +945,22 @@ function update(dt){
         m.z = -99; m.done = true; pm.z = 9999; break;
       }
     }
+    if (pm.z >= 9999) continue;
+    // sobre TIERRA: explota contra el suelo o cerca de soldados, con splash
+    if (cfg.terrain === 'land'){
+      let detonate = pm.y <= 0.3;
+      if (!detonate) for (const sd of soldiers){ if (!sd.dead && Math.abs(sd.z-pm.z)<6 && Math.abs(sd.x-pm.x)<4){ detonate = true; break; } }
+      if (detonate){
+        explodeAt(pm.x, 0, pm.z, true); shake = Math.min(6, shake+1.6);
+        let hit = 0;
+        for (const sd of soldiers){ if (!sd.dead && Math.abs(sd.z-pm.z)<11 && Math.abs(sd.x-pm.x)<10){ sd.dead = true; hit++;
+          const ss = proj(sd.x, 0, sd.z); bloodBurst(ss.x, ss.y, 7); } }
+        if (hit){ const pts = hit*130; score += pts; const s = proj(pm.x, 0, pm.z); popup(s.x, s.y-10, '+'+pts, P.warn); }
+        pm.z = 9999;
+      }
+    }
   }
-  pmissiles = pmissiles.filter(pm => pm.z < 240);
+  pmissiles = pmissiles.filter(pm => pm.z < 240 && pm.y > -3);
 
   // líneas de velocidad
   if (boost || rasLevel > 0 || spd > 115){
@@ -902,6 +978,7 @@ function update(dt){
   popups.forEach(p => { p.y -= 14*dt; p.life -= dt; });
   popups = popups.filter(p => p.life>0);
   shake = Math.max(0, shake - dt*10);
+  bloodSplat = Math.max(0, bloodSplat - dt*0.3);   // la mancha de sangre se desvanece (~3 s)
   if (boost) shake = Math.max(shake, 0.8 + (plane.y<5 ? 0.7 : 0));
 
   if (eng){
@@ -915,6 +992,7 @@ function update(dt){
 function px(x,y,w,h,c){ ctx.fillStyle=c; ctx.fillRect(Math.round(x),Math.round(y),Math.max(1,Math.round(w)),Math.max(1,Math.round(h))); }
 
 function drawSea(){
+  const landMode = cfg.terrain === 'land';
   const landVisible = dist < cfg.coast + 80;
   for (let y = HOR+1; y < H; y++){
     const dy = y - HOR;
@@ -935,12 +1013,40 @@ function drawSea(){
       }
       continue;
     }
+    if (landMode){                                                      // TIERRA: bandas de suelo por profundidad
+      const f = dy/(H-HOR);
+      px(0, y, W, 1, f < 0.28 ? LAND.far : f < 0.6 ? LAND.mid : LAND.near);
+      if (Math.sin(wz*0.13) + Math.sin(wz*0.05) < -0.95) px(0, y, W, 1, LAND.furrow);  // surcos
+      continue;
+    }
     if (landVisible && wz < cfg.coast + 7){ px(0, y, W, 1, P.foam); continue; }  // rompiente
     // base oscura del mar (degradado por profundidad) para que los puntos resalten
     const f = dy/(H-HOR);
     px(0, y, W, 1, f < 0.22 ? WATER.base0 : f < 0.5 ? WATER.base1 : WATER.base2);
   }
-  drawSeaDots(landVisible);
+  if (landMode) drawLand(); else drawSeaDots(landVisible);
+}
+
+// matas/rocas dispersas sobre la tierra (parallax de movimiento a ras del suelo)
+function drawLand(){
+  const SPX = 4.2, SPZ = 4.2, farZ = 190;
+  const startZ = Math.max(cfg.coast + 2, Math.ceil((dist + 4) / SPZ) * SPZ);
+  for (let wz = startZ; wz < dist + farZ; wz += SPZ){
+    const camZ = wz - dist, k = F / camZ;
+    const fade = Math.min(1, (camZ - 3) / 9) * (1 - (camZ / farZ) * 0.8);
+    if (fade <= 0.03) continue;
+    for (let wx = Math.ceil((cam.x - 74) / SPX) * SPX; wx < cam.x + 74; wx += SPX){
+      const r = Math.sin(wx * 12.9 + wz * 7.3);
+      if (r < 0.35) continue;                                            // dispersa (no cubre todo)
+      const s = proj(wx, 0, camZ);
+      if (s.x < -4 || s.x > W + 4 || s.y < HOR) continue;
+      const rock = r > 0.86;
+      ctx.globalAlpha = fade * 0.85;
+      const w = Math.max(1, k * (rock ? 0.7 : 0.5)), h = Math.max(1, k * (rock ? 0.55 : 0.9));
+      px(s.x - w/2, s.y - h, w, h, rock ? LAND.rock : LAND.tuft);
+    }
+  }
+  ctx.globalAlpha = 1;
 }
 
 // malla de puntos que forma la onda del mar en perspectiva (estilo boostivity)
@@ -997,9 +1103,9 @@ function drawPlaneSprite(){
   const sh = proj(plane.x, 0, PZ);
   ctx.globalAlpha = Math.max(0.08, 0.4 - plane.y*0.009);
   px(sh.x-9, sh.y, 18, 2, '#101c1e');
-  // espuma batida justo debajo cuando vuela bajo
+  // espuma batida justo debajo cuando vuela bajo (solo sobre agua)
   const churn = Math.max(0, 1 - plane.y/7);
-  if (churn > 0 && state === 'play'){
+  if (churn > 0 && state === 'play' && cfg.terrain !== 'land'){
     ctx.globalAlpha = churn*0.7;
     px(sh.x-11, sh.y-1, 22, 2, P.foam);
     px(sh.x-15, sh.y, 30, 1, P.crest);
@@ -1025,6 +1131,13 @@ function drawPlaneSprite(){
     const fl = boost ? 5+Math.random()*4 : (fuel>0 ? 2+Math.random()*2 : 0);
     if (fl > 0){ px(-2, 3, 4, fl, boost ? P.foam : P.accent); px(-1, 3, 2, fl*0.6, P.accent); }
     if (inp.fire && !overheat && fireT > 0.06){ px(-16, -2, 3, 2, P.ink); px(13, -2, 3, 2, P.ink); }
+  }
+  // mancha de sangre sobre el morro/cabina al atropellar (temporal; hacé un sprite ensangrentado si querés)
+  if (bloodSplat > 0.02){
+    ctx.globalAlpha = Math.min(0.9, bloodSplat);
+    px(-4,-2,2,1,'#7a1010'); px(-1,-3,1,1,'#9a1818'); px(2,-2,2,1,'#8a1414');
+    px(-2,1,1,1,'#7a1010'); px(4,-1,1,1,'#9a1818'); px(0,0,1,1,'#8a1414'); px(-5,0,1,1,'#6a0e0e');
+    ctx.globalAlpha = 1;
   }
   ctx.restore();
 
@@ -1125,6 +1238,20 @@ function draw(){
     px(g2.x+3, g2.y+1, g2.len*0.5, 1, P.dim);
   }
   ctx.globalAlpha = 1;
+
+  // soldados en tierra (de lejos a cerca), corriendo
+  if (cfg.terrain === 'land'){
+    const sold = soldiers.slice().sort((a,b) => b.z - a.z);
+    for (const sd of sold){
+      if (sd.z <= 3 || sd.dead) continue;
+      const s = proj(sd.x, 0, sd.z), k = s.k;
+      const run = Math.sin(t*12 + sd.ph);                    // piernas corriendo
+      const bh = Math.max(2, k*1.4), bw = Math.max(1, k*0.5);
+      px(s.x-bw/2, s.y-bh, bw, bh*0.6, '#3a3f33'); // cuerpo
+      px(s.x-bw/2, s.y-bh, bw, Math.max(1,k*0.4), '#5a5140');                       // cabeza/casco
+      px(s.x-bw/2 + (run>0?0:bw*0.4), s.y-bh*0.4, Math.max(1,bw*0.4), bh*0.4, '#2e3327'); // pierna
+    }
+  }
 
   // obstáculos de lejos a cerca
   const all = obstacles.slice().sort((a,b) => b.z - a.z);

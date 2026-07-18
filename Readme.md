@@ -48,6 +48,13 @@ Dos versiones en el repo:
 - Volar alto llena la barra de **radar**: al detectarte, te lanzan un misil que persigue.
 - **Cañón 20mm** con calentamiento: derriba globos (+150), helicópteros (+300, 2 impactos)
   y misiles (+400). Mástiles, fragatas y agua NO se destruyen — esquivar es la habilidad central.
+- **Terreno TIERRA** (`cfg.terrain`, fila TERRENO en `[M]`): además del mar. Sobre tierra el suelo **es letal**
+  (tocarlo = explotás, no rebota): hay que volar en una **banda baja y arriesgada** — bastante arriba para no
+  estrellarte, pero bajo para clipear/matar a los **soldados** con el pase rasante (cabeza / impacto de aire).
+  Tres formas de eliminarlos:
+  - **Atropellar** con el avión a ras del suelo → **puntos × el multiplicador** (a ras con racha = MUCHÍSIMO).
+  - **Metralleta** (cañón): tenés que estar **de frente y a distancia** (la bala va baja y alineada).
+  - **Misil**: tiene **caída** (arco), así podés estar **un poco más arriba**; explota con splash (mata varios).
 - **Misiles del jugador** (arma secundaria, tecla `Z` o botón `◈ MISIL` en táctil): munición limitada
   (3, recarga lenta, pips en el HUD). One-shot con hitbox amplio y guiado leve, +100 de bonus; también
   interceptan misiles enemigos. Van en su propio array (`pmissiles`) que **nunca** toca el hitbox del avión.
