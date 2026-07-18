@@ -48,7 +48,7 @@ histórico sobrio (fichas con hechos reales). Arte pixel-art que el autor hará 
 | `lateral.html` | Primer prototipo, scroll lateral (Flappy-like). Conservado de referencia. |
 | `README.md`    | Doc de jugador + controles + tuning + pipeline de arte.                |
 | `ESTADO.md`    | Este documento.                                                        |
-| `assets/`      | Vacío — destino de los PNG de Photoshop.                               |
+| `assets/`      | Arte fuente. `pampav1_op.webp` = sprite del avión (embebido en index.html). |
 
 ---
 
@@ -80,7 +80,14 @@ te frena (viento), te expone (radar) y te sacude (turbulencia). No hay refugio g
   (`windT`, tope 6 s) y frena hasta **-35 %** (`windF`). Trae ráfagas visibles cruzando el cielo,
   turbulencia (sacudones en x/y + shake) y aviso en HUD. Al bajar, el arrastre se descarga al doble.
 - **Cañón 20 mm** con calentamiento (`heat` / `overheat`): globos +150, helicópteros +300 (2 impactos),
-  misiles +400. Mástiles, fragatas y agua **no** se destruyen (esquivar sigue siendo la habilidad central).
+  aviones enemigos +250 (2 impactos), misiles +400. Mástiles, fragatas y agua **no** se destruyen
+  (esquivar sigue siendo la habilidad central).
+- **Avión enemigo de frente (`jet`)**: reemplaza parte de los helos en el spawn (helo 10 %, jet 8 %;
+  antes helo 18 %). Viene **de frente y cierra más rápido** (`spd+45`) para dar sensación de combate
+  aéreo. Blanco aéreo con el mismo trato que el helo (auto-apuntado vertical + hitbox horizontal `5.6`
+  = envolvente de colisión, así que todo jet que pueda chocarte también es derribable). Sprite frontal
+  placeholder (alas anchas con leve alabeo, fuselaje/canopy, deriva, nariz roja) en `drawObstacle`.
+  Verificado por simulación: 0 muertes por colisión al disparar en todo el barrido de altura/velocidad/offset.
 - **Radar:** volar alto llena `detection`; al 100 % lanza un misil buscador que persigue.
 - **Turbo** (`boost`): ×1,5 velocidad y **×2 puntos**, quema combustible al triple. Líneas de velocidad y shake.
 - **Near-miss:** pasar rozando un obstáculo (o esquivar un misil por poco) da **+75**.
@@ -102,9 +109,22 @@ te frena (viento), te expone (radar) y te sacude (turbulencia). No hay refugio g
   hasta estrellarse. Constantes en el bloque de maniobra: `G=22`, `TH=55`, `DIVE=30` (m/s²),
   `vy` clampeada a [-20, 18]. Verificado numéricamente: sin gas desde 12 m → agua en ~0,97 s;
   desde 4 m (racha) → ~0,47 s; gas a fondo 12→46 m en ~2,2 s. El táctil conserva el control
-  directo por arrastre (no usa gas).
+  directo por arrastre (no usa gas). **HUD:** palanca de gas vertical en el borde derecho
+  (`throttle`, valor suavizado lerp `dt*7`, solo indicador — no afecta la física); en teclado
+  refleja ARRIBA, en táctil usa `vy>0` como proxy; muestra "SIN GAS" con combustible en 0.
 - **Récord local** (`localStorage: rasante_frontal_best`).
-- **Fichas históricas** reales en la pantalla de derribo (array `FACTS`).
+- **Fichas históricas** reales en la pantalla de derribo (array `L().facts`, ver i18n).
+- **Multi-idioma (i18n):** TODOS los textos visibles viven en la tabla `STRINGS` (bloque al inicio del
+  script), agrupados por código ISO. Hoy están `es` (base) y `en`. Nada de texto suelto en el resto del
+  código: todo pasa por `T('clave', {params})` (interpola `{n}`) o `L().facts`. Las causas de muerte se
+  guardan como **clave** (`death_helo`, etc.) y se resuelven al dibujar, así el cambio de idioma es en vivo.
+  El chrome de la página (header, footer con `<kbd>`, `aria-label`) también sale de `STRINGS` vía
+  `applyChrome()`. **Selección de idioma** (en orden): `?lang=xx` en la URL · `localStorage 'rasante_lang'`
+  · idioma del navegador · `es`. **Tecla `L`** cicla el idioma en vivo (y lo persiste). **Para agregar un
+  idioma:** copiar el bloque `es`, traducir los valores (dejar las llaves y los `{n}` intactos) y sumarlo
+  con su código. **Empaquetado Windows/Steam:** el launcher fija el idioma con `?lang=xx` o escribiendo
+  `localStorage 'rasante_lang'`. Verificado en navegador: es↔en cambia todo (menú, HUD, derribo, fichas,
+  chrome) y `?lang=` le gana a `localStorage`.
 
 ### ℹ️ Nota de verificación (sesión del 17/7)
 El panel de preview **ralentiza `requestAnimationFrame` cuando no está en foco**, así que no se pudo
@@ -115,24 +135,31 @@ se confirmó la onda animando en tono mar y violeta. El juego real corre **sin e
 Pendiente menor: jugar una corrida completa a mar abierto para el ajuste fino del gamefeel del agua
 (densidad `SPX/SPZ`, brillo de la paleta `WATER`, amplitud de `seaH`).
 
-### 🐞 Bugs conocidos (SIN corregir todavía — anotados a pedido del autor)
+### 🐞 Bugs conocidos
 
-- **No se puede derribar el helicóptero disparándole: en vez de destruirlo, el jugador se
-  colisiona** (reportado sesión 17/7). Diagnóstico:
-  - Las balas se disparan a la **altura exacta del avión** y viajan horizontales, **sin apuntado
-    vertical** (`bullets.push({ x:plane.x, y:plane.y, z:PZ+3 })`, ~línea 387). El impacto exige
-    `Math.abs(b.y - o.y) < 2.4` (~línea 453).
-  - El helo aparece más **alto** que la altura de vuelo rasante: `y: 5 + random*16` → 5–21 m
-    (~línea 203), mientras que para el multiplicador se vuela a ~4 m. Las balas pasan **por debajo**
-    del helo y nunca registran impacto.
-  - Encima el helo tiene `hp: 2` (dos impactos) y bobbing visual `±3` que no está en la hitbox
-    (colisión usa `o.y` sin bobbing) → aún alineándose, es fácil errar.
-  - Resultado: la única forma de "alcanzarlo" es subir a su altura, donde primero se dispara la
-    colisión del avión (`return die('Colision con helicoptero')`, ~línea 418), procesada **antes**
-    que las balas en el frame (obstáculos ~400 vs balas ~445).
-  - **Arreglos posibles (cuando se decida tocar):** (a) dar apuntado vertical a las balas hacia una
-    mira/altura de la mira; (b) bajar el rango de spawn del helo para que quede a tiro del vuelo bajo;
-    (c) ensanchar la hitbox vertical de bala vs helo y usar la `y` con bobbing; (d) `hp: 1`.
+- **~~No se puede derribar el helicóptero disparándole: en vez de destruirlo, el jugador se
+  colisiona~~ — CORREGIDO (sesión 17/7).** Se aplicó la opción (a): **apuntado vertical
+  automático** del cañón.
+  - Diagnóstico original: las balas salían a la altura exacta del avión y viajaban horizontales,
+    sin apuntado vertical, mientras el helo aparece a 5–21 m (`y: 5 + random*16`, ~línea 203) y
+    para el multiplicador se vuela a ~4 m → las balas pasaban por debajo y nunca impactaban. La
+    única forma de "alcanzarlo" era subir a su altura, donde se disparaba antes la colisión del
+    avión (`die('Colision con helicoptero')`) que las balas.
+  - **Solución en dos partes (en `update`, cañón/balas):**
+    1. **Apuntado vertical (Y):** al disparar, la bala **engancha el blanco aéreo con `hp` más
+       cercano en su carril** y guarda su altura en `b.ty`; en el update de balas `b.y` hace homing
+       hacia `b.ty` (`b.y += (b.ty-b.y) * min(1, dt*14)`), subiendo/bajando hacia el helo. Tolerancia
+       vertical de impacto del helo ensanchada (`< 3` en vez de `< 2.4`).
+    2. **Banda de x (fix del "volvió a pasar", sesión 17/7):** quedaba una **banda de desalineación
+       horizontal** letal: para **matar** el helo la bala exigía `|Δx| < 3.4`, pero para **morir** por
+       colisión bastaba `|Δx| < 5.6`. Con la x entre 3.4 y 5.6 (y a la altura del helo, típico volando
+       rasante) le disparabas, las balas pasaban al costado, sobrevivía y te lo comías. Se **igualó la
+       hitbox horizontal bala-vs-helo a la envolvente de colisión** (`< 5.6`) y se abrió la ventana de
+       enganche del lock a `< 5.6`. Ahora **todo helo que pueda colisionar también es derribable**.
+  - **Efecto:** se derriba el helo **volando rasante a 4 m**, sin necesidad de subir ni colisionar.
+    Verificado con simulación numérica (node) del loop completo (incluida la colisión avión-helo, que
+    corre antes que las balas en el frame): barriendo altura del helo 5–21 m, velocidad 62/90/150 y
+    offset de x 0–6 m, **cero muertes por colisión** al disparar (antes: 30 muertes en la banda 3.4–5.6).
 
 ---
 
@@ -153,7 +180,8 @@ Pendiente menor: jugar una corrida completa a mar abierto para el ajuste fino de
 
 - **Constantes:** `W,H` (320×180), `HOR` (horizonte), `F` (distancia focal de la proyección),
   `PZ` (z del avión, plano de juego), `COAST` (metros de tierra).
-- **`P`** = paleta (Atlántico Sur; acento naranja `#e8a33d`). **`FACTS`** = fichas históricas.
+- **`P`** = paleta (Atlántico Sur; acento naranja `#e8a33d`). **`STRINGS`** = tabla i18n con todos los
+  textos por idioma (incluye `facts`); acceso vía `T('clave', {params})` / `L()` (ver §4, Multi-idioma).
 - **Estado global** + `reset()` + `cam`. Estados: `'menu'` → `'takeoff'` → `'play'` → `'dead'`.
 - **Audio** (`audio`, `beep`, `boom`, `eng` = motor continuo por oscilador).
 - **Input:** teclado (`inp`) + puntero (zona izquierda = timón por arrastre; derecha = fuego/turbo).
@@ -183,10 +211,15 @@ Todo en el `<script>` de `index.html`:
 
 ## 8. Pipeline de arte (para Photoshop)
 
-- Todo el arte actual es **placeholder dibujado por código**. Trabajar a **320×180**, paleta corta
-  (16–32 colores), exportar PNG sin suavizado (vecino más cercano) a `assets/`.
-- **Avión** (vista trasera): hoy son rects en `drawPlaneSprite()`. Un sprite de ~**40×16 px** con
-  2–3 frames de alabeo (nivel / banqueo izq / der) lo reemplaza directo.
+- El resto del arte (obstáculos, mar, pista) sigue **dibujado por código**. Trabajar a **320×180**,
+  paleta corta (16–32 colores), exportar PNG/WEBP con transparencia a `assets/`.
+- **Avión: sprite propio del Pampa** (`assets/pampav1_op.webp`, 977×448, vista trasera, con alfa).
+  Se **embebe como data URI** dentro de `index.html` (constante `PLANE_SRC`) para que el artifact
+  sea autocontenido — la CSP del artifact bloquea recursos externos. `drawPlaneSprite()` lo dibuja
+  a `PW=54` px con `drawImage`, conserva el alabeo (rotación por `plane.vx`), la sombra sobre el agua
+  y los fogonazos; el postquemador extra sale solo con turbo. Si la imagen no carga, cae al sprite
+  de rects (fallback). Para actualizar el sprite: reemplazar el webp y re-inyectar el base64
+  (`python3` reemplazando `PLANE_SRC`), o correr de nuevo el paso de embebido.
 - **Obstáculos:** se dibujan escalados por distancia (factor `k`). Dibujarlos grandes (~48 px) y
   dejar que el juego los achique.
 - Paleta actual en el objeto `P`: cielo `#2a3540`, mar `#2e4a4e`, metal/bruma `#93a7ab`, acento `#e8a33d`.

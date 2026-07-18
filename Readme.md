@@ -49,6 +49,11 @@ Dos versiones en el repo:
 | Picada    | `ABAJO` / `S`            | —                               |
 | Disparar  | `X` / `ESPACIO` / `K`    | mantener derecha-arriba         |
 | Turbo     | `SHIFT` / `C`            | mantener derecha-abajo          |
+| Idioma    | `L` (cambia es ↔ en)     | —                               |
+
+**Idiomas:** el juego está internacionalizado (i18n). Se elige el idioma por, en orden, `?lang=xx`
+en la URL, `localStorage 'rasante_lang'`, el idioma del navegador, o español por defecto. La tecla
+`L` lo cambia en vivo. Hoy vienen español e inglés; agregar otro es traducir un bloque en `STRINGS`.
 
 **Vuelo a gas:** la gravedad tira siempre (`G=22 m/s²`); mantener ARRIBA empuja (`TH=55`);
 ABAJO acelera la caída (`DIVE=30`). Sin gas desde 12 m tocás el agua en ~1 s; en la zona
