@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
-"""Chequea la sintaxis del <script> de index.html.
+"""Chequea la sintaxis del juego con `node --check` sobre src/game.js.
 
-Neutraliza los data URIs (base64 gigantes) y corre `node --check` sobre el resto.
+Desde la migración a src/ (Fase 1), el juego vive en src/game.js como JS plano
+(sin wrapper HTML ni data URIs), así que se chequea directo.
 Uso:  python3 tools/check_syntax.py
 """
-import pathlib, re, subprocess, sys, tempfile
+import pathlib, subprocess, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-html = (ROOT / 'index.html').read_text(encoding='utf-8')
-m = re.search(r'<script>(.*)</script>', html, re.S)
-if not m:
-    sys.exit('ERROR: no encontre el <script> en index.html')
-js = re.sub(r'"data:[^"]*"', '""', m.group(1))
+js = ROOT / 'src' / 'game.js'
+if not js.is_file():
+    sys.exit(f'ERROR: no existe {js}')
 
-with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as f:
-    f.write(js); tmp = f.name
-r = subprocess.run(['node', '--check', tmp], capture_output=True, text=True)
+r = subprocess.run(['node', '--check', str(js)], capture_output=True, text=True)
 print(r.stderr or 'SINTAXIS OK')
 sys.exit(r.returncode)
