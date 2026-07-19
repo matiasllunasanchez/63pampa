@@ -17,6 +17,12 @@ Dos versiones en el repo:
 - **Ícono de sonido** arriba a la derecha (botón `#snd`): togglea mute (persiste en `localStorage`). Muteás
   música + efectos. La música arranca en la **primera interacción** (política de autoplay del navegador).
 - A futuro: cambiar soundtracks por **nivel / momento / secuencia** (una pista por contexto).
+- **Audio de cámara lenta (MOMENTUM)** — procedural, sin assets: la música se **ahoga** (0.30→0.10,
+  lerp suave), el motor baja a un **rumble de 30Hz con latido** (~0.4Hz), sting de entrada con
+  pitch cayendo (620→65Hz) y de salida subiendo (110→640Hz), y **ducking**: las explosiones
+  grandes agachan la música 0.55s (`duckT`). El disparo de la ráfaga es grave (140→55Hz + ruido)
+  y cada impacto suma un thump (88→44Hz). Los **samples finales** quedan para después de la
+  migración de assets — los eventos ya están cableados, el swap es mecánico.
 - ⚠️ Los MP3 están **embebidos como data URI** para que el artifact suene (CSP bloquea `assets/` externos),
   lo que deja `index.html` en **~10MB**. Es el disparador más claro del pipeline de assets (ver sección de
   arquitectura): al migrar, los MP3 se cargan como archivos y el HTML vuelve a ser liviano.

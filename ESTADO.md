@@ -217,6 +217,21 @@ te frena (viento), te expone (radar) y te sacude (turbulencia). No hay refugio g
     Verificado con harness pausable (`__pose(pr)`): poses a 38% y 62% muestran giro + ghosting.
   - Hint en pantalla de inicio (`ctrl2`): "doble ←/→: PIRUETA". **Pendiente**: gesto táctil
     (doble-tap lateral en la zona de vuelo) y quizá bonus de racha por piruetas encadenadas.
+- **AUDIO DE CÁMARA LENTA (gamefeel, NUEVO 19/7)** — todo procedural (Web Audio ya existente),
+  cero assets nuevos. Decisión: sonido ESTRUCTURAL ahora, samples/música por nivel DESPUÉS de
+  la migración (los eventos ya quedan cableados; swap mecánico).
+  - **Música ahogada en momentum**: `updateMusic` lerpa `musGame.volume` 0.30 → **0.10** al
+    entrar (y de vuelta al salir), transición suave por frame (factor 0.08).
+  - **Ducking**: `duckT` global (decae en `update`); las explosiones grandes (`momBoom`/
+    `explodeAt` con `big`) la setean 0.55s → la música se agacha al 45% un instante.
+  - **Motor → rumble con latido**: en momentum el motor sawtooth baja de 70Hz a **30Hz** con
+    wobble lento, gain pulsando 0.014–0.023 a ~0.4Hz (latido); el lowpass de 320Hz que ya tenía
+    da el "bajo el agua".
+  - **Stings**: entrada = sine 620→65Hz en 0.7s + boom (el tiempo se estira); salida entre
+    pasadas = sine 110→640Hz (el tiempo vuelve).
+  - **Disparo gordo**: la ráfaga pasó de beep agudo a square 140→55Hz + boom; el impacto suma
+    un thump triangle 88→44Hz.
+  - Verificado en vivo: en momentum `vol` bajando (0.30→0.232→…), `engHz 30.2`, `engG` pulsando.
   **Pipeline de assets (NUEVO, en `tools/`):** `embed_asset.py <clave> <archivo|--clear>` embebe
   cualquier asset configurable como data URI en `index.html` (claves: `cockpit`, `obj_port`,
   `obj_barge`, `obj_plane`; idempotente, regexes anclados a cada constante) y `check_syntax.py`

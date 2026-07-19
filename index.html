@@ -500,6 +500,7 @@
     const musLobby = new Audio(MUSIC_LOBBY); musLobby.loop = true; musLobby.volume = 0.55;
     const musGame = new Audio(MUSIC_GAME); musGame.loop = true; musGame.volume = 0.30;
     let muted = false, musicStarted = false;
+    let duckT = 0;   // ducking: las explosiones grandes agachan la musica un instante
     try { muted = localStorage.getItem('rasante_muted') === '1'; } catch (e) { }
     // la música del lobby suena SOLO en las pantallas previas a arrancar (selección de modo + menú);
     // desde que empieza la partida (takeoff/play) y en sus pantallas de fin (derribado, nivel, victoria,
@@ -510,6 +511,10 @@
       const want = inLobby() ? musLobby : musGame, other = inLobby() ? musGame : musLobby;
       if (!other.paused) other.pause();
       if (musicStarted && want.paused) want.play().catch(() => { });
+      // mezcla dinamica: en MOMENTUM la musica se AHOGA (camara lenta, como bajo el agua) y
+      // las explosiones grandes la agachan un instante (ducking). Lerp por frame → suave.
+      const tv = (state === 'momentum' ? 0.10 : 0.30) * (duckT > 0 ? 0.45 : 1);
+      musGame.volume += (tv - musGame.volume) * 0.08;
     }
     function startMusicOnce() { if (musicStarted || muted) return; musicStarted = true; updateMusic(); }
     function setMuted(v) {
@@ -700,6 +705,7 @@
         });
       }
       shake = Math.min(6, shake + (big ? 4.5 : 2)); boom(big ? 0.16 : 0.08);
+      if (big) duckT = Math.max(duckT, 0.55);   // explosion grande → ducking de la musica
     }
     function popup(x, y, txt, c) { popups.push({ x, y, txt, c: c || P.accent, life: 1.1 }); }
 
@@ -818,6 +824,7 @@
           c: [P.warn, P.accent, '#f2b544', '#3a3f43'][i % 4], r: 1 + Math.random() * 2
         });
       shake = Math.min(6, shake + (big ? 4 : 2)); boom(big ? 0.16 : 0.08);
+      if (big) duckT = Math.max(duckT, 0.55);   // la explosion agacha la musica un instante
     }
     // zona critica destruida (comparten cañon y misil): explosion, puntos y cierre de pasada
     function momZoneKilled(z) {
@@ -876,7 +883,8 @@
       const cm0 = momCam();
       popup(MOM_AX + cm0.x, 46 + cm0.y, T('mom_title'), P.warn);               // popups viven en espacio-mundo
       popup(MOM_AX + cm0.x, 56 + cm0.y, T('mom_pass', { n: momPhase + 1, m: MOM_PHASES.length }), P.dim);
-      beep(220, 0.3, 'sawtooth', 0.06);
+      beep(620, 0.7, 'sine', 0.07, 65);   // sting de entrada: el tiempo se ESTIRA (pitch cayendo)
+      boom(0.10);
       if (eng) eng.g.gain.value = 0;
     }
     function finishObjective() {
@@ -889,6 +897,12 @@
     function updateMomentum(dt) {
       t -= dt * 0.70;                       // camara lenta: el mundo de fondo corre al 30%
       mom.t += dt;
+      // AUDIO de camara lenta: el motor pasa a ser un rumble GRAVE y ahogado con un pulso
+      // lento tipo latido (el lowpass de 320Hz del motor hace el resto del efecto "bajo el agua")
+      if (eng && !muted) {
+        eng.o.frequency.value = 30 + Math.sin(mom.t * 1.5) * 3;
+        eng.g.gain.value = 0.014 + 0.009 * Math.max(0, Math.sin(mom.t * 2.6));
+      }
       popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
       popups = popups.filter(p => p.life > 0);
 
@@ -949,7 +963,8 @@
               });
               const z = f.zi >= 0 ? mom.zones[f.zi] : null;
               if (z && z.hp > 0) {
-                z.hp -= 22; mom.hitFx = 1; boom(0.05);
+                z.hp -= 22; mom.hitFx = 1;
+                boom(0.06); beep(88, 0.11, 'triangle', 0.05, 44);   // THUMP de impacto con cuerpo
                 if (z.hp <= 0) momZoneKilled(z);
               }
               f.life = 0; continue;
@@ -976,6 +991,7 @@
           if (momPhase + 1 >= MOM_PHASES.length) return finishObjective();
           momPhase++; mom = null; state = 'play';
           popup(W / 2, 58, T('mom_next'), P.accent);
+          beep(110, 0.4, 'sine', 0.06, 640);   // sting de salida: el tiempo VUELVE (pitch subiendo)
         }
         return;
       }
@@ -1010,7 +1026,8 @@
         });
         // RESPLANDOR de fogonazo en el borde del lado que disparo (feedback instantaneo)
         if (mom.gunSide < 0) mom.flashL = 0.14; else mom.flashR = 0.14;
-        beep(330, 0.05, 'square', 0.04);
+        beep(140, 0.12, 'square', 0.07, 55);   // disparo GRAVE y gordo (rafaga lenta = peso)
+        boom(0.05);
       }
       if (mom.timer <= 0) return die('death_aa');   // se acabo la ventana: la defensa te alcanza
     }
@@ -1062,6 +1079,7 @@
     // ---------- update ----------
     function update(dt) {
       t += dt;
+      duckT = Math.max(0, duckT - dt);   // el ducking de la musica se recupera solo
 
       // despegue automático desde Puerto Argentino: el control llega a los 3 s
       if (state === 'takeoff') {
