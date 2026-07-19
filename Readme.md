@@ -131,6 +131,11 @@ Los números del gamefeel están en el `<script>` de `index.html`:
 - Densidad de obstáculos: `nextSpawn = max(34, 52+rnd*42 - t*0.8)` (en metros)
 - Combustible: drenaje `3.2` (+`4.2` con turbo), bidón `+30`
 - Ventana de near-miss: margen `< 3` en el chequeo de paso (`dx < 3 && dy < 3`)
+- Perfil de colisión del avión: `pw=2.1, ph2=1.0` (afinado; antes 2.6×1.2) — en PIRUETA `1.0×0.7`
+- **PIRUETA (tonel)**: doble-tap `←`/`→` (ventana 0.28s) → tonel de `ROLL_DUR=0.55s`, cooldown
+  `1.15s`, dash lateral `vx = dir*40*(0.45+rollT/DUR)`. Alas de canto = perfil mínimo → pasa por
+  huecos finos. Rozar un obstáculo **durante** la pirueta: `+250` (vs +75). Visual: rotación 360°
+  del sprite + 2 fantasmas translúcidos + estelas de viento.
 
 ## Flujo de pantallas y modos
 

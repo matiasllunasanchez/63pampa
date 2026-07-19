@@ -1,0 +1,2029 @@
+<REAPER_PROJECT 0.1 "7.78/macOS-arm64" 1784444256 0
+  <NOTES 0 2
+  >
+  RIPPLE 0 0
+  GROUPOVERRIDE 0 0 0 0
+  AUTOXFADE 129
+  ENVATTACH 3
+  POOLEDENVATTACH 0
+  TCPUIFLAGS 0
+  MIXERUIFLAGS 11 48 0
+  ENVFADESZ10 40
+  PEAKGAIN 1
+  FEEDBACK 0
+  PANLAW 1
+  PROJOFFS 0 0 0
+  MAXPROJLEN 0 0
+  GRID 3199 8 1 8 1 0 0 0
+  TIMEMODE 1 5 -1 30 0 0 -1 0
+  VIDEO_CONFIG 0 0 65792
+  PANMODE 3
+  PANLAWFLAGS 3
+  CURSOR 0
+  ZOOM 4.29423985885063 0 0
+  VZOOMEX 5.92955494 0
+  USE_REC_CFG 0
+  RECMODE 1
+  SMPTESYNC 0 30 100 40 1000 300 0 0 1 0 0
+  LOOP 0
+  LOOPGRAN 0 4
+  RECORD_PATH "Media" ""
+  <RECORD_CFG
+    ZXZhdxgAAQ==
+  >
+  <APPLYFX_CFG
+  >
+  RENDER_FILE ""
+  RENDER_PATTERN ""
+  RENDER_FMT 0 2 0
+  RENDER_1X 0
+  RENDER_RANGE 1 0 0 0 1000
+  RENDER_RESAMPLE 3 0 1
+  RENDER_ADDTOPROJ 0
+  RENDER_STEMS 0
+  RENDER_DITHER 0
+  RENDER_TRIM 0.000001 0.000001 0 0
+  TIMELOCKMODE 1
+  TEMPOENVLOCKMODE 1
+  ITEMMIX 1
+  DEFPITCHMODE 589824 0
+  TAKELANE 1
+  SAMPLERATE 44100 0 0
+  <RENDER_CFG
+    ZXZhdxgAAQ==
+  >
+  LOCK 1
+  <METRONOME 6 2
+    VOL 0.25 0.125
+    BEATLEN 4
+    FREQ 1760 880 1
+    SAMPLES "" "" "" ""
+    SPLIGNORE 0 0
+    SPLDEF 2 660 "" 0 ""
+    SPLDEF 3 440 "" 0 ""
+    PATTERN 0 169
+    PATTERNSTR ABBB
+    MULT 1
+  >
+  GLOBAL_AUTO -1
+  TEMPO 120 4 4 0
+  PLAYRATE 1 0 0.25 4
+  SELECTION 237.5 98
+  SELECTION2 237.5 98
+  MASTERAUTOMODE 0
+  MASTERTRACKHEIGHT 0 0
+  MASTERPEAKCOL 16576
+  MASTERMUTESOLO 0
+  MASTERTRACKVIEW 0 0.6667 0.5 0.5 0 0 0 0 0 0 0 0 0 0 1
+  MASTERHWOUT 0 0 1 0 0 0 0 -1
+  MASTER_NCH 2 2
+  MASTER_VOLUME 1 0 -1 -1 1
+  MASTER_PANMODE 3
+  MASTER_PANLAWFLAGS 3
+  MASTER_FX 1
+  MASTER_TRACKID {29A24F53-F0EF-4943-90DA-A7A66A9F3034}
+  MASTER_SEL 0
+  <MASTERPLAYSPEEDENV
+    EGUID {665E46CA-F78C-CC49-8025-63D070CC5FD6}
+    ACT 0 -1
+    VIS 0 1 1
+    LANEHEIGHT 0 0
+    ARM 0
+    DEFSHAPE 0 -1 -1
+  >
+  <TEMPOENVEX
+    EGUID {2F9E3194-5F6F-0045-B5A4-C34ADE662FB0}
+    ACT 1 -1
+    VIS 1 0 1
+    LANEHEIGHT 0 0
+    ARM 0
+    DEFSHAPE 1 -1 -1
+  >
+  RULERHEIGHT 86 86
+  RULERLANE 1 4 "" 0 -1 0
+  RULERLANE 2 8 "" 0 -1 0
+  <PROJBAY
+  >
+  <TRACK {CC84489E-72E4-F14D-A41C-681034F86704}
+    NAME "Body impact hit sound fxBody impact hit sound effects Body impact hit sfxfree Body impact hit sfx"
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 1
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {CC84489E-72E4-F14D-A41C-681034F86704}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 0.76916099773243
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {513C756D-A1C0-BF44-8DE3-F45B964EBBCE}
+      IID 142
+      NAME "01-Body impact hit sound fxBody impact hit sound effects Body impact hit sfxfree Body impact hit sfx-consolidated.wav"
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {7A6105B2-7A76-624F-97D1-FD132D967224}
+      <SOURCE WAVE
+        FILE "01-Body impact hit sound fxBody impact hit sound effects Body impact hit sfxfree Body impact hit sfx-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {C68F37A5-48B4-5343-9787-B0E77351B0AC}
+    NAME "Heavy body impact hit sounds Heavy body impact hit sound fx Heavy body impact hit sfx SOUND BUDDY"
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 1
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {C68F37A5-48B4-5343-9787-B0E77351B0AC}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 0.54421768707483
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {FC1B5906-8C69-F24B-B628-A372511B5D1F}
+      IID 143
+      NAME "02-Heavy body impact hit sounds Heavy body impact hit sound fx Heavy body impact hit sfx SOUND BUDDY-consolidated.wav"
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {BF6AC4E0-143F-B644-BB01-583D6DB6C567}
+      <SOURCE WAVE
+        FILE "02-Heavy body impact hit sounds Heavy body impact hit sound fx Heavy body impact hit sfx SOUND BUDDY-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {1E6E3963-5E00-8641-BAD1-7D85021DB07A}
+    NAME "Heavy body impact hit sounds Heavy body impact hit sound fx Heavy body impact hit sfx GSS FX"
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 1
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {1E6E3963-5E00-8641-BAD1-7D85021DB07A}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 0.72562358276644
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {EE46A1B8-E0A3-0F44-9098-E31476E0023A}
+      IID 144
+      NAME "03-Heavy body impact hit sounds Heavy body impact hit sound fx Heavy body impact hit sfx GSS FX-consolidated.wav"
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {925AE73A-EAAE-B24D-BB1A-41E22F81D2AF}
+      <SOURCE WAVE
+        FILE "03-Heavy body impact hit sounds Heavy body impact hit sound fx Heavy body impact hit sfx GSS FX-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {A579F322-DD33-8A40-90D3-4572360271D7}
+    NAME "Heavy body impact hit sounds Heavy body impact hit sound fx Heavy body impact hit sfx GSS FX (1)"
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 1
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {A579F322-DD33-8A40-90D3-4572360271D7}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 0.55147392290249
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {5A768949-29A9-D54F-85C0-FAD73D384C49}
+      IID 145
+      NAME "04-Heavy body impact hit sounds Heavy body impact hit sound fx Heavy body impact hit sfx GSS FX (1)-consolidated.wav"
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {E90C0D76-CF2B-8D42-BFA9-057CBA18BEE0}
+      <SOURCE WAVE
+        FILE "04-Heavy body impact hit sounds Heavy body impact hit sound fx Heavy body impact hit sfx GSS FX (1)-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {04F927D1-6E34-9443-AAE9-3F6837AE02AA}
+    NAME "body impact falling into the sand  - Sound Effect HD (No Copyright sounds"
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 1
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {04F927D1-6E34-9443-AAE9-3F6837AE02AA}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 0.58775510204082
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {7E2EE276-EE42-D04B-8A13-862298B7F9B4}
+      IID 146
+      NAME "05-body impact falling into the sand  - Sound Effect HD (No Copyright sounds-consolidated.wav"
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {C88C2FA8-B2E3-DC44-8454-96D94475C37B}
+      <SOURCE WAVE
+        FILE "05-body impact falling into the sand  - Sound Effect HD (No Copyright sounds-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {872A4A09-07B7-9640-AC26-FF6B0688D27D}
+    NAME "Explosion Sound Effects"
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {872A4A09-07B7-9640-AC26-FF6B0688D27D}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 2.58321995464853
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {ABDEF32C-54D4-C841-B23F-4C5D1AC8A678}
+      IID 147
+      NAME "06-Explosion Sound Effects-consolidated.wav"
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {D6BB1D28-AFB3-074C-ADDC-2A1A5934A982}
+      <SOURCE WAVE
+        FILE "06-Explosion Sound Effects-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {702672EE-428F-3B48-B7D1-30228FA039BC}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {702672EE-428F-3B48-B7D1-30228FA039BC}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 1.71972789115646
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {50859933-EC45-FD41-A2C5-C73E33A050CF}
+      IID 148
+      NAME 07-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {59864F14-F264-074B-8C5D-B249F5DAE3A8}
+      <SOURCE WAVE
+        FILE "07-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {9505C912-116D-D047-AA5E-83F5C8D6BAF0}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {9505C912-116D-D047-AA5E-83F5C8D6BAF0}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 3.62086167800454
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {8D1BD08B-C274-7844-B875-54CA16C1AC46}
+      IID 149
+      NAME 08-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {3E529F26-4980-D748-8431-F0FE5E1E441E}
+      <SOURCE WAVE
+        FILE "08-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {52246A66-9CBC-314C-AE88-162C880DD28A}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {52246A66-9CBC-314C-AE88-162C880DD28A}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 2.6702947845805
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {9ACEBBE7-D769-FE43-8AE2-EFAD680761CB}
+      IID 150
+      NAME 09-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {B01F75FB-AD90-584D-B110-82E70D024F1D}
+      <SOURCE WAVE
+        FILE "09-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {49B7E417-ACF2-D348-8328-BCBF4A19E270}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {49B7E417-ACF2-D348-8328-BCBF4A19E270}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 3.62086167800454
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {24D4B4EB-96DD-4441-BC54-BCD3829EB247}
+      IID 151
+      NAME 10-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {4EE6CF58-6841-3A49-8CE9-B63B67FD734B}
+      <SOURCE WAVE
+        FILE "10-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {781D7DA9-0DDE-6D48-9B89-9CE38FBAA832}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {781D7DA9-0DDE-6D48-9B89-9CE38FBAA832}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 6.78458049886621
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {B221EC60-573C-254E-A995-36650E11CEA4}
+      IID 152
+      NAME 11-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {31CA3A86-16DC-484D-9E81-4CE5B952C6D4}
+      <SOURCE WAVE
+        FILE "11-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {BB990B51-DBC2-AF4B-A9F9-ADFAC82925D5}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {BB990B51-DBC2-AF4B-A9F9-ADFAC82925D5}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 6.71201814058957
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {D9C38F4B-69A0-184D-BD0F-F43F4AC61C52}
+      IID 153
+      NAME 12-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {BF88190A-48D0-9A47-8230-45D5F4C342D8}
+      <SOURCE WAVE
+        FILE "12-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {40DA6445-6737-6245-B952-E16FAD895649}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {40DA6445-6737-6245-B952-E16FAD895649}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 4.11428571428571
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {7486BAAA-BBFB-AD48-9029-A847CEE0710F}
+      IID 154
+      NAME 13-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {DDA75FFB-F7BE-0D4D-AE50-529C5C526442}
+      <SOURCE WAVE
+        FILE "13-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {5EEE4DA4-EF27-BC41-A2BF-FAC88A61C0EA}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {5EEE4DA4-EF27-BC41-A2BF-FAC88A61C0EA}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 7.37233560090703
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {3D2E9F2F-2592-434D-A966-7DB76FC6AEB0}
+      IID 155
+      NAME 14-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {EF959E1A-F287-364C-9F62-739D1FB482D6}
+      <SOURCE WAVE
+        FILE "14-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {EEFB1CF2-D948-0F4A-A313-F63C2C35259B}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {EEFB1CF2-D948-0F4A-A313-F63C2C35259B}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 9.68707482993197
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {3643FDA0-7B31-7D44-9E3D-ED5BFD006082}
+      IID 156
+      NAME 15-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {AE95296C-6082-A440-9CAA-27FCBAB7885C}
+      <SOURCE WAVE
+        FILE "15-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {5029C93E-A41C-A344-8BF7-14E26A3A35E5}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {5029C93E-A41C-A344-8BF7-14E26A3A35E5}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 7.50294784580499
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {38A3AA88-E3F6-4D4C-8090-047A763030CE}
+      IID 157
+      NAME 16-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {736B839A-046A-0A43-95E5-9F10F9A0C6A1}
+      <SOURCE WAVE
+        FILE "16-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {1C03BAF8-21D7-A84F-B5AF-3C97A96ABC42}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {1C03BAF8-21D7-A84F-B5AF-3C97A96ABC42}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 4.50612244897959
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {644C7B56-24D7-1A4E-A893-1B99222BF487}
+      IID 158
+      NAME 17-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {31F0FB02-0FEB-F142-BC65-4E7EDD6216CF}
+      <SOURCE WAVE
+        FILE "17-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {7E7B3A9B-F002-CE46-B514-D799A66417DB}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {7E7B3A9B-F002-CE46-B514-D799A66417DB}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 2.53968253968254
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {937239CB-6723-F747-8384-B2FB3A6E6AAE}
+      IID 159
+      NAME 18-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {DDC813B7-5EAB-A84D-900B-3B7979676E68}
+      <SOURCE WAVE
+        FILE "18-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {0FBF9CCB-3178-E943-B9C6-A9D2975E3B68}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {0FBF9CCB-3178-E943-B9C6-A9D2975E3B68}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 3.16371882086168
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {81B93285-1E5E-D34F-B41A-F51B46515495}
+      IID 160
+      NAME 19-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {5AA14228-5E7B-B848-819D-905EBBF94E03}
+      <SOURCE WAVE
+        FILE "19-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {3A75F489-D8B7-294C-BA1E-71C1760373AA}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {3A75F489-D8B7-294C-BA1E-71C1760373AA}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 3.29433106575964
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {C1D2838F-2D0B-9D40-89A4-93BBE0A83481}
+      IID 161
+      NAME 20-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {F9A8C275-B011-9C4D-8959-959A453A11EB}
+      <SOURCE WAVE
+        FILE "20-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {6448069C-C723-D145-87BF-3AB4921E1402}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {6448069C-C723-D145-87BF-3AB4921E1402}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 5.27528344671202
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {5D3FAF5D-9969-8C4C-9DCC-CF68D4111DCD}
+      IID 162
+      NAME 21-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {EA044CB0-30F8-F849-94BB-2634B860737F}
+      <SOURCE WAVE
+        FILE "21-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {F881444E-F0CB-A84E-B4C3-D381CF41043C}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {F881444E-F0CB-A84E-B4C3-D381CF41043C}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 3.78049886621315
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {F2B7A5A0-C460-5145-ADBB-C91DE12AA810}
+      IID 163
+      NAME 22-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {408C4189-4937-0C4E-B861-B39D6605F699}
+      <SOURCE WAVE
+        FILE "22-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {614FA264-74BA-D84C-B14D-B4DFA70FC4D0}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {614FA264-74BA-D84C-B14D-B4DFA70FC4D0}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 4.25215419501134
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {A51498E8-63CA-7C4A-92F6-65EECA07DEDB}
+      IID 164
+      NAME 23-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {3886F7A5-43BD-1145-B943-50D4CD11400E}
+      <SOURCE WAVE
+        FILE "23-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {51B0A675-A51C-AB49-999A-0A288E22038E}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {51B0A675-A51C-AB49-999A-0A288E22038E}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION -0
+      SNAPOFFS 0
+      LENGTH 4.77460317460317
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {FCE77807-EC85-AD4F-891F-B8805E6827E5}
+      IID 165
+      NAME 24-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {D7937B2F-4CE9-034F-8D61-5CD253CD769C}
+      <SOURCE WAVE
+        FILE "24-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {2A59374C-AD6F-D64C-A9F5-EE72E5A2ED1F}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {2A59374C-AD6F-D64C-A9F5-EE72E5A2ED1F}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION -0
+      SNAPOFFS 0
+      LENGTH 4.00544217687075
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {55B8D900-9799-314A-B8C2-038AFF94DBB8}
+      IID 166
+      NAME 25-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {1783A1AE-845A-1548-9A08-7B141AD39841}
+      <SOURCE WAVE
+        FILE "25-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {08A0B669-6CBB-1E4D-BBF0-4E5525A1D650}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {08A0B669-6CBB-1E4D-BBF0-4E5525A1D650}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION -0
+      SNAPOFFS 0
+      LENGTH 4.50612244897959
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {5E99BAC1-7B86-F042-8707-482A1CCD8DBD}
+      IID 167
+      NAME 26-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {F454C42C-B0CB-DD45-B30E-A7D44FEAB202}
+      <SOURCE WAVE
+        FILE "26-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {A519E92D-69FC-8C4C-B849-52506004DDC9}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {A519E92D-69FC-8C4C-B849-52506004DDC9}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION -0
+      SNAPOFFS 0
+      LENGTH 4.50612244897959
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {91BEF209-4068-2C41-A35C-506C30A5429E}
+      IID 168
+      NAME 27-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {A00B63A9-3D3E-F240-8F02-F2C1B53CD7D6}
+      <SOURCE WAVE
+        FILE "27-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {CDF00242-EA07-AA4A-A155-F47DDCC9207F}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {CDF00242-EA07-AA4A-A155-F47DDCC9207F}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION -0
+      SNAPOFFS 0
+      LENGTH 5.9718820861678
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {09D3745E-03A6-564D-983F-285BAF2F33AD}
+      IID 169
+      NAME 28-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {9B11F54D-F68E-B646-8889-D0E1A569A322}
+      <SOURCE WAVE
+        FILE "28-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {A66BC644-EFFA-3546-8623-8E6DC184B8D9}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {A66BC644-EFFA-3546-8623-8E6DC184B8D9}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION -0
+      SNAPOFFS 0
+      LENGTH 10.5310578405645
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {BC79EE83-0AE4-7445-8355-55305B64D5BE}
+      IID 170
+      NAME 29-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {3A9C1F4C-8168-9E4A-AF79-3C7EF30F83EA}
+      <SOURCE WAVE
+        FILE "29-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {2C11B7C8-4DE6-0443-9CB4-94EE62A875DD}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {2C11B7C8-4DE6-0443-9CB4-94EE62A875DD}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION -0
+      SNAPOFFS 0
+      LENGTH 6.75555555555556
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {0BCE9AA9-CF38-4C44-893A-3C97ABEA141C}
+      IID 171
+      NAME 30-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {B4CCAC22-A47F-3D4A-8506-109E3F36523D}
+      <SOURCE WAVE
+        FILE "30-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {419D5743-BBCA-9046-B2D2-94CFF76711CF}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {419D5743-BBCA-9046-B2D2-94CFF76711CF}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION -0
+      SNAPOFFS 0
+      LENGTH 4.30294784580499
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {2EB54D72-8D37-B246-9A33-70BB11335A82}
+      IID 172
+      NAME 31-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {200D6B1B-C223-D746-89C3-639274B9DE22}
+      <SOURCE WAVE
+        FILE "31-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {02C92F2E-1CA9-8D44-B785-C7E130EFA136}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {02C92F2E-1CA9-8D44-B785-C7E130EFA136}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION -0
+      SNAPOFFS 0
+      LENGTH 7.08934240362812
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {B7F1BD2A-B0FA-4C4F-8453-7DD1A0C09E27}
+      IID 173
+      NAME 32-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {523C7D18-5AA4-9F4B-BB01-46A4C2E2AD50}
+      <SOURCE WAVE
+        FILE "32-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {F6DF7CDF-DA07-4E4C-8D26-BDEBED08DA69}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {F6DF7CDF-DA07-4E4C-8D26-BDEBED08DA69}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION -0
+      SNAPOFFS 0
+      LENGTH 1.89387755102041
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {0CECCEC4-E863-644B-B125-C958AE312C3C}
+      IID 174
+      NAME 33-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {14D7E686-AC1E-FB43-AF31-8FDB2FE7C9A1}
+      <SOURCE WAVE
+        FILE "33-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {5A9FF944-77F3-B047-B906-186D47DDEDFA}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {5A9FF944-77F3-B047-B906-186D47DDEDFA}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION -0
+      SNAPOFFS 0
+      LENGTH 2.30748299319728
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {FF6F4AAA-CACB-314E-9967-7E00B9D405C1}
+      IID 175
+      NAME 34-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {D6E4ED02-883A-6843-A4F6-B6ED140FF370}
+      <SOURCE WAVE
+        FILE "34-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {51899BD7-691C-1047-B300-3DCCABB58655}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {51899BD7-691C-1047-B300-3DCCABB58655}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION -0
+      SNAPOFFS 0
+      LENGTH 3.5047619047619
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {58412324-C440-B44D-9495-E991F6EC74D3}
+      IID 176
+      NAME 35-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {6DAFABDA-FEEE-904B-B0CF-B2141EA1B05A}
+      <SOURCE WAVE
+        FILE "35-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {67D35081-8E4B-B84E-B5BF-B974A28EF746}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {67D35081-8E4B-B84E-B5BF-B974A28EF746}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION -0
+      SNAPOFFS 0
+      LENGTH 3.5047619047619
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {4766546F-032B-7C4F-8A65-2E453CB2E20F}
+      IID 177
+      NAME 36-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {106B72F8-6CE0-8A42-8142-504C50E43074}
+      <SOURCE WAVE
+        FILE "36-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {8361BB6E-C8A0-174F-968C-D20C7399763F}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {8361BB6E-C8A0-174F-968C-D20C7399763F}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 8.93242630385487
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {66ED0522-2AC4-C84F-8C4C-623E93847582}
+      IID 178
+      NAME 37-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {F8FFAD2E-7EB0-6047-97E1-48223621A9F3}
+      <SOURCE WAVE
+        FILE "37-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {25FA52BF-40BD-EC46-8E1A-E6376AA9DF83}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {25FA52BF-40BD-EC46-8E1A-E6376AA9DF83}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION -0
+      SNAPOFFS 0
+      LENGTH 8.50430839002268
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {1D86D01B-2D25-C942-BCF6-9061FE1796FC}
+      IID 179
+      NAME 38-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {F76368B7-496F-9B4D-9463-0ADA20877FE0}
+      <SOURCE WAVE
+        FILE "38-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {82802503-AD01-1043-9DBF-2225F2055FDD}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {82802503-AD01-1043-9DBF-2225F2055FDD}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 9.00498866213152
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {1049A54F-41C7-0643-AD23-461FEB3BBB31}
+      IID 180
+      NAME 39-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {C5ACB091-F538-1248-842C-3D360365432F}
+      <SOURCE WAVE
+        FILE "39-consolidated.wav"
+      >
+    >
+  >
+  <TRACK {1C7C4D91-859C-6B4C-A937-DFD552A1311E}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {1C7C4D91-859C-6B4C-A937-DFD552A1311E}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 7.50294784580499
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {F36E8E63-D416-B141-9D45-71058BD747AC}
+      IID 181
+      NAME 40-consolidated.wav
+      VOLPAN 1 0 1 -1
+      SOFFS 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {3B8CB0F8-B69B-324F-929D-D6483404A50C}
+      <SOURCE WAVE
+        FILE "40-consolidated.wav"
+      >
+    >
+  >
+>

@@ -201,6 +201,22 @@ te frena (viento), te expone (radar) y te sacude (turbulencia). No hay refugio g
   Placeholder: cuadrados blancos + halo; asset futuro `muzzle_flash.png` (UPDATE_ANIMATIONS §3.2c).
   Razón: la bala tarda ~1.3s en cruzar el vidrio y sin flash el disparo parecía no responder.
   Verificado en harness: flash visible en borde izq al apretar X, decayendo (0.14→0.06).
+- **HITBOXES AFINADAS + PIRUETA (tonel) — NUEVO (19/7):**
+  - **Perfil del avión afinado**: en el chequeo de obstáculos era `2.6×1.2` (chocaba "de lejos");
+    ahora `pw=2.1, ph2=1.0`. En un hueco de 5.7 m entre mástiles el margen por lado pasó de 0.25
+    a 0.75. La ventana de near-miss (`dx<3 && dy<3`) quedó igual → más roces premiados.
+  - **PIRUETA (tonel / aileron roll)**: **doble-tap ←/→** (fresco, `!e.repeat`, ventana 0.28s,
+    timestamps `tapL/tapR`) dispara `startRoll(dir)`. Dura `ROLL_DUR=0.55s`, cooldown 1.15s.
+    Efectos: (1) **ráfaga lateral** `vx = dir*40*(0.45+rollT/DUR)` (dash, movió x 0→24.7 en el
+    test); (2) **perfil de colisión MÍNIMO** `1.0×0.7` (alas de canto → pasa fino; margen 1.85 en
+    el hueco de ejemplo); (3) hitbox vs misil enemigo también se encoge (3/2.2 → 1.6/1.2);
+    (4) **rozar EN pirueta** = `rollGraze` **+250** (vs +75 normal, popup accent, i18n es/en).
+  - **Visual**: el sprite (vista trasera) rota **360° completos** en el plano de pantalla
+    (`rollDir*pr*2π`) con leve pulso de escala coseno + **2 fantasmas translúcidos** retrasados
+    en el giro (alpha 0.14) + estelas de viento (`P.crest`) despedidas hacia el lado contrario.
+    Verificado con harness pausable (`__pose(pr)`): poses a 38% y 62% muestran giro + ghosting.
+  - Hint en pantalla de inicio (`ctrl2`): "doble ←/→: PIRUETA". **Pendiente**: gesto táctil
+    (doble-tap lateral en la zona de vuelo) y quizá bonus de racha por piruetas encadenadas.
   **Pipeline de assets (NUEVO, en `tools/`):** `embed_asset.py <clave> <archivo|--clear>` embebe
   cualquier asset configurable como data URI en `index.html` (claves: `cockpit`, `obj_port`,
   `obj_barge`, `obj_plane`; idempotente, regexes anclados a cada constante) y `check_syntax.py`

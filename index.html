@@ -328,6 +328,7 @@
         death_aa: 'La defensa de la barcaza te derribo',
         freeControl: 'CONTROL LIBRE!', rasante: 'RASANTE x{n}!',
         pickFuel: '+COMB', graze: 'ROZASTE +75', dodgeMissile: 'LO ESQUIVASTE +75',
+        rollGraze: 'PIRUETA! +250',
         takeoffTitle: 'DESPEGUE · PUERTO ARGENTINO · BAM MALVINAS',
         takeoffHeading: 'rumbo al estrecho de San Carlos',
         hud_best: 'MEJOR {n}', kmh: ' KM/H', turboTag: ' TURBO',
@@ -336,7 +337,7 @@
         thr: 'GAS', thr_dead: 'SIN GAS',
         title: 'R A S A N T E', subtitle: 'vista frontal · Atlantico Sur · 1982',
         ctrl1: 'ARRIBA: gas (si soltas, caes) · IZQ/DER: esquivar',
-        ctrl2: 'ABAJO: picada · X: canon · SHIFT: turbo',
+        ctrl2: 'ABAJO: picada · X: canon · SHIFT: turbo · doble ←/→: PIRUETA',
         tip1: 'Mas bajo = mas puntos. Rozar obstaculos da bonus.',
         tip2: 'El turbo duplica el puntaje y quema combustible.',
         tip3: 'Muy alto = te detecta el radar.',
@@ -381,6 +382,7 @@
         death_aa: 'The barge defenses shot you down',
         freeControl: 'FREE CONTROL!', rasante: 'LOW PASS x{n}!',
         pickFuel: '+FUEL', graze: 'GRAZE +75', dodgeMissile: 'DODGED +75',
+        rollGraze: 'BARREL ROLL! +250',
         takeoffTitle: 'TAKEOFF · PUERTO ARGENTINO · BAM MALVINAS',
         takeoffHeading: 'heading for San Carlos Strait',
         hud_best: 'BEST {n}', kmh: ' KM/H', turboTag: ' BOOST',
@@ -389,7 +391,7 @@
         thr: 'THR', thr_dead: 'NO THR',
         title: 'R A S A N T E', subtitle: 'frontal view · South Atlantic · 1982',
         ctrl1: 'UP: throttle (release = fall) · LEFT/RIGHT: dodge',
-        ctrl2: 'DOWN: dive · X: cannon · SHIFT: boost',
+        ctrl2: 'DOWN: dive · X: cannon · SHIFT: boost · double ←/→: BARREL ROLL',
         tip1: 'Lower = more points. Grazing gives a bonus.',
         tip2: 'Boost doubles the score and burns fuel.',
         tip3: 'Too high = radar detects you.',
@@ -464,6 +466,8 @@
     let nextSpawn, fuelDist, fireT, shake, deathCause, deathT, factIdx = 0, best = 0;
     let streak, graceT, rasLevel, multShow, throttle;
     let windT, windF, gusts;
+    let rollT = 0, rollDir = 1, rollCd = 0, tapL = -9, tapR = -9;   // PIRUETA (tonel): doble-tap ←/→
+    const ROLL_DUR = 0.55;
     let toT = 0, toCount = 4;
     let levelT = 0;   // temporizador de las tarjetas de transición de nivel / victoria (campaña)
     let momPhase = 0, mom = null;   // MOMENTUM: pasada actual del asalto a la barcaza y estado del minijuego
@@ -479,6 +483,7 @@
       nextSpawn = 320; fuelDist = 0; fireT = 0; shake = 0;
       streak = 0; graceT = 0; rasLevel = 0; multShow = 1; throttle = 0;
       windT = 0; windF = 1; gusts = [];
+      rollT = 0; rollCd = 0;
       momPhase = 0; mom = null;
       toT = 0; toCount = 4;
       cam.x = 0; cam.y = 4;
@@ -597,6 +602,12 @@
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') { selPlane = (selPlane + PLANES.length - 1) % PLANES.length; beep(520, 0.05, 'square', 0.04); e.preventDefault(); return; }
         if (e.code === 'ArrowRight' || e.code === 'KeyD') { selPlane = (selPlane + 1) % PLANES.length; beep(600, 0.05, 'square', 0.04); e.preventDefault(); return; }
         if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyX' || e.code === 'KeyK') { startReq = true; e.preventDefault(); return; }
+      }
+      // PIRUETA (tonel): doble-tap ← / → en vuelo — pulsaciones frescas, no auto-repeat
+      if (!e.repeat && state === 'play') {
+        const nowS = performance.now() / 1000;
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') { if (nowS - tapL < 0.28) startRoll(-1); tapL = nowS; }
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') { if (nowS - tapR < 0.28) startRoll(1); tapR = nowS; }
       }
       if (KEYMAP[e.code] !== undefined) { inp[KEYMAP[e.code]] = 1; anyPress = true; e.preventDefault(); }
       if (e.code === 'KeyX' || e.code === 'KeyK' || e.code === 'Space') { inp.fire = true; anyPress = true; e.preventDefault(); }
@@ -1015,6 +1026,13 @@
       }
     }
 
+    // PIRUETA (tonel / aileron roll): esquive cinematico con doble-tap ←/→
+    function startRoll(dir) {
+      if (state !== 'play' || rollT > 0 || rollCd > 0) return;
+      rollT = ROLL_DUR; rollDir = dir; rollCd = 1.15;
+      beep(480, 0.16, 'triangle', 0.05, 900);   // whoosh ascendente
+    }
+
     // lanza un misil del jugador (arma secundaria: limitada, one-shot, con leve guiado)
     function tryLaunchMissile() {
       if (state === 'momentum') return momLaunchMissile();   // primera persona: misil del momentum
@@ -1149,6 +1167,20 @@
         const G = 22, TH = 55, DIVE = 30;
         plane.vy += (((inp.u && fuel > 0) ? TH : 0) - G - (inp.d ? DIVE : 0)) * dt;
         plane.vy = Math.max(-20, Math.min(18, plane.vy));
+      }
+      // PIRUETA (tonel): rafaga lateral fuerte que decae + estelas de viento; el perfil de
+      // colision se ENCOGE mientras rola (alas "de canto") → pasa por espacios mas finos
+      rollCd = Math.max(0, rollCd - dt);
+      if (rollT > 0) {
+        rollT -= dt;
+        plane.vx = rollDir * 40 * (0.45 + rollT / ROLL_DUR);
+        if (Math.random() < 0.85) {
+          const sp2 = proj(plane.x + (Math.random() - 0.5) * 3, plane.y + (Math.random() - 0.5) * 2, PZ);
+          parts.push({
+            x: sp2.x - rollDir * 10, y: sp2.y, vx: -rollDir * (55 + Math.random() * 40),
+            vy: (Math.random() - 0.5) * 20, life: 0.3, c: P.crest, r: 1
+          });
+        }
       }
       // throttle (palanca de gas): sube al dar gas, baja al soltar — solo indicador visual
       const gasOn = fuel > 0 && (inp.u || (steerTarget && plane.vy > 0.5));
@@ -1300,9 +1332,12 @@
           let hw, hh, oy;
           if (o.type === 'mast') { hw = 0.9; hh = o.h; oy = o.h / 2; }
           else { hw = air ? 3 : 2.6; hh = air ? 1.6 : 1.9; oy = o.y; }
-          const dx = Math.abs(plane.x - o.x) - (hw + 2.6);
-          const dy = Math.abs(plane.y - oy) - (hh + 1.2);
-          const hullHit = o.type === 'mast' && Math.abs(plane.x - o.x) < 5 + 2.6 && plane.y < 3.6;
+          // perfil del avion AFINADO (antes 2.6×1.2, chocaba "de lejos"); en PIRUETA las alas
+          // van de canto → perfil minimo: pasa por espacios mucho mas finos
+          const pw = rollT > 0 ? 1.0 : 2.1, ph2 = rollT > 0 ? 0.7 : 1.0;
+          const dx = Math.abs(plane.x - o.x) - (hw + pw);
+          const dy = Math.abs(plane.y - oy) - (hh + ph2);
+          const hullHit = o.type === 'mast' && Math.abs(plane.x - o.x) < 5 + pw && plane.y < 3.6;
           if (o.type === 'fuel') {
             if (dx < 1.5 && dy < 1.5) {
               fuel = Math.min(100, fuel + 30);
@@ -1312,8 +1347,9 @@
           } else if ((dx < 0 && dy < 0) || hullHit) {
             return die(o.type === 'mast' ? 'death_mast' : o.type === 'helo' ? 'death_helo' : o.type === 'jet' ? 'death_jet' : 'death_balloon');
           } else if (dx < 3 && dy < 3) {
-            score += 75; shake = Math.min(6, shake + 1.5);
-            const s = proj(o.x, oy, PZ); popup(s.x, s.y - 8, T('graze'), P.foam);
+            const pir = rollT > 0;                       // rozar EN PIRUETA: bonus grande (estilo)
+            score += pir ? 250 : 75; shake = Math.min(6, shake + 1.5);
+            const s = proj(o.x, oy, PZ); popup(s.x, s.y - 8, pir ? T('rollGraze') : T('graze'), pir ? P.accent : P.foam);
             boom(0.06, true);
           }
         }
@@ -1327,7 +1363,7 @@
         m.y += Math.max(-14, Math.min(14, (plane.y - m.y) * 2.0)) * dt;
         if (!m.done && m.z <= PZ + 1.2) {
           m.done = true;
-          if (Math.abs(plane.x - m.x) < 3 && Math.abs(plane.y - m.y) < 2.2) return die('death_missile');
+          if (Math.abs(plane.x - m.x) < (rollT > 0 ? 1.6 : 3) && Math.abs(plane.y - m.y) < (rollT > 0 ? 1.2 : 2.2)) return die('death_missile');
           score += 75; const s = proj(m.x, m.y, PZ); popup(s.x, s.y - 8, T('dodgeMissile'), P.foam); boom(0.06, true);
         }
         if (Math.random() < 0.6) {
@@ -1596,11 +1632,27 @@
       ctx.translate(0, -plane.pitch * 1.2);
       // alabeo: rotación 2D + micro-wobble; el foreshortening en X finge la inclinación 3D del ala
       const bank = Math.max(-1, Math.min(1, plane.bank));
-      ctx.rotate(bank * 0.42 + (state === 'play' ? Math.sin(t * 2.3) * 0.015 : 0));
-      ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
+      let rolling = rollT > 0;
+      if (rolling) {
+        // PIRUETA: tonel completo — el sprite (vista trasera) rota 360° en el plano de pantalla
+        const pr = 1 - rollT / ROLL_DUR;                   // 0→1 durante el tonel
+        ctx.rotate(rollDir * pr * Math.PI * 2);
+        ctx.scale(0.94 + 0.06 * Math.cos(pr * Math.PI * 2), 1);   // leve pulso: vende el giro
+      } else {
+        ctx.rotate(bank * 0.42 + (state === 'play' ? Math.sin(t * 2.3) * 0.015 : 0));
+        ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
+      }
       const pl = PLANES[selPlane];
       if (pl.ready) {
         const PW = 54, PH = Math.round(PW * pl.h / pl.w);
+        // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas (estela cinematica)
+        if (rolling) for (let gi = 2; gi >= 1; gi--) {
+          ctx.save();
+          ctx.rotate(-rollDir * gi * 0.55);
+          ctx.globalAlpha = 0.14;
+          ctx.drawImage(pl.img, -PW / 2, -PH / 2, PW, PH);
+          ctx.restore();
+        }
         // postquemador: fogonazo extra bajo la tobera solo con turbo (el sprite ya trae su glow)
         if (boost) { const fl = 5 + Math.random() * 4; px(-2, PH / 2 - 4, 4, fl, P.foam); px(-1, PH / 2 - 4, 2, fl * 0.7, P.accent); }
         ctx.drawImage(pl.img, -PW / 2, -PH / 2, PW, PH);
