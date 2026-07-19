@@ -1,0 +1,15 @@
+# Dependencias
+node_modules/
+
+# Builds de escritorio (electron-builder) y build web inlineado
+dist/
+dist-web/
+out/
+release/
+
+# Steam
+steam_appid.txt
+
+# Logs y temporales
+*.log
+.DS_Store

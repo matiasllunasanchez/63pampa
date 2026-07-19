@@ -1,0 +1,13 @@
+{
+  "name": "rasante",
+  "version": "0.1.0",
+  "description": "RASANTE — juego arcade 2D de vuelo rasante en Malvinas 1982. Migración a Electron para Steam.",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "serve": "python3 -m http.server 8475",
+    "start": "echo \"Electron llega en la Fase 2 del PLAN_ELECTRON_STEAM.md\" && exit 1"
+  },
+  "author": "Matias Luna",
+  "license": "UNLICENSED"
+}
