@@ -491,7 +491,7 @@ function drawMenu(){
   ctx.fillText('Muy alto = te detecta el radar.', W/2, 122);
   if (Math.sin(t*4) > -0.3){
     ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-    ctx.fillText('ESPACIO o TOCAR para despegar', W/2, 145);
+    ctx.fillText('ESPACIO  para despegar', W/2, 145);
   }
   ctx.fillStyle = '#5c6e73'; ctx.font = '6px monospace';
   ctx.fillText('En homenaje a los pilotos y veteranos de Malvinas', W/2, 168);
@@ -524,7 +524,7 @@ function drawDead(){
 
   if (deathT > 0.7 && Math.sin(t*4) > -0.3){
     ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-    ctx.fillText('ESPACIO o TOCAR para volver a volar', W/2, 152);
+    ctx.fillText('ESPACIO  para volver a volar', W/2, 152);
   }
 }
 

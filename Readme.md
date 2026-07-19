@@ -82,6 +82,7 @@ Dos versiones en el repo:
 | Picada    | `ABAJO` / `S`            | —                               |
 | Disparar  | `X` / `ESPACIO` / `K`    | mantener derecha-arriba         |
 | Turbo     | `SHIFT` / `C`            | mantener derecha-abajo          |
+| Cámara    | `V` — cicla 4 cámaras: **1× → 1.5× → 2× → 2.5×** (siguen al avión) | — |
 | Idioma    | `L` (cambia es ↔ en)     | —                               |
 
 **Idiomas:** el juego está internacionalizado (i18n). Se elige el idioma por, en orden, `?lang=xx`
@@ -202,13 +203,13 @@ largo de la pantalla** (crece a medida que te acercás) y se abre un minijuego d
   las flechas panean el MUNDO detrás del vidrio (`momCam()`) — el blanco "viene" al visor, como
   maniobrar el avión de verdad. Para cambiar el asset: `python3 tools/embed_asset.py cockpit <archivo>`.
 - **Mira libre** con flechas/WASD; el barco **se balancea y cabecea** → hay que corregir todo el tiempo.
-- **Cañón por ráfagas lentas [X]**: menos balas, más lentas, más daño — una bala gruesa cada
-  **0.36s** con **22 de daño**, que sale del ala (alternando lado), viaja a 150 px/s (~1.3s) y
-  **trackea la zona que apuntabas al disparar** mientras el barco se balancea. Mismo DPS que antes,
-  pero se VE el bullet-time.
+- **Cañón por ráfagas lentas [X]**: una bala gruesa cada **0.5s** con **45 de daño**, que sale
+  del ala (alternando lado) y viaja a 150 px/s (~1.3s) en **balística pura al punto apuntado**
+  (sin tracking) con **dispersión** que se abre al rolar. RADAR = 1 hit preciso · AA = 2 ·
+  PUENTE = 3. Ventanas de pasada más cortas (4.5–5.5s): cada tiro errado cuesta.
 - **Misiles [Z]** también en primera persona: salen del ala (alternando lado), vuelan **lentos**
-  (~2.1s, bullet-time) con lock al punto apuntado al disparar, y explotan con **55 de daño en área**
-  — un misil mata una AA o el radar; el puente pide combinar cañón + misiles. Misma munición que el
+  (~2.1s, bullet-time) con lock al punto apuntado al disparar, y explotan con **80 de daño en área**
+  — un misil mata una AA o el radar; el puente pide misil + cañón. Misma munición que el
   vuelo normal (pips `Z ▪▪▪` junto a la barra de tiempo; la recarga se pausa en cámara lenta).
 - Mantener **[X] fuego sostenido** sobre una **zona crítica** (corchetes titilantes + barra de HP) la destruye.
 - **3 pasadas** (`MOM_PHASES`): al **78%** → los 2 **cañones AA** (barco chico) · al **90%** → el **radar**

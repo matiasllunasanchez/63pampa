@@ -494,6 +494,44 @@ mouse → en táctil nunca, y rige el esquema anterior completo — cero regresi
   - cam.x ya NO se toca (se quitó el barrido lateral de la órbita). ↑/↓ siguen moviendo la
     cabina (mom.cy). Screenshots: mundo+SHEFFIELD ladeados 29°/34° con cabina e instrumentos
     perfectamente nivelados y la mira sobre la zona rotada.
+  - **REBALANCEO "menos tiempo, tiros más dañinos, más difícil" (19/7)**:
+    (1) **Ventanas ~35% más cortas**: t42 5.5/4.5/5 · t21 5.5/4.5/5.5 · log 5/4.5/5 (antes 6-8s).
+    (2) **Cañón balístico SIN tracking**: se quitó el lock `zi` — la bala vuela al punto apuntado
+    AL DISPARAR con **dispersión** (`±(3.5 + |rollV|*5)` px: rolar abre el cono) y al llegar
+    hace chequeo punto-en-zona (margen ±1). **Daño 22→45**, cadencia 0.36→**0.5s**. DPS similar
+    pero cada bala importa: PUENTE 130 = 3 hits · AA 55 = 2 · RADAR 45 = **1 hit preciso** ·
+    MOTOR 70 = 2. (3) **Misil 55→80** (one-shotea AA/radar). Sim TTK (85% acierto): todas las
+    zonas simples entran cómodas; las pasadas DOBLES (2 AA / 2 motores ≈ 5s de trabajo en 5.5)
+    quedan al filo — fallar tiros cuesta la pasada. Verificado en vivo: timer 4.8/5 (ventana
+    nueva), bala balística en vuelo sin `zi`; impacto garantizado por geometría (zona anclada +
+    dispersión < media zona).
+  - **AVANCE EN CÁMARA LENTA (19/7)**: el avión ya no queda "en el lugar" — durante el momentum
+    `dist` sigue creciendo al **25% de spd** (en updateMomentum, corre también en el outro) →
+    la textura del mar/tierra **fluye despacio hacia la cámara** (drawSea/drawSeaDots leen dist).
+    Es acercamiento REAL a la barcaza, con **tope 2% antes del gatillo de la próxima pasada**
+    (`Math.min(dist, objectiveDist*(nextAt-0.02))`) para no encadenar momentums al volver al
+    vuelo; en la pasada final no hay tope (nextAt=99). Verificado: dist 781→786+ avanzando en
+    momentum y el patrón de puntos del mar desplazándose entre frames.
+    **FIX "frenazo" (19/7)**: al morder el tope, el mar se congelaba los últimos segundos de la
+    pasada → sensación de avión FRENANDO en el aire. Ahora el sobrante del avance va a
+    **`momDrift`** (avance solo-VISUAL): `dist` respeta el tope (gameplay/gatillos intactos)
+    pero drawSea/drawLand/drawSeaDots leen `dist + momDrift` → el flujo del suelo JAMÁS se
+    detiene, a ritmo constante (25% de spd) toda la pasada. `momDrift` queda como offset de
+    fase constante al salir (sin salto visual) y se resetea en `reset()`. Verificado en vivo:
+    dist clavado en 880 (tope) con drift 37.5→92.1 creciendo a 37.5/s exactos.
+  - **CÁMARAS — tecla V (19/7)**: `V` CICLA 4 cámaras en vuelo normal: **1× → 1.5× → 2× → 2.5×**
+    (`CAM_ZOOMS = [1, 1.5, 2, 2.5]`), con popup "CAM n×" al cambiar y beep ascendente por nivel.
+    Zoom anclado al sprite del avión. Implementación: transform
+    de canvas en `draw()` (translate/scale/translate alrededor de `proj(plane.x,plane.y,PZ)`)
+    aplicado DESPUÉS de la rotación del momentum y desecho ANTES de `drawHUD` → el HUD no se
+    agranda. Zoom-in solo muestra un subconjunto de la pantalla ya pintada: no descubre bordes
+    jamás (no hacía falta ampliar márgenes). `camZ` interpola suave (`dt*3.5`); el target es
+    `CAM_ZOOMS[camMode]` solo en play/takeoff → al morir hace zoom-out cinemático solo, y en menús/
+    momentum vuelve a 1 (el momentum tiene su propia cámara cockpit; sin interacción). El mouse
+    se compensa con `viewMouse()` (des-zoomea el cursor alrededor del mismo ancla): mira, cañón
+    balístico y misil caen EXACTO bajo el cursor físico con cualquier zoom — verificado en vivo
+    (mira dibujada en (250,60) físico con camZ=1.19 en transición). `camMode` persiste entre
+    corridas; táctil no tiene toggle todavía (va con el mapeo de joystick).
 
 ## 5. Controles
 
@@ -504,6 +542,7 @@ mouse → en táctil nunca, y rige el esquema anterior completo — cero regresi
 | Picada      | `ABAJO`/`S`                                    | —                             |
 | Disparar    | `X` / `ESPACIO` / `K`                          | mantener derecha-arriba       |
 | Turbo       | `SHIFT` / `C`                                  | mantener derecha-abajo        |
+| Cámara      | `V` (cicla 1× → 1.5× → 2× → 2.5×)              | — (pendiente joystick/táctil) |
 | Empezar     | cualquier tecla / tocar                        | —                             |
 
 ---
