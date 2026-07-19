@@ -13,16 +13,16 @@ actualiza la tabla de progreso de acá abajo y se anota el cambio en `ESTADO.md`
 ## ▶ RETOMAR ACÁ (si se cortó el servicio, leer esto primero)
 
 - **Rama de trabajo:** `feature/electron` (hacé `git checkout feature/electron`).
-- **Última acción completada:** **Fase 3 COMPLETA** — empaquetado con electron-builder
-  configurado y verificado (build de macOS genera `RASANTE.app` con el juego + assets + icono).
-  Iconos generados (png/icns/ico). Último commit `5b66594`. Fecha: 2026-07-19.
-- **PRÓXIMO PASO:** **Fase 4** — integración Steamworks. **NECESITO DE VOS el App ID** (sale de
-  crear la app en tu cuenta Steamworks). Sin eso, la Fase 4 no arranca. Ver Fase 4.
-- **Build de Windows:** la config está lista (`npm run dist:win` → nsis + portable). El `.exe`
-  se buildea **en una máquina Windows o en CI** (cross-build desde Mac necesita Wine). Opción
-  recomendada: workflow de GitHub Actions con runner Windows (lo podemos armar en Fase 5).
+- **Última acción completada:** **Migración MERGEADA a `main`** (fast-forward). Fases 0-3
+  completas y consolidadas: el juego vive en `src/`, corre en Electron y se empaqueta. Juego
+  probado funcionalmente en la estructura nueva (menú, selección con sprite, despegue). 2026-07-19.
+- **STEAM EN PAUSA (decisión del usuario):** las Fases 4 (Steamworks) y 5 (release a Steam)
+  quedan **congeladas por ahora**. Se retoman cuando el usuario quiera crear la cuenta Steamworks.
+  Mientras tanto: **seguir desarrollando y probando el juego** sobre `src/`.
+- **Windows (.exe):** el cross-build **unpacked SÍ funciona desde Mac** (`electron-builder
+  --win --dir` generó `RASANTE.exe`); solo el instalador **NSIS** necesita Wine o Windows/CI.
 - **Pendiente no bloqueante:** confirmación visual `npm start` (tuya); republicar Artifact;
-  sumar 8 adrenaline + audio original; CSP estricto (opcional, el warning es solo de dev).
+  sumar 8 adrenaline + audio original; CSP estricto (opcional, warning solo de dev).
 - **Cómo verificar dónde estás:** `git log --oneline -5` en `feature/electron` y mirá la
   Bitácora al final de este archivo.
 
@@ -36,7 +36,7 @@ actualiza la tabla de progreso de acá abajo y se anota el cambio en `ESTADO.md`
 | 1 | Reestructuración (des-embeber assets + split de archivos) | ✅ hecho | 2026-07-19 |
 | 2 | Shell de Electron (corre en ventana) | ✅ hecho | 2026-07-19 |
 | 3 | Empaquetado con electron-builder (.exe) | ✅ hecho | 2026-07-19 |
-| 4 | Integración Steamworks (SDK) | ⬜ pendiente ← **SIGUIENTE** (necesita App ID) | — |
+| 4 | Integración Steamworks (SDK) | ⏸️ PAUSADO (decisión del usuario) | — |
 | 5 | Pipeline de release a Steam (SteamPipe) | ⬜ pendiente | — |
 | 6 | Mejoras desbloqueadas (three.js, audio, assets) | ⬜ pendiente | — |
 
