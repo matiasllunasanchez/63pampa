@@ -963,10 +963,10 @@
     function momShipGeom() {
       const ph = MOM_PHASES[momPhase];
       const prog = Math.min(1, mom.t / ph.time);
-      const sc = ph.scale * (0.82 + 0.16 * prog);
-      const sway = Math.sin(mom.t * 0.8) * 11 * sc + Math.sin(mom.t * 1.9) * 3;
-      const bob = Math.sin(mom.t * 1.3) * 2.2 * sc;
-      return { cx: W / 2 + sway, len: W * 0.82 * sc, deckY: HOR + 36 * sc + bob, uh: 9 * sc, sc };
+      const sc = ph.scale * (0.82 + 0.24 * prog);   // avance MAS marcado: cierra hasta 1.06×
+      // barco FIJO/ANCLADO (sin balanceo ni cabeceo): el movimiento del duelo lo pone el ALABEO
+      // del avion (el mundo entero gira con mom.roll), no el barco
+      return { cx: W / 2, len: W * 0.82 * sc, deckY: HOR + 36 * sc, uh: 9 * sc, sc };
     }
 
     // camara del momentum: la MIRA queda CLAVADA al visor del cockpit (MOM_AX, MOM_AY) y para
@@ -976,6 +976,13 @@
     function momCam() {
       if (state !== 'momentum' || !mom) return { x: 0, y: 0 };
       return { x: mom.cx - MOM_AX, y: mom.cy - MOM_AY };
+    }
+    // pantalla → mundo en momentum: el mundo se dibuja rotado -mom.roll alrededor del centro
+    // (alabeo), asi que para apuntar/spawnear hay que DESHACER esa rotacion y sumar la camara
+    function momScrToWorld(sx2, sy2) {
+      const cmw2 = momCam(), ca = Math.cos(mom.roll || 0), sa = Math.sin(mom.roll || 0);
+      const dx = sx2 - W / 2, dy = sy2 - H / 2;
+      return { x: W / 2 + dx * ca - dy * sa + cmw2.x, y: H / 2 + dx * sa + dy * ca + cmw2.y };
     }
 
     // casco + superestructura de la barcaza (compartido: momentum y aproximacion en vuelo normal)
@@ -1015,7 +1022,7 @@
       const t0 = momPhase === 0 ? 0.45 : MOM_PHASES[momPhase - 1].at;
       if (p < t0) return;
       const f = Math.max(0, Math.min(1, (p - t0) / (next.at - t0)));
-      const sc0 = momPhase === 0 ? 0.04 : MOM_PHASES[momPhase - 1].scale * 0.98;  // continua donde quedo la pasada anterior
+      const sc0 = momPhase === 0 ? 0.04 : MOM_PHASES[momPhase - 1].scale * 1.06;  // continua donde quedo la pasada anterior
       const scE = next.scale * 0.82;
       const sc = sc0 + (scE - sc0) * f;
       // ALINEADO AL HORIZONTE: la barcaza queda pegada a la linea del horizonte (donde emergen los
@@ -1084,11 +1091,12 @@
     function momLaunchMissile() {
       if (!mom || mom.doneT > 0 || msl <= 0 || mslCd > 0) return;
       msl--; mslCd = 0.6;
-      const cmw = momCam();
       mom.mslSide = -(mom.mslSide || 1);
+      const mo = momScrToWorld(MOM_AX + mom.mslSide * 95, H - 30);       // pilon del ala (rola con vos)
+      const mt = momScrToWorld(mouse.on ? mouse.x : MOM_AX, mouse.on ? mouse.y : MOM_AY);
       mom.fx.push({
-        k: 'ms', x: MOM_AX + cmw.x + mom.mslSide * 95, y: cmw.y + H - 30,
-        tx: mouse.on ? mouse.x + cmw.x : mom.cx, ty: mouse.on ? mouse.y + cmw.y : mom.cy,
+        k: 'ms', x: mo.x, y: mo.y,
+        tx: mt.x, ty: mt.y,
         vx: mom.mslSide * -30, vy: -52, life: 3.5, T: 0
       });
       // resplandor de lanzamiento (mas largo que el del canon)
@@ -1101,6 +1109,7 @@
       obstacles = []; bullets = []; missiles = []; pmissiles = []; soldiers = []; gusts = []; streaks = [];  // se limpia el campo (cinematica)
       mom = {
         t: 0, timer: ph.time, doneT: 0, cx: W / 2, cy: 80, hitFx: 0, fx: [],
+        roll: 0, rollV: 0,   // ALABEO: el avion rola sobre su eje longitudinal (←/→); el mundo gira, la cabina no
         zones: ph.zones.map(z => Object.assign({}, z, { hp: z.maxHp }))
       };
       mom.cy = momShipGeom().deckY - 8;            // arranca apuntando a la cubierta (coords de MUNDO)
@@ -1223,20 +1232,27 @@
       // misiles: misma municion que el vuelo normal; Z (o boton tactil) lanza
       mslCd = Math.max(0, mslCd - dt);
       if (inp.msl) momLaunchMissile();
-      // apuntar = girar la trompa: flechas/WASD mueven el PUNTO APUNTADO en el mundo (la mira
-      // queda fija al visor y el mundo panea). El barco se balancea → hay que corregir siempre.
+      // ALABEO (roll): ←/→ hacen ROLAR el avion sobre su eje longitudinal (el que apunta a la
+      // barcaza). El MUNDO ENTERO (horizonte + barco) gira alrededor del centro; la cabina queda
+      // fija (sos vos el que rola). El barco esta ANCLADO (sin balanceo). ↑/↓ mueven la cabina.
       const CS = 98;
-      mom.cx = Math.max(W / 2 - 60, Math.min(W / 2 + 60, mom.cx + (inp.r - inp.l) * CS * dt));   // ±60: tope de paneo (fondos ±70)
+      mom.rollV += ((inp.r - inp.l) * 1.6 - mom.rollV) * Math.min(1, dt * 2.8);   // entra/sale con peso
+      mom.roll += mom.rollV * dt;
+      if (!inp.l && !inp.r) {
+        // auto-nivelado suave hacia la vuelta completa mas cercana (permite toneles enteros)
+        const lvl = Math.round(mom.roll / (Math.PI * 2)) * Math.PI * 2;
+        mom.roll += (lvl - mom.roll) * Math.min(1, dt * 1.1);
+      }
       mom.cy = Math.max(44, Math.min(122, mom.cy + (inp.d - inp.u) * CS * dt));
       // CANON en camara lenta: rafagas DISCRETAS — menos balas, mas lentas, mas dano por bala
       // (dps similar al hitscan anterior: 22 cada 0.36s ≈ 61). Cada bala nace en el ala, viaja
       // LENTA hasta el punto apuntado al disparar y, si habia una zona bajo la mira, la trackea
       // (lock) mientras el barco se balancea. El impacto es puntual y fuerte → efecto bullet-time.
       const cmw = momCam();
-      // punto APUNTADO en coords de mundo: con MOUSE la mira es libre sobre el vidrio (PC);
-      // sin mouse (tactil/legacy) apunta el visor fijo del centro (mom.cx/cy = camara)
-      const aimX = mouse.on ? mouse.x + cmw.x : mom.cx;
-      const aimY = mouse.on ? mouse.y + cmw.y : mom.cy;
+      // punto APUNTADO en coords de mundo (deshaciendo el roll): con MOUSE la mira es libre
+      // sobre el vidrio (PC); sin mouse (tactil/legacy) apunta el visor fijo del centro
+      const aimP = momScrToWorld(mouse.on ? mouse.x : MOM_AX, mouse.on ? mouse.y : MOM_AY);
+      const aimX = aimP.x, aimY = aimP.y;
       mom.hitFx = Math.max(0, (mom.hitFx || 0) - dt * 5);   // flash breve al impactar (decae)
       mom.shotCd = Math.max(0, (mom.shotCd || 0) - dt);
       if (inp.fire && mom.shotCd <= 0) {
@@ -1248,8 +1264,11 @@
           const r = momZoneRect(z);
           if (aimX >= r.x && aimX <= r.x + r.w && aimY >= r.y && aimY <= r.y + r.h) { zi = i; break; }
         }
+        // la bala nace en el ALA (posicion de pantalla, fuera del vidrio) convertida a mundo
+        // con el roll aplicado: al rolar, tus alas rotan con vos
+        const wing = momScrToWorld(mom.gunSide < 0 ? -40 : W + 40, 66);
         mom.fx.push({
-          k: 'sh', x: cmw.x + (mom.gunSide < 0 ? -40 : W + 40), y: cmw.y + 66,
+          k: 'sh', x: wing.x, y: wing.y,
           tx: aimX, ty: aimY, zi, life: 2.2, T: 0, vx: 0, vy: 0
         });
         // RESPLANDOR de fogonazo en el borde del lado que disparo (feedback instantaneo)
@@ -2026,11 +2045,18 @@
       const sx = (Math.random() - 0.5) * shake, sy = (Math.random() - 0.5) * shake;
       const cm = momCam();
       ctx.save(); ctx.translate(Math.round(sx) - cm.x, Math.round(sy) - cm.y);   // momentum: el mundo se mueve, la mira no
+      // ALABEO (momentum): el MUNDO ENTERO (horizonte, mar Y BARCO) gira -mom.roll alrededor
+      // del centro — el avion rola sobre su eje longitudinal y la cabina queda fija.
+      // drawMomentum deshace esta rotacion recien al dibujar cabina/mira/letterbox.
+      if (state === 'momentum' && mom) {
+        const rcx = W / 2 + cm.x, rcy = H / 2 + cm.y;
+        ctx.translate(rcx, rcy); ctx.rotate(-mom.roll); ctx.translate(-rcx, -rcy);
+      }
 
       // cielo
       const g = ctx.createLinearGradient(0, 0, 0, HOR);
       g.addColorStop(0, SKY.skyTop); g.addColorStop(0.6, SKY.skyMid); g.addColorStop(1, SKY.horizon);
-      ctx.fillStyle = g; ctx.fillRect(-70, -8, W + 140, HOR + 12);   // margen ±70: la camara del momentum panea
+      ctx.fillStyle = g; ctx.fillRect(-70, -140, W + 140, HOR + 144);   // margenes: paneo + rolls completos del momentum
       ctx.globalAlpha = 0.4; px(-70, HOR - 10, W + 140, 10, SKY.sunGlow); ctx.globalAlpha = 1;
       // sol bajo
       const sunX = W / 2 - cam.x * 1.4;
@@ -2051,6 +2077,8 @@
       }
 
       drawSea();
+      // en momentum el mundo rota (alabeo): rellena bajo el mar para que un tonel no muestre huecos
+      if (state === 'momentum') px(-70, H, W + 140, 150, cfg.terrain === 'land' ? LAND.near : WATER.base2);
       drawApproachBarge();   // la barcaza objetivo creciendo en el horizonte (final del mapa)
       drawWake();
 
@@ -2121,12 +2149,16 @@
       }
       ctx.globalAlpha = 1;
 
-      for (const p of parts) { ctx.globalAlpha = Math.min(1, p.life * 2); px(p.x, p.y, p.r, p.r, p.c); }
-      ctx.globalAlpha = 1;
+      // en momentum, particulas y popups los dibuja drawMomentum (nivelados, sobre el barco);
+      // dibujarlos tambien aca dejaria una copia fantasma (el mundo del momentum va rotado por el alabeo)
+      if (state !== 'momentum') {
+        for (const p of parts) { ctx.globalAlpha = Math.min(1, p.life * 2); px(p.x, p.y, p.r, p.r, p.c); }
+        ctx.globalAlpha = 1;
 
-      ctx.font = '7px monospace'; ctx.textAlign = 'center';
-      for (const p of popups) { ctx.globalAlpha = Math.min(1, p.life); ctx.fillStyle = p.c; ctx.fillText(p.txt, p.x, p.y); }
-      ctx.globalAlpha = 1;
+        ctx.font = '7px monospace'; ctx.textAlign = 'center';
+        for (const p of popups) { ctx.globalAlpha = Math.min(1, p.life); ctx.fillStyle = p.c; ctx.fillText(p.txt, p.x, p.y); }
+        ctx.globalAlpha = 1;
+      }
 
       if (state === 'play') drawHUD();
       if (state === 'momentum' && mom) drawMomentum();
@@ -2266,6 +2298,8 @@
     // MOMENTUM: barcaza a lo largo, zonas criticas resaltadas, mira y ventana de tiempo
     function drawMomentum() {
       const ph = MOM_PHASES[momPhase], g = momShipGeom();
+      // NOTA: seguimos en espacio-MUNDO ROTADO por el alabeo (aplicado en draw): el barco, las
+      // zonas, los fx y las particulas giran con el mundo — al rolar ves la barcaza inclinarse
 
       // tinte de camara lenta sobre el fondo (extendido: la camara panea con la punteria, momCam)
       ctx.fillStyle = '#0a121a'; ctx.globalAlpha = 0.28; ctx.fillRect(-80, -80, W + 160, H + 160); ctx.globalAlpha = 1;
@@ -2351,8 +2385,13 @@
       for (const p of popups) { ctx.globalAlpha = Math.min(1, p.life); ctx.fillStyle = p.c; ctx.fillText(p.txt, p.x, p.y); }
       ctx.globalAlpha = 1;
 
-      // de aca en adelante espacio-PANTALLA (cabina, mira, letterbox): se deshace el paneo de camara
+      // de aca en adelante espacio-PANTALLA: se deshace el ROLL y el paneo de camara —
+      // la cabina, la mira y el letterbox van NIVELADOS (vos rolas, tu marco no)
       const cm = momCam();
+      {
+        const rcx = W / 2 + cm.x, rcy = H / 2 + cm.y;
+        ctx.translate(rcx, rcy); ctx.rotate(mom.roll); ctx.translate(-rcx, -rcy);
+      }
       ctx.translate(cm.x, cm.y);
 
       // (las rafagas del canon ya no son lineas fijas: son proyectiles fx 'sh' que viajan

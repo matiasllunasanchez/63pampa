@@ -475,6 +475,25 @@ mouse → en táctil nunca, y rige el esquema anterior completo — cero regresi
   (-10) y cruza la mira (25,8) en z=110. El auto-aim táctil conserva su lerp vertical.
 - **JOYSTICK (pendiente, objetivo declarado)**: con la puntería ya separada del movimiento, el
   mapeo natural es stick izq = vuelo/cabina, stick der = mira, gatillos = cañón/misil (Gamepad API).
+- **ALABEO EN PRIMERA PERSONA (reemplazó a la órbita, 19/7)**: iteración con el user — el barco
+  debía quedar FIJO y el avión **rolar sobre su eje longitudinal** (alabeo). Modelo final:
+  - **Barco ANCLADO**: `momShipGeom` sin sway/bob (cx=W/2 fijo); el movimiento del duelo lo pone
+    el roll del avión, no el barco. Crecimiento por pasada 0.82→**1.06** se mantiene.
+  - **Roll**: ←/→ → `mom.rollV` (easing dt*2.8, tope 1.6 rad/s) → `mom.roll` acumulativo
+    (permite **toneles completos**). Al soltar: **auto-nivelado** suave hacia la vuelta completa
+    más cercana (`round(roll/2π)*2π`, easing dt*1.1).
+  - **Render**: el MUNDO ENTERO (horizonte, mar Y BARCO con sus zonas/fx) rota `-mom.roll`
+    alrededor del centro (en `draw()` tras el translate); `drawMomentum` lo deshace recién en la
+    sección de pantalla → **cabina/mira/letterbox nivelados** (vos rolás, tu marco no).
+  - **Puntería exacta bajo roll**: `momScrToWorld(sx,sy)` deshace la rotación (rotar el vector
+    cursor−centro por +roll y sumar cámara); la usan la mira del mouse, el fallback del visor y
+    los ORÍGENES de balas/misiles (las alas rotan con vos). Verificado con helper `__aimAtZone`:
+    con roll=0.56 el disparo al punto en pantalla de la zona rotada dio `zi:0` (lock exacto).
+  - **Cobertura de rolls completos**: cielo extendido a y=-140 y filler bajo el mar (H..H+150,
+    color del agua/tierra profunda) solo en momentum → girar 360° no muestra huecos.
+  - cam.x ya NO se toca (se quitó el barrido lateral de la órbita). ↑/↓ siguen moviendo la
+    cabina (mom.cy). Screenshots: mundo+SHEFFIELD ladeados 29°/34° con cabina e instrumentos
+    perfectamente nivelados y la mira sobre la zona rotada.
 
 ## 5. Controles
 
