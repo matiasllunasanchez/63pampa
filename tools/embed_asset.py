@@ -22,10 +22,11 @@ INDEX = ROOT / 'index.html'
 # clave -> regex que captura (prefijo)src:'...'  dentro de la definicion correcta.
 # Cada patron ancla en el nombre de la constante para no pisar otro asset.
 MARKERS = {
-    'cockpit':   r"(const COCKPIT_ASSET = \{ src:)'[^']*'",
-    'obj_port':  r"(port:\s*\{ src:)'[^']*'",
-    'obj_barge': r"(barge:\s*\{ src:)'[^']*'",
-    'obj_plane': r"(plane:\s*\{ src:)'[^']*'",
+    'cockpit':     r"(const COCKPIT_ASSET = \{ src:)'[^']*'",
+    'obj_port':    r"(port:\s*\{ src:)'[^']*'",
+    'obj_barge':   r"(barge:\s*\{ src:)'[^']*'",
+    'obj_plane':   r"(plane:\s*\{ src:)'[^']*'",
+    'music_story': r"(const MUSIC_STORY = )'[^']*'",   # pista de las pantallas de HISTORIA (mp3)
 }
 
 def main():

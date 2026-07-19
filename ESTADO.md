@@ -217,6 +217,48 @@ te frena (viento), te expone (radar) y te sacude (turbulencia). No hay refugio g
     Verificado con harness pausable (`__pose(pr)`): poses a 38% y 62% muestran giro + ghosting.
   - Hint en pantalla de inicio (`ctrl2`): "doble ←/→: PIRUETA". **Pendiente**: gesto táctil
     (doble-tap lateral en la zona de vuelo) y quizá bonus de racha por piruetas encadenadas.
+- **PANTALLA DE HISTORIA (campaña, NUEVO 19/7):** al elegir CAMPAÑA ya no se va directo al
+  despegue: `startCampaign()` → `initStory()` → `state='story'`. Pantalla negra tipo "expediente"
+  (grano de película parpadeante, banda de scanline bajando, marco fino) donde el texto se tipea
+  **letra por letra con ruido** (tick `beep(1300+rnd*1100, 0.014)` por carácter, CPS=30, pausas
+  0.10s por línea / 0.55s por párrafo). Contenido de **NIVELES.md** (fuente de verdad del guión):
+  hoy SOLO la primera pantalla — Cinemática Inicial ("Desde 1833…" ×3 párrafos) + tag
+  `NIVEL 1 — SE APROXIMA LA TASK FORCE` + objetivo — claves i18n `story1_*` (es/en).
+  Interacción: cualquier tecla/tap **completa el tipeo de un saque**; con el texto completo, la
+  siguiente arranca el despegue con **FADE desde negro** (`fadeT=1.4`, overlay negro que se pinta
+  AL FINAL de `draw()` y decae — reutilizable para cualquier transición); `t=0` al confirmar para
+  que el reloj de velocidad no herede los segundos de lectura. ESC/Backspace vuelve al menú.
+  Código: `initStory/storyTyped/drawStory` + rama `'story'` en update y draw. Verificado:
+  screenshots del tipeo con cursor de bloque titilante, layout completo sin solapes (se acortó
+  `story1_obj` y se ajustó el ritmo vertical), y el fade revelando la cuenta regresiva del
+  despegue (`state:'takeoff', fadeT:1.38, toT:0.02`).
+  **Pendiente:** las demás cinemáticas de NIVELES.md (entre niveles: enganchar en el path
+  `levelclear` con `initStory(n)`), y la cinemática final + créditos.
+  **SECUENCIAS DE PANTALLAS + HIMNO (19/7):** la historia pasó de una pantalla a **secuencias**:
+  cada Cinemática de NIVELES.md es UNA pantalla `{title, paras}` y la de NIVEL es `{level, obj}`
+  (centrada verticalmente, prompt "despegar"; las intermedias muestran "continuar"). Guiones en
+  STRINGS como arrays: `storyIntro` (4 pantallas: Malvinas 1982 / Argentina marzo / Operación
+  Rosario / NIVEL 0) y `storyL1` (La Flota / NIVEL 1 — Bautismo de fuego), es+en. `LEVELS[n].story`
+  nombra el guion; `startCampaign` y el path de `levelclear` lo lanzan (`initStory(key)` →
+  `initStoryScreen()` por pantalla; avance con tecla: completar → siguiente → última = despegue
+  con fade). **Puntitos de progreso** abajo. Tipeo MÁS LENTO: CPS 19, pausas 0.15/0.85.
+  **Música de historia:** `epic_himno.mp3` (assets/new_sounds/soundtrack/epics, 3MB → 4MB base64,
+  index.html ahora **15.4MB** — la migración de assets es cada vez más urgente) embebido como
+  `MUSIC_STORY` con el tool (`embed_asset.py music_story <mp3>`, marcador nuevo); `musStory`
+  (loop, vol 0.5) suena SOLO en `state='story'` — `updateMusic` es de 3 pistas ahora. OJO:
+  `new Audio('')` resuelve `.src` a la URL de la página, por eso el guard usa el const
+  (`want !== musStory || MUSIC_STORY`). Verificado: recorrido completo de las 4 pantallas en
+  harness (dots avanzando, tipeo letra a letra visible "M→MA", pantalla NIVEL centrada con
+  prompt) hasta despegue.
+  **FIX (19/7) — el tipeo se salteaba:** el input que confirmaba CAMPAÑA en el menú (auto-repeat
+  del Enter sostenido, o el pointer del tap) se filtraba a la pantalla de historia y la completaba
+  al instante. Doble arreglo: (1) **`anyPress` solo con pulsaciones frescas** (`!e.repeat`) en TODOS
+  los setters del keydown — beneficia también a derribado/transiciones; (2) **gracia de 0.4s** en la
+  rama story antes de aceptar input. Además la campaña ahora **arranca en NIVEL 0** (tutorial
+  "Se aproxima la Task Force"): `LEVELS[0].name='NIVEL 0'`, tag de la historia `story1_level`
+  actualizado (es/en). Verificado con el flujo real: Enter confirma → story tipeando gradual
+  (typed 224/317) pese a repeats inyectados; pulsación fresca a mitad → completa y espera;
+  otra → despegue. HUD muestra NIVEL 0.
 - **AUDIO DE CÁMARA LENTA (gamefeel, NUEVO 19/7)** — todo procedural (Web Audio ya existente),
   cero assets nuevos. Decisión: sonido ESTRUCTURAL ahora, samples/música por nivel DESPUÉS de
   la migración (los eventos ya quedan cableados; swap mecánico).
@@ -253,7 +295,21 @@ te frena (viento), te expone (radar) y te sacude (turbulencia). No hay refugio g
   **silueta con bruma** (`alpha = 0.35+0.65*f` en fase 0) → los obstáculos, sólidos y por delante,
   resaltan encima. Verificado con screenshots al 60% (silueta tenue en el horizonte) y 76% (sólida,
   asentada en el horizonte).
-  **Pendiente:** táctil para la mira, layouts de zonas por barcaza (depósito/motores…), sprite del barco.
+  **Pendiente:** táctil para la mira, sprite del barco.
+  **LAYOUTS POR CLASE DE BARCO (HECHO 19/7):** `MOM_PHASES` pasó de const a `let`; `MOM_LAYOUTS`
+  define 3 clases y `SHIP_CLASS` mapea cada barcaza; `randomShip()` fija el layout del run (único
+  choke point — corre en setRunObjective/startCampaign/levelclear). `at`/`scale` IGUALES entre
+  clases (aproximación y triggers no cambian); varían zonas/HP/tiempos/puntos:
+  - **t42** (SHEFFIELD/COVENTRY): AA×2(55) → radar(45) → puente(130) — el layout original.
+  - **t21** (ARDENT/ANTELOPE): AA×2(55) → radar chico(50, w 0.09) → **MOTORES gemelos** (70 c/u,
+    `v:-0.3` = al nivel del casco, ventana 8s) — el remate es abajo, cerca del agua.
+  - **log** (SIR GALAHAD/ATLANTIC CONVEYOR): AA única(70) → **DEPÓSITO** (110, w 0.30 grande y
+    fácil de pegar) → puente a popa (u 0.32, 100).
+  Zonas nuevas i18n: `zone_engine` (MOTOR/ENGINE), `zone_deposit` (DEPOSITO/CARGO HOLD).
+  Verificado: sim de alcanzabilidad (todas las zonas dentro del clamp de mira W/2±60 / [44,122]
+  en extremos de growth+sway; el puente log se corrigió de u 0.36→0.32 por 0.3px fuera) +
+  harness en vivo: ANTELOPE pasada 3 con los 2 MOTOR visibles, GALAHAD pasada 2 con `dep:110`
+  y ventana 6.5s.
 - **Radar:** volar alto llena `detection`; al 100 % lanza un misil buscador que persigue.
 - **Turbo** (`boost`): ×1,5 velocidad y **×2 puntos**, quema combustible al triple. Líneas de velocidad y shake.
 - **Near-miss:** pasar rozando un obstáculo (o esquivar un misil por poco) da **+75**.

@@ -214,10 +214,17 @@ largo de la pantalla** (crece a medida que te acercás) y se abre un minijuego d
 - **Ventana de tiempo por pasada** (barra abajo): si se agota, la defensa te derriba (`death_aa`).
 - La pasada final destruye la barcaza **de verdad** → fin de nivel exitoso.
 
-**Tuning** (todo en `MOM_PHASES` y `updateMomentum` en `index.html`): `at` (dónde arranca cada pasada),
-`time` (ventana), `maxHp` (dificultad por zona), `pts`, DPS del cañón (`60*dt`), velocidad de la mira
-(`CS=98`), amplitud del balanceo (`momShipGeom`). Cada barcaza podrá tener **layouts de zonas distintos**
-(radar/AA/depósito/motores…) — hoy hay un layout genérico; extender `MOM_PHASES` por barco es el camino.
+**Layouts por clase de barco** (`MOM_LAYOUTS` + `SHIP_CLASS`; `randomShip()` fija el del run):
+
+| Clase | Barcos | Pasadas |
+|---|---|---|
+| **Tipo 42** (destructor) | SHEFFIELD, COVENTRY | 2× CAÑÓN AA (55hp) → RADAR (45) → PUENTE (130) |
+| **Tipo 21** (fragata) | ARDENT, ANTELOPE | 2× CAÑÓN AA (55) → RADAR chico (50) → **2× MOTOR** al nivel del casco (70 c/u, ventana 8s) |
+| **Logístico** | SIR GALAHAD, ATLANTIC CONVEYOR | AA única (70) → **DEPÓSITO** grande (110, fácil de pegar) → PUENTE a popa (100) |
+
+**Tuning** (todo en `MOM_LAYOUTS` y `updateMomentum` en `index.html`): `at` (dónde arranca cada pasada,
+igual en todas las clases), `time` (ventana), `maxHp` (dificultad por zona), `pts`, daño de la ráfaga
+(`22` cada `0.36s`), velocidad de la mira (`CS=98`), amplitud del balanceo (`momShipGeom`).
 **Pendiente**: soporte táctil del minijuego (hoy la mira es solo teclado) y sprite real del barco
 (placeholder por rects; pedido en `UPDATE_ANIMATIONS.md`).
 
@@ -231,6 +238,18 @@ largo de la pantalla** (crece a medida que te acercás) y se abre un minijuego d
   `CAMPANA COMPLETADA` → vuelve a la pantalla de modo.
   - **POR AHORA todos los niveles de campaña usan la MISMA config** (`CAMPAIGN_CFG`); solo cambia el
     label `NIVEL n`. A futuro: una `cfg` distinta por nivel (cada objeto de `LEVELS` puede llevar su cfg).
+
+### Pantalla de HISTORIA (campaña)
+
+Al elegir CAMPAÑA corre una **secuencia de pantallas de historia** (fondo negro estilo
+expediente: grano de película + scanline + marco + puntitos de progreso), con **`epic_himno.mp3`**
+de fondo. Cada **Cinemática** de `NIVELES.md` es una pantalla (`{title, paras}`) y la de **NIVEL**
+es la previa al despegue (`{level, obj}`, centrada). El texto se **tipea letra por letra con
+ruido** (lento: 19 cps, pausas largas entre párrafos). Tecla/tap: completa el tipeo → pasa a la
+siguiente → en la del nivel arranca el **despegue con fade desde negro**. ESC vuelve al menú.
+Implementadas: `storyIntro` (3 cinemáticas iniciales + NIVEL 0) y `storyL1` (La Flota + NIVEL 1);
+agregar más = escribir el array `storyLN` en `STRINGS` (es/en) y setear `LEVELS[n].story`.
+`NIVELES.md` es la fuente de verdad del guión completo (12 niveles + cinemática final + créditos).
 
 ### ⚠️ Campaña — PENDIENTE (estructura lista, contenido a futuro)
 
