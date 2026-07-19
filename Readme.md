@@ -129,8 +129,12 @@ Idempotente (correrlo de nuevo reemplaza el asset anterior). PNG o WebP con tran
 
 Los números del gamefeel están en el `<script>` de `index.html`:
 
-- Velocidad base y techo: `spdBase = Math.min(150, 62 + t*2.8)` · turbo: `*1.5` · tope absoluto `280`
+- Velocidad base y techo: `spdBase = Math.min(150, 62 + t*2.8)` · turbo: `*1.5` · tope base `280`
 - Aceleración por racha: `rachaVel = 1 + rasLevel*0.12 + (x10: 0.10 / x5: 0.05)`, con suavizado `dt*3`
+- **Afterburner sostenido:** aguantar **BOOST + RASANTE** (bajo) sube un escalón cada
+  `AFTER_STEP = 2` s (hasta `AFTER_MAX = 5`). Cada escalón multiplica la velocidad
+  (`+AFTER_GAIN = 0.16` acumulativo) **y sube el techo** (`+AFTER_CAP = 42` → hasta 490).
+  Soltar turbo o trepar lo resetea (gracia `0.4` s para bobs cortos). HUD: `»n`; popup `TURBINA ×n`
 - Viento: se acumula sobre `plane.y > 16` (tope 6 s, ~0,8 s de gracia), frena hasta
   `-35%` (`windF`), decae al doble de velocidad al bajar; turbulencia bajo `windF < 0.97`
 - Despegue: duración 3 s (`toT`), rotación a `1.35` s, tierra firme `COAST = 230` m,

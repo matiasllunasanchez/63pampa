@@ -385,7 +385,7 @@
         death_jet: 'Choque con avion enemigo', death_balloon: 'Globo de barrera',
         death_missile: 'Te alcanzo un misil',
         death_aa: 'La defensa de la barcaza te derribo',
-        freeControl: 'CONTROL LIBRE!', rasante: 'RASANTE x{n}!',
+        freeControl: 'CONTROL LIBRE!', rasante: 'RASANTE x{n}!', afterburner: 'TURBINA x{n}!',
         pickFuel: '+COMB', graze: 'ROZASTE +75', dodgeMissile: 'LO ESQUIVASTE +75',
         rollGraze: 'PIRUETA! +250',
         takeoffTitle: 'DESPEGUE · PUERTO ARGENTINO · BAM MALVINAS',
@@ -482,7 +482,7 @@
         death_jet: 'Hit an enemy plane', death_balloon: 'Barrage balloon',
         death_missile: 'A missile hit you',
         death_aa: 'The barge defenses shot you down',
-        freeControl: 'FREE CONTROL!', rasante: 'LOW PASS x{n}!',
+        freeControl: 'FREE CONTROL!', rasante: 'LOW PASS x{n}!', afterburner: 'AFTERBURNER x{n}!',
         pickFuel: '+FUEL', graze: 'GRAZE +75', dodgeMissile: 'DODGED +75',
         rollGraze: 'BARREL ROLL! +250',
         takeoffTitle: 'TAKEOFF · PUERTO ARGENTINO · BAM MALVINAS',
@@ -608,9 +608,14 @@
     const MSL_MAX = 3;
     let nextSpawn, fuelDist, fireT, shake, deathCause, deathT, factIdx = 0, best = 0;
     let streak, graceT, rasLevel, multShow, throttle;
+    // AFTERBURNER SOSTENIDO: aguantar BOOST + RASANTE (bajo) sube de escalón cada AFTER_STEP s;
+    // cada escalón multiplica la velocidad y levanta el techo. Romper el estado (soltar turbo o
+    // trepar) lo resetea, con una gracia corta para tolerar bobs cortos. afterT=segundos acumulados.
+    let afterT = 0, afterTier = 0, afterGrace = 0;
     let windT, windF, gusts;
     let rollT = 0, rollDir = 1, rollCd = 0, tapL = -9, tapR = -9;   // PIRUETA (tonel): doble-tap ←/→
     const ROLL_DUR = 0.55;
+    const AFTER_STEP = 2, AFTER_MAX = 5, AFTER_GAIN = 0.16, AFTER_CAP = 42;   // afterburner: seg/escalón, tope, +vel y +techo por escalón
     let story = null;   // pantalla de HISTORIA (campaña): maquina de escribir letra a letra
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
     let toT = 0, toCount = 4;
@@ -629,6 +634,7 @@
       pmissiles = []; msl = MSL_MAX; mslCd = 0; mslRegen = 0; soldiers = []; nextSoldier = 60; bloodSplat = 0;
       nextSpawn = 320; fuelDist = 0; fireT = 0; shake = 0;
       streak = 0; graceT = 0; rasLevel = 0; multShow = 1; throttle = 0;
+      afterT = 0; afterTier = 0; afterGrace = 0;
       windT = 0; windF = 1; gusts = [];
       rollT = 0; rollCd = 0;
       momPhase = 0; mom = null;
@@ -1452,7 +1458,27 @@
       else windT = Math.max(0, windT - dt * 2);
       windF = cfg.wind ? 1 - Math.min(0.35, Math.max(0, windT - 0.8) * 0.075) : 1;
       const rachaVel = 1 + rasLevel * 0.12 + (mult >= 10 ? 0.10 : mult >= 5 ? 0.05 : 0);
-      const spdTarget = Math.min(280, spdBase * rachaVel * windF * (boost ? 1.5 : 1));
+      // AFTERBURNER SOSTENIDO: aguantar BOOST + RASANTE acumula tiempo; cada AFTER_STEP s sube un
+      // escalón (hasta AFTER_MAX). Cada escalón multiplica la velocidad (AFTER_GAIN) y levanta el
+      // techo (AFTER_CAP) para que el aumento se SIENTA. Soltar turbo o trepar lo corta (con gracia).
+      const rasNow = plane.y <= 4.5;
+      if (boost && rasNow) { afterT += dt; afterGrace = 0.4; }
+      else if (afterGrace > 0) afterGrace -= dt;   // bob corto no rompe la racha
+      else afterT = 0;
+      const prevTier = afterTier;
+      afterTier = Math.min(AFTER_MAX, Math.floor(afterT / AFTER_STEP));
+      if (afterTier > prevTier) {                   // subió de escalón: feedback
+        const s = proj(plane.x, plane.y, PZ);
+        popup(s.x, s.y - 22, T('afterburner', { n: afterTier }), P.warn);
+        beep(360 + afterTier * 130, 0.16, 'sawtooth', 0.06, 220 + afterTier * 90);
+        shake = Math.min(6, shake + 1.1);
+        for (let i = 0; i < 10 + afterTier * 3; i++) {
+          const a = Math.random() * 6.283;
+          streaks.push({ a, r: 20 + Math.random() * 18, v: 320 + Math.random() * 220, life: 0.5 });
+        }
+      }
+      const afterMul = 1 + afterTier * AFTER_GAIN;
+      const spdTarget = Math.min(280 + afterTier * AFTER_CAP, spdBase * rachaVel * windF * (boost ? 1.5 : 1) * afterMul);
       spd += (spdTarget - spd) * Math.min(1, dt * 3);
       // turbulencia: el viento sacude el avión
       if (windF < 0.97) {
@@ -1815,7 +1841,7 @@
 
       // líneas de velocidad
       if (boost || rasLevel > 0 || spd > 115) {
-        const n = (boost ? 3 : 1) + rasLevel;
+        const n = (boost ? 3 : 1) + rasLevel + afterTier;
         for (let i = 0; i < n; i++) {
           const a = Math.random() * 6.283;
           streaks.push({ a, r: 26 + Math.random() * 20, v: 240 + Math.random() * 160, life: 0.5 });
@@ -2674,10 +2700,10 @@
       // barra de misión puerto→barcaza (modos con objetivo: ciclo de muerte y campaña)
       if (objectiveDist > 0) drawObjectiveBar();
 
-      // velocidad
+      // velocidad (+ escalón de TURBINA cuando el afterburner sostenido está activo)
       ctx.textAlign = 'center'; ctx.font = '7px monospace';
-      ctx.fillStyle = boost || rasLevel > 0 ? P.accent : windF < 0.97 ? P.crest : P.dim;
-      ctx.fillText(Math.round(spd * 4.2) + T('kmh') + (boost ? T('turboTag') : windF < 0.97 ? ' ▼' : ''), W / 2, H - 4);
+      ctx.fillStyle = afterTier > 0 ? P.warn : boost || rasLevel > 0 ? P.accent : windF < 0.97 ? P.crest : P.dim;
+      ctx.fillText(Math.round(spd * 4.2) + T('kmh') + (afterTier > 0 ? ' »' + afterTier : boost ? T('turboTag') : windF < 0.97 ? ' ▼' : ''), W / 2, H - 4);
 
       // aviso de viento en contra
       if (windF < 0.97) {

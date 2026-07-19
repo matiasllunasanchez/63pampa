@@ -519,6 +519,17 @@ mouse → en táctil nunca, y rige el esquema anterior completo — cero regresi
     detiene, a ritmo constante (25% de spd) toda la pasada. `momDrift` queda como offset de
     fase constante al salir (sin salto visual) y se resetea en `reset()`. Verificado en vivo:
     dist clavado en 880 (tope) con drift 37.5→92.1 creciendo a 37.5/s exactos.
+  - **AFTERBURNER SOSTENIDO (19/7)**: recompensa por aguantar el riesgo — mantener **BOOST +
+    RASANTE** (`plane.y <= 4.5`) acumula `afterT` y cada `AFTER_STEP=2` s sube un escalón hasta
+    `AFTER_MAX=5`. Cada escalón: velocidad `×(1 + afterTier*AFTER_GAIN[0.16])` **y techo** subido
+    `280 + afterTier*AFTER_CAP[42]` (clave: sin subir el techo, el tope de 280 se comería el
+    aumento). Romper el estado (soltar turbo o trepar sobre 4.5) resetea `afterT`, con gracia
+    `afterGrace=0.4` s para no perder la racha por un bob corto. Feedback: popup `TURBINA ×n`
+    (P.warn) + beep sawtooth ascendente + shake + oleada de líneas de velocidad al subir; el HUD
+    muestra `»n` en naranja y `afterTier` alimenta la intensidad de streaks. Sim verificada:
+    tier 0→5 en ~10 s con 630→2050 km/h (tope tier5 ≈ 490 spd); soltar turbo 0.6 s → reset a 0;
+    bob de 0.3 s trepando (< gracia) mantiene el tier. Lógica en la sección de velocidad de
+    `update()` (usa `plane.y` del frame previo, off-by-one despreciable).
   - **CÁMARAS — tecla V (19/7)**: `V` CICLA 4 cámaras en vuelo normal: **1× → 1.5× → 2× → 2.5×**
     (`CAM_ZOOMS = [1, 1.5, 2, 2.5]`), con popup "CAM n×" al cambiar y beep ascendente por nivel.
     Zoom anclado al sprite del avión. Implementación: transform
