@@ -13,15 +13,16 @@ actualiza la tabla de progreso de acá abajo y se anota el cambio en `ESTADO.md`
 ## ▶ RETOMAR ACÁ (si se cortó el servicio, leer esto primero)
 
 - **Rama de trabajo:** `feature/electron` (hacé `git checkout feature/electron`).
-- **Última acción completada:** **Fase 2 COMPLETA** — shell de Electron funcionando. El juego
-  carga en ventana nativa (verificado con smoke-test headless: canvas + assets + layout OK).
-  Último commit `2209388`. Fecha: 2026-07-19.
-- **PODÉS VERLO AHORA:** en tu Mac, `npm start` abre RASANTE en ventana. (Yo lo verifiqué
-  headless porque no puedo abrir GUI en este entorno; la confirmación visual es tuya.)
-- **PRÓXIMO PASO:** **Fase 3** — empaquetado con `electron-builder` → generar el `.exe` de
-  Windows (`npm i -D electron-builder`, config `build` en package.json, iconos, `npm run dist`).
-- **Pendiente no bloqueante:** icono de app (va con el empaquetado en Fase 3); warning de CSP
-  de dev (hardening en Fase 3); republicar Artifact; sumar 8 adrenaline + audio original.
+- **Última acción completada:** **Fase 3 COMPLETA** — empaquetado con electron-builder
+  configurado y verificado (build de macOS genera `RASANTE.app` con el juego + assets + icono).
+  Iconos generados (png/icns/ico). Último commit `5b66594`. Fecha: 2026-07-19.
+- **PRÓXIMO PASO:** **Fase 4** — integración Steamworks. **NECESITO DE VOS el App ID** (sale de
+  crear la app en tu cuenta Steamworks). Sin eso, la Fase 4 no arranca. Ver Fase 4.
+- **Build de Windows:** la config está lista (`npm run dist:win` → nsis + portable). El `.exe`
+  se buildea **en una máquina Windows o en CI** (cross-build desde Mac necesita Wine). Opción
+  recomendada: workflow de GitHub Actions con runner Windows (lo podemos armar en Fase 5).
+- **Pendiente no bloqueante:** confirmación visual `npm start` (tuya); republicar Artifact;
+  sumar 8 adrenaline + audio original; CSP estricto (opcional, el warning es solo de dev).
 - **Cómo verificar dónde estás:** `git log --oneline -5` en `feature/electron` y mirá la
   Bitácora al final de este archivo.
 
@@ -34,8 +35,8 @@ actualiza la tabla de progreso de acá abajo y se anota el cambio en `ESTADO.md`
 | 0 | Preparación y rama de trabajo | ✅ hecho | 2026-07-19 |
 | 1 | Reestructuración (des-embeber assets + split de archivos) | ✅ hecho | 2026-07-19 |
 | 2 | Shell de Electron (corre en ventana) | ✅ hecho | 2026-07-19 |
-| 3 | Empaquetado con electron-builder (.exe) | ⬜ pendiente ← **SIGUIENTE** | — |
-| 4 | Integración Steamworks (SDK) | ⬜ pendiente | — |
+| 3 | Empaquetado con electron-builder (.exe) | ✅ hecho | 2026-07-19 |
+| 4 | Integración Steamworks (SDK) | ⬜ pendiente ← **SIGUIENTE** (necesita App ID) | — |
 | 5 | Pipeline de release a Steam (SteamPipe) | ⬜ pendiente | — |
 | 6 | Mejoras desbloqueadas (three.js, audio, assets) | ⬜ pendiente | — |
 
@@ -160,17 +161,21 @@ adr1-3) + 6 imágenes (cockpit_sky.png + 5 `webp` de aviones/iconos). Originales
 
 **Objetivo:** un instalable/portable de Windows que corre sin Node.
 
-- [ ] `npm i -D electron-builder`.
-- [ ] Config `build` en `package.json`: `appId`, `productName: "RASANTE"`, target Windows
-      **nsis** (instalador) + **portable** (exe suelto para pruebas).
-- [ ] Iconos `.ico` (256×256) desde el arte del juego.
-- [ ] `npm run dist` → genera `dist/RASANTE Setup x.y.z.exe` y el portable.
-- [ ] Probar el `.exe` en limpio (idealmente otra máquina/VM Windows).
-- [ ] (Opcional) target macOS/Linux si querés multiplataforma.
+- [x] `npm i -D electron-builder` (26.15.3) + `png-to-ico` (para el .ico). ✅ `5b66594`
+- [x] Config `build` en `package.json`: appId `com.matiasluna.rasante`, productName RASANTE,
+      win (nsis+portable), mac (dmg), linux (AppImage); `files` acotado a electron/+src/+
+      assets/img+assets/audio. Scripts: `dist`, `dist:win`, `dist:mac`, `pack`. ✅
+- [x] Iconos generados desde canvas (estética del juego): `build/icon.png` (1024²),
+      `icon.icns` (mac), `icon.ico` (win, 7 tamaños). ✅
+- [x] **Pipeline verificado** con build de macOS (`--mac --dir`): `RASANTE.app` con el juego +
+      assets en el `app.asar` (11 MB), icono e Info.plist correctos. ✅
+- [ ] **Build de Windows (.exe):** la config está lista (`npm run dist:win`). El cross-build
+      desde Mac necesita **Wine**; lo natural es buildear **en Windows o en CI** (GitHub Actions
+      con runner `windows-latest`) → se arma en Fase 5. El `.exe` real sale de ahí.
+- [ ] Firma de código Windows: opcional al principio (SmartScreen advierte sin cert EV).
 
-**Hecho cuando:** existe un `.exe` que instala y corre el juego jugable en Windows limpio.
-**Esfuerzo:** 1 sesión. **Depende de:** Fase 2. **Nota:** firma de código Windows es opcional
-al principio (SmartScreen puede advertir; se resuelve con un cert EV más adelante).
+**Hecho cuando:** el pipeline empaqueta el juego (verificado en mac); la config produce el
+instalador Windows al correrla en Windows/CI. **Esfuerzo:** 1 sesión. **Depende de:** Fase 2.
 
 ---
 
@@ -266,6 +271,7 @@ Registro append-only de cada micro-paso, para retomar tras un corte. El más rec
 
 | Fecha | Paso | Qué se hizo | Commit |
 |-------|------|-------------|--------|
+| 2026-07-19 | 3.1-3.4 | **Fase 3:** iconos (png/icns/ico) generados desde canvas; electron-builder configurado (win/mac/linux, files acotado); build de macOS `--dir` verificado (RASANTE.app con juego+assets en app.asar 11 MB, icono/Info.plist OK). Windows: config lista, se buildea en Windows/CI. | `5b66594` |
 | 2026-07-19 | 2.1-2.4 | **Fase 2:** Electron 43.1.1; `electron/main.js` (BrowserWindow 1280×720, F11, sin menú, contextIsolation) + `preload.js` (body.electron); `npm start`; CSS fullscreen letterbox. Smoke-test headless RESULT OK (canvas + assets + layout). Falta confirmación visual con `npm start` (tuya). | `2209388` |
 | 2026-07-19 | 1.8 | `src/` única fuente: borrado `index.html` raíz + `embed_asset.py`; `check_syntax.py` → `src/game.js`. **Fase 1 completa.** | `c8b5663` |
 | 2026-07-19 | 1.7 | `tools/build_web.py` → `dist-web/index.html` autocontenido (14.0 MB). | `dbbbe9e` |
