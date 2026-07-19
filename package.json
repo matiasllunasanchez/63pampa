@@ -7,11 +7,62 @@
   "scripts": {
     "serve": "python3 -m http.server 8475",
     "start": "electron .",
-    "build:web": "python3 tools/build_web.py"
+    "build:web": "python3 tools/build_web.py",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "pack": "electron-builder --dir"
   },
   "author": "Matias Luna",
   "license": "UNLICENSED",
+  "build": {
+    "appId": "com.matiasluna.rasante",
+    "productName": "RASANTE",
+    "copyright": "© 2026 Matias Luna",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "assets/img/**/*",
+      "assets/audio/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "RASANTE-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "RASANTE-${version}-portable.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.games"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "build/icon.png",
+      "category": "Game"
+    }
+  },
   "devDependencies": {
-    "electron": "^43.1.1"
+    "electron": "^43.1.1",
+    "electron-builder": "^26.15.3",
+    "png-to-ico": "^3.0.2"
   }
 }
