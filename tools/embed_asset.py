@@ -26,7 +26,14 @@ MARKERS = {
     'obj_port':    r"(port:\s*\{ src:)'[^']*'",
     'obj_barge':   r"(barge:\s*\{ src:)'[^']*'",
     'obj_plane':   r"(plane:\s*\{ src:)'[^']*'",
-    'music_story': r"(const MUSIC_STORY = )'[^']*'",   # pista de las pantallas de HISTORIA (mp3)
+    # musica: comillas tolerantes (['\"]) porque el embebido original usaba dobles y el tool escribe simples
+    'music_story': r"(const MUSIC_STORY = )[\"'][^\"']*[\"']",   # pista de las pantallas de HISTORIA
+    'music_lobby': r"(const MUSIC_LOBBY = )[\"'][^\"']*[\"']",   # musica del lobby
+    'music_game':  r"(const MUSIC_GAME = )[\"'][^\"']*[\"']",    # musica de juego base (campaña)
+    'adr1': r"(const MUSIC_ADR1 = )[\"'][^\"']*[\"']",           # pool ADRENALINA (supervivencia/ciclo, m4a AAC)
+    'adr2': r"(const MUSIC_ADR2 = )[\"'][^\"']*[\"']",
+    'adr3': r"(const MUSIC_ADR3 = )[\"'][^\"']*[\"']",
+    'adr4': r"(const MUSIC_ADR4 = )[\"'][^\"']*[\"']",
 }
 
 def main():
@@ -40,7 +47,10 @@ def main():
         f = pathlib.Path(arg)
         if not f.is_file():
             sys.exit(f'ERROR: no existe {f}')
-        mime = mimetypes.guess_type(f.name)[0] or 'image/png'
+        # audio: mime FIJO por extension — guess_type devuelve 'audio/mp4a-latm' para .m4a,
+        # que los browsers NO reconocen en <audio> (bug que dejo mudo al juego el 19/7)
+        AUDIO_MIME = {'.m4a': 'audio/mp4', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav'}
+        mime = AUDIO_MIME.get(f.suffix.lower()) or mimetypes.guess_type(f.name)[0] or 'image/png'
         uri = f'data:{mime};base64,' + base64.b64encode(f.read_bytes()).decode()
 
     html = INDEX.read_text(encoding='utf-8')

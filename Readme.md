@@ -17,6 +17,10 @@ Dos versiones en el repo:
 - **Ícono de sonido** arriba a la derecha (botón `#snd`): togglea mute (persiste en `localStorage`). Muteás
   música + efectos. La música arranca en la **primera interacción** (política de autoplay del navegador).
 - A futuro: cambiar soundtracks por **nivel / momento / secuencia** (una pista por contexto).
+- **Adrenalina aleatoria**: en SUPERVIVENCIA y CICLO DE MUERTE cada run arranca con una pista al
+  azar del pool `musAdr` (4 embebidas de `assets/new_sounds/soundtrack/adrenaline/`, AAC 80kbps
+  vía `afconvert`). Reemplazar/rotar: `python3 tools/embed_asset.py adr1 <archivo.m4a>` (adr1..adr4).
+  La campaña mantiene su música propia.
 - **Audio de cámara lenta (MOMENTUM)** — procedural, sin assets: la música se **ahoga** (0.30→0.10,
   lerp suave), el motor baja a un **rumble de 30Hz con latido** (~0.4Hz), sting de entrada con
   pitch cayendo (620→65Hz) y de salida subiendo (110→640Hz), y **ducking**: las explosiones

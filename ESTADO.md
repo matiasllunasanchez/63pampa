@@ -250,6 +250,39 @@ te frena (viento), te expone (radar) y te sacude (turbulencia). No hay refugio g
   (`want !== musStory || MUSIC_STORY`). Verificado: recorrido completo de las 4 pantallas en
   harness (dots avanzando, tipeo letra a letra visible "M→MA", pantalla NIVEL centrada con
   prompt) hasta despegue.
+  **SOUNDTRACK ADRENALINA (19/7):** en SUPERVIVENCIA y CICLO DE MUERTE cada run arranca con una
+  pista al azar de un **pool de 4** (elegida en `setRunObjective` → `curAdr`; campaña = null y usa
+  `musGame`). Pistas de `assets/new_sounds/soundtrack/adrenaline/` (hay 11; se embebieron 4:
+  pmetal_himno / sanmartin / soy_hincha / acero_blanco) **transcodificadas a AAC 80kbps con
+  `afconvert`** (nativo macOS; no hay ffmpeg) para controlar peso: 8.5MB → consts `MUSIC_ADR1..4`
+  (markers `adr1..adr4` en embed_asset.py, que ahora resuelve mime de .m4a). `updateMusic`
+  generalizado: la pista de juego activa es `gm = curAdr || musGame` y el dip de momentum/ducking
+  se aplica a `gm`. Verificado: 8 runs de supervivencia con índices aleatorios [2,0,1,1,0,1,2,1],
+  ciclo elige, campaña null. Dead-retry re-randomiza (pasa por setRunObjective).
+  **⚠️ LÍMITE DEL ARTIFACT DESCUBIERTO: 16MB.** Con el pool de 4 el archivo llegó a 26.7MB y el
+  publish falló ("too large: 26MB (max 16MB)"). Solución: **TODA la música re-embebida en AAC**
+  (`afconvert`): lobby/game/himno a 80kbps y el pool adrenalina a **64kbps con 3 pistas**
+  (himno/sanmartin/soy_hincha; `MUSIC_ADR4` quedó vacío — `filter(Boolean)` adapta el pool solo).
+  Resultado: **14.0MB** ✓ publicado. Markers nuevos del tool: `music_lobby`, `music_game`
+  (comillas dobles, embebido original). OJO: el user reorganizó assets — los mp3 base ahora viven
+  en `assets/new_sounds/soundtrack/epics/`. La migración a assets externos sigue siendo el techo
+  real: sin ella no entran más pistas ni sprites grandes (quedan ~2MB de margen).
+  **FIX (19/7) — música MUDA tras la recompresión:** `mimetypes.guess_type('.m4a')` de Python
+  devuelve `audio/mp4a-latm`, que los browsers NO reconocen en `<audio>` → las 6 pistas AAC
+  quedaron embebidas con mime inválido y el juego entero quedó sin música (el user lo notó como
+  "no arranca el tema del lobby"; NO fue por mover archivos — la música va embebida). Fix en
+  `embed_asset.py`: tabla `AUDIO_MIME` fija por extensión (`.m4a → audio/mp4`) ANTES de
+  guess_type, y los markers de música ahora toleran comillas simples o dobles (el primer embebido
+  las había cambiado). Re-embebidas las 6. **Verificado con playback real**: harness del archivo
+  completo (14MB, sin strip) → `musLobby.paused=false, duration=158.1s, error=null`.
+  Lección de proceso: verificar DECODIFICACIÓN real al cambiar formato de audio, no solo sintaxis.
+  **FIX (19/7) — texto cortado:** la cinemática de ARGENTINA desbordaba la pantalla (título a
+  13px envolvía en 2 líneas + 4 párrafos largos pisaban el prompt). Doble arreglo: (1) **título
+  más chico** (11px, wrap 32 chars, avance 16px → entra en una línea); (2) **más cinemáticas**:
+  ARGENTINA se partió en ARGENTINA + LA DECISIÓN, y LA FLOTA en LA FLOTA + RUMBO AL SUR (es/en)
+  → `storyIntro` ahora tiene 5 pantallas y `storyL1` 3. Verificado con cálculo de altura de TODAS
+  las pantallas (máx y=143, límite 150 antes del prompt) + screenshot de ARGENTINA limpia.
+  Regla para guiones futuros: **máx ~6 líneas de cuerpo por pantalla** (2 párrafos medianos).
   **FIX (19/7) — el tipeo se salteaba:** el input que confirmaba CAMPAÑA en el menú (auto-repeat
   del Enter sostenido, o el pointer del tap) se filtraba a la pantalla de historia y la completaba
   al instante. Doble arreglo: (1) **`anyPress` solo con pulsaciones frescas** (`!e.repeat`) en TODOS
@@ -417,6 +450,31 @@ Pendiente menor: jugar una corrida completa a mar abierto para el ajuste fino de
     offset de x 0–6 m, **cero muertes por colisión** al disparar (antes: 30 muertes en la banda 3.4–5.6).
 
 ---
+
+### MIRA CON MOUSE (PC) — NUEVO 19/7 (base para joystick)
+
+Separación **puntería vs movimiento** en PC: el **mouse apunta**, las **flechas/WASD mueven**.
+`mouse = {x, y, on}` (coords lógicas 320×180; `on` se enciende al primer `pointermove` de tipo
+mouse → en táctil nunca, y rige el esquema anterior completo — cero regresión mobile).
+- **Vuelo normal**: mira libre dibujada en el cursor (con recuadro); el cañón desproyecta el
+  cursor al mundo a z=110 (`(mx-W/2)/k + cam.x`, inversa de `proj`) y la bala converge en
+  horizontal (`b.tx`, lerp `dt*10`) y vertical (`b.ty`); el misil `Z` apunta al carril del cursor.
+  Sin mouse: auto-aim vertical de siempre.
+- **Momentum**: la mira es LIBRE con el mouse sobre el vidrio (`aim = mouse + momCam()` en mundo);
+  las **flechas mueven la cabina/cámara** (mom.cx/cy, igual que antes). Ráfagas, lock de zona y
+  misiles usan el punto del mouse. Sin mouse: visor fijo del centro (táctil).
+- **Botones**: click izq = cañón sostenido, click der = misil (contextmenu suprimido); en menús
+  el click sigue siendo tap. Footer actualizado (es/en) + strings `ctrl3`.
+- Verificado en harness: mira renderizada en el cursor, disparo con `tx/ty` = mouse→mundo y
+  `zi:0` (lock al motor izquierdo del ARDENT apuntando con mouse).
+- **FIX — "los tiros deben salir desde el avión"**: el primer diseño usaba lerp exponencial
+  (`b.x += (tx-b.x)*dt*10`) que hacía saltar la bala hacia el carril del cursor apenas nacía.
+  Ahora las balas con mouse usan **balística recta** (`b.path`): guardan origen `x0/y0/z0` e
+  interpolan LINEALMENTE en función del avance en z — nacen EN el avión, cruzan exacto el punto
+  apuntado en z=110 y siguen derecho (extrapolación f>1). Sim: nace en x=-8.1 junto al avión
+  (-10) y cruza la mira (25,8) en z=110. El auto-aim táctil conserva su lerp vertical.
+- **JOYSTICK (pendiente, objetivo declarado)**: con la puntería ya separada del movimiento, el
+  mapeo natural es stick izq = vuelo/cabina, stick der = mira, gatillos = cañón/misil (Gamepad API).
 
 ## 5. Controles
 
