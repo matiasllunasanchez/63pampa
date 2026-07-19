@@ -13,13 +13,15 @@ actualiza la tabla de progreso de acá abajo y se anota el cambio en `ESTADO.md`
 ## ▶ RETOMAR ACÁ (si se cortó el servicio, leer esto primero)
 
 - **Rama de trabajo:** `feature/electron` (hacé `git checkout feature/electron`).
-- **Última acción completada:** **Fase 1 COMPLETA** (1.1-1.8) — juego reestructurado a
-  `src/` + `assets/` sueltos; `game.js` 14.7 MB → 153 KB; `tools/build_web.py` genera el bundle
-  autocontenido para el Artifact. Último commit `c8b5663`. Fecha: 2026-07-19.
-- **PRÓXIMO PASO:** **Fase 2** — shell de Electron. `npm i -D electron`, crear `electron/main.js`
-  (BrowserWindow → `src/index.html`) y `electron/preload.js`, script `npm start`. Ver Fase 2.
-- **Pendiente no bloqueante:** republicar el Artifact con `tools/build_web.py` (comportamiento
-  idéntico, no urge); sumar 8 pistas adrenaline + audio original (feature post-Fase 1).
+- **Última acción completada:** **Fase 2 COMPLETA** — shell de Electron funcionando. El juego
+  carga en ventana nativa (verificado con smoke-test headless: canvas + assets + layout OK).
+  Último commit `2209388`. Fecha: 2026-07-19.
+- **PODÉS VERLO AHORA:** en tu Mac, `npm start` abre RASANTE en ventana. (Yo lo verifiqué
+  headless porque no puedo abrir GUI en este entorno; la confirmación visual es tuya.)
+- **PRÓXIMO PASO:** **Fase 3** — empaquetado con `electron-builder` → generar el `.exe` de
+  Windows (`npm i -D electron-builder`, config `build` en package.json, iconos, `npm run dist`).
+- **Pendiente no bloqueante:** icono de app (va con el empaquetado en Fase 3); warning de CSP
+  de dev (hardening en Fase 3); republicar Artifact; sumar 8 adrenaline + audio original.
 - **Cómo verificar dónde estás:** `git log --oneline -5` en `feature/electron` y mirá la
   Bitácora al final de este archivo.
 
@@ -31,8 +33,8 @@ actualiza la tabla de progreso de acá abajo y se anota el cambio en `ESTADO.md`
 |------|--------|--------|--------|
 | 0 | Preparación y rama de trabajo | ✅ hecho | 2026-07-19 |
 | 1 | Reestructuración (des-embeber assets + split de archivos) | ✅ hecho | 2026-07-19 |
-| 2 | Shell de Electron (corre en ventana) | ⬜ pendiente ← **SIGUIENTE** | — |
-| 3 | Empaquetado con electron-builder (.exe) | ⬜ pendiente | — |
+| 2 | Shell de Electron (corre en ventana) | ✅ hecho | 2026-07-19 |
+| 3 | Empaquetado con electron-builder (.exe) | ⬜ pendiente ← **SIGUIENTE** | — |
 | 4 | Integración Steamworks (SDK) | ⬜ pendiente | — |
 | 5 | Pipeline de release a Steam (SteamPipe) | ⬜ pendiente | — |
 | 6 | Mejoras desbloqueadas (three.js, audio, assets) | ⬜ pendiente | — |
@@ -136,15 +138,18 @@ adr1-3) + 6 imágenes (cockpit_sky.png + 5 `webp` de aviones/iconos). Originales
 
 **Objetivo:** el juego abre en una ventana de escritorio nativa.
 
-- [ ] `npm i -D electron`.
-- [ ] `electron/main.js`: crea `BrowserWindow` (tamaño fijo con aspecto 16:9, p. ej. 1280×720,
-      redimensionable, fullscreen con F11), carga `src/index.html`, sin menú nativo.
-- [ ] `electron/preload.js` (por ahora vacío; hook para IPC de Steam en Fase 4).
-- [ ] `contextIsolation: true`, `nodeIntegration: false` (seguridad estándar).
-- [ ] Script `npm start` → `electron .`.
-- [ ] Icono de ventana provisorio (✈️ / el logo de RASANTE).
-- [ ] Ajustar el canvas al tamaño de ventana manteniendo el pixel-perfect (integer scaling).
-- [ ] Verificar: audio, teclado (flechas/V/turbo), mouse (mira), fullscreen.
+- [x] `npm i -D electron` (43.1.1). ✅ `2209388`
+- [x] `electron/main.js`: BrowserWindow 1280×720 (16:9), sin menú, F11 fullscreen / Esc salir,
+      `contextIsolation: true` / `nodeIntegration: false`, `loadFile(src/index.html)`. ✅
+- [x] `electron/preload.js`: marca `body.electron` (hook para IPC de Steam en Fase 4). ✅
+- [x] Script `npm start` → `electron .` (+ `build:web`). ✅
+- [x] Canvas pixel-perfect que llena la ventana: `body.electron` letterbox 16:9, sin
+      header/footer (regla scopeada; la web queda igual). Stage 1223×688 en ventana 1280×720. ✅
+- [x] Verificado headless (smoke-test, ventana oculta): canvas bootea (640×360), 0 fallos de
+      carga de assets, preload aplica la clase. ✅
+- [ ] **PENDIENTE (visual, tuyo):** `npm start` en tu Mac y confirmar teclado/mouse/fullscreen.
+- [ ] Icono de app → se hace en Fase 3 (con el empaquetado, `.ico`/`.icns`).
+- [ ] Warning de CSP de dev → hardening en Fase 3 (meta CSP; verificar que no rompa el juego).
 
 **Hecho cuando:** `npm start` abre RASANTE en ventana y es jugable con teclado+mouse.
 **Esfuerzo:** 1 sesión. **Depende de:** Fase 1.
@@ -261,6 +266,7 @@ Registro append-only de cada micro-paso, para retomar tras un corte. El más rec
 
 | Fecha | Paso | Qué se hizo | Commit |
 |-------|------|-------------|--------|
+| 2026-07-19 | 2.1-2.4 | **Fase 2:** Electron 43.1.1; `electron/main.js` (BrowserWindow 1280×720, F11, sin menú, contextIsolation) + `preload.js` (body.electron); `npm start`; CSS fullscreen letterbox. Smoke-test headless RESULT OK (canvas + assets + layout). Falta confirmación visual con `npm start` (tuya). | `2209388` |
 | 2026-07-19 | 1.8 | `src/` única fuente: borrado `index.html` raíz + `embed_asset.py`; `check_syntax.py` → `src/game.js`. **Fase 1 completa.** | `c8b5663` |
 | 2026-07-19 | 1.7 | `tools/build_web.py` → `dist-web/index.html` autocontenido (14.0 MB). | `dbbbe9e` |
 | 2026-07-19 | 1.6 | Audio → rutas `../assets/audio/*.m4a`. game.js 13.4 MB → 153 KB. | `3771f41` |
