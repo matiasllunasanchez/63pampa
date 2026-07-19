@@ -13,10 +13,13 @@ actualiza la tabla de progreso de acá abajo y se anota el cambio en `ESTADO.md`
 ## ▶ RETOMAR ACÁ (si se cortó el servicio, leer esto primero)
 
 - **Rama de trabajo:** `feature/electron` (hacé `git checkout feature/electron`).
-- **Última acción completada:** Fase 0 completa (rama, `.gitignore`, `package.json`) —
-  commiteada. Fecha: 2026-07-19.
-- **PRÓXIMO PASO:** **Fase 1, paso 1.1** — crear la estructura de carpetas `src/` y `assets/img`,
-  `assets/audio` (todavía sin mover nada, solo las carpetas). Ver detalle en Fase 1.
+- **Última acción completada:** **Fase 1 COMPLETA** (1.1-1.8) — juego reestructurado a
+  `src/` + `assets/` sueltos; `game.js` 14.7 MB → 153 KB; `tools/build_web.py` genera el bundle
+  autocontenido para el Artifact. Último commit `c8b5663`. Fecha: 2026-07-19.
+- **PRÓXIMO PASO:** **Fase 2** — shell de Electron. `npm i -D electron`, crear `electron/main.js`
+  (BrowserWindow → `src/index.html`) y `electron/preload.js`, script `npm start`. Ver Fase 2.
+- **Pendiente no bloqueante:** republicar el Artifact con `tools/build_web.py` (comportamiento
+  idéntico, no urge); sumar 8 pistas adrenaline + audio original (feature post-Fase 1).
 - **Cómo verificar dónde estás:** `git log --oneline -5` en `feature/electron` y mirá la
   Bitácora al final de este archivo.
 
@@ -27,8 +30,8 @@ actualiza la tabla de progreso de acá abajo y se anota el cambio en `ESTADO.md`
 | Fase | Título | Estado | Sesión |
 |------|--------|--------|--------|
 | 0 | Preparación y rama de trabajo | ✅ hecho | 2026-07-19 |
-| 1 | Reestructuración (des-embeber assets + split de archivos) | 🔄 en curso | — |
-| 2 | Shell de Electron (corre en ventana) | ⬜ pendiente | — |
+| 1 | Reestructuración (des-embeber assets + split de archivos) | ✅ hecho | 2026-07-19 |
+| 2 | Shell de Electron (corre en ventana) | ⬜ pendiente ← **SIGUIENTE** | — |
 | 3 | Empaquetado con electron-builder (.exe) | ⬜ pendiente | — |
 | 4 | Integración Steamworks (SDK) | ⬜ pendiente | — |
 | 5 | Pipeline de release a Steam (SteamPipe) | ⬜ pendiente | — |
@@ -104,22 +107,24 @@ adr1-3) + 6 imágenes (cockpit_sky.png + 5 `webp` de aviones/iconos). Originales
 
 **Micro-pasos (cada uno es un commit chico y verificable):**
 
-- [ ] **1.1** Crear carpetas `src/`, `assets/img/`, `assets/audio/` (vacías). Commit.
-- [ ] **1.2** Copiar los originales de imagen a `assets/img/` (cockpit_sky.png + los 5 webp).
-      Todavía sin tocar el código. Commit.
-- [ ] **1.3** Copiar los originales de audio a `assets/audio/` (música + las 11 adrenaline en
-      calidad original). Commit.
-- [ ] **1.4** Extraer el `<script>` de `index.html` a `src/game.js` y el CSS a `src/styles.css`;
-      crear `src/index.html` que los referencie. Probar que corre **idéntico** (aún con data
-      URIs adentro de game.js). Commit.
-- [ ] **1.5** Reemplazar data URI de **imágenes** por rutas relativas (`COCKPIT_ASSET.src`,
-      `PLANES[i].src`, iconos `obj_*`). Probar imágenes. Commit.
-- [ ] **1.6** Reemplazar data URI de **audio** por rutas (`MUSIC_*`, `MUSIC_ADR*`) y sumar las
-      8 pistas adrenaline que no entraban. Probar música. Commit.
-- [ ] **1.7** Crear `tools/build_web.py`: inline de `src/` + `assets/` → `dist-web/index.html`
-      autocontenido para el Artifact. Verificar que el inlineado corre igual. Commit.
-- [ ] **1.8** Republicar el Artifact desde `dist-web/index.html`. Adaptar/retirar
-      `tools/embed_asset.py` (ya no se embebe en dev). Commit.
+- [x] **1.1** Crear carpetas `src/`, `assets/img/`, `assets/audio/`. ✅ `25ecffe`
+- [x] **1.2** Extraer imágenes embebidas → `assets/img/` (cockpit_sky.png + 5 aviones webp).
+      Vía `tools/extract_assets.py` (bytes idénticos, sin tocar código). ✅ `25ecffe`
+- [x] **1.3** Extraer audio embebido → `assets/audio/` (6 m4a: lobby/game/story/adr1-3). ✅ `25ecffe`
+      NOTA: se extrajeron los m4a actuales para garantizar comportamiento idéntico. El upgrade a
+      calidad original + las 8 pistas adrenaline que faltan se hace en un paso aparte (ver 1.6).
+- [x] **1.4** Split de `index.html` → `src/index.html` + `src/styles.css` + `src/game.js`.
+      Corre idéntico desde server local, sin errores de consola. ✅ `fe810ef`
+- [x] **1.5** Imágenes por ruta relativa (`COCKPIT_ASSET.src`, 5 `PLANES[i].src`) →
+      `../assets/img/*`. 0 data:image restantes; 6 assets HTTP 200. ✅ `f846ff1`
+- [x] **1.6** Audio por ruta relativa (`MUSIC_LOBBY/GAME/STORY/ADR1-3`) → `../assets/audio/*.m4a`.
+      0 data:audio; game.js 13.4 MB → 153 KB; lobby decodifica OK. ✅ `3771f41`
+      (Las 8 pistas adrenaline + audio original quedan como feature aparte.)
+- [x] **1.7** `tools/build_web.py`: `src/` + `assets/` → `dist-web/index.html` autocontenido
+      (14.0 MB, bajo el límite de 16). Corre sin peticiones externas. ✅ `dbbbe9e`
+- [x] **1.8** `src/` = única fuente: borrado `index.html` raíz y `tools/embed_asset.py`;
+      `check_syntax.py` ahora chequea `src/game.js`. ✅ `c8b5663`
+      NOTA: republicar el Artifact quedó pendiente (no urge, comportamiento idéntico).
 
 **Hecho cuando:** el juego corre desde `src/` con assets sueltos **y** `build_web.py` genera un
 `dist-web/index.html` idéntico en comportamiento. Republicar el Artifact desde ese build.
@@ -256,5 +261,11 @@ Registro append-only de cada micro-paso, para retomar tras un corte. El más rec
 
 | Fecha | Paso | Qué se hizo | Commit |
 |-------|------|-------------|--------|
-| 2026-07-19 | 0.1-0.4 | Rama `feature/electron`, `.gitignore`, `package.json` base (sin deps). Antes se commiteó en `main` el trabajo pendiente (cámaras, afterburner, fix frenazo). | (Fase 0) |
+| 2026-07-19 | 1.8 | `src/` única fuente: borrado `index.html` raíz + `embed_asset.py`; `check_syntax.py` → `src/game.js`. **Fase 1 completa.** | `c8b5663` |
+| 2026-07-19 | 1.7 | `tools/build_web.py` → `dist-web/index.html` autocontenido (14.0 MB). | `dbbbe9e` |
+| 2026-07-19 | 1.6 | Audio → rutas `../assets/audio/*.m4a`. game.js 13.4 MB → 153 KB. | `3771f41` |
+| 2026-07-19 | 1.5 | Imágenes → rutas `../assets/img/*`. 0 data:image. | `f846ff1` |
+| 2026-07-19 | 1.4 | Split `index.html` → `src/` (html+css+js). Corre idéntico. | `fe810ef` |
+| 2026-07-19 | 1.1-1.3 | Carpetas `src/`, `assets/img`, `assets/audio`. `tools/extract_assets.py` decodifica los data URI embebidos → 6 imágenes + 6 audios en archivos sueltos (bytes idénticos). Código aún usa los data URI inline. | `25ecffe` |
+| 2026-07-19 | 0.1-0.4 | Rama `feature/electron`, `.gitignore`, `package.json` base (sin deps). Antes se commiteó en `main` el trabajo pendiente (cámaras, afterburner, fix frenazo). | `f6cbb40` |
 
