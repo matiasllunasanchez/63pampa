@@ -5,6 +5,14 @@ _Documento de continuidad. Última actualización: 18 de julio de 2026._
 Resumen de todo lo construido, cómo está armado y por dónde seguir. Pensado para
 retomar el proyecto sin tener que releer todo el código.
 
+> ⚠️ **ESTRUCTURA (19/7/2026, rama `feature/electron`):** el juego dejó de ser un
+> `index.html` autocontenido. Ahora vive en **`src/`** (`index.html` + `styles.css` +
+> `game.js` de 153 KB) con los **assets sueltos en `assets/img` y `assets/audio`**. El
+> bundle web autocontenido para el Artifact lo genera **`tools/build_web.py`** →
+> `dist-web/index.html`. Esto es la **Fase 1** de la migración a Electron/Steam: ver
+> **`PLAN_ELECTRON_STEAM.md`** (documento de ejecución con bloque "RETOMAR ACÁ"). Las
+> referencias a `index.html` de más abajo aplican hoy a `src/game.js`.
+
 ---
 
 ## 1. Qué es
