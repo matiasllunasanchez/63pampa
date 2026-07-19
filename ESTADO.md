@@ -116,6 +116,113 @@ te frena (viento), te expone (radar) y te sacude (turbulencia). No hay refugio g
   = envolvente de colisión, así que todo jet que pueda chocarte también es derribable). Sprite frontal
   placeholder (alas anchas con leve alabeo, fuselaje/canopy, deriva, nariz roja) en `drawObstacle`.
   Verificado por simulación: 0 muertes por colisión al disparar en todo el barrido de altura/velocidad/offset.
+- **MOMENTUM — asalto final a la barcaza (minijuego, NUEVO)**: en ciclo de muerte y campaña
+  (`objectiveDist > 0`), al llegar al **78% / 90% / 100%** de la distancia objetivo el tiempo se
+  **ralentiza** (mundo al 35%: `t -= dt*0.65`), se limpia el campo y aparece la **barcaza horizontal
+  a lo largo** (crece por pasada: `scale` 0.55 → 0.75 → 1.0). Minijuego: mover la **mira** con
+  flechas/WASD y mantener **[X]** sobre las **zonas críticas** (corchetes + barra HP) mientras el barco
+  **se balancea** (`momShipGeom`). Pasadas (`MOM_PHASES`): 2× **CAÑÓN AA** → **RADAR** (blanco chico,
+  alto en el mástil) → **PUENTE** (HP 130). Zona destruida = chamuscado + humo + puntos; pasada completa
+  = bonus `500×pasada` y vuelta al vuelo (**hay que seguir volando entre pasadas** — el gas sigue rigiendo,
+  te podés estrellar). **Timer por pasada**: si se agota → `die('death_aa')`. Puente destruido →
+  `finishObjective()` → tarjeta BARCAZA DESTRUIDA (ciclo) o levelclear/victory (campaña).
+  Estado: `state='momentum'`, vars `momPhase`/`mom`; lógica `enterMomentum/updateMomentum`; dibujo
+  `drawMomentum` (barco por rects placeholder + letterbox + tinte slow-mo). **Verificado end-to-end**
+  con harness (`__momTest(fase)` en scratchpad/momharness.html): entrada, daño, destrucción por zona,
+  avance de pasada, muerte por timeout, muerte entre pasadas y pantalla final (score 2400).
+  **Cámara DESDE ADENTRO (cockpit):** durante el momentum se ve desde la cabina (`drawCockpit`,
+  reemplazó a la 3/4 chase `drawMomPlane`): parantes diagonales del canopy, panel de instrumentos
+  (2 diales + **luz de cañón** que se enciende al disparar), reflejo del vidrio, bob + **parallax
+  inverso a la mira**. Al disparar: fogonazos en las raíces alares (W*0.16 / W*0.82, H-38) y
+  **trazadoras gemelas** que convergen en la mira. Marco = **asset configurable** `COCKPIT_ASSET`
+  (data URI en `.src`, imagen proporción 320×180 con centro transparente, se dibuja sobredimensionada
+  +12px para que el bob no muestre bordes); placeholder por código mientras esté vacío.
+  `drawPlaneSprite` normal se salta en este estado. Verificado en harness: hitFx=1 con HP drenando
+  (130→126.8) y trazadoras visibles en screenshot.
+  **Asset del cockpit EMBEBIDO** (`assets/original/cockpit_sky.png`, 1024×559, 702KB → 936KB base64):
+  pixel-art de cabina completa con manos/tablero/palanca; el vidrio viene con **alpha 0** (el cielo
+  que se ve en previews es RGB residual en píxeles transparentes — NO hace falta chroma-key) y el
+  visor HUD central con alpha 107 (semitransparente). **PUNTERÍA = GIRAR LA TROMPA (mira fija,
+  mundo móvil):** la mira queda CLAVADA al visor del cockpit (`MOM_AX=W/2, MOM_AY=40`) y las
+  flechas mueven el **punto apuntado en coords de MUNDO** (`mom.cx/cy`); `momCam()` devuelve el
+  paneo 2D `{x: cx-MOM_AX, y: cy-MOM_AY}` que se resta en el translate de `draw()` → el mundo
+  entero panea detrás del vidrio y el blanco "viene" al visor (como apuntar con el avión).
+  Al entrar se apunta a la cubierta (`cy = deckY-8`). Clamps de paneo: cx ∈ W/2±60, cy ∈ [44,122];
+  los fondos (cielo + filas del mar/tierra en `drawSea`) se extendieron a **±70 px** para que el
+  paneo no exponga bordes. Hit-test directo mira-vs-zona (mismo espacio, sin offset). La cabina
+  va clavada a pantalla (solo bob, sin parallax: la cabina ES la trompa). Popups fijos se spawnean
+  en `visor + momCam()`. Verificado en harness: paneo horizontal hasta cmx=-23 sin bordes expuestos,
+  blanco entrando al visor, hitFx=1 y HP drenando (55→51.4).
+  **FX de cámara lenta (NUEVO):** array `mom.fx` (tope 70, spawn/update en `updateMomentum` — corre
+  también en el outro —, dibujo en espacio-mundo en `drawMomentum` antes de la cabina). Tres tipos:
+  `'tr'` **trazadoras AA** (nacen en el barco, vuelan LENTO ~26-56 px/s hacia un punto de fuga fuera
+  de pantalla, estela doble que se alarga con `T`; visuales, no dañan), `'st'` **rocío/escombros**
+  (nacen DENTRO del vidrio visible —x 56-116 desde el borde, y 15-70, porque los parantes tapan
+  x<52/x>268 y el panel y>62— y derivan hacia afuera), `'fk'` **flak** (bocanada: fogonazo warn
+  0.14s → humo gris expandiéndose despacio). Densidades: 2.6/3.6/1.1 por segundo. Además el avance
+  se hizo MÁS LENTO: crecimiento del barco 0.82→**0.98** (antes 1.08; `drawApproachBarge` empalma
+  con 0.98) y mundo al **30%** (`t -= dt*0.70`). Verificado con harness de densidad x12: trazadoras
+  visibles cruzando el vidrio, nfx creciendo.
+  **Trazadoras del jugador desde FUERA de la cabina (FIX):** antes nacían en el panel (W*0.16,
+  H-38 = adentro). Ahora nacen fuera de pantalla a la altura del vidrio lateral (**(-40,66)** y
+  **(W+40,66)**), se dibujan **ANTES** de `drawCockpit` → el marco/panel las tapa y solo se ven
+  entrando por los vidrios laterales y convergiendo en el visor. Más gruesas: pasada de **glow**
+  (`lineWidth 3`, warn, alpha 0.30) + **núcleo** (`lineWidth 1.6`, accent, alpha 0.9). Los
+  fogonazos del capó se eliminaron (los cañones están en las alas, fuera de vista); queda la
+  chispa de impacto en el visor. OJO: un linter reformateó `index.html` (indentación 4 espacios,
+  espacios en operadores) — el código es el mismo.
+  **MISILES en primera persona (NUEVO):** `Z` (o botón táctil) lanza en momentum. `momLaunchMissile()`
+  usa la MISMA munición `msl` (pips `Z ▪▪▪` a la izquierda de la barra de tiempo; cd 0.6s;
+  la recarga `mslRegen` queda pausada en cámara lenta). Sale del ala alternando lado
+  (`±95` desde el visor, y `H-30` = detrás del panel), vuela **LENTO** (85 px/s, ~1.7s de vuelo)
+  con guiado hacia el punto apuntado AL DISPARAR (lock, no persigue), deja estela de humo y
+  explota con **55 de daño en área** (rect de zona ±9): 1 misil mata una AA (55hp) o el radar
+  (45hp); el puente (130) necesita cañón + misiles. Helpers: `momZoneKilled(z)` (destrucción
+  compartida cañón/misil — el bloque inline del cañón se refactorizó a esto), `momMissileBoom(x,y)`.
+  El misil es un fx `k:'ms'` en `mom.fx` (guiado en el update de fx → sigue volando en el outro).
+  `tryLaunchMissile()` rutea a `momLaunchMissile()` si `state==='momentum'` (cubre el botón táctil;
+  `mslBtn` visible ahora en play Y momentum). Verificado: lanzamiento real en harness (msl 3→2,
+  pip gastado, misil avanzando (65.9,194)→(78.5,176.6)) + sim numérica del guiado: impacto a los
+  1.73s en (157,88), dentro del splash del puente.
+  **CAÑÓN por ráfagas lentas (reemplaza al hitscan, NUEVO):** menos balas, más lentas, más daño
+  por bala — mismo DPS (~61): **22 de daño cada 0.36s** (`mom.shotCd`). Cada bala es un fx `k:'sh'`:
+  nace en el ala (alternando `mom.gunSide`, origen `cmw.x ± 40/W+40, cmw.y+66` = fuera del vidrio),
+  viaja a **150 px/s** (~1.3s de vuelo) hacia el punto apuntado AL DISPARAR; si había una zona bajo
+  la mira guarda `zi` y **trackea el centro vivo de la zona** (el barco se balancea → la bala curva).
+  Impacto: chispas + `-22` (destrucción vía `momZoneKilled`); sin zona → solo chispas. Render: trazo
+  grueso glow (lineWidth 3) + núcleo (1.6) que se alarga en vuelo. Las líneas fijas de trazadoras
+  gemelas SE ELIMINARON (las balas viajando son las trazadoras). `mom.hitFx` pasó de booleano a
+  **flash decadente** (`-dt*5`, se setea 1 al impactar) — sigue manejando luz de cañón/mira/chispa.
+  El **misil** bajó de 85 a **70 px/s** (~2.1s). Verificado: spawn con `zi:0` lock, avance
+  (-36.9→-19.8) + sim numérica con sway: puente destruido en 3.15s / 6 impactos.
+  **Resplandor de disparo (feedback, NUEVO):** al disparar cañón (0.14s) o misil (0.22s) se
+  enciende un fogonazo en el borde del vidrio del lado del ala que disparó (`mom.flashL/flashR`,
+  decaen en el bloque FX, se dibujan en pantalla DESPUÉS de `drawCockpit` — la luz baña el marco).
+  Placeholder: cuadrados blancos + halo; asset futuro `muzzle_flash.png` (UPDATE_ANIMATIONS §3.2c).
+  Razón: la bala tarda ~1.3s en cruzar el vidrio y sin flash el disparo parecía no responder.
+  Verificado en harness: flash visible en borde izq al apretar X, decayendo (0.14→0.06).
+  **Pipeline de assets (NUEVO, en `tools/`):** `embed_asset.py <clave> <archivo|--clear>` embebe
+  cualquier asset configurable como data URI en `index.html` (claves: `cockpit`, `obj_port`,
+  `obj_barge`, `obj_plane`; idempotente, regexes anclados a cada constante) y `check_syntax.py`
+  valida el `<script>` (neutraliza data URIs + `node --check`). **Probado end-to-end**: se generó
+  un cockpit PNG de prueba (640×360, centro transparente), se embebió, `COCKPIT_ASSET.ready=true`
+  y se vio renderizado en el momentum reemplazando al placeholder; luego `--clear` dejó todo como
+  estaba. Cuando Matias entregue `cockpit.png` es un solo comando.
+  **Aproximación:** el casco del barco está factorizado en `drawBargeHull(cx,len,deckY,uh)`
+  (con silueta simplificada si `uh<1.1`). En vuelo normal, `drawApproachBarge` lo dibuja en el
+  horizonte desde el **45%** del recorrido, creciendo hasta empalmar con la escala de entrada de la
+  próxima pasada (0.82×) — entre pasadas continúa desde donde quedó (1.08× de la anterior). Dentro
+  de cada pasada `momShipGeom` hace crecer el barco de **0.82× a 1.08×** de `scale` (acercamiento
+  lento en cámara lenta). `enterMomentum` también limpia `streaks` (líneas de velocidad congeladas).
+  **Legibilidad de obstáculos en la aproximación (FIX):** antes la barcaza "colgaba" bajo el
+  horizonte (`deckY = HOR+36*sc` lineal) y camuflaba los obstáculos, que emergen pegados al
+  horizonte (~y66 por perspectiva). Ahora: (1) queda **anclada a la línea del horizonte** casi todo
+  el acercamiento y recién baja al final con **ease-in cuadrático** (`dOff = d0+(36*scE-d0)*f*f`,
+  `d0=2` en fase 0 / continuidad exacta con la cubierta del momentum en f=1); (2) de lejos es
+  **silueta con bruma** (`alpha = 0.35+0.65*f` en fase 0) → los obstáculos, sólidos y por delante,
+  resaltan encima. Verificado con screenshots al 60% (silueta tenue en el horizonte) y 76% (sólida,
+  asentada en el horizonte).
+  **Pendiente:** táctil para la mira, layouts de zonas por barcaza (depósito/motores…), sprite del barco.
 - **Radar:** volar alto llena `detection`; al 100 % lanza un misil buscador que persigue.
 - **Turbo** (`boost`): ×1,5 velocidad y **×2 puntos**, quema combustible al triple. Líneas de velocidad y shake.
 - **Near-miss:** pasar rozando un obstáculo (o esquivar un misil por poco) da **+75**.
@@ -296,8 +403,8 @@ Todo en el `<script>` de `index.html`:
 ## 9. Próximos pasos (backlog priorizado)
 
 1. **Terminar y verificar el despegue** desde Puerto Argentino (ver §4) y **republicar el artifact**.
-2. **Corrida de bombardeo:** fragata al final de un tramo; ventana de altura para armar la espoleta
-   (dato histórico: bombas lanzadas muy bajo no llegaban a armarse). Le da clímax a cada run.
+2. ~~Corrida de bombardeo~~ → **HECHO como MOMENTUM** (asalto por pasadas con minijuego de puntería,
+   ver §4). Evoluciones: layouts de zonas por barcaza, ventana de espoleta como zona extra, táctil.
 3. **Desafío diario por seed** compartido: competitivo real sin servidor.
 4. **Reabastecimiento en vuelo con KC-130** (extender el run).
 5. **Museo:** fichas desbloqueables + aviones jugables con stats (A-4, Dagger, Super Étendard, Pucará).

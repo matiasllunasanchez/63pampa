@@ -96,6 +96,24 @@ juego: **320×180 px** (escala limpia a 720p/1080p/4K). Para reemplazar:
   mar `#2e4a4e`, metal/bruma `#93a7ab`, acento naranja `#e8a33d`.
 - Exportar PNG sin suavizado (vecino más cercano) a `assets/`.
 
+### Embeber assets configurables (`tools/embed_asset.py`)
+
+Los assets "enchufables" (cockpit del MOMENTUM y los 3 iconos de la barra de objetivo) se
+embeben como data URI con un comando — **no hace falta tocar código**:
+
+```bash
+python3 tools/embed_asset.py cockpit assets/cockpit.png     # marco de cabina (MOMENTUM)
+python3 tools/embed_asset.py obj_port assets/obj_puerto.png # extremo izq. barra objetivo
+python3 tools/embed_asset.py obj_barge assets/obj_barcaza.png
+python3 tools/embed_asset.py obj_plane assets/obj_avion.png
+python3 tools/embed_asset.py cockpit --clear                # volver al placeholder por código
+python3 tools/check_syntax.py                               # verificar después de embeber
+```
+
+Idempotente (correrlo de nuevo reemplaza el asset anterior). PNG o WebP con transparencia.
+**Cockpit**: proporción 320×180 (ideal 640×360), centro transparente — specs completas en
+`UPDATE_ANIMATIONS.md` §3.2b. Pipeline verificado end-to-end con una imagen de prueba.
+
 ## Tuning
 
 Los números del gamefeel están en el `<script>` de `index.html`:
@@ -139,10 +157,58 @@ modeselect ─► CAMPAÑA        ─► takeoff (avión y config fijos)  ─►
 ### CICLO DE MUERTE (nuevo)
 
 Como un nivel suelto pero **sin cinemáticas ni orden**: `randomizeCfg()` aleatoriza el mapa (fondo, agua,
-viento, obstáculos) en cada entrada al modo. Reach de la barcaza → tarjeta **BARCAZA DESTRUIDA** (`drawObjective`)
-→ vuelve al menú con config nueva. **POR AHORA finaliza ahí**; a futuro sube complejidad (oleadas encadenadas,
-dificultad creciente). Los **metros totales** (puerto→barcaza) se ajustan en `[M]` fila `METROS` — necesario
-para pruebas. El menú `[M]` está visible en **ciclo de muerte y supervivencia** (la fila METROS solo en ciclo).
+viento, obstáculos) en cada entrada al modo. Al acercarse a la barcaza arranca el **asalto por pasadas
+(MOMENTUM, ver abajo)**; destruir el puente en la pasada final → tarjeta **BARCAZA DESTRUIDA** (`drawObjective`)
+→ vuelve al menú con config nueva. Los **metros totales** (puerto→barcaza) se ajustan en `[M]` fila `METROS` —
+necesario para pruebas. El menú `[M]` está visible en **ciclo de muerte y supervivencia** (la fila METROS solo en ciclo).
+
+### MOMENTUM — asalto final a la barcaza (minijuego)
+
+Aplica en **ciclo de muerte y campaña** (todo modo con `objectiveDist > 0`). Al alcanzar ciertas fracciones
+de la distancia objetivo, el tiempo se **ralentiza** (el mundo corre al 35%), aparece la **barcaza a lo
+largo de la pantalla** (crece a medida que te acercás) y se abre un minijuego de puntería:
+
+- **La barcaza se ve venir**: desde el **45%** del recorrido aparece durante el vuelo normal
+  (`drawApproachBarge`) como **silueta con bruma anclada a la línea del horizonte** (misma
+  perspectiva que los obstáculos, que pasan sólidos por delante y se leen claro) y **crece**;
+  recién sobre el final baja/se acerca (ease-in cuadrático) hasta empalmar con la pasada del
+  momentum. Entre pasadas sigue creciendo donde quedó.
+- **Aproximación lenta en cámara lenta**: dentro de cada pasada el barco crece de **0.82× a 0.98×** de
+  su escala (`momShipGeom`) y el mundo corre al **30%** — deriva lentísima hacia el blanco.
+- **Ambiente bullet-time** (`mom.fx`): **trazadoras de la AA** del barco pasando de largo con estela
+  (lentas, visuales, no dañan), **bocanadas de flak** expandiéndose despacio en el cielo y
+  **rocío/escombros** derivando por los costados del vidrio. Densidades y velocidades en el bloque
+  de FX de `updateMomentum` (2.6 / 3.6 / 1.1 por segundo; ~26-56 px/s).
+- **Cámara DESDE ADENTRO (cockpit)**: durante el momentum se ve desde la cabina (`drawCockpit`),
+  con el **asset real embebido** (`assets/original/cockpit_sky.png`: cabina pixel-art completa con
+  manos, tablero y palanca; vidrio transparente y visor HUD semitransparente). Bob de vuelo +
+  parallax inverso a la mira; al disparar, **fogonazos + trazadoras gemelas** por encima de las
+  manos del piloto. **Apuntar = girar la trompa**: la mira queda fija al visor HUD del cockpit y
+  las flechas panean el MUNDO detrás del vidrio (`momCam()`) — el blanco "viene" al visor, como
+  maniobrar el avión de verdad. Para cambiar el asset: `python3 tools/embed_asset.py cockpit <archivo>`.
+- **Mira libre** con flechas/WASD; el barco **se balancea y cabecea** → hay que corregir todo el tiempo.
+- **Cañón por ráfagas lentas [X]**: menos balas, más lentas, más daño — una bala gruesa cada
+  **0.36s** con **22 de daño**, que sale del ala (alternando lado), viaja a 150 px/s (~1.3s) y
+  **trackea la zona que apuntabas al disparar** mientras el barco se balancea. Mismo DPS que antes,
+  pero se VE el bullet-time.
+- **Misiles [Z]** también en primera persona: salen del ala (alternando lado), vuelan **lentos**
+  (~2.1s, bullet-time) con lock al punto apuntado al disparar, y explotan con **55 de daño en área**
+  — un misil mata una AA o el radar; el puente pide combinar cañón + misiles. Misma munición que el
+  vuelo normal (pips `Z ▪▪▪` junto a la barra de tiempo; la recarga se pausa en cámara lenta).
+- Mantener **[X] fuego sostenido** sobre una **zona crítica** (corchetes titilantes + barra de HP) la destruye.
+- **3 pasadas** (`MOM_PHASES`): al **78%** → los 2 **cañones AA** (barco chico) · al **90%** → el **radar**
+  (más cerca, blanco chico en el mástil) · al **100%** → el **PUENTE** (barco gigante, mucha HP).
+- Entre pasadas volvés al vuelo normal — **hay que seguir volando** (el gas sigue mandando).
+- Cada zona destruida da puntos (`pts`) + bonus por pasada completa (`500×pasada`).
+- **Ventana de tiempo por pasada** (barra abajo): si se agota, la defensa te derriba (`death_aa`).
+- La pasada final destruye la barcaza **de verdad** → fin de nivel exitoso.
+
+**Tuning** (todo en `MOM_PHASES` y `updateMomentum` en `index.html`): `at` (dónde arranca cada pasada),
+`time` (ventana), `maxHp` (dificultad por zona), `pts`, DPS del cañón (`60*dt`), velocidad de la mira
+(`CS=98`), amplitud del balanceo (`momShipGeom`). Cada barcaza podrá tener **layouts de zonas distintos**
+(radar/AA/depósito/motores…) — hoy hay un layout genérico; extender `MOM_PHASES` por barco es el camino.
+**Pendiente**: soporte táctil del minijuego (hoy la mira es solo teclado) y sprite real del barco
+(placeholder por rects; pedido en `UPDATE_ANIMATIONS.md`).
 
 - **Supervivencia** (`gameMode='survival'`): juntar puntos infinitamente hasta morir. Pasás por el menú
   de **selección de avión** y podés abrir el **menú de configuración `[M]`** para tunear el mapa.
