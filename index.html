@@ -298,7 +298,7 @@
       if (sc.obj) parts.push({ k: 'obj', txt: sc.obj });
       const lines = [];
       for (const p of parts) {
-        const ws = wrapChars(p.txt, p.k === 'title' ? 24 : 52);
+        const ws = wrapChars(p.txt, p.k === 'title' ? 32 : 52);
         ws.forEach((l, j) => lines.push({ txt: l, k: p.k, last: j === ws.length - 1 }));
       }
       story.lines = lines; story.t = 0; story.typed = 0; story.done = false;
@@ -426,7 +426,10 @@
           {
             title: 'ARGENTINA · MARZO DE 1982', paras: [
               'Argentina atravesaba uno de los momentos más difíciles de su historia.',
-              'El país era gobernado por una dictadura militar encabezada por el teniente general Leopoldo Fortunato Galtieri.',
+              'El país era gobernado por una dictadura militar encabezada por el teniente general Leopoldo Fortunato Galtieri.']
+          },
+          {
+            title: 'LA DECISIÓN', paras: [
               'En medio de una profunda crisis política, económica y social, la Junta Militar tomó una decisión que marcaría el destino de miles de argentinos.',
               'Recuperar las Islas Malvinas mediante una operación militar.']
           },
@@ -443,7 +446,10 @@
           {
             title: 'LA FLOTA', paras: [
               'El Reino Unido respondió enviando una de las mayores flotas de guerra movilizadas desde la Segunda Guerra Mundial.',
-              'Dos portaaviones. Destructores. Fragatas. Submarinos nucleares.',
+              'Dos portaaviones. Destructores. Fragatas. Submarinos nucleares.']
+          },
+          {
+            title: 'RUMBO AL SUR', paras: [
               'Más de cien buques navegaron hacia el Atlántico Sur.',
               'Mientras tanto, Argentina comenzaba a preparar su defensa.']
           },
@@ -513,7 +519,10 @@
           {
             title: 'ARGENTINA · MARCH 1982', paras: [
               'Argentina was going through one of the hardest moments in its history.',
-              'The country was ruled by a military dictatorship headed by Lieutenant General Leopoldo Fortunato Galtieri.',
+              'The country was ruled by a military dictatorship headed by Lieutenant General Leopoldo Fortunato Galtieri.']
+          },
+          {
+            title: 'THE DECISION', paras: [
               'Amid a deep political, economic and social crisis, the Junta made a decision that would mark the fate of thousands of Argentines.',
               'To retake the Malvinas Islands through a military operation.']
           },
@@ -530,7 +539,10 @@
           {
             title: 'THE FLEET', paras: [
               'The United Kingdom responded by sending one of the largest war fleets mobilized since World War II.',
-              'Two aircraft carriers. Destroyers. Frigates. Nuclear submarines.',
+              'Two aircraft carriers. Destroyers. Frigates. Nuclear submarines.']
+          },
+          {
+            title: 'SOUTH BOUND', paras: [
               'More than one hundred ships sailed for the South Atlantic.',
               'Meanwhile, Argentina began to prepare its defense.']
           },
@@ -2109,14 +2121,14 @@
         if (left <= 0) break;
         const shown = ln.txt.slice(0, left);
         left -= ln.txt.length;
-        if (ln.k === 'title') { ctx.font = 'bold 13px monospace'; ctx.fillStyle = P.accent; }
+        if (ln.k === 'title') { ctx.font = 'bold 11px monospace'; ctx.fillStyle = P.accent; }
         else if (ln.k === 'level') { ctx.font = 'bold 8px monospace'; ctx.fillStyle = P.warn; }
         else if (ln.k === 'obj') { ctx.font = '7px monospace'; ctx.fillStyle = '#5c6e73'; }
         else { ctx.font = '7px monospace'; ctx.fillStyle = P.ink; }
         ctx.fillText(shown, W / 2, y);
         curX = W / 2 + ctx.measureText(shown).width / 2 + 2; curY = y;
         // interlineado: mas aire despues del titulo y antes del bloque de nivel
-        y += ln.k === 'title' ? 20 : (ln.k === 'level' ? 12 : 11);
+        y += ln.k === 'title' ? 16 : (ln.k === 'level' ? 12 : 11);
         if (ln.last && ln.k === 'body') y += 5;
         if (ln.last && ln.k === 'title') y += 3;
       }
