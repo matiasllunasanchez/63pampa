@@ -1,0 +1,158 @@
+  :root {
+    --bg: #0d1216;
+    --ink: #93a7ab;
+    --dim: #4c5b60;
+    --accent: #e8a33d;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 14px;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  header {
+    font-size: 12px;
+    letter-spacing: .35em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  header b {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .stage {
+    width: min(96vw, 960px);
+    aspect-ratio: 16/9;
+    position: relative;
+    border: 1px solid #1c262c;
+    box-shadow: 0 0 0 6px #0a0e11, 0 30px 80px rgba(0, 0, 0, .6);
+  }
+
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    background: #2a3540;
+    touch-action: none;
+    cursor: crosshair;
+  }
+
+  canvas:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+  }
+
+  .sndbtn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 5;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    background: #0a0e11aa;
+    border: 1px solid #2a363d;
+    border-radius: 6px;
+    color: var(--ink);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color .15s, color .15s;
+  }
+
+  .sndbtn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .sndbtn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .sndbtn svg {
+    display: block;
+  }
+
+  .sndbtn .slash {
+    display: none;
+    stroke: #d94f30;
+  }
+
+  .sndbtn.muted {
+    color: var(--dim);
+  }
+
+  .sndbtn.muted .waves {
+    opacity: .15;
+  }
+
+  .sndbtn.muted .slash {
+    display: block;
+  }
+
+  .mslbtn {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    z-index: 5;
+    display: none;
+    padding: 6px 10px;
+    background: #0a0e11cc;
+    border: 1px solid #2a363d;
+    border-radius: 6px;
+    color: var(--accent);
+    font: 600 11px ui-monospace, 'SF Mono', Menlo, monospace;
+    letter-spacing: .06em;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+
+  .mslbtn.on {
+    display: block;
+  }
+
+  .mslbtn:active {
+    background: var(--accent);
+    color: #0a0e11;
+  }
+
+  footer {
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: .08em;
+    text-align: center;
+    line-height: 1.7;
+    max-width: 680px;
+  }
+
+  footer kbd {
+    color: var(--ink);
+    border: 1px solid #2a363d;
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    padding: 0 5px;
+    font-family: inherit;
+    font-size: 10px;
+  }
