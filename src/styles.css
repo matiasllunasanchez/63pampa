@@ -156,3 +156,24 @@
     font-family: inherit;
     font-size: 10px;
   }
+
+  /* --- Electron: el juego LLENA la ventana (letterbox 16:9), sin header/footer.
+     El preload agrega body.electron; la web (sin esa clase) queda igual que siempre. --- */
+  body.electron {
+    padding: 0;
+    gap: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  body.electron header,
+  body.electron footer {
+    display: none;
+  }
+
+  body.electron .stage {
+    width: min(100vw, calc(100vh * 16 / 9));
+    max-width: 100vw;
+    border: none;
+    box-shadow: none;
+  }

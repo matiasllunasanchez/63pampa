@@ -6,8 +6,12 @@
   "main": "electron/main.js",
   "scripts": {
     "serve": "python3 -m http.server 8475",
-    "start": "echo \"Electron llega en la Fase 2 del PLAN_ELECTRON_STEAM.md\" && exit 1"
+    "start": "electron .",
+    "build:web": "python3 tools/build_web.py"
   },
   "author": "Matias Luna",
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "electron": "^43.1.1"
+  }
 }
