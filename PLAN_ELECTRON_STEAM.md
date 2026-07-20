@@ -21,8 +21,11 @@ actualiza la tabla de progreso de acá abajo y se anota el cambio en `ESTADO.md`
   Mientras tanto: **seguir desarrollando y probando el juego** sobre `src/`.
 - **Windows (.exe):** el cross-build **unpacked SÍ funciona desde Mac** (`electron-builder
   --win --dir` generó `RASANTE.exe`); solo el instalador **NSIS** necesita Wine o Windows/CI.
+- **Audio completo (19/7):** ✅ pool de adrenaline 3→11 pistas + himnos en mp3 original
+  (juego); build web mantiene 6 m4a comprimidas (≤16 MB). Ver commit `5505966`.
 - **Pendiente no bloqueante:** confirmación visual `npm start` (tuya); republicar Artifact;
-  sumar 8 adrenaline + audio original; CSP estricto (opcional, warning solo de dev).
+  CSP estricto (opcional); **limpiar `assets/new_sounds/` del repo** (221 MB de material fuente
+  duplicado — `assets/audio` ya tiene lo que el juego usa; conviene gitignorearlo).
 - **Cómo verificar dónde estás:** `git log --oneline -5` en `feature/electron` y mirá la
   Bitácora al final de este archivo.
 

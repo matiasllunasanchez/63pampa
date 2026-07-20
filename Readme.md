@@ -18,18 +18,20 @@ Dos versiones en el repo:
   música + efectos. La música arranca en la **primera interacción** (política de autoplay del navegador).
 - A futuro: cambiar soundtracks por **nivel / momento / secuencia** (una pista por contexto).
 - **Adrenalina aleatoria**: en SUPERVIVENCIA y CICLO DE MUERTE cada run arranca con una pista al
-  azar del pool `musAdr` (4 embebidas de `assets/new_sounds/soundtrack/adrenaline/`, AAC 80kbps
-  vía `afconvert`). Reemplazar/rotar: `python3 tools/embed_asset.py adr1 <archivo.m4a>` (adr1..adr4).
-  La campaña mantiene su música propia.
+  azar del pool `musAdr` — **11 pistas `pmetal_*.mp3`** en calidad original (array `MUSIC_ADR` en
+  `src/game.js`). Para sumar/rotar: editá el array (rutas a `assets/audio/`). La campaña mantiene
+  su música propia. En el **build web** solo se re-embeben 3 comprimidas (ver abajo).
 - **Audio de cámara lenta (MOMENTUM)** — procedural, sin assets: la música se **ahoga** (0.30→0.10,
   lerp suave), el motor baja a un **rumble de 30Hz con latido** (~0.4Hz), sting de entrada con
   pitch cayendo (620→65Hz) y de salida subiendo (110→640Hz), y **ducking**: las explosiones
   grandes agachan la música 0.55s (`duckT`). El disparo de la ráfaga es grave (140→55Hz + ruido)
   y cada impacto suma un thump (88→44Hz). Los **samples finales** quedan para después de la
   migración de assets — los eventos ya están cableados, el swap es mecánico.
-- ⚠️ Los MP3 están **embebidos como data URI** para que el artifact suene (CSP bloquea `assets/` externos),
-  lo que deja `index.html` en **~10MB**. Es el disparador más claro del pipeline de assets (ver sección de
-  arquitectura): al migrar, los MP3 se cargan como archivos y el HTML vuelve a ser liviano.
+- **Doble build de audio** (post-migración a Electron): el juego (`src/game.js`) referencia
+  **archivos sueltos** — mp3 originales en `assets/audio/`. Para el **Artifact web**, que no admite
+  `assets/` externos (CSP), `tools/build_web.py` re-embebe una versión **comprimida** (`assets/audio/
+  web/*.m4a`, 6 pistas) como data URI y descarta las adrenaline que no entran en 16 MB. Así el juego
+  de escritorio tiene 11 pistas en calidad original y el demo web queda liviano.
 
 ## El loop (vista frontal)
 
