@@ -19,8 +19,13 @@ actualiza la tabla de progreso de acá abajo y se anota el cambio en `ESTADO.md`
 - **STEAM EN PAUSA (decisión del usuario):** las Fases 4 (Steamworks) y 5 (release a Steam)
   quedan **congeladas por ahora**. Se retoman cuando el usuario quiera crear la cuenta Steamworks.
   Mientras tanto: **seguir desarrollando y probando el juego** sobre `src/`.
-- **Windows (.exe):** el cross-build **unpacked SÍ funciona desde Mac** (`electron-builder
-  --win --dir` generó `RASANTE.exe`); solo el instalador **NSIS** necesita Wine o Windows/CI.
+- **Windows (.exe):** resuelto con **CI**. `.github/workflows/build.yml` buildea en runners
+  nativos **Windows + macOS** (instalador NSIS incluido). Se activa al **pushear a GitHub** y
+  correrlo desde Actions (o al pushear un tag `vX.Y.Z`). (El cross-build unpacked también anda
+  desde Mac, pero el instalador NSIS necesita Windows/CI.)
+- **three.js LISTO** (plataforma): `window.THREE` disponible en Electron y web (bundle IIFE
+  `src/vendor/three.global.js` vía esbuild). WebGL 2.0 verificado en ambos. Base para el 3D
+  del MOMENTUM — falta construir la escena.
 - **Audio completo (19/7):** ✅ pool de adrenaline 3→11 pistas + himnos en mp3 original
   (juego); build web mantiene 6 m4a comprimidas (≤16 MB). Ver commit `5505966`.
 - **Pendiente no bloqueante:** confirmación visual `npm start` (tuya); republicar Artifact;
@@ -274,6 +279,8 @@ Registro append-only de cada micro-paso, para retomar tras un corte. El más rec
 
 | Fecha | Paso | Qué se hizo | Commit |
 |-------|------|-------------|--------|
+| 2026-07-19 | plataforma | **three.js + CI:** three integrado como global IIFE (esbuild) para Electron y web (WebGL 2.0 verificado en ambos, REV185). GitHub Actions `build.yml` para builds nativos Windows+Mac. Rama `feature/platform-3d`. | `223ecda` |
+| 2026-07-19 | audio | Pool adrenaline 3→11 (mp3 original) + himnos mp3; doble build (juego mp3 / web m4a comprimido ≤16 MB). | `5505966` |
 | 2026-07-19 | 3.1-3.4 | **Fase 3:** iconos (png/icns/ico) generados desde canvas; electron-builder configurado (win/mac/linux, files acotado); build de macOS `--dir` verificado (RASANTE.app con juego+assets en app.asar 11 MB, icono/Info.plist OK). Windows: config lista, se buildea en Windows/CI. | `5b66594` |
 | 2026-07-19 | 2.1-2.4 | **Fase 2:** Electron 43.1.1; `electron/main.js` (BrowserWindow 1280×720, F11, sin menú, contextIsolation) + `preload.js` (body.electron); `npm start`; CSS fullscreen letterbox. Smoke-test headless RESULT OK (canvas + assets + layout). Falta confirmación visual con `npm start` (tuya). | `2209388` |
 | 2026-07-19 | 1.8 | `src/` única fuente: borrado `index.html` raíz + `embed_asset.py`; `check_syntax.py` → `src/game.js`. **Fase 1 completa.** | `c8b5663` |
