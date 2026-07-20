@@ -114,7 +114,9 @@
   .mslbtn {
     position: absolute;
     left: 8px;
-    bottom: 8px;
+    /* por encima de la franja del HUD (barra de combustible + contador MISIL, ultimos ~13px
+       del canvas de 180 = 7.2%); en % para que acompañe el escalado del stage */
+    bottom: 9%;
     z-index: 5;
     display: none;
     padding: 6px 10px;

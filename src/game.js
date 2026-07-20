@@ -3094,19 +3094,41 @@
       ctx.fillText('flechas: mover / cambiar   ·   [M] o ENTER: cerrar', W / 2, H - 28);
     }
 
+    // colores de la bandera argentina, para el conteo del despegue
+    const CELESTE = '#75aadb', BLANCO = '#f2f7fb';
+
     function drawTakeoff() {
       ctx.textAlign = 'center';
-      ctx.fillStyle = P.dim; ctx.font = '7px monospace';
+      // placa oscura detras del encabezado: cae sobre el amanecer y sin esto no se lee
+      ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(0, 17, W, 23);
+      ctx.fillStyle = P.ink; ctx.font = '7px monospace';
       ctx.fillText(T('takeoffTitle'), W / 2, 26);
+      // el rumbo va pegado al titulo: antes estaba en y=80, encima del avion en la pista
+      ctx.fillStyle = '#8a9ba1'; ctx.font = '6px monospace';
+      ctx.fillText(T('takeoffHeading'), W / 2, 36);
+
       const cn = 3 - Math.floor(toT);
       if (cn >= 1) {
         const frac = toT % 1;
-        ctx.fillStyle = P.accent;
-        ctx.font = 'bold ' + Math.round(30 - frac * 10) + 'px monospace';
-        ctx.fillText(String(cn), W / 2, 68);
+        const fs = Math.round(30 - frac * 10);
+        const num = String(cn);
+        ctx.font = 'bold ' + fs + 'px monospace';
+        // sombra: el conteo cae sobre el sol del amanecer y sin esto no se lee
+        ctx.fillStyle = '#0a0e11aa';
+        ctx.fillText(num, W / 2 + 1, 69);
+        // bandera argentina: tres franjas horizontales (celeste / blanco / celeste)
+        const top = 68 - fs * 0.75, hgt = fs * 0.78;
+        const bands = [[0, 1 / 3, CELESTE], [1 / 3, 2 / 3, BLANCO], [2 / 3, 1, CELESTE]];
+        for (const [a, b, col] of bands) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(0, top + hgt * a, W, hgt * (b - a) + 0.5);   // +0.5: sin costura entre franjas
+          ctx.clip();
+          ctx.fillStyle = col;
+          ctx.fillText(num, W / 2, 68);
+          ctx.restore();
+        }
       }
-      ctx.fillStyle = '#5c6e73'; ctx.font = '6px monospace';
-      ctx.fillText(T('takeoffHeading'), W / 2, 80);
     }
 
     function bar(x, y, w, val, c, label) {
@@ -3137,11 +3159,25 @@
       ctx.fillStyle = afterTier > 0 ? P.warn : boost || rasLevel > 0 ? P.accent : windF < 0.97 ? P.crest : P.dim;
       ctx.fillText(Math.round(spd * 4.2) + T('kmh') + (afterTier > 0 ? ' »' + afterTier : boost ? T('turboTag') : windF < 0.97 ? ' ▼' : ''), W / 2, H - 4);
 
-      // aviso de viento en contra
+      // --- avisos de la banda superior (radar y viento) ---
+      // Todos los overlays de arriba van centrados en W/2, asi que se pisaban entre si.
+      // Ahora arrancan DEBAJO de la barra de objetivo cuando esta existe (ocupa y=14..30);
+      // si no hay mision, suben y quedan compactos. Cada aviso tiene su propia fila.
+      const topBase = objectiveDist > 0 ? 38 : 20;
+
+      if (detection > 0.3) {
+        ctx.textAlign = 'center'; ctx.font = 'bold 8px monospace';
+        ctx.fillStyle = Math.sin(t * 14) > 0 ? P.warn : '#7d2f1e';
+        ctx.fillText(T('radar'), W / 2, topBase);
+        ctx.fillStyle = '#00000066'; ctx.fillRect(W / 2 - 21, topBase + 3, 42, 4);
+        px(W / 2 - 20, topBase + 4, Math.round(40 * detection), 2, P.warn);
+      }
+
+      // aviso de viento en contra — una fila mas abajo, nunca encima del radar
       if (windF < 0.97) {
         ctx.textAlign = 'center'; ctx.font = 'bold 7px monospace';
         ctx.fillStyle = Math.sin(t * 8) > 0 ? P.crest : P.dim;
-        ctx.fillText(T('windWarn'), W / 2, 27);
+        ctx.fillText(T('windWarn'), W / 2, topBase + 16);
       }
 
       // multiplicador junto al avión — crece con la racha rasante
@@ -3171,14 +3207,6 @@
         px(0, 0, W, 3, P.accent); px(0, H - 3, W, 3, P.accent);
         px(0, 0, 3, H, P.accent); px(W - 3, 0, 3, H, P.accent);
         ctx.globalAlpha = 1;
-      }
-
-      if (detection > 0.3) {
-        ctx.textAlign = 'center'; ctx.font = 'bold 8px monospace';
-        ctx.fillStyle = Math.sin(t * 14) > 0 ? P.warn : '#7d2f1e';
-        ctx.fillText(T('radar'), W / 2, 14);
-        ctx.fillStyle = '#00000066'; ctx.fillRect(W / 2 - 21, 17, 42, 4);
-        px(W / 2 - 20, 18, Math.round(40 * detection), 2, P.warn);
       }
 
       bar(6, H - 8, 60, fuel / 100, fuel < 25 ? (Math.sin(t * 10) > 0 ? P.warn : P.dim) : P.foam, T('bar_fuel'));
