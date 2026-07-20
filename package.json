@@ -30,6 +30,12 @@
       "assets/img/**/*",
       "assets/audio/**/*",
       "!assets/audio/web/**/*",
+      "assets/new_sounds/ammo/**/*",
+      "assets/new_sounds/body/**/*",
+      "assets/new_sounds/explosions/**/*",
+      "assets/new_sounds/flying/**/*",
+      "assets/new_sounds/general/**/*",
+      "assets/new_sounds/terrain/**/*",
       "package.json"
     ],
     "win": {

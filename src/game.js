@@ -503,6 +503,99 @@
     let muted = false, musicStarted = false;
     let duckT = 0;   // ducking: las explosiones grandes agachan la musica un instante
     try { muted = localStorage.getItem('rasante_muted') === '1'; } catch (e) { }
+
+    // ---------- SFX con SAMPLES (assets/new_sounds/) ----------
+    // Capa de sonido REAL sobre el motor procedural: one-shots (sfxOne) y loops con fade
+    // (updateSfx, por contexto). En el BUILD WEB tools/build_web.py vacia SFXB → sfxSrc da
+    // null, todo esto se apaga solo y quedan los beeps/osciladores de siempre (fallback).
+    const SFXB = '../assets/new_sounds/';
+    const SFX_DEF = {
+      // armas
+      gun: { f: ['ammo/machinegun_slow.mp3'], v: 0.5, loop: true },       // metralla: loop mientras disparas
+      msl: { f: ['ammo/misil.mp3', 'ammo/misil2.wav'], v: 0.7 },
+      // cuerpos (atropellar soldados): uno al azar
+      body: { f: ['body/body_hit0.wav', 'body/body_hit1.wav', 'body/body_hit2.wav', 'body/body_hit3.wav'], v: 0.75 },
+      // explosiones por contexto
+      exXheavy: { f: ['explosions/xheavy_explosion0.wav', 'explosions/xheavy_explosion1.wav', 'explosions/xheavy_explosion3.wav', 'explosions/xheavy_explosion4.wav'], v: 0.9 },
+      exHeavy: { f: [1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => 'explosions/heavy_explosion' + i + '.wav'), v: 0.8 },
+      exHeavyDist: { f: [0, 1, 2, 3].map(i => 'explosions/heavy_dist_explosion' + i + '.wav'), v: 0.7 },
+      exMedium: { f: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => 'explosions/medium_explosion' + i + '.wav'), v: 0.7 },
+      exSmall: { f: [0, 1, 2, 3].map(i => 'explosions/small_explosion' + i + '.wav'), v: 0.75 },
+      exXsmall: { f: ['explosions/xsmall_explosion.wav', 'explosions/xsmall_explosion2.wav'], v: 0.6 },
+      // motor / vuelo
+      lv1: { f: ['flying/motor/lv1.wav'], v: 0.6 },                        // despegue + conteo
+      engN: { f: ['flying/motor/normal.wav'], v: 0.32, loop: true },       // crucero (se intercala con engN2)
+      engN2: { f: ['flying/motor/normal2.wav'], v: 0.32, loop: true },
+      turbo: { f: ['flying/motor/turbo.wav'], v: 0.5, loop: true },
+      waterNear: { f: ['flying/water_near_plane.mp3'], v: 0.22, loop: true },   // rasante, volumen bajo
+      waveFly: { f: ['flying/motor/wave_fly1.wav', 'flying/motor/wave_fly2.wav'], v: 0.45 },  // near-miss / pirueta
+      // ambiente de terreno (loop por contexto)
+      ambRain: { f: ['terrain/rain.mp3'], v: 0.35, loop: true },           // tormenta en tierra
+      ambStorm: { f: ['terrain/storm_sea_1.mp3'], v: 0.4, loop: true },    // tormenta en mar
+      ambWarFar: { f: ['terrain/war_distant.mp3'], v: 0.32, loop: true },  // tierra, guerra lejana
+      ambWarNear: { f: ['terrain/war_near_soldats.mp3'], v: 0.42, loop: true }, // soldados corriendo abajo
+      ambWind: { f: ['terrain/terrain_wind.mp3'], v: 0.3, loop: true },    // tierra vacia (tutorial/pruebas)
+      // general
+      alarm: { f: ['general/incoming_alarm.wav'], v: 0.45, loop: true },   // a la par del MOMENTUM
+    };
+    const SFX_MASTER = 0.3;   // volumen maestro de TODOS los samples (no tapan la musica de fondo)
+    const SFX_LOOP_KEYS = Object.keys(SFX_DEF).filter(k => SFX_DEF[k].loop);
+    const sfxPool = {}, sfxLoopA = {}, sfxTgt = {};
+    function sfxSrc(key) { if (!SFXB) return null; const d = SFX_DEF[key]; return d && d.f.length ? d : null; }
+    // one-shot: elige una variante al azar; pool de 3 por archivo para que se solapen sin cortarse
+    function sfxOne(key, vol) {
+      const d = sfxSrc(key); if (!d || muted) return false;
+      const rel = d.f[(Math.random() * d.f.length) | 0];
+      const pool = sfxPool[rel] || (sfxPool[rel] = { i: 0, a: [] });
+      let a = pool.a[pool.i % 3];
+      if (!a) a = pool.a[pool.i % 3] = new Audio(SFXB + rel);
+      pool.i++;
+      a.volume = Math.min(1, (vol !== undefined ? vol : d.v) * SFX_MASTER);
+      try { a.currentTime = 0; } catch (e) { }
+      a.play().catch(() => { });
+      return true;
+    }
+    function sfxLoop(key) {
+      if (key in sfxLoopA) return sfxLoopA[key];
+      const d = sfxSrc(key); if (!d) return (sfxLoopA[key] = null);
+      const a = new Audio(SFXB + d.f[0]); a.loop = true; a.volume = 0;
+      return (sfxLoopA[key] = a);
+    }
+    let engAltT = 0;   // temporizador del crossfade normal↔normal2
+    function updateSfx(dt) {
+      for (const k of SFX_LOOP_KEYS) sfxTgt[k] = 0;
+      const flying = state === 'play' || state === 'takeoff';
+      if (!muted) {
+        if (flying && plane) {
+          // motor: crossfade lento entre las dos tomas de crucero
+          engAltT += dt;
+          const mixB = 0.5 + 0.5 * Math.sin(engAltT / 14 * Math.PI * 2);
+          sfxTgt.engN = SFX_DEF.engN.v * (1 - mixB * 0.85);
+          sfxTgt.engN2 = SFX_DEF.engN2.v * (0.15 + mixB * 0.85);
+          if (boost) sfxTgt.turbo = SFX_DEF.turbo.v;                        // turbo en loop con fade
+          if (state === 'play' && plane.y <= 4.5) sfxTgt.waterNear = SFX_DEF.waterNear.v;  // rasante
+          if (state === 'play' && inp.fire && !overheat) sfxTgt.gun = SFX_DEF.gun.v;       // metralla
+          // ambiente por contexto del mapa
+          if (cfg.sky === 'storm') {
+            if (cfg.terrain === 'sea') sfxTgt.ambStorm = SFX_DEF.ambStorm.v;
+            else sfxTgt.ambRain = SFX_DEF.ambRain.v;
+          } else if (cfg.terrain === 'land') {
+            const near = soldiers && soldiers.some(sd => !sd.dead && sd.z > 3 && sd.z < 90);
+            if (near) sfxTgt.ambWarNear = SFX_DEF.ambWarNear.v;
+            else if (cfg.obstacles > 0) sfxTgt.ambWarFar = SFX_DEF.ambWarFar.v;
+            else sfxTgt.ambWind = SFX_DEF.ambWind.v;
+          }
+        }
+        if (state === 'momentum') sfxTgt.alarm = SFX_DEF.alarm.v;           // alarma durante el momentum
+      }
+      for (const k of SFX_LOOP_KEYS) {
+        const a = sfxLoop(k); if (!a) continue;
+        const tgt = (sfxTgt[k] || 0) * SFX_MASTER;
+        a.volume += (tgt - a.volume) * Math.min(1, dt * 3.5);
+        if (tgt > 0 && a.paused && musicStarted) a.play().catch(() => { });
+        else if (tgt === 0 && !a.paused && a.volume < 0.012) { a.pause(); a.volume = 0; }
+      }
+    }
     // la música del lobby suena SOLO en las pantallas previas a arrancar (selección de modo + menú);
     // desde que empieza la partida (takeoff/play) y en sus pantallas de fin (derribado, nivel, victoria,
     // objetivo) suena la del juego — nunca la del lobby.
@@ -891,7 +984,7 @@
     const M3_U = M3_LEN * 9 / (W * 0.82);          // "uh" en mundo (proporcion constante del 2D)
     const M3_DECK = -M3_LEN * 36 / (W * 0.82);     // altura de cubierta (deck) bajo el horizonte
     const M3_WATER = -M3_LEN * 49.5 / (W * 0.82);  // linea de flotacion (deckY + hullH en 2D)
-    const MOM3D = { ready: false, failed: false, on: false, renderer: null, scene: null, cam: null, ship: null, waterTex: null };
+    const MOM3D = { ready: false, failed: false, on: false, renderer: null, scene: null, cam: null, ship: null, ships: null, debris: null, waterTex: null, waterGeo: null };
     function m3tex(w, h, paint) {
       const c = document.createElement('canvas'); c.width = w; c.height = h;
       paint(c.getContext('2d'), w, h);
@@ -949,7 +1042,10 @@
         });
         MOM3D.waterTex.wrapS = MOM3D.waterTex.wrapT = THREE.RepeatWrapping;
         MOM3D.waterTex.repeat.set(160, 90);
-        const water = new THREE.Mesh(new THREE.PlaneGeometry(6400, 3600),
+        // malla segmentada: los vertices se desplazan por frame en mom3DFrame → OLAS reales
+        // (con el t ralentizado del momentum, ondulan en camara lenta)
+        MOM3D.waterGeo = new THREE.PlaneGeometry(6400, 3600, 120, 66);
+        const water = new THREE.Mesh(MOM3D.waterGeo,
           new THREE.MeshBasicMaterial({ map: MOM3D.waterTex }));
         water.rotation.x = -Math.PI / 2;
         water.position.set(0, M3_WATER, -1800 + 60); sc.add(water);
@@ -959,24 +1055,72 @@
         const dl = new THREE.DirectionalLight(0xe8c07a, 1.7); dl.position.set(-320, 380, 260); sc.add(dl);
         const rim = new THREE.DirectionalLight(0xb06a35, 0.6); rim.position.set(120, 140, -600); sc.add(rim);
 
-        // barco: cajas grises en proporciones del casco 2D (drawBargeHull) — cubierta en y=0 local
-        const L = M3_LEN, U = M3_U, ship = new THREE.Group();
-        m3box(ship, L, U * 3, U * 3.4, '#39434e', 0, -U * 1.5, 0);                 // casco
-        m3box(ship, L * 0.995, U * 0.3, U * 3.5, '#5c6e73', 0, -U * 0.14, 0);      // cubierta
-        m3box(ship, U * 0.8, U * 1.9, U * 2.2, '#39434e', -L / 2 - U * 0.38, -U * 1.0, 0);  // proa
-        m3box(ship, U * 0.55, U * 1.8, U * 2.4, '#39434e', L / 2 + U * 0.26, -U * 1.05, 0); // popa
-        m3box(ship, L * 0.24, U * 2.6, U * 2.6, '#454f56', -L * 0.03, U * 1.3, 0);          // bloque puente
-        m3box(ship, L * 0.18, U * 0.5, U * 2.65, '#8fd0e0', -L * 0.03, U * 2.15, 0);        // ventanas
-        m3box(ship, L * 0.05, U * 1.8, U * 1.1, '#454f56', L * 0.185, U * 0.9, 0);          // chimenea
-        m3box(ship, L * 0.012, U * 3.9, L * 0.012, '#454f56', L * 0.101, U * 1.95, 0);      // mastil
-        m3box(ship, L * 0.08, U * 0.35, L * 0.02, '#454f56', L * 0.10, U * 3.7, 0);         // antena radar
-        for (const s of [-0.26, 0.26]) {                                                     // torretas AA
-          m3box(ship, L * 0.10, U * 1.1, U * 1.4, '#3d474d', L * s * 2, U * 0.55, 0);
-          m3box(ship, L * 0.016, U * 0.6, L * 0.016, '#2b3338', L * s * 2, U * 1.35, U * 0.5);
+        // barcos POR CLASE (t42/t21/log): casco comun + superestructura propia. Las masas de
+        // cada zona critica se colocan EXACTO en sus coordenadas de layout (u,v,w,h de
+        // MOM_LAYOUTS, misma matematica que momZoneRect) → los corchetes 2D envuelven
+        // geometria 3D real en las tres clases. Se muestra el de SHIP_CLASS[objectiveShip].
+        const L = M3_LEN, U = M3_U;
+        // caja en coords de ZONA: centro x=u*L/2, base v*U sobre cubierta, tamano (w*L, h*U)
+        const m3zone = (g2, u, v, w2, h2, depth, color) =>
+          m3box(g2, w2 * L, h2 * U, depth, color, u * L / 2, (v + h2 / 2) * U, 0);
+        const m3hull = () => {
+          const g2 = new THREE.Group();
+          m3box(g2, L, U * 3, U * 3.4, '#39434e', 0, -U * 1.5, 0);                 // casco
+          m3box(g2, L * 0.995, U * 0.3, U * 3.5, '#5c6e73', 0, -U * 0.14, 0);      // cubierta
+          m3box(g2, U * 0.8, U * 1.9, U * 2.2, '#39434e', -L / 2 - U * 0.38, -U * 1.0, 0);  // proa
+          m3box(g2, U * 0.55, U * 1.8, U * 2.4, '#39434e', L / 2 + U * 0.26, -U * 1.05, 0); // popa
+          return g2;
+        };
+        const ships = {};
+        {   // Destructor Tipo 42 (SHEFFIELD/COVENTRY): AA proa+popa, mastil con radar, puente
+          const s2 = ships.t42 = m3hull();
+          m3zone(s2, -0.05, 1, 0.20, 2, U * 2.6, '#454f56');                        // puente (zona)
+          m3box(s2, L * 0.16, U * 0.45, U * 2.65, '#8fd0e0', -L * 0.025, U * 2.55, 0); // ventanas
+          m3box(s2, L * 0.05, U * 1.8, U * 1.1, '#454f56', L * 0.185, U * 0.9, 0);  // chimenea
+          m3box(s2, L * 0.012, U * 2.7, L * 0.012, '#454f56', L * 0.05, U * 1.35, 0); // mastil
+          m3zone(s2, 0.10, 2.7, 0.11, 1.5, L * 0.03, '#525d66');                    // radar (zona)
+          for (const s3 of [-0.52, 0.52]) {                                          // AA (zonas)
+            m3zone(s2, s3, 0, 0.15, 1.3, U * 1.5, '#3d474d');
+            m3box(s2, L * 0.016, U * 0.6, L * 0.016, '#2b3338', s3 * L / 2, U * 1.55, U * 0.55);
+          }
         }
-        ship.position.set(0, M3_DECK, -60); sc.add(ship);
+        {   // Fragata Tipo 21 (ARDENT/ANTELOPE): silueta baja, radar chico, MOTORES al casco
+          const s2 = ships.t21 = m3hull();
+          m3box(s2, L * 0.30, U * 1.6, U * 2.4, '#49545e', -L * 0.05, U * 0.8, 0);  // superestructura baja
+          m3box(s2, L * 0.13, U * 0.4, U * 2.45, '#8fd0e0', -L * 0.05, U * 1.55, 0); // ventanas
+          m3box(s2, L * 0.012, U * 2.7, L * 0.012, '#454f56', L * 0.05, U * 1.35, 0); // mastil
+          m3zone(s2, 0.10, 2.7, 0.09, 1.3, L * 0.025, '#525d66');                   // radar chico (zona)
+          for (const e of [{ u: -0.30 }, { u: 0.26 }]) {                             // MOTORES (zonas, al casco)
+            m3zone(s2, e.u, -0.3, 0.14, 1.2, U * 2.0, '#333d46');
+            m3box(s2, L * 0.05, U * 1.1, U * 0.9, '#49545e', e.u * L / 2, U * 1.15, 0);  // escape
+          }
+          for (const s3 of [-0.52, 0.52]) m3zone(s2, s3, 0, 0.15, 1.3, U * 1.4, '#3d474d'); // AA (zonas)
+        }
+        {   // Logistico (SIR GALAHAD/CONVEYOR): contenedores, AA unica, DEPOSITO, puente a popa
+          const s2 = ships.log = m3hull();
+          m3zone(s2, 0.32, 1, 0.16, 2, U * 2.6, '#4a5058');                         // puente a popa (zona)
+          m3box(s2, L * 0.13, U * 0.45, U * 2.65, '#8fd0e0', L * 0.16, U * 2.55, 0); // ventanas
+          m3zone(s2, 0.05, 0, 0.30, 1.6, U * 2.8, '#5a5344');                       // DEPOSITO (zona)
+          const crates = ['#6b4a3a', '#44553f', '#3d4a58', '#5a5344'];               // contenedores
+          for (let i2 = 0; i2 < 5; i2++)
+            m3box(s2, L * 0.055, U * 0.55, U * (1.6 + (i2 % 2)), crates[i2 % 4],
+              -L * 0.06 + i2 * L * 0.055, U * (1.6 + 0.28), 0);
+          m3zone(s2, -0.30, 0, 0.15, 1.3, U * 1.5, '#3d474d');                      // AA unica (zona)
+          m3box(s2, L * 0.012, U * 2.4, L * 0.012, '#454f56', -L * 0.12, U * 1.2, 0); // pluma/grua
+        }
+        for (const k in ships) { ships[k].position.set(0, M3_DECK, -60); ships[k].visible = false; sc.add(ships[k]); }
 
-        MOM3D.renderer = r; MOM3D.scene = sc; MOM3D.cam = cam; MOM3D.ship = ship;
+        // restos flotando alrededor del barco (bob lento en camara lenta; siguen la z del barco)
+        const debris = new THREE.Group();
+        for (let i2 = 0; i2 < 9; i2++) {
+          const d2 = m3box(debris, 0.9 + (i2 % 3) * 0.7, 0.4, 0.8 + (i2 % 2) * 0.6,
+            i2 % 2 ? '#2c343c' : '#3f3a30', (i2 / 8 - 0.5) * L * 1.9, 0, ((i2 * 37) % 40) - 14);
+          d2.rotation.y = i2 * 0.7;
+        }
+        debris.position.y = M3_WATER + 0.15; sc.add(debris);
+
+        MOM3D.renderer = r; MOM3D.scene = sc; MOM3D.cam = cam; MOM3D.ships = ships; MOM3D.debris = debris;
+        MOM3D.ship = ships.t42;
         MOM3D.ready = true;
         return true;
       } catch (e) { MOM3D.failed = true; return false; }   // sin WebGL → fallback 2D
@@ -985,8 +1129,31 @@
     function mom3DFrame() {
       if (state !== 'momentum' || !mom || !mom3DInit()) { MOM3D.on = false; return false; }
       const g = momShipGeom();
-      MOM3D.ship.position.z = -M3_LEN * F / g.len;          // acercamiento FISICO: D = L*F/len_px
+      // barco de la clase del objetivo (t42/t21/log); solo el activo es visible
+      const cls = SHIP_CLASS[objectiveShip] || 't42';
+      for (const k in MOM3D.ships) MOM3D.ships[k].visible = (k === cls);
+      MOM3D.ship = MOM3D.ships[cls];
+      const D = M3_LEN * F / g.len;                          // acercamiento FISICO: D = L*F/len_px
+      MOM3D.ship.position.z = -D;
       MOM3D.waterTex.offset.y = -((dist + momDrift) * 0.0016) % 1;   // drift del mar (camara lenta)
+      // OLAS: desplaza los vertices del plano (t va ralentizado en momentum → ondulan en slow-mo)
+      {
+        const p = MOM3D.waterGeo.attributes.position;
+        for (let i = 0; i < p.count; i++) {
+          const x = p.getX(i), y = p.getY(i);
+          p.setZ(i, 0.55 * Math.sin(x * 0.045 + t * 1.1) + 0.4 * Math.sin(y * 0.06 - t * 0.9)
+            + 0.28 * Math.sin((x + y) * 0.11 + t * 1.7));
+        }
+        p.needsUpdate = true;
+      }
+      // restos: siguen la z del barco y cabecean con el oleaje
+      MOM3D.debris.position.z = -D;
+      for (let i = 0; i < MOM3D.debris.children.length; i++) {
+        const d2 = MOM3D.debris.children[i];
+        d2.position.y = Math.sin(t * 1.2 + i * 1.9) * 0.45;
+        d2.rotation.z = Math.sin(t * 0.9 + i * 2.6) * 0.14;
+        d2.rotation.x = Math.sin(t * 1.05 + i * 1.3) * 0.11;
+      }
       MOM3D.renderer.render(MOM3D.scene, MOM3D.cam);
       MOM3D.on = true;
       return true;
@@ -1042,13 +1209,17 @@
       const r = momZoneRect(z), cmw = momCam();
       z.hp = 0;
       momBoom(r.x + r.w / 2, r.y + r.h / 2, true);
+      // explosion real: la primera pasada suena LEJANA (heavy_dist), las siguientes de cerca
+      sfxOne(momPhase === 0 ? 'exHeavyDist' : 'exHeavy');
       score += z.pts;
       popup(r.x + r.w / 2, r.y - 6, '+' + z.pts, P.accent);
       popup(MOM_AX + cmw.x, 50 + cmw.y, T('mom_destroyed', { z: T(z.label) }), P.warn);
       if (mom.zones.every(zz => zz.hp <= 0)) {
         score += 500 * (momPhase + 1);
-        mom.doneT = (momPhase + 1 >= MOM_PHASES.length) ? 1.6 : 1.0;
-        popup(MOM_AX + cmw.x, 62 + cmw.y, (momPhase + 1 >= MOM_PHASES.length) ? T('bargeDown') : T('mom_clear'), P.accent);
+        const last = momPhase + 1 >= MOM_PHASES.length;
+        if (last) sfxOne('exXheavy');   // el barco entero se va: la explosion GRANDE del nivel
+        mom.doneT = last ? 1.6 : 1.0;
+        popup(MOM_AX + cmw.x, 62 + cmw.y, last ? T('bargeDown') : T('mom_clear'), P.accent);
         beep(880, 0.2, 'square', 0.06, 1200);
       }
     }
@@ -1081,6 +1252,7 @@
       });
       // resplandor de lanzamiento (mas largo que el del canon)
       if (mom.mslSide < 0) mom.flashL = 0.22; else mom.flashR = 0.22;
+      sfxOne('msl');   // lanzamiento real (misil.mp3 / misil2.wav al azar)
       beep(200, 0.2, 'sawtooth', 0.05, 80); boom(0.05, true);
     }
     function enterMomentum() {
@@ -1283,6 +1455,7 @@
     function startRoll(dir) {
       if (state !== 'play' || rollT > 0 || rollCd > 0) return;
       rollT = ROLL_DUR; rollDir = dir; rollCd = 1.15;
+      sfxOne('waveFly');                        // rafaga de aire de la pirueta
       beep(480, 0.16, 'triangle', 0.05, 900);   // whoosh ascendente
     }
 
@@ -1301,11 +1474,13 @@
       }
       pmissiles.push({ x: plane.x, y: plane.y, z: PZ + 4, tx, vy: 0 });   // vy: cae con el vuelo (arco) para lobbear soldados
       msl--; mslCd = 0.5;
+      sfxOne('msl');   // lanzamiento real (misil.mp3 / misil2.wav al azar)
       beep(200, 0.2, 'sawtooth', 0.05, 80); boom(0.05, true);
     }
 
     function die(cause) {
       state = 'dead'; deathCause = cause; deathT = 0;
+      sfxOne('exSmall');   // mi avion chocando (agua incluida, por ahora)
       factIdx = (factIdx + 1) % L().facts.length;
       explodeAt(plane.x, plane.y, PZ, true);
       const s = proj(plane.x, 0, PZ);
@@ -1320,6 +1495,7 @@
       t += dt;
       duckT = Math.max(0, duckT - dt);   // el ducking de la musica se recupera solo
       fadeT = Math.max(0, fadeT - dt);   // fundido desde negro (se pinta al final de draw)
+      updateSfx(dt);   // loops de SFX con fade (motor, turbo, rasante, ambiente, alarma, metralla)
       // camara CERCA: interpola hacia el objetivo; fuera de vuelo (o al morir) vuelve sola a 1
       // para que cada entrada a play arranque con zoom-in suave y sin saltos entre estados
       const camZt = (state === 'play' || state === 'takeoff') ? CAM_ZOOMS[camMode] : 1;
@@ -1342,7 +1518,7 @@
         }
         const cn = 3 - Math.floor(toT);
         if (cn !== toCount && cn >= 0) { toCount = cn; beep(cn > 0 ? 520 : 980, 0.14, 'square', 0.06); }
-        if (eng) { eng.o.frequency.value = 46 + spd * 0.55; eng.g.gain.value = 0.017 * Math.min(1, toT); }
+        if (eng) { eng.o.frequency.value = 46 + spd * 0.55; eng.g.gain.value = sfxSrc('engN') ? 0 : 0.017 * Math.min(1, toT); }   // con samples de motor, el oscilador calla
         if (toT >= 3) { state = 'play'; popup(W / 2, 54, T('freeControl'), P.accent); shake = Math.min(6, shake + 1); }
         parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
         parts = parts.filter(p => p.life > 0);
@@ -1377,13 +1553,13 @@
             if (!story.done) { story.t += 999; }                          // completar de un saque
             else if (story.si + 1 < story.seq.length) {                   // → siguiente pantalla de la secuencia
               story.si++; initStoryScreen(); beep(500, 0.05, 'square', 0.04);
-            } else { t = 0; fadeT = 1.4; state = 'takeoff'; beep(600, 0.08, 'square', 0.05); }
+            } else { t = 0; fadeT = 1.4; state = 'takeoff'; sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
           }
         } else if (state === 'menu') {
           // el menú lo comparten SUPERVIVENCIA y CICLO DE MUERTE
-          if (startReq) { reset(); setRunObjective(); state = 'takeoff'; beep(600, 0.08, 'square', 0.05); }
+          if (startReq) { reset(); setRunObjective(); state = 'takeoff'; sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
         } else if (state === 'dead') {
-          if (deathT > 0.7 && anyPress) { reset(); setRunObjective(); state = 'takeoff'; beep(600, 0.08, 'square', 0.05); }  // reintenta (mismo modo/nivel)
+          if (deathT > 0.7 && anyPress) { reset(); setRunObjective(); state = 'takeoff'; sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }  // reintenta (mismo modo/nivel)
         } else if (state === 'levelclear') {
           // entre niveles: si el proximo nivel tiene guion (NIVELES.md) → pantallas de HISTORIA;
           // sino directo al despegue
@@ -1391,7 +1567,7 @@
             const keep = score; loadLevel(curLevel + 1); reset(); score = keep;
             objectiveDist = LEVELS[curLevel].goalDist; objectiveShip = randomShip();
             if (LEVELS[curLevel].story) { initStory(LEVELS[curLevel].story); state = 'story'; }
-            else { state = 'takeoff'; beep(600, 0.08, 'square', 0.05); }
+            else { state = 'takeoff'; sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
           }
         } else if (state === 'victory') {
           if (levelT > 0.8 && anyPress) { state = 'modeselect'; }
@@ -1595,7 +1771,7 @@
         }
         heat += 0.10;
         if (heat >= 1) { overheat = true; beep(140, 0.3, 'sawtooth', 0.05); }
-        else beep(1100 + Math.random() * 300, 0.04, 'square', 0.028);
+        else if (!sfxSrc('gun')) beep(1100 + Math.random() * 300, 0.04, 'square', 0.028);   // web: beep; escritorio: loop de metralla
       }
 
       // misiles del jugador: cooldown, recarga lenta y lanzamiento (tecla Z / botón táctil)
@@ -1626,6 +1802,7 @@
         sd.x += sd.dir * 6 * dt;                                  // corren en diagonal
         if (sd.z <= PZ + 1 && sd.z > PZ - 4 && Math.abs(plane.x - sd.x) < 4 && plane.y < 3) {
           sd.dead = true;                                        // pase rasante: cabeza / impacto de aire (banda 0.5–3)
+          sfxOne('body');                                        // impacto de cuerpo (una variante al azar)
           const pts = Math.round(120 * multShow);                // escala con el multiplicador (a ras = brutal)
           score += pts;
           const s = proj(sd.x, 0, PZ); popup(s.x, s.y - 10, '+' + pts, P.warn);
@@ -1662,6 +1839,7 @@
           } else if (dx < 3 && dy < 3) {
             const pir = rollT > 0;                       // rozar EN PIRUETA: bonus grande (estilo)
             score += pir ? 250 : 75; shake = Math.min(6, shake + 1.5);
+            sfxOne('waveFly');                           // rafaga de aire del pase cercano
             const s = proj(o.x, oy, PZ); popup(s.x, s.y - 8, pir ? T('rollGraze') : T('graze'), pir ? P.accent : P.foam);
             boom(0.06, true);
           }
@@ -1706,6 +1884,7 @@
             if (o.hp <= 0) {
               const pts = o.type === 'helo' ? 300 : o.type === 'jet' ? 250 : 150;
               score += pts;
+              sfxOne(air ? 'exMedium' : 'exXsmall');   // aeronaves: medium · blancos chicos: xsmall
               const s = proj(o.x, oy, o.z); popup(s.x, s.y - 8, '+' + pts);
               explodeAt(o.x, oy, o.z, air);
               o.z = -99; o.done = true;   // done=true: evita que el obstáculo muerto dispare la colisión del avión
@@ -1814,7 +1993,7 @@
 
       if (eng) {
         eng.o.frequency.value = 46 + spd * 0.55 + (boost ? 28 : 0);
-        eng.g.gain.value = boost ? 0.030 : 0.017;
+        eng.g.gain.value = sfxSrc('engN') ? 0 : (boost ? 0.030 : 0.017);   // con samples de motor, el oscilador calla
       }
       if (fuel <= 0 && Math.random() < 0.05) beep(90, 0.08, 'sawtooth', 0.03);
     }

@@ -63,6 +63,13 @@ def main():
         js2 = js.replace(f"'../assets/audio/{mp3}'", "''")
         n += (js2 != js); js = js2
 
+    # SFX con samples (assets/new_sounds/): NO entran en el bundle web — se vacia SFXB y el
+    # sistema de sfx del juego se apaga solo (quedan los beeps procedurales de fallback)
+    js2 = js.replace("const SFXB = '../assets/new_sounds/';", "const SFXB = '';   // web: sin samples, beeps de fallback")
+    if js2 == js:
+        raise SystemExit('ERROR: no encontre la constante SFXB en game.js (¿cambio el codigo?)')
+    js = js2
+
     if '../assets/' in js:
         raise SystemExit('ERROR: quedaron rutas ../assets/ sin re-embeber en game.js')
 
