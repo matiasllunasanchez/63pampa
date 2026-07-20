@@ -1,0 +1,53 @@
+name: Build
+
+# Builds cross-platform de RASANTE. Corre en runners NATIVOS (Windows y macOS) para
+# generar cada instalador en su plataforma — el .exe/NSIS de Windows no se cross-buildea
+# desde Mac (necesita Wine), así que el runner windows-latest lo produce directamente.
+#
+# Disparadores:
+#   - manual (workflow_dispatch) desde la pestaña Actions de GitHub
+#   - al pushear un tag vX.Y.Z (releases)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Regenerar bundle de three.js
+        run: npm run build:three
+
+      - name: Empaquetar (electron-builder, plataforma nativa del runner)
+        run: npx electron-builder --publish never
+        env:
+          # sin firma de código (no hay certificados cargados); el .exe/.dmg sale sin firmar
+          CSC_IDENTITY_AUTODISCOVERY: false
+
+      - name: Subir artefactos
+        uses: actions/upload-artifact@v4
+        with:
+          name: RASANTE-${{ matrix.os }}
+          if-no-files-found: ignore
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.blockmap
