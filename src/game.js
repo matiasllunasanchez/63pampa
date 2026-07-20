@@ -37,7 +37,9 @@
 
     // cfg = características ACTIVAS del mapa (las lee el juego). Se editan en vivo con el menú [M]
     // o se cargan desde un nivel de campaña. Base para prototipar niveles.
-    const cfg = { sky: 'dusk', water: 'sea', terrain: 'sea', wind: true, obstacles: 1, coast: 230, meters: 3000 };
+    // fuelOn: el combustible es el RELOJ del run (mantener la secuencia agarrando bidones).
+    // Se puede apagar en el menú [M] (COMBUSTIBLE: NO) para pruebas / vuelo libre.
+    const cfg = { sky: 'dusk', water: 'sea', terrain: 'sea', wind: true, obstacles: 1, coast: 230, meters: 3000, fuelOn: true };
     // paleta de tierra (turba malvinense). Se vuela A RAS del suelo para atropellar soldados (no es letal).
     const LAND = { far: '#2f3527', mid: '#3c4330', near: '#4a5138', tuft: '#6d7748', rock: '#524d3e', furrow: '#262b1e' };
     let WATER = WATER_STYLES[cfg.water];
@@ -162,6 +164,7 @@
       { label: 'AGUA', opts: ['sea', 'violet'], names: ['MAR', 'VIOLETA'], get: () => cfg.water, set: v => { cfg.water = v; applyCfg(); } },
       { label: 'VIENTO', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.wind, set: v => cfg.wind = v },
       { label: 'OBSTACULOS', opts: [0, 0.5, 1, 1.7], names: ['NINGUNO', 'POCOS', 'NORMAL', 'MUCHOS'], get: () => cfg.obstacles, set: v => cfg.obstacles = v },
+      { label: 'COMBUSTIBLE', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.fuelOn, set: v => cfg.fuelOn = v },
       { label: 'COSTA', opts: [120, 230, 400], names: ['CORTA', 'NORMAL', 'LARGA'], get: () => cfg.coast, set: v => cfg.coast = v },
     ];
     // filas visibles según el modo (METROS solo en ciclo de muerte)
@@ -717,13 +720,16 @@
 
     function spawn() {
       const lane = (Math.random() * 52 - 26);
-      if (fuelDist > 700) { obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false }); fuelDist = 0; return; }
+      // sin combustible activo (COMBUSTIBLE: NO) los bidones serian pickups inutiles: no se fuerzan
+      // por distancia y su slot del sorteo cae en globo
+      if (cfg.fuelOn && fuelDist > 700) { obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false }); fuelDist = 0; return; }
       const r = Math.random();
       if (r < 0.34) obstacles.push({ type: 'mast', x: lane, h: 11 + Math.random() * 17, z: 250, done: false });
       else if (r < 0.60) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, hp: 1, done: false, ph: Math.random() * 6 });
       else if (r < 0.70) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, hp: 2, done: false, ph: Math.random() * 6 });
       else if (r < 0.78) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, hp: 2, done: false, ph: Math.random() * 6 });
-      else obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false });
+      else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false });
+      else obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, hp: 1, done: false, ph: Math.random() * 6 });
     }
 
     function proj(x, y, z) {
@@ -1364,7 +1370,7 @@
       // throttle (palanca de gas): sube al dar gas, baja al soltar — solo indicador visual
       const gasOn = fuel > 0 && (inp.u || (steerTarget && plane.vy > 0.5));
       throttle += ((gasOn ? 1 : 0) - throttle) * Math.min(1, dt * 7);
-      fuel -= (3.2 + (boost ? 4.2 : 0)) * dt;
+      if (cfg.fuelOn) fuel -= (3.2 + (boost ? 4.2 : 0)) * dt;   // COMBUSTIBLE: NO (menú [M]) = tanque infinito, para pruebas
       if (fuel <= 0) { fuel = 0; plane.vy = Math.min(plane.vy, -5); }
       plane.x += plane.vx * dt;
       plane.y += plane.vy * dt;

@@ -146,7 +146,8 @@ Los números del gamefeel están en el `<script>` de `index.html`:
 - Racha rasante: 2 s por nivel (`Math.floor(streak/2)`), tope x30 (`rasLevel` máx. 4), gracia `0.45`
 - Estela: arranca bajo 9 m (`lowI = 1 - alt/9`) · rocío: umbrales `2.8 / 4.5 / 7` m en `nSpray`
 - Densidad de obstáculos: `nextSpawn = max(34, 52+rnd*42 - t*0.8)` (en metros)
-- Combustible: drenaje `3.2` (+`4.2` con turbo), bidón `+30`
+- Combustible: drenaje `3.2` (+`4.2` con turbo), bidón `+30` · **toggle en `[M]`**:
+  fila COMBUSTIBLE SI/NO (`cfg.fuelOn`) — con NO no hay drenaje ni spawn de bidones (pruebas)
 - Ventana de near-miss: margen `< 3` en el chequeo de paso (`dx < 3 && dy < 3`)
 - Perfil de colisión del avión: `pw=2.1, ph2=1.0` (afinado; antes 2.6×1.2) — en PIRUETA `1.0×0.7`
 - **PIRUETA (tonel)**: doble-tap `←`/`→` (ventana 0.28s) → tonel de `ROLL_DUR=0.55s`, cooldown

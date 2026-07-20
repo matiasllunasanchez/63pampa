@@ -551,6 +551,14 @@ mouse → en táctil nunca, y rige el esquema anterior completo — cero regresi
     balístico y misil caen EXACTO bajo el cursor físico con cualquier zoom — verificado en vivo
     (mira dibujada en (250,60) físico con camZ=1.19 en transición). `camMode` persiste entre
     corridas; táctil no tiene toggle todavía (va con el mapeo de joystick).
+  - **TOGGLE COMBUSTIBLE (19/7)**: fila **COMBUSTIBLE: SI/NO** en el menú de config `[M]`
+    (`cfg.fuelOn`). El combustible es diseño intencional (el reloj del run: mantener la
+    secuencia agarrando bidones), pero con NO se apaga el drenaje (tanque infinito, para
+    pruebas/vuelo libre) y los bidones dejan de spawnear (su slot del sorteo cae en globo;
+    tampoco se fuerzan por `fuelDist > 700`). Verificado en harness: 60 s sin drenaje con
+    NO (fuel 100 exacto, 0 bidones) y drenaje normal 3.2/s con SI. Con esto, OBSTÁCULOS:
+    NINGUNO + COMBUSTIBLE: NO da vuelo infinito real (antes el avión "se apagaba" a los
+    ~31 s porque sin obstáculos tampoco había bidones).
 
 ## 5. Controles
 
