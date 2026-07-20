@@ -179,17 +179,25 @@
     // ====================================================================================
 
     // aviones seleccionables — sprites embebidos como data URI (artifact autocontenido)
+    // Cada avion tiene DOS artes: `src` (ilustracion grande, para la pantalla de seleccion) y
+    // `sheet` (sprite sheet HORNEADO desde el modelo 3D low-poly: 9 frames de 56x32, alabeo
+    // -60..+60 en pasos de 15, frame 4 = nivelado) que es el que VUELA — pixel art coherente
+    // con el juego y banking real por frame. Regenerar: npx electron tools/bake_planes_run.js
     const PLANES = [
-      { key: 'sky', name: 'A-4 SKYHAWK', src: "../assets/img/plane_sky.webp", desc: { es: 'Equilibrado - protagonista de la campaña', en: 'Balanced - the campaign workhorse' } },
-      { key: 'dagger', name: 'IAI DAGGER', src: "../assets/img/plane_dagger.webp", desc: { es: 'Mas rapido y con mas fuego - dificil de controlar', en: 'Faster, harder-hitting - tricky to control' } },
-      { key: 'supere', name: 'SUPER ETENDARD', src: "../assets/img/plane_supere.webp", desc: { es: 'Misiones especiales - misiles Exocet', en: 'Special missions - Exocet missiles' } },
-      { key: 'a4q', name: 'A-4Q', src: "../assets/img/plane_a4q.webp", desc: { es: 'Variante naval - similar al A-4B/C', en: 'Naval variant - similar to the A-4B/C' } },
-      { key: 'pampa', name: 'PAMPA 63', src: "../assets/img/plane_pampa.webp", desc: { es: 'Entrenador biplaza IA-63', en: 'IA-63 two-seat trainer' } },
+      { key: 'sky', name: 'A-4 SKYHAWK', src: "../assets/img/plane_sky.webp", sheet: '../assets/img/plane_sky_sheet.png', desc: { es: 'Equilibrado - protagonista de la campaña', en: 'Balanced - the campaign workhorse' } },
+      { key: 'dagger', name: 'IAI DAGGER', src: "../assets/img/plane_dagger.webp", sheet: '../assets/img/plane_dagger_sheet.png', desc: { es: 'Mas rapido y con mas fuego - dificil de controlar', en: 'Faster, harder-hitting - tricky to control' } },
+      { key: 'supere', name: 'SUPER ETENDARD', src: "../assets/img/plane_supere.webp", sheet: '../assets/img/plane_supere_sheet.png', desc: { es: 'Misiones especiales - misiles Exocet', en: 'Special missions - Exocet missiles' } },
+      { key: 'a4q', name: 'A-4Q', src: "../assets/img/plane_a4q.webp", sheet: '../assets/img/plane_a4q_sheet.png', desc: { es: 'Variante naval - similar al A-4B/C', en: 'Naval variant - similar to the A-4B/C' } },
+      { key: 'pampa', name: 'PAMPA 63', src: "../assets/img/plane_pampa.webp", sheet: '../assets/img/plane_pampa_sheet.png', desc: { es: 'Entrenador biplaza IA-63', en: 'IA-63 two-seat trainer' } },
     ];
+    const SHEET_FW = 56, SHEET_FH = 32, SHEET_NF = 9, SHEET_ROWS = 3;   // 9 cols (alabeo) x 3 filas (cabeceo: trepa/nivel/pica); tambien spec para arte manual
     PLANES.forEach(pl => {
       pl.img = new Image(); pl.ready = false; pl.w = 977; pl.h = 471;
       pl.img.onload = () => { pl.ready = true; pl.w = pl.img.naturalWidth; pl.h = pl.img.naturalHeight; };
       pl.img.src = pl.src;
+      pl.sheetImg = new Image(); pl.sheetOk = false;
+      pl.sheetImg.onload = () => { pl.sheetOk = true; };
+      pl.sheetImg.src = pl.sheet;
     });
     let selPlane = 0, startReq = false;
 
@@ -439,6 +447,7 @@
     let afterT = 0, afterTier = 0, afterGrace = 0;
     let windT, windF, gusts;
     let rollT = 0, rollDir = 1, rollCd = 0, tapL = -9, tapR = -9;   // PIRUETA (tonel): doble-tap ←/→
+    let pitchHold = 0;   // seg. que se mantiene apretado ↑/↓: filtra los toques rápidos de gas (no mueven la trompa)
     const ROLL_DUR = 0.55;
     const AFTER_STEP = 2, AFTER_MAX = 5, AFTER_GAIN = 0.16, AFTER_CAP = 42;   // afterburner: seg/escalón, tope, +vel y +techo por escalón
     let story = null;   // pantalla de HISTORIA (campaña): maquina de escribir letra a letra
@@ -1899,9 +1908,15 @@
       // el alabeo mezcla la intención de giro (input) con la velocidad real → anticipa y asienta
       const steerV = steerTarget ? plane.vx / 26 : ((inp.r - inp.l) * 0.9 + (plane.vx / 30) * 0.35);
       const bankTarget = Math.max(-1, Math.min(1, steerV));
-      const pitchTarget = Math.max(-1, Math.min(1, plane.vy / 16));
+      // cabeceo: la tecla mueve la trompa SOLO si se mantiene apretada un instante — los toques rápidos
+      // de gas (↑ repetido) no la sacuden y el avión queda recto; si mantenés ↑/↓ sí cabecea.
+      const vin = inp.u - inp.d;   // -1 pica / 0 / +1 trepa
+      pitchHold = vin !== 0 ? pitchHold + dt : 0;
+      const holdRamp = Math.max(0, Math.min(1, (pitchHold - 0.12) / 0.18));   // 0 hasta 0.12s → sube a full a ~0.30s
+      const pitchV = vin * 0.9 * holdRamp + (plane.vy / 22) * 0.35;
+      const pitchTarget = Math.max(-1, Math.min(1, pitchV));
       plane.bank += (bankTarget - plane.bank) * Math.min(1, dt * 9);   // entra/sale con peso
-      plane.pitch += (pitchTarget - plane.pitch) * Math.min(1, dt * 6);
+      plane.pitch += (pitchTarget - plane.pitch) * Math.min(1, dt * 9);   // igual de rapido que el alabeo
 
       // puntaje por altitud + racha rasante
       const alt = plane.y;
@@ -2365,18 +2380,43 @@
       ctx.translate(0, -plane.pitch * 1.2);
       // alabeo: rotación 2D + micro-wobble; el foreshortening en X finge la inclinación 3D del ala
       const bank = Math.max(-1, Math.min(1, plane.bank));
+      const pl = PLANES[selPlane];
+      const useSheet = pl.sheetOk;   // sprite HORNEADO: el alabeo lo traen los frames
       let rolling = rollT > 0;
       if (rolling) {
         // PIRUETA: tonel completo — el sprite (vista trasera) rota 360° en el plano de pantalla
         const pr = 1 - rollT / ROLL_DUR;                   // 0→1 durante el tonel
         ctx.rotate(rollDir * pr * Math.PI * 2);
         ctx.scale(0.94 + 0.06 * Math.cos(pr * Math.PI * 2), 1);   // leve pulso: vende el giro
+      } else if (useSheet) {
+        // con frames de alabeo Y cabeceo REALES no hay rotacion ni squash fingidos: solo micro-wobble
+        ctx.rotate(state === 'play' ? Math.sin(t * 2.3) * 0.015 : 0);
       } else {
         ctx.rotate(bank * 0.42 + (state === 'play' ? Math.sin(t * 2.3) * 0.015 : 0));
         ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
       }
-      const pl = PLANES[selPlane];
-      if (pl.ready) {
+      if (useSheet) {
+        ctx.imageSmoothingEnabled = false;   // pixel art nítido (el save/restore de afuera lo repone)
+        // COLUMNA por alabeo. bank>0 = va a la DERECHA → tiene que banquear a la derecha, pero
+        // los frames del modelo 3D giran en sentido opuesto al canvas, asi que se INVIERTE el
+        // signo (esto corrige el "giraba para el lado contrario"). Nivelado = columna central.
+        const col = rolling ? (SHEET_NF - 1) / 2 : Math.round((1 - bank) / 2 * (SHEET_NF - 1));
+        // FILA por cabeceo. pitch>0 = trepa (morro arriba) → fila 0; nivel → 1; picada → 2
+        const pc = Math.max(-1, Math.min(1, plane.pitch));
+        const row = pc > 0.33 ? 0 : pc < -0.33 ? 2 : 1;
+        const sx4 = col * SHEET_FW, sy4 = row * SHEET_FH;
+        // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas
+        if (rolling) for (let gi = 2; gi >= 1; gi--) {
+          ctx.save();
+          ctx.rotate(-rollDir * gi * 0.55);
+          ctx.globalAlpha = 0.14;
+          ctx.drawImage(pl.sheetImg, sx4, sy4, SHEET_FW, SHEET_FH, -SHEET_FW / 2, -SHEET_FH / 2, SHEET_FW, SHEET_FH);
+          ctx.restore();
+        }
+        if (boost) { const fl = 5 + Math.random() * 4; px(-2, SHEET_FH / 2 - 8, 4, fl, P.foam); px(-1, SHEET_FH / 2 - 8, 2, fl * 0.7, P.accent); }
+        ctx.drawImage(pl.sheetImg, sx4, sy4, SHEET_FW, SHEET_FH, -SHEET_FW / 2, -SHEET_FH / 2, SHEET_FW, SHEET_FH);
+        if (inp.fire && !overheat && fireT > 0.06) { px(-6, -2, 3, 2, P.ink); px(3, -2, 3, 2, P.ink); }
+      } else if (pl.ready) {
         const PW = 54, PH = Math.round(PW * pl.h / pl.w);
         // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas (estela cinematica)
         if (rolling) for (let gi = 2; gi >= 1; gi--) {

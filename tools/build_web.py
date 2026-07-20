@@ -18,7 +18,10 @@ ASSETS = ROOT / 'assets'
 OUT = ROOT / 'dist-web' / 'index.html'
 
 # (ruta relativa como aparece en game.js, archivo real, mime)   — mismo mapeo que extract_assets.py
-IMG = [('cockpit_sky.png', 'image/png')]
+IMG = [('cockpit_sky.png', 'image/png'),
+       ('plane_sky_sheet.png', 'image/png'), ('plane_dagger_sheet.png', 'image/png'),
+       ('plane_supere_sheet.png', 'image/png'), ('plane_a4q_sheet.png', 'image/png'),
+       ('plane_pampa_sheet.png', 'image/png')]
 PLANES = ['sky', 'dagger', 'supere', 'a4q', 'pampa']
 # El juego usa mp3 originales; para la web se re-embebe la m4a comprimida de assets/audio/web/.
 # Las pistas de adrenaline que no entran en el límite de 16 MB se DESCARTAN del build web ('').
