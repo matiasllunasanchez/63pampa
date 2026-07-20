@@ -560,6 +560,23 @@ mouse → en táctil nunca, y rige el esquema anterior completo — cero regresi
     NINGUNO + COMBUSTIBLE: NO da vuelo infinito real (antes el avión "se apagaba" a los
     ~31 s porque sin obstáculos tampoco había bidones).
 
+  - **MOMENTUM 3D — primera escena three.js (19/7)**: durante el momentum, three.js renderiza
+    el FONDO (cielo con gradiente + sol + mar con textura animada por el drift + barco de cajas)
+    en un canvas WebGL offscreen de 464×384 que se blitea DENTRO del transform del canvas 2D
+    que rotaba el mundo → alabeo/paneo/shake le pegan al 3D gratis y la capa 2D (zonas, mira,
+    fx, cabina) queda encima, alineada por construcción. La cámara replica EXACTO la proyección
+    `proj()` (foco 90 px, punto principal en (W/2, HOR) vía `setViewOffset`, imagen virtual
+    320×232 + overscan) y el barco es de TAMAÑO FIJO (`M3_LEN=45`) con distancia variable
+    `D = L*F/len_px` → calza con `momShipGeom` y el acercamiento entre pasadas es físico.
+    Paleta desde SKY/WATER vigentes; NearestFilter (pixelado). Fallback COMPLETO: sin THREE,
+    sin WebGL o con `?no3d` en la URL rige el 2D de siempre (`MOM3D.on=false` y el bloque
+    "mundo 2D" de `draw()` + `drawBargeHull` en `drawMomentum` pintan como antes). Todo el
+    gameplay (zonas, cañón balístico, misiles, timers) quedó INTACTO — el 3D es solo fondo.
+    Verificado: alineación de zonas sobre el barco 3D, roll 0.6 con cabina nivelada y mundo
+    girado sin esquinas vacías, `?no3d` OK, vuelo normal intacto, Electron smoke OK.
+    Próximos pasos 3D: modelo por clase de barco (t42/t21/log), humo/fuego 3D en zonas
+    muertas, olas con vértices, restos flotando en el agua.
+
 ## 5. Controles
 
 | Acción      | Teclado                                        | Táctil                        |
