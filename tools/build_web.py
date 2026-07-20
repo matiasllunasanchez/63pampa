@@ -20,7 +20,21 @@ OUT = ROOT / 'dist-web' / 'index.html'
 # (ruta relativa como aparece en game.js, archivo real, mime)   — mismo mapeo que extract_assets.py
 IMG = [('cockpit_sky.png', 'image/png')]
 PLANES = ['sky', 'dagger', 'supere', 'a4q', 'pampa']
-AUDIO = ['lobby', 'game', 'story', 'adr1', 'adr2', 'adr3']
+# El juego usa mp3 originales; para la web se re-embebe la m4a comprimida de assets/audio/web/.
+# Las pistas de adrenaline que no entran en el límite de 16 MB se DESCARTAN del build web ('').
+WEB_AUDIO = {
+    'lobby.mp3': 'lobby.m4a',
+    'game.mp3': 'game.m4a',
+    'story.mp3': 'story.m4a',
+    'pmetal_himno.mp3': 'pmetal_himno.m4a',
+    'pmetal_sanmartin.mp3': 'pmetal_sanmartin.m4a',
+    'pmetal_soy_hincha.mp3': 'pmetal_soy_hincha.m4a',
+}
+WEB_DROP = [
+    'pmetal_acero_blanco.mp3', 'pmetal_aundepie.mp3', 'pmetal_aurora.mp3',
+    'pmetal_malvinas.mp3', 'pmetal_malvinas_2triumph.mp3', 'pmetal_revolucion_mayo.mp3',
+    'pmetal_sangre_albiceleste.mp3', 'pmetal_soldado.mp3',
+]
 
 
 def uri(path, mime):
@@ -40,10 +54,13 @@ def main():
         old = f'"../assets/img/plane_{key}.webp"'
         js2 = js.replace(old, '"' + uri(ASSETS / 'img' / f'plane_{key}.webp', 'image/webp') + '"')
         n += (js2 != js); js = js2
-    # re-embeber audio
-    for name in AUDIO:
-        old = f"'../assets/audio/{name}.m4a'"
-        js2 = js.replace(old, "'" + uri(ASSETS / 'audio' / f'{name}.m4a', 'audio/mp4') + "'")
+    # re-embeber audio: mp3 del juego -> m4a comprimida (o '' para las que no entran en la web)
+    for mp3, m4a in WEB_AUDIO.items():
+        old = f"'../assets/audio/{mp3}'"
+        js2 = js.replace(old, "'" + uri(ASSETS / 'audio' / 'web' / m4a, 'audio/mp4') + "'")
+        n += (js2 != js); js = js2
+    for mp3 in WEB_DROP:
+        js2 = js.replace(f"'../assets/audio/{mp3}'", "''")
         n += (js2 != js); js = js2
 
     if '../assets/' in js:

@@ -28,6 +28,7 @@
       "src/**/*",
       "assets/img/**/*",
       "assets/audio/**/*",
+      "!assets/audio/web/**/*",
       "package.json"
     ],
     "win": {
