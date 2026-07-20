@@ -69,6 +69,10 @@ def main():
     if js2 == js:
         raise SystemExit('ERROR: no encontre la constante SFXB en game.js (¿cambio el codigo?)')
     js = js2
+    # normal map del agua: solo hace falta si MIRROR_SEA esta activo (hoy: apagado) — no se embebe
+    js = js.replace("'../assets/img/waternormals.jpg'", "''")
+    # fondos por clima (terrain_back): pesados para el bundle web — se apagan (cielo procedural)
+    js = js.replace("const TBACK = '../assets/images/terrain_back/';", "const TBACK = '';   // web: cielo procedural")
 
     if '../assets/' in js:
         raise SystemExit('ERROR: quedaron rutas ../assets/ sin re-embeber en game.js')

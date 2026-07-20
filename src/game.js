@@ -811,6 +811,27 @@
     const clouds = Array.from({ length: 6 }, () => ({ x: Math.random() * W, y: 8 + Math.random() * 34, w: 24 + Math.random() * 40 }));
     const isles = Array.from({ length: 4 }, (_, i) => ({ x: i * 90 + Math.random() * 50, w: 40 + Math.random() * 70, h: 5 + Math.random() * 10 }));
 
+    // ---------- FONDOS por clima (assets/images/terrain_back, EN PRUEBA) ----------
+    // Imagenes 2752x1536 con el horizonte al ~72% de altura: se anclan para que esa linea
+    // caiga en HOR (el suelo de la imagen queda bajo el mar/terreno del juego, tapado).
+    // Reemplazan al degrade+sol procedurales en 2D y en el telon 3D. Vaciar TBACK en el
+    // build web (build_web.py) → vuelve el cielo procedural.
+    const TBACK = '../assets/images/terrain_back/';
+    const TBACK_MAP = { dusk: 'sunrise.png', night: 'night.png', storm: 'night_storm.png', clear: 'day_argentday.png' };
+    const TBACK_HOR = 0.72;              // fila del horizonte dentro de las imagenes
+    const tbackImgs = {};
+    function tbackImg() {
+      if (!TBACK) return null;
+      const f = TBACK_MAP[cfg.sky]; if (!f) return null;
+      let im = tbackImgs[f];
+      if (!im) {
+        im = tbackImgs[f] = new Image();
+        im.src = TBACK + f;
+        im.onload = () => { MOM3D.palKey = ''; };   // el telon 3D se repinta al cargar
+      }
+      return (im.complete && im.naturalWidth) ? im : null;
+    }
+
     function spawn() {
       const lane = (Math.random() * 52 - 26);
       // sin combustible activo (COMBUSTIBLE: NO) los bidones serian pickups inutiles: no se fuerzan
@@ -984,6 +1005,18 @@
     const M3_U = M3_LEN * 9 / (W * 0.82);          // "uh" en mundo (proporcion constante del 2D)
     const M3_DECK = -M3_LEN * 36 / (W * 0.82);     // altura de cubierta (deck) bajo el horizonte
     const M3_WATER = -M3_LEN * 49.5 / (W * 0.82);  // linea de flotacion (deckY + hullH en 2D)
+    const WATER_NORMALS_SRC = '../assets/img/waternormals.jpg';   // normal map del agua (three/Water)
+    // ESPEJO realista (addon three/Water): DESACTIVADO por decision de diseño (20/7) — probado
+    // en momentum y en toda el agua, quedaba "super plano" vs el mar de cuadrados, que es la
+    // identidad del juego. La integracion queda dormida: poner true para re-probarla.
+    const MIRROR_SEA = false;
+    const SEA_ALPHA = 0.6;    // opacidad de los cuadrados del mar 3D (momentum)
+    const SEA_ALPHA2D = 0.6;  // opacidad de los cuadrados del mar 2D (todo el vuelo)
+    // Mar 3D en VUELO NORMAL: APAGADO por decision de diseño (20/7) — por mas que se calibro
+    // (bandas, receta de puntos, cielo, sol), el cambio de renderer al cruzar la costa siempre
+    // dejaba una diferencia visible. El 2D clasico corre TODO el vuelo (identico por definicion)
+    // y el 3D queda para el MOMENTUM (otro plano de camara, ahi no hay transicion que igualar).
+    const SEA3D_FLIGHT = false;
     const MOM3D = { ready: false, failed: false, on: false, renderer: null, scene: null, cam: null, ship: null, ships: null, debris: null, waterTex: null, waterGeo: null };
     function m3tex(w, h, paint) {
       const c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -1007,48 +1040,95 @@
         const sc = new THREE.Scene();
         sc.fog = new THREE.Fog(new THREE.Color(SKY.horizon), 320, 2100);
 
-        // cielo: backdrop con gradiente (fuera del fog); el color sale de la paleta SKY vigente
-        const skyTex = m3tex(4, 256, (x2) => {
-          const g2 = x2.createLinearGradient(0, 0, 0, 256);
-          g2.addColorStop(0, SKY.skyTop); g2.addColorStop(0.42, SKY.skyMid);
-          g2.addColorStop(0.70, SKY.horizon); g2.addColorStop(0.76, SKY.sunGlow);
-          g2.addColorStop(0.82, SKY.horizon); g2.addColorStop(1, '#0a1014');
-          x2.fillStyle = g2; x2.fillRect(0, 0, 4, 256);
-        });
-        const sky = new THREE.Mesh(new THREE.PlaneGeometry(9500, 3400),
-          new THREE.MeshBasicMaterial({ map: skyTex, fog: false, depthWrite: false }));
+        // cielo/sol/mar: materiales SIN textura — las pinta m3Palette() con la paleta VIGENTE
+        // (y las repinta solas si cambias FONDO/AGUA en el menu [M])
+        const sky = new THREE.Mesh(new THREE.PlaneGeometry(13500, 3400),
+          new THREE.MeshBasicMaterial({ fog: false, depthWrite: false }));
         // la fila del horizonte del gradiente (v=0.72) tiene que proyectar a y=0 del mundo
         sky.position.set(0, 3400 * 0.22, -2450); sc.add(sky);
-        // sol bajo, apenas sobre el horizonte (como el 2D)
-        const sunTex = m3tex(64, 64, (x2) => {
-          const g2 = x2.createRadialGradient(32, 32, 4, 32, 32, 30);
-          g2.addColorStop(0, SKY.sun); g2.addColorStop(0.45, SKY.sun + 'cc');
-          g2.addColorStop(0.7, SKY.sunGlow + '55'); g2.addColorStop(1, SKY.sunGlow + '00');
-          x2.fillStyle = g2; x2.fillRect(0, 0, 64, 64);
-        });
-        const sun = new THREE.Mesh(new THREE.PlaneGeometry(420, 420),
-          new THREE.MeshBasicMaterial({ map: sunTex, transparent: true, fog: false, depthWrite: false }));
+        MOM3D.sky = sky;   // la x se mueve por frame (parallax x0.8 del fondo-imagen)
+        const sun = new THREE.Mesh(new THREE.PlaneGeometry(560, 560),
+          new THREE.MeshBasicMaterial({ transparent: true, fog: false, depthWrite: false }));
         sun.position.set(0, 175, -2350); sc.add(sun);
-
-        // mar: plano con textura de motas repetida (el offset se anima con el avance → drift real)
-        MOM3D.waterTex = m3tex(64, 64, (x2) => {
-          x2.fillStyle = WATER.base1; x2.fillRect(0, 0, 64, 64);
-          for (let i = 0; i < 46; i++) {
-            const yy = (i * 13.7) % 64, xx = (i * 29.3) % 64;
-            x2.fillStyle = i % 3 ? WATER.base0 : WATER.base2;
-            x2.fillRect(xx, yy, 5 + (i % 4) * 3, 1);
-          }
-          for (let i = 0; i < 10; i++) { x2.fillStyle = WATER.crest; x2.fillRect((i * 47.1) % 64, (i * 23.9) % 64, 3, 1); }
-        });
-        MOM3D.waterTex.wrapS = MOM3D.waterTex.wrapT = THREE.RepeatWrapping;
-        MOM3D.waterTex.repeat.set(160, 90);
-        // malla segmentada: los vertices se desplazan por frame en mom3DFrame → OLAS reales
-        // (con el t ralentizado del momentum, ondulan en camara lenta)
-        MOM3D.waterGeo = new THREE.PlaneGeometry(6400, 3600, 120, 66);
-        const water = new THREE.Mesh(MOM3D.waterGeo,
-          new THREE.MeshBasicMaterial({ map: MOM3D.waterTex }));
+        MOM3D.sun = sun;   // la x se mueve por frame para clavar el parallax del sol 2D (cam.x*1.4)
+        // malla segmentada: los vertices se desplazan por frame → OLAS reales (con el t
+        // ralentizado del momentum ondulan en camara lenta; en vuelo normal, a ritmo real)
+        // plano LEJANO: fondo del mar hasta el horizonte, COLOR PLANO (sin textura: las motas
+        // repetidas a distancia eran una banda de ruido feo). Ancho 13500: cubre todo el campo
+        // visual hasta la niebla (a 2450u hacen falta ±6300). El parche se funde a este color.
+        MOM3D.waterGeo = new THREE.PlaneGeometry(13500, 4200, 1, 1);
+        const water = new THREE.Mesh(MOM3D.waterGeo, new THREE.MeshBasicMaterial({}));
         water.rotation.x = -Math.PI / 2;
-        water.position.set(0, M3_WATER, -1800 + 60); sc.add(water);
+        water.position.set(0, M3_WATER - 0.3, -1800 + 60); sc.add(water);
+        // parche de oleaje con FORMA DE FRUSTUM: cada fila se ensancha con la distancia para
+        // cubrir TODO el ancho visible en toda profundidad (las posiciones x/z se calculan por
+        // frame junto con la altura seaH). La amplitud se apaga hacia el fondo del parche para
+        // fundirse con el plano lejano sin costura.
+        // SUPERFICIE (frustum): la forma/silueta de las olas, todo el ancho. Colores POR FILA
+        // (vertex colors) replicando las bandas de profundidad del drawSea 2D (base0/1/2).
+        MOM3D.patchGeo = new THREE.PlaneGeometry(460, 280, 150, 92);   // solo aporta la GRILLA (150x92)
+        MOM3D.patchCols = 151; MOM3D.patchRows = 93;
+        MOM3D.patchGeo.setAttribute('color',
+          new THREE.BufferAttribute(new Float32Array(MOM3D.patchGeo.attributes.position.count * 3), 3));
+        const patch = new THREE.Mesh(MOM3D.patchGeo, new THREE.MeshBasicMaterial({ vertexColors: true }));
+        patch.rotation.x = -Math.PI / 2;
+        patch.position.set(0, M3_WATER, 0); sc.add(patch);
+        // PUNTOS CUADRADOS: receta del mar 2D (drawSeaDots) — grilla uniforme en MUNDO
+        // (2.8u × 3u) hasta 190 de profundidad, con ANCHO POR FILA acorde al frustum (igual
+        // que el 2D ensanchado): las columnas que una fila no necesita se esconden bajo la
+        // superficie. Geometria propia (la del frustum amontonaba los puntos cerca).
+        // grilla ADAPTATIVA: cerca 0.7x0.75 (maxima densidad) y el espaciado crece con la
+        // distancia para mantener ~1px de separacion en pantalla → alfombra densa sin explotar
+        // el costo. drawRange dibuja solo los puntos usados en el frame.
+        MOM3D.dotN = 48000;
+        MOM3D.dotsGeo = new THREE.BufferGeometry();
+        MOM3D.dotsGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(MOM3D.dotN * 3), 3));
+        MOM3D.dotsGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(MOM3D.dotN * 3), 3));
+        // alpha SEA_ALPHA: como el 2D, que dibujaba los puntos translucidos sobre el agua oscura
+        // (siempre tienen la superficie opaca detras → la transparencia no muestra huecos)
+        const dots = new THREE.Points(MOM3D.dotsGeo,
+          new THREE.PointsMaterial({ vertexColors: true, size: 0.06, sizeAttenuation: true, transparent: true, opacity: SEA_ALPHA }));   // 1/4 del tamaño clasico (0.24)
+        dots.rotation.x = -Math.PI / 2;
+        dots.position.set(0, M3_WATER + 0.3, 0); sc.add(dots);   // apenas sobre la superficie
+        patch.frustumCulled = dots.frustumCulled = false;        // las grillas se reubican por frame
+        MOM3D.dotsMat = dots.material; MOM3D.patch = patch; MOM3D.dots = dots;
+        // AGUA REALISTA (addon three/Water): normal maps animados en GPU, reflejo del cielo y
+        // BRILLO DEL SOL. En vuelo normal vive de fondo (el glint aparece camino al horizonte,
+        // mas alla del parche); en MOMENTUM toma toda la superficie y el BARCO SE REFLEJA.
+        // Reemplaza al plano lejano plano; si el addon faltara, este queda como respaldo.
+        MOM3D.waterFlat = water;
+        if (THREE.Water && MIRROR_SEA) {
+          const wn = new THREE.TextureLoader().load(WATER_NORMALS_SRC,
+            (tx) => { tx.wrapS = tx.wrapT = THREE.RepeatWrapping; });
+          const waterR = new THREE.Water(new THREE.PlaneGeometry(6400, 3600), {
+            textureWidth: 256, textureHeight: 256,
+            waterNormals: wn,
+            sunDirection: new THREE.Vector3(-0.5, 0.6, 0.45).normalize(),
+            sunColor: 0xe8c07a,
+            waterColor: 0x2e4a4e,
+            distortionScale: 2.6,
+            fog: true,
+          });
+          waterR.rotation.x = -Math.PI / 2;
+          waterR.position.set(0, M3_WATER - 0.3, -1800 + 60);
+          // PARCHE del shader: a angulo rasante el fresnel refleja ~100% del cielo (el mar queda
+          // "pintado" naranja al atardecer) y el termino del color del agua (scatter) muere con
+          // el angulo. Dos toques: (1) tope a la reflectancia, (2) el albedo SIEMPRE mezcla el
+          // color del agua → mar teal con el cielo como brillo/glint, no como pintura.
+          waterR.material.fragmentShader = waterR.material.fragmentShader
+            .replace(
+              'float reflectance = rf0 + ( 1.0 - rf0 ) * pow( ( 1.0 - theta ), 5.0 );',
+              'float reflectance = min( rf0 + ( 1.0 - rf0 ) * pow( ( 1.0 - theta ), 5.0 ), 0.55 );')
+            .replace(
+              'vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), reflectionSample + specularLight, reflectance );',
+              'vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), reflectionSample + specularLight, reflectance );' +
+              ' albedo = mix( albedo, waterColor * 1.35, 0.52 ) + specularLight * 0.4;');
+          waterR.material.needsUpdate = true;
+          sc.add(waterR);
+          MOM3D.waterR = waterR;
+        }
+        MOM3D.skyMat = sky.material; MOM3D.sunMat = sun.material; MOM3D.waterMat = water.material;
+        MOM3D.patchMat = patch.material;
 
         // luces: ambiente frio + sol calido de frente-izquierda + rim desde atras
         sc.add(new THREE.AmbientLight(0xaebccc, 1.6));
@@ -1122,42 +1202,182 @@
         MOM3D.renderer = r; MOM3D.scene = sc; MOM3D.cam = cam; MOM3D.ships = ships; MOM3D.debris = debris;
         MOM3D.ship = ships.t42;
         MOM3D.ready = true;
+        m3Palette();          // primer pintado de cielo/sol/mar con la paleta actual
+        r.render(sc, cam);    // render de CALENTAMIENTO: compila los shaders ahora (con texturas
+                              // ya asignadas) y no en el primer frame sobre el mar → sin trabada
         return true;
       } catch (e) { MOM3D.failed = true; return false; }   // sin WebGL → fallback 2D
     }
-    // un frame del fondo 3D; false ⇒ dibujar el fondo 2D de siempre
-    function mom3DFrame() {
-      if (state !== 'momentum' || !mom || !mom3DInit()) { MOM3D.on = false; return false; }
-      const g = momShipGeom();
-      // barco de la clase del objetivo (t42/t21/log); solo el activo es visible
-      const cls = SHIP_CLASS[objectiveShip] || 't42';
-      for (const k in MOM3D.ships) MOM3D.ships[k].visible = (k === cls);
-      MOM3D.ship = MOM3D.ships[cls];
-      const D = M3_LEN * F / g.len;                          // acercamiento FISICO: D = L*F/len_px
-      MOM3D.ship.position.z = -D;
-      MOM3D.waterTex.offset.y = -((dist + momDrift) * 0.0016) % 1;   // drift del mar (camara lenta)
-      // OLAS: desplaza los vertices del plano (t va ralentizado en momentum → ondulan en slow-mo)
-      {
-        const p = MOM3D.waterGeo.attributes.position;
-        for (let i = 0; i < p.count; i++) {
-          const x = p.getX(i), y = p.getY(i);
-          p.setZ(i, 0.55 * Math.sin(x * 0.045 + t * 1.1) + 0.4 * Math.sin(y * 0.06 - t * 0.9)
-            + 0.28 * Math.sin((x + y) * 0.11 + t * 1.7));
-        }
-        p.needsUpdate = true;
+    // (re)pinta las texturas 3D con la paleta VIGENTE (SKY/WATER); corre en cada frame 3D
+    // pero solo trabaja cuando cambio la config del mapa (FONDO o AGUA)
+    function m3Palette() {
+      const key = cfg.sky + '|' + cfg.water;
+      if (MOM3D.palKey === key) return;
+      MOM3D.palKey = key;
+      MOM3D.scene.fog.color.set(SKY.horizon);
+      const old = [MOM3D.skyMat.map, MOM3D.sunMat.map, MOM3D.waterMat.map];
+      const tbi = tbackImg();
+      MOM3D.sun.visible = !tbi;   // con imagen de fondo, el sol lo trae la imagen
+      if (tbi) {
+        // FONDO por clima en el telon: mismo anclaje que el 2D — la banda visible del telon
+        // (v 0.21..0.72) muestra la misma franja de imagen que el cover 2D, horizonte en v=0.72.
+        MOM3D.skyMat.map = m3tex(1024, 512, (x2) => {
+          x2.fillStyle = '#0a1014'; x2.fillRect(0, 0, 1024, 512);
+          const hh2 = 1047, top = -385, ww = 950, x0 = (1024 - ww) / 2;   // mapeo pre-calculado (cover 460px, HOR=64)
+          x2.drawImage(tbi, 0, 0, 1, tbi.naturalHeight, 0, top, x0, hh2);                       // borde izq estirado
+          x2.drawImage(tbi, tbi.naturalWidth - 1, 0, 1, tbi.naturalHeight, x0 + ww, top, 1024 - x0 - ww, hh2);  // der
+          x2.drawImage(tbi, x0, top, ww, hh2);
+        });
+      } else {
+      // cielo: MISMO degrade que el 2D (skyTop → 0.6 skyMid → horizonte + banda sunGlow).
+      // En el telon (horizonte en v=0.72, tope de pantalla ~v=0.21) esos puntos caen asi:
+      MOM3D.skyMat.map = m3tex(4, 512, (x2) => {
+        const g2 = x2.createLinearGradient(0, 0, 0, 512);
+        g2.addColorStop(0, SKY.skyTop); g2.addColorStop(0.21, SKY.skyTop);
+        g2.addColorStop(0.52, SKY.skyMid); g2.addColorStop(0.695, SKY.horizon);
+        g2.addColorStop(0.72, SKY.sunGlow); g2.addColorStop(0.74, SKY.horizon);
+        g2.addColorStop(1, '#0a1014');
+        x2.fillStyle = g2; x2.fillRect(0, 0, 4, 512);
+      });
       }
-      // restos: siguen la z del barco y cabecean con el oleaje
-      MOM3D.debris.position.z = -D;
-      for (let i = 0; i < MOM3D.debris.children.length; i++) {
-        const d2 = MOM3D.debris.children[i];
-        d2.position.y = Math.sin(t * 1.2 + i * 1.9) * 0.45;
-        d2.rotation.z = Math.sin(t * 0.9 + i * 2.6) * 0.14;
-        d2.rotation.x = Math.sin(t * 1.05 + i * 1.3) * 0.11;
+      // sol PIXELADO como el 2D: rect de 14x8 + glow de 20x12 al 35% (nada de circulos suaves)
+      MOM3D.sunMat.map = m3tex(64, 64, (x2) => {
+        x2.clearRect(0, 0, 64, 64);
+        x2.globalAlpha = 0.35; x2.fillStyle = SKY.sunGlow; x2.fillRect(2, 13, 61, 37);
+        x2.globalAlpha = 1; x2.fillStyle = SKY.sun; x2.fillRect(11, 20, 42, 24);
+      });
+      // fondo lejano = base0 (la banda mas lejana del drawSea 2D); la superficie cercana lleva
+      // las bandas base0/1/2 por fila (vertex colors, ver loop del frame)
+      const c2 = (h2) => { const c3 = new THREE.Color(h2); return [c3.r, c3.g, c3.b]; };
+      MOM3D.waterMat.map = null; MOM3D.waterMat.color.set(WATER.base0);
+      MOM3D.patchMat.map = null;
+      MOM3D.wBands = [c2(WATER.base0), c2(WATER.base1), c2(WATER.base2)];
+      // colores del oleaje por altura (mismos roles que drawSeaDots) para el tinte por vertice
+      MOM3D.wCols = [c2(WATER.crest), c2(WATER.mid), c2(WATER.deep), c2(WATER.base1), c2(WATER.spark)];
+      MOM3D.skyMat.needsUpdate = MOM3D.sunMat.needsUpdate = MOM3D.waterMat.needsUpdate = MOM3D.patchMat.needsUpdate = true;
+      for (const t2 of old) if (t2) t2.dispose();
+      // el agua realista tambien sigue la paleta. El tono elegido es WATER.deep (#3a5f63 en mar):
+      // probado en vivo — los base oscuros daban mar MARRON (ganaba el reflejo del atardecer) y
+      // el mid quedaba lechoso; deep hace leer el espejo como AGUA con el cielo de brillo.
+      if (MOM3D.waterR) {
+        MOM3D.waterR.material.uniforms.waterColor.value.set(WATER.deep);
+        MOM3D.waterR.material.uniforms.sunColor.value.set(SKY.sun);
+      }
+    }
+    // un frame del mundo 3D. Dos modos, mismas escena/camara:
+    //  - MOMENTUM (MOM3D.on): fondo completo con el BARCO, camara fija (el roll lo pone el canvas)
+    //  - MAR ABIERTO (MOM3D.sea): cielo+mar en vuelo normal; la camara replica la del juego
+    //    ((cam.x, cam.y) en metros sobre el nivel del mar) y el barco de aproximacion sigue en 2D.
+    // false ⇒ nada de 3D este frame: dibujar el fondo 2D de siempre.
+    function world3DFrame() {
+      MOM3D.on = MOM3D.sea = false;
+      const wantMom = state === 'momentum' && !!mom;
+      // mar abierto: pasada la franja de costa/pista (que es arte 2D, igual que en drawSea)
+      const wantSea = SEA3D_FLIGHT && !wantMom && (state === 'play' || state === 'takeoff' || state === 'dead')
+        && cfg.terrain === 'sea' && (dist + momDrift) >= cfg.coast + 80;
+      if ((!wantMom && !wantSea) || !mom3DInit()) return false;
+      m3Palette();   // repinta cielo/sol/mar si cambio FONDO/AGUA
+      // barcos y restos: solo existen en el momentum
+      const cls = SHIP_CLASS[objectiveShip] || 't42';
+      for (const k in MOM3D.ships) MOM3D.ships[k].visible = wantMom && k === cls;
+      MOM3D.debris.visible = wantMom;
+      if (wantMom) {
+        MOM3D.ship = MOM3D.ships[cls];
+        const g = momShipGeom();
+        const D = M3_LEN * F / g.len;                        // acercamiento FISICO: D = L*F/len_px
+        MOM3D.ship.position.z = -D;
+        MOM3D.debris.position.z = -D;                        // restos cabeceando junto al barco
+        for (let i = 0; i < MOM3D.debris.children.length; i++) {
+          const d2 = MOM3D.debris.children[i];
+          d2.position.y = Math.sin(t * 1.2 + i * 1.9) * 0.45;
+          d2.rotation.z = Math.sin(t * 0.9 + i * 2.6) * 0.14;
+          d2.rotation.x = Math.sin(t * 1.05 + i * 1.3) * 0.11;
+        }
+        MOM3D.cam.position.set(0, 0, 0);
+        MOM3D.on = true;
+      } else {
+        // camara del juego: cam.y son metros de altitud; el plano del agua vive en M3_WATER
+        MOM3D.cam.position.set(cam.x, cam.y + M3_WATER, 0);
+        MOM3D.sea = true;
+      }
+      // el sol replica el parallax del 2D (pantalla: W/2 - cam.x*1.4) — sin salto en la transicion
+      MOM3D.sun.position.x = MOM3D.cam.position.x - 36.56 * cam.x;
+      // y el telon acompaña con el parallax suave del fondo-imagen (x0.8, como el 2D)
+      MOM3D.sky.position.x = MOM3D.cam.position.x - 21.8 * cam.x;
+      const dv2 = dist + momDrift;   // el drift/avance lo llevan las olas del parche (wz = dv2 + camZ)
+      // mar de CUADRADOS en todos lados (vuelo normal y momentum) — el look del juego.
+      // Si MIRROR_SEA esta activo, el espejo reemplaza todo (parche/puntos/plano ocultos).
+      if (MOM3D.waterR) {
+        MOM3D.waterR.material.uniforms.time.value = t * 0.8;   // ondulacion GPU (t lento en momentum → slow-mo)
+        MOM3D.waterR.visible = true;
+        MOM3D.waterFlat.visible = false;
+        MOM3D.patch.visible = false;
+        MOM3D.dots.visible = false;
+      }
+      // SUPERFICIE (frustum): solo posiciones — la forma/silueta de las olas (seaH, t ralentizado
+      // en momentum). Filas mas lejanas mas anchas → cubre todo el ancho visible; la amplitud
+      // se apaga al fondo para empalmar con el plano lejano de color plano.
+      if (MOM3D.patch.visible) {
+        const p = MOM3D.patchGeo.attributes.position, c = MOM3D.patchGeo.attributes.color;
+        const COLS = MOM3D.patchCols, ROWS = MOM3D.patchRows;
+        const camX = MOM3D.cam.position.x;   // sigue el paneo lateral de la camara
+        const camY = MOM3D.cam.position.y - M3_WATER;   // altura sobre el agua (para las bandas 2D)
+        const [B0, B1, B2] = MOM3D.wBands;
+        for (let row = 0; row < ROWS; row++) {
+          const camZ2 = 5 + (row / (ROWS - 1)) * 370;                  // profundidad 5..375
+          const halfW = 48 + 2.6 * camZ2;                              // ancho visible a esa distancia (+margen)
+          const amp = camZ2 < 300 ? 1 : Math.max(0, 1 - (camZ2 - 300) / 75);   // fundido al plano lejano
+          const wz = dv2 + camZ2;
+          // banda de profundidad IGUAL al drawSea 2D: f = dy/(H-HOR) → base2 cerca, base1, base0 lejos
+          const f2 = (camY * F / camZ2) / 116;
+          const B = f2 >= 0.5 ? B2 : f2 >= 0.22 ? B1 : B0;
+          for (let col = 0; col < COLS; col++) {
+            const i = row * COLS + col;
+            const wx = camX + (col / (COLS - 1) * 2 - 1) * halfW;
+            p.setXYZ(i, wx, camZ2, seaH(wx, wz) * amp);                // local: x, y→(-z mundo), z→altura
+            c.setXYZ(i, B[0], B[1], B[2]);
+          }
+        }
+        p.needsUpdate = c.needsUpdate = true;
+      }
+      // PUNTOS CUADRADOS: la receta EXACTA del mar 2D (drawSeaDots) — grilla uniforme en MUNDO
+      // (2.8u × 3u), franja de ±76 alrededor de la camara, profundidad 4..190. Color por altura
+      // de ola (crestas claras, bandas de luz viajando, destellos cerca) con fade a base lejos.
+      if (MOM3D.dots.visible) {
+        const p = MOM3D.dotsGeo.attributes.position, c = MOM3D.dotsGeo.attributes.color;
+        const [CR, MI, DE, BA, SP] = MOM3D.wCols;
+        const camX = MOM3D.cam.position.x, N = MOM3D.dotN;
+        let i = 0;
+        // filas: paso 0.75 cerca, creciendo con z² para mantener ~1px de separacion en pantalla
+        for (let camZ2 = 4; camZ2 < 190 && i < N - 950; camZ2 += Math.max(0.75, camZ2 * camZ2 * 0.0011)) {
+          const wz = dv2 + camZ2;
+          const f = Math.min(1, (camZ2 / 190) * 0.85);                 // fade a base (como el 2D)
+          const half = Math.min(320, (W / 2 + 10) * camZ2 / F + 6);    // ancho frustum de la fila
+          const sx2 = Math.max(0.7, camZ2 * 0.0089);                   // espaciado x adaptativo
+          const nAct = Math.min(((half * 2 / sx2) | 0) + 1, N - i);
+          for (let col = 0; col < nAct; col++, i++) {
+            const wx = camX + (col - (nAct - 1) / 2) * sx2;
+            const h = seaH(wx, wz);
+            p.setXYZ(i, wx, camZ2, h);
+            let hn = (h + 1.4) / 4.8; hn = hn < 0 ? 0 : hn > 1 ? 1 : hn;
+            if (Math.sin(wz * 0.06 - t * 2.6 + wx * 0.045) > 0.6) hn = Math.min(1, hn + 0.24);
+            let src = hn > 0.72 ? CR : hn > 0.42 ? MI : DE;
+            if (hn > 0.78 && camZ2 < 90 && Math.sin(wx * 12.9 + wz * 7.3 + t * 6) > 0.7) src = SP;
+            c.setXYZ(i,
+              src[0] + (BA[0] - src[0]) * f,
+              src[1] + (BA[1] - src[1]) * f,
+              src[2] + (BA[2] - src[2]) * f);
+          }
+        }
+        MOM3D.dotsGeo.setDrawRange(0, i);                              // dibuja SOLO los usados
+        p.needsUpdate = c.needsUpdate = true;
       }
       MOM3D.renderer.render(MOM3D.scene, MOM3D.cam);
-      MOM3D.on = true;
       return true;
     }
+    // PRECARGA del 3D: construye la escena y compila shaders apenas arranca el juego (no al
+    // llegar al mar abierto) — evita la trabada de "carga de textura" al cruzar la costa
+    if (has3D) setTimeout(() => { try { mom3DInit(); } catch (e) { } }, 400);
 
     // la barcaza objetivo VISIBLE en vuelo normal: aparece en el horizonte desde el 45% del recorrido
     // y crece hasta empalmar con la escala de la proxima pasada del momentum (es el final del mapa)
@@ -2063,19 +2283,28 @@
 
     // malla de puntos que forma la onda del mar en perspectiva (estilo boostivity)
     function drawSeaDots(landVisible) {
-      const SPX = 2.8, SPZ = 3.0, farZ = 190;
+      const SPX = 1.4, SPZ = 1.5, farZ = 190;   // densidad x4 (antes 2.8x3.0), puntos a 1/4
       const dv = dist + momDrift;
       const startZ = Math.ceil((dv + 4) / SPZ) * SPZ;
-      for (let wz = startZ; wz < dv + farZ; wz += SPZ) {
-        if (landVisible && wz < cfg.coast + 6) continue;           // sin puntos sobre tierra/rompiente
+      // paso ADAPTATIVO: cerca muestrea a SPZ/SPX plenos; lejos el paso crece para mantener
+      // ~1px de separacion en pantalla (los puntos subpixel no se ven y este loop corre
+      // TODO el vuelo — el mar es 2D siempre fuera del momentum)
+      let wz = startZ;
+      while (wz < dv + farZ) {
         const camZ = wz - dv;
+        wz += Math.max(SPZ, camZ * camZ * 0.0019);
+        if (landVisible && wz < cfg.coast + 6) continue;           // sin puntos sobre tierra/rompiente
         const k = F / camZ;
         const fade = Math.min(1, (camZ - 3) / 9) * (1 - (camZ / farZ) * 0.8);
         if (fade <= 0.03) continue;
-        const dotW = Math.max(1, k * 0.48);
-        const xL = cam.x - 74, xR = cam.x + 74;
-        const x0 = Math.ceil(xL / SPX) * SPX;
-        for (let wx = x0; wx < xR; wx += SPX) {
+        const dotW = Math.max(1, k * 0.12);   // 1/4 del tamaño clasico (0.48)
+        // franja acorde al FRUSTUM: el ancho visible crece con la distancia (antes era ±74 fijo
+        // y el mar quedaba "cortito" a lo lejos, p.ej. detras de la pista durante el despegue)
+        const half = Math.min(320, (W / 2 + 10) * camZ / F + 6);
+        const xL = cam.x - half, xR = cam.x + half;
+        const sx3 = Math.max(SPX, camZ * 0.011);                   // paso x adaptativo (~1px)
+        const x0 = Math.ceil(xL / sx3) * sx3;
+        for (let wx = x0; wx < xR; wx += sx3) {
           const h = seaH(wx, wz);
           const s = proj(wx, h, camZ);
           if (s.x < -4 || s.x > W + 4 || s.y < HOR - 2) continue;
@@ -2085,11 +2314,14 @@
           const shimmer = Math.sin(wz * 0.06 - t * 2.6 + wx * 0.045);
           if (shimmer > 0.6) hn = Math.min(1, hn + 0.24);
           const col = hn > 0.72 ? WATER.crest : hn > 0.42 ? WATER.mid : WATER.deep;
-          ctx.globalAlpha = fade * (0.25 + hn * 0.6 + (shimmer > 0.6 ? 0.15 : 0));
+          // OPACIDAD por cuadrado = SEA_ALPHA2D (perilla global, 0.5) x fade (entrada 3..12u y
+          // caida por lejania) x altura de ola: 0.25 de piso en el valle + hasta 0.6 por la
+          // cresta (hn 0..1) + 0.15 si lo cruza una banda de luz → rango 12%..50%
+          ctx.globalAlpha = SEA_ALPHA2D * fade * (0.25 + hn * 0.6 + (shimmer > 0.6 ? 0.15 : 0));
           px(s.x - dotW / 2, s.y, dotW, dotW, col);
           // destello en las crestas cercanas (titileo determinista, sin flicker feo)
           if (hn > 0.78 && k > 1.6 && Math.sin(wx * 12.9 + wz * 7.3 + t * 6) > 0.7) {
-            ctx.globalAlpha = fade * 0.55;
+            ctx.globalAlpha = SEA_ALPHA2D * fade * 0.55;   // destello de cresta, tambien bajo la perilla
             px(s.x - dotW / 2 - 1, s.y - 1, dotW + 2, Math.max(1, dotW * 0.6), WATER.spark);
           }
         }
@@ -2250,17 +2482,6 @@
         const rcx = W / 2 + cm.x, rcy = H / 2 + cm.y;
         ctx.translate(rcx, rcy); ctx.rotate(-mom.roll); ctx.translate(-rcx, -rcy);
       }
-      // MOMENTUM 3D: si three esta listo, renderiza y blitea el FONDO (cielo + mar + barco 3D).
-      // El blit va DENTRO del transform de arriba → hereda roll/paneo/shake igual que el mundo
-      // 2D; la capa 2D (zonas, fx, cabina) se dibuja encima. Sin 3D, MOM3D.on queda false y
-      // el bloque "mundo 2D" de abajo pinta todo como siempre (fallback).
-      if (state === 'momentum' && mom) mom3DFrame(); else MOM3D.on = false;
-      if (MOM3D.on) {
-        const sm = ctx.imageSmoothingEnabled;
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(MOM3D.renderer.domElement, -72, -102, M3W, M3H);
-        ctx.imageSmoothingEnabled = sm;
-      }
       // CAMARA CERCA (V): magnifica el mundo entero (avion incluido) anclado al sprite.
       // Zoom-in siempre muestra un SUBCONJUNTO de la pantalla ya pintada: no descubre bordes.
       // Se deshace antes del HUD (el HUD no se agranda).
@@ -2270,9 +2491,30 @@
         ctx.save();
         ctx.translate(zc.x, zc.y); ctx.scale(camZ, camZ); ctx.translate(-zc.x, -zc.y);
       }
+      // MUNDO 3D (three.js): en MOMENTUM el fondo completo (cielo+mar+BARCO, flag MOM3D.on);
+      // en vuelo normal sobre mar abierto solo cielo+mar (flag MOM3D.sea). El blit va DENTRO
+      // de los transforms (roll/paneo/zoom/shake le pegan al 3D); la capa 2D va encima.
+      // Sin THREE/WebGL o con ?no3d, ambas flags quedan false y pinta el 2D de siempre.
+      world3DFrame();
+      if (MOM3D.on || MOM3D.sea) {
+        const sm = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(MOM3D.renderer.domElement, -72, -102, M3W, M3H);
+        ctx.imageSmoothingEnabled = sm;
+      }
 
       if (!MOM3D.on) {   // ---- mundo 2D: en momentum-3D todo este bloque lo reemplaza el blit de arriba ----
-      // cielo
+      // cielo y sol 2D: en mar-abierto-3D los pone three (nubes/islas siguen 2D encima)
+      const tbA = tbackImg();                  // imagen de fondo del clima (si esta cargada)
+      const tb2 = MOM3D.sea ? null : tbA;      // en mar-3D la pinta el telon de three
+      if (!MOM3D.sea) {
+      if (tb2) {
+        // FONDO por clima: cover con el horizonte de la imagen clavado en HOR (trae su propio
+        // sol) + parallax suave (x0.8) para que el telon tambien respire
+        const dw = W + 140, dh = dw * tb2.naturalHeight / tb2.naturalWidth;
+        ctx.fillStyle = '#0a1014'; ctx.fillRect(-70, -140, dw, HOR + 144);   // margen sobre la imagen
+        ctx.drawImage(tb2, -70 - cam.x * 0.8, HOR - TBACK_HOR * dh, dw, dh);
+      } else {
       const g = ctx.createLinearGradient(0, 0, 0, HOR);
       g.addColorStop(0, SKY.skyTop); g.addColorStop(0.6, SKY.skyMid); g.addColorStop(1, SKY.horizon);
       ctx.fillStyle = g; ctx.fillRect(-70, -140, W + 140, HOR + 144);   // margenes: paneo + rolls completos del momentum
@@ -2281,12 +2523,15 @@
       const sunX = W / 2 - cam.x * 1.4;
       px(sunX - 7, HOR - 11, 14, 8, SKY.sun);
       ctx.globalAlpha = 0.35; px(sunX - 10, HOR - 13, 20, 12, SKY.sunGlow); ctx.globalAlpha = 1;
+      }
+      }
       // nubes
       for (const c of clouds) {
         const cx = ((c.x - cam.x * 2.2 - t * 2) % (W + 80) + W + 80) % (W + 80) - 40;
         px(cx, c.y, c.w, 3, P.cloud); px(cx + 5, c.y - 2, c.w * 0.5, 2, P.cloud);
       }
-      // islas en el horizonte
+      // islas en el horizonte: SIEMPRE (el parallax de estas montañas es la vida del fondo;
+      // la imagen de clima queda detras como relleno)
       for (const is of isles) {
         const ix = ((is.x - cam.x * 3.5) % (W + 160) + W + 160) % (W + 160) - 80;
         ctx.fillStyle = P.island;
@@ -2295,7 +2540,7 @@
         ctx.fill();
       }
 
-      drawSea();
+      if (!MOM3D.sea) drawSea();   // el mar 2D solo cuando three no lo esta poniendo
       // en momentum el mundo rota (alabeo): rellena bajo el mar para que un tonel no muestre huecos
       if (state === 'momentum') px(-70, H, W + 140, 150, cfg.terrain === 'land' ? LAND.near : WATER.base2);
       drawApproachBarge();   // la barcaza objetivo creciendo en el horizonte (final del mapa)

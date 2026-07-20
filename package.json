@@ -7,7 +7,7 @@
   "scripts": {
     "serve": "python3 -m http.server 8475",
     "start": "electron .",
-    "build:three": "esbuild node_modules/three/build/three.module.min.js --bundle --format=iife --global-name=THREE --minify --legal-comments=none --outfile=src/vendor/three.global.js",
+    "build:three": "esbuild tools/three-entry.mjs --bundle --format=iife --global-name=THREE --minify --legal-comments=none --outfile=src/vendor/three.global.js",
     "build:web": "python3 tools/build_web.py",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
@@ -28,6 +28,7 @@
       "electron/**/*",
       "src/**/*",
       "assets/img/**/*",
+      "assets/images/terrain_back/**/*",
       "assets/audio/**/*",
       "!assets/audio/web/**/*",
       "assets/new_sounds/ammo/**/*",
