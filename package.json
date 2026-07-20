@@ -7,6 +7,7 @@
   "scripts": {
     "serve": "python3 -m http.server 8475",
     "start": "electron .",
+    "build:three": "esbuild node_modules/three/build/three.module.min.js --bundle --format=iife --global-name=THREE --minify --legal-comments=none --outfile=src/vendor/three.global.js",
     "build:web": "python3 tools/build_web.py",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
@@ -64,6 +65,10 @@
   "devDependencies": {
     "electron": "^43.1.1",
     "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.1",
     "png-to-ico": "^3.0.2"
+  },
+  "dependencies": {
+    "three": "^0.185.1"
   }
 }

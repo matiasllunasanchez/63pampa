@@ -67,8 +67,10 @@ def main():
         raise SystemExit('ERROR: quedaron rutas ../assets/ sin re-embeber en game.js')
 
     css = (SRC / 'styles.css').read_text(encoding='utf-8')
+    three = (SRC / 'vendor' / 'three.global.js').read_text(encoding='utf-8')
     html = (SRC / 'index.html').read_text(encoding='utf-8')
     html = html.replace('<link rel="stylesheet" href="styles.css">', f'<style>\n{css}</style>')
+    html = html.replace('<script src="vendor/three.global.js"></script>', f'<script>\n{three}</script>')
     html = html.replace('<script src="game.js"></script>', f'<script>\n{js}</script>')
 
     # el Artifact envuelve el contenido en <!doctype><head></head><body>: sacamos esos tags

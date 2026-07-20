@@ -1,5 +1,11 @@
   (() => {
     'use strict';
+    // three.js (WebGL) disponible como global vía src/vendor/three.global.js (bundle IIFE de esbuild;
+    // regenerar con `npm run build:three`). Se carga ANTES que este script en index.html, así que
+    // window.THREE ya existe acá. Base para el render 3D del clímax del MOMENTUM (barcaza + cabina).
+    // has3D es el guard: si three no cargó, el juego sigue en 2D sin romperse.
+    const THREE = window.THREE || null;
+    const has3D = !!THREE;
     const cv = document.getElementById('g');
     const ctx = cv.getContext('2d');
     const W = 320, H = 180, HOR = 64, F = 90, PZ = 14;
