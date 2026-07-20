@@ -5,7 +5,7 @@
     // window.THREE ya existe acá. Base para el render 3D del clímax del MOMENTUM (barcaza + cabina).
     // has3D es el guard: si three no cargó, el juego sigue en 2D sin romperse.
     const THREE = window.THREE || null;
-    const has3D = !!THREE;
+    const has3D = !!THREE && !/\bno3d\b/.test(location.search);   // ?no3d fuerza el fallback 2D (pruebas)
     const cv = document.getElementById('g');
     const ctx = cv.getContext('2d');
     const W = 320, H = 180, HOR = 64, F = 90, PZ = 14;
@@ -873,6 +873,123 @@
         px(cx0 + len / 2 * s - len * 0.05, deckY - uh * 1.1, len * 0.10, uh * 1.1, '#3d474d');
         px(cx0 + len / 2 * s - len * 0.008, deckY - uh * 1.55, Math.max(1, len * 0.016), uh * 0.6, '#2b3338');
       }
+    }
+
+    // ---------- MOMENTUM 3D (three.js) ----------
+    // Durante el momentum, three.js renderiza el FONDO (cielo + mar + barco 3D de cajas) a baja
+    // resolucion y el resultado se blitea DENTRO del mismo transform del canvas que rotaba el
+    // mundo 2D → el alabeo/paneo/shake le pegan al 3D gratis y la capa 2D (zonas, mira, cabina)
+    // queda alineada por construccion. Claves de la equivalencia con proj():
+    //  - camara con foco 90px y PUNTO PRINCIPAL en (W/2, HOR) via setViewOffset (imagen virtual
+    //    de 320x232 centrada en el horizonte; se renderiza una ventana extendida de 464x384
+    //    para que el roll de 360° nunca descubra esquinas vacias).
+    //  - barco de TAMAÑO FIJO (M3_LEN) y DISTANCIA variable D = M3_LEN*F/len_px → la proyeccion
+    //    calza exacta con momShipGeom (len, deckY) y el acercamiento entre pasadas es fisico.
+    // Sin THREE (o ?no3d) todo esto se saltea y rige el dibujo 2D de siempre.
+    const M3W = 464, M3H = 384;          // overscan del render (cubre rolls completos)
+    const M3_LEN = 45;                   // eslora en unidades de mundo
+    const M3_U = M3_LEN * 9 / (W * 0.82);          // "uh" en mundo (proporcion constante del 2D)
+    const M3_DECK = -M3_LEN * 36 / (W * 0.82);     // altura de cubierta (deck) bajo el horizonte
+    const M3_WATER = -M3_LEN * 49.5 / (W * 0.82);  // linea de flotacion (deckY + hullH en 2D)
+    const MOM3D = { ready: false, failed: false, on: false, renderer: null, scene: null, cam: null, ship: null, waterTex: null };
+    function m3tex(w, h, paint) {
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      paint(c.getContext('2d'), w, h);
+      const tx = new THREE.CanvasTexture(c);
+      tx.magFilter = THREE.NearestFilter; tx.minFilter = THREE.NearestFilter;
+      return tx;
+    }
+    function m3box(parent, w, h, d, color, x, y, z) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
+      m.position.set(x, y, z); parent.add(m); return m;
+    }
+    function mom3DInit() {
+      if (MOM3D.ready) return true;
+      if (MOM3D.failed || !has3D) return false;
+      try {
+        const r = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'low-power' });
+        r.setSize(M3W, M3H, false);
+        const cam = new THREE.PerspectiveCamera(2 * Math.atan(116 / F) * 180 / Math.PI, 320 / 232, 2, 5200);
+        cam.setViewOffset(320, 232, -72, -50, M3W, M3H);   // punto principal en (W/2, HOR) + overscan
+        const sc = new THREE.Scene();
+        sc.fog = new THREE.Fog(new THREE.Color(SKY.horizon), 320, 2100);
+
+        // cielo: backdrop con gradiente (fuera del fog); el color sale de la paleta SKY vigente
+        const skyTex = m3tex(4, 256, (x2) => {
+          const g2 = x2.createLinearGradient(0, 0, 0, 256);
+          g2.addColorStop(0, SKY.skyTop); g2.addColorStop(0.42, SKY.skyMid);
+          g2.addColorStop(0.70, SKY.horizon); g2.addColorStop(0.76, SKY.sunGlow);
+          g2.addColorStop(0.82, SKY.horizon); g2.addColorStop(1, '#0a1014');
+          x2.fillStyle = g2; x2.fillRect(0, 0, 4, 256);
+        });
+        const sky = new THREE.Mesh(new THREE.PlaneGeometry(9500, 3400),
+          new THREE.MeshBasicMaterial({ map: skyTex, fog: false, depthWrite: false }));
+        // la fila del horizonte del gradiente (v=0.72) tiene que proyectar a y=0 del mundo
+        sky.position.set(0, 3400 * 0.22, -2450); sc.add(sky);
+        // sol bajo, apenas sobre el horizonte (como el 2D)
+        const sunTex = m3tex(64, 64, (x2) => {
+          const g2 = x2.createRadialGradient(32, 32, 4, 32, 32, 30);
+          g2.addColorStop(0, SKY.sun); g2.addColorStop(0.45, SKY.sun + 'cc');
+          g2.addColorStop(0.7, SKY.sunGlow + '55'); g2.addColorStop(1, SKY.sunGlow + '00');
+          x2.fillStyle = g2; x2.fillRect(0, 0, 64, 64);
+        });
+        const sun = new THREE.Mesh(new THREE.PlaneGeometry(420, 420),
+          new THREE.MeshBasicMaterial({ map: sunTex, transparent: true, fog: false, depthWrite: false }));
+        sun.position.set(0, 175, -2350); sc.add(sun);
+
+        // mar: plano con textura de motas repetida (el offset se anima con el avance → drift real)
+        MOM3D.waterTex = m3tex(64, 64, (x2) => {
+          x2.fillStyle = WATER.base1; x2.fillRect(0, 0, 64, 64);
+          for (let i = 0; i < 46; i++) {
+            const yy = (i * 13.7) % 64, xx = (i * 29.3) % 64;
+            x2.fillStyle = i % 3 ? WATER.base0 : WATER.base2;
+            x2.fillRect(xx, yy, 5 + (i % 4) * 3, 1);
+          }
+          for (let i = 0; i < 10; i++) { x2.fillStyle = WATER.crest; x2.fillRect((i * 47.1) % 64, (i * 23.9) % 64, 3, 1); }
+        });
+        MOM3D.waterTex.wrapS = MOM3D.waterTex.wrapT = THREE.RepeatWrapping;
+        MOM3D.waterTex.repeat.set(160, 90);
+        const water = new THREE.Mesh(new THREE.PlaneGeometry(6400, 3600),
+          new THREE.MeshBasicMaterial({ map: MOM3D.waterTex }));
+        water.rotation.x = -Math.PI / 2;
+        water.position.set(0, M3_WATER, -1800 + 60); sc.add(water);
+
+        // luces: ambiente frio + sol calido de frente-izquierda + rim desde atras
+        sc.add(new THREE.AmbientLight(0xaebccc, 1.6));
+        const dl = new THREE.DirectionalLight(0xe8c07a, 1.7); dl.position.set(-320, 380, 260); sc.add(dl);
+        const rim = new THREE.DirectionalLight(0xb06a35, 0.6); rim.position.set(120, 140, -600); sc.add(rim);
+
+        // barco: cajas grises en proporciones del casco 2D (drawBargeHull) — cubierta en y=0 local
+        const L = M3_LEN, U = M3_U, ship = new THREE.Group();
+        m3box(ship, L, U * 3, U * 3.4, '#39434e', 0, -U * 1.5, 0);                 // casco
+        m3box(ship, L * 0.995, U * 0.3, U * 3.5, '#5c6e73', 0, -U * 0.14, 0);      // cubierta
+        m3box(ship, U * 0.8, U * 1.9, U * 2.2, '#39434e', -L / 2 - U * 0.38, -U * 1.0, 0);  // proa
+        m3box(ship, U * 0.55, U * 1.8, U * 2.4, '#39434e', L / 2 + U * 0.26, -U * 1.05, 0); // popa
+        m3box(ship, L * 0.24, U * 2.6, U * 2.6, '#454f56', -L * 0.03, U * 1.3, 0);          // bloque puente
+        m3box(ship, L * 0.18, U * 0.5, U * 2.65, '#8fd0e0', -L * 0.03, U * 2.15, 0);        // ventanas
+        m3box(ship, L * 0.05, U * 1.8, U * 1.1, '#454f56', L * 0.185, U * 0.9, 0);          // chimenea
+        m3box(ship, L * 0.012, U * 3.9, L * 0.012, '#454f56', L * 0.101, U * 1.95, 0);      // mastil
+        m3box(ship, L * 0.08, U * 0.35, L * 0.02, '#454f56', L * 0.10, U * 3.7, 0);         // antena radar
+        for (const s of [-0.26, 0.26]) {                                                     // torretas AA
+          m3box(ship, L * 0.10, U * 1.1, U * 1.4, '#3d474d', L * s * 2, U * 0.55, 0);
+          m3box(ship, L * 0.016, U * 0.6, L * 0.016, '#2b3338', L * s * 2, U * 1.35, U * 0.5);
+        }
+        ship.position.set(0, M3_DECK, -60); sc.add(ship);
+
+        MOM3D.renderer = r; MOM3D.scene = sc; MOM3D.cam = cam; MOM3D.ship = ship;
+        MOM3D.ready = true;
+        return true;
+      } catch (e) { MOM3D.failed = true; return false; }   // sin WebGL → fallback 2D
+    }
+    // un frame del fondo 3D; false ⇒ dibujar el fondo 2D de siempre
+    function mom3DFrame() {
+      if (state !== 'momentum' || !mom || !mom3DInit()) { MOM3D.on = false; return false; }
+      const g = momShipGeom();
+      MOM3D.ship.position.z = -M3_LEN * F / g.len;          // acercamiento FISICO: D = L*F/len_px
+      MOM3D.waterTex.offset.y = -((dist + momDrift) * 0.0016) % 1;   // drift del mar (camara lenta)
+      MOM3D.renderer.render(MOM3D.scene, MOM3D.cam);
+      MOM3D.on = true;
+      return true;
     }
 
     // la barcaza objetivo VISIBLE en vuelo normal: aparece en el horizonte desde el 45% del recorrido
@@ -1954,6 +2071,17 @@
         const rcx = W / 2 + cm.x, rcy = H / 2 + cm.y;
         ctx.translate(rcx, rcy); ctx.rotate(-mom.roll); ctx.translate(-rcx, -rcy);
       }
+      // MOMENTUM 3D: si three esta listo, renderiza y blitea el FONDO (cielo + mar + barco 3D).
+      // El blit va DENTRO del transform de arriba → hereda roll/paneo/shake igual que el mundo
+      // 2D; la capa 2D (zonas, fx, cabina) se dibuja encima. Sin 3D, MOM3D.on queda false y
+      // el bloque "mundo 2D" de abajo pinta todo como siempre (fallback).
+      if (state === 'momentum' && mom) mom3DFrame(); else MOM3D.on = false;
+      if (MOM3D.on) {
+        const sm = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(MOM3D.renderer.domElement, -72, -102, M3W, M3H);
+        ctx.imageSmoothingEnabled = sm;
+      }
       // CAMARA CERCA (V): magnifica el mundo entero (avion incluido) anclado al sprite.
       // Zoom-in siempre muestra un SUBCONJUNTO de la pantalla ya pintada: no descubre bordes.
       // Se deshace antes del HUD (el HUD no se agranda).
@@ -1964,6 +2092,7 @@
         ctx.translate(zc.x, zc.y); ctx.scale(camZ, camZ); ctx.translate(-zc.x, -zc.y);
       }
 
+      if (!MOM3D.on) {   // ---- mundo 2D: en momentum-3D todo este bloque lo reemplaza el blit de arriba ----
       // cielo
       const g = ctx.createLinearGradient(0, 0, 0, HOR);
       g.addColorStop(0, SKY.skyTop); g.addColorStop(0.6, SKY.skyMid); g.addColorStop(1, SKY.horizon);
@@ -2047,6 +2176,7 @@
         px(s.x - Math.max(1, k * 0.4), s.y - Math.max(1, k * 0.4), Math.max(1, k * 0.8), Math.max(1, k * 0.8), P.ink);
         px(s.x - Math.max(1, k * 0.3), s.y + Math.max(1, k * 0.4), Math.max(1, k * 0.6), Math.max(1, k * 0.5), P.warn);
       }
+      }   // ---- fin mundo 2D ----
 
       if (state !== 'dead' && state !== 'momentum') drawPlaneSprite();   // en momentum va la camara cockpit (drawCockpit)
 
@@ -2217,7 +2347,8 @@
       ctx.fillStyle = '#0a121a'; ctx.globalAlpha = 0.28; ctx.fillRect(-80, -80, W + 160, H + 160); ctx.globalAlpha = 1;
 
       // ---- barcaza (casco compartido; crece LENTO durante la pasada via momShipGeom) ----
-      drawBargeHull(g.cx, g.len, g.deckY, g.uh);
+      // en momentum-3D el barco lo pone three.js (blit de draw); el 2D queda de fallback
+      if (!MOM3D.on) drawBargeHull(g.cx, g.len, g.deckY, g.uh);
       // zonas ya destruidas (de esta pasada): chamuscado + humo
       for (const z of mom.zones) {
         if (z.hp > 0) continue;
