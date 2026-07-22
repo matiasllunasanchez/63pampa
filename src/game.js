@@ -5,6 +5,8 @@ import { P, WATER_STYLES, SKY_PRESETS, LAND } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SFXB, SFX_DEF } from './data/sfx.js';
 import { SHIPS, CAMPAIGN_CFG, MISSIONS } from './data/missions.js';
+import { L, T, getLang, setLang, cycleLang, applyChrome } from './core/i18n.js';
+import { wrapChars, multOf } from './core/util.js';
 
   (() => {
     'use strict';
@@ -101,19 +103,6 @@ import { SHIPS, CAMPAIGN_CFG, MISSIONS } from './data/missions.js';
     function goSurvival() { gameMode = 'survival'; cfgOpen = false; cfgRow = 0; state = 'menu'; beep(600, 0.08, 'square', 0.05); }
     // CICLO DE MUERTE: las mismas misiones de la campaña, una al azar, sin el guion largo
     function goCycle() { gameMode = 'cycle'; cfgOpen = false; cfgRow = 0; randomMission(); state = 'menu'; beep(600, 0.08, 'square', 0.05); }
-    // ---------- pantalla de HISTORIA (campaña) ----------
-    // Texto de NIVELES.md tipeado letra por letra con ruido de maquina de escribir, sobre negro
-    // con grano de pelicula. Al confirmar: FADE desde negro hacia el despegue. POR AHORA solo la
-    // primera pantalla (Cinematica Inicial → NIVEL 1); la estructura escala a una por nivel.
-    function wrapChars(s, max) {
-      const out = []; let line = '';
-      for (const w of s.split(' ')) {
-        if ((line + ' ' + w).trim().length > max) { out.push(line.trim()); line = w; }
-        else line = (line ? line + ' ' : '') + w;
-      }
-      if (line) out.push(line.trim());
-      return out;
-    }
     // arranca una SECUENCIA de pantallas (clave del guion en STRINGS: 'storyIntro', 'storyL1'…)
     function initStory(key) {
       story = { seq: L()[key] || STRINGS.es[key] || [], si: 0 };
@@ -226,34 +215,6 @@ import { SHIPS, CAMPAIGN_CFG, MISSIONS } from './data/missions.js';
     let selPlane = 0, startReq = false;
 
 
-    let LANG = 'es';
-    function detectLang() {
-      try { const u = new URLSearchParams(location.search).get('lang'); if (u && STRINGS[u]) return u; } catch (e) { }
-      try { const s = localStorage.getItem('rasante_lang'); if (s && STRINGS[s]) return s; } catch (e) { }
-      const n = (navigator.language || 'es').slice(0, 2).toLowerCase();
-      return STRINGS[n] ? n : 'es';
-    }
-    LANG = detectLang();
-    function L() { return STRINGS[LANG] || STRINGS.es; }
-    function T(key, p) {
-      let s = L()[key];
-      if (s == null) s = (STRINGS.es[key] != null ? STRINGS.es[key] : key);   // fallback a es, luego a la clave
-      if (p) for (const k in p) s = s.split('{' + k + '}').join(p[k]);
-      return s;
-    }
-    function setLang(l) { if (STRINGS[l]) { LANG = l; try { localStorage.setItem('rasante_lang', l); } catch (e) { } } }
-    function cycleLang() {
-      const ks = Object.keys(STRINGS);
-      setLang(ks[(ks.indexOf(LANG) + 1) % ks.length]);
-      applyChrome();
-    }
-    function applyChrome() {
-      const h = document.querySelector('header'), f = document.querySelector('footer');
-      if (h) h.innerHTML = L().pageHeader;
-      if (f) f.innerHTML = L().pageFooter;
-      cv.setAttribute('aria-label', L().aria);
-      document.documentElement.lang = LANG;
-    }
 
     // ---------- estado ----------
     let state = 'modeselect', t = 0, dist = 0, spd = 62;
@@ -646,7 +607,6 @@ import { SHIPS, CAMPAIGN_CFG, MISSIONS } from './data/missions.js';
         + Math.sin(wz * 0.09 - t * 1.5 + wx * 0.15) * 0.5
         + Math.sin(wx * 0.30 + wz * 0.05 + t * 1.9) * 0.35;
     }
-    function multOf(alt) { return alt <= 4.5 ? 10 : alt <= 9 ? 5 : alt <= 16 ? 2 : 1; }
     const clouds = Array.from({ length: 6 }, () => ({ x: Math.random() * W, y: 8 + Math.random() * 34, w: 24 + Math.random() * 40 }));
     const isles = Array.from({ length: 4 }, (_, i) => ({ x: i * 90 + Math.random() * 50, w: 40 + Math.random() * 70, h: 5 + Math.random() * 10 }));
 
@@ -3258,7 +3218,7 @@ import { SHIPS, CAMPAIGN_CFG, MISSIONS } from './data/missions.js';
       ctx.fillStyle = P.accent; ctx.font = 'bold 11px monospace';
       ctx.fillText(pl.name, W / 2, 114);
       ctx.fillStyle = P.dim; ctx.font = '6px monospace';
-      ctx.fillText(pl.desc[LANG] || pl.desc.es, W / 2, 126);
+      ctx.fillText(pl.desc[getLang()] || pl.desc.es, W / 2, 126);
 
       // puntos indicadores del carrusel
       const n = PLANES.length, gap = 6, totW = (n - 1) * gap;
