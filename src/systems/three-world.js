@@ -327,7 +327,7 @@ export function frame(w) {
   MOM3D.sun.position.x = MOM3D.cam.position.x - 36.56 * w.cam.x;
   // y el telon acompaña con el parallax suave del fondo-imagen (x0.8, como el 2D)
   MOM3D.sky.position.x = MOM3D.cam.position.x - 21.8 * w.cam.x;
-  const dv2 = dist + momDrift;   // el drift/avance lo llevan las olas del parche (wz = dv2 + camZ)
+  const dv2 = w.dist + w.momDrift;   // el drift/avance lo llevan las olas del parche (wz = dv2 + camZ)
   // mar de CUADRADOS en todos lados (vuelo normal y momentum) — el look del juego.
   // Si MIRROR_SEA esta activo, el espejo reemplaza todo (parche/puntos/plano ocultos).
   if (MOM3D.waterR) {

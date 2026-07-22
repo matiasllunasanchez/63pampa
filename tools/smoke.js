@@ -108,6 +108,18 @@ app.whenReady().then(async () => {
   if (win.webContents.isCurrentlyAudible()) pass('el juego esta emitiendo sonido');
   else fail('silencio total — musica y efectos no estan sonando');
 
+  // MOMENTUM: el climax en primera persona (three.js + zonas + cabina) es un subsistema entero
+  // que ninguna otra prueba toca. Se recarga con ?qa, que acorta la mision para llegar en segundos.
+  console.log('\nmomentum (?qa):');
+  const url = (process.env.SMOKE_SRC || path.join(ROOT, 'src', 'index.html'));
+  await win.loadURL('file://' + url + '?qa');
+  await sleep(2500);
+  for (let i = 0; i < 20; i++) await tap(win, 'Return');          // saltear guion → despegue
+  const hold2 = setInterval(() => win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Up' }), 40);
+  await sleep(12000);                                             // vuela hasta el objetivo
+  clearInterval(hold2);
+  await checkAlive(win, 'momentum');
+
   console.log('\nconsola:');
   if (errors.length) {
     fail(`${errors.length} error(es) de consola:`);

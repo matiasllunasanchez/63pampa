@@ -12,9 +12,15 @@ import * as world3D from './systems/three-world.js';
 import { cv, ctx, W, H, HOR, F, PZ, SC, px, panel } from './render/ctx.js';
 import * as screens from './render/screens.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
+import * as menus from './render/menus.js';
 
   (() => {
     'use strict';
+    // ?qa acorta las distancias de mision para que las pruebas automatizadas puedan llegar al
+    // MOMENTUM en segundos (tools/smoke.js). Sin el flag no cambia nada: QA_DIST vale 1.
+    // Misma idea que el ?no3d de abajo: una costura de prueba, explicita y sin efecto en el juego.
+    const QA_DIST = /\bqa\b/.test(location.search) ? 0.06 : 1;
+
     // three.js vive ahora en systems/three-world.js (resuelve window.THREE y el guard ?no3d por
     // su cuenta). Aca ya no hace falta saber nada de WebGL: el 3D entra por world3D.frame().
     // el canvas, su contexto y las medidas del mundo viven en render/ctx.js (ver el import)
@@ -157,7 +163,7 @@ import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.
     function setRunObjective() {
       if (gameMode === 'campaign' || gameMode === 'cycle') {
         const m = curMission(), g = goalOf(m);
-        objectiveDist = g.dist(m.goal);
+        objectiveDist = g.dist(m.goal) * QA_DIST;
         objectiveShip = g.label(m.goal);
         g.setup(m.goal);
       }
@@ -1989,8 +1995,13 @@ import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.
       ctx.restore();
 
       if (state === 'takeoff') drawTakeoff();
-      if (state === 'modeselect') drawModeSelect();
-      if (state === 'menu') { drawMenu(); if (cfgOpen) drawCfg(); }
+      if (state === 'modeselect') menus.drawModeSelect({ modeSel, t });
+      if (state === 'menu') {
+        menus.drawMenu({ selPlane, gameMode, t });
+        // el clamp de cfgRow vivia DENTRO de drawCfg (una pantalla no deberia mutar estado):
+        // ahora se hace aca, antes de dibujar
+        if (cfgOpen) { const rows = getCfgRows(); if (cfgRow >= rows.length) cfgRow = 0; menus.drawCfg({ rows, cfgRow }); }
+      }
       if (state === 'dead') screens.drawDead({ score, best, deathCause, deathT, factIdx, t });
       if (state === 'results') screens.drawResults({ lastRun, resRow, resT, t });
       if (state === 'brief') screens.drawBrief({ mission: curMission(), goalLabel: goalOf(curMission()).label(curMission().goal), briefT, t });
