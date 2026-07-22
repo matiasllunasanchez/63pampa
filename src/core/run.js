@@ -1,0 +1,87 @@
+// LA CORRIDA: los numeros que describen el vuelo en curso.
+//
+// Es el tercer objeto compartido, junto a `plane` (donde esta el avion) y los arrays de
+// core/world.js (que hay en el campo). Aca va COMO va el vuelo: velocidad, nafta, calor del
+// canon, puntaje, rachas.
+//
+// Estan juntos porque los escriben varios sistemas y los lee el HUD entero. Ejemplo tipico:
+// `shake` lo suben el roce, las explosiones, el afterburner y las colisiones, y lo baja el
+// propio update; ningun sistema puede ser su dueño.
+//
+// Misma regla que los otros stores: se MUTA, nunca se reasigna (lo vigila tools/lint_state.js).
+// Lo que NO entra aca: los relojes de las PANTALLAS (deathT, briefT, resT, toT, levelT). Esos
+// son de la maquina de estados, no del vuelo, y viven con ella.
+
+import { MSL_MAX } from '../data/tuning.js';
+
+export const run = {
+  // --- avance ---
+  t: 0,            // segundos de vuelo (mueve la dificultad, las olas y las animaciones)
+  dist: 0,         // metros recorridos: el reloj del objetivo
+  spd: 62,         // velocidad actual (ver core/physics.js)
+  fuelDist: 0,     // distancia desde el ultimo bidon: decide cuando aparece el proximo
+
+  // --- estado del avion ---
+  fuel: 100,       // COMBUSTIBLE: el reloj real del run
+  heat: 0,         // calor del canon (0..1)
+  overheat: false, // canon bloqueado hasta enfriar a 0.3
+  detection: 0,    // carga del radar enemigo (0..1); al llegar a 1 dispara un misil
+  boost: false,    // turbo apretado y con nafta
+  throttle: 0,     // palanca de gas: SOLO indicador visual
+
+  // --- puntaje y rachas ---
+  score: 0,
+  mult: 1,         // multiplicador por altitud
+  multShow: 1,     // el que se muestra en el HUD (incluye el bonus de racha rasante)
+  streak: 0,       // segundos acumulados volando a ras
+  rasLevel: 0,     // nivel de racha rasante (0..4)
+  graceT: 0,       // gracia al despegarse: un bob corto no corta la racha
+
+  // --- afterburner sostenido (ver AFTER_* en core/physics.js) ---
+  afterT: 0, afterTier: 0, afterGrace: 0,
+
+  // --- roce con la superficie (ver SCRAPE_* en core/physics.js) ---
+  scrapeT: 0,      // reloj de gracia rozando: si llega al limite, muerte
+  scrapeVib: 0,    // 1 mientras roza: hace VIBRAR el sprite; decae al salir
+
+  // --- viento ---
+  windT: 0,        // tiempo acumulado volando alto
+  windF: 1,        // factor de resistencia resultante (1 = sin viento)
+
+  // --- armas ---
+  fireT: 0,        // cadencia del canon
+  msl: MSL_MAX,    // misiles disponibles
+  mslCd: 0,        // cooldown entre lanzamientos
+  mslRegen: 0,     // temporizador de recarga lenta
+
+  // --- maniobra ---
+  rollT: 0,        // pirueta en curso (segundos restantes)
+  rollCd: 0,       // cooldown de la pirueta
+  rollDir: 1,      // hacia que lado rola
+  pitchHold: 0,    // segundos manteniendo ↑/↓: filtra los toques rapidos de gas
+
+  // --- spawn ---
+  nextSpawn: 320,  // distancia hasta el proximo obstaculo
+  nextSoldier: 0,  // distancia hasta el proximo grupo de soldados
+
+  // --- feedback ---
+  shake: 0,        // sacudon de camara: lo suben roce, explosiones, afterburner y colisiones
+  bloodSplat: 0,   // mancha de sangre sobre el sprite (se desvanece en ~3 s)
+};
+
+/** Deja la corrida como al empezar. Los valores son los del arranque salvo `spd`, que arranca
+ *  casi en cero porque el avion esta detenido en la pista (el despegue lo acelera). */
+export function resetRun() {
+  Object.assign(run, {
+    t: 0, dist: 0, spd: 6, fuelDist: 0,
+    fuel: 100, heat: 0, overheat: false, detection: 0, boost: false, throttle: 0,
+    score: 0, mult: 1, multShow: 1, streak: 0, rasLevel: 0, graceT: 0,
+    afterT: 0, afterTier: 0, afterGrace: 0,
+    scrapeT: 0, scrapeVib: 0,
+    windT: 0, windF: 1,
+    fireT: 0, msl: MSL_MAX, mslCd: 0, mslRegen: 0,
+    rollT: 0, rollCd: 0,
+    nextSpawn: 320, nextSoldier: 60,
+    shake: 0, bloodSplat: 0,
+  });
+}

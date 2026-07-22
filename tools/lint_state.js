@@ -18,7 +18,16 @@ import { join, relative } from 'node:path';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const SRC = join(ROOT, 'src');
-const STABLE = ['cfg', 'cam', 'plane', 'stats'];
+
+// Los objetos y arrays compartidos por referencia. Reasignar cualquiera de estos deja a los
+// otros modulos mirando el valor viejo, sin error ni sintoma visible.
+const STABLE = [
+  'cfg', 'cam', 'plane', 'stats',                                        // core/state.js
+  'run',                                                                 // core/run.js
+  'obstacles', 'soldiers', 'bullets', 'missiles', 'pmissiles',           // core/world.js
+  'parts', 'popups', 'streaks', 'wake', 'gusts',
+];
+const STORES = /core\/(state|world|run)\.js/;
 
 function sources(dir, out = []) {
   for (const e of readdirSync(dir)) {
@@ -31,10 +40,10 @@ function sources(dir, out = []) {
 }
 
 const problems = [];
-const isStateModule = f => f.endsWith(join('core', 'state.js'));
+const isStore = f => STORES.test(f.replace(/\\/g, '/'));
 
 for (const file of sources(SRC)) {
-  if (isStateModule(file)) continue;              // el dueño del store puede escribirlo
+  if (isStore(file)) continue;                    // el dueño del store puede escribirlo
   const rel = relative(ROOT, file);
   const text = readFileSync(file, 'utf8');
   const lines = text.split('\n');
@@ -42,8 +51,8 @@ for (const file of sources(SRC)) {
   // Solo interesan los nombres que este archivo IMPORTA del store. Sin esto, un `const cam` local
   // (la camara de three.js, por ejemplo) se marcaria como si fuera el `cam` compartido.
   const imported = new Set();
-  const imp = text.match(/import\s*\{([^}]*)\}\s*from\s*['"][^'"]*core\/state\.js['"]/);
-  if (imp) for (const n of imp[1].split(',')) imported.add(n.trim().split(/\s+as\s+/).pop());
+  for (const imp of text.matchAll(/import\s*\{([^}]*)\}\s*from\s*['"][^'"]*core\/(?:state|world|run)\.js['"]/g))
+    for (const n of imp[1].split(',')) imported.add(n.trim().split(/\s+as\s+/).pop());
   if (!imported.size) continue;
 
   lines.forEach((line, i) => {

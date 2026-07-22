@@ -7,6 +7,9 @@ import { SHIPS, MISSIONS } from './data/missions.js';
 import { L, T, getLang, cycleLang, applyChrome } from './core/i18n.js';
 import { wrapChars, multOf } from './core/util.js';
 import { S, setState, cfg, cam, plane, stats, resetPlane, resetStats } from './core/state.js';
+import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts,
+         prune, clearWorld } from './core/world.js';
+import { run, resetRun } from './core/run.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, pickRunTrack } from './systems/audio.js';
 import * as world3D from './systems/three-world.js';
@@ -209,28 +212,15 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
 
     // ---------- estado ----------
-    let t = 0, dist = 0, spd = 62;   // `state` (la fase del juego) vive en core/state.js
-    let fuel, heat, overheat, detection, score, mult, boost;
-    let obstacles, bullets, missiles, parts, streaks, popups, wake;
-    let pmissiles;                       // MISILES DEL JUGADOR (array propio; nunca tocan el hitbox del avión)
-    let soldiers, nextSoldier = 0;       // soldados en tierra (array propio; atropellarlos NO mata al avión)
-    let bloodSplat = 0;                  // mancha de sangre temporal sobre el sprite (se acumula y se desvanece)
-    let msl = 0, mslCd = 0, mslRegen = 0;   // munición de misiles, cooldown y temporizador de recarga
-    let nextSpawn, fuelDist, fireT, shake, deathCause, deathT, factIdx = 0, best = 0;
-    let streak, graceT, rasLevel, multShow, throttle;
+    let deathCause, deathT, factIdx = 0, best = 0;
     // AFTERBURNER SOSTENIDO: aguantar BOOST + RASANTE (bajo) sube de escalón cada AFTER_STEP s;
     // cada escalón multiplica la velocidad y levanta el techo. Romper el estado (soltar turbo o
     // trepar) lo resetea, con una gracia corta para tolerar bobs cortos. afterT=segundos acumulados.
-    let afterT = 0, afterTier = 0, afterGrace = 0;
-    let windT, windF, gusts;
-    let rollT = 0, rollDir = 1, rollCd = 0, tapL = -9, tapR = -9;   // PIRUETA (tonel): doble-tap ←/→
+    let tapL = -9, tapR = -9;   // PIRUETA (tonel): doble-tap ←/→
     // ZONA DE VUELO. El techo alto es lo que da margen para picar y ganar velocidad (ver ENERGY_*).
     // SPAWN_X acompaña a FLY_X: si los obstaculos nacieran mas angostos que la zona de vuelo,
     // bastaria irse al costado para esquivarlos todos.
     const FLY_X = 38, FLY_TOP = 68, SPAWN_X = 33;
-    let scrapeT = 0;    // reloj de gracia rozando la superficie (ver SCRAPE_*)
-    let scrapeVib = 0;  // 1 mientras roza: hace VIBRAR el sprite del avion; decae al salir
-    let pitchHold = 0;   // seg. que se mantiene apretado ↑/↓: filtra los toques rápidos de gas (no mueven la trompa)
     // CABECEO (solo VISUAL: plane.pitch no afecta el vuelo, solo el sprite y su inclinacion).
     // Calibrado para que la inclinacion aparezca a los 0.50 s de mantener ↑ o ↓ (igual en ambos).
     // DELAY = zona muerta antes de mover la trompa; RAMP = cuanto tarda en llegar a full;
@@ -266,17 +256,11 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     try { best = +localStorage.getItem('rasante_frontal_best') || 0; } catch (e) { }
 
     function reset() {
-      t = 0; dist = 0; spd = 6; momDrift = 0;
-      resetPlane();
-      fuel = 100; heat = 0; overheat = false; detection = 0;
-      score = 0; mult = 1; boost = false; resetStats();
-      obstacles = []; bullets = []; missiles = []; parts = []; streaks = []; popups = []; wake = [];
-      pmissiles = []; msl = MSL_MAX; mslCd = 0; mslRegen = 0; soldiers = []; nextSoldier = 60; bloodSplat = 0;
-      nextSpawn = 320; fuelDist = 0; fireT = 0; shake = 0;
-      streak = 0; graceT = 0; rasLevel = 0; multShow = 1; throttle = 0; scrapeT = 0; scrapeVib = 0;
-      afterT = 0; afterTier = 0; afterGrace = 0;
-      windT = 0; windF = 1; gusts = [];
-      rollT = 0; rollCd = 0;
+      resetRun();       // toda la corrida (velocidad, nafta, rachas, armas, spawn…) a su estado inicial
+      resetPlane();     // el avion a la posicion de arranque
+      resetStats();     // los contadores del recuento final
+      clearWorld();     // vacia el campo de obstaculos, balas, particulas…
+      momDrift = 0;
       momPhase = 0; mom = null;
       toT = 0; toCount = 4;
       cam.x = 0; cam.y = 4;
@@ -421,14 +405,14 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     const SEA_ALPHA2D = 0.6;
 
     // ---------- mundo ----------
-    function waveNow() { return 1.1 + Math.sin(t * 1.1) * 0.5 + Math.sin(t * 2.3) * 0.3; }
+    function waveNow() { return 1.1 + Math.sin(run.t * 1.1) * 0.5 + Math.sin(run.t * 2.3) * 0.3; }
     // campo de altura de la superficie para la malla de puntos (ondas superpuestas)
     function seaH(wx, wz) {
       return 1.0
-        + Math.sin(wz * 0.035 - t * 1.1) * 0.9           // marejada larga que rueda hacia la cámara
-        + Math.sin(wz * 0.22 + t * 2.2) * 0.65
-        + Math.sin(wz * 0.09 - t * 1.5 + wx * 0.15) * 0.5
-        + Math.sin(wx * 0.30 + wz * 0.05 + t * 1.9) * 0.35;
+        + Math.sin(wz * 0.035 - run.t * 1.1) * 0.9           // marejada larga que rueda hacia la cámara
+        + Math.sin(wz * 0.22 + run.t * 2.2) * 0.65
+        + Math.sin(wz * 0.09 - run.t * 1.5 + wx * 0.15) * 0.5
+        + Math.sin(wx * 0.30 + wz * 0.05 + run.t * 1.9) * 0.35;
     }
     const clouds = Array.from({ length: 6 }, () => ({ x: Math.random() * W, y: 8 + Math.random() * 34, w: 24 + Math.random() * 40 }));
     const isles = Array.from({ length: 4 }, (_, i) => ({ x: i * 90 + Math.random() * 50, w: 40 + Math.random() * 70, h: 5 + Math.random() * 10 }));
@@ -458,7 +442,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       const lane = (Math.random() * SPAWN_X * 2 - SPAWN_X);   // acompaña a FLY_X
       // sin combustible activo (COMBUSTIBLE: NO) los bidones serian pickups inutiles: no se fuerzan
       // por distancia y su slot del sorteo cae en globo
-      if (cfg.fuelOn && fuelDist > 700) { obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false }); fuelDist = 0; return; }
+      if (cfg.fuelOn && run.fuelDist > 700) { obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false }); run.fuelDist = 0; return; }
       const r = Math.random();
       if (r < 0.34) obstacles.push({ type: 'mast', x: lane, h: 11 + Math.random() * 17, z: 250, done: false });
       else if (r < 0.60) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, hp: 1, done: false, ph: Math.random() * 6 });
@@ -481,7 +465,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
           c: Math.random() < 0.6 ? P.accent : (Math.random() < 0.5 ? P.warn : P.dim), r: Math.max(1, s.k * 0.35)
         });
       }
-      shake = Math.min(6, shake + (big ? 4.5 : 2)); boom(big ? 0.16 : 0.08);
+      run.shake = Math.min(6, run.shake + (big ? 4.5 : 2)); boom(big ? 0.16 : 0.08);
       if (big) duck(0.55);                      // explosion grande → ducking de la musica
     }
     function popup(x, y, txt, c) { popups.push({ x, y, txt, c: c || P.accent, life: 1.1 }); }
@@ -538,7 +522,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     function drawApproachBarge() {
       if (objectiveDist <= 0 || momPhase >= MOM_PHASES.length) return;
       if (S.state !== 'play' && S.state !== 'takeoff') return;
-      const p = dist / objectiveDist;
+      const p = run.dist / objectiveDist;
       const next = MOM_PHASES[momPhase];
       const t0 = momPhase === 0 ? 0.45 : MOM_PHASES[momPhase - 1].at;
       if (p < t0) return;
@@ -551,11 +535,11 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       // el final con ease-in cuadratico, empalmando exacto con la cubierta del momentum (HOR+36*scE).
       const d0 = momPhase === 0 ? 2 : 36 * sc0;
       const dOff = d0 + (36 * scE - d0) * f * f;
-      const bx = W / 2 - cam.x * 1.2 + Math.sin(t * 0.8) * 6 * sc;
-      const by = HOR + dOff + Math.sin(t * 1.3) * 1.2 * sc;
+      const bx = W / 2 - cam.x * 1.2 + Math.sin(run.t * 0.8) * 6 * sc;
+      const by = HOR + dOff + Math.sin(run.t * 1.3) * 1.2 * sc;
       // bruma atmosferica: de lejos es una silueta tenue → los obstaculos (solidos) resaltan encima
       ctx.globalAlpha = momPhase === 0 ? 0.35 + 0.65 * f : 1;
-      momRender.drawBargeHull(bx, W * 0.82 * sc, by, 9 * sc, t);
+      momRender.drawBargeHull(bx, W * 0.82 * sc, by, 9 * sc, run.t);
       ctx.globalAlpha = 1;
       if (sc > 0.28) {   // ya cerca: nombre sobre el barco
         ctx.font = '6px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.warn; ctx.globalAlpha = 0.85;
@@ -575,7 +559,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
           vy: -(10 + Math.random() * 70), life: 0.45 + Math.random() * 0.55,
           c: [P.warn, P.accent, '#f2b544', '#3a3f43'][i % 4], r: 1 + Math.random() * 2
         });
-      shake = Math.min(6, shake + (big ? 4 : 2)); boom(big ? 0.16 : 0.08);
+      run.shake = Math.min(6, run.shake + (big ? 4 : 2)); boom(big ? 0.16 : 0.08);
       if (big) duck(0.55);                      // la explosion agacha la musica un instante
     }
     // zona critica destruida (comparten cañon y misil): explosion, puntos y cierre de pasada
@@ -585,11 +569,11 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       momBoom(r.x + r.w / 2, r.y + r.h / 2, true);
       // explosion real: la primera pasada suena LEJANA (heavy_dist), las siguientes de cerca
       sfxOne(momPhase === 0 ? 'exHeavyDist' : 'exHeavy');
-      score += z.pts; stats.zones++;
+      run.score += z.pts; stats.zones++;
       popup(r.x + r.w / 2, r.y - 6, '+' + z.pts, P.accent);
       popup(MOM_AX + cmw.x, 50 + cmw.y, T('mom_destroyed', { z: T(z.label) }), P.warn);
       if (mom.zones.every(zz => zz.hp <= 0)) {
-        score += 500 * (momPhase + 1);
+        run.score += 500 * (momPhase + 1);
         const last = momPhase + 1 >= MOM_PHASES.length;
         if (last) sfxOne('exXheavy');   // el barco entero se va: la explosion GRANDE del nivel
         mom.doneT = last ? 1.6 : 1.0;
@@ -614,8 +598,8 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     // con guiado hacia el punto apuntado al momento del disparo, y explota con daño en area.
     // Usa la MISMA municion `msl` que el vuelo normal (la recarga queda pausada en camara lenta).
     function momLaunchMissile() {
-      if (!mom || mom.doneT > 0 || msl <= 0 || mslCd > 0) return;
-      msl--; mslCd = 0.6;
+      if (!mom || mom.doneT > 0 || run.msl <= 0 || run.mslCd > 0) return;
+      run.msl--; run.mslCd = 0.6;
       mom.mslSide = -(mom.mslSide || 1);
       const mo = momScrToWorld(MOM_AX + mom.mslSide * 95, H - 30);       // pilon del ala (rola con vos)
       const mt = momScrToWorld(mouse.on ? mouse.x : MOM_AX, mouse.on ? mouse.y : MOM_AY);
@@ -632,7 +616,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     function enterMomentum() {
       const ph = MOM_PHASES[momPhase];
       setState('momentum');
-      obstacles = []; bullets = []; missiles = []; pmissiles = []; soldiers = []; gusts = []; streaks = [];  // se limpia el campo (cinematica)
+      clearWorld({ keepFx: true });   // se limpia el campo para la cinematica; las explosiones en curso siguen
       mom = {
         t: 0, timer: ph.time, doneT: 0, turn: 0, pass: 1, cx: W / 2, cy: 80, hitFx: 0, fx: [],
         roll: 0, rollV: 0,   // ALABEO: el avion rola sobre su eje longitudinal (←/→); el mundo gira, la cabina no
@@ -651,17 +635,17 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     function startReattack() {
       // FIN DE MISION si no lo destruiste: sin nafta para otra vuelta, o agotados los intentos.
       // Sin esto el bucle de re-ataque no termina nunca (fuel se clampea en 0 y seguis virando).
-      const noFuel = cfg.fuelOn && fuel < REATTACK_FUEL;
+      const noFuel = cfg.fuelOn && run.fuel < REATTACK_FUEL;
       if (noFuel || mom.pass >= REATTACK_MAX) return die(noFuel ? 'death_fuel' : 'death_aa');
       mom.turn = REATTACK_DUR;
       mom.pass = (mom.pass || 1) + 1;
       stats.reattacks++;
-      if (cfg.fuelOn) fuel = Math.max(0, fuel - REATTACK_FUEL);
+      if (cfg.fuelOn) run.fuel = Math.max(0, run.fuel - REATTACK_FUEL);
       const cm = momCam();
       popup(MOM_AX + cm.x, 50 + cm.y, T('mom_turn'), P.warn);
       sfxOne('waveFly');                                  // rafaga del viraje
       beep(300, 0.5, 'sine', 0.05, 700);                  // sting ascendente: reencarás
-      shake = Math.min(6, shake + 2);
+      run.shake = Math.min(6, run.shake + 2);
     }
 
     // objetivo cumplido → RECUENTO. Congela aca las estadisticas de la mision: entre niveles de
@@ -676,7 +660,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     // arma lastRun: el desglose de puntos, las estrellas y la calificacion de la mision
     function freezeRun() {
       const m = curMission();
-      const flight = Math.floor(score);
+      const flight = Math.floor(run.score);
       const kills = stats.air + stats.soldiers + stats.zones;
       const acc = stats.shots ? stats.hits / stats.shots : 0;
       const bKills = kills * 120;
@@ -697,7 +681,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       };
     }
     function updateMomentum(dt) {
-      t -= dt * 0.70;                       // camara lenta: el mundo de fondo corre al 30%
+      run.t -= dt * 0.70;                       // camara lenta: el mundo de fondo corre al 30%
       mom.t += dt;
       // El avion SIGUE AVANZANDO en camara lenta. Al 25% el flujo era tan tenue que, sumado al
       // tiempo ralentizado, se leia como si el avion estuviera clavado en el aire; al 50% se nota
@@ -707,15 +691,15 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       // y el terreno nunca dejan de correr hacia vos.
       {
         const nextAt = (momPhase + 1 < MOM_PHASES.length) ? MOM_PHASES[momPhase + 1].at : 99;
-        const adv = spd * MOM_ADVANCE * dt;
-        const take = Math.min(adv, Math.max(0, objectiveDist * (nextAt - 0.02) - dist));
-        dist += take; momDrift += adv - take;
+        const adv = run.spd * MOM_ADVANCE * dt;
+        const take = Math.min(adv, Math.max(0, objectiveDist * (nextAt - 0.02) - run.dist));
+        run.dist += take; momDrift += adv - take;
       }
       // AUDIO de camara lenta: el motor pasa a ser un rumble GRAVE y ahogado con un pulso
       // lento tipo latido (el lowpass de 320Hz del motor hace el resto del efecto "bajo el agua")
       engineRumble(mom.t);
       popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
-      popups = popups.filter(p => p.life > 0);
+      prune(popups, p => p.life > 0);
 
       // ---- FX de CAMARA LENTA (viven en coords de mundo; corren tambien durante el outro) ----
       // trazadoras AA de la barcaza, bocanadas de flak y rocio/escombros derivando por los costados.
@@ -825,7 +809,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       }
       mom.timer -= dt;
       // misiles: misma municion que el vuelo normal; Z (o boton tactil) lanza
-      mslCd = Math.max(0, mslCd - dt);
+      run.mslCd = Math.max(0, run.mslCd - dt);
       if (inp.msl) momLaunchMissile();
       // ALABEO (roll): ←/→ hacen ROLAR el avion sobre su eje longitudinal (el que apunta a la
       // barcaza). El MUNDO ENTERO (horizonte + barco) gira alrededor del centro; la cabina queda
@@ -890,8 +874,8 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
     // PIRUETA (tonel / aileron roll): esquive cinematico con doble-tap ←/→
     function startRoll(dir) {
-      if (S.state !== 'play' || rollT > 0 || rollCd > 0) return;
-      rollT = ROLL_DUR; rollDir = dir; rollCd = 1.15;
+      if (S.state !== 'play' || run.rollT > 0 || run.rollCd > 0) return;
+      run.rollT = ROLL_DUR; run.rollDir = dir; run.rollCd = 1.15;
       sfxOne('waveFly');                        // rafaga de aire de la pirueta
       beep(480, 0.16, 'triangle', 0.05, 900);   // whoosh ascendente
     }
@@ -899,7 +883,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     // lanza un misil del jugador (arma secundaria: limitada, one-shot, con leve guiado)
     function tryLaunchMissile() {
       if (S.state === 'momentum') return momLaunchMissile();   // primera persona: misil del momentum
-      if (S.state !== 'play' || msl <= 0 || mslCd > 0) return;
+      if (S.state !== 'play' || run.msl <= 0 || run.mslCd > 0) return;
       let tx = plane.x, td = 42;                                  // engancha el blanco aereo mas cercano adelante
       const vm = viewMouse();
       if (vm.on) {
@@ -910,7 +894,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         if (d < td) { td = d; tx = o.x; }
       }
       pmissiles.push({ x: plane.x, y: plane.y, z: PZ + 4, tx, vy: 0 });   // vy: cae con el vuelo (arco) para lobbear soldados
-      msl--; mslCd = 0.5;
+      run.msl--; run.mslCd = 0.5;
       sfxOne('msl');   // lanzamiento real (misil.mp3 / misil2.wav al azar)
       beep(200, 0.2, 'sawtooth', 0.05, 80); boom(0.05, true);
     }
@@ -922,17 +906,21 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       explodeAt(plane.x, plane.y, PZ, true);
       const s = proj(plane.x, 0, PZ);
       for (let i = 0; i < 16; i++) parts.push({ x: s.x + (Math.random() - 0.5) * 24, y: s.y, vx: (Math.random() - 0.5) * 40, vy: -40 - Math.random() * 60, life: 0.6, c: P.foam, r: 1.6 });
-      if (Math.floor(score) > best) { best = Math.floor(score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
+      if (Math.floor(run.score) > best) { best = Math.floor(run.score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
       engineOff();
       beep(180, 0.5, 'sawtooth', 0.06, 40);
     }
 
     // ---------- update ----------
+    // update() es el ORQUESTADOR del frame: corre el prelude (tiempo, sonido, camara,
+    // maquina de estados) y, si estamos jugando, encadena los tres sistemas en orden.
+    // Un sistema devuelve true cuando disparo una transicion (objetivo cumplido o muerte):
+    // ahi el frame se corta, igual que hacia el `return` suelto de la version monolitica.
     function update(dt) {
-      t += dt;
+      run.t += dt;
       tickDuck(dt);                      // el ducking de la musica se recupera solo
       fadeT = Math.max(0, fadeT - dt);   // fundido desde negro (se pinta al final de draw)
-      updateSfx(dt, { state: S.state, cfg, plane, boost, firing: inp.fire, overheat, soldiers });   // loops con fade
+      updateSfx(dt, { state: S.state, cfg, plane, boost: run.boost, firing: inp.fire, overheat: run.overheat, soldiers });   // loops con fade
       // camara CERCA: interpola hacia el objetivo; fuera de vuelo (o al morir) vuelve sola a 1
       // para que cada entrada a play arranque con zoom-in suave y sin saltos entre estados
       const camZt = (S.state === 'play' || S.state === 'takeoff') ? CAM_ZOOMS[camMode] : 1;
@@ -941,9 +929,9 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       // despegue automático desde Puerto Argentino: el control llega a los 3 s
       if (S.state === 'takeoff') {
         toT += dt;
-        const spdBase0 = Math.min(150, 62 + t * 2.8);
-        spd = 6 + spdBase0 * Math.min(1, toT / 2.0);
-        dist += spd * dt;
+        const spdBase0 = Math.min(150, 62 + run.t * 2.8);
+        run.spd = 6 + spdBase0 * Math.min(1, toT / 2.0);
+        run.dist += run.spd * dt;
         if (toT > 1.35 && plane.y < 12) plane.y += 7.2 * dt;   // rotación y ascenso
         cam.x += (plane.x * 0.86 - cam.x) * Math.min(1, dt * 7);
         cam.y += (plane.y + 2.6 - cam.y) * Math.min(1, dt * 7);
@@ -955,13 +943,13 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         }
         const cn = 3 - Math.floor(toT);
         if (cn !== toCount && cn >= 0) { toCount = cn; beep(cn > 0 ? 520 : 980, 0.14, 'square', 0.06); }
-        engineFly(spd, false, 0.017 * Math.min(1, toT));
-        if (toT >= 3) { setState('play'); popup(W / 2, 54, T('freeControl'), P.accent); shake = Math.min(6, shake + 1); }
+        engineFly(run.spd, false, 0.017 * Math.min(1, toT));
+        if (toT >= 3) { setState('play'); popup(W / 2, 54, T('freeControl'), P.accent); run.shake = Math.min(6, run.shake + 1); }
         parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
-        parts = parts.filter(p => p.life > 0);
+        prune(parts, p => p.life > 0);
         popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
-        popups = popups.filter(p => p.life > 0);
-        shake = Math.max(0, shake - dt * 10);
+        prune(popups, p => p.life > 0);
+        run.shake = Math.max(0, run.shake - dt * 10);
         anyPress = false;
         return;
       }
@@ -970,10 +958,10 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         if (S.state === 'dead') deathT += dt;
         if (S.state === 'victory') levelT += dt;
         parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
-        parts = parts.filter(p => p.life > 0);
+        prune(parts, p => p.life > 0);
         engineOff();
         if (S.state === 'momentum') {
-          shake = Math.max(0, shake - dt * 10);
+          run.shake = Math.max(0, run.shake - dt * 10);
           updateMomentum(dt);
           startReq = false; anyPress = false;
           return;
@@ -990,12 +978,12 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
             if (!story.done) { story.t += 999; }                          // completar de un saque
             else if (story.si + 1 < story.seq.length) {                   // → siguiente pantalla de la secuencia
               story.si++; initStoryScreen(); beep(500, 0.05, 'square', 0.04);
-            } else { t = 0; fadeT = 1.4; setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+            } else { run.t = 0; fadeT = 1.4; setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
           }
         } else if (S.state === 'brief') {
           // tarjeta corta de mision (ciclo de muerte, y campaña sin guion): una tecla despega
           briefT += dt;
-          if (briefT > 0.6 && anyPress) { t = 0; fadeT = 1.0; setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+          if (briefT > 0.6 && anyPress) { run.t = 0; fadeT = 1.0; setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
         } else if (S.state === 'menu') {
           // el menú lo comparten SUPERVIVENCIA y CICLO DE MUERTE
           if (startReq) {
@@ -1029,7 +1017,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
             else if (gameMode === 'campaign') {
               // campaña: siguiente mision (conservando el puntaje acumulado) o victoria si era la ultima
               if (curLevel + 1 < MISSIONS.length) {
-                const keep = score; loadLevel(curLevel + 1); reset(); score = keep;
+                const keep = run.score; loadLevel(curLevel + 1); reset(); run.score = keep;
                 setRunObjective(); setState(enterMission());
               } else { setState('victory'); levelT = 0; }
             } else {
@@ -1045,51 +1033,80 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       }
       anyPress = false;
 
+      if (flightSystem(dt)) return;      // vuelo, superficie, armas → puede terminar la mision o matar
+      spawnSystem(dt);                   // aparicion de obstaculos y soldados (nunca corta el frame)
+      if (collisionSystem(dt)) return;   // impactos → puede matar al avion
+      // líneas de velocidad
+      if (run.boost || run.rasLevel > 0 || run.spd > 115) {
+        const n = (run.boost ? 3 : 1) + run.rasLevel + run.afterTier;
+        for (let i = 0; i < n; i++) {
+          const a = Math.random() * 6.283;
+          streaks.push({ a, r: 26 + Math.random() * 20, v: 240 + Math.random() * 160, life: 0.5 });
+        }
+      }
+      streaks.forEach(s => { s.r += s.v * dt; s.life -= dt; });
+      prune(streaks, s => s.life > 0 && s.r < 260);
+
+      parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
+      prune(parts, p => p.life > 0);
+      popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
+      prune(popups, p => p.life > 0);
+      run.shake = Math.max(0, run.shake - dt * 10);
+      run.bloodSplat = Math.max(0, run.bloodSplat - dt * 0.3);   // la mancha de sangre se desvanece (~3 s)
+      if (run.boost) run.shake = Math.max(run.shake, 0.8 + (plane.y < 5 ? 0.7 : 0));
+
+      engineFly(run.spd, run.boost, run.boost ? 0.030 : 0.017);
+      if (run.fuel <= 0 && Math.random() < 0.05) beep(90, 0.08, 'sawtooth', 0.03);
+    }
+
+    // VUELO: gas y energia, alabeo/cabeceo, roce con la superficie, combustible, radar y armas
+    // del jugador. Devuelve true si la mision termino (objetivo) o el avion se estrello.
+    function flightSystem(dt) {
       // velocidad — el multiplicador y la racha rasante aceleran el avión
-      boost = inp.turbo && fuel > 0;
+      run.boost = inp.turbo && run.fuel > 0;
       // viento en contra: cuanto más tiempo arriba, más resistencia (hasta -35%)
-      if (cfg.wind && plane.y > 16) windT = Math.min(6, windT + dt);
-      else windT = Math.max(0, windT - dt * 2);
-      windF = windFactor(windT, cfg.wind);
+      if (cfg.wind && plane.y > 16) run.windT = Math.min(6, run.windT + dt);
+      else run.windT = Math.max(0, run.windT - dt * 2);
+      run.windF = windFactor(run.windT, cfg.wind);
       // AFTERBURNER SOSTENIDO: aguantar BOOST + RASANTE acumula tiempo; cada AFTER_STEP s sube un
       // escalón (hasta AFTER_MAX). Cada escalón multiplica la velocidad (AFTER_GAIN) y levanta el
       // techo (AFTER_CAP) para que el aumento se SIENTA. Soltar turbo o trepar lo corta (con gracia).
       const rasNow = plane.y <= 4.5;
-      if (boost && rasNow) { afterT += dt; afterGrace = 0.4; }
-      else if (afterGrace > 0) afterGrace -= dt;   // bob corto no rompe la racha
-      else afterT = 0;
-      const prevTier = afterTier;
-      afterTier = Math.min(AFTER_MAX, Math.floor(afterT / AFTER_STEP));
-      if (afterTier > prevTier) {                   // subió de escalón: feedback
+      if (run.boost && rasNow) { run.afterT += dt; run.afterGrace = 0.4; }
+      else if (run.afterGrace > 0) run.afterGrace -= dt;   // bob corto no rompe la racha
+      else run.afterT = 0;
+      const prevTier = run.afterTier;
+      run.afterTier = Math.min(AFTER_MAX, Math.floor(run.afterT / AFTER_STEP));
+      if (run.afterTier > prevTier) {                   // subió de escalón: feedback
         const s = proj(plane.x, plane.y, PZ);
-        popup(s.x, s.y - 22, T('afterburner', { n: afterTier }), P.warn);
-        beep(360 + afterTier * 130, 0.16, 'sawtooth', 0.06, 220 + afterTier * 90);
-        shake = Math.min(6, shake + 1.1);
-        for (let i = 0; i < 10 + afterTier * 3; i++) {
+        popup(s.x, s.y - 22, T('afterburner', { n: run.afterTier }), P.warn);
+        beep(360 + run.afterTier * 130, 0.16, 'sawtooth', 0.06, 220 + run.afterTier * 90);
+        run.shake = Math.min(6, run.shake + 1.1);
+        for (let i = 0; i < 10 + run.afterTier * 3; i++) {
           const a = Math.random() * 6.283;
           streaks.push({ a, r: 20 + Math.random() * 18, v: 320 + Math.random() * 220, life: 0.5 });
         }
       }
-      const spdTarget = speedTarget({ t, rasLevel, mult, windF, boost, afterTier });
+      const spdTarget = speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: run.boost, afterTier: run.afterTier });
       // INTERCAMBIO DE ENERGIA (cfg.energy): la ALTURA es energia almacenada — picar la convierte
       // en velocidad, trepar la gasta. Es lo que arma el pendulo (bajar rapido → rasar → trepar).
       // El arrastre hacia spdTarget se AFLOJA (3 → ENERGY_DRAG) porque con el lerp rapido de antes
       // lo que ganabas picando se evaporaba en medio segundo y no se acumulaba nada.
-      spd = cfg.energy ? applyEnergy(spd, spdTarget, plane.vy, dt) : applyDrag(spd, spdTarget, dt);
+      run.spd = cfg.energy ? applyEnergy(run.spd, spdTarget, plane.vy, dt) : applyDrag(run.spd, spdTarget, dt);
       // turbulencia: el viento sacude el avión
-      if (windF < 0.97) {
-        plane.vx += (Math.random() - 0.5) * 95 * (1 - windF) * dt * 4;
-        plane.vy += (Math.random() - 0.5) * 70 * (1 - windF) * dt * 4;
-        shake = Math.max(shake, (1 - windF) * 3.5);
+      if (run.windF < 0.97) {
+        plane.vx += (Math.random() - 0.5) * 95 * (1 - run.windF) * dt * 4;
+        plane.vy += (Math.random() - 0.5) * 70 * (1 - run.windF) * dt * 4;
+        run.shake = Math.max(run.shake, (1 - run.windF) * 3.5);
         if (Math.random() < 0.02) boom(0.03, true);
       }
       // ráfagas visibles cruzando el cielo
-      if (windT > 0.8 && Math.random() < (windT / 6) * 0.9)
+      if (run.windT > 0.8 && Math.random() < (run.windT / 6) * 0.9)
         gusts.push({ x: W + 10, y: 4 + Math.random() * (HOR + 26), v: 260 + Math.random() * 170, len: 10 + Math.random() * 18, life: 2 });
       gusts.forEach(g => { g.x -= g.v * dt; g.life -= dt; });
-      gusts = gusts.filter(g => g.x > -32 && g.life > 0);
-      dist += spd * dt;
-      fuelDist += spd * dt;
+      prune(gusts, g => g.x > -32 && g.life > 0);
+      run.dist += run.spd * dt;
+      run.fuelDist += run.spd * dt;
 
       // OBJETIVO cumplido. Segun el tipo de meta (ver GOALS):
       //   - con climax (ship): al acercarse al blanco arranca el asalto por pasadas (MOMENTUM)
@@ -1097,8 +1114,8 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       if (objectiveDist > 0) {
         const needsMom = (gameMode === 'campaign' || gameMode === 'cycle') ? goalOf(curMission()).needsMomentum : true;
         if (needsMom) {
-          if (momPhase < MOM_PHASES.length && dist >= objectiveDist * MOM_PHASES[momPhase].at) { enterMomentum(); return; }
-        } else if (dist >= objectiveDist) { finishObjective(); return; }
+          if (momPhase < MOM_PHASES.length && run.dist >= objectiveDist * MOM_PHASES[momPhase].at) { enterMomentum(); return true; }
+        } else if (run.dist >= objectiveDist) { finishObjective(); return true; }
       }
 
       // maniobra
@@ -1113,28 +1130,28 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         plane.vx = Math.max(-30, Math.min(30, plane.vx));
         // gas: mantener ARRIBA empuja hacia arriba; al soltar, la gravedad gana y el avión cae
         const G = 22, TH = 55, DIVE = 30;
-        plane.vy += (((inp.u && fuel > 0) ? TH : 0) - G - (inp.d ? DIVE : 0)) * dt;
+        plane.vy += (((inp.u && run.fuel > 0) ? TH : 0) - G - (inp.d ? DIVE : 0)) * dt;
         plane.vy = Math.max(-20, Math.min(18, plane.vy));
       }
       // PIRUETA (tonel): rafaga lateral fuerte que decae + estelas de viento; el perfil de
       // colision se ENCOGE mientras rola (alas "de canto") → pasa por espacios mas finos
-      rollCd = Math.max(0, rollCd - dt);
-      if (rollT > 0) {
-        rollT -= dt;
-        plane.vx = rollDir * 40 * (0.45 + rollT / ROLL_DUR);
+      run.rollCd = Math.max(0, run.rollCd - dt);
+      if (run.rollT > 0) {
+        run.rollT -= dt;
+        plane.vx = run.rollDir * 40 * (0.45 + run.rollT / ROLL_DUR);
         if (Math.random() < 0.85) {
           const sp2 = proj(plane.x + (Math.random() - 0.5) * 3, plane.y + (Math.random() - 0.5) * 2, PZ);
           parts.push({
-            x: sp2.x - rollDir * 10, y: sp2.y, vx: -rollDir * (55 + Math.random() * 40),
+            x: sp2.x - run.rollDir * 10, y: sp2.y, vx: -run.rollDir * (55 + Math.random() * 40),
             vy: (Math.random() - 0.5) * 20, life: 0.3, c: P.crest, r: 1
           });
         }
       }
       // throttle (palanca de gas): sube al dar gas, baja al soltar — solo indicador visual
-      const gasOn = fuel > 0 && (inp.u || (steerTarget && plane.vy > 0.5));
-      throttle += ((gasOn ? 1 : 0) - throttle) * Math.min(1, dt * 7);
-      if (cfg.fuelOn) fuel -= (3.2 + (boost ? 4.2 : 0)) * dt;   // COMBUSTIBLE: NO (menú [M]) = tanque infinito, para pruebas
-      if (fuel <= 0) { fuel = 0; plane.vy = Math.min(plane.vy, -5); }
+      const gasOn = run.fuel > 0 && (inp.u || (steerTarget && plane.vy > 0.5));
+      run.throttle += ((gasOn ? 1 : 0) - run.throttle) * Math.min(1, dt * 7);
+      if (cfg.fuelOn) run.fuel -= (3.2 + (run.boost ? 4.2 : 0)) * dt;   // COMBUSTIBLE: NO (menú [M]) = tanque infinito, para pruebas
+      if (run.fuel <= 0) { run.fuel = 0; plane.vy = Math.min(plane.vy, -5); }
       plane.x += plane.vx * dt;
       plane.y += plane.vy * dt;
       if (plane.x < -FLY_X) { plane.x = -FLY_X; plane.vx = 0; }
@@ -1152,36 +1169,36 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       // cabeceo: la tecla mueve la trompa SOLO si se mantiene apretada un instante — los toques rápidos
       // de gas (↑ repetido) no la sacuden y el avión queda recto; si mantenés ↑/↓ sí cabecea.
       const vin = inp.u - inp.d;   // -1 pica / 0 / +1 trepa
-      pitchHold = vin !== 0 ? pitchHold + dt : 0;
-      const pitchTgt = pitchTarget(vin, pitchHold, plane.vy);
+      run.pitchHold = vin !== 0 ? run.pitchHold + dt : 0;
+      const pitchTgt = pitchTarget(vin, run.pitchHold, plane.vy);
       plane.bank += (bankTarget - plane.bank) * Math.min(1, dt * 9);   // entra/sale con peso
       plane.pitch += (pitchTgt - plane.pitch) * Math.min(1, dt * PITCH_LERP);   // igual de rapido que el alabeo
 
       // puntaje por altitud + racha rasante
       const alt = plane.y;
-      mult = multOf(alt);
-      if (alt <= 4.5) { streak += dt; graceT = 0.45; }
-      else if (graceT > 0) graceT -= dt;
-      else { streak = 0; rasLevel = 0; }
-      const newLevel = Math.min(4, Math.floor(streak / 2));
-      if (newLevel > rasLevel) {
-        rasLevel = newLevel;
-        stats.bestRas = Math.max(stats.bestRas, rasLevel);   // mejor nivel de racha alcanzado
+      run.mult = multOf(alt);
+      if (alt <= 4.5) { run.streak += dt; run.graceT = 0.45; }
+      else if (run.graceT > 0) run.graceT -= dt;
+      else { run.streak = 0; run.rasLevel = 0; }
+      const newLevel = Math.min(4, Math.floor(run.streak / 2));
+      if (newLevel > run.rasLevel) {
+        run.rasLevel = newLevel;
+        stats.bestRas = Math.max(stats.bestRas, run.rasLevel);   // mejor nivel de racha alcanzado
         const s = proj(plane.x, plane.y, PZ);
-        popup(s.x, s.y - 16, T('rasante', { n: 10 + rasLevel * 5 }), P.accent);
-        beep(500 + rasLevel * 180, 0.14, 'square', 0.06, 750 + rasLevel * 180);
-        shake = Math.min(6, shake + 1.4);
+        popup(s.x, s.y - 16, T('rasante', { n: 10 + run.rasLevel * 5 }), P.accent);
+        beep(500 + run.rasLevel * 180, 0.14, 'square', 0.06, 750 + run.rasLevel * 180);
+        run.shake = Math.min(6, run.shake + 1.4);
         // oleada de líneas de velocidad al subir de nivel
         for (let i = 0; i < 14; i++) {
           const a = Math.random() * 6.283;
           streaks.push({ a, r: 24 + Math.random() * 16, v: 280 + Math.random() * 180, life: 0.5 });
         }
       }
-      multShow = mult === 10 ? 10 + rasLevel * 5 : mult;
-      score += (boost ? 2 : 1) * 12 * multShow * dt;
+      run.multShow = run.mult === 10 ? 10 + run.rasLevel * 5 : run.mult;
+      run.score += (run.boost ? 2 : 1) * 12 * run.multShow * dt;
       // superficie LETAL: tocar el suelo (o el agua) = explotar. Sobre tierra hay que volar en la banda
       // baja y arriesgada (arriba del suelo, pero bajo para clipear/matar soldados con el pase rasante).
-      const overRunway = dist + PZ < cfg.coast;
+      const overRunway = run.dist + PZ < cfg.coast;
       let groundY, deathMsg;
       if (cfg.terrain === 'land') { groundY = 0.5; deathMsg = 'death_land'; }
       else if (overRunway) { groundY = 0.9; deathMsg = 'death_land'; }
@@ -1194,21 +1211,21 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       // de la banda. Sin esto, sostenerlo mas alto hacia que la condicion fallara al frame siguiente
       // y el roce se cancelaba solo.
       const scrapeY = groundY + SCRAPE_LIFT;
-      if (plane.y <= (scrapeT > 0 ? scrapeY + 0.2 : groundY)) {
-        const lim = scrapeLimit(spd, boost);
-        scrapeT += dt;
-        if (scrapeT >= lim) return die(deathMsg);                          // se agoto el margen
+      if (plane.y <= (run.scrapeT > 0 ? scrapeY + 0.2 : groundY)) {
+        const lim = scrapeLimit(run.spd, run.boost);
+        run.scrapeT += dt;
+        if (run.scrapeT >= lim) { die(deathMsg); return true; }                 // se agoto el margen
         // PISO, no altura fija: no se hunde, no salta solo, pero SI podes trepar dando gas.
         // (con "plane.y = scrapeY" quedaba clavado: vy acumulaba empuje sin mover el avion y
         //  salias catapultado un segundo despues, o te morias antes de lograrlo)
         if (plane.y < scrapeY) plane.y = scrapeY;
         if (plane.vy < 0) plane.vy = 0;
         plane.vy += (Math.random() - 0.5) * 26 * dt;                       // tambaleo vertical
-        scrapeVib = 1;                                                     // el AVION vibra (ver drawPlaneSprite)
+        run.scrapeVib = 1;                                                     // el AVION vibra (ver drawPlaneSprite)
         plane.vx += (Math.random() - 0.5) * 140 * dt;                      // guiñada erratica
-        spd = Math.max(34, spd - spd * 1.1 * dt);                          // el roce FRENA
-        shake = Math.min(7, shake + 26 * dt);
-        streak = 0; rasLevel = 0; afterT = 0; afterTier = 0;               // se corta la racha
+        run.spd = Math.max(34, run.spd - run.spd * 1.1 * dt);                          // el roce FRENA
+        run.shake = Math.min(7, run.shake + 26 * dt);
+        run.streak = 0; run.rasLevel = 0; run.afterT = 0; run.afterTier = 0;               // se corta la racha
         // chispas / rocio del roce
         const sp = proj(plane.x, groundY, PZ);
         for (let i = 0; i < 3; i++) parts.push({
@@ -1218,10 +1235,10 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         });
         if (!sfxOne('waveFly')) beep(90 + Math.random() * 60, 0.05, 'sawtooth', 0.05);
         // aviso pegado al limite: cuanto le queda al margen
-        if (Math.sin(t * 30) > 0) popup(sp.x, sp.y - 26, T('scrape'), P.warn);
+        if (Math.sin(run.t * 30) > 0) popup(sp.x, sp.y - 26, T('scrape'), P.warn);
       } else {
-        scrapeT = Math.max(0, scrapeT - dt * SCRAPE_RECOVER);   // salir descuenta, pero no borra
-        scrapeVib = Math.max(0, scrapeVib - dt * 6);            // la vibracion se apaga al salir
+        run.scrapeT = Math.max(0, run.scrapeT - dt * SCRAPE_RECOVER);   // salir descuenta, pero no borra
+        run.scrapeVib = Math.max(0, run.scrapeVib - dt * 6);            // la vibracion se apaga al salir
       }
 
       // estela sobre el agua
@@ -1230,8 +1247,8 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         wake.push({ x: plane.x, z: PZ, i: lowI });
         if (wake.length > 150) wake.shift();
       }
-      for (const wp of wake) wp.z -= spd * dt;
-      wake = wake.filter(w => w.z > 2.4);
+      for (const wp of wake) wp.z -= run.spd * dt;
+      prune(wake, w => w.z > 2.4);
 
       // rocío a ras del agua (escala con la cercanía) — solo sobre agua; sobre tierra levanta polvo
       const nSpray = alt < 2.8 ? 6 : alt < 4.5 ? 3 : alt < 7 ? 1 : 0;
@@ -1243,24 +1260,24 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
           life: 0.25 + Math.random() * 0.3, c: onLand ? (Math.random() < 0.6 ? '#6b6250' : '#4a4636') : (Math.random() < 0.7 ? P.foam : P.crest), r: 1 + Math.random() * 1.3
         });
       }
-      if (alt < 4.5) shake = Math.max(shake, (4.5 - alt) * 0.3);
+      if (alt < 4.5) run.shake = Math.max(run.shake, (4.5 - alt) * 0.3);
 
       // radar
-      if (alt > 30) detection += dt / 1.4; else detection -= dt / 0.9;
-      detection = Math.max(0, Math.min(1, detection));
-      if (detection >= 1) {
-        detection = 0.35;
+      if (alt > 30) run.detection += dt / 1.4; else run.detection -= dt / 0.9;
+      run.detection = Math.max(0, Math.min(1, run.detection));
+      if (run.detection >= 1) {
+        run.detection = 0.35;
         missiles.push({ x: plane.x + (Math.random() * 24 - 12), y: plane.y + 4, z: 230, done: false });
         beep(880, 0.12, 'square', 0.06); setTimeout(() => beep(880, 0.12, 'square', 0.06), 160);
       }
 
       // cañón
-      fireT -= dt;
-      heat -= dt * (inp.fire ? 0.22 : 0.5);
-      if (heat < 0) heat = 0;
-      if (overheat && heat < 0.3) overheat = false;
-      if (inp.fire && !overheat && fireT <= 0) {
-        fireT = 1 / 9; stats.shots++;   // denominador de la PRECISION del recuento
+      run.fireT -= dt;
+      run.heat -= dt * (inp.fire ? 0.22 : 0.5);
+      if (run.heat < 0) run.heat = 0;
+      if (run.overheat && run.heat < 0.3) run.overheat = false;
+      if (inp.fire && !run.overheat && run.fireT <= 0) {
+        run.fireT = 1 / 9; stats.shots++;   // denominador de la PRECISION del recuento
         const vm = viewMouse();
         if (vm.on) {
           // MIRA CON MOUSE (PC): desproyecta el cursor al mundo a z=110. La bala SALE DEL AVION
@@ -1280,53 +1297,63 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
           }
           bullets.push({ x: plane.x, y: plane.y, z: PZ + 3, ty });
         }
-        heat += 0.10;
-        if (heat >= 1) { overheat = true; beep(140, 0.3, 'sawtooth', 0.05); }
+        run.heat += 0.10;
+        if (run.heat >= 1) { run.overheat = true; beep(140, 0.3, 'sawtooth', 0.05); }
         else if (!sfxSrc('gun')) beep(1100 + Math.random() * 300, 0.04, 'square', 0.028);   // web: beep; escritorio: loop de metralla
       }
 
       // misiles del jugador: cooldown, recarga lenta y lanzamiento (tecla Z / botón táctil)
-      mslCd -= dt;
-      if (msl < MSL_MAX) { mslRegen += dt; if (mslRegen >= 7) { mslRegen = 0; msl++; } }
+      run.mslCd -= dt;
+      if (run.msl < MSL_MAX) { run.mslRegen += dt; if (run.mslRegen >= 7) { run.mslRegen = 0; run.msl++; } }
       if (inp.msl) tryLaunchMissile();
 
+      return false;
+    }
+
+    // SPAWN: siembra obstaculos (por distancia) y grupos de soldados (solo sobre tierra).
+    function spawnSystem(dt) {
       // spawn por distancia
-      nextSpawn -= spd * dt;
-      if (cfg.obstacles > 0 && nextSpawn <= 0) {
+      run.nextSpawn -= run.spd * dt;
+      if (cfg.obstacles > 0 && run.nextSpawn <= 0) {
         spawn();
-        nextSpawn = Math.max(34, (52 + Math.random() * 42) - t * 0.8) / cfg.obstacles;
+        run.nextSpawn = Math.max(34, (52 + Math.random() * 42) - run.t * 0.8) / cfg.obstacles;
       }
 
       // spawn de soldados (solo sobre tierra) — en grupos que corren
       if (cfg.terrain === 'land') {
-        nextSoldier -= spd * dt;
-        if (nextSoldier <= 0) {
+        run.nextSoldier -= run.spd * dt;
+        if (run.nextSoldier <= 0) {
           const lane = Math.random() * 44 - 22, n = 2 + (Math.random() * 3 | 0);
           for (let i = 0; i < n; i++) soldiers.push({ x: lane + (Math.random() * 12 - 6), z: 250 + Math.random() * 24, ph: Math.random() * 6, dir: Math.random() < 0.5 ? -1 : 1 });
-          nextSoldier = 40 + Math.random() * 55;
+          run.nextSoldier = 40 + Math.random() * 55;
         }
       }
+    }
+
+    // COLISIONES: soldados, obstaculos, misiles enemigos, balas propias y misiles del jugador.
+    // Resuelve impactos y puntaje. Devuelve true si un choque mato al avion.
+    function collisionSystem(dt) {
       // soldados: corren y se acercan; atropellarlos a ras del suelo = MUCHÍSIMOS puntos
       for (const sd of soldiers) {
         if (sd.dead) continue;
-        sd.z -= spd * dt;
+        sd.z -= run.spd * dt;
         sd.x += sd.dir * 6 * dt;                                  // corren en diagonal
         if (sd.z <= PZ + 1 && sd.z > PZ - 4 && Math.abs(plane.x - sd.x) < 4 && plane.y < 3) {
           sd.dead = true;                                        // pase rasante: cabeza / impacto de aire (banda 0.5–3)
           sfxOne('body');                                        // impacto de cuerpo (una variante al azar)
-          const pts = Math.round(120 * multShow);                // escala con el multiplicador (a ras = brutal)
-          score += pts; stats.soldiers++;
+          const pts = Math.round(120 * run.multShow);                // escala con el multiplicador (a ras = brutal)
+          run.score += pts; stats.soldiers++;
           const s = proj(sd.x, 0, PZ); popup(s.x, s.y - 10, '+' + pts, P.warn);
           bloodBurst(s.x, s.y, 18);                               // sangre + tierra
-          bloodSplat = Math.min(1, bloodSplat + 0.5);             // mancha el sprite (se desvanece)
-          shake = Math.min(6, shake + 1.2); boom(0.05);
+          run.bloodSplat = Math.min(1, run.bloodSplat + 0.5);             // mancha el sprite (se desvanece)
+          run.shake = Math.min(6, run.shake + 1.2); boom(0.05);
         }
       }
-      soldiers = soldiers.filter(sd => sd.z > -6 && !sd.dead);
+      prune(soldiers, sd => sd.z > -6 && !sd.dead);
 
       // obstáculos
       for (const o of obstacles) {
-        o.z -= (spd + (o.type === 'jet' ? 45 : 0)) * dt;   // el avion enemigo viene de frente: cierra mas rapido
+        o.z -= (run.spd + (o.type === 'jet' ? 45 : 0)) * dt;   // el avion enemigo viene de frente: cierra mas rapido
         if (!o.done && o.z <= PZ + 1.5) {
           o.done = true;
           const air = o.type === 'helo' || o.type === 'jet';
@@ -1335,45 +1362,45 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
           else { hw = air ? 3 : 2.6; hh = air ? 1.6 : 1.9; oy = o.y; }
           // perfil del avion AFINADO (antes 2.6×1.2, chocaba "de lejos"); en PIRUETA las alas
           // van de canto → perfil minimo: pasa por espacios mucho mas finos
-          const pw = rollT > 0 ? 1.0 : 2.1, ph2 = rollT > 0 ? 0.7 : 1.0;
+          const pw = run.rollT > 0 ? 1.0 : 2.1, ph2 = run.rollT > 0 ? 0.7 : 1.0;
           const dx = Math.abs(plane.x - o.x) - (hw + pw);
           const dy = Math.abs(plane.y - oy) - (hh + ph2);
           const hullHit = o.type === 'mast' && Math.abs(plane.x - o.x) < 5 + pw && plane.y < 3.6;
           if (o.type === 'fuel') {
             if (dx < 1.5 && dy < 1.5) {
-              fuel = Math.min(100, fuel + 30); stats.fuelPicks++;
+              run.fuel = Math.min(100, run.fuel + 30); stats.fuelPicks++;
               const s = proj(o.x, o.y, PZ); popup(s.x, s.y, T('pickFuel'), P.foam);
               beep(700, 0.1, 'triangle', 0.05, 1000); o.z = -99;
             }
           } else if ((dx < 0 && dy < 0) || hullHit) {
-            return die(o.type === 'mast' ? 'death_mast' : o.type === 'helo' ? 'death_helo' : o.type === 'jet' ? 'death_jet' : 'death_balloon');
+            { die(o.type === 'mast' ? 'death_mast' : o.type === 'helo' ? 'death_helo' : o.type === 'jet' ? 'death_jet' : 'death_balloon'); return true; }
           } else if (dx < 3 && dy < 3) {
-            const pir = rollT > 0;                       // rozar EN PIRUETA: bonus grande (estilo)
-            score += pir ? 250 : 75; stats.grazes++; shake = Math.min(6, shake + 1.5);
+            const pir = run.rollT > 0;                       // rozar EN PIRUETA: bonus grande (estilo)
+            run.score += pir ? 250 : 75; stats.grazes++; run.shake = Math.min(6, run.shake + 1.5);
             sfxOne('waveFly');                           // rafaga de aire del pase cercano
             const s = proj(o.x, oy, PZ); popup(s.x, s.y - 8, pir ? T('rollGraze') : T('graze'), pir ? P.accent : P.foam);
             boom(0.06, true);
           }
         }
       }
-      obstacles = obstacles.filter(o => o.z > 2);
+      prune(obstacles, o => o.z > 2);
 
       // misiles
       for (const m of missiles) {
-        m.z -= (spd + 85) * dt;
+        m.z -= (run.spd + 85) * dt;
         m.x += Math.max(-20, Math.min(20, (plane.x - m.x) * 2.4)) * dt;
         m.y += Math.max(-14, Math.min(14, (plane.y - m.y) * 2.0)) * dt;
         if (!m.done && m.z <= PZ + 1.2) {
           m.done = true;
-          if (Math.abs(plane.x - m.x) < (rollT > 0 ? 1.6 : 3) && Math.abs(plane.y - m.y) < (rollT > 0 ? 1.2 : 2.2)) return die('death_missile');
-          score += 75; stats.dodges++; const s = proj(m.x, m.y, PZ); popup(s.x, s.y - 8, T('dodgeMissile'), P.foam); boom(0.06, true);
+          if (Math.abs(plane.x - m.x) < (run.rollT > 0 ? 1.6 : 3) && Math.abs(plane.y - m.y) < (run.rollT > 0 ? 1.2 : 2.2)) { die('death_missile'); return true; }
+          run.score += 75; stats.dodges++; const s = proj(m.x, m.y, PZ); popup(s.x, s.y - 8, T('dodgeMissile'), P.foam); boom(0.06, true);
         }
         if (Math.random() < 0.6) {
           const s = proj(m.x, m.y, m.z + 2);
           parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, life: 0.45, c: P.dim, r: Math.max(1, s.k * 0.3) });
         }
       }
-      missiles = missiles.filter(m => m.z > 2);
+      prune(missiles, m => m.z > 2);
 
       // balas
       for (const b of bullets) {
@@ -1394,7 +1421,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
             o.hp--; b.z = 999; stats.hits++;
             if (o.hp <= 0) {
               const pts = o.type === 'helo' ? 300 : o.type === 'jet' ? 250 : 150;
-              score += pts; stats.air++;
+              run.score += pts; stats.air++;
               sfxOne(air ? 'exMedium' : 'exXsmall');   // aeronaves: medium · blancos chicos: xsmall
               const s = proj(o.x, oy, o.z); popup(s.x, s.y - 8, '+' + pts);
               explodeAt(o.x, oy, o.z, air);
@@ -1407,7 +1434,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         for (const m of missiles) {
           if (m.z < z0 - 2 || m.z > b.z + 2) continue;
           if (Math.abs(b.x - m.x) < 2.6 && Math.abs(b.y - m.y) < 2.2) {
-            b.z = 999; score += 400; stats.hits++; stats.air++;
+            b.z = 999; run.score += 400; stats.hits++; stats.air++;
             const s = proj(m.x, m.y, m.z); popup(s.x, s.y - 8, '+400', P.warn);
             explodeAt(m.x, m.y, m.z, true);
             m.z = -99; m.done = true;   // done=true: evita que el misil enemigo derribado dispare la muerte del avión
@@ -1421,15 +1448,15 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
             if (sd.dead || sd.z < z0 - 2 || sd.z > b.z + 2) continue;
             if (Math.abs(b.x - sd.x) < 2.6) {
               sd.dead = true; b.z = 999;
-              const pts = Math.round(60 * (multShow >= 5 ? 2 : 1));
-              score += pts; stats.hits++; stats.soldiers++; const s = proj(sd.x, 0, sd.z); popup(s.x, s.y - 8, '+' + pts, P.foam);
+              const pts = Math.round(60 * (run.multShow >= 5 ? 2 : 1));
+              run.score += pts; stats.hits++; stats.soldiers++; const s = proj(sd.x, 0, sd.z); popup(s.x, s.y - 8, '+' + pts, P.foam);
               bloodBurst(s.x, s.y, 8);
               beep(240, 0.05, 'square', 0.04); break;
             }
           }
         }
       }
-      bullets = bullets.filter(b => b.z < 240);
+      prune(bullets, b => b.z < 240);
 
       // MISILES DEL JUGADOR — viajan hacia el horizonte y destruyen blancos aéreos.
       // IMPORTANTE: nunca se chequean contra el hitbox del avión (no pueden causar la muerte del jugador).
@@ -1444,7 +1471,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
           if (o.hp === undefined || o.z < z0 - 4 || o.z > pm.z + 4) continue;
           if (Math.abs(pm.x - o.x) < 8 && Math.abs(pm.y - o.y) < 5) {
             const pts = (o.type === 'helo' ? 300 : o.type === 'jet' ? 250 : 150) + 100;   // +bonus por misil
-            score += pts; stats.air++;
+            run.score += pts; stats.air++;
             const s = proj(o.x, o.y, o.z); popup(s.x, s.y - 8, '+' + pts, P.accent);
             explodeAt(o.x, o.y, o.z, true);
             o.z = -99; o.done = true; o.hp = 0;                 // done=true: no puede chocar al avión luego
@@ -1456,7 +1483,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         for (const m of missiles) {
           if (m.z < z0 - 4 || m.z > pm.z + 4) continue;
           if (Math.abs(pm.x - m.x) < 6 && Math.abs(pm.y - m.y) < 4) {
-            score += 400; stats.air++;
+            run.score += 400; stats.air++;
             const s = proj(m.x, m.y, m.z); popup(s.x, s.y - 8, '+400', P.warn);
             explodeAt(m.x, m.y, m.z, true);
             m.z = -99; m.done = true; pm.z = 9999; break;
@@ -1468,7 +1495,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
           let detonate = pm.y <= 0.3;
           if (!detonate) for (const sd of soldiers) { if (!sd.dead && Math.abs(sd.z - pm.z) < 6 && Math.abs(sd.x - pm.x) < 4) { detonate = true; break; } }
           if (detonate) {
-            explodeAt(pm.x, 0, pm.z, true); shake = Math.min(6, shake + 1.6);
+            explodeAt(pm.x, 0, pm.z, true); run.shake = Math.min(6, run.shake + 1.6);
             let hit = 0;
             for (const sd of soldiers) {
               if (!sd.dead && Math.abs(sd.z - pm.z) < 11 && Math.abs(sd.x - pm.x) < 10) {
@@ -1476,41 +1503,21 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
                 const ss = proj(sd.x, 0, sd.z); bloodBurst(ss.x, ss.y, 7);
               }
             }
-            if (hit) { const pts = hit * 130; score += pts; stats.soldiers += hit; const s = proj(pm.x, 0, pm.z); popup(s.x, s.y - 10, '+' + pts, P.warn); }
+            if (hit) { const pts = hit * 130; run.score += pts; stats.soldiers += hit; const s = proj(pm.x, 0, pm.z); popup(s.x, s.y - 10, '+' + pts, P.warn); }
             pm.z = 9999;
           }
         }
       }
-      pmissiles = pmissiles.filter(pm => pm.z < 240 && pm.y > -3);
+      prune(pmissiles, pm => pm.z < 240 && pm.y > -3);
 
-      // líneas de velocidad
-      if (boost || rasLevel > 0 || spd > 115) {
-        const n = (boost ? 3 : 1) + rasLevel + afterTier;
-        for (let i = 0; i < n; i++) {
-          const a = Math.random() * 6.283;
-          streaks.push({ a, r: 26 + Math.random() * 20, v: 240 + Math.random() * 160, life: 0.5 });
-        }
-      }
-      streaks.forEach(s => { s.r += s.v * dt; s.life -= dt; });
-      streaks = streaks.filter(s => s.life > 0 && s.r < 260);
-
-      parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
-      parts = parts.filter(p => p.life > 0);
-      popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
-      popups = popups.filter(p => p.life > 0);
-      shake = Math.max(0, shake - dt * 10);
-      bloodSplat = Math.max(0, bloodSplat - dt * 0.3);   // la mancha de sangre se desvanece (~3 s)
-      if (boost) shake = Math.max(shake, 0.8 + (plane.y < 5 ? 0.7 : 0));
-
-      engineFly(spd, boost, boost ? 0.030 : 0.017);
-      if (fuel <= 0 && Math.random() < 0.05) beep(90, 0.08, 'sawtooth', 0.03);
+      return false;
     }
 
     // ---------- render ----------
 
     function drawSea() {
       const landMode = cfg.terrain === 'land';
-      const dv = dist + momDrift;   // distancia VISUAL (drift del momentum incluido)
+      const dv = run.dist + momDrift;   // distancia VISUAL (drift del momentum incluido)
       const landVisible = dv < cfg.coast + 80;
       for (let y = HOR + 1; y < H; y++) {
         const dy = y - HOR;
@@ -1548,7 +1555,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     // matas/rocas dispersas sobre la tierra (parallax de movimiento a ras del suelo)
     function drawLand() {
       const SPX = 4.2, SPZ = 4.2, farZ = 190;
-      const dv = dist + momDrift;
+      const dv = run.dist + momDrift;
       const startZ = Math.max(cfg.coast + 2, Math.ceil((dv + 4) / SPZ) * SPZ);
       for (let wz = startZ; wz < dv + farZ; wz += SPZ) {
         const camZ = wz - dv, k = F / camZ;
@@ -1571,7 +1578,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     // malla de puntos que forma la onda del mar en perspectiva (estilo boostivity)
     function drawSeaDots(landVisible) {
       const SPX = 1.4, SPZ = 1.5, farZ = 190;   // densidad x4 (antes 2.8x3.0), puntos a 1/4
-      const dv = dist + momDrift;
+      const dv = run.dist + momDrift;
       const startZ = Math.ceil((dv + 4) / SPZ) * SPZ;
       // paso ADAPTATIVO: cerca muestrea a SPZ/SPX plenos; lejos el paso crece para mantener
       // ~1px de separacion en pantalla (los puntos subpixel no se ven y este loop corre
@@ -1598,7 +1605,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
           let hn = (h + 1.4) / 4.8;                              // altura normalizada ~0..1
           hn = hn < 0 ? 0 : hn > 1 ? 1 : hn;
           // bandas de luz que viajan por la superficie (movimiento visible aun en la distancia)
-          const shimmer = Math.sin(wz * 0.06 - t * 2.6 + wx * 0.045);
+          const shimmer = Math.sin(wz * 0.06 - run.t * 2.6 + wx * 0.045);
           if (shimmer > 0.6) hn = Math.min(1, hn + 0.24);
           const col = hn > 0.72 ? WATER.crest : hn > 0.42 ? WATER.mid : WATER.deep;
           // OPACIDAD por cuadrado = SEA_ALPHA2D (perilla global, 0.5) x fade (entrada 3..12u y
@@ -1607,7 +1614,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
           ctx.globalAlpha = SEA_ALPHA2D * fade * (0.25 + hn * 0.6 + (shimmer > 0.6 ? 0.15 : 0));
           px(s.x - dotW / 2, s.y, dotW, dotW, col);
           // destello en las crestas cercanas (titileo determinista, sin flicker feo)
-          if (hn > 0.78 && k > 1.6 && Math.sin(wx * 12.9 + wz * 7.3 + t * 6) > 0.7) {
+          if (hn > 0.78 && k > 1.6 && Math.sin(wx * 12.9 + wz * 7.3 + run.t * 6) > 0.7) {
             ctx.globalAlpha = SEA_ALPHA2D * fade * 0.55;   // destello de cresta, tambien bajo la perilla
             px(s.x - dotW / 2 - 1, s.y - 1, dotW + 2, Math.max(1, dotW * 0.6), WATER.spark);
           }
@@ -1646,10 +1653,10 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
       ctx.save();
       // sub-pixel + bob de vuelo (nunca queda congelado) + micro-oscilación de alabeo en el aire
-      const bob = (S.state === 'play' ? Math.sin(t * 3.1) * 0.5 + Math.sin(t * 1.7) * 0.3 : 0);
+      const bob = (S.state === 'play' ? Math.sin(run.t * 3.1) * 0.5 + Math.sin(run.t * 1.7) * 0.3 : 0);
       // VIBRACION al rozar la superficie: temblor rapido del fuselaje (el avion, no la camara)
-      const vx2 = scrapeVib ? (Math.random() - 0.5) * 3.2 * scrapeVib : 0;
-      const vy2 = scrapeVib ? (Math.random() - 0.5) * 2.4 * scrapeVib : 0;
+      const vx2 = run.scrapeVib ? (Math.random() - 0.5) * 3.2 * run.scrapeVib : 0;
+      const vy2 = run.scrapeVib ? (Math.random() - 0.5) * 2.4 * run.scrapeVib : 0;
       ctx.translate(s.x + vx2, s.y - bob + vy2);
       // cabeceo: el morro sube al trepar / baja al caer (desplazamiento vertical del sprite)
       ctx.translate(0, -plane.pitch * 1.2);
@@ -1657,17 +1664,17 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       const bank = Math.max(-1, Math.min(1, plane.bank));
       const pl = PLANES[selPlane];
       const useSheet = pl.sheetOk;   // sprite HORNEADO: el alabeo lo traen los frames
-      let rolling = rollT > 0;
+      let rolling = run.rollT > 0;
       if (rolling) {
         // PIRUETA: tonel completo — el sprite (vista trasera) rota 360° en el plano de pantalla
-        const pr = 1 - rollT / ROLL_DUR;                   // 0→1 durante el tonel
-        ctx.rotate(rollDir * pr * Math.PI * 2);
+        const pr = 1 - run.rollT / ROLL_DUR;                   // 0→1 durante el tonel
+        ctx.rotate(run.rollDir * pr * Math.PI * 2);
         ctx.scale(0.94 + 0.06 * Math.cos(pr * Math.PI * 2), 1);   // leve pulso: vende el giro
       } else if (useSheet) {
         // con frames de alabeo Y cabeceo REALES no hay rotacion ni squash fingidos: solo micro-wobble
-        ctx.rotate(S.state === 'play' ? Math.sin(t * 2.3) * 0.015 : 0);
+        ctx.rotate(S.state === 'play' ? Math.sin(run.t * 2.3) * 0.015 : 0);
       } else {
-        ctx.rotate(bank * 0.42 + (S.state === 'play' ? Math.sin(t * 2.3) * 0.015 : 0));
+        ctx.rotate(bank * 0.42 + (S.state === 'play' ? Math.sin(run.t * 2.3) * 0.015 : 0));
         ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
       }
       if (useSheet) {
@@ -1683,41 +1690,41 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas
         if (rolling) for (let gi = 2; gi >= 1; gi--) {
           ctx.save();
-          ctx.rotate(-rollDir * gi * 0.55);
+          ctx.rotate(-run.rollDir * gi * 0.55);
           ctx.globalAlpha = 0.14;
           ctx.drawImage(pl.sheetImg, sx4, sy4, SHEET_FW, SHEET_FH, -SHEET_FW / 2, -SHEET_FH / 2, SHEET_FW, SHEET_FH);
           ctx.restore();
         }
-        if (boost) { const fl = 5 + Math.random() * 4; px(-2, SHEET_FH / 2 - 8, 4, fl, P.foam); px(-1, SHEET_FH / 2 - 8, 2, fl * 0.7, P.accent); }
+        if (run.boost) { const fl = 5 + Math.random() * 4; px(-2, SHEET_FH / 2 - 8, 4, fl, P.foam); px(-1, SHEET_FH / 2 - 8, 2, fl * 0.7, P.accent); }
         ctx.drawImage(pl.sheetImg, sx4, sy4, SHEET_FW, SHEET_FH, -SHEET_FW / 2, -SHEET_FH / 2, SHEET_FW, SHEET_FH);
-        if (inp.fire && !overheat && fireT > 0.06) { px(-6, -2, 3, 2, P.ink); px(3, -2, 3, 2, P.ink); }
+        if (inp.fire && !run.overheat && run.fireT > 0.06) { px(-6, -2, 3, 2, P.ink); px(3, -2, 3, 2, P.ink); }
       } else if (pl.ready) {
         const PW = 54, PH = Math.round(PW * pl.h / pl.w);
         // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas (estela cinematica)
         if (rolling) for (let gi = 2; gi >= 1; gi--) {
           ctx.save();
-          ctx.rotate(-rollDir * gi * 0.55);
+          ctx.rotate(-run.rollDir * gi * 0.55);
           ctx.globalAlpha = 0.14;
           ctx.drawImage(pl.img, -PW / 2, -PH / 2, PW, PH);
           ctx.restore();
         }
         // postquemador: fogonazo extra bajo la tobera solo con turbo (el sprite ya trae su glow)
-        if (boost) { const fl = 5 + Math.random() * 4; px(-2, PH / 2 - 4, 4, fl, P.foam); px(-1, PH / 2 - 4, 2, fl * 0.7, P.accent); }
+        if (run.boost) { const fl = 5 + Math.random() * 4; px(-2, PH / 2 - 4, 4, fl, P.foam); px(-1, PH / 2 - 4, 2, fl * 0.7, P.accent); }
         ctx.drawImage(pl.img, -PW / 2, -PH / 2, PW, PH);
         // fogonazos del cañón
-        if (inp.fire && !overheat && fireT > 0.06) { px(-6, -2, 3, 2, P.ink); px(3, -2, 3, 2, P.ink); }
+        if (inp.fire && !run.overheat && run.fireT > 0.06) { px(-6, -2, 3, 2, P.ink); px(3, -2, 3, 2, P.ink); }
       } else {
         // fallback: sprite de rects (por si la imagen no cargó)
         px(-2, -7, 4, 5, P.bodyDark); px(-1, -8, 2, 2, P.warn);
         px(-20, -1, 40, 3, P.body); px(-20, 0, 6, 2, P.bodyDark); px(14, 0, 6, 2, P.bodyDark);
         px(-3, -3, 6, 6, P.body); px(-2, -4, 4, 2, P.canopy); px(-12, 1, 3, 2, P.accent);
-        const fl = boost ? 5 + Math.random() * 4 : (fuel > 0 ? 2 + Math.random() * 2 : 0);
-        if (fl > 0) { px(-2, 3, 4, fl, boost ? P.foam : P.accent); px(-1, 3, 2, fl * 0.6, P.accent); }
-        if (inp.fire && !overheat && fireT > 0.06) { px(-16, -2, 3, 2, P.ink); px(13, -2, 3, 2, P.ink); }
+        const fl = run.boost ? 5 + Math.random() * 4 : (run.fuel > 0 ? 2 + Math.random() * 2 : 0);
+        if (fl > 0) { px(-2, 3, 4, fl, run.boost ? P.foam : P.accent); px(-1, 3, 2, fl * 0.6, P.accent); }
+        if (inp.fire && !run.overheat && run.fireT > 0.06) { px(-16, -2, 3, 2, P.ink); px(13, -2, 3, 2, P.ink); }
       }
       // mancha de sangre sobre el morro/cabina al atropellar (temporal; hacé un sprite ensangrentado si querés)
-      if (bloodSplat > 0.02) {
-        ctx.globalAlpha = Math.min(0.9, bloodSplat);
+      if (run.bloodSplat > 0.02) {
+        ctx.globalAlpha = Math.min(0.9, run.bloodSplat);
         px(-4, -2, 2, 1, '#7a1010'); px(-1, -3, 1, 1, '#9a1818'); px(2, -2, 2, 1, '#8a1414');
         px(-2, 1, 1, 1, '#7a1010'); px(4, -1, 1, 1, '#9a1818'); px(0, 0, 1, 1, '#8a1414'); px(-5, 0, 1, 1, '#6a0e0e');
         ctx.globalAlpha = 1;
@@ -1746,7 +1753,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         px(base.x - 2.2 * k, base.y - (o.h - 2) * k, 4.4 * k, Math.max(1, 0.5 * k), P.bodyDark);
         px(base.x - 0.45 * k, base.y - o.h * k, Math.max(1, 0.9 * k), Math.max(1, 0.7 * k), P.warn);
       } else if (o.type === 'balloon') {
-        const oy = o.y + Math.sin(t * 1.3 + o.ph) * 0.6;
+        const oy = o.y + Math.sin(run.t * 1.3 + o.ph) * 0.6;
         const s = proj(o.x, oy, o.z), base = proj(o.x, 0, o.z);
         ctx.strokeStyle = P.bodyDark; ctx.beginPath();
         ctx.moveTo(s.x, s.y + 1.6 * k); ctx.lineTo(base.x, base.y); ctx.stroke();
@@ -1754,18 +1761,18 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         px(s.x - 2.6 * k, s.y - 1.6 * k, 5.2 * k, Math.max(1, 1.1 * k), P.body);
         px(s.x + 1.8 * k, s.y - 0.4 * k, 1.8 * k, Math.max(1, 1.1 * k), P.bodyDark);
       } else if (o.type === 'helo') {
-        const oy = o.y + Math.sin(t * 2 + o.ph) * 0.8;
+        const oy = o.y + Math.sin(run.t * 2 + o.ph) * 0.8;
         const s = proj(o.x, oy, o.z);
         px(s.x - 3 * k, s.y - 0.8 * k, 6 * k, 2 * k, P.bodyDark);
         px(s.x + 2.4 * k, s.y - 0.4 * k, 2.4 * k, Math.max(1, 0.8 * k), P.bodyDark);
         px(s.x - 1.4 * k, s.y - 1.4 * k, 2 * k, Math.max(1, 0.8 * k), P.canopy);
-        const r = Math.sin(t * 40) * 4;
+        const r = Math.sin(run.t * 40) * 4;
         px(s.x - (4 + r * 0.2) * k, s.y - 2 * k, (8 + r * 0.4) * k, 1, P.body);
       } else if (o.type === 'jet') {
         // avion enemigo de frente: alas anchas, fuselaje central, canopy, deriva y leve alabeo
-        const oy = o.y + Math.sin(t * 1.6 + o.ph) * 0.5;
+        const oy = o.y + Math.sin(run.t * 1.6 + o.ph) * 0.5;
         const s = proj(o.x, oy, o.z);
-        const bank = Math.sin(t * 1.1 + o.ph) * 0.7;          // metros de alabeo en las puntas
+        const bank = Math.sin(run.t * 1.1 + o.ph) * 0.7;          // metros de alabeo en las puntas
         px(s.x - 5 * k, s.y - bank * k - 0.45 * k, 5 * k, 0.9 * k, P.body);   // ala izquierda
         px(s.x, s.y + bank * k - 0.45 * k, 5 * k, 0.9 * k, P.body);   // ala derecha
         px(s.x - 5 * k, s.y - bank * k + 0.45 * k, 5 * k, 0.5 * k, P.bodyDark);
@@ -1778,7 +1785,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         px(s.x - 0.35 * k, s.y - 3 * k, 0.8 * k, 1.6 * k, P.bodyDark);        // deriva
         px(s.x - 0.4 * k, s.y - 1.5 * k, 0.8 * k, 0.8 * k, P.warn);           // nariz
       } else if (o.type === 'fuel') {
-        const oy = o.y + Math.sin(t * 2) * 0.5;
+        const oy = o.y + Math.sin(run.t * 2) * 0.5;
         const s = proj(o.x, oy, o.z);
         px(s.x - 1.4 * k, s.y - 1.8 * k, 2.8 * k, 3.6 * k, P.accent);
         px(s.x - 1.4 * k, s.y - 0.4 * k, 2.8 * k, Math.max(1, 0.7 * k), P.ink);
@@ -1787,7 +1794,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
     function draw() {
       ctx.setTransform(SC, 0, 0, SC, 0, 0);   // buffer 2×: todo el dibujo sigue en coords 320×180
-      const sx = (Math.random() - 0.5) * shake, sy = (Math.random() - 0.5) * shake;
+      const sx = (Math.random() - 0.5) * run.shake, sy = (Math.random() - 0.5) * run.shake;
       const cm = momCam();
       ctx.save(); ctx.translate(Math.round(sx) - cm.x, Math.round(sy) - cm.y);   // momentum: el mundo se mueve, la mira no
       // ALABEO (momentum): el MUNDO ENTERO (horizonte, mar Y BARCO) gira -mom.roll alrededor
@@ -1810,7 +1817,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       // en vuelo normal sobre mar abierto solo cielo+mar (flag MOM3D.sea). El blit va DENTRO
       // de los transforms (roll/paneo/zoom/shake le pegan al 3D); la capa 2D va encima.
       // Sin THREE/WebGL o con ?no3d, ambas flags quedan false y pinta el 2D de siempre.
-      world3D.frame({ state: S.state, mom, dist, momDrift, cfg, cam, t, SKY, WATER, objectiveShip, seaH, momShipGeom, tbackImg });
+      world3D.frame({ state: S.state, mom, dist: run.dist, momDrift, cfg, cam, t: run.t, SKY, WATER, objectiveShip, seaH, momShipGeom, tbackImg });
       if (world3D.isOn() || world3D.isSea()) {
         const sm = ctx.imageSmoothingEnabled;
         ctx.imageSmoothingEnabled = false;
@@ -1842,7 +1849,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       }
       // nubes
       for (const c of clouds) {
-        const cx = ((c.x - cam.x * 2.2 - t * 2) % (W + 80) + W + 80) % (W + 80) - 40;
+        const cx = ((c.x - cam.x * 2.2 - run.t * 2) % (W + 80) + W + 80) % (W + 80) - 40;
         px(cx, c.y, c.w, 3, P.cloud); px(cx + 5, c.y - 2, c.w * 0.5, 2, P.cloud);
       }
       // islas en el horizonte: SIEMPRE (el parallax de estas montañas es la vida del fondo;
@@ -1875,7 +1882,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         for (const sd of sold) {
           if (sd.z <= 3 || sd.dead) continue;
           const s = proj(sd.x, 0, sd.z), k = s.k;
-          const run = Math.sin(t * 12 + sd.ph);                    // piernas corriendo
+          const run = Math.sin(run.t * 12 + sd.ph);                    // piernas corriendo
           const bh = Math.max(2, k * 1.4), bw = Math.max(1, k * 0.5);
           px(s.x - bw / 2, s.y - bh, bw, bh * 0.6, '#3a3f33'); // cuerpo
           px(s.x - bw / 2, s.y - bh, bw, Math.max(1, k * 0.4), '#5a5140');                       // cabeza/casco
@@ -1943,24 +1950,24 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       if (zoomOn) ctx.restore();   // el HUD (y la capa momentum) van SIN zoom
       if (S.state === 'play') drawHUD();
       if (S.state === 'momentum' && mom) momRender.drawMomentum({
-        mom, momPhase, phases: MOM_PHASES, msl, objectiveShip, t,
+        mom, momPhase, phases: MOM_PHASES, msl: run.msl, objectiveShip, t: run.t,
         is3D: world3D.isOn(), parts, popups, mouse,
         momCam, momShipGeom, momZoneRect });
       ctx.restore();
 
       if (S.state === 'takeoff') drawTakeoff();
-      if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t });
+      if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t });
       if (S.state === 'menu') {
-        menus.drawMenu({ selPlane, gameMode, t });
+        menus.drawMenu({ selPlane, gameMode, t: run.t });
         // el clamp de cfgRow vivia DENTRO de drawCfg (una pantalla no deberia mutar estado):
         // ahora se hace aca, antes de dibujar
         if (cfgOpen) { const rows = getCfgRows(); if (cfgRow >= rows.length) cfgRow = 0; menus.drawCfg({ rows, cfgRow }); }
       }
-      if (S.state === 'dead') screens.drawDead({ score, best, deathCause, deathT, factIdx, t });
-      if (S.state === 'results') screens.drawResults({ lastRun, resRow, resT, t });
-      if (S.state === 'brief') screens.drawBrief({ mission: curMission(), goalLabel: goalOf(curMission()).label(curMission().goal), briefT, t });
-      if (S.state === 'victory') screens.drawVictory({ score, levelT, t });
-      if ((S.state === 'epilogue' || S.state === 'story') && story) screens.drawStory({ story, state: S.state, t });
+      if (S.state === 'dead') screens.drawDead({ score: run.score, best, deathCause, deathT, factIdx, t: run.t });
+      if (S.state === 'results') screens.drawResults({ lastRun, resRow, resT, t: run.t });
+      if (S.state === 'brief') screens.drawBrief({ mission: curMission(), goalLabel: goalOf(curMission()).label(curMission().goal), briefT, t: run.t });
+      if (S.state === 'victory') screens.drawVictory({ score: run.score, levelT, t: run.t });
+      if ((S.state === 'epilogue' || S.state === 'story') && story) screens.drawStory({ story, state: S.state, t: run.t });
 
       // fundido desde negro (al salir de la historia hacia el despegue) — SIEMPRE al final
       if (fadeT > 0) {
@@ -2010,7 +2017,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     function drawObjectiveBar() {
       const cx = W / 2, half = Math.round(W * 0.15);          // 30% del ancho (máx), centrada
       const x0 = cx - half, x1 = cx + half, y = 26;
-      const prog = Math.max(0, Math.min(1, dist / objectiveDist));
+      const prog = Math.max(0, Math.min(1, run.dist / objectiveDist));
       // nombre de la barcaza objetivo, centrado arriba
       ctx.font = '6px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.warn;
       ctx.fillText(objectiveShip, cx, y - 7);
@@ -2022,7 +2029,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       drawHudAsset(OBJ_ASSETS.barge, x1, y, 'barge', 9);
       // marcador del avión avanzando por la línea (+ líneas de boost)
       const pm = x0 + (x1 - x0) * prog;
-      if (boost) {
+      if (run.boost) {
         ctx.strokeStyle = P.foam; ctx.globalAlpha = 0.7;
         for (let i = 1; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(pm - 2 - i * 3, y); ctx.lineTo(pm - i * 3, y); ctx.stroke(); }
         ctx.globalAlpha = 1;
@@ -2081,7 +2088,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
     function drawHUD() {
       ctx.font = '8px monospace'; ctx.textAlign = 'left'; ctx.fillStyle = P.ink;
-      const digits = String(Math.floor(score)).padStart(6, '0');
+      const digits = String(Math.floor(run.score)).padStart(6, '0');
       for (let i = 0; i < digits.length; i++) ctx.fillText(digits[i], 6 + i * 6, 12);
       ctx.textAlign = 'right'; ctx.fillStyle = P.dim;
       ctx.fillText(T('hud_best', { n: best }), W - 16, 12);   // corrido a la izq para no chocar el ícono de sonido
@@ -2098,8 +2105,8 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
       // velocidad (+ escalón de TURBINA cuando el afterburner sostenido está activo)
       ctx.textAlign = 'center'; ctx.font = '7px monospace';
-      ctx.fillStyle = afterTier > 0 ? P.warn : boost || rasLevel > 0 ? P.accent : windF < 0.97 ? P.crest : P.dim;
-      ctx.fillText(Math.round(spd * 4.2) + T('kmh') + (afterTier > 0 ? ' »' + afterTier : boost ? T('turboTag') : windF < 0.97 ? ' ▼' : ''), W / 2, H - 4);
+      ctx.fillStyle = run.afterTier > 0 ? P.warn : run.boost || run.rasLevel > 0 ? P.accent : run.windF < 0.97 ? P.crest : P.dim;
+      ctx.fillText(Math.round(run.spd * 4.2) + T('kmh') + (run.afterTier > 0 ? ' »' + run.afterTier : run.boost ? T('turboTag') : run.windF < 0.97 ? ' ▼' : ''), W / 2, H - 4);
 
       // --- avisos de la banda superior (radar y viento) ---
       // Todos los overlays de arriba van centrados en W/2, asi que se pisaban entre si.
@@ -2107,58 +2114,58 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       // si no hay mision, suben y quedan compactos. Cada aviso tiene su propia fila.
       const topBase = objectiveDist > 0 ? 38 : 20;
 
-      if (detection > 0.3) {
+      if (run.detection > 0.3) {
         ctx.textAlign = 'center'; ctx.font = 'bold 8px monospace';
-        ctx.fillStyle = Math.sin(t * 14) > 0 ? P.warn : '#7d2f1e';
+        ctx.fillStyle = Math.sin(run.t * 14) > 0 ? P.warn : '#7d2f1e';
         ctx.fillText(T('radar'), W / 2, topBase);
         ctx.fillStyle = '#00000066'; ctx.fillRect(W / 2 - 21, topBase + 3, 42, 4);
-        px(W / 2 - 20, topBase + 4, Math.round(40 * detection), 2, P.warn);
+        px(W / 2 - 20, topBase + 4, Math.round(40 * run.detection), 2, P.warn);
       }
 
       // aviso de viento en contra — una fila mas abajo, nunca encima del radar
-      if (windF < 0.97) {
+      if (run.windF < 0.97) {
         ctx.textAlign = 'center'; ctx.font = 'bold 7px monospace';
-        ctx.fillStyle = Math.sin(t * 8) > 0 ? P.crest : P.dim;
+        ctx.fillStyle = Math.sin(run.t * 8) > 0 ? P.crest : P.dim;
         ctx.fillText(T('windWarn'), W / 2, topBase + 16);
       }
 
       // multiplicador junto al avión — crece con la racha rasante
-      if (multShow > 1) {
+      if (run.multShow > 1) {
         const s = proj(plane.x, plane.y, PZ);
         ctx.textAlign = 'left';
-        const size = multShow >= 15 ? 12 + rasLevel : multShow >= 10 ? 11 : multShow >= 5 ? 10 : 9;
+        const size = run.multShow >= 15 ? 12 + run.rasLevel : run.multShow >= 10 ? 11 : run.multShow >= 5 ? 10 : 9;
         ctx.font = 'bold ' + size + 'px monospace';
-        ctx.fillStyle = multShow >= 25 ? (Math.sin(t * 16) > 0 ? P.warn : P.accent)
-          : multShow >= 15 ? P.accent
-            : multShow >= 10 ? P.accent
-              : multShow >= 5 ? '#d9b06a' : P.dim;
-        const jx = rasLevel > 0 ? (Math.random() - 0.5) * rasLevel : 0;
-        const jy = rasLevel > 0 ? (Math.random() - 0.5) * rasLevel : 0;
-        if (multShow < 10 || Math.sin(t * 10) > -0.6)
-          ctx.fillText('x' + multShow + (boost ? ' x2' : ''), s.x + 24 + jx, s.y - 6 + jy);
+        ctx.fillStyle = run.multShow >= 25 ? (Math.sin(run.t * 16) > 0 ? P.warn : P.accent)
+          : run.multShow >= 15 ? P.accent
+            : run.multShow >= 10 ? P.accent
+              : run.multShow >= 5 ? '#d9b06a' : P.dim;
+        const jx = run.rasLevel > 0 ? (Math.random() - 0.5) * run.rasLevel : 0;
+        const jy = run.rasLevel > 0 ? (Math.random() - 0.5) * run.rasLevel : 0;
+        if (run.multShow < 10 || Math.sin(run.t * 10) > -0.6)
+          ctx.fillText('x' + run.multShow + (run.boost ? ' x2' : ''), s.x + 24 + jx, s.y - 6 + jy);
         // barra de progreso hacia el próximo nivel de racha
-        if (mult === 10 && rasLevel < 4) {
-          const prog = (streak % 2) / 2;
+        if (run.mult === 10 && run.rasLevel < 4) {
+          const prog = (run.streak % 2) / 2;
           ctx.fillStyle = '#00000066'; ctx.fillRect(s.x + 24, s.y - 3, 26, 3);
           px(s.x + 25, s.y - 2, Math.round(24 * prog), 1, P.accent);
         }
       }
       // borde encendido según la racha
-      if (rasLevel > 0) {
-        ctx.globalAlpha = 0.05 * rasLevel + Math.max(0, Math.sin(t * 6)) * 0.04 * rasLevel;
+      if (run.rasLevel > 0) {
+        ctx.globalAlpha = 0.05 * run.rasLevel + Math.max(0, Math.sin(run.t * 6)) * 0.04 * run.rasLevel;
         px(0, 0, W, 3, P.accent); px(0, H - 3, W, 3, P.accent);
         px(0, 0, 3, H, P.accent); px(W - 3, 0, 3, H, P.accent);
         ctx.globalAlpha = 1;
       }
 
-      bar(6, H - 8, 60, fuel / 100, fuel < 25 ? (Math.sin(t * 10) > 0 ? P.warn : P.dim) : P.foam, T('bar_fuel'));
-      bar(W - 66, H - 8, 60, heat, overheat ? P.warn : P.accent, overheat ? T('bar_overheat') : T('bar_cannon'));
+      bar(6, H - 8, 60, run.fuel / 100, run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam, T('bar_fuel'));
+      bar(W - 66, H - 8, 60, run.heat, run.overheat ? P.warn : P.accent, run.overheat ? T('bar_overheat') : T('bar_cannon'));
 
       // munición de misiles (pips) — entre combustible y el centro
       ctx.textAlign = 'left'; ctx.font = '6px monospace'; ctx.fillStyle = P.dim;
       ctx.fillText('MISIL', 72, H - 11);
       for (let i = 0; i < MSL_MAX; i++) {
-        const on = i < msl, bx = 72 + i * 8;
+        const on = i < run.msl, bx = 72 + i * 8;
         ctx.fillStyle = on ? P.accent : '#2e3c45'; ctx.fillRect(bx, H - 8, 5, 3);
         if (on) { ctx.fillStyle = P.warn; ctx.fillRect(bx + 5, H - 8, 1, 3); }
       }
@@ -2168,13 +2175,13 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       ctx.fillStyle = '#00000088'; ctx.fillRect(tx - 1, tyTop - 1, 6, tH + 2);
       ctx.fillStyle = P.dim;                                     // marcas de la corredera
       for (let i = 0; i <= 4; i++) ctx.fillRect(tx - 3, Math.round(tyBot - tH * (i / 4)), 2, 1);
-      const fillH = Math.round(tH * Math.max(0, Math.min(1, throttle)));
-      const tcol = fuel <= 0 ? (Math.sin(t * 10) > 0 ? P.warn : P.dim)
-        : throttle > 0.66 ? P.foam : throttle > 0.15 ? P.accent : P.bodyDark;
+      const fillH = Math.round(tH * Math.max(0, Math.min(1, run.throttle)));
+      const tcol = run.fuel <= 0 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim)
+        : run.throttle > 0.66 ? P.foam : run.throttle > 0.15 ? P.accent : P.bodyDark;
       px(tx, tyBot - fillH, 4, fillH, tcol);                     // relleno desde abajo
       px(tx - 2, tyBot - fillH - 1, 8, 2, P.ink);                  // perilla de la palanca
       ctx.fillStyle = P.dim; ctx.font = '6px monospace'; ctx.textAlign = 'right';
-      ctx.fillText(fuel <= 0 ? T('thr_dead') : T('thr'), W - 4, tyTop - 4);
+      ctx.fillText(run.fuel <= 0 ? T('thr_dead') : T('thr'), W - 4, tyTop - 4);
     }
 
 
