@@ -3,10 +3,11 @@
 import { STRINGS } from './data/strings.js';
 import { P, WATER_STYLES, SKY_PRESETS, LAND } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
-import { SFXB, SFX_DEF } from './data/sfx.js';
 import { SHIPS, MISSIONS } from './data/missions.js';
 import { L, T, getLang, cycleLang, applyChrome } from './core/i18n.js';
 import { wrapChars, multOf } from './core/util.js';
+import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
+         engineOff, engineRumble, duck, tickDuck, pickRunTrack } from './systems/audio.js';
 
   (() => {
     'use strict';
@@ -165,7 +166,7 @@ import { wrapChars, multOf } from './core/util.js';
       }
       else { objectiveDist = 0; objectiveShip = randomShip(); }
       // SUPERVIVENCIA y CICLO: cada run arranca con una pista ADRENALINA al azar; campaña usa la suya
-      curAdr = (gameMode !== 'campaign' && musAdr.length) ? musAdr[(Math.random() * musAdr.length) | 0] : null;
+      pickRunTrack(gameMode !== 'campaign');
     }
 
     // ---------- MENÚ DE CONFIGURACIÓN DE MAPA [M] (herramienta para prototipar niveles) ----------
@@ -302,170 +303,9 @@ import { wrapChars, multOf } from './core/util.js';
     }
     const cam = { x: 0, y: 14 };
 
-    // ---------- audio ----------
-    let AC = null, eng = null;
-
-    // música (streaming vía <audio>, aparte del SFX WebAudio). Embebida como data URI (artifact autocontenido).
-    // A futuro: cambiar soundtracks por nivel/momento/secuencia (una pista por contexto).
-    // Audio ORIGINAL (mp3) para la app de escritorio. El build web re-embebe versiones
-    // comprimidas (assets/audio/web/*.m4a) para entrar en el límite de 16 MB del Artifact;
-    // ver tools/build_web.py (mapea cada mp3 a su m4a, o descarta las que no entran).
-    const MUSIC_LOBBY = '../assets/audio/lobby.mp3';   // the_weight_of_honor — lobby en loop
-    const MUSIC_GAME = '../assets/audio/game.mp3';    // weight_of_honor_v2 — fondo del juego, volumen bajo
-    const musLobby = new Audio(MUSIC_LOBBY); musLobby.loop = true; musLobby.volume = 0.55;
-    const musGame = new Audio(MUSIC_GAME); musGame.loop = true; musGame.volume = 0.30;
-    const MUSIC_STORY = '../assets/audio/story.mp3';   // epic_himno — pantallas de HISTORIA
-    const musStory = new Audio(MUSIC_STORY); musStory.loop = true; musStory.volume = 0.5;
-    // pool ADRENALINA (supervivencia y ciclo de muerte): 11 pistas pmetal; al empezar cada run
-    // suena UNA al azar. En el build web SOLO se re-embeben las 3 primeras (tienen m4a comprimida).
-    const MUSIC_ADR = [
-      '../assets/audio/pmetal_himno.mp3',            // web: comprimida
-      '../assets/audio/pmetal_sanmartin.mp3',        // web: comprimida
-      '../assets/audio/pmetal_soy_hincha.mp3',       // web: comprimida
-      '../assets/audio/pmetal_acero_blanco.mp3',
-      '../assets/audio/pmetal_aundepie.mp3',
-      '../assets/audio/pmetal_aurora.mp3',
-      '../assets/audio/pmetal_malvinas.mp3',
-      '../assets/audio/pmetal_malvinas_2triumph.mp3',
-      '../assets/audio/pmetal_revolucion_mayo.mp3',
-      '../assets/audio/pmetal_sangre_albiceleste.mp3',
-      '../assets/audio/pmetal_soldado.mp3',
-    ];
-    const musAdr = MUSIC_ADR.filter(Boolean)
-      .map(src => { const a = new Audio(src); a.loop = true; a.volume = 0.30; return a; });
-    let curAdr = null;   // pista adrenalina del run actual (null = campaña → musGame)
-    let muted = false, musicStarted = false;
-    let duckT = 0;   // ducking: las explosiones grandes agachan la musica un instante
-    try { muted = localStorage.getItem('rasante_muted') === '1'; } catch (e) { }
-
-    const SFX_MASTER = 0.3;   // volumen maestro de TODOS los samples (no tapan la musica de fondo)
-    const SFX_LOOP_KEYS = Object.keys(SFX_DEF).filter(k => SFX_DEF[k].loop);
-    const sfxPool = {}, sfxLoopA = {}, sfxTgt = {};
-    function sfxSrc(key) { if (!SFXB) return null; const d = SFX_DEF[key]; return d && d.f.length ? d : null; }
-    // one-shot: elige una variante al azar; pool de 3 por archivo para que se solapen sin cortarse
-    function sfxOne(key, vol) {
-      const d = sfxSrc(key); if (!d || muted) return false;
-      const rel = d.f[(Math.random() * d.f.length) | 0];
-      const pool = sfxPool[rel] || (sfxPool[rel] = { i: 0, a: [] });
-      let a = pool.a[pool.i % 3];
-      if (!a) a = pool.a[pool.i % 3] = new Audio(SFXB + rel);
-      pool.i++;
-      a.volume = Math.min(1, (vol !== undefined ? vol : d.v) * SFX_MASTER);
-      try { a.currentTime = 0; } catch (e) { }
-      a.play().catch(() => { });
-      return true;
-    }
-    function sfxLoop(key) {
-      if (key in sfxLoopA) return sfxLoopA[key];
-      const d = sfxSrc(key); if (!d) return (sfxLoopA[key] = null);
-      const a = new Audio(SFXB + d.f[0]); a.loop = true; a.volume = 0;
-      return (sfxLoopA[key] = a);
-    }
-    let engAltT = 0;   // temporizador del crossfade normal↔normal2
-    function updateSfx(dt) {
-      for (const k of SFX_LOOP_KEYS) sfxTgt[k] = 0;
-      const flying = state === 'play' || state === 'takeoff';
-      if (!muted) {
-        if (flying && plane) {
-          // motor: crossfade lento entre las dos tomas de crucero
-          engAltT += dt;
-          const mixB = 0.5 + 0.5 * Math.sin(engAltT / 14 * Math.PI * 2);
-          sfxTgt.engN = SFX_DEF.engN.v * (1 - mixB * 0.85);
-          sfxTgt.engN2 = SFX_DEF.engN2.v * (0.15 + mixB * 0.85);
-          if (boost) sfxTgt.turbo = SFX_DEF.turbo.v;                        // turbo en loop con fade
-          if (state === 'play' && plane.y <= 4.5) sfxTgt.waterNear = SFX_DEF.waterNear.v;  // rasante
-          if (state === 'play' && inp.fire && !overheat) sfxTgt.gun = SFX_DEF.gun.v;       // metralla
-          // ambiente por contexto del mapa
-          if (cfg.sky === 'storm') {
-            if (cfg.terrain === 'sea') sfxTgt.ambStorm = SFX_DEF.ambStorm.v;
-            else sfxTgt.ambRain = SFX_DEF.ambRain.v;
-          } else if (cfg.terrain === 'land') {
-            const near = soldiers && soldiers.some(sd => !sd.dead && sd.z > 3 && sd.z < 90);
-            if (near) sfxTgt.ambWarNear = SFX_DEF.ambWarNear.v;
-            else if (cfg.obstacles > 0) sfxTgt.ambWarFar = SFX_DEF.ambWarFar.v;
-            else sfxTgt.ambWind = SFX_DEF.ambWind.v;
-          }
-        }
-        if (state === 'momentum') sfxTgt.alarm = SFX_DEF.alarm.v;           // alarma durante el momentum
-      }
-      for (const k of SFX_LOOP_KEYS) {
-        const a = sfxLoop(k); if (!a) continue;
-        const tgt = (sfxTgt[k] || 0) * SFX_MASTER;
-        a.volume += (tgt - a.volume) * Math.min(1, dt * 3.5);
-        if (tgt > 0 && a.paused && musicStarted) a.play().catch(() => { });
-        else if (tgt === 0 && !a.paused && a.volume < 0.012) { a.pause(); a.volume = 0; }
-      }
-    }
-    // la música del lobby suena SOLO en las pantallas previas a arrancar (selección de modo + menú);
-    // desde que empieza la partida (takeoff/play) y en sus pantallas de fin (derribado, nivel, victoria,
-    // objetivo) suena la del juego — nunca la del lobby.
-    function inLobby() { return state === 'modeselect' || state === 'menu'; }
-    function updateMusic() {
-      if (muted) { if (eng) eng.g.gain.value = 0; return; }
-      // pistas: HISTORIA (himno epico) / lobby / juego (adrenalina del run o la base de campaña)
-      const gm = curAdr || musGame;
-      const want = state === 'story' ? musStory : inLobby() ? musLobby : gm;
-      for (const m of [musLobby, musGame, musStory, ...musAdr]) if (m !== want && !m.paused) m.pause();
-      if (musicStarted && want.paused && (want !== musStory || MUSIC_STORY)) want.play().catch(() => { });
-      // mezcla dinamica: en MOMENTUM la musica se AHOGA (camara lenta, como bajo el agua) y
-      // las explosiones grandes la agachan un instante (ducking). Lerp por frame → suave.
-      const tv = (state === 'momentum' ? 0.10 : 0.30) * (duckT > 0 ? 0.45 : 1);
-      gm.volume += (tv - gm.volume) * 0.08;
-    }
-    function startMusicOnce() { if (musicStarted || muted) return; musicStarted = true; updateMusic(); }
-    function setMuted(v) {
-      muted = v;
-      try { localStorage.setItem('rasante_muted', muted ? '1' : '0'); } catch (e) { }
-      const b = document.getElementById('snd'); if (b) b.classList.toggle('muted', muted);
-      if (muted) { musLobby.pause(); musGame.pause(); musStory.pause(); musAdr.forEach(m => m.pause()); if (eng) eng.g.gain.value = 0; }
-      else { startMusicOnce(); updateMusic(); }
-    }
-    (() => {
-      const b = document.getElementById('snd'); if (!b) return;   // botón de sonido (esquina sup. der.)
-      b.classList.toggle('muted', muted);
-      b.addEventListener('click', () => { audio(); setMuted(!muted); });
-    })();
     // botón táctil de misil (visible solo en juego; se togglea en el loop)
     const mslBtn = document.getElementById('msl');
     if (mslBtn) mslBtn.addEventListener('pointerdown', e => { e.preventDefault(); audio(); tryLaunchMissile(); });
-
-    function audio() {
-      if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } }
-      if (AC && AC.state === 'suspended') AC.resume();
-      if (AC && !eng) {
-        try {
-          const o = AC.createOscillator(), g = AC.createGain(), f = AC.createBiquadFilter();
-          o.type = 'sawtooth'; o.frequency.value = 70;
-          f.type = 'lowpass'; f.frequency.value = 320;
-          g.gain.value = 0;
-          o.connect(f); f.connect(g); g.connect(AC.destination); o.start();
-          eng = { o, g };
-        } catch (e) { }
-      }
-      startMusicOnce();   // la música arranca en la primera interacción (autoplay policy)
-    }
-    function beep(f, dur, type, vol, slide) {
-      if (!AC || muted) return;
-      try {
-        const o = AC.createOscillator(), g = AC.createGain();
-        o.type = type || 'square'; o.frequency.value = f;
-        if (slide) o.frequency.linearRampToValueAtTime(slide, AC.currentTime + dur);
-        g.gain.value = vol || 0.04;
-        g.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime + dur);
-        o.connect(g); g.connect(AC.destination); o.start(); o.stop(AC.currentTime + dur);
-      } catch (e) { }
-    }
-    function boom(vol, hi) {
-      if (!AC || muted) return;
-      try {
-        const n = AC.sampleRate * 0.22, buf = AC.createBuffer(1, n, AC.sampleRate), d = buf.getChannelData(0);
-        for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
-        const s = AC.createBufferSource(), g = AC.createGain(), fl = AC.createBiquadFilter();
-        fl.type = hi ? 'highpass' : 'lowpass'; fl.frequency.value = hi ? 1800 : 900;
-        g.gain.value = vol || 0.12;
-        s.buffer = buf; s.connect(fl); fl.connect(g); g.connect(AC.destination); s.start();
-      } catch (e) { }
-    }
 
     // ---------- input ----------
     const inp = { l: 0, r: 0, u: 0, d: 0, fire: false, turbo: false, msl: false };
@@ -659,7 +499,7 @@ import { wrapChars, multOf } from './core/util.js';
         });
       }
       shake = Math.min(6, shake + (big ? 4.5 : 2)); boom(big ? 0.16 : 0.08);
-      if (big) duckT = Math.max(duckT, 0.55);   // explosion grande → ducking de la musica
+      if (big) duck(0.55);                      // explosion grande → ducking de la musica
     }
     function popup(x, y, txt, c) { popups.push({ x, y, txt, c: c || P.accent, life: 1.1 }); }
 
@@ -1169,7 +1009,7 @@ import { wrapChars, multOf } from './core/util.js';
           c: [P.warn, P.accent, '#f2b544', '#3a3f43'][i % 4], r: 1 + Math.random() * 2
         });
       shake = Math.min(6, shake + (big ? 4 : 2)); boom(big ? 0.16 : 0.08);
-      if (big) duckT = Math.max(duckT, 0.55);   // la explosion agacha la musica un instante
+      if (big) duck(0.55);                      // la explosion agacha la musica un instante
     }
     // zona critica destruida (comparten cañon y misil): explosion, puntos y cierre de pasada
     function momZoneKilled(z) {
@@ -1237,7 +1077,7 @@ import { wrapChars, multOf } from './core/util.js';
       popup(MOM_AX + cm0.x, 56 + cm0.y, T('mom_pass', { n: momPhase + 1, m: MOM_PHASES.length }), P.dim);
       beep(620, 0.7, 'sine', 0.07, 65);   // sting de entrada: el tiempo se ESTIRA (pitch cayendo)
       boom(0.10);
-      if (eng) eng.g.gain.value = 0;
+      engineOff();
     }
     // VIRAJE 180 y nueva pasada sobre el mismo blanco. Las zonas conservan su hp: lo que ya
     // rompiste cuenta, asi que insistir avanza en vez de reiniciar. Cuesta combustible.
@@ -1264,7 +1104,7 @@ import { wrapChars, multOf } from './core/util.js';
       freezeRun();
       state = 'results'; levelT = 0; resT = 0; resRow = 0;
       beep(700, 0.15, 'square', 0.06, 1000);
-      if (eng) eng.g.gain.value = 0;
+      engineOff();
     }
     // arma lastRun: el desglose de puntos, las estrellas y la calificacion de la mision
     function freezeRun() {
@@ -1306,10 +1146,7 @@ import { wrapChars, multOf } from './core/util.js';
       }
       // AUDIO de camara lenta: el motor pasa a ser un rumble GRAVE y ahogado con un pulso
       // lento tipo latido (el lowpass de 320Hz del motor hace el resto del efecto "bajo el agua")
-      if (eng && !muted) {
-        eng.o.frequency.value = 30 + Math.sin(mom.t * 1.5) * 3;
-        eng.g.gain.value = 0.014 + 0.009 * Math.max(0, Math.sin(mom.t * 2.6));
-      }
+      engineRumble(mom.t);
       popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
       popups = popups.filter(p => p.life > 0);
 
@@ -1519,16 +1356,16 @@ import { wrapChars, multOf } from './core/util.js';
       const s = proj(plane.x, 0, PZ);
       for (let i = 0; i < 16; i++) parts.push({ x: s.x + (Math.random() - 0.5) * 24, y: s.y, vx: (Math.random() - 0.5) * 40, vy: -40 - Math.random() * 60, life: 0.6, c: P.foam, r: 1.6 });
       if (Math.floor(score) > best) { best = Math.floor(score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
-      if (eng) eng.g.gain.value = 0;
+      engineOff();
       beep(180, 0.5, 'sawtooth', 0.06, 40);
     }
 
     // ---------- update ----------
     function update(dt) {
       t += dt;
-      duckT = Math.max(0, duckT - dt);   // el ducking de la musica se recupera solo
+      tickDuck(dt);                      // el ducking de la musica se recupera solo
       fadeT = Math.max(0, fadeT - dt);   // fundido desde negro (se pinta al final de draw)
-      updateSfx(dt);   // loops de SFX con fade (motor, turbo, rasante, ambiente, alarma, metralla)
+      updateSfx(dt, { state, cfg, plane, boost, firing: inp.fire, overheat, soldiers });   // loops con fade
       // camara CERCA: interpola hacia el objetivo; fuera de vuelo (o al morir) vuelve sola a 1
       // para que cada entrada a play arranque con zoom-in suave y sin saltos entre estados
       const camZt = (state === 'play' || state === 'takeoff') ? CAM_ZOOMS[camMode] : 1;
@@ -1551,7 +1388,7 @@ import { wrapChars, multOf } from './core/util.js';
         }
         const cn = 3 - Math.floor(toT);
         if (cn !== toCount && cn >= 0) { toCount = cn; beep(cn > 0 ? 520 : 980, 0.14, 'square', 0.06); }
-        if (eng) { eng.o.frequency.value = 46 + spd * 0.55; eng.g.gain.value = sfxSrc('engN') ? 0 : 0.017 * Math.min(1, toT); }   // con samples de motor, el oscilador calla
+        engineFly(spd, false, 0.017 * Math.min(1, toT));
         if (toT >= 3) { state = 'play'; popup(W / 2, 54, T('freeControl'), P.accent); shake = Math.min(6, shake + 1); }
         parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
         parts = parts.filter(p => p.life > 0);
@@ -1567,7 +1404,7 @@ import { wrapChars, multOf } from './core/util.js';
         if (state === 'victory') levelT += dt;
         parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
         parts = parts.filter(p => p.life > 0);
-        if (eng) eng.g.gain.value = 0;
+        engineOff();
         if (state === 'momentum') {
           shake = Math.max(0, shake - dt * 10);
           updateMomentum(dt);
@@ -1579,7 +1416,7 @@ import { wrapChars, multOf } from './core/util.js';
           // completa el texto, y con el texto completo la siguiente arranca el despegue con FADE
           story.t += dt;
           const st = storyTyped(story.t);
-          if (st.typed > story.typed && !muted) beep(1300 + Math.random() * 1100, 0.014, 'square', 0.013);
+          if (st.typed > story.typed && !isMuted()) beep(1300 + Math.random() * 1100, 0.014, 'square', 0.013);
           story.typed = st.typed; story.done = st.done;
           // gracia de 0.4s: el tap/tecla que confirmo CAMPAÑA en el menu no debe saltear el tipeo
           if (anyPress && story.t > 0.4) {
@@ -1617,7 +1454,7 @@ import { wrapChars, multOf } from './core/util.js';
           // EPILOGO: reusa el motor de tipeo de la historia; al terminar, encadena segun el modo
           story.t += dt;
           const st = storyTyped(story.t);
-          if (st.typed > story.typed && !muted) beep(1300 + Math.random() * 1100, 0.014, 'square', 0.013);
+          if (st.typed > story.typed && !isMuted()) beep(1300 + Math.random() * 1100, 0.014, 'square', 0.013);
           story.typed = st.typed; story.done = st.done;
           if (anyPress && story.t > 0.4) {
             if (!story.done) { story.t += 999; }
@@ -2112,10 +1949,7 @@ import { wrapChars, multOf } from './core/util.js';
       bloodSplat = Math.max(0, bloodSplat - dt * 0.3);   // la mancha de sangre se desvanece (~3 s)
       if (boost) shake = Math.max(shake, 0.8 + (plane.y < 5 ? 0.7 : 0));
 
-      if (eng) {
-        eng.o.frequency.value = 46 + spd * 0.55 + (boost ? 28 : 0);
-        eng.g.gain.value = sfxSrc('engN') ? 0 : (boost ? 0.030 : 0.017);   // con samples de motor, el oscilador calla
-      }
+      engineFly(spd, boost, boost ? 0.030 : 0.017);
       if (fuel <= 0 && Math.random() < 0.05) beep(90, 0.08, 'sawtooth', 0.03);
     }
 
@@ -3273,7 +3107,7 @@ import { wrapChars, multOf } from './core/util.js';
     let last = performance.now();
     function frame(now) {
       const dt = Math.min(0.033, (now - last) / 1000); last = now;
-      update(dt); draw(); updateMusic();
+      update(dt); draw(); updateMusic(state);
       if (mslBtn) mslBtn.classList.toggle('on', state === 'play' || state === 'momentum');   // botón de misil en juego y momentum
       requestAnimationFrame(frame);
     }

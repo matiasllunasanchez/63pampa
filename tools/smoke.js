@@ -95,6 +95,12 @@ app.whenReady().then(async () => {
   await checkAlive(win, 'en vuelo');
   clearInterval(hold);
 
+  // AUDIO: isCurrentlyAudible() mira la salida real del renderer. Es la unica forma de saber que
+  // el juego suena — los chequeos de canvas y de consola son ciegos a un subsistema de audio roto.
+  console.log('\naudio:');
+  if (win.webContents.isCurrentlyAudible()) pass('el juego esta emitiendo sonido');
+  else fail('silencio total — musica y efectos no estan sonando');
+
   console.log('\nconsola:');
   if (errors.length) {
     fail(`${errors.length} error(es) de consola:`);
