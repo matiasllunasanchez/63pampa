@@ -4,8 +4,8 @@ import { STRINGS } from './data/strings.js';
 import { P, WATER_STYLES, SKY_PRESETS, LAND } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SFXB, SFX_DEF } from './data/sfx.js';
-import { SHIPS, CAMPAIGN_CFG, MISSIONS } from './data/missions.js';
-import { L, T, getLang, setLang, cycleLang, applyChrome } from './core/i18n.js';
+import { SHIPS, MISSIONS } from './data/missions.js';
+import { L, T, getLang, cycleLang, applyChrome } from './core/i18n.js';
 import { wrapChars, multOf } from './core/util.js';
 
   (() => {
