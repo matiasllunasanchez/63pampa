@@ -1,21 +1,19 @@
 // TESTS DE SENSACION — simulan la matematica del vuelo fuera del navegador.
 //   npm run feel
 //
-// No dibujan ni abren Electron: replican las ecuaciones de src/ y reportan los tiempos y
+// No dibujan ni abren Electron: corren las ecuaciones REALES del juego y reportan los tiempos y
 // velocidades que va a sentir el jugador. Sirven de dos maneras:
 //   - al ajustar la sensacion, dan el numero exacto en vez de "probemos a ver"
-//   - al refactorizar, detectan si un valor se movio sin querer
+//   - al refactorizar, detectan si algo se movio sin querer
 //
-// Las constantes se LEEN del fuente (tools/lib/constants.js), asi que no pueden quedar viejas.
-const { num, rx } = require('./lib/constants');
+// IMPORTANTE: importa src/core/physics.js — NO reimplementa las formulas. Antes las tenia
+// copiadas, asi que podia dar verde mientras el juego hacia otra cosa.
+import {
+  pitchTarget, applyEnergy, scrapeLimit, speedTarget,
+  PITCH_LERP, PITCH_ROW, SCRAPE_LIFT, SCRAPE_RECOVER,
+} from '../src/core/physics.js';
 
-// --- constantes leidas del juego ---
-const G = rx(/const G = (\d+), TH/, 'gravedad G'), TH = rx(/TH = (\d+)/, 'empuje TH'), DIVE = rx(/DIVE = (\d+)/, 'picada DIVE');
-const PITCH_DELAY = num('PITCH_DELAY'), PITCH_RAMP = num('PITCH_RAMP'), PITCH_VY = num('PITCH_VY');
-const ROW = rx(/pc > ([\d.]+) \? 0/, 'umbral de fila del sprite');
-const LERP = rx(/plane\.pitch \+= \(pitchTarget - plane\.pitch\) \* Math\.min\(1, dt \* (\d+)\)/, 'lerp del cabeceo');
-const ENERGY_K = num('ENERGY_K'), ENERGY_DRAG = num('ENERGY_DRAG'), ENERGY_MAX = num('ENERGY_MAX');
-const SCRAPE_BASE = num('SCRAPE_BASE'), SCRAPE_MIN = num('SCRAPE_MIN'), SCRAPE_LIFT = num('SCRAPE_LIFT');
+const G = 22, TH = 55, DIVE = 30;   // gravedad, empuje y picada (game.js)
 const DT = 1 / 60;
 
 let bad = 0;
@@ -32,10 +30,8 @@ function pitchTime(vin, vy0 = 0) {
     t += DT;
     vy += (vin > 0 ? TH - G : -G - DIVE) * DT;
     hold += DT;
-    const ramp = Math.max(0, Math.min(1, (hold - PITCH_DELAY) / PITCH_RAMP));
-    const target = Math.max(-1, Math.min(1, vin * 0.9 * ramp + (vy / 22) * PITCH_VY));
-    pitch += (target - pitch) * Math.min(1, DT * LERP);
-    if (vin > 0 ? pitch > ROW : pitch < -ROW) return t;
+    pitch += (pitchTarget(vin, hold, vy) - pitch) * Math.min(1, DT * PITCH_LERP);
+    if (vin > 0 ? pitch > PITCH_ROW : pitch < -PITCH_ROW) return t;
   }
   return 99;
 }
@@ -48,20 +44,13 @@ function energy(input, secs = 4, spd0 = 120, t0 = 30) {
     vy += ((input === 'climb' ? TH : 0) - G - (input === 'dive' ? DIVE : 0)) * DT;
     y = Math.max(0.9, Math.min(46, y + vy * DT));
     if (y <= 0.9 || y >= 46) vy = 0;
-    const spdTarget = Math.min(280, Math.min(150, 62 + t * 2.8));
-    spd += (spdTarget - spd) * Math.min(1, DT * ENERGY_DRAG);
-    spd += (-vy) * ENERGY_K * DT;
-    spd = Math.max(34, Math.min(spdTarget * ENERGY_MAX, spd));
+    const tgt = speedTarget({ t, rasLevel: 0, mult: 1, windF: 1, boost: false, afterTier: 0 });
+    spd = applyEnergy(spd, tgt, vy, DT);
   }
   return spd;
 }
 
-// ---------- ROCE: margen antes de morir, y que se pueda ESCAPAR dando gas ----------
-const scrapeLimit = (spd, boost) => {
-  const sf = Math.max(0, Math.min(1, (spd - 90) / 190));
-  return (SCRAPE_BASE - (SCRAPE_BASE - SCRAPE_MIN) * sf) * (boost ? 0.55 : 1);
-};
-
+// ---------- ROCE: que se pueda ESCAPAR dando gas ----------
 function scrapeEscape() {
   const groundY = 0.9, scrapeY = groundY + SCRAPE_LIFT;
   let y = groundY - 0.05, vy = 0, spd = 150, scrapeT = 0.001, t = 0;
@@ -76,21 +65,21 @@ function scrapeEscape() {
       if (vy < 0) vy = 0;
       spd = Math.max(34, spd - spd * 1.1 * DT);
     } else {
-      scrapeT = Math.max(0, scrapeT - DT * 0.35);
+      scrapeT = Math.max(0, scrapeT - DT * SCRAPE_RECOVER);
       if (scrapeT <= 0) return { r: 'ESCAPO', t };
     }
   }
   return { r: 'ATRAPADO', t: 4 };
 }
 
-console.log('\nTESTS DE SENSACION (constantes leidas de src/)\n');
+console.log('\nTESTS DE SENSACION (usan las formulas reales de src/core/physics.js)\n');
 
 console.log('cabeceo — aparicion del sprite:');
 check('mantener ARRIBA desde vuelo nivelado', pitchTime(1), 0.50, 0.08);
 check('mantener ABAJO desde vuelo nivelado', pitchTime(-1), 0.50, 0.08);
 
-// La magnitud depende del tramo simulado y no vale como umbral fijo (una tolerancia ancha
-// solo aparenta verificar). Lo que importa es la INVARIANTE: picar tiene que dar mas que trepar.
+// La magnitud depende del tramo simulado y no vale como umbral fijo (una tolerancia ancha solo
+// aparenta verificar). Lo que importa es la INVARIANTE: picar tiene que dar mas que trepar.
 console.log('\nenergia — la altura se cambia por velocidad:');
 const climb = energy('climb'), dive = energy('dive');
 console.log(`    tras 4s: trepando ${climb.toFixed(0)}  ·  picando ${dive.toFixed(0)}  (dif +${(dive - climb).toFixed(0)})`);

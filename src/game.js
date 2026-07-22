@@ -14,6 +14,8 @@ import * as screens from './render/screens.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
 import * as menus from './render/menus.js';
 import * as momRender from './render/momentum.js';
+import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
+         PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
 import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } from './data/tuning.js';
 
   (() => {
@@ -235,9 +237,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     // VY = peso de la velocidad vertical real — se mantiene >0 para que al soltar el gas y caer la
     // trompa se incline sola, y es bajo para que picar y trepar tarden lo mismo (picar acelera mas
     // rapido, asi que un VY alto adelantaba la picada).
-    const PITCH_DELAY = 0.30, PITCH_RAMP = 0.34, PITCH_VY = 0.05;
     const ROLL_DUR = 0.55;
-    const AFTER_STEP = 2, AFTER_MAX = 5, AFTER_GAIN = 0.16, AFTER_CAP = 42;   // afterburner: seg/escalón, tope, +vel y +techo por escalón
     let story = null;   // pantalla de HISTORIA (campaña): maquina de escribir letra a letra
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
     let toT = 0, toCount = 4;
@@ -261,12 +261,9 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     // reloj del run: podés insistir, pero cada vuelta te acerca a quedarte sin nafta.
     // ENERGIA: altura <-> velocidad. K = cuanta velocidad da picar; DRAG = que tan rapido vuelve
     // al objetivo (mas bajo = conserva mas impulso); MAX = techo sobre el objetivo al picar.
-    const ENERGY_K = 2.0, ENERGY_DRAG = 0.7, ENERGY_MAX = 1.55;
     // RASANTE LETAL: tocar la superficie ya no mata al instante — el avion TAMBALEA y tenes que
     // salir. SCRAPE_BASE son los segundos de gracia a baja velocidad; a mucha velocidad/turbo se
     // reduce hasta SCRAPE_MIN. Salir de la superficie descuenta el reloj, pero no lo borra.
-    const SCRAPE_BASE = 0.85, SCRAPE_MIN = 0.18, SCRAPE_RECOVER = 0.35;
-    const SCRAPE_LIFT = 0.8;   // se sostiene apenas POR ENCIMA de la superficie mientras roza
     let momDrift = 0;   // avance VISUAL extra del momentum: cuando dist llega al tope anti-encadenado,
                         // el sobrante se acumula aca y el mar/tierra lo suman → el avion NUNCA se ve frenar
     try { best = +localStorage.getItem('rasante_frontal_best') || 0; } catch (e) { }
@@ -1053,13 +1050,11 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       anyPress = false;
 
       // velocidad — el multiplicador y la racha rasante aceleran el avión
-      const spdBase = Math.min(150, 62 + t * 2.8);
       boost = inp.turbo && fuel > 0;
       // viento en contra: cuanto más tiempo arriba, más resistencia (hasta -35%)
       if (cfg.wind && plane.y > 16) windT = Math.min(6, windT + dt);
       else windT = Math.max(0, windT - dt * 2);
-      windF = cfg.wind ? 1 - Math.min(0.35, Math.max(0, windT - 0.8) * 0.075) : 1;
-      const rachaVel = 1 + rasLevel * 0.12 + (mult >= 10 ? 0.10 : mult >= 5 ? 0.05 : 0);
+      windF = windFactor(windT, cfg.wind);
       // AFTERBURNER SOSTENIDO: aguantar BOOST + RASANTE acumula tiempo; cada AFTER_STEP s sube un
       // escalón (hasta AFTER_MAX). Cada escalón multiplica la velocidad (AFTER_GAIN) y levanta el
       // techo (AFTER_CAP) para que el aumento se SIENTA. Soltar turbo o trepar lo corta (con gracia).
@@ -1079,19 +1074,12 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
           streaks.push({ a, r: 20 + Math.random() * 18, v: 320 + Math.random() * 220, life: 0.5 });
         }
       }
-      const afterMul = 1 + afterTier * AFTER_GAIN;
-      const spdTarget = Math.min(280 + afterTier * AFTER_CAP, spdBase * rachaVel * windF * (boost ? 1.5 : 1) * afterMul);
+      const spdTarget = speedTarget({ t, rasLevel, mult, windF, boost, afterTier });
       // INTERCAMBIO DE ENERGIA (cfg.energy): la ALTURA es energia almacenada — picar la convierte
       // en velocidad, trepar la gasta. Es lo que arma el pendulo (bajar rapido → rasar → trepar).
       // El arrastre hacia spdTarget se AFLOJA (3 → ENERGY_DRAG) porque con el lerp rapido de antes
       // lo que ganabas picando se evaporaba en medio segundo y no se acumulaba nada.
-      if (cfg.energy) {
-        spd += (spdTarget - spd) * Math.min(1, dt * ENERGY_DRAG);
-        spd += (-plane.vy) * ENERGY_K * dt;                       // vy<0 (picada) suma, vy>0 (trepada) resta
-        spd = Math.max(34, Math.min(spdTarget * ENERGY_MAX, spd));   // techo: picar premia, no rompe
-      } else {
-        spd += (spdTarget - spd) * Math.min(1, dt * 3);
-      }
+      spd = cfg.energy ? applyEnergy(spd, spdTarget, plane.vy, dt) : applyDrag(spd, spdTarget, dt);
       // turbulencia: el viento sacude el avión
       if (windF < 0.97) {
         plane.vx += (Math.random() - 0.5) * 95 * (1 - windF) * dt * 4;
@@ -1169,13 +1157,9 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       // de gas (↑ repetido) no la sacuden y el avión queda recto; si mantenés ↑/↓ sí cabecea.
       const vin = inp.u - inp.d;   // -1 pica / 0 / +1 trepa
       pitchHold = vin !== 0 ? pitchHold + dt : 0;
-      const holdRamp = Math.max(0, Math.min(1, (pitchHold - PITCH_DELAY) / PITCH_RAMP));
-      // PITCH_VY es bajo a proposito: con un peso alto, la velocidad vertical real disparaba el
-      // sprite de trepada por su cuenta a los ~0.6 s y estirar la zona muerta no servia de nada.
-      const pitchV = vin * 0.9 * holdRamp + (plane.vy / 22) * PITCH_VY;
-      const pitchTarget = Math.max(-1, Math.min(1, pitchV));
+      const pitchTgt = pitchTarget(vin, pitchHold, plane.vy);
       plane.bank += (bankTarget - plane.bank) * Math.min(1, dt * 9);   // entra/sale con peso
-      plane.pitch += (pitchTarget - plane.pitch) * Math.min(1, dt * 9);   // igual de rapido que el alabeo
+      plane.pitch += (pitchTgt - plane.pitch) * Math.min(1, dt * PITCH_LERP);   // igual de rapido que el alabeo
 
       // puntaje por altitud + racha rasante
       const alt = plane.y;
@@ -1215,8 +1199,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       // y el roce se cancelaba solo.
       const scrapeY = groundY + SCRAPE_LIFT;
       if (plane.y <= (scrapeT > 0 ? scrapeY + 0.2 : groundY)) {
-        const sf = Math.max(0, Math.min(1, (spd - 90) / 190));            // 0 lento .. 1 a fondo
-        const lim = (SCRAPE_BASE - (SCRAPE_BASE - SCRAPE_MIN) * sf) * (boost ? 0.55 : 1);
+        const lim = scrapeLimit(spd, boost);
         scrapeT += dt;
         if (scrapeT >= lim) return die(deathMsg);                          // se agoto el margen
         // PISO, no altura fija: no se hunde, no salta solo, pero SI podes trepar dando gas.
