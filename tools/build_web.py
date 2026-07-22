@@ -65,7 +65,8 @@ def main():
 
     def sub_const(js, name, replacement, why):
         """Vacia una constante de ruta base (SFXB, TBACK). Revienta si ya no existe."""
-        pat = re.compile(r"(const\s+" + name + r"\s*=\s*)(['\"])[^'\"]*\2")
+        # const|var|let: esbuild convierte los const de modulo en var al aplanarlos en el bundle
+        pat = re.compile(r"((?:const|var|let)\s+" + name + r"\s*=\s*)(['\"])[^'\"]*\2")
         out, k = pat.subn(lambda m: m.group(1) + "''   // web: " + why, js)
         if not k:
             raise SystemExit(f'ERROR: no encontre la constante {name} en el bundle (2cambio el codigo?)')

@@ -2,6 +2,9 @@
 // hace falta bundlear porque Electron carga por file://, donde Chromium bloquea los ES modules.
 import { STRINGS } from './data/strings.js';
 import { P, WATER_STYLES, SKY_PRESETS, LAND } from './data/palette.js';
+import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
+import { SFXB, SFX_DEF } from './data/sfx.js';
+import { SHIPS, CAMPAIGN_CFG, MISSIONS } from './data/missions.js';
 
   (() => {
     'use strict';
@@ -37,8 +40,6 @@ import { P, WATER_STYLES, SKY_PRESETS, LAND } from './data/palette.js';
     let SKY = SKY_PRESETS[cfg.sky];
     function applyCfg() { WATER = WATER_STYLES[cfg.water] || WATER_STYLES.sea; SKY = SKY_PRESETS[cfg.sky] || SKY_PRESETS.dusk; }
 
-    // barcazas/buques británicos reales (objetivo del vuelo).
-    const SHIPS = ['HMS SHEFFIELD', 'HMS COVENTRY', 'HMS ARDENT', 'HMS ANTELOPE', 'RFA SIR GALAHAD', 'ATLANTIC CONVEYOR'];
     // fija el layout de zonas del MOMENTUM segun la clase del buque
     // (MOM_LAYOUTS/SHIP_CLASS se definen mas abajo; esto solo corre al armar un run)
     function useShip(s) {
@@ -69,8 +70,6 @@ import { P, WATER_STYLES, SKY_PRESETS, LAND } from './data/palette.js';
     let objectiveDist = 0;           // distancia meta puerto→barcaza (0 = sin objetivo / infinito)
     let objectiveShip = '';          // nombre de la barcaza objetivo del run
     const CAMPAIGN_PLANE = 0;        // avión fijo de campaña (0 = A-4 Skyhawk, protagonista)
-    // config por defecto de campaña (misma para todos los niveles POR AHORA — a futuro, una por nivel)
-    const CAMPAIGN_CFG = { sky: 'dusk', water: 'sea', wind: true, obstacles: 1, coast: 230 };
 
     // ---------- TIPOS DE OBJETIVO ----------
     // Un objetivo es ENCHUFABLE: agregar un tipo nuevo (base, convoy, escolta...) es agregar
@@ -93,46 +92,6 @@ import { P, WATER_STYLES, SKY_PRESETS, LAND } from './data/palette.js';
     };
     function goalOf(m) { return GOALS[m.goal.kind] || GOALS.ship; }
 
-    // ---------- MISIONES ----------
-    // Una entrada por objetivo real. La CAMPAÑA las juega en orden cronologico; el CICLO DE
-    // MUERTE elige una al azar. Cada mision trae su propio contexto y desenlace, asi que el
-    // epilogo siempre corresponde al blanco que realmente destruiste.
-    //   par   → puntaje de referencia para las estrellas (★ completar, ★★ par, ★★★ par×1.5)
-    //   story → secuencia larga de historia (SOLO campaña; opcional)
-    //   brief → tarjeta corta de 2-3 lineas (ciclo de muerte)
-    //   epi   → desenlace historico, se muestra en ambos modos
-    const MISSIONS = [
-      {
-        id: 'sheffield', name: 'HMS SHEFFIELD', date: '4 de mayo de 1982',
-        goal: { kind: 'ship', ship: 'HMS SHEFFIELD', dist: 2600 },
-        cfg: CAMPAIGN_CFG, par: 7000, story: 'storyIntro', brief: 'briefSheffield', epi: 'epiSheffield',
-      },
-      {
-        id: 'ardent', name: 'HMS ARDENT', date: '21 de mayo de 1982',
-        goal: { kind: 'ship', ship: 'HMS ARDENT', dist: 2600 },
-        cfg: CAMPAIGN_CFG, par: 8000, story: 'storyL1', brief: 'briefArdent', epi: 'epiArdent',
-      },
-      {
-        id: 'antelope', name: 'HMS ANTELOPE', date: '23 de mayo de 1982',
-        goal: { kind: 'ship', ship: 'HMS ANTELOPE', dist: 2800 },
-        cfg: CAMPAIGN_CFG, par: 8500, brief: 'briefAntelope', epi: 'epiAntelope',
-      },
-      {
-        id: 'coventry', name: 'HMS COVENTRY', date: '25 de mayo de 1982',
-        goal: { kind: 'ship', ship: 'HMS COVENTRY', dist: 2800 },
-        cfg: CAMPAIGN_CFG, par: 9000, brief: 'briefCoventry', epi: 'epiCoventry',
-      },
-      {
-        id: 'conveyor', name: 'ATLANTIC CONVEYOR', date: '25 de mayo de 1982',
-        goal: { kind: 'ship', ship: 'ATLANTIC CONVEYOR', dist: 3000 },
-        cfg: CAMPAIGN_CFG, par: 9500, brief: 'briefConveyor', epi: 'epiConveyor',
-      },
-      {
-        id: 'galahad', name: 'RFA SIR GALAHAD', date: '8 de junio de 1982',
-        goal: { kind: 'ship', ship: 'RFA SIR GALAHAD', dist: 3000 },
-        cfg: CAMPAIGN_CFG, par: 10000, brief: 'briefGalahad', epi: 'epiGalahad',
-      },
-    ];
     function loadLevel(i) {
       curLevel = Math.max(0, Math.min(MISSIONS.length - 1, i));
       Object.assign(cfg, MISSIONS[curLevel].cfg); applyCfg();
@@ -418,44 +377,6 @@ import { P, WATER_STYLES, SKY_PRESETS, LAND } from './data/palette.js';
     let duckT = 0;   // ducking: las explosiones grandes agachan la musica un instante
     try { muted = localStorage.getItem('rasante_muted') === '1'; } catch (e) { }
 
-    // ---------- SFX con SAMPLES (assets/new_sounds/) ----------
-    // Capa de sonido REAL sobre el motor procedural: one-shots (sfxOne) y loops con fade
-    // (updateSfx, por contexto). En el BUILD WEB tools/build_web.py vacia SFXB → sfxSrc da
-    // null, todo esto se apaga solo y quedan los beeps/osciladores de siempre (fallback).
-    const SFXB = '../assets/new_sounds/';
-    const SFX_DEF = {
-      // armas
-      gun: { f: ['ammo/machinegun_slow.mp3'], v: 0.5, loop: true },       // metralla: loop mientras disparas
-      msl: { f: ['ammo/misil.mp3', 'ammo/misil2.wav'], v: 0.7 },
-      // cañon en MOMENTUM (1a persona): rafaga lenta y pesada, una variante al azar por tiro.
-      // Comparte los samples con exXsmall pero es una entrada propia para poder regular su
-      // volumen sin tocar el de las explosiones chicas.
-      momGun: { f: ['explosions/xsmall_explosion.wav', 'explosions/xsmall_explosion2.wav'], v: 0.55 },
-      // cuerpos (atropellar soldados): uno al azar
-      body: { f: ['body/body_hit0.wav', 'body/body_hit1.wav', 'body/body_hit2.wav', 'body/body_hit3.wav'], v: 0.75 },
-      // explosiones por contexto
-      exXheavy: { f: ['explosions/xheavy_explosion0.wav', 'explosions/xheavy_explosion1.wav', 'explosions/xheavy_explosion3.wav', 'explosions/xheavy_explosion4.wav'], v: 0.9 },
-      exHeavy: { f: [1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => 'explosions/heavy_explosion' + i + '.wav'), v: 0.8 },
-      exHeavyDist: { f: [0, 1, 2, 3].map(i => 'explosions/heavy_dist_explosion' + i + '.wav'), v: 0.7 },
-      exMedium: { f: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => 'explosions/medium_explosion' + i + '.wav'), v: 0.7 },
-      exSmall: { f: [0, 1, 2, 3].map(i => 'explosions/small_explosion' + i + '.wav'), v: 0.75 },
-      exXsmall: { f: ['explosions/xsmall_explosion.wav', 'explosions/xsmall_explosion2.wav'], v: 0.6 },
-      // motor / vuelo
-      lv1: { f: ['flying/motor/lv1.wav'], v: 0.6 },                        // despegue + conteo
-      engN: { f: ['flying/motor/normal.wav'], v: 0.32, loop: true },       // crucero (se intercala con engN2)
-      engN2: { f: ['flying/motor/normal2.wav'], v: 0.32, loop: true },
-      turbo: { f: ['flying/motor/turbo.wav'], v: 0.5, loop: true },
-      waterNear: { f: ['flying/water_near_plane.mp3'], v: 0.22, loop: true },   // rasante, volumen bajo
-      waveFly: { f: ['flying/motor/wave_fly1.wav', 'flying/motor/wave_fly2.wav'], v: 0.45 },  // near-miss / pirueta
-      // ambiente de terreno (loop por contexto)
-      ambRain: { f: ['terrain/rain.mp3'], v: 0.35, loop: true },           // tormenta en tierra
-      ambStorm: { f: ['terrain/storm_sea_1.mp3'], v: 0.4, loop: true },    // tormenta en mar
-      ambWarFar: { f: ['terrain/war_distant.mp3'], v: 0.32, loop: true },  // tierra, guerra lejana
-      ambWarNear: { f: ['terrain/war_near_soldats.mp3'], v: 0.42, loop: true }, // soldados corriendo abajo
-      ambWind: { f: ['terrain/terrain_wind.mp3'], v: 0.3, loop: true },    // tierra vacia (tutorial/pruebas)
-      // general
-      alarm: { f: ['general/incoming_alarm.wav'], v: 0.45, loop: true },   // a la par del MOMENTUM
-    };
     const SFX_MASTER = 0.3;   // volumen maestro de TODOS los samples (no tapan la musica de fondo)
     const SFX_LOOP_KEYS = Object.keys(SFX_DEF).filter(k => SFX_DEF[k].loop);
     const sfxPool = {}, sfxLoopA = {}, sfxTgt = {};
@@ -790,66 +711,6 @@ import { P, WATER_STYLES, SKY_PRESETS, LAND } from './data/palette.js';
     // `at`: fraccion de objectiveDist donde arranca la pasada · `scale`: tamano del barco en pantalla
     // `u`: posicion de la zona a lo largo del barco (-1..1) · `v`: altura sobre cubierta (en bloques)
     // `w`: ancho (fraccion del largo) · `h`: alto (en bloques) · `maxHp`: dificultad de la zona
-    // LAYOUTS POR CLASE DE BARCO: cada barcaza tiene sus propias zonas criticas y dificultad.
-    // `at` y `scale` son IGUALES entre layouts (la aproximacion/trigger no cambia); lo que varia
-    // son las zonas, sus HP (dificultad), puntos y ventanas de tiempo.
-    const MOM_LAYOUTS = {
-      // Destructor Tipo 42 (SHEFFIELD, COVENTRY): AA a proa/popa → radar del mastil → PUENTE
-      t42: [
-        {
-          at: 0.78, scale: 0.55, time: 5.5, zones: [
-            { id: 'aa_l', label: 'zone_aa', u: -0.52, v: 0, w: 0.15, h: 1.3, maxHp: 55, pts: 350 },
-            { id: 'aa_r', label: 'zone_aa', u: 0.52, v: 0, w: 0.15, h: 1.3, maxHp: 55, pts: 350 }]
-        },
-        {
-          at: 0.90, scale: 0.75, time: 4.5, zones: [
-            { id: 'radar', label: 'zone_radar', u: 0.10, v: 2.7, w: 0.11, h: 1.5, maxHp: 45, pts: 500 }]
-        },
-        {
-          at: 1.00, scale: 1.0, time: 5, zones: [
-            { id: 'bridge', label: 'zone_bridge', u: -0.05, v: 1, w: 0.20, h: 2, maxHp: 130, pts: 900 }]
-        },
-      ],
-      // Fragata Tipo 21 (ARDENT, ANTELOPE): cañones → radar chico (dificil) → MOTORES gemelos
-      // (sala de maquinas al nivel del casco: hay que rematarla abajo, cerca del agua)
-      t21: [
-        {
-          at: 0.78, scale: 0.55, time: 5.5, zones: [
-            { id: 'aa_l', label: 'zone_aa', u: -0.52, v: 0, w: 0.15, h: 1.3, maxHp: 55, pts: 350 },
-            { id: 'aa_r', label: 'zone_aa', u: 0.52, v: 0, w: 0.15, h: 1.3, maxHp: 55, pts: 350 }]
-        },
-        {
-          at: 0.90, scale: 0.75, time: 4.5, zones: [
-            { id: 'radar', label: 'zone_radar', u: 0.10, v: 2.7, w: 0.09, h: 1.3, maxHp: 50, pts: 550 }]
-        },
-        {
-          at: 1.00, scale: 1.0, time: 5.5, zones: [
-            { id: 'eng_l', label: 'zone_engine', u: -0.30, v: -0.3, w: 0.14, h: 1.2, maxHp: 70, pts: 500 },
-            { id: 'eng_r', label: 'zone_engine', u: 0.26, v: -0.3, w: 0.14, h: 1.2, maxHp: 70, pts: 500 }]
-        },
-      ],
-      // Logistico (SIR GALAHAD, ATLANTIC CONVEYOR): AA unica a proa → DEPOSITO de carga
-      // (grande y con mucha vida, pero facil de pegar) → puente a popa
-      log: [
-        {
-          at: 0.78, scale: 0.55, time: 5, zones: [
-            { id: 'aa_c', label: 'zone_aa', u: -0.30, v: 0, w: 0.15, h: 1.3, maxHp: 70, pts: 400 }]
-        },
-        {
-          at: 0.90, scale: 0.75, time: 4.5, zones: [
-            { id: 'dep', label: 'zone_deposit', u: 0.05, v: 0, w: 0.30, h: 1.6, maxHp: 110, pts: 700 }]
-        },
-        {
-          at: 1.00, scale: 1.0, time: 5, zones: [
-            { id: 'bridge', label: 'zone_bridge', u: 0.32, v: 1, w: 0.16, h: 2, maxHp: 100, pts: 900 }]
-        },
-      ],
-    };
-    const SHIP_CLASS = {
-      'HMS SHEFFIELD': 't42', 'HMS COVENTRY': 't42',
-      'HMS ARDENT': 't21', 'HMS ANTELOPE': 't21',
-      'RFA SIR GALAHAD': 'log', 'ATLANTIC CONVEYOR': 'log',
-    };
     let MOM_PHASES = MOM_LAYOUTS.t42;   // layout del run actual (lo fija randomShip)
 
     // geometria del barco en pantalla (se mueve: balanceo + cabeceo → las zonas se mueven con el)
