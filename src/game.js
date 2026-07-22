@@ -11,6 +11,7 @@ import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, update
 import * as world3D from './systems/three-world.js';
 import { cv, ctx, W, H, HOR, F, PZ, SC, px, panel } from './render/ctx.js';
 import * as screens from './render/screens.js';
+import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
 
   (() => {
     'use strict';
@@ -193,22 +194,6 @@ import * as screens from './render/screens.js';
     // `sheet` (sprite sheet HORNEADO desde el modelo 3D low-poly: 9 frames de 56x32, alabeo
     // -60..+60 en pasos de 15, frame 4 = nivelado) que es el que VUELA — pixel art coherente
     // con el juego y banking real por frame. Regenerar: npx electron tools/bake_planes_run.js
-    const PLANES = [
-      { key: 'sky', name: 'A-4 SKYHAWK', src: "../assets/img/plane_sky.webp", sheet: '../assets/img/plane_sky_sheet.png', desc: { es: 'Equilibrado - protagonista de la campaña', en: 'Balanced - the campaign workhorse' } },
-      { key: 'dagger', name: 'IAI DAGGER', src: "../assets/img/plane_dagger.webp", sheet: '../assets/img/plane_dagger_sheet.png', desc: { es: 'Mas rapido y con mas fuego - dificil de controlar', en: 'Faster, harder-hitting - tricky to control' } },
-      { key: 'supere', name: 'SUPER ETENDARD', src: "../assets/img/plane_supere.webp", sheet: '../assets/img/plane_supere_sheet.png', desc: { es: 'Misiones especiales - misiles Exocet', en: 'Special missions - Exocet missiles' } },
-      { key: 'a4q', name: 'A-4Q', src: "../assets/img/plane_a4q.webp", sheet: '../assets/img/plane_a4q_sheet.png', desc: { es: 'Variante naval - similar al A-4B/C', en: 'Naval variant - similar to the A-4B/C' } },
-      { key: 'pampa', name: 'PAMPA 63', src: "../assets/img/plane_pampa.webp", sheet: '../assets/img/plane_pampa_sheet.png', desc: { es: 'Entrenador biplaza IA-63', en: 'IA-63 two-seat trainer' } },
-    ];
-    const SHEET_FW = 56, SHEET_FH = 32, SHEET_NF = 9, SHEET_ROWS = 3;   // 9 cols (alabeo) x 3 filas (cabeceo: trepa/nivel/pica); tambien spec para arte manual
-    PLANES.forEach(pl => {
-      pl.img = new Image(); pl.ready = false; pl.w = 977; pl.h = 471;
-      pl.img.onload = () => { pl.ready = true; pl.w = pl.img.naturalWidth; pl.h = pl.img.naturalHeight; };
-      pl.img.src = pl.src;
-      pl.sheetImg = new Image(); pl.sheetOk = false;
-      pl.sheetImg.onload = () => { pl.sheetOk = true; };
-      pl.sheetImg.src = pl.sheet;
-    });
     let selPlane = 0, startReq = false;
 
 
@@ -2281,67 +2266,10 @@ import * as screens from './render/screens.js';
       drawHudAsset(OBJ_ASSETS.plane, pm, y, 'plane', 7);
     }
 
-    // pantalla inicial: elegir CAMPAÑA / CICLO DE MUERTE / SUPERVIVENCIA (lista vertical)
-    function drawModeSelect() {
-      panel();
-      ctx.textAlign = 'center';
-      ctx.fillStyle = P.accent; ctx.font = 'bold 18px monospace';
-      ctx.fillText(T('title'), W / 2, 28);
-      ctx.fillStyle = P.dim; ctx.font = '7px monospace';
-      ctx.fillText(T('modePrompt'), W / 2, 42);
-
-      const opts = [
-        { name: T('modeCampaign'), desc: T('modeCampaignDesc') },
-        { name: T('modeCycle'), desc: T('modeCycleDesc') },
-        { name: T('modeSurvival'), desc: T('modeSurvivalDesc') },
-      ];
-      const y0 = 60, rh = 34;
-      for (let i = 0; i < opts.length; i++) {
-        const y = y0 + i * rh, on = i === modeSel;
-        ctx.strokeStyle = on ? P.accent : '#3a464c'; ctx.globalAlpha = on ? 1 : 0.55;
-        ctx.strokeRect(28.5, y + 0.5, W - 57, rh - 8); ctx.globalAlpha = 1;
-        if (on) {
-          ctx.fillStyle = P.accent; ctx.globalAlpha = 0.09; ctx.fillRect(28, y, W - 57, rh - 8); ctx.globalAlpha = 1;
-          ctx.fillStyle = P.accent; ctx.textAlign = 'left'; ctx.font = 'bold 9px monospace'; ctx.fillText('>', 34, y + 16);
-        }
-        ctx.textAlign = 'left';
-        ctx.fillStyle = on ? P.accent : P.body; ctx.font = 'bold 10px monospace';
-        ctx.fillText(opts[i].name, 46, y + 12);
-        ctx.fillStyle = on ? P.ink : P.dim; ctx.font = '6px monospace';
-        ctx.fillText(opts[i].desc, 46, y + 22);
-      }
-
-      ctx.textAlign = 'center';
-      if (Math.sin(t * 4) > -0.3) {
-        ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-        ctx.fillText(T('modeHint'), W / 2, 172);
-      }
-      ctx.fillStyle = '#5c6e73'; ctx.font = '6px monospace';
-      ctx.fillText('[L] ' + T('langName'), W / 2, 160);
-    }
 
 
 
 
-    // menú de configuración de mapa [M] — herramienta para prototipar niveles
-    function drawCfg() {
-      ctx.fillStyle = '#0a0e11ee'; ctx.fillRect(24, 20, W - 48, H - 40);
-      ctx.strokeStyle = P.accent; ctx.globalAlpha = 0.6; ctx.strokeRect(24.5, 20.5, W - 49, H - 41); ctx.globalAlpha = 1;
-      ctx.textAlign = 'center';
-      ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-      ctx.fillText('CONFIGURACION DE MAPA', W / 2, 33);
-      ctx.font = '7px monospace';
-      const rows = getCfgRows();
-      if (cfgRow >= rows.length) cfgRow = 0;
-      for (let i = 0; i < rows.length; i++) {
-        const r = rows[i], y = 48 + i * 13, on = i === cfgRow;
-        let idx = r.opts.findIndex(o => o === r.get()); if (idx < 0) idx = 0;
-        ctx.textAlign = 'left'; ctx.fillStyle = on ? P.accent : P.dim; ctx.fillText((on ? '> ' : '  ') + r.label, 34, y);
-        ctx.textAlign = 'right'; ctx.fillStyle = on ? P.ink : P.body; ctx.fillText('< ' + r.names[idx] + ' >', W - 34, y);
-      }
-      ctx.textAlign = 'center'; ctx.fillStyle = P.dim; ctx.font = '6px monospace';
-      ctx.fillText('flechas: mover / cambiar   ·   [M] o ENTER: cerrar', W / 2, H - 28);
-    }
 
     // colores de la bandera argentina, para el conteo del despegue
     const CELESTE = '#75aadb', BLANCO = '#f2f7fb';
@@ -2486,48 +2414,6 @@ import * as screens from './render/screens.js';
     }
 
 
-    function drawMenu() {
-      panel();
-      ctx.textAlign = 'center';
-      ctx.fillStyle = P.accent; ctx.font = 'bold 16px monospace';
-      ctx.fillText(T('title'), W / 2, 20);
-      ctx.fillStyle = P.dim; ctx.font = '6px monospace';
-      ctx.fillText(T('selTitle'), W / 2, 32);
-      // indicador de modo (menú compartido: ciclo de muerte o supervivencia)
-      ctx.fillStyle = P.foam; ctx.font = 'bold 7px monospace';
-      ctx.fillText(gameMode === 'cycle' ? T('modeCycle') : T('modeSurvival'), W / 2, 42);
-
-      // preview del avión elegido, con leve cabeceo
-      const pl = PLANES[selPlane];
-      if (pl.ready) {
-        const PW = 130, PH = Math.round(PW * pl.h / pl.w);
-        ctx.drawImage(pl.img, Math.round(W / 2 - PW / 2), Math.round(76 - PH / 2 + Math.sin(t * 1.6) * 2), PW, PH);
-      }
-      // flechas de selección (parpadean)
-      ctx.fillStyle = Math.sin(t * 6) > 0 ? P.ink : P.dim; ctx.font = 'bold 15px monospace';
-      ctx.fillText('<', 16, 80); ctx.fillText('>', W - 16, 80);
-
-      // nombre + descripción
-      ctx.fillStyle = P.accent; ctx.font = 'bold 11px monospace';
-      ctx.fillText(pl.name, W / 2, 114);
-      ctx.fillStyle = P.dim; ctx.font = '6px monospace';
-      ctx.fillText(pl.desc[getLang()] || pl.desc.es, W / 2, 126);
-
-      // puntos indicadores del carrusel
-      const n = PLANES.length, gap = 6, totW = (n - 1) * gap;
-      for (let i = 0; i < n; i++) {
-        ctx.fillStyle = i === selPlane ? P.accent : '#3a464c';
-        ctx.fillRect(Math.round(W / 2 - totW / 2 + i * gap) - 1, 134, 3, 3);
-      }
-      // prompt de arranque
-      if (Math.sin(t * 4) > -0.3) {
-        ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-        ctx.fillText(T('selHint'), W / 2, 150);
-      }
-      ctx.fillStyle = '#5c6e73'; ctx.font = '6px monospace';
-      ctx.fillText('[L] ' + T('langName') + '   ·   [M] config mapa   ·   [ESC] modos', W / 2, 162);
-      ctx.fillText(T('homage'), W / 2, 172);
-    }
 
 
 
