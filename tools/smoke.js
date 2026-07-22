@@ -95,6 +95,13 @@ app.whenReady().then(async () => {
   await checkAlive(win, 'en vuelo');
   clearInterval(hold);
 
+  // PANTALLA DE FIN: al soltar el gas el avion cae y se estrella. Cubre el camino de
+  // panel()/T()/L() que comparten derribado, recuento, victoria y briefing — que si no,
+  // no los tocaria ninguna prueba.
+  console.log('\npantalla de fin:');
+  await sleep(6000);
+  await checkAlive(win, 'derribado');
+
   // AUDIO: isCurrentlyAudible() mira la salida real del renderer. Es la unica forma de saber que
   // el juego suena — los chequeos de canvas y de consola son ciegos a un subsistema de audio roto.
   console.log('\naudio:');

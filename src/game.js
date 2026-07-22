@@ -9,15 +9,14 @@ import { wrapChars, multOf } from './core/util.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, pickRunTrack } from './systems/audio.js';
 import * as world3D from './systems/three-world.js';
+import { cv, ctx, W, H, HOR, F, PZ, SC, px, panel } from './render/ctx.js';
+import * as screens from './render/screens.js';
 
   (() => {
     'use strict';
     // three.js vive ahora en systems/three-world.js (resuelve window.THREE y el guard ?no3d por
     // su cuenta). Aca ya no hace falta saber nada de WebGL: el 3D entra por world3D.frame().
-    const cv = document.getElementById('g');
-    const ctx = cv.getContext('2d');
-    const W = 320, H = 180, HOR = 64, F = 90, PZ = 14;
-    const SC = 2; cv.width = W * SC; cv.height = H * SC;   // buffer 2× (se dibuja en coords 320×180): texto/arte más nítidos
+    // el canvas, su contexto y las medidas del mundo viven en render/ctx.js (ver el import)
     // la longitud de tierra firme (pista de Puerto Argentino) antes del mar es cfg.coast (ver config)
 
     // ---------- paleta ----------
@@ -1566,7 +1565,6 @@ import * as world3D from './systems/three-world.js';
     }
 
     // ---------- render ----------
-    function px(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h))); }
 
     function drawSea() {
       const landMode = cfg.terrain === 'land';
@@ -2008,12 +2006,11 @@ import * as world3D from './systems/three-world.js';
       if (state === 'takeoff') drawTakeoff();
       if (state === 'modeselect') drawModeSelect();
       if (state === 'menu') { drawMenu(); if (cfgOpen) drawCfg(); }
-      if (state === 'dead') drawDead();
-      if (state === 'results') drawResults();
-      if (state === 'brief') drawBrief();
-      if (state === 'victory') drawVictory();
-      if (state === 'epilogue' && story) drawStory();
-      if (state === 'story' && story) drawStory();
+      if (state === 'dead') screens.drawDead({ score, best, deathCause, deathT, factIdx, t });
+      if (state === 'results') screens.drawResults({ lastRun, resRow, resT, t });
+      if (state === 'brief') screens.drawBrief({ mission: curMission(), goalLabel: goalOf(curMission()).label(curMission().goal), briefT, t });
+      if (state === 'victory') screens.drawVictory({ score, levelT, t });
+      if ((state === 'epilogue' || state === 'story') && story) screens.drawStory({ story, state, t });
 
       // fundido desde negro (al salir de la historia hacia el despegue) — SIEMPRE al final
       if (fadeT > 0) {
@@ -2024,53 +2021,6 @@ import * as world3D from './systems/three-world.js';
       }
     }
 
-    // pantalla de HISTORIA: negro tipo "pantalla de carga" con grano de pelicula y scanline,
-    // texto tipeado letra a letra con cursor. NO se ve el terreno de juego (eso llega con el fade).
-    function drawStory() {
-      ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, W, H);
-      // grano de pelicula (parpadea) + una banda de scanline que baja lenta
-      ctx.globalAlpha = 0.10;
-      for (let i = 0; i < 42; i++) px(Math.random() * W, Math.random() * H, 1, 1, '#8a9ba1');
-      ctx.globalAlpha = 0.05;
-      px(0, (t * 9) % (H + 30) - 15, W, 7, '#eaf6ff');
-      ctx.globalAlpha = 1;
-      // marco fino (tarjeta de expediente)
-      ctx.strokeStyle = '#1c262e'; ctx.strokeRect(8.5, 8.5, W - 17, H - 17);
-
-      // texto tipeado: recorre las lineas gastando story.typed caracteres
-      let left = story.typed, y = story.isLevel ? 76 : 38;   // pantalla de NIVEL: centrada
-      ctx.textAlign = 'center';
-      let curX = W / 2, curY = y;   // posicion del cursor (ultimo caracter tipeado)
-      for (const ln of story.lines) {
-        if (left <= 0) break;
-        const shown = ln.txt.slice(0, left);
-        left -= ln.txt.length;
-        if (ln.k === 'title') { ctx.font = 'bold 11px monospace'; ctx.fillStyle = P.accent; }
-        else if (ln.k === 'level') { ctx.font = 'bold 8px monospace'; ctx.fillStyle = P.warn; }
-        else if (ln.k === 'obj') { ctx.font = '7px monospace'; ctx.fillStyle = '#5c6e73'; }
-        else { ctx.font = '7px monospace'; ctx.fillStyle = P.ink; }
-        ctx.fillText(shown, W / 2, y);
-        curX = W / 2 + ctx.measureText(shown).width / 2 + 2; curY = y;
-        // interlineado: mas aire despues del titulo y antes del bloque de nivel
-        y += ln.k === 'title' ? 16 : (ln.k === 'level' ? 12 : 11);
-        if (ln.last && ln.k === 'body') y += 5;
-        if (ln.last && ln.k === 'title') y += 3;
-      }
-      // cursor de maquina de escribir (bloque titilante)
-      if (!story.done && Math.sin(t * 14) > -0.5) px(curX, curY - 6, 4, 7, P.accent);
-      // listo: prompt (continuar en pantallas intermedias, despegar en la del nivel)
-      const lastScreen = story.si + 1 >= story.seq.length;
-      if (story.done && Math.sin(t * 4) > -0.3) {
-        ctx.font = 'bold 8px monospace'; ctx.fillStyle = P.accent; ctx.textAlign = 'center';
-        // el guion de campaña termina en el despegue, pero el EPILOGO sigue al briefing/recuento:
-        // ahi corresponde "continuar", no "despegar"
-        ctx.fillText(T(lastScreen && state !== 'epilogue' ? 'startPrompt' : 'continuePrompt'), W / 2, H - 22);
-      }
-      // progreso de la secuencia (puntitos abajo)
-      const n = story.seq.length;
-      for (let i = 0; i < n; i++)
-        px(W / 2 - n * 4 + i * 8 + 2, H - 13, 3, 3, i === story.si ? P.accent : '#2e3c45');
-    }
 
     // (la vieja pantalla de "barcaza destruida" la absorbio el RECUENTO: ver drawResults)
 
@@ -2370,110 +2320,8 @@ import * as world3D from './systems/three-world.js';
       ctx.fillText('[L] ' + T('langName'), W / 2, 160);
     }
 
-    // ---------- RECUENTO DE FIN DE MISION ----------
-    // Las filas entran de a una acumulando el total; despues caen las estrellas y la calificacion.
-    function drawResults() {
-      // fondo CASI opaco: panel() es translucido y el mundo (popups, mar, montañas) se colaba
-      // entre las filas del recuento y lo hacia ilegible
-      ctx.fillStyle = '#0a0e11f2'; ctx.fillRect(0, 0, W, H);
-      const R = lastRun; if (!R) return;
-      ctx.textAlign = 'center';
-      ctx.fillStyle = P.accent; ctx.font = 'bold 11px monospace';
-      ctx.fillText(T('res_title'), W / 2, 22);
-      ctx.fillStyle = P.ink; ctx.font = 'bold 8px monospace';
-      ctx.fillText(R.mission.name, W / 2, 34);
 
-      // filas del desglose: etiqueta a la izquierda, puntos a la derecha
-      let acc = 0;
-      ctx.font = '7px monospace';
-      for (let i = 0; i < R.rows.length; i++) {
-        if (i >= resRow) break;
-        const r = R.rows[i], y = 52 + i * 12;
-        acc += r.v;
-        ctx.textAlign = 'left'; ctx.fillStyle = P.dim;
-        ctx.fillText(T(r.k) + (r.n !== undefined ? '  ' + r.n : ''), 40, y);
-        ctx.textAlign = 'right'; ctx.fillStyle = P.foam;
-        ctx.fillText('+' + r.v, W - 40, y);
-      }
 
-      // total (aparece cuando entraron todas las filas)
-      if (resRow >= R.rows.length) {
-        const y = 52 + R.rows.length * 12 + 4;
-        ctx.strokeStyle = '#2e3c45'; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(40, y - 6.5); ctx.lineTo(W - 40, y - 6.5); ctx.stroke();
-        ctx.textAlign = 'left'; ctx.fillStyle = P.ink; ctx.font = 'bold 8px monospace';
-        ctx.fillText(T('res_total'), 40, y + 3);
-        ctx.textAlign = 'right'; ctx.fillStyle = P.accent;
-        ctx.fillText(String(R.total), W - 40, y + 3);
-
-        // estrellas: entran de a una con un pequeño rebote
-        const stT = resT - (R.rows.length * 0.45 + 0.15);
-        ctx.textAlign = 'center';
-        for (let i = 0; i < 3; i++) {
-          const on = i < R.stars, appear = stT - i * 0.22;
-          if (appear < 0) continue;
-          const pop = Math.max(0, 1 - appear * 4);           // rebote al aparecer
-          const sz = 13 + pop * 7;
-          ctx.font = 'bold ' + Math.round(sz) + 'px monospace';
-          ctx.fillStyle = on ? P.accent : '#2e3c45';
-          ctx.fillText(on ? '★' : '☆', W / 2 - 20 + i * 20, y + 26);
-        }
-        // calificacion
-        if (stT > 0.75) {
-          ctx.fillStyle = P.foam; ctx.font = 'bold 8px monospace';
-          ctx.fillText(T('res_rank') + '  ' + T(R.rank), W / 2, y + 42);
-        }
-        if (stT > 1.1 && Math.sin(t * 4) > -0.3) {
-          ctx.fillStyle = P.accent; ctx.font = 'bold 7px monospace';
-          ctx.fillText(T('continuePrompt'), W / 2, H - 12);
-        }
-      }
-    }
-
-    // ---------- BRIEFING CORTO (ciclo de muerte / campaña sin guion) ----------
-    function drawBrief() {
-      ctx.fillStyle = '#0a0e11f2'; ctx.fillRect(0, 0, W, H);   // igual que el recuento: fondo opaco
-      const m = curMission();
-      ctx.textAlign = 'center';
-      ctx.fillStyle = P.dim; ctx.font = '6px monospace';
-      ctx.fillText(T('brief_title'), W / 2, 30);
-      ctx.fillStyle = P.accent; ctx.font = 'bold 12px monospace';
-      ctx.fillText(m.name, W / 2, 48);
-      ctx.fillStyle = '#5c6e73'; ctx.font = '6px monospace';
-      ctx.fillText(m.date, W / 2, 60);
-      // contexto corto de la mision (2-3 lineas, envueltas)
-      ctx.fillStyle = P.ink; ctx.font = '7px monospace';
-      const txt = T(m.brief);
-      const lines = wrapChars(txt, 46);
-      lines.forEach((l, i) => ctx.fillText(l, W / 2, 84 + i * 11));
-      // objetivo, en el lenguaje del tipo de meta. Si coincide con el titulo (misiones de buque,
-      // donde el blanco ES la mision) no se repite: solo aporta en metas de otro tipo (distancia...)
-      const goalTxt = goalOf(m).label(m.goal);
-      if (goalTxt !== m.name) {
-        ctx.fillStyle = P.warn; ctx.font = 'bold 7px monospace';
-        ctx.fillText(T('brief_goal') + '  ' + goalTxt, W / 2, 84 + lines.length * 11 + 14);
-      }
-      if (briefT > 0.6 && Math.sin(t * 4) > -0.3) {
-        ctx.fillStyle = P.accent; ctx.font = 'bold 7px monospace';
-        ctx.fillText(T('brief_go'), W / 2, H - 16);
-      }
-    }
-
-    // fin de campaña (2 niveles de prueba)
-    function drawVictory() {
-      panel();
-      ctx.textAlign = 'center';
-      ctx.fillStyle = P.accent; ctx.font = 'bold 15px monospace';
-      ctx.fillText('CAMPANA COMPLETADA', W / 2, 54);
-      ctx.fillStyle = P.dim; ctx.font = '6px monospace';
-      ctx.fillText('(2 niveles de prueba - se agregaran mas)', W / 2, 70);
-      ctx.fillStyle = P.ink; ctx.font = 'bold 10px monospace';
-      ctx.fillText('PUNTAJE  ' + Math.floor(score), W / 2, 96);
-      if (levelT > 0.8 && Math.sin(t * 4) > -0.3) {
-        ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-        ctx.fillText('CUALQUIER TECLA  para el menu', W / 2, 132);
-      }
-    }
 
     // menú de configuración de mapa [M] — herramienta para prototipar niveles
     function drawCfg() {
@@ -2637,7 +2485,6 @@ import * as world3D from './systems/three-world.js';
       ctx.fillText(fuel <= 0 ? T('thr_dead') : T('thr'), W - 4, tyTop - 4);
     }
 
-    function panel() { ctx.fillStyle = '#0d1216cc'; ctx.fillRect(0, 0, W, H); }
 
     function drawMenu() {
       panel();
@@ -2682,38 +2529,7 @@ import * as world3D from './systems/three-world.js';
       ctx.fillText(T('homage'), W / 2, 172);
     }
 
-    function wrapText(txt, x, y, maxW, lh) {
-      const words = txt.split(' '); let line = '', yy = y;
-      for (const w of words) {
-        if (ctx.measureText(line + w).width > maxW && line) { ctx.fillText(line, x, yy); line = w + ' '; yy += lh; }
-        else line += w + ' ';
-      }
-      ctx.fillText(line.trim(), x, yy);
-    }
 
-    function drawDead() {
-      panel();
-      ctx.textAlign = 'center';
-      ctx.fillStyle = P.warn; ctx.font = 'bold 16px monospace';
-      ctx.fillText(T('dead'), W / 2, 42);
-      ctx.fillStyle = P.dim; ctx.font = '7px monospace';
-      ctx.fillText(T(deathCause), W / 2, 55);
-      ctx.fillStyle = P.ink; ctx.font = 'bold 10px monospace';
-      ctx.fillText(T('scoreLabel', { n: Math.floor(score) }), W / 2, 78);
-      ctx.fillStyle = Math.floor(score) >= best && best > 0 ? P.accent : P.dim;
-      ctx.font = '8px monospace';
-      ctx.fillText((Math.floor(score) >= best && best > 0 ? T('newRecord') : T('bestDead', { n: best })), W / 2, 92);
-      ctx.fillStyle = '#8a9ba1'; ctx.font = '6px monospace';
-      wrapText('» ' + L().facts[factIdx], W / 2, 116, 260, 9);
-      if (deathT > 0.7 && Math.sin(t * 4) > -0.3) {
-        ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-        ctx.fillText(T('retryPrompt'), W / 2, 150);
-      }
-      if (deathT > 0.7) {
-        ctx.fillStyle = P.dim; ctx.font = '7px monospace';
-        ctx.fillText(T('menuPrompt'), W / 2, 162);
-      }
-    }
 
     // ---------- loop ----------
     let last = performance.now();
