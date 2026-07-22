@@ -6,6 +6,7 @@ import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS } from './data/missions.js';
 import { L, T, getLang, cycleLang, applyChrome } from './core/i18n.js';
 import { wrapChars, multOf } from './core/util.js';
+import { S, setState, cfg, cam, plane, stats, resetPlane, resetStats } from './core/state.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, pickRunTrack } from './systems/audio.js';
 import * as world3D from './systems/three-world.js';
@@ -43,7 +44,6 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     // o se cargan desde un nivel de campaña. Base para prototipar niveles.
     // fuelOn: el combustible es el RELOJ del run (mantener la secuencia agarrando bidones).
     // Se puede apagar en el menú [M] (COMBUSTIBLE: NO) para pruebas / vuelo libre.
-    const cfg = { sky: 'dusk', water: 'sea', terrain: 'sea', wind: true, obstacles: 1, coast: 230, meters: 3000, fuelOn: true, energy: true };
     // paleta de tierra (turba malvinense). Se vuela A RAS del suelo para atropellar soldados (no es letal).
 
     let WATER = WATER_STYLES[cfg.water];
@@ -108,9 +108,9 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     }
     function curMission() { return MISSIONS[curLevel]; }
     // transiciones desde la pantalla inicial de modo
-    function goSurvival() { gameMode = 'survival'; cfgOpen = false; cfgRow = 0; state = 'menu'; beep(600, 0.08, 'square', 0.05); }
+    function goSurvival() { gameMode = 'survival'; cfgOpen = false; cfgRow = 0; setState('menu'); beep(600, 0.08, 'square', 0.05); }
     // CICLO DE MUERTE: las mismas misiones de la campaña, una al azar, sin el guion largo
-    function goCycle() { gameMode = 'cycle'; cfgOpen = false; cfgRow = 0; randomMission(); state = 'menu'; beep(600, 0.08, 'square', 0.05); }
+    function goCycle() { gameMode = 'cycle'; cfgOpen = false; cfgRow = 0; randomMission(); setState('menu'); beep(600, 0.08, 'square', 0.05); }
     // arranca una SECUENCIA de pantallas (clave del guion en STRINGS: 'storyIntro', 'storyL1'…)
     function initStory(key) {
       story = { seq: L()[key] || STRINGS.es[key] || [], si: 0 };
@@ -151,11 +151,11 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
     function startCampaign() {
       gameMode = 'campaign'; selPlane = CAMPAIGN_PLANE; loadLevel(0); reset();
-      setRunObjective(); state = enterMission();
+      setRunObjective(); setState(enterMission());
     }
     function confirmMode() { const m = MODES[modeSel]; if (m === 'campaign') startCampaign(); else if (m === 'cycle') goCycle(); else goSurvival(); }
     // arranca la mision actual por la puerta que corresponda: guion largo (campaña, si lo tiene)
-    // o tarjeta corta de briefing (ciclo de muerte). Devuelve el state al que hay que ir.
+    // o tarjeta corta de briefing (ciclo de muerte). Devuelve el estado al que hay que ir.
     function enterMission() {
       const m = curMission();
       if (gameMode === 'campaign' && m.story) { initStory(m.story); return 'story'; }
@@ -209,8 +209,8 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
 
     // ---------- estado ----------
-    let state = 'modeselect', t = 0, dist = 0, spd = 62;
-    let plane, fuel, heat, overheat, detection, score, mult, boost;
+    let t = 0, dist = 0, spd = 62;   // `state` (la fase del juego) vive en core/state.js
+    let fuel, heat, overheat, detection, score, mult, boost;
     let obstacles, bullets, missiles, parts, streaks, popups, wake;
     let pmissiles;                       // MISILES DEL JUGADOR (array propio; nunca tocan el hitbox del avión)
     let soldiers, nextSoldier = 0;       // soldados en tierra (array propio; atropellarlos NO mata al avión)
@@ -243,15 +243,12 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     let toT = 0, toCount = 4;
     let levelT = 0;   // temporizador de las tarjetas de transición de nivel / victoria (campaña)
     let briefT = 0;   // temporizador de la tarjeta de briefing corto (ciclo de muerte)
-    // ESTADISTICAS de la corrida: alimentan el recuento y las estrellas del fin de misión.
-    // Se ceran en reset() y se CONGELAN en finishObjective() dentro de lastRun, porque entre
-    // niveles de campaña se llama reset() y borraria los contadores.
-    let stats = null, lastRun = null;
+    // Los CONTADORES de la corrida viven en core/state.js (`stats`), porque los escriben varios
+    // sistemas. Aca queda solo lastRun: la foto POR VALOR que arma freezeRun() al terminar la
+    // misión, porque entre niveles de campaña se llama reset() y borraria los contadores.
+    let lastRun = null;
     let resT = 0, resRow = 0;   // recuento: tiempo y cuantas filas ya entraron
     const RANKS = ['rank_cadete', 'rank_piloto', 'rank_as', 'rank_halcon'];
-    function resetStats() {
-      stats = { air: 0, soldiers: 0, zones: 0, shots: 0, hits: 0, grazes: 0, fuelPicks: 0, dodges: 0, bestRas: 0 };
-    }
     let momPhase = 0, mom = null;   // MOMENTUM: pasada actual del asalto a la barcaza y estado del minijuego
     // fraccion de la velocidad de vuelo que conserva el avion durante el MOMENTUM.
     // Subir = mas sensacion de seguir entrando; bajar = mas quieto/ceremonioso.
@@ -270,7 +267,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
     function reset() {
       t = 0; dist = 0; spd = 6; momDrift = 0;
-      plane = { x: 0, y: 1.2, vx: 0, vy: 0, bank: 0, pitch: 0 };   // bank/pitch: estado visual suavizado (animación)
+      resetPlane();
       fuel = 100; heat = 0; overheat = false; detection = 0;
       score = 0; mult = 1; boost = false; resetStats();
       obstacles = []; bullets = []; missiles = []; parts = []; streaks = []; popups = []; wake = [];
@@ -284,7 +281,6 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       toT = 0; toCount = 4;
       cam.x = 0; cam.y = 4;
     }
-    const cam = { x: 0, y: 14 };
 
     // botón táctil de misil (visible solo en juego; se togglea en el loop)
     const mslBtn = document.getElementById('msl');
@@ -300,17 +296,17 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     addEventListener('keydown', e => {
       audio();
       if (e.code === 'KeyL') { cycleLang(); e.preventDefault(); return; }   // cambia idioma sin empezar la partida
-      if (state === 'modeselect') {                                       // pantalla inicial: CAMPAÑA / CICLO / SUPERVIVENCIA
+      if (S.state === 'modeselect') {                                       // pantalla inicial: CAMPAÑA / CICLO / SUPERVIVENCIA
         if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'ArrowLeft' || e.code === 'KeyA') { modeSel = (modeSel + MODES.length - 1) % MODES.length; beep(520, 0.05, 'square', 0.04); e.preventDefault(); return; }
         if (e.code === 'ArrowDown' || e.code === 'KeyS' || e.code === 'ArrowRight' || e.code === 'KeyD') { modeSel = (modeSel + 1) % MODES.length; beep(520, 0.05, 'square', 0.04); e.preventDefault(); return; }
         if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyX' || e.code === 'KeyK') { confirmMode(); e.preventDefault(); return; }
         return;
       }
-      if (state === 'dead') {                                              // DERRIBADO: Esc/Backspace vuelve al menú principal
-        if (e.code === 'Escape' || e.code === 'Backspace') { state = 'modeselect'; cfgOpen = false; beep(400, 0.06, 'square', 0.05); e.preventDefault(); return; }
+      if (S.state === 'dead') {                                              // DERRIBADO: Esc/Backspace vuelve al menú principal
+        if (e.code === 'Escape' || e.code === 'Backspace') { setState('modeselect'); cfgOpen = false; beep(400, 0.06, 'square', 0.05); e.preventDefault(); return; }
       }
-      if (state === 'menu') {                                             // pantalla de selección de avión (supervivencia)
-        if (e.code === 'Escape' || e.code === 'Backspace') { state = 'modeselect'; cfgOpen = false; beep(400, 0.06, 'square', 0.05); e.preventDefault(); return; }
+      if (S.state === 'menu') {                                             // pantalla de selección de avión (supervivencia)
+        if (e.code === 'Escape' || e.code === 'Backspace') { setState('modeselect'); cfgOpen = false; beep(400, 0.06, 'square', 0.05); e.preventDefault(); return; }
         if (e.code === 'KeyM') { cfgOpen = !cfgOpen; beep(cfgOpen ? 640 : 400, 0.06, 'square', 0.05); e.preventDefault(); return; }
         if (cfgOpen) {                                                    // navegación del menú de configuración de mapa
           {
@@ -327,11 +323,11 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         if (e.code === 'ArrowRight' || e.code === 'KeyD') { selPlane = (selPlane + 1) % PLANES.length; beep(600, 0.05, 'square', 0.04); e.preventDefault(); return; }
         if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyX' || e.code === 'KeyK') { startReq = true; e.preventDefault(); return; }
       }
-      if (state === 'story') {                                            // HISTORIA: Esc vuelve al menu principal
-        if (e.code === 'Escape' || e.code === 'Backspace') { state = 'modeselect'; beep(400, 0.06, 'square', 0.05); e.preventDefault(); return; }
+      if (S.state === 'story') {                                            // HISTORIA: Esc vuelve al menu principal
+        if (e.code === 'Escape' || e.code === 'Backspace') { setState('modeselect'); beep(400, 0.06, 'square', 0.05); e.preventDefault(); return; }
       }
       // PIRUETA (tonel): doble-tap ← / → en vuelo — pulsaciones frescas, no auto-repeat
-      if (!e.repeat && state === 'play') {
+      if (!e.repeat && S.state === 'play') {
         const nowS = performance.now() / 1000;
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') { if (nowS - tapL < 0.28) startRoll(-1); tapL = nowS; }
         if (e.code === 'ArrowRight' || e.code === 'KeyD') { if (nowS - tapR < 0.28) startRoll(1); tapR = nowS; }
@@ -344,7 +340,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       if (e.code === 'KeyV' && !e.repeat) {   // cicla las 4 camaras (1× / 1.5× / 2× / 2.5×)
         camMode = (camMode + 1) % CAM_ZOOMS.length;
         beep(440 + camMode * 120, 0.05, 'square', 0.04);
-        if (state === 'play' || state === 'takeoff') popup(W / 2, 58, camMode ? 'CAM ' + CAM_ZOOMS[camMode] + '×' : 'CAM 1×', P.accent);
+        if (S.state === 'play' || S.state === 'takeoff') popup(W / 2, 58, camMode ? 'CAM ' + CAM_ZOOMS[camMode] + '×' : 'CAM 1×', P.accent);
       }
       if (e.code === 'KeyZ') { inp.msl = true; if (!e.repeat) anyPress = true; e.preventDefault(); }   // lanzar misil
       if (e.code === 'Enter' && !e.repeat) anyPress = true;
@@ -366,12 +362,12 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     cv.addEventListener('pointerdown', e => {
       e.preventDefault(); cv.focus(); audio(); anyPress = true;
       const p = canvasPos(e);
-      if (state === 'modeselect') {                                       // 3 filas: tap en una fila la elige y confirma
+      if (S.state === 'modeselect') {                                       // 3 filas: tap en una fila la elige y confirma
         const row = Math.floor((p.y - 60) / 34);
         if (row >= 0 && row < MODES.length) { modeSel = row; confirmMode(); }
         return;
       }
-      if (state === 'menu') {                                             // selección: tap izq/der cambia, centro despega
+      if (S.state === 'menu') {                                             // selección: tap izq/der cambia, centro despega
         if (cfgOpen) { cfgOpen = false; return; }                         // en config (por teclado), tocar cierra
         if (p.x < W * 0.28) { selPlane = (selPlane + PLANES.length - 1) % PLANES.length; beep(520, 0.05, 'square', 0.04); }
         else if (p.x > W * 0.72) { selPlane = (selPlane + 1) % PLANES.length; beep(600, 0.05, 'square', 0.04); }
@@ -379,7 +375,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         return;
       }
       // PC (mouse): click izquierdo = canon sostenido, click derecho = misil — en juego y momentum
-      if (e.pointerType === 'mouse' && (state === 'play' || state === 'momentum')) {
+      if (e.pointerType === 'mouse' && (S.state === 'play' || S.state === 'momentum')) {
         if (e.button === 2) { tryLaunchMissile(); }
         else { zonePtr.set(e.pointerId, 'fire'); inp.fire = true; }
         return;
@@ -399,7 +395,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     // (ahi manda la camara cockpit) ni en menus.
     const CAM_ZOOMS = [1, 1.5, 2, 2.5];
     let camMode = 0, camZ = 1;
-    function camZoomOn() { return camZ > 1.005 && (state === 'play' || state === 'takeoff' || state === 'dead'); }
+    function camZoomOn() { return camZ > 1.005 && (S.state === 'play' || S.state === 'takeoff' || S.state === 'dead'); }
     // mouse en coordenadas del MUNDO-pantalla: deshace el zoom de la camara cerca para que
     // mira y desproyeccion (balas/misiles) sigan cayendo exactamente bajo el cursor fisico
     function viewMouse() {
@@ -524,7 +520,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     // apuntar se mueve EL MUNDO (giras la trompa del avion, no un cursor). mom.cx/cy es el punto
     // apuntado en coords de mundo; el mundo se dibuja corrido para que ese punto caiga en el visor.
     function momCam() {
-      if (state !== 'momentum' || !mom) return { x: 0, y: 0 };
+      if (S.state !== 'momentum' || !mom) return { x: 0, y: 0 };
       return { x: mom.cx - MOM_AX, y: mom.cy - MOM_AY };
     }
     // pantalla → mundo en momentum: el mundo se dibuja rotado -mom.roll alrededor del centro
@@ -541,7 +537,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     // y crece hasta empalmar con la escala de la proxima pasada del momentum (es el final del mapa)
     function drawApproachBarge() {
       if (objectiveDist <= 0 || momPhase >= MOM_PHASES.length) return;
-      if (state !== 'play' && state !== 'takeoff') return;
+      if (S.state !== 'play' && S.state !== 'takeoff') return;
       const p = dist / objectiveDist;
       const next = MOM_PHASES[momPhase];
       const t0 = momPhase === 0 ? 0.45 : MOM_PHASES[momPhase - 1].at;
@@ -635,7 +631,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     }
     function enterMomentum() {
       const ph = MOM_PHASES[momPhase];
-      state = 'momentum';
+      setState('momentum');
       obstacles = []; bullets = []; missiles = []; pmissiles = []; soldiers = []; gusts = []; streaks = [];  // se limpia el campo (cinematica)
       mom = {
         t: 0, timer: ph.time, doneT: 0, turn: 0, pass: 1, cx: W / 2, cy: 80, hitFx: 0, fx: [],
@@ -659,7 +655,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       if (noFuel || mom.pass >= REATTACK_MAX) return die(noFuel ? 'death_fuel' : 'death_aa');
       mom.turn = REATTACK_DUR;
       mom.pass = (mom.pass || 1) + 1;
-      stats.reattacks = (stats.reattacks || 0) + 1;
+      stats.reattacks++;
       if (cfg.fuelOn) fuel = Math.max(0, fuel - REATTACK_FUEL);
       const cm = momCam();
       popup(MOM_AX + cm.x, 50 + cm.y, T('mom_turn'), P.warn);
@@ -673,7 +669,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     function finishObjective() {
       mom = null;
       freezeRun();
-      state = 'results'; levelT = 0; resT = 0; resRow = 0;
+      setState('results'); levelT = 0; resT = 0; resRow = 0;
       beep(700, 0.15, 'square', 0.06, 1000);
       engineOff();
     }
@@ -804,7 +800,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         mom.doneT -= dt;
         if (mom.doneT <= 0) {
           if (momPhase + 1 >= MOM_PHASES.length) return finishObjective();
-          momPhase++; mom = null; state = 'play';
+          momPhase++; mom = null; setState('play');
           popup(W / 2, 58, T('mom_next'), P.accent);
           beep(110, 0.4, 'sine', 0.06, 640);   // sting de salida: el tiempo VUELVE (pitch subiendo)
         }
@@ -894,7 +890,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
     // PIRUETA (tonel / aileron roll): esquive cinematico con doble-tap ←/→
     function startRoll(dir) {
-      if (state !== 'play' || rollT > 0 || rollCd > 0) return;
+      if (S.state !== 'play' || rollT > 0 || rollCd > 0) return;
       rollT = ROLL_DUR; rollDir = dir; rollCd = 1.15;
       sfxOne('waveFly');                        // rafaga de aire de la pirueta
       beep(480, 0.16, 'triangle', 0.05, 900);   // whoosh ascendente
@@ -902,8 +898,8 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
     // lanza un misil del jugador (arma secundaria: limitada, one-shot, con leve guiado)
     function tryLaunchMissile() {
-      if (state === 'momentum') return momLaunchMissile();   // primera persona: misil del momentum
-      if (state !== 'play' || msl <= 0 || mslCd > 0) return;
+      if (S.state === 'momentum') return momLaunchMissile();   // primera persona: misil del momentum
+      if (S.state !== 'play' || msl <= 0 || mslCd > 0) return;
       let tx = plane.x, td = 42;                                  // engancha el blanco aereo mas cercano adelante
       const vm = viewMouse();
       if (vm.on) {
@@ -920,7 +916,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     }
 
     function die(cause) {
-      state = 'dead'; deathCause = cause; deathT = 0;
+      setState('dead'); deathCause = cause; deathT = 0;
       sfxOne('exSmall');   // mi avion chocando (agua incluida, por ahora)
       factIdx = (factIdx + 1) % L().facts.length;
       explodeAt(plane.x, plane.y, PZ, true);
@@ -936,14 +932,14 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       t += dt;
       tickDuck(dt);                      // el ducking de la musica se recupera solo
       fadeT = Math.max(0, fadeT - dt);   // fundido desde negro (se pinta al final de draw)
-      updateSfx(dt, { state, cfg, plane, boost, firing: inp.fire, overheat, soldiers });   // loops con fade
+      updateSfx(dt, { state: S.state, cfg, plane, boost, firing: inp.fire, overheat, soldiers });   // loops con fade
       // camara CERCA: interpola hacia el objetivo; fuera de vuelo (o al morir) vuelve sola a 1
       // para que cada entrada a play arranque con zoom-in suave y sin saltos entre estados
-      const camZt = (state === 'play' || state === 'takeoff') ? CAM_ZOOMS[camMode] : 1;
+      const camZt = (S.state === 'play' || S.state === 'takeoff') ? CAM_ZOOMS[camMode] : 1;
       camZ += (camZt - camZ) * Math.min(1, dt * 3.5);
 
       // despegue automático desde Puerto Argentino: el control llega a los 3 s
-      if (state === 'takeoff') {
+      if (S.state === 'takeoff') {
         toT += dt;
         const spdBase0 = Math.min(150, 62 + t * 2.8);
         spd = 6 + spdBase0 * Math.min(1, toT / 2.0);
@@ -960,7 +956,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         const cn = 3 - Math.floor(toT);
         if (cn !== toCount && cn >= 0) { toCount = cn; beep(cn > 0 ? 520 : 980, 0.14, 'square', 0.06); }
         engineFly(spd, false, 0.017 * Math.min(1, toT));
-        if (toT >= 3) { state = 'play'; popup(W / 2, 54, T('freeControl'), P.accent); shake = Math.min(6, shake + 1); }
+        if (toT >= 3) { setState('play'); popup(W / 2, 54, T('freeControl'), P.accent); shake = Math.min(6, shake + 1); }
         parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
         parts = parts.filter(p => p.life > 0);
         popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
@@ -970,19 +966,19 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         return;
       }
 
-      if (state !== 'play') {
-        if (state === 'dead') deathT += dt;
-        if (state === 'victory') levelT += dt;
+      if (S.state !== 'play') {
+        if (S.state === 'dead') deathT += dt;
+        if (S.state === 'victory') levelT += dt;
         parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
         parts = parts.filter(p => p.life > 0);
         engineOff();
-        if (state === 'momentum') {
+        if (S.state === 'momentum') {
           shake = Math.max(0, shake - dt * 10);
           updateMomentum(dt);
           startReq = false; anyPress = false;
           return;
         }
-        if (state === 'story') {
+        if (S.state === 'story') {
           // HISTORIA: tipeo letra a letra con tick de maquina de escribir; una tecla/tap
           // completa el texto, y con el texto completo la siguiente arranca el despegue con FADE
           story.t += dt;
@@ -994,23 +990,23 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
             if (!story.done) { story.t += 999; }                          // completar de un saque
             else if (story.si + 1 < story.seq.length) {                   // → siguiente pantalla de la secuencia
               story.si++; initStoryScreen(); beep(500, 0.05, 'square', 0.04);
-            } else { t = 0; fadeT = 1.4; state = 'takeoff'; sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+            } else { t = 0; fadeT = 1.4; setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
           }
-        } else if (state === 'brief') {
+        } else if (S.state === 'brief') {
           // tarjeta corta de mision (ciclo de muerte, y campaña sin guion): una tecla despega
           briefT += dt;
-          if (briefT > 0.6 && anyPress) { t = 0; fadeT = 1.0; state = 'takeoff'; sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
-        } else if (state === 'menu') {
+          if (briefT > 0.6 && anyPress) { t = 0; fadeT = 1.0; setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+        } else if (S.state === 'menu') {
           // el menú lo comparten SUPERVIVENCIA y CICLO DE MUERTE
           if (startReq) {
             reset(); setRunObjective();
             // ciclo: pasa por el briefing corto de la mision; supervivencia: derecho al despegue
-            if (gameMode === 'cycle') { briefT = 0; state = 'brief'; beep(600, 0.08, 'square', 0.05); }
-            else { state = 'takeoff'; sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+            if (gameMode === 'cycle') { briefT = 0; setState('brief'); beep(600, 0.08, 'square', 0.05); }
+            else { setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
           }
-        } else if (state === 'dead') {
-          if (deathT > 0.7 && anyPress) { reset(); setRunObjective(); state = 'takeoff'; sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }  // reintenta (mismo modo/nivel)
-        } else if (state === 'results') {
+        } else if (S.state === 'dead') {
+          if (deathT > 0.7 && anyPress) { reset(); setRunObjective(); setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }  // reintenta (mismo modo/nivel)
+        } else if (S.state === 'results') {
           // RECUENTO: las filas entran de a una; una tecla las completa de golpe, la siguiente pasa al epilogo
           resT += dt;
           const nRows = lastRun ? lastRun.rows.length : 0;
@@ -1019,9 +1015,9 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
           const full = resRow >= nRows && resT > nRows * 0.45 + 0.7;
           if (anyPress && resT > 0.5) {
             if (!full) { resT = nRows * 0.45 + 0.8; resRow = nRows; }   // completar de un saque
-            else { initStory(lastRun.mission.epi); state = 'epilogue'; beep(500, 0.05, 'square', 0.04); }
+            else { initStory(lastRun.mission.epi); setState('epilogue'); beep(500, 0.05, 'square', 0.04); }
           }
-        } else if (state === 'epilogue') {
+        } else if (S.state === 'epilogue') {
           // EPILOGO: reusa el motor de tipeo de la historia; al terminar, encadena segun el modo
           story.t += dt;
           const st = storyTyped(story.t);
@@ -1034,15 +1030,15 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
               // campaña: siguiente mision (conservando el puntaje acumulado) o victoria si era la ultima
               if (curLevel + 1 < MISSIONS.length) {
                 const keep = score; loadLevel(curLevel + 1); reset(); score = keep;
-                setRunObjective(); state = enterMission();
-              } else { state = 'victory'; levelT = 0; }
+                setRunObjective(); setState(enterMission());
+              } else { setState('victory'); levelT = 0; }
             } else {
               // ciclo de muerte: otra mision al azar, desde cero
-              randomMission(); reset(); setRunObjective(); briefT = 0; state = 'brief';
+              randomMission(); reset(); setRunObjective(); briefT = 0; setState('brief');
             }
           }
-        } else if (state === 'victory') {
-          if (levelT > 0.8 && anyPress) { state = 'modeselect'; }
+        } else if (S.state === 'victory') {
+          if (levelT > 0.8 && anyPress) { setState('modeselect'); }
         }
         startReq = false; anyPress = false;
         return;
@@ -1641,7 +1637,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       px(sh.x - 9, sh.y, 18, 2, '#101c1e');
       // espuma batida justo debajo cuando vuela bajo (solo sobre agua)
       const churn = Math.max(0, 1 - plane.y / 7);
-      if (churn > 0 && state === 'play' && cfg.terrain !== 'land') {
+      if (churn > 0 && S.state === 'play' && cfg.terrain !== 'land') {
         ctx.globalAlpha = churn * 0.7;
         px(sh.x - 11, sh.y - 1, 22, 2, P.foam);
         px(sh.x - 15, sh.y, 30, 1, P.crest);
@@ -1650,7 +1646,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
       ctx.save();
       // sub-pixel + bob de vuelo (nunca queda congelado) + micro-oscilación de alabeo en el aire
-      const bob = (state === 'play' ? Math.sin(t * 3.1) * 0.5 + Math.sin(t * 1.7) * 0.3 : 0);
+      const bob = (S.state === 'play' ? Math.sin(t * 3.1) * 0.5 + Math.sin(t * 1.7) * 0.3 : 0);
       // VIBRACION al rozar la superficie: temblor rapido del fuselaje (el avion, no la camara)
       const vx2 = scrapeVib ? (Math.random() - 0.5) * 3.2 * scrapeVib : 0;
       const vy2 = scrapeVib ? (Math.random() - 0.5) * 2.4 * scrapeVib : 0;
@@ -1669,9 +1665,9 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         ctx.scale(0.94 + 0.06 * Math.cos(pr * Math.PI * 2), 1);   // leve pulso: vende el giro
       } else if (useSheet) {
         // con frames de alabeo Y cabeceo REALES no hay rotacion ni squash fingidos: solo micro-wobble
-        ctx.rotate(state === 'play' ? Math.sin(t * 2.3) * 0.015 : 0);
+        ctx.rotate(S.state === 'play' ? Math.sin(t * 2.3) * 0.015 : 0);
       } else {
-        ctx.rotate(bank * 0.42 + (state === 'play' ? Math.sin(t * 2.3) * 0.015 : 0));
+        ctx.rotate(bank * 0.42 + (S.state === 'play' ? Math.sin(t * 2.3) * 0.015 : 0));
         ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
       }
       if (useSheet) {
@@ -1729,7 +1725,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       ctx.restore();
 
       // mira: en el MOUSE (PC, punteria libre) o adelante del avion (tactil/legacy)
-      if (state === 'play') {
+      if (S.state === 'play') {
         const vm = viewMouse();   // en camara CERCA la mira se dibuja en coords des-zoomeadas: queda bajo el cursor fisico
         const c = vm.on ? vm : proj(plane.x, plane.y, 70);
         ctx.globalAlpha = 0.7;
@@ -1797,7 +1793,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       // ALABEO (momentum): el MUNDO ENTERO (horizonte, mar Y BARCO) gira -mom.roll alrededor
       // del centro — el avion rola sobre su eje longitudinal y la cabina queda fija.
       // drawMomentum deshace esta rotacion recien al dibujar cabina/mira/letterbox.
-      if (state === 'momentum' && mom) {
+      if (S.state === 'momentum' && mom) {
         const rcx = W / 2 + cm.x, rcy = H / 2 + cm.y;
         ctx.translate(rcx, rcy); ctx.rotate(-mom.roll); ctx.translate(-rcx, -rcy);
       }
@@ -1814,7 +1810,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       // en vuelo normal sobre mar abierto solo cielo+mar (flag MOM3D.sea). El blit va DENTRO
       // de los transforms (roll/paneo/zoom/shake le pegan al 3D); la capa 2D va encima.
       // Sin THREE/WebGL o con ?no3d, ambas flags quedan false y pinta el 2D de siempre.
-      world3D.frame({ state, mom, dist, momDrift, cfg, cam, t, SKY, WATER, objectiveShip, seaH, momShipGeom, tbackImg });
+      world3D.frame({ state: S.state, mom, dist, momDrift, cfg, cam, t, SKY, WATER, objectiveShip, seaH, momShipGeom, tbackImg });
       if (world3D.isOn() || world3D.isSea()) {
         const sm = ctx.imageSmoothingEnabled;
         ctx.imageSmoothingEnabled = false;
@@ -1861,7 +1857,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
       if (!world3D.isSea()) drawSea();   // el mar 2D solo cuando three no lo esta poniendo
       // en momentum el mundo rota (alabeo): rellena bajo el mar para que un tonel no muestre huecos
-      if (state === 'momentum') px(-70, H, W + 140, 150, cfg.terrain === 'land' ? LAND.near : WATER.base2);
+      if (S.state === 'momentum') px(-70, H, W + 140, 150, cfg.terrain === 'land' ? LAND.near : WATER.base2);
       drawApproachBarge();   // la barcaza objetivo creciendo en el horizonte (final del mapa)
       drawWake();
 
@@ -1921,7 +1917,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       }
       }   // ---- fin mundo 2D ----
 
-      if (state !== 'dead' && state !== 'momentum') drawPlaneSprite();   // en momentum va la camara cockpit (drawCockpit)
+      if (S.state !== 'dead' && S.state !== 'momentum') drawPlaneSprite();   // en momentum va la camara cockpit (drawCockpit)
 
       // líneas de velocidad
       ctx.globalAlpha = 0.5;
@@ -1935,7 +1931,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
       // en momentum, particulas y popups los dibuja drawMomentum (nivelados, sobre el barco);
       // dibujarlos tambien aca dejaria una copia fantasma (el mundo del momentum va rotado por el alabeo)
-      if (state !== 'momentum') {
+      if (S.state !== 'momentum') {
         for (const p of parts) { ctx.globalAlpha = Math.min(1, p.life * 2); px(p.x, p.y, p.r, p.r, p.c); }
         ctx.globalAlpha = 1;
 
@@ -1945,26 +1941,26 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       }
 
       if (zoomOn) ctx.restore();   // el HUD (y la capa momentum) van SIN zoom
-      if (state === 'play') drawHUD();
-      if (state === 'momentum' && mom) momRender.drawMomentum({
+      if (S.state === 'play') drawHUD();
+      if (S.state === 'momentum' && mom) momRender.drawMomentum({
         mom, momPhase, phases: MOM_PHASES, msl, objectiveShip, t,
         is3D: world3D.isOn(), parts, popups, mouse,
         momCam, momShipGeom, momZoneRect });
       ctx.restore();
 
-      if (state === 'takeoff') drawTakeoff();
-      if (state === 'modeselect') menus.drawModeSelect({ modeSel, t });
-      if (state === 'menu') {
+      if (S.state === 'takeoff') drawTakeoff();
+      if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t });
+      if (S.state === 'menu') {
         menus.drawMenu({ selPlane, gameMode, t });
         // el clamp de cfgRow vivia DENTRO de drawCfg (una pantalla no deberia mutar estado):
         // ahora se hace aca, antes de dibujar
         if (cfgOpen) { const rows = getCfgRows(); if (cfgRow >= rows.length) cfgRow = 0; menus.drawCfg({ rows, cfgRow }); }
       }
-      if (state === 'dead') screens.drawDead({ score, best, deathCause, deathT, factIdx, t });
-      if (state === 'results') screens.drawResults({ lastRun, resRow, resT, t });
-      if (state === 'brief') screens.drawBrief({ mission: curMission(), goalLabel: goalOf(curMission()).label(curMission().goal), briefT, t });
-      if (state === 'victory') screens.drawVictory({ score, levelT, t });
-      if ((state === 'epilogue' || state === 'story') && story) screens.drawStory({ story, state, t });
+      if (S.state === 'dead') screens.drawDead({ score, best, deathCause, deathT, factIdx, t });
+      if (S.state === 'results') screens.drawResults({ lastRun, resRow, resT, t });
+      if (S.state === 'brief') screens.drawBrief({ mission: curMission(), goalLabel: goalOf(curMission()).label(curMission().goal), briefT, t });
+      if (S.state === 'victory') screens.drawVictory({ score, levelT, t });
+      if ((S.state === 'epilogue' || S.state === 'story') && story) screens.drawStory({ story, state: S.state, t });
 
       // fundido desde negro (al salir de la historia hacia el despegue) — SIEMPRE al final
       if (fadeT > 0) {
@@ -2189,8 +2185,8 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     let last = performance.now();
     function frame(now) {
       const dt = Math.min(0.033, (now - last) / 1000); last = now;
-      update(dt); draw(); updateMusic(state);
-      if (mslBtn) mslBtn.classList.toggle('on', state === 'play' || state === 'momentum');   // botón de misil en juego y momentum
+      update(dt); draw(); updateMusic(S.state);
+      if (mslBtn) mslBtn.classList.toggle('on', S.state === 'play' || S.state === 'momentum');   // botón de misil en juego y momentum
       requestAnimationFrame(frame);
     }
     applyChrome();
