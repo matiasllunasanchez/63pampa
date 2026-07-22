@@ -434,6 +434,10 @@ import * as world3D from './systems/three-world.js';
     cv.addEventListener('pointerup', ptrEnd);
     cv.addEventListener('pointercancel', ptrEnd);
 
+    // opacidad de los cuadrados del mar 2D (todo el vuelo). Vivia en el bloque de three.js por
+    // vecindad historica, pero es del render 2D: se quedo aca al separar el modulo 3D.
+    const SEA_ALPHA2D = 0.6;
+
     // ---------- mundo ----------
     function waveNow() { return 1.1 + Math.sin(t * 1.1) * 0.5 + Math.sin(t * 2.3) * 0.3; }
     // campo de altura de la superficie para la malla de puntos (ondas superpuestas)

@@ -34,7 +34,6 @@ const WATER_NORMALS_SRC = '../assets/img/waternormals.jpg';   // normal map del 
 // identidad del juego. La integracion queda dormida: poner true para re-probarla.
 const MIRROR_SEA = false;
 const SEA_ALPHA = 0.6;    // opacidad de los cuadrados del mar 3D (momentum)
-const SEA_ALPHA2D = 0.6;  // opacidad de los cuadrados del mar 2D (todo el vuelo)
 // Mar 3D en VUELO NORMAL: APAGADO por decision de diseño (20/7) — por mas que se calibro
 // (bandas, receta de puntos, cielo, sol), el cambio de renderer al cruzar la costa siempre
 // dejaba una diferencia visible. El 2D clasico corre TODO el vuelo (identico por definicion)
