@@ -13,3 +13,7 @@ steam_appid.txt
 # Logs y temporales
 *.log
 .DS_Store
+
+# Artefacto de build: lo regenera esbuild desde src/game.js (npm run build:game,
+# automatico en npm start / build:web / dist). No versionarlo evita ruido en cada diff.
+src/game.bundle.js

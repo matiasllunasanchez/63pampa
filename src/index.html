@@ -29,7 +29,11 @@
   </footer>
 
   <script src="vendor/three.global.js"></script>
-  <script src="game.js"></script>
+  <!-- game.bundle.js lo genera esbuild desde game.js (npm run build:game, y automatico en
+       npm start). No se edita a mano: es artefacto de build y esta en .gitignore.
+       Hace falta bundlear porque Electron carga por file://, donde Chromium bloquea los ES
+       modules por CORS. -->
+  <script src="game.bundle.js"></script>
 </body>
 
 </html>
