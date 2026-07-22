@@ -39,23 +39,25 @@
     // o se cargan desde un nivel de campaña. Base para prototipar niveles.
     // fuelOn: el combustible es el RELOJ del run (mantener la secuencia agarrando bidones).
     // Se puede apagar en el menú [M] (COMBUSTIBLE: NO) para pruebas / vuelo libre.
-    const cfg = { sky: 'dusk', water: 'sea', terrain: 'sea', wind: true, obstacles: 1, coast: 230, meters: 3000, fuelOn: true };
+    const cfg = { sky: 'dusk', water: 'sea', terrain: 'sea', wind: true, obstacles: 1, coast: 230, meters: 3000, fuelOn: true, energy: true };
     // paleta de tierra (turba malvinense). Se vuela A RAS del suelo para atropellar soldados (no es letal).
     const LAND = { far: '#2f3527', mid: '#3c4330', near: '#4a5138', tuft: '#6d7748', rock: '#524d3e', furrow: '#262b1e' };
     let WATER = WATER_STYLES[cfg.water];
     let SKY = SKY_PRESETS[cfg.sky];
     function applyCfg() { WATER = WATER_STYLES[cfg.water] || WATER_STYLES.sea; SKY = SKY_PRESETS[cfg.sky] || SKY_PRESETS.dusk; }
 
-    // barcazas/buques británicos reales (objetivo del vuelo). A futuro: asignables por nivel.
+    // barcazas/buques británicos reales (objetivo del vuelo).
     const SHIPS = ['HMS SHEFFIELD', 'HMS COVENTRY', 'HMS ARDENT', 'HMS ANTELOPE', 'RFA SIR GALAHAD', 'ATLANTIC CONVEYOR'];
-    // elige la barcaza objetivo Y fija el layout de zonas del MOMENTUM segun su clase
-    // (MOM_LAYOUTS/SHIP_CLASS se definen mas abajo; randomShip solo corre al armar un run)
-    function randomShip() {
-      const s = SHIPS[Math.floor(Math.random() * SHIPS.length)];
+    // fija el layout de zonas del MOMENTUM segun la clase del buque
+    // (MOM_LAYOUTS/SHIP_CLASS se definen mas abajo; esto solo corre al armar un run)
+    function useShip(s) {
       MOM_PHASES = MOM_LAYOUTS[SHIP_CLASS[s]] || MOM_LAYOUTS.t42;
       return s;
     }
-    // randomiza el mapa (para CICLO DE MUERTE). No toca meters (se setea aparte, para pruebas).
+    function randomShip() { return useShip(SHIPS[Math.floor(Math.random() * SHIPS.length)]); }
+    // randomiza el mapa. No toca meters (se setea aparte, para pruebas).
+    // SIN USO HOY: el ciclo de muerte pasó a jugar las MISSIONS, que traen su propia cfg. Se deja
+    // porque sirve para prototipar mapas y para darle variedad de clima al ciclo si se quiere.
     function randomizeCfg() {
       const skies = Object.keys(SKY_PRESETS), obs = [0.5, 1, 1, 1.7];
       cfg.sky = skies[Math.floor(Math.random() * skies.length)];
@@ -68,7 +70,7 @@
 
     // ---------- MODOS ----------
     // 'survival' = el modo actual (infinito, juntar puntos hasta morir).
-    // 'campaign' = modo historia por niveles (ver LEVELS). CINEMÁTICAS entre niveles: pendiente (README).
+    // 'campaign' = modo historia: recorre MISSIONS en orden. 'cycle' juega las mismas al azar.
     let gameMode = 'survival';
     let curLevel = 0;
     let modeSel = 0;                 // pantalla inicial: 0 = CAMPAÑA, 1 = CICLO DE MUERTE, 2 = SUPERVIVENCIA
@@ -79,21 +81,76 @@
     // config por defecto de campaña (misma para todos los niveles POR AHORA — a futuro, una por nivel)
     const CAMPAIGN_CFG = { sky: 'dusk', water: 'sea', wind: true, obstacles: 1, coast: 230 };
 
-    // ---------- NIVELES DE CAMPAÑA ----------
-    // TODO(campaña): esto son 2 niveles de PRUEBA. La campaña real (X niveles + cinemáticas entre
-    // niveles) se definirá a futuro; ver README. POR AHORA todos los niveles usan la MISMA config
-    // (CAMPAIGN_CFG) y solo cambia el label "NIVEL n" de arriba. A futuro: cfg distinta por nivel.
-    const LEVELS = [
-      { name: 'NIVEL 0', goalDist: 2600, cfg: CAMPAIGN_CFG, story: 'storyIntro' },   // la campaña ARRANCA en nivel 0 (tutorial)
-      { name: 'NIVEL 1', goalDist: 2600, cfg: CAMPAIGN_CFG, story: 'storyL1' },
+    // ---------- TIPOS DE OBJETIVO ----------
+    // Un objetivo es ENCHUFABLE: agregar un tipo nuevo (base, convoy, escolta...) es agregar
+    // una entrada aca. El resto del flujo de mision — recuento, epilogo, encadenado — no se toca.
+    //   needsMomentum: true  → el climax de 3 pasadas sobre el blanco (MOMENTUM)
+    //   needsMomentum: false → llegar a la distancia YA cumple la mision (sin climax)
+    const GOALS = {
+      ship: {
+        needsMomentum: true,
+        dist: g => g.dist,
+        label: g => g.ship,
+        setup: g => useShip(g.ship),          // fija el layout de zonas segun la clase del buque
+      },
+      distance: {
+        needsMomentum: false,
+        dist: g => g.meters,
+        label: g => g.meters + ' m',
+        setup: () => { },
+      },
+    };
+    function goalOf(m) { return GOALS[m.goal.kind] || GOALS.ship; }
+
+    // ---------- MISIONES ----------
+    // Una entrada por objetivo real. La CAMPAÑA las juega en orden cronologico; el CICLO DE
+    // MUERTE elige una al azar. Cada mision trae su propio contexto y desenlace, asi que el
+    // epilogo siempre corresponde al blanco que realmente destruiste.
+    //   par   → puntaje de referencia para las estrellas (★ completar, ★★ par, ★★★ par×1.5)
+    //   story → secuencia larga de historia (SOLO campaña; opcional)
+    //   brief → tarjeta corta de 2-3 lineas (ciclo de muerte)
+    //   epi   → desenlace historico, se muestra en ambos modos
+    const MISSIONS = [
+      {
+        id: 'sheffield', name: 'HMS SHEFFIELD', date: '4 de mayo de 1982',
+        goal: { kind: 'ship', ship: 'HMS SHEFFIELD', dist: 2600 },
+        cfg: CAMPAIGN_CFG, par: 7000, story: 'storyIntro', brief: 'briefSheffield', epi: 'epiSheffield',
+      },
+      {
+        id: 'ardent', name: 'HMS ARDENT', date: '21 de mayo de 1982',
+        goal: { kind: 'ship', ship: 'HMS ARDENT', dist: 2600 },
+        cfg: CAMPAIGN_CFG, par: 8000, story: 'storyL1', brief: 'briefArdent', epi: 'epiArdent',
+      },
+      {
+        id: 'antelope', name: 'HMS ANTELOPE', date: '23 de mayo de 1982',
+        goal: { kind: 'ship', ship: 'HMS ANTELOPE', dist: 2800 },
+        cfg: CAMPAIGN_CFG, par: 8500, brief: 'briefAntelope', epi: 'epiAntelope',
+      },
+      {
+        id: 'coventry', name: 'HMS COVENTRY', date: '25 de mayo de 1982',
+        goal: { kind: 'ship', ship: 'HMS COVENTRY', dist: 2800 },
+        cfg: CAMPAIGN_CFG, par: 9000, brief: 'briefCoventry', epi: 'epiCoventry',
+      },
+      {
+        id: 'conveyor', name: 'ATLANTIC CONVEYOR', date: '25 de mayo de 1982',
+        goal: { kind: 'ship', ship: 'ATLANTIC CONVEYOR', dist: 3000 },
+        cfg: CAMPAIGN_CFG, par: 9500, brief: 'briefConveyor', epi: 'epiConveyor',
+      },
+      {
+        id: 'galahad', name: 'RFA SIR GALAHAD', date: '8 de junio de 1982',
+        goal: { kind: 'ship', ship: 'RFA SIR GALAHAD', dist: 3000 },
+        cfg: CAMPAIGN_CFG, par: 10000, brief: 'briefGalahad', epi: 'epiGalahad',
+      },
     ];
     function loadLevel(i) {
-      curLevel = Math.max(0, Math.min(LEVELS.length - 1, i));
-      Object.assign(cfg, LEVELS[curLevel].cfg); applyCfg();
+      curLevel = Math.max(0, Math.min(MISSIONS.length - 1, i));
+      Object.assign(cfg, MISSIONS[curLevel].cfg); applyCfg();
     }
+    function curMission() { return MISSIONS[curLevel]; }
     // transiciones desde la pantalla inicial de modo
     function goSurvival() { gameMode = 'survival'; cfgOpen = false; cfgRow = 0; state = 'menu'; beep(600, 0.08, 'square', 0.05); }
-    function goCycle() { gameMode = 'cycle'; cfgOpen = false; cfgRow = 0; randomizeCfg(); state = 'menu'; beep(600, 0.08, 'square', 0.05); }  // config aleatoria; metros ajustables en [M]
+    // CICLO DE MUERTE: las mismas misiones de la campaña, una al azar, sin el guion largo
+    function goCycle() { gameMode = 'cycle'; cfgOpen = false; cfgRow = 0; randomMission(); state = 'menu'; beep(600, 0.08, 'square', 0.05); }
     // ---------- pantalla de HISTORIA (campaña) ----------
     // Texto de NIVELES.md tipeado letra por letra con ruido de maquina de escribir, sobre negro
     // con grano de pelicula. Al confirmar: FADE desde negro hacia el despegue. POR AHORA solo la
@@ -145,13 +202,29 @@
       return { typed, done: true };
     }
 
-    function startCampaign() { gameMode = 'campaign'; selPlane = CAMPAIGN_PLANE; loadLevel(0); reset(); objectiveDist = LEVELS[0].goalDist; objectiveShip = randomShip(); initStory(LEVELS[0].story); state = 'story'; }
+    function startCampaign() {
+      gameMode = 'campaign'; selPlane = CAMPAIGN_PLANE; loadLevel(0); reset();
+      setRunObjective(); state = enterMission();
+    }
     function confirmMode() { const m = MODES[modeSel]; if (m === 'campaign') startCampaign(); else if (m === 'cycle') goCycle(); else goSurvival(); }
-    // define el objetivo del run según el modo (cycle: metros de config; campaña: goal del nivel; supervivencia: sin objetivo)
+    // arranca la mision actual por la puerta que corresponda: guion largo (campaña, si lo tiene)
+    // o tarjeta corta de briefing (ciclo de muerte). Devuelve el state al que hay que ir.
+    function enterMission() {
+      const m = curMission();
+      if (gameMode === 'campaign' && m.story) { initStory(m.story); return 'story'; }
+      briefT = 0; return 'brief';
+    }
+    // elige una mision al azar para el CICLO DE MUERTE (mismas misiones que la campaña)
+    function randomMission() { loadLevel(Math.floor(Math.random() * MISSIONS.length)); }
+    // define el objetivo del run según el modo (campaña/ciclo: el goal de la mision; supervivencia: infinito)
     function setRunObjective() {
-      if (gameMode === 'cycle') { objectiveDist = cfg.meters; objectiveShip = randomShip(); }
-      else if (gameMode === 'campaign') { objectiveDist = LEVELS[curLevel].goalDist; objectiveShip = randomShip(); }
-      else { objectiveDist = 0; }
+      if (gameMode === 'campaign' || gameMode === 'cycle') {
+        const m = curMission(), g = goalOf(m);
+        objectiveDist = g.dist(m.goal);
+        objectiveShip = g.label(m.goal);
+        g.setup(m.goal);
+      }
+      else { objectiveDist = 0; objectiveShip = randomShip(); }
       // SUPERVIVENCIA y CICLO: cada run arranca con una pista ADRENALINA al azar; campaña usa la suya
       curAdr = (gameMode !== 'campaign' && musAdr.length) ? musAdr[(Math.random() * musAdr.length) | 0] : null;
     }
@@ -165,6 +238,7 @@
       { label: 'VIENTO', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.wind, set: v => cfg.wind = v },
       { label: 'OBSTACULOS', opts: [0, 0.5, 1, 1.7], names: ['NINGUNO', 'POCOS', 'NORMAL', 'MUCHOS'], get: () => cfg.obstacles, set: v => cfg.obstacles = v },
       { label: 'COMBUSTIBLE', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.fuelOn, set: v => cfg.fuelOn = v },
+      { label: 'ENERGIA', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.energy, set: v => cfg.energy = v },   // altura<->velocidad: para comparar A/B la sensacion
       { label: 'COSTA', opts: [120, 230, 400], names: ['CORTA', 'NORMAL', 'LARGA'], get: () => cfg.coast, set: v => cfg.coast = v },
     ];
     // filas visibles según el modo (METROS solo en ciclo de muerte)
@@ -218,7 +292,9 @@
         death_jet: 'Choque con avion enemigo', death_balloon: 'Globo de barrera',
         death_missile: 'Te alcanzo un misil',
         death_aa: 'La defensa de la barcaza te derribo',
+        death_fuel: 'Te quedaste sin combustible sobre el blanco',
         freeControl: 'CONTROL LIBRE!', rasante: 'RASANTE x{n}!', afterburner: 'TURBINA x{n}!',
+        scrape: '! SUBI !',
         pickFuel: '+COMB', graze: 'ROZASTE +75', dodgeMissile: 'LO ESQUIVASTE +75',
         rollGraze: 'PIRUETA! +250',
         takeoffTitle: 'DESPEGUE · PUERTO ARGENTINO · BAM MALVINAS',
@@ -291,6 +367,67 @@
           },
           { level: 'NIVEL 1 — BAUTISMO DE FUEGO', obj: '1 de mayo de 1982 · Costa' },
         ],
+
+        // ---------- RECUENTO DE FIN DE MISION ----------
+        mom_turn: '! VIRAJE 180 !', mom_pass_n: 'INTENTO {n}',
+        hud_mission: 'MISION {n}/{m}',
+        res_title: 'MISION CUMPLIDA', res_total: 'TOTAL', res_rank: 'CALIFICACION:',
+        res_flight: 'PUNTAJE DE VUELO', res_kills: 'BLANCOS', res_acc: 'PRECISION', res_ras: 'RACHA RASANTE',
+        rank_cadete: 'CADETE', rank_piloto: 'PILOTO', rank_as: 'AS', rank_halcon: 'HALCON DEL ATLANTICO',
+        // ---------- BRIEFING CORTO ----------
+        brief_title: 'ORDEN DE MISION', brief_goal: 'OBJETIVO:', brief_go: 'CUALQUIER TECLA  para despegar',
+
+        // ---------- BRIEFINGS (contexto corto de cada mision) ----------
+        briefSheffield: 'La Task Force navega al este de las islas. Un destructor Tipo 42 cubre la pantalla de radar de la flota. Volá bajo: su radar no distingue un blanco pegado al agua.',
+        briefArdent: 'Los britanicos desembarcaron en San Carlos. Las fragatas cubren la cabecera de playa desde el estrecho. El pasillo es angosto y esta erizado de antiaerea.',
+        briefAntelope: 'Segunda jornada sobre San Carlos. El estrecho ya se gano el apodo de Callejon de las Bombas. La fragata escolta el fondeadero.',
+        briefCoventry: 'Un Tipo 42 se ofrece de senuelo al noroeste del estrecho para atraer aviones lejos del desembarco. Mordio el anzuelo al reves: hoy el senuelo sos vos.',
+        briefConveyor: 'Un carguero portacontenedores trae helicopteros pesados para el avance britanico. Sin esos helicopteros, la infanteria camina.',
+        briefGalahad: 'Buque logistico fondeado en Bahia Agradable, cargado de tropa esperando desembarcar. Esta al descubierto y sin cobertura aerea.',
+
+        // ---------- EPILOGOS (que paso en la realidad) ----------
+        // OJO: cifras reales. Las dudas estan anotadas en PREGUNTAS_HISTORICAS.md
+        epiSheffield: [{
+          title: 'HMS SHEFFIELD · 4 MAYO 1982', paras: [
+            'Un Super Etendard de la Armada Argentina lanzo un misil Exocet que impacto el casco del destructor.',
+            'Murieron 20 tripulantes. El fuego obligo a abandonar el buque.',
+            'Remolcado, se hundio el 10 de mayo camino a Georgias del Sur.',
+            'Fue el primer buque de guerra britanico perdido en accion desde la Segunda Guerra Mundial.']
+        }],
+        epiArdent: [{
+          title: 'HMS ARDENT · 21 MAYO 1982', paras: [
+            'La fragata fue atacada en oleadas sucesivas mientras cubria el desembarco en San Carlos.',
+            'Murieron 22 tripulantes. Se hundio al dia siguiente.',
+            'Su comandante fue el ultimo en abandonarla.']
+        }],
+        epiAntelope: [{
+          title: 'HMS ANTELOPE · 23 MAYO 1982', paras: [
+            'Dos bombas impactaron la fragata, pero no detonaron.',
+            'Al intentar desactivar una, la bomba estallo. Murio el artificiero James Prescott.',
+            'El incendio llego a la santabarbara y el buque se partio en dos.',
+            'Murieron 2 hombres. La silueta partida del Antelope ardiendo se volvio una de las imagenes del conflicto.']
+        }],
+        epiCoventry: [{
+          title: 'HMS COVENTRY · 25 MAYO 1982', paras: [
+            'A-4 Skyhawk de la Fuerza Aerea Argentina atacaron volando tan bajo que el radar no lograba separarlos de la costa.',
+            'Tres bombas impactaron sobre la linea de flotacion. Murieron 19 tripulantes y 30 quedaron heridos.',
+            'El destructor volco y se hundio en menos de veinte minutos.']
+        }],
+        epiConveyor: [{
+          title: 'ATLANTIC CONVEYOR · 25 MAYO 1982', paras: [
+            'El carguero fue alcanzado por misiles Exocet lanzados desde Super Etendard.',
+            'Murieron 12 hombres, entre ellos su capitan, Ian North.',
+            'Con el se perdieron helicopteros pesados Chinook destinados al avance britanico.',
+            'Sin ese transporte, la infanteria britanica cruzo la isla a pie.']
+        }],
+        epiGalahad: [{
+          title: 'RFA SIR GALAHAD · 8 JUNIO 1982', paras: [
+            'Skyhawks argentinos atacaron el buque logistico fondeado en Bahia Agradable, cargado de tropa.',
+            'Murieron 48 personas entre tripulantes y soldados.',
+            'Fue la mayor perdida de vidas britanicas en una sola accion durante el conflicto.',
+            'El casco fue hundido mar afuera y declarado cementerio de guerra.']
+        }],
+
         homage: 'En homenaje a los pilotos y veteranos de Malvinas',
         dead: 'D E R R I B A D O', scoreLabel: 'PUNTAJE  {n}',
         newRecord: '★ NUEVO RECORD ★', bestDead: 'MEJOR  {n}',
@@ -315,7 +452,9 @@
         death_jet: 'Hit an enemy plane', death_balloon: 'Barrage balloon',
         death_missile: 'A missile hit you',
         death_aa: 'The barge defenses shot you down',
+        death_fuel: 'You ran out of fuel over the target',
         freeControl: 'FREE CONTROL!', rasante: 'LOW PASS x{n}!', afterburner: 'AFTERBURNER x{n}!',
+        scrape: '! PULL UP !',
         pickFuel: '+FUEL', graze: 'GRAZE +75', dodgeMissile: 'DODGED +75',
         rollGraze: 'BARREL ROLL! +250',
         takeoffTitle: 'TAKEOFF · PUERTO ARGENTINO · BAM MALVINAS',
@@ -385,6 +524,15 @@
           },
           { level: 'LEVEL 1 — BAPTISM OF FIRE', obj: 'May 1st, 1982 · Coast' },
         ],
+        // Fin de mision. Los textos LARGOS (briefings y epilogos) no estan traducidos todavia:
+        // T() cae solo al español, asi que el juego funciona igual. Ver PREGUNTAS_HISTORICAS.md.
+        mom_turn: '! 180 TURN !', mom_pass_n: 'ATTEMPT {n}',
+        hud_mission: 'MISSION {n}/{m}',
+        res_title: 'MISSION COMPLETE', res_total: 'TOTAL', res_rank: 'RATING:',
+        res_flight: 'FLIGHT SCORE', res_kills: 'TARGETS', res_acc: 'ACCURACY', res_ras: 'LOW-PASS STREAK',
+        rank_cadete: 'CADET', rank_piloto: 'PILOT', rank_as: 'ACE', rank_halcon: 'HAWK OF THE ATLANTIC',
+        brief_title: 'MISSION ORDER', brief_goal: 'OBJECTIVE:', brief_go: 'ANY KEY  to take off',
+
         homage: 'In tribute to the pilots and veterans of the Malvinas',
         dead: 'S H O T   D O W N', scoreLabel: 'SCORE  {n}',
         newRecord: '★ NEW RECORD ★', bestDead: 'BEST  {n}',
@@ -447,14 +595,53 @@
     let afterT = 0, afterTier = 0, afterGrace = 0;
     let windT, windF, gusts;
     let rollT = 0, rollDir = 1, rollCd = 0, tapL = -9, tapR = -9;   // PIRUETA (tonel): doble-tap ←/→
+    // ZONA DE VUELO. El techo alto es lo que da margen para picar y ganar velocidad (ver ENERGY_*).
+    // SPAWN_X acompaña a FLY_X: si los obstaculos nacieran mas angostos que la zona de vuelo,
+    // bastaria irse al costado para esquivarlos todos.
+    const FLY_X = 38, FLY_TOP = 68, SPAWN_X = 33;
+    let scrapeT = 0;    // reloj de gracia rozando la superficie (ver SCRAPE_*)
+    let scrapeVib = 0;  // 1 mientras roza: hace VIBRAR el sprite del avion; decae al salir
     let pitchHold = 0;   // seg. que se mantiene apretado ↑/↓: filtra los toques rápidos de gas (no mueven la trompa)
+    // CABECEO (solo VISUAL: plane.pitch no afecta el vuelo, solo el sprite y su inclinacion).
+    // Calibrado para que la inclinacion aparezca a los 0.50 s de mantener ↑ o ↓ (igual en ambos).
+    // DELAY = zona muerta antes de mover la trompa; RAMP = cuanto tarda en llegar a full;
+    // VY = peso de la velocidad vertical real — se mantiene >0 para que al soltar el gas y caer la
+    // trompa se incline sola, y es bajo para que picar y trepar tarden lo mismo (picar acelera mas
+    // rapido, asi que un VY alto adelantaba la picada).
+    const PITCH_DELAY = 0.30, PITCH_RAMP = 0.34, PITCH_VY = 0.05;
     const ROLL_DUR = 0.55;
     const AFTER_STEP = 2, AFTER_MAX = 5, AFTER_GAIN = 0.16, AFTER_CAP = 42;   // afterburner: seg/escalón, tope, +vel y +techo por escalón
     let story = null;   // pantalla de HISTORIA (campaña): maquina de escribir letra a letra
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
     let toT = 0, toCount = 4;
     let levelT = 0;   // temporizador de las tarjetas de transición de nivel / victoria (campaña)
+    let briefT = 0;   // temporizador de la tarjeta de briefing corto (ciclo de muerte)
+    // ESTADISTICAS de la corrida: alimentan el recuento y las estrellas del fin de misión.
+    // Se ceran en reset() y se CONGELAN en finishObjective() dentro de lastRun, porque entre
+    // niveles de campaña se llama reset() y borraria los contadores.
+    let stats = null, lastRun = null;
+    let resT = 0, resRow = 0;   // recuento: tiempo y cuantas filas ya entraron
+    const RANKS = ['rank_cadete', 'rank_piloto', 'rank_as', 'rank_halcon'];
+    function resetStats() {
+      stats = { air: 0, soldiers: 0, zones: 0, shots: 0, hits: 0, grazes: 0, fuelPicks: 0, dodges: 0, bestRas: 0 };
+    }
     let momPhase = 0, mom = null;   // MOMENTUM: pasada actual del asalto a la barcaza y estado del minijuego
+    // fraccion de la velocidad de vuelo que conserva el avion durante el MOMENTUM.
+    // Subir = mas sensacion de seguir entrando; bajar = mas quieto/ceremonioso.
+    const MOM_ADVANCE = 0.5;
+    // RE-ATAQUE: si la ventana se agota con blancos vivos NO te matan — virás 180° y volvés a
+    // entrar. El daño que ya hiciste a las zonas se conserva. El costo es COMBUSTIBLE, que es el
+    // reloj del run: podés insistir, pero cada vuelta te acerca a quedarte sin nafta.
+    const REATTACK_DUR = 2.6, REATTACK_FUEL = 12;
+    // ENERGIA: altura <-> velocidad. K = cuanta velocidad da picar; DRAG = que tan rapido vuelve
+    // al objetivo (mas bajo = conserva mas impulso); MAX = techo sobre el objetivo al picar.
+    const ENERGY_K = 2.0, ENERGY_DRAG = 0.7, ENERGY_MAX = 1.55;
+    // RASANTE LETAL: tocar la superficie ya no mata al instante — el avion TAMBALEA y tenes que
+    // salir. SCRAPE_BASE son los segundos de gracia a baja velocidad; a mucha velocidad/turbo se
+    // reduce hasta SCRAPE_MIN. Salir de la superficie descuenta el reloj, pero no lo borra.
+    const SCRAPE_BASE = 0.85, SCRAPE_MIN = 0.18, SCRAPE_RECOVER = 0.35;
+    const SCRAPE_LIFT = 0.8;   // se sostiene apenas POR ENCIMA de la superficie mientras roza
+    const REATTACK_MAX = 6;   // intentos maximos sobre un mismo blanco: si no lo destruis, la mision termina
     let momDrift = 0;   // avance VISUAL extra del momentum: cuando dist llega al tope anti-encadenado,
                         // el sobrante se acumula aca y el mar/tierra lo suman → el avion NUNCA se ve frenar
     try { best = +localStorage.getItem('rasante_frontal_best') || 0; } catch (e) { }
@@ -463,11 +650,11 @@
       t = 0; dist = 0; spd = 6; momDrift = 0;
       plane = { x: 0, y: 1.2, vx: 0, vy: 0, bank: 0, pitch: 0 };   // bank/pitch: estado visual suavizado (animación)
       fuel = 100; heat = 0; overheat = false; detection = 0;
-      score = 0; mult = 1; boost = false;
+      score = 0; mult = 1; boost = false; resetStats();
       obstacles = []; bullets = []; missiles = []; parts = []; streaks = []; popups = []; wake = [];
       pmissiles = []; msl = MSL_MAX; mslCd = 0; mslRegen = 0; soldiers = []; nextSoldier = 60; bloodSplat = 0;
       nextSpawn = 320; fuelDist = 0; fireT = 0; shake = 0;
-      streak = 0; graceT = 0; rasLevel = 0; multShow = 1; throttle = 0;
+      streak = 0; graceT = 0; rasLevel = 0; multShow = 1; throttle = 0; scrapeT = 0; scrapeVib = 0;
       afterT = 0; afterTier = 0; afterGrace = 0;
       windT = 0; windF = 1; gusts = [];
       rollT = 0; rollCd = 0;
@@ -522,6 +709,10 @@
       // armas
       gun: { f: ['ammo/machinegun_slow.mp3'], v: 0.5, loop: true },       // metralla: loop mientras disparas
       msl: { f: ['ammo/misil.mp3', 'ammo/misil2.wav'], v: 0.7 },
+      // cañon en MOMENTUM (1a persona): rafaga lenta y pesada, una variante al azar por tiro.
+      // Comparte los samples con exXsmall pero es una entrada propia para poder regular su
+      // volumen sin tocar el de las explosiones chicas.
+      momGun: { f: ['explosions/xsmall_explosion.wav', 'explosions/xsmall_explosion2.wav'], v: 0.55 },
       // cuerpos (atropellar soldados): uno al azar
       body: { f: ['body/body_hit0.wav', 'body/body_hit1.wav', 'body/body_hit2.wav', 'body/body_hit3.wav'], v: 0.75 },
       // explosiones por contexto
@@ -842,7 +1033,7 @@
     }
 
     function spawn() {
-      const lane = (Math.random() * 52 - 26);
+      const lane = (Math.random() * SPAWN_X * 2 - SPAWN_X);   // acompaña a FLY_X
       // sin combustible activo (COMBUSTIBLE: NO) los bidones serian pickups inutiles: no se fuerzan
       // por distancia y su slot del sorteo cae en globo
       if (cfg.fuelOn && fuelDist > 700) { obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false }); fuelDist = 0; return; }
@@ -948,8 +1139,16 @@
     // (deriva lentisima hacia el blanco); entre pasadas el crecimiento lo continua drawApproachBarge.
     function momShipGeom() {
       const ph = MOM_PHASES[momPhase];
-      const prog = Math.min(1, mom.t / ph.time);
-      const sc = ph.scale * (0.82 + 0.24 * prog);   // avance MAS marcado: cierra hasta 1.06×
+      const prog = mom.t / ph.time;
+      // cierra 0.82×→1.06× durante la pasada y SIGUE cerrando (mas lento) si se pasa del tiempo
+      // nominal — p.ej. durante el outro. Antes se clampeaba en 1 y el barco quedaba clavado:
+      // el avion parecia frenar en seco justo al final.
+      const extra = Math.min(0.5, Math.max(0, prog - 1));
+      let f = 0.82 + 0.24 * Math.min(1, prog) + 0.10 * extra;
+      // VIRAJE 180: te alejas y reencaras, asi que el barco vuelve suave al standoff de entrada
+      // (0.82×). Al terminar el viraje mom.t se resetea a 0 → sigue justo desde ahi, sin salto.
+      if (mom.turn > 0) f += (0.82 - f) * Math.min(1, (1 - mom.turn / REATTACK_DUR) * 1.3);
+      const sc = ph.scale * f;
       // barco FIJO/ANCLADO (sin balanceo ni cabeceo): el movimiento del duelo lo pone el ALABEO
       // del avion (el mundo entero gira con mom.roll), no el barco
       return { cx: W / 2, len: W * 0.82 * sc, deckY: HOR + 36 * sc, uh: 9 * sc, sc };
@@ -1440,7 +1639,7 @@
       momBoom(r.x + r.w / 2, r.y + r.h / 2, true);
       // explosion real: la primera pasada suena LEJANA (heavy_dist), las siguientes de cerca
       sfxOne(momPhase === 0 ? 'exHeavyDist' : 'exHeavy');
-      score += z.pts;
+      score += z.pts; stats.zones++;
       popup(r.x + r.w / 2, r.y - 6, '+' + z.pts, P.accent);
       popup(MOM_AX + cmw.x, 50 + cmw.y, T('mom_destroyed', { z: T(z.label) }), P.warn);
       if (mom.zones.every(zz => zz.hp <= 0)) {
@@ -1489,7 +1688,7 @@
       state = 'momentum';
       obstacles = []; bullets = []; missiles = []; pmissiles = []; soldiers = []; gusts = []; streaks = [];  // se limpia el campo (cinematica)
       mom = {
-        t: 0, timer: ph.time, doneT: 0, cx: W / 2, cy: 80, hitFx: 0, fx: [],
+        t: 0, timer: ph.time, doneT: 0, turn: 0, pass: 1, cx: W / 2, cy: 80, hitFx: 0, fx: [],
         roll: 0, rollV: 0,   // ALABEO: el avion rola sobre su eje longitudinal (←/→); el mundo gira, la cabina no
         zones: ph.zones.map(z => Object.assign({}, z, { hp: z.maxHp }))
       };
@@ -1501,23 +1700,68 @@
       boom(0.10);
       if (eng) eng.g.gain.value = 0;
     }
+    // VIRAJE 180 y nueva pasada sobre el mismo blanco. Las zonas conservan su hp: lo que ya
+    // rompiste cuenta, asi que insistir avanza en vez de reiniciar. Cuesta combustible.
+    function startReattack() {
+      // FIN DE MISION si no lo destruiste: sin nafta para otra vuelta, o agotados los intentos.
+      // Sin esto el bucle de re-ataque no termina nunca (fuel se clampea en 0 y seguis virando).
+      const noFuel = cfg.fuelOn && fuel < REATTACK_FUEL;
+      if (noFuel || mom.pass >= REATTACK_MAX) return die(noFuel ? 'death_fuel' : 'death_aa');
+      mom.turn = REATTACK_DUR;
+      mom.pass = (mom.pass || 1) + 1;
+      stats.reattacks = (stats.reattacks || 0) + 1;
+      if (cfg.fuelOn) fuel = Math.max(0, fuel - REATTACK_FUEL);
+      const cm = momCam();
+      popup(MOM_AX + cm.x, 50 + cm.y, T('mom_turn'), P.warn);
+      sfxOne('waveFly');                                  // rafaga del viraje
+      beep(300, 0.5, 'sine', 0.05, 700);                  // sting ascendente: reencarás
+      shake = Math.min(6, shake + 2);
+    }
+
+    // objetivo cumplido → RECUENTO. Congela aca las estadisticas de la mision: entre niveles de
+    // campaña se llama reset(), que las borraria.
     function finishObjective() {
       mom = null;
-      if (gameMode === 'campaign') state = (curLevel + 1 < LEVELS.length) ? 'levelclear' : 'victory';
-      else state = 'objective';    // CICLO DE MUERTE: barcaza realmente destruida
-      levelT = 0; beep(700, 0.15, 'square', 0.06, 1000);
+      freezeRun();
+      state = 'results'; levelT = 0; resT = 0; resRow = 0;
+      beep(700, 0.15, 'square', 0.06, 1000);
       if (eng) eng.g.gain.value = 0;
+    }
+    // arma lastRun: el desglose de puntos, las estrellas y la calificacion de la mision
+    function freezeRun() {
+      const m = curMission();
+      const flight = Math.floor(score);
+      const kills = stats.air + stats.soldiers + stats.zones;
+      const acc = stats.shots ? stats.hits / stats.shots : 0;
+      const bKills = kills * 120;
+      const bAcc = Math.round(acc * 1000);
+      const bRas = stats.bestRas * 300;
+      const total = flight + bKills + bAcc + bRas;
+      const par = m.par || 8000;
+      const starN = total >= par * 1.5 ? 3 : total >= par ? 2 : 1;
+      lastRun = {
+        mission: m, flight, kills, acc, bKills, bAcc, bRas, total, par, stars: starN,
+        rank: RANKS[Math.min(RANKS.length - 1, starN - 1 + (acc > 0.6 ? 1 : 0))],
+        rows: [
+          { k: 'res_flight', v: flight },
+          { k: 'res_kills', v: bKills, n: kills },
+          { k: 'res_acc', v: bAcc, n: Math.round(acc * 100) + '%' },
+          { k: 'res_ras', v: bRas, n: stats.bestRas },
+        ],
+      };
     }
     function updateMomentum(dt) {
       t -= dt * 0.70;                       // camara lenta: el mundo de fondo corre al 30%
       mom.t += dt;
-      // el avion SIGUE AVANZANDO en camara lenta: dist crece al 25% de la velocidad → el mar y
-      // la tierra corren despacio hacia vos (es acercamiento REAL a la barcaza). Tope 2% antes
-      // del gatillo de la proxima pasada para no encadenar momentums al volver al vuelo —
-      // pero el sobrante pasa a momDrift (avance solo-visual): el flujo del mar JAMAS se frena.
+      // El avion SIGUE AVANZANDO en camara lenta. Al 25% el flujo era tan tenue que, sumado al
+      // tiempo ralentizado, se leia como si el avion estuviera clavado en el aire; al 50% se nota
+      // que seguis entrando sin romper la sensacion de bullet-time.
+      // dist se topa 2% antes del gatillo de la proxima pasada (para no encadenar momentums al
+      // volver al vuelo), pero el sobrante va a momDrift — avance SOLO visual, sin tope: el mar
+      // y el terreno nunca dejan de correr hacia vos.
       {
         const nextAt = (momPhase + 1 < MOM_PHASES.length) ? MOM_PHASES[momPhase + 1].at : 99;
-        const adv = spd * 0.25 * dt;
+        const adv = spd * MOM_ADVANCE * dt;
         const take = Math.min(adv, Math.max(0, objectiveDist * (nextAt - 0.02) - dist));
         dist += take; momDrift += adv - take;
       }
@@ -1585,7 +1829,7 @@
                 if (z.hp <= 0) continue;
                 const r = momZoneRect(z);
                 if (f.tx >= r.x - 1 && f.tx <= r.x + r.w + 1 && f.ty >= r.y - 1 && f.ty <= r.y + r.h + 1) {
-                  z.hp -= 45; mom.hitFx = 1;
+                  z.hp -= 45; mom.hitFx = 1; stats.hits++;
                   boom(0.06); beep(88, 0.11, 'triangle', 0.05, 44);   // THUMP de impacto con cuerpo
                   if (z.hp <= 0) momZoneKilled(z);
                   break;
@@ -1616,6 +1860,23 @@
           momPhase++; mom = null; state = 'play';
           popup(W / 2, 58, T('mom_next'), P.accent);
           beep(110, 0.4, 'sine', 0.06, 640);   // sting de salida: el tiempo VUELVE (pitch subiendo)
+        }
+        return;
+      }
+      // VIRAJE 180: el mundo rola como en un wingover y volvés a encarar el blanco. No corre el
+      // reloj ni se puede disparar; el mar SI sigue corriendo (el bloque de avance ya paso arriba).
+      if (mom.turn > 0) {
+        mom.turn -= dt;
+        const tp = 1 - Math.max(0, mom.turn) / REATTACK_DUR;   // 0..1
+        mom.roll = Math.sin(tp * Math.PI) * Math.PI;           // rola 180° y sale derecho
+        mom.rollV = 0;
+        if (mom.turn <= 0) {                                   // reencarado: nueva pasada
+          const ph2 = MOM_PHASES[momPhase];
+          mom.turn = 0; mom.roll = 0; mom.t = 0; mom.timer = ph2.time;
+          mom.cy = momShipGeom().deckY - 8;                    // la mira vuelve a la cubierta
+          const cm2 = momCam();
+          popup(MOM_AX + cm2.x, 56 + cm2.y, T('mom_pass_n', { n: mom.pass }), P.accent);
+          beep(620, 0.5, 'sine', 0.06, 90);
         }
         return;
       }
@@ -1663,10 +1924,14 @@
         });
         // RESPLANDOR de fogonazo en el borde del lado que disparo (feedback instantaneo)
         if (mom.gunSide < 0) mom.flashL = 0.14; else mom.flashR = 0.14;
-        beep(140, 0.12, 'square', 0.07, 55);   // disparo GRAVE y gordo (rafaga lenta = peso)
+        // disparo real: xsmall_explosion / xsmall_explosion2 al azar. Sin samples (build web)
+        // cae al beep grave y gordo de antes.
+        if (!sfxOne('momGun')) beep(140, 0.12, 'square', 0.07, 55);
         boom(0.05);
       }
-      if (mom.timer <= 0) return die('death_aa');   // se acabo la ventana: la defensa te alcanza
+      // Se acabo la ventana de tiro: pasaste por encima y perdiste el angulo. NO es muerte —
+      // virás 180° y volvés a entrar sobre el mismo blanco (ver startReattack).
+      if (mom.timer <= 0) return startReattack();
     }
 
     // salpicadura de sangre + tierra al eliminar un soldado
@@ -1760,7 +2025,7 @@
 
       if (state !== 'play') {
         if (state === 'dead') deathT += dt;
-        if (state === 'levelclear' || state === 'victory' || state === 'objective') levelT += dt;
+        if (state === 'victory') levelT += dt;
         parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
         parts = parts.filter(p => p.life > 0);
         if (eng) eng.g.gain.value = 0;
@@ -1784,25 +2049,53 @@
               story.si++; initStoryScreen(); beep(500, 0.05, 'square', 0.04);
             } else { t = 0; fadeT = 1.4; state = 'takeoff'; sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
           }
+        } else if (state === 'brief') {
+          // tarjeta corta de mision (ciclo de muerte, y campaña sin guion): una tecla despega
+          briefT += dt;
+          if (briefT > 0.6 && anyPress) { t = 0; fadeT = 1.0; state = 'takeoff'; sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
         } else if (state === 'menu') {
           // el menú lo comparten SUPERVIVENCIA y CICLO DE MUERTE
-          if (startReq) { reset(); setRunObjective(); state = 'takeoff'; sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+          if (startReq) {
+            reset(); setRunObjective();
+            // ciclo: pasa por el briefing corto de la mision; supervivencia: derecho al despegue
+            if (gameMode === 'cycle') { briefT = 0; state = 'brief'; beep(600, 0.08, 'square', 0.05); }
+            else { state = 'takeoff'; sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+          }
         } else if (state === 'dead') {
           if (deathT > 0.7 && anyPress) { reset(); setRunObjective(); state = 'takeoff'; sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }  // reintenta (mismo modo/nivel)
-        } else if (state === 'levelclear') {
-          // entre niveles: si el proximo nivel tiene guion (NIVELES.md) → pantallas de HISTORIA;
-          // sino directo al despegue
-          if (levelT > 0.8 && anyPress) {
-            const keep = score; loadLevel(curLevel + 1); reset(); score = keep;
-            objectiveDist = LEVELS[curLevel].goalDist; objectiveShip = randomShip();
-            if (LEVELS[curLevel].story) { initStory(LEVELS[curLevel].story); state = 'story'; }
-            else { state = 'takeoff'; sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+        } else if (state === 'results') {
+          // RECUENTO: las filas entran de a una; una tecla las completa de golpe, la siguiente pasa al epilogo
+          resT += dt;
+          const nRows = lastRun ? lastRun.rows.length : 0;
+          const want = Math.min(nRows, Math.floor(resT / 0.45));
+          if (want > resRow) { resRow = want; beep(760 + resRow * 90, 0.07, 'square', 0.05); }
+          const full = resRow >= nRows && resT > nRows * 0.45 + 0.7;
+          if (anyPress && resT > 0.5) {
+            if (!full) { resT = nRows * 0.45 + 0.8; resRow = nRows; }   // completar de un saque
+            else { initStory(lastRun.mission.epi); state = 'epilogue'; beep(500, 0.05, 'square', 0.04); }
+          }
+        } else if (state === 'epilogue') {
+          // EPILOGO: reusa el motor de tipeo de la historia; al terminar, encadena segun el modo
+          story.t += dt;
+          const st = storyTyped(story.t);
+          if (st.typed > story.typed && !muted) beep(1300 + Math.random() * 1100, 0.014, 'square', 0.013);
+          story.typed = st.typed; story.done = st.done;
+          if (anyPress && story.t > 0.4) {
+            if (!story.done) { story.t += 999; }
+            else if (story.si + 1 < story.seq.length) { story.si++; initStoryScreen(); beep(500, 0.05, 'square', 0.04); }
+            else if (gameMode === 'campaign') {
+              // campaña: siguiente mision (conservando el puntaje acumulado) o victoria si era la ultima
+              if (curLevel + 1 < MISSIONS.length) {
+                const keep = score; loadLevel(curLevel + 1); reset(); score = keep;
+                setRunObjective(); state = enterMission();
+              } else { state = 'victory'; levelT = 0; }
+            } else {
+              // ciclo de muerte: otra mision al azar, desde cero
+              randomMission(); reset(); setRunObjective(); briefT = 0; state = 'brief';
+            }
           }
         } else if (state === 'victory') {
           if (levelT > 0.8 && anyPress) { state = 'modeselect'; }
-        } else if (state === 'objective') {
-          // CICLO DE MUERTE: barcaza destruida. POR AHORA vuelve al menú con config nueva (re-randomiza).
-          if (levelT > 0.8 && anyPress) { randomizeCfg(); state = 'menu'; }
         }
         startReq = false; anyPress = false;
         return;
@@ -1838,7 +2131,17 @@
       }
       const afterMul = 1 + afterTier * AFTER_GAIN;
       const spdTarget = Math.min(280 + afterTier * AFTER_CAP, spdBase * rachaVel * windF * (boost ? 1.5 : 1) * afterMul);
-      spd += (spdTarget - spd) * Math.min(1, dt * 3);
+      // INTERCAMBIO DE ENERGIA (cfg.energy): la ALTURA es energia almacenada — picar la convierte
+      // en velocidad, trepar la gasta. Es lo que arma el pendulo (bajar rapido → rasar → trepar).
+      // El arrastre hacia spdTarget se AFLOJA (3 → ENERGY_DRAG) porque con el lerp rapido de antes
+      // lo que ganabas picando se evaporaba en medio segundo y no se acumulaba nada.
+      if (cfg.energy) {
+        spd += (spdTarget - spd) * Math.min(1, dt * ENERGY_DRAG);
+        spd += (-plane.vy) * ENERGY_K * dt;                       // vy<0 (picada) suma, vy>0 (trepada) resta
+        spd = Math.max(34, Math.min(spdTarget * ENERGY_MAX, spd));   // techo: picar premia, no rompe
+      } else {
+        spd += (spdTarget - spd) * Math.min(1, dt * 3);
+      }
       // turbulencia: el viento sacude el avión
       if (windF < 0.97) {
         plane.vx += (Math.random() - 0.5) * 95 * (1 - windF) * dt * 4;
@@ -1854,10 +2157,14 @@
       dist += spd * dt;
       fuelDist += spd * dt;
 
-      // objetivo (campaña o ciclo de muerte): al acercarse a la barcaza arranca el asalto por pasadas (MOMENTUM)
-      if (objectiveDist > 0 && momPhase < MOM_PHASES.length && dist >= objectiveDist * MOM_PHASES[momPhase].at) {
-        enterMomentum();
-        return;
+      // OBJETIVO cumplido. Segun el tipo de meta (ver GOALS):
+      //   - con climax (ship): al acercarse al blanco arranca el asalto por pasadas (MOMENTUM)
+      //   - sin climax (distance): llegar a la distancia YA cierra la mision
+      if (objectiveDist > 0) {
+        const needsMom = (gameMode === 'campaign' || gameMode === 'cycle') ? goalOf(curMission()).needsMomentum : true;
+        if (needsMom) {
+          if (momPhase < MOM_PHASES.length && dist >= objectiveDist * MOM_PHASES[momPhase].at) { enterMomentum(); return; }
+        } else if (dist >= objectiveDist) { finishObjective(); return; }
       }
 
       // maniobra
@@ -1896,9 +2203,9 @@
       if (fuel <= 0) { fuel = 0; plane.vy = Math.min(plane.vy, -5); }
       plane.x += plane.vx * dt;
       plane.y += plane.vy * dt;
-      if (plane.x < -30) { plane.x = -30; plane.vx = 0; }
-      if (plane.x > 30) { plane.x = 30; plane.vx = 0; }
-      if (plane.y > 46) { plane.y = 46; plane.vy = 0; }
+      if (plane.x < -FLY_X) { plane.x = -FLY_X; plane.vx = 0; }
+      if (plane.x > FLY_X) { plane.x = FLY_X; plane.vx = 0; }
+      if (plane.y > FLY_TOP) { plane.y = FLY_TOP; plane.vy = 0; }
 
       cam.x += (plane.x * 0.86 - cam.x) * Math.min(1, dt * 7);
       cam.y += (plane.y + 2.6 - cam.y) * Math.min(1, dt * 7);
@@ -1912,8 +2219,10 @@
       // de gas (↑ repetido) no la sacuden y el avión queda recto; si mantenés ↑/↓ sí cabecea.
       const vin = inp.u - inp.d;   // -1 pica / 0 / +1 trepa
       pitchHold = vin !== 0 ? pitchHold + dt : 0;
-      const holdRamp = Math.max(0, Math.min(1, (pitchHold - 0.12) / 0.18));   // 0 hasta 0.12s → sube a full a ~0.30s
-      const pitchV = vin * 0.9 * holdRamp + (plane.vy / 22) * 0.35;
+      const holdRamp = Math.max(0, Math.min(1, (pitchHold - PITCH_DELAY) / PITCH_RAMP));
+      // PITCH_VY es bajo a proposito: con un peso alto, la velocidad vertical real disparaba el
+      // sprite de trepada por su cuenta a los ~0.6 s y estirar la zona muerta no servia de nada.
+      const pitchV = vin * 0.9 * holdRamp + (plane.vy / 22) * PITCH_VY;
       const pitchTarget = Math.max(-1, Math.min(1, pitchV));
       plane.bank += (bankTarget - plane.bank) * Math.min(1, dt * 9);   // entra/sale con peso
       plane.pitch += (pitchTarget - plane.pitch) * Math.min(1, dt * 9);   // igual de rapido que el alabeo
@@ -1927,6 +2236,7 @@
       const newLevel = Math.min(4, Math.floor(streak / 2));
       if (newLevel > rasLevel) {
         rasLevel = newLevel;
+        stats.bestRas = Math.max(stats.bestRas, rasLevel);   // mejor nivel de racha alcanzado
         const s = proj(plane.x, plane.y, PZ);
         popup(s.x, s.y - 16, T('rasante', { n: 10 + rasLevel * 5 }), P.accent);
         beep(500 + rasLevel * 180, 0.14, 'square', 0.06, 750 + rasLevel * 180);
@@ -1946,7 +2256,44 @@
       if (cfg.terrain === 'land') { groundY = 0.5; deathMsg = 'death_land'; }
       else if (overRunway) { groundY = 0.9; deathMsg = 'death_land'; }
       else { groundY = waveNow(); deathMsg = 'death_sea'; }
-      if (plane.y <= groundY) return die(deathMsg);
+      // TOCAR LA SUPERFICIE: ya no es muerte instantanea. El avion ROZA y tambalea (perdes control:
+      // sacudon, guiñada, chispas) y tenes que sacarlo. El reloj de gracia se agota MUCHO mas rapido
+      // cuanto mas rapido vas — a fondo con turbo casi no hay margen. Si se agota, ahi si morís.
+      // HISTERESIS: se ENTRA al roce tocando la superficie (y <= groundY), pero una vez adentro el
+      // avion se sostiene un poco mas arriba (SCRAPE_LIFT) y sigue rozando hasta que trepás y salís
+      // de la banda. Sin esto, sostenerlo mas alto hacia que la condicion fallara al frame siguiente
+      // y el roce se cancelaba solo.
+      const scrapeY = groundY + SCRAPE_LIFT;
+      if (plane.y <= (scrapeT > 0 ? scrapeY + 0.2 : groundY)) {
+        const sf = Math.max(0, Math.min(1, (spd - 90) / 190));            // 0 lento .. 1 a fondo
+        const lim = (SCRAPE_BASE - (SCRAPE_BASE - SCRAPE_MIN) * sf) * (boost ? 0.55 : 1);
+        scrapeT += dt;
+        if (scrapeT >= lim) return die(deathMsg);                          // se agoto el margen
+        // PISO, no altura fija: no se hunde, no salta solo, pero SI podes trepar dando gas.
+        // (con "plane.y = scrapeY" quedaba clavado: vy acumulaba empuje sin mover el avion y
+        //  salias catapultado un segundo despues, o te morias antes de lograrlo)
+        if (plane.y < scrapeY) plane.y = scrapeY;
+        if (plane.vy < 0) plane.vy = 0;
+        plane.vy += (Math.random() - 0.5) * 26 * dt;                       // tambaleo vertical
+        scrapeVib = 1;                                                     // el AVION vibra (ver drawPlaneSprite)
+        plane.vx += (Math.random() - 0.5) * 140 * dt;                      // guiñada erratica
+        spd = Math.max(34, spd - spd * 1.1 * dt);                          // el roce FRENA
+        shake = Math.min(7, shake + 26 * dt);
+        streak = 0; rasLevel = 0; afterT = 0; afterTier = 0;               // se corta la racha
+        // chispas / rocio del roce
+        const sp = proj(plane.x, groundY, PZ);
+        for (let i = 0; i < 3; i++) parts.push({
+          x: sp.x + (Math.random() - 0.5) * 14, y: sp.y, vx: (Math.random() - 0.5) * 90,
+          vy: -30 - Math.random() * 70, life: 0.35,
+          c: cfg.terrain === 'land' ? P.accent : P.crest, r: 1.4
+        });
+        if (!sfxOne('waveFly')) beep(90 + Math.random() * 60, 0.05, 'sawtooth', 0.05);
+        // aviso pegado al limite: cuanto le queda al margen
+        if (Math.sin(t * 30) > 0) popup(sp.x, sp.y - 26, T('scrape'), P.warn);
+      } else {
+        scrapeT = Math.max(0, scrapeT - dt * SCRAPE_RECOVER);   // salir descuenta, pero no borra
+        scrapeVib = Math.max(0, scrapeVib - dt * 6);            // la vibracion se apaga al salir
+      }
 
       // estela sobre el agua
       const lowI = Math.max(0, 1 - alt / 9);
@@ -1984,7 +2331,7 @@
       if (heat < 0) heat = 0;
       if (overheat && heat < 0.3) overheat = false;
       if (inp.fire && !overheat && fireT <= 0) {
-        fireT = 1 / 9;
+        fireT = 1 / 9; stats.shots++;   // denominador de la PRECISION del recuento
         const vm = viewMouse();
         if (vm.on) {
           // MIRA CON MOUSE (PC): desproyecta el cursor al mundo a z=110. La bala SALE DEL AVION
@@ -2039,7 +2386,7 @@
           sd.dead = true;                                        // pase rasante: cabeza / impacto de aire (banda 0.5–3)
           sfxOne('body');                                        // impacto de cuerpo (una variante al azar)
           const pts = Math.round(120 * multShow);                // escala con el multiplicador (a ras = brutal)
-          score += pts;
+          score += pts; stats.soldiers++;
           const s = proj(sd.x, 0, PZ); popup(s.x, s.y - 10, '+' + pts, P.warn);
           bloodBurst(s.x, s.y, 18);                               // sangre + tierra
           bloodSplat = Math.min(1, bloodSplat + 0.5);             // mancha el sprite (se desvanece)
@@ -2065,7 +2412,7 @@
           const hullHit = o.type === 'mast' && Math.abs(plane.x - o.x) < 5 + pw && plane.y < 3.6;
           if (o.type === 'fuel') {
             if (dx < 1.5 && dy < 1.5) {
-              fuel = Math.min(100, fuel + 30);
+              fuel = Math.min(100, fuel + 30); stats.fuelPicks++;
               const s = proj(o.x, o.y, PZ); popup(s.x, s.y, T('pickFuel'), P.foam);
               beep(700, 0.1, 'triangle', 0.05, 1000); o.z = -99;
             }
@@ -2073,7 +2420,7 @@
             return die(o.type === 'mast' ? 'death_mast' : o.type === 'helo' ? 'death_helo' : o.type === 'jet' ? 'death_jet' : 'death_balloon');
           } else if (dx < 3 && dy < 3) {
             const pir = rollT > 0;                       // rozar EN PIRUETA: bonus grande (estilo)
-            score += pir ? 250 : 75; shake = Math.min(6, shake + 1.5);
+            score += pir ? 250 : 75; stats.grazes++; shake = Math.min(6, shake + 1.5);
             sfxOne('waveFly');                           // rafaga de aire del pase cercano
             const s = proj(o.x, oy, PZ); popup(s.x, s.y - 8, pir ? T('rollGraze') : T('graze'), pir ? P.accent : P.foam);
             boom(0.06, true);
@@ -2090,7 +2437,7 @@
         if (!m.done && m.z <= PZ + 1.2) {
           m.done = true;
           if (Math.abs(plane.x - m.x) < (rollT > 0 ? 1.6 : 3) && Math.abs(plane.y - m.y) < (rollT > 0 ? 1.2 : 2.2)) return die('death_missile');
-          score += 75; const s = proj(m.x, m.y, PZ); popup(s.x, s.y - 8, T('dodgeMissile'), P.foam); boom(0.06, true);
+          score += 75; stats.dodges++; const s = proj(m.x, m.y, PZ); popup(s.x, s.y - 8, T('dodgeMissile'), P.foam); boom(0.06, true);
         }
         if (Math.random() < 0.6) {
           const s = proj(m.x, m.y, m.z + 2);
@@ -2115,10 +2462,10 @@
           if (o.z < z0 - 2 || o.z > b.z + 2) continue;
           const oy = o.y, air = o.type === 'helo' || o.type === 'jet';
           if (Math.abs(b.x - o.x) < (air ? 5.6 : 3) && Math.abs(b.y - oy) < (air ? 3 : 2.4)) {
-            o.hp--; b.z = 999;
+            o.hp--; b.z = 999; stats.hits++;
             if (o.hp <= 0) {
               const pts = o.type === 'helo' ? 300 : o.type === 'jet' ? 250 : 150;
-              score += pts;
+              score += pts; stats.air++;
               sfxOne(air ? 'exMedium' : 'exXsmall');   // aeronaves: medium · blancos chicos: xsmall
               const s = proj(o.x, oy, o.z); popup(s.x, s.y - 8, '+' + pts);
               explodeAt(o.x, oy, o.z, air);
@@ -2131,7 +2478,7 @@
         for (const m of missiles) {
           if (m.z < z0 - 2 || m.z > b.z + 2) continue;
           if (Math.abs(b.x - m.x) < 2.6 && Math.abs(b.y - m.y) < 2.2) {
-            b.z = 999; score += 400;
+            b.z = 999; score += 400; stats.hits++; stats.air++;
             const s = proj(m.x, m.y, m.z); popup(s.x, s.y - 8, '+400', P.warn);
             explodeAt(m.x, m.y, m.z, true);
             m.z = -99; m.done = true;   // done=true: evita que el misil enemigo derribado dispare la muerte del avión
@@ -2146,7 +2493,7 @@
             if (Math.abs(b.x - sd.x) < 2.6) {
               sd.dead = true; b.z = 999;
               const pts = Math.round(60 * (multShow >= 5 ? 2 : 1));
-              score += pts; const s = proj(sd.x, 0, sd.z); popup(s.x, s.y - 8, '+' + pts, P.foam);
+              score += pts; stats.hits++; stats.soldiers++; const s = proj(sd.x, 0, sd.z); popup(s.x, s.y - 8, '+' + pts, P.foam);
               bloodBurst(s.x, s.y, 8);
               beep(240, 0.05, 'square', 0.04); break;
             }
@@ -2168,7 +2515,7 @@
           if (o.hp === undefined || o.z < z0 - 4 || o.z > pm.z + 4) continue;
           if (Math.abs(pm.x - o.x) < 8 && Math.abs(pm.y - o.y) < 5) {
             const pts = (o.type === 'helo' ? 300 : o.type === 'jet' ? 250 : 150) + 100;   // +bonus por misil
-            score += pts;
+            score += pts; stats.air++;
             const s = proj(o.x, o.y, o.z); popup(s.x, s.y - 8, '+' + pts, P.accent);
             explodeAt(o.x, o.y, o.z, true);
             o.z = -99; o.done = true; o.hp = 0;                 // done=true: no puede chocar al avión luego
@@ -2180,7 +2527,7 @@
         for (const m of missiles) {
           if (m.z < z0 - 4 || m.z > pm.z + 4) continue;
           if (Math.abs(pm.x - m.x) < 6 && Math.abs(pm.y - m.y) < 4) {
-            score += 400;
+            score += 400; stats.air++;
             const s = proj(m.x, m.y, m.z); popup(s.x, s.y - 8, '+400', P.warn);
             explodeAt(m.x, m.y, m.z, true);
             m.z = -99; m.done = true; pm.z = 9999; break;
@@ -2200,7 +2547,7 @@
                 const ss = proj(sd.x, 0, sd.z); bloodBurst(ss.x, ss.y, 7);
               }
             }
-            if (hit) { const pts = hit * 130; score += pts; const s = proj(pm.x, 0, pm.z); popup(s.x, s.y - 10, '+' + pts, P.warn); }
+            if (hit) { const pts = hit * 130; score += pts; stats.soldiers += hit; const s = proj(pm.x, 0, pm.z); popup(s.x, s.y - 10, '+' + pts, P.warn); }
             pm.z = 9999;
           }
         }
@@ -2375,7 +2722,10 @@
       ctx.save();
       // sub-pixel + bob de vuelo (nunca queda congelado) + micro-oscilación de alabeo en el aire
       const bob = (state === 'play' ? Math.sin(t * 3.1) * 0.5 + Math.sin(t * 1.7) * 0.3 : 0);
-      ctx.translate(s.x, s.y - bob);
+      // VIBRACION al rozar la superficie: temblor rapido del fuselaje (el avion, no la camara)
+      const vx2 = scrapeVib ? (Math.random() - 0.5) * 3.2 * scrapeVib : 0;
+      const vy2 = scrapeVib ? (Math.random() - 0.5) * 2.4 * scrapeVib : 0;
+      ctx.translate(s.x + vx2, s.y - bob + vy2);
       // cabeceo: el morro sube al trepar / baja al caer (desplazamiento vertical del sprite)
       ctx.translate(0, -plane.pitch * 1.2);
       // alabeo: rotación 2D + micro-wobble; el foreshortening en X finge la inclinación 3D del ala
@@ -2674,9 +3024,10 @@
       if (state === 'modeselect') drawModeSelect();
       if (state === 'menu') { drawMenu(); if (cfgOpen) drawCfg(); }
       if (state === 'dead') drawDead();
-      if (state === 'levelclear') drawLevelClear();
+      if (state === 'results') drawResults();
+      if (state === 'brief') drawBrief();
       if (state === 'victory') drawVictory();
-      if (state === 'objective') drawObjective();
+      if (state === 'epilogue' && story) drawStory();
       if (state === 'story' && story) drawStory();
 
       // fundido desde negro (al salir de la historia hacia el despegue) — SIEMPRE al final
@@ -2726,7 +3077,9 @@
       const lastScreen = story.si + 1 >= story.seq.length;
       if (story.done && Math.sin(t * 4) > -0.3) {
         ctx.font = 'bold 8px monospace'; ctx.fillStyle = P.accent; ctx.textAlign = 'center';
-        ctx.fillText(T(lastScreen ? 'startPrompt' : 'continuePrompt'), W / 2, H - 22);
+        // el guion de campaña termina en el despegue, pero el EPILOGO sigue al briefing/recuento:
+        // ahi corresponde "continuar", no "despegar"
+        ctx.fillText(T(lastScreen && state !== 'epilogue' ? 'startPrompt' : 'continuePrompt'), W / 2, H - 22);
       }
       // progreso de la secuencia (puntitos abajo)
       const n = story.seq.length;
@@ -2734,23 +3087,7 @@
         px(W / 2 - n * 4 + i * 8 + 2, H - 13, 3, 3, i === story.si ? P.accent : '#2e3c45');
     }
 
-    // CICLO DE MUERTE: barcaza destruida (por ahora finaliza el run)
-    function drawObjective() {
-      panel();
-      ctx.textAlign = 'center';
-      ctx.fillStyle = P.accent; ctx.font = 'bold 13px monospace';
-      ctx.fillText(T('bargeDown'), W / 2, 50);
-      ctx.fillStyle = P.ink; ctx.font = 'bold 9px monospace';
-      ctx.fillText(objectiveShip, W / 2, 66);
-      ctx.fillStyle = P.dim; ctx.font = '7px monospace';
-      ctx.fillText(T('scoreLabel', { n: Math.floor(score) }), W / 2, 88);
-      ctx.fillStyle = '#5c6e73'; ctx.font = '6px monospace';
-      ctx.fillText(cfg.meters + ' m ' + T('reached'), W / 2, 102);
-      if (levelT > 0.8 && Math.sin(t * 4) > -0.3) {
-        ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-        ctx.fillText(T('continuePrompt'), W / 2, 132);
-      }
-    }
+    // (la vieja pantalla de "barcaza destruida" la absorbio el RECUENTO: ver drawResults)
 
     // MOMENTUM — camara 3/4 chase: el avion se ve GRANDE y pegado a camara (abajo-izq),
     // como si la camara volara detras y al costado. Devuelve la punta de la trompa (origen de la trazadora).
@@ -2940,10 +3277,18 @@
       ctx.fillStyle = '#05080b'; ctx.fillRect(0, 0, W, 13); ctx.fillRect(0, H - 13, W, 13);
       ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center';
       ctx.fillStyle = P.warn;
-      ctx.fillText(T('mom_title') + '  ·  ' + T('mom_pass', { n: momPhase + 1, m: MOM_PHASES.length }), W / 2, 9);
-      const tw = 90, tfrac = Math.max(0, mom.timer / ph.time);
+      ctx.fillText(T('mom_title') + '  ·  ' + T('mom_pass', { n: momPhase + 1, m: MOM_PHASES.length })
+        + (mom.pass > 1 ? '  ·  ' + T('mom_pass_n', { n: mom.pass }) : ''), W / 2, 9);
+      const tw = 90;
       px(W / 2 - tw / 2, H - 9, tw, 3, '#2e3c45');
-      px(W / 2 - tw / 2, H - 9, tw * tfrac, 3, tfrac < 0.3 ? P.warn : P.accent);   // roja cuando queda poco
+      if (mom.turn > 0) {
+        // VIRAJE: la barra se rellena al reves — es lo que falta para volver a tener el blanco
+        const tp = 1 - Math.max(0, mom.turn) / REATTACK_DUR;
+        px(W / 2 - tw / 2, H - 9, tw * tp, 3, P.foam);
+      } else {
+        const tfrac = Math.max(0, mom.timer / ph.time);
+        px(W / 2 - tw / 2, H - 9, tw * tfrac, 3, tfrac < 0.3 ? P.warn : P.accent);   // roja cuando queda poco
+      }
       // municion de misiles [Z] a la izquierda de la barra de tiempo
       ctx.font = '6px monospace'; ctx.textAlign = 'right'; ctx.fillStyle = P.dim;
       ctx.fillText('Z', W / 2 - tw / 2 - 26, H - 4);
@@ -3040,21 +3385,92 @@
       ctx.fillText('[L] ' + T('langName'), W / 2, 160);
     }
 
-    // tarjeta de transición entre niveles (PLACEHOLDER de cinemática — ver README)
-    function drawLevelClear() {
-      panel();
+    // ---------- RECUENTO DE FIN DE MISION ----------
+    // Las filas entran de a una acumulando el total; despues caen las estrellas y la calificacion.
+    function drawResults() {
+      // fondo CASI opaco: panel() es translucido y el mundo (popups, mar, montañas) se colaba
+      // entre las filas del recuento y lo hacia ilegible
+      ctx.fillStyle = '#0a0e11f2'; ctx.fillRect(0, 0, W, H);
+      const R = lastRun; if (!R) return;
       ctx.textAlign = 'center';
-      ctx.fillStyle = P.accent; ctx.font = 'bold 13px monospace';
-      ctx.fillText(LEVELS[curLevel].name + ' COMPLETADO', W / 2, 52);
+      ctx.fillStyle = P.accent; ctx.font = 'bold 11px monospace';
+      ctx.fillText(T('res_title'), W / 2, 22);
+      ctx.fillStyle = P.ink; ctx.font = 'bold 8px monospace';
+      ctx.fillText(R.mission.name, W / 2, 34);
+
+      // filas del desglose: etiqueta a la izquierda, puntos a la derecha
+      let acc = 0;
+      ctx.font = '7px monospace';
+      for (let i = 0; i < R.rows.length; i++) {
+        if (i >= resRow) break;
+        const r = R.rows[i], y = 52 + i * 12;
+        acc += r.v;
+        ctx.textAlign = 'left'; ctx.fillStyle = P.dim;
+        ctx.fillText(T(r.k) + (r.n !== undefined ? '  ' + r.n : ''), 40, y);
+        ctx.textAlign = 'right'; ctx.fillStyle = P.foam;
+        ctx.fillText('+' + r.v, W - 40, y);
+      }
+
+      // total (aparece cuando entraron todas las filas)
+      if (resRow >= R.rows.length) {
+        const y = 52 + R.rows.length * 12 + 4;
+        ctx.strokeStyle = '#2e3c45'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(40, y - 6.5); ctx.lineTo(W - 40, y - 6.5); ctx.stroke();
+        ctx.textAlign = 'left'; ctx.fillStyle = P.ink; ctx.font = 'bold 8px monospace';
+        ctx.fillText(T('res_total'), 40, y + 3);
+        ctx.textAlign = 'right'; ctx.fillStyle = P.accent;
+        ctx.fillText(String(R.total), W - 40, y + 3);
+
+        // estrellas: entran de a una con un pequeño rebote
+        const stT = resT - (R.rows.length * 0.45 + 0.15);
+        ctx.textAlign = 'center';
+        for (let i = 0; i < 3; i++) {
+          const on = i < R.stars, appear = stT - i * 0.22;
+          if (appear < 0) continue;
+          const pop = Math.max(0, 1 - appear * 4);           // rebote al aparecer
+          const sz = 13 + pop * 7;
+          ctx.font = 'bold ' + Math.round(sz) + 'px monospace';
+          ctx.fillStyle = on ? P.accent : '#2e3c45';
+          ctx.fillText(on ? '★' : '☆', W / 2 - 20 + i * 20, y + 26);
+        }
+        // calificacion
+        if (stT > 0.75) {
+          ctx.fillStyle = P.foam; ctx.font = 'bold 8px monospace';
+          ctx.fillText(T('res_rank') + '  ' + T(R.rank), W / 2, y + 42);
+        }
+        if (stT > 1.1 && Math.sin(t * 4) > -0.3) {
+          ctx.fillStyle = P.accent; ctx.font = 'bold 7px monospace';
+          ctx.fillText(T('continuePrompt'), W / 2, H - 12);
+        }
+      }
+    }
+
+    // ---------- BRIEFING CORTO (ciclo de muerte / campaña sin guion) ----------
+    function drawBrief() {
+      ctx.fillStyle = '#0a0e11f2'; ctx.fillRect(0, 0, W, H);   // igual que el recuento: fondo opaco
+      const m = curMission();
+      ctx.textAlign = 'center';
       ctx.fillStyle = P.dim; ctx.font = '6px monospace';
-      ctx.fillText('[ cinematica proximamente ]', W / 2, 68);
-      ctx.fillStyle = P.ink; ctx.font = '8px monospace';
-      ctx.fillText('PUNTAJE  ' + Math.floor(score), W / 2, 92);
-      ctx.fillStyle = P.foam; ctx.font = 'bold 9px monospace';
-      if (curLevel + 1 < LEVELS.length) ctx.fillText('SIGUIENTE: ' + LEVELS[curLevel + 1].name, W / 2, 112);
-      if (levelT > 0.8 && Math.sin(t * 4) > -0.3) {
-        ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-        ctx.fillText('CUALQUIER TECLA para continuar', W / 2, 140);
+      ctx.fillText(T('brief_title'), W / 2, 30);
+      ctx.fillStyle = P.accent; ctx.font = 'bold 12px monospace';
+      ctx.fillText(m.name, W / 2, 48);
+      ctx.fillStyle = '#5c6e73'; ctx.font = '6px monospace';
+      ctx.fillText(m.date, W / 2, 60);
+      // contexto corto de la mision (2-3 lineas, envueltas)
+      ctx.fillStyle = P.ink; ctx.font = '7px monospace';
+      const txt = T(m.brief);
+      const lines = wrapChars(txt, 46);
+      lines.forEach((l, i) => ctx.fillText(l, W / 2, 84 + i * 11));
+      // objetivo, en el lenguaje del tipo de meta. Si coincide con el titulo (misiones de buque,
+      // donde el blanco ES la mision) no se repite: solo aporta en metas de otro tipo (distancia...)
+      const goalTxt = goalOf(m).label(m.goal);
+      if (goalTxt !== m.name) {
+        ctx.fillStyle = P.warn; ctx.font = 'bold 7px monospace';
+        ctx.fillText(T('brief_goal') + '  ' + goalTxt, W / 2, 84 + lines.length * 11 + 14);
+      }
+      if (briefT > 0.6 && Math.sin(t * 4) > -0.3) {
+        ctx.fillStyle = P.accent; ctx.font = 'bold 7px monospace';
+        ctx.fillText(T('brief_go'), W / 2, H - 16);
       }
     }
 
@@ -3145,10 +3561,11 @@
       ctx.textAlign = 'right'; ctx.fillStyle = P.dim;
       ctx.fillText(T('hud_best', { n: best }), W - 16, 12);   // corrido a la izq para no chocar el ícono de sonido
 
-      // modo campaña: label del nivel arriba al centro
+      // modo campaña: PROGRESO de la campaña arriba al centro. No repite el nombre del blanco —
+      // de eso ya se ocupa la barra de objetivo, justo abajo.
       if (gameMode === 'campaign') {
         ctx.textAlign = 'center'; ctx.font = 'bold 8px monospace'; ctx.fillStyle = P.accent;
-        ctx.fillText(LEVELS[curLevel].name, W / 2, 12);
+        ctx.fillText(T('hud_mission', { n: curLevel + 1, m: MISSIONS.length }), W / 2, 12);
       }
 
       // barra de misión puerto→barcaza (modos con objetivo: ciclo de muerte y campaña)
