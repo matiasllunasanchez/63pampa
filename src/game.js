@@ -21,7 +21,7 @@ import * as hud from './render/hud.js';
 import * as world from './render/world.js';
 import { theme, applyTheme } from './render/theme.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
-         engineOff, engineRumble, duck, tickDuck, pickRunTrack } from './systems/audio.js';
+         engineOff, engineRumble, duck, tickDuck, setRunMusic, setTrack, nextTrack } from './systems/audio.js';
 import * as world3D from './systems/three-world.js';
 import { cv, ctx, W, H, HOR, F, PZ, SC, px, panel } from './render/ctx.js';
 import * as screens from './render/screens.js';
@@ -180,8 +180,9 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
         g.setup(m.goal);
       }
       else { objectiveDist = 0; objectiveShip = randomShip(); }
-      // SUPERVIVENCIA y CICLO: cada run arranca con una pista ADRENALINA al azar; campaña usa la suya
-      pickRunTrack(gameMode !== 'campaign');
+      // MUSICA: campaña fija la pista por NIVEL; ciclo y supervivencia CONTINUAN la pista elegida
+      // en el reproductor (no la re-sortean al reiniciar), y el jugador la cambia con TRACK ◄ ►.
+      setRunMusic(gameMode === 'campaign', curLevel);
     }
 
     // ---------- MENÚ DE CONFIGURACIÓN DE MAPA [M] (herramienta para prototipar niveles) ----------
@@ -265,6 +266,12 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     const mslBtn = document.getElementById('msl');
     if (mslBtn) mslBtn.addEventListener('pointerdown', e => { e.preventDefault(); audio(); tryLaunchMissile(); });
 
+    // reproductor de música: visible solo cuando suena una pista del reproductor y se puede cambiar
+    // — o sea en juego (no lobby ni historia) y en los modos que no son campaña. Se togglea en el loop.
+    const playerEl = document.getElementById('player');
+    const canPickMusic = () => gameMode !== 'campaign'
+      && S.state !== 'modeselect' && S.state !== 'menu' && S.state !== 'story' && S.state !== 'epilogue';
+
     // ---------- input ----------
     // CAMARAS (tecla V, cicla): 4 niveles de zoom anclados al sprite del avion.
     // camZ interpola suave; el zoom solo se aplica en vuelo (play/takeoff/dead), nunca en momentum
@@ -302,6 +309,10 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
         beep(440 + camMode * 120, 0.05, 'square', 0.04);
         if (S.state === 'play' || S.state === 'takeoff') popup(W / 2, 58, camMode ? 'CAM ' + CAM_ZOOMS[camMode] + '×' : 'CAM 1×', P.accent);
       },
+      // música: teclas 1..N (selectTrack) y R3 del joystick (cycleTrack). Solo en los modos donde
+      // el reproductor está activo — el motor ignora el cambio en historia/lobby.
+      selectTrack: n => { if (canPickMusic()) setTrack(n); },
+      cycleTrack: () => { if (canPickMusic()) nextTrack(); },
     });
 
 
@@ -791,6 +802,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       const dt = Math.min(0.033, (now - last) / 1000); last = now;
       update(dt); draw(); updateMusic(S.state);
       if (mslBtn) mslBtn.classList.toggle('on', S.state === 'play' || S.state === 'momentum');   // botón de misil en juego y momentum
+      if (playerEl) playerEl.classList.toggle('on', canPickMusic());   // reproductor: solo donde hay pista cambiable
       requestAnimationFrame(frame);
     }
     applyChrome();

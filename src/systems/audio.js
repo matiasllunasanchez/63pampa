@@ -39,7 +39,20 @@ const MUSIC_ADR = [
 ];
 const musAdr = MUSIC_ADR.filter(Boolean)
   .map(src => { const a = new Audio(src); a.loop = true; a.volume = 0.30; return a; });
-let curAdr = null;   // pista adrenalina del run actual (null = campaña → musGame)
+
+// PLAYLIST del REPRODUCTOR: la base del juego + el pool adrenalina, presentadas como TRACK 1..N.
+// Es la lista que se puede cambiar en vuelo (modos que NO son historia) y de la que la campaña
+// saca una pista por nivel. El lobby (musLobby) y las pantallas de historia (musStory) quedan
+// aparte: no entran en el reproductor.
+const PLAYLIST = [musGame, ...musAdr];
+// pista inicial ALEATORIA (cada carga arranca con otra). Dentro de la sesion NO se re-sortea al
+// reiniciar nivel — la continuidad la maneja setRunMusic; el jugador la cambia con ◄ ►, teclas
+// 1..N o el joystick (R3).
+let trackIdx = (Math.random() * PLAYLIST.length) | 0;
+let scriptedIdx = null;  // campaña: la pista la fija el NIVEL (no el jugador); null en los demas modos
+
+/** La pista que suena en juego: en campaña la fija el nivel; en el resto, la que eligio el jugador. */
+function gameTrack() { return PLAYLIST[scriptedIdx != null ? scriptedIdx : trackIdx] || musGame; }
 let muted = false, musicStarted = false;
 let duckT = 0;   // ducking: las explosiones grandes agachan la musica un instante
 try { muted = localStorage.getItem('rasante_muted') === '1'; } catch (e) { }
@@ -109,11 +122,12 @@ export function updateSfx(dt, w) {
 // objetivo) suena la del juego — nunca la del lobby.
 function inLobby(state) { return state === 'modeselect' || state === 'menu'; }
 export function updateMusic(state) {
+  lastState = state;
   if (muted) { if (eng) eng.g.gain.value = 0; return; }
-  // pistas: HISTORIA (himno epico) / lobby / juego (adrenalina del run o la base de campaña)
-  const gm = curAdr || musGame;
+  // pistas: HISTORIA (himno epico) / lobby / juego (la pista del reproductor o la del nivel)
+  const gm = gameTrack();
   const want = state === 'story' ? musStory : inLobby(state) ? musLobby : gm;
-  for (const m of [musLobby, musGame, musStory, ...musAdr]) if (m !== want && !m.paused) m.pause();
+  for (const m of [musLobby, musStory, ...PLAYLIST]) if (m !== want && !m.paused) m.pause();
   if (musicStarted && want.paused && (want !== musStory || MUSIC_STORY)) want.play().catch(() => { });
   // mezcla dinamica: en MOMENTUM la musica se AHOGA (camara lenta, como bajo el agua) y
   // las explosiones grandes la agachan un instante (ducking). Lerp por frame → suave.
@@ -125,7 +139,7 @@ export function setMuted(v) {
   muted = v;
   try { localStorage.setItem('rasante_muted', muted ? '1' : '0'); } catch (e) { }
   const b = document.getElementById('snd'); if (b) b.classList.toggle('muted', muted);
-  if (muted) { musLobby.pause(); musGame.pause(); musStory.pause(); musAdr.forEach(m => m.pause()); if (eng) eng.g.gain.value = 0; }
+  if (muted) { musLobby.pause(); musStory.pause(); PLAYLIST.forEach(m => m.pause()); if (eng) eng.g.gain.value = 0; }
   else { startMusicOnce(); updateMusic(lastState); }
 }
 (() => {
@@ -202,7 +216,38 @@ export function duck(v) { duckT = Math.max(duckT, v); }
 /** Recuperacion del ducking; se llama una vez por frame desde update(). */
 export function tickDuck(dt) { duckT = Math.max(0, duckT - dt); }
 
-/** Elige la pista de ADRENALINA del run (supervivencia y ciclo); campaña usa la base. */
-export function pickRunTrack(useAdrenaline) {
-  curAdr = (useAdrenaline && musAdr.length) ? musAdr[(Math.random() * musAdr.length) | 0] : null;
+/** Fija la musica del run segun el modo.
+ *  - CAMPAÑA (historia): cada nivel tiene su pista (playlist[nivel]); el jugador no la elige.
+ *  - CICLO / POR LA PATRIA: usa la pista elegida en el reproductor y NO la re-sortea — asi al
+ *    reiniciar un nivel la musica CONTINUA en vez de arrancar otra. */
+export function setRunMusic(isCampaign, level) {
+  scriptedIdx = isCampaign ? (level % PLAYLIST.length) : null;
+  syncPlayerBtn();
 }
+
+// ---------- REPRODUCTOR (cambiar de pista en vuelo, modos que no son historia) ----------
+export function trackCount() { return PLAYLIST.length; }
+export function currentTrackName() { return 'TRACK ' + (trackIdx + 1); }
+
+/** Cambia a la pista `i` (envuelve). Si hay una pista de juego sonando, el cambio es EN VIVO. */
+export function setTrack(i) {
+  const n = PLAYLIST.length;
+  trackIdx = ((i % n) + n) % n;
+  syncPlayerBtn();
+  updateMusic(lastState);   // si estamos en juego (no lobby/historia), suena la nueva ya
+}
+export function nextTrack() { setTrack(trackIdx + 1); }
+export function prevTrack() { setTrack(trackIdx - 1); }
+
+// refleja el nombre de la pista actual en el reproductor de la UI
+function syncPlayerBtn() {
+  const el = document.getElementById('ptrack');
+  if (el) el.textContent = currentTrackName();
+}
+(() => {
+  const prev = document.getElementById('pprev'), next = document.getElementById('pnext');
+  if (!prev || !next) return;
+  syncPlayerBtn();
+  prev.addEventListener('click', e => { e.preventDefault(); audio(); prevTrack(); });
+  next.addEventListener('click', e => { e.preventDefault(); audio(); nextTrack(); });
+})();
