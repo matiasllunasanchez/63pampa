@@ -1,7 +1,7 @@
 // RASANTE — entry point. Los modulos de datos se bundlean con esbuild (npm run build:game);
 // hace falta bundlear porque Electron carga por file://, donde Chromium bloquea los ES modules.
 import { STRINGS } from './data/strings.js';
-import { P, WATER_STYLES, SKY_PRESETS, LAND } from './data/palette.js';
+import { P, SKY_PRESETS, LAND } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS } from './data/missions.js';
 import { L, T, getLang, cycleLang, applyChrome } from './core/i18n.js';
@@ -16,6 +16,10 @@ import { spawnSystem } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
 import { inp, mouse, pointer, flags, initInput } from './core/input.js';
 import { flightSystem } from './systems/flight.js';
+import { drawPlane } from './render/plane.js';
+import * as hud from './render/hud.js';
+import * as world from './render/world.js';
+import { theme, applyTheme } from './render/theme.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, pickRunTrack } from './systems/audio.js';
 import * as world3D from './systems/three-world.js';
@@ -55,9 +59,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     // Se puede apagar en el menú [M] (COMBUSTIBLE: NO) para pruebas / vuelo libre.
     // paleta de tierra (turba malvinense). Se vuela A RAS del suelo para atropellar soldados (no es letal).
 
-    let WATER = WATER_STYLES[cfg.water];
-    let SKY = SKY_PRESETS[cfg.sky];
-    function applyCfg() { WATER = WATER_STYLES[cfg.water] || WATER_STYLES.sea; SKY = SKY_PRESETS[cfg.sky] || SKY_PRESETS.dusk; }
+    function applyCfg() { applyTheme(cfg); }
 
     // fija el layout de zonas del MOMENTUM segun la clase del buque
     // (MOM_LAYOUTS/SHIP_CLASS se definen mas abajo; esto solo corre al armar un run)
@@ -302,18 +304,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       },
     });
 
-    // opacidad de los cuadrados del mar 2D (todo el vuelo). Vivia en el bloque de three.js por
-    // vecindad historica, pero es del render 2D: se quedo aca al separar el modulo 3D.
-    const SEA_ALPHA2D = 0.6;
 
-    // campo de altura de la superficie para la malla de puntos (ondas superpuestas)
-    function seaH(wx, wz) {
-      return 1.0
-        + Math.sin(wz * 0.035 - run.t * 1.1) * 0.9           // marejada larga que rueda hacia la cámara
-        + Math.sin(wz * 0.22 + run.t * 2.2) * 0.65
-        + Math.sin(wz * 0.09 - run.t * 1.5 + wx * 0.15) * 0.5
-        + Math.sin(wx * 0.30 + wz * 0.05 + run.t * 1.9) * 0.35;
-    }
     const clouds = Array.from({ length: 6 }, () => ({ x: Math.random() * W, y: 8 + Math.random() * 34, w: 24 + Math.random() * 40 }));
     const isles = Array.from({ length: 4 }, (_, i) => ({ x: i * 90 + Math.random() * 50, w: 40 + Math.random() * 70, h: 5 + Math.random() * 10 }));
 
@@ -353,38 +344,6 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     // (deriva lentisima hacia el blanco); entre pasadas el crecimiento lo continua drawApproachBarge.
 
 
-
-    // la barcaza objetivo VISIBLE en vuelo normal: aparece en el horizonte desde el 45% del recorrido
-    // y crece hasta empalmar con la escala de la proxima pasada del momentum (es el final del mapa)
-    function drawApproachBarge() {
-      const ph = momentum.phase(), PH = momentum.phases();
-      if (objectiveDist <= 0 || ph >= PH.length) return;
-      if (S.state !== 'play' && S.state !== 'takeoff') return;
-      const p = run.dist / objectiveDist;
-      const next = PH[ph];
-      const t0 = ph === 0 ? 0.45 : PH[ph - 1].at;
-      if (p < t0) return;
-      const f = Math.max(0, Math.min(1, (p - t0) / (next.at - t0)));
-      const sc0 = ph === 0 ? 0.04 : PH[ph - 1].scale * 1.06;  // continua donde quedo la pasada anterior
-      const scE = next.scale * 0.82;
-      const sc = sc0 + (scE - sc0) * f;
-      // ALINEADO AL HORIZONTE: la barcaza queda pegada a la linea del horizonte (donde emergen los
-      // obstaculos, misma perspectiva) casi todo el acercamiento, y recien "baja" (se acerca) sobre
-      // el final con ease-in cuadratico, empalmando exacto con la cubierta del momentum (HOR+36*scE).
-      const d0 = ph === 0 ? 2 : 36 * sc0;
-      const dOff = d0 + (36 * scE - d0) * f * f;
-      const bx = W / 2 - cam.x * 1.2 + Math.sin(run.t * 0.8) * 6 * sc;
-      const by = HOR + dOff + Math.sin(run.t * 1.3) * 1.2 * sc;
-      // bruma atmosferica: de lejos es una silueta tenue → los obstaculos (solidos) resaltan encima
-      ctx.globalAlpha = ph === 0 ? 0.35 + 0.65 * f : 1;
-      momRender.drawBargeHull(bx, W * 0.82 * sc, by, 9 * sc, run.t);
-      ctx.globalAlpha = 1;
-      if (sc > 0.28) {   // ya cerca: nombre sobre el barco
-        ctx.font = '6px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.warn; ctx.globalAlpha = 0.85;
-        ctx.fillText(objectiveShip, bx, by - 9 * sc * 4.6);
-        ctx.globalAlpha = 1;
-      }
-    }
 
     // objetivo cumplido → RECUENTO. Congela aca las estadisticas de la mision: entre niveles de
     // campaña se llama reset(), que las borraria.
@@ -616,283 +575,6 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
 
     // ---------- render ----------
 
-    function drawSea() {
-      const landMode = cfg.terrain === 'land';
-      const dv = run.dist + momentum.drift();   // distancia VISUAL (drift del momentum incluido)
-      const landVisible = dv < cfg.coast + 80;
-      for (let y = HOR + 1; y < H; y++) {
-        const dy = y - HOR;
-        const z = cam.y * F / dy;
-        const wz = z + dv;
-        if (landVisible && wz < cfg.coast) {
-          // turba malvinense con la pista de la BAM
-          const vl = Math.sin(wz * 0.22) + Math.sin(wz * 0.07);
-          px(-70, y, W + 140, 1, vl > 0.8 ? '#39402f' : vl < -0.8 ? '#2b3226' : '#323a2b');
-          const k = F / z;
-          const x1 = W / 2 + (-7 - cam.x) * k, x2 = W / 2 + (7 - cam.x) * k;
-          px(x1, y, x2 - x1, 1, '#41474b');                                   // asfalto
-          if (Math.floor(wz / 9) % 2 === 0)
-            px(W / 2 + (0 - cam.x) * k - Math.max(1, 0.5 * k) / 2, y, Math.max(1, 0.5 * k), 1, '#9aa39b'); // eje
-          if (Math.floor(wz / 14) % 2 === 0) {                                  // balizas
-            px(x1 - Math.max(1, 0.5 * k), y, Math.max(1, 0.5 * k), 1, P.accent);
-            px(x2, y, Math.max(1, 0.5 * k), 1, P.accent);
-          }
-          continue;
-        }
-        if (landMode) {                                                      // TIERRA: bandas de suelo por profundidad
-          const f = dy / (H - HOR);
-          px(-70, y, W + 140, 1, f < 0.28 ? LAND.far : f < 0.6 ? LAND.mid : LAND.near);
-          if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) px(-70, y, W + 140, 1, LAND.furrow);  // surcos
-          continue;
-        }
-        if (landVisible && wz < cfg.coast + 7) { px(-70, y, W + 140, 1, P.foam); continue; }  // rompiente
-        // base oscura del mar (degradado por profundidad) para que los puntos resalten
-        const f = dy / (H - HOR);
-        px(-70, y, W + 140, 1, f < 0.22 ? WATER.base0 : f < 0.5 ? WATER.base1 : WATER.base2);
-      }
-      if (landMode) drawLand(); else drawSeaDots(landVisible);
-    }
-
-    // matas/rocas dispersas sobre la tierra (parallax de movimiento a ras del suelo)
-    function drawLand() {
-      const SPX = 4.2, SPZ = 4.2, farZ = 190;
-      const dv = run.dist + momentum.drift();
-      const startZ = Math.max(cfg.coast + 2, Math.ceil((dv + 4) / SPZ) * SPZ);
-      for (let wz = startZ; wz < dv + farZ; wz += SPZ) {
-        const camZ = wz - dv, k = F / camZ;
-        const fade = Math.min(1, (camZ - 3) / 9) * (1 - (camZ / farZ) * 0.8);
-        if (fade <= 0.03) continue;
-        for (let wx = Math.ceil((cam.x - 74) / SPX) * SPX; wx < cam.x + 74; wx += SPX) {
-          const r = Math.sin(wx * 12.9 + wz * 7.3);
-          if (r < 0.35) continue;                                            // dispersa (no cubre todo)
-          const s = proj(wx, 0, camZ);
-          if (s.x < -4 || s.x > W + 4 || s.y < HOR) continue;
-          const rock = r > 0.86;
-          ctx.globalAlpha = fade * 0.85;
-          const w = Math.max(1, k * (rock ? 0.7 : 0.5)), h = Math.max(1, k * (rock ? 0.55 : 0.9));
-          px(s.x - w / 2, s.y - h, w, h, rock ? LAND.rock : LAND.tuft);
-        }
-      }
-      ctx.globalAlpha = 1;
-    }
-
-    // malla de puntos que forma la onda del mar en perspectiva (estilo boostivity)
-    function drawSeaDots(landVisible) {
-      const SPX = 1.4, SPZ = 1.5, farZ = 190;   // densidad x4 (antes 2.8x3.0), puntos a 1/4
-      const dv = run.dist + momentum.drift();
-      const startZ = Math.ceil((dv + 4) / SPZ) * SPZ;
-      // paso ADAPTATIVO: cerca muestrea a SPZ/SPX plenos; lejos el paso crece para mantener
-      // ~1px de separacion en pantalla (los puntos subpixel no se ven y este loop corre
-      // TODO el vuelo — el mar es 2D siempre fuera del momentum)
-      let wz = startZ;
-      while (wz < dv + farZ) {
-        const camZ = wz - dv;
-        wz += Math.max(SPZ, camZ * camZ * 0.0019);
-        if (landVisible && wz < cfg.coast + 6) continue;           // sin puntos sobre tierra/rompiente
-        const k = F / camZ;
-        const fade = Math.min(1, (camZ - 3) / 9) * (1 - (camZ / farZ) * 0.8);
-        if (fade <= 0.03) continue;
-        const dotW = Math.max(1, k * 0.12);   // 1/4 del tamaño clasico (0.48)
-        // franja acorde al FRUSTUM: el ancho visible crece con la distancia (antes era ±74 fijo
-        // y el mar quedaba "cortito" a lo lejos, p.ej. detras de la pista durante el despegue)
-        const half = Math.min(320, (W / 2 + 10) * camZ / F + 6);
-        const xL = cam.x - half, xR = cam.x + half;
-        const sx3 = Math.max(SPX, camZ * 0.011);                   // paso x adaptativo (~1px)
-        const x0 = Math.ceil(xL / sx3) * sx3;
-        for (let wx = x0; wx < xR; wx += sx3) {
-          const h = seaH(wx, wz);
-          const s = proj(wx, h, camZ);
-          if (s.x < -4 || s.x > W + 4 || s.y < HOR - 2) continue;
-          let hn = (h + 1.4) / 4.8;                              // altura normalizada ~0..1
-          hn = hn < 0 ? 0 : hn > 1 ? 1 : hn;
-          // bandas de luz que viajan por la superficie (movimiento visible aun en la distancia)
-          const shimmer = Math.sin(wz * 0.06 - run.t * 2.6 + wx * 0.045);
-          if (shimmer > 0.6) hn = Math.min(1, hn + 0.24);
-          const col = hn > 0.72 ? WATER.crest : hn > 0.42 ? WATER.mid : WATER.deep;
-          // OPACIDAD por cuadrado = SEA_ALPHA2D (perilla global, 0.5) x fade (entrada 3..12u y
-          // caida por lejania) x altura de ola: 0.25 de piso en el valle + hasta 0.6 por la
-          // cresta (hn 0..1) + 0.15 si lo cruza una banda de luz → rango 12%..50%
-          ctx.globalAlpha = SEA_ALPHA2D * fade * (0.25 + hn * 0.6 + (shimmer > 0.6 ? 0.15 : 0));
-          px(s.x - dotW / 2, s.y, dotW, dotW, col);
-          // destello en las crestas cercanas (titileo determinista, sin flicker feo)
-          if (hn > 0.78 && k > 1.6 && Math.sin(wx * 12.9 + wz * 7.3 + run.t * 6) > 0.7) {
-            ctx.globalAlpha = SEA_ALPHA2D * fade * 0.55;   // destello de cresta, tambien bajo la perilla
-            px(s.x - dotW / 2 - 1, s.y - 1, dotW + 2, Math.max(1, dotW * 0.6), WATER.spark);
-          }
-        }
-      }
-      ctx.globalAlpha = 1;
-    }
-
-    function drawWake() {
-      for (const wp of wake) {
-        const trail = PZ - wp.z;                       // metros que quedaron atrás
-        const s = proj(wp.x, 0, wp.z);
-        const spread = (0.6 + trail * 0.34) * s.k;       // apertura de la V
-        ctx.globalAlpha = Math.min(0.85, wp.i * (0.3 + trail * 0.055));
-        px(s.x - s.k * 0.7, s.y, s.k * 1.4, Math.max(1, s.k * 0.2), P.foam);       // centro batido
-        px(s.x - spread - s.k * 0.7, s.y, s.k * 1.4, 1, P.crest);                // brazo izq
-        px(s.x + spread - s.k * 0.7, s.y, s.k * 1.4, 1, P.crest);                // brazo der
-      }
-      ctx.globalAlpha = 1;
-    }
-
-    function drawPlaneSprite() {
-      const s = proj(plane.x, plane.y, PZ);
-      // sombra sobre el agua (referencia de altura)
-      const sh = proj(plane.x, 0, PZ);
-      ctx.globalAlpha = Math.max(0.08, 0.4 - plane.y * 0.009);
-      px(sh.x - 9, sh.y, 18, 2, '#101c1e');
-      // espuma batida justo debajo cuando vuela bajo (solo sobre agua)
-      const churn = Math.max(0, 1 - plane.y / 7);
-      if (churn > 0 && S.state === 'play' && cfg.terrain !== 'land') {
-        ctx.globalAlpha = churn * 0.7;
-        px(sh.x - 11, sh.y - 1, 22, 2, P.foam);
-        px(sh.x - 15, sh.y, 30, 1, P.crest);
-      }
-      ctx.globalAlpha = 1;
-
-      ctx.save();
-      // sub-pixel + bob de vuelo (nunca queda congelado) + micro-oscilación de alabeo en el aire
-      const bob = (S.state === 'play' ? Math.sin(run.t * 3.1) * 0.5 + Math.sin(run.t * 1.7) * 0.3 : 0);
-      // VIBRACION al rozar la superficie: temblor rapido del fuselaje (el avion, no la camara)
-      const vx2 = run.scrapeVib ? (Math.random() - 0.5) * 3.2 * run.scrapeVib : 0;
-      const vy2 = run.scrapeVib ? (Math.random() - 0.5) * 2.4 * run.scrapeVib : 0;
-      ctx.translate(s.x + vx2, s.y - bob + vy2);
-      // cabeceo: el morro sube al trepar / baja al caer (desplazamiento vertical del sprite)
-      ctx.translate(0, -plane.pitch * 1.2);
-      // alabeo: rotación 2D + micro-wobble; el foreshortening en X finge la inclinación 3D del ala
-      const bank = Math.max(-1, Math.min(1, plane.bank));
-      const pl = PLANES[selPlane];
-      const useSheet = pl.sheetOk;   // sprite HORNEADO: el alabeo lo traen los frames
-      let rolling = run.rollT > 0;
-      if (rolling) {
-        // PIRUETA: tonel completo — el sprite (vista trasera) rota 360° en el plano de pantalla
-        const pr = 1 - run.rollT / ROLL_DUR;                   // 0→1 durante el tonel
-        ctx.rotate(run.rollDir * pr * Math.PI * 2);
-        ctx.scale(0.94 + 0.06 * Math.cos(pr * Math.PI * 2), 1);   // leve pulso: vende el giro
-      } else if (useSheet) {
-        // con frames de alabeo Y cabeceo REALES no hay rotacion ni squash fingidos: solo micro-wobble
-        ctx.rotate(S.state === 'play' ? Math.sin(run.t * 2.3) * 0.015 : 0);
-      } else {
-        ctx.rotate(bank * 0.42 + (S.state === 'play' ? Math.sin(run.t * 2.3) * 0.015 : 0));
-        ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
-      }
-      if (useSheet) {
-        ctx.imageSmoothingEnabled = false;   // pixel art nítido (el save/restore de afuera lo repone)
-        // COLUMNA por alabeo. bank>0 = va a la DERECHA → tiene que banquear a la derecha, pero
-        // los frames del modelo 3D giran en sentido opuesto al canvas, asi que se INVIERTE el
-        // signo (esto corrige el "giraba para el lado contrario"). Nivelado = columna central.
-        const col = rolling ? (SHEET_NF - 1) / 2 : Math.round((1 - bank) / 2 * (SHEET_NF - 1));
-        // FILA por cabeceo. pitch>0 = trepa (morro arriba) → fila 0; nivel → 1; picada → 2
-        const pc = Math.max(-1, Math.min(1, plane.pitch));
-        const row = pc > 0.33 ? 0 : pc < -0.33 ? 2 : 1;
-        const sx4 = col * SHEET_FW, sy4 = row * SHEET_FH;
-        // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas
-        if (rolling) for (let gi = 2; gi >= 1; gi--) {
-          ctx.save();
-          ctx.rotate(-run.rollDir * gi * 0.55);
-          ctx.globalAlpha = 0.14;
-          ctx.drawImage(pl.sheetImg, sx4, sy4, SHEET_FW, SHEET_FH, -SHEET_FW / 2, -SHEET_FH / 2, SHEET_FW, SHEET_FH);
-          ctx.restore();
-        }
-        if (run.boost) { const fl = 5 + Math.random() * 4; px(-2, SHEET_FH / 2 - 8, 4, fl, P.foam); px(-1, SHEET_FH / 2 - 8, 2, fl * 0.7, P.accent); }
-        ctx.drawImage(pl.sheetImg, sx4, sy4, SHEET_FW, SHEET_FH, -SHEET_FW / 2, -SHEET_FH / 2, SHEET_FW, SHEET_FH);
-        if (inp.fire && !run.overheat && run.fireT > 0.06) { px(-6, -2, 3, 2, P.ink); px(3, -2, 3, 2, P.ink); }
-      } else if (pl.ready) {
-        const PW = 54, PH = Math.round(PW * pl.h / pl.w);
-        // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas (estela cinematica)
-        if (rolling) for (let gi = 2; gi >= 1; gi--) {
-          ctx.save();
-          ctx.rotate(-run.rollDir * gi * 0.55);
-          ctx.globalAlpha = 0.14;
-          ctx.drawImage(pl.img, -PW / 2, -PH / 2, PW, PH);
-          ctx.restore();
-        }
-        // postquemador: fogonazo extra bajo la tobera solo con turbo (el sprite ya trae su glow)
-        if (run.boost) { const fl = 5 + Math.random() * 4; px(-2, PH / 2 - 4, 4, fl, P.foam); px(-1, PH / 2 - 4, 2, fl * 0.7, P.accent); }
-        ctx.drawImage(pl.img, -PW / 2, -PH / 2, PW, PH);
-        // fogonazos del cañón
-        if (inp.fire && !run.overheat && run.fireT > 0.06) { px(-6, -2, 3, 2, P.ink); px(3, -2, 3, 2, P.ink); }
-      } else {
-        // fallback: sprite de rects (por si la imagen no cargó)
-        px(-2, -7, 4, 5, P.bodyDark); px(-1, -8, 2, 2, P.warn);
-        px(-20, -1, 40, 3, P.body); px(-20, 0, 6, 2, P.bodyDark); px(14, 0, 6, 2, P.bodyDark);
-        px(-3, -3, 6, 6, P.body); px(-2, -4, 4, 2, P.canopy); px(-12, 1, 3, 2, P.accent);
-        const fl = run.boost ? 5 + Math.random() * 4 : (run.fuel > 0 ? 2 + Math.random() * 2 : 0);
-        if (fl > 0) { px(-2, 3, 4, fl, run.boost ? P.foam : P.accent); px(-1, 3, 2, fl * 0.6, P.accent); }
-        if (inp.fire && !run.overheat && run.fireT > 0.06) { px(-16, -2, 3, 2, P.ink); px(13, -2, 3, 2, P.ink); }
-      }
-      // mancha de sangre sobre el morro/cabina al atropellar (temporal; hacé un sprite ensangrentado si querés)
-      if (run.bloodSplat > 0.02) {
-        ctx.globalAlpha = Math.min(0.9, run.bloodSplat);
-        px(-4, -2, 2, 1, '#7a1010'); px(-1, -3, 1, 1, '#9a1818'); px(2, -2, 2, 1, '#8a1414');
-        px(-2, 1, 1, 1, '#7a1010'); px(4, -1, 1, 1, '#9a1818'); px(0, 0, 1, 1, '#8a1414'); px(-5, 0, 1, 1, '#6a0e0e');
-        ctx.globalAlpha = 1;
-      }
-      ctx.restore();
-
-      // mira: en el MOUSE (PC, punteria libre) o adelante del avion (tactil/legacy)
-      if (S.state === 'play') {
-        const vm = viewMouse();   // en camara CERCA la mira se dibuja en coords des-zoomeadas: queda bajo el cursor fisico
-        const c = vm.on ? vm : proj(plane.x, plane.y, 70);
-        ctx.globalAlpha = 0.7;
-        px(c.x - 3, c.y, 2, 1, P.accent); px(c.x + 2, c.y, 2, 1, P.accent);
-        px(c.x, c.y - 3, 1, 2, P.accent); px(c.x, c.y + 2, 1, 2, P.accent);
-        if (vm.on) { ctx.strokeStyle = P.accent; ctx.globalAlpha = 0.35; ctx.strokeRect(c.x - 5, c.y - 5, 10, 10); }
-        ctx.globalAlpha = 1;
-      }
-    }
-
-    function drawObstacle(o) {
-      const k = F / o.z;
-      if (o.type === 'mast') {
-        const base = proj(o.x, 0, o.z);
-        px(base.x - 5 * k, base.y - 2.5 * k, 10 * k, 2.5 * k, P.bodyDark);          // casco
-        px(base.x - 5 * k, base.y - 2.5 * k, 10 * k, Math.max(1, 0.6 * k), '#5c6e73');
-        px(base.x - 0.45 * k, base.y - o.h * k, Math.max(1, 0.9 * k), o.h * k, P.bodyDark); // mástil
-        px(base.x - 2.2 * k, base.y - (o.h - 2) * k, 4.4 * k, Math.max(1, 0.5 * k), P.bodyDark);
-        px(base.x - 0.45 * k, base.y - o.h * k, Math.max(1, 0.9 * k), Math.max(1, 0.7 * k), P.warn);
-      } else if (o.type === 'balloon') {
-        const oy = o.y + Math.sin(run.t * 1.3 + o.ph) * 0.6;
-        const s = proj(o.x, oy, o.z), base = proj(o.x, 0, o.z);
-        ctx.strokeStyle = P.bodyDark; ctx.beginPath();
-        ctx.moveTo(s.x, s.y + 1.6 * k); ctx.lineTo(base.x, base.y); ctx.stroke();
-        px(s.x - 2.6 * k, s.y - 1.6 * k, 5.2 * k, 3.2 * k, P.dim);
-        px(s.x - 2.6 * k, s.y - 1.6 * k, 5.2 * k, Math.max(1, 1.1 * k), P.body);
-        px(s.x + 1.8 * k, s.y - 0.4 * k, 1.8 * k, Math.max(1, 1.1 * k), P.bodyDark);
-      } else if (o.type === 'helo') {
-        const oy = o.y + Math.sin(run.t * 2 + o.ph) * 0.8;
-        const s = proj(o.x, oy, o.z);
-        px(s.x - 3 * k, s.y - 0.8 * k, 6 * k, 2 * k, P.bodyDark);
-        px(s.x + 2.4 * k, s.y - 0.4 * k, 2.4 * k, Math.max(1, 0.8 * k), P.bodyDark);
-        px(s.x - 1.4 * k, s.y - 1.4 * k, 2 * k, Math.max(1, 0.8 * k), P.canopy);
-        const r = Math.sin(run.t * 40) * 4;
-        px(s.x - (4 + r * 0.2) * k, s.y - 2 * k, (8 + r * 0.4) * k, 1, P.body);
-      } else if (o.type === 'jet') {
-        // avion enemigo de frente: alas anchas, fuselaje central, canopy, deriva y leve alabeo
-        const oy = o.y + Math.sin(run.t * 1.6 + o.ph) * 0.5;
-        const s = proj(o.x, oy, o.z);
-        const bank = Math.sin(run.t * 1.1 + o.ph) * 0.7;          // metros de alabeo en las puntas
-        px(s.x - 5 * k, s.y - bank * k - 0.45 * k, 5 * k, 0.9 * k, P.body);   // ala izquierda
-        px(s.x, s.y + bank * k - 0.45 * k, 5 * k, 0.9 * k, P.body);   // ala derecha
-        px(s.x - 5 * k, s.y - bank * k + 0.45 * k, 5 * k, 0.5 * k, P.bodyDark);
-        px(s.x, s.y + bank * k + 0.45 * k, 5 * k, 0.5 * k, P.bodyDark);
-        px(s.x - 5 * k, s.y - bank * k - 0.45 * k, 1 * k, 0.9 * k, P.dim);    // puntas de ala
-        px(s.x + 4 * k, s.y + bank * k - 0.45 * k, 1 * k, 0.9 * k, P.dim);
-        px(s.x - 1.1 * k, s.y - 1.5 * k, 2.2 * k, 3 * k, P.bodyDark);         // fuselaje
-        px(s.x - 0.9 * k, s.y - 1.2 * k, 1.8 * k, 2.4 * k, P.body);
-        px(s.x - 0.7 * k, s.y - 1.1 * k, 1.4 * k, 1 * k, P.canopy);           // canopy
-        px(s.x - 0.35 * k, s.y - 3 * k, 0.8 * k, 1.6 * k, P.bodyDark);        // deriva
-        px(s.x - 0.4 * k, s.y - 1.5 * k, 0.8 * k, 0.8 * k, P.warn);           // nariz
-      } else if (o.type === 'fuel') {
-        const oy = o.y + Math.sin(run.t * 2) * 0.5;
-        const s = proj(o.x, oy, o.z);
-        px(s.x - 1.4 * k, s.y - 1.8 * k, 2.8 * k, 3.6 * k, P.accent);
-        px(s.x - 1.4 * k, s.y - 0.4 * k, 2.8 * k, Math.max(1, 0.7 * k), P.ink);
-      }
-    }
-
     function draw() {
       ctx.setTransform(SC, 0, 0, SC, 0, 0);   // buffer 2×: todo el dibujo sigue en coords 320×180
       const sx = (Math.random() - 0.5) * run.shake, sy = (Math.random() - 0.5) * run.shake;
@@ -919,7 +601,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       // en vuelo normal sobre mar abierto solo cielo+mar (flag MOM3D.sea). El blit va DENTRO
       // de los transforms (roll/paneo/zoom/shake le pegan al 3D); la capa 2D va encima.
       // Sin THREE/WebGL o con ?no3d, ambas flags quedan false y pinta el 2D de siempre.
-      world3D.frame({ state: S.state, mom: momentum.active(), dist: run.dist, momDrift: momentum.drift(), cfg, cam, t: run.t, SKY, WATER, objectiveShip, seaH, momShipGeom: momentum.shipGeom, tbackImg });
+      world3D.frame({ state: S.state, mom: momentum.active(), dist: run.dist, momDrift: momentum.drift(), cfg, cam, t: run.t, SKY: theme.sky, WATER: theme.water, objectiveShip, seaH: world.seaH, momShipGeom: momentum.shipGeom, tbackImg });
       if (world3D.isOn() || world3D.isSea()) {
         const sm = ctx.imageSmoothingEnabled;
         ctx.imageSmoothingEnabled = false;
@@ -940,13 +622,13 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
         ctx.drawImage(tb2, -70 - cam.x * 0.8, HOR - TBACK_HOR * dh, dw, dh);
       } else {
       const g = ctx.createLinearGradient(0, 0, 0, HOR);
-      g.addColorStop(0, SKY.skyTop); g.addColorStop(0.6, SKY.skyMid); g.addColorStop(1, SKY.horizon);
+      g.addColorStop(0, theme.sky.skyTop); g.addColorStop(0.6, theme.sky.skyMid); g.addColorStop(1, theme.sky.horizon);
       ctx.fillStyle = g; ctx.fillRect(-70, -140, W + 140, HOR + 144);   // margenes: paneo + rolls completos del momentum
-      ctx.globalAlpha = 0.4; px(-70, HOR - 10, W + 140, 10, SKY.sunGlow); ctx.globalAlpha = 1;
+      ctx.globalAlpha = 0.4; px(-70, HOR - 10, W + 140, 10, theme.sky.sunGlow); ctx.globalAlpha = 1;
       // sol bajo
       const sunX = W / 2 - cam.x * 1.4;
-      px(sunX - 7, HOR - 11, 14, 8, SKY.sun);
-      ctx.globalAlpha = 0.35; px(sunX - 10, HOR - 13, 20, 12, SKY.sunGlow); ctx.globalAlpha = 1;
+      px(sunX - 7, HOR - 11, 14, 8, theme.sky.sun);
+      ctx.globalAlpha = 0.35; px(sunX - 10, HOR - 13, 20, 12, theme.sky.sunGlow); ctx.globalAlpha = 1;
       }
       }
       // nubes
@@ -964,11 +646,11 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
         ctx.fill();
       }
 
-      if (!world3D.isSea()) drawSea();   // el mar 2D solo cuando three no lo esta poniendo
+      if (!world3D.isSea()) world.drawSea();   // el mar 2D solo cuando three no lo esta poniendo
       // en momentum el mundo rota (alabeo): rellena bajo el mar para que un tonel no muestre huecos
-      if (S.state === 'momentum') px(-70, H, W + 140, 150, cfg.terrain === 'land' ? LAND.near : WATER.base2);
-      drawApproachBarge();   // la barcaza objetivo creciendo en el horizonte (final del mapa)
-      drawWake();
+      if (S.state === 'momentum') px(-70, H, W + 140, 150, cfg.terrain === 'land' ? LAND.near : theme.water.base2);
+      world.drawApproachBarge(objectiveDist, objectiveShip);   // la barcaza objetivo creciendo en el horizonte
+      world.drawWake();
 
       // ráfagas de viento
       ctx.globalAlpha = 0.35;
@@ -994,7 +676,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
 
       // obstáculos de lejos a cerca
       const all = obstacles.slice().sort((a, b) => b.z - a.z);
-      for (const o of all) if (o.z > 3) drawObstacle(o);
+      for (const o of all) if (o.z > 3) world.drawObstacle(o);
 
       // misiles
       for (const m of missiles) {
@@ -1026,7 +708,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       }
       }   // ---- fin mundo 2D ----
 
-      if (S.state !== 'dead' && S.state !== 'momentum') drawPlaneSprite();   // en momentum va la camara cockpit (drawCockpit)
+      if (S.state !== 'dead' && S.state !== 'momentum') drawPlane(selPlane, viewMouse);   // en momentum va la camara cockpit (drawCockpit)
 
       // líneas de velocidad
       ctx.globalAlpha = 0.5;
@@ -1050,14 +732,14 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       }
 
       if (zoomOn) ctx.restore();   // el HUD (y la capa momentum) van SIN zoom
-      if (S.state === 'play') drawHUD();
+      if (S.state === 'play') hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip });
       if (S.state === 'momentum' && momentum.active()) momRender.drawMomentum({
         mom: momentum.active(), momPhase: momentum.phase(), phases: momentum.phases(), msl: run.msl, objectiveShip, t: run.t,
         is3D: world3D.isOn(), parts, popups, mouse,
         momCam: momentum.cam, momShipGeom: momentum.shipGeom, momZoneRect: momentum.zoneRect });
       ctx.restore();
 
-      if (S.state === 'takeoff') drawTakeoff();
+      if (S.state === 'takeoff') hud.drawTakeoff(toT);
       if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t });
       if (S.state === 'menu') {
         menus.drawMenu({ selPlane, gameMode, t: run.t });
@@ -1094,197 +776,10 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
 
 
 
-    // barra de misión: puerto (izq) → barcaza objetivo (der), con el avión avanzando según el progreso
-    // assets configurables de la barra de objetivo — completar con data URI (base64) cuando estén.
-    // Mientras `src` esté vacío, se dibuja un fallback. Ver README para cómo embeber (igual que los aviones).
-    const OBJ_ASSETS = {
-      port: { src: '', img: new Image(), ready: false },   // icono del PUERTO (extremo izquierdo)
-      barge: { src: '', img: new Image(), ready: false },   // icono del OBJETIVO / barcaza (extremo derecho)
-      plane: { src: '', img: new Image(), ready: false },   // AVIÓN que avanza por la línea
-    };
-    for (const k in OBJ_ASSETS) { const a = OBJ_ASSETS[k]; a.img.onload = () => { a.ready = true; }; if (a.src) a.img.src = a.src; }
-
-    // dibuja un asset del HUD centrado en (x,y); si no cargó, usa un fallback dibujado
-    function drawHudAsset(a, x, y, kind, hpx) {
-      if (a.ready && a.img.naturalWidth) {
-        const h = hpx, w = Math.max(1, Math.round(h * a.img.naturalWidth / a.img.naturalHeight));
-        ctx.drawImage(a.img, Math.round(x - w / 2), Math.round(y - h / 2), w, h);
-        return;
-      }
-      if (kind === 'port') { px(x - 2, y - 3, 4, 6, P.foam); px(x - 1, y - 5, 2, 2, P.dim); }
-      else if (kind === 'barge') { px(x - 3, y - 2, 7, 4, P.warn); px(x - 1, y - 4, 2, 2, P.warn); }
-      else { ctx.fillStyle = P.ink; ctx.beginPath(); ctx.moveTo(x + 3, y); ctx.lineTo(x - 3, y - 2.5); ctx.lineTo(x - 3, y + 2.5); ctx.closePath(); ctx.fill(); }
-    }
-
-    function drawObjectiveBar() {
-      const cx = W / 2, half = Math.round(W * 0.15);          // 30% del ancho (máx), centrada
-      const x0 = cx - half, x1 = cx + half, y = 26;
-      const prog = Math.max(0, Math.min(1, run.dist / objectiveDist));
-      // nombre de la barcaza objetivo, centrado arriba
-      ctx.font = '6px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.warn;
-      ctx.fillText(objectiveShip, cx, y - 7);
-      // línea: recorrido (accent) + pendiente (tenue)
-      px(x0, y, x1 - x0, 1, '#2e3c45');
-      px(x0, y, Math.round((x1 - x0) * prog), 1, P.accent);
-      // extremos: puerto (izq) y barcaza (der) — assets configurables o fallback
-      drawHudAsset(OBJ_ASSETS.port, x0, y, 'port', 8);
-      drawHudAsset(OBJ_ASSETS.barge, x1, y, 'barge', 9);
-      // marcador del avión avanzando por la línea (+ líneas de boost)
-      const pm = x0 + (x1 - x0) * prog;
-      if (run.boost) {
-        ctx.strokeStyle = P.foam; ctx.globalAlpha = 0.7;
-        for (let i = 1; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(pm - 2 - i * 3, y); ctx.lineTo(pm - i * 3, y); ctx.stroke(); }
-        ctx.globalAlpha = 1;
-      }
-      drawHudAsset(OBJ_ASSETS.plane, pm, y, 'plane', 7);
-    }
 
 
 
 
-
-
-    // colores de la bandera argentina, para el conteo del despegue
-    const CELESTE = '#75aadb', BLANCO = '#f2f7fb';
-
-    function drawTakeoff() {
-      ctx.textAlign = 'center';
-      // placa oscura detras del encabezado: cae sobre el amanecer y sin esto no se lee
-      ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(0, 17, W, 23);
-      ctx.fillStyle = P.ink; ctx.font = '7px monospace';
-      ctx.fillText(T('takeoffTitle'), W / 2, 26);
-      // el rumbo va pegado al titulo: antes estaba en y=80, encima del avion en la pista
-      ctx.fillStyle = '#8a9ba1'; ctx.font = '6px monospace';
-      ctx.fillText(T('takeoffHeading'), W / 2, 36);
-
-      const cn = 3 - Math.floor(toT);
-      if (cn >= 1) {
-        const frac = toT % 1;
-        const fs = Math.round(30 - frac * 10);
-        const num = String(cn);
-        ctx.font = 'bold ' + fs + 'px monospace';
-        // sombra: el conteo cae sobre el sol del amanecer y sin esto no se lee
-        ctx.fillStyle = '#0a0e11aa';
-        ctx.fillText(num, W / 2 + 1, 69);
-        // bandera argentina: tres franjas horizontales (celeste / blanco / celeste)
-        const top = 68 - fs * 0.75, hgt = fs * 0.78;
-        const bands = [[0, 1 / 3, CELESTE], [1 / 3, 2 / 3, BLANCO], [2 / 3, 1, CELESTE]];
-        for (const [a, b, col] of bands) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.rect(0, top + hgt * a, W, hgt * (b - a) + 0.5);   // +0.5: sin costura entre franjas
-          ctx.clip();
-          ctx.fillStyle = col;
-          ctx.fillText(num, W / 2, 68);
-          ctx.restore();
-        }
-      }
-    }
-
-    function bar(x, y, w, val, c, label) {
-      ctx.fillStyle = '#00000066'; ctx.fillRect(x - 1, y - 1, w + 2, 5);
-      px(x, y, Math.round(w * Math.max(0, Math.min(1, val))), 3, c);
-      ctx.fillStyle = P.dim; ctx.font = '6px monospace'; ctx.textAlign = 'left';
-      ctx.fillText(label, x, y - 3);
-    }
-
-    function drawHUD() {
-      ctx.font = '8px monospace'; ctx.textAlign = 'left'; ctx.fillStyle = P.ink;
-      const digits = String(Math.floor(run.score)).padStart(6, '0');
-      for (let i = 0; i < digits.length; i++) ctx.fillText(digits[i], 6 + i * 6, 12);
-      ctx.textAlign = 'right'; ctx.fillStyle = P.dim;
-      ctx.fillText(T('hud_best', { n: best }), W - 16, 12);   // corrido a la izq para no chocar el ícono de sonido
-
-      // modo campaña: PROGRESO de la campaña arriba al centro. No repite el nombre del blanco —
-      // de eso ya se ocupa la barra de objetivo, justo abajo.
-      if (gameMode === 'campaign') {
-        ctx.textAlign = 'center'; ctx.font = 'bold 8px monospace'; ctx.fillStyle = P.accent;
-        ctx.fillText(T('hud_mission', { n: curLevel + 1, m: MISSIONS.length }), W / 2, 12);
-      }
-
-      // barra de misión puerto→barcaza (modos con objetivo: ciclo de muerte y campaña)
-      if (objectiveDist > 0) drawObjectiveBar();
-
-      // velocidad (+ escalón de TURBINA cuando el afterburner sostenido está activo)
-      ctx.textAlign = 'center'; ctx.font = '7px monospace';
-      ctx.fillStyle = run.afterTier > 0 ? P.warn : run.boost || run.rasLevel > 0 ? P.accent : run.windF < 0.97 ? P.crest : P.dim;
-      ctx.fillText(Math.round(run.spd * 4.2) + T('kmh') + (run.afterTier > 0 ? ' »' + run.afterTier : run.boost ? T('turboTag') : run.windF < 0.97 ? ' ▼' : ''), W / 2, H - 4);
-
-      // --- avisos de la banda superior (radar y viento) ---
-      // Todos los overlays de arriba van centrados en W/2, asi que se pisaban entre si.
-      // Ahora arrancan DEBAJO de la barra de objetivo cuando esta existe (ocupa y=14..30);
-      // si no hay mision, suben y quedan compactos. Cada aviso tiene su propia fila.
-      const topBase = objectiveDist > 0 ? 38 : 20;
-
-      if (run.detection > 0.3) {
-        ctx.textAlign = 'center'; ctx.font = 'bold 8px monospace';
-        ctx.fillStyle = Math.sin(run.t * 14) > 0 ? P.warn : '#7d2f1e';
-        ctx.fillText(T('radar'), W / 2, topBase);
-        ctx.fillStyle = '#00000066'; ctx.fillRect(W / 2 - 21, topBase + 3, 42, 4);
-        px(W / 2 - 20, topBase + 4, Math.round(40 * run.detection), 2, P.warn);
-      }
-
-      // aviso de viento en contra — una fila mas abajo, nunca encima del radar
-      if (run.windF < 0.97) {
-        ctx.textAlign = 'center'; ctx.font = 'bold 7px monospace';
-        ctx.fillStyle = Math.sin(run.t * 8) > 0 ? P.crest : P.dim;
-        ctx.fillText(T('windWarn'), W / 2, topBase + 16);
-      }
-
-      // multiplicador junto al avión — crece con la racha rasante
-      if (run.multShow > 1) {
-        const s = proj(plane.x, plane.y, PZ);
-        ctx.textAlign = 'left';
-        const size = run.multShow >= 15 ? 12 + run.rasLevel : run.multShow >= 10 ? 11 : run.multShow >= 5 ? 10 : 9;
-        ctx.font = 'bold ' + size + 'px monospace';
-        ctx.fillStyle = run.multShow >= 25 ? (Math.sin(run.t * 16) > 0 ? P.warn : P.accent)
-          : run.multShow >= 15 ? P.accent
-            : run.multShow >= 10 ? P.accent
-              : run.multShow >= 5 ? '#d9b06a' : P.dim;
-        const jx = run.rasLevel > 0 ? (Math.random() - 0.5) * run.rasLevel : 0;
-        const jy = run.rasLevel > 0 ? (Math.random() - 0.5) * run.rasLevel : 0;
-        if (run.multShow < 10 || Math.sin(run.t * 10) > -0.6)
-          ctx.fillText('x' + run.multShow + (run.boost ? ' x2' : ''), s.x + 24 + jx, s.y - 6 + jy);
-        // barra de progreso hacia el próximo nivel de racha
-        if (run.mult === 10 && run.rasLevel < 4) {
-          const prog = (run.streak % 2) / 2;
-          ctx.fillStyle = '#00000066'; ctx.fillRect(s.x + 24, s.y - 3, 26, 3);
-          px(s.x + 25, s.y - 2, Math.round(24 * prog), 1, P.accent);
-        }
-      }
-      // borde encendido según la racha
-      if (run.rasLevel > 0) {
-        ctx.globalAlpha = 0.05 * run.rasLevel + Math.max(0, Math.sin(run.t * 6)) * 0.04 * run.rasLevel;
-        px(0, 0, W, 3, P.accent); px(0, H - 3, W, 3, P.accent);
-        px(0, 0, 3, H, P.accent); px(W - 3, 0, 3, H, P.accent);
-        ctx.globalAlpha = 1;
-      }
-
-      bar(6, H - 8, 60, run.fuel / 100, run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam, T('bar_fuel'));
-      bar(W - 66, H - 8, 60, run.heat, run.overheat ? P.warn : P.accent, run.overheat ? T('bar_overheat') : T('bar_cannon'));
-
-      // munición de misiles (pips) — entre combustible y el centro
-      ctx.textAlign = 'left'; ctx.font = '6px monospace'; ctx.fillStyle = P.dim;
-      ctx.fillText('MISIL', 72, H - 11);
-      for (let i = 0; i < MSL_MAX; i++) {
-        const on = i < run.msl, bx = 72 + i * 8;
-        ctx.fillStyle = on ? P.accent : '#2e3c45'; ctx.fillRect(bx, H - 8, 5, 3);
-        if (on) { ctx.fillStyle = P.warn; ctx.fillRect(bx + 5, H - 8, 1, 3); }
-      }
-
-      // palanca de gas (throttle) — vertical, borde derecho
-      const tx = W - 9, tyTop = 46, tyBot = 118, tH = tyBot - tyTop;
-      ctx.fillStyle = '#00000088'; ctx.fillRect(tx - 1, tyTop - 1, 6, tH + 2);
-      ctx.fillStyle = P.dim;                                     // marcas de la corredera
-      for (let i = 0; i <= 4; i++) ctx.fillRect(tx - 3, Math.round(tyBot - tH * (i / 4)), 2, 1);
-      const fillH = Math.round(tH * Math.max(0, Math.min(1, run.throttle)));
-      const tcol = run.fuel <= 0 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim)
-        : run.throttle > 0.66 ? P.foam : run.throttle > 0.15 ? P.accent : P.bodyDark;
-      px(tx, tyBot - fillH, 4, fillH, tcol);                     // relleno desde abajo
-      px(tx - 2, tyBot - fillH - 1, 8, 2, P.ink);                  // perilla de la palanca
-      ctx.fillStyle = P.dim; ctx.font = '6px monospace'; ctx.textAlign = 'right';
-      ctx.fillText(run.fuel <= 0 ? T('thr_dead') : T('thr'), W - 4, tyTop - 4);
-    }
 
 
 
