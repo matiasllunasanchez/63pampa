@@ -4,6 +4,12 @@
 //
 // Son las perillas para tunear el climax: subir/bajar y volver a probar.
 
+// ZONA DE VUELO. El techo alto (FLY_TOP) es lo que da margen para picar y ganar velocidad (ver
+// ENERGY_* en core/physics.js). SPAWN_X acompaña a FLY_X: si los obstaculos nacieran mas angostos
+// que la zona de vuelo, bastaria irse al costado para esquivarlos todos. Compartidas por el vuelo
+// (limites del avion) y el spawn (ancho del carril de obstaculos).
+export const FLY_X = 38, FLY_TOP = 68, SPAWN_X = 33;
+
 export const MOM_AX = 160, MOM_AY = 40;   // visor fijo en pantalla (W/2, 40) — el reflector del HUD
 export const MSL_MAX = 3;                 // misiles por pasada
 

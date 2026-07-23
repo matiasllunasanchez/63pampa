@@ -10,8 +10,10 @@ import { S, setState, cfg, cam, plane, stats, resetPlane, resetStats } from './c
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts,
          prune, clearWorld } from './core/world.js';
 import { run, resetRun } from './core/run.js';
-import { popup } from './core/fx.js';
+import { proj, popup, explodeAt, bloodBurst } from './core/fx.js';
 import * as momentum from './systems/momentum.js';
+import { spawnSystem } from './systems/spawn.js';
+import { collisionSystem } from './systems/collision.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, pickRunTrack } from './systems/audio.js';
 import * as world3D from './systems/three-world.js';
@@ -22,7 +24,7 @@ import * as menus from './render/menus.js';
 import * as momRender from './render/momentum.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
-import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } from './data/tuning.js';
+import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX, FLY_X, FLY_TOP, SPAWN_X } from './data/tuning.js';
 
   (() => {
     'use strict';
@@ -216,10 +218,6 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     // cada escalón multiplica la velocidad y levanta el techo. Romper el estado (soltar turbo o
     // trepar) lo resetea, con una gracia corta para tolerar bobs cortos. afterT=segundos acumulados.
     let tapL = -9, tapR = -9;   // PIRUETA (tonel): doble-tap ←/→
-    // ZONA DE VUELO. El techo alto es lo que da margen para picar y ganar velocidad (ver ENERGY_*).
-    // SPAWN_X acompaña a FLY_X: si los obstaculos nacieran mas angostos que la zona de vuelo,
-    // bastaria irse al costado para esquivarlos todos.
-    const FLY_X = 38, FLY_TOP = 68, SPAWN_X = 33;
     // CABECEO (solo VISUAL: plane.pitch no afecta el vuelo, solo el sprite y su inclinacion).
     // Calibrado para que la inclinacion aparezca a los 0.50 s de mantener ↑ o ↓ (igual en ambos).
     // DELAY = zona muerta antes de mover la trompa; RAMP = cuanto tarda en llegar a full;
@@ -432,36 +430,6 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       return (im.complete && im.naturalWidth) ? im : null;
     }
 
-    function spawn() {
-      const lane = (Math.random() * SPAWN_X * 2 - SPAWN_X);   // acompaña a FLY_X
-      // sin combustible activo (COMBUSTIBLE: NO) los bidones serian pickups inutiles: no se fuerzan
-      // por distancia y su slot del sorteo cae en globo
-      if (cfg.fuelOn && run.fuelDist > 700) { obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false }); run.fuelDist = 0; return; }
-      const r = Math.random();
-      if (r < 0.34) obstacles.push({ type: 'mast', x: lane, h: 11 + Math.random() * 17, z: 250, done: false });
-      else if (r < 0.60) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, hp: 1, done: false, ph: Math.random() * 6 });
-      else if (r < 0.70) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, hp: 2, done: false, ph: Math.random() * 6 });
-      else if (r < 0.78) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, hp: 2, done: false, ph: Math.random() * 6 });
-      else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false });
-      else obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, hp: 1, done: false, ph: Math.random() * 6 });
-    }
-
-    function proj(x, y, z) {
-      const k = F / z;
-      return { x: W / 2 + (x - cam.x) * k, y: HOR + (cam.y - y) * k, k };
-    }
-    function explodeAt(x, y, z, big) {
-      const s = proj(x, y, z);
-      for (let i = 0, n = big ? 24 : 12; i < n; i++) {
-        const a = Math.random() * 6.283, v = (14 + Math.random() * 55) * Math.min(1.6, s.k / 3 + 0.4);
-        parts.push({
-          x: s.x, y: s.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 15, life: 0.4 + Math.random() * 0.5,
-          c: Math.random() < 0.6 ? P.accent : (Math.random() < 0.5 ? P.warn : P.dim), r: Math.max(1, s.k * 0.35)
-        });
-      }
-      run.shake = Math.min(6, run.shake + (big ? 4.5 : 2)); boom(big ? 0.16 : 0.08);
-      if (big) duck(0.55);                      // explosion grande → ducking de la musica
-    }
 
     // ---------- MOMENTUM: asalto final a la barcaza ----------
     // Al acercarse al objetivo el tiempo se ralentiza y se abre un minijuego de punteria:
@@ -542,16 +510,6 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       };
     }
 
-    // salpicadura de sangre + tierra al eliminar un soldado
-    function bloodBurst(sx, sy, n) {
-      for (let i = 0; i < n; i++) {
-        const a = Math.random() * 6.283, sp = 22 + Math.random() * 55, blood = Math.random() < 0.55;
-        parts.push({
-          x: sx + (Math.random() - 0.5) * 3, y: sy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 24, life: 0.35 + Math.random() * 0.45,
-          c: blood ? (Math.random() < 0.5 ? '#a81b1b' : '#7a1212') : (Math.random() < 0.5 ? '#6b5a3a' : '#463a26'), r: 1 + Math.random() * 1.6
-        });
-      }
-    }
 
     // PIRUETA (tonel / aileron roll): esquive cinematico con doble-tap ←/→
     function startRoll(dir) {
@@ -718,7 +676,8 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
       if (flightSystem(dt)) return;      // vuelo, superficie, armas → puede terminar la mision o matar
       spawnSystem(dt);                   // aparicion de obstaculos y soldados (nunca corta el frame)
-      if (collisionSystem(dt)) return;   // impactos → puede matar al avion
+      const hit = collisionSystem(dt);   // impactos → devuelve { death } si un choque fue fatal
+      if (hit) { die(hit.death); return; }
       // líneas de velocidad
       if (run.boost || run.rasLevel > 0 || run.spd > 115) {
         const n = (run.boost ? 3 : 1) + run.rasLevel + run.afterTier;
@@ -989,209 +948,6 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       run.mslCd -= dt;
       if (run.msl < MSL_MAX) { run.mslRegen += dt; if (run.mslRegen >= 7) { run.mslRegen = 0; run.msl++; } }
       if (inp.msl) tryLaunchMissile();
-
-      return false;
-    }
-
-    // SPAWN: siembra obstaculos (por distancia) y grupos de soldados (solo sobre tierra).
-    function spawnSystem(dt) {
-      // spawn por distancia
-      run.nextSpawn -= run.spd * dt;
-      if (cfg.obstacles > 0 && run.nextSpawn <= 0) {
-        spawn();
-        run.nextSpawn = Math.max(34, (52 + Math.random() * 42) - run.t * 0.8) / cfg.obstacles;
-      }
-
-      // spawn de soldados (solo sobre tierra) — en grupos que corren
-      if (cfg.terrain === 'land') {
-        run.nextSoldier -= run.spd * dt;
-        if (run.nextSoldier <= 0) {
-          const lane = Math.random() * 44 - 22, n = 2 + (Math.random() * 3 | 0);
-          for (let i = 0; i < n; i++) soldiers.push({ x: lane + (Math.random() * 12 - 6), z: 250 + Math.random() * 24, ph: Math.random() * 6, dir: Math.random() < 0.5 ? -1 : 1 });
-          run.nextSoldier = 40 + Math.random() * 55;
-        }
-      }
-    }
-
-    // COLISIONES: soldados, obstaculos, misiles enemigos, balas propias y misiles del jugador.
-    // Resuelve impactos y puntaje. Devuelve true si un choque mato al avion.
-    function collisionSystem(dt) {
-      // soldados: corren y se acercan; atropellarlos a ras del suelo = MUCHÍSIMOS puntos
-      for (const sd of soldiers) {
-        if (sd.dead) continue;
-        sd.z -= run.spd * dt;
-        sd.x += sd.dir * 6 * dt;                                  // corren en diagonal
-        if (sd.z <= PZ + 1 && sd.z > PZ - 4 && Math.abs(plane.x - sd.x) < 4 && plane.y < 3) {
-          sd.dead = true;                                        // pase rasante: cabeza / impacto de aire (banda 0.5–3)
-          sfxOne('body');                                        // impacto de cuerpo (una variante al azar)
-          const pts = Math.round(120 * run.multShow);                // escala con el multiplicador (a ras = brutal)
-          run.score += pts; stats.soldiers++;
-          const s = proj(sd.x, 0, PZ); popup(s.x, s.y - 10, '+' + pts, P.warn);
-          bloodBurst(s.x, s.y, 18);                               // sangre + tierra
-          run.bloodSplat = Math.min(1, run.bloodSplat + 0.5);             // mancha el sprite (se desvanece)
-          run.shake = Math.min(6, run.shake + 1.2); boom(0.05);
-        }
-      }
-      prune(soldiers, sd => sd.z > -6 && !sd.dead);
-
-      // obstáculos
-      for (const o of obstacles) {
-        o.z -= (run.spd + (o.type === 'jet' ? 45 : 0)) * dt;   // el avion enemigo viene de frente: cierra mas rapido
-        if (!o.done && o.z <= PZ + 1.5) {
-          o.done = true;
-          const air = o.type === 'helo' || o.type === 'jet';
-          let hw, hh, oy;
-          if (o.type === 'mast') { hw = 0.9; hh = o.h; oy = o.h / 2; }
-          else { hw = air ? 3 : 2.6; hh = air ? 1.6 : 1.9; oy = o.y; }
-          // perfil del avion AFINADO (antes 2.6×1.2, chocaba "de lejos"); en PIRUETA las alas
-          // van de canto → perfil minimo: pasa por espacios mucho mas finos
-          const pw = run.rollT > 0 ? 1.0 : 2.1, ph2 = run.rollT > 0 ? 0.7 : 1.0;
-          const dx = Math.abs(plane.x - o.x) - (hw + pw);
-          const dy = Math.abs(plane.y - oy) - (hh + ph2);
-          const hullHit = o.type === 'mast' && Math.abs(plane.x - o.x) < 5 + pw && plane.y < 3.6;
-          if (o.type === 'fuel') {
-            if (dx < 1.5 && dy < 1.5) {
-              run.fuel = Math.min(100, run.fuel + 30); stats.fuelPicks++;
-              const s = proj(o.x, o.y, PZ); popup(s.x, s.y, T('pickFuel'), P.foam);
-              beep(700, 0.1, 'triangle', 0.05, 1000); o.z = -99;
-            }
-          } else if ((dx < 0 && dy < 0) || hullHit) {
-            { die(o.type === 'mast' ? 'death_mast' : o.type === 'helo' ? 'death_helo' : o.type === 'jet' ? 'death_jet' : 'death_balloon'); return true; }
-          } else if (dx < 3 && dy < 3) {
-            const pir = run.rollT > 0;                       // rozar EN PIRUETA: bonus grande (estilo)
-            run.score += pir ? 250 : 75; stats.grazes++; run.shake = Math.min(6, run.shake + 1.5);
-            sfxOne('waveFly');                           // rafaga de aire del pase cercano
-            const s = proj(o.x, oy, PZ); popup(s.x, s.y - 8, pir ? T('rollGraze') : T('graze'), pir ? P.accent : P.foam);
-            boom(0.06, true);
-          }
-        }
-      }
-      prune(obstacles, o => o.z > 2);
-
-      // misiles
-      for (const m of missiles) {
-        m.z -= (run.spd + 85) * dt;
-        m.x += Math.max(-20, Math.min(20, (plane.x - m.x) * 2.4)) * dt;
-        m.y += Math.max(-14, Math.min(14, (plane.y - m.y) * 2.0)) * dt;
-        if (!m.done && m.z <= PZ + 1.2) {
-          m.done = true;
-          if (Math.abs(plane.x - m.x) < (run.rollT > 0 ? 1.6 : 3) && Math.abs(plane.y - m.y) < (run.rollT > 0 ? 1.2 : 2.2)) { die('death_missile'); return true; }
-          run.score += 75; stats.dodges++; const s = proj(m.x, m.y, PZ); popup(s.x, s.y - 8, T('dodgeMissile'), P.foam); boom(0.06, true);
-        }
-        if (Math.random() < 0.6) {
-          const s = proj(m.x, m.y, m.z + 2);
-          parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, life: 0.45, c: P.dim, r: Math.max(1, s.k * 0.3) });
-        }
-      }
-      prune(missiles, m => m.z > 2);
-
-      // balas
-      for (const b of bullets) {
-        const z0 = b.z;
-        b.z += 300 * dt;
-        if (b.path) {
-          // balistica recta (mira con mouse): interpola desde el AVION hacia el punto apuntado
-          // en funcion del avance en z; pasa exacto por la mira a z=110 y sigue derecho
-          const f = (b.z - b.z0) / (110 - b.z0);
-          b.x = b.x0 + (b.tx - b.x0) * f;
-          b.y = Math.max(0, b.y0 + (b.ty - b.y0) * f);
-        } else if (b.ty !== undefined) b.y += (b.ty - b.y) * Math.min(1, dt * 14);
-        for (const o of obstacles) {
-          if (o.hp === undefined) continue;
-          if (o.z < z0 - 2 || o.z > b.z + 2) continue;
-          const oy = o.y, air = o.type === 'helo' || o.type === 'jet';
-          if (Math.abs(b.x - o.x) < (air ? 5.6 : 3) && Math.abs(b.y - oy) < (air ? 3 : 2.4)) {
-            o.hp--; b.z = 999; stats.hits++;
-            if (o.hp <= 0) {
-              const pts = o.type === 'helo' ? 300 : o.type === 'jet' ? 250 : 150;
-              run.score += pts; stats.air++;
-              sfxOne(air ? 'exMedium' : 'exXsmall');   // aeronaves: medium · blancos chicos: xsmall
-              const s = proj(o.x, oy, o.z); popup(s.x, s.y - 8, '+' + pts);
-              explodeAt(o.x, oy, o.z, air);
-              o.z = -99; o.done = true;   // done=true: evita que el obstáculo muerto dispare la colisión del avión
-            } else { beep(300, 0.05, 'triangle', 0.04); }
-            break;
-          }
-        }
-        if (b.z >= 999) continue;
-        for (const m of missiles) {
-          if (m.z < z0 - 2 || m.z > b.z + 2) continue;
-          if (Math.abs(b.x - m.x) < 2.6 && Math.abs(b.y - m.y) < 2.2) {
-            b.z = 999; run.score += 400; stats.hits++; stats.air++;
-            const s = proj(m.x, m.y, m.z); popup(s.x, s.y - 8, '+400', P.warn);
-            explodeAt(m.x, m.y, m.z, true);
-            m.z = -99; m.done = true;   // done=true: evita que el misil enemigo derribado dispare la muerte del avión
-            break;
-          }
-        }
-        if (b.z >= 999) continue;
-        // ametralla soldados en tierra: bala baja y alineada (por eso hay que estar de frente y a distancia)
-        if (cfg.terrain === 'land' && b.y < 4) {
-          for (const sd of soldiers) {
-            if (sd.dead || sd.z < z0 - 2 || sd.z > b.z + 2) continue;
-            if (Math.abs(b.x - sd.x) < 2.6) {
-              sd.dead = true; b.z = 999;
-              const pts = Math.round(60 * (run.multShow >= 5 ? 2 : 1));
-              run.score += pts; stats.hits++; stats.soldiers++; const s = proj(sd.x, 0, sd.z); popup(s.x, s.y - 8, '+' + pts, P.foam);
-              bloodBurst(s.x, s.y, 8);
-              beep(240, 0.05, 'square', 0.04); break;
-            }
-          }
-        }
-      }
-      prune(bullets, b => b.z < 240);
-
-      // MISILES DEL JUGADOR — viajan hacia el horizonte y destruyen blancos aéreos.
-      // IMPORTANTE: nunca se chequean contra el hitbox del avión (no pueden causar la muerte del jugador).
-      for (const pm of pmissiles) {
-        const z0 = pm.z;
-        pm.z += 360 * dt;
-        pm.vy -= 26 * dt; pm.y += pm.vy * dt;                                     // caída/arco
-        if (pm.tx !== undefined) pm.x += (pm.tx - pm.x) * Math.min(1, dt * 6);   // guiado leve al blanco
-        if (Math.random() < 0.7) { const s = proj(pm.x, pm.y, pm.z - 3); parts.push({ x: s.x, y: s.y, vx: 0, vy: 0, life: 0.3, c: P.accent, r: Math.max(1, s.k * 0.35) }); }
-        // impacto con obstáculos aéreos (hitbox amplio, one-shot)
-        for (const o of obstacles) {
-          if (o.hp === undefined || o.z < z0 - 4 || o.z > pm.z + 4) continue;
-          if (Math.abs(pm.x - o.x) < 8 && Math.abs(pm.y - o.y) < 5) {
-            const pts = (o.type === 'helo' ? 300 : o.type === 'jet' ? 250 : 150) + 100;   // +bonus por misil
-            run.score += pts; stats.air++;
-            const s = proj(o.x, o.y, o.z); popup(s.x, s.y - 8, '+' + pts, P.accent);
-            explodeAt(o.x, o.y, o.z, true);
-            o.z = -99; o.done = true; o.hp = 0;                 // done=true: no puede chocar al avión luego
-            pm.z = 9999; break;
-          }
-        }
-        if (pm.z >= 9999) continue;
-        // intercepta misiles enemigos
-        for (const m of missiles) {
-          if (m.z < z0 - 4 || m.z > pm.z + 4) continue;
-          if (Math.abs(pm.x - m.x) < 6 && Math.abs(pm.y - m.y) < 4) {
-            run.score += 400; stats.air++;
-            const s = proj(m.x, m.y, m.z); popup(s.x, s.y - 8, '+400', P.warn);
-            explodeAt(m.x, m.y, m.z, true);
-            m.z = -99; m.done = true; pm.z = 9999; break;
-          }
-        }
-        if (pm.z >= 9999) continue;
-        // sobre TIERRA: explota contra el suelo o cerca de soldados, con splash
-        if (cfg.terrain === 'land') {
-          let detonate = pm.y <= 0.3;
-          if (!detonate) for (const sd of soldiers) { if (!sd.dead && Math.abs(sd.z - pm.z) < 6 && Math.abs(sd.x - pm.x) < 4) { detonate = true; break; } }
-          if (detonate) {
-            explodeAt(pm.x, 0, pm.z, true); run.shake = Math.min(6, run.shake + 1.6);
-            let hit = 0;
-            for (const sd of soldiers) {
-              if (!sd.dead && Math.abs(sd.z - pm.z) < 11 && Math.abs(sd.x - pm.x) < 10) {
-                sd.dead = true; hit++;
-                const ss = proj(sd.x, 0, sd.z); bloodBurst(ss.x, ss.y, 7);
-              }
-            }
-            if (hit) { const pts = hit * 130; run.score += pts; stats.soldiers += hit; const s = proj(pm.x, 0, pm.z); popup(s.x, s.y - 10, '+' + pts, P.warn); }
-            pm.z = 9999;
-          }
-        }
-      }
-      prune(pmissiles, pm => pm.z < 240 && pm.y > -3);
 
       return false;
     }
