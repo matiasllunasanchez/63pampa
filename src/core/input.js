@@ -94,8 +94,9 @@ export function initInput(cv, a) {
     if (e.code === 'KeyV' && !e.repeat) a.cycleCamera();                 // cicla las 4 camaras
     if (e.code === 'KeyZ') { inp.msl = true; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }   // misil
     if (e.code === 'Enter' && !e.repeat) flags.anyPress = true;
-    // MUSICA: teclas 1..9 eligen la pista directo (el motor ignora las que no existen / fuera de modo)
-    if (!e.repeat) { const dg = /^(?:Digit|Numpad)([1-9])$/.exec(e.code); if (dg) a.selectTrack(+dg[1] - 1); }
+    // MUSICA: tecla 1 = pista anterior, tecla 2 = siguiente (el motor lo ignora fuera de modo)
+    if (!e.repeat && (e.code === 'Digit1' || e.code === 'Numpad1')) a.trackPrev();
+    if (!e.repeat && (e.code === 'Digit2' || e.code === 'Numpad2')) a.trackNext();
   });
   addEventListener('keyup', e => {
     if (KEYMAP[e.code] !== undefined) inp[KEYMAP[e.code]] = 0;
@@ -142,16 +143,17 @@ export function initInput(cv, a) {
   cv.addEventListener('pointercancel', ptrEnd);
 
   // JOYSTICK: por ahora solo cambia de pista musical (el vuelo se maneja con teclado/mouse/tactil).
-  // R3 = click del stick derecho, boton 11 del mapeo estandar del Gamepad API. Se detecta por
-  // FLANCO (una pulsacion = un cambio) y avanza a la siguiente pista.
-  const R3 = 11;
-  let padPrev = false;
+  // L3 = click del stick izquierdo (boton 10) → pista anterior; R3 = stick derecho (boton 11) →
+  // siguiente. Mapeo estandar del Gamepad API. Se detectan por FLANCO (una pulsacion = un cambio).
+  const L3 = 10, R3 = 11;
+  let l3Prev = false, r3Prev = false;
+  const padDown = (pads, i) => pads.some(gp => gp && gp.buttons[i] && gp.buttons[i].pressed);
   function pollGamepad() {
-    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
-    let down = false;
-    for (const gp of pads) if (gp && gp.buttons[R3] && gp.buttons[R3].pressed) down = true;
-    if (down && !padPrev) a.cycleTrack();   // flanco de subida
-    padPrev = down;
+    const pads = navigator.getGamepads ? [...navigator.getGamepads()] : [];
+    const l = padDown(pads, L3), r = padDown(pads, R3);
+    if (l && !l3Prev) a.trackPrev();
+    if (r && !r3Prev) a.trackNext();
+    l3Prev = l; r3Prev = r;
     requestAnimationFrame(pollGamepad);
   }
   requestAnimationFrame(pollGamepad);

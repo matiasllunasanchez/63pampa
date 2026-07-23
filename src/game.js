@@ -21,7 +21,7 @@ import * as hud from './render/hud.js';
 import * as world from './render/world.js';
 import { theme, applyTheme } from './render/theme.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
-         engineOff, engineRumble, duck, tickDuck, setRunMusic, setTrack, nextTrack } from './systems/audio.js';
+         engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack } from './systems/audio.js';
 import * as world3D from './systems/three-world.js';
 import { cv, ctx, W, H, HOR, F, PZ, SC, px, panel } from './render/ctx.js';
 import * as screens from './render/screens.js';
@@ -309,10 +309,10 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
         beep(440 + camMode * 120, 0.05, 'square', 0.04);
         if (S.state === 'play' || S.state === 'takeoff') popup(W / 2, 58, camMode ? 'CAM ' + CAM_ZOOMS[camMode] + '×' : 'CAM 1×', P.accent);
       },
-      // música: teclas 1..N (selectTrack) y R3 del joystick (cycleTrack). Solo en los modos donde
-      // el reproductor está activo — el motor ignora el cambio en historia/lobby.
-      selectTrack: n => { if (canPickMusic()) setTrack(n); },
-      cycleTrack: () => { if (canPickMusic()) nextTrack(); },
+      // música: tecla 1 / L3 = anterior, tecla 2 / R3 = siguiente. Solo en los modos donde el
+      // reproductor está activo — el motor ignora el cambio en historia/lobby.
+      trackPrev: () => { if (canPickMusic()) prevTrack(); },
+      trackNext: () => { if (canPickMusic()) nextTrack(); },
     });
 
 
