@@ -10,6 +10,10 @@
 // (limites del avion) y el spawn (ancho del carril de obstaculos).
 export const FLY_X = 38, FLY_TOP = 68, SPAWN_X = 33;
 
+// PIRUETA (tonel / aileron roll): duracion de la maniobra. La comparten el vuelo (aplica la
+// rafaga lateral), la accion que la dispara (startRoll) y el render (inclina el sprite).
+export const ROLL_DUR = 0.55;
+
 export const MOM_AX = 160, MOM_AY = 40;   // visor fijo en pantalla (W/2, 40) — el reflector del HUD
 export const MSL_MAX = 3;                 // misiles por pasada
 
