@@ -6,8 +6,13 @@ Resumen de todo lo construido, cómo está armado y por dónde seguir. Pensado p
 retomar el proyecto sin tener que releer todo el código.
 
 > ⚠️ **ESTRUCTURA (19/7/2026, rama `feature/electron`):** el juego dejó de ser un
+> **Estructura del código:** `game.js` dejó de ser un monolito — hoy es un ensamblador de ~800
+> líneas más 29 módulos en `src/core`, `src/systems`, `src/render` y `src/data`. El mapa completo
+> (qué vive dónde y por qué) está en **[`ARQUITECTURA.md`](ARQUITECTURA.md)**. Las referencias
+> de abajo a "`src/game.js`" pueden apuntar hoy a alguno de esos módulos.
+>
 > `index.html` autocontenido. Ahora vive en **`src/`** (`index.html` + `styles.css` +
-> `game.js` de 153 KB) con los **assets sueltos en `assets/img` y `assets/audio`**. El
+> `game.js` + los módulos) con los **assets sueltos en `assets/img` y `assets/audio`**. El
 > bundle web autocontenido para el Artifact lo genera **`tools/build_web.py`** →
 > `dist-web/index.html`. Esto es la **Fase 1** de la migración a Electron/Steam: ver
 > **`PLAN_ELECTRON_STEAM.md`** (documento de ejecución con bloque "RETOMAR ACÁ"). Las

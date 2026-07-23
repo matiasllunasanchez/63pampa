@@ -51,7 +51,7 @@ export const STRINGS = {
     zone_aa: 'CANON AA', zone_radar: 'RADAR', zone_bridge: 'PUENTE',
     zone_engine: 'MOTOR', zone_deposit: 'DEPOSITO',
     // HISTORIA (campaña): cada objeto es UNA pantalla. {title,paras} = cinematica;
-    // {level,obj} = pantalla previa al nivel. Fuente: NIVELES.md
+    // {level,obj} = pantalla previa al nivel. Fuente: docs/NIVELES.md
     storyIntro: [
       {
         title: 'MALVINAS · 1982', paras: [
@@ -110,7 +110,7 @@ export const STRINGS = {
     briefGalahad: 'Buque logistico fondeado en Bahia Agradable, cargado de tropa esperando desembarcar. Esta al descubierto y sin cobertura aerea.',
 
     // ---------- EPILOGOS (que paso en la realidad) ----------
-    // OJO: cifras reales. Las dudas estan anotadas en PREGUNTAS_HISTORICAS.md
+    // OJO: cifras reales. Las dudas estan anotadas en docs/PREGUNTAS_HISTORICAS.md
     epiSheffield: [{
       title: 'HMS SHEFFIELD · 4 MAYO 1982', paras: [
         'Un Super Etendard de la Armada Argentina lanzo un misil Exocet que impacto el casco del destructor.',
@@ -249,7 +249,7 @@ export const STRINGS = {
       { level: 'LEVEL 1 — BAPTISM OF FIRE', obj: 'May 1st, 1982 · Coast' },
     ],
     // Fin de mision. Los textos LARGOS (briefings y epilogos) no estan traducidos todavia:
-    // T() cae solo al español, asi que el juego funciona igual. Ver PREGUNTAS_HISTORICAS.md.
+    // T() cae solo al español, asi que el juego funciona igual. Ver docs/PREGUNTAS_HISTORICAS.md.
     mom_turn: '! 180 TURN !', mom_pass_n: 'ATTEMPT {n}',
     hud_mission: 'MISSION {n}/{m}',
     res_title: 'MISSION COMPLETE', res_total: 'TOTAL', res_rank: 'RATING:',

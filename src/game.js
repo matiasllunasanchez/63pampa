@@ -767,12 +767,12 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
 
     // MOMENTUM — camara 3/4 chase: el avion se ve GRANDE y pegado a camara (abajo-izq),
     // como si la camara volara detras y al costado. Devuelve la punta de la trompa (origen de la trazadora).
-    // (Una side-camera pura necesitaria sprite de perfil: anotado en UPDATE_ANIMATIONS.md.)
+    // (Una side-camera pura necesitaria sprite de perfil: anotado en docs/UPDATE_ANIMATIONS.md.)
     // ---- camara DESDE ADENTRO (cockpit) para el MOMENTUM ----
     // Asset configurable: imagen con la MISMA proporcion que la pantalla (320×180; ideal 640×360 para
     // nitidez 2×) con el CENTRO TRANSPARENTE (el vidrio) y pintados los parantes de la cabina y el panel
     // de instrumentos. Embeber como data URI en `src` (igual que los aviones). Mientras este vacio se
-    // dibuja un placeholder por codigo. Pedido en UPDATE_ANIMATIONS.md.
+    // dibuja un placeholder por codigo. Pedido en docs/UPDATE_ANIMATIONS.md.
 
 
 

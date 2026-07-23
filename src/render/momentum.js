@@ -195,7 +195,7 @@ export function drawMomentum(w) {
 
   // ---- RESPLANDOR de disparo en los bordes: feedback INSTANTANEO al apretar fuego ----
   // (la bala tarda ~1.3s en cruzar el vidrio; sin esto parece que no responde)
-  // PLACEHOLDER: cuadrados blancos — se reemplazara por asset (ver UPDATE_ANIMATIONS.md)
+  // PLACEHOLDER: cuadrados blancos — se reemplazara por asset (ver docs/UPDATE_ANIMATIONS.md)
   if (mom.flashL > 0) {
     ctx.globalAlpha = Math.min(1, mom.flashL * 9);
     px(0, 56, 9, 15, '#ffffff'); px(9, 60, 5, 8, '#ffffff'); px(14, 63, 3, 4, '#ffffff');

@@ -10,6 +10,13 @@ Dos versiones en el repo:
 - `index.html` — **vista frontal** (pseudo-3D detrás del avión, estilo After Burner). La principal.
 - `lateral.html` — el primer prototipo de scroll lateral, conservado como referencia.
 
+## Estructura del código
+
+El juego está modularizado: `src/game.js` es el ensamblador (bucle, flujo de misión, cámara,
+cableado del input) y el resto vive en `src/core` (estado + helpers puros), `src/systems`
+(comportamiento), `src/render` (dibujo) y `src/data` (contenido). El mapa completo —qué archivo
+hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTURA.md`](docs/ARQUITECTURA.md)**.
+
 ## Música y sonido
 
 - Dos pistas: **`the_weight_of_honor.mp3`** suena en loop en el lobby (menús); **`weight_of_honor_v2.mp3`**
@@ -125,7 +132,7 @@ python3 tools/check_syntax.py                               # verificar después
 
 Idempotente (correrlo de nuevo reemplaza el asset anterior). PNG o WebP con transparencia.
 **Cockpit**: proporción 320×180 (ideal 640×360), centro transparente — specs completas en
-`UPDATE_ANIMATIONS.md` §3.2b. Pipeline verificado end-to-end con una imagen de prueba.
+`docs/UPDATE_ANIMATIONS.md` §3.2b. Pipeline verificado end-to-end con una imagen de prueba.
 
 ## Tuning
 
@@ -238,7 +245,7 @@ largo de la pantalla** (crece a medida que te acercás) y se abre un minijuego d
 igual en todas las clases), `time` (ventana), `maxHp` (dificultad por zona), `pts`, daño de la ráfaga
 (`22` cada `0.36s`), velocidad de la mira (`CS=98`), amplitud del balanceo (`momShipGeom`).
 **Pendiente**: soporte táctil del minijuego (hoy la mira es solo teclado) y sprite real del barco
-(placeholder por rects; pedido en `UPDATE_ANIMATIONS.md`).
+(placeholder por rects; pedido en `docs/UPDATE_ANIMATIONS.md`).
 
 - **Supervivencia** (`gameMode='survival'`): juntar puntos infinitamente hasta morir. Pasás por el menú
   de **selección de avión** y podés abrir el **menú de configuración `[M]`** para tunear el mapa.
@@ -255,13 +262,13 @@ igual en todas las clases), `time` (ventana), `maxHp` (dificultad por zona), `pt
 
 Al elegir CAMPAÑA corre una **secuencia de pantallas de historia** (fondo negro estilo
 expediente: grano de película + scanline + marco + puntitos de progreso), con **`epic_himno.mp3`**
-de fondo. Cada **Cinemática** de `NIVELES.md` es una pantalla (`{title, paras}`) y la de **NIVEL**
+de fondo. Cada **Cinemática** de `docs/NIVELES.md` es una pantalla (`{title, paras}`) y la de **NIVEL**
 es la previa al despegue (`{level, obj}`, centrada). El texto se **tipea letra por letra con
 ruido** (lento: 19 cps, pausas largas entre párrafos). Tecla/tap: completa el tipeo → pasa a la
 siguiente → en la del nivel arranca el **despegue con fade desde negro**. ESC vuelve al menú.
 Implementadas: `storyIntro` (3 cinemáticas iniciales + NIVEL 0) y `storyL1` (La Flota + NIVEL 1);
 agregar más = escribir el array `storyLN` en `STRINGS` (es/en) y setear `LEVELS[n].story`.
-`NIVELES.md` es la fuente de verdad del guión completo (12 niveles + cinemática final + créditos).
+`docs/NIVELES.md` es la fuente de verdad del guión completo (12 niveles + cinemática final + créditos).
 
 ### ⚠️ Campaña — PENDIENTE (estructura lista, contenido a futuro)
 
