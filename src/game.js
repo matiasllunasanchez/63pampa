@@ -14,6 +14,7 @@ import { proj, popup, explodeAt, bloodBurst } from './core/fx.js';
 import * as momentum from './systems/momentum.js';
 import { spawnSystem } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
+import { inp, mouse, pointer, flags, initInput } from './core/input.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, pickRunTrack } from './systems/audio.js';
 import * as world3D from './systems/three-world.js';
@@ -208,7 +209,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX, FLY
     // `sheet` (sprite sheet HORNEADO desde el modelo 3D low-poly: 9 frames de 56x32, alabeo
     // -60..+60 en pasos de 15, frame 4 = nivelado) que es el que VUELA — pixel art coherente
     // con el juego y banking real por frame. Regenerar: npx electron tools/bake_planes_run.js
-    let selPlane = 0, startReq = false;
+    let selPlane = 0;
 
 
 
@@ -263,109 +264,6 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX, FLY
     if (mslBtn) mslBtn.addEventListener('pointerdown', e => { e.preventDefault(); audio(); tryLaunchMissile(); });
 
     // ---------- input ----------
-    const inp = { l: 0, r: 0, u: 0, d: 0, fire: false, turbo: false, msl: false };
-    let anyPress = false;
-    const KEYMAP = {
-      ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r',
-      ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd'
-    };
-    addEventListener('keydown', e => {
-      audio();
-      if (e.code === 'KeyL') { cycleLang(); e.preventDefault(); return; }   // cambia idioma sin empezar la partida
-      if (S.state === 'modeselect') {                                       // pantalla inicial: CAMPAÑA / CICLO / SUPERVIVENCIA
-        if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'ArrowLeft' || e.code === 'KeyA') { modeSel = (modeSel + MODES.length - 1) % MODES.length; beep(520, 0.05, 'square', 0.04); e.preventDefault(); return; }
-        if (e.code === 'ArrowDown' || e.code === 'KeyS' || e.code === 'ArrowRight' || e.code === 'KeyD') { modeSel = (modeSel + 1) % MODES.length; beep(520, 0.05, 'square', 0.04); e.preventDefault(); return; }
-        if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyX' || e.code === 'KeyK') { confirmMode(); e.preventDefault(); return; }
-        return;
-      }
-      if (S.state === 'dead') {                                              // DERRIBADO: Esc/Backspace vuelve al menú principal
-        if (e.code === 'Escape' || e.code === 'Backspace') { setState('modeselect'); cfgOpen = false; beep(400, 0.06, 'square', 0.05); e.preventDefault(); return; }
-      }
-      if (S.state === 'menu') {                                             // pantalla de selección de avión (supervivencia)
-        if (e.code === 'Escape' || e.code === 'Backspace') { setState('modeselect'); cfgOpen = false; beep(400, 0.06, 'square', 0.05); e.preventDefault(); return; }
-        if (e.code === 'KeyM') { cfgOpen = !cfgOpen; beep(cfgOpen ? 640 : 400, 0.06, 'square', 0.05); e.preventDefault(); return; }
-        if (cfgOpen) {                                                    // navegación del menú de configuración de mapa
-          {
-            const nrows = getCfgRows().length;
-            if (e.code === 'ArrowUp' || e.code === 'KeyW') { cfgRow = (cfgRow + nrows - 1) % nrows; beep(500, 0.04, 'square', 0.03); }
-            if (e.code === 'ArrowDown' || e.code === 'KeyS') { cfgRow = (cfgRow + 1) % nrows; beep(500, 0.04, 'square', 0.03); }
-          }
-          if (e.code === 'ArrowLeft' || e.code === 'KeyA') { cfgChange(-1); }
-          if (e.code === 'ArrowRight' || e.code === 'KeyD') { cfgChange(1); }
-          if (e.code === 'Enter') { cfgOpen = false; }
-          e.preventDefault(); return;
-        }
-        if (e.code === 'ArrowLeft' || e.code === 'KeyA') { selPlane = (selPlane + PLANES.length - 1) % PLANES.length; beep(520, 0.05, 'square', 0.04); e.preventDefault(); return; }
-        if (e.code === 'ArrowRight' || e.code === 'KeyD') { selPlane = (selPlane + 1) % PLANES.length; beep(600, 0.05, 'square', 0.04); e.preventDefault(); return; }
-        if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyX' || e.code === 'KeyK') { startReq = true; e.preventDefault(); return; }
-      }
-      if (S.state === 'story') {                                            // HISTORIA: Esc vuelve al menu principal
-        if (e.code === 'Escape' || e.code === 'Backspace') { setState('modeselect'); beep(400, 0.06, 'square', 0.05); e.preventDefault(); return; }
-      }
-      // PIRUETA (tonel): doble-tap ← / → en vuelo — pulsaciones frescas, no auto-repeat
-      if (!e.repeat && S.state === 'play') {
-        const nowS = performance.now() / 1000;
-        if (e.code === 'ArrowLeft' || e.code === 'KeyA') { if (nowS - tapL < 0.28) startRoll(-1); tapL = nowS; }
-        if (e.code === 'ArrowRight' || e.code === 'KeyD') { if (nowS - tapR < 0.28) startRoll(1); tapR = nowS; }
-      }
-      // anyPress solo con pulsaciones FRESCAS (!e.repeat): el auto-repeat de una tecla sostenida
-      // no debe saltear pantallas (historia, derribado, transiciones). inp si se re-setea siempre.
-      if (KEYMAP[e.code] !== undefined) { inp[KEYMAP[e.code]] = 1; if (!e.repeat) anyPress = true; e.preventDefault(); }
-      if (e.code === 'KeyX' || e.code === 'KeyK' || e.code === 'Space') { inp.fire = true; if (!e.repeat) anyPress = true; e.preventDefault(); }
-      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyC') { inp.turbo = true; if (!e.repeat) anyPress = true; }
-      if (e.code === 'KeyV' && !e.repeat) {   // cicla las 4 camaras (1× / 1.5× / 2× / 2.5×)
-        camMode = (camMode + 1) % CAM_ZOOMS.length;
-        beep(440 + camMode * 120, 0.05, 'square', 0.04);
-        if (S.state === 'play' || S.state === 'takeoff') popup(W / 2, 58, camMode ? 'CAM ' + CAM_ZOOMS[camMode] + '×' : 'CAM 1×', P.accent);
-      }
-      if (e.code === 'KeyZ') { inp.msl = true; if (!e.repeat) anyPress = true; e.preventDefault(); }   // lanzar misil
-      if (e.code === 'Enter' && !e.repeat) anyPress = true;
-    });
-    addEventListener('keyup', e => {
-      if (KEYMAP[e.code] !== undefined) inp[KEYMAP[e.code]] = 0;
-      if (e.code === 'KeyX' || e.code === 'KeyK' || e.code === 'Space') inp.fire = false;
-      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyC') inp.turbo = false;
-      if (e.code === 'KeyZ') inp.msl = false;
-    });
-
-    // táctil: arrastre a la izquierda = volar; derecha arriba = fuego; derecha abajo = turbo
-    let steerPtr = null, steerTarget = null;
-    const zonePtr = new Map();
-    function canvasPos(e) {
-      const r = cv.getBoundingClientRect();
-      return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H };
-    }
-    cv.addEventListener('pointerdown', e => {
-      e.preventDefault(); cv.focus(); audio(); anyPress = true;
-      const p = canvasPos(e);
-      if (S.state === 'modeselect') {                                       // 3 filas: tap en una fila la elige y confirma
-        const row = Math.floor((p.y - 60) / 34);
-        if (row >= 0 && row < MODES.length) { modeSel = row; confirmMode(); }
-        return;
-      }
-      if (S.state === 'menu') {                                             // selección: tap izq/der cambia, centro despega
-        if (cfgOpen) { cfgOpen = false; return; }                         // en config (por teclado), tocar cierra
-        if (p.x < W * 0.28) { selPlane = (selPlane + PLANES.length - 1) % PLANES.length; beep(520, 0.05, 'square', 0.04); }
-        else if (p.x > W * 0.72) { selPlane = (selPlane + 1) % PLANES.length; beep(600, 0.05, 'square', 0.04); }
-        else startReq = true;
-        return;
-      }
-      // PC (mouse): click izquierdo = canon sostenido, click derecho = misil — en juego y momentum
-      if (e.pointerType === 'mouse' && (S.state === 'play' || S.state === 'momentum')) {
-        if (e.button === 2) { tryLaunchMissile(); }
-        else { zonePtr.set(e.pointerId, 'fire'); inp.fire = true; }
-        return;
-      }
-      if (p.x < W * 0.62) { steerPtr = e.pointerId; steerTarget = p; }
-      else {
-        const z = p.y < H / 2 ? 'fire' : 'turbo';
-        zonePtr.set(e.pointerId, z); inp[z] = true;
-      }
-    });
-    // MOUSE = MIRA (PC): apuntar con el mouse, volar con flechas/WASD (en momentum las flechas
-    // mueven la cabina/camara). `mouse.on` se enciende al primer movimiento → en tactil nunca,
-    // y ahi rige el esquema anterior. Es la base del esquema doble-stick para el joystick futuro.
-    const mouse = { x: W / 2, y: H * 0.4, on: false };
     // CAMARAS (tecla V, cicla): 4 niveles de zoom anclados al sprite del avion.
     // camZ interpola suave; el zoom solo se aplica en vuelo (play/takeoff/dead), nunca en momentum
     // (ahi manda la camara cockpit) ni en menus.
@@ -379,18 +277,30 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX, FLY
       const c = proj(plane.x, plane.y, PZ);
       return { x: c.x + (mouse.x - c.x) / camZ, y: c.y + (mouse.y - c.y) / camZ, on: mouse.on };
     }
-    cv.addEventListener('pointermove', e => {
-      if (e.pointerType === 'mouse') { const p = canvasPos(e); mouse.x = p.x; mouse.y = p.y; mouse.on = true; }
-      if (e.pointerId === steerPtr) steerTarget = canvasPos(e);
+
+    // Cablea el input. core/input.js escucha teclado/mouse/tactil y actualiza inp/mouse/pointer;
+    // las ACCIONES semanticas (navegar menu, confirmar, tonel, misil, camara) vuelven aca como
+    // callbacks — el estado de menu/camara (modeSel, selPlane, cfgOpen, cfgRow, camMode) vive aca,
+    // no en el modulo de input.
+    initInput(cv, {
+      modeNav: dir => { modeSel = (modeSel + dir + MODES.length) % MODES.length; beep(520, 0.05, 'square', 0.04); },
+      confirm: () => confirmMode(),
+      modeSelect: row => { if (row >= 0 && row < MODES.length) { modeSel = row; confirmMode(); } },
+      escToMenu: () => { setState('modeselect'); cfgOpen = false; beep(400, 0.06, 'square', 0.05); },
+      toggleCfg: () => { cfgOpen = !cfgOpen; beep(cfgOpen ? 640 : 400, 0.06, 'square', 0.05); },
+      isCfgOpen: () => cfgOpen,
+      cfgNav: dir => { const n = getCfgRows().length; cfgRow = (cfgRow + dir + n) % n; beep(500, 0.04, 'square', 0.03); },
+      cfgChange: dir => cfgChange(dir),
+      cfgClose: () => { cfgOpen = false; },
+      planeNav: dir => { selPlane = (selPlane + dir + PLANES.length) % PLANES.length; beep(dir < 0 ? 520 : 600, 0.05, 'square', 0.04); },
+      roll: dir => startRoll(dir),
+      launchMissile: () => tryLaunchMissile(),
+      cycleCamera: () => {
+        camMode = (camMode + 1) % CAM_ZOOMS.length;
+        beep(440 + camMode * 120, 0.05, 'square', 0.04);
+        if (S.state === 'play' || S.state === 'takeoff') popup(W / 2, 58, camMode ? 'CAM ' + CAM_ZOOMS[camMode] + '×' : 'CAM 1×', P.accent);
+      },
     });
-    cv.addEventListener('contextmenu', e => e.preventDefault());   // click derecho = misil, sin menu
-    function ptrEnd(e) {
-      if (e.pointerId === steerPtr) { steerPtr = null; steerTarget = null; }
-      const z = zonePtr.get(e.pointerId);
-      if (z) { zonePtr.delete(e.pointerId); if (![...zonePtr.values()].includes(z)) inp[z] = false; }
-    }
-    cv.addEventListener('pointerup', ptrEnd);
-    cv.addEventListener('pointercancel', ptrEnd);
 
     // opacidad de los cuadrados del mar 2D (todo el vuelo). Vivia en el bloque de three.js por
     // vecindad historica, pero es del render 2D: se quedo aca al separar el modulo 3D.
@@ -589,7 +499,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX, FLY
         popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
         prune(popups, p => p.life > 0);
         run.shake = Math.max(0, run.shake - dt * 10);
-        anyPress = false;
+        flags.anyPress = false;
         return;
       }
 
@@ -604,7 +514,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX, FLY
           const sig = momentum.update(dt, inp, mouse, objectiveDist);   // señal de salida: no llama hacia arriba
           if (sig === 'objective') finishObjective();
           else if (sig && sig.death) die(sig.death);
-          startReq = false; anyPress = false;
+          flags.startReq = false; flags.anyPress = false;
           return;
         }
         if (S.state === 'story') {
@@ -615,7 +525,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX, FLY
           if (st.typed > story.typed && !isMuted()) beep(1300 + Math.random() * 1100, 0.014, 'square', 0.013);
           story.typed = st.typed; story.done = st.done;
           // gracia de 0.4s: el tap/tecla que confirmo CAMPAÑA en el menu no debe saltear el tipeo
-          if (anyPress && story.t > 0.4) {
+          if (flags.anyPress && story.t > 0.4) {
             if (!story.done) { story.t += 999; }                          // completar de un saque
             else if (story.si + 1 < story.seq.length) {                   // → siguiente pantalla de la secuencia
               story.si++; initStoryScreen(); beep(500, 0.05, 'square', 0.04);
@@ -624,17 +534,17 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX, FLY
         } else if (S.state === 'brief') {
           // tarjeta corta de mision (ciclo de muerte, y campaña sin guion): una tecla despega
           briefT += dt;
-          if (briefT > 0.6 && anyPress) { run.t = 0; fadeT = 1.0; setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+          if (briefT > 0.6 && flags.anyPress) { run.t = 0; fadeT = 1.0; setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
         } else if (S.state === 'menu') {
           // el menú lo comparten SUPERVIVENCIA y CICLO DE MUERTE
-          if (startReq) {
+          if (flags.startReq) {
             reset(); setRunObjective();
             // ciclo: pasa por el briefing corto de la mision; supervivencia: derecho al despegue
             if (gameMode === 'cycle') { briefT = 0; setState('brief'); beep(600, 0.08, 'square', 0.05); }
             else { setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
           }
         } else if (S.state === 'dead') {
-          if (deathT > 0.7 && anyPress) { reset(); setRunObjective(); setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }  // reintenta (mismo modo/nivel)
+          if (deathT > 0.7 && flags.anyPress) { reset(); setRunObjective(); setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }  // reintenta (mismo modo/nivel)
         } else if (S.state === 'results') {
           // RECUENTO: las filas entran de a una; una tecla las completa de golpe, la siguiente pasa al epilogo
           resT += dt;
@@ -642,7 +552,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX, FLY
           const want = Math.min(nRows, Math.floor(resT / 0.45));
           if (want > resRow) { resRow = want; beep(760 + resRow * 90, 0.07, 'square', 0.05); }
           const full = resRow >= nRows && resT > nRows * 0.45 + 0.7;
-          if (anyPress && resT > 0.5) {
+          if (flags.anyPress && resT > 0.5) {
             if (!full) { resT = nRows * 0.45 + 0.8; resRow = nRows; }   // completar de un saque
             else { initStory(lastRun.mission.epi); setState('epilogue'); beep(500, 0.05, 'square', 0.04); }
           }
@@ -652,7 +562,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX, FLY
           const st = storyTyped(story.t);
           if (st.typed > story.typed && !isMuted()) beep(1300 + Math.random() * 1100, 0.014, 'square', 0.013);
           story.typed = st.typed; story.done = st.done;
-          if (anyPress && story.t > 0.4) {
+          if (flags.anyPress && story.t > 0.4) {
             if (!story.done) { story.t += 999; }
             else if (story.si + 1 < story.seq.length) { story.si++; initStoryScreen(); beep(500, 0.05, 'square', 0.04); }
             else if (gameMode === 'campaign') {
@@ -667,12 +577,12 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX, FLY
             }
           }
         } else if (S.state === 'victory') {
-          if (levelT > 0.8 && anyPress) { setState('modeselect'); }
+          if (levelT > 0.8 && flags.anyPress) { setState('modeselect'); }
         }
-        startReq = false; anyPress = false;
+        flags.startReq = false; flags.anyPress = false;
         return;
       }
-      anyPress = false;
+      flags.anyPress = false;
 
       if (flightSystem(dt)) return;      // vuelo, superficie, armas → puede terminar la mision o matar
       spawnSystem(dt);                   // aparicion de obstaculos y soldados (nunca corta el frame)
@@ -761,9 +671,9 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX, FLY
       }
 
       // maniobra
-      if (steerTarget) {
-        const wx = (steerTarget.x - W / 2) / (F / PZ) + cam.x;
-        const wy = cam.y - (steerTarget.y - HOR) / (F / PZ);
+      if (pointer.steer) {
+        const wx = (pointer.steer.x - W / 2) / (F / PZ) + cam.x;
+        const wy = cam.y - (pointer.steer.y - HOR) / (F / PZ);
         plane.vx = Math.max(-30, Math.min(30, (wx - plane.x) * 5));
         plane.vy = Math.max(-24, Math.min(24, (wy - plane.y) * 5));
       } else {
@@ -790,7 +700,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX, FLY
         }
       }
       // throttle (palanca de gas): sube al dar gas, baja al soltar — solo indicador visual
-      const gasOn = run.fuel > 0 && (inp.u || (steerTarget && plane.vy > 0.5));
+      const gasOn = run.fuel > 0 && (inp.u || (pointer.steer && plane.vy > 0.5));
       run.throttle += ((gasOn ? 1 : 0) - run.throttle) * Math.min(1, dt * 7);
       if (cfg.fuelOn) run.fuel -= (3.2 + (run.boost ? 4.2 : 0)) * dt;   // COMBUSTIBLE: NO (menú [M]) = tanque infinito, para pruebas
       if (run.fuel <= 0) { run.fuel = 0; plane.vy = Math.min(plane.vy, -5); }
@@ -806,7 +716,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX, FLY
 
       // --- animación de vuelo: alabeo (bank) y cabeceo (pitch) suavizados ---
       // el alabeo mezcla la intención de giro (input) con la velocidad real → anticipa y asienta
-      const steerV = steerTarget ? plane.vx / 26 : ((inp.r - inp.l) * 0.9 + (plane.vx / 30) * 0.35);
+      const steerV = pointer.steer ? plane.vx / 26 : ((inp.r - inp.l) * 0.9 + (plane.vx / 30) * 0.35);
       const bankTarget = Math.max(-1, Math.min(1, steerV));
       // cabeceo: la tecla mueve la trompa SOLO si se mantiene apretada un instante — los toques rápidos
       // de gas (↑ repetido) no la sacuden y el avión queda recto; si mantenés ↑/↓ sí cabecea.

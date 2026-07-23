@@ -26,8 +26,9 @@ const STABLE = [
   'run',                                                                 // core/run.js
   'obstacles', 'soldiers', 'bullets', 'missiles', 'pmissiles',           // core/world.js
   'parts', 'popups', 'streaks', 'wake', 'gusts',
+  'inp', 'mouse', 'pointer', 'flags',                                    // core/input.js
 ];
-const STORES = /core\/(state|world|run)\.js/;
+const STORES = /core\/(state|world|run|input)\.js/;
 
 function sources(dir, out = []) {
   for (const e of readdirSync(dir)) {
@@ -51,7 +52,7 @@ for (const file of sources(SRC)) {
   // Solo interesan los nombres que este archivo IMPORTA del store. Sin esto, un `const cam` local
   // (la camara de three.js, por ejemplo) se marcaria como si fuera el `cam` compartido.
   const imported = new Set();
-  for (const imp of text.matchAll(/import\s*\{([^}]*)\}\s*from\s*['"][^'"]*core\/(?:state|world|run)\.js['"]/g))
+  for (const imp of text.matchAll(/import\s*\{([^}]*)\}\s*from\s*['"][^'"]*core\/(?:state|world|run|input)\.js['"]/g))
     for (const n of imp[1].split(',')) imported.add(n.trim().split(/\s+as\s+/).pop());
   if (!imported.size) continue;
 

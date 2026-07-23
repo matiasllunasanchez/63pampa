@@ -130,6 +130,20 @@ app.whenReady().then(async () => {
   win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Space' });
   await checkAlive(win, 'momentum tras disparar');
 
+  // INPUT POR MOUSE: ejercita los handlers de puntero (movidos a core/input.js) — apuntado con el
+  // mouse y click de canon/misil. El keyboard cubre el resto; sin esto el camino tactil/mouse
+  // quedaria sin probar y una excepcion ahi seria muda.
+  console.log('\ninput por mouse:');
+  win.webContents.sendInputEvent({ type: 'mouseMove', x: 500, y: 300 });
+  await sleep(120);
+  win.webContents.sendInputEvent({ type: 'mouseDown', x: 500, y: 300, button: 'left', clickCount: 1 });
+  await sleep(200);
+  win.webContents.sendInputEvent({ type: 'mouseUp', x: 500, y: 300, button: 'left', clickCount: 1 });
+  win.webContents.sendInputEvent({ type: 'mouseDown', x: 500, y: 300, button: 'right', clickCount: 1 });
+  await sleep(200);
+  win.webContents.sendInputEvent({ type: 'mouseUp', x: 500, y: 300, button: 'right', clickCount: 1 });
+  await checkAlive(win, 'tras input de mouse');
+
   console.log('\nconsola:');
   if (errors.length) {
     fail(`${errors.length} error(es) de consola:`);
