@@ -6,7 +6,7 @@
 //
 // LO QUE EXPONE (estado, identidad estable — se muta, no se reasigna):
 //   inp      controles de vuelo: l/r/u/d + fire/turbo/msl
-//   mouse    la MIRA en PC (x,y en pantalla; `on` se enciende al primer movimiento de mouse)
+//   mouse    la MIRA en PC (x,y en pantalla; `on` = mira LIBRE, se habilita con CAPS LOCK activa)
 //   pointer  arrastre de vuelo tactil en `pointer.steer` (null o {x,y})
 //   flags    pulsos de un frame: `anyPress` (hubo tecla/tap fresco) y `startReq` (pidieron jugar)
 //
@@ -52,6 +52,7 @@ export function initInput(cv, a) {
 
   addEventListener('keydown', e => {
     audio();
+    readCaps(e);                                                          // CAPS LOCK gobierna la mira
     if (e.code === 'KeyL') { cycleLang(); e.preventDefault(); return; }   // cambia idioma sin empezar
     if (S.state === 'modeselect') {                                       // CAMPAÑA / CICLO / SUPERVIVENCIA
       if (isUp(e.code) || isLeft(e.code)) { a.modeNav(-1); e.preventDefault(); return; }
@@ -92,17 +93,18 @@ export function initInput(cv, a) {
     if (isFire(e.code)) { inp.fire = true; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }
     if (isTurbo(e.code)) { inp.turbo = true; if (!e.repeat) flags.anyPress = true; }
     if (e.code === 'KeyV' && !e.repeat) a.cycleCamera();                 // cicla las 4 camaras
-    if (e.code === 'KeyZ') { inp.msl = true; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }   // misil
+    if (e.code === 'KeyZ' || e.code === 'Tab') { inp.msl = true; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }   // misil (Z o TAB)
     if (e.code === 'Enter' && !e.repeat) flags.anyPress = true;
     // MUSICA: tecla 1 = pista anterior, tecla 2 = siguiente (el motor lo ignora fuera de modo)
     if (!e.repeat && (e.code === 'Digit1' || e.code === 'Numpad1')) a.trackPrev();
     if (!e.repeat && (e.code === 'Digit2' || e.code === 'Numpad2')) a.trackNext();
   });
   addEventListener('keyup', e => {
+    readCaps(e);
     if (KEYMAP[e.code] !== undefined) inp[KEYMAP[e.code]] = 0;
     if (isFire(e.code)) inp.fire = false;
     if (isTurbo(e.code)) inp.turbo = false;
-    if (e.code === 'KeyZ') inp.msl = false;
+    if (e.code === 'KeyZ' || e.code === 'Tab') inp.msl = false;
   });
 
   // tactil: arrastre a la izquierda = volar; derecha arriba = fuego; derecha abajo = turbo
@@ -130,7 +132,9 @@ export function initInput(cv, a) {
     }
   });
   cv.addEventListener('pointermove', e => {
-    if (e.pointerType === 'mouse') { const p = canvasPos(e); mouse.x = p.x; mouse.y = p.y; mouse.on = true; }
+    readCaps(e);
+    // el mouse LIBERA la mira solo con CAPS LOCK activa; sin caps, la mira queda fija (readCaps ya la fijo)
+    if (e.pointerType === 'mouse') { const p = canvasPos(e); mouse.x = p.x; mouse.y = p.y; if (capsOn) mouse.on = true; }
     if (e.pointerId === steerPtr) pointer.steer = canvasPos(e);
   });
   cv.addEventListener('contextmenu', e => e.preventDefault());          // click derecho = misil, sin menu
@@ -142,18 +146,105 @@ export function initInput(cv, a) {
   cv.addEventListener('pointerup', ptrEnd);
   cv.addEventListener('pointercancel', ptrEnd);
 
-  // JOYSTICK: por ahora solo cambia de pista musical (el vuelo se maneja con teclado/mouse/tactil).
-  // L3 = click del stick izquierdo (boton 10) → pista anterior; R3 = stick derecho (boton 11) →
-  // siguiente. Mapeo estandar del Gamepad API. Se detectan por FLANCO (una pulsacion = un cambio).
-  const L3 = 10, R3 = 11;
-  let l3Prev = false, r3Prev = false;
-  const padDown = (pads, i) => pads.some(gp => gp && gp.buttons[i] && gp.buttons[i].pressed);
+  // ---------- JOYSTICK (USB / Bluetooth, Gamepad API mapeo estandar, botones estilo PlayStation) ----------
+  // Se puede JUGAR entero con el joystick. Mapeo (botones estilo PlayStation; ✕=0 ◯=1 ▢=2 △=3):
+  //   Stick izq izq/der          esquivar
+  //   Stick izq VERTICAL         throttle: ARRIBA sube (gas) · ABAJO baja (picada)   L1 (4) invierte
+  //   Stick der                  MIRA (fluida)     R1 (5)             fija / libera la mira (fija x default)
+  //   gatillo (7)                turbo
+  //   ✕ Cross (0)                METRALLETA (y OK / avanzar en menus)
+  //   ▢ Square (2)               MISIL             ◯ Circle (1)       atras (volver)
+  //   L3 (10) / R3 (11)          pista musical ◄ / ►     cruceta       navegar los menus
+  //   (△ Triangle y un gatillo quedan libres)
+  //
+  // El vuelo se ESCRIBE en `inp` solo mientras el pad lo pisa (setPad limpia al soltar), asi
+  // convive con el teclado sin pisarlo. La navegacion de menus y las acciones (tonel, camara,
+  // pista) van por FLANCO (una pulsacion = una accion), igual que el teclado.
+  const AX_DZ = 0.35;                          // zona muerta de los sticks (vuelo/menus)
+  const AIM_DZ = 0.15, AIM_SPEED = 230;        // MIRA con stick derecho: zona muerta fina + px/seg
+  const padHeld = { l: 0, r: 0, u: 0, d: 0, fire: false, turbo: false, msl: false };
+  let btnPrev = [];                            // estado previo de botones (flanco)
+  let padLast = performance.now();             // para el dt del movimiento fluido de la mira
+  let aimLock = true;                          // R1: mira FIJA en el centro (DEFAULT) / LIBRE con stick
+  let throttleInvert = false;                  // L1: eje vertical. false = ARRIBA sube (default); true = ABAJO sube
+  let capsOn = false;                          // CAPS LOCK (teclado): true = mira LIBRE con mouse; false = mira FIJA
+  const nav = { u: false, d: false, l: false, r: false };   // navegacion previa (cruceta+stick)
+
+  // CAPS LOCK gobierna la mira en teclado: activa = libre (la mueve el mouse), inactiva = fija.
+  // Se lee de cada evento de teclado/puntero; al quedar inactiva, fija la mira en el acto.
+  function readCaps(e) { if (e.getModifierState) capsOn = e.getModifierState('CapsLock'); if (!capsOn) mouse.on = false; }
+
+  // escribe un control de vuelo del pad en `inp`, y lo LIMPIA al soltar — sin pisar al teclado
+  function setPad(f, v) { if (v || padHeld[f]) inp[f] = v; padHeld[f] = v; }
+
   function pollGamepad() {
     const pads = navigator.getGamepads ? [...navigator.getGamepads()] : [];
-    const l = padDown(pads, L3), r = padDown(pads, R3);
-    if (l && !l3Prev) a.trackPrev();
-    if (r && !r3Prev) a.trackNext();
-    l3Prev = l; r3Prev = r;
+    const gp = pads.find(g => g && g.connected);
+    if (!gp) { btnPrev = []; padLast = performance.now(); requestAnimationFrame(pollGamepad); return; }
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - padLast) / 1000);   // para el movimiento fluido de la mira
+    padLast = now;
+
+    const pressed = gp.buttons.map(b => b.pressed);
+    const down = i => pressed[i];
+    const hit = i => pressed[i] && !btnPrev[i];                 // flanco de subida
+    const ax = i => { const v = gp.axes[i] || 0; return Math.abs(v) < AX_DZ ? 0 : v; };
+    // primera pulsacion del pad: DESBLOQUEA el audio (el navegador no lo hace con el gamepad, solo
+    // con teclado/mouse/tactil → sin esto, jugando SOLO con joystick no sonaba la metralla ni la musica)
+    if (pressed.some((p, i) => p && !btnPrev[i])) { audio(); flags.anyPress = true; }
+
+    // musica (en cualquier pantalla)
+    if (hit(10)) a.trackPrev();
+    if (hit(11)) a.trackNext();
+
+    const inGame = S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum';
+    if (inGame) {
+      const lx = ax(0), ly = ax(1);
+      setPad('l', (lx < 0 || down(14)) ? 1 : 0);               // stick izq / cruceta izq = esquivar
+      setPad('r', (lx > 0 || down(15)) ? 1 : 0);
+      // THROTTLE en el stick VERTICAL: por defecto ABAJO sube (gas), ARRIBA baja (picada). L1 lo
+      // invierte. Con el stick centrado NO hay gas → el avion cae (mecanica central del juego).
+      if (hit(4)) { throttleInvert = !throttleInvert; a.throttleInvert(throttleInvert); }   // L1 = invertir eje
+      setPad('u', (throttleInvert ? ly > 0 : ly < 0) ? 1 : 0);  // potencia (gas / subir)  — default: ARRIBA sube
+      setPad('d', (throttleInvert ? ly < 0 : ly > 0) ? 1 : 0);  // picada (bajar)
+      setPad('fire', down(0));                                 // ✕ Cross = metralleta
+      setPad('turbo', down(7));                                // turbo (gatillo)
+      setPad('msl', down(2));                                  // ▢ Square = misil
+
+      // MIRA: R1 alterna FIJA (centrada, sin tocar el stick) / LIBRE (stick derecho la mueve). Por
+      // DEFAULT queda FIJA. Solo tocamos mouse.on al fijar (flanco) o al mover el stick libre, para
+      // no pisar la mira del mouse cuando se juega con teclado y hay un joystick conectado.
+      if (hit(5)) { aimLock = !aimLock; if (aimLock) mouse.on = false; a.aimLock(aimLock); }
+      if (!aimLock) {
+        // stick DERECHO: mueve el reticulo de forma fluida (velocidad por deflexion, con dt real)
+        const rx = gp.axes[2] || 0, ry = gp.axes[3] || 0, mag = Math.hypot(rx, ry);
+        if (mag > AIM_DZ) {
+          const k = ((mag - AIM_DZ) / (1 - AIM_DZ)) / mag;     // recorta la zona muerta radial, conserva direccion
+          mouse.x = Math.max(0, Math.min(W, mouse.x + rx * k * AIM_SPEED * dt));
+          mouse.y = Math.max(0, Math.min(H, mouse.y + ry * k * AIM_SPEED * dt));
+          mouse.on = true;
+        }
+      }
+    } else {
+      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl']) setPad(f, 0);   // soltar el vuelo
+      // navegacion de menus por FLANCO (cruceta o stick)
+      const nu = down(12) || ax(1) < -0.5, nd = down(13) || ax(1) > 0.5;
+      const nl = down(14) || ax(0) < -0.5, nr = down(15) || ax(0) > 0.5;
+      const confirm = hit(0) || hit(9);                        // A / Start
+      if (S.state === 'modeselect') {
+        if ((nu && !nav.u) || (nl && !nav.l)) a.modeNav(-1);
+        if ((nd && !nav.d) || (nr && !nav.r)) a.modeNav(1);
+        if (confirm) a.confirm();
+      } else if (S.state === 'menu') {
+        if (nl && !nav.l) a.planeNav(-1);
+        if (nr && !nav.r) a.planeNav(1);
+        if (confirm) flags.startReq = true;
+        if (hit(1)) a.escToMenu();                             // B = volver
+      }
+      // el resto de pantallas (historia, derribado, recuento, victoria) avanzan con anyPress
+      nav.u = nu; nav.d = nd; nav.l = nl; nav.r = nr;
+    }
+    btnPrev = pressed;
     requestAnimationFrame(pollGamepad);
   }
   requestAnimationFrame(pollGamepad);

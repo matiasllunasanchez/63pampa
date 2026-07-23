@@ -313,6 +313,16 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       // reproductor está activo — el motor ignora el cambio en historia/lobby.
       trackPrev: () => { if (canPickMusic()) prevTrack(); },
       trackNext: () => { if (canPickMusic()) nextTrack(); },
+      // mira del joystick: R1 fija/libera (feedback visual + sonoro)
+      aimLock: locked => {
+        beep(locked ? 660 : 440, 0.05, 'square', 0.05);
+        if (S.state === 'play' || S.state === 'momentum') popup(W / 2, 58, locked ? T('aimFixed') : T('aimFree'), P.accent);
+      },
+      // throttle del joystick: L1 invierte el eje vertical del stick izquierdo
+      throttleInvert: inv => {
+        beep(inv ? 660 : 440, 0.05, 'square', 0.05);
+        if (S.state === 'play' || S.state === 'momentum') popup(W / 2, 58, inv ? T('thrUp') : T('thrDown'), P.accent);
+      },
     });
 
 

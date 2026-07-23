@@ -9,8 +9,10 @@
 export const SFXB = '../assets/new_sounds/';
 export const SFX_DEF = {
   // armas
-  gun: { f: ['ammo/machinegun_slow.mp3'], v: 0.5, loop: true },       // metralla: loop mientras disparas
-  msl: { f: ['ammo/misil.mp3', 'ammo/misil2.wav'], v: 0.7 },
+  gun: { f: ['ammo/machinegun_slow.mp3'], v: 0.65, loop: true },      // metralla: loop mientras disparas (+30%)
+  // misiles: +30% de volumen y arranca 1s adentro del sample (offset) para que el impacto suene
+  // antes, sin la entrada lenta del archivo.
+  msl: { f: ['ammo/misil.mp3', 'ammo/misil2.wav'], v: 0.91, offset: 1 },
   // cañon en MOMENTUM (1a persona): rafaga lenta y pesada, una variante al azar por tiro.
   // Comparte los samples con exXsmall pero es una entrada propia para poder regular su
   // volumen sin tocar el de las explosiones chicas.

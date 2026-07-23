@@ -70,7 +70,7 @@ export function sfxOne(key, vol) {
   if (!a) a = pool.a[pool.i % 3] = new Audio(SFXB + rel);
   pool.i++;
   a.volume = Math.min(1, (vol !== undefined ? vol : d.v) * SFX_MASTER);
-  try { a.currentTime = 0; } catch (e) { }
+  try { a.currentTime = d.offset || 0; } catch (e) { }   // offset: arranca N segundos adentro del sample
   a.play().catch(() => { });
   return true;
 }
