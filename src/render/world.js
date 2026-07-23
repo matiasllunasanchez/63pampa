@@ -201,7 +201,9 @@ export function drawObstacle(o) {
 }
 
 // la barcaza objetivo VISIBLE en vuelo normal: aparece en el horizonte desde el 45% del recorrido
-// y crece hasta empalmar con la escala de la proxima pasada del momentum (es el final del mapa)
+// y crece hasta empalmar con la escala de la proxima pasada del momentum (es el final del mapa).
+// EMERGE "hull-down": de lejos el horizonte tapa el casco y solo asoma la superestructura; a
+// medida que nos acercamos el corte baja y el barco se revela entero.
 export function drawApproachBarge(objectiveDist, objectiveShip) {
   const ph = momentum.phase(), PH = momentum.phases();
   if (objectiveDist <= 0 || ph >= PH.length) return;
@@ -214,21 +216,64 @@ export function drawApproachBarge(objectiveDist, objectiveShip) {
   const sc0 = ph === 0 ? 0.04 : PH[ph - 1].scale * 1.06;  // continua donde quedo la pasada anterior
   const scE = next.scale * 0.82;
   const sc = sc0 + (scE - sc0) * f;
-  // ALINEADO AL HORIZONTE: la barcaza queda pegada a la linea del horizonte (donde emergen los
-  // obstaculos, misma perspectiva) casi todo el acercamiento, y recien "baja" (se acerca) sobre
-  // el final con ease-in cuadratico, empalmando exacto con la cubierta del momentum (HOR+36*scE).
-  const d0 = ph === 0 ? 2 : 36 * sc0;
-  const dOff = d0 + (36 * scE - d0) * f * f;
+  const uh = 9 * sc, hullH = uh * 1.5;
+  // POSICION: anclamos por la LINEA DE FLOTACION, no por la cubierta. De lejos (f=0) la flotacion
+  // cae justo en el horizonte (el barco asoma hacia arriba, en el cielo); al acercarse la flotacion
+  // baja hacia el primer plano con ease-in cuadratico. En f=1 la cubierta queda en HOR+36*scE, que
+  // es donde la toma la primera pasada del momentum (empalme intacto).
   const bx = W / 2 - cam.x * 1.2 + Math.sin(run.t * 0.8) * 6 * sc;
-  const by = HOR + dOff + Math.sin(run.t * 1.3) * 1.2 * sc;
+  const wOff = ph === 0
+    ? (36 * scE + hullH) * f * f                                   // flotacion: horizonte → primer plano
+    : 36 * sc0 + hullH + (36 * scE - 36 * sc0) * f * f;            // pasadas siguientes: como antes
+  const waterY = HOR + wOff + Math.sin(run.t * 1.3) * 1.2 * sc;    // linea de flotacion en pantalla
+  const by = waterY - hullH;                                       // cubierta = flotacion - alto del casco
+  // CORTE por el horizonte: de lejos el corte esta sobre la cubierta (solo superestructura); se
+  // baja hasta pasar la flotacion cuando ya estamos cerca. Solo en la primera aparicion (ph 0).
+  const reveal = ph === 0 ? Math.max(0, Math.min(1, f / 0.6)) : 1;
+  const clipY = by + (waterY + 2 - by) * reveal;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(-80, -80, W + 160, clipY + 80); ctx.clip();   // dibuja solo por encima del corte
   // bruma atmosferica: de lejos es una silueta tenue → los obstaculos (solidos) resaltan encima
   ctx.globalAlpha = ph === 0 ? 0.35 + 0.65 * f : 1;
-  momRender.drawBargeHull(bx, W * 0.82 * sc, by, 9 * sc, run.t);
+  momRender.drawBargeHull(bx, W * 0.82 * sc, by, uh, run.t);
   ctx.globalAlpha = 1;
+  ctx.restore();
   if (sc > 0.28) {   // ya cerca: nombre sobre el barco
     ctx.font = '6px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.warn; ctx.globalAlpha = 0.85;
-    ctx.fillText(objectiveShip, bx, by - 9 * sc * 4.6);
+    ctx.fillText(objectiveShip, bx, by - uh * 4.6);
     ctx.globalAlpha = 1;
   }
+}
+
+// MARCADOR de objetivo: una cuña roja sobre el horizonte que apunta a la columna del buque, para
+// saber "hacia donde vamos" desde el arranque (mucho antes de que la barcaza asome). Si el objetivo
+// quedo fuera de pantalla por el paneo, se pega al borde apuntando hacia el lado correcto.
+export function drawObjectiveMarker(objectiveDist) {
+  if (objectiveDist <= 0) return;
+  if (S.state !== 'play' && S.state !== 'takeoff') return;
+  const p = run.dist / objectiveDist;
+  // se desvanece apenas la barcaza empieza a ser clara (~0.55): a partir de ahi el propio barco
+  // es la referencia y el marcador solo taparia el puente.
+  const fade = p < 0.55 ? 1 : Math.max(0, 1 - (p - 0.55) / 0.12);
+  if (fade <= 0) return;
+  const tx = W / 2 - cam.x * 1.2;                       // misma columna que la barcaza objetivo
+  const mx = Math.max(6, Math.min(W - 6, tx));          // pegado al borde si quedo afuera
+  const off = tx < 6 ? -1 : tx > W - 6 ? 1 : 0;         // -1 izquierda, 1 derecha, 0 en pantalla
+  const pulse = 0.62 + 0.38 * (0.5 + 0.5 * Math.sin(run.t * 4));
+  ctx.save();
+  ctx.globalAlpha = fade * pulse;
+  ctx.fillStyle = P.warn;
+  if (off === 0) {
+    const bob = Math.sin(run.t * 2) * 0.8, ty = HOR - 9 + bob;
+    ctx.beginPath();                                    // cuña apuntando hacia abajo, al horizonte
+    ctx.moveTo(mx, ty + 7); ctx.lineTo(mx - 3.5, ty); ctx.lineTo(mx + 3.5, ty); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = fade * pulse * 0.5;               // tallo tenue hasta la linea del horizonte
+    ctx.fillRect(Math.round(mx) - 0.5, ty + 7, 1, HOR - (ty + 7));
+  } else {                                              // flecha lateral pegada al borde
+    const ay = HOR - 6, dir = off;
+    ctx.beginPath();
+    ctx.moveTo(mx + dir * 4, ay); ctx.lineTo(mx - dir * 2, ay - 4); ctx.lineTo(mx - dir * 2, ay + 4); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
 }
 

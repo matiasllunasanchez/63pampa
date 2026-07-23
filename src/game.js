@@ -671,6 +671,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       // en momentum el mundo rota (alabeo): rellena bajo el mar para que un tonel no muestre huecos
       if (S.state === 'momentum') px(-70, H, W + 140, 150, cfg.terrain === 'land' ? LAND.near : theme.water.base2);
       world.drawApproachBarge(objectiveDist, objectiveShip);   // la barcaza objetivo creciendo en el horizonte
+      world.drawObjectiveMarker(objectiveDist);                // cuña roja en el horizonte: hacia donde vamos
       world.drawWake();
 
       // ráfagas de viento

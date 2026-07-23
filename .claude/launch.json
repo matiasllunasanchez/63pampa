@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "game",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8475"],
+      "port": 8475,
+      "url": "http://localhost:8475"
+    }
+  ]
+}
