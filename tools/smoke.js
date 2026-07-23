@@ -120,6 +120,16 @@ app.whenReady().then(async () => {
   clearInterval(hold2);
   await checkAlive(win, 'momentum');
 
+  // DISPARAR dentro del momentum: ejercita el camino cañón → zonas → puntaje (momScrToWorld,
+  // momZoneRect, momZoneKilled) y las señales de salida (objetivo/re-ataque). Sin esto, el smoke
+  // entra al momentum pero nunca corre la lógica de combate — donde una excepción quedaría muda.
+  console.log('\nmomentum — combate:');
+  const fire = setInterval(() => win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Space' }), 40);
+  await sleep(6000);
+  clearInterval(fire);
+  win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Space' });
+  await checkAlive(win, 'momentum tras disparar');
+
   console.log('\nconsola:');
   if (errors.length) {
     fail(`${errors.length} error(es) de consola:`);

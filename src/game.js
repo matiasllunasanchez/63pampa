@@ -10,6 +10,8 @@ import { S, setState, cfg, cam, plane, stats, resetPlane, resetStats } from './c
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts,
          prune, clearWorld } from './core/world.js';
 import { run, resetRun } from './core/run.js';
+import { popup } from './core/fx.js';
+import * as momentum from './systems/momentum.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, pickRunTrack } from './systems/audio.js';
 import * as world3D from './systems/three-world.js';
@@ -55,10 +57,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
     // fija el layout de zonas del MOMENTUM segun la clase del buque
     // (MOM_LAYOUTS/SHIP_CLASS se definen mas abajo; esto solo corre al armar un run)
-    function useShip(s) {
-      MOM_PHASES = MOM_LAYOUTS[SHIP_CLASS[s]] || MOM_LAYOUTS.t42;
-      return s;
-    }
+    function useShip(s) { momentum.setLayout(s); return s; }
     function randomShip() { return useShip(SHIPS[Math.floor(Math.random() * SHIPS.length)]); }
     // randomiza el mapa. No toca meters (se setea aparte, para pruebas).
     // SIN USO HOY: el ciclo de muerte pasó a jugar las MISSIONS, que traen su propia cfg. Se deja
@@ -239,10 +238,8 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     let lastRun = null;
     let resT = 0, resRow = 0;   // recuento: tiempo y cuantas filas ya entraron
     const RANKS = ['rank_cadete', 'rank_piloto', 'rank_as', 'rank_halcon'];
-    let momPhase = 0, mom = null;   // MOMENTUM: pasada actual del asalto a la barcaza y estado del minijuego
     // fraccion de la velocidad de vuelo que conserva el avion durante el MOMENTUM.
     // Subir = mas sensacion de seguir entrando; bajar = mas quieto/ceremonioso.
-    const MOM_ADVANCE = 0.5;
     // RE-ATAQUE: si la ventana se agota con blancos vivos NO te matan — virás 180° y volvés a
     // entrar. El daño que ya hiciste a las zonas se conserva. El costo es COMBUSTIBLE, que es el
     // reloj del run: podés insistir, pero cada vuelta te acerca a quedarte sin nafta.
@@ -251,8 +248,6 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     // RASANTE LETAL: tocar la superficie ya no mata al instante — el avion TAMBALEA y tenes que
     // salir. SCRAPE_BASE son los segundos de gracia a baja velocidad; a mucha velocidad/turbo se
     // reduce hasta SCRAPE_MIN. Salir de la superficie descuenta el reloj, pero no lo borra.
-    let momDrift = 0;   // avance VISUAL extra del momentum: cuando dist llega al tope anti-encadenado,
-                        // el sobrante se acumula aca y el mar/tierra lo suman → el avion NUNCA se ve frenar
     try { best = +localStorage.getItem('rasante_frontal_best') || 0; } catch (e) { }
 
     function reset() {
@@ -260,8 +255,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       resetPlane();     // el avion a la posicion de arranque
       resetStats();     // los contadores del recuento final
       clearWorld();     // vacia el campo de obstaculos, balas, particulas…
-      momDrift = 0;
-      momPhase = 0; mom = null;
+      momentum.resetMomentum();
       toT = 0; toCount = 4;
       cam.x = 0; cam.y = 4;
     }
@@ -468,7 +462,6 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       run.shake = Math.min(6, run.shake + (big ? 4.5 : 2)); boom(big ? 0.16 : 0.08);
       if (big) duck(0.55);                      // explosion grande → ducking de la musica
     }
-    function popup(x, y, txt, c) { popups.push({ x, y, txt, c: c || P.accent, life: 1.1 }); }
 
     // ---------- MOMENTUM: asalto final a la barcaza ----------
     // Al acercarse al objetivo el tiempo se ralentiza y se abre un minijuego de punteria:
@@ -478,67 +471,36 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     // `at`: fraccion de objectiveDist donde arranca la pasada · `scale`: tamano del barco en pantalla
     // `u`: posicion de la zona a lo largo del barco (-1..1) · `v`: altura sobre cubierta (en bloques)
     // `w`: ancho (fraccion del largo) · `h`: alto (en bloques) · `maxHp`: dificultad de la zona
-    let MOM_PHASES = MOM_LAYOUTS.t42;   // layout del run actual (lo fija randomShip)
 
     // geometria del barco en pantalla (se mueve: balanceo + cabeceo → las zonas se mueven con el)
     // APROXIMACION LENTA: dentro de la pasada el barco crece de 0.82× a 0.98× de su escala
     // (deriva lentisima hacia el blanco); entre pasadas el crecimiento lo continua drawApproachBarge.
-    function momShipGeom() {
-      const ph = MOM_PHASES[momPhase];
-      const prog = mom.t / ph.time;
-      // cierra 0.82×→1.06× durante la pasada y SIGUE cerrando (mas lento) si se pasa del tiempo
-      // nominal — p.ej. durante el outro. Antes se clampeaba en 1 y el barco quedaba clavado:
-      // el avion parecia frenar en seco justo al final.
-      const extra = Math.min(0.5, Math.max(0, prog - 1));
-      let f = 0.82 + 0.24 * Math.min(1, prog) + 0.10 * extra;
-      // VIRAJE 180: te alejas y reencaras, asi que el barco vuelve suave al standoff de entrada
-      // (0.82×). Al terminar el viraje mom.t se resetea a 0 → sigue justo desde ahi, sin salto.
-      if (mom.turn > 0) f += (0.82 - f) * Math.min(1, (1 - mom.turn / REATTACK_DUR) * 1.3);
-      const sc = ph.scale * f;
-      // barco FIJO/ANCLADO (sin balanceo ni cabeceo): el movimiento del duelo lo pone el ALABEO
-      // del avion (el mundo entero gira con mom.roll), no el barco
-      return { cx: W / 2, len: W * 0.82 * sc, deckY: HOR + 36 * sc, uh: 9 * sc, sc };
-    }
-
-    // camara del momentum: la MIRA queda CLAVADA al visor del cockpit (MOM_AX, MOM_AY) y para
-    // apuntar se mueve EL MUNDO (giras la trompa del avion, no un cursor). mom.cx/cy es el punto
-    // apuntado en coords de mundo; el mundo se dibuja corrido para que ese punto caiga en el visor.
-    function momCam() {
-      if (S.state !== 'momentum' || !mom) return { x: 0, y: 0 };
-      return { x: mom.cx - MOM_AX, y: mom.cy - MOM_AY };
-    }
-    // pantalla → mundo en momentum: el mundo se dibuja rotado -mom.roll alrededor del centro
-    // (alabeo), asi que para apuntar/spawnear hay que DESHACER esa rotacion y sumar la camara
-    function momScrToWorld(sx2, sy2) {
-      const cmw2 = momCam(), ca = Math.cos(mom.roll || 0), sa = Math.sin(mom.roll || 0);
-      const dx = sx2 - W / 2, dy = sy2 - H / 2;
-      return { x: W / 2 + dx * ca - dy * sa + cmw2.x, y: H / 2 + dx * sa + dy * ca + cmw2.y };
-    }
 
 
 
     // la barcaza objetivo VISIBLE en vuelo normal: aparece en el horizonte desde el 45% del recorrido
     // y crece hasta empalmar con la escala de la proxima pasada del momentum (es el final del mapa)
     function drawApproachBarge() {
-      if (objectiveDist <= 0 || momPhase >= MOM_PHASES.length) return;
+      const ph = momentum.phase(), PH = momentum.phases();
+      if (objectiveDist <= 0 || ph >= PH.length) return;
       if (S.state !== 'play' && S.state !== 'takeoff') return;
       const p = run.dist / objectiveDist;
-      const next = MOM_PHASES[momPhase];
-      const t0 = momPhase === 0 ? 0.45 : MOM_PHASES[momPhase - 1].at;
+      const next = PH[ph];
+      const t0 = ph === 0 ? 0.45 : PH[ph - 1].at;
       if (p < t0) return;
       const f = Math.max(0, Math.min(1, (p - t0) / (next.at - t0)));
-      const sc0 = momPhase === 0 ? 0.04 : MOM_PHASES[momPhase - 1].scale * 1.06;  // continua donde quedo la pasada anterior
+      const sc0 = ph === 0 ? 0.04 : PH[ph - 1].scale * 1.06;  // continua donde quedo la pasada anterior
       const scE = next.scale * 0.82;
       const sc = sc0 + (scE - sc0) * f;
       // ALINEADO AL HORIZONTE: la barcaza queda pegada a la linea del horizonte (donde emergen los
       // obstaculos, misma perspectiva) casi todo el acercamiento, y recien "baja" (se acerca) sobre
       // el final con ease-in cuadratico, empalmando exacto con la cubierta del momentum (HOR+36*scE).
-      const d0 = momPhase === 0 ? 2 : 36 * sc0;
+      const d0 = ph === 0 ? 2 : 36 * sc0;
       const dOff = d0 + (36 * scE - d0) * f * f;
       const bx = W / 2 - cam.x * 1.2 + Math.sin(run.t * 0.8) * 6 * sc;
       const by = HOR + dOff + Math.sin(run.t * 1.3) * 1.2 * sc;
       // bruma atmosferica: de lejos es una silueta tenue → los obstaculos (solidos) resaltan encima
-      ctx.globalAlpha = momPhase === 0 ? 0.35 + 0.65 * f : 1;
+      ctx.globalAlpha = ph === 0 ? 0.35 + 0.65 * f : 1;
       momRender.drawBargeHull(bx, W * 0.82 * sc, by, 9 * sc, run.t);
       ctx.globalAlpha = 1;
       if (sc > 0.28) {   // ya cerca: nombre sobre el barco
@@ -547,111 +509,10 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         ctx.globalAlpha = 1;
       }
     }
-    function momZoneRect(z) {
-      const g = momShipGeom();
-      const w = g.len * z.w, h = g.uh * z.h;
-      return { x: g.cx + g.len / 2 * z.u - w / 2, y: g.deckY - g.uh * z.v - h, w, h };
-    }
-    function momBoom(sx, sy, big) {
-      for (let i = 0, n = big ? 28 : 14; i < n; i++)
-        parts.push({
-          x: sx + (Math.random() - 0.5) * 6, y: sy + (Math.random() - 0.5) * 4, vx: (Math.random() - 0.5) * 85,
-          vy: -(10 + Math.random() * 70), life: 0.45 + Math.random() * 0.55,
-          c: [P.warn, P.accent, '#f2b544', '#3a3f43'][i % 4], r: 1 + Math.random() * 2
-        });
-      run.shake = Math.min(6, run.shake + (big ? 4 : 2)); boom(big ? 0.16 : 0.08);
-      if (big) duck(0.55);                      // la explosion agacha la musica un instante
-    }
-    // zona critica destruida (comparten cañon y misil): explosion, puntos y cierre de pasada
-    function momZoneKilled(z) {
-      const r = momZoneRect(z), cmw = momCam();
-      z.hp = 0;
-      momBoom(r.x + r.w / 2, r.y + r.h / 2, true);
-      // explosion real: la primera pasada suena LEJANA (heavy_dist), las siguientes de cerca
-      sfxOne(momPhase === 0 ? 'exHeavyDist' : 'exHeavy');
-      run.score += z.pts; stats.zones++;
-      popup(r.x + r.w / 2, r.y - 6, '+' + z.pts, P.accent);
-      popup(MOM_AX + cmw.x, 50 + cmw.y, T('mom_destroyed', { z: T(z.label) }), P.warn);
-      if (mom.zones.every(zz => zz.hp <= 0)) {
-        run.score += 500 * (momPhase + 1);
-        const last = momPhase + 1 >= MOM_PHASES.length;
-        if (last) sfxOne('exXheavy');   // el barco entero se va: la explosion GRANDE del nivel
-        mom.doneT = last ? 1.6 : 1.0;
-        popup(MOM_AX + cmw.x, 62 + cmw.y, last ? T('bargeDown') : T('mom_clear'), P.accent);
-        beep(880, 0.2, 'square', 0.06, 1200);
-      }
-    }
-    // impacto de MISIL en momentum: 55 de daño a toda zona cercana al punto de explosion
-    function momMissileBoom(mx, my2) {
-      momBoom(mx, my2, true);
-      for (const z of mom.zones) {
-        if (z.hp <= 0) continue;
-        const r = momZoneRect(z);
-        if (mx > r.x - 9 && mx < r.x + r.w + 9 && my2 > r.y - 9 && my2 < r.y + r.h + 9) {
-          z.hp -= 80;
-          if (z.hp <= 0) momZoneKilled(z);
-          else popup(r.x + r.w / 2, r.y - 6, '-80', P.warn);
-        }
-      }
-    }
-    // misil en primera persona: sale del ala (fuera del vidrio, alternando lado), vuela LENTO
-    // con guiado hacia el punto apuntado al momento del disparo, y explota con daño en area.
-    // Usa la MISMA municion `msl` que el vuelo normal (la recarga queda pausada en camara lenta).
-    function momLaunchMissile() {
-      if (!mom || mom.doneT > 0 || run.msl <= 0 || run.mslCd > 0) return;
-      run.msl--; run.mslCd = 0.6;
-      mom.mslSide = -(mom.mslSide || 1);
-      const mo = momScrToWorld(MOM_AX + mom.mslSide * 95, H - 30);       // pilon del ala (rola con vos)
-      const mt = momScrToWorld(mouse.on ? mouse.x : MOM_AX, mouse.on ? mouse.y : MOM_AY);
-      mom.fx.push({
-        k: 'ms', x: mo.x, y: mo.y,
-        tx: mt.x, ty: mt.y,
-        vx: mom.mslSide * -30, vy: -52, life: 3.5, T: 0
-      });
-      // resplandor de lanzamiento (mas largo que el del canon)
-      if (mom.mslSide < 0) mom.flashL = 0.22; else mom.flashR = 0.22;
-      sfxOne('msl');   // lanzamiento real (misil.mp3 / misil2.wav al azar)
-      beep(200, 0.2, 'sawtooth', 0.05, 80); boom(0.05, true);
-    }
-    function enterMomentum() {
-      const ph = MOM_PHASES[momPhase];
-      setState('momentum');
-      clearWorld({ keepFx: true });   // se limpia el campo para la cinematica; las explosiones en curso siguen
-      mom = {
-        t: 0, timer: ph.time, doneT: 0, turn: 0, pass: 1, cx: W / 2, cy: 80, hitFx: 0, fx: [],
-        roll: 0, rollV: 0,   // ALABEO: el avion rola sobre su eje longitudinal (←/→); el mundo gira, la cabina no
-        zones: ph.zones.map(z => Object.assign({}, z, { hp: z.maxHp }))
-      };
-      mom.cy = momShipGeom().deckY - 8;            // arranca apuntando a la cubierta (coords de MUNDO)
-      const cm0 = momCam();
-      popup(MOM_AX + cm0.x, 46 + cm0.y, T('mom_title'), P.warn);               // popups viven en espacio-mundo
-      popup(MOM_AX + cm0.x, 56 + cm0.y, T('mom_pass', { n: momPhase + 1, m: MOM_PHASES.length }), P.dim);
-      beep(620, 0.7, 'sine', 0.07, 65);   // sting de entrada: el tiempo se ESTIRA (pitch cayendo)
-      boom(0.10);
-      engineOff();
-    }
-    // VIRAJE 180 y nueva pasada sobre el mismo blanco. Las zonas conservan su hp: lo que ya
-    // rompiste cuenta, asi que insistir avanza en vez de reiniciar. Cuesta combustible.
-    function startReattack() {
-      // FIN DE MISION si no lo destruiste: sin nafta para otra vuelta, o agotados los intentos.
-      // Sin esto el bucle de re-ataque no termina nunca (fuel se clampea en 0 y seguis virando).
-      const noFuel = cfg.fuelOn && run.fuel < REATTACK_FUEL;
-      if (noFuel || mom.pass >= REATTACK_MAX) return die(noFuel ? 'death_fuel' : 'death_aa');
-      mom.turn = REATTACK_DUR;
-      mom.pass = (mom.pass || 1) + 1;
-      stats.reattacks++;
-      if (cfg.fuelOn) run.fuel = Math.max(0, run.fuel - REATTACK_FUEL);
-      const cm = momCam();
-      popup(MOM_AX + cm.x, 50 + cm.y, T('mom_turn'), P.warn);
-      sfxOne('waveFly');                                  // rafaga del viraje
-      beep(300, 0.5, 'sine', 0.05, 700);                  // sting ascendente: reencarás
-      run.shake = Math.min(6, run.shake + 2);
-    }
 
     // objetivo cumplido → RECUENTO. Congela aca las estadisticas de la mision: entre niveles de
     // campaña se llama reset(), que las borraria.
     function finishObjective() {
-      mom = null;
       freezeRun();
       setState('results'); levelT = 0; resT = 0; resRow = 0;
       beep(700, 0.15, 'square', 0.06, 1000);
@@ -680,186 +541,6 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         ],
       };
     }
-    function updateMomentum(dt) {
-      run.t -= dt * 0.70;                       // camara lenta: el mundo de fondo corre al 30%
-      mom.t += dt;
-      // El avion SIGUE AVANZANDO en camara lenta. Al 25% el flujo era tan tenue que, sumado al
-      // tiempo ralentizado, se leia como si el avion estuviera clavado en el aire; al 50% se nota
-      // que seguis entrando sin romper la sensacion de bullet-time.
-      // dist se topa 2% antes del gatillo de la proxima pasada (para no encadenar momentums al
-      // volver al vuelo), pero el sobrante va a momDrift — avance SOLO visual, sin tope: el mar
-      // y el terreno nunca dejan de correr hacia vos.
-      {
-        const nextAt = (momPhase + 1 < MOM_PHASES.length) ? MOM_PHASES[momPhase + 1].at : 99;
-        const adv = run.spd * MOM_ADVANCE * dt;
-        const take = Math.min(adv, Math.max(0, objectiveDist * (nextAt - 0.02) - run.dist));
-        run.dist += take; momDrift += adv - take;
-      }
-      // AUDIO de camara lenta: el motor pasa a ser un rumble GRAVE y ahogado con un pulso
-      // lento tipo latido (el lowpass de 320Hz del motor hace el resto del efecto "bajo el agua")
-      engineRumble(mom.t);
-      popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
-      prune(popups, p => p.life > 0);
-
-      // ---- FX de CAMARA LENTA (viven en coords de mundo; corren tambien durante el outro) ----
-      // trazadoras AA de la barcaza, bocanadas de flak y rocio/escombros derivando por los costados.
-      // Todo con velocidades LENTAS a proposito: vende el bullet-time. Son visuales, no danian.
-      {
-        const gfx = momShipGeom(), cmf = momCam();
-        mom.flashL = Math.max(0, (mom.flashL || 0) - dt);   // resplandor de disparo: decae siempre
-        mom.flashR = Math.max(0, (mom.flashR || 0) - dt);
-        if (mom.fx.length < 70) {
-          if (Math.random() < dt * 2.6) {                               // trazadora AA: nace en el barco y pasa de largo
-            const x0 = gfx.cx + (Math.random() - 0.5) * gfx.len * 0.85;
-            const y0 = gfx.deckY - gfx.uh * (0.6 + Math.random() * 1.6);
-            const e = Math.random(); let tx, ty;                     // punto de fuga fuera de pantalla
-            if (e < 0.38) { tx = cmf.x - 24; ty = cmf.y + Math.random() * H; }
-            else if (e < 0.76) { tx = cmf.x + W + 24; ty = cmf.y + Math.random() * H; }
-            else { tx = cmf.x + Math.random() * W; ty = cmf.y + H + 24; }
-            const dx = tx - x0, dy = ty - y0, dl = Math.hypot(dx, dy) || 1;
-            const sp = 26 + Math.random() * 30;
-            mom.fx.push({ k: 'tr', x: x0, y: y0, vx: dx / dl * sp, vy: dy / dl * sp, life: 3.4, T: 0 });
-          }
-          if (Math.random() < dt * 3.6) {                               // rocio/escombro pasando por los costados
-            // nace DENTRO del vidrio visible (los parantes tapan x<52 y x>268; el panel tapa y>62)
-            // y deriva hacia afuera: cruza el vidrio y desaparece tras el marco
-            const side = Math.random() < 0.5 ? -1 : 1;
-            mom.fx.push({
-              k: 'st', x: side < 0 ? cmf.x + 56 + Math.random() * 60 : cmf.x + W - 56 - Math.random() * 60,
-              y: cmf.y + 15 + Math.random() * 55,
-              vx: side * (10 + Math.random() * 16), vy: 4 + Math.random() * 8,
-              len: 3 + Math.random() * 5, life: 2.2 + Math.random() * 1.4, T: 0
-            });
-          }
-          if (Math.random() < dt * 1.1) {                               // flak: bocanada que se expande despacio
-            mom.fx.push({
-              k: 'fk', x: gfx.cx + (Math.random() - 0.5) * gfx.len * 1.4,
-              y: gfx.deckY - gfx.uh * (2.5 + Math.random() * 4.5),
-              vr: 4 + Math.random() * 4, life: 1.6, T: 0
-            });
-          }
-        }
-        for (const f of mom.fx) {
-          f.T += dt; f.life -= dt;
-          if (f.k === 'sh') {                                   // rafaga de canon: BALISTICA (sin tracking)
-            const dx = f.tx - f.x, dy = f.ty - f.y, d = Math.hypot(dx, dy) || 1;
-            const sp = 150;                                     // lenta (antes era hitscan instantaneo)
-            f.vx = dx / d * sp; f.vy = dy / d * sp;
-            if (d < 6 || f.life <= 0.05) {                      // IMPACTO donde APUNTASTE: chispas + dano fuerte
-              for (let i = 0; i < 7; i++) parts.push({
-                x: f.tx + (Math.random() - 0.5) * 5, y: f.ty + (Math.random() - 0.5) * 4,
-                vx: (Math.random() - 0.5) * 60, vy: -(15 + Math.random() * 45), life: 0.35,
-                c: Math.random() < 0.5 ? P.warn : P.accent, r: 1.3
-              });
-              // pega en la zona que CONTENGA el punto de impacto (margen ±1): 45 de daño
-              for (const z of mom.zones) {
-                if (z.hp <= 0) continue;
-                const r = momZoneRect(z);
-                if (f.tx >= r.x - 1 && f.tx <= r.x + r.w + 1 && f.ty >= r.y - 1 && f.ty <= r.y + r.h + 1) {
-                  z.hp -= 45; mom.hitFx = 1; stats.hits++;
-                  boom(0.06); beep(88, 0.11, 'triangle', 0.05, 44);   // THUMP de impacto con cuerpo
-                  if (z.hp <= 0) momZoneKilled(z);
-                  break;
-                }
-              }
-              f.life = 0; continue;
-            }
-          }
-          if (f.k === 'ms') {                                   // misil del jugador: guiado lento hacia el blanco
-            const dx = f.tx - f.x, dy = f.ty - f.y, d = Math.hypot(dx, dy) || 1;
-            const sp = 70;                                       // lento a proposito: bullet-time
-            f.vx += (dx / d * sp - f.vx) * Math.min(1, dt * 3.2);
-            f.vy += (dy / d * sp - f.vy) * Math.min(1, dt * 3.2);
-            if (Math.random() < 0.7) parts.push({                // estela de humo
-              x: f.x, y: f.y, vx: (Math.random() - 0.5) * 12, vy: (Math.random() - 0.5) * 12,
-              life: 0.7, c: '#7c838a', r: 1.2
-            });
-            if (d < 5 || f.life <= 0.05) { momMissileBoom(f.x, f.y); f.life = 0; continue; }
-          }
-          if (f.vx !== undefined) { f.x += f.vx * dt; f.y += f.vy * dt; }
-        }
-        mom.fx = mom.fx.filter(f => f.life > 0);
-      }
-      if (mom.doneT > 0) {                 // salida: pasada completa o barcaza destruida
-        mom.doneT -= dt;
-        if (mom.doneT <= 0) {
-          if (momPhase + 1 >= MOM_PHASES.length) return finishObjective();
-          momPhase++; mom = null; setState('play');
-          popup(W / 2, 58, T('mom_next'), P.accent);
-          beep(110, 0.4, 'sine', 0.06, 640);   // sting de salida: el tiempo VUELVE (pitch subiendo)
-        }
-        return;
-      }
-      // VIRAJE 180: el mundo rola como en un wingover y volvés a encarar el blanco. No corre el
-      // reloj ni se puede disparar; el mar SI sigue corriendo (el bloque de avance ya paso arriba).
-      if (mom.turn > 0) {
-        mom.turn -= dt;
-        const tp = 1 - Math.max(0, mom.turn) / REATTACK_DUR;   // 0..1
-        mom.roll = Math.sin(tp * Math.PI) * Math.PI;           // rola 180° y sale derecho
-        mom.rollV = 0;
-        if (mom.turn <= 0) {                                   // reencarado: nueva pasada
-          const ph2 = MOM_PHASES[momPhase];
-          mom.turn = 0; mom.roll = 0; mom.t = 0; mom.timer = ph2.time;
-          mom.cy = momShipGeom().deckY - 8;                    // la mira vuelve a la cubierta
-          const cm2 = momCam();
-          popup(MOM_AX + cm2.x, 56 + cm2.y, T('mom_pass_n', { n: mom.pass }), P.accent);
-          beep(620, 0.5, 'sine', 0.06, 90);
-        }
-        return;
-      }
-      mom.timer -= dt;
-      // misiles: misma municion que el vuelo normal; Z (o boton tactil) lanza
-      run.mslCd = Math.max(0, run.mslCd - dt);
-      if (inp.msl) momLaunchMissile();
-      // ALABEO (roll): ←/→ hacen ROLAR el avion sobre su eje longitudinal (el que apunta a la
-      // barcaza). El MUNDO ENTERO (horizonte + barco) gira alrededor del centro; la cabina queda
-      // fija (sos vos el que rola). El barco esta ANCLADO (sin balanceo). ↑/↓ mueven la cabina.
-      const CS = 98;
-      mom.rollV += ((inp.r - inp.l) * 1.6 - mom.rollV) * Math.min(1, dt * 2.8);   // entra/sale con peso
-      mom.roll += mom.rollV * dt;
-      if (!inp.l && !inp.r) {
-        // auto-nivelado suave hacia la vuelta completa mas cercana (permite toneles enteros)
-        const lvl = Math.round(mom.roll / (Math.PI * 2)) * Math.PI * 2;
-        mom.roll += (lvl - mom.roll) * Math.min(1, dt * 1.1);
-      }
-      mom.cy = Math.max(44, Math.min(122, mom.cy + (inp.d - inp.u) * CS * dt));
-      // CANON en camara lenta: rafagas DISCRETAS — menos balas, mas lentas, mas dano por bala
-      // (dps similar al hitscan anterior: 22 cada 0.36s ≈ 61). Cada bala nace en el ala, viaja
-      // LENTA hasta el punto apuntado al disparar y, si habia una zona bajo la mira, la trackea
-      // (lock) mientras el barco se balancea. El impacto es puntual y fuerte → efecto bullet-time.
-      const cmw = momCam();
-      // punto APUNTADO en coords de mundo (deshaciendo el roll): con MOUSE la mira es libre
-      // sobre el vidrio (PC); sin mouse (tactil/legacy) apunta el visor fijo del centro
-      const aimP = momScrToWorld(mouse.on ? mouse.x : MOM_AX, mouse.on ? mouse.y : MOM_AY);
-      const aimX = aimP.x, aimY = aimP.y;
-      mom.hitFx = Math.max(0, (mom.hitFx || 0) - dt * 5);   // flash breve al impactar (decae)
-      mom.shotCd = Math.max(0, (mom.shotCd || 0) - dt);
-      if (inp.fire && mom.shotCd <= 0) {
-        mom.shotCd = 0.5;                                    // cadencia mas lenta: menos tiros, mas dañinos
-        mom.gunSide = -(mom.gunSide || 1);                   // alterna ala izq/der
-        // BALISTICA PURA: la bala vuela al punto APUNTADO al disparar (sin tracking) con
-        // DISPERSION — mas abierta si estas rolando. Acertar es mas dificil, pero pega el doble.
-        const spread = 3.5 + Math.abs(mom.rollV) * 5;
-        const tx = aimX + (Math.random() - 0.5) * spread * 2;
-        const ty = aimY + (Math.random() - 0.5) * spread * 2;
-        // la bala nace en el ALA (posicion de pantalla, fuera del vidrio) convertida a mundo
-        // con el roll aplicado: al rolar, tus alas rotan con vos
-        const wing = momScrToWorld(mom.gunSide < 0 ? -40 : W + 40, 66);
-        mom.fx.push({
-          k: 'sh', x: wing.x, y: wing.y,
-          tx, ty, life: 2.2, T: 0, vx: 0, vy: 0
-        });
-        // RESPLANDOR de fogonazo en el borde del lado que disparo (feedback instantaneo)
-        if (mom.gunSide < 0) mom.flashL = 0.14; else mom.flashR = 0.14;
-        // disparo real: xsmall_explosion / xsmall_explosion2 al azar. Sin samples (build web)
-        // cae al beep grave y gordo de antes.
-        if (!sfxOne('momGun')) beep(140, 0.12, 'square', 0.07, 55);
-        boom(0.05);
-      }
-      // Se acabo la ventana de tiro: pasaste por encima y perdiste el angulo. NO es muerte —
-      // virás 180° y volvés a entrar sobre el mismo blanco (ver startReattack).
-      if (mom.timer <= 0) return startReattack();
-    }
 
     // salpicadura de sangre + tierra al eliminar un soldado
     function bloodBurst(sx, sy, n) {
@@ -882,7 +563,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
     // lanza un misil del jugador (arma secundaria: limitada, one-shot, con leve guiado)
     function tryLaunchMissile() {
-      if (S.state === 'momentum') return momLaunchMissile();   // primera persona: misil del momentum
+      if (S.state === 'momentum') return momentum.launchMissile(mouse);   // primera persona: misil del momentum
       if (S.state !== 'play' || run.msl <= 0 || run.mslCd > 0) return;
       let tx = plane.x, td = 42;                                  // engancha el blanco aereo mas cercano adelante
       const vm = viewMouse();
@@ -962,7 +643,9 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
         engineOff();
         if (S.state === 'momentum') {
           run.shake = Math.max(0, run.shake - dt * 10);
-          updateMomentum(dt);
+          const sig = momentum.update(dt, inp, mouse, objectiveDist);   // señal de salida: no llama hacia arriba
+          if (sig === 'objective') finishObjective();
+          else if (sig && sig.death) die(sig.death);
           startReq = false; anyPress = false;
           return;
         }
@@ -1114,7 +797,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       if (objectiveDist > 0) {
         const needsMom = (gameMode === 'campaign' || gameMode === 'cycle') ? goalOf(curMission()).needsMomentum : true;
         if (needsMom) {
-          if (momPhase < MOM_PHASES.length && run.dist >= objectiveDist * MOM_PHASES[momPhase].at) { enterMomentum(); return true; }
+          if (momentum.readyToEnter(run.dist, objectiveDist)) { momentum.enter(); return true; }
         } else if (run.dist >= objectiveDist) { finishObjective(); return true; }
       }
 
@@ -1517,7 +1200,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
     function drawSea() {
       const landMode = cfg.terrain === 'land';
-      const dv = run.dist + momDrift;   // distancia VISUAL (drift del momentum incluido)
+      const dv = run.dist + momentum.drift();   // distancia VISUAL (drift del momentum incluido)
       const landVisible = dv < cfg.coast + 80;
       for (let y = HOR + 1; y < H; y++) {
         const dy = y - HOR;
@@ -1555,7 +1238,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     // matas/rocas dispersas sobre la tierra (parallax de movimiento a ras del suelo)
     function drawLand() {
       const SPX = 4.2, SPZ = 4.2, farZ = 190;
-      const dv = run.dist + momDrift;
+      const dv = run.dist + momentum.drift();
       const startZ = Math.max(cfg.coast + 2, Math.ceil((dv + 4) / SPZ) * SPZ);
       for (let wz = startZ; wz < dv + farZ; wz += SPZ) {
         const camZ = wz - dv, k = F / camZ;
@@ -1578,7 +1261,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     // malla de puntos que forma la onda del mar en perspectiva (estilo boostivity)
     function drawSeaDots(landVisible) {
       const SPX = 1.4, SPZ = 1.5, farZ = 190;   // densidad x4 (antes 2.8x3.0), puntos a 1/4
-      const dv = run.dist + momDrift;
+      const dv = run.dist + momentum.drift();
       const startZ = Math.ceil((dv + 4) / SPZ) * SPZ;
       // paso ADAPTATIVO: cerca muestrea a SPZ/SPX plenos; lejos el paso crece para mantener
       // ~1px de separacion en pantalla (los puntos subpixel no se ven y este loop corre
@@ -1795,14 +1478,15 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
     function draw() {
       ctx.setTransform(SC, 0, 0, SC, 0, 0);   // buffer 2×: todo el dibujo sigue en coords 320×180
       const sx = (Math.random() - 0.5) * run.shake, sy = (Math.random() - 0.5) * run.shake;
-      const cm = momCam();
+      const cm = momentum.cam();
       ctx.save(); ctx.translate(Math.round(sx) - cm.x, Math.round(sy) - cm.y);   // momentum: el mundo se mueve, la mira no
       // ALABEO (momentum): el MUNDO ENTERO (horizonte, mar Y BARCO) gira -mom.roll alrededor
       // del centro — el avion rola sobre su eje longitudinal y la cabina queda fija.
       // drawMomentum deshace esta rotacion recien al dibujar cabina/mira/letterbox.
-      if (S.state === 'momentum' && mom) {
+      const momA = momentum.active();
+      if (S.state === 'momentum' && momA) {
         const rcx = W / 2 + cm.x, rcy = H / 2 + cm.y;
-        ctx.translate(rcx, rcy); ctx.rotate(-mom.roll); ctx.translate(-rcx, -rcy);
+        ctx.translate(rcx, rcy); ctx.rotate(-momA.roll); ctx.translate(-rcx, -rcy);
       }
       // CAMARA CERCA (V): magnifica el mundo entero (avion incluido) anclado al sprite.
       // Zoom-in siempre muestra un SUBCONJUNTO de la pantalla ya pintada: no descubre bordes.
@@ -1817,7 +1501,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
       // en vuelo normal sobre mar abierto solo cielo+mar (flag MOM3D.sea). El blit va DENTRO
       // de los transforms (roll/paneo/zoom/shake le pegan al 3D); la capa 2D va encima.
       // Sin THREE/WebGL o con ?no3d, ambas flags quedan false y pinta el 2D de siempre.
-      world3D.frame({ state: S.state, mom, dist: run.dist, momDrift, cfg, cam, t: run.t, SKY, WATER, objectiveShip, seaH, momShipGeom, tbackImg });
+      world3D.frame({ state: S.state, mom: momentum.active(), dist: run.dist, momDrift: momentum.drift(), cfg, cam, t: run.t, SKY, WATER, objectiveShip, seaH, momShipGeom: momentum.shipGeom, tbackImg });
       if (world3D.isOn() || world3D.isSea()) {
         const sm = ctx.imageSmoothingEnabled;
         ctx.imageSmoothingEnabled = false;
@@ -1949,10 +1633,10 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } fr
 
       if (zoomOn) ctx.restore();   // el HUD (y la capa momentum) van SIN zoom
       if (S.state === 'play') drawHUD();
-      if (S.state === 'momentum' && mom) momRender.drawMomentum({
-        mom, momPhase, phases: MOM_PHASES, msl: run.msl, objectiveShip, t: run.t,
+      if (S.state === 'momentum' && momentum.active()) momRender.drawMomentum({
+        mom: momentum.active(), momPhase: momentum.phase(), phases: momentum.phases(), msl: run.msl, objectiveShip, t: run.t,
         is3D: world3D.isOn(), parts, popups, mouse,
-        momCam, momShipGeom, momZoneRect });
+        momCam: momentum.cam, momShipGeom: momentum.shipGeom, momZoneRect: momentum.zoneRect });
       ctx.restore();
 
       if (S.state === 'takeoff') drawTakeoff();
