@@ -98,6 +98,10 @@ export function drawBrief(w) {
 }
 
 export function drawDead(w) {
+  // la pantalla sube con un fade corto (reveal 0→1) para empalmar con el destrozo que se vio antes
+  const rev = w.reveal == null ? 1 : w.reveal;
+  ctx.save();
+  ctx.globalAlpha = rev;
   panel();
   ctx.textAlign = 'center';
   ctx.fillStyle = P.warn; ctx.font = 'bold 16px monospace';
@@ -119,6 +123,7 @@ export function drawDead(w) {
     ctx.fillStyle = P.dim; ctx.font = '7px monospace';
     ctx.fillText(T('menuPrompt'), W / 2, 162);
   }
+  ctx.restore();
 }
 
 // fin de campaña (2 niveles de prueba)

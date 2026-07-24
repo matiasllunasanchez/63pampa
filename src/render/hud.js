@@ -153,6 +153,16 @@ export function drawHUD(h) {
   // barra de misión puerto→barcaza (modos con objetivo: ciclo de muerte y campaña)
   if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip);
 
+  // AVISO DE ROCE "! SUBI !" — es un ESTADO persistente (estás rozando la superficie), no un
+  // evento, asi que vive en el HUD fijo arriba del velocimetro y parpadea como el resto de los
+  // avisos. Antes era un popup que nacia junto al avion y se disparaba ~30 veces por segundo.
+  // `scrapeVib` vale 1 mientras roza y decae al salir → sirve de "estoy rozando AHORA".
+  if (run.scrapeVib > 0.6) {
+    ctx.textAlign = 'center'; ctx.font = 'bold 8px monospace';
+    ctx.fillStyle = Math.sin(run.t * 30) > 0 ? P.warn : '#7d2f1e';
+    ctx.fillText(T('scrape'), W / 2, H - 16);
+  }
+
   // velocidad (+ escalón de TURBINA cuando el afterburner sostenido está activo)
   ctx.textAlign = 'center'; ctx.font = '7px monospace';
   ctx.fillStyle = run.afterTier > 0 ? P.warn : run.boost || run.rasLevel > 0 ? P.accent : run.windF < 0.97 ? P.crest : P.dim;

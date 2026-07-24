@@ -155,8 +155,9 @@ export function flightSystem(dt, deps) {
   if (newLevel > run.rasLevel) {
     run.rasLevel = newLevel;
     stats.bestRas = Math.max(stats.bestRas, run.rasLevel);   // mejor nivel de racha alcanzado
-    const s = proj(plane.x, plane.y, PZ);
-    popup(s.x, s.y - 16, T('rasante', { n: 10 + run.rasLevel * 5 }), P.accent);
+    // el aviso de racha es informacion de HUD, no una etiqueta del avion: nace arriba del
+    // velocimetro (centro abajo) y sube desde ahi, en vez de seguir al avion por la pantalla
+    popup(W / 2, H - 30, T('rasante', { n: 10 + run.rasLevel * 5 }), P.accent);
     beep(500 + run.rasLevel * 180, 0.14, 'square', 0.06, 750 + run.rasLevel * 180);
     run.shake = Math.min(6, run.shake + 1.4);
     // oleada de líneas de velocidad al subir de nivel
@@ -205,8 +206,8 @@ export function flightSystem(dt, deps) {
       c: cfg.terrain === 'land' ? P.accent : P.crest, r: 1.4
     });
     if (!sfxOne('waveFly')) beep(90 + Math.random() * 60, 0.05, 'sawtooth', 0.05);
-    // aviso pegado al limite: cuanto le queda al margen
-    if (Math.sin(run.t * 30) > 0) popup(sp.x, sp.y - 26, T('scrape'), P.warn);
+    // (el aviso "! SUBI !" lo dibuja el HUD mientras run.scrapeVib este alto: es un estado
+    //  persistente, no un evento — antes se disparaba como popup ~30 veces por segundo)
   } else {
     run.scrapeT = Math.max(0, run.scrapeT - dt * SCRAPE_RECOVER);   // salir descuenta, pero no borra
     run.scrapeVib = Math.max(0, run.scrapeVib - dt * 6);            // la vibracion se apaga al salir

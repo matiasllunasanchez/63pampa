@@ -218,6 +218,9 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
 
 
     // ---------- estado ----------
+    // DERRIBADO: al morir, primero se ve el avion romperse en pedazos y recien despues sube la
+    // pantalla de fin. DEATH_REVEAL es cuanto dura ese show antes de que aparezca "DERRIBADO".
+    const DEATH_REVEAL = 1.0;
     let deathCause, deathT, factIdx = 0, best = 0;
     // AFTERBURNER SOSTENIDO: aguantar BOOST + RASANTE (bajo) sube de escalón cada AFTER_STEP s;
     // cada escalón multiplica la velocidad y levanta el techo. Romper el estado (soltar turbo o
@@ -433,6 +436,21 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       explodeAt(plane.x, plane.y, PZ, true);
       const s = proj(plane.x, 0, PZ);
       for (let i = 0; i < 16; i++) parts.push({ x: s.x + (Math.random() - 0.5) * 24, y: s.y, vx: (Math.random() - 0.5) * 40, vy: -40 - Math.random() * 60, life: 0.6, c: P.foam, r: 1.6 });
+      // PEDAZOS DEL AVION: el sprite deja de dibujarse al morir, asi que lo que se ve romperse son
+      // estos trozos. Salen desde la ALTURA del avion (no del agua), en abanico y hacia arriba; la
+      // gravedad del update de `parts` los baja. Son mas grandes y viven mas que las chispas, para
+      // que el destrozo se lea durante toda la ventana DEATH_REVEAL.
+      const ps = proj(plane.x, plane.y, PZ);
+      const CHUNKS = [P.body, P.bodyDark, P.body, P.canopy, P.warn, P.bodyDark, P.dim];
+      for (let i = 0; i < 14; i++) {
+        const ang = Math.random() * 6.283, sp = 26 + Math.random() * 78;
+        parts.push({
+          x: ps.x + (Math.random() - 0.5) * 7, y: ps.y + (Math.random() - 0.5) * 5,
+          vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 34 - Math.random() * 46,
+          life: 1.0 + Math.random() * 0.7, c: CHUNKS[i % CHUNKS.length],
+          r: 1.5 + Math.random() * 2.6,
+        });
+      }
       if (Math.floor(run.score) > best) { best = Math.floor(run.score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
       engineOff();
       beep(180, 0.5, 'sawtooth', 0.06, 40);
@@ -522,7 +540,8 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
             else { setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
           }
         } else if (S.state === 'dead') {
-          if (deathT > 0.7 && flags.anyPress) { reset(); setRunObjective(); setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }  // reintenta (mismo modo/nivel)
+          // solo se puede reintentar una vez que subio la pantalla (paso el show del destrozo)
+          if (deathT > DEATH_REVEAL && flags.anyPress) { reset(); setRunObjective(); setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }  // reintenta (mismo modo/nivel)
         } else if (S.state === 'results') {
           // RECUENTO: las filas entran de a una; una tecla las completa de golpe, la siguiente pasa al epilogo
           resT += dt;
@@ -769,7 +788,9 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
         // ahora se hace aca, antes de dibujar
         if (cfgOpen) { const rows = getCfgRows(); if (cfgRow >= rows.length) cfgRow = 0; menus.drawCfg({ rows, cfgRow }); }
       }
-      if (S.state === 'dead') screens.drawDead({ score: run.score, best, deathCause, deathT, factIdx, t: run.t });
+      // DERRIBADO: esperar a que se vea el destrozo; despues la pantalla sube con un fade corto
+      if (S.state === 'dead' && deathT > DEATH_REVEAL)
+        screens.drawDead({ score: run.score, best, deathCause, deathT, factIdx, t: run.t, reveal: Math.min(1, (deathT - DEATH_REVEAL) / 0.35) });
       if (S.state === 'results') screens.drawResults({ lastRun, resRow, resT, t: run.t });
       if (S.state === 'brief') screens.drawBrief({ mission: curMission(), goalLabel: goalOf(curMission()).label(curMission().goal), briefT, t: run.t });
       if (S.state === 'victory') screens.drawVictory({ score: run.score, levelT, t: run.t });
