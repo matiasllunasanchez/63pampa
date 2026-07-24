@@ -22,7 +22,13 @@ function spawn() {
   const lane = (Math.random() * SPAWN_X * 2 - SPAWN_X);   // acompaña a FLY_X (zona de vuelo)
   if (cfg.fuelOn && run.fuelDist > 700) { obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false }); run.fuelDist = 0; return; }
   const r = Math.random();
-  if (r < 0.34) obstacles.push({ type: 'mast', x: lane, h: 11 + Math.random() * 17, z: 250, done: false });
+  // obstáculo vertical fijo: en el MAR es un mástil de fragata; en TIERRA, un árbol. El árbol
+  // sale con altura y ubicación aleatorias (el `lane` ya lo dispersa en x) para que el vuelo
+  // rasante tenga que esquivar a distintas alturas.
+  if (r < 0.34) {
+    if (cfg.terrain === 'land') obstacles.push({ type: 'tree', x: lane, h: 7 + Math.random() * 15, z: 250, done: false, ph: Math.random() * 6 });
+    else obstacles.push({ type: 'mast', x: lane, h: 11 + Math.random() * 17, z: 250, done: false });
+  }
   else if (r < 0.60) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph: Math.random() * 6 });
   else if (r < 0.70) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, ...hpOf('helo'), done: false, ph: Math.random() * 6 });
   else if (r < 0.78) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, ...hpOf('jet'), done: false, ph: Math.random() * 6 });

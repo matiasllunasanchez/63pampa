@@ -42,15 +42,16 @@ export function collisionSystem(dt) {
     if (!o.done && o.z <= PZ + 1.5) {
       o.done = true;
       const air = o.type === 'helo' || o.type === 'jet';
+      const tall = o.type === 'mast' || o.type === 'tree';   // obstáculo vertical fijo
       let hw, hh, oy;
-      if (o.type === 'mast') { hw = 0.9; hh = o.h; oy = o.h / 2; }
+      if (tall) { hw = o.type === 'tree' ? 1.4 : 0.9; hh = o.h; oy = o.h / 2; }   // árbol un poco más ancho (copa)
       else { hw = air ? 3 : 2.6; hh = air ? 1.6 : 1.9; oy = o.y; }
       // perfil del avion AFINADO (antes 2.6×1.2, chocaba "de lejos"); en PIRUETA las alas
       // van de canto → perfil minimo: pasa por espacios mucho mas finos
       const pw = run.rollT > 0 ? 1.0 : 2.1, ph2 = run.rollT > 0 ? 0.7 : 1.0;
       const dx = Math.abs(plane.x - o.x) - (hw + pw);
       const dy = Math.abs(plane.y - oy) - (hh + ph2);
-      const hullHit = o.type === 'mast' && Math.abs(plane.x - o.x) < 5 + pw && plane.y < 3.6;
+      const hullHit = tall && Math.abs(plane.x - o.x) < 5 + pw && plane.y < 3.6;
       if (o.type === 'fuel') {
         if (dx < 1.5 && dy < 1.5) {
           run.fuel = Math.min(100, run.fuel + 30); stats.fuelPicks++;
@@ -58,7 +59,7 @@ export function collisionSystem(dt) {
           beep(700, 0.1, 'triangle', 0.05, 1000); o.z = -99;
         }
       } else if ((dx < 0 && dy < 0) || hullHit) {
-        return { death: o.type === 'mast' ? 'death_mast' : o.type === 'helo' ? 'death_helo' : o.type === 'jet' ? 'death_jet' : 'death_balloon' };
+        return { death: o.type === 'mast' ? 'death_mast' : o.type === 'tree' ? 'death_tree' : o.type === 'helo' ? 'death_helo' : o.type === 'jet' ? 'death_jet' : 'death_balloon' };
       } else if (dx < 3 && dy < 3) {
         const pir = run.rollT > 0;                       // rozar EN PIRUETA: bonus grande (estilo)
         run.score += pir ? 250 : 75; stats.grazes++; run.shake = Math.min(6, run.shake + 1.5);

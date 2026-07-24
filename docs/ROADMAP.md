@@ -16,8 +16,10 @@ código ([ARQUITECTURA.md](ARQUITECTURA.md)).
 - **Aviones** — #10, #11, #18, #19, #22
 - **Economía y progresión** — #5, #6, #11, #14
 - **Mundo, terreno y aliados** — #15, #16, #17
+- **Modos de juego aparte del vuelo** — #24
 - **Asimetría y aliados (geopolítica)** — #18, #19, #20, #21
-- **Niveles y estructura** — #7, #14
+- **Niveles y estructura** — #7, #14, #23
+- **Puntaje y recompensa** — #5, #23
 
 ---
 
@@ -198,6 +200,16 @@ Agregar **reabastecimiento de gasolina asociado al HÉRCULES**.
 > Dónde tocar → terreno land en `render/world.js` (`drawLand`), spawn de soldados en
 > `systems/spawn.js`, impactos en `systems/collision.js`.
 
+- [x] **Soldados mejorados (hecho).** Eran 3 rects (y arrastraban un bug latente: una variable
+      `run` que sombreaba el store y crasheaba cualquier nivel de tierra). Ahora son una figura de
+      infantería con casco, cara, torso, fusil cruzado y piernas que alternan al correr —
+      `drawSoldier()` en `render/world.js`.
+- [x] **Árboles esquivables (hecho).** Obstáculo `tree` que sale solo en tierra (el `mast` es de
+      mar), con **altura y ubicación aleatorias** para esquivar a distintas alturas en el rasante.
+      Colisiona como el mástil (`systems/collision.js`) y se dibuja como arbusto batido por el
+      viento (`drawObstacle`).
+- [ ] Más variedad de terreno/props (rocas, trincheras, cercos) y comportamiento de soldados.
+
 ## 17. Nuevas mecánicas y terrenos
 
 ¿**Nuevas mecánicas** y **nuevos terrenos**? (abierto)
@@ -273,3 +285,67 @@ ceder. La silueta del avión con las partes coloreadas según su estado.
       de los tres que no se veía en ningún lado.
 - [ ] Decidir si el jugador pasa a tener integridad (y si eso saca tensión al rasante).
 - [ ] Versión completa: daño por partes que degrade stats concretos.
+
+## 23. Cuarta estrella: las Malvinas (rango "S")
+
+El puntaje de cada nivel otorga estrellas por desempeño, **hasta 4 como máximo**: las **3 primeras
+son estrellas** normales y la **4ª son las Malvinas** (la silueta de las islas, no una estrella).
+Las Malvinas son el tope — el equivalente al **"S" / "excelente"** de cualquier juego: solo cae con
+un desempeño sobresaliente.
+
+Guiño cultural: las 3 estrellas + la 4ª "que falta" es la lectura argentina inmediata (los tres
+mundiales y Malvinas como la cuarta pendiente). Le da peso emocional al rango máximo.
+
+> **Esto EVOLUCIONA un sistema que ya existe, no lo crea de cero.** Hoy `freezeRun()` (`game.js`) ya
+> calcula `stars` (1/2/3 según `total` vs el `par` de la misión) y `drawResults()`
+> (`render/screens.js`) ya las dibuja con rebote — pero el loop está clavado en `for i < 3` y las
+> pinta con el glifo `★`. Además hay un `rank` paralelo (RANKS: cadete/piloto/as/halcón) que sube
+> con la precisión: la 4ª estrella y ese rango máximo son la misma idea, conviene **unificarlos**
+> (sacar las Malvinas = alcanzar el rango tope).
+> Dónde tocar → umbral de estrellas en `freezeRun()`; render en `drawResults()` (el 4º slot dibuja
+> las islas, no un `★`).
+
+- [x] **Escala a 4 tramos (hecho).** `freezeRun()`: 1 base · 2 en `par` · 3 en `par*1.5` · 4 en
+      `par*2`. El doble del par para las Malvinas, que se sientan merecidas.
+- [x] **4º slot = silueta de las islas (hecho).** `drawMalvinas()` (`render/screens.js`) usa la
+      silueta real `assets/images/malvinas.webp` (islas negras sobre transparente), **coloreada por
+      tintado** (`source-in`): dorada con halo pulsante cuando se ganan, gris tenue cuando faltan.
+      Tiene fallback vectorial por si la imagen no cargó. El build web la re-embebe como data URI
+      (`tools/build_web.py`).
+- [x] **Distribución tipo emblema (hecho).** El galardón NO va en fila: las 3 estrellas van
+      dispersas y con leve rotación y las islas en el centro del racimo (`AWARD_STARS`/`AWARD_MAL`),
+      como el emblema de la remera de referencia.
+- [x] **Rango unificado (hecho).** El `rank` ahora deriva directo de las estrellas (se sacó el bonus
+      de precisión que competía); 4 estrellas = HALCÓN DEL ATLÁNTICO, el rango S.
+- [x] **Estrellas también en POR LA PATRIA (hecho).** El derribado de survival ES el fin del "nivel",
+      así que premia con estrellas según el puntaje (`SURVIVAL_PAR`, `game.js`). El galardón se
+      extrajo a `drawAward()` (`render/screens.js`), compartido entre el recuento y el derribado.
+      En campaña/ciclo morir sigue siendo fracaso, sin estrellas.
+- [ ] Persistir las estrellas por nivel (para un futuro selector de niveles / 100%).
+
+## 24. Minijuego terrestre: el piloto/soldado en tierra
+
+Un **minijuego aparte del vuelo**, jugando en tierra como el **piloto derribado** (o un soldado),
+para **recuperar partes** (u otro recurso). Es un modo de juego DISTINTO al núcleo aéreo: otra
+cámara, otro control, otro ritmo — un respiro entre vuelos, no un reemplazo.
+
+Idea base: caés en las islas, tenés que **moverte a pie**, evitar/enfrentar amenazas y **juntar
+piezas** que después sirven para reparar o mejorar el avión (engancha con la economía).
+
+> **Es contenido NUEVO, no una extensión del vuelo.** Hoy los "soldados" existen solo como
+> **enemigos** que se ametrallan desde el avión (`systems/spawn.js` los siembra en terreno `land`,
+> `systems/collision.js` los mata) — no hay un personaje jugable a pie. Este minijuego sería un
+> **estado/modo nuevo** con su propio loop de update y render, como lo es hoy el momentum.
+>
+> Relacionado con #11 (reparaciones — las piezas alimentan eso), #5/#6 (economía — otra fuente de
+> recurso), #10 (si las piezas mejoran stats del avión) y #16 (ya toca el nivel de tierra y los
+> soldados).
+> Dónde tocar → un modo nuevo tipo el momentum (su propio `update`/`draw`); reusaría el render de
+> tierra (`drawLand`) y el sprite de soldado como base.
+> La carga emocional es fuerte (son pilotos y soldados reales): el tono va en
+> [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md) si hace falta consultar.
+
+- [ ] Definir **cuándo** entra: ¿tras ser derribado (segunda oportunidad)? ¿misión lateral opcional?
+      ¿entre niveles?
+- [ ] Definir el **género**: cenital de sigilo/evasión, plataformas 2D, o recolección simple.
+- [ ] Definir **qué recupera** y cómo vuelve al juego aéreo (piezas → reparación/mejora).

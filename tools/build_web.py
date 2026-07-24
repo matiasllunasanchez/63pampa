@@ -77,6 +77,8 @@ def main():
         js, ok = sub_path(js, f'../assets/img/{fname}', uri(ASSETS / 'img' / fname, mime)); n += ok
     for key in PLANES:
         js, ok = sub_path(js, f'../assets/img/plane_{key}.webp', uri(ASSETS / 'img' / f'plane_{key}.webp', 'image/webp')); n += ok
+    # emblema de las Malvinas (4a estrella del recuento) — vive en assets/images/ (no en img/)
+    js, ok = sub_path(js, '../assets/images/malvinas.webp', uri(ASSETS / 'images' / 'malvinas.webp', 'image/webp')); n += ok
     # re-embeber audio: mp3 del juego -> m4a comprimida (o '' para las que no entran en la web)
     for mp3, m4a in WEB_AUDIO.items():
         js, ok = sub_path(js, f'../assets/audio/{mp3}', uri(ASSETS / 'audio' / 'web' / m4a, 'audio/mp4')); n += ok

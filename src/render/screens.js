@@ -8,8 +8,83 @@ import { P } from '../data/palette.js';
 import { T, L } from '../core/i18n.js';
 import { wrapChars } from '../core/util.js';
 
+// EMBLEMA de las Malvinas (la 4ª "estrella"): silueta real de las islas (assets/images/malvinas.webp,
+// islas negras sobre transparente). Se PINTA tiñendo sus píxeles opacos con `source-in` → una versión
+// dorada (ganada) y una tenue (falta). Las dos se hornean UNA vez al cargar la imagen.
+const MAL = { img: new Image(), ready: false, gold: null, dim: null };
+function tintSil(img, color) {
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const x = c.getContext('2d');
+  x.drawImage(img, 0, 0);
+  x.globalCompositeOperation = 'source-in';   // conserva el alfa de las islas, reemplaza el color
+  x.fillStyle = color; x.fillRect(0, 0, c.width, c.height);
+  return c;
+}
+MAL.img.onload = () => { MAL.ready = true; MAL.gold = tintSil(MAL.img, P.accent); MAL.dim = tintSil(MAL.img, '#3a4650'); };
+MAL.img.src = '../assets/images/malvinas.webp';
+
 // ---------- RECUENTO DE FIN DE MISION ----------
 // Las filas entran de a una acumulando el total; despues caen las estrellas y la calificacion.
+// LAS MALVINAS como 4ª "estrella" (rango S): la silueta real de las islas (assets/images/malvinas.webp),
+// dorada y con halo cuando se gano, tenue cuando falta. Si la imagen no cargo aun, cae a un vector.
+function drawMalvinas(cx, cy, s, won, t, rot) {
+  const sc = s * (won ? 1 + Math.sin(t * 4) * 0.04 : 1);   // late apenas cuando se gano
+  ctx.save();
+  ctx.translate(cx, cy); ctx.rotate(rot || 0); ctx.scale(sc, sc);
+  if (won) {                                               // halo dorado que pulsa
+    ctx.globalAlpha = 0.16 + Math.max(0, Math.sin(t * 4)) * 0.12;
+    ctx.fillStyle = P.accent;
+    ctx.beginPath(); ctx.arc(0, 0, 11, 0, 6.2832); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  const tex = won ? MAL.gold : MAL.dim;
+  if (MAL.ready && tex) {
+    const w = 20, h = w * MAL.img.naturalHeight / MAL.img.naturalWidth;
+    ctx.imageSmoothingEnabled = true;                     // emblema chico: bordes suaves lee mejor
+    ctx.drawImage(tex, -w / 2, -h / 2, w, h);
+  } else {                                                // fallback vectorial (imagen no cargada)
+    ctx.fillStyle = won ? P.accent : '#33414b';
+    ctx.beginPath();
+    ctx.moveTo(-7, -1); ctx.lineTo(-5.5, -3.5); ctx.lineTo(-3, -3); ctx.lineTo(-2.2, -0.5);
+    ctx.lineTo(-3.2, 2.2); ctx.lineTo(-5, 3.2); ctx.lineTo(-6.8, 1.5); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-1, -2.8); ctx.lineTo(1.5, -4); ctx.lineTo(4, -3.2); ctx.lineTo(5.2, -1);
+    ctx.lineTo(4, 0.2); ctx.lineTo(5, 1); ctx.lineTo(3.6, 2.6); ctx.lineTo(2, 4.2);
+    ctx.lineTo(1, 2.4); ctx.lineTo(1.8, 1); ctx.lineTo(-0.2, 0); ctx.lineTo(-1.2, -1);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// DISTRIBUCION del galardón: NO en fila — dispersa y con leve rotación, como el emblema de la remera
+// (estrellas a distintas alturas, las islas en el centro). Offsets relativos al centro (cx, cy).
+const AWARD_STARS = [
+  { dx: -24, dy: -2, rot: -0.16 },   // izquierda
+  { dx: -4, dy: -11, rot: 0.09 },    // arriba-centro
+  { dx: 22, dy: 5, rot: 0.20 },      // abajo-derecha
+];
+const AWARD_MAL = { dx: 6, dy: 3, rot: -0.05 };   // islas en el centro del racimo
+
+// GALARDON reutilizable: 3 estrellas + las Malvinas como 4ª. Lo usan el recuento de fin de nivel
+// (campaña/ciclo) y el DERRIBADO de POR LA PATRIA. `appearT` es el reloj de la animacion de entrada
+// (segundos desde que arranca): las estrellas entran de a una y las islas al final.
+export function drawAward(cx, cy, stars, appearT, t) {
+  for (let i = 0; i < 3; i++) {
+    const a = appearT - i * 0.22;
+    if (a < 0) continue;
+    const on = i < stars, pop = Math.max(0, 1 - a * 4), sl = AWARD_STARS[i];
+    ctx.save();
+    ctx.translate(cx + sl.dx, cy + sl.dy); ctx.rotate(sl.rot); ctx.scale(1 + pop * 0.5, 1 + pop * 0.5);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = 'bold 13px monospace';
+    ctx.fillStyle = on ? P.accent : '#2e3c45';
+    ctx.fillText(on ? '★' : '☆', 0, 0);
+    ctx.restore();
+  }
+  const ma = appearT - 3 * 0.22 - 0.15;                   // las Malvinas, un toque despues
+  if (ma >= 0) drawMalvinas(cx + AWARD_MAL.dx, cy + AWARD_MAL.dy, 1 + Math.max(0, 1 - ma * 3.5) * 0.8, stars >= 4, t, AWARD_MAL.rot);
+}
+
 export function drawResults(w) {
   // fondo CASI opaco: panel() es translucido y el mundo (popups, mar, montañas) se colaba
   // entre las filas del recuento y lo hacia ilegible
@@ -44,18 +119,9 @@ export function drawResults(w) {
     ctx.textAlign = 'right'; ctx.fillStyle = P.accent;
     ctx.fillText(String(R.total), W - 40, y + 3);
 
-    // estrellas: entran de a una con un pequeño rebote
+    // GALARDON: 3 estrellas + las MALVINAS como 4ª (rango "S"). Igual que el remate de la remera.
     const stT = w.resT - (R.rows.length * 0.45 + 0.15);
-    ctx.textAlign = 'center';
-    for (let i = 0; i < 3; i++) {
-      const on = i < R.stars, appear = stT - i * 0.22;
-      if (appear < 0) continue;
-      const pop = Math.max(0, 1 - appear * 4);           // rebote al aparecer
-      const sz = 13 + pop * 7;
-      ctx.font = 'bold ' + Math.round(sz) + 'px monospace';
-      ctx.fillStyle = on ? P.accent : '#2e3c45';
-      ctx.fillText(on ? '★' : '☆', W / 2 - 20 + i * 20, y + 26);
-    }
+    drawAward(W / 2, y + 24, R.stars, stT, w.t);
     // calificacion
     if (stT > 0.75) {
       ctx.fillStyle = P.foam; ctx.font = 'bold 8px monospace';
@@ -113,8 +179,12 @@ export function drawDead(w) {
   ctx.fillStyle = Math.floor(w.score) >= w.best && w.best > 0 ? P.accent : P.dim;
   ctx.font = '8px monospace';
   ctx.fillText((Math.floor(w.score) >= w.best && w.best > 0 ? T('newRecord') : T('bestDead', { n: w.best })), W / 2, 92);
+  // POR LA PATRIA: la corrida ENTERA fue el "nivel" → se premia con estrellas segun el puntaje.
+  // w.stars viene de game.js (0 en los demas modos, donde el derribado es fracaso y no se premian).
+  if (w.stars > 0 && w.awardT >= 0) drawAward(W / 2, 108, w.stars, w.awardT, w.t);
+  const factY = w.stars > 0 ? 130 : 116;                  // el dato histórico baja para dejar lugar
   ctx.fillStyle = '#8a9ba1'; ctx.font = '6px monospace';
-  wrapText('» ' + L().facts[w.factIdx], W / 2, 116, 260, 9);
+  wrapText('» ' + L().facts[w.factIdx], W / 2, factY, 260, 9);
   if (w.deathT > 0.7 && Math.sin(w.t * 4) > -0.3) {
     ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
     ctx.fillText(T('retryPrompt'), W / 2, 150);

@@ -67,24 +67,47 @@ export function drawSea() {
   if (landMode) drawLand(); else drawSeaDots(landVisible);
 }
 
-// matas/rocas dispersas sobre la tierra (parallax de movimiento a ras del suelo)
+// hash entero → [0,1). Bien distribuido (a diferencia de sin(combinación lineal), que hace bandas
+// diagonales/moiré). Estable por celda del mundo: los matojos no titilan ni se mueven al volar.
+function hash2(a, b) {
+  let h = Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+// paleta de matojos: varios verdes + un par secos/amarillentos, para que el pasto no sea monocromo
+const TUFTS = ['#6d7748', '#7c8a4e', '#5a6a3c', '#8a8c52', '#4f6034', '#94925a'];
+
+// matas/rocas dispersas sobre la tierra (parallax de movimiento a ras del suelo). La posición y el
+// color salen de un hash por celda: distribución aleatoria de verdad (sin patrón) y colores variados.
 function drawLand() {
   const SPX = 4.2, SPZ = 4.2, farZ = 190;
   const dv = run.dist + momentum.drift();
   const startZ = Math.max(cfg.coast + 2, Math.ceil((dv + 4) / SPZ) * SPZ);
   for (let wz = startZ; wz < dv + farZ; wz += SPZ) {
-    const camZ = wz - dv, k = F / camZ;
-    const fade = Math.min(1, (camZ - 3) / 9) * (1 - (camZ / farZ) * 0.8);
-    if (fade <= 0.03) continue;
+    const iz = Math.round(wz / SPZ);
     for (let wx = Math.ceil((cam.x - 74) / SPX) * SPX; wx < cam.x + 74; wx += SPX) {
-      const r = Math.sin(wx * 12.9 + wz * 7.3);
-      if (r < 0.35) continue;                                            // dispersa (no cubre todo)
-      const s = proj(wx, 0, camZ);
+      const ix = Math.round(wx / SPX);
+      const h1 = hash2(ix, iz);
+      if (h1 < 0.5) continue;                                            // densidad dispersa
+      const h2 = hash2(ix + 1013, iz - 271), h3 = hash2(ix - 577, iz + 977);
+      // JITTER: se corre la mata dentro de su celda → rompe la grilla (esto mata el look de patrón)
+      const jx = wx + (h2 - 0.5) * SPX * 1.7, jz = wz + (h3 - 0.5) * SPZ * 1.7;
+      const camZ = jz - dv;
+      if (camZ < 2) continue;
+      const k = F / camZ;
+      const fade = Math.min(1, (camZ - 3) / 9) * (1 - (camZ / farZ) * 0.8);
+      if (fade <= 0.03) continue;
+      const s = proj(jx, 0, camZ);
       if (s.x < -4 || s.x > W + 4 || s.y < HOR) continue;
-      const rock = r > 0.86;
       ctx.globalAlpha = fade * 0.85;
-      const w = Math.max(1, k * (rock ? 0.7 : 0.5)), h = Math.max(1, k * (rock ? 0.55 : 0.9));
-      px(s.x - w / 2, s.y - h, w, h, rock ? LAND.rock : LAND.tuft);
+      if (h1 > 0.93) {                                                   // roca ocasional (marrón)
+        const w = Math.max(1, k * 0.7), hh = Math.max(1, k * 0.55);
+        px(s.x - w / 2, s.y - hh, w, hh, LAND.rock);
+      } else {                                                          // matojo de pasto (color y alto variados)
+        const w = Math.max(1, k * 0.5), hh = Math.max(1, k * (0.65 + h2 * 0.6));
+        px(s.x - w / 2, s.y - hh, w, hh, TUFTS[(h3 * TUFTS.length) | 0]);
+      }
     }
   }
   ctx.globalAlpha = 1;
@@ -260,12 +283,48 @@ export function drawObstacle(o) {
     px(s.x - 0.4 * kk, s.y - 1.5 * kk, 0.8 * kk, 0.8 * kk, P.warn);            // nariz
     hitFlash(s.x, s.y - 0.6 * kk, kk, o, 10, 4.2);
     drawHpBar(s.x, s.y - 4.4 * kk, kk, o);                                     // sobre la deriva
+  } else if (o.type === 'tree') {
+    const base = proj(o.x, 0, o.z);
+    const th = o.h * k;                                     // altura total en pantalla
+    const sway = Math.sin(run.t * 1.3 + o.ph) * 0.5 * k;    // la copa se mece con el viento
+    // tronco (de la base hacia arriba, ~45% de la altura)
+    const trunkH = th * 0.45, tw = Math.max(1, 0.7 * k);
+    px(base.x - tw / 2, base.y - trunkH, tw, trunkH, '#4a3925');
+    px(base.x - tw / 2, base.y - trunkH, Math.max(1, tw * 0.4), trunkH, '#5c4a30');   // luz del tronco
+    // copa: bloques verdes superpuestos, se angostan hacia arriba (arbusto batido por el viento)
+    const cx = base.x + sway, top = base.y - th, cw = Math.max(2, 3.4 * k);
+    px(cx - cw * 0.5, base.y - th * 0.62, cw, th * 0.34, '#33431f');                  // base de la copa (sombra)
+    px(cx - cw * 0.42, top + th * 0.12, cw * 0.84, th * 0.32, '#475a2a');             // cuerpo
+    px(cx - cw * 0.28, top, cw * 0.56, th * 0.24, '#5c7536');                         // corona
+    px(cx - cw * 0.2, top + th * 0.02, cw * 0.3, Math.max(1, th * 0.1), '#6f8a44');   // brillo
   } else if (o.type === 'fuel') {
     const oy = o.y + Math.sin(run.t * 2) * 0.5;
     const s = proj(o.x, oy, o.z);
     px(s.x - 1.4 * k, s.y - 1.8 * k, 2.8 * k, 3.6 * k, P.accent);
     px(s.x - 1.4 * k, s.y - 0.4 * k, 2.8 * k, Math.max(1, 0.7 * k), P.ink);
   }
+}
+
+// SOLDADO de infantería en tierra: figura corriendo (piernas alternadas), casco y fusil. Se dibuja
+// con el juego a 320x180, así que todo escala con `k` (tamaño según la distancia). `gait` (−1..1)
+// anima el paso. Vive acá (render) y no en el orquestador: el loop de game.js solo proyecta y llama.
+export function drawSoldier(x, y, k, gait) {
+  const bh = Math.max(3, k * 1.8), bw = Math.max(1.5, k * 0.7);
+  const U = '#454d38', UD = '#2e3327', HELM = '#5a5140', SKIN = '#9c7350', GUN = '#20241a';
+  const step = gait * bw * 0.5;
+  // piernas (alternan con el paso)
+  px(x - step - bw * 0.3, y - bh * 0.38, Math.max(1, bw * 0.3), bh * 0.38, UD);
+  px(x + step, y - bh * 0.38, Math.max(1, bw * 0.3), bh * 0.38, UD);
+  // torso + hombro
+  px(x - bw * 0.42, y - bh * 0.74, bw * 0.84, bh * 0.42, U);
+  px(x - bw * 0.42, y - bh * 0.74, bw * 0.84, Math.max(1, bh * 0.1), '#525a42');
+  // fusil cruzado al frente + brazo
+  px(x - bw * 0.1, y - bh * 0.62, Math.max(1, bw * 0.85), Math.max(1, bh * 0.11), GUN);
+  px(x - bw * 0.15, y - bh * 0.6, Math.max(1, bw * 0.35), Math.max(1, bh * 0.22), U);
+  // cabeza + casco
+  px(x - bw * 0.26, y - bh * 0.9, bw * 0.52, bh * 0.2, SKIN);
+  px(x - bw * 0.34, y - bh, bw * 0.68, Math.max(1, bh * 0.15), HELM);
+  px(x - bw * 0.34, y - bh * 0.88, bw * 0.68, Math.max(1, bh * 0.05), '#3f3a2c');   // ala del casco
 }
 
 // la barcaza objetivo VISIBLE en vuelo normal: aparece en el horizonte desde el 45% del recorrido

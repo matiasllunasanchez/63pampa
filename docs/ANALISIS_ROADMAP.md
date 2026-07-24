@@ -177,6 +177,51 @@ avión aguanta tres golpes, el rasante se vuelve barato. No es un "más es mejor
 **Veredicto: hacé la v1 como quick win de HUD — se ve bien y no compromete nada. La v2 no la
 arranques hasta decidir la regla de muerte, porque toca el corazón de la tensión del juego.**
 
+### #23 — Cuarta estrella: las Malvinas (rango "S") · 🟢🟡 — ✅ HECHO (falta persistencia)
+**Hallazgo: el sistema de estrellas YA existe** — `freezeRun()` calcula 1/2/3 estrellas contra el
+`par` de la misión, `drawResults()` las dibuja con rebote, y hay un `rank` paralelo por precisión.
+Así que esto no se construye de cero: se **extiende**.
+
+**El trabajo real es de dos tipos:**
+- **Fácil (🟢):** la lógica. Sumar un 4º tramo al umbral (ej. `total ≥ par*2` → 4) y unificar la 4ª
+  estrella con el rango máximo, para que no haya dos indicadores de "excelente" compitiendo.
+- **Medio (🟡):** el arte. La 4ª no es un `★`: es la **silueta de las islas en dorado**, con su
+  propio momento de aparición (idealmente distinto y más celebrado que las estrellas comunes). Vale
+  hacerla especial — es el remate emocional del nivel.
+
+**Dos decisiones a tomar antes de tocar:**
+1. **¿Qué tan difícil es sacar las Malvinas?** Si cae fácil, pierde el peso de "excelente". El `par`
+   por misión ya está en `data/missions.js`, así que el umbral se puede calibrar por nivel.
+2. **¿La 4ª estrella reemplaza al `rank` de texto o convive?** Recomiendo **reemplazar**: "sacaste
+   las Malvinas" dice más que "rango: HALCÓN", y evita redundancia.
+
+**Engancha con:** persistir estrellas por nivel abre la puerta a un **selector de niveles con
+progreso / 100%** (relacionado con #7 niveles y #5 si las estrellas alguna vez dieran recompensa).
+**Veredicto: quick win de lógica + una perlita de arte. Alto valor emocional por poco código; el
+único cuidado es que las Malvinas se sientan MERECIDAS (umbral exigente).**
+
+### #24 — Minijuego terrestre (piloto/soldado en tierra) · 🎲
+La apuesta más "otro juego" de toda la lista: es un **segundo loop de gameplay**, no una feature del
+vuelo. La buena noticia es que **el motor ya sabe hacer esto** — el momentum es exactamente eso: un
+estado con su propio `update`/`draw` que reemplaza el mundo aéreo. Así que la arquitectura no es el
+problema; el problema es **diseñar un juego nuevo, chico pero completo**.
+
+**Lo que ya se puede reusar:** el render de tierra (`drawLand`), el sprite de soldado, el sistema de
+partículas y el de estados. **Lo que hay que crear de cero:** control del personaje a pie, cámara,
+amenazas terrestres, condición de victoria/derrota, y el bucle de recolección.
+
+**Antes de estimar hay que decidir tres cosas (están en el roadmap):** cuándo entra, qué género, y
+qué recupera. Cada respuesta cambia radicalmente el alcance:
+- *Cenital de recolección simple* (juntar N piezas esquivando patrullas) → **acotado**, un fin de
+  semana. Buen primer intento.
+- *Sigilo o plataformas con progresión* → **grande**, es casi un proyecto propio.
+
+**Recomendación:** si se hace, arrancar por la versión **mínima** — caés, juntás 3 piezas evitando
+patrullas, volvés. Ver si el cambio de ritmo engancha ANTES de invertir en algo ambicioso.
+**Depende, para tener sentido, de que exista la economía/reparación (#11/#5)** — si no, las piezas
+no van a ningún lado. **Veredicto: gran apuesta con arquitectura ya resuelta; el riesgo es de diseño
+y de alcance, no técnico. No arrancar sin la economía que le dé destino a las piezas.**
+
 ---
 
 ## Resumen de dependencias
@@ -190,6 +235,7 @@ arranques hasta decidir la regla de muerte, porque toca el corazón de la tensi�
                                  └──→ #21 ayudas a Inglaterra (su justificación narrativa)
 #2 HP enemigos ──→ #9 variedad de enemigos
 #10 stats por avión ──→ #22 panel de daños (v2) ──→ #11 reparaciones/mejoras
+#5 monedas / #11 reparaciones ──→ #24 minijuego terrestre (le da destino a las piezas)
 #1/#12/#13 (trío momentum) ── elegir UNA visión primero
 #22 (v2) ── decidir antes la REGLA DE MUERTE (hoy: un toque = muerte)
 ```

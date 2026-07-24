@@ -221,7 +221,14 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     // DERRIBADO: al morir, primero se ve el avion romperse en pedazos y recien despues sube la
     // pantalla de fin. DEATH_REVEAL es cuanto dura ese show antes de que aparezca "DERRIBADO".
     const DEATH_REVEAL = 1.0;
-    let deathCause, deathT, factIdx = 0, best = 0;
+    // POR LA PATRIA (survival) no tiene par de mision: la corrida entera es el "nivel", asi que las
+    // estrellas del derribado se miden contra esto. Es una estimacion — perilla para calibrar jugando.
+    const SURVIVAL_PAR = 6000;
+    let deathCause, deathT, deadStars = 0, factIdx = 0, best = 0;
+
+    // ESTRELLAS 1..4 (la 4ª = Malvinas, rango S). Compartido por el recuento de nivel y el
+    // derribado de survival: exige el DOBLE del par para las Malvinas, que se sientan merecidas.
+    const starsFor = (v, par) => v >= par * 2 ? 4 : v >= par * 1.5 ? 3 : v >= par ? 2 : 1;
     // AFTERBURNER SOSTENIDO: aguantar BOOST + RASANTE (bajo) sube de escalón cada AFTER_STEP s;
     // cada escalón multiplica la velocidad y levanta el techo. Romper el estado (soltar turbo o
     // trepar) lo resetea, con una gracia corta para tolerar bobs cortos. afterT=segundos acumulados.
@@ -388,10 +395,13 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       const bRas = stats.bestRas * 300;
       const total = flight + bKills + bAcc + bRas;
       const par = m.par || 8000;
-      const starN = total >= par * 1.5 ? 3 : total >= par ? 2 : 1;
+      // La 4ª estrella son las MALVINAS: el rango "S", el tope (ver starsFor). El rango de texto
+      // deriva directo de las estrellas (antes habia un bonus por precision aparte que competia):
+      // 4 estrellas = HALCON DEL ATLANTICO, el rango maximo.
+      const starN = starsFor(total, par);
       lastRun = {
         mission: m, flight, kills, acc, bKills, bAcc, bRas, total, par, stars: starN,
-        rank: RANKS[Math.min(RANKS.length - 1, starN - 1 + (acc > 0.6 ? 1 : 0))],
+        rank: RANKS[Math.min(RANKS.length - 1, starN - 1)],
         rows: [
           { k: 'res_flight', v: flight },
           { k: 'res_kills', v: bKills, n: kills },
@@ -431,6 +441,9 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
 
     function die(cause) {
       setState('dead'); deathCause = cause; deathT = 0;
+      // POR LA PATRIA: el derribado ES el fin del "nivel" → estrellas por puntaje. En campaña/ciclo
+      // morir es fracaso (no se cumplio el objetivo): sin estrellas.
+      deadStars = gameMode === 'survival' ? starsFor(Math.floor(run.score), SURVIVAL_PAR) : 0;
       sfxOne('exSmall');   // mi avion chocando (agua incluida, por ahora)
       factIdx = (factIdx + 1) % L().facts.length;
       explodeAt(plane.x, plane.y, PZ, true);
@@ -706,12 +719,9 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
         const sold = soldiers.slice().sort((a, b) => b.z - a.z);
         for (const sd of sold) {
           if (sd.z <= 3 || sd.dead) continue;
-          const s = proj(sd.x, 0, sd.z), k = s.k;
-          const run = Math.sin(run.t * 12 + sd.ph);                    // piernas corriendo
-          const bh = Math.max(2, k * 1.4), bw = Math.max(1, k * 0.5);
-          px(s.x - bw / 2, s.y - bh, bw, bh * 0.6, '#3a3f33'); // cuerpo
-          px(s.x - bw / 2, s.y - bh, bw, Math.max(1, k * 0.4), '#5a5140');                       // cabeza/casco
-          px(s.x - bw / 2 + (run > 0 ? 0 : bw * 0.4), s.y - bh * 0.4, Math.max(1, bw * 0.4), bh * 0.4, '#2e3327'); // pierna
+          const s = proj(sd.x, 0, sd.z);
+          const gait = Math.sin(run.t * 12 + sd.ph);                   // paso al correr
+          world.drawSoldier(s.x, s.y, s.k, gait);
         }
       }
 
@@ -790,7 +800,8 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       }
       // DERRIBADO: esperar a que se vea el destrozo; despues la pantalla sube con un fade corto
       if (S.state === 'dead' && deathT > DEATH_REVEAL)
-        screens.drawDead({ score: run.score, best, deathCause, deathT, factIdx, t: run.t, reveal: Math.min(1, (deathT - DEATH_REVEAL) / 0.35) });
+        screens.drawDead({ score: run.score, best, deathCause, deathT, factIdx, t: run.t,
+          reveal: Math.min(1, (deathT - DEATH_REVEAL) / 0.35), stars: deadStars, awardT: deathT - DEATH_REVEAL - 0.2 });
       if (S.state === 'results') screens.drawResults({ lastRun, resRow, resT, t: run.t });
       if (S.state === 'brief') screens.drawBrief({ mission: curMission(), goalLabel: goalOf(curMission()).label(curMission().goal), briefT, t: run.t });
       if (S.state === 'victory') screens.drawVictory({ score: run.score, levelT, t: run.t });
