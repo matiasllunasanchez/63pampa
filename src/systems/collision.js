@@ -103,7 +103,7 @@ export function collisionSystem(dt) {
       if (o.z < z0 - 2 || o.z > b.z + 2) continue;
       const oy = o.y, air = o.type === 'helo' || o.type === 'jet';
       if (Math.abs(b.x - o.x) < (air ? 5.6 : 3) && Math.abs(b.y - oy) < (air ? 3 : 2.4)) {
-        o.hp--; b.z = 999; stats.hits++;
+        o.hp--; o.hitT = run.t; b.z = 999; stats.hits++;   // hitT: lo lee el fogonazo del render
         if (o.hp <= 0) {
           const pts = o.type === 'helo' ? 300 : o.type === 'jet' ? 250 : 150;
           run.score += pts; stats.air++;

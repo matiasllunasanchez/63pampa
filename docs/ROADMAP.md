@@ -13,9 +13,10 @@ código ([ARQUITECTURA.md](ARQUITECTURA.md)).
 - **Primera persona / momentum** — #1, #12, #13
 - **Combate y enemigos** — #2, #9, #19
 - **Movimiento y sensación de vuelo** — #3, #4, #8
-- **Aviones** — #10, #11, #18, #19
+- **Aviones** — #10, #11, #18, #19, #22
 - **Economía y progresión** — #5, #6, #11, #14
 - **Mundo, terreno y aliados** — #15, #16, #17
+- **Asimetría y aliados (geopolítica)** — #18, #19, #20, #21
 - **Niveles y estructura** — #7, #14
 
 ---
@@ -40,8 +41,12 @@ máxima de la metralleta**: poder mantener el disparo un poco más de tiempo ant
 > Dónde tocar → enemigos en `systems/spawn.js` + `systems/collision.js`; el calor/recalentamiento
 > de la metralla (`overheat`, `heat`) en `systems/flight.js`.
 
-- [ ] HP a enemigos seleccionados (barra visible).
-- [ ] Subir el techo de calor de la metralla / bajar la tasa de calentamiento.
+- [x] **HP a enemigos seleccionados (barra visible).** Helo 2→4, jet 2→3, globo queda en 1 (cae de
+      un tiro). Los de más de 1 HP llevan barra (`drawHpBar`, `render/world.js`): tenue mientras
+      están intactos, opaca apenas los tocás. Se sumó un fogonazo al impacto (`hitFlash`) para que
+      más vida no se sienta esponja. Perillas en `ENEMY_HP` (`data/tuning.js`).
+- [x] **Ráfaga más larga.** El calor por tiro bajó de 0.10 a 0.06 → el fuego sostenido pasó de
+      ~1.5 s a ~3.1 s antes de recalentar. Perillas en `GUN_*` (`data/tuning.js`).
 
 ## 3. Dashes de esquive cinemáticos
 
@@ -112,6 +117,29 @@ Más **variedad** y **complejidad** en los enemigos.
 
 > Relacionado con #2.
 > Dónde tocar → `systems/spawn.js` (tipos y aparición) + `systems/collision.js` (comportamiento).
+
+### Arte de las aeronaves enemigas (assets)
+
+Hoy el helicóptero y el jet se dibujan **por código** (rects) en `drawObstacle` (`render/world.js`),
+con dos efectos ya implementados:
+
+- **Zoom de cercanía** (`approachZoom`): arrancan chiquitos en el horizonte y se agrandan al
+  acercarse, con ease-in. Perillas `APPROACH_*`. Es solo visual — no toca hitboxes.
+- **Viraje del helicóptero**: llega **de frente** y se pone **de costado** al acercarse. No son dos
+  dibujos: es uno que se estira por escorzo y al que le crece la cola. Perillas `HELO_TURN_*`.
+
+**Si se reemplaza por assets**, el spec para que entren sin rehacer la lógica (mismo criterio que
+`data/planes.js`, que ya usa hojas de sprites horneadas):
+
+| aeronave | hoja | por qué |
+|---|---|---|
+| helicóptero | **1 fila × 8 columnas**, yaw de 0° (de frente) a 90° (perfil) | la columna la elige el `yaw` que ya se calcula por distancia |
+| jet | **1 fila × 5 columnas**, alabeo de −30° a +30° | reemplaza el `bank` que hoy se finge con rects |
+
+- **Tamaño sugerido:** 48×32 por cuadro, PNG con transparencia (la hoja del jugador es 56×32).
+- **Sin bordes suavizados** (el juego dibuja con `imageSmoothingEnabled = false`).
+- El rotor conviene que venga **barrido/borroso** en el propio cuadro.
+- Si hay modelos 3D, `tools/bake_planes.html` ya hornea hojas así para los aviones jugables.
 
 ## 10. Aviones con características distintas
 
@@ -196,3 +224,52 @@ Analogía guía: **dron estabilizado** (inglés) **vs dron acro personalizado** 
 > #18.
 > Dónde tocar → la detección/radar hoy vive en `systems/flight.js` (`detection`); la base terrestre
 > sería un sistema nuevo que alimente ese aviso.
+
+## 20. Ayuda de países aliados a la Argentina
+
+Reflejar en el juego las **ayudas que tuvo la Argentina** de otros países: que aparezcan como
+**apoyos concretos** en la partida (equipamiento, aviso/inteligencia, un aliado que sobrevuela,
+un arma o pieza extra), no como texto suelto.
+
+La idea es que el jugador **sienta** de dónde vino cada ayuda, y que se integre a la asimetría:
+suma del lado argentino, sin romper el espíritu de "avión exigente".
+
+> Relacionado con #15 (el Hércules ya es un aliado en el aire), #18 y #19 (es el otro platillo de
+> la balanza: qué compensa la desventaja tecnológica).
+> Los datos históricos concretos (qué país, qué ayuda, cuándo) van a
+> [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md); acá va **cómo se juega**.
+
+## 21. Ayuda de países aliados a Inglaterra
+
+Lo simétrico del #20: reflejar las **ayudas que tuvo Inglaterra** de otros países, del lado inglés,
+como **ventajas concretas** (mejor detección, reabastecimiento, tecnología o apoyo logístico).
+
+Es la contracara que hace legible la asimetría del #18: no es que "el inglés es mejor porque sí",
+sino que **contó con apoyos** que se traducen en poderes/tecnología dentro del juego.
+
+> Relacionado con #18 y #19 (es de dónde sale, narrativamente, el "está todo servido" del inglés) y
+> con #10 (esas ayudas se expresan como stats/tecnología por bando).
+> Los datos históricos concretos van a [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md).
+
+## 22. Panel de daños por partes del avión
+
+Un **panel de daños** en el HUD que muestre el **estado de las partes del avión** (ala, motor,
+cabina, tren, cola…) para **indicar la vida**: qué está sano, qué está golpeado, qué está por
+ceder. La silueta del avión con las partes coloreadas según su estado.
+
+> **Ojo — esto implica una decisión de diseño, no solo una UI:** hoy el avión **no tiene vida**.
+> Cualquier choque es muerte instantánea (`{ death }` en `systems/collision.js`), y esa regla es
+> justamente lo que hace tenso el vuelo rasante. Un panel de daños sin integridad detrás no
+> mostraría nada.
+>
+> Relacionado con #2 (mismo lenguaje visual que las barras de vida de enemigos), #10 (la
+> "resistencia" por avión es lo que llenaría el panel) y #11 (si hay daño, hay reparaciones).
+> Dónde tocar → la muerte hoy sale de `systems/collision.js` y `systems/flight.js` (roce); el panel
+> iría en `render/hud.js`.
+
+- [x] **Versión liviana (hecha):** panel que muestra lo que YA existe — silueta del avión de
+      espaldas en el borde izquierdo, con alas = calor del cañón, motor = combustible y panza =
+      margen de roce. Vive en `drawStatusPanel()` (`render/hud.js`). El margen de roce era el único
+      de los tres que no se veía en ningún lado.
+- [ ] Decidir si el jugador pasa a tener integridad (y si eso saca tensión al rasante).
+- [ ] Versión completa: daño por partes que degrade stats concretos.

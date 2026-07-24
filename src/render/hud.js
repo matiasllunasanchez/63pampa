@@ -12,6 +12,7 @@ import { ctx, px, W, H, PZ } from './ctx.js';
 import { plane } from '../core/state.js';
 import { run } from '../core/run.js';
 import { proj } from '../core/fx.js';
+import { scrapeLimit } from '../core/physics.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { MISSIONS } from '../data/missions.js';
@@ -97,6 +98,36 @@ export function drawTakeoff(toT) {
   }
 }
 
+// PANEL DE ESTADO (v1 del panel de daños — roadmap #22): silueta del avion DE ESPALDAS (la misma
+// vista que el sprite en vuelo, asi no hay que traducir mentalmente que parte es cual) con cada
+// parte coloreada por un dato que YA EXISTE. No agrega vida ni sistemas nuevos: es lectura de un
+// vistazo de como viene el avion.
+//   alas  → calor del canon      (run.heat / run.overheat)
+//   motor → combustible          (run.fuel)
+//   panza → margen de roce       (run.scrapeT contra su limite)
+// El margen de roce es el UNICO de los tres que hoy no se ve en ningun lado: al salir del roce
+// `scrapeT` se descuenta lento (SCRAPE_RECOVER), asi que la panza queda "castigada" y se recupera.
+function partCol(h) {
+  if (h > 0.6) return P.foam;                                  // sana
+  if (h > 0.3) return P.accent;                                // castigada
+  return Math.sin(run.t * 10) > 0 ? P.warn : '#7d2f1e';        // critica: parpadea
+}
+
+function drawStatusPanel(x, y) {
+  const cx = x + 11;
+  const hWing = run.overheat ? 0 : 1 - run.heat;
+  const hEngine = run.fuel / 100;
+  const lim = scrapeLimit(run.spd, run.boost);
+  const hBelly = lim > 0 ? 1 - Math.max(0, Math.min(1, run.scrapeT / lim)) : 1;
+  ctx.fillStyle = '#00000066'; ctx.fillRect(x - 3, y - 8, 28, 26);
+  ctx.fillStyle = P.dim; ctx.font = '6px monospace'; ctx.textAlign = 'left';
+  ctx.fillText(T('hud_status'), x - 1, y - 2);
+  px(cx - 1, y, 2, 5, P.bodyDark);              // deriva (cola) — sin dato asociado
+  px(cx - 11, y + 7, 22, 3, partCol(hWing));    // ALAS  = canon (los caños van en las alas)
+  px(cx - 3, y + 5, 6, 8, partCol(hEngine));    // MOTOR = combustible
+  px(cx - 4, y + 13, 8, 2, partCol(hBelly));    // PANZA = roce (lo que toca el agua)
+}
+
 function bar(x, y, w, val, c, label) {
   ctx.fillStyle = '#00000066'; ctx.fillRect(x - 1, y - 1, w + 2, 5);
   px(x, y, Math.round(w * Math.max(0, Math.min(1, val))), 3, c);
@@ -176,6 +207,10 @@ export function drawHUD(h) {
     px(0, 0, 3, H, P.accent); px(W - 3, 0, 3, H, P.accent);
     ctx.globalAlpha = 1;
   }
+
+  // panel de estado del avion — abajo a la derecha, en la misma columna que el gas y el canon:
+  // queda debajo de la palanca (termina en y=119) y arriba del rotulo del canon (y=169)
+  drawStatusPanel(287, 140);
 
   bar(6, H - 8, 60, run.fuel / 100, run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam, T('bar_fuel'));
   bar(W - 66, H - 8, 60, run.heat, run.overheat ? P.warn : P.accent, run.overheat ? T('bar_overheat') : T('bar_cannon'));

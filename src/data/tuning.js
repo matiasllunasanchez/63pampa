@@ -17,6 +17,21 @@ export const ROLL_DUR = 0.55;
 export const MOM_AX = 160, MOM_AY = 40;   // visor fijo en pantalla (W/2, 40) — el reflector del HUD
 export const MSL_MAX = 3;                 // misiles por pasada
 
+// CAÑON 20MM — presupuesto de fuego sostenido. Con 9 tiros/s, cada tiro suma GUN_HEAT_SHOT y el
+// caño enfria GUN_COOL_FIRE mientras dispara, asi que la rafaga aguanta
+//     1 / (GUN_HEAT_SHOT * 9 - GUN_COOL_FIRE)  segundos antes de recalentar.
+// Con 0.06 son ~3.1s (antes era 0.10 → ~1.5s: se recalentaba apenas apretabas).
+// Al recalentar se bloquea hasta bajar de GUN_RESET, enfriando a GUN_COOL_IDLE.
+export const GUN_HEAT_SHOT = 0.06;
+export const GUN_COOL_FIRE = 0.22;
+export const GUN_COOL_IDLE = 0.5;
+export const GUN_RESET = 0.3;
+
+// VIDA DE LOS ENEMIGOS. El globo cae de un tiro (es un globo); las aeronaves aguantan una rafaga
+// corta, para que valga la pena sostener el disparo y apuntar. Los que tienen mas de 1 muestran
+// barra de vida (ver drawHpBar en render/world.js).
+export const ENEMY_HP = { balloon: 1, helo: 4, jet: 3 };
+
 // RE-ATAQUE: si se agota la ventana de tiro con blancos vivos, virás 180° y volvés a entrar.
 // El daño hecho se conserva; el costo es combustible. Si no queda nafta (o se acaban los
 // intentos), la mision termina.

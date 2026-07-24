@@ -21,7 +21,8 @@ import { proj, popup } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
-import { MSL_MAX, FLY_X, FLY_TOP, ROLL_DUR } from '../data/tuning.js';
+import { MSL_MAX, FLY_X, FLY_TOP, ROLL_DUR,
+         GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET } from '../data/tuning.js';
 import { multOf } from '../core/util.js';
 import * as momentum from './momentum.js';
 import { engineFly, sfxOne, sfxSrc, beep, boom } from './audio.js';
@@ -243,9 +244,9 @@ export function flightSystem(dt, deps) {
 
   // cañón
   run.fireT -= dt;
-  run.heat -= dt * (inp.fire ? 0.22 : 0.5);
+  run.heat -= dt * (inp.fire ? GUN_COOL_FIRE : GUN_COOL_IDLE);
   if (run.heat < 0) run.heat = 0;
-  if (run.overheat && run.heat < 0.3) run.overheat = false;
+  if (run.overheat && run.heat < GUN_RESET) run.overheat = false;
   if (inp.fire && !run.overheat && run.fireT <= 0) {
     run.fireT = 1 / 9; stats.shots++;   // denominador de la PRECISION del recuento
     const vm = deps.viewMouse();
@@ -267,7 +268,7 @@ export function flightSystem(dt, deps) {
       }
       bullets.push({ x: plane.x, y: plane.y, z: PZ + 3, ty });
     }
-    run.heat += 0.10;
+    run.heat += GUN_HEAT_SHOT;
     if (run.heat >= 1) { run.overheat = true; beep(140, 0.3, 'sawtooth', 0.05); }
     else if (!sfxSrc('gun')) beep(1100 + Math.random() * 300, 0.04, 'square', 0.028);   // web: beep; escritorio: loop de metralla
   }

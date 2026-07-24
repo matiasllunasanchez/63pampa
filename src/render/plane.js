@@ -16,6 +16,12 @@ import { P } from '../data/palette.js';
 import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH } from '../data/planes.js';
 import { ROLL_DUR } from '../data/tuning.js';
 
+// PERILLAS del "vuelo vivo": el avion nunca queda congelado en el aire. Son sutiles a proposito
+// (el juego corre a 320x180, 1px se nota). Subilas para que flote/cabecee mas, bajalas para calmarlo.
+const BOB_Y  = 1.0;    // amplitud del bob vertical (px)
+const BOB_X  = 0.5;    // amplitud de la deriva horizontal (px) — desfasada del bob → flota en "8"
+const WOBBLE = 0.026;  // amplitud de la micro-oscilacion de alabeo (rad, ~1.5°)
+
 export function drawPlane(selPlane, viewMouse) {
   const s = proj(plane.x, plane.y, PZ);
   // sombra sobre el agua (referencia de altura)
@@ -32,12 +38,17 @@ export function drawPlane(selPlane, viewMouse) {
   ctx.globalAlpha = 1;
 
   ctx.save();
-  // sub-pixel + bob de vuelo (nunca queda congelado) + micro-oscilación de alabeo en el aire
-  const bob = (S.state === 'play' ? Math.sin(run.t * 3.1) * 0.5 + Math.sin(run.t * 1.7) * 0.3 : 0);
+  // VUELO VIVO (nunca queda congelado): bob vertical de dos frecuencias + deriva horizontal
+  // desfasada (flota en "8") + micro-oscilacion de alabeo de dos armonicos (respira, no es un
+  // metronomo). Todo se apaga fuera de 'play'. Perillas: BOB_Y / BOB_X / WOBBLE (arriba).
+  const alive = S.state === 'play';
+  const bobY = alive ? Math.sin(run.t * 3.1) * BOB_Y * 0.6 + Math.sin(run.t * 1.7) * BOB_Y * 0.4 : 0;
+  const bobX = alive ? Math.sin(run.t * 2.3 + 1.1) * BOB_X : 0;
+  const wob  = alive ? (Math.sin(run.t * 2.3) * 0.7 + Math.sin(run.t * 3.7) * 0.3) * WOBBLE : 0;
   // VIBRACION al rozar la superficie: temblor rapido del fuselaje (el avion, no la camara)
   const vx2 = run.scrapeVib ? (Math.random() - 0.5) * 3.2 * run.scrapeVib : 0;
   const vy2 = run.scrapeVib ? (Math.random() - 0.5) * 2.4 * run.scrapeVib : 0;
-  ctx.translate(s.x + vx2, s.y - bob + vy2);
+  ctx.translate(s.x + vx2 + bobX, s.y - bobY + vy2);
   // cabeceo: el morro sube al trepar / baja al caer (desplazamiento vertical del sprite)
   ctx.translate(0, -plane.pitch * 1.2);
   // alabeo: rotación 2D + micro-wobble; el foreshortening en X finge la inclinación 3D del ala
@@ -52,9 +63,9 @@ export function drawPlane(selPlane, viewMouse) {
     ctx.scale(0.94 + 0.06 * Math.cos(pr * Math.PI * 2), 1);   // leve pulso: vende el giro
   } else if (useSheet) {
     // con frames de alabeo Y cabeceo REALES no hay rotacion ni squash fingidos: solo micro-wobble
-    ctx.rotate(S.state === 'play' ? Math.sin(run.t * 2.3) * 0.015 : 0);
+    ctx.rotate(wob);
   } else {
-    ctx.rotate(bank * 0.42 + (S.state === 'play' ? Math.sin(run.t * 2.3) * 0.015 : 0));
+    ctx.rotate(bank * 0.42 + wob);
     ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
   }
   if (useSheet) {

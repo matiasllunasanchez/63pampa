@@ -151,6 +151,48 @@ export function drawWake() {
   ctx.globalAlpha = 1;
 }
 
+// BARRA DE VIDA de los enemigos que aguantan mas de un tiro. Los de un solo tiro (globo) no la
+// llevan: seria ruido. Aparece cuando ya estan lo bastante cerca como para tirarles, y se queda
+// visible (y opaca) apenas los tocaste, para que se lea el progreso de la rafaga.
+function drawHpBar(sx, sy, k, o) {
+  if (!o.hpMax || o.hpMax <= 1) return;
+  const hurt = o.hp < o.hpMax;
+  if (!hurt && o.z > 170) return;              // intacto y lejos: todavia no molesta
+  const w = 7 * k, h = Math.max(1, 0.5 * k), f = Math.max(0, o.hp / o.hpMax);
+  ctx.globalAlpha = hurt ? 1 : 0.5;            // intacto: tenue, no grita
+  px(sx - w / 2, sy, w, h, '#0a0e11cc');
+  px(sx - w / 2, sy, w * f, h, P.warn);        // SIEMPRE roja: la barra es "enemigo", no un semaforo
+  ctx.globalAlpha = 1;
+}
+
+// ---- PERILLAS de las aeronaves enemigas (puro render: no tocan hitboxes ni puntaje) ----
+// EFECTO DE CERCANIA: ademas del escorzo de la perspectiva (k), las aeronaves llevan un zoom
+// EXTRA que arranca chico en el horizonte y crece al acercarse, con ease-in para que el salto se
+// sienta sobre el final ("se me viene encima"). Es arcade, no realista.
+const APPROACH_FAR = 200, APPROACH_NEAR = 40;    // z donde arranca y donde llega al maximo
+const APPROACH_MIN = 0.6, APPROACH_MAX = 1.12;   // multiplicador de escala lejos / encima
+// VIRAJE DEL HELICOPTERO: lejos viene DE FRENTE y al acercarse se pone DE COSTADO.
+const HELO_TURN_FAR = 150, HELO_TURN_NEAR = 55;  // z donde empieza y donde termina el viraje
+
+const clamp01 = v => Math.max(0, Math.min(1, v));
+
+/** Zoom extra por cercania. Es SOLO visual: la colision y la punteria siguen usando el mundo
+ *  (o.x/o.y/o.z), asi que agrandar o achicar el dibujo no cambia la dificultad real. */
+function approachZoom(z) {
+  const c = clamp01((APPROACH_FAR - z) / (APPROACH_FAR - APPROACH_NEAR));
+  return APPROACH_MIN + (APPROACH_MAX - APPROACH_MIN) * c * c;
+}
+
+// FOGONAZO al recibir un impacto que NO mata. Sin esto, subirle la vida a los enemigos los vuelve
+// esponjas: tiras, pegas y no pasa nada visible. Se resuelve con la marca de tiempo que deja la
+// colision (o.hitT) contra el reloj del run — no necesita reloj ni decaimiento propio.
+function hitFlash(sx, sy, k, o, w, h) {
+  if (!o.hitT || run.t - o.hitT > 0.09) return;
+  ctx.globalAlpha = 0.5;
+  px(sx - w / 2 * k, sy - h / 2 * k, w * k, h * k, P.ink);
+  ctx.globalAlpha = 1;
+}
+
 export function drawObstacle(o) {
   const k = F / o.z;
   if (o.type === 'mast') {
@@ -171,27 +213,53 @@ export function drawObstacle(o) {
   } else if (o.type === 'helo') {
     const oy = o.y + Math.sin(run.t * 2 + o.ph) * 0.8;
     const s = proj(o.x, oy, o.z);
-    px(s.x - 3 * k, s.y - 0.8 * k, 6 * k, 2 * k, P.bodyDark);
-    px(s.x + 2.4 * k, s.y - 0.4 * k, 2.4 * k, Math.max(1, 0.8 * k), P.bodyDark);
-    px(s.x - 1.4 * k, s.y - 1.4 * k, 2 * k, Math.max(1, 0.8 * k), P.canopy);
+    const kk = k * approachZoom(o.z);
+    // VIRAJE: yaw 0 = viene de frente (cuerpo angosto, cola escondida detras) · yaw 1 = de costado
+    // (cuerpo entero y cola extendida). No son dos dibujos: es UNO que se estira por escorzo.
+    const yaw = clamp01((HELO_TURN_FAR - o.z) / (HELO_TURN_FAR - HELO_TURN_NEAR));
+    const dir = o.ph > 3 ? 1 : -1;                     // hacia que lado se abre (fijo por bicho)
+    const bodyW = (2.6 + 3.4 * yaw) * kk;              // 2.6 de frente → 6.0 de costado
+    const bodyH = 2 * kk;
+    // cabina/cuerpo
+    px(s.x - bodyW / 2, s.y - bodyH * 0.45, bodyW, bodyH, P.bodyDark);
+    px(s.x - bodyW / 2, s.y - bodyH * 0.45, bodyW, Math.max(1, 0.5 * kk), P.body);   // brillo superior
+    // COLA: crece desde atras del cuerpo a medida que se pone de costado
+    const tail = 3.2 * kk * yaw;
+    if (tail > 0.6) {
+      const tx0 = s.x + dir * bodyW / 2;
+      px(Math.min(tx0, tx0 + dir * tail), s.y - 0.25 * kk, tail, Math.max(1, 0.7 * kk), P.bodyDark);
+      if (yaw > 0.45) px(tx0 + dir * tail - (dir < 0 ? 0.9 * kk : 0), s.y - 1.4 * kk, Math.max(1, 0.9 * kk), 1.8 * kk, P.bodyDark);  // deriva de cola
+    }
+    // canopy: centrado de frente (mirandote) → corrido al morro cuando esta de costado
+    const cw = (1.7 - 0.3 * yaw) * kk;
+    px(s.x - dir * (bodyW * 0.5 - cw * 0.7) * yaw - cw / 2, s.y - bodyH * 0.35, cw, Math.max(1, 0.8 * kk), P.canopy);
+    // patines
+    px(s.x - bodyW * 0.42, s.y + bodyH * 0.6, bodyW * 0.84, Math.max(1, 0.35 * kk), '#2b3338');
+    // rotor: disco visto de canto — barrido rapido, siempre ancho
     const r = Math.sin(run.t * 40) * 4;
-    px(s.x - (4 + r * 0.2) * k, s.y - 2 * k, (8 + r * 0.4) * k, 1, P.body);
+    px(s.x - (4.6 + r * 0.2) * kk, s.y - 2.1 * kk, (9.2 + r * 0.4) * kk, Math.max(1, 0.4 * kk), P.body);
+    px(s.x - 0.35 * kk, s.y - 2.3 * kk, Math.max(1, 0.7 * kk), 0.9 * kk, '#2b3338');   // mastil
+    hitFlash(s.x, s.y - 0.4 * kk, kk, o, 8, 3.4);
+    drawHpBar(s.x, s.y - 3.8 * kk, kk, o);      // sobre el rotor
   } else if (o.type === 'jet') {
     // avion enemigo de frente: alas anchas, fuselaje central, canopy, deriva y leve alabeo
     const oy = o.y + Math.sin(run.t * 1.6 + o.ph) * 0.5;
     const s = proj(o.x, oy, o.z);
+    const kk = k * approachZoom(o.z);   // arranca chiquito en el horizonte y se agranda encima
     const bank = Math.sin(run.t * 1.1 + o.ph) * 0.7;          // metros de alabeo en las puntas
-    px(s.x - 5 * k, s.y - bank * k - 0.45 * k, 5 * k, 0.9 * k, P.body);   // ala izquierda
-    px(s.x, s.y + bank * k - 0.45 * k, 5 * k, 0.9 * k, P.body);   // ala derecha
-    px(s.x - 5 * k, s.y - bank * k + 0.45 * k, 5 * k, 0.5 * k, P.bodyDark);
-    px(s.x, s.y + bank * k + 0.45 * k, 5 * k, 0.5 * k, P.bodyDark);
-    px(s.x - 5 * k, s.y - bank * k - 0.45 * k, 1 * k, 0.9 * k, P.dim);    // puntas de ala
-    px(s.x + 4 * k, s.y + bank * k - 0.45 * k, 1 * k, 0.9 * k, P.dim);
-    px(s.x - 1.1 * k, s.y - 1.5 * k, 2.2 * k, 3 * k, P.bodyDark);         // fuselaje
-    px(s.x - 0.9 * k, s.y - 1.2 * k, 1.8 * k, 2.4 * k, P.body);
-    px(s.x - 0.7 * k, s.y - 1.1 * k, 1.4 * k, 1 * k, P.canopy);           // canopy
-    px(s.x - 0.35 * k, s.y - 3 * k, 0.8 * k, 1.6 * k, P.bodyDark);        // deriva
-    px(s.x - 0.4 * k, s.y - 1.5 * k, 0.8 * k, 0.8 * k, P.warn);           // nariz
+    px(s.x - 5 * kk, s.y - bank * kk - 0.45 * kk, 5 * kk, 0.9 * kk, P.body);   // ala izquierda
+    px(s.x, s.y + bank * kk - 0.45 * kk, 5 * kk, 0.9 * kk, P.body);   // ala derecha
+    px(s.x - 5 * kk, s.y - bank * kk + 0.45 * kk, 5 * kk, 0.5 * kk, P.bodyDark);
+    px(s.x, s.y + bank * kk + 0.45 * kk, 5 * kk, 0.5 * kk, P.bodyDark);
+    px(s.x - 5 * kk, s.y - bank * kk - 0.45 * kk, 1 * kk, 0.9 * kk, P.dim);    // puntas de ala
+    px(s.x + 4 * kk, s.y + bank * kk - 0.45 * kk, 1 * kk, 0.9 * kk, P.dim);
+    px(s.x - 1.1 * kk, s.y - 1.5 * kk, 2.2 * kk, 3 * kk, P.bodyDark);          // fuselaje
+    px(s.x - 0.9 * kk, s.y - 1.2 * kk, 1.8 * kk, 2.4 * kk, P.body);
+    px(s.x - 0.7 * kk, s.y - 1.1 * kk, 1.4 * kk, 1 * kk, P.canopy);            // canopy
+    px(s.x - 0.35 * kk, s.y - 3 * kk, 0.8 * kk, 1.6 * kk, P.bodyDark);         // deriva
+    px(s.x - 0.4 * kk, s.y - 1.5 * kk, 0.8 * kk, 0.8 * kk, P.warn);            // nariz
+    hitFlash(s.x, s.y - 0.6 * kk, kk, o, 10, 4.2);
+    drawHpBar(s.x, s.y - 4.4 * kk, kk, o);                                     // sobre la deriva
   } else if (o.type === 'fuel') {
     const oy = o.y + Math.sin(run.t * 2) * 0.5;
     const s = proj(o.x, oy, o.z);

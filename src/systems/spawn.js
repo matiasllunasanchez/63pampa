@@ -10,7 +10,11 @@
 import { cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { obstacles, soldiers } from '../core/world.js';
-import { SPAWN_X } from '../data/tuning.js';
+import { SPAWN_X, ENEMY_HP } from '../data/tuning.js';
+
+/** Vida inicial de un enemigo. `hpMax` queda fijo para que la barra pueda dibujar la fraccion
+ *  (hp/hpMax); sin el, un enemigo tocado no se distingue de uno que nace con menos vida. */
+const hpOf = type => ({ hp: ENEMY_HP[type], hpMax: ENEMY_HP[type] });
 
 /** Un obstaculo nuevo en el horizonte. El sorteo mezcla amenazas y bidones; sin combustible
  *  activo, los bidones se fuerzan menos (serian pickups inutiles) y su slot cae en globo. */
@@ -19,11 +23,11 @@ function spawn() {
   if (cfg.fuelOn && run.fuelDist > 700) { obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false }); run.fuelDist = 0; return; }
   const r = Math.random();
   if (r < 0.34) obstacles.push({ type: 'mast', x: lane, h: 11 + Math.random() * 17, z: 250, done: false });
-  else if (r < 0.60) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, hp: 1, done: false, ph: Math.random() * 6 });
-  else if (r < 0.70) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, hp: 2, done: false, ph: Math.random() * 6 });
-  else if (r < 0.78) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, hp: 2, done: false, ph: Math.random() * 6 });
+  else if (r < 0.60) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph: Math.random() * 6 });
+  else if (r < 0.70) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, ...hpOf('helo'), done: false, ph: Math.random() * 6 });
+  else if (r < 0.78) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, ...hpOf('jet'), done: false, ph: Math.random() * 6 });
   else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false });
-  else obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, hp: 1, done: false, ph: Math.random() * 6 });
+  else obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph: Math.random() * 6 });
 }
 
 /** Avanza los relojes de aparicion y siembra cuando toca. */

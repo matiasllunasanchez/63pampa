@@ -21,7 +21,8 @@ roadmap, acá va el *cómo y cuánto cuesta*.
 ## Orden que sugiero
 
 **Fase 1 — Quick wins de sensación (bajo riesgo, alto impacto, se puede ya):**
-#4 (bob/wobble, lo pruebo hoy) · #2 (HP + metralla, el HP ya existe) · #10-datos (stats por avión).
+~~#4 (bob/wobble)~~ ✅ hecho · ~~#22-v1 (panel de estado)~~ ✅ hecho · ~~#2 (HP + metralla)~~ ✅ hecho ·
+#10-datos (stats por avión) ← **el único que queda de la Fase 1**.
 
 **Fase 2 — Fundaciones (destraban lo grande):**
 #5 (monedas → base de toda la economía) · #10-cableado (stats afectan el vuelo → base de la asimetría inglesa).
@@ -30,7 +31,8 @@ roadmap, acá va el *cómo y cuánto cuesta*.
 #9 (enemigos) · #3 (dashes, tras resolver controles) · #15 (Hércules) · #16 (tierra/soldados).
 
 **Fase 4 — Grandes apuestas (cada una pide una decisión de identidad del juego):**
-Trío momentum #1/#12/#13 · Economía/roguelike #6/#14 (¿el juego es roguelike o campaña?) · Asimetría #18/#19.
+Trío momentum #1/#12/#13 · Economía/roguelike #6/#14 (¿el juego es roguelike o campaña?) ·
+Asimetría y aliados #18/#19/#20/#21 (la asimetría con su capa geopolítica: qué apoyó a cada bando).
 
 ---
 
@@ -136,6 +138,45 @@ una BASE TERRESTRE (actor/sistema nuevo) le avise** → hay una ventana de vulne
 hay aviso. Sistema nuevo pero acotado. **Veredicto: mecánica con sentido narrativo y de gameplay;
 parte natural de #18.**
 
+### #20 — Ayuda de países aliados a la Argentina · 🟡🎲
+La facilidad depende de la forma. La versión **"un aliado sobrevuela y te deja algo"** reutiliza el
+patrón del Hércules (#15: actor aliado en el aire + pickup) → media. La versión **"bando con ayudas
+sistémicas"** ya es parte de la apuesta de asimetría → gran apuesta. **Propuesta:** no diseñar un
+sistema geopolítico — elegir **1-2 ayudas concretas** y hacerlas features palpables (un pickup
+especial, un aviso de radar, un arma extra), cada una atribuida a un país. **Depende de #15** (patrón
+de aliado) y **#10** (si la ayuda se expresa como tecnología/stats). **Veredicto: empezar chico y
+concreto; es el platillo argentino de la balanza — le da sentido a que el avión sea exigente.**
+
+### #21 — Ayuda de países aliados a Inglaterra · 🎲
+Es el **otro platillo de #18**, no una feature suelta: es lo que **justifica** la ventaja inglesa
+(que no sea "es mejor porque sí"). No tiene sentido construirlo aislado. **Propuesta:** cuando hagas
+#18/#19, presentá las ventajas inglesas (radar propio, estabilidad, más HP, reabastecimiento) **como
+"ayudas de aliados"**, dándoles peso narrativo. Es diseño + narrativa sobre la base técnica de #10.
+**Veredicto: va pegado a #18/#19 — es su capa de sentido, no un desarrollo separado.**
+
+### #22 — Panel de daños por partes del avión · 🟢 (v1) / 🎲 (v2)
+**Hallazgo que manda sobre todo el ítem: hoy el jugador NO tiene vida.** Todo choque es muerte
+instantánea (`{ death }` en `collision.js`; el roce agota `scrapeT` en `flight.js`) y **solo los
+enemigos tienen `hp`**. Así que el panel no es un problema de UI: es la punta visible de "¿el avión
+pasa a tener integridad?".
+
+**Por qué eso no es trivial:** la muerte de un toque es lo que hace tenso el vuelo rasante. Si el
+avión aguanta tres golpes, el rasante se vuelve barato. No es un "más es mejor" — hay que decidirlo.
+
+**Propuesta en dos escalones:**
+- **v1 — panel de estado (🟢) — ✅ HECHO:** silueta del avión **de espaldas** (misma vista que el
+  sprite en vuelo) en el borde izquierdo, en espejo con la palanca de gas. Alas = calor/`overheat`,
+  motor = `run.fuel`, panza = `run.scrapeT` contra `scrapeLimit()`. Cero sistemas nuevos, puro
+  `render/hud.js` (`drawStatusPanel()`). **El margen de roce era el único de los tres que no se
+  veía en ningún lado** — y como al salir del roce `scrapeT` se descuenta lento, la panza queda
+  castigada y se recupera sola, que es justo la lectura que se quiere de un panel de daños.
+- **v2 — daño por partes (🎲):** cada parte con su integridad, y el daño **degrada un stat concreto**
+  (ala → maniobra, motor → velocidad). Recién acá el panel informa de verdad. **Depende de #10**
+  (sin stats por avión no hay nada que degradar) y **habilita #11** (si hay daño, hay reparaciones).
+
+**Veredicto: hacé la v1 como quick win de HUD — se ve bien y no compromete nada. La v2 no la
+arranques hasta decidir la regla de muerte, porque toca el corazón de la tensión del juego.**
+
 ---
 
 ## Resumen de dependencias
@@ -143,7 +184,12 @@ parte natural de #18.**
 ```
 #5 monedas ──→ #6 compra ──→ #11 reparaciones/mejoras
                     └──→ #14 roguelike ──→ #13 momentum-poder
+#15 aliado (Hércules) ──→ #20 ayudas a Argentina
 #10 stats por avión ──→ #18 asimetría inglesa ──→ #19 radar/base terrestre
+                                 ├──→ #20 ayudas a Argentina (contrapeso)
+                                 └──→ #21 ayudas a Inglaterra (su justificación narrativa)
 #2 HP enemigos ──→ #9 variedad de enemigos
+#10 stats por avión ──→ #22 panel de daños (v2) ──→ #11 reparaciones/mejoras
 #1/#12/#13 (trío momentum) ── elegir UNA visión primero
+#22 (v2) ── decidir antes la REGLA DE MUERTE (hoy: un toque = muerte)
 ```
