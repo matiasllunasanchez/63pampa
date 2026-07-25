@@ -93,6 +93,31 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
 | Turbo     | `SHIFT` / `C`            | mantener derecha-abajo          |
 | Cámara    | `V` — cicla 4 cámaras: **1× → 1.5× → 2× → 2.5×** (siguen al avión) | — |
 | Idioma    | `L` (cambia es ↔ en)     | —                               |
+| **Piruetas** | **combo de dos toques** direccionales (ver abajo) | — |
+
+### Piruetas (los "poderes")
+
+Nueve maniobras de caza que se disparan con un **combo de dos toques direccionales** en menos de
+0.24 s, al estilo de un juego de pelea. Durante la maniobra **el avión no se controla**, salvo el
+eje que cada una deja libre. Funcionan igual con joystick (cruceta o flicks del stick).
+
+| combo | maniobra | | combo | maniobra |
+|---|---|---|---|---|
+| `←←` / `→→` | BARREL ROLL (tonel) | | `↓←` / `↓→` | BREAK TURN |
+| `↓↓` **volando alto** | SPLIT-S | | `←→` / `→←` | S-TURN |
+| `↓↓` **volando bajo** | TERRAIN MASKING | | `↑←` / `↑→` | JINK |
+| `↑↑` **volando bajo** | POP-UP | | `↓↑` | LOW YO-YO |
+| `↑↑` **volando alto** / `↑↓` | HIGH YO-YO | | | |
+
+> ⚠️ **"Volando alto / bajo" es la ALTURA DEL AVIÓN, no una dirección más del combo.**
+> `↓↓ volando alto` **no** es "abajo, abajo, arriba": es apretar `↓↓` **estando el avión arriba**.
+> El mismo doble toque hace cosas distintas según tu altitud — el juego elige la maniobra que
+> tiene sentido donde estás. Regla práctica: **si el HUD marca ×10 o ×5 estás BAJO; si marca ×1,
+> ALTO** (los umbrales son 18 m para `↓↓` y 14 m para `↑↑`).
+
+Se apagan desde el menú `[M]` → **PIRUETAS: SI/NO** (el tonel queda siempre).
+**Tabla completa** — duración, qué controlás, si podés disparar o usar turbo, y economía de
+energía: **[docs/PIRUETAS.md](docs/PIRUETAS.md)**.
 
 **Idiomas:** el juego está internacionalizado (i18n). Se elige el idioma por, en orden, `?lang=xx`
 en la URL, `localStorage 'rasante_lang'`, el idioma del navegador, o español por defecto. La tecla
@@ -157,10 +182,14 @@ Los números del gamefeel están en el `<script>` de `index.html`:
   fila COMBUSTIBLE SI/NO (`cfg.fuelOn`) — con NO no hay drenaje ni spawn de bidones (pruebas)
 - Ventana de near-miss: margen `< 3` en el chequeo de paso (`dx < 3 && dy < 3`)
 - Perfil de colisión del avión: `pw=2.1, ph2=1.0` (afinado; antes 2.6×1.2) — en PIRUETA `1.0×0.7`
-- **PIRUETA (tonel)**: doble-tap `←`/`→` (ventana 0.28s) → tonel de `ROLL_DUR=0.55s`, cooldown
+- **PIRUETA (tonel)**: doble-tap `←`/`→` (ventana 0.24s) → tonel de `ROLL_DUR=0.55s`, cooldown
   `1.15s`, dash lateral `vx = dir*40*(0.45+rollT/DUR)`. Alas de canto = perfil mínimo → pasa por
   huecos finos. Rozar un obstáculo **durante** la pirueta: `+250` (vs +75). Visual: rotación 360°
   del sprite + 2 fantasmas translúcidos + estelas de viento.
+- **PIRUETAS de combate** (8 más, `data/moves.js` + `systems/moves.js`): mismo cooldown de `1.15s`,
+  perfil fino en las banqueadas (split-s, break turn, s-turn, jink). Los pares `↓↓`/`↑↑` se
+  resuelven por **altura del avión** contra `MV_HI=18` / `MV_LO=14`. Ver
+  [docs/PIRUETAS.md](docs/PIRUETAS.md)
 
 ## Flujo de pantallas y modos
 

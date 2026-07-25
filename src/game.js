@@ -397,14 +397,20 @@ import { RUNWAYS } from './data/runways.js';
       planeNav: dir => { selPlane = (selPlane + dir + PLANES.length) % PLANES.length; beep(dir < 0 ? 520 : 600, 0.05, 'square', 0.04); },
       roll: dir => startRoll(dir),
       // COMBO de dos toques (ver dirTap en core/input.js). El PAR llega crudo ('ll', 'du'...):
-      // aca se resuelve QUE maniobra es — los verticales comparten par y se separan por ALTURA
-      // (↓↓ arriba = hay cielo para el Split-S; abajo = Terrain Masking. ↑↑ al reves).
+      // aca se resuelve QUE maniobra es.
+      //
+      // OJO con 'dd' y 'uu': son PARES CONTEXTUALES. La maniobra no la decide como se apretaron
+      // las teclas sino la ALTURA A LA QUE VIENE VOLANDO EL AVION en ese instante (plane.y contra
+      // MV_HI / MV_LO). El mismo doble toque hace cosas distintas segun donde estes: alto y ↓↓ es
+      // tirarse (Split-S), bajo y ↓↓ es pegarse al piso (Masking). Ver docs/PIRUETAS.md.
       combo: pair => {
         if (S.state !== 'play') return;
         switch (pair) {
           case 'll': return startRoll(-1);                 // el tonel clasico (camino legado)
           case 'rr': return startRoll(1);
+          // volando ALTO hay cielo abajo para tirarse; volando BAJO no queda mas que pegarse
           case 'dd': return moves.startMove(plane.y > MV_HI ? 'splits' : 'mask', 1);
+          // volando BAJO trepar es la jugada; volando ALTO ya tenes altura para colgarte
           case 'uu': return moves.startMove(plane.y < MV_LO ? 'popup' : 'hiyo', 1);
           case 'ud': return moves.startMove('hiyo', 1);
           case 'du': return moves.startMove('loyo', 1);

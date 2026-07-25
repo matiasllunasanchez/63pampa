@@ -13,12 +13,21 @@
 //   tight  el perfil de colision se ENCOGE (alas de canto / banqueo fuerte), como en el tonel —
 //          tambien habilita el bonus de roce "con estilo" (250 en vez de 75)
 //
-// COMBOS (dos toques direccionales en menos de 0.28 s; tambien con el pad — cruceta o flicks
-// del stick). Los verticales comparten tecla y se resuelven por ALTURA en game.js:
-//   ←←  →→   BARREL ROLL      ↓↓ alto   SPLIT-S         ↓↓ bajo   TERRAIN MASKING
-//   ↑↑ bajo  POP-UP           ↑↑ alto   HIGH YO-YO      ↑↓        HIGH YO-YO
-//   ↓↑       LOW YO-YO        ↓← ↓→     BREAK TURN      ←→ →←     S-TURN
-//   ↑← ↑→   JINK
+// COMBOS: dos toques direccionales en menos de 0.24 s (tambien con el pad — cruceta o flicks
+// del stick). Ver docs/PIRUETAS.md para la tabla completa.
+//
+//   ←← / →→    BARREL ROLL        ↓↑         LOW YO-YO
+//   ↑↓         HIGH YO-YO         ↓← / ↓→    BREAK TURN
+//   ←→ / →←    S-TURN             ↑← / ↑→    JINK
+//
+// PARES CONTEXTUALES. Cuatro maniobras comparten combo con otra, y cual sale NO depende de como
+// se aprietan las teclas: depende de la ALTURA A LA QUE VIENE VOLANDO EL AVION (plane.y). Se
+// resuelve en el `combo` de game.js contra los umbrales de abajo.
+//
+//   ↓↓  con el avion ALTO (y > MV_HI)  → SPLIT-S          (hay cielo debajo para picar)
+//   ↓↓  con el avion BAJO (y <= MV_HI) → TERRAIN MASKING  (ya estas bajo: pegate mas)
+//   ↑↑  con el avion BAJO (y < MV_LO)  → POP-UP           (salis de rasante hacia arriba)
+//   ↑↑  con el avion ALTO (y >= MV_LO) → HIGH YO-YO       (ya tenes altura: colgate arriba)
 export const MOVES = {
   // medio tonel invertido + picada fuerte: la salida vertical hacia ABAJO. Pide altura.
   splits: { dur: 0.95, name: 'SPLIT-S', steer: 'x', fire: false, turbo: false, tight: true },
@@ -41,7 +50,12 @@ export const MOVES = {
 /** ¿La maniobra activa encoge el perfil de colision? (la consultan collision y el overlay) */
 export const mvTight = mv => !!(mv && MOVES[mv] && MOVES[mv].tight);
 
-// umbral de ALTURA que separa los combos verticales compartidos (game.js):
-// ↓↓ por encima = hay cielo para el Split-S; por debajo = Terrain Masking.
-// ↑↑ por debajo = Pop-Up (salis de rasante); por encima = High Yo-Yo.
+// UMBRALES DE ALTURA de los pares contextuales (ver el bloque de COMBOS arriba). Son unidades de
+// MUNDO — la misma escala de plane.y, donde el techo de vuelo es FLY_TOP = 68.
+//
+// Son DOS numeros distintos porque responden preguntas distintas: MV_HI pregunta "¿tengo aire
+// debajo para tirarme?" y MV_LO, "¿estoy lo bastante bajo como para que trepar sea la jugada?".
+// Referencia para calibrarlos: el multiplicador de altitud cambia a los 4.5 (x10), 9 (x5) y
+// 16 (x2) — MV_HI queda apenas arriba del ultimo escalon, asi que en la practica "ALTO" coincide
+// con el x1 del HUD y "BAJO" con x10/x5.
 export const MV_HI = 18, MV_LO = 14;
