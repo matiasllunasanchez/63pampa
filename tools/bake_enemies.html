@@ -360,15 +360,17 @@
         fw: 56, fh: 48, dist: 16, lookY: 1.3, quarter: 0.5,
         frames: [-0.5, 0, 0.5].map(a => ({ model: () => modelAATruck(a) })), cols: 3,
       },
-      // barcaza: un solo frame en 3/4 (proa/rampa hacia la IZQUIERDA, que es donde esta la playa)
+      // barcaza: 3 poses de ROLIDO (proa/rampa hacia la IZQUIERDA, que es donde esta la playa).
+      // Un casco clavado en el agua parece una foto pegada; oscilando de a ±5° cabecea con la
+      // marejada. El ciclo lo lleva el render (seno lento por barcaza).
       lcu: {
         fw: 72, fh: 48, dist: 17, lookY: 0.9, quarter: -0.55,
-        frames: [{ model: modelLcu }], cols: 1,
+        frames: [-0.09, 0, 0.09].map(a => ({ model: modelLcu, roll: a })), cols: 3,
       },
-      // globo: un solo frame, de frente con un toque de 3/4
+      // globo: 3 poses de TAMBALEO (±7° de rolido) — colgado del cable, el viento lo hamaca
       balloon: {
         fw: 48, fh: 48, dist: 11, lookY: 0, quarter: 0.4,
-        frames: [{ model: modelBalloon }], cols: 1,
+        frames: [-0.12, 0, 0.12].map(a => ({ model: modelBalloon, roll: a })), cols: 3,
       },
       // nido AA: 2 poses de apunte de los caños
       aa: {

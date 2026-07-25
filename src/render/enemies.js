@@ -35,8 +35,10 @@ export const SHEETS = {
   jet: { fw: 64, fh: 48, cols: 5, rows: 1, box: { x0: 14, y0: 10, x1: 49, y1: 31 }, wu: 10.5 },
   radar: { fw: 48, fh: 48, cols: 4, rows: 1, box: { x0: 10, y0: 7, x1: 43, y1: 40 }, wu: 6.2 },
   aatruck: { fw: 56, fh: 48, cols: 3, rows: 1, box: { x0: 13, y0: 12, x1: 48, y1: 39 }, wu: 6.6 },
-  lcu: { fw: 72, fh: 48, cols: 1, rows: 1, box: { x0: 10, y0: 11, x1: 51, y1: 32 }, wu: 8.6 },
-  balloon: { fw: 48, fh: 48, cols: 1, rows: 1, box: { x0: 9, y0: 11, x1: 37, y1: 33 }, wu: 5.6 },
+  // lcu y balloon llevan 3 POSES DE ROLIDO (izq/centro/der): el render las cicla con un seno
+  // lento por objeto — el tambaleo en el lugar que hace que no parezcan imagenes fijas
+  lcu: { fw: 72, fh: 48, cols: 3, rows: 1, box: { x0: 9, y0: 11, x1: 52, y1: 33 }, wu: 8.6 },
+  balloon: { fw: 48, fh: 48, cols: 3, rows: 1, box: { x0: 9, y0: 10, x1: 37, y1: 33 }, wu: 5.6 },
   aa: { fw: 48, fh: 48, cols: 2, rows: 1, box: { x0: 8, y0: 7, x1: 39, y1: 35 }, wu: 5.2 },
   tent: { fw: 48, fh: 48, cols: 1, rows: 1, box: { x0: 7, y0: 16, x1: 43, y1: 33 }, wu: 5.4 },
   // depot y bldg se escalan por ALTURA al dibujar (o.h varia por spawn): wu es el ancho a la
@@ -54,11 +56,19 @@ for (const k in SHEETS) {
 /** ¿La hoja de `k` esta lista para dibujar? Si no, world.js cae a su dibujo a mano. */
 export const ready = k => { const s = SHEETS[k]; return s.img.complete && s.img.naturalWidth > 0; };
 
+// FLASH DE IMPACTO: para pintar el sprite de blanco un instante se lo pasa por un canvas
+// auxiliar (dibujar frame → 'source-in' blanco → estampar encima). Antes el flash era un
+// RECTANGULO blanco sobre el enemigo, y con las hojas horneadas se leia como si parpadeara el
+// hitbox de depuracion — el destello tiene que tener LA FORMA del bicho, no la de su caja.
+const tint = document.createElement('canvas');
+const tintCtx = tint.getContext('2d');
+
 /** Dibuja el frame (col,row) de la hoja `k`.
  *  `cx` = centro horizontal en pantalla. `bottomY` o `centerY`: los de TIERRA anclan el pie del
  *  contenido al suelo, los del AIRE centran el contenido en su altura de vuelo. `k2` = escala de
- *  proyeccion (k de proj, ya con el zoom de cercania si aplica). `flip` espeja en horizontal. */
-export function drawFrame(ctx, k, col, row, cx, { bottomY, centerY }, k2, flip) {
+ *  proyeccion (k de proj, ya con el zoom de cercania si aplica). `flip` espeja en horizontal.
+ *  `flash` = true pinta el sprite de blanco (impacto no letal — ver `tint` arriba). */
+export function drawFrame(ctx, k, col, row, cx, { bottomY, centerY }, k2, flip, flash) {
   const s = SHEETS[k], b = s.box;
   const cw = b.x1 - b.x0 + 1, ch = b.y1 - b.y0 + 1;
   const scale = s.wu * k2 / cw;                    // px de pantalla por px de hoja
@@ -68,10 +78,20 @@ export function drawFrame(ctx, k, col, row, cx, { bottomY, centerY }, k2, flip) 
     ? bottomY - (b.y1 + 1) * scale
     : centerY - (b.y0 + ch / 2) * scale;
   const cxf = (b.x0 + cw / 2) * scale;             // centro del contenido dentro del frame escalado
+  let img = s.img, sx = col * s.fw, sy = row * s.fh;
+  if (flash) {
+    tint.width = s.fw; tint.height = s.fh;         // asignar el tamaño ya limpia el canvas
+    tintCtx.globalCompositeOperation = 'source-over';
+    tintCtx.drawImage(s.img, sx, sy, s.fw, s.fh, 0, 0, s.fw, s.fh);
+    tintCtx.globalCompositeOperation = 'source-in';
+    tintCtx.fillStyle = '#f2f6f4';
+    tintCtx.fillRect(0, 0, s.fw, s.fh);
+    img = tint; sx = 0; sy = 0;
+  }
   ctx.save();
   ctx.imageSmoothingEnabled = false;
   ctx.translate(cx, 0);
   if (flip) ctx.scale(-1, 1);
-  ctx.drawImage(s.img, col * s.fw, row * s.fh, s.fw, s.fh, -cxf, top, W, H);
+  ctx.drawImage(img, sx, sy, s.fw, s.fh, -cxf, top, W, H);
   ctx.restore();
 }

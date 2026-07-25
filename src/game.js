@@ -416,7 +416,7 @@ import { RUNWAYS } from './data/runways.js';
 
 
     const clouds = Array.from({ length: 6 }, () => ({ x: Math.random() * W, y: 8 + Math.random() * 34, w: 24 + Math.random() * 40 }));
-    const isles = Array.from({ length: 4 }, (_, i) => ({ x: i * 90 + Math.random() * 50, w: 40 + Math.random() * 70, h: 5 + Math.random() * 10 }));
+    const isles = Array.from({ length: 4 }, (_, i) => ({ x: i * 90 + Math.random() * 50, w: 40 + Math.random() * 70, h: 5 + Math.random() * 10, seed: (Math.random() * 9999) | 0 }));
 
     // ---------- FONDOS por clima (assets/images/terrain_back, EN PRUEBA) ----------
     // Imagenes 2752x1536 con el horizonte al ~72% de altura: se anclan para que esa linea
@@ -531,15 +531,16 @@ import { RUNWAYS } from './data/runways.js';
       deadBg = (Math.random() * screens.LOSE_BG_N) | 0;
       sfxOne('exSmall');   // mi avion chocando (agua incluida, por ahora)
       factIdx = (factIdx + 1) % L().facts.length;
-      explodeAt(plane.x, plane.y, PZ, true);
+      explodeAt(plane.x, plane.y, PZ, true, true);   // noBall: la bola del derribo es la PIXEL de abajo
       // INERCIA DEL DESASTRE. Un avion a 300 km/h no frena y explota en el lugar: revienta Y
       // SIGUE — los restos y la bola de fuego conservan la velocidad que traia y avanzan varios
       // metros alejandose de la camara mientras caen. `vz` es esa inercia (en unidades de mundo,
       // las mismas de run.spd); el bloque de estado 'dead' del update la integra y la va frenando.
       const spd0 = Math.max(40, run.spd);
-      // BOLA DE FUEGO donde revento el avion: la misma que el airburst de las bombas, un poco
-      // mas chica (scale). Viaja con los restos: el incendio va donde va el fuselaje.
-      obstacles.push({ type: 'airboom', x: plane.x, y: plane.y, z: PZ, boomT: 0, scale: 0.62, done: true, vz: spd0 * 0.5, vy2: plane.y > 3 ? -2 : 0 });
+      // BOLA DE FUEGO del derribo: version PIXEL (pix), por codigo y MAS CHICA que la hoja
+      // frontal — la hoja tapaba justo lo que este momento tiene que mostrar: el avion
+      // rompiendose en pedazos. La pixel revienta con huecos y viaja con los restos.
+      obstacles.push({ type: 'airboom', pix: true, x: plane.x, y: plane.y, z: PZ, boomT: 0, scale: 0.5, done: true, vz: spd0 * 0.5, vy2: plane.y > 3 ? -2 : 0, ph: Math.random() * 6 });
       // PEDAZOS GRANDES en el MUNDO ('chunk'): el motor, media ala, la deriva... Vuelan hacia
       // adelante perdiendo velocidad, la gravedad los baja y rebotan cortos al tocar el suelo.
       // Van en coordenadas de mundo (no de pantalla) justamente para poder ALEJARSE: los `parts`
@@ -874,14 +875,36 @@ import { RUNWAYS } from './data/runways.js';
         const cx = ((c.x - cam.x * 2.2 - run.t * 2) % (W + 80) + W + 80) % (W + 80) - 40;
         px(cx, c.y, c.w, 3, P.cloud); px(cx + 5, c.y - 2, c.w * 0.5, 2, P.cloud);
       }
-      // islas en el horizonte: SIEMPRE (el parallax de estas montañas es la vida del fondo;
-      // la imagen de clima queda detras como relleno)
+      // COLINAS en el horizonte: SIEMPRE (el parallax de estas montañas es la vida del fondo;
+      // la imagen de clima queda detras como relleno). Cresta QUEBRADA sorteada por seed y en
+      // DOS TONOS — las laderas que miran al sol (izquierda) se iluminan, las otras quedan en
+      // sombra. El dibujo viejo eran dos triangulos planos de un solo color: carton pintado.
       for (const is of isles) {
         const ix = ((is.x - cam.x * 3.5) % (W + 160) + W + 160) % (W + 160) - 80;
-        ctx.fillStyle = P.island;
-        ctx.beginPath();
-        ctx.moveTo(ix, HOR + 1); ctx.lineTo(ix + is.w * 0.35, HOR + 1 - is.h); ctx.lineTo(ix + is.w * 0.7, HOR + 1 - is.h * 0.5); ctx.lineTo(ix + is.w, HOR + 1);
+        const hsh = n => { const v = Math.sin(is.seed * 12.9898 + n * 78.233) * 43758.5453; return v - Math.floor(v); };
+        const N = 6, peak = 1 + Math.round(hsh(99) * (N - 2));
+        const ys = [0];                                   // altura de cada vertice de la cresta
+        for (let j = 1; j < N; j++) {
+          const env = 1 - Math.abs(j - peak) / Math.max(peak, N - peak);
+          ys.push(is.h * (0.3 + 0.7 * env) * (0.7 + hsh(j) * 0.55));
+        }
+        ys.push(0);
+        const xj = j => ix + (j / N) * is.w;
+        ctx.fillStyle = P.island;                         // masa base (el lado en sombra)
+        ctx.beginPath(); ctx.moveTo(ix, HOR + 1);
+        for (let j = 1; j <= N; j++) ctx.lineTo(xj(j), HOR + 1 - ys[j]);
         ctx.fill();
+        ctx.fillStyle = '#2a3844';                        // laderas al sol: las que SUBEN
+        for (let j = 0; j < N; j++) {
+          if (ys[j + 1] <= ys[j]) continue;
+          ctx.beginPath();
+          ctx.moveTo(xj(j), HOR + 1 - ys[j]); ctx.lineTo(xj(j + 1), HOR + 1 - ys[j + 1]);
+          ctx.lineTo(xj(j + 1), HOR + 1); ctx.lineTo(xj(j), HOR + 1);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 0.35;                           // bruma al pie: asienta la sierra
+        px(ix, HOR - 1, is.w, 2, theme.sky.horizon);
+        ctx.globalAlpha = 1;
       }
 
       if (!world3D.isSea()) world.drawSea();   // el mar 2D solo cuando three no lo esta poniendo
@@ -933,8 +956,24 @@ import { RUNWAYS } from './data/runways.js';
           ctx.globalAlpha = 1;
           px(s.x - 0.5 * k, s.y - 0.5 * k, k, k, '#ffd98a');
         } else {
-          px(s.x - 0.8 * k, s.y - 0.8 * k, 1.6 * k, 1.6 * k, P.ink);
-          px(s.x - 0.4 * k, s.y + 0.8 * k, 0.8 * k, Math.max(1, 1.2 * k), P.accent);
+          // MISIL GUIADO de frente (radar / AA / camion): ojiva oscura con el ESCAPE encarandote
+          // — un punto blanco caliente con corona naranja que late — y estela de humo que queda
+          // atras abriendose. Antes era un cuadrado blanco con otro naranja abajo: dos pixeles
+          // apilados, sin direccion ni amenaza.
+          for (let i = 3; i >= 1; i--) {
+            const sm = proj(m.x + Math.sin(run.t * 7 + i * 2) * 0.25, m.y + 0.25 + i * 0.14, m.z + i * 2.8);
+            const r = Math.max(1, sm.k * (0.42 + i * 0.16));
+            ctx.globalAlpha = 0.32 - i * 0.08;
+            px(sm.x - r / 2, sm.y - r / 2, r, r, '#8d9490');
+          }
+          ctx.globalAlpha = 1;
+          const fl = 0.75 + Math.sin(run.t * 30 + m.z) * 0.25;          // la llama late
+          ctx.globalAlpha = 0.5;
+          px(s.x - 0.85 * k * fl, s.y - 0.85 * k * fl, 1.7 * k * fl, 1.7 * k * fl, '#f07c22');  // corona
+          ctx.globalAlpha = 1;
+          px(s.x - 0.6 * k, s.y - 0.6 * k, 1.2 * k, 1.2 * k, '#2e3336');                        // ojiva
+          px(s.x - 0.6 * k, s.y - 0.6 * k, Math.max(1, 0.45 * k), 1.2 * k, '#4a5257');          // canto
+          px(s.x - 0.3 * k, s.y - 0.3 * k, Math.max(1, 0.6 * k), Math.max(1, 0.6 * k), '#fff6d8');  // escape
         }
       }
       // balas (trazadoras hacia el horizonte) — ver render/ammo.js

@@ -48,7 +48,10 @@ function mov(type, x) {
     case 'helo': return sway(x, [4, 8], [0.4, 0.75], 0.55);
     // caza de frente: teje SIEMPRE, y ademas busca tu carril (home, en u/s — collision.js
     // lo aplica sobre el ancla). Es el unico que te persigue: cierra rapido y encima corrige.
-    case 'jet': return { ...sway(x, [2.5, 4.5], [0.8, 1.3], 1), home: 2.2 };
+    // ALGUNOS (45%) vienen ARMADOS: tiran una rafaga corta de trazadoras en su pasada
+    // (gun = tiros que le quedan; el gatillo vive en collision.js).
+    case 'jet': return { ...sway(x, [2.5, 4.5], [0.8, 1.3], 1), home: 2.2,
+      ...(Math.random() < 0.45 ? { gun: 2, gcd: 0.2 } : {}) };
     // vehiculos: ruedan por su carril y rebotan en los bordes
     case 'radar': return drive(1.6, 3.2);
     case 'aatruck': return drive(1.4, 2.8);

@@ -89,9 +89,9 @@ instrumentos abajo. Los 13 px de arriba y abajo los tapa el letterbox.
 |---|---|---|---|
 | `helo` | helicóptero: llega **de frente** y **vira a perfil** al acercarse | 4 | ✅ `enemies/helo.png` horneada (8 columnas de yaw × **2 fases de rotor** — el rotor bate). La columna la elige el `yaw` por distancia; se espeja según el lado al que abre. Fallback por código queda |
 | `jet` | caza enemigo de frente, cierra más rápido (`spd+45`) | 3 | ✅ `enemies/jet.png` horneada (5 columnas de alabeo −30°→+30°). Con ENEMIGOS MÓVILES el alabeo sale de la velocidad lateral real del tejido |
-| `balloon` | globo de barrera, cae de un tiro | 1 | ✅ `enemies/balloon.png` horneada (frame único; el cable y la inclinación al viento van por código) |
+| `balloon` | globo de barrera, cae de un tiro | 1 | ✅ `enemies/balloon.png` horneada — **3 poses de rolido** cicladas por un seno lento (tambaleo en el lugar); el cable y la inclinación al viento van por código |
 | `birds` | bandada (daña, no derriba); variante blanca y oscura, deriva lateral propia | — | 🔵 se queda por código — rehechas con aleteo en TRES poses (arriba/planeo/abajo, con quiebre de ala), cuerpo con panza, tamaños desparejos y bob por ave |
-| `missile` | misil guiado enemigo — lo lanzan el radar, los `aa` y los `aatruck`; variante `tracer` desde los puestos | — | ❌ código |
+| `missile` | misil guiado enemigo — lo lanzan el radar, los `aa`, los `aatruck` **y los cazas armados**; variante `tracer` desde puestos y cazas | — | 🔵 rehecho por código: ojiva oscura con canto, escape blanco encarándote, corona de llama que late y estela de humo que se abre atrás |
 | `bomb` | bomba cayendo del cielo (modo BOMBARDEO); chocarla en el aire mata | — | ❌ código |
 | **Harrier británico** | con marcador de zona vulnerable (ROADMAP #20, ayuda española) | — | ⬜ no existe |
 | **C-130 Hércules aliado** | reabastecimiento en vuelo con manguera (ROADMAP #15) | — | ⬜ no existe |
@@ -103,7 +103,8 @@ Los enemigos ahora **se mueven solos**, y eso condiciona qué tiene que expresar
 - **globos** inclinados al viento sobre su cable (el ancla queda fija),
 - **helicópteros** patrullando — solo el 55%, porque la mezcla de quietos y móviles confunde más,
 - **cazas** que tejen **y corrigen hacia tu carril** (2.2 u/s): por eso el alabeo del sprite tiene
-  que corresponder a hacia dónde va de verdad,
+  que corresponder a hacia dónde va de verdad. **El 45% viene ARMADO** (`gun`): suelta 2 trazadoras
+  en su pasada de ataque (banda z 70–190, gatillo en `systems/collision.js`), con fogonazos de ala,
 - **vehículos** (radar, camión AA) rodando con rebote contra la orilla real,
 - **mástiles-fragata** navegando.
 
@@ -157,8 +158,9 @@ Incluye todo lo de TIERRA (`cliff`, `tent`, `aa`) más:
 | `aatruck` | camión antiaéreo, dispara misiles | 3 | 4.6 |
 | `trench` | **trinchera argentina** — decorado sin colisión, del lado izquierdo; tirotea a los británicos y cada tanto abate uno | — | — |
 
-Estado: `lcu` ✅ (`enemies/lcu.png`, 3/4 con la rampa hacia la playa), `radar` ✅ (`enemies/radar.png`,
-4 poses del plato girando), `aatruck` ✅ (`enemies/aatruck.png`, 3 poses de torreta barriendo).
+Estado: `lcu` ✅ (`enemies/lcu.png`, 3/4 con la rampa hacia la playa — **3 poses de rolido** + bob:
+cabecea con la marejada navegando y, apenas, encallada), `radar` ✅ (`enemies/radar.png`, 4 poses
+del plato girando), `aatruck` ✅ (`enemies/aatruck.png`, 3 poses de torreta barriendo).
 `bldg` ✅ (`enemies/bldg.png`, bloque a dos plantas con bolsas de arena; se escala por `o.h` —
 el soldado asomado y su fogonazo siguen por código encima). `trench` sigue ❌ (código).
 
@@ -199,7 +201,7 @@ Los vehículos se anclan por el **pie del contenido** (no del frame), así apoya
 
 | objeto | qué es | estado |
 |---|---|---|
-| `fuel` | bidón de combustible (+30), aparece en el aire | ❌ código |
+| `fuel` | bidón de combustible (+30), aparece en el aire | 🔵 rehecho por código: tambor con aros, canto al sol, tapón, brillo y **halo pulsante** (lo separa de los enemigos: nada peligroso late con luz cálida) |
 
 ---
 
@@ -282,6 +284,8 @@ De los 12 niveles de la campaña, estos objetivos aún no tienen entrada en `SHI
 | Balas y misiles | 🔵 se quedan por código |
 | Sangre + tierra al atropellar, `bloodSplat` sobre el morro | 🔵 por código |
 | **Derribo con INERCIA** — al morir, los pedazos del avión ('chunk') y la bola de fuego conservan la velocidad que traía: siguen de largo alejándose (vz que se frena), caen, **rebotan** en el suelo/agua con salpicón y quedan tirados humeando. `DEATH_REVEAL` pasó de 1.0 a 1.5 s para que el patinazo se alcance a ver | 🔵 hecho por código (`die()` + bloque 'dead' del update en `game.js`) |
+| **Bola de fuego del DERRIBO en pixel art** (`pix` en el airboom) — corona de bloques sueltos que se enfrían, núcleo blanco breve y humo que sube, **con huecos y más chica** que la hoja frontal: la hoja tapaba los pedazos del avión rompiéndose, que es justo lo que hay que ver. La hoja sigue para bombas y blancos | 🔵 hecho por código (`drawObstacle` rama `airboom.pix`) |
+| **Flash de impacto con la forma del sprite** — al pegarle a un enemigo horneado, el destello pinta el SPRITE de blanco (canvas auxiliar + 'source-in'); antes era un rectángulo blanco que parecía el hitbox de depuración parpadeando | 🔵 hecho (`drawFrame(..., flash)` en `render/enemies.js`) |
 
 ---
 
@@ -315,6 +319,7 @@ Los tres assets de la barra de objetivo se enchufan llenando `src` en `OBJ_ASSET
 | **BAM Cóndor** (Pradera del Ganso / Darwin) — base chica de pista rústica (ROADMAP #26.1) | ⬜ pendiente |
 | **Base argentina de llegada** para las misiones de REGRESO (ROADMAP #26) | ⬜ pendiente |
 | Puerto/meseta y su pared (`PORT_H = 15`), orilla serpenteante, playa, mar de puntos, moorland | 🔵 procedural |
+| **Colinas del horizonte** (las siluetas con parallax) | 🔵 rehechas por código: cresta quebrada sorteada por seed y **dos tonos** (laderas al sol / en sombra) + bruma al pie — antes eran dos triángulos planos |
 
 ---
 

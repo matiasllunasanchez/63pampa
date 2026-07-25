@@ -495,7 +495,9 @@ export function drawObstacle(o) {
     ctx.strokeStyle = P.bodyDark; ctx.beginPath();
     ctx.moveTo(s.x, s.y + 1.6 * k); ctx.lineTo(base.x, base.y); ctx.stroke();
     if (enemyArt.ready('balloon')) {
-      enemyArt.drawFrame(ctx, 'balloon', 0, 0, s.x, { centerY: s.y }, k, false);
+      // TAMBALEO: 3 poses de rolido, cicladas despacio y desfasadas por globo (o.ph)
+      const wob = Math.sin(run.t * 1.2 + o.ph * 3);
+      enemyArt.drawFrame(ctx, 'balloon', wob > 0.4 ? 2 : wob < -0.4 ? 0 : 1, 0, s.x, { centerY: s.y }, k, false);
     } else {
       px(s.x - 2.6 * k, s.y - 1.6 * k, 5.2 * k, 3.2 * k, P.dim);
       px(s.x - 2.6 * k, s.y - 1.6 * k, 5.2 * k, Math.max(1, 1.1 * k), P.body);
@@ -515,8 +517,8 @@ export function drawObstacle(o) {
       // pleno, asi que se espeja cuando este helo abre hacia la derecha.
       const col = Math.round(yaw * (enemyArt.SHEETS.helo.cols - 1));
       const row = ((run.t * 16) | 0) % 2;
-      enemyArt.drawFrame(ctx, 'helo', col, row, s.x, { centerY: s.y }, kk, dir > 0);
-      hitFlash(s.x, s.y - 0.4 * kk, kk, o, 8, 3.4);
+      const fl = !!(o.hitT && run.t - o.hitT < 0.09);   // impacto: el sprite entero destella
+      enemyArt.drawFrame(ctx, 'helo', col, row, s.x, { centerY: s.y }, kk, dir > 0, fl);
       drawHpBar(s.x, s.y - 3.8 * kk, kk, o);
       return;
     }
@@ -554,8 +556,14 @@ export function drawObstacle(o) {
       // el seno de siempre.
       const roll = o.mvA ? Math.cos(run.t * o.mvW + o.ph) : Math.sin(run.t * 1.1 + o.ph);
       const col = Math.round((roll * 0.5 + 0.5) * (enemyArt.SHEETS.jet.cols - 1));
-      enemyArt.drawFrame(ctx, 'jet', col, 0, s.x, { centerY: s.y }, kk, false);
-      hitFlash(s.x, s.y - 0.6 * kk, kk, o, 10, 4.2);
+      const fl = !!(o.hitT && run.t - o.hitT < 0.09);   // impacto: el sprite entero destella
+      enemyArt.drawFrame(ctx, 'jet', col, 0, s.x, { centerY: s.y }, kk, false, fl);
+      if (o.fireT && run.t - o.fireT < 0.1) {         // fogonazos en las raices del ala
+        for (const sg of [-1, 1]) {
+          px(s.x + sg * 1.9 * kk - 0.5 * kk, s.y - 0.2 * kk, kk, Math.max(1, 0.8 * kk), P.accent);
+          px(s.x + sg * 1.9 * kk - 0.25 * kk, s.y - 0.05 * kk, Math.max(1, 0.5 * kk), Math.max(1, 0.4 * kk), '#fff2c8');
+        }
+      }
       drawHpBar(s.x, s.y - 4.4 * kk, kk, o);
       return;
     }
@@ -680,7 +688,8 @@ export function drawObstacle(o) {
     if (enemyArt.ready('aa')) {
       // 2 poses de apunte: los caños CORRIGEN cada tanto — la pieza esta servida, no abandonada
       const col = ((run.t * 0.7 + o.ph) | 0) % 2;
-      enemyArt.drawFrame(ctx, 'aa', col, 0, base.x, { bottomY: base.y }, k, false);
+      const fl = !!(o.hitT && run.t - o.hitT < 0.09);
+      enemyArt.drawFrame(ctx, 'aa', col, 0, base.x, { bottomY: base.y }, k, false, fl);
     } else {
       px(base.x - 2.4 * k, base.y - 0.9 * k, 4.8 * k, 0.9 * k, '#7c6f4f');          // bolsas de arena
       px(base.x - 2.4 * k, base.y - 0.9 * k, 4.8 * k, Math.max(1, 0.3 * k), '#948562');
@@ -701,7 +710,8 @@ export function drawObstacle(o) {
     const base = proj(o.x, 0, o.z), bh = o.h * k;
     if (enemyArt.ready('bldg')) {
       // la hoja se escala por ALTURA (o.h varia 7.5-11.5 por spawn): k por el factor contra href
-      enemyArt.drawFrame(ctx, 'bldg', 0, 0, base.x, { bottomY: base.y }, k * o.h / enemyArt.SHEETS.bldg.href, false);
+      const fl = !!(o.hitT && run.t - o.hitT < 0.09);
+      enemyArt.drawFrame(ctx, 'bldg', 0, 0, base.x, { bottomY: base.y }, k * o.h / enemyArt.SHEETS.bldg.href, false, fl);
     } else {
       px(base.x - 3 * k, base.y - bh, 6 * k, bh, '#6e6656');                        // paredes
       px(base.x - 3 * k, base.y - bh, 6 * k, Math.max(1, 0.16 * bh), '#7d7563');    // luz superior
@@ -728,8 +738,13 @@ export function drawObstacle(o) {
     ctx.globalAlpha = 1;
     if (enemyArt.ready('lcu')) {
       // hoja en 3/4 con la rampa hacia la IZQUIERDA (la playa). La estela de arriba se queda.
-      enemyArt.drawFrame(ctx, 'lcu', 0, 0, base.x, { bottomY: base.y }, k, false);
-      hitFlash(base.x, base.y - 1.6 * k, k, o, 8, 2.6);
+      // TAMBALEO: 3 poses de rolido cicladas por un seno lento + bob vertical — la marejada la
+      // hamaca aunque este quieta. Encallada (beached) el rolido para pero el bob sigue, apenas.
+      const sw2 = Math.sin(run.t * (o.sailing ? 1.3 : 0.7) + o.ph * 2);
+      const col = o.beached ? 1 : sw2 > 0.4 ? 2 : sw2 < -0.4 ? 0 : 1;
+      const bob = Math.sin(run.t * 1.1 + o.ph) * (o.beached ? 0.12 : 0.3) * k;
+      const fl = !!(o.hitT && run.t - o.hitT < 0.09);   // impacto: el sprite entero destella
+      enemyArt.drawFrame(ctx, 'lcu', col, 0, base.x, { bottomY: base.y + bob }, k, false, fl);
       drawHpBar(base.x, base.y - 3.6 * k, k, o);
       return;
     }
@@ -794,7 +809,8 @@ export function drawObstacle(o) {
     // DEPOSITO: galpon abovedado con tambores y cajones apilados al lado.
     const base = proj(o.x, 0, o.z), dh = o.h * k;
     if (enemyArt.ready('depot')) {
-      enemyArt.drawFrame(ctx, 'depot', 0, 0, base.x, { bottomY: base.y }, k * o.h / enemyArt.SHEETS.depot.href, false);
+      const fl = !!(o.hitT && run.t - o.hitT < 0.09);
+      enemyArt.drawFrame(ctx, 'depot', 0, 0, base.x, { bottomY: base.y }, k * o.h / enemyArt.SHEETS.depot.href, false, fl);
       drawHpBar(base.x, base.y - dh - 1.8 * k, k, o);
       return;
     }
@@ -819,8 +835,8 @@ export function drawObstacle(o) {
       // 4 poses del plato: rota de a 45° a paso constante. Si el camion RUEDA (vx), se espeja
       // para mirar hacia donde va.
       const col = ((run.t * 3 + o.ph) | 0) % 4;
-      enemyArt.drawFrame(ctx, 'radar', col, 0, base.x, { bottomY: base.y }, k, o.vx < 0);
-      hitFlash(base.x, base.y - 2.4 * k, k, o, 6, 4);
+      const fl = !!(o.hitT && run.t - o.hitT < 0.09);   // impacto: el sprite entero destella
+      enemyArt.drawFrame(ctx, 'radar', col, 0, base.x, { bottomY: base.y }, k, o.vx < 0, fl);
       drawHpBar(base.x, base.y - 6.2 * k, k, o);
       return;
     }
@@ -841,12 +857,12 @@ export function drawObstacle(o) {
     if (enemyArt.ready('aatruck')) {
       // la torreta BARRE el cielo en ping-pong (0-1-2-1): busca al avion aunque no dispare
       const col = [0, 1, 2, 1][((run.t * 1.6 + o.ph) | 0) % 4];
-      enemyArt.drawFrame(ctx, 'aatruck', col, 0, base.x, { bottomY: base.y }, k, o.vx < 0);
+      const fl = !!(o.hitT && run.t - o.hitT < 0.09);   // impacto: el sprite entero destella
+      enemyArt.drawFrame(ctx, 'aatruck', col, 0, base.x, { bottomY: base.y }, k, o.vx < 0, fl);
       if (o.fireT && run.t - o.fireT < 0.12) {          // el fogonazo del disparo queda por codigo
         px(base.x + 0.6 * k, base.y - 4.6 * k, 1.3 * k, 1.1 * k, P.accent);
         px(base.x + 0.9 * k, base.y - 4.4 * k, 0.7 * k, 0.6 * k, '#fff2c8');
       }
-      hitFlash(base.x, base.y - 2 * k, k, o, 6, 3.4);
       drawHpBar(base.x, base.y - 5.6 * k, k, o);
       return;
     }
@@ -896,11 +912,44 @@ export function drawObstacle(o) {
       ctx.globalAlpha = 1;
     }
   } else if (o.type === 'airboom') {
-    // AIRBURST: la bomba reventada EN EL AIRE, y tambien el fogonazo del avion al estrellarse y
-    // el de cada blanco que revienta. Es la explosion DE FRENTE (hoja explosions_front.png); el
-    // hongo de perfil es otra cosa y vive en render/boom.js.
-    // Debajo queda el dibujo a mano como respaldo si la hoja no cargo.
-    if (blastArt.isReady()) { blastArt.drawBlast(ctx, proj, o, k); }
+    // AIRBURST: la bomba reventada EN EL AIRE, y tambien el fogonazo de cada blanco que revienta.
+    // Es la explosion DE FRENTE (hoja explosions_front.png); el hongo de perfil es otra cosa y
+    // vive en render/boom.js. Debajo queda el dibujo a mano como respaldo si la hoja no cargo.
+    //
+    // `pix` (el DERRIBO del avion): version en PIXEL ART por codigo, mas chica y con HUECOS —
+    // la hoja frontal a escala grande tapaba los pedazos del avion rompiendose, que es
+    // exactamente lo que ese momento tiene que dejar ver.
+    if (o.pix) {
+      const s = proj(o.x, o.y, o.z);
+      const p = o.boomT / 1.25;
+      if (p < 1) {
+        const R = (1.5 + p * 7.5) * k * (o.scale || 1);
+        // corona de BLOQUES sueltos: crecen, se enfrian (amarillo→naranja→marron) y se apagan.
+        // Radios y angulos desparejos por bloque (determinados por o.ph): reventon, no anillo.
+        for (let i = 0; i < 10; i++) {
+          const a = i * 0.628 + o.ph + ((i * 7919) % 13) * 0.13;
+          const rr = R * (0.5 + ((i * 37) % 7) / 7 * 0.5);
+          const sz = Math.max(1, R * (0.36 - p * 0.22));
+          ctx.globalAlpha = Math.max(0, 1 - p * 1.15);
+          px(s.x + Math.cos(a) * rr - sz / 2, s.y + Math.sin(a) * rr * 0.8 - sz / 2, sz, sz,
+            p < 0.3 ? '#ffd98a' : p < 0.6 ? '#f07c22' : '#8d5a3a');
+        }
+        if (p < 0.28) {                                   // nucleo blanco del primer instante
+          ctx.globalAlpha = 1 - p / 0.28;
+          const cz = Math.max(1, R * 0.55);
+          px(s.x - cz / 2, s.y - cz / 2, cz, cz, '#fff6d8');
+        }
+        if (p > 0.35) {                                   // el humo que queda, subiendo
+          ctx.globalAlpha = Math.max(0, 0.45 - (p - 0.35) * 0.7);
+          for (let i = 0; i < 4; i++) {
+            const sz = Math.max(1, R * 0.24);
+            px(s.x + Math.cos(i * 1.7 + o.ph) * R * 0.45 - sz / 2,
+              s.y - R * 0.25 - (p - 0.35) * 9 * k * (o.scale || 1) - i * sz * 0.4, sz, sz, '#55554d');
+          }
+        }
+        ctx.globalAlpha = 1;
+      }
+    } else if (blastArt.isReady()) { blastArt.drawBlast(ctx, proj, o, k); }
     else {
       const s = proj(o.x, o.y, o.z);
       const gr = Math.min(1, o.boomT / 0.45);
@@ -988,10 +1037,22 @@ export function drawObstacle(o) {
       }
     }
   } else if (o.type === 'fuel') {
+    // BIDON de combustible: tambor con aros, canto iluminado, tapon y brillo — antes era un
+    // rectangulo naranja con una franja blanca. El halo pulsante dice "esto se AGARRA" y lo
+    // separa de los enemigos (nada peligroso late con luz calida).
     const oy = o.y + Math.sin(run.t * 2) * 0.5;
     const s = proj(o.x, oy, o.z);
-    px(s.x - 1.4 * k, s.y - 1.8 * k, 2.8 * k, 3.6 * k, P.accent);
-    px(s.x - 1.4 * k, s.y - 0.4 * k, 2.8 * k, Math.max(1, 0.7 * k), P.ink);
+    const w = 2.6 * k, h = 3.4 * k;
+    ctx.globalAlpha = 0.14 + (0.5 + 0.5 * Math.sin(run.t * 4)) * 0.12;
+    px(s.x - w * 0.8, s.y - h * 0.66, w * 1.6, h * 1.32, P.accent);
+    ctx.globalAlpha = 1;
+    px(s.x - w / 2, s.y - h / 2, w, h, '#c9721e');                                    // tambor
+    px(s.x - w / 2, s.y - h / 2, Math.max(1, w * 0.3), h, '#e8963c');                 // canto al sol
+    px(s.x - w / 2, s.y - h * 0.12, w, Math.max(1, h * 0.16), '#8d4d12');             // aro central
+    px(s.x - w / 2, s.y + h * 0.28, w, Math.max(1, h * 0.12), '#8d4d12');             // aro inferior
+    px(s.x - w / 2, s.y - h / 2, w, Math.max(1, h * 0.12), '#f2b05e');                // borde superior
+    px(s.x - w * 0.16, s.y - h / 2 - Math.max(1, h * 0.14), w * 0.32, Math.max(1, h * 0.14), '#5a5f57');  // tapon
+    if (k > 2) px(s.x + w * 0.08, s.y - h * 0.3, Math.max(1, w * 0.14), h * 0.46, '#f2b05e');  // brillo vertical
   }
 }
 

@@ -215,6 +215,17 @@ export function collisionSystem(dt) {
         }
       }
     }
+    // CAZA ARMADO (spawn.js sortea cuales): en su pasada de ataque suelta una rafaga corta de
+    // trazadoras — las mismas del puesto: rapidas y casi rectas, se esquivan moviendose. La
+    // banda de tiro (70-190) hace que dispare de lejos y las trazadoras te lleguen antes que el.
+    if (o.type === 'jet' && o.gun > 0 && !o.done && o.hp > 0 && o.z > 70 && o.z < 190) {
+      o.gcd -= dt;
+      if (o.gcd <= 0) {
+        o.gcd = 0.5; o.gun--; o.fireT = run.t;
+        missiles.push({ x: o.x, y: o.y, z: o.z, done: false, tracer: true });
+        beep(320, 0.05, 'square', 0.04);
+      }
+    }
     // PUESTO con soldados adentro: una rafaga corta de trazadoras (rapidas, casi rectas) que
     // hay que esquivar. Dispara pocas veces — es presion, no una lluvia.
     if (o.type === 'bldg' && o.armed && !o.done && o.hp > 0 && o.shots > 0 && o.z > 90 && o.z < 200) {

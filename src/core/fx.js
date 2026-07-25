@@ -25,7 +25,7 @@ export function popup(x, y, txt, c, big) {
 
 /** Explosion: reventon de particulas en (x,y,z) + sacudon de camara. `big` la agranda y agacha
  *  la musica un instante (ducking). */
-export function explodeAt(x, y, z, big) {
+export function explodeAt(x, y, z, big, noBall) {
   const s = proj(x, y, z);
   for (let i = 0, n = big ? 24 : 12; i < n; i++) {
     const a = Math.random() * 6.283, v = (14 + Math.random() * 55) * Math.min(1.6, s.k / 3 + 0.4);
@@ -37,7 +37,9 @@ export function explodeAt(x, y, z, big) {
   // BOLA DE FUEGO de frente. Se empuja como 'airboom' (el mismo tipo que usa la bomba reventada
   // en el aire) para reutilizar su reloj y su poda: ya se avanza en collision.js y en game.js.
   // `done: true` la deja fuera de toda colision — es puro dibujo.
-  obstacles.push({ type: 'airboom', x, y, z, boomT: 0, scale: big ? 0.85 : 0.42, done: true });
+  // `noBall`: el que llama pone su propia bola (el derribo usa una version PIXEL mas chica que
+  // no tape los pedazos del avion) — aca quedan las chispas, el sacudon y el ducking.
+  if (!noBall) obstacles.push({ type: 'airboom', x, y, z, boomT: 0, scale: big ? 0.85 : 0.42, done: true });
   run.shake = Math.min(6, run.shake + (big ? 4.5 : 2)); boom(big ? 0.16 : 0.08);
   if (big) duck(0.55);                      // explosion grande → ducking de la musica
 }
