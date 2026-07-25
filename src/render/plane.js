@@ -88,6 +88,40 @@ function muzzle(x, y) {
   if (Math.random() < 0.5) px(x + (Math.random() < 0.5 ? -2 : 2), y + 2, 1, 1, '#c9631f');   // chispa
 }
 
+/** TREN DE ATERRIZAJE (`g`: 1 bajado en la pista → 0 recogido). Vista trasera: las dos patas
+ *  principales bajo la raiz del ala y, asomando entre medio, la de proa.
+ *
+ *  SE RECOGE DERECHO PARA ARRIBA, sin plegado. El tren se dibuja DEBAJO del sprite, asi que al
+ *  subir las ruedas se meten solas detras del ala y desaparecen — alcanza para leer el gesto. Una
+ *  version anterior las juntaba ademas hacia el fuselaje: a este tamaño el pliegue no se leia como
+ *  pliegue, las tres ruedas se fusionaban en un ladrillo negro.
+ *
+ *  TAMAÑO: la rueda es de 2x2 px de diseño. Parece poquisimo escrito, pero el avion entero mide
+ *  ~30 px de punta a punta de ala: cualquier cosa mas grande le cuelga como un tren de carga.
+ *
+ *  Las medidas verticales salen de medir las hojas horneadas: el frame es de 84 px con el avion
+ *  centrado, el ala apoya en y=47..49 y la panza termina en y=52 — que en esta escala (0.567 px
+ *  de diseño por px de hoja) son el 3.4 y el 5 de abajo. Si se rehornean los aviones, remedir. */
+function gear(g) {
+  if (g <= 0) return;
+  const TIRE = '#14181a', RIM = '#6d7679';
+  // el ultimo tramo se apaga: a esa altura la rueda ya esta casi toda tapada por el ala y lo poco
+  // que asoma no tiene recorrido para irse solo
+  ctx.globalAlpha = Math.min(1, g * 5);
+  // PATA DE PROA: una rueda mas chica todavia, que apenas asoma por debajo de la panza
+  const ny = 3.4 + 3.1 * g;
+  if (ny > 5.4) px(-0.5, 5.2, 1, ny - 5.2, TIRE);
+  px(-1, ny, 2, 1, TIRE);
+  // PRINCIPALES
+  for (const sgn of [-1, 1]) {
+    const gx = sgn * 4, gy = 2.6 + 3.4 * g;
+    if (gy > 4.2) px(gx - 0.5, 4, 1, gy - 4, TIRE);   // pata, colgando de la raiz del ala
+    px(gx - 1, gy, 2, 2, TIRE);                       // rueda
+    px(gx - 1, gy, 2, 1, RIM);                        // brillo del cubo: si no, es un cuadrado negro
+  }
+  ctx.globalAlpha = 1;
+}
+
 export function drawPlane(selPlane, viewMouse) {
   const s = proj(plane.x, plane.y, PZ);
   // SOMBRA sobre el agua (referencia de altura). Tres barras que se angostan en vez de un
@@ -194,6 +228,7 @@ export function drawPlane(selPlane, viewMouse) {
     // ala, del otro lado del fuselaje, asi que el fuego tiene que asomar por detras y no taparlo.
     // La LLAMA del turbo va ENCIMA: sale de la tobera, que apunta a la camara.
     if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
+    gear(run.gear);   // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma
     ctx.drawImage(pl.sheetImg, sx4, sy4, SHEET_FW, SHEET_FH, -spW / 2, -spH / 2, spW, spH);
     if (run.boost) flame(0, bodyH2 - 6);
   } else if (pl.ready) {
@@ -208,6 +243,7 @@ export function drawPlane(selPlane, viewMouse) {
     }
     // mismo orden que arriba: fogonazos detras, llama del turbo adelante
     if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
+    gear(run.gear);
     ctx.drawImage(pl.img, -PW / 2, -PH / 2, PW, PH);
     if (run.boost) flame(0, PH / 2 - 4);
   } else {

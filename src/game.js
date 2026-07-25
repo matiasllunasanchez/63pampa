@@ -32,7 +32,7 @@ import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './render/momentum.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
-import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
+import { MSL_MAX, ROLL_DUR, GEAR_T } from './data/tuning.js';
 import { RUNWAYS } from './data/runways.js';
 
   (() => {
@@ -186,7 +186,9 @@ import { RUNWAYS } from './data/runways.js';
     // o tarjeta corta de briefing (ciclo de muerte). Devuelve el estado al que hay que ir.
     // Las misiones de REGRESO empiezan YA VOLANDO: no hay base de la que despegar, asi que el
     // estado 'takeoff' (cuenta regresiva + carrera + rotacion) no aplica y se entra directo a jugar.
-    function afterBrief() { return cfg.start === 'air' ? 'play' : 'takeoff'; }
+    // El TREN va con la puerta de entrada: si el nivel empieza ya volando, viene recogido de fabrica
+    // (nunca hubo pista de la que levantarlo); si hay carrera, baja para el despegue.
+    function afterBrief() { run.gear = cfg.start === 'air' ? 0 : 1; return cfg.start === 'air' ? 'play' : 'takeoff'; }
     function enterMission() {
       const m = curMission();
       if (gameMode === 'campaign' && m.story) { initStory(m.story); return 'story'; }
@@ -489,6 +491,10 @@ import { RUNWAYS } from './data/runways.js';
       if (S.state !== 'play' || run.rollT > 0 || run.rollCd > 0) return;
       run.rollT = ROLL_DUR; run.rollDir = dir; run.rollCd = 1.15;
       sfxOne('waveFly');                        // rafaga de aire de la pirueta
+      // ROCE del aire al girar, A VECES. Siempre seria una firma sonora fija y el tonel pasaria a
+      // sonar a animacion; que salga aleatorio lo mantiene vivo. Va mas bajo que el roce de verdad:
+      // ese es el PREMIO por pasar cerca de algo y no puede confundirse con este adorno.
+      if (Math.random() < 0.5) sfxOne('graze', 0.35);
       beep(480, 0.16, 'triangle', 0.05, 900);   // whoosh ascendente
     }
 
@@ -580,6 +586,10 @@ import { RUNWAYS } from './data/runways.js';
         // ACANTILADO: no hay rotacion ni ascenso — el avion ya esta arriba y lo que sigue es el
         // vacio. Sin acantilado, la carrera termina en el clasico tirar de la palanca.
         if (!cfg.cliff && toT > 1.35 && plane.y < 12) plane.y += 7.2 * dt;   // rotación y ascenso
+        // TREN ARRIBA apenas despega. La señal es haber dejado el piso; con ACANTILADO no hay
+        // rotacion (el avion ya esta en alto y lo que sigue es el vacio), asi que ahi manda el
+        // reloj: se recoge al pasar el borde.
+        if (cfg.cliff ? toT > 1.7 : plane.y > 1.2) run.gear = Math.max(0, run.gear - dt / GEAR_T);
         cam.x += (plane.x * 0.86 - cam.x) * Math.min(1, dt * 7);
         cam.y += (plane.y + 2.6 - cam.y) * Math.min(1, dt * 7);
         if (cam.y < 3.4) cam.y = 3.4;
@@ -687,6 +697,10 @@ import { RUNWAYS } from './data/runways.js';
         return;
       }
       flags.anyPress = false;
+
+      // el tren termina de plegarse ya en vuelo: el despegue lo empieza pero dura 3 s justos y la
+      // maniobra es mas larga, asi que si no se cerrara aca quedaria a medio recoger para siempre
+      if (run.gear > 0) run.gear = Math.max(0, run.gear - dt / GEAR_T);
 
       // ---------- MODO CAMARA (cfg.devcam) ----------
       // El mundo queda QUIETO: no corren vuelo, spawn ni colisiones — solo lo que ya esta en
@@ -937,8 +951,13 @@ import { RUNWAYS } from './data/runways.js';
         for (const p of parts) { ctx.globalAlpha = Math.min(1, p.life * 2); px(p.x, p.y, p.r, p.r, p.c); }
         ctx.globalAlpha = 1;
 
-        ctx.font = '7px monospace'; ctx.textAlign = 'center';
-        for (const p of popups) { ctx.globalAlpha = Math.min(1, p.life); ctx.fillStyle = p.c; ctx.fillText(p.txt, p.x, p.y); }
+        ctx.textAlign = 'center';
+        for (const p of popups) {
+          // los `big` son los premios de RIESGO (roce, pirueta): van en negrita y mas grandes
+          // para que el numero se lea de reojo, sin apartar la vista de lo que viene
+          ctx.font = p.big ? 'bold 10px monospace' : '7px monospace';
+          ctx.globalAlpha = Math.min(1, p.life); ctx.fillStyle = p.c; ctx.fillText(p.txt, p.x, p.y);
+        }
         ctx.globalAlpha = 1;
       }
 

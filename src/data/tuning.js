@@ -14,6 +14,12 @@ export const FLY_X = 38, FLY_TOP = 68, SPAWN_X = 33;
 // rafaga lateral), la accion que la dispara (startRoll) y el render (inclina el sprite).
 export const ROLL_DUR = 0.55;
 
+// TREN DE ATERRIZAJE: segundos que tarda en plegarse una vez que el avion deja la pista. La
+// comparten el despegue (que lo dispara) y el 'play' (que lo termina de recoger si la carrera
+// se cortó antes). Cuidado con acortarlo: a esta resolucion el tren mide 4 px y si se recoge en
+// menos de medio segundo el jugador no llega a ver el movimiento — solo ve que desaparece.
+export const GEAR_T = 0.9;
+
 export const MOM_AX = 240, MOM_AY = 60;   // visor fijo en pantalla (W/2, 60) — el reflector del HUD
 export const MSL_MAX = 3;                 // misiles por pasada
 

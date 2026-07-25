@@ -160,9 +160,13 @@ export function collisionSystem(dt) {
           : o.type === 'helo' ? 'death_helo' : o.type === 'jet' ? 'death_jet' : 'death_balloon' };
       } else if (dx < 3 && dy < 3) {
         const pir = run.rollT > 0;                       // rozar EN PIRUETA: bonus grande (estilo)
-        run.score += pir ? 250 : 75; stats.grazes++; run.shake = Math.min(6, run.shake + 1.5);
-        sfxOne('waveFly');                           // rafaga de aire del pase cercano
-        const s = proj(o.x, oy, PZ); popup(s.x, s.y - 8, pir ? T('rollGraze') : T('graze'), pir ? P.accent : P.foam);
+        const pts = pir ? 250 : 75;
+        run.score += pts; stats.grazes++; run.shake = Math.min(6, run.shake + 1.5);
+        sfxOne('graze');                                 // roza1/roza2: el premio sonoro del roce
+        // SOLO EL NUMERO, en grande: el texto ("ROZASTE") ocupaba el ancho de media pantalla y
+        // tapaba justo lo que venia detras del obstaculo que acabas de rozar.
+        const s = proj(o.x, oy, PZ);
+        popup(s.x, s.y - 8, '+' + pts, pir ? P.accent : P.foam, true);
         boom(0.06, true);
       }
     }

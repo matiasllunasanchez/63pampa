@@ -54,6 +54,9 @@ export const run = {
   mslCd: 0,        // cooldown entre lanzamientos
   mslRegen: 0,     // temporizador de recarga lenta
 
+  // --- tren de aterrizaje ---
+  gear: 1,         // 1 = bajado (en pista) · 0 = recogido. Lo anima el despegue; ver render/plane.js
+
   // --- maniobra ---
   rollT: 0,        // pirueta en curso (segundos restantes)
   rollCd: 0,       // cooldown de la pirueta
@@ -79,6 +82,7 @@ export function resetRun() {
     score: 0, mult: 1, multShow: 1, streak: 0, rasLevel: 0, graceT: 0,
     afterT: 0, afterTier: 0, afterGrace: 0,
     scrapeT: 0, scrapeVib: 0,
+    gear: 1,
     windT: 0, windF: 1,
     fireT: 0, msl: MSL_MAX, mslCd: 0, mslRegen: 0,
     rollT: 0, rollCd: 0,

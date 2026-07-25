@@ -71,18 +71,53 @@ const AMB_COAST_V = 0.8;  // ambiente de batalla en COSTA (war_near_soldats): su
 const SFX_LOOP_KEYS = Object.keys(SFX_DEF).filter(k => SFX_DEF[k].loop);
 const sfxPool = {}, sfxLoopA = {}, sfxTgt = {};
 export function sfxSrc(key) { if (!SFXB) return null; const d = SFX_DEF[key]; return d && d.f.length ? d : null; }
-// one-shot: elige una variante al azar; pool de 3 por archivo para que se solapen sin cortarse
+// one-shot: pool de 3 por archivo para que se solapen sin cortarse.
+// ALTERNANCIA: para los sonidos marcados `alt`, las variantes salen POR TURNO (1, 2, 1, 2...)
+// en vez de al azar. Al azar, una moneda repite: se escuchaba tres veces seguidas la misma y el
+// roce sonaba a bug. Con turno, dos roces seguidos nunca suenan iguales.
+const sfxTurn = {};
 export function sfxOne(key, vol) {
   const d = sfxSrc(key); if (!d || muted) return false;
-  const rel = d.f[(Math.random() * d.f.length) | 0];
+  const rel = d.alt
+    ? d.f[(sfxTurn[key] = ((sfxTurn[key] || 0) + 1)) % d.f.length]
+    : d.f[(Math.random() * d.f.length) | 0];
   const pool = sfxPool[rel] || (sfxPool[rel] = { i: 0, a: [] });
   let a = pool.a[pool.i % 3];
   if (!a) a = pool.a[pool.i % 3] = new Audio(SFXB + rel);
   pool.i++;
-  a.volume = Math.min(1, (vol !== undefined ? vol : d.v) * SFX_MASTER);
-  try { a.currentTime = d.offset || 0; } catch (e) { }   // offset: arranca N segundos adentro del sample
-  a.play().catch(() => { });
+  const v = Math.min(1, (vol !== undefined ? vol : d.v) * SFX_MASTER);
+  const t0 = d.offset || 0;
+  try { a.currentTime = t0; } catch (e) { }   // offset: arranca N segundos adentro del sample
+  playFaded(a, v, d.fi || 0, d.fo || 0, t0);
   return true;
+}
+
+// FUNDIDO de entrada/salida de un one-shot (`fi`/`fo` del catalogo, en segundos).
+// Un sample cortado en seco salta de silencio a amplitud plena en una muestra: eso NO es el ataque
+// del sonido, es un CLIC, y se escucha por encima del efecto. Igual del otro lado al terminar.
+//
+// Se hace sobre el volumen del <audio> porque los samples no pasan por WebAudio (no hay nodo de
+// ganancia donde programar una rampa). Se lee currentTime por frame en vez de calcular tiempos de
+// antemano: en el primer play `duration` todavia puede ser NaN, y asi el fundido de salida
+// simplemente no aplica esa vez en lugar de reventar la cuenta.
+let fadeTok = 0;
+function playFaded(a, vol, fi, fo, t0) {
+  a.volume = fi > 0 ? 0 : vol;
+  a.play().catch(() => { });
+  if (!fi && !fo) return;
+  // TOKEN: el pool REUSA los elementos, y si el mismo vuelve a sonar antes de terminar quedarian
+  // dos rampas peleandose el volumen del mismo <audio>. La vieja se corta sola al ver otro token.
+  const tok = a.fadeTok = ++fadeTok;
+  const tick = () => {
+    if (a.fadeTok !== tok || a.paused || a.ended) return;
+    const t = a.currentTime, d = a.duration;
+    let g = 1;
+    if (fi > 0) g = Math.min(g, (t - t0) / fi);
+    if (fo > 0 && d > 0) g = Math.min(g, (d - t) / fo);   // d NaN (aun sin metadata) → sin salida
+    a.volume = Math.max(0, Math.min(1, g)) * vol;
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 function sfxLoop(key) {
   if (key in sfxLoopA) return sfxLoopA[key];

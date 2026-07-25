@@ -32,7 +32,15 @@ export const SFX_DEF = {
   engN2: { f: ['flying/motor/normal2.wav'], v: 0.32, loop: true },
   turbo: { f: ['flying/motor/turbo.wav'], v: 0.5, loop: true },
   waterNear: { f: ['flying/water_near_plane.mp3'], v: 0.22, loop: true },   // rasante, volumen bajo
-  waveFly: { f: ['flying/motor/wave_fly1.wav', 'flying/motor/wave_fly2.wav'], v: 0.45 },  // near-miss / pirueta
+  waveFly: { f: ['flying/motor/wave_fly1.wav', 'flying/motor/wave_fly2.wav'], v: 0.45 },  // paso bajo sobre el agua
+  // ROCE: pasar cerca de un obstaculo sin chocarlo. Tiene sonido PROPIO (antes compartia el del
+  // paso sobre el agua): es la accion que mas puntos da por riesgo y necesita su propio premio
+  // sonoro. Dos variantes para que una racha de roces no suene a repeticion.
+  // `alt`: las dos variantes salen POR TURNO, no al azar (ver sfxOne en systems/audio.js)
+  // `fi`/`fo`: fundido de entrada/salida en segundos. Los dos samples estan cortados en seco —
+  // arrancan a amplitud casi plena (0.87 y 0.97 en los primeros 20 ms) y roza1 corta en 0.72 —
+  // asi que sin rampa se oye un CLIC en cada punta. Ver playFaded en systems/audio.js.
+  graze: { f: ['general/roza1.wav', 'general/roza2.wav'], v: 0.6, alt: true, fi: 0.06, fo: 0.14 },
   // ambiente de terreno (loop por contexto)
   ambRain: { f: ['terrain/rain.mp3'], v: 0.35, loop: true },           // tormenta en tierra
   ambStorm: { f: ['terrain/storm_sea_1.mp3'], v: 0.4, loop: true },    // tormenta en mar

@@ -19,8 +19,8 @@ export function proj(x, y, z) {
 }
 
 /** Texto flotante de feedback (puntaje, aviso) en coordenadas de mundo. */
-export function popup(x, y, txt, c) {
-  popups.push({ x, y, txt, c: c || P.accent, life: 1.1 });
+export function popup(x, y, txt, c, big) {
+  popups.push({ x, y, txt, c: c || P.accent, life: 1.1, big: !!big });
 }
 
 /** Explosion: reventon de particulas en (x,y,z) + sacudon de camara. `big` la agranda y agacha
