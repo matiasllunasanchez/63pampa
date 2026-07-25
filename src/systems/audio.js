@@ -16,26 +16,26 @@ let AC = null, eng = null;
 // Audio ORIGINAL (mp3) para la app de escritorio. El build web re-embebe versiones
 // comprimidas (assets/audio/web/*.m4a) para entrar en el límite de 16 MB del Artifact;
 // ver tools/build_web.py (mapea cada mp3 a su m4a, o descarta las que no entran).
-const MUSIC_LOBBY = '../assets/audio/lobby.mp3';   // the_weight_of_honor — lobby en loop
-const MUSIC_GAME = '../assets/audio/game.mp3';    // weight_of_honor_v2 — fondo del juego, volumen bajo
+const MUSIC_LOBBY = '../assets/music/lobby.mp3';   // the_weight_of_honor — lobby en loop
+const MUSIC_GAME = '../assets/music/game.mp3';    // weight_of_honor_v2 — fondo del juego, volumen bajo
 const musLobby = new Audio(MUSIC_LOBBY); musLobby.loop = true; musLobby.volume = 0.55;
 const musGame = new Audio(MUSIC_GAME); musGame.loop = true; musGame.volume = 0.30;
-const MUSIC_STORY = '../assets/audio/story.mp3';   // epic_himno — pantallas de HISTORIA
+const MUSIC_STORY = '../assets/music/story.mp3';   // epic_himno — pantallas de HISTORIA
 const musStory = new Audio(MUSIC_STORY); musStory.loop = true; musStory.volume = 0.5;
 // pool ADRENALINA (supervivencia y ciclo de muerte): 11 pistas pmetal; al empezar cada run
 // suena UNA al azar. En el build web SOLO se re-embeben las 3 primeras (tienen m4a comprimida).
 const MUSIC_ADR = [
-  '../assets/audio/pmetal_himno.mp3',            // web: comprimida
-  '../assets/audio/pmetal_sanmartin.mp3',        // web: comprimida
-  '../assets/audio/pmetal_soy_hincha.mp3',       // web: comprimida
-  '../assets/audio/pmetal_acero_blanco.mp3',
-  '../assets/audio/pmetal_aundepie.mp3',
-  '../assets/audio/pmetal_aurora.mp3',
-  '../assets/audio/pmetal_malvinas.mp3',
-  '../assets/audio/pmetal_malvinas_2triumph.mp3',
-  '../assets/audio/pmetal_revolucion_mayo.mp3',
-  '../assets/audio/pmetal_sangre_albiceleste.mp3',
-  '../assets/audio/pmetal_soldado.mp3',
+  '../assets/music/pmetal_himno.mp3',            // web: comprimida
+  '../assets/music/pmetal_sanmartin.mp3',        // web: comprimida
+  '../assets/music/pmetal_soy_hincha.mp3',       // web: comprimida
+  '../assets/music/pmetal_acero_blanco.mp3',
+  '../assets/music/pmetal_aundepie.mp3',
+  '../assets/music/pmetal_aurora.mp3',
+  '../assets/music/pmetal_malvinas.mp3',
+  '../assets/music/pmetal_malvinas_2triumph.mp3',
+  '../assets/music/pmetal_revolucion_mayo.mp3',
+  '../assets/music/pmetal_sangre_albiceleste.mp3',
+  '../assets/music/pmetal_soldado.mp3',
 ];
 const musAdr = MUSIC_ADR.filter(Boolean)
   .map(src => { const a = new Audio(src); a.loop = true; a.volume = 0.30; return a; });

@@ -9,12 +9,12 @@
 // uno marca su propio flag (ready/sheetOk) al cargar, asi el render nunca dibuja una imagen
 // a medio cargar.
 export const PLANES = [
-  { key: 'sky', name: 'A-4 SKYHAWK', src: "../assets/img/plane_sky.webp", sheet: '../assets/img/plane_sky_sheet.png', desc: { es: 'Equilibrado - protagonista de la campaña', en: 'Balanced - the campaign workhorse' } },
-  { key: 'dagger', name: 'IAI DAGGER', src: "../assets/img/plane_dagger.webp", sheet: '../assets/img/plane_dagger_sheet.png', desc: { es: 'Mas rapido y con mas fuego - dificil de controlar', en: 'Faster, harder-hitting - tricky to control' } },
-  { key: 'supere', name: 'SUPER ETENDARD', src: "../assets/img/plane_supere.webp", sheet: '../assets/img/plane_supere_sheet.png', desc: { es: 'Misiones especiales - misiles Exocet', en: 'Special missions - Exocet missiles' } },
-  { key: 'a4q', name: 'A-4Q', src: "../assets/img/plane_a4q.webp", sheet: '../assets/img/plane_a4q_sheet.png', desc: { es: 'Variante naval - similar al A-4B/C', en: 'Naval variant - similar to the A-4B/C' } },
-  { key: 'pampa', name: 'PAMPA 63', src: "../assets/img/plane_pampa.webp", sheet: '../assets/img/plane_pampa_sheet.png', desc: { es: 'Entrenador biplaza IA-63', en: 'IA-63 two-seat trainer' } },
-  { key: 'mirage', name: 'MIRAGE IIIEA', src: "../assets/img/plane_mirage.png", sheet: '../assets/img/plane_mirage_sheet.png', desc: { es: 'Interceptor de altura - rapido y con poca autonomia', en: 'High-altitude interceptor - fast, short legs' } },
+  { key: 'sky', name: 'A-4 SKYHAWK', src: '../assets/planes/a4-skyhawk/preview.webp', sheet: '../assets/planes/a4-skyhawk/sheet.png', desc: { es: 'Equilibrado - protagonista de la campaña', en: 'Balanced - the campaign workhorse' } },
+  { key: 'dagger', name: 'IAI DAGGER', src: '../assets/planes/iai-dagger/preview.webp', sheet: '../assets/planes/iai-dagger/sheet.png', desc: { es: 'Mas rapido y con mas fuego - dificil de controlar', en: 'Faster, harder-hitting - tricky to control' } },
+  { key: 'supere', name: 'SUPER ETENDARD', src: '../assets/planes/super-etendard/preview.webp', sheet: '../assets/planes/super-etendard/sheet.png', desc: { es: 'Misiones especiales - misiles Exocet', en: 'Special missions - Exocet missiles' } },
+  { key: 'a4q', name: 'A-4Q', src: '../assets/planes/a4q/preview.webp', sheet: '../assets/planes/a4q/sheet.png', desc: { es: 'Variante naval - similar al A-4B/C', en: 'Naval variant - similar to the A-4B/C' } },
+  { key: 'pampa', name: 'PAMPA 63', src: '../assets/planes/pampa-63/preview.webp', sheet: '../assets/planes/pampa-63/sheet.png', desc: { es: 'Entrenador biplaza IA-63', en: 'IA-63 two-seat trainer' } },
+  { key: 'mirage', name: 'MIRAGE IIIEA', src: '../assets/planes/mirage-iiiea/preview.png', sheet: '../assets/planes/mirage-iiiea/sheet.png', desc: { es: 'Interceptor de altura - rapido y con poca autonomia', en: 'High-altitude interceptor - fast, short legs' } },
 ];
 // 84x48 por cuadro (antes 56x32): se re-hornearon a 1.5x al subir la grilla del juego a 480x270.
 // Con el buffer 2x del juego, el sprite cae a 2x EXACTO en pantalla — pixel art nitido.

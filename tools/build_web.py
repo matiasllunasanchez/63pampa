@@ -17,14 +17,13 @@ SRC = ROOT / 'src'
 ASSETS = ROOT / 'assets'
 OUT = ROOT / 'dist-web' / 'index.html'
 
-# (ruta relativa como aparece en game.js, archivo real, mime)   — mismo mapeo que extract_assets.py
-IMG = [('cockpit_sky.png', 'image/png'),
-       ('plane_sky_sheet.png', 'image/png'), ('plane_dagger_sheet.png', 'image/png'),
-       ('plane_supere_sheet.png', 'image/png'), ('plane_a4q_sheet.png', 'image/png'),
-       ('plane_pampa_sheet.png', 'image/png'),
-       ('plane_mirage.png', 'image/png'), ('plane_mirage_sheet.png', 'image/png')]
-PLANES = ['sky', 'dagger', 'supere', 'a4q', 'pampa']
-# El juego usa mp3 originales; para la web se re-embebe la m4a comprimida de assets/audio/web/.
+# AVIONES: cada uno vive en assets/planes/<slug>/ con sus archivos siempre igual nombrados
+# (preview.webp|png, sheet.png, y cockpit.png el que lo tenga). Antes estaban todos sueltos en
+# assets/img/ con el nombre embebido en el archivo, y agregar un avion tocaba tres listas.
+PLANE_DIRS = {'sky': 'a4-skyhawk', 'dagger': 'iai-dagger', 'supere': 'super-etendard',
+              'a4q': 'a4q', 'pampa': 'pampa-63', 'mirage': 'mirage-iiiea'}
+PLANE_PREVIEW_EXT = {'mirage': 'png'}     # el resto es webp
+# El juego usa mp3 originales; para la web se re-embebe la m4a comprimida de assets/music/web/.
 # Las pistas de adrenaline que no entran en el límite de 16 MB se DESCARTAN del build web ('').
 WEB_AUDIO = {
     'lobby.mp3': 'lobby.m4a',
@@ -73,40 +72,44 @@ def main():
             raise SystemExit(f'ERROR: no encontre la constante {name} en el bundle (2cambio el codigo?)')
         return out
 
-    # re-embeber imagenes
-    for fname, mime in IMG:
-        js, ok = sub_path(js, f'../assets/img/{fname}', uri(ASSETS / 'img' / fname, mime)); n += ok
-    for key in PLANES:
-        js, ok = sub_path(js, f'../assets/img/plane_{key}.webp', uri(ASSETS / 'img' / f'plane_{key}.webp', 'image/webp')); n += ok
-    # emblema de las Malvinas (4a estrella del recuento) — vive en assets/images/ (no en img/)
-    js, ok = sub_path(js, '../assets/images/malvinas.webp', uri(ASSETS / 'images' / 'malvinas.webp', 'image/webp')); n += ok
-    # hoja de miras (3x3) — vive suelta en assets/
-    js, ok = sub_path(js, '../assets/miras.webp', uri(ASSETS / 'miras.webp', 'image/webp')); n += ok
-    # ILUSTRACIONES de portada y de fin (assets/images/general/{ppal,win,lose}/): NO entran en
+    # AVIONES: preview + hoja de sprites de cada uno, desde su propia carpeta
+    for key, d in PLANE_DIRS.items():
+        ext = PLANE_PREVIEW_EXT.get(key, 'webp')
+        js, ok = sub_path(js, f'../assets/planes/{d}/preview.{ext}',
+                          uri(ASSETS / 'planes' / d / f'preview.{ext}', 'image/' + ext)); n += ok
+        js, ok = sub_path(js, f'../assets/planes/{d}/sheet.png',
+                          uri(ASSETS / 'planes' / d / 'sheet.png', 'image/png')); n += ok
+    # cabina (momentum en primera persona): hoy solo la del A-4
+    js, ok = sub_path(js, '../assets/planes/a4-skyhawk/cockpit.png',
+                      uri(ASSETS / 'planes' / 'a4-skyhawk' / 'cockpit.png', 'image/png')); n += ok
+    # INTERFAZ: emblema de las Malvinas (4a estrella) y hoja de miras (3x3)
+    js, ok = sub_path(js, '../assets/ui/malvinas.webp', uri(ASSETS / 'ui' / 'malvinas.webp', 'image/webp')); n += ok
+    js, ok = sub_path(js, '../assets/ui/miras.webp', uri(ASSETS / 'ui' / 'miras.webp', 'image/webp')); n += ok
+    # ILUSTRACIONES de portada y de fin (assets/photos/{ppal,win,lose}/): NO entran en
     # el build web — son ~20 fotos y el Artifact tope 16 MB. Mismo criterio que TBACK. En
     # Electron/Steam si van; aca las pantallas caen al fondo opaco (drawEndBg/drawPpalBg lo
     # contemplan y `load` no pide nada si la ruta quedo vacia).
     # Se BARREN las carpetas en vez de listar nombres: agregar una foto no debe romper el build.
     for sub in ('ppal', 'win', 'lose'):
-        d = ASSETS / 'images' / 'general' / sub
+        d = ASSETS / 'photos' / sub
         if not d.is_dir():
             continue
         for p in sorted(d.iterdir()):
             if p.is_file() and not p.name.startswith('.'):
-                js, _ = sub_path(js, f'../assets/images/general/{sub}/{p.name}', '')
+                js, _ = sub_path(js, f'../assets/photos/{sub}/{p.name}', '')
     # re-embeber audio: mp3 del juego -> m4a comprimida (o '' para las que no entran en la web)
     for mp3, m4a in WEB_AUDIO.items():
-        js, ok = sub_path(js, f'../assets/audio/{mp3}', uri(ASSETS / 'audio' / 'web' / m4a, 'audio/mp4')); n += ok
+        js, ok = sub_path(js, f'../assets/music/{mp3}', uri(ASSETS / 'music' / 'web' / m4a, 'audio/mp4')); n += ok
     for mp3 in WEB_DROP:
-        js, ok = sub_path(js, f'../assets/audio/{mp3}', ''); n += ok
+        js, ok = sub_path(js, f'../assets/music/{mp3}', ''); n += ok
 
-    # SFX con samples (assets/new_sounds/): NO entran en el bundle web — se vacia SFXB y el
+    # SFX con samples (assets/sfx/): NO entran en el bundle web — se vacia SFXB y el
     # sistema de sfx del juego se apaga solo (quedan los beeps procedurales de fallback)
     js = sub_const(js, 'SFXB', '', 'sin samples, beeps de fallback')
     # fondos por clima (terrain_back): pesados para el bundle web — se apagan (cielo procedural)
     js = sub_const(js, 'TBACK', '', 'cielo procedural')
     # normal map del agua: solo hace falta si MIRROR_SEA esta activo (hoy: apagado) — no se embebe
-    js, _ = sub_path(js, '../assets/img/waternormals.jpg', '')
+    js, _ = sub_path(js, '../assets/world/waternormals.jpg', '')
 
     if '../assets/' in js:
         raise SystemExit('ERROR: quedaron rutas ../assets/ sin re-embeber en game.js')

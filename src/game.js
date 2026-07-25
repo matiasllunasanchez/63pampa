@@ -400,7 +400,7 @@ import { RUNWAYS } from './data/runways.js';
     // caiga en HOR (el suelo de la imagen queda bajo el mar/terreno del juego, tapado).
     // Reemplazan al degrade+sol procedurales en 2D y en el telon 3D. Vaciar TBACK en el
     // build web (build_web.py) → vuelve el cielo procedural.
-    const TBACK = '../assets/images/terrain_back/';
+    const TBACK = '../assets/world/terrain_back/';
     const TBACK_MAP = { dusk: 'sunrise.png', night: 'night.png', storm: 'night_storm.png', clear: 'day_argentday.png', cloudy: 'day_cloudy.png' };
     const TBACK_HOR = 0.72;              // fila del horizonte dentro de las imagenes
     const tbackImgs = {};

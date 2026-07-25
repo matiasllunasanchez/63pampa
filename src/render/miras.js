@@ -30,7 +30,7 @@ SHEET.img.onload = () => {
   x.fillStyle = P.accent; x.fillRect(0, 0, c.width, c.height);
   SHEET.tint = c; SHEET.ready = true;
 };
-SHEET.img.src = '../assets/miras.webp';
+SHEET.img.src = '../assets/ui/miras.webp';
 
 /** Dibuja la mira `id` (1..9) centrada en (cx, cy) con `size` de lado. Devuelve false si la hoja
  *  todavia no cargo, para que quien llama pueda pintar su propio fallback. */

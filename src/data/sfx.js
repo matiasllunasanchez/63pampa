@@ -6,7 +6,7 @@
 // Capa de sonido REAL sobre el motor procedural: one-shots (sfxOne) y loops con fade
 // (updateSfx, por contexto). En el BUILD WEB tools/build_web.py vacia SFXB → sfxSrc da
 // null, todo esto se apaga solo y quedan los beeps/osciladores de siempre (fallback).
-export const SFXB = '../assets/new_sounds/';
+export const SFXB = '../assets/sfx/';
 export const SFX_DEF = {
   // armas
   gun: { f: ['ammo/machinegun_slow.mp3'], v: 0.65, loop: true },      // metralla: loop mientras disparas (+30%)

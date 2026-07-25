@@ -13,7 +13,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR } from '../data/tuning.js';
 
 // arte de la cabina (marco del visor). Se precarga al importar; hasta que este listo se
 // dibuja el fallback vectorial de abajo, asi el primer momentum nunca aparece vacio.
-const COCKPIT_ASSET = { src: '../assets/img/cockpit_sky.png', img: new Image(), ready: false };
+const COCKPIT_ASSET = { src: '../assets/planes/a4-skyhawk/cockpit.png', img: new Image(), ready: false };
 COCKPIT_ASSET.img.onload = () => { COCKPIT_ASSET.ready = true; };
 COCKPIT_ASSET.img.src = COCKPIT_ASSET.src;
 

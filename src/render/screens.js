@@ -24,7 +24,7 @@ function tintSil(img, color) {
 // GANADO = dorado (P.accent) · NO GANADO = BLANCO. Antes el 'no ganado' era gris azulado y se
 // perdia contra las ilustraciones de fondo; el blanco se lee sobre cualquier foto.
 MAL.img.onload = () => { MAL.ready = true; MAL.gold = tintSil(MAL.img, P.accent); MAL.dim = tintSil(MAL.img, P.ink); };
-MAL.img.src = '../assets/images/malvinas.webp';
+MAL.img.src = '../assets/ui/malvinas.webp';
 
 // FONDOS DE FIN DE PARTIDA: ilustraciones que reemplazan al mundo del juego detras del recuento y
 // del derribado. Se sortea una al terminar (no por cuadro: parpadearia) — el indice lo elige
@@ -33,33 +33,33 @@ MAL.img.src = '../assets/images/malvinas.webp';
 // Las rutas van SUELTAS y explicitas (no armadas con plantillas) porque tools/build_web.py las
 // re-embebe buscando el literal en el bundle: una ruta construida en runtime no la encontraria.
 const WIN_SRC = [
-  '../assets/images/general/win/win1.jpg',
-  '../assets/images/general/win/win2.jpg',
-  '../assets/images/general/win/win3.jpg',
-  '../assets/images/general/win/win4.jpg',
-  '../assets/images/general/win/win5.jpg',
+  '../assets/photos/win/win1.jpg',
+  '../assets/photos/win/win2.jpg',
+  '../assets/photos/win/win3.jpg',
+  '../assets/photos/win/win4.jpg',
+  '../assets/photos/win/win5.jpg',
 ];
 const LOSE_SRC = [
-  '../assets/images/general/lose/lose1.jpg',
-  '../assets/images/general/lose/lose2.jpg',
-  '../assets/images/general/lose/lose3.jpg',
-  '../assets/images/general/lose/lose4.png',
+  '../assets/photos/lose/lose1.jpg',
+  '../assets/photos/lose/lose2.jpg',
+  '../assets/photos/lose/lose3.jpg',
+  '../assets/photos/lose/lose4.png',
 ];
 // FONDO GENERAL (lobby / selección). ppal01 va PRIMERA y es fija: es la portada con la que
 // arranca el juego siempre. El resto rota al azar cada PPAL_ROT segundos (ver game.js).
 // Para sumar una foto: copiarla a la carpeta con el proximo numero y agregar la linea aca.
 const PPAL_SRC = [
-  '../assets/images/general/ppal/ppal01.jpg',
-  // '../assets/images/general/ppal/ppal02.jpg',
-  // '../assets/images/general/ppal/ppal03.jpg',
-  '../assets/images/general/ppal/ppal04.jpg',
-  '../assets/images/general/ppal/ppal05.jpg',
-  // '../assets/images/general/ppal/ppal06.jpg',
-  // '../assets/images/general/ppal/ppal07.jpg',
-  '../assets/images/general/ppal/ppal08.jpg',
-  '../assets/images/general/ppal/ppal09.jpg',
-  '../assets/images/general/ppal/ppal10.jpg',
-  // '../assets/images/general/ppal/ppal11.jpg',
+  '../assets/photos/ppal/ppal01.jpg',
+  // '../assets/photos/ppal/ppal02.jpg',
+  // '../assets/photos/ppal/ppal03.jpg',
+  '../assets/photos/ppal/ppal04.jpg',
+  '../assets/photos/ppal/ppal05.jpg',
+  // '../assets/photos/ppal/ppal06.jpg',
+  // '../assets/photos/ppal/ppal07.jpg',
+  '../assets/photos/ppal/ppal08.jpg',
+  '../assets/photos/ppal/ppal09.jpg',
+  '../assets/photos/ppal/ppal10.jpg',
+  // '../assets/photos/ppal/ppal11.jpg',
 ];
 // el build web VACIA estas rutas (ver tools/build_web.py): sin ruta no se pide nada y
 // drawEndBg cae al fondo opaco de siempre

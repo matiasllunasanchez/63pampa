@@ -31,7 +31,7 @@ const M3_LEN = 45;                   // eslora en unidades de mundo
 const M3_U = M3_LEN * 13.5 / (W * 0.82);          // "uh" en mundo (proporcion constante del 2D)
 const M3_DECK = -M3_LEN * 54 / (W * 0.82);     // altura de cubierta (deck) bajo el horizonte
 const M3_WATER = -M3_LEN * 74.25 / (W * 0.82);  // linea de flotacion (deckY + hullH en 2D)
-const WATER_NORMALS_SRC = '../assets/img/waternormals.jpg';   // normal map del agua (three/Water)
+const WATER_NORMALS_SRC = '../assets/world/waternormals.jpg';   // normal map del agua (three/Water)
 // ESPEJO realista (addon three/Water): DESACTIVADO por decision de diseño (20/7) — probado
 // en momentum y en toda el agua, quedaba "super plano" vs el mar de cuadrados, que es la
 // identidad del juego. La integracion queda dormida: poner true para re-probarla.
