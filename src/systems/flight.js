@@ -22,7 +22,7 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
 import { MSL_MAX, FLY_X, FLY_TOP, ROLL_DUR,
-         GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET } from '../data/tuning.js';
+         GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt } from '../data/tuning.js';
 import { multOf } from '../core/util.js';
 import * as momentum from './momentum.js';
 import { engineFly, sfxOne, sfxSrc, beep, boom } from './audio.js';
@@ -172,7 +172,9 @@ export function flightSystem(dt, deps) {
   // baja y arriesgada (arriba del suelo, pero bajo para clipear/matar soldados con el pase rasante).
   const overRunway = run.dist + PZ < cfg.coast;
   let groundY, deathMsg;
-  if (cfg.terrain === 'land') { groundY = 0.5; deathMsg = 'death_land'; }
+  // en COSTA el suelo depende del LADO: tierra a la izquierda de SHORE_X, mar a la derecha
+  const onDirt = cfg.terrain === 'land' || (cfg.terrain === 'coast' && plane.x < shoreAt(run.dist + PZ));
+  if (onDirt) { groundY = 0.5; deathMsg = 'death_land'; }
   else if (overRunway) { groundY = 0.9; deathMsg = 'death_land'; }
   else { groundY = waveNow(); deathMsg = 'death_sea'; }
   // TOCAR LA SUPERFICIE: ya no es muerte instantanea. El avion ROZA y tambalea (perdes control:
@@ -215,7 +217,7 @@ export function flightSystem(dt, deps) {
 
   // estela sobre el agua
   const lowI = Math.max(0, 1 - alt / 9);
-  if (lowI > 0 && !overRunway && cfg.terrain !== 'land') {
+  if (lowI > 0 && !overRunway && !onDirt) {
     wake.push({ x: plane.x, z: PZ, i: lowI });
     if (wake.length > 150) wake.shift();
   }
@@ -226,7 +228,7 @@ export function flightSystem(dt, deps) {
   const nSpray = alt < 2.8 ? 6 : alt < 4.5 ? 3 : alt < 7 ? 1 : 0;
   for (let i = 0; i < nSpray; i++) {
     const s = proj(plane.x + (Math.random() - 0.5) * 4, 0, PZ - Math.random() * 2);
-    const onLand = cfg.terrain === 'land';
+    const onLand = onDirt;
     parts.push({
       x: s.x, y: s.y - 1, vx: (Math.random() - 0.5) * 70, vy: -(50 + Math.random() * 110) * (0.5 + lowI),
       life: 0.25 + Math.random() * 0.3, c: onLand ? (Math.random() < 0.6 ? '#6b6250' : '#4a4636') : (Math.random() < 0.7 ? P.foam : P.crest), r: 1 + Math.random() * 1.3

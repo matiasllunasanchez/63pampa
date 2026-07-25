@@ -203,8 +203,9 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     // ---------- MENÚ DE CONFIGURACIÓN DE MAPA [M] (herramienta para prototipar niveles) ----------
     const CFG_ROWS = [
       { label: 'METROS', opts: [800, 1500, 3000, 5000, 8000], names: ['800 m', '1500 m', '3000 m', '5000 m', '8000 m'], get: () => cfg.meters, set: v => cfg.meters = v, cycleOnly: true },
-      { label: 'FONDO', opts: ['dusk', 'night', 'storm', 'clear'], names: ['ATARDECER', 'NOCHE', 'TORMENTA', 'DESPEJADO'], get: () => cfg.sky, set: v => { cfg.sky = v; applyCfg(); } },
-      { label: 'TERRENO', opts: ['sea', 'land'], names: ['MAR', 'TIERRA'], get: () => cfg.terrain, set: v => cfg.terrain = v },
+      { label: 'FONDO', opts: ['dusk', 'night', 'storm', 'clear', 'cloudy'], names: ['ATARDECER', 'NOCHE', 'TORMENTA', 'DESPEJADO', 'NUBLADO'], get: () => cfg.sky, set: v => { cfg.sky = v; applyCfg(); } },
+      // elegir COSTA trae su clima: dia nublado de desembarco (el FONDO se puede cambiar despues)
+      { label: 'TERRENO', opts: ['sea', 'land', 'coast'], names: ['MAR', 'TIERRA', 'COSTA'], get: () => cfg.terrain, set: v => { cfg.terrain = v; if (v === 'coast') { cfg.sky = 'cloudy'; applyCfg(); } } },
       { label: 'AGUA', opts: ['sea', 'violet'], names: ['MAR', 'VIOLETA'], get: () => cfg.water, set: v => { cfg.water = v; applyCfg(); } },
       { label: 'VIENTO', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.wind, set: v => cfg.wind = v },
       { label: 'OBSTACULOS', opts: [0, 0.5, 1, 1.7], names: ['NINGUNO', 'POCOS', 'NORMAL', 'MUCHOS'], get: () => cfg.obstacles, set: v => cfg.obstacles = v },
@@ -381,7 +382,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     // Reemplazan al degrade+sol procedurales en 2D y en el telon 3D. Vaciar TBACK en el
     // build web (build_web.py) → vuelve el cielo procedural.
     const TBACK = '../assets/images/terrain_back/';
-    const TBACK_MAP = { dusk: 'sunrise.png', night: 'night.png', storm: 'night_storm.png', clear: 'day_argentday.png' };
+    const TBACK_MAP = { dusk: 'sunrise.png', night: 'night.png', storm: 'night_storm.png', clear: 'day_argentday.png', cloudy: 'day_cloudy.png' };
     const TBACK_HOR = 0.72;              // fila del horizonte dentro de las imagenes
     const tbackImgs = {};
     function tbackImg() {
@@ -763,8 +764,8 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       }
       ctx.globalAlpha = 1;
 
-      // soldados en tierra (de lejos a cerca), corriendo
-      if (cfg.terrain === 'land') {
+      // soldados en tierra (de lejos a cerca), corriendo — tierra y costa
+      if (cfg.terrain === 'land' || cfg.terrain === 'coast') {
         const sold = soldiers.slice().sort((a, b) => b.z - a.z);
         for (const sd of sold) {
           if (sd.z <= 3 || sd.dead) continue;
@@ -778,12 +779,20 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       const all = obstacles.slice().sort((a, b) => b.z - a.z);
       for (const o of all) if (o.z > 3) world.drawObstacle(o);
 
-      // misiles
+      // misiles (y trazadoras del fuego de tierra: mas chicas, amarillas y con cola corta)
       for (const m of missiles) {
         if (m.z <= 3) continue;
         const s = proj(m.x, m.y, m.z), k = s.k;
-        px(s.x - 0.8 * k, s.y - 0.8 * k, 1.6 * k, 1.6 * k, P.ink);
-        px(s.x - 0.4 * k, s.y + 0.8 * k, 0.8 * k, Math.max(1, 1.2 * k), P.accent);
+        if (m.tracer) {
+          const s2 = proj(m.x, m.y, m.z + 5);
+          ctx.strokeStyle = P.accent; ctx.globalAlpha = 0.55;
+          ctx.beginPath(); ctx.moveTo(s2.x, s2.y); ctx.lineTo(s.x, s.y); ctx.stroke();
+          ctx.globalAlpha = 1;
+          px(s.x - 0.5 * k, s.y - 0.5 * k, k, k, '#ffd98a');
+        } else {
+          px(s.x - 0.8 * k, s.y - 0.8 * k, 1.6 * k, 1.6 * k, P.ink);
+          px(s.x - 0.4 * k, s.y + 0.8 * k, 0.8 * k, Math.max(1, 1.2 * k), P.accent);
+        }
       }
       // balas (trazadoras hacia el horizonte)
       for (const b of bullets) {

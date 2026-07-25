@@ -214,6 +214,17 @@ Agregar **reabastecimiento de gasolina asociado al HÉRCULES**.
 
 ¿**Nuevas mecánicas** y **nuevos terrenos**? (abierto)
 
+- [x] **Terreno COSTA (hecho): el desembarco británico.** Tierra a la izquierda, playa y mar a la
+      derecha (`SHORE_X` en `data/tuning.js`), la flota fondeada en el horizonte. Mucho más denso
+      que los otros mapas. Actores nuevos (`systems/spawn.js` + `render/world.js`):
+      **carpas** (paren patrullas; arrasarlas a ras NO mata y da puntos), **antiaéreos**
+      (disparan misiles guiados, destruibles — blanco prioritario), **puestos** (destruibles;
+      los armados tienen un soldado que tira ráfagas de trazadoras) y **barcazas de desembarco**
+      (entran por el agua con soldados). Los soldados son británicos: corren TODOS de derecha
+      (la playa) a izquierda, más rápido, y con silueta de contraste para despegarlos del
+      terreno. TIERRA replica carpas y antiaéreos sueltos. Se elige en el menú [M] → TERRENO.
+
+
 ## 18. Jugar con los ingleses (asimetría)
 
 Poder **jugar con los ingleses** para mostrar la **diferencia**: dar **facilidades de poderes y

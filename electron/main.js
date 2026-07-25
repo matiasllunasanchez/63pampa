@@ -16,6 +16,10 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,     // seguridad estándar
       nodeIntegration: false,     // el renderer NO tiene acceso a Node
+      // El juego arranca la música al cargar, sin esperar un gesto. Electron YA permite autoplay
+      // por defecto, así que esto es redundante hoy: se deja explícito porque el arranque
+      // inmediato pasó a ser una dependencia y un cambio de default lo rompería en silencio.
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
 

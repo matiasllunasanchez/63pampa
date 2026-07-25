@@ -104,7 +104,7 @@ export function updateSfx(dt, w) {
       if (w.state === 'play' && w.firing && !w.overheat) sfxTgt.gun = SFX_DEF.gun.v;       // metralla
       // ambiente por contexto del mapa
       if (w.cfg.sky === 'storm') {
-        if (w.cfg.terrain === 'sea') sfxTgt.ambStorm = SFX_DEF.ambStorm.v;
+        if (w.cfg.terrain === 'sea' || w.cfg.terrain === 'coast') sfxTgt.ambStorm = SFX_DEF.ambStorm.v;
         else sfxTgt.ambRain = SFX_DEF.ambRain.v;
       } else if (w.cfg.terrain === 'land') {
         const near = w.soldiers && w.soldiers.some(sd => !sd.dead && sd.z > 3 && sd.z < 90);
@@ -143,6 +143,23 @@ export function updateMusic(state) {
   gm.volume += (tv - gm.volume) * 0.08;
 }
 function startMusicOnce(state) { if (musicStarted || muted) return; musicStarted = true; updateMusic(state || 'modeselect'); }
+
+// ARRANQUE INMEDIATO: se intenta hacer sonar la musica apenas carga el juego, sin esperar a que el
+// jugador toque algo. En Electron funciona (autoplayPolicy en electron/main.js); en el navegador la
+// politica de autoplay lo rechaza y `musicStarted` vuelve a false, con lo que el arranque por gesto
+// de audio() sigue siendo el camino. Por eso se comprueba si la pista realmente quedo sonando.
+(() => {
+  const tryStart = () => {
+    if (musicStarted || muted) return;
+    musicStarted = true;
+    updateMusic('title');
+    const want = musLobby;                    // al abrir siempre estamos en la portada
+    const p = want.play();
+    if (p && p.catch) p.catch(() => { musicStarted = false; });   // bloqueado: que lo reintente el gesto
+  };
+  if (document.readyState === 'complete') tryStart();
+  else window.addEventListener('load', tryStart, { once: true });
+})();
 export function setMuted(v) {
   muted = v;
   try { localStorage.setItem('rasante_muted', muted ? '1' : '0'); } catch (e) { }

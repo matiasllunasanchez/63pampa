@@ -16,13 +16,14 @@ import { sfxOne, beep, boom } from '../systems/audio.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { PZ } from '../render/ctx.js';
+import { SHORE_X, AA_Z0, AA_Z1, AA_CD } from '../data/tuning.js';
 
 export function collisionSystem(dt) {
   // soldados: corren y se acercan; atropellarlos a ras del suelo = MUCHÍSIMOS puntos
   for (const sd of soldiers) {
     if (sd.dead) continue;
     sd.z -= run.spd * dt;
-    sd.x += sd.dir * 6 * dt;                                  // corren en diagonal
+    sd.x += sd.dir * (sd.v || 6) * dt;                        // corren en diagonal (costa: mas rapido)
     if (sd.z <= PZ + 1 && sd.z > PZ - 4 && Math.abs(plane.x - sd.x) < 4 && plane.y < 3) {
       sd.dead = true;                                        // pase rasante: cabeza / impacto de aire (banda 0.5–3)
       sfxOne('body');                                        // impacto de cuerpo (una variante al azar)
@@ -43,8 +44,12 @@ export function collisionSystem(dt) {
       o.done = true;
       const air = o.type === 'helo' || o.type === 'jet';
       const tall = o.type === 'mast' || o.type === 'tree';   // obstáculo vertical fijo
+      // ESTRUCTURAS del desembarco (costa/tierra): cajas apoyadas en el suelo, centro a h/2
+      const struct = o.type === 'tent' || o.type === 'aa' || o.type === 'bldg' || o.type === 'lcu';
+      const STRUCT_HW = { tent: 2.4, aa: 1.7, bldg: 3.0, lcu: 3.6 };
       let hw, hh, oy;
       if (tall) { hw = o.type === 'tree' ? 1.4 : 0.9; hh = o.h; oy = o.h / 2; }   // árbol un poco más ancho (copa)
+      else if (struct) { hw = STRUCT_HW[o.type]; hh = o.h / 2 + 0.4; oy = o.h / 2; }
       else { hw = air ? 3 : 2.6; hh = air ? 1.6 : 1.9; oy = o.y; }
       // perfil del avion AFINADO (antes 2.6×1.2, chocaba "de lejos"); en PIRUETA las alas
       // van de canto → perfil minimo: pasa por espacios mucho mas finos
@@ -59,7 +64,16 @@ export function collisionSystem(dt) {
           beep(700, 0.1, 'triangle', 0.05, 1000); o.z = -99;
         }
       } else if ((dx < 0 && dy < 0) || hullHit) {
-        return { death: o.type === 'mast' ? 'death_mast' : o.type === 'tree' ? 'death_tree' : o.type === 'helo' ? 'death_helo' : o.type === 'jet' ? 'death_jet' : 'death_balloon' };
+        if (o.type === 'tent') {
+          // la carpa es lona: atravesarla no mata — la ARRASA, con premio (juego rasante puro)
+          const pts = Math.round(200 * run.multShow);
+          run.score += pts; stats.air++; run.shake = Math.min(6, run.shake + 2);
+          const s = proj(o.x, 1, PZ); popup(s.x, s.y - 10, T('tentDown') + ' +' + pts, P.warn);
+          explodeAt(o.x, 1, PZ, false); sfxOne('exXsmall');
+          o.z = -99; o.done = true;
+        } else return { death: o.type === 'mast' ? 'death_mast' : o.type === 'tree' ? 'death_tree'
+          : o.type === 'aa' ? 'death_aagun' : o.type === 'bldg' ? 'death_bldg' : o.type === 'lcu' ? 'death_lcu'
+          : o.type === 'helo' ? 'death_helo' : o.type === 'jet' ? 'death_jet' : 'death_balloon' };
       } else if (dx < 3 && dy < 3) {
         const pir = run.rollT > 0;                       // rozar EN PIRUETA: bonus grande (estilo)
         run.score += pir ? 250 : 75; stats.grazes++; run.shake = Math.min(6, run.shake + 1.5);
@@ -68,17 +82,38 @@ export function collisionSystem(dt) {
         boom(0.06, true);
       }
     }
+    // ANTIAEREO: dentro de su banda de tiro larga un misil guiado cada AA_CD segundos
+    if (o.type === 'aa' && !o.done && o.hp > 0 && o.z > AA_Z0 && o.z < AA_Z1) {
+      o.cd -= dt;
+      if (o.cd <= 0) {
+        o.cd = AA_CD; o.fireT = run.t;
+        missiles.push({ x: o.x, y: 2, z: o.z, done: false });
+        beep(760, 0.1, 'square', 0.05);
+      }
+    }
+    // PUESTO con soldados adentro: una rafaga corta de trazadoras (rapidas, casi rectas) que
+    // hay que esquivar. Dispara pocas veces — es presion, no una lluvia.
+    if (o.type === 'bldg' && o.armed && !o.done && o.hp > 0 && o.shots > 0 && o.z > 90 && o.z < 200) {
+      o.cd -= dt;
+      if (o.cd <= 0) {
+        o.cd = 0.75; o.shots--; o.fireT = run.t;
+        missiles.push({ x: o.x, y: o.h * 0.6, z: o.z, done: false, tracer: true });
+        beep(300, 0.05, 'square', 0.04);
+      }
+    }
   }
   prune(obstacles, o => o.z > 2);
 
   // misiles
   for (const m of missiles) {
-    m.z -= (run.spd + 85) * dt;
-    m.x += Math.max(-20, Math.min(20, (plane.x - m.x) * 2.4)) * dt;
-    m.y += Math.max(-14, Math.min(14, (plane.y - m.y) * 2.0)) * dt;
+    // trazadora (fuego de tierra): mas rapida y casi recta — se esquiva moviendose, no girando
+    const trk = m.tracer ? 0.7 : 1;
+    m.z -= (run.spd + (m.tracer ? 150 : 85)) * dt;
+    m.x += Math.max(-20, Math.min(20, (plane.x - m.x) * 2.4 * trk)) * dt;
+    m.y += Math.max(-14, Math.min(14, (plane.y - m.y) * 2.0 * trk)) * dt;
     if (!m.done && m.z <= PZ + 1.2) {
       m.done = true;
-      if (Math.abs(plane.x - m.x) < (run.rollT > 0 ? 1.6 : 3) && Math.abs(plane.y - m.y) < (run.rollT > 0 ? 1.2 : 2.2)) return { death: 'death_missile' };
+      if (Math.abs(plane.x - m.x) < (run.rollT > 0 ? 1.6 : 3) && Math.abs(plane.y - m.y) < (run.rollT > 0 ? 1.2 : 2.2)) return { death: m.tracer ? 'death_gunfire' : 'death_missile' };
       run.score += 75; stats.dodges++; const s = proj(m.x, m.y, PZ); popup(s.x, s.y - 8, T('dodgeMissile'), P.foam); boom(0.06, true);
     }
     if (Math.random() < 0.6) {
@@ -106,7 +141,8 @@ export function collisionSystem(dt) {
       if (Math.abs(b.x - o.x) < (air ? 5.6 : 3) && Math.abs(b.y - oy) < (air ? 3 : 2.4)) {
         o.hp--; o.hitT = run.t; b.z = 999; stats.hits++;   // hitT: lo lee el fogonazo del render
         if (o.hp <= 0) {
-          const pts = o.type === 'helo' ? 300 : o.type === 'jet' ? 250 : 150;
+          const pts = o.type === 'helo' ? 300 : o.type === 'jet' ? 250
+            : o.type === 'aa' ? 350 : o.type === 'bldg' ? 300 : o.type === 'lcu' ? 250 : 150;   // el AA es el blanco prioritario
           run.score += pts; stats.air++;
           sfxOne(air ? 'exMedium' : 'exXsmall');   // aeronaves: medium · blancos chicos: xsmall
           const s = proj(o.x, oy, o.z); popup(s.x, s.y - 8, '+' + pts);
@@ -129,7 +165,7 @@ export function collisionSystem(dt) {
     }
     if (b.z >= 999) continue;
     // ametralla soldados en tierra: bala baja y alineada (por eso hay que estar de frente y a distancia)
-    if (cfg.terrain === 'land' && b.y < 4) {
+    if ((cfg.terrain === 'land' || cfg.terrain === 'coast') && b.y < 4) {
       for (const sd of soldiers) {
         if (sd.dead || sd.z < z0 - 2 || sd.z > b.z + 2) continue;
         if (Math.abs(b.x - sd.x) < 2.6) {
@@ -177,7 +213,7 @@ export function collisionSystem(dt) {
     }
     if (pm.z >= 9999) continue;
     // sobre TIERRA: explota contra el suelo o cerca de soldados, con splash
-    if (cfg.terrain === 'land') {
+    if (cfg.terrain === 'land' || cfg.terrain === 'coast') {
       let detonate = pm.y <= 0.3;
       if (!detonate) for (const sd of soldiers) { if (!sd.dead && Math.abs(sd.z - pm.z) < 6 && Math.abs(sd.x - pm.x) < 4) { detonate = true; break; } }
       if (detonate) {

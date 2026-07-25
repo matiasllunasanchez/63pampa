@@ -37,7 +37,20 @@ export const GUN_RESET = 0.3;
 // VIDA DE LOS ENEMIGOS. El globo cae de un tiro (es un globo); las aeronaves aguantan una rafaga
 // corta, para que valga la pena sostener el disparo y apuntar. Los que tienen mas de 1 muestran
 // barra de vida (ver drawHpBar en render/world.js).
-export const ENEMY_HP = { balloon: 1, helo: 4, jet: 3 };
+export const ENEMY_HP = { balloon: 1, helo: 4, jet: 3, aa: 3, bldg: 4, lcu: 2, tent: 1 };
+
+// TERRENO COSTA: desembarco britanico. Tierra a la IZQUIERDA, mar a la DERECHA; la linea de costa
+// esta en SHORE_X (coordenada x de mundo). Los soldados corren de derecha a izquierda (bajan de
+// las barcazas hacia tierra adentro).
+export const SHORE_X = 14;
+// La linea de costa NO es recta: serpentea con dos senos en coordenadas de MUNDO (estable: no
+// titila, scrollea con el terreno). Todos los que necesitan saber "donde esta la orilla a esta
+// profundidad" (render, vuelo, spawn) preguntan aca — una sola fuente, sin desincronizarse.
+// tres escalas: bahias grandes (0.0047), entrantes medianos (0.014) y el mordisco corto (0.055)
+export const shoreAt = wz => SHORE_X + Math.sin(wz * 0.014) * 6 + Math.sin(wz * 0.0047 + 2.0) * 8 + Math.sin(wz * 0.055 + 0.7) * 2.2;
+export const SAND_W = 6;   // ancho de la playa (antes 2.5: era un hilito)
+// ANTIAEREO: banda de profundidad donde dispara y cadencia entre misiles
+export const AA_Z0 = 80, AA_Z1 = 215, AA_CD = 2.6;
 
 // RE-ATAQUE: si se agota la ventana de tiro con blancos vivos, virás 180° y volvés a entrar.
 // El daño hecho se conserva; el costo es combustible. Si no queda nafta (o se acaban los

@@ -11,8 +11,8 @@ import { cam, cfg, S } from '../core/state.js';
 import { run } from '../core/run.js';
 import { wake } from '../core/world.js';
 import { proj } from '../core/fx.js';
-import { P, LAND } from '../data/palette.js';
-import { SHIP_UH, SHIP_DECK } from '../data/tuning.js';
+import { P, LAND, CLAND } from '../data/palette.js';
+import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W } from '../data/tuning.js';
 import * as momentum from '../systems/momentum.js';
 import * as momRender from './momentum.js';
 
@@ -33,6 +33,7 @@ export function seaH(wx, wz) {
 
 export function drawSea() {
   const landMode = cfg.terrain === 'land';
+  const coastMode = cfg.terrain === 'coast';
   const dv = run.dist + momentum.drift();   // distancia VISUAL (drift del momentum incluido)
   const landVisible = dv < cfg.coast + 80;
   for (let y = HOR + 1; y < H; y++) {
@@ -60,12 +61,53 @@ export function drawSea() {
       if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) px(-70, y, W + 140, 1, LAND.furrow);  // surcos
       continue;
     }
+    if (coastMode) {
+      // COSTA: cada fila se parte en la LINEA DE COSTA — que SERPENTEA (shoreAt(wz), senos en
+      // coordenadas de mundo): tierra arenosa a la izquierda, playa ancha, rompiente, y mar.
+      const k = F / z;
+      const shoreW = shoreAt(wz);
+      const sandSx = W / 2 + (shoreW - SAND_W - cam.x) * k;
+      const shoreSx = W / 2 + (shoreW - cam.x) * k;
+      const f = dy / (H - HOR);
+      px(-70, y, Math.max(0, sandSx + 70), 1, f < 0.28 ? CLAND.far : f < 0.6 ? CLAND.mid : CLAND.near);
+      if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) px(-70, y, Math.max(0, sandSx + 70), 1, CLAND.furrow);
+      // playa: arena mojada cerca del agua, seca contra la tierra
+      const sandW2 = Math.max(1, shoreSx - sandSx);
+      px(sandSx, y, sandW2, 1, f < 0.4 ? '#7d7154' : '#8f8163');
+      px(sandSx + sandW2 * 0.62, y, sandW2 * 0.38, 1, f < 0.4 ? '#6d6350' : '#7c7260');   // franja humeda
+      px(shoreSx, y, Math.max(0, W + 70 - shoreSx), 1, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
+      // rompiente: espuma que respira contra la arena
+      ctx.globalAlpha = 0.35 + 0.35 * Math.max(0, Math.sin(wz * 0.35 - run.t * 2.6));
+      px(shoreSx - 1, y, 2.5, 1, P.foam);
+      ctx.globalAlpha = 1;
+      continue;
+    }
     if (landVisible && wz < cfg.coast + 7) { px(-70, y, W + 140, 1, P.foam); continue; }  // rompiente
     // base oscura del mar (degradado por profundidad) para que los puntos resalten
     const f = dy / (H - HOR);
     px(-70, y, W + 140, 1, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
   }
-  if (landMode) drawLand(); else drawSeaDots(landVisible);
+  if (landMode) drawLand();
+  else if (coastMode) {
+    drawLand(true);                    // matas SECAS, solo del lado de tierra (limite por fila)
+    drawSeaDots(landVisible, true);    // oleaje solo del lado del agua (limite por fila)
+    drawFleet();                       // la flota de desembarco en el horizonte
+  } else drawSeaDots(landVisible);
+}
+
+// FLOTA BRITANICA en el horizonte (decorado del mapa COSTA): siluetas fondeadas mar adentro,
+// del lado del agua. Parallax suave — son el telon del desembarco, las barcazas salen de aca.
+function drawFleet() {
+  ctx.globalAlpha = 0.85;
+  for (let i = 0; i < 3; i++) {
+    const bx = W * 0.66 + i * 62 - cam.x * 1.6 + Math.sin(i * 3.7) * 14;
+    if (bx < W * 0.58) continue;                       // nunca sobre la tierra (la orilla serpentea)
+    const bw = 30 - i * 5;
+    px(bx, HOR - 2.5, bw, 2.5, '#39424a');                          // casco
+    px(bx + bw * 0.32, HOR - 5, bw * 0.2, 2.5, '#465059');          // superestructura
+    px(bx + bw * 0.6, HOR - 4, Math.max(1, bw * 0.05), 1.5, '#465059');   // mastil
+  }
+  ctx.globalAlpha = 1;
 }
 
 // hash entero → [0,1). Bien distribuido (a diferencia de sin(combinación lineal), que hace bandas
@@ -83,7 +125,11 @@ const TUFT_TIP = ['#899366', '#98a66a', '#748558', '#a6a870', '#6a7c50', '#b0ae7
 
 // matas/rocas dispersas sobre la tierra (parallax de movimiento a ras del suelo). La posición y el
 // color salen de un hash por celda: distribución aleatoria de verdad (sin patrón) y colores variados.
-function drawLand() {
+// pasto seco de la costa (arenoso, casi sin verde) — mismo indice que TUFTS
+const TUFTS_DRY = ['#948a5e', '#a2966a', '#867a52', '#b0a276', '#7c7150', '#a89a66'];
+const TUFT_TIP_DRY = ['#b1a67a', '#c0b386', '#a2966c', '#cdbf92', '#988c68', '#c4b682'];
+
+function drawLand(coastMode) {
   // pasos DIVIDIDOS por U al subir la resolucion: sin esto se dibujaria la misma cantidad de
   // matas pero 1.5x mas grandes (misma imagen agrandada). Bajarlos es lo que convierte los
   // pixeles nuevos en densidad real.
@@ -96,7 +142,9 @@ function drawLand() {
     // ancho de pantalla a esta fila (antes era fijo ±74 → dejaba huecos en los bordes lejanos).
     // +20px de margen; tope de 340 para no iterar de más en la banda del horizonte.
     const halfW = Math.min(340, (W / 2 + 20) * (wz - dv) / F);
-    for (let wx = Math.ceil((cam.x - halfW) / SPX) * SPX; wx < cam.x + halfW; wx += SPX) {
+    // costa: el limite es LA ORILLA de esta fila (serpentea) menos el ancho de playa
+    const wxEnd = coastMode ? Math.min(cam.x + halfW, shoreAt(wz) - SAND_W - 0.5) : cam.x + halfW;
+    for (let wx = Math.ceil((cam.x - halfW) / SPX) * SPX; wx < wxEnd; wx += SPX) {
       const ix = Math.round(wx / SPX);
       const h1 = hash2(ix, iz);
       if (h1 < 0.5) continue;                                            // densidad dispersa
@@ -117,14 +165,15 @@ function drawLand() {
         px(rx, ry, w, Math.max(1, hh * 0.4), '#6b6552');                 // cara iluminada (arriba)
         px(rx, s.y - Math.max(1, hh * 0.28), w, Math.max(1, hh * 0.28), '#3a3529');   // sombra (base)
       } else {                                                          // matojo de pasto
-        const ci = (h3 * TUFTS.length) | 0;
+        const TF = coastMode ? TUFTS_DRY : TUFTS, TT = coastMode ? TUFT_TIP_DRY : TUFT_TIP;
+        const ci = (h3 * TF.length) | 0;
         const w = Math.max(1, k * 0.55), hh = Math.max(1, k * (0.65 + h2 * 0.6));
         const bx = s.x - w / 2, by = s.y - hh;
-        px(bx, by, w, hh, TUFTS[ci]);                                    // cuerpo
-        px(bx, by, w, Math.max(1, hh * 0.4), TUFT_TIP[ci]);              // punta iluminada
+        px(bx, by, w, hh, TF[ci]);                                       // cuerpo
+        px(bx, by, w, Math.max(1, hh * 0.4), TT[ci]);                    // punta iluminada
         if (k > 3) {                                                    // cerca: briznas que se abren
-          px(bx - Math.max(1, w * 0.4), s.y - hh * 0.7, Math.max(1, w * 0.34), hh * 0.7, TUFTS[ci]);
-          px(bx + w, s.y - hh * 0.85, Math.max(1, w * 0.34), hh * 0.85, TUFT_TIP[ci]);
+          px(bx - Math.max(1, w * 0.4), s.y - hh * 0.7, Math.max(1, w * 0.34), hh * 0.7, TF[ci]);
+          px(bx + w, s.y - hh * 0.85, Math.max(1, w * 0.34), hh * 0.85, TT[ci]);
         }
       }
     }
@@ -133,7 +182,7 @@ function drawLand() {
 }
 
 // malla de puntos que forma la onda del mar en perspectiva (estilo boostivity)
-function drawSeaDots(landVisible) {
+function drawSeaDots(landVisible, coastMode) {
   const SPX = 0.93, SPZ = 1.0, farZ = 190;  // densidad x4, y ademas /U al subir la resolucion
   const dv = run.dist + momentum.drift();
   const startZ = Math.ceil((dv + 4) / SPZ) * SPZ;
@@ -152,7 +201,7 @@ function drawSeaDots(landVisible) {
     // franja acorde al FRUSTUM: el ancho visible crece con la distancia (antes era ±74 fijo
     // y el mar quedaba "cortito" a lo lejos, p.ej. detras de la pista durante el despegue)
     const half = Math.min(320, (W / 2 + 10) * camZ / F + 6);
-    const xL = cam.x - half, xR = cam.x + half;
+    const xL = coastMode ? Math.max(cam.x - half, shoreAt(wz) + 1) : cam.x - half, xR = cam.x + half;   // costa: solo lado agua
     const sx3 = Math.max(SPX, camZ * 0.011);                   // paso x adaptativo (~1px)
     const x0 = Math.ceil(xL / sx3) * sx3;
     for (let wx = x0; wx < xR; wx += sx3) {
@@ -326,6 +375,66 @@ export function drawObstacle(o) {
       px(cx + cw * 0.08, top + th * 0.14, Math.max(1, cw * 0.14), Math.max(1, th * 0.08), '#2c3a1a'); // gap oscuro
       px(cx - cw * 0.34, top + th * 0.2, Math.max(1, cw * 0.12), Math.max(1, th * 0.07), '#6f8a44');  // mota clara
     }
+  } else if (o.type === 'tent') {
+    // CARPA britanica: lona olivo a dos aguas, entrada oscura. Arrasable a ras (no mata).
+    const base = proj(o.x, 0, o.z);
+    ctx.globalAlpha = 0.25;
+    px(base.x - 3 * k, base.y - 0.3 * k, 6 * k, Math.max(1, 0.5 * k), '#161d10');   // sombra
+    ctx.globalAlpha = 1;
+    px(base.x - 2.5 * k, base.y - 1.7 * k, 5 * k, 1.7 * k, '#66684a');              // cuerpo de lona
+    px(base.x - 1.7 * k, base.y - 2.6 * k, 3.4 * k, 1.0 * k, '#585a40');            // techo
+    px(base.x - 1.0 * k, base.y - 3.1 * k, 2.0 * k, Math.max(1, 0.6 * k), '#74765a');  // cumbrera con luz
+    px(base.x - 0.5 * k, base.y - 1.4 * k, 1.0 * k, 1.4 * k, '#20241c');            // entrada
+    px(base.x - 2.5 * k, base.y - 0.4 * k, 5 * k, Math.max(1, 0.4 * k), '#4e5038'); // faldon sucio
+  } else if (o.type === 'aa') {
+    // ANTIAEREO: nido de bolsas de arena + pedestal + caños gemelos apuntando alto. Dispara
+    // misiles (o.fireT marca el fogonazo). Destruible — es el blanco prioritario del mapa.
+    const base = proj(o.x, 0, o.z);
+    px(base.x - 2.4 * k, base.y - 0.9 * k, 4.8 * k, 0.9 * k, '#7c6f4f');            // bolsas de arena
+    px(base.x - 2.4 * k, base.y - 0.9 * k, 4.8 * k, Math.max(1, 0.3 * k), '#948562');
+    px(base.x - 0.5 * k, base.y - 2.0 * k, 1.0 * k, 1.2 * k, '#3d423b');            // pedestal
+    for (let i = 0; i < 3; i++) {                                                   // caños gemelos (diagonal)
+      px(base.x + (0.2 + i * 0.5) * k, base.y - (2.2 + i * 0.55) * k, Math.max(1, 0.7 * k), Math.max(1, 0.3 * k), '#2b3338');
+      px(base.x + (0.2 + i * 0.5) * k, base.y - (1.85 + i * 0.55) * k, Math.max(1, 0.7 * k), Math.max(1, 0.3 * k), '#2b3338');
+    }
+    if (o.fireT && run.t - o.fireT < 0.12) {                                        // fogonazo
+      px(base.x + 1.8 * k, base.y - 4.1 * k, 1.4 * k, 1.2 * k, P.accent);
+      px(base.x + 2.1 * k, base.y - 3.9 * k, 0.8 * k, 0.7 * k, '#fff2c8');
+    }
+    drawHpBar(base.x, base.y - 5.4 * k, k, o);
+  } else if (o.type === 'bldg') {
+    // PUESTO britanico: paredes chapa, techo, puerta y ventanas. Los armados tienen un soldado
+    // asomado que tira rafagas (fogonazo en la ventana con o.fireT).
+    const base = proj(o.x, 0, o.z), bh = o.h * k;
+    px(base.x - 3 * k, base.y - bh, 6 * k, bh, '#6e6656');                          // paredes
+    px(base.x - 3 * k, base.y - bh, 6 * k, Math.max(1, 0.16 * bh), '#7d7563');      // luz superior
+    px(base.x - 3.3 * k, base.y - bh - 0.6 * k, 6.6 * k, Math.max(1, 0.7 * k), '#463f31');   // techo
+    ctx.globalAlpha = 0.25;                                                          // chapas
+    for (let i = 1; i < 4; i++) px(base.x - 3 * k + i * 1.5 * k, base.y - bh, 1, bh, '#3a352a');
+    ctx.globalAlpha = 1;
+    px(base.x - 0.6 * k, base.y - 1.9 * k, 1.2 * k, 1.9 * k, '#2a2d24');            // puerta
+    const wy = base.y - bh * 0.62;
+    px(base.x - 2.2 * k, wy, 1.2 * k, Math.max(1, 0.9 * k), '#23271f');             // ventana izq
+    px(base.x + 1.0 * k, wy, 1.2 * k, Math.max(1, 0.9 * k), '#23271f');             // ventana der
+    if (o.armed) {                                                                  // soldado asomado
+      px(base.x + 1.25 * k, wy + 0.15 * k, 0.7 * k, Math.max(1, 0.6 * k), '#8a7f5e');
+      if (o.fireT && run.t - o.fireT < 0.12) px(base.x + 2.1 * k, wy + 0.1 * k, 1.1 * k, Math.max(1, 0.5 * k), P.accent);
+    }
+    drawHpBar(base.x, base.y - bh - 1.6 * k, k, o);
+  } else if (o.type === 'lcu') {
+    // BARCAZA DE DESEMBARCO: casco chato en el agua, rampa hacia la playa (izquierda), timonera
+    // atras y cascos de soldados asomando. Entra por el lado del mar.
+    const base = proj(o.x, 0, o.z);
+    ctx.globalAlpha = 0.5;                                                           // estela
+    px(base.x - 4.6 * k, base.y, 9.2 * k, Math.max(1, 0.4 * k), P.foam);
+    ctx.globalAlpha = 1;
+    px(base.x - 3.8 * k, base.y - 1.6 * k, 7.6 * k, 1.6 * k, '#5b6558');            // casco
+    px(base.x - 3.8 * k, base.y - 1.6 * k, 7.6 * k, Math.max(1, 0.3 * k), '#6d7767');
+    px(base.x - 4.5 * k, base.y - 2.3 * k, Math.max(1, 0.8 * k), 2.3 * k, '#77816f');   // rampa (proa, hacia la playa)
+    px(base.x + 2.6 * k, base.y - 2.5 * k, 1.1 * k, Math.max(1, 0.9 * k), '#4a5348');   // timonera
+    for (let i = 0; i < 3; i++)                                                      // cascos asomando
+      px(base.x + (-2.2 + i * 1.3) * k, base.y - 2.0 * k, Math.max(1, 0.7 * k), Math.max(1, 0.4 * k), '#7d7455');
+    drawHpBar(base.x, base.y - 3.6 * k, k, o);
   } else if (o.type === 'fuel') {
     const oy = o.y + Math.sin(run.t * 2) * 0.5;
     const s = proj(o.x, oy, o.z);
@@ -338,22 +447,32 @@ export function drawObstacle(o) {
 // con el juego a 320x180, así que todo escala con `k` (tamaño según la distancia). `gait` (−1..1)
 // anima el paso. Vive acá (render) y no en el orquestador: el loop de game.js solo proyecta y llama.
 export function drawSoldier(x, y, k, gait) {
-  const bh = Math.max(3, k * 1.8), bw = Math.max(1.5, k * 0.7);
-  const U = '#454d38', UD = '#2e3327', HELM = '#5a5140', SKIN = '#9c7350', GUN = '#20241a';
+  // SOLDADO BRITANICO de infanteria. Dos decisiones de legibilidad: (1) SILUETA de contraste — un
+  // borde oscuro detras de todo el cuerpo que lo separa del terreno (los verdes del uniforme se
+  // fundian con la turba); (2) uniforme khaki CLARO, mas claro que cualquier banda del suelo.
+  const bh = Math.max(3.5, k * 1.9), bw = Math.max(1.7, k * 0.78);
+  const U = '#a09372', UD = '#6e6448', HELM = '#7d7455', SKIN = '#caa27a', GUN = '#191c15', RIM = '#12150e';
   const step = gait * bw * 0.5;
+  // silueta de contraste (sombra dura pegada al cuerpo)
+  px(x - bw * 0.56, y - bh * 1.06, bw * 1.12, bh * 1.06, RIM);
+  // sombra en el piso
+  ctx.globalAlpha = 0.3; px(x - bw * 0.7, y - 1, bw * 1.4, Math.max(1, bh * 0.08), '#0d100a'); ctx.globalAlpha = 1;
   // piernas (alternan con el paso)
-  px(x - step - bw * 0.3, y - bh * 0.38, Math.max(1, bw * 0.3), bh * 0.38, UD);
-  px(x + step, y - bh * 0.38, Math.max(1, bw * 0.3), bh * 0.38, UD);
-  // torso + hombro
-  px(x - bw * 0.42, y - bh * 0.74, bw * 0.84, bh * 0.42, U);
-  px(x - bw * 0.42, y - bh * 0.74, bw * 0.84, Math.max(1, bh * 0.1), '#525a42');
+  px(x - step - bw * 0.32, y - bh * 0.4, Math.max(1, bw * 0.32), bh * 0.4, UD);
+  px(x + step, y - bh * 0.4, Math.max(1, bw * 0.32), bh * 0.4, UD);
+  // torso + correaje
+  px(x - bw * 0.44, y - bh * 0.76, bw * 0.88, bh * 0.44, U);
+  px(x - bw * 0.44, y - bh * 0.76, bw * 0.88, Math.max(1, bh * 0.1), '#b3a685');    // luz de hombros
+  px(x - bw * 0.1, y - bh * 0.74, Math.max(1, bw * 0.2), bh * 0.4, UD);             // correaje cruzado
+  px(x - bw * 0.5, y - bh * 0.5, bw, Math.max(1, bh * 0.09), '#57503a');            // cinturon
   // fusil cruzado al frente + brazo
-  px(x - bw * 0.1, y - bh * 0.62, Math.max(1, bw * 0.85), Math.max(1, bh * 0.11), GUN);
-  px(x - bw * 0.15, y - bh * 0.6, Math.max(1, bw * 0.35), Math.max(1, bh * 0.22), U);
-  // cabeza + casco
-  px(x - bw * 0.26, y - bh * 0.9, bw * 0.52, bh * 0.2, SKIN);
-  px(x - bw * 0.34, y - bh, bw * 0.68, Math.max(1, bh * 0.15), HELM);
-  px(x - bw * 0.34, y - bh * 0.88, bw * 0.68, Math.max(1, bh * 0.05), '#3f3a2c');   // ala del casco
+  px(x - bw * 0.12, y - bh * 0.64, Math.max(1, bw * 0.9), Math.max(1, bh * 0.12), GUN);
+  px(x - bw * 0.18, y - bh * 0.62, Math.max(1, bw * 0.38), Math.max(1, bh * 0.24), U);
+  // cabeza + casco britanico (ala ancha)
+  px(x - bw * 0.28, y - bh * 0.92, bw * 0.56, bh * 0.2, SKIN);
+  px(x - bw * 0.38, y - bh * 1.02, bw * 0.76, Math.max(1, bh * 0.17), HELM);
+  px(x - bw * 0.38, y - bh * 1.02, bw * 0.76, Math.max(1, bh * 0.05), '#948a66');   // brillo del casco
+  px(x - bw * 0.46, y - bh * 0.88, bw * 0.92, Math.max(1, bh * 0.06), '#57503a');   // ala ancha
 }
 
 // la barcaza objetivo VISIBLE en vuelo normal: aparece en el horizonte desde el 45% del recorrido
