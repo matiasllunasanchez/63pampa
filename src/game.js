@@ -319,9 +319,9 @@ import { RUNWAYS } from './data/runways.js';
       cam.x = 0; cam.y = 4;
     }
 
-    // botón táctil de misil (visible solo en juego; se togglea en el loop)
-    const mslBtn = document.getElementById('msl');
-    if (mslBtn) mslBtn.addEventListener('pointerdown', e => { e.preventDefault(); audio(); tryLaunchMissile(); });
+    // (el boton tactil de misil se quito: tapaba la barra de combustible. En tactil el misil
+    // queda por el gesto de click derecho / boton del joystick; si hace falta de nuevo, volvera
+    // como zona de toque sin chrome encima del HUD.)
 
     // reproductor de música: visible solo cuando suena una pista del reproductor y se puede cambiar
     // — o sea en juego (no lobby ni historia) y en los modos que no son campaña. Se togglea en el loop.
@@ -333,9 +333,19 @@ import { RUNWAYS } from './data/runways.js';
     // CAMARAS (tecla V, cicla): 4 niveles de zoom anclados al sprite del avion.
     // camZ interpola suave; el zoom solo se aplica en vuelo (play/takeoff/dead), nunca en momentum
     // (ahi manda la camara cockpit) ni en menus.
-    const CAM_ZOOMS = [1, 1.5, 2, 2.5];
+    // CAMARA. El acercamiento (1.5x / 2x / 2.5x) quedo DESACTIVADO: escalaba el raster ya dibujado,
+    // y el mar se dibuja UNA FILA DE 1 PX por linea de pantalla — al escalar, unas filas caen en
+    // 1 px y otras en 2, y las bandas de agua se parten en rayas. Medido sobre una columna del
+    // centro: a 1x hay 202 tramos con bandas gruesas (hasta 31 px); a 2x hay 468, de los cuales
+    // 428 son de 1 px — el mar queda hecho tiras. Lo mismo, en menor medida, al alejar.
+    // Para acercarse de verdad hay que rehacer la PROYECCION (escalar F/HOR y redibujar el mundo
+    // a esa escala), no estirar el resultado. Queda como la vista de CABINA en primera persona
+    // (ver ROADMAP): esa es la que reemplaza a esta.
+    const CAM_ZOOMS = [1];
     let camMode = 0, camZ = 1;
-    function camZoomOn() { return camZ > 1.005 && (S.state === 'play' || S.state === 'takeoff' || S.state === 'dead'); }
+    // el zoom se aplica tanto ACERCANDO (camaras 1.5x-2.5x) como ALEJANDO (turbo): por eso se
+    // mira la distancia a 1 y no si es mayor que 1.
+    function camZoomOn() { return Math.abs(camZ - 1) > 0.005 && (S.state === 'play' || S.state === 'takeoff' || S.state === 'dead'); }
     // mouse en coordenadas del MUNDO-pantalla: deshace el zoom de la camara cerca para que
     // mira y desproyeccion (balas/misiles) sigan cayendo exactamente bajo el cursor fisico
     function viewMouse() {
@@ -553,7 +563,7 @@ import { RUNWAYS } from './data/runways.js';
       updateSfx(dt, { state: S.state, cfg, plane, boost: run.boost, firing: inp.fire, overheat: run.overheat, soldiers });   // loops con fade
       // camara CERCA: interpola hacia el objetivo; fuera de vuelo (o al morir) vuelve sola a 1
       // para que cada entrada a play arranque con zoom-in suave y sin saltos entre estados
-      const camZt = (S.state === 'play' || S.state === 'takeoff') ? CAM_ZOOMS[camMode] : 1;
+      const camZt = 1;   // ver CAM_ZOOMS: el zoom por raster quedo desactivado
       camZ += (camZt - camZ) * Math.min(1, dt * 3.5);
 
       // despegue automático desde Puerto Argentino: el control llega a los 3 s
@@ -837,12 +847,30 @@ import { RUNWAYS } from './data/runways.js';
       for (const pm of pmissiles) {
         if (pm.z >= 240 || pm.z <= 3) continue;
         const s = proj(pm.x, pm.y, pm.z), k = s.k;
-        const s2 = proj(pm.x, pm.y, pm.z - 10);
-        ctx.strokeStyle = P.accent; ctx.globalAlpha = 0.6; ctx.lineWidth = Math.max(1, k * 0.4);
-        ctx.beginPath(); ctx.moveTo(s2.x, s2.y); ctx.lineTo(s.x, s.y); ctx.stroke();
-        ctx.globalAlpha = 1; ctx.lineWidth = 1;
-        px(s.x - Math.max(1, k * 0.4), s.y - Math.max(1, k * 0.4), Math.max(1, k * 0.8), Math.max(1, k * 0.8), P.ink);
-        px(s.x - Math.max(1, k * 0.3), s.y + Math.max(1, k * 0.4), Math.max(1, k * 0.6), Math.max(1, k * 0.5), P.warn);
+        // MISIL estilo Exocet: cuerpo BLANCO LARGO con ojiva gris, aletas en cruz y llama corta.
+        // Antes eran dos cuadraditos y una linea naranja — no se leia como un misil.
+        const w = Math.max(1, k * 0.5);              // ancho del cuerpo
+        const L = Math.max(3, k * 3.2);              // largo: se ve como un tubo, no como un punto
+        const x0 = s.x - w / 2, yTip = s.y - L / 2;
+        px(x0, yTip + L * 0.18, w, L * 0.82, '#e9edf0');                      // cuerpo blanco
+        px(x0, yTip + L * 0.18, Math.max(1, w * 0.4), L * 0.82, '#ffffff');   // brillo del canto
+        px(x0, yTip, w, L * 0.2, '#9aa3ab');                                  // OJIVA gris
+        px(x0, yTip + L * 0.42, w, Math.max(1, L * 0.06), '#3d444a');         // banda oscura
+        const fw = Math.max(1, k * 0.45);                                     // ALETAS traseras
+        px(x0 - fw, yTip + L * 0.72, fw, Math.max(1, L * 0.2), '#c9d0d6');
+        px(x0 + w, yTip + L * 0.72, fw, Math.max(1, L * 0.2), '#c9d0d6');
+        // LLAMA del cohete: nucleo claro que se afina, con parpadeo
+        const fl = L * (0.3 + Math.random() * 0.25);
+        px(x0, yTip + L, w, fl, '#ffd479');
+        px(x0 + w * 0.25, yTip + L, Math.max(1, w * 0.5), fl * 0.6, '#fff3cf');
+        px(x0 + w * 0.25, yTip + L + fl, Math.max(1, w * 0.5), fl * 0.5, '#e8842a');
+        // ESTELA de humo: puntos que se van apagando hacia atras (sin lineas vectoriales)
+        for (let t = 1; t <= 4; t++) {
+          ctx.globalAlpha = 0.34 - t * 0.07;
+          const st = proj(pm.x, pm.y, pm.z - t * 3.5);
+          px(st.x - w * 0.5, st.y, Math.max(1, w), Math.max(1, w), '#c8cfd4');
+        }
+        ctx.globalAlpha = 1;
       }
       }   // ---- fin mundo 2D ----
 
@@ -941,7 +969,6 @@ import { RUNWAYS } from './data/runways.js';
     function frame(now) {
       const dt = Math.min(0.033, (now - last) / 1000); last = now;
       update(dt); draw(); updateMusic(S.state);
-      if (mslBtn) mslBtn.classList.toggle('on', S.state === 'play' || S.state === 'momentum');   // botón de misil en juego y momentum
       if (playerEl) playerEl.classList.toggle('on', canPickMusic());   // reproductor: solo donde hay pista cambiable
       requestAnimationFrame(frame);
     }

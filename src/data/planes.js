@@ -18,7 +18,16 @@ export const PLANES = [
 ];
 // 84x48 por cuadro (antes 56x32): se re-hornearon a 1.5x al subir la grilla del juego a 480x270.
 // Con el buffer 2x del juego, el sprite cae a 2x EXACTO en pantalla — pixel art nitido.
-export const SHEET_FW = 84, SHEET_FH = 48, SHEET_NF = 9, SHEET_ROWS = 3;   // 9 cols (alabeo) x 3 filas (cabeceo: trepa/nivel/pica); tambien spec para arte manual
+// 9 cols (alabeo) x 3 filas (cabeceo: trepa/nivel/pica); tambien spec para arte manual.
+// FRAME CUADRADO: el alto subio de 48 a 84 porque al alabear 60° la envergadura se para y las
+// puntas de ala quedaban cortadas. El avion NO cambio de tamaño — lo que se agrego es aire
+// transparente arriba y abajo, y el sprite se dibuja centrado.
+export const SHEET_FW = 84, SHEET_FH = 84, SHEET_NF = 9, SHEET_ROWS = 3;
+// ALTO DEL AVION dentro del frame. El frame es cuadrado (84) pero el avion sigue ocupando los
+// mismos 48 px de siempre: el resto es aire transparente, arriba y abajo, para que quepa girado.
+// Todo lo que se dibuje PEGADO al avion (llama de la turbina, fogonazos) tiene que medirse contra
+// ESTO y no contra SHEET_FH — si no, queda flotando a 18 px de la cola.
+export const SHEET_BODY_H = 48;
 PLANES.forEach(pl => {
   pl.img = new Image(); pl.ready = false; pl.w = 977; pl.h = 471;
   pl.img.onload = () => { pl.ready = true; pl.w = pl.img.naturalWidth; pl.h = pl.img.naturalHeight; };

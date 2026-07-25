@@ -375,15 +375,47 @@ function drawSeaDots(landVisible, coastMode) {
   ctx.globalAlpha = 1;
 }
 
+// ESTELA del avion sobre el agua. Antes cada punto eran tres barras planas identicas y la
+// estela se leia como tres rieles paralelos. El agua batida tiene CICLO DE VIDA: el centro
+// recien batido es una lengua blanca con cresta; los brazos de la V se acortan y se apagan a
+// medida que envejecen; y lo viejo se disuelve en MOTAS de espuma sueltas (con posicion fija
+// por punto — wp.seed — para que no titilen cuadro a cuadro).
 export function drawWake() {
   for (const wp of wake) {
     const trail = PZ - wp.z;                       // metros que quedaron atrás
     const s = proj(wp.x, 0, wp.z);
-    const spread = (0.6 + trail * 0.34) * s.k;       // apertura de la V
-    ctx.globalAlpha = Math.min(0.85, wp.i * (0.3 + trail * 0.055));
-    px(s.x - s.k * 0.7, s.y, s.k * 1.4, Math.max(1, s.k * 0.2), P.foam);       // centro batido
-    px(s.x - spread - s.k * 0.7, s.y, s.k * 1.4, 1, P.crest);                // brazo izq
-    px(s.x + spread - s.k * 0.7, s.y, s.k * 1.4, 1, P.crest);                // brazo der
+    const spread = (0.6 + trail * 0.34) * s.k;     // apertura de la V
+    const age = Math.min(1, trail / 11);           // 0 = recien batida · 1 = por disolverse
+    const a = Math.min(0.85, wp.i * (0.3 + trail * 0.055)) * (1 - age * 0.45);
+    if (a <= 0.02) continue;
+    // CENTRO batido: solo mientras es fresco — lengua de espuma con cresta blanca encima
+    if (age < 0.35) {
+      ctx.globalAlpha = a;
+      px(s.x - s.k * 0.8, s.y, s.k * 1.6, Math.max(1, s.k * 0.25), P.foam);
+      ctx.globalAlpha = a * 0.7;
+      px(s.x - s.k * 0.45, s.y - 1, Math.max(1, s.k * 0.9), 1, '#f2f7fb');
+    }
+    // BRAZOS de la V: cresta clara con espuma corrida un pixel abajo y afuera (le da relieve);
+    // el dash se acorta al envejecer — la V se deshilacha en vez de seguir siendo un riel
+    const alen = Math.max(1, s.k * (1.5 - age * 0.8));
+    for (const sg of [-1, 1]) {
+      const ax = s.x + sg * spread;
+      ctx.globalAlpha = a;
+      px(ax - alen / 2, s.y, alen, 1, P.crest);
+      ctx.globalAlpha = a * 0.5;
+      px(ax - alen / 2 + sg, s.y + 1, Math.max(1, alen * 0.7), 1, P.foam);
+    }
+    // MOTAS: espuma suelta entre los brazos cuando la estela ya envejecio. Posicion por hash del
+    // seed — estable entre cuadros, distinta entre puntos.
+    if (age > 0.3) {
+      const sd = wp.seed || 0;
+      for (let i = 0; i < 2; i++) {
+        const h = Math.sin(sd * 12.9898 + i * 78.233) * 43758.5453;
+        const fx = (h - Math.floor(h)) * 2 - 1;
+        ctx.globalAlpha = a * (0.9 - i * 0.3);
+        px(s.x + fx * spread * 0.85, s.y + (i % 2), 1, 1, i ? P.foam : P.crest);
+      }
+    }
   }
   ctx.globalAlpha = 1;
 }

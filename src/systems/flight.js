@@ -24,6 +24,8 @@ import { W, H, HOR, F, PZ } from '../render/ctx.js';
 import { MSL_MAX, FLY_X, FLY_TOP, ROLL_DUR,
          GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt } from '../data/tuning.js';
 import { PORT_H } from '../data/runways.js';
+// cuanto sube la camara con turbo (unidades de mundo): el efecto de 'alejarse'
+const BOOST_LIFT = 2.2;
 import { multOf } from '../core/util.js';
 import * as momentum from './momentum.js';
 import { engineFly, sfxOne, sfxSrc, beep, boom } from './audio.js';
@@ -131,7 +133,11 @@ export function flightSystem(dt, deps) {
   if (plane.y > FLY_TOP) { plane.y = FLY_TOP; plane.vy = 0; }
 
   cam.x += (plane.x * 0.86 - cam.x) * Math.min(1, dt * 7);
-  cam.y += (plane.y + 2.6 - cam.y) * Math.min(1, dt * 7);
+  // TURBO: la camara se VA PARA ATRAS. No se escala el raster (eso partia el mar en rayas, ver
+  // CAM_ZOOMS en game.js): se sube la camara en el MUNDO, asi la proyeccion se recalcula sola,
+  // entra mas agua en pantalla y el avion baja en el cuadro. Es un movimiento de camara real.
+  const camLift = 2.6 + (run.boost ? BOOST_LIFT : 0);
+  cam.y += (plane.y + camLift - cam.y) * Math.min(1, dt * 3.2);
   if (cam.y < 3.4) cam.y = 3.4;
 
   // --- animación de vuelo: alabeo (bank) y cabeceo (pitch) suavizados ---
@@ -219,7 +225,7 @@ export function flightSystem(dt, deps) {
   // estela sobre el agua
   const lowI = Math.max(0, 1 - alt / 9);
   if (lowI > 0 && !overRunway && !onDirt) {
-    wake.push({ x: plane.x, z: PZ, i: lowI });
+    wake.push({ x: plane.x, z: PZ, i: lowI, seed: Math.random() * 100 });   // seed: motas estables
     if (wake.length > 150) wake.shift();
   }
   for (const wp of wake) wp.z -= run.spd * dt;

@@ -14,7 +14,7 @@ import { inp } from '../core/input.js';
 import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
 import { drawMira } from './miras.js';
-import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH } from '../data/planes.js';
+import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H } from '../data/planes.js';
 import { ROLL_DUR } from '../data/tuning.js';
 
 const MIRA_SIZE = 17;   // lado de la mira en pixeles de mundo (480x270)
@@ -22,22 +22,109 @@ const AIM_PITCH = 5;    // cuanto sube/baja la mira FIJA con el cabeceo (unidade
 
 // PERILLAS del "vuelo vivo": el avion nunca queda congelado en el aire. Son sutiles a proposito
 // (el juego corre a 320x180, 1px se nota). Subilas para que flote/cabecee mas, bajalas para calmarlo.
+// TAMAÑO del avion en pantalla, como factor. 1 = el horneado tal cual (84 px de ancho de frame).
+// Es la perilla para equilibrarlo contra el resto del mundo (mastiles, barcos, obstaculos): si el
+// avion se come la pantalla, bajarla; no hay que rehornear nada.
+export const PLANE_SCALE = 0.85;
+let boostSc = 1;   // factor animado del achique por turbo
+
 const BOB_Y  = 1.5;    // amplitud del bob vertical (px)
 const BOB_X  = 0.75;    // amplitud de la deriva horizontal (px) — desfasada del bob → flota en "8"
 const WOBBLE = 0.026;  // amplitud de la micro-oscilacion de alabeo (rad, ~1.5°)
 
+/** LLAMA DEL POSTQUEMADOR. Antes era UN rectangulo pálido de 4 px de ancho saliendo de la cola:
+ *  a esta resolucion se leia como una barra blanca pegada al avion. Una llama en pixel art se
+ *  arma por FILAS que se afinan y se enfrian hacia la punta — del blanco del nucleo al rojo
+ *  apagado del final — con el largo parpadeando cuadro a cuadro. */
+function flame(x, y0) {
+  const COL = ['#fff6d8', '#ffe08a', '#ffb43c', '#f07c22', '#cf4d16', '#93300f'];
+  const n = 4 + (Math.random() * 3 | 0);            // largo variable: la llama respira
+  ctx.globalAlpha = 0.28;                           // resplandor alrededor de la tobera
+  px(x - 3, y0 - 1, 6, 3, '#ffb43c');
+  ctx.globalAlpha = 1;
+  for (let i = 0; i < n; i++) {
+    const w = Math.max(1, 4 - Math.round(i * 3 / n));   // se afina hacia la punta
+    px(x - w / 2, y0 + i, w, 1, COL[Math.min(COL.length - 1, i)]);
+  }
+  // diamante de choque: el punto azulado de la garganta, lo que delata que es un reactor
+  if (Math.random() < 0.6) px(x, y0, 1, 1, '#dff3ff');
+  if (Math.random() < 0.35) px(x + (Math.random() < 0.5 ? -1 : 1), y0 + n + 1, 1, 1, '#e0761f');
+}
+
+/** Los DOS fogonazos, colocados en la RAIZ DEL ALA. Al alabear tienen que acompañar al ala y no
+ *  quedarse horizontales: la POSICION gira siempre con el alabeo, y la INCLINACION del fogonazo
+ *  entra recien pasada la mitad del giro — antes no se notaria y solo ensuciaria el pixel art
+ *  (rotar rectangulos chicos unos pocos grados los deja con los bordes sucios). */
+function muzzles(bank) {
+  const a = bank * 1.05;                       // ~60° a fondo: el mismo giro que traen los frames
+  const ca = Math.cos(a), sa = Math.sin(a);
+  const ab = Math.abs(bank);
+  const tilt = ab > 0.5 ? a * (ab - 0.5) / 0.5 : 0;
+  for (const gx of [-5, 5]) {
+    const gy = -1;
+    ctx.save();
+    ctx.translate(gx * ca - gy * sa, gx * sa + gy * ca);
+    if (tilt) ctx.rotate(tilt);
+    muzzle(0, 0);
+    ctx.restore();
+  }
+}
+
+/** FOGONAZO del canon. Antes eran dos rectangulos blancos de 3x2 que a esta resolucion se leian
+ *  como dos ladrillos. Ahora es un fogonazo de verdad: nucleo caliente, petalos en cruz que
+ *  cambian por disparo, y un halo tenue. Todo en pixeles enteros — nada de degrade. */
+function muzzle(x, y) {
+  const big = Math.random() < 0.45;                 // no todos los disparos son iguales
+  ctx.globalAlpha = 0.35;                           // halo: da calor sin ensuciar el sprite
+  px(x - 2, y - 1, 4, 3, '#e8a33d');
+  ctx.globalAlpha = 1;
+  px(x - 1, y, 2, 1, '#fff6d8');                    // nucleo blanco caliente
+  px(x, y - 1, 1, 3, '#ffe9a8');                    // eje vertical
+  px(x - 2, y, 1, 1, '#ffcc66'); px(x + 2, y, 1, 1, '#ffcc66');   // petalos laterales
+  if (big) {                                        // fogonazo largo: se estira hacia atras
+    px(x, y + 2, 1, 2, '#f0a63a');
+    px(x - 3, y, 1, 1, '#d97a26'); px(x + 3, y, 1, 1, '#d97a26');
+  }
+  if (Math.random() < 0.5) px(x + (Math.random() < 0.5 ? -2 : 2), y + 2, 1, 1, '#c9631f');   // chispa
+}
+
 export function drawPlane(selPlane, viewMouse) {
   const s = proj(plane.x, plane.y, PZ);
-  // sombra sobre el agua (referencia de altura)
+  // SOMBRA sobre el agua (referencia de altura). Tres barras que se angostan en vez de un
+  // rectangulo: a esta resolucion eso ya lee como una elipse.
   const sh = proj(plane.x, 0, PZ);
   ctx.globalAlpha = Math.max(0.08, 0.4 - plane.y * 0.009);
-  px(sh.x - 13, sh.y, 27, 3, '#101c1e');
-  // espuma batida justo debajo cuando vuela bajo (solo sobre agua)
+  px(sh.x - 9, sh.y - 1, 18, 1, '#101c1e');
+  px(sh.x - 13, sh.y, 27, 1, '#101c1e');
+  px(sh.x - 9, sh.y + 1, 18, 1, '#101c1e');
+  // ROCIADA: el avion levanta agua al pasar rasante. Antes eran DOS BARRAS planas cruzando la
+  // pantalla; ahora es una lengua de agua bajo el fuselaje, dos brazos en V que se abren hacia
+  // atras y gotas sueltas — que es como se lee el agua batida en pixel art.
   const churn = Math.max(0, 1 - plane.y / 7);
   if (churn > 0 && S.state === 'play' && cfg.terrain !== 'land') {
-    ctx.globalAlpha = churn * 0.7;
-    px(sh.x - 16, sh.y - 1.5, 33, 3, P.foam);
-    px(sh.x - 22, sh.y, 45, 1.5, P.crest);
+    const pulse = 0.8 + 0.2 * Math.sin(run.t * 22);           // el chorro late, no es una calca
+    // LENGUA central: el agua que el avion levanta justo debajo, con cresta blanca arriba
+    ctx.globalAlpha = churn * 0.9;
+    px(sh.x - 5, sh.y - 2, 10, 1, P.crest);
+    px(sh.x - 4, sh.y - 1, 8, 2, P.foam);
+    // BRAZOS en V: se abren y se apagan hacia atras, con el borde de arriba mas claro
+    for (let i = 1; i <= 5; i++) {
+      const w = (2 + i) * pulse, o = 4 + i * 4, yy = sh.y + i * 1.3;
+      ctx.globalAlpha = churn * (0.6 - i * 0.09);
+      px(sh.x - o - w, yy, w, 1, P.foam);
+      px(sh.x + o, yy, w, 1, P.foam);
+      if (i <= 2) {                                           // cresta iluminada del brazo
+        ctx.globalAlpha = churn * 0.5;
+        px(sh.x - o - w, yy - 1, w * 0.6, 1, P.crest);
+        px(sh.x + o + w * 0.4, yy - 1, w * 0.6, 1, P.crest);
+      }
+    }
+    // GOTAS: dos tamaños y dos tonos — sin esto la rociada se lee como una mancha uniforme
+    for (let i = 0; i < 7; i++) {
+      const dx = (Math.random() - 0.5) * 46, dy = Math.random() * 8 - 2;
+      ctx.globalAlpha = churn * (0.5 + Math.random() * 0.5);
+      px(sh.x + dx, sh.y + dy, Math.random() < 0.3 ? 2 : 1, 1, Math.random() < 0.45 ? P.crest : P.foam);
+    }
   }
   ctx.globalAlpha = 1;
 
@@ -76,7 +163,13 @@ export function drawPlane(selPlane, viewMouse) {
   // sangre), asi que se escala por U. Las HOJAS ya vienen horneadas a 1.5x, por eso se dibujan
   // a SHEET_FW/U: ocupan lo mismo en pantalla pero con 1.5x mas pixeles de fuente.
   ctx.scale(U, U);
-  const spW = SHEET_FW / U, spH = SHEET_FH / U;
+  // con TURBO el avion se ACHICA un poco: acompaña a la camara que sube (ver flight.js) y remata
+  // la sensacion de que el avion se despega de vos. Interpolado para que no sea un salto.
+  boostSc += ((run.boost ? 0.92 : 1) - boostSc) * 0.08;
+  const sc = PLANE_SCALE * boostSc;
+  const spW = SHEET_FW / U * sc, spH = SHEET_FH / U * sc;
+  // media altura del CUERPO del avion (sin el aire del frame): a esto se pega la llama del turbo
+  const bodyH2 = SHEET_BODY_H / U * sc / 2;
   if (useSheet) {
     ctx.imageSmoothingEnabled = false;   // pixel art nítido (el save/restore de afuera lo repone)
     // COLUMNA por alabeo. bank>0 = va a la DERECHA → tiene que banquear a la derecha, pero
@@ -95,9 +188,14 @@ export function drawPlane(selPlane, viewMouse) {
       ctx.drawImage(pl.sheetImg, sx4, sy4, SHEET_FW, SHEET_FH, -spW / 2, -spH / 2, spW, spH);
       ctx.restore();
     }
-    if (run.boost) { const fl = 5 + Math.random() * 4; px(-2, spH / 2 - 8, 4, fl, P.foam); px(-1, spH / 2 - 8, 2, fl * 0.7, P.accent); }
+    // POSTQUEMADOR pegado a la TOBERA. Antes salia de spH/2 (el borde del frame) y al pasar el
+    // frame a cuadrado la llama quedo flotando 12 px detras del avion.
+    // ORDEN DE CAPAS. Los FOGONAZOS van DEBAJO del avion: la boca del canon esta en la raiz del
+    // ala, del otro lado del fuselaje, asi que el fuego tiene que asomar por detras y no taparlo.
+    // La LLAMA del turbo va ENCIMA: sale de la tobera, que apunta a la camara.
+    if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
     ctx.drawImage(pl.sheetImg, sx4, sy4, SHEET_FW, SHEET_FH, -spW / 2, -spH / 2, spW, spH);
-    if (inp.fire && !run.overheat && run.fireT > 0.06) { px(-6, -2, 3, 2, P.ink); px(3, -2, 3, 2, P.ink); }
+    if (run.boost) flame(0, bodyH2 - 6);
   } else if (pl.ready) {
     const PW = 54, PH = Math.round(PW * pl.h / pl.w);
     // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas (estela cinematica)
@@ -108,11 +206,10 @@ export function drawPlane(selPlane, viewMouse) {
       ctx.drawImage(pl.img, -PW / 2, -PH / 2, PW, PH);
       ctx.restore();
     }
-    // postquemador: fogonazo extra bajo la tobera solo con turbo (el sprite ya trae su glow)
-    if (run.boost) { const fl = 5 + Math.random() * 4; px(-2, PH / 2 - 4, 4, fl, P.foam); px(-1, PH / 2 - 4, 2, fl * 0.7, P.accent); }
+    // mismo orden que arriba: fogonazos detras, llama del turbo adelante
+    if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
     ctx.drawImage(pl.img, -PW / 2, -PH / 2, PW, PH);
-    // fogonazos del cañón
-    if (inp.fire && !run.overheat && run.fireT > 0.06) { px(-6, -2, 3, 2, P.ink); px(3, -2, 3, 2, P.ink); }
+    if (run.boost) flame(0, PH / 2 - 4);
   } else {
     // fallback: sprite de rects (por si la imagen no cargó)
     px(-2, -7, 4, 5, P.bodyDark); px(-1, -8, 2, 2, P.warn);
