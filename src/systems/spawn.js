@@ -44,26 +44,31 @@ function spawn() {
     // COSTA: el desembarco. Mucho mas denso que los otros mapas (ver spawnSystem) y con las
     // estructuras britanicas en tierra: carpas (paren soldados), antiaereos (disparan misiles),
     // puestos (algunos con soldados adentro tirando) y barcazas entrando por el agua.
-    if (r < 0.14) {
+    if (r < 0.12) {
       const x = landLane();
       obstacles.push({ type: 'tent', x, h: 3.4, y: 1.4, z: 250, ...hpOf('tent'), done: false, ph });
       squad(x - 3, 252, 2 + (Math.random() * 2 | 0), true);          // la carpa pare su patrulla
     }
-    else if (r < 0.28) obstacles.push({ type: 'aa', x: landLane(), h: 4.4, y: 1.8, z: 250, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
-    else if (r < 0.42) {
+    else if (r < 0.24) obstacles.push({ type: 'aa', x: landLane(), h: 4.4, y: 1.8, z: 250, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
+    else if (r < 0.36) {
       const h = 7.5 + Math.random() * 4;
       // armed: tiene soldados adentro tirando al avion (rafaga corta, hay que esquivar)
       obstacles.push({ type: 'bldg', x: landLane(), h, y: h / 2, z: 250, ...hpOf('bldg'), armed: Math.random() < 0.6, shots: 2, cd: 0, done: false, ph });
     }
-    else if (r < 0.54) {
-      const x = waterLane();
-      obstacles.push({ type: 'lcu', x, h: 4, y: 1.5, z: 250, ...hpOf('lcu'), done: false, ph });
-      squad(spawnShore() - SAND_W - 2, 248, 2 + (Math.random() * 3 | 0), true);   // recien desembarcados
+    else if (r < 0.48) {
+      // barcaza NAVEGANDO: entra desde la derecha (mar adentro) hacia la playa; los soldados
+      // salen recien cuando TOCA la costa (ver collision.js, que la encalla y pare el squad)
+      obstacles.push({ type: 'lcu', x: waterLane() + 6, h: 4, y: 1.5, z: 250, ...hpOf('lcu'), sailing: true, done: false, ph });
     }
-    else if (r < 0.62) obstacles.push({ type: 'tree', x: landLane(), h: 7 + Math.random() * 15, z: 250, done: false, ph });
-    else if (r < 0.74) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph });
-    else if (r < 0.86) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, ...hpOf('helo'), done: false, ph });
-    else if (r < 0.94) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, ...hpOf('jet'), done: false, ph });
+    // los arboles de la costa se reemplazaron por VEHICULOS: radar movil y camion antiaereo
+    else if (r < 0.56) obstacles.push({ type: 'radar', x: landLane(), h: 5, y: 2, z: 250, ...hpOf('radar'), done: false, ph });
+    else if (r < 0.64) obstacles.push({ type: 'aatruck', x: landLane(), h: 4.6, y: 1.9, z: 250, ...hpOf('aatruck'), cd: 1.3 + Math.random() * AA_CD, done: false, ph });
+    // trinchera ARGENTINA (decorado, bien a la izquierda): tira contra los britanicos
+    else if (r < 0.70) obstacles.push({ type: 'trench', x: -SPAWN_X + Math.random() * 8, z: 250, decor: true, cd: 0.8 + Math.random(), done: false, ph });
+    else if (r < 0.76) obstacles.push({ type: 'birds', x: lane, y: 7 + Math.random() * 12, z: 250, bvx: (Math.random() - 0.5) * 6, done: false, ph });
+    else if (r < 0.85) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph });
+    else if (r < 0.93) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, ...hpOf('helo'), done: false, ph });
+    else if (r < 0.97) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, ...hpOf('jet'), done: false, ph });
     else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false });
     else obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph });
     return;
@@ -84,6 +89,7 @@ function spawn() {
       squad(x - 3, 252, 2, false);
     } else obstacles.push({ type: 'aa', x: lane, h: 4.4, y: 1.8, z: 250, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
   }
+  else if (r < 0.48) obstacles.push({ type: 'birds', x: lane, y: 7 + Math.random() * 12, z: 250, bvx: (Math.random() - 0.5) * 6, done: false, ph });
   else if (r < 0.60) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph });
   else if (r < 0.70) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, ...hpOf('helo'), done: false, ph });
   else if (r < 0.78) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, ...hpOf('jet'), done: false, ph });
@@ -100,6 +106,20 @@ export function spawnSystem(dt) {
     spawn();
     const dens = cfg.terrain === 'coast' ? 0.65 : 1;
     run.nextSpawn = Math.max(34, (52 + Math.random() * 42) - run.t * 0.8) * dens / cfg.obstacles;
+  }
+
+  // BOMBARDEO (cualquier mapa, cfg.bombs lo regula desde el menu [M]): bombas que caen del
+  // cielo. Chocarlas en el aire mata; al tocar el suelo levantan un HONGO que es un obstaculo
+  // mas — meterse en la nube daña (sacude, frena, quema combustible) pero no derriba.
+  if (cfg.bombs > 0) {
+    run.nextBomb -= run.spd * dt;
+    if (run.nextBomb <= 0) {
+      obstacles.push({
+        type: 'bomb', x: Math.random() * SPAWN_X * 2 - SPAWN_X, y: 55 + Math.random() * 20,
+        z: 130 + Math.random() * 90, vy: 24 + Math.random() * 9, done: false, ph: Math.random() * 6,
+      });
+      run.nextBomb = (180 + Math.random() * 150) / cfg.bombs;
+    }
   }
 
   // spawn de soldados (terrenos con tierra) — en grupos que corren

@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"><title>probe airburst</title>
+<style>body{background:#0e161c;margin:0}canvas{image-rendering:pixelated;display:block;margin:0 auto}</style>
+</head><body><canvas id="g"></canvas>
+<script type="module">
+import { ctx, W, H, HOR } from './render/ctx.js';
+import * as world from './render/world.js';
+import { setState, cfg, cam } from './core/state.js';
+import { theme, applyTheme } from './render/theme.js';
+import { run } from './core/run.js';
+setState('play');
+cfg.terrain='coast'; cfg.sky='cloudy'; cfg.coast=-300; applyTheme(cfg);
+cam.y=8; cam.x=0; run.dist=400; run.t=1;
+const SCALE=2.2, cvs=document.getElementById('g');
+cvs.width=W*SCALE; cvs.height=H*SCALE;
+ctx.setTransform(SCALE,0,0,SCALE,0,0);
+const g=ctx.createLinearGradient(0,0,0,HOR);
+g.addColorStop(0,theme.sky.skyTop); g.addColorStop(0.6,theme.sky.skyMid); g.addColorStop(1,theme.sky.horizon);
+ctx.fillStyle=g; ctx.fillRect(0,0,W,HOR);
+world.drawSea();
+// airburst en 3 momentos + el hongo de suelo al lado, para comparar formas
+world.drawObstacle({type:'airboom', x:-22, y:26, z:64, boomT:0.15, done:false, ph:1});
+world.drawObstacle({type:'airboom', x:-4,  y:24, z:64, boomT:0.5,  done:false, ph:2});
+world.drawObstacle({type:'airboom', x:14,  y:22, z:64, boomT:1.2,  done:false, ph:3});
+world.drawObstacle({type:'boom',    x:30,  z:80, boomT:1.5, done:false, ph:4});
+</script></body></html>

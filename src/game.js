@@ -209,6 +209,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       { label: 'AGUA', opts: ['sea', 'violet'], names: ['MAR', 'VIOLETA'], get: () => cfg.water, set: v => { cfg.water = v; applyCfg(); } },
       { label: 'VIENTO', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.wind, set: v => cfg.wind = v },
       { label: 'OBSTACULOS', opts: [0, 0.5, 1, 1.7], names: ['NINGUNO', 'POCOS', 'NORMAL', 'MUCHOS'], get: () => cfg.obstacles, set: v => cfg.obstacles = v },
+      { label: 'BOMBARDEO', opts: [0, 0.5, 1, 2], names: ['NO', 'POCO', 'NORMAL', 'INTENSO'], get: () => cfg.bombs, set: v => cfg.bombs = v },
       { label: 'COMBUSTIBLE', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.fuelOn, set: v => cfg.fuelOn = v },
       { label: 'ENERGIA', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.energy, set: v => cfg.energy = v },   // altura<->velocidad: para comparar A/B la sensacion
       { label: 'COSTA', opts: [120, 230, 400], names: ['CORTA', 'NORMAL', 'LARGA'], get: () => cfg.coast, set: v => cfg.coast = v },
@@ -486,6 +487,9 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       sfxOne('exSmall');   // mi avion chocando (agua incluida, por ahora)
       factIdx = (factIdx + 1) % L().facts.length;
       explodeAt(plane.x, plane.y, PZ, true);
+      // BOLA DE FUEGO donde revento el avion: la misma que el airburst de las bombas, un poco
+      // mas chica (scale). Va ADEMAS de las chispas y los pedazos de siempre.
+      obstacles.push({ type: 'airboom', x: plane.x, y: plane.y, z: PZ, boomT: 0, scale: 0.62, done: true });
       const s = proj(plane.x, 0, PZ);
       for (let i = 0; i < 16; i++) parts.push({ x: s.x + (Math.random() - 0.5) * 24, y: s.y, vx: (Math.random() - 0.5) * 40, vy: -40 - Math.random() * 60, life: 0.6, c: P.foam, r: 1.6 });
       // PEDAZOS DEL AVION: el sprite deja de dibujarse al morir, asi que lo que se ve romperse son

@@ -63,6 +63,7 @@ export const run = {
   // --- spawn ---
   nextSpawn: 320,  // distancia hasta el proximo obstaculo
   nextSoldier: 0,  // distancia hasta el proximo grupo de soldados
+  nextBomb: 260,   // distancia hasta la proxima bomba cayendo (cfg.bombs la regula)
 
   // --- feedback ---
   shake: 0,        // sacudon de camara: lo suben roce, explosiones, afterburner y colisiones
@@ -81,7 +82,7 @@ export function resetRun() {
     windT: 0, windF: 1,
     fireT: 0, msl: MSL_MAX, mslCd: 0, mslRegen: 0,
     rollT: 0, rollCd: 0,
-    nextSpawn: 320, nextSoldier: 60,
+    nextSpawn: 320, nextSoldier: 60, nextBomb: 260,
     shake: 0, bloodSplat: 0,
   });
 }

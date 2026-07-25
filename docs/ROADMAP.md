@@ -223,6 +223,15 @@ Agregar **reabastecimiento de gasolina asociado al HÉRCULES**.
       (entran por el agua con soldados). Los soldados son británicos: corren TODOS de derecha
       (la playa) a izquierda, más rápido, y con silueta de contraste para despegarlos del
       terreno. TIERRA replica carpas y antiaéreos sueltos. Se elige en el menú [M] → TERRENO.
+- [x] **Segunda tanda de COSTA (hecho).** La orilla **serpentea** (`shoreAt()` en `data/tuning.js`,
+      única fuente para render/vuelo/spawn), playa ancha con arena húmeda, tierra arenosa (`CLAND`),
+      cielo **NUBLADO** (day_cloudy, se activa solo al elegir COSTA). Los árboles de la costa se
+      reemplazaron por **radares móviles** y **camiones antiaéreos**. Nuevos en todos los mapas:
+      **BOMBARDEO** (bombas que caen — chocarlas mata; al tocar el suelo levantan un **hongo** que
+      daña sin derribar; densidad en menú [M] → BOMBARDEO) y **bandadas de aves** (dañan, no
+      derriban). Las **barcazas ahora navegan** desde la derecha y desembarcan la patrulla al tocar
+      la playa. Del lado izquierdo, **trincheras argentinas** (decorado sin colisión) tirotean y
+      cada tanto abaten un británico.
 
 
 ## 18. Jugar con los ingleses (asimetría)

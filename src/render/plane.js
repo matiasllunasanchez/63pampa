@@ -18,6 +18,7 @@ import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH } from '../data/planes.js';
 import { ROLL_DUR } from '../data/tuning.js';
 
 const MIRA_SIZE = 17;   // lado de la mira en pixeles de mundo (480x270)
+const AIM_PITCH = 5;    // cuanto sube/baja la mira FIJA con el cabeceo (unidades de mundo)
 
 // PERILLAS del "vuelo vivo": el avion nunca queda congelado en el aire. Son sutiles a proposito
 // (el juego corre a 320x180, 1px se nota). Subilas para que flote/cabecee mas, bajalas para calmarlo.
@@ -133,7 +134,10 @@ export function drawPlane(selPlane, viewMouse) {
   // mira: en el MOUSE (PC, punteria libre) o adelante del avion (tactil/legacy)
   if (S.state === 'play') {
     const vm = viewMouse();   // en camara CERCA la mira se dibuja en coords des-zoomeadas: queda bajo el cursor fisico
-    const c = vm.on ? vm : proj(plane.x, plane.y, 70);
+    // MIRA FIJA: acompaña al CABECEO — si la trompa sube, el punto de mira sube; si pica, baja.
+    // Se corre el punto en coordenadas de MUNDO (no en pantalla) para que la perspectiva lo
+    // escale sola. Con la mira LIBRE (mouse/stick) no se toca: ahi manda el jugador.
+    const c = vm.on ? vm : proj(plane.x, plane.y + plane.pitch * AIM_PITCH, 70);
     // MIRA elegible desde el menu [M] (cfg.mira, 1..9). Si la hoja no cargo aun, reticulo vectorial.
     if (!drawMira(cfg.mira, c.x, c.y, MIRA_SIZE, vm.on ? 0.9 : 0.7)) {
       ctx.globalAlpha = 0.7;

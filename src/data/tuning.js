@@ -37,7 +37,7 @@ export const GUN_RESET = 0.3;
 // VIDA DE LOS ENEMIGOS. El globo cae de un tiro (es un globo); las aeronaves aguantan una rafaga
 // corta, para que valga la pena sostener el disparo y apuntar. Los que tienen mas de 1 muestran
 // barra de vida (ver drawHpBar en render/world.js).
-export const ENEMY_HP = { balloon: 1, helo: 4, jet: 3, aa: 3, bldg: 4, lcu: 2, tent: 1 };
+export const ENEMY_HP = { balloon: 1, helo: 4, jet: 3, aa: 3, bldg: 4, lcu: 2, tent: 1, radar: 2, aatruck: 3 };
 
 // TERRENO COSTA: desembarco britanico. Tierra a la IZQUIERDA, mar a la DERECHA; la linea de costa
 // esta en SHORE_X (coordenada x de mundo). Los soldados corren de derecha a izquierda (bajan de

@@ -16,6 +16,40 @@ import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W } from '../data/tuning.js'
 import * as momentum from '../systems/momentum.js';
 import * as momRender from './momentum.js';
 
+// ---- SUELO CON GRADIENTE (tierra/costa) ----
+// Antes el piso eran TRES bandas planas con cortes duros (f<0.28/0.6) y se veia artificial.
+// Ahora el color se INTERPOLA por fila entre lejos/medio/cerca → un degradado continuo, y encima
+// van el moteado (manchas ancladas al mundo) y la bruma de distancia.
+const hex2rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+function mkStops(pal) { return { far: hex2rgb(pal.far), mid: hex2rgb(pal.mid), near: hex2rgb(pal.near) }; }
+/** color del suelo a profundidad f (0=horizonte, 1=primer plano), como string css */
+function groundCol(st, f) {
+  const [a, b, t] = f < 0.5 ? [st.far, st.mid, f / 0.5] : [st.mid, st.near, (f - 0.5) / 0.5];
+  return 'rgb(' + (a[0] + (b[0] - a[0]) * t | 0) + ',' + (a[1] + (b[1] - a[1]) * t | 0) + ',' + (a[2] + (b[2] - a[2]) * t | 0) + ')';
+}
+/** MOTEADO: manchas claras/oscuras ancladas al MUNDO (banda de 6 unidades en wz + posicion x por
+ *  hash) → parches irregulares que scrollean con el terreno, no ruido que titila. */
+function groundMottle(y, wz, k, xEnd) {
+  const band = Math.floor(wz / 6);
+  for (let i = 0; i < 5; i++) {
+    const h1 = hash2(band, i * 131);
+    if (h1 < 0.45) continue;
+    const wxP = (hash2(band, i * 131 + 7) * 2 - 1) * 330;
+    const sxP = W / 2 + (wxP - cam.x) * k, wP = (6 + h1 * 14) * k;
+    if (sxP + wP < -70 || sxP > xEnd) continue;
+    ctx.globalAlpha = 0.10 + h1 * 0.06;
+    px(sxP, y, Math.min(wP, xEnd - sxP), 1, h1 > 0.72 ? '#0a0c08' : '#f4eede');
+  }
+  ctx.globalAlpha = 1;
+}
+/** BRUMA de distancia: las filas pegadas al horizonte se lavan hacia el tono del cielo. */
+function groundHaze(y, f, w2) {
+  if (f > 0.45) return;
+  ctx.globalAlpha = (0.45 - f) * 0.75;
+  px(-70, y, w2, 1, theme.sky.horizon);
+  ctx.globalAlpha = 1;
+}
+
 // opacidad de los cuadrados del mar 2D (perilla global). Vivia en el bloque de three.js por
 // vecindad historica, pero es del render 2D.
 const SEA_ALPHA2D = 0.6;
@@ -55,10 +89,15 @@ export function drawSea() {
       }
       continue;
     }
-    if (landMode) {                                                      // TIERRA: bandas de suelo por profundidad
+    if (landMode) {                                                      // TIERRA: gradiente continuo
       const f = dy / (H - HOR);
-      px(-70, y, W + 140, 1, f < 0.28 ? LAND.far : f < 0.6 ? LAND.mid : LAND.near);
-      if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) px(-70, y, W + 140, 1, LAND.furrow);  // surcos
+      const k = F / z;
+      px(-70, y, W + 140, 1, groundCol(LAND_ST, f));
+      if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) {           // surco SUAVE (antes corte duro)
+        ctx.globalAlpha = 0.4; px(-70, y, W + 140, 1, LAND.furrow); ctx.globalAlpha = 1;
+      }
+      groundMottle(y, wz, k, W + 70);
+      groundHaze(y, f, W + 140);
       continue;
     }
     if (coastMode) {
@@ -69,8 +108,11 @@ export function drawSea() {
       const sandSx = W / 2 + (shoreW - SAND_W - cam.x) * k;
       const shoreSx = W / 2 + (shoreW - cam.x) * k;
       const f = dy / (H - HOR);
-      px(-70, y, Math.max(0, sandSx + 70), 1, f < 0.28 ? CLAND.far : f < 0.6 ? CLAND.mid : CLAND.near);
-      if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) px(-70, y, Math.max(0, sandSx + 70), 1, CLAND.furrow);
+      px(-70, y, Math.max(0, sandSx + 70), 1, groundCol(CLAND_ST, f));
+      if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) {
+        ctx.globalAlpha = 0.4; px(-70, y, Math.max(0, sandSx + 70), 1, CLAND.furrow); ctx.globalAlpha = 1;
+      }
+      groundMottle(y, wz, k, sandSx);
       // playa: arena mojada cerca del agua, seca contra la tierra
       const sandW2 = Math.max(1, shoreSx - sandSx);
       px(sandSx, y, sandW2, 1, f < 0.4 ? '#7d7154' : '#8f8163');
@@ -80,6 +122,7 @@ export function drawSea() {
       ctx.globalAlpha = 0.35 + 0.35 * Math.max(0, Math.sin(wz * 0.35 - run.t * 2.6));
       px(shoreSx - 1, y, 2.5, 1, P.foam);
       ctx.globalAlpha = 1;
+      groundHaze(y, f, W + 140);   // la bruma cruza tierra, playa y agua: unifica la escena
       continue;
     }
     if (landVisible && wz < cfg.coast + 7) { px(-70, y, W + 140, 1, P.foam); continue; }  // rompiente
@@ -117,6 +160,8 @@ function hash2(a, b) {
   h = Math.imul(h ^ (h >>> 13), 1274126177);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
+
+const LAND_ST = mkStops(LAND), CLAND_ST = mkStops(CLAND);   // gradientes precalculados del suelo
 
 // paleta de matojos: varios verdes + un par secos/amarillentos, para que el pasto no sea monocromo.
 // TUFT_TIP es la punta iluminada de cada uno (mismo índice) → le da volumen en vez de ser un rect plano.
@@ -435,6 +480,114 @@ export function drawObstacle(o) {
     for (let i = 0; i < 3; i++)                                                      // cascos asomando
       px(base.x + (-2.2 + i * 1.3) * k, base.y - 2.0 * k, Math.max(1, 0.7 * k), Math.max(1, 0.4 * k), '#7d7455');
     drawHpBar(base.x, base.y - 3.6 * k, k, o);
+  } else if (o.type === 'radar') {
+    // RADAR MOVIL: camion con plato giratorio (reemplaza a los arboles en la costa)
+    const base = proj(o.x, 0, o.z);
+    px(base.x - 2.4 * k, base.y - 1.5 * k, 4.8 * k, 1.5 * k, '#5d6152');            // caja del camion
+    px(base.x - 2.4 * k, base.y - 1.5 * k, 4.8 * k, Math.max(1, 0.3 * k), '#6f7362');
+    px(base.x - 2.4 * k, base.y - 0.4 * k, 1.2 * k, Math.max(1, 0.4 * k), '#20241c'); // ruedas
+    px(base.x + 1.2 * k, base.y - 0.4 * k, 1.2 * k, Math.max(1, 0.4 * k), '#20241c');
+    px(base.x + 1.6 * k, base.y - 2.3 * k, 1.2 * k, Math.max(1, 0.8 * k), '#4a4e42'); // cabina
+    // plato: gira (el ancho oscila por el escorzo del giro)
+    const spin = Math.abs(Math.sin(run.t * 1.6 + o.ph));
+    px(base.x - 0.4 * k, base.y - 3.4 * k, Math.max(1, 0.8 * k), 1.9 * k, '#3a3e34');  // mastil
+    px(base.x - (0.6 + spin * 1.6) * k, base.y - 4.6 * k, Math.max(2, (1.2 + spin * 3.2) * k), Math.max(1, 1.0 * k), '#8a9299');
+    px(base.x - 0.3 * k, base.y - 4.9 * k, Math.max(1, 0.6 * k), Math.max(1, 0.5 * k), '#aab2b8');
+    drawHpBar(base.x, base.y - 6.2 * k, k, o);
+  } else if (o.type === 'aatruck') {
+    // CAMION ANTIAEREO: vehiculo con los caños del AA montados atras — dispara como el nido
+    const base = proj(o.x, 0, o.z);
+    px(base.x - 2.6 * k, base.y - 1.4 * k, 5.2 * k, 1.4 * k, '#575b48');            // chasis
+    px(base.x - 2.6 * k, base.y - 1.4 * k, 5.2 * k, Math.max(1, 0.3 * k), '#696d58');
+    px(base.x - 2.5 * k, base.y - 0.4 * k, 1.1 * k, Math.max(1, 0.4 * k), '#20241c'); // ruedas
+    px(base.x + 0.2 * k, base.y - 0.4 * k, 1.1 * k, Math.max(1, 0.4 * k), '#20241c');
+    px(base.x - 2.6 * k, base.y - 2.2 * k, 1.3 * k, Math.max(1, 0.9 * k), '#43473a'); // cabina
+    for (let i = 0; i < 3; i++) {                                                    // caños al cielo
+      px(base.x + (0.1 + i * 0.45) * k, base.y - (2.4 + i * 0.5) * k, Math.max(1, 0.6 * k), Math.max(1, 0.3 * k), '#2b3338');
+      px(base.x + (0.7 + i * 0.45) * k, base.y - (2.0 + i * 0.5) * k, Math.max(1, 0.6 * k), Math.max(1, 0.3 * k), '#2b3338');
+    }
+    if (o.fireT && run.t - o.fireT < 0.12) {
+      px(base.x + 1.6 * k, base.y - 4.2 * k, 1.3 * k, 1.1 * k, P.accent);
+      px(base.x + 1.9 * k, base.y - 4.0 * k, 0.7 * k, 0.6 * k, '#fff2c8');
+    }
+    drawHpBar(base.x, base.y - 5.6 * k, k, o);
+  } else if (o.type === 'bomb') {
+    // BOMBA cayendo: sombra que crece en el suelo (aviso) + cuerpo con aletas oscilando
+    const sh2 = proj(o.x, 0, o.z);
+    const closeness = Math.max(0, 1 - o.y / 70);
+    ctx.globalAlpha = 0.15 + closeness * 0.3;
+    px(sh2.x - (1.4 + closeness * 1.2) * k, sh2.y - 0.3 * k, (2.8 + closeness * 2.4) * k, Math.max(1, 0.5 * k), '#0d100a');
+    ctx.globalAlpha = 1;
+    const s = proj(o.x, o.y, o.z), sway = Math.sin(run.t * 6 + o.ph) * 0.25 * k;
+    px(s.x - 0.5 * k + sway, s.y - 1.2 * k, k, 2.4 * k, '#3a4038');                 // cuerpo
+    px(s.x - 0.5 * k + sway, s.y - 1.2 * k, k, Math.max(1, 0.5 * k), '#4c534a');    // lomo
+    px(s.x - 0.9 * k + sway, s.y - 1.6 * k, 1.8 * k, Math.max(1, 0.5 * k), '#2b3028');  // aletas
+    px(s.x - 0.25 * k + sway, s.y + 1.2 * k, Math.max(1, 0.5 * k), Math.max(1, 0.4 * k), '#565c50');  // ojiva abajo
+  } else if (o.type === 'boom') {
+    // HONGO de la explosion: crece, humea y se disipa. Es zona de daño, no de muerte.
+    const base = proj(o.x, 0, o.z);
+    const ct = Math.min(1, o.boomT / 1.1);
+    const fade = o.boomT > 4.5 ? Math.max(0, 1 - (o.boomT - 4.5) / 1.5) : 1;
+    const hot = o.boomT < 0.6;                                                       // nucleo caliente al inicio
+    ctx.globalAlpha = fade;
+    // TRIPLE de tamaño que la primera version: el hongo es un muro, no una fogata
+    const stemH = (7.5 + ct * 21) * k, stemW = (3.3 + ct * 2.1) * k;
+    px(base.x - stemW / 2, base.y - stemH, stemW, stemH, hot ? '#b06a35' : '#7a756a');       // tallo
+    px(base.x - stemW * 0.9, base.y - stemH * 0.12, stemW * 1.8, stemH * 0.12, '#8a8578');   // polvo bajo
+    const capW = (10.8 + ct * 10.2) * k, capH = (4.5 + ct * 3.3) * k, capY = base.y - stemH - capH * 0.5;
+    px(base.x - capW / 2, capY, capW, capH, hot ? '#d98a4a' : '#8f8a7d');                    // sombrero
+    px(base.x - capW * 0.34, capY - capH * 0.4, capW * 0.68, capH * 0.55, hot ? '#e8b06a' : '#9c978a');
+    ctx.globalAlpha = fade * 0.5;                                                    // volutas
+    px(base.x - capW * 0.62 - Math.sin(run.t * 1.8 + o.ph) * k, capY + capH * 0.2, capW * 0.25, capH * 0.5, '#7a756a');
+    px(base.x + capW * 0.42 + Math.sin(run.t * 2.2 + o.ph) * k, capY, capW * 0.28, capH * 0.55, '#7a756a');
+    ctx.globalAlpha = 1;
+  } else if (o.type === 'airboom') {
+    // AIRBURST: la bomba reventada EN EL AIRE. Bola de fuego CIRCULAR que se expande y se apaga
+    // (nucleo claro -> naranja -> humo), mas una onda anular. No es hongo: no toca el suelo.
+    const s = proj(o.x, o.y, o.z);
+    const gr = Math.min(1, o.boomT / 0.45);                    // expansion rapida
+    const fade = Math.max(0, 1 - o.boomT / 1.9);
+    const R = (2 + gr * 9) * k * (o.scale || 1);               // scale: la del avion es mas chica
+    ctx.globalAlpha = fade;
+    ctx.beginPath(); ctx.arc(s.x, s.y, R, 0, 6.2832);
+    ctx.fillStyle = o.boomT < 0.5 ? '#d98a4a' : '#8a8578'; ctx.fill();          // bola
+    ctx.beginPath(); ctx.arc(s.x, s.y, R * 0.6, 0, 6.2832);
+    ctx.fillStyle = o.boomT < 0.35 ? '#ffe6ac' : '#c07a42'; ctx.fill();         // nucleo caliente
+    ctx.globalAlpha = fade * 0.45;                                              // onda expansiva
+    ctx.strokeStyle = '#ffd98a'; ctx.lineWidth = Math.max(1, 0.6 * k);
+    ctx.beginPath(); ctx.arc(s.x, s.y, R * (1 + gr * 0.8), 0, 6.2832); ctx.stroke();
+    ctx.lineWidth = 1; ctx.globalAlpha = 1;
+  } else if (o.type === 'birds') {
+    // BANDADA: aves aleteando (daña al atravesarla, no derriba). Silueta simple en "V".
+    const s = proj(o.x, o.y, o.z);
+    for (let i = 0; i < 6; i++) {
+      const bx2 = s.x + ((i % 3) - 1) * 2.2 * k + (i > 2 ? 1.1 * k : 0);
+      const by2 = s.y + ((i / 3) | 0) * 1.4 * k - (i % 3 === 1 ? 0.9 * k : 0);
+      const flap = Math.sin(run.t * 11 + o.ph + i * 1.3) > 0 ? 1 : 0;
+      px(bx2 - 0.7 * k, by2 - flap * 0.35 * k, 0.7 * k, Math.max(1, 0.25 * k), '#1e2422');  // ala izq
+      px(bx2, by2 - (1 - flap) * 0.35 * k, 0.7 * k, Math.max(1, 0.25 * k), '#1e2422');      // ala der
+    }
+  } else if (o.type === 'trench') {
+    // TRINCHERA ARGENTINA (decorado, margen izquierdo): bolsas, 3 soldados propios tirando —
+    // sus fogonazos y trazas cuentan la batalla del otro lado. No colisiona.
+    const base = proj(o.x, 0, o.z);
+    px(base.x - 3.4 * k, base.y - 1.0 * k, 6.8 * k, 1.0 * k, '#6b5f45');            // parapeto
+    px(base.x - 3.4 * k, base.y - 1.0 * k, 6.8 * k, Math.max(1, 0.3 * k), '#7d7052');
+    for (let i = 0; i < 3; i++) {                                                    // soldados propios (verde oliva)
+      const sx2 = base.x + (-2 + i * 2) * k;
+      px(sx2 - 0.35 * k, base.y - 1.9 * k, 0.7 * k, 0.9 * k, '#4c5a40');            // torso asomado
+      px(sx2 - 0.3 * k, base.y - 2.35 * k, 0.6 * k, Math.max(1, 0.45 * k), '#39442f');   // casco
+      px(sx2 + 0.3 * k, base.y - 1.75 * k, 0.9 * k, Math.max(1, 0.2 * k), '#191c15');    // fusil (apunta a la derecha)
+    }
+    if (o.fireT && run.t - o.fireT < 0.1) {
+      px(base.x + 1.2 * k, base.y - 1.95 * k, 0.9 * k, Math.max(1, 0.4 * k), P.accent);   // fogonazo
+      if (o.shot) {                                                                 // trazo hasta el abatido
+        const v = proj(o.shot.x, 0.6, o.shot.z);
+        ctx.strokeStyle = P.accent; ctx.globalAlpha = 0.5;
+        ctx.beginPath(); ctx.moveTo(base.x + 1.6 * k, base.y - 1.9 * k); ctx.lineTo(v.x, v.y); ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
   } else if (o.type === 'fuel') {
     const oy = o.y + Math.sin(run.t * 2) * 0.5;
     const s = proj(o.x, oy, o.z);

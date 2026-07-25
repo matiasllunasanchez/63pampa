@@ -64,6 +64,7 @@ let duckT = 0;   // ducking: las explosiones grandes agachan la musica un instan
 try { muted = localStorage.getItem('rasante_muted') === '1'; } catch (e) { }
 
 const SFX_MASTER = 0.3;   // volumen maestro de TODOS los samples (no tapan la musica de fondo)
+const AMB_COAST_V = 0.8;  // ambiente de batalla en COSTA (war_near_soldats): suena al 80%
 const SFX_LOOP_KEYS = Object.keys(SFX_DEF).filter(k => SFX_DEF[k].loop);
 const sfxPool = {}, sfxLoopA = {}, sfxTgt = {};
 export function sfxSrc(key) { if (!SFXB) return null; const d = SFX_DEF[key]; return d && d.f.length ? d : null; }
@@ -106,6 +107,10 @@ export function updateSfx(dt, w) {
       if (w.cfg.sky === 'storm') {
         if (w.cfg.terrain === 'sea' || w.cfg.terrain === 'coast') sfxTgt.ambStorm = SFX_DEF.ambStorm.v;
         else sfxTgt.ambRain = SFX_DEF.ambRain.v;
+      } else if (w.cfg.terrain === 'coast') {
+        // COSTA: el desembarco esta EN CURSO, asi que la batalla se escucha SIEMPRE de fondo
+        // (no solo cuando pasa un grupo cerca, como en tierra). Va al 50%.
+        sfxTgt.ambWarNear = AMB_COAST_V;
       } else if (w.cfg.terrain === 'land') {
         const near = w.soldiers && w.soldiers.some(sd => !sd.dead && sd.z > 3 && sd.z < 90);
         if (near) sfxTgt.ambWarNear = SFX_DEF.ambWarNear.v;
