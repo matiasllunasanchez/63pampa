@@ -18,7 +18,6 @@
 import { S } from './state.js';
 import { W, H } from '../render/ctx.js';
 import { audio } from '../systems/audio.js';
-import { cycleLang } from './i18n.js';
 
 export const inp = { l: 0, r: 0, u: 0, d: 0, fire: false, turbo: false, msl: false };
 export const mouse = { x: W / 2, y: H * 0.4, on: false };
@@ -53,8 +52,12 @@ export function initInput(cv, a) {
   addEventListener('keydown', e => {
     audio();
     readCaps(e);                                                          // CAPS LOCK gobierna la mira
-    if (e.code === 'KeyL') { cycleLang(); e.preventDefault(); return; }   // cambia idioma sin empezar
     if (S.state === 'title') { a.startTitle(); e.preventDefault(); return; }   // PORTADA: cualquier tecla
+    if (S.state === 'options') {                                          // OPCIONES: idioma
+      if (isLeft(e.code) || isRight(e.code)) { a.optChange(); e.preventDefault(); return; }
+      if (isBack(e.code) || isConfirm(e.code)) { a.escToMenu(); e.preventDefault(); return; }
+      return;
+    }
     if (S.state === 'modeselect') {                                       // CAMPAÑA / CICLO / SUPERVIVENCIA
       if (isUp(e.code) || isLeft(e.code)) { a.modeNav(-1); e.preventDefault(); return; }
       if (isDown(e.code) || isRight(e.code)) { a.modeNav(1); e.preventDefault(); return; }

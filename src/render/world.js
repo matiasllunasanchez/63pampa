@@ -396,6 +396,67 @@ export function drawObstacle(o) {
     px(s.x - 0.4 * kk, s.y - 1.5 * kk, 0.8 * kk, 0.8 * kk, P.warn);            // nariz
     hitFlash(s.x, s.y - 0.6 * kk, kk, o, 10, 4.2);
     drawHpBar(s.x, s.y - 4.4 * kk, kk, o);                                     // sobre la deriva
+  } else if (o.type === 'cliff') {
+    // ACANTILADO: masa de roca que sale del terreno. NO se destruye (no lleva hp: las balas lo
+    // ignoran) — es puro relieve para esquivar. La silueta se arma con LAJAS de distinto alto
+    // sorteadas del `seed` del objeto: la cresta queda quebrada y estable (no titila), y ningun
+    // acantilado se parece al de al lado. En COSTA la roca es arenisca; en tierra, basalto.
+    const arenisca = cfg.terrain === 'coast';
+    const base = proj(o.x, 0, o.z);
+    const hw = Math.max(1.5, o.hw * k), th = Math.max(2, o.h * k);
+    // el sol pega desde la IZQUIERDA: la roca se apaga de laja en laja hacia la derecha (lerp,
+    // no dos bloques planos — con el corte duro cada laja se leia como un edificio aparte)
+    // roca CALIDA (piedra, no hormigon): con el gris azulado leia a edificio contra el pasto
+    const LIT = arenisca ? [158, 138, 100] : [131, 118, 92];
+    const SHD = arenisca ? [74, 62, 42] : [60, 54, 42];
+    const DARK = arenisca ? '#3a3222' : '#312c22';   // vetas, grietas y pedregal
+    const CAP = arenisca ? '#a08e69' : '#4d5c33';    // corona: arena seca / turba
+    const rock = f => 'rgb(' + (LIT[0] + (SHD[0] - LIT[0]) * f | 0) + ',' + (LIT[1] + (SHD[1] - LIT[1]) * f | 0) + ',' + (LIT[2] + (SHD[2] - LIT[2]) * f | 0) + ')';
+    ctx.globalAlpha = 0.3;                                                       // sombra al pie
+    px(base.x - hw * 1.2, base.y - Math.max(1, 0.4 * k), hw * 2.4, Math.max(1, 0.9 * k), '#141a12');
+    ctx.globalAlpha = 1;
+    // PERFIL: la cresta llega a su punto alto en `peak` y cae hacia los costados — asimetrico, con
+    // una cara mas escarpada que la otra. Sin esta envolvente las lajas quedaban todas de la misma
+    // altura y el acantilado se leia como una fila de edificios.
+    const N = 6, peak = 0.25 + hash2(o.seed, 5) * 0.5;
+    const ws = [];
+    let sum = 0;
+    for (let i = 0; i < N; i++) { const w = 0.6 + hash2(o.seed, i * 53) * 0.8; ws.push(w); sum += w; }
+    let sx = base.x - hw;
+    for (let i = 0; i < N; i++) {
+      const u = (i + 0.5) / N;
+      const fall = u < peak ? peak + 0.2 : 1.2 - peak;           // ladera corta de un lado, larga del otro
+      const env = Math.pow(Math.max(0.14, 1 - Math.abs(u - peak) / fall), 0.6);
+      const hgt = Math.max(2, th * env * (0.8 + hash2(o.seed, i * 37) * 0.3));
+      const w = (hw * 2) * ws[i] / sum;                          // lajas de ancho desparejo
+      const top = base.y - hgt;
+      px(sx, top, w + 1, hgt, rock(i / (N - 1)));                // +1: sin costuras entre lajas
+      // VETAS a alturas DESPAREJAS y de largo parcial. Con bandas parejas de lado a lado el
+      // acantilado se leia como las losas de un edificio.
+      for (let b = 0; b < 2; b++) {
+        const vy = top + hgt * (0.25 + hash2(o.seed, i * 37 + b * 11) * 0.6);
+        const vx = sx + w * hash2(o.seed, i * 37 + b * 11 + 3) * 0.4;
+        ctx.globalAlpha = 0.4;
+        px(vx, vy, w * (0.45 + hash2(o.seed, i * 71 + b) * 0.55), Math.max(1, 0.4 * k), DARK);
+        ctx.globalAlpha = 1;
+      }
+      px(sx, top, w + 1, Math.max(1, 0.6 * k), CAP);             // corona vegetal / arenosa
+      ctx.globalAlpha = 0.25;                                    // filo iluminado bajo la corona
+      px(sx, top + Math.max(1, 0.6 * k), w + 1, Math.max(1, 0.35 * k), '#e8e2cf');
+      ctx.globalAlpha = 1;
+      // GRIETA: no en el borde de la laja (ahi marcaba la grilla), corrida hacia adentro
+      if (i > 0) {
+        ctx.globalAlpha = 0.45;
+        px(sx + w * hash2(o.seed, i * 97) * 0.35, top + hgt * 0.12, Math.max(1, 0.3 * k), hgt * 0.88, DARK);
+        ctx.globalAlpha = 1;
+      }
+      sx += w;
+    }
+    // PEDREGAL: los bloques desprendidos se amontonan al pie y desbordan el ancho del farallon,
+    // asi la roca se apoya en el terreno en vez de estar clavada como un cartel
+    px(base.x - hw * 1.15, base.y - Math.max(1, 1.0 * k), hw * 2.3, Math.max(1, 1.0 * k), DARK);
+    px(base.x - hw * 0.9, base.y - Math.max(1, 1.6 * k), hw * 0.55, Math.max(1, 0.6 * k), rock(0.15));
+    px(base.x + hw * 0.45, base.y - Math.max(1, 1.4 * k), hw * 0.5, Math.max(1, 0.5 * k), rock(0.8));
   } else if (o.type === 'tree') {
     const base = proj(o.x, 0, o.z);
     const th = o.h * k;                                     // altura total en pantalla
@@ -480,6 +541,73 @@ export function drawObstacle(o) {
     for (let i = 0; i < 3; i++)                                                      // cascos asomando
       px(base.x + (-2.2 + i * 1.3) * k, base.y - 2.0 * k, Math.max(1, 0.7 * k), Math.max(1, 0.4 * k), '#7d7455');
     drawHpBar(base.x, base.y - 3.6 * k, k, o);
+  } else if (o.type === 'tower') {
+    // TORRE DE COMUNICACIONES: celosia que se angosta, travesaños en X, antenas y baliza roja.
+    const base = proj(o.x, 0, o.z), th = o.h * k;
+    const wB = 1.7 * k, wT = 0.5 * k;
+    for (let i = 0; i < 7; i++) {                                   // montantes (van cerrando)
+      const t0 = i / 7, t1 = (i + 1) / 7;
+      const w0 = wB + (wT - wB) * t0, w1 = wB + (wT - wB) * t1;
+      const y0 = base.y - th * t0, y1 = base.y - th * t1;
+      px(base.x - w0, y1, Math.max(1, 0.45 * k), y0 - y1, '#5e6660');
+      px(base.x + w0 - 0.45 * k, y1, Math.max(1, 0.45 * k), y0 - y1, '#4a524d');
+      px(base.x - w1, y1, w1 * 2, Math.max(1, 0.35 * k), '#535b56');  // travesaño
+    }
+    px(base.x - 1.6 * k, base.y - th - 0.4 * k, 3.2 * k, Math.max(1, 0.35 * k), '#6a726c');  // antena horizontal
+    px(base.x - 0.2 * k, base.y - th - 2.2 * k, Math.max(1, 0.4 * k), 2.2 * k, '#6a726c');   // latiguillo
+    if (Math.sin(run.t * 3 + o.ph) > 0)                             // baliza roja intermitente
+      px(base.x - 0.45 * k, base.y - th - 2.9 * k, 0.9 * k, Math.max(1, 0.8 * k), '#e0483a');
+    drawHpBar(base.x, base.y - th - 4 * k, k, o);
+  } else if (o.type === 'poles') {
+    // POSTES CON CABLES: dos palos y el tendido colgando en catenaria. Lo que engancha es el CABLE.
+    const base = proj(o.x, 0, o.z), th = o.h * k, sp = 6 * k;
+    for (const sx2 of [base.x - sp, base.x + sp]) {
+      px(sx2 - 0.35 * k, base.y - th, Math.max(1, 0.7 * k), th, '#54463a');                  // poste
+      px(sx2 - 1.1 * k, base.y - th + 0.5 * k, 2.2 * k, Math.max(1, 0.35 * k), '#4a3e33');   // cruceta
+    }
+    ctx.strokeStyle = '#2b2f2c'; ctx.lineWidth = Math.max(1, 0.28 * k);
+    for (const dy2 of [0.5, 1.5]) {                                 // dos cables con panza
+      ctx.beginPath();
+      ctx.moveTo(base.x - sp, base.y - th + dy2 * k);
+      ctx.quadraticCurveTo(base.x, base.y - th + (dy2 + 2.2) * k, base.x + sp, base.y - th + dy2 * k);
+      ctx.stroke();
+    }
+    ctx.lineWidth = 1;
+  } else if (o.type === 'flag') {
+    // MASTIL con bandera britanica FLAMEANDO: la Union Jack se dibuja por franjas onduladas.
+    const base = proj(o.x, 0, o.z), th = o.h * k;
+    px(base.x - 0.3 * k, base.y - th, Math.max(1, 0.6 * k), th, '#9aa2a6');                  // mastil
+    px(base.x - 0.5 * k, base.y - th - 0.5 * k, k, Math.max(1, 0.5 * k), '#c8ced1');         // perilla
+    const fw = 5.5 * k, fh = 3.2 * k, fy = base.y - th + 0.4 * k;
+    for (let i = 0; i < 7; i++) {                                   // franjas verticales onduladas
+      const t0 = i / 7, xw = fw / 7;
+      const wav = Math.sin(run.t * 4 + o.ph + t0 * 5) * 0.55 * k * t0;   // mas ondulacion en la punta
+      const fx = base.x + 0.3 * k + t0 * fw;
+      px(fx, fy + wav, xw + 1, fh, '#1e3a6e');                                        // azul
+      px(fx, fy + wav + fh * 0.42, xw + 1, Math.max(1, fh * 0.16), '#e8ecef');        // banda blanca
+      px(fx, fy + wav + fh * 0.46, xw + 1, Math.max(1, fh * 0.09), '#c8202e');        // cruz roja
+    }
+    const cx2 = base.x + 0.3 * k + fw * 0.42;                                          // cruz vertical
+    px(cx2, fy + Math.sin(run.t * 4 + o.ph + 2.1) * 0.3 * k, Math.max(1, fw * 0.1), fh, '#e8ecef');
+    px(cx2 + fw * 0.025, fy + Math.sin(run.t * 4 + o.ph + 2.1) * 0.3 * k, Math.max(1, fw * 0.05), fh, '#c8202e');
+    drawHpBar(base.x, base.y - th - 2 * k, k, o);
+  } else if (o.type === 'depot') {
+    // DEPOSITO: galpon bajo con tambores y cajones apilados al lado.
+    const base = proj(o.x, 0, o.z), dh = o.h * k;
+    px(base.x - 3.4 * k, base.y - dh, 6.8 * k, dh, '#6a6352');                        // galpon
+    px(base.x - 3.4 * k, base.y - dh, 6.8 * k, Math.max(1, 0.2 * dh), '#7a7360');
+    px(base.x - 3.7 * k, base.y - dh - 0.5 * k, 7.4 * k, Math.max(1, 0.6 * k), '#464033');  // techo
+    ctx.globalAlpha = 0.22;                                                            // chapas
+    for (let i = 1; i < 5; i++) px(base.x - 3.4 * k + i * 1.36 * k, base.y - dh, 1, dh, '#332e24');
+    ctx.globalAlpha = 1;
+    px(base.x - 0.9 * k, base.y - 1.8 * k, 1.8 * k, 1.8 * k, '#2a2d24');              // porton
+    for (let i = 0; i < 3; i++) {                                                      // tambores
+      px(base.x + (2.0 + i * 0.9) * k, base.y - 1.2 * k, 0.8 * k, 1.2 * k, '#6d7a4a');
+      px(base.x + (2.0 + i * 0.9) * k, base.y - 0.8 * k, 0.8 * k, Math.max(1, 0.2 * k), '#8a9a5e');
+    }
+    px(base.x - 5.0 * k, base.y - 1.4 * k, 1.5 * k, 1.4 * k, '#7a6b4e');              // cajones
+    px(base.x - 5.0 * k, base.y - 2.6 * k, 1.1 * k, 1.2 * k, '#8a7a5a');
+    drawHpBar(base.x, base.y - dh - 1.8 * k, k, o);
   } else if (o.type === 'radar') {
     // RADAR MOVIL: camion con plato giratorio (reemplaza a los arboles en la costa)
     const base = proj(o.x, 0, o.z);

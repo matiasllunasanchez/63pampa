@@ -2,38 +2,46 @@
 //
 // Igual que las demas pantallas: reciben `w`, un snapshot chico de solo lectura. No leen estado
 // global ni lo modifican — la seleccion la maneja el input; aca solo se dibuja.
-import { ctx, DW as W, DH as H, W as NW, H as NH, px, panel } from './ctx.js';
+import { ctx, DW as W, DH as H, W as NW, H as NH, px, panel, titleFont, menuFont, descFont, labelFont, uiFont, FONT_OTHERS } from './ctx.js';
 import { drawMira } from './miras.js';
 import { P } from '../data/palette.js';
 import { PLANES } from '../data/planes.js';
 import { T, getLang } from '../core/i18n.js';
 
+// ELECCION DE AVION — la pantalla previa de CICLO DE MUERTE y POR LA PATRIA. Usa los MISMOS
+// roles tipograficos que el lobby (logotipo / rotulo / nombre / texto corrido), para que las dos
+// pantallas se lean como el mismo juego y no como dos menus distintos.
+// OJO CON LOS CUERPOS: esta pantalla se dibuja en la grilla de DISEÑO (320x180) y el menu de
+// modos en coordenadas NATIVAS (480x270). Un mismo numero de px NO se ve igual en las dos: aca
+// hay que dividir por U (1.5). Por eso el logotipo va en 18 y alla en 26.
 export function drawMenu(w) {
   panel();
   ctx.textAlign = 'center';
-  ctx.fillStyle = P.accent; ctx.font = 'bold 16px monospace';
+  ctx.fillStyle = P.accent; ctx.font = titleFont(18);              // logotipo: Kirana
   ctx.fillText(T('title'), W / 2, 20);
-  ctx.fillStyle = P.dim; ctx.font = '6px monospace';
-  ctx.fillText(T('selTitle'), W / 2, 32);
-  // indicador de modo (menú compartido: ciclo de muerte o supervivencia)
-  ctx.fillStyle = P.foam; ctx.font = 'bold 7px monospace';
-  ctx.fillText(w.gameMode === 'cycle' ? T('modeCycle') : T('modeSurvival'), W / 2, 42);
+  // EL MODO manda: va pegado al logotipo y en grande, porque es DONDE ESTAS. El rotulo de la
+  // pantalla ("elegi tu avion") es la instruccion, y va despues de un respiro.
+  ctx.fillStyle = P.foam; ctx.font = menuFont(13);
+  ctx.fillText(w.gameMode === 'cycle' ? T('modeCycle') : T('modeSurvival'), W / 2, 35);
+  ctx.fillStyle = P.dim; ctx.font = labelFont(9);                  // rotulo de seccion: GlimpRThin
+  ctx.fillText(T('selTitle'), W / 2, 50);
 
   // preview del avión elegido, con leve cabeceo
   const pl = PLANES[w.selPlane];
   if (pl.ready) {
     const PW = 130, PH = Math.round(PW * pl.h / pl.w);
-    ctx.drawImage(pl.img, Math.round(W / 2 - PW / 2), Math.round(76 - PH / 2 + Math.sin(w.t * 1.6) * 2), PW, PH);
+    ctx.drawImage(pl.img, Math.round(W / 2 - PW / 2), Math.round(80 - PH / 2 + Math.sin(w.t * 1.6) * 2), PW, PH);
   }
   // flechas de selección (parpadean)
   ctx.fillStyle = Math.sin(w.t * 6) > 0 ? P.ink : P.dim; ctx.font = 'bold 15px monospace';
-  ctx.fillText('<', 16, 80); ctx.fillText('>', W - 16, 80);
+  ctx.fillText('<', 16, 84); ctx.fillText('>', W - 16, 84);
 
-  // nombre + descripción
-  ctx.fillStyle = P.accent; ctx.font = 'bold 11px monospace';
+  // nombre + descripción: mismo par que en el menu de modos — nombre en la condensada,
+  // descripcion en la manuscrita (ver docs/REFERENCIAS.md: son las cartas de los soldados)
+  ctx.fillStyle = P.accent; ctx.font = menuFont(12);
   ctx.fillText(pl.name, W / 2, 114);
-  ctx.fillStyle = P.dim; ctx.font = '6px monospace';
-  ctx.fillText(pl.desc[getLang()] || pl.desc.es, W / 2, 126);
+  ctx.fillStyle = P.dim; ctx.font = descFont(10);
+  ctx.fillText(pl.desc[getLang()] || pl.desc.es, W / 2, 127);
 
   // puntos indicadores del carrusel
   const n = PLANES.length, gap = 6, totW = (n - 1) * gap;
@@ -41,14 +49,12 @@ export function drawMenu(w) {
     ctx.fillStyle = i === w.selPlane ? P.accent : '#3a464c';
     ctx.fillRect(Math.round(W / 2 - totW / 2 + i * gap) - 1, 134, 3, 3);
   }
-  // prompt de arranque
-  if (Math.sin(w.t * 4) > -0.3) {
-    ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-    ctx.fillText(T('selHint'), W / 2, 150);
-  }
-  ctx.fillStyle = '#5c6e73'; ctx.font = '6px monospace';
-  ctx.fillText('[L] ' + T('langName') + '   ·   [M] config mapa   ·   [ESC] modos', W / 2, 162);
-  ctx.fillText(T('homage'), W / 2, 172);
+  // PIE: una sola linea de teclas, en la misma fuente que el rotulo "ELEGI TU AVION" (GlimpRThin)
+  // para que se lean como parte del mismo sistema. Salieron de aca el prompt amarillo que
+  // parpadeaba (lo dice la fila [ENTER]), el idioma (vive en OPCIONES) y el homenaje (subio a la
+  // portada, que es donde se lee de verdad).
+  ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(4.5);   // mitad de cuerpo: es ayuda, no contenido
+  ctx.fillText(T('selKeys'), W / 2, 166);
 }
 
 // PORTADA y MENU DE MODOS: se dibujan en coordenadas NATIVAS (NW x NH = 480x270), no en la grilla
@@ -59,40 +65,67 @@ export function drawMenu(w) {
 
 // GEOMETRIA de las filas del menu de modos, en coordenadas NATIVAS. Se EXPORTA porque el click
 // tambien la necesita (game.js traduce el toque a fila): duplicarla a mano ya rompio el click.
-export const MODE_ROWS = { y0: 88, rh: 30 };
+// rh subio de 30 a 36 al agrandar la descripcion: con la fuente proporcional, sus ascendentes
+// trepaban hasta la linea de base del NOMBRE de arriba y las dos lineas se tocaban.
+export const MODE_ROWS = { y0: 86, rh: 36 };
 
 export function drawTitle(w) {
   ctx.textAlign = 'center';
-  ctx.fillStyle = P.accent; ctx.font = 'bold 26px monospace';
+  ctx.fillStyle = P.accent; ctx.font = titleFont(34);   // logotipo: Kirana
   ctx.fillText(T('title'), NW / 2, 62);
   ctx.fillStyle = P.ink; ctx.globalAlpha = 0.75; ctx.font = '8px monospace';
   ctx.fillText(T('subtitle'), NW / 2, 78); ctx.globalAlpha = 1;
+  // HOMENAJE: es lo ultimo que se lee antes de empezar, y va en la manuscrita — es la razon de
+  // ser del juego, no un pie de pagina (ver docs/REFERENCIAS.md). Antes vivia perdido abajo de
+  // la pantalla de eleccion de avion.
+  ctx.fillStyle = P.ink; ctx.globalAlpha = 0.8; ctx.font = descFont(15);
+  ctx.fillText(T('homage'), NW / 2, NH - 42); ctx.globalAlpha = 1;
   if (Math.sin(w.t * 3.2) > -0.35) {                       // parpadeo lento: invita sin apurar
-    ctx.fillStyle = P.accent; ctx.font = 'bold 11px monospace';
-    ctx.fillText(T('pressStart'), NW / 2, NH - 34);
+    ctx.fillStyle = P.accent; ctx.font = labelFont(11);    // mas chico: no le gana al homenaje
+    ctx.fillText(T('pressStart'), NW / 2, NH - 22);
   }
-  ctx.fillStyle = '#7d8f95'; ctx.font = '8px monospace';
-  ctx.fillText('[L] ' + T('langName'), NW / 2, NH - 16);
+  // el idioma dejo de estar aca: ahora vive en OPCIONES, dentro del menu de modos
 }
+
+// Cuerpo del texto corrido del menu. Las proporcionales tienen la x mas baja que el monospace,
+// asi que necesitan mas cuerpo que los 7px de antes para verse del MISMO tamaño — no es que el
+// texto sea "mas grande". Si se cambia la familia (FONTS.desc en ctx.js), reajustar aca.
+const DESC_PX = 15;
+
+// BANCO DE PRUEBAS: cada renglon del menu sale con una familia distinta y su nombre al costado,
+// para compararlas en el tamaño y sobre el fondo reales. DESC_TRY = null vuelve todas a la fuente
+// fija (FONTS.desc en ctx.js). Los cuerpos van por familia: comparar todas al mismo "px" engaña,
+// porque la altura de la x cambia mucho de una a otra.
+const DESC_TRY = null;   // FONT_OTHERS para volver a comparar una familia por renglon
+const TRY_PX = { EmbolismSpark: 15, GlimpRThin: 14, GlimpRThinItalic: 14, SmoothElegant: 16 };
+const rowFamily = i => DESC_TRY ? DESC_TRY[i % DESC_TRY.length] : null;
+/** Fuente de la descripcion `i`. Se usa para MEDIR y para DIBUJAR — el resalte de la fila se
+ *  ajusta al contenido, asi que si los dos lados no usan la misma, el recuadro deja de calzar. */
+const rowFont = i => {
+  const f = rowFamily(i);
+  return f ? uiFont(f, TRY_PX[f] || 15, '') : descFont(DESC_PX);
+};
 
 export function drawModeSelect(w) {
   panel();
   ctx.textAlign = 'center';
-  ctx.fillStyle = P.accent; ctx.font = 'bold 20px monospace';
+  ctx.fillStyle = P.accent; ctx.font = titleFont(26);   // mismo logotipo que la portada
   ctx.fillText(T('title'), NW / 2, 40);
 
   // opciones CHICAS, pegadas a la IZQUIERDA y centradas verticalmente. La ultima es SALIR.
+  // el orden tiene que coincidir con MODES en game.js: la fila que se toca sale de ese indice
   const opts = [
     { name: T('modeCampaign'), desc: T('modeCampaignDesc') },
     { name: T('modeCycle'), desc: T('modeCycleDesc') },
     { name: T('modeSurvival'), desc: T('modeSurvivalDesc') },
+    { name: T('modeOptions'), desc: T('modeOptionsDesc') },
     { name: T('modeQuit'), desc: T('modeQuitDesc'), quit: true },
   ];
   const { y0, rh } = MODE_ROWS, x = 40, PAD_X = 9;   // x deja lugar al cursor '>' fuera del recuadro
 
   // el "ELEGI MODO DE JUEGO" encabeza la LISTA (no cuelga del titulo): asi se lee como el rotulo
   // de la seccion y no como un subtitulo suelto
-  ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = '8px monospace';
+  ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(13);   // GlimpRThin
   ctx.fillText(T('modePrompt'), x, y0 - 20);
   ctx.strokeStyle = '#3a464c'; ctx.globalAlpha = 0.5;
   ctx.beginPath(); ctx.moveTo(x, y0 - 15.5); ctx.lineTo(NW - 30, y0 - 15.5); ctx.stroke();
@@ -104,30 +137,71 @@ export function drawModeSelect(w) {
     if (on) {
       // el resalte se AJUSTA al contenido (no cruza la pantalla): se mide el texto mas ancho de la
       // fila y se le suma padding, para que no quede al ras de las letras.
-      ctx.font = 'bold 10px monospace'; const wn = ctx.measureText(opts[i].name).width;
-      ctx.font = '7px monospace'; const wd = ctx.measureText(opts[i].desc).width;
+      ctx.font = menuFont(12); const wn = ctx.measureText(opts[i].name).width;
+      ctx.font = rowFont(i); const wd = ctx.measureText(opts[i].desc).width;
       const boxW = Math.max(wn, wd) + PAD_X * 2;
       ctx.fillStyle = col; ctx.globalAlpha = 0.13;
-      ctx.fillRect(x - PAD_X, y - 13, boxW, 28); ctx.globalAlpha = 1;
+      ctx.fillRect(x - PAD_X, y - 13, boxW, 33); ctx.globalAlpha = 1;
       ctx.fillStyle = col; ctx.globalAlpha = 0.5;                 // filo izquierdo: ancla la fila
-      ctx.fillRect(x - PAD_X, y - 13, 2, 28); ctx.globalAlpha = 1;
+      ctx.fillRect(x - PAD_X, y - 13, 2, 33); ctx.globalAlpha = 1;
       ctx.textAlign = 'left'; ctx.fillStyle = col; ctx.font = 'bold 10px monospace';
       ctx.fillText('>', x - PAD_X - 9, y);
     }
     ctx.textAlign = 'left';
-    ctx.fillStyle = col; ctx.font = 'bold 10px monospace';
+    ctx.fillStyle = col; ctx.font = menuFont(12);   // OtflagSans (la misma con la que se midio)
     ctx.fillText(opts[i].name, x, y);
-    ctx.fillStyle = on ? P.ink : P.dim; ctx.globalAlpha = on ? 0.9 : 0.6; ctx.font = '7px monospace';
-    ctx.fillText(opts[i].desc, x, y + 10); ctx.globalAlpha = 1;
+    ctx.fillStyle = on ? P.ink : P.dim; ctx.globalAlpha = on ? 0.9 : 0.6;
+    ctx.font = rowFont(i);                     // la MISMA con la que se midio el resalte arriba
+    ctx.fillText(opts[i].desc, x, y + 14);
+    if (DESC_TRY) {                            // rotulo de la familia, para saber cual es cual
+      const wd2 = ctx.measureText(opts[i].desc).width;
+      ctx.globalAlpha = 0.45; ctx.fillStyle = P.accent; ctx.font = '6px monospace';
+      ctx.fillText('· ' + rowFamily(i), x + wd2 + 5, y + 14);
+    }
+    ctx.globalAlpha = 1;
   }
 
+  // sin pie: el "flechas / ENTER" y el cambio de idioma salieron de aca. Lo primero porque la
+  // lista ya se explica sola (hay un cursor > sobre la fila); lo segundo porque el idioma es
+  // ahora una fila mas del menu (OPCIONES).
+}
+
+// OPCIONES — se llega desde el menu de modos. Hoy solo el idioma; queda armada como lista para
+// que sumar un ajuste sea agregar una fila.
+export function drawOptions(w) {
+  panel();
   ctx.textAlign = 'center';
-  if (Math.sin(w.t * 4) > -0.3) {
-    ctx.fillStyle = P.accent; ctx.font = 'bold 9px monospace';
-    ctx.fillText(T('modeHint'), NW / 2, NH - 30);
-  }
-  ctx.fillStyle = '#5c6e73'; ctx.font = '8px monospace';
-  ctx.fillText('[L] ' + T('langName'), NW / 2, NH - 14);
+  ctx.fillStyle = P.accent; ctx.font = titleFont(26);
+  ctx.fillText(T('title'), NW / 2, 40);
+
+  const x = 40;
+  ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(13);
+  ctx.fillText(T('optTitle'), x, 86);
+  ctx.strokeStyle = '#3a464c'; ctx.globalAlpha = 0.5;
+  ctx.beginPath(); ctx.moveTo(x, 91.5); ctx.lineTo(NW - 30, 91.5); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // fila IDIOMA: el valor entre flechas, que es como se cambia. El recuadro se mide igual que en
+  // el menu de modos — se ajusta al contenido, no cruza la pantalla.
+  const y = 122, PAD_X = 9, AR = 14;             // AR: hueco que ocupa cada flecha
+  ctx.font = menuFont(12); const wn = ctx.measureText(T('optLang')).width;
+  ctx.font = descFont(DESC_PX); const wl = ctx.measureText(T('langName')).width;
+  const boxW = Math.max(wn, wl + AR * 2) + PAD_X * 2;
+  ctx.fillStyle = P.accent; ctx.globalAlpha = 0.13;
+  ctx.fillRect(x - PAD_X, y - 13, boxW, 33); ctx.globalAlpha = 1;
+  ctx.fillStyle = P.accent; ctx.globalAlpha = 0.5; ctx.fillRect(x - PAD_X, y - 13, 2, 33); ctx.globalAlpha = 1;
+  ctx.fillStyle = P.accent; ctx.font = menuFont(12);
+  ctx.fillText(T('optLang'), x, y);
+  ctx.fillStyle = P.ink; ctx.font = descFont(DESC_PX);
+  ctx.fillText(T('langName'), x + AR, y + 14);
+  ctx.fillStyle = Math.sin(w.t * 6) > 0 ? P.ink : P.dim;   // las flechas parpadean: son la accion
+  ctx.font = menuFont(10);
+  ctx.fillText('<', x, y + 14);
+  ctx.fillText('>', x + AR + wl + 6, y + 14);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(6);    // mitad de cuerpo: es ayuda, no contenido
+  ctx.fillText(T('optKeys'), NW / 2, NH - 22);
 }
 
 // menú de configuración de mapa [M] — herramienta para prototipar niveles

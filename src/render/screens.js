@@ -3,7 +3,7 @@
 // Cada funcion recibe `w`: un snapshot chico de solo lectura con lo que necesita mostrar. No leen
 // estado global — asi se pueden dibujar en cualquier momento (util para probarlas sueltas) y se ve
 // de un vistazo de que dependen.
-import { ctx, DW as W, DH as H, px, panel, wrapText } from './ctx.js';
+import { ctx, DW as W, DH as H, px, panel, wrapText, titleFont, menuFont, descFont, labelFont } from './ctx.js';
 import { P } from '../data/palette.js';
 import { T, L } from '../core/i18n.js';
 import { wrapChars } from '../core/util.js';
@@ -183,26 +183,28 @@ export function drawResults(w) {
   // ORDEN DE LECTURA: el PREMIO (estrellas + Malvinas) arriba de todo y grande, después el TOTAL,
   // y el desglose abajo como detalle. El desglose sigue entrando fila por fila en su lugar; cuando
   // termina, el premio y el total caen arriba — el remate va donde primero se mira.
+  // TITULAR arriba de todo, en la tipografia del logotipo — misma voz que "RASANTE" y que el
+  // "DERRIBADO": es el remate de la partida. Debajo, la mision y recien despues los numeros.
   ctx.textAlign = 'center';
-  ctx.fillStyle = P.dim; ctx.font = '7px monospace';
-  ctx.fillText(T('res_title'), W / 2, 14);
-  ctx.fillStyle = P.ink; ctx.font = 'bold 8px monospace';
-  ctx.fillText(R.mission.name, W / 2, 25);
+  ctx.fillStyle = P.accent; ctx.font = titleFont(20);
+  ctx.fillText(T('res_title'), W / 2, 22);
+  ctx.fillStyle = P.ink; ctx.font = descFont(11);
+  ctx.fillText(R.mission.name, W / 2, 36);
 
   const done = w.resRow >= R.rows.length;
   const stT = w.resT - (R.rows.length * 0.45 + 0.15);
 
   if (done) {
     // GALARDON: 3 estrellas + las MALVINAS como 4ª (rango "S"). Igual que el remate de la remera.
-    drawAward(W / 2, 48, R.stars, stT, w.t, 1.7);
+    drawAward(W / 2, 58, R.stars, stT, w.t, 1.6);
     // TOTAL — el número grande, justo debajo del premio
-    ctx.textAlign = 'center'; ctx.fillStyle = P.accent; ctx.font = 'bold 15px monospace';
-    ctx.fillText(String(R.total), W / 2, 84);
-    ctx.fillStyle = P.dim; ctx.font = '6px monospace';
-    ctx.fillText(T('res_total'), W / 2, 93);
+    ctx.textAlign = 'center'; ctx.fillStyle = P.accent; ctx.font = menuFont(16);
+    ctx.fillText(String(R.total), W / 2, 90);
+    ctx.fillStyle = P.dim; ctx.font = labelFont(7);
+    ctx.fillText(T('res_total'), W / 2, 99);
     if (stT > 0.75) {                                     // calificacion
-      ctx.fillStyle = P.foam; ctx.font = 'bold 8px monospace';
-      ctx.fillText(T('res_rank') + '  ' + T(R.rank), W / 2, 105);
+      ctx.fillStyle = P.foam; ctx.font = menuFont(9);
+      ctx.fillText(T('res_rank') + '  ' + T(R.rank), W / 2, 111);
     }
   }
 
@@ -220,8 +222,8 @@ export function drawResults(w) {
 
   if (done) {
     if (stT > 1.1 && Math.sin(w.t * 4) > -0.3) {
-      ctx.textAlign = 'center'; ctx.fillStyle = P.accent; ctx.font = 'bold 7px monospace';
-      ctx.fillText(T('continuePrompt'), W / 2, H - 8);
+      ctx.textAlign = 'center'; ctx.fillStyle = P.accent; ctx.font = descFont(10);
+      ctx.fillText(T('continuePrompt'), W / 2, H - 7);
     }
   }
 }
@@ -263,37 +265,37 @@ export function drawDead(w) {
   drawEndBg(LOSE_BG, w.bg || 0, rev);   // ilustracion de derrota (antes: velo sobre el mundo)
   ctx.globalAlpha = rev;                // drawEndBg deja el alfa en 1
   ctx.textAlign = 'center';
-  // ORDEN DE LECTURA: primero el PREMIO (estrellas + Malvinas, grande y arriba de todo), después
-  // los NÚMEROS, y recién al final el "DERRIBADO". Lo que el jugador se lleva pesa más que la
-  // noticia de que perdió.
+  // ORDEN DE LECTURA: el TITULAR arriba de todo — es lo que pasó — y debajo el resto en orden de
+  // importancia: causa, premio, puntaje, dato historico. El titular lleva la tipografia del
+  // logotipo: es la misma voz que "RASANTE", el remate de la partida.
+  ctx.fillStyle = P.warn; ctx.font = titleFont(22);
+  ctx.fillText(T('dead'), W / 2, 26);
+  ctx.fillStyle = P.dim; ctx.font = descFont(11);
+  ctx.fillText(T(w.deathCause), W / 2, 40);
+
   const hasAward = w.stars > 0 && w.awardT >= 0;
   // POR LA PATRIA: la corrida ENTERA fue el "nivel" → se premia con estrellas segun el puntaje.
   // w.stars viene de game.js (0 en los demas modos, donde el derribado es fracaso y no se premian).
-  if (hasAward) drawAward(W / 2, 34, w.stars, w.awardT, w.t, 1.7);
+  if (hasAward) drawAward(W / 2, 66, w.stars, w.awardT, w.t, 1.5);
 
-  // PUNTAJE — el número grande, debajo del premio
-  const yScore = hasAward ? 72 : 46;
-  ctx.fillStyle = P.ink; ctx.font = 'bold 13px monospace';
+  // PUNTAJE — el número grande
+  const yScore = hasAward ? 100 : 74;
+  ctx.fillStyle = P.ink; ctx.font = menuFont(14);
   ctx.fillText(T('scoreLabel', { n: Math.floor(w.score) }), W / 2, yScore);
   ctx.fillStyle = Math.floor(w.score) >= w.best && w.best > 0 ? P.accent : P.dim;
-  ctx.font = '8px monospace';
-  ctx.fillText((Math.floor(w.score) >= w.best && w.best > 0 ? T('newRecord') : T('bestDead', { n: w.best })), W / 2, yScore + 14);
+  ctx.font = labelFont(9);
+  ctx.fillText((Math.floor(w.score) >= w.best && w.best > 0 ? T('newRecord') : T('bestDead', { n: w.best })), W / 2, yScore + 13);
 
-  // DERRIBADO — al final: el desenlace, no el titular
-  ctx.fillStyle = P.warn; ctx.font = 'bold 14px monospace';
-  ctx.fillText(T('dead'), W / 2, yScore + 40);
-  ctx.fillStyle = P.dim; ctx.font = '7px monospace';
-  ctx.fillText(T(w.deathCause), W / 2, yScore + 52);
-
-  ctx.fillStyle = '#8a9ba1'; ctx.font = '6px monospace';
-  wrapText('» ' + L().facts[w.factIdx], W / 2, yScore + 62, 260, 9);
+  ctx.fillStyle = '#8a9ba1'; ctx.font = descFont(9);
+  wrapText('» ' + L().facts[w.factIdx], W / 2, yScore + 32, 260, 11);
+  // PIE: reintentar centrado, volver al menu a la derecha (es la salida, no la accion principal)
   if (w.deathT > 0.7 && Math.sin(w.t * 4) > -0.3) {
-    ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-    ctx.fillText(T('retryPrompt'), W / 2, H - 24);
+    ctx.fillStyle = P.accent; ctx.font = descFont(11);
+    ctx.fillText(T('retryPrompt'), W / 2, H - 12);
   }
   if (w.deathT > 0.7) {
-    ctx.fillStyle = P.dim; ctx.font = '7px monospace';
-    ctx.fillText(T('menuPrompt'), W / 2, H - 12);
+    ctx.textAlign = 'right'; ctx.fillStyle = P.dim; ctx.font = labelFont(6);
+    ctx.fillText(T('menuPrompt'), W - 10, H - 12);
   }
   ctx.restore();
 }
@@ -302,15 +304,15 @@ export function drawDead(w) {
 export function drawVictory(w) {
   panel();
   ctx.textAlign = 'center';
-  ctx.fillStyle = P.accent; ctx.font = 'bold 15px monospace';
-  ctx.fillText('CAMPANA COMPLETADA', W / 2, 54);
-  ctx.fillStyle = P.dim; ctx.font = '6px monospace';
-  ctx.fillText('(2 niveles de prueba - se agregaran mas)', W / 2, 70);
-  ctx.fillStyle = P.ink; ctx.font = 'bold 10px monospace';
-  ctx.fillText('PUNTAJE  ' + Math.floor(w.score), W / 2, 96);
+  ctx.fillStyle = P.accent; ctx.font = titleFont(20);
+  ctx.fillText('CAMPANA COMPLETADA', W / 2, 34);
+  ctx.fillStyle = P.dim; ctx.font = descFont(10);
+  ctx.fillText('(2 niveles de prueba - se agregaran mas)', W / 2, 52);
+  ctx.fillStyle = P.ink; ctx.font = menuFont(12);
+  ctx.fillText('PUNTAJE  ' + Math.floor(w.score), W / 2, 84);
   if (w.levelT > 0.8 && Math.sin(w.t * 4) > -0.3) {
-    ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-    ctx.fillText('CUALQUIER TECLA  para el menu', W / 2, 132);
+    ctx.fillStyle = P.accent; ctx.font = descFont(10);
+    ctx.fillText('CUALQUIER TECLA  para el menu', W / 2, 130);
   }
 }
 

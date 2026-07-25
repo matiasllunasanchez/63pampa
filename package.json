@@ -41,6 +41,7 @@
       "src/**/*",
       "assets/img/**/*",
       "assets/images/terrain_back/**/*",
+      "assets/fonts/**/*",
       "assets/audio/**/*",
       "!assets/audio/web/**/*",
       "assets/new_sounds/ammo/**/*",

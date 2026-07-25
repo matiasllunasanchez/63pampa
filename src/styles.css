@@ -1,3 +1,91 @@
+  /* TIPOGRAFIAS DE MARCA (logotipo RASANTE y nombres del menu). Se declaran aca (y no en el JS)
+     porque el canvas no carga fuentes: solo puede pedirle al documento una que ya este declarada.
+     La carga la fuerza render/ctx.js — una fuente que nadie usa en el DOM no se descarga sola y
+     el canvas caeria a monospace sin avisar.
+     Estan TODAS las candidatas declaradas a proposito, se usen o no: cual va en cada rol lo
+     decide FONTS en render/ctx.js, asi probar una u otra es cambiar una palabra y no tocar el
+     CSS, ni el build web, ni el empaquetado. Los archivos viven en assets/fonts/. */
+  @font-face {
+    font-family: 'Kirana';
+    src: url('../assets/fonts/KIRANAlight.ttf') format('truetype');
+    font-display: block;
+  }
+
+  @font-face {
+    font-family: 'OtflagSans';
+    src: url('../assets/fonts/OtflagSans-Medium.otf') format('opentype');
+    font-display: block;
+  }
+
+  @font-face {
+    font-family: 'Gomarice';
+    src: url('../assets/fonts/gomarice_hyouzi_display.ttf') format('truetype');
+    font-display: block;
+  }
+
+  @font-face {
+    font-family: 'MalvinasSans';
+    src: url('../assets/fonts/MalvinasSans-Regular.otf') format('opentype');
+    font-display: block;
+  }
+
+  /* assets/fonts/simple/ — las candidatas para el texto corrido del menu (ver DESC_COMPARE en
+     render/menus.js). Van aparte de las de marca porque cumplen otro papel: no titulan, se leen. */
+  @font-face {
+    font-family: 'Opencare';
+    src: url('../assets/fonts/simple/Opencare.ttf') format('truetype');
+    font-display: block;
+  }
+
+  @font-face {
+    font-family: 'Vegabond';
+    src: url('../assets/fonts/simple/Vegabond-Regular.ttf') format('truetype');
+    font-display: block;
+  }
+
+  @font-face {
+    font-family: 'Cochocib';
+    src: url('../assets/fonts/simple/Cochocib Script Free.otf') format('opentype');
+    font-display: block;
+  }
+
+  @font-face {
+    font-family: 'Kabur';
+    src: url('../assets/fonts/simple/Kabur.ttf') format('truetype');
+    font-display: block;
+  }
+
+  @font-face {
+    font-family: 'Mayorice';
+    src: url('../assets/fonts/simple/Mayorice.ttf') format('truetype');
+    font-display: block;
+  }
+
+  /* assets/fonts/simple/others/ — la tanda que se esta probando ahora en el menu de modos */
+  @font-face {
+    font-family: 'EmbolismSpark';
+    src: url('../assets/fonts/simple/others/Embolism Spark.ttf') format('truetype');
+    font-display: block;
+  }
+
+  @font-face {
+    font-family: 'GlimpRThin';
+    src: url('../assets/fonts/simple/others/GlimpR-CondensedThin.ttf') format('truetype');
+    font-display: block;
+  }
+
+  @font-face {
+    font-family: 'GlimpRThinItalic';
+    src: url('../assets/fonts/simple/others/GlimpR-CondensedThinItalic.ttf') format('truetype');
+    font-display: block;
+  }
+
+  @font-face {
+    font-family: 'SmoothElegant';
+    src: url('../assets/fonts/simple/others/Smooth Elegant.ttf') format('truetype');
+    font-display: block;
+  }
+
   :root {
     --bg: #0d1216;
     --ink: #93a7ab;
@@ -61,27 +149,31 @@
     outline-offset: 4px;
   }
 
+  /* BOTON DE SONIDO: icono suelto, sin caja ni relieve — el recuadro con borde y fondo lo hacia
+     parecer un boton de sistema operativo encima del juego. Ahora es un parlante blanco
+     vectorizado, mas grande (40px de area tactil, comodo tambien en pantalla chica). */
   .sndbtn {
     position: absolute;
     top: 8px;
     right: 8px;
     z-index: 5;
-    width: 26px;
-    height: 26px;
+    width: 40px;
+    height: 40px;
     padding: 0;
     display: grid;
     place-items: center;
-    background: #0a0e11aa;
-    border: 1px solid #2a363d;
-    border-radius: 6px;
-    color: var(--ink);
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    opacity: .82;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: border-color .15s, color .15s;
+    transition: opacity .15s, color .15s;
   }
 
   .sndbtn:hover {
-    border-color: var(--accent);
+    opacity: 1;
     color: var(--accent);
   }
 
@@ -100,7 +192,8 @@
   }
 
   .sndbtn.muted {
-    color: var(--dim);
+    color: #fff;
+    opacity: .45;
   }
 
   .sndbtn.muted .waves {
@@ -116,16 +209,15 @@
   .player {
     position: absolute;
     top: 8px;
-    right: 40px;
+    right: 52px;
     z-index: 5;
     display: none;
     align-items: center;
-    gap: 2px;
-    height: 26px;
-    padding: 0 4px;
-    background: #0a0e11aa;
-    border: 1px solid #2a363d;
-    border-radius: 6px;
+    gap: 0;
+    height: 40px;
+    padding: 0;
+    background: none;
+    border: none;
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -133,34 +225,49 @@
     display: flex;
   }
 
+  /* mismo criterio que .sndbtn: iconos sueltos, blancos y vectorizados, sin caja ni relieve */
   .player .pbtn {
-    width: 18px;
-    height: 22px;
+    width: 32px;
+    height: 40px;
     padding: 0;
     display: grid;
     place-items: center;
     background: none;
     border: none;
-    color: var(--ink);
-    font: 600 11px ui-monospace, 'SF Mono', Menlo, monospace;
+    color: #fff;
+    opacity: .82;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    transition: opacity .15s, color .15s;
+  }
+
+  .player .pbtn svg {
+    display: block;
   }
 
   .player .pbtn:hover {
+    opacity: 1;
     color: var(--accent);
   }
 
   .player .pbtn:active {
-    color: var(--foam);
+    color: var(--accent);
+    opacity: .6;
+  }
+
+  .player .pbtn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -4px;
+    border-radius: 8px;
   }
 
   .player .ptrack {
-    min-width: 52px;
+    min-width: 56px;
     text-align: center;
-    color: var(--accent);
-    font: 600 10px ui-monospace, 'SF Mono', Menlo, monospace;
-    letter-spacing: .04em;
+    color: #fff;
+    opacity: .82;
+    font: 600 11px ui-monospace, 'SF Mono', Menlo, monospace;
+    letter-spacing: .08em;
     user-select: none;
   }
 

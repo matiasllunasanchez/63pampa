@@ -10,7 +10,8 @@
 import { cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { obstacles, soldiers } from '../core/world.js';
-import { SPAWN_X, SHORE_X, shoreAt, SAND_W, AA_CD, ENEMY_HP } from '../data/tuning.js';
+import { SPAWN_X, SHORE_X, shoreAt, SAND_W, AA_CD, ENEMY_HP,
+         CLIFF_H0, CLIFF_H1, CLIFF_HW0, CLIFF_HW1, CLIFF_COAST_BAND } from '../data/tuning.js';
 
 /** Vida inicial de un enemigo. `hpMax` queda fijo para que la barra pueda dibujar la fraccion
  *  (hp/hpMax); sin el, un enemigo tocado no se distingue de uno que nace con menos vida. */
@@ -32,6 +33,17 @@ const spawnShore = () => shoreAt(run.dist + 250);
 const landLane = () => { const sh = spawnShore(); return -SPAWN_X + Math.random() * Math.max(8, SPAWN_X + sh - SAND_W - 3); };
 const waterLane = () => { const sh = spawnShore(); return sh + 3 + Math.random() * Math.max(4, SPAWN_X - sh - 3); };
 
+/** ACANTILADO: una masa de roca que sale del terreno. Cada uno sale distinto — altura sorteada
+ *  con sesgo a lo bajo, ancho inverso a la altura (mas alto = mas angosto) y un jitter encima,
+ *  para que la linea de costa rocosa nunca se lea como una fila de bloques iguales.
+ *  `seed` fija la forma quebrada de la cresta en el render (ver drawObstacle). */
+function cliff(x) {
+  const t = Math.random();
+  const h = CLIFF_H0 + t * t * (CLIFF_H1 - CLIFF_H0);
+  const hw = (CLIFF_HW1 - t * t * (CLIFF_HW1 - CLIFF_HW0)) * (0.8 + Math.random() * 0.5);
+  obstacles.push({ type: 'cliff', x, h, hw, z: 250, done: false, ph: Math.random() * 6, seed: (Math.random() * 9999) | 0 });
+}
+
 /** Un obstaculo nuevo en el horizonte. El sorteo mezcla amenazas y bidones; sin combustible
  *  activo, los bidones se fuerzan menos (serian pickups inutiles) y su slot cae en globo. */
 function spawn() {
@@ -44,24 +56,26 @@ function spawn() {
     // COSTA: el desembarco. Mucho mas denso que los otros mapas (ver spawnSystem) y con las
     // estructuras britanicas en tierra: carpas (paren soldados), antiaereos (disparan misiles),
     // puestos (algunos con soldados adentro tirando) y barcazas entrando por el agua.
-    if (r < 0.12) {
+    // farallon rocoso del lado de TIERRA (bien a la izquierda): el borde natural del desembarco
+    if (r < 0.10) cliff(-SPAWN_X + Math.random() * CLIFF_COAST_BAND);
+    else if (r < 0.20) {
       const x = landLane();
       obstacles.push({ type: 'tent', x, h: 3.4, y: 1.4, z: 250, ...hpOf('tent'), done: false, ph });
       squad(x - 3, 252, 2 + (Math.random() * 2 | 0), true);          // la carpa pare su patrulla
     }
-    else if (r < 0.24) obstacles.push({ type: 'aa', x: landLane(), h: 4.4, y: 1.8, z: 250, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
-    else if (r < 0.36) {
+    else if (r < 0.30) obstacles.push({ type: 'aa', x: landLane(), h: 4.4, y: 1.8, z: 250, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
+    else if (r < 0.40) {
       const h = 7.5 + Math.random() * 4;
       // armed: tiene soldados adentro tirando al avion (rafaga corta, hay que esquivar)
       obstacles.push({ type: 'bldg', x: landLane(), h, y: h / 2, z: 250, ...hpOf('bldg'), armed: Math.random() < 0.6, shots: 2, cd: 0, done: false, ph });
     }
-    else if (r < 0.48) {
+    else if (r < 0.50) {
       // barcaza NAVEGANDO: entra desde la derecha (mar adentro) hacia la playa; los soldados
       // salen recien cuando TOCA la costa (ver collision.js, que la encalla y pare el squad)
       obstacles.push({ type: 'lcu', x: waterLane() + 6, h: 4, y: 1.5, z: 250, ...hpOf('lcu'), sailing: true, done: false, ph });
     }
     // los arboles de la costa se reemplazaron por VEHICULOS: radar movil y camion antiaereo
-    else if (r < 0.56) obstacles.push({ type: 'radar', x: landLane(), h: 5, y: 2, z: 250, ...hpOf('radar'), done: false, ph });
+    else if (r < 0.57) obstacles.push({ type: 'radar', x: landLane(), h: 5, y: 2, z: 250, ...hpOf('radar'), done: false, ph });
     else if (r < 0.64) obstacles.push({ type: 'aatruck', x: landLane(), h: 4.6, y: 1.9, z: 250, ...hpOf('aatruck'), cd: 1.3 + Math.random() * AA_CD, done: false, ph });
     // trinchera ARGENTINA (decorado, bien a la izquierda): tira contra los britanicos
     else if (r < 0.70) obstacles.push({ type: 'trench', x: -SPAWN_X + Math.random() * 8, z: 250, decor: true, cd: 0.8 + Math.random(), done: false, ph });
@@ -74,21 +88,33 @@ function spawn() {
     return;
   }
 
-  // obstáculo vertical fijo: en el MAR es un mástil de fragata; en TIERRA, un árbol. El árbol
-  // sale con altura y ubicación aleatorias (el `lane` ya lo dispersa en x) para que el vuelo
-  // rasante tenga que esquivar a distintas alturas.
-  if (r < 0.34) {
-    if (cfg.terrain === 'land') obstacles.push({ type: 'tree', x: lane, h: 7 + Math.random() * 15, z: 250, done: false, ph });
-    else obstacles.push({ type: 'mast', x: lane, h: 11 + Math.random() * 17, z: 250, done: false });
+  if (cfg.terrain === 'land') {
+    // TIERRA: infraestructura britanica ocupando la isla. La mezcla vive aca (y la de COSTA en su
+    // propio bloque) para que sea facil configurar QUE aparece en cada terreno.
+    // el relieve de la isla: roca aleatoria, indestructible, de altura y ancho variables
+    if (r < 0.14) cliff(lane);
+    else if (r < 0.28) obstacles.push({ type: 'tree', x: lane, h: 7 + Math.random() * 15, z: 250, done: false, ph });
+    else if (r < 0.35) obstacles.push({ type: 'tower', x: lane, h: 16 + Math.random() * 9, z: 250, ...hpOf('tower'), done: false, ph });
+    else if (r < 0.42) obstacles.push({ type: 'poles', x: lane, h: 9 + Math.random() * 3, z: 250, done: false, ph });
+    else if (r < 0.48) obstacles.push({ type: 'flag', x: lane, h: 11 + Math.random() * 5, z: 250, ...hpOf('flag'), done: false, ph });
+    else if (r < 0.55) { const h = 4.5 + Math.random() * 2; obstacles.push({ type: 'depot', x: lane, h, y: h / 2, z: 250, ...hpOf('depot'), done: false, ph }); }
+    else if (r < 0.61) {                                            // campamento / antiaereo
+      if (Math.random() < 0.5) {
+        obstacles.push({ type: 'tent', x: lane, h: 3.4, y: 1.4, z: 250, ...hpOf('tent'), done: false, ph });
+        squad(lane - 3, 252, 2, false);
+      } else obstacles.push({ type: 'aa', x: lane, h: 4.4, y: 1.8, z: 250, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
+    }
+    else if (r < 0.66) obstacles.push({ type: 'birds', x: lane, y: 7 + Math.random() * 12, z: 250, bvx: (Math.random() - 0.5) * 6, done: false, ph });
+    else if (r < 0.75) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph });
+    else if (r < 0.84) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, ...hpOf('helo'), done: false, ph });
+    else if (r < 0.92) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, ...hpOf('jet'), done: false, ph });
+    else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false });
+    else obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph });
+    return;
   }
-  // TIERRA tambien recibe parte del desembarco (replicado de COSTA): carpas y antiaereos sueltos
-  else if (r < 0.42 && cfg.terrain === 'land') {
-    if (Math.random() < 0.5) {
-      const x = lane;
-      obstacles.push({ type: 'tent', x, h: 3.4, y: 1.4, z: 250, ...hpOf('tent'), done: false, ph });
-      squad(x - 3, 252, 2, false);
-    } else obstacles.push({ type: 'aa', x: lane, h: 4.4, y: 1.8, z: 250, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
-  }
+
+  // MAR ABIERTO: mastiles de fragata y trafico aereo
+  if (r < 0.34) obstacles.push({ type: 'mast', x: lane, h: 11 + Math.random() * 17, z: 250, done: false });
   else if (r < 0.48) obstacles.push({ type: 'birds', x: lane, y: 7 + Math.random() * 12, z: 250, bvx: (Math.random() - 0.5) * 6, done: false, ph });
   else if (r < 0.60) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph });
   else if (r < 0.70) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, ...hpOf('helo'), done: false, ph });

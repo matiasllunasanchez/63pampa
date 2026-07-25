@@ -45,6 +45,59 @@ export function px(x, y, w, h, c) {
 /** Velo semitransparente sobre todo el mundo: la base de las pantallas de menu y de fin. */
 export function panel() { ctx.fillStyle = '#0d1216cc'; ctx.fillRect(0, 0, W, H); }
 
+// TIPOGRAFIAS DE MARCA — se eligen ACA, en una palabra por rol. Las familias candidatas estan
+// declaradas en styles.css y van al empaquetado, asi que cambiar de una a otra (o volver al
+// monospace de siempre) no toca el CSS ni package.json.
+// Dos cosas que hay que forzar:
+//   1. Una fuente que NINGUN elemento del DOM usa no se descarga; el canvas no la dispara. Por
+//      eso se pide explicitamente con document.fonts.load.
+//   2. Hasta que llega, `ctx.font = '26px Kirana'` no falla: cae en silencio a la fuente por
+//      defecto. Por eso solo se entrega cuando ya esta lista, y mientras tanto se devuelve el
+//      monospace de siempre — el texto nunca queda con una metrica rara a medio cargar.
+// El juego redibuja cada cuadro, asi que en el cuadro siguiente a la carga ya sale con la buena.
+// Las familias declaradas en styles.css, en dos grupos segun el papel que cumplen:
+//   MARCA   (assets/fonts/)        — display: titulan, se miran. No sirven para texto corrido.
+//   SIMPLES (assets/fonts/simple/) — de lectura: para el texto que hay que LEER, no mirar.
+// Se cargan todas, se usen o no: tenerlas listas es lo que permite comparar una contra otra en
+// pantalla sin tocar el CSS ni el empaquetado.
+export const FONT_BRAND = ['Kirana', 'OtflagSans', 'Gomarice', 'MalvinasSans'];
+export const FONT_SIMPLE = ['Opencare', 'Vegabond', 'Cochocib', 'Kabur', 'Mayorice'];
+// assets/fonts/simple/others/ — la tanda en prueba (ver DESC_TRY en render/menus.js)
+export const FONT_OTHERS = ['EmbolismSpark', 'GlimpRThin', 'GlimpRThinItalic', 'SmoothElegant'];
+const fontReady = {};
+if (typeof document !== 'undefined' && document.fonts && document.fonts.load) {
+  for (const fam of [...FONT_BRAND, ...FONT_SIMPLE, ...FONT_OTHERS]) {
+    document.fonts.load('32px ' + fam).then(f => { fontReady[fam] = f.length > 0; }).catch(() => { });
+  }
+}
+/** Fuente `fam` al tamaño pedido; hasta que carga (o si `fam` es null) devuelve el monospace de
+ *  siempre — el texto nunca queda con una metrica rara a medio cargar. */
+export function uiFont(fam, size, weight) {
+  const w = weight === undefined ? 'bold ' : weight ? weight + ' ' : '';
+  return fam && fontReady[fam] ? w + size + 'px ' + fam : w + size + 'px monospace';
+}
+
+// QUE FAMILIA VA EN CADA ROL. Cambiar una es una palabra; null vuelve al monospace de siempre.
+const FONTS = {
+  title: 'Kirana',      // logotipo RASANTE (alternativa ya probada: 'Gomarice')
+  menu: 'OtflagSans',   // nombres de las opciones del menu de modo
+  desc: 'EmbolismSpark',// texto corrido del menu (probadas: Opencare, Vegabond, Cochocib,
+                        // Kabur, Mayorice, GlimpR thin/italic, SmoothElegant)
+  label: 'GlimpRThin',  // rotulos de seccion ("ELEGI MODO DE JUEGO")
+};
+/** Fuente del logotipo al tamaño pedido, con el monospace de siempre como respaldo. */
+export const titleFont = size => uiFont(FONTS.title, size);
+/** Fuente de los nombres de opcion del menu. OJO: el resalte de la fila se MIDE con esta misma
+ *  fuente (ver drawModeSelect) — si un lado cambia y el otro no, el recuadro deja de calzar. */
+export const menuFont = size => uiFont(FONTS.menu, size);
+/** Fuente del texto corrido del menu (las descripciones). Sin negrita: es para LEER, no para
+ *  titular, y la negrita sobre una proporcional chica empasta. Mismo cuidado que menuFont con
+ *  la medicion: el resalte de la fila se mide con esta misma fuente. */
+export const descFont = size => uiFont(FONTS.desc, size, '');
+/** Fuente de los ROTULOS de seccion. Sin negrita: la GlimpR es condensada y fina a proposito —
+ *  el rotulo tiene que ordenar la lista, no competir con los nombres de los modos. */
+export const labelFont = size => uiFont(FONTS.label, size, '');
+
 /** Escribe texto ajustado a un ancho maximo, cortando entre palabras y bajando `lh` por linea.
  *  A diferencia de wrapChars (que mide en caracteres), este mide en PIXELES con la tipografia
  *  activa del contexto — por eso vive aca y no en core/util.js. */

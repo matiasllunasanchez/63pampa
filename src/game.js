@@ -85,7 +85,9 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     let gameMode = 'survival';
     let curLevel = 0;
     let modeSel = 0;                 // pantalla inicial: 0 = CAMPAÑA, 1 = CICLO DE MUERTE, 2 = SUPERVIVENCIA
-    const MODES = ['campaign', 'cycle', 'survival', 'quit'];   // 'quit' = fila SALIR del menu
+    // el orden DEBE coincidir con `opts` en menus.drawModeSelect: el click traduce la fila tocada
+    // a este indice. 'options' = pantalla de ajustes (idioma); 'quit' = fila SALIR.
+    const MODES = ['campaign', 'cycle', 'survival', 'options', 'quit'];
     let objectiveDist = 0;           // distancia meta puerto→barcaza (0 = sin objetivo / infinito)
     let objectiveShip = '';          // nombre de la barcaza objetivo del run
     const CAMPAIGN_PLANE = 0;        // avión fijo de campaña (0 = A-4 Skyhawk, protagonista)
@@ -166,6 +168,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       const m = MODES[modeSel];
       if (m === 'campaign') startCampaign();
       else if (m === 'cycle') goCycle();
+      else if (m === 'options') { setState('options'); beep(600, 0.06, 'square', 0.05); }
       else if (m === 'quit') quitGame();
       else goSurvival();
     }
@@ -187,7 +190,8 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     // elige una mision al azar para el CICLO DE MUERTE (mismas misiones que la campaña)
     function randomMission() { loadLevel(Math.floor(Math.random() * MISSIONS.length)); }
     // define el objetivo del run según el modo (campaña/ciclo: el goal de la mision; supervivencia: infinito)
-    function setRunObjective() {
+    // `keepMusic` solo lo pasa el REINTENTO tras un derribo: ahi la musica sigue sonando.
+    function setRunObjective(keepMusic) {
       if (gameMode === 'campaign' || gameMode === 'cycle') {
         const m = curMission(), g = goalOf(m);
         objectiveDist = g.dist(m.goal) * QA_DIST;
@@ -195,9 +199,10 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
         g.setup(m.goal);
       }
       else { objectiveDist = 0; objectiveShip = randomShip(); }
-      // MUSICA: campaña fija la pista por NIVEL; ciclo y supervivencia CONTINUAN la pista elegida
-      // en el reproductor (no la re-sortean al reiniciar), y el jugador la cambia con TRACK ◄ ►.
-      setRunMusic(gameMode === 'campaign', curLevel);
+      // MUSICA: campaña usa game.mp3; ciclo y supervivencia mantienen la pista elegida en el
+      // reproductor (no la re-sortean). Arranca de cero al empezar el mapa, SALVO al reintentar
+      // tras morir: ahi continua donde venia, sin corte.
+      setRunMusic(gameMode === 'campaign', curLevel, keepMusic);
     }
 
     // ---------- MENÚ DE CONFIGURACIÓN DE MAPA [M] (herramienta para prototipar niveles) ----------
@@ -253,7 +258,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     // PPAL_ROT segundos empieza a rotar al azar, con un cruce suave de PPAL_FADE.
     const PPAL_ROT = 8, PPAL_FADE = 0.9;
     let ppalIdx = 0, ppalPrev = 0, ppalT = 0, ppalFade = 1;
-    const inLobby = () => S.state === 'title' || S.state === 'modeselect' || S.state === 'menu';
+    const inLobby = () => S.state === 'title' || S.state === 'modeselect' || S.state === 'menu' || S.state === 'options';
 
     // ESTRELLAS 1..4 (la 4ª = Malvinas, rango S). Compartido por el recuento de nivel y el
     // derribado de survival: exige el DOBLE del par para las Malvinas, que se sientan merecidas.
@@ -311,7 +316,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     // — o sea en juego (no lobby ni historia) y en los modos que no son campaña. Se togglea en el loop.
     const playerEl = document.getElementById('player');
     const canPickMusic = () => gameMode !== 'campaign'
-      && S.state !== 'title' && S.state !== 'modeselect' && S.state !== 'menu' && S.state !== 'story' && S.state !== 'epilogue';
+      && S.state !== 'title' && S.state !== 'modeselect' && S.state !== 'menu' && S.state !== 'options' && S.state !== 'story' && S.state !== 'epilogue';
 
     // ---------- input ----------
     // CAMARAS (tecla V, cicla): 4 niveles de zoom anclados al sprite del avion.
@@ -343,6 +348,8 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
         if (row >= 0 && row < MODES.length) { modeSel = row; confirmMode(); }
       },
       escToMenu: () => { setState('modeselect'); cfgOpen = false; beep(400, 0.06, 'square', 0.05); },
+      // OPCIONES: por ahora una sola fila (idioma), asi que izquierda/derecha rotan el idioma
+      optChange: () => { cycleLang(); beep(560, 0.05, 'square', 0.04); },
       startTitle: () => { if (S.state !== 'title') return; modeSel = 0; setState('modeselect'); beep(620, 0.07, 'square', 0.05); },
       toggleCfg: () => { cfgOpen = !cfgOpen; beep(cfgOpen ? 640 : 400, 0.06, 'square', 0.05); },
       isCfgOpen: () => cfgOpen,
@@ -571,6 +578,10 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
         if (S.state === 'victory') levelT += dt;
         parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
         prune(parts, p => p.life > 0);
+        // las explosiones siguen VIVAS fuera de 'play' (su reloj lo lleva collisionSystem, que
+        // aca no corre): sin esto la bola de fuego del derribado quedaria congelada en el frame 0
+        for (const o of obstacles) if (o.type === 'airboom' || o.type === 'boom') o.boomT += dt;
+        prune(obstacles, o => !((o.type === 'airboom' || o.type === 'boom') && o.boomT > 6));
         engineOff();
         if (S.state === 'momentum') {
           run.shake = Math.max(0, run.shake - dt * 10);
@@ -608,7 +619,8 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
           }
         } else if (S.state === 'dead') {
           // solo se puede reintentar una vez que subio la pantalla (paso el show del destrozo)
-          if (deathT > DEATH_REVEAL && flags.anyPress) { reset(); setRunObjective(); setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }  // reintenta (mismo modo/nivel)
+          // reintenta (mismo modo/nivel). La musica NO se reinicia: sigue desde donde venia.
+          if (deathT > DEATH_REVEAL && flags.anyPress) { reset(); setRunObjective(true); setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
         } else if (S.state === 'results') {
           // RECUENTO: las filas entran de a una; una tecla las completa de golpe, la siguiente pasa al epilogo
           resT += dt;
@@ -877,6 +889,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       // El fondo (drawPpalBg) si va escalado — es la grilla de diseño y cubre toda la pantalla.
       if (S.state === 'title') menus.drawTitle({ t: run.t });
       if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t });
+      if (S.state === 'options') menus.drawOptions({ t: run.t });
 
       // fundido desde negro (al salir de la historia hacia el despegue) — SIEMPRE al final
       if (fadeT > 0) {

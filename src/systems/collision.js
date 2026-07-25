@@ -106,12 +106,15 @@ export function collisionSystem(dt) {
         continue;
       }
       const air = o.type === 'helo' || o.type === 'jet';
-      const tall = o.type === 'mast' || o.type === 'tree';   // obstáculo vertical fijo
+      const tall = o.type === 'mast' || o.type === 'tree' || o.type === 'tower' || o.type === 'flag' || o.type === 'poles' || o.type === 'cliff';   // obstáculo vertical fijo
       // ESTRUCTURAS del desembarco (costa/tierra): cajas apoyadas en el suelo, centro a h/2
-      const struct = o.type === 'tent' || o.type === 'aa' || o.type === 'bldg' || o.type === 'lcu' || o.type === 'radar' || o.type === 'aatruck';
-      const STRUCT_HW = { tent: 2.4, aa: 1.7, bldg: 3.0, lcu: 3.6, radar: 2.4, aatruck: 2.6 };
+      const struct = o.type === 'tent' || o.type === 'aa' || o.type === 'bldg' || o.type === 'lcu' || o.type === 'radar' || o.type === 'aatruck' || o.type === 'depot';
+      const STRUCT_HW = { tent: 2.4, aa: 1.7, bldg: 3.0, lcu: 3.6, radar: 2.4, aatruck: 2.6, depot: 3.4 };
       let hw, hh, oy;
-      if (tall) { hw = o.type === 'tree' ? 1.4 : 0.9; hh = o.h; oy = o.h / 2; }   // árbol un poco más ancho (copa)
+      // los POSTES son anchos: lo peligroso es el CABLE tendido entre ellos, no el palo
+      const TALL_HW = { tree: 1.4, tower: 1.6, flag: 0.8, poles: 6.5, mast: 0.9 };
+      // el ACANTILADO trae SU ancho (cada uno se sortea distinto), asi que no sale de la tabla
+      if (tall) { hw = o.type === 'cliff' ? o.hw : TALL_HW[o.type]; hh = o.h; oy = o.h / 2; }
       else if (struct) { hw = STRUCT_HW[o.type]; hh = o.h / 2 + 0.4; oy = o.h / 2; }
       else { hw = air ? 3 : 2.6; hh = air ? 1.6 : 1.9; oy = o.y; }
       // perfil del avion AFINADO (antes 2.6×1.2, chocaba "de lejos"); en PIRUETA las alas
@@ -119,7 +122,10 @@ export function collisionSystem(dt) {
       const pw = run.rollT > 0 ? 1.0 : 2.1, ph2 = run.rollT > 0 ? 0.7 : 1.0;
       const dx = Math.abs(plane.x - o.x) - (hw + pw);
       const dy = Math.abs(plane.y - oy) - (hh + ph2);
-      const hullHit = tall && Math.abs(plane.x - o.x) < 5 + pw && plane.y < 3.6;
+      // a ras del suelo el casco barre ancho y engancha lo vertical aunque el centro no coincida.
+      // El acantilado usa SU ancho + el pedregal del pie: con el 5 fijo mataba de lejos, fuera
+      // de la roca dibujada (un muerte invisible).
+      const hullHit = tall && Math.abs(plane.x - o.x) < (o.type === 'cliff' ? hw + 1.2 : 5) + pw && plane.y < 3.6;
       if (o.type === 'fuel') {
         if (dx < 1.5 && dy < 1.5) {
           run.fuel = Math.min(100, run.fuel + 30); stats.fuelPicks++;
@@ -134,7 +140,10 @@ export function collisionSystem(dt) {
           const s = proj(o.x, 1, PZ); popup(s.x, s.y - 10, T('tentDown') + ' +' + pts, P.warn);
           explodeAt(o.x, 1, PZ, false); sfxOne('exXsmall');
           o.z = -99; o.done = true;
-        } else return { death: o.type === 'mast' ? 'death_mast' : o.type === 'tree' ? 'death_tree'
+        } else return { death: o.type === 'cliff' ? 'death_cliff'
+          : o.type === 'mast' ? 'death_mast' : o.type === 'tree' ? 'death_tree'
+          : o.type === 'tower' ? 'death_tower' : o.type === 'poles' ? 'death_wire'
+          : o.type === 'flag' ? 'death_flag' : o.type === 'depot' ? 'death_depot'
           : o.type === 'aa' || o.type === 'aatruck' ? 'death_aagun' : o.type === 'radar' ? 'death_radar'
           : o.type === 'bldg' ? 'death_bldg' : o.type === 'lcu' ? 'death_lcu'
           : o.type === 'helo' ? 'death_helo' : o.type === 'jet' ? 'death_jet' : 'death_balloon' };
@@ -224,6 +233,7 @@ export function collisionSystem(dt) {
         if (o.hp <= 0) {
           const pts = o.type === 'helo' ? 300 : o.type === 'jet' ? 250
             : o.type === 'aa' || o.type === 'aatruck' ? 350 : o.type === 'radar' ? 300
+            : o.type === 'tower' ? 300 : o.type === 'depot' ? 280 : o.type === 'flag' ? 120
             : o.type === 'bldg' ? 300 : o.type === 'lcu' ? 250 : 150;   // el AA es el blanco prioritario
           run.score += pts; stats.air++;
           sfxOne(air ? 'exMedium' : 'exXsmall');   // aeronaves: medium · blancos chicos: xsmall

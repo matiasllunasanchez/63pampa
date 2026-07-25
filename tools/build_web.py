@@ -112,6 +112,30 @@ def main():
         raise SystemExit('ERROR: quedaron rutas ../assets/ sin re-embeber en game.js')
 
     css = (SRC / 'styles.css').read_text(encoding='utf-8')
+    # TIPOGRAFIAS. En src/ estan declaradas TODAS las candidatas de assets/fonts/ (el banco de
+    # pruebas del menu las compara en pantalla), pero al build web solo van las que el juego usa
+    # de verdad: cada .ttf suma ~1.3x su peso en base64 y el Artifact tope 16 MB. Mismo criterio
+    # que TBACK y las fotos de portada.
+    # Las descartadas se BORRAN del CSS: si quedara el @font-face sin embeber, la pagina pediria
+    # un archivo que no existe. El juego no se rompe — uiFont() cae al monospace cuando la familia
+    # no cargo (ver render/ctx.js), asi que en la web el banco de pruebas simplemente no se ve.
+    WEB_FONTS = {'Kirana', 'OtflagSans', 'EmbolismSpark', 'GlimpRThin'}
+    def keep_face(m):
+        fam = re.search(r"font-family:\s*'([^']+)'", m.group(0))
+        return m.group(0) if fam and fam.group(1) in WEB_FONTS else ''
+    css = re.sub(r"@font-face\s*\{[^}]*\}\s*", keep_face, css)
+
+    MIME = {'.ttf': 'font/ttf', '.otf': 'font/otf', '.woff2': 'font/woff2', '.woff': 'font/woff'}
+    d = ASSETS / 'fonts'
+    # rglob: las fuentes estan en subcarpetas por papel (simple/ = las de lectura)
+    for p in sorted(d.rglob('*')) if d.is_dir() else []:
+        if p.is_file() and p.suffix.lower() in MIME:
+            rel = p.relative_to(ASSETS).as_posix()
+            css = css.replace(f"url('../assets/{rel}')", "url('" + uri(p, MIME[p.suffix.lower()]) + "')")
+    # misma red de seguridad que el bundle: si aparece un asset nuevo en el CSS y nadie lo
+    # embebe, el build FALLA en vez de publicar una pagina que pide un archivo que no existe.
+    if '../assets/' in css:
+        raise SystemExit('ERROR: quedaron rutas ../assets/ sin re-embeber en styles.css')
     three = (SRC / 'vendor' / 'three.global.js').read_text(encoding='utf-8')
     html = (SRC / 'index.html').read_text(encoding='utf-8')
     html = html.replace('<link rel="stylesheet" href="styles.css">', f'<style>\n{css}</style>')

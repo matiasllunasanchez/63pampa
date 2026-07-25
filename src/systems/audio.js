@@ -60,6 +60,9 @@ let scriptedIdx = null;  // campaña: la pista la fija el NIVEL (no el jugador);
 /** La pista que suena en juego: en campaña la fija el nivel; en el resto, la que eligio el jugador. */
 function gameTrack() { return PLAYLIST[scriptedIdx != null ? scriptedIdx : trackIdx] || musGame; }
 let muted = false, musicStarted = false;
+// que pista esta sonando AHORA. Sirve para detectar el CAMBIO de contexto (lobby <-> juego <->
+// historia): cuando cambia, la nueva arranca DE CERO en vez de retomar donde habia quedado.
+let curTrack = null;
 let duckT = 0;   // ducking: las explosiones grandes agachan la musica un instante
 try { muted = localStorage.getItem('rasante_muted') === '1'; } catch (e) { }
 
@@ -141,7 +144,13 @@ export function updateMusic(state) {
   const gm = gameTrack();
   const want = state === 'story' ? musStory : inLobby(state) ? musLobby : gm;
   for (const m of [musLobby, musStory, ...PLAYLIST]) if (m !== want && !m.paused) m.pause();
-  if (musicStarted && want.paused && (want !== musStory || MUSIC_STORY)) want.play().catch(() => { });
+  if (musicStarted && want.paused && (want !== musStory || MUSIC_STORY)) {
+    // entrar al lobby, arrancar un mapa o pasar a una cinematica REINICIA la pista: se vuelve a
+    // escuchar desde el principio, no desde donde quedo la vez anterior.
+    if (want !== curTrack) { try { want.currentTime = 0; } catch (e) { } }
+    want.play().catch(() => { });
+  }
+  curTrack = want;
   // mezcla dinamica: en MOMENTUM la musica se AHOGA (camara lenta, como bajo el agua) y
   // las explosiones grandes la agachan un instante (ducking). Lerp por frame → suave.
   const tv = (state === 'momentum' ? 0.10 : 0.30) * (duckT > 0 ? 0.45 : 1);
@@ -249,11 +258,22 @@ export function tickDuck(dt) { duckT = Math.max(0, duckT - dt); }
 /** Fija la musica del run segun el modo.
  *  - CAMPAÑA (historia): cada nivel tiene su pista (playlist[nivel]); el jugador no la elige.
  *  - CICLO / POR LA PATRIA: usa la pista sorteada del reproductor, y NO la re-sortea — asi al
- *    reiniciar un nivel la musica CONTINUA en vez de arrancar otra. */
-export function setRunMusic(isCampaign, level) {
+ *    reiniciar un nivel la musica CONTINUA en vez de arrancar otra.
+ *
+ *  `keep` = REINTENTO tras morir: la pista NO se corta, sigue sonando desde donde venia. Es la
+ *  UNICA excepcion; empezar un mapa por cualquier otra via arranca la musica de cero. */
+export function setRunMusic(isCampaign, level, keep) {
   // HISTORIA: siempre game.mp3 (PLAYLIST[0]) durante el juego real — las cinematicas tienen la
   // suya (musStory) y el lobby la propia. Antes la pista salia del numero de nivel.
   scriptedIdx = isCampaign ? 0 : null;
+  // MAPA NUEVO = la pista arranca de cero. Se la pausa y se limpia curTrack para que el proximo
+  // updateMusic la relance desde el principio. Con `keep` no se toca: sigue sonando (durante la
+  // pantalla de derribado nunca se pauso, asi que el reintento es continuo, sin corte).
+  if (!keep) {
+    const gm = gameTrack();
+    if (!gm.paused) gm.pause();
+    curTrack = null;
+  }
   syncPlayerBtn();
 }
 
