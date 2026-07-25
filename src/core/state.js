@@ -20,7 +20,7 @@
 //      raras; antes habia 22 asignaciones sueltas y no habia forma de saber quien las hacia.
 
 /** Pantalla / fase activa del juego. Leer `S.state`; escribir con setState(). */
-export const S = { state: 'modeselect' };
+export const S = { state: 'title' };   // arranca en la PORTADA; los modos vienen despues
 
 // Poner DEBUG_STATE=1 en la consola imprime cada transicion. Barato de dejar puesto y es la
 // diferencia entre "se colgo en una pantalla" y saber exactamente desde donde llego.

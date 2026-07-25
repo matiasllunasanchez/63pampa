@@ -85,7 +85,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     let gameMode = 'survival';
     let curLevel = 0;
     let modeSel = 0;                 // pantalla inicial: 0 = CAMPAÑA, 1 = CICLO DE MUERTE, 2 = SUPERVIVENCIA
-    const MODES = ['campaign', 'cycle', 'survival'];
+    const MODES = ['campaign', 'cycle', 'survival', 'quit'];   // 'quit' = fila SALIR del menu
     let objectiveDist = 0;           // distancia meta puerto→barcaza (0 = sin objetivo / infinito)
     let objectiveShip = '';          // nombre de la barcaza objetivo del run
     const CAMPAIGN_PLANE = 0;        // avión fijo de campaña (0 = A-4 Skyhawk, protagonista)
@@ -162,7 +162,21 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       gameMode = 'campaign'; selPlane = CAMPAIGN_PLANE; loadLevel(0); reset();
       setRunObjective(); setState(enterMission());
     }
-    function confirmMode() { const m = MODES[modeSel]; if (m === 'campaign') startCampaign(); else if (m === 'cycle') goCycle(); else goSurvival(); }
+    function confirmMode() {
+      const m = MODES[modeSel];
+      if (m === 'campaign') startCampaign();
+      else if (m === 'cycle') goCycle();
+      else if (m === 'quit') quitGame();
+      else goSurvival();
+    }
+    /** Cierra el juego. En Electron cierra la ventana (y con ella la app); en el build web
+     *  el navegador ignora close() en una pestaña que no abrio un script — por eso vuelve a la
+     *  portada, que es lo mas cercano a 'salir' que se puede hacer ahi. */
+    function quitGame() {
+      beep(300, 0.18, 'square', 0.05, 120);
+      try { window.close(); } catch (e) { }
+      setTimeout(() => { if (!window.closed) { modeSel = 0; setState('title'); } }, 250);
+    }
     // arranca la mision actual por la puerta que corresponda: guion largo (campaña, si lo tiene)
     // o tarjeta corta de briefing (ciclo de muerte). Devuelve el estado al que hay que ir.
     function enterMission() {
@@ -233,11 +247,11 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     let deathCause, deathT, deadStars = 0, factIdx = 0, best = 0;
     // ilustracion de fin sorteada al terminar (no por cuadro: si no, parpadearia)
     let deadBg = 0, winBg = 0;
-    // FONDO GENERAL del lobby/seleccion: arranca SIEMPRE en pp1.jpg (indice 0) y a los
+    // FONDO GENERAL del lobby/seleccion: arranca SIEMPRE en ppal01.jpg (indice 0) y a los
     // PPAL_ROT segundos empieza a rotar al azar, con un cruce suave de PPAL_FADE.
-    const PPAL_ROT = 4, PPAL_FADE = 0.9;
+    const PPAL_ROT = 8, PPAL_FADE = 0.9;
     let ppalIdx = 0, ppalPrev = 0, ppalT = 0, ppalFade = 1;
-    const inLobby = () => S.state === 'modeselect' || S.state === 'menu';
+    const inLobby = () => S.state === 'title' || S.state === 'modeselect' || S.state === 'menu';
 
     // ESTRELLAS 1..4 (la 4ª = Malvinas, rango S). Compartido por el recuento de nivel y el
     // derribado de survival: exige el DOBLE del par para las Malvinas, que se sientan merecidas.
@@ -295,7 +309,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     // — o sea en juego (no lobby ni historia) y en los modos que no son campaña. Se togglea en el loop.
     const playerEl = document.getElementById('player');
     const canPickMusic = () => gameMode !== 'campaign'
-      && S.state !== 'modeselect' && S.state !== 'menu' && S.state !== 'story' && S.state !== 'epilogue';
+      && S.state !== 'title' && S.state !== 'modeselect' && S.state !== 'menu' && S.state !== 'story' && S.state !== 'epilogue';
 
     // ---------- input ----------
     // CAMARAS (tecla V, cicla): 4 niveles de zoom anclados al sprite del avion.
@@ -319,8 +333,15 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     initInput(cv, {
       modeNav: dir => { modeSel = (modeSel + dir + MODES.length) % MODES.length; beep(520, 0.05, 'square', 0.04); },
       confirm: () => confirmMode(),
-      modeSelect: row => { if (row >= 0 && row < MODES.length) { modeSel = row; confirmMode(); } },
+      // el tap y el menu estan los dos en coordenadas de MUNDO (480x270), asi que no hay
+      // conversion. La geometria sale de menus.MODE_ROWS, la misma que usa el dibujo.
+      modeSelect: py => {
+        const { y0, rh } = menus.MODE_ROWS;
+        const row = Math.floor((py - (y0 - rh / 2)) / rh);
+        if (row >= 0 && row < MODES.length) { modeSel = row; confirmMode(); }
+      },
       escToMenu: () => { setState('modeselect'); cfgOpen = false; beep(400, 0.06, 'square', 0.05); },
+      startTitle: () => { if (S.state !== 'title') return; modeSel = 0; setState('modeselect'); beep(620, 0.07, 'square', 0.05); },
       toggleCfg: () => { cfgOpen = !cfgOpen; beep(cfgOpen ? 640 : 400, 0.06, 'square', 0.05); },
       isCfgOpen: () => cfgOpen,
       cfgNav: dir => { const n = getCfgRows().length; cfgRow = (cfgRow + dir + n) % n; beep(500, 0.04, 'square', 0.03); },
@@ -824,7 +845,6 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       ctx.save(); ctx.scale(U, U);
       if (inLobby()) screens.drawPpalBg(ppalPrev, ppalIdx, ppalFade);   // portada / lobby
       if (S.state === 'takeoff') hud.drawTakeoff(toT);
-      if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t });
       if (S.state === 'menu') {
         menus.drawMenu({ selPlane, gameMode, t: run.t });
         // el clamp de cfgRow vivia DENTRO de drawCfg (una pantalla no deberia mutar estado):
@@ -840,6 +860,10 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       if (S.state === 'victory') screens.drawVictory({ score: run.score, levelT, t: run.t });
       if ((S.state === 'epilogue' || S.state === 'story') && story) screens.drawStory({ story, state: S.state, t: run.t });
       ctx.restore();
+      // PORTADA y MODOS van en coordenadas NATIVAS (fuera del scale): mas pixeles por letra.
+      // El fondo (drawPpalBg) si va escalado — es la grilla de diseño y cubre toda la pantalla.
+      if (S.state === 'title') menus.drawTitle({ t: run.t });
+      if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t });
 
       // fundido desde negro (al salir de la historia hacia el despegue) — SIEMPRE al final
       if (fadeT > 0) {

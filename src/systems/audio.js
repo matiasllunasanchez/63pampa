@@ -45,10 +45,16 @@ const musAdr = MUSIC_ADR.filter(Boolean)
 // saca una pista por nivel. El lobby (musLobby) y las pantallas de historia (musStory) quedan
 // aparte: no entran en el reproductor.
 const PLAYLIST = [musGame, ...musAdr];
-// pista inicial ALEATORIA (cada carga arranca con otra). Dentro de la sesion NO se re-sortea al
-// reiniciar nivel — la continuidad la maneja setRunMusic; el jugador la cambia con ◄ ►, teclas
-// 1..N o el joystick (R3).
+// Pista del REPRODUCTOR: la que suena en CICLO DE MUERTE y POR LA PATRIA. Se sortea al cargar y
+// desde ahi encadena sola (termina una, sigue la proxima; despues de la ultima vuelve a la primera).
+// No se re-sortea al reiniciar un nivel — asi la musica CONTINUA en vez de cortarse.
+// El jugador la cambia con ◄ ►, teclas 1..N o el joystick (L3/R3).
 let trackIdx = (Math.random() * PLAYLIST.length) | 0;
+// ENCADENADO: cuando una pista TERMINA arranca la siguiente, y despues de la ultima vuelve a la
+// primera. Por eso las del reproductor NO llevan loop propio (musLobby y musStory si lo llevan:
+// son ambientes de una pantalla, no una lista). El listener se cablea al final del archivo, donde
+// ya existen setTrack y scriptedIdx.
+PLAYLIST.forEach(a2 => { a2.loop = false; });
 let scriptedIdx = null;  // campaña: la pista la fija el NIVEL (no el jugador); null en los demas modos
 
 /** La pista que suena en juego: en campaña la fija el nivel; en el resto, la que eligio el jugador. */
@@ -120,7 +126,9 @@ export function updateSfx(dt, w) {
 // la música del lobby suena SOLO en las pantallas previas a arrancar (selección de modo + menú);
 // desde que empieza la partida (takeoff/play) y en sus pantallas de fin (derribado, nivel, victoria,
 // objetivo) suena la del juego — nunca la del lobby.
-function inLobby(state) { return state === 'modeselect' || state === 'menu'; }
+// LOBBY = portada + eleccion de modo + eleccion de avion. Ahi suena SIEMPRE lobby.mp3 en loop.
+// (Si se agrega un estado previo al juego, va aca: olvidarlo hace que suene la pista del juego.)
+function inLobby(state) { return state === 'title' || state === 'modeselect' || state === 'menu'; }
 export function updateMusic(state) {
   lastState = state;
   if (muted) { if (eng) eng.g.gain.value = 0; return; }
@@ -218,10 +226,12 @@ export function tickDuck(dt) { duckT = Math.max(0, duckT - dt); }
 
 /** Fija la musica del run segun el modo.
  *  - CAMPAÑA (historia): cada nivel tiene su pista (playlist[nivel]); el jugador no la elige.
- *  - CICLO / POR LA PATRIA: usa la pista elegida en el reproductor y NO la re-sortea — asi al
+ *  - CICLO / POR LA PATRIA: usa la pista sorteada del reproductor, y NO la re-sortea — asi al
  *    reiniciar un nivel la musica CONTINUA en vez de arrancar otra. */
 export function setRunMusic(isCampaign, level) {
-  scriptedIdx = isCampaign ? (level % PLAYLIST.length) : null;
+  // HISTORIA: siempre game.mp3 (PLAYLIST[0]) durante el juego real — las cinematicas tienen la
+  // suya (musStory) y el lobby la propia. Antes la pista salia del numero de nivel.
+  scriptedIdx = isCampaign ? 0 : null;
   syncPlayerBtn();
 }
 
@@ -238,6 +248,16 @@ export function setTrack(i) {
 }
 export function nextTrack() { setTrack(trackIdx + 1); }
 export function prevTrack() { setTrack(trackIdx - 1); }
+
+// avance automatico al terminar cada pista (ver 'ENCADENADO' arriba).
+PLAYLIST.forEach((a2, i) => a2.addEventListener('ended', () => {
+  // CAMPAÑA: la pista la fija el nivel, asi que se repite en vez de saltar a la siguiente —
+  // si no, el nivel perderia la musica que se le asigno.
+  if (scriptedIdx != null) { try { a2.currentTime = 0; } catch (e) { } a2.play().catch(() => { }); return; }
+  const nx = PLAYLIST[(i + 1) % PLAYLIST.length];
+  try { nx.currentTime = 0; } catch (e) { }   // la siguiente arranca de cero, no donde quedo
+  setTrack(i + 1);
+}));
 
 // refleja el nombre de la pista actual en el reproductor de la UI
 function syncPlayerBtn() {

@@ -54,6 +54,7 @@ export function initInput(cv, a) {
     audio();
     readCaps(e);                                                          // CAPS LOCK gobierna la mira
     if (e.code === 'KeyL') { cycleLang(); e.preventDefault(); return; }   // cambia idioma sin empezar
+    if (S.state === 'title') { a.startTitle(); e.preventDefault(); return; }   // PORTADA: cualquier tecla
     if (S.state === 'modeselect') {                                       // CAMPAÑA / CICLO / SUPERVIVENCIA
       if (isUp(e.code) || isLeft(e.code)) { a.modeNav(-1); e.preventDefault(); return; }
       if (isDown(e.code) || isRight(e.code)) { a.modeNav(1); e.preventDefault(); return; }
@@ -111,7 +112,9 @@ export function initInput(cv, a) {
   cv.addEventListener('pointerdown', e => {
     e.preventDefault(); cv.focus(); audio(); flags.anyPress = true;
     const p = canvasPos(e);
-    if (S.state === 'modeselect') { a.modeSelect(Math.floor((p.y - 60) / 34)); return; }   // tap en una fila
+    if (S.state === 'title') { a.startTitle(); return; }                 // PORTADA: cualquier tap
+    // se pasa la Y CRUDA: la fila la resuelve game.js con la geometria real del menu
+    if (S.state === 'modeselect') { a.modeSelect(p.y); return; }
     if (S.state === 'menu') {
       if (a.isCfgOpen()) { a.cfgClose(); return; }                      // en config, tocar cierra
       if (p.x < W * 0.28) a.planeNav(-1);
@@ -231,7 +234,9 @@ export function initInput(cv, a) {
       const nu = down(12) || ax(1) < -0.5, nd = down(13) || ax(1) > 0.5;
       const nl = down(14) || ax(0) < -0.5, nr = down(15) || ax(0) > 0.5;
       const confirm = hit(0) || hit(9);                        // A / Start
-      if (S.state === 'modeselect') {
+      if (S.state === 'title') {
+        if (confirm || hit(1)) a.startTitle();
+      } else if (S.state === 'modeselect') {
         if ((nu && !nav.u) || (nl && !nav.l)) a.modeNav(-1);
         if ((nd && !nav.d) || (nr && !nav.r)) a.modeNav(1);
         if (confirm) a.confirm();

@@ -2,7 +2,7 @@
 //
 // Igual que las demas pantallas: reciben `w`, un snapshot chico de solo lectura. No leen estado
 // global ni lo modifican — la seleccion la maneja el input; aca solo se dibuja.
-import { ctx, DW as W, DH as H, px, panel } from './ctx.js';
+import { ctx, DW as W, DH as H, W as NW, H as NH, px, panel } from './ctx.js';
 import { drawMira } from './miras.js';
 import { P } from '../data/palette.js';
 import { PLANES } from '../data/planes.js';
@@ -51,43 +51,83 @@ export function drawMenu(w) {
   ctx.fillText(T('homage'), W / 2, 172);
 }
 
-// pantalla inicial: elegir CAMPAÑA / CICLO DE MUERTE / SUPERVIVENCIA (lista vertical)
+// PORTADA y MENU DE MODOS: se dibujan en coordenadas NATIVAS (NW x NH = 480x270), no en la grilla
+// de diseño como el resto de los menus. Motivo: son pantallas de puro texto sobre una ilustracion,
+// y a resolucion nativa cada letra dispone de 1.5x mas pixeles → se ven mas NITIDAS y permiten
+// cuerpos mas chicos sin empastarse. (En la grilla de diseño, ademas, los cuerpos impares caian en
+// medio pixel al escalar por 1.5 y salian blandos.)
+
+// GEOMETRIA de las filas del menu de modos, en coordenadas NATIVAS. Se EXPORTA porque el click
+// tambien la necesita (game.js traduce el toque a fila): duplicarla a mano ya rompio el click.
+export const MODE_ROWS = { y0: 88, rh: 30 };
+
+export function drawTitle(w) {
+  ctx.textAlign = 'center';
+  ctx.fillStyle = P.accent; ctx.font = 'bold 26px monospace';
+  ctx.fillText(T('title'), NW / 2, 62);
+  ctx.fillStyle = P.ink; ctx.globalAlpha = 0.75; ctx.font = '8px monospace';
+  ctx.fillText(T('subtitle'), NW / 2, 78); ctx.globalAlpha = 1;
+  if (Math.sin(w.t * 3.2) > -0.35) {                       // parpadeo lento: invita sin apurar
+    ctx.fillStyle = P.accent; ctx.font = 'bold 11px monospace';
+    ctx.fillText(T('pressStart'), NW / 2, NH - 34);
+  }
+  ctx.fillStyle = '#7d8f95'; ctx.font = '8px monospace';
+  ctx.fillText('[L] ' + T('langName'), NW / 2, NH - 16);
+}
+
 export function drawModeSelect(w) {
   panel();
   ctx.textAlign = 'center';
-  ctx.fillStyle = P.accent; ctx.font = 'bold 18px monospace';
-  ctx.fillText(T('title'), W / 2, 28);
-  ctx.fillStyle = P.dim; ctx.font = '7px monospace';
-  ctx.fillText(T('modePrompt'), W / 2, 42);
+  ctx.fillStyle = P.accent; ctx.font = 'bold 20px monospace';
+  ctx.fillText(T('title'), NW / 2, 40);
 
+  // opciones CHICAS, pegadas a la IZQUIERDA y centradas verticalmente. La ultima es SALIR.
   const opts = [
     { name: T('modeCampaign'), desc: T('modeCampaignDesc') },
     { name: T('modeCycle'), desc: T('modeCycleDesc') },
     { name: T('modeSurvival'), desc: T('modeSurvivalDesc') },
+    { name: T('modeQuit'), desc: T('modeQuitDesc'), quit: true },
   ];
-  const y0 = 60, rh = 34;
+  const { y0, rh } = MODE_ROWS, x = 40, PAD_X = 9;   // x deja lugar al cursor '>' fuera del recuadro
+
+  // el "ELEGI MODO DE JUEGO" encabeza la LISTA (no cuelga del titulo): asi se lee como el rotulo
+  // de la seccion y no como un subtitulo suelto
+  ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = '8px monospace';
+  ctx.fillText(T('modePrompt'), x, y0 - 20);
+  ctx.strokeStyle = '#3a464c'; ctx.globalAlpha = 0.5;
+  ctx.beginPath(); ctx.moveTo(x, y0 - 15.5); ctx.lineTo(NW - 30, y0 - 15.5); ctx.stroke();
+  ctx.globalAlpha = 1;
+
   for (let i = 0; i < opts.length; i++) {
     const y = y0 + i * rh, on = i === w.modeSel;
-    ctx.strokeStyle = on ? P.accent : '#3a464c'; ctx.globalAlpha = on ? 1 : 0.55;
-    ctx.strokeRect(28.5, y + 0.5, W - 57, rh - 8); ctx.globalAlpha = 1;
+    const col = opts[i].quit ? (on ? P.warn : '#7d6a63') : (on ? P.accent : P.body);
     if (on) {
-      ctx.fillStyle = P.accent; ctx.globalAlpha = 0.09; ctx.fillRect(28, y, W - 57, rh - 8); ctx.globalAlpha = 1;
-      ctx.fillStyle = P.accent; ctx.textAlign = 'left'; ctx.font = 'bold 9px monospace'; ctx.fillText('>', 34, y + 16);
+      // el resalte se AJUSTA al contenido (no cruza la pantalla): se mide el texto mas ancho de la
+      // fila y se le suma padding, para que no quede al ras de las letras.
+      ctx.font = 'bold 10px monospace'; const wn = ctx.measureText(opts[i].name).width;
+      ctx.font = '7px monospace'; const wd = ctx.measureText(opts[i].desc).width;
+      const boxW = Math.max(wn, wd) + PAD_X * 2;
+      ctx.fillStyle = col; ctx.globalAlpha = 0.13;
+      ctx.fillRect(x - PAD_X, y - 13, boxW, 28); ctx.globalAlpha = 1;
+      ctx.fillStyle = col; ctx.globalAlpha = 0.5;                 // filo izquierdo: ancla la fila
+      ctx.fillRect(x - PAD_X, y - 13, 2, 28); ctx.globalAlpha = 1;
+      ctx.textAlign = 'left'; ctx.fillStyle = col; ctx.font = 'bold 10px monospace';
+      ctx.fillText('>', x - PAD_X - 9, y);
     }
     ctx.textAlign = 'left';
-    ctx.fillStyle = on ? P.accent : P.body; ctx.font = 'bold 10px monospace';
-    ctx.fillText(opts[i].name, 46, y + 12);
-    ctx.fillStyle = on ? P.ink : P.dim; ctx.font = '6px monospace';
-    ctx.fillText(opts[i].desc, 46, y + 22);
+    ctx.fillStyle = col; ctx.font = 'bold 10px monospace';
+    ctx.fillText(opts[i].name, x, y);
+    ctx.fillStyle = on ? P.ink : P.dim; ctx.globalAlpha = on ? 0.9 : 0.6; ctx.font = '7px monospace';
+    ctx.fillText(opts[i].desc, x, y + 10); ctx.globalAlpha = 1;
   }
 
   ctx.textAlign = 'center';
   if (Math.sin(w.t * 4) > -0.3) {
-    ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-    ctx.fillText(T('modeHint'), W / 2, 172);
+    ctx.fillStyle = P.accent; ctx.font = 'bold 9px monospace';
+    ctx.fillText(T('modeHint'), NW / 2, NH - 30);
   }
-  ctx.fillStyle = '#5c6e73'; ctx.font = '6px monospace';
-  ctx.fillText('[L] ' + T('langName'), W / 2, 160);
+  ctx.fillStyle = '#5c6e73'; ctx.font = '8px monospace';
+  ctx.fillText('[L] ' + T('langName'), NW / 2, NH - 14);
 }
 
 // menú de configuración de mapa [M] — herramienta para prototipar niveles

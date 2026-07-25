@@ -67,6 +67,11 @@ const load = src => { const i = new Image(); if (src) i.src = src; return i; };
 const WIN_BG = WIN_SRC.map(load), LOSE_BG = LOSE_SRC.map(load), PPAL_BG = PPAL_SRC.map(load);
 export const WIN_BG_N = WIN_BG.length, LOSE_BG_N = LOSE_BG.length, PPAL_BG_N = PPAL_BG.length;
 
+// Opacidad del velo negro sobre las ilustraciones. En las pantallas de FIN va alto: son las que
+// tienen mas texto encima (puntaje, causa, dato historico) y con la foto muy visible se perdian
+// las letras. El lobby usa uno mas bajo — ahi la foto casi no compite con texto.
+const END_VEIL = 0.78;
+
 /** Dibuja una imagen cubriendo la pantalla (cover: llena sin deformar, recortando el sobrante). */
 function cover(img, a) {
   if (!img || !img.naturalWidth) return false;
@@ -103,7 +108,7 @@ function drawEndBg(list, idx, a) {
   ctx.globalAlpha = A; ctx.fillStyle = '#0a0e11'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
   const ok = cover(img, A);
   if (ok) {                                              // velo: la foto es ambiente, el texto manda
-    ctx.fillStyle = '#080d11'; ctx.globalAlpha = A * 0.62;
+    ctx.fillStyle = '#080d11'; ctx.globalAlpha = A * END_VEIL;
     ctx.fillRect(0, 0, W, H);
     ctx.globalAlpha = 1;
   }

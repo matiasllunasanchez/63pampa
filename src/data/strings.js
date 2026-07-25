@@ -9,7 +9,7 @@
 export const STRINGS = {
   es: {
     langName: 'Español',
-    pageHeader: '■ <b>RASANTE</b> · vista frontal · Atlántico Sur, 1982',
+    pageHeader: '■ <b>RASANTE</b> · Atlántico Sur, 1982 · Batalla por Malvinas',
     pageFooter: '<kbd>ARRIBA</kbd>/<kbd>W</kbd>: gas — si soltás, el avión cae &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: esquivar &nbsp;·&nbsp; <kbd>ABAJO</kbd>: picada &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>ESPACIO</kbd>: cañón &nbsp;·&nbsp; <kbd>Z</kbd>: misil &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: turbo &nbsp;·&nbsp; <kbd>V</kbd>: cámara (1×→2.5×) &nbsp;·&nbsp; <kbd>MOUSE</kbd>: mira libre (click: cañón · click der: misil)<br>Táctil: arrastrá a la izquierda para volar · derecha arriba: fuego · derecha abajo: turbo · botón MISIL abajo izquierda<br>Volar bajo multiplica. Rozar obstáculos da bonus. El turbo duplica puntos y quema combustible.',
     aria: 'Juego Rasante: flechas para maniobrar, X dispara, Shift turbo',
     death_land: 'Chocaste el terreno', death_sea: 'Impactaste el mar',
@@ -31,7 +31,7 @@ export const STRINGS = {
     bar_fuel: 'COMB', bar_cannon: 'CANON 20MM', bar_overheat: 'RECALENTADO',
     thr: 'GAS', thr_dead: 'SIN GAS',
     hud_status: 'ESTADO',
-    title: 'R A S A N T E', subtitle: 'vista frontal · Atlantico Sur · 1982',
+    title: 'R A S A N T E', subtitle: 'Batalla por Malvinas · Atlantico Sur · 1982',
     ctrl1: 'ARRIBA: gas (si soltas, caes) · IZQ/DER: esquivar',
     ctrl2: 'ABAJO: picada · X: canon · SHIFT: turbo · doble ←/→: PIRUETA',
     ctrl3: 'MOUSE: mira libre · CLICK: canon · CLICK DER: misil · V: camara',
@@ -42,6 +42,7 @@ export const STRINGS = {
     selTitle: 'ELEGI TU AVION',
     selHint: '<  >  elegir      ENTER / TOCAR  despegar',
     modePrompt: 'ELEGI MODO DE JUEGO',
+    pressStart: 'APRETA UNA TECLA PARA EMPEZAR', modeQuit: 'SALIR', modeQuitDesc: 'Cerrar el juego',
     modeCampaign: 'HISTORIA', modeSurvival: 'POR LA PATRIA', modeCycle: 'CICLO DE MUERTE',
     modeCampaignDesc: 'Modo historia por niveles', modeSurvivalDesc: 'Puntaje infinito hasta morir',
     modeCycleDesc: 'Objetivos aleatorios, dificultad creciente',
@@ -204,6 +205,7 @@ export const STRINGS = {
     selTitle: 'CHOOSE YOUR AIRCRAFT',
     selHint: '<  >  choose      ENTER / TAP  take off',
     modePrompt: 'CHOOSE GAME MODE',
+    pressStart: 'PRESS ANY KEY TO START', modeQuit: 'QUIT', modeQuitDesc: 'Close the game',
     modeCampaign: 'CAMPAIGN', modeSurvival: 'SURVIVAL', modeCycle: 'DEATH CYCLE',
     modeCampaignDesc: 'Story mode by levels', modeSurvivalDesc: 'Endless score until you die',
     modeCycleDesc: 'Random objectives, rising difficulty',
