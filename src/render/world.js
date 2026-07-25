@@ -12,7 +12,8 @@ import { run } from '../core/run.js';
 import { wake } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { P, LAND, CLAND } from '../data/palette.js';
-import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W } from '../data/tuning.js';
+import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM } from '../data/tuning.js';
+import { RUNWAYS, PORT_H } from '../data/runways.js';
 import * as momentum from '../systems/momentum.js';
 import * as momRender from './momentum.js';
 
@@ -65,28 +66,124 @@ export function seaH(wx, wz) {
     + Math.sin(wx * 0.30 + wz * 0.05 + run.t * 1.9) * 0.35;
 }
 
+// paso en pixeles con el que se recorre la fila en la franja de orilla del puerto. 3px basta:
+// la orilla es una curva suave y a menos de eso solo se gastan evaluaciones de seno.
+const PORT_STEP = 3;
+
+/** Un TRAMO horizontal de la base de despegue: suelo + pista con sus marcas. Recibe el tramo
+ *  [x0,x1) porque en la franja de orilla la fila sale cortada en pedazos.
+ *  El ESTILO sale de data/runways.js (cfg.runway): cambia el suelo, la superficie y las marcas.
+ *  `f` es la profundidad normalizada de la fila (0 horizonte, 1 primer plano) — la usa el suelo
+ *  de PASTO, que es el mismo degradado del mapa de TIERRA. */
+function portRow(y, wz, k, x0, x1, f) {
+  if (x1 <= x0) return;
+  const R = RUNWAYS[cfg.runway] || RUNWAYS[0];
+  // --- SUELO ---
+  if (R.ground === 'land') {          // PASTO: el mismo campo del mapa de TIERRA, sin base
+    px(x0, y, x1 - x0, 1, groundCol(LAND_ST, f));
+    if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) {
+      ctx.globalAlpha = 0.4; px(x0, y, x1 - x0, 1, LAND.furrow); ctx.globalAlpha = 1;
+    }
+    groundMottle(y, wz, k, x1);
+    return;                           // no hay franja de pista: se despega del campo
+  }
+  if (R.ground === 'asphalt') {       // ASFALTO de lado a lado: plataforma, sin banquina
+    px(x0, y, x1 - x0, 1, R.surf);
+    ctx.globalAlpha = 0.16;           // juntas de las losas, cada 12 unidades
+    if (Math.floor(wz / 12) % 4 === 0) px(x0, y, x1 - x0, 1, '#0a0d10');
+    ctx.globalAlpha = 1;
+    return;
+  }
+  const vl = Math.sin(wz * 0.22) + Math.sin(wz * 0.07);              // turba malvinense
+  px(x0, y, x1 - x0, 1, vl > 0.8 ? '#39402f' : vl < -0.8 ? '#2b3226' : '#323a2b');
+  // --- PISTA --- solo se pinta la parte del tramo que le toca (recorte contra [x0,x1))
+  const a = W / 2 + (-R.hw - cam.x) * k, b = W / 2 + (R.hw - cam.x) * k;
+  const ra = Math.max(a, x0), rb = Math.min(b, x1);
+  const bw = Math.max(1, 0.5 * k);
+  if (rb > ra) {
+    px(ra, y, rb - ra, 1, R.surf);
+    if (R.center && Math.floor(wz / 9) % 2 === 0) {                  // eje discontinuo
+      const ex = W / 2 + (0 - cam.x) * k - bw / 2;
+      if (ex >= x0 && ex + bw <= x1) px(ex, y, bw, 1, '#9aa39b');
+    }
+    // FRENADAS: dos pares de manchas oscuras a los lados del eje, la marca de las ruedas al tocar.
+    // Cada 24 unidades y de 3.5 de largo — se leen como huellas repetidas, no como rayado parejo.
+    if (R.skid && (wz % 24) < 3.5) {
+      ctx.globalAlpha = 0.3;
+      for (const off of [-3.4, -2.2, 2.2, 3.4]) {
+        const sxk = W / 2 + (off - cam.x) * k, wk = Math.max(1, 0.7 * k);
+        if (sxk >= x0 && sxk + wk <= x1) px(sxk, y, wk, 1, '#14181a');
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+  if (R.edge && Math.floor(wz / 14) % 2 === 0) {                     // balizas del borde de pista
+    if (a - bw >= x0 && a <= x1) px(a - bw, y, bw, 1, P.accent);
+    if (b >= x0 && b + bw <= x1) px(b, y, bw, 1, P.accent);
+  }
+}
+
+/** Pared del ACANTILADO: la roca entre el borde de la meseta y el agua. Solo se dibuja cuando la
+ *  base esta elevada (cfg.cliff); `f` oscurece hacia el fondo, que es lo que le da profundidad. */
+function cliffFace(y, k, x0, x1, f) {
+  if (x1 <= x0) return;
+  const t = f < 0.35 ? 0 : f < 0.7 ? 1 : 2;
+  px(x0, y, x1 - x0, 1, ['#4a453a', '#3b382f', '#2e2c26'][t]);
+  ctx.globalAlpha = 0.35;                                            // vetas verticales de la roca
+  for (let sx = Math.ceil(x0 / 9) * 9; sx < x1; sx += 9) px(sx, y, Math.max(1, 0.3 * k), 1, '#22201b');
+  ctx.globalAlpha = 1;
+}
+
 export function drawSea() {
   const landMode = cfg.terrain === 'land';
   const coastMode = cfg.terrain === 'coast';
   const dv = run.dist + momentum.drift();   // distancia VISUAL (drift del momentum incluido)
-  const landVisible = dv < cfg.coast + 80;
+  // sin base de despegue (misiones de REGRESO) no hay tierra al principio del mapa
+  const landVisible = cfg.start !== 'air' && dv < cfg.coast + 80;
+  // ACANTILADO: la base esta sobre una MESETA a PORT_H. Para el raster eso es simplemente otra
+  // altura de suelo: la camara la ve desde (cam.y - PORT_H) en vez de cam.y, asi que a una misma
+  // fila de pantalla la meseta cae MAS CERCA en z que el mar. La pared del acantilado son las
+  // filas donde ya pasaste el borde de la meseta pero el mar de esa fila todavia esta detras.
+  // Sin acantilado camH === cam.y, zP === z, y esas filas no existen: el caso degenera al de antes.
+  const camH = cfg.cliff ? cam.y - PORT_H : cam.y;
   for (let y = HOR + 1; y < H; y++) {
     const dy = y - HOR;
     const z = cam.y * F / dy;
     const wz = z + dv;
-    if (landVisible && wz < cfg.coast) {
-      // turba malvinense con la pista de la BAM
-      const vl = Math.sin(wz * 0.22) + Math.sin(wz * 0.07);
-      px(-70, y, W + 140, 1, vl > 0.8 ? '#39402f' : vl < -0.8 ? '#2b3226' : '#323a2b');
-      const k = F / z;
-      const x1 = W / 2 + (-7 - cam.x) * k, x2 = W / 2 + (7 - cam.x) * k;
-      px(x1, y, x2 - x1, 1, '#41474b');                                   // asfalto
-      if (Math.floor(wz / 9) % 2 === 0)
-        px(W / 2 + (0 - cam.x) * k - Math.max(1, 0.5 * k) / 2, y, Math.max(1, 0.5 * k), 1, '#9aa39b'); // eje
-      if (Math.floor(wz / 14) % 2 === 0) {                                  // balizas
-        px(x1 - Math.max(1, 0.5 * k), y, Math.max(1, 0.5 * k), 1, P.accent);
-        px(x2, y, Math.max(1, 0.5 * k), 1, P.accent);
+    const wzP = camH > 0.3 ? camH * F / dy + dv : 1e9;   // meseta (o el mismo suelo si no hay acantilado)
+    const fRow = dy / (H - HOR);
+    if (landVisible && wzP < cfg.coast - PORT_AMP) {   // fila ENTERA de meseta: sin recorrer columnas
+      portRow(y, wzP, F / (wzP - dv), -70, W + 70, fRow);
+      continue;
+    }
+    if (landVisible && wz < cfg.coast + PORT_AMP + PORT_FOAM) {
+      // FRANJA DE ORILLA: la salida del puerto no es una linea recta — a esta profundidad hay
+      // columnas que todavia son tierra y otras que ya son agua. Se recorre la fila en pasos de
+      // PORT_STEP px y se pintan TRAMOS, en vez de partir la fila en un punto (que es lo que se
+      // puede hacer en COSTA, donde el corte es uno solo por fila).
+      const k = F / z, kP = F / (wzP - dv);
+      const f = dy / (H - HOR);
+      px(-70, y, W + 140, 1, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
+      let land0 = null, rock0 = null, foam0 = null;
+      const flush = (sx) => {
+        if (land0 !== null) { portRow(y, wzP, kP, land0, sx, f); land0 = null; }
+        if (rock0 !== null) { cliffFace(y, k, rock0, sx, f); rock0 = null; }
+        if (foam0 !== null) { px(foam0, y, sx - foam0, 1, P.foam); foam0 = null; }
+      };
+      for (let sx = -70; sx <= W + PORT_STEP; sx += PORT_STEP) {
+        // la orilla se evalua en la x de MUNDO de cada plano: la meseta con su propia escala
+        const edgeP = cfg.coast + portJut((sx - W / 2) / kP + cam.x);
+        const edge = cfg.coast + portJut((sx - W / 2) / k + cam.x);
+        const cls = wzP < edgeP ? 1                       // meseta / pista
+          : wz < edge ? 3                                 // pared del acantilado
+            : wz < edge + PORT_FOAM ? 2                   // rompiente
+              : 0;                                        // mar
+        if (cls === 1) { if (land0 === null) { flush(sx); land0 = sx; } }
+        else if (cls === 3) { if (rock0 === null) { flush(sx); rock0 = sx; } }
+        else if (cls === 2) { if (foam0 === null) { flush(sx); foam0 = sx; } }
+        else flush(sx);
       }
+      flush(W + 70);
       continue;
     }
     if (landMode) {                                                      // TIERRA: gradiente continuo
@@ -125,7 +222,6 @@ export function drawSea() {
       groundHaze(y, f, W + 140);   // la bruma cruza tierra, playa y agua: unifica la escena
       continue;
     }
-    if (landVisible && wz < cfg.coast + 7) { px(-70, y, W + 140, 1, P.foam); continue; }  // rompiente
     // base oscura del mar (degradado por profundidad) para que los puntos resalten
     const f = dy / (H - HOR);
     px(-70, y, W + 140, 1, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
@@ -238,7 +334,10 @@ function drawSeaDots(landVisible, coastMode) {
   while (wz < dv + farZ) {
     const camZ = wz - dv;
     wz += Math.max(SPZ, camZ * camZ * 0.0019);
-    if (landVisible && wz < cfg.coast + 6) continue;           // sin puntos sobre tierra/rompiente
+    // sin puntos sobre tierra ni rompiente. La orilla del puerto SERPENTEA (portJut), asi que a
+    // esta profundidad puede haber columnas de agua y columnas de tierra: solo se descarta la fila
+    // entera cuando esta toda del lado de tierra; el resto se decide adentro, por columna.
+    if (landVisible && wz < cfg.coast - PORT_AMP) continue;
     const k = F / camZ;
     const fade = Math.min(1, (camZ - 3) / 9) * (1 - (camZ / farZ) * 0.8);
     if (fade <= 0.03) continue;
@@ -249,7 +348,9 @@ function drawSeaDots(landVisible, coastMode) {
     const xL = coastMode ? Math.max(cam.x - half, shoreAt(wz) + 1) : cam.x - half, xR = cam.x + half;   // costa: solo lado agua
     const sx3 = Math.max(SPX, camZ * 0.011);                   // paso x adaptativo (~1px)
     const x0 = Math.ceil(xL / sx3) * sx3;
+    const portRow2 = landVisible && wz < cfg.coast + PORT_AMP + PORT_FOAM;
     for (let wx = x0; wx < xR; wx += sx3) {
+      if (portRow2 && wz < cfg.coast + portJut(wx) + PORT_FOAM) continue;
       const h = seaH(wx, wz);
       const s = proj(wx, h, camZ);
       if (s.x < -4 || s.x > W + 4 || s.y < HOR - 2) continue;

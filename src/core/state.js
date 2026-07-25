@@ -34,11 +34,18 @@ export function setState(next) {
  *  o se cargan desde un nivel de campaña. Base para prototipar niveles.
  *  fuelOn: el combustible es el RELOJ del run (mantener la secuencia agarrando bidones).
  *  Se puede apagar en el menu [M] (COMBUSTIBLE: NO) para pruebas / vuelo libre. */
+import { PORT_H, AIR_START_Y } from '../data/runways.js';
+
 export const cfg = {
   sky: 'dusk', water: 'sea', terrain: 'sea', wind: true,
   obstacles: 1, coast: 230, meters: 3000, fuelOn: true, energy: true,
   bombs: 1,   // BOMBARDEO: densidad de bombas cayendo (0=no, 0.5, 1, 2) — menu [M]
   mira: 6,   // mira elegida (1..9 de assets/miras.webp); se cambia en el menu [M] y persiste
+  runway: 0,     // estilo de pista (indice en data/runways.js) — menu [M]
+  cliff: false,  // la base esta sobre una meseta: se despega EN ALTURA y se sale al vacio
+  // ARRANQUE. 'runway' = despegue clasico desde la base. 'air' = la mision empieza YA VOLANDO,
+  // sin plataforma: son las misiones de REGRESO, donde el avion vuelve del ataque.
+  start: 'runway',
 };
 
 /** Camara del mundo 2D. La comparten el render y el momentum. */
@@ -48,7 +55,9 @@ export const cam = { x: 0, y: 14 };
 export const plane = { x: 0, y: 1.2, vx: 0, vy: 0, bank: 0, pitch: 0 };
 
 export function resetPlane() {
-  plane.x = 0; plane.y = 1.2; plane.vx = 0; plane.vy = 0; plane.bank = 0; plane.pitch = 0;
+  // con ACANTILADO el avion ya nace sobre la meseta: no hay carrera de ascenso, se sale al vacio
+  plane.x = 0; plane.y = cfg.start === 'air' ? AIR_START_Y : (cfg.cliff ? PORT_H : 0) + 1.2;
+  plane.vx = 0; plane.vy = 0; plane.bank = 0; plane.pitch = 0;
 }
 
 /** ESTADISTICAS de la corrida: alimentan el recuento y las estrellas del fin de mision.

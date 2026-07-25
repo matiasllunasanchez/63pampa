@@ -49,6 +49,18 @@ export const SHORE_X = 14;
 // tres escalas: bahias grandes (0.0047), entrantes medianos (0.014) y el mordisco corto (0.055)
 export const shoreAt = wz => SHORE_X + Math.sin(wz * 0.014) * 6 + Math.sin(wz * 0.0047 + 2.0) * 8 + Math.sin(wz * 0.055 + 0.7) * 2.2;
 export const SAND_W = 6;   // ancho de la playa (antes 2.5: era un hilito)
+
+// SALIDA DEL PUERTO (mapa de MAR): donde termina la base de Puerto Argentino y empieza el agua.
+// Era una linea RECTA perpendicular al vuelo — un corte de tijera que se notaba muchisimo. Ahora
+// muerde y sale igual que la orilla de COSTA, con la misma idea (senos en coordenadas de MUNDO,
+// estables: no titilan, scrollean con el terreno) pero girada 90°: la orilla de COSTA varia con
+// la profundidad (wz), esta varia con el ANCHO (wx).
+// Devuelve el desvio en z respecto de cfg.coast; la orilla real esta en cfg.coast + portJut(wx).
+export const portJut = wx => Math.sin(wx * 0.055) * 6 + Math.sin(wx * 0.021 + 1.3) * 5 + Math.sin(wx * 0.13 + 0.5) * 2;
+// amplitud maxima de portJut: fuera de esta franja la fila es ENTERA tierra o ENTERA agua y no
+// hace falta recorrerla columna por columna. Si se tocan los senos de arriba, ajustar esto.
+export const PORT_AMP = 13;
+export const PORT_FOAM = 7;   // ancho de la rompiente, mar adentro de la orilla
 // ANTIAEREO: banda de profundidad donde dispara y cadencia entre misiles
 export const AA_Z0 = 80, AA_Z1 = 215, AA_CD = 2.6;
 

@@ -32,6 +32,7 @@ import * as momRender from './render/momentum.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
 import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
+import { RUNWAYS } from './data/runways.js';
 
   (() => {
     'use strict';
@@ -182,6 +183,9 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     }
     // arranca la mision actual por la puerta que corresponda: guion largo (campaña, si lo tiene)
     // o tarjeta corta de briefing (ciclo de muerte). Devuelve el estado al que hay que ir.
+    // Las misiones de REGRESO empiezan YA VOLANDO: no hay base de la que despegar, asi que el
+    // estado 'takeoff' (cuenta regresiva + carrera + rotacion) no aplica y se entra directo a jugar.
+    function afterBrief() { return cfg.start === 'air' ? 'play' : 'takeoff'; }
     function enterMission() {
       const m = curMission();
       if (gameMode === 'campaign' && m.story) { initStory(m.story); return 'story'; }
@@ -218,6 +222,13 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       { label: 'COMBUSTIBLE', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.fuelOn, set: v => cfg.fuelOn = v },
       { label: 'ENERGIA', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.energy, set: v => cfg.energy = v },   // altura<->velocidad: para comparar A/B la sensacion
       { label: 'COSTA', opts: [120, 230, 400], names: ['CORTA', 'NORMAL', 'LARGA'], get: () => cfg.coast, set: v => cfg.coast = v },
+      // PISTA: el estilo de la base de despegue (ver data/runways.js)
+      { label: 'PISTA', opts: RUNWAYS.map((r, i) => i), names: RUNWAYS.map(r => r.name), get: () => cfg.runway, set: v => cfg.runway = v },
+      // ACANTILADO: la base sobre una meseta — se sale al vacio en vez de tirar de la palanca.
+      // Cambia la altura de arranque, asi que hay que recolocar el avion.
+      { label: 'ACANTILADO', opts: [false, true], names: ['NO', 'SI'], get: () => cfg.cliff, set: v => { cfg.cliff = v; resetPlane(); } },
+      // ARRANQUE: 'air' = mision de REGRESO, empieza volando y no hay base de la que salir
+      { label: 'ARRANQUE', opts: ['runway', 'air'], names: ['PISTA', 'EN VUELO'], get: () => cfg.start, set: v => { cfg.start = v; resetPlane(); } },
       // MIRA: no es del mapa como las demas, pero el menu [M] es donde el jugador espera
       // encontrarla. `preview` le dice a drawCfg que dibuje la mira de verdad en la fila
       // (un nombre no sirve: hay que VERLA). Persiste, porque es una preferencia del jugador.
@@ -551,7 +562,9 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
         const spdBase0 = Math.min(150, 62 + run.t * 2.8);
         run.spd = 6 + spdBase0 * Math.min(1, toT / 2.0);
         run.dist += run.spd * dt;
-        if (toT > 1.35 && plane.y < 12) plane.y += 7.2 * dt;   // rotación y ascenso
+        // ACANTILADO: no hay rotacion ni ascenso — el avion ya esta arriba y lo que sigue es el
+        // vacio. Sin acantilado, la carrera termina en el clasico tirar de la palanca.
+        if (!cfg.cliff && toT > 1.35 && plane.y < 12) plane.y += 7.2 * dt;   // rotación y ascenso
         cam.x += (plane.x * 0.86 - cam.x) * Math.min(1, dt * 7);
         cam.y += (plane.y + 2.6 - cam.y) * Math.min(1, dt * 7);
         if (cam.y < 3.4) cam.y = 3.4;
@@ -603,24 +616,24 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
             if (!story.done) { story.t += 999; }                          // completar de un saque
             else if (story.si + 1 < story.seq.length) {                   // → siguiente pantalla de la secuencia
               story.si++; initStoryScreen(); beep(500, 0.05, 'square', 0.04);
-            } else { run.t = 0; fadeT = 1.4; setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+            } else { run.t = 0; fadeT = 1.4; setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
           }
         } else if (S.state === 'brief') {
           // tarjeta corta de mision (ciclo de muerte, y campaña sin guion): una tecla despega
           briefT += dt;
-          if (briefT > 0.6 && flags.anyPress) { run.t = 0; fadeT = 1.0; setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+          if (briefT > 0.6 && flags.anyPress) { run.t = 0; fadeT = 1.0; setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
         } else if (S.state === 'menu') {
           // el menú lo comparten SUPERVIVENCIA y CICLO DE MUERTE
           if (flags.startReq) {
             reset(); setRunObjective();
             // ciclo: pasa por el briefing corto de la mision; supervivencia: derecho al despegue
             if (gameMode === 'cycle') { briefT = 0; setState('brief'); beep(600, 0.08, 'square', 0.05); }
-            else { setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+            else { setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
           }
         } else if (S.state === 'dead') {
           // solo se puede reintentar una vez que subio la pantalla (paso el show del destrozo)
           // reintenta (mismo modo/nivel). La musica NO se reinicia: sigue desde donde venia.
-          if (deathT > DEATH_REVEAL && flags.anyPress) { reset(); setRunObjective(true); setState('takeoff'); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+          if (deathT > DEATH_REVEAL && flags.anyPress) { reset(); setRunObjective(true); setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
         } else if (S.state === 'results') {
           // RECUENTO: las filas entran de a una; una tecla las completa de golpe, la siguiente pasa al epilogo
           resT += dt;

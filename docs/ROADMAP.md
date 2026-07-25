@@ -151,6 +151,58 @@ resistencia…).
 > Relacionado con #18.
 > Dónde tocar → `data/planes.js` (definición de aviones).
 
+## 10.1 Nuevo avión: IA-58 Pucará
+
+Sumar el **IA-58 Pucará** al roster jugable (`data/planes.js`). Encaja en #10 (más
+complejidad entre aviones): es turbohélice bimotor, no jet — el opuesto de perfil a todo lo que
+hay hoy (Skyhawk, Dagger, Super Etendard, A-4Q, Mirage IIIEA), así que es candidato natural a
+tener características bien distintas (más lento, más resistente, mejor en apoyo terrestre).
+
+**Uso histórico real** (contexto para el diseño, no solo estética):
+
+- **Bases:** operó desde la BAM Malvinas (Puerto Argentino) y la BAM Cóndor en Pradera del
+  Ganso (Darwin), además de apostaderos chicos como Puerto Calderón.
+- **Misiones:** apoyo directo a las tropas terrestres, patrullaje del litoral, exploración y
+  combate contra helicópteros enemigos — no interceptación aire-aire con aviones rápidos.
+- **Capacidad rústica:** el tren turbohélice le permitía operar en pistas blandas o cortas
+  donde los reactores de la Fuerza Aérea no podían — coherente con el trabajo reciente de
+  pistas de tierra/pasto (#26, `data/runways.js`): el Pucará sería EL avión que tiene sentido
+  en esas pistas.
+
+> Relacionado con #10, #18 (asimetría) y #26 (misiones de regreso — el Pucará operaba corto,
+> desde bases avanzadas, distinto perfil de autonomía que los jets desde el continente).
+> Dónde tocar → `data/planes.js` (definición), `tools/bake_planes.html` (hornear la hoja del
+> sprite si no hay modelo 3D/2D ya listo).
+>
+> Fuentes: amilarg.com.ar/pucara-mlv.html · videos de referencia sobre operaciones del Pucará
+> en Malvinas (aportados por el usuario).
+
+## 10.2 Nuevo avión: Aermacchi MB-339
+
+Sumar el **Aermacchi MB-339** al roster jugable (`data/planes.js`). Es jet de entrenamiento
+avanzado y ataque ligero, construido en Italia por Alenia Aermacchi, en servicio desde 1978 —
+mundialmente conocido por ser el avión del equipo acrobático Frecce Tricolori de la Fuerza
+Aérea Italiana.
+
+**Características:**
+
+- **Velocidad máxima:** 898 km/h (Mach 0.73) — subsónico, más lento que los cazas de la línea
+  actual (Dagger, Mirage, Super Etendard): otro candidato a "distinto" para #10, en el extremo
+  opuesto de la balanza al Pucará (#10.1): jet liviano de entrenamiento, no turbohélice.
+- **Armamento:** hasta 1885 kg de carga externa — cañones de 30mm, bombas y misiles.
+
+**Uso histórico real:** operado por la Aviación Naval Argentina durante la guerra — incluye el
+ataque en solitario del Teniente Owen Crippa a la fragata HMS Argonaut. Sigue en servicio hoy
+en varias fuerzas aéreas (entre ellas la de Perú).
+
+> Relacionado con #10 y #18 (asimetría).
+> Dónde tocar → `data/planes.js` (definición), `tools/bake_planes.html` (hornear la hoja del
+> sprite si no hay modelo 3D/2D ya listo).
+>
+> Fuentes: Wikipedia (Aermacchi MB-339) · amilarg.com.ar/aermacchi-339.html ·
+> shelknamsur.com (nota sobre el MB-339 en Malvinas) · zona-militar.com · key.aero
+> (aportadas por el usuario).
+
 ## 11. Reparaciones y mejoras
 
 ¿Sistema de **reparaciones**? ¿**Mejoras**? (abierto) — pieza de progresión/economía.
@@ -446,3 +498,54 @@ alineado, y **120 FPS** medidos — sin regresión pese a 2.25× más puntos de 
       del juego el sprite cae a **2× exacto** en pantalla en vez de un estirado 3×. De paso se le
       sumó detalle a los modelos low-poly (tomas de aire, anillo de escape, puntas de ala), que
       a 56×32 no se distinguía.
+
+## 26. Misiones de REGRESO al continente
+
+La secuencia real de una misión de ataque era: despegue desde Río Gallegos, San Julián o Río
+Grande → vuelo rasante sobre el mar durante cientos de kilómetros para evitar los radares
+británicos → ataque a la flota o a un objetivo en las islas → **regreso a la misma base en el
+continente, muchas veces con el combustible al límite**.
+
+El juego ya cubre las primeras tres patas. Falta la cuarta: niveles donde **se empieza YA
+VOLANDO** (sin despegue, sin plataforma — `cfg.start = 'air'`, ya implementado) y el objetivo
+final **no es destruir nada sino LLEGAR a la base argentina** con la nafta que quede.
+
+Qué falta para cerrarla:
+- [ ] Un tipo de objetivo "llegar a la base": la meta es una pista/base argentina que aparece en
+      el horizonte (reutiliza la mecánica del marcador de objetivo y de la barcaza que crece).
+- [ ] El combustible como tensión central: el nivel se diseña para llegar CON LO JUSTO
+      (el dato histórico: los A-4 volvían "chupando el aire de los tanques").
+- [ ] Aterrizaje o sobrevuelo de la base como final feliz (¿mini-secuencia de toma de contacto
+      con las pistas nuevas de data/runways.js?).
+- [ ] En campaña: intercalar una de regreso después de cada gran ataque.
+
+Lo ya implementado que esta mision aprovecha: `cfg.start='air'` (arranque en vuelo, sin
+takeoff), los 5 estilos de pista (`data/runways.js`) para la base de llegada, y `cfg.cliff`.
+
+
+## 26.1 Bases argentinas en las islas: BAM Malvinas y BAM Cóndor
+
+Dos bases reales, distintas entre sí, para las misiones que despegan/aterrizan EN las islas
+(a diferencia de #26, que es continente↔islas). Encajan directo con `data/runways.js` — cada
+una es candidata a un `RUNWAYS` propio — y con los aviones nuevos #10.1/#10.2.
+
+- **BAM Malvinas** (Puerto Argentino) — la base grande: operaban Pucará (#10.1), Aermacchi
+  MB-339 (#10.2), helicópteros, y los **C-130 Hércules** para transporte y abastecimiento
+  cuando las condiciones lo permitían (ver #15, reabastecimiento con el Hércules — mismo
+  avión, otra pata del mismo tema). Es la base "grande" del juego hoy (el despegue actual
+  es de acá) — con pista pavimentada.
+
+- **BAM Cóndor** (Pradera del Ganso / Darwin) — base chica, de apoyo cercano: la usaban
+  sobre todo los IA-58 Pucará y helicópteros, en apoyo directo al Ejército en tierra. Es la
+  candidata natural para una pista de tierra o pasto (`RUNWAYS`: 'dirt' / 'field',
+  ya implementadas) — coherente con que el Pucará podía operar en pistas blandas/cortas
+  donde los reactores no entraban.
+
+Diferencia de personalidad entre las dos: Malvinas es la base "aérea" (jets, Hércules,
+pista formal); Cóndor es la base "de tierra" (Pucará, helicópteros, apoyo al Ejército,
+pista rústica). Un nivel ambientado en cada una debería sentirse distinto — no solo el
+fondo, sino qué aviones/obstáculos aparecen.
+
+> Relacionado con #10.1, #10.2, #15, #17 (terrenos) y #26.
+> Dónde tocar → `data/runways.js` (nuevo estilo de pista por base), `docs/NIVELES.md`
+> (asignar qué misión sale de cuál base).

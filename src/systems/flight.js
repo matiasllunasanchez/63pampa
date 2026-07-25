@@ -23,6 +23,7 @@ import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
 import { MSL_MAX, FLY_X, FLY_TOP, ROLL_DUR,
          GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt } from '../data/tuning.js';
+import { PORT_H } from '../data/runways.js';
 import { multOf } from '../core/util.js';
 import * as momentum from './momentum.js';
 import { engineFly, sfxOne, sfxSrc, beep, boom } from './audio.js';
@@ -170,12 +171,12 @@ export function flightSystem(dt, deps) {
   run.score += (run.boost ? 2 : 1) * 12 * run.multShow * dt;
   // superficie LETAL: tocar el suelo (o el agua) = explotar. Sobre tierra hay que volar en la banda
   // baja y arriesgada (arriba del suelo, pero bajo para clipear/matar soldados con el pase rasante).
-  const overRunway = run.dist + PZ < cfg.coast;
+  const overRunway = cfg.start !== 'air' && run.dist + PZ < cfg.coast;
   let groundY, deathMsg;
   // en COSTA el suelo depende del LADO: tierra a la izquierda de SHORE_X, mar a la derecha
   const onDirt = cfg.terrain === 'land' || (cfg.terrain === 'coast' && plane.x < shoreAt(run.dist + PZ));
   if (onDirt) { groundY = 0.5; deathMsg = 'death_land'; }
-  else if (overRunway) { groundY = 0.9; deathMsg = 'death_land'; }
+  else if (overRunway) { groundY = (cfg.cliff ? PORT_H : 0) + 0.9; deathMsg = 'death_land'; }
   else { groundY = waveNow(); deathMsg = 'death_sea'; }
   // TOCAR LA SUPERFICIE: ya no es muerte instantanea. El avion ROZA y tambalea (perdes control:
   // sacudon, guiñada, chispas) y tenes que sacarlo. El reloj de gracia se agota MUCHO mas rapido
