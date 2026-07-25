@@ -15,11 +15,11 @@
 // reciben como callbacks en initInput(). Asi el modulo de input no depende del motor: le avisa
 // "el jugador confirmo" y el motor decide que significa. El estado de menu/camara vive en game.js.
 
-import { S } from './state.js';
+import { S, cfg } from './state.js';
 import { W, H } from '../render/ctx.js';
 import { audio } from '../systems/audio.js';
 
-export const inp = { l: 0, r: 0, u: 0, d: 0, fire: false, turbo: false, msl: false };
+export const inp = { l: 0, r: 0, u: 0, d: 0, rise: 0, sink: 0, fire: false, turbo: false, msl: false };
 export const mouse = { x: W / 2, y: H * 0.4, on: false };
 export const pointer = { steer: null };   // arrastre de vuelo tactil (null fuera de arrastre)
 export const flags = { anyPress: false, startReq: false };
@@ -28,6 +28,8 @@ export const flags = { anyPress: false, startReq: false };
 const KEYMAP = {
   ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r',
   ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd',
+  // R/F: subir y bajar la camara — solo los lee el MODO CAMARA (cfg.devcam); el vuelo los ignora
+  KeyR: 'rise', KeyF: 'sink',
 };
 const isConfirm = c => c === 'Enter' || c === 'Space' || c === 'KeyX' || c === 'KeyK';
 const isBack = c => c === 'Escape' || c === 'Backspace';
@@ -85,6 +87,9 @@ export function initInput(cv, a) {
     if (S.state === 'story') {                                           // HISTORIA: Esc vuelve al menu
       if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
     }
+    // MODO CAMARA: la partida no termina nunca sola (avion inmortal) — se sale con ESCAPE.
+    // Solo en ese modo: en juego normal Escape sigue sin hacer nada durante el vuelo.
+    if (S.state === 'play' && cfg.devcam && isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
     // PIRUETA (tonel): doble-tap ← / → en vuelo — solo pulsaciones frescas, no auto-repeat
     if (!e.repeat && S.state === 'play') {
       const nowS = performance.now() / 1000;

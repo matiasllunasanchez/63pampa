@@ -12,9 +12,10 @@ import { run } from '../core/run.js';
 import { wake, obstacles, soldiers } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { P, LAND, CLAND } from '../data/palette.js';
-import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM } from '../data/tuning.js';
+import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
+import * as boomArt from './boom.js';
 import * as momentum from '../systems/momentum.js';
 import * as momRender from './momentum.js';
 
@@ -786,23 +787,24 @@ export function drawObstacle(o) {
     px(s.x - 0.9 * k + sway, s.y - 1.6 * k, 1.8 * k, Math.max(1, 0.5 * k), '#2b3028');  // aletas
     px(s.x - 0.25 * k + sway, s.y + 1.2 * k, Math.max(1, 0.5 * k), Math.max(1, 0.4 * k), '#565c50');  // ojiva abajo
   } else if (o.type === 'boom') {
-    // HONGO de la explosion: crece, humea y se disipa. Es zona de daño, no de muerte.
-    const base = proj(o.x, 0, o.z);
-    const ct = Math.min(1, o.boomT / 1.1);
-    const fade = o.boomT > 4.5 ? Math.max(0, 1 - (o.boomT - 4.5) / 1.5) : 1;
-    const hot = o.boomT < 0.6;                                                       // nucleo caliente al inicio
-    ctx.globalAlpha = fade;
-    // TRIPLE de tamaño que la primera version: el hongo es un muro, no una fogata
-    const stemH = (7.5 + ct * 21) * k, stemW = (3.3 + ct * 2.1) * k;
-    px(base.x - stemW / 2, base.y - stemH, stemW, stemH, hot ? '#b06a35' : '#7a756a');       // tallo
-    px(base.x - stemW * 0.9, base.y - stemH * 0.12, stemW * 1.8, stemH * 0.12, '#8a8578');   // polvo bajo
-    const capW = (10.8 + ct * 10.2) * k, capH = (4.5 + ct * 3.3) * k, capY = base.y - stemH - capH * 0.5;
-    px(base.x - capW / 2, capY, capW, capH, hot ? '#d98a4a' : '#8f8a7d');                    // sombrero
-    px(base.x - capW * 0.34, capY - capH * 0.4, capW * 0.68, capH * 0.55, hot ? '#e8b06a' : '#9c978a');
-    ctx.globalAlpha = fade * 0.5;                                                    // volutas
-    px(base.x - capW * 0.62 - Math.sin(run.t * 1.8 + o.ph) * k, capY + capH * 0.2, capW * 0.25, capH * 0.5, '#7a756a');
-    px(base.x + capW * 0.42 + Math.sin(run.t * 2.2 + o.ph) * k, capY, capW * 0.28, capH * 0.55, '#7a756a');
-    ctx.globalAlpha = 1;
+    // HONGO de la explosion. Con la hoja de sprites (assets/world/explosions/bomb.png) sale el
+    // ciclo entero — destello, columna, hongo naranja, enfriado a humo, disipacion. El dibujo a
+    // mano de abajo queda como respaldo mientras la hoja no cargo o si falla.
+    if (boomArt.isReady()) { boomArt.drawBoom(ctx, px, proj, o, k); }
+    else {
+      const base = proj(o.x, 0, o.z);
+      const ct = Math.min(1, o.boomT / 1.1);
+      const fade = o.boomT > 4.5 ? Math.max(0, 1 - (o.boomT - 4.5) / 1.5) : 1;
+      const hot = o.boomT < 0.6;
+      ctx.globalAlpha = fade;
+      const stemH = (7.5 + ct * 21) * k, stemW = (3.3 + ct * 2.1) * k;
+      px(base.x - stemW / 2, base.y - stemH, stemW, stemH, hot ? '#b06a35' : '#7a756a');
+      px(base.x - stemW * 0.9, base.y - stemH * 0.12, stemW * 1.8, stemH * 0.12, '#8a8578');
+      const capW = (10.8 + ct * 10.2) * k, capH = (4.5 + ct * 3.3) * k, capY = base.y - stemH - capH * 0.5;
+      px(base.x - capW / 2, capY, capW, capH, hot ? '#d98a4a' : '#8f8a7d');
+      px(base.x - capW * 0.34, capY - capH * 0.4, capW * 0.68, capH * 0.55, hot ? '#e8b06a' : '#9c978a');
+      ctx.globalAlpha = 1;
+    }
   } else if (o.type === 'airboom') {
     // AIRBURST: la bomba reventada EN EL AIRE. Bola de fuego CIRCULAR que se expande y se apaga
     // (nucleo claro -> naranja -> humo), mas una onda anular. No es hongo: no toca el suelo.
@@ -821,13 +823,22 @@ export function drawObstacle(o) {
     ctx.lineWidth = 1; ctx.globalAlpha = 1;
   } else if (o.type === 'birds') {
     // BANDADA: aves aleteando (daña al atravesarla, no derriba). Silueta simple en "V".
+    // DOS ESPECIES, sorteadas en el spawn (o.white): gaviotas BLANCAS con punta de ala oscura —
+    // las del Atlantico Sur, que resaltan sobre el mar y la tierra — y aves NEGRAS, que resaltan
+    // contra el cielo. Entre las dos la bandada se ve venir sobre cualquier fondo.
     const s = proj(o.x, o.y, o.z);
+    const cuerpo = o.white ? '#eef2f0' : '#1e2422';
+    const punta = o.white ? '#6d7b7d' : '#0d1110';
     for (let i = 0; i < 6; i++) {
       const bx2 = s.x + ((i % 3) - 1) * 2.2 * k + (i > 2 ? 1.1 * k : 0);
       const by2 = s.y + ((i / 3) | 0) * 1.4 * k - (i % 3 === 1 ? 0.9 * k : 0);
       const flap = Math.sin(run.t * 11 + o.ph + i * 1.3) > 0 ? 1 : 0;
-      px(bx2 - 0.7 * k, by2 - flap * 0.35 * k, 0.7 * k, Math.max(1, 0.25 * k), '#1e2422');  // ala izq
-      px(bx2, by2 - (1 - flap) * 0.35 * k, 0.7 * k, Math.max(1, 0.25 * k), '#1e2422');      // ala der
+      const wl = 0.7 * k, hh2 = Math.max(1, 0.25 * k);
+      px(bx2 - wl, by2 - flap * 0.35 * k, wl, hh2, cuerpo);                    // ala izq
+      px(bx2, by2 - (1 - flap) * 0.35 * k, wl, hh2, cuerpo);                   // ala der
+      // PUNTAS de ala mas oscuras: es lo que hace que la gaviota blanca no sea una mancha
+      px(bx2 - wl, by2 - flap * 0.35 * k, Math.max(1, wl * 0.34), hh2, punta);
+      px(bx2 + wl - Math.max(1, wl * 0.34), by2 - (1 - flap) * 0.35 * k, Math.max(1, wl * 0.34), hh2, punta);
     }
   } else if (o.type === 'trench') {
     // TRINCHERA ARGENTINA (decorado, margen izquierdo): bolsas, 3 soldados propios tirando —
@@ -1088,4 +1099,46 @@ export function drawHitboxes() {
   // PERFIL DEL AVION: la otra mitad de cada choque. Sin esto el overlay solo cuenta la mitad.
   const { pw, ph } = planeBox(run.rollT > 0);
   hbBox(plane.x, plane.y, PZ, pw, ph, HB_PLANE, 0.3);
+}
+
+
+// ---------- CARRIL DEL AVION (MODO CAMARA, cfg.devcam) ----------
+// Marca en VERDE FLUOR la zona por la que viaja el avion, para ubicarlo desde una camara libre:
+//   - los BORDES del corredor (x = ±FLY_X) sobre el piso, corriendo hacia el horizonte
+//   - travesaños de profundidad cada 25 unidades, para leer distancias
+//   - el MARCO a la profundidad del avion (z = PZ): la ventana real por la que pasa, del piso a
+//     FLY_TOP — el techo de vuelo
+//   - un tick sobre el marco a la altura ACTUAL del avion
+// Todo se proyecta con proj(), asi que acompaña a la camara este donde este.
+export function drawFlightLane() {
+  const G = '#39ff14';
+  ctx.strokeStyle = G; ctx.lineWidth = 1;
+  // bordes del corredor sobre el piso
+  ctx.globalAlpha = 0.75;
+  for (const sgn of [-1, 1]) {
+    const a = proj(sgn * FLY_X, 0, 5), b = proj(sgn * FLY_X, 0, 235);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  // travesaños de profundidad
+  ctx.globalAlpha = 0.2;
+  for (let z = 25; z <= 225; z += 25) {
+    const l = proj(-FLY_X, 0, z), r = proj(FLY_X, 0, z);
+    ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(r.x, r.y); ctx.stroke();
+  }
+  // marco a la profundidad del avion
+  const bl = proj(-FLY_X, 0, PZ), br = proj(FLY_X, 0, PZ);
+  const tl = proj(-FLY_X, FLY_TOP, PZ), tr = proj(FLY_X, FLY_TOP, PZ);
+  ctx.globalAlpha = 0.9;
+  ctx.beginPath();
+  ctx.moveTo(bl.x, bl.y); ctx.lineTo(br.x, br.y); ctx.lineTo(tr.x, tr.y); ctx.lineTo(tl.x, tl.y);
+  ctx.closePath(); ctx.stroke();
+  // tick a la altura actual del avion, sobre los dos lados del marco
+  const pl2 = proj(-FLY_X, plane.y, PZ), pr2 = proj(FLY_X, plane.y, PZ);
+  px(pl2.x - 3, pl2.y, 6, 1, G); px(pr2.x - 3, pr2.y, 6, 1, G);
+  ctx.globalAlpha = 1;
+  // ayuda de teclas (arriba, fuera del paso del HUD)
+  ctx.font = '8px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = G;
+  ctx.globalAlpha = 0.8;
+  ctx.fillText('CAM LIBRE   ↑↓ avanzar · ←→ lateral · R/F altura · SHIFT x4', W / 2, 14);
+  ctx.globalAlpha = 1;
 }

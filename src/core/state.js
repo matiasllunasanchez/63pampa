@@ -49,6 +49,10 @@ export const cfg = {
   // DEPURACION: pinta las cajas de colision en verde fluor. Es para PROBAR — el overlay sale de
   // core/hitbox.js, la misma fuente que decide los choques, asi que lo que ves es lo que golpea.
   hitboxes: false,
+  // MODO CAMARA (herramienta de desarrollo): el mundo NO avanza solo — avanza, retrocede y se
+  // frena a decision del desarrollador, y la camara se mueve libre en x/altura. Para inspeccionar
+  // mapas y encuadres sin que la partida se mueva sola.
+  devcam: false,
 };
 
 /** Camara del mundo 2D. La comparten el render y el momentum. */

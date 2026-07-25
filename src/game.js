@@ -19,6 +19,7 @@ import { flightSystem } from './systems/flight.js';
 import { drawPlane } from './render/plane.js';
 import * as hud from './render/hud.js';
 import * as world from './render/world.js';
+import * as soldierArt from './render/soldiers.js';
 import { theme, applyTheme } from './render/theme.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack } from './systems/audio.js';
@@ -231,6 +232,8 @@ import { RUNWAYS } from './data/runways.js';
       { label: 'ARRANQUE', opts: ['runway', 'air'], names: ['PISTA', 'EN VUELO'], get: () => cfg.start, set: v => { cfg.start = v; resetPlane(); } },
       // HITBOXES: overlay de depuracion (verde fluor = letal, celeste = daño, magenta = el avion)
       { label: 'HITBOXES', opts: [false, true], names: ['NO', 'SI'], get: () => cfg.hitboxes, set: v => cfg.hitboxes = v },
+      // MODO CAMARA: el mundo avanza a mano (↑↓), camara libre (←→ lateral, R/F altura)
+      { label: 'MODO CAMARA', opts: [false, true], names: ['NORMAL', 'LIBRE'], get: () => cfg.devcam, set: v => cfg.devcam = v },
       // MIRA: no es del mapa como las demas, pero el menu [M] es donde el jugador espera
       // encontrarla. `preview` le dice a drawCfg que dibuje la mira de verdad en la fila
       // (un nombre no sirve: hay que VERLA). Persiste, porque es una preferencia del jugador.
@@ -685,6 +688,38 @@ import { RUNWAYS } from './data/runways.js';
       }
       flags.anyPress = false;
 
+      // ---------- MODO CAMARA (cfg.devcam) ----------
+      // El mundo queda QUIETO: no corren vuelo, spawn ni colisiones — solo lo que ya esta en
+      // pantalla, congelado. El desarrollador mueve el escenario y la camara:
+      //   ↑ / ↓   avanzar / retroceder por el mapa (scroll manual de run.dist)
+      //   ← / →   camara de costado          R / F   camara mas arriba / mas abajo
+      //   TURBO   todo x4
+      // El avion no se mueve (queda como referencia de escala en su carril). Al volver a NORMAL
+      // la partida sigue donde estaba — nada se destruyo, solo no avanzo.
+      if (cfg.devcam) {
+        const f = inp.turbo ? 4 : 1;
+        const adv = (inp.u ? 55 * f : 0) - (inp.d ? 55 * f : 0);
+        run.dist = Math.max(0, run.dist + adv * dt);
+        // El MUNDO corre al paso del desarrollador: spawn y colisiones leen run.spd para acercar
+        // lo que ya existe y sembrar lo nuevo — con ↑ sostenido el mapa fluye como en juego, y
+        // frenado queda quieto pero VIVO (el AA dispara, las bombas caen, las banderas flamean).
+        run.spd = Math.max(0, adv);
+        cam.x += (inp.r - inp.l) * 30 * f * dt;
+        cam.y = Math.max(1.2, Math.min(90, cam.y + (inp.rise - inp.sink) * 22 * f * dt));
+        run.shake = Math.max(0, run.shake - dt * 10);
+        spawnSystem(dt);
+        // el mundo entero corre, pero la señal de muerte se DESCARTA: en este modo el avion es
+        // inmortal y de la partida solo se sale con ESCAPE (ver core/input.js). El vuelo
+        // (flightSystem) NO corre: el avion queda quieto como referencia, no cae ni gasta nafta.
+        collisionSystem(dt);
+        parts.forEach(p2 => { p2.x += p2.vx * dt; p2.y += p2.vy * dt; p2.vy += 90 * dt; p2.life -= dt; });
+        prune(parts, p2 => p2.life > 0);
+        popups.forEach(p2 => { p2.y -= 14 * dt; p2.life -= dt; });
+        prune(popups, p2 => p2.life > 0);
+        engineOff();
+        return;
+      }
+
       // needsMomentum: si el objetivo del run culmina en el climax (barco) o con solo llegar (distancia)
       const needsMomentum = (gameMode === 'campaign' || gameMode === 'cycle') ? goalOf(curMission()).needsMomentum : true;
       const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist, needsMomentum });
@@ -797,6 +832,7 @@ import { RUNWAYS } from './data/runways.js';
       world.drawObjectiveMarker(objectiveDist);                // cuña roja en el horizonte: hacia donde vamos
       world.drawWake();
       if (cfg.hitboxes) world.drawHitboxes();   // depuracion: cajas de colision en verde fluor
+      if (cfg.devcam && S.state === 'play') world.drawFlightLane();   // modo camara: el carril del avion
 
       // ráfagas de viento
       ctx.globalAlpha = 0.35;
@@ -812,9 +848,14 @@ import { RUNWAYS } from './data/runways.js';
         for (const sd of sold) {
           if (sd.z <= 3 || sd.dead) continue;
           const s = proj(sd.x, 0, sd.z);
-          if (sd.prone > 0) { world.drawSoldierProne(s.x, s.y, s.k, sd.dir); continue; }
-          const gait = Math.sin(run.t * 12 + sd.ph);                   // paso al correr
-          world.drawSoldier(s.x, s.y, s.k, gait);
+          // HOJA de sprites si ya cargo; si no, el soldado dibujado a mano (ver render/soldiers.js)
+          if (sd.prone > 0) {
+            if (soldierArt.isReady()) soldierArt.drawProne(ctx, s.x, s.y, s.k, sd.dir);
+            else world.drawSoldierProne(s.x, s.y, s.k, sd.dir);
+            continue;
+          }
+          if (soldierArt.isReady()) soldierArt.drawRunBack(ctx, s.x, s.y, s.k, run.t * 11 + sd.ph, sd.dir);
+          else world.drawSoldier(s.x, s.y, s.k, Math.sin(run.t * 12 + sd.ph));
         }
       }
 

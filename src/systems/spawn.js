@@ -22,7 +22,9 @@ const hpOf = type => ({ hp: ENEMY_HP[type], hpMax: ENEMY_HP[type] });
 function squad(x, z, n, coast) {
   for (let i = 0; i < n; i++) soldiers.push({
     x: x + (Math.random() * 10 - 5), z: z + Math.random() * 22, ph: Math.random() * 6,
-    dir: coast ? -1 : (Math.random() < 0.5 ? -1 : 1), v: coast ? 9 : 6,
+    // SIEMPRE hacia la IZQUIERDA: huyen del avion, que viene de frente. Con direccion al azar
+    // algunos corrian hacia la camara y se leia como si cargaran contra el avion.
+    dir: -1, v: coast ? 9 : 6,
   });
 }
 
@@ -79,7 +81,7 @@ function spawn() {
     else if (r < 0.64) obstacles.push({ type: 'aatruck', x: landLane(), h: 4.6, y: 1.9, z: 250, ...hpOf('aatruck'), cd: 1.3 + Math.random() * AA_CD, done: false, ph });
     // trinchera ARGENTINA (decorado, bien a la izquierda): tira contra los britanicos
     else if (r < 0.70) obstacles.push({ type: 'trench', x: -SPAWN_X + Math.random() * 8, z: 250, decor: true, cd: 0.8 + Math.random(), done: false, ph });
-    else if (r < 0.76) obstacles.push({ type: 'birds', x: lane, y: 7 + Math.random() * 12, z: 250, bvx: (Math.random() - 0.5) * 6, done: false, ph });
+    else if (r < 0.76) obstacles.push({ type: 'birds', x: lane, y: 7 + Math.random() * 12, z: 250, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
     else if (r < 0.85) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph });
     else if (r < 0.93) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, ...hpOf('helo'), done: false, ph });
     else if (r < 0.97) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, ...hpOf('jet'), done: false, ph });
@@ -104,7 +106,7 @@ function spawn() {
         squad(lane - 3, 252, 2, false);
       } else obstacles.push({ type: 'aa', x: lane, h: 4.4, y: 1.8, z: 250, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
     }
-    else if (r < 0.66) obstacles.push({ type: 'birds', x: lane, y: 7 + Math.random() * 12, z: 250, bvx: (Math.random() - 0.5) * 6, done: false, ph });
+    else if (r < 0.66) obstacles.push({ type: 'birds', x: lane, y: 7 + Math.random() * 12, z: 250, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
     else if (r < 0.75) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph });
     else if (r < 0.84) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, ...hpOf('helo'), done: false, ph });
     else if (r < 0.92) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, ...hpOf('jet'), done: false, ph });
@@ -115,7 +117,7 @@ function spawn() {
 
   // MAR ABIERTO: mastiles de fragata y trafico aereo
   if (r < 0.34) obstacles.push({ type: 'mast', x: lane, h: 11 + Math.random() * 17, z: 250, done: false });
-  else if (r < 0.48) obstacles.push({ type: 'birds', x: lane, y: 7 + Math.random() * 12, z: 250, bvx: (Math.random() - 0.5) * 6, done: false, ph });
+  else if (r < 0.48) obstacles.push({ type: 'birds', x: lane, y: 7 + Math.random() * 12, z: 250, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
   else if (r < 0.60) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph });
   else if (r < 0.70) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, ...hpOf('helo'), done: false, ph });
   else if (r < 0.78) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, ...hpOf('jet'), done: false, ph });

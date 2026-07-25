@@ -97,6 +97,12 @@ def main():
         for p in sorted(d.iterdir()):
             if p.is_file() and not p.name.startswith('.'):
                 js, _ = sub_path(js, f'../assets/photos/{sub}/{p.name}', '')
+    # HOJAS DE SOLDADOS (~450 KB): NO entran en el build web — estamos a menos de 200 KB del tope
+    # de 16 MB. En Electron/Steam si van; aca los soldados caen al dibujo a mano (render/world.js),
+    # que es justamente para lo que existe el fallback de render/soldiers.js.
+    js, _ = sub_path(js, '../assets/world/soldats/englishsoldatv2.png', '')
+    js, _ = sub_path(js, '../assets/world/explosions/bomb.png', '')
+
     # re-embeber audio: mp3 del juego -> m4a comprimida (o '' para las que no entran en la web)
     for mp3, m4a in WEB_AUDIO.items():
         js, ok = sub_path(js, f'../assets/music/{mp3}', uri(ASSETS / 'music' / 'web' / m4a, 'audio/mp4')); n += ok
