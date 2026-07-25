@@ -46,6 +46,10 @@ export const cfg = {
   // ARRANQUE. 'runway' = despegue clasico desde la base. 'air' = la mision empieza YA VOLANDO,
   // sin plataforma: son las misiones de REGRESO, donde el avion vuelve del ataque.
   start: 'runway',
+  // PIRUETAS de combate (data/moves.js): los combos de dos toques (split-s, break turn, jink...).
+  // Se pueden apagar si los combos verticales molestan al bombear gas. El tonel clasico
+  // (doble-tap lateral) queda SIEMPRE: es la mecanica original del juego, no una pirueta nueva.
+  moves: true,
   // ENEMIGOS MOVILES: los que hoy podian quedarse quietos se mueven — el globo cabecea colgado
   // del cable, el helicoptero patrulla de lado a lado, el caza teje y busca tu carril, los
   // vehiculos ruedan y la fragata del mastil navega. Apagarlo los deja plantados como antes.

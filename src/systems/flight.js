@@ -27,6 +27,7 @@ import { PORT_H } from '../data/runways.js';
 // cuanto sube la camara con turbo (unidades de mundo): el efecto de 'alejarse'
 const BOOST_LIFT = 2.2;
 import { multOf } from '../core/util.js';
+import { movesSystem, mvAllowsFire, mvAllowsTurbo } from './moves.js';
 import * as momentum from './momentum.js';
 import { engineFly, sfxOne, sfxSrc, beep, boom } from './audio.js';
 import { applyEnergy, applyDrag, speedTarget, windFactor, pitchTarget, scrapeLimit,
@@ -44,8 +45,13 @@ const GUN_X = 0.9;
 let gunSide = 1;   // de que cañon sale el proximo tiro; se turnan
 
 export function flightSystem(dt, deps) {
+  // PIRUETA activa: systems/moves.js toma el control del avion este frame (escribe vx/vy/bank/
+  // pitch); mas abajo el bloque de control normal se saltea. Todo lo demas — energia, roce,
+  // estela, racha, puntaje, colisiones — sigue corriendo igual: la maniobra vive DENTRO del
+  // mundo, no lo pausa.
+  movesSystem(dt, inp);
   // velocidad — el multiplicador y la racha rasante aceleran el avión
-  run.boost = inp.turbo && run.fuel > 0;
+  run.boost = inp.turbo && run.fuel > 0 && mvAllowsTurbo();
   // viento en contra: cuanto más tiempo arriba, más resistencia (hasta -35%)
   if (cfg.wind && plane.y > 16) run.windT = Math.min(6, run.windT + dt);
   else run.windT = Math.max(0, run.windT - dt * 2);
@@ -99,8 +105,8 @@ export function flightSystem(dt, deps) {
     } else if (run.dist >= deps.objectiveDist) return 'objective';
   }
 
-  // maniobra
-  if (pointer.steer) {
+  // maniobra (control normal — durante una PIRUETA el dueño es movesSystem)
+  if (run.mv) { /* la pirueta ya escribio vx/vy */ } else if (pointer.steer) {
     const wx = (pointer.steer.x - W / 2) / (F / PZ) + cam.x;
     const wy = cam.y - (pointer.steer.y - HOR) / (F / PZ);
     plane.vx = Math.max(-30, Math.min(30, (wx - plane.x) * 5));
@@ -148,16 +154,19 @@ export function flightSystem(dt, deps) {
   if (cam.y < 3.4) cam.y = 3.4;
 
   // --- animación de vuelo: alabeo (bank) y cabeceo (pitch) suavizados ---
-  // el alabeo mezcla la intención de giro (input) con la velocidad real → anticipa y asienta
-  const steerV = pointer.steer ? plane.vx / 26 : ((inp.r - inp.l) * 0.9 + (plane.vx / 30) * 0.35);
-  const bankTarget = Math.max(-1, Math.min(1, steerV));
-  // cabeceo: la tecla mueve la trompa SOLO si se mantiene apretada un instante — los toques rápidos
-  // de gas (↑ repetido) no la sacuden y el avión queda recto; si mantenés ↑/↓ sí cabecea.
-  const vin = inp.u - inp.d;   // -1 pica / 0 / +1 trepa
-  run.pitchHold = vin !== 0 ? run.pitchHold + dt : 0;
-  const pitchTgt = pitchTarget(vin, run.pitchHold, plane.vy);
-  plane.bank += (bankTarget - plane.bank) * Math.min(1, dt * 9);   // entra/sale con peso
-  plane.pitch += (pitchTgt - plane.pitch) * Math.min(1, dt * PITCH_LERP);   // igual de rapido que el alabeo
+  // durante una PIRUETA el alabeo/cabeceo los clava movesSystem (poses de la maniobra)
+  if (!run.mv) {
+    // el alabeo mezcla la intención de giro (input) con la velocidad real → anticipa y asienta
+    const steerV = pointer.steer ? plane.vx / 26 : ((inp.r - inp.l) * 0.9 + (plane.vx / 30) * 0.35);
+    const bankTarget = Math.max(-1, Math.min(1, steerV));
+    // cabeceo: la tecla mueve la trompa SOLO si se mantiene apretada un instante — los toques rápidos
+    // de gas (↑ repetido) no la sacuden y el avión queda recto; si mantenés ↑/↓ sí cabecea.
+    const vin = inp.u - inp.d;   // -1 pica / 0 / +1 trepa
+    run.pitchHold = vin !== 0 ? run.pitchHold + dt : 0;
+    const pitchTgt = pitchTarget(vin, run.pitchHold, plane.vy);
+    plane.bank += (bankTarget - plane.bank) * Math.min(1, dt * 9);   // entra/sale con peso
+    plane.pitch += (pitchTgt - plane.pitch) * Math.min(1, dt * PITCH_LERP);   // igual de rapido que el alabeo
+  }
 
   // puntaje por altitud + racha rasante
   const alt = plane.y;
@@ -264,7 +273,7 @@ export function flightSystem(dt, deps) {
   run.heat -= dt * (inp.fire ? GUN_COOL_FIRE : GUN_COOL_IDLE);
   if (run.heat < 0) run.heat = 0;
   if (run.overheat && run.heat < GUN_RESET) run.overheat = false;
-  if (inp.fire && !run.overheat && run.fireT <= 0) {
+  if (inp.fire && !run.overheat && run.fireT <= 0 && mvAllowsFire()) {
     run.fireT = 1 / 9; stats.shots++;   // denominador de la PRECISION del recuento
     const vm = deps.viewMouse();
     // DOS CAÑONES, uno por lado, TURNANDOSE. Antes salia todo de un punto en el centro del avion.

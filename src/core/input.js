@@ -42,7 +42,21 @@ const isDown = c => c === 'ArrowDown' || c === 'KeyS';
 
 /** Instala todos los listeners. `cv` es el canvas; `a` es el objeto de acciones (callbacks). */
 export function initInput(cv, a) {
-  let tapL = -9, tapR = -9;              // PIRUETA (tonel): doble-tap ← / → en vuelo
+  // COMBOS DE PIRUETAS: dos toques direccionales seguidos (l/r/u/d) dentro de la ventana. El
+  // detector es UNO solo para teclado y joystick: registra cada toque FRESCO y, si el anterior
+  // fue hace poco, emite el par ('ll', 'rr', 'du', 'dl'...) como accion. Que significa cada par
+  // lo decide game.js (algunos dependen de la ALTURA del avion) — aca no se sabe de maniobras.
+  // La ventana es corta A PROPOSITO: ↑↑/↓↓ conviven con el bombeo de gas del vuelo normal, y
+  // con 0.24 s solo un doble toque intencional los dispara.
+  let lastTap = { d: '', t: -9 };
+  const COMBO_WIN = 0.24;
+  function dirTap(d) {
+    const now = performance.now() / 1000;
+    if (S.state === 'play' && now - lastTap.t < COMBO_WIN) {
+      a.combo(lastTap.d + d);
+      lastTap = { d: '', t: -9 };        // consumido: no encadena con el proximo toque
+    } else lastTap = { d, t: now };
+  }
   let steerPtr = null;                   // el puntero que esta arrastrando el vuelo
   const zonePtr = new Map();             // punteros tactiles → zona ('fire' / 'turbo')
 
@@ -90,11 +104,12 @@ export function initInput(cv, a) {
     // MODO CAMARA: la partida no termina nunca sola (avion inmortal) — se sale con ESCAPE.
     // Solo en ese modo: en juego normal Escape sigue sin hacer nada durante el vuelo.
     if (S.state === 'play' && cfg.devcam && isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
-    // PIRUETA (tonel): doble-tap ← / → en vuelo — solo pulsaciones frescas, no auto-repeat
+    // PIRUETAS: cada toque direccional fresco alimenta el detector de combos (ver dirTap)
     if (!e.repeat && S.state === 'play') {
-      const nowS = performance.now() / 1000;
-      if (isLeft(e.code)) { if (nowS - tapL < 0.28) a.roll(-1); tapL = nowS; }
-      if (isRight(e.code)) { if (nowS - tapR < 0.28) a.roll(1); tapR = nowS; }
+      if (isLeft(e.code)) dirTap('l');
+      else if (isRight(e.code)) dirTap('r');
+      else if (isUp(e.code)) dirTap('u');
+      else if (isDown(e.code)) dirTap('d');
     }
     // anyPress solo con pulsaciones FRESCAS (!e.repeat): el auto-repeat de una tecla sostenida no
     // debe saltear pantallas (historia, derribado, transiciones). inp si se re-setea siempre.
@@ -211,6 +226,16 @@ export function initInput(cv, a) {
     const inGame = S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum';
     if (inGame) {
       const lx = ax(0), ly = ax(1);
+      // COMBOS con el pad: el FLANCO de cada direccion (stick cruzando la zona muerta, o la
+      // cruceta) cuenta como un toque — doble flick del stick = doble tap. Mismo detector.
+      const dl = (lx < 0 || down(14)) ? 1 : 0, dr = (lx > 0 || down(15)) ? 1 : 0;
+      const du = (throttleInvert ? ly > 0 : ly < 0) ? 1 : 0, dd = (throttleInvert ? ly < 0 : ly > 0) ? 1 : 0;
+      if (S.state === 'play') {
+        if (dl && !padHeld.l) dirTap('l');
+        if (dr && !padHeld.r) dirTap('r');
+        if (du && !padHeld.u) dirTap('u');
+        if (dd && !padHeld.d) dirTap('d');
+      }
       setPad('l', (lx < 0 || down(14)) ? 1 : 0);               // stick izq / cruceta izq = esquivar
       setPad('r', (lx > 0 || down(15)) ? 1 : 0);
       // THROTTLE en el stick VERTICAL: por defecto ABAJO sube (gas), ARRIBA baja (picada). L1 lo

@@ -9,12 +9,12 @@
 // uno marca su propio flag (ready/sheetOk) al cargar, asi el render nunca dibuja una imagen
 // a medio cargar.
 export const PLANES = [
-  { key: 'sky', name: 'A-4 SKYHAWK', src: '../assets/planes/a4-skyhawk/preview.webp', sheet: '../assets/planes/a4-skyhawk/sheet.png', desc: { es: 'Equilibrado - protagonista de la campaña', en: 'Balanced - the campaign workhorse' } },
-  { key: 'dagger', name: 'IAI DAGGER', src: '../assets/planes/iai-dagger/preview.webp', sheet: '../assets/planes/iai-dagger/sheet.png', desc: { es: 'Mas rapido y con mas fuego - dificil de controlar', en: 'Faster, harder-hitting - tricky to control' } },
-  { key: 'supere', name: 'SUPER ETENDARD', src: '../assets/planes/super-etendard/preview.webp', sheet: '../assets/planes/super-etendard/sheet.png', desc: { es: 'Misiones especiales - misiles Exocet', en: 'Special missions - Exocet missiles' } },
-  { key: 'a4q', name: 'A-4Q', src: '../assets/planes/a4q/preview.webp', sheet: '../assets/planes/a4q/sheet.png', desc: { es: 'Variante naval - similar al A-4B/C', en: 'Naval variant - similar to the A-4B/C' } },
-  { key: 'pampa', name: 'PAMPA 63', src: '../assets/planes/pampa-63/preview.webp', sheet: '../assets/planes/pampa-63/sheet.png', desc: { es: 'Entrenador biplaza IA-63', en: 'IA-63 two-seat trainer' } },
-  { key: 'mirage', name: 'MIRAGE IIIEA', src: '../assets/planes/mirage-iiiea/preview.png', sheet: '../assets/planes/mirage-iiiea/sheet.png', desc: { es: 'Interceptor de altura - rapido y con poca autonomia', en: 'High-altitude interceptor - fast, short legs' } },
+  { key: 'sky', name: 'A-4 SKYHAWK', src: '../assets/planes/a4-skyhawk/preview.webp', sheet: '../assets/planes/a4-skyhawk/sheet.png', sheet2: '../assets/planes/a4-skyhawk/sheet2.png', desc: { es: 'Equilibrado - protagonista de la campaña', en: 'Balanced - the campaign workhorse' } },
+  { key: 'dagger', name: 'IAI DAGGER', src: '../assets/planes/iai-dagger/preview.webp', sheet: '../assets/planes/iai-dagger/sheet.png', sheet2: '../assets/planes/iai-dagger/sheet2.png', desc: { es: 'Mas rapido y con mas fuego - dificil de controlar', en: 'Faster, harder-hitting - tricky to control' } },
+  { key: 'supere', name: 'SUPER ETENDARD', src: '../assets/planes/super-etendard/preview.webp', sheet: '../assets/planes/super-etendard/sheet.png', sheet2: '../assets/planes/super-etendard/sheet2.png', desc: { es: 'Misiones especiales - misiles Exocet', en: 'Special missions - Exocet missiles' } },
+  { key: 'a4q', name: 'A-4Q', src: '../assets/planes/a4q/preview.webp', sheet: '../assets/planes/a4q/sheet.png', sheet2: '../assets/planes/a4q/sheet2.png', desc: { es: 'Variante naval - similar al A-4B/C', en: 'Naval variant - similar to the A-4B/C' } },
+  { key: 'pampa', name: 'PAMPA 63', src: '../assets/planes/pampa-63/preview.webp', sheet: '../assets/planes/pampa-63/sheet.png', sheet2: '../assets/planes/pampa-63/sheet2.png', desc: { es: 'Entrenador biplaza IA-63', en: 'IA-63 two-seat trainer' } },
+  { key: 'mirage', name: 'MIRAGE IIIEA', src: '../assets/planes/mirage-iiiea/preview.png', sheet: '../assets/planes/mirage-iiiea/sheet.png', sheet2: '../assets/planes/mirage-iiiea/sheet2.png', desc: { es: 'Interceptor de altura - rapido y con poca autonomia', en: 'High-altitude interceptor - fast, short legs' } },
 ];
 // 84x48 por cuadro (antes 56x32): se re-hornearon a 1.5x al subir la grilla del juego a 480x270.
 // Con el buffer 2x del juego, el sprite cae a 2x EXACTO en pantalla — pixel art nitido.
@@ -39,5 +39,14 @@ PLANES.forEach(pl => {
     pl.sheetImg = new Image();
     pl.sheetImg.onload = () => { pl.sheetOk = true; };
     pl.sheetImg.src = pl.sheet;
+    // HOJA 2 (cabeceos EMPINADOS ±32°, para las piruetas): misma carpeta, 9 cols x 2 filas
+    // (fila 0 = trepada fuerte, fila 1 = picada fuerte). Es OPCIONAL con fallback real: el build
+    // web la descarta (limite de 16 MB) y el render cae a las filas normales de la hoja base.
+    pl.sheet2Ok = false;
+    if (pl.sheet2) {
+      pl.sheet2Img = new Image();
+      pl.sheet2Img.onload = () => { pl.sheet2Ok = true; };
+      pl.sheet2Img.src = pl.sheet2;
+    }
   }
 });

@@ -58,9 +58,17 @@ export const run = {
   gear: 1,         // 1 = bajado (en pista) · 0 = recogido. Lo anima el despegue; ver render/plane.js
 
   // --- maniobra ---
-  rollT: 0,        // pirueta en curso (segundos restantes)
-  rollCd: 0,       // cooldown de la pirueta
+  rollT: 0,        // tonel en curso (segundos restantes) — camino legado del barrel roll
+  rollCd: 0,       // cooldown COMPARTIDO de todas las piruetas
   rollDir: 1,      // hacia que lado rola
+  // PIRUETAS de combate (data/moves.js). mv = id activo o null; las ejecuta systems/moves.js.
+  mv: null,        // 'splits' | 'breakt' | 'hiyo' | 'loyo' | 'jink' | 'sturn' | 'mask' | 'popup'
+  mvT: 0,          // tiempo transcurrido de la maniobra
+  mvDir: 1,        // sentido elegido (donde aplica)
+  mvY0: 0,         // altura al entrar (los yo-yos vuelven a ella)
+  mvRoll: 0,       // rotacion EXTRA del sprite en pantalla (split-s invierte, break turn exagera)
+  mvSteep: 0,      // pose empinada: 1 trepada fuerte / -1 picada fuerte / 0 normal (usa sheet2)
+  mvSeed: 0,       // semilla del jink (sus quiebres son aleatorios pero estables por ejecucion)
   pitchHold: 0,    // segundos manteniendo ↑/↓: filtra los toques rapidos de gas
 
   // --- spawn ---
@@ -86,6 +94,7 @@ export function resetRun() {
     windT: 0, windF: 1,
     fireT: 0, msl: MSL_MAX, mslCd: 0, mslRegen: 0,
     rollT: 0, rollCd: 0,
+    mv: null, mvT: 0, mvY0: 0, mvRoll: 0, mvSteep: 0, mvSeed: 0,
     nextSpawn: 320, nextSoldier: 60, nextBomb: 260,
     shake: 0, bloodSplat: 0,
   });

@@ -32,6 +32,11 @@
     const FW = 84, FH = 84;                       // tamaño de cada frame
     const ANGLES = [-60, -45, -30, -15, 0, 15, 30, 45, 60];   // alabeo por columna (indice 4 = nivelado)
     const PITCHES = [14, 0, -14];                 // cabeceo por FILA: trepando / nivelado / picando
+    // HOJA 2 (sheet2.png): cabeceos EMPINADOS para las PIRUETAS (pop-up, split-s, yo-yos). El
+    // ±14 de la hoja base es el cabeceo de crucero; una trepada de combate necesita VERSE
+    // brusca. Va en hoja aparte: el build web la descarta (limite de 16 MB) y el render cae a
+    // las filas normales — la pirueta se sigue jugando igual, solo pierde pose.
+    const STEEP = [32, -32];
 
     // paleta compartida con el juego (atardecer)
     const CANOPY = '#8fd0e0', ACCENT = '#e8a33d', EXHAUST = '#2b2f28';
@@ -329,7 +334,18 @@
             x2.drawImage(R.domElement, i * FW, row * FH);
           });
         });
-        result[key] = sheet.toDataURL('image/png');
+        const sheet2 = document.createElement('canvas');
+        sheet2.width = FW * ANGLES.length; sheet2.height = FH * STEEP.length;
+        const x22 = sheet2.getContext('2d');
+        STEEP.forEach((pa, row) => {
+          model.rotation.x = pa * Math.PI / 180;
+          ANGLES.forEach((a, i) => {
+            model.rotation.z = a * Math.PI / 180;
+            R.render(sc, cam);
+            x22.drawImage(R.domElement, i * FW, row * FH);
+          });
+        });
+        result[key] = { sheet: sheet.toDataURL('image/png'), sheet2: sheet2.toDataURL('image/png') };
         if (outEl) {   // vista previa (modo browser)
           const h = document.createElement('h2'); h.textContent = key + ' — ' + ANGLES.length + 'x' + PITCHES.length + ' frames de ' + FW + 'x' + FH + ' (filas: trepa/nivel/pica)';
           const big = document.createElement('canvas'); big.className = 'sheet';
@@ -337,6 +353,8 @@
           const bx = big.getContext('2d'); bx.imageSmoothingEnabled = false;
           bx.drawImage(sheet, 0, 0, big.width, big.height);
           outEl.appendChild(h); outEl.appendChild(big);
+          const img2 = new Image(); img2.className = 'sheet'; img2.style.width = (sheet.width * 4) + 'px';
+          img2.src = result[key].sheet2; outEl.appendChild(img2);
         }
       }
       return result;

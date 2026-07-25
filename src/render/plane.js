@@ -186,6 +186,11 @@ export function drawPlane(selPlane, viewMouse) {
     const pr = 1 - run.rollT / ROLL_DUR;                   // 0→1 durante el tonel
     ctx.rotate(run.rollDir * pr * Math.PI * 2);
     ctx.scale(0.94 + 0.06 * Math.cos(pr * Math.PI * 2), 1);   // leve pulso: vende el giro
+  } else if (run.mvRoll) {
+    // MANIOBRA con rotacion propia: el medio tonel del split-s (queda invertido y pica asi)
+    // o el sobre-banqueo del break turn. Encima, el frame de alabeo/cabeceo sigue normal.
+    ctx.rotate(run.mvRoll);
+    ctx.rotate(wob);
   } else if (useSheet) {
     // con frames de alabeo Y cabeceo REALES no hay rotacion ni squash fingidos: solo micro-wobble
     ctx.rotate(wob);
@@ -212,14 +217,19 @@ export function drawPlane(selPlane, viewMouse) {
     const col = rolling ? (SHEET_NF - 1) / 2 : Math.round((1 - bank) / 2 * (SHEET_NF - 1));
     // FILA por cabeceo. pitch>0 = trepa (morro arriba) → fila 0; nivel → 1; picada → 2
     const pc = Math.max(-1, Math.min(1, plane.pitch));
-    const row = pc > 0.33 ? 0 : pc < -0.33 ? 2 : 1;
+    let row = pc > 0.33 ? 0 : pc < -0.33 ? 2 : 1;
+    // POSE EMPINADA de pirueta (run.mvSteep): usa la HOJA 2 (±32° de cabeceo) si cargo; sin
+    // ella (build web) cae a la fila normal de trepada/picada — la maniobra se juega igual.
+    let img = pl.sheetImg;
+    if (run.mvSteep && pl.sheet2Ok) { img = pl.sheet2Img; row = run.mvSteep > 0 ? 0 : 1; }
+    else if (run.mvSteep) row = run.mvSteep > 0 ? 0 : 2;
     const sx4 = col * SHEET_FW, sy4 = row * SHEET_FH;
     // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas
     if (rolling) for (let gi = 2; gi >= 1; gi--) {
       ctx.save();
       ctx.rotate(-run.rollDir * gi * 0.55);
       ctx.globalAlpha = 0.14;
-      ctx.drawImage(pl.sheetImg, sx4, sy4, SHEET_FW, SHEET_FH, -spW / 2, -spH / 2, spW, spH);
+      ctx.drawImage(img, sx4, sy4, SHEET_FW, SHEET_FH, -spW / 2, -spH / 2, spW, spH);
       ctx.restore();
     }
     // POSTQUEMADOR pegado a la TOBERA. Antes salia de spH/2 (el borde del frame) y al pasar el
@@ -229,7 +239,7 @@ export function drawPlane(selPlane, viewMouse) {
     // La LLAMA del turbo va ENCIMA: sale de la tobera, que apunta a la camara.
     if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
     gear(run.gear);   // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma
-    ctx.drawImage(pl.sheetImg, sx4, sy4, SHEET_FW, SHEET_FH, -spW / 2, -spH / 2, spW, spH);
+    ctx.drawImage(img, sx4, sy4, SHEET_FW, SHEET_FH, -spW / 2, -spH / 2, spW, spH);
     if (run.boost) flame(0, bodyH2 - 6);
   } else if (pl.ready) {
     const PW = 54, PH = Math.round(PW * pl.h / pl.w);

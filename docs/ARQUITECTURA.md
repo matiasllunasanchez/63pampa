@@ -103,6 +103,7 @@ La lógica que hace avanzar el juego. Cada uno muta stores y devuelve señales; 
 | `spawn.js` | siembra obstáculos y soldados por distancia | — |
 | `collision.js` | resuelve impactos y reparte puntaje | `{death}` |
 | `momentum.js` | el clímax en primera persona (bullet-time, zonas, re-ataque) | `'objective'`·`{death}` |
+| `moves.js` | las PIRUETAS de combate: mientras `run.mv` está activo es el dueño del avión (vx/vy/bank/pitch); el catálogo vive en `data/moves.js` y los combos los detecta `core/input.js` |  |
 | `three-world.js` | el fondo 3D (three.js) del momentum |  |
 | `audio.js` | *(fundacional, ver arriba)* |  |
 
@@ -153,6 +154,7 @@ Lo que queda es genuinamente el pegamento:
 | el mar / los obstáculos en pantalla | `render/world.js` |
 | el sprite del avión | `render/plane.js` |
 | el arte de un enemigo / prop horneado | `tools/bake_enemies.html` (modelo) → `npx electron tools/bake_enemies_run.js` → re-medir cajas en `render/enemies.js` |
+| una pirueta (combo, duración, qué deja controlar) | `data/moves.js` (catálogo) + `systems/moves.js` (cinemática) |
 | el arte de un avión jugable | `tools/bake_planes.html` → `npx electron tools/bake_planes_run.js` |
 | sonido | `systems/audio.js` + `data/sfx.js` |
 

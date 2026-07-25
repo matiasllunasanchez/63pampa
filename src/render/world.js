@@ -15,6 +15,7 @@ import { P, LAND, CLAND } from '../data/palette.js';
 import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
+import { mvTight } from '../data/moves.js';
 import * as boomArt from './boom.js';
 import * as blastArt from './blast.js';
 import * as enemyArt from './enemies.js';
@@ -1277,14 +1278,14 @@ export function drawHitboxes() {
   }
   // SOLDADOS: la caja llena es el CUERPO; el contorno tenue es el alcance real del atropello
   // (cuerpo + semi-envergadura del avion), que es lo que de verdad decide el impacto.
-  const swp = planeBox(run.rollT > 0).pw;
+  const swp = planeBox(run.rollT > 0 || mvTight(run.mv)).pw;
   for (const sd of soldiers) {
     if (sd.dead || sd.z <= 1 || sd.z > 60) continue;
     hbBox(sd.x, SOLDIER.top / 2, sd.z, SOLDIER.hw + swp, SOLDIER.top / 2, HB, 0.08);
     hbBox(sd.x, SOLDIER.top / 2, sd.z, SOLDIER.hw, SOLDIER.top / 2, HB, 0.3);
   }
   // PERFIL DEL AVION: la otra mitad de cada choque. Sin esto el overlay solo cuenta la mitad.
-  const { pw, ph } = planeBox(run.rollT > 0);
+  const { pw, ph } = planeBox(run.rollT > 0 || mvTight(run.mv));
   hbBox(plane.x, plane.y, PZ, pw, ph, HB_PLANE, 0.3);
 }
 

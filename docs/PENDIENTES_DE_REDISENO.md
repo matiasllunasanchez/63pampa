@@ -1,8 +1,8 @@
 # PENDIENTES DE REDISEÑO — inventario de unidades y objetos
 
-_Relevamiento del 25 de julio de 2026. Última actualización: 25 de julio de 2026 (segunda tanda:
-props horneados — nido AA, carpa, depósito, puesto, casco de fragata —, bandada rehecha con aleteo
-de tres poses, y derribo con inercia: los restos siguen de largo y rebotan)._
+_Relevamiento del 25 de julio de 2026. Última actualización: 25 de julio de 2026 (cuarta tanda:
+**piruetas de combate** por combos de dos toques y la **hoja 2** de cabeceos empinados ±32° para
+sus poses, horneada para los 6 aviones)._
 
 Lista completa de **todo lo que el juego dibuja** (unidades, objetos, FX, UI y escenario) con el
 estado de su arte, para saber qué sprites hay que hacer y con qué spec.
@@ -43,17 +43,36 @@ ala. Todo lo que se dibuje pegado al avión (llama de turbina, fogonazos) se mid
 contra 84. Las hornea `tools/bake_planes.html` desde modelos low-poly; el arte manual tiene que
 respetar el mismo layout.
 
-| # | Avión | preview | sheet | cockpit |
-|---|---|---|---|---|
-| 1 | **A-4 SKYHAWK** — equilibrado, el de la campaña | ✅ | ✅ | ✅ |
-| 2 | **IAI DAGGER** — rápido y con más fuego | ✅ | ✅ | ❌ |
-| 3 | **SUPER ÉTENDARD** — misiones especiales, Exocet | ✅ | ✅ | ❌ |
-| 4 | **A-4Q** — variante naval | ✅ | ✅ | ❌ |
-| 5 | **PAMPA 63** — entrenador biplaza IA-63 | ✅ | ✅ | ❌ |
-| 6 | **MIRAGE IIIEA** — interceptor de altura | ✅ | ✅ | ❌ |
-| 7 | **IA-58 PUCARÁ** — turbohélice bimotor, apoyo terrestre (ROADMAP #10.1) | ⬜ | ⬜ | ⬜ |
-| 8 | **AERMACCHI MB-339** — jet liviano de ataque (ROADMAP #10.2) | ⬜ | ⬜ | ⬜ |
-| 9 | **MIRAGE 5 peruano** — refuerzo desbloqueable a mitad de campaña (ROADMAP #20) | ⬜ | ⬜ | ⬜ |
+**Spec de la HOJA 2** (`sheet2.png`, nueva): mismo frame de `84 × 84`, **9 columnas (alabeo) × 2
+filas** — fila 0 **trepada fuerte (+32°)**, fila 1 **picada fuerte (−32°)**. Es el cabeceo de
+COMBATE: el ±14° de la hoja base es cabeceo de crucero y una trepada de pirueta necesita verse
+brusca. La usa el render solo durante las maniobras (`run.mvSteep`).
+
+| # | Avión | preview | sheet | sheet2 | cockpit |
+|---|---|---|---|---|---|
+| 1 | **A-4 SKYHAWK** — equilibrado, el de la campaña | ✅ | ✅ | ✅ | ✅ |
+| 2 | **IAI DAGGER** — rápido y con más fuego | ✅ | ✅ | ✅ | ❌ |
+| 3 | **SUPER ÉTENDARD** — misiones especiales, Exocet | ✅ | ✅ | ✅ | ❌ |
+| 4 | **A-4Q** — variante naval | ✅ | ✅ | ✅ | ❌ |
+| 5 | **PAMPA 63** — entrenador biplaza IA-63 | ✅ | ✅ | ✅ | ❌ |
+| 6 | **MIRAGE IIIEA** — interceptor de altura | ✅ | ✅ | ✅ | ❌ |
+| 7 | **IA-58 PUCARÁ** — turbohélice bimotor, apoyo terrestre (ROADMAP #10.1) | ⬜ | ⬜ | ⬜ | ⬜ |
+| 8 | **AERMACCHI MB-339** — jet liviano de ataque (ROADMAP #10.2) | ⬜ | ⬜ | ⬜ | ⬜ |
+| 9 | **MIRAGE 5 peruano** — refuerzo desbloqueable a mitad de campaña (ROADMAP #20) | ⬜ | ⬜ | ⬜ | ⬜ |
+
+> ⚠️ La hoja 2 es **opcional con fallback real**: `tools/build_web.py` la **descarta** en el bundle
+> web (vacía la ruta para que no se pida un archivo inexistente) porque el artifact tiene tope de
+> 16 MB. Sin ella el render cae a las filas normales de trepada/picada de la hoja base y **la
+> pirueta se juega igual** — solo pierde la pose empinada. Si se hace arte a mano, mismo criterio:
+> la hoja 2 puede faltar.
+
+### Hoja 2 — cabeceos empinados de las PIRUETAS (`sheet2.png`)
+
+Cada avión lleva además una **hoja 2**: `9 columnas de alabeo × 2 filas` (trepada fuerte +32° /
+picada fuerte −32°), mismos frames de 84×84, horneada por el mismo `bake_planes.html`. La usan
+las **piruetas de combate** (pop-up, split-s, yo-yos — ver `data/moves.js`): el ±14° de la hoja
+base es cabeceo de crucero y una maniobra brusca necesita VERSE brusca. Es opcional con fallback
+real: el build web la descarta (límite de 16 MB) y el render cae a las filas normales.
 
 ### Lo que va PEGADO al sprite y se dibuja por código
 
@@ -64,6 +83,7 @@ la hoja de vuelo:
 | pieza | estado |
 |---|---|
 | **Tren de aterrizaje** — dos patas principales bajo la raíz del ala + rueda de proa; se recoge derecho para arriba y desaparece detrás del ala (`gear()`) | 🔵 hecho |
+| **Piruetas de combate** — 9 maniobras por combo de dos toques (barrel roll, split-s, break turn, high/low yo-yo, jink, s-turn, terrain masking, pop-up); el split-s invierte el sprite (rotación en pantalla) y las poses empinadas salen de la hoja 2 | 🔵 hecho (`data/moves.js` + `systems/moves.js`) |
 | **Fogonazos del cañón — DOS bocas alternadas** en la raíz del ala, convergentes; la posición gira con el alabeo y la inclinación entra recién pasada la mitad del giro (`muzzles()` / `muzzle()`) | 🔵 hecho |
 | **Llama de la turbina** — filas que se afinan y enfrían hacia la punta, con diamante de choque (`flame()`) | 🔵 hecho |
 | **Sombra sobre el agua**, rociada bajo el fuselaje, estela | 🔵 hecho |
@@ -71,6 +91,32 @@ la hoja de vuelo:
 
 > ⚠️ Las medidas verticales del tren salen de **medir las hojas horneadas** (frame de 84 px, el ala
 > apoya en y=47..49, la panza termina en y=52). **Si se rehornean los aviones, hay que re-medir.**
+
+### Piruetas de combate — qué pose usa cada una
+
+Catálogo en `data/moves.js`, ejecución en `systems/moves.js`, combos en `core/input.js` + `game.js`.
+Se lanzan con **dos toques direccionales en menos de 0.24 s** (teclado, cruceta o flicks del stick)
+y se pueden apagar desde el menú [M] → **PIRUETAS: SÍ / NO**. El **tonel** clásico (←← / →→) queda
+siempre: es la mecánica original, no una pirueta nueva.
+
+| combo | maniobra | de dónde sale la pose |
+|---|---|---|
+| ←← →← | **BARREL ROLL** (tonel) | rotación completa del sprite + 2 fantasmas translúcidos (camino legado) |
+| ↓↓ alto | **SPLIT-S** | medio tonel **rotando el sprite** 180° (`run.mvRoll`) + fila de picada de la **hoja 2** |
+| ↓↓ bajo | **TERRAIN MASKING** | alabeo/cabeceo normales de la hoja base |
+| ↑↑ bajo | **POP-UP** | fila de trepada de la **hoja 2** |
+| ↑↑ alto · ↑↓ | **HIGH YO-YO** | hoja 2: trepada al subir → picada al recaer |
+| ↓↑ | **LOW YO-YO** | hoja 2: picada al bajar → trepada al remontar |
+| ↓← ↓→ | **BREAK TURN** | columna de alabeo a fondo + sobre-rotación del sprite (`run.mvRoll`) |
+| ←→ →← | **S-TURN** | columnas de alabeo de la hoja base |
+| ↑← ↑→ | **JINK** | columnas de alabeo, alternando a los quiebres |
+
+**Lo que hoy está fingido y podría ser arte** (nada urgente, el gesto se lee):
+
+- **Pose INVERTIDA de verdad** (panza a cámara) para el medio tonel del Split-S: hoy se rota el
+  frame normal 180°, así que se ve el mismo avión al revés y no la panza.
+- **Alabeo más allá de 60°** para el Break Turn: la columna extrema de la hoja llega a 60° y el
+  resto se completa rotando el sprite.
 
 ### Cockpit (vista de cabina del MOMENTUM)
 
@@ -334,9 +380,12 @@ Lo que queda, de mayor a menor impacto visible:
 4. **Muzzle flash** del cockpit.
 5. Props que siguen por código: `trench`, `tower`; **misil enemigo**, **bomba** y **bidón**.
 6. **Cockpit por avión** (hoy uno genérico para los 6).
-7. Aviones nuevos: **Pucará** y **MB-339**.
+7. **Pose invertida** para el Split-S y alabeo más allá de 60° para el Break Turn (§1) — mejora
+   fina de las piruetas, no bloquea nada.
+8. Aviones nuevos: **Pucará** y **MB-339**.
 
 **Ya resueltos** (no reabrir): helicóptero, caza, globo, radar móvil, camión AA, barcaza de
 desembarco, nido AA, carpa, depósito, puesto y casco de fragata (hojas horneadas, §2–§5); bandada
 rehecha por código (§2); hongo de bomba y bola de fuego frontal (§9); trazadoras, fogonazos de dos
-bocas, tren de aterrizaje y derribo con inercia (§1 y §9).
+bocas, tren de aterrizaje y derribo con inercia (§1 y §9); **hoja 2 de cabeceos empinados** para
+las piruetas, horneada para los 6 aviones (§1).

@@ -16,10 +16,11 @@ app.whenReady().then(async () => {
   try {
     const sheets = await win.webContents.executeJavaScript('__bake()');
     for (const key in sheets) {
-      const b64 = sheets[key].split('base64,')[1];
-      const out = path.join(ROOT, 'assets', 'planes', SLUG[key], 'sheet.png');
-      fs.writeFileSync(out, Buffer.from(b64, 'base64'));
-      console.log(`OK ${SLUG[key]}/sheet.png (${(b64.length * 3 / 4 / 1024).toFixed(1)} KB)`);
+      for (const [name, data] of [['sheet.png', sheets[key].sheet], ['sheet2.png', sheets[key].sheet2]]) {
+        const b64 = data.split('base64,')[1];
+        fs.writeFileSync(path.join(ROOT, 'assets', 'planes', SLUG[key], name), Buffer.from(b64, 'base64'));
+        console.log(`OK ${SLUG[key]}/${name} (${(b64.length * 3 / 4 / 1024).toFixed(1)} KB)`);
+      }
     }
     console.log('Horneado completo.');
   } catch (e) {

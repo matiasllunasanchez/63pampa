@@ -18,6 +18,7 @@ import { P } from '../data/palette.js';
 import { PZ } from '../render/ctx.js';
 import { AA_Z0, AA_Z1, AA_CD, shoreAt, SAND_W, SPAWN_X } from '../data/tuning.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER, isSoftStruct } from '../core/hitbox.js';
+import { mvTight } from '../data/moves.js';
 
 /** Golpe NO letal (nube de explosion, bandada): sacude, frena y quema combustible — castiga sin
  *  derribar. El daño real del juego sigue siendo binario (chocar = morir); esto es friccion. */
@@ -41,7 +42,7 @@ export function collisionSystem(dt) {
     sd.z -= run.spd * dt;
     sd.x += sd.dir * (sd.v || 6) * dt;                        // corren en diagonal (costa: mas rapido)
     if (sd.z <= PZ + SOLDIER.zFront && sd.z > PZ - SOLDIER.zBack
-      && Math.abs(plane.x - sd.x) < SOLDIER.hw + planeBox(run.rollT > 0).pw && plane.y < SOLDIER.top) {
+      && Math.abs(plane.x - sd.x) < SOLDIER.hw + planeBox(run.rollT > 0 || mvTight(run.mv)).pw && plane.y < SOLDIER.top) {
       sd.dead = true;                                        // pase rasante: cabeza / impacto de aire
       sfxOne('body');                                        // impacto de cuerpo (una variante al azar)
       const pts = Math.round(120 * run.multShow);                // escala con el multiplicador (a ras = brutal)
@@ -144,7 +145,7 @@ export function collisionSystem(dt) {
       // (cfg.hitboxes). Si estuvieran duplicadas, el overlay podria mostrar una caja y el juego
       // usar otra.
       const { hw, hh, oy } = hitbox(o);
-      const { pw, ph: ph2 } = planeBox(run.rollT > 0);
+      const { pw, ph: ph2 } = planeBox(run.rollT > 0 || mvTight(run.mv));
       const dx = Math.abs(plane.x - o.x) - (hw + pw);
       const dy = Math.abs(plane.y - oy) - (hh + ph2);
       const reach = hullReach(o, hw);
@@ -178,7 +179,7 @@ export function collisionSystem(dt) {
           : o.type === 'bldg' ? 'death_bldg' : o.type === 'lcu' ? 'death_lcu'
           : o.type === 'helo' ? 'death_helo' : o.type === 'jet' ? 'death_jet' : 'death_balloon' };
       } else if (dx < 3 && dy < 3) {
-        const pir = run.rollT > 0;                       // rozar EN PIRUETA: bonus grande (estilo)
+        const pir = run.rollT > 0 || mvTight(run.mv);    // rozar EN PIRUETA: bonus grande (estilo)
         const pts = pir ? 250 : 75;
         run.score += pts; stats.grazes++; run.shake = Math.min(6, run.shake + 1.5);
         sfxOne('graze');                                 // roza1/roza2: el premio sonoro del roce
@@ -248,7 +249,7 @@ export function collisionSystem(dt) {
     m.y += Math.max(-14, Math.min(14, (plane.y - m.y) * 2.0 * trk)) * dt;
     if (!m.done && m.z <= PZ + 1.2) {
       m.done = true;
-      if (Math.abs(plane.x - m.x) < (run.rollT > 0 ? 1.6 : 3) && Math.abs(plane.y - m.y) < (run.rollT > 0 ? 1.2 : 2.2)) return { death: m.tracer ? 'death_gunfire' : 'death_missile' };
+      if (Math.abs(plane.x - m.x) < (run.rollT > 0 || mvTight(run.mv) ? 1.6 : 3) && Math.abs(plane.y - m.y) < (run.rollT > 0 || mvTight(run.mv) ? 1.2 : 2.2)) return { death: m.tracer ? 'death_gunfire' : 'death_missile' };
       run.score += 75; stats.dodges++; const s = proj(m.x, m.y, PZ); popup(s.x, s.y - 8, T('dodgeMissile'), P.foam); boom(0.06, true);
     }
     if (Math.random() < 0.6) {

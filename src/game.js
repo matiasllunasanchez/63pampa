@@ -34,6 +34,8 @@ import * as momRender from './render/momentum.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
 import { MSL_MAX, ROLL_DUR, GEAR_T } from './data/tuning.js';
+import { MV_HI, MV_LO } from './data/moves.js';
+import * as moves from './systems/moves.js';
 import { RUNWAYS } from './data/runways.js';
 
   (() => {
@@ -226,6 +228,8 @@ import { RUNWAYS } from './data/runways.js';
       // ENEMIGOS: movimiento propio (globos al viento, helos patrullando, cazas que te buscan,
       // vehiculos rodando, fragatas navegando). QUIETOS = como antes de existir la opcion.
       { label: 'ENEMIGOS', opts: [true, false], names: ['MOVILES', 'QUIETOS'], get: () => cfg.enemyMove, set: v => cfg.enemyMove = v },
+      // PIRUETAS: los combos de dos toques (split-s, break turn...). El tonel queda siempre.
+      { label: 'PIRUETAS', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.moves, set: v => cfg.moves = v },
       { label: 'COMBUSTIBLE', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.fuelOn, set: v => cfg.fuelOn = v },
       { label: 'ENERGIA', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.energy, set: v => cfg.energy = v },   // altura<->velocidad: para comparar A/B la sensacion
       { label: 'COSTA', opts: [120, 230, 400], names: ['CORTA', 'NORMAL', 'LARGA'], get: () => cfg.coast, set: v => cfg.coast = v },
@@ -392,6 +396,26 @@ import { RUNWAYS } from './data/runways.js';
       cfgClose: () => { cfgOpen = false; },
       planeNav: dir => { selPlane = (selPlane + dir + PLANES.length) % PLANES.length; beep(dir < 0 ? 520 : 600, 0.05, 'square', 0.04); },
       roll: dir => startRoll(dir),
+      // COMBO de dos toques (ver dirTap en core/input.js). El PAR llega crudo ('ll', 'du'...):
+      // aca se resuelve QUE maniobra es — los verticales comparten par y se separan por ALTURA
+      // (↓↓ arriba = hay cielo para el Split-S; abajo = Terrain Masking. ↑↑ al reves).
+      combo: pair => {
+        if (S.state !== 'play') return;
+        switch (pair) {
+          case 'll': return startRoll(-1);                 // el tonel clasico (camino legado)
+          case 'rr': return startRoll(1);
+          case 'dd': return moves.startMove(plane.y > MV_HI ? 'splits' : 'mask', 1);
+          case 'uu': return moves.startMove(plane.y < MV_LO ? 'popup' : 'hiyo', 1);
+          case 'ud': return moves.startMove('hiyo', 1);
+          case 'du': return moves.startMove('loyo', 1);
+          case 'dl': return moves.startMove('breakt', -1);
+          case 'dr': return moves.startMove('breakt', 1);
+          case 'lr': return moves.startMove('sturn', 1);   // arranca hacia el 2º toque
+          case 'rl': return moves.startMove('sturn', -1);
+          case 'ul': return moves.startMove('jink', -1);
+          case 'ur': return moves.startMove('jink', 1);
+        }
+      },
       launchMissile: () => tryLaunchMissile(),
       cycleCamera: () => {
         camMode = (camMode + 1) % CAM_ZOOMS.length;
@@ -494,7 +518,7 @@ import { RUNWAYS } from './data/runways.js';
 
     // PIRUETA (tonel / aileron roll): esquive cinematico con doble-tap ←/→
     function startRoll(dir) {
-      if (S.state !== 'play' || run.rollT > 0 || run.rollCd > 0) return;
+      if (S.state !== 'play' || run.rollT > 0 || run.rollCd > 0 || run.mv) return;
       run.rollT = ROLL_DUR; run.rollDir = dir; run.rollCd = 1.15;
       sfxOne('waveFly');                        // rafaga de aire de la pirueta
       // ROCE del aire al girar, A VECES. Siempre seria una firma sonora fija y el tonel pasaria a

@@ -79,6 +79,11 @@ def main():
                           uri(ASSETS / 'planes' / d / f'preview.{ext}', 'image/' + ext)); n += ok
         js, ok = sub_path(js, f'../assets/planes/{d}/sheet.png',
                           uri(ASSETS / 'planes' / d / 'sheet.png', 'image/png')); n += ok
+    # HOJA 2 (cabeceos empinados de las piruetas): NO entra en la web — son ~120 KB entre las 6 y
+    # el render cae solo a las filas normales de la hoja base (ver data/planes.js). Se VACIA la
+    # ruta para que `new Image()` no pida un archivo inexistente.
+    for key, d in PLANE_DIRS.items():
+        js, _ = sub_path(js, f'../assets/planes/{d}/sheet2.png', '')
     # cabina (momentum en primera persona): hoy solo la del A-4
     js, ok = sub_path(js, '../assets/planes/a4-skyhawk/cockpit.png',
                       uri(ASSETS / 'planes' / 'a4-skyhawk' / 'cockpit.png', 'image/png')); n += ok

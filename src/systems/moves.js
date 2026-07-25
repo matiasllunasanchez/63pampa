@@ -1,0 +1,154 @@
+// PIRUETAS: la ejecucion de las maniobras de combate (catalogo en data/moves.js).
+//
+// Mientras run.mv esta activo, ESTE modulo es el dueño del avion: escribe vx/vy/x/y, el alabeo
+// y el cabeceo, y flight.js saltea su propio bloque de control. El jugador solo conserva el eje
+// que la maniobra deja libre (`steer`), a media autoridad — esta comprometido en la maniobra,
+// no paseando.
+//
+// El TONEL (barrel roll) NO pasa por aca: conserva su camino legado (run.rollT en flight.js).
+// Comparten el cooldown (run.rollCd), asi que no se encadenan tonel y pirueta sin pagar.
+
+import { plane, cfg } from '../core/state.js';
+import { run } from '../core/run.js';
+import { parts } from '../core/world.js';
+import { proj, popup } from '../core/fx.js';
+import { sfxOne, beep } from './audio.js';
+import { P } from '../data/palette.js';
+import { PZ, W, H } from '../render/ctx.js';
+import { FLY_X, FLY_TOP } from '../data/tuning.js';
+import { MOVES } from '../data/moves.js';
+
+const MV_CD = 1.15;          // cooldown compartido con el tonel (mismo valor que startRoll)
+const STEER_F = 0.55;        // autoridad del eje libre durante la maniobra (media palanca)
+
+/** Lanza la maniobra `id` (si se puede). Devuelve true si arranco. */
+export function startMove(id, dir) {
+  if (!cfg.moves || run.mv || run.rollT > 0 || run.rollCd > 0) return false;
+  const M = MOVES[id]; if (!M) return false;
+  run.mv = id; run.mvT = 0; run.mvDir = dir || 1; run.mvY0 = plane.y;
+  run.mvRoll = 0; run.mvSteep = 0; run.mvSeed = (Math.random() * 9999) | 0;
+  // feedback de entrada: nombre de la maniobra sobre el velocimetro + rafaga de aire
+  popup(W / 2, H - 30, M.name, P.accent);
+  sfxOne('waveFly');
+  beep(430, 0.14, 'triangle', 0.05, 820);
+  return true;
+}
+
+/** ¿Puede disparar / usar turbo ahora? (lo consultan flight.js y el HUD) */
+export const mvAllowsFire = () => !run.mv || MOVES[run.mv].fire;
+export const mvAllowsTurbo = () => !run.mv || MOVES[run.mv].turbo;
+
+// perfil suave 0→1→0 (campana) — la base de los empujes que entran y salen con peso
+const bell = p => Math.sin(Math.PI * Math.max(0, Math.min(1, p)));
+
+/** Un frame de la maniobra activa. flight.js lo llama ANTES de su bloque de control y, si hay
+ *  maniobra, saltea el suyo. Integra vx/vy pero NO la posicion: eso sigue en flight.js (asi los
+ *  topes de FLY_X/FLY_TOP y el roce funcionan igual que siempre). */
+export function movesSystem(dt, inp) {
+  if (!run.mv) return;
+  const M = MOVES[run.mv];
+  run.mvT += dt;
+  const p = run.mvT / M.dur;
+  const dir = run.mvDir;
+
+  // el eje libre: media palanca sobre lo que la maniobra impone
+  const sx = M.steer === 'x' ? (inp.r - inp.l) * 30 * STEER_F : 0;
+  const sy = M.steer === 'y' ? (inp.u - inp.d) * 14 * STEER_F : 0;
+
+  switch (run.mv) {
+    case 'splits': {
+      // 0-30%: medio tonel (queda invertido) · 30-85%: picada fuerte · final: endereza.
+      // La picada CONVIERTE altura en velocidad, como picar a mano pero mas brusco.
+      if (p < 0.3) { run.mvRoll = dir * (p / 0.3) * Math.PI; plane.vy *= 0.8; run.mvSteep = 0; }
+      else if (p < 0.85) {
+        run.mvRoll = dir * Math.PI; run.mvSteep = -1;
+        plane.vy = Math.max(-26, plane.vy - 130 * dt);
+        run.spd += 26 * dt;
+        if (plane.y < 3) { plane.vy = Math.max(plane.vy, 0); run.mvT = Math.max(run.mvT, M.dur * 0.85); }  // piso: endereza ya
+      } else { run.mvRoll = dir * (Math.PI + ((p - 0.85) / 0.15) * Math.PI); run.mvSteep = 0; plane.vy *= 0.6; }
+      plane.vx = sx; plane.bank = 0; plane.pitch = p < 0.85 && p > 0.3 ? -1 : 0;
+      break;
+    }
+    case 'breakt': {
+      // tiron lateral violento que decae; banqueo clavado a fondo y un extra de rotacion
+      plane.vx = dir * 58 * (1 - p * 0.55);
+      plane.vy = sy;
+      plane.bank = dir; plane.pitch = 0;
+      run.mvRoll = dir * 0.3 * bell(p);
+      run.spd = Math.max(40, run.spd - run.spd * 0.16 * dt);
+      break;
+    }
+    case 'hiyo': {
+      // sube y recae sobre la misma altura: campana de vy positiva→negativa. Sangra velocidad.
+      plane.vy = 21 * Math.cos(Math.PI * p);
+      plane.vx = sx; plane.bank = plane.vx / 40; plane.pitch = Math.cos(Math.PI * p);
+      run.mvSteep = p < 0.4 ? 1 : p > 0.6 ? -1 : 0;
+      run.spd = Math.max(40, run.spd - run.spd * 0.14 * dt);
+      break;
+    }
+    case 'loyo': {
+      // pica y remonta: la inversa del high yo-yo — GANA velocidad (energia por altura)
+      plane.vy = -19 * Math.cos(Math.PI * p);
+      if (plane.y < 2.2 && plane.vy < 0) plane.vy = 0;          // piso de seguridad
+      plane.vx = sx; plane.bank = plane.vx / 40; plane.pitch = -Math.cos(Math.PI * p);
+      run.mvSteep = p < 0.4 ? -1 : p > 0.6 ? 1 : 0;
+      run.spd += 34 * dt * bell(p);
+      break;
+    }
+    case 'jink': {
+      // 4 quiebres secos ALTERNADOS (si no alternan, el jink deriva para un lado y es un dash);
+      // lo aleatorio son el lado inicial (mvDir del combo) y la fuerza de cada quiebre (semilla)
+      const seg = Math.min(3, (p * 4) | 0);
+      const sgn = run.mvDir * (seg % 2 ? -1 : 1);
+      plane.vx = sgn * (38 + ((run.mvSeed + seg * 31) % 17));
+      plane.vy = Math.sin(run.mvT * 31 + run.mvSeed) * 4;
+      plane.bank = sgn; plane.pitch = 0;
+      break;
+    }
+    case 'sturn': {
+      // barrido en S: seno completo — se abre, cruza y VUELVE al carril
+      plane.vx = dir * 52 * Math.sin(2 * Math.PI * p);
+      plane.vy = sy;
+      plane.bank = Math.max(-1, Math.min(1, plane.vx / 34)); plane.pitch = 0;
+      break;
+    }
+    case 'mask': {
+      // clavado al terreno: baja rapido a la banda rasante y se QUEDA ahi. Congela el reloj
+      // del roce (es la maniobra "pro" de volar pegado) y DESCARGA el radar enemigo.
+      const tgt = cfg.terrain === 'sea' ? 2.4 : 1.7;
+      plane.vy = (tgt - plane.y) * 6;
+      plane.vx = sx * 1.6;                                       // lateral CASI pleno: esquivas a ras
+      plane.bank = plane.vx / 40; plane.pitch = plane.y > tgt + 2 ? -0.6 : 0;
+      run.scrapeT = 0;
+      run.detection = Math.max(0, run.detection - dt * 0.85);
+      break;
+    }
+    case 'popup': {
+      // trepada brusca de ataque: empuje grande que se agota — sale disparado y se asienta
+      plane.vy = 30 * (1 - p);
+      plane.vx = sx; plane.bank = plane.vx / 40; plane.pitch = 1;
+      run.mvSteep = p < 0.75 ? 1 : 0;
+      run.spd = Math.max(40, run.spd - run.spd * 0.10 * dt);
+      break;
+    }
+  }
+
+  // estelas de viento de la maniobra (las mismas del tonel): venden el tiron
+  if (Math.random() < 0.6) {
+    const sp = proj(plane.x + (Math.random() - 0.5) * 3, plane.y + (Math.random() - 0.5) * 2, PZ);
+    parts.push({
+      x: sp.x, y: sp.y, vx: -plane.vx * (1.2 + Math.random()), vy: (Math.random() - 0.5) * 24,
+      life: 0.3, c: P.crest, r: 1,
+    });
+  }
+
+  // topes del carril (los mismos de flight.js, por si el empuje lateral pega en el borde)
+  if (plane.x < -FLY_X) { plane.x = -FLY_X; if (plane.vx < 0) plane.vx = 0; }
+  if (plane.x > FLY_X) { plane.x = FLY_X; if (plane.vx > 0) plane.vx = 0; }
+  if (plane.y > FLY_TOP) { plane.y = FLY_TOP; if (plane.vy > 0) plane.vy = 0; }
+
+  if (run.mvT >= M.dur) {                       // fin: devuelve el avion y arranca el cooldown
+    run.mv = null; run.mvRoll = 0; run.mvSteep = 0; run.rollCd = MV_CD;
+    plane.pitch = Math.max(-1, Math.min(1, plane.pitch));
+  }
+}
