@@ -16,7 +16,7 @@ import { sfxOne, beep, boom } from '../systems/audio.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { PZ } from '../render/ctx.js';
-import { AA_Z0, AA_Z1, AA_CD, shoreAt, SAND_W } from '../data/tuning.js';
+import { AA_Z0, AA_Z1, AA_CD, shoreAt, SAND_W, SPAWN_X } from '../data/tuning.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER, isSoftStruct } from '../core/hitbox.js';
 
 /** Golpe NO letal (nube de explosion, bandada): sacude, frena y quema combustible — castiga sin
@@ -83,6 +83,25 @@ export function collisionSystem(dt) {
     }
     if (o.type === 'boom' || o.type === 'airboom') o.boomT += dt;   // el hongo / la bola crecen y se disipan
     if (o.type === 'birds') o.x += o.bvx * dt;              // la bandada deriva
+    // MOVIMIENTO PROPIO (cfg.enemyMove): la personalidad se sortea en spawn.js (sway / drive /
+    // home) y aca solo se APLICA — con la llave del menu apagada quedan plantados donde nacieron.
+    if (cfg.enemyMove) {
+      if (o.mvA) o.x = o.xa + Math.sin(run.t * o.mvW + o.ph) * o.mvA;   // oscila alrededor del ancla
+      if (o.home && o.z > PZ + 10) {
+        // el caza corrige el ANCLA hacia tu carril (tope o.home u/s). El tejido sinusoidal va
+        // encima: no es un misil que clava el rumbo, es un avion que se te cruza.
+        o.xa += Math.max(-o.home, Math.min(o.home, (plane.x - o.xa) * 0.9)) * dt;
+      }
+      if (o.vx) {
+        o.x += o.vx * dt;
+        // rebote en los bordes del carril: los vehiculos de la costa no se meten al agua, y la
+        // fragata (mast) y los de tierra rebotan en el limite de spawn
+        const right = (o.type === 'radar' || o.type === 'aatruck') && cfg.terrain === 'coast'
+          ? shoreAt(run.dist + o.z) - SAND_W - 2 : SPAWN_X;
+        if (o.x > right) { o.x = right; o.vx = -Math.abs(o.vx); }
+        else if (o.x < -SPAWN_X) { o.x = -SPAWN_X; o.vx = Math.abs(o.vx); }
+      }
+    }
     // BARCAZA navegando: entra de la derecha hacia la playa; al TOCAR la costa encalla y
     // desembarca su patrulla (que sale corriendo hacia la izquierda)
     if (o.type === 'lcu' && o.sailing) {

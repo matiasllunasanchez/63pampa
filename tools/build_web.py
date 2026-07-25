@@ -97,6 +97,14 @@ def main():
         for p in sorted(d.iterdir()):
             if p.is_file() and not p.name.startswith('.'):
                 js, _ = sub_path(js, f'../assets/photos/{sub}/{p.name}', '')
+    # HOJAS DE ENEMIGOS (assets/world/enemies/): SI entran — son ~20 KB entre todas (frames de
+    # 48-72 px) y sin ellas los enemigos caen al dibujo a mano. Se barre la carpeta: agregar un
+    # enemigo horneado nuevo no debe tocar este script.
+    d = ASSETS / 'world' / 'enemies'
+    if d.is_dir():
+        for p in sorted(d.iterdir()):
+            if p.suffix == '.png':
+                js, ok = sub_path(js, f'../assets/world/enemies/{p.name}', uri(p, 'image/png')); n += ok
     # HOJAS DE SOLDADOS (~450 KB): NO entran en el build web — estamos a menos de 200 KB del tope
     # de 16 MB. En Electron/Steam si van; aca los soldados caen al dibujo a mano (render/world.js),
     # que es justamente para lo que existe el fallback de render/soldiers.js.

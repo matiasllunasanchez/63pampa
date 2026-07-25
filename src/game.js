@@ -223,6 +223,9 @@ import { RUNWAYS } from './data/runways.js';
       { label: 'VIENTO', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.wind, set: v => cfg.wind = v },
       { label: 'OBSTACULOS', opts: [0, 0.5, 1, 1.7], names: ['NINGUNO', 'POCOS', 'NORMAL', 'MUCHOS'], get: () => cfg.obstacles, set: v => cfg.obstacles = v },
       { label: 'BOMBARDEO', opts: [0, 0.5, 1, 2], names: ['NO', 'POCO', 'NORMAL', 'INTENSO'], get: () => cfg.bombs, set: v => cfg.bombs = v },
+      // ENEMIGOS: movimiento propio (globos al viento, helos patrullando, cazas que te buscan,
+      // vehiculos rodando, fragatas navegando). QUIETOS = como antes de existir la opcion.
+      { label: 'ENEMIGOS', opts: [true, false], names: ['MOVILES', 'QUIETOS'], get: () => cfg.enemyMove, set: v => cfg.enemyMove = v },
       { label: 'COMBUSTIBLE', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.fuelOn, set: v => cfg.fuelOn = v },
       { label: 'ENERGIA', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.energy, set: v => cfg.energy = v },   // altura<->velocidad: para comparar A/B la sensacion
       { label: 'COSTA', opts: [120, 230, 400], names: ['CORTA', 'NORMAL', 'LARGA'], get: () => cfg.coast, set: v => cfg.coast = v },

@@ -17,6 +17,7 @@ import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
 import * as boomArt from './boom.js';
 import * as blastArt from './blast.js';
+import * as enemyArt from './enemies.js';
 import * as momentum from '../systems/momentum.js';
 import * as momRender from './momentum.js';
 
@@ -476,12 +477,18 @@ export function drawObstacle(o) {
     px(base.x - 0.45 * k, base.y - o.h * k, Math.max(1, 0.9 * k), Math.max(1, 0.7 * k), P.warn);
   } else if (o.type === 'balloon') {
     const oy = o.y + Math.sin(run.t * 1.3 + o.ph) * 0.6;
-    const s = proj(o.x, oy, o.z), base = proj(o.x, 0, o.z);
+    // el cable queda ANCLADO en xa mientras el globo se pasea (cfg.enemyMove): el globo se
+    // INCLINA sobre su cable — el paseo se lee como viento, no como un globo que flota suelto
+    const s = proj(o.x, oy, o.z), base = proj(o.xa !== undefined ? o.xa : o.x, 0, o.z);
     ctx.strokeStyle = P.bodyDark; ctx.beginPath();
     ctx.moveTo(s.x, s.y + 1.6 * k); ctx.lineTo(base.x, base.y); ctx.stroke();
-    px(s.x - 2.6 * k, s.y - 1.6 * k, 5.2 * k, 3.2 * k, P.dim);
-    px(s.x - 2.6 * k, s.y - 1.6 * k, 5.2 * k, Math.max(1, 1.1 * k), P.body);
-    px(s.x + 1.8 * k, s.y - 0.4 * k, 1.8 * k, Math.max(1, 1.1 * k), P.bodyDark);
+    if (enemyArt.ready('balloon')) {
+      enemyArt.drawFrame(ctx, 'balloon', 0, 0, s.x, { centerY: s.y }, k, false);
+    } else {
+      px(s.x - 2.6 * k, s.y - 1.6 * k, 5.2 * k, 3.2 * k, P.dim);
+      px(s.x - 2.6 * k, s.y - 1.6 * k, 5.2 * k, Math.max(1, 1.1 * k), P.body);
+      px(s.x + 1.8 * k, s.y - 0.4 * k, 1.8 * k, Math.max(1, 1.1 * k), P.bodyDark);
+    }
   } else if (o.type === 'helo') {
     const oy = o.y + Math.sin(run.t * 2 + o.ph) * 0.8;
     const s = proj(o.x, oy, o.z);
@@ -490,6 +497,17 @@ export function drawObstacle(o) {
     // (cuerpo entero y cola extendida). No son dos dibujos: es UNO que se estira por escorzo.
     const yaw = clamp01((HELO_TURN_FAR - o.z) / (HELO_TURN_FAR - HELO_TURN_NEAR));
     const dir = o.ph > 3 ? 1 : -1;                     // hacia que lado se abre (fijo por bicho)
+    if (enemyArt.ready('helo')) {
+      // HOJA HORNEADA: columna por yaw (0 = de frente → 7 = de perfil), fila por fase del rotor
+      // (dos poses alternando = el rotor BATE). La hoja tiene la cola hacia la IZQUIERDA a yaw
+      // pleno, asi que se espeja cuando este helo abre hacia la derecha.
+      const col = Math.round(yaw * (enemyArt.SHEETS.helo.cols - 1));
+      const row = ((run.t * 16) | 0) % 2;
+      enemyArt.drawFrame(ctx, 'helo', col, row, s.x, { centerY: s.y }, kk, dir > 0);
+      hitFlash(s.x, s.y - 0.4 * kk, kk, o, 8, 3.4);
+      drawHpBar(s.x, s.y - 3.8 * kk, kk, o);
+      return;
+    }
     const bodyW = (2.6 + 3.4 * yaw) * kk;              // 2.6 de frente → 6.0 de costado
     const bodyH = 2 * kk;
     // cabina/cuerpo
@@ -518,6 +536,17 @@ export function drawObstacle(o) {
     const oy = o.y + Math.sin(run.t * 1.6 + o.ph) * 0.5;
     const s = proj(o.x, oy, o.z);
     const kk = k * approachZoom(o.z);   // arranca chiquito en el horizonte y se agranda encima
+    if (enemyArt.ready('jet')) {
+      // HOJA HORNEADA: 5 columnas de alabeo. Si el caza TEJE (cfg.enemyMove), el alabeo sale de
+      // su velocidad lateral real — banquea hacia donde va, como un avion. Quieto, respira con
+      // el seno de siempre.
+      const roll = o.mvA ? Math.cos(run.t * o.mvW + o.ph) : Math.sin(run.t * 1.1 + o.ph);
+      const col = Math.round((roll * 0.5 + 0.5) * (enemyArt.SHEETS.jet.cols - 1));
+      enemyArt.drawFrame(ctx, 'jet', col, 0, s.x, { centerY: s.y }, kk, false);
+      hitFlash(s.x, s.y - 0.6 * kk, kk, o, 10, 4.2);
+      drawHpBar(s.x, s.y - 4.4 * kk, kk, o);
+      return;
+    }
     const bank = Math.sin(run.t * 1.1 + o.ph) * 0.7;          // metros de alabeo en las puntas
     px(s.x - 5 * kk, s.y - bank * kk - 0.45 * kk, 5 * kk, 0.9 * kk, P.body);   // ala izquierda
     px(s.x, s.y + bank * kk - 0.45 * kk, 5 * kk, 0.9 * kk, P.body);   // ala derecha
@@ -670,6 +699,13 @@ export function drawObstacle(o) {
     ctx.globalAlpha = 0.5;                                                           // estela
     px(base.x - 4.6 * k, base.y, 9.2 * k, Math.max(1, 0.4 * k), P.foam);
     ctx.globalAlpha = 1;
+    if (enemyArt.ready('lcu')) {
+      // hoja en 3/4 con la rampa hacia la IZQUIERDA (la playa). La estela de arriba se queda.
+      enemyArt.drawFrame(ctx, 'lcu', 0, 0, base.x, { bottomY: base.y }, k, false);
+      hitFlash(base.x, base.y - 1.6 * k, k, o, 8, 2.6);
+      drawHpBar(base.x, base.y - 3.6 * k, k, o);
+      return;
+    }
     px(base.x - 3.8 * k, base.y - 1.6 * k, 7.6 * k, 1.6 * k, '#5b6558');            // casco
     px(base.x - 3.8 * k, base.y - 1.6 * k, 7.6 * k, Math.max(1, 0.3 * k), '#6d7767');
     px(base.x - 4.5 * k, base.y - 2.3 * k, Math.max(1, 0.8 * k), 2.3 * k, '#77816f');   // rampa (proa, hacia la playa)
@@ -747,6 +783,15 @@ export function drawObstacle(o) {
   } else if (o.type === 'radar') {
     // RADAR MOVIL: camion con plato giratorio (reemplaza a los arboles en la costa)
     const base = proj(o.x, 0, o.z);
+    if (enemyArt.ready('radar')) {
+      // 4 poses del plato: rota de a 45° a paso constante. Si el camion RUEDA (vx), se espeja
+      // para mirar hacia donde va.
+      const col = ((run.t * 3 + o.ph) | 0) % 4;
+      enemyArt.drawFrame(ctx, 'radar', col, 0, base.x, { bottomY: base.y }, k, o.vx < 0);
+      hitFlash(base.x, base.y - 2.4 * k, k, o, 6, 4);
+      drawHpBar(base.x, base.y - 6.2 * k, k, o);
+      return;
+    }
     px(base.x - 2.4 * k, base.y - 1.5 * k, 4.8 * k, 1.5 * k, '#5d6152');            // caja del camion
     px(base.x - 2.4 * k, base.y - 1.5 * k, 4.8 * k, Math.max(1, 0.3 * k), '#6f7362');
     px(base.x - 2.4 * k, base.y - 0.4 * k, 1.2 * k, Math.max(1, 0.4 * k), '#20241c'); // ruedas
@@ -761,6 +806,18 @@ export function drawObstacle(o) {
   } else if (o.type === 'aatruck') {
     // CAMION ANTIAEREO: vehiculo con los caños del AA montados atras — dispara como el nido
     const base = proj(o.x, 0, o.z);
+    if (enemyArt.ready('aatruck')) {
+      // la torreta BARRE el cielo en ping-pong (0-1-2-1): busca al avion aunque no dispare
+      const col = [0, 1, 2, 1][((run.t * 1.6 + o.ph) | 0) % 4];
+      enemyArt.drawFrame(ctx, 'aatruck', col, 0, base.x, { bottomY: base.y }, k, o.vx < 0);
+      if (o.fireT && run.t - o.fireT < 0.12) {          // el fogonazo del disparo queda por codigo
+        px(base.x + 0.6 * k, base.y - 4.6 * k, 1.3 * k, 1.1 * k, P.accent);
+        px(base.x + 0.9 * k, base.y - 4.4 * k, 0.7 * k, 0.6 * k, '#fff2c8');
+      }
+      hitFlash(base.x, base.y - 2 * k, k, o, 6, 3.4);
+      drawHpBar(base.x, base.y - 5.6 * k, k, o);
+      return;
+    }
     px(base.x - 2.6 * k, base.y - 1.4 * k, 5.2 * k, 1.4 * k, '#575b48');            // chasis
     px(base.x - 2.6 * k, base.y - 1.4 * k, 5.2 * k, Math.max(1, 0.3 * k), '#696d58');
     px(base.x - 2.5 * k, base.y - 0.4 * k, 1.1 * k, Math.max(1, 0.4 * k), '#20241c'); // ruedas

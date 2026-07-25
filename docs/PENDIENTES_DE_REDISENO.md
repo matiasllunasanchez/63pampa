@@ -67,9 +67,9 @@ instrumentos abajo. Los 13 px de arriba y abajo los tapa el letterbox.
 
 | objeto | qué es | HP | estado y spec |
 |---|---|---|---|
-| `helo` | helicóptero: llega **de frente** y **vira a perfil** al acercarse (hoy el escorzo y la cola crecen por código) | 4 | ❌ Spec: **1 fila × 8 columnas de yaw (0° de frente → 90° perfil)**, ~48×32 px. La columna la elige el `yaw` que ya se calcula por distancia. Rotor **barrido/borroso** en el propio cuadro |
-| `jet` | caza enemigo de frente, cierra más rápido (`spd+45`) | 3 | ❌ Spec: **1 fila × 5 columnas de alabeo (−30° → +30°)**, ~48×32 px. Reemplaza el `bank` fingido con rects |
-| `balloon` | globo de barrera, cae de un tiro | 1 | ❌ código |
+| `helo` | helicóptero: llega **de frente** y **vira a perfil** al acercarse | 4 | ✅ `enemies/helo.png` horneada (8 columnas de yaw × **2 fases de rotor** — el rotor bate). La columna la elige el `yaw` por distancia; se espeja según el lado al que abre. Fallback por código queda |
+| `jet` | caza enemigo de frente, cierra más rápido (`spd+45`) | 3 | ✅ `enemies/jet.png` horneada (5 columnas de alabeo −30°→+30°). Con ENEMIGOS MÓVILES el alabeo sale de la velocidad lateral real del tejido |
+| `balloon` | globo de barrera, cae de un tiro | 1 | ✅ `enemies/balloon.png` horneada (frame único; el cable y la inclinación al viento van por código) |
 | `birds` | bandada (daña, no derriba); variante blanca y oscura, deriva lateral propia | — | ❌ código |
 | `missile` | misil guiado enemigo — lo lanzan el radar, los `aa` y los `aatruck`; variante `tracer` desde los puestos | — | ❌ código |
 | `bomb` | bomba cayendo del cielo (modo BOMBARDEO); chocarla en el aire mata | — | ❌ código |
@@ -110,7 +110,14 @@ Incluye todo lo de TIERRA (`cliff`, `tent`, `aa`) más:
 | `aatruck` | camión antiaéreo, dispara misiles | 3 | 4.6 |
 | `trench` | **trinchera argentina** — decorado sin colisión, del lado izquierdo; tirotea a los británicos y cada tanto abate uno | — | — |
 
-Todos ❌ (código).
+Estado: `lcu` ✅ (`enemies/lcu.png`, 3/4 con la rampa hacia la playa), `radar` ✅ (`enemies/radar.png`,
+4 poses del plato girando), `aatruck` ✅ (`enemies/aatruck.png`, 3 poses de torreta barriendo).
+`bldg` y `trench` siguen ❌ (código).
+
+> **Hojas de enemigos**: las hornea `tools/bake_enemies.html` (`npx electron tools/bake_enemies_run.js`)
+> a `assets/world/enemies/`, con el mismo pipeline low-poly de los aviones pero cámara FRONTAL.
+> Las enchufa `src/render/enemies.js` (cajas de contenido **medidas sobre el alfa** — re-medir si
+> se rehornea) y el dibujo a mano de `render/world.js` queda como fallback si una hoja no carga.
 
 ---
 
@@ -246,8 +253,8 @@ Combina la prioridad de UPDATE_ANIMATIONS §4 con lo que más se ve hoy roto:
    (`t42`, `t21`, `log`) con las piezas separadas.
 2. **Soldados**: muerte + atropellado (correr y prone ya están enchufados).
 3. **Explosión genérica** 48×48, que sirve para choque, impacto y remate.
-4. **Helicóptero** (8 frames de yaw) y **jet** (5 de alabeo) — los dos únicos enemigos aéreos de
-   combate, y los dos que más se miran de cerca.
+4. ~~**Helicóptero** (8 frames de yaw) y **jet** (5 de alabeo)~~ — ✅ horneados, junto con globo,
+   radar, camión AA y barcaza (ver §2 y §4).
 5. **Fragata / mástil** + los 3 iconos de la barra de objetivo (`obj_puerto`, `obj_barcaza`,
    `obj_avion`).
 6. **Muzzle flash** del cockpit.

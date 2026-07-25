@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="es">
+<!-- HERRAMIENTA: hornea los sprite sheets de los ENEMIGOS (helicoptero, caza, vehiculos, barcaza,
+     globo) desde modelos low-poly, igual que bake_planes.html hace con los aviones jugables.
+     - Abrir en browser (con el server del repo) para VER/tunear los modelos.
+     - `npx electron tools/bake_enemies_run.js` los exporta a assets/world/enemies/<nombre>.png
+
+     DIFERENCIA CLAVE con los aviones: aca la camara mira DE FRENTE (los enemigos vienen HACIA el
+     jugador), no desde atras. Los modelos se arman con la nariz hacia -z, como en bake_planes,
+     y un grupo exterior los da vuelta (rotation.y = PI) para que encaren la camara. Las poses
+     (yaw del helo, alabeo del caza, giro del plato) van en OTRO grupo mas afuera: encadenar dos
+     rotaciones sobre el mismo objeto compone un euler que no es el que uno espera (la misma
+     leccion que dejo la deriva del bake de aviones).
+
+     Los helpers de volumen (CYL/CONE/DOME/PLATE/WING/FIN) estan COPIADOS de bake_planes.html:
+     son herramientas de build, la duplicacion es preferible a compartir modulo entre tools. -->
+
+<head>
+  <meta charset="utf-8">
+  <title>bake_enemies — RASANTE</title>
+  <style>
+    body { background: #10161b; color: #93a7ab; font-family: ui-monospace, Menlo, monospace; padding: 20px; }
+    h2 { color: #e8a33d; font-size: 14px; margin: 18px 0 6px; }
+    canvas.sheet { image-rendering: pixelated; border: 1px solid #2a363d; display: block; }
+  </style>
+</head>
+
+<body>
+  <div id="out"></div>
+  <script src="../src/vendor/three.global.js"></script>
+  <script>
+    'use strict';
+    const CANOPY = '#8fd0e0';
+
+    function makeRenderer(w, h) {
+      const r = new THREE.WebGLRenderer({ antialias: false, alpha: true });
+      r.setSize(w, h, false);
+      return r;
+    }
+    function makeScene() {
+      const sc = new THREE.Scene();
+      sc.add(new THREE.AmbientLight(0xaebccc, 1.8));   // mas que en bake_planes: estas paletas son mas oscuras
+      const dl = new THREE.DirectionalLight(0xe8c07a, 1.6); dl.position.set(-3, 5, 4); sc.add(dl);
+      const rim = new THREE.DirectionalLight(0xb06a35, 0.5); rim.position.set(2, 1, -4); sc.add(rim);
+      return sc;
+    }
+    /** Camara FRONTAL, apenas por arriba: el mismo punto de vista con el que el juego ve venir a
+     *  los enemigos. `dist` regula cuanto llena el frame el modelo. */
+    function makeCam(w, h, dist, lookY) {
+      const cam = new THREE.PerspectiveCamera(24, w / h, 1, 100);
+      cam.position.set(0, 2.0, dist); cam.lookAt(0, lookY !== undefined ? lookY : 0.2, 0);
+      return cam;
+    }
+
+    // ---------- primitivas (copiadas de bake_planes.html; ver nota de cabecera) ----------
+    const MAT = c => new THREE.MeshLambertMaterial({ color: c });
+    const add = (g, geo, c, x, y, z, rx, ry, rz) => {
+      const m = new THREE.Mesh(geo, MAT(c));
+      m.position.set(x, y, z);
+      if (rx) m.rotation.x = rx; if (ry) m.rotation.y = ry; if (rz) m.rotation.z = rz;
+      g.add(m); return m;
+    };
+    const B = (g, w, h, d, c, x, y, z, ry) => {
+      const m = add(g, new THREE.BoxGeometry(w, h, d), c, x, y, z);
+      if (ry) m.rotation.y = ry; return m;
+    };
+    const CYL = (g, rT, rB, len, c, x, y, z, seg) =>
+      add(g, new THREE.CylinderGeometry(rT, rB, len, seg || 10), c, x, y, z, Math.PI / 2);
+    /** Cilindro PARADO (eje vertical): mastiles, chimeneas. */
+    const POST = (g, rT, rB, len, c, x, y, z, seg) =>
+      add(g, new THREE.CylinderGeometry(rT, rB, len, seg || 8), c, x, y, z);
+    const CONE = (g, r, len, c, x, y, z, back, seg) =>
+      add(g, new THREE.ConeGeometry(r, len, seg || 10), c, x, y, z, back ? Math.PI / 2 : -Math.PI / 2);
+    const DOME = (g, r, c, x, y, z, sx, sy, sz) => {
+      const m = add(g, new THREE.SphereGeometry(r, 10, 7), c, x, y, z);
+      m.scale.set(sx || 1, sy || 1, sz || 1); return m;
+    };
+    function PLATE(g, pts, thick, c, x, y, z) {
+      const sh = new THREE.Shape();
+      sh.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) sh.lineTo(pts[i][0], pts[i][1]);
+      sh.closePath();
+      const m = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: thick, bevelEnabled: false }), MAT(c));
+      m.rotation.x = -Math.PI / 2;
+      const grp = new THREE.Group();
+      grp.add(m); grp.position.set(x, y, z); g.add(grp);
+      return grp;
+    }
+    function WING(g, span, root, tip, sweep, thick, c, y, z, dih) {
+      const s = span / 2, le = root / 2, teTip = le - sweep - tip;
+      if (!dih) return PLATE(g, [[-s, le - sweep], [0, le], [s, le - sweep], [s, teTip], [0, -le], [-s, teTip]],
+        thick, c, 0, y, z);
+      const grp = new THREE.Group(); grp.position.set(0, y, z); g.add(grp);
+      for (const sg of [-1, 1]) {
+        const half = PLATE(grp, [[0, le], [sg * s, le - sweep], [sg * s, teTip], [0, -le]], thick, c, 0, 0, 0);
+        half.rotation.z = -sg * dih * Math.PI / 180;
+      }
+      return grp;
+    }
+    function FIN(g, h, root, tip, sweep, thick, c, y, z) {
+      const le = root / 2, teTip = le - sweep - tip;
+      const grp = PLATE(g, [[0, le], [h, le - sweep], [h, teTip], [0, -le]], thick, c, thick / 2, y, z);
+      grp.rotation.z = Math.PI / 2;
+      return grp;
+    }
+    /** Rueda: cilindro oscuro acostado sobre el eje X, con llanta clara. */
+    function WHEEL(g, r, w, x, y, z) {
+      const m = add(g, new THREE.CylinderGeometry(r, r, w, 10), '#191d18', x, y, z);
+      m.rotation.z = Math.PI / 2;
+      const h = add(g, new THREE.CylinderGeometry(r * 0.45, r * 0.45, w + 0.02, 8), '#3c423a', x, y, z);
+      h.rotation.z = Math.PI / 2;
+      return m;
+    }
+
+    // ---------- MODELOS (nariz/proa hacia -z; el horneado los da vuelta hacia la camara) ----------
+
+    // HELICOPTERO britanico (silueta tipo Sea King): fuselaje panzon, botalon de cola fino,
+    // rotor principal y de cola, patines. `phase` = 0/1: las palas del rotor en dos angulos —
+    // alternandolas el rotor BATE en vez de quedar pegado como una calcomania.
+    function modelHelo(phase) {
+      const g = new THREE.Group();
+      const grn = '#687a68', grn2 = '#52624f', dk = '#333d34';
+      DOME(g, 0.9, grn, 0, 0, -0.4, 1.0, 0.78, 1.7);                    // fuselaje panzon
+      DOME(g, 0.62, CANOPY, 0, 0.02, -1.7, 0.94, 0.66, 0.9);            // vidrio de cabina
+      B(g, 1.14, 0.5, 1.1, grn2, 0, -0.62, -0.3);                       // panza/bañera
+      CYL(g, 0.30, 0.14, 2.6, grn2, 0, 0.22, 1.8, 8);                   // botalon de cola
+      FIN(g, 0.62, 0.5, 0.28, 0.3, 0.08, grn, 0.32, 3.0);               // deriva
+      const tr = phase ? 0.42 : 0.16;                                    // rotor de cola (2 fases)
+      B(g, 0.08, tr * 2, 0.16, dk, 0.06, 0.62, 3.05);
+      B(g, 0.08, 0.16, tr * 2, dk, 0.06, 0.62, 3.05);
+      for (const sg of [-1, 1]) {                                        // patines
+        B(g, 0.10, 0.42, 0.10, dk, sg * 0.55, -0.95, -0.9);
+        B(g, 0.10, 0.42, 0.10, dk, sg * 0.55, -0.95, 0.3);
+        CYL(g, 0.07, 0.07, 2.4, dk, sg * 0.55, -1.16, -0.3, 6);
+      }
+      POST(g, 0.10, 0.14, 0.5, grn2, 0, 0.82, -0.35);                    // mastil del rotor
+      // ROTOR PRINCIPAL: disco translucido (el barrido) + 3 palas solidas giradas por fase
+      const disc = add(g, new THREE.CylinderGeometry(3.0, 3.0, 0.04, 18), '#aeb6ae', 0, 1.05, -0.35);
+      disc.material.transparent = true; disc.material.opacity = 0.16;
+      for (let i = 0; i < 3; i++) {
+        const a = (phase ? 0.35 : 0) + i * Math.PI * 2 / 3;
+        const b = B(g, 0.16, 0.05, 2.9, dk, Math.sin(a) * 1.45, 1.06, -0.35 + Math.cos(a) * 1.45);
+        b.rotation.y = a;
+      }
+      return g;
+    }
+
+    // CAZA enemigo (silueta tipo Harrier, gris mar britanico): ala alta en flecha caida
+    // (anhedral marcado), tomas grandes a los lados de la cabina, deriva alta.
+    function modelJet() {
+      const g = new THREE.Group();
+      const gry = '#6a7570', gry2 = '#59645f', dk = '#454f4b', belly = '#9aa5a0';
+      CYL(g, 0.40, 0.36, 4.6, gry, 0, 0, 0.1, 12);
+      CONE(g, 0.36, 1.3, gry, 0, 0, -2.85, false, 12);
+      WING(g, 5.4, 2.2, 0.7, 1.7, 0.15, gry2, 0.28, 0.55, -11);          // ala ALTA con anhedral
+      WING(g, 5.4, 2.2, 0.7, 1.7, 0.03, belly, 0.20, 0.55, -11);
+      WING(g, 2.3, 0.9, 0.45, 0.6, 0.11, gry2, 0.30, 2.1, -10);          // estabilizador caido
+      FIN(g, 1.35, 1.25, 0.5, 0.9, 0.10, gry, 0.14, 2.05);
+      DOME(g, 0.34, CANOPY, 0, 0.40, -1.45, 0.85, 0.8, 1.7);
+      CYL(g, 0.44, 0.40, 1.6, gry2, -0.55, 0.05, -0.7, 8);               // tomas grandes
+      CYL(g, 0.44, 0.40, 1.6, gry2, 0.55, 0.05, -0.7, 8);
+      CYL(g, 0.30, 0.30, 0.3, '#1c211e', -0.58, 0.05, -1.45, 8);
+      CYL(g, 0.30, 0.30, 0.3, '#1c211e', 0.58, 0.05, -1.45, 8);
+      CYL(g, 0.30, 0.28, 0.4, dk, 0, 0, 2.4, 10);                        // tobera
+      return g;
+    }
+
+    // RADAR MOVIL: camion con plato giratorio. `ang` = yaw del plato (4 poses = el plato ROTA).
+    function modelRadar(ang) {
+      const g = new THREE.Group();
+      const grn = '#5d6152', grn2 = '#6f7362', cab = '#4a4e42';
+      B(g, 2.4, 1.0, 4.2, grn, 0, 0.5, 0.3);                             // caja
+      B(g, 2.4, 0.12, 4.2, grn2, 0, 1.06, 0.3);
+      B(g, 2.2, 1.0, 1.4, cab, 0, 0.5, -2.4);                            // cabina
+      B(g, 1.9, 0.45, 0.1, '#9fb6bd', 0, 0.62, -3.11);                   // parabrisas
+      WHEEL(g, 0.5, 0.35, -1.05, 0, -1.6); WHEEL(g, 0.5, 0.35, 1.05, 0, -1.6);
+      WHEEL(g, 0.5, 0.35, -1.05, 0, 1.5); WHEEL(g, 0.5, 0.35, 1.05, 0, 1.5);
+      POST(g, 0.14, 0.2, 1.4, '#3a3e34', 0, 1.7, 0.6);                   // mastil
+      const dish = new THREE.Group(); dish.position.set(0, 2.5, 0.6); dish.rotation.y = ang; g.add(dish);
+      // el plato: rejilla curva (media luna extruida) + bocina al frente
+      const m = add(dish, new THREE.CylinderGeometry(1.5, 1.5, 0.16, 14, 1, false, 0, Math.PI), '#8a9299', 0, 0, 0);
+      m.rotation.x = Math.PI / 2; m.rotation.z = Math.PI;
+      B(dish, 0.5, 0.4, 0.14, '#aab2b8', 0, 0.35, 0.15);
+      return g;
+    }
+
+    // CAMION ANTIAEREO: chasis con torreta de dos caños atras. `ang` = yaw de la torreta
+    // (3 poses = la torreta BARRE el cielo buscandote).
+    function modelAATruck(ang) {
+      const g = new THREE.Group();
+      const grn = '#575b48', grn2 = '#696d58', cab = '#43473a';
+      B(g, 2.5, 0.9, 4.6, grn, 0, 0.45, 0.2);                            // chasis
+      B(g, 2.5, 0.12, 4.6, grn2, 0, 0.96, 0.2);
+      B(g, 2.3, 1.05, 1.5, cab, 0, 0.55, -2.55);                         // cabina
+      B(g, 2.0, 0.45, 0.1, '#9fb6bd', 0, 0.7, -3.31);
+      WHEEL(g, 0.52, 0.35, -1.1, 0, -1.8); WHEEL(g, 0.52, 0.35, 1.1, 0, -1.8);
+      WHEEL(g, 0.52, 0.35, -1.1, 0, 1.2); WHEEL(g, 0.52, 0.35, 1.1, 0, 1.2);
+      WHEEL(g, 0.52, 0.35, -1.1, 0, 2.2); WHEEL(g, 0.52, 0.35, 1.1, 0, 2.2);
+      const tur = new THREE.Group(); tur.position.set(0, 1.35, 1.1); tur.rotation.y = ang; g.add(tur);
+      B(tur, 1.3, 0.7, 1.3, cab, 0, 0.2, 0);                             // cuna de la torreta
+      for (const sg of [-1, 1]) {                                        // dos caños apuntando alto
+        const c = CYL(tur, 0.09, 0.11, 2.2, '#2b3338', sg * 0.3, 0.85, -0.7, 6);
+        c.rotation.x = Math.PI / 2 - 0.85;                               // ~49° al cielo
+      }
+      return g;
+    }
+
+    // BARCAZA DE DESEMBARCO (LCU): casco chato, rampa de proa (hacia -z: la playa), timonera a
+    // popa y bordas altas. Se hornea apenas girada (3/4) para que se lea el volumen.
+    function modelLcu() {
+      const g = new THREE.Group();
+      const hull = '#6b7566', hull2 = '#7f8975', dk = '#565f52';
+      B(g, 2.6, 0.9, 6.4, hull, 0, 0.45, 0);                             // casco
+      B(g, 2.6, 0.14, 6.4, hull2, 0, 0.97, 0);
+      B(g, 0.18, 0.55, 5.6, hull2, -1.25, 1.15, 0.2);                    // bordas
+      B(g, 0.18, 0.55, 5.6, hull2, 1.25, 1.15, 0.2);
+      const ramp = B(g, 2.3, 0.16, 1.7, '#8a947f', 0, 1.15, -3.5);       // rampa apenas levantada
+      ramp.rotation.x = -0.24;
+      B(g, 1.5, 1.1, 1.2, dk, 0, 1.5, 2.5);                              // timonera
+      B(g, 1.3, 0.35, 0.1, '#9fb6bd', 0, 1.75, 1.94);                    // ventanas
+      POST(g, 0.05, 0.05, 1.1, dk, 0.5, 2.5, 2.7);                       // antena
+      for (let i = 0; i < 3; i++) B(g, 0.5, 0.3, 0.4, '#7d7455', -0.6 + i * 0.6, 1.15, -1.2);  // cascos
+      return g;
+    }
+
+    // GLOBO DE BARRERA: bolsa plateada con tres aletas de cola infladas.
+    function modelBalloon() {
+      const g = new THREE.Group();
+      const sil = '#a3aeb4', sil2 = '#c3ced2', dk = '#7e8a90';
+      DOME(g, 1.0, sil, 0, 0, -0.3, 1.0, 0.82, 1.75);                    // bolsa
+      DOME(g, 0.58, sil2, 0, 0.38, -0.9, 1.15, 0.55, 1.15);              // brillo del lomo
+      CONE(g, 0.5, 1.0, dk, 0, -0.05, 1.45, true, 8);                    // cola que se afina
+      for (let i = 0; i < 3; i++) {                                      // 3 aletas infladas a 120°
+        const a = i * Math.PI * 2 / 3 + Math.PI / 2;                     // una vertical, dos abajo
+        const f = DOME(g, 0.52, i ? sil : sil2, Math.cos(a) * 0.72, Math.sin(a) * 0.72, 1.5, 0.42, 1.0, 1.5);
+        f.rotation.z = a - Math.PI / 2;
+      }
+      return g;
+    }
+
+    // ---------- catalogo de horneado ----------
+    // frames: cada entrada es una POSE (funcion que devuelve el modelo + rotacion del grupo).
+    // `wu` documenta cuantas unidades de MUNDO representa el ancho del frame (lo consume
+    // render/enemies.js — si cambia aca, cambiarlo alla).
+    const SHEETS = {
+      // helo: 8 columnas de yaw (0=de frente → 90°=de perfil, cola a la DERECHA) x 2 fases de rotor
+      helo: {
+        fw: 64, fh: 48, dist: 15, lookY: 0.15,
+        frames: (() => {
+          const f = [];
+          for (let ph = 0; ph < 2; ph++)
+            for (let i = 0; i < 8; i++) f.push({ model: () => modelHelo(ph), yaw: i / 7 * Math.PI / 2 });
+          return f;
+        })(), cols: 8,
+      },
+      // caza: 5 columnas de alabeo -30..+30
+      jet: {
+        fw: 64, fh: 48, dist: 16, lookY: 0.2,
+        frames: [-30, -15, 0, 15, 30].map(a => ({ model: modelJet, roll: a * Math.PI / 180 })), cols: 5,
+      },
+      // radar: 4 poses del plato (rota de a 45°)
+      radar: {
+        fw: 48, fh: 48, dist: 16, lookY: 1.6, quarter: 0.5,
+        frames: [0, 1, 2, 3].map(i => ({ model: () => modelRadar(i * Math.PI / 4) })), cols: 4,
+      },
+      // camion AA: 3 poses de torreta (barre buscandote)
+      aatruck: {
+        fw: 56, fh: 48, dist: 16, lookY: 1.3, quarter: 0.5,
+        frames: [-0.5, 0, 0.5].map(a => ({ model: () => modelAATruck(a) })), cols: 3,
+      },
+      // barcaza: un solo frame en 3/4 (proa/rampa hacia la IZQUIERDA, que es donde esta la playa)
+      lcu: {
+        fw: 72, fh: 48, dist: 17, lookY: 0.9, quarter: -0.55,
+        frames: [{ model: modelLcu }], cols: 1,
+      },
+      // globo: un solo frame, de frente con un toque de 3/4
+      balloon: {
+        fw: 48, fh: 48, dist: 11, lookY: 0, quarter: 0.4,
+        frames: [{ model: modelBalloon }], cols: 1,
+      },
+    };
+
+    function __bake() {
+      const outEl = document.getElementById('out');
+      const result = {};
+      for (const name in SHEETS) {
+        const spec = SHEETS[name];
+        const R = makeRenderer(spec.fw, spec.fh);
+        const cam = makeCam(spec.fw, spec.fh, spec.dist, spec.lookY);
+        const cols = spec.cols, rows = Math.ceil(spec.frames.length / cols);
+        const sheet = document.createElement('canvas');
+        sheet.width = spec.fw * cols; sheet.height = spec.fh * rows;
+        const x2 = sheet.getContext('2d');
+        spec.frames.forEach((fr, i) => {
+          const sc = makeScene();
+          // capas de rotacion, de adentro hacia afuera: modelo (nariz -z) → volteo hacia la
+          // camara (PI) + 3/4 opcional → pose (yaw/alabeo). Grupos separados: ver cabecera.
+          const flip = new THREE.Group(); flip.rotation.y = Math.PI + (spec.quarter || 0);
+          flip.add(fr.model());
+          const pose = new THREE.Group();
+          if (fr.yaw) pose.rotation.y = fr.yaw;
+          if (fr.roll) pose.rotation.z = fr.roll;
+          pose.add(flip); sc.add(pose);
+          R.render(sc, cam);
+          x2.drawImage(R.domElement, (i % cols) * spec.fw, Math.floor(i / cols) * spec.fh);
+        });
+        result[name] = sheet.toDataURL('image/png');
+        if (outEl) {
+          const h = document.createElement('h2');
+          h.textContent = name + ' — ' + cols + 'x' + rows + ' frames de ' + spec.fw + 'x' + spec.fh;
+          const big = document.createElement('canvas'); big.className = 'sheet';
+          big.width = sheet.width * 4; big.height = sheet.height * 4;
+          const bx = big.getContext('2d'); bx.imageSmoothingEnabled = false;
+          bx.drawImage(sheet, 0, 0, big.width, big.height);
+          outEl.appendChild(h); outEl.appendChild(big);
+        }
+      }
+      return result;
+    }
+    window.__bake = __bake;
+    if (!navigator.userAgent.includes('Electron')) __bake();
+  </script>
+</body>
+
+</html>

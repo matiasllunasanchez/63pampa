@@ -46,6 +46,11 @@ export const cfg = {
   // ARRANQUE. 'runway' = despegue clasico desde la base. 'air' = la mision empieza YA VOLANDO,
   // sin plataforma: son las misiones de REGRESO, donde el avion vuelve del ataque.
   start: 'runway',
+  // ENEMIGOS MOVILES: los que hoy podian quedarse quietos se mueven — el globo cabecea colgado
+  // del cable, el helicoptero patrulla de lado a lado, el caza teje y busca tu carril, los
+  // vehiculos ruedan y la fragata del mastil navega. Apagarlo los deja plantados como antes.
+  // (Lo que YA se movia — bandada, barcaza entrando, bombas — no depende de esta llave.)
+  enemyMove: true,
   // DEPURACION: pinta las cajas de colision en verde fluor. Es para PROBAR — el overlay sale de
   // core/hitbox.js, la misma fuente que decide los choques, asi que lo que ves es lo que golpea.
   hitboxes: false,

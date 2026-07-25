@@ -17,6 +17,47 @@ import { SPAWN_X, SHORE_X, shoreAt, SAND_W, AA_CD, ENEMY_HP,
  *  (hp/hpMax); sin el, un enemigo tocado no se distingue de uno que nace con menos vida. */
 const hpOf = type => ({ hp: ENEMY_HP[type], hpMax: ENEMY_HP[type] });
 
+// ---------- MOVIMIENTO PROPIO (cfg.enemyMove) ----------
+// La PERSONALIDAD del movimiento se sortea ACA, al nacer — cada bicho trae su amplitud y su
+// ritmo — y el que la APLICA por frame es collision.js (donde ya viven la deriva de la bandada,
+// la barcaza navegando y la bomba cayendo). La llave del menu apaga la aplicacion, no el sorteo:
+// asi se puede prender y apagar en vivo sobre los mismos enemigos.
+//
+// Dos familias:
+//   sway  = oscila alrededor de un ancla (xa): x = xa + sin(t·mvW + ph)·mvA
+//   drive = velocidad constante con rebote en los bordes del carril (vehiculos, fragata)
+
+/** Oscilante. `frac` = que fraccion de la poblacion se mueve (el resto queda quieto: la MEZCLA de
+ *  moviles y estaticos es lo que confunde — si se mueven todos, el ojo predice el patron). */
+const sway = (x, amp, w, frac) =>
+  Math.random() < frac ? { xa: x, mvA: amp[0] + Math.random() * (amp[1] - amp[0]), mvW: w[0] + Math.random() * (w[1] - w[0]) } : { xa: x };
+
+/** Rodante: arranca hacia cualquier lado. */
+const drive = (v0, v1) => ({ vx: (Math.random() < 0.5 ? -1 : 1) * (v0 + Math.random() * (v1 - v0)) });
+
+/** La personalidad por tipo. Los numeros estan elegidos contra el avion, que se mueve a ~40 u/s
+ *  de lado: nada de esto es imposible de esquivar — es dificultad de LECTURA (ya no alcanza con
+ *  mirar donde nacio el bicho), no de reflejos. */
+function mov(type, x) {
+  switch (type) {
+    // globo de barrera: colgado del cable, el viento lo pasea despacio. TODOS se mueven (el
+    // viento no elige), pero poco: el globo sigue siendo el enemigo "lento" del juego.
+    case 'balloon': return sway(x, [1.8, 3.2], [0.35, 0.6], 1);
+    // helicoptero: patrulla de lado a lado. SOLO ALGUNOS (55%) — la mezcla de moviles y
+    // estaticos es pedida: que no se pueda asumir nada al verlo aparecer.
+    case 'helo': return sway(x, [4, 8], [0.4, 0.75], 0.55);
+    // caza de frente: teje SIEMPRE, y ademas busca tu carril (home, en u/s — collision.js
+    // lo aplica sobre el ancla). Es el unico que te persigue: cierra rapido y encima corrige.
+    case 'jet': return { ...sway(x, [2.5, 4.5], [0.8, 1.3], 1), home: 2.2 };
+    // vehiculos: ruedan por su carril y rebotan en los bordes
+    case 'radar': return drive(1.6, 3.2);
+    case 'aatruck': return drive(1.4, 2.8);
+    // el mastil es una FRAGATA: navega despacio. Es el que mas cambia el mapa de mar, donde
+    // esquivar mastiles es la habilidad central — ahora el hueco elegido se corre.
+    case 'mast': return drive(0.7, 1.5);
+  }
+}
+
 /** Grupo de soldados corriendo. En COSTA son britanicos desembarcando: TODOS corren de derecha
  *  (la playa) a izquierda (tierra adentro), y un poco mas rapido. */
 function squad(x, z, n, coast) {
@@ -77,16 +118,16 @@ function spawn() {
       obstacles.push({ type: 'lcu', x: waterLane() + 6, h: 4, y: 1.5, z: 250, ...hpOf('lcu'), sailing: true, done: false, ph });
     }
     // los arboles de la costa se reemplazaron por VEHICULOS: radar movil y camion antiaereo
-    else if (r < 0.57) obstacles.push({ type: 'radar', x: landLane(), h: 5, y: 2, z: 250, ...hpOf('radar'), done: false, ph });
-    else if (r < 0.64) obstacles.push({ type: 'aatruck', x: landLane(), h: 4.6, y: 1.9, z: 250, ...hpOf('aatruck'), cd: 1.3 + Math.random() * AA_CD, done: false, ph });
+    else if (r < 0.57) obstacles.push({ type: 'radar', x: landLane(), h: 5, y: 2, z: 250, ...hpOf('radar'), ...mov('radar'), done: false, ph });
+    else if (r < 0.64) obstacles.push({ type: 'aatruck', x: landLane(), h: 4.6, y: 1.9, z: 250, ...hpOf('aatruck'), ...mov('aatruck'), cd: 1.3 + Math.random() * AA_CD, done: false, ph });
     // trinchera ARGENTINA (decorado, bien a la izquierda): tira contra los britanicos
     else if (r < 0.70) obstacles.push({ type: 'trench', x: -SPAWN_X + Math.random() * 8, z: 250, decor: true, cd: 0.8 + Math.random(), done: false, ph });
     else if (r < 0.76) obstacles.push({ type: 'birds', x: lane, y: 7 + Math.random() * 12, z: 250, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
-    else if (r < 0.85) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph });
-    else if (r < 0.93) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, ...hpOf('helo'), done: false, ph });
-    else if (r < 0.97) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, ...hpOf('jet'), done: false, ph });
+    else if (r < 0.85) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
+    else if (r < 0.93) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
+    else if (r < 0.97) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
     else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false });
-    else obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph });
+    else obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
     return;
   }
 
@@ -107,22 +148,22 @@ function spawn() {
       } else obstacles.push({ type: 'aa', x: lane, h: 4.4, y: 1.8, z: 250, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
     }
     else if (r < 0.66) obstacles.push({ type: 'birds', x: lane, y: 7 + Math.random() * 12, z: 250, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
-    else if (r < 0.75) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph });
-    else if (r < 0.84) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, ...hpOf('helo'), done: false, ph });
-    else if (r < 0.92) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, ...hpOf('jet'), done: false, ph });
+    else if (r < 0.75) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
+    else if (r < 0.84) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
+    else if (r < 0.92) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
     else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false });
-    else obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph });
+    else obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
     return;
   }
 
   // MAR ABIERTO: mastiles de fragata y trafico aereo
-  if (r < 0.34) obstacles.push({ type: 'mast', x: lane, h: 11 + Math.random() * 17, z: 250, done: false });
+  if (r < 0.34) obstacles.push({ type: 'mast', x: lane, h: 11 + Math.random() * 17, z: 250, ...mov('mast'), done: false });
   else if (r < 0.48) obstacles.push({ type: 'birds', x: lane, y: 7 + Math.random() * 12, z: 250, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
-  else if (r < 0.60) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph });
-  else if (r < 0.70) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, ...hpOf('helo'), done: false, ph });
-  else if (r < 0.78) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, ...hpOf('jet'), done: false, ph });
+  else if (r < 0.60) obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
+  else if (r < 0.70) obstacles.push({ type: 'helo', x: lane, y: 5 + Math.random() * 16, z: 250, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
+  else if (r < 0.78) obstacles.push({ type: 'jet', x: lane, y: 5 + Math.random() * 15, z: 250, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
   else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: 4 + Math.random() * 22, z: 250, done: false });
-  else obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), done: false, ph });
+  else obstacles.push({ type: 'balloon', x: lane, y: 6 + Math.random() * 24, z: 250, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
 }
 
 /** Avanza los relojes de aparicion y siembra cuando toca. */
