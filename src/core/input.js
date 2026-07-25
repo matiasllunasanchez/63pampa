@@ -161,7 +161,7 @@ export function initInput(cv, a) {
   // convive con el teclado sin pisarlo. La navegacion de menus y las acciones (tonel, camara,
   // pista) van por FLANCO (una pulsacion = una accion), igual que el teclado.
   const AX_DZ = 0.35;                          // zona muerta de los sticks (vuelo/menus)
-  const AIM_DZ = 0.15, AIM_SPEED = 230;        // MIRA con stick derecho: zona muerta fina + px/seg
+  const AIM_DZ = 0.15, AIM_SPEED = 345;        // MIRA con stick derecho: zona muerta fina + px/seg
   const padHeld = { l: 0, r: 0, u: 0, d: 0, fire: false, turbo: false, msl: false };
   let btnPrev = [];                            // estado previo de botones (flanco)
   let padLast = performance.now();             // para el dt del movimiento fluido de la mira

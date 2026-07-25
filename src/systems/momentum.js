@@ -22,7 +22,7 @@ import { popup } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from '../data/ships.js';
-import { MOM_AX, MOM_AY, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX } from '../data/tuning.js';
+import { MOM_AX, MOM_AY, REATTACK_DUR, REATTACK_FUEL, REATTACK_MAX, SHIP_UH, SHIP_DECK } from '../data/tuning.js';
 import { W, H, HOR } from '../render/ctx.js';
 import { boom, beep, sfxOne, duck, engineOff, engineRumble } from '../systems/audio.js';
 
@@ -77,7 +77,7 @@ function momShipGeom() {
   const sc = ph.scale * f;
   // barco FIJO/ANCLADO (sin balanceo ni cabeceo): el movimiento del duelo lo pone el ALABEO
   // del avion (el mundo entero gira con mom.roll), no el barco
-  return { cx: W / 2, len: W * 0.82 * sc, deckY: HOR + 36 * sc, uh: 9 * sc, sc };
+  return { cx: W / 2, len: W * 0.82 * sc, deckY: HOR + SHIP_DECK * sc, uh: SHIP_UH * sc, sc };
 }
 
 // camara del momentum: la MIRA queda CLAVADA al visor del cockpit (MOM_AX, MOM_AY) y para
@@ -119,13 +119,13 @@ function momZoneKilled(z) {
   sfxOne(momPhase === 0 ? 'exHeavyDist' : 'exHeavy');
   run.score += z.pts; stats.zones++;
   popup(r.x + r.w / 2, r.y - 6, '+' + z.pts, P.accent);
-  popup(MOM_AX + cmw.x, 50 + cmw.y, T('mom_destroyed', { z: T(z.label) }), P.warn);
+  popup(MOM_AX + cmw.x, 75 + cmw.y, T('mom_destroyed', { z: T(z.label) }), P.warn);
   if (mom.zones.every(zz => zz.hp <= 0)) {
     run.score += 500 * (momPhase + 1);
     const last = momPhase + 1 >= MOM_PHASES.length;
     if (last) sfxOne('exXheavy');   // el barco entero se va: la explosion GRANDE del nivel
     mom.doneT = last ? 1.6 : 1.0;
-    popup(MOM_AX + cmw.x, 62 + cmw.y, last ? T('bargeDown') : T('mom_clear'), P.accent);
+    popup(MOM_AX + cmw.x, 93 + cmw.y, last ? T('bargeDown') : T('mom_clear'), P.accent);
     beep(880, 0.2, 'square', 0.06, 1200);
   }
 }
@@ -149,7 +149,7 @@ function momLaunchMissile(mouse) {
   if (!mom || mom.doneT > 0 || run.msl <= 0 || run.mslCd > 0) return;
   run.msl--; run.mslCd = 0.6;
   mom.mslSide = -(mom.mslSide || 1);
-  const mo = momScrToWorld(MOM_AX + mom.mslSide * 95, H - 30);       // pilon del ala (rola con vos)
+  const mo = momScrToWorld(MOM_AX + mom.mslSide * 142, H - 45);       // pilon del ala (rola con vos)
   const mt = momScrToWorld(mouse.on ? mouse.x : MOM_AX, mouse.on ? mouse.y : MOM_AY);
   mom.fx.push({
     k: 'ms', x: mo.x, y: mo.y,
@@ -166,14 +166,14 @@ function enterMomentum() {
   setState('momentum');
   clearWorld({ keepFx: true });   // se limpia el campo para la cinematica; las explosiones en curso siguen
   mom = {
-    t: 0, timer: ph.time, doneT: 0, turn: 0, pass: 1, cx: W / 2, cy: 80, hitFx: 0, fx: [],
+    t: 0, timer: ph.time, doneT: 0, turn: 0, pass: 1, cx: W / 2, cy: 120, hitFx: 0, fx: [],
     roll: 0, rollV: 0,   // ALABEO: el avion rola sobre su eje longitudinal (←/→); el mundo gira, la cabina no
     zones: ph.zones.map(z => Object.assign({}, z, { hp: z.maxHp }))
   };
   mom.cy = momShipGeom().deckY - 8;            // arranca apuntando a la cubierta (coords de MUNDO)
   const cm0 = momCam();
-  popup(MOM_AX + cm0.x, 46 + cm0.y, T('mom_title'), P.warn);               // popups viven en espacio-mundo
-  popup(MOM_AX + cm0.x, 56 + cm0.y, T('mom_pass', { n: momPhase + 1, m: MOM_PHASES.length }), P.dim);
+  popup(MOM_AX + cm0.x, 69 + cm0.y, T('mom_title'), P.warn);               // popups viven en espacio-mundo
+  popup(MOM_AX + cm0.x, 84 + cm0.y, T('mom_pass', { n: momPhase + 1, m: MOM_PHASES.length }), P.dim);
   beep(620, 0.7, 'sine', 0.07, 65);   // sting de entrada: el tiempo se ESTIRA (pitch cayendo)
   boom(0.10);
   engineOff();
@@ -190,7 +190,7 @@ function startReattack() {
   stats.reattacks++;
   if (cfg.fuelOn) run.fuel = Math.max(0, run.fuel - REATTACK_FUEL);
   const cm = momCam();
-  popup(MOM_AX + cm.x, 50 + cm.y, T('mom_turn'), P.warn);
+  popup(MOM_AX + cm.x, 75 + cm.y, T('mom_turn'), P.warn);
   sfxOne('waveFly');                                  // rafaga del viraje
   beep(300, 0.5, 'sine', 0.05, 700);                  // sting ascendente: reencarás
   run.shake = Math.min(6, run.shake + 2);
@@ -360,7 +360,7 @@ function updateMomentum(dt, inp, mouse, objectiveDist) {
     const ty = aimY + (Math.random() - 0.5) * spread * 2;
     // la bala nace en el ALA (posicion de pantalla, fuera del vidrio) convertida a mundo
     // con el roll aplicado: al rolar, tus alas rotan con vos
-    const wing = momScrToWorld(mom.gunSide < 0 ? -40 : W + 40, 66);
+    const wing = momScrToWorld(mom.gunSide < 0 ? -60 : W + 60, 99);
     mom.fx.push({
       k: 'sh', x: wing.x, y: wing.y,
       tx, ty, life: 2.2, T: 0, vx: 0, vy: 0

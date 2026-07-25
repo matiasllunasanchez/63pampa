@@ -3,7 +3,7 @@
 // Cada funcion recibe `w`: un snapshot chico de solo lectura con lo que necesita mostrar. No leen
 // estado global — asi se pueden dibujar en cualquier momento (util para probarlas sueltas) y se ve
 // de un vistazo de que dependen.
-import { ctx, W, H, px, panel, wrapText } from './ctx.js';
+import { ctx, DW as W, DH as H, px, panel, wrapText } from './ctx.js';
 import { P } from '../data/palette.js';
 import { T, L } from '../core/i18n.js';
 import { wrapChars } from '../core/util.js';
@@ -21,8 +21,94 @@ function tintSil(img, color) {
   x.fillStyle = color; x.fillRect(0, 0, c.width, c.height);
   return c;
 }
-MAL.img.onload = () => { MAL.ready = true; MAL.gold = tintSil(MAL.img, P.accent); MAL.dim = tintSil(MAL.img, '#3a4650'); };
+// GANADO = dorado (P.accent) · NO GANADO = BLANCO. Antes el 'no ganado' era gris azulado y se
+// perdia contra las ilustraciones de fondo; el blanco se lee sobre cualquier foto.
+MAL.img.onload = () => { MAL.ready = true; MAL.gold = tintSil(MAL.img, P.accent); MAL.dim = tintSil(MAL.img, P.ink); };
 MAL.img.src = '../assets/images/malvinas.webp';
+
+// FONDOS DE FIN DE PARTIDA: ilustraciones que reemplazan al mundo del juego detras del recuento y
+// del derribado. Se sortea una al terminar (no por cuadro: parpadearia) — el indice lo elige
+// game.js y llega en el snapshot, para que estas funciones sigan sin estado propio.
+//
+// Las rutas van SUELTAS y explicitas (no armadas con plantillas) porque tools/build_web.py las
+// re-embebe buscando el literal en el bundle: una ruta construida en runtime no la encontraria.
+const WIN_SRC = [
+  '../assets/images/general/win/win1.jpg',
+  '../assets/images/general/win/win2.jpg',
+  '../assets/images/general/win/win3.jpg',
+  '../assets/images/general/win/win4.jpg',
+  '../assets/images/general/win/win5.jpg',
+];
+const LOSE_SRC = [
+  '../assets/images/general/lose/lose1.jpg',
+  '../assets/images/general/lose/lose2.jpg',
+  '../assets/images/general/lose/lose3.jpg',
+  '../assets/images/general/lose/lose4.png',
+];
+// FONDO GENERAL (lobby / selección). ppal01 va PRIMERA y es fija: es la portada con la que
+// arranca el juego siempre. El resto rota al azar cada PPAL_ROT segundos (ver game.js).
+// Para sumar una foto: copiarla a la carpeta con el proximo numero y agregar la linea aca.
+const PPAL_SRC = [
+  '../assets/images/general/ppal/ppal01.jpg',
+  // '../assets/images/general/ppal/ppal02.jpg',
+  // '../assets/images/general/ppal/ppal03.jpg',
+  '../assets/images/general/ppal/ppal04.jpg',
+  '../assets/images/general/ppal/ppal05.jpg',
+  // '../assets/images/general/ppal/ppal06.jpg',
+  // '../assets/images/general/ppal/ppal07.jpg',
+  '../assets/images/general/ppal/ppal08.jpg',
+  '../assets/images/general/ppal/ppal09.jpg',
+  '../assets/images/general/ppal/ppal10.jpg',
+  // '../assets/images/general/ppal/ppal11.jpg',
+];
+// el build web VACIA estas rutas (ver tools/build_web.py): sin ruta no se pide nada y
+// drawEndBg cae al fondo opaco de siempre
+const load = src => { const i = new Image(); if (src) i.src = src; return i; };
+const WIN_BG = WIN_SRC.map(load), LOSE_BG = LOSE_SRC.map(load), PPAL_BG = PPAL_SRC.map(load);
+export const WIN_BG_N = WIN_BG.length, LOSE_BG_N = LOSE_BG.length, PPAL_BG_N = PPAL_BG.length;
+
+/** Dibuja una imagen cubriendo la pantalla (cover: llena sin deformar, recortando el sobrante). */
+function cover(img, a) {
+  if (!img || !img.naturalWidth) return false;
+  const s = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+  const w = img.naturalWidth * s, h = img.naturalHeight * s;
+  ctx.globalAlpha = a;
+  ctx.imageSmoothingEnabled = true;   // se BAJA de ~1024px: suavizar evita el aliasing feo
+  ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+  ctx.globalAlpha = 1;
+  return true;
+}
+
+/** FONDO GENERAL del lobby/seleccion. Cruza de `prev` a `idx` segun `fade` (0..1) — un corte seco
+ *  entre dos fotos a pantalla completa es brusco, el cruce lo vuelve intencional. Los relojes y el
+ *  sorteo viven en game.js; aca solo se dibuja lo que llega por parametro. */
+export function drawPpalBg(prev, idx, fade) {
+  const n = PPAL_BG.length;
+  const at = i => PPAL_BG[((i | 0) % n + n) % n];
+  const f = fade == null ? 1 : Math.max(0, Math.min(1, fade));
+  ctx.fillStyle = '#0a0e11'; ctx.fillRect(0, 0, W, H);   // base: tapa el mundo del juego
+  if (f < 1) cover(at(prev), 1);
+  cover(at(idx), f);
+  ctx.fillStyle = '#080d11'; ctx.globalAlpha = 0.45;     // velo tenue: los menus tienen su propio panel()
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 1;
+}
+
+/** Pinta la ilustracion de fin cubriendo la pantalla (cover), con un velo oscuro encima para que
+ *  el texto se lea. `a` multiplica el alfa (lo usa el fundido del derribado). Si la imagen no
+ *  cargo, deja el fondo opaco de siempre y devuelve false. */
+function drawEndBg(list, idx, a) {
+  const A = a == null ? 1 : a;
+  const img = list[((idx | 0) % list.length + list.length) % list.length];
+  ctx.globalAlpha = A; ctx.fillStyle = '#0a0e11'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
+  const ok = cover(img, A);
+  if (ok) {                                              // velo: la foto es ambiente, el texto manda
+    ctx.fillStyle = '#080d11'; ctx.globalAlpha = A * 0.62;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
+  }
+  return ok;
+}
 
 // ---------- RECUENTO DE FIN DE MISION ----------
 // Las filas entran de a una acumulando el total; despues caen las estrellas y la calificacion.
@@ -44,7 +130,7 @@ function drawMalvinas(cx, cy, s, won, t, rot) {
     ctx.imageSmoothingEnabled = true;                     // emblema chico: bordes suaves lee mejor
     ctx.drawImage(tex, -w / 2, -h / 2, w, h);
   } else {                                                // fallback vectorial (imagen no cargada)
-    ctx.fillStyle = won ? P.accent : '#33414b';
+    ctx.fillStyle = won ? P.accent : P.ink;
     ctx.beginPath();
     ctx.moveTo(-7, -1); ctx.lineTo(-5.5, -3.5); ctx.lineTo(-3, -3); ctx.lineTo(-2.2, -0.5);
     ctx.lineTo(-3.2, 2.2); ctx.lineTo(-5, 3.2); ctx.lineTo(-6.8, 1.5); ctx.closePath(); ctx.fill();
@@ -60,71 +146,77 @@ function drawMalvinas(cx, cy, s, won, t, rot) {
 // GALARDON reutilizable: 3 estrellas + las Malvinas como 4ª, en FILA HORIZONTAL centrada en (cx,cy).
 // Lo usan el recuento de fin de nivel (campaña/ciclo) y el DERRIBADO de POR LA PATRIA. `appearT` es el
 // reloj de la animacion de entrada: las estrellas entran de a una y las islas al final.
-const AWARD_GAP = 16;                                      // separación entre elementos
-export function drawAward(cx, cy, stars, appearT, t) {
+const AWARD_GAP = 16;                                      // separación entre elementos (a escala 1)
+/** `sc` agranda todo el galardón. Las pantallas de fin lo muestran GRANDE y arriba de todo: el
+ *  premio es lo primero que el jugador tiene que ver, los números vienen después. */
+export function drawAward(cx, cy, stars, appearT, t, sc) {
+  const S = sc || 1, gap = AWARD_GAP * S;
   // los 4 centros van simétricos alrededor de cx: -1.5·gap .. +1.5·gap. El pequeño corrimiento a la
   // izquierda compensa que las islas (4º) son más anchas que una estrella.
-  const x0 = cx - 1.5 * AWARD_GAP - 3;
+  const x0 = cx - 1.5 * gap - 3 * S;
   for (let i = 0; i < 3; i++) {
     const a = appearT - i * 0.22;
     if (a < 0) continue;
     const on = i < stars, pop = Math.max(0, 1 - a * 4);
     ctx.save();
-    ctx.translate(x0 + i * AWARD_GAP, cy); ctx.scale(1 + pop * 0.5, 1 + pop * 0.5);
+    ctx.translate(x0 + i * gap, cy); ctx.scale((1 + pop * 0.5) * S, (1 + pop * 0.5) * S);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = 'bold 13px monospace';
-    ctx.fillStyle = on ? P.accent : '#2e3c45';
+    ctx.fillStyle = on ? P.accent : P.ink;     // ganada dorada · pendiente BLANCA (legible sobre foto)
     ctx.fillText(on ? '★' : '☆', 0, 0);
     ctx.restore();
   }
   const ma = appearT - 3 * 0.22 - 0.15;                   // las Malvinas, un toque despues
-  if (ma >= 0) drawMalvinas(x0 + 3 * AWARD_GAP, cy, 1 + Math.max(0, 1 - ma * 3.5) * 0.8, stars >= 4, t, 0);
+  if (ma >= 0) drawMalvinas(x0 + 3 * gap, cy, (1 + Math.max(0, 1 - ma * 3.5) * 0.8) * S, stars >= 4, t, 0);
+  ctx.textBaseline = 'alphabetic';                        // el resto de las pantallas asume esto
 }
 
 export function drawResults(w) {
-  // fondo CASI opaco: panel() es translucido y el mundo (popups, mar, montañas) se colaba
-  // entre las filas del recuento y lo hacia ilegible
-  ctx.fillStyle = '#0a0e11f2'; ctx.fillRect(0, 0, W, H);
   const R = w.lastRun; if (!R) return;
+  // FONDO: ilustracion de victoria (antes era un relleno opaco para tapar el mundo del juego,
+  // que se colaba entre las filas y lo hacia ilegible; la foto tapa igual y ambienta)
+  drawEndBg(WIN_BG, w.bg || 0);
+  // ORDEN DE LECTURA: el PREMIO (estrellas + Malvinas) arriba de todo y grande, después el TOTAL,
+  // y el desglose abajo como detalle. El desglose sigue entrando fila por fila en su lugar; cuando
+  // termina, el premio y el total caen arriba — el remate va donde primero se mira.
   ctx.textAlign = 'center';
-  ctx.fillStyle = P.accent; ctx.font = 'bold 11px monospace';
-  ctx.fillText(T('res_title'), W / 2, 22);
+  ctx.fillStyle = P.dim; ctx.font = '7px monospace';
+  ctx.fillText(T('res_title'), W / 2, 14);
   ctx.fillStyle = P.ink; ctx.font = 'bold 8px monospace';
-  ctx.fillText(R.mission.name, W / 2, 34);
+  ctx.fillText(R.mission.name, W / 2, 25);
 
-  // filas del desglose: etiqueta a la izquierda, puntos a la derecha
-  let acc = 0;
+  const done = w.resRow >= R.rows.length;
+  const stT = w.resT - (R.rows.length * 0.45 + 0.15);
+
+  if (done) {
+    // GALARDON: 3 estrellas + las MALVINAS como 4ª (rango "S"). Igual que el remate de la remera.
+    drawAward(W / 2, 48, R.stars, stT, w.t, 1.7);
+    // TOTAL — el número grande, justo debajo del premio
+    ctx.textAlign = 'center'; ctx.fillStyle = P.accent; ctx.font = 'bold 15px monospace';
+    ctx.fillText(String(R.total), W / 2, 84);
+    ctx.fillStyle = P.dim; ctx.font = '6px monospace';
+    ctx.fillText(T('res_total'), W / 2, 93);
+    if (stT > 0.75) {                                     // calificacion
+      ctx.fillStyle = P.foam; ctx.font = 'bold 8px monospace';
+      ctx.fillText(T('res_rank') + '  ' + T(R.rank), W / 2, 105);
+    }
+  }
+
+  // desglose: etiqueta a la izquierda, puntos a la derecha (detalle, abajo)
   ctx.font = '7px monospace';
+  const y0 = 122;
   for (let i = 0; i < R.rows.length; i++) {
     if (i >= w.resRow) break;
-    const r = R.rows[i], y = 52 + i * 12;
-    acc += r.v;
+    const r = R.rows[i], y = y0 + i * 11;
     ctx.textAlign = 'left'; ctx.fillStyle = P.dim;
     ctx.fillText(T(r.k) + (r.n !== undefined ? '  ' + r.n : ''), 40, y);
     ctx.textAlign = 'right'; ctx.fillStyle = P.foam;
     ctx.fillText('+' + r.v, W - 40, y);
   }
 
-  // total (aparece cuando entraron todas las filas)
-  if (w.resRow >= R.rows.length) {
-    const y = 52 + R.rows.length * 12 + 4;
-    ctx.strokeStyle = '#2e3c45'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(40, y - 6.5); ctx.lineTo(W - 40, y - 6.5); ctx.stroke();
-    ctx.textAlign = 'left'; ctx.fillStyle = P.ink; ctx.font = 'bold 8px monospace';
-    ctx.fillText(T('res_total'), 40, y + 3);
-    ctx.textAlign = 'right'; ctx.fillStyle = P.accent;
-    ctx.fillText(String(R.total), W - 40, y + 3);
-
-    // GALARDON: 3 estrellas + las MALVINAS como 4ª (rango "S"). Igual que el remate de la remera.
-    const stT = w.resT - (R.rows.length * 0.45 + 0.15);
-    drawAward(W / 2, y + 24, R.stars, stT, w.t);
-    // calificacion
-    if (stT > 0.75) {
-      ctx.fillStyle = P.foam; ctx.font = 'bold 8px monospace';
-      ctx.fillText(T('res_rank') + '  ' + T(R.rank), W / 2, y + 42);
-    }
+  if (done) {
     if (stT > 1.1 && Math.sin(w.t * 4) > -0.3) {
-      ctx.fillStyle = P.accent; ctx.font = 'bold 7px monospace';
-      ctx.fillText(T('continuePrompt'), W / 2, H - 12);
+      ctx.textAlign = 'center'; ctx.fillStyle = P.accent; ctx.font = 'bold 7px monospace';
+      ctx.fillText(T('continuePrompt'), W / 2, H - 8);
     }
   }
 }
@@ -163,30 +255,40 @@ export function drawDead(w) {
   const rev = w.reveal == null ? 1 : w.reveal;
   ctx.save();
   ctx.globalAlpha = rev;
-  panel();
+  drawEndBg(LOSE_BG, w.bg || 0, rev);   // ilustracion de derrota (antes: velo sobre el mundo)
+  ctx.globalAlpha = rev;                // drawEndBg deja el alfa en 1
   ctx.textAlign = 'center';
-  ctx.fillStyle = P.warn; ctx.font = 'bold 16px monospace';
-  ctx.fillText(T('dead'), W / 2, 42);
-  ctx.fillStyle = P.dim; ctx.font = '7px monospace';
-  ctx.fillText(T(w.deathCause), W / 2, 55);
-  ctx.fillStyle = P.ink; ctx.font = 'bold 10px monospace';
-  ctx.fillText(T('scoreLabel', { n: Math.floor(w.score) }), W / 2, 78);
-  ctx.fillStyle = Math.floor(w.score) >= w.best && w.best > 0 ? P.accent : P.dim;
-  ctx.font = '8px monospace';
-  ctx.fillText((Math.floor(w.score) >= w.best && w.best > 0 ? T('newRecord') : T('bestDead', { n: w.best })), W / 2, 92);
+  // ORDEN DE LECTURA: primero el PREMIO (estrellas + Malvinas, grande y arriba de todo), después
+  // los NÚMEROS, y recién al final el "DERRIBADO". Lo que el jugador se lleva pesa más que la
+  // noticia de que perdió.
+  const hasAward = w.stars > 0 && w.awardT >= 0;
   // POR LA PATRIA: la corrida ENTERA fue el "nivel" → se premia con estrellas segun el puntaje.
   // w.stars viene de game.js (0 en los demas modos, donde el derribado es fracaso y no se premian).
-  if (w.stars > 0 && w.awardT >= 0) drawAward(W / 2, 108, w.stars, w.awardT, w.t);
-  const factY = w.stars > 0 ? 130 : 116;                  // el dato histórico baja para dejar lugar
+  if (hasAward) drawAward(W / 2, 34, w.stars, w.awardT, w.t, 1.7);
+
+  // PUNTAJE — el número grande, debajo del premio
+  const yScore = hasAward ? 72 : 46;
+  ctx.fillStyle = P.ink; ctx.font = 'bold 13px monospace';
+  ctx.fillText(T('scoreLabel', { n: Math.floor(w.score) }), W / 2, yScore);
+  ctx.fillStyle = Math.floor(w.score) >= w.best && w.best > 0 ? P.accent : P.dim;
+  ctx.font = '8px monospace';
+  ctx.fillText((Math.floor(w.score) >= w.best && w.best > 0 ? T('newRecord') : T('bestDead', { n: w.best })), W / 2, yScore + 14);
+
+  // DERRIBADO — al final: el desenlace, no el titular
+  ctx.fillStyle = P.warn; ctx.font = 'bold 14px monospace';
+  ctx.fillText(T('dead'), W / 2, yScore + 40);
+  ctx.fillStyle = P.dim; ctx.font = '7px monospace';
+  ctx.fillText(T(w.deathCause), W / 2, yScore + 52);
+
   ctx.fillStyle = '#8a9ba1'; ctx.font = '6px monospace';
-  wrapText('» ' + L().facts[w.factIdx], W / 2, factY, 260, 9);
+  wrapText('» ' + L().facts[w.factIdx], W / 2, yScore + 62, 260, 9);
   if (w.deathT > 0.7 && Math.sin(w.t * 4) > -0.3) {
     ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-    ctx.fillText(T('retryPrompt'), W / 2, 150);
+    ctx.fillText(T('retryPrompt'), W / 2, H - 24);
   }
   if (w.deathT > 0.7) {
     ctx.fillStyle = P.dim; ctx.font = '7px monospace';
-    ctx.fillText(T('menuPrompt'), W / 2, 162);
+    ctx.fillText(T('menuPrompt'), W / 2, H - 12);
   }
   ctx.restore();
 }

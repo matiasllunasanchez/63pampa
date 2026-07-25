@@ -37,6 +37,7 @@ export function setState(next) {
 export const cfg = {
   sky: 'dusk', water: 'sea', terrain: 'sea', wind: true,
   obstacles: 1, coast: 230, meters: 3000, fuelOn: true, energy: true,
+  mira: 6,   // mira elegida (1..9 de assets/miras.webp); se cambia en el menu [M] y persiste
 };
 
 /** Camara del mundo 2D. La comparten el render y el momentum. */

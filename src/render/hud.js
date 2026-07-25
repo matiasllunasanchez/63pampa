@@ -8,7 +8,7 @@
 // curLevel, objectiveDist, objectiveShip) vive en game.js y entra por parametro, igual que las
 // otras pantallas (render/screens.js, render/menus.js).
 
-import { ctx, px, W, H, PZ } from './ctx.js';
+import { ctx, px, DW as W, DH as H, PZ, U } from './ctx.js';
 import { plane } from '../core/state.js';
 import { run } from '../core/run.js';
 import { proj } from '../core/fx.js';
@@ -191,7 +191,10 @@ export function drawHUD(h) {
 
   // multiplicador junto al avión — crece con la racha rasante
   if (run.multShow > 1) {
-    const s = proj(plane.x, plane.y, PZ);
+    // proj() devuelve coordenadas de MUNDO (grilla 480x270) y el HUD razona en la de DISEÑO
+    // (320x180): hay que dividir por U. Es el unico punto del HUD anclado al mundo.
+    const pw = proj(plane.x, plane.y, PZ);
+    const s = { x: pw.x / U, y: pw.y / U, k: pw.k / U };
     ctx.textAlign = 'left';
     const size = run.multShow >= 15 ? 12 + run.rasLevel : run.multShow >= 10 ? 11 : run.multShow >= 5 ? 10 : 9;
     ctx.font = 'bold ' + size + 'px monospace';

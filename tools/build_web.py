@@ -21,7 +21,8 @@ OUT = ROOT / 'dist-web' / 'index.html'
 IMG = [('cockpit_sky.png', 'image/png'),
        ('plane_sky_sheet.png', 'image/png'), ('plane_dagger_sheet.png', 'image/png'),
        ('plane_supere_sheet.png', 'image/png'), ('plane_a4q_sheet.png', 'image/png'),
-       ('plane_pampa_sheet.png', 'image/png')]
+       ('plane_pampa_sheet.png', 'image/png'),
+       ('plane_mirage.png', 'image/png'), ('plane_mirage_sheet.png', 'image/png')]
 PLANES = ['sky', 'dagger', 'supere', 'a4q', 'pampa']
 # El juego usa mp3 originales; para la web se re-embebe la m4a comprimida de assets/audio/web/.
 # Las pistas de adrenaline que no entran en el límite de 16 MB se DESCARTAN del build web ('').
@@ -79,6 +80,20 @@ def main():
         js, ok = sub_path(js, f'../assets/img/plane_{key}.webp', uri(ASSETS / 'img' / f'plane_{key}.webp', 'image/webp')); n += ok
     # emblema de las Malvinas (4a estrella del recuento) — vive en assets/images/ (no en img/)
     js, ok = sub_path(js, '../assets/images/malvinas.webp', uri(ASSETS / 'images' / 'malvinas.webp', 'image/webp')); n += ok
+    # hoja de miras (3x3) — vive suelta en assets/
+    js, ok = sub_path(js, '../assets/miras.webp', uri(ASSETS / 'miras.webp', 'image/webp')); n += ok
+    # ILUSTRACIONES de portada y de fin (assets/images/general/{ppal,win,lose}/): NO entran en
+    # el build web — son ~20 fotos y el Artifact tope 16 MB. Mismo criterio que TBACK. En
+    # Electron/Steam si van; aca las pantallas caen al fondo opaco (drawEndBg/drawPpalBg lo
+    # contemplan y `load` no pide nada si la ruta quedo vacia).
+    # Se BARREN las carpetas en vez de listar nombres: agregar una foto no debe romper el build.
+    for sub in ('ppal', 'win', 'lose'):
+        d = ASSETS / 'images' / 'general' / sub
+        if not d.is_dir():
+            continue
+        for p in sorted(d.iterdir()):
+            if p.is_file() and not p.name.startswith('.'):
+                js, _ = sub_path(js, f'../assets/images/general/{sub}/{p.name}', '')
     # re-embeber audio: mp3 del juego -> m4a comprimida (o '' para las que no entran en la web)
     for mp3, m4a in WEB_AUDIO.items():
         js, ok = sub_path(js, f'../assets/audio/{mp3}', uri(ASSETS / 'audio' / 'web' / m4a, 'audio/mp4')); n += ok

@@ -14,13 +14,21 @@ export const PLANES = [
   { key: 'supere', name: 'SUPER ETENDARD', src: "../assets/img/plane_supere.webp", sheet: '../assets/img/plane_supere_sheet.png', desc: { es: 'Misiones especiales - misiles Exocet', en: 'Special missions - Exocet missiles' } },
   { key: 'a4q', name: 'A-4Q', src: "../assets/img/plane_a4q.webp", sheet: '../assets/img/plane_a4q_sheet.png', desc: { es: 'Variante naval - similar al A-4B/C', en: 'Naval variant - similar to the A-4B/C' } },
   { key: 'pampa', name: 'PAMPA 63', src: "../assets/img/plane_pampa.webp", sheet: '../assets/img/plane_pampa_sheet.png', desc: { es: 'Entrenador biplaza IA-63', en: 'IA-63 two-seat trainer' } },
+  { key: 'mirage', name: 'MIRAGE IIIEA', src: "../assets/img/plane_mirage.png", sheet: '../assets/img/plane_mirage_sheet.png', desc: { es: 'Interceptor de altura - rapido y con poca autonomia', en: 'High-altitude interceptor - fast, short legs' } },
 ];
-export const SHEET_FW = 56, SHEET_FH = 32, SHEET_NF = 9, SHEET_ROWS = 3;   // 9 cols (alabeo) x 3 filas (cabeceo: trepa/nivel/pica); tambien spec para arte manual
+// 84x48 por cuadro (antes 56x32): se re-hornearon a 1.5x al subir la grilla del juego a 480x270.
+// Con el buffer 2x del juego, el sprite cae a 2x EXACTO en pantalla — pixel art nitido.
+export const SHEET_FW = 84, SHEET_FH = 48, SHEET_NF = 9, SHEET_ROWS = 3;   // 9 cols (alabeo) x 3 filas (cabeceo: trepa/nivel/pica); tambien spec para arte manual
 PLANES.forEach(pl => {
   pl.img = new Image(); pl.ready = false; pl.w = 977; pl.h = 471;
   pl.img.onload = () => { pl.ready = true; pl.w = pl.img.naturalWidth; pl.h = pl.img.naturalHeight; };
   pl.img.src = pl.src;
-  pl.sheetImg = new Image(); pl.sheetOk = false;
-  pl.sheetImg.onload = () => { pl.sheetOk = true; };
-  pl.sheetImg.src = pl.sheet;
+  // la hoja es OPCIONAL: un avion sin `sheet` vuela con la ilustracion. Sin este guard se pediria
+  // una imagen inexistente y quedaria un 404 en la consola.
+  pl.sheetOk = false;
+  if (pl.sheet) {
+    pl.sheetImg = new Image();
+    pl.sheetImg.onload = () => { pl.sheetOk = true; };
+    pl.sheetImg.src = pl.sheet;
+  }
 });

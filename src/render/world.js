@@ -12,6 +12,7 @@ import { run } from '../core/run.js';
 import { wake } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { P, LAND } from '../data/palette.js';
+import { SHIP_UH, SHIP_DECK } from '../data/tuning.js';
 import * as momentum from '../systems/momentum.js';
 import * as momRender from './momentum.js';
 
@@ -83,7 +84,10 @@ const TUFT_TIP = ['#899366', '#98a66a', '#748558', '#a6a870', '#6a7c50', '#b0ae7
 // matas/rocas dispersas sobre la tierra (parallax de movimiento a ras del suelo). La posición y el
 // color salen de un hash por celda: distribución aleatoria de verdad (sin patrón) y colores variados.
 function drawLand() {
-  const SPX = 4.2, SPZ = 4.2, farZ = 190;
+  // pasos DIVIDIDOS por U al subir la resolucion: sin esto se dibujaria la misma cantidad de
+  // matas pero 1.5x mas grandes (misma imagen agrandada). Bajarlos es lo que convierte los
+  // pixeles nuevos en densidad real.
+  const SPX = 2.8, SPZ = 2.8, farZ = 190;
   const dv = run.dist + momentum.drift();
   const startZ = Math.max(cfg.coast + 2, Math.ceil((dv + 4) / SPZ) * SPZ);
   for (let wz = startZ; wz < dv + farZ; wz += SPZ) {
@@ -130,7 +134,7 @@ function drawLand() {
 
 // malla de puntos que forma la onda del mar en perspectiva (estilo boostivity)
 function drawSeaDots(landVisible) {
-  const SPX = 1.4, SPZ = 1.5, farZ = 190;   // densidad x4 (antes 2.8x3.0), puntos a 1/4
+  const SPX = 0.93, SPZ = 1.0, farZ = 190;  // densidad x4, y ademas /U al subir la resolucion
   const dv = run.dist + momentum.drift();
   const startZ = Math.ceil((dv + 4) / SPZ) * SPZ;
   // paso ADAPTATIVO: cerca muestrea a SPZ/SPX plenos; lejos el paso crece para mantener
@@ -368,21 +372,21 @@ export function drawApproachBarge(objectiveDist, objectiveShip) {
   const sc0 = ph === 0 ? 0.04 : PH[ph - 1].scale * 1.06;  // continua donde quedo la pasada anterior
   const scE = next.scale * 0.82;
   const sc = sc0 + (scE - sc0) * f;
-  const uh = 9 * sc, hullH = uh * 1.5;
+  const uh = SHIP_UH * sc, hullH = uh * 1.5;
   // POSICION: anclamos por la LINEA DE FLOTACION, no por la cubierta. De lejos (f=0) la flotacion
   // cae justo en el horizonte (el barco asoma hacia arriba, en el cielo); al acercarse la flotacion
   // baja hacia el primer plano con ease-in cuadratico. En f=1 la cubierta queda en HOR+36*scE, que
   // es donde la toma la primera pasada del momentum (empalme intacto).
-  const bx = W / 2 - cam.x * 1.2 + Math.sin(run.t * 0.8) * 6 * sc;
+  const bx = W / 2 - cam.x * 1.2 + Math.sin(run.t * 0.8) * 9 * sc;
   const wOff = ph === 0
-    ? (36 * scE + hullH) * f * f                                   // flotacion: horizonte → primer plano
-    : 36 * sc0 + hullH + (36 * scE - 36 * sc0) * f * f;            // pasadas siguientes: como antes
-  const waterY = HOR + wOff + Math.sin(run.t * 1.3) * 1.2 * sc;    // linea de flotacion en pantalla
+    ? (SHIP_DECK * scE + hullH) * f * f                            // flotacion: horizonte → primer plano
+    : SHIP_DECK * sc0 + hullH + (SHIP_DECK * scE - SHIP_DECK * sc0) * f * f;   // pasadas siguientes: como antes
+  const waterY = HOR + wOff + Math.sin(run.t * 1.3) * 1.8 * sc;    // linea de flotacion en pantalla
   const by = waterY - hullH;                                       // cubierta = flotacion - alto del casco
   // CORTE por el horizonte: de lejos el corte esta sobre la cubierta (solo superestructura); se
   // baja hasta pasar la flotacion cuando ya estamos cerca. Solo en la primera aparicion (ph 0).
   const reveal = ph === 0 ? Math.max(0, Math.min(1, f / 0.6)) : 1;
-  const clipY = by + (waterY + 2 - by) * reveal;
+  const clipY = by + (waterY + 3 - by) * reveal;
   ctx.save();
   ctx.beginPath(); ctx.rect(-80, -80, W + 160, clipY + 80); ctx.clip();   // dibuja solo por encima del corte
   // bruma atmosferica: de lejos es una silueta tenue → los obstaculos (solidos) resaltan encima
@@ -391,7 +395,7 @@ export function drawApproachBarge(objectiveDist, objectiveShip) {
   ctx.globalAlpha = 1;
   ctx.restore();
   if (sc > 0.28) {   // ya cerca: nombre sobre el barco
-    ctx.font = '6px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.warn; ctx.globalAlpha = 0.85;
+    ctx.font = '9px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.warn; ctx.globalAlpha = 0.85;
     ctx.fillText(objectiveShip, bx, by - uh * 4.6);
     ctx.globalAlpha = 1;
   }
@@ -409,22 +413,22 @@ export function drawObjectiveMarker(objectiveDist) {
   const fade = p < 0.55 ? 1 : Math.max(0, 1 - (p - 0.55) / 0.12);
   if (fade <= 0) return;
   const tx = W / 2 - cam.x * 1.2;                       // misma columna que la barcaza objetivo
-  const mx = Math.max(6, Math.min(W - 6, tx));          // pegado al borde si quedo afuera
-  const off = tx < 6 ? -1 : tx > W - 6 ? 1 : 0;         // -1 izquierda, 1 derecha, 0 en pantalla
+  const mx = Math.max(9, Math.min(W - 9, tx));          // pegado al borde si quedo afuera
+  const off = tx < 9 ? -1 : tx > W - 9 ? 1 : 0;         // -1 izquierda, 1 derecha, 0 en pantalla
   const pulse = 0.62 + 0.38 * (0.5 + 0.5 * Math.sin(run.t * 4));
   ctx.save();
   ctx.globalAlpha = fade * pulse;
   ctx.fillStyle = P.warn;
   if (off === 0) {
-    const bob = Math.sin(run.t * 2) * 0.8, ty = HOR - 9 + bob;
+    const bob = Math.sin(run.t * 2) * 1.2, ty = HOR - 14 + bob;
     ctx.beginPath();                                    // cuña apuntando hacia abajo, al horizonte
-    ctx.moveTo(mx, ty + 7); ctx.lineTo(mx - 3.5, ty); ctx.lineTo(mx + 3.5, ty); ctx.closePath(); ctx.fill();
+    ctx.moveTo(mx, ty + 10); ctx.lineTo(mx - 5, ty); ctx.lineTo(mx + 5, ty); ctx.closePath(); ctx.fill();
     ctx.globalAlpha = fade * pulse * 0.5;               // tallo tenue hasta la linea del horizonte
-    ctx.fillRect(Math.round(mx) - 0.5, ty + 7, 1, HOR - (ty + 7));
+    ctx.fillRect(Math.round(mx) - 0.5, ty + 10, 1.5, HOR - (ty + 10));
   } else {                                              // flecha lateral pegada al borde
-    const ay = HOR - 6, dir = off;
+    const ay = HOR - 9, dir = off;
     ctx.beginPath();
-    ctx.moveTo(mx + dir * 4, ay); ctx.lineTo(mx - dir * 2, ay - 4); ctx.lineTo(mx - dir * 2, ay + 4); ctx.closePath(); ctx.fill();
+    ctx.moveTo(mx + dir * 6, ay); ctx.lineTo(mx - dir * 3, ay - 6); ctx.lineTo(mx - dir * 3, ay + 6); ctx.closePath(); ctx.fill();
   }
   ctx.restore();
 }

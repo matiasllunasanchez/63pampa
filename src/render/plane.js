@@ -7,19 +7,22 @@
 // Recibe `selPlane` (que avion eligio el jugador — estado de menu, vive en game.js) y `viewMouse`
 // (resuelve la mira segun la camara — la camara sigue en game.js). El resto lo lee de los stores.
 
-import { ctx, px, PZ } from './ctx.js';
+import { ctx, px, PZ, U } from './ctx.js';
 import { plane, cfg, S } from '../core/state.js';
 import { run } from '../core/run.js';
 import { inp } from '../core/input.js';
 import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
+import { drawMira } from './miras.js';
 import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH } from '../data/planes.js';
 import { ROLL_DUR } from '../data/tuning.js';
 
+const MIRA_SIZE = 17;   // lado de la mira en pixeles de mundo (480x270)
+
 // PERILLAS del "vuelo vivo": el avion nunca queda congelado en el aire. Son sutiles a proposito
 // (el juego corre a 320x180, 1px se nota). Subilas para que flote/cabecee mas, bajalas para calmarlo.
-const BOB_Y  = 1.0;    // amplitud del bob vertical (px)
-const BOB_X  = 0.5;    // amplitud de la deriva horizontal (px) — desfasada del bob → flota en "8"
+const BOB_Y  = 1.5;    // amplitud del bob vertical (px)
+const BOB_X  = 0.75;    // amplitud de la deriva horizontal (px) — desfasada del bob → flota en "8"
 const WOBBLE = 0.026;  // amplitud de la micro-oscilacion de alabeo (rad, ~1.5°)
 
 export function drawPlane(selPlane, viewMouse) {
@@ -27,13 +30,13 @@ export function drawPlane(selPlane, viewMouse) {
   // sombra sobre el agua (referencia de altura)
   const sh = proj(plane.x, 0, PZ);
   ctx.globalAlpha = Math.max(0.08, 0.4 - plane.y * 0.009);
-  px(sh.x - 9, sh.y, 18, 2, '#101c1e');
+  px(sh.x - 13, sh.y, 27, 3, '#101c1e');
   // espuma batida justo debajo cuando vuela bajo (solo sobre agua)
   const churn = Math.max(0, 1 - plane.y / 7);
   if (churn > 0 && S.state === 'play' && cfg.terrain !== 'land') {
     ctx.globalAlpha = churn * 0.7;
-    px(sh.x - 11, sh.y - 1, 22, 2, P.foam);
-    px(sh.x - 15, sh.y, 30, 1, P.crest);
+    px(sh.x - 16, sh.y - 1.5, 33, 3, P.foam);
+    px(sh.x - 22, sh.y, 45, 1.5, P.crest);
   }
   ctx.globalAlpha = 1;
 
@@ -46,11 +49,11 @@ export function drawPlane(selPlane, viewMouse) {
   const bobX = alive ? Math.sin(run.t * 2.3 + 1.1) * BOB_X : 0;
   const wob  = alive ? (Math.sin(run.t * 2.3) * 0.7 + Math.sin(run.t * 3.7) * 0.3) * WOBBLE : 0;
   // VIBRACION al rozar la superficie: temblor rapido del fuselaje (el avion, no la camara)
-  const vx2 = run.scrapeVib ? (Math.random() - 0.5) * 3.2 * run.scrapeVib : 0;
-  const vy2 = run.scrapeVib ? (Math.random() - 0.5) * 2.4 * run.scrapeVib : 0;
+  const vx2 = run.scrapeVib ? (Math.random() - 0.5) * 4.8 * run.scrapeVib : 0;
+  const vy2 = run.scrapeVib ? (Math.random() - 0.5) * 3.6 * run.scrapeVib : 0;
   ctx.translate(s.x + vx2 + bobX, s.y - bobY + vy2);
   // cabeceo: el morro sube al trepar / baja al caer (desplazamiento vertical del sprite)
-  ctx.translate(0, -plane.pitch * 1.2);
+  ctx.translate(0, -plane.pitch * 1.8);
   // alabeo: rotación 2D + micro-wobble; el foreshortening en X finge la inclinación 3D del ala
   const bank = Math.max(-1, Math.min(1, plane.bank));
   const pl = PLANES[selPlane];
@@ -68,6 +71,11 @@ export function drawPlane(selPlane, viewMouse) {
     ctx.rotate(bank * 0.42 + wob);
     ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
   }
+  // Todo este bloque esta authorado para la grilla de 320x180 (fogonazos, fallback de rects,
+  // sangre), asi que se escala por U. Las HOJAS ya vienen horneadas a 1.5x, por eso se dibujan
+  // a SHEET_FW/U: ocupan lo mismo en pantalla pero con 1.5x mas pixeles de fuente.
+  ctx.scale(U, U);
+  const spW = SHEET_FW / U, spH = SHEET_FH / U;
   if (useSheet) {
     ctx.imageSmoothingEnabled = false;   // pixel art nítido (el save/restore de afuera lo repone)
     // COLUMNA por alabeo. bank>0 = va a la DERECHA → tiene que banquear a la derecha, pero
@@ -83,11 +91,11 @@ export function drawPlane(selPlane, viewMouse) {
       ctx.save();
       ctx.rotate(-run.rollDir * gi * 0.55);
       ctx.globalAlpha = 0.14;
-      ctx.drawImage(pl.sheetImg, sx4, sy4, SHEET_FW, SHEET_FH, -SHEET_FW / 2, -SHEET_FH / 2, SHEET_FW, SHEET_FH);
+      ctx.drawImage(pl.sheetImg, sx4, sy4, SHEET_FW, SHEET_FH, -spW / 2, -spH / 2, spW, spH);
       ctx.restore();
     }
-    if (run.boost) { const fl = 5 + Math.random() * 4; px(-2, SHEET_FH / 2 - 8, 4, fl, P.foam); px(-1, SHEET_FH / 2 - 8, 2, fl * 0.7, P.accent); }
-    ctx.drawImage(pl.sheetImg, sx4, sy4, SHEET_FW, SHEET_FH, -SHEET_FW / 2, -SHEET_FH / 2, SHEET_FW, SHEET_FH);
+    if (run.boost) { const fl = 5 + Math.random() * 4; px(-2, spH / 2 - 8, 4, fl, P.foam); px(-1, spH / 2 - 8, 2, fl * 0.7, P.accent); }
+    ctx.drawImage(pl.sheetImg, sx4, sy4, SHEET_FW, SHEET_FH, -spW / 2, -spH / 2, spW, spH);
     if (inp.fire && !run.overheat && run.fireT > 0.06) { px(-6, -2, 3, 2, P.ink); px(3, -2, 3, 2, P.ink); }
   } else if (pl.ready) {
     const PW = 54, PH = Math.round(PW * pl.h / pl.w);
@@ -126,10 +134,12 @@ export function drawPlane(selPlane, viewMouse) {
   if (S.state === 'play') {
     const vm = viewMouse();   // en camara CERCA la mira se dibuja en coords des-zoomeadas: queda bajo el cursor fisico
     const c = vm.on ? vm : proj(plane.x, plane.y, 70);
-    ctx.globalAlpha = 0.7;
-    px(c.x - 3, c.y, 2, 1, P.accent); px(c.x + 2, c.y, 2, 1, P.accent);
-    px(c.x, c.y - 3, 1, 2, P.accent); px(c.x, c.y + 2, 1, 2, P.accent);
-    if (vm.on) { ctx.strokeStyle = P.accent; ctx.globalAlpha = 0.35; ctx.strokeRect(c.x - 5, c.y - 5, 10, 10); }
-    ctx.globalAlpha = 1;
+    // MIRA elegible desde el menu [M] (cfg.mira, 1..9). Si la hoja no cargo aun, reticulo vectorial.
+    if (!drawMira(cfg.mira, c.x, c.y, MIRA_SIZE, vm.on ? 0.9 : 0.7)) {
+      ctx.globalAlpha = 0.7;
+      px(c.x - 5, c.y, 3, 1.5, P.accent); px(c.x + 3, c.y, 3, 1.5, P.accent);
+      px(c.x, c.y - 5, 1.5, 3, P.accent); px(c.x, c.y + 3, 1.5, 3, P.accent);
+      ctx.globalAlpha = 1;
+    }
   }
 }

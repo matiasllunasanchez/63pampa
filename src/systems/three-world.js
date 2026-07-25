@@ -9,9 +9,12 @@
 // rige el dibujo 2D de siempre.
 import { SHIP_CLASS } from '../data/ships.js';
 
+// Las medidas se IMPORTAN de render/ctx.js: antes estaban copiadas aca (W=320, HOR=64, F=90) y si
+// cambiaba la resolucion el 3D se desalineaba del 2D sin tirar ningun error.
+import { W, HOR, F } from '../render/ctx.js';
+
 const THREE = window.THREE || null;
 const has3D = !!THREE && !/\bno3d\b/.test(location.search);   // ?no3d fuerza el fallback 2D (pruebas)
-const W = 320, HOR = 64, F = 90;   // mismos valores que game.js: la proyeccion 3D calza con proj()
 
 // Durante el momentum, three.js renderiza el FONDO (cielo + mar + barco 3D de cajas) a baja
 // resolucion y el resultado se blitea DENTRO del mismo transform del canvas que rotaba el
@@ -23,11 +26,11 @@ const W = 320, HOR = 64, F = 90;   // mismos valores que game.js: la proyeccion 
 //  - barco de TAMAÑO FIJO (M3_LEN) y DISTANCIA variable D = M3_LEN*F/len_px → la proyeccion
 //    calza exacta con momShipGeom (len, deckY) y el acercamiento entre pasadas es fisico.
 // Sin THREE (o ?no3d) todo esto se saltea y rige el dibujo 2D de siempre.
-export const M3W = 464, M3H = 384;          // overscan del render (cubre rolls completos)
+export const M3W = 696, M3H = 576;          // overscan del render (cubre rolls completos) — 464x384 x1.5
 const M3_LEN = 45;                   // eslora en unidades de mundo
-const M3_U = M3_LEN * 9 / (W * 0.82);          // "uh" en mundo (proporcion constante del 2D)
-const M3_DECK = -M3_LEN * 36 / (W * 0.82);     // altura de cubierta (deck) bajo el horizonte
-const M3_WATER = -M3_LEN * 49.5 / (W * 0.82);  // linea de flotacion (deckY + hullH en 2D)
+const M3_U = M3_LEN * 13.5 / (W * 0.82);          // "uh" en mundo (proporcion constante del 2D)
+const M3_DECK = -M3_LEN * 54 / (W * 0.82);     // altura de cubierta (deck) bajo el horizonte
+const M3_WATER = -M3_LEN * 74.25 / (W * 0.82);  // linea de flotacion (deckY + hullH en 2D)
 const WATER_NORMALS_SRC = '../assets/img/waternormals.jpg';   // normal map del agua (three/Water)
 // ESPEJO realista (addon three/Water): DESACTIVADO por decision de diseño (20/7) — probado
 // en momentum y en toda el agua, quedaba "super plano" vs el mar de cuadrados, que es la
@@ -58,7 +61,7 @@ function mom3DInit() {
     const r = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'low-power' });
     r.setSize(M3W, M3H, false);
     const cam = new THREE.PerspectiveCamera(2 * Math.atan(116 / F) * 180 / Math.PI, 320 / 232, 2, 5200);
-    cam.setViewOffset(320, 232, -72, -50, M3W, M3H);   // punto principal en (W/2, HOR) + overscan
+    cam.setViewOffset(480, 348, -108, -75, M3W, M3H);   // punto principal en (W/2, HOR) + overscan
     const sc = new THREE.Scene();
     // color placeholder: m3Palette() fija el real (SKY.horizon) en el primer frame
     sc.fog = new THREE.Fog(new THREE.Color('#7d6a4e'), 320, 2100);
@@ -375,7 +378,7 @@ export function frame(w) {
     for (let camZ2 = 4; camZ2 < 190 && i < N - 950; camZ2 += Math.max(0.75, camZ2 * camZ2 * 0.0011)) {
       const wz = dv2 + camZ2;
       const f = Math.min(1, (camZ2 / 190) * 0.85);                 // fade a base (como el 2D)
-      const half = Math.min(320, (W / 2 + 10) * camZ2 / F + 6);    // ancho frustum de la fila
+      const half = Math.min(320, (W / 2 + 15) * camZ2 / F + 6);    // ancho frustum de la fila
       const sx2 = Math.max(0.7, camZ2 * 0.0089);                   // espaciado x adaptativo
       const nAct = Math.min(((half * 2 / sx2) | 0) + 1, N - i);
       for (let col = 0; col < nAct; col++, i++) {

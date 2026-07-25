@@ -3,15 +3,32 @@
 // Todo el render del juego pasa por aca. Se separa para que cada modulo de pantalla pueda
 // dibujar sin recibir el contexto por parametro en cada llamada.
 //
-// El juego se dibuja SIEMPRE en coordenadas 320x180 (W x H). El canvas real es 2x (SC) para que
+// El juego se dibuja SIEMPRE en coordenadas 480x270 (W x H). El canvas real es 2x (SC) para que
 // el texto y el arte queden nitidos; el escalado lo aplica el propio contexto, asi que el resto
 // del codigo puede razonar en la grilla chica y olvidarse del buffer.
+//
+// RESOLUCION: la grilla era 320x180 y se subio a 480x270 (exactamente 1.5x) para que cada cosa
+// tenga mas pixeles y admita mas detalle. HOR y F escalaron con ella: como proj() usa W/2, HOR y F
+// juntos, TODO lo que se dibuja en coordenadas de MUNDO (mar, tierra, obstaculos, avion) se adapta
+// solo y conserva su tamaño relativo. Lo que hubo que reescalar a mano fue lo que estaba en
+// coordenadas ABSOLUTAS de pantalla: HUD, pantallas, menus y el visor del momentum.
+// Las constantes de MUNDO (FLY_X, PZ, alturas de obstaculos...) NO se tocan.
 
-export const W = 320, H = 180;
-export const HOR = 64;   // fila del horizonte, en coordenadas de mundo
-export const F = 90;     // distancia focal de la proyeccion (ver proj())
+export const W = 480, H = 270;
+export const HOR = 96;   // fila del horizonte, en coordenadas de mundo
+export const F = 135;    // distancia focal de la proyeccion (ver proj())
 export const PZ = 14;    // profundidad a la que vuela el avion
 export const SC = 2;     // buffer 2x
+
+// GRILLA DE DISEÑO del HUD, las pantallas y los menus. Esas capas son texto y cajas en
+// coordenadas ABSOLUTAS: subir la resolucion no les agrega detalle (el texto ya se rasteriza a la
+// resolucion final del dispositivo), solo les correria todo de lugar. Por eso siguen razonando en
+// 320x180 y el orquestador las dibuja con ctx.scale(U).
+//
+// No hay borroneo: U (1.5) x SC (2) = 3 EXACTO, asi que cada unidad de diseño cae en 3 pixeles
+// enteros del buffer. De hecho el texto queda MAS nitido que antes (se rasteriza a 3x en vez de 2x).
+export const DW = 320, DH = 180;
+export const U = W / DW;   // 1.5 — factor de la grilla de diseño a la de mundo
 
 export const cv = document.getElementById('g');
 export const ctx = cv.getContext('2d');

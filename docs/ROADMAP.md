@@ -396,5 +396,33 @@ siguen razonando en su grilla de 320×180**, escalados ×1.5 al dibujar.
 Así el **mundo gana detalle de verdad** (es procedural: más píxeles = más detalle gratis) y el HUD
 queda idéntico sin tocar una sola coordenada.
 
-- [ ] Decidir si vale la pena (¿el cuello de botella es resolución o densidad de arte?).
-- [ ] Si se hace: camino híbrido de arriba, y re-hornear sprites (si no, no se gana nada).
+### ✅ HECHO — cómo quedó
+
+Se aplicó el camino híbrido. **Dos espacios de coordenadas, explícitos:**
+
+| capa | espacio | por qué |
+|---|---|---|
+| mundo (mar, tierra, obstáculos, avión, momentum) | **480×270 nativo** | es procedural: más píxeles = más detalle real |
+| HUD, pantallas, menús | **320×180 escalado ×U** | son texto y cajas; no ganan nada con más píxeles |
+
+Claves de por qué el híbrido no tiene costo:
+- **Sin medio píxel:** `U` (1.5) × `SC` (2) = **3 exacto**, así que cada unidad de diseño cae en 3
+  píxeles enteros. El texto del HUD encima quedó *más* nítido (se rasteriza a 3× en vez de 2×).
+- **El mundo se adaptó solo:** `proj()` usa `W/2`, `HOR` y `F` juntos, así que al escalar los tres
+  todo lo dibujado en coordenadas de mundo conservó su tamaño relativo sin tocar una línea.
+- Las constantes de MUNDO (`FLY_X`, `PZ`, alturas de obstáculos) no se tocaron.
+
+**Bugs latentes que aparecieron y se arreglaron:**
+- `systems/three-world.js` tenía una **copia hardcodeada** de `W/HOR/F`. Al cambiar la resolución el
+  3D se habría desalineado del 2D **sin tirar ningún error**. Ahora las importa de `render/ctx.js`.
+- La geometría de la barcaza (`36`/`9`) estaba repetida en tres módulos. Se centralizó en
+  `SHIP_DECK`/`SHIP_UH` (`data/tuning.js`).
+
+**Verificado:** gate completo en verde (incluye smoke de Electron y de web), momentum capturado y
+alineado, y **120 FPS** medidos — sin regresión pese a 2.25× más puntos de mar.
+
+- [x] **Sprites re-horneados a 1.5× (hecho).** `tools/bake_planes.html` pasó de 56×32 a **84×48**
+      por cuadro (mismo aspecto 1.75, así que el encuadre de cámara no cambió). Con el buffer 2×
+      del juego el sprite cae a **2× exacto** en pantalla en vez de un estirado 3×. De paso se le
+      sumó detalle a los modelos low-poly (tomas de aire, anillo de escape, puntas de ala), que
+      a 56×32 no se distinguía.

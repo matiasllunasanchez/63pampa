@@ -21,7 +21,10 @@
   <script src="../src/vendor/three.global.js"></script>
   <script>
     'use strict';
-    const FW = 56, FH = 32;                       // tamaño de cada frame
+    // RESOLUCION: 56x32 -> 84x48 (x1.5) al subir la grilla del juego a 480x270. Mismo aspecto
+    // (1.75), asi que el encuadre de la camara no cambia. Con 84 px de fuente y el buffer 2x
+    // del juego, el sprite se dibuja a 2x EXACTO: pixel art nitido en vez de un estirado 3x.
+    const FW = 84, FH = 48;                       // tamaño de cada frame
     const ANGLES = [-60, -45, -30, -15, 0, 15, 30, 45, 60];   // alabeo por columna (indice 4 = nivelado)
     const PITCHES = [14, 0, -14];                 // cabeceo por FILA: trepando / nivelado / picando
 
@@ -57,10 +60,15 @@
       const g = new THREE.Group();
       B(g, 0.78, 0.78, 5.0, camoA, 0, 0, 0);                    // fuselaje
       B(g, 0.5, 0.5, 1.0, EXHAUST, 0, 0, 2.6);                  // tobera
-      B(g, 5.2, 0.14, 1.7, camoB, 0, -0.16, 0.55);              // ala (delta baja)
-      B(g, 3.4, 0.12, 1.0, camoDetail, 0, -0.14, -0.55);        // raiz hacia adelante
-      B(g, 1.7, 0.16, 1.1, camoDetail, -1.25, -0.10, 0.45);     // parche camo
-      B(g, 1.3, 0.16, 0.9, camoDetail, 1.45, -0.11, 0.7);       // parche camo
+      // ALA en flecha: cinco bandas que se angostan hacia adelante. Antes eran DOS cajas y el
+      // borde de ataque quedaba como un escalon cuadrado (efecto 'avion de carton').
+      B(g, 5.20, 0.14, 0.55, camoB, 0, -0.16, 1.15);            // ala: borde de fuga (max envergadura)
+      B(g, 4.60, 0.14, 0.55, camoB, 0, -0.155, 0.63);
+      B(g, 3.90, 0.13, 0.55, camoB, 0, -0.15, 0.11);
+      B(g, 3.10, 0.13, 0.55, camoDetail, 0, -0.145, -0.41);
+      B(g, 2.20, 0.12, 0.55, camoDetail, 0, -0.14, -0.93);      // ala: borde de ataque (angosto)
+      B(g, 1.7, 0.16, 0.9, camoDetail, -1.25, -0.10, 0.75);     // parche camo
+      B(g, 1.3, 0.16, 0.8, camoDetail, 1.45, -0.11, 0.95);      // parche camo
       B(g, 2.2, 0.10, 0.8, camoB, 0, 0.5, 2.15);                // estab. alto (A-4)
       B(g, 0.12, 1.3, 1.0, camoA, 0, 0.85, 2.15);               // deriva
       B(g, 0.12, 0.4, 0.6, ACCENT, 0, 1.4, 2.2);                // punta acento
@@ -68,6 +76,14 @@
       B(g, 0.56, 0.16, 1.2, camoA, 0, 0.26, -1.3);
       B(g, 0.32, 0.32, 1.7, camoDetail, -1.6, -0.4, 0.3);       // tanque
       B(g, 0.32, 0.32, 1.7, camoDetail, 1.6, -0.4, 0.3);        // tanque
+      // --- detalle que recien se ve a 84x48 ---
+      B(g, 0.44, 0.52, 1.4, camoB, -0.66, 0.12, -0.35);        // TOMA DE AIRE izq
+      B(g, 0.44, 0.52, 1.4, camoB, 0.66, 0.12, -0.35);         // TOMA DE AIRE der
+      B(g, 0.26, 0.34, 0.8, '#20261f', -0.74, 0.12, -0.95);    // boca oscura
+      B(g, 0.26, 0.34, 0.8, '#20261f', 0.74, 0.12, -0.95);
+      B(g, 0.34, 0.30, 0.7, '#2a2f26', 0, 0, 3.0);             // anillo de escape
+      B(g, 0.45, 0.17, 0.55, '#7f8b93', -2.42, -0.16, 1.15);   // punta de ala
+      B(g, 0.45, 0.17, 0.55, '#7f8b93', 2.42, -0.16, 1.15);
       return g;
     }
     // IAI DAGGER (Mirage V, camo desierto): DELTA grande escalonado, sin estabilizador
@@ -85,6 +101,13 @@
       B(g, 0.12, 0.45, 0.6, ACCENT, 0, 1.55, 2.25);             // punta acento
       B(g, 0.46, 0.34, 0.9, CANOPY, 0, 0.5, -1.7);              // cabina
       B(g, 0.5, 0.15, 1.1, tan, 0, 0.3, -1.65);
+      B(g, 0.42, 0.5, 1.5, brown, -0.6, 0.14, -0.45);          // TOMA DE AIRE izq
+      B(g, 0.42, 0.5, 1.5, brown, 0.6, 0.14, -0.45);           // TOMA DE AIRE der
+      B(g, 0.26, 0.34, 0.9, '#241f18', -0.7, 0.14, -1.1);      // boca oscura
+      B(g, 0.26, 0.34, 0.9, '#241f18', 0.7, 0.14, -1.1);
+      B(g, 0.34, 0.30, 0.8, '#2a2620', 0, 0.02, 3.15);         // anillo de escape
+      B(g, 0.5, 0.16, 0.9, sand, -2.8, -0.13, 1.25);           // punta de ala
+      B(g, 0.5, 0.16, 0.9, sand, 2.8, -0.13, 1.25);
       return g;
     }
     // SUPER ETENDARD (gris azulado naval): ala media en flecha, estab. sobre el fuselaje
@@ -103,6 +126,13 @@
       B(g, 0.56, 0.16, 1.3, blu, 0, 0.24, -1.4);
       B(g, 0.3, 0.3, 1.6, blu2, -1.55, -0.28, 0.35);            // tanque/misil
       B(g, 0.3, 0.3, 1.6, blu2, 1.55, -0.28, 0.35);
+      B(g, 0.44, 0.5, 1.4, lite, -0.64, 0.14, -0.4);           // TOMA DE AIRE izq
+      B(g, 0.44, 0.5, 1.4, lite, 0.64, 0.14, -0.4);            // TOMA DE AIRE der
+      B(g, 0.26, 0.34, 0.8, '#1e252b', -0.72, 0.14, -1.0);     // boca oscura
+      B(g, 0.26, 0.34, 0.8, '#1e252b', 0.72, 0.14, -1.0);
+      B(g, 0.34, 0.30, 0.7, '#232a30', 0, 0, 3.0);             // anillo de escape
+      B(g, 0.45, 0.16, 0.9, '#8b98a3', -2.3, 0.03, 0.55);      // punta de ala
+      B(g, 0.45, 0.16, 0.9, '#8b98a3', 2.3, 0.03, 0.55);
       return g;
     }
     // PAMPA IA-63 (entrenador blanco/naranja): ala ALTA recta, cola convencional
@@ -121,6 +151,41 @@
       B(g, 0.12, 0.5, 0.9, org, 0, 1.35, 2.0);                  // banda naranja deriva
       B(g, 0.48, 0.4, 1.35, CANOPY, 0, 0.46, -1.15);            // cabina larga (biplaza)
       B(g, 0.54, 0.16, 1.5, gry, 0, 0.24, -1.1);
+      B(g, 0.4, 0.46, 1.2, gry, -0.6, 0.2, -0.25);             // TOMA DE AIRE izq
+      B(g, 0.4, 0.46, 1.2, gry, 0.6, 0.2, -0.25);              // TOMA DE AIRE der
+      B(g, 0.24, 0.3, 0.7, '#2b3036', -0.68, 0.2, -0.8);       // boca oscura
+      B(g, 0.24, 0.3, 0.7, '#2b3036', 0.68, 0.2, -0.8);
+      B(g, 0.3, 0.28, 0.6, '#2b3036', 0, 0, 2.7);              // anillo de escape
+      B(g, 0.9, 0.14, 0.5, org, 0, 0.29, -1.9);                // franja naranja del morro
+      return g;
+    }
+
+    // MIRAGE IIIEA (camo verde/marron argentino): delta puro como el Dagger — es la misma
+    // familia — pero con la pintura de la FAA y morro de radar mas largo.
+    function modelMirage() {
+      const g = new THREE.Group();
+      const grn = '#5c6b45', dgrn = '#43503a', tan = '#8d7f5c', gry = '#6e7566';
+      B(g, 0.70, 0.72, 5.6, grn, 0, 0.04, 0);                   // fuselaje
+      B(g, 0.52, 0.5, 0.9, EXHAUST, 0, 0.02, 2.9);              // tobera
+      B(g, 0.34, 0.30, 0.8, '#2a2f26', 0, 0.02, 3.25);          // anillo de escape
+      B(g, 6.1, 0.13, 1.5, grn, 0, -0.14, 1.2);                 // delta: banda trasera
+      B(g, 4.5, 0.12, 1.2, dgrn, 0, -0.12, 0.1);                // delta: banda media
+      B(g, 2.7, 0.11, 1.1, tan, 0, -0.10, -1.0);                // delta: banda frontal
+      B(g, 1.7, 0.15, 0.9, dgrn, -1.75, -0.10, 1.05);           // parche camo
+      B(g, 1.3, 0.15, 0.8, tan, 1.85, -0.11, 1.15);             // parche camo
+      B(g, 0.5, 0.16, 0.9, '#7f8b93', -2.85, -0.10, 1.3);       // punta de ala clara
+      B(g, 0.5, 0.16, 0.9, '#7f8b93', 2.85, -0.10, 1.3);
+      B(g, 0.42, 0.5, 1.5, gry, -0.62, 0.12, -0.5);             // TOMA DE AIRE izq
+      B(g, 0.42, 0.5, 1.5, gry, 0.62, 0.12, -0.5);              // TOMA DE AIRE der
+      B(g, 0.26, 0.34, 0.9, '#20261f', -0.72, 0.12, -1.15);     // boca oscura
+      B(g, 0.26, 0.34, 0.9, '#20261f', 0.72, 0.12, -1.15);
+      B(g, 0.12, 1.6, 1.15, grn, 0, 0.92, 2.2);                 // deriva alta
+      B(g, 0.12, 0.45, 0.6, ACCENT, 0, 1.6, 2.3);               // punta acento
+      B(g, 0.46, 0.34, 0.95, CANOPY, 0, 0.52, -1.75);           // cabina
+      B(g, 0.5, 0.15, 1.2, grn, 0, 0.32, -1.7);
+      B(g, 0.34, 0.34, 1.0, tan, 0, 0.0, -2.75);                // morro / radomo
+      B(g, 0.3, 0.3, 1.6, dgrn, -1.55, -0.34, 0.5);             // tanque
+      B(g, 0.3, 0.3, 1.6, dgrn, 1.55, -0.34, 0.5);              // tanque
       return g;
     }
 
@@ -130,6 +195,7 @@
       supere: modelSuperE,
       a4q: () => modelA4('#6a7480', '#75808c', '#59636e'),
       pampa: modelPampa,
+      mirage: modelMirage,
     };
 
     // hornea todos los sheets; devuelve { key: dataURL_png }

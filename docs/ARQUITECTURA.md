@@ -57,6 +57,24 @@ Viven en `render/` y `systems/` por nombre, pero son **capas base** que importa 
 
 - **`render/ctx.js`** — el canvas, su contexto, las medidas del mundo (`W/H/HOR/F/PZ`) y las
   primitivas de dibujo (`px`, `panel`). Todo lo que dibuja pasa por acá.
+
+  > ⚠️ **HAY DOS ESPACIOS DE COORDENADAS.** Es lo primero que hay que saber para tocar el render:
+  >
+  > | capa | espacio | quiénes |
+  > |---|---|---|
+  > | **mundo** | `W`×`H` = **480×270** | `world.js`, `plane.js`, `momentum.js`, `three-world.js`, `fx.js` (`proj`), y el vuelo |
+  > | **diseño** | `DW`×`DH` = **320×180** | `hud.js`, `screens.js`, `menus.js` |
+  >
+  > Las de diseño **importan `DW`/`DH` con alias `W`/`H`** y el orquestador (`draw()` en `game.js`)
+  > las dibuja envueltas en `ctx.scale(U, U)` (`U` = 1.5). Se hizo así al subir la resolución: el
+  > mundo es procedural y gana detalle real con más píxeles, pero el HUD es texto y cajas, que no
+  > ganan nada y solo se habrían corrido de lugar. Como `U × SC` = 3 exacto, no hay medio píxel.
+  >
+  > **Al tocar el HUD o una pantalla, razonás en 320×180.** Si necesitás una posición del mundo ahí
+  > (como el multiplicador pegado al avión), dividí el resultado de `proj()` por `U`.
+  >
+  > Las constantes de **mundo** (`FLY_X`, `PZ`, alturas de obstáculos) son independientes de la
+  > resolución y no se tocan.
 - **`systems/audio.js`** — el "driver" de sonido: música, efectos con samples, y beep/boom
   procedurales. Dueño del `AudioContext`.
 

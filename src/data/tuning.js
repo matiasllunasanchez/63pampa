@@ -14,8 +14,15 @@ export const FLY_X = 38, FLY_TOP = 68, SPAWN_X = 33;
 // rafaga lateral), la accion que la dispara (startRoll) y el render (inclina el sprite).
 export const ROLL_DUR = 0.55;
 
-export const MOM_AX = 160, MOM_AY = 40;   // visor fijo en pantalla (W/2, 40) — el reflector del HUD
+export const MOM_AX = 240, MOM_AY = 60;   // visor fijo en pantalla (W/2, 60) — el reflector del HUD
 export const MSL_MAX = 3;                 // misiles por pasada
+
+// GEOMETRIA DE LA BARCAZA, en pixeles de PANTALLA (grilla de mundo 480x270). Estos dos numeros
+// estaban repetidos en tres lados — momShipGeom (systems/momentum.js), la aproximacion en vuelo
+// normal (render/world.js) y la camara 3D (systems/three-world.js) — y si se desincronizan el
+// barco SALTA al entrar al momentum. Viven aca para que haya una sola fuente.
+export const SHIP_UH = 13.5;    // modulo de altura del casco ("uh"); el casco mide uh*1.5
+export const SHIP_DECK = 54;    // cubierta, bajo el horizonte
 
 // CAÑON 20MM — presupuesto de fuego sostenido. Con 9 tiros/s, cada tiro suma GUN_HEAT_SHOT y el
 // caño enfria GUN_COOL_FIRE mientras dispara, asi que la rafaga aguanta

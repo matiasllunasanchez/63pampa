@@ -23,10 +23,11 @@ import { theme, applyTheme } from './render/theme.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack } from './systems/audio.js';
 import * as world3D from './systems/three-world.js';
-import { cv, ctx, W, H, HOR, F, PZ, SC, px, panel } from './render/ctx.js';
+import { cv, ctx, W, H, HOR, F, PZ, SC, px, panel, U } from './render/ctx.js';
 import * as screens from './render/screens.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
 import * as menus from './render/menus.js';
+import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './render/momentum.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
@@ -196,6 +197,11 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       { label: 'COMBUSTIBLE', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.fuelOn, set: v => cfg.fuelOn = v },
       { label: 'ENERGIA', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.energy, set: v => cfg.energy = v },   // altura<->velocidad: para comparar A/B la sensacion
       { label: 'COSTA', opts: [120, 230, 400], names: ['CORTA', 'NORMAL', 'LARGA'], get: () => cfg.coast, set: v => cfg.coast = v },
+      // MIRA: no es del mapa como las demas, pero el menu [M] es donde el jugador espera
+      // encontrarla. `preview` le dice a drawCfg que dibuje la mira de verdad en la fila
+      // (un nombre no sirve: hay que VERLA). Persiste, porque es una preferencia del jugador.
+      { label: 'MIRA', opts: MIRA_IDS, names: MIRA_IDS.map(String), preview: 'mira',
+        get: () => cfg.mira, set: v => { cfg.mira = v; try { localStorage.setItem('rasante_mira', v); } catch (e) { } } },
     ];
     // filas visibles según el modo (METROS solo en ciclo de muerte)
     function getCfgRows() { return CFG_ROWS.filter(r => !r.cycleOnly || gameMode === 'cycle'); }
@@ -225,6 +231,13 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     // estrellas del derribado se miden contra esto. Es una estimacion — perilla para calibrar jugando.
     const SURVIVAL_PAR = 6000;
     let deathCause, deathT, deadStars = 0, factIdx = 0, best = 0;
+    // ilustracion de fin sorteada al terminar (no por cuadro: si no, parpadearia)
+    let deadBg = 0, winBg = 0;
+    // FONDO GENERAL del lobby/seleccion: arranca SIEMPRE en pp1.jpg (indice 0) y a los
+    // PPAL_ROT segundos empieza a rotar al azar, con un cruce suave de PPAL_FADE.
+    const PPAL_ROT = 4, PPAL_FADE = 0.9;
+    let ppalIdx = 0, ppalPrev = 0, ppalT = 0, ppalFade = 1;
+    const inLobby = () => S.state === 'modeselect' || S.state === 'menu';
 
     // ESTRELLAS 1..4 (la 4ª = Malvinas, rango S). Compartido por el recuento de nivel y el
     // derribado de survival: exige el DOBLE del par para las Malvinas, que se sientan merecidas.
@@ -261,6 +274,8 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     // salir. SCRAPE_BASE son los segundos de gracia a baja velocidad; a mucha velocidad/turbo se
     // reduce hasta SCRAPE_MIN. Salir de la superficie descuenta el reloj, pero no lo borra.
     try { best = +localStorage.getItem('rasante_frontal_best') || 0; } catch (e) { }
+    // la mira elegida sobrevive entre sesiones (preferencia del jugador, no del mapa)
+    try { const m = +localStorage.getItem('rasante_mira'); if (m >= 1 && m <= MIRA_IDS.length) cfg.mira = m; } catch (e) { }
 
     function reset() {
       resetRun();       // toda la corrida (velocidad, nafta, rachas, armas, spawn…) a su estado inicial
@@ -386,6 +401,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     }
     // arma lastRun: el desglose de puntos, las estrellas y la calificacion de la mision
     function freezeRun() {
+      winBg = (Math.random() * screens.WIN_BG_N) | 0;
       const m = curMission();
       const flight = Math.floor(run.score);
       const kills = stats.air + stats.soldiers + stats.zones;
@@ -444,6 +460,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       // POR LA PATRIA: el derribado ES el fin del "nivel" → estrellas por puntaje. En campaña/ciclo
       // morir es fracaso (no se cumplio el objetivo): sin estrellas.
       deadStars = gameMode === 'survival' ? starsFor(Math.floor(run.score), SURVIVAL_PAR) : 0;
+      deadBg = (Math.random() * screens.LOSE_BG_N) | 0;
       sfxOne('exSmall');   // mi avion chocando (agua incluida, por ahora)
       factIdx = (factIdx + 1) % L().facts.length;
       explodeAt(plane.x, plane.y, PZ, true);
@@ -476,6 +493,17 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
     // ahi el frame se corta, igual que hacia el `return` suelto de la version monolitica.
     function update(dt) {
       run.t += dt;
+      // rotacion del fondo del lobby (no avanza jugando: solo mientras se elige)
+      if (inLobby()) {
+        ppalT += dt;
+        if (ppalFade < 1) ppalFade = Math.min(1, ppalFade + dt / PPAL_FADE);
+        if (ppalT >= PPAL_ROT && screens.PPAL_BG_N > 1) {
+          ppalT = 0; ppalPrev = ppalIdx; ppalFade = 0;
+          // sortea una DISTINTA a la actual: repetir se leeria como que no cambio
+          let k = (Math.random() * (screens.PPAL_BG_N - 1)) | 0;
+          ppalIdx = k >= ppalIdx ? k + 1 : k;
+        }
+      }
       tickDuck(dt);                      // el ducking de la musica se recupera solo
       fadeT = Math.max(0, fadeT - dt);   // fundido desde negro (se pinta al final de draw)
       updateSfx(dt, { state: S.state, cfg, plane, boost: run.boost, firing: inp.fire, overheat: run.overheat, soldiers });   // loops con fade
@@ -658,7 +686,7 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       if (world3D.isOn() || world3D.isSea()) {
         const sm = ctx.imageSmoothingEnabled;
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(world3D.view(), -72, -102, world3D.M3W, world3D.M3H);
+        ctx.drawImage(world3D.view(), -108, -153, world3D.M3W, world3D.M3H);
         ctx.imageSmoothingEnabled = sm;
       }
 
@@ -783,13 +811,18 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       }
 
       if (zoomOn) ctx.restore();   // el HUD (y la capa momentum) van SIN zoom
-      if (S.state === 'play') hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip });
+      // HUD en GRILLA DE DISEÑO (320x180): se dibuja con ctx.scale(U). Ver la nota de DW/DH en
+      // render/ctx.js — U x SC da 3 exacto, asi que no hay medio pixel ni borroneo.
+      if (S.state === 'play') { ctx.save(); ctx.scale(U, U); hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip }); ctx.restore(); }
       if (S.state === 'momentum' && momentum.active()) momRender.drawMomentum({
         mom: momentum.active(), momPhase: momentum.phase(), phases: momentum.phases(), msl: run.msl, objectiveShip, t: run.t,
         is3D: world3D.isOn(), parts, popups, mouse,
         momCam: momentum.cam, momShipGeom: momentum.shipGeom, momZoneRect: momentum.zoneRect });
       ctx.restore();
 
+      // MENUS Y PANTALLAS: tambien en grilla de diseño (320x180), escaladas por U
+      ctx.save(); ctx.scale(U, U);
+      if (inLobby()) screens.drawPpalBg(ppalPrev, ppalIdx, ppalFade);   // portada / lobby
       if (S.state === 'takeoff') hud.drawTakeoff(toT);
       if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t });
       if (S.state === 'menu') {
@@ -801,11 +834,12 @@ import { MSL_MAX, ROLL_DUR } from './data/tuning.js';
       // DERRIBADO: esperar a que se vea el destrozo; despues la pantalla sube con un fade corto
       if (S.state === 'dead' && deathT > DEATH_REVEAL)
         screens.drawDead({ score: run.score, best, deathCause, deathT, factIdx, t: run.t,
-          reveal: Math.min(1, (deathT - DEATH_REVEAL) / 0.35), stars: deadStars, awardT: deathT - DEATH_REVEAL - 0.2 });
-      if (S.state === 'results') screens.drawResults({ lastRun, resRow, resT, t: run.t });
+          reveal: Math.min(1, (deathT - DEATH_REVEAL) / 0.35), stars: deadStars, awardT: deathT - DEATH_REVEAL - 0.2, bg: deadBg });
+      if (S.state === 'results') screens.drawResults({ lastRun, resRow, resT, t: run.t, bg: winBg });
       if (S.state === 'brief') screens.drawBrief({ mission: curMission(), goalLabel: goalOf(curMission()).label(curMission().goal), briefT, t: run.t });
       if (S.state === 'victory') screens.drawVictory({ score: run.score, levelT, t: run.t });
       if ((S.state === 'epilogue' || S.state === 'story') && story) screens.drawStory({ story, state: S.state, t: run.t });
+      ctx.restore();
 
       // fundido desde negro (al salir de la historia hacia el despegue) — SIEMPRE al final
       if (fadeT > 0) {

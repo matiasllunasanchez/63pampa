@@ -2,7 +2,8 @@
 //
 // Igual que las demas pantallas: reciben `w`, un snapshot chico de solo lectura. No leen estado
 // global ni lo modifican — la seleccion la maneja el input; aca solo se dibuja.
-import { ctx, W, H, px, panel } from './ctx.js';
+import { ctx, DW as W, DH as H, px, panel } from './ctx.js';
+import { drawMira } from './miras.js';
 import { P } from '../data/palette.js';
 import { PLANES } from '../data/planes.js';
 import { T, getLang } from '../core/i18n.js';
@@ -91,20 +92,24 @@ export function drawModeSelect(w) {
 
 // menú de configuración de mapa [M] — herramienta para prototipar niveles
 export function drawCfg(w) {
-  ctx.fillStyle = '#0a0e11ee'; ctx.fillRect(24, 20, W - 48, H - 40);
-  ctx.strokeStyle = P.accent; ctx.globalAlpha = 0.6; ctx.strokeRect(24.5, 20.5, W - 49, H - 41); ctx.globalAlpha = 1;
+  // el panel se estiro y las filas se juntaron (13 -> 12 px) al sumar MIRA: con 10 filas el
+  // layout viejo se comia el pie de ayuda
+  ctx.fillStyle = '#0a0e11ee'; ctx.fillRect(24, 16, W - 48, H - 30);
+  ctx.strokeStyle = P.accent; ctx.globalAlpha = 0.6; ctx.strokeRect(24.5, 16.5, W - 49, H - 31); ctx.globalAlpha = 1;
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-  ctx.fillText('CONFIGURACION DE MAPA', W / 2, 33);
+  ctx.fillText('CONFIGURACION DE MAPA', W / 2, 28);
   ctx.font = '7px monospace';
   const rows = w.rows;
-  
+
   for (let i = 0; i < rows.length; i++) {
-    const r = rows[i], y = 48 + i * 13, on = i === w.cfgRow;
+    const r = rows[i], y = 42 + i * 12, on = i === w.cfgRow;
     let idx = r.opts.findIndex(o => o === r.get()); if (idx < 0) idx = 0;
     ctx.textAlign = 'left'; ctx.fillStyle = on ? P.accent : P.dim; ctx.fillText((on ? '> ' : '  ') + r.label, 34, y);
     ctx.textAlign = 'right'; ctx.fillStyle = on ? P.ink : P.body; ctx.fillText('< ' + r.names[idx] + ' >', W - 34, y);
+    // VISTA PREVIA: la mira se elige VIENDOLA, no leyendo un numero
+    if (r.preview === 'mira') drawMira(r.get(), W - 68, y - 2.5, 11, on ? 1 : 0.55);
   }
   ctx.textAlign = 'center'; ctx.fillStyle = P.dim; ctx.font = '6px monospace';
-  ctx.fillText('flechas: mover / cambiar   ·   [M] o ENTER: cerrar', W / 2, H - 28);
+  ctx.fillText('flechas: mover / cambiar   ·   [M] o ENTER: cerrar', W / 2, H - 20);
 }
