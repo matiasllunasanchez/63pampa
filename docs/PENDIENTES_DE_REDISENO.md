@@ -1,14 +1,17 @@
 # PENDIENTES DE REDISEÑO — inventario de unidades y objetos
 
-_Relevamiento del 25 de julio de 2026._
+_Relevamiento del 25 de julio de 2026. Última actualización: 25 de julio de 2026 (segunda tanda:
+props horneados — nido AA, carpa, depósito, puesto, casco de fragata —, bandada rehecha con aleteo
+de tres poses, y derribo con inercia: los restos siguen de largo y rebotan)._
 
 Lista completa de **todo lo que el juego dibuja** (unidades, objetos, FX, UI y escenario) con el
 estado de su arte, para saber qué sprites hay que hacer y con qué spec.
 
 Fuentes del relevamiento: `src/data/planes.js`, `src/data/missions.js`, `src/data/ships.js`,
-`src/data/tuning.js`, `src/data/runways.js`, `src/systems/spawn.js`, `src/render/world.js`,
-`src/render/soldiers.js`, `src/render/boom.js`, `src/render/momentum.js`, `src/render/hud.js`,
-`src/render/miras.js` + [NIVELES.md](NIVELES.md), [ROADMAP.md](ROADMAP.md),
+`src/data/tuning.js`, `src/data/runways.js`, `src/systems/spawn.js`, `src/systems/collision.js`,
+`src/render/world.js`, `src/render/enemies.js`, `src/render/soldiers.js`, `src/render/boom.js`,
+`src/render/blast.js`, `src/render/ammo.js`, `src/render/plane.js`, `src/render/momentum.js`,
+`src/render/hud.js`, `src/render/miras.js` + [NIVELES.md](NIVELES.md), [ROADMAP.md](ROADMAP.md),
 [UPDATE_ANIMATIONS.md](UPDATE_ANIMATIONS.md).
 
 **Leyenda de estado:**
@@ -52,6 +55,23 @@ respetar el mismo layout.
 | 8 | **AERMACCHI MB-339** — jet liviano de ataque (ROADMAP #10.2) | ⬜ | ⬜ | ⬜ |
 | 9 | **MIRAGE 5 peruano** — refuerzo desbloqueable a mitad de campaña (ROADMAP #20) | ⬜ | ⬜ | ⬜ |
 
+### Lo que va PEGADO al sprite y se dibuja por código
+
+Todo esto vive en `render/plane.js` y ya está hecho en pixel art (rects enteros, sin degradés ni
+strokes). **No hacen falta sprites**, pero conviene saber que existen porque están medidos contra
+la hoja de vuelo:
+
+| pieza | estado |
+|---|---|
+| **Tren de aterrizaje** — dos patas principales bajo la raíz del ala + rueda de proa; se recoge derecho para arriba y desaparece detrás del ala (`gear()`) | 🔵 hecho |
+| **Fogonazos del cañón — DOS bocas alternadas** en la raíz del ala, convergentes; la posición gira con el alabeo y la inclinación entra recién pasada la mitad del giro (`muzzles()` / `muzzle()`) | 🔵 hecho |
+| **Llama de la turbina** — filas que se afinan y enfrían hacia la punta, con diamante de choque (`flame()`) | 🔵 hecho |
+| **Sombra sobre el agua**, rociada bajo el fuselaje, estela | 🔵 hecho |
+| **Manchas de sangre** en el morro al atropellar (`bloodSplat`) | 🔵 por código (hay idea de un sprite de avión ensangrentado) |
+
+> ⚠️ Las medidas verticales del tren salen de **medir las hojas horneadas** (frame de 84 px, el ala
+> apoya en y=47..49, la panza termina en y=52). **Si se rehornean los aviones, hay que re-medir.**
+
 ### Cockpit (vista de cabina del MOMENTUM)
 
 Hoy hay **uno solo, genérico** (`assets/planes/a4-skyhawk/cockpit.png`, 1024×559) usado por todos
@@ -70,11 +90,26 @@ instrumentos abajo. Los 13 px de arriba y abajo los tapa el letterbox.
 | `helo` | helicóptero: llega **de frente** y **vira a perfil** al acercarse | 4 | ✅ `enemies/helo.png` horneada (8 columnas de yaw × **2 fases de rotor** — el rotor bate). La columna la elige el `yaw` por distancia; se espeja según el lado al que abre. Fallback por código queda |
 | `jet` | caza enemigo de frente, cierra más rápido (`spd+45`) | 3 | ✅ `enemies/jet.png` horneada (5 columnas de alabeo −30°→+30°). Con ENEMIGOS MÓVILES el alabeo sale de la velocidad lateral real del tejido |
 | `balloon` | globo de barrera, cae de un tiro | 1 | ✅ `enemies/balloon.png` horneada (frame único; el cable y la inclinación al viento van por código) |
-| `birds` | bandada (daña, no derriba); variante blanca y oscura, deriva lateral propia | — | ❌ código |
+| `birds` | bandada (daña, no derriba); variante blanca y oscura, deriva lateral propia | — | 🔵 se queda por código — rehechas con aleteo en TRES poses (arriba/planeo/abajo, con quiebre de ala), cuerpo con panza, tamaños desparejos y bob por ave |
 | `missile` | misil guiado enemigo — lo lanzan el radar, los `aa` y los `aatruck`; variante `tracer` desde los puestos | — | ❌ código |
 | `bomb` | bomba cayendo del cielo (modo BOMBARDEO); chocarla en el aire mata | — | ❌ código |
 | **Harrier británico** | con marcador de zona vulnerable (ROADMAP #20, ayuda española) | — | ⬜ no existe |
 | **C-130 Hércules aliado** | reabastecimiento en vuelo con manguera (ROADMAP #15) | — | ⬜ no existe |
+
+### Movimiento propio (`cfg.enemyMove`, menú [M] → "ENEMIGOS: MÓVILES / QUIETOS")
+
+Los enemigos ahora **se mueven solos**, y eso condiciona qué tiene que expresar cada hoja:
+
+- **globos** inclinados al viento sobre su cable (el ancla queda fija),
+- **helicópteros** patrullando — solo el 55%, porque la mezcla de quietos y móviles confunde más,
+- **cazas** que tejen **y corrigen hacia tu carril** (2.2 u/s): por eso el alabeo del sprite tiene
+  que corresponder a hacia dónde va de verdad,
+- **vehículos** (radar, camión AA) rodando con rebote contra la orilla real,
+- **mástiles-fragata** navegando.
+
+La personalidad se sortea al nacer (`systems/spawn.js`) y se aplica por frame
+(`systems/collision.js`); la llave del menú apaga la **aplicación**, no el sorteo. Lo que ya se
+movía de antes (bandada, barcaza, bombas) queda fuera de la llave.
 
 ---
 
@@ -93,7 +128,19 @@ Sembrados por `systems/spawn.js`. La altura es en unidades de MUNDO.
 | `tent` | carpa: **pare una patrulla** de soldados al aparecer | 1 | 3.4 |
 | `aa` | pieza antiaérea: **dispara misiles guiados**, blanco prioritario | 3 | 4.4 |
 
-Todos ❌ (código). ROADMAP #16 pide además **más variedad de props**: rocas, cercos, trincheras.
+Estado: `tent` ✅ (`enemies/tent.png`, carpa a dos aguas con entrada), `aa` ✅ (`enemies/aa.png`,
+2 poses de apunte de los caños), `depot` ✅ (`enemies/depot.png`, galpón abovedado; se escala por
+`o.h` al dibujar). `cliff`, `tree`, `poles` y `flag` quedan 🔵 por código — los tres se **animan**
+(roca sorteada por seed, copa al viento, bandera flameando por franjas) y un sprite fijo perdería
+justamente eso. `tower` sigue ❌ (la celosía por código se ve bien; baja prioridad).
+
+ROADMAP #16 pide además **más variedad de props**: rocas, cercos, trincheras.
+
+> **Blancos chicos = daño, no derribo.** Por regla de ALTURA (`SOFT_H = 4.8`, `systems/collision.js`),
+> toda estructura apoyada en el suelo y más baja que eso **daña la célula y se destruye** en vez de
+> hacer explotar el avión. Hoy caen ahí el `aa` de campaña y el `aatruck`; `radar`, `depot`, `bldg`
+> y `lcu` siguen siendo letales. Importa para el arte: los "blandos" se ven de cerca y se pasan por
+> encima, así que su silueta se lee **desde arriba y a un metro**.
 
 ---
 
@@ -112,12 +159,30 @@ Incluye todo lo de TIERRA (`cliff`, `tent`, `aa`) más:
 
 Estado: `lcu` ✅ (`enemies/lcu.png`, 3/4 con la rampa hacia la playa), `radar` ✅ (`enemies/radar.png`,
 4 poses del plato girando), `aatruck` ✅ (`enemies/aatruck.png`, 3 poses de torreta barriendo).
-`bldg` y `trench` siguen ❌ (código).
+`bldg` ✅ (`enemies/bldg.png`, bloque a dos plantas con bolsas de arena; se escala por `o.h` —
+el soldado asomado y su fogonazo siguen por código encima). `trench` sigue ❌ (código).
 
 > **Hojas de enemigos**: las hornea `tools/bake_enemies.html` (`npx electron tools/bake_enemies_run.js`)
 > a `assets/world/enemies/`, con el mismo pipeline low-poly de los aviones pero cámara FRONTAL.
 > Las enchufa `src/render/enemies.js` (cajas de contenido **medidas sobre el alfa** — re-medir si
 > se rehornea) y el dibujo a mano de `render/world.js` queda como fallback si una hoja no carga.
+> Las 6 hojas juntas pesan 19.6 KB y `tools/build_web.py` embebe la carpeta entera.
+
+**Spec exacta de las hojas actuales** (`SHEETS` en `render/enemies.js`) — si el arte lo hace una
+persona en vez del horno, tiene que respetar esto:
+
+| hoja | frame | grilla | caja de contenido (alfa) | ancho en mundo (`wu`) |
+|---|---|---|---|---|
+| `helo.png` | 64 × 48 | 8 cols (yaw) × 2 filas (rotor) | x 6–57, y 16–36 | 11.5 |
+| `jet.png` | 64 × 48 | 5 cols (alabeo) × 1 | x 14–49, y 10–31 | 10.5 |
+| `radar.png` | 48 × 48 | 4 cols (plato girando) × 1 | x 10–43, y 7–40 | 6.2 |
+| `aatruck.png` | 56 × 48 | 3 cols (torreta) × 1 | x 13–48, y 12–39 | 6.6 |
+| `lcu.png` | 72 × 48 | 1 × 1 | x 10–51, y 11–32 | 8.6 |
+| `balloon.png` | 48 × 48 | 1 × 1 | x 9–37, y 11–33 | 5.6 |
+
+Los vehículos se anclan por el **pie del contenido** (no del frame), así apoyan en el suelo.
+`wu` es la perilla de tamaño en pantalla y **no toca la colisión** (los hitboxes viven en
+`core/hitbox.js`).
 
 ---
 
@@ -125,7 +190,7 @@ Estado: `lcu` ✅ (`enemies/lcu.png`, 3/4 con la rampa hacia la playa), `radar` 
 
 | objeto | qué es | estado y spec |
 |---|---|---|
-| `mast` | mástil de fragata que emerge del agua, 11–28 de alto. **No se destruye** — esquivarlo es la habilidad central | ❌ Spec: `fragata.png`, imagen única ~64×40 px, vista de frente/proa |
+| `mast` | mástil de fragata que emerge del agua, 11–28 de alto. **No se destruye** — esquivarlo es la habilidad central. Con ENEMIGOS MÓVILES **navega** (deriva lateral propia) | ✅ `enemies/fragata.png`: el CASCO horneado (proa a cámara, con puente) + estela de proa cuando navega. El **mástil sigue por código** encima — su altura se sortea 11–28 y un sprite fijo la aplastaría |
 | **flota del horizonte** | 3 siluetas de buques fondeados (`drawFleet`), decorado con parallax | ❌ código |
 
 ---
@@ -144,16 +209,22 @@ Ya hay hojas: `assets/world/soldats/englishsoldatv2.png` (la que usa el juego) y
 `argentinesoldatv2.png`. Son grillas de ~128 px por fila con las animaciones rotuladas, **de perfil
 mirando a la izquierda** — que es hacia donde huyen del avión. Las cajas de recorte están
 **medidas sobre el alfa** en `render/soldiers.js`: si se cambia la hoja, hay que volver a medirlas.
+Los frames se **espejan** cuando el soldado va a la izquierda (siempre, porque huyen), y el
+uniforme se retocó a **DPM oscuro con contorno de dos tonos** para despegarlo del terreno.
 
 | animación | frames | estado |
 |---|---|---|
 | **Correr** de perfil | 6 | ✅ enchufada (`RUN_LEFT`) |
-| **Cuerpo a tierra / prone** | 1 | ✅ enchufada (`PRONE`) |
+| **Cuerpo a tierra / prone** — los soldados cercanos **se tiran al suelo** al ver caer a uno y quedan a salvo del atropello | 1 | ✅ enchufada (`PRONE`) |
 | **Muerte** — caída/desintegración con sangre (para metralleta y misil) | 3–4 | ❌ pedida, ~24×24 px |
 | **Atropellado por el avión** — salpicón / vuelo de cuerpo | 2–3 | ❌ pedida, ~32×24 px |
 | **Variantes** de casco/color (`_a`, `_b`, `_c`) para dar variedad | — | ❌ pedidas |
 | **Soldado argentino de trinchera** disparando | — | 🟡 la hoja existe, no está enchufada |
 | **Piloto derribado jugable a pie** (minijuego terrestre, ROADMAP #24) | — | ⬜ no existe |
+
+> Atropellar ya **no es gratis**: golpea la célula de a poco (0.12 acumulativo), así que una pasada
+> larga te deja sin nafta. El puntaje sigue alto — es un canje, no un castigo. La caja del soldado
+> se remodeló: `hw` es el **cuerpo** (0.6) y el chequeo le suma la semi-envergadura del avión.
 
 ---
 
@@ -201,14 +272,16 @@ De los 12 niveles de la campaña, estos objetivos aún no tienen entrada en `SHI
 | FX | estado |
 |---|---|
 | **Hongo de bomba** — ciclo completo en grilla 6×3 = **18 frames** (destello → columna → hongo naranja → humo blanco → gris que se disipa) | ✅ `assets/world/explosions/bomb.png`, enchufado en `render/boom.js` |
-| explosion1/2, explosion_floor, explosion_floor_smoke, explosion_shot1/2, explosion_smoke, explosion_small_distant, smoke_distant | ✅ existen en `assets/world/explosions/` |
-| `explosions_front.png` — 32 frames, explosión frontal (airburst, avión estrellado, blancos que revientan) | 🟡 agregada, cajas medidas sobre el alfa (la hoja parece 12×3 de 85×85 pero el contenido se derrama entre celdas) |
-| **Explosión genérica** — para choque del avión, impacto en barcaza y remate de muerte de soldado | ❌ pedida: 5–6 frames, ~48×48 px, naranja/humo |
-| **Muzzle flash** — resplandor lateral que entra por el borde del canopy al disparar (hoy cuadrados blancos) | ❌ pedido: `muzzle_flash.png` único, ~24×32 px; se espeja por código |
+| **Bola de fuego FRONTAL** — la explosión de cara: bomba reventada en el aire, el avión al estrellarse y **cada blanco que revienta** (va enganchada a `explodeAt`, por donde pasan todas las destrucciones) | ✅ `explosions_front.png` en `render/blast.js`: 32 frames con las cajas **medidas una por una sobre el alfa** (la hoja parece 12×3 celdas de 85×85 pero el contenido se derrama a la celda vecina: 31 de 36 tienen píxeles pegados al borde). Ciclo de 1.15 s, 26 unidades de mundo a escala 1; los frames se escalan contra un alto de referencia común para que el destello inicial no salga del tamaño de la bola desplegada |
+| explosion1/2, explosion_floor, explosion_floor_smoke, explosion_shot1/2, explosion_smoke, explosion_small_distant, smoke_distant | ✅ existen en `assets/world/explosions/` (sin enchufar todavía) |
+| ~~**Explosión genérica** 48×48 para choque, impacto y remate~~ | ✅ **cubierta** por la bola frontal — ya no hace falta pedirla |
+| **Trazadoras del cañón** — estela muestreada hacia atrás en z y proyectada punto por punto: la perspectiva sale sola (gruesa cerca, fina hacia el horizonte) y el color enfría hacia atrás (blanco → ámbar → naranja → rojo sucio) | 🔵 rehecho en pixel art (`render/ammo.js`), todo con rects enteros |
+| **Muzzle flash del cockpit** — resplandor lateral que entra por el borde del canopy al disparar (hoy cuadrados blancos) | ❌ pedido: `muzzle_flash.png` único, ~24×32 px; se espeja por código |
 | Salpicadura y estela de agua, rocío, espuma, sombra en el agua | 🔵 se quedan por código |
-| Fogonazo de cañón y postquemador | 🔵 se quedan por código |
-| Balas, misiles, trazadoras | 🔵 se quedan por código |
-| Sangre + tierra al atropellar, `bloodSplat` sobre el morro | 🔵 por código (hay idea de un sprite de avión ensangrentado) |
+| Fogonazo del cañón (dos bocas) y postquemador | 🔵 hechos en pixel art (ver §1) |
+| Balas y misiles | 🔵 se quedan por código |
+| Sangre + tierra al atropellar, `bloodSplat` sobre el morro | 🔵 por código |
+| **Derribo con INERCIA** — al morir, los pedazos del avión ('chunk') y la bola de fuego conservan la velocidad que traía: siguen de largo alejándose (vz que se frena), caen, **rebotan** en el suelo/agua con salpicón y quedan tirados humeando. `DEATH_REVEAL` pasó de 1.0 a 1.5 s para que el patinazo se alcance a ver | 🔵 hecho por código (`die()` + bloque 'dead' del update en `game.js`) |
 
 ---
 
@@ -247,16 +320,18 @@ Los tres assets de la barra de objetivo se enchufan llenando `src` en `OBJ_ASSET
 
 ## 12. Orden sugerido de trabajo
 
-Combina la prioridad de UPDATE_ANIMATIONS §4 con lo que más se ve hoy roto:
+Lo que queda, de mayor a menor impacto visible:
 
 1. **Barcaza lateral del momentum** ⭐ — es el clímax del juego y hoy son rectángulos. 3 variantes
    (`t42`, `t21`, `log`) con las piezas separadas.
 2. **Soldados**: muerte + atropellado (correr y prone ya están enchufados).
-3. **Explosión genérica** 48×48, que sirve para choque, impacto y remate.
-4. ~~**Helicóptero** (8 frames de yaw) y **jet** (5 de alabeo)~~ — ✅ horneados, junto con globo,
-   radar, camión AA y barcaza (ver §2 y §4).
-5. **Fragata / mástil** + los 3 iconos de la barra de objetivo (`obj_puerto`, `obj_barcaza`,
-   `obj_avion`).
-6. **Muzzle flash** del cockpit.
-7. Props de tierra y costa (`aa`, `bldg`, `lcu`, `radar`, `aatruck`, `depot`, `tower`, `tent`).
-8. Aviones nuevos: **Pucará** y **MB-339**.
+3. Los 3 iconos de la barra de objetivo (`obj_puerto`, `obj_barcaza`, `obj_avion`).
+4. **Muzzle flash** del cockpit.
+5. Props que siguen por código: `trench`, `tower`; **misil enemigo**, **bomba** y **bidón**.
+6. **Cockpit por avión** (hoy uno genérico para los 6).
+7. Aviones nuevos: **Pucará** y **MB-339**.
+
+**Ya resueltos** (no reabrir): helicóptero, caza, globo, radar móvil, camión AA, barcaza de
+desembarco, nido AA, carpa, depósito, puesto y casco de fragata (hojas horneadas, §2–§5); bandada
+rehecha por código (§2); hongo de bomba y bola de fuego frontal (§9); trazadoras, fogonazos de dos
+bocas, tren de aterrizaje y derribo con inercia (§1 y §9).

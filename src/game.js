@@ -269,7 +269,9 @@ import { RUNWAYS } from './data/runways.js';
     // ---------- estado ----------
     // DERRIBADO: al morir, primero se ve el avion romperse en pedazos y recien despues sube la
     // pantalla de fin. DEATH_REVEAL es cuanto dura ese show antes de que aparezca "DERRIBADO".
-    const DEATH_REVEAL = 1.0;
+    // 1.5 y no 1.0: los restos siguen de largo con la inercia y rebotan hasta ~1.2 s despues del
+    // impacto — cortar en 1.0 dejaba el patinazo a mitad de camino, justo lo que vale la pena ver.
+    const DEATH_REVEAL = 1.5;
     // POR LA PATRIA (survival) no tiene par de mision: la corrida entera es el "nivel", asi que las
     // estrellas del derribado se miden contra esto. Es una estimacion — perilla para calibrar jugando.
     const SURVIVAL_PAR = 6000;
@@ -530,24 +532,41 @@ import { RUNWAYS } from './data/runways.js';
       sfxOne('exSmall');   // mi avion chocando (agua incluida, por ahora)
       factIdx = (factIdx + 1) % L().facts.length;
       explodeAt(plane.x, plane.y, PZ, true);
+      // INERCIA DEL DESASTRE. Un avion a 300 km/h no frena y explota en el lugar: revienta Y
+      // SIGUE — los restos y la bola de fuego conservan la velocidad que traia y avanzan varios
+      // metros alejandose de la camara mientras caen. `vz` es esa inercia (en unidades de mundo,
+      // las mismas de run.spd); el bloque de estado 'dead' del update la integra y la va frenando.
+      const spd0 = Math.max(40, run.spd);
       // BOLA DE FUEGO donde revento el avion: la misma que el airburst de las bombas, un poco
-      // mas chica (scale). Va ADEMAS de las chispas y los pedazos de siempre.
-      obstacles.push({ type: 'airboom', x: plane.x, y: plane.y, z: PZ, boomT: 0, scale: 0.62, done: true });
+      // mas chica (scale). Viaja con los restos: el incendio va donde va el fuselaje.
+      obstacles.push({ type: 'airboom', x: plane.x, y: plane.y, z: PZ, boomT: 0, scale: 0.62, done: true, vz: spd0 * 0.5, vy2: plane.y > 3 ? -2 : 0 });
+      // PEDAZOS GRANDES en el MUNDO ('chunk'): el motor, media ala, la deriva... Vuelan hacia
+      // adelante perdiendo velocidad, la gravedad los baja y rebotan cortos al tocar el suelo.
+      // Van en coordenadas de mundo (no de pantalla) justamente para poder ALEJARSE: los `parts`
+      // de pantalla no tienen z y por eso el destrozo viejo se quedaba clavado donde murio.
+      for (let i = 0; i < 9; i++) {
+        obstacles.push({
+          type: 'chunk', done: true, chunkT: 0,
+          x: plane.x + (Math.random() - 0.5) * 2, y: Math.max(0.5, plane.y + (Math.random() - 0.5) * 1.5), z: PZ,
+          vx: (Math.random() - 0.5) * 14, vy: 4 + Math.random() * 14,
+          vz: spd0 * (0.45 + Math.random() * 0.45),
+          spin: Math.random() * 6.28, vspin: (Math.random() - 0.5) * 14,
+          size: 0.5 + Math.random() * 0.9, hot: Math.random() < 0.6,
+        });
+      }
       const s = proj(plane.x, 0, PZ);
       for (let i = 0; i < 16; i++) parts.push({ x: s.x + (Math.random() - 0.5) * 24, y: s.y, vx: (Math.random() - 0.5) * 40, vy: -40 - Math.random() * 60, life: 0.6, c: P.foam, r: 1.6 });
-      // PEDAZOS DEL AVION: el sprite deja de dibujarse al morir, asi que lo que se ve romperse son
-      // estos trozos. Salen desde la ALTURA del avion (no del agua), en abanico y hacia arriba; la
-      // gravedad del update de `parts` los baja. Son mas grandes y viven mas que las chispas, para
-      // que el destrozo se lea durante toda la ventana DEATH_REVEAL.
+      // CHISPAS de pantalla del primer impacto: el reventon inmediato alrededor del avion.
+      // Menos y mas cortas que antes: el cuerpo del destrozo ahora lo llevan los chunk de mundo.
       const ps = proj(plane.x, plane.y, PZ);
-      const CHUNKS = [P.body, P.bodyDark, P.body, P.canopy, P.warn, P.bodyDark, P.dim];
-      for (let i = 0; i < 14; i++) {
-        const ang = Math.random() * 6.283, sp = 26 + Math.random() * 78;
+      const CHUNKS = [P.body, P.bodyDark, P.canopy, P.warn, P.dim];
+      for (let i = 0; i < 8; i++) {
+        const ang = Math.random() * 6.283, sp = 26 + Math.random() * 60;
         parts.push({
           x: ps.x + (Math.random() - 0.5) * 7, y: ps.y + (Math.random() - 0.5) * 5,
-          vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 34 - Math.random() * 46,
-          life: 1.0 + Math.random() * 0.7, c: CHUNKS[i % CHUNKS.length],
-          r: 1.5 + Math.random() * 2.6,
+          vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 30 - Math.random() * 40,
+          life: 0.6 + Math.random() * 0.4, c: CHUNKS[i % CHUNKS.length],
+          r: 1.5 + Math.random() * 2.2,
         });
       }
       if (Math.floor(run.score) > best) { best = Math.floor(run.score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
@@ -622,8 +641,30 @@ import { RUNWAYS } from './data/runways.js';
         prune(parts, p => p.life > 0);
         // las explosiones siguen VIVAS fuera de 'play' (su reloj lo lleva collisionSystem, que
         // aca no corre): sin esto la bola de fuego del derribado quedaria congelada en el frame 0
-        for (const o of obstacles) if (o.type === 'airboom' || o.type === 'boom') o.boomT += dt;
-        prune(obstacles, o => !((o.type === 'airboom' || o.type === 'boom') && o.boomT > 6));
+        for (const o of obstacles) {
+          if (o.type === 'airboom' || o.type === 'boom') o.boomT += dt;
+          // INERCIA del derribo (ver die): la bola de fuego viaja hacia adelante frenando
+          if (o.vz && o.type !== 'chunk') { o.z += o.vz * dt; o.vz *= Math.max(0, 1 - dt * 1.3); if (o.vy2) o.y = Math.max(0.5, o.y + o.vy2 * dt); }
+          if (o.type === 'chunk') {
+            // pedazo del avion: sigue de largo (vz), cae (gravedad) y rebota corto en el suelo.
+            // El arrastre del aire le come la inercia; despues de un par de rebotes queda tirado.
+            o.chunkT += dt;
+            o.z += o.vz * dt; o.x += o.vx * dt; o.y += o.vy * dt;
+            o.vy -= 30 * dt; o.vz *= Math.max(0, 1 - dt * 0.75); o.spin += o.vspin * dt;
+            if (o.y <= 0) {
+              o.y = 0; o.vy = -o.vy * 0.32; o.vz *= 0.6; o.vx *= 0.6; o.vspin *= 0.5;
+              // salpicon/polvo del rebote, proyectado donde toco
+              const bs = proj(o.x, 0, o.z);
+              for (let i = 0; i < 3; i++) parts.push({ x: bs.x + (Math.random() - 0.5) * 4, y: bs.y, vx: (Math.random() - 0.5) * 26, vy: -20 - Math.random() * 26, life: 0.4, c: cfg.terrain === 'sea' ? P.foam : '#6b6f62', r: 1.2 });
+            }
+            // HUMO: los pedazos calientes van dejando un hilito que sube
+            if (o.hot && Math.random() < 0.5) {
+              const hs = proj(o.x, o.y, o.z);
+              parts.push({ x: hs.x, y: hs.y, vx: (Math.random() - 0.5) * 6, vy: -8 - Math.random() * 10, life: 0.5, c: '#5a5a52', r: Math.max(1, hs.k * 0.16) });
+            }
+          }
+        }
+        prune(obstacles, o => !((o.type === 'airboom' || o.type === 'boom') && o.boomT > 6) && !(o.type === 'chunk' && (o.chunkT > 4.5 || o.z > 235)));
         engineOff();
         if (S.state === 'momentum') {
           run.shake = Math.max(0, run.shake - dt * 10);

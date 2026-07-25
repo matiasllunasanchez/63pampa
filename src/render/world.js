@@ -470,11 +470,23 @@ export function drawObstacle(o) {
   const k = F / o.z;
   if (o.type === 'mast') {
     const base = proj(o.x, 0, o.z);
-    px(base.x - 5 * k, base.y - 2.5 * k, 10 * k, 2.5 * k, P.bodyDark);          // casco
-    px(base.x - 5 * k, base.y - 2.5 * k, 10 * k, Math.max(1, 0.6 * k), '#5c6e73');
+    // el MASTIL va primero (por codigo: su altura se sortea 11-28 y un sprite fijo la
+    // aplastaria) y el CASCO horneado se dibuja ENCIMA de su pie — el palo emerge del buque
     px(base.x - 0.45 * k, base.y - o.h * k, Math.max(1, 0.9 * k), o.h * k, P.bodyDark); // mástil
     px(base.x - 2.2 * k, base.y - (o.h - 2) * k, 4.4 * k, Math.max(1, 0.5 * k), P.bodyDark);
     px(base.x - 0.45 * k, base.y - o.h * k, Math.max(1, 0.9 * k), Math.max(1, 0.7 * k), P.warn);
+    if (enemyArt.ready('fragata')) {
+      enemyArt.drawFrame(ctx, 'fragata', 0, 0, base.x, { bottomY: base.y }, k, o.vx < 0);
+      // ESTELA de proa: la fragata NAVEGA (cfg.enemyMove) — sin espuma parece fondeada
+      if (o.vx) {
+        ctx.globalAlpha = 0.45;
+        px(base.x - 5.6 * k, base.y - 0.3 * k, 11.2 * k, Math.max(1, 0.4 * k), P.foam);
+        ctx.globalAlpha = 1;
+      }
+    } else {
+      px(base.x - 5 * k, base.y - 2.5 * k, 10 * k, 2.5 * k, P.bodyDark);        // casco
+      px(base.x - 5 * k, base.y - 2.5 * k, 10 * k, Math.max(1, 0.6 * k), '#5c6e73');
+    }
   } else if (o.type === 'balloon') {
     const oy = o.y + Math.sin(run.t * 1.3 + o.ph) * 0.6;
     // el cable queda ANCLADO en xa mientras el globo se pasea (cfg.enemyMove): el globo se
@@ -652,21 +664,31 @@ export function drawObstacle(o) {
     ctx.globalAlpha = 0.25;
     px(base.x - 3 * k, base.y - 0.3 * k, 6 * k, Math.max(1, 0.5 * k), '#161d10');   // sombra
     ctx.globalAlpha = 1;
-    px(base.x - 2.5 * k, base.y - 1.7 * k, 5 * k, 1.7 * k, '#66684a');              // cuerpo de lona
-    px(base.x - 1.7 * k, base.y - 2.6 * k, 3.4 * k, 1.0 * k, '#585a40');            // techo
-    px(base.x - 1.0 * k, base.y - 3.1 * k, 2.0 * k, Math.max(1, 0.6 * k), '#74765a');  // cumbrera con luz
-    px(base.x - 0.5 * k, base.y - 1.4 * k, 1.0 * k, 1.4 * k, '#20241c');            // entrada
-    px(base.x - 2.5 * k, base.y - 0.4 * k, 5 * k, Math.max(1, 0.4 * k), '#4e5038'); // faldon sucio
+    if (enemyArt.ready('tent')) {
+      enemyArt.drawFrame(ctx, 'tent', 0, 0, base.x, { bottomY: base.y }, k, false);
+    } else {
+      px(base.x - 2.5 * k, base.y - 1.7 * k, 5 * k, 1.7 * k, '#66684a');            // cuerpo de lona
+      px(base.x - 1.7 * k, base.y - 2.6 * k, 3.4 * k, 1.0 * k, '#585a40');          // techo
+      px(base.x - 1.0 * k, base.y - 3.1 * k, 2.0 * k, Math.max(1, 0.6 * k), '#74765a');  // cumbrera con luz
+      px(base.x - 0.5 * k, base.y - 1.4 * k, 1.0 * k, 1.4 * k, '#20241c');          // entrada
+      px(base.x - 2.5 * k, base.y - 0.4 * k, 5 * k, Math.max(1, 0.4 * k), '#4e5038'); // faldon sucio
+    }
   } else if (o.type === 'aa') {
     // ANTIAEREO: nido de bolsas de arena + pedestal + caños gemelos apuntando alto. Dispara
     // misiles (o.fireT marca el fogonazo). Destruible — es el blanco prioritario del mapa.
     const base = proj(o.x, 0, o.z);
-    px(base.x - 2.4 * k, base.y - 0.9 * k, 4.8 * k, 0.9 * k, '#7c6f4f');            // bolsas de arena
-    px(base.x - 2.4 * k, base.y - 0.9 * k, 4.8 * k, Math.max(1, 0.3 * k), '#948562');
-    px(base.x - 0.5 * k, base.y - 2.0 * k, 1.0 * k, 1.2 * k, '#3d423b');            // pedestal
-    for (let i = 0; i < 3; i++) {                                                   // caños gemelos (diagonal)
-      px(base.x + (0.2 + i * 0.5) * k, base.y - (2.2 + i * 0.55) * k, Math.max(1, 0.7 * k), Math.max(1, 0.3 * k), '#2b3338');
-      px(base.x + (0.2 + i * 0.5) * k, base.y - (1.85 + i * 0.55) * k, Math.max(1, 0.7 * k), Math.max(1, 0.3 * k), '#2b3338');
+    if (enemyArt.ready('aa')) {
+      // 2 poses de apunte: los caños CORRIGEN cada tanto — la pieza esta servida, no abandonada
+      const col = ((run.t * 0.7 + o.ph) | 0) % 2;
+      enemyArt.drawFrame(ctx, 'aa', col, 0, base.x, { bottomY: base.y }, k, false);
+    } else {
+      px(base.x - 2.4 * k, base.y - 0.9 * k, 4.8 * k, 0.9 * k, '#7c6f4f');          // bolsas de arena
+      px(base.x - 2.4 * k, base.y - 0.9 * k, 4.8 * k, Math.max(1, 0.3 * k), '#948562');
+      px(base.x - 0.5 * k, base.y - 2.0 * k, 1.0 * k, 1.2 * k, '#3d423b');          // pedestal
+      for (let i = 0; i < 3; i++) {                                                 // caños gemelos (diagonal)
+        px(base.x + (0.2 + i * 0.5) * k, base.y - (2.2 + i * 0.55) * k, Math.max(1, 0.7 * k), Math.max(1, 0.3 * k), '#2b3338');
+        px(base.x + (0.2 + i * 0.5) * k, base.y - (1.85 + i * 0.55) * k, Math.max(1, 0.7 * k), Math.max(1, 0.3 * k), '#2b3338');
+      }
     }
     if (o.fireT && run.t - o.fireT < 0.12) {                                        // fogonazo
       px(base.x + 1.8 * k, base.y - 4.1 * k, 1.4 * k, 1.2 * k, P.accent);
@@ -677,16 +699,21 @@ export function drawObstacle(o) {
     // PUESTO britanico: paredes chapa, techo, puerta y ventanas. Los armados tienen un soldado
     // asomado que tira rafagas (fogonazo en la ventana con o.fireT).
     const base = proj(o.x, 0, o.z), bh = o.h * k;
-    px(base.x - 3 * k, base.y - bh, 6 * k, bh, '#6e6656');                          // paredes
-    px(base.x - 3 * k, base.y - bh, 6 * k, Math.max(1, 0.16 * bh), '#7d7563');      // luz superior
-    px(base.x - 3.3 * k, base.y - bh - 0.6 * k, 6.6 * k, Math.max(1, 0.7 * k), '#463f31');   // techo
-    ctx.globalAlpha = 0.25;                                                          // chapas
-    for (let i = 1; i < 4; i++) px(base.x - 3 * k + i * 1.5 * k, base.y - bh, 1, bh, '#3a352a');
-    ctx.globalAlpha = 1;
-    px(base.x - 0.6 * k, base.y - 1.9 * k, 1.2 * k, 1.9 * k, '#2a2d24');            // puerta
+    if (enemyArt.ready('bldg')) {
+      // la hoja se escala por ALTURA (o.h varia 7.5-11.5 por spawn): k por el factor contra href
+      enemyArt.drawFrame(ctx, 'bldg', 0, 0, base.x, { bottomY: base.y }, k * o.h / enemyArt.SHEETS.bldg.href, false);
+    } else {
+      px(base.x - 3 * k, base.y - bh, 6 * k, bh, '#6e6656');                        // paredes
+      px(base.x - 3 * k, base.y - bh, 6 * k, Math.max(1, 0.16 * bh), '#7d7563');    // luz superior
+      px(base.x - 3.3 * k, base.y - bh - 0.6 * k, 6.6 * k, Math.max(1, 0.7 * k), '#463f31');   // techo
+      ctx.globalAlpha = 0.25;                                                        // chapas
+      for (let i = 1; i < 4; i++) px(base.x - 3 * k + i * 1.5 * k, base.y - bh, 1, bh, '#3a352a');
+      ctx.globalAlpha = 1;
+      px(base.x - 0.6 * k, base.y - 1.9 * k, 1.2 * k, 1.9 * k, '#2a2d24');          // puerta
+      px(base.x - 2.2 * k, base.y - bh * 0.62, 1.2 * k, Math.max(1, 0.9 * k), '#23271f');   // ventanas
+      px(base.x + 1.0 * k, base.y - bh * 0.62, 1.2 * k, Math.max(1, 0.9 * k), '#23271f');
+    }
     const wy = base.y - bh * 0.62;
-    px(base.x - 2.2 * k, wy, 1.2 * k, Math.max(1, 0.9 * k), '#23271f');             // ventana izq
-    px(base.x + 1.0 * k, wy, 1.2 * k, Math.max(1, 0.9 * k), '#23271f');             // ventana der
     if (o.armed) {                                                                  // soldado asomado
       px(base.x + 1.25 * k, wy + 0.15 * k, 0.7 * k, Math.max(1, 0.6 * k), '#8a7f5e');
       if (o.fireT && run.t - o.fireT < 0.12) px(base.x + 2.1 * k, wy + 0.1 * k, 1.1 * k, Math.max(1, 0.5 * k), P.accent);
@@ -764,8 +791,13 @@ export function drawObstacle(o) {
     px(cx2 + fw * 0.025, fy + Math.sin(run.t * 4 + o.ph + 2.1) * 0.3 * k, Math.max(1, fw * 0.05), fh, '#c8202e');
     drawHpBar(base.x, base.y - th - 2 * k, k, o);
   } else if (o.type === 'depot') {
-    // DEPOSITO: galpon bajo con tambores y cajones apilados al lado.
+    // DEPOSITO: galpon abovedado con tambores y cajones apilados al lado.
     const base = proj(o.x, 0, o.z), dh = o.h * k;
+    if (enemyArt.ready('depot')) {
+      enemyArt.drawFrame(ctx, 'depot', 0, 0, base.x, { bottomY: base.y }, k * o.h / enemyArt.SHEETS.depot.href, false);
+      drawHpBar(base.x, base.y - dh - 1.8 * k, k, o);
+      return;
+    }
     px(base.x - 3.4 * k, base.y - dh, 6.8 * k, dh, '#6a6352');                        // galpon
     px(base.x - 3.4 * k, base.y - dh, 6.8 * k, Math.max(1, 0.2 * dh), '#7a7360');
     px(base.x - 3.7 * k, base.y - dh - 0.5 * k, 7.4 * k, Math.max(1, 0.6 * k), '#464033');  // techo
@@ -884,24 +916,55 @@ export function drawObstacle(o) {
       ctx.beginPath(); ctx.arc(s.x, s.y, R * (1 + gr * 0.8), 0, 6.2832); ctx.stroke();
       ctx.lineWidth = 1; ctx.globalAlpha = 1;
     }
+  } else if (o.type === 'chunk') {
+    // PEDAZO DEL AVION derribado (ver die en game.js): fragmento que sigue de largo con la
+    // inercia, girando. Un rect rotado con canto iluminado — a esta escala, el TUMBO (rotacion
+    // continua) es lo que lo hace leer como escombro y no como particula.
+    const s = proj(o.x, o.y, o.z);
+    const r = Math.max(1.2, o.size * 2 * k);
+    ctx.save();
+    ctx.translate(s.x, s.y); ctx.rotate(o.spin);
+    px(-r / 2, -r / 4, r, r / 2, '#3a4038');                 // el fragmento
+    px(-r / 2, -r / 4, r, Math.max(1, r * 0.16), '#5c6358'); // canto al sol
+    if (o.hot && Math.sin(o.spin * 3) > 0)                   // rescoldo: parpadea al girar
+      px(r * 0.2, -r / 8, Math.max(1, r * 0.2), Math.max(1, r * 0.2), '#e07030');
+    ctx.restore();
   } else if (o.type === 'birds') {
     // BANDADA: aves aleteando (daña al atravesarla, no derriba). Silueta simple en "V".
     // DOS ESPECIES, sorteadas en el spawn (o.white): gaviotas BLANCAS con punta de ala oscura —
     // las del Atlantico Sur, que resaltan sobre el mar y la tierra — y aves NEGRAS, que resaltan
     // contra el cielo. Entre las dos la bandada se ve venir sobre cualquier fondo.
+    //
+    // ALETEO EN TRES POSES (arriba/planeo/abajo), no en dos: con dos posiciones el ala teletransporta
+    // y parece un glitch; con la pose intermedia se lee la BATIDA. Cada ave lleva su fase y su
+    // tamaño (las de atras mas chicas: profundidad dentro de la bandada), y un bob vertical lento
+    // desfasado — una bandada respira, no vuela clavada en una grilla.
     const s = proj(o.x, o.y, o.z);
     const cuerpo = o.white ? '#eef2f0' : '#1e2422';
     const punta = o.white ? '#6d7b7d' : '#0d1110';
+    const panza = o.white ? '#c9d4d2' : '#333b38';
     for (let i = 0; i < 6; i++) {
-      const bx2 = s.x + ((i % 3) - 1) * 2.2 * k + (i > 2 ? 1.1 * k : 0);
-      const by2 = s.y + ((i / 3) | 0) * 1.4 * k - (i % 3 === 1 ? 0.9 * k : 0);
-      const flap = Math.sin(run.t * 11 + o.ph + i * 1.3) > 0 ? 1 : 0;
-      const wl = 0.7 * k, hh2 = Math.max(1, 0.25 * k);
-      px(bx2 - wl, by2 - flap * 0.35 * k, wl, hh2, cuerpo);                    // ala izq
-      px(bx2, by2 - (1 - flap) * 0.35 * k, wl, hh2, cuerpo);                   // ala der
-      // PUNTAS de ala mas oscuras: es lo que hace que la gaviota blanca no sea una mancha
-      px(bx2 - wl, by2 - flap * 0.35 * k, Math.max(1, wl * 0.34), hh2, punta);
-      px(bx2 + wl - Math.max(1, wl * 0.34), by2 - (1 - flap) * 0.35 * k, Math.max(1, wl * 0.34), hh2, punta);
+      const back = i > 2;                                       // fila de atras: mas lejos
+      const sc = (back ? 0.72 : 1) * (0.85 + ((i * 37) % 5) * 0.06);
+      const bx2 = s.x + (((i % 3) - 1) * 2.2 + (back ? 1.1 : 0)) * k;
+      const by2 = s.y + ((back ? 1.4 : 0) - (i % 3 === 1 ? 0.9 : 0) + Math.sin(run.t * 1.7 + i * 2.1) * 0.3) * k;
+      const w = Math.sin(run.t * 11 + o.ph + i * 1.3);          // fase del aleteo de ESTA ave
+      const pose = w > 0.4 ? 1 : w < -0.4 ? -1 : 0;             // 1 = alas arriba · 0 = planeo · -1 = abajo
+      const wl = 0.75 * k * sc, hh2 = Math.max(1, 0.22 * k * sc);
+      const lift = pose * 0.38 * k * sc;
+      // cuerpo: un punto con panza — el pivote del que salen las alas
+      px(bx2 - 0.28 * k * sc, by2 - 0.14 * k * sc, Math.max(1, 0.56 * k * sc), Math.max(1, 0.34 * k * sc), cuerpo);
+      px(bx2 - 0.28 * k * sc, by2 + 0.06 * k * sc, Math.max(1, 0.56 * k * sc), Math.max(1, 0.14 * k * sc), panza);
+      // alas: suben y bajan JUNTAS alrededor del cuerpo (antes alternaban una arriba y una
+      // abajo, que es como aletea un murcielago de historieta, no una gaviota)
+      for (const sg of [-1, 1]) {
+        const x0 = sg < 0 ? bx2 - wl - 0.2 * k * sc : bx2 + 0.2 * k * sc;
+        px(x0, by2 - lift - hh2 / 2, wl, hh2, cuerpo);
+        // la MITAD exterior del ala acompaña mas el gesto: quiebre del ala en la batida
+        const x1 = sg < 0 ? x0 : x0 + wl * 0.55;
+        px(x1, by2 - lift * 1.7 - hh2 / 2, wl * 0.45, hh2, cuerpo);
+        px(sg < 0 ? x1 : x1 + wl * 0.45 - Math.max(1, wl * 0.2), by2 - lift * 1.7 - hh2 / 2, Math.max(1, wl * 0.2), hh2, punta);
+      }
     }
   } else if (o.type === 'trench') {
     // TRINCHERA ARGENTINA (decorado, margen izquierdo): bolsas, 3 soldados propios tirando —
@@ -1143,7 +1206,7 @@ export function drawHitboxes() {
       hbBox(o.x, top / 2, o.z, 10, top / 2, HB_SOFT); continue;
     }
     if (o.type === 'bomb') { hbBox(o.x, o.y, o.z, 2.2, 2.4, HB); continue; }
-    if (o.type === 'airboom') continue;
+    if (o.type === 'airboom' || o.type === 'chunk') continue;   // FX puros: no colisionan
     const { hw, hh, oy } = hitbox(o);
     hbBox(o.x, oy, o.z, hw, hh, HB);
     // BARRIDO DEL CASCO: a ras del suelo lo vertical engancha aunque el centro no coincida.

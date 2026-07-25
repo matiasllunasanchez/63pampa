@@ -23,6 +23,11 @@ const FILES = {
   aatruck: '../assets/world/enemies/aatruck.png',
   lcu: '../assets/world/enemies/lcu.png',
   balloon: '../assets/world/enemies/balloon.png',
+  aa: '../assets/world/enemies/aa.png',
+  tent: '../assets/world/enemies/tent.png',
+  depot: '../assets/world/enemies/depot.png',
+  bldg: '../assets/world/enemies/bldg.png',
+  fragata: '../assets/world/enemies/fragata.png',
 };
 
 export const SHEETS = {
@@ -32,6 +37,13 @@ export const SHEETS = {
   aatruck: { fw: 56, fh: 48, cols: 3, rows: 1, box: { x0: 13, y0: 12, x1: 48, y1: 39 }, wu: 6.6 },
   lcu: { fw: 72, fh: 48, cols: 1, rows: 1, box: { x0: 10, y0: 11, x1: 51, y1: 32 }, wu: 8.6 },
   balloon: { fw: 48, fh: 48, cols: 1, rows: 1, box: { x0: 9, y0: 11, x1: 37, y1: 33 }, wu: 5.6 },
+  aa: { fw: 48, fh: 48, cols: 2, rows: 1, box: { x0: 8, y0: 7, x1: 39, y1: 35 }, wu: 5.2 },
+  tent: { fw: 48, fh: 48, cols: 1, rows: 1, box: { x0: 7, y0: 16, x1: 43, y1: 33 }, wu: 5.4 },
+  // depot y bldg se escalan por ALTURA al dibujar (o.h varia por spawn): wu es el ancho a la
+  // altura de referencia y drawFrame recibe el k ya multiplicado por (o.h / href)
+  depot: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 11, y0: 14, x1: 55, y1: 34 }, wu: 8.2, href: 5.5 },
+  bldg: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 16, y0: 11, x1: 49, y1: 37 }, wu: 6.8, href: 9.5 },
+  fragata: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 14, y0: 13, x1: 52, y1: 35 }, wu: 11 },
 };
 for (const k in SHEETS) {
   const s = SHEETS[k];

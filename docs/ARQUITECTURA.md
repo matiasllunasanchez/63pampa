@@ -113,7 +113,12 @@ Todo lo que pinta. `draw()` en `game.js` gestiona los transforms y delega acá.
 | archivo | qué dibuja |
 |---|---|
 | `world.js` | mar, tierra, cielo bajo, oleaje, estela, obstáculos, barcaza |
-| `plane.js` | el sprite del avión y su mira |
+| `plane.js` | el sprite del avión, tren de aterrizaje, fogonazos, turbina y su mira |
+| `ammo.js` | las trazadoras del cañón (estela muestreada en z, color que enfría) |
+| `enemies.js` | hojas horneadas de enemigos y props (helo, jet, vehículos, barcaza, globo, AA, carpa, depósito, puesto, fragata) — cajas medidas sobre el alfa; `world.js` cae a su dibujo a mano si una hoja no cargó |
+| `soldiers.js` | hoja de sprites de los soldados (correr / cuerpo a tierra) |
+| `boom.js` / `blast.js` | hongo de bomba / bola de fuego frontal (hojas de explosión) |
+| `miras.js` | la hoja de miras del menú `[M]` |
 | `hud.js` | instrumentos, avisos, barra de objetivo, cuenta regresiva del despegue |
 | `screens.js` | recuento, briefing, derribado, victoria, guion narrativo |
 | `menus.js` | selección de modo/avión y el menú de configuración `[M]` |
@@ -147,6 +152,8 @@ Lo que queda es genuinamente el pegamento:
 | el HUD | `render/hud.js` |
 | el mar / los obstáculos en pantalla | `render/world.js` |
 | el sprite del avión | `render/plane.js` |
+| el arte de un enemigo / prop horneado | `tools/bake_enemies.html` (modelo) → `npx electron tools/bake_enemies_run.js` → re-medir cajas en `render/enemies.js` |
+| el arte de un avión jugable | `tools/bake_planes.html` → `npx electron tools/bake_planes_run.js` |
 | sonido | `systems/audio.js` + `data/sfx.js` |
 
 ## Las redes de seguridad (`npm run check` las corre todas)

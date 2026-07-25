@@ -1,6 +1,16 @@
 # RASANTE — Estado del proyecto
 
-_Documento de continuidad. Última actualización: 18 de julio de 2026._
+_Documento de continuidad. Última actualización: 25 de julio de 2026._
+
+> **ARTE (25/7/2026):** la frase "falta reemplazar arte placeholder" de abajo quedó vieja en
+> buena parte. Hoy los 6 aviones jugables y casi todos los enemigos/props vuelan con **hojas de
+> sprites horneadas** desde modelos low-poly (`tools/bake_planes.html` y `tools/bake_enemies.html`,
+> con runners Electron), los FX del avión (trazadoras de dos bocas, tren de aterrizaje, fogonazos,
+> turbina, derribo con inercia) están rehechos en pixel art, los enemigos tienen **movimiento
+> propio configurable** (menú [M] → ENEMIGOS), y los soldados y explosiones usan hojas medidas
+> sobre el alfa. El inventario vivo de qué tiene arte y qué falta es
+> **[`PENDIENTES_DE_REDISENO.md`](PENDIENTES_DE_REDISENO.md)** — ese documento manda sobre
+> cualquier mención de arte de este archivo.
 
 Resumen de todo lo construido, cómo está armado y por dónde seguir. Pensado para
 retomar el proyecto sin tener que releer todo el código.

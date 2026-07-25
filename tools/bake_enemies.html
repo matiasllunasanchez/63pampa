@@ -238,6 +238,98 @@
       return g;
     }
 
+    // NIDO ANTIAEREO: anillo de bolsas de arena, pedestal y caños gemelos al cielo.
+    // `ang` = yaw de los caños (2 poses: la pieza corrige el apunte).
+    function modelAA(ang) {
+      const g = new THREE.Group();
+      const sand = '#8a7c58', sand2 = '#a4956e', metal = '#3d423b';
+      for (let i = 0; i < 8; i++) {                                      // anillo de bolsas
+        const a = i * Math.PI / 4;
+        const b = B(g, 1.3, 0.62, 0.62, i % 2 ? sand : sand2, Math.cos(a) * 1.55, 0.3, Math.sin(a) * 1.55);
+        b.rotation.y = -a + Math.PI / 2;
+        B(g, 1.0, 0.5, 0.55, i % 2 ? sand2 : sand, Math.cos(a) * 1.5, 0.75, Math.sin(a) * 1.5).rotation.y = -a + Math.PI / 2;
+      }
+      const tur = new THREE.Group(); tur.position.set(0, 0.6, 0); tur.rotation.y = ang; g.add(tur);
+      B(tur, 0.8, 0.9, 0.8, metal, 0, 0.4, 0);                           // pedestal
+      B(tur, 1.1, 0.3, 0.6, '#4a5045', 0, 0.95, 0);                      // cuna
+      for (const sg of [-1, 1]) {                                        // caños gemelos a ~50°
+        const c = CYL(tur, 0.08, 0.10, 2.4, '#2b3338', sg * 0.22, 1.7, -0.75, 6);
+        c.rotation.x = Math.PI / 2 - 0.9;
+      }
+      return g;
+    }
+
+    // CARPA britanica a dos aguas: dos faldones que se ENCUENTRAN en la cumbrera + hastiales
+    // (los triangulos de las puntas) hechos con ShapeGeometry, que ya es un plano vertical — sin
+    // pasar por PLATE, cuya rotacion interna compone mal con un segundo giro (la leccion euler).
+    function modelTent() {
+      const g = new THREE.Group();
+      const lona = '#6d6f4e', lona2 = '#7d7f60', dk = '#20241c';
+      const HALF = 1.15, RIDGE = 1.3, slope = Math.hypot(HALF, RIDGE), ang = Math.atan2(RIDGE, HALF);
+      for (const sg of [-1, 1]) {                                        // faldones
+        const f = B(g, slope, 0.1, 3.2, sg < 0 ? lona2 : lona, sg * HALF / 2, RIDGE / 2, 0);
+        f.rotation.z = -sg * ang;
+      }
+      B(g, 0.2, 0.14, 3.3, '#8d8f70', 0, RIDGE, 0);                      // cumbrera
+      const sh = new THREE.Shape();                                      // hastial (triangulo)
+      sh.moveTo(-HALF + 0.06, 0); sh.lineTo(0, RIDGE - 0.06); sh.lineTo(HALF - 0.06, 0); sh.closePath();
+      for (const zz of [-1.58, 1.55]) {
+        const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), MAT(lona));
+        m.position.set(0, 0, zz); g.add(m);
+      }
+      B(g, 0.66, 0.85, 0.1, dk, 0, 0.42, -1.6);                          // entrada oscura
+      B(g, 2.9, 0.14, 3.6, '#5a5c42', 0, 0.07, 0);                       // faldon sucio al piso
+      return g;
+    }
+
+    // DEPOSITO de suministros: galpon abovedado tipo nissen (boveda escalonada: a 48 px se lee
+    // curva), porton oscuro y tambores apilados al costado.
+    function modelDepot() {
+      const g = new THREE.Group();
+      const w1 = '#75705c', w2 = '#847e68', roof = '#4c4638', dk = '#2a2d24';
+      B(g, 3.4, 1.1, 4.6, w1, 0, 0.55, 0);                               // cuerpo
+      B(g, 2.9, 0.55, 4.6, w2, 0, 1.35, 0);                              // boveda: escalones
+      B(g, 2.0, 0.42, 4.6, roof, 0, 1.82, 0);
+      B(g, 1.0, 0.26, 4.6, '#5a5444', 0, 2.13, 0);
+      B(g, 1.2, 0.95, 0.14, dk, 0, 0.48, -2.32);                         // porton
+      for (let i = 0; i < 3; i++) {                                      // tambores
+        POST(g, 0.28, 0.28, 0.8, i % 2 ? '#6d7a4a' : '#7d8a55', 2.1 + (i % 2) * 0.5, 0.4, -0.8 + i * 0.7, 8);
+      }
+      B(g, 0.8, 0.7, 0.8, '#7a6b4e', -2.25, 0.35, -1.2);                 // cajones
+      B(g, 0.6, 0.5, 0.6, '#8a7a5a', -2.2, 0.95, -1.15);
+      return g;
+    }
+
+    // PUESTO britanico: bloque de chapa a dos plantas, techo con alero, ventanas oscuras y
+    // bolsas de arena al pie. El soldado asomado y su fogonazo siguen por codigo (o.armed).
+    function modelBldg() {
+      const g = new THREE.Group();
+      const wall = '#6e6656', wall2 = '#7d7563', roof = '#463f31', dk = '#23271f';
+      B(g, 3.0, 2.6, 2.4, wall, 0, 1.3, 0);                              // cuerpo
+      B(g, 3.0, 0.5, 2.4, wall2, 0, 2.35, 0);                            // franja alta iluminada
+      B(g, 3.4, 0.3, 2.8, roof, 0, 2.75, 0);                             // techo con alero
+      B(g, 0.6, 0.95, 0.12, '#2a2d24', 0, 0.48, -1.22);                  // puerta
+      for (const sx of [-1.0, 1.0]) B(g, 0.62, 0.5, 0.12, dk, sx, 1.7, -1.22);   // ventanas
+      for (let i = 0; i < 4; i++)                                        // bolsas al pie
+        B(g, 0.7, 0.34, 0.5, i % 2 ? '#8a7c58' : '#a4956e', -1.3 + i * 0.85, 0.17, -1.35);
+      return g;
+    }
+
+    // FRAGATA vista de proa: el casco del mastil de mar abierto. El MASTIL va POR CODIGO encima
+    // (su altura se sortea 11-28 por spawn: un sprite fijo la aplastaria) — esto es solo el buque.
+    function modelFragata() {
+      const g = new THREE.Group();
+      const hull = '#4c5b60', hull2 = '#5c6e73', sup = '#6b7a80';
+      const h = DOME(g, 1.0, hull, 0, 0.3, 0, 2.6, 0.9, 3.2);            // casco (proa afilada por escala z)
+      B(g, 4.6, 0.34, 5.2, hull2, 0, 1.02, 0.3);                         // cubierta
+      B(g, 1.9, 0.9, 2.0, sup, 0, 1.6, 0.9);                             // superestructura
+      B(g, 1.2, 0.5, 1.1, '#7b8a90', 0, 2.25, 1.0);                      // puente
+      B(g, 1.05, 0.22, 0.14, '#20282c', 0, 2.3, 0.42);                   // ventanas del puente
+      POST(g, 0.10, 0.14, 0.8, '#3a4448', 0, 1.4, -0.9, 6);              // pieza de proa
+      B(g, 0.7, 0.3, 0.9, '#3a4448', 0, 1.35, -0.85);
+      return g;
+    }
+
     // ---------- catalogo de horneado ----------
     // frames: cada entrada es una POSE (funcion que devuelve el modelo + rotacion del grupo).
     // `wu` documenta cuantas unidades de MUNDO representa el ancho del frame (lo consume
@@ -277,6 +369,31 @@
       balloon: {
         fw: 48, fh: 48, dist: 11, lookY: 0, quarter: 0.4,
         frames: [{ model: modelBalloon }], cols: 1,
+      },
+      // nido AA: 2 poses de apunte de los caños
+      aa: {
+        fw: 48, fh: 48, dist: 14, lookY: 1.2, quarter: 0.45,
+        frames: [-0.35, 0.35].map(a => ({ model: () => modelAA(a) })), cols: 2,
+      },
+      // carpa: frame unico, frente 3/4 con la entrada a la vista
+      tent: {
+        fw: 48, fh: 48, dist: 12, lookY: 0.6, quarter: 0.35,
+        frames: [{ model: modelTent }], cols: 1,
+      },
+      // deposito: galpon abovedado con tambores
+      depot: {
+        fw: 64, fh: 48, dist: 15, lookY: 1.0, quarter: 0.4,
+        frames: [{ model: modelDepot }], cols: 1,
+      },
+      // puesto: bloque a dos plantas (la ALTURA en juego varia: se escala por o.h al dibujar)
+      bldg: {
+        fw: 64, fh: 48, dist: 14, lookY: 1.4, quarter: 0.35,
+        frames: [{ model: modelBldg }], cols: 1,
+      },
+      // fragata (casco del mastil de mar): PROA a camara, el mastil se dibuja por codigo encima
+      fragata: {
+        fw: 64, fh: 48, dist: 16, lookY: 1.0, quarter: 0.15,
+        frames: [{ model: modelFragata }], cols: 1,
       },
     };
 
