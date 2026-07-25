@@ -304,6 +304,7 @@ import { RUNWAYS } from './data/runways.js';
     let story = null;   // pantalla de HISTORIA (campaña): maquina de escribir letra a letra
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
     let toT = 0, toCount = 4;
+    window.__dbg = () => ({ state: S.state, mv: run.mv, y: +plane.y.toFixed(1) });   // PROBE TEMPORAL
     let levelT = 0;   // temporizador de las tarjetas de transición de nivel / victoria (campaña)
     let briefT = 0;   // temporizador de la tarjeta de briefing corto (ciclo de muerte)
     // Los CONTADORES de la corrida viven en core/state.js (`stats`), porque los escriben varios
@@ -420,6 +421,12 @@ import { RUNWAYS } from './data/runways.js';
           case 'rl': return moves.startMove('sturn', -1);
           case 'ul': return moves.startMove('jink', -1);
           case 'ur': return moves.startMove('jink', 1);
+          // MIXTOS AL REVES (primero el lateral): el 2º toque elige la familia — ↑ el circulo
+          // que sube, ↓ el que baja girando. El 1º toque da el sentido del giro.
+          case 'lu': return moves.startMove('barrel', -1);
+          case 'ru': return moves.startMove('barrel', 1);
+          case 'ld': return moves.startMove('spin', -1);
+          case 'rd': return moves.startMove('spin', 1);
         }
       },
       launchMissile: () => tryLaunchMissile(),

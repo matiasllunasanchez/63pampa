@@ -2,7 +2,8 @@
 
 _Relevamiento del 25 de julio de 2026. Última actualización: 25 de julio de 2026 (cuarta tanda:
 **piruetas de combate** por combos de dos toques y la **hoja 2** de cabeceos empinados ±32° para
-sus poses, horneada para los 6 aviones)._
+sus poses, horneada para los 6 aviones + **§13: pendiente de diseño** — persecución enemiga, radio
+de la base y contraataque con candado)._
 
 Lista completa de **todo lo que el juego dibuja** (unidades, objetos, FX, UI y escenario) con el
 estado de su arte, para saber qué sprites hay que hacer y con qué spec.
@@ -389,3 +390,119 @@ desembarco, nido AA, carpa, depósito, puesto y casco de fragata (hojas horneada
 rehecha por código (§2); hongo de bomba y bola de fuego frontal (§9); trazadoras, fogonazos de dos
 bocas, tren de aterrizaje y derribo con inercia (§1 y §9); **hoja 2 de cabeceos empinados** para
 las piruetas, horneada para los 6 aviones (§1).
+
+---
+
+## 13. PENDIENTE DE DISEÑO — persecución enemiga y contraataque
+
+> Anotado el 25 de julio de 2026. **No está implementado**: esto es el pedido, con lo que implica
+> en sistemas y en arte. Es la continuación natural de las piruetas (§1): hoy son un esquive
+> precioso **sin nadie a quien esquivar de atrás**.
+
+### 13.1 Los cazas enemigos te PERSIGUEN
+
+Hoy el `jet` viene **de frente**, cruza y se va (el 45% suelta dos trazadoras en la pasada). Nunca
+se te pone atrás, así que no hay presión sostenida: el peligro dura el segundo del cruce.
+
+Lo que falta es que el caza **se te cuelgue de la cola** y quede ahí, disparando, hasta que hagas
+algo. Ciclo propuesto:
+
+1. **Cruce** — entra de frente como ahora.
+2. **Viraje** — en vez de irse, invierte y se acomoda **detrás** tuyo (fuera de cámara: la vista es
+   desde atrás del avión, así que el perseguidor **no se ve**, se AVISA).
+3. **Persecución** — sigue tu carril con retardo, corrige y **abre fuego** por ráfagas.
+4. **Resolución** — o lo sacás con una maniobra, o te alcanza.
+
+**Qué hace falta para que se lea sin verlo** (el problema de diseño principal): un aviso claro de
+"lo tenés en la cola" — arco de radar en el HUD, luz de alerta, la alarma que ya existe
+(`alarm` en `data/sfx.js`, hoy reservada al misil buscador) y las trazadoras que te pasan por al
+lado desde ATRÁS hacia el horizonte (al revés de las tuyas — la dirección es la pista visual).
+El aviso **de que viene** es otra cosa y sale de la radio: ver §13.2.
+
+> Dónde tocaría: `systems/spawn.js` (estado inicial del caza), `systems/collision.js` (donde ya
+> vive el movimiento propio de enemigos, `cfg.enemyMove`), `render/hud.js` (aviso), `render/ammo.js`
+> (trazadoras que vienen de atrás).
+
+### 13.2 El aviso llega por RADIO desde la base de tierra — y a veces NO llega
+
+**El avión argentino no tiene radar.** El aviso de que viene un caza enemigo no sale de un sistema
+a bordo: te lo **canta por radio la base de tierra**. Ese es el sistema que reemplaza al radar del
+enemigo, y también la fuente del spawn:
+
+- **La base habla, y ahí aparecen.** El mensaje de radio ("caza entrando por el norte", rumbo,
+  cuántos) es lo que **anuncia el spawn**: primero la voz, después el enemigo. Le da un latido al
+  mapa — dejás de mirar el horizonte a ciegas y empezás a escuchar.
+- **A VECES aparecen sin avisar.** Un porcentaje de los cazas entra en silencio: la base no los vio,
+  o no llegó el mensaje. **Esa es la idea histórica hecha mecánica** — los aviones argentinos
+  volaban sin radar propio y dependían de un aviso que podía no llegar. El jugador aprende a no
+  confiar del todo en la radio, y el susto del que entra callado vale por diez avisados.
+- La radio sirve para **todo lo demás** también: la flota, el clima, el estado de la misión, aliento
+  entre pasadas. No es solo un detector de amenazas — es la voz que te acompaña en un juego donde
+  volás solo.
+
+> Es la bajada concreta de **ROADMAP #19** (radares ingleses vs base terrestre argentina) y del
+> **#18** (asimetría): el inglés ve; vos dependés de que alguien te avise.
+>
+> Dónde tocaría: un sistema nuevo de radio que alimente el spawn (`systems/spawn.js`) en vez de que
+> el spawn sortee solo; textos en `data/strings.js` (i18n, como todo lo visible); línea de mensaje
+> en `render/hud.js`; sonido de la radio en `systems/audio.js` (hoy todo el chirrido y el ruido son
+> procedurales — un click de PTT y estática se hacen sin assets).
+
+### 13.3 Combinaciones de CONTRAATAQUE
+
+Las piruetas ya existen y el detector de combos ya es genérico (§1): el contraataque es **darles
+un para qué**. La idea es que cada maniobra sirva contra la persecución de una forma distinta y que
+haya **combos propios de contraataque**, no solo de esquive:
+
+| maniobra | qué debería hacerle al perseguidor |
+|---|---|
+| **BREAK TURN** (↓← / ↓→) | lo obliga a **pasarse de largo** (overshoot): te quedás vos atrás |
+| **SPLIT-S** (↓↓ alto) | lo perdés por abajo — el clásico para romper el contacto |
+| **JINK** (↑← / ↑→) | le arruina la solución de tiro: falla las ráfagas mientras dura |
+| **HIGH YO-YO** (↑↑ alto) | lo dejás pasar por debajo y recaés sobre él |
+| **TERRAIN MASKING** (↓↓ bajo) | ya descarga el radar; debería **romper el lock** del misil |
+
+**La ventana de contraataque** es el premio: cuando el perseguidor **se pasa de largo**, queda
+adelante tuyo unos segundos, y ahí sí lo ves y lo podés matar. Ese es el bucle completo —
+te persiguen → maniobrás → se pasa → lo cazás.
+
+Combos **nuevos** a definir (el detector acepta cualquier par de toques; los pares libres hoy son
+`lu`, `ru`, `ld`, `rd` y los triples si se amplía la ventana).
+
+### 13.4 Contraataque tipo BATTLEFIELD con el lanzamisiles
+
+El modelo es el **lanzamisiles con candado** de Battlefield (Stinger / Igla): no es apretar y que
+salga — es **apuntar, sostener, esperar el tono, y recién ahí disparar**, con el enemigo enterándose
+de que lo estás enganchando.
+
+Piezas del pedido:
+
+- **Candado sostenido**: mantener el blanco en la mira carga el enganche (tono que sube, corchetes
+  que se cierran sobre el objetivo). Soltar antes = se pierde.
+- **Tono de lock** y **aviso al enemigo**: el caza enganchado reacciona — rompe, se va, o suelta
+  contramedidas.
+- **Misil que persigue de verdad** (el guiado ya existe para el misil enemigo: se puede espejar).
+- **Contramedidas**: **bengalas / flares** para vos también, contra el misil buscador del radar
+  (hoy la única defensa es interceptarlo a tiros o esquivarlo).
+- **Munición escasa** — el misil ya es limitado (`MSL_MAX = 3`, recarga 1 cada 7 s): el candado le
+  da peso a cada uno.
+
+> Lo que YA está y se reusa: `pmissiles` con guiado leve e intercepción de misiles enemigos,
+> `MSL_MAX`/recarga (`data/tuning.js`), la mira del mouse/joystick (`render/miras.js`), el misil
+> enemigo con homing (`systems/flight.js`) y la alarma (`data/sfx.js`).
+
+### 13.5 Arte que implica
+
+| pieza | por qué |
+|---|---|
+| **Caza enemigo visto DESDE ATRÁS** (cola a cámara) | cuando se pasa de largo queda adelante tuyo: la hoja actual son 5 alabeos de frente, no sirve de espaldas |
+| **Poses de viraje del caza** (se invierte para ponerse en tu cola) | hoy solo tiene alabeo; el giro de 180° no tiene con qué dibujarse |
+| **Aviso de perseguidor en el HUD** — arco/radar trasero, luz de alerta | es lo único que hace legible una amenaza que no se ve |
+| **Línea de radio en el HUD** (§13.2) — franja de mensaje con el emisor, tipografía de teletipo | la voz de la base tiene que leerse sin tapar el vuelo; conviene un lugar fijo y reconocible |
+| **Retícula de candado** — corchetes que se cierran + estado enganchado | la mira actual (`miras.webp`) es fija, no tiene estados |
+| **Bengalas / flares** | FX nuevo: racimo de luces cayendo hacia atrás |
+| **Trazadoras entrantes desde atrás** | mismas del cañón pero alejándose de la cámara (§9) |
+
+> Prioridad: **después** de la barcaza del momentum (§12 #1). Es la feature que más cambia el
+> juego de las que quedan, pero también la que más sistemas toca — y arranca con diseño, no con
+> arte: sin el aviso de "lo tenés atrás" resuelto, ningún sprite lo salva.

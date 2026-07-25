@@ -20,6 +20,10 @@ import { MOVES } from '../data/moves.js';
 
 const MV_CD = 1.15;          // cooldown compartido con el tonel (mismo valor que startRoll)
 const STEER_F = 0.55;        // autoridad del eje libre durante la maniobra (media palanca)
+// RADIO del tonel barril, en unidades de mundo. La O sube 2·R (el circulo solo puede ir hacia
+// arriba, ver el case 'barrel'), asi que 9 da una trepada de 18 — bien visible sin comerse el
+// techo de vuelo (FLY_TOP = 68) ni salirse del carril (FLY_X = 38).
+const BARREL_R = 9;
 
 /** Lanza la maniobra `id` (si se puede). Devuelve true si arranco. */
 export function startMove(id, dir) {
@@ -57,16 +61,57 @@ export function movesSystem(dt, inp) {
 
   switch (run.mv) {
     case 'splits': {
-      // 0-30%: medio tonel (queda invertido) · 30-85%: picada fuerte · final: endereza.
-      // La picada CONVIERTE altura en velocidad, como picar a mano pero mas brusco.
-      if (p < 0.3) { run.mvRoll = dir * (p / 0.3) * Math.PI; plane.vy *= 0.8; run.mvSteep = 0; }
-      else if (p < 0.85) {
+      // ENTRADA (0-28 %): medio tonel hasta quedar invertido.
+      // PICADA  (28-62 %): panza arriba, cae y CONVIERTE altura en velocidad.
+      // SALIDA  (62-100 %): completa el tonel y endereza.
+      //
+      // LA SALIDA ES LA FASE MAS LARGA, a proposito. Antes duraba 0.14 s contra 0.28 s de la
+      // entrada: el avion se daba vuelta al DOBLE de velocidad de la que se habia invertido y
+      // el enderezado se leia como un tiron. Ahora sale mas lento de lo que entro, que es como
+      // se recupera de verdad.
+      //
+      // Las dos medias vueltas van con SMOOTHSTEP: la velocidad angular arranca y termina en
+      // cero, asi el giro entra y sale sin golpe. Con la rampa lineal de antes, el alabeo se
+      // frenaba de golpe justo al llegar a la horizontal.
+      const ss = t => { const c = Math.max(0, Math.min(1, t)); return c * c * (3 - 2 * c); };
+      if (p < 0.28) { run.mvRoll = dir * ss(p / 0.28) * Math.PI; plane.vy *= 0.8; run.mvSteep = 0; }
+      else if (p < 0.62) {
         run.mvRoll = dir * Math.PI; run.mvSteep = -1;
         plane.vy = Math.max(-26, plane.vy - 130 * dt);
         run.spd += 26 * dt;
-        if (plane.y < 3) { plane.vy = Math.max(plane.vy, 0); run.mvT = Math.max(run.mvT, M.dur * 0.85); }  // piso: endereza ya
-      } else { run.mvRoll = dir * (Math.PI + ((p - 0.85) / 0.15) * Math.PI); run.mvSteep = 0; plane.vy *= 0.6; }
-      plane.vx = sx; plane.bank = 0; plane.pitch = p < 0.85 && p > 0.3 ? -1 : 0;
+        if (plane.y < 3) { plane.vy = Math.max(plane.vy, 0); run.mvT = Math.max(run.mvT, M.dur * 0.62); }  // piso: endereza ya
+      } else { run.mvRoll = dir * (Math.PI + ss((p - 0.62) / 0.38) * Math.PI); run.mvSteep = 0; plane.vy *= 0.6; }
+      plane.vx = sx; plane.bank = 0; plane.pitch = p > 0.28 && p < 0.62 ? -1 : 0;
+      break;
+    }
+    case 'spin': {
+      // TIRABUZON: rola 360° SOBRE SU PROPIO EJE mientras pica derecho — sin desvio lateral.
+      // Es la unica maniobra puramente axial: el tonel clasico lleva un dash de costado y el
+      // barril describe un circulo; esta se queda en su carril y baja girando.
+      run.mvRoll = dir * p * Math.PI * 2;
+      plane.vx = 0;                                   // NADA de lateral: ese es el punto
+      plane.vy = -20 * Math.sin(Math.PI * p) - 4;     // pica con panza (entra y sale suave)
+      if (plane.y < 3.5 && plane.vy < 0) plane.vy = 0;   // piso de seguridad
+      run.spd += 30 * dt * bell(p);                   // la picada paga velocidad
+      plane.bank = 0; plane.pitch = -0.8;
+      run.mvSteep = -1;
+      break;
+    }
+    case 'barrel': {
+      // TONEL BARRIL de verdad (el clasico 'barrel roll' del juego es en realidad un aileron
+      // roll: gira en el lugar). Este describe una O GRANDE en el plano de la pantalla —
+      // se abre hacia un lado, sube, pasa BOCA ABAJO por arriba y vuelve por el otro lado al
+      // punto de partida — mientras rola 360°, asi la cola nunca deja de mirar a la camara.
+      //
+      // Se programa como CIRCULO: x = R·sen(θ), y = y0 + R·(1−cos θ). Por eso solo puede SUBIR
+      // (1−cos va de 0 a 2): arranque donde arranque, nunca se mete contra el suelo.
+      const th = p * Math.PI * 2;
+      const w = Math.PI * 2 / M.dur;                  // velocidad angular del circulo
+      plane.vx = dir * BARREL_R * Math.cos(th) * w;
+      plane.vy = BARREL_R * Math.sin(th) * w;
+      run.mvRoll = dir * th;                          // el rolido acompaña al circulo: arriba, invertido
+      plane.bank = 0; plane.pitch = 0;
+      run.spd = Math.max(40, run.spd - run.spd * 0.09 * dt);   // el circulo cuesta energia
       break;
     }
     case 'breakt': {

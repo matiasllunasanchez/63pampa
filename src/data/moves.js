@@ -16,9 +16,13 @@
 // COMBOS: dos toques direccionales en menos de 0.24 s (tambien con el pad — cruceta o flicks
 // del stick). Ver docs/PIRUETAS.md para la tabla completa.
 //
-//   ←← / →→    BARREL ROLL        ↓↑         LOW YO-YO
+//   ←← / →→    TONEL (aileron)    ↓↑         LOW YO-YO
 //   ↑↓         HIGH YO-YO         ↓← / ↓→    BREAK TURN
 //   ←→ / →←    S-TURN             ↑← / ↑→    JINK
+//   ←↑ / →↑    TONEL BARRIL       ←↓ / →↓    TIRABUZON
+//
+// OJO con el orden de los mixtos: PRIMERO vertical (↑←) es JINK; PRIMERO lateral (←↑) es el
+// TONEL BARRIL. Son combos distintos con las mismas dos teclas — el detector guarda el orden.
 //
 // PARES CONTEXTUALES. Cuatro maniobras comparten combo con otra, y cual sale NO depende de como
 // se aprietan las teclas: depende de la ALTURA A LA QUE VIENE VOLANDO EL AVION (plane.y). Se
@@ -34,7 +38,7 @@ export const MOVES = {
   // (mira libre o auto-apuntado) no depende de para donde este la panza. El tonel clasico
   // siempre dejo disparar, asi que bloquearlo aca era una incoherencia entre dos maniobras que
   // el jugador vive como la misma cosa (dar vuelta el avion).
-  splits: { dur: 0.95, name: 'SPLIT-S', steer: 'x', fire: true, turbo: false, tight: true },
+  splits: { dur: 1.15, name: 'SPLIT-S', steer: 'x', fire: true, turbo: false, tight: true },
   // viraje quebrado: tiron lateral violento sostenido, banqueo a fondo
   breakt: { dur: 0.7, name: 'BREAK TURN', steer: 'y', fire: true, turbo: false, tight: true },
   // sube, cuelga y recae: esquive vertical que sangra velocidad
@@ -49,6 +53,12 @@ export const MOVES = {
   mask: { dur: 1.6, name: 'TERRAIN MASKING', steer: 'x', fire: true, turbo: true, tight: false },
   // trepada brusca de ataque desde rasante
   popup: { dur: 0.8, name: 'POP-UP', steer: 'x', fire: true, turbo: false, tight: false },
+  // TIRABUZON: rola sobre su PROPIO EJE picando derecho, sin desvio lateral. No deja controlar
+  // nada (steer null) justamente porque lo que la define es que NO se va para ningun costado.
+  spin: { dur: 1.0, name: 'TIRABUZON', steer: null, fire: true, turbo: true, tight: true },
+  // TONEL BARRIL: la O grande — se abre, sube, pasa boca arriba y vuelve. Trayectoria cerrada,
+  // asi que tampoco se controla: corregirla la dejaria de cerrar.
+  barrel: { dur: 1.4, name: 'TONEL BARRIL', steer: null, fire: true, turbo: false, tight: true },
 };
 
 /** ¿La maniobra activa encoge el perfil de colision? (la consultan collision y el overlay) */
