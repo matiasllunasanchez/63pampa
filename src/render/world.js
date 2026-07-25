@@ -861,52 +861,103 @@ export function drawObstacle(o) {
 // SOLDADO de infantería en tierra: figura corriendo (piernas alternadas), casco y fusil. Se dibuja
 // con el juego a 320x180, así que todo escala con `k` (tamaño según la distancia). `gait` (−1..1)
 // anima el paso. Vive acá (render) y no en el orquestador: el loop de game.js solo proyecta y llama.
+// PALETA DEL SOLDADO BRITANICO. Uniforme DPM oscuro (verde oliva sucio), que es el real y
+// ademas asienta mejor sobre la turba que el khaki claro que habia antes.
+// El problema de oscurecer es que el soldado se funde con el suelo. Se resuelve con DOS bordes:
+// una silueta oscura que lo despega del terreno claro, y un FILO ILUMINADO en el lado de la luz
+// (arriba-izquierda, como el resto del juego) que lo despega del terreno oscuro. Con los dos, se
+// lee sobre cualquier banda del piso sin necesidad de un uniforme mas claro de lo que deberia.
+// OJO CON OSCURECER DE MAS: la primera version bajo tanto el uniforme que el soldado se leia como
+// una silueta negra — el equipo oscuro tapaba el torso y no quedaba uniforme visible. Estos tonos
+// son ~30% mas oscuros que el khaki anterior, pero el uniforme sigue siendo lo mas claro de la
+// figura; lo oscuro son solo el casco, el correaje y los borceguies.
+const SOL = {
+  U: '#6d6f48',        // uniforme DPM, tono medio
+  UL: '#8d8f60',       // cara iluminada (hombros, brazo del sol)
+  UD: '#4b4d31',       // sombra del uniforme / pantalon
+  GEAR: '#3c3e29',     // correaje y equipo
+  BOOT: '#2a2c1f',     // borceguies
+  HELM: '#5b5e3e',     // casco
+  HELML: '#7f8256',    // brillo del casco
+  SKIN: '#b08a5e',     // piel (bajada de saturacion: no debe competir con el casco)
+  GUN: '#191c12',
+  RIM: '#12150c',      // silueta contra terreno CLARO
+  LIT: '#a8aa78',      // filo contra terreno OSCURO
+};
+
 /** SOLDADO CUERPO A TIERRA: el que ve venir el avion y se tira. Se dibuja aparte y no como una
  *  variante del de pie — tumbado casi no tiene altura, asi que lo que lo hace legible es la
  *  silueta HORIZONTAL (cuerpo largo y bajo, casco a un extremo, fusil al costado). */
 export function drawSoldierProne(x, y, k, dir) {
-  const bw = Math.max(3.4, k * 2.0), bh = Math.max(1.4, k * 0.62);
+  const bw = Math.max(3.4, k * 2.0), bh = Math.max(1.6, k * 0.66);
   const d = dir < 0 ? -1 : 1;
-  const U = '#a09372', UD = '#6e6448', HELM = '#7d7455', GUN = '#191c15', RIM = '#12150e';
-  px(x - bw * 0.55, y - bh * 1.12, bw * 1.1, bh * 1.12, RIM);                      // silueta
+  const e = Math.max(1, bh * 0.16);
   ctx.globalAlpha = 0.32;                                                          // sombra pegada
   px(x - bw * 0.6, y - 1, bw * 1.2, Math.max(1, bh * 0.3), '#0d100a');
   ctx.globalAlpha = 1;
-  px(x - bw * 0.5, y - bh * 0.95, bw, bh * 0.72, U);                               // cuerpo tendido
-  px(x - bw * 0.5, y - bh * 0.95, bw, Math.max(1, bh * 0.22), '#b3a685');          // luz de la espalda
-  px(x - bw * 0.1, y - bh * 0.9, Math.max(1, bw * 0.16), bh * 0.62, UD);           // correaje
-  px(x + d * bw * 0.36, y - bh * 1.12, Math.max(1, bw * 0.3), Math.max(1, bh * 0.5), HELM);  // casco
-  px(x - d * bw * 0.15, y - bh * 0.45, Math.max(1, bw * 0.6), Math.max(1, bh * 0.2), GUN);   // fusil
-  px(x - bw * 0.5, y - bh * 0.3, Math.max(1, bw * 0.34), Math.max(1, bh * 0.22), UD);        // piernas
+  px(x - bw * 0.5, y - bh, bw, bh * 0.78, SOL.U);                                  // cuerpo tendido
+  px(x - bw * 0.5, y - bh, bw, Math.max(1, bh * 0.34), SOL.UL);                    // espalda al sol
+  px(x - bw * 0.14, y - bh * 0.94, Math.max(1, bw * 0.26), bh * 0.6, SOL.GEAR);    // mochila
+  px(x - d * bw * 0.42, y - bh * 0.42, Math.max(1, bw * 0.3), Math.max(1, bh * 0.34), SOL.BOOT); // botas
+  px(x + d * bw * 0.34, y - bh * 1.16, Math.max(1, bw * 0.32), Math.max(1, bh * 0.5), SOL.HELM); // casco
+  px(x + d * bw * 0.34, y - bh * 1.16, Math.max(1, bw * 0.32), Math.max(1, bh * 0.2), SOL.HELML);
+  px(x - d * bw * 0.1, y - bh * 0.34, Math.max(1, bw * 0.5), Math.max(1, bh * 0.2), SOL.GUN);    // fusil
+  // mismos contornos de 1 px que el de pie: oscuro abajo, claro arriba
+  px(x - bw * 0.5, y - Math.max(1, bh * 0.16), bw, Math.max(1, bh * 0.16), SOL.RIM);
+  px(x - bw * 0.5, y - bh, bw * 0.9, Math.max(1, e * 0.55), SOL.LIT);
 }
 
 export function drawSoldier(x, y, k, gait) {
-  // SOLDADO BRITANICO de infanteria. Dos decisiones de legibilidad: (1) SILUETA de contraste — un
-  // borde oscuro detras de todo el cuerpo que lo separa del terreno (los verdes del uniforme se
-  // fundian con la turba); (2) uniforme khaki CLARO, mas claro que cualquier banda del suelo.
+  // SOLDADO BRITANICO de infanteria, de espaldas. A este tamaño (8-20 px de alto) el detalle no
+  // se dibuja: se SUGIERE con bloques de un pixel bien puestos.
+  //
+  // OJO CON EL CONTORNO: antes la silueta era un BLOQUE RELLENO del tamaño del cuerpo, dibujado
+  // debajo de todo. Con el uniforme khaki claro de entonces funcionaba (solo asomaba por los
+  // bordes), pero al oscurecer el uniforme el bloque y el cuerpo se fundian en una mancha negra.
+  // Ahora el contorno se dibuja DESPUES y es de 1 px: oscuro en el lado de la sombra (derecha y
+  // abajo) y CLARO en el lado de la luz (izquierda y arriba). Asi el soldado se despega tanto del
+  // terreno claro como del oscuro sin tener que aclarar el uniforme.
   const bh = Math.max(3.5, k * 1.9), bw = Math.max(1.7, k * 0.78);
-  const U = '#a09372', UD = '#6e6448', HELM = '#7d7455', SKIN = '#caa27a', GUN = '#191c15', RIM = '#12150e';
   const step = gait * bw * 0.5;
-  // silueta de contraste (sombra dura pegada al cuerpo)
-  px(x - bw * 0.56, y - bh * 1.06, bw * 1.12, bh * 1.06, RIM);
-  // sombra en el piso
+  const p1 = Math.max(1, bw * 0.22), p2 = Math.max(1, bh * 0.06);
+  const edge = Math.max(1, bw * 0.14);
+
+  // sombra proyectada en el piso
   ctx.globalAlpha = 0.3; px(x - bw * 0.7, y - 1, bw * 1.4, Math.max(1, bh * 0.08), '#0d100a'); ctx.globalAlpha = 1;
-  // piernas (alternan con el paso)
-  px(x - step - bw * 0.32, y - bh * 0.4, Math.max(1, bw * 0.32), bh * 0.4, UD);
-  px(x + step, y - bh * 0.4, Math.max(1, bw * 0.32), bh * 0.4, UD);
-  // torso + correaje
-  px(x - bw * 0.44, y - bh * 0.76, bw * 0.88, bh * 0.44, U);
-  px(x - bw * 0.44, y - bh * 0.76, bw * 0.88, Math.max(1, bh * 0.1), '#b3a685');    // luz de hombros
-  px(x - bw * 0.1, y - bh * 0.74, Math.max(1, bw * 0.2), bh * 0.4, UD);             // correaje cruzado
-  px(x - bw * 0.5, y - bh * 0.5, bw, Math.max(1, bh * 0.09), '#57503a');            // cinturon
-  // fusil cruzado al frente + brazo
-  px(x - bw * 0.12, y - bh * 0.64, Math.max(1, bw * 0.9), Math.max(1, bh * 0.12), GUN);
-  px(x - bw * 0.18, y - bh * 0.62, Math.max(1, bw * 0.38), Math.max(1, bh * 0.24), U);
-  // cabeza + casco britanico (ala ancha)
-  px(x - bw * 0.28, y - bh * 0.92, bw * 0.56, bh * 0.2, SKIN);
-  px(x - bw * 0.38, y - bh * 1.02, bw * 0.76, Math.max(1, bh * 0.17), HELM);
-  px(x - bw * 0.38, y - bh * 1.02, bw * 0.76, Math.max(1, bh * 0.05), '#948a66');   // brillo del casco
-  px(x - bw * 0.46, y - bh * 0.88, bw * 0.92, Math.max(1, bh * 0.06), '#57503a');   // ala ancha
+
+  // PIERNAS: alternan con el paso, con borceguies mas oscuros que el pantalon
+  px(x - step - bw * 0.34, y - bh * 0.42, Math.max(1, bw * 0.34), bh * 0.42, SOL.UD);
+  px(x + step, y - bh * 0.42, Math.max(1, bw * 0.34), bh * 0.42, SOL.UD);
+  px(x - step - bw * 0.34, y - bh * 0.12, Math.max(1, bw * 0.34), Math.max(1, bh * 0.12), SOL.BOOT);
+  px(x + step, y - bh * 0.12, Math.max(1, bw * 0.34), Math.max(1, bh * 0.12), SOL.BOOT);
+
+  // TORSO: base media, mitad izquierda al sol
+  px(x - bw * 0.46, y - bh * 0.8, bw * 0.92, bh * 0.5, SOL.U);
+  px(x - bw * 0.46, y - bh * 0.8, bw * 0.46, bh * 0.5, SOL.UL);
+  // MOCHILA: el bulto de la espalda — es lo que dice "de espaldas" de un vistazo
+  px(x - bw * 0.2, y - bh * 0.72, bw * 0.4, bh * 0.26, SOL.GEAR);
+  px(x - bw * 0.2, y - bh * 0.72, bw * 0.4, p2, '#565939');                        // tapa de la mochila
+  // CORREAJE en cruz + cinturon
+  px(x - bw * 0.46, y - bh * 0.62, bw * 0.92, p2, SOL.GEAR);
+  px(x - bw * 0.5, y - bh * 0.42, bw, Math.max(1, bh * 0.08), SOL.GEAR);
+  // BRAZOS: se mecen al contrario que las piernas
+  px(x - bw * 0.54, y - bh * 0.76 + step * 0.3, p1, bh * 0.32, SOL.UL);
+  px(x + bw * 0.54 - p1, y - bh * 0.76 - step * 0.3, p1, bh * 0.32, SOL.UD);
+  // FUSIL cruzado al frente, asomando por el costado
+  px(x + bw * 0.22, y - bh * 0.68, Math.max(1, bw * 0.58), Math.max(1, bh * 0.1), SOL.GUN);
+
+  // CABEZA + CASCO britanico (ala ancha)
+  px(x - bw * 0.26, y - bh * 0.94, bw * 0.52, bh * 0.18, SOL.SKIN);
+  px(x - bw * 0.42, y - bh * 1.04, bw * 0.84, Math.max(1, bh * 0.16), SOL.HELM);
+  px(x - bw * 0.42, y - bh * 1.04, bw * 0.42, Math.max(1, bh * 0.16), SOL.HELML);  // media luz del casco
+  px(x - bw * 0.5, y - bh * 0.9, bw, p2, SOL.UD);                                  // ala ancha
+
+  // CONTORNOS de 1 px (van al final, encima de todo)
+  px(x + bw * 0.46 - edge, y - bh * 0.8, edge, bh * 0.5, SOL.RIM);                 // sombra: torso der
+  px(x + bw * 0.42 - edge, y - bh * 1.04, edge, bh * 0.16, SOL.RIM);               // sombra: casco der
+  px(x - bw * 0.5, y - Math.max(1, bh * 0.06), bw, Math.max(1, bh * 0.06), SOL.RIM); // sombra: al pie
+  px(x - bw * 0.46, y - bh * 0.8, edge, bh * 0.5, SOL.LIT);                        // luz: torso izq
+  px(x - bw * 0.42, y - bh * 1.04, bw * 0.84, Math.max(1, p2 * 0.9), SOL.LIT);     // luz: tope del casco
 }
 
 // la barcaza objetivo VISIBLE en vuelo normal: aparece en el horizonte desde el 45% del recorrido
