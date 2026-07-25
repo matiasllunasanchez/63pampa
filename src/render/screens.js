@@ -57,32 +57,27 @@ function drawMalvinas(cx, cy, s, won, t, rot) {
   ctx.restore();
 }
 
-// DISTRIBUCION del galardón: NO en fila — dispersa y con leve rotación, como el emblema de la remera
-// (estrellas a distintas alturas, las islas en el centro). Offsets relativos al centro (cx, cy).
-const AWARD_STARS = [
-  { dx: -24, dy: -2, rot: -0.16 },   // izquierda
-  { dx: -4, dy: -11, rot: 0.09 },    // arriba-centro
-  { dx: 22, dy: 5, rot: 0.20 },      // abajo-derecha
-];
-const AWARD_MAL = { dx: 6, dy: 3, rot: -0.05 };   // islas en el centro del racimo
-
-// GALARDON reutilizable: 3 estrellas + las Malvinas como 4ª. Lo usan el recuento de fin de nivel
-// (campaña/ciclo) y el DERRIBADO de POR LA PATRIA. `appearT` es el reloj de la animacion de entrada
-// (segundos desde que arranca): las estrellas entran de a una y las islas al final.
+// GALARDON reutilizable: 3 estrellas + las Malvinas como 4ª, en FILA HORIZONTAL centrada en (cx,cy).
+// Lo usan el recuento de fin de nivel (campaña/ciclo) y el DERRIBADO de POR LA PATRIA. `appearT` es el
+// reloj de la animacion de entrada: las estrellas entran de a una y las islas al final.
+const AWARD_GAP = 16;                                      // separación entre elementos
 export function drawAward(cx, cy, stars, appearT, t) {
+  // los 4 centros van simétricos alrededor de cx: -1.5·gap .. +1.5·gap. El pequeño corrimiento a la
+  // izquierda compensa que las islas (4º) son más anchas que una estrella.
+  const x0 = cx - 1.5 * AWARD_GAP - 3;
   for (let i = 0; i < 3; i++) {
     const a = appearT - i * 0.22;
     if (a < 0) continue;
-    const on = i < stars, pop = Math.max(0, 1 - a * 4), sl = AWARD_STARS[i];
+    const on = i < stars, pop = Math.max(0, 1 - a * 4);
     ctx.save();
-    ctx.translate(cx + sl.dx, cy + sl.dy); ctx.rotate(sl.rot); ctx.scale(1 + pop * 0.5, 1 + pop * 0.5);
+    ctx.translate(x0 + i * AWARD_GAP, cy); ctx.scale(1 + pop * 0.5, 1 + pop * 0.5);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = 'bold 13px monospace';
     ctx.fillStyle = on ? P.accent : '#2e3c45';
     ctx.fillText(on ? '★' : '☆', 0, 0);
     ctx.restore();
   }
   const ma = appearT - 3 * 0.22 - 0.15;                   // las Malvinas, un toque despues
-  if (ma >= 0) drawMalvinas(cx + AWARD_MAL.dx, cy + AWARD_MAL.dy, 1 + Math.max(0, 1 - ma * 3.5) * 0.8, stars >= 4, t, AWARD_MAL.rot);
+  if (ma >= 0) drawMalvinas(x0 + 3 * AWARD_GAP, cy, 1 + Math.max(0, 1 - ma * 3.5) * 0.8, stars >= 4, t, 0);
 }
 
 export function drawResults(w) {

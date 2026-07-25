@@ -349,3 +349,52 @@ piezas** que después sirven para reparar o mejorar el avión (engancha con la e
       ¿entre niveles?
 - [ ] Definir el **género**: cenital de sigilo/evasión, plataformas 2D, o recolección simple.
 - [ ] Definir **qué recupera** y cómo vuelve al juego aéreo (piezas → reparación/mejora).
+
+## 25. Subir la resolución base (320×180 → 480×270)
+
+Subir la resolución interna para que **cada cosa esté compuesta por más cuadraditos** y gane detalle.
+Hoy el juego se dibuja a **320×180** lógicos (buffer 2×). 480×270 es exactamente **1.5×**.
+
+> **Contexto: 320×180 NO es baja resolución para el género.** Es una base estándar de pixel-art en
+> Steam (Shovel Knight, The Messenger y muchos otros rondan 256×224–320×180; Celeste es ~320×180
+> lógico). Los que "se ven mejor" no tienen más resolución: tienen **más densidad de arte** dentro
+> de la misma. Por eso el paso 1 fue subir el detalle del arte por código, no la resolución.
+
+### Resultados del spike (medidos, no estimados)
+
+Se probó de verdad: copia del árbol con `W=480, H=270, HOR=96, F=135` y build.
+
+**Lo bueno — arranca y no rompe nada:**
+- **Cero errores de consola.** El juego corre, el menú se ve bien, el mundo se dibuja correcto.
+- **231 posiciones** ya están expresadas con `W`/`H` (ej. `W/2`, `H-8`, `W-66`) → **se adaptan solas**.
+  Casi todo el HUD (puntaje, barra de objetivo, avisos, COMB, CAÑÓN, velocímetro) cayó en su lugar.
+- El terreno llenó todo el ancho correctamente.
+
+**Lo que se rompe:**
+- **~40-60 posiciones hardcodeadas** en coordenadas absolutas. Confirmado en el spike: el panel
+  ESTADO (`drawStatusPanel(287, 140)`) quedó flotando en el medio, y la palanca de gas
+  (`tyTop=46, tyBot=118`) quedó arriba en vez de centrada.
+- **68 tamaños de fuente** (`'6px monospace'`…) → todos necesitan ×1.5, o el texto queda chico.
+- **Sprites horneados** (`SHEET_FW=56, SHEET_FH=32`): se dibujarían al mismo tamaño en píxeles →
+  el avión se vería **2/3 más chico** en relación a la pantalla. Hay que **re-hornearlos** a 84×48
+  con `tools/bake_planes.html`, si no NO se gana detalle (solo se agranda lo mismo).
+- **Trampa importante:** subir la resolución **no agrega detalle por sí sola**. Los pasos de muestreo
+  del mar y la tierra (`SPX`/`SPZ`) son de MUNDO: al subir `F`, se dibuja la misma cantidad de puntos
+  pero 1.5× más grandes. Para ganar densidad real hay que **bajar esos pasos** también.
+
+### Camino barato recomendado (híbrido)
+
+En vez de re-tunear 60 posiciones + 68 fuentes: **el mundo va a 480×270 nativo y el HUD/pantallas
+siguen razonando en su grilla de 320×180**, escalados ×1.5 al dibujar.
+
+1. En `hud.js` / `screens.js` / `menus.js`, importar `HUD_W`/`HUD_H` (=320×180) en vez de `W`/`H`
+   (reemplazo mecánico; las ~231 expresiones relativas siguen valiendo).
+2. Envolver esas llamadas en `ctx.scale(W/HUD_W, H/HUD_H)`.
+3. Re-hornear los sprites de aviones a 1.5×.
+4. Bajar `SPX`/`SPZ` del mar y la tierra para ganar densidad real.
+
+Así el **mundo gana detalle de verdad** (es procedural: más píxeles = más detalle gratis) y el HUD
+queda idéntico sin tocar una sola coordenada.
+
+- [ ] Decidir si vale la pena (¿el cuello de botella es resolución o densidad de arte?).
+- [ ] Si se hace: camino híbrido de arriba, y re-hornear sprites (si no, no se gana nada).

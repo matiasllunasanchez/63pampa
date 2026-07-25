@@ -75,8 +75,10 @@ function hash2(a, b) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-// paleta de matojos: varios verdes + un par secos/amarillentos, para que el pasto no sea monocromo
+// paleta de matojos: varios verdes + un par secos/amarillentos, para que el pasto no sea monocromo.
+// TUFT_TIP es la punta iluminada de cada uno (mismo índice) → le da volumen en vez de ser un rect plano.
 const TUFTS = ['#6d7748', '#7c8a4e', '#5a6a3c', '#8a8c52', '#4f6034', '#94925a'];
+const TUFT_TIP = ['#899366', '#98a66a', '#748558', '#a6a870', '#6a7c50', '#b0ae78'];
 
 // matas/rocas dispersas sobre la tierra (parallax de movimiento a ras del suelo). La posición y el
 // color salen de un hash por celda: distribución aleatoria de verdad (sin patrón) y colores variados.
@@ -86,7 +88,11 @@ function drawLand() {
   const startZ = Math.max(cfg.coast + 2, Math.ceil((dv + 4) / SPZ) * SPZ);
   for (let wz = startZ; wz < dv + farZ; wz += SPZ) {
     const iz = Math.round(wz / SPZ);
-    for (let wx = Math.ceil((cam.x - 74) / SPX) * SPX; wx < cam.x + 74; wx += SPX) {
+    // ANCHO por profundidad: en coordenadas de mundo, cuánto hay que barrer para tapar TODO el
+    // ancho de pantalla a esta fila (antes era fijo ±74 → dejaba huecos en los bordes lejanos).
+    // +20px de margen; tope de 340 para no iterar de más en la banda del horizonte.
+    const halfW = Math.min(340, (W / 2 + 20) * (wz - dv) / F);
+    for (let wx = Math.ceil((cam.x - halfW) / SPX) * SPX; wx < cam.x + halfW; wx += SPX) {
       const ix = Math.round(wx / SPX);
       const h1 = hash2(ix, iz);
       if (h1 < 0.5) continue;                                            // densidad dispersa
@@ -101,12 +107,21 @@ function drawLand() {
       const s = proj(jx, 0, camZ);
       if (s.x < -4 || s.x > W + 4 || s.y < HOR) continue;
       ctx.globalAlpha = fade * 0.85;
-      if (h1 > 0.93) {                                                   // roca ocasional (marrón)
-        const w = Math.max(1, k * 0.7), hh = Math.max(1, k * 0.55);
-        px(s.x - w / 2, s.y - hh, w, hh, LAND.rock);
-      } else {                                                          // matojo de pasto (color y alto variados)
-        const w = Math.max(1, k * 0.5), hh = Math.max(1, k * (0.65 + h2 * 0.6));
-        px(s.x - w / 2, s.y - hh, w, hh, TUFTS[(h3 * TUFTS.length) | 0]);
+      if (h1 > 0.93) {                                                   // roca ocasional (con volumen)
+        const w = Math.max(1, k * 0.75), hh = Math.max(1, k * 0.55), rx = s.x - w / 2, ry = s.y - hh;
+        px(rx, ry, w, hh, LAND.rock);
+        px(rx, ry, w, Math.max(1, hh * 0.4), '#6b6552');                 // cara iluminada (arriba)
+        px(rx, s.y - Math.max(1, hh * 0.28), w, Math.max(1, hh * 0.28), '#3a3529');   // sombra (base)
+      } else {                                                          // matojo de pasto
+        const ci = (h3 * TUFTS.length) | 0;
+        const w = Math.max(1, k * 0.55), hh = Math.max(1, k * (0.65 + h2 * 0.6));
+        const bx = s.x - w / 2, by = s.y - hh;
+        px(bx, by, w, hh, TUFTS[ci]);                                    // cuerpo
+        px(bx, by, w, Math.max(1, hh * 0.4), TUFT_TIP[ci]);              // punta iluminada
+        if (k > 3) {                                                    // cerca: briznas que se abren
+          px(bx - Math.max(1, w * 0.4), s.y - hh * 0.7, Math.max(1, w * 0.34), hh * 0.7, TUFTS[ci]);
+          px(bx + w, s.y - hh * 0.85, Math.max(1, w * 0.34), hh * 0.85, TUFT_TIP[ci]);
+        }
       }
     }
   }
@@ -287,16 +302,26 @@ export function drawObstacle(o) {
     const base = proj(o.x, 0, o.z);
     const th = o.h * k;                                     // altura total en pantalla
     const sway = Math.sin(run.t * 1.3 + o.ph) * 0.5 * k;    // la copa se mece con el viento
-    // tronco (de la base hacia arriba, ~45% de la altura)
-    const trunkH = th * 0.45, tw = Math.max(1, 0.7 * k);
-    px(base.x - tw / 2, base.y - trunkH, tw, trunkH, '#4a3925');
-    px(base.x - tw / 2, base.y - trunkH, Math.max(1, tw * 0.4), trunkH, '#5c4a30');   // luz del tronco
-    // copa: bloques verdes superpuestos, se angostan hacia arriba (arbusto batido por el viento)
-    const cx = base.x + sway, top = base.y - th, cw = Math.max(2, 3.4 * k);
-    px(cx - cw * 0.5, base.y - th * 0.62, cw, th * 0.34, '#33431f');                  // base de la copa (sombra)
-    px(cx - cw * 0.42, top + th * 0.12, cw * 0.84, th * 0.32, '#475a2a');             // cuerpo
-    px(cx - cw * 0.28, top, cw * 0.56, th * 0.24, '#5c7536');                         // corona
-    px(cx - cw * 0.2, top + th * 0.02, cw * 0.3, Math.max(1, th * 0.1), '#6f8a44');   // brillo
+    // sombra proyectada en el piso (le da peso al árbol)
+    ctx.globalAlpha = 0.28;
+    px(base.x - Math.max(2, 2.2 * k), base.y - Math.max(1, 0.5 * k), Math.max(3, 4.4 * k), Math.max(1, 0.7 * k), '#161d10');
+    ctx.globalAlpha = 1;
+    // tronco (de la base hacia arriba, ~45% de la altura) con lado iluminado y lado en sombra
+    const trunkH = th * 0.45, tw = Math.max(1, 0.8 * k);
+    px(base.x - tw / 2, base.y - trunkH, tw, trunkH, '#3d2f1e');
+    px(base.x - tw / 2, base.y - trunkH, Math.max(1, tw * 0.45), trunkH, '#5c4a30');  // luz del tronco (izq)
+    // copa: bloques verdes superpuestos, irregular, con textura (gaps oscuros + brillos)
+    const cx = base.x + sway, top = base.y - th, cw = Math.max(2, 3.6 * k);
+    px(cx - cw * 0.5, base.y - th * 0.64, cw, th * 0.36, '#2c3a1a');                  // base de la copa (sombra)
+    px(cx - cw * 0.52, base.y - th * 0.5, cw * 0.4, th * 0.24, '#33431f');            // bulto lateral izq
+    px(cx + cw * 0.12, base.y - th * 0.55, cw * 0.4, th * 0.26, '#33431f');           // bulto lateral der
+    px(cx - cw * 0.42, top + th * 0.1, cw * 0.84, th * 0.34, '#475a2a');              // cuerpo
+    px(cx - cw * 0.28, top, cw * 0.56, th * 0.26, '#5c7536');                         // corona
+    px(cx - cw * 0.18, top + th * 0.02, cw * 0.32, Math.max(1, th * 0.12), '#7a9648'); // brillo (sol)
+    if (k > 2.5) {                                          // cerca: textura de follaje (motas)
+      px(cx + cw * 0.08, top + th * 0.14, Math.max(1, cw * 0.14), Math.max(1, th * 0.08), '#2c3a1a'); // gap oscuro
+      px(cx - cw * 0.34, top + th * 0.2, Math.max(1, cw * 0.12), Math.max(1, th * 0.07), '#6f8a44');  // mota clara
+    }
   } else if (o.type === 'fuel') {
     const oy = o.y + Math.sin(run.t * 2) * 0.5;
     const s = proj(o.x, oy, o.z);
