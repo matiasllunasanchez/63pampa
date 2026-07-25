@@ -58,15 +58,15 @@ hitbox se encoge y el roce paga **+250** en vez de +75.
 
 | combo | maniobra | dur. | controlás | dispara | turbo | perfil fino | qué hace |
 |---|---|---|---|---|---|---|---|
-| `←←` / `→→` | **BARREL ROLL** (tonel) | 0.55 s | — | ✗ | ✗ | ✔ | Tonel completo con dash lateral. La pirueta original del juego |
-| `↓↓` **alto** | **SPLIT-S** | 0.95 s | lateral | ✗ | ✗ | ✔ | Medio tonel invertido + picada fuerte. **Gana velocidad**. Salida vertical hacia abajo |
+| `←←` / `→→` | **BARREL ROLL** (tonel) | 0.55 s | — | ✔ | ✗ | ✔ | Tonel completo con dash lateral. La pirueta original del juego |
+| `↓↓` **alto** | **SPLIT-S** | 0.95 s | lateral | ✔ | ✗ | ✔ | Medio tonel invertido + picada fuerte. **Gana velocidad**. Salida vertical hacia abajo |
 | `↓↓` **bajo** | **TERRAIN MASKING** | 1.6 s | lateral | ✔ | ✔ | ✗ | Se clava a ras y se queda. **Congela el roce** y **descarga el radar enemigo** |
 | `↑↑` **bajo** | **POP-UP** | 0.8 s | lateral | ✔ | ✗ | ✗ | Trepada brusca de ataque desde rasante |
 | `↑↑` **alto** / `↑↓` | **HIGH YO-YO** | 1.0 s | lateral | ✔ | ✗ | ✗ | Sube, cuelga y recae sobre la misma altura. **Sangra velocidad** |
 | `↓↑` | **LOW YO-YO** | 1.0 s | lateral | ✔ | ✔ | ✗ | Pica y remonta. **La que más acelera** (+35%) — altura convertida en velocidad |
 | `↓←` / `↓→` | **BREAK TURN** | 0.7 s | vertical | ✔ | ✗ | ✔ | Viraje quebrado: tirón lateral violento hacia el 2º toque, banqueo a fondo |
 | `←→` / `→←` | **S-TURN** | 1.1 s | vertical | ✔ | ✗ | ✔ | Se abre a un lado y **vuelve al carril**. Arranca hacia el 2º toque |
-| `↑←` / `↑→` | **JINK** | 0.85 s | **nada** | ✔ | ✗ | ✔ | 4 quiebres laterales alternados e impredecibles. Rumbo fuera de tu control |
+| `↑←` / `↑→` | **JINK** | 0.85 s | **nada** | ✔ | ✗ | ✔ | 4 quiebres laterales alternados e impredecibles. Rumbo fuera de tu control. **Amplitud según tu velocidad** |
 
 **Cooldown compartido: 1.15 s** entre cualquier pirueta y la siguiente (incluido el tonel). No se
 encadenan.
@@ -101,10 +101,16 @@ siempre: es la mecánica original del juego, no una pirueta nueva.
 El eje libre existe para que no se sienta una cinemática — podés corregir *dentro* de la maniobra,
 pero no cancelarla.
 
-**Disparo y turbo por maniobra.** No es arbitrario: no se dispara mientras el avión está rolando
-(barrel roll, split-s) porque el cañón no apuntaría a nada; y el turbo solo entra donde la
-maniobra es *de energía* (low yo-yo, terrain masking). El resto de las maniobras te dejan el cañón
-disponible, así que sirven para **atacar**, no solo para esquivar.
+**Se dispara en TODAS.** Incluso invertido: el cañón está montado en las alas y la puntería del
+juego (mira libre con el mouse, o auto-apuntado) no depende de para dónde mire la panza. Las
+piruetas sirven para **atacar**, no solo para esquivar.
+
+> El Split-S llegó a tener el disparo bloqueado y era una incoherencia: el tonel clásico —que el
+> jugador vive como *la misma cosa*, dar vuelta el avión— siempre había dejado disparar. El flag
+> `fire` del catálogo sigue existiendo por si alguna maniobra futura sí necesita bloquearlo.
+
+**El turbo sí es selectivo**: solo entra donde la maniobra es *de energía* (Low Yo-Yo y Terrain
+Masking). En las demás el acelerador queda cortado.
 
 **Economía de energía.** Las maniobras no son gratis y el intercambio es el del juego (altura ↔
 velocidad):
@@ -119,6 +125,16 @@ velocidad):
 | S-Turn · Jink · Terrain Masking | neutras | — |
 
 (Los números medidos salen de simular cada maniobra aislada partiendo de `spd = 62`.)
+
+> 📄 Hay una **propuesta** para que las piruetas de picada aporten más velocidad con turbo y sirvan
+> para escalar los futuros escalones MACH: [VELOCIDAD_MACH.md §8](VELOCIDAD_MACH.md#8-aporte-de-velocidad-de-las-piruetas).
+> Sin implementar.
+
+**El Jink escala con la velocidad.** Sus cuatro quiebres no clavan la velocidad lateral: la
+persiguen con aceleración limitada, así el gesto queda continuo (el salto de `vx` por cuadro bajó
+de 93 a 8 u/s) y se lee como un latigazo en vez de un corte. Amplitud y autoridad salen de
+`run.spd`, de modo que el barrido lateral crece con lo rápido que venías —7 u de barrido a 40 u/s,
+12 a 110— mientras el *ritmo* de la maniobra no cambia.
 
 **El sprite.** Las poses empinadas salen de la **hoja 2** de cada avión (`sheet2.png`: 9 alabeos ×
 2 filas de cabeceo ±32°) — el ±14° de la hoja base es cabeceo de crucero y una maniobra brusca

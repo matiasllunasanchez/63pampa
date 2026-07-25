@@ -14,6 +14,10 @@ código ([ARQUITECTURA.md](ARQUITECTURA.md)).
 - **Combate y enemigos** — #2, #9, #19
 - **Movimiento y sensación de vuelo** — #3, #4, #8
 - **Aviones** — #10, #11, #18, #19, #22
+
+> 📄 **Velocidad máxima por avión, escalones MACH, barrera del sonido y aporte de las
+> piruetas**: el diseño está en [VELOCIDAD_MACH.md](VELOCIDAD_MACH.md) (propuesta, sin
+> implementar — tiene 5 decisiones pendientes al final).
 - **Economía y progresión** — #5, #6, #11, #14
 - **Mundo, terreno y aliados** — #15, #16, #17
 - **Modos de juego aparte del vuelo** — #24

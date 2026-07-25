@@ -30,7 +30,11 @@
 //   ↑↑  con el avion ALTO (y >= MV_LO) → HIGH YO-YO       (ya tenes altura: colgate arriba)
 export const MOVES = {
   // medio tonel invertido + picada fuerte: la salida vertical hacia ABAJO. Pide altura.
-  splits: { dur: 0.95, name: 'SPLIT-S', steer: 'x', fire: false, turbo: false, tight: true },
+  // DISPARA aunque quede invertido: el cañon sigue montado en las alas y la punteria del juego
+  // (mira libre o auto-apuntado) no depende de para donde este la panza. El tonel clasico
+  // siempre dejo disparar, asi que bloquearlo aca era una incoherencia entre dos maniobras que
+  // el jugador vive como la misma cosa (dar vuelta el avion).
+  splits: { dur: 0.95, name: 'SPLIT-S', steer: 'x', fire: true, turbo: false, tight: true },
   // viraje quebrado: tiron lateral violento sostenido, banqueo a fondo
   breakt: { dur: 0.7, name: 'BREAK TURN', steer: 'y', fire: true, turbo: false, tight: true },
   // sube, cuelga y recae: esquive vertical que sangra velocidad

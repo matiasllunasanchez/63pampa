@@ -96,13 +96,28 @@ export function movesSystem(dt, inp) {
       break;
     }
     case 'jink': {
-      // 4 quiebres secos ALTERNADOS (si no alternan, el jink deriva para un lado y es un dash);
-      // lo aleatorio son el lado inicial (mvDir del combo) y la fuerza de cada quiebre (semilla)
+      // 4 quiebres ALTERNADOS (si no alternan, el jink deriva para un lado y es un dash); lo
+      // aleatorio son el lado inicial (mvDir del combo) y la fuerza de cada quiebre (semilla).
+      //
+      // CONTINUIDAD. Antes plane.vx se CLAVABA en el valor del quiebre, asi que cuatro veces por
+      // maniobra la velocidad lateral saltaba de golpe ~90 u/s y el avion se teletransportaba de
+      // costado. Ahora el quiebre es un objetivo que se PERSIGUE con aceleracion limitada: la
+      // velocidad lateral queda continua y el gesto se lee como un latigazo en vez de un corte.
+      //
+      // Y escala con la VELOCIDAD REAL del avion: mas rapido = mas recorrido lateral y mas
+      // autoridad para cambiarlo. Un jink a 40 u/s es suave; a 110 es violento. La proporcion
+      // entre `amp` y `rate` esta elegida para que el barrido tarde ~un segmento a cualquier
+      // velocidad — asi el ritmo de la maniobra no cambia, solo su amplitud.
       const seg = Math.min(3, (p * 4) | 0);
       const sgn = run.mvDir * (seg % 2 ? -1 : 1);
-      plane.vx = sgn * (38 + ((run.mvSeed + seg * 31) % 17));
-      plane.vy = Math.sin(run.mvT * 31 + run.mvSeed) * 4;
-      plane.bank = sgn; plane.pitch = 0;
+      const amp = 22 + run.spd * 0.34 + ((run.mvSeed + seg * 31) % 9);
+      const rate = 320 + run.spd * 2.9;                    // u/s²: cuanto puede cambiar vx por segundo
+      const tgt = sgn * amp;
+      plane.vx += Math.max(-rate * dt, Math.min(rate * dt, tgt - plane.vx));
+      // bamboleo vertical suave (antes eran 5 Hz de temblor, que era la mitad de lo "brusco")
+      plane.vy += (Math.sin(run.mvT * 9 + run.mvSeed) * 3 - plane.vy) * Math.min(1, dt * 6);
+      plane.bank = Math.max(-1, Math.min(1, plane.vx / Math.max(18, amp)));   // el alabeo sigue a vx real
+      plane.pitch = 0;
       break;
     }
     case 'sturn': {
