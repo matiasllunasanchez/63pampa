@@ -23,7 +23,7 @@ export const STRINGS = {
     death_tower: 'Chocaste una torre de comunicaciones', death_wire: 'Te enganchaste en los cables',
     death_flag: 'Chocaste un mastil', death_depot: 'Te estrellaste contra un deposito',
     death_cliff: 'Te estrellaste contra un acantilado',
-    hitBirds: '! BANDADA !', hitBlast: '! ONDA EXPANSIVA !',
+    hitBirds: '! BANDADA !', hitBlast: '! ONDA EXPANSIVA !', hitSmall: '! IMPACTO !',
     death_aa: 'La defensa de la barcaza te derribo',
     death_fuel: 'Te quedaste sin combustible sobre el blanco',
     freeControl: 'CONTROL LIBRE!', rasante: 'RASANTE x{n}!', afterburner: 'TURBINA x{n}!',

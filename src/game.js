@@ -812,6 +812,7 @@ import { RUNWAYS } from './data/runways.js';
         for (const sd of sold) {
           if (sd.z <= 3 || sd.dead) continue;
           const s = proj(sd.x, 0, sd.z);
+          if (sd.prone > 0) { world.drawSoldierProne(s.x, s.y, s.k, sd.dir); continue; }
           const gait = Math.sin(run.t * 12 + sd.ph);                   // paso al correr
           world.drawSoldier(s.x, s.y, s.k, gait);
         }

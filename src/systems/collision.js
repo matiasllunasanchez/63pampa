@@ -17,34 +17,49 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { PZ } from '../render/ctx.js';
 import { AA_Z0, AA_Z1, AA_CD, shoreAt, SAND_W } from '../data/tuning.js';
-import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
+import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER, isSoftStruct } from '../core/hitbox.js';
 
 /** Golpe NO letal (nube de explosion, bandada): sacude, frena y quema combustible — castiga sin
  *  derribar. El daño real del juego sigue siendo binario (chocar = morir); esto es friccion. */
-function softHit(msgKey) {
-  run.spd = Math.max(34, run.spd * 0.86);
-  run.fuel = Math.max(0, run.fuel - 4);
-  run.shake = Math.min(7, run.shake + 3.2);
-  const s = proj(plane.x, plane.y, PZ);
-  popup(s.x, s.y - 14, T(msgKey), P.warn);
-  boom(0.1); sfxOne('waveFly');
+function softHit(msgKey, f) {
+  const m = f === undefined ? 1 : f;                 // intensidad: 1 = onda expansiva / bandada
+  run.spd = Math.max(34, run.spd * (1 - 0.14 * m));
+  run.fuel = Math.max(0, run.fuel - 4 * m);
+  run.shake = Math.min(7, run.shake + 3.2 * m);
+  if (msgKey) {                                      // los golpes chicos no ensucian con popup
+    const s = proj(plane.x, plane.y, PZ);
+    popup(s.x, s.y - 14, T(msgKey), P.warn);
+  }
+  boom(0.1 * m); if (m > 0.5) sfxOne('waveFly');
 }
 
 export function collisionSystem(dt) {
   // soldados: corren y se acercan; atropellarlos a ras del suelo = MUCHÍSIMOS puntos
   for (const sd of soldiers) {
     if (sd.dead) continue;
+    if (sd.prone > 0) { sd.prone -= dt; sd.z -= run.spd * dt; continue; }   // cuerpo a tierra: no corre
     sd.z -= run.spd * dt;
     sd.x += sd.dir * (sd.v || 6) * dt;                        // corren en diagonal (costa: mas rapido)
-    if (sd.z <= PZ + SOLDIER.zFront && sd.z > PZ - SOLDIER.zBack && Math.abs(plane.x - sd.x) < SOLDIER.hw && plane.y < SOLDIER.top) {
-      sd.dead = true;                                        // pase rasante: cabeza / impacto de aire (banda 0.5–3)
+    if (sd.z <= PZ + SOLDIER.zFront && sd.z > PZ - SOLDIER.zBack
+      && Math.abs(plane.x - sd.x) < SOLDIER.hw + planeBox(run.rollT > 0).pw && plane.y < SOLDIER.top) {
+      sd.dead = true;                                        // pase rasante: cabeza / impacto de aire
       sfxOne('body');                                        // impacto de cuerpo (una variante al azar)
       const pts = Math.round(120 * run.multShow);                // escala con el multiplicador (a ras = brutal)
       run.score += pts; stats.soldiers++;
       const s = proj(sd.x, 0, PZ); popup(s.x, s.y - 10, '+' + pts, P.warn);
       bloodBurst(s.x, s.y, 18);                               // sangre + tierra
       run.bloodSplat = Math.min(1, run.bloodSplat + 0.5);             // mancha el sprite (se desvanece)
-      run.shake = Math.min(6, run.shake + 1.2); boom(0.05);
+      // ARRASAR CUESTA: cada cuerpo golpea la celula. Es poquito (0.12 de un golpe normal), pero
+      // se acumula — una pasada larga sobre una columna te deja sin nafta y sin velocidad. El
+      // puntaje sigue siendo altisimo: es un canje, no un castigo.
+      softHit(null, 0.12);
+      // los de al lado SE TIRAN AL SUELO: ven venir el avion y se cubren. Ademas de leerse bien,
+      // los saca de la carrera un momento (dejan de correr y de poder ser atropellados).
+      for (const o2 of soldiers) {
+        if (o2 === sd || o2.dead || o2.prone > 0) continue;
+        if (Math.abs(o2.z - sd.z) < 16 && Math.abs(o2.x - sd.x) < 11 && Math.random() < 0.7)
+          o2.prone = 1.1 + Math.random() * 1.2;
+      }
     }
   }
   prune(soldiers, sd => sd.z > -6 && !sd.dead);
@@ -122,7 +137,14 @@ export function collisionSystem(dt) {
           beep(700, 0.1, 'triangle', 0.05, 1000); o.z = -99;
         }
       } else if ((dx < 0 && dy < 0) || hullHit) {
-        if (o.type === 'tent') {
+        if (isSoftStruct(o) && o.type !== 'tent') {
+          // COSA CHICA (nido de ametralladoras, antiaereo de campaña...): del tamaño de un
+          // soldado, asi que la choca y sigue. Golpea fuerte pero no derriba — ver SOFT_H.
+          run.score += Math.round(90 * run.multShow); stats.air++;
+          explodeAt(o.x, o.h / 2, PZ, false); sfxOne('exXsmall');
+          softHit('hitSmall', 0.55);
+          o.z = -99; o.done = true;
+        } else if (o.type === 'tent') {
           // la carpa es lona: atravesarla no mata — la ARRASA, con premio (juego rasante puro)
           const pts = Math.round(200 * run.multShow);
           run.score += pts; stats.air++; run.shake = Math.min(6, run.shake + 2);

@@ -861,6 +861,25 @@ export function drawObstacle(o) {
 // SOLDADO de infantería en tierra: figura corriendo (piernas alternadas), casco y fusil. Se dibuja
 // con el juego a 320x180, así que todo escala con `k` (tamaño según la distancia). `gait` (−1..1)
 // anima el paso. Vive acá (render) y no en el orquestador: el loop de game.js solo proyecta y llama.
+/** SOLDADO CUERPO A TIERRA: el que ve venir el avion y se tira. Se dibuja aparte y no como una
+ *  variante del de pie — tumbado casi no tiene altura, asi que lo que lo hace legible es la
+ *  silueta HORIZONTAL (cuerpo largo y bajo, casco a un extremo, fusil al costado). */
+export function drawSoldierProne(x, y, k, dir) {
+  const bw = Math.max(3.4, k * 2.0), bh = Math.max(1.4, k * 0.62);
+  const d = dir < 0 ? -1 : 1;
+  const U = '#a09372', UD = '#6e6448', HELM = '#7d7455', GUN = '#191c15', RIM = '#12150e';
+  px(x - bw * 0.55, y - bh * 1.12, bw * 1.1, bh * 1.12, RIM);                      // silueta
+  ctx.globalAlpha = 0.32;                                                          // sombra pegada
+  px(x - bw * 0.6, y - 1, bw * 1.2, Math.max(1, bh * 0.3), '#0d100a');
+  ctx.globalAlpha = 1;
+  px(x - bw * 0.5, y - bh * 0.95, bw, bh * 0.72, U);                               // cuerpo tendido
+  px(x - bw * 0.5, y - bh * 0.95, bw, Math.max(1, bh * 0.22), '#b3a685');          // luz de la espalda
+  px(x - bw * 0.1, y - bh * 0.9, Math.max(1, bw * 0.16), bh * 0.62, UD);           // correaje
+  px(x + d * bw * 0.36, y - bh * 1.12, Math.max(1, bw * 0.3), Math.max(1, bh * 0.5), HELM);  // casco
+  px(x - d * bw * 0.15, y - bh * 0.45, Math.max(1, bw * 0.6), Math.max(1, bh * 0.2), GUN);   // fusil
+  px(x - bw * 0.5, y - bh * 0.3, Math.max(1, bw * 0.34), Math.max(1, bh * 0.22), UD);        // piernas
+}
+
 export function drawSoldier(x, y, k, gait) {
   // SOLDADO BRITANICO de infanteria. Dos decisiones de legibilidad: (1) SILUETA de contraste — un
   // borde oscuro detras de todo el cuerpo que lo separa del terreno (los verdes del uniforme se
@@ -1007,9 +1026,13 @@ export function drawHitboxes() {
     const reach = hullReach(o, hw);
     if (reach > 0) hbBox(o.x, HULL_Y / 2, o.z, reach, HULL_Y / 2, HB, 0.12);
   }
+  // SOLDADOS: la caja llena es el CUERPO; el contorno tenue es el alcance real del atropello
+  // (cuerpo + semi-envergadura del avion), que es lo que de verdad decide el impacto.
+  const swp = planeBox(run.rollT > 0).pw;
   for (const sd of soldiers) {
     if (sd.dead || sd.z <= 1 || sd.z > 60) continue;
-    hbBox(sd.x, SOLDIER.top / 2, sd.z, SOLDIER.hw, SOLDIER.top / 2, HB, 0.18);
+    hbBox(sd.x, SOLDIER.top / 2, sd.z, SOLDIER.hw + swp, SOLDIER.top / 2, HB, 0.08);
+    hbBox(sd.x, SOLDIER.top / 2, sd.z, SOLDIER.hw, SOLDIER.top / 2, HB, 0.3);
   }
   // PERFIL DEL AVION: la otra mitad de cada choque. Sin esto el overlay solo cuenta la mitad.
   const { pw, ph } = planeBox(run.rollT > 0);

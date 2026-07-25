@@ -48,5 +48,17 @@ export function hullReach(o, hw) {
 }
 export const HULL_Y = 3.6;   // altura por debajo de la cual actua el barrido del casco
 
-/** SOLDADO atropellado: banda de z, semi-ancho en x y techo en y. Los usa collision.js. */
-export const SOLDIER = { hw: 4, top: 3, zBack: 4, zFront: 1 };
+/** SOLDADO atropellado. `hw` es el CUERPO del soldado, no el alcance del atropello: al chequear
+ *  se le suma la semi-envergadura del avion (planeBox), igual que con los obstaculos.
+ *  Antes era un 4 fijo que ya incluia el avion — la caja se veia enorme al lado del sprite y el
+ *  pase rasante "barria" soldados que visiblemente pasaban al costado. Modelado asi, ademas, la
+ *  PIRUETA afina el barrido como en todo el resto del juego. */
+export const SOLDIER = { hw: 0.6, top: 2.2, zBack: 2, zFront: 1 };
+
+// COSAS CHICAS: lo que es del tamaño de un soldado no derriba — DAÑA. Si se puede bajar a
+// arrasar infanteria en vuelo rasante, un nido de ametralladoras no puede hacer explotar el
+// avion: seria incoherente y el jugador no sabria cuando es seguro bajar.
+// Regla: estructura apoyada en el suelo mas baja que SOFT_H. Se decide por ALTURA y no por una
+// lista de tipos, asi un obstaculo nuevo entra solo en la categoria que le corresponde.
+export const SOFT_H = 4.8;
+export const isSoftStruct = o => isStruct(o.type) && o.type !== 'lcu' && o.h <= SOFT_H;
