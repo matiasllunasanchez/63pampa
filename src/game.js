@@ -17,6 +17,7 @@ import { collisionSystem } from './systems/collision.js';
 import { inp, mouse, pointer, flags, initInput } from './core/input.js';
 import { flightSystem } from './systems/flight.js';
 import { drawPlane } from './render/plane.js';
+import { drawBullet } from './render/ammo.js';
 import * as hud from './render/hud.js';
 import * as world from './render/world.js';
 import * as soldierArt from './render/soldiers.js';
@@ -892,15 +893,10 @@ import { RUNWAYS } from './data/runways.js';
           px(s.x - 0.4 * k, s.y + 0.8 * k, 0.8 * k, Math.max(1, 1.2 * k), P.accent);
         }
       }
-      // balas (trazadoras hacia el horizonte)
+      // balas (trazadoras hacia el horizonte) — ver render/ammo.js
       for (const b of bullets) {
         if (b.z >= 240) continue;
-        const s = proj(b.x, b.y, b.z);
-        px(s.x, s.y, Math.max(1, s.k * 0.4), Math.max(1, s.k * 0.4), P.ink);
-        const s2 = proj(b.x, b.y, b.z - 6);
-        ctx.strokeStyle = P.accent; ctx.globalAlpha = 0.5;
-        ctx.beginPath(); ctx.moveTo(s2.x, s2.y); ctx.lineTo(s.x, s.y); ctx.stroke();
-        ctx.globalAlpha = 1;
+        drawBullet(b);
       }
       // misiles del jugador (más gruesos, con estela)
       for (const pm of pmissiles) {
