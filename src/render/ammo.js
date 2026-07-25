@@ -38,7 +38,7 @@ export function drawBullet(b) {
     const z = b.z - (i / TAIL_N) * TAIL_Z;
     if (z <= PZ + 1) continue;                       // ese tramo todavia no salio del cañon
     const q = at(b, z), p = proj(q.x, q.y, z);
-    const w = Math.max(1, Math.round(p.k * 0.3));
+    const w = Math.max(1, Math.round(p.k * 0.15));
     ctx.globalAlpha = 0.7 * (1 - i / (TAIL_N + 1));
     px(p.x - w / 2, p.y - w / 2, w, w, HOT[Math.min(HOT.length - 1, i)]);
   }
@@ -47,18 +47,17 @@ export function drawBullet(b) {
   // CABEZA: el proyectil encendido. Halo tibio + nucleo blanco. El halo va a alpha bajo y un
   // pixel mas grande: sin el, la bala lejana es un pixel suelto que se pierde contra el cielo.
   const s = proj(b.x, b.y, b.z);
-  const w = Math.max(1, Math.round(s.k * 0.38));
-  ctx.globalAlpha = 0.4;
+  const w = Math.max(1, Math.round(s.k * 0.19));
+  ctx.globalAlpha = 0.28;
   px(s.x - w / 2 - 1, s.y - w / 2 - 1, w + 2, w + 2, HOT[2]);
   ctx.globalAlpha = 1;
   px(s.x - w / 2, s.y - w / 2, w, w, HOT[0]);
-  // DESTELLO en cruz, solo de cerca: a k grande la cabeza es un bloque de 3 px y sin esto parece
-  // un ladrillo blanco. De lejos no se dibuja — serian pixeles sueltos alrededor de un punto.
-  if (s.k > 2.2) {
-    ctx.globalAlpha = 0.55;
+  // DESTELLO en cruz, solo BIEN de cerca (los primeros metros tras la boca). Mas lejos la cabeza
+  // ya es un pixel y la cruz la volveria a engordar, que es justo lo que se estaba corrigiendo.
+  if (s.k > 4.5) {
+    ctx.globalAlpha = 0.5;
     px(s.x - w / 2 - 1, s.y, 1, 1, HOT[1]);
     px(s.x + w / 2, s.y, 1, 1, HOT[1]);
-    px(s.x, s.y - w / 2 - 1, 1, 1, HOT[1]);
     ctx.globalAlpha = 1;
   }
 }

@@ -13,5 +13,6 @@ cómo se juega). Acá vive el resto: la referencia técnica y de diseño.
 | [PLAN_ELECTRON_STEAM.md](PLAN_ELECTRON_STEAM.md) | plan de migración a Electron y publicación en Steam (con bloque "RETOMAR ACÁ") | ejecución |
 | [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md) | dudas históricas anotadas para consultar con un historiador | vivo |
 | [UPDATE_ANIMATIONS.md](UPDATE_ANIMATIONS.md) | notas y pendientes del pipeline de animaciones/sprites | notas |
+| [PENDIENTES_DE_REDISENO.md](PENDIENTES_DE_REDISENO.md) | inventario de TODAS las unidades y objetos del juego con el estado de su arte y las specs de sprite | vivo |
 
 Para arrancar a tocar el código, empezá por **[ARQUITECTURA.md](ARQUITECTURA.md)**.

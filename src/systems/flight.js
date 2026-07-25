@@ -36,6 +36,13 @@ import { applyEnergy, applyDrag, speedTarget, windFactor, pitchTarget, scrapeLim
 // la usa (el render del mar tiene su propio campo de olas, seaH).
 function waveNow() { return 1.1 + Math.sin(run.t * 1.1) * 0.5 + Math.sin(run.t * 2.3) * 0.3; }
 
+// CAÑONES: separacion de cada boca respecto del eje del avion, en unidades de MUNDO. El 0.9 no es
+// arbitrario — es lo que hace falta para que la trazadora nazca justo donde ya se dibuja el
+// fogonazo (raiz del ala, ±5 px de diseño en render/plane.js). Si se mueven los fogonazos, mover
+// esto: ver salir la bala de un lado y el fuego del otro se nota al instante.
+const GUN_X = 0.9;
+let gunSide = 1;   // de que cañon sale el proximo tiro; se turnan
+
 export function flightSystem(dt, deps) {
   // velocidad — el multiplicador y la racha rasante aceleran el avión
   run.boost = inp.turbo && run.fuel > 0;
@@ -260,24 +267,33 @@ export function flightSystem(dt, deps) {
   if (inp.fire && !run.overheat && run.fireT <= 0) {
     run.fireT = 1 / 9; stats.shots++;   // denominador de la PRECISION del recuento
     const vm = deps.viewMouse();
+    // DOS CAÑONES, uno por lado, TURNANDOSE. Antes salia todo de un punto en el centro del avion.
+    // Se alterna en vez de disparar los dos juntos a proposito: asi la cadencia, el daño y la
+    // PRECISION del recuento (hits/shots) quedan exactamente iguales que antes — lo unico que
+    // cambia es de donde sale cada trazadora. A 9 tiros por segundo se ven los dos chorros.
+    gunSide = -gunSide;
+    const bx = plane.x + gunSide * GUN_X;
+    // Las dos lineas CONVERGEN en el punto apuntado, como un armamento reglado de verdad: salen
+    // separadas del avion y se juntan alla adelante.
+    let tx, ty;
     if (vm.on) {
-      // MIRA CON MOUSE (PC): desproyecta el cursor al mundo a z=110. La bala SALE DEL AVION
+      // MIRA CON MOUSE (PC): desproyecta el cursor al mundo a z=110. La bala SALE DEL CAÑON
       // y vuela en linea RECTA 3D que pasa por el punto apuntado (trayectoria balistica,
       // no lerp: se ve nacer en el avion y viajar hacia la mira)
       const k = F / 110;
-      const tx = Math.max(-40, Math.min(40, (vm.x - W / 2) / k + cam.x));
-      const ty = Math.max(0, cam.y - (vm.y - HOR) / k);
-      bullets.push({ x: plane.x, y: plane.y, z: PZ + 3, x0: plane.x, y0: plane.y, z0: PZ + 3, tx, ty, path: true });
+      tx = Math.max(-40, Math.min(40, (vm.x - W / 2) / k + cam.x));
+      ty = Math.max(0, cam.y - (vm.y - HOR) / k);
     } else {
       // tactil/legacy: apuntado vertical automatico al blanco aereo mas cercano del carril
-      let ty = plane.y, td = 5.6;
+      tx = plane.x; ty = plane.y;
+      let td = 5.6;
       for (const o of obstacles) {
         if (o.hp === undefined || o.z <= PZ + 3 || o.z > 210) continue;
         const d = Math.abs(o.x - plane.x);
         if (d < td) { td = d; ty = o.y; }
       }
-      bullets.push({ x: plane.x, y: plane.y, z: PZ + 3, ty });
     }
+    bullets.push({ x: bx, y: plane.y, z: PZ + 3, x0: bx, y0: plane.y, z0: PZ + 3, tx, ty, path: true });
     run.heat += GUN_HEAT_SHOT;
     if (run.heat >= 1) { run.overheat = true; beep(140, 0.3, 'sawtooth', 0.05); }
     else if (!sfxSrc('gun')) beep(1100 + Math.random() * 300, 0.04, 'square', 0.028);   // web: beep; escritorio: loop de metralla
