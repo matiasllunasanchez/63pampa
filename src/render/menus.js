@@ -204,26 +204,51 @@ export function drawOptions(w) {
   ctx.fillText(T('optKeys'), NW / 2, NH - 22);
 }
 
-// menú de configuración de mapa [M] — herramienta para prototipar niveles
+// menú de configuración de mapa [M] — herramienta para prototipar niveles.
+// VISIBLES: cuantas filas entran en el panel. La lista ya no cabe entera (terreno, pista,
+// acantilado, arranque, hitboxes...), asi que el panel SCROLLEA: se muestra una ventana de
+// CFG_VIEW filas que sigue al cursor y se marca con una barra lateral. El resto del layout
+// (12 px por fila) no cambia.
+const CFG_VIEW = 9;
+
+/** Primera fila visible para que `cfgRow` quede dentro de la ventana. La ventana solo se mueve
+ *  cuando el cursor la toca — asi la lista no se desliza bajo el dedo en cada tecla. */
+export function cfgScroll(cfgRow, n) {
+  if (n <= CFG_VIEW) return 0;
+  return Math.max(0, Math.min(n - CFG_VIEW, cfgRow - Math.floor(CFG_VIEW / 2)));
+}
+
 export function drawCfg(w) {
-  // el panel se estiro y las filas se juntaron (13 -> 12 px) al sumar MIRA: con 10 filas el
-  // layout viejo se comia el pie de ayuda
   ctx.fillStyle = '#0a0e11ee'; ctx.fillRect(24, 16, W - 48, H - 30);
   ctx.strokeStyle = P.accent; ctx.globalAlpha = 0.6; ctx.strokeRect(24.5, 16.5, W - 49, H - 31); ctx.globalAlpha = 1;
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
   ctx.fillText('CONFIGURACION DE MAPA', W / 2, 28);
   ctx.font = '7px monospace';
-  const rows = w.rows;
+  const rows = w.rows, n = rows.length;
+  const top = cfgScroll(w.cfgRow, n), vis = Math.min(CFG_VIEW, n);
 
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i], y = 42 + i * 12, on = i === w.cfgRow;
+  for (let v = 0; v < vis; v++) {
+    const i = top + v, r = rows[i], y = 42 + v * 12, on = i === w.cfgRow;
     let idx = r.opts.findIndex(o => o === r.get()); if (idx < 0) idx = 0;
     ctx.textAlign = 'left'; ctx.fillStyle = on ? P.accent : P.dim; ctx.fillText((on ? '> ' : '  ') + r.label, 34, y);
     ctx.textAlign = 'right'; ctx.fillStyle = on ? P.ink : P.body; ctx.fillText('< ' + r.names[idx] + ' >', W - 34, y);
     // VISTA PREVIA: la mira se elige VIENDOLA, no leyendo un numero
     if (r.preview === 'mira') drawMira(r.get(), W - 68, y - 2.5, 11, on ? 1 : 0.55);
   }
+
+  // BARRA DE SCROLL: solo si hay mas filas de las que entran. El pulgar se dimensiona por la
+  // fraccion visible, asi de un vistazo se sabe cuanto falta.
+  if (n > CFG_VIEW) {
+    const bx = W - 28, by = 36, bh = CFG_VIEW * 12;
+    px(bx, by, 2, bh, '#2e3c45');
+    const th = Math.max(6, Math.round(bh * CFG_VIEW / n));
+    px(bx, by + Math.round((bh - th) * (top / (n - CFG_VIEW))), 2, th, P.accent);
+    ctx.textAlign = 'center'; ctx.fillStyle = P.dim; ctx.font = '6px monospace';
+    if (top > 0) ctx.fillText('▲', bx + 1, by - 2);                       // hay mas arriba
+    if (top + CFG_VIEW < n) ctx.fillText('▼', bx + 1, by + bh + 7);       // hay mas abajo
+  }
+
   ctx.textAlign = 'center'; ctx.fillStyle = P.dim; ctx.font = '6px monospace';
   ctx.fillText('flechas: mover / cambiar   ·   [M] o ENTER: cerrar', W / 2, H - 20);
 }

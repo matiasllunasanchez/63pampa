@@ -46,6 +46,9 @@ export const cfg = {
   // ARRANQUE. 'runway' = despegue clasico desde la base. 'air' = la mision empieza YA VOLANDO,
   // sin plataforma: son las misiones de REGRESO, donde el avion vuelve del ataque.
   start: 'runway',
+  // DEPURACION: pinta las cajas de colision en verde fluor. Es para PROBAR — el overlay sale de
+  // core/hitbox.js, la misma fuente que decide los choques, asi que lo que ves es lo que golpea.
+  hitboxes: false,
 };
 
 /** Camara del mundo 2D. La comparten el render y el momentum. */

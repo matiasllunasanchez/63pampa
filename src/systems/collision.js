@@ -17,6 +17,7 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { PZ } from '../render/ctx.js';
 import { AA_Z0, AA_Z1, AA_CD, shoreAt, SAND_W } from '../data/tuning.js';
+import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
 
 /** Golpe NO letal (nube de explosion, bandada): sacude, frena y quema combustible — castiga sin
  *  derribar. El daño real del juego sigue siendo binario (chocar = morir); esto es friccion. */
@@ -35,7 +36,7 @@ export function collisionSystem(dt) {
     if (sd.dead) continue;
     sd.z -= run.spd * dt;
     sd.x += sd.dir * (sd.v || 6) * dt;                        // corren en diagonal (costa: mas rapido)
-    if (sd.z <= PZ + 1 && sd.z > PZ - 4 && Math.abs(plane.x - sd.x) < 4 && plane.y < 3) {
+    if (sd.z <= PZ + SOLDIER.zFront && sd.z > PZ - SOLDIER.zBack && Math.abs(plane.x - sd.x) < SOLDIER.hw && plane.y < SOLDIER.top) {
       sd.dead = true;                                        // pase rasante: cabeza / impacto de aire (banda 0.5–3)
       sfxOne('body');                                        // impacto de cuerpo (una variante al azar)
       const pts = Math.round(120 * run.multShow);                // escala con el multiplicador (a ras = brutal)
@@ -105,27 +106,15 @@ export function collisionSystem(dt) {
         if (o.boomT < 4.5 && Math.abs(plane.x - o.x) < 10 && plane.y < top) softHit('hitBlast');
         continue;
       }
-      const air = o.type === 'helo' || o.type === 'jet';
-      const tall = o.type === 'mast' || o.type === 'tree' || o.type === 'tower' || o.type === 'flag' || o.type === 'poles' || o.type === 'cliff';   // obstáculo vertical fijo
-      // ESTRUCTURAS del desembarco (costa/tierra): cajas apoyadas en el suelo, centro a h/2
-      const struct = o.type === 'tent' || o.type === 'aa' || o.type === 'bldg' || o.type === 'lcu' || o.type === 'radar' || o.type === 'aatruck' || o.type === 'depot';
-      const STRUCT_HW = { tent: 2.4, aa: 1.7, bldg: 3.0, lcu: 3.6, radar: 2.4, aatruck: 2.6, depot: 3.4 };
-      let hw, hh, oy;
-      // los POSTES son anchos: lo peligroso es el CABLE tendido entre ellos, no el palo
-      const TALL_HW = { tree: 1.4, tower: 1.6, flag: 0.8, poles: 6.5, mast: 0.9 };
-      // el ACANTILADO trae SU ancho (cada uno se sortea distinto), asi que no sale de la tabla
-      if (tall) { hw = o.type === 'cliff' ? o.hw : TALL_HW[o.type]; hh = o.h; oy = o.h / 2; }
-      else if (struct) { hw = STRUCT_HW[o.type]; hh = o.h / 2 + 0.4; oy = o.h / 2; }
-      else { hw = air ? 3 : 2.6; hh = air ? 1.6 : 1.9; oy = o.y; }
-      // perfil del avion AFINADO (antes 2.6×1.2, chocaba "de lejos"); en PIRUETA las alas
-      // van de canto → perfil minimo: pasa por espacios mucho mas finos
-      const pw = run.rollT > 0 ? 1.0 : 2.1, ph2 = run.rollT > 0 ? 0.7 : 1.0;
+      // Las medidas salen de core/hitbox.js — la MISMA fuente que usa el overlay de depuracion
+      // (cfg.hitboxes). Si estuvieran duplicadas, el overlay podria mostrar una caja y el juego
+      // usar otra.
+      const { hw, hh, oy } = hitbox(o);
+      const { pw, ph: ph2 } = planeBox(run.rollT > 0);
       const dx = Math.abs(plane.x - o.x) - (hw + pw);
       const dy = Math.abs(plane.y - oy) - (hh + ph2);
-      // a ras del suelo el casco barre ancho y engancha lo vertical aunque el centro no coincida.
-      // El acantilado usa SU ancho + el pedregal del pie: con el 5 fijo mataba de lejos, fuera
-      // de la roca dibujada (un muerte invisible).
-      const hullHit = tall && Math.abs(plane.x - o.x) < (o.type === 'cliff' ? hw + 1.2 : 5) + pw && plane.y < 3.6;
+      const reach = hullReach(o, hw);
+      const hullHit = reach > 0 && Math.abs(plane.x - o.x) < reach + pw && plane.y < HULL_Y;
       if (o.type === 'fuel') {
         if (dx < 1.5 && dy < 1.5) {
           run.fuel = Math.min(100, run.fuel + 30); stats.fuelPicks++;

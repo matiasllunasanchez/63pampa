@@ -229,6 +229,8 @@ import { RUNWAYS } from './data/runways.js';
       { label: 'ACANTILADO', opts: [false, true], names: ['NO', 'SI'], get: () => cfg.cliff, set: v => { cfg.cliff = v; resetPlane(); } },
       // ARRANQUE: 'air' = mision de REGRESO, empieza volando y no hay base de la que salir
       { label: 'ARRANQUE', opts: ['runway', 'air'], names: ['PISTA', 'EN VUELO'], get: () => cfg.start, set: v => { cfg.start = v; resetPlane(); } },
+      // HITBOXES: overlay de depuracion (verde fluor = letal, celeste = daño, magenta = el avion)
+      { label: 'HITBOXES', opts: [false, true], names: ['NO', 'SI'], get: () => cfg.hitboxes, set: v => cfg.hitboxes = v },
       // MIRA: no es del mapa como las demas, pero el menu [M] es donde el jugador espera
       // encontrarla. `preview` le dice a drawCfg que dibuje la mira de verdad en la fila
       // (un nombre no sirve: hay que VERLA). Persiste, porque es una preferencia del jugador.
@@ -794,6 +796,7 @@ import { RUNWAYS } from './data/runways.js';
       world.drawApproachBarge(objectiveDist, objectiveShip);   // la barcaza objetivo creciendo en el horizonte
       world.drawObjectiveMarker(objectiveDist);                // cuña roja en el horizonte: hacia donde vamos
       world.drawWake();
+      if (cfg.hitboxes) world.drawHitboxes();   // depuracion: cajas de colision en verde fluor
 
       // ráfagas de viento
       ctx.globalAlpha = 0.35;

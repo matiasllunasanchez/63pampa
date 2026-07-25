@@ -7,13 +7,14 @@
 
 import { ctx, px, W, H, HOR, F, PZ } from './ctx.js';
 import { theme } from './theme.js';
-import { cam, cfg, S } from '../core/state.js';
+import { cam, cfg, S, plane } from '../core/state.js';
 import { run } from '../core/run.js';
-import { wake } from '../core/world.js';
+import { wake, obstacles, soldiers } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { P, LAND, CLAND } from '../data/palette.js';
 import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
+import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
 import * as momentum from '../systems/momentum.js';
 import * as momRender from './momentum.js';
 
@@ -966,3 +967,51 @@ export function drawObjectiveMarker(objectiveDist) {
   ctx.restore();
 }
 
+
+
+// ---------- OVERLAY DE HITBOXES (cfg.hitboxes, menu [M]) ----------
+// Pinta en VERDE FLUOR la zona que realmente colisiona. Las medidas NO se copian: salen de
+// core/hitbox.js, el mismo modulo que usa systems/collision.js para decidir el choque — por eso
+// lo que se ve es exactamente lo que golpea.
+const HB = '#39ff14';                 // verde fluor: no existe en la paleta del juego, no se confunde
+const HB_PLANE = '#ff2fd0';           // el perfil del AVION va en magenta para distinguirlo
+const HB_SOFT = '#14e0ff';            // zonas de daño NO letal (bandada, hongo) en celeste
+
+/** Caja de mundo (centro x,y a profundidad z, semi-ejes hw/hh) pintada sobre la pantalla. */
+function hbBox(x, y, z, hw, hh, col, alpha) {
+  const s = proj(x, y, z);
+  if (s.k <= 0) return;
+  const w = hw * 2 * s.k, h = hh * 2 * s.k;
+  ctx.globalAlpha = alpha === undefined ? 0.28 : alpha;
+  px(s.x - w / 2, s.y - h / 2, w, h, col);
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = col; ctx.lineWidth = 1;                 // contorno: deja ver el borde exacto
+  ctx.strokeRect(Math.round(s.x - w / 2) + 0.5, Math.round(s.y - h / 2) + 0.5, Math.round(w), Math.round(h));
+}
+
+export function drawHitboxes() {
+  for (const o of obstacles) {
+    if (o.z <= 1 || o.z > 200) continue;
+    if (o.type === 'trench') continue;                       // decorado: no colisiona
+    if (o.type === 'birds') { hbBox(o.x, o.y, o.z, 4.5, 2.6, HB_SOFT); continue; }
+    if (o.type === 'boom') {                                 // hongo: daña por altura creciente
+      const top = 9 + Math.min(1, o.boomT / 1.1) * 27;
+      hbBox(o.x, top / 2, o.z, 10, top / 2, HB_SOFT); continue;
+    }
+    if (o.type === 'bomb') { hbBox(o.x, o.y, o.z, 2.2, 2.4, HB); continue; }
+    if (o.type === 'airboom') continue;
+    const { hw, hh, oy } = hitbox(o);
+    hbBox(o.x, oy, o.z, hw, hh, HB);
+    // BARRIDO DEL CASCO: a ras del suelo lo vertical engancha aunque el centro no coincida.
+    // Es la parte que mas sorprende al jugador, asi que se marca aparte y mas tenue.
+    const reach = hullReach(o, hw);
+    if (reach > 0) hbBox(o.x, HULL_Y / 2, o.z, reach, HULL_Y / 2, HB, 0.12);
+  }
+  for (const sd of soldiers) {
+    if (sd.dead || sd.z <= 1 || sd.z > 60) continue;
+    hbBox(sd.x, SOLDIER.top / 2, sd.z, SOLDIER.hw, SOLDIER.top / 2, HB, 0.18);
+  }
+  // PERFIL DEL AVION: la otra mitad de cada choque. Sin esto el overlay solo cuenta la mitad.
+  const { pw, ph } = planeBox(run.rollT > 0);
+  hbBox(plane.x, plane.y, PZ, pw, ph, HB_PLANE, 0.3);
+}
