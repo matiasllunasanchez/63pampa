@@ -76,3 +76,27 @@ que confirmar arma y unidad en cada caso:
   Faltaría clima/terreno propio por misión: San Carlos es un estrecho, no mar abierto.
 - Solo las dos primeras misiones tienen guion largo (`storyIntro`, `storyL1`). Las otras
   cuatro entran por el briefing corto. Faltan los guiones de esas cuatro.
+
+
+---
+
+## Ayudas de terceros países a cada bando
+
+Están cargadas en el ROADMAP (#20 y #21) con su posible expresión jugable. **Hay que
+verificarlas con un historiador antes de que salgan del código**, por dos motivos distintos:
+
+1. **Precisión.** Cifras y alcance concretos: ¿fueron 10 los Mirage 5 peruanos? ¿qué entregó
+   exactamente Libia y cuándo? ¿qué material soviético llegó y por qué vía?
+2. **Peso de la afirmación.** Varias no son datos neutros — son acusaciones que todavía se
+   discuten y que involucran a países vecinos y aliados actuales:
+   - el rol de **Chile** (radares británicos en territorio chileno, apoyo al SAS, escuchas que
+     avisaban los despegues desde el continente)
+   - que pilotos **franceses** entrenaran a los británicos para evadir aviones franceses
+     vendidos a la Argentina
+   - la ayuda **secreta** de Libia
+   - el alcance real de la inteligencia satelital de EE.UU. y de la URSS
+
+Para el juego alcanza con que sean **verosímiles y jugables**; para la página de Steam y
+cualquier texto que se lea como afirmación histórica, conviene tener la fuente al lado o bajar
+el tono a "se atribuye / se ha señalado". No frena el desarrollo: la mecánica se puede construir
+igual y el texto se ajusta después.

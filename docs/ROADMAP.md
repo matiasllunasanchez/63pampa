@@ -318,10 +318,25 @@ un arma o pieza extra), no como texto suelto.
 La idea es que el jugador **sienta** de dónde vino cada ayuda, y que se integre a la asimetría:
 suma del lado argentino, sin romper el espíritu de "avión exigente".
 
+### Quiénes ayudaron a la Argentina
+
+Los datos, con una idea de cómo podría expresarse cada uno **dentro de la partida** (que es lo
+que hace falta para que no queden en texto de menú). **Verificar antes de publicar** — ver la
+nota en [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md).
+
+| País | Qué aportó | Posible expresión en el juego |
+|---|---|---|
+| **Perú** | **10 Dassault Mirage 5** entregados | Un avión más en el roster (#10) que se **desbloquea** a mitad de campaña, no está desde el principio: se siente la llegada del refuerzo |
+| **Venezuela** | Apoyo militar inmediato y **combustible** | Bidones extra / autonomía: toca directo el reloj del run (#26 depende del combustible) |
+| **Libia** | Misiles soviéticos, armamento pesado y minas terrestres, de forma **secreta** | Armamento extra que aparece **sin anuncio** — encaja con que fue clandestino |
+| **España** | Filtró extraoficialmente información y **manuales técnicos de los Harrier** | El Harrier enemigo pasa a mostrar sus **puntos débiles** (marcador de zona vulnerable, como el momentum) |
+| **Unión Soviética** | **Inteligencia satelital** de los movimientos de la flota británica | Aviso previo de dónde está la flota: el marcador de objetivo aparece antes / se ve el rumbo enemigo |
+
+El patrón: cada ayuda debería tocar **un sistema distinto** (roster, combustible, armamento,
+información del enemigo, información del objetivo) para que se noten como cosas separadas.
+
 > Relacionado con #15 (el Hércules ya es un aliado en el aire), #18 y #19 (es el otro platillo de
-> la balanza: qué compensa la desventaja tecnológica).
-> Los datos históricos concretos (qué país, qué ayuda, cuándo) van a
-> [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md); acá va **cómo se juega**.
+> la balanza: qué compensa la desventaja tecnológica), #10 (el Mirage 5 peruano es un avión más).
 
 ## 21. Ayuda de países aliados a Inglaterra
 
@@ -331,9 +346,23 @@ como **ventajas concretas** (mejor detección, reabastecimiento, tecnología o a
 Es la contracara que hace legible la asimetría del #18: no es que "el inglés es mejor porque sí",
 sino que **contó con apoyos** que se traducen en poderes/tecnología dentro del juego.
 
-> Relacionado con #18 y #19 (es de dónde sale, narrativamente, el "está todo servido" del inglés) y
-> con #10 (esas ayudas se expresan como stats/tecnología por bando).
-> Los datos históricos concretos van a [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md).
+### Quiénes ayudaron a Inglaterra
+
+Mismo criterio que #20: el dato y su posible expresión jugable. **Verificar antes de publicar**
+— varias de estas son afirmaciones sensibles; ver [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md).
+
+| País | Qué aportó | Posible expresión en el juego |
+|---|---|---|
+| **Estados Unidos** | Misiles **Sidewinder AIM-9L** de última generación, combustible, e inteligencia satelital **en tiempo real** de las posiciones argentinas | Misiles enemigos que **persiguen mejor** (el AIM-9L era all-aspect: podía dispararse de frente, no solo por la cola) + el enemigo sabe dónde estás aunque no te vea |
+| **Chile** | Radares británicos de largo alcance en su territorio, base para comandos del SAS, y escuchas de radio que **avisaban cada despegue argentino desde el continente** | La alarma de radar suena **antes** en las misiones que salen del continente (#26): te esperan |
+| **Francia** | Suspendió el envío ya pagado de Super Étendard y **Exocet**, y sus pilotos entrenaron a los británicos para **evadir los aviones franceses que tenía Argentina** | Munición limitada de Exocet en el Super Étendard (#10) + los buques **esquivan mejor** justo a ese avión: tu mejor arma es contra la que más se prepararon |
+
+El caso francés es el más interesante como diseño: es una desventaja **específica del avión**,
+no general — el jugador lo descubre usando el Super Étendard y notando que ahí cuesta más.
+
+> Relacionado con #18 y #19 (es de dónde sale, narrativamente, el "está todo servido" del inglés),
+> con #10 (esas ayudas se expresan como stats/tecnología por bando) y con #26 (el aviso chileno
+> pega justo en las misiones desde el continente).
 
 ## 22. Panel de daños por partes del avión
 
