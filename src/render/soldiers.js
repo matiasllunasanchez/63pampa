@@ -34,8 +34,10 @@ export const PRONE = { x: 465, y: 568, w: 113, h: 92 };
 // este tamaño importa mas que la nitidez — no hay detalle que preservar.
 export const SMOOTH = true;
 
-// Los frames YA miran a la izquierda: no se espeja salvo que el soldado vaya hacia la derecha.
-const flipIf = (ctx, x, dir) => { if (dir > 0) { ctx.translate(x, 0); ctx.scale(-1, 1); ctx.translate(-x, 0); } };
+// Los frames de la hoja miran a la DERECHA, asi que se espejan cuando el soldado va hacia la
+// izquierda — que es siempre, porque huyen del avion. (Se deja la condicion y no un espejo fijo:
+// si algun dia un soldado corre hacia la derecha, sale bien solo.)
+const flipIf = (ctx, x, dir) => { if (dir < 0) { ctx.translate(x, 0); ctx.scale(-1, 1); ctx.translate(-x, 0); } };
 
 /** Soldado corriendo, de perfil hacia donde indica `dir`. `ph` es la fase del ciclo. */
 export function drawRunBack(ctx, x, y, k, ph, dir) {

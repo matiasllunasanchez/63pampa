@@ -16,6 +16,7 @@ import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_F
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
 import * as boomArt from './boom.js';
+import * as blastArt from './blast.js';
 import * as momentum from '../systems/momentum.js';
 import * as momRender from './momentum.js';
 
@@ -806,21 +807,26 @@ export function drawObstacle(o) {
       ctx.globalAlpha = 1;
     }
   } else if (o.type === 'airboom') {
-    // AIRBURST: la bomba reventada EN EL AIRE. Bola de fuego CIRCULAR que se expande y se apaga
-    // (nucleo claro -> naranja -> humo), mas una onda anular. No es hongo: no toca el suelo.
-    const s = proj(o.x, o.y, o.z);
-    const gr = Math.min(1, o.boomT / 0.45);                    // expansion rapida
-    const fade = Math.max(0, 1 - o.boomT / 1.9);
-    const R = (2 + gr * 9) * k * (o.scale || 1);               // scale: la del avion es mas chica
-    ctx.globalAlpha = fade;
-    ctx.beginPath(); ctx.arc(s.x, s.y, R, 0, 6.2832);
-    ctx.fillStyle = o.boomT < 0.5 ? '#d98a4a' : '#8a8578'; ctx.fill();          // bola
-    ctx.beginPath(); ctx.arc(s.x, s.y, R * 0.6, 0, 6.2832);
-    ctx.fillStyle = o.boomT < 0.35 ? '#ffe6ac' : '#c07a42'; ctx.fill();         // nucleo caliente
-    ctx.globalAlpha = fade * 0.45;                                              // onda expansiva
-    ctx.strokeStyle = '#ffd98a'; ctx.lineWidth = Math.max(1, 0.6 * k);
-    ctx.beginPath(); ctx.arc(s.x, s.y, R * (1 + gr * 0.8), 0, 6.2832); ctx.stroke();
-    ctx.lineWidth = 1; ctx.globalAlpha = 1;
+    // AIRBURST: la bomba reventada EN EL AIRE, y tambien el fogonazo del avion al estrellarse y
+    // el de cada blanco que revienta. Es la explosion DE FRENTE (hoja explosions_front.png); el
+    // hongo de perfil es otra cosa y vive en render/boom.js.
+    // Debajo queda el dibujo a mano como respaldo si la hoja no cargo.
+    if (blastArt.isReady()) { blastArt.drawBlast(ctx, proj, o, k); }
+    else {
+      const s = proj(o.x, o.y, o.z);
+      const gr = Math.min(1, o.boomT / 0.45);
+      const fade = Math.max(0, 1 - o.boomT / 1.9);
+      const R = (2 + gr * 9) * k * (o.scale || 1);
+      ctx.globalAlpha = fade;
+      ctx.beginPath(); ctx.arc(s.x, s.y, R, 0, 6.2832);
+      ctx.fillStyle = o.boomT < 0.5 ? '#d98a4a' : '#8a8578'; ctx.fill();
+      ctx.beginPath(); ctx.arc(s.x, s.y, R * 0.6, 0, 6.2832);
+      ctx.fillStyle = o.boomT < 0.35 ? '#ffe6ac' : '#c07a42'; ctx.fill();
+      ctx.globalAlpha = fade * 0.45;
+      ctx.strokeStyle = '#ffd98a'; ctx.lineWidth = Math.max(1, 0.6 * k);
+      ctx.beginPath(); ctx.arc(s.x, s.y, R * (1 + gr * 0.8), 0, 6.2832); ctx.stroke();
+      ctx.lineWidth = 1; ctx.globalAlpha = 1;
+    }
   } else if (o.type === 'birds') {
     // BANDADA: aves aleteando (daña al atravesarla, no derriba). Silueta simple en "V".
     // DOS ESPECIES, sorteadas en el spawn (o.white): gaviotas BLANCAS con punta de ala oscura —

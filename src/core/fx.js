@@ -6,7 +6,7 @@
 
 import { cam } from './state.js';
 import { run } from './run.js';
-import { parts, popups } from './world.js';
+import { parts, popups, obstacles } from './world.js';
 import { P } from '../data/palette.js';
 import { W, HOR, F } from '../render/ctx.js';
 import { boom, duck } from '../systems/audio.js';
@@ -34,6 +34,10 @@ export function explodeAt(x, y, z, big) {
       c: Math.random() < 0.6 ? P.accent : (Math.random() < 0.5 ? P.warn : P.dim), r: Math.max(1, s.k * 0.35)
     });
   }
+  // BOLA DE FUEGO de frente. Se empuja como 'airboom' (el mismo tipo que usa la bomba reventada
+  // en el aire) para reutilizar su reloj y su poda: ya se avanza en collision.js y en game.js.
+  // `done: true` la deja fuera de toda colision — es puro dibujo.
+  obstacles.push({ type: 'airboom', x, y, z, boomT: 0, scale: big ? 0.85 : 0.42, done: true });
   run.shake = Math.min(6, run.shake + (big ? 4.5 : 2)); boom(big ? 0.16 : 0.08);
   if (big) duck(0.55);                      // explosion grande → ducking de la musica
 }

@@ -102,6 +102,7 @@ def main():
     # que es justamente para lo que existe el fallback de render/soldiers.js.
     js, _ = sub_path(js, '../assets/world/soldats/englishsoldatv2.png', '')
     js, _ = sub_path(js, '../assets/world/explosions/bomb.png', '')
+    js, _ = sub_path(js, '../assets/world/explosions/explosions_front.png', '')
 
     # re-embeber audio: mp3 del juego -> m4a comprimida (o '' para las que no entran en la web)
     for mp3, m4a in WEB_AUDIO.items():
