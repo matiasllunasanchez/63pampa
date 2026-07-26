@@ -36,6 +36,9 @@ import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFact
 import { MSL_MAX, ROLL_DUR, GEAR_T } from './data/tuning.js';
 import { MV_HI, MV_LO } from './data/moves.js';
 import * as moves from './systems/moves.js';
+import * as squad from './systems/squad.js';
+import * as squadRender from './render/squad.js';
+import { canRelevo } from './core/squad.js';
 import { RUNWAYS } from './data/runways.js';
 
   (() => {
@@ -225,6 +228,9 @@ import { RUNWAYS } from './data/runways.js';
       { label: 'VIENTO', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.wind, set: v => cfg.wind = v },
       { label: 'OBSTACULOS', opts: [0, 0.5, 1, 1.7], names: ['NINGUNO', 'POCOS', 'NORMAL', 'MUCHOS'], get: () => cfg.obstacles, set: v => cfg.obstacles = v },
       { label: 'BOMBARDEO', opts: [0, 0.5, 1, 2], names: ['NO', 'POCO', 'NORMAL', 'INTENSO'], get: () => cfg.bombs, set: v => cfg.bombs = v },
+      // ESCUADRON: las VIDAS, contadas como aviones de la formacion (ver systems/squad.js).
+      // SOLO = el juego de siempre: morir es morir.
+      { label: 'ESCUADRON', opts: [1, 2, 3, 4, 5, 6, 7, 8], names: ['SOLO', '2', '3', '4', '5', '6', '7', '8'], get: () => cfg.squad, set: v => cfg.squad = v },
       // ENEMIGOS: movimiento propio (globos al viento, helos patrullando, cazas que te buscan,
       // vehiculos rodando, fragatas navegando). QUIETOS = como antes de existir la opcion.
       { label: 'ENEMIGOS', opts: [true, false], names: ['MOVILES', 'QUIETOS'], get: () => cfg.enemyMove, set: v => cfg.enemyMove = v },
@@ -334,6 +340,10 @@ import { RUNWAYS } from './data/runways.js';
       resetStats();     // los contadores del recuento final
       clearWorld();     // vacia el campo de obstaculos, balas, particulas…
       momentum.resetMomentum();
+      // el ESCUADRON de la corrida: cfg.squad aviones y vos de lider. Vive en `run` (no en el
+      // sistema) porque lo leen HUD + relevo + este archivo.
+      run.squad = run.lives = cfg.squad;
+      squad.resetSquad();
       toT = 0; toCount = 4;
       cam.x = 0; cam.y = 4;
     }
@@ -371,6 +381,15 @@ import { RUNWAYS } from './data/runways.js';
       if (!camZoomOn()) return mouse;
       const c = proj(plane.x, plane.y, PZ);
       return { x: c.x + (mouse.x - c.x) / camZ, y: c.y + (mouse.y - c.y) / camZ, on: mouse.on };
+    }
+
+    // ACERCAMIENTO al CONTROL LIBRE: cuando el escuadron sale de plano, la camara "se mete" un
+    // poco al avion. NO se escala el raster (eso parte el mar en rayas — ver CAM_ZOOMS): se
+    // agranda solo el sprite del jugador, un empujon que sube y vuelve con la salida.
+    function squadZoom() {
+      const ex = squad.exitState();
+      if (ex === null) return 1;
+      return 1 + 0.10 * Math.sin(Math.min(1, ex / squad.EXIT_T) * Math.PI);
     }
 
     // Cablea el input. core/input.js escucha teclado/mouse/tactil y actualiza inp/mouse/pointer;
@@ -582,14 +601,12 @@ import { RUNWAYS } from './data/runways.js';
       beep(200, 0.2, 'sawtooth', 0.05, 80); boom(0.05, true);
     }
 
-    function die(cause) {
-      setState('dead'); deathCause = cause; deathT = 0;
-      // POR LA PATRIA: el derribado ES el fin del "nivel" → estrellas por puntaje. En campaña/ciclo
-      // morir es fracaso (no se cumplio el objetivo): sin estrellas.
-      deadStars = gameMode === 'survival' ? starsFor(Math.floor(run.score), SURVIVAL_PAR) : 0;
-      deadBg = (Math.random() * screens.LOSE_BG_N) | 0;
+    // EL ESPECTACULO DEL DERRIBO: bola de fuego pixel, pedazos con inercia, chispas y sonido.
+    // Separado del FIN DE PARTIDA (die) a proposito: el RELEVO del escuadron reusa este show
+    // TAL CUAL — el companero que asume tiene que ver al lider romperse igual que lo veria el
+    // jugador — pero la partida sigue, asi que nada de aca puede tocar la maquina de estados.
+    function crashFX() {
       sfxOne('exSmall');   // mi avion chocando (agua incluida, por ahora)
-      factIdx = (factIdx + 1) % L().facts.length;
       explodeAt(plane.x, plane.y, PZ, true, true);   // noBall: la bola del derribo es la PIXEL de abajo
       // INERCIA DEL DESASTRE. Un avion a 300 km/h no frena y explota en el lugar: revienta Y
       // SIGUE — los restos y la bola de fuego conservan la velocidad que traia y avanzan varios
@@ -629,9 +646,32 @@ import { RUNWAYS } from './data/runways.js';
           r: 1.5 + Math.random() * 2.2,
         });
       }
-      if (Math.floor(run.score) > best) { best = Math.floor(run.score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
       engineOff();
       beep(180, 0.5, 'sawtooth', 0.06, 40);
+    }
+
+    function die(cause) {
+      setState('dead'); deathCause = cause; deathT = 0;
+      // POR LA PATRIA: el derribado ES el fin del "nivel" → estrellas por puntaje. En campaña/ciclo
+      // morir es fracaso (no se cumplio el objetivo): sin estrellas.
+      deadStars = gameMode === 'survival' ? starsFor(Math.floor(run.score), SURVIVAL_PAR) : 0;
+      deadBg = (Math.random() * screens.LOSE_BG_N) | 0;
+      factIdx = (factIdx + 1) % L().facts.length;
+      crashFX();
+      if (Math.floor(run.score) > best) { best = Math.floor(run.score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
+    }
+
+    // EL EMBUDO DE LA MUERTE. Todas las señales { death } de los sistemas (colision, roce,
+    // combustible, misiles del radar, momentum) caen aca, y aca — en UN solo lugar — se decide
+    // si es el fin (ultimo avion → derribado) o un RELEVO (queda escuadron: el companero asume).
+    // Tener el embudo unico es lo que hace confiable la ventana de gracia: durante 'relevo' ni
+    // flight ni collision corren, asi que no existe camino que pueda matar dos veces seguidas.
+    function onDeath(cause) {
+      if (canRelevo(run.lives)) {
+        crashFX();                     // el lider revienta igual que siempre...
+        squad.startRelevo(cause);      // ...pero la mision sigue: descuenta y prepara al companero
+        setState('relevo');
+      } else die(cause);
     }
 
     // ---------- update ----------
@@ -684,7 +724,10 @@ import { RUNWAYS } from './data/runways.js';
         const cn = 3 - Math.floor(toT);
         if (cn !== toCount && cn >= 0) { toCount = cn; beep(cn > 0 ? 520 : 980, 0.14, 'square', 0.06); }
         engineFly(run.spd, false, 0.017 * Math.min(1, toT));
-        if (toT >= 3) { setState('play'); popup(W / 2, 54, T('freeControl'), P.accent); run.shake = Math.min(6, run.shake + 1); }
+        if (toT >= 3) {
+          setState('play'); popup(W / 2, 54, T('freeControl'), P.accent); run.shake = Math.min(6, run.shake + 1);
+          squad.beginExit();   // la formacion sale de plano detras de la camara (render/squad.js)
+        }
         parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
         prune(parts, p => p.life > 0);
         popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
@@ -730,7 +773,7 @@ import { RUNWAYS } from './data/runways.js';
           run.shake = Math.max(0, run.shake - dt * 10);
           const sig = momentum.update(dt, inp, mouse, objectiveDist);   // señal de salida: no llama hacia arriba
           if (sig === 'objective') finishObjective();
-          else if (sig && sig.death) die(sig.death);
+          else if (sig && sig.death) onDeath(sig.death);   // con escuadron, tambien el momentum releva
           flags.startReq = false; flags.anyPress = false;
           return;
         }
@@ -764,6 +807,30 @@ import { RUNWAYS } from './data/runways.js';
           // solo se puede reintentar una vez que subio la pantalla (paso el show del destrozo)
           // reintenta (mismo modo/nivel). La musica NO se reinicia: sigue desde donde venia.
           if (deathT > DEATH_REVEAL && flags.anyPress) { reset(); setRunObjective(true); setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+        } else if (S.state === 'relevo') {
+          // RELEVO DEL ESCUADRON. Los restos del lider ya los movio el bloque comun de arriba
+          // (inercia de chunks y bola de fuego, el mismo camino del derribado). El resto del
+          // mundo NO se congela: corre a media maquina para que la escena respire — pero flight
+          // y collision no corren, asi que la invulnerabilidad de la ventana es estructural:
+          // aca no hay nadie que pueda devolver { death }.
+          const adv = run.spd * 0.4 * dt;
+          run.dist += adv;                     // la mision sigue: el escuadron no deja de volar
+          for (const o of obstacles) if (o.type !== 'chunk' && o.type !== 'airboom') o.z -= adv;
+          for (const sd of soldiers) sd.z -= adv;
+          popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
+          prune(popups, p => p.life > 0);
+          run.shake = Math.max(0, run.shake - dt * 8);
+          engineFly(run.spd * 0.9, false, 0.015);   // el motor del companero: la escena no queda muda
+          if (squad.updateRelevo(dt) === 'done') {
+            // lo que cruzo el plano del avion DURANTE la cinematica ya paso de largo: sin esto,
+            // collision lo veria "sin resolver" en el primer frame y podria matar en el handoff
+            for (const o of obstacles) if (o.z <= PZ + 1.5) o.done = true;
+            setState('play');
+            popup(W / 2, 54, T('sq_yours'), P.accent);
+            if (run.lives === 1) popup(W / 2, 64, T('sq_last'), P.warn);
+            beep(980, 0.14, 'square', 0.06);
+            run.shake = Math.min(6, run.shake + 1);
+          }
         } else if (S.state === 'results') {
           // RECUENTO: las filas entran de a una; una tecla las completa de golpe, la siguiente pasa al epilogo
           resT += dt;
@@ -802,6 +869,8 @@ import { RUNWAYS } from './data/runways.js';
         return;
       }
       flags.anyPress = false;
+
+      squad.tickExit(dt);   // reloj de la salida de plano de la formacion (solo corre si arranco)
 
       // el tren termina de plegarse ya en vuelo: el despegue lo empieza pero dura 3 s justos y la
       // maniobra es mas larga, asi que si no se cerrara aca quedaria a medio recoger para siempre
@@ -844,10 +913,10 @@ import { RUNWAYS } from './data/runways.js';
       const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist, needsMomentum });
       if (fs === 'momentum') return;                 // ya entro al climax
       if (fs === 'objective') { finishObjective(); return; }
-      if (fs && fs.death) { die(fs.death); return; }
+      if (fs && fs.death) { onDeath(fs.death); return; }
       spawnSystem(dt);                   // aparicion de obstaculos y soldados (nunca corta el frame)
       const hit = collisionSystem(dt);   // impactos → devuelve { death } si un choque fue fatal
-      if (hit) { die(hit.death); return; }
+      if (hit) { onDeath(hit.death); return; }
       // líneas de velocidad
       if (run.boost || run.rasLevel > 0 || run.spd > 115) {
         const n = (run.boost ? 3 : 1) + run.rasLevel + run.afterTier;
@@ -1072,7 +1141,14 @@ import { RUNWAYS } from './data/runways.js';
       }
       }   // ---- fin mundo 2D ----
 
-      if (S.state !== 'dead' && S.state !== 'momentum') drawPlane(selPlane, viewMouse);   // en momentum va la camara cockpit (drawCockpit)
+      if (S.state !== 'dead' && S.state !== 'momentum') drawPlane(selPlane, viewMouse, squadZoom());   // en momentum va la camara cockpit (drawCockpit)
+      // la FORMACION del escuadron: SOLO en el despegue y en su salida de plano al CONTROL
+      // LIBRE. Nunca en vuelo normal — es costo de render que no aporta y taparia el juego.
+      {
+        const ex = squad.exitState();
+        if (run.squad > 1 && cfg.start !== 'air' && (S.state === 'takeoff' || (S.state === 'play' && ex !== null)))
+          squadRender.drawFormation({ selPlane, exit: S.state === 'play' ? Math.min(1, ex / squad.EXIT_T) : null });
+      }
 
       // líneas de velocidad
       ctx.globalAlpha = 0.5;
@@ -1114,6 +1190,7 @@ import { RUNWAYS } from './data/runways.js';
       ctx.save(); ctx.scale(U, U);
       if (inLobby()) screens.drawPpalBg(ppalPrev, ppalIdx, ppalFade);   // portada / lobby
       if (S.state === 'takeoff') hud.drawTakeoff(toT);
+      if (S.state === 'relevo' && squad.relevo()) squadRender.drawRelevo(squad.relevo());
       if (S.state === 'menu') {
         menus.drawMenu({ selPlane, gameMode, t: run.t });
         // el clamp de cfgRow vivia DENTRO de drawCfg (una pantalla no deberia mutar estado):

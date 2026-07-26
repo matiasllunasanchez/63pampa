@@ -94,3 +94,46 @@ test('clamp: casos de borde', () => {
   near(clamp(5, 0, 10), 5); near(clamp(-5, 0, 10), 0); near(clamp(15, 0, 10), 10);
   near(clamp01(0.5), 0.5); near(clamp01(-1), 0); near(clamp01(2), 1);
 });
+
+// ---------- ESCUADRON (core/squad.js): las vidas como formacion ----------
+// La cinematica y el autopiloto no se prueban aca (tocan stores y canvas); esto cubre la
+// logica que decide VIDAS y TIEMPOS — donde un off-by-one significa morir gratis.
+import { canRelevo, pilotIdx, callsign, relevoPhase, formationSlots,
+  RELEVO_WRECK, RELEVO_GRACE, RELEVO_DUR } from '../src/core/squad.js';
+
+test('escuadron: con un solo avion NO hay relevo — morir es morir, como siempre', () => {
+  assert.equal(canRelevo(1), false);
+  assert.equal(canRelevo(0), false);   // borde: nunca puede relevar "en negativo"
+  assert.equal(canRelevo(2), true);
+});
+
+test('escuadron: el descuento de vidas nombra al piloto correcto', () => {
+  // escuadron de 4: arranca el lider (GUARDIA 1); cae uno → asume GUARDIA 2; con la ultima
+  // vida vuela GUARDIA 4. pilotIdx nunca puede pasarse del escuadron.
+  assert.equal(pilotIdx(4, 4), 0);
+  assert.equal(pilotIdx(4, 3), 1);
+  assert.equal(pilotIdx(4, 1), 3);
+  assert.equal(pilotIdx(4, 0), 4);     // ya no queda nadie: el "siguiente" no existe
+  assert.equal(callsign(0), 'GUARDIA 1');
+  assert.equal(callsign(3), 'GUARDIA 4');
+});
+
+test('relevo: la ventana de gracia cubre TODA la cinematica y expira al final', () => {
+  near(RELEVO_DUR, RELEVO_WRECK + RELEVO_GRACE);       // un solo reloj, sin desfasajes posibles
+  assert.equal(relevoPhase(0).beat, 'wreck');
+  assert.equal(relevoPhase(RELEVO_WRECK + 0.01).beat, 'handoff');
+  assert.ok(relevoPhase(0).invuln, 'invulnerable desde el primer frame');
+  assert.ok(relevoPhase(RELEVO_DUR - 0.01).invuln, 'invulnerable hasta el ultimo frame');
+  assert.ok(!relevoPhase(RELEVO_DUR - 0.01).done);
+  assert.ok(relevoPhase(RELEVO_DUR).done, 'al cumplirse el tiempo devuelve el control');
+});
+
+test('formacion: N aviones son N-1 puestos, alternando lados y sin encimarse', () => {
+  assert.equal(formationSlots(1).length, 0);           // solo: no hay formacion que dibujar
+  const s = formationSlots(8);
+  assert.equal(s.length, 7);
+  assert.ok(s[0].dx < 0 && s[1].dx > 0, 'el primer par escolta uno por cada lado');
+  const seen = new Set(s.map(p => p.dx + '/' + p.dz));
+  assert.equal(seen.size, 7, 'dos numerales no pueden volar en el mismo punto');
+  for (const p of s) assert.ok(p.dz < 0, 'detras del lider = mas cerca de la camara (z menor)');
+});

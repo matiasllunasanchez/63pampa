@@ -45,6 +45,13 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
 - **Despegue de Puerto Argentino**: cada run arranca en la pista de la BAM Malvinas con
   cuenta regresiva 3…2…1; el avión carretea y asciende solo, y el control llega a los 3 s
   ("CONTROL LIBRE!"). Se cruza la costa y empieza el mar abierto.
+- **Escuadrón (las vidas)**: se despega en formación de 1 a 8 aviones (`ESCUADRON` en el menú
+  `[M]`, default 4). Al CONTROL LIBRE la formación sale de plano detrás de la cámara — te siguen
+  aunque no los veas. Al morir, si queda escuadrón, no hay pantalla de derribado: una cinemática
+  corta muestra los restos del líder y el numeral siguiente (GUARDIA 2, 3…) entra, pasa por la
+  caída y asume el mando con 2 s de invulnerabilidad y esquive automático. Hereda combustible y
+  munición (morir no repone nada); pierde racha y multiplicador. El HUD muestra el tablero de
+  aviones con los caídos tachados. Con `SOLO`, morir es morir, como siempre.
 - Volar bajo multiplica el puntaje: **x2** (≤16 m) / **x5** (≤9 m) / **x10** (≤4,5 m).
 - **Racha rasante**: sostener la zona x10 sube el multiplicador cada 2 s: **x15 → x20 → x25 → x30**,
   con beeps ascendentes y el borde de la pantalla encendiéndose. Subir de la zona la corta (0,45 s de gracia).
@@ -348,6 +355,7 @@ valor) y `[M]`/`ENTER` cierra. (El modo ya no está acá — se elige en la pant
 | AGUA         | Mar / Violeta                             | `cfg.water` (paleta `WATER_STYLES`) |
 | VIENTO       | Sí / No                                   | `cfg.wind` (viento en altura on/off) |
 | OBSTÁCULOS   | Ninguno / Pocos / Normal / Muchos         | `cfg.obstacles` (multiplicador de densidad) |
+| ESCUADRON    | Solo / 2 … 8                              | `cfg.squad` (vidas: compañeros que te relevan al morir) |
 | COSTA        | Corta / Normal / Larga                    | `cfg.coast` (metros de tierra antes del mar) |
 
 En **supervivencia** estos valores se aplican tal cual (prototipado libre). La **campaña** no usa este

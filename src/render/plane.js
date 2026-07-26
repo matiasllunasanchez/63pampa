@@ -122,7 +122,10 @@ function gear(g) {
   ctx.globalAlpha = 1;
 }
 
-export function drawPlane(selPlane, viewMouse) {
+// `camScale` (opcional): empujon de camara del ESCUADRON al CONTROL LIBRE — agranda SOLO el
+// sprite del avion. Acercarse escalando el raster ya dibujado esta prohibido en este juego
+// (parte el mar en rayas, ver CAM_ZOOMS en game.js); esta es la version que el plano puede pagar.
+export function drawPlane(selPlane, viewMouse, camScale) {
   const s = proj(plane.x, plane.y, PZ);
   // SOMBRA sobre el agua (referencia de altura). Tres barras que se angostan en vez de un
   // rectangulo: a esta resolucion eso ya lee como una elipse.
@@ -205,7 +208,7 @@ export function drawPlane(selPlane, viewMouse) {
   // con TURBO el avion se ACHICA un poco: acompaña a la camara que sube (ver flight.js) y remata
   // la sensacion de que el avion se despega de vos. Interpolado para que no sea un salto.
   boostSc += ((run.boost ? 0.92 : 1) - boostSc) * 0.08;
-  const sc = PLANE_SCALE * boostSc;
+  const sc = PLANE_SCALE * boostSc * (camScale || 1);
   const spW = SHEET_FW / U * sc, spH = SHEET_FH / U * sc;
   // media altura del CUERPO del avion (sin el aire del frame): a esto se pega la llama del turbo
   const bodyH2 = SHEET_BODY_H / U * sc / 2;

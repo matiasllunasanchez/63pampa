@@ -90,6 +90,7 @@ El corazón. Los **stores** (identidad estable) y lo que es matemática/utilidad
 | `input.js` | `inp`/`mouse`/`pointer`/`flags` + `initInput`: el único que escucha teclado/mouse/táctil |
 | `fx.js` | helpers visuales compartidos: `proj` (proyección), `popup`, `explodeAt`, `bloodBurst` |
 | `physics.js` | **pura**: la matemática de la *sensación* (cabeceo, energía, roce). La importa el feeltest |
+| `squad.js` | **pura**: vidas, fases del relevo, indicativos y puestos de la formación (la importa el unit test) |
 | `i18n.js` | idioma: único dueño de `LANG`; `T`, `L`, `cycleLang` |
 | `util.js` | utilidades puras (`wrapChars`, `multOf`) |
 
@@ -104,6 +105,7 @@ La lógica que hace avanzar el juego. Cada uno muta stores y devuelve señales; 
 | `collision.js` | resuelve impactos y reparte puntaje | `{death}` |
 | `momentum.js` | el clímax en primera persona (bullet-time, zonas, re-ataque) | `'objective'`·`{death}` |
 | `moves.js` | las PIRUETAS de combate: mientras `run.mv` está activo es el dueño del avión (vx/vy/bank/pitch); el catálogo vive en `data/moves.js` y los combos los detecta `core/input.js` |  |
+| `squad.js` | el RELEVO del escuadrón (vidas): cinemática, autopiloto y reset parcial; `game.js` decide relevo-o-muerte en `onDeath` | `'done'` |
 | `three-world.js` | el fondo 3D (three.js) del momentum |  |
 | `audio.js` | *(fundacional, ver arriba)* |  |
 
@@ -120,7 +122,8 @@ Todo lo que pinta. `draw()` en `game.js` gestiona los transforms y delega acá.
 | `soldiers.js` | hoja de sprites de los soldados (correr / cuerpo a tierra) |
 | `boom.js` / `blast.js` | hongo de bomba / bola de fuego frontal (hojas de explosión) |
 | `miras.js` | la hoja de miras del menú `[M]` |
-| `hud.js` | instrumentos, avisos, barra de objetivo, cuenta regresiva del despegue |
+| `hud.js` | instrumentos, avisos, barra de objetivo, cuenta regresiva del despegue, tablero del escuadrón |
+| `squad.js` | la formación del despegue (y su salida de plano) + la sobreimpresión de la cinemática del relevo |
 | `screens.js` | recuento, briefing, derribado, victoria, guion narrativo |
 | `menus.js` | selección de modo/avión y el menú de configuración `[M]` |
 | `momentum.js` | el render del clímax (barcaza, zonas, cabina, visor) |
@@ -155,6 +158,7 @@ Lo que queda es genuinamente el pegamento:
 | el sprite del avión | `render/plane.js` |
 | el arte de un enemigo / prop horneado | `tools/bake_enemies.html` (modelo) → `npx electron tools/bake_enemies_run.js` → re-medir cajas en `render/enemies.js` |
 | una pirueta (combo, duración, qué deja controlar) | `data/moves.js` (catálogo) + `systems/moves.js` (cinemática) — referencia jugable en [PIRUETAS.md](PIRUETAS.md) |
+| las vidas / el relevo del escuadrón | `core/squad.js` (tiempos, indicativos) + `systems/squad.js` (cinemática) + `render/squad.js` (dibujo) |
 | el arte de un avión jugable | `tools/bake_planes.html` → `npx electron tools/bake_planes_run.js` |
 | sonido | `systems/audio.js` + `data/sfx.js` |
 

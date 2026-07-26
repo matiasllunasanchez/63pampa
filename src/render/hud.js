@@ -17,6 +17,7 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { MISSIONS } from '../data/missions.js';
 import { MSL_MAX, RADAR_ALT } from '../data/tuning.js';
+import { callsign, pilotIdx } from '../core/squad.js';
 
 // barra de mision: puerto (izq) → barcaza objetivo (der). Assets configurables como data URI;
 // mientras `src` este vacio se dibuja un fallback.
@@ -157,6 +158,25 @@ function bar(x, y, w, val, c, label) {
   ctx.fillText(label, x, y - 4);
 }
 
+// TABLERO DEL ESCUADRON: un avioncito por vida — los caidos quedan TACHADOS, no desaparecen.
+// Que el pip siga ahi, oscuro y cruzado, es lo que hace que una vida menos sea un companero
+// menos y no un numero menos. Al lado, el indicativo del piloto al mando (GUARDIA n).
+// Lo comparte el HUD de vuelo y la sobreimpresion del relevo (render/squad.js).
+export function drawSquadPips(x, y) {
+  const fallen = pilotIdx(run.squad, run.lives);
+  plate(x, y, run.squad * 8 + 6 + 38, 9);
+  for (let i = 0; i < run.squad; i++) {
+    const bx = x + 3 + i * 8, by = y + 3;
+    const down = i < fallen;
+    const c = down ? '#3a4750' : i === fallen ? P.accent : P.foam;   // el actual, en acento
+    px(bx, by + 1, 7, 1, c);                                         // alas
+    px(bx + 3, by, 1, 3, c);                                         // fuselaje
+    if (down) { px(bx + 1, by, 1, 1, P.warn); px(bx + 3, by + 1, 1, 1, P.warn); px(bx + 5, by + 2, 1, 1, P.warn); }
+  }
+  ctx.fillStyle = P.dim; ctx.font = '6px monospace'; ctx.textAlign = 'left';
+  ctx.fillText(callsign(fallen), x + 6 + run.squad * 8, y + 7);
+}
+
 export function drawHUD(h) {
       const { best, gameMode, curLevel, objectiveDist, objectiveShip } = h;
   // PUNTAJE: placa de contador con los ceros a la izquierda apagados — lee como marcador arcade
@@ -170,6 +190,9 @@ export function drawHUD(h) {
   }
   ctx.textAlign = 'right'; ctx.fillStyle = P.dim; ctx.font = '7px monospace';
   ctx.fillText(T('hud_best', { n: best }), W - 16, 12);   // corrido a la izq para no chocar el ícono de sonido
+
+  // vidas del escuadron, bajo el puntaje. Con 1 avion no se dibuja: seria un tablero de nada
+  if (run.squad > 1) drawSquadPips(3, 17);
 
   // modo campaña: PROGRESO de la campaña arriba al centro. No repite el nombre del blanco —
   // de eso ya se ocupa la barra de objetivo, justo abajo.

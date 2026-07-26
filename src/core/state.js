@@ -61,6 +61,10 @@ export const cfg = {
   // vehiculos ruedan y la fragata del mastil navega. Apagarlo los deja plantados como antes.
   // (Lo que YA se movia — bandada, barcaza entrando, bombas — no depende de esta llave.)
   enemyMove: true,
+  // ESCUADRON: cuantos aviones (vidas) salen en la formacion, 1..8. El jugador es el lider;
+  // cada derribo lo releva un companero (systems/squad.js) hasta agotar la formacion. Con 1
+  // el juego se comporta exactamente como antes de existir la opcion: morir es morir.
+  squad: 4,
   // DEPURACION: pinta las cajas de colision en verde fluor. Es para PROBAR — el overlay sale de
   // core/hitbox.js, la misma fuente que decide los choques, asi que lo que ves es lo que golpea.
   hitboxes: false,

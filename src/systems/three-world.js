@@ -298,8 +298,11 @@ function m3Palette(w) {
 export function frame(w) {
   MOM3D.on = MOM3D.sea = false;
   const wantMom = w.state === 'momentum' && !!w.mom;
-  // mar abierto: pasada la franja de costa/pista (que es arte 2D, igual que en drawSea)
-  const wantSea = SEA3D_FLIGHT && !wantMom && (w.state === 'play' || w.state === 'takeoff' || w.state === 'dead')
+  // mar abierto: pasada la franja de costa/pista (que es arte 2D, igual que en drawSea).
+  // 'dead' y 'relevo' estan por lo mismo: el show del derribo y la cinematica del escuadron
+  // pasan sobre este mar — sin ellos el telon 3D se apagaria un frame y el agua "saltaria" a 2D.
+  const wantSea = SEA3D_FLIGHT && !wantMom
+    && (w.state === 'play' || w.state === 'takeoff' || w.state === 'dead' || w.state === 'relevo')
     && w.cfg.terrain === 'sea' && (w.dist + w.momDrift) >= w.cfg.coast + 80;
   if ((!wantMom && !wantSea) || !mom3DInit()) return false;
   m3Palette(w);   // repinta cielo/sol/mar si cambio FONDO/AGUA

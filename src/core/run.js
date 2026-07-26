@@ -56,6 +56,10 @@ export const run = {
   mslCd: 0,        // cooldown entre lanzamientos
   mslRegen: 0,     // temporizador de recarga lenta
 
+  // --- escuadron (vidas) — ver systems/squad.js ---
+  squad: 1,        // tamaño de la formacion de esta corrida (reset() lo copia de cfg.squad)
+  lives: 1,        // aviones que quedan, INCLUIDO el que volas; cada relevo descuenta uno
+
   // --- tren de aterrizaje ---
   gear: 1,         // 1 = bajado (en pista) · 0 = recogido. Lo anima el despegue; ver render/plane.js
 
@@ -92,6 +96,7 @@ export function resetRun() {
     score: 0, mult: 1, multShow: 1, streak: 0, rasLevel: 0, graceT: 0,
     afterT: 0, afterTier: 0, afterGrace: 0,
     scrapeT: 0, scrapeVib: 0,
+    squad: 1, lives: 1,
     gear: 1,
     windT: 0, windF: 1,
     fireT: 0, msl: MSL_MAX, mslCd: 0, mslRegen: 0,

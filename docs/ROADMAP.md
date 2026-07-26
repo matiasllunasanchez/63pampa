@@ -25,6 +25,7 @@ código ([ARQUITECTURA.md](ARQUITECTURA.md)).
 - **Asimetría y aliados (geopolítica)** — #18, #19, #20, #21
 - **Niveles y estructura** — #7, #14, #23
 - **Puntaje y recompensa** — #5, #23
+- **Vidas y escuadrón** — #29 ✔
 
 ---
 
@@ -722,3 +723,49 @@ Es tuning de nivel, no una constante global.
 > (el `+30` del pickup), `systems/flight.js:140` (el drenaje), `render/world.js` (`o.type === 'fuel'`,
 > el dibujo del bidón), `render/hud.js` (barra COMB + marca fantasma) y `data/missions.js`
 > (la ruta como parámetro de misión).
+
+## 29. Escuadrón: las vidas como aviones de una formación real ✔ (base jugable)
+
+**Implementado** (julio 2026). Cada partida sale con un escuadrón de **1 a 8 aviones** (fila
+`ESCUADRON` del menú `[M]`, default 4) y el escuadrón son las **vidas** — pero contadas como
+compañeros con indicativo (`GUARDIA 1..N`), no como un contador abstracto. Cuatro momentos:
+
+1. **Despegue en formación**: los numerales carretean y rotan detrás del líder en escalón en V,
+   con retraso por rango (la escalera de ascenso). Solo durante `'takeoff'`.
+2. **Salida de plano** al CONTROL LIBRE: aceleran, crecen y pasan al costado de la cámara — *te
+   siguen ahí atrás aunque no los veas*. La cámara "se mete" un poco al avión con un empujón de
+   escala del sprite (no del raster: eso raya el mar, ver `CAM_ZOOMS`).
+3. **Relevo al morir**: en vez de la pantalla de derribado, cinemática de ~3 s — la cámara se
+   queda con los restos del líder (beat `wreck`, 1 s) y el companero entra desde afuera con una
+   curva que **pasa por el punto de la caída** antes de asentarse (beat `handoff`, 2 s). Ahí está
+   la emoción: el piloto nuevo ve morir a su companero y continúa.
+4. **Ventana de gracia estructural**: durante el relevo no corren `flight` ni `collision`, así
+   que no existe camino que pueda matar — no hay flag de invulnerabilidad repartido que alguien
+   pueda olvidar. El esquive automático corre el punto de llegada de los obstáculos que vienen.
+
+Herencia al relevar: **combustible y munición se heredan** (reponer al 100% haría de morir la
+forma barata de repostar); racha, multiplicador y afterburner se pierden (el avión nuevo entra
+frío); puntaje, distancia, stats y progreso del objetivo se conservan. La tanda de misiles que
+mató al líder se limpia; la carga del radar queda. Morir **en el momentum** también releva (el
+companero re-entra al clímax con pasada fresca). Con `ESCUADRON: SOLO` todo esto desaparece y
+morir es morir, como siempre.
+
+Lo que queda para después:
+
+- [x] Opción de menú, HUD (tablero de pips con caídos tachados + indicativo), relevo, formación,
+      salida de plano, gracia, herencia, indicativos, línea de radio (es/en), sonido reusado.
+- [ ] Que la muerte del líder cueste algo más que la racha: ¿moral del escuadrón? ¿los numerales
+      que quedan vuelan "peor" (menos gracia de roce)?
+- [ ] Los numerales con identidad real: nombres de pilotos históricos, retrato en el relevo.
+- [ ] El escuadrón como recurso de campaña: aviones que NO se reponen entre misiones (hoy cada
+      misión rearma la formación completa).
+- [ ] Ver el relevo desde el avión nuevo (cámara subjetiva corta) en vez de plano general.
+
+> Relacionado con #10 (si el escuadrón hereda el avión elegido, elegir avión pesa más), #22 (el
+> panel de estado podría mostrar al escuadrón), #23 (terminar la campaña sin perder un solo
+> numeral es candidato natural a la 4ª estrella) y #26 (¿el escuadrón vuelve con vos?).
+> Dónde tocar → `core/squad.js` (la matemática pura: fases, indicativos, formación — con tests en
+> `tools/unit.js`), `systems/squad.js` (relevo: cinemática, autopiloto, reset parcial),
+> `render/squad.js` (formación + sobreimpresión), `game.js` (`onDeath` — el embudo único de la
+> muerte — y el estado `'relevo'`), `render/hud.js` (`drawSquadPips`), `core/state.js`
+> (`cfg.squad`) y `core/run.js` (`run.squad` / `run.lives`).
