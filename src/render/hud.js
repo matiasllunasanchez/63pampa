@@ -16,7 +16,7 @@ import { scrapeLimit } from '../core/physics.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { MISSIONS } from '../data/missions.js';
-import { MSL_MAX } from '../data/tuning.js';
+import { MSL_MAX, RADAR_ALT } from '../data/tuning.js';
 
 // barra de mision: puerto (izq) → barcaza objetivo (der). Assets configurables como data URI;
 // mientras `src` este vacio se dibuja un fallback.
@@ -183,42 +183,78 @@ export function drawHUD(h) {
 
   // AVISO DE ROCE "! SUBI !" — es un ESTADO persistente (estás rozando la superficie), no un
   // evento, asi que vive en el HUD fijo arriba del velocimetro y parpadea como el resto de los
-  // avisos. Antes era un popup que nacia junto al avion y se disparaba ~30 veces por segundo.
-  // `scrapeVib` vale 1 mientras roza y decae al salir → sirve de "estoy rozando AHORA".
-  if (run.scrapeVib > 0.6) {
+  // ---------- AVISOS DE ALTURA, pegados al altimetro ----------
+  // El aviso de RADAR estaba arriba de todo y el de ROCE flotaba suelto, pero los dos hablan de
+  // LO MISMO que el altimetro: estas demasiado alto (te ven) o demasiado bajo (te matas). Estar
+  // lejos del numero que los causa obligaba a barrer la pantalla. Ahora comparten una sola fila,
+  // justo encima de la velocidad y la altura.
+  //
+  // PRIORIDAD: el roce gana. Estar rozando es muerte en segundos; el radar es una amenaza que
+  // tarda. Con los dos activos se muestra el urgente.
+  const scraping = run.scrapeVib > 0.6;
+  const painted = run.detection > 0.3;
+  // Apilado de la esquina inferior, de abajo hacia arriba: velocidad+altura (H-4), barra del
+  // radar (H-19..H-15) y el aviso (H-21). Los 7 px de la linea de velocidad suben hasta H-11,
+  // asi que la barra tiene que terminar arriba de eso — con warnY = H-13 la barra caia justo
+  // encima del "KM/H".
+  const warnY = H - 21;
+  if (scraping || painted) {
     ctx.textAlign = 'center'; ctx.font = 'bold 8px monospace';
-    ctx.fillStyle = Math.sin(run.t * 30) > 0 ? P.warn : '#7d2f1e';
-    ctx.fillText(T('scrape'), W / 2, H - 16);
+    // parpadeo mas rapido para el roce: la urgencia se lee en el ritmo, no solo en el texto
+    ctx.fillStyle = Math.sin(run.t * (scraping ? 30 : 14)) > 0 ? P.warn : '#7d2f1e';
+    ctx.fillText(scraping ? T('scrape') : T('radar'), W / 2, warnY);
+  }
+  // BARRA de carga del radar, bajo el aviso. Sin numero de oleada: el dato que importa es cuanto
+  // falta para la proxima tanda, y eso ya lo dice la barra llenandose.
+  if (painted && !scraping) {
+    plate(W / 2 - 22, warnY + 2, 44, 4);
+    px(W / 2 - 20, warnY + 3, Math.round(40 * run.detection), 2, P.warn);
+    // marca del residual: donde rearranca la barra tras la proxima oleada (cada vez mas llena),
+    // asi se ve que el ciclo se acorta sin poner un contador
+    if (run.radarWave > 0) px(W / 2 - 20 + Math.round(40 * Math.min(0.55, 0.35 + run.radarWave * 0.03)), warnY + 2, 1, 4, P.accent);
   }
 
-  // velocidad (+ escalón de TURBINA cuando el afterburner sostenido está activo)
-  ctx.textAlign = 'center'; ctx.font = '7px monospace';
+  // VELOCIDAD y ALTURA, uno al lado del otro abajo al centro. Van juntos a proposito: son los dos
+  // numeros que deciden todo el vuelo (rapido = menos margen; alto = te ve el radar), y tenerlos
+  // en la misma linea evita barrer la pantalla para cruzarlos.
+  //
+  // Se dibujan por separado porque cada uno tiene SU color: la velocidad avisa de turbo/racha/
+  // viento, y la altura avisa del RADAR. Para que el conjunto quede centrado sin importar cuantos
+  // digitos tenga cada uno, se miden los dos anchos y se reparte a mano.
+  ctx.font = '7px monospace'; ctx.textAlign = 'left';
+  const sTxt = Math.round(run.spd * 4.2) + T('kmh')
+    + (run.afterTier > 0 ? ' »' + run.afterTier : run.boost ? T('turboTag') : run.windF < 0.97 ? ' ▼' : '');
+  // DENTRO DEL RADAR: la altura se pone ROJA y parpadea. Es el mismo dato que la barra de arriba
+  // y que la RED, pero en el lugar donde el jugador ya esta mirando el numero que lo causa.
+  // la altura se pone ROJA por CUALQUIERA de los dos peligros de altura: te ven arriba, o te
+  // estas comiendo el agua abajo. Es el mismo numero el que te metio en las dos.
+  const seen = plane.y > RADAR_ALT || scraping;
+  const aTxt = Math.round(plane.y) + T('alt');
+  const gap = 6;
+  const wS = ctx.measureText(sTxt).width, wA = ctx.measureText(aTxt).width;
+  let cx3 = W / 2 - (wS + gap + wA) / 2;
   ctx.fillStyle = run.afterTier > 0 ? P.warn : run.boost || run.rasLevel > 0 ? P.accent : run.windF < 0.97 ? P.crest : P.dim;
-  ctx.fillText(Math.round(run.spd * 4.2) + T('kmh') + (run.afterTier > 0 ? ' »' + run.afterTier : run.boost ? T('turboTag') : run.windF < 0.97 ? ' ▼' : ''), W / 2, H - 4);
+  ctx.fillText(sTxt, cx3, H - 4);
+  cx3 += wS + gap;
+  ctx.fillStyle = seen ? (Math.sin(run.t * (scraping ? 30 : 14)) > 0 ? P.warn : '#7d2f1e')   // peligro: parpadea
+    : plane.y <= 4.5 ? P.accent : P.dim;                                   // a ras: acento (zona x10)
+  ctx.fillText(aTxt, cx3, H - 4);
+  // marca de que la altura esta EN ZONA DE RADAR: un subrayado rojo bajo el numero, para que se
+  // distinga del acento naranja del rasante aunque el parpadeo este en su fase apagada
+  if (seen) px(cx3, H - 2, wA, 1, P.warn);
+  ctx.textAlign = 'center';
 
-  // --- avisos de la banda superior (radar y viento) ---
-  // Todos los overlays de arriba van centrados en W/2, asi que se pisaban entre si.
-  // Ahora arrancan DEBAJO de la barra de objetivo cuando esta existe (ocupa y=14..30);
-  // si no hay mision, suben y quedan compactos. Cada aviso tiene su propia fila.
+  // --- aviso de la banda superior ---
+  // Arranca DEBAJO de la barra de objetivo cuando esta existe (ocupa y=14..30); si no hay mision,
+  // sube y queda compacto. Antes esta banda tenia dos filas (radar y viento); el radar se mudo
+  // abajo junto al altimetro, asi que el viento sube a la fila que quedo libre — si no, quedaba
+  // un hueco flotando en el medio de la pantalla.
   const topBase = objectiveDist > 0 ? 38 : 20;
 
-  if (run.detection > 0.3) {
-    ctx.textAlign = 'center'; ctx.font = 'bold 8px monospace';
-    ctx.fillStyle = Math.sin(run.t * 14) > 0 ? P.warn : '#7d2f1e';
-    // con oleadas ya disparadas se muestra CUANTAS van: es el dato que dice "esto va en aumento"
-    ctx.fillText(T('radar') + (run.radarWave > 0 ? ' ' + run.radarWave : ''), W / 2, topBase);
-    plate(W / 2 - 22, topBase + 2, 44, 6);
-    px(W / 2 - 20, topBase + 4, Math.round(40 * run.detection), 2, P.warn);
-    // marca del residual: donde va a quedar la barra tras la proxima oleada (arranca mas llena
-    // cada vez). Hace visible que el ciclo se acorta, sin ningun texto.
-    if (run.radarWave > 0) px(W / 2 - 20 + Math.round(40 * Math.min(0.55, 0.35 + run.radarWave * 0.03)), topBase + 3, 1, 4, P.accent);
-  }
-
-  // aviso de viento en contra — una fila mas abajo, nunca encima del radar
   if (run.windF < 0.97) {
     ctx.textAlign = 'center'; ctx.font = 'bold 7px monospace';
     ctx.fillStyle = Math.sin(run.t * 8) > 0 ? P.crest : P.dim;
-    ctx.fillText(T('windWarn'), W / 2, topBase + 16);
+    ctx.fillText(T('windWarn'), W / 2, topBase);
   }
 
   // multiplicador junto al avión — crece con la racha rasante

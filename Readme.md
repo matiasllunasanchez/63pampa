@@ -70,12 +70,17 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
   intervalo baja de 1,4 s a ~0,6 s). Quedarse arriba es insostenible por diseño. El HUD muestra
   cuántas oleadas van y una marca de dónde va a rearrancar la barra. Hay un tope de **48 misiles
   simultáneos** — solo para proteger el frame, el tamaño de la oleada sigue creciendo.
-- **RED DE RADAR** (menú `[M]` → `RED RADAR: SI/NO`): dibuja la **malla del techo de detección**
-  (`RADAR_ALT`, hoy 30) como un plano en perspectiva con un **barrido** que viaja desde el
-  horizonte, al estilo de una pantalla de radar. Volando bajo se ve como una línea cian lejana —
-  el techo está allá arriba; al **cruzarlo se pone roja, late y se despliega debajo tuyo**, y
-  aparece la línea de umbral punteada a la altura del avión. La frontera existía desde siempre,
-  pero era invisible: se aprendía muriendo.
+- **Altímetro en el HUD**: al lado de los km/h, abajo al centro. Se pone **naranja** en la zona
+  rasante (≤4,5 m) y **rojo parpadeante con subrayado** cuando estás por encima de la altura de
+  detección del radar — el aviso donde ya estás mirando el número que lo causa.
+- **RED DE RADAR** (menú `[M]` → `RED RADAR: NO / AL ENTRAR / SIEMPRE`): dibuja la **malla del
+  techo de detección** (`RADAR_ALT`, hoy 30) como un plano en perspectiva con un **barrido** que
+  viaja desde el horizonte, al estilo de una pantalla de radar. **Por defecto `AL ENTRAR`**:
+  invisible mientras volás por debajo —que es casi todo el juego, y ahí sería ruido sobre algo que
+  todavía no te afecta— y **aparece con un fundido al cruzar el techo**, en rojo, latiendo y
+  desplegada debajo tuyo, con la línea de umbral punteada a la altura del avión. `SIEMPRE` la deja
+  fija para aprender dónde está el techo. La frontera existía desde siempre, pero era invisible:
+  se aprendía muriendo.
 - **Cañón 20mm** con calentamiento: derriba globos (+150), helicópteros (+300, 2 impactos)
   y misiles (+400). Mástiles, fragatas y agua NO se destruyen — esquivar es la habilidad central.
 - **Terreno TIERRA** (`cfg.terrain`, fila TERRENO en `[M]`): además del mar. Sobre tierra el suelo **es letal**

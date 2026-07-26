@@ -229,7 +229,7 @@ import { RUNWAYS } from './data/runways.js';
       // vehiculos rodando, fragatas navegando). QUIETOS = como antes de existir la opcion.
       { label: 'ENEMIGOS', opts: [true, false], names: ['MOVILES', 'QUIETOS'], get: () => cfg.enemyMove, set: v => cfg.enemyMove = v },
       // RED DE RADAR: hace visible el techo del corredor seguro (la altura de deteccion)
-      { label: 'RED RADAR', opts: [false, true], names: ['NO', 'SI'], get: () => cfg.radarNet, set: v => cfg.radarNet = v },
+      { label: 'RED RADAR', opts: [0, 1, 2], names: ['NO', 'AL ENTRAR', 'SIEMPRE'], get: () => cfg.radarNet, set: v => cfg.radarNet = v },
       // PIRUETAS: los combos de dos toques (split-s, break turn...). El tonel queda siempre.
       { label: 'PIRUETAS', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.moves, set: v => cfg.moves = v },
       { label: 'COMBUSTIBLE', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.fuelOn, set: v => cfg.fuelOn = v },
@@ -306,6 +306,7 @@ import { RUNWAYS } from './data/runways.js';
     let story = null;   // pantalla de HISTORIA (campaña): maquina de escribir letra a letra
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
     let toT = 0, toCount = 4;
+    window.__dbg = () => ({ state: S.state, y: +plane.y.toFixed(1), det: +run.detection.toFixed(2), vib: +run.scrapeVib.toFixed(2), wave: run.radarWave });   // PROBE TEMPORAL
     let levelT = 0;   // temporizador de las tarjetas de transición de nivel / victoria (campaña)
     let briefT = 0;   // temporizador de la tarjeta de briefing corto (ciclo de muerte)
     // Los CONTADORES de la corrida viven en core/state.js (`stats`), porque los escriben varios

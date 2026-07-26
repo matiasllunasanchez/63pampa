@@ -1348,14 +1348,26 @@ const NET_Z0 = 18, NET_Z1 = 232;
 const NET_CYAN = '#2fe0d0', NET_WARN = '#ff5a3c';
 const SWEEP_DUR = 2.6;      // segundos que tarda el barrido en recorrer la malla
 
+// visibilidad animada de la red (modo AL ENTRAR): 0 = invisible, 1 = plena. Se interpola para que
+// cruzar el techo la haga APARECER, no aparecer de golpe — un pop de una malla a pantalla completa
+// se lee como un glitch.
+let netVis = 0, netLastT = 0;
+
 export function drawRadarNet() {
   if (S.state !== 'play' && S.state !== 'takeoff') return;
   const A = RADAR_ALT;
   // DENTRO de la zona: la malla vira a rojo y late. Es el mismo dato que la barra del HUD, pero
   // puesto donde el jugador esta mirando (el avion), no en un rincon.
   const inside = plane.y > A;
+  // MODO 1 (AL ENTRAR, default): solo se ve estando dentro. MODO 2: siempre.
+  const want = cfg.radarNet === 2 || inside ? 1 : 0;
+  // dt propio a partir del reloj del run: draw() no recibe dt, y usar un paso fijo ataria el
+  // fundido a los fps. Se acota por si el run se reinicio (run.t vuelve a 0).
+  const dt = Math.max(0, Math.min(0.05, run.t - netLastT)); netLastT = run.t;
+  netVis += (want - netVis) * Math.min(1, dt * 7);
+  if (netVis < 0.02) return;
   const col = inside ? NET_WARN : NET_CYAN;
-  const pulse = inside ? 0.55 + 0.45 * Math.abs(Math.sin(run.t * 6)) : 1;
+  const pulse = (inside ? 0.55 + 0.45 * Math.abs(Math.sin(run.t * 6)) : 1) * netVis;
   // el BARRIDO recorre la profundidad en bucle; `sweepZ` es donde esta ahora
   const sweepZ = NET_Z1 - ((run.t / SWEEP_DUR) % 1) * (NET_Z1 - NET_Z0);
 
