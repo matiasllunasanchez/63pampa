@@ -10,6 +10,13 @@
 // (limites del avion) y el spawn (ancho del carril de obstaculos).
 export const FLY_X = 38, FLY_TOP = 68, SPAWN_X = 33;
 
+// ALTURA DE DETECCION del radar enemigo: por encima de esto la barra CARGA y por debajo se
+// descarga (systems/flight.js). Es el techo del "corredor seguro" — abajo aprietan los
+// obstaculos y el roce, arriba aprieta el radar. Vive aca y no suelto en flight.js porque lo
+// comparten la deteccion, el overlay de la RED (render/world.js) y el HUD.
+// A futuro deberia poder BAJAR por tramo de mision y estrangular el corredor (ROADMAP #27).
+export const RADAR_ALT = 30;
+
 // PIRUETA (tonel / aileron roll): duracion de la maniobra. La comparten el vuelo (aplica la
 // rafaga lateral), la accion que la dispara (startRoll) y el render (inclina el sprite).
 export const ROLL_DUR = 0.55;

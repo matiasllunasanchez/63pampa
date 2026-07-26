@@ -19,7 +19,7 @@ código ([ARQUITECTURA.md](ARQUITECTURA.md)).
 > piruetas**: el diseño está en [VELOCIDAD_MACH.md](VELOCIDAD_MACH.md) (propuesta, sin
 > implementar — tiene 5 decisiones pendientes al final).
 - **Economía y progresión** — #5, #6, #11, #14
-- **Mundo, terreno y aliados** — #15, #16, #17
+- **Mundo, terreno y aliados** — #15, #16, #17, #27
 - **Modos de juego aparte del vuelo** — #24
 - **Asimetría y aliados (geopolítica)** — #18, #19, #20, #21
 - **Niveles y estructura** — #7, #14, #23
@@ -582,3 +582,56 @@ fondo, sino qué aviones/obstáculos aparecen.
 > Relacionado con #10.1, #10.2, #15, #17 (terrenos) y #26.
 > Dónde tocar → `data/runways.js` (nuevo estilo de pista por base), `docs/NIVELES.md`
 > (asignar qué misión sale de cuál base).
+
+## 27. Techo de radar variable: momentos que te aplastan contra el suelo
+
+**La idea:** que el **umbral de altura del radar baje** en ciertos tramos, obligando a volar mucho
+más a ras de lo normal, con el espacio de esquive apretado.
+
+Hoy el umbral es **fijo y alto**: `alt > 30` carga la barra (`systems/flight.js`). Como el techo de
+vuelo es 68 y los obstáculos viven abajo, casi todo el mapa es "zona segura" — se puede cruzar a
+media altura sin que el radar moleste ni los obstáculos amenacen.
+
+**Por qué funciona:** el juego ya tiene **dos presiones opuestas** que hoy casi no se tocan.
+
+| presión | dónde aprieta |
+|---|---|
+| **Radar** | te castiga por volar ALTO (oleadas de misiles que crecen sin techo) |
+| **Obstáculos + roce + suelo letal** | te castigan por volar BAJO |
+
+Entre las dos queda un **corredor seguro** ancho. Bajar el techo de radar **estrangula ese
+corredor**: no agrega ningún sistema nuevo, solo cierra la pinza entre dos que ya existen. Y es
+exactamente la fantasía histórica del juego — los A-4 cruzaban a menos de 15 m *porque* el radar
+de la flota los pintaba más arriba.
+
+### Cómo podría entrar
+
+- **Por tramo de misión**: zonas de cobertura enemiga marcadas en el mapa. Al entrar, aviso
+  ("COBERTURA DE RADAR — MANTENÉ ALTURA MÍNIMA") y el umbral cae de 30 a ~12-15. Al salir, vuelve.
+- **Por proximidad al objetivo**: el techo baja a medida que te acercás a la flota — la escolta de
+  radar es más densa cerca del blanco. Progresión natural, sin marcar zonas a mano.
+- **Por nivel**: un parámetro de misión (`cfg.radarAlt`), como ya son `coast` u `obstacles`.
+- **Enemigos que lo bajan**: destruir un `radar` móvil o una fragata **sube** el techo un rato.
+  Convierte esos blancos en objetivos tácticos y no solo en puntos.
+
+### Lo que hay que cuidar
+
+- **Que se vea venir.** El jugador tiene que entender por qué de golpe lo detectan a una altura que
+  antes era segura. ✅ **Ya está la mitad resuelta**: la **RED DE RADAR** (menú `[M]`) dibuja la
+  malla del techo en perspectiva y se pone roja al cruzarla. Si el techo pasa a ser variable, la
+  red **baja con él** sola (lee `RADAR_ALT`) — habría que animar la transición y sumarle un aviso.
+- **Que el corredor no sea imposible.** Si el techo baja a 12 y hay mástiles de 11-28 de alto, hay
+  tramos sin solución. Habría que **coordinar el techo con el spawn**: en zona de radar bajo,
+  sembrar obstáculos más bajos, o dejar huecos garantizados.
+- **La racha rasante ya premia lo mismo.** Volar a ras da ×10 y sube el afterburner. Si el radar
+  además te obliga, el premio y la obligación se superponen: hay que decidir si eso está bien
+  (se refuerzan) o si en zona de radar bajo conviene cambiar el premio.
+- **Terrain Masking se vuelve clave.** La pirueta que clava el avión a ras y **descarga el radar**
+  (ver [PIRUETAS.md](PIRUETAS.md)) pasaría de ser un lujo a ser la herramienta del tramo. Bueno:
+  le da un uso obligado a una maniobra que hoy es opcional.
+
+> Relacionado con #17 (mecánicas y terrenos), #19 (radares ingleses), #16 (nivel de tierra) y
+> con las oleadas de radar ya implementadas.
+> Dónde tocar → `systems/flight.js` (el `alt > 30` del bloque de detección), `data/missions.js`
+> (parámetro por misión), `systems/spawn.js` (coordinar alturas de obstáculo), `render/hud.js`
+> (mostrar la altura máxima permitida).

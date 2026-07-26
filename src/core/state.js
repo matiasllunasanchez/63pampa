@@ -50,6 +50,9 @@ export const cfg = {
   // Se pueden apagar si los combos verticales molestan al bombear gas. El tonel clasico
   // (doble-tap lateral) queda SIEMPRE: es la mecanica original del juego, no una pirueta nueva.
   moves: true,
+  // RED DE RADAR: dibuja la malla que marca la altura a partir de la cual el radar te detecta.
+  // La frontera existe desde siempre (RADAR_ALT) pero era invisible — se aprendia muriendo.
+  radarNet: false,
   // ENEMIGOS MOVILES: los que hoy podian quedarse quietos se mueven — el globo cabecea colgado
   // del cable, el helicoptero patrulla de lado a lado, el caza teje y busca tu carril, los
   // vehiculos ruedan y la fragata del mastil navega. Apagarlo los deja plantados como antes.

@@ -70,6 +70,12 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
   intervalo baja de 1,4 s a ~0,6 s). Quedarse arriba es insostenible por diseño. El HUD muestra
   cuántas oleadas van y una marca de dónde va a rearrancar la barra. Hay un tope de **48 misiles
   simultáneos** — solo para proteger el frame, el tamaño de la oleada sigue creciendo.
+- **RED DE RADAR** (menú `[M]` → `RED RADAR: SI/NO`): dibuja la **malla del techo de detección**
+  (`RADAR_ALT`, hoy 30) como un plano en perspectiva con un **barrido** que viaja desde el
+  horizonte, al estilo de una pantalla de radar. Volando bajo se ve como una línea cian lejana —
+  el techo está allá arriba; al **cruzarlo se pone roja, late y se despliega debajo tuyo**, y
+  aparece la línea de umbral punteada a la altura del avión. La frontera existía desde siempre,
+  pero era invisible: se aprendía muriendo.
 - **Cañón 20mm** con calentamiento: derriba globos (+150), helicópteros (+300, 2 impactos)
   y misiles (+400). Mástiles, fragatas y agua NO se destruyen — esquivar es la habilidad central.
 - **Terreno TIERRA** (`cfg.terrain`, fila TERRENO en `[M]`): además del mar. Sobre tierra el suelo **es letal**

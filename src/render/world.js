@@ -12,7 +12,7 @@ import { run } from '../core/run.js';
 import { wake, obstacles, soldiers } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { P, LAND, CLAND } from '../data/palette.js';
-import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP } from '../data/tuning.js';
+import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
 import { mvTight } from '../data/moves.js';
@@ -1328,5 +1328,90 @@ export function drawFlightLane() {
   ctx.font = '8px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = G;
   ctx.globalAlpha = 0.8;
   ctx.fillText('CAM LIBRE   ↑↓ avanzar · ←→ lateral · R/F altura · SHIFT x4', W / 2, 14);
+  ctx.globalAlpha = 1;
+}
+
+
+// ---------- RED DE RADAR (cfg.radarNet) ----------
+// Hace VISIBLE el techo del corredor seguro: por encima de RADAR_ALT el radar te carga y empiezan
+// las oleadas de misiles. Hasta ahora esa frontera era invisible — se aprendia muriendo.
+//
+// Se dibuja como una MALLA en perspectiva a la altura exacta de deteccion, con un BARRIDO que
+// viaja desde el horizonte hacia la camara, como el haz que gira en una pantalla de radar. Es un
+// plano horizontal, asi que en esta proyeccion se ve como un techo de rejilla sobre el avion.
+//
+// ANCLADA AL MUNDO: las lineas de profundidad se calculan contra run.dist, asi que la malla
+// SCROLLEA con el terreno en vez de quedar pegada a la camara. Sin eso se leeria como una
+// calcomania del HUD y no como algo que esta ahi afuera.
+const NET_STEP = 24;        // separacion entre travesaños, en unidades de mundo
+const NET_Z0 = 18, NET_Z1 = 232;
+const NET_CYAN = '#2fe0d0', NET_WARN = '#ff5a3c';
+const SWEEP_DUR = 2.6;      // segundos que tarda el barrido en recorrer la malla
+
+export function drawRadarNet() {
+  if (S.state !== 'play' && S.state !== 'takeoff') return;
+  const A = RADAR_ALT;
+  // DENTRO de la zona: la malla vira a rojo y late. Es el mismo dato que la barra del HUD, pero
+  // puesto donde el jugador esta mirando (el avion), no en un rincon.
+  const inside = plane.y > A;
+  const col = inside ? NET_WARN : NET_CYAN;
+  const pulse = inside ? 0.55 + 0.45 * Math.abs(Math.sin(run.t * 6)) : 1;
+  // el BARRIDO recorre la profundidad en bucle; `sweepZ` es donde esta ahora
+  const sweepZ = NET_Z1 - ((run.t / SWEEP_DUR) % 1) * (NET_Z1 - NET_Z0);
+
+  // SUPERFICIE: el techo se rellena tenue para que se lea como un PLANO y no como un puñado de
+  // lineas sueltas. Es lo que hace visible "la zona": por encima de esta chapa te detectan.
+  const nl = proj(-FLY_X, A, NET_Z0), nr = proj(FLY_X, A, NET_Z0);
+  const fl = proj(-FLY_X, A, NET_Z1), fr = proj(FLY_X, A, NET_Z1);
+  ctx.fillStyle = col;
+  ctx.globalAlpha = (inside ? 0.13 : 0.07) * pulse;
+  ctx.beginPath();
+  ctx.moveTo(nl.x, nl.y); ctx.lineTo(nr.x, nr.y); ctx.lineTo(fr.x, fr.y); ctx.lineTo(fl.x, fl.y);
+  ctx.closePath(); ctx.fill();
+
+  ctx.strokeStyle = col; ctx.lineWidth = 1;
+  // TRAVESAÑOS (lineas de z constante). Se anclan al mundo con run.dist: el primero no esta a una
+  // distancia fija de la camara sino en el proximo multiplo de NET_STEP del terreno.
+  const off = run.dist % NET_STEP;
+  for (let z = NET_Z0 - off; z <= NET_Z1; z += NET_STEP) {
+    if (z < NET_Z0) continue;
+    const l = proj(-FLY_X, A, z), r = proj(FLY_X, A, z);
+    // el travesaño mas cercano al barrido se enciende: es el frente de onda del radar
+    const d = Math.abs(z - sweepZ);
+    const hot = Math.max(0, 1 - d / 34);
+    ctx.globalAlpha = (0.32 + hot * 0.6) * pulse;
+    ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(r.x, r.y); ctx.stroke();
+  }
+  // LARGUEROS (lineas de x constante) fugando al horizonte
+  ctx.globalAlpha = 0.34 * pulse;
+  for (let x = -FLY_X; x <= FLY_X; x += 9.5) {
+    const a = proj(x, A, NET_Z0), b = proj(x, A, NET_Z1);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  // BORDES del techo: los dos largueros extremos, bien marcados — son "la linea que no hay que cruzar"
+  ctx.globalAlpha = 0.8 * pulse;
+  for (const sgn of [-1, 1]) {
+    const a = proj(sgn * FLY_X, A, NET_Z0), b = proj(sgn * FLY_X, A, NET_Z1);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  // FRENTE DE BARRIDO: la linea viva, mas gruesa, con estela hacia atras (como el haz del radar)
+  for (let i = 0; i < 5; i++) {
+    const z = sweepZ + i * 7;
+    if (z > NET_Z1) break;
+    const l = proj(-FLY_X, A, z), r = proj(FLY_X, A, z);
+    ctx.globalAlpha = (0.55 - i * 0.11) * pulse;
+    ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(r.x, r.y); ctx.stroke();
+  }
+  // LINEA DE UMBRAL a la profundidad del AVION: "por encima de esto, te ven". Es la lectura que
+  // convierte la malla en informacion util y no en decoracion. Solo entra en pantalla cuando el
+  // avion se acerca al techo — a PZ la escala es enorme (9.6 px por unidad) y lejos del umbral la
+  // linea queda fuera del cuadro, que es justo cuando no hace falta.
+  const t0 = proj(-FLY_X, A, PZ), t1 = proj(FLY_X, A, PZ);
+  if (t0.y > -4 && t0.y < H + 4) {
+    ctx.globalAlpha = pulse;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(t0.x, t0.y); ctx.lineTo(t1.x, t1.y); ctx.stroke();
+    ctx.setLineDash([]);
+  }
   ctx.globalAlpha = 1;
 }

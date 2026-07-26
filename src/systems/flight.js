@@ -22,7 +22,7 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
 import { MSL_MAX, FLY_X, FLY_TOP, ROLL_DUR,
-         GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt } from '../data/tuning.js';
+         GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT } from '../data/tuning.js';
 import { PORT_H } from '../data/runways.js';
 // cuanto sube la camara con turbo (unidades de mundo): el efecto de 'alejarse'
 const BOOST_LIFT = 2.2;
@@ -260,7 +260,7 @@ export function flightSystem(dt, deps) {
   if (alt < 4.5) run.shake = Math.max(run.shake, (4.5 - alt) * 0.3);
 
   // radar
-  if (alt > 30) run.detection += dt / 1.4; else run.detection -= dt / 0.9;
+  if (alt > RADAR_ALT) run.detection += dt / 1.4; else run.detection -= dt / 0.9;
   run.detection = Math.max(0, Math.min(1, run.detection));
   if (run.detection >= 1) {
     // OLEADAS QUE CRECEN SIN TECHO. Cada vez que el radar completa la carga dispara una tanda

@@ -228,6 +228,8 @@ import { RUNWAYS } from './data/runways.js';
       // ENEMIGOS: movimiento propio (globos al viento, helos patrullando, cazas que te buscan,
       // vehiculos rodando, fragatas navegando). QUIETOS = como antes de existir la opcion.
       { label: 'ENEMIGOS', opts: [true, false], names: ['MOVILES', 'QUIETOS'], get: () => cfg.enemyMove, set: v => cfg.enemyMove = v },
+      // RED DE RADAR: hace visible el techo del corredor seguro (la altura de deteccion)
+      { label: 'RED RADAR', opts: [false, true], names: ['NO', 'SI'], get: () => cfg.radarNet, set: v => cfg.radarNet = v },
       // PIRUETAS: los combos de dos toques (split-s, break turn...). El tonel queda siempre.
       { label: 'PIRUETAS', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.moves, set: v => cfg.moves = v },
       { label: 'COMBUSTIBLE', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.fuelOn, set: v => cfg.fuelOn = v },
@@ -949,6 +951,7 @@ import { RUNWAYS } from './data/runways.js';
       world.drawApproachBarge(objectiveDist, objectiveShip);   // la barcaza objetivo creciendo en el horizonte
       world.drawObjectiveMarker(objectiveDist);                // cuña roja en el horizonte: hacia donde vamos
       world.drawWake();
+      if (cfg.radarNet) world.drawRadarNet();   // malla del techo de deteccion del radar
       if (cfg.hitboxes) world.drawHitboxes();   // depuracion: cajas de colision en verde fluor
       if (cfg.devcam && S.state === 'play') world.drawFlightLane();   // modo camara: el carril del avion
 
