@@ -239,7 +239,7 @@ Los vehículos se anclan por el **pie del contenido** (no del frame), así apoya
 
 | objeto | qué es | estado y spec |
 |---|---|---|
-| `mast` | mástil de fragata que emerge del agua, 11–28 de alto. **No se destruye** — esquivarlo es la habilidad central. Con ENEMIGOS MÓVILES **navega** (deriva lateral propia) | ✅ `enemies/fragata.png`: el CASCO horneado (proa a cámara, con puente) + estela de proa cuando navega. El **mástil sigue por código** encima — su altura se sortea 11–28 y un sprite fijo la aplastaría |
+| `mast` | **fragata** (el tipo conserva el nombre viejo). **No se destruye**; con ENEMIGOS MÓVILES **navega** (deriva lateral propia) | ✅ `enemies/fragata.png`: el CASCO horneado (proa a cámara, con puente) + estela de proa cuando navega + **luz roja de tope** por código en el techo. **SIN MÁSTIL** desde julio 2026: era un palo de 11–28 de alto por código y hacía que las fragatas se leyeran como postes clavados en el agua. Ahora mide `SHIP_H = 6.5` fijo — el alto real del sprite — y se le pasa por arriba desde ~8 m; esquivarlo dejó de ser la habilidad central del mar (esa se mudó a las capas del cielo, `SPAWN_Y`) |
 | **flota del horizonte** | 3 siluetas de buques fondeados (`drawFleet`), decorado con parallax | ❌ código |
 
 ---

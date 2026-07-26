@@ -86,4 +86,10 @@ export const mvTight = mv => !!(mv && MOVES[mv] && MOVES[mv].tight);
 // Referencia para calibrarlos: el multiplicador de altitud cambia a los 4.5 (x10), 9 (x5) y
 // 16 (x2) — MV_HI queda apenas arriba del ultimo escalon, asi que en la practica "ALTO" coincide
 // con el x1 del HUD y "BAJO" con x10/x5.
+//
+// MV_HI SIGUE EN 18 aunque el techo de radar bajara de 30 a 20 (data/tuning.js), y no es un
+// descuido: 18 esta atado a los escalones del multiplicador, que no se movieron. Lo que cambio es
+// lo que SIGNIFICA estar ahi — a 18 ya estas a dos metros del radar y adentro de la banda letal
+// de los cazas (15-25). Que el SPLIT-S sea justamente el combo que se habilita ahi pasa a ser una
+// salida: la maniobra que te tira para abajo es la forma de salir del techo y del trafico de una.
 export const MV_HI = 18, MV_LO = 14;

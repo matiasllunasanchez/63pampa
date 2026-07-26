@@ -12,7 +12,7 @@ import { run } from '../core/run.js';
 import { wake, obstacles, soldiers } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { P, LAND, CLAND } from '../data/palette.js';
-import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT } from '../data/tuning.js';
+import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
 import { mvTight } from '../data/moves.js';
@@ -470,12 +470,12 @@ function hitFlash(sx, sy, k, o, w, h) {
 export function drawObstacle(o) {
   const k = F / o.z;
   if (o.type === 'mast') {
+    // SIN PALO. Durante mucho tiempo esto fue un mastil de 11 a 28 metros con su verga cruzada y
+    // la luz en la punta, y el casco horneado dibujado al pie. El palo era el obstaculo real del
+    // mar abierto — pero tambien era lo que hacia que las fragatas se leyeran como postes
+    // clavados en el agua en vez de como buques. Ahora se dibuja el BUQUE, y lo unico que queda
+    // de aquel palo es la luz roja de tope, arriba de la superestructura.
     const base = proj(o.x, 0, o.z);
-    // el MASTIL va primero (por codigo: su altura se sortea 11-28 y un sprite fijo la
-    // aplastaria) y el CASCO horneado se dibuja ENCIMA de su pie — el palo emerge del buque
-    px(base.x - 0.45 * k, base.y - o.h * k, Math.max(1, 0.9 * k), o.h * k, P.bodyDark); // mástil
-    px(base.x - 2.2 * k, base.y - (o.h - 2) * k, 4.4 * k, Math.max(1, 0.5 * k), P.bodyDark);
-    px(base.x - 0.45 * k, base.y - o.h * k, Math.max(1, 0.9 * k), Math.max(1, 0.7 * k), P.warn);
     if (enemyArt.ready('fragata')) {
       enemyArt.drawFrame(ctx, 'fragata', 0, 0, base.x, { bottomY: base.y }, k, o.vx < 0);
       // ESTELA de proa: la fragata NAVEGA (cfg.enemyMove) — sin espuma parece fondeada
@@ -485,9 +485,22 @@ export function drawObstacle(o) {
         ctx.globalAlpha = 1;
       }
     } else {
-      px(base.x - 5 * k, base.y - 2.5 * k, 10 * k, 2.5 * k, P.bodyDark);        // casco
-      px(base.x - 5 * k, base.y - 2.5 * k, 10 * k, Math.max(1, 0.6 * k), '#5c6e73');
+      // RESPALDO (hoja sin cargar / build web): silueta de fragata a mano. Llega justo a SHIP_H,
+      // igual que la hoja horneada — el dibujo y la caja de colision no pueden discutir.
+      px(base.x - 5.5 * k, base.y - 2.4 * k, 11 * k, 2.4 * k, P.bodyDark);                    // casco
+      px(base.x - 5.5 * k, base.y - 2.4 * k, 11 * k, Math.max(1, 0.6 * k), '#5c6e73');        // cubierta
+      px(base.x - 2 * k, base.y - SHIP_H * k, 4 * k, (SHIP_H - 2.4) * k, P.bodyDark);         // castillo
     }
+    // LUZ ROJA DE TOPE, en el techo de la superestructura. Hereda el trabajo que hacia el palo:
+    // a z=250 la fragata entra en pantalla como un puñado de pixeles, y este punto es lo que te
+    // avisa que ahi adelante hay un barco. LATE, y cada una en su fase (o.ph), porque una luz fija
+    // de 1 px se pierde contra el moteado del oleaje.
+    const lit = 0.5 + 0.5 * Math.sin(run.t * 2.4 + o.ph);
+    const ly = base.y - SHIP_H * k;
+    ctx.globalAlpha = 0.3 * lit;
+    px(base.x - 1.1 * k, ly - 1.1 * k, 2.2 * k, 2.2 * k, P.warn);                             // halo
+    ctx.globalAlpha = 1;
+    px(base.x - 0.35 * k, ly - 0.35 * k, Math.max(1, 0.7 * k), Math.max(1, 0.7 * k), lit > 0.7 ? '#ffd3c4' : P.warn);
   } else if (o.type === 'balloon') {
     const oy = o.y + Math.sin(run.t * 1.3 + o.ph) * 0.6;
     // el cable queda ANCLADO en xa mientras el globo se pasea (cfg.enemyMove): el globo se

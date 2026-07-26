@@ -205,12 +205,20 @@ Los números del gamefeel están en el `<script>` de `index.html`:
 - Despegue: duración 3 s (`toT`), rotación a `1.35` s, tierra firme `COAST = 230` m,
   primer obstáculo en `nextSpawn = 320` m
 - Agilidad: aceleraciones `115/105`, velocidades máx. `±30/±24`
-- Bandas de multiplicador: `multOf()` · radar: `alt > 30`
+- Bandas de multiplicador: `multOf()` · radar: `alt > RADAR_ALT` (20)
+- **Capas del cielo** (`SPAWN_Y` en `data/tuning.js`, una sola fuente para los tres terrenos):
+  pájaros `5-10` · helicópteros `10-15` · cazas `15-25` · globos `6-30`. Son alturas de
+  NACIMIENTO: la banda que realmente toca suma los semiejes de `core/hitbox.js` (±2.6 los
+  aéreos), o sea helos letales `7.4-17.6` y cazas letales `12.4-27.6`
+- Fragata (`mast`): alto fijo `SHIP_H = 6.5` (el del sprite horneado) — se le pasa por arriba
+  desde ~8 m; el casco barre ±5 por debajo de `HULL_Y = 3.6`
 - Racha rasante: 2 s por nivel (`Math.floor(streak/2)`), tope x30 (`rasLevel` máx. 4), gracia `0.45`
 - Estela: arranca bajo 9 m (`lowI = 1 - alt/9`) · rocío: umbrales `2.8 / 4.5 / 7` m en `nSpray`
 - Densidad de obstáculos: `nextSpawn = max(34, 52+rnd*42 - t*0.8)` (en metros)
 - Combustible: drenaje `3.2` (+`4.2` con turbo), bidón `+30` · **toggle en `[M]`**:
-  fila COMBUSTIBLE SI/NO (`cfg.fuelOn`) — con NO no hay drenaje ni spawn de bidones (pruebas)
+  fila COMBUSTIBLE SI/NO (`cfg.fuelOn`) — con NO no hay drenaje ni spawn de bidones.
+  **Por defecto arranca en NO** (tanque infinito) hasta rebalancear el reloj de combustible
+  (la ruta óptima de bidones es ROADMAP #28); se enciende desde el menú `[M]`
 - Ventana de near-miss: margen `< 3` en el chequeo de paso (`dx < 3 && dy < 3`)
 - Perfil de colisión del avión: `pw=2.1, ph2=1.0` (afinado; antes 2.6×1.2) — en PIRUETA `1.0×0.7`
 - **PIRUETA (tonel)**: doble-tap `←`/`→` (ventana 0.24s) → tonel de `ROLL_DUR=0.55s`, cooldown

@@ -15,7 +15,54 @@ export const FLY_X = 38, FLY_TOP = 68, SPAWN_X = 33;
 // obstaculos y el roce, arriba aprieta el radar. Vive aca y no suelto en flight.js porque lo
 // comparten la deteccion, el overlay de la RED (render/world.js) y el HUD.
 // A futuro deberia poder BAJAR por tramo de mision y estrangular el corredor (ROADMAP #27).
-export const RADAR_ALT = 30;
+//
+// 20 y no 30: a 30 el techo estaba tan alto que en la practica no existia — se llegaba tirando
+// de la palanca a proposito. A 20 corta por el MEDIO de la banda de los cazas (ver SPAWN_Y), asi
+// que subir a pelearles te pinta: el radar deja de ser un castigo por trepar sin motivo y pasa a
+// ser el precio de una decision de combate.
+export const RADAR_ALT = 20;
+
+// ALTURAS DEL CIELO: entre que alturas NACE cada cosa que vuela, en unidades de MUNDO (las mismas
+// de plane.y, donde el techo de vuelo es FLY_TOP = 68).
+//
+// Es una TABLA y no literales sueltos en spawn.js porque cada tipo se siembra UNA VEZ POR TERRENO
+// (mar / tierra / costa): antes cambiar la altura de un helicoptero eran tres ediciones identicas
+// en tres bloques, y olvidarse de una dejaba el cielo distinto segun el mapa sin que nada avise.
+//
+// LAS CAPAS, de abajo hacia arriba: PAJAROS (ensucian, no matan) · HELICOPTEROS · CAZAS, con el
+// radar (RADAR_ALT = 20) cortando por el medio de los cazas. La regla de diseño es que mirar el
+// altimetro alcance para saber que te puede pasar: cada banda tiene su amenaza y su precio.
+//
+// ⚠ ESTO ES DONDE NACEN, NO LA BANDA QUE TE MATA. La colision suma los semiejes de core/hitbox.js
+// — los aereos tienen hh 1.6 y el avion ph 1.0 — asi que el contacto real es de ±2.6 alrededor de
+// estos numeros:
+//     pajaros   5-10  → toca 2.4-12.6 (daño, no muerte)
+//     helos    10-15  → LETAL 7.4-17.6
+//     cazas    15-25  → LETAL 12.4-27.6
+// Al mover un numero de aca, recalcular la banda real antes de decidir si "hay lugar".
+//
+// El GLOBO conserva su rango historico (6-30) a proposito: es el unico que cruza el techo de
+// radar de punta a punta, y esa es justamente su lectura — el estorbo que te empuja a decidir si
+// pasas por abajo (seguro) o por arriba (te pinta).
+export const SPAWN_Y = {
+  birds: [5, 10],
+  helo: [10, 15],
+  jet: [15, 25],
+  balloon: [6, 30],
+  fuel: [4, 26],
+};
+/** Altura de nacimiento sorteada para el tipo `t` (ver SPAWN_Y). */
+export const spawnY = t => SPAWN_Y[t][0] + Math.random() * (SPAWN_Y[t][1] - SPAWN_Y[t][0]);
+
+// FRAGATA del mar abierto (obstaculo `mast`). ALTO TOTAL en unidades de mundo, de la linea de
+// flotacion al techo de la superestructura — donde va la luz roja.
+//
+// No es un numero elegido a ojo: es la altura a la que se DIBUJA la hoja horneada, medida sobre
+// su caja de contenido (render/enemies.js, SHEETS.fragata: 23 px de alto por 39 de ancho, wu 11)
+//     23 * 11 / 39 = 6.49
+// Tiene que seguir siendo eso, porque la caja de colision del barco sale de aca (core/hitbox.js)
+// y el dibujo y el hitbox no pueden discutir: si el barco se rehornea con otra camara, remedir.
+export const SHIP_H = 6.5;
 
 // PIRUETA (tonel / aileron roll): duracion de la maniobra. La comparten el vuelo (aplica la
 // rafaga lateral), la accion que la dispara (startRoll) y el render (inclina el sprite).

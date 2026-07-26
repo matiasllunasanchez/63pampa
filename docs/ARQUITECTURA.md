@@ -145,6 +145,7 @@ Lo que queda es genuinamente el pegamento:
 |---|---|
 | cómo se *siente* volar (cabeceo, energía, roce) | `core/physics.js` (y probalo con `npm run feel`) |
 | una perilla de ajuste (zona de vuelo, momentum) | `data/tuning.js` |
+| a qué altura vuela un enemigo, o el techo de radar | `data/tuning.js` (`SPAWN_Y`, `RADAR_ALT`) — **una sola fuente para los tres terrenos** |
 | agregar un buque / fase al momentum | `data/ships.js` (es data; la lógica es genérica) |
 | una misión nueva | `data/missions.js` |
 | textos / traducciones | `data/strings.js` |

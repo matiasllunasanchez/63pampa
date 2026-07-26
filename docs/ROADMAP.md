@@ -609,7 +609,14 @@ de la flota los pintaba más arriba.
 ### Cómo podría entrar
 
 - **Por tramo de misión**: zonas de cobertura enemiga marcadas en el mapa. Al entrar, aviso
-  ("COBERTURA DE RADAR — MANTENÉ ALTURA MÍNIMA") y el umbral cae de 30 a ~12-15. Al salir, vuelve.
+  ("COBERTURA DE RADAR — MANTENÉ ALTURA MÍNIMA") y el umbral cae de su valor base a ~12-15. Al
+  salir, vuelve.
+
+> ⚠️ **`RADAR_ALT` ya no vale 30: bajó a 20** (julio 2026, junto con el rebalanceo de alturas —
+> ver `SPAWN_Y` en `data/tuning.js`). Este ítem se escribió cuando el techo estaba en 30 y el
+> corredor era ancho; hoy ya está bastante más apretado, así que **el margen para estrangularlo
+> es menor de lo que este texto asume**. Un tramo que baje a 12-15 hoy es un cambio mucho más
+> violento que el que se estaba imaginando acá.
 - **Por proximidad al objetivo**: el techo baja a medida que te acercás a la flota — la escolta de
   radar es más densa cerca del blanco. Progresión natural, sin marcar zonas a mano.
 - **Por nivel**: un parámetro de misión (`cfg.radarAlt`), como ya son `coast` u `obstacles`.
