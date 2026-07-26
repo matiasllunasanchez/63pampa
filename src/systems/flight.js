@@ -263,8 +263,37 @@ export function flightSystem(dt, deps) {
   if (alt > 30) run.detection += dt / 1.4; else run.detection -= dt / 0.9;
   run.detection = Math.max(0, Math.min(1, run.detection));
   if (run.detection >= 1) {
-    run.detection = 0.35;
-    missiles.push({ x: plane.x + (Math.random() * 24 - 12), y: plane.y + 4, z: 230, done: false });
+    // OLEADAS QUE CRECEN SIN TECHO. Cada vez que el radar completa la carga dispara una tanda
+    // mas grande que la anterior: 1, 1, 2, 2, 3, 3... y ademas RECARGA MAS RAPIDO (el residual
+    // sube con cada oleada). Quedarse arriba deja de ser "un misil cada tanto" y se vuelve
+    // insostenible por diseño — el castigo por volar alto no tiene tope, igual que el premio
+    // por volar a ras no lo tiene.
+    run.radarWave++;
+    // CADA 3 OLEADAS se suma un misil. La cantidad no tiene techo, pero la cadencia SI: el
+    // residual de la barra corta en 0.55, o sea ~0.6 s entre tandas como piso. Sin ese tope, la
+    // cantidad y el ritmo crecian a la vez y a los 8 segundos habia 42 misiles en pantalla — eso
+    // no es una escalada, es un muro (y ademas se come el frame). Con el tope, la presion sigue
+    // creciendo sin fin pero de forma legible: siempre hay un hueco por donde salir.
+    const n = 1 + Math.floor((run.radarWave - 1) / 3);
+    run.detection = Math.min(0.55, 0.35 + (run.radarWave - 1) * 0.03);
+    // TECHO DE OBJETOS EN VUELO, no de la oleada. El tamaño de la tanda sigue creciendo sin fin
+    // (que es la idea), pero por encima de ~48 misiles simultaneos el frame se cae y cada uno
+    // ademas siembra particulas de estela. A esa altura el jugador ya esta muerto: el tope no
+    // cambia el desenlace, solo evita que el juego se arrastre mientras pasa.
+    const room = Math.max(0, 48 - missiles.length);
+    for (let i = 0; i < Math.min(n, room); i++) {
+      // se abren en abanico: con varios misiles a la vez, salir del carril no alcanza
+      const spread = n === 1 ? (Math.random() * 24 - 12) : (i / (n - 1) - 0.5) * (18 + n * 7);
+      missiles.push({ x: plane.x + spread, y: plane.y + 4, z: 230 + i * 6, done: false });
+    }
+    // AVISO. La primera vez, el mensaje completo — el jugador tiene que entender POR QUE lo
+    // atacan. De ahi en mas, solo el tamaño de la oleada, que es el dato que cambia.
+    if (!run.radarSeen) {
+      run.radarSeen = true;
+      popup(W / 2, 46, T('radarLock'), P.warn);
+      popup(W / 2, 56, T('radarLock2'), P.accent);
+    } else if (n > 1) popup(W / 2, 46, T('radarWave', { n }), P.warn);
+    run.shake = Math.min(7, run.shake + 1 + n * 0.5);
     beep(880, 0.12, 'square', 0.06); setTimeout(() => beep(880, 0.12, 'square', 0.06), 160);
   }
 

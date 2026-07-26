@@ -70,15 +70,24 @@ El Mirage figura como **Mach 2.2**, pero 2.350 km/h **a nivel del mar** son **Ma
 error de la tabla: los Mach de catálogo se miden **en altura** (a 11.000 m el sonido viaja más
 lento, ~1.062 km/h, y los mismos km/h dan un Mach más alto).
 
-**RASANTE se juega entre 0 y 68 m** — o sea, a nivel del mar. Entonces hay que elegir una fuente
-de verdad:
+**RASANTE se juega entre 0 y 68 m** — o sea, a nivel del mar.
 
-| opción | consecuencia |
-|---|---|
-| **A. Los km/h mandan** (recomendada) | El Mach se calcula a nivel del mar. El Mirage tope **Mach 1,90**, no 2,2. Coherente con el HUD, que muestra km/h, y con la barrera del sonido a 1.235 km/h |
-| B. Los Mach de catálogo mandan | Habría que mostrar Mach 2,2 con 2.350 km/h en pantalla: dos números que no cierran entre sí a la vista del jugador |
+### ✅ DECIDIDO: mandan los km/h (Mach a nivel del mar)
 
-**Recomendación: opción A.** Un solo sistema de unidades, verificable en pantalla.
+Un solo sistema de unidades, verificable contra el HUD. El Mirage tope **Mach 1,90** y no 2,2 — y
+está bien, porque a ras del mar es el número correcto.
+
+**Además se muestra el Mach realmente alcanzado.** No solo el escalón redondeado: el valor
+instantáneo con dos decimales, para que el jugador vea que llegó a *su* techo.
+
+```
+        MACH 1.2   ×3          ← escalón alcanzado + multiplicador
+        MACH 1.87              ← valor instantáneo (el techo real de este avión)
+        2.310 KM/H
+```
+
+Conviene además guardar el **máximo Mach de la corrida** y mostrarlo en el recuento de fin de
+misión, junto al resto de las estadísticas (`stats` en `core/state.js`).
 
 ---
 
@@ -100,16 +109,30 @@ Comparado contra los máximos reales:
 
 Un A-4 pasaría de 2.058 km/h a 1.080 km/h. **Eso no es un ajuste, es rebalancear el juego entero**
 (el roce, la distancia por misión, la ventana de esquive y el puntaje por tiempo dependen de la
-velocidad). Tres caminos:
+velocidad).
 
-| opción | qué implica |
-|---|---|
-| **A. Topes reales tal cual** | Máxima fidelidad histórica. El A-4 se vuelve un avión lento y el Mirage/Dagger, claramente superiores. **Hay que rebalancear misiones y dificultad.** Y el A-4 —el avión de la campaña— sería de los más lentos, lo que choca con su rol narrativo |
-| **B. Escala comprimida** (recomendada) | Se mantiene el **orden** y las proporciones relativas, pero comprimido contra el rango jugable actual. Ej.: mapear \[500…2350\] km/h reales a \[1.176…2.058\] km/h de juego. El Mirage sigue siendo el más rápido y el Pampa el más lento, sin romper el balance |
-| C. Solo el techo máximo | Los topes reales se usan **solo** como techo del afterburner; la velocidad base sigue compartida. El más chato de implementar, pero la diferencia entre aviones casi no se siente |
+### ✅ DECIDIDO: se usan los VALORES REALES
 
-**Recomendación: opción B**, y dejar los km/h reales visibles en la ficha del avión (menú de
-selección) como dato histórico, aunque el juego use la escala comprimida.
+Los aviones **se van a desbloquear a lo largo de la campaña**, así que la diferencia de velocidad
+entre ellos deja de ser un problema de balance y pasa a ser **la progresión misma**: empezás con
+un A-4 lento y ganarte el Mirage se siente. Que elegir avión importe de verdad es el objetivo, no
+un efecto colateral.
+
+**Lo que eso obliga a hacer** (no desaparece por estar decidido):
+
+- **Rebalancear las misiones.** La distancia de cada objetivo (`goal.dist`, hoy 2.600-2.800) está
+  calibrada contra la velocidad actual. Con un A-4 al 52 % de su velocidad de hoy, las misiones
+  duran casi el doble.
+- **Revisar el combustible.** El drenaje es por tiempo (`3.2/s`), así que un avión lento gasta más
+  tanque para el mismo recorrido: el A-4 quedaría *doblemente* castigado.
+- **Revisar el roce.** `scrapeLimit` da menos margen cuanto más rápido vas: los aviones lentos
+  serían además más indulgentes a ras. Eso puede estar bien (compensa), pero hay que decidirlo, no
+  heredarlo.
+- **El Pampa (195) no alcanza ningún escalón Mach.** Como entrenador tiene sentido; hay que
+  asegurarse de que no sea el avión inicial de la campaña.
+
+> Los km/h reales van también en la **ficha del avión** del menú de selección: es la información
+> que hace legible la progresión antes de elegir.
 
 ---
 
@@ -177,14 +200,14 @@ Los escalones Mach y los del afterburner **se pisan**: dos sistemas de 5 niveles
 al turbo, los dos con popup y líneas de velocidad. Implementar Mach encima sin tocar el
 afterburner dejaría al jugador con dos contadores compitiendo.
 
-| opción | qué implica |
-|---|---|
-| **A. Mach REEMPLAZA la vista del afterburner** (recomendada) | El afterburner queda como **motor interno** (sigue dando velocidad y techo) pero deja de mostrarse; lo que el jugador ve y persigue es el escalón MACH, que es un número con significado real. Un solo indicador |
-| B. Conviven | El afterburner es "cuánto empujás" y Mach "qué tan rápido vas". Más honesto conceptualmente, pero son dos HUD y dos multiplicadores que hay que balancear entre sí |
-| C. Mach absorbe al afterburner | Se borra `afterTier` y los escalones Mach dan el `AFTER_GAIN`/`AFTER_CAP`. El más limpio, pero **cambia la física de vuelo** y rompe la relación con la racha rasante (hoy el afterburner exige volar a ras, no solo rápido) |
+### ✅ DECIDIDO: MACH reemplaza la vista del afterburner
 
-**Recomendación: opción A.** Conserva la mecánica de "aguantar a ras con turbo" —que es el corazón
-del juego— y le pone al jugador un objetivo legible en su lugar.
+El afterburner queda como **motor interno**: sigue exigiendo turbo + rasante y sigue dando
+`AFTER_GAIN`/`AFTER_CAP`, pero deja de mostrarse. Lo que el jugador ve y persigue es el escalón
+MACH. Se conserva la mecánica que es el corazón del juego y se le pone un objetivo legible.
+
+En concreto: se saca el `»N` de la línea de km/h en `render/hud.js` y el popup de subida de
+escalón de afterburner pasa a dispararlo el escalón Mach.
 
 ---
 
@@ -305,19 +328,28 @@ cambie lo que aporta:
 
 ---
 
-## 9. Decisiones pendientes
+## 9. Decisiones
 
-Nada se implementa hasta resolver estas cinco:
+### ✅ Resueltas
 
-1. **Velocidad del Pampa 63** — no está en la tabla. ¿Se confirman los 819 km/h reales?
-2. **Escala de velocidades** (sección 3) — ¿topes reales (rebalancear el juego) o escala
-   comprimida? *Recomendado: comprimida.*
-3. **Mach vs afterburner** (sección 5) — ¿Mach reemplaza la vista del afterburner, conviven, o lo
-   absorbe? *Recomendado: reemplaza la vista.*
-4. **Composición del multiplicador** (sección 6) — ¿el multiplicador Mach suma o multiplica contra
-   el de altitud y racha rasante?
-5. **Fuente de verdad del Mach** (sección 2) — ¿km/h a nivel del mar (Mirage tope 1,90) o los Mach
-   de catálogo? *Recomendado: km/h.*
+| # | decisión | resultado |
+|---|---|---|
+| 1 | Escala de velocidades (§3) | **Valores reales.** Los aviones se desbloquean por campaña: la diferencia ES la progresión |
+| 2 | Fuente de verdad del Mach (§2) | **Los km/h**, con Mach a nivel del mar. Y se muestra el Mach instantáneo alcanzado, no solo el escalón |
+| 3 | Mach vs afterburner (§5) | **Mach reemplaza la vista**; el afterburner sigue como motor interno |
+
+### ⬜ Pendientes
+
+1. **Velocidad del Pampa 63** — no está en la tabla que se pasó. ¿Se confirman los **819 km/h**
+   reales del IA-63? Es el dato que falta para poder cargar los seis aviones.
+2. **Composición del multiplicador** (§6) — ¿el multiplicador Mach **suma** o **multiplica** contra
+   el de altitud y racha rasante (que ya llega a ×30)? Con multiplicación, un Mach 1.8 a ras
+   valdría cientos de veces un vuelo normal.
+
+### 🔧 Trabajo que la decisión 1 arrastra
+
+Rebalancear `goal.dist` de las misiones, el drenaje de combustible y el margen de roce — ver el
+detalle en §3.
 
 ---
 

@@ -64,7 +64,12 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
 - Tocar el agua es fatal. Las olas suben y bajan — el margen nunca es fijo.
 - **Turbo**: +60% de velocidad y **puntaje x2**, pero quema combustible mucho más rápido.
 - **Near-miss**: rozar un obstáculo sin chocarlo da **+75** (y esquivar un misil también).
-- Volar alto llena la barra de **radar**: al detectarte, te lanzan un misil que persigue.
+- Volar alto llena la barra de **radar**. Al completarse te avisa (**"! TE DETECTÓ EL RADAR !" /
+  "TE ATACARÁN DESDE TIERRA"**) y empiezan las **oleadas de misiles desde tierra**, que **crecen
+  sin techo**: +1 misil cada 3 oleadas, en abanico, y la barra queda cada vez más cargada (el
+  intervalo baja de 1,4 s a ~0,6 s). Quedarse arriba es insostenible por diseño. El HUD muestra
+  cuántas oleadas van y una marca de dónde va a rearrancar la barra. Hay un tope de **48 misiles
+  simultáneos** — solo para proteger el frame, el tamaño de la oleada sigue creciendo.
 - **Cañón 20mm** con calentamiento: derriba globos (+150), helicópteros (+300, 2 impactos)
   y misiles (+400). Mástiles, fragatas y agua NO se destruyen — esquivar es la habilidad central.
 - **Terreno TIERRA** (`cfg.terrain`, fila TERRENO en `[M]`): además del mar. Sobre tierra el suelo **es letal**
@@ -97,7 +102,7 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
 
 ### Piruetas (los "poderes")
 
-Nueve maniobras de caza que se disparan con un **combo de dos toques direccionales** en menos de
+Once maniobras de caza que se disparan con un **combo de dos toques direccionales** en menos de
 0.24 s, al estilo de un juego de pelea. Durante la maniobra **el avión no se controla**, salvo el
 eje que cada una deja libre. Funcionan igual con joystick (cruceta o flicks del stick).
 
@@ -107,7 +112,11 @@ eje que cada una deja libre. Funcionan igual con joystick (cruceta o flicks del 
 | `↓↓` **volando alto** | SPLIT-S | | `←→` / `→←` | S-TURN |
 | `↓↓` **volando bajo** | TERRAIN MASKING | | `↑←` / `↑→` | JINK |
 | `↑↑` **volando bajo** | POP-UP | | `↓↑` | LOW YO-YO |
-| `↑↑` **volando alto** / `↑↓` | HIGH YO-YO | | | |
+| `↑↑` **volando alto** / `↑↓` | HIGH YO-YO | | `←↑` / `→↑` | TONEL BARRIL (la "O") |
+| | | | `←↓` / `→↓` | TIRABUZÓN |
+
+> Los mixtos dependen del **orden**: `↑←` es JINK y `←↑` es TONEL BARRIL — mismas teclas, maniobras
+> distintas. Si arrancás con un lateral, el segundo toque elige el círculo (`↑` sube, `↓` baja).
 
 > ⚠️ **"Volando alto / bajo" es la ALTURA DEL AVIÓN, no una dirección más del combo.**
 > `↓↓ volando alto` **no** es "abajo, abajo, arriba": es apretar `↓↓` **estando el avión arriba**.

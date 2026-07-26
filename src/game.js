@@ -304,7 +304,6 @@ import { RUNWAYS } from './data/runways.js';
     let story = null;   // pantalla de HISTORIA (campaña): maquina de escribir letra a letra
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
     let toT = 0, toCount = 4;
-    window.__dbg = () => ({ state: S.state, mv: run.mv, y: +plane.y.toFixed(1) });   // PROBE TEMPORAL
     let levelT = 0;   // temporizador de las tarjetas de transición de nivel / victoria (campaña)
     let briefT = 0;   // temporizador de la tarjeta de briefing corto (ciclo de muerte)
     // Los CONTADORES de la corrida viven en core/state.js (`stats`), porque los escriben varios

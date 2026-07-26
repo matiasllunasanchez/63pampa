@@ -1,7 +1,7 @@
 # PIRUETAS — las maniobras de combate
 
-Las piruetas son los "poderes" de RASANTE: maniobras reales de caza que se ejecutan con un
-**combo de dos toques direccionales**, al estilo de un juego de pelea. Mientras dura la maniobra
+Las piruetas son los "poderes" de RASANTE: **once** maniobras reales de caza que se ejecutan con
+un **combo de dos toques direccionales**, al estilo de un juego de pelea. Mientras dura la maniobra
 **el avión no se controla** — salvo el eje que cada una deja libre.
 
 Catálogo (datos): [`src/data/moves.js`](../src/data/moves.js) ·
@@ -59,7 +59,7 @@ hitbox se encoge y el roce paga **+250** en vez de +75.
 | combo | maniobra | dur. | controlás | dispara | turbo | perfil fino | qué hace |
 |---|---|---|---|---|---|---|---|
 | `←←` / `→→` | **BARREL ROLL** (tonel) | 0.55 s | — | ✔ | ✗ | ✔ | Tonel completo con dash lateral. La pirueta original del juego |
-| `↓↓` **alto** | **SPLIT-S** | 0.95 s | lateral | ✔ | ✗ | ✔ | Medio tonel invertido + picada fuerte. **Gana velocidad**. Salida vertical hacia abajo |
+| `↓↓` **alto** | **SPLIT-S** | 1.15 s | lateral | ✔ | ✗ | ✔ | Medio tonel invertido + picada fuerte. **Gana velocidad**. Salida vertical hacia abajo |
 | `↓↓` **bajo** | **TERRAIN MASKING** | 1.6 s | lateral | ✔ | ✔ | ✗ | Se clava a ras y se queda. **Congela el roce** y **descarga el radar enemigo** |
 | `↑↑` **bajo** | **POP-UP** | 0.8 s | lateral | ✔ | ✗ | ✗ | Trepada brusca de ataque desde rasante |
 | `↑↑` **alto** / `↑↓` | **HIGH YO-YO** | 1.0 s | lateral | ✔ | ✗ | ✗ | Sube, cuelga y recae sobre la misma altura. **Sangra velocidad** |
@@ -67,9 +67,26 @@ hitbox se encoge y el roce paga **+250** en vez de +75.
 | `↓←` / `↓→` | **BREAK TURN** | 0.7 s | vertical | ✔ | ✗ | ✔ | Viraje quebrado: tirón lateral violento hacia el 2º toque, banqueo a fondo |
 | `←→` / `→←` | **S-TURN** | 1.1 s | vertical | ✔ | ✗ | ✔ | Se abre a un lado y **vuelve al carril**. Arranca hacia el 2º toque |
 | `↑←` / `↑→` | **JINK** | 0.85 s | **nada** | ✔ | ✗ | ✔ | 4 quiebres laterales alternados e impredecibles. Rumbo fuera de tu control. **Amplitud según tu velocidad** |
+| `←↑` / `→↑` | **TONEL BARRIL** | 1.4 s | **nada** | ✔ | ✗ | ✔ | La **O grande**: se abre, sube 18 m, pasa **boca arriba** por el techo del círculo y vuelve al punto exacto de partida, rolando 360° |
+| `←↓` / `→↓` | **TIRABUZÓN** | 1.0 s | **nada** | ✔ | ✔ | ✔ | Rola 360° **sobre su propio eje** picando derecho, **sin desvío lateral**. Gana velocidad |
 
 **Cooldown compartido: 1.15 s** entre cualquier pirueta y la siguiente (incluido el tonel). No se
 encadenan.
+
+### ⚠️ Los mixtos dependen del ORDEN
+
+`←↑` y `↑←` usan **las mismas dos teclas** y son maniobras distintas. El detector guarda cuál se
+apretó primero:
+
+| primero | después | maniobra |
+|---|---|---|
+| **vertical** (`↑`) | lateral | **JINK** |
+| **lateral** (`←` `→`) | `↑` | **TONEL BARRIL** |
+| **lateral** (`←` `→`) | `↓` | **TIRABUZÓN** |
+
+Regla para acordarse: **si arrancás con una dirección lateral, el segundo toque elige el círculo**
+— `↑` el que sube (barril), `↓` el que baja girando (tirabuzón). El primer toque da el sentido
+del giro.
 
 ---
 
@@ -135,6 +152,25 @@ persiguen con aceleración limitada, así el gesto queda continuo (el salto de `
 de 93 a 8 u/s) y se lee como un latigazo en vez de un corte. Amplitud y autoridad salen de
 `run.spd`, de modo que el barrido lateral crece con lo rápido que venías —7 u de barrido a 40 u/s,
 12 a 110— mientras el *ritmo* de la maniobra no cambia.
+
+**Las tres de rolido son distintas a propósito.** Se parecen al mirarlas, pero resuelven cosas
+diferentes, y esa es la razón de que convivan:
+
+| maniobra | trayectoria | para qué sirve |
+|---|---|---|
+| **Tonel** (`←←`) | rola en el lugar **con un dash lateral** | esquive rápido de costado |
+| **Tirabuzón** (`←↓`) | rola **sin moverse de su carril**, picando | ganar velocidad sin ceder el carril |
+| **Tonel barril** (`←↑`) | rola describiendo un **círculo** de 9 m de radio | esquivar en dos ejes y volver al mismo punto |
+
+El tonel del juego es, en rigor, un *aileron roll*; el **tonel barril** es el barrel roll de
+verdad — un círculo, no un giro en el eje. Ahora están los dos.
+
+**La salida del Split-S es más lenta que la entrada.** Al enderezarse desde panza arriba, el medio
+tonel de salida tarda el 38 % de la maniobra contra el 28 % de la entrada. Antes era al revés
+—0,14 s de salida contra 0,28 s de entrada— y el avión se daba vuelta al doble de velocidad de la
+que se había invertido: el enderezado se leía como un tirón. Las dos medias vueltas usan
+*smoothstep*, así la velocidad angular arranca y termina en cero en vez de cortarse de golpe. El
+pico pasó de **22 a 10,8 rad/s**.
 
 **El sprite.** Las poses empinadas salen de la **hoja 2** de cada avión (`sheet2.png`: 9 alabeos ×
 2 filas de cabeceo ±32°) — el ±14° de la hoja base es cabeceo de crucero y una maniobra brusca

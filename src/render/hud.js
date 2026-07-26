@@ -205,9 +205,13 @@ export function drawHUD(h) {
   if (run.detection > 0.3) {
     ctx.textAlign = 'center'; ctx.font = 'bold 8px monospace';
     ctx.fillStyle = Math.sin(run.t * 14) > 0 ? P.warn : '#7d2f1e';
-    ctx.fillText(T('radar'), W / 2, topBase);
+    // con oleadas ya disparadas se muestra CUANTAS van: es el dato que dice "esto va en aumento"
+    ctx.fillText(T('radar') + (run.radarWave > 0 ? ' ' + run.radarWave : ''), W / 2, topBase);
     plate(W / 2 - 22, topBase + 2, 44, 6);
     px(W / 2 - 20, topBase + 4, Math.round(40 * run.detection), 2, P.warn);
+    // marca del residual: donde va a quedar la barra tras la proxima oleada (arranca mas llena
+    // cada vez). Hace visible que el ciclo se acorta, sin ningun texto.
+    if (run.radarWave > 0) px(W / 2 - 20 + Math.round(40 * Math.min(0.55, 0.35 + run.radarWave * 0.03)), topBase + 3, 1, 4, P.accent);
   }
 
   // aviso de viento en contra — una fila mas abajo, nunca encima del radar

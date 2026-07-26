@@ -25,7 +25,9 @@ export const run = {
   fuel: 100,       // COMBUSTIBLE: el reloj real del run
   heat: 0,         // calor del canon (0..1)
   overheat: false, // canon bloqueado hasta enfriar a 0.3
-  detection: 0,    // carga del radar enemigo (0..1); al llegar a 1 dispara un misil
+  detection: 0,    // carga del radar enemigo (0..1); al llegar a 1 dispara una OLEADA de misiles
+  radarWave: 0,    // oleadas disparadas en esta corrida: cada una es MAS grande que la anterior
+  radarSeen: false,// ¿ya se aviso "te detecto el radar"? (el aviso largo va una sola vez)
   boost: false,    // turbo apretado y con nafta
   throttle: 0,     // palanca de gas: SOLO indicador visual
 
@@ -86,7 +88,7 @@ export const run = {
 export function resetRun() {
   Object.assign(run, {
     t: 0, dist: 0, spd: 6, fuelDist: 0,
-    fuel: 100, heat: 0, overheat: false, detection: 0, boost: false, throttle: 0,
+    fuel: 100, heat: 0, overheat: false, detection: 0, radarWave: 0, radarSeen: false, boost: false, throttle: 0,
     score: 0, mult: 1, multShow: 1, streak: 0, rasLevel: 0, graceT: 0,
     afterT: 0, afterTier: 0, afterGrace: 0,
     scrapeT: 0, scrapeVib: 0,
