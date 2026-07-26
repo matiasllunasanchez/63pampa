@@ -19,6 +19,7 @@ código ([ARQUITECTURA.md](ARQUITECTURA.md)).
 > piruetas**: el diseño está en [VELOCIDAD_MACH.md](VELOCIDAD_MACH.md) (propuesta, sin
 > implementar — tiene 5 decisiones pendientes al final).
 - **Economía y progresión** — #5, #6, #11, #14
+- **Combustible y ruta óptima** — #15, #26, #28
 - **Mundo, terreno y aliados** — #15, #16, #17, #27
 - **Modos de juego aparte del vuelo** — #24
 - **Asimetría y aliados (geopolítica)** — #18, #19, #20, #21
@@ -635,3 +636,89 @@ de la flota los pintaba más arriba.
 > Dónde tocar → `systems/flight.js` (el `alt > 30` del bloque de detección), `data/missions.js`
 > (parámetro por misión), `systems/spawn.js` (coordinar alturas de obstáculo), `render/hud.js`
 > (mostrar la altura máxima permitida).
+
+## 28. Ruta óptima de combustible: el nivel entero es una sola línea bien volada
+
+**La idea:** los lugares donde hoy aparecen los **bidones** dejan de ser objetos que se agarran y
+pasan a ser los **puntos óptimos de paso** — el trazado que el avión *debería* seguir. Pasar por
+ellos es volar eficiente; **no pasar es desperdiciar combustible**, y eso se avisa en el momento.
+
+El nivel se lee entonces como **una ruta**: el camino ideal es hacer el recorrido completo pasando
+por todos los puntos óptimos y **llegar al boss con el tanque al máximo** para poder pelearlo. Si te
+salteás puntos, llegás con menos — y el combate con el boss se acorta.
+
+**De dónde sale:** los aviones argentinos llegaban al objetivo con **lo justo para pelear unos diez
+minutos y volverse**. El combustible no era un recurso que se junta: era el resultado de haber
+volado bien todo el camino anterior. Esta mecánica convierte esa frase en la regla del nivel.
+
+### El giro respecto de lo que hay hoy
+
+Hoy el combustible es un **reloj que baja y se recarga**: drena `3.2/s` (`+4.2` con turbo,
+`systems/flight.js:140`), el bidón aparece cada 700 de distancia (`run.fuelDist > 700`,
+`systems/spawn.js:97`) y agarrarlo **suma +30** con techo de 100 (`systems/collision.js:155`).
+
+| | hoy | con #28 |
+|---|---|---|
+| qué es el punto | un ítem que se **agarra** (`+30`) | un **portal/tramo por donde se pasa** |
+| qué hace fallarlo | perdés una recarga, seguís | **desperdiciás** combustible: no lo recuperás |
+| qué mide la barra al final | cuánto te queda | **qué tan bien volaste todo el nivel** |
+| para qué sirve el saldo | no morirte | **cuántos minutos aguantás contra el boss** |
+
+Ojo con la matemática: para que "pasar por todos = llegar al máximo" sea cierto, el drenaje del
+nivel y lo que devuelve cada punto tienen que estar **cuadrados a la duración de la misión**. Si no,
+el máximo es inalcanzable (frustra) o se llega igual salteándose la mitad (no significa nada).
+Es tuning de nivel, no una constante global.
+
+### Cómo podría entrar
+
+- **El punto como PUERTA, no como caja.** Tiene que leerse como algo que se **atraviesa** y verse
+  desde lejos, para poder acomodar la trayectoria con tiempo: un anillo/corredor en perspectiva,
+  no un tambor de 2.6×3.4 px que aparece encima. Hoy sale en un carril al azar con altura
+  `4 + rnd*22` — como ruta tiene que estar **compuesta**, no sorteada.
+- **Encadenar.** Que los puntos formen una **línea legible** (uno lleva al siguiente) en vez de
+  aparecer sueltos: ahí es donde "ruta" deja de ser una palabra y se siente.
+- **El aviso tiene que ser inmediato.** Al fallar uno: aviso en pantalla
+  (`COMBUSTIBLE DESPERDICIADO`) + una **marca fantasma en la barra COMB** que muestre dónde
+  estaría el tanque si no hubieras fallado. Sin eso, el jugador se entera recién en el boss y no
+  sabe por qué.
+- **Grados, no binario.** Pasar cerca podría valer parcial (rozar el borde del anillo = 60%), para
+  que la mecánica premie precisión y no sea "acertaste / no acertaste".
+
+### Lo que hay que cuidar
+
+- **El boss todavía no existe en código.** [NIVELES.md](NIVELES.md) le asigna uno a cada nivel
+  (lancha de desembarco, radar británico, fragata…), pero en `src/` no hay nada de boss: hoy el
+  final de misión es el objetivo/`meters`. Esta mecánica **necesita ese final** para que el saldo
+  signifique algo → o depende del boss, o en el interín el combustible restante se traduce en
+  **tiempo de ataque sobre el blanco** (que sí existe).
+- **Choca en el mismo eje que el rasante y el radar.** La altura ya está peleada por tres fuerzas:
+  la racha rasante premia abajo, el radar castiga arriba (#27) y ahora la ruta óptima manda a una
+  altura fija. Puede ser **buenísimo** (la ruta es la respuesta que concilia las otras dos) o un
+  embudo imposible. Si un punto óptimo queda **por encima del techo de radar**, repostar =
+  pintarte: eso es una decisión de diseño deliberada, no un accidente de spawn.
+- **Fallar la ruta no puede volverse una muerte silenciosa.** Si llegás al boss sin nafta y el boss
+  es imbatible, el nivel ya estaba perdido 3 minutos antes sin que se notara. Hay que decidir el
+  **piso**: o hay mínimo garantizado, o quedarte corto te empuja a **desengancharte y volver**
+  (que es exactamente #26, misiones de regreso — y es la salida más fiel a lo histórico).
+- **El turbo entra en la ecuación.** Duplica puntaje y quema `+4.2/s`: con esta mecánica pasa a ser
+  un **préstamo contra la pelea final** — gastás ahora, llegás con menos. Buen dilema, pero hay que
+  mirarlo junto con el tuning del drenaje.
+- **`COMBUSTIBLE: NO` del menú `[M]`** (`cfg.fuelOn`) apaga todo el sistema para pruebas. Si la ruta
+  óptima es la estructura del nivel, apagar el combustible no puede borrar los puntos: pasan a ser
+  la guía sin castigo.
+
+- [ ] Decidir la unidad: ¿el punto **devuelve** combustible o **evita** una pérdida? (cambia qué
+      dice la barra: "lo que junté" vs "lo que no derroché").
+- [ ] Rehacer el bidón como puerta/corredor visible desde lejos.
+- [ ] Componer la ruta por misión en vez de sortear el spawn por distancia.
+- [ ] Aviso de desperdicio + marca fantasma del máximo teórico en la barra COMB.
+- [ ] Cuadrar drenaje vs ruta para que la línea perfecta llegue al 100% justo.
+
+> Relacionado con #15 (el Hércules es el punto óptimo definitivo: uno que se mueve y hay que
+> sostener), #26 (el combustible como tensión central del regreso — es el mismo tema por el otro
+> lado), #27 (comparten el eje de la altura), #23 (la línea perfecta es candidata natural a pesar
+> en la 4ª estrella) y #7/[NIVELES.md](NIVELES.md) (los bosses que esto presupone).
+> Dónde tocar → `systems/spawn.js:97` (el spawn por `fuelDist`), `systems/collision.js:155`
+> (el `+30` del pickup), `systems/flight.js:140` (el drenaje), `render/world.js` (`o.type === 'fuel'`,
+> el dibujo del bidón), `render/hud.js` (barra COMB + marca fantasma) y `data/missions.js`
+> (la ruta como parámetro de misión).

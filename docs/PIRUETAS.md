@@ -1,7 +1,7 @@
 # PIRUETAS — las maniobras de combate
 
 Las piruetas son los "poderes" de RASANTE: **once** maniobras reales de caza que se ejecutan con
-un **combo de dos toques direccionales**, al estilo de un juego de pelea. Mientras dura la maniobra
+un **combo de 3 o 4 toques direccionales**, al estilo de un juego de pelea. Mientras dura la maniobra
 **el avión no se controla** — salvo el eje que cada una deja libre.
 
 Catálogo (datos): [`src/data/moves.js`](../src/data/moves.js) ·
@@ -58,43 +58,57 @@ hitbox se encoge y el roce paga **+250** en vez de +75.
 
 | combo | maniobra | dur. | controlás | dispara | turbo | perfil fino | qué hace |
 |---|---|---|---|---|---|---|---|
-| `←←` / `→→` | **BARREL ROLL** (tonel) | 0.55 s | — | ✔ | ✗ | ✔ | Tonel completo con dash lateral. La pirueta original del juego |
-| `↓↓` **alto** | **SPLIT-S** | 1.15 s | lateral | ✔ | ✗ | ✔ | Medio tonel invertido + picada fuerte. **Gana velocidad**. Salida vertical hacia abajo |
-| `↓↓` **bajo** | **TERRAIN MASKING** | 1.6 s | lateral | ✔ | ✔ | ✗ | Se clava a ras y se queda. **Congela el roce** y **descarga el radar enemigo** |
-| `↑↑` **bajo** | **POP-UP** | 0.8 s | lateral | ✔ | ✗ | ✗ | Trepada brusca de ataque desde rasante |
-| `↑↑` **alto** / `↑↓` | **HIGH YO-YO** | 1.0 s | lateral | ✔ | ✗ | ✗ | Sube, cuelga y recae sobre la misma altura. **Sangra velocidad** |
-| `↓↑` | **LOW YO-YO** | 1.0 s | lateral | ✔ | ✔ | ✗ | Pica y remonta. **La que más acelera** (+35%) — altura convertida en velocidad |
-| `↓←` / `↓→` | **BREAK TURN** | 0.7 s | vertical | ✔ | ✗ | ✔ | Viraje quebrado: tirón lateral violento hacia el 2º toque, banqueo a fondo |
-| `←→` / `→←` | **S-TURN** | 1.1 s | vertical | ✔ | ✗ | ✔ | Se abre a un lado y **vuelve al carril**. Arranca hacia el 2º toque |
-| `↑←` / `↑→` | **JINK** | 0.85 s | **nada** | ✔ | ✗ | ✔ | 4 quiebres laterales alternados e impredecibles. Rumbo fuera de tu control. **Amplitud según tu velocidad** |
-| `←↑` / `→↑` | **TONEL BARRIL** | 1.4 s | **nada** | ✔ | ✗ | ✔ | La **O grande**: se abre, sube 18 m, pasa **boca arriba** por el techo del círculo y vuelve al punto exacto de partida, rolando 360° |
-| `←↓` / `→↓` | **TIRABUZÓN** | 1.0 s | **nada** | ✔ | ✔ | ✔ | Rola 360° **sobre su propio eje** picando derecho, **sin desvío lateral**. Gana velocidad |
+| `←←←` / `→→→` | **BARREL ROLL** (tonel) | 0.55 s | — | ✔ | ✗ | ✔ | Tonel completo con dash lateral. La pirueta original del juego |
+| `↑↓↓` **alto** | **SPLIT-S** | 1.15 s | lateral | ✔ | ✗ | ✔ | Medio tonel invertido + picada fuerte. **Gana velocidad**. Salida vertical hacia abajo |
+| `↑↓↓` **bajo** | **TERRAIN MASKING** | 1.6 s | lateral | ✔ | ✔ | ✗ | Se clava a ras y se queda. **Congela el roce** y **descarga el radar enemigo** |
+| `↓↑↑` **bajo** | **POP-UP** | 0.8 s | lateral | ✔ | ✗ | ✗ | Trepada brusca de ataque desde rasante |
+| `↓↑↑` **alto** / `↑↓↑` | **HIGH YO-YO** | 1.0 s | lateral | ✔ | ✗ | ✗ | Sube, cuelga y recae sobre la misma altura. **Sangra velocidad** |
+| `↓↑↓` | **LOW YO-YO** | 1.0 s | lateral | ✔ | ✔ | ✗ | Pica y remonta. **La que más acelera** (+35%) — altura convertida en velocidad |
+| `↓←←` / `↓→→` | **BREAK TURN** | 0.7 s | vertical | ✔ | ✗ | ✔ | Viraje quebrado: tirón lateral violento hacia el 2º toque, banqueo a fondo |
+| `←→←` / `→←→` | **S-TURN** | 1.1 s | vertical | ✔ | ✗ | ✔ | Se abre a un lado y **vuelve al carril**. Arranca hacia el 2º toque |
+| `↑←→` / `↑→←` | **JINK** | 0.85 s | **nada** | ✔ | ✗ | ✔ | 4 quiebres laterales alternados e impredecibles. Rumbo fuera de tu control. **Amplitud según tu velocidad** |
+| `↓→↑←` / `↓←↑→` | **TONEL BARRIL** | 1.4 s | **nada** | ✔ | ✗ | ✔ | La **O grande**: se abre, sube 18 m, pasa **boca arriba** por el techo del círculo y vuelve al punto exacto de partida, rolando 360° |
+| `←↓←↓` / `→↓→↓` | **TIRABUZÓN** | 1.0 s | **nada** | ✔ | ✔ | ✔ | Rola 360° **sobre su propio eje** picando derecho, **sin desvío lateral**. Gana velocidad |
 
 **Cooldown compartido: 1.15 s** entre cualquier pirueta y la siguiente (incluido el tonel). No se
 encadenan.
 
-### ⚠️ Los mixtos dependen del ORDEN
+### Ninguna se hace con dos toques — y es a propósito
 
-`←↑` y `↑←` usan **las mismas dos teclas** y son maniobras distintas. El detector guarda cuál se
-apretó primero:
+Antes **los 16 pares posibles estaban ocupados**: no existía forma de tocar dos direcciones
+seguidas sin ejecutar algo. Y como las teclas de combo **son las de volar**, el avión parecía
+manejarse solo:
 
-| primero | después | maniobra |
-|---|---|---|
-| **vertical** (`↑`) | lateral | **JINK** |
-| **lateral** (`←` `→`) | `↑` | **TONEL BARRIL** |
-| **lateral** (`←` `→`) | `↓` | **TIRABUZÓN** |
+| lo que hacías volando normal | lo que disparaba |
+|---|---|
+| bombear gas `↑ ↑` | HIGH YO-YO / POP-UP |
+| esquivar y volver `← →` | S-TURN |
+| picar y corregir `↓ ←` | BREAK TURN |
 
-Regla para acordarse: **si arrancás con una dirección lateral, el segundo toque elige el círculo**
-— `↑` el que sube (barril), `↓` el que baja girando (tirabuzón). El primer toque da el sentido
-del giro.
+Con un mínimo de **tres** toques el vuelo normal ya no produce secuencias completas. Y **ninguna
+maniobra usa repetición vertical**, así que bombear gas (`↑↑↑↑↑`) no puede disparar nada — el caso
+más molesto queda descartado por construcción.
+
+### Las secuencias dibujan la maniobra
+
+| secuencia | por qué |
+|---|---|
+| `↓→↑←` | la **vuelta completa** del tonel barril: es una O |
+| `←↓←↓` | el tirabuzón **baja sin cambiar de lado** |
+| `↑↓↑` | el yo-yo alto sube, pica y vuelve a subir |
+| `↓←←` | picar y **empujar dos veces** al mismo lado: el quiebre |
+
+> **Regla de diseño**: ninguna secuencia puede ser **prefijo** de otra, o la corta dispararía antes
+> de que la larga se complete. El caso inverso —una corta que es el *final* de una larga, como
+> `←←` dentro de `↓←←`— lo resuelve la **coincidencia por sufijo más largo** del detector.
 
 ---
 
 ## Cómo se ejecutan
 
-**Ventana del combo: 0.24 s** entre el primer toque y el segundo. Es corta a propósito: los pares
-verticales (`↑↑`, `↓↓`) conviven con el bombeo de gas del vuelo normal, y con esa ventana solo un
-doble toque intencional los dispara.
+**Ventana del combo: 0.28 s** entre cada toque y el siguiente. Es corta a propósito: los pares
+toques usan las mismas teclas que volar, y con esa ventana solo una secuencia intencional se
+completa.
 
 - **Teclado:** `←` `→` `↑` `↓` (o `A` `D` `W` `S`). Solo pulsaciones **frescas** — el auto-repeat
   de una tecla sostenida no cuenta.

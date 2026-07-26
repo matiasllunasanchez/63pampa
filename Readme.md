@@ -113,27 +113,31 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
 
 ### Piruetas (los "poderes")
 
-Once maniobras de caza que se disparan con un **combo de dos toques direccionales** en menos de
-0.24 s, al estilo de un juego de pelea. Durante la maniobra **el avión no se controla**, salvo el
-eje que cada una deja libre. Funcionan igual con joystick (cruceta o flicks del stick).
+Once maniobras de caza que se disparan con un **combo de 3 o 4 toques direccionales** (cada uno a
+menos de 0.28 s del anterior), al estilo de un juego de pelea. Durante la maniobra **el avión no se
+controla**, salvo el eje que cada una deja libre. Funcionan igual con joystick (cruceta o stick).
 
 | combo | maniobra | | combo | maniobra |
 |---|---|---|---|---|
-| `←←` / `→→` | BARREL ROLL (tonel) | | `↓←` / `↓→` | BREAK TURN |
-| `↓↓` **volando alto** | SPLIT-S | | `←→` / `→←` | S-TURN |
-| `↓↓` **volando bajo** | TERRAIN MASKING | | `↑←` / `↑→` | JINK |
-| `↑↑` **volando bajo** | POP-UP | | `↓↑` | LOW YO-YO |
-| `↑↑` **volando alto** / `↑↓` | HIGH YO-YO | | `←↑` / `→↑` | TONEL BARRIL (la "O") |
-| | | | `←↓` / `→↓` | TIRABUZÓN |
+| `←←←` / `→→→` | BARREL ROLL (tonel) | | `↓←←` / `↓→→` | BREAK TURN |
+| `↑↓↓` **volando alto** | SPLIT-S | | `←→←` / `→←→` | S-TURN |
+| `↑↓↓` **volando bajo** | TERRAIN MASKING | | `↑←→` / `↑→←` | JINK |
+| `↓↑↑` **volando bajo** | POP-UP | | `↓→↑←` / `↓←↑→` | TONEL BARRIL (la "O") |
+| `↓↑↑` **volando alto** / `↑↓↑` | HIGH YO-YO | | `←↓←↓` / `→↓→↓` | TIRABUZÓN |
+| `↓↑↓` | LOW YO-YO | | | |
 
-> Los mixtos dependen del **orden**: `↑←` es JINK y `←↑` es TONEL BARRIL — mismas teclas, maniobras
-> distintas. Si arrancás con un lateral, el segundo toque elige el círculo (`↑` sube, `↓` baja).
+> ⚠️ **"Volando alto / bajo" es la ALTURA DEL AVIÓN, no una dirección más del combo.** El mismo
+> combo hace cosas distintas según tu altitud — el juego elige la maniobra que tiene sentido donde
+> estás. Regla práctica: **si el HUD marca ×10 o ×5 estás BAJO; si marca ×1, ALTO**.
 
-> ⚠️ **"Volando alto / bajo" es la ALTURA DEL AVIÓN, no una dirección más del combo.**
-> `↓↓ volando alto` **no** es "abajo, abajo, arriba": es apretar `↓↓` **estando el avión arriba**.
-> El mismo doble toque hace cosas distintas según tu altitud — el juego elige la maniobra que
-> tiene sentido donde estás. Regla práctica: **si el HUD marca ×10 o ×5 estás BAJO; si marca ×1,
-> ALTO** (los umbrales son 18 m para `↓↓` y 14 m para `↑↑`).
+**Ninguna se hace con dos toques, y es a propósito.** Antes los 16 pares posibles estaban ocupados
+y —como las teclas de combo son las de volar— el avión parecía manejarse solo: bombear gas lanzaba
+un yo-yo, corregir el rumbo lanzaba un S-turn. Con un mínimo de tres toques el vuelo normal ya no
+produce secuencias completas, y **ninguna maniobra usa repetición vertical**, así que bombear gas
+(`↑↑↑↑↑`) no puede disparar nada.
+
+**Las secuencias dibujan la maniobra**: `↓→↑←` es la vuelta completa del tonel barril (una O),
+`←↓←↓` baja sin cambiar de lado como el tirabuzón, `↓←←` es picar y empujar al costado.
 
 Se apagan desde el menú `[M]` → **PIRUETAS: SI/NO** (el tonel queda siempre).
 **Tabla completa** — duración, qué controlás, si podés disparar o usar turbo, y economía de

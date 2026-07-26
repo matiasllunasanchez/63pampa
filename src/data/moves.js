@@ -13,25 +13,39 @@
 //   tight  el perfil de colision se ENCOGE (alas de canto / banqueo fuerte), como en el tonel —
 //          tambien habilita el bonus de roce "con estilo" (250 en vez de 75)
 //
-// COMBOS: dos toques direccionales en menos de 0.24 s (tambien con el pad — cruceta o flicks
-// del stick). Ver docs/PIRUETAS.md para la tabla completa.
+// COMBOS: secuencias de 3 o 4 toques direccionales, cada uno a menos de 0.28 s del anterior
+// (teclado o joystick — cruceta o flicks del stick). Ver docs/PIRUETAS.md para la tabla completa.
 //
-//   ←← / →→    TONEL (aileron)    ↓↑         LOW YO-YO
-//   ↑↓         HIGH YO-YO         ↓← / ↓→    BREAK TURN
-//   ←→ / →←    S-TURN             ↑← / ↑→    JINK
-//   ←↑ / →↑    TONEL BARRIL       ←↓ / →↓    TIRABUZON
+// NINGUNA se hace con DOS toques, y es a proposito. Antes los 16 pares posibles estaban ocupados:
+// no existia forma de tocar dos direcciones seguidas sin ejecutar algo. Y como las teclas de combo
+// son las de VOLAR, el avion parecia manejarse solo — bombear gas (↑↑) lanzaba un yo-yo, corregir
+// el rumbo (←→) lanzaba un S-turn. Con un minimo de tres toques el vuelo normal ya no produce
+// secuencias completas, y NINGUNA maniobra usa repeticion vertical, asi que bombear gas
+// ('↑↑↑↑↑') no puede disparar nada.
 //
-// OJO con el orden de los mixtos: PRIMERO vertical (↑←) es JINK; PRIMERO lateral (←↑) es el
-// TONEL BARRIL. Son combos distintos con las mismas dos teclas — el detector guarda el orden.
+//   4 toques — trayectoria CERRADA (la secuencia dibuja la figura)
+//     ↓→↑←   TONEL BARRIL horario      ←↓←↓   TIRABUZON izquierda
+//     ↓←↑→   TONEL BARRIL antihorario  →↓→↓   TIRABUZON derecha
 //
-// PARES CONTEXTUALES. Cuatro maniobras comparten combo con otra, y cual sale NO depende de como
-// se aprietan las teclas: depende de la ALTURA A LA QUE VIENE VOLANDO EL AVION (plane.y). Se
-// resuelve en el `combo` de game.js contra los umbrales de abajo.
+//   3 toques
+//     ←←←    TONEL izquierda           →→→    TONEL derecha
+//     ↑↓↓    SPLIT-S / MASKING         ↓↑↑    POP-UP / HIGH YO-YO   (segun ALTURA)
+//     ↓↑↓    LOW YO-YO                 ↑↓↑    HIGH YO-YO
+//     ↓←←    BREAK TURN izquierda      ↓→→    BREAK TURN derecha
+//     ←→←    S-TURN izquierda          →←→    S-TURN derecha
+//     ↑←→    JINK izquierda            ↑→←    JINK derecha
 //
-//   ↓↓  con el avion ALTO (y > MV_HI)  → SPLIT-S          (hay cielo debajo para picar)
-//   ↓↓  con el avion BAJO (y <= MV_HI) → TERRAIN MASKING  (ya estas bajo: pegate mas)
-//   ↑↑  con el avion BAJO (y < MV_LO)  → POP-UP           (salis de rasante hacia arriba)
-//   ↑↑  con el avion ALTO (y >= MV_LO) → HIGH YO-YO       (ya tenes altura: colgate arriba)
+// CONTEXTUALES. '↑↓↓' y '↓↑↑' no los decide como apretas sino la ALTURA A LA QUE VIENE VOLANDO EL
+// AVION (plane.y). Se resuelve en el `combo` de game.js contra los umbrales de abajo.
+//
+//   ↑↓↓  con el avion ALTO (y > MV_HI)  → SPLIT-S          (hay cielo debajo para picar)
+//   ↑↓↓  con el avion BAJO (y <= MV_HI) → TERRAIN MASKING  (ya estas bajo: pegate mas)
+//   ↓↑↑  con el avion BAJO (y < MV_LO)  → POP-UP           (salis de rasante hacia arriba)
+//   ↓↑↑  con el avion ALTO (y >= MV_LO) → HIGH YO-YO       (ya tenes altura: colgate arriba)
+//
+// REGLA DE DISEÑO: ninguna secuencia puede ser PREFIJO de otra, o la corta dispararia antes de que
+// la larga se complete. El caso inverso (una corta que es el FINAL de una larga, como '←←' dentro
+// de '↓←←') lo resuelve la coincidencia por sufijo mas largo en core/input.js.
 export const MOVES = {
   // medio tonel invertido + picada fuerte: la salida vertical hacia ABAJO. Pide altura.
   // DISPARA aunque quede invertido: el cañon sigue montado en las alas y la punteria del juego

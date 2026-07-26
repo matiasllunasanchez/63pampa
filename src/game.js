@@ -306,7 +306,6 @@ import { RUNWAYS } from './data/runways.js';
     let story = null;   // pantalla de HISTORIA (campaña): maquina de escribir letra a letra
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
     let toT = 0, toCount = 4;
-    window.__dbg = () => ({ state: S.state, y: +plane.y.toFixed(1), det: +run.detection.toFixed(2), vib: +run.scrapeVib.toFixed(2), wave: run.radarWave });   // PROBE TEMPORAL
     let levelT = 0;   // temporizador de las tarjetas de transición de nivel / victoria (campaña)
     let briefT = 0;   // temporizador de la tarjeta de briefing corto (ciclo de muerte)
     // Los CONTADORES de la corrida viven en core/state.js (`stats`), porque los escriben varios
@@ -399,37 +398,55 @@ import { RUNWAYS } from './data/runways.js';
       cfgClose: () => { cfgOpen = false; },
       planeNav: dir => { selPlane = (selPlane + dir + PLANES.length) % PLANES.length; beep(dir < 0 ? 520 : 600, 0.05, 'square', 0.04); },
       roll: dir => startRoll(dir),
-      // COMBO de dos toques (ver dirTap en core/input.js). El PAR llega crudo ('ll', 'du'...):
-      // aca se resuelve QUE maniobra es.
+      // COMBO: la SECUENCIA llega cruda ('lll', 'drul'...) desde dirTap (core/input.js), que ya
+      // probo de la mas larga a la mas corta. Aca se resuelve QUE maniobra es.
+      // DEVUELVE true si la consumio — el detector lo usa para saber si limpiar el buffer.
       //
-      // OJO con 'dd' y 'uu': son PARES CONTEXTUALES. La maniobra no la decide como se apretaron
-      // las teclas sino la ALTURA A LA QUE VIENE VOLANDO EL AVION en ese instante (plane.y contra
-      // MV_HI / MV_LO). El mismo doble toque hace cosas distintas segun donde estes: alto y ↓↓ es
-      // tirarse (Split-S), bajo y ↓↓ es pegarse al piso (Masking). Ver docs/PIRUETAS.md.
-      combo: pair => {
-        if (S.state !== 'play') return;
-        switch (pair) {
-          case 'll': return startRoll(-1);                 // el tonel clasico (camino legado)
-          case 'rr': return startRoll(1);
-          // volando ALTO hay cielo abajo para tirarse; volando BAJO no queda mas que pegarse
-          case 'dd': return moves.startMove(plane.y > MV_HI ? 'splits' : 'mask', 1);
-          // volando BAJO trepar es la jugada; volando ALTO ya tenes altura para colgarte
-          case 'uu': return moves.startMove(plane.y < MV_LO ? 'popup' : 'hiyo', 1);
-          case 'ud': return moves.startMove('hiyo', 1);
-          case 'du': return moves.startMove('loyo', 1);
-          case 'dl': return moves.startMove('breakt', -1);
-          case 'dr': return moves.startMove('breakt', 1);
-          case 'lr': return moves.startMove('sturn', 1);   // arranca hacia el 2º toque
-          case 'rl': return moves.startMove('sturn', -1);
-          case 'ul': return moves.startMove('jink', -1);
-          case 'ur': return moves.startMove('jink', 1);
-          // MIXTOS AL REVES (primero el lateral): el 2º toque elige la familia — ↑ el circulo
-          // que sube, ↓ el que baja girando. El 1º toque da el sentido del giro.
-          case 'lu': return moves.startMove('barrel', -1);
-          case 'ru': return moves.startMove('barrel', 1);
-          case 'ld': return moves.startMove('spin', -1);
-          case 'rd': return moves.startMove('spin', 1);
+      // NINGUNA MANIOBRA SE HACE CON DOS TOQUES. Antes los 16 pares posibles estaban ocupados, o
+      // sea que NO existia forma de tocar dos direcciones seguidas sin ejecutar algo — y como las
+      // teclas de combo son las de volar, el avion "se manejaba solo": bombear gas (↑↑) lanzaba un
+      // yo-yo, corregir el rumbo (←→) lanzaba un S-turn. Con un minimo de tres toques, el vuelo
+      // normal ya no produce secuencias completas.
+      //
+      // En particular: bombear gas da '↑↑↑↑↑' y NINGUNA maniobra usa repeticion vertical, asi que
+      // ese caso —el mas molesto— queda descartado por construccion.
+      //
+      // LAS SECUENCIAS DIBUJAN LA MANIOBRA:
+      //   ↓→↑←  la vuelta completa del tonel barril (es una O)
+      //   ←↓←↓  el tirabuzon baja sin cambiar de lado
+      //   ↑↓↑   el yo-yo alto sube, pica y vuelve a subir
+      //   ↓←←   picar y empujar dos veces al mismo lado: el quiebre
+      //
+      // REGLA QUE SOSTIENE TODO: ninguna secuencia puede ser PREFIJO de otra. Si '↓←' disparara
+      // algo, el circulo que empieza con '↓←' nunca llegaria al cuarto toque. La coincidencia por
+      // sufijo mas largo (core/input.js) resuelve el caso contrario —que una corta sea el FINAL de
+      // una larga, como '←←' dentro de '↓←←'— pero los prefijos hay que evitarlos por diseño.
+      combo: seq => {
+        if (S.state !== 'play') return false;
+        switch (seq) {
+          // ---- 4 toques: las de trayectoria cerrada ----
+          case 'drul': return moves.startMove('barrel', 1);    // ↓→↑←  la O, horaria
+          case 'dlur': return moves.startMove('barrel', -1);   // ↓←↑→  la O, antihoraria
+          case 'ldld': return moves.startMove('spin', -1);     // ←↓←↓  baja girando, mismo lado
+          case 'rdrd': return moves.startMove('spin', 1);      // →↓→↓
+          // ---- 3 toques ----
+          case 'lll': return startRoll(-1);                    // el tonel clasico (camino legado)
+          case 'rrr': return startRoll(1);
+          // CONTEXTUALES por ALTURA: la misma secuencia hace lo que tiene sentido donde estas.
+          // Alto hay cielo debajo para tirarse; bajo no queda mas que pegarse al piso.
+          case 'udd': return moves.startMove(plane.y > MV_HI ? 'splits' : 'mask', 1);
+          // Bajo trepar es la jugada; alto ya tenes altura para colgarte arriba.
+          case 'duu': return moves.startMove(plane.y < MV_LO ? 'popup' : 'hiyo', 1);
+          case 'dud': return moves.startMove('loyo', 1);       // ↓↑↓  pica, sube, pica
+          case 'udu': return moves.startMove('hiyo', 1);       // ↑↓↑  sube, pica, sube
+          case 'dll': return moves.startMove('breakt', -1);    // ↓←←  picar y empujar al lado
+          case 'drr': return moves.startMove('breakt', 1);
+          case 'lrl': return moves.startMove('sturn', -1);     // ←→←  el barrido en S
+          case 'rlr': return moves.startMove('sturn', 1);
+          case 'ulr': return moves.startMove('jink', -1);      // ↑←→  sacudida erratica
+          case 'url': return moves.startMove('jink', 1);
         }
+        return false;
       },
       launchMissile: () => tryLaunchMissile(),
       cycleCamera: () => {
@@ -532,8 +549,10 @@ import { RUNWAYS } from './data/runways.js';
 
 
     // PIRUETA (tonel / aileron roll): esquive cinematico con doble-tap ←/→
+    // Devuelve true si el tonel ARRANCO — el detector de combos lo usa para saber si consumio la
+    // secuencia. Sin esto, un tonel en cooldown dejaria el buffer sucio.
     function startRoll(dir) {
-      if (S.state !== 'play' || run.rollT > 0 || run.rollCd > 0 || run.mv) return;
+      if (S.state !== 'play' || run.rollT > 0 || run.rollCd > 0 || run.mv) return false;
       run.rollT = ROLL_DUR; run.rollDir = dir; run.rollCd = 1.15;
       sfxOne('waveFly');                        // rafaga de aire de la pirueta
       // ROCE del aire al girar, A VECES. Siempre seria una firma sonora fija y el tonel pasaria a
@@ -541,6 +560,7 @@ import { RUNWAYS } from './data/runways.js';
       // ese es el PREMIO por pasar cerca de algo y no puede confundirse con este adorno.
       if (Math.random() < 0.5) sfxOne('graze', 0.35);
       beep(480, 0.16, 'triangle', 0.05, 900);   // whoosh ascendente
+      return true;
     }
 
     // lanza un misil del jugador (arma secundaria: limitada, one-shot, con leve guiado)

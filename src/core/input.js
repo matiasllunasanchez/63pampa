@@ -42,20 +42,33 @@ const isDown = c => c === 'ArrowDown' || c === 'KeyS';
 
 /** Instala todos los listeners. `cv` es el canvas; `a` es el objeto de acciones (callbacks). */
 export function initInput(cv, a) {
-  // COMBOS DE PIRUETAS: dos toques direccionales seguidos (l/r/u/d) dentro de la ventana. El
-  // detector es UNO solo para teclado y joystick: registra cada toque FRESCO y, si el anterior
-  // fue hace poco, emite el par ('ll', 'rr', 'du', 'dl'...) como accion. Que significa cada par
-  // lo decide game.js (algunos dependen de la ALTURA del avion) — aca no se sabe de maniobras.
-  // La ventana es corta A PROPOSITO: ↑↑/↓↓ conviven con el bombeo de gas del vuelo normal, y
-  // con 0.24 s solo un doble toque intencional los dispara.
-  let lastTap = { d: '', t: -9 };
-  const COMBO_WIN = 0.24;
+  // COMBOS DE PIRUETAS: secuencias de toques direccionales (l/r/u/d) encadenados. El detector es
+  // UNO solo para teclado y joystick: guarda los ultimos toques FRESCOS en un buffer y le pasa la
+  // secuencia a game.js, que decide que maniobra es — aca no se sabe de maniobras.
+  //
+  // COINCIDENCIA POR SUFIJO MAS LARGO. Hay secuencias de 3 y 4 toques (el buffer aguanta 5), y las
+  // largas TERMINAN en tramos que podrian ser otra secuencia. Se prueba de la mas larga a la mas
+  // corta, asi la mas especifica gana; sin esto la corta dispararia antes y las largas serian
+  // inalcanzables.
+  //
+  // El requisito que hace que esto funcione es de DISEÑO, no de codigo: ningun prefijo de una
+  // secuencia larga puede ser, el mismo, un combo. Si '↓←' disparara algo, el circulo que empieza
+  // con '↓←' nunca llegaria al cuarto toque. Ver la tabla en game.js.
+  //
+  // Dispara AL INSTANTE en cuanto hay coincidencia: esperar a ver si viene otro toque agregaria
+  // latencia a TODAS las maniobras, y son de esquive — 100 ms es la diferencia entre pasar y chocar.
+  const taps = [];
+  const COMBO_WIN = 0.28, COMBO_MAX = 5;
   function dirTap(d) {
     const now = performance.now() / 1000;
-    if (S.state === 'play' && now - lastTap.t < COMBO_WIN) {
-      a.combo(lastTap.d + d);
-      lastTap = { d: '', t: -9 };        // consumido: no encadena con el proximo toque
-    } else lastTap = { d, t: now };
+    // un hueco largo CORTA la secuencia: lo de antes ya no es parte de este combo
+    if (taps.length && now - taps[taps.length - 1].t > COMBO_WIN) taps.length = 0;
+    taps.push({ d, t: now });
+    if (taps.length > COMBO_MAX) taps.shift();
+    if (S.state !== 'play') return;
+    for (let n = taps.length; n >= 2; n--) {
+      if (a.combo(taps.slice(-n).map(x => x.d).join(''))) { taps.length = 0; return; }
+    }
   }
   let steerPtr = null;                   // el puntero que esta arrastrando el vuelo
   const zonePtr = new Map();             // punteros tactiles → zona ('fire' / 'turbo')
