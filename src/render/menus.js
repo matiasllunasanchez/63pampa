@@ -22,7 +22,8 @@ export function drawMenu(w) {
   // EL MODO manda: va pegado al logotipo y en grande, porque es DONDE ESTAS. El rotulo de la
   // pantalla ("elegi tu avion") es la instruccion, y va despues de un respiro.
   ctx.fillStyle = P.foam; ctx.font = menuFont(13);
-  ctx.fillText(w.gameMode === 'cycle' ? T('modeCycle') : T('modeSurvival'), W / 2, 35);
+  ctx.fillText(w.gameMode === 'cycle' ? T('modeCycle')
+    : w.gameMode === 'arena' ? T('modeArena') : T('modeSurvival'), W / 2, 35);
   ctx.fillStyle = P.dim; ctx.font = labelFont(9);                  // rotulo de seccion: GlimpRThin
   ctx.fillText(T('selTitle'), W / 2, 50);
 
@@ -67,7 +68,11 @@ export function drawMenu(w) {
 // tambien la necesita (game.js traduce el toque a fila): duplicarla a mano ya rompio el click.
 // rh subio de 30 a 36 al agrandar la descripcion: con la fuente proporcional, sus ascendentes
 // trepaban hasta la linea de base del NOMBRE de arriba y las dos lineas se tocaban.
-export const MODE_ROWS = { y0: 86, rh: 36 };
+// Cada fila ocupa ~33 px (nombre en `y`, descripcion en y+14, resalte de y-13 a y+20). Con la
+// entrada de ARENA son SEIS, y con el paso viejo (y0 86, rh 36) la ultima caia en y=266: la
+// descripcion se salia de los 270 de alto. El toque tactil lee estos mismos numeros, asi que
+// ajustarlos aca reubica tambien las zonas tocables.
+export const MODE_ROWS = { y0: 78, rh: 31 };
 
 export function drawTitle(w) {
   ctx.textAlign = 'center';
@@ -118,6 +123,7 @@ export function drawModeSelect(w) {
     { name: T('modeCampaign'), desc: T('modeCampaignDesc') },
     { name: T('modeCycle'), desc: T('modeCycleDesc') },
     { name: T('modeSurvival'), desc: T('modeSurvivalDesc') },
+    { name: T('modeArena'), desc: T('modeArenaDesc') },
     { name: T('modeOptions'), desc: T('modeOptionsDesc') },
     { name: T('modeQuit'), desc: T('modeQuitDesc'), quit: true },
   ];

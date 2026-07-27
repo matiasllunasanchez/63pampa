@@ -1,4 +1,8 @@
-// MOMENTUM: el climax en primera persona. Bullet-time sobre el asalto a la barcaza.
+// EL ARENA VIEJO (fallback sin 3D de la fase ARENA): bullet-time sobre el asalto a la barcaza,
+// con camara en riel. El nombre "momentum" quedo por herencia historica — ver el aviso sobre
+// vocabulario en docs/ARQUITECTURA.md (ROADMAP #13 va a reusar "MOMENTUM" para otra cosa). El
+// ARENA de vuelo libre (el que corre normalmente, con three.js) vive en systems/arena.js; este
+// modulo solo corre con `?no3d` o si WebGL falla.
 //
 // Es un SUBSISTEMA con estado propio (`mom`, la pasada actual; `momPhase`, cuantas pasadas van;
 // `momDrift`, el avance visual; `MOM_PHASES`, el layout de zonas del buque). Nada de eso se
@@ -144,7 +148,7 @@ function momMissileBoom(mx, my2) {
 }
 // misil en primera persona: sale del ala (fuera del vidrio, alternando lado), vuela LENTO
 // con guiado hacia el punto apuntado al momento del disparo, y explota con daño en area.
-// Usa la MISMA municion `msl` que el vuelo normal (la recarga queda pausada en camara lenta).
+// Usa la MISMA municion `msl` que el PASILLO (la recarga queda pausada en camara lenta).
 function momLaunchMissile(mouse) {
   if (!mom || mom.doneT > 0 || run.msl <= 0 || run.mslCd > 0) return;
   run.msl--; run.mslCd = 0.6;
@@ -324,7 +328,7 @@ function updateMomentum(dt, inp, mouse, objectiveDist) {
     return;
   }
   mom.timer -= dt;
-  // misiles: misma municion que el vuelo normal; Z (o boton tactil) lanza
+  // misiles: misma municion que el PASILLO; Z (o boton tactil) lanza
   run.mslCd = Math.max(0, run.mslCd - dt);
   if (inp.msl) momLaunchMissile(mouse);
   // ALABEO (roll): ←/→ hacen ROLAR el avion sobre su eje longitudinal (el que apunta a la

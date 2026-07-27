@@ -31,9 +31,13 @@ WEB_AUDIO = {
     'story.mp3': 'story.m4a',
     'pmetal_himno.mp3': 'pmetal_himno.m4a',
     'pmetal_sanmartin.mp3': 'pmetal_sanmartin.m4a',
-    'pmetal_soy_hincha.mp3': 'pmetal_soy_hincha.m4a',
 }
 WEB_DROP = [
+    # 'soy_hincha' SALE del pool web (26/7): el codigo del ARENA (el climax 3D de vuelo libre)
+    # dejo el bundle 800 bytes SOBRE el tope de 16 MB del Artifact. Con la pista afuera quedan
+    # ~2 MB de margen para lo que falta del arena. Prioridad declarada por el autor: Electron
+    # primero, la web pierde si hay que elegir (ver docs/PROMPT_ARENA_VUELO_LIBRE.md).
+    'pmetal_soy_hincha.mp3',
     'pmetal_acero_blanco.mp3', 'pmetal_aundepie.mp3', 'pmetal_aurora.mp3',
     'pmetal_malvinas.mp3', 'pmetal_malvinas_2triumph.mp3', 'pmetal_revolucion_mayo.mp3',
     'pmetal_sangre_albiceleste.mp3', 'pmetal_soldado.mp3',

@@ -108,27 +108,30 @@ app.whenReady().then(async () => {
   if (win.webContents.isCurrentlyAudible()) pass('el juego esta emitiendo sonido');
   else fail('silencio total — musica y efectos no estan sonando');
 
-  // MOMENTUM: el climax en primera persona (three.js + zonas + cabina) es un subsistema entero
-  // que ninguna otra prueba toca. Se recarga con ?qa, que acorta la mision para llegar en segundos.
-  console.log('\nmomentum (?qa):');
+  // ARENA: la fase del asalto al buque (vuelo 3D libre, three.js + zonas + cabina) es un
+  // subsistema entero que ninguna otra prueba toca. Se recarga con ?qa, que acorta el PASILLO
+  // para llegar en segundos. OJO: con three.js cargado (Electron y el build web lo cargan los
+  // dos) `arena.available()` da true y esto entra a la fase ARENA nueva, NO al fallback en riel
+  // de `systems/momentum.js` — ese fallback (`?no3d`) no tiene smoke propio todavía.
+  console.log('\narena (?qa):');
   const url = (process.env.SMOKE_SRC || path.join(ROOT, 'src', 'index.html'));
   await win.loadURL('file://' + url + '?qa');
   await sleep(2500);
   for (let i = 0; i < 20; i++) await tap(win, 'Return');          // saltear guion → despegue
   const hold2 = setInterval(() => win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Up' }), 40);
-  await sleep(12000);                                             // vuela hasta el objetivo
+  await sleep(12000);                                             // PASILLO hasta el objetivo
   clearInterval(hold2);
-  await checkAlive(win, 'momentum');
+  await checkAlive(win, 'arena');
 
-  // DISPARAR dentro del momentum: ejercita el camino cañón → zonas → puntaje (momScrToWorld,
-  // momZoneRect, momZoneKilled) y las señales de salida (objetivo/re-ataque). Sin esto, el smoke
-  // entra al momentum pero nunca corre la lógica de combate — donde una excepción quedaría muda.
-  console.log('\nmomentum — combate:');
+  // DISPARAR dentro del arena: ejercita el camino cañón → zonas → puntaje (shootRay, zoneRect3D,
+  // zoneKilled) y las señales de salida (objetivo/derribo). Sin esto, el smoke entra a la fase
+  // ARENA pero nunca corre la lógica de combate — donde una excepción quedaría muda.
+  console.log('\narena — combate:');
   const fire = setInterval(() => win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Space' }), 40);
   await sleep(6000);
   clearInterval(fire);
   win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Space' });
-  await checkAlive(win, 'momentum tras disparar');
+  await checkAlive(win, 'arena tras disparar');
 
   // INPUT POR MOUSE: ejercita los handlers de puntero (movidos a core/input.js) — apuntado con el
   // mouse y click de canon/misil. El keyboard cubre el resto; sin esto el camino tactil/mouse

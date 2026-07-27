@@ -2,7 +2,7 @@
 //
 // Dos poblaciones independientes: obstaculos (mastiles, globos, aeronaves, bidones, y en COSTA
 // las estructuras del desembarco) que emergen del horizonte, y grupos de soldados que corren
-// (terrenos con tierra). Ambos nacen a z=250 y el resto del mundo los trae hacia la camara.
+// (terrenos con tierra). Ambos nacen a SPAWN_Z (data/tuning.js) y el mundo los trae hacia la camara.
 //
 // Es el sistema mas limpio del motor: solo escribe los arrays del mundo y lee la corrida y el
 // mapa. No dibuja, no suena, no decide transiciones.
@@ -10,7 +10,7 @@
 import { cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { obstacles, soldiers } from '../core/world.js';
-import { SPAWN_X, SHORE_X, shoreAt, SAND_W, AA_CD, ENEMY_HP, spawnY, SHIP_H,
+import { SPAWN_X, SPAWN_Z, SHORE_X, shoreAt, SAND_W, AA_CD, ENEMY_HP, spawnY, SHIP_H,
          CLIFF_H0, CLIFF_H1, CLIFF_HW0, CLIFF_HW1, CLIFF_COAST_BAND } from '../data/tuning.js';
 
 /** Vida inicial de un enemigo. `hpMax` queda fijo para que la barra pueda dibujar la fraccion
@@ -74,8 +74,8 @@ function squad(x, z, n, coast) {
 
 // carriles: las estructuras de tierra solo caen del lado de TIERRA de la costa; las barcazas,
 // del lado del AGUA (pegadas a la playa, que es por donde entran). La orilla SERPENTEA, asi que
-// se consulta shoreAt() a la profundidad de spawn (z=250) — la misma fuente que render y vuelo.
-const spawnShore = () => shoreAt(run.dist + 250);
+// se consulta shoreAt() a la profundidad de spawn (SPAWN_Z) — la misma fuente que render y vuelo.
+const spawnShore = () => shoreAt(run.dist + SPAWN_Z);
 const landLane = () => { const sh = spawnShore(); return -SPAWN_X + Math.random() * Math.max(8, SPAWN_X + sh - SAND_W - 3); };
 const waterLane = () => { const sh = spawnShore(); return sh + 3 + Math.random() * Math.max(4, SPAWN_X - sh - 3); };
 
@@ -87,14 +87,14 @@ function cliff(x) {
   const t = Math.random();
   const h = CLIFF_H0 + t * t * (CLIFF_H1 - CLIFF_H0);
   const hw = (CLIFF_HW1 - t * t * (CLIFF_HW1 - CLIFF_HW0)) * (0.8 + Math.random() * 0.5);
-  obstacles.push({ type: 'cliff', x, h, hw, z: 250, done: false, ph: Math.random() * 6, seed: (Math.random() * 9999) | 0 });
+  obstacles.push({ type: 'cliff', x, h, hw, z: SPAWN_Z, done: false, ph: Math.random() * 6, seed: (Math.random() * 9999) | 0 });
 }
 
 /** Un obstaculo nuevo en el horizonte. El sorteo mezcla amenazas y bidones; sin combustible
  *  activo, los bidones se fuerzan menos (serian pickups inutiles) y su slot cae en globo. */
 function spawn() {
   const lane = (Math.random() * SPAWN_X * 2 - SPAWN_X);   // acompaña a FLY_X (zona de vuelo)
-  if (cfg.fuelOn && run.fuelDist > 700) { obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: 250, done: false }); run.fuelDist = 0; return; }
+  if (cfg.fuelOn && run.fuelDist > 700) { obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false }); run.fuelDist = 0; return; }
   const r = Math.random();
   const ph = Math.random() * 6;
 
@@ -106,31 +106,31 @@ function spawn() {
     if (r < 0.10) cliff(-SPAWN_X + Math.random() * CLIFF_COAST_BAND);
     else if (r < 0.20) {
       const x = landLane();
-      obstacles.push({ type: 'tent', x, h: 3.4, y: 1.4, z: 250, ...hpOf('tent'), done: false, ph });
-      squad(x - 3, 252, 2 + (Math.random() * 2 | 0), true);          // la carpa pare su patrulla
+      obstacles.push({ type: 'tent', x, h: 3.4, y: 1.4, z: SPAWN_Z, ...hpOf('tent'), done: false, ph });
+      squad(x - 3, SPAWN_Z + 2, 2 + (Math.random() * 2 | 0), true);          // la carpa pare su patrulla
     }
-    else if (r < 0.30) obstacles.push({ type: 'aa', x: landLane(), h: 4.4, y: 1.8, z: 250, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
+    else if (r < 0.30) obstacles.push({ type: 'aa', x: landLane(), h: 4.4, y: 1.8, z: SPAWN_Z, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
     else if (r < 0.40) {
       const h = 7.5 + Math.random() * 4;
       // armed: tiene soldados adentro tirando al avion (rafaga corta, hay que esquivar)
-      obstacles.push({ type: 'bldg', x: landLane(), h, y: h / 2, z: 250, ...hpOf('bldg'), armed: Math.random() < 0.6, shots: 2, cd: 0, done: false, ph });
+      obstacles.push({ type: 'bldg', x: landLane(), h, y: h / 2, z: SPAWN_Z, ...hpOf('bldg'), armed: Math.random() < 0.6, shots: 2, cd: 0, done: false, ph });
     }
     else if (r < 0.50) {
       // barcaza NAVEGANDO: entra desde la derecha (mar adentro) hacia la playa; los soldados
       // salen recien cuando TOCA la costa (ver collision.js, que la encalla y pare el squad)
-      obstacles.push({ type: 'lcu', x: waterLane() + 6, h: 4, y: 1.5, z: 250, ...hpOf('lcu'), sailing: true, done: false, ph });
+      obstacles.push({ type: 'lcu', x: waterLane() + 6, h: 4, y: 1.5, z: SPAWN_Z, ...hpOf('lcu'), sailing: true, done: false, ph });
     }
     // los arboles de la costa se reemplazaron por VEHICULOS: radar movil y camion antiaereo
-    else if (r < 0.57) obstacles.push({ type: 'radar', x: landLane(), h: 5, y: 2, z: 250, ...hpOf('radar'), ...mov('radar'), done: false, ph });
-    else if (r < 0.64) obstacles.push({ type: 'aatruck', x: landLane(), h: 4.6, y: 1.9, z: 250, ...hpOf('aatruck'), ...mov('aatruck'), cd: 1.3 + Math.random() * AA_CD, done: false, ph });
+    else if (r < 0.57) obstacles.push({ type: 'radar', x: landLane(), h: 5, y: 2, z: SPAWN_Z, ...hpOf('radar'), ...mov('radar'), done: false, ph });
+    else if (r < 0.64) obstacles.push({ type: 'aatruck', x: landLane(), h: 4.6, y: 1.9, z: SPAWN_Z, ...hpOf('aatruck'), ...mov('aatruck'), cd: 1.3 + Math.random() * AA_CD, done: false, ph });
     // trinchera ARGENTINA (decorado, bien a la izquierda): tira contra los britanicos
-    else if (r < 0.70) obstacles.push({ type: 'trench', x: -SPAWN_X + Math.random() * 8, z: 250, decor: true, cd: 0.8 + Math.random(), done: false, ph });
-    else if (r < 0.76) obstacles.push({ type: 'birds', x: lane, y: spawnY('birds'), z: 250, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
-    else if (r < 0.85) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: 250, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
-    else if (r < 0.93) obstacles.push({ type: 'helo', x: lane, y: spawnY('helo'), z: 250, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
-    else if (r < 0.97) obstacles.push({ type: 'jet', x: lane, y: spawnY('jet'), z: 250, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
-    else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: 250, done: false });
-    else obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: 250, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
+    else if (r < 0.70) obstacles.push({ type: 'trench', x: -SPAWN_X + Math.random() * 8, z: SPAWN_Z, decor: true, cd: 0.8 + Math.random(), done: false, ph });
+    else if (r < 0.76) obstacles.push({ type: 'birds', x: lane, y: spawnY('birds'), z: SPAWN_Z, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
+    else if (r < 0.85) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
+    else if (r < 0.93) obstacles.push({ type: 'helo', x: lane, y: spawnY('helo'), z: SPAWN_Z, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
+    else if (r < 0.97) obstacles.push({ type: 'jet', x: lane, y: spawnY('jet'), z: SPAWN_Z, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
+    else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false });
+    else obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
     return;
   }
 
@@ -139,23 +139,23 @@ function spawn() {
     // propio bloque) para que sea facil configurar QUE aparece en cada terreno.
     // el relieve de la isla: roca aleatoria, indestructible, de altura y ancho variables
     if (r < 0.14) cliff(lane);
-    else if (r < 0.28) obstacles.push({ type: 'tree', x: lane, h: 7 + Math.random() * 15, z: 250, done: false, ph });
-    else if (r < 0.35) obstacles.push({ type: 'tower', x: lane, h: 16 + Math.random() * 9, z: 250, ...hpOf('tower'), done: false, ph });
-    else if (r < 0.42) obstacles.push({ type: 'poles', x: lane, h: 9 + Math.random() * 3, z: 250, done: false, ph });
-    else if (r < 0.48) obstacles.push({ type: 'flag', x: lane, h: 11 + Math.random() * 5, z: 250, ...hpOf('flag'), done: false, ph });
-    else if (r < 0.55) { const h = 4.5 + Math.random() * 2; obstacles.push({ type: 'depot', x: lane, h, y: h / 2, z: 250, ...hpOf('depot'), done: false, ph }); }
+    else if (r < 0.28) obstacles.push({ type: 'tree', x: lane, h: 7 + Math.random() * 15, z: SPAWN_Z, done: false, ph });
+    else if (r < 0.35) obstacles.push({ type: 'tower', x: lane, h: 16 + Math.random() * 9, z: SPAWN_Z, ...hpOf('tower'), done: false, ph });
+    else if (r < 0.42) obstacles.push({ type: 'poles', x: lane, h: 9 + Math.random() * 3, z: SPAWN_Z, done: false, ph });
+    else if (r < 0.48) obstacles.push({ type: 'flag', x: lane, h: 11 + Math.random() * 5, z: SPAWN_Z, ...hpOf('flag'), done: false, ph });
+    else if (r < 0.55) { const h = 4.5 + Math.random() * 2; obstacles.push({ type: 'depot', x: lane, h, y: h / 2, z: SPAWN_Z, ...hpOf('depot'), done: false, ph }); }
     else if (r < 0.61) {                                            // campamento / antiaereo
       if (Math.random() < 0.5) {
-        obstacles.push({ type: 'tent', x: lane, h: 3.4, y: 1.4, z: 250, ...hpOf('tent'), done: false, ph });
-        squad(lane - 3, 252, 2, false);
-      } else obstacles.push({ type: 'aa', x: lane, h: 4.4, y: 1.8, z: 250, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
+        obstacles.push({ type: 'tent', x: lane, h: 3.4, y: 1.4, z: SPAWN_Z, ...hpOf('tent'), done: false, ph });
+        squad(lane - 3, SPAWN_Z + 2, 2, false);
+      } else obstacles.push({ type: 'aa', x: lane, h: 4.4, y: 1.8, z: SPAWN_Z, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
     }
-    else if (r < 0.66) obstacles.push({ type: 'birds', x: lane, y: spawnY('birds'), z: 250, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
-    else if (r < 0.75) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: 250, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
-    else if (r < 0.84) obstacles.push({ type: 'helo', x: lane, y: spawnY('helo'), z: 250, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
-    else if (r < 0.92) obstacles.push({ type: 'jet', x: lane, y: spawnY('jet'), z: 250, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
-    else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: 250, done: false });
-    else obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: 250, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
+    else if (r < 0.66) obstacles.push({ type: 'birds', x: lane, y: spawnY('birds'), z: SPAWN_Z, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
+    else if (r < 0.75) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
+    else if (r < 0.84) obstacles.push({ type: 'helo', x: lane, y: spawnY('helo'), z: SPAWN_Z, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
+    else if (r < 0.92) obstacles.push({ type: 'jet', x: lane, y: spawnY('jet'), z: SPAWN_Z, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
+    else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false });
+    else obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
     return;
   }
 
@@ -167,13 +167,13 @@ function spawn() {
   // mar quedaria vacio. Se le saca 6 puntos a la fragata y se los reparte a las AERONAVES
   // (helo 10→13, jet 8→11): la amenaza del mar se muda del palo al cielo, que es donde ahora
   // estan las capas (ver SPAWN_Y en data/tuning.js).
-  if (r < 0.28) obstacles.push({ type: 'mast', x: lane, h: SHIP_H, z: 250, ...mov('mast'), done: false, ph });
-  else if (r < 0.42) obstacles.push({ type: 'birds', x: lane, y: spawnY('birds'), z: 250, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
-  else if (r < 0.54) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: 250, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
-  else if (r < 0.67) obstacles.push({ type: 'helo', x: lane, y: spawnY('helo'), z: 250, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
-  else if (r < 0.78) obstacles.push({ type: 'jet', x: lane, y: spawnY('jet'), z: 250, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
-  else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: 250, done: false });
-  else obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: 250, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
+  if (r < 0.28) obstacles.push({ type: 'mast', x: lane, h: SHIP_H, z: SPAWN_Z, ...mov('mast'), done: false, ph });
+  else if (r < 0.42) obstacles.push({ type: 'birds', x: lane, y: spawnY('birds'), z: SPAWN_Z, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
+  else if (r < 0.54) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
+  else if (r < 0.67) obstacles.push({ type: 'helo', x: lane, y: spawnY('helo'), z: SPAWN_Z, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
+  else if (r < 0.78) obstacles.push({ type: 'jet', x: lane, y: spawnY('jet'), z: SPAWN_Z, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
+  else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false });
+  else obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
 }
 
 /** Avanza los relojes de aparicion y siembra cuando toca. */
@@ -207,8 +207,8 @@ export function spawnSystem(dt) {
     run.nextSoldier -= run.spd * dt;
     if (run.nextSoldier <= 0) {
       // en COSTA nacen cerca de la playa y corren hacia la izquierda (tierra adentro)
-      const lane = coast ? shoreAt(run.dist + 250) - SAND_W - 2 - Math.random() * 8 : Math.random() * 44 - 22;
-      squad(lane, 250, 2 + (Math.random() * 3 | 0), coast);
+      const lane = coast ? shoreAt(run.dist + SPAWN_Z) - SAND_W - 2 - Math.random() * 8 : Math.random() * 44 - 22;
+      squad(lane, SPAWN_Z, 2 + (Math.random() * 3 | 0), coast);
       run.nextSoldier = coast ? 26 + Math.random() * 34 : 40 + Math.random() * 55;
     }
   }

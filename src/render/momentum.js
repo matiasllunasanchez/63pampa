@@ -1,4 +1,6 @@
-// RENDER del MOMENTUM: el climax en primera persona (barcaza, zonas criticas, cabina y visor).
+// RENDER del ARENA VIEJO (fallback sin 3D de la fase ARENA): la barcaza en primera persona
+// sobre riel (barcaza, zonas criticas, cabina y visor). El ARENA nuevo (vuelo libre) tiene su
+// propio render en render/arena.js — esto es lo que corre con `?no3d` o si WebGL falla.
 //
 // El fondo 3D lo pone systems/three-world.js; aca va la capa 2D que se dibuja ENCIMA: el casco
 // (solo si el 3D no esta activo), las zonas que hay que destruir, los efectos y la cabina.
@@ -17,9 +19,9 @@ const COCKPIT_ASSET = { src: '../assets/planes/a4-skyhawk/cockpit.png', img: new
 COCKPIT_ASSET.img.onload = () => { COCKPIT_ASSET.ready = true; };
 COCKPIT_ASSET.img.src = COCKPIT_ASSET.src;
 
-// casco + superestructura de la barcaza (compartido: momentum y aproximacion en vuelo normal)
+// casco + superestructura de la barcaza (compartido: el ARENA VIEJO y la aproximacion en PASILLO)
 // `t` es el tiempo del juego: mueve la espuma de la linea de flotacion. Se recibe por parametro
-// (y no del snapshot) porque esta funcion tambien la usa la aproximacion en vuelo normal.
+// (y no del snapshot) porque esta funcion tambien la usa la aproximacion en PASILLO.
 export function drawBargeHull(cx0, len, deckY, uh, t) {
   const x0 = cx0 - len / 2, x1 = cx0 + len / 2, hullH = uh * 1.5;
   if (uh < 1.1) {   // muy lejos: silueta simple en el horizonte

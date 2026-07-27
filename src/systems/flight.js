@@ -29,6 +29,7 @@ const BOOST_LIFT = 2.2;
 import { multOf } from '../core/util.js';
 import { movesSystem, mvAllowsFire, mvAllowsTurbo } from './moves.js';
 import * as momentum from './momentum.js';
+import * as arena from './arena.js';
 import { engineFly, sfxOne, sfxSrc, beep, boom } from './audio.js';
 import { applyEnergy, applyDrag, speedTarget, windFactor, pitchTarget, scrapeLimit,
          PITCH_LERP, AFTER_STEP, AFTER_MAX, SCRAPE_RECOVER, SCRAPE_LIFT } from '../core/physics.js';
@@ -101,7 +102,12 @@ export function flightSystem(dt, deps) {
   //   - sin climax (distance): llegar a la distancia YA cierra la mision
   if (deps.objectiveDist > 0) {
     if (deps.needsMomentum) {
-      if (momentum.readyToEnter(run.dist, deps.objectiveDist)) { momentum.enter(); return 'momentum'; }
+      // CLIMAX: con 3D disponible, el asalto VOLADO (arena) — una sola entrada al 100%.
+      // Sin three/WebGL o con ?no3d (build web), el momentum clasico de pasadas queda
+      // como fallback intacto (decision 4 de PROMPT_MOMENTUM_3D.md).
+      if (arena.available()) {
+        if (arena.readyToEnter(run.dist, deps.objectiveDist)) { arena.enter(); return 'arena'; }
+      } else if (momentum.readyToEnter(run.dist, deps.objectiveDist)) { momentum.enter(); return 'momentum'; }
     } else if (run.dist >= deps.objectiveDist) return 'objective';
   }
 

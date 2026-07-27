@@ -12,7 +12,7 @@ import { run } from '../core/run.js';
 import { wake, obstacles, soldiers } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { P, LAND, CLAND } from '../data/palette.js';
-import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H } from '../data/tuning.js';
+import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
 import { mvTight } from '../data/moves.js';
@@ -443,8 +443,15 @@ function drawHpBar(sx, sy, k, o) {
 // EFECTO DE CERCANIA: ademas del escorzo de la perspectiva (k), las aeronaves llevan un zoom
 // EXTRA que arranca chico en el horizonte y crece al acercarse, con ease-in para que el salto se
 // sienta sobre el final ("se me viene encima"). Es arcade, no realista.
-const APPROACH_FAR = 200, APPROACH_NEAR = 40;    // z donde arranca y donde llega al maximo
-const APPROACH_MIN = 0.6, APPROACH_MAX = 1.12;   // multiplicador de escala lejos / encima
+// El efecto arranca en la PROFUNDIDAD DE APARICION: asi el crecimiento cubre todo el viaje del
+// bicho en vez de quedar clavado en el minimo durante el primer tercio (con FAR=200 y spawn a
+// 320, los primeros 120 de acercamiento no cambiaban de tamaño y se leian como un sprite fijo).
+const APPROACH_FAR = SPAWN_Z, APPROACH_NEAR = 40;   // z donde arranca y donde llega al maximo
+// MIN pasó de 0.6 a 0.85. El 0.6 le comia el 40% del tamaño justo cuando mas falta hacia verlo:
+// medido, un helicoptero entraba en pantalla con 3.7 px de ancho pegado a la linea del horizonte.
+// Sigue habiendo swell de cercania (0.85 → 1.12, un 32%), que es lo que daba el "se me viene
+// encima" — lo que se saco es el castigo a la lectura lejana, no el efecto.
+const APPROACH_MIN = 0.85, APPROACH_MAX = 1.12;   // multiplicador de escala lejos / encima
 // VIRAJE DEL HELICOPTERO: lejos viene DE FRENTE y al acercarse se pone DE COSTADO.
 const HELO_TURN_FAR = 150, HELO_TURN_NEAR = 55;  // z donde empieza y donde termina el viraje
 
@@ -1172,8 +1179,8 @@ export function drawSoldier(x, y, k, gait) {
   px(x - bw * 0.42, y - bh * 1.04, bw * 0.84, Math.max(1, p2 * 0.9), SOL.LIT);     // luz: tope del casco
 }
 
-// la barcaza objetivo VISIBLE en vuelo normal: aparece en el horizonte desde el 45% del recorrido
-// y crece hasta empalmar con la escala de la proxima pasada del momentum (es el final del mapa).
+// la barcaza objetivo VISIBLE en el PASILLO: aparece en el horizonte desde el 45% del recorrido
+// y crece hasta empalmar con la escala de la fase ARENA que viene (es el final del mapa).
 // EMERGE "hull-down": de lejos el horizonte tapa el casco y solo asoma la superestructura; a
 // medida que nos acercamos el corte baja y el barco se revela entero.
 export function drawApproachBarge(objectiveDist, objectiveShip) {
@@ -1273,7 +1280,10 @@ function hbBox(x, y, z, hw, hh, col, alpha) {
 
 export function drawHitboxes() {
   for (const o of obstacles) {
-    if (o.z <= 1 || o.z > 200) continue;
+    // hasta la profundidad de aparicion: si el overlay cortara antes (estaba en 200, de cuando el
+    // spawn tambien era mas cerca) los bichos recien nacidos se dibujarian SIN caja, que es
+    // exactamente la lectura que esta herramienta existe para desmentir
+    if (o.z <= 1 || o.z > SPAWN_Z) continue;
     if (o.type === 'trench') continue;                       // decorado: no colisiona
     if (o.type === 'birds') { hbBox(o.x, o.y, o.z, 4.5, 2.6, HB_SOFT); continue; }
     if (o.type === 'boom') {                                 // hongo: daña por altura creciente

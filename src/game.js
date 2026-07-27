@@ -12,6 +12,9 @@ import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, strea
 import { run, resetRun } from './core/run.js';
 import { proj, popup, explodeAt, bloodBurst } from './core/fx.js';
 import * as momentum from './systems/momentum.js';
+import * as arena from './systems/arena.js';
+import * as arena3D from './systems/three-arena.js';
+import * as arenaRender from './render/arena.js';
 import { spawnSystem } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
 import { inp, mouse, pointer, flags, initInput } from './core/input.js';
@@ -72,7 +75,7 @@ import { RUNWAYS } from './data/runways.js';
 
     // fija el layout de zonas del MOMENTUM segun la clase del buque
     // (MOM_LAYOUTS/SHIP_CLASS se definen mas abajo; esto solo corre al armar un run)
-    function useShip(s) { momentum.setLayout(s); return s; }
+    function useShip(s) { momentum.setLayout(s); arena.setShip(s); return s; }
     function randomShip() { return useShip(SHIPS[Math.floor(Math.random() * SHIPS.length)]); }
     // randomiza el mapa. No toca meters (se setea aparte, para pruebas).
     // SIN USO HOY: el ciclo de muerte pasó a jugar las MISSIONS, que traen su propia cfg. Se deja
@@ -95,7 +98,9 @@ import { RUNWAYS } from './data/runways.js';
     let modeSel = 0;                 // pantalla inicial: 0 = CAMPAÑA, 1 = CICLO DE MUERTE, 2 = SUPERVIVENCIA
     // el orden DEBE coincidir con `opts` en menus.drawModeSelect: el click traduce la fila tocada
     // a este indice. 'options' = pantalla de ajustes (idioma); 'quit' = fila SALIR.
-    const MODES = ['campaign', 'cycle', 'survival', 'options', 'quit'];
+    // 'arena' = BANCO DE PRUEBAS del climax: entra DIRECTO al asalto al buque, sin cruzar el
+    // vuelo. Existe para poder tunear el minijuego sin jugar una mision entera cada vez.
+    const MODES = ['campaign', 'cycle', 'survival', 'arena', 'options', 'quit'];
     let objectiveDist = 0;           // distancia meta puerto→barcaza (0 = sin objetivo / infinito)
     let objectiveShip = '';          // nombre de la barcaza objetivo del run
     const CAMPAIGN_PLANE = 0;        // avión fijo de campaña (0 = A-4 Skyhawk, protagonista)
@@ -121,8 +126,11 @@ import { RUNWAYS } from './data/runways.js';
     };
     function goalOf(m) { return GOALS[m.goal.kind] || GOALS.ship; }
 
-    function loadLevel(i) {
+    /** Carga la mision `i`. `keepCfg` NO pisa la config de mapa: lo usa MINUTOS SAGRADOS al
+     *  cambiar de buque, para no perder el FONDO/AGUA que elegiste para mirarlo. */
+    function loadLevel(i, keepCfg) {
       curLevel = Math.max(0, Math.min(MISSIONS.length - 1, i));
+      if (keepCfg) return;
       Object.assign(cfg, MISSIONS[curLevel].cfg); applyCfg();
     }
     function curMission() { return MISSIONS[curLevel]; }
@@ -130,6 +138,20 @@ import { RUNWAYS } from './data/runways.js';
     function goSurvival() { gameMode = 'survival'; cfgOpen = false; cfgRow = 0; setState('menu'); beep(600, 0.08, 'square', 0.05); }
     // CICLO DE MUERTE: las mismas misiones de la campaña, una al azar, sin el guion largo
     function goCycle() { gameMode = 'cycle'; cfgOpen = false; cfgRow = 0; randomMission(); setState('menu'); beep(600, 0.08, 'square', 0.05); }
+    // MINUTOS SAGRADOS: SOLO la batalla contra el buque, en su zona — el modo NO tiene camino.
+    // Pasa por el menu (avion + [M], donde se elige el BUQUE) y al arrancar salta DERECHO al
+    // asalto. Es un modo propio: nunca encadena a CICLO DE MUERTE ni al despegue.
+    function goArena() { gameMode = 'arena'; cfgOpen = false; cfgRow = 0; loadLevel(cfg.arenaShip); setState('menu'); beep(600, 0.08, 'square', 0.05); }
+    /** Arranca UNA batalla de MINUTOS SAGRADOS. Como el vuelo no se juega, `run.dist` nace EN el
+     *  objetivo y se entra al asalto directo.
+     *  `nextShip` sortea otro buque — es la SIGUIENTE batalla (el modo son batallas aleatorias);
+     *  sin el se repite el mismo, que es lo que corresponde al REINTENTAR la que perdiste. */
+    function startArenaBattle(nextShip) {
+      if (nextShip) { cfg.arenaShip = (Math.random() * MISSIONS.length) | 0; loadLevel(cfg.arenaShip, true); }
+      reset(); setRunObjective(true);
+      run.dist = objectiveDist;
+      arena.enter(); sfxOne('lv1');
+    }
     // arranca una SECUENCIA de pantallas (clave del guion en STRINGS: 'storyIntro', 'storyL1'…)
     function initStory(key) {
       story = { seq: L()[key] || STRINGS.es[key] || [], si: 0 };
@@ -176,6 +198,7 @@ import { RUNWAYS } from './data/runways.js';
       const m = MODES[modeSel];
       if (m === 'campaign') startCampaign();
       else if (m === 'cycle') goCycle();
+      else if (m === 'arena') goArena();
       else if (m === 'options') { setState('options'); beep(600, 0.06, 'square', 0.05); }
       else if (m === 'quit') quitGame();
       else goSurvival();
@@ -205,7 +228,7 @@ import { RUNWAYS } from './data/runways.js';
     // define el objetivo del run según el modo (campaña/ciclo: el goal de la mision; supervivencia: infinito)
     // `keepMusic` solo lo pasa el REINTENTO tras un derribo: ahi la musica sigue sonando.
     function setRunObjective(keepMusic) {
-      if (gameMode === 'campaign' || gameMode === 'cycle') {
+      if (gameMode === 'campaign' || gameMode === 'cycle' || gameMode === 'arena') {
         const m = curMission(), g = goalOf(m);
         objectiveDist = g.dist(m.goal) * QA_DIST;
         objectiveShip = g.label(m.goal);
@@ -221,6 +244,10 @@ import { RUNWAYS } from './data/runways.js';
     // ---------- MENÚ DE CONFIGURACIÓN DE MAPA [M] (herramienta para prototipar niveles) ----------
     const CFG_ROWS = [
       { label: 'METROS', opts: [800, 1500, 3000, 5000, 8000], names: ['800 m', '1500 m', '3000 m', '5000 m', '8000 m'], get: () => cfg.meters, set: v => cfg.meters = v, cycleOnly: true },
+      // BUQUE: solo en ARENA — elegir el blanco es lo que permite probar los tres layouts de
+      // zonas (t42 / t21 / log) sin depender del sorteo de misiones.
+      { label: 'BUQUE', opts: MISSIONS.map((m, i) => i), names: MISSIONS.map(m => m.name),
+        get: () => cfg.arenaShip, set: v => { cfg.arenaShip = v; loadLevel(v, true); }, arenaOnly: true },
       { label: 'FONDO', opts: ['dusk', 'night', 'storm', 'clear', 'cloudy'], names: ['ATARDECER', 'NOCHE', 'TORMENTA', 'DESPEJADO', 'NUBLADO'], get: () => cfg.sky, set: v => { cfg.sky = v; applyCfg(); } },
       // elegir COSTA trae su clima: dia nublado de desembarco (el FONDO se puede cambiar despues)
       { label: 'TERRENO', opts: ['sea', 'land', 'coast'], names: ['MAR', 'TIERRA', 'COSTA'], get: () => cfg.terrain, set: v => { cfg.terrain = v; if (v === 'coast') { cfg.sky = 'cloudy'; applyCfg(); } } },
@@ -258,8 +285,11 @@ import { RUNWAYS } from './data/runways.js';
       { label: 'MIRA', opts: MIRA_IDS, names: MIRA_IDS.map(String), preview: 'mira',
         get: () => cfg.mira, set: v => { cfg.mira = v; try { localStorage.setItem('rasante_mira', v); } catch (e) { } } },
     ];
-    // filas visibles según el modo (METROS solo en ciclo de muerte)
-    function getCfgRows() { return CFG_ROWS.filter(r => !r.cycleOnly || gameMode === 'cycle'); }
+    // filas visibles según el modo (METROS solo en ciclo de muerte, BUQUE solo en arenas)
+    function getCfgRows() {
+      return CFG_ROWS.filter(r => (!r.cycleOnly || gameMode === 'cycle')
+                               && (!r.arenaOnly || gameMode === 'arena'));
+    }
     let cfgOpen = false, cfgRow = 0;
     function cfgChange(dir) {
       const r = getCfgRows()[cfgRow];
@@ -340,6 +370,7 @@ import { RUNWAYS } from './data/runways.js';
       resetStats();     // los contadores del recuento final
       clearWorld();     // vacia el campo de obstaculos, balas, particulas…
       momentum.resetMomentum();
+      arena.resetArena();
       // el ESCUADRON de la corrida: cfg.squad aviones y vos de lider. Vive en `run` (no en el
       // sistema) porque lo leen HUD + relevo + este archivo.
       run.squad = run.lives = cfg.squad;
@@ -469,6 +500,9 @@ import { RUNWAYS } from './data/runways.js';
       },
       launchMissile: () => tryLaunchMissile(),
       cycleCamera: () => {
+        // en el ARENA la misma tecla conmuta cabina ↔ tercera persona (decision del prompt:
+        // toggle EN VIVO, no una opcion de menu)
+        if (S.state === 'arena') { arena.toggleView(); return; }
         camMode = (camMode + 1) % CAM_ZOOMS.length;
         beep(440 + camMode * 120, 0.05, 'square', 0.04);
         if (S.state === 'play' || S.state === 'takeoff') popup(W / 2, 58, camMode ? 'CAM ' + CAM_ZOOMS[camMode] + '×' : 'CAM 1×', P.accent);
@@ -585,6 +619,7 @@ import { RUNWAYS } from './data/runways.js';
     // lanza un misil del jugador (arma secundaria: limitada, one-shot, con leve guiado)
     function tryLaunchMissile() {
       if (S.state === 'momentum') return momentum.launchMissile(mouse);   // primera persona: misil del momentum
+      if (S.state === 'arena') return arena.launchMissile();              // asalto volado: dispara por el MORRO
       if (S.state !== 'play' || run.msl <= 0 || run.mslCd > 0) return;
       let tx = plane.x, td = 42;                                  // engancha el blanco aereo mas cercano adelante
       const vm = viewMouse();
@@ -777,6 +812,17 @@ import { RUNWAYS } from './data/runways.js';
           flags.startReq = false; flags.anyPress = false;
           return;
         }
+        if (S.state === 'arena') {
+          // ASALTO VOLADO (climax 3D): misma disciplina de señales que el momentum. Un flak
+          // encima devuelve { death } y el embudo decide: relevo del escuadron (y se re-entra
+          // al arena con el daño hecho intacto) o derribo final.
+          run.shake = Math.max(0, run.shake - dt * 10);
+          const sig = arena.update(dt, inp, mouse);
+          if (sig === 'objective') finishObjective();
+          else if (sig && sig.death) onDeath(sig.death);
+          flags.startReq = false; flags.anyPress = false;
+          return;
+        }
         if (S.state === 'story') {
           // HISTORIA: tipeo letra a letra con tick de maquina de escribir; una tecla/tap
           // completa el texto, y con el texto completo la siguiente arranca el despegue con FADE
@@ -798,15 +844,23 @@ import { RUNWAYS } from './data/runways.js';
         } else if (S.state === 'menu') {
           // el menú lo comparten SUPERVIVENCIA y CICLO DE MUERTE
           if (flags.startReq) {
-            reset(); setRunObjective();
-            // ciclo: pasa por el briefing corto de la mision; supervivencia: derecho al despegue
-            if (gameMode === 'cycle') { briefT = 0; setState('brief'); beep(600, 0.08, 'square', 0.05); }
-            else { setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+            // MINUTOS SAGRADOS: derecho a la batalla, con el buque elegido en [M]
+            if (gameMode === 'arena') startArenaBattle(false);
+            else {
+              reset(); setRunObjective();
+              // ciclo: briefing corto de la mision; POR LA PATRIA: derecho al despegue
+              if (gameMode === 'cycle') { briefT = 0; setState('brief'); beep(600, 0.08, 'square', 0.05); }
+              else { setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+            }
           }
         } else if (S.state === 'dead') {
           // solo se puede reintentar una vez que subio la pantalla (paso el show del destrozo)
           // reintenta (mismo modo/nivel). La musica NO se reinicia: sigue desde donde venia.
-          if (deathT > DEATH_REVEAL && flags.anyPress) { reset(); setRunObjective(true); setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+          if (deathT > DEATH_REVEAL && flags.anyPress) {
+            // MINUTOS SAGRADOS reintenta LA BATALLA (mismo buque): no hay despegue al que volver
+            if (gameMode === 'arena') startArenaBattle(false);
+            else { reset(); setRunObjective(true); setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+          }
         } else if (S.state === 'relevo') {
           // RELEVO DEL ESCUADRON. Los restos del lider ya los movio el bloque comun de arriba
           // (inercia de chunks y bola de fuego, el mismo camino del derribado). El resto del
@@ -825,6 +879,18 @@ import { RUNWAYS } from './data/runways.js';
             // lo que cruzo el plano del avion DURANTE la cinematica ya paso de largo: sin esto,
             // collision lo veria "sin resolver" en el primer frame y podria matar en el handoff
             for (const o of obstacles) if (o.z <= PZ + 1.5) o.done = true;
+            // si el companero releva DENTRO del asalto, vuelve AL ASALTO — con el daño ya hecho
+            // al buque (las zonas viven en el subsistema, no en la instancia). Pasar por 'play'
+            // funcionaba de rebote (flight re-detectaba el objetivo), pero metia un frame del
+            // mundo de vuelo en el medio.
+            if (arena.available() && objectiveDist > 0 && run.dist >= objectiveDist) {
+              arena.enter();
+              popup(W / 2, 54, T('sq_yours'), P.accent);
+              if (run.lives === 1) popup(W / 2, 64, T('sq_last'), P.warn);
+              beep(980, 0.14, 'square', 0.06);
+              flags.startReq = false; flags.anyPress = false;
+              return;
+            }
             setState('play');
             popup(W / 2, 54, T('sq_yours'), P.accent);
             if (run.lives === 1) popup(W / 2, 64, T('sq_last'), P.warn);
@@ -857,6 +923,11 @@ import { RUNWAYS } from './data/runways.js';
                 const keep = run.score; loadLevel(curLevel + 1); reset(); run.score = keep;
                 setRunObjective(); setState(enterMission());
               } else { setState('victory'); levelT = 0; }
+            } else if (gameMode === 'arena') {
+              // MINUTOS SAGRADOS: otra BATALLA al azar. Este modo no tiene camino — encadenarlo
+              // al briefing lo mandaba a volar una mision entera de CICLO DE MUERTE, que es
+              // OTRO modo.
+              startArenaBattle(true);
             } else {
               // ciclo de muerte: otra mision al azar, desde cero
               randomMission(); reset(); setRunObjective(); briefT = 0; setState('brief');
@@ -911,7 +982,7 @@ import { RUNWAYS } from './data/runways.js';
       // needsMomentum: si el objetivo del run culmina en el climax (barco) o con solo llegar (distancia)
       const needsMomentum = (gameMode === 'campaign' || gameMode === 'cycle') ? goalOf(curMission()).needsMomentum : true;
       const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist, needsMomentum });
-      if (fs === 'momentum') return;                 // ya entro al climax
+      if (fs === 'momentum' || fs === 'arena') return;   // ya entro al climax
       if (fs === 'objective') { finishObjective(); return; }
       if (fs && fs.death) { onDeath(fs.death); return; }
       spawnSystem(dt);                   // aparicion de obstaculos y soldados (nunca corta el frame)
@@ -964,10 +1035,11 @@ import { RUNWAYS } from './data/runways.js';
         ctx.save();
         ctx.translate(zc.x, zc.y); ctx.scale(camZ, camZ); ctx.translate(-zc.x, -zc.y);
       }
-      // MUNDO 3D (three.js): en MOMENTUM el fondo completo (cielo+mar+BARCO, flag MOM3D.on);
-      // en vuelo normal sobre mar abierto solo cielo+mar (flag MOM3D.sea). El blit va DENTRO
-      // de los transforms (roll/paneo/zoom/shake le pegan al 3D); la capa 2D va encima.
-      // Sin THREE/WebGL o con ?no3d, ambas flags quedan false y pinta el 2D de siempre.
+      // MUNDO 3D (three.js) del fallback: en el ARENA VIEJO (momentum.js) el fondo completo
+      // (cielo+mar+BARCO, flag MOM3D.on); en PASILLO sobre mar abierto solo cielo+mar (flag
+      // MOM3D.sea). El blit va DENTRO de los transforms (roll/paneo/zoom/shake le pegan al 3D);
+      // la capa 2D va encima. Sin THREE/WebGL o con ?no3d, ambas flags quedan false y pinta el
+      // 2D de siempre. La fase ARENA (vuelo libre) usa su PROPIA escena — ver mas abajo.
       world3D.frame({ state: S.state, mom: momentum.active(), dist: run.dist, momDrift: momentum.drift(), cfg, cam, t: run.t, SKY: theme.sky, WATER: theme.water, objectiveShip, seaH: world.seaH, momShipGeom: momentum.shipGeom, tbackImg });
       if (world3D.isOn() || world3D.isSea()) {
         const sm = ctx.imageSmoothingEnabled;
@@ -975,8 +1047,19 @@ import { RUNWAYS } from './data/runways.js';
         ctx.drawImage(world3D.view(), -108, -153, world3D.M3W, world3D.M3H);
         ctx.imageSmoothingEnabled = sm;
       }
+      // ARENA: mundo 3D de VUELO LIBRE (escena propia, ver systems/three-arena.js). Se rinde a
+      // la grilla del juego y se blitea 1:1 — sin la equivalencia con proj() del momentum, que
+      // aca no aplica: la camara va donde va el avion.
+      arena3D.frame({ state: S.state, arena: arena.active(), view: arena.view(), cfg, t: run.t,
+                      SKY: theme.sky, WATER: theme.water, objectiveShip, seaH: world.seaH });
+      if (arena3D.isOn()) {
+        const sm = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(arena3D.view(), 0, 0, W, H);
+        ctx.imageSmoothingEnabled = sm;
+      }
 
-      if (!world3D.isOn()) {   // ---- mundo 2D: en momentum-3D todo este bloque lo reemplaza el blit de arriba ----
+      if (!world3D.isOn() && !arena3D.isOn()) {   // ---- mundo 2D: en el climax 3D lo reemplaza el blit de arriba ----
       // cielo y sol 2D: en mar-abierto-3D los pone three (nubes/islas siguen 2D encima)
       const tbA = tbackImg();                  // imagen de fondo del clima (si esta cargada)
       const tb2 = world3D.isSea() ? null : tbA;      // en mar-3D la pinta el telon de three
@@ -1141,9 +1224,9 @@ import { RUNWAYS } from './data/runways.js';
       }
       }   // ---- fin mundo 2D ----
 
-      if (S.state !== 'dead' && S.state !== 'momentum') drawPlane(selPlane, viewMouse, squadZoom());   // en momentum va la camara cockpit (drawCockpit)
+      if (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena') drawPlane(selPlane, viewMouse, squadZoom());   // en el ARENA (nuevo o fallback) el avion lo pone su propio render
       // la FORMACION del escuadron: SOLO en el despegue y en su salida de plano al CONTROL
-      // LIBRE. Nunca en vuelo normal — es costo de render que no aporta y taparia el juego.
+      // LIBRE. Nunca durante el PASILLO en si — es costo de render que no aporta y taparia el juego.
       {
         const ex = squad.exitState();
         if (run.squad > 1 && cfg.start !== 'air' && (S.state === 'takeoff' || (S.state === 'play' && ex !== null)))
@@ -1160,9 +1243,9 @@ import { RUNWAYS } from './data/runways.js';
       }
       ctx.globalAlpha = 1;
 
-      // en momentum, particulas y popups los dibuja drawMomentum (nivelados, sobre el barco);
-      // dibujarlos tambien aca dejaria una copia fantasma (el mundo del momentum va rotado por el alabeo)
-      if (S.state !== 'momentum') {
+      // en momentum/arena, particulas y popups los dibuja su propio render (nivelados, sobre el
+      // barco); dibujarlos tambien aca dejaria una copia fantasma
+      if (S.state !== 'momentum' && S.state !== 'arena') {
         for (const p of parts) { ctx.globalAlpha = Math.min(1, p.life * 2); px(p.x, p.y, p.r, p.r, p.c); }
         ctx.globalAlpha = 1;
 
@@ -1184,6 +1267,9 @@ import { RUNWAYS } from './data/runways.js';
         mom: momentum.active(), momPhase: momentum.phase(), phases: momentum.phases(), msl: run.msl, objectiveShip, t: run.t,
         is3D: world3D.isOn(), parts, popups, mouse,
         momCam: momentum.cam, momShipGeom: momentum.shipGeom, momZoneRect: momentum.zoneRect });
+      if (S.state === 'arena' && arena.active()) arenaRender.drawArena({
+        arena: arena.active(), zones: arena.zonesOf(), view: arena.view(), objectiveShip,
+        parts, popups, selPlane, t: run.t });
       ctx.restore();
 
       // MENUS Y PANTALLAS: tambien en grilla de diseño (320x180), escaladas por U

@@ -8,13 +8,14 @@
 // con lo que necesita del mundo. Si three.js no cargo (o ?no3d), todo esto se saltea solo y
 // rige el dibujo 2D de siempre.
 import { SHIP_CLASS } from '../data/ships.js';
+import { buildShips } from './ship3d.js';
 
 // Las medidas se IMPORTAN de render/ctx.js: antes estaban copiadas aca (W=320, HOR=64, F=90) y si
 // cambiaba la resolucion el 3D se desalineaba del 2D sin tirar ningun error.
 import { W, HOR, F } from '../render/ctx.js';
 
 const THREE = window.THREE || null;
-const has3D = !!THREE && !/\bno3d\b/.test(location.search);   // ?no3d fuerza el fallback 2D (pruebas)
+export const has3D = !!THREE && !/\bno3d\b/.test(location.search);   // ?no3d fuerza el fallback 2D (pruebas)
 
 // Durante el momentum, three.js renderiza el FONDO (cielo + mar + barco 3D de cajas) a baja
 // resolucion y el resultado se blitea DENTRO del mismo transform del canvas que rotaba el
@@ -78,7 +79,7 @@ function mom3DInit() {
     sun.position.set(0, 175, -2350); sc.add(sun);
     MOM3D.sun = sun;   // la x se mueve por frame para clavar el parallax del sol 2D (cam.x*1.4)
     // malla segmentada: los vertices se desplazan por frame → OLAS reales (con el t
-    // ralentizado del momentum ondulan en camara lenta; en vuelo normal, a ritmo real)
+    // ralentizado del ARENA VIEJO ondulan en camara lenta; en PASILLO, a ritmo real)
     // plano LEJANO: fondo del mar hasta el horizonte, COLOR PLANO (sin textura: las motas
     // repetidas a distancia eran una banda de ruido feo). Ancho 13500: cubre todo el campo
     // visual hasta la niebla (a 2450u hacen falta ±6300). El parche se funde a este color.
@@ -119,8 +120,8 @@ function mom3DInit() {
     patch.frustumCulled = dots.frustumCulled = false;        // las grillas se reubican por frame
     MOM3D.dotsMat = dots.material; MOM3D.patch = patch; MOM3D.dots = dots;
     // AGUA REALISTA (addon three/Water): normal maps animados en GPU, reflejo del cielo y
-    // BRILLO DEL SOL. En vuelo normal vive de fondo (el glint aparece camino al horizonte,
-    // mas alla del parche); en MOMENTUM toma toda la superficie y el BARCO SE REFLEJA.
+    // BRILLO DEL SOL. En PASILLO vive de fondo (el glint aparece camino al horizonte,
+    // mas alla del parche); en el ARENA VIEJO toma toda la superficie y el BARCO SE REFLEJA.
     // Reemplaza al plano lejano plano; si el addon faltara, este queda como respaldo.
     MOM3D.waterFlat = water;
     if (THREE.Water && MIRROR_SEA) {
@@ -161,66 +162,17 @@ function mom3DInit() {
     const dl = new THREE.DirectionalLight(0xe8c07a, 1.7); dl.position.set(-320, 380, 260); sc.add(dl);
     const rim = new THREE.DirectionalLight(0xb06a35, 0.6); rim.position.set(120, 140, -600); sc.add(rim);
 
-    // barcos POR CLASE (t42/t21/log): casco comun + superestructura propia. Las masas de
-    // cada zona critica se colocan EXACTO en sus coordenadas de layout (u,v,w,h de
-    // MOM_LAYOUTS, misma matematica que momZoneRect) → los corchetes 2D envuelven
-    // geometria 3D real en las tres clases. Se muestra el de SHIP_CLASS[objectiveShip].
-    const L = M3_LEN, U = M3_U;
-    // caja en coords de ZONA: centro x=u*L/2, base v*U sobre cubierta, tamano (w*L, h*U)
-    const m3zone = (g2, u, v, w2, h2, depth, color) =>
-      m3box(g2, w2 * L, h2 * U, depth, color, u * L / 2, (v + h2 / 2) * U, 0);
-    const m3hull = () => {
-      const g2 = new THREE.Group();
-      m3box(g2, L, U * 3, U * 3.4, '#39434e', 0, -U * 1.5, 0);                 // casco
-      m3box(g2, L * 0.995, U * 0.3, U * 3.5, '#5c6e73', 0, -U * 0.14, 0);      // cubierta
-      m3box(g2, U * 0.8, U * 1.9, U * 2.2, '#39434e', -L / 2 - U * 0.38, -U * 1.0, 0);  // proa
-      m3box(g2, U * 0.55, U * 1.8, U * 2.4, '#39434e', L / 2 + U * 0.26, -U * 1.05, 0); // popa
-      return g2;
-    };
-    const ships = {};
-    {   // Destructor Tipo 42 (SHEFFIELD/COVENTRY): AA proa+popa, mastil con radar, puente
-      const s2 = ships.t42 = m3hull();
-      m3zone(s2, -0.05, 1, 0.20, 2, U * 2.6, '#454f56');                        // puente (zona)
-      m3box(s2, L * 0.16, U * 0.45, U * 2.65, '#8fd0e0', -L * 0.025, U * 2.55, 0); // ventanas
-      m3box(s2, L * 0.05, U * 1.8, U * 1.1, '#454f56', L * 0.185, U * 0.9, 0);  // chimenea
-      m3box(s2, L * 0.012, U * 2.7, L * 0.012, '#454f56', L * 0.05, U * 1.35, 0); // mastil
-      m3zone(s2, 0.10, 2.7, 0.11, 1.5, L * 0.03, '#525d66');                    // radar (zona)
-      for (const s3 of [-0.52, 0.52]) {                                          // AA (zonas)
-        m3zone(s2, s3, 0, 0.15, 1.3, U * 1.5, '#3d474d');
-        m3box(s2, L * 0.016, U * 0.6, L * 0.016, '#2b3338', s3 * L / 2, U * 1.55, U * 0.55);
-      }
-    }
-    {   // Fragata Tipo 21 (ARDENT/ANTELOPE): silueta baja, radar chico, MOTORES al casco
-      const s2 = ships.t21 = m3hull();
-      m3box(s2, L * 0.30, U * 1.6, U * 2.4, '#49545e', -L * 0.05, U * 0.8, 0);  // superestructura baja
-      m3box(s2, L * 0.13, U * 0.4, U * 2.45, '#8fd0e0', -L * 0.05, U * 1.55, 0); // ventanas
-      m3box(s2, L * 0.012, U * 2.7, L * 0.012, '#454f56', L * 0.05, U * 1.35, 0); // mastil
-      m3zone(s2, 0.10, 2.7, 0.09, 1.3, L * 0.025, '#525d66');                   // radar chico (zona)
-      for (const e of [{ u: -0.30 }, { u: 0.26 }]) {                             // MOTORES (zonas, al casco)
-        m3zone(s2, e.u, -0.3, 0.14, 1.2, U * 2.0, '#333d46');
-        m3box(s2, L * 0.05, U * 1.1, U * 0.9, '#49545e', e.u * L / 2, U * 1.15, 0);  // escape
-      }
-      for (const s3 of [-0.52, 0.52]) m3zone(s2, s3, 0, 0.15, 1.3, U * 1.4, '#3d474d'); // AA (zonas)
-    }
-    {   // Logistico (SIR GALAHAD/CONVEYOR): contenedores, AA unica, DEPOSITO, puente a popa
-      const s2 = ships.log = m3hull();
-      m3zone(s2, 0.32, 1, 0.16, 2, U * 2.6, '#4a5058');                         // puente a popa (zona)
-      m3box(s2, L * 0.13, U * 0.45, U * 2.65, '#8fd0e0', L * 0.16, U * 2.55, 0); // ventanas
-      m3zone(s2, 0.05, 0, 0.30, 1.6, U * 2.8, '#5a5344');                       // DEPOSITO (zona)
-      const crates = ['#6b4a3a', '#44553f', '#3d4a58', '#5a5344'];               // contenedores
-      for (let i2 = 0; i2 < 5; i2++)
-        m3box(s2, L * 0.055, U * 0.55, U * (1.6 + (i2 % 2)), crates[i2 % 4],
-          -L * 0.06 + i2 * L * 0.055, U * (1.6 + 0.28), 0);
-      m3zone(s2, -0.30, 0, 0.15, 1.3, U * 1.5, '#3d474d');                      // AA unica (zona)
-      m3box(s2, L * 0.012, U * 2.4, L * 0.012, '#454f56', -L * 0.12, U * 1.2, 0); // pluma/grua
-    }
+    // BUQUES por clase: el modelo (y sus zonas criticas etiquetadas) vive en systems/ship3d.js,
+    // compartido con el ARENA — una sola fuente para el layout. Aca se pide a la escala de esta
+    // escena (M3_LEN), donde una unidad son ~2.8 m.
+    const ships = buildShips(THREE, M3_LEN);
     for (const k in ships) { ships[k].position.set(0, M3_DECK, -60); ships[k].visible = false; sc.add(ships[k]); }
 
     // restos flotando alrededor del barco (bob lento en camara lenta; siguen la z del barco)
     const debris = new THREE.Group();
     for (let i2 = 0; i2 < 9; i2++) {
       const d2 = m3box(debris, 0.9 + (i2 % 3) * 0.7, 0.4, 0.8 + (i2 % 2) * 0.6,
-        i2 % 2 ? '#2c343c' : '#3f3a30', (i2 / 8 - 0.5) * L * 1.9, 0, ((i2 * 37) % 40) - 14);
+        i2 % 2 ? '#2c343c' : '#3f3a30', (i2 / 8 - 0.5) * M3_LEN * 1.9, 0, ((i2 * 37) % 40) - 14);
       d2.rotation.y = i2 * 0.7;
     }
     debris.position.y = M3_WATER + 0.15; sc.add(debris);
@@ -232,11 +184,16 @@ function mom3DInit() {
     r.render(sc, cam);    // render de CALENTAMIENTO: compila los shaders ahora (con texturas
                           // ya asignadas) y no en el primer frame sobre el mar → sin trabada
     return true;
-  } catch (e) { MOM3D.failed = true; return false; }   // sin WebGL → fallback 2D
+  } catch (e) { console.warn('M3INIT FAIL', e && e.message, e && e.stack); MOM3D.failed = true; return false; }   // sin WebGL → fallback 2D
 }
 // (re)pinta las texturas 3D con la paleta VIGENTE (SKY/WATER); corre en cada frame 3D
 // pero solo trabaja cuando cambio la config del mapa (FONDO o AGUA)
 function m3Palette(w) {
+  // sin snapshot no hay paleta que pintar (el render de calentamiento de mom3DInit llama sin
+  // argumento). OJO: este guard arregla un bug MUDO — antes el init tiraba aca, el catch
+  // marcaba `failed` y como `ready` ya estaba seteado nadie lo notaba... hasta que available()
+  // empezo a leer `failed` para decidir si el ARENA puede entrar.
+  if (!w) return;
   const key = w.cfg.sky + '|' + w.cfg.water;
   if (MOM3D.palKey === key) return;
   MOM3D.palKey = key;
@@ -291,8 +248,8 @@ function m3Palette(w) {
   }
 }
 // un frame del mundo 3D. Dos modos, mismas escena/camara:
-//  - MOMENTUM (MOM3D.on): fondo completo con el BARCO, camara fija (el roll lo pone el canvas)
-//  - MAR ABIERTO (MOM3D.sea): cielo+mar en vuelo normal; la camara replica la del juego
+//  - EL ARENA VIEJO (MOM3D.on): fondo completo con el BARCO, camara fija (el roll lo pone el canvas)
+//  - MAR ABIERTO (MOM3D.sea): cielo+mar durante el PASILLO; la camara replica la del juego
 //    ((w.cam.x, w.cam.y) en metros sobre el nivel del mar) y el barco de aproximacion sigue en 2D.
 // false ⇒ nada de 3D este frame: dibujar el fondo 2D de siempre.
 export function frame(w) {
@@ -304,7 +261,7 @@ export function frame(w) {
   const wantSea = SEA3D_FLIGHT && !wantMom
     && (w.state === 'play' || w.state === 'takeoff' || w.state === 'dead' || w.state === 'relevo')
     && w.cfg.terrain === 'sea' && (w.dist + w.momDrift) >= w.cfg.coast + 80;
-  if ((!wantMom && !wantSea) || !mom3DInit()) return false;
+  if ((!wantMom && !wantSea) || !useRenderer(M3W, M3H)) return false;
   m3Palette(w);   // repinta cielo/sol/mar si cambio FONDO/AGUA
   // barcos y restos: solo existen en el momentum
   const cls = SHIP_CLASS[w.objectiveShip] || 't42';
@@ -312,21 +269,22 @@ export function frame(w) {
   MOM3D.debris.visible = wantMom;
   if (wantMom) {
     MOM3D.ship = MOM3D.ships[cls];
-    const g = w.momShipGeom();
-    const D = M3_LEN * F / g.len;                        // acercamiento FISICO: D = L*F/len_px
-    MOM3D.ship.position.z = -D;
-    MOM3D.debris.position.z = -D;                        // restos cabeceando junto al barco
     for (let i = 0; i < MOM3D.debris.children.length; i++) {
       const d2 = MOM3D.debris.children[i];
       d2.position.y = Math.sin(w.t * 1.2 + i * 1.9) * 0.45;
       d2.rotation.z = Math.sin(w.t * 0.9 + i * 2.6) * 0.14;
       d2.rotation.x = Math.sin(w.t * 1.05 + i * 1.3) * 0.11;
     }
+    const g = w.momShipGeom();
+    const D = M3_LEN * F / g.len;                          // acercamiento FISICO: D = L*F/len_px
+    MOM3D.ship.position.z = -D;
+    MOM3D.debris.position.z = -D;                          // restos cabeceando junto al barco
     MOM3D.cam.position.set(0, 0, 0);
     MOM3D.on = true;
   } else {
     // camara del juego: w.cam.y son metros de altitud; el plano del agua vive en M3_WATER
     MOM3D.cam.position.set(w.cam.x, w.cam.y + M3_WATER, 0);
+    MOM3D.cam.rotation.set(0, 0, 0);
     MOM3D.sea = true;
   }
   // el sol replica el parallax del 2D (pantalla: W/2 - w.cam.x*1.4) — sin salto en la transicion
@@ -334,7 +292,7 @@ export function frame(w) {
   // y el telon acompaña con el parallax suave del fondo-imagen (x0.8, como el 2D)
   MOM3D.sky.position.x = MOM3D.cam.position.x - 21.8 * w.cam.x;
   const dv2 = w.dist + w.momDrift;   // el drift/avance lo llevan las olas del parche (wz = dv2 + camZ)
-  // mar de CUADRADOS en todos lados (vuelo normal y momentum) — el look del juego.
+  // mar de CUADRADOS en todos lados (PASILLO y ARENA VIEJO) — el look del juego.
   // Si MIRROR_SEA esta activo, el espejo reemplaza todo (parche/puntos/plano ocultos).
   if (MOM3D.waterR) {
     MOM3D.waterR.material.uniforms.time.value = w.t * 0.8;   // ondulacion GPU (t lento en momentum → slow-mo)
@@ -417,3 +375,13 @@ export function isSea() { return MOM3D.sea; }
 export function view() { return MOM3D.renderer.domElement; }
 /** Fuerza el repintado del telon: lo llama game.js cuando termina de cargar un fondo por clima. */
 export function invalidatePalette() { MOM3D.palKey = ''; }
+
+/** El RENDERER, compartido con la escena del ARENA (systems/three-arena.js). Un solo contexto
+ *  WebGL para las dos escenas: cada una pide el tamaño que necesita antes de dibujar (nunca
+ *  corren en el mismo frame, son estados distintos del juego). null si no hay 3D. */
+export function useRenderer(w2, h2) {
+  if (!mom3DInit()) return null;
+  const r = MOM3D.renderer;
+  if (r.__w !== w2 || r.__h !== h2) { r.setSize(w2, h2, false); r.__w = w2; r.__h = h2; }
+  return r;
+}

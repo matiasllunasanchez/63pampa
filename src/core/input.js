@@ -115,7 +115,7 @@ export function initInput(cv, a) {
       if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
     }
     // MODO CAMARA: la partida no termina nunca sola (avion inmortal) — se sale con ESCAPE.
-    // Solo en ese modo: en juego normal Escape sigue sin hacer nada durante el vuelo.
+    // Solo en ese modo: en el PASILLO normal Escape sigue sin hacer nada durante el vuelo.
     if (S.state === 'play' && cfg.devcam && isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
     // PIRUETAS: cada toque direccional fresco alimenta el detector de combos (ver dirTap)
     if (!e.repeat && S.state === 'play') {
@@ -159,7 +159,7 @@ export function initInput(cv, a) {
       return;
     }
     // PC (mouse): click izq = canon sostenido, click der = misil — en juego y momentum
-    if (e.pointerType === 'mouse' && (S.state === 'play' || S.state === 'momentum')) {
+    if (e.pointerType === 'mouse' && (S.state === 'play' || S.state === 'momentum' || S.state === 'arena')) {
       if (e.button === 2) a.launchMissile();
       else { zonePtr.set(e.pointerId, 'fire'); inp.fire = true; }
       return;
@@ -236,7 +236,7 @@ export function initInput(cv, a) {
     if (hit(10)) a.trackPrev();
     if (hit(11)) a.trackNext();
 
-    const inGame = S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum';
+    const inGame = S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum' || S.state === 'arena';
     if (inGame) {
       const lx = ax(0), ly = ax(1);
       // COMBOS con el pad: el FLANCO de cada direccion (stick cruzando la zona muerta, o la

@@ -50,6 +50,9 @@ export const cfg = {
   // ARRANQUE. 'runway' = despegue clasico desde la base. 'air' = la mision empieza YA VOLANDO,
   // sin plataforma: son las misiones de REGRESO, donde el avion vuelve del ataque.
   start: 'runway',
+  // ARENA (banco de pruebas del climax): que buque se ataca. Indice de data/missions.js; solo
+  // lo usa ese modo — es lo que permite probar los tres layouts de zonas sin depender del sorteo.
+  arenaShip: 0,
   // PIRUETAS de combate (data/moves.js): los combos de dos toques (split-s, break turn, jink...).
   // Se pueden apagar si los combos verticales molestan al bombear gas. El tonel clasico
   // (doble-tap lateral) queda SIEMPRE: es la mecanica original del juego, no una pirueta nueva.

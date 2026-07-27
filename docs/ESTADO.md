@@ -139,6 +139,34 @@ te frena (viento), te expone (radar) y te sacude (turbulencia). No hay refugio g
   = envolvente de colisión, así que todo jet que pueda chocarte también es derribable). Sprite frontal
   placeholder (alas anchas con leve alabeo, fuselaje/canopy, deriva, nariz roja) en `drawObstacle`.
   Verificado por simulación: 0 muertes por colisión al disparar en todo el barrido de altura/velocidad/offset.
+- **⚠️ VOCABULARIO (27/7/2026): PASILLO y ARENA.** Todo run combina dos FASES: **PASILLO** es el
+  vuelo rasante de siempre (estado `'play'`) y **ARENA** es el asalto al buque. Los MODOS del menú
+  son combinaciones: HISTORIA y CICLO DE MUERTE hacen PASILLO→ARENA; POR LA PATRIA es solo
+  PASILLO infinito; **MINUTOS SAGRADOS** (nuevo modo, ver más abajo) es solo ARENA, batallas al
+  azar sin cruzar el pasillo. Detalle completo en `docs/ARQUITECTURA.md`.
+- **⚠️ ARENA (26–27/7/2026) — el clímax cambió de género, y de PASO se volvió un modo propio.**
+  Con three.js disponible (Electron y el build web), el asalto final ya NO es el momentum de
+  pasadas descripto abajo: es la fase **ARENA**, un combate volado en 3D DE VERDAD — el avión
+  vuela en los tres ejes (gas contra gravedad, la mira dirige el morro) dentro de un ring acotado
+  alrededor del buque; si te salís, el juego avisa y te reencara solo. Todas las zonas están vivas
+  a la vez, el flak del buque mata con predicción (con el radar vivo te apunta a donde vas a
+  estar) y consume **escuadrón**, y chocar el mar o el casco también mata. 1ª persona por defecto
+  (cabina), 3ª con [V]. Código: `systems/arena.js` (vuelo/combate), `systems/three-arena.js`
+  (mundo 3D: domo de cielo, mar centrado en el avión, buque a escala real vía `systems/ship3d.js`,
+  compartido con el fallback), `render/arena.js` (overlay). **Un primer intento (documentado en
+  `PROMPT_MOMENTUM_3D.md`) rotaba el BUQUE con la cámara clavada — se implementó, se jugó, y se
+  RECHAZÓ porque el avión no volaba de verdad.** El rediseño y su estado real están en
+  `PROMPT_ARENA_VUELO_LIBRE.md`. **Todo lo que sigue del momentum clásico de pasadas vale solo
+  como fallback sin 3D (web `?no3d`, o si WebGL falla).**
+  **MINUTOS SAGRADOS**: modo nuevo en el selector, debajo de POR LA PATRIA — entra derecho a una
+  batalla de ARENA (sin PASILLO), el `[M]` deja elegir el buque, y al terminar encadena otra
+  batalla al azar. Nunca cruza al camino del ciclo de muerte ni al despegue (bug corregido:
+  el fin de batalla caía en el `else` del epílogo, que era el camino de CICLO DE MUERTE).
+  **⚠️ "MOMENTUM" el nombre queda RESERVADO para otra cosa** (ROADMAP #13, 27/7/2026): a futuro
+  es un **PODER de cámara lenta** sobre el avión, activable en vivo **en cualquier fase**
+  (PASILLO o ARENA), no el clímax del buque. `systems/momentum.js` conserva el nombre por
+  herencia histórica (ahí vivía el bullet-time) pero es el fallback sin 3D — va a necesitar
+  renombrarse cuando se construya el poder de verdad.
 - **MOMENTUM — asalto final a la barcaza (minijuego, NUEVO)**: en ciclo de muerte y campaña
   (`objectiveDist > 0`), al llegar al **78% / 90% / 100%** de la distancia objetivo el tiempo se
   **ralentiza** (mundo al 35%: `t -= dt*0.65`), se limpia el campo y aparece la **barcaza horizontal

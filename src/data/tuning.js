@@ -10,6 +10,22 @@
 // (limites del avion) y el spawn (ancho del carril de obstaculos).
 export const FLY_X = 38, FLY_TOP = 68, SPAWN_X = 33;
 
+// PROFUNDIDAD DE APARICION: a que z nace todo lo que viene del horizonte (systems/spawn.js). Es
+// el ALCANCE DE VISION del juego — mas lejos = mas tiempo para reaccionar, porque el mundo viene
+// hacia vos a run.spd y cada unidad de z es tiempo.
+//
+// 320 y no 250: a 250 un helicoptero entraba en pantalla con 3.7 px de ancho pegado a la linea del
+// horizonte, y a velocidad de crucero eso daba menos de 1.5 s de aviso. Con 320 son ~1.9 s.
+//
+// ⚠ ESTO NO ES EL CAMPO DE VISION (F en render/ctx.js). Bajar F ensancharia el angulo, pero en
+// esta proyeccion el tamaño en pantalla es wu*F/z: con menos F TODO se achica, incluido lo que
+// se quiere ver antes. Ver mas lejos es sembrar mas lejos, no abrir el angulo.
+//
+// Las BANDAS DE COMPORTAMIENTO (AA_Z0/AA_Z1, el caza que tira entre 70-190, el alcance de las
+// balas en 240) quedaron donde estaban a proposito: los enemigos se VEN antes, pero no empiezan
+// a atacarte antes. Mas aviso, la misma agresividad.
+export const SPAWN_Z = 320;
+
 // ALTURA DE DETECCION del radar enemigo: por encima de esto la barra CARGA y por debajo se
 // descarga (systems/flight.js). Es el techo del "corredor seguro" — abajo aprietan los
 // obstaculos y el roce, arriba aprieta el radar. Vive aca y no suelto en flight.js porque lo

@@ -222,11 +222,26 @@ en varias fuerzas aéreas (entre ellas la de Perú).
 
 > Relacionado con #1 y
 > #13.
+> **Avance (26–27/7/2026):** el clímax del buque YA cambió de género — es la fase **ARENA**, un
+> asalto volado en 3D de verdad (vuelo libre en un ring alrededor del buque, `systems/arena.js`;
+> el intento anterior en órbita se implementó y se **rechazó**, ver `PROMPT_MOMENTUM_3D.md`; la
+> spec vigente es `PROMPT_ARENA_VUELO_LIBRE.md`). El clímax de pasadas clásico (`systems/momentum.js`)
+> quedó como **fallback sin 3D**. El modo **MINUTOS SAGRADOS** juega solo la fase ARENA. Este
+> ítem #12 queda abierto para una variante RASANTE (a ras del agua) de esa idea — distinto de #13.
 
-## 13. Momentum a primera persona como "poder" en vivo
+## 13. MOMENTUM: cámara lenta como "poder" en vivo, en CUALQUIER fase
 
-El **momentum lento** actual, **cambiable a primera persona si se quiere, DURANTE el juego**, como
-un **"PODER"** que el jugador activa.
+> ⚠️ **Esta es la definición vigente de "MOMENTUM" de acá en más** (27/7/2026, aclarado por el
+> autor): no es el clímax del buque — **es poner al avión en cámara lenta**, activable como un
+> PODER **durante el PASILLO o la ARENA, sin importar el modo**. El clímax de pasadas viejo
+> (`systems/momentum.js`) se quedó con el nombre por herencia histórica (era donde vivía el
+> bullet-time), pero es OTRA cosa — hoy es solo el fallback sin 3D de la fase ARENA. Cuando se
+> construya este ítem, ese módulo va a necesitar otro nombre para no chocar
+> (candidato: `systems/momentumFallback.js` o directamente fundirlo en `systems/arena.js` /
+> `systems/momentum.js` legacy).
+
+El **momentum lento**, **cambiable a primera persona si se quiere, DURANTE el juego**, como un
+**"PODER"** que el jugador activa — no atado a un clímax ni a un modo particular.
 
 > Relacionado con #1 y
 > #14.
@@ -699,11 +714,15 @@ Es tuning de nivel, no una constante global.
 
 ### Lo que hay que cuidar
 
-- **El boss todavía no existe en código.** [NIVELES.md](NIVELES.md) le asigna uno a cada nivel
-  (lancha de desembarco, radar británico, fragata…), pero en `src/` no hay nada de boss: hoy el
-  final de misión es el objetivo/`meters`. Esta mecánica **necesita ese final** para que el saldo
-  signifique algo → o depende del boss, o en el interín el combustible restante se traduce en
-  **tiempo de ataque sobre el blanco** (que sí existe).
+- **El boss ES el momentum, y ya se paga con nafta.** El clímax sobre el buque
+  (`systems/momentum.js`) cobra `REATTACK_FUEL = 12` por pasada, tope `REATTACK_MAX = 6`, y
+  quedarte seco ahí arriba mata con `death_fuel`. O sea: **el combustible con el que llegás ya es
+  cuántas pasadas de ataque tenés** — esta mecánica no inventa un consumidor, le da sentido al que
+  hay. **Rumbo decidido:** ese clímax se va a extraer a **su propio estado / minijuego** al final
+  del nivel, reusando el momentum actual. Lo que esto tiene que dejar listo es **una sola fuente**
+  de "con cuánto se llega al blanco", para que mover el clímax no rompa la ruta.
+  ([NIVELES.md](NIVELES.md) además le asigna un boss temático a cada nivel — lancha, radar,
+  fragata —, eso sigue sin existir en `src/`.)
 - **Choca en el mismo eje que el rasante y el radar.** La altura ya está peleada por tres fuerzas:
   la racha rasante premia abajo, el radar castiga arriba (#27) y ahora la ruta óptima manda a una
   altura fija. Puede ser **buenísimo** (la ruta es la respuesta que concilia las otras dos) o un

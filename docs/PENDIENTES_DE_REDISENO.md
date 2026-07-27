@@ -279,14 +279,16 @@ uniforme se retocó a **DPM oscuro con contorno de dos tonos** para despegarlo d
 
 ## 8. Buques del MOMENTUM — los bosses ⭐
 
-El minijuego del clímax muestra el buque **horizontal a lo largo de la pantalla**, en vista
-**lateral**, creciendo por pasada (`scale` 0.55 → 0.75 → 1.0). Hoy son **rects**: es el asset más
-importante que falta.
-
-**Spec:** `barcaza_lateral.png`, imagen única ~**280 × 70 px**, vista lateral completa.
-Las piezas tienen que quedar **reconocibles y separadas** porque el juego les dibuja encima los
-recuadros de zona crítica, la barra de HP y el estado "chamuscado/destruido" **por zona**.
-Opcional: versión dañada, o se chamusca por código.
+> ⚠️ **SPEC CAMBIADA (26/7/2026)** por la decisión del asalto 3D
+> ([PROMPT_MOMENTUM_3D.md](PROMPT_MOMENTUM_3D.md)): el clímax pasa a ser un combate VOLADO en
+> órbita alrededor del buque, así que el pedido viejo de **sprite lateral `barcaza_lateral.png`
+> ~280×70 queda OBSOLETO — que nadie lo dibuje**. Lo que se necesita ahora es un **modelo low-poly
+> 3D por clase** (`t42` / `t21` / `log`), visible desde todos lados, con las **piezas separadas y
+> nombradas** (casco, puente/superestructura, chimenea, mástil con radar, torretas AA proa/popa,
+> motores al nivel del agua, depósito de carga): las zonas críticas se anclan a piezas reales y el
+> daño se muestra por pieza. El buque de cajas de `systems/three-world.js` es el placeholder hasta
+> que exista, igual que todo el arte del juego. El momentum 2D viejo (vista lateral por rects)
+> queda solo como fallback web/`?no3d`, sin arte nuevo.
 
 Geometría compartida (`data/tuning.js`): `SHIP_UH = 13.5` (el casco mide `uh*1.5`),
 `SHIP_DECK = 54` (cubierta, bajo el horizonte).

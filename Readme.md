@@ -139,7 +139,7 @@ controla**, salvo el eje que cada una deja libre. Funcionan igual con joystick (
 
 **Ninguna se hace con dos toques, y es a propósito.** Antes los 16 pares posibles estaban ocupados
 y —como las teclas de combo son las de volar— el avión parecía manejarse solo: bombear gas lanzaba
-un yo-yo, corregir el rumbo lanzaba un S-turn. Con un mínimo de tres toques el vuelo normal ya no
+un yo-yo, corregir el rumbo lanzaba un S-turn. Con un mínimo de tres toques el PASILLO ya no
 produce secuencias completas, y **ninguna maniobra usa repetición vertical**, así que bombear gas
 (`↑↑↑↑↑`) no puede disparar nada.
 
@@ -215,6 +215,12 @@ Los números del gamefeel están en el `<script>` de `index.html`:
 - Racha rasante: 2 s por nivel (`Math.floor(streak/2)`), tope x30 (`rasLevel` máx. 4), gracia `0.45`
 - Estela: arranca bajo 9 m (`lowI = 1 - alt/9`) · rocío: umbrales `2.8 / 4.5 / 7` m en `nSpray`
 - Densidad de obstáculos: `nextSpawn = max(34, 52+rnd*42 - t*0.8)` (en metros)
+- **Alcance de visión**: `SPAWN_Z = 320` (`data/tuning.js`) — a qué profundidad nace todo lo que
+  viene del horizonte. Es tiempo de reacción: a velocidad de crucero da ~1,9 s desde que aparece
+  hasta que te alcanza (con 250 eran ~1,5 s). **No confundir con el campo de visión** (`F` en
+  `render/ctx.js`): bajar `F` abre el ángulo pero achica *todo*, incluido lo que querés ver antes.
+  Las bandas de comportamiento (AA, caza que dispara, alcance de balas) no se movieron: se ven
+  antes, no atacan antes
 - Combustible: drenaje `3.2` (+`4.2` con turbo), bidón `+30` · **toggle en `[M]`**:
   fila COMBUSTIBLE SI/NO (`cfg.fuelOn`) — con NO no hay drenaje ni spawn de bidones.
   **Por defecto arranca en NO** (tanque infinito) hasta rebalancear el reloj de combustible
@@ -232,15 +238,26 @@ Los números del gamefeel están en el `<script>` de `index.html`:
 
 ## Flujo de pantallas y modos
 
-Al arrancar aparece una **pantalla de selección de modo** (estado `'modeselect'`, 3 opciones):
+> **Vocabulario:** todo run combina dos FASES — **PASILLO** (el vuelo rasante de siempre, estado
+> `'play'`) y **ARENA** (el asalto al buque, volado en 3D — ver más abajo). Los modos del menú son
+> combinaciones de las dos. Detalle técnico en `docs/ARQUITECTURA.md`.
+
+Al arrancar aparece una **pantalla de selección de modo** (estado `'modeselect'`):
 
 ```
-modeselect ─► CAMPAÑA        ─► takeoff (avión y config fijos)  ─► play (NIVEL 1 → NIVEL 2 → …)
-           ├► CICLO DE MUERTE ─► menu (avión + [M] config random + METROS) ─► play (objetivo: barcaza)
-           └► SUPERVIVENCIA   ─► menu (avión + [M] config)      ─► play (infinito, junta puntos)
+modeselect ─► CAMPAÑA (HISTORIA)  ─► takeoff (avión y config fijos)  ─► PASILLO (NIVEL 1 → 2 → …) ─► ARENA
+           ├► CICLO DE MUERTE     ─► menu (avión + [M] config random + METROS) ─► PASILLO (objetivo: barcaza) ─► ARENA
+           ├► POR LA PATRIA       ─► menu (avión + [M] config)      ─► PASILLO infinito (nunca entra a ARENA)
+           ├► MINUTOS SAGRADOS    ─► menu (avión + [M], elegís el BUQUE) ─► directo a ARENA (sin PASILLO)
+           ├► OPCIONES
+           └► SALIR
 ```
 
-**La diferencia clave entre modos es el OBJETIVO FINAL:**
+**MINUTOS SAGRADOS** es el modo que juega solo la fase ARENA: entra derecho a la batalla contra el
+buque elegido, y al ganar o perder **encadena otra batalla al azar** — nunca cruza al PASILLO ni al
+camino de CICLO DE MUERTE.
+
+**La diferencia clave entre CAMPAÑA / CICLO DE MUERTE / POR LA PATRIA es el OBJETIVO FINAL:**
 - **Con objetivo** (campaña y ciclo de muerte): hay una meta en metros (puerto → barcaza británica). Durante
   el vuelo se dibuja una **barra de misión centrada** (~**30% del ancho**, `drawObjectiveBar`) con el nombre
   real de la barcaza arriba (`SHIPS`: HMS Sheffield, Coventry, Ardent, Antelope, RFA Sir Galahad, Atlantic
@@ -260,13 +277,25 @@ viento, obstáculos) en cada entrada al modo. Al acercarse a la barcaza arranca 
 → vuelve al menú con config nueva. Los **metros totales** (puerto→barcaza) se ajustan en `[M]` fila `METROS` —
 necesario para pruebas. El menú `[M]` está visible en **ciclo de muerte y supervivencia** (la fila METROS solo en ciclo).
 
-### MOMENTUM — asalto final a la barcaza (minijuego)
+### ARENA — el asalto al buque (fase, no minijuego)
+
+> ⚠️ **Esta sección describe el MOMENTUM viejo — hoy es solo el fallback sin 3D** (build web con
+> `?no3d`, o si WebGL falla). Con three.js disponible (Electron y el build web normal), el asalto
+> es la fase **ARENA**: el avión **vuela de verdad en los tres ejes** (gas contra gravedad, la mira
+> dirige el morro) dentro de un ring 3D abierto alrededor del buque — no una cámara sobre rieles.
+> Salirte del ring no mata: el juego avisa y te reencara solo. Todas las zonas están vivas a la
+> vez, el buque dispara flak con predicción (con el radar vivo te apunta a donde vas a estar) y
+> cada impacto consume un avión del **escuadrón**; chocar el mar o el casco también mata. 1ª
+> persona por defecto (cabina), 3ª con `[V]`. Código: `src/systems/arena.js` (vuelo y combate),
+> `src/systems/three-arena.js` (el mundo 3D), `src/render/arena.js` (overlay). El modo
+> **MINUTOS SAGRADOS** juega solo esta fase, batalla tras batalla. Detalle completo y las
+> decisiones de diseño: `docs/PROMPT_ARENA_VUELO_LIBRE.md`.
 
 Aplica en **ciclo de muerte y campaña** (todo modo con `objectiveDist > 0`). Al alcanzar ciertas fracciones
 de la distancia objetivo, el tiempo se **ralentiza** (el mundo corre al 35%), aparece la **barcaza a lo
 largo de la pantalla** (crece a medida que te acercás) y se abre un minijuego de puntería:
 
-- **La barcaza se ve venir**: desde el **45%** del recorrido aparece durante el vuelo normal
+- **La barcaza se ve venir**: desde el **45%** del recorrido aparece durante el PASILLO
   (`drawApproachBarge`) como **silueta con bruma anclada a la línea del horizonte** (misma
   perspectiva que los obstáculos, que pasan sólidos por delante y se leen claro) y **crece**;
   recién sobre el final baja/se acerca (ease-in cuadrático) hasta empalmar con la pasada del
@@ -292,11 +321,11 @@ largo de la pantalla** (crece a medida que te acercás) y se abre un minijuego d
 - **Misiles [Z]** también en primera persona: salen del ala (alternando lado), vuelan **lentos**
   (~2.1s, bullet-time) con lock al punto apuntado al disparar, y explotan con **80 de daño en área**
   — un misil mata una AA o el radar; el puente pide misil + cañón. Misma munición que el
-  vuelo normal (pips `Z ▪▪▪` junto a la barra de tiempo; la recarga se pausa en cámara lenta).
+  PASILLO (pips `Z ▪▪▪` junto a la barra de tiempo; la recarga se pausa en cámara lenta).
 - Mantener **[X] fuego sostenido** sobre una **zona crítica** (corchetes titilantes + barra de HP) la destruye.
 - **3 pasadas** (`MOM_PHASES`): al **78%** → los 2 **cañones AA** (barco chico) · al **90%** → el **radar**
   (más cerca, blanco chico en el mástil) · al **100%** → el **PUENTE** (barco gigante, mucha HP).
-- Entre pasadas volvés al vuelo normal — **hay que seguir volando** (el gas sigue mandando).
+- Entre pasadas volvés al PASILLO — **hay que seguir volando** (el gas sigue mandando).
 - Cada zona destruida da puntos (`pts`) + bonus por pasada completa (`500×pasada`).
 - **Ventana de tiempo por pasada** (barra abajo): si se agota, la defensa te derriba (`death_aa`).
 - La pasada final destruye la barcaza **de verdad** → fin de nivel exitoso.

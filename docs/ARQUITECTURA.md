@@ -12,6 +12,36 @@ input. Todo lo demás son módulos con dependencias explícitas.
 > bloquea por CORS). Por eso `npm run build:game` los empaqueta con esbuild en `src/game.bundle.js`.
 > Corre solo antes de `start`/`build:web`/`dist`. **Editás los módulos, nunca el bundle.**
 
+## Vocabulario: PASILLO y ARENA
+
+Todo run del juego se arma combinando dos **fases**, no dos modos:
+
+- **PASILLO** — el vuelo rasante de siempre: gas contra gravedad, esquivar en un carril, cañón y
+  misil sobre lo que aparece. Es el estado `'play'` (más `'takeoff'`/`'relevo'` a su alrededor) y
+  vive en `systems/flight.js` + `spawn.js` + `collision.js` + `moves.js`.
+- **ARENA** — el asalto al buque, volado en 3D en un espacio abierto y acotado. Es el estado
+  `'arena'` y vive en `systems/arena.js` + `systems/three-arena.js` + `render/arena.js`.
+
+Los **modos** del menú son combinaciones de estas dos fases:
+
+| modo | fases |
+|---|---|
+| HISTORIA | PASILLO → ARENA, con guion entre niveles |
+| CICLO DE MUERTE | PASILLO → ARENA, misión al azar |
+| POR LA PATRIA | solo PASILLO, infinito (nunca entra a ARENA) |
+| MINUTOS SAGRADOS | solo ARENA, batallas al azar (nunca cruza el PASILLO) |
+
+`systems/momentum.js` es el clímax de pasadas VIEJO (bullet-time, cámara en riel): hoy es el
+**fallback sin 3D** de la fase ARENA (web / `?no3d`), no un modo aparte. Ver
+[PROMPT_ARENA_VUELO_LIBRE.md](PROMPT_ARENA_VUELO_LIBRE.md) para la historia completa (incluye el
+intento anterior, rechazado, documentado en `PROMPT_MOMENTUM_3D.md`).
+
+> ⚠️ **"MOMENTUM" el nombre está RESERVADO para otra cosa** (ROADMAP #13, aclarado 27/7/2026): a
+> futuro va a ser un **PODER de cámara lenta** que el jugador activa en vivo, sobre el avión,
+> **en cualquier fase** (PASILLO o ARENA) — no el clímax del buque. El módulo `systems/momentum.js`
+> se quedó con el nombre por herencia histórica y va a necesitar renombrarse cuando eso se
+> construya, para no chocar con el significado nuevo.
+
 ## Las cuatro convenciones que mantienen esto ordenado
 
 Entenderlas es entender el 90% del código.
@@ -100,13 +130,16 @@ La lógica que hace avanzar el juego. Cada uno muta stores y devuelve señales; 
 
 | archivo | qué hace | señala |
 |---|---|---|
-| `flight.js` | el integrador: gas, energía, roce, combustible, radar, cañón | `'momentum'`·`'objective'`·`{death}` |
-| `spawn.js` | siembra obstáculos y soldados por distancia | — |
-| `collision.js` | resuelve impactos y reparte puntaje | `{death}` |
-| `momentum.js` | el clímax en primera persona (bullet-time, zonas, re-ataque) | `'objective'`·`{death}` |
-| `moves.js` | las PIRUETAS de combate: mientras `run.mv` está activo es el dueño del avión (vx/vy/bank/pitch); el catálogo vive en `data/moves.js` y los combos los detecta `core/input.js` |  |
-| `squad.js` | el RELEVO del escuadrón (vidas): cinemática, autopiloto y reset parcial; `game.js` decide relevo-o-muerte en `onDeath` | `'done'` |
-| `three-world.js` | el fondo 3D (three.js) del momentum |  |
+| `flight.js` | el integrador del PASILLO: gas, energía, roce, combustible, radar, cañón | `'arena'`·`'momentum'`·`'objective'`·`{death}` |
+| `spawn.js` | siembra obstáculos y soldados por distancia (PASILLO) | — |
+| `collision.js` | resuelve impactos y reparte puntaje (PASILLO) | `{death}` |
+| `arena.js` | la fase ARENA: asalto VOLADO en 3D (vuelo libre alrededor del buque, todas las zonas vivas, flak con predicción que consume escuadrón) — el modo normal con three.js; ver `PROMPT_ARENA_VUELO_LIBRE.md` | `'objective'`·`{death}` |
+| `momentum.js` | el ARENA VIEJO: pasadas en riel (bullet-time, zonas, re-ataque) — hoy es el **fallback sin 3D** de la fase ARENA (web / `?no3d`) | `'objective'`·`{death}` |
+| `moves.js` | las PIRUETAS de combate del PASILLO: mientras `run.mv` está activo es el dueño del avión (vx/vy/bank/pitch); el catálogo vive en `data/moves.js` y los combos los detecta `core/input.js` |  |
+| `squad.js` | el RELEVO del escuadrón (vidas): cinemática, autopiloto y reset parcial; `game.js` decide relevo-o-muerte en `onDeath`. Corre en PASILLO y en ARENA | `'done'` |
+| `three-world.js` | el fondo 3D (three.js) del ARENA VIEJO (`momentum.js`); ver `three-arena.js` para la escena del ARENA actual |  |
+| `three-arena.js` | el mundo 3D de la fase ARENA: domo de cielo, mar centrado en el avión, buque a escala real (`ship3d.js`), proyección mundo→pantalla y raycast del disparo contra las zonas |  |
+| `ship3d.js` | el modelo del buque y sus zonas críticas etiquetadas — DATA/geometría compartida entre `arena.js` (ARENA) y `momentum.js`/`three-world.js` (fallback) |  |
 | `audio.js` | *(fundacional, ver arriba)* |  |
 
 ### `render/` — el dibujo (leen el estado)
@@ -126,7 +159,8 @@ Todo lo que pinta. `draw()` en `game.js` gestiona los transforms y delega acá.
 | `squad.js` | la formación del despegue (y su salida de plano) + la sobreimpresión de la cinemática del relevo |
 | `screens.js` | recuento, briefing, derribado, victoria, guion narrativo |
 | `menus.js` | selección de modo/avión y el menú de configuración `[M]` |
-| `momentum.js` | el render del clímax (barcaza, zonas, cabina, visor) |
+| `momentum.js` | el render del ARENA VIEJO (barcaza, zonas, cabina, visor) |
+| `arena.js` | el overlay 2D de la fase ARENA: corchetes/HP proyectados desde la escena 3D, fx del duelo, cabina o sprite (1ª/3ª persona, tecla V) y tablero (zonas + escuadrón) |
 | `theme.js` | `theme.sky`/`theme.water`: la paleta activa (la comparten mar 2D, telón 3D y HUD) |
 | `ctx.js` | *(fundacional, ver arriba)* |
 
@@ -146,13 +180,15 @@ Lo que queda es genuinamente el pegamento:
 | cómo se *siente* volar (cabeceo, energía, roce) | `core/physics.js` (y probalo con `npm run feel`) |
 | una perilla de ajuste (zona de vuelo, momentum) | `data/tuning.js` |
 | a qué altura vuela un enemigo, o el techo de radar | `data/tuning.js` (`SPAWN_Y`, `RADAR_ALT`) — **una sola fuente para los tres terrenos** |
-| agregar un buque / fase al momentum | `data/ships.js` (es data; la lógica es genérica) |
+| desde qué distancia se ven los enemigos | `data/tuning.js` (`SPAWN_Z`) + `APPROACH_*` en `render/world.js` — **no** es `F` (ver el comentario de `SPAWN_Z`) |
+| agregar un buque / sus zonas críticas | `data/ships.js` (es data; la lógica de ARENA y del fallback es genérica) |
 | una misión nueva | `data/missions.js` |
 | textos / traducciones | `data/strings.js` |
 | colores | `data/palette.js` |
-| qué pasa al chocar / puntaje | `systems/collision.js` |
-| aparición de obstáculos | `systems/spawn.js` |
-| el clímax en primera persona | `systems/momentum.js` (lógica) + `render/momentum.js` (dibujo) |
+| qué pasa al chocar / puntaje (PASILLO) | `systems/collision.js` |
+| aparición de obstáculos (PASILLO) | `systems/spawn.js` |
+| la fase ARENA (vuelo, ring, combate) | `systems/arena.js` (lógica) + `systems/three-arena.js` (mundo 3D) + `render/arena.js` (overlay) |
+| el ARENA VIEJO / fallback sin 3D | `systems/momentum.js` (lógica) + `render/momentum.js` (dibujo) |
 | controles / teclas | `core/input.js` (+ las acciones en `game.js`) |
 | el HUD | `render/hud.js` |
 | el mar / los obstáculos en pantalla | `render/world.js` |
@@ -170,7 +206,7 @@ Lo que queda es genuinamente el pegamento:
 | `lint:state` | nadie reasigna un store compartido (los mutás, no los reemplazás) |
 | `unit` | la física pura, con casos de borde (`node:test`, cero dependencias) |
 | `feel` | la *sensación* — importa las fórmulas REALES de `core/physics.js`, no las re-implementa |
-| `smoke` | abre el juego en Electron y falla si el canvas queda en blanco, **deja de cambiar**, no suena o tira error de consola — en menú, vuelo, derribado, momentum, combate y mouse |
+| `smoke` | abre el juego en Electron y falla si el canvas queda en blanco, **deja de cambiar**, no suena o tira error de consola — en menú, PASILLO, derribado, ARENA, combate y mouse. Con three.js cargado (siempre en Electron y en el build web) entra a la fase ARENA nueva, no al fallback en riel de `momentum.js` |
 | `build:web` + `smoke:web` | lo mismo sobre el build web autocontenido |
 
 > El chequeo de "el canvas cambia entre cuadros" no es adorno: en este refactor atrapó un

@@ -19,7 +19,7 @@
 // NINGUNA se hace con DOS toques, y es a proposito. Antes los 16 pares posibles estaban ocupados:
 // no existia forma de tocar dos direcciones seguidas sin ejecutar algo. Y como las teclas de combo
 // son las de VOLAR, el avion parecia manejarse solo — bombear gas (↑↑) lanzaba un yo-yo, corregir
-// el rumbo (←→) lanzaba un S-turn. Con un minimo de tres toques el vuelo normal ya no produce
+// el rumbo (←→) lanzaba un S-turn. Con un minimo de tres toques el PASILLO ya no produce
 // secuencias completas, y NINGUNA maniobra usa repeticion vertical, asi que bombear gas
 // ('↑↑↑↑↑') no puede disparar nada.
 //
