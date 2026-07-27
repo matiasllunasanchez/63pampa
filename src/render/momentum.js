@@ -48,12 +48,16 @@ export function drawBargeHull(cx0, len, deckY, uh, t) {
   }
 }
 
+/** La cabina. `w.yOff` la baja N pixeles: lo usa la fase ARENA para que el VISOR PINTADO del PNG
+ *  caiga sobre la mira del juego. El ARENA VIEJO no lo pasa (0) porque alla la mira es la que se
+ *  clava al visor (MOM_AY), al reves — mover el PNG lo desalinearia. */
 export function drawCockpit(w) {
   const { mom, t } = w;
+  const yOff = w.yOff || 0;
   // solo bob de vuelo: la cabina es la trompa del avion, va clavada a la pantalla
   // (apuntar mueve el MUNDO detras del vidrio, no la cabina)
   const bx = Math.sin(mom.t * 1.4) * 1.5;
-  const by = Math.sin(mom.t * 2.2) * 2;
+  const by = Math.sin(mom.t * 2.2) * 2 + yOff;
   if (COCKPIT_ASSET.ready && COCKPIT_ASSET.img.naturalWidth) {
     ctx.drawImage(COCKPIT_ASSET.img, bx - 6, by - 6, W + 12, H + 12);   // sobredimensionado: el bob no muestra bordes
   } else {

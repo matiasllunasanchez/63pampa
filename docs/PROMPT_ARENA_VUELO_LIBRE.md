@@ -25,6 +25,24 @@
 > MINUTOS SAGRADOS (solo la batalla). El fin de batalla caía en el `else` del epílogo y se iba
 > al briefing del ciclo — o sea, a volar una misión entera de otro modo.
 >
+> **El vuelo pasó a ser EL DEL PASILLO (27/7)**, porque el modelo anterior se sentía tosco. La
+> causa era estructural: el input pasaba por mira → tasa de guiñada → rumbo → posición (TRES
+> integraciones de retardo), mientras el pasillo va input → velocidad (UNA). Ahora `arena.js` usa
+> las **mismas constantes** de `flight.js` (lateral 115/4.5/±30, gas `G/TH/DIVE`, clamps de vy) y
+> los **mismos tiempos visuales** (bank `dt*9`, `pitchTarget`+`PITCH_LERP` de `core/physics.js`).
+> Lo único que se agrega sobre el pasillo es que **el rumbo lo arrastra la propia velocidad
+> lateral** (viraje coordinado), para poder rodear el buque sin un control nuevo. Medido: vx
+> 0→30 en ~0.27 s y decae a 1.8 en 0.6 s al soltar — idéntico al pasillo. También entraron
+> **turbo ×1.5** y la **mira elegible del menú [M]**, que faltaban.
+> En 3ª persona el avión ahora se dibuja **proyectando su posición real** en vez de clavado a un
+> punto fijo: al maniobrar se desplaza dentro del cuadro y la cámara lo recentra después.
+> En 1ª persona el PNG de cabina baja `COCKPIT_Y = 74` px para que el **visor pintado coincida con
+> la mira** (que cae donde apunta el morro, no en un punto fijo como en el ARENA VIEJO).
+>
+> Bug encontrado al hacerlo: el arena **drenaba combustible aunque `[M] COMBUSTIBLE: NO`** (el
+> default), así que en una batalla larga te quedabas sin gas y caías al mar sin explicación. Ahora
+> respeta la llave, igual que el pasillo.
+>
 > Bug con moraleja de esta etapa: el aviso de flak nacía **sin `life`** y el filtro genérico de
 > fx (`life > 0`) lo mataba en el mismo frame — el buque "no disparaba" sin ningún error. Quedó
 > comentado en el código: todo fx nuevo necesita `life` mayor que su fusible.

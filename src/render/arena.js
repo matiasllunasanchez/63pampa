@@ -10,10 +10,19 @@ import { ctx, W, H, px, HOR } from './ctx.js';
 import { P } from '../data/palette.js';
 import { T } from '../core/i18n.js';
 import { run } from '../core/run.js';
+import { cfg } from '../core/state.js';
+import { drawMira } from './miras.js';
 import { MSL_MAX } from '../data/tuning.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
+import { PITCH_ROW } from '../core/physics.js';
 import { drawCockpit } from './momentum.js';
 import * as world3D from '../systems/three-arena.js';
+
+// Cuanto BAJA el PNG de la cabina en 1a persona. El visor pintado del asset esta arriba (el ARENA
+// VIEJO le clavaba la mira en MOM_AY=60), pero aca la mira NO es fija: cae donde apunta el morro,
+// que en 1a persona es el centro de pantalla (H/2 = 135). Bajar el PNG es lo que hace coincidir
+// el visor pintado con la mira real. Si se cambia el asset de cabina, re-medir.
+const COCKPIT_Y = 74;
 
 /** El avion en TERCERA persona: el sprite de vuelo (vista trasera) con el alabeo y el cabeceo
  *  reales de la maniobra. La camara va detras, asi que el avion siempre se ve de atras — que es
@@ -23,10 +32,16 @@ function drawThirdPlane(A, selPlane) {
   if (!pl.sheetOk) return;
   const bank = Math.max(-1, Math.min(1, A.roll));
   const col = Math.round((1 - bank) / 2 * (SHEET_NF - 1));
-  const row = A.pitch > 0.28 ? 0 : A.pitch < -0.28 ? 2 : 1;
+  const row = A.pitch > PITCH_ROW ? 0 : A.pitch < -PITCH_ROW ? 2 : 1;
   const spW = 84, spH = 84;
-  const bx = W / 2 + Math.sin(A.t * 1.6) * 1.5 - A.roll * 5;
-  const by = H * 0.60 + Math.sin(A.t * 2.3) * 1.5;
+  // el avion se dibuja DONDE ESTA (proyectando su posicion real), no clavado a un punto fijo de
+  // la pantalla: la camara lo sigue con resorte, asi que al maniobrar el avion se DESPLAZA dentro
+  // del cuadro y recien despues la camara lo recentra. Clavado, todo el mundo giraba alrededor de
+  // un sprite inmovil y el vuelo se sentia rigido.
+  const p = world3D.project(A.pos.x, A.pos.y, A.pos.z);
+  if (!p.vis) return;
+  const bx = p.x + Math.sin(A.t * 1.6) * 1.5;
+  const by = p.y + Math.sin(A.t * 2.3) * 1.5;
   ctx.drawImage(pl.sheetImg, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH,
     Math.round(bx - spW / 2), Math.round(by - spH / 2), spW, spH);
 }
@@ -157,7 +172,7 @@ export function drawArena(w) {
 
   // ---- el avion: cabina (1a) o sprite (3a) ----
   if (w.view === 1) {
-    drawCockpit({ mom: { t: A.t, hitFx: A.hitFx }, t: w.t });
+    drawCockpit({ mom: { t: A.t, hitFx: A.hitFx }, t: w.t, yOff: COCKPIT_Y });
     if (A.flashL > 0) { ctx.globalAlpha = Math.min(1, A.flashL * 9); px(0, 56, 9, 15, '#ffffff'); ctx.globalAlpha = 1; }
     if (A.flashR > 0) { ctx.globalAlpha = Math.min(1, A.flashR * 9); px(W - 9, 56, 9, 15, '#ffffff'); ctx.globalAlpha = 1; }
   } else drawThirdPlane(A, selPlane);
@@ -167,12 +182,16 @@ export function drawArena(w) {
   // sola el paralaje de la camara — una mira fija en pantalla mentia unos grados.
   const app = world3D.project(A.pos.x + A.fwd.x * 400, A.pos.y + A.fwd.y * 400, A.pos.z + A.fwd.z * 400);
   const ax = app.vis ? app.x : W / 2, ay = app.vis ? app.y : H / 2;
-  const mc = A.hitFx ? P.accent : P.ink;
-  ctx.strokeStyle = mc; ctx.globalAlpha = 0.9;
-  ctx.strokeRect(ax - 5, ay - 5, 10, 10);
-  ctx.globalAlpha = 1;
-  px(ax - 7, ay, 3, 1, mc); px(ax + 5, ay, 3, 1, mc);
-  px(ax, ay - 7, 1, 3, mc); px(ax, ay + 5, 1, 3, mc);
+  // la MIRA elegida en el menu [M] (cfg.mira, 1..9) — la misma del PASILLO. Si la hoja no cargo
+  // todavia, cae al reticulo vectorial de siempre.
+  if (!drawMira(cfg.mira, ax, ay, 16, A.hitFx ? 1 : 0.85)) {
+    const mc = A.hitFx ? P.accent : P.ink;
+    ctx.strokeStyle = mc; ctx.globalAlpha = 0.9;
+    ctx.strokeRect(ax - 5, ay - 5, 10, 10);
+    ctx.globalAlpha = 1;
+    px(ax - 7, ay, 3, 1, mc); px(ax + 5, ay, 3, 1, mc);
+    px(ax, ay - 7, 1, 3, mc); px(ax, ay + 5, 1, 3, mc);
+  }
 
   // ---- flecha al buque si quedo fuera de cuadro ----
   const sp = world3D.project(0, 20, 0);

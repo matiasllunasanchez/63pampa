@@ -5,12 +5,15 @@
 // no una camara sobre rieles. La version anterior rotaba el BUQUE con la camara clavada y el
 // resultado era la misma galeria de tiro con otro disfraz; ver docs/PROMPT_ARENA_VUELO_LIBRE.md.
 //
-// LA FISICA ES LA DEL PASILLO, en 3D:
-//   · el avion AVANZA SOLO, siempre hacia donde apunta el MORRO (no hay "adelante" del mundo);
-//   · el GAS pelea contra la GRAVEDAD — soltarlo baja el morro y te hunde (la regla del rasante);
-//   · ←/→ VIRAN (alabeo + guiñada coordinados), no desplazan de costado;
-//   · picar gana velocidad y trepar la sangra (la energia de core/physics.js, misma idea).
-// El mouse (o el pad) mueve la MIRA y el morro la persigue: "vas a donde apuntas".
+// LA FISICA ES LA DEL PASILLO, con SUS MISMAS CONSTANTES Y TIEMPOS:
+//   · ←/→ van DIRECTO a la velocidad lateral (acel 115, roce 4.5, tope 30) — se siente igual
+//     de suelto que alla porque es literalmente la misma cadena input→velocidad;
+//   · el GAS pelea contra la GRAVEDAD (G/TH/DIVE) — soltarlo te hunde (la regla del rasante);
+//   · TURBO ×1.5 y mira elegible [M], como en el pasillo;
+//   · picar gana velocidad y trepar la sangra (energia);
+//   · lo UNICO que se agrega: el rumbo lo arrastra la propia velocidad lateral, para poder
+//     rodear el buque. No hay un control nuevo que aprender.
+// El cañon dispara por el MORRO (la mira marca adonde va el tiro, no al reves).
 //
 // RING: al cruzar el borde el juego te deja salir, avisa, y a los RING_GRACE segundos toma el
 // control y te reencara al centro. No es un muro ni una muerte: es una correa.
@@ -20,7 +23,7 @@
 //
 // ESCALA: 1 unidad = 1 METRO (ver three-arena.js). Las constantes de abajo estan en m y m/s.
 
-import { setState, stats } from '../core/state.js';
+import { setState, stats, cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { parts, popups, prune, clearWorld } from '../core/world.js';
 import { popup } from '../core/fx.js';
@@ -29,23 +32,25 @@ import { P } from '../data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from '../data/ships.js';
 import { MSL_MAX } from '../data/tuning.js';
 import { W, H, HOR } from '../render/ctx.js';
+import { pitchTarget, PITCH_LERP } from '../core/physics.js';
 import { boom, beep, sfxOne, duck, engineFly } from './audio.js';
 import * as world3D from './three-arena.js';
 
-// ---- perillas de vuelo (metros, segundos) ----
-const SPD_MIN = 95, SPD_CRUISE = 125, SPD_TURBO = 190;
-const SPD_ACC = 26;                     // cuanto empuja el motor hacia la velocidad objetivo
+// ---- VUELO: EXACTAMENTE EL MODELO DEL PASILLO ----
+// El avion se maneja igual que en el pasillo, con LAS MISMAS CONSTANTES (systems/flight.js) y la
+// misma cadena input→velocidad. La version anterior mandaba el input a un angulo de mira, de ahi
+// a una tasa de guiñada, de ahi al rumbo y recien de ahi a la posicion: TRES integraciones de
+// retardo. Eso era lo "tosco" — en el pasillo el input va DIRECTO a la velocidad (una sola).
+const VX_ACC = 115, VX_DRAG = 4.5, VX_MAX = 30;   // lateral, identico a flight.js
+const G = 22, TH = 55, DIVE = 30;                 // gas contra gravedad, identico a flight.js
+const VY_MIN = -20, VY_MAX = 18;
+// Lo UNICO que el pasillo no necesita: un rumbo que gire, porque alla el mundo viene de frente y
+// aca hay que poder rodear el buque. El rumbo NO se maneja aparte — lo arrastra la misma
+// velocidad lateral (viraje coordinado): mantener ←/→ te desplaza Y te va llevando alrededor.
+const YAW_PER_VX = 0.030;               // a vx tope (30) ≈ 0.9 rad/s ≈ 52°/s
+const SPD_CRUISE = 125, SPD_TURBO = 1.5;   // turbo ×1.5, como el pasillo
+const SPD_ACC = 0.9;                    // que tan rapido la velocidad persigue su objetivo
 const ENERGY = 46;                      // altura ↔ velocidad: picar acelera, trepar frena
-const TURN = 1.15;                      // rad/s de viraje a fondo (~66°/s → radio ~110 m)
-// CABECEO POR ANGULO OBJETIVO, no por tasa. Con tasa, sostener el gas cabreaba el morro sin
-// tope y el avion se clavaba en el techo a los pocos segundos (medido: 620 m fijos). Con
-// objetivo, el gas te sostiene TREPANDO SUAVE y soltarlo te pone en picada — que es la regla
-// del juego base ("soltas y caes") sin volverse un ascensor.
-const PITCH_GAS = 0.22;                 // ~13° de trepada sostenida con gas
-const PITCH_FALL = -0.34;               // ~20° de caida al soltar (la gravedad gana)
-const PITCH_DIVE = -0.62;               // ~36° picando a proposito
-const PITCH_MAX = 1.05;                 // tope con mira libre (mouse): ~60°
-const PITCH_LERP = 1.5;                 // el morro LLEGA al angulo pedido, no salta (feel)
 // TECHO blando. El buque mide 125 m: desde 300 m de altura el blanco cae fuera del campo de
 // vision volando derecho; a 200 m entra sin tener que picar. El PISO ya no es blando: el mar
 // MATA (SEA_KILL) — la regla del juego entero, que el arena no puede suspender.
@@ -117,7 +122,7 @@ export function enter() {
     t: 0, yaw, pitch: 0, roll: 0,
     pos: { x: 0, y: 110, z: 0 },
     spd: SPD_CRUISE, fwd: forward(yaw, 0), up: { x: 0, y: 1, z: 0 },
-    aimX: 0, aimY: 0,                    // desvio de la mira (-1..1) — el morro la persigue
+    vx: 0, vy: 0, pitchHold: 0,          // el estado de vuelo del PASILLO (ver el bloque de mando)
     outT: 0, auto: 0,                    // fuera del ring / piloto automatico
     shotCd: 0, hitFx: 0, flashL: 0, flashR: 0, gunSide: 1,
     flakT: 2.6,                          // primer flak: le da al jugador unos segundos de aire
@@ -180,7 +185,7 @@ export function launchMissile() {
   if (!sfxOne('msl')) beep(180, 0.25, 'sawtooth', 0.06, 60);
 }
 
-export function update(dt, inp, mouse) {
+export function update(dt, inp) {
   A.t += dt;
   popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
   prune(popups, p => p.life > 0);
@@ -191,69 +196,76 @@ export function update(dt, inp, mouse) {
   if (run.msl < MSL_MAX) { run.mslRegen += dt; if (run.mslRegen >= 7) { run.mslRegen = 0; run.msl++; } }
 
   // ---------- MANDO ----------
-  // la MIRA dirige: con mouse es su desvio respecto del centro; sin mouse, las teclas.
-  // El morro la persigue — "el avion avanza hacia donde apunta".
-  if (mouse.on) {
-    A.aimX = Math.max(-1, Math.min(1, (mouse.x - W / 2) / (W * 0.42)));
-    A.aimY = Math.max(-1, Math.min(1, (mouse.y - HOR) / (H * 0.40)));
-  } else {
-    A.aimX += ((inp.r - inp.l) - A.aimX) * Math.min(1, dt * 6);
-    A.aimY += ((inp.d ? 1 : 0) - (inp.u ? 0.55 : 0) - A.aimY) * Math.min(1, dt * 5);
-  }
+  // MANDO IDENTICO AL PASILLO: ←/→ a la velocidad lateral, ↑ gas contra gravedad, ↓ picada.
+  // Nada de suavizar el input antes de usarlo — esa era la fuente del retardo.
   const gas = inp.u && run.fuel > 0;
-
-  let turn = A.aimX * TURN;
-  // angulo de cabeceo PEDIDO: con mouse manda la mira (y la gravedad le resta si no hay gas);
-  // con teclado, los tres estados del juego base — gas / soltar / picar.
-  let pitchWant = mouse.on
-    ? Math.max(-PITCH_MAX, Math.min(PITCH_MAX, -A.aimY * PITCH_MAX + (gas ? 0.12 : -0.28)))
-    : (inp.d ? PITCH_DIVE : gas ? PITCH_GAS : PITCH_FALL);
+  run.boost = inp.turbo && run.fuel > 0;              // TURBO, igual que en el pasillo
+  let steer = inp.r - inp.l;
 
   // ---------- RING: la correa ----------
   const rad = Math.hypot(A.pos.x, A.pos.z);
   if (rad > RING) A.outT += dt; else A.outT = 0;
   if (A.outT > RING_GRACE) A.auto = 1;
   if (A.auto) {
-    // PILOTO AUTOMATICO: te deja salir, pero te trae. Vira por el lado corto hacia el centro
-    // y nivela el cabeceo; el jugador no manda (y no puede disparar) hasta reencarar.
+    // PILOTO AUTOMATICO: te deja salir, pero te trae. Vira por el lado corto hacia el centro;
+    // el jugador no manda (ni dispara) hasta reencarar. Mueve el MISMO `steer` que las teclas,
+    // asi el avion vuelve volando como vuela siempre, sin un modo de movimiento aparte.
     const want = Math.atan2(-A.pos.x, A.pos.z);        // rumbo hacia (0,0)
     let dyaw = want - A.yaw;
     while (dyaw > Math.PI) dyaw -= Math.PI * 2;
     while (dyaw < -Math.PI) dyaw += Math.PI * 2;
-    turn = Math.max(-1, Math.min(1, dyaw * 1.6)) * TURN;
-    pitchWant = 0.05;                                  // nivelado mientras vuelve
+    steer = Math.max(-1, Math.min(1, dyaw * 2.2));
     if (rad < RING * AUTO_OFF && Math.abs(dyaw) < 0.5) { A.auto = 0; A.outT = 0; }
   }
 
-  // ---------- ACTITUD ----------
-  A.yaw += turn * dt;
+  // ---------- VELOCIDADES (la cadena corta del pasillo: input → velocidad) ----------
+  A.vx += steer * VX_ACC * dt;
+  if (!steer) A.vx *= Math.max(0, 1 - VX_DRAG * dt);
+  A.vx = Math.max(-VX_MAX, Math.min(VX_MAX, A.vx));
+  A.vy += ((gas ? TH : 0) - G - (inp.d ? DIVE : 0)) * dt;
+  A.vy = Math.max(VY_MIN, Math.min(VY_MAX, A.vy));
+
+  // el RUMBO lo arrastra la velocidad lateral (viraje coordinado): es lo unico que se agrega
+  // sobre el pasillo, y sale de la misma vx — no hay un segundo control que aprender.
+  A.yaw += A.vx * YAW_PER_VX * dt;
   if (A.yaw > Math.PI) A.yaw -= Math.PI * 2; else if (A.yaw < -Math.PI) A.yaw += Math.PI * 2;
-  A.pitch += (pitchWant - A.pitch) * Math.min(1, dt * PITCH_LERP);
-  // alabeo VISUAL, coordinado con el viraje (es lo que vende que estas virando, no derrapando)
-  A.roll += (turn / TURN * 0.95 - A.roll) * Math.min(1, dt * 3.4);
-  A.fwd = forward(A.yaw, A.pitch);
+
+  // ---------- ACTITUD VISUAL: las MISMAS formulas y tiempos del pasillo ----------
+  const bankTarget = Math.max(-1, Math.min(1, steer * 0.9 + (A.vx / VX_MAX) * 0.35));
+  A.pitchHold = (inp.u - inp.d) !== 0 ? A.pitchHold + dt : 0;
+  const pitchTgt = pitchTarget(inp.u - inp.d, A.pitchHold, A.vy);
+  A.roll += (bankTarget - A.roll) * Math.min(1, dt * 9);
+  A.pitch += (pitchTgt - A.pitch) * Math.min(1, dt * PITCH_LERP);
+  // el MORRO apunta a donde de verdad va el avion (la vy real), no al cabeceo visual: asi el
+  // rayo del cañon y la mira coinciden con la trayectoria.
+  A.fwd = forward(A.yaw, Math.atan2(A.vy, A.spd));
   A.up = { x: 0, y: 1, z: 0 };
 
-  // ---------- VELOCIDAD ----------
-  // el gas empuja hacia crucero/turbo; picar REGALA velocidad y trepar la COBRA (energia)
-  const tgt = gas ? (inp.turbo ? SPD_TURBO : SPD_CRUISE) : SPD_MIN;
-  A.spd += ((tgt - A.spd) * 0.9 - Math.sin(A.pitch) * ENERGY) * dt * (SPD_ACC / 26);
-  A.spd = Math.max(60, Math.min(SPD_TURBO * 1.15, A.spd));
+  // ---------- VELOCIDAD DE AVANCE ----------
+  const tgt = SPD_CRUISE * (run.boost ? SPD_TURBO : 1);
+  A.spd += ((tgt - A.spd) * SPD_ACC - (A.vy / VY_MAX) * ENERGY) * dt;
+  A.spd = Math.max(60, Math.min(SPD_CRUISE * SPD_TURBO * 1.15, A.spd));
 
   // ---------- POSICION ----------
-  A.pos.x += A.fwd.x * A.spd * dt;
-  A.pos.y += A.fwd.y * A.spd * dt;
-  A.pos.z += A.fwd.z * A.spd * dt;
+  // avance por el morro + DESLIZAMIENTO lateral (la vx del pasillo, tal cual) + altura
+  const rx = Math.cos(A.yaw), rz = Math.sin(A.yaw);   // vector derecha del avion
+  A.pos.x += (A.fwd.x * A.spd + rx * A.vx) * dt;
+  A.pos.z += (A.fwd.z * A.spd + rz * A.vx) * dt;
+  A.pos.y += A.vy * dt;
   // techo blando (arriba no hay nada que ver); ABAJO no hay clamp: el mar mata, como en todo
   // el juego. La regla del rasante — soltas el gas y te hundis — recien existe si hundirse duele.
-  if (A.pos.y > ALT_MAX) { A.pos.y = ALT_MAX; if (A.pitch > 0) A.pitch *= 0.4; }
+  if (A.pos.y > ALT_MAX) { A.pos.y = ALT_MAX; if (A.vy > 0) A.vy = 0; }
   if (A.doneT <= 0) {
     if (A.pos.y < SEA_KILL) { A = null; return { death: 'death_sea' }; }
     if (world3D.hitsShip(A.pos.x, A.pos.y, A.pos.z)) { A = null; return { death: 'death_mast' }; }
   }
 
-  engineFly(A.spd, inp.turbo && gas, inp.turbo ? 0.026 : 0.018);
-  if (gas && run.fuel > 0) run.fuel = Math.max(0, run.fuel - dt * 0.55);
+  engineFly(A.spd, run.boost, run.boost ? 0.030 : 0.017);   // mismos valores que el pasillo
+  if (run.boost) run.shake = Math.max(run.shake, 0.8);
+  // el combustible SOLO baja si esta encendido en el menu [M] — igual que el pasillo. Antes
+  // drenaba siempre: con COMBUSTIBLE: NO (el default) el tanque igual se vaciaba y en una
+  // batalla larga te quedabas sin gas, cayendo al mar sin explicacion.
+  if (cfg.fuelOn && gas) run.fuel = Math.max(0, run.fuel - dt * 3.2);
 
   // ---------- hundimiento (outro) ----------
   if (A.doneT > 0) {
@@ -396,6 +408,6 @@ if (typeof window !== 'undefined') window.__akill = () => {
 if (typeof window !== 'undefined') window.__adbg = () => A && JSON.stringify({
   x: A.pos.x | 0, y: A.pos.y | 0, z: A.pos.z | 0, r: Math.hypot(A.pos.x, A.pos.z) | 0,
   yaw: +A.yaw.toFixed(2), pitch: +A.pitch.toFixed(2), roll: +A.roll.toFixed(2),
-  spd: A.spd | 0, out: +A.outT.toFixed(1), auto: A.auto, zonas: zones.filter(z => z.hp > 0).length,
+  spd: A.spd | 0, vx: +A.vx.toFixed(1), vy: +A.vy.toFixed(1), out: +A.outT.toFixed(1), auto: A.auto, zonas: zones.filter(z => z.hp > 0).length,
   vidas: run.lives, flak: A.fx.filter(f => f.k === 'fw3').length,
 });

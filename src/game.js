@@ -817,7 +817,7 @@ import { RUNWAYS } from './data/runways.js';
           // encima devuelve { death } y el embudo decide: relevo del escuadron (y se re-entra
           // al arena con el daño hecho intacto) o derribo final.
           run.shake = Math.max(0, run.shake - dt * 10);
-          const sig = arena.update(dt, inp, mouse);
+          const sig = arena.update(dt, inp);   // vuela como el PASILLO: solo teclas/pad, sin mouse
           if (sig === 'objective') finishObjective();
           else if (sig && sig.death) onDeath(sig.death);
           flags.startReq = false; flags.anyPress = false;
