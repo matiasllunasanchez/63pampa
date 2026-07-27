@@ -18,6 +18,7 @@ código ([ARQUITECTURA.md](ARQUITECTURA.md)).
 > 📄 **Velocidad máxima por avión, escalones MACH, barrera del sonido y aporte de las
 > piruetas**: el diseño está en [VELOCIDAD_MACH.md](VELOCIDAD_MACH.md) (propuesta, sin
 > implementar — tiene 5 decisiones pendientes al final).
+
 - **Economía y progresión** — #5, #6, #11, #14
 - **Combustible y ruta óptima** — #15, #26, #28
 - **Mundo, terreno y aliados** — #15, #16, #17, #27
@@ -71,7 +72,7 @@ un JPG.
 
 ## 4. Más animaciones de vuelo
 
-Sumar animaciones, **al menos una mientras vuela**: *bob* de vuelo + **micro-wobble** — una
+Sumar animaciones, **al menos una mientras vuela**: _bob_ de vuelo + **micro-wobble** — una
 oscilación sutil para que el avión **nunca quede congelado** en el aire.
 
 **Acción pendiente:** probarlo en el preview y decidir si la inclinación se siente bien o si me
@@ -139,10 +140,10 @@ con dos efectos ya implementados:
 **Si se reemplaza por assets**, el spec para que entren sin rehacer la lógica (mismo criterio que
 `data/planes.js`, que ya usa hojas de sprites horneadas):
 
-| aeronave | hoja | por qué |
-|---|---|---|
+| aeronave    | hoja                                                          | por qué                                                      |
+| ----------- | ------------------------------------------------------------- | ------------------------------------------------------------ |
 | helicóptero | **1 fila × 8 columnas**, yaw de 0° (de frente) a 90° (perfil) | la columna la elige el `yaw` que ya se calcula por distancia |
-| jet | **1 fila × 5 columnas**, alabeo de −30° a +30° | reemplaza el `bank` que hoy se finge con rects |
+| jet         | **1 fila × 5 columnas**, alabeo de −30° a +30°                | reemplaza el `bank` que hoy se finge con rects               |
 
 - **Tamaño sugerido:** 48×32 por cuadro, PNG con transparencia (la hoja del jugador es 56×32).
 - **Sin bordes suavizados** (el juego dibuja con `imageSmoothingEnabled = false`).
@@ -291,7 +292,6 @@ Agregar **reabastecimiento de gasolina asociado al HÉRCULES**.
       la playa. Del lado izquierdo, **trincheras argentinas** (decorado sin colisión) tirotean y
       cada tanto abaten un británico.
 
-
 ## 18. Jugar con los ingleses (asimetría)
 
 Poder **jugar con los ingleses** para mostrar la **diferencia**: dar **facilidades de poderes y
@@ -302,7 +302,7 @@ Analogía guía: **dron estabilizado** (inglés) **vs dron acro personalizado** 
 
 > Relacionado con #10 y
 > #19.
-> El *framing* es de diseño; cualquier dato concreto de tecnología/época va a
+> El _framing_ es de diseño; cualquier dato concreto de tecnología/época va a
 > [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md).
 
 ## 19. Radares ingleses vs base terrestre argentina
@@ -330,13 +330,13 @@ Los datos, con una idea de cómo podría expresarse cada uno **dentro de la part
 que hace falta para que no queden en texto de menú). **Verificar antes de publicar** — ver la
 nota en [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md).
 
-| País | Qué aportó | Posible expresión en el juego |
-|---|---|---|
-| **Perú** | **10 Dassault Mirage 5** entregados | Un avión más en el roster (#10) que se **desbloquea** a mitad de campaña, no está desde el principio: se siente la llegada del refuerzo |
-| **Venezuela** | Apoyo militar inmediato y **combustible** | Bidones extra / autonomía: toca directo el reloj del run (#26 depende del combustible) |
-| **Libia** | Misiles soviéticos, armamento pesado y minas terrestres, de forma **secreta** | Armamento extra que aparece **sin anuncio** — encaja con que fue clandestino |
-| **España** | Filtró extraoficialmente información y **manuales técnicos de los Harrier** | El Harrier enemigo pasa a mostrar sus **puntos débiles** (marcador de zona vulnerable, como el momentum) |
-| **Unión Soviética** | **Inteligencia satelital** de los movimientos de la flota británica | Aviso previo de dónde está la flota: el marcador de objetivo aparece antes / se ve el rumbo enemigo |
+| País                | Qué aportó                                                                    | Posible expresión en el juego                                                                                                           |
+| ------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **Perú**            | **10 Dassault Mirage 5** entregados                                           | Un avión más en el roster (#10) que se **desbloquea** a mitad de campaña, no está desde el principio: se siente la llegada del refuerzo |
+| **Venezuela**       | Apoyo militar inmediato y **combustible**                                     | Bidones extra / autonomía: toca directo el reloj del run (#26 depende del combustible)                                                  |
+| **Libia**           | Misiles soviéticos, armamento pesado y minas terrestres, de forma **secreta** | Armamento extra que aparece **sin anuncio** — encaja con que fue clandestino                                                            |
+| **España**          | Filtró extraoficialmente información y **manuales técnicos de los Harrier**   | El Harrier enemigo pasa a mostrar sus **puntos débiles** (marcador de zona vulnerable, como el momentum)                                |
+| **Unión Soviética** | **Inteligencia satelital** de los movimientos de la flota británica           | Aviso previo de dónde está la flota: el marcador de objetivo aparece antes / se ve el rumbo enemigo                                     |
 
 El patrón: cada ayuda debería tocar **un sistema distinto** (roster, combustible, armamento,
 información del enemigo, información del objetivo) para que se noten como cosas separadas.
@@ -357,11 +357,11 @@ sino que **contó con apoyos** que se traducen en poderes/tecnología dentro del
 Mismo criterio que #20: el dato y su posible expresión jugable. **Verificar antes de publicar**
 — varias de estas son afirmaciones sensibles; ver [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md).
 
-| País | Qué aportó | Posible expresión en el juego |
-|---|---|---|
-| **Estados Unidos** | Misiles **Sidewinder AIM-9L** de última generación, combustible, e inteligencia satelital **en tiempo real** de las posiciones argentinas | Misiles enemigos que **persiguen mejor** (el AIM-9L era all-aspect: podía dispararse de frente, no solo por la cola) + el enemigo sabe dónde estás aunque no te vea |
-| **Chile** | Radares británicos de largo alcance en su territorio, base para comandos del SAS, y escuchas de radio que **avisaban cada despegue argentino desde el continente** | La alarma de radar suena **antes** en las misiones que salen del continente (#26): te esperan |
-| **Francia** | Suspendió el envío ya pagado de Super Étendard y **Exocet**, y sus pilotos entrenaron a los británicos para **evadir los aviones franceses que tenía Argentina** | Munición limitada de Exocet en el Super Étendard (#10) + los buques **esquivan mejor** justo a ese avión: tu mejor arma es contra la que más se prepararon |
+| País               | Qué aportó                                                                                                                                                         | Posible expresión en el juego                                                                                                                                       |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Estados Unidos** | Misiles **Sidewinder AIM-9L** de última generación, combustible, e inteligencia satelital **en tiempo real** de las posiciones argentinas                          | Misiles enemigos que **persiguen mejor** (el AIM-9L era all-aspect: podía dispararse de frente, no solo por la cola) + el enemigo sabe dónde estás aunque no te vea |
+| **Chile**          | Radares británicos de largo alcance en su territorio, base para comandos del SAS, y escuchas de radio que **avisaban cada despegue argentino desde el continente** | La alarma de radar suena **antes** en las misiones que salen del continente (#26): te esperan                                                                       |
+| **Francia**        | Suspendió el envío ya pagado de Super Étendard y **Exocet**, y sus pilotos entrenaron a los británicos para **evadir los aviones franceses que tenía Argentina**   | Munición limitada de Exocet en el Super Étendard (#10) + los buques **esquivan mejor** justo a ese avión: tu mejor arma es contra la que más se prepararon          |
 
 El caso francés es el más interesante como diseño: es una desventaja **específica del avión**,
 no general — el jugador lo descubre usando el Super Étendard y notando que ahí cuesta más.
@@ -472,12 +472,14 @@ Hoy el juego se dibuja a **320×180** lógicos (buffer 2×). 480×270 es exactam
 Se probó de verdad: copia del árbol con `W=480, H=270, HOR=96, F=135` y build.
 
 **Lo bueno — arranca y no rompe nada:**
+
 - **Cero errores de consola.** El juego corre, el menú se ve bien, el mundo se dibuja correcto.
 - **231 posiciones** ya están expresadas con `W`/`H` (ej. `W/2`, `H-8`, `W-66`) → **se adaptan solas**.
   Casi todo el HUD (puntaje, barra de objetivo, avisos, COMB, CAÑÓN, velocímetro) cayó en su lugar.
 - El terreno llenó todo el ancho correctamente.
 
 **Lo que se rompe:**
+
 - **~40-60 posiciones hardcodeadas** en coordenadas absolutas. Confirmado en el spike: el panel
   ESTADO (`drawStatusPanel(287, 140)`) quedó flotando en el medio, y la palanca de gas
   (`tyTop=46, tyBot=118`) quedó arriba en vez de centrada.
@@ -507,19 +509,21 @@ queda idéntico sin tocar una sola coordenada.
 
 Se aplicó el camino híbrido. **Dos espacios de coordenadas, explícitos:**
 
-| capa | espacio | por qué |
-|---|---|---|
-| mundo (mar, tierra, obstáculos, avión, momentum) | **480×270 nativo** | es procedural: más píxeles = más detalle real |
-| HUD, pantallas, menús | **320×180 escalado ×U** | son texto y cajas; no ganan nada con más píxeles |
+| capa                                             | espacio                 | por qué                                          |
+| ------------------------------------------------ | ----------------------- | ------------------------------------------------ |
+| mundo (mar, tierra, obstáculos, avión, momentum) | **480×270 nativo**      | es procedural: más píxeles = más detalle real    |
+| HUD, pantallas, menús                            | **320×180 escalado ×U** | son texto y cajas; no ganan nada con más píxeles |
 
 Claves de por qué el híbrido no tiene costo:
+
 - **Sin medio píxel:** `U` (1.5) × `SC` (2) = **3 exacto**, así que cada unidad de diseño cae en 3
-  píxeles enteros. El texto del HUD encima quedó *más* nítido (se rasteriza a 3× en vez de 2×).
+  píxeles enteros. El texto del HUD encima quedó _más_ nítido (se rasteriza a 3× en vez de 2×).
 - **El mundo se adaptó solo:** `proj()` usa `W/2`, `HOR` y `F` juntos, así que al escalar los tres
   todo lo dibujado en coordenadas de mundo conservó su tamaño relativo sin tocar una línea.
 - Las constantes de MUNDO (`FLY_X`, `PZ`, alturas de obstáculos) no se tocaron.
 
 **Bugs latentes que aparecieron y se arreglaron:**
+
 - `systems/three-world.js` tenía una **copia hardcodeada** de `W/HOR/F`. Al cambiar la resolución el
   3D se habría desalineado del 2D **sin tirar ningún error**. Ahora las importa de `render/ctx.js`.
 - La geometría de la barcaza (`36`/`9`) estaba repetida en tres módulos. Se centralizó en
@@ -546,6 +550,7 @@ VOLANDO** (sin despegue, sin plataforma — `cfg.start = 'air'`, ya implementado
 final **no es destruir nada sino LLEGAR a la base argentina** con la nafta que quede.
 
 Qué falta para cerrarla:
+
 - [ ] Un tipo de objetivo "llegar a la base": la meta es una pista/base argentina que aparece en
       el horizonte (reutiliza la mecánica del marcador de objetivo y de la barcaza que crece).
 - [ ] El combustible como tensión central: el nivel se diseña para llegar CON LO JUSTO
@@ -556,7 +561,6 @@ Qué falta para cerrarla:
 
 Lo ya implementado que esta mision aprovecha: `cfg.start='air'` (arranque en vuelo, sin
 takeoff), los 5 estilos de pista (`data/runways.js`) para la base de llegada, y `cfg.cliff`.
-
 
 ## 26.1 Bases argentinas en las islas: BAM Malvinas y BAM Cóndor
 
@@ -596,14 +600,14 @@ media altura sin que el radar moleste ni los obstáculos amenacen.
 
 **Por qué funciona:** el juego ya tiene **dos presiones opuestas** que hoy casi no se tocan.
 
-| presión | dónde aprieta |
-|---|---|
-| **Radar** | te castiga por volar ALTO (oleadas de misiles que crecen sin techo) |
-| **Obstáculos + roce + suelo letal** | te castigan por volar BAJO |
+| presión                             | dónde aprieta                                                       |
+| ----------------------------------- | ------------------------------------------------------------------- |
+| **Radar**                           | te castiga por volar ALTO (oleadas de misiles que crecen sin techo) |
+| **Obstáculos + roce + suelo letal** | te castigan por volar BAJO                                          |
 
 Entre las dos queda un **corredor seguro** ancho. Bajar el techo de radar **estrangula ese
 corredor**: no agrega ningún sistema nuevo, solo cierra la pinza entre dos que ya existen. Y es
-exactamente la fantasía histórica del juego — los A-4 cruzaban a menos de 15 m *porque* el radar
+exactamente la fantasía histórica del juego — los A-4 cruzaban a menos de 15 m _porque_ el radar
 de la flota los pintaba más arriba.
 
 ### Cómo podría entrar
@@ -617,6 +621,7 @@ de la flota los pintaba más arriba.
 > corredor era ancho; hoy ya está bastante más apretado, así que **el margen para estrangularlo
 > es menor de lo que este texto asume**. Un tramo que baje a 12-15 hoy es un cambio mucho más
 > violento que el que se estaba imaginando acá.
+
 - **Por proximidad al objetivo**: el techo baja a medida que te acercás a la flota — la escolta de
   radar es más densa cerca del blanco. Progresión natural, sin marcar zonas a mano.
 - **Por nivel**: un parámetro de misión (`cfg.radarAlt`), como ya son `coast` u `obstacles`.
@@ -648,7 +653,7 @@ de la flota los pintaba más arriba.
 ## 28. Ruta óptima de combustible: el nivel entero es una sola línea bien volada
 
 **La idea:** los lugares donde hoy aparecen los **bidones** dejan de ser objetos que se agarran y
-pasan a ser los **puntos óptimos de paso** — el trazado que el avión *debería* seguir. Pasar por
+pasan a ser los **puntos óptimos de paso** — el trazado que el avión _debería_ seguir. Pasar por
 ellos es volar eficiente; **no pasar es desperdiciar combustible**, y eso se avisa en el momento.
 
 El nivel se lee entonces como **una ruta**: el camino ideal es hacer el recorrido completo pasando
@@ -665,12 +670,12 @@ Hoy el combustible es un **reloj que baja y se recarga**: drena `3.2/s` (`+4.2` 
 `systems/flight.js:140`), el bidón aparece cada 700 de distancia (`run.fuelDist > 700`,
 `systems/spawn.js:97`) y agarrarlo **suma +30** con techo de 100 (`systems/collision.js:155`).
 
-| | hoy | con #28 |
-|---|---|---|
-| qué es el punto | un ítem que se **agarra** (`+30`) | un **portal/tramo por donde se pasa** |
-| qué hace fallarlo | perdés una recarga, seguís | **desperdiciás** combustible: no lo recuperás |
-| qué mide la barra al final | cuánto te queda | **qué tan bien volaste todo el nivel** |
-| para qué sirve el saldo | no morirte | **cuántos minutos aguantás contra el boss** |
+|                            | hoy                               | con #28                                       |
+| -------------------------- | --------------------------------- | --------------------------------------------- |
+| qué es el punto            | un ítem que se **agarra** (`+30`) | un **portal/tramo por donde se pasa**         |
+| qué hace fallarlo          | perdés una recarga, seguís        | **desperdiciás** combustible: no lo recuperás |
+| qué mide la barra al final | cuánto te queda                   | **qué tan bien volaste todo el nivel**        |
+| para qué sirve el saldo    | no morirte                        | **cuántos minutos aguantás contra el boss**   |
 
 Ojo con la matemática: para que "pasar por todos = llegar al máximo" sea cierto, el drenaje del
 nivel y lo que devuelve cada punto tienen que estar **cuadrados a la duración de la misión**. Si no,
@@ -735,12 +740,12 @@ Es tuning de nivel, no una constante global.
 
 **Implementado** (julio 2026). Cada partida sale con un escuadrón de **1 a 8 aviones** (fila
 `ESCUADRON` del menú `[M]`, default 4) y el escuadrón son las **vidas** — pero contadas como
-compañeros con indicativo (`GUARDIA 1..N`), no como un contador abstracto. Cuatro momentos:
+compañeros con indicativo (`PATRIA 1..N`), no como un contador abstracto. Cuatro momentos:
 
 1. **Despegue en formación**: los numerales carretean y rotan detrás del líder en escalón en V,
    con retraso por rango (la escalera de ascenso). Solo durante `'takeoff'`.
-2. **Salida de plano** al CONTROL LIBRE: aceleran, crecen y pasan al costado de la cámara — *te
-   siguen ahí atrás aunque no los veas*. La cámara "se mete" un poco al avión con un empujón de
+2. **Salida de plano** al CONTROL LIBRE: aceleran, crecen y pasan al costado de la cámara — _te
+   siguen ahí atrás aunque no los veas_. La cámara "se mete" un poco al avión con un empujón de
    escala del sprite (no del raster: eso raya el mar, ver `CAM_ZOOMS`).
 3. **Relevo al morir**: en vez de la pantalla de derribado, cinemática de ~3 s — la cámara se
    queda con los restos del líder (beat `wreck`, 1 s) y el companero entra desde afuera con una

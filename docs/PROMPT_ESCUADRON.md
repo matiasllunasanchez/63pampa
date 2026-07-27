@@ -32,7 +32,7 @@ Se renderizan **únicamente durante la cuenta regresiva del despegue** — o sea
 
 Apenas termina la cuenta (`toT >= 3`, `game.js:687`), los aviones del escuadrón **se van detrás
 de la cámara y salen del plano**, y la cámara **se acerca un poco** al avión del jugador. La
-lectura buscada: *el escuadrón te sigue ahí atrás, aunque no lo veas*. Durante la partida
+lectura buscada: _el escuadrón te sigue ahí atrás, aunque no lo veas_. Durante la partida
 (`'play'`) **no se renderizan**.
 
 ### 3. Relevo al morir el líder
@@ -65,20 +65,20 @@ Al terminar los 2 s, se devuelve el control con un aviso claro.
 
 ## Contexto real del código (verificado — usá estos puntos de entrada)
 
-| qué | dónde |
-|---|---|
-| máquina de estados (`'takeoff' → 'play' → 'dead'`) | `src/core/state.js` (`S`, `setState`) |
-| bloque completo del despegue + cuenta regresiva | `src/game.js:664-696` (`toT`, `toCount`, transición a `'play'` en :687) |
-| muerte del jugador (explosión, chunks, estrellas, best) | `src/game.js:585` (`die(cause)`) |
-| reset total de la corrida | `src/game.js:331` (`reset()`) |
-| config del mapa (lo que edita el menú `[M]`) | `src/core/state.js` (`cfg`) |
-| filas del menú `[M]` | `src/game.js:225-250` |
-| estado de la corrida (nafta, puntaje, rachas) | `src/core/run.js` (`run`, `resetRun()`) |
-| dibujo del avión del jugador | `src/render/plane.js:125` (`drawPlane`) — hoy lee `plane` y `PZ` fijos |
-| HUD (barras, avisos, panel de estado) | `src/render/hud.js` |
-| textos es/en | `src/data/strings.js` (se leen con `T('clave')`) |
-| colisiones (devuelven `{ death }`) | `src/systems/collision.js` |
-| vuelo: roce, combustible, radar | `src/systems/flight.js` |
+| qué                                                     | dónde                                                                   |
+| ------------------------------------------------------- | ----------------------------------------------------------------------- |
+| máquina de estados (`'takeoff' → 'play' → 'dead'`)      | `src/core/state.js` (`S`, `setState`)                                   |
+| bloque completo del despegue + cuenta regresiva         | `src/game.js:664-696` (`toT`, `toCount`, transición a `'play'` en :687) |
+| muerte del jugador (explosión, chunks, estrellas, best) | `src/game.js:585` (`die(cause)`)                                        |
+| reset total de la corrida                               | `src/game.js:331` (`reset()`)                                           |
+| config del mapa (lo que edita el menú `[M]`)            | `src/core/state.js` (`cfg`)                                             |
+| filas del menú `[M]`                                    | `src/game.js:225-250`                                                   |
+| estado de la corrida (nafta, puntaje, rachas)           | `src/core/run.js` (`run`, `resetRun()`)                                 |
+| dibujo del avión del jugador                            | `src/render/plane.js:125` (`drawPlane`) — hoy lee `plane` y `PZ` fijos  |
+| HUD (barras, avisos, panel de estado)                   | `src/render/hud.js`                                                     |
+| textos es/en                                            | `src/data/strings.js` (se leen con `T('clave')`)                        |
+| colisiones (devuelven `{ death }`)                      | `src/systems/collision.js`                                              |
+| vuelo: roce, combustible, radar                         | `src/systems/flight.js`                                                 |
 
 **El modelo a copiar es `momentum`**: `src/systems/momentum.js` + `src/render/momentum.js`. Es un
 modo con cinemática propia, su `update`/`draw`, y que **devuelve una señal** en vez de llamar al
@@ -142,7 +142,7 @@ flujo de misión. El relevo debería ser exactamente eso: `src/systems/squad.js`
   exploit que rompe el combustible como reloj del run. Lo que sí se pierde: la racha rasante y el
   multiplicador (el avión nuevo entra frío).
 - **El puntaje se conserva** (es la misma misión).
-- **Identidad de cada avión:** dales un **indicativo** (ej. `GUARDIA 2`, `GUARDIA 3`). Sale casi
+- **Identidad de cada avión:** dales un **indicativo** (ej. `PATRIA 2`, `PATRIA 3`). Sale casi
   gratis y es de donde viene la emoción: el HUD tacha al que cayó y la línea de radio del relevo
   lo nombra. Sin nombre, una vida menos es un número menos.
 - **Sonido:** reusá lo que hay (`beep`, `sfxOne`, `boom`); no agregues assets nuevos.

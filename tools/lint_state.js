@@ -1,4 +1,4 @@
-// GUARDIA DEL STORE — protege las dos invariantes de src/core/state.js.
+// PATRIA DEL STORE — protege las dos invariantes de src/core/state.js.
 //   npm run lint:state
 //
 // El store solo sirve si sus reglas se cumplen SIEMPRE. Las dos que importan:

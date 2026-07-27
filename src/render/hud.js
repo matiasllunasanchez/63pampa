@@ -160,7 +160,7 @@ function bar(x, y, w, val, c, label) {
 
 // TABLERO DEL ESCUADRON: un avioncito por vida — los caidos quedan TACHADOS, no desaparecen.
 // Que el pip siga ahi, oscuro y cruzado, es lo que hace que una vida menos sea un companero
-// menos y no un numero menos. Al lado, el indicativo del piloto al mando (GUARDIA n).
+// menos y no un numero menos. Al lado, el indicativo del piloto al mando (PATRIA n).
 // Lo comparte el HUD de vuelo y la sobreimpresion del relevo (render/squad.js).
 export function drawSquadPips(x, y) {
   const fallen = pilotIdx(run.squad, run.lives);

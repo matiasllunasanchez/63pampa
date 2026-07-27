@@ -2,7 +2,7 @@
 // como core/physics.js — es lo que permite testearla en node (tools/unit.js) sin canvas.
 //
 // El escuadron son las VIDAS del jugador, pero contadas como aviones de una formacion real:
-// el jugador arranca como lider (GUARDIA 1) y cada derribo lo releva el numeral siguiente.
+// el jugador arranca como lider (PATRIA 1) y cada derribo lo releva el numeral siguiente.
 // Quien EJECUTA el relevo es systems/squad.js; quien lo DIBUJA es render/squad.js.
 
 // La cinematica del relevo, en dos tiempos:
@@ -20,12 +20,12 @@ export const SQUAD_MIN = 1, SQUAD_MAX = 8;
 /** ¿Queda escuadron para relevar? Con 1 avion NO: morir es morir, igual que siempre. */
 export const canRelevo = lives => lives > 1;
 
-/** Indice (0-based) del piloto al mando: con 4 aviones y 4 vidas mandas vos (GUARDIA 1);
- *  cae uno (3 vidas) y asume GUARDIA 2. */
+/** Indice (0-based) del piloto al mando: con 4 aviones y 4 vidas mandas vos (PATRIA 1);
+ *  cae uno (3 vidas) y asume PATRIA 2. */
 export const pilotIdx = (squad, lives) => Math.max(0, squad - lives);
 
 /** Indicativo radial del numeral `idx`. Es nombre propio (escuadron argentino): no se traduce. */
-export const callsign = idx => 'GUARDIA ' + (idx + 1);
+export const callsign = idx => 'PATRIA ' + (idx + 1);
 
 /** Fase de la cinematica a tiempo `t`. `invuln` cubre TODO el relevo — la ventana de gracia
  *  no es un flag aparte que alguien pueda olvidarse de apagar. */

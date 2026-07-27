@@ -108,14 +108,14 @@ test('escuadron: con un solo avion NO hay relevo — morir es morir, como siempr
 });
 
 test('escuadron: el descuento de vidas nombra al piloto correcto', () => {
-  // escuadron de 4: arranca el lider (GUARDIA 1); cae uno → asume GUARDIA 2; con la ultima
-  // vida vuela GUARDIA 4. pilotIdx nunca puede pasarse del escuadron.
+  // escuadron de 4: arranca el lider (PATRIA 1); cae uno → asume PATRIA 2; con la ultima
+  // vida vuela PATRIA 4. pilotIdx nunca puede pasarse del escuadron.
   assert.equal(pilotIdx(4, 4), 0);
   assert.equal(pilotIdx(4, 3), 1);
   assert.equal(pilotIdx(4, 1), 3);
   assert.equal(pilotIdx(4, 0), 4);     // ya no queda nadie: el "siguiente" no existe
-  assert.equal(callsign(0), 'GUARDIA 1');
-  assert.equal(callsign(3), 'GUARDIA 4');
+  assert.equal(callsign(0), 'PATRIA 1');
+  assert.equal(callsign(3), 'PATRIA 4');
 });
 
 test('relevo: la ventana de gracia cubre TODA la cinematica y expira al final', () => {
