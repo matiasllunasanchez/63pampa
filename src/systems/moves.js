@@ -58,6 +58,10 @@ export function movesSystem(dt, inp) {
   // el eje libre: media palanca sobre lo que la maniobra impone
   const sx = M.steer === 'x' ? (inp.r - inp.l) * 30 * STEER_F : 0;
   const sy = M.steer === 'y' ? (inp.u - inp.d) * 14 * STEER_F : 0;
+  // DERIVA DEL ROLIDO (ver `drift` en data/moves.js): el avion se va hacia el lado que rola.
+  // Campana: cero al entrar y al salir, pico en el medio — asi la maniobra no arranca ni termina
+  // con un tiron lateral, y no deja velocidad colgada al devolver el control.
+  const drift = M.drift ? dir * M.drift * bell(p) : 0;
 
   switch (run.mv) {
     case 'splits': {
@@ -81,15 +85,15 @@ export function movesSystem(dt, inp) {
         run.spd += 26 * dt;
         if (plane.y < 3) { plane.vy = Math.max(plane.vy, 0); run.mvT = Math.max(run.mvT, M.dur * 0.62); }  // piso: endereza ya
       } else { run.mvRoll = dir * (Math.PI + ss((p - 0.62) / 0.38) * Math.PI); run.mvSteep = 0; plane.vy *= 0.6; }
-      plane.vx = sx; plane.bank = 0; plane.pitch = p > 0.28 && p < 0.62 ? -1 : 0;
+      plane.vx = sx + drift; plane.bank = 0; plane.pitch = p > 0.28 && p < 0.62 ? -1 : 0;
       break;
     }
     case 'spin': {
-      // TIRABUZON: rola 360° SOBRE SU PROPIO EJE mientras pica derecho — sin desvio lateral.
-      // Es la unica maniobra puramente axial: el tonel clasico lleva un dash de costado y el
-      // barril describe un circulo; esta se queda en su carril y baja girando.
+      // TIRABUZON: rola 360° sobre su propio eje mientras pica. Sigue siendo la mas axial de las
+      // tres que giran —el tonel clasico lleva un dash de costado y el barril describe un circulo
+      // entero— pero ya no se queda clavada en el carril: se va la mitad que el split-s.
       run.mvRoll = dir * p * Math.PI * 2;
-      plane.vx = 0;                                   // NADA de lateral: ese es el punto
+      plane.vx = drift;                               // se va hacia el lado que rola (ver `drift`)
       plane.vy = -20 * Math.sin(Math.PI * p) - 4;     // pica con panza (entra y sale suave)
       if (plane.y < 3.5 && plane.vy < 0) plane.vy = 0;   // piso de seguridad
       run.spd += 30 * dt * bell(p);                   // la picada paga velocidad

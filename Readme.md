@@ -56,7 +56,7 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
   Con `SOLO`, morir es morir, como siempre.
 - **Horizonte giratorio**: al rolar, lo que gira es el **mundo** — el avión queda derecho, como
   visto desde una cámara pegada a él. Se elige en **OPCIONES** (`HORIZONTE: FIJO · EN PIRUETAS ·
-  TOTAL`, default *EN PIRUETAS*) y la elección se guarda entre sesiones. Es solo dibujo: no cambia
+  TOTAL · LIBRE 360°`, default **TOTAL**: doblar inclina el mundo 12,6°) y la elección se guarda entre sesiones. Es solo dibujo: no cambia
   colisiones ni dificultad. Abajo a la izquierda hay un **horizonte artificial** que dice dónde
   está el suelo y para qué lado queda arriba; se ve siempre, incluso con `FIJO`. Con el modo
   `LIBRE 360°`, `[Q]` y `[E]` rolan a voluntad sin tope — el suelo puede quedar en el techo y

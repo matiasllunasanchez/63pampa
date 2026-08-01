@@ -12,6 +12,12 @@
 //   turbo  ¿el turbo funciona durante la maniobra?
 //   tight  el perfil de colision se ENCOGE (alas de canto / banqueo fuerte), como en el tonel —
 //          tambien habilita el bonus de roce "con estilo" (250 en vez de 75)
+//   drift  DESPLAZAMIENTO LATERAL hacia el lado del rolido, en unidades/segundo de pico.
+//          Un avion que rola inclina su vector de sustentacion y se VA para ese lado; sin esto,
+//          las dos maniobras que rolan 360° —SPLIT-S y TIRABUZON— giraban clavadas en su carril
+//          (medido: 0.0 de desplazamiento contra 29.7 del break turn) y se leian como una
+//          animacion del sprite en vez de una maniobra. El perfil es una campana: arranca y
+//          termina en cero, asi no queda velocidad lateral colgada al salir.
 //
 // COMBOS: secuencias de 3 o 4 toques direccionales, cada uno a menos de 0.28 s del anterior
 // (teclado o joystick — cruceta o flicks del stick). Ver docs/PIRUETAS.md para la tabla completa.
@@ -52,7 +58,7 @@ export const MOVES = {
   // (mira libre o auto-apuntado) no depende de para donde este la panza. El tonel clasico
   // siempre dejo disparar, asi que bloquearlo aca era una incoherencia entre dos maniobras que
   // el jugador vive como la misma cosa (dar vuelta el avion).
-  splits: { dur: 1.15, name: 'SPLIT-S', steer: 'x', fire: true, turbo: false, tight: true },
+  splits: { dur: 1.15, name: 'SPLIT-S', steer: 'x', fire: true, turbo: false, tight: true, drift: 24 },
   // viraje quebrado: tiron lateral violento sostenido, banqueo a fondo
   breakt: { dur: 0.7, name: 'BREAK TURN', steer: 'y', fire: true, turbo: false, tight: true },
   // sube, cuelga y recae: esquive vertical que sangra velocidad
@@ -67,9 +73,13 @@ export const MOVES = {
   mask: { dur: 1.6, name: 'TERRAIN MASKING', steer: 'x', fire: true, turbo: true, tight: false },
   // trepada brusca de ataque desde rasante
   popup: { dur: 0.8, name: 'POP-UP', steer: 'x', fire: true, turbo: false, tight: false },
-  // TIRABUZON: rola sobre su PROPIO EJE picando derecho, sin desvio lateral. No deja controlar
-  // nada (steer null) justamente porque lo que la define es que NO se va para ningun costado.
-  spin: { dur: 1.0, name: 'TIRABUZON', steer: null, fire: true, turbo: true, tight: true },
+  // TIRABUZON: rola sobre su propio eje picando. No deja controlar nada (steer null): lo que la
+  // define es que el jugador no la corrige, no que el avion no se mueva.
+  // OJO: antes tenia `plane.vx = 0` clavado y el comentario decia que NO irse de costado era "el
+  // punto" de la maniobra. Se cambio a pedido: rolando 360° sin desplazarse se veia estatica.
+  // El drift es la MITAD del split-s, para que siga leyendose mas axial que las demas; ponerlo en
+  // 0 devuelve el comportamiento anterior sin tocar nada mas.
+  spin: { dur: 1.0, name: 'TIRABUZON', steer: null, fire: true, turbo: true, tight: true, drift: 12 },
   // TONEL BARRIL: la O grande — se abre, sube, pasa boca arriba y vuelve. Trayectoria cerrada,
   // asi que tampoco se controla: corregirla la dejaria de cerrar.
   barrel: { dur: 1.4, name: 'TONEL BARRIL', steer: null, fire: true, turbo: false, tight: true },

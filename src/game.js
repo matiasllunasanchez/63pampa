@@ -275,7 +275,11 @@ import { RUNWAYS } from './data/runways.js';
       // PIRUETAS: los combos direccionales (split-s, break turn…). El tonel queda siempre.
       { label: () => T('optMoves'), opts: [true, false], names: yesNo,
         get: () => cfg.moves, set: v => cfg.moves = v, save: 'rasante_piruetas' },
-      // MIRA: se elige VIÉNDOLA, no leyendo un número — de eso se encarga `preview`.
+      // MIRA FIJA o MOVIL. Con mando es siempre fija (no tiene con que moverla); en teclado
+      // CAPS LOCK la alterna en vivo y escribe en esta misma clave.
+      { label: () => T('optAim'), opts: [0, 1], names: () => [T('optAimFixed'), T('optAimFree')],
+        get: () => cfg.aim, set: v => { cfg.aim = v; if (!v) mouse.on = false; }, save: 'rasante_mira_modo' },
+      // RETICULO: se elige VIÉNDOLO, no leyendo un número — de eso se encarga `preview`.
       { label: () => T('optMira'), opts: MIRA_IDS, names: () => MIRA_IDS.map(String), preview: 'mira',
         get: () => cfg.mira, set: v => cfg.mira = v, save: 'rasante_mira' },
       { label: () => T('optNet'), opts: [0, 1, 2],
@@ -631,10 +635,12 @@ import { RUNWAYS } from './data/runways.js';
       // reproductor está activo — el motor ignora el cambio en historia/lobby.
       trackPrev: () => { if (canPickMusic()) prevTrack(); },
       trackNext: () => { if (canPickMusic()) nextTrack(); },
-      // mira del joystick: R1 fija/libera (feedback visual + sonoro)
-      aimLock: locked => {
-        beep(locked ? 660 : 440, 0.05, 'square', 0.05);
-        if (S.state === 'play' || S.state === 'momentum') popup(W / 2, 58, locked ? T('aimFixed') : T('aimFree'), P.accent);
+      // MIRA fija/movil: la alterna CAPS LOCK (teclado) y tambien la fila de OPCIONES. El aviso
+      // en pantalla es el mismo por las dos vias — si no, tocar la tecla no daba ninguna señal.
+      aimChanged: free => {
+        beep(free ? 440 : 660, 0.05, 'square', 0.05);
+        if (S.state === 'play' || S.state === 'momentum') popup(W / 2, 58, free ? T('aimFree') : T('aimFixed'), P.accent);
+        try { localStorage.setItem('rasante_mira_modo', cfg.aim); } catch (e) { }
       },
       // throttle del joystick: L1 invierte el eje vertical del stick izquierdo
       throttleInvert: inv => {
@@ -884,7 +890,9 @@ import { RUNWAYS } from './data/runways.js';
       // pegaba el volantazo al recuperar el control.
       // No devuelve nada: es puro dibujo, no puede matarte, asi que no entra en el embudo de
       // señales del vuelo.
-      stepHorizon(dt, (inp.rollR ? 1 : 0) - (inp.rollL ? 1 : 0));
+      // el mando manda un eje ANALOGICO (stick derecho) y el teclado un ±1: gana el que este
+      // pidiendo algo, asi los dos conviven sin que el que esta quieto pise al otro.
+      stepHorizon(dt, inp.rollAx || (inp.rollR ? 1 : 0) - (inp.rollL ? 1 : 0));
 
       // despegue automático desde Puerto Argentino: el control llega a los 3 s
       if (S.state === 'takeoff') {

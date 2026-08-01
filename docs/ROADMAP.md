@@ -1085,8 +1085,8 @@ mundo*:
 | valor | qué hace |
 |---|---|
 | `FIJO` | el mundo nunca se inclina. La salida para quien se marea |
-| `EN PIRUETAS` | **default** — solo durante tonel/maniobra: el giro es un evento, no un fondo móvil |
-| `TOTAL` | además el alabeo continuo inclina el horizonte (amortiguado: `BANK_TILT`, ~1/5 del real) |
+| `EN PIRUETAS` | solo durante tonel/maniobra: el giro es un evento, no un fondo móvil |
+| `TOTAL` | **default** — además el alabeo continuo inclina el horizonte (amortiguado: `BANK_TILT`, ~1/5 del real). Doblar inclina el mundo 12,6°: es *la* sensación que da todo esto, y con `EN PIRUETAS` de default la mayoría no la veía nunca |
 | `LIBRE 360°` | además `[Q]`/`[E]` rolan a voluntad **sin tope**: el suelo puede quedar en el techo y quedarse ahí. Al soltar se endereza solo, por el camino corto |
 
 `[Q]`/`[E]` van aparte de `←`/`→` a propósito: esas mueven el avión de carril **y** alimentan el
@@ -1279,3 +1279,51 @@ Lo que queda para después:
 > Dónde tocar → `OPT_ROWS` en `game.js` (las filas, las secciones y la persistencia),
 > `drawOptions` en `render/menus.js` (lista con secciones, scroll y las tres columnas de
 > CONTROLES), `core/input.js` (teclado y la rama `'options'` del joystick) y `data/strings.js`.
+
+---
+
+## 33. Deriva de las piruetas, stick derecho y la mira como configuración ✔ (implementado)
+
+### Las piruetas que rolaban clavadas
+
+Medido lanzando cada maniobra desde el centro y siguiendo `plane.x`: **las dos únicas que rolan
+360° eran las dos únicas que no se movían un milímetro.**
+
+| maniobra | rola | Δx antes | Δx ahora |
+|---|---|---|---|
+| SPLIT-S | 360° | **0,0** | 17,6 |
+| TIRABUZÓN | 348° | **0,0** | 7,6 |
+| TONEL BARRIL | 351° | 0,0 (círculo, vuelve) | sin cambios |
+| BREAK TURN | 17° | 29,7 | sin cambios |
+| S-TURN | 0° | 0,0 (vuelve al carril) | sin cambios |
+
+Un avión que rola inclina su vector de sustentación y se va para ese lado; sin eso, la maniobra se
+leía como una animación del sprite. Se agregó `drift` al catálogo (`data/moves.js`): velocidad
+lateral de pico hacia el lado del rolido, con perfil de campana — arranca y termina en cero, así no
+queda velocidad colgada al devolver el control.
+
+> El `TIRABUZÓN` tenía `plane.vx = 0` clavado y el comentario decía que *no* irse de costado era «el
+> punto» de la maniobra. Se cambió a pedido, con la mitad del drift del SPLIT-S para que siga
+> leyéndose más axial. Ponerlo en `0` devuelve el comportamiento anterior.
+
+### El stick derecho pasa a ser el giro libre
+
+Antes movía la **mira**, con `R1` alternando fija/libre. Se sacó: apuntar con stick nunca compitió
+con el mouse, y a cambio dejaba ocupado el único eje analógico libre del mando. Ahora es el
+equivalente de `[Q]`/`[E]`, y **analógico**: medido, a fondo rola 3,0× más rápido que a 0,35 — algo
+que el teclado no puede dar.
+
+### La mira, a OPCIONES
+
+`MIRA: FIJA · MOVIL (mouse)`, default **MOVIL**. Con mando es siempre fija *por construcción*: ya no
+tiene con qué moverla. `CAPS LOCK` la sigue alternando en vivo desde el teclado.
+
+> **CAPS LOCK pasó de nivel a flanco**, y era necesario: como nivel pisaba lo elegido en OPCIONES —
+> ponías MOVIL ahí y la primera tecla con CAPS apagada te la volvía a fijar. Ahora las dos vías
+> escriben el mismo `cfg.aim`.
+
+La fila vieja `MIRA` (el dibujo 1..9) pasó a llamarse `RETICULO` para no chocar con esta.
+
+> Dónde tocar → `drift` en `data/moves.js` + su aplicación en `systems/moves.js`; `inp.rollAx` y el
+> bloque de joystick en `core/input.js`; `cfg.aim` / `cfg.horizon` en `core/state.js`; las filas en
+> `OPT_ROWS` (`game.js`).

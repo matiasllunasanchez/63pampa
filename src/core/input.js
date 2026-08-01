@@ -20,7 +20,9 @@ import { W, H } from '../render/ctx.js';
 import { audio } from '../systems/audio.js';
 
 export const inp = { l: 0, r: 0, u: 0, d: 0, rise: 0, sink: 0, fire: false, turbo: false, msl: false,
-  rollL: 0, rollR: 0 };
+  // GIRO LIBRE del horizonte. Teclado: rollL/rollR (0 o 1). Joystick: rollAx, el eje del stick
+  // DERECHO, analogico -1..1 → el mando rola mas rapido cuanto mas lo empujas.
+  rollL: 0, rollR: 0, rollAx: 0 };
 export const mouse = { x: W / 2, y: H * 0.4, on: false };
 export const pointer = { steer: null };   // arrastre de vuelo tactil (null fuera de arrastre)
 export const flags = { anyPress: false, startReq: false };
@@ -173,8 +175,8 @@ export function initInput(cv, a) {
   });
   cv.addEventListener('pointermove', e => {
     readCaps(e);
-    // el mouse LIBERA la mira solo con CAPS LOCK activa; sin caps, la mira queda fija (readCaps ya la fijo)
-    if (e.pointerType === 'mouse') { const p = canvasPos(e); mouse.x = p.x; mouse.y = p.y; if (capsOn) mouse.on = true; }
+    // el mouse mueve la mira solo con MIRA MOVIL (cfg.aim); con FIJA, readCaps ya la clavo al centro
+    if (e.pointerType === 'mouse') { const p = canvasPos(e); mouse.x = p.x; mouse.y = p.y; if (cfg.aim) mouse.on = true; }
     if (e.pointerId === steerPtr) pointer.steer = canvasPos(e);
   });
   cv.addEventListener('contextmenu', e => e.preventDefault());          // click derecho = misil, sin menu
@@ -190,29 +192,39 @@ export function initInput(cv, a) {
   // Se puede JUGAR entero con el joystick. Mapeo (botones estilo PlayStation; ✕=0 ◯=1 ▢=2 △=3):
   //   Stick izq izq/der          esquivar
   //   Stick izq VERTICAL         throttle: ARRIBA sube (gas) · ABAJO baja (picada)   L1 (4) invierte
-  //   Stick der                  MIRA (fluida)     R1 (5)             fija / libera la mira (fija x default)
+  //   Stick der HORIZONTAL       GIRO LIBRE del horizonte (= [Q]/[E]); analogico   R1 (5) libre
   //   gatillo (7)                turbo
   //   ✕ Cross (0)                METRALLETA (y OK / avanzar en menus)
   //   ▢ Square (2)               MISIL             ◯ Circle (1)       atras (volver)
   //   L3 (10) / R3 (11)          pista musical ◄ / ►     cruceta       navegar los menus
-  //   (△ Triangle y un gatillo quedan libres)
+  //   (△ Triangle, R1 y un gatillo quedan libres)
+  //
+  // Con mando la MIRA es SIEMPRE FIJA: no hay con que moverla, y es a proposito. Fija/movil se
+  // elige en OPCIONES (cfg.aim) y en teclado lo alterna CAPS LOCK.
   //
   // El vuelo se ESCRIBE en `inp` solo mientras el pad lo pisa (setPad limpia al soltar), asi
   // convive con el teclado sin pisarlo. La navegacion de menus y las acciones (tonel, camara,
   // pista) van por FLANCO (una pulsacion = una accion), igual que el teclado.
   const AX_DZ = 0.35;                          // zona muerta de los sticks (vuelo/menus)
-  const AIM_DZ = 0.15, AIM_SPEED = 345;        // MIRA con stick derecho: zona muerta fina + px/seg
-  const padHeld = { l: 0, r: 0, u: 0, d: 0, fire: false, turbo: false, msl: false };
+  const padHeld = { l: 0, r: 0, u: 0, d: 0, fire: false, turbo: false, msl: false, rollAx: 0 };
   let btnPrev = [];                            // estado previo de botones (flanco)
   let padLast = performance.now();             // para el dt del movimiento fluido de la mira
-  let aimLock = true;                          // R1: mira FIJA en el centro (DEFAULT) / LIBRE con stick
   let throttleInvert = false;                  // L1: eje vertical. false = ARRIBA sube (default); true = ABAJO sube
-  let capsOn = false;                          // CAPS LOCK (teclado): true = mira LIBRE con mouse; false = mira FIJA
+  // CAPS LOCK alterna la mira, pero por FLANCO: se mira si el estado CAMBIO, no si esta activa.
+  // Como nivel pisaria lo elegido en OPCIONES — ponias MOVIL ahi y la primera tecla con CAPS
+  // apagada te la volvia a fijar. Ahora las dos vias escriben el mismo cfg.aim y conviven.
+  let capsPrev = null;
   const nav = { u: false, d: false, l: false, r: false };   // navegacion previa (cruceta+stick)
 
   // CAPS LOCK gobierna la mira en teclado: activa = libre (la mueve el mouse), inactiva = fija.
   // Se lee de cada evento de teclado/puntero; al quedar inactiva, fija la mira en el acto.
-  function readCaps(e) { if (e.getModifierState) capsOn = e.getModifierState('CapsLock'); if (!capsOn) mouse.on = false; }
+  function readCaps(e) {
+    if (!e.getModifierState) return;
+    const now = e.getModifierState('CapsLock');
+    if (capsPrev !== null && now !== capsPrev) { cfg.aim = cfg.aim ? 0 : 1; a.aimChanged(cfg.aim); }
+    capsPrev = now;
+    if (!cfg.aim) mouse.on = false;             // MIRA FIJA: el mouse no la despega del centro
+  }
 
   // escribe un control de vuelo del pad en `inp`, y lo LIMPIA al soltar — sin pisar al teclado
   function setPad(f, v) { if (v || padHeld[f]) inp[f] = v; padHeld[f] = v; }
@@ -263,22 +275,20 @@ export function initInput(cv, a) {
       setPad('turbo', down(7));                                // turbo (gatillo)
       setPad('msl', down(2));                                  // ▢ Square = misil
 
-      // MIRA: R1 alterna FIJA (centrada, sin tocar el stick) / LIBRE (stick derecho la mueve). Por
-      // DEFAULT queda FIJA. Solo tocamos mouse.on al fijar (flanco) o al mover el stick libre, para
-      // no pisar la mira del mouse cuando se juega con teclado y hay un joystick conectado.
-      if (hit(5)) { aimLock = !aimLock; if (aimLock) mouse.on = false; a.aimLock(aimLock); }
-      if (!aimLock) {
-        // stick DERECHO: mueve el reticulo de forma fluida (velocidad por deflexion, con dt real)
-        const rx = gp.axes[2] || 0, ry = gp.axes[3] || 0, mag = Math.hypot(rx, ry);
-        if (mag > AIM_DZ) {
-          const k = ((mag - AIM_DZ) / (1 - AIM_DZ)) / mag;     // recorta la zona muerta radial, conserva direccion
-          mouse.x = Math.max(0, Math.min(W, mouse.x + rx * k * AIM_SPEED * dt));
-          mouse.y = Math.max(0, Math.min(H, mouse.y + ry * k * AIM_SPEED * dt));
-          mouse.on = true;
-        }
-      }
+      // STICK DERECHO = GIRO LIBRE DEL HORIZONTE (lo que en teclado son [Q] y [E]).
+      //
+      // Antes este stick movia la MIRA, con R1 alternando fija/libre. Se saco: con el mando la
+      // mira es SIEMPRE FIJA. Apuntar con stick nunca compitio con el mouse, y a cambio dejaba el
+      // unico eje analogico libre del mando ocupado en algo que el juego ya resuelve solo.
+      // Fija/movil paso a ser una fila de OPCIONES (cfg.aim), que ademas se puede tocar sin
+      // acordarse de un boton.
+      //
+      // Es ANALOGICO: el eje entra tal cual (-1..1) en vez de recortado a ±1, asi el mando rola
+      // mas rapido cuanto mas lo empujas — algo que el teclado no puede dar.
+      const rx = gp.axes[2] || 0;
+      setPad('rollAx', Math.abs(rx) < AX_DZ ? 0 : rx);
     } else {
-      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl']) setPad(f, 0);   // soltar el vuelo
+      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'rollAx']) setPad(f, 0);   // soltar el vuelo
       // navegacion de menus por FLANCO (cruceta o stick)
       const nu = down(12) || ax(1) < -0.5, nd = down(13) || ax(1) > 0.5;
       const nl = down(14) || ax(0) < -0.5, nr = down(15) || ax(0) > 0.5;

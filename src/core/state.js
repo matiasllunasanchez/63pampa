@@ -46,7 +46,12 @@ export const cfg = {
   // trae fuelOn), asi que este default manda en TODOS los modos.
   obstacles: 1, coast: 230, meters: 3000, fuelOn: false, energy: true,
   bombs: 1,   // BOMBARDEO: densidad de bombas cayendo (0=no, 0.5, 1, 2) — menu [M]
-  mira: 6,   // mira elegida (1..9 de assets/miras.webp); se cambia en el menu [M] y persiste
+  mira: 6,   // RETICULO elegido (1..9 de assets/miras.webp); se cambia en OPCIONES y persiste
+  // MIRA FIJA o MOVIL. 0 = fija adelante del avion · 1 = la mueve el mouse (default).
+  // Con JOYSTICK es SIEMPRE fija por construccion: el mando ya no tiene con que moverla —el stick
+  // derecho pasó a ser el giro libre del horizonte— asi que aunque esto diga MOVIL, sin mouse la
+  // mira no se despega del centro. En teclado el default es MOVIL y CAPS LOCK lo alterna en vivo.
+  aim: 1,
   runway: 0,     // estilo de pista (indice en data/runways.js) — menu [M]
   cliff: false,  // la base esta sobre una meseta: se despega EN ALTURA y se sale al vacio
   // ARRANQUE. 'runway' = despegue clasico desde la base. 'air' = la mision empieza YA VOLANDO,
@@ -83,11 +88,13 @@ export const cfg = {
   // Vive en OPCIONES junto al horizonte y persiste: es una preferencia de la persona.
   control: 0,
   // HORIZONTE GIRATORIO: cuanto se inclina el MUNDO cuando el avion rola (ver core/horizon.js).
-  //   0 = FIJO · 1 = PIRUETAS (default) · 2 = TOTAL · 3 = LIBRE 360 ([Q]/[E])
+  //   0 = FIJO · 1 = EN PIRUETAS · 2 = TOTAL (default) · 3 = LIBRE 360 ([Q]/[E] · stick derecho)
+  // El default es TOTAL: que el mundo se incline al doblar es LA sensacion que da todo esto, y
+  // dejarlo en PIRUETAS hacia que la mayoria no lo viera nunca. Quien se maree lo baja a FIJO.
   // No esta en el menu [M] sino en OPCIONES, y PERSISTE en localStorage: no es una propiedad del
   // mapa como las de arriba sino una preferencia de la persona —incluida la de no marearse—, y
   // [M] solo se abre desde la seleccion de avion, a la que la campaña nunca entra.
-  horizon: 1,
+  horizon: 2,
   // DEPURACION: pinta las cajas de colision en verde fluor. Es para PROBAR — el overlay sale de
   // core/hitbox.js, la misma fuente que decide los choques, asi que lo que ves es lo que golpea.
   hitboxes: false,
