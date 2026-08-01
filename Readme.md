@@ -51,7 +51,9 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
   corta muestra los restos del líder y el numeral siguiente (GUARDIA 2, 3…) entra, pasa por la
   caída y asume el mando con 2 s de invulnerabilidad y esquive automático. Hereda combustible y
   munición (morir no repone nada); pierde racha y multiplicador. El HUD muestra el tablero de
-  aviones con los caídos tachados. Con `SOLO`, morir es morir, como siempre.
+  aviones con los caídos tachados. Al asumir el mando suena una **voz de piloto** al azar
+  (`assets/sfx/audios/pilots`, 14 grabaciones) y la música se agacha mientras habla.
+  Con `SOLO`, morir es morir, como siempre.
 - **Horizonte giratorio**: al rolar, lo que gira es el **mundo** — el avión queda derecho, como
   visto desde una cámara pegada a él. Se elige en **OPCIONES** (`HORIZONTE: FIJO · EN PIRUETAS ·
   TOTAL`, default *EN PIRUETAS*) y la elección se guarda entre sesiones. Es solo dibujo: no cambia

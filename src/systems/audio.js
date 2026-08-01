@@ -67,6 +67,11 @@ let duckT = 0;   // ducking: las explosiones grandes agachan la musica un instan
 try { muted = localStorage.getItem('rasante_muted') === '1'; } catch (e) { }
 
 const SFX_MASTER = 0.3;   // volumen maestro de TODOS los samples (no tapan la musica de fondo)
+// ...salvo los que declaran su propio `m` en el catalogo. Es para la VOZ: 0.3 esta calibrado para
+// que efectos que suenan todo el tiempo (motor, metralla, explosiones) no le ganen a la musica,
+// pero una linea de radio que suena una vez por relevo y dura dos segundos tiene que ESCUCHARSE
+// por encima del motor. Bajar el motor en vez de subir la voz seria peor: el motor es la sensacion
+// de velocidad del juego y agacharlo se siente como que el avion se apago.
 const AMB_COAST_V = 0.8;  // ambiente de batalla en COSTA (war_near_soldats): suena al 80%
 const SFX_LOOP_KEYS = Object.keys(SFX_DEF).filter(k => SFX_DEF[k].loop);
 const sfxPool = {}, sfxLoopA = {}, sfxTgt = {};
@@ -85,7 +90,7 @@ export function sfxOne(key, vol) {
   let a = pool.a[pool.i % 3];
   if (!a) a = pool.a[pool.i % 3] = new Audio(SFXB + rel);
   pool.i++;
-  const v = Math.min(1, (vol !== undefined ? vol : d.v) * SFX_MASTER);
+  const v = Math.min(1, (vol !== undefined ? vol : d.v) * (d.m !== undefined ? d.m : SFX_MASTER));
   const t0 = d.offset || 0;
   try { a.currentTime = t0; } catch (e) { }   // offset: arranca N segundos adentro del sample
   playFaded(a, v, d.fi || 0, d.fo || 0, t0);

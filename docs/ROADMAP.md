@@ -1043,6 +1043,14 @@ Lo que queda para después:
 
 - [x] Opción de menú, HUD (tablero de pips con caídos tachados + indicativo), relevo, formación,
       salida de plano, gracia, herencia, indicativos, línea de radio (es/en), sonido reusado.
+- [x] **Voz de piloto en el relevo**: una grabación al azar de `assets/sfx/audios/pilots` (14
+      archivos, 1,42–4,73 s) suena en el *handoff* — el momento en que el compañero asume el mando,
+      el mismo en que aparece «PATRIA n ASUME EL MANDO». La música se agacha mientras habla
+      (`PILOT_DUCK`) y la voz **saltea el `SFX_MASTER`** (`m: 1` en el catálogo): medida contra el
+      motor sonando, le gana 5,3× (0,95 contra 0,18). Se puede porque suena una vez por relevo — el
+      maestro existe para que lo que suena *todo el tiempo* no tape la música. El pool es la carpeta entera; recortarlo es borrar renglones del array
+      `pilot` en `data/sfx.js`. Los `woho*` son festejos y quedan raros justo después de perder a
+      alguien — candidatos a salir si el tono no cierra.
 - [ ] Que la muerte del líder cueste algo más que la racha: ¿moral del escuadrón? ¿los numerales
       que quedan vuelan "peor" (menos gracia de roce)?
 - [ ] Los numerales con identidad real: nombres de pilotos históricos, retrato en el relevo.

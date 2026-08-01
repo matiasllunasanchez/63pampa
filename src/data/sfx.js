@@ -47,6 +47,37 @@ export const SFX_DEF = {
   ambWarFar: { f: ['terrain/war_distant.mp3'], v: 0.32, loop: true },  // tierra, guerra lejana
   ambWarNear: { f: ['terrain/war_near_soldats.mp3'], v: 0.42, loop: true }, // soldados corriendo abajo
   ambWind: { f: ['terrain/terrain_wind.mp3'], v: 0.3, loop: true },    // tierra vacia (tutorial/pruebas)
+  // VOCES DE PILOTO (assets/sfx/audios/pilots): grabaciones de radio que suenan en el RELEVO, el
+  // momento en que un companero asume el mando tras un derribo. Una al azar por relevo.
+  //
+  // El pool son TODOS los archivos de la carpeta, que es lo que se pidio. Varios encajan solos con
+  // el momento ("cambio", "nos estan pegando", "vamos pendejo por la patria"); los `woho` son
+  // festejos y quedan raros justo despues de perder a alguien. Recortar la lista es borrar
+  // renglones de este array — no hay que tocar nada mas.
+  //
+  // VOLUMEN: `m: 1` saltea el SFX_MASTER (0.3) que atenua a todos los demas samples. Sin eso la voz
+  // terminaba sonando a 0.285 — por debajo de la metralla y apenas encima del loop del motor. Con
+  // `m: 1` queda en 0.95 — medido contra el motor sonando (0.18), le gana 5.3x. Se puede porque suena
+  // UNA vez por relevo y dura dos segundos: la razon de ser del maestro es que lo que suena TODO EL
+  // TIEMPO no tape la musica, y esto no suena todo el tiempo. Ademas quien la dispara agacha la
+  // musica mientras habla (PILOT_DUCK en systems/squad.js).
+  // Duran entre 1.42 s y 4.73 s (medido); el mas largo es el de la ñ, que carga bien.
+  pilot: { f: [
+    'audios/pilots/vamos_pendejo_patria.wav',
+    'audios/pilots/viva_patria2.wav',
+    // 'audios/pilots/cambio4.wav',
+    // 'audios/pilots/misilazo.wav',
+    // 'audios/pilots/dio_perfecto_este_se\u00f1or.wav',
+    // 'audios/pilots/ruidointerferencia.wav',
+    // 'audios/pilots/pegadito.wav',
+    'audios/pilots/nos_estan_pegando.wav',
+    'audios/pilots/woho1.wav',
+    'audios/pilots/woho2.wav',
+    'audios/pilots/woho3.wav',
+    'audios/pilots/woho4.wav',
+    'audios/pilots/woho5.wav',
+    'audios/pilots/bien_pibe.wav',
+  ], v: 0.95, m: 1 },
   // general
   alarm: { f: ['general/incoming_alarm.wav'], v: 0.45, loop: true },   // a la par del MOMENTUM
 };

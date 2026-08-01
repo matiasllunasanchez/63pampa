@@ -17,7 +17,7 @@ import { run } from '../core/run.js';
 import { obstacles, missiles } from '../core/world.js';
 import { FLY_TOP } from '../data/tuning.js';
 import { PZ } from '../render/ctx.js';
-import { beep, sfxOne } from './audio.js';
+import { beep, sfxOne, duck } from './audio.js';
 import { RELEVO_WRECK, RELEVO_GRACE, RELEVO_DUR, pilotIdx, relevoPhase } from '../core/squad.js';
 
 // --- estado privado del subsistema ---
@@ -81,6 +81,13 @@ export function startRelevo(cause) {
   beep(240, 0.3, 'sawtooth', 0.05, 90);                 // la radio cae de tono: el aviso del derribo
 }
 
+// Cuanto se agacha la musica mientras habla el piloto. Las grabaciones miden entre 1.42 s
+// (woho5) y 4.73 s (dio_perfecto_este_señor), asi que no hay un numero que las cubra a todas sin
+// dejar la musica baja media eternidad: 3.0 tapa a la mayoria y a las dos mas largas les deja la
+// cola sonando mientras la musica ya volvio, que es cuando el piloto igual esta terminando.
+// De referencia: la cinematica entera del relevo dura 3 s y la voz arranca al segundo.
+const PILOT_DUCK = 3.0;
+
 /** Un frame de cinematica. Mueve camara y avion (autopiloto) y devuelve 'done' al terminar. */
 export function updateRelevo(dt) {
   rv.t += dt;
@@ -103,6 +110,11 @@ export function updateRelevo(dt) {
       rv.said = true;
       sfxOne('waveFly');                                // la rafaga del companero barriendo al entrar
       beep(620, 0.09, 'square', 0.05);
+      // VOZ DE PILOTO: una grabacion al azar del escuadron (data/sfx.js → `pilot`). Va en el
+      // HANDOFF y no en el derribo: es el companero tomando el mando, y coincide con la linea de
+      // radio que ya aparece en pantalla ("PATRIA n ASUME EL MANDO").
+      // La musica se agacha mientras habla — si no, la voz compite con la pista y no se entiende.
+      if (sfxOne('pilot')) duck(PILOT_DUCK);
     }
     // ESQUIVE AUTOMATICO del punto de llegada: si algo letal viene por ese carril, lo corre.
     // Se ajusta el ancla (rv.x2) y no la posicion directa, para que la curva siga siendo curva.
