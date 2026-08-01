@@ -19,6 +19,11 @@ import { MISSIONS } from '../data/missions.js';
 import { MSL_MAX, RADAR_ALT } from '../data/tuning.js';
 import { callsign, pilotIdx } from '../core/squad.js';
 import { attitude } from '../core/horizon.js';
+import { inBank, bankLeft, fogTop } from '../systems/fog.js';
+
+// largo del banco tal como se vio al entrar: la barra necesita un TOTAL contra el que vaciarse, y
+// el sistema solo sabe cuanto FALTA (el largo se sortea por banco).
+let fogSeen = 0;
 
 // barra de mision: puerto (izq) → barcaza objetivo (der). Assets configurables como data URI;
 // mientras `src` este vacio se dibuja un fallback.
@@ -280,6 +285,21 @@ export function drawHUD(h) {
     // asi se ve que el ciclo se acorta sin poner un contador
     if (run.radarWave > 0) px(W / 2 - 20 + Math.round(40 * Math.min(0.55, 0.35 + run.radarWave * 0.03)), warnY + 2, 1, 4, P.accent);
   }
+
+  // NIEBLA: CUANTO FALTA PARA SALIR. Sin esto el banco no es tension sino aguantar a ciegas sin
+  // saber hasta cuando, y el jugador se rinde en vez de apretar los dientes. La barra se VACIA:
+  // se lee de un vistazo que esto se termina.
+  //
+  // El HUD SI atraviesa la niebla y el mundo no. Es la regla: el HUD es instrumento, no vista —
+  // un altimetro no deja de andar porque haya bruma.
+  if (inBank()) {
+    const left = bankLeft(), tot = Math.max(left, fogSeen = Math.max(fogSeen, left));
+    ctx.textAlign = 'center'; ctx.font = 'bold 7px monospace';
+    ctx.fillStyle = plane.y >= fogTop() ? P.foam : P.warn;
+    ctx.fillText(T('fogHud'), W / 2, warnY - 9);
+    plate(W / 2 - 22, warnY - 7, 44, 3);
+    px(W / 2 - 20, warnY - 6.5, Math.max(1, Math.round(40 * left / tot)), 2, plane.y >= fogTop() ? P.foam : P.warn);
+  } else fogSeen = 0;
 
   // VELOCIDAD y ALTURA, uno al lado del otro abajo al centro. Van juntos a proposito: son los dos
   // numeros que deciden todo el vuelo (rapido = menos margen; alto = te ve el radar), y tenerlos

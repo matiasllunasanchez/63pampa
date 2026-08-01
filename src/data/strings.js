@@ -35,6 +35,8 @@ export const STRINGS = {
     takeoffHeading: 'rumbo al estrecho de San Carlos',
     hud_best: 'MEJOR {n}', kmh: ' KM/H', turboTag: ' TURBO', alt: ' M',
     windWarn: '~ VIENTO EN CONTRA ~', radar: '! RADAR !',
+    fogIn: '! BANCO DE NIEBLA !', fogIn2: 'SUBI O VOLA A CIEGAS', fogOut: 'NIEBLA DESPEJADA',
+    fogHud: 'NIEBLA',
     radarLock: '! TE DETECTO EL RADAR !', radarLock2: 'TE ATACARAN DESDE TIERRA',
     radarWave: '! OLEADA x{n} !',
     sq_down: 'PATRIA {n} DERRIBADO', sq_take: 'PATRIA {n} ASUME EL MANDO',
@@ -74,7 +76,8 @@ export const STRINGS = {
     // Al mudarse a OPCIONES —que tiene el selector de IDIOMA adentro— quedar a medio traducir se
     // notaria de una, asi que pasan todas por T().
     optSecJuego: 'JUEGO', optSecControl: 'CONTROL Y VISTA', optSecPartida: 'PARTIDA',
-    optSecAmbiente: 'AMBIENTE  ·  no en la campaña',
+    optSecAmbiente: 'AMBIENTE',
+    optNoteAmbiente: 'FONDO y AGUA los elige la campaña en cada misión', optNoteAmbienteK: '', optNoteAmbienteP: '',
     optSecMapa: 'MAPA  ·  solo POR LA PATRIA y CICLO DE MUERTE',
     optSecCiclo: 'SOLO CICLO DE MUERTE', optSecArena: 'SOLO MINUTOS SAGRADOS',
     optSecDebug: 'DEPURACION  ·  herramientas de desarrollo',
@@ -89,8 +92,13 @@ export const STRINGS = {
     optSkyClear: 'DESPEJADO', optSkyCloudy: 'NUBLADO', optSkySun: 'SOL PLENO',
     optSkyMoon: 'LUNA LLENA', optSkyDawn: 'AMANECER',
     optWater: 'AGUA', optWaterSea: 'MAR', optWaterViolet: 'VIOLETA',
+    // LLUVIA: ambiente puro, no cambia la dificultad (ver render/rain.js)
+    optRain: 'LLUVIA', optRainOff: 'NO', optRainDrizzle: 'GARUA', optRainRain: 'LLUVIA', optRainStorm: 'TORMENTA',
     optTerrain: 'TERRENO', optTerrainSea: 'MAR', optTerrainLand: 'TIERRA', optTerrainCoast: 'COSTA',
     optWind: 'VIENTO',
+    // NIEBLA: dificultad, no ambiente (ver systems/fog.js)
+    optFog: 'NIEBLA', optFogOff: 'NO', optFogLight: 'VISIBLE', optFogThick: 'CASI NULA',
+    optFogLen: 'LARGO DE NIEBLA', optFogLen0: 'CORTO', optFogLen1: 'MEDIO', optFogLen2: 'LARGO', optFogLen3: 'MUY LARGO',
     optObst: 'OBSTACULOS', optObst0: 'NINGUNO', optObst1: 'POCOS', optObst2: 'NORMAL', optObst3: 'MUCHOS',
     optBombs: 'BOMBARDEO', optBombs0: 'NO', optBombs1: 'POCO', optBombs2: 'NORMAL', optBombs3: 'INTENSO',
     optCoast: 'COSTA', optCoastShort: 'CORTA', optCoastMid: 'NORMAL', optCoastLong: 'LARGA',
@@ -245,6 +253,13 @@ export const STRINGS = {
     newRecord: '★ NUEVO RECORD ★', bestDead: 'MEJOR  {n}',
     retryPrompt: 'Apreta cualquier cosa para reintentarlo',
     menuPrompt: '[ESC] Volver al menu',
+    anyKeyMenu: 'CUALQUIER TECLA  para el menu',
+    // CIERRE de la campaña. Va SIN TILDES como el resto del texto de canvas (ver `facts`): las
+    // fuentes de marca no tienen garantizados los glifos acentuados y "CAMPANA COMPLETADA" ya
+    // esquiva la Ñ por lo mismo. En ingles la frase queda en español con la traduccion debajo:
+    // es una cita de una persona real, no una linea de interfaz.
+    quoteIorio: '"Alla hay gente tan buena como aca... lo que pasa es que no nos dejan conocernos."',
+    quoteIorioBy: '— RICARDO IORIO',
     facts: [
       "Los A-4 Skyhawk atacaban a menos de 15 metros sobre el mar para evadir los radares de la flota.",
       "El estrecho de San Carlos fue apodado 'Bomb Alley' — el callejon de las bombas — por los propios britanicos.",
@@ -282,6 +297,8 @@ export const STRINGS = {
     takeoffHeading: 'heading for San Carlos Strait',
     hud_best: 'BEST {n}', kmh: ' KM/H', turboTag: ' BOOST', alt: ' M',
     windWarn: '~ HEADWIND ~', radar: '! RADAR !',
+    fogIn: '! FOG BANK !', fogIn2: 'CLIMB OR FLY BLIND', fogOut: 'FOG CLEARED',
+    fogHud: 'FOG',
     radarLock: '! RADAR HAS YOU !', radarLock2: 'GROUND BATTERIES ENGAGING',
     radarWave: '! SALVO x{n} !',
     sq_down: 'PATRIA {n} IS DOWN', sq_take: 'PATRIA {n} TAKING COMMAND',
@@ -312,7 +329,8 @@ export const STRINGS = {
     optNetOff: 'OFF', optNetEnter: 'ON ENTERING', optNetAlways: 'ALWAYS',
     optKeys: '[↑] [↓] SELECT      [<] [>] CHANGE      [ESC] BACK',
     optSecJuego: 'GAME', optSecControl: 'CONTROLS & VIEW', optSecPartida: 'RUN',
-    optSecAmbiente: 'WEATHER  ·  not in the campaign',
+    optSecAmbiente: 'WEATHER',
+    optNoteAmbiente: 'SKY and WATER are set by the campaign each mission', optNoteAmbienteK: '', optNoteAmbienteP: '',
     optSecMapa: 'MAP  ·  SURVIVAL and DEATH CYCLE only',
     optSecCiclo: 'DEATH CYCLE ONLY', optSecArena: 'SACRED MINUTES ONLY',
     optSecDebug: 'DEBUG  ·  development tools',
@@ -327,8 +345,11 @@ export const STRINGS = {
     optSkyClear: 'CLEAR', optSkyCloudy: 'OVERCAST', optSkySun: 'FULL SUN',
     optSkyMoon: 'FULL MOON', optSkyDawn: 'DAWN',
     optWater: 'WATER', optWaterSea: 'SEA', optWaterViolet: 'VIOLET',
+    optRain: 'RAIN', optRainOff: 'NO', optRainDrizzle: 'DRIZZLE', optRainRain: 'RAIN', optRainStorm: 'STORM',
     optTerrain: 'TERRAIN', optTerrainSea: 'SEA', optTerrainLand: 'LAND', optTerrainCoast: 'COAST',
     optWind: 'WIND',
+    optFog: 'FOG', optFogOff: 'NO', optFogLight: 'THIN', optFogThick: 'NEAR ZERO',
+    optFogLen: 'FOG BANK LENGTH', optFogLen0: 'SHORT', optFogLen1: 'MEDIUM', optFogLen2: 'LONG', optFogLen3: 'VERY LONG',
     optObst: 'OBSTACLES', optObst0: 'NONE', optObst1: 'FEW', optObst2: 'NORMAL', optObst3: 'MANY',
     optBombs: 'BOMBING', optBombs0: 'NONE', optBombs1: 'LIGHT', optBombs2: 'NORMAL', optBombs3: 'HEAVY',
     optCoast: 'COASTLINE', optCoastShort: 'SHORT', optCoastMid: 'NORMAL', optCoastLong: 'LONG',
@@ -426,6 +447,11 @@ export const STRINGS = {
     newRecord: '★ NEW RECORD ★', bestDead: 'BEST  {n}',
     retryPrompt: 'Press anything to try again',
     menuPrompt: '[ESC] Back to menu',
+    anyKeyMenu: 'ANY KEY  for the menu',
+    // La cita va TRADUCIDA en ingles, no en español con subtitulo: es el cierre del juego y tiene
+    // que leerse de una. El original en castellano queda en la version es.
+    quoteIorio: '"Over there there are people as good as here... it is just that they do not let us know each other."',
+    quoteIorioBy: '— RICARDO IORIO',
     facts: [
       "A-4 Skyhawks attacked under 15 meters above the sea to evade the fleet's radar.",
       "San Carlos Strait was nicknamed 'Bomb Alley' by the British themselves.",

@@ -59,12 +59,12 @@ let scriptedIdx = null;  // campaña: la pista la fija el NIVEL (no el jugador);
 
 /** La pista que suena en juego: en campaña la fija el nivel; en el resto, la que eligio el jugador. */
 function gameTrack() { return PLAYLIST[scriptedIdx != null ? scriptedIdx : trackIdx] || musGame; }
-let muted = false, musicStarted = false;
+let muted = true, musicStarted = false;
 // que pista esta sonando AHORA. Sirve para detectar el CAMBIO de contexto (lobby <-> juego <->
 // historia): cuando cambia, la nueva arranca DE CERO en vez de retomar donde habia quedado.
 let curTrack = null;
 let duckT = 0;   // ducking: las explosiones grandes agachan la musica un instante
-try { muted = localStorage.getItem('rasante_muted') === '1'; } catch (e) { }
+try { muted = true; } catch (e) { }
 
 const SFX_MASTER = 0.3;   // volumen maestro de TODOS los samples (no tapan la musica de fondo)
 // ...salvo los que declaran su propio `m` en el catalogo. Es para la VOZ: 0.3 esta calibrado para

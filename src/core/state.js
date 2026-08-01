@@ -46,6 +46,13 @@ export const cfg = {
   // trae fuelOn), asi que este default manda en TODOS los modos.
   obstacles: 1, coast: 230, meters: 3000, fuelOn: false, energy: true,
   bombs: 1,   // BOMBARDEO: densidad de bombas cayendo (0=no, 0.5, 1, 2) — menu [M]
+  // LLUVIA: 0 NO · 1 GARUA · 2 LLUVIA · 3 TORMENTA (render/rain.js). Es AMBIENTE PURO — no toca la
+  // deteccion, ni la velocidad, ni cuando aparecen los obstaculos. Que sea una fila de OPCIONES es
+  // justamente lo que obliga a que no penalice: una opcion que cambia la dificultad no es una
+  // preferencia sino un handicap, y el record no guarda con que configuracion se hizo.
+  // La version con dos filos (te esconde del radar Y te tapa el mundo) es ROADMAP #29, y va por
+  // mision, no por preferencia.
+  rain: 0,
   mira: 6,   // RETICULO elegido (1..9 de assets/miras.webp); se cambia en OPCIONES y persiste
   // MIRA FIJA o MOVIL. 0 = fija adelante del avion (default) · 1 = la mueve el mouse.
   // NO ES SOLO LA MIRA: en teclado tambien decide que hacen las FLECHAS (ver core/input.js).
@@ -67,6 +74,14 @@ export const cfg = {
   // Se pueden apagar si los combos verticales molestan al bombear gas. El tonel clasico
   // (doble-tap lateral) queda SIEMPRE: es la mecanica original del juego, no una pirueta nueva.
   moves: true,
+  // NIEBLA: bancos de bruma pegados al agua (systems/fog.js). 0 NO · 1 VISIBLE · 2 CASI NULA.
+  // NO es ambiente: es la perilla de dificultad mas honesta que tiene el juego — sube el desafio
+  // sin agregar un solo objeto, acortando la distancia a la que ves lo que YA estaba. Por eso vive
+  // en el bloque de MAPA (con VIENTO y OBSTACULOS) y no en AMBIENTE (con FONDO, AGUA y LLUVIA).
+  fog: 0,
+  // LARGO del banco: 0 CORTO · 1 MEDIO · 2 LARGO · 3 MUY LARGO (ver FOG_LEN en data/tuning.js).
+  // Es cuanto tiempo te obliga a volar arriba del radar, o sea el balance entero del item.
+  fogLen: 1,
   // RED DE RADAR: la malla que marca la altura a partir de la cual el radar te detecta.
   //   0 = NO · 1 = AL ENTRAR (default) · 2 = SIEMPRE
   // El default es 1 a proposito: volando bajo —que es casi todo el juego— la red seria ruido

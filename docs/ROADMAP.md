@@ -759,7 +759,104 @@ Es tuning de nivel, no una constante global.
 > el dibujo del bidón), `render/hud.js` (barra COMB + marca fantasma) y `data/missions.js`
 > (la ruta como parámetro de misión).
 
-## 29. LLUVIA
+## 29. LLUVIA — ambiente ✔ (implementado) · mecánica pendiente
+
+> **Estado (agosto 2026): la lluvia de AMBIENTE está hecha y andando en el PASILLO.**
+> `LLUVIA: NO · GARÚA · LLUVIA · TORMENTA` en OPCIONES → AMBIENTE (`cfg.rain`,
+> [`src/render/rain.js`](../src/render/rain.js)). **No toca la dificultad**, y eso fue una decisión,
+> no una etapa — el porqué está más abajo, en «Por qué la de OPCIONES no penaliza».
+> Falta: el momentum/canopy, el ARENA, y toda la versión mecánica.
+
+### Por qué la de OPCIONES no penaliza
+
+Tres razones, y la primera es la que más pesa:
+
+1. **El casillero de «clima que castiga» ya está ocupado, y apunta al otro lado.** `VIENTO` no es
+   decorativo: arriba de 16 m acumula `windT` y eso corta hasta **35% de velocidad máxima**, sacude
+   el avión y mueve la cámara. Si la lluvia además esconde del radar, empuja hacia arriba; si ciega,
+   empuja hacia abajo. Con la niebla de #29.1 son tres perillas apretando el mismo corredor — y este
+   roadmap ya escribió la regla para esta familia: **son alternativas, no ingredientes**.
+2. **Una opción que cambia la dificultad no es una preferencia, es un handicap.** El récord
+   (`rasante_frontal_best`) es un número pelado en localStorage: no guarda con qué configuración se
+   hizo. Prenderla o apagarla sería puntaje gratis.
+3. **La versión de dos filos es un proyecto de balance, no un toggle.** Tocar la detección *y* la
+   distancia a la que se ven los obstáculos se mete con el presupuesto de tiempo de reacción, que
+   #29.1 dice que hay que medir **en segundos con `feeltest`**.
+
+Por eso la fila vive en **AMBIENTE** (cosmético) y no en **MAPA**, que es donde está el VIENTO.
+
+> El encabezado de AMBIENTE decía «no en la campaña» y con LLUVIA adentro pasaba a ser media verdad
+> —la campaña pisa `sky`/`water` vía `CAMPAIGN_CFG`, pero no la lluvia—. La aclaración bajó a una
+> NOTA de la lista.
+
+### Lo que el diseño original no sabía: el horizonte giratorio
+
+Esta entrada se escribió **antes** de #30/#34. Ahora el mundo se inclina 25° al doblar y 360° con
+`HORIZONTE: LIBRE`, y eso cambia la lluvia: la lluvia cae vertical **en el mundo**, así que al
+banquear tiene que acostarse con él. Si no, se lee como un filtro pegado al vidrio.
+
+**Pero no se dibuja adentro de la rotación: lo que rota es la DIRECCIÓN de caída.** Meterla adentro
+del giro obligaría a cubrir el disco entero (620×560 en vez de 480×270) para que no se viera el
+borde del campo en las esquinas — exactamente el problema que tuvo el raster del suelo (#34). A ojo
+es indistinguible: la lluvia es un campo de rayas iguales y lo único que se lee es su dirección.
+
+> Medido, aislando la lluvia (mismo cuadro con y sin, y midiendo la diferencia):
+>
+> | estado | giro del mundo | ángulo esperado | medido |
+> |---|---|---|---|
+> | nivelado | 0° | −5,5° | **−5°** |
+> | banqueando derecha | −23,1° | +17,6° | **+18°** |
+> | banqueando izquierda | +23,1° | −28,6° | **−30°** |
+
+### Cómo quedó
+
+- **Campo reciclado, no `parts`.** El pool solo cambia de tamaño cuando cambia la intensidad; las
+  gotas se envuelven por los bordes y re-sortean su x al salir (si volvieran a la misma columna, se
+  leería como lluvia cayendo por rieles).
+- **Tres capas de paralaje** (0,42 · 0,7 · 1): la de adelante rápida, larga y visible; la del fondo
+  lenta y apenas insinuada.
+- **Un `stroke()` por capa**, no uno por gota: las 280 rayas de TORMENTA salen en tres trazos.
+- **Acoplada al viento**: `cfg.wind` acuesta más la lluvia cuanto más fuerte pega.
+- **Se estira con la velocidad**: en turbo las rayas se alargan solas.
+- **Va detrás del avión y delante del mundo**, fuera del giro.
+
+> **No cuesta nada medible**: 8,3 ms/cuadro de mediana sin lluvia y 8,3 con TORMENTA; 8,3 también
+> con TORMENTA + mundo girado. p95 entre 9,0 y 9,2 en los cinco casos.
+>
+> Y **no pesa en el build web**: es procedural, cero assets. 13,7 MB de 16.
+
+### La lluvia contra el avión
+
+Sin esto la lluvia pasa **por detrás** del avión y el avión queda seco en el medio de una tormenta:
+se leen como dos capas que no se conocen. Lo que las une es que el agua **pegue**.
+
+- **Rayas, no puntos.** La primera versión eran puntitos y se leía como chispas o ruido de pantalla.
+  Lo que dice «agua» es el **rastro**: una raya corta en la dirección en la que sale despedida. Como
+  la raya sale de la velocidad de cada gota, el salpicado se abre en abanico solo.
+- **En coordenadas de pantalla, con el avión como centro** — no adentro de la transformada del
+  sprite. Así no hay que saber nada del alabeo, del cabeceo ni de la hoja horneada, y el efecto
+  sigue al avión cuando el sprite rota (que es cuando más se nota).
+- **La silueta es una elipse ancha y chata** (0,34 × 0,09 del frame): visto desde atrás, el avión es
+  sobre todo ala. Los factores salen de medir el sprite contra su frame de 84 px — con 0,40/0,13 el
+  agua rebotaba *al lado* del avión, no sobre él.
+- **La cadencia sigue a la intensidad y a la velocidad**: `7/17/34` impactos por segundo por
+  `(1 + spd/150)`, vida 0,28 s → del orden de 6 / 14 / 27 gotas vivas a velocidad de crucero.
+
+> Verificado dibujando la **máscara** de los píxeles contados: un cuadro de TORMENTA da 42 px de
+> salpicado sobre el fuselaje y las alas, y 0 con `LLUVIA: NO`. Los promedios largos NO sirven acá —
+> si el avión se releva o muere en el medio de la muestra, el recuadro pasa a contar la pantalla de
+> encima y el número se dispara sin que la lluvia haya cambiado.
+
+### Cuidado que quedó pendiente de mirar
+
+Las rayas de lluvia **no pueden parecerse a `gusts`**. Las ráfagas ya son rayas claras cruzando el
+cielo, pero son una SEÑAL: aparecen solo arriba de 16 m y significan «el viento te está comiendo la
+velocidad». Hoy se distinguen por dirección (las ráfagas son horizontales) y por densidad, pero si
+alguna vez se toca el aspecto de una hay que mirar la otra.
+
+---
+
+## 29-bis. LLUVIA como mecánica (pendiente)
 
 Que llueva. Hoy el mal tiempo está **pintado, no simulado**: `storm` existe como fondo
 (`night_storm.png`) y como paleta (`data/palette.js`), pero **no hay una sola gota en pantalla ni
@@ -811,10 +908,15 @@ radar variable) y #19 (radares ingleses).
 - **Legibilidad primero.** El juego es de esquivar a ras: si la lluvia hace que un mástil aparezca
   demasiado tarde, no es tensión, es injusticia. Probar con `OBSTACULOS: MUCHOS`.
 
-- [ ] Decidir ambiente vs mecánica (default sugerido: entrar por ambiente y subir a mecánica).
-- [ ] Campo de lluvia con paralaje, acoplado al viento.
+- [x] Decidir ambiente vs mecánica → **ambiente primero**, y la mecánica por misión (ver arriba).
+- [x] Campo de lluvia con paralaje, acoplado al viento — y al giro del horizonte.
+- [x] Que el agua rebote contra el avión (salpicado sobre la silueta).
 - [ ] Lluvia en el canopy durante el momentum.
-- [ ] Si es mecánica: efecto sobre detección y sobre distancia de aparición de obstáculos.
+- [ ] El ARENA (vuelo 3D): hoy no tiene lluvia. `render/rain.js` es 2D del PASILLO.
+- [ ] Si es mecánica: efecto sobre detección y sobre distancia de aparición de obstáculos —
+      **por misión, no por preferencia**, y midiendo el piso de reacción con `feeltest`.
+- [ ] ¿La intensidad debería salir del cielo? Hoy es independiente: `TORMENTA` de fondo con
+      `LLUVIA: NO` es una combinación posible y queda rara. Sin decidir.
 
 > Relacionado con #27 (techo de radar: la lluvia sería la otra forma de esconderse), #19 (radares
 > ingleses), #17 (mecánicas y terrenos) y #8 (más adrenalina en el rasante).
@@ -824,7 +926,81 @@ radar variable) y #19 (radares ingleses).
 > Las dudas históricas sobre el clima real de cada fecha van a
 > [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md).
 
-## 29.1 Dificultad NIEBLA
+## 29.1 Dificultad NIEBLA ✔ (implementado)
+
+> **Estado (agosto 2026): hecho, con la «versión fuerte» —el banco por debajo del radar— desde el
+> primer día.** `NIEBLA: NO · VISIBLE · CASI NULA` y `LARGO DE NIEBLA: CORTO · MEDIO · LARGO · MUY
+> LARGO` en OPCIONES → **MAPA** (con VIENTO y OBSTÁCULOS, porque cambia cómo se juega — no es
+> ambiente como la lluvia). Sistema en [`src/systems/fog.js`](../src/systems/fog.js), velo en
+> `drawFog()` de `render/world.js`.
+>
+> **Dos cosas salieron distintas de lo diseñado acá abajo. Las dos están explicadas en su lugar:**
+> el velo NO se define en segundos puros (ver «la corrección del velo»), y que desde arriba se vea
+> es una regla de juego y no física (ver «lo que se eligió no simular»).
+
+### La corrección del velo: segundos puros no servían
+
+Este ítem decía «definila en SEGUNDOS de reacción, no en distancia, así es la misma dificultad a
+cualquier velocidad». Suena bien y **está mal**, porque la referencia contra la que se compara —el
+juego sin niebla— no es de segundos constantes: los obstáculos nacen **siempre** a `SPAWN_Z = 320`,
+así que el aviso que da el juego solo ya se achica con la velocidad.
+
+> Medido con la fórmula original (`vis = spd × segundos`): a `spd 344` la visión daba **378**, más
+> lejos que donde nacen los obstáculos. O sea que la niebla **se apagaba sola justo cuando el juego
+> está más difícil**.
+
+La versión que quedó son **dos números y se toma el mayor**: una fracción de `SPAWN_Z` (aprieta a
+cualquier velocidad) y un piso en segundos (nunca te deja sin maniobra).
+
+| | sin niebla | VISIBLE | CASI NULA |
+|---|---|---|---|
+| spd 60 | 5,10 s | 2,93 s | 1,49 s |
+| spd 110 *(crucero)* | 2,78 s | **1,60 s** | **0,81 s** |
+| spd 180 | 1,70 s | 0,98 s | 0,55 s |
+| spd 280 | 1,09 s | 0,90 s | 0,55 s |
+| spd 344 *(a fondo)* | 0,89 s | 0,90 s | 0,55 s |
+
+A crucero manda la fracción y la niebla **muerde** (58% y 29% del aviso normal); a fondo manda el
+piso y la niebla **protege** — a 344 el juego ya te da menos margen que la propia niebla.
+
+### Lo que se eligió no simular
+
+**Que desde arriba se vea es una regla de juego, no física.** Con una capa de 17 m y visibilidad de
+~180, la física diría que trepar casi no cambia nada: la línea de visión a un mástil lejano viaja
+igual casi toda por adentro de la bruma. Se eligió que trepar **abra** la vista porque es lo que
+convierte el banco en una **decisión** —subir al radar o volar a ciegas— en vez de un filtro gris.
+Se pierde rigor; se gana que el tramo se juegue.
+
+### Cómo quedó, en números
+
+| | |
+|---|---|
+| techo del banco | **17** (radar en 20 → **rendija de 3** donde ves *y* no te pintan) |
+| largos | 500 · 900 · 1500 · 2300 → ~5 / 8 / 14 / 21 s a crucero |
+| hueco entre bancos | 2,2 × el largo |
+| dispersión | ±18% en largo y hueco, para que no se aprenda de memoria |
+
+- **El velo tapa los obstáculos** porque se dibuja al final del mundo, después de ellos y adentro
+  del giro del horizonte. Eso es lo único que lo vuelve una mecánica y no un filtro de color.
+- **La cubierta vista desde arriba** son las mismas filas del mar pintadas de gris (un plano
+  horizontal se proyecta igual), y se **oscurece hacia abajo**: mirando casi en vertical se ve hacia
+  adentro del banco. Además de dar volumen resuelve un problema concreto — el HUD se dibuja sobre
+  esa franja y sus rótulos, tenues a propósito contra el mar oscuro, se perdían contra un gris
+  parejo y claro (probado con `#a3b3bb`).
+- **El HUD sí atraviesa la niebla y el mundo no**, como decía el diseño. Y la barra de NIEBLA se
+  **vacía**: se lee de un vistazo que esto se termina. Cambia de rojo a blanco cuando estás por
+  encima del techo.
+
+### Falta
+
+- [ ] Que el banco sea **parámetro por misión** (`data/missions.js`), no solo perilla global.
+- [ ] Medir el piso de reacción con `tools/feeltest.js` en vez de derivarlo de `SPAWN_Z`.
+- [ ] Probar que el TERRAIN MASKING adentro del banco sea la contrajugada y no la rompa.
+- [ ] Decidir qué más atraviesa (hoy: HUD sí, marcador de objetivo y barcaza no).
+
+---
+
+## 29.1-bis Diseño original de la NIEBLA (referencia)
 
 La niebla como **dificultad**, no como decorado. Hermana de #29 (lluvia) pero con un rol distinto y
 más limpio: la lluvia es atmósfera que además puede tapar; **la niebla es directamente una perilla

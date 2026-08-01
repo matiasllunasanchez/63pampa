@@ -16,6 +16,7 @@ import { P, LAND, CLAND } from '../data/palette.js';
 import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
+import { inBank, fogVis, fogTop } from '../systems/fog.js';
 import { mvTight } from '../data/moves.js';
 import * as boomArt from './boom.js';
 import * as blastArt from './blast.js';
@@ -167,6 +168,77 @@ function cliffFace(y, k, x0, x1, f) {
   px(x0, y, x1 - x0, rowH, ['#4a453a', '#3b382f', '#2e2c26'][t]);
   ctx.globalAlpha = 0.35;                                            // vetas verticales de la roca
   for (let sx = Math.ceil(x0 / 9) * 9; sx < x1; sx += 9) px(sx, y, Math.max(1, 0.3 * k), 1, '#22201b');
+  ctx.globalAlpha = 1;
+}
+
+// ---------- NIEBLA ----------
+// Se dibuja DESPUES del mundo y de los obstaculos, adentro del giro del horizonte: por eso tapa lo
+// que hay que tapar sin que cada cosa tenga que saber de la niebla.
+//
+// DOS PIEZAS QUE SE CRUZAN, y cual manda lo decide TU ALTURA:
+//
+//   VELO      volando DENTRO del banco. Se pone gris con la profundidad, asi que lo que viene de
+//             lejos aparece tarde. Es la pieza que ciega.
+//   CUBIERTA  volando POR ENCIMA del techo. La niebla se ve como una SUPERFICIE que tapa el agua
+//             y todo lo que esta bajo: volar sobre un mar de niebla. Es la pieza que te deja ver.
+//
+// El cruce es continuo (FOG_BLEND): no hay un salto al cruzar el techo, la niebla se abre.
+//
+// ⚠ QUE ARRIBA SE VEA ES UNA REGLA DE JUEGO, NO FISICA. Con una capa de 17 m y visibilidad de
+// ~180, la fisica diria que trepar casi no cambia nada: la linea de vision a un mastil lejano viaja
+// igual casi toda por adentro de la bruma. Se elige que trepar ABRA la vista porque es lo que hace
+// del banco una DECISION —subir al radar o volar a ciegas— en vez de un filtro gris. Lo que se
+// pierde es rigor; lo que se gana es que el tramo se juegue.
+// El gris NO es libre: la cubierta ocupa media pantalla y el HUD se dibuja encima. Con un gris
+// claro (#a3b3bb probado) los rotulos del HUD —que son tenues a proposito sobre el mar oscuro—
+// se perdian. Este es lo bastante frio y oscuro para que el HUD siga leyendose, y lo bastante
+// claro para que la cubierta se lea como niebla y no como una nube de humo.
+const FOG_C = '#7d8d96';
+const FOG_MID = '#6b7a83';
+const FOG_DEEP = '#586771';
+const FOG_BLEND = 3.5;   // unidades de mundo para pasar de "adentro" a "arriba del techo"
+
+/** Cuanto estas METIDO en la niebla: 1 bien adentro, 0 en el techo o arriba. */
+function fogInside() {
+  if (!inBank()) return 0;
+  return Math.max(0, Math.min(1, (fogTop() - plane.y) / FOG_BLEND));
+}
+
+export function drawFog() {
+  const inside = fogInside();
+  if (!inBank()) return;
+  const yEnd = rowEnd();
+  const vis = fogVis();
+  // ---- CUBIERTA: la niebla vista desde arriba tapa el agua y lo que este bajo ----
+  // Son las MISMAS filas del mar (un plano horizontal se proyecta igual), asi que no hay geometria
+  // nueva: se pintan de gris. Cuanto mas alto vas, mas cerrada se ve la cubierta.
+  const deck = 1 - inside;
+  if (deck > 0.01) {
+    for (let y = HOR + 1; y < yEnd; y++) {
+      const f = Math.min(1, (y - HOR) / (H - HOR));
+      // la cubierta se abre un poco justo abajo tuyo (mirar casi en vertical atraviesa menos bruma)
+      ctx.globalAlpha = deck * (0.88 - f * 0.3);
+      // y se OSCURECE hacia abajo: mirando casi en vertical se ve HACIA ADENTRO del banco, donde no
+      // entra luz. Ademas de dar volumen, resuelve un problema concreto de lectura — el HUD se
+      // dibuja sobre esta franja y sus rotulos, que son tenues a proposito contra el mar oscuro,
+      // se perdian contra un gris parejo y claro.
+      px(-70, y, W + 140, rowH, f < 0.45 ? FOG_C : f < 0.75 ? FOG_MID : FOG_DEEP);
+    }
+    ctx.globalAlpha = deck * 0.5;                 // el borde del techo, iluminado: lee como superficie
+    px(-70, HOR + 1, W + 140, 2, '#cfdae0');
+  }
+  // ---- VELO: adentro, el gris crece con la profundidad ----
+  if (inside > 0.01) {
+    for (let y = HOR + 1; y < yEnd; y++) {
+      const z = cam.y * F / (y - HOR);
+      // niebla exponencial: la de siempre. A z = vis queda en 63%, a 2*vis en 86%.
+      ctx.globalAlpha = inside * Math.min(0.96, 1 - Math.exp(-z / vis));
+      px(-70, y, W + 140, rowH, FOG_C);
+    }
+    // el cielo tambien: adentro de un banco no se ve el horizonte, se ve gris
+    ctx.globalAlpha = inside * 0.9;
+    px(-70, -140, W + 140, HOR + 142, FOG_C);
+  }
   ctx.globalAlpha = 1;
 }
 

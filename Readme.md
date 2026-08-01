@@ -436,8 +436,8 @@ y `[ESC]` vuelve. La lista está partida en secciones, y las de prototipado dice
 | CONTROL Y VISTA | control (directo / por alabeo), horizonte, piruetas, mira, red de radar |
 | CONTROLES | teclado y joystick, **solo lectura** |
 | PARTIDA | escuadrón (vidas), combustible, energía, enemigos móviles |
-| AMBIENTE · *no en la campaña* | fondo (8 cielos), agua |
-| MAPA · *solo POR LA PATRIA y CICLO DE MUERTE* | terreno, viento, obstáculos, bombardeo, costa, pista, acantilado, arranque |
+| AMBIENTE | fondo (8 cielos), agua, **lluvia** (`NO · GARÚA · LLUVIA · TORMENTA`) |
+| MAPA · *solo POR LA PATRIA y CICLO DE MUERTE* | terreno, viento, **niebla** (`NO · VISIBLE · CASI NULA`) y **largo de niebla**, obstáculos, bombardeo, costa, pista, acantilado, arranque |
 | SOLO CICLO DE MUERTE | metros |
 | SOLO MINUTOS SAGRADOS | buque |
 | DEPURACIÓN | hitboxes, modo cámara |

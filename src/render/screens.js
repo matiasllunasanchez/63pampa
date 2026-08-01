@@ -7,6 +7,11 @@ import { ctx, DW as W, DH as H, px, panel, wrapText, titleFont, menuFont, descFo
 import { P } from '../data/palette.js';
 import { T, L } from '../core/i18n.js';
 import { wrapChars } from '../core/util.js';
+import { clamp01 } from '../core/physics.js';
+
+// Segundos que la pantalla de victoria espera antes de traer la frase de cierre. No es un valor
+// de "sensacion" como los de data/tuning.js: es el ritmo de UNA pantalla, y vive con ella.
+const VIC_QUOTE_T = 1.1;
 
 // EMBLEMA de las Malvinas (la 4ª "estrella"): silueta real de las islas (assets/images/malvinas.webp,
 // islas negras sobre transparente). Se PINTA tiñendo sus píxeles opacos con `source-in` → una versión
@@ -312,9 +317,26 @@ export function drawVictory(w) {
   ctx.fillText('(2 niveles de prueba - se agregaran mas)', W / 2, 52);
   ctx.fillStyle = P.ink; ctx.font = menuFont(12);
   ctx.fillText('PUNTAJE  ' + Math.floor(w.score), W / 2, 84);
-  if (w.levelT > 0.8 && Math.sin(w.t * 4) > -0.3) {
+
+  // CIERRE: la frase de Iorio, ultima cosa que se ve del juego. Entra DESPUES del puntaje
+  // (VIC_QUOTE_T) y con fundido propio a proposito: si apareciera junto con el numero se leeria
+  // como parte del recuento, y es lo contrario — el puntaje cierra la partida, esto cierra el
+  // tema. Por eso ademas va con una linea de separacion y sin el parpadeo del prompt.
+  const qa = clamp01((w.levelT - VIC_QUOTE_T) / 1.2);
+  if (qa > 0) {
+    ctx.globalAlpha = qa;
+    ctx.fillStyle = P.dim;
+    px(W / 2 - 40, 102, 80, 1, P.dim);                       // filete separador
+    ctx.font = descFont(10);
+    wrapText(T('quoteIorio'), W / 2, 118, W - 60, 13);
+    ctx.fillStyle = P.accent; ctx.font = descFont(9);
+    ctx.fillText(T('quoteIorioBy'), W / 2, 148);
+    ctx.globalAlpha = 1;
+  }
+
+  if (w.levelT > VIC_QUOTE_T + 1.6 && Math.sin(w.t * 4) > -0.3) {
     ctx.fillStyle = P.accent; ctx.font = descFont(10);
-    ctx.fillText('CUALQUIER TECLA  para el menu', W / 2, 130);
+    ctx.fillText(T('anyKeyMenu'), W / 2, H - 12);
   }
 }
 

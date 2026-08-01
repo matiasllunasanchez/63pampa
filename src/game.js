@@ -33,6 +33,8 @@ import { cv, ctx, W, H, HOR, F, PZ, SC, px, panel, U } from './render/ctx.js';
 import * as screens from './render/screens.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
 import * as menus from './render/menus.js';
+import { stepRain, stepSpray, drawRain, RAIN_N } from './render/rain.js';
+import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit } from './systems/fog.js';
 import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './render/momentum.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
@@ -321,7 +323,12 @@ import { RUNWAYS } from './data/runways.js';
 
       // FONDO y AGUA también pintan el ARENA (three-arena lee theme.sky/theme.water), por eso no
       // están en el bloque de MAPA: ese es solo del PASILLO.
+      //
+      // El encabezado decía «AMBIENTE · no en la campaña», y con LLUVIA adentro pasaba a ser media
+      // verdad: la campaña pisa sky/water (CAMPAIGN_CFG) pero NO la lluvia. La aclaración bajó a
+      // una NOTA, que es exactamente para lo que existen: así el encabezado no promete de más.
       { head: 'optSecAmbiente' },
+      { note: 'optNoteAmbiente' },
       { label: () => T('optSky'), opts: ['dusk', 'night', 'storm', 'clear', 'cloudy', 'sun', 'moon', 'dawn'],
         names: () => [T('optSkyDusk'), T('optSkyNight'), T('optSkyStorm'), T('optSkyClear'),
                       T('optSkyCloudy'), T('optSkySun'), T('optSkyMoon'), T('optSkyDawn')],
@@ -329,6 +336,12 @@ import { RUNWAYS } from './data/runways.js';
       { label: () => T('optWater'), opts: ['sea', 'violet'],
         names: () => [T('optWaterSea'), T('optWaterViolet')],
         get: () => cfg.water, set: v => { cfg.water = v; applyCfg(); }, save: 'rasante_agua' },
+      // LLUVIA: ambiente puro (ver cfg.rain en core/state.js y render/rain.js). Va acá y no en el
+      // bloque de MAPA justamente porque NO cambia cómo se juega — MAPA es donde vive el VIENTO,
+      // que sí te corta la velocidad.
+      { label: () => T('optRain'), opts: Array.from({ length: RAIN_N }, (_, i) => i),
+        names: () => [T('optRainOff'), T('optRainDrizzle'), T('optRainRain'), T('optRainStorm')],
+        get: () => cfg.rain, set: v => cfg.rain = v, save: 'rasante_lluvia' },
 
       { head: 'optSecMapa' },
       // elegir COSTA trae su clima: día nublado de desembarco (el FONDO se puede cambiar después)
@@ -338,6 +351,13 @@ import { RUNWAYS } from './data/runways.js';
         save: 'rasante_terreno' },
       { label: () => T('optWind'), opts: [true, false], names: yesNo,
         get: () => cfg.wind, set: v => cfg.wind = v, save: 'rasante_viento' },
+      // NIEBLA: va acá, con VIENTO y OBSTÁCULOS, porque CAMBIA CÓMO SE JUEGA — no es ambiente.
+      { label: () => T('optFog'), opts: [0, 1, 2],
+        names: () => [T('optFogOff'), T('optFogLight'), T('optFogThick')],
+        get: () => cfg.fog, set: v => { cfg.fog = v; resetFog(); }, save: 'rasante_niebla' },
+      { label: () => T('optFogLen'), opts: [0, 1, 2, 3],
+        names: () => [T('optFogLen0'), T('optFogLen1'), T('optFogLen2'), T('optFogLen3')],
+        get: () => cfg.fogLen, set: v => { cfg.fogLen = v; resetFog(); }, save: 'rasante_niebla_largo' },
       { label: () => T('optObst'), opts: [0, 0.5, 1, 1.7],
         names: () => [T('optObst0'), T('optObst1'), T('optObst2'), T('optObst3')],
         get: () => cfg.obstacles, set: v => cfg.obstacles = v, save: 'rasante_obstaculos' },
@@ -489,6 +509,7 @@ import { RUNWAYS } from './data/runways.js';
     // `opts` (la misma lista que ofrece la fila) hace que ese error ya no se pueda escribir.
     loadOpts();
 
+    let fogWarned = false;   // el aviso de entrada al banco sale UNA vez por banco
     function reset() {
       resetRun();       // toda la corrida (velocidad, nafta, rachas, armas, spawn…) a su estado inicial
       resetPlane();     // el avion a la posicion de arranque
@@ -496,6 +517,7 @@ import { RUNWAYS } from './data/runways.js';
       clearWorld();     // vacia el campo de obstaculos, balas, particulas…
       momentum.resetMomentum();
       arena.resetArena();
+      resetFog(); fogWarned = false;   // los bancos de niebla se re-sortean en cada corrida
       // el ESCUADRON de la corrida: cfg.squad aviones y vos de lider. Vive en `run` (no en el
       // sistema) porque lo leen HUD + relevo + este archivo.
       run.squad = run.lives = cfg.squad;
@@ -928,6 +950,15 @@ import { RUNWAYS } from './data/runways.js';
       // el mando manda un eje ANALOGICO (stick derecho) y el teclado un ±1: gana el que este
       // pidiendo algo, asi los dos conviven sin que el que esta quieto pise al otro.
       stepHorizon(dt, inp.rollAx || (inp.rollR ? 1 : 0) - (inp.rollL ? 1 : 0));
+      stepRain(dt);   // igual que el horizonte: arriba de los early-return, o se congela en el relevo
+      stepSpray(dt);  // el salpicado sobre el avion (la geometria la fija render/plane.js)
+      // NIEBLA: los bancos se arman y se consumen con run.dist. Los avisos salen de un pulso de un
+      // cuadro, no de mirar el estado — asi no hay forma de que el cartel salga dos veces.
+      stepFog();
+      if (S.state === 'play') {
+        if (tookEntry() && !fogWarned) { fogWarned = true; popup(W / 2, 46, T('fogIn'), P.warn); popup(W / 2, 56, T('fogIn2'), P.accent); sfxOne('waveFly'); }
+        if (takeExit()) { fogWarned = false; popup(W / 2, 46, T('fogOut'), P.foam); }
+      }
 
       // despegue automático desde Puerto Argentino: el control llega a los 3 s
       if (S.state === 'takeoff') {
@@ -1434,11 +1465,18 @@ import { RUNWAYS } from './data/runways.js';
         }
         ctx.globalAlpha = 1;
       }
+      // NIEBLA: al final del mundo y ADENTRO del giro. Va acá y no antes porque tiene que tapar
+      // los obstáculos — que es lo único que la vuelve una mecánica y no un filtro de color.
+      world.drawFog();
       }   // ---- fin mundo 2D ----
 
       // fin del HORIZONTE GIRATORIO: de aca en adelante todo va NIVELADO — el avion, su mira, la
       // formacion y los popups son el lado "cabina", igual que en el momentum.
       if (hzW) ctx.restore();
+
+      // LLUVIA: entre vos y el mundo, pero DETRAS de tu propio avion. Va fuera del giro a
+      // proposito — lo que rota es la direccion de caida (ver render/rain.js).
+      drawRain();
 
       if (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena') drawPlane(selPlane, viewMouse, squadZoom());   // en el ARENA (nuevo o fallback) el avion lo pone su propio render
       // la FORMACION del escuadron: SOLO en el despegue y en su salida de plano al CONTROL

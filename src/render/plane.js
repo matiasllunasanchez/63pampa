@@ -15,6 +15,7 @@ import { proj } from '../core/fx.js';
 import { hzSprite } from '../core/horizon.js';
 import { P } from '../data/palette.js';
 import { drawMira } from './miras.js';
+import { anchorSpray, drawSpray } from './rain.js';
 import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H } from '../data/planes.js';
 import { ROLL_DUR } from '../data/tuning.js';
 
@@ -282,6 +283,19 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     ctx.globalAlpha = 1;
   }
   ctx.restore();
+
+  // LLUVIA CONTRA EL AVION: el salpicado va DESPUES del sprite —el agua rebota sobre el avion, no
+  // debajo— y en coordenadas de pantalla, con el avion como centro. La silueta se aproxima con una
+  // elipse ANCHA Y CHATA: visto desde atras, el avion es sobre todo ala.
+  // El centro incluye bob, vibracion y cabeceo, o sea que el salpicado tiembla con el fuselaje.
+  {
+    const cx = s.x + vx2 + bobX, cy = s.y - bobY + vy2 - plane.pitch * 1.8;
+    // Los factores salen de MEDIR el sprite contra su frame: el frame es de 84 px con aire
+    // alrededor, y las puntas de ala caen en ~0.34 de su ancho y la panza en ~0.09 de su alto.
+    // Con 0.40/0.13 el agua rebotaba AL LADO del avion, no sobre el.
+    anchorSpray(cx, cy, spW * U * 0.34, spH * U * 0.09);
+    drawSpray();
+  }
 
   // mira: en el MOUSE (PC, punteria libre) o adelante del avion (tactil/legacy)
   if (S.state === 'play') {

@@ -38,6 +38,54 @@ export const SPAWN_Z = 320;
 // ser el precio de una decision de combate.
 export const RADAR_ALT = 20;
 
+// ---------- NIEBLA (systems/fog.js) ----------
+// TECHO DEL BANCO. Va APENAS por debajo de RADAR_ALT y ese hueco es el filo del item: entre 17 y
+// 20 queda una RENDIJA de 3 unidades donde VES y NO te pintan. No hay codigo que la implemente —
+// sale sola de poner los dos umbrales cerca. Tres unidades es poco mas que la altura del avion
+// (semieje 1.0), asi que sostenerla con el bob y el viento es una linea de habilidad real; el que
+// no la encuentra sube al radar y come misiles, que es lo que el tramo quiere que pase.
+export const FOG_TOP = 17;
+
+// ALCANCE DE VISION dentro del banco, por nivel (0 = sin niebla). Ver fogVis() en systems/fog.js.
+//
+// SON DOS NUMEROS Y NO UNO, y el porque es la correccion mas importante de este item.
+//
+// El diseño original decia: "definila en SEGUNDOS de reaccion, no en distancia, asi es la misma
+// dificultad a cualquier velocidad". Suena bien y esta mal, porque la referencia contra la que se
+// compara —el juego sin niebla— NO es de segundos constantes: los obstaculos nacen SIEMPRE a
+// SPAWN_Z = 320, asi que el aviso que da el juego solo ya se achica con la velocidad:
+//
+//     a spd 110 → 2.8 s de aviso        a spd 344 → 0.89 s
+//
+// Una niebla de "1.1 s constantes" no recorta NADA a 344 (ya tenias menos que eso): se apaga sola
+// justo cuando el juego esta mas dificil. Medido: con la formula vieja, a spd 344 la vision daba
+// 378 — mas lejos que donde nacen los obstaculos.
+//
+//   FOG_FRAC   fraccion de SPAWN_Z que se ve. Esto es lo que hace que la niebla MUERDA siempre:
+//              recorta el aviso a la misma PROPORCION a cualquier velocidad.
+//   FOG_FLOOR  piso en segundos. Esto es lo que la vuelve justa: por rapido que vayas, nunca te
+//              deja con menos de este aviso.
+// La vision es el MAYOR de los dos, asi que a velocidad de crucero manda la fraccion (aprieta) y
+// a fondo manda el piso (protege).
+//
+// ⚠ Por debajo de ~0.5 s deja de ser dificultad y pasa a ser una moneda al aire: el choque mata al
+// instante, asi que si el obstaculo sale del gris cuando ya no hay maniobra posible el jugador no
+// siente que fallo, siente que le toco. Medir con tools/feeltest.js antes de bajar el piso.
+export const FOG_FRAC = [0, 0.55, 0.28];
+export const FOG_FLOOR = [0, 0.90, 0.55];
+
+// LARGO DEL BANCO, en unidades de run.dist. El largo ES el balance del item: es cuanto tiempo te
+// obliga a comer misiles. A velocidad de crucero (~110) estos cuatro son del orden de 5, 8, 14 y
+// 21 segundos arriba del radar.
+export const FOG_LEN = [500, 900, 1500, 2300];
+// Hueco entre bancos, como MULTIPLO del largo. Tiene que alcanzar para recuperar: arriba no cargas
+// racha rasante ni afterburner, y esquivar con turbo quema combustible — un tramo de niebla sale
+// caro en tres monedas a la vez. Buenisimo de vez en cuando, veneno tres veces por nivel.
+export const FOG_GAP = 2.2;
+// Dispersion del sorteo de largo y hueco (±18%): si todos los bancos midieran lo mismo, el tramo
+// se aprenderia de memoria en vez de leerse en pantalla.
+export const FOG_SPREAD = 0.18;
+
 // ALTURAS DEL CIELO: entre que alturas NACE cada cosa que vuela, en unidades de MUNDO (las mismas
 // de plane.y, donde el techo de vuelo es FLY_TOP = 68).
 //
