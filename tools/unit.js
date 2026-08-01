@@ -137,3 +137,131 @@ test('formacion: N aviones son N-1 puestos, alternando lados y sin encimarse', (
   assert.equal(seen.size, 7, 'dos numerales no pueden volar en el mismo punto');
   for (const p of s) assert.ok(p.dz < 0, 'detras del lider = mas cerca de la camara (z menor)');
 });
+
+// ---------- HORIZONTE GIRATORIO (core/horizon.js): cuanto se inclina el mundo ----------
+// Lo que se prueba es la REGLA, no el dibujo: que FIJO no mueva nada, que el mundo gire al reves
+// que el avion (camara pegada al avion) y que la pirueta le gane al alabeo continuo.
+import { horizonRoll, HZ_FIX, HZ_MOVES, HZ_ALL, HZ_FREE, BANK_TILT } from '../src/core/horizon.js';
+
+test('horizonte FIJO: nada lo inclina, ni pirueta ni alabeo', () => {
+  assert.equal(horizonRoll(HZ_FIX, Math.PI, 1), 0);
+  assert.equal(horizonRoll(HZ_FIX, 0, -1), 0);
+});
+
+test('horizonte: el mundo gira al REVES que el avion (la camara rola con el)', () => {
+  near(horizonRoll(HZ_MOVES, 1.2, 0), -1.2);
+  near(horizonRoll(HZ_ALL, -0.7, 0), 0.7);
+});
+
+test('horizonte EN PIRUETAS: el alabeo continuo no lo mueve; TOTAL si', () => {
+  assert.equal(horizonRoll(HZ_MOVES, 0, 1), 0, 'sin pirueta, PIRUETAS deja el horizonte quieto');
+  near(horizonRoll(HZ_ALL, 0, 1), -BANK_TILT);
+  near(horizonRoll(HZ_ALL, 0, -0.5), BANK_TILT * 0.5);
+});
+
+test('horizonte: la pirueta MANDA sobre el alabeo, y el alabeo esta acotado', () => {
+  near(horizonRoll(HZ_ALL, 2, 1), -2);          // durante el tonel el banqueo no agrega nada
+  near(horizonRoll(HZ_ALL, 0, 9), -BANK_TILT);  // un bank fuera de rango no puede volcar el mundo
+});
+
+// El INSTRUMENTO (horizonte artificial del HUD) no lee lo mismo que el fondo, y es a proposito.
+import { attitude, BANK_FULL } from '../src/core/horizon.js';
+import { plane } from '../src/core/state.js';
+import { run } from '../src/core/run.js';
+
+test('actitud: el instrumento lee el alabeo REAL, no el amortiguado del fondo', () => {
+  run.rollT = 0; run.mvRoll = 0;
+  plane.bank = 1;
+  near(attitude(), BANK_FULL);            // bank ±1 son los ±60 grados del sprite horneado
+  assert.ok(Math.abs(attitude()) > Math.abs(horizonRoll(HZ_ALL, 0, 1)) * 4,
+    'el fondo se inclina MUCHO menos que la actitud real: el instrumento no miente, la camara si');
+  plane.bank = 0; run.mvRoll = 1.4;
+  near(attitude(), 1.4);                  // durante la pirueta manda la pirueta
+  run.mvRoll = 0;
+});
+
+test('horizonte LIBRE: el giro a voluntad solo cuenta en LIBRE, y SE SUMA a la pirueta', () => {
+  assert.equal(horizonRoll(HZ_MOVES, 0, 0, 4), 0, 'fuera de LIBRE el giro libre no existe');
+  assert.equal(horizonRoll(HZ_ALL, 0, 0, 4), 0);
+  near(horizonRoll(HZ_FREE, 0, 0, Math.PI), -Math.PI, 1e-9);   // boca abajo y ahi se queda
+  near(horizonRoll(HZ_FREE, 1, 0, 2), -3);                     // pirueta + giro = dos vueltas
+  // sin tope: dar tres vueltas tiene que valer tres vueltas, no quedar envuelto en una
+  near(horizonRoll(HZ_FREE, 0, 0, 6 * Math.PI), -6 * Math.PI, 1e-9);
+});
+
+test('horizonte: girando libre, el banqueo sigue sumando; en pirueta no', () => {
+  near(horizonRoll(HZ_FREE, 0, 1, Math.PI), -(Math.PI + BANK_TILT));
+  near(horizonRoll(HZ_FREE, 0.5, 1, Math.PI), -(Math.PI + 0.5));   // la pirueta anula el banqueo
+});
+
+// La RED DE RADAR se funde cuando el mundo se inclina (render/world.js la consulta). El borde que
+// importa es el de ABAJO: el modo TOTAL inclina de a poco TODO el tiempo y no debe apagarla nunca.
+import { tiltFade, TILT_FADE0, TILT_FADE1 } from '../src/core/horizon.js';
+
+test('inclinacion: la red se apaga RAPIDO — a 20 grados de maniobra ya no queda nada', () => {
+  assert.equal(tiltFade(0), 1);
+  assert.equal(tiltFade(TILT_FADE1), 0);
+  assert.ok(TILT_FADE1 <= 0.35, `a ${(TILT_FADE1 * 57.3).toFixed(0)} grados todavia se veria: el umbral quedo largo`);
+  assert.equal(tiltFade(0.35), 0, 'a 20 grados de tonel la red ya no esta');
+  assert.ok(tiltFade(0.26) < 0.4, `a 15 grados ya tiene que estar yendose (quedo ${tiltFade(0.26).toFixed(2)})`);
+  assert.equal(tiltFade(Math.PI), 0, 'boca abajo, apagada');
+  assert.equal(tiltFade(-Math.PI), 0, 'y da lo mismo para que lado rolaste');
+  near(tiltFade((TILT_FADE0 + TILT_FADE1) / 2), 0.5);
+});
+
+test('inclinacion: el banqueo continuo NO entra en la cuenta, y no por margen sino por diseño', () => {
+  // A tiltFade se le pasa manoeuvreRoll() (pirueta + giro libre), NO hzWorld(). Por eso el modo
+  // TOTAL —que inclina hasta BANK_TILT todo el tiempo— no puede apagar la red ni aunque el umbral
+  // sea agresivo. Antes se resolvia dejando TILT_FADE0 por encima de BANK_TILT, y eso obligaba a
+  // un fundido tan largo que la red seguia visible en pleno tonel.
+  assert.ok(TILT_FADE0 < BANK_TILT,
+    'el umbral ya NO necesita esquivar a BANK_TILT: si lo esquivara, el fundido volveria a ser lento');
+});
+
+// ---------- CONTROL POR ALABEO (core/physics.js) ----------
+// Lo que hay que garantizar no es que "se sienta bien" sino que el TECHO no se mueva: es una
+// opcion de acople, no de dificultad. Si el tope lateral cambiara, seria otro juego.
+import { bankStep, bankVx, BANK_RATE, BANK_MAX, BANK_TURN_V } from '../src/core/physics.js';
+
+test('alabeo: el tope lateral es el MISMO que el del control directo (~30)', () => {
+  const top = Math.abs(bankVx(BANK_MAX));
+  assert.ok(top > 29 && top < 31, `el tope quedo en ${top}, y el directo esta clavado en 30`);
+  assert.equal(bankVx(0), 0, 'con las alas a nivel no hay deriva: vx es cero por definicion');
+});
+
+test('alabeo: la respuesta satura de a poco — el ultimo cuarto rinde ~39% menos que el primero', () => {
+  const q = [0, 0.25, 0.5, 0.75, 1].map(f => bankVx(BANK_MAX * f));
+  for (let i = 1; i < 4; i++)
+    assert.ok(q[i + 1] - q[i] < q[i] - q[i - 1], 'cada cuarto tiene que rendir menos que el anterior');
+  const primero = q[1] - q[0], ultimo = q[4] - q[3];
+  assert.ok(ultimo > primero * 0.5 && ultimo < primero * 0.7,
+    `saturacion SUAVE: ni plana ni un muro (ultimo ${ultimo.toFixed(2)} vs primero ${primero.toFixed(2)})`);
+  for (let a = -Math.PI; a <= Math.PI; a += 0.05) assert.ok(Math.abs(bankVx(a)) <= BANK_TURN_V + 1e-9);
+});
+
+test('alabeo: rolar a fondo llega al tope en ~0.3 s y no lo pasa', () => {
+  let b = 0;
+  for (let i = 0; i < 18; i++) b = bankStep(b, 1, 1 / 60);   // 0.30 s a fondo
+  near(b, BANK_MAX, 0.02);
+  for (let i = 0; i < 600; i++) b = bankStep(b, 1, 1 / 60);  // insistir no lo pone de espaldas
+  assert.equal(b, BANK_MAX);
+  assert.equal(bankStep(0, -1, 99), -BANK_MAX, 'un dt absurdo tampoco lo desborda');
+});
+
+test('alabeo: el banqueo SE SOSTIENE — soltar no nivela las alas de golpe', () => {
+  // Es LA diferencia con el control directo, y estuvo rota: con BANK_BACK = 4.5 las alas volvian
+  // solas en 0.2 s, soltar cortaba el viraje igual que siempre y los dos esquemas se sentian
+  // identicos. Este test es el que no deja que vuelva a pasar.
+  const tras = s2 => { let b = BANK_MAX; for (let i = 0; i < 60 * s2; i++) b = bankStep(b, 0, 1 / 60); return b; };
+  assert.ok(tras(0.5) > BANK_MAX * 0.4, `medio segundo despues de soltar tenes que seguir banqueado (${tras(0.5)})`);
+  assert.ok(tras(2) < BANK_MAX * 0.12, 'pero a los 2 s ya tiene que estar practicamente a nivel');
+  // CONTRA-ROLAR tiene que ser bastante mas rapido que esperar: es lo que premia volar activo
+  let b = BANK_MAX, n = 0;
+  while (b > 0 && n < 600) { b = bankStep(b, -1, 1 / 60); n++; }
+  assert.ok(n / 60 < 0.35, `contra-rolar deberia cortar en menos de 0.35 s, tardo ${(n / 60).toFixed(2)}`);
+});
+
+test('alabeo: es simetrico entre los dos lados', () => {
+  near(bankStep(0.4, 1, 0.1), -bankStep(-0.4, -1, 0.1));
+  near(bankStep(0.4, 0, 0.1), -bankStep(-0.4, 0, 0.1));
+});

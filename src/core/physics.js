@@ -86,5 +86,49 @@ export function windFactor(windT, windOn) {
 }
 
 // ---------- utilidades ----------
+// ---------- CONTROL POR ALABEO (cfg.control = 1) ----------
+// El esquema de siempre es DIRECTO: ←/→ empujan al avion de costado y el alabeo del sprite es una
+// animacion que lo acompaña. Con ALABEO se invierte la causa: ←/→ ROLAN, y el desplazamiento
+// lateral es la CONSECUENCIA de estar banqueado — que es como se mueve un avion de verdad.
+//
+// LO QUE TIENE QUE CAMBIAR es que EL BANQUEO SE SOSTIENE. En DIRECTO, soltar la flecha frena el
+// desplazamiento en medio segundo. Aca no: quedas banqueado, y banqueado seguis virando — para
+// cortar el viraje hay que CONTRA-ROLAR. Eso es todo el esquema, y es lo unico que lo hace sentir
+// un avion y no un deslizador con otra formula adentro.
+//
+// LA PRIMERA VERSION DE ESTO NO SE NOTABA. Estaba con BANK_BACK = 4.5, el mismo numero con el que
+// decae la deriva del control DIRECTO, "para no cambiar la dificultad": las alas se nivelaban solas
+// en 0.2 s y soltar la flecha cortaba el viraje igual que siempre. Los dos esquemas median
+// practicamente lo mismo porque le habiamos calibrado la diferencia hasta hacerla desaparecer.
+// BANK_BACK ahora es BAJO a proposito: las alas vuelven solas, pero LENTO (~1.8 s), lo justo para
+// perdonar al que se distrae sin regalarle el nivelado a quien esta volando.
+//
+// El TECHO lateral si se mantiene igual (~30) y eso no es cosmetico: es lo que garantiza que esto
+// sea una opcion de manejo y no una de dificultad. Lo cuida un test.
+//
+// BANK_MAX es el alabeo pleno del sprite (60°, ver BANK_FULL en core/horizon.js): mas que eso y el
+// dibujo no lo podria mostrar. BANK_TURN_V esta elegido para que a fondo (sin 60° = 0.87) el tope
+// lateral quede en ~30.
+export const BANK_RATE = 3.5;      // rad/s a fondo: nivel → alabeo pleno en ~0.30 s, y lo mismo para sacarlo
+export const BANK_BACK = 1.5;      // sin tecla las alas vuelven SOLAS pero lento: contra-rolar es 3x mas rapido
+export const BANK_MAX = Math.PI / 3;
+export const BANK_TURN_V = 34.6;
+
+/** Nuevo angulo de alabeo tras `dt`. `dir` = -1 / 0 / +1. */
+export function bankStep(bankA, dir, dt) {
+  const b = dir ? bankA + dir * BANK_RATE * dt : bankA - bankA * Math.min(1, dt * BANK_BACK);
+  return clamp(b, -BANK_MAX, BANK_MAX);
+}
+
+/** Velocidad lateral que produce ese alabeo.
+ *
+ *  El SENO no es adorno: es la proyeccion del vector de sustentacion, la misma cuenta por la que
+ *  un avion banqueado se va para el costado. Su efecto jugable es una saturacion SUAVE — medido en
+ *  cuartos de banqueo, la velocidad sube 8.96, 8.34, 7.17, 5.50: el ultimo cuarto compra un 39%
+ *  menos que el primero. Alcanza para que colgarse a fondo tenga un costo (nivelar despues tarda
+ *  mas y no ganaste tanto), pero no tanto como para que el tope se sienta inalcanzable. A 60° el
+ *  seno todavia va bastante derecho; la saturacion fuerte recien aparece cerca de los 90°. */
+export const bankVx = bankA => Math.sin(bankA) * BANK_TURN_V;
+
 export function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 export function clamp01(v) { return clamp(v, 0, 1); }

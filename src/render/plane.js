@@ -12,6 +12,7 @@ import { plane, cfg, S } from '../core/state.js';
 import { run } from '../core/run.js';
 import { inp } from '../core/input.js';
 import { proj } from '../core/fx.js';
+import { hzSprite } from '../core/horizon.js';
 import { P } from '../data/palette.js';
 import { drawMira } from './miras.js';
 import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H } from '../data/planes.js';
@@ -184,15 +185,20 @@ export function drawPlane(selPlane, viewMouse, camScale) {
   const pl = PLANES[selPlane];
   const useSheet = pl.sheetOk;   // sprite HORNEADO: el alabeo lo traen los frames
   let rolling = run.rollT > 0;
+  // HORIZONTE GIRATORIO: con cfg.horizon prendido, el giro de la pirueta ya se lo comio el MUNDO
+  // (game.js rota el fondo entero) y el avion tiene que quedar DERECHO, como visto desde una
+  // camara que rola con el. hz vale justo lo que hay que restar. Con FIJO vale 0 y todo esto se
+  // comporta igual que siempre. Ver core/horizon.js.
+  const hz = hzSprite();
   if (rolling) {
     // PIRUETA: tonel completo — el sprite (vista trasera) rota 360° en el plano de pantalla
     const pr = 1 - run.rollT / ROLL_DUR;                   // 0→1 durante el tonel
-    ctx.rotate(run.rollDir * pr * Math.PI * 2);
+    ctx.rotate(run.rollDir * pr * Math.PI * 2 + hz);
     ctx.scale(0.94 + 0.06 * Math.cos(pr * Math.PI * 2), 1);   // leve pulso: vende el giro
   } else if (run.mvRoll) {
     // MANIOBRA con rotacion propia: el medio tonel del split-s (queda invertido y pica asi)
     // o el sobre-banqueo del break turn. Encima, el frame de alabeo/cabeceo sigue normal.
-    ctx.rotate(run.mvRoll);
+    ctx.rotate(run.mvRoll + hz);
     ctx.rotate(wob);
   } else if (useSheet) {
     // con frames de alabeo Y cabeceo REALES no hay rotacion ni squash fingidos: solo micro-wobble

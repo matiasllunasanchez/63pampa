@@ -206,7 +206,12 @@ function m3Palette(w) {
     // (v 0.21..0.72) muestra la misma franja de imagen que el cover 2D, horizonte en v=0.72.
     MOM3D.skyMat.map = m3tex(1024, 512, (x2) => {
       x2.fillStyle = '#0a1014'; x2.fillRect(0, 0, 1024, 512);
-      const hh2 = 1047, top = -385, ww = 950, x0 = (1024 - ww) / 2;   // mapeo pre-calculado (cover 460px, HOR=64)
+      // `top` YA NO ES UNA CONSTANTE. La fila del horizonte de cada imagen la decide game.js
+      // (TBACK_MAP), asi que aca se resuelve la cuenta que antes estaba resuelta a mano: correr la
+      // imagen para que SU horizonte caiga en la fila 368.6 del telon (v = 0.72 de 512). Con
+      // hor = 0.72 da -385, que es exactamente el numero que estaba escrito.
+      const hh2 = 1047, ww = 950, x0 = (1024 - ww) / 2;   // cover pre-calculado (460px, HOR=64)
+      const top = Math.round(0.72 * 512 - w.tbackHor * hh2);
       x2.drawImage(tbi, 0, 0, 1, tbi.naturalHeight, 0, top, x0, hh2);                       // borde izq estirado
       x2.drawImage(tbi, tbi.naturalWidth - 1, 0, 1, tbi.naturalHeight, x0 + ww, top, 1024 - x0 - ww, hh2);  // der
       x2.drawImage(tbi, x0, top, ww, hh2);

@@ -121,6 +121,7 @@ El corazón. Los **stores** (identidad estable) y lo que es matemática/utilidad
 | `fx.js` | helpers visuales compartidos: `proj` (proyección), `popup`, `explodeAt`, `bloodBurst` |
 | `physics.js` | **pura**: la matemática de la *sensación* (cabeceo, energía, roce). La importa el feeltest |
 | `squad.js` | **pura**: vidas, fases del relevo, indicativos y puestos de la formación (la importa el unit test) |
+| `horizon.js` | horizonte giratorio: cuánto se inclina el **mundo** (`hzWorld`), cuánto se le descuenta al sprite (`hzSprite`), el alabeo real que lee el instrumento (`attitude`), el giro libre de `[Q]`/`[E]` (`stepHorizon`) y cuánto se funde lo que solo se lee derecho (`tiltFade`). Es **solo dibujo** — `proj()` no lo ve |
 | `i18n.js` | idioma: único dueño de `LANG`; `T`, `L`, `cycleLang` |
 | `util.js` | utilidades puras (`wrapChars`, `multOf`) |
 
@@ -177,7 +178,8 @@ Lo que queda es genuinamente el pegamento:
 
 | cambio | archivo |
 |---|---|
-| cómo se *siente* volar (cabeceo, energía, roce) | `core/physics.js` (y probalo con `npm run feel`) |
+| cómo se *siente* volar (cabeceo, energía, roce, control por alabeo) | `core/physics.js` (y probalo con `npm run feel`) |
+| que ←/→ rolen en vez de mover de costado | `cfg.control` + `bankStep`/`bankVx` en `core/physics.js`, aplicados en `systems/flight.js` |
 | una perilla de ajuste (zona de vuelo, momentum) | `data/tuning.js` |
 | a qué altura vuela un enemigo, o el techo de radar | `data/tuning.js` (`SPAWN_Y`, `RADAR_ALT`) — **una sola fuente para los tres terrenos** |
 | desde qué distancia se ven los enemigos | `data/tuning.js` (`SPAWN_Z`) + `APPROACH_*` en `render/world.js` — **no** es `F` (ver el comentario de `SPAWN_Z`) |
@@ -185,6 +187,7 @@ Lo que queda es genuinamente el pegamento:
 | una misión nueva | `data/missions.js` |
 | textos / traducciones | `data/strings.js` |
 | colores | `data/palette.js` |
+| agregar un FONDO de clima (imagen) | poner la imagen en `assets/world/terrain_back/`, sumar entrada a `TBACK_MAP` en `game.js` **con su fila de horizonte**, un preset en `SKY_PRESETS` y la opción a la fila FONDO de `CFG_ROWS` |
 | qué pasa al chocar / puntaje (PASILLO) | `systems/collision.js` |
 | aparición de obstáculos (PASILLO) | `systems/spawn.js` |
 | la fase ARENA (vuelo, ring, combate) | `systems/arena.js` (lógica) + `systems/three-arena.js` (mundo 3D) + `render/arena.js` (overlay) |
@@ -196,6 +199,8 @@ Lo que queda es genuinamente el pegamento:
 | el arte de un enemigo / prop horneado | `tools/bake_enemies.html` (modelo) → `npx electron tools/bake_enemies_run.js` → re-medir cajas en `render/enemies.js` |
 | una pirueta (combo, duración, qué deja controlar) | `data/moves.js` (catálogo) + `systems/moves.js` (cinemática) — referencia jugable en [PIRUETAS.md](PIRUETAS.md) |
 | las vidas / el relevo del escuadrón | `core/squad.js` (tiempos, indicativos) + `systems/squad.js` (cinemática) + `render/squad.js` (dibujo) |
+| que el horizonte gire al rolar, o el horizonte artificial del HUD | `core/horizon.js` (el ángulo, una sola fuente) + `draw()` en `game.js` (aplica el giro) + `drawADI` en `render/hud.js` |
+| una preferencia del jugador (persiste, y hay que poder tocarla en campaña) | `OPT_ROWS` en `game.js` → pantalla **OPCIONES**. **No** el menú `[M]`: solo se abre desde la selección de avión, y la campaña nunca pasa por ahí |
 | el arte de un avión jugable | `tools/bake_planes.html` → `npx electron tools/bake_planes_run.js` |
 | sonido | `systems/audio.js` + `data/sfx.js` |
 

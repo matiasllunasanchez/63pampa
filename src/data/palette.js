@@ -18,6 +18,15 @@ export const SKY_PRESETS = {
   storm: { skyTop: '#1c2026', skyMid: '#333a42', horizon: '#4a5052', sunGlow: '#586066', sun: '#8b9298' },
   clear: { skyTop: '#294060', skyMid: '#4d6a8e', horizon: '#c48a4c', sunGlow: '#e0a252', sun: '#ffe6ac' },
   cloudy: { skyTop: '#57646f', skyMid: '#7e8a93', horizon: '#a3aaa6', sunGlow: '#b5bab2', sun: '#e6eae2' },   // dia nublado (desembarco)
+  // --- los tres marinos (fondos day_sun / night_2 / sunrise_2) ---
+  // El TONO sale de medir la franja de cada imagen que realmente se ve en pantalla; los valores
+  // estan bajados en saturacion desde ahi, como los cinco de arriba, porque el promedio crudo de
+  // la foto se sale de la paleta del juego. `horizon` es el que mas importa aunque la imagen tape
+  // el degrade: lo usan la BRUMA de las filas lejanas del terreno (groundHaze) y la niebla del
+  // telon 3D, asi que si no acompaña a la imagen se ve el corte contra el mar.
+  sun:  { skyTop: '#3f7fb4', skyMid: '#6fabd8', horizon: '#a6cbe2', sunGlow: '#dfeaf0', sun: '#fff6cf' },   // sol pleno sobre mar turquesa
+  moon: { skyTop: '#1d2a4d', skyMid: '#38507e', horizon: '#4d6c93', sunGlow: '#7f97b8', sun: '#e6f0e8' },   // luna llena sobre el manto de nubes
+  dawn: { skyTop: '#39464e', skyMid: '#6b5c56', horizon: '#b0764a', sunGlow: '#e0a054', sun: '#ffe6a8' },   // sol posado en el agua, tormenta encima
 };
 export const LAND = { far: '#2f3527', mid: '#3c4330', near: '#4a5138', tuft: '#6d7748', rock: '#524d3e', furrow: '#262b1e' };
 // COSTA: tierra arenosa y seca (menos verde que LAND — es la franja castigada del desembarco)

@@ -27,6 +27,8 @@ código ([ARQUITECTURA.md](ARQUITECTURA.md)).
 - **Niveles y estructura** — #7, #14, #23
 - **Puntaje y recompensa** — #5, #23
 - **Vidas y escuadrón** — #29 ✔
+- **Cámara y lectura del vuelo** — #30 ✔
+- **Esquemas de control** — #31 ✔
 
 ---
 
@@ -800,3 +802,128 @@ Lo que queda para después:
 > `render/squad.js` (formación + sobreimpresión), `game.js` (`onDeath` — el embudo único de la
 > muerte — y el estado `'relevo'`), `render/hud.js` (`drawSquadPips`), `core/state.js`
 > (`cfg.squad`) y `core/run.js` (`run.squad` / `run.lives`).
+
+---
+
+## 30. Horizonte giratorio + horizonte artificial ✔ (implementado)
+
+Hasta ahora, en un tonel el **sprite** giraba 360° contra un mar perfectamente plano. Eso se lee
+como "el modelito está girando", no como "estoy rolando". Con la cámara pegada al avión —que es
+como se ve desde atrás— pasa al revés: el avión queda derecho y el que gira es **el mundo**.
+
+Es **100 % cosmético**: `proj()` se resuelve antes de que el canvas rote, así que colisiones,
+spawn, hitboxes y dificultad no cambian. Por eso se puede prender y apagar volando.
+
+Cuatro posiciones en **OPCIONES** (no en el menú `[M]`, que la campaña nunca abre), y **persiste**.
+Cada una contiene a la anterior, así que la lista se lee como una perilla de *cuánto se mueve el
+mundo*:
+
+| valor | qué hace |
+|---|---|
+| `FIJO` | el mundo nunca se inclina. La salida para quien se marea |
+| `EN PIRUETAS` | **default** — solo durante tonel/maniobra: el giro es un evento, no un fondo móvil |
+| `TOTAL` | además el alabeo continuo inclina el horizonte (amortiguado: `BANK_TILT`, ~1/5 del real) |
+| `LIBRE 360°` | además `[Q]`/`[E]` rolan a voluntad **sin tope**: el suelo puede quedar en el techo y quedarse ahí. Al soltar se endereza solo, por el camino corto |
+
+`[Q]`/`[E]` van aparte de `←`/`→` a propósito: esas mueven el avión de carril **y** alimentan el
+detector de combos, así que rolar con ellas sería rolar sin querer cada vez que esquivás.
+
+La **red de radar** se funde con la maniobra (`tiltFade`). Es un plano horizontal: se entiende como
+*techo* solo vista desde abajo, y rolada pasa a ser una pared de líneas naranjas sobre el mar.
+Medido con la red forzada a SIEMPRE y el avión a 30 m:
+
+| grados de maniobra | 0 | 7 | 10 | 15 | 20 | 25 |
+|---|---|---|---|---|---|---|
+| píxeles de red | 10617 | 7244 | 2815 | 1640 | 629 | 621 |
+
+(a partir de 20° los ~620 restantes son fondo, no red). No se pierde información: el aviso RADAR,
+la barra de carga y la altura en rojo viven en el HUD, que no gira.
+
+> ⚠️ **La primera versión tampoco alcanzaba.** Leía `hzWorld()`, la inclinación **total**, que
+> incluye el banqueo continuo. Para no apagar la red cada vez que el jugador dobla en modo `TOTAL`
+> había que arrancar el fundido por encima de `BANK_TILT` (0,22) y estirarlo hasta 0,95 — con lo
+> cual a 20° de tonel la red seguía al 70% y se veía igual. Ahora se mide `manoeuvreRoll()`
+> (pirueta + giro libre): el banqueo queda afuera **por construcción y no por margen**, y el
+> umbral de la maniobra puede ser agresivo.
+
+El **horizonte artificial** del HUD (abajo a la izquierda, en espejo del panel de estado) se
+dibuja *siempre*, incluso con `FIJO`: es el único lugar donde ver dónde está el suelo cuando el
+fondo no se mueve. Lee `attitude()` — el alabeo **real**, no el amortiguado del fondo.
+
+Lo que queda para después:
+
+- [ ] Que el instrumento muestre también el **rumbo** cuando exista viraje real (hoy el pasillo no
+      tiene guiñada).
+- [ ] Una escala de alabeo en el borde de la bola (30/60/90°). A 21 px no entra: pediría un
+      instrumento más grande, y eso es parte de la redistribución del HUD pendiente.
+- [ ] Poder cambiarlo **sin salir de la partida** — entra solo cuando exista el menú de pausa.
+- [ ] `LIBRE` es **solo cámara**: el avión vuela igual boca abajo. Si alguna vez el vuelo invertido
+      tiene que costar algo (sustentación, combustible, puntería), es una mecánica nueva, no un
+      ajuste de este ángulo.
+- [ ] `[Q]`/`[E]` no tienen equivalente táctil ni de joystick.
+
+> Dónde tocar → `core/horizon.js` (el ángulo: `hzWorld`, `hzSprite`, `attitude` — con tests en
+> `tools/unit.js`), `draw()` en `game.js` (aplica y deshace el giro; `viewMouse` desrota el
+> cursor), `render/plane.js` (le descuenta al sprite lo que se comió el mundo), `render/hud.js`
+> (`drawADI`), `OPT_ROWS` en `game.js` + `render/menus.js` (la fila), `core/state.js`
+> (`cfg.horizon`), `core/run.js` (`run.freeRoll`) y `core/input.js` (`KEYMAP` de Q/E).
+
+---
+
+## 31. Control POR ALABEO: las flechas rolan y el desplazamiento es la consecuencia ✔ (implementado)
+
+El esquema de siempre (`DIRECTO`) es un *shoot'em up*: `←`/`→` empujan al avión de costado y el
+alabeo del sprite es una animación que acompaña. Con `POR ALABEO` se invierte la causa: las flechas
+**rolan**, y moverse de costado es lo que produce estar banqueado — `plane.vx = sin(alabeo) × V`.
+
+Fila propia en **OPCIONES** (`CONTROL: DIRECTO · POR ALABEO`), default `DIRECTO`, persiste.
+**No** es una posición más de `HORIZONTE`: esa perilla es puro dibujo por construcción, y ésta es
+la única opción de esa pantalla que cambia cómo se **juega**.
+
+### Lo que cambia: el banqueo SE SOSTIENE
+
+En `DIRECTO`, soltar la flecha frena el desplazamiento en medio segundo. Con `POR ALABEO` quedás
+banqueado, y banqueado seguís virando: para cortar el viraje hay que **contra-rolar**. Medido con
+0,7 s de viraje sostenido:
+
+| | soltando: t en frenar | deriva | contra-rolando: t hasta cortar | tope lateral |
+|---|---|---|---|---|
+| `DIRECTO` | 0,74 s | 6,4 | 0,27 s | 30,0 |
+| `POR ALABEO` | 1,71 s | 20,1 | 0,31 s | 30,0 |
+
+Soltás y te vas **3,2× más lejos**; contra-rolás y cortás igual de rápido. El **techo lateral es el
+mismo**, y eso es lo que la mantiene como opción de manejo y no de dificultad — lo cuida un test.
+
+> ⚠️ **La primera versión no se notaba.** Salió con `BANK_BACK = 4.5`, el mismo número con el que
+> decae la deriva del control directo, *"para no cambiar la dificultad"*: las alas se nivelaban
+> solas en 0,2 s y soltar cortaba el viraje igual que siempre. Los dos esquemas medían
+> prácticamente lo mismo porque se le había calibrado la diferencia hasta hacerla desaparecer.
+> Hay un test que ahora exige que medio segundo después de soltar sigas banqueado.
+
+Compone con `HORIZONTE: TOTAL` o `LIBRE`: banquear para esquivar inclina el mundo, que es lo que
+hace que las dos opciones juntas se sientan como un avión y no como una nave que se desliza.
+
+Detalles que salieron del camino:
+
+- **La turbulencia entra por las alas.** Con `POR ALABEO`, la ráfaga de viento sacude `run.bankA`
+  en vez de escribir `plane.vx` — si no, la línea que recalcula `vx` desde el alabeo la borraba.
+  Además queda mejor: el viento te mueve *porque* te desnivela, y se ve.
+- **Las alas vuelven solas, pero lento** (~1,8 s): perdona al que se distrae sin regalarle el
+  nivelado a quien está volando. Contra-rolar es 3× más rápido que esperar.
+- **El sprite muestra el ángulo real**, no la mezcla de intención y velocidad que usa `DIRECTO`.
+  Se normaliza contra `BANK_MAX` = 60°, que es justo el alabeo pleno de la hoja horneada.
+- **El seno satura poco**: por cuartos de banqueo la velocidad sube 8,96 · 8,34 · 7,17 · 5,50 — el
+  último cuarto compra 39% menos que el primero. A 60° el seno todavía va bastante derecho.
+
+Lo que queda para después:
+
+- [ ] **El control táctil sigue siendo directo**: el arrastre posiciona el avión, y esa rama no
+      pasa por el alabeo. Con `POR ALABEO` en un dispositivo táctil no cambia nada.
+- [ ] Sin equivalente de joystick analógico (hoy los flicks del stick entran como toques).
+- [ ] ¿Debería el alabeo sostenido **costar** algo (altura, energía), como en un avión real? Hoy
+      banquear es gratis. Sería la mecánica que le da sentido a nivelar.
+
+> Dónde tocar → `core/physics.js` (`bankStep` / `bankVx` y sus constantes — con tests en
+> `tools/unit.js`), `systems/flight.js` (la rama de control, la turbulencia y el alabeo del
+> sprite), `core/state.js` (`cfg.control`, `CTRL_*`), `core/run.js` (`run.bankA`) y `OPT_ROWS` en
+> `game.js`.

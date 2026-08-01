@@ -56,7 +56,16 @@ export const STRINGS = {
     pressStart: 'APRETA UNA TECLA PARA EMPEZAR', modeQuit: 'SALIR', modeQuitDesc: 'Cerrar el juego',
     modeOptions: 'OPCIONES', modeOptionsDesc: 'Idioma y ajustes del juego',
     optTitle: 'OPCIONES', optLang: 'IDIOMA',
-    optKeys: '[<] [>] CAMBIAR      [ESC] ATRAS',
+    // HORIZONTE GIRATORIO (ver core/horizon.js). Los nombres describen CUANDO gira, no un si/no:
+    // el jugador que lo apaga suele hacerlo por mareo, y PIRUETAS es el termino medio.
+    optHorizon: 'HORIZONTE',
+    optHzFix: 'FIJO', optHzMoves: 'EN PIRUETAS', optHzAll: 'TOTAL',
+    // el nombre lleva las teclas: es la unica forma de enterarse de que existen
+    optHzFree: 'LIBRE 360°  [Q] [E]',
+    // ESQUEMA DE CONTROL: la unica fila de OPCIONES que cambia como se JUEGA
+    optControl: 'CONTROL',
+    optCtrlDirect: 'DIRECTO', optCtrlBank: 'POR ALABEO',
+    optKeys: '[↑] [↓] ELEGIR      [<] [>] CAMBIAR      [ESC] ATRAS',
     selKeys: '[ESC] ATRAS      [M] CONFIGURACION      [ENTER] SELECCIONAR',
     modeCampaign: 'HISTORIA', modeSurvival: 'POR LA PATRIA', modeCycle: 'CICLO DE MUERTE',
     modeCampaignDesc: 'Modo historia por niveles', modeSurvivalDesc: 'Puntaje infinito hasta morir',
@@ -240,7 +249,12 @@ export const STRINGS = {
     pressStart: 'PRESS ANY KEY TO START', modeQuit: 'QUIT', modeQuitDesc: 'Close the game',
     modeOptions: 'OPTIONS', modeOptionsDesc: 'Language and game settings',
     optTitle: 'OPTIONS', optLang: 'LANGUAGE',
-    optKeys: '[<] [>] CHANGE      [ESC] BACK',
+    optHorizon: 'HORIZON',
+    optHzFix: 'FIXED', optHzMoves: 'ON MANEUVERS', optHzAll: 'FULL',
+    optHzFree: 'FREE 360°  [Q] [E]',
+    optControl: 'CONTROL',
+    optCtrlDirect: 'DIRECT', optCtrlBank: 'BANK TO TURN',
+    optKeys: '[↑] [↓] SELECT      [<] [>] CHANGE      [ESC] BACK',
     selKeys: '[ESC] BACK      [M] SETTINGS      [ENTER] SELECT',
     modeCampaign: 'CAMPAIGN', modeSurvival: 'SURVIVAL', modeCycle: 'DEATH CYCLE',
     modeCampaignDesc: 'Story mode by levels', modeSurvivalDesc: 'Endless score until you die',

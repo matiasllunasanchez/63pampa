@@ -19,7 +19,8 @@ import { S, cfg } from './state.js';
 import { W, H } from '../render/ctx.js';
 import { audio } from '../systems/audio.js';
 
-export const inp = { l: 0, r: 0, u: 0, d: 0, rise: 0, sink: 0, fire: false, turbo: false, msl: false };
+export const inp = { l: 0, r: 0, u: 0, d: 0, rise: 0, sink: 0, fire: false, turbo: false, msl: false,
+  rollL: 0, rollR: 0 };
 export const mouse = { x: W / 2, y: H * 0.4, on: false };
 export const pointer = { steer: null };   // arrastre de vuelo tactil (null fuera de arrastre)
 export const flags = { anyPress: false, startReq: false };
@@ -30,6 +31,11 @@ const KEYMAP = {
   ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd',
   // R/F: subir y bajar la camara — solo los lee el MODO CAMARA (cfg.devcam); el vuelo los ignora
   KeyR: 'rise', KeyF: 'sink',
+  // Q/E: GIRO LIBRE del horizonte. Solo los lee core/horizon.js, y solo con HORIZONTE en LIBRE;
+  // en cualquier otro modo quedan muertos. Van aparte de ←/→ a proposito: esas mueven el avion de
+  // carril Y alimentan el detector de combos, asi que rolar con ellas seria rolar sin querer cada
+  // vez que esquivas. Q/E estaban libres y son las de rolar en cualquier simulador.
+  KeyQ: 'rollL', KeyE: 'rollR',
 };
 const isConfirm = c => c === 'Enter' || c === 'Space' || c === 'KeyX' || c === 'KeyK';
 const isBack = c => c === 'Escape' || c === 'Backspace';
@@ -82,8 +88,11 @@ export function initInput(cv, a) {
     audio();
     readCaps(e);                                                          // CAPS LOCK gobierna la mira
     if (S.state === 'title') { a.startTitle(); e.preventDefault(); return; }   // PORTADA: cualquier tecla
-    if (S.state === 'options') {                                          // OPCIONES: idioma
-      if (isLeft(e.code) || isRight(e.code)) { a.optChange(); e.preventDefault(); return; }
+    if (S.state === 'options') {                                          // OPCIONES: lista de ajustes
+      if (isUp(e.code)) { a.optNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code)) { a.optNav(1); e.preventDefault(); return; }
+      if (isLeft(e.code)) { a.optChange(-1); e.preventDefault(); return; }
+      if (isRight(e.code)) { a.optChange(1); e.preventDefault(); return; }
       if (isBack(e.code) || isConfirm(e.code)) { a.escToMenu(); e.preventDefault(); return; }
       return;
     }

@@ -13,7 +13,7 @@
 // Devuelve: 'momentum' (ya entro al climax) · 'objective' (llego a la meta sin climax) ·
 //           { death } (se estrello) · undefined (segui volando). El orquestador actua sobre eso.
 
-import { plane, cfg, cam, stats } from '../core/state.js';
+import { plane, cfg, cam, stats, CTRL_BANK } from '../core/state.js';
 import { run } from '../core/run.js';
 import { inp, mouse, pointer } from '../core/input.js';
 import { obstacles, bullets, missiles, wake, gusts, streaks, parts, prune } from '../core/world.js';
@@ -32,6 +32,7 @@ import * as momentum from './momentum.js';
 import * as arena from './arena.js';
 import { engineFly, sfxOne, sfxSrc, beep, boom } from './audio.js';
 import { applyEnergy, applyDrag, speedTarget, windFactor, pitchTarget, scrapeLimit,
+         bankStep, bankVx, BANK_MAX,
          PITCH_LERP, AFTER_STEP, AFTER_MAX, SCRAPE_RECOVER, SCRAPE_LIFT } from '../core/physics.js';
 
 // altura de la ola bajo el avion (marejada): decide el nivel del mar para el roce. Solo el vuelo
@@ -83,8 +84,10 @@ export function flightSystem(dt, deps) {
   // lo que ganabas picando se evaporaba en medio segundo y no se acumulaba nada.
   run.spd = cfg.energy ? applyEnergy(run.spd, spdTarget, plane.vy, dt) : applyDrag(run.spd, spdTarget, dt);
   // turbulencia: el viento sacude el avión
+  let windRock = 0;   // con CONTROL POR ALABEO la rafaga va a las ALAS, no a vx (ver mas abajo)
   if (run.windF < 0.97) {
-    plane.vx += (Math.random() - 0.5) * 95 * (1 - run.windF) * dt * 4;
+    if (cfg.control === CTRL_BANK) windRock = (Math.random() - 0.5) * 2.6 * (1 - run.windF) * dt * 4;
+    else plane.vx += (Math.random() - 0.5) * 95 * (1 - run.windF) * dt * 4;
     plane.vy += (Math.random() - 0.5) * 70 * (1 - run.windF) * dt * 4;
     run.shake = Math.max(run.shake, (1 - run.windF) * 3.5);
     if (Math.random() < 0.02) boom(0.03, true);
@@ -117,6 +120,16 @@ export function flightSystem(dt, deps) {
     const wy = cam.y - (pointer.steer.y - HOR) / (F / PZ);
     plane.vx = Math.max(-30, Math.min(30, (wx - plane.x) * 5));
     plane.vy = Math.max(-24, Math.min(24, (wy - plane.y) * 5));
+  } else if (cfg.control === CTRL_BANK) {
+    // CONTROL POR ALABEO: ←/→ ROLAN y el desplazamiento lateral sale del banqueo (core/physics.js).
+    // El viento entra por el mismo lado: en vez de empujar el avion de costado le SACUDE LAS ALAS,
+    // que es lo que despues lo mueve. Si no, la rafaga escribia vx y la linea de abajo la borraba.
+    run.bankA = bankStep(run.bankA, inp.r - inp.l, dt) + windRock;
+    run.bankA = Math.max(-BANK_MAX, Math.min(BANK_MAX, run.bankA));
+    plane.vx = bankVx(run.bankA);
+    const G = 22, TH = 55, DIVE = 30;
+    plane.vy += (((inp.u && run.fuel > 0) ? TH : 0) - G - (inp.d ? DIVE : 0)) * dt;
+    plane.vy = Math.max(-20, Math.min(18, plane.vy));
   } else {
     plane.vx += (inp.r - inp.l) * 115 * dt;
     if (!inp.r && !inp.l) plane.vx *= Math.max(0, 1 - 4.5 * dt);
@@ -163,7 +176,12 @@ export function flightSystem(dt, deps) {
   // durante una PIRUETA el alabeo/cabeceo los clava movesSystem (poses de la maniobra)
   if (!run.mv) {
     // el alabeo mezcla la intención de giro (input) con la velocidad real → anticipa y asienta
-    const steerV = pointer.steer ? plane.vx / 26 : ((inp.r - inp.l) * 0.9 + (plane.vx / 30) * 0.35);
+    // Con CONTROL POR ALABEO no hay nada que inferir: el angulo ES el estado del avion, y el
+    // sprite tiene que mostrar ESE y no una mezcla de intencion y velocidad. Se normaliza contra
+    // BANK_MAX, que es justo el alabeo pleno de la hoja horneada (±60°), asi que bank ±1 = tope.
+    const steerV = cfg.control === CTRL_BANK ? run.bankA / BANK_MAX
+      : pointer.steer ? plane.vx / 26
+        : ((inp.r - inp.l) * 0.9 + (plane.vx / 30) * 0.35);
     const bankTarget = Math.max(-1, Math.min(1, steerV));
     // cabeceo: la tecla mueve la trompa SOLO si se mantiene apretada un instante — los toques rápidos
     // de gas (↑ repetido) no la sacuden y el avión queda recto; si mantenés ↑/↓ sí cabecea.

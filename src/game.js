@@ -6,7 +6,8 @@ import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS } from './data/missions.js';
 import { L, T, getLang, cycleLang, applyChrome } from './core/i18n.js';
 import { wrapChars, multOf } from './core/util.js';
-import { S, setState, cfg, cam, plane, stats, resetPlane, resetStats } from './core/state.js';
+import { S, setState, cfg, cam, plane, stats, resetPlane, resetStats, CTRL_N } from './core/state.js';
+import { hzWorld, stepHorizon, HZ_N } from './core/horizon.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts,
          prune, clearWorld } from './core/world.js';
 import { run, resetRun } from './core/run.js';
@@ -241,6 +242,39 @@ import { RUNWAYS } from './data/runways.js';
       setRunMusic(gameMode === 'campaign', curLevel, keepMusic);
     }
 
+    // ---------- OPCIONES (pantalla propia, se llega desde el menú de modos) ----------
+    // el orden tiene que coincidir con HZ_FIX/HZ_MOVES/HZ_ALL/HZ_FREE de core/horizon.js
+    const HZ_NAMES = ['optHzFix', 'optHzMoves', 'optHzAll', 'optHzFree'];
+    // idem CTRL_DIRECT / CTRL_BANK de core/state.js
+    const CTRL_NAMES = ['optCtrlDirect', 'optCtrlBank'];
+    // Preferencias de la PERSONA, no del mapa. Por eso NO viven en el menú [M] —que ademas solo
+    // se abre desde la seleccion de avion, y la campaña nunca pasa por ahi: quien necesitara
+    // apagar algo jugando la historia quedaria atrapado— y por eso PERSISTEN en localStorage.
+    // Cada fila trae `label`/`value` como funciones porque el idioma se cambia desde esta misma
+    // pantalla: si fueran textos fijos, cambiar el idioma no repintaria el nombre de las filas.
+    const OPT_ROWS = [
+      { label: () => T('optLang'), value: () => T('langName'), change: () => cycleLang() },
+      // HORIZONTE GIRATORIO: ver core/horizon.js. Se puede cambiar en cualquier momento —es solo
+      // dibujo— asi que no hace falta reiniciar nada al tocarlo.
+      { label: () => T('optHorizon'),
+        value: () => T(HZ_NAMES[cfg.horizon] || HZ_NAMES[1]),
+        change: dir => {
+          cfg.horizon = (cfg.horizon + dir + HZ_N) % HZ_N;
+          try { localStorage.setItem('rasante_horizonte', cfg.horizon); } catch (e) { }
+        } },
+      // ESQUEMA DE CONTROL. Es la UNICA fila de esta pantalla que cambia como se JUEGA y no como
+      // se ve, asi que va aparte y no como una posicion mas de HORIZONTE — meterla ahi romperia
+      // la promesa de que esa perilla es puro dibujo.
+      { label: () => T('optControl'),
+        value: () => T(CTRL_NAMES[cfg.control] || CTRL_NAMES[0]),
+        change: dir => {
+          cfg.control = (cfg.control + dir + CTRL_N) % CTRL_N;
+          run.bankA = 0;   // cambiar de esquema no puede dejar un alabeo colgado del anterior
+          try { localStorage.setItem('rasante_control', cfg.control); } catch (e) { }
+        } },
+    ];
+    let optRow = 0;
+
     // ---------- MENÚ DE CONFIGURACIÓN DE MAPA [M] (herramienta para prototipar niveles) ----------
     const CFG_ROWS = [
       { label: 'METROS', opts: [800, 1500, 3000, 5000, 8000], names: ['800 m', '1500 m', '3000 m', '5000 m', '8000 m'], get: () => cfg.meters, set: v => cfg.meters = v, cycleOnly: true },
@@ -248,7 +282,10 @@ import { RUNWAYS } from './data/runways.js';
       // zonas (t42 / t21 / log) sin depender del sorteo de misiones.
       { label: 'BUQUE', opts: MISSIONS.map((m, i) => i), names: MISSIONS.map(m => m.name),
         get: () => cfg.arenaShip, set: v => { cfg.arenaShip = v; loadLevel(v, true); }, arenaOnly: true },
-      { label: 'FONDO', opts: ['dusk', 'night', 'storm', 'clear', 'cloudy'], names: ['ATARDECER', 'NOCHE', 'TORMENTA', 'DESPEJADO', 'NUBLADO'], get: () => cfg.sky, set: v => { cfg.sky = v; applyCfg(); } },
+      // FONDO: el orden tiene que seguir a SKY_PRESETS (data/palette.js) y a TBACK_MAP
+      { label: 'FONDO', opts: ['dusk', 'night', 'storm', 'clear', 'cloudy', 'sun', 'moon', 'dawn'],
+        names: ['ATARDECER', 'NOCHE', 'TORMENTA', 'DESPEJADO', 'NUBLADO', 'SOL PLENO', 'LUNA LLENA', 'AMANECER'],
+        get: () => cfg.sky, set: v => { cfg.sky = v; applyCfg(); } },
       // elegir COSTA trae su clima: dia nublado de desembarco (el FONDO se puede cambiar despues)
       { label: 'TERRENO', opts: ['sea', 'land', 'coast'], names: ['MAR', 'TIERRA', 'COSTA'], get: () => cfg.terrain, set: v => { cfg.terrain = v; if (v === 'coast') { cfg.sky = 'cloudy'; applyCfg(); } } },
       { label: 'AGUA', opts: ['sea', 'violet'], names: ['MAR', 'VIOLETA'], get: () => cfg.water, set: v => { cfg.water = v; applyCfg(); } },
@@ -363,6 +400,23 @@ import { RUNWAYS } from './data/runways.js';
     try { best = +localStorage.getItem('rasante_frontal_best') || 0; } catch (e) { }
     // la mira elegida sobrevive entre sesiones (preferencia del jugador, no del mapa)
     try { const m = +localStorage.getItem('rasante_mira'); if (m >= 1 && m <= MIRA_IDS.length) cfg.mira = m; } catch (e) { }
+    // idem el HORIZONTE GIRATORIO: quien lo apago porque se marea no tiene que volver a apagarlo
+    // cada vez que abre el juego. Se relee con rango (un valor viejo o roto no puede dejar
+    // cfg.horizon fuera de 0..2 y romper la fila de OPCIONES).
+    // OJO CON EL null: aca no alcanza con copiar la linea de la mira. `+getItem()` sobre una clave
+    // que NO EXISTE da 0, y 0 PASA el rango — o sea que sin esta guarda todo jugador nuevo
+    // arrancaria en FIJO y la funcion vendria apagada de fabrica. A la mira la salva de casualidad
+    // que su rango empiece en 1.
+    try {
+      const h = localStorage.getItem('rasante_horizonte');
+      if (h !== null && +h >= 0 && +h < HZ_N) cfg.horizon = +h;
+    } catch (e) { }
+    // el ESQUEMA DE CONTROL, igual (y con la misma guarda del null: `+null` da 0, que es un valor
+    // valido, asi que sin el chequeo explicito no se distingue de "el jugador eligio DIRECTO")
+    try {
+      const c = localStorage.getItem('rasante_control');
+      if (c !== null && +c >= 0 && +c < CTRL_N) cfg.control = +c;
+    } catch (e) { }
 
     function reset() {
       resetRun();       // toda la corrida (velocidad, nafta, rachas, armas, spawn…) a su estado inicial
@@ -409,9 +463,22 @@ import { RUNWAYS } from './data/runways.js';
     // mouse en coordenadas del MUNDO-pantalla: deshace el zoom de la camara cerca para que
     // mira y desproyeccion (balas/misiles) sigan cayendo exactamente bajo el cursor fisico
     function viewMouse() {
-      if (!camZoomOn()) return mouse;
-      const c = proj(plane.x, plane.y, PZ);
-      return { x: c.x + (mouse.x - c.x) / camZ, y: c.y + (mouse.y - c.y) / camZ, on: mouse.on };
+      const hz = hzWorld();
+      if (!camZoomOn() && !hz) return mouse;
+      let x = mouse.x, y = mouse.y;
+      if (camZoomOn()) {
+        const c = proj(plane.x, plane.y, PZ);
+        x = c.x + (x - c.x) / camZ; y = c.y + (y - c.y) / camZ;
+      }
+      // HORIZONTE GIRATORIO: el mundo se dibuja ROTADO, asi que el punto de mundo que el jugador
+      // ve bajo el cursor ya no es el que proyecta esa coordenada — hay que deshacer el giro
+      // (mismo centro y mismo truco que momScrToWorld en el momentum). Sin esto, con el horizonte
+      // inclinado las balas saldrian a un carril distinto del que estas apuntando.
+      if (hz) {
+        const ca = Math.cos(-hz), sa = Math.sin(-hz), dx = x - W / 2, dy = y - H / 2;
+        x = W / 2 + dx * ca - dy * sa; y = H / 2 + dx * sa + dy * ca;
+      }
+      return { x, y, on: mouse.on };
     }
 
     // ACERCAMIENTO al CONTROL LIBRE: cuando el escuadron sale de plano, la camara "se mete" un
@@ -439,7 +506,8 @@ import { RUNWAYS } from './data/runways.js';
       },
       escToMenu: () => { setState('modeselect'); cfgOpen = false; beep(400, 0.06, 'square', 0.05); },
       // OPCIONES: por ahora una sola fila (idioma), asi que izquierda/derecha rotan el idioma
-      optChange: () => { cycleLang(); beep(560, 0.05, 'square', 0.04); },
+      optNav: dir => { optRow = (optRow + dir + OPT_ROWS.length) % OPT_ROWS.length; beep(500, 0.04, 'square', 0.03); },
+      optChange: dir => { OPT_ROWS[optRow].change(dir); beep(560, 0.05, 'square', 0.04); },
       startTitle: () => { if (S.state !== 'title') return; modeSel = 0; setState('modeselect'); beep(620, 0.07, 'square', 0.05); },
       toggleCfg: () => { cfgOpen = !cfgOpen; beep(cfgOpen ? 640 : 400, 0.06, 'square', 0.05); },
       isCfgOpen: () => cfgOpen,
@@ -527,26 +595,49 @@ import { RUNWAYS } from './data/runways.js';
     const clouds = Array.from({ length: 6 }, () => ({ x: Math.random() * W, y: 8 + Math.random() * 34, w: 24 + Math.random() * 40 }));
     const isles = Array.from({ length: 4 }, (_, i) => ({ x: i * 90 + Math.random() * 50, w: 40 + Math.random() * 70, h: 5 + Math.random() * 10, seed: (Math.random() * 9999) | 0 }));
 
-    // ---------- FONDOS por clima (assets/images/terrain_back, EN PRUEBA) ----------
-    // Imagenes 2752x1536 con el horizonte al ~72% de altura: se anclan para que esa linea
-    // caiga en HOR (el suelo de la imagen queda bajo el mar/terreno del juego, tapado).
-    // Reemplazan al degrade+sol procedurales en 2D y en el telon 3D. Vaciar TBACK en el
-    // build web (build_web.py) → vuelve el cielo procedural.
+    // ---------- FONDOS por clima (assets/world/terrain_back) ----------
+    // Cada imagen se ancla por su fila de HORIZONTE: esa linea cae en HOR, y todo lo que la imagen
+    // tenga por debajo queda tapado por el mar/terreno que el juego dibuja despues. Reemplazan al
+    // degrade+sol procedurales en 2D y en el telon 3D. Vaciar TBACK en el build web
+    // (build_web.py) → vuelve el cielo procedural (pesan ~5 MB cada una).
+    //
+    // `hor` ES POR IMAGEN y no una constante global como antes. Era 0.72 para todas porque las
+    // cinco primeras son 2752x1536 del mismo lote; las nuevas no comparten ni proporcion ni
+    // encuadre, y forzarlas a 0.72 les mostraba SU PROPIO MAR por encima del horizonte del juego
+    // —dos lineas de agua a distinta altura— o les cortaba el sol fuera de cuadro.
+    //
+    // COMO SE ELIGE `hor`. En pantalla se ve la franja de imagen [hor - 0.28, hor] (sale de
+    // HOR / dh con dw = W+140). Asi que tiene que cumplir dos cosas:
+    //   1. hor >= la linea de agua propia de la imagen → su mar queda debajo, escondido.
+    //   2. hor - 0.28 <= el sol / la luna → el astro entra en cuadro.
+    // Los numeros de abajo salieron de medir cada archivo, no de tantear.
     const TBACK = '../assets/world/terrain_back/';
-    const TBACK_MAP = { dusk: 'sunrise.png', night: 'night.png', storm: 'night_storm.png', clear: 'day_argentday.png', cloudy: 'day_cloudy.png' };
-    const TBACK_HOR = 0.72;              // fila del horizonte dentro de las imagenes
+    const TBACK_MAP = {
+      dusk:    { f: 'sunrise.png',      hor: 0.72 },   // amanecer sobre el desierto
+      night:   { f: 'night.png',        hor: 0.72 },
+      storm:   { f: 'night_storm.png',  hor: 0.72 },
+      clear:   { f: 'day_argentday.png', hor: 0.72 },
+      cloudy:  { f: 'day_cloudy.png',   hor: 0.72 },   // dia nublado (desembarco)
+      // --- los tres marinos nuevos: otra proporcion (menos altos) y el astro mas arriba ---
+      sun:     { f: 'day_sun.png',      hor: 0.37 },   // sol alto: hor bajo o se va de cuadro
+      moon:    { f: 'night_2.jpeg',     hor: 0.62 },   // no tiene linea de agua: se encuadra la luna
+      dawn:    { f: 'sunrise_2.jpeg',   hor: 0.46 },   // el sol posado sobre el agua
+    };
     const tbackImgs = {};
+    /** La entrada del cielo actual, o null. La usan tbackImg() y el anclado del dibujo. */
+    function tbackEntry() { return TBACK ? TBACK_MAP[cfg.sky] || null : null; }
     function tbackImg() {
-      if (!TBACK) return null;
-      const f = TBACK_MAP[cfg.sky]; if (!f) return null;
-      let im = tbackImgs[f];
+      const e = tbackEntry(); if (!e) return null;
+      let im = tbackImgs[e.f];
       if (!im) {
-        im = tbackImgs[f] = new Image();
-        im.src = TBACK + f;
+        im = tbackImgs[e.f] = new Image();
+        im.src = TBACK + e.f;
         im.onload = () => { world3D.invalidatePalette(); };   // el telon 3D se repinta al cargar
       }
       return (im.complete && im.naturalWidth) ? im : null;
     }
+    /** Fila del horizonte de la imagen activa (0..1). Si no hay imagen no se usa. */
+    function tbackHor() { const e = tbackEntry(); return e ? e.hor : 0.72; }
 
 
     // ---------- MOMENTUM: asalto final a la barcaza ----------
@@ -734,6 +825,14 @@ import { RUNWAYS } from './data/runways.js';
       // para que cada entrada a play arranque con zoom-in suave y sin saltos entre estados
       const camZt = 1;   // ver CAM_ZOOMS: el zoom por raster quedo desactivado
       camZ += (camZt - camZ) * Math.min(1, dt * 3.5);
+      // GIRO LIBRE del horizonte ([Q]/[E]). Va ACA ARRIBA, antes de que la maquina de estados
+      // empiece a cortar el cuadro con sus `return`, y no junto al vuelo: en cuanto el estado deja
+      // de ser 'play' —relevo, derribado, climax— la funcion lo devuelve a cero SOLA, y eso solo
+      // pasa si se la llama. Muriendo a mitad de tonel el angulo quedaba congelado y el mundo
+      // pegaba el volantazo al recuperar el control.
+      // No devuelve nada: es puro dibujo, no puede matarte, asi que no entra en el embudo de
+      // señales del vuelo.
+      stepHorizon(dt, (inp.rollR ? 1 : 0) - (inp.rollL ? 1 : 0));
 
       // despegue automático desde Puerto Argentino: el control llega a los 3 s
       if (S.state === 'takeoff') {
@@ -1035,12 +1134,23 @@ import { RUNWAYS } from './data/runways.js';
         ctx.save();
         ctx.translate(zc.x, zc.y); ctx.scale(camZ, camZ); ctx.translate(-zc.x, -zc.y);
       }
+      // HORIZONTE GIRATORIO (cfg.horizon, ver core/horizon.js): el MUNDO se inclina con el avion
+      // durante las piruetas. Misma tecnica y MISMO CENTRO que el alabeo del momentum de arriba,
+      // y no es casualidad que alcancen los margenes: el cielo y el mar se pintan de -70 a W+140
+      // y desde y=-140 justamente para cubrir un giro completo alrededor del centro.
+      // Se DESHACE antes de dibujar el avion: el sprite es la "cabina" y queda derecho.
+      const hzW = hzWorld();
+      if (hzW) {
+        ctx.save();
+        const hcx = W / 2 + cm.x, hcy = H / 2 + cm.y;
+        ctx.translate(hcx, hcy); ctx.rotate(hzW); ctx.translate(-hcx, -hcy);
+      }
       // MUNDO 3D (three.js) del fallback: en el ARENA VIEJO (momentum.js) el fondo completo
       // (cielo+mar+BARCO, flag MOM3D.on); en PASILLO sobre mar abierto solo cielo+mar (flag
       // MOM3D.sea). El blit va DENTRO de los transforms (roll/paneo/zoom/shake le pegan al 3D);
       // la capa 2D va encima. Sin THREE/WebGL o con ?no3d, ambas flags quedan false y pinta el
       // 2D de siempre. La fase ARENA (vuelo libre) usa su PROPIA escena — ver mas abajo.
-      world3D.frame({ state: S.state, mom: momentum.active(), dist: run.dist, momDrift: momentum.drift(), cfg, cam, t: run.t, SKY: theme.sky, WATER: theme.water, objectiveShip, seaH: world.seaH, momShipGeom: momentum.shipGeom, tbackImg });
+      world3D.frame({ state: S.state, mom: momentum.active(), dist: run.dist, momDrift: momentum.drift(), cfg, cam, t: run.t, SKY: theme.sky, WATER: theme.water, objectiveShip, seaH: world.seaH, momShipGeom: momentum.shipGeom, tbackImg, tbackHor: tbackHor() });
       if (world3D.isOn() || world3D.isSea()) {
         const sm = ctx.imageSmoothingEnabled;
         ctx.imageSmoothingEnabled = false;
@@ -1069,7 +1179,7 @@ import { RUNWAYS } from './data/runways.js';
         // sol) + parallax suave (x0.8) para que el telon tambien respire
         const dw = W + 140, dh = dw * tb2.naturalHeight / tb2.naturalWidth;
         ctx.fillStyle = '#0a1014'; ctx.fillRect(-70, -140, dw, HOR + 144);   // margen sobre la imagen
-        ctx.drawImage(tb2, -70 - cam.x * 0.8, HOR - TBACK_HOR * dh, dw, dh);
+        ctx.drawImage(tb2, -70 - cam.x * 0.8, HOR - tbackHor() * dh, dw, dh);
       } else {
       const g = ctx.createLinearGradient(0, 0, 0, HOR);
       g.addColorStop(0, theme.sky.skyTop); g.addColorStop(0.6, theme.sky.skyMid); g.addColorStop(1, theme.sky.horizon);
@@ -1119,8 +1229,9 @@ import { RUNWAYS } from './data/runways.js';
       }
 
       if (!world3D.isSea()) world.drawSea();   // el mar 2D solo cuando three no lo esta poniendo
-      // en momentum el mundo rota (alabeo): rellena bajo el mar para que un tonel no muestre huecos
-      if (S.state === 'momentum') px(-70, H, W + 140, 150, cfg.terrain === 'land' ? LAND.near : theme.water.base2);
+      // cuando el mundo rota (alabeo del momentum, u HORIZONTE GIRATORIO en el pasillo): rellena
+      // bajo el mar para que un tonel no muestre huecos por debajo del borde de la pantalla
+      if (S.state === 'momentum' || hzW) px(-70, H, W + 140, 150, cfg.terrain === 'land' ? LAND.near : theme.water.base2);
       world.drawApproachBarge(objectiveDist, objectiveShip);   // la barcaza objetivo creciendo en el horizonte
       world.drawObjectiveMarker(objectiveDist);                // cuña roja en el horizonte: hacia donde vamos
       world.drawWake();
@@ -1224,6 +1335,10 @@ import { RUNWAYS } from './data/runways.js';
       }
       }   // ---- fin mundo 2D ----
 
+      // fin del HORIZONTE GIRATORIO: de aca en adelante todo va NIVELADO — el avion, su mira, la
+      // formacion y los popups son el lado "cabina", igual que en el momentum.
+      if (hzW) ctx.restore();
+
       if (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena') drawPlane(selPlane, viewMouse, squadZoom());   // en el ARENA (nuevo o fallback) el avion lo pone su propio render
       // la FORMACION del escuadron: SOLO en el despegue y en su salida de plano al CONTROL
       // LIBRE. Nunca durante el PASILLO en si — es costo de render que no aporta y taparia el juego.
@@ -1296,7 +1411,8 @@ import { RUNWAYS } from './data/runways.js';
       // El fondo (drawPpalBg) si va escalado — es la grilla de diseño y cubre toda la pantalla.
       if (S.state === 'title') menus.drawTitle({ t: run.t });
       if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t });
-      if (S.state === 'options') menus.drawOptions({ t: run.t });
+      if (S.state === 'options') menus.drawOptions({ t: run.t, sel: optRow,
+        rows: OPT_ROWS.map(r => ({ label: r.label(), value: r.value() })) });
 
       // fundido desde negro (al salir de la historia hacia el despegue) — SIEMPRE al final
       if (fadeT > 0) {

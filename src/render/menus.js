@@ -172,8 +172,10 @@ export function drawModeSelect(w) {
   // ahora una fila mas del menu (OPCIONES).
 }
 
-// OPCIONES — se llega desde el menu de modos. Hoy solo el idioma; queda armada como lista para
-// que sumar un ajuste sea agregar una fila.
+// OPCIONES — se llega desde el menu de modos. LISTA de preferencias del jugador: las filas (que
+// son, que valor muestran y que hace cambiarlas) viven en OPT_ROWS, en game.js; aca solo se
+// dibuja lo que llega en `w.rows` = [{label, value}] con `w.sel` marcando la activa.
+const OPT_ROWS_GEO = { y0: 122, rh: 40 };
 export function drawOptions(w) {
   panel();
   ctx.textAlign = 'center';
@@ -187,23 +189,33 @@ export function drawOptions(w) {
   ctx.beginPath(); ctx.moveTo(x, 91.5); ctx.lineTo(NW - 30, 91.5); ctx.stroke();
   ctx.globalAlpha = 1;
 
-  // fila IDIOMA: el valor entre flechas, que es como se cambia. El recuadro se mide igual que en
-  // el menu de modos — se ajusta al contenido, no cruza la pantalla.
-  const y = 122, PAD_X = 9, AR = 14;             // AR: hueco que ocupa cada flecha
-  ctx.font = menuFont(12); const wn = ctx.measureText(T('optLang')).width;
-  ctx.font = descFont(DESC_PX); const wl = ctx.measureText(T('langName')).width;
-  const boxW = Math.max(wn, wl + AR * 2) + PAD_X * 2;
-  ctx.fillStyle = P.accent; ctx.globalAlpha = 0.13;
-  ctx.fillRect(x - PAD_X, y - 13, boxW, 33); ctx.globalAlpha = 1;
-  ctx.fillStyle = P.accent; ctx.globalAlpha = 0.5; ctx.fillRect(x - PAD_X, y - 13, 2, 33); ctx.globalAlpha = 1;
-  ctx.fillStyle = P.accent; ctx.font = menuFont(12);
-  ctx.fillText(T('optLang'), x, y);
-  ctx.fillStyle = P.ink; ctx.font = descFont(DESC_PX);
-  ctx.fillText(T('langName'), x + AR, y + 14);
-  ctx.fillStyle = Math.sin(w.t * 6) > 0 ? P.ink : P.dim;   // las flechas parpadean: son la accion
-  ctx.font = menuFont(10);
-  ctx.fillText('<', x, y + 14);
-  ctx.fillText('>', x + AR + wl + 6, y + 14);
+  // FILAS: nombre arriba, valor abajo entre flechas (que es como se cambia). El recuadro se mide
+  // igual que en el menu de modos — se ajusta al contenido, no cruza la pantalla. Las FLECHAS van
+  // solo en la fila activa: son la accion disponible, no un adorno de cada renglon.
+  const { y0, rh } = OPT_ROWS_GEO, PAD_X = 9, AR = 14;   // AR: hueco que ocupa cada flecha
+  for (let i = 0; i < w.rows.length; i++) {
+    const r = w.rows[i], y = y0 + i * rh, on = i === w.sel, col = on ? P.accent : P.body;
+    ctx.font = menuFont(12); const wn = ctx.measureText(r.label).width;
+    ctx.font = descFont(DESC_PX); const wl = ctx.measureText(r.value).width;
+    if (on) {
+      const boxW = Math.max(wn, wl + AR * 2) + PAD_X * 2;
+      ctx.fillStyle = col; ctx.globalAlpha = 0.13;
+      ctx.fillRect(x - PAD_X, y - 13, boxW, 33); ctx.globalAlpha = 1;
+      ctx.fillStyle = col; ctx.globalAlpha = 0.5;              // filo izquierdo: ancla la fila
+      ctx.fillRect(x - PAD_X, y - 13, 2, 33); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = col; ctx.font = menuFont(12);
+    ctx.fillText(r.label, x, y);
+    ctx.fillStyle = on ? P.ink : P.dim; ctx.globalAlpha = on ? 1 : 0.6;
+    ctx.font = descFont(DESC_PX); ctx.fillText(r.value, x + AR, y + 14);
+    ctx.globalAlpha = 1;
+    if (on) {
+      ctx.fillStyle = Math.sin(w.t * 6) > 0 ? P.ink : P.dim;   // parpadean: son la accion
+      ctx.font = menuFont(10);
+      ctx.fillText('<', x, y + 14);
+      ctx.fillText('>', x + AR + wl + 6, y + 14);
+    }
+  }
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(6);    // mitad de cuerpo: es ayuda, no contenido

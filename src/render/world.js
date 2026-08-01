@@ -11,6 +11,7 @@ import { cam, cfg, S, plane } from '../core/state.js';
 import { run } from '../core/run.js';
 import { wake, obstacles, soldiers } from '../core/world.js';
 import { proj } from '../core/fx.js';
+import { manoeuvreRoll, tiltFade } from '../core/horizon.js';
 import { P, LAND, CLAND } from '../data/palette.js';
 import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
@@ -1389,8 +1390,17 @@ export function drawRadarNet() {
   const dt = Math.max(0, Math.min(0.05, run.t - netLastT)); netLastT = run.t;
   netVis += (want - netVis) * Math.min(1, dt * 7);
   if (netVis < 0.02) return;
+  // APAGADO POR INCLINACION. Esta malla se lee como TECHO porque es un plano horizontal visto
+  // desde abajo: los largueros fugan al horizonte y los dos bordes marcados son las paredes del
+  // corredor. Con el mundo rolado esa lectura se cae — la rejilla pasa a ser una pared de lineas
+  // naranjas cruzando el mar, y sus bordes, que derecho eran informacion, se leen como el
+  // contorno de una chapa flotando. Deja de informar y pasa a ser ruido, asi que se funde.
+  // No se pierde nada: el aviso RADAR, la barra de carga y la altura en rojo estan en el HUD,
+  // que NO gira. Se mide la MANIOBRA y no la inclinacion total — ver tiltFade en core/horizon.js.
+  const lean = tiltFade(manoeuvreRoll());
+  if (lean < 0.02) return;
   const col = inside ? NET_WARN : NET_CYAN;
-  const pulse = (inside ? 0.55 + 0.45 * Math.abs(Math.sin(run.t * 6)) : 1) * netVis;
+  const pulse = (inside ? 0.55 + 0.45 * Math.abs(Math.sin(run.t * 6)) : 1) * netVis * lean;
   // el BARRIDO recorre la profundidad en bucle; `sweepZ` es donde esta ahora
   const sweepZ = NET_Z1 - ((run.t / SWEEP_DUR) % 1) * (NET_Z1 - NET_Z0);
 

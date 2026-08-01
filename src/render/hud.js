@@ -18,6 +18,7 @@ import { P } from '../data/palette.js';
 import { MISSIONS } from '../data/missions.js';
 import { MSL_MAX, RADAR_ALT } from '../data/tuning.js';
 import { callsign, pilotIdx } from '../core/squad.js';
+import { attitude } from '../core/horizon.js';
 
 // barra de mision: puerto (izq) → barcaza objetivo (der). Assets configurables como data URI;
 // mientras `src` este vacio se dibuja un fallback.
@@ -156,6 +157,49 @@ function bar(x, y, w, val, c, label) {
   for (let i = 1; i < 4; i++) ctx.fillRect(x + Math.round(w * i / 4), y, 1, 3);
   ctx.fillStyle = P.dim; ctx.font = '6px monospace'; ctx.textAlign = 'left';
   ctx.fillText(label, x, y - 4);
+}
+
+// ---------- HORIZONTE ARTIFICIAL (ADI) ----------
+// El instrumento que contesta las dos preguntas que un avion rolado deja abiertas: DONDE ESTA EL
+// SUELO y PARA DONDE QUEDA ARRIBA. Funciona como el de verdad: el simbolito del avion esta CLAVADO
+// en el centro (arriba del avion es siempre el tope del instrumento) y lo que gira es la BOLA.
+//
+// Se dibuja SIEMPRE, no solo con el horizonte giratorio prendido: con HORIZONTE FIJO el mundo no
+// se inclina nunca, asi que esto pasa a ser el unico lugar donde mirar como venis. El angulo sale
+// de attitude() (core/horizon.js) — el alabeo REAL del avion, el mismo numero con el que gira el
+// mundo durante una pirueta.
+//
+// Va abajo a la IZQUIERDA, en espejo del panel de estado: las dos esquinas de abajo quedan siendo
+// instrumentos y el centro de la pantalla, que es donde se juega, sigue limpio.
+const ADI = { cx: 20, cy: 145, r: 10 };
+const ADI_SKY = '#3c6c8e', ADI_GND = '#6b4a2a', ADI_LINE = '#f2f7fb';
+
+function drawADI() {
+  const { cx, cy, r } = ADI;
+  plate(cx - 14, cy - 13, 28, 26);
+  // la bola girada, fila por fila y pixel por pixel. Son ~340 pruebas por cuadro (nada) y evita
+  // arc()+clip, que entra con ANTIALIAS: en un HUD de pixel art duro un borde borroneado se lee
+  // como suciedad, no como instrumento.
+  const a = -attitude();                    // la bola gira al REVES que el avion, como la de verdad
+  const sa = Math.sin(a), ca = Math.cos(a);
+  // CABECEO: trepar baja el horizonte (el avion queda por encima), picar lo sube. 5 px = medio
+  // radio a cabeceo pleno — suficiente para leerlo sin que el suelo se vaya de la bola.
+  const po = Math.max(-1, Math.min(1, plane.pitch)) * 5;
+  for (let dy = -r; dy <= r; dy++) {
+    const hw = Math.floor(Math.sqrt(r * r - dy * dy));
+    for (let dx = -hw; dx <= hw; dx++) {
+      const d = -dx * sa + dy * ca - po;    // distancia con signo a la linea del horizonte
+      px(cx + dx, cy + dy, 1, 1, Math.abs(d) < 0.8 ? ADI_LINE : d > 0 ? ADI_GND : ADI_SKY);
+    }
+  }
+  // SIMBOLO DEL AVION, fijo: dos alas y el techo de la cabina. Es la referencia contra la que se
+  // lee la bola — si esta sobre el marron, venis con la trompa en el suelo.
+  px(cx - 7, cy, 4, 1, P.accent);
+  px(cx + 4, cy, 4, 1, P.accent);
+  px(cx - 1, cy - 1, 3, 1, P.accent);
+  px(cx, cy, 1, 1, P.accent);
+  // muesca de las 12: marca donde queda ARRIBA para el avion, siempre en el mismo lugar
+  px(cx, cy - r, 1, 2, P.accent);
 }
 
 // TABLERO DEL ESCUADRON: un avioncito por vida — los caidos quedan TACHADOS, no desaparecen.
@@ -315,6 +359,8 @@ export function drawHUD(h) {
   // panel de estado del avion — abajo a la derecha, en la misma columna que el gas y el canon:
   // queda debajo de la palanca (termina en y=119) y arriba del rotulo del canon (y=169)
   drawStatusPanel(287, 140);
+  // horizonte artificial, en la esquina de enfrente y a la misma altura que el panel de estado
+  drawADI();
 
   bar(6, H - 8, 60, run.fuel / 100, run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam, T('bar_fuel'));
   bar(W - 66, H - 8, 60, run.heat, run.overheat ? P.warn : P.accent, run.overheat ? T('bar_overheat') : T('bar_cannon'));

@@ -36,6 +36,8 @@ export function setState(next) {
  *  Se puede apagar en el menu [M] (COMBUSTIBLE: NO) para pruebas / vuelo libre. */
 import { PORT_H, AIR_START_Y } from '../data/runways.js';
 
+export const CTRL_DIRECT = 0, CTRL_BANK = 1, CTRL_N = 2;
+
 export const cfg = {
   sky: 'dusk', water: 'sea', terrain: 'sea', wind: true,
   // fuelOn ARRANCA APAGADO (tanque infinito) por decision de diseño de julio 2026: el reloj de
@@ -72,6 +74,20 @@ export const cfg = {
   // cada derribo lo releva un companero (systems/squad.js) hasta agotar la formacion. Con 1
   // el juego se comporta exactamente como antes de existir la opcion: morir es morir.
   squad: 4,
+  // ESQUEMA DE CONTROL de ←/→ (lo ejecuta systems/flight.js con bankStep/bankVx de core/physics.js).
+  //   0 DIRECTO (default) = el de siempre: las flechas empujan al avion de costado y el alabeo del
+  //     sprite es una animacion que acompaña.
+  //   1 ALABEO = las flechas ROLAN, y moverse de costado es la consecuencia de estar banqueado.
+  // El tope lateral es el MISMO en los dos (~30): no es un ajuste de dificultad sino de acople —
+  // con ALABEO, lo que te desplaza es un angulo que estas viendo en pantalla.
+  // Vive en OPCIONES junto al horizonte y persiste: es una preferencia de la persona.
+  control: 0,
+  // HORIZONTE GIRATORIO: cuanto se inclina el MUNDO cuando el avion rola (ver core/horizon.js).
+  //   0 = FIJO · 1 = PIRUETAS (default) · 2 = TOTAL · 3 = LIBRE 360 ([Q]/[E])
+  // No esta en el menu [M] sino en OPCIONES, y PERSISTE en localStorage: no es una propiedad del
+  // mapa como las de arriba sino una preferencia de la persona —incluida la de no marearse—, y
+  // [M] solo se abre desde la seleccion de avion, a la que la campaña nunca entra.
+  horizon: 1,
   // DEPURACION: pinta las cajas de colision en verde fluor. Es para PROBAR — el overlay sale de
   // core/hitbox.js, la misma fuente que decide los choques, asi que lo que ves es lo que golpea.
   hitboxes: false,

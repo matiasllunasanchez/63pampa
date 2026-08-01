@@ -52,6 +52,19 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
   caída y asume el mando con 2 s de invulnerabilidad y esquive automático. Hereda combustible y
   munición (morir no repone nada); pierde racha y multiplicador. El HUD muestra el tablero de
   aviones con los caídos tachados. Con `SOLO`, morir es morir, como siempre.
+- **Horizonte giratorio**: al rolar, lo que gira es el **mundo** — el avión queda derecho, como
+  visto desde una cámara pegada a él. Se elige en **OPCIONES** (`HORIZONTE: FIJO · EN PIRUETAS ·
+  TOTAL`, default *EN PIRUETAS*) y la elección se guarda entre sesiones. Es solo dibujo: no cambia
+  colisiones ni dificultad. Abajo a la izquierda hay un **horizonte artificial** que dice dónde
+  está el suelo y para qué lado queda arriba; se ve siempre, incluso con `FIJO`. Con el modo
+  `LIBRE 360°`, `[Q]` y `[E]` rolan a voluntad sin tope — el suelo puede quedar en el techo y
+  quedarse ahí mientras aguantes la tecla; al soltar, el avión se endereza solo.
+- **Control por alabeo** (opcional, en **OPCIONES** → `CONTROL: DIRECTO · POR ALABEO`): con
+  `POR ALABEO`, `←`/`→` **rolan** el avión y moverse de costado es la consecuencia de estar
+  banqueado, en vez de un empujón lateral directo. El techo de velocidad lateral es el mismo (~30)
+  y en 0,9 s de viraje recorrés lo mismo: no es un ajuste de dificultad sino de acople — lo que te
+  desplaza pasa a ser un ángulo que estás viendo. Combinado con `HORIZONTE: TOTAL`, esquivar
+  inclina el mundo. El arrastre táctil no cambia: sigue siendo directo.
 - Volar bajo multiplica el puntaje: **x2** (≤16 m) / **x5** (≤9 m) / **x10** (≤4,5 m).
 - **Racha rasante**: sostener la zona x10 sube el multiplicador cada 2 s: **x15 → x20 → x25 → x30**,
   con beeps ascendentes y el borde de la pantalla encendiéndose. Subir de la zona la corta (0,45 s de gracia).
@@ -249,7 +262,7 @@ modeselect ─► CAMPAÑA (HISTORIA)  ─► takeoff (avión y config fijos)  �
            ├► CICLO DE MUERTE     ─► menu (avión + [M] config random + METROS) ─► PASILLO (objetivo: barcaza) ─► ARENA
            ├► POR LA PATRIA       ─► menu (avión + [M] config)      ─► PASILLO infinito (nunca entra a ARENA)
            ├► MINUTOS SAGRADOS    ─► menu (avión + [M], elegís el BUQUE) ─► directo a ARENA (sin PASILLO)
-           ├► OPCIONES
+           ├► OPCIONES  (idioma · horizonte — preferencias del jugador, persisten)
            └► SALIR
 ```
 
@@ -388,12 +401,17 @@ valor) y `[M]`/`ENTER` cierra. (El modo ya no está acá — se elige en la pant
 
 | Fila         | Valores                                   | Efecto |
 |--------------|-------------------------------------------|--------|
-| FONDO        | Atardecer / Noche / Tormenta / Despejado  | `cfg.sky` (preset de cielo `SKY_PRESETS`) |
+| FONDO        | Atardecer / Noche / Tormenta / Despejado / Nublado / Sol pleno / Luna llena / Amanecer | `cfg.sky` (preset de cielo `SKY_PRESETS` + imagen de `TBACK_MAP`) |
 | AGUA         | Mar / Violeta                             | `cfg.water` (paleta `WATER_STYLES`) |
 | VIENTO       | Sí / No                                   | `cfg.wind` (viento en altura on/off) |
 | OBSTÁCULOS   | Ninguno / Pocos / Normal / Muchos         | `cfg.obstacles` (multiplicador de densidad) |
 | ESCUADRON    | Solo / 2 … 8                              | `cfg.squad` (vidas: compañeros que te relevan al morir) |
 | COSTA        | Corta / Normal / Larga                    | `cfg.coast` (metros de tierra antes del mar) |
+
+> **Qué NO va acá.** Este menú es del **mapa**, y solo se abre desde la selección de avión — la
+> campaña nunca pasa por él. Una preferencia de la *persona* (idioma, horizonte, y lo que venga)
+> va a la pantalla **OPCIONES**, que se alcanza siempre y persiste en `localStorage`. Si no, quien
+> la necesitara jugando la historia quedaría atrapado.
 
 En **supervivencia** estos valores se aplican tal cual (prototipado libre). La **campaña** no usa este
 menú: arranca con `CAMPAIGN_CFG` fijo. El objeto `cfg` es lo que lee todo el juego; agregar una característica
