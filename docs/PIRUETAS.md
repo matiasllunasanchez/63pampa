@@ -1,8 +1,17 @@
 # PIRUETAS — las maniobras de combate
 
-Las piruetas son los "poderes" de RASANTE: **once** maniobras reales de caza que se ejecutan con
+Las piruetas son los "poderes" de RASANTE: **trece** maniobras reales de caza que se ejecutan con
 un **combo de 3 o 4 toques direccionales**, al estilo de un juego de pelea. Mientras dura la maniobra
 **el avión no se controla** — salvo el eje que cada una deja libre.
+
+> **Cada mano tiene su familia.** Lo que **rola** se pide con el **stick derecho** —el mismo que hace
+> girar el horizonte— y lo que **zigzaguea** se queda en el **izquierdo**, el que esquiva. No es
+> decoración: los toques de combo *son* las teclas de volar, así que tener los rolidos en el stick
+> izquierdo garantizaba que `←←←` saliera solo tratando de pasar entre dos obstáculos.
+>
+> En teclado, `W A S D` es **siempre** el stick izquierdo. El "stick derecho" son las **flechas**
+> cuando la mira está FIJA (el default: las dos manos en el teclado), y **Q E / R F** siempre. Con
+> la mira MÓVIL el stick derecho es el mouse, así que las flechas vuelven a volar.
 
 Catálogo (datos): [`src/data/moves.js`](../src/data/moves.js) ·
 Ejecución (cinemática): [`src/systems/moves.js`](../src/systems/moves.js) ·
@@ -58,7 +67,7 @@ hitbox se encoge y el roce paga **+250** en vez de +75.
 
 | combo | maniobra | dur. | controlás | dispara | turbo | perfil fino | qué hace |
 |---|---|---|---|---|---|---|---|
-| `←←←` / `→→→` | **BARREL ROLL** (tonel) | 0.55 s | — | ✔ | ✗ | ✔ | Tonel completo con dash lateral. La pirueta original del juego |
+| ⟳`←←←` / ⟳`→→→` | **BARREL ROLL** (tonel) | 0.55 s | — | ✔ | ✗ | ✔ | Tonel completo con dash lateral. La pirueta original del juego |
 | `↑↓↓` **alto** | **SPLIT-S** | 1.15 s | lateral | ✔ | ✗ | ✔ | Medio tonel invertido + picada fuerte. **Gana velocidad**. Salida vertical hacia abajo |
 | `↑↓↓` **bajo** | **TERRAIN MASKING** | 1.6 s | lateral | ✔ | ✔ | ✗ | Se clava a ras y se queda. **Congela el roce** y **descarga el radar enemigo** |
 | `↓↑↑` **bajo** | **POP-UP** | 0.8 s | lateral | ✔ | ✗ | ✗ | Trepada brusca de ataque desde rasante |
@@ -67,8 +76,11 @@ hitbox se encoge y el roce paga **+250** en vez de +75.
 | `↓←←` / `↓→→` | **BREAK TURN** | 0.7 s | vertical | ✔ | ✗ | ✔ | Viraje quebrado: tirón lateral violento hacia el 2º toque, banqueo a fondo |
 | `←→←` / `→←→` | **S-TURN** | 1.1 s | vertical | ✔ | ✗ | ✔ | Se abre a un lado y **vuelve al carril**. Arranca hacia el 2º toque |
 | `↑←→` / `↑→←` | **JINK** | 0.85 s | **nada** | ✔ | ✗ | ✔ | 4 quiebres laterales alternados e impredecibles. Rumbo fuera de tu control. **Amplitud según tu velocidad** |
-| `↓→↑←` / `↓←↑→` | **TONEL BARRIL** | 1.4 s | **nada** | ✔ | ✗ | ✔ | La **O grande**: se abre, sube 18 m, pasa **boca arriba** por el techo del círculo y vuelve al punto exacto de partida, rolando 360° |
-| `←↓←↓` / `→↓→↓` | **TIRABUZÓN** | 1.0 s | **nada** | ✔ | ✔ | ✔ | Rola 360° **sobre su propio eje** picando derecho, **sin desvío lateral**. Gana velocidad |
+| ⟳`↓→↑←` / ⟳`↓←↑→` | **TONEL BARRIL** | 1.4 s | **nada** | ✔ | ✗ | ✔ | La **O grande**: se abre, sube 18 m, pasa **boca arriba** por el techo del círculo y vuelve al punto exacto de partida, rolando 360° |
+| `↓`+⟳`←←` / `↓`+⟳`→→` | **TIRABUZÓN** | 1.0 s | **nada** | ✔ | ✔ | ✔ | Rola 360° **sobre su propio eje** picando derecho. Se va hacia el lado que rola (la mitad que el Split-S). Gana velocidad |
+| ⟳`↓`+`↓↓` | **TERRAIN MASKING** | 1.6 s | lateral | ✔ | ✔ | ✗ | El rasante **pedido a propósito**, sin depender de a qué altura venías |
+| ⟳`↑`+`↑↑` **lejos** | **ASCENSO** | 1.2 s | lateral | ✔ | ✔ | ✗ | Trepa y **se queda** en el techo del radar (20 m): lo más alto que podés estar sin que te pinten |
+| ⟳`↑`+`↑↑` **pegado** | **SOBRE EL RADAR** | 2.0 s | lateral | ✔ | ✔ | ✗ | Solo si ya estás a 16 m o más: **cruza el techo** y te lleva al de vuelo (68 m). Ya expuesto |
 
 **Cooldown compartido: 1.15 s** entre cualquier pirueta y la siguiente (incluido el tonel). No se
 encadenan.
@@ -94,7 +106,8 @@ más molesto queda descartado por construcción.
 | secuencia | por qué |
 |---|---|
 | `↓→↑←` | la **vuelta completa** del tonel barril: es una O |
-| `←↓←↓` | el tirabuzón **baja sin cambiar de lado** |
+| `↓`+⟳`←←` | el tirabuzón **pica con una mano y rola con la otra** |
+| ⟳`↑`+`↑↑` | mirás hacia donde vas a ir y **empujás dos veces para allá** |
 | `↑↓↑` | el yo-yo alto sube, pica y vuelve a subir |
 | `↓←←` | picar y **empujar dos veces** al mismo lado: el quiebre |
 
@@ -110,10 +123,10 @@ más molesto queda descartado por construcción.
 toques usan las mismas teclas que volar, y con esa ventana solo una secuencia intencional se
 completa.
 
-- **Teclado:** `←` `→` `↑` `↓` (o `A` `D` `W` `S`). Solo pulsaciones **frescas** — el auto-repeat
-  de una tecla sostenida no cuenta.
-- **Joystick:** el mismo detector. Cuenta el **flanco** de cada dirección: cruceta, o dos *flicks*
-  del stick izquierdo cruzando la zona muerta.
+- **Teclado:** `A` `D` `W` `S` para la mano que esquiva; `←` `→` (o `Q` `E`) y `↑` `↓` (o `R` `F`)
+  para la que rola. Solo pulsaciones **frescas** — el auto-repeat de una tecla sostenida no cuenta.
+- **Joystick:** el mismo detector. Cuenta el **flanco** de cada dirección: cruceta, o *flicks* de
+  cualquiera de los dos sticks cruzando la zona muerta.
 
 > **Con el gas sostenido, los combos que empiezan con `↑` no salen.** El `↑` que ya tenés apretado
 > llega como auto-repeat y se filtra. Soltá el gas un instante, hacé el combo, y volvé a dar gas.
@@ -121,7 +134,7 @@ completa.
 
 Al disparar una maniobra, su **nombre aparece sobre el velocímetro** y suena la ráfaga de aire.
 
-**Se pueden apagar**: menú `[M]` → fila **PIRUETAS: SI / NO**. El tonel (`←←` / `→→`) queda
+**Se pueden apagar**: OPCIONES → fila **PIRUETAS: SI / NO**. El tonel (⟳`←←←` / ⟳`→→→`) queda
 siempre: es la mecánica original del juego, no una pirueta nueva.
 
 ---

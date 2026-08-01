@@ -32,10 +32,11 @@ export const HZ_N = 4;
 // ALABEO PLENO del avion, en radianes. No es un numero a ojo: los frames horneados del sprite van
 // de -60° a +60° (ver SHEET_NF en data/planes.js), asi que plane.bank = ±1 ES ±60°.
 export const BANK_FULL = Math.PI / 3;
-// Inclinacion maxima (rad) del modo TOTAL: ~12.6°, alrededor de UN QUINTO del alabeo real. Damos
-// menos que la verdad a proposito — el alabeo esta SIEMPRE presente, asi que lo que en una pirueta
-// es un golpe de efecto aca seria un fondo que nunca se queda quieto.
-export const BANK_TILT = 0.22;
+// Inclinacion maxima (rad) del modo TOTAL: ~25°, alrededor de DOS QUINTOS del alabeo real. Sigue
+// siendo menos que la verdad a proposito —el alabeo esta SIEMPRE presente, y darlo entero seria un
+// fondo que nunca se queda quieto— pero el 0.22 anterior (12.6°) se leia como un temblor y no como
+// una virada. Se subio al doble a pedido: doblar tiene que SENTIRSE.
+export const BANK_TILT = 0.44;
 
 // LO QUE SOLO SE LEE CON EL MUNDO DERECHO. Hay dibujo que depende de que el horizonte este donde
 // se espera: hoy, la RED DE RADAR (render/world.js), que es un plano horizontal y se entiende como
@@ -56,14 +57,19 @@ export const BANK_TILT = 0.22;
 // Que el modo TOTAL tambien la funda al banquear a fondo NO es un efecto colateral que haya que
 // tolerar: es lo mismo que se queria: la red vuelve entera en cuanto nivelas, que es cuando se
 // puede leer. Y el fundido no parpadea porque el angulo del que sale ya viene suavizado.
-// TILT_FADE1 esta DEBAJO de BANK_TILT (0.22) a proposito: asi banquear a fondo la apaga del todo
-// y no deja un fantasma al 12%, que es lo que quedaba con 0.24 y se seguia viendo.
+// TILT_FADE1 esta DEBAJO de BANK_TILT a proposito: asi banquear a fondo la apaga del todo y no
+// deja un fantasma al 12%, que es lo que quedaba con 0.24 y se seguia viendo.
+//
+// AL DUPLICAR BANK_TILT (0.22 → 0.44) ESTOS DOS NUMEROS NO SE TOCARON, y no es un olvido: miden
+// una INCLINACION EN PANTALLA, no una fraccion de la palanca. La pregunta que responden es "¿a
+// que angulo deja de leerse un plano horizontal?", y esa respuesta no cambia porque el avion
+// llegue antes a ese angulo. Lo unico que cambia es que ahora se llega a media palanca.
 export const TILT_FADE0 = 0.07, TILT_FADE1 = 0.21;
 
 /** PURA: cuanto sobrevive (1 entero, 0 apagado) con el mundo inclinado `tilt` radianes.
  *  En grados: 4° entera · 6° 0.75 · 8° 0.50 · 10° 0.25 · 12° nada (y el tope del banqueo en
- *  TOTAL son 12.6°, o sea que banquear a fondo la apaga). Volando derecho el bamboleo normal ni la roza, y con el horizonte en FIJO —el
- *  default— hzWorld() es siempre 0 y esto no se activa nunca. */
+ *  TOTAL son 25°, o sea que ya a media palanca la apaga). Volando derecho el bamboleo normal ni
+ *  la roza, y con el horizonte en FIJO hzWorld() es siempre 0 y esto no se activa nunca. */
 export const tiltFade = tilt => {
   const t = Math.abs(tilt);
   return t <= TILT_FADE0 ? 1 : t >= TILT_FADE1 ? 0 : 1 - (t - TILT_FADE0) / (TILT_FADE1 - TILT_FADE0);

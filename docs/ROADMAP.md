@@ -1086,7 +1086,7 @@ mundo*:
 |---|---|
 | `FIJO` | el mundo nunca se inclina. La salida para quien se marea |
 | `EN PIRUETAS` | solo durante tonel/maniobra: el giro es un evento, no un fondo móvil |
-| `TOTAL` | **default** — además el alabeo continuo inclina el horizonte (amortiguado: `BANK_TILT`, ~1/5 del real). Doblar inclina el mundo 12,6°: es *la* sensación que da todo esto, y con `EN PIRUETAS` de default la mayoría no la veía nunca |
+| `TOTAL` | **default** — además el alabeo continuo inclina el horizonte (amortiguado: `BANK_TILT`, ~2/5 del real). Doblar inclina el mundo **25°**: es *la* sensación que da todo esto, y con `EN PIRUETAS` de default la mayoría no la veía nunca. *(Arrancó en 12,6° y se duplicó a pedido: a esa altura se leía como un temblor, no como una virada.)* |
 | `LIBRE 360°` | además `[Q]`/`[E]` rolan a voluntad **sin tope**: el suelo puede quedar en el techo y quedarse ahí. Al soltar se endereza solo, por el camino corto |
 
 `[Q]`/`[E]` van aparte de `←`/`→` a propósito: esas mueven el avión de carril **y** alimentan el
@@ -1327,3 +1327,182 @@ La fila vieja `MIRA` (el dibujo 1..9) pasó a llamarse `RETICULO` para no chocar
 > Dónde tocar → `drift` en `data/moves.js` + su aplicación en `systems/moves.js`; `inp.rollAx` y el
 > bloque de joystick en `core/input.js`; `cfg.aim` / `cfg.horizon` en `core/state.js`; las filas en
 > `OPT_ROWS` (`game.js`).
+
+---
+
+## 34. Dos manos, dos familias: el stick derecho entra al juego ✔ (implementado)
+
+Hasta acá el stick derecho hacía **una** cosa (el giro libre del horizonte) y el izquierdo hacía
+**todo lo demás**, incluidas las piruetas. Este ítem reparte el trabajo: la mano que **rola** se
+queda con los rolidos y con la cámara; la que **esquiva**, con el zigzag.
+
+### Por qué no era solo prolijidad
+
+Los combos de pirueta **son las teclas de volar**. Con los rolidos en el stick izquierdo, `←←←`
+—tres correcciones laterales tratando de pasar entre dos obstáculos— disparaba un tonel. No es un
+caso de laboratorio: es exactamente lo que hacés en el PASILLO. Mudarlos al stick derecho no es
+reasignar botones, es **sacar los rolidos del camino de esquivar**.
+
+| maniobra | antes (stick izq) | ahora (stick der) |
+|---|---|---|
+| TONEL | `←←←` / `→→→` | ⟳`←←←` / ⟳`→→→` |
+| TONEL BARRIL | `↓→↑←` / `↓←↑→` | ⟳`↓→↑←` / ⟳`↓←↑→` |
+| TIRABUZÓN | `←↓←↓` / `→↓→↓` | `↓`+⟳`←←` / `↓`+⟳`→→` |
+
+El zigzag —break turn, S-turn, jink, los dos yo-yos, split-s, pop-up, masking— **no se movió**.
+
+> El detector es el mismo de siempre; lo único que cambió es que los toques ahora se anotan en
+> **minúscula** (mano que esquiva) o **MAYÚSCULA** (mano que rola). Como el matcheo es por sufijo
+> más largo sobre un string, distinguir la mano salió gratis: `dLL` y `dll` son secuencias
+> distintas sin tocar una línea del algoritmo.
+
+### El ascensor: el único gesto de dos manos
+
+`⟳↓ + ↓↓` clava el rasante. `⟳↑ + ↑↑` trepa. Mirás hacia donde vas a ir y empujás dos veces para
+allá — y a diferencia del resto de las piruetas, no te hace una *figura*: te cambia de **banda de
+altura**, que es la decisión estratégica del juego.
+
+`⟳↑ + ↑↑` es **contextual como `↑↓↓`**, pero por una razón distinta:
+
+| desde dónde | qué sale | a dónde te deja |
+|---|---|---|
+| a menos de 16 m | **ASCENSO** (1.2 s) | el techo del radar, **20 m** |
+| a 16 m o más | **SOBRE EL RADAR** (2.0 s) | el techo de vuelo, **68 m** |
+
+Cruzar el techo del radar te pinta. Que solo se ofrezca cuando *ya estás pegado* al techo lo
+convierte en una **segunda decisión consciente**: llegás al borde, ves que estás ahí, y volvés a
+pedirlo. Nunca podés cruzarlo de un gesto sin haber pasado por el borde.
+
+Medido: desde `y=3` el ASCENSO deja el avión en **18,6**; repetido desde 18, SOBRE EL RADAR llega a
+**66,1**. Ninguna de las dos sostiene la altura sola — sin gas el avión cae igual apenas termina.
+La maniobra te *lleva*, no te *cuelga*.
+
+### Paneo de cámara: mirar sin volar
+
+El eje vertical del stick derecho (`W`/`S` · `R`/`F`) corre el encuadre ±6 unidades de mundo. Usa
+el **mismo mecanismo que el turbo** —subir la cámara en el mundo, no escalar el raster— así que la
+proyección se recalcula sola y entra más mundo por abajo. Empujar el stick **abajo** sube la
+cámara: mirar hacia abajo *es* ver más abajo. Vuelve solo al soltar; no toca el vuelo.
+
+### El mando: R1 y L1 son las armas
+
+`R1` metralleta, `L1` misil — donde están en cualquier juego de vuelo, sin soltar los pulgares de
+los sticks. `✕` y `▢` quedan como alias (`✕` ya era el botón de OK: sacarle el cañón obligaría a
+re-aprender la mano entera). El invertir-gas se mudó de `L1` a `△`.
+
+### Y en teclado: `WASD` no se mueve nunca, las flechas sí
+
+Acá apareció el límite real, y lo dijo el propio pedido: **con la mira móvil una mano está en el
+mouse**, así que no hay dos manos para dos racimos de teclas. La resolución no es una opción nueva
+sino leer lo que la mira **ya dice**.
+
+Lo que **no** se negocia: `W A S D` es el stick izquierdo *siempre*, en los dos modos. La mano que
+vuela nunca cambia de trabajo — que eso dependa de una configuración es exactamente lo que hace
+que un juego se sienta impredecible.
+
+| `cfg.aim` | `WASD` | flechas | rolar | cámara |
+|---|---|---|---|---|
+| **FIJA** (default; dos manos en el teclado) | volar | **stick derecho** | `←` `→` · `Q` `E` | `↑` `↓` · `R` `F` |
+| **MÓVIL** (una mano en el mouse) | volar | **volar** | `Q` `E` | `R` `F` |
+
+Con la mira móvil el stick derecho **es el mouse**; las flechas quedan sin dueño y vuelven a volar,
+así que quien jugaba con flechas sigue jugando igual. Lo que el mouse no cubre —rolar y panear—
+queda en `Q E` / `R F`, dentro del mismo racimo que `WASD`: una sola mano llega a todo.
+
+> Por eso el default de la mira pasó a **FIJA**: es el esquema completo, el de dos sticks, y no
+> pide mouse. Antes era MÓVIL.
+
+> Trampa que hubo que cubrir: si la mira cambia **con la tecla apretada**, el `keyup` llega con la
+> otra vida activa y el campo viejo queda clavado en 1 — el avión doblando solo. El `keyup` de las
+> flechas limpia **las dos** vidas.
+
+### El balanceo del horizonte, al doble
+
+`BANK_TILT` pasó de `0.22` a `0.44`: doblar a fondo inclina el mundo **25,2°** medidos (antes
+12,6°). `TILT_FADE0/1` —el fundido de la red de radar— **no se tocaron**, y no es un olvido: miden
+una inclinación *en pantalla*, no una fracción de la palanca. La pregunta que responden ("¿a qué
+ángulo deja de leerse un plano horizontal?") no cambia porque el avión llegue antes a ese ángulo.
+Lo único que cambia es que ahora la red se apaga a media palanca en vez de a palanca llena.
+
+### El retículo se despegaba del cursor (y duplicar el balanceo lo destapó)
+
+Con **MIRA MÓVIL** apuntar se volvía imposible apenas doblabas. La causa no estaba en el mouse:
+`viewMouse()` devolvía **una** coordenada donde hacen falta **dos**.
+
+| | qué es | quién la usa |
+|---|---|---|
+| `x, y` | **a qué le apuntás** — el cursor con el giro del horizonte deshecho, para desproyectar al mundo | las balas, el guiado del misil |
+| `sx, sy` | **dónde está en pantalla** — el cursor crudo | el dibujo del retículo |
+
+Son distintas porque el mundo se dibuja **rotado** y el retículo no: va después del `restore()`,
+junto al avión, que hace de cabina. Deshacer el giro sirve para saber qué hay abajo del cursor;
+usar *esa* coordenada para dibujar arrastraba el retículo lejos del mouse.
+
+El bug existía desde que existe el horizonte giratorio, pero a 12,6° el corrimiento pasaba por
+imprecisión. Al duplicar `BANK_TILT` se volvió imposible de ignorar.
+
+> Medido: con el mundo a 22,8°, **201 px de retículo en el cursor** (203 con el mundo derecho) y
+> **0 px** en la posición donde caía antes, a **111 px** de distancia. Control con MIRA FIJA: 0 px
+> en el cursor — o sea que el medidor mira el retículo y no el fondo.
+
+### El cartel «MIRA LIBRE» saliendo sin parar
+
+Con la mira móvil, mover el mouse tiraba el aviso una y otra vez. La causa: `readCaps` leía
+`getModifierState('CapsLock')` **también de los eventos de puntero**, y esos no traen el
+modificador.
+
+> Medido: con CAPS LOCK activa, `keydown` reporta `true` y `pointermove` reporta `false`. Como
+> `readCaps` interpretaba cualquier diferencia como "cambió CAPS", **cada alternancia de fuente**
+> daba vuelta la mira: 5 teclas + 5 movimientos de mouse = **9 cambios de modo**. Volando —una
+> mano en el teclado, otra en el mouse— eso es permanente.
+
+Dos cambios, y el segundo importa más que el primero:
+
+1. **CAPS LOCK se lee solo de eventos de teclado.** Los de puntero no saben.
+2. **Se aplica el ESTADO, no un toggle.** Antes invertía `cfg.aim` en cada flanco, así que el valor
+   podía quedar al revés de lo que dice la luz de la tecla y ya no había forma de saber qué iba a
+   hacer la próxima pulsación. Ahora CAPS *es* el modo —prendida móvil, apagada fija— y eso es
+   auto-corrector: no puede desincronizarse. Que se aplique solo cuando **cambia** es lo que deja
+   convivir a OPCIONES, que manda entre cambio y cambio.
+
+> Verificado: 10 teclas + 10 movimientos de mouse con CAPS prendida → **cero avisos**. Prenderla
+> avisa una vez, apagarla avisa una vez, y MOVIL puesto desde OPCIONES sobrevive intacto.
+
+### El corte del terreno al girar 360°
+
+Con `HORIZONTE: LIBRE` y el mundo bien inclinado, la esquina de abajo mostraba el **borde recto**
+donde se acababa el raster del suelo, con un plano de otro color del otro lado.
+
+La causa era el parche que tapaba ese hueco: **un rectángulo de UN color plano** bajo la pantalla
+—tierra si el mapa era TIERRA, agua en cualquier otro caso—. En COSTA, donde cada fila es mitad
+arena y mitad mar, un color solo no puede acertarle a los dos: el corte seguía ahí, nada más que
+pintado de azul.
+
+La solución no es tapar sino **seguir dibujando**. `drawSea()` ahora extiende sus filas 150 px por
+debajo del borde cuando el mundo está girado: la misma geometría, un poco más abajo. Es suelo que
+de verdad está ahí —más cerca de la cámara—, solo que fuera de cuadro con el mundo derecho. Mar,
+tierra, costa y puerto se continúan solos, sin casos nuevos. El relleno plano quedó como **piso**
+(se dibuja *antes* del mundo, no después) para lo que el raster 2D no cubre: el momentum y el mar
+puesto por three.
+
+Los 150 px salen de la geometría: rotando alrededor del centro, la esquina más lejana queda a
+`hypot(W/2, H/2)` = 275 px, o sea 140 por debajo de `H`.
+
+> **No cuesta nada medible**: 8,3 ms/cuadro de mediana con el horizonte FIJO (sin filas extra) y
+> 8,3 ms a 50° con las 150 filas de más. p95 idéntico, 9,1 ms.
+
+> Cuidado al tocar: la profundidad normalizada de la fila (`fRow`) se **clava en 1** pasando el
+> borde. Es la que elige el color del degradado, y extrapolarla más allá del primer plano da
+> colores fuera de la rampa.
+
+### Las dos notas de CONTROLES no eran opciones
+
+`zigzag: mano izq · rolidos: mano der` y `con MIRA MOVIL, las flechas vuelven a volar` entraron
+como filas de control, y ahí se leían como ajustes que no se dejaban cambiar: el cursor se paraba
+encima y daban ganas de apretarles ←/→. Pasaron a un tipo propio (`note`): sangradas, apagadas, sin
+columnas, y el cursor las saltea igual que a los encabezados.
+
+> Dónde tocar → `UNDER`/`rowEnd` en `render/world.js` y el orden del relleno en `game.js`; `readCaps` y el `pointermove` de `core/input.js`; `viewMouse` en `game.js` + su uso en `render/plane.js`; `BANK_TILT` en `core/horizon.js`; `KEYMAP` / `ARROW_FLY` / `ARROW_STICK` / `TAPTOK`
+> y el bloque de joystick en `core/input.js`;
+> `climb`/`climbmax` en `data/moves.js` + su ejecución en `systems/moves.js`; `CAM_PAN` y
+> `run.camPan` en `systems/flight.js`; la tabla de `combo` y `CLIMB_NEAR` en `game.js`.

@@ -56,7 +56,7 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
   Con `SOLO`, morir es morir, como siempre.
 - **Horizonte giratorio**: al rolar, lo que gira es el **mundo** — el avión queda derecho, como
   visto desde una cámara pegada a él. Se elige en **OPCIONES** (`HORIZONTE: FIJO · EN PIRUETAS ·
-  TOTAL · LIBRE 360°`, default **TOTAL**: doblar inclina el mundo 12,6°) y la elección se guarda entre sesiones. Es solo dibujo: no cambia
+  TOTAL · LIBRE 360°`, default **TOTAL**: doblar inclina el mundo 25°) y la elección se guarda entre sesiones. Es solo dibujo: no cambia
   colisiones ni dificultad. Abajo a la izquierda hay un **horizonte artificial** que dice dónde
   está el suelo y para qué lado queda arriba; se ve siempre, incluso con `FIJO`. Con el modo
   `LIBRE 360°`, `[Q]` y `[E]` rolan a voluntad sin tope — el suelo puede quedar en el techo y
@@ -123,31 +123,59 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
 
 ## Controles
 
-| Acción    | Teclado                  | Táctil                          |
-|-----------|--------------------------|---------------------------------|
-| Gas (subir) | mantener `ARRIBA` / `W` — **si soltás, el avión cae** | arrastrar en el 60% izquierdo (control directo) |
-| Esquivar  | `←` / `→` / `A` / `D`    | ídem arrastre                   |
-| Picada    | `ABAJO` / `S`            | —                               |
-| Disparar  | `X` / `ESPACIO` / `K`    | mantener derecha-arriba         |
-| Turbo     | `SHIFT` / `C`            | mantener derecha-abajo          |
-| Cámara    | `V` — cicla 4 cámaras: **1× → 1.5× → 2× → 2.5×** (siguen al avión) | — |
-| Idioma    | `L` (cambia es ↔ en)     | —                               |
-| **Piruetas** | **combo de dos toques** direccionales (ver abajo) | — |
+**El juego se maneja con dos manos, y cada una tiene su trabajo.** La que *esquiva* mueve el avión;
+la que *rola* gira el horizonte y mueve la cámara. En el mando son los dos sticks. En teclado,
+`W A S D` es **siempre** el izquierdo y las **flechas** son el derecho.
+
+| Acción    | Teclado                  | Joystick                | Táctil                  |
+|-----------|--------------------------|-------------------------|-------------------------|
+| Gas (subir) | mantener `W` — **si soltás, el avión cae** | stick izq arriba | arrastrar en el 60% izq |
+| Esquivar  | `A` / `D`                | stick izq · cruceta     | ídem arrastre           |
+| Picada    | `S`                      | stick izq abajo         | —                       |
+| Disparar  | `X` / `ESPACIO` / `K`    | **R1** (y `✕`)          | mantener derecha-arriba |
+| Misil     | `Z` / `TAB`              | **L1** (y `▢`)          | —                       |
+| Turbo     | `SHIFT` / `C`            | gatillo                 | mantener derecha-abajo  |
+| Rolar / giro 360° | `←` `→` · `Q` `E` | stick der ← →          | —                       |
+| Mirar arriba / abajo | `↑` `↓` · `R` `F` | stick der ↑ ↓        | —                       |
+| Invertir el gas | —                  | `△`                     | —                       |
+| Cámara    | `V` — cicla 4 cámaras: **1× → 1.5× → 2× → 2.5×** (siguen al avión) | — | — |
+| Idioma    | `L` (cambia es ↔ en)     | —                       | —                       |
+| **Piruetas** | **combos direccionales** (ver abajo) | ídem, con los dos sticks | — |
+
+> Las **flechas** tienen dos vidas, y la mira decide cuál. Con **MIRA FIJA** (el default) son el
+> stick derecho: las dos manos están en el teclado y tenés el esquema completo. Con **MIRA MÓVIL**
+> el stick derecho *es el mouse*, así que las flechas vuelven a volar como siempre y lo que el
+> mouse no cubre —rolar y panear— queda en `Q E` / `R F`, al alcance de la mano que quedó en el
+> teclado. Se alterna con `CAPS LOCK` o desde OPCIONES. **`WASD` no cambia nunca.**
+
+> El **paneo de cámara** es una mirada, no una cámara libre: corre el encuadre 6 unidades de mundo
+> —casi el triple de lo que lo corre el turbo— y **no toca el vuelo**. Vuelve solo al soltar.
 
 ### Piruetas (los "poderes")
 
-Once maniobras de caza que se disparan con un **combo de 3 o 4 toques direccionales** (cada uno a
+Trece maniobras de caza que se disparan con un **combo de 3 o 4 toques direccionales** (cada uno a
 menos de 0.28 s del anterior), al estilo de un juego de pelea. Durante la maniobra **el avión no se
-controla**, salvo el eje que cada una deja libre. Funcionan igual con joystick (cruceta o stick).
+controla**, salvo el eje que cada una deja libre.
+
+**Lo que rola se pide con la mano que rola** (⟳ = stick derecho / las flechas con mira fija); lo que
+zigzaguea se queda en la que esquiva. Los combos de combate son las teclas de volar: tener los
+rolidos en el stick izquierdo hacía que `←←←` saliera solo tratando de pasar entre dos obstáculos.
 
 | combo | maniobra | | combo | maniobra |
 |---|---|---|---|---|
-| `←←←` / `→→→` | BARREL ROLL (tonel) | | `↓←←` / `↓→→` | BREAK TURN |
-| `↑↓↓` **volando alto** | SPLIT-S | | `←→←` / `→←→` | S-TURN |
-| `↑↓↓` **volando bajo** | TERRAIN MASKING | | `↑←→` / `↑→←` | JINK |
-| `↓↑↑` **volando bajo** | POP-UP | | `↓→↑←` / `↓←↑→` | TONEL BARRIL (la "O") |
-| `↓↑↑` **volando alto** / `↑↓↑` | HIGH YO-YO | | `←↓←↓` / `→↓→↓` | TIRABUZÓN |
-| `↓↑↓` | LOW YO-YO | | | |
+| ⟳`←←←` / ⟳`→→→` | BARREL ROLL (tonel) | | `↓←←` / `↓→→` | BREAK TURN |
+| ⟳`↓→↑←` / ⟳`↓←↑→` | TONEL BARRIL (la "O") | | `←→←` / `→←→` | S-TURN |
+| `↓`+⟳`←←` / `↓`+⟳`→→` | TIRABUZÓN | | `↑←→` / `↑→←` | JINK |
+| ⟳`↓`+`↓↓` | TERRAIN MASKING (rasante) | | `↑↓↓` **volando alto** | SPLIT-S |
+| ⟳`↑`+`↑↑` **lejos del radar** | ASCENSO (hasta 20 m) | | `↑↓↓` **volando bajo** | TERRAIN MASKING |
+| ⟳`↑`+`↑↑` **pegado al radar** | SOBRE EL RADAR (hasta 68 m) | | `↓↑↑` **volando bajo** | POP-UP |
+| `↓↑↓` | LOW YO-YO | | `↓↑↑` **alto** / `↑↓↑` | HIGH YO-YO |
+
+**El ascensor** es el único gesto que usa las dos manos: mirás hacia donde vas a ir y empujás dos
+veces para allá. `⟳↑ + ↑↑` te lleva al **techo del radar** (20 m) y te deja ahí — lo más alto que
+podés estar sin que te pinten. Si **ya estás contra el techo** (16 m o más), el mismo combo ofrece
+otra cosa: cruzarlo hasta el techo de vuelo (68 m), ya expuesto. Cruzar el radar es así una segunda
+decisión, nunca un accidente.
 
 > ⚠️ **"Volando alto / bajo" es la ALTURA DEL AVIÓN, no una dirección más del combo.** El mismo
 > combo hace cosas distintas según tu altitud — el juego elige la maniobra que tiene sentido donde
@@ -159,8 +187,8 @@ un yo-yo, corregir el rumbo lanzaba un S-turn. Con un mínimo de tres toques el 
 produce secuencias completas, y **ninguna maniobra usa repetición vertical**, así que bombear gas
 (`↑↑↑↑↑`) no puede disparar nada.
 
-**Las secuencias dibujan la maniobra**: `↓→↑←` es la vuelta completa del tonel barril (una O),
-`←↓←↓` baja sin cambiar de lado como el tirabuzón, `↓←←` es picar y empujar al costado.
+**Las secuencias dibujan la maniobra**: ⟳`↓→↑←` es la vuelta completa del tonel barril (una O),
+`↓`+⟳`←←` pica con una mano y rola con la otra, `↓←←` es picar y empujar al costado.
 
 Se apagan desde OPCIONES → **PIRUETAS: SI/NO** (el tonel queda siempre).
 **Tabla completa** — duración, qué controlás, si podés disparar o usar turbo, y economía de

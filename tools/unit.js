@@ -173,7 +173,12 @@ test('actitud: el instrumento lee el alabeo REAL, no el amortiguado del fondo', 
   run.rollT = 0; run.mvRoll = 0;
   plane.bank = 1;
   near(attitude(), BANK_FULL);            // bank ±1 son los ±60 grados del sprite horneado
-  assert.ok(Math.abs(attitude()) > Math.abs(horizonRoll(HZ_ALL, 0, 1)) * 4,
+  // El fondo tiene que quedar por DEBAJO DE LA MITAD de la actitud real. El limite se escribe
+  // contra las constantes y no contra un numero fijo a proposito: BANK_TILT es una perilla de
+  // sensacion y ya se movio una vez (0.22 → 0.44). Lo que no puede cambiar es la RELACION —
+  // el instrumento dice la verdad, la camara amortigua— y eso es lo que se prueba aca.
+  near(Math.abs(horizonRoll(HZ_ALL, 0, 1)), BANK_TILT);
+  assert.ok(BANK_TILT < BANK_FULL / 2,
     'el fondo se inclina MUCHO menos que la actitud real: el instrumento no miente, la camara si');
   plane.bank = 0; run.mvRoll = 1.4;
   near(attitude(), 1.4);                  // durante la pirueta manda la pirueta

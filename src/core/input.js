@@ -20,25 +20,50 @@ import { W, H } from '../render/ctx.js';
 import { audio } from '../systems/audio.js';
 
 export const inp = { l: 0, r: 0, u: 0, d: 0, rise: 0, sink: 0, fire: false, turbo: false, msl: false,
-  // GIRO LIBRE del horizonte. Teclado: rollL/rollR (0 o 1). Joystick: rollAx, el eje del stick
-  // DERECHO, analogico -1..1 → el mando rola mas rapido cuanto mas lo empujas.
-  rollL: 0, rollR: 0, rollAx: 0 };
+  // GIRO LIBRE del horizonte (eje X del stick DERECHO). Teclado: rollL/rollR (0 o 1). Joystick:
+  // rollAx, analogico -1..1 → el mando rola mas rapido cuanto mas lo empujas.
+  rollL: 0, rollR: 0, rollAx: 0,
+  // PANEO DE CAMARA (eje Y del stick DERECHO): camU = mirar arriba, camD = mirar abajo.
+  // camAx es la version analogica del mando (+1 = stick abajo = mirar abajo). Lo consume
+  // systems/flight.js sumandolo al `camLift` de la camara.
+  camU: 0, camD: 0, camAx: 0 };
 export const mouse = { x: W / 2, y: H * 0.4, on: false };
 export const pointer = { steer: null };   // arrastre de vuelo tactil (null fuera de arrastre)
 export const flags = { anyPress: false, startReq: false };
 
 // mapeo de las teclas de vuelo a los ejes de `inp`
 const KEYMAP = {
-  ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r',
-  ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd',
-  // R/F: subir y bajar la camara — solo los lee el MODO CAMARA (cfg.devcam); el vuelo los ignora
+  // W/A/S/D SON EL STICK IZQUIERDO, SIEMPRE. Es la mano que vuela y nunca cambia de trabajo:
+  // W gas · S picada · A/D esquivar. Que no dependa de ninguna configuracion es el punto.
+  KeyA: 'l', KeyD: 'r', KeyW: 'u', KeyS: 'd',
+  // R/F: la CAMARA. En MODO CAMARA (cfg.devcam) la mueven libre por el mapa; en vuelo normal
+  // panean un poco arriba/abajo, igual que el stick derecho vertical. Subir la camara y mirar
+  // hacia abajo son la MISMA cosa (entra mas mundo por debajo), por eso `rise` cuenta como 'D'.
   KeyR: 'rise', KeyF: 'sink',
-  // Q/E: GIRO LIBRE del horizonte. Solo los lee core/horizon.js, y solo con HORIZONTE en LIBRE;
-  // en cualquier otro modo quedan muertos. Van aparte de ←/→ a proposito: esas mueven el avion de
-  // carril Y alimentan el detector de combos, asi que rolar con ellas seria rolar sin querer cada
-  // vez que esquivas. Q/E estaban libres y son las de rolar en cualquier simulador.
+  // Q/E: rolar. Son el eje X del stick derecho y estan SIEMPRE, en los dos modos de mira — asi
+  // que rolar nunca depende de una configuracion. Son ademas las de rolar en cualquier simulador.
   KeyQ: 'rollL', KeyE: 'rollR',
 };
+
+// LAS FLECHAS TIENEN DOS VIDAS, y cual esta activa la decide la MIRA (cfg.aim):
+//
+//   MIRA FIJA  → las dos manos estan en el teclado. WASD es el stick izquierdo y las FLECHAS son
+//                el DERECHO: ←/→ rolan, ↑/↓ panean la camara. El mando entero, sin mando.
+//   MIRA MOVIL → esa mano se fue al MOUSE a apuntar, y el stick derecho pasa a ser el mouse. Las
+//                flechas quedan sin dueño, asi que vuelven a volar como siempre (el que jugaba con
+//                flechas sigue jugando igual). Lo del stick derecho que el mouse no cubre —rolar y
+//                panear— queda en Q/E y R/F, al alcance de la mano que quedo en el teclado.
+//
+// Es la razon por la que esto no es una opcion aparte: la mira ya dice cuantas manos hay libres.
+const ARROW_FLY = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd' };
+const ARROW_STICK = { ArrowLeft: 'rollL', ArrowRight: 'rollR', ArrowUp: 'camU', ArrowDown: 'camD' };
+const keyField = c => KEYMAP[c] !== undefined ? KEYMAP[c] : (cfg.aim ? ARROW_FLY : ARROW_STICK)[c];
+
+// TOKENS DEL DETECTOR DE COMBOS. Minusculas = stick IZQUIERDO (volar), mayusculas = stick DERECHO.
+// La distincion es lo que permite que una secuencia diga con QUE mano se hace: los rolidos piden
+// mayusculas y los zigzag minusculas (ver la tabla de `combo` en game.js).
+const TAPTOK = { l: 'l', r: 'r', u: 'u', d: 'd', rollL: 'L', rollR: 'R', camU: 'U', camD: 'D',
+  rise: 'D', sink: 'U' };
 const isConfirm = c => c === 'Enter' || c === 'Space' || c === 'KeyX' || c === 'KeyK';
 const isBack = c => c === 'Escape' || c === 'Backspace';
 const isFire = c => c === 'KeyX' || c === 'KeyK' || c === 'Space';
@@ -121,16 +146,13 @@ export function initInput(cv, a) {
     // MODO CAMARA: la partida no termina nunca sola (avion inmortal) — se sale con ESCAPE.
     // Solo en ese modo: en el PASILLO normal Escape sigue sin hacer nada durante el vuelo.
     if (S.state === 'play' && cfg.devcam && isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
-    // PIRUETAS: cada toque direccional fresco alimenta el detector de combos (ver dirTap)
-    if (!e.repeat && S.state === 'play') {
-      if (isLeft(e.code)) dirTap('l');
-      else if (isRight(e.code)) dirTap('r');
-      else if (isUp(e.code)) dirTap('u');
-      else if (isDown(e.code)) dirTap('d');
-    }
+    // PIRUETAS: cada toque fresco alimenta el detector de combos (ver dirTap). Sale del CAMPO que
+    // la tecla escribe, no de la tecla: asi A/D dan 'l'/'r' o 'L'/'R' segun en que vida esten.
+    const kf = keyField(e.code);
+    if (!e.repeat && S.state === 'play' && TAPTOK[kf]) dirTap(TAPTOK[kf]);
     // anyPress solo con pulsaciones FRESCAS (!e.repeat): el auto-repeat de una tecla sostenida no
     // debe saltear pantallas (historia, derribado, transiciones). inp si se re-setea siempre.
-    if (KEYMAP[e.code] !== undefined) { inp[KEYMAP[e.code]] = 1; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }
+    if (kf !== undefined) { inp[kf] = 1; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }
     if (isFire(e.code)) { inp.fire = true; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }
     if (isTurbo(e.code)) { inp.turbo = true; if (!e.repeat) flags.anyPress = true; }
     if (e.code === 'KeyV' && !e.repeat) a.cycleCamera();                 // cicla las 4 camaras
@@ -143,6 +165,9 @@ export function initInput(cv, a) {
   addEventListener('keyup', e => {
     readCaps(e);
     if (KEYMAP[e.code] !== undefined) inp[KEYMAP[e.code]] = 0;
+    // las FLECHAS se sueltan en SUS DOS VIDAS. Si la mira cambia con la tecla apretada, el keyup
+    // llegaria con la otra vida activa y el campo viejo quedaria clavado en 1 — el avion doblando solo.
+    if (ARROW_FLY[e.code]) { inp[ARROW_FLY[e.code]] = 0; inp[ARROW_STICK[e.code]] = 0; }
     if (isFire(e.code)) inp.fire = false;
     if (isTurbo(e.code)) inp.turbo = false;
     if (e.code === 'KeyZ' || e.code === 'Tab') inp.msl = false;
@@ -174,7 +199,9 @@ export function initInput(cv, a) {
     }
   });
   cv.addEventListener('pointermove', e => {
-    readCaps(e);
+    // OJO: NO se llama a readCaps aca. Los eventos de puntero no traen el estado de CAPS LOCK, asi
+    // que preguntarselo daba siempre "apagada" y la mira se daba vuelta en cada movimiento del
+    // mouse. Ver el comentario de readCaps.
     // el mouse mueve la mira solo con MIRA MOVIL (cfg.aim); con FIJA, readCaps ya la clavo al centro
     if (e.pointerType === 'mouse') { const p = canvasPos(e); mouse.x = p.x; mouse.y = p.y; if (cfg.aim) mouse.on = true; }
     if (e.pointerId === steerPtr) pointer.steer = canvasPos(e);
@@ -189,15 +216,20 @@ export function initInput(cv, a) {
   cv.addEventListener('pointercancel', ptrEnd);
 
   // ---------- JOYSTICK (USB / Bluetooth, Gamepad API mapeo estandar, botones estilo PlayStation) ----------
-  // Se puede JUGAR entero con el joystick. Mapeo (botones estilo PlayStation; ✕=0 ◯=1 ▢=2 △=3):
+  // Se puede JUGAR entero con el joystick. Mapeo (botones estilo PlayStation; ✕=0 ◯=1 □=2 △=3):
   //   Stick izq izq/der          esquivar
-  //   Stick izq VERTICAL         throttle: ARRIBA sube (gas) · ABAJO baja (picada)   L1 (4) invierte
-  //   Stick der HORIZONTAL       GIRO LIBRE del horizonte (= [Q]/[E]); analogico   R1 (5) libre
-  //   gatillo (7)                turbo
-  //   ✕ Cross (0)                METRALLETA (y OK / avanzar en menus)
-  //   ▢ Square (2)               MISIL             ◯ Circle (1)       atras (volver)
+  //   Stick izq VERTICAL         throttle: ARRIBA sube (gas) · ABAJO baja (picada)
+  //   Stick der HORIZONTAL       GIRO LIBRE del horizonte (= [Q]/[E]); analogico
+  //   Stick der VERTICAL         PANEO DE CAMARA arriba/abajo (= [R]/[F]); analogico
+  //   R1 (5)                     METRALLETA        L1 (4)             MISIL
+  //   gatillo (7)                turbo             △ Triangle (3)     invertir el gas
+  //   ✕ Cross (0)                metralleta tambien (y OK / avanzar en menus)
+  //   □ Square (2)               misil tambien     ◯ Circle (1)       atras (volver)
   //   L3 (10) / R3 (11)          pista musical ◄ / ►     cruceta       navegar los menus
-  //   (△ Triangle, R1 y un gatillo quedan libres)
+  //
+  // R1/L1 son las ARMAS porque es donde estan en cualquier juego de vuelo: el indice dispara y el
+  // otro indice suelta el misil, sin soltar los pulgares de los sticks. ✕ y □ quedan como alias —
+  // ✕ ya era el boton de OK, sacarle el cañon obligaria a re-aprender la mano entera.
   //
   // Con mando la MIRA es SIEMPRE FIJA: no hay con que moverla, y es a proposito. Fija/movil se
   // elige en OPCIONES (cfg.aim) y en teclado lo alterna CAPS LOCK.
@@ -206,22 +238,35 @@ export function initInput(cv, a) {
   // convive con el teclado sin pisarlo. La navegacion de menus y las acciones (tonel, camara,
   // pista) van por FLANCO (una pulsacion = una accion), igual que el teclado.
   const AX_DZ = 0.35;                          // zona muerta de los sticks (vuelo/menus)
-  const padHeld = { l: 0, r: 0, u: 0, d: 0, fire: false, turbo: false, msl: false, rollAx: 0 };
+  const padHeld = { l: 0, r: 0, u: 0, d: 0, fire: false, turbo: false, msl: false, rollAx: 0, camAx: 0 };
+  const rPrev = { L: 0, R: 0, U: 0, D: 0 };    // stick DERECHO: flanco de cada direccion (combos)
   let btnPrev = [];                            // estado previo de botones (flanco)
   let padLast = performance.now();             // para el dt del movimiento fluido de la mira
   let throttleInvert = false;                  // L1: eje vertical. false = ARRIBA sube (default); true = ABAJO sube
-  // CAPS LOCK alterna la mira, pero por FLANCO: se mira si el estado CAMBIO, no si esta activa.
-  // Como nivel pisaria lo elegido en OPCIONES — ponias MOVIL ahi y la primera tecla con CAPS
-  // apagada te la volvia a fijar. Ahora las dos vias escriben el mismo cfg.aim y conviven.
   let capsPrev = null;
   const nav = { u: false, d: false, l: false, r: false };   // navegacion previa (cruceta+stick)
 
-  // CAPS LOCK gobierna la mira en teclado: activa = libre (la mueve el mouse), inactiva = fija.
-  // Se lee de cada evento de teclado/puntero; al quedar inactiva, fija la mira en el acto.
+  // CAPS LOCK gobierna la mira: activa = MOVIL (la mueve el mouse), inactiva = FIJA.
+  //
+  // DOS REGLAS, Y LAS DOS SON CICATRICES:
+  //
+  // 1. SOLO SE LEE DE EVENTOS DE TECLADO. Los de puntero NO traen el modificador — medido: con
+  //    CAPS activa, keydown reporta true y pointermove reporta false. Leyendolo de los dos, cada
+  //    vez que la fuente alternaba parecia un cambio de CAPS: moviendo el mouse mientras volas
+  //    (que es todo el tiempo) la mira se daba vuelta en CADA evento y el cartel salia sin parar.
+  //
+  // 2. SE APLICA EL ESTADO, NO UN TOGGLE. Antes esto invertia cfg.aim en cada flanco, asi que el
+  //    valor podia quedar al reves del que dice la luz de la tecla y ya no habia forma de saber
+  //    que iba a hacer la proxima pulsacion. Ahora CAPS *es* el modo: prendida movil, apagada
+  //    fija. Es auto-corrector — no puede desincronizarse.
+  //
+  // Que se aplique solo cuando CAMBIA es lo que deja convivir a OPCIONES: entre cambios de CAPS,
+  // el valor lo manda la fila de OPCIONES, y las dos vias escriben el mismo cfg.aim.
   function readCaps(e) {
     if (!e.getModifierState) return;
     const now = e.getModifierState('CapsLock');
-    if (capsPrev !== null && now !== capsPrev) { cfg.aim = cfg.aim ? 0 : 1; a.aimChanged(cfg.aim); }
+    const want = now ? 1 : 0;
+    if (capsPrev !== null && now !== capsPrev && cfg.aim !== want) { cfg.aim = want; a.aimChanged(cfg.aim); }
     capsPrev = now;
     if (!cfg.aim) mouse.on = false;             // MIRA FIJA: el mouse no la despega del centro
   }
@@ -268,27 +313,35 @@ export function initInput(cv, a) {
       // Con el stick centrado NO hay gas → el avion cae (mecanica central del juego).
       // (Este comentario decia lo contrario que el codigo y que el encabezado del bloque: `ly < 0`
       //  es el stick ARRIBA, y va a 'u'. Corregido.)
-      if (hit(4)) { throttleInvert = !throttleInvert; a.throttleInvert(throttleInvert); }   // L1 = invertir eje
+      if (hit(3)) { throttleInvert = !throttleInvert; a.throttleInvert(throttleInvert); }   // △ = invertir eje
       setPad('u', (throttleInvert ? ly > 0 : ly < 0) ? 1 : 0);  // potencia (gas / subir)  — default: ARRIBA sube
       setPad('d', (throttleInvert ? ly < 0 : ly > 0) ? 1 : 0);  // picada (bajar)
-      setPad('fire', down(0));                                 // ✕ Cross = metralleta
+      setPad('fire', down(5) || down(0));                      // R1 = metralleta (✕ tambien)
       setPad('turbo', down(7));                                // turbo (gatillo)
-      setPad('msl', down(2));                                  // ▢ Square = misil
+      setPad('msl', down(4) || down(2));                       // L1 = misil (□ tambien)
 
-      // STICK DERECHO = GIRO LIBRE DEL HORIZONTE (lo que en teclado son [Q] y [E]).
+      // ---- STICK DERECHO ----
+      // X = GIRO LIBRE DEL HORIZONTE (lo que en teclado son [Q]/[E]).
+      // Y = PANEO DE CAMARA arriba/abajo (lo que en teclado son [R]/[F]).
       //
       // Antes este stick movia la MIRA, con R1 alternando fija/libre. Se saco: con el mando la
       // mira es SIEMPRE FIJA. Apuntar con stick nunca compitio con el mouse, y a cambio dejaba el
-      // unico eje analogico libre del mando ocupado en algo que el juego ya resuelve solo.
-      // Fija/movil paso a ser una fila de OPCIONES (cfg.aim), que ademas se puede tocar sin
-      // acordarse de un boton.
+      // unico par de ejes analogicos libres del mando ocupado en algo que el juego ya resuelve solo.
       //
-      // Es ANALOGICO: el eje entra tal cual (-1..1) en vez de recortado a ±1, asi el mando rola
-      // mas rapido cuanto mas lo empujas — algo que el teclado no puede dar.
-      const rx = gp.axes[2] || 0;
-      setPad('rollAx', Math.abs(rx) < AX_DZ ? 0 : rx);
+      // Son ANALOGICOS: el eje entra tal cual (-1..1) en vez de recortado a ±1, asi el mando rola
+      // y panea mas rapido cuanto mas lo empujas — algo que el teclado no puede dar.
+      const rx = ax(2), ry = ax(3);
+      setPad('rollAx', rx);
+      setPad('camAx', ry);
+      // Y ADEMAS DAN TOQUES: cada cruce de la zona muerta es un tap en MAYUSCULA para el detector
+      // de combos. Es lo que hace que las maniobras que ROLAN se pidan con la mano que rola.
+      if (S.state === 'play') {
+        const rNow = { L: rx < 0 ? 1 : 0, R: rx > 0 ? 1 : 0, U: ry < 0 ? 1 : 0, D: ry > 0 ? 1 : 0 };
+        for (const k in rNow) { if (rNow[k] && !rPrev[k]) dirTap(k); rPrev[k] = rNow[k]; }
+      }
     } else {
-      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'rollAx']) setPad(f, 0);   // soltar el vuelo
+      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'rollAx', 'camAx']) setPad(f, 0);   // soltar el vuelo
+      rPrev.L = rPrev.R = rPrev.U = rPrev.D = 0;   // volver a jugar con el stick sostenido = un toque nuevo
       // navegacion de menus por FLANCO (cruceta o stick)
       const nu = down(12) || ax(1) < -0.5, nd = down(13) || ax(1) > 0.5;
       const nl = down(14) || ax(0) < -0.5, nr = down(15) || ax(0) > 0.5;

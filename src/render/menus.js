@@ -238,6 +238,15 @@ export function drawOptions(w) {
       ctx.globalAlpha = 1;
       continue;
     }
+    // NOTA al pie de la tabla de controles. NO es una fila: es una aclaración, y tiene que verse
+    // como tal o se lee como una opción que no se puede cambiar. Va sangrada, en la tipografía de
+    // etiquetas y apagada, sin columnas y sin resalte — el cursor tampoco se detiene acá.
+    if (r.note) {
+      ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.globalAlpha = 0.75; ctx.font = labelFont(8);
+      ctx.fillText('· ' + r.note, x + 6, y);
+      ctx.globalAlpha = 1;
+      continue;
+    }
     // FILA DE CONTROL: solo lectura, tres columnas (acción · teclado · joystick). Va más apagada
     // que las filas editables a propósito — se lee, no se toca.
     if (r.ctrl) {

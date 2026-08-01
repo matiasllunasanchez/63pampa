@@ -37,7 +37,11 @@ import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './render/momentum.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
-import { MSL_MAX, ROLL_DUR, GEAR_T } from './data/tuning.js';
+import { MSL_MAX, ROLL_DUR, GEAR_T, RADAR_ALT, FLY_TOP } from './data/tuning.js';
+// ¿"cerca" del techo del radar? Es la ventana donde '↑ arriba + ↑↑' deja de ofrecerte llegar al
+// borde y pasa a ofrecerte cruzarlo. 4 unidades: lo justo para que salga del ASCENSO anterior y
+// repetir el combo, sin que se dispare desde una altura donde todavia tenias margen.
+const CLIMB_NEAR = 4;
 import { MV_HI, MV_LO } from './data/moves.js';
 import * as moves from './systems/moves.js';
 import * as squad from './systems/squad.js';
@@ -291,8 +295,14 @@ import { RUNWAYS } from './data/runways.js';
       // El cursor las saltea igual que a los encabezados.
       { head: 'optSecCtrl' },
       { cols: true },   // rotulos TECLADO / JOYSTICK de las dos columnas
-      ...[['Fly'], ['Gas'], ['Dive'], ['Gun'], ['Msl'], ['Boost'], ['Moves'], ['Roll'],
-          ['Aim'], ['Cam'], ['Inv'], ['Music'], ['Menu']]
+      ...[['Fly'], ['Gas'], ['Dive'], ['Gun'], ['Msl'], ['Boost'], ['Roll'], ['Pan'], ['Moves']]
+        .map(([k]) => ({ ctrl: 'ctrl' + k, kb: 'ctrl' + k + 'K', pad: 'ctrl' + k + 'P' })),
+      // NOTAS al pie de la tabla: no son controles ni opciones, son las dos reglas que la tabla
+      // sola no alcanza a explicar. Van como tipo aparte (`note`) porque puestas como filas de
+      // control se leian como si fueran configurables — el cursor se paraba encima y daban ganas
+      // de apretarles izquierda/derecha a ver que cambiaba.
+      { note: 'ctrlHands' }, { note: 'ctrlWasd' },
+      ...[['Aim'], ['Cam'], ['Inv'], ['Music'], ['Menu']]
         .map(([k]) => ({ ctrl: 'ctrl' + k, kb: 'ctrl' + k + 'K', pad: 'ctrl' + k + 'P' })),
 
       { head: 'optSecPartida' },
@@ -372,7 +382,7 @@ import { RUNWAYS } from './data/runways.js';
     // CONTROLES aunque no se puedan cambiar: son las unicas de solo lectura, y salteandolas la
     // ventana de scroll pasaba de largo por encima de toda la seccion — quedaba una lista que se
     // ve al vuelo pero en la que es imposible detenerse a LEER, que es su unico proposito.
-    const isHead = i => { const r = OPT_ROWS[i]; return !!(r.head || r.cols); };
+    const isHead = i => { const r = OPT_ROWS[i]; return !!(r.head || r.cols || r.note); };
     let optRow = OPT_ROWS.findIndex(r => !r.head);   // el cursor nunca se para en un encabezado
 
     /** Mueve el cursor SALTEANDO encabezados. Sin esto la lista tendría paradas muertas. */
@@ -521,25 +531,32 @@ import { RUNWAYS } from './data/runways.js';
     // el zoom se aplica tanto ACERCANDO (camaras 1.5x-2.5x) como ALEJANDO (turbo): por eso se
     // mira la distancia a 1 y no si es mayor que 1.
     function camZoomOn() { return Math.abs(camZ - 1) > 0.005 && (S.state === 'play' || S.state === 'takeoff' || S.state === 'dead'); }
-    // mouse en coordenadas del MUNDO-pantalla: deshace el zoom de la camara cerca para que
-    // mira y desproyeccion (balas/misiles) sigan cayendo exactamente bajo el cursor fisico
+    // EL CURSOR, EN DOS COORDENADAS QUE NO SON LA MISMA:
+    //
+    //   sx, sy  DONDE ESTA EN PANTALLA. Es donde va DIBUJADO el reticulo, y tiene que caer exacto
+    //           bajo el cursor fisico o apuntar se vuelve imposible.
+    //   x, y    A QUE LE ESTAS APUNTANDO. Es la coordenada que hay que desproyectar para saber que
+    //           punto del MUNDO quedo debajo, y de ahi salen las balas y el guiado del misil.
+    //
+    // Son distintas porque el mundo se dibuja ROTADO (horizonte giratorio) y el reticulo NO: el
+    // reticulo se dibuja despues del restore, junto al avion, que hace de cabina. Deshacer el giro
+    // sirve para saber que hay abajo del cursor; usar ESA coordenada para dibujar arrastraba el
+    // reticulo lejos del mouse — 93 px medidos con el mundo a 25°, o sea imposible de apuntar.
+    // El zoom de camara, en cambio, afecta a las dos: el reticulo se dibuja dentro del contexto
+    // escalado, asi que hay que des-escalarlo igual.
     function viewMouse() {
-      const hz = hzWorld();
-      if (!camZoomOn() && !hz) return mouse;
       let x = mouse.x, y = mouse.y;
       if (camZoomOn()) {
         const c = proj(plane.x, plane.y, PZ);
         x = c.x + (x - c.x) / camZ; y = c.y + (y - c.y) / camZ;
       }
-      // HORIZONTE GIRATORIO: el mundo se dibuja ROTADO, asi que el punto de mundo que el jugador
-      // ve bajo el cursor ya no es el que proyecta esa coordenada — hay que deshacer el giro
-      // (mismo centro y mismo truco que momScrToWorld en el momentum). Sin esto, con el horizonte
-      // inclinado las balas saldrian a un carril distinto del que estas apuntando.
-      if (hz) {
+      const sx = x, sy = y;                      // ← lo que se DIBUJA
+      const hz = hzWorld();
+      if (hz) {                                  // ← lo que se APUNTA
         const ca = Math.cos(-hz), sa = Math.sin(-hz), dx = x - W / 2, dy = y - H / 2;
         x = W / 2 + dx * ca - dy * sa; y = H / 2 + dx * sa + dy * ca;
       }
-      return { x, y, on: mouse.on };
+      return { x, y, sx, sy, on: mouse.on };
     }
 
     // ACERCAMIENTO al CONTROL LIBRE: cuando el escuadron sale de plano, la camara "se mete" un
@@ -587,9 +604,14 @@ import { RUNWAYS } from './data/runways.js';
       //
       // LAS SECUENCIAS DIBUJAN LA MANIOBRA:
       //   ↓→↑←  la vuelta completa del tonel barril (es una O)
-      //   ←↓←↓  el tirabuzon baja sin cambiar de lado
       //   ↑↓↑   el yo-yo alto sube, pica y vuelve a subir
       //   ↓←←   picar y empujar dos veces al mismo lado: el quiebre
+      //
+      // CADA MANO TIENE SU FAMILIA. Minusculas = stick IZQUIERDO (o flechas), mayusculas = stick
+      // DERECHO (o WASD con la mira fija · Q/E · R/F). Lo que ROLA se pide con la mano que rola;
+      // lo que ZIGZAGUEA —break turn, S-turn, jink, los yo-yos— se queda donde estaba, en la mano
+      // que esquiva. No es decoracion: son las teclas de VOLAR, asi que poner los rolidos en el
+      // stick izquierdo era garantizar que salieran solos esquivando.
       //
       // REGLA QUE SOSTIENE TODO: ninguna secuencia puede ser PREFIJO de otra. Si '↓←' disparara
       // algo, el circulo que empieza con '↓←' nunca llegaria al cuarto toque. La coincidencia por
@@ -598,14 +620,26 @@ import { RUNWAYS } from './data/runways.js';
       combo: seq => {
         if (S.state !== 'play') return false;
         switch (seq) {
-          // ---- 4 toques: las de trayectoria cerrada ----
-          case 'drul': return moves.startMove('barrel', 1);    // ↓→↑←  la O, horaria
-          case 'dlur': return moves.startMove('barrel', -1);   // ↓←↑→  la O, antihoraria
-          case 'ldld': return moves.startMove('spin', -1);     // ←↓←↓  baja girando, mismo lado
-          case 'rdrd': return moves.startMove('spin', 1);      // →↓→↓
-          // ---- 3 toques ----
-          case 'lll': return startRoll(-1);                    // el tonel clasico (camino legado)
-          case 'rrr': return startRoll(1);
+          // ---- STICK DERECHO (mayusculas): LAS QUE ROLAN ----
+          // Un avion rola con la muñeca, no con el timon, y en el mando la muñeca que rola es la
+          // del stick derecho — el mismo que ya hace el giro libre del horizonte. Estaban en el
+          // izquierdo por herencia, y ahi competian con esquivar: '←←←' salia solo tratando de
+          // pasar entre dos cosas. Ahora el stick izquierdo NO produce ningun rolido.
+          case 'LLL': return startRoll(-1);                    // el tonel clasico (camino legado)
+          case 'RRR': return startRoll(1);
+          case 'DRUL': return moves.startMove('barrel', 1);    // la O dibujada con el stick que rola
+          case 'DLUR': return moves.startMove('barrel', -1);
+          case 'dLL': return moves.startMove('spin', -1);      // picas con el izquierdo, rolas con el derecho
+          case 'dRR': return moves.startMove('spin', 1);
+          // ---- LOS DOS STICKS: EL ASCENSOR ----
+          // Mirar hacia donde vas a ir y despues empujar dos veces para alla. Es el unico gesto del
+          // juego que usa las dos manos, y por eso es el que mueve el avion de BANDA de altura en
+          // vez de hacerle una figura.
+          case 'Ddd': return moves.startMove('mask', 1);       // mirar abajo + picar: pegate al piso
+          case 'Uuu':                                          // mirar arriba + trepar: subi de banda
+            return plane.y >= RADAR_ALT - CLIMB_NEAR
+              ? moves.startMove('climbmax', 1, FLY_TOP)        // ya estas contra el radar: cruzalo
+              : moves.startMove('climb', 1, RADAR_ALT);        // subi hasta el borde y quedate ahi
           // CONTEXTUALES por ALTURA: la misma secuencia hace lo que tiene sentido donde estas.
           // Alto hay cielo debajo para tirarse; bajo no queda mas que pegarse al piso.
           case 'udd': return moves.startMove(plane.y > MV_HI ? 'splits' : 'mask', 1);
@@ -750,7 +784,8 @@ import { RUNWAYS } from './data/runways.js';
     }
 
 
-    // PIRUETA (tonel / aileron roll): esquive cinematico con doble-tap ←/→
+    // PIRUETA (tonel / aileron roll): esquive cinematico. Se pide con tres toques del stick DERECHO
+    // ('LLL' / 'RRR'); antes eran tres del izquierdo y se disparaba solo esquivando.
     // Devuelve true si el tonel ARRANCO — el detector de combos lo usa para saber si consumio la
     // secuencia. Sin esto, un tonel en cooldown dejaria el buffer sucio.
     function startRoll(dir) {
@@ -1288,10 +1323,16 @@ import { RUNWAYS } from './data/runways.js';
         ctx.globalAlpha = 1;
       }
 
-      if (!world3D.isSea()) world.drawSea();   // el mar 2D solo cuando three no lo esta poniendo
-      // cuando el mundo rota (alabeo del momentum, u HORIZONTE GIRATORIO en el pasillo): rellena
-      // bajo el mar para que un tonel no muestre huecos por debajo del borde de la pantalla
+      // RELLENO BAJO EL MUNDO, cuando rota (alabeo del momentum, u HORIZONTE GIRATORIO): con el
+      // mundo girado la esquina de abajo deja de estar tapada por el borde de la pantalla.
+      //
+      // Va ANTES del mundo y no despues: es un PISO, no un parche. Un color plano no puede acertarle
+      // a una fila que es mitad arena y mitad mar (COSTA), asi que taparlo con esto dejaba el corte
+      // igual de visible, solo que de otro color. Ahora el mundo se sigue dibujando por debajo del
+      // borde (ver UNDER en render/world.js) y pinta ENCIMA de este piso; el piso queda para lo que
+      // el raster 2D no cubre — el momentum, y el mar puesto por three.
       if (S.state === 'momentum' || hzW) px(-70, H, W + 140, 150, cfg.terrain === 'land' ? LAND.near : theme.water.base2);
+      if (!world3D.isSea()) world.drawSea();   // el mar 2D solo cuando three no lo esta poniendo
       world.drawApproachBarge(objectiveDist, objectiveShip);   // la barcaza objetivo creciendo en el horizonte
       world.drawObjectiveMarker(objectiveDist);                // cuña roja en el horizonte: hacia donde vamos
       world.drawWake();
@@ -1474,6 +1515,7 @@ import { RUNWAYS } from './data/runways.js';
         rows: OPT_ROWS.map(r => {
           if (r.head) return { head: T(r.head) };
           if (r.cols) return { cols: [T('optColKb'), T('optColPad')] };
+          if (r.note) return { note: T(r.note) };
           if (r.ctrl) return { ctrl: T(r.ctrl), kb: T(r.kb), pad: T(r.pad) };
           let i = r.opts.findIndex(o => o === r.get()); if (i < 0) i = 0;
           return { label: r.label(), value: r.names()[i], preview: r.preview, raw: r.opts[i] };

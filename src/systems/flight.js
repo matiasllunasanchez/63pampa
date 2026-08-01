@@ -26,6 +26,10 @@ import { MSL_MAX, FLY_X, FLY_TOP, ROLL_DUR,
 import { PORT_H } from '../data/runways.js';
 // cuanto sube la camara con turbo (unidades de mundo): el efecto de 'alejarse'
 const BOOST_LIFT = 2.2;
+// PANEO a fondo del stick derecho, en unidades de mundo. Es "un poco" a proposito: casi el triple
+// del BOOST_LIFT de 2.2, asi que se nota sin discusion, pero el avion no se va de cuadro ni se
+// pierde el horizonte. Es una mirada, no una camara libre.
+const CAM_PAN = 6;
 import { multOf } from '../core/util.js';
 import { movesSystem, mvAllowsFire, mvAllowsTurbo } from './moves.js';
 import * as momentum from './momentum.js';
@@ -165,10 +169,16 @@ export function flightSystem(dt, deps) {
   if (plane.y > FLY_TOP) { plane.y = FLY_TOP; plane.vy = 0; }
 
   cam.x += (plane.x * 0.86 - cam.x) * Math.min(1, dt * 7);
+  // PANEO DEL JUGADOR (stick derecho vertical · [R]/[F]): mirar un poco hacia abajo o hacia arriba
+  // sin mover el avion. Es el MISMO mecanismo que el turbo — se corre la camara en el MUNDO — asi
+  // que empujar el stick hacia ABAJO SUBE la camara: entra mas mundo por debajo, que es lo que
+  // uno quiere cuando mira para abajo. Va suavizado (no es un interruptor) y NO afecta al vuelo.
+  const panIn = inp.camAx || (inp.camD + inp.rise) - (inp.camU + inp.sink);
+  run.camPan += (Math.max(-1, Math.min(1, panIn)) * CAM_PAN - run.camPan) * Math.min(1, dt * 4);
   // TURBO: la camara se VA PARA ATRAS. No se escala el raster (eso partia el mar en rayas, ver
   // CAM_ZOOMS en game.js): se sube la camara en el MUNDO, asi la proyeccion se recalcula sola,
   // entra mas agua en pantalla y el avion baja en el cuadro. Es un movimiento de camara real.
-  const camLift = 2.6 + (run.boost ? BOOST_LIFT : 0);
+  const camLift = 2.6 + (run.boost ? BOOST_LIFT : 0) + run.camPan;
   cam.y += (plane.y + camLift - cam.y) * Math.min(1, dt * 3.2);
   if (cam.y < 3.4) cam.y = 3.4;
 

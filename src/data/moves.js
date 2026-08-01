@@ -29,12 +29,21 @@
 // secuencias completas, y NINGUNA maniobra usa repeticion vertical, asi que bombear gas
 // ('↑↑↑↑↑') no puede disparar nada.
 //
-//   4 toques — trayectoria CERRADA (la secuencia dibuja la figura)
-//     ↓→↑←   TONEL BARRIL horario      ←↓←↓   TIRABUZON izquierda
-//     ↓←↑→   TONEL BARRIL antihorario  →↓→↓   TIRABUZON derecha
+// DOS MANOS, DOS FAMILIAS. Los toques del stick IZQUIERDO (o las flechas) se anotan en minuscula;
+// los del stick DERECHO —el que rola— en MAYUSCULA. Todo lo que ROLA se pide con la mano que rola,
+// y todo lo que ZIGZAGUEA se queda en la mano que esquiva. Antes los rolidos estaban en el stick
+// izquierdo, que es el de volar: '←←←' salia solo tratando de pasar entre dos obstaculos.
+// En teclado el "stick derecho" son W/A/S/D con la MIRA FIJA, y Q/E + R/F siempre.
 //
-//   3 toques
-//     ←←←    TONEL izquierda           →→→    TONEL derecha
+//   STICK DERECHO — las que ROLAN
+//     ⟳←←←   TONEL izquierda           ⟳→→→   TONEL derecha
+//     ⟳↓→↑←  TONEL BARRIL horario      ⟳↓←↑→  TONEL BARRIL antihorario
+//     ↓⟳←←   TIRABUZON izquierda       ↓⟳→→   TIRABUZON derecha   (picas con el izq, rolas con el der)
+//
+//   LOS DOS STICKS — el ASCENSOR (mirar hacia donde vas y empujar dos veces)
+//     ⟳↓ ↓↓  TERRAIN MASKING           ⟳↑ ↑↑  ASCENSO / SOBRE EL RADAR   (segun ALTURA)
+//
+//   STICK IZQUIERDO — las que ZIGZAGUEAN
 //     ↑↓↓    SPLIT-S / MASKING         ↓↑↑    POP-UP / HIGH YO-YO   (segun ALTURA)
 //     ↓↑↓    LOW YO-YO                 ↑↓↑    HIGH YO-YO
 //     ↓←←    BREAK TURN izquierda      ↓→→    BREAK TURN derecha
@@ -73,6 +82,14 @@ export const MOVES = {
   mask: { dur: 1.6, name: 'TERRAIN MASKING', steer: 'x', fire: true, turbo: true, tight: false },
   // trepada brusca de ataque desde rasante
   popup: { dur: 0.8, name: 'POP-UP', steer: 'x', fire: true, turbo: false, tight: false },
+  // ASCENSO: el TERRAIN MASKING dado vuelta. Trepa sostenido hasta un TECHO (run.mvTgt) y se
+  // queda ahi — no es un impulso como el pop-up, es "llevame hasta esa altura y sostenela".
+  // El techo lo elige el combo segun donde venis (ver `combo` en game.js):
+  //   ASCENSO         → el techo del radar: la altura maxima que podes tener sin que te pinten.
+  //   SOBRE EL RADAR  → el techo de vuelo, ya expuesto. Solo se ofrece si YA estas contra el radar,
+  //                     asi que cruzarlo es una segunda decision y nunca un accidente.
+  climb: { dur: 1.2, name: 'ASCENSO', steer: 'x', fire: true, turbo: true, tight: false },
+  climbmax: { dur: 2.0, name: 'SOBRE EL RADAR', steer: 'x', fire: true, turbo: true, tight: false },
   // TIRABUZON: rola sobre su propio eje picando. No deja controlar nada (steer null): lo que la
   // define es que el jugador no la corrige, no que el avion no se mueva.
   // OJO: antes tenia `plane.vx = 0` clavado y el comentario decia que NO irse de costado era "el

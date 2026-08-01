@@ -44,6 +44,8 @@ const LOSE_SRC = [
   '../assets/photos/lose/lose2.jpg',
   '../assets/photos/lose/lose3.jpg',
   '../assets/photos/lose/lose4.png',
+  '../assets/photos/lose/lose5.png',
+  '../assets/photos/lose/lose6.jpg',
 ];
 // FONDO GENERAL (lobby / selección). ppal01 va PRIMERA y es fija: es la portada con la que
 // arranca el juego siempre. El resto rota al azar cada PPAL_ROT segundos (ver game.js).

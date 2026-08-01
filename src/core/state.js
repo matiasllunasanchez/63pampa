@@ -47,11 +47,14 @@ export const cfg = {
   obstacles: 1, coast: 230, meters: 3000, fuelOn: false, energy: true,
   bombs: 1,   // BOMBARDEO: densidad de bombas cayendo (0=no, 0.5, 1, 2) — menu [M]
   mira: 6,   // RETICULO elegido (1..9 de assets/miras.webp); se cambia en OPCIONES y persiste
-  // MIRA FIJA o MOVIL. 0 = fija adelante del avion · 1 = la mueve el mouse (default).
-  // Con JOYSTICK es SIEMPRE fija por construccion: el mando ya no tiene con que moverla —el stick
-  // derecho pasó a ser el giro libre del horizonte— asi que aunque esto diga MOVIL, sin mouse la
-  // mira no se despega del centro. En teclado el default es MOVIL y CAPS LOCK lo alterna en vivo.
-  aim: 1,
+  // MIRA FIJA o MOVIL. 0 = fija adelante del avion (default) · 1 = la mueve el mouse.
+  // NO ES SOLO LA MIRA: en teclado tambien decide que hacen las FLECHAS (ver core/input.js).
+  //   FIJA  → las dos manos en el teclado: WASD es el stick izquierdo y las flechas el DERECHO.
+  //   MOVIL → una mano se va al mouse, que pasa a ser el stick derecho, y las flechas vuelven a volar.
+  // El default es FIJA porque es el esquema completo — el de dos sticks — y no pide mouse.
+  // Con JOYSTICK es SIEMPRE fija por construccion: el mando no tiene con que moverla (el stick
+  // derecho es el giro libre del horizonte). CAPS LOCK lo alterna en vivo desde el teclado.
+  aim: 0,
   runway: 0,     // estilo de pista (indice en data/runways.js) — menu [M]
   cliff: false,  // la base esta sobre una meseta: se despega EN ALTURA y se sale al vacio
   // ARRANQUE. 'runway' = despegue clasico desde la base. 'air' = la mision empieza YA VOLANDO,

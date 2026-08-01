@@ -71,6 +71,22 @@ function groundHaze(y, f, w2) {
 // costura volveria, ahora en oscuro.
 let rowH = 1;
 
+// FILAS DE MAS, POR DEBAJO DEL BORDE DE LA PANTALLA. Con el mundo girado, la esquina de abajo deja
+// de estar tapada por el borde: el raster se acaba en H y aparece el CORTE del terreno, un borde
+// recto con el vacio del otro lado. Antes eso se tapaba con un rectangulo de UN color plano, y ahi
+// estaba el problema: en TIERRA pintaba tierra y en el resto agua, asi que en COSTA —donde la fila
+// es mitad arena y mitad mar— siempre quedaba mal de un lado, y el corte se veia igual.
+//
+// La solucion no es tapar sino SEGUIR DIBUJANDO: son las mismas filas, con la misma geometria, un
+// poco mas abajo. Suelo que en realidad esta ahi (mas cerca de la camara), solo que fuera de cuadro
+// con el mundo derecho. Cada modo —mar, tierra, costa, puerto— se continua solo, sin casos nuevos.
+//
+// 150 sale de la geometria del giro: rotando alrededor del centro, la esquina mas lejana queda a
+// hypot(W/2, H/2) = 275 px, o sea 140 px por debajo de H. Con 150 sobran 10.
+const UNDER = 150;
+/** Hasta que fila hay que dibujar. Solo se estira con el mundo girado: derecho no cambia nada. */
+const rowEnd = () => hzWorld() ? H + UNDER : H;
+
 // opacidad de los cuadrados del mar 2D (perilla global). Vivia en el bloque de three.js por
 // vecindad historica, pero es del render 2D.
 const SEA_ALPHA2D = 0.6;
@@ -167,12 +183,15 @@ export function drawSea() {
   // filas donde ya pasaste el borde de la meseta pero el mar de esa fila todavia esta detras.
   // Sin acantilado camH === cam.y, zP === z, y esas filas no existen: el caso degenera al de antes.
   const camH = cfg.cliff ? cam.y - PORT_H : cam.y;
-  for (let y = HOR + 1; y < H; y++) {
+  const yEnd = rowEnd();
+  for (let y = HOR + 1; y < yEnd; y++) {
     const dy = y - HOR;
     const z = cam.y * F / dy;
     const wz = z + dv;
     const wzP = camH > 0.3 ? camH * F / dy + dv : 1e9;   // meseta (o el mismo suelo si no hay acantilado)
-    const fRow = dy / (H - HOR);
+    // La profundidad normalizada se CLAVA en 1 pasando el borde: es la que elige el color del
+    // degradado, y extrapolarla mas alla del primer plano da colores fuera de la rampa.
+    const fRow = Math.min(1, dy / (H - HOR));
     if (landVisible && wzP < cfg.coast - PORT_AMP) {   // fila ENTERA de meseta: sin recorrer columnas
       portRow(y, wzP, F / (wzP - dv), -70, W + 70, fRow);
       continue;
@@ -183,7 +202,7 @@ export function drawSea() {
       // PORT_STEP px y se pintan TRAMOS, en vez de partir la fila en un punto (que es lo que se
       // puede hacer en COSTA, donde el corte es uno solo por fila).
       const k = F / z, kP = F / (wzP - dv);
-      const f = dy / (H - HOR);
+      const f = fRow;   // ya viene clampeado en 1 (ver fRow)
       px(-70, y, W + 140, rowH, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
       let land0 = null, rock0 = null, foam0 = null;
       const flush = (sx) => {
@@ -208,7 +227,7 @@ export function drawSea() {
       continue;
     }
     if (landMode) {                                                      // TIERRA: gradiente continuo
-      const f = dy / (H - HOR);
+      const f = fRow;   // ya viene clampeado en 1 (ver fRow)
       const k = F / z;
       px(-70, y, W + 140, rowH, groundCol(LAND_ST, f));
       if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) {           // surco SUAVE (antes corte duro)
@@ -225,7 +244,7 @@ export function drawSea() {
       const shoreW = shoreAt(wz);
       const sandSx = W / 2 + (shoreW - SAND_W - cam.x) * k;
       const shoreSx = W / 2 + (shoreW - cam.x) * k;
-      const f = dy / (H - HOR);
+      const f = fRow;   // ya viene clampeado en 1 (ver fRow)
       px(-70, y, Math.max(0, sandSx + 70), rowH, groundCol(CLAND_ST, f));
       if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) {
         ctx.globalAlpha = 0.4; px(-70, y, Math.max(0, sandSx + 70), 1, CLAND.furrow); ctx.globalAlpha = 1;
@@ -244,7 +263,7 @@ export function drawSea() {
       continue;
     }
     // base oscura del mar (degradado por profundidad) para que los puntos resalten
-    const f = dy / (H - HOR);
+    const f = fRow;   // ya viene clampeado en 1 (ver fRow)
     px(-70, y, W + 140, rowH, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
   }
   if (landMode) drawLand();

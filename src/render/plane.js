@@ -285,11 +285,15 @@ export function drawPlane(selPlane, viewMouse, camScale) {
 
   // mira: en el MOUSE (PC, punteria libre) o adelante del avion (tactil/legacy)
   if (S.state === 'play') {
-    const vm = viewMouse();   // en camara CERCA la mira se dibuja en coords des-zoomeadas: queda bajo el cursor fisico
+    const vm = viewMouse();
     // MIRA FIJA: acompaña al CABECEO — si la trompa sube, el punto de mira sube; si pica, baja.
     // Se corre el punto en coordenadas de MUNDO (no en pantalla) para que la perspectiva lo
     // escale sola. Con la mira LIBRE (mouse/stick) no se toca: ahi manda el jugador.
-    const c = vm.on ? vm : proj(plane.x, plane.y + plane.pitch * AIM_PITCH, 70);
+    //
+    // SE DIBUJA CON sx/sy, NO CON x/y (ver viewMouse en game.js): x/y son "a que le apuntas" —
+    // llevan deshecho el giro del horizonte para desproyectar al mundo—, y usarlas para dibujar
+    // despegaba el reticulo del cursor apenas el mundo se inclinaba.
+    const c = vm.on ? { x: vm.sx, y: vm.sy } : proj(plane.x, plane.y + plane.pitch * AIM_PITCH, 70);
     // MIRA elegible desde el menu [M] (cfg.mira, 1..9). Si la hoja no cargo aun, reticulo vectorial.
     if (!drawMira(cfg.mira, c.x, c.y, MIRA_SIZE, vm.on ? 0.9 : 0.7)) {
       ctx.globalAlpha = 0.7;

@@ -24,12 +24,17 @@ const STEER_F = 0.55;        // autoridad del eje libre durante la maniobra (med
 // arriba, ver el case 'barrel'), asi que 9 da una trepada de 18 — bien visible sin comerse el
 // techo de vuelo (FLY_TOP = 68) ni salirse del carril (FLY_X = 38).
 const BARREL_R = 9;
+// ASCENSO: techo de velocidad vertical de la trepada. Con 30 u/s el tramo largo —del techo del
+// radar (20) al de vuelo (68)— tarda 1.6 s, que es justo lo que dura `climbmax`: la maniobra
+// llega, no se queda a mitad de camino.
+const CLIMB_VY = 30;
 
-/** Lanza la maniobra `id` (si se puede). Devuelve true si arranco. */
-export function startMove(id, dir) {
+/** Lanza la maniobra `id` (si se puede). `tgt` es la altura objetivo de las que trepan a un techo
+ *  (ASCENSO / SOBRE EL RADAR); el resto lo ignora. Devuelve true si arranco. */
+export function startMove(id, dir, tgt) {
   if (!cfg.moves || run.mv || run.rollT > 0 || run.rollCd > 0) return false;
   const M = MOVES[id]; if (!M) return false;
-  run.mv = id; run.mvT = 0; run.mvDir = dir || 1; run.mvY0 = plane.y;
+  run.mv = id; run.mvT = 0; run.mvDir = dir || 1; run.mvY0 = plane.y; run.mvTgt = tgt || 0;
   run.mvRoll = 0; run.mvSteep = 0; run.mvSeed = (Math.random() * 9999) | 0;
   // feedback de entrada: nombre de la maniobra sobre el velocimetro + rafaga de aire
   popup(W / 2, H - 30, M.name, P.accent);
@@ -193,6 +198,18 @@ export function movesSystem(dt, inp) {
       plane.vx = sx; plane.bank = plane.vx / 40; plane.pitch = 1;
       run.mvSteep = p < 0.75 ? 1 : 0;
       run.spd = Math.max(40, run.spd - run.spd * 0.10 * dt);
+      break;
+    }
+    case 'climb': case 'climbmax': {
+      // ASCENSOR: la misma cinematica del TERRAIN MASKING pero hacia arriba y contra un techo que
+      // no es fijo (run.mvTgt). Persigue la altura y SE QUEDA — el tope de vy es lo unico que la
+      // separa de un teletransporte, y es lo que hace que se lea como una trepada.
+      plane.vy = Math.max(-20, Math.min(CLIMB_VY, (run.mvTgt - plane.y) * 3.2));
+      plane.vx = sx * 1.6;                                       // lateral CASI pleno, como el mask
+      plane.bank = plane.vx / 40;
+      plane.pitch = plane.y < run.mvTgt - 2 ? 1 : 0;
+      run.mvSteep = plane.y < run.mvTgt - 4 ? 1 : 0;
+      run.spd = Math.max(40, run.spd - run.spd * 0.13 * dt);     // trepar CUESTA energia
       break;
     }
   }

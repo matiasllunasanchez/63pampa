@@ -75,6 +75,11 @@ export const run = {
   mvRoll: 0,       // rotacion EXTRA del sprite en pantalla (split-s invierte, break turn exagera)
   mvSteep: 0,      // pose empinada: 1 trepada fuerte / -1 picada fuerte / 0 normal (usa sheet2)
   mvSeed: 0,       // semilla del jink (sus quiebres son aleatorios pero estables por ejecucion)
+  mvTgt: 0,        // altura OBJETIVO de las maniobras que trepan a un techo (ASCENSO / SOBRE EL RADAR)
+  // PANEO DE CAMARA (stick derecho vertical · [R]/[F]): unidades de mundo que se le suman al
+  // `camLift` de la camara. Es estado SUAVIZADO, no el input crudo: el eje entra y sale con peso
+  // para que mirar abajo sea un movimiento de camara y no un salto.
+  camPan: 0,
   // GIRO LIBRE del horizonte ([Q]/[E], solo con HORIZONTE en LIBRE). Es un angulo ACUMULADO sin
   // tope: pasa de 2*PI y sigue, para que dar tres vueltas sea dar tres vueltas. Es SOLO dibujo —
   // el avion vuela igual boca abajo. Ver core/horizon.js.
@@ -109,7 +114,7 @@ export function resetRun() {
     windT: 0, windF: 1,
     fireT: 0, msl: MSL_MAX, mslCd: 0, mslRegen: 0,
     rollT: 0, rollCd: 0,
-    mv: null, mvT: 0, mvY0: 0, mvRoll: 0, mvSteep: 0, mvSeed: 0,
+    mv: null, mvT: 0, mvY0: 0, mvRoll: 0, mvSteep: 0, mvSeed: 0, mvTgt: 0, camPan: 0,
     // alabeo VIVO del control por ALABEO (cfg.control = 1), en radianes. Es el estado del avion:
   // plane.vx sale de aca, no al reves. Ver core/physics.js.
   bankA: 0,
