@@ -11,7 +11,7 @@ import { cam, cfg, S, plane } from '../core/state.js';
 import { run } from '../core/run.js';
 import { wake, obstacles, soldiers } from '../core/world.js';
 import { proj } from '../core/fx.js';
-import { manoeuvreRoll, tiltFade } from '../core/horizon.js';
+import { hzWorld, tiltFade } from '../core/horizon.js';
 import { P, LAND, CLAND } from '../data/palette.js';
 import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
@@ -57,6 +57,20 @@ function groundHaze(y, f, w2) {
   ctx.globalAlpha = 1;
 }
 
+// ALTURA DE FILA del raster de suelo y mar. El mundo se dibuja en filas horizontales de 1 px, y
+// con el HORIZONTE GIRATORIO el canvas rota: cada fila pasa a ser un rectangulo INCLINADO, y el
+// antialias de sus bordes deja una COSTURA de medio pixel entre fila y fila. Por esas costuras se
+// ve lo que hay debajo del mar, que es la IMAGEN DE FONDO del clima — y como la de atardecer es un
+// desierto, el agua se llenaba de una rejilla naranja al doblar.
+//
+// (Es la misma familia de problema que CAM_ZOOMS en game.js, donde escalar el raster partia el mar
+// en tiras. Rotar lo parte en diagonal.)
+//
+// La solucion es que las filas SE PISEN 1 px. Solo vale para las filas OPACAS de base: las
+// translucidas —surcos, bruma— no pueden solaparse, porque el solape se pintaria dos veces y la
+// costura volveria, ahora en oscuro.
+let rowH = 1;
+
 // opacidad de los cuadrados del mar 2D (perilla global). Vivia en el bloque de three.js por
 // vecindad historica, pero es del render 2D.
 const SEA_ALPHA2D = 0.6;
@@ -86,7 +100,7 @@ function portRow(y, wz, k, x0, x1, f) {
   const R = RUNWAYS[cfg.runway] || RUNWAYS[0];
   // --- SUELO ---
   if (R.ground === 'land') {          // PASTO: el mismo campo del mapa de TIERRA, sin base
-    px(x0, y, x1 - x0, 1, groundCol(LAND_ST, f));
+    px(x0, y, x1 - x0, rowH, groundCol(LAND_ST, f));
     if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) {
       ctx.globalAlpha = 0.4; px(x0, y, x1 - x0, 1, LAND.furrow); ctx.globalAlpha = 1;
     }
@@ -94,14 +108,14 @@ function portRow(y, wz, k, x0, x1, f) {
     return;                           // no hay franja de pista: se despega del campo
   }
   if (R.ground === 'asphalt') {       // ASFALTO de lado a lado: plataforma, sin banquina
-    px(x0, y, x1 - x0, 1, R.surf);
+    px(x0, y, x1 - x0, rowH, R.surf);
     ctx.globalAlpha = 0.16;           // juntas de las losas, cada 12 unidades
     if (Math.floor(wz / 12) % 4 === 0) px(x0, y, x1 - x0, 1, '#0a0d10');
     ctx.globalAlpha = 1;
     return;
   }
   const vl = Math.sin(wz * 0.22) + Math.sin(wz * 0.07);              // turba malvinense
-  px(x0, y, x1 - x0, 1, vl > 0.8 ? '#39402f' : vl < -0.8 ? '#2b3226' : '#323a2b');
+  px(x0, y, x1 - x0, rowH, vl > 0.8 ? '#39402f' : vl < -0.8 ? '#2b3226' : '#323a2b');
   // --- PISTA --- solo se pinta la parte del tramo que le toca (recorte contra [x0,x1))
   const a = W / 2 + (-R.hw - cam.x) * k, b = W / 2 + (R.hw - cam.x) * k;
   const ra = Math.max(a, x0), rb = Math.min(b, x1);
@@ -134,13 +148,14 @@ function portRow(y, wz, k, x0, x1, f) {
 function cliffFace(y, k, x0, x1, f) {
   if (x1 <= x0) return;
   const t = f < 0.35 ? 0 : f < 0.7 ? 1 : 2;
-  px(x0, y, x1 - x0, 1, ['#4a453a', '#3b382f', '#2e2c26'][t]);
+  px(x0, y, x1 - x0, rowH, ['#4a453a', '#3b382f', '#2e2c26'][t]);
   ctx.globalAlpha = 0.35;                                            // vetas verticales de la roca
   for (let sx = Math.ceil(x0 / 9) * 9; sx < x1; sx += 9) px(sx, y, Math.max(1, 0.3 * k), 1, '#22201b');
   ctx.globalAlpha = 1;
 }
 
 export function drawSea() {
+  rowH = hzWorld() ? 2 : 1;   // ver rowH: con el mundo derecho no cambia NADA del dibujo de siempre
   const landMode = cfg.terrain === 'land';
   const coastMode = cfg.terrain === 'coast';
   const dv = run.dist + momentum.drift();   // distancia VISUAL (drift del momentum incluido)
@@ -169,7 +184,7 @@ export function drawSea() {
       // puede hacer en COSTA, donde el corte es uno solo por fila).
       const k = F / z, kP = F / (wzP - dv);
       const f = dy / (H - HOR);
-      px(-70, y, W + 140, 1, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
+      px(-70, y, W + 140, rowH, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
       let land0 = null, rock0 = null, foam0 = null;
       const flush = (sx) => {
         if (land0 !== null) { portRow(y, wzP, kP, land0, sx, f); land0 = null; }
@@ -195,7 +210,7 @@ export function drawSea() {
     if (landMode) {                                                      // TIERRA: gradiente continuo
       const f = dy / (H - HOR);
       const k = F / z;
-      px(-70, y, W + 140, 1, groundCol(LAND_ST, f));
+      px(-70, y, W + 140, rowH, groundCol(LAND_ST, f));
       if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) {           // surco SUAVE (antes corte duro)
         ctx.globalAlpha = 0.4; px(-70, y, W + 140, 1, LAND.furrow); ctx.globalAlpha = 1;
       }
@@ -211,7 +226,7 @@ export function drawSea() {
       const sandSx = W / 2 + (shoreW - SAND_W - cam.x) * k;
       const shoreSx = W / 2 + (shoreW - cam.x) * k;
       const f = dy / (H - HOR);
-      px(-70, y, Math.max(0, sandSx + 70), 1, groundCol(CLAND_ST, f));
+      px(-70, y, Math.max(0, sandSx + 70), rowH, groundCol(CLAND_ST, f));
       if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) {
         ctx.globalAlpha = 0.4; px(-70, y, Math.max(0, sandSx + 70), 1, CLAND.furrow); ctx.globalAlpha = 1;
       }
@@ -230,7 +245,7 @@ export function drawSea() {
     }
     // base oscura del mar (degradado por profundidad) para que los puntos resalten
     const f = dy / (H - HOR);
-    px(-70, y, W + 140, 1, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
+    px(-70, y, W + 140, rowH, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
   }
   if (landMode) drawLand();
   else if (coastMode) {
@@ -1396,8 +1411,9 @@ export function drawRadarNet() {
   // naranjas cruzando el mar, y sus bordes, que derecho eran informacion, se leen como el
   // contorno de una chapa flotando. Deja de informar y pasa a ser ruido, asi que se funde.
   // No se pierde nada: el aviso RADAR, la barra de carga y la altura en rojo estan en el HUD,
-  // que NO gira. Se mide la MANIOBRA y no la inclinacion total — ver tiltFade en core/horizon.js.
-  const lean = tiltFade(manoeuvreRoll());
+  // que NO gira. Ver tiltFade en core/horizon.js — se mide la inclinacion que se VE, venga del
+  // tonel, del giro libre o del banqueo.
+  const lean = tiltFade(hzWorld());
   if (lean < 0.02) return;
   const col = inside ? NET_WARN : NET_CYAN;
   const pulse = (inside ? 0.55 + 0.45 * Math.abs(Math.sin(run.t * 6)) : 1) * netVis * lean;

@@ -172,10 +172,26 @@ export function drawModeSelect(w) {
   // ahora una fila mas del menu (OPCIONES).
 }
 
-// OPCIONES — se llega desde el menu de modos. LISTA de preferencias del jugador: las filas (que
-// son, que valor muestran y que hace cambiarlas) viven en OPT_ROWS, en game.js; aca solo se
-// dibuja lo que llega en `w.rows` = [{label, value}] con `w.sel` marcando la activa.
-const OPT_ROWS_GEO = { y0: 122, rh: 40 };
+// OPCIONES — LA pantalla de configuración del juego. Absorbió al menú [M], que se abría solo
+// desde la selección de avión y por lo tanto dejaba a la campaña sin acceso a nada.
+//
+// Las filas (qué son, qué valor muestran, qué hace cambiarlas) viven en OPT_ROWS, en game.js; acá
+// solo se dibuja lo que llega en `w.rows`: entradas `{ head }` para los encabezados de sección y
+// `{ label, value, preview }` para las filas, con `w.sel` marcando la activa.
+//
+// FORMATO COMPACTO, de una línea por fila (nombre a la izquierda, `< valor >` a la derecha), y no
+// el de dos renglones que tenía antes: con cuatro filas entraba, con veinticuatro no. Es el mismo
+// formato que usaba [M], que ya había resuelto este problema.
+// view = 9 y no 10: con diez, la ultima fila caia sobre la linea de teclas del pie.
+const OPT_GEO = { y0: 112, rh: 15, view: 9 };
+
+/** Primera entrada visible para que `sel` quede dentro de la ventana. La ventana solo se mueve
+ *  cuando el cursor la toca — así la lista no se desliza bajo el dedo en cada tecla. */
+export function optScroll(sel, n, view) {
+  if (n <= view) return 0;
+  return Math.max(0, Math.min(n - view, sel - Math.floor(view / 2)));
+}
+
 export function drawOptions(w) {
   panel();
   ctx.textAlign = 'center';
@@ -189,84 +205,89 @@ export function drawOptions(w) {
   ctx.beginPath(); ctx.moveTo(x, 91.5); ctx.lineTo(NW - 30, 91.5); ctx.stroke();
   ctx.globalAlpha = 1;
 
-  // FILAS: nombre arriba, valor abajo entre flechas (que es como se cambia). El recuadro se mide
-  // igual que en el menu de modos — se ajusta al contenido, no cruza la pantalla. Las FLECHAS van
-  // solo en la fila activa: son la accion disponible, no un adorno de cada renglon.
-  const { y0, rh } = OPT_ROWS_GEO, PAD_X = 9, AR = 14;   // AR: hueco que ocupa cada flecha
-  for (let i = 0; i < w.rows.length; i++) {
-    const r = w.rows[i], y = y0 + i * rh, on = i === w.sel, col = on ? P.accent : P.body;
-    ctx.font = menuFont(12); const wn = ctx.measureText(r.label).width;
-    ctx.font = descFont(DESC_PX); const wl = ctx.measureText(r.value).width;
-    if (on) {
-      const boxW = Math.max(wn, wl + AR * 2) + PAD_X * 2;
-      ctx.fillStyle = col; ctx.globalAlpha = 0.13;
-      ctx.fillRect(x - PAD_X, y - 13, boxW, 33); ctx.globalAlpha = 1;
-      ctx.fillStyle = col; ctx.globalAlpha = 0.5;              // filo izquierdo: ancla la fila
-      ctx.fillRect(x - PAD_X, y - 13, 2, 33); ctx.globalAlpha = 1;
+  const { y0, rh, view } = OPT_GEO, n = w.rows.length;
+  // el cursor arranca centrado en la ventana, pero se muestra el encabezado de arriba si entra:
+  // una fila suelta sin su título no dice a qué modo pertenece
+  let top = optScroll(w.sel, n, view);
+  if (top > 0 && w.rows[top] && !w.rows[top].head) {
+    for (let k = top - 1; k >= 0 && k > top - 4; k--) if (w.rows[k].head) { top = k; break; }
+  }
+  const vis = Math.min(view, n - top);
+  const xv = NW - 46;   // borde derecho de los valores
+  const xk = xv - 138;  // columna del TECLADO en la sección CONTROLES (la de JOYSTICK va en xv)
+
+  for (let v = 0; v < vis; v++) {
+    const i = top + v, r = w.rows[i], y = y0 + v * rh;
+    if (r.head) {
+      // ENCABEZADO: más chico y en la fuente de rótulo, con una línea al costado que lo separa
+      // del bloque anterior sin gastar una fila entera en un espacio en blanco.
+      ctx.textAlign = 'left'; ctx.fillStyle = P.accent; ctx.globalAlpha = 0.85;
+      ctx.font = labelFont(9);
+      ctx.fillText(r.head, x, y);
+      const wh = ctx.measureText(r.head).width;
+      ctx.globalAlpha = 0.25; ctx.strokeStyle = P.accent;
+      ctx.beginPath(); ctx.moveTo(x + wh + 8, y - 3.5); ctx.lineTo(xv, y - 3.5); ctx.stroke();
+      ctx.globalAlpha = 1;
+      continue;
     }
-    ctx.fillStyle = col; ctx.font = menuFont(12);
+    // ROTULOS DE COLUMNA de la sección CONTROLES, alineados con los valores de abajo
+    if (r.cols) {
+      ctx.fillStyle = P.dim; ctx.globalAlpha = 0.7; ctx.font = labelFont(7);
+      ctx.textAlign = 'right';
+      ctx.fillText(r.cols[0], xk, y); ctx.fillText(r.cols[1], xv, y);
+      ctx.globalAlpha = 1;
+      continue;
+    }
+    // FILA DE CONTROL: solo lectura, tres columnas (acción · teclado · joystick). Va más apagada
+    // que las filas editables a propósito — se lee, no se toca.
+    if (r.ctrl) {
+      const sel = i === w.sel;
+      if (sel) {                                     // el cursor SI se detiene acá: hay que leerlas
+        ctx.fillStyle = P.accent; ctx.globalAlpha = 0.10;
+        ctx.fillRect(x - 9, y - 9, xv - x + 15, 14); ctx.globalAlpha = 1;
+        ctx.fillStyle = P.accent; ctx.globalAlpha = 0.4;
+        ctx.fillRect(x - 9, y - 9, 2, 14); ctx.globalAlpha = 1;
+      }
+      ctx.textAlign = 'left'; ctx.fillStyle = sel ? P.foam : P.body; ctx.font = menuFont(10);
+      ctx.fillText(r.ctrl, x, y);
+      ctx.textAlign = 'right'; ctx.fillStyle = sel ? P.ink : P.dim; ctx.font = labelFont(9);
+      ctx.fillText(r.kb, xk, y);
+      ctx.fillStyle = r.pad === '—' ? '#4a565c' : (sel ? P.ink : P.dim);   // guión = no existe ahí
+      ctx.fillText(r.pad, xv, y);
+      continue;
+    }
+    const on = i === w.sel;
+    if (on) {                                        // resalte de la fila activa, de lado a lado
+      ctx.fillStyle = P.accent; ctx.globalAlpha = 0.13;
+      ctx.fillRect(x - 9, y - 9, xv - x + 15, 14); ctx.globalAlpha = 1;
+      ctx.fillStyle = P.accent; ctx.globalAlpha = 0.5;
+      ctx.fillRect(x - 9, y - 9, 2, 14); ctx.globalAlpha = 1;
+    }
+    ctx.textAlign = 'left'; ctx.fillStyle = on ? P.accent : P.body; ctx.font = menuFont(11);
     ctx.fillText(r.label, x, y);
-    ctx.fillStyle = on ? P.ink : P.dim; ctx.globalAlpha = on ? 1 : 0.6;
-    ctx.font = descFont(DESC_PX); ctx.fillText(r.value, x + AR, y + 14);
-    ctx.globalAlpha = 1;
-    if (on) {
-      ctx.fillStyle = Math.sin(w.t * 6) > 0 ? P.ink : P.dim;   // parpadean: son la accion
-      ctx.font = menuFont(10);
-      ctx.fillText('<', x, y + 14);
-      ctx.fillText('>', x + AR + wl + 6, y + 14);
+    ctx.textAlign = 'right'; ctx.fillStyle = on ? P.ink : P.dim; ctx.font = menuFont(11);
+    // las flechas SOLO en la fila activa: son la acción disponible, no un adorno de cada renglón
+    const val = on ? '< ' + r.value + ' >' : r.value;
+    ctx.fillText(val, xv, y);
+    // VISTA PREVIA: la mira se elige VIÉNDOLA, no leyendo un número
+    if (r.preview === 'mira') {
+      const wv = ctx.measureText(val).width;
+      drawMira(r.raw, xv - wv - 12, y - 3.5, 13, on ? 1 : 0.55);
     }
+  }
+
+  // BARRA DE SCROLL: solo si hay más entradas de las que entran. El pulgar se dimensiona por la
+  // fracción visible, así de un vistazo se sabe cuánto falta.
+  if (n > view) {
+    const bx = NW - 30, by = y0 - 10, bh = view * rh;
+    px(bx, by, 2, bh, '#2e3c45');
+    const th = Math.max(8, Math.round(bh * view / n));
+    px(bx, by + Math.round((bh - th) * (top / (n - view))), 2, th, P.accent);
   }
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(6);    // mitad de cuerpo: es ayuda, no contenido
-  ctx.fillText(T('optKeys'), NW / 2, NH - 22);
+  ctx.fillText(T('optKeys'), NW / 2, NH - 14);
 }
 
-// menú de configuración de mapa [M] — herramienta para prototipar niveles.
-// VISIBLES: cuantas filas entran en el panel. La lista ya no cabe entera (terreno, pista,
-// acantilado, arranque, hitboxes...), asi que el panel SCROLLEA: se muestra una ventana de
-// CFG_VIEW filas que sigue al cursor y se marca con una barra lateral. El resto del layout
-// (12 px por fila) no cambia.
-const CFG_VIEW = 9;
 
-/** Primera fila visible para que `cfgRow` quede dentro de la ventana. La ventana solo se mueve
- *  cuando el cursor la toca — asi la lista no se desliza bajo el dedo en cada tecla. */
-export function cfgScroll(cfgRow, n) {
-  if (n <= CFG_VIEW) return 0;
-  return Math.max(0, Math.min(n - CFG_VIEW, cfgRow - Math.floor(CFG_VIEW / 2)));
-}
-
-export function drawCfg(w) {
-  ctx.fillStyle = '#0a0e11ee'; ctx.fillRect(24, 16, W - 48, H - 30);
-  ctx.strokeStyle = P.accent; ctx.globalAlpha = 0.6; ctx.strokeRect(24.5, 16.5, W - 49, H - 31); ctx.globalAlpha = 1;
-  ctx.textAlign = 'center';
-  ctx.fillStyle = P.accent; ctx.font = 'bold 8px monospace';
-  ctx.fillText('CONFIGURACION DE MAPA', W / 2, 28);
-  ctx.font = '7px monospace';
-  const rows = w.rows, n = rows.length;
-  const top = cfgScroll(w.cfgRow, n), vis = Math.min(CFG_VIEW, n);
-
-  for (let v = 0; v < vis; v++) {
-    const i = top + v, r = rows[i], y = 42 + v * 12, on = i === w.cfgRow;
-    let idx = r.opts.findIndex(o => o === r.get()); if (idx < 0) idx = 0;
-    ctx.textAlign = 'left'; ctx.fillStyle = on ? P.accent : P.dim; ctx.fillText((on ? '> ' : '  ') + r.label, 34, y);
-    ctx.textAlign = 'right'; ctx.fillStyle = on ? P.ink : P.body; ctx.fillText('< ' + r.names[idx] + ' >', W - 34, y);
-    // VISTA PREVIA: la mira se elige VIENDOLA, no leyendo un numero
-    if (r.preview === 'mira') drawMira(r.get(), W - 68, y - 2.5, 11, on ? 1 : 0.55);
-  }
-
-  // BARRA DE SCROLL: solo si hay mas filas de las que entran. El pulgar se dimensiona por la
-  // fraccion visible, asi de un vistazo se sabe cuanto falta.
-  if (n > CFG_VIEW) {
-    const bx = W - 28, by = 36, bh = CFG_VIEW * 12;
-    px(bx, by, 2, bh, '#2e3c45');
-    const th = Math.max(6, Math.round(bh * CFG_VIEW / n));
-    px(bx, by + Math.round((bh - th) * (top / (n - CFG_VIEW))), 2, th, P.accent);
-    ctx.textAlign = 'center'; ctx.fillStyle = P.dim; ctx.font = '6px monospace';
-    if (top > 0) ctx.fillText('▲', bx + 1, by - 2);                       // hay mas arriba
-    if (top + CFG_VIEW < n) ctx.fillText('▼', bx + 1, by + bh + 7);       // hay mas abajo
-  }
-
-  ctx.textAlign = 'center'; ctx.fillStyle = P.dim; ctx.font = '6px monospace';
-  ctx.fillText('flechas: mover / cambiar   ·   [M] o ENTER: cerrar', W / 2, H - 20);
-}

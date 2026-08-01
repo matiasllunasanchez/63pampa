@@ -198,26 +198,27 @@ test('horizonte: girando libre, el banqueo sigue sumando; en pirueta no', () => 
 // importa es el de ABAJO: el modo TOTAL inclina de a poco TODO el tiempo y no debe apagarla nunca.
 import { tiltFade, TILT_FADE0, TILT_FADE1 } from '../src/core/horizon.js';
 
-test('inclinacion: la red se apaga RAPIDO — a 20 grados de maniobra ya no queda nada', () => {
+test('inclinacion: la red se apaga RAPIDO — con el mundo torcido no queda nada', () => {
   assert.equal(tiltFade(0), 1);
   assert.equal(tiltFade(TILT_FADE1), 0);
-  assert.ok(TILT_FADE1 <= 0.35, `a ${(TILT_FADE1 * 57.3).toFixed(0)} grados todavia se veria: el umbral quedo largo`);
+  assert.ok(TILT_FADE1 <= 0.27, `a ${(TILT_FADE1 * 57.3).toFixed(0)} grados todavia se veria`);
   assert.equal(tiltFade(0.35), 0, 'a 20 grados de tonel la red ya no esta');
-  assert.ok(tiltFade(0.26) < 0.4, `a 15 grados ya tiene que estar yendose (quedo ${tiltFade(0.26).toFixed(2)})`);
   assert.equal(tiltFade(Math.PI), 0, 'boca abajo, apagada');
   assert.equal(tiltFade(-Math.PI), 0, 'y da lo mismo para que lado rolaste');
   near(tiltFade((TILT_FADE0 + TILT_FADE1) / 2), 0.5);
 });
 
-test('inclinacion: el banqueo continuo NO entra en la cuenta, y no por margen sino por diseño', () => {
-  // A tiltFade se le pasa manoeuvreRoll() (pirueta + giro libre), NO hzWorld(). Por eso el modo
-  // TOTAL —que inclina hasta BANK_TILT todo el tiempo— no puede apagar la red ni aunque el umbral
-  // sea agresivo. Antes se resolvia dejando TILT_FADE0 por encima de BANK_TILT, y eso obligaba a
-  // un fundido tan largo que la red seguia visible en pleno tonel.
-  assert.ok(TILT_FADE0 < BANK_TILT,
-    'el umbral ya NO necesita esquivar a BANK_TILT: si lo esquivara, el fundido volveria a ser lento');
+test('inclinacion: el BANQUEO tambien la funde — es la inclinacion que se VE, no de donde viene', () => {
+  // Esto afirma lo CONTRARIO de lo que afirmaba la version anterior de este test, y a proposito.
+  // Antes el banqueo estaba excluido del fundido "por construccion", para poder ser agresivo sin
+  // apagar la red al doblar en modo TOTAL. Pero con CONTROL POR ALABEO el avion banquea todo el
+  // tiempo: la red se quedaba entera justo mientras el mundo estaba torcido. El jugador no ve
+  // "una maniobra" ni "un banqueo" — ve el mundo inclinado.
+  assert.equal(tiltFade(BANK_TILT), 0,
+    `banqueando a fondo en TOTAL (${(BANK_TILT * 57.3).toFixed(0)}°) la red tiene que estar APAGADA, no tenue`);
+  assert.ok(TILT_FADE1 < BANK_TILT, 'si el fundido terminara despues del tope de banqueo, quedaria un fantasma');
+  assert.equal(tiltFade(0.04), 1, 'pero volando derecho, con el bamboleo normal, sigue entera');
 });
-
 // ---------- CONTROL POR ALABEO (core/physics.js) ----------
 // Lo que hay que garantizar no es que "se sienta bien" sino que el TECHO no se mueva: es una
 // opcion de acople, no de dificultad. Si el tope lateral cambiara, seria otro juego.

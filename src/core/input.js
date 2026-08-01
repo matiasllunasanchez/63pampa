@@ -105,17 +105,10 @@ export function initInput(cv, a) {
     if (S.state === 'dead') {                                             // DERRIBADO: Esc vuelve al menu
       if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
     }
-    if (S.state === 'menu') {                                             // seleccion de avion (supervivencia)
+    // seleccion de avion. El menu de mapa [M] ya no existe: toda la configuracion vive en
+    // OPCIONES, que se alcanza desde el menu de modos y por lo tanto tambien desde la campaña.
+    if (S.state === 'menu') {
       if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
-      if (e.code === 'KeyM') { a.toggleCfg(); e.preventDefault(); return; }
-      if (a.isCfgOpen()) {                                               // menu de config de mapa [M]
-        if (isUp(e.code)) a.cfgNav(-1);
-        if (isDown(e.code)) a.cfgNav(1);
-        if (isLeft(e.code)) a.cfgChange(-1);
-        if (isRight(e.code)) a.cfgChange(1);
-        if (e.code === 'Enter') a.cfgClose();
-        e.preventDefault(); return;
-      }
       if (isLeft(e.code)) { a.planeNav(-1); e.preventDefault(); return; }
       if (isRight(e.code)) { a.planeNav(1); e.preventDefault(); return; }
       if (isConfirm(e.code)) { flags.startReq = true; e.preventDefault(); return; }
@@ -161,7 +154,6 @@ export function initInput(cv, a) {
     // se pasa la Y CRUDA: la fila la resuelve game.js con la geometria real del menu
     if (S.state === 'modeselect') { a.modeSelect(p.y); return; }
     if (S.state === 'menu') {
-      if (a.isCfgOpen()) { a.cfgClose(); return; }                      // en config, tocar cierra
       if (p.x < W * 0.28) a.planeNav(-1);
       else if (p.x > W * 0.72) a.planeNav(1);
       else flags.startReq = true;
@@ -260,8 +252,10 @@ export function initInput(cv, a) {
       }
       setPad('l', (lx < 0 || down(14)) ? 1 : 0);               // stick izq / cruceta izq = esquivar
       setPad('r', (lx > 0 || down(15)) ? 1 : 0);
-      // THROTTLE en el stick VERTICAL: por defecto ABAJO sube (gas), ARRIBA baja (picada). L1 lo
-      // invierte. Con el stick centrado NO hay gas → el avion cae (mecanica central del juego).
+      // THROTTLE en el stick VERTICAL: por defecto ARRIBA sube (gas), ABAJO pica. L1 lo invierte.
+      // Con el stick centrado NO hay gas → el avion cae (mecanica central del juego).
+      // (Este comentario decia lo contrario que el codigo y que el encabezado del bloque: `ly < 0`
+      //  es el stick ARRIBA, y va a 'u'. Corregido.)
       if (hit(4)) { throttleInvert = !throttleInvert; a.throttleInvert(throttleInvert); }   // L1 = invertir eje
       setPad('u', (throttleInvert ? ly > 0 : ly < 0) ? 1 : 0);  // potencia (gas / subir)  — default: ARRIBA sube
       setPad('d', (throttleInvert ? ly < 0 : ly > 0) ? 1 : 0);  // picada (bajar)
@@ -300,6 +294,14 @@ export function initInput(cv, a) {
         if (nr && !nav.r) a.planeNav(1);
         if (confirm) flags.startReq = true;
         if (hit(1)) a.escToMenu();                             // B = volver
+      } else if (S.state === 'options') {
+        // OPCIONES es la UNICA pantalla de configuracion desde que [M] dejo de existir, asi que
+        // sin esto el joystick no podia tocar nada: arriba/abajo elige fila, izq/der cambia.
+        if (nu && !nav.u) a.optNav(-1);
+        if (nd && !nav.d) a.optNav(1);
+        if (nl && !nav.l) a.optChange(-1);
+        if (nr && !nav.r) a.optChange(1);
+        if (confirm || hit(1)) a.escToMenu();
       }
       // el resto de pantallas (historia, derribado, recuento, victoria) avanzan con anyPress
       nav.u = nu; nav.d = nd; nav.l = nl; nav.r = nr;

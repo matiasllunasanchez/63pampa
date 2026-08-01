@@ -41,16 +41,29 @@ export const BANK_TILT = 0.22;
 // se espera: hoy, la RED DE RADAR (render/world.js), que es un plano horizontal y se entiende como
 // "techo" solo vista desde abajo. Rolado deja de informar y pasa a ser ruido, asi que se funde.
 //
-// SE MIDE LA MANIOBRA, NO LA INCLINACION TOTAL, y esa es la correccion que hace que esto funcione.
-// La primera version leia hzWorld(), que incluye el banqueo continuo; para no apagar la red cada
-// vez que el jugador dobla en modo TOTAL habia que arrancar el fundido POR ENCIMA de BANK_TILT
-// (0.22) y estirarlo hasta 0.95 — con lo cual a 20 grados de tonel la red seguia al 70% y se veia
-// igual. Separando las dos causas, el banqueo deja de entrar por construccion en vez de por
-// margen, y el umbral de la maniobra puede ser agresivo. La curva, en grados de maniobra:
-//   7° entera · 10° 0.75 · 15° 0.35 · 20° apagada.
-export const TILT_FADE0 = 0.12, TILT_FADE1 = 0.34;
+// SE MIDE LA INCLINACION QUE EL JUGADOR VE, hzWorld(), y punto. Costo dos intentos llegar aca:
+//
+//   1º Se median los 0.30..0.95 rad de la inclinacion total. A 20° de tonel la red seguia al 70%.
+//   2º Se separo la MANIOBRA (pirueta + giro libre) del BANQUEO continuo y se dejo el banqueo
+//      afuera, para poder ser agresivo sin apagar la red cada vez que el jugador dobla en TOTAL.
+//      Peor: con CONTROL POR ALABEO el avion banquea todo el tiempo, asi que la red se quedaba
+//      entera justo mientras el mundo estaba torcido.
+//
+// El error de las dos fue optimizar contra una distincion que existe en el codigo y NO en la
+// pantalla. El jugador no ve "una maniobra" ni "un banqueo": ve el mundo inclinado. Si esta
+// inclinado, un plano horizontal no se lee, venga de donde venga el angulo.
+//
+// Que el modo TOTAL tambien la funda al banquear a fondo NO es un efecto colateral que haya que
+// tolerar: es lo mismo que se queria: la red vuelve entera en cuanto nivelas, que es cuando se
+// puede leer. Y el fundido no parpadea porque el angulo del que sale ya viene suavizado.
+// TILT_FADE1 esta DEBAJO de BANK_TILT (0.22) a proposito: asi banquear a fondo la apaga del todo
+// y no deja un fantasma al 12%, que es lo que quedaba con 0.24 y se seguia viendo.
+export const TILT_FADE0 = 0.07, TILT_FADE1 = 0.21;
 
-/** PURA: cuanto sobrevive (1 entero, 0 apagado) con la maniobra girando `tilt` radianes. */
+/** PURA: cuanto sobrevive (1 entero, 0 apagado) con el mundo inclinado `tilt` radianes.
+ *  En grados: 4° entera · 6° 0.75 · 8° 0.50 · 10° 0.25 · 12° nada (y el tope del banqueo en
+ *  TOTAL son 12.6°, o sea que banquear a fondo la apaga). Volando derecho el bamboleo normal ni la roza, y con el horizonte en FIJO —el
+ *  default— hzWorld() es siempre 0 y esto no se activa nunca. */
 export const tiltFade = tilt => {
   const t = Math.abs(tilt);
   return t <= TILT_FADE0 ? 1 : t >= TILT_FADE1 ? 0 : 1 - (t - TILT_FADE0) / (TILT_FADE1 - TILT_FADE0);
@@ -91,10 +104,6 @@ export const hzWorld = () => horizonRoll(hzMode(), spriteRoll(), plane.bank, run
  *  horneados), asi que restarselo lo inclinaria para el lado equivocado. */
 export const hzSprite = () => { const r = spriteRoll(); return hzMode() && r ? -r : 0; };
 
-/** Lo que el mundo esta girando POR UNA MANIOBRA: la pirueta y el giro libre, sin el banqueo
- *  continuo. Es lo que alimenta a tiltFade — ver el bloque de arriba. Devuelve 0 con el horizonte
- *  en FIJO, porque ahi el mundo no gira y no hay nada que apagar. */
-export const manoeuvreRoll = () => hzMode() ? spriteRoll() + run.freeRoll : 0;
 
 /** ACTITUD: cuanto esta rolado el avion DE VERDAD, en radianes. Es lo que lee el horizonte
  *  artificial del HUD (render/hud.js).

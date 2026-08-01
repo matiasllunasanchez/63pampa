@@ -11,8 +11,9 @@ código ([ARQUITECTURA.md](ARQUITECTURA.md)).
 ## Por tema
 
 - **Primera persona / momentum** — #1, #12, #13
-- **Combate y enemigos** — #2, #9, #19
-- **Movimiento y sensación de vuelo** — #3, #4, #8
+- **Combate y enemigos** — #2, #9, #19, #30
+- **Movimiento y sensación de vuelo** — #3, #4, #8, #30
+- **Clima** — #29, #29.1
 - **Aviones** — #10, #11, #18, #19, #22
 
 > 📄 **Velocidad máxima por avión, escalones MACH, barrera del sonido y aporte de las
@@ -21,7 +22,7 @@ código ([ARQUITECTURA.md](ARQUITECTURA.md)).
 
 - **Economía y progresión** — #5, #6, #11, #14
 - **Combustible y ruta óptima** — #15, #26, #28
-- **Mundo, terreno y aliados** — #15, #16, #17, #27
+- **Mundo, terreno y aliados** — #15, #16, #17, #27, #29
 - **Modos de juego aparte del vuelo** — #24
 - **Asimetría y aliados (geopolítica)** — #18, #19, #20, #21
 - **Niveles y estructura** — #7, #14, #23
@@ -29,6 +30,7 @@ código ([ARQUITECTURA.md](ARQUITECTURA.md)).
 - **Vidas y escuadrón** — #29 ✔
 - **Cámara y lectura del vuelo** — #30 ✔
 - **Esquemas de control** — #31 ✔
+- **Menús y configuración** — #32 ✔
 
 ---
 
@@ -757,6 +759,260 @@ Es tuning de nivel, no una constante global.
 > el dibujo del bidón), `render/hud.js` (barra COMB + marca fantasma) y `data/missions.js`
 > (la ruta como parámetro de misión).
 
+## 29. LLUVIA
+
+Que llueva. Hoy el mal tiempo está **pintado, no simulado**: `storm` existe como fondo
+(`night_storm.png`) y como paleta (`data/palette.js`), pero **no hay una sola gota en pantalla ni
+un sistema de clima**. La lluvia sería **lo primero que el cielo le hace al juego** en vez de
+solo mirarlo de fondo.
+
+Encaja con el escenario: el Atlántico Sur en otoño-invierno de 1982 fue tiempo malo casi todo el
+tiempo, y eso no era decorado — era parte de la misión.
+
+### La decisión que define el ítem
+
+Hay dos lluvias posibles y conviene elegir a propósito, porque son features distintas:
+
+| | **lluvia de ambiente** | **lluvia como mecánica** |
+|---|---|---|
+| qué es | efecto visual y sonoro | un parámetro más del mapa, como el viento |
+| qué cambia | la sensación | **cuánto ves y cuánto te ven** |
+| costo | 1 sesión | varias, y toca balance |
+
+**La versión mecánica es la interesante** porque toca la pinza que el juego ya tiene: la lluvia
+**te tapa a vos y te tapa el mundo al mismo tiempo**. Baja el alcance del radar enemigo (te
+escondés) pero también te come la vista de los obstáculos (te matás). Es la única mecánica del
+backlog que hace las dos cosas con un solo parámetro — y se lleva de la mano con #27 (techo de
+radar variable) y #19 (radares ingleses).
+
+### Cómo podría entrar
+
+- **Cortinas, no gotas sueltas.** A 480×270 la lluvia se lee como **rayas con paralaje por
+  profundidad**: pocas y largas adelante (rápidas), muchas y cortas atrás (lentas). Gotas
+  puntuales a esta resolución se leen como ruido de pantalla.
+- **Acoplada al viento.** `cfg.wind` ya existe: la lluvia tiene que **caer inclinada** en la misma
+  dirección, si no se ve como un filtro pegado encima en vez de agua atravesando el aire.
+- **El agua en el parabrisas es donde se vende.** El clímax (momentum) es en primera persona: ahí
+  la lluvia corriendo por el canopy es lo que más va a impresionar, y es el lugar más barato para
+  que se note.
+- **Intensidad como perilla de misión** (`cfg.rain`, tipo `BOMBARDEO`), no un booleano: garúa,
+  lluvia, tormenta.
+
+### Lo que hay que cuidar
+
+- **El array `parts` no sirve para esto.** Es de **ráfagas**: partículas con `life` que se podan
+  (`prune`) y viven en coordenadas de pantalla. Una lluvia permanente sembrando ahí crearía y
+  destruiría cientos de objetos por segundo. Necesita su propio campo con partículas recicladas.
+- **El mar se dibuja en filas de 1 px.** Rayas verticales encima de esas bandas pueden generar
+  brillo/parpadeo. Hay que mirarlo en movimiento, no en una captura.
+- **Si tapa, tiene que tapar parejo.** Si la lluvia te esconde del radar pero los obstáculos
+  siguen viéndose igual, es ventaja gratis; si tapa los obstáculos pero no te esconde, es castigo
+  puro. El valor está en que haga **las dos cosas a la vez**.
+- **Legibilidad primero.** El juego es de esquivar a ras: si la lluvia hace que un mástil aparezca
+  demasiado tarde, no es tensión, es injusticia. Probar con `OBSTACULOS: MUCHOS`.
+
+- [ ] Decidir ambiente vs mecánica (default sugerido: entrar por ambiente y subir a mecánica).
+- [ ] Campo de lluvia con paralaje, acoplado al viento.
+- [ ] Lluvia en el canopy durante el momentum.
+- [ ] Si es mecánica: efecto sobre detección y sobre distancia de aparición de obstáculos.
+
+> Relacionado con #27 (techo de radar: la lluvia sería la otra forma de esconderse), #19 (radares
+> ingleses), #17 (mecánicas y terrenos) y #8 (más adrenalina en el rasante).
+> Dónde tocar → `game.js:611-641` (fondos por clima y `TBACK_MAP`), `data/palette.js:18` (paleta
+> `storm`), `render/world.js` (el campo de lluvia), `render/momentum.js` (el canopy),
+> `data/tuning.js` (intensidad) y `systems/flight.js` si toca la detección.
+> Las dudas históricas sobre el clima real de cada fecha van a
+> [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md).
+
+## 29.1 Dificultad NIEBLA
+
+La niebla como **dificultad**, no como decorado. Hermana de #29 (lluvia) pero con un rol distinto y
+más limpio: la lluvia es atmósfera que además puede tapar; **la niebla es directamente una perilla
+de dificultad**.
+
+**Por qué es la perilla más honesta que tiene el juego.** RASANTE se juega con un solo recurso:
+**el tiempo que tenés para reaccionar** a lo que aparece en el horizonte. Subir `OBSTACULOS` a
+MUCHOS satura la pantalla y agrega entidades; **la niebla sube la dificultad sin agregar ni un
+objeto** — acorta la distancia a la que ves lo que ya estaba. Es más barata de correr y más pura
+como desafío.
+
+### El corazón del ítem: el velo se mide en SEGUNDOS, no en distancia
+
+Los obstáculos nacen a `SPAWN_Z = 320` (`data/tuning.js`) y `proj()` ya devuelve `k = F / z`, así
+que hacer que algo se desvanezca por profundidad es una rampa de alpha y nada más. **La trampa está
+en el número.**
+
+`run.spd` va de 6 en el despegue a ~150 con afterburner. Si la niebla se define como "ves hasta
+z = 120", esa misma niebla te da **medio segundo** de reacción a toda velocidad y **varios
+segundos** volando lento: sería una dificultad distinta según lo que estés haciendo, y encima
+castigaría exactamente lo que el juego premia (ir rápido y a ras).
+
+**Definila al revés:** el velo es *N segundos de reacción*, y la distancia visible se calcula desde
+la velocidad (`zVelo ≈ spd × N`). Así la niebla es la **misma** dificultad a cualquier velocidad, y
+el número tiene sentido para un humano: "en niebla cerrada ves lo que viene con 0,9 s de aviso".
+
+### La asimetría que la hace parte del juego, no un filtro
+
+**La niebla te ciega a vos, pero el radar inglés te sigue viendo.** El radar no mira: mide. Esa es
+la diferencia con la lluvia (#29), que sí podría esconderte, y es históricamente honesta —
+el mal tiempo ayudaba al ojo, no a la electrónica.
+
+Consecuencia de diseño: la niebla es **puro costo, sin premio**. Por eso es una dificultad y no una
+mecánica de dos filos. Si más adelante se quiere que también te esconda, esa es la lluvia, no esta.
+
+### ⭐ La versión fuerte: la niebla vive DEBAJO del radar
+
+La niebla no ocupa todo el cielo: se acuesta **abajo**, justo en la franja donde se vuela rasante,
+y **su techo queda apenas por debajo del techo del radar** (`RADAR_ALT = 20`). El resultado invierte
+la pinza del juego:
+
+| | normalmente | dentro del banco de niebla |
+|---|---|---|
+| **abajo** | seguro y rentable (racha ×10, afterburner) | **ciego**: no ves lo que viene |
+| **arriba** | te pinta el radar: oleadas de misiles | el único lugar donde **ves** |
+
+O sea: **el banco de niebla te expulsa hacia arriba**, al radar, a aguantar misiles **por un tiempo
+determinado**, hasta que la niebla se termina y podés volver a bajar a lo seguro.
+
+**Por qué esto es mucho mejor que "niebla = ves menos":** es un tramo que **te saca la herramienta
+principal del juego**. RASANTE entero es "volá bajo"; acá el juego te dice, por dos minutos, *no
+podés*. Eso es un momento de nivel, no un modificador — y resuelve solo el problema de que una
+niebla pareja durante todo el mapa se vuelve monótona: **la niebla es temporal porque tiene que
+serlo**, es un obstáculo con principio y fin.
+
+**Y arriba de todo, el filo:** si el techo de la niebla queda **apenas debajo** del piso del radar,
+entre los dos queda una **rendija de dos o tres metros** donde ves *y* no te pintan. El jugador
+común sube y come misiles; el que la encuentra, la hilvana. Es una línea de habilidad que no hay
+que programar aparte — **sale sola de poner los dos umbrales cerca**.
+
+**Contrajugada que ya existe:** el TERRAIN MASKING (ver [PIRUETAS.md](PIRUETAS.md)) clava el avión a
+ras y **descarga el radar**. En este tramo pasa a significar *zambullirse a ciegas en la niebla para
+sacarte los misiles de encima*: riesgo altísimo, premio inmediato. Una maniobra que hoy es un lujo
+se vuelve una decisión.
+
+### Cómo podría entrar
+
+- **El tramo tiene reloj y se ve venir.** Aviso al entrar, indicación de cuánto falta, y el final
+  del banco **visible desde adentro**. Sin eso no es tensión, es aguantar a ciegas sin saber hasta
+  cuándo — y el jugador se rinde en vez de apretar los dientes.
+- **Perilla de misión y fila en el menú `[M]`**: `NIEBLA: NO / BANCOS / CERRADA` (`cfg.fog`), igual
+  que `BOMBARDEO` o `RED RADAR`. La versión de arriba es `BANCOS`; `CERRADA` es la niebla pareja,
+  más simple y más aburrida, útil como dificultad global.
+- **Tres capas para que se lea:** el velo (alpha por `z`), el horizonte **tirado hacia adelante** y
+  el color del mundo lavándose hacia el gris de la niebla a medida que se aleja. Y el **techo del
+  banco tiene que verse** como superficie desde arriba: volar sobre un mar de niebla es la postal.
+
+### Lo que hay que cuidar
+
+- **Hay un piso de reacción por debajo del cual no es dificultad, es una moneda al aire.** El
+  choque mata al instante: si el mástil sale del gris cuando ya no hay maniobra posible, el jugador
+  no siente que falló, siente que le tocó. **Medilo con `tools/feeltest.js`** (corre las ecuaciones
+  reales fuera del navegador) y fijá el piso en segundos, no a ojo.
+- **Decidir qué atraviesa la niebla.** El marcador de objetivo y la barcaza que crece en el
+  horizonte (`drawObjectiveMarker`, `drawApproachBarge`) se vuelven invisibles hasta muy tarde.
+  Default sensato: **el HUD sí atraviesa** (es instrumento, no vista), **el mundo no**.
+- **No la encadenes al cielo.** `cfg.sky` ya elige el fondo; la niebla tiene que ser un parámetro
+  aparte, o vas a poder tener niebla solo en los cielos que alguien decidió que son feos.
+- **Ojo con el mar.** Se dibuja en filas de 1 px: el lavado hacia el gris tiene que ir por bandas
+  de profundidad, no como un velo plano encima, o se pierde la sensación de distancia.
+- **El tramo de niebla no puede acumularse con un techo de radar bajo (#27).** Si la niebla te
+  empuja hacia arriba y al mismo tiempo el radar baja, el corredor se cierra del todo y no hay
+  solución posible. Las dos cierran la misma pinza: **son alternativas, no ingredientes**.
+- **Estar arriba cuesta doble y hay que aceptarlo.** Ahí no cargás racha rasante ni afterburner, y
+  esquivar misiles con turbo **quema combustible** — que con #28 es lo que te queda para el
+  enfrentamiento final. Un tramo de niebla es caro en tres monedas a la vez (puntaje, nafta,
+  riesgo): buenísimo como clímax, veneno si se repite tres veces por nivel.
+- **El largo del banco es el balance entero.** Es *cuánto tiempo te obliga a comer misiles*: unos
+  segundos de más lo vuelven una condena. Definilo en segundos de aguante, igual que el velo.
+
+- [ ] Definir el velo en segundos de reacción y medir el piso con feeltest.
+- [ ] `cfg.fog` (NO / BANCOS / CERRADA) + fila en el menú `[M]` + parámetro por misión.
+- [ ] Rampa por profundidad: alpha, horizonte adelantado y lavado de color.
+- [ ] **Banco de niebla por debajo de `RADAR_ALT`**, con techo visible desde arriba, reloj y final
+      a la vista. Calibrar la rendija entre el techo de la niebla y el piso del radar.
+- [ ] Que el TERRAIN MASKING dentro del banco sea la contrajugada (y probar que no la rompa).
+- [ ] Decidir qué elementos la atraviesan (HUD sí, mundo no).
+
+> Relacionado con #29 (misma familia, rol opuesto: la niebla ciega sin esconder), #27 (techo de
+> radar: las dos aprietan el mismo corredor — **son alternativas, no se suman**), #19 (el radar que
+> no depende del clima), #18 (asimetría), #28 (el tramo alto quema la nafta del final) y con las
+> piruetas ya implementadas (el TERRAIN MASKING es la contrajugada).
+> Dónde tocar → `core/fx.js:16` (`proj()`, de donde sale la `k` por profundidad),
+> `render/world.js` (rampa de niebla, horizonte y techo del banco), `systems/flight.js` (el
+> `alt > RADAR_ALT` de la detección, que es contra lo que juega el banco), `data/tuning.js`
+> (segundos de velo, alto y largo del banco), `game.js` (fila del menú `[M]`), `data/missions.js`
+> (dónde cae el banco en cada misión).
+
+## 30. Maniobra GAMBETA
+
+Una pirueta nueva: la **GAMBETA**. La finta — amagás para un lado y salís para el otro.
+
+**Por qué vale la pena aunque ya haya 11 maniobras:** mirá la tabla de
+[PIRUETAS.md](PIRUETAS.md). SPLIT-S, BREAK TURN, HIGH YO-YO, LOW YO-YO, JINK, S-TURN, TERRAIN
+MASKING, POP-UP: son maniobras de manual de combate, con nombre en inglés. Solo el TIRABUZÓN y el
+TONEL BARRIL están en castellano. **La GAMBETA sería la primera maniobra con nombre argentino de
+verdad** — y no es un detalle de sabor: es de las pocas cosas que puede hacer que este juego no se
+sienta como cualquier arcade de aviones con la calcomanía de Malvinas encima.
+
+### Lo que la haría distinta de las que ya hay (esto es lo importante)
+
+Las 11 maniobras actuales hacen cosas **sobre el propio avión**: gastan o ganan velocidad, encogen
+el hitbox, cambian el rumbo, congelan el roce. **Ninguna le miente a un enemigo.**
+
+La gambeta debería ser **la primera cuyo efecto está en el que te persigue**: el amague es
+información falsa, y el que la compra es el misil guiado o el caza que te está siguiendo el carril.
+
+| | qué hace | sobre quién |
+|---|---|---|
+| **JINK** | 4 quiebres impredecibles, perdés el control del rumbo | vos |
+| **S-TURN** | te abrís y volvés al carril | vos |
+| **GAMBETA** | amagás a un lado, **el que te sigue se compromete**, salís por el otro | **el enemigo** |
+
+Eso le da un lugar propio que ninguna otra ocupa, y engancha con cosas que ya existen: los misiles
+guiados de los antiaéreos (#17, terreno COSTA), los cazas que "tejen y buscan tu carril"
+(`cfg.enemyMove`) y el AIM-9L que persigue mejor del #21.
+
+### Cómo podría entrar
+
+- **Combo de tres toques**, como todas (la regla de PIRUETAS.md: ningún par de dos toques queda
+  ocupado, a propósito). Candidato libre: **`→←←` / `←→→`** — el primer toque ES el amague y los
+  dos siguientes la salida real, o sea que **el combo dibuja la maniobra**, que es el criterio que
+  ya usa el resto de la tabla. **Verificar contra `data/moves.js` antes de fijarlo.**
+- **La ventana del amague es el corazón.** Tiene que haber un instante en que el perseguidor
+  "compra" la finta. Si la maniobra solo desvía el avión, es una S-TURN con otro nombre.
+- **Premio por hacerla bien**: un misil que se pasa de largo, puntos por engaño, un fogonazo de
+  cámara. Que se **vea** que lo hiciste pasar de largo.
+- **Costo:** como toda pirueta, entra al cooldown compartido de 1.15 s. Y debería costar energía
+  (velocidad), si no se vuelve el botón de "no me pueden pegar".
+
+### Lo que hay que cuidar
+
+- **Si no hay nadie persiguiéndote, la gambeta no hace nada.** Hay que decidir qué pasa cuando se
+  ejecuta en vacío: ¿un desvío lateral y ya? Sin respuesta, la maniobra se siente rota la mitad de
+  las veces.
+- **Los enemigos tienen que poder "creerle".** Hoy los misiles guiados apuntan a donde estás.
+  Comprar un amague implica que el que persigue tenga algo parecido a una **intención** — aunque
+  sea un retardo. Es el trabajo real de este ítem, y no está en el render.
+- **El nombre carga sentido.** "Gambeta" es de la cancha, y esa asociación es justamente el punto:
+  la habilidad criolla contra el que tiene mejor equipo (#18). Si además se quiere apoyar en algo
+  que hicieron los pilotos de verdad, **eso hay que verificarlo** — la duda va a
+  [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md), no acá.
+
+- [ ] Fijar el combo (verificar que esté libre en `data/moves.js`).
+- [ ] Definir la ventana de amague y qué significa que el perseguidor "la compre".
+- [ ] Dar intención/retardo a misiles y cazas para que se los pueda engañar.
+- [ ] Feedback de engaño exitoso (el misil pasando de largo).
+- [ ] Qué hace la gambeta si no hay nadie persiguiendo.
+
+> Relacionado con #3 (dashes de esquive cinemáticos — comparten el lenguaje del amague), #9
+> (variedad de enemigos: hace falta que persigan para poder engañarlos), #18 (asimetría: la
+> habilidad criolla contra la tecnología), #21 (el AIM-9L que persigue mejor) y con las piruetas
+> ya implementadas.
+> Dónde tocar → `data/moves.js` (definición y combo), `core/input.js` (detección de la secuencia),
+> `render/plane.js` (la animación), `systems/collision.js` / `systems/spawn.js` (el
+> comportamiento de misiles y cazas que la compran). Ver [PIRUETAS.md](PIRUETAS.md) para el
+> criterio de diseño de las maniobras.
+
 ## 29. Escuadrón: las vidas como aviones de una formación real ✔ (base jugable)
 
 **Implementado** (julio 2026). Cada partida sale con un escuadrón de **1 a 8 aviones** (fila
@@ -828,23 +1084,53 @@ mundo*:
 `[Q]`/`[E]` van aparte de `←`/`→` a propósito: esas mueven el avión de carril **y** alimentan el
 detector de combos, así que rolar con ellas sería rolar sin querer cada vez que esquivás.
 
-La **red de radar** se funde con la maniobra (`tiltFade`). Es un plano horizontal: se entiende como
-*techo* solo vista desde abajo, y rolada pasa a ser una pared de líneas naranjas sobre el mar.
-Medido con la red forzada a SIEMPRE y el avión a 30 m:
+La **red de radar** se funde con la inclinación (`tiltFade`). Es un plano horizontal: se entiende
+como *techo* solo vista desde abajo, y rolada pasa a ser una pared de líneas naranjas sobre el mar.
+El fundido termina en 0,21 rad — **por debajo** de `BANK_TILT` (0,22), así que banquear a fondo la
+apaga del todo en vez de dejar un fantasma. Al nivelar vuelve entera. Medido con la red forzada a
+SIEMPRE y el avión a 30 m: 11376 px nivelado → 612 px (el piso de fondo) banqueando → 11652 al
+volver a nivelar.
 
-| grados de maniobra | 0 | 7 | 10 | 15 | 20 | 25 |
-|---|---|---|---|---|---|---|
-| píxeles de red | 10617 | 7244 | 2815 | 1640 | 629 | 621 |
+No se pierde información: el aviso RADAR, la barra de carga y la altura en rojo viven en el HUD,
+que no gira.
 
-(a partir de 20° los ~620 restantes son fondo, no red). No se pierde información: el aviso RADAR,
-la barra de carga y la altura en rojo viven en el HUD, que no gira.
+### La otra "red naranja": las costuras del mar
 
-> ⚠️ **La primera versión tampoco alcanzaba.** Leía `hzWorld()`, la inclinación **total**, que
-> incluye el banqueo continuo. Para no apagar la red cada vez que el jugador dobla en modo `TOTAL`
-> había que arrancar el fundido por encima de `BANK_TILT` (0,22) y estirarlo hasta 0,95 — con lo
-> cual a 20° de tonel la red seguía al 70% y se veía igual. Ahora se mide `manoeuvreRoll()`
-> (pirueta + giro libre): el banqueo queda afuera **por construcción y no por margen**, y el
-> umbral de la maniobra puede ser agresivo.
+Aparte de la de radar había una segunda rejilla naranja sobre el agua, y **esa sí era un bug del
+giro**. El mar se dibuja en filas horizontales de 1 px; con el canvas rotado cada fila pasa a ser
+un rectángulo inclinado y el antialias de sus bordes deja una **costura de medio píxel** entre fila
+y fila. Por esas costuras se veía lo que hay debajo del mar — la imagen de fondo del clima — y como
+la de atardecer es un desierto, el agua se llenaba de una rejilla naranja al doblar.
+
+Es la misma familia de problema que `CAM_ZOOMS`, donde escalar el raster partía el mar en tiras.
+Rotar lo parte en diagonal. La solución es que las filas **opacas de base** se pisen 1 px (`rowH`
+en `render/world.js`, que vale 2 solo con el mundo girado). Las translúcidas —surcos, bruma— no
+pueden solaparse: el solape se pintaría dos veces y la costura volvería, ahora en oscuro.
+
+Medido como fracción de píxeles cálidos en el cuarto inferior de la pantalla (mar seguro en todos
+los casos), con el mundo girado 26°:
+
+| filas | nivelado | girado, atardecer | girado, nublado |
+|---|---|---|---|
+| 1 px (antes) | 0,5 % | **4,5 %** | 0,5 % |
+| 2 px (ahora) | 0,5 % | **0,8 %** | 0,5 % |
+
+La columna de *nublado* es el control: con un fondo gris no hay nada cálido que filtrarse, y da lo
+mismo antes que después. Eso es lo que prueba que la fuga venía de la imagen de fondo. Y ahora la red se puede **apagar del todo desde OPCIONES** (`RED DE RADAR: NO · AL
+ENTRAR · SIEMPRE`), que persiste — antes solo estaba en el menú `[M]`, o sea inalcanzable jugando
+la campaña.
+
+> ⚠️ **Costó tres intentos, y los dos primeros fallaron por lo mismo.**
+> 1. Se medía la inclinación total con el fundido de 0,30 a 0,95: a 20° de tonel la red seguía al
+>    70% y se veía igual.
+> 2. Se separó la *maniobra* (pirueta + giro libre) del *banqueo* y se dejó el banqueo afuera, para
+>    poder ser agresivo sin apagarla al doblar en `TOTAL`. Peor: con `CONTROL POR ALABEO` el avión
+>    banquea todo el tiempo, así que la red se quedaba entera justo mientras el mundo estaba
+>    torcido.
+>
+> Las dos veces se optimizó contra una distinción que existe en el **código** y no en la
+> **pantalla**. El jugador no ve "una maniobra" ni "un banqueo": ve el mundo inclinado. Ahora se
+> mide `hzWorld()` y punto.
 
 El **horizonte artificial** del HUD (abajo a la izquierda, en espejo del panel de estado) se
 dibuja *siempre*, incluso con `FIJO`: es el único lugar donde ver dónde está el suelo cuando el
@@ -927,3 +1213,61 @@ Lo que queda para después:
 > `tools/unit.js`), `systems/flight.js` (la rama de control, la turbulencia y el alabeo del
 > sprite), `core/state.js` (`cfg.control`, `CTRL_*`), `core/run.js` (`run.bankA`) y `OPT_ROWS` en
 > `game.js`.
+
+---
+
+## 32. OPCIONES: una sola pantalla de configuración (el menú [M] dejó de existir) ✔ (implementado)
+
+La configuración estaba partida en dos, y la división no era por tema sino por accidente histórico:
+**OPCIONES** (idioma y poco más), alcanzable desde la selección de modo, y el menú **`[M]`**, que se
+abría *solo* desde la selección de avión — una pantalla por la que **la campaña nunca pasa**.
+
+Eso dejaba un agujero concreto: `ESCUADRÓN`, `COMBUSTIBLE`, `ENERGÍA` y `PIRUETAS` **sí afectan a la
+campaña** (`CAMPAIGN_CFG` únicamente pisa `sky/water/wind/obstacles/coast`), pero jugando la
+historia no había forma de tocarlas.
+
+Ahora hay **una** pantalla, con secciones, y las de prototipado dicen en qué modos sirven:
+
+| sección | filas |
+|---|---|
+| `JUEGO` | idioma |
+| `CONTROL Y VISTA` | control, horizonte, piruetas, mira, red de radar |
+| `CONTROLES` | teclado y joystick, **solo lectura** |
+| `PARTIDA` | escuadrón, combustible, energía, enemigos |
+| `AMBIENTE · no en la campaña` | fondo, agua |
+| `MAPA · solo POR LA PATRIA y CICLO DE MUERTE` | terreno, viento, obstáculos, bombardeo, costa, pista, acantilado, arranque |
+| `SOLO CICLO DE MUERTE` | metros |
+| `SOLO MINUTOS SAGRADOS` | buque |
+| `DEPURACIÓN` | hitboxes, modo cámara |
+
+- **Todo persiste menos `DEPURACIÓN`**, y eso es deliberado: `MODO CÁMARA` deja el mundo sin avanzar
+  solo, y encontrárselo puesto al abrir el juego se leería como que el juego se rompió.
+- La carga desde `localStorage` **se valida contra `opts`**, la misma lista que la fila ofrece. Antes
+  eran tres bloques copiados a mano con su propio chequeo de rango, y uno tenía un bug:
+  `+localStorage.getItem()` sobre una clave ausente da `0`, que era un valor válido.
+- `label` y `names` son **funciones**, no textos: el idioma es una fila de esta misma pantalla, así
+  que cambiarlo tiene que repintar el resto al instante.
+- El cursor **sí se detiene** en las filas de `CONTROLES` aunque no se puedan cambiar. Salteándolas,
+  la ventana de scroll pasaba de largo por encima de toda la sección: quedaba una lista que se ve al
+  vuelo pero en la que es imposible detenerse a leer, que es su único propósito.
+
+Dos cosas que salieron de acá:
+
+- **El joystick no tenía manejo para la pantalla de OPCIONES.** Con `[M]` vivo casi no importaba;
+  al ser la única pantalla de configuración, jugando con mando te quedabas sin poder tocar nada.
+- **La música del lobby se cortaba al entrar a OPCIONES.** `inLobby()` en `systems/audio.js` no
+  incluía ese estado — y el comentario de esa misma función ya lo había anticipado: *«si se agrega
+  un estado previo al juego, va acá»*. Ahora la música sigue por portada → modos → opciones →
+  selección de avión sin un solo corte; el único corte a propósito es el arranque de la campaña,
+  donde entra el himno.
+
+Lo que queda para después:
+
+- [ ] **Remapear teclas.** Hoy `CONTROLES` es una lista de solo lectura.
+- [ ] El menú de pausa: poder abrir OPCIONES **sin salir de la partida**.
+- [ ] Nombres de botón por tipo de mando (hoy son los de un mando estilo PlayStation, que es el
+      mapeo estándar de la Gamepad API).
+
+> Dónde tocar → `OPT_ROWS` en `game.js` (las filas, las secciones y la persistencia),
+> `drawOptions` en `render/menus.js` (lista con secciones, scroll y las tres columnas de
+> CONTROLES), `core/input.js` (teclado y la rama `'options'` del joystick) y `data/strings.js`.

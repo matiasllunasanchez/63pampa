@@ -46,7 +46,7 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
   cuenta regresiva 3…2…1; el avión carretea y asciende solo, y el control llega a los 3 s
   ("CONTROL LIBRE!"). Se cruza la costa y empieza el mar abierto.
 - **Escuadrón (las vidas)**: se despega en formación de 1 a 8 aviones (`ESCUADRON` en el menú
-  `[M]`, default 4). Al CONTROL LIBRE la formación sale de plano detrás de la cámara — te siguen
+  OPCIONES → PARTIDA, default 4). Al CONTROL LIBRE la formación sale de plano detrás de la cámara — te siguen
   aunque no los veas. Al morir, si queda escuadrón, no hay pantalla de derribado: una cinemática
   corta muestra los restos del líder y el numeral siguiente (GUARDIA 2, 3…) entra, pasa por la
   caída y asume el mando con 2 s de invulnerabilidad y esquive automático. Hereda combustible y
@@ -79,7 +79,7 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
   visual de altura y la principal sensación de velocidad.
 - **Agua "malla de puntos"** (efecto onda, inspirado en el fondo WebGL de boostivity.ai): el mar
   se dibuja como una grilla de puntos en perspectiva desplazada por ondas superpuestas
-  (`drawSeaDots` + `seaH`), que fluye hacia la cámara. Estilo conmutable con `cfg.water` (menú `[M]`):
+  (`drawSeaDots` + `seaH`), que fluye hacia la cámara. Estilo conmutable con `cfg.water` (OPCIONES → AMBIENTE):
   `'sea'` (tono Atlántico, por defecto) o `'violet'` (neón tipo boostivity). Paletas en `WATER_STYLES`.
 - Tocar el agua es fatal. Las olas suben y bajan — el margen nunca es fijo.
 - **Turbo**: +60% de velocidad y **puntaje x2**, pero quema combustible mucho más rápido.
@@ -93,9 +93,10 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
 - **Altímetro en el HUD**: al lado de los km/h, abajo al centro. Se pone **naranja** en la zona
   rasante (≤4,5 m) y **rojo parpadeante con subrayado** cuando estás por encima de la altura de
   detección del radar — el aviso donde ya estás mirando el número que lo causa.
-- **RED DE RADAR** (menú `[M]` → `RED RADAR: NO / AL ENTRAR / SIEMPRE`): dibuja la **malla del
-  techo de detección** (`RADAR_ALT`, hoy 30) como un plano en perspectiva con un **barrido** que
+- **RED DE RADAR** (OPCIONES → `RED DE RADAR: NO / AL ENTRAR / SIEMPRE`): dibuja la **malla del
+  techo de detección** (`RADAR_ALT`, hoy 20) como un plano en perspectiva con un **barrido** que
   viaja desde el horizonte, al estilo de una pantalla de radar. **Por defecto `AL ENTRAR`**:
+  se **funde** cuando el mundo se inclina (rolada deja de leerse como techo) e
   invisible mientras volás por debajo —que es casi todo el juego, y ahí sería ruido sobre algo que
   todavía no te afecta— y **aparece con un fundido al cruzar el techo**, en rojo, latiendo y
   desplegada debajo tuyo, con la línea de umbral punteada a la altura del avión. `SIEMPRE` la deja
@@ -103,7 +104,7 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
   se aprendía muriendo.
 - **Cañón 20mm** con calentamiento: derriba globos (+150), helicópteros (+300, 2 impactos)
   y misiles (+400). Mástiles, fragatas y agua NO se destruyen — esquivar es la habilidad central.
-- **Terreno TIERRA** (`cfg.terrain`, fila TERRENO en `[M]`): además del mar. Sobre tierra el suelo **es letal**
+- **Terreno TIERRA** (`cfg.terrain`, fila TERRENO en OPCIONES): además del mar. Sobre tierra el suelo **es letal**
   (tocarlo = explotás, no rebota): hay que volar en una **banda baja y arriesgada** — bastante arriba para no
   estrellarte, pero bajo para clipear/matar a los **soldados** con el pase rasante (cabeza / impacto de aire).
   Tres formas de eliminarlos:
@@ -159,7 +160,7 @@ produce secuencias completas, y **ninguna maniobra usa repetición vertical**, a
 **Las secuencias dibujan la maniobra**: `↓→↑←` es la vuelta completa del tonel barril (una O),
 `←↓←↓` baja sin cambiar de lado como el tirabuzón, `↓←←` es picar y empujar al costado.
 
-Se apagan desde el menú `[M]` → **PIRUETAS: SI/NO** (el tonel queda siempre).
+Se apagan desde OPCIONES → **PIRUETAS: SI/NO** (el tonel queda siempre).
 **Tabla completa** — duración, qué controlás, si podés disparar o usar turbo, y economía de
 energía: **[docs/PIRUETAS.md](docs/PIRUETAS.md)**.
 
@@ -234,10 +235,10 @@ Los números del gamefeel están en el `<script>` de `index.html`:
   `render/ctx.js`): bajar `F` abre el ángulo pero achica *todo*, incluido lo que querés ver antes.
   Las bandas de comportamiento (AA, caza que dispara, alcance de balas) no se movieron: se ven
   antes, no atacan antes
-- Combustible: drenaje `3.2` (+`4.2` con turbo), bidón `+30` · **toggle en `[M]`**:
+- Combustible: drenaje `3.2` (+`4.2` con turbo), bidón `+30` · **toggle en OPCIONES**:
   fila COMBUSTIBLE SI/NO (`cfg.fuelOn`) — con NO no hay drenaje ni spawn de bidones.
   **Por defecto arranca en NO** (tanque infinito) hasta rebalancear el reloj de combustible
-  (la ruta óptima de bidones es ROADMAP #28); se enciende desde el menú `[M]`
+  (la ruta óptima de bidones es ROADMAP #28); se enciende desde OPCIONES
 - Ventana de near-miss: margen `< 3` en el chequeo de paso (`dx < 3 && dy < 3`)
 - Perfil de colisión del avión: `pw=2.1, ph2=1.0` (afinado; antes 2.6×1.2) — en PIRUETA `1.0×0.7`
 - **PIRUETA (tonel)**: doble-tap `←`/`→` (ventana 0.24s) → tonel de `ROLL_DUR=0.55s`, cooldown
@@ -259,10 +260,10 @@ Al arrancar aparece una **pantalla de selección de modo** (estado `'modeselect'
 
 ```
 modeselect ─► CAMPAÑA (HISTORIA)  ─► takeoff (avión y config fijos)  ─► PASILLO (NIVEL 1 → 2 → …) ─► ARENA
-           ├► CICLO DE MUERTE     ─► menu (avión + [M] config random + METROS) ─► PASILLO (objetivo: barcaza) ─► ARENA
-           ├► POR LA PATRIA       ─► menu (avión + [M] config)      ─► PASILLO infinito (nunca entra a ARENA)
-           ├► MINUTOS SAGRADOS    ─► menu (avión + [M], elegís el BUQUE) ─► directo a ARENA (sin PASILLO)
-           ├► OPCIONES  (idioma · horizonte — preferencias del jugador, persisten)
+           ├► CICLO DE MUERTE     ─► menu (avión)                  ─► PASILLO (objetivo: barcaza) ─► ARENA
+           ├► POR LA PATRIA       ─► menu (avión)                   ─► PASILLO infinito (nunca entra a ARENA)
+           ├► MINUTOS SAGRADOS    ─► menu (avión)                        ─► directo a ARENA (sin PASILLO)
+           ├► OPCIONES  (LA pantalla de configuración: control, controles, partida, mapa…)
            └► SALIR
 ```
 
@@ -287,8 +288,8 @@ camino de CICLO DE MUERTE.
 Como un nivel suelto pero **sin cinemáticas ni orden**: `randomizeCfg()` aleatoriza el mapa (fondo, agua,
 viento, obstáculos) en cada entrada al modo. Al acercarse a la barcaza arranca el **asalto por pasadas
 (MOMENTUM, ver abajo)**; destruir el puente en la pasada final → tarjeta **BARCAZA DESTRUIDA** (`drawObjective`)
-→ vuelve al menú con config nueva. Los **metros totales** (puerto→barcaza) se ajustan en `[M]` fila `METROS` —
-necesario para pruebas. El menú `[M]` está visible en **ciclo de muerte y supervivencia** (la fila METROS solo en ciclo).
+→ vuelve al menú con config nueva. Los **metros totales** (puerto→barcaza) se ajustan en OPCIONES,
+fila `METROS`, dentro de la sección *SOLO CICLO DE MUERTE* — necesario para pruebas.
 
 ### ARENA — el asalto al buque (fase, no minijuego)
 
@@ -358,7 +359,7 @@ igual en todas las clases), `time` (ventana), `maxHp` (dificultad por zona), `pt
 (placeholder por rects; pedido en `docs/UPDATE_ANIMATIONS.md`).
 
 - **Supervivencia** (`gameMode='survival'`): juntar puntos infinitamente hasta morir. Pasás por el menú
-  de **selección de avión** y podés abrir el **menú de configuración `[M]`** para tunear el mapa.
+  de **selección de avión**. La configuración del mapa está en OPCIONES, antes de elegir el modo.
   Desde ese menú, `[ESC]` vuelve a la pantalla de modo.
 - **Campaña / Historia** (`gameMode='campaign'`): **no** pasás por selección — usa un **avión fijo**
   (`CAMPAIGN_PLANE`, hoy el A-4 Skyhawk) y una **config por defecto** (`CAMPAIGN_CFG`). Por niveles:
@@ -393,29 +394,33 @@ mapa y el label `NIVEL 1` / `NIVEL 2`. Falta definir a futuro (a pedido):
 - **i18n**: los textos de config y de las tarjetas de campaña están hardcodeados en español (ASCII).
   Al cerrar el contenido, pasarlos al sistema `STRINGS`/`T()` como el resto.
 
-## Menú de configuración de mapa `[M]`
+## OPCIONES — la pantalla de configuración
 
-Herramienta para **prototipar niveles**, disponible en el **menú de supervivencia** (después de elegir
-ese modo): tecla `[M]` abre el panel. Se navega con flechas (arriba/abajo elige fila, izq/der cambia el
-valor) y `[M]`/`ENTER` cierra. (El modo ya no está acá — se elige en la pantalla inicial.) Permite variar:
+**Toda** la configuración vive en **OPCIONES**, que se alcanza desde la selección de modo — o sea
+también antes de la campaña. Se navega con flechas (arriba/abajo elige fila, izq/der cambia el valor)
+y `[ESC]` vuelve. La lista está partida en secciones, y las de prototipado dicen a qué modos afectan:
 
-| Fila         | Valores                                   | Efecto |
-|--------------|-------------------------------------------|--------|
-| FONDO        | Atardecer / Noche / Tormenta / Despejado / Nublado / Sol pleno / Luna llena / Amanecer | `cfg.sky` (preset de cielo `SKY_PRESETS` + imagen de `TBACK_MAP`) |
-| AGUA         | Mar / Violeta                             | `cfg.water` (paleta `WATER_STYLES`) |
-| VIENTO       | Sí / No                                   | `cfg.wind` (viento en altura on/off) |
-| OBSTÁCULOS   | Ninguno / Pocos / Normal / Muchos         | `cfg.obstacles` (multiplicador de densidad) |
-| ESCUADRON    | Solo / 2 … 8                              | `cfg.squad` (vidas: compañeros que te relevan al morir) |
-| COSTA        | Corta / Normal / Larga                    | `cfg.coast` (metros de tierra antes del mar) |
+| sección | qué hay |
+|---------|---------|
+| JUEGO | idioma |
+| CONTROL Y VISTA | control (directo / por alabeo), horizonte, piruetas, mira, red de radar |
+| CONTROLES | teclado y joystick, **solo lectura** |
+| PARTIDA | escuadrón (vidas), combustible, energía, enemigos móviles |
+| AMBIENTE · *no en la campaña* | fondo (8 cielos), agua |
+| MAPA · *solo POR LA PATRIA y CICLO DE MUERTE* | terreno, viento, obstáculos, bombardeo, costa, pista, acantilado, arranque |
+| SOLO CICLO DE MUERTE | metros |
+| SOLO MINUTOS SAGRADOS | buque |
+| DEPURACIÓN | hitboxes, modo cámara |
 
-> **Qué NO va acá.** Este menú es del **mapa**, y solo se abre desde la selección de avión — la
-> campaña nunca pasa por él. Una preferencia de la *persona* (idioma, horizonte, y lo que venga)
-> va a la pantalla **OPCIONES**, que se alcanza siempre y persiste en `localStorage`. Si no, quien
-> la necesitara jugando la historia quedaría atrapado.
+Todo **persiste** entre sesiones menos DEPURACIÓN, que arranca siempre apagada a propósito (MODO
+CÁMARA deja el mundo sin avanzar solo; encontrárselo puesto se leería como que el juego se rompió).
 
-En **supervivencia** estos valores se aplican tal cual (prototipado libre). La **campaña** no usa este
-menú: arranca con `CAMPAIGN_CFG` fijo. El objeto `cfg` es lo que lee todo el juego; agregar una característica
-nueva = sumar campo a `cfg` + fila a `CFG_ROWS` + leerla donde corresponda.
+> El menú `[M]` **ya no existe**. Se abría solo desde la selección de avión, una pantalla por la que
+> la campaña nunca pasa — y varias de sus filas (ESCUADRÓN, COMBUSTIBLE, ENERGÍA, PIRUETAS) sí
+> afectan a la campaña, porque `CAMPAIGN_CFG` únicamente pisa `sky/water/wind/obstacles/coast`.
+
+El objeto `cfg` es lo que lee todo el juego; agregar una característica nueva = sumar campo a `cfg`
++ fila a `OPT_ROWS` (con `save:` si tiene que persistir) + leerla donde corresponda.
 
 > Nota: "flying sobre tierra" (todo el nivel sobre terreno, no mar) requiere un render de terreno — hoy solo
 > hay agua + un tramo de costa/pista al inicio. Pendiente si se quiere un nivel íntegramente terrestre.

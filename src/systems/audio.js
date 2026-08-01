@@ -169,9 +169,21 @@ export function updateSfx(dt, w) {
 // la música del lobby suena SOLO en las pantallas previas a arrancar (selección de modo + menú);
 // desde que empieza la partida (takeoff/play) y en sus pantallas de fin (derribado, nivel, victoria,
 // objetivo) suena la del juego — nunca la del lobby.
-// LOBBY = portada + eleccion de modo + eleccion de avion. Ahi suena SIEMPRE lobby.mp3 en loop.
-// (Si se agrega un estado previo al juego, va aca: olvidarlo hace que suene la pista del juego.)
-function inLobby(state) { return state === 'title' || state === 'modeselect' || state === 'menu'; }
+// LOBBY = TODA la navegacion previa a jugar: portada, eleccion de modo, OPCIONES y eleccion de
+// avion. Ahi suena SIEMPRE lobby.mp3 en loop, sin cortes al pasar de una pantalla a otra.
+//
+// 'options' faltaba, y el aviso de abajo lo habia anticipado: entrar a configurar cortaba la
+// musica del lobby y arrancaba la del juego. Ahora ademas es LA pantalla de configuracion (absorbio
+// al menu [M]), asi que se pasa mucho mas tiempo ahi.
+//
+// El unico corte a proposito es 'story': ahi arranca la campaña y entra el himno (musStory).
+//
+// ⚠️ SI SE AGREGA UN ESTADO PREVIO AL JUEGO, VA ACA. Olvidarlo hace que suene la pista del juego
+// en una pantalla de menu. Ojo tambien con render: game.js tiene su PROPIO inLobby() para rotar el
+// fondo, y las dos listas tienen que decir lo mismo.
+function inLobby(state) {
+  return state === 'title' || state === 'modeselect' || state === 'options' || state === 'menu';
+}
 export function updateMusic(state) {
   lastState = state;
   if (muted) { if (eng) eng.g.gain.value = 0; return; }

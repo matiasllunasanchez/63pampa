@@ -4,10 +4,10 @@ import { STRINGS } from './data/strings.js';
 import { P, SKY_PRESETS, LAND } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS } from './data/missions.js';
-import { L, T, getLang, cycleLang, applyChrome } from './core/i18n.js';
+import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { wrapChars, multOf } from './core/util.js';
-import { S, setState, cfg, cam, plane, stats, resetPlane, resetStats, CTRL_N } from './core/state.js';
-import { hzWorld, stepHorizon, HZ_N } from './core/horizon.js';
+import { S, setState, cfg, cam, plane, stats, resetPlane, resetStats, CTRL_DIRECT, CTRL_BANK } from './core/state.js';
+import { hzWorld, stepHorizon } from './core/horizon.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts,
          prune, clearWorld } from './core/world.js';
 import { run, resetRun } from './core/run.js';
@@ -59,6 +59,8 @@ import { RUNWAYS } from './data/runways.js';
 
     // ---------- paleta ----------
 
+
+    const LANGS = Object.keys(STRINGS);   // idiomas disponibles: los ofrece la fila IDIOMA
 
     // ====================== CONFIGURACIÓN DE MAPA / NIVELES / MODOS ======================
     // Estilos de agua (malla de puntos). 'sea' = tono Atlántico; 'violet' = neón tipo boostivity.
@@ -136,13 +138,13 @@ import { RUNWAYS } from './data/runways.js';
     }
     function curMission() { return MISSIONS[curLevel]; }
     // transiciones desde la pantalla inicial de modo
-    function goSurvival() { gameMode = 'survival'; cfgOpen = false; cfgRow = 0; setState('menu'); beep(600, 0.08, 'square', 0.05); }
+    function goSurvival() { gameMode = 'survival'; setState('menu'); beep(600, 0.08, 'square', 0.05); }
     // CICLO DE MUERTE: las mismas misiones de la campaña, una al azar, sin el guion largo
-    function goCycle() { gameMode = 'cycle'; cfgOpen = false; cfgRow = 0; randomMission(); setState('menu'); beep(600, 0.08, 'square', 0.05); }
+    function goCycle() { gameMode = 'cycle'; randomMission(); setState('menu'); beep(600, 0.08, 'square', 0.05); }
     // MINUTOS SAGRADOS: SOLO la batalla contra el buque, en su zona — el modo NO tiene camino.
     // Pasa por el menu (avion + [M], donde se elige el BUQUE) y al arrancar salta DERECHO al
     // asalto. Es un modo propio: nunca encadena a CICLO DE MUERTE ni al despegue.
-    function goArena() { gameMode = 'arena'; cfgOpen = false; cfgRow = 0; loadLevel(cfg.arenaShip); setState('menu'); beep(600, 0.08, 'square', 0.05); }
+    function goArena() { gameMode = 'arena'; loadLevel(cfg.arenaShip); setState('menu'); beep(600, 0.08, 'square', 0.05); }
     /** Arranca UNA batalla de MINUTOS SAGRADOS. Como el vuelo no se juega, `run.dist` nace EN el
      *  objetivo y se entra al asalto directo.
      *  `nextShip` sortea otro buque — es la SIGUIENTE batalla (el modo son batallas aleatorias);
@@ -242,98 +244,163 @@ import { RUNWAYS } from './data/runways.js';
       setRunMusic(gameMode === 'campaign', curLevel, keepMusic);
     }
 
-    // ---------- OPCIONES (pantalla propia, se llega desde el menú de modos) ----------
-    // el orden tiene que coincidir con HZ_FIX/HZ_MOVES/HZ_ALL/HZ_FREE de core/horizon.js
-    const HZ_NAMES = ['optHzFix', 'optHzMoves', 'optHzAll', 'optHzFree'];
-    // idem CTRL_DIRECT / CTRL_BANK de core/state.js
-    const CTRL_NAMES = ['optCtrlDirect', 'optCtrlBank'];
-    // Preferencias de la PERSONA, no del mapa. Por eso NO viven en el menú [M] —que ademas solo
-    // se abre desde la seleccion de avion, y la campaña nunca pasa por ahi: quien necesitara
-    // apagar algo jugando la historia quedaria atrapado— y por eso PERSISTEN en localStorage.
-    // Cada fila trae `label`/`value` como funciones porque el idioma se cambia desde esta misma
-    // pantalla: si fueran textos fijos, cambiar el idioma no repintaria el nombre de las filas.
+    // ---------- OPCIONES: LA pantalla de configuración ----------
+    // Antes esto estaba partido en dos: OPCIONES (idioma y poco más) y el menú [M], que se abría
+    // SOLO desde la selección de avión. Eso dejaba a la campaña sin acceso a nada — y varias de
+    // las filas de [M] (ESCUADRÓN, COMBUSTIBLE, ENERGÍA, PIRUETAS) sí la afectan, porque
+    // CAMPAIGN_CFG únicamente pisa sky/water/wind/obstacles/coast. Se unificaron acá y [M] dejó
+    // de existir.
+    //
+    // La lista lleva ENCABEZADOS de sección, y los de las filas de prototipado dicen en qué modos
+    // sirven: quien juega la campaña tiene que poder ver de un vistazo que el bloque de MAPA no
+    // le hace nada.
+    //
+    // FORMA DE UNA FILA: { label, opts, names, get, set } — `label` y `names` son funciones para
+    // que cambiar el IDIOMA (que es una fila de esta misma pantalla) repinte el resto al instante.
+    // `save` es la clave de localStorage; `preview` le pide al render que dibuje el valor.
+    const yesNo = () => [T('optYes'), T('optNo')];
     const OPT_ROWS = [
-      { label: () => T('optLang'), value: () => T('langName'), change: () => cycleLang() },
-      // HORIZONTE GIRATORIO: ver core/horizon.js. Se puede cambiar en cualquier momento —es solo
-      // dibujo— asi que no hace falta reiniciar nada al tocarlo.
-      { label: () => T('optHorizon'),
-        value: () => T(HZ_NAMES[cfg.horizon] || HZ_NAMES[1]),
-        change: dir => {
-          cfg.horizon = (cfg.horizon + dir + HZ_N) % HZ_N;
-          try { localStorage.setItem('rasante_horizonte', cfg.horizon); } catch (e) { }
-        } },
-      // ESQUEMA DE CONTROL. Es la UNICA fila de esta pantalla que cambia como se JUEGA y no como
-      // se ve, asi que va aparte y no como una posicion mas de HORIZONTE — meterla ahi romperia
-      // la promesa de que esa perilla es puro dibujo.
-      { label: () => T('optControl'),
-        value: () => T(CTRL_NAMES[cfg.control] || CTRL_NAMES[0]),
-        change: dir => {
-          cfg.control = (cfg.control + dir + CTRL_N) % CTRL_N;
-          run.bankA = 0;   // cambiar de esquema no puede dejar un alabeo colgado del anterior
-          try { localStorage.setItem('rasante_control', cfg.control); } catch (e) { }
-        } },
-    ];
-    let optRow = 0;
+      { head: 'optSecJuego' },
+      { label: () => T('optLang'), opts: LANGS, names: () => LANGS.map(l => STRINGS[l].langName),
+        get: () => getLang(), set: v => { setLang(v); applyChrome(); } },
 
-    // ---------- MENÚ DE CONFIGURACIÓN DE MAPA [M] (herramienta para prototipar niveles) ----------
-    const CFG_ROWS = [
-      { label: 'METROS', opts: [800, 1500, 3000, 5000, 8000], names: ['800 m', '1500 m', '3000 m', '5000 m', '8000 m'], get: () => cfg.meters, set: v => cfg.meters = v, cycleOnly: true },
-      // BUQUE: solo en ARENA — elegir el blanco es lo que permite probar los tres layouts de
-      // zonas (t42 / t21 / log) sin depender del sorteo de misiones.
-      { label: 'BUQUE', opts: MISSIONS.map((m, i) => i), names: MISSIONS.map(m => m.name),
-        get: () => cfg.arenaShip, set: v => { cfg.arenaShip = v; loadLevel(v, true); }, arenaOnly: true },
-      // FONDO: el orden tiene que seguir a SKY_PRESETS (data/palette.js) y a TBACK_MAP
-      { label: 'FONDO', opts: ['dusk', 'night', 'storm', 'clear', 'cloudy', 'sun', 'moon', 'dawn'],
-        names: ['ATARDECER', 'NOCHE', 'TORMENTA', 'DESPEJADO', 'NUBLADO', 'SOL PLENO', 'LUNA LLENA', 'AMANECER'],
-        get: () => cfg.sky, set: v => { cfg.sky = v; applyCfg(); } },
-      // elegir COSTA trae su clima: dia nublado de desembarco (el FONDO se puede cambiar despues)
-      { label: 'TERRENO', opts: ['sea', 'land', 'coast'], names: ['MAR', 'TIERRA', 'COSTA'], get: () => cfg.terrain, set: v => { cfg.terrain = v; if (v === 'coast') { cfg.sky = 'cloudy'; applyCfg(); } } },
-      { label: 'AGUA', opts: ['sea', 'violet'], names: ['MAR', 'VIOLETA'], get: () => cfg.water, set: v => { cfg.water = v; applyCfg(); } },
-      { label: 'VIENTO', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.wind, set: v => cfg.wind = v },
-      { label: 'OBSTACULOS', opts: [0, 0.5, 1, 1.7], names: ['NINGUNO', 'POCOS', 'NORMAL', 'MUCHOS'], get: () => cfg.obstacles, set: v => cfg.obstacles = v },
-      { label: 'BOMBARDEO', opts: [0, 0.5, 1, 2], names: ['NO', 'POCO', 'NORMAL', 'INTENSO'], get: () => cfg.bombs, set: v => cfg.bombs = v },
-      // ESCUADRON: las VIDAS, contadas como aviones de la formacion (ver systems/squad.js).
-      // SOLO = el juego de siempre: morir es morir.
-      { label: 'ESCUADRON', opts: [1, 2, 3, 4, 5, 6, 7, 8], names: ['SOLO', '2', '3', '4', '5', '6', '7', '8'], get: () => cfg.squad, set: v => cfg.squad = v },
-      // ENEMIGOS: movimiento propio (globos al viento, helos patrullando, cazas que te buscan,
-      // vehiculos rodando, fragatas navegando). QUIETOS = como antes de existir la opcion.
-      { label: 'ENEMIGOS', opts: [true, false], names: ['MOVILES', 'QUIETOS'], get: () => cfg.enemyMove, set: v => cfg.enemyMove = v },
-      // RED DE RADAR: hace visible el techo del corredor seguro (la altura de deteccion)
-      { label: 'RED RADAR', opts: [0, 1, 2], names: ['NO', 'AL ENTRAR', 'SIEMPRE'], get: () => cfg.radarNet, set: v => cfg.radarNet = v },
-      // PIRUETAS: los combos de dos toques (split-s, break turn...). El tonel queda siempre.
-      { label: 'PIRUETAS', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.moves, set: v => cfg.moves = v },
-      { label: 'COMBUSTIBLE', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.fuelOn, set: v => cfg.fuelOn = v },
-      { label: 'ENERGIA', opts: [true, false], names: ['SI', 'NO'], get: () => cfg.energy, set: v => cfg.energy = v },   // altura<->velocidad: para comparar A/B la sensacion
-      { label: 'COSTA', opts: [120, 230, 400], names: ['CORTA', 'NORMAL', 'LARGA'], get: () => cfg.coast, set: v => cfg.coast = v },
-      // PISTA: el estilo de la base de despegue (ver data/runways.js)
-      { label: 'PISTA', opts: RUNWAYS.map((r, i) => i), names: RUNWAYS.map(r => r.name), get: () => cfg.runway, set: v => cfg.runway = v },
-      // ACANTILADO: la base sobre una meseta — se sale al vacio en vez de tirar de la palanca.
-      // Cambia la altura de arranque, asi que hay que recolocar el avion.
-      { label: 'ACANTILADO', opts: [false, true], names: ['NO', 'SI'], get: () => cfg.cliff, set: v => { cfg.cliff = v; resetPlane(); } },
-      // ARRANQUE: 'air' = mision de REGRESO, empieza volando y no hay base de la que salir
-      { label: 'ARRANQUE', opts: ['runway', 'air'], names: ['PISTA', 'EN VUELO'], get: () => cfg.start, set: v => { cfg.start = v; resetPlane(); } },
-      // HITBOXES: overlay de depuracion (verde fluor = letal, celeste = daño, magenta = el avion)
-      { label: 'HITBOXES', opts: [false, true], names: ['NO', 'SI'], get: () => cfg.hitboxes, set: v => cfg.hitboxes = v },
-      // MODO CAMARA: el mundo avanza a mano (↑↓), camara libre (←→ lateral, R/F altura)
-      { label: 'MODO CAMARA', opts: [false, true], names: ['NORMAL', 'LIBRE'], get: () => cfg.devcam, set: v => cfg.devcam = v },
-      // MIRA: no es del mapa como las demas, pero el menu [M] es donde el jugador espera
-      // encontrarla. `preview` le dice a drawCfg que dibuje la mira de verdad en la fila
-      // (un nombre no sirve: hay que VERLA). Persiste, porque es una preferencia del jugador.
-      { label: 'MIRA', opts: MIRA_IDS, names: MIRA_IDS.map(String), preview: 'mira',
-        get: () => cfg.mira, set: v => { cfg.mira = v; try { localStorage.setItem('rasante_mira', v); } catch (e) { } } },
+      { head: 'optSecControl' },
+      // ESQUEMA DE CONTROL: la única fila que cambia cómo se JUEGA y no cómo se ve.
+      { label: () => T('optControl'), opts: [CTRL_DIRECT, CTRL_BANK],
+        names: () => [T('optCtrlDirect'), T('optCtrlBank')],
+        get: () => cfg.control, set: v => { cfg.control = v; run.bankA = 0; }, save: 'rasante_control' },
+      { label: () => T('optHorizon'), opts: [0, 1, 2, 3],
+        names: () => [T('optHzFix'), T('optHzMoves'), T('optHzAll'), T('optHzFree')],
+        get: () => cfg.horizon, set: v => cfg.horizon = v, save: 'rasante_horizonte' },
+      // PIRUETAS: los combos direccionales (split-s, break turn…). El tonel queda siempre.
+      { label: () => T('optMoves'), opts: [true, false], names: yesNo,
+        get: () => cfg.moves, set: v => cfg.moves = v, save: 'rasante_piruetas' },
+      // MIRA: se elige VIÉNDOLA, no leyendo un número — de eso se encarga `preview`.
+      { label: () => T('optMira'), opts: MIRA_IDS, names: () => MIRA_IDS.map(String), preview: 'mira',
+        get: () => cfg.mira, set: v => cfg.mira = v, save: 'rasante_mira' },
+      { label: () => T('optNet'), opts: [0, 1, 2],
+        names: () => [T('optNetOff'), T('optNetEnter'), T('optNetAlways')],
+        get: () => cfg.radarNet, set: v => cfg.radarNet = v, save: 'rasante_red' },
+
+      // CONTROLES: filas de solo LECTURA. No se cambian (el remapeo no existe todavia): estan para
+      // que las teclas y los botones se puedan CONSULTAR sin salir del juego ni abrir el README.
+      // El cursor las saltea igual que a los encabezados.
+      { head: 'optSecCtrl' },
+      { cols: true },   // rotulos TECLADO / JOYSTICK de las dos columnas
+      ...[['Fly'], ['Gas'], ['Dive'], ['Gun'], ['Msl'], ['Boost'], ['Moves'], ['Roll'],
+          ['Aim'], ['Cam'], ['Inv'], ['Music'], ['Menu']]
+        .map(([k]) => ({ ctrl: 'ctrl' + k, kb: 'ctrl' + k + 'K', pad: 'ctrl' + k + 'P' })),
+
+      { head: 'optSecPartida' },
+      // ESCUADRÓN: las VIDAS, contadas como aviones de la formación (ver systems/squad.js).
+      { label: () => T('optSquad'), opts: [1, 2, 3, 4, 5, 6, 7, 8],
+        names: () => [T('optSquadSolo'), '2', '3', '4', '5', '6', '7', '8'],
+        get: () => cfg.squad, set: v => cfg.squad = v, save: 'rasante_escuadron' },
+      { label: () => T('optFuel'), opts: [true, false], names: yesNo,
+        get: () => cfg.fuelOn, set: v => cfg.fuelOn = v, save: 'rasante_combustible' },
+      { label: () => T('optEnergy'), opts: [true, false], names: yesNo,   // altura <-> velocidad
+        get: () => cfg.energy, set: v => cfg.energy = v, save: 'rasante_energia' },
+      // ENEMIGOS: movimiento propio (globos, helos patrullando, cazas que te buscan, fragatas).
+      { label: () => T('optEnemies'), opts: [true, false],
+        names: () => [T('optEnemiesOn'), T('optEnemiesOff')],
+        get: () => cfg.enemyMove, set: v => cfg.enemyMove = v, save: 'rasante_enemigos' },
+
+      // FONDO y AGUA también pintan el ARENA (three-arena lee theme.sky/theme.water), por eso no
+      // están en el bloque de MAPA: ese es solo del PASILLO.
+      { head: 'optSecAmbiente' },
+      { label: () => T('optSky'), opts: ['dusk', 'night', 'storm', 'clear', 'cloudy', 'sun', 'moon', 'dawn'],
+        names: () => [T('optSkyDusk'), T('optSkyNight'), T('optSkyStorm'), T('optSkyClear'),
+                      T('optSkyCloudy'), T('optSkySun'), T('optSkyMoon'), T('optSkyDawn')],
+        get: () => cfg.sky, set: v => { cfg.sky = v; applyCfg(); }, save: 'rasante_fondo' },
+      { label: () => T('optWater'), opts: ['sea', 'violet'],
+        names: () => [T('optWaterSea'), T('optWaterViolet')],
+        get: () => cfg.water, set: v => { cfg.water = v; applyCfg(); }, save: 'rasante_agua' },
+
+      { head: 'optSecMapa' },
+      // elegir COSTA trae su clima: día nublado de desembarco (el FONDO se puede cambiar después)
+      { label: () => T('optTerrain'), opts: ['sea', 'land', 'coast'],
+        names: () => [T('optTerrainSea'), T('optTerrainLand'), T('optTerrainCoast')],
+        get: () => cfg.terrain, set: v => { cfg.terrain = v; if (v === 'coast') { cfg.sky = 'cloudy'; applyCfg(); } },
+        save: 'rasante_terreno' },
+      { label: () => T('optWind'), opts: [true, false], names: yesNo,
+        get: () => cfg.wind, set: v => cfg.wind = v, save: 'rasante_viento' },
+      { label: () => T('optObst'), opts: [0, 0.5, 1, 1.7],
+        names: () => [T('optObst0'), T('optObst1'), T('optObst2'), T('optObst3')],
+        get: () => cfg.obstacles, set: v => cfg.obstacles = v, save: 'rasante_obstaculos' },
+      { label: () => T('optBombs'), opts: [0, 0.5, 1, 2],
+        names: () => [T('optBombs0'), T('optBombs1'), T('optBombs2'), T('optBombs3')],
+        get: () => cfg.bombs, set: v => cfg.bombs = v, save: 'rasante_bombardeo' },
+      { label: () => T('optCoast'), opts: [120, 230, 400],
+        names: () => [T('optCoastShort'), T('optCoastMid'), T('optCoastLong')],
+        get: () => cfg.coast, set: v => cfg.coast = v, save: 'rasante_costa' },
+      { label: () => T('optRunway'), opts: RUNWAYS.map((r, i) => i), names: () => RUNWAYS.map(r => r.name),
+        get: () => cfg.runway, set: v => cfg.runway = v, save: 'rasante_pista' },
+      // ACANTILADO y ARRANQUE cambian dónde NACE el avión, así que hay que recolocarlo.
+      { label: () => T('optCliff'), opts: [false, true], names: () => [T('optNo'), T('optYes')],
+        get: () => cfg.cliff, set: v => { cfg.cliff = v; resetPlane(); }, save: 'rasante_acantilado' },
+      { label: () => T('optStart'), opts: ['runway', 'air'],
+        names: () => [T('optStartRunway'), T('optStartAir')],
+        get: () => cfg.start, set: v => { cfg.start = v; resetPlane(); }, save: 'rasante_arranque' },
+
+      { head: 'optSecCiclo' },
+      { label: () => T('optMeters'), opts: [800, 1500, 3000, 5000, 8000],
+        names: () => ['800 m', '1500 m', '3000 m', '5000 m', '8000 m'],
+        get: () => cfg.meters, set: v => cfg.meters = v, save: 'rasante_metros' },
+
+      { head: 'optSecArena' },
+      // BUQUE: elegir el blanco es lo que permite probar los tres layouts de zonas sin depender
+      // del sorteo. `loadLevel` solo si YA estás en arena: fuera de ese modo movería el nivel de
+      // campaña/ciclo por debajo, que es lo último que espera alguien tocando OPCIONES.
+      { label: () => T('optShip'), opts: MISSIONS.map((m, i) => i), names: () => MISSIONS.map(m => m.name),
+        get: () => cfg.arenaShip, set: v => { cfg.arenaShip = v; if (gameMode === 'arena') loadLevel(v, true); },
+        save: 'rasante_buque' },
+
+      // DEPURACIÓN: lo único que NO persiste, a propósito. MODO CAMARA deja el mundo sin avanzar
+      // solo; encontrárselo puesto al abrir el juego se leería como que el juego se rompió.
+      { head: 'optSecDebug' },
+      { label: () => T('optHitboxes'), opts: [false, true], names: () => [T('optNo'), T('optYes')],
+        get: () => cfg.hitboxes, set: v => cfg.hitboxes = v },
+      { label: () => T('optDevcam'), opts: [false, true],
+        names: () => [T('optDevcamOff'), T('optDevcamOn')],
+        get: () => cfg.devcam, set: v => cfg.devcam = v },
     ];
-    // filas visibles según el modo (METROS solo en ciclo de muerte, BUQUE solo en arenas)
-    function getCfgRows() {
-      return CFG_ROWS.filter(r => (!r.cycleOnly || gameMode === 'cycle')
-                               && (!r.arenaOnly || gameMode === 'arena'));
+    // El cursor NO se para en encabezados ni en los rotulos de columna. Si se para en las filas de
+    // CONTROLES aunque no se puedan cambiar: son las unicas de solo lectura, y salteandolas la
+    // ventana de scroll pasaba de largo por encima de toda la seccion — quedaba una lista que se
+    // ve al vuelo pero en la que es imposible detenerse a LEER, que es su unico proposito.
+    const isHead = i => { const r = OPT_ROWS[i]; return !!(r.head || r.cols); };
+    let optRow = OPT_ROWS.findIndex(r => !r.head);   // el cursor nunca se para en un encabezado
+
+    /** Mueve el cursor SALTEANDO encabezados. Sin esto la lista tendría paradas muertas. */
+    function optNav(dir) {
+      let i = optRow;
+      for (let n = 0; n < OPT_ROWS.length; n++) {
+        i = (i + dir + OPT_ROWS.length) % OPT_ROWS.length;
+        if (!isHead(i)) { optRow = i; return; }
+      }
     }
-    let cfgOpen = false, cfgRow = 0;
-    function cfgChange(dir) {
-      const r = getCfgRows()[cfgRow];
+    function optChange(dir) {
+      const r = OPT_ROWS[optRow];
+      if (!r.opts) return;   // filas de CONTROLES: se leen, no se cambian (no hay remapeo todavia)
       let i = r.opts.findIndex(o => o === r.get()); if (i < 0) i = 0;
       i = (i + dir + r.opts.length) % r.opts.length;
-      r.set(r.opts[i]); beep(560, 0.05, 'square', 0.04);
+      r.set(r.opts[i]);
+      if (r.save) { try { localStorage.setItem(r.save, JSON.stringify(r.opts[i])); } catch (e) { } }
     }
+    /** Relee lo guardado. Se valida contra `opts`: un valor viejo o corrupto no puede meter en
+     *  `cfg` algo que la fila no ofrece, que es como se cuelan los estados imposibles. */
+    function loadOpts() {
+      for (const r of OPT_ROWS) {
+        if (!r.save) continue;
+        try {
+          const raw = localStorage.getItem(r.save);
+          if (raw === null) continue;
+          const v = JSON.parse(raw);
+          if (r.opts.some(o => o === v)) r.set(v);
+        } catch (e) { }
+      }
+    }
+
     // ====================================================================================
 
     // aviones seleccionables — sprites embebidos como data URI (artifact autocontenido)
@@ -361,6 +428,9 @@ import { RUNWAYS } from './data/runways.js';
     // PPAL_ROT segundos empieza a rotar al azar, con un cruce suave de PPAL_FADE.
     const PPAL_ROT = 8, PPAL_FADE = 0.9;
     let ppalIdx = 0, ppalPrev = 0, ppalT = 0, ppalFade = 1;
+    // OJO: systems/audio.js tiene su propia lista de estados de lobby (para la MUSICA) y tiene que
+    // coincidir con esta. Son dos porque responden preguntas distintas —esta decide si rota el
+    // fondo del lobby— pero si divergen, se nota: o el fondo se congela o la musica se corta.
     const inLobby = () => S.state === 'title' || S.state === 'modeselect' || S.state === 'menu' || S.state === 'options';
 
     // ESTRELLAS 1..4 (la 4ª = Malvinas, rango S). Compartido por el recuento de nivel y el
@@ -398,25 +468,12 @@ import { RUNWAYS } from './data/runways.js';
     // salir. SCRAPE_BASE son los segundos de gracia a baja velocidad; a mucha velocidad/turbo se
     // reduce hasta SCRAPE_MIN. Salir de la superficie descuenta el reloj, pero no lo borra.
     try { best = +localStorage.getItem('rasante_frontal_best') || 0; } catch (e) { }
-    // la mira elegida sobrevive entre sesiones (preferencia del jugador, no del mapa)
-    try { const m = +localStorage.getItem('rasante_mira'); if (m >= 1 && m <= MIRA_IDS.length) cfg.mira = m; } catch (e) { }
-    // idem el HORIZONTE GIRATORIO: quien lo apago porque se marea no tiene que volver a apagarlo
-    // cada vez que abre el juego. Se relee con rango (un valor viejo o roto no puede dejar
-    // cfg.horizon fuera de 0..2 y romper la fila de OPCIONES).
-    // OJO CON EL null: aca no alcanza con copiar la linea de la mira. `+getItem()` sobre una clave
-    // que NO EXISTE da 0, y 0 PASA el rango — o sea que sin esta guarda todo jugador nuevo
-    // arrancaria en FIJO y la funcion vendria apagada de fabrica. A la mira la salva de casualidad
-    // que su rango empiece en 1.
-    try {
-      const h = localStorage.getItem('rasante_horizonte');
-      if (h !== null && +h >= 0 && +h < HZ_N) cfg.horizon = +h;
-    } catch (e) { }
-    // el ESQUEMA DE CONTROL, igual (y con la misma guarda del null: `+null` da 0, que es un valor
-    // valido, asi que sin el chequeo explicito no se distingue de "el jugador eligio DIRECTO")
-    try {
-      const c = localStorage.getItem('rasante_control');
-      if (c !== null && +c >= 0 && +c < CTRL_N) cfg.control = +c;
-    } catch (e) { }
+    // TODA la configuracion elegida en OPCIONES sobrevive entre sesiones (menos DEPURACION, ver
+    // OPT_ROWS). Antes esto eran tres bloques copiados a mano, cada uno con su propio chequeo de
+    // rango — y uno de ellos tenia un bug: `+localStorage.getItem()` sobre una clave AUSENTE da 0,
+    // y 0 era un valor valido, asi que el default no sobrevivia al primer arranque. Validar contra
+    // `opts` (la misma lista que ofrece la fila) hace que ese error ya no se pueda escribir.
+    loadOpts();
 
     function reset() {
       resetRun();       // toda la corrida (velocidad, nafta, rachas, armas, spawn…) a su estado inicial
@@ -492,7 +549,7 @@ import { RUNWAYS } from './data/runways.js';
 
     // Cablea el input. core/input.js escucha teclado/mouse/tactil y actualiza inp/mouse/pointer;
     // las ACCIONES semanticas (navegar menu, confirmar, tonel, misil, camara) vuelven aca como
-    // callbacks — el estado de menu/camara (modeSel, selPlane, cfgOpen, cfgRow, camMode) vive aca,
+    // callbacks — el estado de menu/camara (modeSel, selPlane, optRow, camMode) vive aca,
     // no en el modulo de input.
     initInput(cv, {
       modeNav: dir => { modeSel = (modeSel + dir + MODES.length) % MODES.length; beep(520, 0.05, 'square', 0.04); },
@@ -504,16 +561,11 @@ import { RUNWAYS } from './data/runways.js';
         const row = Math.floor((py - (y0 - rh / 2)) / rh);
         if (row >= 0 && row < MODES.length) { modeSel = row; confirmMode(); }
       },
-      escToMenu: () => { setState('modeselect'); cfgOpen = false; beep(400, 0.06, 'square', 0.05); },
+      escToMenu: () => { setState('modeselect'); beep(400, 0.06, 'square', 0.05); },
       // OPCIONES: por ahora una sola fila (idioma), asi que izquierda/derecha rotan el idioma
-      optNav: dir => { optRow = (optRow + dir + OPT_ROWS.length) % OPT_ROWS.length; beep(500, 0.04, 'square', 0.03); },
-      optChange: dir => { OPT_ROWS[optRow].change(dir); beep(560, 0.05, 'square', 0.04); },
+      optNav: dir => { optNav(dir); beep(500, 0.04, 'square', 0.03); },
+      optChange: dir => { optChange(dir); beep(560, 0.05, 'square', 0.04); },
       startTitle: () => { if (S.state !== 'title') return; modeSel = 0; setState('modeselect'); beep(620, 0.07, 'square', 0.05); },
-      toggleCfg: () => { cfgOpen = !cfgOpen; beep(cfgOpen ? 640 : 400, 0.06, 'square', 0.05); },
-      isCfgOpen: () => cfgOpen,
-      cfgNav: dir => { const n = getCfgRows().length; cfgRow = (cfgRow + dir + n) % n; beep(500, 0.04, 'square', 0.03); },
-      cfgChange: dir => cfgChange(dir),
-      cfgClose: () => { cfgOpen = false; },
       planeNav: dir => { selPlane = (selPlane + dir + PLANES.length) % PLANES.length; beep(dir < 0 ? 520 : 600, 0.05, 'square', 0.04); },
       roll: dir => startRoll(dir),
       // COMBO: la SECUENCIA llega cruda ('lll', 'drul'...) desde dirTap (core/input.js), que ya
@@ -1394,9 +1446,7 @@ import { RUNWAYS } from './data/runways.js';
       if (S.state === 'relevo' && squad.relevo()) squadRender.drawRelevo(squad.relevo());
       if (S.state === 'menu') {
         menus.drawMenu({ selPlane, gameMode, t: run.t });
-        // el clamp de cfgRow vivia DENTRO de drawCfg (una pantalla no deberia mutar estado):
         // ahora se hace aca, antes de dibujar
-        if (cfgOpen) { const rows = getCfgRows(); if (cfgRow >= rows.length) cfgRow = 0; menus.drawCfg({ rows, cfgRow }); }
       }
       // DERRIBADO: esperar a que se vea el destrozo; despues la pantalla sube con un fade corto
       if (S.state === 'dead' && deathT > DEATH_REVEAL)
@@ -1411,8 +1461,16 @@ import { RUNWAYS } from './data/runways.js';
       // El fondo (drawPpalBg) si va escalado — es la grilla de diseño y cubre toda la pantalla.
       if (S.state === 'title') menus.drawTitle({ t: run.t });
       if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t });
-      if (S.state === 'options') menus.drawOptions({ t: run.t, sel: optRow,
-        rows: OPT_ROWS.map(r => ({ label: r.label(), value: r.value() })) });
+      if (S.state === 'options') menus.drawOptions({
+        t: run.t, sel: optRow,
+        rows: OPT_ROWS.map(r => {
+          if (r.head) return { head: T(r.head) };
+          if (r.cols) return { cols: [T('optColKb'), T('optColPad')] };
+          if (r.ctrl) return { ctrl: T(r.ctrl), kb: T(r.kb), pad: T(r.pad) };
+          let i = r.opts.findIndex(o => o === r.get()); if (i < 0) i = 0;
+          return { label: r.label(), value: r.names()[i], preview: r.preview, raw: r.opts[i] };
+        }),
+      });
 
       // fundido desde negro (al salir de la historia hacia el despegue) — SIEMPRE al final
       if (fadeT > 0) {
