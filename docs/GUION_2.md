@@ -128,6 +128,15 @@ ganas de volver a despegar.
   aéreo de los conscriptos: un pibe mandado antes de tiempo. Su muerte es la bisagra del
   juego.
 
+> **Norma de juego (decisión 3/8/2026):** en campaña **nadie muere por gameplay**. El avión
+> alcanzado queda **AVERIADO** y rompe formación rumbo a la base; el siguiente Fiel asume el
+> mando en vuelo y se juega con él (el jugador termina volando con toda la escuadrilla a lo
+> largo de una misión). Si la escuadrilla entera queda averiada, la misión se pierde
+> ("FUERA DE COMBATE") y se reintenta. **Los Fieles mueren únicamente cuando este guion lo
+> dice** — y cuando el guion mata a uno, las misiones siguientes arrancan con un avión menos.
+> El relevo clásico con muerte (PATRIA derribado) queda para los modos arcade. En código:
+> roster en `systems/squad.js`, nombres en `data/pilots.js`, averiado en `game.js` (dmgFX).
+
 ### El de la pista — "el Turco"
 **Suboficial Miguel Salomón**, mecánico jefe, 50 y pico, manos negras de grasa desde 1958.
 No vuela: espera. No duerme hasta que vuelven todos. Debajo de la cabina de cada avión de
