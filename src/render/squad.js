@@ -75,6 +75,10 @@ export function drawRelevo(rv) {
   ctx.font = 'bold 8px monospace';
   ctx.fillStyle = Math.sin(rv.t * 12) > 0 ? P.warn : '#7d2f1e';
   ctx.fillText(T('sq_down', { n: rv.fallen + 1 }), DW / 2, 10);
+  // LA CAUSA. Siempre estuvo en rv.cause y nunca se mostraba: el jugador moria sin saber por
+  // que (playtest 2/8). Es la unica pantalla que puede contestarle en el momento.
+  ctx.font = '7px monospace'; ctx.fillStyle = P.foam;
+  ctx.fillText(T(rv.cause), DW / 2, 26);
   if (rv.t > RELEVO_WRECK) {
     ctx.font = '7px monospace'; ctx.fillStyle = P.accent;
     ctx.fillText(T('sq_take', { n: rv.next + 1 }), DW / 2, DH - 10);

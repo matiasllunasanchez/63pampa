@@ -17,6 +17,7 @@ import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
 import { PITCH_ROW } from '../core/physics.js';
 import { drawCockpit } from './momentum.js';
 import * as world3D from '../systems/three-arena.js';
+import { AR } from '../data/arena.js';
 
 // Cuanto BAJA el PNG de la cabina en 1a persona. El visor pintado del asset esta arriba (el ARENA
 // VIEJO le clavaba la mira en MOM_AY=60), pero aca la mira NO es fija: cae donde apunta el morro,
@@ -30,7 +31,8 @@ const COCKPIT_Y = 74;
 function drawThirdPlane(A, selPlane) {
   const pl = PLANES[selPlane];
   if (!pl.sheetOk) return;
-  const bank = Math.max(-1, Math.min(1, A.roll));
+  // el banqueo del sprite se normaliza al ROLL_MAX del modelo: banqueo pleno = hoja al tope
+  const bank = Math.max(-1, Math.min(1, A.roll / AR.ROLL_MAX));
   const col = Math.round((1 - bank) / 2 * (SHEET_NF - 1));
   const row = A.pitch > PITCH_ROW ? 0 : A.pitch < -PITCH_ROW ? 2 : 1;
   const spW = 84, spH = 84;
@@ -130,10 +132,25 @@ export function drawArena(w) {
       ctx.globalAlpha = 1;
     } else if (f.k === 'fw3') {
       // AVISO de flak: anillo que se CIERRA sobre el punto de detonacion, en el mundo.
-      // Si el punto quedo detras de la camara no se dibuja — y esta bien: un flak que dejaste
-      // atras ya no te puede agarrar quieto.
+      // Un flak que quedo detras de la camara casi siempre es un flak que dejaste atras — PERO
+      // si esta por detonar CERCA tuyo, morir sin verlo era "explota y no se por que" (playtest
+      // 2/8): eso se avisa igual, con una cuna roja en el borde apuntando hacia el peligro.
       const wp = world3D.project(f.px, f.py, f.pz);
-      if (!wp.vis) continue;
+      if (!wp.vis) {
+        const d3 = Math.hypot(A.pos.x - f.px, A.pos.y - f.py, A.pos.z - f.pz);
+        if (f.fuse < 0.55 && d3 < 130) {
+          const cx = W / 2, cy = H / 2;
+          let ex = cx - (wp.x - cx), ey = cy - (wp.y - cy);   // detras: la direccion real es la opuesta
+          const el = Math.hypot(ex - cx, ey - cy) || 1;
+          ex = cx + (ex - cx) / el * 90; ey = cy + (ey - cy) / el * 90;
+          const ang = Math.atan2(ey - cy, ex - cx);
+          ctx.save(); ctx.translate(ex, ey); ctx.rotate(ang);
+          ctx.fillStyle = '#ff5340'; ctx.globalAlpha = Math.sin(f.T * 40) > 0 ? 0.95 : 0.4;
+          ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(-5, -5); ctx.lineTo(-5, 5); ctx.closePath(); ctx.fill();
+          ctx.globalAlpha = 1; ctx.restore();
+        }
+        continue;
+      }
       const p = 1 - Math.max(0, f.fuse) / 1.15;
       const r2 = 26 - p * 19;
       const hot = f.fuse < 0.35 && Math.sin(f.T * 40) > 0;
@@ -219,6 +236,19 @@ export function drawArena(w) {
     ctx.textAlign = 'left'; ctx.fillText(T('arena_squad'), W / 2 + zw / 2 + 8, H - 4);
     for (let i = 0; i < run.squad; i++)
       px(W / 2 + zw / 2 + 34 + i * 6, H - 9, 4, 3, i < run.lives ? P.accent : '#2e3c45');
+  }
+
+  // ---- AVISO DE MAR: bajo y cayendo, el borde inferior se enciende y el HUD grita ----
+  // Es la contracara del SEA_KILL: el mar puede matar, pero no puede matar EN SILENCIO.
+  if (A.lowT > 0 && A.doneT <= 0) {
+    ctx.globalAlpha = 0.28 + 0.22 * Math.sin(A.t * 16);
+    const g = ctx.createLinearGradient(0, H - 46, 0, H);
+    g.addColorStop(0, '#ff534000'); g.addColorStop(1, '#ff5340');
+    ctx.fillStyle = g; ctx.fillRect(0, H - 46, W, 46);
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'center'; ctx.font = 'bold 9px monospace';
+    ctx.fillStyle = Math.sin(A.t * 16) > 0 ? '#ff5340' : P.warn;
+    ctx.fillText(T('arena_low'), W / 2, H - 24);
   }
 
   // ---- RING: aviso y piloto automatico ----

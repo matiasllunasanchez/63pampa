@@ -19,7 +19,9 @@ import { S, cfg } from './state.js';
 import { W, H } from '../render/ctx.js';
 import { audio } from '../systems/audio.js';
 
-export const inp = { l: 0, r: 0, u: 0, d: 0, rise: 0, sink: 0, fire: false, turbo: false, msl: false,
+// `brake` es el FRENO del ARENA (L2 en el mando; el teclado frena con [F], que llega por `sink`).
+// Campo propio y no `sink` a secas para que L2 no mueva el paneo de camara del PASILLO.
+export const inp = { l: 0, r: 0, u: 0, d: 0, rise: 0, sink: 0, brake: 0, fire: false, turbo: false, msl: false,
   // GIRO LIBRE del horizonte (eje X del stick DERECHO). Teclado: rollL/rollR (0 o 1). Joystick:
   // rollAx, analogico -1..1 → el mando rola mas rapido cuanto mas lo empujas.
   rollL: 0, rollR: 0, rollAx: 0,
@@ -161,6 +163,7 @@ export function initInput(cv, a) {
     // MUSICA: tecla 1 = pista anterior, tecla 2 = siguiente (el motor lo ignora fuera de modo)
     if (!e.repeat && (e.code === 'Digit1' || e.code === 'Numpad1')) a.trackPrev();
     if (!e.repeat && (e.code === 'Digit2' || e.code === 'Numpad2')) a.trackNext();
+    if (!e.repeat && (e.code === 'Digit4' || e.code === 'Numpad4')) a.tempoToggle();   // MOMENTUM: camara lenta (pasillo)
   });
   addEventListener('keyup', e => {
     readCaps(e);
@@ -319,6 +322,7 @@ export function initInput(cv, a) {
       setPad('fire', down(5) || down(0));                      // R1 = metralleta (✕ tambien)
       setPad('turbo', down(7));                                // turbo (gatillo)
       setPad('msl', down(4) || down(2));                       // L1 = misil (□ tambien)
+      setPad('brake', down(6) ? 1 : 0);                        // L2 = freno (solo lo lee el ARENA)
 
       // ---- STICK DERECHO ----
       // X = GIRO LIBRE DEL HORIZONTE (lo que en teclado son [Q]/[E]).
@@ -340,7 +344,7 @@ export function initInput(cv, a) {
         for (const k in rNow) { if (rNow[k] && !rPrev[k]) dirTap(k); rPrev[k] = rNow[k]; }
       }
     } else {
-      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'rollAx', 'camAx']) setPad(f, 0);   // soltar el vuelo
+      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx']) setPad(f, 0);   // soltar el vuelo
       rPrev.L = rPrev.R = rPrev.U = rPrev.D = 0;   // volver a jugar con el stick sostenido = un toque nuevo
       // navegacion de menus por FLANCO (cruceta o stick)
       const nu = down(12) || ax(1) < -0.5, nd = down(13) || ax(1) > 0.5;

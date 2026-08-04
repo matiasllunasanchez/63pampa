@@ -218,7 +218,10 @@ export function frame(w) {
     cs.lx += (lx - cs.lx) * k2; cs.ly += (ly - cs.ly) * k2; cs.lz += (lz - cs.lz) * k2;
     A3.cam.position.set(cs.x, cs.y, cs.z);
     A3.cam.lookAt(cs.lx, cs.ly, cs.lz);
-    A3.cam.rotateZ(-A.roll * 0.35);
+    // roll PLENO: con el modelo E2 el alabeo ES el viraje, y atenuarlo (el 0.35 anterior)
+    // escondia la informacion que ahora gobierna el avion. El pasillo ya rola el horizonte
+    // entero por default (HORIZONTE: TOTAL); esto es lo mismo dicho en 3D.
+    A3.cam.rotateZ(-A.roll);
   } else {
     A3.cs = null;                                // al volver a 3a, el resorte arranca fresco
     A3.cam.position.set(px + f.x * 2, py + f.y * 2, pz + f.z * 2);

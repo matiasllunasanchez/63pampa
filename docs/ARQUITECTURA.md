@@ -36,11 +36,15 @@ Los **modos** del menú son combinaciones de estas dos fases:
 [PROMPT_ARENA_VUELO_LIBRE.md](PROMPT_ARENA_VUELO_LIBRE.md) para la historia completa (incluye el
 intento anterior, rechazado, documentado en `PROMPT_MOMENTUM_3D.md`).
 
-> ⚠️ **"MOMENTUM" el nombre está RESERVADO para otra cosa** (ROADMAP #13, aclarado 27/7/2026): a
-> futuro va a ser un **PODER de cámara lenta** que el jugador activa en vivo, sobre el avión,
-> **en cualquier fase** (PASILLO o ARENA) — no el clímax del buque. El módulo `systems/momentum.js`
-> se quedó con el nombre por herencia histórica y va a necesitar renombrarse cuando eso se
-> construya, para no chocar con el significado nuevo.
+> ⚠️ **"MOMENTUM" el nombre significa DOS cosas hoy** (ROADMAP #13, construido 3/8/2026): el
+> **ESPECIAL de cámara lenta** del jugador existe y vive en `systems/tempo.js` — la barra se
+> carga **con puntos** (`TEMPO_CHARGE`) y llena se **lanza** con la tecla 4 (`TEMPO_DUR` s; esas
+> dos perillas son el árbol de mejoras futuro). Por ahora **solo PASILLO**; el ARENA queda para
+> una iteración futura. El
+> módulo se llama `tempo` a propósito: `systems/momentum.js` — el bullet-time viejo del clímax
+> sin 3D — todavía conserva el nombre por herencia histórica y **sigue pendiente renombrarlo**
+> (p. ej. `barcaza.js`, junto con `render/momentum.js` y el estado `'momentum'`) en un commit
+> mecánico propio, para que "momentum" quede libre para el poder.
 
 ## Las cuatro convenciones que mantienen esto ordenado
 

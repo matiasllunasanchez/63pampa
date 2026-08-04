@@ -82,6 +82,11 @@ export const cfg = {
   // LARGO del banco: 0 CORTO · 1 MEDIO · 2 LARGO · 3 MUY LARGO (ver FOG_LEN en data/tuning.js).
   // Es cuanto tiempo te obliga a volar arriba del radar, o sea el balance entero del item.
   fogLen: 1,
+  // EJE Y DEL ARENA: en la fase ARENA W/S comandan el CABECEO (PLAN_MINUTOS_SAGRADOS D1).
+  // 0 = W sube el morro (como el pasillo, donde W es subir) · 1 = INVERTIDO (estilo simulador).
+  // Existe porque con cabeceo comandado, invertir el eje es lo primero que busca quien viene
+  // de un juego de vuelo. Persiste: es una preferencia de la persona, no del mapa.
+  arenaInv: 0,
   // RED DE RADAR: la malla que marca la altura a partir de la cual el radar te detecta.
   //   0 = NO · 1 = AL ENTRAR (default) · 2 = SIEMPRE
   // El default es 1 a proposito: volando bajo —que es casi todo el juego— la red seria ruido

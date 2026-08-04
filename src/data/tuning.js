@@ -207,3 +207,13 @@ export const CLIFF_COAST_BAND = 20;
 export const REATTACK_DUR = 2.6;    // segundos que dura el viraje
 export const REATTACK_FUEL = 12;    // combustible que cuesta cada vuelta
 export const REATTACK_MAX = 6;      // intentos maximos sobre un mismo blanco
+
+// MOMENTUM (ROADMAP #13): el ESPECIAL de camara lenta del PASILLO (systems/tempo.js). La barra
+// se carga CON PUNTOS — jugar bien (rasante, derribos, roces) es lo que compra el poder, no
+// esperar — y llena se LANZA con la tecla 4: rafaga corta e intensa, como un super de arcade.
+// La punteria con mouse queda en tiempo real (es por frame, no por dt): blancos lentos + mira
+// rapida = el poder. Estos dos son la BASE de las mejoras a futuro (niveles / avance de
+// campaña): extender TEMPO_DUR y abaratar TEMPO_CHARGE es todo el arbol de upgrades.
+export const TEMPO_SCALE = 0.35;    // el mundo a ~1/3: se nota de verdad, no un slow-mo timido
+export const TEMPO_DUR = 3;         // s reales que dura el lanzamiento con la barra llena
+export const TEMPO_CHARGE = 650;    // puntos que llenan la barra (subido de 500: que se gane, no que sobre)

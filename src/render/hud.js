@@ -18,6 +18,7 @@ import { P } from '../data/palette.js';
 import { MISSIONS } from '../data/missions.js';
 import { MSL_MAX, RADAR_ALT } from '../data/tuning.js';
 import { callsign, pilotIdx } from '../core/squad.js';
+import { active as tempoActive, meterVal as tempoMeter } from '../systems/tempo.js';
 import { attitude } from '../core/horizon.js';
 import { inBank, bankLeft, fogTop } from '../systems/fog.js';
 
@@ -384,6 +385,11 @@ export function drawHUD(h) {
 
   bar(6, H - 8, 60, run.fuel / 100, run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam, T('bar_fuel'));
   bar(W - 66, H - 8, 60, run.heat, run.overheat ? P.warn : P.accent, run.overheat ? T('bar_overheat') : T('bar_cannon'));
+  // MOMENTUM (tecla 4): la barra del especial, a la derecha del ADI. Se carga con puntos;
+  // LLENA parpadea despacio (esta lista para lanzar) y LANZADA parpadea rapido (se gasta).
+  const tv = tempoMeter();
+  bar(38, H - 22, 44, tv, tempoActive() ? (Math.sin(run.t * 14) > 0 ? P.accent : P.foam)
+    : tv >= 1 ? (Math.sin(run.t * 7) > 0 ? P.accent : P.crest) : P.crest, T('bar_tempo'));
 
   // municion de misiles: cada pip es el MISIL en miniatura (cuerpo blanco, ojiva gris, llama),
   // el mismo que se ve volar — no un rectangulo generico. Vacio = solo el contorno.

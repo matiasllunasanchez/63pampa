@@ -13,6 +13,7 @@ import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, strea
 import { run, resetRun } from './core/run.js';
 import { proj, popup, explodeAt, bloodBurst } from './core/fx.js';
 import * as momentum from './systems/momentum.js';
+import * as tempo from './systems/tempo.js';
 import * as arena from './systems/arena.js';
 import * as arena3D from './systems/three-arena.js';
 import * as arenaRender from './render/arena.js';
@@ -285,6 +286,10 @@ import { RUNWAYS } from './data/runways.js';
       // CAPS LOCK la alterna en vivo y escribe en esta misma clave.
       { label: () => T('optAim'), opts: [0, 1], names: () => [T('optAimFixed'), T('optAimFree')],
         get: () => cfg.aim, set: v => { cfg.aim = v; if (!v) mouse.on = false; }, save: 'rasante_mira_modo' },
+      // EJE Y DEL ARENA (PLAN_MINUTOS_SAGRADOS D1): en la batalla W/S comandan el cabeceo;
+      // esta fila lo invierte para quien viene de un juego de vuelo. Solo afecta la fase ARENA.
+      { label: () => T('optArenaInv'), opts: [0, 1], names: () => [T('optArenaInvNo'), T('optArenaInvYes')],
+        get: () => cfg.arenaInv, set: v => cfg.arenaInv = v, save: 'rasante_arena_inv' },
       // RETICULO: se elige VIÉNDOLO, no leyendo un número — de eso se encarga `preview`.
       { label: () => T('optMira'), opts: MIRA_IDS, names: () => MIRA_IDS.map(String), preview: 'mira',
         get: () => cfg.mira, set: v => cfg.mira = v, save: 'rasante_mira' },
@@ -304,7 +309,7 @@ import { RUNWAYS } from './data/runways.js';
       // control se leian como si fueran configurables — el cursor se paraba encima y daban ganas
       // de apretarles izquierda/derecha a ver que cambiaba.
       { note: 'ctrlHands' }, { note: 'ctrlWasd' },
-      ...[['Aim'], ['Cam'], ['Inv'], ['Music'], ['Menu']]
+      ...[['Aim'], ['Cam'], ['Tempo'], ['Inv'], ['Music'], ['Menu']]
         .map(([k]) => ({ ctrl: 'ctrl' + k, kb: 'ctrl' + k + 'K', pad: 'ctrl' + k + 'P' })),
 
       { head: 'optSecPartida' },
@@ -516,6 +521,7 @@ import { RUNWAYS } from './data/runways.js';
       resetStats();     // los contadores del recuento final
       clearWorld();     // vacia el campo de obstaculos, balas, particulas…
       momentum.resetMomentum();
+      tempo.resetTempo();
       arena.resetArena();
       resetFog(); fogWarned = false;   // los bancos de niebla se re-sortean en cada corrida
       // el ESCUADRON de la corrida: cfg.squad aviones y vos de lider. Vive en `run` (no en el
@@ -691,6 +697,17 @@ import { RUNWAYS } from './data/runways.js';
       // reproductor está activo — el motor ignora el cambio en historia/lobby.
       trackPrev: () => { if (canPickMusic()) prevTrack(); },
       trackNext: () => { if (canPickMusic()) nextTrack(); },
+      // MOMENTUM (tecla 4): LANZA el especial si la barra esta llena, SOLO en el pasillo
+      // jugable. El feedback va aca (no en systems/tempo.js) por la misma regla que aimChanged:
+      // el sistema devuelve la señal y el orquestador pone beep + popup — barra incompleta,
+      // un beep grave y nada mas.
+      tempoToggle: () => {
+        if (S.state !== 'play' || cfg.devcam) return;
+        const r = tempo.toggle();
+        if (r === 'empty') { beep(140, 0.09, 'square', 0.05); return; }
+        beep(r === 'on' ? 330 : 520, 0.09, 'square', 0.05, r === 'on' ? -160 : 160);   // slide abajo = el tiempo cae
+        popup(W / 2, 58, r === 'on' ? T('tempoOn') : T('tempoOff'), P.accent);
+      },
       // MIRA fija/movil: la alterna CAPS LOCK (teclado) y tambien la fila de OPCIONES. El aviso
       // en pantalla es el mismo por las dos vias — si no, tocar la tecla no daba ninguna señal.
       aimChanged: free => {
@@ -1232,7 +1249,11 @@ import { RUNWAYS } from './data/runways.js';
       run.bloodSplat = Math.max(0, run.bloodSplat - dt * 0.3);   // la mancha de sangre se desvanece (~3 s)
       if (run.boost) run.shake = Math.max(run.shake, 0.8 + (plane.y < 5 ? 0.7 : 0));
 
-      engineFly(run.spd, run.boost, run.boost ? 0.030 : 0.017);
+      // MOMENTUM: con el tiempo partido, el motor pasa al latido grave del climax (el mismo
+      // engineRumble) y la musica se agacha — duck() por frame la sostiene abajo y tickDuck la
+      // recupera solo al soltar. La punteria (mouse) sigue en tiempo real: es por frame.
+      if (tempo.active()) { engineRumble(run.t); duck(0.25); }
+      else engineFly(run.spd, run.boost, run.boost ? 0.030 : 0.017);
       if (run.fuel <= 0 && Math.random() < 0.05) beep(90, 0.08, 'sawtooth', 0.03);
     }
 
@@ -1514,6 +1535,14 @@ import { RUNWAYS } from './data/runways.js';
       }
 
       if (zoomOn) ctx.restore();   // el HUD (y la capa momentum) van SIN zoom
+      // MOMENTUM: tinte frio + viñeta mientras el tiempo esta partido. Va sobre el MUNDO y bajo
+      // el HUD: la cabina sigue nitida — es el aire el que cambia, no los instrumentos.
+      if (S.state === 'play' && tempo.active()) {
+        ctx.fillStyle = 'rgba(120,170,255,0.08)'; ctx.fillRect(0, 0, W, H);
+        const vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.42, W / 2, H / 2, H * 0.9);
+        vg.addColorStop(0, 'rgba(4,8,18,0)'); vg.addColorStop(1, 'rgba(4,8,18,0.55)');
+        ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+      }
       // HUD en GRILLA DE DISEÑO (320x180): se dibuja con ctx.scale(U). Ver la nota de DW/DH en
       // render/ctx.js — U x SC da 3 exacto, asi que no hay medio pixel ni borroneo.
       if (S.state === 'play') { ctx.save(); ctx.scale(U, U); hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip }); ctx.restore(); }
@@ -1595,7 +1624,17 @@ import { RUNWAYS } from './data/runways.js';
     // ---------- loop ----------
     let last = performance.now();
     function frame(now) {
-      const dt = Math.min(0.033, (now - last) / 1000); last = now;
+      const raw = Math.min(0.033, (now - last) / 1000); last = now;
+      // MOMENTUM: la barra se carga con el score y el drenaje corre con el dt CRUDO (tiempo
+      // real); el mundo recibe el escalado. Este multiplicador es TODO el poder: como nada usa
+      // reloj de pared, achicar el dt frena spawns, flak, particulas y lluvia en sincronia
+      // perfecta sin tocar ningun sistema. tick() ademas corta el poder al salir del pasillo
+      // (muerte, relevo, climax, devcam) y avisa 'ready' UNA vez cuando la barra se llena.
+      if (tempo.tick(raw, S.state === 'play' && !cfg.devcam, run.score) === 'ready') {
+        beep(660, 0.1, 'square', 0.05, 140);
+        popup(W / 2, 58, T('tempoReady'), P.accent);
+      }
+      const dt = raw * tempo.scale();
       update(dt); draw(); updateMusic(S.state);
       if (playerEl) playerEl.classList.toggle('on', canPickMusic());   // reproductor: solo donde hay pista cambiable
       requestAnimationFrame(frame);

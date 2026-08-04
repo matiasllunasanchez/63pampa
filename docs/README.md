@@ -19,7 +19,8 @@ las dos; **MINUTOS SAGRADOS** es el modo que juega solo ARENA. Detalle en
 | [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md) | dudas históricas anotadas para consultar con un historiador | vivo |
 | [UPDATE_ANIMATIONS.md](UPDATE_ANIMATIONS.md) | notas y pendientes del pipeline de animaciones/sprites | notas |
 | [PENDIENTES_DE_REDISENO.md](PENDIENTES_DE_REDISENO.md) | inventario de TODAS las unidades y objetos del juego con el estado de su arte y las specs de sprite | vivo |
-| [PROMPT_ARENA_VUELO_LIBRE.md](PROMPT_ARENA_VUELO_LIBRE.md) | **vigente** — la fase ARENA como vuelo 3D libre en un ring acotado (mundo mirable, física de gas, auto-retorno, MINUTOS SAGRADOS) | prompt / spec |
+| [PLAN_MINUTOS_SAGRADOS.md](PLAN_MINUTOS_SAGRADOS.md) | **vigente** — convertir la fase ARENA en una pelea de BOSS: diagnóstico medido del vuelo actual, plan por etapas E0–E9 y comparativa de juegos de referencia | plan / spec |
+| [PROMPT_ARENA_VUELO_LIBRE.md](PROMPT_ARENA_VUELO_LIBRE.md) | **vigente** — la fase ARENA como vuelo 3D libre en un ring acotado (mundo mirable, física de gas, auto-retorno, MINUTOS SAGRADOS). Lo continúa el PLAN de arriba | prompt / spec |
 | [PROMPT_MOMENTUM_3D.md](PROMPT_MOMENTUM_3D.md) | ~~ARENA en órbita~~ — implementado y **rechazado**: rotaba el buque en vez de volar el avión | histórico |
 
 Para arrancar a tocar el código, empezá por **[ARQUITECTURA.md](ARQUITECTURA.md)**.
