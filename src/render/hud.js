@@ -17,7 +17,8 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { MISSIONS } from '../data/missions.js';
 import { MSL_MAX, RADAR_ALT } from '../data/tuning.js';
-import { callsign, pilotIdx } from '../core/squad.js';
+import { pilotIdx } from '../core/squad.js';
+import { pilotName } from '../systems/squad.js';
 import { active as tempoActive, meterVal as tempoMeter } from '../systems/tempo.js';
 import { attitude } from '../core/horizon.js';
 import { inBank, bankLeft, fogTop } from '../systems/fog.js';
@@ -224,7 +225,7 @@ export function drawSquadPips(x, y) {
     if (down) { px(bx + 1, by, 1, 1, P.warn); px(bx + 3, by + 1, 1, 1, P.warn); px(bx + 5, by + 2, 1, 1, P.warn); }
   }
   ctx.fillStyle = P.dim; ctx.font = '6px monospace'; ctx.textAlign = 'left';
-  ctx.fillText(callsign(fallen), x + 6 + run.squad * 8, y + 7);
+  ctx.fillText(pilotName(fallen), x + 6 + run.squad * 8, y + 7);
 }
 
 export function drawHUD(h) {

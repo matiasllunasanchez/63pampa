@@ -276,7 +276,8 @@ export function drawDead(w) {
   // importancia: causa, premio, puntaje, dato historico. El titular lleva la tipografia del
   // logotipo: es la misma voz que "RASANTE", el remate de la partida.
   ctx.fillStyle = P.warn; ctx.font = titleFont(22);
-  ctx.fillText(T('dead'), W / 2, 26);
+  // campaña: nadie murio — la escuadrilla entera quedo averiada y la mision no salio
+  ctx.fillText(T(w.out ? 'dead_out' : 'dead'), W / 2, 26);
   ctx.fillStyle = P.dim; ctx.font = descFont(11);
   ctx.fillText(T(w.deathCause), W / 2, 40);
 

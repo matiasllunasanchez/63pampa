@@ -16,6 +16,7 @@ import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
 import { PLANE_SCALE } from './plane.js';
 import { drawSquadPips } from './hud.js';
 import { formationSlots, RELEVO_WRECK, RELEVO_DUR } from '../core/squad.js';
+import { pilotName, rosterActive, fallenPos } from '../systems/squad.js';
 
 /** La formacion detras del lider. `exit` = null durante el despegue; 0..1 durante la salida de
  *  plano (al CONTROL LIBRE: aceleran, crecen y pasan al costado de la camara — "te siguen ahi
@@ -64,6 +65,33 @@ export function drawFormation({ selPlane, exit }) {
   ctx.imageSmoothingEnabled = smooth;
 }
 
+/** El AVERIADO yendose (campaña, capa de MUNDO): banqueado, cada vez mas chico, rumbo al
+ *  horizonte. Verse ir es la mitad de la norma "nadie muere" — sin esto el avion desaparecia
+ *  de golpe y el relevo se seguia leyendo como una destruccion (playtest 4/8). */
+export function drawFallen({ selPlane, rv }) {
+  const pl = PLANES[selPlane];
+  const p0 = fallenPos(rv);
+  if (p0.z < 3.8) return;   // ya paso el plano de camara: quedo atras, sobrepasado
+  const s = proj(p0.x, p0.y, p0.z);
+  const f = s.k / proj(0, 0, PZ).k;
+  const smooth = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
+  if (pl.sheetOk) {
+    // TAMBALEA: el alabeo oscila alrededor del banqueo de salida y el sprite tirita 1 px —
+    // el avion esta ROTO y tiene que verse (playtest 4/8: "mostrar que esta roto")
+    const mid = (SHEET_NF - 1) / 2;
+    const wob = Math.round(Math.sin(rv.t * 10) * Math.min(1.9, 0.6 + rv.t));
+    const col = Math.max(0, Math.min(SHEET_NF - 1, mid - rv.side * 2 + wob));
+    const jx = Math.sin(rv.t * 31) * f * 0.7, jy = Math.cos(rv.t * 27) * f * 0.6;
+    const w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
+    ctx.drawImage(pl.sheetImg, col * SHEET_FW, SHEET_FH, SHEET_FW, SHEET_FH, s.x - w / 2 + jx, s.y - h / 2 + jy, w, h);
+  } else if (pl.ready) {
+    const w = 76 * PLANE_SCALE * f, h = w * pl.h / pl.w;
+    ctx.drawImage(pl.img, s.x - w / 2, s.y - h / 2, w, h);
+  }
+  ctx.imageSmoothingEnabled = smooth;
+}
+
 /** Sobreimpresion de la cinematica del relevo (grilla de diseño). El texto vive ACA y no en
  *  popups: es informacion de escena, fija mientras dura — un popup se iria flotando. */
 export function drawRelevo(rv) {
@@ -74,14 +102,15 @@ export function drawRelevo(rv) {
   ctx.textAlign = 'center';
   ctx.font = 'bold 8px monospace';
   ctx.fillStyle = Math.sin(rv.t * 12) > 0 ? P.warn : '#7d2f1e';
-  ctx.fillText(T('sq_down', { n: rv.fallen + 1 }), DW / 2, 10);
+  // campaña (roster): nadie muere — el avion queda AVERIADO y vuelve a la base (norma 3/8)
+  ctx.fillText(T(rosterActive() ? 'sq_dmg' : 'sq_down', { c: pilotName(rv.fallen) }), DW / 2, 10);
   // LA CAUSA. Siempre estuvo en rv.cause y nunca se mostraba: el jugador moria sin saber por
   // que (playtest 2/8). Es la unica pantalla que puede contestarle en el momento.
   ctx.font = '7px monospace'; ctx.fillStyle = P.foam;
   ctx.fillText(T(rv.cause), DW / 2, 26);
   if (rv.t > RELEVO_WRECK) {
     ctx.font = '7px monospace'; ctx.fillStyle = P.accent;
-    ctx.fillText(T('sq_take', { n: rv.next + 1 }), DW / 2, DH - 10);
+    ctx.fillText(T('sq_take', { c: pilotName(rv.next) }), DW / 2, DH - 10);
     // cuenta hasta devolver el control: la barra se VACIA — mismo lenguaje que el conteo del
     // despegue (algo termina), no que una carga (algo se acumula)
     const rem = Math.max(0, 1 - (rv.t - RELEVO_WRECK) / (RELEVO_DUR - RELEVO_WRECK));

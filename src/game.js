@@ -48,6 +48,7 @@ const CLIMB_NEAR = 4;
 import { MV_HI, MV_LO } from './data/moves.js';
 import * as moves from './systems/moves.js';
 import * as squad from './systems/squad.js';
+import { FIELES } from './data/pilots.js';
 import * as squadRender from './render/squad.js';
 import { canRelevo } from './core/squad.js';
 import { RUNWAYS } from './data/runways.js';
@@ -523,6 +524,9 @@ import { RUNWAYS } from './data/runways.js';
       momentum.resetMomentum();
       tempo.resetTempo();
       arena.resetArena();
+      // NORMA DE CAMPAÑA (3/8, GUION_2): con roster, el relevo es un AVERIADO que vuelve a la
+      // base (nadie muere por gameplay); sin roster, el relevo arcade de siempre (PATRIA caido)
+      squad.setRoster(gameMode === 'campaign' ? FIELES : null);
       resetFog(); fogWarned = false;   // los bancos de niebla se re-sortean en cada corrida
       // el ESCUADRON de la corrida: cfg.squad aviones y vos de lider. Vive en `run` (no en el
       // sistema) porque lo leen HUD + relevo + este archivo.
@@ -908,6 +912,38 @@ import { RUNWAYS } from './data/runways.js';
       beep(180, 0.5, 'sawtooth', 0.06, 40);
     }
 
+    // AVERIADO (campaña): el golpe que en arcade revienta, aca solo SACA DE COMBATE. Nada de
+    // bola de fuego ni pedazos — humo gris y negro del motor, el impacto se escucha, y la
+    // cinematica del relevo cuenta el resto (el avion vuelve averiado; norma 3/8, GUION_2).
+    function dmgFX() {
+      // EL GOLPE TIENE QUE PEGAR (playtest 4/8): sin bola de fuego, la pegada la ponen la
+      // sacudida de camara a fondo, el trueno seco del impacto y las CHISPAS del metal —
+      // recien despues queda el humo, que es el que cuenta "roto pero volando".
+      sfxOne('exSmall');
+      boom(0.22, true);                        // trueno seco: chapa golpeada, no explosion
+      run.shake = 6;
+      const ps = proj(plane.x, plane.y, PZ);
+      for (let i = 0; i < 10; i++) {           // chispas: cortas, rapidas, calientes
+        const ang = Math.random() * 6.283, sp = 60 + Math.random() * 90;
+        parts.push({
+          x: ps.x, y: ps.y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 20,
+          life: 0.16 + Math.random() * 0.2, c: i % 2 ? P.accent : '#ffd9a0', r: 1 + Math.random(),
+        });
+      }
+      const HUMO = ['#5a6068', '#7d858d', '#2e343a'];
+      for (let i = 0; i < 22; i++) {
+        const ang = Math.random() * 6.283, sp = 10 + Math.random() * 26;
+        parts.push({
+          x: ps.x + (Math.random() - 0.5) * 8, y: ps.y + (Math.random() - 0.5) * 6,
+          vx: Math.cos(ang) * sp - 14, vy: Math.sin(ang) * sp - 46 - Math.random() * 30,
+          life: 0.9 + Math.random() * 0.9, c: HUMO[i % HUMO.length],
+          r: 1.5 + Math.random() * 2.4,
+        });
+      }
+      engineOff();
+      beep(140, 0.6, 'sawtooth', 0.05, -30);   // el motor tosiendo, no la explosion
+    }
+
     function die(cause) {
       setState('dead'); deathCause = cause; deathT = 0;
       // POR LA PATRIA: el derribado ES el fin del "nivel" → estrellas por puntaje. En campaña/ciclo
@@ -915,7 +951,9 @@ import { RUNWAYS } from './data/runways.js';
       deadStars = gameMode === 'survival' ? starsFor(Math.floor(run.score), SURVIVAL_PAR) : 0;
       deadBg = (Math.random() * screens.LOSE_BG_N) | 0;
       factIdx = (factIdx + 1) % L().facts.length;
-      crashFX();
+      // campaña: el ultimo avion tampoco explota — la escuadrilla entera quedo averiada y la
+      // mision se pierde (la pantalla de fin lo dice); en arcade, el derribo clasico
+      if (squad.rosterActive()) dmgFX(); else crashFX();
       if (Math.floor(run.score) > best) { best = Math.floor(run.score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
     }
 
@@ -926,8 +964,9 @@ import { RUNWAYS } from './data/runways.js';
     // flight ni collision corren, asi que no existe camino que pueda matar dos veces seguidas.
     function onDeath(cause) {
       if (canRelevo(run.lives)) {
-        crashFX();                     // el lider revienta igual que siempre...
-        squad.startRelevo(cause);      // ...pero la mision sigue: descuenta y prepara al companero
+        // en campaña el lider NO revienta: queda averiado y vuelve (norma 3/8, GUION_2)
+        if (squad.rosterActive()) dmgFX(); else crashFX();
+        squad.startRelevo(cause);      // la mision sigue: descuenta y prepara al companero
         setState('relevo');
       } else die(cause);
     }
@@ -1499,6 +1538,10 @@ import { RUNWAYS } from './data/runways.js';
       // proposito — lo que rota es la direccion de caida (ver render/rain.js).
       drawRain();
 
+      // CAMPAÑA: durante el relevo, el averiado se ve YENDOSE (banqueado, chico, con humo).
+      // Va antes que drawPlane: esta mas lejos — pintor correcto respecto del que entra.
+      if (S.state === 'relevo' && squad.rosterActive() && squad.relevo())
+        squadRender.drawFallen({ selPlane, rv: squad.relevo() });
       if (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena') drawPlane(selPlane, viewMouse, squadZoom());   // en el ARENA (nuevo o fallback) el avion lo pone su propio render
       // la FORMACION del escuadron: SOLO en el despegue y en su salida de plano al CONTROL
       // LIBRE. Nunca durante el PASILLO en si — es costo de render que no aporta y taparia el juego.
@@ -1567,7 +1610,8 @@ import { RUNWAYS } from './data/runways.js';
       // DERRIBADO: esperar a que se vea el destrozo; despues la pantalla sube con un fade corto
       if (S.state === 'dead' && deathT > DEATH_REVEAL)
         screens.drawDead({ score: run.score, best, deathCause, deathT, factIdx, t: run.t,
-          reveal: Math.min(1, (deathT - DEATH_REVEAL) / 0.35), stars: deadStars, awardT: deathT - DEATH_REVEAL - 0.2, bg: deadBg });
+          reveal: Math.min(1, (deathT - DEATH_REVEAL) / 0.35), stars: deadStars, awardT: deathT - DEATH_REVEAL - 0.2, bg: deadBg,
+          out: squad.rosterActive() });   // campaña: la escuadrilla quedo fuera de combate, no "derribado"
       if (S.state === 'results') screens.drawResults({ lastRun, resRow, resT, t: run.t, bg: winBg });
       if (S.state === 'brief') screens.drawBrief({ mission: curMission(), goalLabel: goalOf(curMission()).label(curMission().goal), briefT, t: run.t });
       if (S.state === 'victory') screens.drawVictory({ score: run.score, levelT, t: run.t });
