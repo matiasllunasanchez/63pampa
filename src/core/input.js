@@ -174,6 +174,12 @@ export function initInput(cv, a) {
       if (isBack(e.code)) { a.savesBack(); e.preventDefault(); return; }
       return;
     }
+    if (S.state === 'upgrade') {                                         // EL BANCO DEL PICHON: elegir UNA mejora
+      if (isUp(e.code) || isLeft(e.code)) { a.upgNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code) || isRight(e.code)) { a.upgNav(1); e.preventDefault(); return; }
+      if (isConfirm(e.code)) { a.upgConfirm(); e.preventDefault(); return; }
+      return;                                                            // sin ESC: la mejora se elige si o si
+    }
     // MODO CAMARA: la partida no termina nunca sola (avion inmortal) — se sale con ESCAPE.
     // Solo en ese modo: en el PASILLO normal Escape sigue sin hacer nada durante el vuelo.
     if (S.state === 'play' && cfg.devcam && isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
@@ -412,6 +418,10 @@ export function initInput(cv, a) {
         if (nd && !nav.d) a.savesNav(1);
         if (confirm) a.savesConfirm();
         if (hit(1)) a.savesBack();
+      } else if (S.state === 'upgrade') {
+        if ((nu && !nav.u) || (nl && !nav.l)) a.upgNav(-1);
+        if ((nd && !nav.d) || (nr && !nav.r)) a.upgNav(1);
+        if (confirm) a.upgConfirm();
       } else if (S.state === 'menu') {
         if (nl && !nav.l) a.planeNav(-1);
         if (nr && !nav.r) a.planeNav(1);

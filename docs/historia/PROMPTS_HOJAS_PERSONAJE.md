@@ -13,6 +13,29 @@ mismo Gitano de la Misión 9.
 > joven en la foto porque nunca llegó a ser vieja. De eso depende el mejor giro del guion —
 > ver la ficha del prop y GUION_2 §8a antes de generar.
 
+> ## 🟥 v3.0 — MARCAS PERSONALES: agregar a CADA hoja antes de regenerar
+>
+> Cada Fiel tiene ahora una marca personal (casco/traje/costumbre) definida en
+> [AVIONES_ESCUADRON.md](AVIONES_ESCUADRON.md). **Pegar la línea correspondiente al final
+> del bloque CHARACTER de cada prompt de hoja modelo:**
+>
+> | Hoja | Línea a agregar (inglés, tal cual) |
+> |---|---|
+> | ESTEBAN | `his white flight helmet is completely PLAIN, no personal markings of any kind` |
+> | PUMA | `TWO thin crisp dark stripes painted across his helmet, masked and regulation-perfect, flight scarf knotted with millimetric precision` |
+> | GITANO | `a single CROOKED hand-painted red stripe across his helmet, clearly done freehand on purpose, and his mate gourd tied to his harness with a piece of wire` |
+> | VASCO | `plain unmarked helmet, the beads of a rosary just showing at the collar of his flight suit` |
+> | PICHON | `a carpenter's pencil tucked crosswise under his helmet band, and half-erased pencil formulas scribbled on the back of his left hand` |
+> | TURCO | `a small white hand-painted star on the front of his cloth cap` |
+>
+> **⚠ Regla de protección (de AVIONES_ESCUADRON):** el **terito** del avión de Tero es el
+> ÚNICO animal pintado de toda la escuadrilla — ninguna otra hoja, casco o avión lleva
+> fauna. Las marcas de los demás son geométricas, de objeto o de costumbre.
+>
+> **Además:** regenerar la hoja del avión de Tero con el terito (prompt ya actualizado en
+> AVIONES_ESCUADRON.md) — el diseño del pájaro tiene que ser IDÉNTICO en la hoja del avión,
+> en el cuadro M1.5d y en el cuadro M8.A del storyboard. Es el objeto del que depende M8.
+
 > **Versión 2 — revisión de época (auditoría sobre las hojas ya generadas).**
 > Ver [«Qué salió mal en la tanda 1»](#qué-salió-mal-en-la-tanda-1) al final. Resumen: el generador
 > vistió a todo el reparto de **soldado norteamericano genérico** —Mateo con capote largo de GI de la

@@ -50,13 +50,21 @@ text"): se tipografía en el motor, así además se puede corregir sin regenerar
 como *Plata Fiel* a secas.
 
 **Las marcas:**
+- 🟥 **EL TERITO** *(3.0 — la marca más importante del juego)*: un tero pintado a pincel
+  bajo la cabina — patas largas, pecho al frente, gritón. "Tero" es su apodo de veinte
+  años en la Fuerza y el pájaro lo siguió a cada avión que voló; el Turco se lo pinta en el
+  Skyhawk la primera mañana. **Es la marca por la que Mateo reconoce a su padre en el
+  sobrevuelo de M8** — tiene que ser legible en el flanco del avión cuando pasa a altura de
+  árbol, y estar sembrada visualmente desde M1.
 - **La fila de estrellitas** bajo la cabina, la más larga de la escuadrilla — no porque
   derribe más: porque **vuelve más**. La cuenta visible de un tipo que promete volver.
 - Un **sapito**: una piedrita chata, real, alojada en el borde del parabrisas, del lado de
   adentro. Nadie sabe desde cuándo está. Él sí.
 - Metal gastado prolijo: limpio pero no lustrado. Un avión usado por un profesional.
 
-**Marca de sprite (20 px):** la fila de estrellitas blancas — la más larga.
+**Marca de sprite (20 px):** la fila de estrellitas. **En cinemáticas y planos cercanos: el
+terito** — a escala de sprite el tero puede reducirse a una manchita, pero en todo plano
+donde el avión pase cerca (M8 sobre todo) tiene que leerse perfecto.
 
 **Hoja modelo:**
 ```
@@ -66,10 +74,13 @@ crisp clean pixels, no anti-aliasing, no photorealism, no 3D render.
 
 Master reference sheet of an A-4B Skyhawk attack jet, full side profile on a
 plain light background. Bare silver-grey metal, worn but clean and well-kept,
-blue-white argentine roundel, single seat. Below the cockpit sill, the LONGEST
-row of small hand-painted plain white stars in the squadron, slightly uneven,
-painted with a fine brush. A tiny flat grey pebble resting inside the windscreen
-frame, barely visible. No shark mouth, no nose art, no pin-ups, no flags.
+blue-white argentine roundel, single seat. Below the cockpit sill: a small
+hand-painted SOUTHERN LAPWING bird (tero) — long legs, proud chest, wings half
+raised as if crying out, painted with a fine brush in white and dark grey,
+folk-art style, clearly legible — and next to it the LONGEST row of small
+hand-painted plain white stars in the squadron, slightly uneven. A tiny flat
+grey pebble resting inside the windscreen frame, barely visible. No shark mouth,
+no other nose art, no pin-ups, no flags.
 
 PERIOD LOCK — Argentina 1982: no modern weapons, no modern avionics, no NATO or
 US markings, no invented unit patches.
@@ -250,6 +261,37 @@ US markings, no invented unit patches.
 
 ---
 
+## 🟥 MARCAS PERSONALES — la segunda capa *(el piloto, no el avión)*
+
+Cada Fiel lleva además **una marca visual sobre sí mismo** — casco, traje o costumbre — que
+lo identifica en cinemáticas aunque el avión no esté en cuadro. Regla de época: los pilotos
+del 82 personalizaban poco y a mano; nada de calcos brillantes.
+
+> **⚠ REGLA DE PROTECCIÓN — leer antes de agregar nada:** **el terito es EL ÚNICO animal
+> pintado en toda la escuadrilla.** Ni pumas, ni gitanos con pájaros, ni mascotas en los
+> cascos. Dos razones: (1) el reconocimiento de M8 depende de que un pájaro pintado
+> signifique UNA sola cosa — si hay bichos por todos lados, Mateo no puede estar seguro y
+> el momento se muere; (2) el canon de nombres dice que las aves viven en la radio y solo
+> Tero y Pichón son aves "humanas" — llenar los aviones de fauna rompe ese sistema
+> silencioso. Las marcas de los demás son geométricas, de objeto o de costumbre. Nunca
+> animales.
+
+| Piloto | Marca en el avión *(ya definida)* | 🟥 Marca personal *(casco / traje / costumbre)* |
+|---|---|---|
+| **Tero** | el terito + estrellitas + piedrita | Casco blanco **sin nada** — el hombre más marcado de la escuadrilla lleva el casco más pelado. Su marca vuela en el fuselaje, no en la cabeza. |
+| **Puma** | doble franja en la deriva | **Dos franjas finas pintadas en el casco**, espejo de las de su cola — reglamentarias, perfectas, enmascaradas con cinta. Y el pañuelo de vuelo siempre anudado igual, milimétrico. |
+| **Gitano** | nariz roja + GAMBETA + matecito | **Una franja roja torcida en el casco** — se la pintó él mismo, a pulso, mal a propósito ("derechita la pintan los ingleses"). Y el mate atado con alambre al arnés, asomando. |
+| **Vasco** | sin marcas, el gris más oscuro | Casco **sin marca**, como el de Tero — pero con el barbijo del rosario asomando por el borde del cuello. La crucecita del riel es su única pintura, y no está a la vista. |
+| **Pichón** | panel verde + trazos de lápiz | **El lápiz de carpintero cruzado bajo la cinta del casco**, siempre, como un albañil. Y fórmulas a medio borrar en el DORSO de la mano izquierda — se anota ahí cuando no llega a la libreta. |
+| **El Turco** | *(no vuela)* | La gorra de paño con una **estrellita blanca pintada** — la única estrellita que no está en un fuselaje: se la pintó la noche que volvieron todos por primera vez. |
+
+**Uso en producción:** estas marcas van a las hojas de personaje (PROMPTS_HOJAS_PERSONAJE)
+como línea extra del descriptor de cada uno, y son **obligatorias en toda cinemática de
+hangar o cabina** — son lo que permite reconocer a un piloto con el casco puesto, que en
+cabina es la única cara que hay.
+
+---
+
 ## La tabla para el storyboard *(tokens nuevos)*
 
 Agregar a la tabla de tokens de STORYBOARD_1 — el `{SKYHAWK}` genérico queda para planos
@@ -257,7 +299,7 @@ lejanos; en cuadros donde se sepa de quién es el avión, usar el específico:
 
 | Token | Descriptor corto (pegar tal cual) |
 |---|---|
-| `{SKYHAWK_TERO}` | A-4B Skyhawk, bare worn silver-grey metal, argentine roundel, the longest row of small hand-painted white stars below the cockpit, a tiny flat pebble inside the windscreen frame |
+| `{SKYHAWK_TERO}` | A-4B Skyhawk, bare worn silver-grey metal, argentine roundel, a small hand-painted southern lapwing bird (tero) below the cockpit next to the longest row of small white stars, a tiny flat pebble inside the windscreen frame |
 | `{SKYHAWK_PUMA}` | A-4B Skyhawk, immaculate regulation silver-grey metal, two crisp dark command stripes on the tail fin, a perfectly straight short row of small white stars |
 | `{SKYHAWK_GITANO}` | A-4B Skyhawk, cheerfully scruffy silver-grey metal with oil streaks, a narrow hand-brushed red ring on the nose tip, a tiny painted green mate gourd by the boarding step, crooked row of white stars |
 | `{SKYHAWK_VASCO}` | A-4B Skyhawk, the oldest darkest most weathered airframe, no personal markings at all, faded roundel, a short row of white stars, a tiny white hand-painted cross behind the cockpit rail |
@@ -297,7 +339,7 @@ lejanos; en cuadros donde se sepa de quién es el avión, usar el específico:
 
 | Avión | Lo que TIENE que verse | Lo que NO puede aparecer |
 |---|---|---|
-| Tero | Fila de estrellitas LARGA, pareja de desgaste, piedrita en el parabrisas | Estrellas gigantes tipo USAF; bandera |
+| Tero | **El terito pintado, legible** + fila de estrellitas LARGA + piedrita en el parabrisas | Estrellas gigantes tipo USAF; bandera; que el tero parezca un logo moderno — es pincel, no calcomanía |
 | Puma | Dos franjas nítidas en la deriva; el más limpio de los cinco | Cualquier marca personal extra |
 | Gitano | Anillo rojo SOLO en la punta de la nariz; matecito chico junto al estribo | Boca de tiburón; rojo en otra parte; nose-art grande |
 | Vasco | Metal más oscuro y gastado que el resto; NADA visible salvo estrellitas; crucecita mínima tras el riel | Cualquier adorno; la cruz grande o llamativa |

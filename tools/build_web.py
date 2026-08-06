@@ -138,6 +138,13 @@ def main():
     js = sub_const(js, 'TBACK', '', 'cielo procedural')
     # normal map del agua: solo hace falta si MIRROR_SEA esta activo (hoy: apagado) — no se embebe
     js, _ = sub_path(js, '../assets/world/waternormals.jpg', '')
+    # LAMINAS del guion (render/screens.js: '../assets/story/' + cuadro + '.png', aun sin
+    # generar): NO entran en el build web — mismo criterio que las fotos de portada, pesarian
+    # demasiado. Se rompe la BASE de la ruta con un data: invalido: el onerror del Image las
+    # deja ocultas sin pedir archivos a la red. Electron/Steam las carga desde disco normal.
+    js, ok = sub_path(js, '../assets/story/', 'data:,story-web-off/')
+    if not ok:
+        raise SystemExit('ERROR: no encontre la base ../assets/story/ en el bundle (cambio screens.js?)')
 
     if '../assets/' in js:
         raise SystemExit('ERROR: quedaron rutas ../assets/ sin re-embeber en game.js')

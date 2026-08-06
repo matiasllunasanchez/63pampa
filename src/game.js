@@ -3,7 +3,8 @@
 import { STRINGS } from './data/strings.js';
 import { P, SKY_PRESETS, LAND } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
-import { SHIPS, MISSIONS } from './data/missions.js';
+import { SHIPS, MISSIONS, SHIP_MISSIONS } from './data/missions.js';
+import { nextUpgrades } from './data/upgrades.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { wrapChars, multOf } from './core/util.js';
 import { S, setState, cfg, cam, plane, stats, resetPlane, resetStats, CTRL_DIRECT, CTRL_BANK } from './core/state.js';
@@ -130,6 +131,15 @@ import { RUNWAYS } from './data/runways.js';
     let curCampaign = 0;             // indice en CAMPAIGNS (rotula las partidas guardadas)
     let campSel = 0;                 // cursor del submenu de historia
     let savesSel = 0;                // cursor de la lista de partidas (pantalla 'saves')
+
+    // ---------- EL BANCO DEL PICHON (mejoras de campaña, GUION_2 §2c) ----------
+    // `pichon` = ids de MOVES aprendidos EN ESTA CAMPAÑA. Entre mision y mision (estado
+    // 'upgrade') se ofrecen las dos primeras del pool no aprendidas y se elige UNA. En campaña
+    // los combos no aprendidos no disparan (ver mvOk en el dispatcher); los demas modos no
+    // cambian. Viaja en la partida guardada (`ups`).
+    let pichon = [];                 // ids aprendidos (orden de eleccion)
+    let upgOffer = [];               // la oferta de la pantalla actual (2 tarjetas)
+    let upgSel = 0, upgT = 0;        // cursor y reloj propio de la pantalla
     // CORDON DE BRUMA (ver VEIL_* en data/tuning.js). Dos densidades, una sola pared:
     //   · en el PASILLO cierra con la distancia al objetivo — se cruza a ciegas;
     //   · al entrar al ARENA se ABRE con reloj propio, que es lo que hace que el climax se lea
@@ -172,21 +182,25 @@ import { RUNWAYS } from './data/runways.js';
     function goSurvival() { gameMode = 'survival'; setState('menu'); beep(600, 0.08, 'square', 0.05); }
     // CICLO DE MUERTE: las mismas misiones de la campaña, una al azar, sin el guion largo
     function goCycle() { gameMode = 'cycle'; randomMission(); setState('menu'); beep(600, 0.08, 'square', 0.05); }
+    // el ARENA y el CICLO solo juegan misiones CON buque: las de distancia no tienen climax.
+    // `arenaShip` persiste de sesiones viejas, asi que se sanea al entrar.
+    function shipMissionAt(i) { return SHIP_MISSIONS.includes(i) ? i : SHIP_MISSIONS[0]; }
+    function randomShipMission() { return SHIP_MISSIONS[Math.floor(Math.random() * SHIP_MISSIONS.length)]; }
     // MINUTOS SAGRADOS: SOLO la batalla contra el buque, en su zona — el modo NO tiene camino.
     // Pasa por el menu (avion + [M], donde se elige el BUQUE) y al arrancar salta DERECHO al
     // asalto. Es un modo propio: nunca encadena a CICLO DE MUERTE ni al despegue.
-    function goArena() { gameMode = 'arena'; loadLevel(cfg.arenaShip); setState('menu'); beep(600, 0.08, 'square', 0.05); }
+    function goArena() { gameMode = 'arena'; cfg.arenaShip = shipMissionAt(cfg.arenaShip); loadLevel(cfg.arenaShip); setState('menu'); beep(600, 0.08, 'square', 0.05); }
     /** Arranca UNA batalla de MINUTOS SAGRADOS. Como el vuelo no se juega, `run.dist` nace EN el
      *  objetivo y se entra al asalto directo.
      *  `nextShip` sortea otro buque — es la SIGUIENTE batalla (el modo son batallas aleatorias);
      *  sin el se repite el mismo, que es lo que corresponde al REINTENTAR la que perdiste. */
     function startArenaBattle(nextShip) {
-      if (nextShip) { cfg.arenaShip = (Math.random() * MISSIONS.length) | 0; loadLevel(cfg.arenaShip, true); }
+      if (nextShip) { cfg.arenaShip = randomShipMission(); loadLevel(cfg.arenaShip, true); }
       reset(); setRunObjective(true);
       run.dist = objectiveDist;
       arena.enter(); sfxOne('lv1');
     }
-    // arranca una SECUENCIA de pantallas (clave del guion en STRINGS: 'storyIntro', 'storyL1'…)
+    // arranca una SECUENCIA de pantallas (clave del guion en STRINGS: 'storyM1', 'epiM4'…)
     function initStory(key) {
       story = { seq: L()[key] || STRINGS.es[key] || [], si: 0 };
       initStoryScreen();
@@ -225,8 +239,30 @@ import { RUNWAYS } from './data/runways.js';
     }
 
     function startCampaign() {
-      gameMode = 'campaign'; curCampaign = 0; selPlane = CAMPAIGN_PLANE; loadLevel(0); reset();
+      gameMode = 'campaign'; curCampaign = 0; selPlane = CAMPAIGN_PLANE;
+      pichon = [];                       // campaña nueva: el banco del Pichon arranca vacio
+      loadLevel(0); reset();
       setRunObjective(); setState(enterMission());
+    }
+    /** Siguiente mision de campaña (conservando el puntaje acumulado) o victoria si era la ultima. */
+    function advanceCampaign() {
+      if (curLevel + 1 < MISSIONS.length) {
+        const keep = run.score; loadLevel(curLevel + 1); reset(); run.score = keep;
+        setRunObjective(); setState(enterMission());
+      } else { setState('victory'); levelT = 0; }
+    }
+    // EL BANCO DEL PICHON: navegacion y eleccion de la mejora ofrecida (estado 'upgrade')
+    function upgNav(dir) {
+      if (upgOffer.length < 2) return;
+      upgSel = (upgSel + dir + upgOffer.length) % upgOffer.length;
+      beep(520, 0.05, 'square', 0.04);
+    }
+    function upgConfirm() {
+      const u = upgOffer[upgSel];
+      if (!u || upgT < 0.4) return;      // gracia: la tecla que cerro el epilogo no elige sola
+      pichon.push(u.id);
+      beep(880, 0.12, 'square', 0.06);
+      advanceCampaign();
     }
     function confirmMode() {
       const m = MODES[modeSel];
@@ -298,7 +334,7 @@ import { RUNWAYS } from './data/runways.js';
     }
     /** Guarda (slot nuevo o pisando el elegido) y vuelve al menu raiz con el flash de confirmacion. */
     function doSave() {
-      const d = { camp: curCampaign, level: curLevel, score: Math.floor(run.score), lives: run.lives };
+      const d = { camp: curCampaign, level: curLevel, score: Math.floor(run.score), lives: run.lives, ups: pichon.slice() };
       const row = pauseSaveRows()[saveSel];
       if (!row) return;
       if (row.id === null) saves.saveGame(d); else saves.overwriteSave(row.id, d);
@@ -342,6 +378,7 @@ import { RUNWAYS } from './data/runways.js';
     function loadSave(rec) {
       curCampaign = CAMPAIGNS[rec.camp] && CAMPAIGNS[rec.camp].enabled ? rec.camp : 0;
       gameMode = 'campaign'; selPlane = CAMPAIGN_PLANE;
+      pichon = Array.isArray(rec.ups) ? rec.ups.slice() : [];   // las mejoras viajan con la partida
       loadLevel(Math.min(rec.level || 0, MISSIONS.length - 1));
       reset();
       run.score = rec.score || 0;
@@ -361,8 +398,8 @@ import { RUNWAYS } from './data/runways.js';
       if (gameMode === 'campaign' && m.story) { initStory(m.story); return 'story'; }
       briefT = 0; return 'brief';
     }
-    // elige una mision al azar para el CICLO DE MUERTE (mismas misiones que la campaña)
-    function randomMission() { loadLevel(Math.floor(Math.random() * MISSIONS.length)); }
+    // elige una mision al azar para el CICLO DE MUERTE (solo las misiones CON buque)
+    function randomMission() { loadLevel(randomShipMission()); }
     // define el objetivo del run según el modo (campaña/ciclo: el goal de la mision; supervivencia: infinito)
     // `keepMusic` solo lo pasa el REINTENTO tras un derribo: ahi la musica sigue sonando.
     function setRunObjective(keepMusic) {
@@ -382,9 +419,10 @@ import { RUNWAYS } from './data/runways.js';
     // ---------- OPCIONES: LA pantalla de configuración ----------
     // Antes esto estaba partido en dos: OPCIONES (idioma y poco más) y el menú [M], que se abría
     // SOLO desde la selección de avión. Eso dejaba a la campaña sin acceso a nada — y varias de
-    // las filas de [M] (ESCUADRÓN, COMBUSTIBLE, ENERGÍA, PIRUETAS) sí la afectan, porque
-    // CAMPAIGN_CFG únicamente pisa sky/water/wind/obstacles/coast. Se unificaron acá y [M] dejó
-    // de existir.
+    // las filas de [M] (COMBUSTIBLE, ENERGÍA, PIRUETAS) sí la afectan. Se unificaron acá y [M]
+    // dejó de existir. OJO: desde la campaña v0.0.1 cada misión pisa TODO el bloque de mapa y
+    // ambiente (sky/water/terrain/wind/obstacles/coast/bombs/rain/fog/squad — ver C() en
+    // data/missions.js), así que en campaña esas filas son de solo-mirar.
     //
     // La lista lleva ENCABEZADOS de sección, y los de las filas de prototipado dicen en qué modos
     // sirven: quien juega la campaña tiene que poder ver de un vistazo que el bloque de MAPA no
@@ -457,9 +495,9 @@ import { RUNWAYS } from './data/runways.js';
       // FONDO y AGUA también pintan el ARENA (three-arena lee theme.sky/theme.water), por eso no
       // están en el bloque de MAPA: ese es solo del PASILLO.
       //
-      // El encabezado decía «AMBIENTE · no en la campaña», y con LLUVIA adentro pasaba a ser media
-      // verdad: la campaña pisa sky/water (CAMPAIGN_CFG) pero NO la lluvia. La aclaración bajó a
-      // una NOTA, que es exactamente para lo que existen: así el encabezado no promete de más.
+      // Desde la campaña v0.0.1 cada misión pisa TAMBIÉN la lluvia (la rampa de clima del guion),
+      // así que la vieja media-verdad del encabezado quedó saldada: en campaña, todo este bloque
+      // lo decide la misión.
       { head: 'optSecAmbiente' },
       { note: 'optNoteAmbiente' },
       { label: () => T('optSky'), opts: ['dusk', 'night', 'storm', 'clear', 'cloudy', 'sun', 'moon', 'dawn'],
@@ -518,8 +556,9 @@ import { RUNWAYS } from './data/runways.js';
       // BUQUE: elegir el blanco es lo que permite probar los tres layouts de zonas sin depender
       // del sorteo. `loadLevel` solo si YA estás en arena: fuera de ese modo movería el nivel de
       // campaña/ciclo por debajo, que es lo último que espera alguien tocando OPCIONES.
-      { label: () => T('optShip'), opts: MISSIONS.map((m, i) => i), names: () => MISSIONS.map(m => m.name),
-        get: () => cfg.arenaShip, set: v => { cfg.arenaShip = v; if (gameMode === 'arena') loadLevel(v, true); },
+      // solo misiones CON buque: las de distancia no tienen layout de zonas que atacar
+      { label: () => T('optShip'), opts: SHIP_MISSIONS.slice(), names: () => SHIP_MISSIONS.map(i => MISSIONS[i].goal.ship),
+        get: () => shipMissionAt(cfg.arenaShip), set: v => { cfg.arenaShip = v; if (gameMode === 'arena') loadLevel(v, true); },
         save: 'rasante_buque' },
 
       // DEPURACIÓN: lo único que NO persiste, a propósito. MODO CAMARA deja el mundo sin avanzar
@@ -654,8 +693,9 @@ import { RUNWAYS } from './data/runways.js';
       veilOut = 0; veilPrev = '';   // el telon del cordon, cerrado y sin reloj
       arena.resetArena();
       // NORMA DE CAMPAÑA (3/8, GUION_2): con roster, el relevo es un AVERIADO que vuelve a la
-      // base (nadie muere por gameplay); sin roster, el relevo arcade de siempre (PATRIA caido)
-      squad.setRoster(gameMode === 'campaign' ? FIELES : null);
+      // base (nadie muere por gameplay); sin roster, el relevo arcade de siempre (PATRIA caido).
+      // El roster es POR MISION (los Fieles vivos segun el guion); FIELES queda de respaldo.
+      squad.setRoster(gameMode === 'campaign' ? (curMission().roster || FIELES) : null);
       resetFog(); fogWarned = false;   // los bancos de niebla se re-sortean en cada corrida
       // el ESCUADRON de la corrida: cfg.squad aviones y vos de lider. Vive en `run` (no en el
       // sistema) porque lo leen HUD + relevo + este archivo.
@@ -762,6 +802,9 @@ import { RUNWAYS } from './data/runways.js';
       },
       savesConfirm: () => { const r = saves.listSaves()[savesSel]; if (r) loadSave(r); },
       savesBack: () => { setState('campmenu'); beep(400, 0.06, 'square', 0.05); },
+      // EL BANCO DEL PICHON (estado 'upgrade'): elegir la mejora entre misiones
+      upgNav: dir => upgNav(dir),
+      upgConfirm: () => upgConfirm(),
       // OPCIONES: por ahora una sola fila (idioma), asi que izquierda/derecha rotan el idioma
       optNav: dir => { optNav(dir); beep(500, 0.04, 'square', 0.03); },
       optChange: dir => { optChange(dir); beep(560, 0.05, 'square', 0.04); },
@@ -798,6 +841,10 @@ import { RUNWAYS } from './data/runways.js';
       // una larga, como '←←' dentro de '↓←←'— pero los prefijos hay que evitarlos por diseño.
       combo: seq => {
         if (S.state !== 'play') return false;
+        // EL BANCO DEL PICHON: en campaña solo disparan las piruetas APRENDIDAS (el guion las
+        // inventa una por una). El tonel clasico no pasa por aca (startRoll) y queda siempre.
+        // Fuera de campaña no cambia nada: rige cfg.moves como siempre.
+        const mvOk = id => gameMode !== 'campaign' || pichon.includes(id);
         switch (seq) {
           // ---- STICK DERECHO (mayusculas): LAS QUE ROLAN ----
           // Un avion rola con la muñeca, no con el timon, y en el mando la muñeca que rola es la
@@ -806,32 +853,32 @@ import { RUNWAYS } from './data/runways.js';
           // pasar entre dos cosas. Ahora el stick izquierdo NO produce ningun rolido.
           case 'LLL': return startRoll(-1);                    // el tonel clasico (camino legado)
           case 'RRR': return startRoll(1);
-          case 'DRUL': return moves.startMove('barrel', 1);    // la O dibujada con el stick que rola
-          case 'DLUR': return moves.startMove('barrel', -1);
-          case 'dLL': return moves.startMove('spin', -1);      // picas con el izquierdo, rolas con el derecho
-          case 'dRR': return moves.startMove('spin', 1);
+          case 'DRUL': return mvOk('barrel') && moves.startMove('barrel', 1);    // la O dibujada con el stick que rola
+          case 'DLUR': return mvOk('barrel') && moves.startMove('barrel', -1);
+          case 'dLL': return mvOk('spin') && moves.startMove('spin', -1);      // picas con el izquierdo, rolas con el derecho
+          case 'dRR': return mvOk('spin') && moves.startMove('spin', 1);
           // ---- LOS DOS STICKS: EL ASCENSOR ----
           // Mirar hacia donde vas a ir y despues empujar dos veces para alla. Es el unico gesto del
           // juego que usa las dos manos, y por eso es el que mueve el avion de BANDA de altura en
           // vez de hacerle una figura.
-          case 'Ddd': return moves.startMove('mask', 1);       // mirar abajo + picar: pegate al piso
+          case 'Ddd': return mvOk('mask') && moves.startMove('mask', 1);       // mirar abajo + picar: pegate al piso
           case 'Uuu':                                          // mirar arriba + trepar: subi de banda
             return plane.y >= RADAR_ALT - CLIMB_NEAR
-              ? moves.startMove('climbmax', 1, FLY_TOP)        // ya estas contra el radar: cruzalo
-              : moves.startMove('climb', 1, RADAR_ALT);        // subi hasta el borde y quedate ahi
+              ? mvOk('climbmax') && moves.startMove('climbmax', 1, FLY_TOP)    // ya estas contra el radar: cruzalo
+              : mvOk('climb') && moves.startMove('climb', 1, RADAR_ALT);       // subi hasta el borde y quedate ahi
           // CONTEXTUALES por ALTURA: la misma secuencia hace lo que tiene sentido donde estas.
           // Alto hay cielo debajo para tirarse; bajo no queda mas que pegarse al piso.
-          case 'udd': return moves.startMove(plane.y > MV_HI ? 'splits' : 'mask', 1);
+          case 'udd': { const id = plane.y > MV_HI ? 'splits' : 'mask'; return mvOk(id) && moves.startMove(id, 1); }
           // Bajo trepar es la jugada; alto ya tenes altura para colgarte arriba.
-          case 'duu': return moves.startMove(plane.y < MV_LO ? 'popup' : 'hiyo', 1);
-          case 'dud': return moves.startMove('loyo', 1);       // ↓↑↓  pica, sube, pica
-          case 'udu': return moves.startMove('hiyo', 1);       // ↑↓↑  sube, pica, sube
-          case 'dll': return moves.startMove('breakt', -1);    // ↓←←  picar y empujar al lado
-          case 'drr': return moves.startMove('breakt', 1);
-          case 'lrl': return moves.startMove('sturn', -1);     // ←→←  el barrido en S
-          case 'rlr': return moves.startMove('sturn', 1);
-          case 'ulr': return moves.startMove('jink', -1);      // ↑←→  sacudida erratica
-          case 'url': return moves.startMove('jink', 1);
+          case 'duu': { const id = plane.y < MV_LO ? 'popup' : 'hiyo'; return mvOk(id) && moves.startMove(id, 1); }
+          case 'dud': return mvOk('loyo') && moves.startMove('loyo', 1);       // ↓↑↓  pica, sube, pica
+          case 'udu': return mvOk('hiyo') && moves.startMove('hiyo', 1);       // ↑↓↑  sube, pica, sube
+          case 'dll': return mvOk('breakt') && moves.startMove('breakt', -1);  // ↓←←  picar y empujar al lado
+          case 'drr': return mvOk('breakt') && moves.startMove('breakt', 1);
+          case 'lrl': return mvOk('sturn') && moves.startMove('sturn', -1);    // ←→←  el barrido en S
+          case 'rlr': return mvOk('sturn') && moves.startMove('sturn', 1);
+          case 'ulr': return mvOk('jink') && moves.startMove('jink', -1);      // ↑←→  sacudida erratica
+          case 'url': return mvOk('jink') && moves.startMove('jink', 1);
         }
         return false;
       },
@@ -1346,11 +1393,11 @@ import { RUNWAYS } from './data/runways.js';
             if (!story.done) { story.t += 999; }
             else if (story.si + 1 < story.seq.length) { story.si++; initStoryScreen(); beep(500, 0.05, 'square', 0.04); }
             else if (gameMode === 'campaign') {
-              // campaña: siguiente mision (conservando el puntaje acumulado) o victoria si era la ultima
-              if (curLevel + 1 < MISSIONS.length) {
-                const keep = run.score; loadLevel(curLevel + 1); reset(); run.score = keep;
-                setRunObjective(); setState(enterMission());
-              } else { setState('victory'); levelT = 0; }
+              // campaña: antes de la siguiente mision pasa por EL BANCO DEL PICHON (elegir una
+              // mejora), si el pool no se agoto. Despues, la mision o la victoria final.
+              upgOffer = curLevel + 1 < MISSIONS.length ? nextUpgrades(pichon, 2) : [];
+              if (upgOffer.length) { upgSel = 0; upgT = 0; setState('upgrade'); beep(700, 0.07, 'square', 0.05); }
+              else advanceCampaign();
             } else if (gameMode === 'arena') {
               // MINUTOS SAGRADOS: otra BATALLA al azar. Este modo no tiene camino — encadenarlo
               // al briefing lo mandaba a volar una mision entera de CICLO DE MUERTE, que es
@@ -1361,6 +1408,10 @@ import { RUNWAYS } from './data/runways.js';
               randomMission(); reset(); setRunObjective(); briefT = 0; setState('brief');
             }
           }
+        } else if (S.state === 'upgrade') {
+          // EL BANCO DEL PICHON: reloj propio (run.t queda quieto entre misiones). La eleccion
+          // entra por input.js (upgNav/upgConfirm), no por anyPress: hay que ELEGIR, no saltear.
+          upgT += dt;
         } else if (S.state === 'victory') {
           if (levelT > 0.8 && flags.anyPress) { setState('modeselect'); }
         }
@@ -1777,6 +1828,9 @@ import { RUNWAYS } from './data/runways.js';
       // submenu de HISTORIA y lista de partidas: nativas como el selector de modos (puro texto)
       if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t });
       if (S.state === 'saves') menus.drawSaves({ list: saves.listSaves(), sel: savesSel, t: run.t });
+      // EL BANCO DEL PICHON: pantalla de mejora entre misiones. Desde M8 (muerto el Pichon,
+      // indice 7) las mejoras salen de su libreta y la pantalla cambia de nombre.
+      if (S.state === 'upgrade') menus.drawUpgrade({ offer: upgOffer, sel: upgSel, t: upgT, libreta: curLevel >= 7 });
       // PAUSA: overlay en nativas, encima de todo lo del mundo (el fade de historia va despues,
       // pero con el juego pausado nunca conviven)
       if (paused) menus.drawPause({
@@ -1842,6 +1896,10 @@ import { RUNWAYS } from './data/runways.js';
     // estado de la PAUSA para las sondas (mismo patron que __wjump)
     if (typeof window !== 'undefined') window.__pdbg = () => JSON.stringify({
       paused, view: pauseView, sel: pauseSel, saveSel, state: S.state,
+    });
+    // estado del BANCO DEL PICHON para las sondas (oferta, cursor y lo ya aprendido)
+    if (typeof window !== 'undefined') window.__udbg = () => JSON.stringify({
+      state: S.state, level: curLevel, offer: upgOffer.map(u => u.id), sel: upgSel, pichon,
     });
     if (typeof window !== 'undefined') window.__wjump = (p, dev) => {
       if (dev !== undefined) cfg.devcam = !!dev;

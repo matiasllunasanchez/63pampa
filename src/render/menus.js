@@ -416,6 +416,46 @@ export function drawSaves(w) {
 // parpadeos tienen que seguir latiendo.
 const CTRL_KEYS = ['Fly', 'Gas', 'Dive', 'Gun', 'Msl', 'Boost', 'Roll', 'Pan', 'Moves',
   'Aim', 'Cam', 'Tempo', 'Inv', 'Music', 'Menu'];
+// EL BANCO DEL PICHON (estado 'upgrade'): entre mision y mision de campaña se elige UNA de
+// las dos mejoras ofrecidas. Con `libreta` (el Pichon ya murio, M8+) cambian titulo y ritual:
+// las mejoras salen de su libreta de bocetos y las construye el Turco solo.
+export function drawUpgrade(w) {
+  panel();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = P.accent; ctx.font = titleFont(24);
+  ctx.fillText(T(w.libreta ? 'upgTitleLib' : 'upgTitle'), NW / 2, 42);
+  // el ritual de la dupla, en voz baja (es el termometro del cariño del Turco)
+  ctx.fillStyle = P.dim; ctx.font = descFont(11);
+  ctx.fillText(T(w.libreta ? 'upgRitualLib' : 'upgRitual'), NW / 2, 62);
+  ctx.fillStyle = P.body; ctx.font = labelFont(12);
+  ctx.fillText(T('upgSub'), NW / 2, 86);
+  // dos tarjetas apiladas: nombre + que hace + el combo + la voz del guion
+  const x = 52, wCard = NW - 104, hCard = 62, y0 = 100;
+  for (let i = 0; i < w.offer.length; i++) {
+    const u = w.offer[i], y = y0 + i * (hCard + 10), on = i === w.sel;
+    ctx.globalAlpha = on ? 0.16 : 0.06; ctx.fillStyle = on ? P.accent : P.body;
+    ctx.fillRect(x, y, wCard, hCard); ctx.globalAlpha = 1;
+    ctx.strokeStyle = on ? P.accent : '#3a464c'; ctx.strokeRect(x + 0.5, y + 0.5, wCard, hCard);
+    if (on) {
+      ctx.fillStyle = P.accent; ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'left'; ctx.fillText('>', x - 16, y + 26);
+    }
+    ctx.textAlign = 'left';
+    ctx.fillStyle = on ? P.accent : P.body; ctx.font = menuFont(12);
+    ctx.fillText(u.name, x + 12, y + 18);
+    ctx.fillStyle = P.body; ctx.font = descFont(10);
+    ctx.fillText(u.desc, x + 12, y + 33);
+    ctx.fillStyle = P.dim; ctx.font = descFont(10);
+    ctx.fillText(T('upgCombo') + ' ' + u.seq, x + 12, y + 46);
+    ctx.fillText('"' + u.quote + '"', x + 12, y + 58);
+    ctx.textAlign = 'center';
+  }
+  if (Math.sin(w.t * 4) > -0.3) {
+    ctx.fillStyle = P.dim; ctx.font = descFont(11); ctx.textAlign = 'center';
+    ctx.fillText(T('modeHint'), NW / 2, NH - 14);
+  }
+}
+
 export function drawPause(w) {
   ctx.fillStyle = '#070a0dd2';           // velo: mas cerrado que panel() — el juego es contexto, no fondo
   ctx.fillRect(0, 0, NW, NH);

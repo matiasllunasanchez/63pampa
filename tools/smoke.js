@@ -87,7 +87,9 @@ app.whenReady().then(async () => {
 
   // entrar a jugar: CAMPAÑA y saltear el guion a los teclazos
   console.log('\nentrando a jugar:');
-  for (let i = 0; i < 20; i++) await tap(win, 'Return');
+  // 36 teclazos: la campaña v0.0.1 abre con el guion largo de M1 (prologo + briefing,
+  // 11 pantallas, dos toques por pantalla) mas el submenu de HISTORIA en el camino
+  for (let i = 0; i < 36; i++) await tap(win, 'Return');
   await sleep(1500);
   // gas sostenido para no caer al agua mientras se mide
   const hold = setInterval(() => win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Up' }), 40);
@@ -109,18 +111,20 @@ app.whenReady().then(async () => {
   else fail('silencio total — musica y efectos no estan sonando');
 
   // ARENA: la fase del asalto al buque (vuelo 3D libre, three.js + zonas + cabina) es un
-  // subsistema entero que ninguna otra prueba toca. Se recarga con ?qa, que acorta el PASILLO
-  // para llegar en segundos. OJO: con three.js cargado (Electron y el build web lo cargan los
-  // dos) `arena.available()` da true y esto entra a la fase ARENA nueva, NO al fallback en riel
+  // subsistema entero que ninguna otra prueba toca. Desde la campaña v0.0.1 las primeras
+  // misiones son de DISTANCIA (sin buque), asi que el camino corto ya no es la campaña con
+  // ?qa sino MINUTOS SAGRADOS, que entra DERECHO a la batalla. OJO: con three.js cargado
+  // `arena.available()` da true y esto entra a la fase ARENA nueva, NO al fallback en riel
   // de `systems/momentum.js` — ese fallback (`?no3d`) no tiene smoke propio todavía.
-  console.log('\narena (?qa):');
+  console.log('\narena (MINUTOS SAGRADOS):');
   const url = (process.env.SMOKE_SRC || path.join(ROOT, 'src', 'index.html'));
   await win.loadURL('file://' + url + '?qa');
   await sleep(2500);
-  for (let i = 0; i < 20; i++) await tap(win, 'Return');          // saltear guion → despegue
-  const hold2 = setInterval(() => win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Up' }), 40);
-  await sleep(12000);                                             // PASILLO hasta el objetivo
-  clearInterval(hold2);
+  await tap(win, 'Return');                                       // portada → modeselect
+  for (let i = 0; i < 3; i++) await tap(win, 'Down');             // HISTORIA → ... → MINUTOS SAGRADOS
+  await tap(win, 'Return');                                       // → menu de avion
+  await tap(win, 'Return');                                       // → batalla (arena directo)
+  await sleep(4000);
   await checkAlive(win, 'arena');
 
   // DISPARAR dentro del arena: ejercita el camino cañón → zonas → puntaje (shootRay, zoneRect3D,

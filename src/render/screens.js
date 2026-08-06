@@ -341,10 +341,39 @@ export function drawVictory(w) {
   }
 }
 
+// LAMINAS del guion: cada pantalla de historia puede traer `img` (el cuadro del storyboard,
+// ej. 'M1_5b') que se busca en assets/story/<img>.png. Las imagenes TODAVIA NO EXISTEN — el
+// texto ya asume ese fondo y cuando se generen aparecen solas. Carga perezosa, cache por
+// nombre, y si el archivo falta no pasa nada (queda la tarjeta negra de siempre).
+const STORY_IMGS = new Map();
+function storyImg(name) {
+  let e = STORY_IMGS.get(name);
+  if (!e) {
+    e = { img: new Image(), ok: false };
+    e.img.onload = () => { e.ok = true; };
+    e.img.src = '../assets/story/' + name + '.png';
+    STORY_IMGS.set(name, e);
+  }
+  return e.ok ? e.img : null;
+}
+// tinte del texto por REGISTRO (SISTEMA_DIALOGO.md): 'tierra' = el cuaderno de Mateo (birome);
+// 'carta' = el block militar del padre (papel viejo); sin estilo, la tipografia tecnica de siempre.
+const STORY_STYLES = { tierra: '#8fb4e8', carta: '#c9b48a' };
+
 // pantalla de HISTORIA: negro tipo "pantalla de carga" con grano de pelicula y scanline,
 // texto tipeado letra a letra con cursor. NO se ve el terreno de juego (eso llega con el fade).
 export function drawStory(w) {
+  const sc = w.story.seq[w.story.si] || {};
   ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, W, H);
+  // lamina de fondo (si ya existe el asset) + velo oscuro para que el tipeo se lea encima
+  if (sc.img) {
+    const im = storyImg(sc.img);
+    if (im) {
+      ctx.globalAlpha = 0.85; ctx.drawImage(im, 0, 0, W, H);
+      ctx.globalAlpha = 0.55; ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+  }
   // grano de pelicula (parpadea) + una banda de scanline que baja lenta
   ctx.globalAlpha = 0.10;
   for (let i = 0; i < 42; i++) px(Math.random() * W, Math.random() * H, 1, 1, '#8a9ba1');
@@ -365,7 +394,7 @@ export function drawStory(w) {
     if (ln.k === 'title') { ctx.font = 'bold 11px monospace'; ctx.fillStyle = P.accent; }
     else if (ln.k === 'level') { ctx.font = 'bold 8px monospace'; ctx.fillStyle = P.warn; }
     else if (ln.k === 'obj') { ctx.font = '7px monospace'; ctx.fillStyle = '#5c6e73'; }
-    else { ctx.font = '7px monospace'; ctx.fillStyle = P.ink; }
+    else { ctx.font = '7px monospace'; ctx.fillStyle = STORY_STYLES[sc.style] || P.ink; }
     ctx.fillText(shown, W / 2, y);
     curX = W / 2 + ctx.measureText(shown).width / 2 + 2; curY = y;
     // interlineado: mas aire despues del titulo y antes del bloque de nivel

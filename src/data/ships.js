@@ -61,4 +61,8 @@ export const SHIP_CLASS = {
   'HMS SHEFFIELD': 't42', 'HMS COVENTRY': 't42',
   'HMS ARDENT': 't21', 'HMS ANTELOPE': 't21',
   'RFA SIR GALAHAD': 'log', 'ATLANTIC CONVEYOR': 'log',
+  // campaña v0.0.1 (M10-M12): buques nuevos, reusan el layout de su clase.
+  // El Broadsword era Tipo 22 y el Glamorgan clase County: t21/t42 son la aproximacion
+  // jugable (fragata / destructor), no la ficha tecnica.
+  'RFA SIR TRISTRAM': 'log', 'HMS BROADSWORD': 't21', 'HMS GLAMORGAN': 't42',
 };

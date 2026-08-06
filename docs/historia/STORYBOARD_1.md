@@ -4,7 +4,11 @@
 > pegar en el generador de imágenes por cada cuadro. Cubre Prólogo y Misiones 1–3. Cuando
 > este sistema esté validado, el resto de la campaña sale en serie con el mismo molde.
 >
-> **Sincronizado con GUION 2.3.** Las hojas modelo de personaje y las de props viven en
+> **⚠ ACTUALIZACIÓN 3.0 — leer la sección «ACTUALIZACIÓN 3.0» al final ANTES de generar.**
+> Renumeración: los cuadros M3.x de este documento corresponden ahora a la **MISIÓN 4**
+> (Sheffield). Las misiones nuevas (M3 «El invento», M10 «Los primos»), la escena P.0, el
+> terito y las marcas personales de casco están en esa sección. Sincronizado con GUION_3.
+> **Sincronizado originalmente con GUION 2.3.** Las hojas modelo de personaje y las de props viven en
 > [PROMPTS_HOJAS_PERSONAJE.md](PROMPTS_HOJAS_PERSONAJE.md) — generá y aprobá esas ANTES de
 > generar cuadros, y usá siempre sus tokens.
 
@@ -119,13 +123,13 @@ tu generador soporta image reference.
 
 | Token | Descriptor (inglés, pegar tal cual) |
 |---|---|
-| `{ESTEBAN}` | argentine air force pilot, 41 years old, very tall and very thin, gaunt and narrow, the tallest and thinnest of the squadron, neck carried forward, criollo features, olive skin, black hair greying at the temples, clean-shaven, tired warm eyes, olive flight suit unzipped to mid-chest, no jacket, white 1960s flight helmet with oxygen mask hanging, under one arm, black leather flight boots |
+| `{ESTEBAN}` | argentine air force pilot, 41 years old, very tall and very thin, gaunt and narrow, the tallest and thinnest of the squadron, neck carried forward, criollo features, olive skin, black hair greying at the temples, clean-shaven, tired warm eyes, olive flight suit unzipped to mid-chest, no jacket, white 1960s flight helmet with oxygen mask hanging under one arm — the helmet PLAIN WHITE with no personal markings —, black leather flight boots |
 | `{MATEO}` | argentine army conscript, 18 years old and reads as 18, skinny teenager, criollo features, olive skin, black hair, patchy teenage mustache, hip-length oversized olive hooded parka (NOT a long coat), argentine brown leather webbing with canteen, unmarked steel helmet with cloth cover over a wool cap, brown leather boots caked in peat mud, notebook and blue pen in his pocket, wind-burnt face, cracked lips, clearly the son of a tall lean 41-year-old pilot |
-| `{PUMA}` | argentine squadron leader, 44 years old, short and very heavy, squat, the broadest and shortest of the squadron, criollo, sun-darkened, iron-grey hair cropped to the scalp, sun-squinted eyes, grey BRUSH mustache, brown leather flight jacket over his olive flight suit, helmet held low in one hand, black leather flight boots |
-| `{GITANO}` | argentine pilot, 33 years old, the most open silhouette: flight suit pulled down to the waist with sleeves knotted in front, white undershirt, bare arms, tall voluminous black curly hair, the darkest-skinned of the squadron, big warm grin, brown gourd mate with metal bombilla in hand, black leather flight boots |
-| `{VASCO}` | argentine pilot, 36 years old, the most closed silhouette: tall and narrow, sloping shoulders, flight suit zipped to the chin, arms straight at his sides, motionless, pale skin, basque features, heavy brow, solemn face, LARGE silver crucifix worn outside the collar, black leather flight boots |
-| `{PICHON}` | argentine rookie pilot, 22 years old, the smallest of the squadron, reads as a boy among men, criollo, olive skin, baby face, freckles, nervous eyes, flight suit clearly too big, sleeves swallowing his hands, helmet held with both hands against his chest |
-| `{TURCO}` | argentine chief mechanic, late 50s, syrian-lebanese descent, olive skin, hooked nose, stocky with a round belly, bald on top with grey sides, cloth cap, glasses pushed up on his forehead, grey DROOPING WALRUS mustache, grease-stained blue overalls plain and unmarked on the back, rag over one shoulder, big weathered hands |
+| `{PUMA}` | argentine squadron leader, 44 years old, short and very heavy, squat, the broadest and shortest of the squadron, criollo, sun-darkened, iron-grey hair cropped to the scalp, sun-squinted eyes, grey BRUSH mustache, brown leather flight jacket over his olive flight suit, helmet held low in one hand — TWO thin crisp dark stripes painted across it —, flight scarf knotted with regulation precision, black leather flight boots |
+| `{GITANO}` | argentine pilot, 33 years old, the most open silhouette: flight suit pulled down to the waist with sleeves knotted in front, white undershirt, bare arms, tall voluminous black curly hair, the darkest-skinned of the squadron, big warm grin, brown gourd mate with metal bombilla in hand, a single CROOKED hand-painted red stripe on his helmet, black leather flight boots |
+| `{VASCO}` | argentine pilot, 36 years old, the most closed silhouette: tall and narrow, sloping shoulders, flight suit zipped to the chin, arms straight at his sides, motionless, pale skin, basque features, heavy brow, solemn face, LARGE silver crucifix worn outside the collar, plain unmarked helmet, black leather flight boots |
+| `{PICHON}` | argentine rookie pilot, 22 years old, the smallest of the squadron, reads as a boy among men, criollo, olive skin, baby face, freckles, nervous eyes, flight suit clearly too big, sleeves swallowing his hands, helmet held with both hands against his chest, a carpenter's pencil tucked crosswise under the helmet band, half-erased pencil formulas on the back of his left hand |
+| `{TURCO}` | argentine chief mechanic, late 50s, syrian-lebanese descent, olive skin, hooked nose, stocky with a round belly, bald on top with grey sides, cloth cap, glasses pushed up on his forehead, grey DROOPING WALRUS mustache, grease-stained blue overalls plain and unmarked on the back, rag over one shoulder, a small white hand-painted star on the front of his cloth cap, big weathered hands |
 | `{COLORADO}` | argentine corporal, 26 years old, tall and sturdy, fair freckled skin raw red from the cold, red hair, broad honest smile, plain olive field uniform with NO insignia, wool cap, argentine brown leather webbing with canteen, muddy brown leather boots |
 | `{NORMA}` | argentine mother, 47 years old, middle-aged not elderly, dark hair with grey at the temples in a low bun, criolla, faded blue dress with a cream floral apron, always the same apron, no military insignia of any kind, always seen from behind or in profile, face never fully shown, always alone |
 | `{SKYHAWK}` | A-4B Skyhawk attack jet, bare silver-grey metal, blue-white argentine roundel, worn painted metal, single seat, a row of small plain white stars below the cockpit |
@@ -909,7 +913,9 @@ Con este documento validado, el resto de la campaña se produce en serie:
 
 ---
 
-# Cuadros obligatorios de M4–M12 *(mapa para la próxima tanda)*
+# ⛔ SUPERSEDIDA — numeración 2.3. Ver la tabla 3.0 (M4–M14) en «ACTUALIZACIÓN 3.0» al final
+
+## (vieja) Cuadros obligatorios de M4–M12 *(mapa para la próxima tanda)*
 
 Lo que el guion 2.3 exige y no puede faltar cuando se produzcan las misiones restantes.
 **Los objetos de esta lista importan tanto como los personajes** — son los actores de
@@ -928,3 +934,278 @@ reparto del juego.
 | **M12** | Los tres Skyhawks bajo la luna. Puma apagando la radio. El pincel en el bolsillo. Gitano encendiéndose. Puma entrando en la muralla. **El misil saliendo desde tierra** (3 segundos). El monte apagándose. Esteban batiendo las alas sobre la nada. Las tres opciones. |
 | **Epílogo** | Los dos telegramas como cubiertos. La mesa para dos. **Las dos encomiendas**: `{CUADERNO_MATEO}` y `{CARTA_PADRE}` + `{FOTO_VASCO}` + el pincel. Norma de frente por primera vez. El cuaderno y la carta enfrentados en la mesa. El pibe de la 10 en el museo. |
 
+
+---
+---
+
+# ACTUALIZACIÓN 3.0 — lo nuevo del guion, en cuadros
+
+> Complemento de sincronización con [GUION_3.md](GUION_3.md). Todo lo de arriba sigue
+> valiendo salvo lo que esta sección reemplaza. **Renumeración:** M1 y M2 quedan; los
+> cuadros "M3.x" viejos son ahora la **MISIÓN 4**; de ahí en más, +1 hasta M9 (ex M8),
+> **M10 nueva**, y +2 desde M11 (ex M9) hasta M14 (ex M12).
+
+## R.1 — Tokens: las marcas personales *(ya aplicadas a la tabla de §0)*
+Casco pelado (Tero) · dos franjas (Puma) · franja roja torcida (Gitano) · casco liso +
+rosario (Vasco) · lápiz bajo la cinta + fórmulas en la mano (Pichón) · estrellita en la
+gorra (Turco). **Regla: el terito es el ÚNICO animal pintado de la escuadrilla** — ver
+AVIONES_ESCUADRON.md. Obligatorias en todo cuadro de hangar o cabina.
+
+---
+
+## ESCENA P.0 — La puerta *(NUEVA — el marco del juego, años después)*
+
+**Registro:** `[AIRE]`, pero con paleta lavada y fría — el presente es más gris que el
+recuerdo. Sin música hasta que se abre el cuaderno.
+
+### Cuadro P0.1 — La encomienda
+**Plano:** el umbral de una casa de barrio, luz de media mañana. Norma —más canas, el mismo
+delantal— recibe de un empleado de correo un paquete de papel madera atado con hilo. La
+cámara del lado de adentro de la casa: Norma de espaldas, el pasillo en penumbra, la puerta
+un rectángulo de luz.
+
+**PROMPT:**
+```
+[AIRE con paleta desaturada, tonos grises y ocres apagados] Interior of a modest
+argentine house years after the war, seen from inside a dim hallway: {NORMA} from
+behind at the open front door, receiving a brown-paper parcel tied with string
+from a postal worker, morning light framing the doorway as a bright rectangle,
+the hallway in shadow, quiet and heavy, 16:9. No text, no watermark.
+```
+
+### Cuadro P0.2 — Los dos papeles
+**Plano:** cenital suave sobre la mesa de la cocina. A la izquierda, el cuaderno Rivadavia
+hinchado de humedad, recién salido del papel madera. A la derecha, una hoja de block
+militar doblada en cuatro, blanda de años de dobleces, que Norma apoya con las dos manos.
+Uno frente al otro, derechitos.
+
+**PROMPT:**
+```
+[AIRE desaturado] Soft overhead shot of a kitchen table with a floral oilcloth:
+on the left a hardcover school notebook swollen with old damp, sand in its
+seams, just unwrapped from brown paper; on the right a single sheet of military
+block paper folded in four, soft and worn from years of refolding, being placed
+down gently by a woman's hands. The two papers facing each other, carefully
+aligned, like two place settings. Quiet light, 16:9. No text, no watermark.
+```
+
+**Cartel:** *"Tardó años en llegar. Lo que sigue es lo que ella leyó."*
+
+### Cuadro P0.3 — La primera página *(la transición al juego)*
+**Plano:** primerísimo plano de las manos de Norma abriendo el cuaderno. La página: el
+dibujo del arroyo (P1.1). **Match cut:** el dibujo llena la pantalla y el juego "entra" al
+recuerdo — de acá se encadena directo a la Escena P.1.
+
+**PROMPT:**
+```
+[AIRE desaturado → transición] Extreme close-up of a woman's careful hands
+opening a worn hardcover notebook to its first page: a naive blue ballpoint
+drawing of a stream, a rusty pickup truck and two small figures. The drawing
+fills more and more of the frame. 16:9. No text, no watermark.
+```
+
+---
+
+## Cuadro P2.2b — El terito *(NUEVO — la siembra del reconocimiento)*
+**Escena P.2, después de la chicana del Rastrojero.** Mateo cargando la mochila —el
+cuaderno arriba de todo—, señalando al padre con el pulgar, hablándole a Norma.
+
+**PROMPT:**
+```
+[AIRE] 1982 argentine kitchen: {MATEO} with a freshly shaved head, packing a
+canvas duffel bag with a hardcover notebook on top, jerking his thumb toward
+{ESTEBAN} with a grin while speaking to {NORMA} who stands at the stove; on the
+table, mate and bread, warm domestic light, 16:9. No text, no watermark.
+```
+
+**Texto en pantalla:** *"En el trabajo le dicen Tero, ma. Si algún día pasás por arriba
+mío, yo al terito lo reconozco antes que a vos."*
+
+> **Importancia:** dos líneas que hacen posible M8. El jugador las olvida. El guion no.
+
+---
+
+## MISIÓN 1 — cambios 3.0
+
+**La misión es TUTORIAL PURO:** sin boss, sin enemigos, sin disparos enemigos. Esquivar
+mástiles de pesqueros, pasar bajo un puente de chapa, seguir a Puma, tirar a tambores
+flotantes. Los cuadros de briefing ya producidos siguen todos valiendo.
+
+### Cuadro M1.5d — El pájaro *(NUEVO)*
+**Plano:** el Turco en cuclillas junto al Skyhawk de Esteban, pincel fino en la mano,
+terminando de pintar **el terito** bajo la cabina — pintura fresca, blanco y gris, folk.
+Esteban parado al lado, tocando el borde de la pintura con un dedo, la cara entre sorpresa
+y otra cosa.
+
+**PROMPT:**
+```
+[AIRE] {TURCO} crouched beside the fuselage of a {SKYHAWK} at dawn, fine brush
+in hand, finishing a small hand-painted SOUTHERN LAPWING bird (tero) below the
+cockpit sill — long legs, proud chest, folk-art style in white and dark grey,
+paint still fresh; {ESTEBAN} standing beside him touching the edge of the fresh
+paint with one finger, moved and trying not to show it. Cold morning light,
+16:9. No text, no watermark.
+```
+
+**Texto en pantalla:** *"Su pájaro, Teniente. Acá los aviones van con nombre."*
+
+> **Ojo de arte:** este terito es EL objeto del juego — el mismo que Mateo reconoce en M8.
+> Mismo diseño exacto en la hoja del avión (AVIONES_ESCUADRON), acá, y en M8. Pincel, no
+> calcomanía.
+
+---
+
+## MISIÓN 3 — "El invento" *(NUEVA — cuadros clave)*
+
+### Cuadro M3.1 — El tribunal
+**Plano:** el Pichón trepado a una escalera contra el avión de Esteban, manga engrasada
+hasta el codo, hablando con las manos. Abajo, el Turco, brazos cruzados, cara de juez. La
+escuadrilla al fondo, mirando como quien mira un partido.
+
+**PROMPT:**
+```
+[AIRE] {PICHON} up a metal ladder against the fuselage of a {SKYHAWK}, one
+sleeve greasy to the elbow, talking fast with both hands mid-gesture; below,
+{TURCO} with crossed arms and a stern judging face; in the background {GITANO}
+and {PUMA} watching amused like spectators at a match. Morning hangar light,
+16:9. No text, no watermark.
+```
+
+**Texto en pantalla:** *"Pibe. Eso no se puede."* / *"…A ver. Mostrame."*
+
+### Cuadro M3.2 — El fracaso glorioso
+**Plano:** el segundo invento explotando en anticlímax: humo negro chiquito, una pieza
+saliendo despedida y rodando por la pista, el Turco y el Pichón mirándola pasar — el Turco
+con cara de "lo sabía", el Pichón anotando en su libreta, imperturbable.
+
+**PROMPT:**
+```
+[AIRE] Comic beat on the flightline: a small contraption of metal and tape on a
+{SKYHAWK} emitting a puff of black smoke, a single round metal part bouncing and
+rolling away across the concrete in the foreground; {TURCO} watching it roll
+with a deadpan told-you-so face, {PICHON} unbothered, already writing in a small
+black oilcloth notebook with a carpenter pencil. 16:9. No text, no watermark.
+```
+
+**Texto en pantalla:** *"Esto no lo levanta ni Alá."* / *"…Interesante."*
+
+### Cuadro M3.3 — La navaja *(TIERRA — el regalo)*
+**Plano:** página del cuaderno. Dibujo en birome: una mano abierta ofreciendo un
+cortaplumas con cabo de asta, y al lado el mismo cortaplumas dibujado enorme, con
+flechitas señalando "las marquitas del cabo". Debajo, la leyenda manuscrita.
+
+**PROMPT:**
+```
+[TIERRA] Notebook page drawing in blue ballpoint: an open hand offering a small
+worn pocketknife with a horn handle, and beside it the same knife drawn LARGE
+with childish arrows pointing at the little marks on the handle, naive loving
+detail, cream lined paper, 3:4 vertical. No text, no watermark.
+```
+
+**Texto en pantalla (manuscrito):** *"En el campo, un hombre sin navaja no es nadie,
+chamigo."*
+
+---
+
+## MISIÓN 8 — el reconocimiento *(cuadros REESCRITOS del sobrevuelo)*
+
+### Cuadro M8.A — El paso *(EL CUADRO MÁS IMPORTANTE DEL JUEGO junto con la foto)*
+**Plano:** contrapicado desde el pozo, cámara lenta: el Skyhawk plateado pasando ENORME
+sobre las cabezas, ala inclinada en pleno batir, y en el fuselaje — nítido, imposible de
+no ver — **el terito pintado**. La turba volando por la onda del paso.
+
+**PROMPT:**
+```
+[AIRE] Dramatic low-angle shot from inside a muddy trench: a silver {SKYHAWK}
+passing HUGE directly overhead at treetop height, one wing dipped mid-waggle,
+peat and straw whipped up by its wake; on the fuselage below the cockpit,
+perfectly legible, a small hand-painted southern lapwing bird (tero) and a row
+of little white stars. Slow-motion feel, overwhelming presence, 16:9. No text,
+no watermark.
+```
+
+> **Regla de oro:** el terito se tiene que LEER. Si en el render no se distingue, se
+> regenera. De este cuadro depende la certeza de Mateo — y toda la asimetría del final.
+
+### Cuadro M8.B — La cara
+**Plano:** primer plano de Mateo, casco ladeado, la boca abriéndose — el instante exacto
+del reconocimiento. Detrás, desenfocados, otros conscriptos saltando y saludando.
+
+**PROMPT:**
+```
+[AIRE] Close-up of {MATEO} in the trench looking straight up, helmet tilted
+back, his mouth just opening in recognition and disbelief, eyes wide and
+shining; behind him out of focus other conscripts jumping and waving. The
+moment a son recognizes his father, 16:9. No text, no watermark.
+```
+
+**Texto en pantalla:** *"¡Es mi viejo! ¡El del terito es MI VIEJO!"*
+
+### Cuadro M8.C — La multitud *(el plano de Esteban)*
+**Plano:** lo que ve el padre: el monte alejándose YA, decenas de casquitos idénticos,
+brazos en alto, y un pibe flaco al borde de un pozo agitando un cuaderno — uno más entre
+cientos, imposible de confirmar.
+
+**PROMPT:**
+```
+[AIRE] Aerial view from a fast-receding cockpit: a hillside with dozens of tiny
+identical helmeted conscripts waving up, arms raised, one thin figure at the
+edge of a foxhole waving a small notebook — indistinguishable among the crowd,
+already far away. The mountain sliding out of frame, 16:9. No text, no
+watermark.
+```
+
+**Texto en pantalla:** *"¿Alguno de esos sos vos?… Tenías que ser vos."*
+
+---
+
+## MISIÓN 10 — "Los primos" *(NUEVA — cuadros clave)*
+
+### Cuadro M10.A — Del sol
+**Plano:** contraluz: una formación de Mirage nuevos apareciendo desde el resplandor del
+sol, prolijos, brillantes. En el más cercano, la escarapela argentina con la pintura
+todavía fresca — un brillo distinto al resto del fuselaje.
+
+**PROMPT:**
+```
+[AIRE] A formation of brand-new Mirage delta-wing jets emerging from the glare
+of the sun in tight parade formation, gleaming; on the nearest aircraft the
+blue-white argentine roundel visibly FRESHLY painted, its paint catching the
+light differently from the rest of the airframe. Awe and relief, golden
+afternoon over the sea, 16:9. PERIOD LOCK — 1982: no modern aircraft. No text,
+no watermark.
+```
+
+**Texto en pantalla:** *"Aquí un paisano ayudando a otro paisano. Vienen con cariño del
+Perú."*
+
+### Cuadro M10.B — La despedida
+**Plano:** la formación peruana de entrega rompiendo hacia el oeste, y el más cercano
+**batiendo las alas** al irse — el saludo del juego, devuelto por primera vez.
+
+**PROMPT:**
+```
+[AIRE] The delivery flight breaking away westward into the late sun over the
+sea, the nearest jet rocking its wings in a farewell waggle salute, the
+argentine squadron holding formation in the foreground watching them go,
+golden light, brotherhood without words, 16:9. No text, no watermark.
+```
+
+---
+
+## Tabla 3.0 — cuadros obligatorios M4–M14 *(reemplaza a la tabla vieja)*
+
+| Misión | Cuadros que NO pueden faltar |
+|---|---|
+| **M4** (Sheffield) | Los cuadros "M3.x" viejos de este doc, tal cual + la 2ª aparición de la foto (el Vasco solo frente al locker). |
+| **M5** (Callejón) | Gitano cerrando la cúpula tras el festival. El pasillo de fuego. El Vasco con el tren colgando. |
+| **M6** (Antelope) | El chiste de la casada nº3 + foto de frente 3ª vez. **LA CHANCHA: manguera conectada bajo fuego, el pedazo de ala que se arranca, y la Chancha rota en tierra rodeada de mecánicos.** |
+| **M7** (Vasco) | El chocolate del 25. El Vasco hablando de más. Tres aviones donde había cuatro. **EL LOCKER completo** (ver tabla vieja) + Gitano con el mate frío: "tres años le cebé mate a este culiao". El tarrito abierto. |
+| **M8** (sobrevuelo) | **M8.A / M8.B / M8.C de arriba** + la página del monte (con el terito en el avión dibujado). |
+| **M9** (Pichón) | "Me dieron. Todavía no quiero—". La libreta bajo el catre. **El Turco comparando la libreta con los aviones: la cuenta del "un cuarto".** |
+| **M10** (Perú) | **M10.A / M10.B** + el Turco tocando la escarapela fresca ("Hay gente buena en todos lados…"). |
+| **M11** (respiro) | El mate que se enfría entero en la mano del Gitano. Tres estrellitas. El gesto del bolsillo. |
+| **M12** (Correa) | El corte a tierra. Correa poniéndole el cuerpo. **Los jazmines** (la mano buscando la mano). El inventario del hombre bueno + Mateo guardando la foto de Teresa en el cuaderno. **EL TALLADO: la navaja del Colorado mordiendo la viga — "VAMOS A VOLVER / LOS PIBES DE MALVINAS".** |
+| **M13** (asado) | El fuego, la foto contra la damajuana, la libreta al lado. El Gitano en serio (una sola vez). **La CARTA: Esteban escribiendo de noche, ilegible, el sobre "Norma" parado en el locker.** |
+| **M14** (final) | El dedo en el mapa. La foto de cabina de Puma + "que me perdone el abuelo" + click. **"TRES desayunos."** El destello del Gitano al borde de pantalla. El show de Puma + kamikaze. El vacío. **LAS TRAYECTORIAS CRUZADAS** (el misil y la salva en el mismo cuadro). La cara de Tero. El tonel sobre el monte apagado. |
+| **Finales** | **A:** la vorágine (el enjambre de frente, todo rojo) + el locker con la carta + la mesa de Norma completa. **B:** el planeo del sapito (tocando el agua) + la panza en el pasto + LA MESA: Esteban y el Turco, el cuaderno abierto, la navaja contra la azucarera, Norma por la ventana en el jazminero. |
