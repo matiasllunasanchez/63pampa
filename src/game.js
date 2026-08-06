@@ -14,6 +14,8 @@ import { run, resetRun } from './core/run.js';
 import { proj, popup, explodeAt, bloodBurst } from './core/fx.js';
 import * as momentum from './systems/momentum.js';
 import * as tempo from './systems/tempo.js';
+import * as saves from './systems/saves.js';
+import { CAMPAIGNS } from './data/campaigns.js';
 import * as arena from './systems/arena.js';
 import * as arena3D from './systems/three-arena.js';
 import * as arenaRender from './render/arena.js';
@@ -40,7 +42,7 @@ import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './render/momentum.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
-import { MSL_MAX, ROLL_DUR, GEAR_T, RADAR_ALT, FLY_TOP } from './data/tuning.js';
+import { MSL_MAX, ROLL_DUR, GEAR_T, RADAR_ALT, FLY_TOP, VEIL_IN, VEIL_FULL, VEIL_OUT } from './data/tuning.js';
 // ¿"cerca" del techo del radar? Es la ventana donde '↑ arriba + ↑↑' deja de ofrecerte llegar al
 // borde y pasa a ofrecerte cruzarlo. 4 unidades: lo justo para que salga del ASCENSO anterior y
 // repetir el combo, sin que se dispare desde una altura donde todavia tenias margen.
@@ -112,6 +114,27 @@ import { RUNWAYS } from './data/runways.js';
     // 'arena' = BANCO DE PRUEBAS del climax: entra DIRECTO al asalto al buque, sin cruzar el
     // vuelo. Existe para poder tunear el minijuego sin jugar una mision entera cada vez.
     const MODES = ['campaign', 'cycle', 'survival', 'arena', 'options', 'quit'];
+
+    // ---------- PAUSA ----------
+    // NO es un estado de S: es una BANDERA ortogonal. Con `paused` el frame() saltea update()
+    // entero — el mundo queda congelado tal cual se ve (particulas, relojes, barra de MOMENTUM,
+    // todo) — y draw() sigue dibujando lo mismo, con el menu como overlay encima. Asi pausar
+    // funciona igual en PASILLO, despegue, climax y ARENA sin tocar ningun camino de dibujo.
+    let paused = false;
+    let pauseView = 'menu';          // 'menu' · 'controls' · 'save'
+    let pauseSel = 0, saveSel = 0;   // cursor del menu y de la lista de guardado
+    let pauseT = 0;                  // reloj propio (run.t esta congelado): parpadeos del overlay
+    let pauseMsgT = -9;              // cuando se guardo por ultima vez (flash "PARTIDA GUARDADA")
+
+    // ---------- MENU DE HISTORIA (campañas + partidas guardadas) ----------
+    let curCampaign = 0;             // indice en CAMPAIGNS (rotula las partidas guardadas)
+    let campSel = 0;                 // cursor del submenu de historia
+    let savesSel = 0;                // cursor de la lista de partidas (pantalla 'saves')
+    // CORDON DE BRUMA (ver VEIL_* en data/tuning.js). Dos densidades, una sola pared:
+    //   · en el PASILLO cierra con la distancia al objetivo — se cruza a ciegas;
+    //   · al entrar al ARENA se ABRE con reloj propio, que es lo que hace que el climax se lea
+    //     como "saliste del banco" y no como un corte de camara.
+    let veilOut = 0, veilPrev = '';
     let objectiveDist = 0;           // distancia meta puerto→barcaza (0 = sin objetivo / infinito)
     let objectiveShip = '';          // nombre de la barcaza objetivo del run
     const CAMPAIGN_PLANE = 0;        // avión fijo de campaña (0 = A-4 Skyhawk, protagonista)
@@ -202,12 +225,13 @@ import { RUNWAYS } from './data/runways.js';
     }
 
     function startCampaign() {
-      gameMode = 'campaign'; selPlane = CAMPAIGN_PLANE; loadLevel(0); reset();
+      gameMode = 'campaign'; curCampaign = 0; selPlane = CAMPAIGN_PLANE; loadLevel(0); reset();
       setRunObjective(); setState(enterMission());
     }
     function confirmMode() {
       const m = MODES[modeSel];
-      if (m === 'campaign') startCampaign();
+      // HISTORIA ya no arranca directo: pasa por su submenu (CONTINUAR / campañas)
+      if (m === 'campaign') { campSel = campFirstSel(); setState('campmenu'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'cycle') goCycle();
       else if (m === 'arena') goArena();
       else if (m === 'options') { setState('options'); beep(600, 0.06, 'square', 0.05); }
@@ -221,6 +245,109 @@ import { RUNWAYS } from './data/runways.js';
       beep(300, 0.18, 'square', 0.05, 120);
       try { window.close(); } catch (e) { }
       setTimeout(() => { if (!window.closed) { modeSel = 0; setState('title'); } }, 250);
+    }
+
+    // ---------- PAUSA: logica del menu ----------
+    // Filas del menu principal de la pausa. GUARDAR solo tiene sentido en HISTORIA (el progreso
+    // es la mision), asi que fuera de ese modo la fila directamente NO APARECE (pedido 9/8:
+    // mostrarla deshabilitada solo agregaba una parada muerta al cursor).
+    const pauseRows = () => [
+      { id: 'resume', label: T('pauseResume') },
+      { id: 'controls', label: T('pauseControls') },
+      ...(gameMode === 'campaign' ? [{ id: 'save', label: T('pauseSaveRow') }] : []),
+      { id: 'quit', label: T('pauseQuit'), quit: true },
+    ];
+    // filas de la vista GUARDAR: el slot nuevo (si hay lugar) + los existentes para pisar
+    const pauseSaveRows = () => (saves.canSaveNew() ? [{ id: null }] : []).concat(saves.listSaves());
+    const PAUSABLE = () => S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum' || S.state === 'arena';
+    function pauseToggle() {
+      if (!paused && (!PAUSABLE() || cfg.devcam)) return;
+      paused = !paused;
+      if (paused) {
+        pauseSel = 0; pauseView = 'menu'; pauseMsgT = -9;
+        engineOff();                       // el motor no puede quedar rugiendo con el juego quieto
+        beep(430, 0.07, 'square', 0.05, -80);
+      } else beep(620, 0.06, 'square', 0.05, 80);
+    }
+    function pauseNav(dir) {
+      if (pauseView === 'menu') { const n = pauseRows().length; pauseSel = (pauseSel + dir + n) % n; }
+      else if (pauseView === 'save') {
+        const n = pauseSaveRows().length;
+        if (n) saveSel = (saveSel + dir + n) % n;
+      } else return;                       // CONTROLES: no hay nada que navegar
+      beep(520, 0.05, 'square', 0.04);
+    }
+    function pauseConfirm() {
+      if (pauseView === 'controls') { pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); return; }
+      if (pauseView === 'save') { doSave(); return; }
+      const r = pauseRows()[pauseSel];
+      if (r.id === 'resume') pauseToggle();
+      else if (r.id === 'controls') { pauseView = 'controls'; beep(600, 0.06, 'square', 0.05); }
+      else if (r.id === 'save') { pauseView = 'save'; saveSel = 0; beep(600, 0.06, 'square', 0.05); }
+      else if (r.id === 'quit') {
+        // SALIR: la partida muere aca (sin guardado implicito — guardar es una decision del
+        // jugador, no un efecto colateral de irse)
+        paused = false;
+        setState('modeselect'); modeSel = 0;
+        beep(400, 0.09, 'square', 0.05);
+      }
+    }
+    function pauseBack() {
+      if (pauseView !== 'menu') { pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); return; }
+      pauseToggle();                       // ESC sobre el menu raiz = reanudar
+    }
+    /** Guarda (slot nuevo o pisando el elegido) y vuelve al menu raiz con el flash de confirmacion. */
+    function doSave() {
+      const d = { camp: curCampaign, level: curLevel, score: Math.floor(run.score), lives: run.lives };
+      const row = pauseSaveRows()[saveSel];
+      if (!row) return;
+      if (row.id === null) saves.saveGame(d); else saves.overwriteSave(row.id, d);
+      pauseMsgT = pauseT; pauseView = 'menu';
+      beep(880, 0.12, 'square', 0.06);
+    }
+
+    // ---------- MENU DE HISTORIA: filas y carga de partidas ----------
+    // El menu va por SECCIONES (encabezado + filas), y CONTINUAR entero DESAPARECE cuando no hay
+    // partidas guardadas (pedido 10/8): una seccion vacia no explica nada que el jugador pueda
+    // hacer — la primera vez que abris HISTORIA lo unico que hay es empezar.
+    // `head` marca encabezado: el cursor no se para ahi (ver campNav).
+    const campRows = () => [
+      ...(saves.listSaves().length ? [{ head: 'campSecContinue' }, { id: 'continue' }] : []),
+      { head: 'campSecNew' },
+      { id: 'c1' },
+      { id: 'c2', disabled: !CAMPAIGNS[1].enabled },
+    ];
+    /** Mueve el cursor SALTEANDO encabezados (mismo criterio que OPCIONES). */
+    function campNav(dir) {
+      const rows = campRows();
+      let i = campSel;
+      for (let k = 0; k < rows.length; k++) {
+        i = (i + dir + rows.length) % rows.length;
+        if (!rows[i].head) break;
+      }
+      campSel = i;
+      beep(520, 0.05, 'square', 0.04);
+    }
+    function campConfirm() {
+      const r = campRows()[campSel];
+      if (!r || r.head) return;
+      if (r.disabled) { beep(140, 0.09, 'square', 0.05); return; }
+      if (r.id === 'continue') { savesSel = 0; setState('saves'); beep(600, 0.06, 'square', 0.05); }
+      else if (r.id === 'c1') { startCampaign(); beep(700, 0.08, 'square', 0.05); }
+    }
+    /** Primera fila SELECCIONABLE del menu (la lista arranca con un encabezado). */
+    function campFirstSel() { return campRows().findIndex(r => !r.head); }
+    /** Retoma una partida guardada: la mision en curso arranca desde su principio, con el
+     *  puntaje y los aviones que habia (el guardado es a nivel MISION, ver systems/saves.js). */
+    function loadSave(rec) {
+      curCampaign = CAMPAIGNS[rec.camp] && CAMPAIGNS[rec.camp].enabled ? rec.camp : 0;
+      gameMode = 'campaign'; selPlane = CAMPAIGN_PLANE;
+      loadLevel(Math.min(rec.level || 0, MISSIONS.length - 1));
+      reset();
+      run.score = rec.score || 0;
+      if (rec.lives) run.lives = Math.min(run.squad, rec.lives);
+      setRunObjective(); setState(enterMission());
+      beep(700, 0.08, 'square', 0.05);
     }
     // arranca la mision actual por la puerta que corresponda: guion largo (campaña, si lo tiene)
     // o tarjeta corta de briefing (ciclo de muerte). Devuelve el estado al que hay que ir.
@@ -471,7 +598,8 @@ import { RUNWAYS } from './data/runways.js';
     // OJO: systems/audio.js tiene su propia lista de estados de lobby (para la MUSICA) y tiene que
     // coincidir con esta. Son dos porque responden preguntas distintas —esta decide si rota el
     // fondo del lobby— pero si divergen, se nota: o el fondo se congela o la musica se corta.
-    const inLobby = () => S.state === 'title' || S.state === 'modeselect' || S.state === 'menu' || S.state === 'options';
+    const inLobby = () => S.state === 'title' || S.state === 'modeselect' || S.state === 'menu' || S.state === 'options'
+      || S.state === 'campmenu' || S.state === 'saves';
 
     // ESTRELLAS 1..4 (la 4ª = Malvinas, rango S). Compartido por el recuento de nivel y el
     // derribado de survival: exige el DOBLE del par para las Malvinas, que se sientan merecidas.
@@ -523,6 +651,7 @@ import { RUNWAYS } from './data/runways.js';
       clearWorld();     // vacia el campo de obstaculos, balas, particulas…
       momentum.resetMomentum();
       tempo.resetTempo();
+      veilOut = 0; veilPrev = '';   // el telon del cordon, cerrado y sin reloj
       arena.resetArena();
       // NORMA DE CAMPAÑA (3/8, GUION_2): con roster, el relevo es un AVERIADO que vuelve a la
       // base (nadie muere por gameplay); sin roster, el relevo arcade de siempre (PATRIA caido)
@@ -544,7 +673,8 @@ import { RUNWAYS } from './data/runways.js';
     // — o sea en juego (no lobby ni historia) y en los modos que no son campaña. Se togglea en el loop.
     const playerEl = document.getElementById('player');
     const canPickMusic = () => gameMode !== 'campaign'
-      && S.state !== 'title' && S.state !== 'modeselect' && S.state !== 'menu' && S.state !== 'options' && S.state !== 'story' && S.state !== 'epilogue';
+      && S.state !== 'title' && S.state !== 'modeselect' && S.state !== 'menu' && S.state !== 'options'
+      && S.state !== 'campmenu' && S.state !== 'saves' && S.state !== 'story' && S.state !== 'epilogue';
 
     // ---------- input ----------
     // CAMARAS (tecla V, cicla): 4 niveles de zoom anclados al sprite del avion.
@@ -615,6 +745,23 @@ import { RUNWAYS } from './data/runways.js';
         if (row >= 0 && row < MODES.length) { modeSel = row; confirmMode(); }
       },
       escToMenu: () => { setState('modeselect'); beep(400, 0.06, 'square', 0.05); },
+      // PAUSA (la logica vive arriba; el input solo enruta). isPaused es el predicado que
+      // core/input.js usa para desviar el teclado/el mando al menu en vez de al vuelo.
+      isPaused: () => paused,
+      pauseToggle: () => pauseToggle(),
+      pauseNav: dir => pauseNav(dir),
+      pauseConfirm: () => pauseConfirm(),
+      pauseBack: () => pauseBack(),
+      // submenu de HISTORIA y lista de partidas guardadas
+      campNav: dir => campNav(dir),
+      campConfirm: () => campConfirm(),
+      savesNav: dir => {
+        const n = saves.listSaves().length;
+        if (n) savesSel = (savesSel + dir + n) % n;
+        beep(520, 0.05, 'square', 0.04);
+      },
+      savesConfirm: () => { const r = saves.listSaves()[savesSel]; if (r) loadSave(r); },
+      savesBack: () => { setState('campmenu'); beep(400, 0.06, 'square', 0.05); },
       // OPCIONES: por ahora una sola fila (idioma), asi que izquierda/derecha rotan el idioma
       optNav: dir => { optNav(dir); beep(500, 0.04, 'square', 0.03); },
       optChange: dir => { optChange(dir); beep(560, 0.05, 'square', 0.04); },
@@ -1247,7 +1394,7 @@ import { RUNWAYS } from './data/runways.js';
         cam.x += (inp.r - inp.l) * 30 * f * dt;
         cam.y = Math.max(1.2, Math.min(90, cam.y + (inp.rise - inp.sink) * 22 * f * dt));
         run.shake = Math.max(0, run.shake - dt * 10);
-        spawnSystem(dt);
+        spawnSystem(dt, objectiveDist);
         // el mundo entero corre, pero la señal de muerte se DESCARTA: en este modo el avion es
         // inmortal y de la partida solo se sale con ESCAPE (ver core/input.js). El vuelo
         // (flightSystem) NO corre: el avion queda quieto como referencia, no cae ni gasta nafta.
@@ -1266,7 +1413,7 @@ import { RUNWAYS } from './data/runways.js';
       if (fs === 'momentum' || fs === 'arena') return;   // ya entro al climax
       if (fs === 'objective') { finishObjective(); return; }
       if (fs && fs.death) { onDeath(fs.death); return; }
-      spawnSystem(dt);                   // aparicion de obstaculos y soldados (nunca corta el frame)
+      spawnSystem(dt, objectiveDist);    // aparicion de obstaculos y soldados (nunca corta el frame)
       const hit = collisionSystem(dt);   // impactos → devuelve { death } si un choque fue fatal
       if (hit) { onDeath(hit.death); return; }
       // líneas de velocidad
@@ -1530,6 +1677,10 @@ import { RUNWAYS } from './data/runways.js';
       world.drawFog();
       }   // ---- fin mundo 2D ----
 
+      // CORDON DE BRUMA: el telon del final del pasillo. Va afuera del bloque 2D (tiene que tapar
+      // igual si el fondo lo pone three) pero ADENTRO del giro: es aire del mundo, rola con el.
+      if (S.state !== 'arena' && S.state !== 'momentum') world.drawVeil(veilNow());
+
       // fin del HORIZONTE GIRATORIO: de aca en adelante todo va NIVELADO — el avion, su mira, la
       // formacion y los popups son el lado "cabina", igual que en el momentum.
       if (hzW) ctx.restore();
@@ -1597,6 +1748,8 @@ import { RUNWAYS } from './data/runways.js';
         arena: arena.active(), zones: arena.zonesOf(), view: arena.view(), objectiveShip,
         parts, popups, selPlane, t: run.t });
       ctx.restore();
+      // ...y el telon ABRIENDOSE del otro lado: entraste al climax cruzando el banco
+      if (veilOut > 0 && (S.state === 'arena' || S.state === 'momentum')) world.drawVeil(veilOut / VEIL_OUT);
 
       // MENUS Y PANTALLAS: tambien en grilla de diseño (320x180), escaladas por U
       ctx.save(); ctx.scale(U, U);
@@ -1621,6 +1774,15 @@ import { RUNWAYS } from './data/runways.js';
       // El fondo (drawPpalBg) si va escalado — es la grilla de diseño y cubre toda la pantalla.
       if (S.state === 'title') menus.drawTitle({ t: run.t });
       if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t });
+      // submenu de HISTORIA y lista de partidas: nativas como el selector de modos (puro texto)
+      if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t });
+      if (S.state === 'saves') menus.drawSaves({ list: saves.listSaves(), sel: savesSel, t: run.t });
+      // PAUSA: overlay en nativas, encima de todo lo del mundo (el fade de historia va despues,
+      // pero con el juego pausado nunca conviven)
+      if (paused) menus.drawPause({
+        view: pauseView, sel: pauseSel, saveSel, rows: pauseRows(),
+        saveRows: pauseSaveRows(), t: pauseT, msg: pauseT - pauseMsgT,
+      });
       if (S.state === 'options') menus.drawOptions({
         t: run.t, sel: optRow,
         rows: OPT_ROWS.map(r => {
@@ -1664,11 +1826,50 @@ import { RUNWAYS } from './data/runways.js';
 
 
 
+    /** Densidad del telon en el PASILLO (0..1). La apertura del climax va por veilOut. */
+    function veilNow() {
+      if (objectiveDist <= 0) return 0;
+      if (S.state !== 'play' && S.state !== 'dead' && S.state !== 'relevo') return 0;
+      const t = Math.max(0, Math.min(1, (run.dist / objectiveDist - VEIL_IN) / (VEIL_FULL - VEIL_IN)));
+      // CUADRATICA: acompaña la disipacion de la niebla desde media aproximacion sin molestar
+      // (a mitad de camino apenas se nota) y cierra fuerte sobre el buque (pedido 10/8).
+      return t * t;
+    }
+
+    // SONDA VISUAL (dev): salta a una fraccion del pasillo y/o prende MODO CAMARA sin pasar por
+    // el menu. Es la unica forma de MIRAR la aproximacion al buque desde una captura
+    // automatizada: volando de verdad no se llega vivo al tramo final del pasillo.
+    // estado de la PAUSA para las sondas (mismo patron que __wjump)
+    if (typeof window !== 'undefined') window.__pdbg = () => JSON.stringify({
+      paused, view: pauseView, sel: pauseSel, saveSel, state: S.state,
+    });
+    if (typeof window !== 'undefined') window.__wjump = (p, dev) => {
+      if (dev !== undefined) cfg.devcam = !!dev;
+      if (p !== undefined && objectiveDist > 0) run.dist = Math.max(0, p * objectiveDist);
+      return JSON.stringify({
+        p: objectiveDist ? +(run.dist / objectiveDist).toFixed(3) : 0,
+        dist: Math.round(run.dist), obj: Math.round(objectiveDist),
+        obs: obstacles.filter(o => o.z > 3 && !o.decor).length,   // lo que queda ADELANTE
+        devcam: cfg.devcam, state: S.state,
+      });
+    };
 
     // ---------- loop ----------
     let last = performance.now();
     function frame(now) {
+      // el telon del cordon: se arma al entrar al climax y se abre solo (raw: es cinematica, no
+      // la toca la camara lenta del MOMENTUM)
       const raw = Math.min(0.033, (now - last) / 1000); last = now;
+      // PAUSA: se saltea update() ENTERO (y el reloj del momentum, y el del telon) — el mundo
+      // queda clavado tal cual se ve. draw() sigue corriendo: dibuja el frame congelado y el
+      // menu encima. pauseT es el unico reloj vivo (parpadeos del overlay).
+      if (paused) {
+        pauseT += raw;
+        draw(); updateMusic(S.state);
+        if (playerEl) playerEl.classList.toggle('on', canPickMusic());
+        requestAnimationFrame(frame);
+        return;
+      }
       // MOMENTUM: la barra se carga con el score y el drenaje corre con el dt CRUDO (tiempo
       // real); el mundo recibe el escalado. Este multiplicador es TODO el poder: como nada usa
       // reloj de pared, achicar el dt frena spawns, flak, particulas y lluvia en sincronia
@@ -1678,6 +1879,11 @@ import { RUNWAYS } from './data/runways.js';
         beep(660, 0.1, 'square', 0.05, 140);
         popup(W / 2, 58, T('tempoReady'), P.accent);
       }
+      if (S.state !== veilPrev) {
+        if (S.state === 'arena' || S.state === 'momentum') veilOut = VEIL_OUT;
+        veilPrev = S.state;
+      }
+      if (veilOut > 0) veilOut = Math.max(0, veilOut - raw);
       const dt = raw * tempo.scale();
       update(dt); draw(); updateMusic(S.state);
       if (playerEl) playerEl.classList.toggle('on', canPickMusic());   // reproductor: solo donde hay pista cambiable

@@ -3,6 +3,33 @@
 > Guion visual viñeta por viñeta del [GUION_2.md](GUION_2.md), con un prompt listo para
 > pegar en el generador de imágenes por cada cuadro. Cubre Prólogo y Misiones 1–3. Cuando
 > este sistema esté validado, el resto de la campaña sale en serie con el mismo molde.
+>
+> **Sincronizado con GUION 2.3.** Las hojas modelo de personaje y las de props viven en
+> [PROMPTS_HOJAS_PERSONAJE.md](PROMPTS_HOJAS_PERSONAJE.md) — generá y aprobá esas ANTES de
+> generar cuadros, y usá siempre sus tokens.
+
+---
+
+## 0b. Tercer registro visual — la carta del padre *(nuevo en 2.1)*
+
+El guion tiene ahora **tres** registros, no dos. Además de `[AIRE]` y `[TIERRA]`:
+
+**`[CARTA]`** — los cinco fragmentos de la carta que Esteban escribe y nunca manda (M6, M8,
+M10, M11 y voz en off en M12). No es la manuscrita de Mateo ni la tipografía técnica del
+juego: es un hombre que no sabe escribirle a su hijo y lo intenta igual.
+
+```
+Detailed 90s arcade pixel art close-up of a single sheet of military-issue lined
+block paper on a bare table under a hard single-source lamp, the sheet folded in
+four with soft worn creases, covered in cramped tight adult printed handwriting
+with several heavy angry crossings-out, a cheap pen resting on it, deep shadows
+around the pool of lamplight, chunky black pixel outlines, dithered shading,
+muted olive and warm paper tones, crisp clean pixels, no anti-aliasing.
+```
+
+La regla visual: el papel de Mateo es **claro y ancho** (cuaderno escolar, letra grande,
+dibujos); el de Esteban es **oscuro y apretado** (block militar, letra chica, tachones). Un
+vistazo tiene que bastar para saber quién escribe.
 
 ---
 
@@ -83,26 +110,45 @@ Pegá el token donde el prompt diga el nombre. Generá primero una "hoja modelo"
 personaje (prompt de ficha al final de esta sección) y usala como referencia de imagen si
 tu generador soporta image reference.
 
+> ⚠️ **Tabla v2 — revisada por época.** La v1 de esta tabla producía un reparto de soldados
+> norteamericanos genéricos: Mateo con capote largo de la Segunda Guerra, los cinco pilotos con la
+> misma silueta y caras del norte de Europa. Los descriptores de abajo ya incorporan el equipo
+> argentino real del 82 y la separación de siluetas del escuadrón. La justificación completa, la
+> auditoría de los errores y los prompts largos de hoja modelo están en
+> [PROMPTS_HOJAS_PERSONAJE.md](PROMPTS_HOJAS_PERSONAJE.md).
+
 | Token | Descriptor (inglés, pegar tal cual) |
 |---|---|
-| `{ESTEBAN}` | argentine fighter pilot, 41 years old, weathered handsome face, short dark hair greying at the temples, strong jaw, tired warm eyes, olive-green flight suit, white flight helmet |
-| `{MATEO}` | argentine conscript soldier, 18 years old, skinny, freshly shaved head, big expressive dark eyes, oversized green wool coat, oversized helmet |
-| `{PUMA}` | argentine squadron leader, 44 years old, broad shouldered, calm stern face, thick grey-streaked mustache, olive flight suit |
-| `{GITANO}` | argentine pilot, 33 years old, curly dark hair, big warm grin, mate gourd in hand, olive flight suit |
-| `{VASCO}` | argentine pilot, 36 years old, heavy brow, solemn quiet face, small crucifix on a chain, olive flight suit |
-| `{PICHON}` | argentine rookie pilot, 22 years old, baby-faced, freckles, nervous eyes, slightly too-large flight suit |
-| `{TURCO}` | argentine chief mechanic, late 50s, stocky, grease-stained blue overalls, thick grey mustache, rag over one shoulder, kind tired eyes |
-| `{COLORADO}` | argentine corporal, 26 years old, red hair, broad honest smile, weathered freckled face, field uniform |
-| `{NORMA}` | argentine mother, late 40s, apron over a plain dress, hair in a low bun, almost always seen from behind or in profile |
-| `{SKYHAWK}` | A-4 Skyhawk attack jet, silver-grey, blue-white Argentine roundel, worn painted metal, single seat |
+| `{ESTEBAN}` | argentine air force pilot, 41 years old, very tall and very thin, gaunt and narrow, the tallest and thinnest of the squadron, neck carried forward, criollo features, olive skin, black hair greying at the temples, clean-shaven, tired warm eyes, olive flight suit unzipped to mid-chest, no jacket, white 1960s flight helmet with oxygen mask hanging, under one arm, black leather flight boots |
+| `{MATEO}` | argentine army conscript, 18 years old and reads as 18, skinny teenager, criollo features, olive skin, black hair, patchy teenage mustache, hip-length oversized olive hooded parka (NOT a long coat), argentine brown leather webbing with canteen, unmarked steel helmet with cloth cover over a wool cap, brown leather boots caked in peat mud, notebook and blue pen in his pocket, wind-burnt face, cracked lips, clearly the son of a tall lean 41-year-old pilot |
+| `{PUMA}` | argentine squadron leader, 44 years old, short and very heavy, squat, the broadest and shortest of the squadron, criollo, sun-darkened, iron-grey hair cropped to the scalp, sun-squinted eyes, grey BRUSH mustache, brown leather flight jacket over his olive flight suit, helmet held low in one hand, black leather flight boots |
+| `{GITANO}` | argentine pilot, 33 years old, the most open silhouette: flight suit pulled down to the waist with sleeves knotted in front, white undershirt, bare arms, tall voluminous black curly hair, the darkest-skinned of the squadron, big warm grin, brown gourd mate with metal bombilla in hand, black leather flight boots |
+| `{VASCO}` | argentine pilot, 36 years old, the most closed silhouette: tall and narrow, sloping shoulders, flight suit zipped to the chin, arms straight at his sides, motionless, pale skin, basque features, heavy brow, solemn face, LARGE silver crucifix worn outside the collar, black leather flight boots |
+| `{PICHON}` | argentine rookie pilot, 22 years old, the smallest of the squadron, reads as a boy among men, criollo, olive skin, baby face, freckles, nervous eyes, flight suit clearly too big, sleeves swallowing his hands, helmet held with both hands against his chest |
+| `{TURCO}` | argentine chief mechanic, late 50s, syrian-lebanese descent, olive skin, hooked nose, stocky with a round belly, bald on top with grey sides, cloth cap, glasses pushed up on his forehead, grey DROOPING WALRUS mustache, grease-stained blue overalls plain and unmarked on the back, rag over one shoulder, big weathered hands |
+| `{COLORADO}` | argentine corporal, 26 years old, tall and sturdy, fair freckled skin raw red from the cold, red hair, broad honest smile, plain olive field uniform with NO insignia, wool cap, argentine brown leather webbing with canteen, muddy brown leather boots |
+| `{NORMA}` | argentine mother, 47 years old, middle-aged not elderly, dark hair with grey at the temples in a low bun, criolla, faded blue dress with a cream floral apron, always the same apron, no military insignia of any kind, always seen from behind or in profile, face never fully shown, always alone |
+| `{SKYHAWK}` | A-4B Skyhawk attack jet, bare silver-grey metal, blue-white argentine roundel, worn painted metal, single seat, a row of small plain white stars below the cockpit |
 | `{RASTROJERO}` | rusty old Argentine Rastrojero pickup truck, 1960s workhorse |
 
-**Prompt de hoja modelo** (una por personaje, guardala como referencia):
+**Candado de época — pegalo al final de CADA cuadro que tenga personas:**
+
+```
+Argentina 1982, no modern military equipment, no NATO or US insignia, no invented
+unit patches, no national flag on clothing, argentine latin-american faces.
+```
+
+**Prompt de hoja modelo:** el corto de acá abajo sirve para una prueba rápida, pero para las hojas
+definitivas usá los prompts largos y cerrados de
+[PROMPTS_HOJAS_PERSONAJE.md](PROMPTS_HOJAS_PERSONAJE.md) — el corto no lleva el candado de época y
+por eso salieron mal las primeras.
 
 ```
 [AIRE] Character sprite model sheet, {TOKEN}, front view, three-quarter view and
 profile, idle standing pose, full body plus a face portrait close-up, neutral flat
-background, consistent design, arcade sprite proportions. No text, no watermark.
+background, consistent design, arcade sprite proportions. Argentina 1982, no modern
+military equipment, no NATO or US insignia, no invented unit patches, no national
+flag on clothing. No text, no watermark.
 ```
 
 ### Formatos
@@ -435,6 +481,66 @@ watermark.
 **Texto en pantalla:** *"Traémela entera, Tero. Y traete vos adentro, que la estrellita la
 pinto por vos, no por ella."*
 
+### Cuadro M1.5b — La casada *(nuevo en 2.2 — se siembra el gag)*
+**Plano:** el Gitano en primer término, cómplice, hablándole al Pichón y señalando con el
+pulgar por encima del hombro; al fondo y desenfocado, el Vasco subiendo la escalerilla de
+espaldas, sin darse vuelta. **El chiste adelante, el hombre atrás sin contestar** — la
+composición ES la escena.
+
+> **Importancia:** este cuadro planta el gag que corre seis misiones y explota en M6. Que se
+> lea el gesto del pulgar y la indiferencia del Vasco.
+>
+> **⚠ CORRECCIÓN 2.3 — no es "la foto que nadie vio".** Es al revés: **todos la vieron**. El
+> Gitano manda al Pichón a mirarla y el jugador la mira con él (cuadro M1.5c). El chiste
+> existe *porque* la vieron y es una mujer joven y hermosa. Lo que nadie hace nunca es darla
+> vuelta. Ver GUION_2 §8a.
+
+**PROMPT:**
+```
+[AIRE] Foreground: {GITANO} leaning in conspiratorially telling a joke to a
+wide-eyed {PICHON}, jerking his thumb back over his shoulder, big grin. Background
+slightly out of focus: {VASCO} climbing the boarding ladder of a {SKYHAWK} with
+his back turned, not looking around, not reacting at all. Cold dawn flightline.
+The joke in front, the silent man behind — gossip and dignity in one frame, 16:9.
+No text, no watermark.
+```
+
+**Texto en pantalla:** *"Esa mujer tiene dueño y el dueño tiene charreteras."* / *"A mí me
+dijeron que tiene un hermano preso."* / *"A mí me dijeron que él estuvo preso."*
+
+> **Ojo:** este cuadro siembra DOS cosas — el chiste de la foto y el sistema de **rumores
+> contradictorios** sobre el pasado del Vasco, que el juego no confirma nunca. Si el arte
+> puede sugerir el cuchicheo (dos hablando, uno alejándose), mejor.
+
+### Cuadro M1.5c — La foto *(nuevo en 2.3 — LA PISTA)*
+**Plano:** POV del Pichón frente al locker abierto del Vasco. En el centro del cuadro,
+pegada con cinta amarillenta del lado de adentro de la puerta de chapa gris, **la foto**:
+una mujer joven y hermosa en blanco y negro, riéndose apoyada en una baranda. Penumbra de
+vestuario, un haz de luz sobre la foto. **La foto tiene que ocupar el cuadro y leerse
+perfecta.**
+
+> **EL CUADRO MÁS IMPORTANTE DEL PRIMER MOVIMIENTO, y el más fácil de arruinar.** Acá el
+> juego le muestra al jugador la respuesta y confía en que no la vea. La mujer es joven y
+> linda: por eso todos —personajes y jugador— asumen "amante". **La pista está en el mismo
+> cuadro:** el peinado, el vestido y el grano son de finales de los cincuenta, treinta años
+> antes de 1982. Está a la vista. Nadie la lee, porque el chiste del Gitano ya enseñó cómo
+> mirar. En M6 el Turco la da vuelta y todo se reconfigura. **Si esta foto se muestra chica,
+> borrosa o de refilón, el mejor giro del guion no vale nada.** Se repite en M3 y M5.
+
+**PROMPT:**
+```
+[AIRE] POV shot looking into an open grey steel locker in a dim squadron changing
+room. Taped inside the door with yellowed tape: {FOTO_VASCO} — a small worn
+black-and-white photograph of a beautiful young woman in her mid-thirties,
+late-1950s hair and dress, laughing as she leans on a balcony railing. A single
+shaft of light falls on the photograph. The photo is the centre of the frame,
+large and perfectly readable. Flight gear hanging in shadow around it.
+CRITICAL: the woman is YOUNG and beautiful, and the photograph must clearly look
+thirty years old. 16:9. No text, no watermark.
+```
+
+**Texto en pantalla:** *"…Es hermosa."*
+
 ## Epílogo *(AIRE)*
 
 ### Cuadro M1.6 — Volver con sal
@@ -706,6 +812,26 @@ turned, facing the dark sea, joy and grief in the same frame, 16:9. No text, no
 watermark.
 ```
 
+### Cuadro M3.5b — Dos segundos *(nuevo en 2.3 — segunda aparición de la foto)*
+**Plano:** el Vasco solo en el vestuario vacío, ya con el traje puesto, mirando la foto
+pegada en la puerta del locker. No la toca. La mira dos segundos y cierra la puerta. Contra
+plano cerrado sobre la foto — **la misma imagen de M1, ya familiar.**
+
+> **Sin diálogo, sin música, sin comentario.** El jugador cree estar viendo a un hombre
+> extrañando a su amante, y se conmueve con eso. Está viendo a un huérfano de quince años
+> despidiéndose de su madre antes de cada vuelo, como hace desde 1961. **La escena entera
+> cambia de significado en M6 sin cambiar un solo cuadro.** Es el mejor recurso del guion:
+> el jugador va a querer volver a verla.
+
+**PROMPT:**
+```
+[AIRE] {VASCO} alone in an empty dim changing room, already in his flight suit,
+standing motionless in front of his open locker, looking at {FOTO_VASCO} taped
+inside the door. He is not touching it. His face is unreadable, private, tender.
+Warm single light source. Nobody else in the room. Quiet and intimate, 16:9.
+No text, no watermark.
+```
+
 ## Carta de Mateo *(TIERRA)*
 
 ### Cuadro M3.6 — La hoja
@@ -737,6 +863,29 @@ TEXT IN IMAGE (Argentine Spanish, handwritten caption with an arrow to the jet):
 "y el avioncito gana". No watermark.
 ```
 
+### Cuadro M3.8 — "Quiero volar con vos" *(nuevo en 2.2)*
+**Plano:** el dibujo más tierno del cuaderno hasta acá: **dos aviones plateados volando en
+formación**, uno grande y uno chico, pegados ala con ala. Debajo de cada uno, una flechita
+con un nombre. Es el plan de vida de un pibe de 18 dibujado con birome — y es el plan que
+la guerra no va a dejar que pase.
+
+> **Peso narrativo:** este cuadro es una bomba de tiempo. Vuelve en el epílogo, cuando Norma
+> pasa las páginas. Que sea deliberadamente **alegre y prolijo**: el trazo más cuidado del
+> Movimiento I, porque Mateo lo dibujó ilusionado.
+
+**PROMPT:**
+```
+[TIERRA] Naive but carefully drawn pixel-sketch: two silver fighter jets flying
+in tight formation wingtip to wingtip, one big and one small, drawn with obvious
+love and more care than any other page, little speed lines and a sun in the
+corner, hopeful and proud, blue pixels on lined notebook paper, 3:4 vertical.
+TEXT IN IMAGE (Argentine Spanish, small handwritten labels with arrows, one under
+each plane): "papá" under the big one and "yo" under the small one. No watermark.
+```
+
+**Texto en pantalla:** *"Cuando salga de acá me anoto en la escuela de aviación, pá. Quiero
+volar con vos."*
+
 ---
 
 # Cómo sigue — el molde para M4–M12
@@ -744,10 +893,12 @@ TEXT IN IMAGE (Argentine Spanish, handwritten caption with an arrow to the jet):
 Con este documento validado, el resto de la campaña se produce en serie:
 
 1. **Mismo formato por misión:** briefing (3–5 cuadros) → splash de misión (1) → epílogo
-   (2–3) → carta (2–3, hoja + dibujo). Los picos emocionales (M7 sobrevuelo, M8 Pichón,
-   M9 Correa, M12 final) llevan más cuadros — estimar 8–14 cada uno.
-2. **Consistencia:** usá SIEMPRE los tokens de personaje y los bloques `[AIRE]`/`[TIERRA]`
-   tal cual. Si el generador soporta referencias de imagen, alimentá las hojas modelo.
+   (2–3) → carta (2–3, hoja + dibujo) → **fragmento de la carta del padre en M6, M8, M10 y
+   M11** (registro `[CARTA]`). Los picos emocionales (M6 el locker, M7 sobrevuelo, M8
+   Pichón, M10 Correa, M12 final) llevan más cuadros — estimar 8–14 cada uno.
+2. **Consistencia:** usá SIEMPRE los tokens de personaje y props y los bloques
+   `[AIRE]`/`[TIERRA]`/`[CARTA]` tal cual. Si el generador soporta referencias de imagen,
+   alimentá las hojas modelo de [PROMPTS_HOJAS_PERSONAJE.md](PROMPTS_HOJAS_PERSONAJE.md).
 3. **Los dibujos de Mateo evolucionan:** el trazo arranca prolijo y curioso (M1–M3), se
    vuelve oscuro y ralo en el Movimiento III (más sombra, menos detalle: "no me salió
    dibujar más nada hoy"), y la página del sobrevuelo (M7) es la más luminosa y trabajada
@@ -755,4 +906,25 @@ Con este documento validado, el resto de la campaña se produce en serie:
 4. **Checklist por cuadro generado:** ¿el personaje coincide con su hoja modelo? ¿el texto
    in-image está en español argentino y bien escrito? ¿sin marca de agua? ¿16:9 (aire) o
    3:4 (cuaderno)?
+
+---
+
+# Cuadros obligatorios de M4–M12 *(mapa para la próxima tanda)*
+
+Lo que el guion 2.3 exige y no puede faltar cuando se produzcan las misiones restantes.
+**Los objetos de esta lista importan tanto como los personajes** — son los actores de
+reparto del juego.
+
+| Misión | Cuadros que NO pueden faltar |
+|---|---|
+| **M4** | Gitano cerrando la cúpula tras nombrar el festival (el silencio incómodo). El Callejón como pasillo de fuego. El Vasco volviendo con el tren colgando. |
+| **M5** | El chiste de la casada volviendo (Colorado: "le avisás vos a tu casada") **+ `{FOTO_VASCO}` de frente en primer plano por tercera vez** — última vez antes del reveal, el jugador ya la tiene grabada como "la novia". El Vasco casi riéndose. La bomba bajo el ala (el sapito que necesita hundirse). **La Chancha**: el Hércules gordo salvando a Gitano de noche, manguera conectada sobre el mar. |
+| **M6** | El chocolate y las facturas del 25. El Vasco hablando de más (sin saber que se despide). Los tres aviones donde había cuatro. **EL LOCKER: `{FOTO_VASCO_LOCKER}` (la foto de siempre, ya conocida) → el Turco la despega → `{FOTO_VASCO}` DORSO: "Rosa Elena Arrieta / 1926–1961 / Te amo, mamá. Perdoname." → los tres haciendo la cuenta → la cara del Gitano.** El tarrito de pintura abierto. Fragmento 1 de la carta del padre `[CARTA]`. |
+| **M7** | **EL SOBREVUELO**: el batir de alas visto desde el aire Y desde tierra (decenas de casquitos mirando arriba, un pibe flaco agitando un cuaderno). La página más luminosa del cuaderno. |
+| **M8** | Pichón con la libreta explicándole el tirabuzón al Turco esa mañana. El misil que gira. **La libreta bajo el catre** → `{LIBRETA_PICHON}`. El Turco con los dos bolsillos llenos de muertos. Fragmento 2 `[CARTA]`. |
+| **M9** | El mate del Gitano enfriándose entero durante todo el briefing. El Colorado planeando el asado y el micro a Corrientes (presagio sin presagiar). Los tres volviendo enteros — la victoria limpia que hace que la próxima duela el doble. Turco+libreta construyendo el ASCENSO. |
+| **M10** | El pozo, Correa tapando a Mateo con el cuerpo. **La media de lana y la foto de la hermana** entre sus cosas. Esteban preguntando por carta y que no haya. Fragmento 3 `[CARTA]` — "Así que voy a ir" sin tachar. |
+| **M11** | Volar sobre las posiciones propias (pozos y casquitos abajo, bajo fuego). **El asado**: la foto del Vasco y la libreta del Pichón apoyadas en la mesa junto a la damajuana. **La confesión del Gitano mirando las brasas** — y su cabeza "la risa que se apaga". La última página de la libreta ("para cuando haya que volver a buscar a alguien"). El borrador tachado de la última carta de Mateo. Fragmento 4 `[CARTA]`. |
+| **M12** | Los tres Skyhawks bajo la luna. Puma apagando la radio. El pincel en el bolsillo. Gitano encendiéndose. Puma entrando en la muralla. **El misil saliendo desde tierra** (3 segundos). El monte apagándose. Esteban batiendo las alas sobre la nada. Las tres opciones. |
+| **Epílogo** | Los dos telegramas como cubiertos. La mesa para dos. **Las dos encomiendas**: `{CUADERNO_MATEO}` y `{CARTA_PADRE}` + `{FOTO_VASCO}` + el pincel. Norma de frente por primera vez. El cuaderno y la carta enfrentados en la mesa. El pibe de la 10 en el museo. |
 

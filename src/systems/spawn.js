@@ -11,7 +11,7 @@ import { cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { obstacles, soldiers } from '../core/world.js';
 import { SPAWN_X, SPAWN_Z, SHORE_X, shoreAt, SAND_W, AA_CD, ENEMY_HP, spawnY, SHIP_H,
-         CLIFF_H0, CLIFF_H1, CLIFF_HW0, CLIFF_HW1, CLIFF_COAST_BAND } from '../data/tuning.js';
+         CLIFF_H0, CLIFF_H1, CLIFF_HW0, CLIFF_HW1, CLIFF_COAST_BAND, VEIL_STOP } from '../data/tuning.js';
 
 /** Vida inicial de un enemigo. `hpMax` queda fijo para que la barra pueda dibujar la fraccion
  *  (hp/hpMax); sin el, un enemigo tocado no se distingue de uno que nace con menos vida. */
@@ -176,8 +176,16 @@ function spawn() {
   else obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
 }
 
-/** Avanza los relojes de aparicion y siembra cuando toca. */
-export function spawnSystem(dt) {
+/** Avanza los relojes de aparicion y siembra cuando toca.
+ *  `objectiveDist` (0 = sin objetivo) habilita el CORDON FINAL: pasado VEIL_STOP no entra nadie
+ *  mas al pasillo, para que el ultimo tramo contra el buque quede limpio (ver VEIL_* en
+ *  data/tuning.js). Al margen del porcentaje se exige SPAWN_Z*1.6 de sobra, asi el ultimo
+ *  sembrado alcanza a pasarte antes de que cierre la bruma en cualquier largo de mision. */
+export function spawnSystem(dt, objectiveDist) {
+  // el corte nunca cae antes de la mitad del pasillo: en misiones cortas (o con ?qa, que las
+  // achica x0.06) el margen de SPAWN_Z se comeria el nivel entero y no apareceria nadie nunca.
+  if (objectiveDist > 0 && run.dist >= Math.max(objectiveDist * 0.5,
+    Math.min(objectiveDist * VEIL_STOP, objectiveDist - SPAWN_Z * 1.6))) return;
   // spawn por distancia. En COSTA el campo es mas denso ("hay un desembarco en marcha"): el
   // intervalo se acorta un 35%.
   run.nextSpawn -= run.spd * dt;

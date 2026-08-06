@@ -100,3 +100,30 @@ Para el juego alcanza con que sean **verosímiles y jugables**; para la página 
 cualquier texto que se lea como afirmación histórica, conviene tener la fuente al lado o bajar
 el tono a "se atribuye / se ha señalado". No frena el desarrollo: la mecánica se puede construir
 igual y el texto se ajusta después.
+
+---
+
+## Equipo de vuelo — el traje de inmersión / anti-exposición
+
+*Agregado durante la revisión de época de las hojas de personaje
+([PROMPTS_HOJAS_PERSONAJE.md](PROMPTS_HOJAS_PERSONAJE.md), v2).*
+
+**Qué dice el juego hoy:** nada. No se menciona ni se dibuja.
+
+**Qué habría que confirmar:** los pilotos de A-4B del Grupo 5 de Caza que volaban desde el
+continente sobre el Atlántico Sur en pleno invierno, ¿tenían traje de inmersión / anti-exposición
+para el caso de eyección sobre agua? ¿Lo usaban? ¿Se los dieron y no entraban en la cabina del A-4,
+o directamente no había?
+
+**Por qué importa, y no es un detalle de vestuario:** si la respuesta es que volaban sin protección
+contra el agua fría, eso es **material de guion, no de dibujo**. Encaja exacto con la tesis del
+juego —la culpa es de los de arriba, nunca de los que pelearon— y es de las cosas que se cuentan
+sin subrayar: un objeto que no está. Podría ser una línea del Turco, o un cuadro mudo.
+
+**Estado:** busqué y **no lo pude confirmar con fuente**. Deliberadamente **no lo metí en ningún
+prompt de imagen** para no dibujar algo falso y después tener que rehacer las hojas. Si se confirma,
+primero se decide qué hace en el guion y recién después se agrega a las hojas de los cinco pilotos.
+
+**Dónde preguntar:** el libro de Rosana Guber *«Experiencia de Halcón: ni héroes ni kamikazes,
+pilotos de A-4B»* es antropología sobre estos pilotos concretos y es el lugar más probable donde
+esté contestado. Asociación de Pilotos de Caza también.

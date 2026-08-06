@@ -145,6 +145,30 @@ export const MSL_MAX = 3;                 // misiles por pasada
 // estaban repetidos en tres lados — momShipGeom (systems/momentum.js), la aproximacion en vuelo
 // normal (render/world.js) y la camara 3D (systems/three-world.js) — y si se desincronizan el
 // barco SALTA al entrar al momentum. Viven aca para que haya una sola fuente.
+// CORDON FINAL — el ultimo tramo del pasillo, antes del climax.
+//
+// Dos reglas que van juntas y por el mismo motivo (playtest 6/8: "se pierden los enemigos en
+// frente del barco"): mientras el buque objetivo este plantado adelante creciendo, cualquier
+// obstaculo que se le cruce por delante deja de leerse. En vez de pelear ese cruce a fuerza de
+// contraste, se ELIMINA — el pasillo deja de sembrar y despues se cierra un banco de bruma que
+// tapa TODO. Se cruza a ciegas y del otro lado ya estas en el ARENA.
+//
+//   VEIL_STOP  fraccion del objetivo donde deja de entrar gente. Ademas del porcentaje se exige
+//              un margen de SPAWN_Z*1.6 (el ultimo sembrado tiene que llegar a pasarte ANTES de
+//              que empiece la bruma), asi la regla aguanta cualquier largo de mision.
+//   VEIL_IN    donde empieza el velo NEGRO · VEIL_FULL  donde ya es pared. Arranca a MEDIA
+//              aproximacion a proposito (pedido 10/8): acompaña la disipacion de la niebla —
+//              la escalera 0.8 → 0.1 de drawShipClouds — oscureciendo de a poco, y como la
+//              curva es CUADRATICA (veilNow en game.js) a mitad de camino apenas se nota y
+//              recien cierra fuerte encima del buque.
+//   VEIL_MAX   opacidad tope: el remate cubre la pantalla (fundido a negro del cruce).
+//   VEIL_OUT   segundos que tarda en abrirse del otro lado, ya en el ARENA.
+export const VEIL_STOP = 0.74;
+export const VEIL_IN = 0.55;
+export const VEIL_FULL = 0.995;
+export const VEIL_MAX = 0.97;
+export const VEIL_OUT = 1.1;
+
 export const SHIP_UH = 13.5;    // modulo de altura del casco ("uh"); el casco mide uh*1.5
 export const SHIP_DECK = 54;    // cubierta, bajo el horizonte
 

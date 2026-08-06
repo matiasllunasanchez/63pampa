@@ -116,6 +116,21 @@ export function initInput(cv, a) {
   addEventListener('keydown', e => {
     audio();
     readCaps(e);                                                          // CAPS LOCK gobierna la mira
+    // PAUSA: mientras esta abierta se come TODO el teclado (navegar/confirmar/volver) — asi las
+    // flechas no alimentan el vuelo ni el detector de combos con el juego congelado.
+    if (a.isPaused()) {
+      if (e.repeat) { e.preventDefault(); return; }
+      if (isUp(e.code)) a.pauseNav(-1);
+      else if (isDown(e.code)) a.pauseNav(1);
+      else if (isConfirm(e.code)) a.pauseConfirm();
+      else if (isBack(e.code)) a.pauseBack();
+      e.preventDefault(); return;
+    }
+    // ESC en pleno juego = PAUSA (en MODO CAMARA no: ahi Escape ya significa salir, ver abajo)
+    if (!e.repeat && isBack(e.code) && !cfg.devcam
+      && (S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum' || S.state === 'arena')) {
+      a.pauseToggle(); e.preventDefault(); return;
+    }
     if (S.state === 'title') { a.startTitle(); e.preventDefault(); return; }   // PORTADA: cualquier tecla
     if (S.state === 'options') {                                          // OPCIONES: lista de ajustes
       if (isUp(e.code)) { a.optNav(-1); e.preventDefault(); return; }
@@ -144,6 +159,20 @@ export function initInput(cv, a) {
     }
     if (S.state === 'story') {                                           // HISTORIA: Esc vuelve al menu
       if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
+    }
+    if (S.state === 'campmenu') {                                        // submenu de HISTORIA
+      if (isUp(e.code)) { a.campNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code)) { a.campNav(1); e.preventDefault(); return; }
+      if (isConfirm(e.code)) { a.campConfirm(); e.preventDefault(); return; }
+      if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
+      return;
+    }
+    if (S.state === 'saves') {                                           // partidas guardadas (cargar)
+      if (isUp(e.code)) { a.savesNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code)) { a.savesNav(1); e.preventDefault(); return; }
+      if (isConfirm(e.code)) { a.savesConfirm(); e.preventDefault(); return; }
+      if (isBack(e.code)) { a.savesBack(); e.preventDefault(); return; }
+      return;
     }
     // MODO CAMARA: la partida no termina nunca sola (avion inmortal) — se sale con ESCAPE.
     // Solo en ese modo: en el PASILLO normal Escape sigue sin hacer nada durante el vuelo.
@@ -298,6 +327,23 @@ export function initInput(cv, a) {
     if (hit(11)) a.trackNext();
 
     const inGame = S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum' || S.state === 'arena';
+    // PAUSA con el mando: Start (9) la abre en juego; abierta, la cruceta/stick navegan,
+    // ✕ confirma, ◯ vuelve y Start reanuda. El vuelo se SUELTA (setPad 0) para que al reanudar
+    // no quede un eje clavado del frame anterior.
+    if (inGame && a.isPaused()) {
+      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx']) setPad(f, 0);
+      const nu = down(12) || ax(1) < -0.5, nd = down(13) || ax(1) > 0.5;
+      if (nu && !nav.u) a.pauseNav(-1);
+      if (nd && !nav.d) a.pauseNav(1);
+      if (hit(0)) a.pauseConfirm();
+      if (hit(1)) a.pauseBack();
+      if (hit(9)) a.pauseToggle();
+      nav.u = nu; nav.d = nd;
+      btnPrev = pressed;
+      requestAnimationFrame(pollGamepad);
+      return;
+    }
+    if (inGame && hit(9) && !cfg.devcam) a.pauseToggle();
     if (inGame) {
       const lx = ax(0), ly = ax(1);
       // COMBOS con el pad: el FLANCO de cada direccion (stick cruzando la zona muerta, o la
@@ -356,6 +402,16 @@ export function initInput(cv, a) {
         if ((nu && !nav.u) || (nl && !nav.l)) a.modeNav(-1);
         if ((nd && !nav.d) || (nr && !nav.r)) a.modeNav(1);
         if (confirm) a.confirm();
+      } else if (S.state === 'campmenu') {
+        if (nu && !nav.u) a.campNav(-1);
+        if (nd && !nav.d) a.campNav(1);
+        if (confirm) a.campConfirm();
+        if (hit(1)) a.escToMenu();                             // B = volver al selector de modos
+      } else if (S.state === 'saves') {
+        if (nu && !nav.u) a.savesNav(-1);
+        if (nd && !nav.d) a.savesNav(1);
+        if (confirm) a.savesConfirm();
+        if (hit(1)) a.savesBack();
       } else if (S.state === 'menu') {
         if (nl && !nav.l) a.planeNav(-1);
         if (nr && !nav.r) a.planeNav(1);

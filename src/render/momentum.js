@@ -19,33 +19,127 @@ const COCKPIT_ASSET = { src: '../assets/planes/a4-skyhawk/cockpit.png', img: new
 COCKPIT_ASSET.img.onload = () => { COCKPIT_ASSET.ready = true; };
 COCKPIT_ASSET.img.src = COCKPIT_ASSET.src;
 
-// casco + superestructura de la barcaza (compartido: el ARENA VIEJO y la aproximacion en PASILLO)
-// `t` es el tiempo del juego: mueve la espuma de la linea de flotacion. Se recibe por parametro
-// (y no del snapshot) porque esta funcion tambien la usa la aproximacion en PASILLO.
-export function drawBargeHull(cx0, len, deckY, uh, t) {
-  const x0 = cx0 - len / 2, x1 = cx0 + len / 2, hullH = uh * 1.5;
-  if (uh < 1.1) {   // muy lejos: silueta simple en el horizonte
-    px(cx0 - len * 0.15, deckY - Math.max(1, uh * 2.2), len * 0.24, Math.max(1, uh * 2.2), P.bodyDark);
-    px(x0, deckY, len, Math.max(1, hullH), P.bodyDark);
+// ---- BARCAZA 2D (casco + superestructura) ----
+// Compartida por el ARENA VIEJO (fallback sin 3D) y por la APROXIMACION en el PASILLO, que es
+// donde mas se mira: el buque crece durante medio nivel y es el unico decorado grande del
+// horizonte. Antes eran seis rectangulos con los colores del AVION (P.body/P.bodyDark): un
+// bloque palido sin perfil, que ademas competia con los obstaculos que vienen de frente.
+//
+// La clave del rediseño es el VALOR, no el detalle: el buque se ve a CONTRALUZ contra un cielo
+// claro y sobre agua oscura, asi que es una MASA OSCURA con luz de canto. Todo lo claro de la
+// escena (obstaculos, trazadoras, espuma) queda leyendose por encima sin pelear con el.
+const SH = {
+  hullT: '#1b232a', hull: '#141b21', hullB: '#0d1319',   // francobordo: se oscurece hacia el agua
+  boot: '#070b0e',                                        // obra viva / linea de flotacion
+  deck: '#333e45',                                        // cubierta vista desde arriba
+  sup: '#171f26', supL: '#212b33', supD: '#0e141a',       // superestructura (cara al sol / sombra)
+  metal: '#0b1015', win: '#e0ad5c', rust: '#2b2018',      // los ventanales van ENCENDIDOS: es tarde
+};
+// PERFIL de destructor, en fracciones de eslora (de proa a popa) y alturas en `uh`. Que la
+// silueta sea ESCALONADA es lo que la hace leer como buque de guerra y no como una caja sobre
+// una tabla: torreta baja, caseta corrida, torre del puente, chimenea, hangar, torreta de popa.
+const SUPER = [
+  [0.20, 0.28, 0.85], [0.30, 0.74, 1.35], [0.36, 0.50, 2.7],
+  [0.40, 0.46, 3.5], [0.56, 0.64, 2.5], [0.66, 0.80, 1.7], [0.84, 0.91, 0.9],
+];
+// BRUMA: en vez de dibujar el barco transparente (se veian el mar y los obstaculos A TRAVES del
+// casco, que es justo lo que lo hacia ver sucio), cada color se MEZCLA con el del horizonte. El
+// buque queda opaco siempre y lo que cambia con la distancia es el CONTRASTE — perspectiva
+// atmosferica de manual, y de paso los enemigos nunca compiten con el fondo.
+const mixCache = new Map();
+function mixHex(c, to, k) {
+  if (!k) return c;
+  const key = c + to + (k = Math.round(k * 16) / 16);
+  const hit = mixCache.get(key);
+  if (hit) return hit;
+  const a = parseInt(c.slice(1), 16), b = parseInt(to.slice(1), 16);
+  const ch = s => Math.round(((a >> s) & 255) + (((b >> s) & 255) - ((a >> s) & 255)) * k);
+  const out = '#' + (((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16)).slice(1);
+  mixCache.set(key, out);
+  return out;
+}
+
+/** Casco + superestructura. `t` (tiempo del juego) mueve la espuma; se recibe por parametro y no
+ *  del snapshot porque la aproximacion del PASILLO tambien la llama. `haze`/`sky` la funden con
+ *  el horizonte (0 = a quemarropa en el climax, ~0.85 = una sombra recien asomando). */
+export function drawBargeHull(cx0, len, deckY, uh, t, haze, sky) {
+  const SKY = sky || '#7d6a4e';
+  const hz = c => mixHex(c, SKY, haze || 0);
+  // LUZ DE CANTO: el borde de arriba de cada cuerpo toma el color del cielo del momento — es lo
+  // que despega la silueta del fondo sin aclarar la masa (y acompaña solo el clima que toque).
+  const rim = hz(mixHex(SH.deck, SKY, 0.72));
+  const x0 = cx0 - len / 2, x1 = cx0 + len / 2, hullH = Math.max(1, uh * 1.5);
+  if (uh < 1.7) {   // muy lejos: tres trazos, pero con PERFIL de buque (casco bajo, isla, mastil)
+    px(x0, deckY + hullH * 0.2, len, Math.max(1, hullH), hz(SH.hull));
+    px(cx0 - len * 0.09, deckY - Math.max(1, uh * 1.7), len * 0.16, Math.max(1, uh * 1.7 + 1), hz(SH.sup));
+    px(cx0 + len * 0.06, deckY - Math.max(2, uh * 2.6), 1, Math.max(2, uh * 2.6), hz(SH.metal));
     return;
   }
-  px(x0, deckY, len, hullH, P.bodyDark);
-  px(x0 - uh * 0.7, deckY, uh * 0.7, hullH * 0.65, P.bodyDark);          // proa
-  px(x1, deckY, uh * 0.5, hullH * 0.6, P.bodyDark);                    // popa
-  px(x0, deckY, len, Math.max(1, uh * 0.28), '#5c6e73');             // cubierta
-  px(x0, deckY + hullH - 2, len, 2, '#1c262e');                    // flotacion
-  ctx.globalAlpha = 0.5;
-  for (let i = 0; i < 6; i++) px(x0 + (i / 6) * len + Math.sin(t * 3 + i) * 3, deckY + hullH - 1, uh * 0.8, 1, P.foam);
-  ctx.globalAlpha = 1;
-  px(cx0 - len * 0.15, deckY - uh * 2.6, len * 0.24, uh * 2.6, P.body);           // bloque puente
-  px(cx0 - len * 0.12, deckY - uh * 2.3, len * 0.18, Math.max(1, uh * 0.5), P.canopy); // ventanas
-  px(cx0 + len * 0.16, deckY - uh * 1.8, len * 0.05, uh * 1.8, '#454f56');        // chimenea
-  px(cx0 + len * 0.095, deckY - uh * 3.9, Math.max(1, len * 0.012), uh * 3.9, '#454f56'); // mastil
-  px(cx0 + len * 0.06, deckY - uh * 3.9, len * 0.08, Math.max(1, uh * 0.35), '#454f56'); // antena
-  for (const s of [-0.52, 0.52]) {                                          // torretas AA
-    px(cx0 + len / 2 * s - len * 0.05, deckY - uh * 1.1, len * 0.10, uh * 1.1, '#3d474d');
-    px(cx0 + len / 2 * s - len * 0.008, deckY - uh * 1.55, Math.max(1, len * 0.016), uh * 0.6, '#2b3338');
+  // ---- CASCO POR FILAS: la proa se mete hacia atras al bajar (lanzamiento de roda) y la popa se
+  // recoge en el ultimo tercio. Escalera de rectangulos y no una diagonal suavizada: el dentado
+  // es lo que lo mantiene en el pixel art del resto del juego.
+  const rows = Math.max(3, Math.min(16, Math.round(hullH)));
+  const rh = hullH / rows;
+  for (let i = 0; i < rows; i++) {
+    const f = i / (rows - 1);
+    const bow = uh * 1.2 * Math.pow(f, 0.7);
+    const stern = f > 0.7 ? uh * 0.45 * (f - 0.7) / 0.3 : 0;
+    const col = f < 0.3 ? SH.hullT : f < 0.7 ? SH.hull : SH.hullB;
+    px(x0 + bow, deckY + i * rh, (x1 - stern) - (x0 + bow), rh + 0.6, hz(col));
   }
+  px(x0 + uh * 0.2, deckY, len - uh * 0.55, Math.max(1, uh * 0.18), hz(SH.deck));   // cubierta
+  px(x0 + uh * 0.2, deckY, len - uh * 0.55, 1, rim);                                // canto contra el cielo
+  if (uh > 4.5) {   // regueros de oxido bajo los imbornales: rompen la plancha lisa
+    for (let i = 0; i < 4; i++) px(x0 + len * (0.24 + i * 0.17), deckY + uh * 0.35, 1, uh * 0.45, hz(SH.rust));
+  }
+  px(x0 + uh * 1.2, deckY + hullH - Math.max(1, uh * 0.22), len - uh * 1.7, Math.max(1, uh * 0.22), hz(SH.boot));
+
+  // ---- SUPERESTRUCTURA escalonada (ver SUPER): masa oscura, cara izquierda al sol, canto claro
+  for (const [a, b, h] of SUPER) {
+    const bh = uh * h;
+    if (bh < 1.6) continue;                                   // a esta escala ya seria ruido
+    const bx0 = x0 + len * a, bw = Math.max(1, len * (b - a));
+    px(bx0, deckY - bh, bw, bh, hz(SH.sup));
+    px(bx0, deckY - bh, Math.max(1, bw * 0.34), bh, hz(SH.supL));
+    px(bx0 + bw - Math.max(1, bw * 0.14), deckY - bh, Math.max(1, bw * 0.14), bh, hz(SH.supD));
+    px(bx0, deckY - bh, bw, 1, rim);
+  }
+  // VENTANALES del puente: la unica luz calida del buque — a contraluz es lo que dice "hay gente
+  // adentro" y de paso ancla el ojo en la torre, que es donde despues caen las zonas criticas.
+  if (uh > 3.5) px(x0 + len * 0.365, deckY - uh * 2.4, len * 0.13, Math.max(1, uh * 0.26), hz(SH.win));
+  // CHIMENEA: sombrerete oscuro y humo derivando hacia popa (tres motas, no una nube)
+  const fx = x0 + len * 0.56, fw = len * 0.08;
+  if (uh > 2.5) px(fx - fw * 0.1, deckY - uh * 2.5, fw * 1.2, Math.max(1, uh * 0.22), hz(SH.metal));
+  if (uh > 4) {
+    ctx.globalAlpha = 0.26;
+    for (let i = 1; i < 4; i++) {
+      px(fx + fw + i * uh * 0.6 + Math.sin(t * 0.9 + i) * uh * 0.3,
+        deckY - uh * (2.5 + i * 0.55), Math.max(1, uh * 0.4 * i), Math.max(1, uh * 0.32), hz('#7d868c'));
+    }
+    ctx.globalAlpha = 1;
+  }
+  // MASTIL con cruceta y el RADAR girando: el ancho de la barra late (cos) — a esta escala es lo
+  // unico que puede contar que el buque esta VIVO y ya nos esta viendo.
+  const mx = x0 + len * 0.53, mh = uh * 4.6;
+  px(mx, deckY - mh, Math.max(1, len * 0.008), mh, hz(SH.metal));
+  px(mx - len * 0.03, deckY - mh * 0.78, len * 0.065, Math.max(1, uh * 0.14), hz(SH.metal));
+  const rw = Math.max(1, len * 0.045 * Math.abs(Math.cos(t * 1.1)));
+  px(mx - rw / 2, deckY - mh, rw, Math.max(1, uh * 0.18), hz(SH.metal));
+  // CAÑONES de las dos torretas, apuntando alto: el buque no esta esperando, esta tirando
+  if (uh > 3) {
+    for (const a of [0.24, 0.875]) {
+      px(x0 + len * a, deckY - uh * 1.55, Math.max(1, len * 0.01), uh * 0.75, hz(SH.metal));
+    }
+  }
+  // ---- AGUA: bigote de proa y la flotacion picoteada (lo mas claro de todo el buque)
+  ctx.globalAlpha = 0.5;
+  for (let i = 0; i < 7; i++) {
+    px(x0 + uh + (i / 7) * len * 0.95 + Math.sin(t * 2.4 + i * 1.7) * uh * 0.35,
+      deckY + hullH - 1, uh * 0.9, 1, hz(P.foam));
+  }
+  ctx.globalAlpha = 0.75;
+  px(x0 + uh * 0.95, deckY + hullH - Math.max(1, uh * 0.3), uh * 1.7, Math.max(1, uh * 0.3), hz(P.foam));
+  ctx.globalAlpha = 1;
 }
 
 /** La cabina. `w.yOff` la baja N pixeles: lo usa la fase ARENA para que el VISOR PINTADO del PNG

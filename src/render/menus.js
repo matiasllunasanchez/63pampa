@@ -7,6 +7,8 @@ import { drawMira } from './miras.js';
 import { P } from '../data/palette.js';
 import { PLANES } from '../data/planes.js';
 import { T, getLang } from '../core/i18n.js';
+import { CAMPAIGNS } from '../data/campaigns.js';
+import { fmtDate } from '../systems/saves.js';
 
 // ELECCION DE AVION — la pantalla previa de CICLO DE MUERTE y POR LA PATRIA. Usa los MISMOS
 // roles tipograficos que el lobby (logotipo / rotulo / nombre / texto corrido), para que las dos
@@ -300,3 +302,188 @@ export function drawOptions(w) {
 }
 
 
+
+// ---------- MENU DE HISTORIA (submenu del modo campaña) ----------
+// Mismo lenguaje que el selector de modos: coordenadas NATIVAS, filas a la izquierda con nombre
+// grande + descripcion, resalte ajustado al contenido. Los nombres de campaña son PROPIOS
+// (data/campaigns.js) y no se traducen.
+export const CAMP_ROWS = { y0: 96, rh: 34, headH: 22 };
+
+// texto de cada fila segun su id (los nombres de campaña son PROPIOS y no se traducen)
+function campText(r) {
+  if (r.id === 'continue') return { name: T('campContinue'), desc: T('campContinueDesc') };
+  if (r.id === 'c1') return { name: CAMPAIGNS[0].name, desc: T('campC1Desc') };
+  return { name: CAMPAIGNS[1].name, desc: T('campC2Desc') + '  ·  ' + T('campSoon') };
+}
+
+export function drawCampMenu(w) {
+  panel();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = P.accent; ctx.font = titleFont(26);
+  ctx.fillText(T('title'), NW / 2, 40);
+
+  const { y0, rh, headH } = CAMP_ROWS, x = 40, PAD_X = 9;
+  ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(13);
+  ctx.fillText(T('campTitle'), x, y0 - 22);
+  ctx.strokeStyle = '#3a464c'; ctx.globalAlpha = 0.5;
+  ctx.beginPath(); ctx.moveTo(x, y0 - 17.5); ctx.lineTo(NW - 30, y0 - 17.5); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // las filas se apilan con ALTURAS DISTINTAS (un encabezado ocupa menos que una entrada), asi
+  // que la Y se acumula en vez de calcularse por indice: es lo que deja que CONTINUAR entero
+  // desaparezca sin dejar el hueco.
+  let y = y0;
+  for (let i = 0; i < w.rows.length; i++) {
+    const r = w.rows[i];
+    if (r.head) {   // ENCABEZADO de seccion: mismo lenguaje que OPCIONES (rotulo + linea al lado)
+      ctx.textAlign = 'left'; ctx.fillStyle = P.accent; ctx.globalAlpha = 0.85; ctx.font = labelFont(9);
+      ctx.fillText(T(r.head), x, y);
+      const wh = ctx.measureText(T(r.head)).width;
+      ctx.globalAlpha = 0.25; ctx.strokeStyle = P.accent;
+      ctx.beginPath(); ctx.moveTo(x + wh + 8, y - 3.5); ctx.lineTo(NW - 30, y - 3.5); ctx.stroke();
+      ctx.globalAlpha = 1;
+      y += headH;
+      continue;
+    }
+    const t = campText(r), on = i === w.sel;
+    // deshabilitada: gris SIEMPRE, aun con el cursor encima — el resalte dice "estas aca",
+    // el gris dice "no vas a poder entrar" (confirmar da el beep grave)
+    const col = r.disabled ? '#5a666c' : on ? P.accent : P.body;
+    if (on) {
+      ctx.font = menuFont(12); const wn = ctx.measureText(t.name).width;
+      ctx.font = labelFont(9); const wd = ctx.measureText(t.desc).width;
+      const boxW = Math.max(wn, wd) + PAD_X * 2;
+      ctx.fillStyle = col; ctx.globalAlpha = 0.13;
+      ctx.fillRect(x - PAD_X, y - 13, boxW, 33); ctx.globalAlpha = 1;
+      ctx.fillStyle = col; ctx.globalAlpha = 0.5;
+      ctx.fillRect(x - PAD_X, y - 13, 2, 33); ctx.globalAlpha = 1;
+      ctx.textAlign = 'left'; ctx.fillStyle = col; ctx.font = 'bold 10px monospace';
+      ctx.fillText('>', x - PAD_X - 9, y);
+    }
+    ctx.textAlign = 'left';
+    ctx.fillStyle = col; ctx.font = menuFont(12);
+    ctx.fillText(t.name, x, y);
+    ctx.fillStyle = r.disabled ? '#4a565c' : on ? P.ink : P.dim; ctx.globalAlpha = on ? 0.9 : 0.6;
+    ctx.font = labelFont(9);
+    ctx.fillText(t.desc, x, y + 14);
+    ctx.globalAlpha = 1;
+    y += rh;
+  }
+}
+
+// una fila de partida guardada: 'LA MESA DE NORMA · MISION 2 · 1234 PTS · 05/08 21:33'
+function saveLabel(r) {
+  const camp = (CAMPAIGNS[r.camp] || CAMPAIGNS[0]).name;
+  return camp + '  ·  ' + T('missionShort', { n: (r.level || 0) + 1 })
+    + '  ·  ' + (r.score || 0) + ' PTS  ·  ' + fmtDate(r.ts);
+}
+
+// ---------- LISTA DE PARTIDAS GUARDADAS (cargar desde CONTINUAR) ----------
+export function drawSaves(w) {
+  panel();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = P.accent; ctx.font = titleFont(26);
+  ctx.fillText(T('title'), NW / 2, 40);
+  const x = 40, y0 = 100, rh = 17;
+  ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(13);
+  ctx.fillText(T('savesTitle'), x, y0 - 20);
+  ctx.strokeStyle = '#3a464c'; ctx.globalAlpha = 0.5;
+  ctx.beginPath(); ctx.moveTo(x, y0 - 15.5); ctx.lineTo(NW - 30, y0 - 15.5); ctx.stroke();
+  ctx.globalAlpha = 1;
+  if (!w.list.length) {   // no deberia pasar (CONTINUAR se deshabilita sin partidas), pero por si
+    ctx.fillStyle = P.dim; ctx.font = menuFont(11);
+    ctx.fillText(T('savesEmpty'), x, y0 + 4);
+    return;
+  }
+  for (let i = 0; i < w.list.length; i++) {
+    const y = y0 + i * rh, on = i === w.sel;
+    if (on) {
+      ctx.fillStyle = P.accent; ctx.globalAlpha = 0.13;
+      ctx.fillRect(x - 9, y - 11, NW - 60, 16); ctx.globalAlpha = 1;
+      ctx.fillStyle = P.accent; ctx.globalAlpha = 0.5;
+      ctx.fillRect(x - 9, y - 11, 2, 16); ctx.globalAlpha = 1;
+      ctx.fillStyle = P.accent; ctx.font = 'bold 10px monospace';
+      ctx.fillText('>', x - 18, y);
+    }
+    ctx.fillStyle = on ? P.accent : P.body; ctx.font = menuFont(10);
+    ctx.fillText(saveLabel(w.list[i]), x, y);
+  }
+}
+
+// ---------- MENU DE PAUSA (overlay sobre la partida congelada) ----------
+// El mundo quedo dibujado DEBAJO tal cual estaba (frame() saltea update, ver game.js): esto es
+// un velo + el menu, en coordenadas nativas. `w.t` es pauseT — run.t esta congelado y los
+// parpadeos tienen que seguir latiendo.
+const CTRL_KEYS = ['Fly', 'Gas', 'Dive', 'Gun', 'Msl', 'Boost', 'Roll', 'Pan', 'Moves',
+  'Aim', 'Cam', 'Tempo', 'Inv', 'Music', 'Menu'];
+export function drawPause(w) {
+  ctx.fillStyle = '#070a0dd2';           // velo: mas cerrado que panel() — el juego es contexto, no fondo
+  ctx.fillRect(0, 0, NW, NH);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = P.accent; ctx.font = titleFont(24);
+  ctx.fillText(T('pauseTitle'), NW / 2, 56);
+
+  if (w.view === 'controls') {
+    // la tabla de OPCIONES, compactada: accion · teclado · joystick, solo lectura
+    const x = 52, xv = NW - 52, xk = xv - 148, y0 = 88, rh = 11.5;
+    ctx.textAlign = 'right'; ctx.fillStyle = P.dim; ctx.font = labelFont(7);
+    ctx.fillText(T('optColKb'), xk, y0 - 12); ctx.fillText(T('optColPad'), xv, y0 - 12);
+    for (let i = 0; i < CTRL_KEYS.length; i++) {
+      const y = y0 + i * rh, k = CTRL_KEYS[i];
+      ctx.textAlign = 'left'; ctx.fillStyle = P.body; ctx.font = menuFont(9);
+      ctx.fillText(T('ctrl' + k), x, y);
+      ctx.textAlign = 'right'; ctx.fillStyle = P.dim; ctx.font = labelFont(8);
+      ctx.fillText(T('ctrl' + k + 'K'), xk, y);
+      const pad = T('ctrl' + k + 'P');
+      ctx.fillStyle = pad === '—' ? '#4a565c' : P.dim;
+      ctx.fillText(pad, xv, y);
+    }
+    ctx.textAlign = 'center'; ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(7);
+    ctx.fillText('[ESC]', NW / 2, NH - 12);
+    return;
+  }
+
+  if (w.view === 'save') {
+    const x = 52, y0 = 96, rh = 17;
+    ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(11);
+    ctx.fillText(T('pauseSaveRow'), x, y0 - 18);
+    for (let i = 0; i < w.saveRows.length; i++) {
+      const r = w.saveRows[i], y = y0 + i * rh, on = i === w.saveSel;
+      if (on) {
+        ctx.fillStyle = P.accent; ctx.globalAlpha = 0.13;
+        ctx.fillRect(x - 9, y - 11, NW - 84, 16); ctx.globalAlpha = 1;
+        ctx.fillStyle = P.accent; ctx.font = 'bold 10px monospace';
+        ctx.fillText('>', x - 18, y);
+      }
+      ctx.fillStyle = on ? P.accent : P.body; ctx.font = menuFont(10);
+      // slot nuevo (id null) o partida existente para PISAR
+      ctx.fillText(r.id === null ? T('saveNew') : saveLabel(r), x, y);
+    }
+    ctx.textAlign = 'center'; ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(7);
+    ctx.fillText(T('saveOver'), NW / 2, NH - 12);
+    return;
+  }
+
+  // ---- menu raiz ----
+  const y0 = 104, rh = 28;
+  for (let i = 0; i < w.rows.length; i++) {
+    const r = w.rows[i], y = y0 + i * rh, on = i === w.sel;
+    const col = r.quit ? (on ? P.warn : '#7d6a63') : on ? P.accent : P.body;
+    ctx.textAlign = 'center'; ctx.fillStyle = col; ctx.font = menuFont(13);
+    if (on) {
+      ctx.font = menuFont(13); const wn = ctx.measureText(r.label).width;
+      ctx.fillStyle = col; ctx.globalAlpha = 0.13;
+      ctx.fillRect(NW / 2 - wn / 2 - 12, y - 13, wn + 24, 19); ctx.globalAlpha = 1;
+      ctx.fillStyle = col;
+      ctx.fillText('>', NW / 2 - wn / 2 - 22, y);
+    }
+    ctx.fillText(r.label, NW / 2, y);
+  }
+  // flash de confirmacion del guardado (late un rato y se va)
+  if (w.msg >= 0 && w.msg < 1.6) {
+    ctx.fillStyle = Math.sin(w.t * 10) > -0.4 ? P.accent : P.dim; ctx.font = menuFont(10);
+    ctx.fillText(T('pauseSaved'), NW / 2, NH - 26);
+  }
+  ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(7);
+  ctx.fillText(T('pauseHint'), NW / 2, NH - 12);
+}

@@ -13,7 +13,7 @@ import { wake, obstacles, soldiers } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { hzWorld, tiltFade } from '../core/horizon.js';
 import { P, LAND, CLAND } from '../data/palette.js';
-import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z } from '../data/tuning.js';
+import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
 import { inBank, fogVis, fogTop } from '../systems/fog.js';
@@ -1286,48 +1286,283 @@ export function drawSoldier(x, y, k, gait) {
   px(x - bw * 0.42, y - bh * 1.04, bw * 0.84, Math.max(1, p2 * 0.9), SOL.LIT);     // luz: tope del casco
 }
 
-// la barcaza objetivo VISIBLE en el PASILLO: aparece en el horizonte desde el 45% del recorrido
+// ---- BANCO DE NUBES del objetivo (playtest 7/8, arte 8/8) ----
+// La "niebla" que esconde al buque es FISICA: nubes bajas asentadas SOBRE el mar, en el
+// horizonte — el banco principal le tapa la mitad de abajo al barco y alrededor flotan nubes
+// menores. Son CLARAS a proposito: el buque es silueta oscura detras, y los enemigos (olivas y
+// grises, dibujados despues) pasan POR DELANTE y contrastan contra el blanco.
+//
+// El ARTE es una hoja pintada a mano (assets/world/elements/fog1.png): 6 nubes con alfa en una
+// grilla de 2x3. Al cargar se RECORTA sola — se escanea el alfa de cada celda y se guarda la
+// caja justa, asi la hoja se puede redibujar o reacomodar sin tocar numeros aca. Mientras no
+// cargo (o si fallo), dibujan las nubes procedurales de abajo: mismo patron que la cabina.
+const CLOUDS = { img: new Image(), frames: [], tinted: new Map(), ready: false };
+CLOUDS.img.onload = () => {
+  try {
+    const iw = CLOUDS.img.naturalWidth, ih = CLOUDS.img.naturalHeight;
+    const c = document.createElement('canvas'); c.width = iw; c.height = ih;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.drawImage(CLOUDS.img, 0, 0);
+    const A = g.getImageData(0, 0, iw, ih).data;
+    const cw = Math.floor(iw / 2), chh = Math.floor(ih / 3);
+    for (let cy = 0; cy < 3; cy++) for (let cx = 0; cx < 2; cx++) {
+      let x0 = iw, y0 = ih, x1 = -1, y1 = -1;
+      for (let y = cy * chh; y < (cy + 1) * chh; y++) for (let x = cx * cw; x < (cx + 1) * cw; x++) {
+        if (A[(y * iw + x) * 4 + 3] > 16) {
+          if (x < x0) x0 = x; if (x > x1) x1 = x;
+          if (y < y0) y0 = y; if (y > y1) y1 = y;
+        }
+      }
+      if (x1 > x0) CLOUDS.frames.push({ x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 });
+    }
+    CLOUDS.ready = CLOUDS.frames.length > 0;
+  } catch (e) { }   // sin canvas/DOM raro: quedan las procedurales
+};
+CLOUDS.img.src = '../assets/world/elements/fog1.png';
+
+/** La hoja TEÑIDA con el horizonte del clima (cache por color). Blanco puro pegado sobre una
+ *  noche azul o una tormenta gris cantaba; un lavado suave (source-atop al 36%) la mete en la
+ *  luz de cada mapa sin matarle el sombreado propio del arte. */
+function cloudSheet(sky) {
+  let t = CLOUDS.tinted.get(sky);
+  if (!t) {
+    t = document.createElement('canvas');
+    t.width = CLOUDS.img.naturalWidth; t.height = CLOUDS.img.naturalHeight;
+    const g = t.getContext('2d');
+    g.drawImage(CLOUDS.img, 0, 0);
+    g.globalCompositeOperation = 'source-atop';
+    g.globalAlpha = 0.36;
+    g.fillStyle = sky;
+    g.fillRect(0, 0, t.width, t.height);
+    CLOUDS.tinted.set(sky, t);
+  }
+  return t;
+}
+
+// PUESTOS del banco: offset (en esloras), altura (en hb), frame de la hoja, espejado y alfa.
+// Es una TABLA fija y no un sorteo: cada puesto conserva SU nube entre frames — el banco respira
+// (bob y deriva abajo) pero no "cambia de nubes" mientras lo miras. Del centro a las puntas los
+// tamaños caen; las dos ultimas de cada lado son las satelites sueltas.
+// Un NUCLEO denso sobre el casco y un ANILLO suelto que se abre hacia los costados (25
+// puestos): el banco tiene que leerse como un FRENTE de niebla, no como tres nubes de utileria.
+const CLOUD_BANK = [
+  // nucleo sobre el casco
+  { dx: 0,     hh: 1.2,  fr: 2, fl: false, a: 1 },
+  { dx: -0.12, hh: 1.05, fr: 4, fl: true,  a: 1 },
+  { dx: 0.13,  hh: 1.1,  fr: 3, fl: true,  a: 1 },
+  { dx: -0.24, hh: 1.0,  fr: 0, fl: false, a: 1 },
+  { dx: 0.24,  hh: 0.95, fr: 1, fl: true,  a: 1 },
+  { dx: -0.36, hh: 0.9,  fr: 5, fl: true,  a: 1 },
+  { dx: 0.37,  hh: 0.92, fr: 2, fl: false, a: 1 },
+  { dx: -0.48, hh: 0.85, fr: 3, fl: false, a: 1 },
+  { dx: 0.48,  hh: 0.8,  fr: 0, fl: true,  a: 1 },
+  { dx: -0.63, hh: 0.72, fr: 1, fl: false, a: 0.95 },
+  { dx: 0.64,  hh: 0.7,  fr: 4, fl: false, a: 0.95 },
+  { dx: -0.78, hh: 0.6,  fr: 5, fl: false, a: 0.95 },
+  { dx: 0.78,  hh: 0.62, fr: 1, fl: false, a: 0.95 },
+  // anillo suelto alrededor
+  { dx: -1.0,  hh: 0.55, fr: 2, fl: true,  a: 0.9 },
+  { dx: 1.05,  hh: 0.5,  fr: 3, fl: false, a: 0.9 },
+  { dx: -1.3,  hh: 0.5,  fr: 0, fl: true,  a: 0.85 },
+  { dx: 1.35,  hh: 0.52, fr: 5, fl: true,  a: 0.85 },
+  { dx: -1.55, hh: 0.5,  fr: 5, fl: true,  a: 0.85 },
+  { dx: 1.6,   hh: 0.55, fr: 4, fl: false, a: 0.85 },
+  { dx: -2.1,  hh: 0.45, fr: 1, fl: true,  a: 0.75 },
+  { dx: 2.2,   hh: 0.48, fr: 0, fl: false, a: 0.75 },
+  { dx: -2.8,  hh: 0.42, fr: 4, fl: true,  a: 0.7 },
+  { dx: 2.9,   hh: 0.45, fr: 5, fl: false, a: 0.7 },
+  { dx: -3.6,  hh: 0.38, fr: 3, fl: true,  a: 0.65 },
+  { dx: 3.7,   hh: 0.4,  fr: 2, fl: false, a: 0.65 },
+];
+
+// OPACIDAD del banco (pedido 10/8): 0.8 de lejos — el buque ESCONDIDO — y baja en escalera con
+// el avance (0.7, 0.6, 0.5...) hasta 0.1 con el buque practicamente al lado. Nunca llega a 0:
+// la niebla acompaña hasta el final — el que termina de tapar la pantalla es el VELO NEGRO
+// (drawVeil), que se va cerrando en paralelo a esta disipacion.
+const CLOUD_FAR = 0.8, CLOUD_NEAR = 0.1;
+// TAMAÑO (pedido 10/8: "mas grandes"): multiplica todas las nubes del banco.
+const CLOUD_SIZE = 1.45;
+
+/** El banco del buque + las nubes satelite, con la hoja de arte. Crece con el barco (len/hb).
+ *  `dis` 0..1 = cuanto se disipo ya (0 lejos: banco cerrado · 1 encima: apenas se insinua). */
+function drawShipClouds(bx, waterY, len, uh, hullH, dis) {
+  const va = CLOUD_FAR - (CLOUD_FAR - CLOUD_NEAR) * dis;
+  if (va <= 0.01) return;
+  const hb = Math.max(2, hullH + uh * 1.6);                    // hasta media superestructura
+  if (!CLOUDS.ready) { drawShipCloudsFallback(bx, waterY, len, hb, va); return; }
+  const sheet = cloudSheet(theme.sky.horizon);
+  const smooth = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;                           // pixel art: vecino mas cercano
+  for (let i = 0; i < CLOUD_BANK.length; i++) {
+    const b = CLOUD_BANK[i], fr = CLOUDS.frames[b.fr % CLOUDS.frames.length];
+    const h = Math.max(2, hb * b.hh * CLOUD_SIZE);
+    const w = h * fr.w / fr.h;
+    const x = bx + b.dx * len + Math.sin(run.t * 0.3 + i * 1.9) * 1.5;
+    const y = waterY + 1 - h + Math.sin(run.t * 0.5 + i * 1.3) * Math.max(0.4, h * 0.03);
+    ctx.globalAlpha = b.a * va;
+    if (b.fl) {
+      ctx.save(); ctx.translate(x, 0); ctx.scale(-1, 1);
+      ctx.drawImage(sheet, fr.x, fr.y, fr.w, fr.h, -w / 2, y, w, h);
+      ctx.restore();
+    } else {
+      ctx.drawImage(sheet, fr.x, fr.y, fr.w, fr.h, x - w / 2, y, w, h);
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.imageSmoothingEnabled = smooth;
+}
+
+/** FALLBACK procedural (hasta que carga la hoja): silueta abollonada por columnas. */
+function cloudMass(cx, baseY, wd, hh, seed, aBase, C) {
+  const step = 3;
+  const n = Math.max(3, Math.ceil(wd / step));
+  ctx.globalAlpha = aBase;
+  for (let i = 0; i <= n; i++) {
+    const fx = i / n - 0.5;
+    const env = Math.cos(fx * Math.PI);                        // alta al centro, muere en las puntas
+    const nz = 0.62 + 0.38 * Math.sin(seed * 7.3 + i * 1.31 + run.t * 0.4)
+                    * Math.sin(seed * 3.1 - i * 0.57 + run.t * 0.26);
+    const h = hh * env * nz;
+    if (h < 0.6) continue;
+    const x = cx - wd / 2 + i * step;
+    px(x, baseY - h, step, h, C.mid);
+    px(x, baseY - h, step, Math.max(1, h * 0.34), C.lit);      // tope al sol
+  }
+  px(cx - wd / 2 + wd * 0.08, baseY - Math.max(1, hh * 0.18), wd * 0.84, Math.max(1, hh * 0.18), C.shad);
+  ctx.globalAlpha = 1;
+}
+function drawShipCloudsFallback(bx, waterY, len, hb0, va) {
+  const hb = hb0 * CLOUD_SIZE;
+  const C = {
+    lit: mixHex('#e6ebea', theme.sky.horizon, 0.32),
+    mid: mixHex('#b8c2c4', theme.sky.horizon, 0.42),
+    shad: mixHex('#828e92', theme.sky.horizon, 0.5),
+  };
+  cloudMass(bx, waterY + 1, Math.max(12, len * 1.8), hb, 11, 0.95 * va, C);
+  cloudMass(bx - len * 1.45, waterY + 1, Math.max(8, len * 0.85), hb * 0.6, 23, 0.85 * va, C);
+  cloudMass(bx + len * 1.55, waterY + 1, Math.max(8, len * 0.9), hb * 0.55, 37, 0.85 * va, C);
+  cloudMass(bx - len * 2.7, waterY + 1, Math.max(6, len * 0.7), hb * 0.45, 51, 0.72 * va, C);
+  cloudMass(bx + len * 2.9, waterY + 1, Math.max(6, len * 0.6), hb * 0.5, 67, 0.72 * va, C);
+}
+
+// la barcaza objetivo VISIBLE en el PASILLO: aparece en el horizonte desde BARGE_T0 del recorrido
 // y crece hasta empalmar con la escala de la fase ARENA que viene (es el final del mapa).
-// EMERGE "hull-down": de lejos el horizonte tapa el casco y solo asoma la superestructura; a
-// medida que nos acercamos el corte baja y el barco se revela entero.
+// EMERGE "hull-down" desde atras del BANCO DE NUBES asentado en el horizonte (drawShipClouds):
+// primero asoma la superestructura sobre las nubes y el casco se descubre al acercarse.
+const BARGE_T0 = 0.45;        // fraccion del recorrido en la que el buque asoma
+// COLUMNA del buque en pantalla. La DERIVA lateral (aparecer corrido y cerrar hacia el rumbo)
+// se probo y se DESCARTO (pedido 11/8): en su lugar el buque aparece clavado en su rumbo y se
+// MATERIALIZA — su opacidad sube a la inversa de la niebla (ver shipA en drawApproachBarge).
+// BARGE_DRIFT queda como perilla por si algun dia se quiere recuperar la deriva (0 = centrado).
+const BARGE_DRIFT = 0;
+function bargeCol(f) { return W / 2 - cam.x * 1.2 + (1 - f * f * f) * W * BARGE_DRIFT; }
+/** Avance 0..1 de la primera aproximacion (la unica que ve el marcador de objetivo). */
+function approachF(p) {
+  const at = momentum.phases()[0].at;
+  return Math.max(0, Math.min(1, (p - BARGE_T0) / (at - BARGE_T0)));
+}
 export function drawApproachBarge(objectiveDist, objectiveShip) {
   const ph = momentum.phase(), PH = momentum.phases();
   if (objectiveDist <= 0 || ph >= PH.length) return;
   if (S.state !== 'play' && S.state !== 'takeoff') return;
   const p = run.dist / objectiveDist;
   const next = PH[ph];
-  const t0 = ph === 0 ? 0.45 : PH[ph - 1].at;
+  const t0 = ph === 0 ? BARGE_T0 : PH[ph - 1].at;
   if (p < t0) return;
   const f = Math.max(0, Math.min(1, (p - t0) / (next.at - t0)));
   const sc0 = ph === 0 ? 0.04 : PH[ph - 1].scale * 1.06;  // continua donde quedo la pasada anterior
   const scE = next.scale * 0.82;
   const sc = sc0 + (scE - sc0) * f;
   const uh = SHIP_UH * sc, hullH = uh * 1.5;
-  // POSICION: anclamos por la LINEA DE FLOTACION, no por la cubierta. De lejos (f=0) la flotacion
-  // cae justo en el horizonte (el barco asoma hacia arriba, en el cielo); al acercarse la flotacion
-  // baja hacia el primer plano con ease-in cuadratico. En f=1 la cubierta queda en HOR+36*scE, que
-  // es donde la toma la primera pasada del momentum (empalme intacto).
-  const bx = W / 2 - cam.x * 1.2 + Math.sin(run.t * 0.8) * 9 * sc;
+  const bx = bargeCol(ph === 0 ? f : 1) + Math.sin(run.t * 0.8) * 9 * sc;
+  // FLOTACION CLAVADA EN EL HORIZONTE (playtest 7/8: "el barco aparece por debajo del
+  // horizonte"). Un buque lejano vive EN la linea del horizonte, siempre — la bajada con f² lo
+  // dejaba flotando en mitad del mar a mitad de la aproximacion. Ya no baja NUNCA durante la
+  // primera aproximacion: el pase al climax es un corte de camara (cabina 2D o vuelo libre 3D)
+  // tapado por el cruce del banco de nubes, no hay continuidad de posicion que preservar.
+  // Entre pasadas del climax 2D (ph > 0) sigue la formula vieja, que alli si empalma.
   const wOff = ph === 0
-    ? (SHIP_DECK * scE + hullH) * f * f                            // flotacion: horizonte → primer plano
-    : SHIP_DECK * sc0 + hullH + (SHIP_DECK * scE - SHIP_DECK * sc0) * f * f;   // pasadas siguientes: como antes
+    ? 0
+    : SHIP_DECK * sc0 + hullH + (SHIP_DECK * scE - SHIP_DECK * sc0) * f * f;
+  // y EMERGE de atras del banco: sube desde el horizonte durante el primer tramo — para cuando
+  // el casco esta entero afuera, las nubes ya le estan tapando la mitad de abajo.
+  const reveal = ph === 0 ? Math.min(1, f / 0.45) : 1;
+  const sink = (1 - reveal) * (hullH + uh * 3.2);                  // cuanto sigue detras del horizonte
   const waterY = HOR + wOff + Math.sin(run.t * 1.3) * 1.8 * sc;    // linea de flotacion en pantalla
-  const by = waterY - hullH;                                       // cubierta = flotacion - alto del casco
-  // CORTE por el horizonte: de lejos el corte esta sobre la cubierta (solo superestructura); se
-  // baja hasta pasar la flotacion cuando ya estamos cerca. Solo en la primera aparicion (ph 0).
-  const reveal = ph === 0 ? Math.max(0, Math.min(1, f / 0.6)) : 1;
-  const clipY = by + (waterY + 3 - by) * reveal;
+  const by = waterY - hullH + sink;                                // cubierta, hundida mientras este lejos
+  // DISIPACION/MATERIALIZACION: un solo reloj para los dos fundidos cruzados (corre con p, el
+  // viaje entero, no con la ventana f de crecimiento del casco). Las nubes van de 0.8 a 0.1 y
+  // el buque, a la INVERSA (pedido 11/8): entra FANTASMA (0.15) y se materializa hasta 1 —
+  // aparecer es literalmente que el buque se vaya haciendo real a medida que la niebla se abre.
+  const dis = ph === 0 ? Math.max(0, Math.min(1, (p - t0) / (0.97 - t0))) : 1;
   ctx.save();
-  ctx.beginPath(); ctx.rect(-80, -80, W + 160, clipY + 80); ctx.clip();   // dibuja solo por encima del corte
-  // bruma atmosferica: de lejos es una silueta tenue → los obstaculos (solidos) resaltan encima
-  ctx.globalAlpha = ph === 0 ? 0.35 + 0.65 * f : 1;
-  momRender.drawBargeHull(bx, W * 0.82 * sc, by, uh, run.t);
+  ctx.beginPath(); ctx.rect(-80, -80, W + 160, waterY + 2 + 80); ctx.clip();   // el mar tapa lo hundido
+  // SILUETA a contraluz (playtest 6/8): el buque va casi negro con luz de canto — cualquier
+  // obstaculo (olivas y grises claros) se lee ENCIMA. La bruma de color queda solo para los
+  // primeros metros; el alfa de arriba es el que manda la aparicion.
+  const haze = ph === 0 ? 0.34 * (1 - f) * (1 - f) : 0;
+  ctx.globalAlpha = 0.15 + 0.85 * dis;
+  momRender.drawBargeHull(bx, W * 0.82 * sc, by, uh, run.t, haze, theme.sky.horizon);
   ctx.globalAlpha = 1;
   ctx.restore();
+  // el banco de nubes va DESPUES del casco (lo tapa por la mitad) y ANTES de los enemigos, que
+  // se dibujan mas tarde en el orquestador: oscuro sobre claro, cada cosa en su plano.
+  // mismo reloj `dis` que la materializacion del casco: banco cerrado de lejos (0.8) que se
+  // disipa en escalera hasta 0.1 — nunca a cero; lo que termina de tapar es el velo negro.
+  if (ph === 0) drawShipClouds(bx, waterY, W * 0.82 * sc, uh, hullH, dis);
   if (sc > 0.28) {   // ya cerca: nombre sobre el barco
     ctx.font = '9px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.warn; ctx.globalAlpha = 0.85;
     ctx.fillText(objectiveShip, bx, by - uh * 4.6);
     ctx.globalAlpha = 1;
+  }
+}
+
+/** Mezcla dos hex (0 = a, 1 = b). Lo usa el telon para lavar el color del horizonte. */
+function mixHex(c, to, k) {
+  const A = parseInt(c.slice(1), 16), B = parseInt(to.slice(1), 16);
+  const ch = sh => Math.round(((A >> sh) & 255) + (((B >> sh) & 255) - ((A >> sh) & 255)) * k);
+  return '#' + (((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16)).slice(1);
+}
+
+// CORDON DE BRUMA del final del pasillo (ver VEIL_* en data/tuning.js). `d` es la densidad 0..1.
+//
+// No es la niebla de systems/fog.js (esa es un TRAMO jugable, con techo y rendija): esto es un
+// TELON de guion. Tapa TODO —buque, obstaculos, horizonte— y del otro lado ya estas en el ARENA.
+// Existe porque el ultimo tramo contra el buque era ilegible: el objetivo plantado adelante y los
+// enemigos cruzandosele por delante (playtest 6/8). Se resuelve sacando la escena de la vista en
+// vez de pelear el contraste — y de paso el corte al climax deja de ser un salto seco.
+//
+// Es lo UNICO del juego dibujado con gradientes y no con pixeles: no es un objeto, es aire.
+export function drawVeil(d) {
+  if (d <= 0) return;
+  const a = Math.min(1, d) * VEIL_MAX;
+  // COLOR: NEGRO (pedido 10/8, antes era el blanco del banco). El velo ya no es "entrar en la
+  // nube": es la oscuridad tragandose el pasillo mientras la niebla se disipa — cierra en
+  // paralelo a la escalera de opacidad de drawShipClouds y remata cubriendo la pantalla.
+  const col = '#06090d';
+  const hexA = (c, k) => c + Math.round(Math.max(0, Math.min(1, k)) * 255).toString(16).padStart(2, '0');
+  // PARED: mas cerrada contra el horizonte y apenas mas liviana arriba y abajo — pero CUBRE la
+  // pantalla entera al llegar al tope: el remate del cruce es un fundido a negro de verdad.
+  const g = ctx.createLinearGradient(0, HOR - 70, 0, H + 50);
+  g.addColorStop(0, hexA(col, a * 0.8));
+  g.addColorStop(0.34, hexA(col, a));
+  g.addColorStop(0.6, hexA(col, a));
+  g.addColorStop(1, hexA(col, a * 0.72));
+  ctx.fillStyle = g;
+  ctx.fillRect(-80, -80, W + 160, H + 200);
+  // JIRONES: bandas de bordes difusos que derivan con el avance y el paneo. Son las que lo hacen
+  // leer como bruma VIVA y no como un fundido a color — sin esto parece un bug de opacidad.
+  const drift = run.dist * 0.35 + cam.x * 6;
+  for (let i = 0; i < 5; i++) {
+    const y = HOR - 30 + i * 13 + Math.sin(run.t * 0.35 + i * 2.1) * 5;
+    const wsp = W * (0.5 + (i % 3) * 0.22);
+    const x = ((drift * (0.5 + i * 0.17) + i * 260) % (W + 2 * wsp)) - wsp;
+    const gw = ctx.createLinearGradient(x, 0, x + wsp, 0);
+    gw.addColorStop(0, hexA(col, 0));
+    gw.addColorStop(0.5, hexA(col, a * 0.5));
+    gw.addColorStop(1, hexA(col, 0));
+    ctx.fillStyle = gw;
+    ctx.fillRect(x, y, wsp, 14 + (i % 2) * 11);
   }
 }
 
@@ -1342,7 +1577,7 @@ export function drawObjectiveMarker(objectiveDist) {
   // es la referencia y el marcador solo taparia el puente.
   const fade = p < 0.55 ? 1 : Math.max(0, 1 - (p - 0.55) / 0.12);
   if (fade <= 0) return;
-  const tx = W / 2 - cam.x * 1.2;                       // misma columna que la barcaza objetivo
+  const tx = bargeCol(approachF(p));                    // misma columna que la barcaza objetivo
   const mx = Math.max(9, Math.min(W - 9, tx));          // pegado al borde si quedo afuera
   const off = tx < 9 ? -1 : tx > W - 9 ? 1 : 0;         // -1 izquierda, 1 derecha, 0 en pantalla
   const pulse = 0.62 + 0.38 * (0.5 + 0.5 * Math.sin(run.t * 4));

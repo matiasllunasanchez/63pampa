@@ -114,6 +114,10 @@ def main():
         for p in sorted(d.iterdir()):
             if p.suffix == '.png':
                 js, ok = sub_path(js, f'../assets/world/enemies/{p.name}', uri(p, 'image/png')); n += ok
+    # NUBES del objetivo (assets/world/elements/fog1.png, ~120 KB): SI entra — es el banco que
+    # esconde al buque en la aproximacion de campaña; sin ella caeria al dibujo procedural.
+    js, ok = sub_path(js, '../assets/world/elements/fog1.png',
+                      uri(ASSETS / 'world' / 'elements' / 'fog1.png', 'image/png')); n += ok
     # HOJAS DE SOLDADOS (~450 KB): NO entran en el build web — estamos a menos de 200 KB del tope
     # de 16 MB. En Electron/Steam si van; aca los soldados caen al dibujo a mano (render/world.js),
     # que es justamente para lo que existe el fallback de render/soldiers.js.
