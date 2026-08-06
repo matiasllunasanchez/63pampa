@@ -36,6 +36,17 @@ mismo Gitano de la Misión 9.
 > AVIONES_ESCUADRON.md) — el diseño del pájaro tiene que ser IDÉNTICO en la hoja del avión,
 > en el cuadro M1.5d y en el cuadro M8.A del storyboard. Es el objeto del que depende M8.
 
+> ## 🟥 v3.0 — LAS HOJAS AHORA ALIMENTAN LOS RETRATOS (ver RETRATOS.md)
+>
+> Las escenas de diálogo del juego van en formato VN: **placa + retrato busto con
+> expresión**. Cada retrato se genera **usando la hoja modelo del personaje como image
+> reference** — por eso las hojas se aprueban PRIMERO y los retratos salen de ahí, nunca
+> de cero. Orden: hoja aprobada → retrato neutro → variantes de expresión (sets por
+> personaje en RETRATOS.md §4, con el prompt patrón). Reglas que heredan de acá: marcas
+> personales visibles, candado de época, mismo encuadre y escala para toda la escuadrilla.
+> **Norma no tiene retrato jamás; el Colorado no tiene retrato de aire; Cóndor es un
+> parlante.**
+
 > **Versión 2 — revisión de época (auditoría sobre las hojas ya generadas).**
 > Ver [«Qué salió mal en la tanda 1»](#qué-salió-mal-en-la-tanda-1) al final. Resumen: el generador
 > vistió a todo el reparto de **soldado norteamericano genérico** —Mateo con capote largo de GI de la

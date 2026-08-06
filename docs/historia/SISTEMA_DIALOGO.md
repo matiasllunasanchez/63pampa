@@ -61,7 +61,14 @@ Una fila por línea. Columnas mínimas:
 | `hold` | segundos extra de silencio DESPUÉS, 0 por defecto | `2.5` |
 | `ambiente` | capa de sonido que arranca o cambia acá | `locker_noche` |
 | `foley` | efecto puntual en esta línea | `papel_girando` |
+| `cara` | retrato que se muestra con esta línea (ver RETRATOS.md); si el asset no existe, cae al nombre solo | `gitano_serio` |
+| `placa` | fondo de ambiente de la escena (se setea una vez por escena, no por línea) | `sala_radio` |
 | `audio` | **reservado, vacío por ahora** | |
+
+> **El retrato es parte de la actuación:** el cambio de `cara` entre dos líneas (la
+> carcajada del Gitano → su retrato serio) más el `hold` posterior ES la dirección de la
+> escena. Ver RETRATOS.md — sets de expresiones por personaje y regla híbrida con los
+> cuadros sagrados.
 
 Ejemplo real, el momento del locker:
 

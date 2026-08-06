@@ -1,5 +1,5 @@
 // MISIONES de la campaña (y del ciclo de muerte, que las juega al azar). Datos puros.
-// v0.0.1 de LA MESA DE NORMA: las 12 misiones de GUION_2.md volcadas con lo que el juego
+// v0.0.1 de EL CUADERNO DE MATEO: las 12 misiones de GUION_2.md volcadas con lo que el juego
 // tiene hoy (ver docs/PLAN_CAMPANA_001.md). Ver GOALS en game.js para los tipos de
 // objetivo: 'ship' culmina en el climax sobre el buque; 'distance' se cumple al llegar
 // (misiones sin boss de buque: el tutorial y las de blanco terrestre, que aun no existe).

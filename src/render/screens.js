@@ -346,33 +346,47 @@ export function drawVictory(w) {
 // texto ya asume ese fondo y cuando se generen aparecen solas. Carga perezosa, cache por
 // nombre, y si el archivo falta no pasa nada (queda la tarjeta negra de siempre).
 const STORY_IMGS = new Map();
-function storyImg(name) {
-  let e = STORY_IMGS.get(name);
+function lazyImg(cache, base, name) {
+  let e = cache.get(name);
   if (!e) {
     e = { img: new Image(), ok: false };
     e.img.onload = () => { e.ok = true; };
-    e.img.src = '../assets/story/' + name + '.png';
-    STORY_IMGS.set(name, e);
+    e.img.src = base + name + '.png';
+    cache.set(name, e);
   }
   return e.ok ? e.img : null;
 }
+function storyImg(name) { return lazyImg(STORY_IMGS, '../assets/story/', name); }
+// PLACAS de ambiente (RETRATOS §3: assets/plates/<id>.png) y RETRATOS de dialogo
+// (RETRATOS §5: assets/portraits/<cara>.png). Misma cascada: si el asset falta, no pasa nada —
+// la placa cae a la tarjeta negra y el retrato a la silueta placeholder de la caja VN.
+const PLATE_IMGS = new Map(), PORTRAIT_IMGS = new Map();
+function plateImg(name) { return lazyImg(PLATE_IMGS, '../assets/plates/', name); }
+function portraitImg(name) { return lazyImg(PORTRAIT_IMGS, '../assets/portraits/', name); }
 // tinte del texto por REGISTRO (SISTEMA_DIALOGO.md): 'tierra' = el cuaderno de Mateo (birome);
 // 'carta' = el block militar del padre (papel viejo); sin estilo, la tipografia tecnica de siempre.
-const STORY_STYLES = { tierra: '#8fb4e8', carta: '#c9b48a' };
+const STORY_STYLES = { TIERRA: '#8fb4e8', CARTA: '#c9b48a' };
 
 // pantalla de HISTORIA: negro tipo "pantalla de carga" con grano de pelicula y scanline,
 // texto tipeado letra a letra con cursor. NO se ve el terreno de juego (eso llega con el fade).
+//
+// F1 dibuja UNA LINEA POR VEZ (la unidad del motor, core/dialogue.js) sobre la tarjeta negra de
+// siempre — que es exactamente el ultimo escalon de la cascada de fallbacks (RF-01: sin ningun
+// asset, la escena igual se ve y se juega). Los cuatro registros visuales (la caja VN con busto,
+// el CUADRO a pantalla completa, la hoja del cuaderno, el block de la carta) son F2/F3: por ahora
+// el tipo solo cambia el tinte del texto.
 export function drawStory(w) {
-  const sc = w.story.seq[w.story.si] || {};
+  const d = w.dlg, sc = d.seq[d.si] || {}, ln = (sc.lineas || [])[d.li] || null;
+  const tipo = (ln && ln.tipo) || sc.tipo || 'VN';          // una linea puede cambiar de registro
+  const img = (ln && ln.img) || sc.img;                     // ...y traer su propio cuadro
   ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, W, H);
-  // lamina de fondo (si ya existe el asset) + velo oscuro para que el tipeo se lea encima
-  if (sc.img) {
-    const im = storyImg(sc.img);
-    if (im) {
-      ctx.globalAlpha = 0.85; ctx.drawImage(im, 0, 0, W, H);
-      ctx.globalAlpha = 0.55; ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, W, H);
-      ctx.globalAlpha = 1;
-    }
+  // fondo: el cuadro de la linea/escena (assets/story) o, en VN, la PLACA de ambiente
+  // (assets/plates). Si ninguno existe todavia, tarjeta negra — la cascada de RF-01.
+  const bg = (img && storyImg(img)) || (sc.placa && plateImg(sc.placa)) || null;
+  if (bg) {
+    ctx.globalAlpha = 0.85; ctx.drawImage(bg, 0, 0, W, H);
+    ctx.globalAlpha = 0.55; ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
   }
   // grano de pelicula (parpadea) + una banda de scanline que baja lenta
   ctx.globalAlpha = 0.10;
@@ -383,37 +397,116 @@ export function drawStory(w) {
   // marco fino (tarjeta de expediente)
   ctx.strokeStyle = '#1c262e'; ctx.strokeRect(8.5, 8.5, W - 17, H - 17);
 
-  // texto tipeado: recorre las lineas gastando w.story.typed caracteres
-  let left = w.story.typed, y = w.story.isLevel ? 76 : 38;   // pantalla de NIVEL: centrada
+  const card = tipo === 'TARJETA';
+  // ¿Alguien HABLA? → la caja VN de abajo (RF-01, F2): busto + nombre + linea, subiendo desde
+  // el borde inferior (referencia visual: la captura estilo Police Stories del 6/8).
+  // Las acotaciones (sin personaje), las tarjetas y los registros TIERRA/CARTA siguen con el
+  // layout centrado de tarjeta: la caja es de dialogo, no de narracion.
+  const vnBox = tipo === 'VN' && ln && ln.personaje;
+  // TITULO de la escena: NO se tipea. Es el rotulo del lugar ("RÍO GALLEGOS · LA LÍNEA DE VUELO"),
+  // no algo que alguien diga — queda fijo mientras pasan las lineas de la escena.
+  if (sc.titulo) {
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 11px monospace'; ctx.fillStyle = card ? P.warn : P.accent;
+    wrapChars(sc.titulo, 32).forEach((t, i) => ctx.fillText(t, W / 2, (card ? 76 : 34) + i * 14));
+  }
+  if (vnBox) { drawVNBox(w, d, ln); return; }
+  // ---- layout centrado (narracion, tarjeta de nivel, cuaderno y carta) ----
+  const yText = card ? 104 : 108;
   ctx.textAlign = 'center';
-  let curX = W / 2, curY = y;   // posicion del cursor (ultimo caracter tipeado)
-  for (const ln of w.story.lines) {
-    if (left <= 0) break;
-    const shown = ln.txt.slice(0, left);
-    left -= ln.txt.length;
-    if (ln.k === 'title') { ctx.font = 'bold 11px monospace'; ctx.fillStyle = P.accent; }
-    else if (ln.k === 'level') { ctx.font = 'bold 8px monospace'; ctx.fillStyle = P.warn; }
-    else if (ln.k === 'obj') { ctx.font = '7px monospace'; ctx.fillStyle = '#5c6e73'; }
-    else { ctx.font = '7px monospace'; ctx.fillStyle = STORY_STYLES[sc.style] || P.ink; }
+  // LA LINEA, tipeada. `d.wrap` ya viene partida en renglones por el motor; aca solo se gastan
+  // los `d.typed` caracteres que van escritos.
+  ctx.font = '7px monospace';
+  ctx.fillStyle = STORY_STYLES[tipo] || '#9fb0b6';
+  let left = d.typed, curX = W / 2, curY = yText;
+  for (let i = 0; i < d.wrap.length; i++) {
+    const y = yText + i * 11;
+    if (left <= 0) { curY = y - 11; break; }
+    const shown = d.wrap[i].slice(0, left);
+    left -= d.wrap[i].length + 1;                          // +1: el espacio que comio el wrap
     ctx.fillText(shown, W / 2, y);
     curX = W / 2 + ctx.measureText(shown).width / 2 + 2; curY = y;
-    // interlineado: mas aire despues del titulo y antes del bloque de nivel
-    y += ln.k === 'title' ? 16 : (ln.k === 'level' ? 12 : 11);
-    if (ln.last && ln.k === 'body') y += 5;
-    if (ln.last && ln.k === 'title') y += 3;
   }
   // cursor de maquina de escribir (bloque titilante)
-  if (!w.story.done && Math.sin(w.t * 14) > -0.5) px(curX, curY - 6, 4, 7, P.accent);
-  // listo: prompt (continuar en pantallas intermedias, despegar en la del nivel)
-  const lastScreen = w.story.si + 1 >= w.story.seq.length;
-  if (w.story.done && Math.sin(w.t * 4) > -0.3) {
+  if (!d.done && Math.sin(d.seqT * 14) > -0.5) px(curX, curY - 6, 4, 7, P.accent);
+  // PROMPT de avance. Solo cuando se PUEDE avanzar: durante el `hold` desaparece, y esa ausencia
+  // es la señal visible del silencio obligatorio (RF-07).
+  const last = d.si + 1 >= d.seq.length && d.li + 1 >= ((sc.lineas || []).length);
+  if (w.canAdvance && Math.sin(d.seqT * 4) > -0.3) {
     ctx.font = 'bold 8px monospace'; ctx.fillStyle = P.accent; ctx.textAlign = 'center';
     // el guion de campaña termina en el despegue, pero el EPILOGO sigue al briefing/recuento:
     // ahi corresponde "continuar", no "despegar"
-    ctx.fillText(T(lastScreen && w.state !== 'epilogue' ? 'startPrompt' : 'continuePrompt'), W / 2, H - 22);
+    ctx.fillText(T(last && w.state !== 'epilogue' ? 'startPrompt' : 'continuePrompt'), W / 2, H - 22);
   }
-  // progreso de la secuencia (puntitos abajo)
-  const n = w.story.seq.length;
+  // progreso: un puntito por LINEA de la escena en curso (la unidad del motor)
+  const n = (sc.lineas || []).length;
   for (let i = 0; i < n; i++)
-    px(W / 2 - n * 4 + i * 8 + 2, H - 13, 3, 3, i === w.story.si ? P.accent : '#2e3c45');
+    px(W / 2 - n * 4 + i * 8 + 2, H - 13, 3, 3, i === d.li ? P.accent : '#2e3c45');
+}
+
+// LA CAJA VN (F2 del spec, RF-01): panel inferior que SUBE al arrancar la escena, busto del
+// hablante asomando por el borde superior, nombre en acento y la linea tipeada a la izquierda.
+// Cascada de assets: retrato real (assets/portraits/<cara>.png) → SILUETA placeholder (el mock
+// del 6/8: la caja se ve completa hoy, sin un solo asset generado) → sin `cara`, solo nombre.
+function drawVNBox(w, d, ln) {
+  const k = Math.min(1, d.sceneT / 0.35), ease = 1 - Math.pow(1 - k, 3);   // entrada: sube
+  // la caja CRECE con los renglones: el guion viejo trae lineas largas (hasta que se parta en
+  // lineas del modelo nuevo, D2) y truncarlas seria peor que una caja mas alta
+  const rows = Math.max(2, d.wrap.length);
+  const bx = 6, bw = W - 12, bh = Math.max(46, 26 + rows * 10);
+  const by = (H - bh - 6) + (1 - ease) * (bh + 16);
+  // panel oscuro con doble borde, el estilo de expediente del juego
+  ctx.globalAlpha = 0.94; ctx.fillStyle = '#070b0f'; ctx.fillRect(bx, by, bw, bh);
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = '#2c3a44'; ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  ctx.strokeStyle = '#141d24'; ctx.strokeRect(bx + 2.5, by + 2.5, bw - 5, bh - 5);
+  let tx0 = bx + 10, nameX = null;
+  if (ln.cara) {
+    // busto 36x36 que ASOMA por encima de la caja (como en la referencia)
+    const px0 = bx + 8, py0 = by - 12, ps = 36;
+    ctx.fillStyle = '#0d1319'; ctx.fillRect(px0, py0, ps, ps);
+    const im = portraitImg(ln.cara);
+    if (im) ctx.drawImage(im, px0, py0, ps, ps);
+    else {
+      // MOCK: silueta de busto (cabeza + hombros con luz de canto) hasta que exista el retrato
+      ctx.fillStyle = '#22303b';
+      ctx.fillRect(px0 + 13, py0 + 6, 10, 11);       // cabeza
+      ctx.fillRect(px0 + 15, py0 + 17, 6, 3);        // cuello
+      ctx.fillRect(px0 + 6, py0 + 20, 24, 16);       // hombros
+      ctx.fillStyle = '#31434f';
+      ctx.fillRect(px0 + 13, py0 + 6, 3, 11); ctx.fillRect(px0 + 6, py0 + 20, 4, 16);
+    }
+    ctx.globalAlpha = 0.7; ctx.strokeStyle = P.accent;
+    ctx.strokeRect(px0 + 0.5, py0 + 0.5, ps - 1, ps - 1); ctx.globalAlpha = 1;
+    tx0 = px0 + ps + 10; nameX = px0 + ps / 2;
+  }
+  // nombre: debajo del busto (o arriba del texto si no hay cara), con su subrayado de acento
+  ctx.font = 'bold 7px monospace'; ctx.fillStyle = P.accent;
+  if (nameX !== null) {
+    ctx.textAlign = 'center'; ctx.fillText(ln.personaje, nameX, by + bh - 6);
+    const nw = ctx.measureText(ln.personaje).width;
+    px(nameX - nw / 2, by + bh - 4, nw, 1, P.accent);
+  } else {
+    ctx.textAlign = 'left'; ctx.fillText(ln.personaje, tx0, by + 11);
+  }
+  // la linea, tipeada a la izquierda (los renglones ya vienen partidos por el motor)
+  const ty0 = ln.cara ? by + 14 : by + 22;
+  ctx.textAlign = 'left'; ctx.font = '7px monospace'; ctx.fillStyle = P.ink;
+  let left = d.typed, curX = tx0, curY = ty0;
+  for (let i = 0; i < d.wrap.length; i++) {
+    const y = ty0 + i * 10;
+    if (left <= 0) { curY = y - 10; break; }
+    const shown = d.wrap[i].slice(0, left);
+    left -= d.wrap[i].length + 1;
+    ctx.fillText(shown, tx0, y);
+    curX = tx0 + ctx.measureText(shown).width + 2; curY = y;
+  }
+  if (!d.done && Math.sin(d.seqT * 14) > -0.5) px(curX, curY - 6, 4, 7, P.accent);
+  // "OK ▼": el permiso de avanzar. Durante un `hold` no esta — ese vacio ES el silencio (RF-07).
+  if (w.canAdvance && Math.sin(d.seqT * 4) > -0.3) {
+    ctx.textAlign = 'right'; ctx.font = 'bold 7px monospace'; ctx.fillStyle = P.accent;
+    ctx.fillText('OK', bx + bw - 16, by + bh - 6);
+    px(bx + bw - 13, by + bh - 11, 5, 2, P.accent); px(bx + bw - 12, by + bh - 9, 3, 2, P.accent);
+    px(bx + bw - 11, by + bh - 7, 1, 2, P.accent);
+  }
 }

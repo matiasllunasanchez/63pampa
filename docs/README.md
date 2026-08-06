@@ -33,8 +33,9 @@ La segunda campaña, a futuro: *"El fantasma del mar"*.
 | [PROMPTS_HOJAS_PERSONAJE.md](historia/PROMPTS_HOJAS_PERSONAJE.md) | hojas modelo de los 9 personajes + props + **marcas personales v3.0** |
 | [AVIONES_ESCUADRON.md](historia/AVIONES_ESCUADRON.md) | los 5 A-4B personalizados + marcas personales + regla: el terito es el ÚNICO animal pintado |
 | [SISTEMA_DIALOGO.md](historia/SISTEMA_DIALOGO.md) | texto-primero: IDs estables, registros, `hold`, timing. **El juego funciona sin voces por diseño** |
+| [RETRATOS.md](historia/RETRATOS.md) | 🟥 escenas estáticas estilo VN: 14 placas de ambiente + ~28 retratos con expresiones + la lista de cuadros sagrados que exigen escena completa |
 | [REFERENCIAS.md](historia/REFERENCIAS.md) | tipografías y capas de foto — ⚠ *falta el 4º registro (DIALOGO)* |
-| [SOUNDTRACK.md](historia/SOUNDTRACK.md) | ⚠ *desincronizado: numeración vieja + faltan tema vorágine (Final A) y tema Perú (M10)* |
+| [SOUNDTRACK.md](historia/SOUNDTRACK.md) | ✅ **v3.0** — 30 pistas renumeradas a 14 misiones, con vorágine (Final A), Perú (m10), Final B, el invento y el sting de Cóndor; **cada pista con referencia real de emoción** (material privado, no se publica) |
 | [PREGUNTAS_HISTORICAS.md](historia/PREGUNTAS_HISTORICAS.md) | ⚠ *faltan las de la 3.0: Mirage peruanos, países, dialectos, correo, matrículas C-2xx* |
 | `characters_examples/` | renders de referencia ya generados |
 
@@ -52,6 +53,7 @@ La segunda campaña, a futuro: *"El fantasma del mar"*.
 
 | documento | qué es | estado |
 |---|---|---|
+| [SPEC_MODO_HISTORIA.md](sistemas/SPEC_MODO_HISTORIA.md) | 🟥 **análisis funcional del modo historia (pantallas VN)** para IA implementadora: 12 RF con criterios de aceptación, fixture del locker, 6 fases. Incluye las **divergencias** entre el spec y el código real | **F1 construida** (motor de líneas: tipeo + `hold` + fallback a negro; `npm run story`). F2–F6 pendientes |
 | [PLAN_MINUTOS_SAGRADOS.md](sistemas/PLAN_MINUTOS_SAGRADOS.md) | la fase ARENA como pelea de boss, etapas E0–E9 | **vigente** |
 | [PROMPT_ARENA_VUELO_LIBRE.md](sistemas/PROMPT_ARENA_VUELO_LIBRE.md) | ARENA como vuelo 3D libre en ring acotado | **vigente** |
 | [PIRUETAS.md](sistemas/PIRUETAS.md) · [VELOCIDAD_MACH.md](sistemas/VELOCIDAD_MACH.md) | maniobras y escalones de velocidad | ⚠ *la tabla misión→mejora quedó desacoplada: las mejoras son roguelike (2 opciones desde M3), el guion no fija cuál va cuándo* |
@@ -65,7 +67,7 @@ La segunda campaña, a futuro: *"El fantasma del mar"*.
 | [ANALISIS_ROADMAP.md](proyecto/ANALISIS_ROADMAP.md) | análisis de cada ítem: facilidad, dependencias, orden | análisis |
 | [ESTADO.md](proyecto/ESTADO.md) | bitácora del estado del proyecto | vivo |
 | [PENDIENTES_DE_REDISENO.md](proyecto/PENDIENTES_DE_REDISENO.md) | inventario de unidades/objetos con estado de arte y specs de sprite | vivo |
-| [PLAN_CAMPANA_001.md](proyecto/PLAN_CAMPANA_001.md) | mapeo guion → `missions.js` | ⚠ **URGENTE — desincronizado**: mapea las 12 misiones de GUION_2; ahora son **14** con numeración nueva. Actualizar ANTES de fijar IDs en código |
+| [PLAN_CAMPANA_001.md](proyecto/PLAN_CAMPANA_001.md) | mapeo guion → `missions.js` | ✅ **v0.0.2 — sincronizado con GUION_3**: 14 misiones, IDs m1–m14 estables, roguelike real, final de dos rumbos en pantallas |
 
 ## 🚀 publicacion/
 

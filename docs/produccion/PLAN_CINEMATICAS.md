@@ -100,6 +100,13 @@ mal, que va a salir mal. La transformación del prólogo ya está hecha y no se 
 
 ---
 
+> **🟥 Actualización (ver RETRATOS.md):** dentro de las "fijas" hay ahora DOS clases. Las
+> **escenas de diálogo** van en formato VN — placa de ambiente sin personajes + retrato
+> con expresión + texto (el 70% de las pantallas; baratísimas y consistentes). Las
+> **cinemáticas fijas de verdad** —lo de abajo: capas, push-in, sonido— quedan reservadas
+> para los cuadros sagrados, donde la imagen es el contenido. Esta división multiplica el
+> presupuesto visual: menos cuadros completos, mejor hechos.
+
 ## Cómo se hacen las cinemáticas fijas *(y por qué no van a parecer pobres)*
 
 Esto es lo que reemplaza al video en el 90 % del juego, y todo se hace **en el motor**, sin

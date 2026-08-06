@@ -1,0 +1,128 @@
+# EL CUADERNO DE MATEO — Sistema de retratos *(escenas estáticas estilo visual novel)*
+
+> Decisión de producción (2026-08-06): las escenas de diálogo se cuentan **estilo Police
+> Stories / visual novel** — placa de AMBIENTE sin personajes + RETRATO del que habla con
+> expresiones + el texto del sistema de diálogo. Referencia visual de Matías: la captura
+> de diálogo pixel art con el busto abajo a la izquierda, nombre y línea.
+
+---
+
+## 1. Por qué es la decisión correcta *(no solo un ahorro)*
+
+**El ahorro es real:** generar escenas completas con personajes es lo más caro y lo más
+frágil (la consistencia de caras entre cuadros es la principal falla de la generación por
+IA). Con retratos, cada personaje se genera UNA vez por expresión desde su hoja modelo y
+queda idéntico para siempre; los ambientes, sin gente, salen fáciles y no tienen problemas
+de caras ni de PERIOD LOCK de uniformes.
+
+**Pero además rinde narrativamente:**
+- **El retrato ES la actuación.** En un juego sin voces (SISTEMA_DIALOGO), la expresión
+  del retrato + el `hold` + el tipeo por letra son los tres actores. Un cambio de gesto en
+  el retrato hace el trabajo que haría un cambio de tono en la voz.
+- **El nombre del hablante siempre visible** (regla del sistema de diálogo) se vuelve
+  natural: nombre + cara, como en la captura de referencia.
+- **La cámara quieta sobre el ambiente** deja que el sonido trabaje (la pava, el viento,
+  el hangar) — exactamente el plan de PLAN_CINEMATICAS.
+
+## 2. La regla híbrida — qué va con retrato y qué exige cuadro completo
+
+**DEFAULT: ambiente + retrato.** Toda escena de diálogo del mundo AIRE (hangares,
+briefings, sala de radio, fogón).
+
+**EXCEPCIÓN — los cuadros sagrados:** los momentos donde la imagen ES el contenido se
+siguen produciendo como cuadros completos del storyboard. Lista cerrada:
+
+| Cuadro | Por qué no alcanza el retrato |
+|---|---|
+| P.0 (la puerta, la mesa, los dos papeles) | el marco del juego es visual |
+| P.1 el arroyo · P1.3 "los valientes vuelan abajo" | el recuerdo fundante |
+| M1.5c/M1.5d — la foto en el locker · el terito fresco | props que el jugador debe VER |
+| M6 la Chancha enganchada bajo fuego | acción pura |
+| M7 el locker completo (frente → dorso → la cuenta) | el giro del juego |
+| M8.A/B/C — el paso del terito, la cara de Mateo, la multitud | el reconocimiento |
+| M9 la libreta bajo el catre / la cuenta del "un cuarto" | props |
+| M10.A/B — los Mirage del sol, la despedida | el momento Endgame |
+| M12 el corte a tierra completo + el tallado | la muerte de Correa |
+| M13 la foto contra la damajuana · la carta "Norma" en el locker | props |
+| M14 entero + los dos finales | el clímax |
+| Todas las páginas `[TIERRA]` del cuaderno | son dibujos de Mateo, otro registro |
+
+Todo lo demás — el 70% de las pantallas de historia — es **placa + retrato**.
+
+## 3. Las placas de ambiente *(la lista completa — esto es todo lo que hay que generar)*
+
+Sin personas, reutilizables, con variantes de luz. Unas ~14 placas cubren la campaña:
+
+1. Línea de vuelo — amanecer (la de siempre)
+2. Línea de vuelo — atardecer
+3. Línea de vuelo — noche (m13/m14)
+4. Hangar interior — día (banco del Pichón)
+5. Hangar interior — noche con lámpara (la libreta)
+6. Vestuario / lockers (penumbra)
+7. Sala de radio (mapas, la lámpara verde)
+8. La cocina de Norma — 1982 cálida (prólogo)
+9. La cocina de Norma — presente lavado (P.0 / epílogos)
+10. El fogón detrás del hangar (asado, brasas)
+11. Cabina interior — día (para radio en vuelo)
+12. Cabina interior — noche (m14)
+13. Pista bajo lluvia (ventana del alerta)
+14. El patio con el jazminero (Final B)
+
+**Prompt base de placa:** el bloque `[AIRE]` de siempre + `NOBODY IN THE FRAME. Empty,
+waiting, quiet.` + PERIOD LOCK. La placa de la pista del TEST 4B ya cumple el formato —
+sirve de patrón.
+
+## 4. Los retratos — especificación
+
+**Formato:** busto (pecho para arriba), 3/4 de frente, sobre fondo neutro oscuro para
+recortar; pixel art del estilo maestro; **las marcas personales SIEMPRE visibles** (la
+gorra con estrellita del Turco, el lápiz del Pichón, el rosario del Vasco…). Mismo encuadre
+y escala para todos: la cara de la escuadrilla es una familia, no un collage.
+
+**La economía de expresiones — acá está el truco.** No hace falta un set gigante: el set
+de cada uno ES su personaje.
+
+| Personaje | Set de expresiones | Nota de actuación |
+|---|---|---|
+| **Tero** | neutro · preocupado · sonrisa chica · roto *(solo m14)* + variante con casco | El padre contenido: entre "neutro" y "preocupado" se juega casi todo su arco. |
+| **Puma** | reglamentario · ceño · **la sonrisa** *(rara — canon: la administra con cuentagotas)* · quebrado *(una sola escena)* | Cuando aparece "la sonrisa", el jugador ya aprendió a leerla. |
+| **Gitano** | **sonrisa (SU neutro)** · carcajada · serio *(= alarma: si el Gitano está serio, algo pasa)* · roto | Su default es sonreír. El retrato "serio" es el presagio más barato del juego. |
+| **Vasco** | **UNO SOLO: cerrado** · + **media sonrisa** *(una sola vez: "casi se ríe. Casi.", m6)* | Dos retratos en todo el juego. Esa pobreza ES el personaje — y la media sonrisa única vale oro. |
+| **Pichón** | entusiasmo · vergüenza *(frenado a mitad de frase)* · miedo · neutro | Entusiasmo↔vergüenza es su ping-pong cómico con el Turco. |
+| **Turco** | gruñón (su neutro) · ternura disimulada · roto · orgullo *(estrellitas)* | La gorra con la estrellita en TODOS. |
+| **Mateo** | sonrisa colimba · serio *(solo prólogo — en la isla vive en el registro TIERRA, dibujado por él mismo)* | 2 retratos alcanzan. |
+| **Colorado** | *(sin retrato AIRE — existe solo en los dibujos del cuaderno)* | Su cara es como Mateo lo dibuja: con capa. |
+| **Norma** | **SIN RETRATO, NUNCA** | Canon: no se le ve la cara hasta el final. Si "aparece", es el delantal de espaldas o nada. |
+| **Cóndor** | **un parlante de radio / forma de onda** como "retrato" | La máquina de la guerra no tiene cara. El sting 30 suena debajo. |
+| **Voz peruana (m10)** | la silueta de un Mirage por la ventana de radio, o el parlante con escarapela fresca | Tampoco cara: es un regalo, no un personaje. |
+
+**Total a generar: ~28 retratos** (contando variantes) contra los cientos de cuadros con
+personajes que costaría el enfoque de escena completa. Y salen todos de las hojas modelo
+ya especificadas, como *image reference* — máxima consistencia.
+
+**Prompt patrón de retrato:**
+```
+[bloque AIRE de estilo] Portrait bust of {PERSONAJE — descriptor completo de la hoja},
+chest-up, three-quarter view facing slightly left, [EXPRESIÓN — ej: "a small contained
+frown of worry, jaw set"], personal marks clearly visible, neutral dark background for
+clean cutout, consistent framing and scale, pixel art character portrait for a dialogue
+box. Argentina 1982 [candado de época]. No text, no watermark.
+```
+
+## 5. Enganche con el motor *(barato a propósito)*
+
+- `strings.js` ya lleva `img:` por pantalla (la placa). Se agrega `cara: 'gitano_sonrisa'`
+  por línea de diálogo — si existe `assets/portraits/<cara>.png`, se dibuja el busto +
+  nombre; si no, solo el nombre (funciona desde hoy sin un solo asset).
+- El retrato cambia por línea (misma sintaxis del sistema de diálogo: una línea = una fila
+  = una cara). El `hold` con la cara quieta y el ambiente sonando ES la actuación.
+- Los cuadros sagrados usan el mismo campo `img:` a pantalla completa, sin retrato.
+
+## 6. Orden de producción sugerido
+
+1. **Las 14 placas** (fáciles, sin caras — validan el estilo).
+2. **Los retratos neutros** de los 7 con cara (uno por personaje) → el juego entero ya
+   funciona en modo VN.
+3. Las variantes de expresión, empezando por las que más rinden: el "serio" del Gitano,
+   "la sonrisa" de Puma, la "media sonrisa" del Vasco.
+4. Los cuadros sagrados, en el orden del storyboard (tabla 3.0).

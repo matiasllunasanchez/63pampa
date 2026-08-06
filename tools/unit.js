@@ -271,3 +271,161 @@ test('alabeo: es simetrico entre los dos lados', () => {
   near(bankStep(0.4, 1, 0.1), -bankStep(-0.4, -1, 0.1));
   near(bankStep(0.4, 0, 0.1), -bankStep(-0.4, 0, 0.1));
 });
+
+// ---------- MOTOR DE LINEAS del modo historia (core/dialogue.js, SPEC_MODO_HISTORIA F1) ----------
+// Se prueba aca y no a ojo porque lo que tiene que ser EXACTO es el tiempo: el `hold` de 4 s
+// despues de "El Vasco tenia quince años" es la escena entera. Un motor que lo respeta "casi"
+// no se nota mirando y arruina la unica actuacion que tiene un juego sin voces.
+const dlgMod = await import('../src/core/dialogue.js');
+const { dlg, startSeq, stepDialogue, pressDialogue, canAdvance, holdLeft, txtOf, line, scene,
+        sceneFromScreen, splitSpeaker, seqFromScreens, autoSecs, TYPE_CPS } = dlgMod;
+const { SCENES } = await import('../src/data/story.js');
+
+/** Corre el motor `s` segundos a 60 fps (como el juego). */
+const run60 = s => { for (let i = 0; i < Math.round(s * 60); i++) stepDialogue(1 / 60); };
+const locker = () => startSeq([SCENES.M07_LOCKER], 'es');
+
+test('historia: el fixture del locker esta completo y con sus holds', () => {
+  const sc = SCENES.M07_LOCKER;
+  assert.equal(sc.lineas.length, 6);
+  assert.deepEqual(sc.lineas.map(l => l.hold), [2.0, 1.0, 2.5, 1.5, 4.0, 2.0]);
+  // IDs estables, de 10 en 10 y sin repetir (regla D1 — lo que habilita voces y traduccion)
+  assert.deepEqual(sc.lineas.map(l => l.id), [
+    'M07_LOCKER_010', 'M07_LOCKER_020', 'M07_LOCKER_030',
+    'M07_LOCKER_040', 'M07_LOCKER_050', 'M07_LOCKER_060']);
+  assert.equal(new Set(sc.lineas.map(l => l.id)).size, 6);
+});
+
+test('historia: tipea letra por letra y termina a los caracteres/CPS', () => {
+  locker();
+  const n = txtOf(line()).length;
+  assert.equal(dlg.typed, 0);
+  run60(0.5);
+  assert.ok(dlg.typed > 0 && dlg.typed < n, `a mitad de camino, no de golpe (${dlg.typed}/${n})`);
+  assert.equal(dlg.done, false);
+  run60(n / TYPE_CPS + 0.1);
+  assert.equal(dlg.typed, n);
+  assert.equal(dlg.done, true);
+});
+
+test('historia: un toque COMPLETA la linea, no la saltea (RF-02)', () => {
+  locker();
+  run60(0.2);
+  assert.equal(pressDialogue(), 'complete');
+  assert.equal(dlg.typed, txtOf(line()).length, 'el texto queda entero en pantalla');
+  assert.equal(dlg.li, 0, 'y seguimos en la MISMA linea');
+});
+
+test('historia: el hold no se puede saltear, y dura exactamente lo que dice (RF-07)', () => {
+  locker();
+  pressDialogue();                                   // completa la linea 010 (hold 2.0)
+  assert.equal(canAdvance(), false, 'apenas termina de tipearse ya esta en silencio');
+  near(holdLeft(), 2.0, 1e-9);
+  run60(1.9);
+  assert.equal(pressDialogue(), null, 'el toque se IGNORA mientras corre el hold');
+  assert.equal(dlg.li, 0);
+  assert.ok(holdLeft() > 0);
+  run60(0.12);                                       // pasados los 2.0 s
+  assert.equal(holdLeft(), 0);
+  assert.equal(canAdvance(), true);
+  assert.equal(pressDialogue(), 'next');
+  assert.equal(dlg.li, 1);
+});
+
+test('historia: el 4.0 de "El Vasco tenia quince años" son 4 segundos clavados', () => {
+  // El criterio de aceptacion textual del spec (§6). Se mide igual que lo viviria el jugador:
+  // apretando cada cuadro desde que la linea quedo completa hasta que el motor deja pasar.
+  locker();
+  for (let i = 0; i < 4; i++) { pressDialogue(); dlg.t += 99; stepDialogue(0); pressDialogue(); }
+  assert.equal(dlg.li, 4, 'estamos en la linea del Vasco');
+  assert.equal(txtOf(line()), 'El Vasco tenía quince años.');
+  pressDialogue();                                   // completar el tipeo
+  let s = 0;
+  while (pressDialogue() === null && s < 10) { stepDialogue(1 / 60); s += 1 / 60; }
+  assert.ok(Math.abs(s - 4.0) < 1 / 30, `el silencio duro ${s.toFixed(3)} s, tenia que durar 4.0`);
+});
+
+test('historia: la secuencia se termina y avisa UNA vez (no se pasa de largo)', () => {
+  locker();
+  let guard = 0;
+  for (;;) {
+    const r = pressDialogue();
+    if (r === 'end') break;
+    if (r === null) dlg.t += 99;                     // esperar el hold de turno
+    stepDialogue(0);
+    assert.ok(++guard < 200, 'la escena no termina nunca');
+  }
+  assert.equal(dlg.li, 5, 'termina en la ULTIMA linea, no en una vacia');
+});
+
+test('historia: sin ningun asset la escena igual corre entera (P2)', () => {
+  // El motor no mira imagenes ni sonidos: placa/retrato/ambiente son nombres que el render
+  // resuelve o descarta. Si algun dia esto deja de ser cierto, la campaña se cuelga sin assets.
+  const sc = SCENES.M07_LOCKER;
+  assert.ok(sc.placa && sc.ambiente, 'la escena los DECLARA...');
+  locker();
+  for (const l of sc.lineas) { assert.ok(txtOf(line()).length > 0); pressDialogue(); dlg.t += 99; stepDialogue(0); pressDialogue(); }
+  assert.equal(scene().id, 'M07_LOCKER');
+});
+
+test('historia: una linea puede cambiar de registro sin cortar la escena', () => {
+  // el dorso de la foto (030) es un CUADRO adentro de una escena VN — la mezcla es por linea
+  const l = SCENES.M07_LOCKER.lineas[2];
+  assert.equal(l.tipo, 'CUADRO');
+  assert.equal(l.img, 'M7_FOTO_DORSO');
+  assert.equal(SCENES.M07_LOCKER.tipo, 'VN');
+});
+
+test('historia: el adaptador entiende quien habla en el guion viejo', () => {
+  assert.deepEqual(splitSpeaker('PUMA: pegado al agua'), { personaje: 'PUMA', txt: 'pegado al agua' });
+  assert.deepEqual(splitSpeaker('EL TURCO: la estrellita'), { personaje: 'EL TURCO', txt: 'la estrellita' });
+  assert.deepEqual(splitSpeaker('CÓNDOR: autorizada pista dos'), { personaje: 'CÓNDOR', txt: 'autorizada pista dos' });
+  // el cuaderno de Mateo NO es un hablante: "Viejo:" no esta en mayusculas, es narracion
+  assert.equal(splitSpeaker('Viejo: llegamos.').personaje, null);
+  assert.equal(splitSpeaker('La pava empieza a chiflar.').personaje, null);
+});
+
+test('historia: el adaptador convierte una pantalla vieja en escena', () => {
+  const s = sceneFromScreen({ img: 'M1_3', title: 'LA LÍNEA DE VUELO',
+    paras: ['PUMA: regla numero uno.', 'El Vasco se persigna.'] }, 'STORYM1_9');
+  assert.equal(s.tipo, 'VN');
+  assert.equal(s.titulo, 'LA LÍNEA DE VUELO');
+  assert.equal(s.lineas.length, 2);
+  assert.deepEqual(s.lineas.map(l => l.id), ['STORYM1_9_010', 'STORYM1_9_020']);
+  assert.equal(s.lineas[0].personaje, 'PUMA');
+  assert.equal(s.lineas[1].personaje, null);
+  assert.equal(s.lineas[0].hold, 0, 'el guion viejo no tiene holds: caen a 0, no se inventan');
+  // los registros del cuaderno y de la carta se conservan
+  assert.equal(sceneFromScreen({ style: 'tierra', paras: ['a'] }, 'X').tipo, 'TIERRA');
+  assert.equal(sceneFromScreen({ style: 'carta', paras: ['a'] }, 'X').tipo, 'CARTA');
+  // la tarjeta previa al nivel: el titulo es el nombre de la mision, el objetivo es la linea
+  const card = sceneFromScreen({ level: 'MISIÓN 1', obj: 'Objetivo: volar bajo' }, 'X');
+  assert.equal(card.tipo, 'TARJETA');
+  assert.equal(card.titulo, 'MISIÓN 1');
+  assert.equal(card.lineas.length, 1);
+});
+
+test('historia: una escena sin lineas no cuelga la secuencia', () => {
+  startSeq(seqFromScreens([{ level: 'MISIÓN 1' }, { paras: ['unica linea'] }], 'x'), 'es');
+  assert.equal(dlg.done, true, 'sin texto que tipear ya esta lista');
+  assert.equal(pressDialogue(), 'scene');
+  assert.equal(dlg.si, 1);
+});
+
+test('historia: el auto-avance usa la formula del sistema de dialogo (RF-03)', () => {
+  near(autoSecs(12, 0), 1.6, 1e-9);                  // el minimo protege las lineas cortas
+  near(autoSecs(120, 0), 10, 1e-9);                  // 12 caracteres por segundo
+  near(autoSecs(120, 2.5), 12.5, 1e-9);              // y el hold se suma SIEMPRE
+  locker();
+  assert.equal(dlg.auto, false, 'apagado por defecto');
+  dlg.auto = true;
+  const n = txtOf(line()).length;
+  run60(autoSecs(n, 2.0) - 0.1);
+  assert.equal(dlg.li, 0);
+  const before = dlg.li;
+  let fired = null;
+  for (let i = 0; i < 20 && !fired; i++) fired = stepDialogue(1 / 60);
+  assert.equal(fired, 'auto', 'pasado el tiempo pide avanzar solo');
+  assert.equal(before, 0);
+  dlg.auto = false;
+});

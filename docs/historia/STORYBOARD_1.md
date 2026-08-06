@@ -1209,3 +1209,71 @@ golden light, brotherhood without words, 16:9. No text, no watermark.
 | **M13** (asado) | El fuego, la foto contra la damajuana, la libreta al lado. El Gitano en serio (una sola vez). **La CARTA: Esteban escribiendo de noche, ilegible, el sobre "Norma" parado en el locker.** |
 | **M14** (final) | El dedo en el mapa. La foto de cabina de Puma + "que me perdone el abuelo" + click. **"TRES desayunos."** El destello del Gitano al borde de pantalla. El show de Puma + kamikaze. El vacío. **LAS TRAYECTORIAS CRUZADAS** (el misil y la salva en el mismo cuadro). La cara de Tero. El tonel sobre el monte apagado. |
 | **Finales** | **A:** la vorágine (el enjambre de frente, todo rojo) + el locker con la carta + la mesa de Norma completa. **B:** el planeo del sapito (tocando el agua) + la panza en el pasto + LA MESA: Esteban y el Turco, el cuaderno abierto, la navaja contra la azucarera, Norma por la ventana en el jazminero. |
+
+---
+
+# PASADA VN — retratos y placas *(sincronización con RETRATOS.md)*
+
+> Decisión de producción: las escenas de diálogo van **placa de ambiente + retrato**
+> (estilo Police Stories); solo los **cuadros sagrados** se producen como escena completa.
+> Esta sección reclasifica los cuadros existentes. Regla de lectura: lo que no figura acá
+> como VN, **queda como estaba**.
+
+## Cuadros existentes que pasan a VN *(no se generan como escena — placa + retratos)*
+
+| Cuadro | Placa que usa | Retratos en juego |
+|---|---|---|
+| P2.2 chicana del Rastrojero | cocina 1982 | Mateo sonrisa-colimba · Tero sonrisa chica *(Norma NO aparece — sin retrato por canon)* |
+| P2.2b el terito (siembra) | cocina 1982 | Mateo sonrisa · Tero neutro |
+| M1.3 la regla número uno | línea de vuelo amanecer | Puma reglamentario |
+| M1.4 chistes y rezos | línea de vuelo amanecer | Gitano sonrisa · Pichón neutro · Vasco cerrado |
+| M1.5b la casada | línea de vuelo amanecer | Gitano sonrisa · Pichón entusiasmo · Puma reglamentario |
+| M2.1 el pizarrón de la brecha | sala de radio / briefing | Puma ceño · Tero preocupado |
+| M4 (ex M3.1) el estallido de la sala de radio | sala de radio | Gitano carcajada |
+| M4 (ex M3.2) "veinte marinos" | sala de radio | **Gitano carcajada → serio** (el cambio de retrato ES la escena) · Puma ceño |
+| M4 (ex M3.3) la profecía de la gambeta | sala de radio | Gitano serio · Puma neutro |
+
+**El caso testigo es "veinte marinos":** el corte del retrato del Gitano de carcajada a
+serio, con la placa quieta y el `hold` después, hace más trabajo que cualquier escena
+dibujada. Así se dirige en VN.
+
+## Cuadros que se CONSERVAN como escena completa *(sagrados — sin cambios)*
+
+Todo el P.0 y P.1 · P2.1 (la mesa — presenta a la familia UNA vez) · P2.3–P2.6 (la radio,
+la pava, la Plaza, el balcón) · P3.x (el teléfono) · P4 y toda página `[TIERRA]` · M1.1*
+(pasa a doblar como placa, ver abajo) · M1.2 (la comunión del mate — el retrato grupal de
+la familia, una sola vez) · M1.5 / M1.5c / M1.5d (el Turco, la foto, el terito) · M1.6 /
+M1.7 (sal en las alas, la estrellita) · M2.2 (las manos) · M2.3 (splash) · M2.4 / M2.5 /
+M2.6 (el colador, el abrazo, la estrellita del Pichón) · M4 (ex M3.4) splash Exocet · M4
+(ex M3.5) el festejo y el que mira el mar · M3.5b los dos segundos del Vasco · y toda la
+lista de la tabla obligatoria M4–M14 (sección ACTUALIZACIÓN 3.0).
+
+## Las 14 placas — de dónde salen
+
+| Placa | Origen |
+|---|---|
+| 1. Línea de vuelo amanecer | regenerar M1.1 SIN personas (o borrar figuras del ya generado) |
+| 2. Línea de vuelo atardecer | variante de luz de la 1 |
+| 3. Línea de vuelo noche | variante (m13/m14) |
+| 4. Hangar día | nueva — sirve el fondo de M1.5 sin figuras |
+| 5. Hangar noche con lámpara | nueva (la libreta) |
+| 6. Vestuario / lockers | del cuadro M1.5c sin figuras |
+| 7. Sala de radio | nueva (briefings, "veinte marinos") |
+| 8. Cocina 1982 | de P2.1 sin figuras |
+| 9. Cocina presente (lavada) | de P0.1/P0.2 sin figuras |
+| 10. Fogón del asado | del interludio m13 sin figuras |
+| 11. Cabina día | nueva (radio en vuelo) |
+| 12. Cabina noche | variante (m14) |
+| 13. Pista bajo lluvia | nueva |
+| 14. El jazminero por la ventana | nueva (Final B) |
+
+**Regla de producción de placas:** mismo prompt del cuadro de origen + `NOBODY IN THE
+FRAME. Empty, waiting, quiet.` — el patrón es la placa del TEST 4B.
+
+## Regla para los storyboards de M4–M14 *(los que faltan producir)*
+
+De acá en adelante los storyboards nuevos se escriben **directo en formato VN**: por
+escena, indicar `placa + secuencia de retratos` para el diálogo, y cuadro completo SOLO
+para los momentos de la tabla obligatoria. Eso reduce los storyboards restantes a: puñado
+de cuadros sagrados por misión + guion de retratos (que ya está escrito en GUION_3 — el
+storyboard solo asigna caras).

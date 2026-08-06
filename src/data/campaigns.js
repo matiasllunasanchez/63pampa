@@ -7,6 +7,8 @@
 import { MISSIONS } from './missions.js';
 
 export const CAMPAIGNS = [
-  { id: 'norma', name: 'LA MESA DE NORMA', missions: MISSIONS, enabled: true },
+  // renombrada (pedido 6/8): era LA MESA DE NORMA. El `id` NO cambia: rotula las partidas
+  // guardadas en localStorage y renombrarlo las dejaria huerfanas.
+  { id: 'norma', name: 'EL CUADERNO DE MATEO', missions: MISSIONS, enabled: true },
   { id: 'fantasma', name: 'EL FANTASMA DEL MAR', missions: null, enabled: false },
 ];

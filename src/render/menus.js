@@ -371,7 +371,7 @@ export function drawCampMenu(w) {
   }
 }
 
-// una fila de partida guardada: 'LA MESA DE NORMA · MISION 2 · 1234 PTS · 05/08 21:33'
+// una fila de partida guardada: 'EL CUADERNO DE MATEO · MISION 2 · 1234 PTS · 05/08 21:33'
 function saveLabel(r) {
   const camp = (CAMPAIGNS[r.camp] || CAMPAIGNS[0]).name;
   return camp + '  ·  ' + T('missionShort', { n: (r.level || 0) + 1 })

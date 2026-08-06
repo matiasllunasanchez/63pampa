@@ -81,6 +81,7 @@ Todo lo que es "datos del juego" y no cambia en runtime. Ningún archivo de acá
 | `palette.js` | colores `P`, estilos de agua, presets de cielo, paleta de tierra |
 | `ships.js` | layouts de zonas del momentum por clase de buque |
 | `missions.js` | las 6 misiones de campaña, tipos de objetivo |
+| `story.js` | **escenas del MODO HISTORIA** en el modelo nuevo (id de línea + `hold` + placa + cara). Hoy: el locker de m7. El resto del guion sigue como pantallas en `strings.js` |
 | `planes.js` | aviones seleccionables + sprite sheets horneados |
 | `sfx.js` | tabla de efectos de sonido |
 | `tuning.js` | **las perillas**: constantes de ajuste (zona de vuelo, momentum, pirueta) |
@@ -127,6 +128,7 @@ El corazón. Los **stores** (identidad estable) y lo que es matemática/utilidad
 | `squad.js` | **pura**: vidas, fases del relevo, indicativos y puestos de la formación (la importa el unit test) |
 | `horizon.js` | horizonte giratorio: cuánto se inclina el **mundo** (`hzWorld`), cuánto se le descuenta al sprite (`hzSprite`), el alabeo real que lee el instrumento (`attitude`), el giro libre de `[Q]`/`[E]` (`stepHorizon`) y cuánto se funde lo que solo se lee derecho (`tiltFade`). Es **solo dibujo** — `proj()` no lo ve |
 | `i18n.js` | idioma: único dueño de `LANG`; `T`, `L`, `cycleLang` |
+| `dialogue.js` | **el motor de líneas del MODO HISTORIA**: tipea letra a letra, completa de un toque y hace respetar el `hold` (el silencio actuado, que NO se puede saltear). Puro — sin canvas, audio ni idioma — así lo prueba `npm run unit`. Trae el store `dlg` y el adaptador que lee las pantallas viejas de `strings.js` |
 | `util.js` | utilidades puras (`wrapChars`, `multOf`) |
 
 ### `systems/` — el comportamiento (escriben el estado)
@@ -162,7 +164,7 @@ Todo lo que pinta. `draw()` en `game.js` gestiona los transforms y delega acá.
 | `miras.js` | la hoja de miras del menú `[M]` |
 | `hud.js` | instrumentos, avisos, barra de objetivo, cuenta regresiva del despegue, tablero del escuadrón |
 | `squad.js` | la formación del despegue (y su salida de plano) + la sobreimpresión de la cinemática del relevo |
-| `screens.js` | recuento, briefing, derribado, victoria, guion narrativo |
+| `screens.js` | recuento, briefing, derribado, victoria, y el guion narrativo (UNA LÍNEA POR VEZ, leyendo `core/dialogue.js`) |
 | `menus.js` | selección de modo/avión y el menú de configuración `[M]` |
 | `momentum.js` | el render del ARENA VIEJO (barcaza, zonas, cabina, visor) |
 | `arena.js` | el overlay 2D de la fase ARENA: corchetes/HP proyectados desde la escena 3D, fx del duelo, cabina o sprite (1ª/3ª persona, tecla V) y tablero (zonas + escuadrón) |
@@ -190,6 +192,9 @@ Lo que queda es genuinamente el pegamento:
 | agregar un buque / sus zonas críticas | `data/ships.js` (es data; la lógica de ARENA y del fallback es genérica) |
 | una misión nueva | `data/missions.js` |
 | textos / traducciones | `data/strings.js` |
+| una escena del MODO HISTORIA (líneas, holds, caras) | `data/story.js` — es DATA; el motor es genérico. Probala con `?scene=<ID>` y `npm run story` |
+| cómo se siente leer el guion (velocidad de tipeo, auto-avance) | `core/dialogue.js` (`TYPE_CPS`, `autoSecs`) |
+| el orden/flujo de las pantallas de campaña | `enterMission`/`initStory` en `game.js` + el análisis funcional en [SPEC_MODO_HISTORIA.md](sistemas/SPEC_MODO_HISTORIA.md) |
 | colores | `data/palette.js` |
 | agregar un FONDO de clima (imagen) | poner la imagen en `assets/world/terrain_back/`, sumar entrada a `TBACK_MAP` en `game.js` **con su fila de horizonte**, un preset en `SKY_PRESETS` y la opción a la fila FONDO de `CFG_ROWS` |
 | qué pasa al chocar / puntaje (PASILLO) | `systems/collision.js` |
@@ -219,6 +224,12 @@ Lo que queda es genuinamente el pegamento:
 | `feel` | la *sensación* — importa las fórmulas REALES de `core/physics.js`, no las re-implementa |
 | `smoke` | abre el juego en Electron y falla si el canvas queda en blanco, **deja de cambiar**, no suena o tira error de consola — en menú, PASILLO, derribado, ARENA, combate y mouse. Con three.js cargado (siempre en Electron y en el build web) entra a la fase ARENA nueva, no al fallback en riel de `momentum.js` |
 | `build:web` + `smoke:web` | lo mismo sobre el build web autocontenido |
+
+Y una que corre aparte, a mano, porque son 13 s de silencios reales:
+
+| comando | qué garantiza |
+|---|---|
+| `story` | el fixture del MODO HISTORIA (el locker de m7): que cada `hold` dure lo que dice el guion, que una tecla complete el tipeo sin saltear la línea, que ningún toque atraviese un silencio — y que todo eso ande **con cero assets**. `STORY_SHOTS=<dir> npm run story` deja una captura por línea |
 
 > El chequeo de "el canvas cambia entre cuadros" no es adorno: en este refactor atrapó un
 > `ReferenceError` entre módulos que la sintaxis y el bundle dejaron pasar (una función de render

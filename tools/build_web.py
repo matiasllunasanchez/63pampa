@@ -145,6 +145,15 @@ def main():
     js, ok = sub_path(js, '../assets/story/', 'data:,story-web-off/')
     if not ok:
         raise SystemExit('ERROR: no encontre la base ../assets/story/ en el bundle (cambio screens.js?)')
+    # PLACAS y RETRATOS del modo historia (assets/plates/, assets/portraits/): mismo criterio
+    # mientras no existan los assets. Cuando se generen, evaluar embeberlos (los retratos son
+    # bustos chicos y probablemente entren en el presupuesto de 16 MB).
+    js, ok = sub_path(js, '../assets/plates/', 'data:,plates-web-off/')
+    if not ok:
+        raise SystemExit('ERROR: no encontre la base ../assets/plates/ en el bundle (cambio screens.js?)')
+    js, ok = sub_path(js, '../assets/portraits/', 'data:,portraits-web-off/')
+    if not ok:
+        raise SystemExit('ERROR: no encontre la base ../assets/portraits/ en el bundle (cambio screens.js?)')
 
     if '../assets/' in js:
         raise SystemExit('ERROR: quedaron rutas ../assets/ sin re-embeber en game.js')

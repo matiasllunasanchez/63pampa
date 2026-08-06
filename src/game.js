@@ -6,7 +6,10 @@ import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS } from './data/missions.js';
 import { nextUpgrades } from './data/upgrades.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
-import { wrapChars, multOf } from './core/util.js';
+import { multOf } from './core/util.js';
+import * as dialogue from './core/dialogue.js';
+import { dlg, seqFromScreens } from './core/dialogue.js';
+import { SCENES } from './data/story.js';
 import { S, setState, cfg, cam, plane, stats, resetPlane, resetStats, CTRL_DIRECT, CTRL_BANK } from './core/state.js';
 import { hzWorld, stepHorizon } from './core/horizon.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts,
@@ -200,42 +203,26 @@ import { RUNWAYS } from './data/runways.js';
       run.dist = objectiveDist;
       arena.enter(); sfxOne('lv1');
     }
-    // arranca una SECUENCIA de pantallas (clave del guion en STRINGS: 'storyM1', 'epiM4'…)
+    // arranca una SECUENCIA de pantallas (clave del guion en STRINGS: 'storyM1', 'epiM4'…).
+    // El guion viejo son PANTALLAS ({title, paras}); el motor habla de ESCENAS con lineas — las
+    // traduce el adaptador de core/dialogue.js, asi el guion ya escrito anda sin tocarlo.
     function initStory(key) {
-      story = { seq: L()[key] || STRINGS.es[key] || [], si: 0 };
-      initStoryScreen();
+      dialogue.startSeq(seqFromScreens(L()[key] || STRINGS.es[key] || [], key), getLang());
     }
-    // prepara las lineas tipeables de la pantalla actual de la secuencia
-    function initStoryScreen() {
-      const sc = story.seq[story.si] || {};
-      const parts = [];
-      if (sc.title) parts.push({ k: 'title', txt: sc.title });
-      if (sc.paras) for (const p of sc.paras) parts.push({ k: 'body', txt: p });
-      if (sc.level) parts.push({ k: 'level', txt: sc.level });
-      if (sc.obj) parts.push({ k: 'obj', txt: sc.obj });
-      const lines = [];
-      for (const p of parts) {
-        const ws = wrapChars(p.txt, p.k === 'title' ? 32 : 52);
-        ws.forEach((l, j) => lines.push({ txt: l, k: p.k, last: j === ws.length - 1 }));
-      }
-      story.lines = lines; story.t = 0; story.typed = 0; story.done = false;
-      story.isLevel = !!sc.level;                      // pantalla previa al nivel (va centrada)
-    }
-    // cuantos caracteres van tipeados a tiempo `tt` (cada char cuesta 1/CPS; pausas al fin de
-    // linea y mas largas al fin de parrafo). Devuelve { typed, done }.
-    function storyTyped(tt) {
-      const CPS = 19;                                  // LENTO: ritmo de teletipo ceremonioso
-      let acc = 0, typed = 0;
-      for (const ln of story.lines) {
-        for (let i = 0; i < ln.txt.length; i++) {
-          acc += 1 / CPS;
-          if (acc > tt) return { typed, done: false };
-          typed++;
-        }
-        acc += ln.last ? 0.85 : 0.15;
-        if (acc > tt) return { typed, done: false };
-      }
-      return { typed, done: true };
+    /** Un cuadro del motor de historia. Devuelve la señal de pressDialogue() ('complete', 'next',
+     *  'scene', 'end') o null; QUIEN DECIDE A DONDE IR es el que llama, no el motor. */
+    function stepStory(dt) {
+      const before = dlg.typed;
+      const auto = dialogue.stepDialogue(dt);
+      // tick de maquina de escribir: uno por caracter nuevo (el tic por personaje es F6)
+      if (dlg.typed > before && !isMuted()) beep(1300 + Math.random() * 1100, 0.014, 'square', 0.013);
+      // gracia de 0.4 s AL EMPEZAR LA SECUENCIA: la tecla que confirmo CAMPAÑA en el menu no debe
+      // saltear el tipeo de la primera linea. Despues el reloj de la secuencia ya la dejo atras.
+      if (!auto && !(flags.anyPress && dlg.seqT > 0.4)) return null;
+      const r = auto ? dialogue.advance() : dialogue.pressDialogue();
+      // null = el toque se IGNORO porque corre un `hold`: el silencio no se saltea (RF-07)
+      if (r && r !== 'end') beep(500, 0.05, 'square', 0.04);
+      return r;
     }
 
     function startCampaign() {
@@ -653,7 +640,16 @@ import { RUNWAYS } from './data/runways.js';
     // VY = peso de la velocidad vertical real — se mantiene >0 para que al soltar el gas y caer la
     // trompa se incline sola, y es bajo para que picar y trepar tarden lo mismo (picar acelera mas
     // rapido, asi que un VY alto adelantaba la picada).
-    let story = null;   // pantalla de HISTORIA (campaña): maquina de escribir letra a letra
+    // HISTORIA: el estado vive en el store `dlg` (core/dialogue.js). Aca solo queda la costura de
+    // prueba: con ?scene=<ID> el juego arranca DENTRO de esa escena y al terminarla vuelve al menu
+    // en vez de encadenar una mision. Misma idea que ?qa y ?no3d — explicita y sin efecto en el
+    // juego normal (sin el parametro, sceneProbe es null y nada cambia).
+    const sceneProbe = (() => {
+      try {
+        const id = new URLSearchParams(location.search).get('scene');
+        return id && SCENES[id] ? SCENES[id] : null;
+      } catch (e) { return null; }
+    })();
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
     let toT = 0, toCount = 4;
     let levelT = 0;   // temporizador de las tarjetas de transición de nivel / victoria (campaña)
@@ -1299,18 +1295,12 @@ import { RUNWAYS } from './data/runways.js';
           return;
         }
         if (S.state === 'story') {
-          // HISTORIA: tipeo letra a letra con tick de maquina de escribir; una tecla/tap
-          // completa el texto, y con el texto completo la siguiente arranca el despegue con FADE
-          story.t += dt;
-          const st = storyTyped(story.t);
-          if (st.typed > story.typed && !isMuted()) beep(1300 + Math.random() * 1100, 0.014, 'square', 0.013);
-          story.typed = st.typed; story.done = st.done;
-          // gracia de 0.4s: el tap/tecla que confirmo CAMPAÑA en el menu no debe saltear el tipeo
-          if (flags.anyPress && story.t > 0.4) {
-            if (!story.done) { story.t += 999; }                          // completar de un saque
-            else if (story.si + 1 < story.seq.length) {                   // → siguiente pantalla de la secuencia
-              story.si++; initStoryScreen(); beep(500, 0.05, 'square', 0.04);
-            } else { run.t = 0; fadeT = 1.4; setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+          // HISTORIA: el motor tipea la linea y guarda su silencio; aca solo se decide QUE PASA
+          // cuando la secuencia se termina — el despegue, con FADE.
+          if (stepStory(dt) === 'end') {
+            // sonda del fixture (?scene=): la escena suelta no encadena a ninguna mision
+            if (sceneProbe) { setState('modeselect'); modeSel = 0; beep(400, 0.06, 'square', 0.05); }
+            else { run.t = 0; fadeT = 1.4; setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
           }
         } else if (S.state === 'brief') {
           // tarjeta corta de mision (ciclo de muerte, y campaña sin guion): una tecla despega
@@ -1384,15 +1374,9 @@ import { RUNWAYS } from './data/runways.js';
             else { initStory(lastRun.mission.epi); setState('epilogue'); beep(500, 0.05, 'square', 0.04); }
           }
         } else if (S.state === 'epilogue') {
-          // EPILOGO: reusa el motor de tipeo de la historia; al terminar, encadena segun el modo
-          story.t += dt;
-          const st = storyTyped(story.t);
-          if (st.typed > story.typed && !isMuted()) beep(1300 + Math.random() * 1100, 0.014, 'square', 0.013);
-          story.typed = st.typed; story.done = st.done;
-          if (flags.anyPress && story.t > 0.4) {
-            if (!story.done) { story.t += 999; }
-            else if (story.si + 1 < story.seq.length) { story.si++; initStoryScreen(); beep(500, 0.05, 'square', 0.04); }
-            else if (gameMode === 'campaign') {
+          // EPILOGO: el mismo motor de lineas; al terminar la secuencia, encadena segun el modo
+          if (stepStory(dt) === 'end') {
+            if (gameMode === 'campaign') {
               // campaña: antes de la siguiente mision pasa por EL BANCO DEL PICHON (elegir una
               // mejora), si el pool no se agoto. Despues, la mision o la victoria final.
               upgOffer = curLevel + 1 < MISSIONS.length ? nextUpgrades(pichon, 2) : [];
@@ -1819,7 +1803,8 @@ import { RUNWAYS } from './data/runways.js';
       if (S.state === 'results') screens.drawResults({ lastRun, resRow, resT, t: run.t, bg: winBg });
       if (S.state === 'brief') screens.drawBrief({ mission: curMission(), goalLabel: goalOf(curMission()).label(curMission().goal), briefT, t: run.t });
       if (S.state === 'victory') screens.drawVictory({ score: run.score, levelT, t: run.t });
-      if ((S.state === 'epilogue' || S.state === 'story') && story) screens.drawStory({ story, state: S.state, t: run.t });
+      if (S.state === 'epilogue' || S.state === 'story')
+        screens.drawStory({ dlg, state: S.state, t: run.t, canAdvance: dialogue.canAdvance() });
       ctx.restore();
       // PORTADA y MODOS van en coordenadas NATIVAS (fuera del scale): mas pixeles por letra.
       // El fondo (drawPpalBg) si va escalado — es la grilla de diseño y cubre toda la pantalla.
@@ -1897,6 +1882,22 @@ import { RUNWAYS } from './data/runways.js';
     if (typeof window !== 'undefined') window.__pdbg = () => JSON.stringify({
       paused, view: pauseView, sel: pauseSel, saveSel, state: S.state,
     });
+    // MOTOR DE HISTORIA para el fixture del locker (SPEC_MODO_HISTORIA §6): lo que el jugador
+    // tiene en pantalla ahora mismo. Los holds hay que poder MEDIRLOS desde afuera — a ojo, un
+    // silencio de 3.6 s y uno de 4.0 s son indistinguibles, y esa diferencia es la actuacion.
+    if (typeof window !== 'undefined') window.__sdbg = () => {
+      const sc = dialogue.scene() || {}, ln = dialogue.line();
+      return JSON.stringify({
+        state: S.state, scene: sc.id || null, line: dlg.li, id: ln ? ln.id : null,
+        personaje: ln ? ln.personaje : null, cara: ln ? ln.cara : null, hold: ln ? ln.hold : 0,
+        txt: dialogue.txtOf(ln), len: dialogue.txtOf(ln).length,
+        typed: dlg.typed, done: dlg.done, holdLeft: +dialogue.holdLeft().toFixed(3),
+        canAdvance: dialogue.canAdvance(), seqT: +dlg.seqT.toFixed(2),
+        // silencio ya consumido: sin esto no se puede saber si un holdLeft de 3.89 s es el motor
+        // pidiendo de menos o la sonda llegando 0.11 s tarde
+        sinceDone: dlg.done ? +(dlg.t - dlg.tDone).toFixed(3) : 0,
+      });
+    };
     // estado del BANCO DEL PICHON para las sondas (oferta, cursor y lo ya aprendido)
     if (typeof window !== 'undefined') window.__udbg = () => JSON.stringify({
       state: S.state, level: curLevel, offer: upgOffer.map(u => u.id), sel: upgSel, pichon,
@@ -1949,5 +1950,8 @@ import { RUNWAYS } from './data/runways.js';
     }
     applyChrome();
     reset();
+    // ?scene=<ID>: arranca DENTRO de esa escena, sin pasar por el menu ni por una mision. Es como
+    // se corre el fixture de aceptacion del locker (SPEC_MODO_HISTORIA §6).
+    if (sceneProbe) { dialogue.startSeq([sceneProbe], getLang()); setState('story'); }
     requestAnimationFrame(frame);
   })();
