@@ -5,8 +5,14 @@
 > ([GUION_3_CAMBIOS.md](GUION_3_CAMBIOS.md)). Contiene contexto, estructura contrarreloj,
 > las tres fases de combate, las dos muertes, el momento del misil y las dos salidas.
 > **La regla que gobierna todo: la historia primero — el nivel existe para que el jugador
-> NECESITE llegar al final, y la dificultad jamás puede frenarlo** (asistencia progresiva
-> activa; ver G3 §0).
+> NECESITE llegar al final.**
+>
+> 🟨 **MATIZ 3.4 (decisión de Matías, pisa la versión vieja de esta línea):** M14 es **la
+> única excepción** del juego a "la dificultad nunca frena la historia". Acá **sí** puede
+> frenarla, y está bien: morir y reintentar en el clímax es videojuego clásico, y **las
+> ganas de saber cómo termina son el impulso** que hace que el jugador vuelva a intentarlo.
+> El nivel es difícil a propósito. La asistencia progresiva **suaviza, no regala**.
+> Ver GUION_3 nota 9.
 
 ---
 
@@ -212,9 +218,13 @@ Perú al frente — van antes de los créditos.)*
 **Notas de diseño:**
 - Las dos muertes ocurren **en gameplay, al borde de la pantalla** — nunca en cutscene que
   congele al jugador. La guerra no para para que uno llore; ese es el punto.
-- La asistencia progresiva (G3 §0) aplica hasta "El momento". La oleada final de la Salida
+- La asistencia progresiva aplica hasta "El momento", pero **acá suaviza, no regala**
+  (matiz 3.4 del encabezado): el jugador tiene que ganarse el final. La oleada de la Salida
   A es insobrevivible por diseño y no necesita asistencia: no se puede perder, solo
   terminar.
+- 🟥 **Fase 3 (el show de Puma):** seguirle el ritmo a la IA es casi imposible y va a
+  producir varias derrotas seguidas. **Es diseño, no falla.** El jugador puede intentarlo
+  por adrenalina, pero pasar por el costado siempre es viable.
 - Reusar acá la cadena del batir de alas y el tonel del Pichón como reconocimientos para el
   jugador atento; nunca subtitulados.
 - **Sin jefe con barra de vida.** El "boss" es el reloj. El buque muere de un misil

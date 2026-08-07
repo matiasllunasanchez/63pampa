@@ -127,3 +127,138 @@ primero se decide qué hace en el guion y recién después se agrega a las hojas
 **Dónde preguntar:** el libro de Rosana Guber *«Experiencia de Halcón: ni héroes ni kamikazes,
 pilotos de A-4B»* es antropología sobre estos pilotos concretos y es el lugar más probable donde
 esté contestado. Asociación de Pilotos de Caza también.
+
+---
+
+## Ovejas carneadas por conscriptos (M1, M5 — 🟨 3.4)
+
+El guion ahora muestra: el Colorado le da a Mateo un **cuero de oveja** carneada (M1) y en
+M5 los pibes carnean una oveja a escondidas y **parten los huesos con piedras para comer
+el caracú**. Confirmar: cuán extendido fue el carneo de ovejas kelpers por tropa argentina,
+cómo se castigaba (encaja con los estaqueamientos ya verificados) y si el detalle del
+caracú aparece en testimonios. Es de los detalles más citados por veteranos — casi seguro
+sí — pero conviene la fuente al lado.
+
+## El Mundial de España (M13 — resuelto en guion)
+
+Argentina debutó contra Bélgica el **domingo 13 de junio de 1982** (0–1, Camp Nou). El
+asado de M13 es la noche del 11 → el guion dice ahora **"pasado mañana debuta Argentina"**
+(corregido; antes decía "mañana"). Verificar solo si se agrega más detalle (hora, relato
+radial de la época).
+
+---
+
+## ✅ Los Mirage 5P del Perú (M10) — VERIFICADO 2026-08-07
+
+**Confirmado** (dos fuentes, una con entrevista a un piloto que voló la entrega):
+
+- **Diez** Mirage 5P transferidos por la Fuerza Aérea del Perú (FAP) — no Ejército.
+- Salieron de **La Joya (Arequipa)**, escala nocturna de reabastecimiento en **Jujuy**,
+  aterrizaje final en **TANDIL** (VI Brigada Aérea) — a ~2.000 km de las bases del sur.
+- Los volaron **pilotos peruanos** (unos 10 pilotos + 18 técnicos, ~34 personas
+  condecoradas después). Uno de ellos, Pedro Seabra Pinedo, entonces teniente de 25 años,
+  llevó el **C-604**.
+- **Las escarapelas argentinas estaban pintadas ANTES de despegar del Perú.**
+- Los pilotos **volvieron a su país el mismo día** en un **Hércules C-130 con librea de
+  Aeroperú**, que viajaba como vuelo comercial "desviado por problemas técnicos".
+- **Nunca entraron en combate.** Motivo citado: sus AS-30 rendían menos que los Shafrir
+  israelíes de los Dagger. Quedaron en Tandil.
+- Marco legal: decreto legislativo secreto n.º 133 y resolución ministerial 2152/AE
+  (14/12/1981). **Argentina pagó USD 50 millones** — formalmente fue una **venta**, no un
+  regalo, aunque hecha en secreto, a contrarreloj y con riesgo político real.
+
+**Qué queda abierto:**
+
+1. **Discrepancia de fecha.** Una fuente da **5 de junio de 1982** (entrevista al piloto:
+   salida de madrugada, escala en Jujuy, Tandil al día siguiente); otra dice "mediados de
+   mayo". El guion usa el 5 de junio (más específico y de primera mano). Confirmar.
+2. **¿Nombrar pilotos reales?** Están publicados (Seabra Pinedo, Conde Garay, Mengoni
+   Vicente, Tueros Mannarelli). El guion NO los nombra — el piloto de M10 es anónimo. Si
+   alguna vez se los nombra, pedir permiso o usar solo el hecho, no la persona.
+3. **La palabra "regalo".** Como fue una venta, el guion evita esa palabra en diálogo. El
+   calor se sostiene con el hecho de las escarapelas pintadas antes de salir, que es real y
+   no lo hizo nadie más. Revisar si aparece "regalo" en alguna línea nueva.
+4. **La cartela final "Al Perú, el primero"** sigue en pie, pero conviene precisar en qué
+   sentido fue el primero (rapidez, cantidad, riesgo asumido) antes de fijarla.
+
+**Fuentes:** [defonline — el apoyo secreto de Perú](https://defonline.com.ar/defensa/los-aviones-tenian-escarapelas-argentinas-el-apoyo-secreto-de-peru-a-argentina-en-la-guerra-de-malvinas/) ·
+[Ámbito — historia secreta de los Mirage que mandó Perú](https://www.ambito.com/politica/1982-historia-secreta-los-mirage-que-mando-peru-n3371333)
+
+---
+
+## ⚠ La frase del post-créditos — atribución PENDIENTE (3.6)
+
+**Frase:** *"Nunca, nunca, nunca dudes del corazón de un argentino."* La dice la seño
+Claribel en la escena post-créditos.
+
+**Qué se sabe:** circula masivamente como línea de **narrador/relator** en videos y edits
+del **Mundial 2026**, en el que **Argentina perdió la final con España 1-0 el 19 de julio
+de 2026**. Ese contexto es el que la hace usable en este juego: **no es un canto de
+campeón, es lo que se dice después de perder** — que es exactamente la tesis del guion.
+
+**Qué NO se pudo confirmar:** no se pudo rastrear a un autor único y nombrado. Puede ser
+(a) un latiguillo de un relator identificable, (b) una frase de dominio popular anterior,
+o (c) una línea de narración de un video viral sin autor claro.
+
+**Qué hacer antes de publicar:**
+
+1. Rastrear el origen (buscar el relato original completo, no los edits).
+2. Si es de un relator identificable: pedir permiso, o **atribuirla en los créditos** —
+   igual que se hace con la cita de Diego Iorio, que sí está atribuida.
+3. Si no aparece autor: usarla igual, sin atribución, como frase popular. Riesgo bajo.
+4. Alternativa de emergencia si hay conflicto: parafrasear conservando la cadencia
+   ("Nunca, nunca, nunca dudes del corazón de estos pibes") — pierde el guiño pero
+   funciona en la escena.
+
+**Dato de continuidad verificado de paso:** el pibe del post-créditos usa **la 10 de la
+TERCERA estrella** — sigue siendo correcto. Argentina no ganó el Mundial 2026.
+
+**Fuentes:** [CNN — España campeón del Mundial 2026, 1-0 a Argentina](https://cnnespanol.cnn.com/2026/07/19/deportes/live-news/espana-argentina-final-mundial-2026-en-vivo-resultado-goles-orix) ·
+[Telemundo — la gran final del Mundial 2026](https://www.telemundo.com/noticias/noticias-telemundo/internacional/live-blog/mundial-2026-siga-la-gran-final-argentina-vs-espana-goles-resultados-rcna588225)
+
+---
+
+## ⚠ Tucumanismos del Turco — vigencia 1982 (3.7)
+
+Matías pasó un lote de recomendaciones "de un tucumano". Se chequeó cada una y **no todas
+entraron**:
+
+**✅ Entraron (viejas y seguras):**
+
+- **"aca"** — comodín vulgar (≈ "mierda"; también "mezquino"). Ya estaba en la fila del
+  Turco en §9. Se amplió a sus construcciones: *no sirve ni aca · en la loma del aca ·
+  hasta el aca · una aca esto · sos un aca · te wa se aca*.
+- **"chango / changuito"** — pibe. Ojo: los diccionarios actuales dan primero "carrito de
+  supermercado"; el sentido NOA de "muchacho" es el viejo y el correcto acá.
+- **"mavé"** (permítame ver) y **"giriar"** (escupir) — se agregaron al banco.
+
+**❌ NO entraron — riesgo alto de anacronismo:**
+
+- **"Qué pingo ura"** — es un fragmento de *"Eh ura, qué pingo, mira cajeta"*, frase que
+  circula como **meme viral tucumano de los últimos años**. Meterla en 1982 sería el mismo
+  error que se está cuidando con "culiao" y "chamigo", pero peor, porque es rastreable a
+  una fecha reciente. **Verificar antes de usarla; por defecto, afuera.**
+- **"Calma la raja"** — no figura en los diccionarios tucumanos consultados; lee como
+  construcción moderna. Mismo criterio.
+
+**⚠ Decisión de registro (no es histórica, es de tono):** *cajeta* y *ura* son vulgares
+fuertes — refieren a genitales femeninos. Quedaron en el banco pero **con regla: solo como
+interjección de bronca contra un objeto (un tornillo, un motor), nunca dirigidas a una
+persona.** El Turco es el corazón tibio del juego; que insulte a una máquina lo hace más
+querible, que insulte a alguien lo ensucia.
+
+**Qué verificar con el historiador / con un tucumano mayor:**
+
+1. ¿"Aca" con ese uso ya estaba instalado en los 70/80, o también es reciente?
+2. ¿"Mavé" y "giriar" son de la generación de un hombre nacido ~1924?
+3. Sirio-libanés en Tucumán: ¿qué marcas de habla propias tendría alguien de esa
+   colectividad en los 80, más allá del refranero? *(Hoy el guion solo usa "esto no lo
+   levanta ni Alá".)*
+
+**Nota de producción aparte:** la cantidad de puteadas impacta en la clasificación por edad
+(ESRB/PEGI) y complica la traducción al inglés. Decidir el techo antes de escribir el resto
+de los diálogos, no después.
+
+**Fuentes:** [Contexto Tucumán — diccionario básico de palabras y expresiones tucumanas](https://www.contextotucuman.com/nota/57320/desde-la-a-a-la-z-diccionario-basico-de-palabras-y-expresiones-tucumanas.html) ·
+[El Tucumano — "Eh ura qué pingo mira cajeta"](https://www.eltucumano.com/noticia/libre/298783/la-memorable-frase-eh-ura-que-pingo-mira-cajeta-llega-a-california-de-la-mano-de-una-tucumana) ·
+[El Tucumano — ura, aca, giriar, mavé](https://www.eltucumano.com/noticia/libre/264759/ura-aca-giriar-mave-los-hilarantes-videos-sobre-el-lenguaje-tucumano)

@@ -18,9 +18,13 @@
 
 El guion tiene ahora **tres** registros, no dos. Además de `[AIRE]` y `[TIERRA]`:
 
-**`[CARTA]`** — los cinco fragmentos de la carta que Esteban escribe y nunca manda (M6, M8,
-M10, M11 y voz en off en M12). No es la manuscrita de Mateo ni la tipografía técnica del
-juego: es un hombre que no sabe escribirle a su hijo y lo intenta igual.
+**`[CARTA]`** — 🟨 **CORREGIDO (3.0+):** ya NO existen los cinco fragmentos entre misiones.
+**Hay UNA sola carta en todo el juego**: la que Esteban le escribe a **Norma** la noche del
+asado (M13), **por las dudas**, sin saber que al día siguiente hay salida. Se la ve escribir
+pero **no se lee ni una línea** — y solo se abre en el **epílogo del Final A**. El registro
+`[CARTA]` se usa entonces DOS veces: el sobre cerrado con el nombre "Norma" (M13) y la hoja
+leída (Final A). Sigue siendo lo mismo visualmente: un hombre que no sabe escribir lo que
+siente y lo intenta igual.
 
 ```
 Detailed 90s arcade pixel art close-up of a single sheet of military-issue lined
@@ -131,7 +135,7 @@ tu generador soporta image reference.
 | `{PICHON}` | argentine rookie pilot, 22 years old, the smallest of the squadron, reads as a boy among men, criollo, olive skin, baby face, freckles, nervous eyes, flight suit clearly too big, sleeves swallowing his hands, helmet held with both hands against his chest, a carpenter's pencil tucked crosswise under the helmet band, half-erased pencil formulas on the back of his left hand |
 | `{TURCO}` | argentine chief mechanic, late 50s, syrian-lebanese descent, olive skin, hooked nose, stocky with a round belly, bald on top with grey sides, cloth cap, glasses pushed up on his forehead, grey DROOPING WALRUS mustache, grease-stained blue overalls plain and unmarked on the back, rag over one shoulder, a small white hand-painted star on the front of his cloth cap, big weathered hands |
 | `{COLORADO}` | argentine corporal, 26 years old, tall and sturdy, fair freckled skin raw red from the cold, red hair, broad honest smile, plain olive field uniform with NO insignia, wool cap, argentine brown leather webbing with canteen, muddy brown leather boots |
-| `{NORMA}` | argentine mother, 47 years old, middle-aged not elderly, dark hair with grey at the temples in a low bun, criolla, faded blue dress with a cream floral apron, always the same apron, no military insignia of any kind, always seen from behind or in profile, face never fully shown, always alone |
+| `{NORMA}` | argentine mother, 47 years old, middle-aged not elderly, dark hair with grey at the temples in a low bun, criolla, warm tired face, gentle firm expression, faded blue dress with a cream floral apron, always the same apron, no military insignia of any kind |
 | `{SKYHAWK}` | A-4B Skyhawk attack jet, bare silver-grey metal, blue-white argentine roundel, worn painted metal, single seat, a row of small plain white stars below the cockpit |
 | `{RASTROJERO}` | rusty old Argentine Rastrojero pickup truck, 1960s workhorse |
 
@@ -897,9 +901,10 @@ volar con vos."*
 Con este documento validado, el resto de la campaña se produce en serie:
 
 1. **Mismo formato por misión:** briefing (3–5 cuadros) → splash de misión (1) → epílogo
-   (2–3) → carta (2–3, hoja + dibujo) → **fragmento de la carta del padre en M6, M8, M10 y
-   M11** (registro `[CARTA]`). Los picos emocionales (M6 el locker, M7 sobrevuelo, M8
-   Pichón, M10 Correa, M12 final) llevan más cuadros — estimar 8–14 cada uno.
+   (2–3) → página del cuaderno (2–3, hoja + dibujo). ⚠ **El paso "fragmento de la carta del
+   padre" YA NO EXISTE** — ver el registro `[CARTA]` corregido arriba. Los picos emocionales
+   (numeración 3.0: M7 el locker, M8 sobrevuelo, M9 Pichón, M12 Correa, M14 final) llevan
+   más cuadros — estimar 8–14 cada uno.
 2. **Consistencia:** usá SIEMPRE los tokens de personaje y props y los bloques
    `[AIRE]`/`[TIERRA]`/`[CARTA]` tal cual. Si el generador soporta referencias de imagen,
    alimentá las hojas modelo de [PROMPTS_HOJAS_PERSONAJE.md](PROMPTS_HOJAS_PERSONAJE.md).
@@ -914,6 +919,18 @@ Con este documento validado, el resto de la campaña se produce en serie:
 ---
 
 # ⛔ SUPERSEDIDA — numeración 2.3. Ver la tabla 3.0 (M4–M14) en «ACTUALIZACIÓN 3.0» al final
+
+> **NO GENERAR NADA DESDE ESTA TABLA.** Se conserva solo como registro de lo que se pensó
+> en la 2.3. Todo lo que sigue hasta el separador está **desactualizado en cuatro cosas**:
+>
+> 1. **La numeración es la vieja de 12 misiones** (acá "M10" es Correa; en el canon es M12).
+> 2. **"Fragmento N `[CARTA]`" no existe más** — hay UNA sola carta, a Norma, en M13, y solo
+>    se lee en el Final A.
+> 3. **"La media de lana" es ahora un CUERO DE OVEJA** (3.4).
+> 4. Falta todo lo posterior: M3 y M10 nuevas, el terito, Tandil, el post-créditos.
+>
+> **La fuente de verdad es la «Tabla 3.0 — cuadros obligatorios M4–M14» del final del
+> documento.**
 
 ## (vieja) Cuadros obligatorios de M4–M12 *(mapa para la próxima tanda)*
 
@@ -932,7 +949,7 @@ reparto del juego.
 | **M10** | El pozo, Correa tapando a Mateo con el cuerpo. **La media de lana y la foto de la hermana** entre sus cosas. Esteban preguntando por carta y que no haya. Fragmento 3 `[CARTA]` — "Así que voy a ir" sin tachar. |
 | **M11** | Volar sobre las posiciones propias (pozos y casquitos abajo, bajo fuego). **El asado**: la foto del Vasco y la libreta del Pichón apoyadas en la mesa junto a la damajuana. **La confesión del Gitano mirando las brasas** — y su cabeza "la risa que se apaga". La última página de la libreta ("para cuando haya que volver a buscar a alguien"). El borrador tachado de la última carta de Mateo. Fragmento 4 `[CARTA]`. |
 | **M12** | Los tres Skyhawks bajo la luna. Puma apagando la radio. El pincel en el bolsillo. Gitano encendiéndose. Puma entrando en la muralla. **El misil saliendo desde tierra** (3 segundos). El monte apagándose. Esteban batiendo las alas sobre la nada. Las tres opciones. |
-| **Epílogo** | Los dos telegramas como cubiertos. La mesa para dos. **Las dos encomiendas**: `{CUADERNO_MATEO}` y `{CARTA_PADRE}` + `{FOTO_VASCO}` + el pincel. Norma de frente por primera vez. El cuaderno y la carta enfrentados en la mesa. El pibe de la 10 en el museo. |
+| **Epílogo** | Los dos telegramas como cubiertos. La mesa para dos. **Las dos encomiendas**: `{CUADERNO_MATEO}` y `{CARTA_PADRE}` + `{FOTO_VASCO}` + el pincel. Norma años después — más canas, el mismo delantal. El cuaderno y la carta enfrentados en la mesa. El pibe de la 10 en el museo. *(⛔ fila supersedida — el estado vigente está en la tabla 3.0)* |
 
 
 ---
@@ -1010,10 +1027,12 @@ fills more and more of the frame. 16:9. No text, no watermark.
 ---
 
 ## ~~Cuadro P2.2b — El terito~~ *(🟨 ELIMINADO en 3.3 — era demasiado obvio)*
-La siembra del terito ya no es una escena: **la cuenta Norma, citada en el cuaderno de M1**
-("Vos buscá el pájaro, Mateo, y ahí está tu papá"), enterrada en mitad de una página sobre
-otra cosa. No requiere cuadro propio — va en la página TIERRA de M1 ya existente. Ver
-GUION_3, M1.
+**Canon 3.4 (edición manual):** P.2 pasó al **2 de abril de 1982** y ahora es LA LLAMADA —
+Norma atiende el teléfono, **habla en escena** (le explica a Mateo lo del apodo: "a tu
+padre le dicen Tero… el pájaro lo sigue a todos lados") y Esteban atiende, palidece y
+prende la radio. El diario de M1 remata la siembra ("en la Fuerza te dicen Tero desde
+antes de que yo naciera"). El reconocimiento de M8 es una **deducción** de Mateo: tero
+pintado + papá Tero = certeza. Ver GUION_3, P.2 y M1.
 
 ---
 
@@ -1153,34 +1172,67 @@ watermark.
 
 ## MISIÓN 10 — "Los primos" *(NUEVA — cuadros clave)*
 
-### Cuadro M10.A — Del sol
-**Plano:** contraluz: una formación de Mirage nuevos apareciendo desde el resplandor del
-sol, prolijos, brillantes. En el más cercano, la escarapela argentina con la pintura
-todavía fresca — un brillo distinto al resto del fuselaje.
+> 🟥 **REESCRITO 3.5 — los cuadros viejos M10.A/M10.B están MUERTOS.** Eran la escolta
+> sobre el mar: históricamente imposible (los Mirage aterrizaron en **Tandil**, a 2.000 km
+> del sur, volados por pilotos peruanos que se volvieron el mismo día en un Hércules con
+> librea de Aeroperú, y **nunca combatieron**). La escena ahora es un **corte a Tandil**
+> intercalado en la misión — la segunda y última vez que el juego rompe su montaje.
+
+### Cuadro M10.A — Los diez que llegaron
+**Plano:** plataforma de Tandil al amanecer, pasto escarchado. Diez Mirage nuevos rodando
+en fila hacia la plataforma, prolijos, sin una marca de uso, la luz naranja rasante
+metiéndose en las cúpulas. Mecánicos saliendo del hangar despacio, sin creerlo.
 
 **PROMPT:**
 ```
-[AIRE] A formation of brand-new Mirage delta-wing jets emerging from the glare
-of the sun in tight parade formation, gleaming; on the nearest aircraft the
-blue-white argentine roundel visibly FRESHLY painted, its paint catching the
-light differently from the rest of the airframe. Awe and relief, golden
-afternoon over the sea, 16:9. PERIOD LOCK — 1982: no modern aircraft. No text,
-no watermark.
+[AIRE] Ten brand-new delta-wing Mirage jets taxiing in single file onto a
+mainland airbase apron at freezing dawn, frost on the grass, low orange sunlight
+raking across their canopies, gleaming unmarked airframes, argentine ground
+mechanics in overalls walking slowly out of a hangar in disbelief, cold breath
+in the air, 16:9. PERIOD LOCK — 1982: no modern aircraft, no modern ground
+equipment. No text, no watermark.
 ```
 
-**Texto en pantalla:** *"Aquí un paisano ayudando a otro paisano. Vienen con cariño del
-Perú."*
+**Texto en pantalla:** *"…Todavía está tierna."*
 
-### Cuadro M10.B — La despedida
-**Plano:** la formación peruana de entrega rompiendo hacia el oeste, y el más cercano
-**batiendo las alas** al irse — el saludo del juego, devuelto por primera vez.
+### Cuadro M10.B — La escarapela fresca
+**Plano:** primerísimo plano de la mano del mecánico sobre el fuselaje, la escarapela
+argentina recién pintada, y la yema del dedo apenas manchada de azul.
 
 **PROMPT:**
 ```
-[AIRE] The delivery flight breaking away westward into the late sun over the
-sea, the nearest jet rocking its wings in a farewell waggle salute, the
-argentine squadron holding formation in the foreground watching them go,
-golden light, brotherhood without words, 16:9. No text, no watermark.
+[AIRE] Extreme close-up of a mechanic's weathered hand resting on a jet
+fuselage beside a freshly painted blue-white argentine roundel, the paint
+visibly newer and glossier than the surrounding metal, a faint smudge of wet
+blue on his fingertip, cold dawn light, 16:9. No text, no watermark.
+```
+
+**Texto en pantalla:** *"Salieron del Perú siendo de ustedes."*
+
+### Cuadro M10.C — El Hércules que saluda
+**Plano:** el C-130 con los colores de **Aeroperú** despegando en el amanecer, y **batiendo
+las alas** al irse: gordo, lento, torpe. El mismo saludo de M8, en otro idioma.
+
+**PROMPT:**
+```
+[AIRE] A four-engine C-130 Hercules transport in civilian airline livery
+climbing away at dawn over frozen plains, rocking its wings in a farewell
+waggle, heavy and slow and ungainly, the ten fighter jets tiny and still on the
+apron below, 16:9. PERIOD LOCK — 1982. No text, no watermark.
+```
+
+**Texto en pantalla:** *(ninguno — el saludo se reconoce solo)*
+
+### Cuadro M10.D — Los que no van a llegar
+**Plano:** los diez Mirage estacionados en fila, turbinas enfriándose, cúpulas vacías,
+plataforma desierta. **Sostener el plano.** Sin cartel.
+
+**PROMPT:**
+```
+[AIRE] Ten brand-new fighter jets parked in a neat row on an empty apron, canopies
+closed and empty, no people anywhere, heat shimmer fading from the exhausts, long
+cold morning shadows, absolute stillness, a gift nobody came to collect, 16:9.
+NOBODY IN THE FRAME. No text, no watermark.
 ```
 
 ---
@@ -1195,12 +1247,13 @@ golden light, brotherhood without words, 16:9. No text, no watermark.
 | **M7** (Vasco) | El chocolate del 25. El Vasco hablando de más. Tres aviones donde había cuatro. **EL LOCKER completo** (ver tabla vieja) + Gitano con el mate frío: "tres años le cebé mate a este culiao". El tarrito abierto. |
 | **M8** (sobrevuelo) | **M8.A / M8.B / M8.C de arriba** + la página del monte (con el terito en el avión dibujado). |
 | **M9** (Pichón) | "Me dieron. Todavía no quiero—". La libreta bajo el catre. **El Turco comparando la libreta con los aviones: la cuenta del "un cuarto".** |
-| **M10** (Perú) | **M10.A / M10.B** + el Turco tocando la escarapela fresca ("Hay gente buena en todos lados…"). |
+| **M10** (Tandil) | El avión del Pichón abierto en canal, el Turco sacándole una pieza ("Vuela en los otros tres"). El hueco en la formación que nadie ocupa. **M10.A / M10.B / M10.C / M10.D.** El Turco con el trapo: "Hay gente buena en todos lados…". La placa SISTEMA del desbloqueo del Mara. |
 | **M11** (respiro) | El mate que se enfría entero en la mano del Gitano. Tres estrellitas. El gesto del bolsillo. |
-| **M12** (Correa) | El corte a tierra. Correa poniéndole el cuerpo. **Los jazmines** (la mano buscando la mano). El inventario del hombre bueno + Mateo guardando la foto de Teresa en el cuaderno. **EL TALLADO: la navaja del Colorado mordiendo la viga — "VAMOS A VOLVER / LOS PIBES DE MALVINAS".** |
+| **M12** (Correa) | El corte a tierra. Correa poniéndole el cuerpo. **Los jazmines** (la mano buscando la mano). El inventario del hombre bueno (la mochila volcada, la foto de Teresa, el mate) + 🟥 **el cuero de oveja de M1 sobre los hombros de Mateo, tapándolo hasta el final** + Mateo guardando la foto de Teresa en el cuaderno. **EL TALLADO: la navaja del Colorado mordiendo la viga — "VAMOS A VOLVER / LOS PIBES DE MALVINAS".** |
 | **M13** (asado) | El fuego, la foto contra la damajuana, la libreta al lado. El Gitano en serio (una sola vez). **La CARTA: Esteban escribiendo de noche, ilegible, el sobre "Norma" parado en el locker.** |
 | **M14** (final) | El dedo en el mapa. La foto de cabina de Puma + "que me perdone el abuelo" + click. **"TRES desayunos."** El destello del Gitano al borde de pantalla. El show de Puma + kamikaze. El vacío. **LAS TRAYECTORIAS CRUZADAS** (el misil y la salva en el mismo cuadro). La cara de Tero. El tonel sobre el monte apagado. |
 | **Finales** | **A:** la vorágine (el enjambre de frente, todo rojo) + el locker con la carta + la mesa de Norma completa. **B:** el planeo del sapito (tocando el agua) + la panza en el pasto + LA MESA: Esteban y el Turco, el cuaderno abierto, la navaja contra la azucarera, Norma por la ventana en el jazminero. |
+| 🟥 **Post-créditos** *(3.6)* | El museo escolar, la vitrina con el cuaderno abierto en la página del monte. **El pibe con la 10 de la TERCERA estrella** (verificado: Argentina no ganó 2026). La seño **Claribel** agachándose a su altura para acomodarle el cuello de la camiseta. Y **la mano chiquita en el vidrio, con el MISMO encuadre que la de Norma sobre la página** — es una rima visual, se reusa el plano, no se inventa uno nuevo. |
 
 ---
 
@@ -1215,7 +1268,7 @@ golden light, brotherhood without words, 16:9. No text, no watermark.
 
 | Cuadro | Placa que usa | Retratos en juego |
 |---|---|---|
-| P2.2 chicana del Rastrojero | cocina 1982 | Mateo sonrisa-colimba · Tero sonrisa chica *(Norma NO aparece — sin retrato por canon)* |
+| P2.2 la llamada *(🟨 3.4: ex chicana del Rastrojero)* | cocina 1982 | Mateo sonrisa-colimba · Tero sonrisa chica → preocupado · **Norma cálida** *(🟨 3.4: Norma habla y tiene retrato)* |
 | M1.3 la regla número uno | línea de vuelo amanecer | Puma reglamentario |
 | M1.4 chistes y rezos | línea de vuelo amanecer | Gitano sonrisa · Pichón neutro · Vasco cerrado |
 | M1.5b la casada | línea de vuelo amanecer | Gitano sonrisa · Pichón entusiasmo · Puma reglamentario |

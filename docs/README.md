@@ -23,20 +23,20 @@ La segunda campaña, a futuro: *"El fantasma del mar"*.
 
 ---
 
-## 📖 historia/ — sincronizados con GUION_3 (3.0/3.1)
+## 📖 historia/ — sincronizados con GUION_3 (3.5)
 
 | documento | qué es |
 |---|---|
-| [GUION_3.md](historia/GUION_3.md) | **EL GUION VIGENTE.** 14 misiones, prólogo P.0–P.4, dos finales. Marcas: 🟥 nuevo / 🟨 cambió / sin marca = igual a 2.3 |
+| [GUION_3.md](historia/GUION_3.md) | **EL GUION VIGENTE (3.7).** 14 misiones, prólogo **P.1–P.4** (⚠ el marco de la encomienda está OCULTO hasta el final — P.0 NO abre el juego), dos finales, post-créditos. Incluye **§9 dialectos + §9b el tucumano del Turco**. Marcas: 🟥 nuevo / 🟨 cambió / sin marca = igual a 2.3 |
 | [MISION_FINAL.md](historia/MISION_FINAL.md) | diseño de nivel de la M14: fases, contrarreloj, muertes, el momento del misil, las dos salidas |
-| [STORYBOARD_1.md](historia/STORYBOARD_1.md) | guion visual con prompts + sección **ACTUALIZACIÓN 3.0** al final (P.0, terito, M3 y M10 nuevas, tabla obligatoria M4–M14) |
-| [PROMPTS_HOJAS_PERSONAJE.md](historia/PROMPTS_HOJAS_PERSONAJE.md) | hojas modelo de los 9 personajes + props + **marcas personales v3.0** |
+| [STORYBOARD_1.md](historia/STORYBOARD_1.md) | guion visual con prompts + sección **ACTUALIZACIÓN 3.0** al final (tabla obligatoria M4–M14 + post-créditos). ⚠ La primera mitad tiene tablas marcadas **⛔ SUPERSEDIDA** con la numeración vieja de 12 misiones — **la fuente de verdad es la tabla 3.0 del final** |
+| [PROMPTS_HOJAS_PERSONAJE.md](historia/PROMPTS_HOJAS_PERSONAJE.md) | hojas modelo de los 9 personajes + props + marcas personales. ✅ Norma corregida (3.4: **sí se le ve la cara**) · 🟥 faltan 4 hojas nuevas listadas al final (piloto peruano, mecánico de Tandil, Claribel, el pibe de la 10) |
 | [AVIONES_ESCUADRON.md](historia/AVIONES_ESCUADRON.md) | los 5 A-4B personalizados + marcas personales + regla: el terito es el ÚNICO animal pintado |
-| [SISTEMA_DIALOGO.md](historia/SISTEMA_DIALOGO.md) | texto-primero: IDs estables, registros, `hold`, timing. **El juego funciona sin voces por diseño** |
-| [RETRATOS.md](historia/RETRATOS.md) | 🟥 escenas estáticas estilo VN: 14 placas de ambiente + ~28 retratos con expresiones + la lista de cuadros sagrados que exigen escena completa |
-| [REFERENCIAS.md](historia/REFERENCIAS.md) | tipografías y capas de foto — ⚠ *falta el 4º registro (DIALOGO)* |
-| [SOUNDTRACK.md](historia/SOUNDTRACK.md) | ✅ **v3.0** — 30 pistas renumeradas a 14 misiones, con vorágine (Final A), Perú (m10), Final B, el invento y el sting de Cóndor; **cada pista con referencia real de emoción** (material privado, no se publica) |
-| [PREGUNTAS_HISTORICAS.md](historia/PREGUNTAS_HISTORICAS.md) | ⚠ *faltan las de la 3.0: Mirage peruanos, países, dialectos, correo, matrículas C-2xx* |
+| [SISTEMA_DIALOGO.md](historia/SISTEMA_DIALOGO.md) | texto-primero: IDs estables, 4 registros, `hold`, timing. **El juego funciona sin voces por diseño.** ✅ ejemplos renumerados a `M07_LOCKER_*` (14 misiones) |
+| [RETRATOS.md](historia/RETRATOS.md) | escenas estáticas estilo VN: **~16 placas** de ambiente + **~33 retratos** con expresiones + la lista de cuadros sagrados que exigen escena completa |
+| [REFERENCIAS.md](historia/REFERENCIAS.md) | tipografías y capas de foto — ⚠ *falta el 4º registro (DIALOGO); vive por ahora en SISTEMA_DIALOGO §"Los cuatro registros"* |
+| [SOUNDTRACK.md](historia/SOUNDTRACK.md) | ✅ 30 pistas a 14 misiones, **cada una con referencia real de emoción** (material privado, no se publica). Sincronizado: 27 Los primos (Tandil, "belleza que llega tarde") · **28-bis: la misión m10 va SIN música** · 25 post-créditos con el corte en el "No." |
+| [PREGUNTAS_HISTORICAS.md](historia/PREGUNTAS_HISTORICAS.md) | ✅ Mirage peruanos **verificado** (Tandil, 5/6, nunca combatieron) · ovejas/caracú · Mundial. ⚠ *pendientes: países, dialectos, correo, matrículas C-2xx* |
 | `characters_examples/` | renders de referencia ya generados |
 
 ## 🎬 produccion/ — teaser y video IA
@@ -67,7 +67,7 @@ La segunda campaña, a futuro: *"El fantasma del mar"*.
 | [ANALISIS_ROADMAP.md](proyecto/ANALISIS_ROADMAP.md) | análisis de cada ítem: facilidad, dependencias, orden | análisis |
 | [ESTADO.md](proyecto/ESTADO.md) | bitácora del estado del proyecto | vivo |
 | [PENDIENTES_DE_REDISENO.md](proyecto/PENDIENTES_DE_REDISENO.md) | inventario de unidades/objetos con estado de arte y specs de sprite | vivo |
-| [PLAN_CAMPANA_001.md](proyecto/PLAN_CAMPANA_001.md) | mapeo guion → `missions.js` | ✅ **v0.0.2 — sincronizado con GUION_3**: 14 misiones, IDs m1–m14 estables, roguelike real, final de dos rumbos en pantallas |
+| [PLAN_CAMPANA_001.md](proyecto/PLAN_CAMPANA_001.md) | mapeo guion → `missions.js` | ✅ **sincronizado con GUION_3 3.7**: 14 misiones, IDs m1–m14 estables, roguelike real, m10 reescrita (Tandil), **§7 desbloqueo del Mirage Mara fuera de campaña**, final de dos rumbos + post-créditos |
 
 ## 🚀 publicacion/
 

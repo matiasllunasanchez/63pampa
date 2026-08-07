@@ -291,22 +291,33 @@ grief with the weight of it-should-have-been-me. 75 seconds, ends in near
 silence. Completely original music and lyrics.
 ```
 
-### 🟥 27 · `primos.mp3` — "Los primos" (m10, los Mirage del Perú)
-**Dónde:** la aparición desde el sol, la voz peruana, la formación compartida, la
-despedida batiendo las alas. Alivio con lágrimas: la hermandad que llega de afuera.
+### 🟥 27 · `primos.mp3` — "Los primos" 🟨 (m10, el intercalado de Tandil)
+**Dónde:** **solo sobre el corte a Tandil** — los diez Mirage rodando al amanecer, la
+escarapela fresca, el Hércules batiendo las alas al irse. Entra cuando entra el corte y se
+va cuando volvemos a la tormenta. **La misión NO lleva música** (ver 28-bis): el contraste
+entre el silencio del frente cerrado y esta melodía es el efecto.
+**🟨 La emoción cambió:** ya no es alivio ni esperanza. Es **belleza que llega tarde** —
+gratitud verdadera con una tristeza que el jugador entiende y los personajes no. La misma
+forma que el final: llegó, era hermoso, no alcanzó.
 **Referencia real:** *"El Cóndor Pasa"* (versión andina instrumental, quena y charango) —
-la hermandad andina hecha melodía; el hermano del norte que aparece cuando hace falta.
+pero tocada como despedida, no como llegada; más cerca del arreglo lento que del épico.
 
 ```
-Moving Andean-Argentine brotherhood piece, 80 BPM, warm quena flute melody soaring
-over charango and criolla guitar, soft bombo heartbeat, gradually joined by
-cinematic strings and one noble brass swell as jets fly in formation, relief and
-gratitude with tears behind the eyes, two folk traditions flying wingtip to
-wingtip, golden afternoon light in sound, ends with the flute alone fading west.
-90 seconds with an arc. Completely original music and lyrics.
+Andean farewell piece, 66 BPM, solitary warm quena flute melody over sparse
+charango arpeggios and one criolla guitar, no percussion at first, a single soft
+bombo heartbeat entering late, muted cinematic strings swelling gently and then
+pulling back before they resolve, beauty arriving too late to help anyone,
+gratitude with grief underneath, cold dawn light rather than golden afternoon,
+ends unresolved with the flute alone fading, no triumph. 90 seconds with an arc.
+Completely original music and lyrics.
 ```
 
-### 15 · `correa.mp3` — "El ángel de Corrientes" 🟨 (m12, muerte de Correa)
+> **28-bis · el vacío de m10 (no es una pista: es su ausencia).** La misión de M10 se juega
+> **sin música**: viento, motor, lluvia sobre la cúpula y la señal de Cóndor entrando y
+> saliendo. La única música de la misión es la de Tandil, que suena en otra parte del país.
+> Si alguna vez se compone algo para el vuelo, que sea un drone de una sola nota.
+
+### 15 · `correa.mp3` — "El ángel Correntino" 🟨 (m12, muerte de Correa)
 **Referencia real:** *Transito Cocomarola — "Kilómetro 11"* — EL chamamé. La ternura
 litoraleña exacta del Colorado: río ancho, pena dulce, dignidad de hombre bueno.
 
@@ -505,9 +516,13 @@ like a father whistling to his son across a field. Cinematic, raw, fast and
 emotionally powerful; completely original music and lyrics.
 ```
 
-### 25 · `postcreditos.mp3` — "El pibe de la 10" (post-créditos)
+### 25 · `postcreditos.mp3` — "El pibe de la 10" 🟨 (post-créditos)
 **Referencia real:** *Alan Silvestri — "Feather Theme" (Forrest Gump)* — la liviandad
 luminosa después del peso: una pluma, un vidrio, una mano chiquita.
+**🟨 3.6 — timing exacto, importa:** la escena ahora tiene un **"No."** en el medio (¿y
+ganaron?). La música **se corta ahí**, o baja a nada, y **vuelve recién sobre la frase**
+("Nunca, nunca, nunca dudes del corazón de un argentino"). El silencio del "No" es la
+mitad del efecto: sin esa caída, la frase suena a propaganda; con ella, suena a lo que es.
 
 ```
 Tiny luminous epilogue piece, 70 BPM, a real music box playing a simple tender
@@ -541,8 +556,8 @@ Completely original music and lyrics.
 | Muerte del Vasco (m7) + el locker | 12 La foto era de mi vieja |
 | Sobrevuelo + terito (m8) | 13 El batir de alas |
 | Muerte del Pichón (m9) + la libreta | 14 Era un pibe |
-| 🟥 Los Mirage del Perú (m10) | 27 Los primos |
-| Muerte de Correa (m12) + el tallado | 15 El ángel de Corrientes |
+| 🟥 Tandil / los Mirage del Perú (m10, **solo el intercalado**) | 27 Los primos · *(la misión, sin música)* |
+| Muerte de Correa (m12) + el tallado | 15 El ángel Correntino |
 | El asado + LA CARTA (m13) | 16 La última mesa |
 | Pista nocturna (m14 pre-vuelo) | 17 Los teros |
 | Contrarreloj + sacrificios (m14) | 18 Plata Fiel |

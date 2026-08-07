@@ -82,9 +82,11 @@ Reglas de datos (no negociables — vienen del sistema de diálogo):
   (el locker es m7 → `M07_LOCKER_…`)**.
 - **D2.** Una línea = lo que se muestra de una vez. Sin líneas de más de ~200 caracteres.
 - **D3.** `en` vacío cae a `es` (comportamiento ya existente de `initStory`).
-- **D4.** Personajes sin retrato por canon: NORMA (nunca), COLORADO (en aire), CÓNDOR
-  (usa el asset `condor_parlante`), VOZ PERUANA (`parlante_escarapela`). Si `cara` es
-  null, solo nombre.
+- **D4.** Personajes sin retrato por canon: COLORADO (en aire) y CÓNDOR
+  (usa el asset `condor_parlante`). Si `cara` es null, solo nombre.
+  *(🟨 3.4: NORMA salió de esta lista — habla y tiene retrato en P.2.)*
+  *(🟨 3.5: el PILOTO PERUANO también salió — ya no es una voz de radio; habla en tierra en
+  Tandil y tiene busto propio. El asset `parlante_escarapela` queda sin uso.)*
 - **D5.** Las acotaciones (líneas sin personaje) se muestran sin nombre, en cursiva/estilo
   propio, y respetan `hold` igual.
 
@@ -222,8 +224,8 @@ Tras cada fase: correr el fixture del locker.
 2. **No hardcodear texto de escenas en el motor.** Todo en datos.
 3. **No inventar contenido.** Si una escena no está en GUION_3, no existe; si un dato
    falta (una cara, un hold), usar fallback y anotar el faltante — no improvisarlo.
-4. **No agregar retratos a Norma, Colorado (aire) ni cara a Cóndor** — es canon, no
-   limitación técnica.
+4. **No agregar retratos a Colorado (aire) ni cara a Cóndor** — es canon, no
+   limitación técnica. *(🟨 3.4: Norma salió de esta regla — habla y tiene retrato en P.2.)*
 5. **No permitir saltear holds línea a línea** — solo el skip de escena completa.
 6. **No bloquear la campaña por assets faltantes** — la cascada de fallbacks es la
    feature, no un parche.

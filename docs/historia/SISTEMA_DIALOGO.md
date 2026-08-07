@@ -20,7 +20,7 @@ Esto es lo único verdaderamente doloroso de agregar después, y es lo que habil
 voces, la traducción y el testeo** de una sola vez.
 
 ```
-M06_LOCKER_014
+M07_LOCKER_014
 ```
 `misión _ escena _ número`. Numerar de diez en diez (010, 020, 030) para poder intercalar
 líneas después sin renumerar todo.
@@ -37,7 +37,7 @@ misiones a mano.
 ### 3. Una línea = una fila = un futuro archivo de audio
 
 La unidad es **lo que se muestra en pantalla de una vez**. Ese mismo recorte es el que algún
-día va a ser un `.ogg` llamado `M06_LOCKER_014.ogg`. Si hoy metés tres oraciones en una fila
+día va a ser un `.ogg` llamado `M07_LOCKER_014.ogg`. Si hoy metés tres oraciones en una fila
 porque entran, después vas a tener que partirla y perdés el ID.
 
 ### 4. El avance lo maneja el jugador, nunca la duración de un audio
@@ -53,7 +53,7 @@ Una fila por línea. Columnas mínimas:
 
 | campo | qué es | ejemplo |
 |---|---|---|
-| `id` | inmutable | `M06_LOCKER_014` |
+| `id` | inmutable | `M07_LOCKER_014` |
 | `personaje` | quién habla, o vacío si es acotación | `PUMA` |
 | `registro` | cuál de los cuatro estilos visuales | `DIALOGO` |
 | `es_AR` | el texto fuente | `Sesenta y uno.` |
@@ -74,10 +74,10 @@ Ejemplo real, el momento del locker:
 
 ```
 id                 personaje  registro  es_AR                            hold  foley
-M06_LOCKER_012     GITANO     DIALOGO   ¿Y el "perdoname"? ¿Perdoname…   1.0
-M06_LOCKER_013     —          ACOTACION Los tres miran la foto.          2.0   papel_girando
-M06_LOCKER_014     PUMA       DIALOGO   Sesenta y uno.                   1.5
-M06_LOCKER_015     ESTEBAN    DIALOGO   El Vasco tenía quince años.      4.0
+M07_LOCKER_012     GITANO     DIALOGO   ¿Y el "perdoname"? ¿Perdoname…   1.0
+M07_LOCKER_013     —          ACOTACION Los tres miran la foto.          2.0   papel_girando
+M07_LOCKER_014     PUMA       DIALOGO   Sesenta y uno.                   1.5
+M07_LOCKER_015     ESTEBAN    DIALOGO   El Vasco tenía quince años.      4.0
 ```
 
 Esos `hold` no son un detalle técnico: **son la actuación.** En un juego sin voces, el

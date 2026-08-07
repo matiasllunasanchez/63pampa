@@ -1033,7 +1033,7 @@ de `STORYBOARD_1.md` (que ya quedó actualizada con esta misma tabla).
 | `{PICHON}` | argentine rookie pilot, 22 years old, **the smallest of the squadron, reads as a boy among men**, criollo, olive skin, baby face, freckles, nervous eyes, **flight suit clearly too big, sleeves swallowing his hands**, **helmet held with both hands against his chest** |
 | `{TURCO}` | argentine chief mechanic, late 50s, **syrian-lebanese descent, olive skin, hooked nose**, stocky with a round belly, **bald on top with grey sides, cloth cap, glasses pushed up on his forehead**, **grey DROOPING WALRUS mustache**, grease-stained blue overalls **plain and unmarked on the back**, rag over one shoulder, big weathered hands |
 | `{COLORADO}` | argentine corporal, 26 years old, tall and sturdy, **fair freckled skin raw red from the cold**, red hair, broad honest smile, **plain olive field uniform with NO insignia**, wool cap, **argentine brown leather webbing with canteen**, muddy brown leather boots |
-| `{NORMA}` | argentine mother, **47 years old, middle-aged not elderly**, dark hair with grey at the temples in a low bun, criolla, **faded blue dress with a cream floral apron, always the same apron**, **no military insignia of any kind**, **always seen from behind or in profile, face never fully shown**, always alone |
+| `{NORMA}` | 🟨 **3.4 — se le VE la cara** (murió la regla vieja de "siempre de espaldas"): argentine mother, **47 years old, middle-aged not elderly**, dark hair with grey at the temples in a low bun, criolla, warm tired face, gentle and practical expression, **faded blue dress with a cream floral apron, always the same apron**, **no military insignia of any kind** |
 | `{SKYHAWK}` | **A-4B** Skyhawk attack jet, bare silver-grey metal, blue-white argentine roundel, worn painted metal, single seat, **a row of small plain white stars below the cockpit** |
 | `{RASTROJERO}` | rusty old Argentine Rastrojero pickup truck, 1960s workhorse |
 | `{FOTO_VASCO}` | small worn late-1950s black-and-white photograph, deckled white border, curled corners, showing a beautiful young argentine woman in her mid-thirties laughing on a balcony, late-1950s hair and dress — YOUNG, never elderly |
@@ -1114,5 +1114,24 @@ al aprobar las nuevas.
 - [ ] Mateo: ¿el camperón le llega **a la cadera** y no a la pantorrilla? ¿Tiene correaje de cuero?
       ¿Parece de 18?
 - [ ] Turco: ¿está pintando **una estrellita blanca** y no una bandera?
-- [ ] Norma: ¿**no** se le ve la cara de frente? ¿Cero insignias? ¿El sobre es simple, sin lacre?
+- [ ] Norma: 🟨 **3.4 — ahora SÍ se le ve la cara** (habla en P.2). ¿Cero insignias? ¿El mismo delantal siempre? ¿El sobre es simple, sin lacre?
 - [ ] ¿Anotaste el seed?
+
+---
+
+# 🟥 HOJAS QUE FALTAN (3.5 / 3.6) — pendientes de escribir
+
+Personajes nuevos que entraron con las últimas versiones del guion y **todavía no tienen
+hoja modelo**. Van acá para que no se pierdan; escribirlas con el mismo formato que las de
+arriba (token + descriptor completo + PERIOD LOCK).
+
+| Token | Quién es | Notas para la hoja |
+|---|---|---|
+| `{PILOTO_PERUANO}` | 🟥 **3.5** — el que entrega los Mirage en Tandil (M10) | Piloto de la FAP, ~25 años, mameluco de vuelo **sin insignias de país**, casco bajo el brazo, **cansancio de vuelo largo** en la cara. Es la única persona de afuera en todo el juego. PERIOD LOCK 1982. |
+| `{MECANICO_TANDIL}` | 🟥 **3.5** — el que toca la escarapela fresca (M10) | Mecánico argentino de la VI Brigada, mameluco, **aliento visible por el frío**, la yema del dedo manchada de azul. Es un desconocido a propósito: la ternura del juego siempre está en los mecánicos. |
+| `{CLARIBEL}` | 🟥 **3.6** — la seño del post-créditos | Mujer de ~53 años, sanluiseña, maestra de escuela pública, cálida y cansada. **Es la nena de nueve años de la carta de M9.** Nadie lo dice nunca — la hoja no debe llevar ningún guiño visual que lo delate. |
+| `{PIBE_10}` | 🟥 **3.6** — el chico del museo | Nene de 8-9 años, **camiseta argentina con TRES estrellas** (verificado: Argentina no ganó el Mundial 2026). La camiseta se tiene que leer sin que nadie la nombre. |
+
+⚠ **Nota de continuidad:** `{CLARIBEL}` y `{PIBE_10}` son los únicos personajes del juego
+que viven en el presente. No aplican PERIOD LOCK 1982 — aplican "presente, sin marcas de
+moda que fechen el cuadro en un año concreto".

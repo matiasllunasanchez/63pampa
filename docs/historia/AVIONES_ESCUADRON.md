@@ -227,6 +227,14 @@ medio borradas** — escribe, prueba, borra con la manga. El Turco las encontró
 *"eso no se puede… a ver, mostrame."* **La carcacha termina siendo el avión más fino de la
 escuadrilla, y nadie lo dice en voz alta.**
 
+🟥 **Su final (3.5, M10):** el C-231 **no vuelve a volar**. La mañana después de la muerte
+del Pichón, el Turco lo abre en canal en la línea de vuelo y **le saca las piezas buenas**
+para los tres que quedan: la bomba de nafta al del Gitano, el equipo de radio al de Tero,
+los frenos a repuesto. *"A él ya no le hace falta, m'hijo. A ustedes sí. Así el changuito
+sale igual. En los tres."* **El avión más fino de la escuadrilla termina repartido adentro
+de sus amigos.** Para el arte: a partir de M10 el C-231 aparece de fondo como carcasa
+abierta, paneles en el piso, el número todavía pintado en la trompa.
+
 **Las marcas:**
 - **Un panel de ala en verde imprimación**, sin pintar — la marca de sprite perfecta.
 - Parches de chapa de tonos desparejos por todo el fuselaje.

@@ -144,10 +144,14 @@ doblaje.** Además de costar cero, es lo correcto para el período que el juego 
 el problema del acento — ningún modelo de IA habla rioplatense creíble, y el voseo y la
 cadencia son parte de la tesis del proyecto.
 
-Si en algún momento hay presupuesto para grabar, **una sola voz**: la del padre leyendo los
-fragmentos de la carta que nunca mandó. Un actor, cinco fragmentos cortos, una tarde de
-estudio. Es el único lugar del juego donde escuchar una voz humana agrega algo que el texto
-no puede dar.
+⚠ **CORREGIDO (3.0+):** ya no existen los cinco fragmentos de carta entre misiones — **hay
+UNA sola carta en todo el juego**, la que Esteban le escribe a Norma la noche del asado
+(M13), y solo se lee en el **epílogo del Final A**.
+
+Si en algún momento hay presupuesto para grabar, **una sola voz y un solo texto**: el padre
+leyendo esa carta. Un actor, una carta, una tarde de estudio. Es el único lugar del juego
+donde escuchar una voz humana agrega algo que el texto no puede dar — y encima cae justo
+donde el jugador viene esperando leerla desde M13.
 
 ---
 

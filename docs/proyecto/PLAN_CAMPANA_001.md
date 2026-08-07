@@ -24,9 +24,9 @@ ARENA/MOMENTUM). Misión SIN buque o con boss de terreno (que no existe) → goa
 | m7 | 25 DE MAYO | 25 de mayo | HMS COVENTRY | t42 | ex M6; muere el VASCO (epílogo) + el locker |
 | m8 | EL BATIR DE ALAS | 25 de mayo · 2ª salida | ATLANTIC CONVEYOR | log | ex M7; el sobrevuelo + 🟥 el terito (texto/cuadros) |
 | m9 | EL PIBE | 27 de mayo | distancia 3200 | — | ex M8; centro logístico → distancia; muere el PICHON |
-| 🟥 m10 | LOS PRIMOS | primeros de junio | distancia 2000 | — | NUEVA. Escolta de los Mirage del Perú: **sin combate real** — clima, formación, nafta. El momento Endgame va en texto/epílogo. |
+| 🟥 m10 | LOS PRIMOS | 5 de junio | distancia 3400 | — | 🟨 **REESCRITA 3.5.** Reconocimiento armado sin blancos: **el nivel es el clima.** La más larga y la más ciega — frente cerrado, la señal de Cóndor cae, y la nafta importa de verdad (la Chancha está rota desde m6). Primera con 3. La llegada de los Mirage a **Tandil** va como **corte intercalado** (no es escolta: era históricamente imposible). |
 | m11 | LO QUE NO SE DICE | 8 de junio | RFA SIR GALAHAD | log | ex M9; el respiro: vuelven todos |
-| m12 | EL ANGEL DE CORRIENTES | 8 de junio · 2ª salida | RFA SIR TRISTRAM | log | ex M10; muere CORREA (corte a tierra) + 🟥 el tallado |
+| m12 | EL ANGEL CORRENTINO | 8 de junio · 2ª salida | RFA SIR TRISTRAM | log | ex M10; muere CORREA (corte a tierra) + 🟥 el tallado |
 | m13 | LA ULTIMA MESA | 11 de junio | HMS BROADSWORD | t21 | ex M11; el asado + 🟥 LA CARTA (Esteban escribe, no se lee) |
 | m14 | EL TERO | 12 de junio · madrugada | HMS GLAMORGAN | t42 | ex M12; nocturna, la imposible. 🟨 Ver §4b: contrarreloj y dos finales. |
 
@@ -46,7 +46,7 @@ BROADSWORD → `t21`, GLAMORGAN → `t42`.
 | m7 | clear | sí | 1.7 | 1 | 0 | 0 | mar | 5 |
 | m8 | dusk | sí | 1.7 | 1 | 1 | 0 | mar | 4 |
 | m9 | storm | sí | 1.7 | 2 | 2 | 1 | mar | 4 |
-| 🟥 m10 | dusk | sí | 0.5 | 0 | 0 | 0 | mar | 3 |
+| 🟥 m10 | storm | sí | 1 | 0 | 2 | 2 largo | mar | 3 |
 | m11 | cloudy | sí | 1.7 | 1 | 0 | 0 | mar | 3 |
 | m12 | dusk | sí | 1.7 | 2 | 1 | 0 | mar | 3 |
 | m13 | moon | sí | 1.7 | 2 | 0 | 1 | tierra | 3 |
@@ -111,6 +111,13 @@ Eso es trabajo de sistemas. **v0.0.2 hace la versión de pantallas:**
 - La misión se juega como `ship` normal (GLAMORGAN). El contrarreloj, el aviso del Turco,
   las muertes de Gitano y Puma y el cruce de trayectorias van **narrados en pantallas**
   (story intercalado/epílogo), no jugables. PENDIENTE: timer real + eventos scripted.
+- 🟥 **Post-créditos (3.6):** después de los créditos, una cadena corta de pantallas — el
+  museo, el pibe de la 10, la seño Claribel, **"¿Y ganaron?" / "No."**, la frase, y la mano
+  en el vidrio. **La música se corta en el "No." y vuelve recién sobre la frase** (ver
+  SOUNDTRACK 25): ese silencio es la mitad del efecto, no es un detalle de audio.
+- 🟥 **M14 y la dificultad (3.4):** es la única misión donde la dificultad SÍ puede frenar
+  la historia. Morir y reintentar en el clímax es diseño, no falla — la asistencia
+  progresiva suaviza, no regala. Ver GUION_3 nota 9.
 - 🟥 **La decisión SÍ entra, mínima:** tras el epílogo del clímax, una pantalla negra con
   dos entradas (izquierda = virar a casa / derecha = virar a la oleada; sin texto de menú,
   solo los dos rumbos en el HUD dibujado del cuadro). Según la tecla: cadena de pantallas
@@ -118,6 +125,23 @@ Eso es trabajo de sistemas. **v0.0.2 hace la versión de pantallas:**
   **Final B** (el planeo del sapito + el mate con el Turco). Cierra en victoria en ambos.
 - PENDIENTE (post-v0.0.2): la vorágine jugable (oleada infinita + munición libre), el
   planeo jugable con nafta en rojo, y el logro/flag de Final B como "final oculto".
+
+## 🟥 7. El Mirage 5P «Mara» — desbloqueo fuera de campaña
+
+Decisión 3.5: los Mirage peruanos **nunca combatieron** (verificado). La campaña no los
+toca — los Fieles terminan la guerra en A-4B, como fue. Pero el juego sí premia al jugador:
+
+- Tras el epílogo de m10, una pantalla **SISTEMA** (registro propio, no narrativo):
+  *"MIRAGE 5P «MARA» — DESBLOQUEADO. Diez llegaron del Perú el 5 de junio de 1982. Nunca
+  llegaron a combatir. **Acá, sí.**"*
+- Setea un flag persistido (`unlocks.mara`) — al lado de `ups` en el save.
+- Habilita el Mara como avión **seleccionable en CICLO, ARENA y MINUTOS SAGRADOS**.
+  **NO en campaña** (bloqueado por modo, no por flag).
+- PENDIENTE post-v0.0.2 y no bloqueante: el Mara es un segundo avión jugable de verdad
+  (sprite, perfil de vuelo distinto — rápido y alto, el opuesto del rasante; por eso vive
+  en los modos sin historia). Hasta que exista, el desbloqueo puede quedar anunciado y el
+  selector mostrarlo en gris con "próximamente" — o directamente no mostrarse: la placa
+  narrativa funciona igual.
 
 ## 5. Flujo (game.js y amigos) *(sin cambios salvo lo marcado)*
 
@@ -132,8 +156,9 @@ Eso es trabajo de sistemas. **v0.0.2 hace la versión de pantallas:**
 
 - Bosses de terreno (radar m2, centro logístico m9) — hoy distancia.
 - m14 jugable de verdad: contrarreloj, muertes scripted, vorágine, planeo (hoy: pantallas).
-- 🟥 Los Mirage peruanos EN PANTALLA en m10 (hoy: texto; a futuro, wingmen visuales de una
-  misión).
+- 🟥 **Combustible como recurso real** (m10 lo estrena, m13 lo convierte en trama). Hoy el
+  indicador es decorado.
+- 🟥 **La señal de Cóndor que cae** (m10): el jugador ciego por tramos. Sistema nuevo.
 - 🟥 Asistencia progresiva (§0 del guion: la dificultad nunca frena la historia).
 - 🟥 Sistema de diálogo real (IDs, `hold`, tipeo por letra — SISTEMA_DIALOGO.md).
 - Más mejoras (mach, munición), más enemigos, rework de MINUTOS SAGRADOS.

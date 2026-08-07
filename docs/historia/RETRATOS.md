@@ -34,24 +34,25 @@ siguen produciendo como cuadros completos del storyboard. Lista cerrada:
 
 | Cuadro | Por qué no alcanza el retrato |
 |---|---|
-| P.0 (la puerta, la mesa, los dos papeles) | el marco del juego es visual |
+| P.0 (la puerta, la mesa, los dos papeles) — ⚠ **3.2: NO abre el juego**, es la revelación del cierre (Final A) | el marco del juego es visual |
 | P.1 el arroyo · P1.3 "los valientes vuelan abajo" | el recuerdo fundante |
 | M1.5c/M1.5d — la foto en el locker · el terito fresco | props que el jugador debe VER |
 | M6 la Chancha enganchada bajo fuego | acción pura |
 | M7 el locker completo (frente → dorso → la cuenta) | el giro del juego |
 | M8.A/B/C — el paso del terito, la cara de Mateo, la multitud | el reconocimiento |
 | M9 la libreta bajo el catre / la cuenta del "un cuarto" | props |
-| M10.A/B — los Mirage del sol, la despedida | el momento Endgame |
+| 🟨 **M10.A–D — Tandil** (los diez rodando al amanecer, la escarapela fresca, el Hércules batiendo las alas, los diez vacíos) | 3.5: el regalo que llega tarde |
 | M12 el corte a tierra completo + el tallado | la muerte de Correa |
 | M13 la foto contra la damajuana · la carta "Norma" en el locker | props |
 | M14 entero + los dos finales | el clímax |
+| 🟥 **Post-créditos (3.6): el pibe frente a la vitrina + la mano en el vidrio** | la rima con Norma cierra el juego |
 | Todas las páginas `[TIERRA]` del cuaderno | son dibujos de Mateo, otro registro |
 
 Todo lo demás — el 70% de las pantallas de historia — es **placa + retrato**.
 
 ## 3. Las placas de ambiente *(la lista completa — esto es todo lo que hay que generar)*
 
-Sin personas, reutilizables, con variantes de luz. Unas ~14 placas cubren la campaña:
+Sin personas, reutilizables, con variantes de luz. Unas ~16 placas cubren la campaña:
 
 1. Línea de vuelo — amanecer (la de siempre)
 2. Línea de vuelo — atardecer
@@ -67,6 +68,10 @@ Sin personas, reutilizables, con variantes de luz. Unas ~14 placas cubren la cam
 12. Cabina interior — noche (m14)
 13. Pista bajo lluvia (ventana del alerta)
 14. El patio con el jazminero (Final B)
+15. 🟥 **Plataforma de Tandil — amanecer helado** (el intercalado de m10: pasto escarchado,
+    plataforma vacía, luz naranja rasante). Es la única placa que NO es del sur.
+16. 🟥 **El museo escolar — presente** (post-créditos: la vitrina con el cuaderno, luz de
+    aula, sin gente). La única placa del presente además de la cocina.
 
 **Prompt base de placa:** el bloque `[AIRE]` de siempre + `NOBODY IN THE FRAME. Empty,
 waiting, quiet.` + PERIOD LOCK. La placa de la pista del TEST 4B ya cumple el formato —
@@ -92,11 +97,13 @@ de cada uno ES su personaje.
 | **Turco** | gruñón (su neutro) · ternura disimulada · roto · orgullo *(estrellitas)* | La gorra con la estrellita en TODOS. |
 | **Mateo** | sonrisa colimba · serio *(solo prólogo — en la isla vive en el registro TIERRA, dibujado por él mismo)* | 2 retratos alcanzan. |
 | **Colorado** | *(sin retrato AIRE — existe solo en los dibujos del cuaderno)* | Su cara es como Mateo lo dibuja: con capa. |
-| **Norma** | **SIN RETRATO, NUNCA** | Canon: no se le ve la cara hasta el final. Si "aparece", es el delantal de espaldas o nada. |
+| **Norma** | 🟨 cálida · seria *(P.2, 1982)* | **Canon 3.4: Norma habla y se la ve** — el jugador tiene que reconocer a sus propios padres en esa cocina. En los epílogos (años después) va en cuadros completos, no en busto. |
 | **Cóndor** | **un parlante de radio / forma de onda** como "retrato" | La máquina de la guerra no tiene cara. El sting 30 suena debajo. |
-| **Voz peruana (m10)** | la silueta de un Mirage por la ventana de radio, o el parlante con escarapela fresca | Tampoco cara: es un regalo, no un personaje. |
+| **Piloto peruano (m10)** | 🟨 **busto propio, UNO** — casco bajo el brazo, mameluco de vuelo sin insignias de país | 🟨 3.5: ahora habla **en tierra, en Tandil**, no por radio. Merece cara: es la única persona de afuera que aparece en todo el juego. Que se le vea el cansancio del vuelo largo. |
+| 🟥 **Seño Claribel (post-créditos)** | **busto propio, UNO** — mujer de unos 53 años, sanluiseña, cálida y cansada, ropa de maestra de escuela pública | 🟥 3.6: es la nena de nueve años de la carta de M9, cuarenta y pico de años después. **No se explica nunca.** |
+| 🟥 **El pibe de la 10 (post-créditos)** | **busto propio, UNO** — nene de 8-9 años, camiseta argentina con **TRES** estrellas | 🟥 3.6. Que la camiseta se lea sin que nadie la nombre. |
 
-**Total a generar: ~28 retratos** (contando variantes) contra los cientos de cuadros con
+**Total a generar: ~33 retratos** (contando variantes) contra los cientos de cuadros con
 personajes que costaría el enfoque de escena completa. Y salen todos de las hojas modelo
 ya especificadas, como *image reference* — máxima consistencia.
 
