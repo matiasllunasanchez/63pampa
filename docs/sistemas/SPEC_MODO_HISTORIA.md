@@ -147,7 +147,9 @@ El flujo por misión es fijo: `briefing (1+ escenas) → misión jugable → ep�
 escenas) → cuaderno (TIERRA)`, con las excepciones del guion: m12 corta a tierra EN MEDIO
 de la misión (hook: escena disparada por evento de misión, no solo pre/post), y el ritual
 de Cóndor abre cada briefing (primera escena o primera línea, con sting 30 si existe el
-audio). P.0→P.4 encadenan antes del briefing de m1. **CA:** el orden es dato (lista de
+audio). P.1→P.4 encadenan antes del briefing de m1 — 🟨 (3.2) NO existe P.0 al inicio: la escena
+de la puerta de Norma va SOLO en la cadena del Final A. Ningún asset, texto o pantalla
+puede insinuar antes del cierre que la historia está siendo leída. **CA:** el orden es dato (lista de
 escenas por misión), no código.
 
 ### RF-10 · La decisión final (estado `ending`)
@@ -204,28 +206,14 @@ la escena emociona — ese es el criterio final del director (Matías).
 
 | Fase | Entrega | Depende de |
 |---|---|---|
-| **F1** ✅ | Motor de líneas: tipeo + avance + hold + fallback a negro (RF-02/03/07) sobre las pantallas de historia existentes | — |
+| **F1** | Motor de líneas: tipeo + avance + hold + fallback a negro (RF-02/03/07) sobre las pantallas de historia existentes | — |
 | **F2** | Tipos y layouts: VN/CUADRO/TIERRA/CARTA + registros visuales (RF-01/05/06) | F1 |
 | **F3** | Retratos y placas con fallbacks + cambio de cara (RF-01/04) | F2 |
 | **F4** | Secuenciación por misión + escena por evento (m12) + ritual de Cóndor (RF-09) | F1 |
 | **F5** | Estado `ending` + cadenas A/B + flags de save (RF-10) | F4 |
 | **F6** | Pulido: tic por personaje, skip con indicador, auto-avance, letterbox, ambiente/foley (RF-02/08/11) | F3 |
 
-Tras cada fase: correr el fixture del locker — **`npm run story`** (queda en
-`tools/fixture_story.js`). Mide contra el reloj del juego que cada `hold` sea el del guion, que
-una tecla complete el tipeo sin saltear la línea, que ningún toque atraviese un silencio, y que
-todo eso pase con cero assets y cero errores de consola. `STORY_SHOTS=<dir> npm run story` deja
-además una captura por línea, para la mirada muda.
-
-No está dentro de `npm run check` a propósito: son 13 s de silencios REALES (los holds del
-guion). La exactitud al frame la cubre `npm run unit`, que sí corre siempre.
-
-### Estado
-
-| Fase | Estado |
-|---|---|
-| F1 | ✅ hecha (`npm run story` verde, `npm run check` verde) |
-| F2–F6 | pendientes |
+Tras cada fase: correr el fixture del locker.
 
 ## 8. Qué NO hacer *(errores previsibles, prohibidos por diseño)*
 
@@ -246,94 +234,4 @@ guion). La exactitud al frame la cubre `npm run unit`, que sí corre siempre.
 > (nombres de archivos, estados, convenciones), con la decisión tomada. Este bloque es la
 > memoria del proyecto para la próxima pasada.
 
-### F1 — motor de líneas *(6/8/2026)*
-
-**D-01 · El guion ya escrito NO está en el modelo de escena, y no se migró.** El spec asume
-escenas con líneas; la campaña v0.0.1 vive en `data/strings.js` como PANTALLAS
-(`{title, paras[], img, style, level, obj}`), ~90 de ellas. Decisión: **adaptador**
-(`sceneFromScreen`/`seqFromScreens` en `core/dialogue.js`) que traduce pantalla → escena en
-runtime. Un solo motor, y el contenido escrito no se toca. El contenido nuevo se escribe
-directo en el modelo del spec, en `data/story.js`.
-
-**D-02 · Dónde vive el motor.** El spec no lo dice; ARQUITECTURA sí: lo puro y el estado
-compartido van en `core/`. Quedó `core/dialogue.js` — **sin DOM, sin audio, sin i18n**, para
-que `npm run unit` lo pruebe con node — más el store `dlg` (identidad estable: se muta, nunca
-se reasigna). El sonido y el "a dónde voy después" los resuelve `game.js` con las señales que
-devuelve el motor (`'complete'`/`'next'`/`'scene'`/`'end'`/`null`): **los sistemas no llaman
-hacia arriba** (convención 2).
-
-**D-03 · Hay un quinto tipo: TARJETA.** El spec define cuatro (VN/CUADRO/TIERRA/CARTA), pero la
-campaña ya tiene la tarjeta previa al nivel (`{level, obj}`), que no es ninguno. Se marca
-`tipo: 'TARJETA'`: el título es el nombre de la misión (fijo) y el objetivo es su única línea.
-
-**D-04 · Mezcla de tipos dentro de una escena** *(la decisión que §6 dejaba al implementador)*:
-resuelta con **override por línea**, no encadenando escenas. Una línea puede traer su propio
-`tipo` e `img` — el dorso de la foto (`M07_LOCKER_030`) es un CUADRO adentro de una escena VN.
-Motivo: la escena no se corta, el `ambiente` sigue sonando sin recargarse, y la placa vuelve
-sola en la línea siguiente. Encadenar escenas habría partido en dos un momento que es uno.
-
-**D-05 · FALTANTE ANOTADO (no improvisado): el guion viejo no tiene `hold`.** El formato
-v0.0.1 no los preveía. Todas las líneas que salen del adaptador caen a `hold: 0` (§8.3: si un
-dato falta, fallback y anotar). **Cada escena gana sus holds recién al pasarla al modelo
-nuevo** — el fixture del locker es la única que hoy los tiene.
-
-**D-06 · Velocidad de tipeo 19 → 30 cps.** El motor viejo tipeaba la PANTALLA ENTERA a 19 cps
-("teletipo ceremonioso"); con una línea por vez eso se arrastra. Se adoptó el ~30 del RF-02.
-Perilla: `TYPE_CPS` en `core/dialogue.js`.
-
-**D-07 · La unidad de avance cambió de PANTALLA a LÍNEA** — es lo que pide el modelo (D2), pero
-**cambia el ritmo de toda la campaña ya escrita**: donde antes un toque pasaba tres párrafos,
-ahora pasa uno. Además varios `paras` superan los ~200 caracteres de D2 y quedan como una línea
-larga: es faltante de CONTENIDO (hay que partirlos al reescribirlos), no de motor.
-
-**D-08 · El `title` ya no se tipea**: pasó a ser rótulo fijo de la escena. Es el lugar donde
-pasa la escena, no algo que alguien diga; retipearlo en cada línea no tendría sentido.
-
-**D-09 · La gracia anti-salteo ahora es por SECUENCIA, no por pantalla.** Existía como
-`story.t > 0.4` en cada pantalla; ahora es `dlg.seqT > 0.4`, o sea solo la primera línea. Sigue
-evitando que la tecla que confirmó el menú saltee el arranque, y bloquea menos.
-
-**D-10 · Los puntitos de progreso** contaban pantallas de la secuencia; ahora cuentan **líneas
-de la escena en curso**, que es la unidad real.
-
-**D-11 · Las carpetas de assets del RNF-02 todavía no existen.** Solo hay `assets/story/` (el
-cargador de `render/screens.js`). El fixture declara `placa: 'vestuario'` y sus caras, y todo
-cae a negro sin un error — que es justamente el criterio P2. `assets/plates/` y
-`assets/portraits/` llegan con F3.
-
-**D-12 · Costura de prueba nueva: `?scene=<ID>`** arranca dentro de una escena de
-`data/story.js` y al terminarla vuelve al menú en vez de encadenar una misión. Misma idea que
-`?qa` y `?no3d`. Sin el parámetro no cambia nada.
-
-**D-13 · RNF-04 (save de escenas vistas) no se tocó en F1.** Del que depende el skip instantáneo
-de segunda pasada (RF-08) — los dos son F6.
-
-### F2 — la caja VN *(6/8/2026, pedido de Matías: "que aparezca de abajo")*
-
-**D-14 · La caja VN existe y es SOLO de diálogo.** `drawVNBox` (render/screens.js) se dibuja
-únicamente cuando la línea tiene `personaje` en una escena VN: panel inferior que sube desde el
-borde (0.35 s, reloj nuevo `dlg.sceneT`), busto 36×36 asomando por el borde superior, nombre en
-acento subrayado debajo del busto, texto a la izquierda y "OK ▼" solo cuando `canAdvance` (la
-ausencia del OK ES el hold, RF-07). Las acotaciones, TARJETA, TIERRA y CARTA siguen en el layout
-centrado: la caja es para cuando alguien habla, la narración no es diálogo.
-
-**D-15 · MOCK de retratos (transitorio).** RF-01 dice "sin retrato → solo nombre", pero sin un
-solo asset generado eso dejaba la caja pelada. Decisión en dos partes: (a) el ADAPTADOR asigna a
-cada hablante su cara neutra de RETRATOS §4 (`CARA_NEUTRA` en core/dialogue.js — Norma, el
-Colorado, la radio y la Chancha quedan afuera por canon D4); (b) con `cara` puesta y
-`assets/portraits/<cara>.png` faltante, la caja dibuja una SILUETA placeholder (cabeza + hombros
-con luz de canto). Cuando los retratos se generen, reemplazan la silueta sin tocar código; cuando
-el guion migre al modelo de escena, `CARA_NEUTRA` deja de decidir.
-
-**D-16 · La caja crece con los renglones.** El guion viejo trae líneas de 200+ caracteres (D-07):
-la caja calcula su alto por `wrap.length` en vez de truncar. Al partir las líneas en la
-reescritura, la caja vuelve a su alto de dos renglones.
-
-**D-17 · Las placas ya se cargan.** `sc.placa` → `assets/plates/<id>.png` como fondo de la escena
-(prioridad: `img` de línea → `img` de escena → `placa`), con la misma cascada a negro. Las
-carpetas siguen vacías; el build web neutraliza las tres bases (story/plates/portraits) hasta que
-haya assets (tools/build_web.py).
-
-**D-18 · La campaña 1 se llama EL CUADERNO DE MATEO** (era LA MESA DE NORMA). El `id: 'norma'`
-de data/campaigns.js NO cambió: rotula las partidas guardadas y renombrarlo las dejaría
-huérfanas.
+- *(vacío)*

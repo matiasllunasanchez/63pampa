@@ -83,8 +83,10 @@ Mostrame."). El jugador elige UNA entre DOS.
 Por misión: `story` (contexto + diálogos de briefing + tarjeta) y `epi` (epílogo de aire +
 página del cuaderno + placa histórica). 🟨 Cambios de la 3.0:
 
-- 🟥 **P.0 (la puerta de Norma, años después) va ANTES del prólogo**, delante del story de
-  m1: P.0 → P.1–P.4 → briefing m1.
+- 🟨 **(3.2) El juego abre DIRECTO en P.1** (el arroyo): P.1–P.4 → briefing m1. **No hay
+  P.0 al inicio** — la escena de la puerta de Norma pertenece a la cadena de pantallas del
+  Final A (la revelación del marco). El jugador no debe ver ningún indicio de Norma como
+  lectora antes del cierre.
 - 🟨 **Ya no existen los fragmentos de carta del padre entre misiones.** `style: 'carta'`
   se usa UNA sola vez en toda la campaña: la carta a Norma, y solo en el epílogo del
   Final A. Las páginas de Mateo siguen con `style: 'tierra'`.

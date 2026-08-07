@@ -953,7 +953,9 @@ AVIONES_ESCUADRON.md. Obligatorias en todo cuadro de hangar o cabina.
 
 ---
 
-## ESCENA P.0 — La puerta *(NUEVA — el marco del juego, años después)*
+## ESCENA P.0 — La puerta *(🟨 3.2: YA NO ABRE EL JUEGO — estos cuadros son ahora el
+EPÍLOGO DEL FINAL A, la revelación del marco. El juego abre directo en P.1. Prompts sin
+cambios.)*
 
 **Registro:** `[AIRE]`, pero con paleta lavada y fría — el presente es más gris que el
 recuerdo. Sin música hasta que se abre el cuaderno.
@@ -989,7 +991,8 @@ down gently by a woman's hands. The two papers facing each other, carefully
 aligned, like two place settings. Quiet light, 16:9. No text, no watermark.
 ```
 
-**Cartel:** *"Tardó años en llegar. Lo que sigue es lo que ella leyó."*
+**Sin cartel** *(3.2: nada que explique — la imagen sola. El único cartel del cierre es
+el de GUION_3, Final A.)*
 
 ### Cuadro P0.3 — La primera página *(la transición al juego)*
 **Plano:** primerísimo plano de las manos de Norma abriendo el cuaderno. La página: el
@@ -1006,22 +1009,11 @@ fills more and more of the frame. 16:9. No text, no watermark.
 
 ---
 
-## Cuadro P2.2b — El terito *(NUEVO — la siembra del reconocimiento)*
-**Escena P.2, después de la chicana del Rastrojero.** Mateo cargando la mochila —el
-cuaderno arriba de todo—, señalando al padre con el pulgar, hablándole a Norma.
-
-**PROMPT:**
-```
-[AIRE] 1982 argentine kitchen: {MATEO} with a freshly shaved head, packing a
-canvas duffel bag with a hardcover notebook on top, jerking his thumb toward
-{ESTEBAN} with a grin while speaking to {NORMA} who stands at the stove; on the
-table, mate and bread, warm domestic light, 16:9. No text, no watermark.
-```
-
-**Texto en pantalla:** *"En el trabajo le dicen Tero, ma. Si algún día pasás por arriba
-mío, yo al terito lo reconozco antes que a vos."*
-
-> **Importancia:** dos líneas que hacen posible M8. El jugador las olvida. El guion no.
+## ~~Cuadro P2.2b — El terito~~ *(🟨 ELIMINADO en 3.3 — era demasiado obvio)*
+La siembra del terito ya no es una escena: **la cuenta Norma, citada en el cuaderno de M1**
+("Vos buscá el pájaro, Mateo, y ahí está tu papá"), enterrada en mitad de una página sobre
+otra cosa. No requiere cuadro propio — va en la página TIERRA de M1 ya existente. Ver
+GUION_3, M1.
 
 ---
 
@@ -1224,7 +1216,6 @@ golden light, brotherhood without words, 16:9. No text, no watermark.
 | Cuadro | Placa que usa | Retratos en juego |
 |---|---|---|
 | P2.2 chicana del Rastrojero | cocina 1982 | Mateo sonrisa-colimba · Tero sonrisa chica *(Norma NO aparece — sin retrato por canon)* |
-| P2.2b el terito (siembra) | cocina 1982 | Mateo sonrisa · Tero neutro |
 | M1.3 la regla número uno | línea de vuelo amanecer | Puma reglamentario |
 | M1.4 chistes y rezos | línea de vuelo amanecer | Gitano sonrisa · Pichón neutro · Vasco cerrado |
 | M1.5b la casada | línea de vuelo amanecer | Gitano sonrisa · Pichón entusiasmo · Puma reglamentario |

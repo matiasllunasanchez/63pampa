@@ -16,8 +16,8 @@ Para saber de un vistazo dónde prestar atención:
 | *(sin marca)* | **Idéntico a la 2.3.** Se puede leer en diagonal con confianza. |
 
 **Los cambios estructurales de la 3.0, en una línea cada uno:** muere el sistema de cartas
-cruzadas (ahora: cuaderno-diario + UNA carta) · el juego arranca años después, con Norma
-recibiendo el paquete · 14 misiones (dos nuevas: M3 y M10) · M1 es tutorial puro ·
+cruzadas (ahora: cuaderno-diario + UNA carta) · el marco de Norma se OCULTA
+hasta el final (3.2: el juego abre directo en la historia) · 14 misiones (dos nuevas: M3 y M10) · M1 es tutorial puro ·
 mejoras roguelike desde M3 · la Chancha se rompe en M6 · dos finales a elección del
 jugador · Tero nunca sabe si Mateo vio el batir de alas · Perú entra a la historia ·
 dialectos por personaje · el principio supremo: **la historia primero**.
@@ -41,15 +41,16 @@ el nivel **para ver lo que sigue**, no por el divertimento de jugar. Consecuenci
 ---
 
 ## 🟨 1. La idea en una línea
-*(Cambió: ya no hay cartas cruzadas; el marco arranca años después; el final es del jugador.)*
+*(Cambió: ya no hay cartas cruzadas; 🟨 3.2: el marco se OCULTA hasta el final; el final es del jugador.)*
 
 Un piloto de caza argentino pelea la guerra desde el cielo mientras su hijo —conscripto con
 tres meses de instrucción— la aguanta desde el pozo, **escribiéndole un cuaderno que él
 nunca va a leer**: un diario que le habla al padre porque escribirle a alguien es más fácil
 que escribir al vacío. El padre no puede sacarlo de las islas, así que hace lo único que
-sabe: volar hasta él. **Años después de la guerra, una encomienda golpea la puerta de una
-cocina. Adentro está el cuaderno. Sobre esa mesa ya hay una carta. El juego es lo que Norma
-lee.**
+sabe: volar hasta él. **Y recién al final —no antes— el jugador descubre dónde estuvo
+sentado todo este tiempo: los papeles que leyó tienen un lector dentro del mundo, y el
+marco se cierra sobre una mesa.** 🟨 *(3.2: el juego ABRE directo en la historia de Mateo y
+Esteban —el arroyo, P.1— sin ningún indicio del marco. La revelación es del final.)*
 
 **El jugador nunca juega al hijo. Solo lo lee y ve lo que dibujó.** El jugador es el único
 lugar del universo donde padre e hijo están juntos. Y al final, el timón queda en sus
@@ -92,9 +93,11 @@ al hijo de las islas. No pudo. Nunca se sabe del todo por qué.
 única información es un punto en un mapa. Eso hace verosímil que no supiera cómo lo
 trataban — y hace más grande la culpa.)*
 🟥 *(Nuevo: **"Tero" es su apodo de siempre — veinte años en la Fuerza, con el pájaro
-pintado en cada avión que voló.** La familia lo sabe; Mateo creció con el terito. El Turco
-se lo pinta en el Skyhawk la primera mañana (M1). Ese terito hace posible el
-reconocimiento de M8, y es marca oficial de su avión → AVIONES_ESCUADRON.md.)*
+pintado en cada avión que voló.** 🟨 3.3: quien guarda y transmite esa historia es
+**Norma** — se la contó a Mateo de chico ("buscá el pájaro y ahí está tu papá"), y la
+siembra vive citada en el cuaderno de M1, no en escena. El Turco pinta el terito en el
+Skyhawk la primera mañana (M1). Ese pájaro hace posible el reconocimiento de M8 →
+AVIONES_ESCUADRON.md.)*
 
 ### Al que leés — Mateo 🟨
 *(Cambió: el cuaderno es DIARIO, no borrador de cartas; el hobby viene de la infancia.)*
@@ -143,9 +146,12 @@ No es el villano: es un hombre chico con una pizca de poder. El verdadero respon
 en un despacho al que Bordón jamás va a llegar.
 
 ### La que espera — la madre *(sin cambios de fondo)*
-**Norma.** Ni una línea de diálogo. 🟨 *(Cambió su lugar en la estructura: ahora es
-literalmente **la primera y la última imagen del juego** — el marco arranca con ella
-recibiendo el cuaderno, años después. Ver P.0.)*
+**Norma.** Ni una línea de diálogo **en escena**. 🟨 *(3.2: el jugador no sabe que ella es
+la lectora hasta el final; durante la historia aparece de espaldas, sirviendo, planchando.
+🟥 3.3: pero su voz SÍ existe una vez, **citada en el cuaderno** — el recuerdo de Mateo en
+la página de M1: "Vos buscá el pájaro, Mateo, y ahí está tu papá." **Norma es la guardiana
+de la historia del padre**: lo que Mateo sabe de Tero se lo contó ella, porque el nene era
+chico y el padre nunca estaba. Una madre entera en una cita. Ver §6.)*
 
 ### La que escribe sin conocer — Claribel *(sin cambios)*
 9 años, Villa Mercedes, San Luis. Una carta de escuela "a un soldado argentino". Aparece
@@ -237,12 +243,14 @@ silencio postal es lo que hace verosímil la tragedia.** Las preguntas que Mateo
 ("contame cómo se ve desde arriba") no esperan respuesta: son la forma que tiene un pibe de
 no volverse loco.
 
-**El marco — la mesa, años después.** 🟥 El juego ARRANCA en el presente de Norma: años
-después de la guerra, golpean la puerta con una encomienda del Ejército. Adentro, el
-cuaderno. Norma lo pone en la mesa, va al cajón, y trae **la carta que ya leyó mil veces**
-— la de Esteban, que llegó a las semanas, porque el correo de la Fuerza sí era directo. Las
-pone una frente a la otra. Y empieza a leer. **El juego entero es esa lectura.** Ella es la
-única persona del mundo que lee los dos papeles.
+**El marco — oculto hasta el final.** 🟨 *(3.2 — decisión de Matías.)* El juego ABRE
+directo en la historia: el arroyo, la cocina del 82, la guerra. **Ningún indicio de que
+esto está siendo leído.** Recién en el cierre se revela el marco, **y es distinto según el
+final**: en el **A**, la encomienda golpea la puerta de Norma años después, ella trae la
+carta que ya leyó mil veces y pone los dos papeles enfrentados — la única persona del mundo
+que leyó los dos. En el **B**, el que abre la encomienda es Esteban: el lector es él.
+*(Este cambio resuelve además una contradicción latente: si el juego abría con Norma
+leyendo, el Final B rompía el marco. Ahora cada final tiene su lector.)*
 
 **La regla de montaje** (sin cambios): lo que pasa arriba y abajo rima. Nunca se ven —
 salvo una vez, desde lejos, en M8. 🟨 *(Y ahora ni esa vez es segura: ver M8.)*
@@ -257,7 +265,7 @@ La única vez que el orden se rompe es M12, que corta a tierra en pleno vuelo.
 
 | Movimiento | Misiones | Lo que se siente | Lo que se instala |
 |---|---|---|---|
-| **I — El nido** | P.0–P.4 + M1–M4 | Orgullo, risa, hermandad | La familia. La escuadrilla. La brecha. 🟥 El invento. |
+| **I — El nido** | P.1–P.4 + M1–M4 | Orgullo, risa, hermandad | La familia. La escuadrilla. La brecha. 🟥 El invento. |
 | **II — El callejón** | M5–M8 | Desgaste, primera pérdida, ternura | 🟨 La Chancha rota. Muere el Vasco. El sobrevuelo. |
 | **III — Solo** | M9–M13 | Duelo, 🟥 un respiro de esperanza, rabia | Muere el Pichón. 🟥 Los primos del Perú. Muere Correa. El asado. La carta. |
 | **IV — El tero** | M14 + Finales | Contrarreloj, sacrificio, LA DECISIÓN | 🟥 Dos finales. La mesa. |
@@ -266,23 +274,11 @@ La única vez que el orden se rompe es M12, que corta a tierra en pleno vuelo.
 
 # PRÓLOGO — "El cielo compartido"
 
-### 🟥 Viñeta P.0 — La puerta *(años después de la guerra — EL MARCO)*
-**Imagen:** una cocina en penumbra, el presente. Mantel de hule gastado. Golpean la puerta.
-Norma —más canas que en el resto del juego— abre: un empleado del correo, un paquete del
-Ejército, una firma. Norma cierra la puerta y se queda con el paquete en las manos, pesado
-como un chico dormido.
-
-*(Lo abre en la mesa. Un cuaderno Rivadavia de tapa dura, hinchado de humedad, con arena
-entre las páginas. Norma no lo abre todavía. Va hasta el aparador, saca del cajón **una
-hoja de block militar doblada en cuatro, blanda de tanto doblarse** — una carta que ya leyó
-mil veces, hace años. La pone de un lado de la mesa. El cuaderno del otro. Se sienta. Abre
-el cuaderno en la primera página.)*
-
-*Cartel:* Tardó años en llegar. Lo que sigue es lo que ella leyó.
-
-*(Y la primera página del cuaderno es la Viñeta P.1: el juego "empieza". Todo lo que el
-jugador va a ver está siendo leído en esa mesa. No se vuelve a mostrar a Norma hasta el
-final — pero el jugador ya sabe dónde está sentado.)*
+### 🟨 (3.2) — YA NO HAY P.0: el juego abre directo en P.1
+*(La escena de la puerta —Norma recibiendo la encomienda años después— **se movió al
+epílogo del Final A**, donde es la revelación del marco. El jugador arranca en el arroyo
+sin saber que está leyendo nada. Los cuadros P0.1–P0.3 del storyboard se conservan tal
+cual, reasignados al epílogo. Sin carteles que expliquen: la imagen sola.)*
 
 ### 🟨 Viñeta P.1 — El arroyo *(años antes; el primer dibujo del cuaderno)*
 *(Cambió: Mateo nene ya dibuja — el hobby se siembra acá.)*
@@ -310,18 +306,9 @@ vuelta arreglándote el Rastrojero.
 
 **ESTEBAN:** *(medio riéndose)* Vos al Rastrojero lo rompés más de lo que lo arreglás.
 
-🟥 **MATEO:** *(cargando la mochila, con el cuaderno arriba de todo)* Che, ¿y allá te van a
-pintar el terito? En el avión nuevo.
-
-**ESTEBAN:** Y… si el mecánico es de ley, sí. Un avión sin su pájaro trae mala suerte.
-
-**MATEO:** *(a Norma, señalando al padre con el pulgar)* En el trabajo le dicen Tero, ma.
-Hace veinte años que vuela y el pájaro lo sigue a todos lados. *(al padre)* Si algún día
-pasás por arriba mío, yo al terito lo reconozco antes que a vos.
-
-*(🟥 SIEMBRA CLAVE: Mateo sabe el apodo del padre y sabe del terito pintado. Este
-intercambio de dos líneas es lo que hace posible el reconocimiento de M8. El jugador lo
-olvida — el guion no.)*
+🟨 *(3.3: acá NO se menciona el terito — la versión anterior era demasiado obvia, un cartel
+de "acá va el payoff". La siembra se movió al cuaderno de M1, contada por la fuente
+correcta: **la madre**. Ver la página de M1 y la nota en el personaje de Norma.)*
 
 *(La radio sube sola: "…tropas argentinas desembarcaron esta madrugada en las Islas
 Malvinas…". Los tres quietos. La pava chifla y nadie la saca del fuego.)*
@@ -452,10 +439,24 @@ parece una aventura.
 > *No sé por qué, pero con él cerca tengo menos miedo. ¿Vos lo mandaste, no? No me mientas
 > que te conozco, viejo. Gracias.*
 >
+> 🟥 *Anoche en el pozo los pibes hablaban de los viejos. Conté que el mío vuela y no me
+> creían. Y me acordé de mamá, de cuando era chico y vos no estabas nunca: ella me contaba
+> que en la Fuerza te dicen Tero desde antes de que yo naciera, y que pintás el pajarito en
+> cada avión que te dan. Que en los desfiles ella no te buscaba la cara entre los pilotos —
+> buscaba el pájaro. "Vos buscá el pájaro, Mateo, y ahí está tu papá." Me dormí pensando en
+> eso.*
+>
 > *Lo dibujé con capa, como un superhéroe, y abajo le puse "el Colorado". Te vas a reír
 > cuando lo veas.*
 >
 > *Mateo.*
+
+*(🟥 3.3 — LA SIEMBRA DEL TERITO, versión definitiva: la cuenta **Norma**, citada en el
+recuerdo — la madre le contó al hijo lo que sabe del padre, porque el nene era chico y el
+padre nunca estaba. Enterrada en mitad de una página sobre otra cosa, sin mirar a cámara.
+"Buscá el pájaro y ahí está tu papá" es exactamente lo que Mateo va a hacer en M8, y nadie
+lo anuncia. Norma sigue sin decir una línea EN ESCENA: su voz existe solo como cita en el
+cuaderno — y eso la agranda.)*
 
 *(El jugador entiende lo que Mateo sospecha: sí, lo mandó. Es lo único que pudo hacer.)*
 
@@ -938,6 +939,8 @@ tener.)*
 > decir. Ya quiero ver la cara que vas a poner.*
 >
 > *Volá bajo. TE VI.*
+>
+> 🟥 *Y gracias, ma. Busqué el pájaro.*
 >
 > *Mateo.*
 
@@ -1493,11 +1496,16 @@ la lee — en la voz de Esteban:)*
 >
 > *Esteban.*
 
-*(Y de ahí, el marco: la carta llega a Norma en semanas. El cuaderno, años después — la
-Viñeta P.0, que ahora el jugador entiende entera. Norma en la mesa con los dos papeles,
-poniéndolos uno frente al otro, derechitos, como dos cubiertos.)*
+🟨 *(3.2 — Y RECIÉN ACÁ, LA REVELACIÓN DEL MARCO, sin carteles que la expliquen: años
+después, golpean una puerta. Una cocina en penumbra. Norma —más canas— firma y recibe un
+paquete del Ejército, pesado como un chico dormido. Adentro, el cuaderno Rivadavia hinchado
+de humedad. Va al aparador y trae la carta blanda de tanto doblarse — la que llegó hace
+años. Pone los dos papeles uno frente al otro, derechitos, como dos cubiertos. Abre el
+cuaderno en la primera página: un arroyo, un Rastrojero, un padre y un nene tirando
+piedritas. **El mismo dibujo con el que abrió el juego.** Sostener el plano. El jugador
+hace el resto solo.)*
 
-*Cartel:* Nunca se leyeron. Vos los leíste a los dos.
+*Cartel (el único):* Nunca se leyeron. Vos los leíste a los dos.
 
 ## FINAL B — VOLVER *(el oculto, semi feliz)*
 El jugador vira al mar. La oleada persigue un tramo y abandona. El vuelo de vuelta es largo,
@@ -1531,7 +1539,8 @@ alcanza para toda una vida.
 —apoyada contra la azucarera— la navaja del Colorado, que vino en la encomienda. Nadie
 habla más. No hace falta.)*
 
-*Cartel:* No todos los que volvieron, volvieron. Él sí. Le costó años entenderlo.
+*(Sin cartel. La imagen del mate, el cuaderno abierto y el jazminero por la ventana no
+necesita subtítulo.)*
 
 ## *(Ambos finales →)* Cierre común
 *Cartel:* El 14 de junio de 1982, tras setenta y cuatro días, cesaron los combates.

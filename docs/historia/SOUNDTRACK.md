@@ -178,10 +178,10 @@ unresolved piano note under a phone busy-tone pulse. Dread inside a home. 90
 seconds with an arc. Completely original music and lyrics.
 ```
 
-> 🟥 **P.0 (la puerta, años después)** no lleva pista propia: entra en silencio de sala
-> —la puerta, el paquete, la mesa— y recién cuando Norma abre el cuaderno arranca 07
-> (Sapito) con el match cut al arroyo. El silencio de P.0 es deliberado: la música del
-> juego "vive adentro del cuaderno".
+> 🟨 **(3.2) El juego abre DIRECTO con 07 (Sapito) en P.1** — ya no hay P.0 al inicio. La
+> escena de la puerta vive ahora en el epílogo del Final A: va en silencio de sala hasta
+> que Norma abre el cuaderno, y ahí entra 23 (Dos platos). El silencio sigue siendo
+> deliberado: la música del juego "vive adentro del cuaderno".
 
 ---
 
@@ -526,7 +526,7 @@ Completely original music and lyrics.
 |---|---|
 | Menú de modos (lobby) | actual `lobby.mp3` · 01 El Nido como reserva |
 | Pantalla de campaña | 01 El Nido |
-| 🟥 P.0 la puerta (años después) | **silencio de sala** → 07 al abrir el cuaderno |
+| 🟨 (3.2) La puerta — ahora en el epílogo del Final A | **silencio de sala** → 23 al abrir el cuaderno |
 | P.1 el arroyo | 07 Sapito |
 | P.2–P.3 radio, plaza, teléfono | 08 La pava que nadie saca |
 | Cinemáticas históricas / briefings | 02 Cuaderno y tinta |
