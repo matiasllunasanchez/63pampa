@@ -317,12 +317,12 @@ lejanos; en cuadros donde se sepa de quién es el avión, usar el específico:
 
 ## Los momentos que esto habilita *(gratis, ya estaban en el guion)*
 
-- **M6, "los tres aviones donde había cuatro":** ahora ese cuadro duele más, porque el
+- **M7, "los cuatro aviones donde había cinco":** ahora ese cuadro duele más, porque el
   hueco en la línea de vuelo no es un avión menos — es **el gris oscuro sin marcas** que ya
   no está. El jugador lo reconoce sin que nadie diga nada.
-- **El tarrito que queda abierto toda la noche** (M6): las estrellitas son por REGRESO. La
+- **El tarrito que queda abierto toda la noche** (M7): las estrellitas son por REGRESO. La
   estrellita que no se pinta esa noche es la del C-214.
-- **M11, el hangar del asado:** los cuatro aviones que quedan, juntos y a oscuras. Cuatro
+- **M13, el hangar del asado:** los tres aviones que quedan, juntos y a oscuras. Tres
   personalidades estacionadas. No hace falta diálogo.
 - **Idea opcional para M12** *(decisión de Matías, no canon todavía)*: el Turco prepara el
   avión de Esteban para la última misión con **repuestos de los otros** — un panel del

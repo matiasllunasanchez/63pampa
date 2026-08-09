@@ -131,6 +131,28 @@ export const STRINGS = {
     optStart: 'ARRANQUE', optStartRunway: 'PISTA', optStartAir: 'EN VUELO',
     optMeters: 'METROS', optShip: 'BUQUE',
     optHitboxes: 'HITBOXES', optDevcam: 'MODO CAMARA', optDevcamOff: 'NORMAL', optDevcamOn: 'LIBRE',
+    // ---------- MEJORAS DEL PICHON: la sub-pantalla de todo lo que toca al AVION ----------
+    // Dos bloques en la misma pantalla porque son dos cosas distintas: arriba lo que el Pichon le
+    // hizo al avion (y por eso lleva su voz), abajo las preferencias de la persona que lo vuela.
+    // Meter la mira del mouse bajo el nombre del Pichon lo pondria inventando cosas que no invento.
+    // Despues de M9 el bloque de arriba cambia de nombre — es su libreta, no ya la dupla.
+    optMejoras: 'MEJORAS DEL PICHON', optMejorasGo: 'VER',
+    mejTitle: 'MEJORAS DEL PICHON',
+    mejSecPuesto: 'PUESTO DE PILOTO',
+    mejEmpty: 'Todavia el Turco no te dio nada.',
+    mejOn: 'ACTIVA', mejOff: 'APAGADA',
+    mejWhat: 'QUE HACE', mejHowto: 'COMO SE HACE',
+    mejKeys: '[↑] [↓] ELEGIR      [←] [→] PRENDER / APAGAR      [ESC] VOLVER',
+    // PUESTO DE PILOTO: una linea de que hace cada fila, y con que se toca. La tabla completa de
+    // teclas sigue estando en OPCIONES — esto es el recordatorio de la fila que tenes marcada.
+    mejdMoves: 'Interruptor maestro: apaga TODAS las piruetas de golpe', mejkMoves: 'secuencias de toques',
+    mejdControl: 'Que hacen las flechas: empujar de costado o ROLAR',    mejkControl: '← →',
+    mejdHorizon: 'Cuanto se inclina el MUNDO cuando el avion rola',      mejkHorizon: 'Q E  ·  stick der',
+    mejdAim: 'La mira va fija adelante del avion o la lleva el mouse',   mejkAim: 'CAPS LOCK  ·  mouse',
+    mejdMira: 'Cual de los nueve reticulos se dibuja',                   mejkMira: '—',
+    mejdArenaInv: 'En la batalla, si W sube o baja el morro',            mejkArenaInv: 'W  ·  S',
+    mejdNet: 'La malla que marca la altura donde empieza el radar',      mejkNet: '—',
+    mejdEnergy: 'Altura y velocidad se intercambian: picar acelera',     mejkEnergy: 'W  ·  S',
     // ---------- CONTROLES: sección informativa de OPCIONES (no se cambia nada, se LEE) ----------
     // Sale de lo que hace core/input.js, no de lo que debería hacer. Los nombres de botón son los
     // de un mando estilo PlayStation, que es el mapeo estándar de la Gamepad API.
@@ -250,7 +272,7 @@ export const STRINGS = {
     epiM1: [
       {
         img: 'M1_7', title: 'TODOS VUELVEN', paras: [
-          'Cuatro estrellitas nuevas, una por avión. El Turco las pinta con pincel finito y la lengua afuera. No cuenta lo que baja: cuenta lo que vuelve.',
+          'Cinco estrellitas nuevas, una por avión. El Turco las pinta con pincel finito y la lengua afuera. No cuenta lo que baja: cuenta lo que vuelve.',
           'EL TURCO: La estrellita la pinto por vos, no por el avión.',
           'Por un rato, esto parece una aventura.']
       },
@@ -882,6 +904,21 @@ export const STRINGS = {
     optStart: 'START', optStartRunway: 'RUNWAY', optStartAir: 'AIRBORNE',
     optMeters: 'METERS', optShip: 'SHIP',
     optHitboxes: 'HITBOXES', optDevcam: 'CAMERA MODE', optDevcamOff: 'NORMAL', optDevcamOn: 'FREE',
+    optMejoras: "PICHON'S UPGRADES", optMejorasGo: 'VIEW',
+    mejTitle: "PICHON'S UPGRADES",
+    mejSecPuesto: 'PILOT STATION',
+    mejEmpty: 'El Turco has given you nothing yet.',
+    mejOn: 'ON', mejOff: 'OFF',
+    mejWhat: 'WHAT IT DOES', mejHowto: 'HOW TO DO IT',
+    mejKeys: '[↑] [↓] SELECT      [←] [→] ON / OFF      [ESC] BACK',
+    mejdMoves: 'Master switch: turns ALL maneuvers off at once',      mejkMoves: 'tap sequences',
+    mejdControl: 'What the arrows do: push sideways or ROLL',         mejkControl: '← →',
+    mejdHorizon: 'How much the WORLD tilts when the plane rolls',     mejkHorizon: 'Q E  ·  right stick',
+    mejdAim: 'Sight locked ahead of the plane, or moved by mouse',    mejkAim: 'CAPS LOCK  ·  mouse',
+    mejdMira: 'Which of the nine reticles is drawn',                  mejkMira: '—',
+    mejdArenaInv: 'In battle, whether W raises or lowers the nose',   mejkArenaInv: 'W  ·  S',
+    mejdNet: 'The mesh marking the altitude where radar begins',      mejkNet: '—',
+    mejdEnergy: 'Altitude and speed trade off: diving accelerates',   mejkEnergy: 'W  ·  S',
     optSecCtrl: 'CONTROLS',
     optColKb: 'KEYBOARD', optColPad: 'GAMEPAD',
     ctrlFly: 'DODGE',           ctrlFlyK: 'A   ·   D',          ctrlFlyP: 'left stick · d-pad',

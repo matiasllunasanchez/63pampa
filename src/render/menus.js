@@ -2,7 +2,7 @@
 //
 // Igual que las demas pantallas: reciben `w`, un snapshot chico de solo lectura. No leen estado
 // global ni lo modifican — la seleccion la maneja el input; aca solo se dibuja.
-import { ctx, DW as W, DH as H, W as NW, H as NH, px, panel, titleFont, menuFont, descFont, labelFont, uiFont, FONT_OTHERS } from './ctx.js';
+import { ctx, DW as W, DH as H, W as NW, H as NH, px, panel, titleFont, menuFont, descFont, labelFont, uiFont, wrapText, FONT_OTHERS } from './ctx.js';
 import { drawMira } from './miras.js';
 import { P } from '../data/palette.js';
 import { PLANES } from '../data/planes.js';
@@ -301,6 +301,134 @@ export function drawOptions(w) {
   ctx.fillText(T('optKeys'), NW / 2, NH - 14);
 }
 
+
+// ---------- MEJORAS DEL PICHON (sub-pantalla de OPCIONES) ----------
+// TODO lo que toca al AVION en un solo lugar: las piruetas que inventó el Pichón y el puesto de
+// piloto (mira, ejes, esquema de control). Antes estaba repartido entre una fila suelta de
+// OPCIONES y ningún lado.
+//
+// POR QUE UNA PANTALLA APARTE y no una sección más de OPCIONES: las filas de allá miden 15 px y
+// una línea, y de una pirueta hay que saber DOS cosas a la vez — qué hace y cómo se teclea. Eso no
+// entra en un renglón. La tarjeta de la derecha es la pantalla entera: la lista es solo el índice.
+//
+// DOS BLOQUES porque son dos cosas distintas. Arriba lo que el Pichón le hizo al avión (y por eso
+// lleva su voz); abajo las preferencias de la persona que lo vuela. El Pichón no inventó el mouse.
+//
+// En campaña la lista de arriba tiene SOLO lo ganado, así que crece con la partida — y después de
+// M9 esta pantalla es el único lugar del juego donde su voz sigue estando.
+const MEJ_GEO = { y0: 112, rh: 14, view: 10 };
+const MEJ_CARD = { x: 250, w: 200, y: 100, h: 142 };
+
+export function drawMejoras(w) {
+  panel();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = P.accent; ctx.font = titleFont(26);
+  ctx.fillText(T('title'), NW / 2, 40);
+
+  const x = 40, xv = MEJ_CARD.x - 16;    // borde derecho de los valores de la lista
+  ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(13);
+  ctx.fillText(T('mejTitle'), x, 86);
+  ctx.strokeStyle = '#3a464c'; ctx.globalAlpha = 0.5;
+  ctx.beginPath(); ctx.moveTo(x, 91.5); ctx.lineTo(NW - 30, 91.5); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  const { y0, rh, view } = MEJ_GEO, n = w.rows.length;
+  const top = optScroll(w.sel, n, view);
+  const vis = Math.min(view, n - top);
+
+  for (let v = 0; v < vis; v++) {
+    const i = top + v, r = w.rows[i], y = y0 + v * rh;
+    if (r.head) {
+      ctx.textAlign = 'left'; ctx.fillStyle = P.accent; ctx.globalAlpha = 0.85;
+      ctx.font = labelFont(9);
+      ctx.fillText(r.head, x, y);
+      const wh = ctx.measureText(r.head).width;
+      ctx.globalAlpha = 0.25; ctx.strokeStyle = P.accent;
+      ctx.beginPath(); ctx.moveTo(x + wh + 8, y - 3.5); ctx.lineTo(xv, y - 3.5); ctx.stroke();
+      ctx.globalAlpha = 1;
+      continue;
+    }
+    // ESTADO VACIO: en la primera misión de campaña no ganaste nada todavía. Es una nota, no una
+    // fila — el cursor no se para acá, igual que en OPCIONES.
+    if (r.note) {
+      ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.globalAlpha = 0.75; ctx.font = labelFont(8);
+      ctx.fillText('· ' + r.note, x + 6, y);
+      ctx.globalAlpha = 1;
+      continue;
+    }
+    const on = i === w.sel;
+    if (on) {
+      ctx.fillStyle = P.accent; ctx.globalAlpha = 0.13;
+      ctx.fillRect(x - 9, y - 9, xv - x + 15, 13); ctx.globalAlpha = 1;
+      ctx.fillStyle = P.accent; ctx.globalAlpha = 0.5;
+      ctx.fillRect(x - 9, y - 9, 2, 13); ctx.globalAlpha = 1;
+    }
+    ctx.textAlign = 'left'; ctx.fillStyle = on ? P.accent : P.body; ctx.font = menuFont(10);
+    ctx.fillText(r.label, x, y);
+    // EL SWITCH. Las de prender/apagar se pintan por color —encendido en el acento del juego,
+    // apagado en gris— porque el estado tiene que leerse SIN leer la palabra: con doce filas, lo
+    // que se busca de un vistazo es cuál está en gris. Las de escala (RETICULO, HORIZONTE) usan
+    // el `< valor >` de siempre; no son un interruptor y no pueden fingir serlo.
+    ctx.textAlign = 'right'; ctx.font = menuFont(10);
+    ctx.fillStyle = r.sw ? (r.swOn ? (on ? P.accent : P.foam) : '#5c6a70') : (on ? P.ink : P.dim);
+    ctx.fillText(on ? '< ' + r.value + ' >' : r.value, xv, y);
+    if (r.preview === 'mira') {
+      const wv = ctx.measureText(on ? '< ' + r.value + ' >' : r.value).width;
+      drawMira(r.raw, xv - wv - 12, y - 3.5, 13, on ? 1 : 0.55);
+    }
+  }
+
+  if (n > view) {
+    const bx = MEJ_CARD.x - 8, by = y0 - 10, bh = view * rh;
+    px(bx, by, 2, bh, '#2e3c45');
+    const th = Math.max(8, Math.round(bh * view / n));
+    px(bx, by + Math.round((bh - th) * (top / (n - view))), 2, th, P.accent);
+  }
+
+  drawMejCard(w.rows[w.sel]);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(6);
+  ctx.fillText(T('mejKeys'), NW / 2, NH - 14);
+}
+
+/** La tarjeta de la derecha: qué hace la fila marcada y cómo se ejecuta. Todo lo que no entra en
+ *  el renglón de la izquierda vive acá — incluida la voz del Pichón, que es la razón por la que
+ *  esta pantalla no es una lista de casillas. */
+function drawMejCard(r) {
+  const { x, w: cw, y, h } = MEJ_CARD;
+  ctx.globalAlpha = 0.06; ctx.fillStyle = P.body;
+  ctx.fillRect(x, y, cw, h); ctx.globalAlpha = 1;
+  ctx.strokeStyle = '#3a464c'; ctx.strokeRect(x + 0.5, y + 0.5, cw, h);
+  if (!r || !r.card) return;
+
+  const px0 = x + 12, maxW = cw - 24;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = P.accent; ctx.font = menuFont(12);
+  ctx.fillText(r.card.name, px0, y + 20);
+  ctx.strokeStyle = P.accent; ctx.globalAlpha = 0.25;
+  ctx.beginPath(); ctx.moveTo(px0, y + 26.5); ctx.lineTo(x + cw - 12, y + 26.5); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  let yy = y + 40;
+  ctx.fillStyle = P.dim; ctx.globalAlpha = 0.7; ctx.font = labelFont(7);
+  ctx.fillText(T('mejWhat'), px0, yy); ctx.globalAlpha = 1;
+  ctx.fillStyle = P.body; ctx.font = descFont(10);
+  yy = wrapText(r.card.desc, px0, yy + 12, maxW, 11) + 5;
+
+  ctx.fillStyle = P.dim; ctx.globalAlpha = 0.7; ctx.font = labelFont(7);
+  ctx.fillText(T('mejHowto'), px0, yy); ctx.globalAlpha = 1;
+  ctx.fillStyle = P.foam; ctx.font = descFont(10);
+  yy = wrapText(r.card.seq, px0, yy + 12, maxW, 11) + 4;
+
+  // LA VOZ. Va al pie y apagada porque no es información de la opción: es de quién salió. Solo la
+  // tienen las piruetas — el puesto de piloto no lo inventó nadie.
+  if (r.card.quote) {
+    ctx.fillStyle = P.dim; ctx.globalAlpha = 0.8; ctx.font = descFont(9);
+    wrapText('"' + r.card.quote + '"', px0, Math.max(yy + 6, y + h - 34), maxW, 10);
+    ctx.globalAlpha = 1;
+  }
+}
 
 
 // ---------- MENU DE HISTORIA (submenu del modo campaña) ----------

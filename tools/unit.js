@@ -429,3 +429,38 @@ test('historia: el auto-avance usa la formula del sistema de dialogo (RF-03)', (
   assert.equal(before, 0);
   dlg.auto = false;
 });
+
+import { moveAllowed } from '../src/data/upgrades.js';
+
+// ---------- MEJORAS DEL PICHON: que piruetas SALEN ----------
+// La regla no tiene sintoma visible cuando se rompe: la pirueta simplemente deja de salir y se lee
+// como que el combo no anda. Por eso se prueba acá y no a mano.
+test('mejoras: fuera de campaña salen todas, tengas o no el banco', () => {
+  assert.equal(moveAllowed('jink', { campaign: false, owned: [], off: {} }), true);
+  assert.equal(moveAllowed('jink', { campaign: false, owned: null, off: null }), true);
+});
+
+test('mejoras: en campaña solo salen las GANADAS', () => {
+  const owned = ['mask', 'splits'];
+  assert.equal(moveAllowed('mask', { campaign: true, owned, off: {} }), true);
+  assert.equal(moveAllowed('jink', { campaign: true, owned, off: {} }), false,
+    'una pirueta que el guion todavia no invento no puede salir');
+});
+
+test('mejoras: apagarla desde el menu la saca aunque la tengas ganada', () => {
+  const owned = ['mask'];
+  assert.equal(moveAllowed('mask', { campaign: true, owned, off: { mask: 1 } }), false);
+  assert.equal(moveAllowed('mask', { campaign: false, owned: [], off: { mask: 1 } }), false,
+    'apagada es apagada en todos los modos: es una preferencia, no una regla de campaña');
+});
+
+test('mejoras: prenderla de nuevo la devuelve al aire', () => {
+  const off = { mask: 1 };
+  delete off.mask;                                   // exactamente lo que hace la fila del menu
+  assert.equal(moveAllowed('mask', { campaign: true, owned: ['mask'], off }), true);
+});
+
+test('mejoras: acepta un Set ademas de un array (owned viaja de las dos formas)', () => {
+  assert.equal(moveAllowed('mask', { campaign: true, owned: new Set(['mask']), off: {} }), true);
+  assert.equal(moveAllowed('jink', { campaign: true, owned: new Set(['mask']), off: {} }), false);
+});

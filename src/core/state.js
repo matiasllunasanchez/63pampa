@@ -74,6 +74,14 @@ export const cfg = {
   // Se pueden apagar si los combos verticales molestan al bombear gas. El tonel clasico
   // (doble-tap lateral) queda SIEMPRE: es la mecanica original del juego, no una pirueta nueva.
   moves: true,
+  // PIRUETAS APAGADAS UNA POR UNA: ids de data/moves.js que se desactivaron en MEJORAS DEL PICHON.
+  // `moves` de arriba es el interruptor MAESTRO; esto es el corte fino de abajo, y el gate que los
+  // junta a los dos vive en UN solo lugar (el dispatcher de combos en game.js).
+  //
+  // Es un objeto usado como conjunto (`movesOff[id]` presente = apagada) y no un Set ni un array
+  // por la regla de identidad estable de este modulo: se MUTAN sus claves y nunca se reasigna. Un
+  // `cfg.movesOff = new Set()` dejaria a cualquiera que ya lo hubiera leido mirando el viejo.
+  movesOff: {},
   // NIEBLA: bancos de bruma pegados al agua (systems/fog.js). 0 NO · 1 VISIBLE · 2 CASI NULA.
   // NO es ambiente: es la perilla de dificultad mas honesta que tiene el juego — sube el desafio
   // sin agregar un solo objeto, acortando la distancia a la que ves lo que YA estaba. Por eso vive

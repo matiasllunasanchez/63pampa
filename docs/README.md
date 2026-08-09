@@ -28,6 +28,7 @@ La segunda campaña, a futuro: *"El fantasma del mar"*.
 | documento | qué es |
 |---|---|
 | [GUION_3.md](historia/GUION_3.md) | **EL GUION VIGENTE (3.7).** 14 misiones, prólogo **P.1–P.4** (⚠ el marco de la encomienda está OCULTO hasta el final — P.0 NO abre el juego), dos finales, post-créditos. Incluye **§9 dialectos + §9b el tucumano del Turco**. Marcas: 🟥 nuevo / 🟨 cambió / sin marca = igual a 2.3 |
+| [GUION_LECTURA.md](historia/GUION_LECTURA.md) | 🟥 **versión limpia del guion para compartir** — sin marcas de cambio, sin notas de producción, con nota inicial para el lector y preguntas de devolución. **Es un derivado: la fuente es GUION_3.md.** Si cambia el guion, hay que regenerarla |
 | [MISION_FINAL.md](historia/MISION_FINAL.md) | diseño de nivel de la M14: fases, contrarreloj, muertes, el momento del misil, las dos salidas |
 | [STORYBOARD_1.md](historia/STORYBOARD_1.md) | guion visual con prompts + sección **ACTUALIZACIÓN 3.0** al final (tabla obligatoria M4–M14 + post-créditos). ⚠ La primera mitad tiene tablas marcadas **⛔ SUPERSEDIDA** con la numeración vieja de 12 misiones — **la fuente de verdad es la tabla 3.0 del final** |
 | [PROMPTS_HOJAS_PERSONAJE.md](historia/PROMPTS_HOJAS_PERSONAJE.md) | hojas modelo de los 9 personajes + props + marcas personales. ✅ Norma corregida (3.4: **sí se le ve la cara**) · 🟥 faltan 4 hojas nuevas listadas al final (piloto peruano, mecánico de Tandil, Claribel, el pibe de la 10) |
@@ -35,7 +36,7 @@ La segunda campaña, a futuro: *"El fantasma del mar"*.
 | [SISTEMA_DIALOGO.md](historia/SISTEMA_DIALOGO.md) | texto-primero: IDs estables, 4 registros, `hold`, timing. **El juego funciona sin voces por diseño.** ✅ ejemplos renumerados a `M07_LOCKER_*` (14 misiones) |
 | [RETRATOS.md](historia/RETRATOS.md) | escenas estáticas estilo VN: **~16 placas** de ambiente + **~33 retratos** con expresiones + la lista de cuadros sagrados que exigen escena completa |
 | [REFERENCIAS.md](historia/REFERENCIAS.md) | tipografías y capas de foto — ⚠ *falta el 4º registro (DIALOGO); vive por ahora en SISTEMA_DIALOGO §"Los cuatro registros"* |
-| [SOUNDTRACK.md](historia/SOUNDTRACK.md) | ✅ 30 pistas a 14 misiones, **cada una con referencia real de emoción** (material privado, no se publica). Sincronizado: 27 Los primos (Tandil, "belleza que llega tarde") · **28-bis: la misión m10 va SIN música** · 25 post-créditos con el corte en el "No." |
+| [SOUNDTRACK.md](historia/SOUNDTRACK.md) | ✅ **v4.0 — 36 pistas** al guion 3.0, cada una con referencia real de emoción (material privado, no se publica). **Toda pista cantada trae su LETRA completa** en español argentino, escrita con frases del guion, y el prompt describe cómo debe sonar la voz. 6 pistas nuevas: la Chancha (M6) · el reverso de la foto (M7) · el relevo de escuadrón · el desbloqueo del Mirage (M10) · la carta (M13) · **el cierre común** (narración sobre fotos reales). Los 4 silencios están documentados como partitura, no como huecos |
 | [PREGUNTAS_HISTORICAS.md](historia/PREGUNTAS_HISTORICAS.md) | ✅ Mirage peruanos **verificado** (Tandil, 5/6, nunca combatieron) · ovejas/caracú · Mundial. ⚠ *pendientes: países, dialectos, correo, matrículas C-2xx* |
 | `characters_examples/` | renders de referencia ya generados |
 

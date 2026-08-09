@@ -1,48 +1,51 @@
-# RASANTE — Campaña "El cuaderno de Mateo" · Guion 3.0
+# RASANTE
 
-> **Malvinas, 1982. Un padre que vuela. Un hijo que escribe un cuaderno que el padre nunca
-> va a leer. Y una mesa donde, años después, alguien los lee a los dos.**
+## El cuaderno de Mateo
 
----
+**Guion de la campaña**
 
-## CÓMO LEER ESTE DOCUMENTO — el sistema de marcas
-
-Para saber de un vistazo dónde prestar atención:
-
-| Marca         | Significa                                                       |
-| ------------- | --------------------------------------------------------------- |
-| 🟥 **NUEVO**  | No existía en la 2.3. Leer entero.                              |
-| 🟨 **CAMBIÓ** | Existía y se modificó. Cada marca dice QUÉ cambió en una línea. |
-| _(sin marca)_ | **Idéntico a la 2.3.** Se puede leer en diagonal con confianza. |
-
-**Los cambios estructurales de la 3.0, en una línea cada uno:** muere el sistema de cartas
-cruzadas (ahora: cuaderno-diario + UNA carta) · el marco de Norma se OCULTA
-hasta el final (3.2: el juego abre directo en la historia) · 14 misiones (dos nuevas: M3 y M10) · M1 es tutorial puro ·
-mejoras roguelike desde M3 · la Chancha se rompe en M6 · dos finales a elección del
-jugador · Tero nunca sabe si Mateo vio el batir de alas · Perú entra a la historia ·
-dialectos por personaje · el principio supremo: **la historia primero**.
+Malvinas, 1982
 
 ---
 
-## 🟥 0. EL PRINCIPIO QUE MANDA SOBRE TODO
+## Nota para el que lee
 
-**La historia tiene que ser tan buena que el juego pase a segundo plano.** El jugador pasa
-el nivel **para ver lo que sigue**, no por el divertimento de jugar. Consecuencias:
+Esto es el guion completo de la campaña principal de **RASANTE**, un juego de aviones de
+pixel art ambientado en la guerra de Malvinas. Está terminado como historia, pero **no está
+cerrado**: por eso te lo estoy pasando.
 
-1. **Cada misión termina en anzuelo** — una pregunta, una foto sin explicar, una frase a
-   medias. El jugador apaga pensando en la escuadrilla, no en el puntaje.
-2. **La dificultad nunca frena la historia.** Asistencia progresiva para el que se traba.
-   Frustrar acá no es desafío: es cortarle la serie en la mejor parte.
-3. **El gameplay está al servicio del guion.** Si una mecánica traiciona un momento
-   narrativo, pierde la mecánica. Siempre.
-4. **La vara de toda escena:** ¿esto hace que el jugador NECESITE ver la que sigue? Si no,
-   se reescribe.
+**Cómo está armado.** Cada una de las catorce misiones tiene la misma estructura: un
+**briefing** en el hangar o la sala de radio (ahí vive casi todo el diálogo), **la misión**
+en sí, que es lo que se juega, un **epílogo** en el aire o en la base, y una **página del
+cuaderno**, escrita por Mateo desde el pozo. Las páginas del cuaderno van en cursiva y
+sangradas — son el otro hilo de la historia. Antes de las misiones hay un prólogo de cuatro
+viñetas, y al final hay dos finales distintos según lo que haga el jugador.
+
+**Un aviso.** El texto entre paréntesis y en cursiva son acotaciones: lo que se ve en
+pantalla, o lo que el jugador entiende sin que nadie se lo diga. No son diálogo. Están
+puestas porque en este juego buena parte de la actuación pasa por ahí — el juego no tiene
+voces por decisión de diseño, así que los silencios y los gestos hacen el trabajo.
+
+**Lo histórico.** Los buques hundidos, las fechas, los aviones que mandó el Perú, la comida
+que no llegaba, los estaqueamientos: es todo real y está verificado. Los personajes son
+inventados. Donde hay licencia, está anotado.
+
+**Qué me sirve que me digas.** Cualquier cosa, pero sobre todo estas cinco:
+
+1. **¿En qué momento te enganchó, y en qué momento se te aflojó?** Marcá la página, aunque
+   no sepas explicar por qué.
+2. **¿Hay algún personaje que no te termine de cerrar?** Que suene falso, o que hable como
+   nadie habla.
+3. **¿Se entiende todo?** Si algo lo tuviste que releer, es un problema mío, no tuyo.
+4. **¿Hay algo que sobre?** Especialmente si sentís que en algún lado te están explicando
+   algo que ya habías entendido solo.
+5. **¿Y los dos finales?** ¿Cuál elegirías vos, y cuál te parece que va a elegir la mayoría?
+
+Y si algo te emocionó, decímelo también. Sirve saber dónde pega.
 
 ---
 
-## 🟨 1. La idea en una línea
-
-_(Cambió: ya no hay cartas cruzadas; 🟨 3.2: el marco se OCULTA hasta el final; el final es del jugador.)_
+## La idea en una línea
 
 Un piloto de caza argentino pelea la guerra desde el cielo mientras su hijo —conscripto con
 tres meses de instrucción— la aguanta desde el pozo, **escribiéndole un cuaderno que él
@@ -50,8 +53,7 @@ nunca va a leer**: un diario que le habla al padre porque escribirle a alguien e
 que escribir al vacío. El padre no puede sacarlo de las islas, así que hace lo único que
 sabe: volar hasta él. **Y recién al final —no antes— el jugador descubre dónde estuvo
 sentado todo este tiempo: los papeles que leyó tienen un lector dentro del mundo, y el
-marco se cierra sobre una mesa.** 🟨 _(3.2: el juego ABRE directo en la historia de Mateo y
-Esteban —el arroyo, P.1— sin ningún indicio del marco. La revelación es del final.)_
+marco se cierra sobre una mesa.**
 
 **El jugador nunca juega al hijo. Solo lo lee y ve lo que dibujó.** El jugador es el único
 lugar del universo donde padre e hijo están juntos. Y al final, el timón queda en sus
@@ -59,7 +61,7 @@ manos: **quedarse o volver.**
 
 ---
 
-## 2. La tesis (lo que el juego cree)
+## La tesis
 
 _(Sin cambios. Sigue siendo la ley.)_
 
@@ -82,9 +84,9 @@ La frase que cierra todo, antes de los créditos:
 
 ---
 
-## 3. Personajes
+## Los personajes
 
-### El que jugás — "Tero" _(sin cambios de fondo)_
+### El que jugás — "Tero"
 
 **Primer Teniente Esteban Aldao**, 41, piloto de A-4B del Grupo 5, Río Gallegos. El tero
 grita lejos del nido: se ofrece al zorro para que lo corra a él. El apodo es el final del
@@ -92,19 +94,16 @@ juego escondido a plena vista. Primer piloto de la historia de su familia; el sa
 arroyo era, sin que ninguno lo dijera, la primera clase de vuelo. Policía bueno, Capitán
 América criollo sin suero: no tiene superpoderes, tiene supercorazón. Movió todo para sacar
 al hijo de las islas. No pudo. Nunca se sabe del todo por qué.
-🟨 _(Cambió una cosa: **Esteban no recibe una sola carta de Mateo en todo el juego.** Su
-única información es un punto en un mapa. Eso hace verosímil que no supiera cómo lo
-trataban — y hace más grande la culpa.)_
-🟥 _(Nuevo: **"Tero" es su apodo de siempre — veinte años en la Fuerza, con el pájaro
-pintado en cada avión que voló.** 🟨 3.3: quien guarda y transmite esa historia es
-**Norma** — se la contó a Mateo de chico ("buscá el pájaro y ahí está tu papá"), y la
-siembra vive citada en el cuaderno de M1, no en escena. El Turco pinta el terito en el
-Skyhawk la primera mañana (M1). Ese pájaro hace posible el reconocimiento de M8 →
-AVIONES_ESCUADRON.md.)_
+_(**Esteban no recibe una sola carta de Mateo en todo el juego.** Su única información es
+un punto en un mapa. Eso hace verosímil que no supiera cómo lo trataban — y hace más grande
+la culpa.)_
+_(**"Tero" es su apodo de siempre — veinte años en la Fuerza, con el pájaro pintado en cada
+avión que voló.** Quien le transmite esa historia a Mateo es **Norma**, la madre. El Turco
+le pinta el terito en el Skyhawk la primera mañana. Ese pájaro es lo que hace posible el
+reconocimiento de la Misión 8.)_
 
-### Al que leés — Mateo 🟨
+### Al que leés — Mateo
 
-_(Cambió: el cuaderno es DIARIO, no borrador de cartas; el hobby viene de la infancia.)_
 **Conscripto Mateo Aldao**, 18, clase '63. **Dibuja desde chico** — llenaba los márgenes de
 los cuadernos de la escuela con los aviones que el padre le señalaba en el cielo; en P.1 ya
 está dibujando en la orilla del arroyo. A las islas se llevó el cuaderno Rivadavia **de su
@@ -114,32 +113,30 @@ cartas. Escribe el diario hablándole al padre**, a veces a la madre, y guarda t
 dárselo en la mano cuando vuelva. _"Así no te tengo que contar nada: mirás y listo."_
 **El padre nunca sabe que ese cuaderno existe.**
 
-### La escuadrilla — "los Fieles de Plata" _(backgrounds sin cambios)_
+### La escuadrilla — "los Fieles de Plata"
 
 - **"Puma" — Capitán Aurelio Sandoval**, 44. Tercera generación de uniforme. Su arco: la
   lealtad mudándose de la institución a las personas. Cuando Puma no sonríe, preocupate.
-  Cuando apaga la radio, rezá. 🟥 _(Nuevo: lleva pegada al panel de cabina una foto — las
+  Cuando apaga la radio, rezá.  _(Nuevo: lleva pegada al panel de cabina una foto — las
   tres generaciones de uniforme, y él de chico a upa del abuelo. Se paga en M14.)_
 - **"Gitano" — Teniente Facundo Ojeda**, 33. Cordobés. El optimismo como decisión, contra
-  una casa de golpes. Lo cuenta una sola vez, en el asado de M13. 🟨 _(Cambió: habla en
-  cordobés de verdad — "culiao", tonada. Ver guía de dialectos, sección 9.)_
+  una casa de golpes. Lo cuenta una sola vez, en el asado de M13. Habla en cordobés de
+  verdad, con tonada y todo.
 - **"Vasco" — Teniente Iñaki Arrieta**, 36. El callado. La foto de la mujer joven en el
   locker que **todos vieron** y el pasado en tres rumores que **nunca se confirman**.
-  Todo el mecanismo de la foto: **idéntico a 2.3** (ver M7 y Notas §8a).
-- **"Pichón" — Alférez Tomás Rivas**, 22. El superdotado inocente. 🟨 _(Cambió el sistema
-  de sus mejoras — ahora roguelike, ver sección 5 — y crece su dinámica cómica con el
-  Turco: probablemente hubiera sido mejor ingeniero que piloto, y no tuvo tiempo de
-  descubrirlo. Se ve, no se dice.)_
+  Lo que hay detrás de esa foto se revela en la Misión 7.
+- **"Pichón" — Alférez Tomás Rivas**, 22. El superdotado inocente. De su libreta salen las
+  mejoras que el jugador va instalando en el avión, misión a misión. Probablemente hubiera
+  sido mejor ingeniero que piloto, y no tuvo tiempo de descubrirlo. Se ve, no se dice.
 
-### El de la pista — "el Turco" _(sin cambios)_
+### El de la pista — "el Turco"
 
 **Suboficial Miguel Salomón**, mecánico jefe. Pinta **una estrellita por cada regreso**.
-"Los ingleses cuentan lo que bajan. Yo cuento lo que vuelve." 🟨 _(Habla tucumano:
+"Los ingleses cuentan lo que bajan. Yo cuento lo que vuelve."  _(Habla tucumano:
 "m'hijo", "changuito", "esto no lo levanta ni Alá".)_
 
-### El que protege al hijo — "Colorado" 🟨
+### El que protege al hijo — "Colorado"
 
-_(Cambió: se agregan la navaja, los jazmines y el destino de la foto.)_
 **Cabo Aníbal Correa**, 26, correntino. Mientras Correa vive, Mateo tiene techo. Habla con
 "chamigo" y "angá", pausado, dulzura guaraní. **Mucho antes de morir le regala a Mateo la
 navaja de su abuelo** — cortaplumas gastado, cabo de asta: _"En el campo, un hombre sin
@@ -148,36 +145,26 @@ navaja Mateo va a tallar el VAMOS A VOLVER** (M12), y la navaja vuelve en la enc
 Su hermana **Claribel… no: su hermana es la de la foto** — la foto gastada que le muestra a
 Mateo en M6 y que **queda con Mateo** cuando Correa muere, pegada al cuaderno.
 
-### El rostro de la corrupción — Subteniente Bordón _(sin cambios)_
+### El rostro de la corrupción — Subteniente Bordón
 
 No es el villano: es un hombre chico con una pizca de poder. El verdadero responsable está
 en un despacho al que Bordón jamás va a llegar.
 
-### La que espera — la madre 🟨
+### La que espera — la madre
 
-**Norma.** 🟨 **3.4: HABLA, y se le ve la cara** _(muere el canon viejo de "ni una línea en
-escena")_. Habla poco y justo: cálida, práctica, sin vueltas. Su escena es **P.2, la
-llamada del 2 de abril** — atiende el teléfono, y es ella la que le explica a Mateo lo del
-apodo del padre. **Norma es la guardiana de la historia de Tero**: lo que Mateo sabe de su
-viejo se lo contó ella, porque el nene era chico y el padre nunca estaba.
+**Norma.** Ni una línea de diálogo **en escena**.
 
-Después de P.2 casi no vuelve a hablar, y esa mudez pesa: la última vez que la oímos era el
-mundo de antes de la guerra. Vuelve en el cierre — en el **Final A** es ella la que recibe
-la encomienda y pone los dos papeles enfrentados; en el **B** está en el patio, en el
-jazminero, y entra corriendo cuando Esteban grita. _(Ver §6.)_
-
-### La que escribe sin conocer — Claribel _(sin cambios)_
+### La que escribe sin conocer — Claribel
 
 9 años, Villa Mercedes, San Luis. Una carta de escuela "a un soldado argentino". Aparece
 una vez y alcanza.
 
-### La voz de la base — "Cóndor" 🟨
+### La voz de la base — "Cóndor"
 
-_(Cambió: mucho más presente — es mecánica y es ritual.)_
 Los A-4 **no tenían radar**: dependían del control de tierra. Cóndor está en TODAS las
 misiones — avisa lo que los aviones no pueden ver… **y la señal se pierde**, a veces en el
 peor momento, y el jugador queda ciego. Además, el **ritual de lanzamiento**: la misma
-fórmula épica antes de cada misión:
+fórmula épica antes de cada misión (referencia de tono: la activación de Pacific Rim):
 
 > **CÓNDOR:** _Plata Fiel, Plata Fiel. Aquí Cóndor. Cielo despejado al sur. Viento en la
 > cola. Bajito y a casa. — Buena caza, muchachos._
@@ -186,69 +173,38 @@ Doce veces escalofrío. La decimocuarta, freno: en M14 el ritual se corta en la 
 
 ---
 
-## 🟨 4. Los indicativos — el aviario en la radio _(renumerado a 14; dos aves nuevas)_
+## Los indicativos — el aviario en la radio
 
 Regla igual que siempre: apodos humanos para la gente, aves para la radio. Tero y Pichón,
 las dos aves "humanas" secretas.
 
 | Misión | Título                    | Indicativo             | Nota                               |
 | ------ | ------------------------- | ---------------------- | ---------------------------------- |
-| M1     | Sal en las alas           | **CAUQUÉN**            | 🟨 ahora tutorial puro             |
+| M1     | Sal en las alas           | **CAUQUÉN**            | tutorial                           |
 | M2     | Bautismo de fuego         | **CHIMANGO**           |                                    |
-| 🟥 M3  | El invento                | **BENTEVEO**           | nueva — el que se mete en todo     |
-| M4     | El día que sangró el mar  | **ALBATROS**           | ex M3                              |
-| M5     | El callejón de las bombas | **AGUILUCHO**          | ex M4                              |
-| M6     | La bomba que no despertó  | **CARANCHO**           | ex M5 · 🟨 acá se rompe la Chancha |
-| M7     | 25 de Mayo                | **ZORZAL**             | ex M6 · muere el Vasco             |
-| M8     | El batir de alas          | **HORNERO**            | ex M7 · el sobrevuelo              |
-| M9     | El pibe                   | **GOLONDRINA**         | ex M8 · muere el Pichón            |
-| 🟥 M10 | Los primos                | **CHINGOLO**           | nueva — la primera con tres · Tandil |
-| M11    | Lo que no se dice         | **CALANDRIA**          | ex M9 · el respiro                 |
-| M12    | El ángel Correntino       | **CHAJÁ**              | ex M10 · muere Correa              |
-| M13    | La última mesa            | **CABURÉ**             | ex M11 · el asado                  |
+| M3     | El invento                | **BENTEVEO**           | el que se mete en todo             |
+| M4     | El día que sangró el mar  | **ALBATROS**           | la primera gran victoria           |
+| M5     | El callejón de las bombas | **AGUILUCHO**          | San Carlos                         |
+| M6     | La bomba que no despertó  | **CARANCHO**           | acá se rompe la Chancha            |
+| M7     | 25 de Mayo                | **ZORZAL**             | muere el Vasco                     |
+| M8     | El batir de alas          | **HORNERO**            | el sobrevuelo                      |
+| M9     | El pibe                   | **GOLONDRINA**         | muere el Pichón                    |
+| M10    | Los primos                | **CHINGOLO**           | la primera con tres · Tandil       |
+| M11    | Lo que no se dice         | **CALANDRIA**          | el respiro                         |
+| M12    | El ángel Correntino       | **CHAJÁ**              | muere Correa                       |
+| M13    | La última mesa            | **CABURÉ**             | el asado                           |
 | M14    | El tero                   | **— (sin indicativo)** | misión denegada: **Plata Fiel**    |
 
 ---
 
-## 🟥 5. Las mejoras — sistema roguelike _(reemplaza al viejo §2c)_
-
-**El guion NO define mejoras concretas.** Ni nombres, ni niveles, ni tabla misión→mejora
-(la tabla de la 2.3 queda como referencia de sabor, no como spec). Las define Matías
-después: niveles 1/2/3, piruetas, munición, velocidad. El guion fija solo el sistema
-narrativo:
-
-- **Desde M3, después de cada misión el juego ofrece DOS mejoras y se elige UNA** — estilo
-  roguelike: cada partida arma un avión distinto.
-- **La fuente es el Pichón, pero indirecta:** no presenta inventos — hace **observaciones**
-  (sobre los motores, los aviones, lo que pasó en la misión) que el Turco recoge, discute y
-  a regañadientes prueba.
-- **El ritual cómico** (se conserva de la 2.3): _"Pibe, eso no se puede." (pausa) "…A ver.
-  Mostrame."_ Y se agrega: **intentos irrisorios que fallan** — cosas que se caen, que
-  hacen un ruido espantoso, que el Turco desarma a las puteadas. No todo le sale al pibe, y
-  eso lo hace querible. Cuando algo funciona, el Turco se atribuye la mitad del mérito.
-- **El Turco NO sabe que existe la libreta** hasta la muerte del Pichón (M9). Al abrirla
-  entiende dos cosas de un saque: que todo salía de ahí, y que **lo que llegaron a probar
-  era UN CUARTO de lo que el pibe tenía dibujado**. Un cuaderno de Da Vinci escrito por un
-  conscripto con grasa en las manos. Las mejoras post-M9 salen de la libreta: el Turco
-  construye de noche lo que el pibe dejó, como quien ejecuta un testamento.
-- **Se conserva de la 2.3, intocable:** la última página de la libreta — el **TONEL
-  BARRIL**, _"para cuando haya que volver a buscar a alguien"_ — y su pago en M14: la
-  maniobra que el Pichón imaginó para rescatar es la que un padre usa para despedirse.
-- **La simetría de los dos cuadernos** (Mateo = memoria; Pichón = futuro) se mantiene: en
-  RASANTE hasta el árbol de mejoras es un acto de duelo.
-
----
-
-## 🟨 6. El dispositivo narrativo — la mesa, años después
-
-_(Cambió TODO el sistema de papeles. Leer entero.)_
+## El dispositivo narrativo — la mesa, años después
 
 **Tres registros, dos papeles, una mesa:**
 
 - **AIRE (Esteban / vos):** briefing, cabina, combate. Tipografía técnica.
 - **TIERRA (Mateo):** las páginas del cuaderno — **un diario que le habla al padre**, a
   veces a la madre, con dibujos. **Nunca se manda nada.** Manuscrita, birome.
-- **LA CARTA (Esteban):** 🟨 **UNA sola en todo el juego.** La escribe la noche del asado
+- **LA CARTA (Esteban):**  **UNA sola en todo el juego.** La escribe la noche del asado
   (M13), **a Norma**, "por las dudas". El jugador la ve escribirse **pero no la lee** — se
   revela recién en el Final A. Block militar, letra apretada.
 
@@ -259,7 +215,7 @@ silencio postal es lo que hace verosímil la tragedia.** Las preguntas que Mateo
 ("contame cómo se ve desde arriba") no esperan respuesta: son la forma que tiene un pibe de
 no volverse loco.
 
-**El marco — oculto hasta el final.** 🟨 _(3.2 — decisión de Matías.)_ El juego ABRE
+**El marco — oculto hasta el final.**   El juego ABRE
 directo en la historia: el arroyo, la cocina del 82, la guerra. **Ningún indicio de que
 esto está siendo leído.** Recién en el cierre se revela el marco, **y es distinto según el
 final**: en el **A**, la encomienda golpea la puerta de Norma años después, ella trae la
@@ -268,29 +224,29 @@ que leyó los dos. En el **B**, el que abre la encomienda es Esteban: el lector 
 _(Este cambio resuelve además una contradicción latente: si el juego abría con Norma
 leyendo, el Final B rompía el marco. Ahora cada final tiene su lector.)_
 
-**La regla de montaje** (sin cambios): lo que pasa arriba y abajo rima. Nunca se ven —
-salvo una vez, desde lejos, en M8. 🟨 _(Y ahora ni esa vez es segura: ver M8.)_
+**La regla de montaje** : lo que pasa arriba y abajo rima. Nunca se ven —
+salvo una vez, desde lejos, en M8.  _(Y ahora ni esa vez es segura: ver M8.)_
 
-**Orden por misión** 🟨: _briefing → misión → epílogo de aire → página del cuaderno._
+**Orden por misión** : _briefing → misión → epílogo de aire → página del cuaderno._
 (Ya no hay fragmentos de carta del padre entre misiones — la carta es una y es de M13.)
 La única vez que el orden se rompe es M12, que corta a tierra en pleno vuelo.
 
 ---
 
-## 🟨 7. Mapa emocional — cuatro movimientos _(renumerado)_
+## Mapa emocional — los cuatro movimientos
 
 | Movimiento           | Misiones        | Lo que se siente                         | Lo que se instala                                                          |
 | -------------------- | --------------- | ---------------------------------------- | -------------------------------------------------------------------------- |
-| **I — El nido**      | P.1–P.4 + M1–M4 | Orgullo, risa, hermandad                 | La familia. La escuadrilla. La brecha. 🟥 El invento.                      |
-| **II — El callejón** | M5–M8           | Desgaste, primera pérdida, ternura       | 🟨 La Chancha rota. Muere el Vasco. El sobrevuelo.                         |
-| **III — Solo**       | M9–M13          | Duelo, frío, 🟥 ternura que llega tarde, rabia | Muere el Pichón. 🟥 Los primos (Tandil). El respiro. Muere Correa. El asado. La carta. |
-| **IV — El tero**     | M14 + Finales   | Contrarreloj, sacrificio, LA DECISIÓN    | 🟥 Dos finales. La mesa.                                                   |
+| **I — El nido**      | P.1–P.4 + M1–M4 | Orgullo, risa, hermandad                 | La familia. La escuadrilla. La brecha.  El invento.                      |
+| **II — El callejón** | M5–M8           | Desgaste, primera pérdida, ternura       |  La Chancha rota. Muere el Vasco. El sobrevuelo.                         |
+| **III — Solo**       | M9–M13          | Duelo, frío,  ternura que llega tarde, rabia | Muere el Pichón.  Los primos (Tandil). El respiro. Muere Correa. El asado. La carta. |
+| **IV — El tero**     | M14 + Finales   | Contrarreloj, sacrificio, LA DECISIÓN    |  Dos finales. La mesa.                                                   |
 
 ---
 
 # PRÓLOGO — "El cielo compartido"
 
-### 🟨 Viñeta P.1 — El arroyo _(años antes; el primer dibujo del cuaderno)_
+### Viñeta P.1 — El arroyo _(años antes; el primer dibujo del cuaderno)_
 
 **Imagen:** un campo en la provincia. Un Rastrojero oxidado. Esteban joven de uniforme
 revolea una piedra chata: pica una, dos, tres veces. **Mateo, ocho años, está sentado en la
@@ -346,7 +302,7 @@ Montaje: el teléfono de la base, papeles, un despacho, una puerta que se cierra
 
 **CÓNDOR (radio, seco):** Aldao. Su hijo ya está embarcado. Está en las islas. Lo siento.
 
-### 🟨 Viñeta P.4 — La primera página del cuaderno
+### Viñeta P.4 — La primera página del cuaderno
 
 > _Viejo:_
 >
@@ -371,12 +327,12 @@ _Cartel:_ Esa misma semana, empezaba la guerra.
 
 # MOVIMIENTO I — EL NIDO
 
-## 🟨 MISIÓN 1 — "Sal en las alas"
+## MISIÓN 1 — "Sal en las alas"
 
 \*Mar abierto. **TUTORIAL PURO: sin jefe, sin enemigos, sin un solo disparo enemigo.\***
 _(Es la misión de conocer a la familia.)_
 
-### Briefing (aire) _(el diálogo, sin cambios — es el mejor hangar del juego)_
+### Briefing (aire)
 
 La línea de vuelo de Río Gallegos, de madrugada. El Turco ceba mate como quien da la
 comunión. Esteban conoce a la familia.
@@ -443,12 +399,12 @@ blancos. El peligro es el mar y la torpeza propia. Cuanto más abajo, mejor punt
 huevos se enseñan como mecánica antes que como discurso. Desempeño máximo = **"Volviste con
 sal en las alas."**
 
-### Epílogo (aire) _(sin cambios)_
+### Epílogo (aire)
 
 Todos vuelven. El Turco pinta cinco estrellitas con la lengua afuera. Por un rato, esto
 parece una aventura.
 
-### El cuaderno (tierra) 🟨 _(página de diario; entra el cuero de oveja del Colorado)_
+### El cuaderno (tierra)
 
 > _Viejo:_
 >
@@ -475,11 +431,11 @@ _(El jugador entiende lo que Mateo sospecha: sí, lo mandó. Es lo único que pu
 
 ---
 
-## MISIÓN 2 — "Bautismo de fuego" _(sin cambios de estructura)_
+## MISIÓN 2 — "Bautismo de fuego"
 
 _1 de mayo. Costa. Boss: radar británico. La primera de verdad._
 
-### Briefing (aire) _(sin cambios)_
+### Briefing (aire)
 
 **PUMA:** Ellos tienen la máquina. Nosotros tenemos las manos. Vamos a volar tan bajo que la
 máquina no va a poder creer que alguien esté tan loco. Esa incredulidad es toda nuestra
@@ -527,7 +483,7 @@ chapa toda la noche. A la mañana, agujeros parchados y una estrellita nueva.
 
 ---
 
-## 🟥 MISIÓN 3 — "El invento"
+## MISIÓN 3 — "El invento"
 
 _Primeros días de mayo. Patrulla costera. Sin boss. La misión de la comedia — y el arranque
 del sistema de mejoras._
@@ -581,10 +537,10 @@ _(Silencio. Todos miran.)_
 **GITANO:** _(al borde de las lágrimas de risa)_ "Interesante", dice el culiao. Casi me
 mata una arandela voladora... Ajá... "interesante".
 
-_(A partir de acá, tras cada misión, el juego ofrece **dos mejoras y se elige una** —
-presentadas siempre en el hangar con una viñeta de la dupla. Ver sección 5. El Pichón
-observa, el Turco reniega y prueba, y la escuadrilla vuela cada vez un poco mejor porque un
-pibe de 22 mira los aviones como nadie los miró.)_
+_(A partir de acá, entre misión y misión, el juego ofrece **dos mejoras y el jugador elige
+una** — siempre en el hangar, siempre con una viñeta de la dupla. El Pichón observa, el
+Turco reniega y prueba, y la escuadrilla vuela cada vez un poco mejor porque un pibe de 22
+mira los aviones como nadie los miró.)_
 
 ### El cuaderno (tierra)
 
@@ -609,11 +565,11 @@ una encomienda, años después.)_
 
 ---
 
-## MISIÓN 4 — "El día que sangró el mar" _(ex M3 — solo renumerada)_
+## MISIÓN 4 — "El día que sangró el mar"
 
 _4 de mayo. Boss: destructor HMS Sheffield._
 
-### Briefing (aire) _(sin cambios — incluye la profecía de la gambeta)_
+### Briefing (aire)
 
 **GITANO:** ¡Le dimos! ¡A la Royal Navy le dimos, muchachos! ¡Que se enteren en Londres que
 acá abajo hay gente con huevos! ¡Argentina, carajo!
@@ -631,14 +587,14 @@ TODOS, Puma. Y ese día va a ser más grande que éste.
 
 **PUMA:** Ojalá la única guerra que nos quede sea esa.
 
-### La misión / Epílogo _(sin cambios)_
+### La misión / Epílogo
 
 El jugador les hace sentir miedo A ELLOS: voces británicas de pánico real por radio — "Low
 level! Here they come again!" Primera gran victoria; Puma se aparta y mira el mar sin
 sonreír. _(La segunda aparición de la foto del Vasco — el plano en silencio del locker —
 se mueve acá, que ahora es la tercera misión con hangar: el Vasco la mira dos segundos, se besa la mano y toca la foto. Luego cierra la puerta. El jugador cree ver a un hombre extrañando a su amante.)_
 
-### El cuaderno (tierra) _(sin cambios — el anuncio del segundo piloto)_
+### El cuaderno (tierra)
 
 > _¡Viejo!_
 >
@@ -667,11 +623,11 @@ Esteban es también el vuelo que Mateo no va a llegar a hacer.)_
 
 # MOVIMIENTO II — EL CALLEJÓN
 
-## MISIÓN 5 — "El callejón de las bombas" _(ex M4 — solo renumerada)_
+## MISIÓN 5 — "El callejón de las bombas"
 
 _21 de mayo. San Carlos. Boss: fragata HMS Ardent._
 
-### Briefing _(sin cambios)_
+### Briefing
 
 **PUMA:** Es la boca del lobo. Entramos, soltamos, salimos. Nadie se hace el héroe: los
 héroes no llegan a cebar el mate de la tarde.
@@ -689,13 +645,13 @@ montañas de cosas para los pibes de las islas. Chocolates, cigarrillos, abrigo�
 
 **GITANO:** _(cerrando la cúpula)_ Y nada. Eso digo. Juntaron.
 
-### La misión / Epílogo _(sin cambios)_
+### La misión / Epílogo
 
 El infierno del Callejón. El Ardent arde. El Vasco vuelve con el tren colgando como una
 pata quebrada; el Turco no le pinta la estrellita hasta el otro día porque le temblaba el
 pulso.
 
-### El cuaderno (tierra) 🟨 _(se suma la oveja y el caracú — el hambre en crudo)_
+### El cuaderno (tierra)
 
 > _Pá:_
 >
@@ -721,11 +677,11 @@ pulso.
 
 ---
 
-## 🟨 MISIÓN 6 — "La bomba que no despertó" _(Se rompe la Chancha)_
+## MISIÓN 6 — "La bomba que no despertó" _(Se rompe la Chancha)_
 
 _23 de mayo. Boss: fragata HMS Antelope._
 
-### Briefing _(incluye el chiste de la casada nº3)_
+### Briefing (aire)
 
 **GITANO:** A ver si entendí. ¿Le pego, le pego BIEN, en el medio del casco… y no explota?
 
@@ -739,11 +695,11 @@ _(a Vasco, recuperando el chiste porque lo necesita)_ Y si no vuelvo, Vasco, dec
 **ESTEBAN:** _(mirando la bomba bajo el ala)_ Es como el sapito... La piedra va tan
 pegada al agua que no se hunde. El problema... es que nosotros necesitamos que se hunda.
 
-### La misión _(sin cambios)_
+### La misión
 
 Hacés TODO bien y el sistema te lo niega. Los huevos no alcanzan y hay que ponerlos igual.
 
-### Epílogo — la Chancha _(la Chancha se rompe acá, salvando al Gitano)_
+### Epílogo — la Chancha
 
 El Antelope explota de noche: una bomba dormida despierta mientras un artificiero británico
 intentaba desactivarla. _Del otro lado, un hombre murió tratando de salvar a los suyos._
@@ -774,7 +730,7 @@ noche, la Chancha vuela corto: sirve para trabajos cerca, **no puede sostener la
 largas al sur**. Nadie subraya el dato. Va a importar en M13, cuando alguien diga "sin
 Chancha no hay nafta de vuelta". **El Gitano lo sabe mejor que nadie: se rompió por él.**)_
 
-### El cuaderno (tierra) _(sin cambios)_
+### El cuaderno (tierra)
 
 > _Viejo:_
 >
@@ -795,11 +751,11 @@ Chancha no hay nafta de vuelta". **El Gitano lo sabe mejor que nadie: se rompió
 
 ---
 
-## MISIÓN 7 — "25 de Mayo" _(ex M6 — MUERTE DE VASCO.)_
+## MISIÓN 7 — "25 de Mayo"
 
 _25 de mayo. Boss: destructor HMS Coventry._
 
-### Briefing _(sin cambios — el Vasco habla de más sin saber que se despide)_
+### Briefing
 
 Fiesta patria. Pastelitos, chocolate caliente en un tacho de aceite lavado. El día de moral
 más alta del juego… elegido a propósito para el primer gran golpe.
@@ -820,7 +776,7 @@ cuatro veces.
 
 _(Nadie le da importancia. Esa es la idea.)_
 
-### La misión / la muerte _(sin cambios)_
+### La misión / la muerte
 
 El Vasco siempre visible, ala con ala. El Coventry cae. A la salida, un Sea Harrier lo
 engancha. El jugador lo tiene al lado. No puede hacer nada.
@@ -870,14 +826,14 @@ _(Silencio. Nadie tiene la respuesta.)_
 **PUMA:** No sé. Nunca se lo pregunté. Un tipo que vuela como volaba él no me tiene que
 explicar de dónde vino. _(mira la foto)_ Y ya nunca lo sabremos.
 
-🟨 **GITANO:** _(agarrando el mate frío que tiene en la mano desde hace una hora)_ **Tres
+ **GITANO:** _(agarrando el mate frío que tiene en la mano desde hace una hora)_ **Tres
 años le cebé mate a este culiao. Tres años, desde que éramos unos giles en la escuela de aviación.** _(pausa)_ Y
 nunca me dijo ni de qué cuadro era. _(se ríe y llora a la vez)_ Ni de qué cuadro era, Turco.
 
 **EL TURCO:** _(envuelve la foto en su pañuelo, se la guarda en el mameluco)_ …Me la quedo
 yo hasta que volvamos _(a la foto, bajito)_ Señora: su hijo fue el mejor de todos nosotros.
 
-### El cuaderno (tierra) _(sin cambios — la muerte del jujeño)_
+### El cuaderno (tierra)
 
 > _Pá:_
 >
@@ -900,11 +856,11 @@ yo hasta que volvamos _(a la foto, bajito)_ Señora: su hijo fue el mejor de tod
 
 ---
 
-## 🟨 MISIÓN 8 — "El batir de alas" _(ex M7 — EL SOBREVUELO. Cambió: la ambigüedad.)_
+## MISIÓN 8 — "El batir de alas"
 
 _25 de mayo, segunda salida. Boss: Atlantic Conveyor._
 
-### Briefing _(sin cambios)_
+### Briefing
 
 **PUMA:** Por el Vasco. Sin gritos, sin euforia. Lo hacemos y volvemos. Todos. ¿Me oyeron?
 Todos.
@@ -916,7 +872,7 @@ preguntan... yo no vi nada.
 
 **GITANO:** NADIE vió nada. Andá a saludar a tu pibe, Tero.
 
-### La misión _(sin cambios)_
+### La misión
 
 El Conveyor. En el epílogo se sabrá que su capitán, **Ian North**, murió ayudando a evacuar
 a su tripulación: otro valiente del otro lado.
@@ -935,7 +891,7 @@ _(Cuadro siguiente: decenas de casquitos, brazos en alto, gorros revoleados. Y u
 flaco parado al borde del pozo, agitando un cuaderno contra el cielo, gritando un nombre
 que el viento se lleva.)_
 
-🟥 **ESTEBAN:** _(en cabina, buscando con los ojos — pero el monte es una multitud de
+ **ESTEBAN:** _(en cabina, buscando con los ojos — pero el monte es una multitud de
 casquitos iguales y la velocidad no perdona)_ …¿Estás ahí, Mateo? ¿Alguno de esos sos vos?
 _(el monte ya quedó atrás)_ …Tenías que ser vos. Alguno tenías que ser vos.
 
@@ -944,7 +900,7 @@ _(el monte ya quedó atrás)_ …Tenías que ser vos. Alguno tenías que ser vos
 _(Mateo lo reconoció — vio el terito. El jugador carga una certeza que el padre se muere
 sin tener (Final A) o recién recupera de viejo, leyendo el cuaderno (Final B).)_
 
-### El cuaderno (tierra) — la página del cielo _(la certeza de Mateo, recuperada)_
+### El cuaderno (tierra) — la página del cielo
 
 > _¡¡PÁ!!_
 >
@@ -977,11 +933,11 @@ final como una puñalada.)_
 
 # MOVIMIENTO III — SOLO
 
-## 🟨 MISIÓN 9 — "El pibe" _(ex M8 — MUERE EL PICHÓN)_
+## MISIÓN 9 — "El pibe"
 
 _Boss: centro logístico de San Carlos. La bisagra del juego._
 
-### Briefing _(sin cambios)_
+### Briefing
 
 **PUMA:** Pichón, vos pegado a mí. No te separás ni para respirar.
 
@@ -992,7 +948,7 @@ pibe que respira un día más. Para eso sirve. No para la bandera del mástil: p
 
 **ESTEBAN:** _(pensando en alguien agitando algo contra el cielo)_ …por los pibes.
 
-### La misión / la muerte _(sin cambios)_
+### La misión / la muerte
 
 El infierno absoluto. A la salida, un misil que venía para Esteban gira… y engancha a
 Pichón, que cubría su cola. **El pibe muere en el lugar exacto del padre.**
@@ -1046,23 +1002,17 @@ ritual se vuelve fantasma: "…A ver, pibe. Mostrame.")_
 
 ---
 
-## 🟥 MISIÓN 10 — "Los primos" _(la primera con tres. Y, a dos mil kilómetros, el regalo que llega tarde.)_
+## MISIÓN 10 — "Los primos"
 
 _5 de junio. Reconocimiento armado sobre las islas con el tiempo cerrado. **Sin buque: el
 enemigo es el clima, la nafta y el lugar vacío.**_
 
-> **Base histórica (VERIFICADA — cambió todo respecto del borrador 3.0):** los diez Mirage
-> 5P salieron de La Joya (Arequipa), hicieron **escala nocturna de reabastecimiento en
-> Jujuy** y aterrizaron en **TANDIL** — a dos mil kilómetros de las bases del sur. Los
-> volaron **pilotos peruanos**, con las **escarapelas argentinas ya pintadas antes de
-> despegar**, y volvieron a su país el mismo día en un **Hércules C-130 disfrazado de vuelo
-> comercial de Aeroperú**. **Nunca entraron en combate.**
-> El guion no inventa nada: cuenta exactamente eso. _(Discrepancia de fechas y detalles
-> pendientes → PREGUNTAS_HISTORICAS.md.)_
->
-> 🟥 **Muere el borrador viejo:** no hay escolta sobre el mar (era imposible: Tandil está en
-> la otra punta del país), no hay formación compartida, no hay voz peruana por radio, no
-> hay combate peruano. Esa versión mentía sobre un país real que ayudó de verdad.
+> **Nota histórica.** Todo lo que se cuenta en esta misión ocurrió. El Perú entregó diez
+> Mirage 5P: salieron de La Joya, en Arequipa, hicieron una escala nocturna de
+> reabastecimiento en Jujuy y aterrizaron en Tandil, a dos mil kilómetros del sur. Los
+> volaron pilotos peruanos, con las escarapelas argentinas ya pintadas antes de despegar, y
+> volvieron a su país el mismo día en un Hércules C-130 con librea de Aeroperú. Nunca
+> entraron en combate.
 
 ### Briefing (aire) — el lugar vacío
 
@@ -1114,8 +1064,7 @@ el vuelo — nadie la ocupa.)_
 
 Sin boss y sin blancos: **el nivel es el clima.** Frente cerrado, lluvia, niebla larga,
 viento cruzado, el mar arriba y abajo a la vez. La distancia más larga del juego. **La
-señal de Cóndor se pierde y vuelve** — cuando se pierde, el jugador queda ciego (§4 de
-notas de producción, el radar humano). Y el indicador de combustible, que hasta ahora era
+señal de Cóndor se pierde y vuelve** — cuando se pierde, el jugador queda ciego (el radar humano de la escuadrilla). Y el indicador de combustible, que hasta ahora era
 decorado, **hoy es el reloj**: la Chancha está rota desde M6 y no hay quien te espere a
 mitad de camino. No se mata a nadie. Se vuelve, y volver cuesta todo.
 
@@ -1123,7 +1072,7 @@ _(Diseño: es el contraste de M9. La misión del Pichón era el infierno lleno; 
 infierno vacío. Y planta la nafta como mecánica tres misiones antes de que M13 la convierta
 en trama: "sin Chancha no hay nafta de vuelta".)_
 
-### 🟥 INTERCALADO — Tandil, la misma madrugada
+### INTERCALADO — Tandil, la misma madrugada
 
 _(Segunda y última vez que el juego rompe su regla de montaje. La primera es M12.)_
 
@@ -1200,7 +1149,7 @@ avión de Tandil va a bajar a tiempo, y que mañana salen otra vez con lo que ti
 jugador vio aterrizar esos aviones. Ellos no. **La misma asimetría de siempre — acá, con
 ternura en lugar de dolor.**)_
 
-### 🟥 EL DESBLOQUEO _(registro SISTEMA — fuera de la campaña)_
+### El desbloqueo
 
 Cerrado el epílogo, una placa de sistema. **No cambia nada de la campaña: los Fieles de
 Plata terminan la guerra en A-4B, como fue.** Lo que se abre es el resto del juego.
@@ -1210,10 +1159,8 @@ Plata terminan la guerra en A-4B, como fue.** Lo que se abre es el resto del jue
 > **Acá, sí.**
 > Disponible en CICLO · ARENA · MINUTOS SAGRADOS.
 
-_(Es el único desbloqueo del juego que no sale de la libreta del Pichón. Y es honesto: la
-historia dice que no pelearon, el juego no lo contradice — se lo regala al jugador en los
-modos donde no hay historia que traicionar. Detalle de implementación → PLAN_CAMPANA_001,
-§7.)_
+_(Es honesto: la historia dice que esos aviones no pelearon, y el juego no lo contradice.
+Se lo regala al jugador en los modos donde no hay una historia que traicionar.)_
 
 ### El cuaderno (tierra)
 
@@ -1240,7 +1187,7 @@ tiene las dos mitades otra vez.)_
 
 _8 de junio, Fitzroy. Boss: RFA Sir Galahad._
 
-### Briefing _(sin cambios)_
+### Briefing
 
 **PUMA:** Pegados, muchachos. Por el Vasco. Por el Pichón. Hoy volvemos todos. TODOS.
 
@@ -1252,13 +1199,13 @@ _(Gitano tiene el mate en la mano y no lo ceba: se le enfría entero y nadie se 
 das cuenta de que ya no te entra más, y seguís volando igual. Eso es todo el secreto, Tero.
 No hay más secreto que ese. Simplemente vivís con ese dolor todos los días.
 
-### La misión / Epílogo _(sin cambios)_
+### La misión / Epílogo
 
 Después del Pichón, el jugador espera el próximo golpe. **Y el golpe no llega.** Vuelven
 los tres. El Turco pinta tres estrellitas y se toca el bolsillo del mameluco — el gesto que
 viene haciendo desde la noche del Vasco.
 
-### El cuaderno (tierra) _(sin cambios — el plan del Colorado)_
+### El cuaderno (tierra)
 
 > _Viejo:_
 >
@@ -1280,7 +1227,7 @@ _(Ningún presagio explícito. El Colorado planeando un asado es todo lo que hac
 
 _8 de junio, segunda salida. Boss: RFA Sir Tristram._
 
-### Briefing _(sin cambios)_
+### Briefing
 
 **PUMA:** Otra vez. Ahora.
 
@@ -1302,7 +1249,7 @@ llueve. Mateo abajo, entero. Correa arriba, no.)_
 **MATEO:** ¡Colorado! ¡No, no, no! ¡Dijiste que salíamos juntos! ¡DIJISTE QUE SALÍAMOS
 JUNTOS!
 
-🟨 **CORREA (apenas, buscándole la mano — habla dando por hecho que Mateo sobrevive, y eso
+ **CORREA (apenas, buscándole la mano — habla dando por hecho que Mateo sobrevive, y eso
 es lo que parte al medio):** …Vos salís, chamigo. Vos salís seguro. _(le aprieta la mano)_
 Escuchame que es importante. Cuando la veas a la Teresa, decile que la quiero. Y llevale
 jazmines. **Le gustan los jazmines. Regalale jazmines la primera vez.** _(casi
@@ -1356,7 +1303,7 @@ sabe lo que pasó en ese monte. Esa asimetría es el juego entero en una pantall
 
 _11 de junio. Apoyo a los montes._
 
-### Briefing 🟨
+### Briefing
 
 La superioridad tecnológica ya inclinó la guerra. Quedan Puma, Gitano y Tero. La misión:
 apoyo a los montes — espantar a las fragatas que martillan las posiciones argentinas de
@@ -1374,7 +1321,7 @@ perfecto.
 
 **ESTEBAN:** Entonces no me pidas que vuelva. Pedime que llegue.
 
-🟨 **GITANO:** _(se para, y por única vez la tonada no trae chiste — trae fuego)_ ¿Solo?
+ **GITANO:** _(se para, y por única vez la tonada no trae chiste — trae fuego)_ ¿Solo?
 ¿Vos estás en pedo, culiao? **Seis veces me trajiste vivo a casa. SEIS. Y la Chancha se
 rompió por traerme a MÍ.** Hoy te toca cobrar. Hoy el cielo te lo abrimos nosotros, aunque
 haya que empujar los misiles con la mano.
@@ -1464,7 +1411,7 @@ no están en la mesa.
 >
 > _Mateo._
 
-### LA CARTA — la única del juego _(esa noche, después del asado)_
+### La carta — la única del juego
 
 _(Las brasas apagándose. Esteban solo, con una hoja de block militar apoyada en la rodilla.
 La cámara lo muestra ESCRIBIR — la letra apretada, los tachones, la lapicera que se frena y
@@ -1483,12 +1430,10 @@ existe algo escrito y no poder leerlo todavía.)_
 
 # MOVIMIENTO IV — EL TERO
 
-## MISIÓN 14 — "El tero" _(Detalle de diseño en MISION_FINAL.md)_
+## MISIÓN 14 — "El tero"
 
 _Madrugada del 12 de junio. **Contrarreloj.** El boss es el reloj._
 
-> Diseño completo del nivel (fases, densidades, timing, layout) en
-> [MISION_FINAL.md](MISION_FINAL.md). Acá va el guion de las escenas.
 
 ### Cómo se enteran — de rebote, por la radio
 
@@ -1529,8 +1474,8 @@ devolvés mañana. ¿Me oíste? Mañana. Me lo trae usted personalmente, Primer 
 voy a buscar yo a nado. _(a los tres, señalándolos con el dedo, uno por uno)_ Tres
 desayunos. Mañana sirvo TRES desayunos. El que falte me arruina la cuenta.
 
-_(CAMBIÓ el régimen entero de la despedida: el plan es distraer, destruir Y VOLVER. El Turco
-espera a tres. Nadie anuncia sacrificios. Tres turbinas encienden en la noche.)_
+_(El plan es distraer, destruir y VOLVER. El Turco espera a tres. Nadie anuncia
+sacrificios. Tres turbinas encienden en la noche.)_
 
 ### Fase 1 — el reloj _(contrarreloj)_
 
@@ -1544,7 +1489,7 @@ a las seis, es—! _(estática. Nada más.)_
 _(El margen cómodo acaba de morir. Cuenta regresiva visible. De acá al final, la misión es
 una flecha.)_
 
-### Fase 2 — la pantalla _(la muerte del Gitano — EN ACCIÓN, sin anuncio)_
+### Fase 2 — la pantalla
 
 El corredor de piquetes y la fragata de guardia. El Gitano se abre alto y ruidoso — el
 señuelo más alegre del Atlántico Sur — para que Tero y Puma pasen pegados al agua. Los
@@ -1559,7 +1504,7 @@ _(explota el avión del gitano)_
 **PUMA** _(tres segundos después, la voz quebrada exactamente un milímetro)_: Plata 3
 fuera.
 
-### Fase 3 — el capitán _(la muerte de Puma — el show y el kamikaze)_
+### Fase 3 — el capitán
 
 Queda el enjambre de escolta: lo más denso del juego, imposible para dos.
 
@@ -1729,7 +1674,7 @@ _(Sin cartel. El mate quieto, el cuaderno abierto en la página del cielo. El Tu
 Esteban abrazar a Norma, que entró corriendo secándose las manos. La cámara se aleja.
 Pantalla a negro.)_
 
-## _(Ambos finales →)_ Cierre común
+## Cierre común — los dos finales llegan acá
 
 _Cartel:_ El 14 de junio de 1982, tras setenta y cuatro días, cesaron los combates.
 
@@ -1745,26 +1690,26 @@ juntas, los de los discursos de balcón."
 "A los que pelearon —a los de los dos lados— este juego los respeta por igual. La única
 bandera que no saluda es la de los que los mandaron a morir."
 
-### La cartela de los que ayudaron _(antes de la frase final)_
+### La cartela de los que ayudaron
 
 > _A los pueblos que nos tendieron una mano cuando el mundo miraba para otro lado._
 > **Al Perú, el primero.**
 > _(lista completa de países y aportes: verificar con el historiador antes de fijarla)_
 
-### La frase — antes de los créditos _(sin cambios)_
+### La frase — antes de los créditos
 
 > _"Allá hay gente tan buena como acá, lo que pasa es que no nos dejan conocernos.
 > Si las naciones dejaran conocer a su gente buena, no viviríamos en este infierno."_
 > — Diego Iorio
 
-### Dedicatoria _(sin cambios)_
+### Dedicatoria
 
 "Las Islas Malvinas continúan siendo objeto de un reclamo de soberanía por parte de la
 República Argentina, sostenido por medios diplomáticos y conforme al derecho internacional."
 "En homenaje a los caídos, a los veteranos y a sus familias. De los dos lados del mar. Y a
 los mecánicos, que contaban lo que volvía."
 
-### 🟥 Escena post-créditos — "El pibe de la 10" _(3.6: entra LA FRASE y se cierra Claribel)_
+### Escena post-créditos — "El pibe de la 10"
 
 El museo escolar, la vitrina con el cuaderno abierto en la página del monte. El pibe con la
 10 de la tercera estrella.
@@ -1788,179 +1733,20 @@ _(El pibe apoya la mano en el vidrio, exactamente como Norma sobre la página.)_
 
 _Cartel final, letra de Mateo:_ **"Volveremos. Volveremos otra vez."**
 
-> **Notas de la escena (no van en pantalla):**
->
-> - **"¿Y ganaron?" / "No."** es la única vez en todo el juego que alguien contesta esa
->   pregunta de frente. Va antes de la frase a propósito: la frase no celebra un triunfo,
->   **viene después de un no.** Ese es el único uso legítimo que tiene acá.
-> - **"la misma edad que tu hermano"** — la seño no dice "dieciocho años". Le da una medida
->   que el pibe puede tomar con el cuerpo. Es la única manera de explicarle una guerra a un
->   chico, y de paso deja ver que esta maestra conoce a la familia de este alumno.
-> - **El tono es de maestra, no de sermón.** Se agacha a su altura y le toca la camiseta
->   antes de hablar: el gesto viene primero, la frase después.
-> - **Sin cartel explicativo.** El pibe no dice de qué mundial es la camiseta, la seño no
->   dice quién fue Mateo. Regla de carteles.
-> - 🟥 **La seño ES Claribel** — la nena de nueve años de Villa Mercedes que en M9 le
->   escribió "cuando seas viejito contame cómo era el mar de ahí". Se cierra con **una sola
->   palabra**, en boca del pibe, y no se explica nunca. El que leyó esa página del cuaderno
->   se da cuenta; el que no, no pierde nada.
-> - ⚠ **Hilo abierto que esto acaba de agrandar:** la respuesta de Mateo a Claribel, escrita
->   y nunca enviada, sigue entre las páginas del cuaderno (nota 11). Si la seño es Claribel,
->   **está parada frente a una vitrina que contiene una carta dirigida a ella.** No se toca
->   por ahora: si algún día se usa, que sea sin subrayarlo — un plano de ella mirando el
->   cuaderno un segundo de más.
-> - ⚠ **Verificar la frase antes de publicar** → PREGUNTAS_HISTORICAS.md.
 
 ---
 
-# 9. GUÍA DE DIALECTOS _(aplicar a dialogos)_
-
-Una marca cada tantas líneas, no en todas. Sin caricatura. _(Verificar vigencia 1982 de
-cada regionalismo → PREGUNTAS_HISTORICAS.md.)_
-
-| Personaje             | Origen                             | Marcas                                                                                                |
-| --------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| **Gitano**            | Córdoba capital                    | "culiao" (afecto o insulto según tono), "¿qué hacé?", tonada estirada, diminutivos, remata con chiste |
-| **Colorado**          | Corrientes                         | "chamigo", "angá", pausado, dulzura guaraní, "pue" final                                              |
-| **Turco**             | Tucumán (sirio-libanés)            | "m'hijo", "chango/changuito", refranes inventados, "esto no lo levanta ni Alá". **Su comodín es "aca"** — ver §9b |
-| **Puma**              | Castrense, 3 generaciones          | Cero lunfardo; frases cortas; que UNA vez se le escape algo humano y se note muchísimo                |
-| **Vasco**             | Mar del Plata (colectividad vasca) | Casi no habla; seco y al hueso                                                                        |
-| **Tero / Mateo**      | Prov. de Buenos Aires              | Rioplatense llano; Mateo escribe "pa"/"ma", nunca completo                                            |
-| **Pichón**            | Entre Ríos                         | Habla rapidísimo cuando se entusiasma y se frena avergonzado a mitad de frase                         |
-| **Norma**             | Prov. de Buenos Aires              | Habla poco y justo: cálida, práctica, sin vueltas. La que pone nombre a las cosas ("a tu padre le dicen Tero") |
-| **Piloto peruano (M10)** | Perú                            | Limpio, cálido, formal-cariñoso: "hermano". Habla en tierra, en Tandil — nunca por radio en combate     |
-
-## 🟥 9b. EL TUCUMANO DEL TURCO — banco de palabras y regla de oro
-
-### La regla de oro _(esto es lo que hace que funcione)_
-
-**El Turco putea todo el día. Y cuando deja de putear, se te congela la sangre.**
-
-Su vulgaridad es cotidiana, cariñosa y constante en el taller, en el hangar, retando a los
-pibes, peleándose con un tornillo. Y **desaparece por completo en sus momentos sagrados**:
-
-- el locker del Vasco — _"Señora: su hijo fue el mejor de todos nosotros"_
-- la libreta del Pichón — _"Vos y yo tenemos trabajo, pibe"_
-- el pincel y los tres desayunos (M14)
-- la frase de la tesis (M10) — _"Hay gente buena en todos lados"_
-- el mate del Final B — _"¿Y eso qué importa, m'hijo?"_
-
-**En esas cinco escenas no dice una sola grosería.** El jugador no lo razona, pero lo
-siente: cuando al Turco se le va lo tucumano, es porque se le rompió algo adentro.
-_(Mismo principio que "la sonrisa de Puma": el recurso vale por lo que se administra.)_
-
-### El banco
-
-| Palabra | Qué es | Cómo la usa el Turco |
-|---|---|---|
-| **aca** | su comodín absoluto (vulgar, ≈ "mierda"; también "mezquino") | **la palabra madre.** "no sirve ni aca" · "esto no anda ni en aca" · "en la loma del aca" (lejísimos) · "hasta el aca" (harto / hasta las manos) · "una aca esto" · "sos un aca" · "te wa se aca" |
-| **chango / changuito** | pibe, muchacho (NO vulgar) | su forma de llamar al Pichón y a Mateo. **Cariño puro.** |
-| **cajeta / ura** | vulgares fuertes (genitales femeninos) | ⚠ **usar con cuentagotas y solo como interjección de bronca** (un tornillo pasado, un motor que no arranca). NUNCA dirigidas a una persona: al Turco lo queremos. |
-| **mavé** | "permítame ver" / pedir permiso | perfecta para él metiéndose entre los pibes a mirar un fuselaje |
-| **giriar** | escupir | gesto de mecánico: giria antes de agarrar una llave |
-| **"esto no lo levanta ni Alá"** | refrán inventado propio | ya canon — su marca sirio-libanesa |
-
-### Cómo dosificar
-
-Sigue valiendo la regla general de §9: **una marca cada tantas líneas, no en todas. Sin
-caricatura.** El Turco no es un personaje de sketch tucumano: es un mecánico de 58 años que
-habla como habla. Si en una escena ya dijo "m'hijo" y "changuito", no hace falta el "aca".
-
-⚠ **Vigencia 1982:** "aca", "chango/changuito", "mavé" y "giriar" son viejos y seguros.
-**"Qué pingo ura" y "calma la raja" NO se usan en el guion** — son fórmulas que hoy
-circulan como meme y muy probablemente no existían en 1982.
-Ver PREGUNTAS_HISTORICAS.md.
 
 ---
 
-# 10. NOTAS DE PRODUCCIÓN _(las reglas )_
+## Después de leer
 
-**1. Los papeles.** El cuaderno es un DIARIO: nada se manda, y el padre no lo sabe nunca —
-salvo en el Final B, donde lo lee de viejo. UNA carta (Esteban → Norma, M13), escrita POR
-LAS DUDAS —sin saber que mañana hay salida— e ilegible hasta el Final A. El marco queda
-OCULTO: el juego abre directo en P.1, y la escena de la encomienda (P.0) es la revelación
-del cierre — Norma en el Final A, Esteban en el B. _(Muere: la regla de copiar cartas, los 5 fragmentos, las "dos preguntas".)_
+Gracias por llegar hasta acá — son muchas páginas.
 
-**2. El sobrevuelo (M8).** La cadena M8 → M13 → M14 se mantiene, pero con la regla
-nueva: **nadie confirma EN VIDA que se vieron.** Cada uno lo decide. Salvo en el Final B,
-donde Esteban lee el cuaderno de viejo y la respuesta le llega décadas tarde.
+Si podés, volvé a las cinco preguntas del principio. Y si te quedó una sola sensación
+general, esa también sirve, aunque sea difusa: "me dejó tocado", "me aburrí en el medio",
+"el padre me cayó mal". Todo eso es información.
 
-**3. Los huevos son mecánica antes que discurso.**
+Las dos cosas que más me interesan, si tuviera que elegir: **dónde se te aflojó la
+atención**, y **si hay algo que no te creíste**.
 
-**4. La brecha tecnológica es jugable.** Y se suma: **Cóndor como radar humano** — los A-4 no tenían radar; la señal de Cóndor va y viene, y cuando se pierde el
-jugador queda ciego.
-
-**5. El miedo inglés se cuenta con audio.** _(Sin cambios.)_
-
-**6. Las muertes.** Vasco (M7) y Pichón (M9): sin cambios. Correa (M12): + jazmines +
-navaja. Gitano y Puma (M14): **reescritas** — Gitano muere EN ACCIÓN, se despide de Tero saludando al hijo; Puma
-muere mostrando por qué es el capitán, y su kamikaze abre el corredor. Ligera charla entre Tero y Puma previa muerte. **El Turco despide a tres esperando a tres.** Muertes en gameplay, nunca en cutscene que congele.
-
-**6b. No telegrafiar.** _(Sin cambios: el presagio se hace con planes.)_
-
-**7. La decisión final: DOS salidas, sin menú.** Virar a la oleada (Final A, la
-vorágine) o virar a casa (Final B, el oculto). No hay final "correcto". _(Muere el sistema
-de tres opciones con textos; muere el "final canónico donde el padre no vuelve": ahora lo
-decide el jugador de verdad.)_
-
-**8. Los objetos hacen memoria.** _(Actualizado:)_ el cuero de oveja (M1→M12) · la foto de
-la hermana de Correa —**Teresa**— (M6→M12→el cuaderno) · **la navaja del Colorado**
-(M3→M12 talla el VAMOS A VOLVER→la encomienda) · la foto de la madre del Vasco (M1/M4/M6
-visible → M7 reveal → Turco → asado → bolsillo de Esteban) · la libreta del Pichón · el
-pincel del Turco · la foto de cabina de Puma (M14) · la página del monte (M8→M13→M14) ·
-el cuaderno y la carta (todo el juego → la mesa).
-
-**8a. La foto del Vasco se MUESTRA.** _(Sin cambios — tabla de apariciones ahora M1, M4,
-M6, reveal M7. La pista dibujada, el engaño honesto.)_
-
-**8a-bis. Lo que el juego NO explica — ahora son CUATRO:** por qué Esteban no pudo sacar
-a Mateo · de dónde venía el Vasco · de qué pedía perdón · **si Mateo lo vio — la pregunta
-que solo existe para TERO.**
-La cuarta es asimétrica: **Mateo SÍ lo reconoció (el terito) y el jugador lo sabe por el
-cuaderno. El que no lo sabe es Tero.** En el **Final A** muere con la pregunta — el
-jugador tiene la respuesta y no puede dársela. En el **Final B** la respuesta le llega de
-viejo, leyendo el cuaderno: décadas tarde, y a tiempo igual. Cada final se queda con una
-mitad distinta del dolor.
-
-**8b. Los backstories se cuentan UNA vez, de a rebote.** _(Sin cambios.)_
-
-**9. La asistencia.** La dificultad nunca frena la historia: asistencia progresiva tras
-fallos repetidos. El que quiera desafío lo elige; el que quiera la historia, la tiene
-garantizada. _(Del principio supremo, sección 0.)_ **Excepción deliberada: M14.** El
-clímax se gana jugando — morir y reintentar es parte del final, y las ganas de saber cómo
-termina son el impulso. La asistencia ahí suaviza, no regala.
-
-**10. Nombres.** La hermana del Colorado se llama **TERESA**
-
-**11. Deuda activa.** 🟥 **RESUELTO EN PARTE (3.6): la maestra del post-créditos ES
-Claribel** — se dice con una sola palabra ("Seño Claribel") y no se explica nunca.
-**Sigue abierto:** la respuesta de Mateo a Claribel, escrita y nunca enviada, entre las
-páginas del cuaderno. Ahora vale el doble, porque ella está parada frente a esa vitrina.
-Si se usa, sin subrayar.
-
----
-
-# ANEXO — puntas para el historiador _(se agregan las nuevas)_
-
-_(Todo lo de la 2.3 sigue vigente: Glamorgan verificado, Glasgow descartado, Broadsword con
-licencia anotada, Fitzroy, estaqueamientos, festival, "Estamos ganando", rock nacional,
-Galtieri, indicativos reales. Se suman:)_
-
-- ✅ **Mirage 5P peruanos (M10) — VERIFICADO (2026-08-07).** Diez aviones, salida de La
-  Joya (Arequipa), escala nocturna en Jujuy, llegada a **Tandil**; volados por pilotos
-  peruanos con escarapelas argentinas **pintadas antes de despegar**; regreso el mismo día
-  en un **Hércules C-130 con librea de Aeroperú**; **nunca entraron en combate**. La escena
-  se reescribió entera sobre estos hechos. Queda abierto: discrepancia de fecha (5 de junio
-  vs. "mediados de mayo" según la fuente) y si conviene nombrar pilotos reales.
-  Ver PREGUNTAS_HISTORICAS.md.
-- 🟥 **Países que ayudaron (cartela final):** confirmar lista y qué aportó cada uno antes
-  de nombrar a nadie. Perú al frente.
-- 🟥 **Dialectos 1982:** confirmar vigencia de "culiao" (Cba) y "chamigo" (Ctes) en la
-  época. Casi seguro sí.
-- 🟥 **Matrículas C-2xx** (ver AVIONES_ESCUADRON.md): no usar números de células realmente
-  derribadas.
-- 🟥 **Malvinas sin árboles:** confirmado como regla de arte — ningún árbol en fondos de
-  tierra. El tallado va en la viga del pozo.
-- 🟥 **Correo de conscriptos:** verificar cuán errático era realmente el correo de tropa
-  (sostiene la premisa del diario). El correo interno de la Fuerza Aérea, más directo,
-  sostiene que la carta de Esteban llegue en semanas.

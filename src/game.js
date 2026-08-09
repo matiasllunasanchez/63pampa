@@ -4,7 +4,7 @@ import { STRINGS } from './data/strings.js';
 import { P, SKY_PRESETS, LAND } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS } from './data/missions.js';
-import { nextUpgrades } from './data/upgrades.js';
+import { UPGRADES, nextUpgrades, moveAllowed } from './data/upgrades.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { multOf } from './core/util.js';
 import * as dialogue from './core/dialogue.js';
@@ -425,30 +425,10 @@ import { RUNWAYS } from './data/runways.js';
         get: () => getLang(), set: v => { setLang(v); applyChrome(); } },
 
       { head: 'optSecControl' },
-      // ESQUEMA DE CONTROL: la única fila que cambia cómo se JUEGA y no cómo se ve.
-      { label: () => T('optControl'), opts: [CTRL_DIRECT, CTRL_BANK],
-        names: () => [T('optCtrlDirect'), T('optCtrlBank')],
-        get: () => cfg.control, set: v => { cfg.control = v; run.bankA = 0; }, save: 'rasante_control' },
-      { label: () => T('optHorizon'), opts: [0, 1, 2, 3],
-        names: () => [T('optHzFix'), T('optHzMoves'), T('optHzAll'), T('optHzFree')],
-        get: () => cfg.horizon, set: v => cfg.horizon = v, save: 'rasante_horizonte' },
-      // PIRUETAS: los combos direccionales (split-s, break turn…). El tonel queda siempre.
-      { label: () => T('optMoves'), opts: [true, false], names: yesNo,
-        get: () => cfg.moves, set: v => cfg.moves = v, save: 'rasante_piruetas' },
-      // MIRA FIJA o MOVIL. Con mando es siempre fija (no tiene con que moverla); en teclado
-      // CAPS LOCK la alterna en vivo y escribe en esta misma clave.
-      { label: () => T('optAim'), opts: [0, 1], names: () => [T('optAimFixed'), T('optAimFree')],
-        get: () => cfg.aim, set: v => { cfg.aim = v; if (!v) mouse.on = false; }, save: 'rasante_mira_modo' },
-      // EJE Y DEL ARENA (PLAN_MINUTOS_SAGRADOS D1): en la batalla W/S comandan el cabeceo;
-      // esta fila lo invierte para quien viene de un juego de vuelo. Solo afecta la fase ARENA.
-      { label: () => T('optArenaInv'), opts: [0, 1], names: () => [T('optArenaInvNo'), T('optArenaInvYes')],
-        get: () => cfg.arenaInv, set: v => cfg.arenaInv = v, save: 'rasante_arena_inv' },
-      // RETICULO: se elige VIÉNDOLO, no leyendo un número — de eso se encarga `preview`.
-      { label: () => T('optMira'), opts: MIRA_IDS, names: () => MIRA_IDS.map(String), preview: 'mira',
-        get: () => cfg.mira, set: v => cfg.mira = v, save: 'rasante_mira' },
-      { label: () => T('optNet'), opts: [0, 1, 2],
-        names: () => [T('optNetOff'), T('optNetEnter'), T('optNetAlways')],
-        get: () => cfg.radarNet, set: v => cfg.radarNet = v, save: 'rasante_red' },
+      // TODO lo que toca al AVION —piruetas, mira, ejes, esquema de control— se mudó a MEJORAS DEL
+      // PICHON, su propia pantalla. Acá queda la puerta: de una pirueta hay que saber qué hace Y
+      // cómo se teclea, y eso no entra en un renglón de 15 px.
+      { label: () => T('optMejoras'), value: () => T('optMejorasGo'), open: 'mejoras' },
 
       // CONTROLES: filas de solo LECTURA. No se cambian (el remapeo no existe todavia): estan para
       // que las teclas y los botones se puedan CONSULTAR sin salir del juego ni abrir el README.
@@ -472,8 +452,6 @@ import { RUNWAYS } from './data/runways.js';
         get: () => cfg.squad, set: v => cfg.squad = v, save: 'rasante_escuadron' },
       { label: () => T('optFuel'), opts: [true, false], names: yesNo,
         get: () => cfg.fuelOn, set: v => cfg.fuelOn = v, save: 'rasante_combustible' },
-      { label: () => T('optEnergy'), opts: [true, false], names: yesNo,   // altura <-> velocidad
-        get: () => cfg.energy, set: v => cfg.energy = v, save: 'rasante_energia' },
       // ENEMIGOS: movimiento propio (globos, helos patrullando, cazas que te buscan, fragatas).
       { label: () => T('optEnemies'), opts: [true, false],
         names: () => [T('optEnemiesOn'), T('optEnemiesOff')],
@@ -557,6 +535,110 @@ import { RUNWAYS } from './data/runways.js';
         names: () => [T('optDevcamOff'), T('optDevcamOn')],
         get: () => cfg.devcam, set: v => cfg.devcam = v },
     ];
+
+    // ---------- MEJORAS DEL PICHON ----------
+    // Sub-pantalla de OPCIONES con TODO lo que toca al avión. Misma forma de fila que OPT_ROWS
+    // ({label, opts, names, get, set, save}), así que las que vinieron de allá se mudaron enteras:
+    // conservan su clave de localStorage y nadie pierde su configuración al actualizar.
+    //
+    // `sw: true` marca las de PRENDER/APAGAR — el render las pinta por color en vez de por palabra.
+    // `card` es lo que se lee en la tarjeta de la derecha; las piruetas la sacan de UPGRADES.
+    const onOff = () => [T('mejOn'), T('mejOff')];
+    const prefCard = (k, label) => ({ name: label(), desc: T('mejd' + k), seq: T('mejk' + k) });
+
+    // INTERRUPTOR MAESTRO de las piruetas: apaga las doce de golpe. Vive con el bloque del Pichón
+    // aunque no sea suyo, porque es la respuesta a "quiero que ninguna me salga sin querer".
+    const MEJ_MASTER = {
+      label: () => T('optMoves'), opts: [true, false], names: onOff, sw: true,
+      get: () => cfg.moves, set: v => cfg.moves = v, save: 'rasante_piruetas',
+      card: () => prefCard('Moves', () => T('optMoves')),
+    };
+    // PUESTO DE PILOTO: preferencias de la PERSONA que vuela, no del avión ni del mapa. Todas
+    // persisten, porque quien invirtió el eje una vez lo quiere invertido siempre.
+    const MEJ_PREFS = [
+      // ESQUEMA DE CONTROL: la única fila que cambia cómo se JUEGA y no cómo se ve.
+      { label: () => T('optControl'), opts: [CTRL_DIRECT, CTRL_BANK],
+        names: () => [T('optCtrlDirect'), T('optCtrlBank')],
+        get: () => cfg.control, set: v => { cfg.control = v; run.bankA = 0; }, save: 'rasante_control',
+        card: () => prefCard('Control', () => T('optControl')) },
+      { label: () => T('optHorizon'), opts: [0, 1, 2, 3],
+        names: () => [T('optHzFix'), T('optHzMoves'), T('optHzAll'), T('optHzFree')],
+        get: () => cfg.horizon, set: v => cfg.horizon = v, save: 'rasante_horizonte',
+        card: () => prefCard('Horizon', () => T('optHorizon')) },
+      // MIRA FIJA o MOVIL. Con mando es siempre fija (no tiene con que moverla); en teclado
+      // CAPS LOCK la alterna en vivo y escribe en esta misma clave.
+      { label: () => T('optAim'), opts: [0, 1], names: () => [T('optAimFixed'), T('optAimFree')],
+        get: () => cfg.aim, set: v => { cfg.aim = v; if (!v) mouse.on = false; }, save: 'rasante_mira_modo',
+        card: () => prefCard('Aim', () => T('optAim')) },
+      // RETICULO: se elige VIÉNDOLO, no leyendo un número — de eso se encarga `preview`.
+      { label: () => T('optMira'), opts: MIRA_IDS, names: () => MIRA_IDS.map(String), preview: 'mira',
+        get: () => cfg.mira, set: v => cfg.mira = v, save: 'rasante_mira',
+        card: () => prefCard('Mira', () => T('optMira')) },
+      // EJE Y DEL ARENA (PLAN_MINUTOS_SAGRADOS D1): en la batalla W/S comandan el cabeceo;
+      // esta fila lo invierte para quien viene de un juego de vuelo. Solo afecta la fase ARENA.
+      { label: () => T('optArenaInv'), opts: [0, 1], names: () => [T('optArenaInvNo'), T('optArenaInvYes')],
+        get: () => cfg.arenaInv, set: v => cfg.arenaInv = v, save: 'rasante_arena_inv',
+        card: () => prefCard('ArenaInv', () => T('optArenaInv')) },
+      // ENERGIA: altura y velocidad se intercambian. Estaba en PARTIDA, pero es DESEMPEÑO del
+      // avión — lo mismo que todo lo demás de esta pantalla.
+      { label: () => T('optEnergy'), opts: [true, false], names: onOff, sw: true,
+        get: () => cfg.energy, set: v => cfg.energy = v, save: 'rasante_energia',
+        card: () => prefCard('Energy', () => T('optEnergy')) },
+      { label: () => T('optNet'), opts: [0, 1, 2],
+        names: () => [T('optNetOff'), T('optNetEnter'), T('optNetAlways')],
+        get: () => cfg.radarNet, set: v => cfg.radarNet = v, save: 'rasante_red',
+        card: () => prefCard('Net', () => T('optNet')) },
+    ];
+
+    // PIRUETAS APAGADAS: preferencia de la PERSONA (una clave global), no de la partida. Por eso no
+    // entra en el formato de guardado: apagar el jink porque te sale sin querer no es progreso.
+    const MOVES_OFF_KEY = 'rasante_piruetas_off';
+    function saveMovesOff() {
+      try { localStorage.setItem(MOVES_OFF_KEY, JSON.stringify(Object.keys(cfg.movesOff))); } catch (e) { }
+    }
+    function loadMovesOff() {
+      try {
+        const ids = JSON.parse(localStorage.getItem(MOVES_OFF_KEY) || '[]');
+        if (!Array.isArray(ids)) return;
+        // se valida contra UPGRADES por la misma razon que loadOpts valida contra `opts`: una clave
+        // vieja o a mano no puede meter en cfg un id de pirueta que no existe.
+        for (const id of ids) if (UPGRADES.some(u => u.id === id)) cfg.movesOff[id] = 1;
+      } catch (e) { }
+    }
+
+    /** Las piruetas que la pantalla MUESTRA. En HISTORIA solo las GANADAS, en el orden en que se
+     *  eligieron: la lista crece con la partida, y despues de M9 es el unico lugar donde queda la
+     *  voz del Pichon. En los demas modos se ven todas — decision de DESARROLLO por ahora; a
+     *  futuro seran tambien las que gano en campaña, y el cambio es esta funcion y nada mas. */
+    function mejUpgrades() {
+      if (gameMode !== 'campaign') return UPGRADES;
+      return pichon.map(id => UPGRADES.find(u => u.id === id)).filter(Boolean);
+    }
+    const mejMoveRow = u => ({
+      label: () => u.name, opts: [true, false], names: onOff, sw: true,
+      get: () => !cfg.movesOff[u.id],
+      set: v => { if (v) delete cfg.movesOff[u.id]; else cfg.movesOff[u.id] = 1; saveMovesOff(); },
+      card: () => u,
+    });
+    /** Las filas, armadas en vivo: cuáles se ven depende del modo y de lo ganado, y eso no lo puede
+     *  saber un array estático. Los índices son estables mientras la pantalla está abierta — no se
+     *  gana una pirueta desde un menú. */
+    function mejRows() {
+      const ups = mejUpgrades();
+      return [
+        // el bloque de arriba usa el MISMO nombre que la pantalla de mejora entre misiones (EL
+        // BANCO / LA LIBRETA): es el mismo lugar del juego visto desde el otro lado.
+        { head: () => T(mejLibreta() ? 'upgTitleLib' : 'upgTitle') },
+        MEJ_MASTER,
+        ...(ups.length ? ups.map(mejMoveRow) : [{ note: 'mejEmpty' }]),
+        { head: () => T('mejSecPuesto') },
+        ...MEJ_PREFS,
+      ];
+    }
+    // Despues de M9 (indice 7, el mismo corte que usa la pantalla del banco) el bloque cambia de
+    // nombre: las mejoras ya no salen de la dupla sino de la libreta que quedo.
+    const mejLibreta = () => gameMode === 'campaign' && curLevel >= 7;
+    let mejSel = 1;   // arranca en el maestro: la fila 0 es el encabezado
     // El cursor NO se para en encabezados ni en los rotulos de columna. Si se para en las filas de
     // CONTROLES aunque no se puedan cambiar: son las unicas de solo lectura, y salteandolas la
     // ventana de scroll pasaba de largo por encima de toda la seccion — quedaba una lista que se
@@ -572,18 +654,46 @@ import { RUNWAYS } from './data/runways.js';
         if (!isHead(i)) { optRow = i; return; }
       }
     }
-    function optChange(dir) {
-      const r = OPT_ROWS[optRow];
-      if (!r.opts) return;   // filas de CONTROLES: se leen, no se cambian (no hay remapeo todavia)
+    /** Cambia el valor de UNA fila y lo persiste. Lo comparten OPCIONES y MEJORAS DEL PICHON: las
+     *  filas tienen la misma forma en las dos pantallas, y duplicar esto era garantizar que un dia
+     *  una de las dos dejara de guardar. */
+    function rowChange(r, dir) {
+      if (!r || !r.opts) return;   // encabezados y filas de CONTROLES: se leen, no se cambian
       let i = r.opts.findIndex(o => o === r.get()); if (i < 0) i = 0;
       i = (i + dir + r.opts.length) % r.opts.length;
       r.set(r.opts[i]);
       if (r.save) { try { localStorage.setItem(r.save, JSON.stringify(r.opts[i])); } catch (e) { } }
     }
+    function optChange(dir) { rowChange(OPT_ROWS[optRow], dir); }
+    /** ENTER en OPCIONES. Hay filas que ABREN una sub-pantalla; el resto sale, como siempre. */
+    function optConfirm() {
+      const r = OPT_ROWS[optRow];
+      if (r && r.open === 'mejoras') {
+        mejSel = mejRows().findIndex(x => !x.head && !x.note);
+        setState('mejoras'); beep(600, 0.06, 'square', 0.05);
+        return;
+      }
+      setState('modeselect'); beep(400, 0.06, 'square', 0.05);   // el ENTER de siempre: salir
+    }
+
+    /** Mueve el cursor de MEJORAS DEL PICHON salteando encabezados y el estado vacío. */
+    function mejNav(dir) {
+      const rows = mejRows();
+      let i = mejSel;
+      for (let n = 0; n < rows.length; n++) {
+        i = (i + dir + rows.length) % rows.length;
+        if (!rows[i].head && !rows[i].note) { mejSel = i; return; }
+      }
+    }
+    function mejChange(dir) { rowChange(mejRows()[mejSel], dir); }
+    function mejBack() { setState('options'); beep(400, 0.06, 'square', 0.05); }
+
     /** Relee lo guardado. Se valida contra `opts`: un valor viejo o corrupto no puede meter en
      *  `cfg` algo que la fila no ofrece, que es como se cuelan los estados imposibles. */
     function loadOpts() {
-      for (const r of OPT_ROWS) {
+      // Las de MEJORAS DEL PICHON entran acá aunque vivan en otra pantalla: lo que decide si una
+      // fila se relee es que tenga `save`, no dónde se dibuja.
+      for (const r of [...OPT_ROWS, MEJ_MASTER, ...MEJ_PREFS]) {
         if (!r.save) continue;
         try {
           const raw = localStorage.getItem(r.save);
@@ -592,6 +702,7 @@ import { RUNWAYS } from './data/runways.js';
           if (r.opts.some(o => o === v)) r.set(v);
         } catch (e) { }
       }
+      loadMovesOff();   // esta no es una fila: es una lista de ids, con su propia clave
     }
 
     // ====================================================================================
@@ -625,7 +736,7 @@ import { RUNWAYS } from './data/runways.js';
     // coincidir con esta. Son dos porque responden preguntas distintas —esta decide si rota el
     // fondo del lobby— pero si divergen, se nota: o el fondo se congela o la musica se corta.
     const inLobby = () => S.state === 'title' || S.state === 'modeselect' || S.state === 'menu' || S.state === 'options'
-      || S.state === 'campmenu' || S.state === 'saves';
+      || S.state === 'mejoras' || S.state === 'campmenu' || S.state === 'saves';
 
     // ESTRELLAS 1..4 (la 4ª = Malvinas, rango S). Compartido por el recuento de nivel y el
     // derribado de survival: exige el DOBLE del par para las Malvinas, que se sientan merecidas.
@@ -710,7 +821,8 @@ import { RUNWAYS } from './data/runways.js';
     const playerEl = document.getElementById('player');
     const canPickMusic = () => gameMode !== 'campaign'
       && S.state !== 'title' && S.state !== 'modeselect' && S.state !== 'menu' && S.state !== 'options'
-      && S.state !== 'campmenu' && S.state !== 'saves' && S.state !== 'story' && S.state !== 'epilogue';
+      && S.state !== 'mejoras' && S.state !== 'campmenu' && S.state !== 'saves' && S.state !== 'story'
+      && S.state !== 'epilogue';
 
     // ---------- input ----------
     // CAMARAS (tecla V, cicla): 4 niveles de zoom anclados al sprite del avion.
@@ -804,6 +916,10 @@ import { RUNWAYS } from './data/runways.js';
       // OPCIONES: por ahora una sola fila (idioma), asi que izquierda/derecha rotan el idioma
       optNav: dir => { optNav(dir); beep(500, 0.04, 'square', 0.03); },
       optChange: dir => { optChange(dir); beep(560, 0.05, 'square', 0.04); },
+      optConfirm,
+      mejNav: dir => { mejNav(dir); beep(500, 0.04, 'square', 0.03); },
+      mejChange: dir => { mejChange(dir); beep(560, 0.05, 'square', 0.04); },
+      mejBack,
       startTitle: () => { if (S.state !== 'title') return; modeSel = 0; setState('modeselect'); beep(620, 0.07, 'square', 0.05); },
       planeNav: dir => { selPlane = (selPlane + dir + PLANES.length) % PLANES.length; beep(dir < 0 ? 520 : 600, 0.05, 'square', 0.04); },
       roll: dir => startRoll(dir),
@@ -840,7 +956,11 @@ import { RUNWAYS } from './data/runways.js';
         // EL BANCO DEL PICHON: en campaña solo disparan las piruetas APRENDIDAS (el guion las
         // inventa una por una). El tonel clasico no pasa por aca (startRoll) y queda siempre.
         // Fuera de campaña no cambia nada: rige cfg.moves como siempre.
-        const mvOk = id => gameMode !== 'campaign' || pichon.includes(id);
+        //
+        // La segunda mitad de la regla es MEJORAS DEL PICHON: apagar una pirueta desde el menu la
+        // saca del aire aunque la tengas ganada. Las dos viven juntas en moveAllowed().
+        const mvOk = id => moveAllowed(id,
+          { campaign: gameMode === 'campaign', owned: pichon, off: cfg.movesOff });
         switch (seq) {
           // ---- STICK DERECHO (mayusculas): LAS QUE ROLAN ----
           // Un avion rola con la muñeca, no con el timon, y en el mando la muñeca que rola es la
@@ -1829,8 +1949,21 @@ import { RUNWAYS } from './data/runways.js';
           if (r.cols) return { cols: [T('optColKb'), T('optColPad')] };
           if (r.note) return { note: T(r.note) };
           if (r.ctrl) return { ctrl: T(r.ctrl), kb: T(r.kb), pad: T(r.pad) };
+          if (r.open) return { label: r.label(), value: r.value() };   // fila que ABRE otra pantalla
           let i = r.opts.findIndex(o => o === r.get()); if (i < 0) i = 0;
           return { label: r.label(), value: r.names()[i], preview: r.preview, raw: r.opts[i] };
+        }),
+      });
+      // MEJORAS DEL PICHON: mismo snapshot de solo lectura que OPCIONES. `card` se resuelve acá
+      // (es una función en la fila) para que el render siga sin tocar nada del juego.
+      if (S.state === 'mejoras') menus.drawMejoras({
+        t: run.t, sel: mejSel,
+        rows: mejRows().map(r => {
+          if (r.head) return { head: r.head() };
+          if (r.note) return { note: T(r.note) };
+          let i = r.opts.findIndex(o => o === r.get()); if (i < 0) i = 0;
+          return { label: r.label(), value: r.names()[i], preview: r.preview, raw: r.opts[i],
+                   sw: !!r.sw, swOn: r.get() === true, card: r.card() };
         }),
       });
 
@@ -1898,9 +2031,13 @@ import { RUNWAYS } from './data/runways.js';
         sinceDone: dlg.done ? +(dlg.t - dlg.tDone).toFixed(3) : 0,
       });
     };
-    // estado del BANCO DEL PICHON para las sondas (oferta, cursor y lo ya aprendido)
+    // estado del BANCO DEL PICHON para las sondas (oferta, cursor y lo ya aprendido) y el de
+    // MEJORAS DEL PICHON, que es donde eso mismo se prende y se apaga. Van juntos porque la
+    // pregunta que se le hace desde afuera es una sola: que piruetas VAN A SALIR.
     if (typeof window !== 'undefined') window.__udbg = () => JSON.stringify({
       state: S.state, level: curLevel, offer: upgOffer.map(u => u.id), sel: upgSel, pichon,
+      mejSel, mejRows: mejRows().map(r => r.head ? '#' : r.note ? '·' : r.label()),
+      movesOff: Object.keys(cfg.movesOff),
     });
     if (typeof window !== 'undefined') window.__wjump = (p, dev) => {
       if (dev !== undefined) cfg.devcam = !!dev;

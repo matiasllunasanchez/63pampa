@@ -34,6 +34,20 @@ export const UPGRADES = [
   { id: 'barrel', name: 'TONEL BARRIL', seq: 'rolar: abajo der arriba izq', desc: 'La O grande: vuelve al punto exacto', quote: 'Para cuando haya que volver a buscar a alguien.' },
 ];
 
+/** ¿Puede SALIR esta pirueta? Son dos preguntas distintas que se responden juntas porque quien
+ *  juega las vive como una sola: TENERLA (en campaña se gana una por mision) y QUERERLA (MEJORAS
+ *  DEL PICHON las prende y las apaga desde el menu). Fuera de campaña se tienen todas.
+ *
+ *  Vive aca y no en game.js para poder probarla: es la unica regla del banco que, si se rompe,
+ *  no da error ni se ve — simplemente una pirueta deja de salir y parece que el combo no anda.
+ *
+ *  `off` es un objeto usado como conjunto (cfg.movesOff): la clave presente = apagada. */
+export function moveAllowed(id, { campaign, owned, off }) {
+  if (off && off[id]) return false;              // apagada a mano: no sale nunca, la tengas o no
+  if (!campaign) return true;
+  return !!owned && (owned.includes ? owned.includes(id) : owned.has(id));
+}
+
 /** Las proximas `n` mejoras NO aprendidas, en orden del guion. `owned` = Set/array de ids. */
 export function nextUpgrades(owned, n) {
   const has = id => owned.includes ? owned.includes(id) : owned.has(id);

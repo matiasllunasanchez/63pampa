@@ -137,7 +137,21 @@ export function initInput(cv, a) {
       if (isDown(e.code)) { a.optNav(1); e.preventDefault(); return; }
       if (isLeft(e.code)) { a.optChange(-1); e.preventDefault(); return; }
       if (isRight(e.code)) { a.optChange(1); e.preventDefault(); return; }
-      if (isBack(e.code) || isConfirm(e.code)) { a.escToMenu(); e.preventDefault(); return; }
+      // ENTER dejo de significar SALIR: hay filas que ABREN una sub-pantalla (MEJORAS DEL PICHON).
+      // Si no abre nada, optConfirm() sale igual que antes, asi que no cambia el habito.
+      if (isConfirm(e.code)) { a.optConfirm(); e.preventDefault(); return; }
+      if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
+      return;
+    }
+    // MEJORAS DEL PICHON: la sub-pantalla de OPCIONES con todo lo que toca al avion. ENTER acá
+    // ALTERNA la fila (es un interruptor, no una confirmacion) y ESC es la unica salida — que es
+    // lo que dice el pie de la pantalla.
+    if (S.state === 'mejoras') {
+      if (isUp(e.code)) { a.mejNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code)) { a.mejNav(1); e.preventDefault(); return; }
+      if (isLeft(e.code)) { a.mejChange(-1); e.preventDefault(); return; }
+      if (isRight(e.code) || isConfirm(e.code)) { a.mejChange(1); e.preventDefault(); return; }
+      if (isBack(e.code)) { a.mejBack(); e.preventDefault(); return; }
       return;
     }
     if (S.state === 'modeselect') {                                       // CAMPAÑA / CICLO / SUPERVIVENCIA
@@ -434,7 +448,14 @@ export function initInput(cv, a) {
         if (nd && !nav.d) a.optNav(1);
         if (nl && !nav.l) a.optChange(-1);
         if (nr && !nav.r) a.optChange(1);
-        if (confirm || hit(1)) a.escToMenu();
+        if (confirm) a.optConfirm();                           // puede ABRIR una sub-pantalla
+        if (hit(1)) a.escToMenu();                             // B = volver
+      } else if (S.state === 'mejoras') {
+        if (nu && !nav.u) a.mejNav(-1);
+        if (nd && !nav.d) a.mejNav(1);
+        if (nl && !nav.l) a.mejChange(-1);
+        if ((nr && !nav.r) || confirm) a.mejChange(1);
+        if (hit(1)) a.mejBack();                               // B = volver a OPCIONES
       }
       // el resto de pantallas (historia, derribado, recuento, victoria) avanzan con anyPress
       nav.u = nu; nav.d = nd; nav.l = nl; nav.r = nr;

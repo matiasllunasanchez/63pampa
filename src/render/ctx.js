@@ -100,12 +100,16 @@ export const labelFont = size => uiFont(FONTS.label, size, '');
 
 /** Escribe texto ajustado a un ancho maximo, cortando entre palabras y bajando `lh` por linea.
  *  A diferencia de wrapChars (que mide en caracteres), este mide en PIXELES con la tipografia
- *  activa del contexto — por eso vive aca y no en core/util.js. */
+ *  activa del contexto — por eso vive aca y no en core/util.js.
+ *
+ *  DEVUELVE la y de la linea siguiente. Quien apila bloques debajo (la tarjeta de MEJORAS DEL
+ *  PICHON) no puede saber de antemano si la descripcion ocupo una linea o tres. */
 export function wrapText(txt, x, y, maxW, lh) {
-  const words = txt.split(' '); let line = '', yy = y;
+  const words = String(txt).split(' '); let line = '', yy = y;
   for (const w of words) {
     if (ctx.measureText(line + w).width > maxW && line) { ctx.fillText(line, x, yy); line = w + ' '; yy += lh; }
     else line += w + ' ';
   }
   ctx.fillText(line.trim(), x, yy);
+  return yy + lh;
 }

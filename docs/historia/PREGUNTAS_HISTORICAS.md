@@ -262,3 +262,37 @@ de los diálogos, no después.
 **Fuentes:** [Contexto Tucumán — diccionario básico de palabras y expresiones tucumanas](https://www.contextotucuman.com/nota/57320/desde-la-a-a-la-z-diccionario-basico-de-palabras-y-expresiones-tucumanas.html) ·
 [El Tucumano — "Eh ura qué pingo mira cajeta"](https://www.eltucumano.com/noticia/libre/298783/la-memorable-frase-eh-ura-que-pingo-mira-cajeta-llega-a-california-de-la-mano-de-una-tucumana) ·
 [El Tucumano — ura, aca, giriar, mavé](https://www.eltucumano.com/noticia/libre/264759/ura-aca-giriar-mave-los-hilarantes-videos-sobre-el-lenguaje-tucumano)
+
+---
+
+## ⚠ La atribución de la frase que cierra el juego — SIN RESOLVER
+
+La cita que va antes de los créditos —la tesis entera del juego— **está firmada con dos
+nombres distintos en dos lugares del proyecto**:
+
+| Dónde | Firma |
+|---|---|
+| [GUION_3.md](GUION_3.md) §2 y el cierre común | **Diego Iorio** |
+| `src/data/strings.js` (`quoteIorioBy`, es y en) | **RICARDO IORIO** |
+
+Uno de los dos está mal, y el error **ya está compilado en el juego**: la pantalla de
+victoria muestra la frase con comillas y firma. No es un detalle de guion — es poner
+palabras en boca de una persona real, con nombre y apellido, en un producto que se publica.
+
+**Qué hay que verificar, en este orden:**
+
+1. **Quién la dijo realmente.** Nombre completo, y si es veterano de Malvinas, su unidad.
+2. **La forma exacta de la frase.** Las dos versiones del proyecto ya difieren entre sí (el
+   guion trae una segunda oración —*"Si las naciones dejaran conocer a su gente buena…"*—
+   que la pantalla del juego no tiene).
+3. **De dónde sale** — entrevista, documental, libro. Hace falta una fuente citable, no un
+   posteo.
+4. **Si hace falta permiso** de la persona o de su familia para usarla en un juego
+   comercial. Si la respuesta es sí y no se consigue, el juego tiene alternativa propia: el
+   Turco dice casi lo mismo en M10 (*"Hay gente buena en todos lados, ¿viste? Lo que pasa es
+   que no nos dejan conocernos"*), y esa línea es del guion, no de nadie afuera.
+
+**Hasta que se resuelva:** la banda sonora ya evita el problema —la letra de los créditos
+usa la versión del Turco y no la cita firmada ([SOUNDTRACK.md](SOUNDTRACK.md), pista 35)—
+pero la pantalla de victoria sigue mostrando la firma. **Corregir el nombre o sacar la firma
+antes de publicar.**

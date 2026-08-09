@@ -151,6 +151,32 @@ app.whenReady().then(async () => {
   win.webContents.sendInputEvent({ type: 'mouseUp', x: 500, y: 300, button: 'right', clickCount: 1 });
   await checkAlive(win, 'tras input de mouse');
 
+  // OPCIONES → MEJORAS DEL PICHON: la unica pantalla del juego con su propio render de tarjeta y
+  // una lista que se arma en vivo. No se le puede pedir checkAlive (un menu quieto no cambia entre
+  // cuadros, y eso esta bien), asi que se verifica lo que si aplica: que se dibuje algo, que la
+  // sub-pantalla realmente se abra, y que no tire nada a consola — que es donde reventaria.
+  console.log('\nopciones → mejoras del pichon:');
+  await win.loadURL('file://' + url);
+  await sleep(2500);
+  await tap(win, 'Return');                                       // portada → modeselect
+  for (let i = 0; i < 4; i++) await tap(win, 'Down');             // → OPCIONES
+  await tap(win, 'Return');
+  await tap(win, 'Down');                                         // IDIOMA → MEJORAS DEL PICHON
+  await tap(win, 'Return');                                       // abrir la sub-pantalla
+  await sleep(500);
+  const mej = await win.webContents.executeJavaScript('JSON.parse(__pdbg()).state');
+  if (mej === 'mejoras') pass('la sub-pantalla se abre desde OPCIONES');
+  else fail(`ENTER en la fila no abrio MEJORAS DEL PICHON (estado: ${mej})`);
+  const mp = await probe(win);
+  if (mp.colors < 8) fail(`mejoras: canvas casi plano (${mp.colors} colores)`);
+  else pass(`mejoras: canvas con contenido (${mp.colors} colores)`);
+  await tap(win, 'Down'); await tap(win, 'Right');                // mover el cursor y ALTERNAR
+  await tap(win, 'Escape');
+  await sleep(400);
+  const back = await win.webContents.executeJavaScript('JSON.parse(__pdbg()).state');
+  if (back === 'options') pass('ESC vuelve a OPCIONES');
+  else fail(`ESC no volvio a OPCIONES (estado: ${back})`);
+
   console.log('\nconsola:');
   if (errors.length) {
     fail(`${errors.length} error(es) de consola:`);

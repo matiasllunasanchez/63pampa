@@ -211,6 +211,8 @@ Lo que queda es genuinamente el pegamento:
 | las vidas / el relevo del escuadrón | `core/squad.js` (tiempos, indicativos) + `systems/squad.js` (cinemática) + `render/squad.js` (dibujo) |
 | que el horizonte gire al rolar, o el horizonte artificial del HUD | `core/horizon.js` (el ángulo, una sola fuente) + `draw()` en `game.js` (aplica el giro) + `drawADI` en `render/hud.js` |
 | **cualquier ajuste del juego** | `OPT_ROWS` en `game.js` → pantalla **OPCIONES**. Es la única: el menú `[M]` ya no existe. Sumá `{ head }` para una sección nueva y `save:` para que persista |
+| **un ajuste que toca al AVIÓN** (piruetas, mira, ejes, esquema de control, desempeño) | `MEJ_PREFS` / `mejRows()` en `game.js` → sub-pantalla **MEJORAS DEL PICHÓN**, que se abre con una fila `{ open: 'mejoras' }` de OPCIONES. Misma forma de fila que `OPT_ROWS` (mudar una es mover el objeto); `card:` es lo que se lee en la tarjeta de la derecha y `sw: true` la pinta como interruptor |
+| que una pirueta se pueda prender y apagar | ya se puede: `cfg.movesOff` (`core/state.js`) + `moveAllowed()` en `data/upgrades.js`, que es la ÚNICA regla de qué pirueta sale — junta TENERLA (el banco, en campaña) con QUERERLA (el menú) |
 | que suene la música del lobby en una pantalla nueva de menú | `inLobby()` en `systems/audio.js` **y** el `inLobby()` de `game.js` — son dos listas distintas y tienen que coincidir |
 | el arte de un avión jugable | `tools/bake_planes.html` → `npx electron tools/bake_planes_run.js` |
 | sonido | `systems/audio.js` + `data/sfx.js` |
