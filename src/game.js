@@ -606,14 +606,16 @@ import { RUNWAYS } from './data/runways.js';
       } catch (e) { }
     }
 
-    /** Las piruetas que la pantalla MUESTRA. En HISTORIA solo las GANADAS, en el orden en que se
-     *  eligieron: la lista crece con la partida, y despues de M9 es el unico lugar donde queda la
-     *  voz del Pichon. En los demas modos se ven todas — decision de DESARROLLO por ahora; a
-     *  futuro seran tambien las que gano en campaña, y el cambio es esta funcion y nada mas. */
-    function mejUpgrades() {
-      if (gameMode !== 'campaign') return UPGRADES;
-      return pichon.map(id => UPGRADES.find(u => u.id === id)).filter(Boolean);
-    }
+    /** Las piruetas que la pantalla MUESTRA: LAS DOCE, siempre.
+     *
+     *  Antes filtraba por las ganadas cuando `gameMode` era 'campaign'. Se saco (pedido 9/8: "no
+     *  veo en opciones mejoras del Pichon") por dos razones. La primera es que esta pantalla solo
+     *  se abre desde el LOBBY —la pausa no tiene fila de OPCIONES—, y ahi `gameMode` es lo que
+     *  quedo de la partida anterior: quien probaba la campaña y volvia al menu encontraba la lista
+     *  VACIA, sin ninguna partida en curso que lo explicara. La segunda es lo que la pantalla ES:
+     *  la referencia de que hace cada pirueta y como se teclea, mas su interruptor. Lo que el
+     *  Pichon te dio HASTA AHORA se cuenta en el banco entre misiones, que es su lugar. */
+    function mejUpgrades() { return UPGRADES; }
     const mejMoveRow = u => ({
       label: () => u.name, opts: [true, false], names: onOff, sw: true,
       get: () => !cfg.movesOff[u.id],
@@ -624,20 +626,17 @@ import { RUNWAYS } from './data/runways.js';
      *  saber un array estático. Los índices son estables mientras la pantalla está abierta — no se
      *  gana una pirueta desde un menú. */
     function mejRows() {
-      const ups = mejUpgrades();
       return [
-        // el bloque de arriba usa el MISMO nombre que la pantalla de mejora entre misiones (EL
-        // BANCO / LA LIBRETA): es el mismo lugar del juego visto desde el otro lado.
-        { head: () => T(mejLibreta() ? 'upgTitleLib' : 'upgTitle') },
+        // el encabezado dice PIRUETAS y no BANCO a proposito: EL BANCO DEL PICHON es la pantalla
+        // donde se ELIGE una entre mision y mision. Esta es la lista de las doce, y llamarlas
+        // igual hacia esperar aca la eleccion que no esta.
+        { head: () => T('mejSecPiruetas') },
         MEJ_MASTER,
-        ...(ups.length ? ups.map(mejMoveRow) : [{ note: 'mejEmpty' }]),
+        ...mejUpgrades().map(mejMoveRow),
         { head: () => T('mejSecPuesto') },
         ...MEJ_PREFS,
       ];
     }
-    // Despues de M9 (indice 7, el mismo corte que usa la pantalla del banco) el bloque cambia de
-    // nombre: las mejoras ya no salen de la dupla sino de la libreta que quedo.
-    const mejLibreta = () => gameMode === 'campaign' && curLevel >= 7;
     let mejSel = 1;   // arranca en el maestro: la fila 0 es el encabezado
     // El cursor NO se para en encabezados ni en los rotulos de columna. Si se para en las filas de
     // CONTROLES aunque no se puedan cambiar: son las unicas de solo lectura, y salteandolas la
@@ -669,20 +668,20 @@ import { RUNWAYS } from './data/runways.js';
     function optConfirm() {
       const r = OPT_ROWS[optRow];
       if (r && r.open === 'mejoras') {
-        mejSel = mejRows().findIndex(x => !x.head && !x.note);
+        mejSel = mejRows().findIndex(x => !x.head);
         setState('mejoras'); beep(600, 0.06, 'square', 0.05);
         return;
       }
       setState('modeselect'); beep(400, 0.06, 'square', 0.05);   // el ENTER de siempre: salir
     }
 
-    /** Mueve el cursor de MEJORAS DEL PICHON salteando encabezados y el estado vacío. */
+    /** Mueve el cursor de MEJORAS DEL PICHON salteando encabezados. */
     function mejNav(dir) {
       const rows = mejRows();
       let i = mejSel;
       for (let n = 0; n < rows.length; n++) {
         i = (i + dir + rows.length) % rows.length;
-        if (!rows[i].head && !rows[i].note) { mejSel = i; return; }
+        if (!rows[i].head) { mejSel = i; return; }
       }
     }
     function mejChange(dir) { rowChange(mejRows()[mejSel], dir); }
@@ -1960,7 +1959,6 @@ import { RUNWAYS } from './data/runways.js';
         t: run.t, sel: mejSel,
         rows: mejRows().map(r => {
           if (r.head) return { head: r.head() };
-          if (r.note) return { note: T(r.note) };
           let i = r.opts.findIndex(o => o === r.get()); if (i < 0) i = 0;
           return { label: r.label(), value: r.names()[i], preview: r.preview, raw: r.opts[i],
                    sw: !!r.sw, swOn: r.get() === true, card: r.card() };
@@ -2036,7 +2034,7 @@ import { RUNWAYS } from './data/runways.js';
     // pregunta que se le hace desde afuera es una sola: que piruetas VAN A SALIR.
     if (typeof window !== 'undefined') window.__udbg = () => JSON.stringify({
       state: S.state, level: curLevel, offer: upgOffer.map(u => u.id), sel: upgSel, pichon,
-      mejSel, mejRows: mejRows().map(r => r.head ? '#' : r.note ? '·' : r.label()),
+      mejSel, mejRows: mejRows().map(r => r.head ? '#' : r.label()),
       movesOff: Object.keys(cfg.movesOff),
     });
     if (typeof window !== 'undefined') window.__wjump = (p, dev) => {

@@ -138,8 +138,7 @@ export const STRINGS = {
     // Despues de M9 el bloque de arriba cambia de nombre — es su libreta, no ya la dupla.
     optMejoras: 'MEJORAS DEL PICHON', optMejorasGo: 'VER',
     mejTitle: 'MEJORAS DEL PICHON',
-    mejSecPuesto: 'PUESTO DE PILOTO',
-    mejEmpty: 'Todavia el Turco no te dio nada.',
+    mejSecPiruetas: 'PIRUETAS DEL PICHON', mejSecPuesto: 'PUESTO DE PILOTO',
     mejOn: 'ACTIVA', mejOff: 'APAGADA',
     mejWhat: 'QUE HACE', mejHowto: 'COMO SE HACE',
     mejKeys: '[↑] [↓] ELEGIR      [←] [→] PRENDER / APAGAR      [ESC] VOLVER',
@@ -206,7 +205,11 @@ export const STRINGS = {
     // generado: el texto ya asume ese fondo). `style`: 'tierra' = cuaderno de Mateo,
     // 'carta' = block del padre. Dialogo como 'PERSONAJE: linea' (los IDs por linea de
     // SISTEMA_DIALOGO.md llegan con la pasada de voces).
-    storyM1: [
+    // APERTURA HISTORICA — reservada para la CAMPAÑA 2 (EL FANTASMA DEL MAR, data/campaigns.js).
+    // Eran las cuatro primeras pantallas de storyM1 y abrian EL CUADERNO DE MATEO con una clase de
+    // historia: esa campaña arranca donde arranca su historia (el arroyo, el padre y el hijo), no
+    // en 1833. El relato de contexto entra donde SI hace falta — la campaña de la flota.
+    storyC2Intro: [
       {
         img: 'INTRO_1', title: 'MALVINAS · 1982', paras: [
           'Desde 1833, la República Argentina mantiene un reclamo de soberanía sobre las Islas Malvinas.',
@@ -229,6 +232,8 @@ export const STRINGS = {
           'Durante unas horas, gran parte del pueblo argentino creyó que el conflicto había terminado.',
           'No sería así: el Reino Unido respondió enviando una de las mayores flotas de guerra movilizadas desde la Segunda Guerra Mundial.']
       },
+    ],
+    storyM1: [
       {
         img: 'P1_2', title: 'AÑOS ANTES · UN ARROYO', paras: [
           'ESTEBAN: ¿Ves? Sapito. La piedra no se hunde si va rápido y pegada al agua. Con los aviones es igual: abajo de todo, rapidito, donde nadie te espera. Los valientes vuelan abajo, Mateo.',
@@ -906,8 +911,7 @@ export const STRINGS = {
     optHitboxes: 'HITBOXES', optDevcam: 'CAMERA MODE', optDevcamOff: 'NORMAL', optDevcamOn: 'FREE',
     optMejoras: "PICHON'S UPGRADES", optMejorasGo: 'VIEW',
     mejTitle: "PICHON'S UPGRADES",
-    mejSecPuesto: 'PILOT STATION',
-    mejEmpty: 'El Turco has given you nothing yet.',
+    mejSecPiruetas: "PICHON'S MOVES", mejSecPuesto: 'PILOT STATION',
     mejOn: 'ON', mejOff: 'OFF',
     mejWhat: 'WHAT IT DOES', mejHowto: 'HOW TO DO IT',
     mejKeys: '[↑] [↓] SELECT      [←] [→] ON / OFF      [ESC] BACK',

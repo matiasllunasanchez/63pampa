@@ -314,8 +314,9 @@ export function drawOptions(w) {
 // DOS BLOQUES porque son dos cosas distintas. Arriba lo que el Pichón le hizo al avión (y por eso
 // lleva su voz); abajo las preferencias de la persona que lo vuela. El Pichón no inventó el mouse.
 //
-// En campaña la lista de arriba tiene SOLO lo ganado, así que crece con la partida — y después de
-// M9 esta pantalla es el único lugar del juego donde su voz sigue estando.
+// La lista de arriba son LAS DOCE, siempre: esta pantalla es la referencia (qué hace cada una y
+// cómo se teclea) y el interruptor. Lo que el Pichón te dio HASTA AHORA se cuenta en EL BANCO,
+// entre misión y misión — acá no hay nada que elegir.
 const MEJ_GEO = { y0: 112, rh: 14, view: 10 };
 const MEJ_CARD = { x: 250, w: 200, y: 100, h: 142 };
 
@@ -345,14 +346,6 @@ export function drawMejoras(w) {
       const wh = ctx.measureText(r.head).width;
       ctx.globalAlpha = 0.25; ctx.strokeStyle = P.accent;
       ctx.beginPath(); ctx.moveTo(x + wh + 8, y - 3.5); ctx.lineTo(xv, y - 3.5); ctx.stroke();
-      ctx.globalAlpha = 1;
-      continue;
-    }
-    // ESTADO VACIO: en la primera misión de campaña no ganaste nada todavía. Es una nota, no una
-    // fila — el cursor no se para acá, igual que en OPCIONES.
-    if (r.note) {
-      ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.globalAlpha = 0.75; ctx.font = labelFont(8);
-      ctx.fillText('· ' + r.note, x + 6, y);
       ctx.globalAlpha = 1;
       continue;
     }

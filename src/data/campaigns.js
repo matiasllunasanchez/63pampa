@@ -10,5 +10,9 @@ export const CAMPAIGNS = [
   // renombrada (pedido 6/8): era LA MESA DE NORMA. El `id` NO cambia: rotula las partidas
   // guardadas en localStorage y renombrarlo las dejaria huerfanas.
   { id: 'norma', name: 'EL CUADERNO DE MATEO', missions: MISSIONS, enabled: true },
-  { id: 'fantasma', name: 'EL FANTASMA DEL MAR', missions: null, enabled: false },
+  // `intro` es la clave de STRINGS con la apertura historica (Malvinas 1833→1982, la Junta,
+  // Operacion Rosario). Vivia al principio de storyM1 y abria la campaña 1 con una clase de
+  // historia; la campaña 1 arranca ahora en el arroyo. La apertura queda RESERVADA aca: es esta
+  // campaña —la de la flota— la que si necesita el contexto antes de la primera salida.
+  { id: 'fantasma', name: 'EL FANTASMA DEL MAR', missions: null, intro: 'storyC2Intro', enabled: false },
 ];

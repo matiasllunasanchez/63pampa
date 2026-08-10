@@ -87,6 +87,11 @@ página del cuaderno + placa histórica). 🟨 Cambios de la 3.0:
   P.0 al inicio** — la escena de la puerta de Norma pertenece a la cadena de pantallas del
   Final A (la revelación del marco). El jugador no debe ver ningún indicio de Norma como
   lectora antes del cierre.
+- ✅ **(9/8) Hecho, y con destino para lo que sacamos:** las cuatro pantallas históricas de
+  apertura (1833 → 1982, la Junta, Operación Rosario) salieron de `storyM1` y quedaron
+  reservadas como `storyC2Intro`, apuntadas desde `campaigns.js` por la campaña 2 (EL
+  FANTASMA DEL MAR) — es la campaña de la flota la que sí necesita ese contexto. La 1
+  abre en el arroyo.
 - 🟨 **Ya no existen los fragmentos de carta del padre entre misiones.** `style: 'carta'`
   se usa UNA sola vez en toda la campaña: la carta a Norma, y solo en el epílogo del
   Final A. Las páginas de Mateo siguen con `style: 'tierra'`.
