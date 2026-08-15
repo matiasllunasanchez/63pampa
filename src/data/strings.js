@@ -108,6 +108,7 @@ export const STRINGS = {
     optMira: 'RETICULO', optMoves: 'PIRUETAS',
     optAim: 'MIRA', optAimFixed: 'FIJA', optAimFree: 'MOVIL (mouse)',
     optArenaInv: 'EJE Y EN BATALLA', optArenaInvNo: 'W SUBE EL MORRO', optArenaInvYes: 'INVERTIDO',
+    optPadY: 'EJE Y DEL JOYSTICK', optPadYNo: 'ARRIBA SUBE', optPadYYes: 'INVERTIDO',
     optSquad: 'ESCUADRON', optSquadSolo: 'SOLO',
     // MODELO DE VIDA / AVERIAS (core/damage.js)
     optDmg: 'DAÑO DEL AVION',
@@ -156,6 +157,7 @@ export const STRINGS = {
     mejdAim: 'La mira va fija adelante del avion o la lleva el mouse',   mejkAim: 'CAPS LOCK  ·  mouse',
     mejdMira: 'Cual de los nueve reticulos se dibuja',                   mejkMira: '—',
     mejdArenaInv: 'En la batalla, si W sube o baja el morro',            mejkArenaInv: 'W  ·  S',
+    mejdPadY: 'Stick izquierdo: si arriba sube (como la W) o al reves',  mejkPadY: 'stick izq  ·  △ lo alterna',
     mejdNet: 'La malla que marca la altura donde empieza el radar',      mejkNet: '—',
     mejdEnergy: 'Altura y velocidad se intercambian: picar acelera',     mejkEnergy: 'W  ·  S',
     // ---------- CONTROLES: sección informativa de OPCIONES (no se cambia nada, se LEE) ----------
@@ -900,6 +902,7 @@ export const STRINGS = {
     optMira: 'RETICLE', optMoves: 'MANEUVERS',
     optAim: 'SIGHT', optAimFixed: 'FIXED', optAimFree: 'FREE (mouse)',
     optArenaInv: 'BATTLE Y AXIS', optArenaInvNo: 'W = NOSE UP', optArenaInvYes: 'INVERTED',
+    optPadY: 'GAMEPAD Y AXIS', optPadYNo: 'UP CLIMBS', optPadYYes: 'INVERTED',
     optSquad: 'SQUADRON', optSquadSolo: 'SOLO',
     optDmg: 'AIRCRAFT DAMAGE',
     optDmg_squad: 'SQUADRON', optDmg_integ: 'INTEGRITY', optDmg_visual: 'INTEGRITY (VISUAL)',
@@ -938,6 +941,7 @@ export const STRINGS = {
     mejdAim: 'Sight locked ahead of the plane, or moved by mouse',    mejkAim: 'CAPS LOCK  ·  mouse',
     mejdMira: 'Which of the nine reticles is drawn',                  mejkMira: '—',
     mejdArenaInv: 'In battle, whether W raises or lowers the nose',   mejkArenaInv: 'W  ·  S',
+    mejdPadY: 'Left stick: up climbs (like W) or inverted',           mejkPadY: 'left stick  ·  toggled by △',
     mejdNet: 'The mesh marking the altitude where radar begins',      mejkNet: '—',
     mejdEnergy: 'Altitude and speed trade off: diving accelerates',   mejkEnergy: 'W  ·  S',
     optSecCtrl: 'CONTROLS',

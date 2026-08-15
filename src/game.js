@@ -587,6 +587,12 @@ import { RUNWAYS } from './data/runways.js';
       { label: () => T('optArenaInv'), opts: [0, 1], names: () => [T('optArenaInvNo'), T('optArenaInvYes')],
         get: () => cfg.arenaInv, set: v => cfg.arenaInv = v, save: 'rasante_arena_inv',
         card: () => prefCard('ArenaInv', () => T('optArenaInv')) },
+      // EJE Y DEL JOYSTICK. Es la MISMA pregunta que la de arriba pero para el mando, y por eso
+      // van pegadas. El default es ARRIBA SUBE: lo mismo que hace la W, para que el teclado y el
+      // stick nunca digan cosas distintas. △ la alterna en vivo y escribe esta misma fila.
+      { label: () => T('optPadY'), opts: [0, 1], names: () => [T('optPadYNo'), T('optPadYYes')],
+        get: () => cfg.padInvY, set: v => cfg.padInvY = v, save: 'rasante_pad_y',
+        card: () => prefCard('PadY', () => T('optPadY')) },
       // ENERGIA: altura y velocidad se intercambian. Estaba en PARTIDA, pero es DESEMPEÑO del
       // avión — lo mismo que todo lo demás de esta pantalla.
       { label: () => T('optEnergy'), opts: [true, false], names: onOff, sw: true,
@@ -1045,10 +1051,15 @@ import { RUNWAYS } from './data/runways.js';
         if (S.state === 'play' || S.state === 'momentum') popup(W / 2, 58, free ? T('aimFree') : T('aimFixed'), P.accent);
         try { localStorage.setItem('rasante_mira_modo', cfg.aim); } catch (e) { }
       },
-      // throttle del joystick: L1 invierte el eje vertical del stick izquierdo
-      throttleInvert: inv => {
-        beep(inv ? 660 : 440, 0.05, 'square', 0.05);
-        if (S.state === 'play' || S.state === 'momentum') popup(W / 2, 58, inv ? T('thrUp') : T('thrDown'), P.accent);
+      // △ del mando: da vuelta el eje Y del stick izquierdo y lo GUARDA. Antes era una variable
+      // suelta de core/input.js que se perdia al cerrar, asi que un mando que reportara el eje al
+      // reves no se podia dejar arreglado — y el cartel decia lo contrario de lo que pasaba.
+      throttleInvert: () => {
+        cfg.padInvY = cfg.padInvY ? 0 : 1;
+        try { localStorage.setItem('rasante_pad_y', JSON.stringify(cfg.padInvY)); } catch (e) { }
+        beep(cfg.padInvY ? 440 : 660, 0.05, 'square', 0.05);
+        if (S.state === 'play' || S.state === 'momentum' || S.state === 'arena')
+          popup(W / 2, 58, cfg.padInvY ? T('thrDown') : T('thrUp'), P.accent);
       },
     });
 

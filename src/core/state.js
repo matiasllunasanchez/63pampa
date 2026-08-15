@@ -95,6 +95,10 @@ export const cfg = {
   // Existe porque con cabeceo comandado, invertir el eje es lo primero que busca quien viene
   // de un juego de vuelo. Persiste: es una preferencia de la persona, no del mapa.
   arenaInv: 0,
+  // EJE Y DEL STICK IZQUIERDO (joystick). 0 = ARRIBA SUBE, igual que la W del teclado; 1 = invertido.
+  // Antes esto era una variable suelta de core/input.js que solo se prendia con △ y se perdia al
+  // cerrar el juego: si tu mando reportaba el eje al reves, no habia forma de dejarlo arreglado.
+  padInvY: 0,
   // MODELO DE VIDA / AVERIAS (ver core/damage.js). Vale para TODOS los modos y a futuro es una
   // de las perillas de la DIFICULTAD:
   //   'squad'  el de siempre: un impacto y caiste; el escuadron es la barra de vida

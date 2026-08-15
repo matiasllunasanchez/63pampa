@@ -301,7 +301,6 @@ export function initInput(cv, a) {
   const rPrev = { L: 0, R: 0, U: 0, D: 0 };    // stick DERECHO: flanco de cada direccion (combos)
   let btnPrev = [];                            // estado previo de botones (flanco)
   let padLast = performance.now();             // para el dt del movimiento fluido de la mira
-  let throttleInvert = false;                  // L1: eje vertical. false = ARRIBA sube (default); true = ABAJO sube
   let capsPrev = null;
   const nav = { u: false, d: false, l: false, r: false };   // navegacion previa (cruceta+stick)
 
@@ -376,7 +375,7 @@ export function initInput(cv, a) {
       // COMBOS con el pad: el FLANCO de cada direccion (stick cruzando la zona muerta, o la
       // cruceta) cuenta como un toque — doble flick del stick = doble tap. Mismo detector.
       const dl = (lx < 0 || down(14)) ? 1 : 0, dr = (lx > 0 || down(15)) ? 1 : 0;
-      const du = (throttleInvert ? ly > 0 : ly < 0) ? 1 : 0, dd = (throttleInvert ? ly < 0 : ly > 0) ? 1 : 0;
+      const du = (cfg.padInvY ? ly > 0 : ly < 0) ? 1 : 0, dd = (cfg.padInvY ? ly < 0 : ly > 0) ? 1 : 0;
       if (S.state === 'play') {
         if (dl && !padHeld.l) dirTap('l');
         if (dr && !padHeld.r) dirTap('r');
@@ -385,17 +384,19 @@ export function initInput(cv, a) {
       }
       setPad('l', (lx < 0 || down(14)) ? 1 : 0);               // stick izq / cruceta izq = esquivar
       setPad('r', (lx > 0 || down(15)) ? 1 : 0);
-      // THROTTLE en el stick VERTICAL: por defecto ARRIBA sube (gas), ABAJO pica. L1 lo invierte.
+      // STICK IZQUIERDO, EJE VERTICAL: ARRIBA SUBE, lo mismo que la W del teclado. `ly < 0` es el
+      // stick arriba en el mapeo estandar, y va a 'u' — el mismo campo que escribe la W, asi que
+      // las dos entradas no pueden divergir por construccion.
       // Con el stick centrado NO hay gas → el avion cae (mecanica central del juego).
-      // (Este comentario decia lo contrario que el codigo y que el encabezado del bloque: `ly < 0`
-      //  es el stick ARRIBA, y va a 'u'. Corregido.)
-      if (hit(3)) { throttleInvert = !throttleInvert; a.throttleInvert(throttleInvert); }   // △ = invertir eje
+      // cfg.padInvY lo da vuelta para quien lo prefiera (o para un mando que reporte al reves), y
+      // ahora PERSISTE: △ lo alterna en vivo y la fila EJE Y DEL JOYSTICK lo deja guardado.
+      if (hit(3)) a.throttleInvert();                          // △ = invertir el eje Y (y lo GUARDA)
       if (hit(1)) a.combatTurn();                              // ◯ = viraje de combate (solo lo lee el ARENA)
       // CRUCETA ARRIBA = reparto de energia. SQUADRONS_UPDATE §6 la daba por ocupada ("la cruceta
       // es esquive"), pero eso vale para 14/15 (izq/der): 12/13 no las lee nadie en juego.
       if (hit(12)) a.cyclePip();
-      setPad('u', (throttleInvert ? ly > 0 : ly < 0) ? 1 : 0);  // potencia (gas / subir)  — default: ARRIBA sube
-      setPad('d', (throttleInvert ? ly < 0 : ly > 0) ? 1 : 0);  // picada (bajar)
+      setPad('u', (cfg.padInvY ? ly > 0 : ly < 0) ? 1 : 0);     // potencia (gas / subir) — default: ARRIBA SUBE
+      setPad('d', (cfg.padInvY ? ly < 0 : ly > 0) ? 1 : 0);     // picada (bajar)
       setPad('fire', down(5) || down(0));                      // R1 = metralleta (✕ tambien)
       setPad('turbo', down(7));                                // turbo (gatillo)
       setPad('msl', down(4) || down(2));                       // L1 = misil (□ tambien)
