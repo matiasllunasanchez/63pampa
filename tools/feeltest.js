@@ -157,7 +157,9 @@ check('derrape maximo COMANDADO (grados)', Math.atan2(AR.VX_MAX, AR.SPD_CRUISE) 
     let dy = st.yaw - prev; if (dy > Math.PI) dy -= Math.PI * 2; else if (dy < -Math.PI) dy += Math.PI * 2;
     acc += dy;
   }
-  check('vuelta completa banqueando (s, criterio ≤5.5)', t, 5.4, 0.35);
+  // 5.4 → 5.1 al entrar el sweet spot (S3): en crucero la campana da gain 1.03. Es el unico
+  // numero de E2 que S3 movio, y se re-ancla aca en vez de esconderse bajo la tolerancia vieja.
+  check('vuelta completa banqueando (s, criterio ≤5.5)', t, 5.1, 0.25);
   let st2 = { yaw: 0, pitch: 0, roll: 0, spd: AR.SPD_CRUISE, vx: 0 }, t2 = 0, acc2 = 0;
   while (acc2 < Math.PI * 2 && t2 < 9) {
     const p = st2.yaw; aero.stepFlight(st2, { roll: 1, pitch: 1 }, DT); t2 += DT;
@@ -166,6 +168,57 @@ check('derrape maximo COMANDADO (grados)', Math.atan2(AR.VX_MAX, AR.SPD_CRUISE) 
   }
   console.log(`    apretando (banqueo + tirar): ${t2.toFixed(1)} s — el viraje de combate sale del modelo`);
   check('radio de giro banqueado (m, criterio ≤110)', aero.turnRadius(AR.SPD_CRUISE), 89, 4);
+}
+
+console.log('\narena — viraje de combate, drift y sweet spot (E3 + S2/S3):');
+{ // MEDIA VUELTA guionada: el criterio del plan es ~1.2 s (contra 2.6 s de banquear medio giro)
+  const st = { yaw: 0, pitch: 0, roll: 0, spd: AR.SPD_CRUISE, vx: 0 };
+  const mv = aero.startUturn(1);
+  let t = 0;
+  while (!aero.stepUturn(st, mv, DT) && t < 4) t += DT;
+  check('media vuelta guionada (s, criterio ~1.2)', t + DT, AR.UTURN_DUR, 0.25);
+  check('guinada acumulada (grados)', mv.acc * DEG, 180, 6);
+  const cost = AR.SPD_CRUISE - st.spd;
+  if (cost > 12) console.log(`  ✓ ${'la media vuelta CUESTA energia'.padEnd(42)} -${cost.toFixed(0)} m/s`);
+  else { bad++; console.log(`  ✗ la media vuelta es gratis (-${cost.toFixed(0)} m/s): se encadena sin costo`); }
+}
+{ // media vuelta BANQUEANDO, para tener el antes contra el que se compara
+  let st = { yaw: 0, pitch: 0, roll: 0, spd: AR.SPD_CRUISE, vx: 0 }, t = 0, acc = 0;
+  while (acc < Math.PI && t < 9) {
+    const p = st.yaw; aero.stepFlight(st, { roll: 1 }, DT); t += DT;
+    let dy = st.yaw - p; if (dy > Math.PI) dy -= Math.PI * 2; else if (dy < -Math.PI) dy += Math.PI * 2;
+    acc += dy;
+  }
+  console.log(`    la misma media vuelta banqueando a mano: ${t.toFixed(1)} s`);
+}
+{ // SWEET SPOT (S3): frenado el giro APRIETA; a fondo se abre
+  const gB = aero.turnGain(AR.SPD_CRUISE * AR.SPD_BRAKE);
+  const gC = aero.turnGain(AR.SPD_CRUISE);
+  const gT = aero.turnGain(AR.SPD_CRUISE * AR.SPD_TURBO);
+  if (gB > gC && gC > gT) console.log(`  ✓ ${'el giro aprieta frenando, se abre a fondo'.padEnd(42)} ${gB.toFixed(2)} > ${gC.toFixed(2)} > ${gT.toFixed(2)}`);
+  else { bad++; console.log(`  ✗ el sweet spot no rige (freno ${gB.toFixed(2)} / crucero ${gC.toFixed(2)} / turbo ${gT.toFixed(2)})`); }
+  const rB = aero.turnRadius(AR.SPD_CRUISE * AR.SPD_BRAKE), rT = aero.turnRadius(AR.SPD_CRUISE * AR.SPD_TURBO);
+  console.log(`    radio: frenado ${rB.toFixed(0)} m  ·  crucero ${aero.turnRadius().toFixed(0)} m  ·  turbo ${rT.toFixed(0)} m`);
+}
+{ // DRIFT (S2): con freno y banqueo pleno la TRAYECTORIA queda atras del morro
+  const st = { yaw: 0, pitch: 0, roll: 0, spd: AR.SPD_CRUISE, vx: 0 };
+  const vel = { ...aero.forward(0, 0) };
+  let t = 0;
+  for (; t < 1.2; t += DT) {
+    aero.stepFlight(st, { roll: 1, brake: true }, DT);
+    aero.stepVel(vel, aero.forward(st.yaw, st.pitch), aero.drifting(st, true), DT);
+  }
+  const ang = aero.driftAngle(vel, aero.forward(st.yaw, st.pitch)) * DEG;
+  if (ang > 20) console.log(`  ✓ ${'derrapando el morro se despega del rumbo'.padEnd(42)} ${ang.toFixed(0)}°`);
+  else { bad++; console.log(`  ✗ el drift no despega la trayectoria (${ang.toFixed(0)}°)`); }
+  // y SIN freno la trayectoria vuelve al morro: el modelo E1/E2 medido no cambia
+  const st2 = { yaw: 0, pitch: 0, roll: 0, spd: AR.SPD_CRUISE, vx: 0 };
+  const vel2 = { ...aero.forward(0, 0) };
+  for (let u = 0; u < 1.2; u += DT) {
+    aero.stepFlight(st2, { roll: 1 }, DT);
+    aero.stepVel(vel2, aero.forward(st2.yaw, st2.pitch), aero.drifting(st2, false), DT);
+  }
+  check('sin freno: morro = trayectoria (grados)', aero.driftAngle(vel2, aero.forward(st2.yaw, st2.pitch)) * DEG, 0, 8);
 }
 
 console.log('\narena — energia (E1: la gravedad pelea contra la VELOCIDAD):');

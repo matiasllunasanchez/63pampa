@@ -207,6 +207,13 @@ export function initInput(cv, a) {
     if (isFire(e.code)) { inp.fire = true; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }
     if (isTurbo(e.code)) { inp.turbo = true; if (!e.repeat) flags.anyPress = true; }
     if (e.code === 'KeyV' && !e.repeat) a.cycleCamera();                 // cicla las 4 camaras
+    // VIRAJE DE COMBATE del ARENA (media vuelta guionada, PLAN_MINUTOS_SAGRADOS E3). [R] esta
+    // libre ahi: `rise` es el paneo de camara del PASILLO y el arena no lo lee. Tecla propia y no
+    // un combo de dos toques a proposito — el repo ya aprendio que con dos toques las maniobras
+    // salen solas maniobrando (ver el encabezado de data/moves.js).
+    if (e.code === 'KeyR' && !e.repeat) a.combatTurn();
+    // REPARTO DE ENERGIA del ARENA (S1). [G] libre en todo el juego; [TAB] NO servia (es misil).
+    if (e.code === 'KeyG' && !e.repeat) a.cyclePip();
     if (e.code === 'KeyZ' || e.code === 'Tab') { inp.msl = true; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }   // misil (Z o TAB)
     if (e.code === 'Enter' && !e.repeat) flags.anyPress = true;
     // MUSICA: tecla 1 = pista anterior, tecla 2 = siguiente (el motor lo ignora fuera de modo)
@@ -383,6 +390,10 @@ export function initInput(cv, a) {
       // (Este comentario decia lo contrario que el codigo y que el encabezado del bloque: `ly < 0`
       //  es el stick ARRIBA, y va a 'u'. Corregido.)
       if (hit(3)) { throttleInvert = !throttleInvert; a.throttleInvert(throttleInvert); }   // △ = invertir eje
+      if (hit(1)) a.combatTurn();                              // ◯ = viraje de combate (solo lo lee el ARENA)
+      // CRUCETA ARRIBA = reparto de energia. SQUADRONS_UPDATE §6 la daba por ocupada ("la cruceta
+      // es esquive"), pero eso vale para 14/15 (izq/der): 12/13 no las lee nadie en juego.
+      if (hit(12)) a.cyclePip();
       setPad('u', (throttleInvert ? ly > 0 : ly < 0) ? 1 : 0);  // potencia (gas / subir)  — default: ARRIBA sube
       setPad('d', (throttleInvert ? ly < 0 : ly > 0) ? 1 : 0);  // picada (bajar)
       setPad('fire', down(5) || down(0));                      // R1 = metralleta (✕ tambien)

@@ -1009,6 +1009,12 @@ import { RUNWAYS } from './data/runways.js';
         return false;
       },
       launchMissile: () => tryLaunchMissile(),
+      // VIRAJE DE COMBATE: solo existe en el ARENA. En el pasillo la media vuelta no significa
+      // nada (es un scroll lateral: no hay para donde darse vuelta), asi que la tecla no hace nada.
+      combatTurn: () => { if (S.state === 'arena' && arena.active()) arena.combatTurn(); },
+      // REPARTO DE ENERGIA: tambien solo del ARENA. En el pasillo no hay nada que repartir —
+      // el turbo sale del combustible y el cañon no calienta distinto segun donde mires.
+      cyclePip: () => { if (S.state === 'arena' && arena.active()) arena.cyclePip(); },
       cycleCamera: () => {
         // en el ARENA la misma tecla conmuta cabina ↔ tercera persona (decision del prompt:
         // toggle EN VIVO, no una opcion de menu)
@@ -1166,7 +1172,9 @@ import { RUNWAYS } from './data/runways.js';
     // lanza un misil del jugador (arma secundaria: limitada, one-shot, con leve guiado)
     function tryLaunchMissile() {
       if (S.state === 'momentum') return momentum.launchMissile(mouse);   // primera persona: misil del momentum
-      if (S.state === 'arena') return arena.launchMissile();              // asalto volado: dispara por el MORRO
+      // el ARENA maneja su misil SOLO (E5): se PINTA manteniendo el boton y la salva sale al
+      // soltarlo, y un flanco de tecla no puede expresar cuanto tiempo te quedaste encima
+      if (S.state === 'arena') return;
       if (S.state !== 'play' || run.msl <= 0 || run.mslCd > 0) return;
       let tx = plane.x, td = 42;                                  // engancha el blanco aereo mas cercano adelante
       const vm = viewMouse();
@@ -1474,6 +1482,9 @@ import { RUNWAYS } from './data/runways.js';
             // lo que cruzo el plano del avion DURANTE la cinematica ya paso de largo: sin esto,
             // collision lo veria "sin resolver" en el primer frame y podria matar en el handoff
             for (const o of obstacles) if (o.z <= PZ + 1.5) o.done = true;
+            // EL COMPAÑERO ENTRA CON EL AVION SANO. Es lo que mantiene al escuadron como vidas
+            // aunque el modelo sea por integridad: cada avion trae su propia chapa.
+            damage.resetDamage();
             // si el companero releva DENTRO del asalto, vuelve AL ASALTO — con el daño ya hecho
             // al buque (las zonas viven en el subsistema, no en la instancia). Pasar por 'play'
             // funcionaba de rebote (flight re-detectaba el objetivo), pero metia un frame del
@@ -1482,9 +1493,6 @@ import { RUNWAYS } from './data/runways.js';
               arena.enter();
               popup(W / 2, 54, T('sq_yours'), P.accent);
               if (run.lives === 1) popup(W / 2, 64, T('sq_last'), P.warn);
-            // EL COMPAÑERO ENTRA CON EL AVION SANO. Es lo que mantiene al escuadron como vidas
-            // aunque el modelo sea por integridad: cada avion trae su propia chapa.
-            damage.resetDamage();
               beep(980, 0.14, 'square', 0.06);
               flags.startReq = false; flags.anyPress = false;
               return;
@@ -1914,7 +1922,7 @@ import { RUNWAYS } from './data/runways.js';
         momCam: momentum.cam, momShipGeom: momentum.shipGeom, momZoneRect: momentum.zoneRect });
       if (S.state === 'arena' && arena.active()) arenaRender.drawArena({
         arena: arena.active(), zones: arena.zonesOf(), view: arena.view(), objectiveShip,
-        parts, popups, selPlane, t: run.t });
+        pip: arena.pipId(), parts, popups, selPlane, t: run.t });
       ctx.restore();
       // ...y el telon ABRIENDOSE del otro lado: entraste al climax cruzando el banco
       if (veilOut > 0 && (S.state === 'arena' || S.state === 'momentum')) world.drawVeil(veilOut / VEIL_OUT);

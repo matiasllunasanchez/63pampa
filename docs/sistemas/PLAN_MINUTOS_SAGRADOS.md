@@ -322,7 +322,38 @@ vez de sumarse.
 
 ---
 
-### E3 — Viraje de combate y freno ⭐⭐⭐
+### E3 — Viraje de combate y freno ⭐⭐⭐ ✔ (hecho 14/8/2026, junto con S2 y S3)
+
+> **Medido al cierre** (`npm run feel`, sección *arena*, + sonda Electron sobre batalla real):
+> **media vuelta guionada en 1,08 s** contra **2,6 s** banqueando a mano (y 5,1 s la vuelta
+> entera) — el criterio del plan era "~1,2 s"; corta por **guiñada acumulada** (180,9°), no por
+> reloj, así que el mismo gesto vale a cualquier velocidad. **Cuesta 19 m/s** de energía y tiene
+> reenganche de 1,1 s: encadenarlas te deja lento, blando y sin cabeceo, que es el precio que
+> pedía el plan. El **freno** ya había entrado con E1 (`SPD_BRAKE 0.6`, sostenido a 68 m/s).
+> **DRIFT (S2)**: con freno + banqueo pleno la trayectoria se despega del morro **48°** medido
+> vivo (`__adbg.dAng`) y **vuelve a 0,1° al soltar** — el modelo E1/E2 medido no se movió.
+> **SWEET SPOT (S3)**: radio de giro **43 m frenado · 87 m crucero · 134 m con turbo**; el único
+> número de E2 que se corrió es la vuelta completa (5,4 → 5,1 s), re-anclado en el feeltest.
+>
+> **Controles:** `[R]` / **◯** disparan la media vuelta. Tecla propia y **no** un combo de dos
+> toques a propósito: el repo ya aprendió que con dos toques las maniobras salen solas maniobrando
+> (encabezado de `data/moves.js`). El lado lo decide el **banqueo**, y nivelado va **hacia el
+> buque** — es la herramienta de "volver a tenerlo en la mira", no una pirueta de exhibición.
+>
+> **Lo que se ve:** el **vector de vuelo** (el símbolo de cualquier HUD real) recién ahora se gana
+> el píxel — sin drift caía siempre encima de la mira; se dibuja cuando se separa. Y la velocidad
+> se pinta en el acento con **GIRO CORTO** dentro de la banda del sweet spot: la forma más barata
+> de enseñar la mecánica es que el número que ya estabas mirando cambie de color.
+>
+> **Sondas nuevas:** `__adbg` reporta `mv`/`drift`/`dAng`; `__ahist` suma `uturns` y `driftT`
+> (SQUADRONS_UPDATE §7: un sistema que nadie usa es peso muerto y se saca). `__aset` acepta un
+> cuarto argumento `turn` — sin poder dejar el buque **a la espalda** no había forma de medir dos
+> veces la misma situación.
+>
+> **Queda abierto de E3:** el catálogo completo de piruetas en el arena es **E4**, no esto. Acá
+> entró UNA maniobra, la que el plan justificaba con números.
+
+### E3 — el detalle original
 
 En un ring de 1400 m a 125 m/s, cruzarlo son 11 s y girar 5–7 s: la mayor parte de la pelea se va
 volando *lejos* del buque. Problema clásico de las arenas chicas, con solución clásica.
@@ -334,9 +365,13 @@ volando *lejos* del buque. Problema clásico de las arenas chicas, con solución
   vale tanto como el acelerador: es lo que te deja *quedarte* sobre el blanco en vez de pasar de
   largo.
 
-> **Decidido (D2, §10):** el arena corre su **propio ejecutor** de maniobras y comparte el
-> **catálogo** `data/moves.js`. `systems/moves.js` escribe `plane` y `run.mv*` —estado del
-> PASILLO— y no puede manejar la base de orientación del arena.
+> **Decidido (D2, §10) y ya implementado:** el arena corre su **propio ejecutor** de maniobras
+> (`core/aero.js`, `startUturn`/`stepUturn`). `systems/moves.js` escribe `plane` y `run.mv*`
+> —estado del PASILLO— y no puede manejar la actitud del arena. Lo que se comparte es la IDEA de
+> maniobra guionada: mientras corre, ella escribe el `io` y el jugador no maneja, así el vuelo
+> sigue siendo UNA sola integración. El **catálogo** `data/moves.js` todavía no se lee desde el
+> arena: la media vuelta no está en él (no existe como pirueta del pasillo, donde darse vuelta no
+> significa nada). Cuando entre E4 con las piruetas de verdad, ahí sí se comparten los números.
 
 > **Salida (medible):** tiempo entre pasadas (romper → volver a tener el buque en la mira)
 > **≤ 4 s** (hoy ~7 s con giro completo).
@@ -363,7 +398,44 @@ Como los tokens de combo ya distinguen **mano izquierda (minúscula) / mano dere
 
 ---
 
-### E5 — Armas: que acercarse importe ⭐⭐
+### E5 — Armas: que acercarse importe ⭐⭐ ✔ (hecho 14/8/2026)
+
+> **Medido al cierre** (sonda Electron sobre batalla real, `__adbg`/`__ahist`):
+> **desde 600 m el cañón hace CERO daño** (285 → 285 HP con una ráfaga entera) y **desde 250 m,
+> 21–28**; el buque ya **no se puede batir desde el borde del ring**, que era el defecto medido
+> en §2.4. **Distancia media de disparo 339 m** (criterio: < 400) — y eso *incluyendo* los tiros
+> que la sonda malgastó a 520 y 600 m, que ahora son exactamente eso: malgastados.
+>
+> - **Cañón balístico**: la bala es un objeto del mundo a `BULLET_V = 850` m/s y el impacto se
+>   resuelve por el **segmento** recorrido en el cuadro — a esa velocidad un chequeo por punto se
+>   saltea el casco entero entre dos cuadros (14 m por frame a 60 fps). ~4 balas vivas a la vez.
+>   Se ve como trazadora propia proyectada desde el mundo, con su tiempo de vuelo.
+> - **Caída de daño** desde 300 m hasta el 45% en el límite (`gunDamage`).
+> - **Calor**: entra con las MISMAS constantes del pasillo (`GUN_HEAT_SHOT` y compañía). Medido
+>   en vivo: sube ~0,2/s de fuego sostenido → **presupuesto de ráfaga de ~5 s** antes del bloqueo.
+>   ⚠️ **La sonda nunca llegó a bloquearlo**, y eso es un hallazgo: a 250–520 m el flak mata antes
+>   de los 5 s. El techo de calor solo va a morder al que se queda lejos rociando — que es
+>   justamente lo que E5 quiere desalentar. Barra arriba a la IZQUIERDA (arriba a la derecha vive
+>   el indicador de música) y **RECALENTADO** parpadeando.
+> - **Misil por PINTADO**: `[Z]` sostenida pinta las zonas que el retículo barre (hasta 3, 0,32 s
+>   cada una, con arco de carga sobre la zona), soltar dispara la salva. `MSL_DMG` 85 → **55**
+>   (salva de 3 = 165 ≈ 58% del destructor). Verificado: pintó, soltó, salió el misil y bajó el
+>   contador. Por eso el misil del arena **dejó de entrar por el flanco de tecla de `game.js`**:
+>   un flanco no puede expresar cuánto tiempo te quedaste encima.
+> - **Se terminó la regeneración automática** cada 7 s. El misil vuelve con la **PASADA LIMPIA**:
+>   entrar a 260 m y salir de 420 m sin que un flak te roce, +1 misil y aviso en pantalla. La
+>   santabárbara se llena al empezar batalla NUEVA, **no en el relevo** del escuadrón — recargar
+>   ahí sería premiar el derribo justo después de sacarle la regeneración al recurso.
+>
+> **De yapa:** el arena ahora suma `stats.shots` al disparar. Contaba los impactos (`stats.hits`)
+> y no los tiros, así que la precisión del recuento podía pasar del 100%.
+>
+> **Sin verificar todavía:** "la pelea se resuelve en 3–5 pasadas" pide una partida jugada por una
+> persona, no una sonda. La aritmética da 2–3 (58 HP/s de cañón dentro de 300 m + salva de 165
+> sobre 285 de casco), así que puede que haya que **subir el casco o bajar la salva** — pero eso
+> se decide con el juego en la mano, que es la regla de este plan.
+
+### E5 — el detalle original
 
 - **`GUN_RANGE` 900 → ~380 m**, con caída de daño desde 300. **Un solo número** y aparece la
   pasada de ataque completa, sin construir ningún sistema.
@@ -385,7 +457,144 @@ Como los tokens de combo ya distinguen **mano izquierda (minúscula) / mano dere
 
 ---
 
-### E6 — El latido: stagger, burbuja y patrones ⭐⭐
+### E6 — El latido: stagger, burbuja y patrones ⭐⭐ ✔ (hecho 15/8/2026)
+
+> **Medido al cierre** (sonda `arena_e6.js`, `__adbg`/`__ahist`):
+>
+> - **STAGGER**: el fuego sostenido a 260 m **abre** una zona (verificado, `staggers: 1`). La
+>   apertura da ×2,5 durante 2,5 s, corchete al **rojo blanco** y la etiqueta cambia a
+>   `! AL DESCUBIERTO !`. Mientras está abierta **no recarga**: sin eso una zona abierta se
+>   re-abría antes de cerrarse y no cerraba nunca.
+> - **DECAIMIENTO medido**, soltando el gatillo y muestreando cada 0,25 s:
+>   `0,88 → 0,79 → 0,71 → 0,62 → 0,54 → 0,45` = **−0,085 por muestra = 0,34/s**, exactamente
+>   `STAG_DECAY`. *(Detalle lindo: la barra todavía SUBE en la primera muestra después de soltar
+>   —0,46 → 0,88— porque las balas de E5 siguen viajando. El tiempo de vuelo del cañón balístico
+>   se ve en un número que no lo estaba buscando.)*
+> - **BURBUJA (250 m)**: adentro, **2 patrones** en 4 s y espoleta de flak partida a la mitad
+>   (1,15 → 0,55 s), con el bip de aviso más agudo. Afuera, **CERO patrones** — el espacio mismo
+>   enseña dónde es peligroso, sin un solo cartel.
+> - **PATRONES**: tres figuras del mismo abanico — `cortina` (pared horizontal simultánea),
+>   `barrido` (la misma en secuencia) y `aspa` (persiana vertical), apuntadas **adelantadas**, así
+>   que sostener el rumbo te mete adentro de la figura y la salida siempre es quebrar por el eje
+>   que el patrón deja libre. Tabla en `data/arena.js`, no `Math.random()`: un patrón se aprende;
+>   una dispersión al azar sólo se sufre.
+>
+> **Tres calibraciones que salieron de medir, no de opinar:**
+>
+> 1. **Cadencia.** Con `PAT_EVERY [1.5, 2.6]` la sonda midió **62 amenazas/min** adentro — a
+>    480×270 eso es sopa (trampa §9.1). Quedó en **[1.8, 3.0] = 20–33/min**, que es justo el
+>    criterio de salida (">= 20 esquives/min").
+> 2. **`STAG_CAP` (nueva).** Un solo misil de 55 llenaba la barra ENTERA de la zona grande
+>    (0,42 × 130 = 54,6): el stagger se **compraba** en vez de ganarse, y la palabra del plan es
+>    "daño SOSTENIDO". Ahora ningún impacto suelto puede aportar más del 25% de la barra — hacen
+>    falta 4 como mínimo, sea con lo que sea. El cañón (7 por bala) ni lo nota.
+> 3. **`PAT_OFFSET` (nueva) — la más importante.** El abanico se centraba en el punto adelantado
+>    EXACTO, así que la rama del medio pegaba en la cara: medido, **el avión volando recto adentro
+>    de la burbuja moría en menos de un segundo**. Eso no es "algo que esquivar", es una ejecución
+>    — y encima peleaba de frente contra el stagger, que premia QUEDARSE. Con la figura corrida
+>    55 m (a un lado al azar) cruza tu camino en vez de centrarse en vos: hay que moverse, y hay
+>    por dónde. Después del cambio la sonda sobrevivió lo suficiente para medir todo lo demás,
+>    que es la señal de que el arreglo era el correcto.
+>
+> **Interacción con E5 que hubo que resolver:** esquivar un patrón **no** ensucia la pasada limpia
+> — sólo el flak lo hace. Adentro de la burbuja siempre hay patrones, así que contarlos dejaba la
+> recarga de misiles en imposible, y el recurso que premia la jugada dejaba de premiar nada.
+>
+> **Lenguaje visual (trampa §9.1):** la trazadora letal va **gruesa, con halo rojo, núcleo blanco
+> y estela larga**; la de presión sigue fina, apagada y dispersa. Si se parecieran, morir sería un
+> misterio y el patrón no se podría aprender.
+>
+> **Sin verificar todavía:** "cero muertes por algo no telegrafiado" **fuera** de la burbuja. Es
+> una afirmación sobre una partida jugada; lo que sí está verificado es la premisa que la sostiene
+> (afuera no se emite ningún patrón letal).
+
+#### Playtest del autor (15/8) — la batalla completa, con las manos
+
+Cinco frases textuales y qué resultó ser cada una:
+
+| queja | causa REAL | arreglo |
+|---|---|---|
+| "los misiles son dificilísimos de esquivar, **no se ven**" | ⚠️ **bug de orden de dibujo**, no de dificultad | ✔ |
+| "en 1ª persona es **injugable**: se escucha el tiro y al toque te matan" | la misma | ✔ |
+| "en 3ª es más jugable, mejoró un poco pero le falta muchísimo" | la misma, atenuada (en 3ª el avión tapa menos) | ✔ |
+| "**dura más** la batalla" | E5 le recortó el alcance al cañón y el buque no cambió de vida | ✔ `SHOT_DMG` 7 → 9 |
+| "poné sonidos de explosión de los que ya teníamos" | el flak sonaba con el `boom` procedural | ✔ `exSmall`/`exXsmall`/`exMedium` |
+
+**LA CAUSA DE LAS TRES PRIMERAS, y la lección más cara de todo el plan:** `drawCockpit()` se dibuja
+DESPUÉS del bucle de fx, así que el PNG del parabrisas **tapaba las trazadoras letales y el anillo
+de aviso del flak**. Con la cabina ocupando media pantalla, la amenaza existía, se oía, mataba —
+y era invisible. No era un problema de balance: era que el telégrafo estaba tapado por el capó.
+
+> **Regla que queda escrita: en el ARENA, todo lo que puede matarte se dibuja AL FINAL**, encima
+> de la cabina y del avión (`drawThreats()` en `render/arena.js`). Si algo nuevo mata, va ahí.
+
+Y el anillo del flak además mentía el tiempo: se cerraba contra un divisor fijo de 1,15 s cuando
+dentro de la burbuja la espoleta es de 0,55. Ahora usa la espoleta real (`fuse0`).
+
+**Trazadoras letales, ablandadas:** 330 → **210 m/s** y radio 8 → **6 m**. A 330 m/s cruzaban la
+pantalla en menos de lo que tarda una reacción humana: no eran difíciles, eran invisibles. Y los
+patrones bajaron a uno cada 2,4–3,8 s, porque ya no son la única amenaza.
+
+#### 🟥 REDISEÑO DEL FUEGO DEL BUQUE *(16/8 — segundo playtest; deroga los patrones de E6)*
+
+> Textual: *"desde que dispara el barco hasta que te golpea es casi instantáneo, y encima parece
+> que no te dispara exactamente y te pega igual"*.
+>
+> **Tenía razón, y el culpable era el flak de toda la vida**: se materializaba al lado del avión
+> con una espoleta. No había disparo que ver — no era rápido, era que **no viajaba**.
+>
+> **La regla nueva: TODO lo que dispara el buque sale del buque y viaja hasta vos.** Dos armas:
+>
+> | | velocidad | radio | cadencia | sonido |
+> |---|---|---|---|---|
+> | **METRALLETA** | 235 m/s | 5 m | ráfagas de 5–9 rondas escalonadas 75 ms, cada 1,4–2,6 s | `exXsmall` por ráfaga |
+> | **ANTIAÉREO** | 170 m/s | 18 m (proximidad) | 1–3 pepinazos cada 4,5–7,5 s | `exHeavyDist`, **UN** tiro |
+>
+> **PUNTERÍA IMPERFECTA, que es el diseño y no una concesión.** El tiro se adelanta contra la
+> velocidad real del avión y después **se desvía a propósito**: normalmente 0,09–0,19 rad (a 300 m
+> son 27–57 m de yerro), y **cada 10–18 s se afina 2,8 s** a 0,008–0,03. Con adelanto perfecto la
+> única defensa sería no estar ahí; con dispersión al azar el buque nunca acertaría. Adelanto +
+> error = **la estela pasa cerca, se ve pasar, y de vez en cuando engancha**.
+>
+> El **radar sigue mandando**: muerto, el buque pierde el adelanto y tira a donde estuviste — la
+> mejor regla que ya tenía el modo, y ahora además **se ve**.
+>
+> **Medido:**
+> - metralleta en el aire el **86%** del tiempo, antiaéreo el **25%**; hasta 21 rondas vivas.
+> - puntería fina el **11%** del tiempo (el resto, mala).
+> - **supervivencia volando: 6 de 6 muestras aguantaron los 9,4 s** de la ventana, tanto derecho
+>   como banqueando. Una sonda anterior daba 26 muertes en 104 muestras, pero teletransportaba el
+>   avión al mismo punto: **un blanco quieto**. Contra fuego con adelanto, estar quieto es morir —
+>   y que eso sea así está bien.
+>
+> **Dos bugs de estado que salieron de medir:** el ciclo de puntería vivía en `A` y se reiniciaba
+> en cada relevo (la tanda fina aparecía el 3% del tiempo en vez del 20%). Ahora vive a nivel de
+> módulo, como el reparto de energía: **es del buque, no del avión**.
+>
+> **Lo que esto deroga:** los **patrones** de E6 (cortina / barrido / aspa) y la trazadora
+> decorativa. La justificación original era "un patrón se aprende, una dispersión se sufre" — pero
+> con **tiempo de vuelo y estela visible**, la dispersión ya es legible: leés hacia dónde va la
+> línea y te salís. Sumar las dos cosas era sopa. La burbuja **sí** sobrevive, pero ahora modula
+> cadencia y puntería en vez de la espoleta.
+
+#### 🟥 Misil guiado del buque *(pedido del autor, 15/8 — adelanta parte de E7/S5)*
+
+**La amenaza que se VE venir**, y el contrapeso exacto de lo que estaba mal: todo lo demás que
+tira el buque es rápido y puntual; este es lento, ruidoso y persistente. Se anuncia, te sigue, y
+**pasa de largo si quebrás a tiempo**. Es la única cosa de la pelea que se esquiva con la cabeza
+y no con los reflejos.
+
+- **122 m/s** contra los 110 de crucero: no se le escapa con turbo, **se lo gira**. Vira a 1,1
+  rad/s contra los ~2,6 del avión apretando — la salida siempre existe y siempre es la misma.
+- Se queda **sin combustible a los 9 s** y se apaga solo: perseguirte tiene un límite.
+- Uno cada 7–11 s y sólo en la franja de **150–620 m** (de más cerca no da tiempo; de más lejos
+  no llega). Es un EVENTO, no una lluvia.
+- **Tono de aproximación** que sube de frecuencia con la cercanía, cuña roja en el borde si queda
+  fuera de cuadro, y halo que late más rápido de cerca.
+- **Verificado con sonda:** lanzado a 268 m, quebrando con banqueo pleno → **PASÓ DE LARGO**, con
+  distancia mínima de **23 m** (el radio letal es 12). Se esquiva, y por poco.
+
+### E6 — el detalle original
 
 - **STAGGER por zona** (*Armored Core VI*): el daño sostenido llena una barra que decae sola; al
   llenarse, **la zona se abre** — daño ×2,5 durante ~2,5 s, caja al rojo blanco y sonido propio.
@@ -540,8 +749,14 @@ pide con la mano que rola*— para que el vocabulario de combos entre al arena s
 | acelerador / freno | R2 / L2 | `R` / `F` |
 | cañón | R1 | disparo del pasillo |
 | misiles (mantener = pintar) | L1 | misil del pasillo |
-| viraje de combate | L3 (o un botón de cara) | tecla propia + combo `↑↓↓` |
+| viraje de combate ✔ | **◯** | **`R`** *(no combo: ver E3)* |
+| reparto de energía ✔ | **cruceta ↑** | **`G`** |
 | cambiar vista | — | `V` |
+
+> **Cerrado al implementar (14–15/8):** el viraje de combate quedó en `[R]` / ◯ y **no** en un
+> combo — con dos toques las maniobras salen solas maniobrando (encabezado de `data/moves.js`).
+> El reparto de energía (S1) quedó en `[G]` / cruceta ↑. El misil pasó a **mantener = pintar**, así
+> que en el arena `[Z]` ya no es un flanco sino un botón sostenido.
 
 Sumar a OPCIONES: **INVERTIR EJE Y (ARENA)** — estándar en cualquier juego de vuelo desde que
 existe el cabeceo comandado, y este juego ya tiene la pantalla donde ponerlo.

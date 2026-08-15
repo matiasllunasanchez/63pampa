@@ -60,7 +60,9 @@ export function stepFlight(st, io, dt) {
 
   // GIRO: banquear vira solo (coordinado) y tirar banqueado aprieta. No hay tasa de guinada
   // comandada aparte: girar ES banquear, como en el pasillo girar es moverse.
-  st.yaw += (AR.AUTO_TURN * sr + pr * sr) * dt;
+  // El SWEET SPOT (S3) multiplica la tasa: el giro mas cerrado no es a fondo sino frenado, asi
+  // el acelerador entra en la pelea en vez de quedarse en 1.0 toda la batalla.
+  st.yaw += (AR.AUTO_TURN * sr + pr * sr) * turnGain(st.spd) * dt;
   if (st.yaw > Math.PI) st.yaw -= Math.PI * 2; else if (st.yaw < -Math.PI) st.yaw += Math.PI * 2;
 
   // DERRAPE fino (la cadena corta del pasillo, con tope chico): punteria, no viraje
@@ -70,8 +72,12 @@ export function stepFlight(st, io, dt) {
 
   // ENERGIA: el acelerador pone el objetivo (freno 0.6 / crucero / turbo 1.5) y la gravedad
   // pelea contra la VELOCIDAD via el seno del cabeceo: trepar sangra, picar regala.
-  const tgt = AR.SPD_CRUISE * (io.boost ? AR.SPD_TURBO : io.brake ? AR.SPD_BRAKE : 1);
-  st.spd += ((tgt - st.spd) * AR.SPD_ACC - AR.G_E * Math.sin(st.pitch)) * dt;
+  // `turboMul`/`accMul` los pisa el reparto de energia (los PIPS, S1) — entran por `io` y no
+  // mutando AR porque los datos son datos: el mismo modelo tiene que poder correr en feeltest
+  // sin que nadie le haya cambiado una constante por debajo.
+  const tb = io.turboMul || AR.SPD_TURBO;
+  const tgt = AR.SPD_CRUISE * (io.boost ? tb : io.brake ? AR.SPD_BRAKE : 1);
+  st.spd += ((tgt - st.spd) * AR.SPD_ACC * (io.accMul || 1) - AR.G_E * Math.sin(st.pitch)) * dt;
   st.spd = clamp(st.spd, AR.SPD_MIN, AR.SPD_CRUISE * AR.SPD_TURBO * 1.15);
   return st;
 }
@@ -79,16 +85,69 @@ export function stepFlight(st, io, dt) {
 /** velocidad vertical EMERGENTE del cabeceo: la consecuencia, no el comando. */
 export const vyOf = st => Math.sin(st.pitch) * st.spd;
 
+/** SWEET SPOT (S3): cuanto aprieta el viraje a `spd`. Campana centrada en AR.SWEET_SPD — vale 1
+ *  lejos de ella, asi el modelo E2 medido en crucero no se mueve. */
+export const turnGain = spd =>
+  1 + AR.SWEET_GAIN * Math.exp(-(((spd - AR.SWEET_SPD) / AR.SWEET_W) ** 2));
+
+// ---- VIRAJE DE COMBATE (E3) y DRIFT (S2): el ejecutor PROPIO del arena ----
+// D2 del plan: el arena NO puede usar systems/moves.js (ese escribe `plane` y `run.mv*`, que son
+// del PASILLO en 2D). Lo que se comparte es la IDEA de maniobra guionada: mientras corre, el
+// jugador no maneja — la maniobra escribe el `io` y el vuelo sigue siendo UNA sola integracion.
+
+/** Arranca una media vuelta hacia `dir` (+1 derecha / -1 izquierda). Devuelve el estado a llevar. */
+export const startUturn = dir => ({ id: 'uturn', dir: dir < 0 ? -1 : 1, t: 0, acc: 0 });
+
+/** Un paso de la media vuelta. Muta `st` y `mv`; devuelve true cuando TERMINO.
+ *  Corta por GUINADA ACUMULADA, no por reloj: con el sweet spot el mismo gesto tarda distinto
+ *  segun la velocidad, y lo que el jugador pidio es "dar media vuelta", no "esperar 1.2 s". */
+export function stepUturn(st, mv, dt) {
+  mv.t += dt;
+  // el banqueo se CLAVA al tope en vez de perseguirlo con el resorte: 0.5 s de ROLL_RESP se
+  // comerian la mitad de la maniobra y la media vuelta no entraria en el 1.2 s del plan
+  st.roll = mv.dir * AR.ROLL_MAX;
+  const y0 = st.yaw;
+  stepFlight(st, { pitch: 1, roll: mv.dir }, dt);
+  let dy = st.yaw - y0;
+  if (dy > Math.PI) dy -= Math.PI * 2; else if (dy < -Math.PI) dy += Math.PI * 2;
+  mv.acc += Math.abs(dy);
+  // LA ENERGIA ES EL PRECIO (plan E3: "con costo de energia"). Sin esto la media vuelta es gratis
+  // y la respuesta correcta a todo pasa a ser encadenarlas.
+  st.spd = Math.max(AR.SPD_MIN, st.spd - AR.UTURN_COST * dt / AR.UTURN_DUR);
+  return mv.acc >= Math.PI || mv.t > AR.UTURN_DUR * 1.8;   // el reloj es solo el seguro
+}
+
+/** ¿Esta derrapando? (S2) Freno sostenido + alas bien paradas + energia para sostenerlo. */
+export const drifting = (st, brake) =>
+  !!brake && Math.abs(st.roll) >= AR.ROLL_MAX * AR.DRIFT_ROLL && st.spd > AR.SPD_MIN * 1.15;
+
+/** La TRAYECTORIA persigue al MORRO. Fuera del drift converge casi al instante (el morro sigue
+ *  siendo la trayectoria); derrapando queda atras y ahi nace la pasada de "pasar de largo y
+ *  seguir tirando". Muta y devuelve `vel` (unitario). */
+export function stepVel(vel, fwd, drift, dt) {
+  const k = Math.min(1, dt * (drift ? AR.DRIFT_EASE : AR.VEL_EASE));
+  vel.x += (fwd.x - vel.x) * k;
+  vel.y += (fwd.y - vel.y) * k;
+  vel.z += (fwd.z - vel.z) * k;
+  const l = Math.hypot(vel.x, vel.y, vel.z) || 1;
+  vel.x /= l; vel.y /= l; vel.z /= l;
+  return vel;
+}
+
+/** angulo (rad) entre el morro y la trayectoria: lo que el HUD dibuja como vector de vuelo. */
+export const driftAngle = (vel, fwd) =>
+  Math.acos(clamp(vel.x * fwd.x + vel.y * fwd.y + vel.z * fwd.z, -1, 1));
+
 // ---- metricas del sobre de vuelo (derivadas, para feeltest y __adbg) ----
 // Viven aca y no en el test para que el juego y la medicion usen LA MISMA definicion.
 
 /** angulo de derrape instantaneo (rad): cuanto cruza el aire de costado. */
 export const slipAngle = (vx, spd) => Math.atan2(vx, spd);
 
-/** tasa de guinada (rad/s) banqueado a `roll`, tirando con `pull` (-1..1). */
-export const yawRateAt = (roll, pull = 0) =>
-  (AR.AUTO_TURN + clamp(pull, -1, 1) * AR.PITCH_RATE) * Math.sin(roll);
+/** tasa de guinada (rad/s) banqueado a `roll`, tirando con `pull` (-1..1), a `spd`. */
+export const yawRateAt = (roll, pull = 0, spd = AR.SPD_CRUISE) =>
+  (AR.AUTO_TURN + clamp(pull, -1, 1) * AR.PITCH_RATE) * Math.sin(roll) * turnGain(spd);
 
 /** radio (m) y tiempo (s) del giro sostenido a banqueo pleno. */
-export const turnRadius = (spd = AR.SPD_CRUISE, pull = 0) => spd / yawRateAt(AR.ROLL_MAX, pull);
-export const turnTime = (pull = 0) => Math.PI * 2 / yawRateAt(AR.ROLL_MAX, pull);
+export const turnRadius = (spd = AR.SPD_CRUISE, pull = 0) => spd / yawRateAt(AR.ROLL_MAX, pull, spd);
+export const turnTime = (pull = 0, spd = AR.SPD_CRUISE) => Math.PI * 2 / yawRateAt(AR.ROLL_MAX, pull, spd);
