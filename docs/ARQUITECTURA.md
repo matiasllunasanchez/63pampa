@@ -124,8 +124,10 @@ El corazón. Los **stores** (identidad estable) y lo que es matemática/utilidad
 | `world.js` | los arrays de entidades (obstáculos, balas, misiles, soldados, partículas) + `prune`/`clearWorld` |
 | `input.js` | `inp`/`mouse`/`pointer`/`flags` + `initInput`: el único que escucha teclado/mouse/táctil |
 | `fx.js` | helpers visuales compartidos: `proj` (proyección), `popup`, `explodeAt`, `bloodBurst` |
-| `physics.js` | **pura**: la matemática de la *sensación* (cabeceo, energía, roce). La importa el feeltest |
+| `physics.js` | **pura**: la matemática de la *sensación* del PASILLO (cabeceo, energía, roce). La importa el feeltest |
+| `aero.js` | **pura**: la matemática de la *sensación* del ARENA — ángulos comandados (cabeceo/alabeo), viraje coordinado, energía, el **sweet spot** de viraje, la **media vuelta** guionada (`startUturn`/`stepUturn`) y el **drift** (`stepVel`: la trayectoria se despega del morro). Es un módulo aparte de `physics.js` porque el arena **dejó de heredar el sobre de vuelo del pasillo** (allá `y` es altura de scroll; acá el jugador manda ángulos) — la decisión está en `PLAN_MINUTOS_SAGRADOS.md` §3. La importa el feeltest |
 | `squad.js` | **pura**: vidas, fases del relevo, indicativos y puestos de la formación (la importa el unit test) |
+| `damage.js` | **pura**: los tres MODELOS DE VIDA (`squad` / `integ` / `visual`), la tabla de daño por causa, qué mata siempre y los escalones de avería. La regla: **te disparan → daño; chocás algo → muerte**. Ver [SPEC_AVERIAS.md](sistemas/SPEC_AVERIAS.md) |
 | `horizon.js` | horizonte giratorio: cuánto se inclina el **mundo** (`hzWorld`), cuánto se le descuenta al sprite (`hzSprite`), el alabeo real que lee el instrumento (`attitude`), el giro libre de `[Q]`/`[E]` (`stepHorizon`) y cuánto se funde lo que solo se lee derecho (`tiltFade`). Es **solo dibujo** — `proj()` no lo ve |
 | `i18n.js` | idioma: único dueño de `LANG`; `T`, `L`, `cycleLang` |
 | `dialogue.js` | **el motor de líneas del MODO HISTORIA**: tipea letra a letra, completa de un toque y hace respetar el `hold` (el silencio actuado, que NO se puede saltear). Puro — sin canvas, audio ni idioma — así lo prueba `npm run unit`. Trae el store `dlg` y el adaptador que lee las pantallas viejas de `strings.js` |
@@ -208,6 +210,9 @@ Lo que queda es genuinamente el pegamento:
 | el sprite del avión | `render/plane.js` |
 | el arte de un enemigo / prop horneado | `tools/bake_enemies.html` (modelo) → `npx electron tools/bake_enemies_run.js` → re-medir cajas en `render/enemies.js` |
 | una pirueta (combo, duración, qué deja controlar) | `data/moves.js` (catálogo) + `systems/moves.js` (cinemática) — referencia jugable en [PIRUETAS.md](PIRUETAS.md) |
+| una maniobra del **ARENA** (media vuelta, drift) | `core/aero.js` + `data/arena.js` (números) — **NO** `systems/moves.js`. El arena corre su **propio ejecutor** y esto es deliberado (decisión D2 de [PLAN_MINUTOS_SAGRADOS.md](sistemas/PLAN_MINUTOS_SAGRADOS.md) §10): `systems/moves.js` escribe `plane` y `run.mv*`, que son estado del PASILLO en 2D con `plane.y` como altura de scroll, y el arena tiene actitud propia en 3D. Lo que sí se comparte es la IDEA: mientras la maniobra corre, ella escribe el `io` y el jugador no maneja — el vuelo sigue siendo UNA sola integración |
+| cuánto se ajusta el vuelo del ARENA (giro, freno, energía, techo) | `data/arena.js` (`AR.*`) — y medilo con `npm run feel`, sección *arena* |
+| cuánto aguanta el avión / el modelo de vida | `core/damage.js` (la tabla y los escalones) + `systems/damage.js` (el estado) + la fila `DAÑO DEL AVION` en OPCIONES → PARTIDA. **No** agregues el chequeo en el sistema que golpea: llamá a `takeHit(cause)` y respetá lo que conteste |
 | las vidas / el relevo del escuadrón | `core/squad.js` (tiempos, indicativos) + `systems/squad.js` (cinemática) + `render/squad.js` (dibujo) |
 | que el horizonte gire al rolar, o el horizonte artificial del HUD | `core/horizon.js` (el ángulo, una sola fuente) + `draw()` en `game.js` (aplica el giro) + `drawADI` en `render/hud.js` |
 | **cualquier ajuste del juego** | `OPT_ROWS` en `game.js` → pantalla **OPCIONES**. Es la única: el menú `[M]` ya no existe. Sumá `{ head }` para una sección nueva y `save:` para que persista |

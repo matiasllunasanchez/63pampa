@@ -11,6 +11,7 @@
 import { ctx, px, DW as W, DH as H, PZ, U } from './ctx.js';
 import { plane } from '../core/state.js';
 import { run } from '../core/run.js';
+import { shown as dmgShown } from '../systems/damage.js';
 import { proj } from '../core/fx.js';
 import { scrapeLimit } from '../core/physics.js';
 import { T } from '../core/i18n.js';
@@ -385,6 +386,12 @@ export function drawHUD(h) {
   drawADI();
 
   bar(6, H - 8, 60, run.fuel / 100, run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam, T('bar_fuel'));
+  // INTEGRIDAD DEL AVION: solo cuando el modelo de vida la usa (en ESCUADRON no existe — la
+  // barra de vida es el escuadron y una barra siempre llena seria una mentira ocupando lugar).
+  if (dmgShown()) {
+    const iv = run.integ / 100;
+    bar(6, H - 22, 60, iv, iv <= 0.25 ? (Math.sin(run.t * 10) > 0 ? '#ff5340' : P.warn) : iv <= 0.5 ? P.warn : P.foam, T('dmg_bar'));
+  }
   bar(W - 66, H - 8, 60, run.heat, run.overheat ? P.warn : P.accent, run.overheat ? T('bar_overheat') : T('bar_cannon'));
   // MOMENTUM (tecla 4): la barra del especial, a la derecha del ADI. Se carga con puntos;
   // LLENA parpadea despacio (esta lista para lanzar) y LANZADA parpadea rapido (se gasta).

@@ -464,3 +464,58 @@ test('mejoras: acepta un Set ademas de un array (owned viaja de las dos formas)'
   assert.equal(moveAllowed('mask', { campaign: true, owned: new Set(['mask']), off: {} }), true);
   assert.equal(moveAllowed('jink', { campaign: true, owned: new Set(['mask']), off: {} }), false);
 });
+
+// ---------- INTEGRIDAD / MODELOS DE VIDA (src/core/damage.js) ----------
+// La regla que sostiene todo el sistema: te DISPARAN → daño; CHOCAS algo → muerte, en los tres
+// modos. Si esto se afloja, el rasante deja de tener consecuencias y el juego cambia de genero.
+import { applyHit, effects, tierOf, isFatal, DMG_MODES, DMG } from '../src/core/damage.js';
+
+test('averias: en el modo ESCUADRON cualquier impacto cae, como siempre', () => {
+  for (const c of Object.keys(DMG)) {
+    assert.equal(applyHit(100, c, 'squad').down, true, c + ' deberia caer en modo escuadron');
+  }
+});
+
+test('averias: chocar MATA en los tres modos (el mar no negocia)', () => {
+  for (const m of DMG_MODES) {
+    assert.equal(applyHit(100, 'death_sea', m).down, true, 'mar en modo ' + m);
+    assert.equal(applyHit(100, 'death_mast', m).down, true, 'mastil en modo ' + m);
+    assert.equal(applyHit(100, 'death_cliff', m).down, true, 'barranca en modo ' + m);
+  }
+  assert.equal(isFatal('death_sea'), true);
+  assert.equal(isFatal('death_aa'), false, 'que te tiren no es chocar');
+});
+
+test('averias: por integridad el avion AGUANTA y recien cae al vaciarse', () => {
+  let integ = 100, caidas = 0, golpes = 0;
+  while (golpes < 10) {
+    const r = applyHit(integ, 'death_aa', 'integ');
+    integ = r.integ; golpes++;
+    if (r.down) { caidas++; break; }
+  }
+  assert.equal(caidas, 1);
+  assert.equal(golpes, 3, 'tres antiaereos (34 c/u) tienen que bajar un avion entero');
+});
+
+test('averias: el modo VISUAL cuenta el daño igual pero NO toca el desempeño', () => {
+  const r = applyHit(100, 'death_aa', 'visual');
+  assert.equal(r.integ, 66, 'la integridad baja lo mismo que en integ');
+  assert.equal(r.down, false);
+  // ...y sin embargo el avion responde como nuevo: esa es toda la diferencia entre los dos modos
+  assert.equal(effects(30, 'visual').turbo, true);
+  assert.equal(effects(30, 'visual').spd, 1);
+  assert.equal(effects(30, 'integ').turbo, false, 'en integ, a 30% ya no hay turbo');
+});
+
+test('averias: los escalones degradan en orden y el ultimo deja SOLO LO BASICO', () => {
+  assert.equal(tierOf(100).id, 'ok');
+  assert.equal(tierOf(60).id, 'hit');
+  assert.equal(tierOf(30).id, 'dmg');
+  assert.equal(tierOf(10).id, 'crit');
+  assert.equal(tierOf(0).id, 'crit', 'cero cae en el ultimo escalon, no fuera de la tabla');
+  const [ok, hit, dmg, crit] = [100, 60, 30, 10].map(v => effects(v, 'integ'));
+  assert.ok(ok.spd > hit.spd && hit.spd > dmg.spd && dmg.spd > crit.spd, 'la punta baja monotona');
+  assert.equal(ok.turbo && hit.turbo, true);
+  assert.equal(dmg.turbo || crit.turbo, false, 'el turbo se pierde de AVERIADO para abajo');
+  assert.equal(crit.moves, false, 'en critico no salen piruetas: solo volar y disparar');
+});

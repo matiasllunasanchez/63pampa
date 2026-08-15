@@ -95,6 +95,12 @@ export const cfg = {
   // Existe porque con cabeceo comandado, invertir el eje es lo primero que busca quien viene
   // de un juego de vuelo. Persiste: es una preferencia de la persona, no del mapa.
   arenaInv: 0,
+  // MODELO DE VIDA / AVERIAS (ver core/damage.js). Vale para TODOS los modos y a futuro es una
+  // de las perillas de la DIFICULTAD:
+  //   'squad'  el de siempre: un impacto y caiste; el escuadron es la barra de vida
+  //   'integ'  el avion aguanta y se DEGRADA (mas lento, sin turbo, sin piruetas)
+  //   'visual' aguanta igual, pero el daño no toca el desempeño: solo se ve
+  dmgMode: 'squad',
   // RED DE RADAR: la malla que marca la altura a partir de la cual el radar te detecta.
   //   0 = NO · 1 = AL ENTRAR (default) · 2 = SIEMPRE
   // El default es 1 a proposito: volando bajo —que es casi todo el juego— la red seria ruido

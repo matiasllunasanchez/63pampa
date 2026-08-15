@@ -35,6 +35,7 @@ import { movesSystem, mvAllowsFire, mvAllowsTurbo } from './moves.js';
 import * as momentum from './momentum.js';
 import * as arena from './arena.js';
 import { engineFly, sfxOne, sfxSrc, beep, boom } from './audio.js';
+import * as dmg from './damage.js';
 import { applyEnergy, applyDrag, speedTarget, windFactor, pitchTarget, scrapeLimit,
          bankStep, bankVx, BANK_MAX,
          PITCH_LERP, AFTER_STEP, AFTER_MAX, SCRAPE_RECOVER, SCRAPE_LIFT } from '../core/physics.js';
@@ -57,7 +58,10 @@ export function flightSystem(dt, deps) {
   // mundo, no lo pausa.
   movesSystem(dt, inp);
   // velocidad — el multiplicador y la racha rasante aceleran el avión
-  run.boost = inp.turbo && run.fuel > 0 && mvAllowsTurbo();
+  // AVERIAS (core/damage.js): el escalon de daño puede sacarte el turbo y bajar la punta. En el
+  // modo de siempre ('squad') y en el visual, `av` es nominal y esto no cambia nada.
+  const av = dmg.fx();
+  run.boost = inp.turbo && run.fuel > 0 && mvAllowsTurbo() && av.turbo;
   // viento en contra: cuanto más tiempo arriba, más resistencia (hasta -35%)
   if (cfg.wind && plane.y > 16) run.windT = Math.min(6, run.windT + dt);
   else run.windT = Math.max(0, run.windT - dt * 2);
@@ -81,7 +85,7 @@ export function flightSystem(dt, deps) {
       streaks.push({ a, r: 20 + Math.random() * 18, v: 320 + Math.random() * 220, life: 0.5 });
     }
   }
-  const spdTarget = speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: run.boost, afterTier: run.afterTier });
+  const spdTarget = speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: run.boost, afterTier: run.afterTier }) * av.spd;
   // INTERCAMBIO DE ENERGIA (cfg.energy): la ALTURA es energia almacenada — picar la convierte
   // en velocidad, trepar la gasta. Es lo que arma el pendulo (bajar rapido → rasar → trepar).
   // El arrastre hacia spdTarget se AFLOJA (3 → ENERGY_DRAG) porque con el lerp rapido de antes

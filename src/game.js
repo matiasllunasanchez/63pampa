@@ -5,6 +5,7 @@ import { P, SKY_PRESETS, LAND } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS } from './data/missions.js';
 import { UPGRADES, nextUpgrades, moveAllowed } from './data/upgrades.js';
+import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { multOf } from './core/util.js';
 import * as dialogue from './core/dialogue.js';
@@ -21,6 +22,7 @@ import * as tempo from './systems/tempo.js';
 import * as saves from './systems/saves.js';
 import { CAMPAIGNS } from './data/campaigns.js';
 import * as arena from './systems/arena.js';
+import * as damage from './systems/damage.js';
 import * as arena3D from './systems/three-arena.js';
 import * as arenaRender from './render/arena.js';
 import { spawnSystem } from './systems/spawn.js';
@@ -452,6 +454,12 @@ import { RUNWAYS } from './data/runways.js';
         get: () => cfg.squad, set: v => cfg.squad = v, save: 'rasante_escuadron' },
       { label: () => T('optFuel'), opts: [true, false], names: yesNo,
         get: () => cfg.fuelOn, set: v => cfg.fuelOn = v, save: 'rasante_combustible' },
+      // MODELO DE VIDA (core/damage.js). Va PEGADO a ESCUADRON porque las dos filas contestan la
+      // misma pregunta —cuanto aguanta el jugador— y separarlas obligaba a leerlas dos veces.
+      // Vale para TODOS los modos y a futuro es una perilla de la dificultad.
+      { label: () => T('optDmg'), opts: DMG_MODES,
+        names: () => DMG_MODES.map(m => T('optDmg_' + m)),
+        get: () => cfg.dmgMode, set: v => cfg.dmgMode = v, save: 'rasante_averias' },
       // ENEMIGOS: movimiento propio (globos, helos patrullando, cazas que te buscan, fragatas).
       { label: () => T('optEnemies'), opts: [true, false],
         names: () => [T('optEnemiesOn'), T('optEnemiesOff')],
@@ -958,6 +966,9 @@ import { RUNWAYS } from './data/runways.js';
         //
         // La segunda mitad de la regla es MEJORAS DEL PICHON: apagar una pirueta desde el menu la
         // saca del aire aunque la tengas ganada. Las dos viven juntas en moveAllowed().
+        // AVERIAS: en el escalon CRITICO no salen piruetas. El avion queda en "lo basico" —
+        // volar y disparar— que es exactamente lo que pidio el modelo de daño progresivo.
+        if (!damage.fx().moves) return false;
         const mvOk = id => moveAllowed(id,
           { campaign: gameMode === 'campaign', owned: pichon, off: cfg.movesOff });
         switch (seq) {
@@ -1471,6 +1482,9 @@ import { RUNWAYS } from './data/runways.js';
               arena.enter();
               popup(W / 2, 54, T('sq_yours'), P.accent);
               if (run.lives === 1) popup(W / 2, 64, T('sq_last'), P.warn);
+            // EL COMPAÑERO ENTRA CON EL AVION SANO. Es lo que mantiene al escuadron como vidas
+            // aunque el modelo sea por integridad: cada avion trae su propia chapa.
+            damage.resetDamage();
               beep(980, 0.14, 'square', 0.06);
               flags.startReq = false; flags.anyPress = false;
               return;

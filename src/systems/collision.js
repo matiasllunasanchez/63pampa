@@ -10,6 +10,9 @@
 
 import { plane, cfg, stats } from '../core/state.js';
 import { run } from '../core/run.js';
+// AVERIAS: los impactos por DISPARO (bomba, misil, trazadora) pueden no matar, segun el modelo
+// de vida elegido en OPCIONES. Chocar algo sigue matando siempre — ver core/damage.js.
+import * as dmg from './damage.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, prune } from '../core/world.js';
 import { proj, popup, explodeAt, bloodBurst } from '../core/fx.js';
 import { sfxOne, beep, boom } from '../systems/audio.js';
@@ -130,7 +133,8 @@ export function collisionSystem(dt) {
         if (Math.abs(plane.x - o.x) < 2.2 && Math.abs(plane.y - o.y) < 2.4) {
           o.type = 'airboom'; o.boomT = 0; o.done = false;   // se sigue dibujando tras la muerte
           explodeAt(o.x, o.y, o.z, true); sfxOne('exXheavy');
-          return { death: 'death_bomb' };
+          if (dmg.takeHit('death_bomb')) return { death: 'death_bomb' };
+          continue;
         }
         continue;
       }
@@ -249,7 +253,14 @@ export function collisionSystem(dt) {
     m.y += Math.max(-14, Math.min(14, (plane.y - m.y) * 2.0 * trk)) * dt;
     if (!m.done && m.z <= PZ + 1.2) {
       m.done = true;
-      if (Math.abs(plane.x - m.x) < (run.rollT > 0 || mvTight(run.mv) ? 1.6 : 3) && Math.abs(plane.y - m.y) < (run.rollT > 0 || mvTight(run.mv) ? 1.2 : 2.2)) return { death: m.tracer ? 'death_gunfire' : 'death_missile' };
+      if (Math.abs(plane.x - m.x) < (run.rollT > 0 || mvTight(run.mv) ? 1.6 : 3) && Math.abs(plane.y - m.y) < (run.rollT > 0 || mvTight(run.mv) ? 1.2 : 2.2)) {
+        // TE PEGO. Con el modelo de vida por integridad puede que lo aguantes — pero aguantarlo
+        // NO es esquivarlo: el `continue` es lo que impide que el impacto te pague los 75 puntos
+        // y el cartel de ESQUIVASTE, que estaban abajo porque antes no habia forma de sobrevivir.
+        const c = m.tracer ? 'death_gunfire' : 'death_missile';
+        if (dmg.takeHit(c)) return { death: c };
+        continue;
+      }
       run.score += 75; stats.dodges++; const s = proj(m.x, m.y, PZ); popup(s.x, s.y - 8, T('dodgeMissile'), P.foam); boom(0.06, true);
     }
     if (Math.random() < 0.6) {
