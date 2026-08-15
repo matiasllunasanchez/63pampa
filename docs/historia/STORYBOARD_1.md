@@ -1241,8 +1241,9 @@ NOBODY IN THE FRAME. No text, no watermark.
 
 | Misión | Cuadros que NO pueden faltar |
 |---|---|
-| **M4** (Sheffield) | Los cuadros "M3.x" viejos de este doc, tal cual + la 2ª aparición de la foto (el Vasco solo frente al locker). |
-| **M5** (Callejón) | Gitano cerrando la cúpula tras el festival. El pasillo de fuego. El Vasco con el tren colgando. |
+| 🟥 **M3** (el invento) | El segundo invento escupiendo humo y volándole el gorro al Turco. **LA NOTICIA DEL BELGRANO: el Pichón en la puerta del hangar con la libreta en la mano; el gorro del Turco quedándose sobre el banco; la placa con la cifra 323.** |
+| **M4** (Sheffield) | Los cuadros "M3.x" viejos de este doc, tal cual + la 2ª aparición de la foto (el Vasco solo frente al locker). **Ojo de montaje: el festejo del Gitano cae dos días después del Belgrano — el cuadro tiene que leerse como descarga, no como fiesta.** |
+| **M5** (Callejón) | Gitano cerrando la cúpula tras el festival. El pasillo de fuego. El Vasco con el tren colgando. 🟥 **LA ESCUCHA: el Pichón con los auriculares en la sala de radio, la libreta y el dedo siguiendo el renglón, y la cara del resto cuando termina de traducir.** |
 | **M6** (Antelope) | El chiste de la casada nº3 + foto de frente 3ª vez. **LA CHANCHA: manguera conectada bajo fuego, el pedazo de ala que se arranca, y la Chancha rota en tierra rodeada de mecánicos.** |
 | **M7** (Vasco) | El chocolate del 25. El Vasco hablando de más. Cuatro aviones donde había cinco. **EL LOCKER completo** (ver tabla vieja) + Gitano con el mate frío: "tres años le cebé mate a este culiao". El tarrito abierto. |
 | **M8** (sobrevuelo) | **M8.A / M8.B / M8.C de arriba** + la página del monte (con el terito en el avión dibujado). |

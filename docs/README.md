@@ -28,7 +28,14 @@ La segunda campaña, a futuro: *"El fantasma del mar"*.
 | documento | qué es |
 |---|---|
 | [GUION_3.md](historia/GUION_3.md) | **EL GUION VIGENTE (3.7).** 14 misiones, prólogo **P.1–P.4** (⚠ el marco de la encomienda está OCULTO hasta el final — P.0 NO abre el juego), dos finales, post-créditos. Incluye **§9 dialectos + §9b el tucumano del Turco**. Marcas: 🟥 nuevo / 🟨 cambió / sin marca = igual a 2.3 |
-| [GUION_LECTURA.md](historia/GUION_LECTURA.md) | 🟥 **versión limpia del guion para compartir** — sin marcas de cambio, sin notas de producción, con nota inicial para el lector y preguntas de devolución. **Es un derivado: la fuente es GUION_3.md.** Si cambia el guion, hay que regenerarla |
+| [GUION_LECTURA.md](historia/GUION_LECTURA.md) | 🟥 **parte 1 — el guion para compartir.** Solo la historia: prólogo, 14 misiones, dos finales, post-créditos. Sin marcas de cambio, sin notas de producción y **sin nada que spoilee** (ni siquiera en los títulos de escena) |
+| [GUION_LECTURA_APENDICE.md](historia/GUION_LECTURA_APENDICE.md) | 🟥 **parte 2 — cómo está armado.** Personajes, tesis, marco narrativo, indicativos, mapa emocional. **Se manda DESPUÉS de que el lector terminó la parte 1**, porque adelanta quién muere y cómo termina |
+
+> **Los dos son DERIVADOS de GUION_3.md y no se editan a mano.** Se regeneran con
+> `python3 produccion/hacer_guion_lectura.py`. Los textos de apertura y cierre de la parte 1
+> viven en `produccion/_lectura_front.md` y `_lectura_cierre.md`; la portada de la parte 2
+> está dentro del script. **Cada vez que se toca GUION_3 hay que volver a correrlo** y
+> rehacer los PDF/docx.
 | [MISION_FINAL.md](historia/MISION_FINAL.md) | diseño de nivel de la M14: fases, contrarreloj, muertes, el momento del misil, las dos salidas |
 | [STORYBOARD_1.md](historia/STORYBOARD_1.md) | guion visual con prompts + sección **ACTUALIZACIÓN 3.0** al final (tabla obligatoria M4–M14 + post-créditos). ⚠ La primera mitad tiene tablas marcadas **⛔ SUPERSEDIDA** con la numeración vieja de 12 misiones — **la fuente de verdad es la tabla 3.0 del final** |
 | [PROMPTS_HOJAS_PERSONAJE.md](historia/PROMPTS_HOJAS_PERSONAJE.md) | hojas modelo de los 9 personajes + props + marcas personales. ✅ Norma corregida (3.4: **sí se le ve la cara**) · 🟥 faltan 4 hojas nuevas listadas al final (piloto peruano, mecánico de Tandil, Claribel, el pibe de la 10) |
@@ -49,6 +56,8 @@ La segunda campaña, a futuro: *"El fantasma del mar"*.
 | [TEST_KLING_CINEMATICAS.md](produccion/TEST_KLING_CINEMATICAS.md) | protocolo de tests de Kling 3.0 + tabla de modelos + orden de gasto |
 | [PROMPTS_TEST4.md](produccion/PROMPTS_TEST4.md) | prompts expandidos del test "Tero sube al avión" |
 | [pixelrefine.py](produccion/pixelrefine.py) | herramienta: recupera el pixel art de video IA (`--native WxH --colors N`) |
+| [COMPARTIR_EL_GUION.md](produccion/COMPARTIR_EL_GUION.md) | 🟥 **cómo pasarle la historia a alguien para que opine sin que se le arruine**: las dos partes, qué se le saca al guion de trabajo, cómo se regenera todo y las preguntas que se le hacen al lector |
+| `hacer_guion_lectura.py` · `hacer_pdf_lectura.sh` · `_lectura_html.py` · `_lectura_front.md` · `_lectura_cierre.md` | el pipeline de la versión de lectura — ver COMPARTIR_EL_GUION.md |
 
 ## ⚙️ sistemas/ — specs de gameplay
 
@@ -56,6 +65,8 @@ La segunda campaña, a futuro: *"El fantasma del mar"*.
 |---|---|---|
 | [SPEC_MODO_HISTORIA.md](sistemas/SPEC_MODO_HISTORIA.md) | 🟥 **análisis funcional del modo historia (pantallas VN)** para IA implementadora: 12 RF con criterios de aceptación, fixture del locker, 6 fases. Incluye las **divergencias** entre el spec y el código real | **F1 construida** (motor de líneas: tipeo + `hold` + fallback a negro; `npm run story`). F2–F6 pendientes |
 | [PLAN_MINUTOS_SAGRADOS.md](sistemas/PLAN_MINUTOS_SAGRADOS.md) | la fase ARENA como pelea de boss, etapas E0–E9 | **vigente** |
+| [SPEC_MODO_PASADA.md](sistemas/SPEC_MODO_PASADA.md) | 🟥 **análisis funcional del modo PASADA** para IA implementadora: 14 RF con criterios de aceptación, defaults elegidos, sondas (`?pasada=`, `__pdbg`), fixture y plan P0–P7 | **spec — listo para implementar** |
+| [PROPUESTAS_PASADA.md](sistemas/PROPUESTAS_PASADA.md) | 🟥 el clímax de una sola pasada: base histórica, mentiras permitidas, las tres propuestas con referencias (juegos y cine) y **§8b: la decisión — el modo compuesto** (A entrada + B suelta + C oleada) | **decidido 15/8 — el plan ejecutable es el SPEC** |
 | [PROMPT_ARENA_VUELO_LIBRE.md](sistemas/PROMPT_ARENA_VUELO_LIBRE.md) | ARENA como vuelo 3D libre en ring acotado | **vigente** |
 | [PIRUETAS.md](sistemas/PIRUETAS.md) · [VELOCIDAD_MACH.md](sistemas/VELOCIDAD_MACH.md) | maniobras y escalones de velocidad | ⚠ *la tabla misión→mejora quedó desacoplada: las mejoras son roguelike (2 opciones desde M3), el guion no fija cuál va cuándo* |
 | [PROMPT_ALTURAS.md](sistemas/PROMPT_ALTURAS.md) · [PROMPT_COMBUSTIBLE.md](sistemas/PROMPT_COMBUSTIBLE.md) · [PROMPT_ESCUADRON.md](sistemas/PROMPT_ESCUADRON.md) | alturas, combustible, escuadrón | specs |

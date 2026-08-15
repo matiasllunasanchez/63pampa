@@ -296,3 +296,81 @@ palabras en boca de una persona real, con nombre y apellido, en un producto que 
 usa la versión del Turco y no la cita firmada ([SOUNDTRACK.md](SOUNDTRACK.md), pista 35)—
 pero la pantalla de victoria sigue mostrando la firma. **Corregir el nombre o sacar la firma
 antes de publicar.**
+
+---
+
+## ARA General Belgrano (cierre de M3 — 3.8)
+
+Entró al guion como **noticia**, no como misión: los pilotos de A-4 no tuvieron ni pudieron
+tener nada que ver con el hundimiento. Cae al final de M3, dos días antes del Sheffield
+(M4), y recontextualiza el festejo del Gitano que ya estaba escrito.
+
+**Verificar antes de fijar el texto:** hora exacta del ataque; rumbo y distancia respecto
+de la zona de exclusión al momento del impacto; cantidad de tripulantes a bordo; horas que
+las balsas estuvieron en el agua con temporal; y **cuándo se enteró realmente la tropa en
+el continente y en las islas** — el guion asume que la noticia llegó rápido a las bases
+aéreas del sur, y eso hay que confirmarlo.
+
+**Cifra usada:** 323 muertos. Es la más citada y es sólida, pero conviene la fuente al lado
+porque va en placa.
+
+**Tratamiento:** la narración da hechos sin adjetivar (fuera de la zona, rumbo contrario,
+dos torpedos, temporal, 323). La bronca la ponen los personajes. Decisión de autor: el
+juego tiene punto de vista argentino declarado, y en el cierre la responsabilidad se
+reparte entre la junta y el gobierno británico — pero el respeto por los que pelearon se
+mantiene igual para los dos lados.
+
+## La frase de las turbinas (M5) — ⚠ SIN FUENTE
+
+**Texto usado, literal:** *"Si estás en guerra con Argentina y escuchás el ruido de las
+turbinas de un avión… no mires al cielo… porque la muerte viene a ras del suelo."*
+
+**Estado:** se buscó y **no tiene origen documentado**. Circula muy difundida en redes,
+habitualmente atribuida a un oficial o veterano británico sin nombre, fecha ni unidad. No
+aparece en ninguna fuente verificable.
+
+**Cómo entró al guion, para que sea usable igual:** como **transmisión interceptada**, sin
+firma, sin nombre y sin fecha, traducida en vivo por el Pichón en la sala de radio después
+del Callejón (M5). Nadie la atribuye a nadie, y por eso no afirma nada falso.
+
+**Si alguna vez aparece la fuente:** se puede acreditar y ganaría mucho. **Si se confirma
+que es apócrifa:** no hace falta tocar nada — el guion nunca dijo quién la dijo.
+
+**Por qué está en M5 y no antes:** San Carlos, 21 de mayo, es históricamente el momento en
+que el miedo británico al vuelo rasante fue mayor. Y dramáticamente es la única vez en todo
+el juego en que estos tipos se enteran de que no están perdiendo.
+
+---
+
+## Modo PASADA (docs/sistemas/PROPUESTAS_PASADA.md) — dudas que abre el diseño
+
+El modo del clímax se apoya en varios hechos que están bien establecidos en general pero
+cuyos NÚMEROS van a terminar en mecánica o en placa, así que conviene confirmarlos:
+
+- **Armado de espoletas.** El juego va a decir "soltada por debajo de X metros, la bomba
+  llega dormida". ¿Cuál era la altura/tiempo de armado real de las bombas usadas por los
+  A-4 (las británicas de 1000 lb y las frenadas tipo Snake Eye)? El hecho general (bombas
+  sin armar adentro de buques británicos) es sólido; el número exacto no lo tengo.
+- **El rebote del Broadsword (25/5).** Dato cargado: una bomba rebotó en el mar y entró
+  por la cubierta de vuelo destrozando el helicóptero, sin explotar. Es la base histórica
+  de la mecánica "el sapito" y el Broadsword es boss (m13 canon). → Confirmar detalle.
+- **Sea Cat.** El diseño lo trata como esquivable de verdad (subsónico, guiado manual,
+  efectividad real bajísima). Las cifras de derribos ATRIBUIDOS en 1982 fueron altas y las
+  confirmadas después, cercanas a cero. → Confirmar para no exagerar en placa.
+- **Velocidad de ingreso del A-4 cargado.** El doc usa "~900 km/h a menos de 15 m". ¿Es
+  defendible con tanques y bombas, o conviene bajar el número?
+- **Alerta radar en Mirage/Dagger.** De los A-4 estoy seguro que no tenían RWR. ¿Los
+  Mirage IIIEA o los Dagger tenían algún detector básico? No afecta a los Fieles, pero
+  cierra la pregunta del sistema de avisos.
+- **La BBC y las bombas dormidas.** La controversia de mayo del 82 (se difundió
+  públicamente que las bombas argentinas no estaban explotando) existe y es citable; si
+  alguna placa la usa, confirmar fecha y forma exacta de la difusión.
+- **Carga de bombas de los A-4 (Grupos 4 y 5).** El modo usa una ristra de 2 bombas por
+  pasada (3 como mejora futura), soltadas en salva sobre la línea de vuelo. Lo cargado:
+  llevaban 1 bomba de 1000 lb o hasta 3 de 500, y la suelta era en sucesión — por eso hubo
+  buques con varios impactos de una sola pasada. → Confirmar el loadout típico por Grupo
+  (¿1×1000 en el perfil largo con tanques? ¿3×500 cuándo?) y que "misiles antibuque en
+  A-4" es correctamente NUNCA (el Exocet era del Super Étendard).
+- **Bombas que rebotaron POR ENCIMA de la cubierta.** El modo lo usa como fallo visible
+  del sapito (suelta larga). Hay relatos de rebotes que pasaron de largo; confirmar al
+  menos un caso citable.

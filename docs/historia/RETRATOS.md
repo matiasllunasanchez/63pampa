@@ -93,7 +93,7 @@ de cada uno ES su personaje.
 | **Puma** | reglamentario · ceño · **la sonrisa** *(rara — canon: la administra con cuentagotas)* · quebrado *(una sola escena)* | Cuando aparece "la sonrisa", el jugador ya aprendió a leerla. |
 | **Gitano** | **sonrisa (SU neutro)** · carcajada · serio *(= alarma: si el Gitano está serio, algo pasa)* · roto | Su default es sonreír. El retrato "serio" es el presagio más barato del juego. |
 | **Vasco** | **UNO SOLO: cerrado** · + **media sonrisa** *(una sola vez: "casi se ríe. Casi.", m6)* | Dos retratos en todo el juego. Esa pobreza ES el personaje — y la media sonrisa única vale oro. |
-| **Pichón** | entusiasmo · vergüenza *(frenado a mitad de frase)* · miedo · neutro | Entusiasmo↔vergüenza es su ping-pong cómico con el Turco. |
+| **Pichón** | entusiasmo · vergüenza *(frenado a mitad de frase)* · miedo · neutro · 🟥 **concentrado con auriculares** *(M5, la escucha)* | Entusiasmo↔vergüenza es su ping-pong cómico con el Turco. El de auriculares se usa dos veces: la escucha de M5 y la noticia del Belgrano en M3. |
 | **Turco** | gruñón (su neutro) · ternura disimulada · roto · orgullo *(estrellitas)* | La gorra con la estrellita en TODOS. |
 | **Mateo** | sonrisa colimba · serio *(solo prólogo — en la isla vive en el registro TIERRA, dibujado por él mismo)* | 2 retratos alcanzan. |
 | **Colorado** | *(sin retrato AIRE — existe solo en los dibujos del cuaderno)* | Su cara es como Mateo lo dibuja: con capa. |

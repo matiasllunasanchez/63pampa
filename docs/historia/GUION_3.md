@@ -281,8 +281,8 @@ La única vez que el orden se rompe es M12, que corta a tierra en pleno vuelo.
 
 | Movimiento           | Misiones        | Lo que se siente                         | Lo que se instala                                                          |
 | -------------------- | --------------- | ---------------------------------------- | -------------------------------------------------------------------------- |
-| **I — El nido**      | P.1–P.4 + M1–M4 | Orgullo, risa, hermandad                 | La familia. La escuadrilla. La brecha. 🟥 El invento.                      |
-| **II — El callejón** | M5–M8           | Desgaste, primera pérdida, ternura       | 🟨 La Chancha rota. Muere el Vasco. El sobrevuelo.                         |
+| **I — El nido**      | P.1–P.4 + M1–M4 | Orgullo, risa, hermandad — y el primer golpe | La familia. La escuadrilla. La brecha. El invento. 🟥 **El Belgrano (cierra M3): la risa se corta a la mitad.** |
+| **II — El callejón** | M5–M8           | Desgaste, primera pérdida, ternura       | 🟥 **La escucha (M5): del otro lado les tienen miedo.** La Chancha rota. Muere el Vasco. El sobrevuelo. |
 | **III — Solo**       | M9–M13          | Duelo, frío, 🟥 ternura que llega tarde, rabia | Muere el Pichón. 🟥 Los primos (Tandil). El respiro. Muere Correa. El asado. La carta. |
 | **IV — El tero**     | M14 + Finales   | Contrarreloj, sacrificio, LA DECISIÓN    | 🟥 Dos finales. La mesa.                                                   |
 
@@ -607,6 +607,48 @@ pibe de 22 mira los aviones como nadie los miró.)_
 _(La navaja queda plantada — chiquita, útil, sin drama. Va a volver dos veces: en M12, y en
 una encomienda, años después.)_
 
+### 🟥 La noticia — 2 de mayo _(cierra la misión; la risa se corta a la mitad)_
+
+_(Sigue la carcajada del hangar por la arandela voladora. El Turco todavía se está
+acomodando el gorro. Y entra el Pichón desde la sala de radio, sin correr, con la libreta
+en la mano y la cara de alguien que no sabe cómo decir lo que va a decir.)_
+
+**PICHÓN:** …Hundieron al Belgrano.
+
+_(Nadie entiende del todo. El Gitano todavía tiene media sonrisa puesta.)_
+
+**GITANO:** ¿Al crucero? Pero si el crucero está afuera de la zona, Pichón. Está
+navegando **para el otro lado**.
+
+**PICHÓN:** Ya sé. _(pausa)_ Un submarino. Dos torpedos.
+
+**PUMA:** ¿Cuántos.
+
+**PICHÓN:** No se sabe todavía. Se está hundiendo con la gente adentro y hay temporal.
+Dicen que hay balsas en el agua desde hace horas.
+
+_(Silencio largo. El Turco deja el gorro sobre el banco y no lo levanta más.)_
+
+**GITANO:** _(y por primera vez el chiste no aparece)_ Estaba yéndose. Estaba yéndose,
+Puma.
+
+**PUMA:** Sí.
+
+**GITANO:** ¿Y entonces qué carajo—
+
+**PUMA:** _(cortándolo, sin levantar la voz)_ Y entonces nada, Facundo. Entonces mañana
+volamos.
+
+_(Se va. Nadie se mueve. El Vasco se toca la cruz. El Turco, al rato, junta las
+herramientas de a una, muy despacio, como si ordenar sirviera para algo.)_
+
+_(Cifra final, en placa: **323 muertos**. Casi la mitad de todos los caídos argentinos de
+la guerra, en una sola tarde, dos días antes de la misión que sigue.)_
+
+> **Nota de tratamiento.** El juego da los hechos y nada más: fuera de la zona de
+> exclusión, rumbo oeste, dos torpedos, temporal, 323. La bronca la ponen los personajes —
+> ellos sí lo llaman lo que les parece. La narración no adjetiva: no hace falta.
+
 ---
 
 ## MISIÓN 4 — "El día que sangró el mar" _(ex M3 — solo renumerada)_
@@ -689,11 +731,51 @@ montañas de cosas para los pibes de las islas. Chocolates, cigarrillos, abrigo�
 
 **GITANO:** _(cerrando la cúpula)_ Y nada. Eso digo. Juntaron.
 
-### La misión / Epílogo _(sin cambios)_
+### La misión / Epílogo
 
 El infierno del Callejón. El Ardent arde. El Vasco vuelve con el tren colgando como una
 pata quebrada; el Turco no le pinta la estrellita hasta el otro día porque le temblaba el
 pulso.
+
+### 🟥 La escucha — lo que dicen de nosotros del otro lado
+
+_(Esa noche, la sala de radio. El Pichón con los auriculares puestos, escribiendo en la
+libreta. Sabe inglés técnico de leer manuales de aviación robados — nadie se lo enseñó, lo
+aprendió solo para entender los planos de los aviones. Levanta la cabeza.)_
+
+**PICHÓN:** Capitán… están hablando de nosotros.
+
+**PUMA:** ¿Qué dicen.
+
+**PICHÓN:** _(traduciendo despacio, siguiendo con el dedo, sin darse cuenta todavía de lo
+que está leyendo)_ Dice… "si estás en guerra con Argentina y escuchás el ruido de las
+turbinas de un avión…" _(se frena)_
+
+**GITANO:** ¿Y? Seguí, pibe.
+
+**PICHÓN:** _(levanta la vista)_ "…no mires al cielo. Porque la muerte viene a ras del
+suelo."
+
+_(Silencio en la sala. Es la primera y única vez en todo el juego que estos tipos se
+enteran de que no están perdiendo. Vuelan aviones remendados, se les rompió la Chancha, se
+les están muriendo los amigos — y del otro lado del mar les tienen miedo.)_
+
+**EL TURCO:** _(bajito, desde la puerta, sin entrar)_ Escribila, changuito. Esa escribila.
+
+**GITANO:** _(la sonrisa volviendo de a poco, la voz rara)_ …A ras del suelo. ¿Escuchaste,
+Tero? Somos eso.
+
+**ESTEBAN:** _(que no sonríe; está pensando en un monte y en un pibe que también escucha
+turbinas)_ …Sí.
+
+_(Y ahí se corta. Nadie festeja. El orgullo dura lo que dura una frase, y a Esteban ya se
+le fue: del otro lado del mar les tienen miedo a ellos, y del lado de acá hay un chico de
+dieciocho que escucha lo mismo y no sabe si el que pasa es su padre.)_
+
+> **Sobre la frase.** Circula muy difundida y se le atribuye a un oficial británico, pero
+> **no tiene fuente documentada**. Por eso en el juego entra como lo que es: una
+> transmisión interceptada, sin firma, sin nombre y sin fecha. Nadie la atribuye a nadie.
+> Ver PREGUNTAS_HISTORICAS.md.
 
 ### El cuaderno (tierra) 🟨 _(se suma la oveja y el caracú — el hambre en crudo)_
 
@@ -920,6 +1002,21 @@ preguntan... yo no vi nada.
 
 El Conveyor. En el epílogo se sabrá que su capitán, **Ian North**, murió ayudando a evacuar
 a su tripulación: otro valiente del otro lado.
+
+🟥 _(En la base, cuando llega el dato. El Turco escuchándolo con el trapo en la mano.)_
+
+**EL TURCO:** _(después de un rato)_ Se quedó sacando a los suyos. _(deja el trapo)_ Ese
+hombre, si lo cruzabas en un puerto, te convidaba un cigarrillo.
+
+**GITANO:** Turco, era el enemigo.
+
+**EL TURCO:** Era el capitán del barco que hundimos, m'hijo. El enemigo es otra cosa.
+_(pausa)_ Hay gente buena en todos lados, ¿viste? Lo que pasa es que no nos dejan
+conocernos.
+
+_(El Turco acaba de decir, sin saberlo, la frase de la tesis. El jugador la va a volver a
+leer antes de los créditos, firmada por un veterano de verdad. **Va acá, sobre un enemigo
+que murió siendo bueno — no sobre el Perú, que no es "el otro lado": es el vecino.**)_
 
 ### Epílogo — los treinta segundos
 
@@ -1184,11 +1281,12 @@ allá, antes de salir. Para que nadie pudiera decir nada.
 
 _(Pausa larga.)_
 
-**EL TURCO:** Hay gente buena en todos lados, ¿viste? Lo que pasa es que no nos dejan
-conocernos.
+🟥 **EL TURCO:** Nadie del otro lado del mundo movió un dedo, m'hijo. El que movió fue el
+vecino. _(pausa)_ Es siempre igual: el que te da una mano es el que también tiene frío.
 
-_(El Turco acaba de decir, sin saberlo, la frase de la tesis. El jugador la va a volver a
-leer antes de los créditos, firmada por un veterano de verdad.)_
+_(No es la frase de la tesis — ésa va en M8, sobre un enemigo. Ésta es otra cosa y tiene
+que serlo: **al Perú lo conocemos.** No es "el otro lado", es el de al lado. La hermandad
+del sur no necesita que nadie la descubra: ya existía.)_
 
 **GITANO:** _(la sonrisa volviendo a medias)_ Bueno. Entonces mañana volamos en Mirage,
 muchachos.
@@ -1739,8 +1837,19 @@ Correa, que murió tapando con su cuerpo a un pibe que conocía hacía dos meses
 lado del mar tampoco volvieron los suyos: pibes iguales a los nuestros, mandados por otros
 que miraron la guerra desde tierra firme, calientes, lejos."
 
-"Ninguno de ellos eligió esta guerra. La eligieron otros: los de los despachos, los de las
-juntas, los de los discursos de balcón."
+"Ninguno de **ellos** eligió esta guerra."
+
+"Los mandó una dictadura que ya había hecho todo lo que hizo, y que necesitaba una bandera
+para taparlo. Mandaron pibes de dieciocho años con tres meses de instrucción. Los mandaron
+sin abrigo y los dejaron pasar hambre a doscientos metros de los depósitos. Y cuando
+volvieron, los escondieron — porque los sobrevivientes eran la prueba."
+
+"Del otro lado del mar, un gobierno que venía perdiendo encontró en esta guerra la forma de
+ganar. Hundió un crucero que navegaba fuera de la zona de exclusión y en dirección
+contraria, con más de mil hombres a bordo. Trescientos veintitrés se quedaron ahí."
+
+"Los de arriba, de los dos lados, salieron ganando de una manera o de otra. Los de abajo,
+de los dos lados, están en Darwin y en el fondo del mar."
 
 "A los que pelearon —a los de los dos lados— este juego los respeta por igual. La única
 bandera que no saluda es la de los que los mandaron a morir."
@@ -1842,7 +1951,7 @@ pibes, peleándose con un tornillo. Y **desaparece por completo en sus momentos 
 - el locker del Vasco — _"Señora: su hijo fue el mejor de todos nosotros"_
 - la libreta del Pichón — _"Vos y yo tenemos trabajo, pibe"_
 - el pincel y los tres desayunos (M14)
-- la frase de la tesis (M10) — _"Hay gente buena en todos lados"_
+- la frase de la tesis (M8, sobre Ian North) — _"Hay gente buena en todos lados"_
 - el mate del Final B — _"¿Y eso qué importa, m'hijo?"_
 
 **En esas cinco escenas no dice una sola grosería.** El jugador no lo razona, pero lo
@@ -1890,7 +1999,13 @@ donde Esteban lee el cuaderno de viejo y la respuesta le llega décadas tarde.
 **4. La brecha tecnológica es jugable.** Y se suma: **Cóndor como radar humano** — los A-4 no tenían radar; la señal de Cóndor va y viene, y cuando se pierde el
 jugador queda ciego.
 
-**5. El miedo inglés se cuenta con audio.** _(Sin cambios.)_
+**5. El miedo inglés se cuenta con audio.** Voces británicas de pánico real por radio
+("Low level! Here they come again!"). 🟥 **Y una vez, una sola, se cuenta con texto:** la
+transmisión interceptada de M5 que traduce el Pichón — *"…no mires al cielo. Porque la
+muerte viene a ras del suelo."* Es la única vez en todo el juego en que estos tipos se
+enteran de que no están perdiendo, y dura lo que dura la frase. **La frase entra sin firma,
+sin nombre y sin fecha, porque no tiene fuente documentada** (ver PREGUNTAS_HISTORICAS.md);
+así va literal sin que el juego afirme nada falso.
 
 **6. Las muertes.** Vasco (M7) y Pichón (M9): sin cambios. Correa (M12): + jazmines +
 navaja. Gitano y Puma (M14): **reescritas** — Gitano muere EN ACCIÓN, se despide de Tero saludando al hijo; Puma

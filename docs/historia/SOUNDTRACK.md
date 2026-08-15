@@ -1127,3 +1127,34 @@ pendiente.** Si algún día alguien "completa" la banda sonora, que no los toque
    que suene mejor. → [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md).
 2. **La cartela de los países que ayudaron** (que la 34 acompaña) sigue pendiente de
    confirmación — lista y aporte de cada uno. Perú al frente.
+
+---
+
+## 🟥 3.8 — dos momentos nuevos, y los dos son de SILENCIO
+
+Las dos escenas que entraron con la revisión del guion **no llevan pista compuesta**. Van
+acá anotadas para que nadie las "resuelva" después poniéndoles música encima.
+
+### El Belgrano (cierre de M3) — el corte seco
+
+La escena arranca **encima de la carcajada del hangar** por el invento que explota. Si esa
+risa tiene música o ambiente alegre, **corta en seco cuando el Pichón dice "Hundieron al
+Belgrano"** — no baja, corta. De ahí al final de la escena no hay música: solo la sala, el
+gorro que queda sobre el banco, y las herramientas que el Turco junta de a una.
+
+La placa final con la cifra **323** va en silencio absoluto. Ni un acorde, ni un golpe de
+bombo, ni un sting. Es la única placa con una cifra real de muertos en todo el juego y no
+necesita ayuda.
+
+> Si alguna vez se compone algo para acá, que sea **después** de la placa y ya entrando en
+> M4 — nunca sobre el número.
+
+### La escucha (M5) — el orgullo que dura una frase
+
+Tampoco lleva música. Se sostiene con el ambiente de la sala de radio: la estática, el
+zumbido del equipo, la lluvia afuera. **El silencio después de la traducción es el
+efecto** — y se rompe recién con la voz del Turco desde la puerta.
+
+Ojo con la tentación: es la única escena del juego donde estos tipos ganan algo, y va a
+pedir a gritos un tema épico. **No.** El guion la corta a propósito con la cara de Esteban,
+que no festeja. Si la música festeja, contradice la escena.

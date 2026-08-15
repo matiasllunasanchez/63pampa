@@ -17,9 +17,9 @@ ARENA/MOMENTUM). Misión SIN buque o con boss de terreno (que no existe) → goa
 |---|---|---|---|---|---|
 | m1 | SAL EN LAS ALAS | fines de abril | distancia 2200 | — | 🟨 **TUTORIAL PURO: cero fuego enemigo.** Esquivar y tirar a tambores destructibles. |
 | m2 | BAUTISMO DE FUEGO | 1 de mayo | distancia 2600 | — | boss radar (terreno) no existe → distancia |
-| 🟥 m3 | EL INVENTO | primeros de mayo | distancia 2400 | — | NUEVA. Patrulla suave; acá se enseña la mecánica de mejoras. Sin boss. |
+| 🟥 m3 | EL INVENTO | primeros de mayo | distancia 2400 | — | NUEVA. Patrulla suave; acá se enseña la mecánica de mejoras. Sin boss. 🟥 **El `epi` NO cierra en la comedia: sigue la cadena del BELGRANO (2 de mayo) y termina en una placa con la cifra 323.** Es el corte de tono más brusco del juego y es a propósito. |
 | m4 | EL DIA QUE SANGRO EL MAR | 4 de mayo | HMS SHEFFIELD | t42 | ex M3 |
-| m5 | EL CALLEJON DE LAS BOMBAS | 21 de mayo | HMS ARDENT | t21 | ex M4; sube bombs/obstacles |
+| m5 | EL CALLEJON DE LAS BOMBAS | 21 de mayo | HMS ARDENT | t21 | ex M4; sube bombs/obstacles. 🟥 **El `epi` suma LA ESCUCHA**: el Pichón traduce la transmisión interceptada en la sala de radio. Registro `SISTEMA`/radio para la frase en inglés, `DIALOGO` para la traducción. |
 | m6 | LA BOMBA QUE NO DESPERTO | 23 de mayo | HMS ANTELOPE | t21 | ex M5; 🟨 epílogo: **la Chancha se rompe** (texto) |
 | m7 | 25 DE MAYO | 25 de mayo | HMS COVENTRY | t42 | ex M6; muere el VASCO (epílogo) + el locker |
 | m8 | EL BATIR DE ALAS | 25 de mayo · 2ª salida | ATLANTIC CONVEYOR | log | ex M7; el sobrevuelo + 🟥 el terito (texto/cuadros) |
