@@ -21,7 +21,7 @@ const F3 = ['TERO', 'PUMA', 'GITANO'];
 // La rampa arranca suave (M1 sin bombas ni viento) y termina con todo prendido (M12).
 const C = over => ({
   sky: 'dusk', water: 'sea', terrain: 'sea', wind: true, obstacles: 1, coast: 230,
-  bombs: 1, rain: 0, fog: 0, fogLen: 1, squad: 5, ...over,
+  bombs: 1, rain: 0, fog: 0, fogLen: 1, squad: 5, caza: 1, persec: 0, ...over,
 });
 
 // config legada (la usan pruebas y el modo camara); misma forma que antes
@@ -51,7 +51,7 @@ export const MISSIONS = [
   {
     id: 'm1', name: 'SAL EN LAS ALAS', date: 'fines de abril de 1982',
     goal: { kind: 'distance', meters: 2200 },
-    cfg: C({ sky: 'dawn', wind: false, obstacles: 0.5, bombs: 0 }),
+    cfg: C({ sky: 'dawn', wind: false, obstacles: 0.5, bombs: 0, caza: 0, persec: 1 }),
     roster: F5, par: 5000, story: 'storyM1', brief: 'briefM1', epi: 'epiM1',
   },
   {

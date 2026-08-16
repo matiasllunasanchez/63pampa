@@ -35,7 +35,9 @@ import { PULSO } from './data/pulso.js';
 import { spawnSystem } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
 import * as caza from './systems/caza.js';
+import * as persec from './systems/persec.js';
 import { drawCaza } from './render/caza.js';
+import { drawPersec, drawCinta } from './render/persec.js';
 import { inp, mouse, pointer, flags, initInput } from './core/input.js';
 import { flightSystem } from './systems/flight.js';
 import { drawPlane } from './render/plane.js';
@@ -139,7 +141,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // fase sin jugar una mision entera cada vez.
     // `back` es la fila ATRAS: la salida de la pantalla, VISIBLE. ESC y el boton B ya volvian, pero
     // eso hay que saberlo — una lista sin salida a la vista parece un callejon.
-    const quickRows = () => [{ id: 'cycle' }, { id: 'survival' }, { id: 'arena' }, { id: 'pasadas' }, { id: 'back', back: true }];
+    const quickRows = () => [{ id: 'cycle' }, { id: 'survival' }, { id: 'persec' }, { id: 'arena' }, { id: 'pasadas' }, { id: 'back', back: true }];
 
     // ---------- PAUSA ----------
     // NO es un estado de S: es una BANDERA ortogonal. Con `paused` el frame() saltea update()
@@ -205,6 +207,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     function curMission() { return MISSIONS[curLevel]; }
     // transiciones desde la pantalla inicial de modo
     function goSurvival() { gameMode = 'survival'; setState('menu'); beep(600, 0.08, 'square', 0.05); }
+    // PERSECUCION (PLAN_HARRIERS_PERSECUCION §4, N2): pasillo INFINITO como POR LA PATRIA, pero
+    // volando de numeral. El lider lo arma reset(), que es donde ya se decide todo lo de la corrida.
+    function goPersec() { gameMode = 'persec'; setState('menu'); beep(600, 0.08, 'square', 0.05); }
     // CICLO DE MUERTE: las mismas misiones de la campaña, una al azar, sin el guion largo
     function goCycle() { gameMode = 'cycle'; randomMission(); setState('menu'); beep(600, 0.08, 'square', 0.05); }
     // el ARENA y el CICLO solo juegan misiones CON buque: las de distancia no tienen climax.
@@ -313,6 +318,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       if (id === 'cycle') goCycle();
       else if (id === 'arena') goArena();
       else if (id === 'pasadas') goPasadas();
+      else if (id === 'persec') goPersec();
       else goSurvival();
     }
     /** Cierra el juego. En Electron cierra la ventana (y con ella la app); en el build web
@@ -903,16 +909,30 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     //   ?caza          arma UN duelo apenas arranca el pasillo, con aviso por radio.
     //   ?caza=mudo     el mismo duelo SIN aviso (el canon del §2: a veces la radio no llega, y
     //                  las trazadoras pasando son el unico aviso garantizado).
+    //   ?caza=manso    el PASE FANTASMA de H1: el duelo entero SIN rafagas letales. Es para poder
+    //                  mirar la coreografia sin morirse mientras se la mira — se pueden combinar
+    //                  (?caza=mudo,manso). En una partida de verdad no se usa nunca.
     // Sin el parametro, cazaProbe es null y nada cambia. El duelo TAMBIEN se arma a mano con
     // __czstart() desde la consola, que es lo que usan las capturas.
     const cazaProbe = (() => {
       try {
         const v = new URLSearchParams(location.search).get('caza');
-        return v === null ? null : { mudo: /mudo/.test(v) };
+        return v === null ? null : { mudo: /mudo/.test(v), manso: /manso/.test(v) };
       } catch (e) { return null; }
     })();
+    // SONDA DE LA PERSECUCION (PLAN B, fase N0) — QUITAR al cerrar el plan. `?persec` arranca la
+    // persecucion apenas empieza el pasillo. El modo de menu propio es N2; hasta entonces esta es
+    // la unica puerta de entrada, y es a proposito: N0/N1 se juzgan volando, no navegando menus.
+    const persecProbe = (() => {
+      try { return new URLSearchParams(location.search).has('persec'); } catch (e) { return false; }
+    })();
+    let persecArmed = false;
     let cazaArmed = false;   // la sonda arma UNO solo, no uno por cuadro
     let cazaCalma = false;   // sonda: pasillo vacio para poder mirar el duelo (ver el update)
+    let czAlto = null;       // sonda: altura clavada, para medir la regla del ras (ver __czalto)
+    let czAltoX = 0;         // sonda: y el rumbo con ella — sin esto la deriva se lee como quiebre
+    let czBrk = 0;           // sonda: segundos de quiebre lateral sostenido (ver __czquiebre)
+    let czMv = null;         // sonda: pirueta inyectada por un cuadro (ver __czmv)
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
     let toT = 0, toCount = 4;
     let levelT = 0;   // temporizador de las tarjetas de transición de nivel / victoria (campaña)
@@ -954,6 +974,14 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       pasada.resetPasada();
       pulso.resetPulso();
       caza.resetCaza();   // LA COLA: una corrida nueva no hereda el Harrier de la anterior
+      persec.resetPersec();   // PERSECUCION: idem con el lider
+      // …y en el MODO PERSECUCION se arma de entrada, con el roster de la corrida como pool de
+      // lideres. No es una mecanica que aparece: es de lo que se trata la partida.
+      // PERSECUCION: se arma por MODO (N2, infinito) o por DATO DE MISION (N3, `persec` en
+      // data/missions.js). Es el mismo criterio que `caza`: la aparicion es dato del nivel y no una
+      // regla escondida en el sistema.
+      if (gameMode === 'persec') persec.startPersec({ infinito: true });
+      else if (cfg.persec) persec.startPersec();
       // EL PULSO se CONFIGURA acá: el sistema no puede mirar la campaña ni la libreta del Pichón
       // (nadie llama hacia arriba), y quien dispara la entrada es flight.js, que tampoco las
       // conoce. `t01` = avance de campaña normalizado — la única perilla de dificultad que hay.
@@ -1884,7 +1912,36 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // y el ciclo entero dura casi un minuto. En el juego normal `cazaCalma` es siempre false.
       if (cazaCalma) { obstacles.length = 0; missiles.length = 0; soldiers.length = 0; run.detection = 0; }
       if (cazaProbe && !cazaArmed && run.t > 1.5) { cazaArmed = true; caza.start(cazaProbe); }
+      // EL DIRECTOR (H4): decide SI hay duelo, mirando la mision y no el duelo. La intensidad es
+      // dato de nivel (cfg.caza, 0..2 — m1 en 0 porque el tutorial no se pelea) y `meta` en 0
+      // significa pasillo infinito, donde no hay techo de duelos. Con la sonda `?caza` puesta el
+      // director se calla: la sonda ya armo el suyo y dos directores serian dos Harrier (§6.2).
+      if (!cazaProbe) caza.cazaDirector(dt, {
+        intensidad: cfg.caza, dist: run.dist, meta: objectiveDist, ciego: inBank(),
+      });
+      // PERSECUCION (PLAN_HARRIERS_PERSECUCION, PLAN B). Corre en el mismo lugar que LA COLA y por
+      // la misma razon: es una variante del PASILLO, y no tenerle otro sitio desde donde correr es
+      // mas confiable que un chequeo de estado que alguien se puede olvidar de agregar.
+      if (persecProbe && !persecArmed && run.t > 1.5) {
+        persecArmed = true;
+        persec.startPersec({ infinito: true });
+      }
+      // N1 le puso la banda: si lo perdes o lo chocas, la muerte entra por el embudo de siempre.
+      const ps = persec.persecSystem(dt);
+      if (ps && ps.death) { onDeath(ps.death); return; }
+      // SONDAS DE LA COLA (QUITAR). Las dos son inertes con el juego normal: `czAlto` en null no
+      // toca una linea del vuelo y `czMv` en null deja `run.mv` como estaba. La pirueta se inyecta
+      // POR UN CUADRO y se restaura enseguida, para que probar el combo que fuerza el sobrepaso no
+      // le mienta al motor de piruetas — que es el dueño de ese campo.
+      if (czAlto !== null) {
+        if (czBrk > 0) { czBrk -= dt; czAltoX += 45 * dt; }   // el quiebre sostenido de __czquiebre
+        plane.y = czAlto; plane.vy = 0;
+        plane.x = czAltoX; plane.vx = 0;
+      }
+      const mvSave = run.mv;
+      if (czMv) { run.mv = czMv; czMv = null; }
       const cz = caza.cazaSystem(dt);
+      run.mv = mvSave;
       if (cz && cz.death) { onDeath(cz.death); return; }
       // líneas de velocidad
       if (run.boost || run.rasLevel > 0 || run.spd > 115) {
@@ -2192,7 +2249,13 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // Va antes que drawPlane: esta mas lejos — pintor correcto respecto del que entra.
       if (S.state === 'relevo' && squad.rosterActive() && squad.relevo())
         squadRender.drawFallen({ selPlane, rv: squad.relevo() });
-      if (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada') drawPlane(selPlane, viewMouse, squadZoom());   // en el climax (arena, pasada o fallback) el avion lo pone su propio render
+      // EL LIDER de la PERSECUCION: siempre esta mas lejos que vos (es la definicion del modo), asi
+      // que va antes del avion y no necesita el reparto en dos pasadas que si necesita LA COLA.
+      drawPersec(selPlane);
+      // en el climax (arena, pasada o fallback) el avion lo pone su propio render. EL PULSO tampoco
+      // lo dibuja: la prueba se ve DESDE LA CABINA, y el sprite en tercera persona quedaba a la
+      // vista en cuanto la cinematica del premio baja el canopy — dos camaras del mismo avion.
+      if (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso') drawPlane(selPlane, viewMouse, squadZoom());
       // LA COLA, segunda pasada: lo que quedo MAS CERCA que el avion — el sobrepaso enorme
       // cruzandote y las trazadoras que te estan pasando ahora. Va DESPUES del sprite porque
       // efectivamente esta entre vos y la camara: dibujarlo antes lo dejaria por detras del ala.
@@ -2242,7 +2305,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       }
       // HUD en GRILLA DE DISEÑO (320x180): se dibuja con ctx.scale(U). Ver la nota de DW/DH en
       // render/ctx.js — U x SC da 3 exacto, asi que no hay medio pixel ni borroneo.
-      if (S.state === 'play') { ctx.save(); ctx.scale(U, U); hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip }); ctx.restore(); }
+      // LA CINTA DE FORMACION va ADENTRO del ctx.scale(U): es HUD, o sea grilla de DISEÑO (320x180),
+      // no de mundo. Ojo con esto — `drawPersec` (el avion del lider) se dibuja arriba, FUERA del
+      // scale, porque eso si es mundo. Los dos espacios de coordenadas del repo, en un solo archivo.
+      if (S.state === 'play') { ctx.save(); ctx.scale(U, U); hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip }); drawCinta(); ctx.restore(); }
       if (S.state === 'momentum' && momentum.active()) momRender.drawMomentum({
         mom: momentum.active(), momPhase: momentum.phase(), phases: momentum.phases(), msl: run.msl, objectiveShip, t: run.t,
         is3D: world3D.isOn(), parts, popups, mouse,
@@ -2392,10 +2458,68 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     //   __czfase('sobrepaso') salta a una fase — es lo que permite fotografiar el cruce cercano,
     //                        que dura 1,15 s dentro de un ciclo de casi un minuto
     if (typeof window !== 'undefined') {
+      // __lastRun: el RECUENTO congelado de la ultima mision (QUITAR con el resto de las sondas).
+      // Sin esto no hay forma de verificar desde afuera que el premio de un climax entro al
+      // desglose de puntos — la pantalla de resultados es texto dibujado, no un dato leible.
+      window.__lastRun = () => lastRun;
       window.__czstart = o => caza.start(o || {});
       window.__czdbg = () => caza.dbg();
       window.__czfase = f => caza.forceFase(f);
       window.__czcalma = v => { cazaCalma = v !== 0; return cazaCalma; };
+      // H2/H3: lo que hace falta para medir la solucion de tiro y el contraataque.
+      //   __czalto(y)   CLAVA la altura Y EL RUMBO del avion (null los suelta). Tiene que ser
+      //                 sostenido y no un empujon: la regla del ras se mide en segundos de vuelo, y
+      //                 con el gas apretado el avion se sale de la banda antes de terminar.
+      //                 CLAVA TAMBIEN LA x, y no es un extra: "rumbo predecible" es lo que el
+      //                 sistema mide, y el avion a gas pleno deriva de costado lo suficiente como
+      //                 para que la solucion se lea como un quiebre permanente y no suba nunca.
+      //   __czquiebre() un tiron lateral: es lo que el sistema lee como "quebro" (mide tu propio
+      //                 cuadro anterior, no el input, asi que no hay que fingir una tecla)
+      //   __czmv(mv)    inyecta una pirueta POR UN CUADRO y la restaura despues, para probar que
+      //                 el BREAK/JINK/S-TURN fuerzan el sobrepaso sin tocar el motor de piruetas
+      window.__czalto = y => { czAlto = y === null || y === undefined ? null : +y; czAltoX = plane.x; return czAlto; };
+      // EL QUIEBRE ES SOSTENIDO, no un empujon. La primera version saltaba la x 14 unidades en un
+      // cuadro y la prueba daba en rojo con razon: un teletransporte de un cuadro le saca a la
+      // solucion de tiro menos de lo que recupera en el cuarto de segundo siguiente. Un BREAK TURN
+      // de verdad son ~45 u/s de desplazamiento lateral durante tres decimas, y eso es lo que esto
+      // reproduce — moviendo el ANCLA del pin de rumbo, no la posicion, para que el pin no lo borre.
+      window.__czquiebre = () => { czBrk = 0.35; return true; };
+      window.__czmv = mv => { czMv = mv || null; return czMv; };
+      window.__czsol = v => { caza.setSol(+v); return true; };
+      // el modelo de averias, para poder MEDIR un impacto. En 'squad' un toque te tira y la partida
+      // se va a la pantalla de derribado: no queda nada que leer despues del golpe. En 'integ' el
+      // mismo impacto se lee como un numero que baja, que es lo que el fixture necesita.
+      window.__czmodo = m => { cfg.dmgMode = m; run.integ = 100; return cfg.dmgMode; };
+      window.__czinteg = () => run.integ;
+      window.__czletales = () => caza.letales();
+      window.__czpegar = n => caza.pegar(+n);
+      window.__czfin = () => { caza.resetCaza(); return true; };
+      // H4: el director se prueba PURO — se le pasa el contexto y los segundos de golpe, y la
+      // respuesta correcta a cada puerta cerrada es "no armes nada".
+      window.__czdir = (o, s) => caza.dirPaso(o, +s);
+      window.__czdirN = (o, n) => caza.dirN(o, +n);
+      // ---------- SONDAS DE LA PERSECUCION (QUITAR al cerrar PLAN B) ----------
+      //   __psdbg()      el estado del lider: distancia, banda, gracia, velocidad suya y tuya
+      //   __psdist(d)    lo pone a esa distancia — mirar los extremos de la banda sin volar hasta
+      //                  ellos, que es medio minuto de gas por cada extremo
+      //   __psobs()      los obstaculos solidos cerca del lider (lo lee el vigilante del fixture)
+      //   __pscarril(n)  sortea n carriles y cuenta cuantos caen en el corredor reservado
+      window.__psdbg = () => persec.dbgPersec();
+      window.__psstart = o => persec.startPersec(o || { infinito: true });
+      window.__psdist = d => { persec.setDist(+d); return true; };
+      window.__psobs = () => persec.obsCerca();
+      window.__pscarril = n => persec.carrilTest(+n);
+      window.__psrec = m => { persec.setRec(+m); return true; };
+      window.__psinf = v => { persec.setInf(+v !== 0); return true; };
+      window.__psfin = () => { persec.resetPersec(); return true; };
+      window.__psscore = () => Math.floor(run.score);
+      // VUELO NIVELADO para el fixture. Es la misma sonda que `__czalto` (clava altura y rumbo) y se
+      // expone con otro nombre porque en PERSECUCION resuelve otro problema: sin ella el fixture
+      // tiene que sostener una tecla para no caerse al mar, y la unica que sirve (W) es CABECEO —
+      // o sea que el avion trepa, y trepar cuesta velocidad, y el lider se le escapa por una razon
+      // que no tiene nada que ver con lo que la seccion esta midiendo. Nivelado, run.spd converge
+      // a su nominal y la banda se puede medir.
+      window.__psnivel = y => window.__czalto(y);
     }
     if (typeof window !== 'undefined') window.__pausedbg = () => JSON.stringify({
       paused, view: pauseView, sel: pauseSel, saveSel, state: S.state,

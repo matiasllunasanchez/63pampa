@@ -442,13 +442,13 @@ function campText(r) {
 /** LISTA DE FILAS de un submenu (HISTORIA, JUEGO RAPIDO). Es UNA sola funcion y no dos copiadas:
  *  los dos submenus son la misma pantalla con otro contenido, y tenerla partida en dos garantizaba
  *  que la proxima vez que se toque el resalte queden distintos. `textOf` traduce fila → textos. */
-function drawRowMenu(w, titleKey, textOf) {
+function drawRowMenu(w, titleKey, textOf, geo) {
   panel();
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(26);
   ctx.fillText(T('title'), NW / 2, 40);
 
-  const { y0, rh, headH } = CAMP_ROWS, x = 40, PAD_X = 9;
+  const { y0, rh, headH } = geo || CAMP_ROWS, x = 40, PAD_X = 9;
   ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(13);
   ctx.fillText(T(titleKey), x, y0 - 22);
   ctx.strokeStyle = '#3a464c'; ctx.globalAlpha = 0.5;
@@ -512,10 +512,17 @@ function quickText(r) {
   if (r.back) return { name: T('menuBack'), desc: T('menuBackDesc') };
   if (r.id === 'cycle') return { name: T('modeCycle'), desc: T('modeCycleDesc') };
   if (r.id === 'survival') return { name: T('modeSurvival'), desc: T('modeSurvivalDesc') };
+  if (r.id === 'persec') return { name: T('modePersec'), desc: T('modePersecDesc') };
   if (r.id === 'arena') return { name: T('modeArena'), desc: T('modeArenaDesc') };
   return { name: T('modePasada'), desc: T('modePasadaDesc') };
 }
-export function drawQuickMenu(w) { drawRowMenu(w, 'quickTitle', quickText); }
+// JUEGO RAPIDO tiene GEOMETRIA PROPIA, y es por una cuenta: con la entrada de PERSECUCION son SEIS
+// filas, y con el paso de la campaña (y0 96, rh 34) la ultima cae en y=266 — su descripcion, que va
+// 14 px mas abajo, se sale de los 270 de alto de la pantalla. Apretando a rh 29 y subiendo el
+// arranque, la sexta termina en 255 y el resalte cierra en 261. La campaña conserva su paso porque
+// sus filas llevan encabezados de seccion y ahi el aire hace falta.
+export const QUICK_ROWS = { y0: 92, rh: 29, headH: 20 };
+export function drawQuickMenu(w) { drawRowMenu(w, 'quickTitle', quickText, QUICK_ROWS); }
 
 // una fila de partida guardada: 'EL CUADERNO DE MATEO · MISION 2 · 1234 PTS · 05/08 21:33'
 function saveLabel(r) {

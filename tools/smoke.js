@@ -125,7 +125,11 @@ app.whenReady().then(async () => {
   await tap(win, 'Return');                                       // portada → modeselect
   await tap(win, 'Down');                                         // HISTORIA → JUEGO RAPIDO
   await tap(win, 'Return');                                       // → submenu JUEGO RAPIDO
-  for (let i = 0; i < 2; i++) await tap(win, 'Down');             // CICLO → PATRIA → MINUTOS SAGRADOS
+  // CICLO → PATRIA → PERSECUCION → MINUTOS SAGRADOS. Son TRES flechas desde que se abre el menu, y
+  // el numero cambia cada vez que se agrega un modo: con la entrada de PERSECUCION (PLAN B, N2)
+  // paso de 2 a 3, y hasta arreglarlo esta misma prueba entraba a otro modo y fallaba mas abajo con
+  // un mensaje que no decia nada de menus.
+  for (let i = 0; i < 3; i++) await tap(win, 'Down');
   await tap(win, 'Return');                                       // → menu de avion
   await tap(win, 'Return');                                       // → batalla (arena directo)
   await sleep(4000);
@@ -153,7 +157,7 @@ app.whenReady().then(async () => {
   await tap(win, 'Return');                                       // portada → modeselect
   await tap(win, 'Down');                                         // → JUEGO RAPIDO
   await tap(win, 'Return');                                       // → submenu
-  for (let i = 0; i < 3; i++) await tap(win, 'Down');             // → PASADAS MORTALES
+  for (let i = 0; i < 4; i++) await tap(win, 'Down');             // → PASADAS MORTALES (ver la nota de arriba)
   await tap(win, 'Return');                                       // → menu de avion
   await tap(win, 'Return');                                       // → la corrida, ya volando
   await sleep(1200);

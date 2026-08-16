@@ -136,6 +136,16 @@ Eso es trabajo de sistemas. **v0.0.2 hace la versión de pantallas:**
 Decisión 3.5: los Mirage peruanos **nunca combatieron** (verificado). La campaña no los
 toca — los Fieles terminan la guerra en A-4B, como fue. Pero el juego sí premia al jugador:
 
+> **⚠ CONFLICTO ABIERTO con [PLAN_HARRIERS_PERSECUCION.md](../sistemas/PLAN_HARRIERS_PERSECUCION.md)
+> §4 (N3)**, anotado el 16/8 al implementar el modo PERSECUCIÓN. Ese plan pide los **Mirage
+> peruanos EN PANTALLA como líderes** de m10, o sea volando de escolta. Este documento dice lo
+> contrario dos veces: acá ("nunca combatieron, la campaña no los toca") y en la fila de m10 ("no es
+> escolta: era históricamente imposible").
+>
+> **Se resolvió a favor de este documento y NO se construyó** — el mecanismo quedó listo (`persec`
+> como dato de misión, ver §10/N3.3 de ese plan) y m1 lo usa siguiendo a PUMA. La decisión de qué
+> hace m10 el día que exista es de guion, y las opciones están escritas en el §11.4 de ese plan.
+
 - Tras el epílogo de m10, una pantalla **SISTEMA** (registro propio, no narrativo):
   *"MIRAGE 5P «MARA» — DESBLOQUEADO. Diez llegaron del Perú el 5 de junio de 1982. Nunca
   llegaron a combatir. **Acá, sí.**"*

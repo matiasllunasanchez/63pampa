@@ -98,6 +98,14 @@ export const cfg = {
   // LARGO del banco: 0 CORTO · 1 MEDIO · 2 LARGO · 3 MUY LARGO (ver FOG_LEN en data/tuning.js).
   // Es cuanto tiempo te obliga a volar arriba del radar, o sea el balance entero del item.
   fogLen: 1,
+  // LA COLA: cuantos Sea Harrier te toman la cola en el pasillo (PLAN_HARRIERS_PERSECUCION §3, H4).
+  // 0 NINGUNO · 1 UNO · 2 DOS (nunca a la vez: uno por vez es el §6.2, esto es cuantos por mision).
+  // En campaña sale de la mision (data/missions.js) y es el techo de duelos; en los modos infinitos
+  // no hay techo y el numero solo decide cada cuanto vuelve.
+  caza: 1,
+  // PERSECUCION: ¿esta mision se vuela de NUMERAL? (PLAN_HARRIERS_PERSECUCION §4, N3). 0 NO · 1 SI.
+  // Es dato de mision igual que `caza`; el MODO PERSECUCION del menu no lo usa (se arma solo).
+  persec: 0,
   // EJE Y DEL ARENA: en la fase ARENA W/S comandan el CABECEO (PLAN_MINUTOS_SAGRADOS D1).
   // 0 = W sube el morro (como el pasillo, donde W es subir) · 1 = INVERTIDO (estilo simulador).
   // Existe porque con cabeceo comandado, invertir el eje es lo primero que busca quien viene

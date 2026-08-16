@@ -17,6 +17,7 @@
     "pasada": "electron tools/fixture_pasada.js",
     "pulso": "electron tools/fixture_pulso.js",
     "caza": "electron tools/fixture_caza.js",
+    "persec": "electron tools/fixture_persec.js",
     "romper": "electron tools/fixture_romper.js",
     "lint:state": "node tools/lint_state.js",
     "check": "npm run syntax && npm run lint:state && npm run build:game && npm run unit && npm run feel && npm run smoke && npm run build:web && SMOKE_SRC=\"$PWD/dist-web/index.html\" npm run smoke:web",

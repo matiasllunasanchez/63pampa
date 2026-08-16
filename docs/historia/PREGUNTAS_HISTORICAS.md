@@ -597,3 +597,18 @@ Las respuestas valen más que cualquier tradición prestada.
   cazador (clutter, AIM-9L contra fondo de mar). ¿Cuánto protegía de verdad? Hay
   escapadas documentadas de A-4 a ras — juntar 1–2 casos citables.
 - **Cañones Aden de 30 mm contra A-4**: ¿hubo derribos a cañón, además de misiles?
+
+**Agregadas al implementar (16/8)** — las abrió el código, no el diseño:
+
+- **¿Cuánto aviso daba de verdad un compañero por radio?** El juego da casi **un segundo**
+  entre el grito ("¡QUEBRÁ!") y la ráfaga. No es un número histórico: salió de que la
+  ráfaga en sí es inesquivable (de la cola al avión hay centésimas de vuelo), así que
+  toda la ventana tuvo que mudarse al aviso. ¿Un "break" cantado por el numeral daba ese
+  tiempo, más, o mucho menos?
+- **¿Se le podía "romper el ataque" a un Harrier con el cañón de 20 mm?** El juego lo hace
+  su desenlace NORMAL (6 impactos → se va humeando) y deja el derribo como hazaña rara.
+  El §2 lo declara mentira permitida. ¿Hay algún caso documentado de un A-4 obligando a
+  un Sea Harrier a romper el ataque, aunque no lo derribara?
+- **Volar de numeral.** El modo PERSECUCIÓN asume que seguir al líder era *la* habilidad:
+  su línea esquiva todo y copiarla es leer el terreno con anticipación. ¿Se volaba así de
+  pegado en las corridas a ras, o la formación se abría al entrar?

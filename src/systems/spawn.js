@@ -12,6 +12,7 @@ import { run } from '../core/run.js';
 import { obstacles, soldiers } from '../core/world.js';
 import { OLA_H, OLA_RATE, OLA_GAP_MIN, OLA_H_VAR, OLA_WZ, OLA_WZ_VAR } from '../data/tuning.js';
 import { inBank } from './fog.js';
+import { carrilLibre } from './persec.js';
 import { plane } from '../core/state.js';
 import { scrapeLimit } from '../core/physics.js';
 import { olaBump, climaDe } from '../core/sea.js';
@@ -144,7 +145,16 @@ function cliff(x) {
 /** Un obstaculo nuevo en el horizonte. El sorteo mezcla amenazas y bidones; sin combustible
  *  activo, los bidones se fuerzan menos (serian pickups inutiles) y su slot cae en globo. */
 function spawn() {
-  const lane = (Math.random() * SPAWN_X * 2 - SPAWN_X);   // acompaña a FLY_X (zona de vuelo)
+  // EL CARRIL RESERVADO DEL LIDER (PLAN_HARRIERS_PERSECUCION §4, N0). En PERSECUCION el sembrador
+  // CONOCE la linea del lider y no siembra encima: es la mitad de la garantia de que el lider nunca
+  // choca (la otra mitad es que esquiva, en systems/persec.js). Sin persecucion corriendo,
+  // `carrilLibre` devuelve el carril tal cual y esto no cuesta nada.
+  //
+  // Se corrige ACA y no en cada `push` porque `lane` es el carril compartido de casi todo lo que
+  // se siembra: un solo lugar donde pasa, un solo lugar donde puede fallar. Los pocos tipos que
+  // eligen su propio carril (landLane/waterLane, en COSTA) son de TIERRA — el lider vuela sobre
+  // el agua y no los cruza.
+  const lane = carrilLibre(Math.random() * SPAWN_X * 2 - SPAWN_X);   // acompaña a FLY_X (zona de vuelo)
   if (cfg.fuelOn && run.fuelDist > 700) { obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false }); run.fuelDist = 0; return; }
   const r = Math.random();
   const ph = Math.random() * 6;

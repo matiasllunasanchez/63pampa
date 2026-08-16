@@ -397,9 +397,15 @@ las piruetas, horneada para los 6 aviones (§1).
 
 ## 13. PENDIENTE DE DISEÑO — persecución enemiga y contraataque
 
-> Anotado el 25 de julio de 2026. **No está implementado**: esto es el pedido, con lo que implica
-> en sistemas y en arte. Es la continuación natural de las piruetas (§1): hoy son un esquive
-> precioso **sin nadie a quien esquivar de atrás**.
+> Anotado el 25 de julio de 2026. **CONSTRUIDO el 16 de agosto de 2026** — ver
+> [PLAN_HARRIERS_PERSECUCION.md](../sistemas/PLAN_HARRIERS_PERSECUCION.md), planes A (LA COLA:
+> `systems/caza.js`) y B (PERSECUCIÓN: `systems/persec.js`). Lo que sigue abierto de este §13 es
+> **arte** (§13.5) y **dos ideas que el plan descartó a propósito** — están marcadas abajo, una por
+> una, con la razón. Lo que falta en general está en el **§11 «Qué sigue»** de ese plan.
+>
+> Era la continuación natural de las piruetas (§1): hoy ya no son un esquive precioso sin nadie a
+> quien esquivar de atrás — el BREAK TURN, el JINK y el S-TURN **fuerzan el sobrepaso del Harrier**,
+> que es su primer uso ofensivo en el juego.
 
 ### 13.1 Los cazas enemigos te PERSIGUEN
 
@@ -424,9 +430,23 @@ algo. Ciclo propuesto:
 lado desde ATRÁS hacia el horizonte (al revés de las tuyas — la dirección es la pista visual).
 El aviso **de que viene** es otra cosa y sale de la radio: ver §13.2.
 
-> Dónde tocaría: `systems/spawn.js` (estado inicial del caza), `systems/collision.js` (donde ya
-> vive el movimiento propio de enemigos, `cfg.enemyMove`), `render/hud.js` (aviso), `render/ammo.js`
-> (trazadoras que vienen de atrás).
+> **→ RESUELTO, y de las tres formas propuestas ganó UNA sola:** las **trazadoras que te pasan de
+> largo** (`render/caza.js`), más el grito de radio y —desde H2— un segundo chorro **rojo y más
+> gordo** para las que sí vienen a darte. El **arco de radar y la luz de alerta NO se hicieron, y no
+> por olvido**: el §6.1 del plan de LA COLA los prohíbe con todas las letras — *los A-4 no tenían
+> radar ni RWR; el aviso es humano o no es*. La `alarm` de `data/sfx.js` sigue reservada al misil
+> buscador por la misma razón. Está anotado como divergencia H5.1 de ese plan.
+> Y hay un caso que sólo existe gracias a esa regla: el **duelo mudo** (`CAZA_MUDO_P`), en el que la
+> radio no llega y las trazadoras son el único aviso.
+
+> Dónde tocaría *(previsión de julio)*: `systems/spawn.js`, `systems/collision.js`, `render/hud.js`,
+> `render/ammo.js`.
+>
+> **Dónde quedó de verdad**: en módulos NUEVOS —`systems/caza.js` + `render/caza.js`— y ninguno de
+> los cuatro archivos previstos se tocó por esto. El duelo no es un enemigo más del spawner: es un
+> EVENTO con estado propio, uno por vez, y meterlo en la lista de obstáculos habría sido pelearse
+> con el sistema equivocado. Lo único que se tocó de lo previsto fue `render/enemies.js`, y son tres
+> líneas (el parámetro `dark` del placeholder).
 
 ### 13.2 El aviso llega por RADIO desde la base de tierra — y a veces NO llega
 
@@ -452,6 +472,16 @@ enemigo, y también la fuente del spawn:
 > el spawn sortee solo; textos en `data/strings.js` (i18n, como todo lo visible); línea de mensaje
 > en `render/hud.js`; sonido de la radio en `systems/audio.js` (hoy todo el chirrido y el ruido son
 > procedurales — un click de PTT y estática se hacen sin assets).
+>
+> **→ HECHO PARA EL HARRIER, y sólo para él.** El duelo de LA COLA implementa las dos mitades de
+> esta idea: el aviso por radio (`caza_warn`, `caza_break`) **y el silencio** — `CAZA_MUDO_P` sortea
+> duelos mudos, con más probabilidad en las misiones de clima cerrado y las nocturnas, que es donde
+> el que mira no ve. Un duelo mudo se anuncia sólo con las trazadoras.
+>
+> **Lo que sigue abierto es la generalización**: hoy la radio no anuncia el resto del spawn (helos,
+> jets de frente, la flota, el clima) — eso sigue siendo el sistema nuevo que este §13.2 pide, y el
+> director de LA COLA (`cazaDirector` en `systems/caza.js`) es el molde a copiar: decide CUÁNDO
+> aparece algo mirando el nivel, y la voz sale de ahí.
 
 ### 13.3 Combinaciones de CONTRAATAQUE
 
@@ -474,7 +504,30 @@ te persiguen → maniobrás → se pasa → lo cazás.
 Combos **nuevos** a definir (el detector acepta cualquier par de toques; los pares libres hoy son
 `lu`, `ru`, `ld`, `rd` y los triples si se amplía la ventana).
 
+> **→ CONSTRUIDO EN PARTE.** De la tabla de arriba, **tres maniobras fuerzan el sobrepaso**:
+> BREAK TURN, JINK y S-TURN (`CAZA_MV_FUERZA` en `data/tuning.js`) — y además le **borran la
+> solución de tiro**. La ventana de contraataque existe entera: el Harrier queda adelante unos
+> segundos, le tirás con el cañón, y a los 6 impactos **rompe el ataque y se va humeando**; a los 18
+> lo derribás, que es la hazaña.
+>
+> Lo que **NO** se hizo, y a propósito: el efecto DISTINTO por maniobra que propone la tabla (que el
+> SPLIT-S lo pierda por abajo, que el HIGH YO-YO te deje recaer sobre él). Las tres de esquive hacen
+> lo mismo, y eso ya es una decisión: el §6.3 del plan pide **peligroso, nunca imposible**, y cinco
+> respuestas distintas a la misma amenaza son cinco cosas que el jugador tiene que aprender antes de
+> poder defenderse una vez. Diferenciarlas es una mejora futura y natural — el gancho ya está
+> (`comboFuerza` en `systems/caza.js`) y es una línea por maniobra.
+>
+> El **gate de campaña** ("sólo si están aprendidas") salió gratis y sin código: una pirueta que no
+> aprendiste no se puede ejecutar, así que no puede forzar nada.
+
 ### 13.4 Contraataque tipo BATTLEFIELD con el lanzamisiles
+
+> **⚠ OJO ANTES DE CONSTRUIR ESTO: choca de frente con el §6.1 del plan de LA COLA**, que prohíbe
+> el lock-on, el tono de fijado y los corchetes de candado — *los A-4 no tenían nada; la mira es la
+> de siempre y el aviso es humano*. Contra el **Harrier** esta idea está descartada por canon.
+> Contra **blancos de tierra o barcos** (que es de donde salió el pedido) no hay conflicto: ahí el
+> enganche sostenido es plausible y la regla no aplica. Si algún día se construye, que sea con esa
+> línea trazada — o el juego va a decir dos cosas distintas sobre lo mismo.
 
 El modelo es el **lanzamisiles con candado** de Battlefield (Stinger / Igla): no es apretar y que
 salga — es **apuntar, sostener, esperar el tono, y recién ahí disparar**, con el enemigo enterándose
@@ -500,14 +553,19 @@ Piezas del pedido:
 
 | pieza | por qué |
 |---|---|
-| **Caza enemigo visto DESDE ATRÁS** (cola a cámara) | cuando se pasa de largo queda adelante tuyo: la hoja actual son 5 alabeos de frente, no sirve de espaldas |
-| **Poses de viraje del caza** (se invierte para ponerse en tu cola) | hoy solo tiene alabeo; el giro de 180° no tiene con qué dibujarse |
-| **Aviso de perseguidor en el HUD** — arco/radar trasero, luz de alerta | es lo único que hace legible una amenaza que no se ve |
+| 🟥 **Caza enemigo visto DESDE ATRÁS** (cola a cámara) | **LO ÚNICO QUE BLOQUEA HOY.** El duelo funciona con placeholder (el `jet` de frente oscurecido 50% y angostado 74%, con llama de tobera) y por la regla P2 no bloquea nada — pero el placeholder se nota. Al llegar la hoja se van tres constantes de `render/caza.js` |
+| 🟥 **Poses de viraje del caza** (se invierte para ponerse en tu cola) | hoy la recola se resuelve con la trayectoria (sube y vuelve por atrás) y no con el sprite. Con la hoja, el giro se dibuja |
+| ❌ **Aviso de perseguidor en el HUD** — arco/radar trasero, luz de alerta | **DESCARTADO por diseño**, no pendiente: el §6.1 del plan lo prohíbe (sin radar ni RWR, el aviso es humano o no es). Su lugar lo ocupan las trazadoras y la radio |
 | **Línea de radio en el HUD** (§13.2) — franja de mensaje con el emisor, tipografía de teletipo | la voz de la base tiene que leerse sin tapar el vuelo; conviene un lugar fijo y reconocible |
 | **Retícula de candado** — corchetes que se cierran + estado enganchado | la mira actual (`miras.webp`) es fija, no tiene estados |
 | **Bengalas / flares** | FX nuevo: racimo de luces cayendo hacia atrás |
-| **Trazadoras entrantes desde atrás** | mismas del cañón pero alejándose de la cámara (§9) |
+| ✅ **Trazadoras entrantes desde atrás** | **HECHO** (`render/caza.js`): dos chorros, el frío de aviso y el rojo apuntado. Muestreo largo — 7 tramos de 5,5 unidades, porque a 340 u/s con menos se leen como caspa sobre el mar |
 
-> Prioridad: **después** de la barcaza del momentum (§12 #1). Es la feature que más cambia el
-> juego de las que quedan, pero también la que más sistemas toca — y arranca con diseño, no con
-> arte: sin el aviso de "lo tenés atrás" resuelto, ningún sprite lo salva.
+> Prioridad *(julio)*: después de la barcaza del momentum. **La previsión se cumplió al revés de lo
+> esperado y conviene dejarlo escrito:** dijimos "arranca con diseño, no con arte: sin el aviso de
+> 'lo tenés atrás' resuelto, ningún sprite lo salva". Fue exactamente así — el aviso se resolvió
+> primero (trazadoras + radio, H1) y el arte todavía no llegó, y el sistema **es jugable igual**.
+> La regla P2 valió lo que costó.
+>
+> **Lo que queda de este §13 es sólo arte** (las dos hojas de arriba) más las dos ideas que el plan
+> descartó por canon (13.4 y el arco de radar). Todo lo demás está construido y probado.

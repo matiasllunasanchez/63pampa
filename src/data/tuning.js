@@ -463,3 +463,72 @@ export const CAZA_DIR_GAP = [55, 95];  // s entre duelos (se acorta con la inten
 export const CAZA_MUDO_P = [0, 0.3, 0.5];  // probabilidad de duelo SIN aviso por radio, por intensidad.
                                      // §2: sin radar ni RWR el aviso es de Condor o de un Fiel, y a
                                      // veces no llega. En intensidad 2 (clima cerrado, noche) casi la mitad.
+
+// ---------- PERSECUCION: VOLAR DE NUMERAL (PLAN B) ----------
+// Plan: docs/sistemas/PLAN_HARRIERS_PERSECUCION.md §4. Un lider vuela el pasillo ADELANTE tuyo y
+// vos mantenes la distancia dentro de una banda. Lejos de mas lo perdes; cerca de mas su estela te
+// sacude y rozarlo es chocar.
+//
+// POR QUE ESTO ES UN JUEGO Y NO UNA TAREA: la linea del lider es LA RESPUESTA CORRECTA del nivel —
+// esquiva todo lo que viene, asi que seguirlo ES leer el pasillo con anticipacion. Volar de
+// numeral era la habilidad real de 1982, y aca se convierte en dosificar el gas.
+
+// --- las perillas del §4 (defaults del plan, sin tocar) ---
+export const PURS_D = [60, 140];    // banda inicial de distancia al lider, en unidades de MUNDO
+export const PURS_GRACE = 4;        // s de gracia fuera de banda antes de perderlo
+export const PURS_WASH_D = 25;      // por debajo de esta distancia entras en su estela (jet wash)
+
+// --- lo que el §4 NO da y N0 necesita (divergencia, §9) ---
+export const PURS_D0 = 95;          // distancia de arranque: el centro de la banda, para que la
+                                    // primera decision sea del jugador y no una correccion de entrada
+// LA VELOCIDAD DEL LIDER es lo que convierte esto en un minijuego de gas, y es RELATIVA A LA TUYA.
+//
+// NO PUEDE SER UN NUMERO ABSOLUTO, y esto se descubrio jugandolo: tu velocidad nominal SUBE SOLA
+// con el tiempo de vuelo (`speedTarget` en core/physics.js: 62 + t*2.8, hasta 150). Con un lider a
+// velocidad fija el modo es imposible los primeros veinte segundos —te deja atras sin que puedas
+// hacer nada— y trivial despues. Medido: con PURS_V_BASE en 104, a los 14 s el lider estaba a 401
+// unidades, o sea mas alla del horizonte de siembra.
+//
+// Asi que el lider vuela a TU PROPIA velocidad nominal por un factor. Y eso trae gratis la tesis
+// del juego: tu nominal sube con la racha rasante y el multiplicador de altura, asi que VOLANDO
+// ABAJO le seguis el tren sin esfuerzo y volando alto te descolgas. Nadie tuvo que programarlo.
+export const PURS_V_F = 1.0;        // factor sobre tu velocidad nominal (1 = va exactamente a tu par)
+export const PURS_V_AMP = 0.16;     // cuanto respira alrededor: +-16%. Es lo que obliga a dosificar
+                                    // turbo (para cerrar) y a soltar gas (para no comerselo).
+// dos senos de periodos que NO son multiplos: el patron no se aprende de memoria en dos vueltas
+// pero tampoco es ruido — se puede ANTICIPAR, que es distinto de adivinar. Con un solo seno el
+// lider se vuelve un metronomo a los 20 segundos.
+export const PURS_V_T = [7.3, 3.1];
+// EL CARRIL RESERVADO. El §4 pide que el spawner CONOZCA su linea: nada de lo que siembra la cruza.
+// Se implementa como un corredor propio — el lider reclama una franja y el sembrador la respeta.
+export const PURS_SAFE = 9;         // semiancho del carril reservado del lider (el avion mide ~4)
+export const PURS_LOOK = 90;        // cuanto mira hacia adelante para empezar a esquivar
+export const PURS_AGIL = 2.2;       // que tan rapido se corre de carril (1/s del lerp)
+
+// --- N1: la cinta de formacion, la gracia y la estela sucia ---
+// PISO de escala del sprite del lider (fraccion del tamaño con que se dibuja tu propio avion). En
+// el fondo de la banda proyecta 5 px de los 480 del mundo y no se le puede leer el banqueo — que es
+// justamente el aviso anticipado que hace que seguirlo enseñe. Misma regla que la cabeza de las
+// trazadoras: hay tamaños por debajo de los cuales una cosa deja de existir.
+export const PURS_F_MIN = 0.3;
+export const PURS_WASH_SHAKE = 4.5;  // sacudon maximo dentro del jet wash (es el mismo canal de
+                                     // camara que el roce y las explosiones: feedback, no fisica)
+export const PURS_CHOQUE_D = 6;      // por debajo de esta distancia lo chocaste. Es un avion, no un
+                                     // aura: pasarle por encima al lider es exactamente igual de
+                                     // fatal que comerse un mastil, y por la misma regla del juego.
+export const PURS_AVISO_T = 2.2;     // s entre avisos por radio mientras estas fuera de banda: la
+                                     // radio insiste, no ametralla
+export const PURS_PTS_S = 45;        // puntos por segundo EN BANDA (el multiplicador de altura del
+                                     // juego se aplica encima, como a todo lo demas)
+
+// --- N2: el modo PERSECUCION infinito ---
+// El §4 pide que la banda se ANGOSTE con la distancia: "-8% por nivel, piso 45-90". En un modo
+// infinito no hay niveles, asi que el escalon es de DISTANCIA — que es como ya escala todo lo demas
+// del pasillo infinito (la velocidad, la densidad de siembra).
+export const PURS_TIGHT_D = 900;    // m de vuelo por escalon de apretado
+export const PURS_TIGHT_F = 0.92;   // cuanto se angosta por escalon (-8%)
+export const PURS_TIGHT_MIN = [45, 90];  // el piso: mas apretado que esto deja de ser jugable
+// EL RELEVO DEL LIDER. Cada tanto el que va adelante te pasa la posta a otro Fiel — cambia el
+// indicativo y cambia la voz. No es cosmetica: en un modo infinito, lo unico que puede marcar que
+// pasó algo es que la radio cambie de persona.
+export const PURS_ROTA_D = 1800;    // m entre relevos de lider
