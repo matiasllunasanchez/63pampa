@@ -163,6 +163,7 @@ La lógica que hace avanzar el juego. Cada uno muta stores y devuelve señales; 
 | `arena.js` | la fase ARENA: asalto VOLADO en 3D (vuelo libre alrededor del buque, todas las zonas vivas, flak con predicción que consume escuadrón) — el modo normal con three.js; ver `PROMPT_ARENA_VUELO_LIBRE.md` | `'objective'`·`{death}` |
 | `momentum.js` | el ARENA VIEJO: pasadas en riel (bullet-time, zonas, re-ataque) — hoy es el **fallback sin 3D** de la fase ARENA (web / `?no3d`) | `'objective'`·`{death}` |
 | `moves.js` | las PIRUETAS de combate del PASILLO: mientras `run.mv` está activo es el dueño del avión (vx/vy/bank/pitch); el catálogo vive en `data/moves.js` y los combos los detecta `core/input.js` |  |
+| `caza.js` | **LA COLA**: el duelo contra el Harrier que te toma la cola durante el PASILLO (aviso → presión → sobrepaso → ventana → salida). Lee tu vuelo, **nunca lo escribe**; corre sólo en `'play'` (ver [PLAN_HARRIERS_PERSECUCION.md](sistemas/PLAN_HARRIERS_PERSECUCION.md)) | `{death}` |
 | `squad.js` | el RELEVO del escuadrón (vidas): cinemática, autopiloto y reset parcial; `game.js` decide relevo-o-muerte en `onDeath`. Corre en PASILLO y en ARENA | `'done'` |
 | `three-world.js` | el fondo 3D (three.js) del ARENA VIEJO (`momentum.js`); ver `three-arena.js` para la escena del ARENA actual |  |
 | `three-arena.js` | el mundo 3D de la fase ARENA: domo de cielo, mar centrado en el avión, buque a escala real (`ship3d.js`), proyección mundo→pantalla y raycast del disparo contra las zonas |  |
@@ -188,6 +189,8 @@ Todo lo que pinta. `draw()` en `game.js` gestiona los transforms y delega acá.
 | `menus.js` | selección de modo/avión y el menú de configuración `[M]` |
 | `momentum.js` | el render del ARENA VIEJO (barcaza, zonas, cabina, visor) |
 | `arena.js` | el overlay 2D de la fase ARENA: corchetes/HP proyectados desde la escena 3D, fx del duelo, cabina o sprite (1ª/3ª persona, tecla V) y tablero (zonas + escuadrón) |
+| `caza.js` | el Harrier de **LA COLA** y sus trazadoras. Se dibuja en **dos pasadas** (`drawCaza(true/false)`) porque el caza cruza de detrás tuyo a delante y no hay una sola capa correcta |
+| `marco.js` | la **NIEBLA DE GUERRA**: el velo lateral que tapa lo que no es pasillo (`cfg.marco`: BRUMA blanca o FOCUS negro). Su borde interno es la proyección del carril y **nunca la cruza**, así que no puede tapar un obstáculo — por eso es preferencia y no dificultad, al revés que `systems/fog.js` |
 | `theme.js` | `theme.sky`/`theme.water`: la paleta activa (la comparten mar 2D, telón 3D y HUD) |
 | `ctx.js` | *(fundacional, ver arriba)* |
 
@@ -219,6 +222,7 @@ Lo que queda es genuinamente el pegamento:
 | agregar un FONDO de clima (imagen) | poner la imagen en `assets/world/terrain_back/`, sumar entrada a `TBACK_MAP` en `game.js` **con su fila de horizonte**, un preset en `SKY_PRESETS` y la opción a la fila FONDO de `CFG_ROWS` |
 | qué pasa al chocar / puntaje (PASILLO) | `systems/collision.js` |
 | aparición de obstáculos (PASILLO) | `systems/spawn.js` |
+| **el duelo del Harrier en la cola** | `systems/caza.js` (el ciclo) + `render/caza.js` (el dibujo) + las perillas `CAZA_*` de `data/tuning.js`. Corre **sólo en `'play'`**: es una mecánica del PASILLO y no aparece en ARENA, PASADA ni MINUTOS SAGRADOS. **Lee** tu vuelo y jamás lo escribe — por eso `npm run feel` no se mueve. Sondas: `?caza[=mudo]`, `__czstart`, `__czdbg`, `__czfase`, `__czcalma`. Fixture propio: `npm run caza` |
 | la fase ARENA (vuelo, ring, combate) | `systems/arena.js` (lógica) + `systems/three-arena.js` (mundo 3D) + `render/arena.js` (overlay) |
 | el ARENA VIEJO / fallback sin 3D | `systems/momentum.js` (lógica) + `render/momentum.js` (dibujo) |
 | controles / teclas | `core/input.js` (+ las acciones en `game.js`) |
@@ -230,6 +234,7 @@ Lo que queda es genuinamente el pegamento:
 | **que el JOYSTICK vuele una fase nueva** | la lista `inGame` de `core/input.js`. Es la que decide dónde el pad escribe el vuelo; fuera de ella corre la rama de menús, que **suelta todos los ejes** (el avión se queda sin piloto en el aire). Le pasó a la PASADA. Y si el binding es nuevo, anotalo en la tabla `ctrl*` de `data/strings.js` **en los dos idiomas**: esa tabla es la pantalla CONTROLES de OPCIONES y dice lo que `input.js` *hace*, no lo que debería |
 | el HUD | `render/hud.js` |
 | el mar / los obstáculos en pantalla | `render/world.js` |
+| **el velo de los costados** (NIEBLA DE GUERRA) | `render/marco.js` + las perillas `MARCO_*` de `data/tuning.js`. Ojo con los dos sentidos de "niebla": ésta ENMARCA y no esconde nada que te pueda pegar; la de `systems/fog.js` (`cfg.fog`) SÍ tapa obstáculos y por eso vive en el bloque MAPA |
 | dibujar filas del raster de suelo/mar | `render/world.js` — usá `rowH`, no `1`: con el horizonte girado las filas de 1 px dejan costuras y se ve el fondo por debajo |
 | el sprite del avión | `render/plane.js` |
 | el arte de un enemigo / prop horneado | `tools/bake_enemies.html` (modelo) → `npx electron tools/bake_enemies_run.js` → re-medir cajas en `render/enemies.js` |
@@ -260,6 +265,7 @@ Y una que corre aparte, a mano, porque son 13 s de silencios reales:
 
 | comando | qué garantiza |
 |---|---|
+| `caza` | el fixture de **LA COLA**: que se entre al duelo por sonda, que el ciclo del §3 se encadene solo, que el sobrepaso mueva de verdad la pantalla (se mide el pico dentro del rAF, no desde afuera) y que nunca haya dos Harriers. Con `CAZA_SHOTS=<dir>` deja la secuencia entera en capturas — que es la mitad del criterio de H1, porque "se entiende sin leer nada" no lo puede juzgar una aserción |
 | `story` | el fixture del MODO HISTORIA (el locker de m7): que cada `hold` dure lo que dice el guion, que una tecla complete el tipeo sin saltear la línea, que ningún toque atraviese un silencio — y que todo eso ande **con cero assets**. `STORY_SHOTS=<dir> npm run story` deja una captura por línea |
 
 > El chequeo de "el canvas cambia entre cuadros" no es adorno: en este refactor atrapó un

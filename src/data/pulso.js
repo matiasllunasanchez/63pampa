@@ -25,10 +25,16 @@ export const PULSO = {
   // brillando y el buque cabecea — es TIEMPO DILATADO, que es lo que se siente en combate.
   SLOW: 0.08,
   // segundos por compas: del nivel 1 al maximo. La prueba entera nunca pasa de ~10 s (plan §6.3).
-  T_BEAT: [1.6, 0.9],
-  // errores perdonados por secuencia segun dificultad. En facil se perdona UNO; de normal para
-  // arriba, ninguno: el error corta el compas y hay que rehacerlo.
-  ERR: { easy: 1, normal: 0, hard: 0 },
+  // ARRANCA MAS HOLGADO QUE EL PLAN (1.6 s): tres toques en 1.6 s resultaron duros hasta para el
+  // fixture, que fallaba por tiempo antes de poder teclear. La presion la pone la ESCALADA.
+  T_BEAT: [2.2, 1.1],
+  // errores perdonados por secuencia. El plan los ataba a la dificultad, pero el juego NO tiene
+  // perilla de dificultad (plan §7, divergencia 1) — asi que el perdon escala por NIVEL: en los
+  // primeros se perdona UNO (estas aprendiendo), despues ninguno.
+  ERR_LV: 0.3,   // fraccion del avance de campaña hasta la que se perdona un error
+  // el flak se acerca un grado por cada fallo (plan §3): cada grado ACHICA el margen del compas.
+  // Es el costo del primer fallo hecho numero — volves, pero con menos aire.
+  FLAK_T: [1, 0.92, 0.85],
   // intentos antes de que la mision se pierda. El 1º cuesta una vuelta; el 2º, una vida del
   // escuadron; el 3º es la derrota de siempre (plan §3 "El fallo").
   TRIES: 3,
@@ -70,15 +76,10 @@ export const POOL_BASICO = ['dll', 'drr', 'lrl', 'rlr', 'dud'];
 // Elegir blanco ES parte de la prueba (plan §3): la zona facil pide una secuencia corta y paga
 // poco; la brava pide la larga y paga el doble. `label` sale de strings, no de aca.
 export const PULSO_ZONAS = [
-  { id: 'radar', bars: -1, pts: 600, cine: 'alto' },      // -1 = un compas MENOS que el nivel
-  { id: 'bridge', bars: 0, pts: 1000, cine: 'medio' },    //  0 = los del nivel
-  { id: 'deposit', bars: 1, pts: 2200, cine: 'bajo' },    // +1 = uno mas: la brava
+  { id: 'radar', str: 'pulso_z_radar', bars: -1, pts: 600, cine: 'alto' },     // -1 = un compas MENOS
+  { id: 'bridge', str: 'pulso_z_bridge', bars: 0, pts: 1000, cine: 'medio' },  //  0 = los del nivel
+  { id: 'deposit', str: 'pulso_z_deposit', bars: 1, pts: 2200, cine: 'bajo' }, // +1 = uno mas: la brava
 ];
-
-// LA SECUENCIA FIJA DE Q1. La primera fase del plan pide "UNA secuencia fija visible con cursor"
-// para poder cerrar el ciclo de punta a punta antes de que exista el sorteo por nivel (Q2).
-// Es un BREAK TURN + la suelta: el combo mas corto del pasillo y el remate.
-export const SEQ_Q1 = ['dll', 'Z'];
 
 /** Glifos de cada token, para el render. Van ACA porque son parte del vocabulario, no del dibujo:
  *  el mismo simbolo que el jugador vio toda la partida en docs/PIRUETAS y en el HUD. */

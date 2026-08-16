@@ -19,7 +19,7 @@
 //
 // ESCALA: 1 unidad = 1 METRO (systems/three-arena.js).
 
-import { setState, cfg, plane } from '../core/state.js';
+import { setState, cfg, plane, stats } from '../core/state.js';
 import { run } from '../core/run.js';
 import { parts, popups, prune, clearWorld } from '../core/world.js';
 import { popup } from '../core/fx.js';
@@ -31,7 +31,7 @@ import { boom, beep, sfxOne, duck, engineFly } from './audio.js';
 import * as world3D from './three-arena.js';
 import { forward, stepFlight, drifting, stepVel } from '../core/aero.js';
 import { AR } from '../data/arena.js';
-import { PS, ENTRY_D, ENTRY_ALT, BOMB } from '../data/pasada.js';
+import { PS, ENTRY_D, ENTRY_ALT, BOMB, HOSE } from '../data/pasada.js';
 // AVERIAS: el escalon de daño entra por el mismo `io` que el resto de las palancas. El modelo de
 // vuelo no sabe de daño — solo de palancas (core/damage.js).
 import * as dmg from './damage.js';
@@ -157,11 +157,14 @@ export function enter(desdePasillo) {
     ripple: 0, rippleT: 0, msl: 0, // bombas por soltar de la salva / reloj entre una y otra / flanco de [Z]
     sapitos: 0, duds: 0,           // sonda: cuantas entraron picando y cuantas llegaron dormidas
     heat: 0,                       // P3/RF-09: calor de la defensa, sube por re-encare
-    // la primera salva NO sale de entrada: entrar a la zona y morir sin haber visto nada caer no
-    // es dificultad, es una emboscada. El primer aviso llega con tiempo de leerse.
-    gunT: PS.GUN_EVERY_S * 1.6, salvas: 0,   // reloj del cañon de 4,5" y cuantas salvas te tiro
+    // EL CAÑON ABRE A LOS GUN_FIRST_S (R2). Antes esperaba GUN_EVERY_S * 1.6 —4,6 s— y con el
+    // ingreso de 1280 m eso significaba que la mitad de la corrida pasaba en silencio absoluto: el
+    // §1.3 medido. Abrir antes NO mata antes, porque las primeras GUN_BRACKET salvas son horquilla
+    // y pasan a los costados: lo que cambia es que la corrida EMPIEZA cuando empieza.
+    gunT: PS.GUN_FIRST_S, salvas: 0,   // reloj del cañon de 4,5" y cuantas salvas te tiro
     aimN: 0, aimYaw: yaw, lastJit: null,   // correccion del cañon, su rumbo, y la dispersion real
     dartUsed: 0, catUsed: 0, cat: null, // uno de cada por corrida (RF-03 / RF-08)
+    hoseT: 0.6, hoseN: 0, roces: 0,     // R2: las mangueras de trazadoras y los roces cobrados
     fusT: 0, sprayT: 0,                 // fusileria sobre la cubierta / salpicado del ras
     colSum: 0, colN: 0,                 // sonda del CALOR: que tan cerca te cae la metralla
     // R0 — LA VARA. Puro mirar: nada de esto cambia una regla.
@@ -433,18 +436,34 @@ function fireGuns() {
   // la dispersion se cierra con el calor: en la corrida 1 el tirador tantea, en la 3 ya sabe
   // LA CORRECCION SE GANA TIRANDO: la salva 1 tantea, la 2 corrige, la 3 te tiene. Volar derecho
   // es dejarlo terminar la cuenta.
+  const salva = A.aimN;
   const aim = Math.min(1, A.aimN / PS.GUN_AIM_SALVOS);
   A.aimN++;
   const jit = PS.COL_JIT_M * (1 - PS.GUN_AIM_MAX * aim) / (1 + A.heat);
   A.lastJit = jit;                   // sonda: la dispersion con la que salio ESTA salva
   const jx = (Math.random() - 0.5) * jit, jz = (Math.random() - 0.5) * jit;
+  // LA HORQUILLA (R2). Las primeras GUN_BRACKET salvas caminan sobre tu rumbo igual que siempre,
+  // pero DESPLAZADAS a un costado y al otro — y cada salva encuadra mas cerca hasta que la tercera
+  // cae sobre la linea. Es el rangeo de verdad (se busca el blanco entre dos fallos) y resuelve la
+  // tension de R2: el cañon puede abrir a los 1,5 s sin que la primera salva sea una emboscada,
+  // porque estructuralmente pasa AL LADO. Lo que se ve —una pared de agua subiendo a tu izquierda,
+  // despues a tu derecha, cada vez mas cerca— es el aviso, y es gratis.
+  //
+  // El desplazamiento se mide en COL_R (el radio letal): a 4 radios pasa lejos, a 2,4 te roza — y
+  // ese roce es justamente lo que NEARMISS_R premia. Volar derecho igual te mata: en la salva 3 el
+  // desplazamiento es cero y las columnas vuelven a caminar sobre vos.
+  const lat = salva < PS.GUN_BRACKET ? PS.COL_R * (4 - salva * 1.6) : 0;
   for (let i = 0; i < PS.COL_N; i++) {
     const s = PS.COL_STEP_M * (i + 1);
+    // el costado alterna columna a columna: la salva se lee como una TIJERA que se cierra, no
+    // como una pared que se corrio de lugar
+    const off = lat * (i % 2 ? 1 : -1);
     // `life` incluye la espera: asi el reloj comun del efecto (f.T) alcanza para las dos cosas —
     // cuando revienta y cuanto dura— sin un contador aparte que se pueda desfasar.
     A.fx.push({
       k: 'col', T: 0, life: i * PS.COL_GAP_S + PS.COL_LIFE, wait: i * PS.COL_GAP_S,
-      x: A.pos.x + ux * s + jx, y: 0, z: A.pos.z + uz * s + jz, hit: 0,
+      x: A.pos.x + ux * s - uz * off + jx, y: 0, z: A.pos.z + uz * s + ux * off + jz, hit: 0, roce: 0,
+      off, salva,        // sonda: cuanto se corrio esta columna del rumbo, y de que salva salio
     });
   }
   A.salvas++;
@@ -519,6 +538,70 @@ function fireCat() {
   }
 }
 
+// ============================ R2 — LA DENSIDAD ============================
+// El §1.3 medido por la vara: 6,1 segundos seguidos con el mar VACIO delante del morro. El pasillo
+// te tira algo cada 1-2 s, y por eso el playtest lo llamo "infinitamente mejor" — su adrenalina es
+// densidad y cercania, no dificultad. Lo que sigue llena la corrida sin subir una sola muerte: el
+// conteo letal del modo es el mismo de antes (columnas, Sea Dart, Sea Cat, fusileria).
+
+/** EL ROCE (R2): pasar cerca de la muerte SUMA. Es el premio del riesgo del pasillo
+ *  (systems/collision.js) traido al climax, y es lo que convierte el fuego enemigo de estorbo en
+ *  tentacion: sin esto, lo optimo es volar por donde no pasa nada, que es la definicion de aburrido.
+ *
+ *  Sacude, suena y deja un numero EN EL LUGAR donde casi te toca — no en el tablero. El premio
+ *  tiene que estar donde estuvo el peligro o no se aprende de donde salio. */
+const ROCE_COL = 150, ROCE_TRAZ = 90;    // la columna mata y el chorro no: el puntaje lo dice
+function roce(x, y, z, pts) {
+  run.score += pts; stats.grazes++; A.roces++;
+  run.shake = Math.min(6, run.shake + 1.2);
+  if (!sfxOne('graze')) beep(1250, 0.05, 'square', 0.05, 760);
+  const sp = world3D.project(x, y, z);
+  popup(sp && sp.vis ? sp.x : W / 2, sp && sp.vis ? sp.y - 8 : 96, '+' + pts, P.foam, true);
+}
+
+/** Direccion del chorro AHORA. El barrido cruza tu rumbo a mitad de camino, siempre: por eso se
+ *  puede mirar, contar y pasar entre dos. Un obstaculo que se lee es un obstaculo; uno que no, un
+ *  impuesto. */
+function hoseDir(f) {
+  const u = Math.max(0, Math.min(1, f.T / PS.HOSE_SWEEP_S));
+  const y = f.yaw0 + f.yawS * u, p = f.pit0 + f.pitS * u;
+  const cp = Math.cos(p);
+  return { x: Math.sin(y) * cp, y: Math.sin(p), z: -Math.cos(y) * cp };
+}
+
+/** LA MANGUERA DE TRAZADORAS (R2): un chorro de 40 mm que sale DEL BUQUE y barre el cielo.
+ *
+ *  NO MATA, y es a proposito — la regla madre del plan es densidad y teatro, jamas letalidad. Hace
+ *  las dos cosas que ninguna capa hacia: llena el cielo mientras no pasa nada mas, y viene DE algun
+ *  lado (el fuego con autor da miedo; el que aparece de la nada da bronca, §1.5). Cruzarlo suma. */
+function fireHose() {
+  // SE APUNTA CON ADELANTO, a donde vas a ESTAR a mitad del barrido — y ahi es donde el chorro
+  // cruza tu rumbo. Sin el adelanto el barrido cruzaba por detras y por encima tuyo: medido, no
+  // rozaba nunca, o sea que el chorro era un dibujo. Con adelanto, mantener el rumbo te mete
+  // ADENTRO del chorro (que es cruzarlo: suma) y cambiarlo lo hace pasar de largo. Las dos cosas
+  // que el plan pide, "cruzar o esquivar", y ninguna de las dos mata.
+  const th = PS.HOSE_SWEEP_S * 0.5;
+  const px = A.pos.x + A.vel.x * A.spd * th, pz = A.pos.z + A.vel.z * A.spd * th;
+  const py = Math.max(8, A.pos.y + A.vel.y * A.spd * th);
+  const bear = Math.atan2(px, -pz);
+  const el = Math.atan2(py - HOSE.Y, Math.hypot(px, pz) || 1);
+  const s = A.hoseN % 2 ? 1 : -1;      // alterna el lado: dos barridos iguales seguidos se leen como uno
+  A.hoseN++;
+  A.fx.push({
+    k: 'hose', T: 0,
+    // la vida incluye lo que tardan en llegar las ULTIMAS balas: el chorro deja de escupir al
+    // terminar el arco, pero lo que ya salio sigue viajando y se sigue viendo
+    life: PS.HOSE_SWEEP_S + HOSE.R / HOSE.V + 0.2,
+    ox: (Math.random() - 0.5) * 70, oy: HOSE.Y, oz: s * 12,
+    yaw0: bear + s * HOSE.ARC, yawS: -s * HOSE.ARC * 2,
+    // LA ELEVACION CRUZA EN EL MISMO INSTANTE QUE EL RUMBO (los dos a mitad del barrido). Con el
+    // cruce desfasado el chorro pasaba por tu bearing pero 30 metros por encima — un chorro que no
+    // se puede cruzar no es un obstaculo, es un fondo de pantalla.
+    pit0: el + 0.22, pitS: -0.44,
+    balas: [], balaT: 0, chatT: 0, roce: 0,
+  });
+}
+
 // ============================ P7 — LA OLEADA ============================
 // Los Fieles vivos hacen SUS corridas mientras vos das la vuelta. No es IA ni decorado: es
 // coreografia con dos consecuencias de juego reales.
@@ -556,6 +639,10 @@ function amenazasVisibles() {
   if (!A) return 0;
   let n = 0;
   for (const f of A.fx) {
+    // LA MANGUERA CUENTA POR SU BOCA, no por sus balas: el chorro es UNA cosa que se ve —una linea
+    // viva que sale del buque y barre— y contarlo bala por bala inflaria la vara hasta volverla
+    // inutil. Solo mientras escupe: lo que queda viajando despues ya no es una amenaza nueva.
+    if (f.k === 'hose') { if (f.T < PS.HOSE_SWEEP_S && visible(f.ox, f.oz)) n++; continue; }
     if (f.k !== 'col' && f.k !== 'dart') continue;
     if (visible(f.x, f.z)) n++;
   }
@@ -681,6 +768,16 @@ function stepDefensa(dt, rad) {
   // Cruzarlo LEJOS te compra un Sea Dart, corra quien corra. Volar abajo no es que "esquiva
   // mejor": es que el misil no existe. Esa es la diferencia entre una estadistica y una regla.
   if (puedeDart(rad)) fireDart();
+
+  // ---- capa 4: LAS MANGUERAS DE TRAZADORAS (R2) ----
+  // No es una capa LETAL: es la capa que hace que el cielo este ocupado. Sale una cada tres cuartos
+  // de barrido, asi que siempre hay al menos un chorro vivo y a ratos dos — un RITMO, como la
+  // cobertura de la oleada. Constante seria una pared; espaciado, decorado.
+  if (rad < HOSE.R) {
+    A.hoseT -= dt;
+    const vivas = A.fx.reduce((n, f) => n + (f.k === 'hose' && f.T < PS.HOSE_SWEEP_S ? 1 : 0), 0);
+    if (A.hoseT <= 0 && vivas < PS.HOSE_N) { A.hoseT = PS.HOSE_SWEEP_S * 0.75; fireHose(); }
+  }
 
   return catYFusileria(dt, rad);
 }
@@ -1011,12 +1108,15 @@ function stepFx(dt) {
         if (dh < PS.COL_R * 3) run.shake = Math.min(6, run.shake + 1.4);
       }
       // LETAL MIENTRAS SUBE, no para siempre: la columna es agua y cae sola.
-      if (!f.hit && dt0 > 0 && dt0 < 0.55 && A.doneT <= 0 && !A.spent) {
+      if (!f.hit && dt0 > 0 && dt0 < 0.55 && A.doneT <= 0 && !A.spent && A.pos.y < 70) {
         const dh = Math.hypot(A.pos.x - f.x, A.pos.z - f.z);
-        if (dh < PS.COL_R && A.pos.y < 70) {
+        if (dh < PS.COL_R) {
           f.hit = 1;
           if (golpe('death_aa')) death = { death: 'death_aa' };
-        }
+        // EL ROCE (R2): por fuera del radio letal y adentro de NEARMISS_R. Pasar entre dos columnas
+        // de la horquilla es la maniobra que este modo tiene para ofrecer, y hasta ahora no pagaba
+        // nada — o sea que lo optimo era volar por donde no pasaba nada.
+        } else if (!f.roce && dh < PS.COL_R + PS.NEARMISS_R) { f.roce = 1; roce(f.x, 12, f.z, ROCE_COL); }
       }
       continue;
     }
@@ -1085,6 +1185,41 @@ function stepFx(dt) {
 
     // ---- LA SOGA DE HUMO (R1) ----
     if (f.k === 'humo') { f.r += dt * 3.2; continue; }
+
+    // ---- LA MANGUERA DE TRAZADORAS (R2) ----
+    if (f.k === 'hose') {
+      const d = hoseDir(f);
+      // CADA BALA GUARDA LA DIRECCION CON LA QUE SALIO y viaja derecha. La curva del chorro es la
+      // SUMA de todas, que es exactamente como se curva una manguera de trazadoras de verdad: la
+      // linea que se ve en el cielo es la historia de por donde paso la boca, no la trayectoria de
+      // ningun proyectil. Modelarlo asi sale gratis y sale bien.
+      f.balaT -= dt;
+      if (f.balaT <= 0 && f.T < PS.HOSE_SWEEP_S) {
+        f.balaT = HOSE.EVERY;
+        f.balas.push({ dx: d.x, dy: d.y, dz: d.z, t: 0 });
+      }
+      for (const b of f.balas) b.t += dt;
+      f.balas = f.balas.filter(b => b.t * HOSE.V < HOSE.R);
+      // EL TABLETEO, con ganancia por cercania. Un chorro mudo es decorado; el sonido es la mitad
+      // de la adrenalina (§1.4) y este es el unico ruido continuo que tiene la corrida.
+      f.chatT -= dt;
+      if (f.chatT <= 0 && f.T < PS.HOSE_SWEEP_S) {
+        f.chatT = 0.11;
+        const cerca = Math.max(0, Math.min(1, 1 - Math.hypot(A.pos.x, A.pos.z) / HOSE.R));
+        beep(150 + Math.random() * 90, 0.04, 'square', 0.012 + cerca * 0.026);
+      }
+      // EL ROCE SE MIDE CONTRA EL RAYO VIVO, no contra cada bala: a 750 m/s una trazadora salta 12
+      // metros por cuadro y un chequeo por punto se saltearia el avion entero. Una sola vez por
+      // barrido — cruzarlo es un acto, no un lugar donde quedarse a cobrar.
+      const alcanzado = Math.min(HOSE.R, HOSE.V * f.T);
+      const rx = A.pos.x - f.ox, ry = A.pos.y - f.oy, rz = A.pos.z - f.oz;
+      const proy = rx * d.x + ry * d.y + rz * d.z;
+      if (!f.roce && proy > 0 && proy < alcanzado && A.doneT <= 0 && !A.spent) {
+        const ex = rx - d.x * proy, ey = ry - d.y * proy, ez = rz - d.z * proy;
+        if (Math.hypot(ex, ey, ez) < PS.NEARMISS_R) { f.roce = 1; roce(A.pos.x, A.pos.y, A.pos.z, ROCE_TRAZ); }
+      }
+      continue;
+    }
 
     if (f.k === 'bomb') {
       // BALISTICA: hereda la velocidad del avion y cae con gravedad REAL. El impacto se resuelve
@@ -1160,12 +1295,19 @@ if (typeof window !== 'undefined') window.__pvara = () => {
   A.gapNow = 0; A.gapMax = 0; A.amenSum = 0; A.amenN = 0; A.vidaT = 0;
   return 'ok';
 };
+// __pcols: la GEOMETRIA de las columnas en el aire — de que salva salio cada una y cuanto se corrio
+// del rumbo (R2, la horquilla). Existe porque probar la horquilla por SUPERVIVENCIA no prueba la
+// horquilla: volando derecho el avion tambien se hunde, se come un Sea Cat o llega al casco, y
+// entonces la medicion habla de gravedad y no del cañon. Lo que la horquilla ES, es esto — las dos
+// primeras salvas caen CORRIDAS y la tercera sobre la linea.
+if (typeof window !== 'undefined') window.__pcols = () => JSON.stringify(
+  A ? A.fx.filter(f => f.k === 'col').map(f => ({ salva: f.salva, off: +f.off.toFixed(0) })) : []);
 // __pdef: prende o apaga la defensa por capas. Ver el comentario de `defOn`.
 if (typeof window !== 'undefined') window.__pdef = v => {
   defOn = !!(+v);
   // apagarla BARRE lo que ya venia volando: un Sea Dart lanzado antes de apagar seguia viajando y
   // mataba en medio de una medicion que nada tenia que ver con la defensa.
-  if (!defOn && A) { A.fx = A.fx.filter(f => f.k !== 'dart' && f.k !== 'col'); A.cat = null; }
+  if (!defOn && A) { A.fx = A.fx.filter(f => f.k !== 'dart' && f.k !== 'col' && f.k !== 'hose'); A.cat = null; }
   return defOn;
 };
 // __pinv: invulnerable a la defensa (no al mar ni al buque). Ver el comentario de `invul`.
@@ -1192,6 +1334,8 @@ if (typeof window !== 'undefined') window.__pkill = () => {
   return 'ok';
 };
 if (typeof window !== 'undefined') window.__pdbg = () => A && JSON.stringify({
+  t: +A.t.toFixed(1),                 // reloj de la pasada: 0 al entrar. Lo pide R2 — "el cañon
+                                      // abre a los GUN_FIRST_S" es una asercion sobre el TIEMPO
   corrida: A.corrida, fase: A.fase || 'ingreso',
   eje: +axisAlign().toFixed(2), encarado: axisAlign() >= PS.AXIS_OK,   // P1: alineacion con la eslora
   puerta: A.gate ? (A.gate.x | 0) : null, chandelle: A.reHigh,
@@ -1213,6 +1357,10 @@ if (typeof window !== 'undefined') window.__pdbg = () => A && JSON.stringify({
   amen: A.amen, gap: +A.gapNow.toFixed(1), gapMax: +A.gapMax.toFixed(1),
   amenMed: A.amenN ? +(A.amenSum / A.amenN).toFixed(2) : 0,
   vidaT: +A.vidaT.toFixed(1), dartTTI: A.dartTTI, dartTTIp: A.dartTTIp,
+  // R2 — LA DENSIDAD: cuantos chorros estan barriendo AHORA y cuantos roces te cobraste. El roce
+  // es el unico premio del modo que no pasa por la bomba, asi que si nunca sube, R2 no llego.
+  mangueras: A.fx.reduce((n, f) => n + (f.k === 'hose' && f.T < PS.HOSE_SWEEP_S ? 1 : 0), 0),
+  roces: A.roces,
   punteria: +Math.min(1, A.aimN / PS.GUN_AIM_SALVOS).toFixed(2),   // cuanto te tiene tomado (RF-04)
   disp: A.lastJit === null ? null : +A.lastJit.toFixed(0),        // dispersion de la ultima salva
   colDist: A.colN ? +(A.colSum / A.colN).toFixed(0) : null,   // distancia media de la metralla

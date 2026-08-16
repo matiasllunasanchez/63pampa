@@ -18,9 +18,12 @@ import * as momRender from './momentum.js';
 
 // La cabina baja lo mismo que en el ARENA: el visor pintado del PNG cae sobre el centro util.
 const COCKPIT_Y = 104;
-// La autopista de compases va ARRIBA del visor: abajo esta el morro del avion (la cabina tapa) y
-// el centro tiene que quedar limpio para VER el buque — que es la mitad de la escena.
-const LANE_Y = 74;
+// La autopista de compases va EN EL CIELO, arriba del buque. Probado a media altura (74) se leia
+// bien pero quedaba ESCRITA ENCIMA del blanco: la secuencia y el buque son las dos cosas que hay
+// que mirar, y no pueden pelearse el mismo pixel. El cielo esta vacio y es lo que sobra.
+const LANE_Y = 34;
+// el buque arranca alrededor de y=56 en el mundo: todo lo de la prueba vive por encima de eso
+const SKY_BOT = 60;
 
 /** Un compas: su rotulo diegetico (regla 2) y sus tokens como glifos. `st` 0=hecho 1=activo 2=por venir */
 function drawCompas(cx, y, bar, st, ti, t) {
@@ -61,12 +64,66 @@ export function drawPulso(w) {
   g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.72)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
+  // EL FLAK, CONGELADO. Cada fallo lo trae un grado mas cerca — y en tiempo casi detenido el
+  // peligro no se mueve: se QUEDA ahi colgado. Estar quieto en el medio del fuego es la imagen del
+  // modo. No mata (nada colisiona en la prueba): es la cuenta del fallo hecha visible.
+  //
+  // Va ANTES de la cabina a proposito: los estallidos estan AFUERA del vidrio, asi que el canopy
+  // los tapa. Dibujados encima parecian mugre en la pantalla.
+  if (Q.flak > 0) {
+    for (let i = 0; i < Q.flak * 7; i++) {
+      const a = i * 2.399;                                     // reparto sin azar: mismo cuadro siempre
+      const r = 120 - Q.flak * 22 + (i % 3) * 11;
+      const fx = W / 2 + Math.cos(a) * r * 1.6, fy = 54 + Math.sin(a) * r * 0.34;
+      ctx.globalAlpha = 0.3 + (i % 3) * 0.08;
+      px(fx - 4, fy - 3, 9, 7, '#4a4038');
+      px(fx - 2, fy - 5, 5, 11, '#4a4038');
+      px(fx - 1, fy - 1, 3, 3, '#c8a06a');
+      ctx.globalAlpha = 1;
+    }
+  }
+
   // LA CABINA. Se reusa tal cual la del climax 2D (con su `yOff`, igual que el ARENA): es el mismo
   // avion y el mismo vidrio — no hay una cabina distinta por modo.
   momRender.drawCockpit({ mom: { t: run.t }, t, yOff: COCKPIT_Y });
 
-  if (Q.fase === 'prueba') {
+  if (Q.fase === 'prueba' && Q.zi < 0) {
+    // ELEGIR BLANCO (plan §3): las zonas del buque, cada una con SU secuencia. No hay cursor de
+    // menu — elegir ES empezar a teclear, asi que las tres estan vivas a la vez y el primer toque
+    // decide. La brava pide una secuencia mas larga y paga el doble.
+    ctx.textAlign = 'left';
+    ctx.font = '7px monospace'; ctx.fillStyle = P.dim;
+    ctx.fillText(T('pulso_elegi'), 26, 12);
+    for (let i = 0; i < Q.carriles.length; i++) {
+      const c = Q.carriles[i], ly = 24 + i * 13;
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 7px monospace'; ctx.fillStyle = P.ink;
+      ctx.fillText(T(c.zona.str), 26, ly + 3);
+      ctx.font = '6px monospace'; ctx.fillStyle = P.dim;
+      ctx.fillText(c.zona.pts + '', 84, ly + 3);
+      // la secuencia de la zona, sin cursor: todavia no se esta tecleando ninguna. La PRIMERA
+      // tecla va en acento — es la que elige este carril, y es lo unico que hay que decidir.
+      ctx.textAlign = 'center';
+      let gx = 118, first = true;
+      for (const b of c.bars) {
+        for (const k of b.toks) {
+          ctx.font = first ? 'bold 10px monospace' : '9px monospace';
+          ctx.fillStyle = first ? P.accent : P.ink;
+          ctx.fillText(TOK_GLIFO[k] || k, gx, ly + 3);
+          gx += 12; first = false;
+        }
+        gx += 6;
+      }
+    }
+    // el margen tambien corre mientras se elige: dudar cuesta
+    const fr = Math.max(0, 1 - Q.beatT / Q.beatMax);
+    px(26, SKY_BOT, 120, 2, '#22303a');
+    px(26, SKY_BOT, 120 * fr, 2, fr < 0.3 ? P.warn : P.accent);
+  } else if (Q.fase === 'prueba') {
     // LA AUTOPISTA (regla 3): la secuencia ENTERA visible, el cursor avanzando sobre ella.
+    ctx.textAlign = 'left';
+    ctx.font = '7px monospace'; ctx.fillStyle = P.dim;
+    ctx.fillText(T(Q.carriles[Q.zi].zona.str), 26, 12);
     const n = Q.bars.length;
     const cw = Math.min(150, (W - 60) / n);
     const x0 = W / 2 - (n - 1) * cw / 2;
@@ -78,8 +135,10 @@ export function drawPulso(w) {
     if (b) {
       const fr = Math.max(0, 1 - Q.beatT / Q.beatMax);
       const bw = 120;
-      px(W / 2 - bw / 2, LANE_Y + 18, bw, 2, '#22303a');
-      px(W / 2 - bw / 2, LANE_Y + 18, bw * fr, 2, fr < 0.3 ? P.warn : P.accent);
+      // pegada a la autopista y no al borde del cielo: con un solo carril hay lugar, y asi no se
+      // le monta al nombre del buque
+      px(W / 2 - bw / 2, LANE_Y + 14, bw, 2, '#22303a');
+      px(W / 2 - bw / 2, LANE_Y + 14, bw * fr, 2, fr < 0.3 ? P.warn : P.accent);
     }
   } else if (Q.fase === 'exito') {
     ctx.textAlign = 'center';
@@ -102,5 +161,9 @@ export function drawPulso(w) {
   ctx.textAlign = 'left';
   ctx.font = '6px monospace'; ctx.fillStyle = P.dim;
   ctx.fillText(T('pulso_pasadas'), 10, H - 15);
+  // EL PERDON de los primeros niveles: un punto que se gasta con el primer error. Se dibuja solo
+  // cuando existe — que no aparezca es la señal de que ya no hay margen para la mano.
+  for (let i = 0; i < Q.perdon; i++)
+    px(W - 14 - i * 7, H - 12, 5, 5, i < Q.perdon - Q.errs ? P.foam : '#2e3c45');
   ctx.textAlign = 'center';
 }

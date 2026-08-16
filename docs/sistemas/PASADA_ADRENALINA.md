@@ -168,6 +168,74 @@ flotando en el cielo. El arreglo correcto es darle al render una prueba real de 
 cámara* (proyectar con el signo de `w`, no con un producto escalar contra el morro) y ahí decidir
 qué se dibuja fuera del cono de visión. **Queda como deuda de R1, anotada y no disimulada.**
 
+### R2 — la densidad (16/8/2026) · **cerrada**
+
+**Criterios de cierre, medidos:** el peor hueco sin nada visible pasó de **6,1 s a 0 s** (el criterio
+del plan eran 4) · la media de amenazas en pantalla, de **0,34 a 1,36** · el roce se cobra, **2 por
+corrida** · el cañón abre a los **1,5 s** · la horquilla encuadra a **96 m**, cierra a **58** y la
+tercera salva cae **sobre la línea**.
+
+| medida | baseline (pre-R2) | ahora |
+|---|---|---|
+| peor hueco sin NADA visible | 6,1 s | **0 s** |
+| media de amenazas en pantalla | 0,34 | **1,36** |
+| el cañón abre a los | 4,6 s | **1,5 s** |
+| roces premiados por corrida | — | **2** |
+
+R2.1. **`ENTRY_D` bajó de 1280 a 700, y eso saca al Sea Dart del ingreso.** Es la tensión que R1.2
+había dejado anotada, resuelta por la opción que el propio plan dejaba abierta —*lanzar desde fuera
+del ingreso*— y no bajando `DART_TTI_MIN`, que es la regla que arregló la muerte sin lectura. El
+gate de R1 exige lanzar desde ~1.260 m y nunca dentro de `POPUP_DIST_M`: con la entrada a 700 el
+misil de largo alcance pasa a castigar **la chandelle** (volver por arriba, lejos) en vez de la
+entrada. Es coherente con lo que el techo de radar siempre dijo — castiga volar alto *lejos* del
+buque— y baja el conteo letal del ingreso en vez de subirlo, que es la regla madre.
+
+R2.2. **La horquilla es LATERAL, no corta/larga.** El plan la pedía cayendo "adelante/atrás tuyo".
+Medido, eso no sirve por dos razones: las columnas cortas quedan **detrás del morro**, donde el
+render las descarta y la vara no las cuenta —una horquilla que no se ve no es espectáculo— y las
+largas caen justo sobre el tramo que vas a volar en los 0,55 s en que la columna es letal, o sea que
+la salva de tanteo mataba. Corrida a un costado y al otro, la horquilla **se ve entera, adelante**,
+y estructuralmente no puede tocarte. Se cierra por salva: 4 radios letales, 2,4, y la tercera sobre
+la línea.
+
+R2.3. **Las mangueras NO matan, y es la regla madre aplicada al pie de la letra.** El §3 las pide
+"para cruzar o esquivar"; el §4.1 prohíbe subir la letalidad. Se resolvió haciéndolas puro teatro
+más premio: cruzar un chorro suma (`NEARMISS_R`), sacude y suena, y no toca la integridad. El costo
+de ir a buscarlas no hace falta inventarlo — está puesto desde antes: volar derecho para cruzar el
+chorro es exactamente lo que le sirve al cañón para tomarte.
+
+R2.4. **El chorro se apunta CON ADELANTO, a donde vas a estar a mitad del barrido.** Sin eso el
+barrido cruzaba por detrás y por encima —medido: **cero roces**, o sea que la manguera era un
+dibujo. Y las dos coordenadas tienen que cruzar en el MISMO instante: con el rumbo cruzando a mitad
+del arco y la elevación a dos tercios, el chorro pasaba por tu bearing treinta metros más arriba.
+
+R2.5. **Cada trazadora guarda la dirección con la que SALIÓ y viaja derecha.** La curva del chorro
+es la suma de todas — que es como se curva una manguera de verdad: lo que se curva no es la
+trayectoria de nadie, es el recorrido de la boca. Sale gratis y sale bien.
+
+R2.6. **El roce se mide contra el RAYO vivo, no contra cada bala.** A 750 m/s una trazadora salta 12
+metros por cuadro: un chequeo por punto se saltea el avión entero. Un solo test de distancia
+punto-rayo por chorro y por cuadro, exacto y sin túnel.
+
+R2.7. **La horquilla se prueba por GEOMETRÍA, no por supervivencia.** La primera versión de la
+prueba volaba derecho y contaba si el avión llegaba vivo: dio 0/3, y ninguna de las tres muertes fue
+del cañón — el morro se hunde solo, el Sea Cat sale arriba de la banda dulce y el casco está al
+final del rumbo. Una prueba de supervivencia termina hablando de gravedad. `__pcols()` devuelve de
+qué salva salió cada columna y cuánto se corrió del rumbo, que es lo que la horquilla *es*.
+
+R2.8. **Dos sondas de P3 quedaron midiendo otra cosa al abrir el cañón antes**, y las dos se
+arreglaron sin tocar una regla: la del "derecho te toma" perdía la cuenta porque la primera salva
+ahora sale **antes** de que la sonda coloque el avión (y el teletransporte le borra la corrección),
+así que arranca de cero y necesita ~6 s — que a 20 m de altura no existen. Subir la sonda a 90 m no
+le cambia nada al cañón; solo le da tiempo a la medición.
+
+R2.9. **El baseline del hueco pasó a constante histórica, igual que el TTI (R0.3).** La aserción
+"tiene que haber huecos de más de 4 s" —que probaba que el §1.3 se reproducía— se rompió en cuanto
+R2 empezó a funcionar. Segunda vez que el mismo error aparece: **congelar el mundo viejo en una
+prueba es garantizar que el rescate la rompa.** Queda anotado dos veces a propósito.
+
+### R1 (continuación)
+
 R1.4. **`__pdef(0)` pasó a silenciar también la OLEADA.** Apagar la defensa dejaba a los Fieles
 volando, y uno volteó una zona en medio de la medición de la ristra: la prueba del eje dio "2 contra
 2" y acusó al eje de no servir. `__pdef` ahora significa *que en la zona no pase nada más que yo*,

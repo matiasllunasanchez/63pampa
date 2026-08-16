@@ -67,8 +67,12 @@ const tintCtx = tint.getContext('2d');
  *  `cx` = centro horizontal en pantalla. `bottomY` o `centerY`: los de TIERRA anclan el pie del
  *  contenido al suelo, los del AIRE centran el contenido en su altura de vuelo. `k2` = escala de
  *  proyeccion (k de proj, ya con el zoom de cercania si aplica). `flip` espeja en horizontal.
- *  `flash` = true pinta el sprite de blanco (impacto no letal — ver `tint` arriba). */
-export function drawFrame(ctx, k, col, row, cx, { bottomY, centerY }, k2, flip, flash) {
+ *  `flash` = true pinta el sprite de blanco (impacto no letal — ver `tint` arriba).
+ *  `dark` (0..1) lo OSCURECE conservando su forma: mismo mecanismo que el flash pero con
+ *  'source-atop' y azul de sombra. Nacio para el placeholder del Harrier visto desde atras
+ *  (PLAN_HARRIERS_PERSECUCION H1), que hasta que exista su hoja propia es el `jet` de frente
+ *  ensombrecido — pero sirve igual para cualquier bicho a contraluz o de noche. */
+export function drawFrame(ctx, k, col, row, cx, { bottomY, centerY }, k2, flip, flash, dark) {
   const s = SHEETS[k], b = s.box;
   const cw = b.x1 - b.x0 + 1, ch = b.y1 - b.y0 + 1;
   const scale = s.wu * k2 / cw;                    // px de pantalla por px de hoja
@@ -85,6 +89,14 @@ export function drawFrame(ctx, k, col, row, cx, { bottomY, centerY }, k2, flip, 
     tintCtx.drawImage(s.img, sx, sy, s.fw, s.fh, 0, 0, s.fw, s.fh);
     tintCtx.globalCompositeOperation = 'source-in';
     tintCtx.fillStyle = '#f2f6f4';
+    tintCtx.fillRect(0, 0, s.fw, s.fh);
+    img = tint; sx = 0; sy = 0;
+  } else if (dark > 0) {
+    tint.width = s.fw; tint.height = s.fh;
+    tintCtx.globalCompositeOperation = 'source-over';
+    tintCtx.drawImage(s.img, sx, sy, s.fw, s.fh, 0, 0, s.fw, s.fh);
+    tintCtx.globalCompositeOperation = 'source-atop';   // solo donde HAY sprite: la caja no se pinta
+    tintCtx.fillStyle = 'rgba(13,18,22,' + Math.min(1, dark) + ')';
     tintCtx.fillRect(0, 0, s.fw, s.fh);
     img = tint; sx = 0; sy = 0;
   }

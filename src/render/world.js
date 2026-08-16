@@ -16,6 +16,7 @@ import { hzWorld, tiltFade } from '../core/horizon.js';
 // que evaluar la MISMA superficie que se dibuja, y un sistema no puede importar del render.
 import { seaH as seaBase, olaBump, climaDe } from '../core/sea.js';
 import { P, LAND, CLAND } from '../data/palette.js';
+import { CHUNK_LIFE } from '../data/despiece.js';
 import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
@@ -1158,15 +1159,44 @@ export function drawObstacle(o) {
     // PEDAZO DEL AVION derribado (ver die en game.js): fragmento que sigue de largo con la
     // inercia, girando. Un rect rotado con canto iluminado — a esta escala, el TUMBO (rotacion
     // continua) es lo que lo hace leer como escombro y no como particula.
+    // Desde D0 (PLAN_DESTRUCCION) el pedazo TRAE SU COLOR: la receta de data/despiece.js dice de
+    // qué está hecho cada cosa — chapa oxidada el depósito, lona la carpa, mampostería el edificio.
+    // Los valores de antes quedan de respaldo para cualquier chunk que nazca sin receta.
     const s = proj(o.x, o.y, o.z);
-    const r = Math.max(1.2, o.size * 2 * k);
+    // TOPE DE TAMAÑO: un pedazo a cinco metros de la cámara se proyecta gigante y tapa la pantalla
+    // entera por un cuadro. Pasa seguido — le volás por adentro al destrozo que acabás de hacer.
+    // El recorte no miente sobre la distancia (sigue creciendo hasta acá): evita el manchón.
+    const r = Math.min(26, Math.max(1.2, o.size * 2 * k));
+    // SE DISUELVE, no desaparece: el último medio segundo se va en transparencia. Es lo que hace
+    // que el cap global (los más viejos se van antes) no se lea como un parpadeo. Y lo MUY cercano
+    // se desvanece también: te pasó por el ala, no es algo que estés mirando.
+    const fade = Math.min(1, Math.max(0, (CHUNK_LIFE - o.chunkT) / 0.5), Math.max(0, (o.z - 3) / 11));
     ctx.save();
+    if (fade < 1) ctx.globalAlpha = fade;
     ctx.translate(s.x, s.y); ctx.rotate(o.spin);
-    px(-r / 2, -r / 4, r, r / 2, '#3a4038');                 // el fragmento
-    px(-r / 2, -r / 4, r, Math.max(1, r * 0.16), '#5c6358'); // canto al sol
+    if (o.pieza) {
+      // LA PIEZA RECONOCIBLE (D2): no es un fragmento mas, es LA parte — y por eso tiene silueta
+      // propia. Es lo que hace que a 200 m se sepa que lo que cae era un helicoptero: no se lee el
+      // escombro, se lee el rotor dando vueltas solo.
+      if (o.pieza === 'rotor' || o.pieza === 'ala' || o.pieza === 'cable' || o.pieza === 'canon') {
+        px(-r * 1.5, -Math.max(1, r * 0.12), r * 3, Math.max(1, r * 0.24), o.c || '#3a4038');   // barra larga
+        px(-Math.max(1, r * 0.2), -Math.max(1, r * 0.2), Math.max(2, r * 0.4), Math.max(2, r * 0.4), o.c2 || '#5c6358');
+      } else if (o.pieza === 'plato') {
+        ctx.beginPath(); ctx.ellipse(0, 0, r * 1.1, r * 0.42, 0, 0, 6.2832);
+        ctx.fillStyle = o.c || '#3a4038'; ctx.fill();
+        px(-Math.max(1, r * 0.1), -r * 0.42, Math.max(1, r * 0.2), r * 0.84, o.c2 || '#5c6358');
+      } else {
+        px(-r * 0.7, -r * 0.55, r * 1.4, r * 1.1, o.c || '#3a4038');   // el bulto: tanque, cabina, rampa
+        px(-r * 0.7, -r * 0.55, r * 1.4, Math.max(1, r * 0.2), o.c2 || '#5c6358');
+      }
+    } else {
+      px(-r / 2, -r / 4, r, r / 2, o.c || '#3a4038');                 // el fragmento
+      px(-r / 2, -r / 4, r, Math.max(1, r * 0.16), o.c2 || '#5c6358'); // canto al sol
+    }
     if (o.hot && Math.sin(o.spin * 3) > 0)                   // rescoldo: parpadea al girar
       px(r * 0.2, -r / 8, Math.max(1, r * 0.2), Math.max(1, r * 0.2), '#e07030');
     ctx.restore();
+    ctx.globalAlpha = 1;
   } else if (o.type === 'birds') {
     // BANDADA: aves aleteando (daña al atravesarla, no derriba). Silueta simple en "V".
     // DOS ESPECIES, sorteadas en el spawn (o.white): gaviotas BLANCAS con punta de ala oscura —
@@ -1701,7 +1731,7 @@ export function drawHitboxes() {
       hbBox(o.x, top / 2, o.z, 10, top / 2, HB_SOFT); continue;
     }
     if (o.type === 'bomb') { hbBox(o.x, o.y, o.z, 2.2, 2.4, HB); continue; }
-    if (o.type === 'airboom' || o.type === 'chunk') continue;   // FX puros: no colisionan
+    if (o.type === 'airboom' || o.type === 'chunk' || o.type === 'sec' || o.type === 'humo') continue;   // FX puros: no colisionan
     const { hw, hh, oy } = hitbox(o);
     hbBox(o.x, oy, o.z, hw, hh, HB);
     // BARRIDO DEL CASCO: a ras del suelo lo vertical engancha aunque el centro no coincida.

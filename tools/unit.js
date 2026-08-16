@@ -574,3 +574,72 @@ test('carril: ensancharlo NO cambia la dificultad del medio', () => {
   assert.ok(Math.abs(SPAWN_DENS - SPAWN_X0 / SPAWN_X) < 1e-9, 'la compensacion sale de la geometria, no de un numero a ojo');
   assert.ok(SPAWN_DENS < 1, 'el carril se ensancho, asi que se siembra mas seguido');
 });
+
+// ---------------- EL PULSO: la escalada de la prueba (core/pulso.js) ----------------
+// Es la unica perilla de dificultad del climax, y si se rompe no da error: simplemente la prueba
+// queda regalada o imposible, y eso solo se descubre jugando la campaña entera.
+import { beatFor, barsFor, errFor, poolFor, armar, armarZonas } from '../src/core/pulso.js';
+import { PULSO, COMPASES, PULSO_ZONAS, POOL_BASICO } from '../src/data/pulso.js';
+
+test('pulso: el margen se achica con el nivel y con el flak', () => {
+  assert.ok(beatFor(0, 0) > beatFor(1, 0), 'la ultima mision tiene que apretar mas que la primera');
+  near(beatFor(0, 0), PULSO.T_BEAT[0]);
+  near(beatFor(1, 0), PULSO.T_BEAT[1]);
+  assert.ok(beatFor(0.5, 2) < beatFor(0.5, 0), 'cada grado de flak tiene que costar aire');
+  // fuera de rango no puede devolver basura: el t01 lo calcula game.js y un off-by-one no puede
+  // convertirse en un margen negativo (la prueba fallaria sola en el primer cuadro)
+  assert.ok(beatFor(-3, 0) > 0 && beatFor(9, 9) > 0);
+});
+
+test('pulso: la secuencia crece con el nivel y la zona brava pide una mas', () => {
+  assert.ok(barsFor(1, 0) > barsFor(0, 0), 'la campaña tiene que ir pidiendo mas');
+  assert.equal(barsFor(0.5, 1) - barsFor(0.5, -1), 2, 'polvorin pide dos compases mas que el radar');
+  assert.ok(barsFor(0, -1) >= 0, 'la zona facil del primer nivel no puede pedir compases negativos');
+  // el techo del plan: la prueba entera no pasa de ~10 s (§6.3). Peor caso = ultima mision,
+  // zona brava, margen minimo.
+  const peor = (barsFor(1, 1) + 1) * beatFor(1, 0);
+  assert.ok(peor <= 10, `la prueba mas larga da ${peor.toFixed(1)} s y no puede pasar de 10`);
+});
+
+test('pulso: el perdon existe al principio y se termina', () => {
+  assert.equal(errFor(0), 1, 'en las primeras misiones se perdona un error');
+  assert.equal(errFor(1), 0, 'al final no se perdona nada');
+});
+
+test('pulso: en campaña el examen SOLO toma lo aprendido (regla 1)', () => {
+  // sin libreta no hay piruetas que pedir: la secuencia queda en el remate, que es exactamente
+  // lo unico que el juego enseño hasta la primera mision. No es un pool vacio por error.
+  assert.equal(poolFor({ campaign: true, owned: [] }).length, 0);
+  assert.deepEqual(armar([], 3), ['Z'], 'sin pool aprendido la secuencia es solo la suelta');
+  // con una aprendida, esa y nada mas
+  const p = poolFor({ campaign: true, owned: ['breakt'] });
+  assert.ok(p.length > 0 && p.every(c => c.move === 'breakt'));
+  // y una apagada a mano no puede colarse en el examen
+  assert.equal(poolFor({ campaign: true, owned: ['breakt'], off: { breakt: 1 } }).length, 0);
+});
+
+test('pulso: fuera de campaña rige el pool basico', () => {
+  const p = poolFor({ campaign: false });
+  assert.ok(p.length === POOL_BASICO.length && p.every(c => POOL_BASICO.includes(c.seq)));
+});
+
+test('pulso: la secuencia no repite maniobra seguida y termina soltando', () => {
+  const pool = poolFor({ campaign: false });
+  for (let i = 0; i < 40; i++) {
+    const s = armar(pool, 4, () => (i * 0.137 + 0.01) % 1);
+    assert.equal(s[s.length - 1], 'Z', 'toda secuencia termina en el remate');
+    for (let k = 1; k < s.length - 1; k++) {
+      const a = COMPASES.find(c => c.seq === s[k - 1]), b = COMPASES.find(c => c.seq === s[k]);
+      assert.notEqual(a.move, b.move, 'dos compases seguidos no pueden ser la misma maniobra');
+    }
+  }
+});
+
+test('pulso: las zonas arrancan con teclas distintas (elegir es teclear)', () => {
+  // El primer toque ELIGE el carril: si dos zonas empezaran igual, la eleccion seria ambigua y el
+  // jugador terminaria en una zona que no queria.
+  const z = armarZonas(PULSO_ZONAS, poolFor({ campaign: false }), 0.5);
+  assert.equal(z.length, PULSO_ZONAS.length);
+  const firsts = z.map(o => o.seqs[0][0]);
+  assert.equal(new Set(firsts).size, firsts.length, `las zonas arrancan igual: ${firsts.join('')}`);
+});

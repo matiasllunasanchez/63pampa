@@ -16,7 +16,8 @@ import { hzWorld, stepHorizon } from './core/horizon.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts,
          prune, clearWorld } from './core/world.js';
 import { run, resetRun } from './core/run.js';
-import { proj, popup, explodeAt, bloodBurst } from './core/fx.js';
+import { proj, popup, explodeAt, bloodBurst, despiece, morir, stepDestruccion } from './core/fx.js';
+import { CHUNK_LIFE, CHUNKS_MAX } from './data/despiece.js';
 import * as momentum from './systems/momentum.js';
 import * as tempo from './systems/tempo.js';
 import * as saves from './systems/saves.js';
@@ -33,12 +34,15 @@ import * as pulsoRender from './render/pulso.js';
 import { PULSO } from './data/pulso.js';
 import { spawnSystem } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
+import * as caza from './systems/caza.js';
+import { drawCaza } from './render/caza.js';
 import { inp, mouse, pointer, flags, initInput } from './core/input.js';
 import { flightSystem } from './systems/flight.js';
 import { drawPlane } from './render/plane.js';
 import { drawBullet } from './render/ammo.js';
 import * as hud from './render/hud.js';
 import * as world from './render/world.js';
+import { drawMarco } from './render/marco.js';
 import * as soldierArt from './render/soldiers.js';
 import { theme, applyTheme } from './render/theme.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
@@ -561,6 +565,12 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       { label: () => T('optRain'), opts: Array.from({ length: RAIN_N }, (_, i) => i),
         names: () => [T('optRainOff'), T('optRainDrizzle'), T('optRainRain'), T('optRainStorm')],
         get: () => cfg.rain, set: v => cfg.rain = v, save: 'rasante_lluvia' },
+      // NIEBLA DE GUERRA (render/marco.js): el velo de los costados. Es la UNICA fila de este
+      // bloque que la campaña NO pisa — no es clima de la mision sino como querés ver el juego,
+      // igual que el IDIOMA. Por eso persiste y por eso viene prendida.
+      { label: () => T('optMarco'), opts: ['off', 'bruma', 'focus'],
+        names: () => ['off', 'bruma', 'focus'].map(m => T('optMarco_' + m)),
+        get: () => cfg.marco, set: v => cfg.marco = v, save: 'rasante_marco' },
 
       { head: 'optSecMapa' },
       // elegir COSTA trae su clima: día nublado de desembarco (el FONDO se puede cambiar después)
@@ -886,6 +896,20 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         };
       } catch (e) { return null; }
     })();
+    // SONDA DE LA COLA (PLAN_HARRIERS_PERSECUCION §3, fase H0) — QUITAR al cerrar el plan.
+    //   ?caza          arma UN duelo apenas arranca el pasillo, con aviso por radio.
+    //   ?caza=mudo     el mismo duelo SIN aviso (el canon del §2: a veces la radio no llega, y
+    //                  las trazadoras pasando son el unico aviso garantizado).
+    // Sin el parametro, cazaProbe es null y nada cambia. El duelo TAMBIEN se arma a mano con
+    // __czstart() desde la consola, que es lo que usan las capturas.
+    const cazaProbe = (() => {
+      try {
+        const v = new URLSearchParams(location.search).get('caza');
+        return v === null ? null : { mudo: /mudo/.test(v) };
+      } catch (e) { return null; }
+    })();
+    let cazaArmed = false;   // la sonda arma UNO solo, no uno por cuadro
+    let cazaCalma = false;   // sonda: pasillo vacio para poder mirar el duelo (ver el update)
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
     let toT = 0, toCount = 4;
     let levelT = 0;   // temporizador de las tarjetas de transición de nivel / victoria (campaña)
@@ -925,6 +949,15 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       veilOut = 0; veilPrev = '';   // el telon del cordon, cerrado y sin reloj
       arena.resetArena();
       pasada.resetPasada();
+      pulso.resetPulso();
+      caza.resetCaza();   // LA COLA: una corrida nueva no hereda el Harrier de la anterior
+      // EL PULSO se CONFIGURA acá: el sistema no puede mirar la campaña ni la libreta del Pichón
+      // (nadie llama hacia arriba), y quien dispara la entrada es flight.js, que tampoco las
+      // conoce. `t01` = avance de campaña normalizado — la única perilla de dificultad que hay.
+      pulso.setCfg({
+        t01: MISSIONS.length > 1 ? curLevel / (MISSIONS.length - 1) : 0,
+        campaign: gameMode === 'campaign', owned: pichon, off: cfg.movesOff,
+      });
       // NORMA DE CAMPAÑA (3/8, GUION_2): con roster, el relevo es un AVERIADO que vuelve a la
       // base (nadie muere por gameplay); sin roster, el relevo arcade de siempre (PATRIA caido).
       // El roster es POR MISION (los Fieles vivos segun el guion); FIELES queda de respaldo.
@@ -1351,16 +1384,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // adelante perdiendo velocidad, la gravedad los baja y rebotan cortos al tocar el suelo.
       // Van en coordenadas de mundo (no de pantalla) justamente para poder ALEJARSE: los `parts`
       // de pantalla no tienen z y por eso el destrozo viejo se quedaba clavado donde murio.
-      for (let i = 0; i < 9; i++) {
-        obstacles.push({
-          type: 'chunk', done: true, chunkT: 0,
-          x: plane.x + (Math.random() - 0.5) * 2, y: Math.max(0.5, plane.y + (Math.random() - 0.5) * 1.5), z: PZ,
-          vx: (Math.random() - 0.5) * 14, vy: 4 + Math.random() * 14,
-          vz: spd0 * (0.45 + Math.random() * 0.45),
-          spin: Math.random() * 6.28, vspin: (Math.random() - 0.5) * 14,
-          size: 0.5 + Math.random() * 0.9, hot: Math.random() < 0.6,
-        });
-      }
+      // Desde D0 (PLAN_DESTRUCCION) esto sale de la MISMA función que despieza a todo lo demás:
+      // la receta 'plane' de data/despiece.js es este mismo destrozo escrito como fila. Era la
+      // única muerte decente del juego y ahora es la referencia de la que salen las otras.
+      despiece({ type: 'plane', x: plane.x, y: plane.y, z: PZ }, { vz: spd0 });
       const s = proj(plane.x, 0, PZ);
       for (let i = 0; i < 16; i++) parts.push({ x: s.x + (Math.random() - 0.5) * 24, y: s.y, vx: (Math.random() - 0.5) * 40, vy: -40 - Math.random() * 60, life: 0.6, c: P.foam, r: 1.6 });
       // CHISPAS de pantalla del primer impacto: el reventon inmediato alrededor del avion.
@@ -1455,9 +1482,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         // vida mas adelante para poder NOMBRARLO antes de que empiece la cinematica
         const next = pilotIdx(run.squad, run.lives - 1);
         popup(W / 2, 62, T('pasada_turn', { c: squad.pilotName(next) }), P.accent);
-        squad.startRelevo(sig.spent === 'seca' ? 'death_fuel' : 'pasada_why', sig.spent);
+        squad.startRelevo(sig.spent === 'seca' ? 'death_fuel' : (sig.why || 'pasada_why'), sig.spent);
         setState('relevo');
-      } else die(sig.spent === 'seca' ? 'death_fuel' : 'death_pasada');
+      } else die(sig.spent === 'seca' ? 'death_fuel' : (sig.dieWhy || 'death_pasada'));
     }
 
     // ¿El relevado se ROMPE o se MUERE? En campaña vuelve averiado (norma 3/8: los muertos los
@@ -1566,26 +1593,14 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
           if (o.type === 'airboom' || o.type === 'boom') o.boomT += dt;
           // INERCIA del derribo (ver die): la bola de fuego viaja hacia adelante frenando
           if (o.vz && o.type !== 'chunk') { o.z += o.vz * dt; o.vz *= Math.max(0, 1 - dt * 1.3); if (o.vy2) o.y = Math.max(0.5, o.y + o.vy2 * dt); }
-          if (o.type === 'chunk') {
-            // pedazo del avion: sigue de largo (vz), cae (gravedad) y rebota corto en el suelo.
-            // El arrastre del aire le come la inercia; despues de un par de rebotes queda tirado.
-            o.chunkT += dt;
-            o.z += o.vz * dt; o.x += o.vx * dt; o.y += o.vy * dt;
-            o.vy -= 30 * dt; o.vz *= Math.max(0, 1 - dt * 0.75); o.spin += o.vspin * dt;
-            if (o.y <= 0) {
-              o.y = 0; o.vy = -o.vy * 0.32; o.vz *= 0.6; o.vx *= 0.6; o.vspin *= 0.5;
-              // salpicon/polvo del rebote, proyectado donde toco
-              const bs = proj(o.x, 0, o.z);
-              for (let i = 0; i < 3; i++) parts.push({ x: bs.x + (Math.random() - 0.5) * 4, y: bs.y, vx: (Math.random() - 0.5) * 26, vy: -20 - Math.random() * 26, life: 0.4, c: cfg.terrain === 'sea' ? P.foam : '#6b6f62', r: 1.2 });
-            }
-            // HUMO: los pedazos calientes van dejando un hilito que sube
-            if (o.hot && Math.random() < 0.5) {
-              const hs = proj(o.x, o.y, o.z);
-              parts.push({ x: hs.x, y: hs.y, vx: (Math.random() - 0.5) * 6, vy: -8 - Math.random() * 10, life: 0.5, c: '#5a5a52', r: Math.max(1, hs.k * 0.16) });
-            }
-          }
+          // pedazo: sigue de largo (vz), cae, rebota corto y humea. La fisica vive en core/fx.js
+          // desde D0 (PLAN_DESTRUCCION): la comparten el mundo detenido de acá y el mundo en vuelo
+          // de collision.js, porque ahora tambien hay escombro AJENO cayendo.
+          stepDestruccion(o, dt);
         }
-        prune(obstacles, o => !((o.type === 'airboom' || o.type === 'boom') && o.boomT > 6) && !(o.type === 'chunk' && (o.chunkT > 4.5 || o.z > 235)));
+        prune(obstacles, o => !((o.type === 'airboom' || o.type === 'boom') && o.boomT > 6)
+          && !(o.type === 'chunk' && (o.chunkT > CHUNK_LIFE || o.z > 235))
+          && !(o.type === 'humo' && o.humoT > o.humoMax));
         engineOff();
         if (S.state === 'momentum') {
           run.shake = Math.max(0, run.shake - dt * 10);
@@ -1625,7 +1640,13 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
           run.shake = Math.max(0, run.shake - dtReal * 10);
           const sig = pulso.update(dtReal, dt);
           if (sig === 'objective') finishObjective();
-          else if (sig && sig.death) onDeath(sig.death);
+          // 2º FALLO: cuesta un avion del escuadron (mismo camino que la pasada gastada — no te
+          // derribaron, se te fue la pasada). Volando solo no hay avion que cobrar: se sigue.
+          else if (sig && sig.spent) { if (canRelevo(run.lives)) onPassSpent(sig); else pulso.reencarar(); }
+          // 3er FALLO: die() DIRECTO y no onDeath(). Los intentos de la prueba son de la MISIÓN, no
+          // del avión: si pasara por el relevo, quedarían tantas pruebas como aviones tenga el
+          // escuadrón y el "3 fallos y se pierde" del plan no existiría — se fallaría en bucle.
+          else if (sig && sig.death) die(sig.death);
           flags.startReq = false; flags.anyPress = false;
           return;
         }
@@ -1691,6 +1712,16 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
             // el que releva DENTRO del climax vuelve AL CLIMAX que se estaba jugando, con el daño
             // ya hecho al buque (las zonas viven en el subsistema, no en la instancia). Entra por
             // la boca de la zona y no heredando el vuelo del anterior: no venia volando el pasillo.
+            // EL PULSO: el companero vuelve A LA PRUEBA, con los intentos gastados y el flak ya
+            // encima (enter() sin cfg conserva la cuenta). Perder un avion no limpia la pizarra.
+            if (runClimax() === 'pulso' && pulso.available() && objectiveDist > 0 && run.dist >= objectiveDist) {
+              pulso.enter(false);
+              popup(W / 2, 54, T('sq_yours'), P.accent);
+              if (run.lives === 1) popup(W / 2, 64, T('sq_last'), P.warn);
+              beep(980, 0.14, 'square', 0.06);
+              flags.startReq = false; flags.anyPress = false;
+              return;
+            }
             if (runClimax() === 'pasada' && pasada.available() && objectiveDist > 0 && run.dist >= objectiveDist) {
               pasada.enter(false);
               popup(W / 2, 54, T('sq_yours'), P.accent);
@@ -1819,6 +1850,18 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         spawnSystem(dt, objectiveDist);  // aparicion de obstaculos y soldados (nunca corta el frame)
       const hit = collisionSystem(dt);   // impactos → devuelve { death } si un choque fue fatal
       if (hit) { onDeath(hit.death); return; }
+      // LA COLA (PLAN_HARRIERS_PERSECUCION, PLAN A). Corre SOLO acá, en el PASILLO: el §6.6 pide
+      // que no aparezca en ARENA, PASADA ni MINUTOS SAGRADOS, y la forma de garantizarlo es que
+      // el duelo no tenga ningun otro sitio desde donde correr. Devuelve señal como todos: si te
+      // engancha, la muerte entra por el embudo de siempre y el relevo aplica.
+      // CALMA (sonda, QUITAR): vacia el pasillo para poder MIRAR el duelo. Es el mismo criterio
+      // que `__pdef(0)` en la pasada — la seccion que mide una cosa apaga lo que no esta midiendo.
+      // Sin esto, juzgar la coreografia del sobrepaso depende de no comerse un mastil en el medio,
+      // y el ciclo entero dura casi un minuto. En el juego normal `cazaCalma` es siempre false.
+      if (cazaCalma) { obstacles.length = 0; missiles.length = 0; soldiers.length = 0; run.detection = 0; }
+      if (cazaProbe && !cazaArmed && run.t > 1.5) { cazaArmed = true; caza.start(cazaProbe); }
+      const cz = caza.cazaSystem(dt);
+      if (cz && cz.death) { onDeath(cz.death); return; }
       // líneas de velocidad
       if (run.boost || run.rasLevel > 0 || run.spd > 115) {
         const n = (run.boost ? 3 : 1) + run.rasLevel + run.afterTier;
@@ -1847,6 +1890,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     }
 
     // ---------- render ----------
+
+    // ESTADOS QUE LLEVAN MARCO: los del PASILLO, donde hay un carril que enmarcar. El 'takeoff'
+    // entra porque el despegue ya es el pasillo (con la formacion delante), y 'dead'/'relevo'
+    // porque el mundo sigue en pantalla — apagar el velo justo ahi seria un parpadeo.
+    const MARCO_STATES = ['play', 'takeoff', 'dead', 'relevo', 'pulso'];
 
     function draw() {
       ctx.setTransform(SC, 0, 0, SC, 0, 0);   // buffer 2×: todo el dibujo sigue en coords 320×180
@@ -2014,6 +2062,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       const all = obstacles.slice().sort((a, b) => b.z - a.z);
       for (const o of all) if (o.z > 3) world.drawObstacle(o);
 
+      // LA COLA, primera pasada: lo que esta MAS LEJOS que el avion (la ventana frontal, la
+      // salida, las trazadoras que ya te pasaron). Lo que quedo mas cerca se dibuja despues del
+      // avion — ver el segundo llamado, abajo de drawPlane.
+      drawCaza(true);
+
       // misiles (y trazadoras del fuego de tierra: mas chicas, amarillas y con cola corta)
       for (const m of missiles) {
         if (m.z <= 3) continue;
@@ -2088,6 +2141,15 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // igual si el fondo lo pone three) pero ADENTRO del giro: es aire del mundo, rola con el.
       if (S.state !== 'arena' && S.state !== 'momentum') world.drawVeil(veilNow());
 
+      // NIEBLA DE GUERRA (cfg.marco, render/marco.js): el velo de los COSTADOS, lo que no es
+      // pasillo. Mismo lugar que el cordon —afuera del bloque 2D, adentro del giro— y por la
+      // misma razon: tiene que tapar igual con el fondo puesto por three, y es aire del mundo.
+      //
+      // SOLO EN EL PASILLO, y la lista es explicita: en el ARENA y en la PASADA se vuela libre
+      // alrededor del buque, no hay carril, y un marco ahi seria una viñeta mintiendo sobre
+      // una zona jugable que no existe.
+      if (MARCO_STATES.includes(S.state)) drawMarco();
+
       // fin del HORIZONTE GIRATORIO: de aca en adelante todo va NIVELADO — el avion, su mira, la
       // formacion y los popups son el lado "cabina", igual que en el momentum.
       if (hzW) ctx.restore();
@@ -2101,6 +2163,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       if (S.state === 'relevo' && squad.rosterActive() && squad.relevo())
         squadRender.drawFallen({ selPlane, rv: squad.relevo() });
       if (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada') drawPlane(selPlane, viewMouse, squadZoom());   // en el climax (arena, pasada o fallback) el avion lo pone su propio render
+      // LA COLA, segunda pasada: lo que quedo MAS CERCA que el avion — el sobrepaso enorme
+      // cruzandote y las trazadoras que te estan pasando ahora. Va DESPUES del sprite porque
+      // efectivamente esta entre vos y la camara: dibujarlo antes lo dejaria por detras del ala.
+      drawCaza(false);
       // la FORMACION del escuadron: SOLO en el despegue y en su salida de plano al CONTROL
       // LIBRE. Nunca durante el PASILLO en si — es costo de render que no aporta y taparia el juego.
       {
@@ -2279,6 +2345,19 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // SE LLAMABA __pdbg y se renombro al construir la fase PASADA: el spec de ese modo pide
     // `__pdbg` para SU sonda y el nombre estaba ocupado por esto, que no es la pasada sino la
     // pausa. (__udbg tampoco servia: ya es el del BANCO DEL PICHON, mas abajo.) Lo usa tools/smoke.js.
+    // ---------- SONDAS DE LA COLA (QUITAR al cerrar PLAN_HARRIERS_PERSECUCION) ----------
+    // El duelo es un evento de menos de un minuto que aparece cada tanto: mirarlo una vez, sin
+    // esto, cuesta volar medio nivel y tener suerte.
+    //   __czstart([{mudo}])  arma el duelo ya mismo
+    //   __czdbg()            el estado: fase, reloj, pasada, solucion de tiro, donde esta
+    //   __czfase('sobrepaso') salta a una fase — es lo que permite fotografiar el cruce cercano,
+    //                        que dura 1,15 s dentro de un ciclo de casi un minuto
+    if (typeof window !== 'undefined') {
+      window.__czstart = o => caza.start(o || {});
+      window.__czdbg = () => caza.dbg();
+      window.__czfase = f => caza.forceFase(f);
+      window.__czcalma = v => { cazaCalma = v !== 0; return cazaCalma; };
+    }
     if (typeof window !== 'undefined') window.__pausedbg = () => JSON.stringify({
       paused, view: pauseView, sel: pauseSel, saveSel, state: S.state,
     });
@@ -2315,6 +2394,70 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         obs: obstacles.filter(o => o.z > 3 && !o.decor).length,   // lo que queda ADELANTE
         y: +plane.y.toFixed(1), spd: run.spd | 0, vidas: run.lives,
         devcam: cfg.devcam, state: S.state,
+      });
+    };
+
+    // ---------- SONDA DEL DESPIECE (QUITAR antes de publicar) ----------
+    // PLAN_DESTRUCCION D0. Sin esto no hay forma de comparar cómo muere cada tipo: habría que
+    // encontrar un depósito y un helo en la misma corrida, matarlos con la misma arma y acordarse
+    // de cómo se vio el primero. `__romper('depot')` los pone uno al lado del otro.
+    //
+    // Devuelve la FOTO del escombro que acaba de nacer (cuántos, tamaños, colores, pieza especial)
+    // — es lo que permite afirmar "cada tipo se despieza distinto" con números y no de memoria.
+    if (typeof window !== 'undefined') window.__romper = (tipo, imp) => {
+      const antes = obstacles.length;
+      // a la ALTURA A LA QUE VAS VOLANDO: plantarlo siempre a ras dejaba el destrozo fuera de
+      // cuadro apenas el avion subia un poco, y lo que la sonda tiene que dejar ver es la muerte
+      const o = { type: tipo, x: plane.x + (Math.random() - 0.5) * 6, y: Math.max(1.5, plane.y), h: 3, z: PZ + 42 };
+      // D2: se llama a la MUERTE COMPLETA, no solo al despiece — es lo unico que permite comparar
+      // el caracter de cada tipo (bola o no, chispazo, secundarias, columna de humo).
+      morir(o, imp || { vz: run.spd * 0.5 });
+      // SOLO los pedazos: explodeAt ademas empuja una bola de fuego ('airboom') al mismo array, y
+      // contarla arruinaba las tres medidas (n, tamaños y colores) con un objeto que no es escombro
+      const todos = obstacles.slice(antes);
+      const nuevos = todos.filter(c => c.type === 'chunk');
+      return JSON.stringify({
+        tipo, n: nuevos.length,
+        colores: [...new Set(nuevos.map(c => c.c))],
+        size: [+Math.min(...nuevos.map(c => c.size)).toFixed(2), +Math.max(...nuevos.map(c => c.size)).toFixed(2)],
+        hot: nuevos.filter(c => c.hot).length,
+        pieza: (nuevos.find(c => c.pieza) || {}).pieza || null,
+        // el CARACTER de la muerte (D2), leido de lo que realmente se creo — no de la receta:
+        // asi la sonda no puede confirmar una intencion que el codigo no cumplio
+        bola: (todos.find(c => c.type === 'airboom') || {}).scale || 0,
+        sec: todos.filter(c => c.type === 'sec').length,
+        humo: (todos.find(c => c.type === 'humo') || {}).humoMax || 0,
+        espiral: nuevos.filter(c => c.espiral).length,
+        vivos: obstacles.filter(c => c.type === 'chunk').length,
+      });
+    };
+
+    // EMBESTIR A PEDIDO (QUITAR). D1 se trata de lo que pasa al CHOCAR, y esperar a que la corrida
+    // ponga un depósito justo en tu carril no es una prueba: es suerte. Esto planta el objeto
+    // delante del morro y deja que la colisión de siempre lo resuelva — no simula nada, el choque
+    // que ocurre es el real.
+    // `h` por defecto 7: por encima de SOFT_H (4.8), que es el umbral que separa lo que DERRIBA de
+    // lo que solo golpea. Con una carpa de 3 m el avion la arrasa y sigue — que es lo correcto,
+    // pero no es el choque que D1 tiene que probar.
+    if (typeof window !== 'undefined') window.__chocar = (tipo, h) => {
+      // el objeto se estira hasta la altura a la que venis volando en vez de bajarte a vos: forzar
+      // el avion a ras lo mataba contra el suelo ANTES de llegar al blanco, y el choque que se
+      // queria medir no llegaba a pasar
+      const alto = h || Math.max(7, plane.y * 2 + 3);
+      obstacles.push({ type: tipo, x: plane.x, y: 0, h: alto, z: PZ + 8, xa: plane.x });
+      return JSON.stringify({ ok: true, tipo, h: alto, z: PZ + 8, spd: run.spd | 0 });
+    };
+
+    // CENSO DEL ESCOMBRO (QUITAR). Lo que el plan llama "los restos QUEDAN" y "el cap manda" son
+    // dos afirmaciones sobre una población de pedazos: hay que poder contarla desde afuera.
+    if (typeof window !== 'undefined') window.__chdbg = () => {
+      const ch = obstacles.filter(o => o.type === 'chunk');
+      return JSON.stringify({
+        n: ch.length, max: CHUNKS_MAX,
+        suelo: ch.filter(o => o.y <= 0.05).length,          // los que ya se posaron
+        hot: ch.filter(o => o.hot).length,
+        colores: [...new Set(ch.map(o => o.c))],            // de cuántas cosas distintas hay restos
+        viejo: +Math.max(0, ...ch.map(o => o.chunkT)).toFixed(2),
       });
     };
 

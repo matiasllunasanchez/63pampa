@@ -87,6 +87,14 @@ export const cfg = {
   // sin agregar un solo objeto, acortando la distancia a la que ves lo que YA estaba. Por eso vive
   // en el bloque de MAPA (con VIENTO y OBSTACULOS) y no en AMBIENTE (con FONDO, AGUA y LLUVIA).
   fog: 0,
+  // NIEBLA DE GUERRA (render/marco.js): el velo que tapa los COSTADOS, lo que no es pasillo.
+  // 'off' NO · 'bruma' BLANCO · 'focus' NEGRO. Arranca en BRUMA: el carril siempre existio y
+  // hasta ahora era invisible — se aprendia muriendo contra un borde que nadie dibujo.
+  //
+  // ES PREFERENCIA, NO DIFICULTAD, y por eso puede venir prendida de fabrica: el velo no cruza
+  // nunca la proyeccion del carril, asi que no puede taparte un obstaculo. La que SI tapa es
+  // `fog` de abajo, que es otra cosa aunque el jugador vea la palabra "niebla" en las dos.
+  marco: 'bruma',
   // LARGO del banco: 0 CORTO · 1 MEDIO · 2 LARGO · 3 MUY LARGO (ver FOG_LEN en data/tuning.js).
   // Es cuanto tiempo te obliga a volar arriba del radar, o sea el balance entero del item.
   fogLen: 1,

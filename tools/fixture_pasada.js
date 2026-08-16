@@ -86,6 +86,12 @@ app.whenReady().then(async () => {
   else ok(`entra a ras: ${d.alt} m, bajo el techo de radar (10 m)`);
   await shot('p0_entrada');
 
+  // SE APARTA EL AVION ANTES DE VOLAR LIBRE. Desde R2 se entra a 700 m del buque —el ingreso corto
+  // y denso es el diseño— y eso son 6,4 s de vuelo hasta el casco: los tres chequeos que siguen
+  // (avanza, [W], [Q]) no entran, y el avion terminaba estrellado antes del ultimo. Lo que esta
+  // seccion mide es que el avion VUELE, no cuanta pista tiene, asi que se le da pista.
+  await js('__pset(1300, 10, 0)'); await sleep(150);
+
   // vuela: la posicion cambia sola, y el morro responde a la tecla
   const a0 = await P();
   await sleep(1200);
@@ -614,7 +620,14 @@ app.whenReady().then(async () => {
     else bad(`la primera salva no fue de tanteo (salvas ${s1 && s1.salvas}, dispersion ${s1 && s1.disp})`);
 
     // y virar le BORRA la correccion: es el zigzag suave del criterio de RF-04
-    for (let k = 0; k < 30; k++) { await sleep(200); const a = await P(); if (!a || a.punteria >= 1) break; }
+    //
+    // SE SUBE A 90 m Y SE ESPERA MAS. Con R2 el cañon abre a los 1,5 s, o sea que su primera salva
+    // ya salio ANTES de que la sonda coloque el avion — y el teletransporte le borra la correccion,
+    // asi que la cuenta de dos salvas arranca de cero desde ahi y son ~6 s. A 20 m de altura el
+    // morro se hunde solo y el avion tocaba el agua a mitad de la cuenta: la prueba pasaba a medir
+    // gravedad. La altura no le cambia nada al cañon; solo le da tiempo a la medicion.
+    await js('__pset(1200, 90, 0)'); await sleep(150);
+    for (let k = 0; k < 50; k++) { await sleep(200); const a = await P(); if (!a || a.punteria >= 1) break; }
     const tomado = await P();
     if (!tomado || tomado.punteria < 1) bad(`volando derecho el cañon no llego a tenerte tomado (${tomado && tomado.punteria})`);
     else {
@@ -751,12 +764,16 @@ app.whenReady().then(async () => {
     }
     if (!base) bad('la corrida se corto antes de poder medir el baseline');
     else {
-      ok(`BASELINE del tiempo muerto: peor hueco ${base.gapMax} s sin NADA visible · `
+      // OTRA VEZ LA LECCION R0.3, y por eso queda escrita dos veces. La primera version de esto
+      // afirmaba "el hueco tiene que ser mayor a 4 s" para probar que el §1.3 se reproducia — y
+      // eso es congelar el mundo viejo en una prueba, o sea garantizar que el rescate la rompa. El
+      // baseline es un numero HISTORICO (medido el 16/8, antes de R2) y vive anotado en el §6 del
+      // plan; la vara sirve para comparar contra el. Lo que ASEGURA que R2 funciono se prueba en
+      // su propia seccion, mas abajo, y no aca.
+      const GAP_BASE = 6.1, AMEN_BASE = 0.34;
+      ok(`la vara mide: peor hueco ${base.gapMax} s sin NADA visible · `
         + `media de ${base.amenMed} amenazas en pantalla · corrida de ${base.vidaT} s`);
-      // el criterio del plan (R2) sera "nunca mas de 4 s sin una amenaza visible". Hoy tiene que
-      // FALLAR — si ya pasara, el rescate no tendria de que rescatar y habria que revisar el §1.
-      if (base.gapMax > 4) ok(`el §1.3 se reproduce: hay huecos de ${base.gapMax} s (el objetivo de R2 son 4)`);
-      else bad(`el hueco medido (${base.gapMax} s) ya cumple el objetivo de R2: revisar el analisis §1.3`);
+      console.log(`      baseline pre-R2 (§6 del plan): hueco ${GAP_BASE} s · ${AMEN_BASE} amenazas de media`);
       console.log('      linea de tiempo: ' + linea.slice(0, 8).join(' · '));
     }
 
@@ -845,6 +862,94 @@ app.whenReady().then(async () => {
     if (!intentos) bad('el misil no salio en ninguno de los tres intentos de esquive');
     else if (vivos === intentos) ok(`QUEBRANDO se sobrevive SIEMPRE: ${vivos}/${intentos} esquives`);
     else bad(`el quiebre no salva siempre: ${vivos}/${intentos} (R1 exige todos)`);
+  }
+
+  // ---------- R2: LA DENSIDAD ----------
+  // El criterio del plan, textual: "durante la corrida nunca pasan >4 s sin una amenaza VISIBLE en
+  // pantalla; el near-miss suma y se siente". Lo que R2 arregla no es la dificultad —el conteo
+  // letal es el mismo— sino el VACIO: 6,1 s de mar sin nada, medidos por la vara de R0.
+  console.log('\nR2 — la densidad:');
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+  await sleep(3000);
+  if (!await P()) bad('no se pudo entrar a la pasada para medir la densidad');
+  else {
+    // 1) EL HUECO. La misma corrida de ingreso que midio el baseline, con la misma vara: se entra,
+    // se vuela derecho y se cuenta cuantos segundos seguidos no hay NADA delante del morro.
+    // Invulnerable a proposito — lo que se mide es lo que se VE, no lo que se sobrevive.
+    await js('__pdef(1); __pinv(1); __plives(1); __pvara()');
+    let den = null, roces = 0, mangMax = 0;
+    for (let k = 0; k < 24; k++) {
+      await sleep(400);
+      const a = await P();
+      if (!a) break;
+      den = a; roces = a.roces; mangMax = Math.max(mangMax, a.mangueras);
+    }
+    if (!den) bad('la corrida se corto antes de poder medir la densidad');
+    else {
+      const GAP_BASE = 6.1, AMEN_BASE = 0.34;
+      if (den.gapMax <= 4)
+        ok(`el mar YA NO SE VACIA: peor hueco ${den.gapMax} s (baseline ${GAP_BASE} s · el criterio son 4)`);
+      else bad(`sigue habiendo huecos de ${den.gapMax} s sin nada visible (el criterio son 4, baseline ${GAP_BASE})`);
+      if (den.amenMed > AMEN_BASE * 2)
+        ok(`la corrida se lleno: ${den.amenMed} amenazas de media en pantalla (baseline ${AMEN_BASE})`);
+      else bad(`la densidad casi no subio: ${den.amenMed} de media contra ${AMEN_BASE} del baseline`);
+      if (mangMax >= 1) ok(`las MANGUERAS barren el cielo: hasta ${mangMax} chorro(s) a la vez (HOSE_N son 2)`);
+      else bad('no salio ninguna manguera de trazadoras');
+      await shot('r2_mangueras');
+    }
+
+    // 2) EL ROCE SUMA. Es el unico premio del modo que no pasa por la bomba, y sin el lo optimo es
+    // volar por donde no pasa nada — que es la definicion de aburrido. Volando derecho por el eje,
+    // entre las horquillas y los chorros, algo tiene que rozar.
+    if (roces > 0) ok(`el ROCE se cobra: ${roces} pasada(s) cerca premiada(s) en una sola corrida`);
+    else bad('nunca se cobro un roce: el near-miss no llega a pasar (NEARMISS_R o las capas)');
+  }
+
+  // 3) EL CAÑON ABRE TEMPRANO (GUN_FIRST_S). Era 4,6 s: la mitad del ingreso en silencio.
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+  let abrio = null;
+  for (let k = 0; k < 90; k++) {
+    await sleep(100);
+    const a = await P();
+    if (a && a.salvas >= 1) { abrio = a.t; break; }
+  }
+  if (abrio === null) bad('el cañon no abrio fuego en toda la corrida');
+  else if (abrio <= 2.5) ok(`el cañon ABRE a los ${abrio} s de entrar (GUN_FIRST_S son 1.5; antes eran 4.6)`);
+  else bad(`el cañon tardo ${abrio} s en abrir: el ingreso sigue empezando en silencio`);
+
+  // 4) Y NO ES UNA EMBOSCADA: LA HORQUILLA. Abrir a los 1,5 s solo vale si las primeras
+  // GUN_BRACKET salvas ENCUADRAN en vez de matar — caen corridas a un costado y al otro, cada vez
+  // mas cerca, hasta que la tercera cae sobre la linea. Se mide la GEOMETRIA y no la supervivencia
+  // a proposito: volando derecho el avion tambien se hunde, se come un Sea Cat o llega al casco, y
+  // una prueba de supervivencia terminaria hablando de gravedad. Que la tercera SI mate esta
+  // probado en la seccion 9 ("derecho te toma"); las dos juntas son la regla entera.
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+  await sleep(3000);
+  if (!await P()) bad('no se pudo entrar a la pasada para probar la horquilla');
+  else {
+    // CON EL CALOR AL MAXIMO, y no por dificultad: el calor solo acelera la CADENCIA (`gunT` corre
+    // a 1+heat), asi que las tres salvas entran en ~3 s en vez de ~9. Sin esto la medicion se
+    // quedaba en dos: a los 9 segundos el morro ya se hundio hasta el agua y no hay tercera salva
+    // que leer — otra vez la gravedad metiendose en una prueba que no es de ella. El calor no toca
+    // el CORRIMIENTO, que es lo unico que esta prueba mira.
+    await js('__pdef(1); __pinv(1); __plives(1); __pset(1400, 90, 0)'); await sleep(150);
+    await js('__pheat(2)');
+    // se junta el corrimiento MAXIMO visto por salva a lo largo de tres salvas: las columnas viven
+    // ~2 s, asi que hay que mirar seguido para no perderse ninguna
+    const porSalva = {};
+    for (let k = 0; k < 60; k++) {
+      await sleep(200);
+      if (!await P()) break;
+      for (const c of JSON.parse(await js('__pcols()')))
+        porSalva[c.salva] = Math.max(porSalva[c.salva] || 0, Math.abs(c.off));
+      if (porSalva[2] !== undefined) break;
+    }
+    const h0 = porSalva[0], h1 = porSalva[1], h2 = porSalva[2];
+    if (h0 === undefined || h1 === undefined || h2 === undefined)
+      bad(`no salieron las tres salvas para medir la horquilla (${JSON.stringify(porSalva)})`);
+    else if (h0 > h1 && h1 >= 24 && h2 === 0)
+      ok(`la HORQUILLA te ENCUADRA y se cierra: la salva 1 cae a ${h0} m del rumbo · la 2 a ${h1} · la 3 SOBRE la linea (0)`);
+    else bad(`la horquilla no se cierra como debe: salva 1 a ${h0} m, salva 2 a ${h1}, salva 3 a ${h2}`);
   }
 
   // ---------- lo que todavia no existe ----------

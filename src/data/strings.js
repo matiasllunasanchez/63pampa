@@ -29,6 +29,11 @@ export const STRINGS = {
     // RF-15: la derrota de la PASADA. No te derribaron — se acabo la escuadrilla y el buque
     // seguia ahi. Que la pantalla de fin diga ESO y no "chocaste" es media leccion del modo.
     death_pasada: 'Se acabo la escuadrilla y el buque siguio navegando',
+    // LA COLA (PLAN_HARRIERS_PERSECUCION §3). El aviso es HUMANO: lo grita Condor o un Fiel, y a
+    // veces no llega (§2 — no habia radar ni RWR). Nada de tonos ni de recuadros de fijado.
+    death_caza: 'Te engancho un Sea Harrier',
+    caza_warn: '¡RAPIDO POR LA COLA, {c}!',
+    caza_out: 'Se quedo sin nafta el ingles.',
     freeControl: 'CONTROL LIBRE!', rasante: 'RASANTE x{n}!', afterburner: 'TURBINA x{n}!',
     aimFixed: 'MIRA FIJA', aimFree: 'MIRA LIBRE',
     thrDown: 'PALANCA: ↓ SUBE', thrUp: 'PALANCA: ↑ SUBE',
@@ -132,6 +137,10 @@ export const STRINGS = {
     optWater: 'AGUA', optWaterSea: 'MAR', optWaterViolet: 'VIOLETA',
     // LLUVIA: ambiente puro, no cambia la dificultad (ver render/rain.js)
     optRain: 'LLUVIA', optRainOff: 'NO', optRainDrizzle: 'GARUA', optRainRain: 'LLUVIA', optRainStorm: 'TORMENTA',
+    // NIEBLA DE GUERRA: el velo de los COSTADOS (render/marco.js). Es preferencia, no dificultad
+    // — no tapa nada que te pueda pegar. La otra NIEBLA, la de abajo, si.
+    optMarco: 'NIEBLA DE GUERRA',
+    optMarco_off: 'DESACTIVADO', optMarco_bruma: 'BRUMA', optMarco_focus: 'FOCUS',
     optTerrain: 'TERRENO', optTerrainSea: 'MAR', optTerrainLand: 'TIERRA', optTerrainCoast: 'COSTA',
     optWind: 'VIENTO',
     // NIEBLA: dificultad, no ambiente (ver systems/fog.js)
@@ -228,6 +237,9 @@ export const STRINGS = {
     pulso_pasaste: 'TE PASASTE DE LARGO', pulso_otra: 'ENCARANDO DE NUEVO',
     pulso_fallo_err: 'SE TE FUE LA MANO', pulso_fallo_t: 'SE TE PASO EL TIEMPO',
     pulso_pasadas: 'PASADAS',
+    pulso_elegi: 'ELEGI BLANCO',
+    pulso_z_radar: 'RADAR', pulso_z_bridge: 'PUENTE', pulso_z_deposit: 'POLVORIN',
+    pulso_why: 'Se te fue la pasada',
     death_pulso: 'Se acabaron las pasadas',
     arena_out: '! FUERA DE LA ZONA DE COMBATE !', arena_auto: 'REENCARANDO AL BLANCO',
     // PASADA: el otro climax — a ras, saltar, soltar y salir (docs/sistemas/SPEC_MODO_PASADA.md).
@@ -886,6 +898,9 @@ export const STRINGS = {
     death_aa: 'The barge defenses shot you down',
     death_fuel: 'You ran out of fuel over the target',
     death_pasada: 'The squadron was spent and the ship sailed on',
+    death_caza: 'A Sea Harrier got on your tail',
+    caza_warn: 'BREAK, {c}! ON YOUR SIX!',
+    caza_out: 'The Brit ran out of fuel.',
     freeControl: 'FREE CONTROL!', rasante: 'LOW PASS x{n}!', afterburner: 'AFTERBURNER x{n}!',
     aimFixed: 'AIM LOCKED', aimFree: 'AIM FREE',
     thrDown: 'PITCH: ↓ CLIMB', thrUp: 'PITCH: ↑ CLIMB',
@@ -978,6 +993,8 @@ export const STRINGS = {
     optSkyMoon: 'FULL MOON', optSkyDawn: 'DAWN',
     optWater: 'WATER', optWaterSea: 'SEA', optWaterViolet: 'VIOLET',
     optRain: 'RAIN', optRainOff: 'NO', optRainDrizzle: 'DRIZZLE', optRainRain: 'RAIN', optRainStorm: 'STORM',
+    optMarco: 'WAR FOG',
+    optMarco_off: 'OFF', optMarco_bruma: 'HAZE', optMarco_focus: 'FOCUS',
     optTerrain: 'TERRAIN', optTerrainSea: 'SEA', optTerrainLand: 'LAND', optTerrainCoast: 'COAST',
     optWind: 'WIND',
     optFog: 'FOG', optFogOff: 'NO', optFogLight: 'THIN', optFogThick: 'NEAR ZERO',
@@ -1054,6 +1071,9 @@ export const STRINGS = {
     pulso_pasaste: 'YOU OVERSHOT', pulso_otra: 'COMING AROUND AGAIN',
     pulso_fallo_err: 'YOUR HAND SLIPPED', pulso_fallo_t: 'YOU RAN OUT OF TIME',
     pulso_pasadas: 'PASSES',
+    pulso_elegi: 'PICK YOUR TARGET',
+    pulso_z_radar: 'RADAR', pulso_z_bridge: 'BRIDGE', pulso_z_deposit: 'MAGAZINE',
+    pulso_why: 'Your pass got away',
     death_pulso: 'Out of passes',
     arena_out: '! OUTSIDE THE COMBAT ZONE !', arena_auto: 'TURNING BACK TO TARGET',
     pasada_title: 'T H E   R U N',

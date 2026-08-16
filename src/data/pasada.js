@@ -128,6 +128,32 @@ export const PS = {
                          // lo que se esquiva es la soga, no el punto — y cuando la esquivas, la
                          // soga pasando de largo es la prueba visible de que lo hiciste bien
 
+  // ---- R2, LA DENSIDAD (PASADA_ADRENALINA §3) ----
+  // La vara de R0 midio el problema de fondo del §1.3: 6,1 SEGUNDOS seguidos con el mar vacio
+  // delante del morro. El PASILLO te tira algo cada 1-2 s y por eso "es infinitamente mejor" — su
+  // adrenalina es densidad y cercania, no dificultad. R2 llena la corrida sin subir una sola
+  // muerte: el conteo letal sigue siendo el de siempre (las columnas, el Dart y el Sea Cat).
+  GUN_FIRST_S: 1.5,      // cuando abre el cañon desde que entras. Antes era GUN_EVERY_S * 1.6
+                         // (4,6 s) — o sea que la mitad del ingreso pasaba en silencio. Abrir a
+                         // los 1,5 s no mata antes: mata igual, pero EMPIEZA antes
+  GUN_BRACKET: 2,        // salvas de HORQUILLA antes de tirar a matar. La horquilla no cae sobre
+                         // tu rumbo: te ENCUADRA — pasa a los costados, primero lejos y despues
+                         // cerca. Es como se rangea un cañon de verdad (se busca el blanco entre
+                         // dos fallos) y da espectaculo inmediato sin muerte injusta. Va de la
+                         // mano de GUN_AIM_SALVOS: las mismas salvas que tantean son las que
+                         // encuadran, asi que lo que se ve y lo que pasa son la misma cosa
+  HOSE_N: 2,             // MANGUERAS DE TRAZADORAS simultaneas. Es la imagen mas iconica de San
+                         // Carlos y el obstaculo del PASILLO traducido al climax: chorros curvos
+                         // de Bofors/Oerlikon barriendo el cielo, que se cruzan o se esquivan
+  HOSE_SWEEP_S: 3.5,     // lo que tarda un chorro en barrer su arco. El barrido CRUZA tu rumbo a
+                         // mitad de camino, siempre: por eso se puede aprender a pasar entre dos
+                         // y no es un dado. NO MATA — ver el §4 del plan, la regla madre: R2 sube
+                         // lo que se ve y se oye, jamas la letalidad
+  NEARMISS_R: 14,        // margen de ROCE, POR FUERA del radio letal. Pasar a menos de esto de una
+                         // columna (que mata a COL_R) o cruzar un chorro suma puntos, sacude y
+                         // suena. Es el premio del riesgo del pasillo traido a la pasada: sin el,
+                         // el fuego enemigo es solo un estorbo; con el, es una tentacion
+
   // ---- SEA CAT Y FUSILERIA — LA DEFENSA CORTA (RF-08) ----
   CAT_T: 3.4,            // segundos desde el lanzamiento hasta el impacto
   CAT_BREAK: 0.85,       // radianes de cambio de rumbo que lo pierden. El Sea Cat real era
@@ -182,15 +208,46 @@ export const PS = {
                          // los muertos los decide el guion (Vasco m7, Pichon m9), jamas el azar
 };
 
-// GEOMETRIA DE ENTRADA — DERIVADA de las perillas de arriba, no son perillas nuevas (§0.3: "no
-// inventar valores"). Se usan cuando se entra por sonda, sin pasillo del que heredar altura.
-export const ENTRY_D = PS.ZONE_R * 0.8;          // 1280 m: adentro de la zona y lejos del buque
+// GEOMETRIA DE ENTRADA. Se usa cuando se entra por sonda, sin pasillo del que heredar altura.
+//
+// R2 LA BAJO DE 1280 A 700, y es el cambio mas grande del rescate: 1280 metros a 110 m/s son ONCE
+// SEGUNDOS Y MEDIO de mar vacio antes de que empiece nada (§1.3). La corrida corta y densa es el
+// diseño (§4.5: "no estirar corridas para meter mas eventos" — lo contrario, acortarlas, es
+// exactamente lo que pedia). A 700 el ingreso dura ~6,4 s y arranca con el cañon a los 1,5.
+//
+// TIENE UNA CONSECUENCIA QUE HAY QUE DECIR: el Sea Dart no cabe en el ingreso. Su gate de R1
+// (DART_TTI_MIN) exige lanzar desde ~1260 m, y ademas nunca se lanza dentro de POPUP_DIST_M. O sea
+// que a partir de aca el misil de largo alcance es lo que castiga la CHANDELLE —volver por arriba,
+// lejos— y no la entrada. Es la opcion que el propio plan dejaba abierta ("lanzar desde fuera del
+// ingreso"), y la unica que no toca DART_TTI_MIN, que es la regla que arreglo la muerte sin lectura.
+export const ENTRY_D = 700;
 // ALTURA DE ENTRADA. Dejo de derivarse del techo de radar cuando el techo bajo de 35 a 10 m (la
 // mitad de 10 son 5 metros, y la cresta mata a 3,5). Es un numero propio y explicito, y elegido
 // para cumplir las dos cosas a la vez: aire suficiente bajo el avion, y POR DEBAJO DEL TECHO DE
 // RADAR — se llega como se llegaba de verdad, por abajo, y el misil de largo alcance no existe
 // hasta que subas. Con la entrada a 18 m, medido, TODA entrada se comia un Sea Dart.
 export const ENTRY_ALT = 8;
+
+// LA MANGUERA DE TRAZADORAS (R2) — geometria DERIVADA, no perillas nuevas (§0.3).
+export const HOSE = {
+  // ALCANCE: el mismo POPUP_DIST_M que ya marca "estas cerca". No es casualidad que coincida — el
+  // chorro de 40 mm es la capa de MEDIA distancia que el autor pidio en el playtest ("una vez que
+  // estamos mas cerca, antiaereos de mediano alcance"), y esa distancia ya estaba nombrada.
+  R: PS.POPUP_DIST_M,
+  // VELOCIDAD DE LA TRAZADORA: DART_V x3 = 750 m/s. Un Bofors de 40 mm salia a ~880; lo que
+  // importa para el juego es que la bala llegue en menos de un segundo y media, o sea que el chorro
+  // se vea COMO UN CHORRO —una linea viva de punta a punta— y no como una lluvia de puntitos.
+  V: PS.DART_V * 3,
+  // ARCO del barrido, a cada lado de tu rumbo. Es 1,4 rad porque tiene que EMPEZAR fuera de tu
+  // linea, cruzarla y salir del otro lado: si arrancara encima tuyo no habria nada que esquivar.
+  ARC: 1.4,
+  // ALTURA DE LA BOCA sobre el agua: la cubierta del buque. Los chorros nacen DEL BUQUE y se ve —
+  // el fuego con autor es la mitad de por que da miedo (§1.5).
+  Y: 22,
+  // cada cuanto sale una trazadora. Da ~15 balas vivas por chorro: se lee como un chorro y no
+  // cuesta 80 proyecciones por cuadro.
+  EVERY: 0.07,
+};
 
 // ---- LA BOMBA (P2) ----
 // El §6 del spec no trae daño de bomba: define la VENTANA (las bandas) pero no cuanto pega. Estos

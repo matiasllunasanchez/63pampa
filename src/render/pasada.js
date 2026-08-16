@@ -17,7 +17,7 @@ import { drawMira } from './miras.js';
 import { drawCockpit } from './momentum.js';
 import { drawThirdPlane, shipArrow, COCKPIT_Y } from './arena.js';
 import * as world3D from '../systems/three-arena.js';
-import { PS } from '../data/pasada.js';
+import { PS, HOSE } from '../data/pasada.js';
 import { shown as dmgShown } from '../systems/damage.js';
 
 /** ¿El efecto esta lo bastante ADELANTE como para dibujarlo?
@@ -231,6 +231,33 @@ export function drawPasada(w) {
       ctx.globalAlpha = Math.max(0, Math.min(0.85, f.life / PS.DART_SMOKE_LIFE * 0.85));
       px(hp.x - k / 2, hp.y - k / 2, k, k, '#2b3138');
       ctx.globalAlpha = 1;
+      continue;
+    }
+
+    // ---- LA MANGUERA DE TRAZADORAS (R2) ----
+    // La imagen mas iconica de San Carlos, y la respuesta directa al §1.3: el cielo deja de estar
+    // vacio. Cada bala es una raya corta en la direccion en que salio; la CURVA del chorro es la
+    // suma de todas — que es como se curva una manguera de verdad, porque lo que se curva no es la
+    // trayectoria de nadie sino el recorrido de la boca.
+    //
+    // No se culle por `adelante`: el chorro nace en el buque, que es lo que tenes de frente, y las
+    // balas que ya te pasaron son justamente las que dicen "por poco". Alcanza con `vis` y con
+    // recortar lo que se fue de cuadro.
+    if (f.k === 'hose') {
+      for (const b of f.balas) {
+        const dd = b.t * HOSE.V;
+        const hp = world3D.project(f.ox + b.dx * dd, f.oy + b.dy * dd, f.oz + b.dz * dd);
+        if (!hp.vis || hp.x < -20 || hp.x > W + 20) continue;
+        const rz = Math.max(0, dd - 34);
+        const tp = world3D.project(f.ox + b.dx * rz, f.oy + b.dy * rz, f.oz + b.dz * rz);
+        // las trazadoras van CALIENTES y salteadas: una de cada tres en el color de acento hace que
+        // el chorro titile como titila de verdad, sin dibujar una bala mas
+        ctx.strokeStyle = (b.t * 100 | 0) % 3 ? P.warn : P.accent;
+        ctx.globalAlpha = 0.85; ctx.lineWidth = 1;
+        if (tp.vis) { ctx.beginPath(); ctx.moveTo(tp.x, tp.y); ctx.lineTo(hp.x, hp.y); ctx.stroke(); }
+        else px(hp.x, hp.y, 1, 1, ctx.strokeStyle);
+        ctx.globalAlpha = 1;
+      }
       continue;
     }
 

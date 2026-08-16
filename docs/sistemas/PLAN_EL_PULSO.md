@@ -88,7 +88,7 @@ Es el clímax de MENOR costo de todos los diseñados — y el único sin deuda 3
 |---|---|---|
 | ~~**Q0**~~ ✅ | Datos: pool de secuencias (`data/pulso.js` — compases rotulados, dificultad por misión, mapa zona→secuencia→cinemática), perillas, strings es/en, sonda `?pulso` / `__qdbg()` | **hecho 16/8/2026**: `check` verde, el pool es data pura y cada compás sale del combo real de una pirueta |
 | ~~**Q1**~~ ✅ | El estado `'pulso'` mínimo: la aproximación 2D se aplana (tempo a ~0.1), cabina, el buque claro, UNA secuencia fija visible con cursor, acierto/fallo binario → victoria o re-encare corto | **hecho 16/8/2026**: ciclo completo medido por sonda — fallo por tiempo → re-encare → secuencia limpia → `results`. `check` verde, `feel` idéntico al baseline |
-| **Q2** | La prueba completa: compases rotulados (regla 2), autopista visible (regla 3), márgenes y escalada por nivel/`[H]`, perdón de 1 error en fácil, elección de blanco por secuencia, los 3 fallos con sus costos | fixture: perfecta gana; 1 error en fácil perdona; 3 fallos = derrota de siempre |
+| ~~**Q2**~~ ✅ | La prueba completa: compases rotulados (regla 2), autopista visible (regla 3), márgenes y escalada por nivel/`[H]`, perdón de 1 error en fácil, elección de blanco por secuencia, los 3 fallos con sus costos | **hecho 16/8/2026**: `npm run pulso` verde — perfecta gana, el perdón existe al principio y no al final, y los 3 fallos van a su costo. `check` verde (63 unit), `feel` idéntico |
 | **Q3** | La recompensa: cinemática compuesta (pirueta de `moves.js` + suelta + impacto por zona + muerte por clase), estrellas por perfección/velocidad/zona | dos zonas distintas producen dos cinemáticas distintas |
 | **Q4** | Integración: `climax: 'pulso'` en `missions.js` (el enchufe ya existe — `climaxOf()`), campaña con secuencias de la libreta, CICLO con pool básico, PATRIA/MINUTOS SAGRADOS intactos | cambiar el campo cambia el clímax sin código |
 | **Q5** | El teatro: latido que acelera, el mundo enmudecido salvo el corazón y las teclas, flak congelado alrededor (el peligro VISIBLE en pausa — estar quieto en el medio del fuego es la imagen del modo), sal/viñeta en la cabina, fixture completo `npm run pulso` | mirada muda: tensión sin leer nada |
@@ -140,3 +140,48 @@ cerrar Q1 (diff vacío contra el baseline guardado).
    llegar tarde. Es el default del plan y no se tocó, pero la escalada de Q2 debería arrancar más
    holgada. Y el buque, aunque ya se ve claro y entero, todavía no DOMINA el cuadro: agrandarlo es
    trabajo de la cinemática (Q3).
+   → **Resuelto en Q2**: `T_BEAT` arranca en **2,2 s** y baja a 1,1 s con el avance de campaña.
+   La presión la pone la escalada, no el primer compás. (Lo del tamaño del buque sigue abierto.)
+
+### Divergencias de Q2
+
+9. **El perdón escala por NIVEL, no por dificultad** (consecuencia directa de la divergencia 1).
+   `PULSO.ERR` (tabla fácil/normal/difícil) se reemplazó por `PULSO.ERR_LV = 0.3`: se perdona un
+   error mientras el avance de campaña esté en el primer 30%. Es la misma intención del plan —
+   perdonar mientras se aprende — atada a la única perilla que el juego tiene.
+10. **`t01` en vez de "nivel".** Toda la escalada (margen, largo, perdón) se calcula sobre el
+    **avance de campaña normalizado 0..1**, no sobre el número de misión: CICLO y PATRIA tienen
+    largos distintos y entran con su propia fracción sin que las cuentas sepan de misiones.
+11. **La matemática de la prueba vive en `core/pulso.js`**, no dentro del sistema — mismo lugar y
+    misma razón que `core/squad.js`: es lo único que, si se rompe, no da error ni se ve (la prueba
+    queda regalada o imposible y solo se descubre jugando). Ahí es testeable en node: 7 tests
+    nuevos en `npm run unit`, incluido el techo de ~10 s del §6.3 medido sobre el peor caso.
+12. **La configuración la inyecta `game.js` (`pulso.setCfg`)** y no la mira el sistema. Hacía falta
+    porque quien dispara la entrada es `systems/flight.js`, que no conoce la campaña ni la libreta:
+    sin este paso, `enter()` no tenía de dónde sacar el nivel sin llamar hacia arriba.
+13. **En campaña sin piruetas aprendidas la secuencia es SOLO el remate.** No es un pool vacío por
+    error: es la regla 1 llevada hasta el final — en la primera misión el examen es soltar bien,
+    que es lo único que el juego enseñó hasta ahí. La prueba se arma sola a medida que la libreta
+    crece.
+14. **El primer compás de cada zona se elige a propósito, no se sortea.** Como elegir blanco *es*
+    empezar a teclear, dos zonas que arrancaran con la misma tecla harían la elección ambigua. El
+    sorteo por reintentos no alcanzaba (el pool básico tiene 3 primeras teclas distintas nomás y
+    fallaba seguido: lo detectó el unit test); ahora se reparten las teclas libres de entrada.
+15. **El 3er fallo llama `die()` directo, no `onDeath()`.** Los intentos son de la **misión**, no
+    del avión: pasando por el relevo habría tantas pruebas como aviones tenga el escuadrón y el
+    "3 fallos y se pierde" del plan no existiría — se fallaría en bucle hasta quedarse sin nafta.
+16. **El 2º fallo se cobra por el camino de la PASADA GASTADA** (`{ spent }` → `onPassSpent`):
+    misma cinemática, misma cuenta, y el compañero vuelve **a la prueba** con los intentos y el
+    flak intactos. Volando solo (sin escuadrón que relevar) no hay avión que cobrar y el 2º fallo
+    cuesta lo mismo que el 1º: el 3º sigue siendo la derrota. `onPassSpent` tomó dos campos
+    opcionales (`why`, `dieWhy`) para no hablar siempre en nombre de la pasada.
+17. **La autopista se mudó al CIELO** (`LANE_Y` 74 → 34). A media altura se leía bien pero quedaba
+    escrita encima del buque, y la secuencia y el blanco son las dos cosas que hay que mirar: no
+    pueden pelearse el mismo pixel. El flak congelado, además, se dibuja **antes** de la cabina —
+    los estallidos están afuera del vidrio; encima parecían mugre en la pantalla.
+18. **Fixture propio: `npm run pulso`** (`tools/fixture_pulso.js`), con el criterio de cierre de Q2
+    medido — perfecta gana, un error se perdona en los primeros niveles y no al final, y los tres
+    fallos van cada uno a su costo. Dos sondas nuevas nacieron de pelearlo: `__qcfg` (re-entrar con
+    otro nivel: la única forma de ver la escalada sin jugar la campaña entera) y `__qhold` (colgar
+    el margen para las capturas — sacar una foto tarda más que la ventana de la prueba, así que sin
+    eso toda captura salía mostrando el fallo por tiempo). Ambas marcadas QUITAR.

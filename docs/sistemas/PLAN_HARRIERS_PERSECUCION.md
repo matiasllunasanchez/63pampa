@@ -172,4 +172,94 @@ cañones Aden de 30 mm contra A-4 (casos).
 > (nombres, estados, convenciones), con la decisión tomada — y el baseline de
 > `npm run feel` al arrancar H0. Este bloque es la memoria para la próxima pasada.
 
-- *(vacío)*
+### Baseline de `npm run feel` (tomado antes de tocar nada, al arrancar H0)
+
+`FEEL: OK` con estos números. **Se verificó idéntico tras H0 y tras H1** (diff literal del
+archivo: la única diferencia entre corridas es el PID de node en el warning de
+`MODULE_TYPELESS_PACKAGE_JSON`). Es la garantía del §6.4: el duelo lee el vuelo y no lo escribe.
+
+| bloque | valores |
+|---|---|
+| cabeceo | arriba 0.50 · abajo 0.50 |
+| energía | trepando 144 · picando 152 (dif +9) |
+| roce | margen 0.85 a spd 90 · 0.10 a fondo · escapa con gas en 0.40 s |
+| arena E1 | cabeceo 51.57° · morro pleno 0.63 s · picada mínimo 22.0 m · morro tras soltar 4.60° |
+| arena E2 | derrape sostenido 0.00° · máximo comandado 4.16° · vuelta completa 5.07 s · radio 86.95 m |
+| arena E3 | media vuelta 1.08 s · guiñada 180.92° · costo −19 m/s · radios 43 / 87 / 134 m · derrape 48° |
+| arena energía | trepar 4 s = 33.59 m/s · picar 144 m/s · freno 68.73 m/s |
+| momentum | barra llena 1.00 con 650 pts · lanzamiento 3.02 s |
+
+### Divergencias
+
+**H0 — el cimiento**
+
+- **H0.1 · El §3 sólo da siete perillas, y el ciclo necesita once.** Los defaults del plan
+  (`CAZA_SOL_T`, `CAZA_PASSES`, `CAZA_CAP_T`, `CAZA_WINDOW`, `CAZA_HP`, `CAZA_RAS_ALT`,
+  `CAZA_KILLABLE`) entraron **sin tocar**. Pero de las cinco fases del ciclo, el plan sólo pone
+  duración a una (la presión, "5–8 s", en prosa del §3 paso 2). Las otras cuatro se eligieron y
+  quedaron marcadas en `data/tuning.js` como bloque aparte: `CAZA_AVISO_T 1.6` ·
+  `CAZA_OVER_T 1.5` · `CAZA_RECOLA_T 2.4` · `CAZA_SALIDA_T 2.2`. **No son reglas de juego, son el
+  metrónomo de la coreografía**, y se tunean mirando, no midiendo.
+- **H0.2 · `CAZA_RAS_ALT 4.5` no es un número nuevo: es el techo de la racha rasante.** Coincide
+  exactamente con el `rasNow` de `systems/flight.js` y con la banda del ×10 de `core/util.js`. Se
+  dejó como constante propia igual (el duelo no debe importar del vuelo), pero está anotado en el
+  comentario: **una sola banda, dos premios** — que es la tesis del §2 hecha número.
+- **H0.3 · Falta geometría, y sin ella no hay dónde poner al caza.** Se agregaron `CAZA_Z_COLA 6`
+  (detrás: el avión vuela en `PZ` = 14) · `CAZA_Z_FRENTE` · `CAZA_X_COLA 26` · `CAZA_MISS 7`. Son
+  unidades de MUNDO, el mismo espacio que obstáculos y balas.
+- **H0.4 · El §6.6 ("no aparece en ARENA/PASADA/MINUTOS SAGRADOS") no se implementó como
+  chequeo.** Se implementó como **ausencia de lugar desde donde correr**: `cazaSystem` se llama
+  únicamente dentro de la rama `'play'` de `update()`. Un chequeo de estado se puede olvidar al
+  agregar una fase; no tener llamada, no.
+- **H0.5 · El duelo escribe UNA cosa del jugador: `run.shake`.** El §6.4 protege la *física*, y el
+  sacudón no lo es — es el mismo canal de feedback de cámara que ya usan el roce, las explosiones
+  y el afterburner, y `npm run feel` no lo mira. Queda anotado porque es la única excepción y no
+  debería crecer.
+
+**H1 — el pase fantasma**
+
+- **H1.1 · La curva del sobrepaso importa más que su duración.** La primera versión usaba un
+  suavizado simétrico (smoothstep) y el caza cruzaba tu `z` en los primeros 200 ms: el golpe
+  existía y **no se veía**. Con `f^2.2` (lento al arrancar, rápido al final) se queda grande la
+  primera mitad y después se va de golpe. `CAZA_OVER_T` subió 1.15 → 1.5 por lo mismo.
+- **H1.2 · El sobrepaso se salía del cuadro, y el arreglo se midió contra el borde.** En su
+  momento más grande el caza está en z ≈ 9 (escala 15) y el sprite mide ahí ~158 px de los 480 del
+  mundo; el cuadro llega a 240 desde el centro. Para que entre entero su centro no puede pasar de
+  ~10 unidades del eje: el factor lateral bajó de 0.55 a **0.20**. Con 0.35 lo que se veía era
+  media ala pisando la barra de GAS.
+- **H1.3 · `CAZA_Z_FRENTE` bajó de 118 a 62 porque la ventana salía VACÍA.** A 118 la escala es
+  1.14 y el caza medía 12 px pegado a la línea del horizonte, entre las montañas del fondo. La
+  ventana es la fase en la que te toca tirarle a él — **un blanco que no se ve no es una ventana,
+  es un hueco**. A 62 mide 24 px y se despega del horizonte.
+- **H1.4 · La ráfaga es un chorro, no una salva.** Los proyectiles salían los seis en el mismo
+  cuadro, cruzaban juntos en 0,7 s y dejaban un segundo largo de mar vacío: se leía como un
+  parpadeo. Ahora cada uno espera su turno (`wait`, 60 ms) y `CAZA_TRAC_GAP` bajó de 1.1–2.2 a
+  **0.7–1.4**. Medido en captura: con los valores viejos, la foto de las trazadoras salía **sin
+  una sola trazadora**. El aviso tiene que ser continuo o no es aviso.
+- **H1.5 · La estela de las trazadoras se muestrea largo.** Con 3 tramos de 3 unidades, a media
+  distancia cada trazadora quedaba en un píxel suelto — caspa sobre el mar. Un proyectil a 340
+  u/s recorre 5,7 por cuadro, así que la traza tiene que abarcar varios cuadros de vuelo: 7 tramos
+  de 5,5 (38 unidades de mundo). Misma técnica que `render/ammo.js`, otras constantes.
+- **H1.6 · El render del caza va en DOS pasadas, no en una.** El caza cruza de z 6 (más cerca de
+  la cámara que tu propio avión) a z 62 (delante). No hay una capa correcta: `drawCaza(true)` va
+  con el mundo y `drawCaza(false)` después de `drawPlane`. Las trazadoras se reparten por el mismo
+  criterio, así que una que te pasa al lado se dibuja encima del ala y no debajo.
+- **H1.7 · El placeholder de arte necesitó tres líneas en un módulo compartido.**
+  `render/enemies.js:drawFrame` ya tenía el mecanismo del flash blanco pero sólo en blanco; se le
+  agregó un parámetro `dark` (0..1) con `source-atop`. Es genérico y sirve para cualquier bicho a
+  contraluz, no sólo para esto. El Harrier de cola es hoy el `jet` de frente oscurecido al 50% y
+  angostado al 74%, con llama de tobera propia — los tres números se van con la hoja real en H5.
+  **No bloquea nada** (regla P2): si la hoja no cargó, hay una silueta dibujada a mano.
+- **H1.8 · El pico del sobrepaso no se puede medir desde el proceso principal.** Muestreando cada
+  90 ms desde afuera, cada ida y vuelta costaba más que el intervalo y el pico medido saltaba de
+  z 12 a z 51 entre corridas: el número era del scheduler, no del juego. El muestreo se mudó
+  adentro del rAF (sólo viaja un número por cuadro). Es la misma lección que ya traía el `SAMPLER`
+  de `tools/fixture_pasada.js`, y este repo la aprendió dos veces.
+- **H1.9 · El fixture necesitó una sonda de CALMA (`__czcalma`).** El ciclo completo dura casi un
+  minuto y juzgar la coreografía no puede depender de no comerse un mástil en el medio. Vacía el
+  pasillo — mismo criterio que `__pdef(0)` en la PASADA: la sección que mide una cosa apaga lo que
+  no está midiendo. En el juego normal está siempre apagada.
+- **H1.10 · Las capturas encontraron los tres bugs de legibilidad de esta fase** (H1.2, H1.3,
+  H1.4) y **ninguna aserción los habría visto**: el fixture daba verde con la ventana vacía y con
+  la foto de las trazadoras sin trazadoras. El criterio de H1 es una *mirada muda* y hay que
+  mirarlo de verdad. Se agregó `npm run caza` con `CAZA_SHOTS=<dir>` justamente para eso.

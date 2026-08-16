@@ -191,6 +191,42 @@ export const VEIL_FULL = 0.995;
 export const VEIL_MAX = 0.97;
 export const VEIL_OUT = 1.1;
 
+// — EL MARCO: LA NIEBLA DE GUERRA DE LOS COSTADOS —
+//
+// Un velo lateral que tapa lo que NO es pasillo: los dos costados del mundo, afuera del carril
+// por donde puede venir algo. Enmarca la zona jugable, que hasta ahora se aprendia muriendo
+// contra un borde invisible.
+//
+// SE LLAMA "MARCO" Y NO "NIEBLA" A PROPOSITO: `cfg.fog` (systems/fog.js) ya es la niebla —
+// bancos de bruma que TAPAN OBSTACULOS y son una perilla de dificultad. Esto es lo contrario:
+// no esconde nada que te pueda pegar, y por eso no puede llamarse igual. En pantalla, para el
+// jugador, la fila se lee NIEBLA DE GUERRA.
+//
+// DONDE VA EL BORDE INTERNO — y por que esto no es un adorno con trampa. El carril se proyecta
+// como una cuña que converge en el horizonte: a la fila `dy` bajo el horizonte, el borde del
+// pasillo cae a MARCO_X * dy / cam.y pixeles del centro. El velo NUNCA cruza esa linea, asi que
+// por construccion no puede tapar un obstaculo — nacen todos dentro de SPAWN_X. MARCO_X le suma
+// un margen a SPAWN_X para que tampoco recorte el ALA del que nace en el carril extremo.
+//
+// Consecuencia geometrica que hay que aceptar: en el primer plano el carril es MAS ANCHO que la
+// pantalla (a la fila 172 sus bordes ya se salieron), asi que ahi no hay costado que tapar y el
+// velo se termina solo. El marco vive en el tercio de arriba — que es justo donde mirás para
+// leer lo que viene.
+export const MARCO_X = SPAWN_X + 8;       // semi-ancho PROTEGIDO, en unidades de mundo
+export const MARCO_REACH = 0.26;          // cuanto entra el velo desde cada borde, en fracciones de W
+// OPACIDAD tope, por modo. El negro tapa mas que el blanco a igual alfa (el mundo es oscuro),
+// asi que FOCUS va un punto mas bajo para que los dos se sientan igual de densos.
+export const MARCO_A = { bruma: 0.58, focus: 0.52 };
+export const MARCO_COL = { bruma: '#e6edf2', focus: '#04070a' };
+// CIELO: arriba del horizonte el carril no significa nada (no hay suelo que converja), pero
+// cortar el velo justo en la linea del horizonte deja un escalon que se ve. Asi que sube y se va
+// apagando hasta MARCO_SKY en el tope de la pantalla.
+//
+// Y SE APAGA MUCHO. En las esquinas de arriba vive el HUD —el puntaje, el escuadron, la pista de
+// musica—, todo texto gris claro: con bruma blanca detras a media opacidad deja de leerse. El
+// velo puede lavar el mundo, no los instrumentos.
+export const MARCO_SKY = 0.05;
+
 export const SHIP_UH = 13.5;    // modulo de altura del casco ("uh"); el casco mide uh*1.5
 export const SHIP_DECK = 54;    // cubierta, bajo el horizonte
 
@@ -322,3 +358,63 @@ export const SEA_FOAM_TH = { calm: 0.88, breeze: 0.78, storm: 0.62 };  // umbral
 export const SEA_WIND_AMP = 0.45;   // termino direccional de viento en seaH
 // camino del sol (F6)
 export const SUN_GLINT_HALF = 26;   // semiancho del cono de destellos (unidades de mundo en x)
+
+// ---------- LA COLA: EL HARRIER EN LA COLA (PLAN A) ----------
+// Plan y porque: docs/sistemas/PLAN_HARRIERS_PERSECUCION.md — §1 la dinamica (de donde sale cada
+// regla), §2 la verdad historica que la sostiene, §3 el plan por fases, §6 lo que NO hacer.
+//
+// LA TESIS, otra vez y en su forma mas dura: el Sea Harrier era EL depredador del A-4 y las
+// perdidas aire-aire fueron todas en un sentido. Pero los A-4 escapaban ABAJO — a ras del mar la
+// solucion de tiro y el ambiente degradaban al cazador. O sea que el evento mas peligroso del
+// PASILLO se sobrevive volando donde el juego ya te paga por volar: la banda del x10.
+// Por eso CAZA_RAS_ALT es 4.5 y no otro numero — es EXACTAMENTE el techo de la racha rasante
+// (`rasNow` en systems/flight.js y el multiplicador de core/util.js). Una sola banda, dos premios.
+
+// --- las perillas del §3 (defaults del plan, sin tocar) ---
+export const CAZA_SOL_T = 3.5;      // s de rumbo predecible que le lleva MADURAR la solucion de tiro
+export const CAZA_PASSES = 3;       // pasadas maximas antes de que se vaya (uno solo por vez: §6.2)
+export const CAZA_CAP_T = 45;       // s de estacion de la CAP: cumplido el reloj, se va (§2, el alivio)
+export const CAZA_WINDOW = 3;       // s que dura la ventana frontal, cuando queda adelante tuyo
+// AHUYENTARLO es lo normal; DERRIBARLO es la hazaña. Ningun Harrier cayo en combate aire-aire
+// (§2), asi que el derribo sale tres veces mas caro que romperle el ataque.
+export const CAZA_HP = { ahuyenta: 6, derribo: 18 };
+export const CAZA_RAS_ALT = 4.5;    // debajo de esta altura su punteria casi no progresa
+export const CAZA_KILLABLE = true;  // el derribo EXISTE (raro y carisimo); false lo vuelve solo ahuyentable
+
+// --- lo que el §3 NO da y el ciclo necesita (anotado como divergencia en §9 del plan) ---
+// El plan da la duracion de la PRESION en prosa ("5-8 s", §3 paso 2) y nada mas: las otras cuatro
+// fases del ciclo no tienen numero. Estos son los elegidos, con su razon — ninguno es una regla de
+// juego, son el METRONOMO de la coreografia y se tunean mirando, no midiendo.
+export const CAZA_PRES_T = [5, 8];  // s de presion antes del sobrepaso (el sorteo, por pasada)
+export const CAZA_AVISO_T = 1.6;    // s entre la primera trazadora y el aviso por radio: el tell tiene
+                                    // que llegar ANTES que el avion, pero no tanto como para no asustar
+export const CAZA_OVER_T = 1.5;     // s del sobrepaso. Es corto a proposito: el cruce cercano es un
+                                    // GOLPE (§1, "el enemigo ocupando un tercio de la pantalla"), no
+                                    // un desfile — estirarlo lo vuelve una animacion de vitrina.
+                                    // 1.15 → 1.5 mirando la primera captura: con la curva f^2.2 la
+                                    // mitad del tiempo lo pasa GRANDE, y 1.15 dejaba menos de medio
+                                    // segundo de "esta encima" (ver stepPos)
+export const CAZA_RECOLA_T = 2.4;   // s que tarda en volver a la cola tras una ventana desperdiciada
+export const CAZA_SALIDA_T = 2.2;   // s de la huida final, para que la salida se VEA (no se teletransporta)
+
+// GEOMETRIA del duelo, en unidades de MUNDO (la misma z que obstaculos y balas; el avion vuela en
+// PZ = 14). Tambien fuera del §3: son las posiciones que hacen legible la coreografia.
+export const CAZA_Z_COLA = 6;       // z del caza mientras presiona: DETRAS tuyo (PZ es 14)
+// z donde queda tras el sobrepaso. 118 → 62 mirando la captura de la ventana, que salio VACIA: a
+// 118 la escala es 1,14 y el caza medía 12 px pegado a la linea del horizonte, entre las montañas.
+// La ventana es la fase en la que te toca tirarle A EL — un blanco que no se ve no es una ventana,
+// es un hueco. A 62 mide 24 px y se despega del horizonte, que es lo minimo para apuntarle.
+export const CAZA_Z_FRENTE = 62;
+export const CAZA_X_COLA = 26;      // cuanto se abre de tu carril mientras presiona (asoma por el borde)
+export const CAZA_MISS = 7;         // a cuanto de tu ala pasan las trazadoras: cerca para que asuste,
+                                    // lejos para que se lea que PASARON y no que te pegaron
+
+// LAS TRAZADORAS QUE TE PASAN DE LARGO (H1). Son el tell canonico del §1: el aviso llega ANTES que
+// el avion, y son el UNICO aviso garantizado cuando la radio no llega (§2). Van rapido y en
+// rafagas cortas y espaciadas: un chorro continuo se lee como decorado y deja de asustar.
+export const CAZA_TRAC_V = 340;     // velocidad propia hacia adelante (se ve CRUZAR, no flotar)
+export const CAZA_TRAC_N = [5, 8];  // proyectiles por rafaga
+// 1.1-2.2 → 0.7-1.4 mirando las capturas: una rafaga tarda ~0.8 s en cruzar de punta a punta, asi
+// que con el hueco viejo la pantalla quedaba VACIA mas de la mitad del tiempo y el tell no se leia
+// (en la captura de las trazadoras no habia ni una). El aviso tiene que ser continuo o no es aviso.
+export const CAZA_TRAC_GAP = [0.7, 1.4];  // s entre rafagas

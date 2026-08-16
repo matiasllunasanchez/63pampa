@@ -14,7 +14,8 @@ import { run } from '../core/run.js';
 // de vida elegido en OPCIONES. Chocar algo sigue matando siempre — ver core/damage.js.
 import * as dmg from './damage.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, prune } from '../core/world.js';
-import { proj, popup, explodeAt, bloodBurst } from '../core/fx.js';
+import { proj, popup, explodeAt, bloodBurst, morir, stepDestruccion } from '../core/fx.js';
+import { CHUNK_LIFE } from '../data/despiece.js';
 import { sfxOne, beep, boom } from '../systems/audio.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
@@ -80,6 +81,10 @@ export function collisionSystem(dt) {
     // el jet viene de frente (cierra mas rapido) y la OLA RUEDA hacia vos: su velocidad propia se
     // SUMA a la relativa, que es lo que hace que una ola se te venga encima aunque frenes
     o.z -= (run.spd + (o.type === 'jet' ? 45 : o.type === 'ola' ? OLA_SPD : 0)) * dt;
+    // ESCOMBRO EN VUELO (PLAN_DESTRUCCION D0): el pedazo ademas de retroceder con el mundo lleva
+    // SU inercia — el `vz` es velocidad RELATIVA al mundo, por eso se suma encima del scroll. Es
+    // lo que hace que lo que reventaste salga disparado hacia adelante en vez de quedarse clavado.
+    if (stepDestruccion(o, dt)) continue;   // escombro, secundarias y humo: FX puro, no colisiona
     // BOMBA cayendo: baja hasta el suelo y ahi se convierte en HONGO (obstaculo de nube)
     if (o.type === 'bomb' && o.y > 0) {
       o.y -= o.vy * dt;
@@ -204,7 +209,11 @@ export function collisionSystem(dt) {
           // COSA CHICA (nido de ametralladoras, antiaereo de campaña...): del tamaño de un
           // soldado, asi que la choca y sigue. Golpea fuerte pero no derriba — ver SOFT_H.
           run.score += Math.round(90 * run.multShow); stats.air++;
-          explodeAt(o.x, o.h / 2, PZ, false); sfxOne('exXsmall');
+          sfxOne('exXsmall');
+          // D1: lo chico tambien se despieza. No te mata (es del tamaño de un soldado), pero se
+          // ROMPE — pasarle por encima a un nido y verlo seguir ahi era la mitad del problema.
+          // D2: y muere con SU receta (chispazo metalico, su humo), no con la explosion generica.
+          morir(o, { vz: run.spd, vy: 4 });
           softHit('hitSmall', 0.55);
           o.z = -99; o.done = true;
         } else if (o.type === 'tent') {
@@ -212,15 +221,37 @@ export function collisionSystem(dt) {
           const pts = Math.round(200 * run.multShow);
           run.score += pts; stats.air++; run.shake = Math.min(6, run.shake + 2);
           const s = proj(o.x, 1, PZ); popup(s.x, s.y - 10, T('tentDown') + ' +' + pts, P.warn);
-          explodeAt(o.x, 1, PZ, false); sfxOne('exXsmall');
+          sfxOne('exXsmall');
+          // D1: la carpa deja JIRONES — lona liviana que vuela alto y lejos con tu velocidad.
+          // Atravesarla sigue sin matar: la letalidad no se toca (§4.1), solo se ve el destrozo.
+          // D2: y SIN bola de fuego — es lona: jirones y polvo (por eso va por morir(), que sabe
+          // que esta receta no tiene bola).
+          morir(o, { vz: run.spd, vy: 8 });
           o.z = -99; o.done = true;
-        } else return { death: o.type === 'cliff' ? 'death_cliff'
+        } else {
+          // ---- D1: LA DESTRUCCION MUTUA (PLAN_DESTRUCCION) ----
+          // Hasta acá, chocar contra un destructible te mataba a vos y el objeto quedaba INTACTO
+          // mirando tus pedazos pasar. Ahora revienta también — y el impulso de SU despiece es TU
+          // velocidad: los pedazos salen disparados hacia adelante, mezclados con los tuyos.
+          //
+          // LA LETALIDAD NO CAMBIA (§4.1): abajo se devuelve la misma muerte de siempre. Esto es
+          // presentación, no gameplay — embestir sigue costando el avión.
+          //
+          // El acantilado queda afuera: es terreno, no un objeto. Reventarlo sería mentir sobre
+          // de qué está hecho el mundo.
+          if (o.type !== 'cliff') {
+            sfxOne(o.type === 'depot' || o.type === 'lcu' ? 'exXheavy' : 'exXsmall');
+            morir(o, { vz: run.spd, vy: 4 });
+            o.z = -99; o.done = true;               // el objeto ya no está: sus restos son lo que queda
+          }
+          return { death: o.type === 'cliff' ? 'death_cliff'
           : o.type === 'mast' ? 'death_mast' : o.type === 'tree' ? 'death_tree'
           : o.type === 'tower' ? 'death_tower' : o.type === 'poles' ? 'death_wire'
           : o.type === 'flag' ? 'death_flag' : o.type === 'depot' ? 'death_depot'
           : o.type === 'aa' || o.type === 'aatruck' ? 'death_aagun' : o.type === 'radar' ? 'death_radar'
           : o.type === 'bldg' ? 'death_bldg' : o.type === 'lcu' ? 'death_lcu'
           : o.type === 'helo' ? 'death_helo' : o.type === 'jet' ? 'death_jet' : 'death_balloon' };
+        }
       } else if (dx < 3 && dy < 3) {
         const pir = run.rollT > 0 || mvTight(run.mv);    // rozar EN PIRUETA: bonus grande (estilo)
         const pts = pir ? 250 : 75;
@@ -281,7 +312,9 @@ export function collisionSystem(dt) {
       }
     }
   }
-  prune(obstacles, o => o.z > 2 && !((o.type === 'boom' || o.type === 'airboom') && o.boomT > 6));
+  prune(obstacles, o => o.z > 2 && !((o.type === 'boom' || o.type === 'airboom') && o.boomT > 6)
+    && !(o.type === 'chunk' && (o.chunkT > CHUNK_LIFE || o.z > 235))
+    && !(o.type === 'humo' && o.humoT > o.humoMax));
 
   // misiles
   for (const m of missiles) {
@@ -334,7 +367,9 @@ export function collisionSystem(dt) {
           run.score += pts; stats.air++;
           sfxOne(air ? 'exMedium' : 'exXsmall');   // aeronaves: medium · blancos chicos: xsmall
           const s = proj(o.x, oy, o.z); popup(s.x, s.y - 8, '+' + pts);
-          explodeAt(o.x, oy, o.z, air);
+          // D2: muere con SU receta. La bala ademas EMPUJA — poquito, pero hacia adelante: el
+          // escombro sale para el lado del que disparo, que es de donde vino la energia.
+          morir(o, { vz: 34 });
           o.z = -99; o.done = true;   // done=true: evita que el obstáculo muerto dispare la colisión del avión
         } else { beep(300, 0.05, 'triangle', 0.04); }
         break;
@@ -383,7 +418,8 @@ export function collisionSystem(dt) {
         const pts = (o.type === 'helo' ? 300 : o.type === 'jet' ? 250 : 150) + 100;   // +bonus por misil
         run.score += pts; stats.air++;
         const s = proj(o.x, o.y, o.z); popup(s.x, s.y - 8, '+' + pts, P.accent);
-        explodeAt(o.x, o.y, o.z, true);
+        morir(o, { vz: 60, vy: 6 });   // el misil irradia mas que la bala
+
         o.z = -99; o.done = true; o.hp = 0;                 // done=true: no puede chocar al avión luego
         pm.z = 9999; break;
       }
