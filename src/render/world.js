@@ -1578,7 +1578,16 @@ function approachF(p) {
   const at = momentum.phases()[0].at;
   return Math.max(0, Math.min(1, (p - BARGE_T0) / (at - BARGE_T0)));
 }
-export function drawApproachBarge(objectiveDist, objectiveShip) {
+// GEOMETRIA DEL BUQUE tal como quedo dibujado este cuadro. La necesita EL PULSO para poner el
+// impacto, el fuego y la ristra de bombas EN el buque — y tiene que salir de aca y no recalcularse
+// alla, porque la escala y el cabeceo son una cuenta larga y dos copias se desincronizan solas.
+let LAST_BARGE = null;
+export const bargeGeom = () => LAST_BARGE;
+
+/** `fx` (o null): lo que EL PULSO le esta haciendo al buque durante la cinematica del premio —
+ *  `grow` cuanto crece (la caida encima), `tilt` cuanto escora, `sink` cuanto se hunde. Llega por
+ *  parametro desde game.js: el sistema no llama al render ni el render mira al sistema. */
+export function drawApproachBarge(objectiveDist, objectiveShip, fx) {
   const ph = momentum.phase(), PH = momentum.phases();
   if (objectiveDist <= 0 || ph >= PH.length) return;
   // EL PULSO dibuja el MISMO buque que venia creciendo en el pasillo: la prueba pasa delante de
@@ -1591,7 +1600,9 @@ export function drawApproachBarge(objectiveDist, objectiveShip) {
   const f = Math.max(0, Math.min(1, (p - t0) / (next.at - t0)));
   const sc0 = ph === 0 ? 0.04 : PH[ph - 1].scale * 1.06;  // continua donde quedo la pasada anterior
   const scE = next.scale * 0.82;
-  const sc = sc0 + (scE - sc0) * f;
+  // el `grow` del PULSO se multiplica ACA, antes de derivar uh/hullH/eslora: asi el buque crece
+  // ENTERO y clavado en su linea de flotacion, en vez de estirarse.
+  const sc = (sc0 + (scE - sc0) * f) * ((fx && fx.grow) || 1);
   const uh = SHIP_UH * sc, hullH = uh * 1.5;
   const bx = bargeCol(ph === 0 ? f : 1) + Math.sin(run.t * 0.8) * 9 * sc;
   // FLOTACION CLAVADA EN EL HORIZONTE (playtest 7/8: "el barco aparece por debajo del
@@ -1607,7 +1618,9 @@ export function drawApproachBarge(objectiveDist, objectiveShip) {
   // el casco esta entero afuera, las nubes ya le estan tapando la mitad de abajo.
   const reveal = ph === 0 ? Math.min(1, f / 0.45) : 1;
   const sink = (1 - reveal) * (hullH + uh * 3.2);                  // cuanto sigue detras del horizonte
-  const waterY = HOR + wOff + Math.sin(run.t * 1.3) * 1.8 * sc;    // linea de flotacion en pantalla
+  // linea de flotacion en pantalla. El `drop` de EL PULSO la baja durante el premio: el buque se
+  // despega del horizonte y se viene encima, que es lo que hace la camara cuando le caes arriba.
+  const waterY = HOR + wOff + ((fx && fx.drop) || 0) + Math.sin(run.t * 1.3) * 1.8 * sc;
   const by = waterY - hullH + sink;                                // cubierta, hundida mientras este lejos
   // DISIPACION/MATERIALIZACION: un solo reloj para los dos fundidos cruzados (corre con p, el
   // viaje entero, no con la ventana f de crecimiento del casco). Las nubes van de 0.8 a 0.1 y
@@ -1616,12 +1629,21 @@ export function drawApproachBarge(objectiveDist, objectiveShip) {
   const dis = ph === 0 ? Math.max(0, Math.min(1, (p - t0) / (0.97 - t0))) : 1;
   ctx.save();
   ctx.beginPath(); ctx.rect(-80, -80, W + 160, waterY + 2 + 80); ctx.clip();   // el mar tapa lo hundido
+  // MUERTE (EL PULSO): escora y se hunde. El giro va DESPUES del recorte y no antes — el recorte
+  // es la superficie del mar, que no se inclina: lo que se hunde es el buque, no el oceano.
+  if (fx && (fx.tilt || fx.sink)) {
+    ctx.translate(bx, waterY); ctx.rotate(fx.tilt); ctx.translate(-bx, -waterY);
+  }
+  const byF = by + (fx ? fx.sink * hullH : 0);
+  // la cubierta que se publica es la HUNDIDA y con la escora: el fuego y el impacto de EL PULSO se
+  // pegan al buque que se ve, no al que estaria si no se estuviera yendo a pique
+  LAST_BARGE = { bx, by: byF, uh, hullH, waterY, len: W * 0.82 * sc, sc, tilt: (fx && fx.tilt) || 0 };
   // SILUETA a contraluz (playtest 6/8): el buque va casi negro con luz de canto — cualquier
   // obstaculo (olivas y grises claros) se lee ENCIMA. La bruma de color queda solo para los
   // primeros metros; el alfa de arriba es el que manda la aparicion.
   const haze = ph === 0 ? 0.34 * (1 - f) * (1 - f) : 0;
   ctx.globalAlpha = 0.15 + 0.85 * dis;
-  momRender.drawBargeHull(bx, W * 0.82 * sc, by, uh, run.t, haze, theme.sky.horizon);
+  momRender.drawBargeHull(bx, W * 0.82 * sc, byF, uh, run.t, haze, theme.sky.horizon);
   ctx.globalAlpha = 1;
   ctx.restore();
   // el banco de nubes va DESPUES del casco (lo tapa por la mitad) y ANTES de los enemigos, que
@@ -1629,7 +1651,11 @@ export function drawApproachBarge(objectiveDist, objectiveShip) {
   // mismo reloj `dis` que la materializacion del casco: banco cerrado de lejos (0.8) que se
   // disipa en escalera hasta 0.1 — nunca a cero; lo que termina de tapar es el velo negro.
   if (ph === 0) drawShipClouds(bx, waterY, W * 0.82 * sc, uh, hullH, dis);
-  if (sc > 0.28) {   // ya cerca: nombre sobre el barco
+  // EL NOMBRE SE CALLA EN EL PULSO. Escrito sobre el buque cae justo donde la prueba pone la
+  // eleccion de blanco (se vio volando el pasillo entero hasta la prueba, Q4): "HMS ARDENT"
+  // encima del renglon del POLVORIN. El buque ya se presento en el briefing y en el pasillo; en
+  // la prueba lo que hay que leer son las zonas.
+  if (sc > 0.28 && S.state !== 'pulso') {   // ya cerca: nombre sobre el barco
     ctx.font = '9px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.warn; ctx.globalAlpha = 0.85;
     ctx.fillText(objectiveShip, bx, by - uh * 4.6);
     ctx.globalAlpha = 1;

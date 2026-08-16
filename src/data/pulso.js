@@ -44,6 +44,62 @@ export const PULSO = {
   REENCARE_T: 3.4,
 };
 
+// ---------------- LA RECOMPENSA (plan §3, fase Q3) ----------------
+// Los COMPASES de la cinematica del premio, en segundos REALES. El techo de ~10 s del plan (§6.3)
+// mide LA PRUEBA —lo que se juega— y no esto: el premio es la unica parte del modo donde el
+// jugador no tiene nada que hacer, y por eso se cuenta aparte y se mantiene corto.
+//
+// La suma (≈5.3 s por el estirado de la clase) es deliberadamente mas larga que el re-encare del
+// fallo (3.4 s): ganar tiene que durar mas que errar.
+export const PULSO_CINE = {
+  PIRUETA: 1.15,   // el avion vuela LA maniobra que se tecleo (la corre systems/moves.js)
+  SUELTA: 0.85,    // la ristra cayendo — el unico tramo en que no pasa nada mas: es el silencio
+  IMPACTO: 0.7,    // el estallido en la zona elegida
+  MUERTE: 2.6,     // el buque muriendo (se estira por clase: ver PULSO_CLASE.sink)
+  BOMBAS: 4,       // cuantas bombas tiene la ristra (canon de PASADA §8b)
+  // el mundo VUELVE A CORRER cuando arranca el premio: el tiempo dilatado se suelta en esto.
+  DESHIELO: 0.5,
+  // cuanto CRECE el buque durante el premio. El pendiente honesto de Q1 era que el blanco no
+  // domina el cuadro; se resuelve aca y no antes a proposito — durante la prueba el buque no
+  // puede tapar la autopista, y en el premio la autopista ya no existe.
+  ZOOM: 2.4,
+  // …y cuanto BAJA en el cuadro mientras crece (pixeles de mundo). Un buque clavado en el
+  // horizonte no puede dominar nada: la unica forma de que llene la vista es que se venga al
+  // centro de la banda que la cabina deja libre.
+  DROP: 16,
+  // cuanto BAJA LA CABINA durante el premio. No es rediseñarla: es la misma cabina corrida, para
+  // abrir cielo justo cuando lo que hay que mirar es el buque y ya no hay autopista que leer.
+  CABINA: 44,
+};
+
+// ---------------- EL TEATRO (plan §5, fase Q5) ----------------
+// Lo que hace que la prueba se SIENTA sin que haya nada nuevo que leer. El criterio del plan es
+// «mirada muda: tension sin leer nada» — o sea que todo esto tiene que funcionar con el sonido
+// puesto y la vista en el buque, no como informacion.
+export const PULSO_TEATRO = {
+  // periodo del latido en segundos: con el compas recien abierto (relajado) → con el margen por
+  // agotarse. 0.42 s son ~143 pulsaciones por minuto, que es el pulso de alguien en combate.
+  HB: [0.95, 0.42],
+  DUB: 0.15,      // separacion del segundo golpe del latido (el "lub-DUB")
+  // cada fallo deja el corazon MAS ACELERADO de arranque: no se vuelve a la calma entre pasadas.
+  HB_TRY: 0.13,
+  SAL: 24,        // motas de sal secas en el vidrio (posiciones fijas, no titilan)
+};
+
+// LOS SELLOS del premio (plan §3: "estrellas por sin errores, velocidad, zona brava"). Son
+// multiplicadores sobre los puntos de la zona, no una moneda aparte: el premio del climax entra
+// al recuento de la mision por la misma puerta que todo lo demas.
+export const PULSO_PREMIO = {
+  LIMPIO: 0.5,    // la secuencia entera sin un solo error
+  RAPIDO: 0.35,   // por debajo del par de tiempo
+  // la zona brava YA paga mas en la base (2200 contra 600): este extra es chico a proposito,
+  // es el reconocimiento de haberla elegido, no el pago — el pago esta en `pts`.
+  BRAVO: 0.25,
+  // PAR de velocidad: fraccion del margen total que hay que gastar para llevarse el sello. 0.62
+  // es "tecleaste sin dudar" — con el margen entero se llega, pero no si te quedaste pensando.
+  PAR: 0.62,
+};
+
 // ---------------- LOS COMPASES ----------------
 // `move` es el id de data/moves.js (de ahi sale el NOMBRE) y `seq` es su combo EXACTO — el mismo
 // string que dispara la pirueta en el pasillo (ver el switch de `combo` en game.js). Si algun dia
@@ -75,11 +131,34 @@ export const POOL_BASICO = ['dll', 'drr', 'lrl', 'rlr', 'dud'];
 // ---------------- LAS ZONAS (blanco → secuencia → cinematica) ----------------
 // Elegir blanco ES parte de la prueba (plan §3): la zona facil pide una secuencia corta y paga
 // poco; la brava pide la larga y paga el doble. `label` sale de strings, no de aca.
+//
+// LA CINEMATICA POR ZONA (Q3). `hitV`/`hitU` son DONDE pega, en unidades del buque dibujado
+// (`uh` de alto, mitad de eslora de ancho, con la cubierta en v=0 y creciendo hacia abajo): el
+// radar esta arriba del mastil, el puente a media torre y el polvorin bajo la linea de flotacion.
+// El resto es COMO muere: `blast` el tamaño del estallido, `sec` el segundo (la carga que vuela
+// despues, solo el polvorin), `sink` cuanto se hunde y `humo` cuanto arde.
+//
+// Es lo que hace que dos zonas den dos cinematicas distintas (criterio de cierre de Q3) sin
+// escribir dos cinematicas: una sola, parametrizada por donde elegiste pegar.
 export const PULSO_ZONAS = [
-  { id: 'radar', str: 'pulso_z_radar', bars: -1, pts: 600, cine: 'alto' },     // -1 = un compas MENOS
-  { id: 'bridge', str: 'pulso_z_bridge', bars: 0, pts: 1000, cine: 'medio' },  //  0 = los del nivel
-  { id: 'deposit', str: 'pulso_z_deposit', bars: 1, pts: 2200, cine: 'bajo' }, // +1 = uno mas: la brava
+  { id: 'radar', str: 'pulso_z_radar', bars: -1, pts: 600, cine: 'alto',       // -1 = un compas MENOS
+    hitV: -3.9, hitU: 0.03, blast: 0.85, sec: 0, sink: 0.5, humo: 0.55, muerte: 'pulso_m_ciego' },
+  { id: 'bridge', str: 'pulso_z_bridge', bars: 0, pts: 1000, cine: 'medio',    //  0 = los del nivel
+    hitV: -1.9, hitU: -0.07, blast: 1.15, sec: 0, sink: 0.85, humo: 1, muerte: 'pulso_m_puente' },
+  { id: 'deposit', str: 'pulso_z_deposit', bars: 1, pts: 2200, cine: 'bajo',   // +1 = uno mas: la brava
+    hitV: 0.7, hitU: 0.12, blast: 1.5, sec: 0.55, sink: 1.3, humo: 1.45, muerte: 'pulso_m_polvorin' },
 ];
+
+// LA MUERTE POR CLASE (plan §3: "la muerte del buque por clase"). La clase sale de SHIP_CLASS
+// (data/ships.js) — el mismo dato que ya elige el layout de zonas del climax 2D, asi que un buque
+// nuevo no necesita nada nuevo aca. Modula lo que la zona propuso y aporta LA LINEA: cada clase
+// se muere con su frase, que es lo unico que el jugador va a recordar de la cinematica.
+export const PULSO_CLASE = {
+  t42: { sink: 1.2, humo: 1, blast: 1.1, str: 'pulso_c_t42' },   // destructor: grande, se va lento
+  t21: { sink: 0.9, humo: 0.9, blast: 1, str: 'pulso_c_t21' },   // fragata: mas chica, escora y se va
+  log: { sink: 1.45, humo: 1.7, blast: 1.25, str: 'pulso_c_log' },   // logistico: la carga arde
+};
+export const CLASE_DEF = PULSO_CLASE.t21;
 
 /** Glifos de cada token, para el render. Van ACA porque son parte del vocabulario, no del dibujo:
  *  el mismo simbolo que el jugador vio toda la partida en docs/PIRUETAS y en el HUD. */

@@ -30,7 +30,7 @@ export const CAMPAIGN_CFG = C({});
 // ---------- MISIONES ----------
 // La CAMPAÑA las juega en orden cronologico; el CICLO DE MUERTE elige una al azar entre
 // las que tienen buque (ver SHIP_MISSIONS abajo).
-//   climax → SOLO misiones con buque. 'pasada' (default, se puede omitir) o 'arena'. Es el
+//   climax → SOLO misiones con buque. 'pasada' (default, se puede omitir), 'arena' o 'pulso'. Es el
 //            desenlace de la mision, y es DATO: cambiarle la palabra a una mision le cambia el
 //            final sin tocar una linea de codigo (SPEC_MODO_PASADA RF-14).
 //            La regla de la campaña, dicha por el autor: la mayoria de los niveles con buque son

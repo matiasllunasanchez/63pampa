@@ -14,16 +14,20 @@
 //
 // EL RELOJ ES REAL. La prueba corre en tiempo de pared aunque el mundo este casi detenido: es la
 // mano del jugador contra el cronometro, no contra el mundo. Por eso update() recibe DOS dt.
-import { S, setState, plane } from '../core/state.js';
+import { S, setState, plane, cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { popup } from '../core/fx.js';
+import { popups } from '../core/world.js';
 import { W } from '../render/ctx.js';
 import { P } from '../data/palette.js';
 import { T } from '../core/i18n.js';
 import { MOVES } from '../data/moves.js';
-import { PULSO, COMPASES, REMATE, PULSO_ZONAS, TOK_GLIFO } from '../data/pulso.js';
-import { beatFor, barsFor, errFor, poolFor, armarZonas } from '../core/pulso.js';
-import { beep, boom, sfxOne, engineOff } from './audio.js';
+import { SHIP_CLASS } from '../data/ships.js';
+import { horizonRoll, spriteRoll } from '../core/horizon.js';
+import { PULSO, PULSO_CINE, PULSO_TEATRO, COMPASES, REMATE, PULSO_ZONAS, PULSO_CLASE, CLASE_DEF, TOK_GLIFO } from '../data/pulso.js';
+import { beatFor, barsFor, errFor, poolFor, armarZonas, parSecsFor, sellosDe, puntosDe, sellosN } from '../core/pulso.js';
+import { startMove, movesSystem } from './moves.js';
+import { beep, boom, sfxOne, engineOff, duck } from './audio.js';
 
 // El estado de la prueba. Se REEMPLAZA entero al entrar (no es un store compartido: nadie mas lo
 // lee por referencia — el render lo pide con state()).
@@ -57,8 +61,20 @@ export function resetPulso() { Q = null; carry = null; }
  *  juego (no hay [H] en OPCIONES): de ella salen el margen, el largo de la secuencia y el perdon. */
 export function setCfg(c) {
   carry = { t01: (c && c.t01) || 0, campaign: !!(c && c.campaign), owned: (c && c.owned) || [],
-            off: (c && c.off) || null, tries: 0, flak: 0 };
+            off: (c && c.off) || null, ship: (c && c.ship) || '', tries: 0, flak: 0 };
 }
+
+/** EL BUQUE de esta corrida. Entra aparte de setCfg() y no dentro porque el orden de armado del
+ *  run es reset() → setRunObjective(): cuando se configura la prueba, el objetivo todavia es el de
+ *  la mision ANTERIOR. Lo unico que cambia es COMO se muere (la clase), no la prueba. */
+export function setShip(name) {
+  carry = carry || { t01: 0, campaign: false, owned: [], off: null, tries: 0, flak: 0 };
+  carry.ship = name || '';
+}
+
+/** La clase del buque objetivo — de ella sale COMO se muere (PULSO_CLASE). Sale del mismo
+ *  SHIP_CLASS que ya elige el layout de zonas del climax 2D: un buque nuevo no agrega nada. */
+const claseDe = ship => PULSO_CLASE[SHIP_CLASS[ship]] || CLASE_DEF;
 
 /** Arma un COMPAS a partir de su combo. Devuelve tokens sueltos + el rotulo diegetico (regla 2):
  *  el nombre sale de MOVES, asi que no puede desincronizarse del catalogo. */
@@ -82,12 +98,12 @@ function compas(seq) {
  *  NO HAY TRANSICION QUE ROMPER: a diferencia de los climax 3D, aca no se cambia de escena ni de
  *  camara de mundo — el buque que se ve es EL MISMO que venia creciendo en el horizonte del
  *  pasillo (drawApproachBarge). Lo unico que pasa es que el tiempo se frena y baja la cabina. */
-export function enter(desdePasillo, cfg) {
+export function enter(desdePasillo, conf) {
   setState('pulso');
   engineOff();                            // el motor se apaga: lo que se escucha es el corazon
-  const c = cfg || carry || {};
+  const c = conf || carry || {};
   carry = { t01: c.t01 || 0, campaign: !!c.campaign, owned: c.owned || [], off: c.off || null,
-            tries: (carry && carry.tries) || 0, flak: (carry && carry.flak) || 0 };
+            ship: c.ship || '', tries: (carry && carry.tries) || 0, flak: (carry && carry.flak) || 0 };
   Q = {
     t: 0,                                 // reloj REAL de la prueba
     fase: 'prueba',                       // 'prueba' | 'exito' | 'fallo'
@@ -105,11 +121,20 @@ export function enter(desdePasillo, cfg) {
     flak: carry.flak,                     // grados que se acerco el flak (cada fallo lo acerca)
     beatT: 0,                             // cuanto lleva abierto el compas actual
     beatMax: beatFor(carry.t01, carry.flak),
-    pts: 0,                               // puntos de la zona elegida (los cobra Q3)
+    pts: 0,                               // puntos de la zona elegida (base del premio)
+    tSel: 0,                              // instante en que se eligio blanco (el reloj del sello)
+    premio: null,                         // { zona, secs, par, sellos, pts } — lo arma exito()
+    cine: null,                           // la cinematica del premio (Q3): { beat, t, tot }
+    clase: claseDe(carry.ship),           // COMO se muere este buque
+    hb: 0, hbDub: -1, hbT: 0,             // EL LATIDO (Q5): reloj, segundo golpe pendiente, fase 0..1
     shake: 0,
     desdePasillo: !!desdePasillo,
   };
   armarCarriles();
+  // LA PRUEBA TAMBIEN ARRANCA CON LA PANTALLA LIMPIA (mismo motivo que el premio): los popups del
+  // pasillo envejecen con el dt del mundo, que aca corre al 8%, asi que un "CONTROL LIBRE" del
+  // ultimo tramo se quedaba trece segundos escrito encima de la eleccion de blanco.
+  popups.length = 0;
   beep(880, 0.12, 'square', 0.05, 220);
 }
 
@@ -132,6 +157,10 @@ function elegir(tok) {
   const i = Q.carriles.findIndex(c => c.bars[0] && c.bars[0].toks[0] === tok);
   if (i < 0) return false;
   Q.zi = i;
+  // el cronometro del SELLO DE VELOCIDAD arranca al ELEGIR, no al entrar: lo que se mide es
+  // teclear sin dudar, y el tiempo que uno se tomo para decidir el blanco no es titubeo — es la
+  // decision, que es justamente lo que el modo pide que tomes.
+  Q.tSel = Q.t;
   Q.bars = Q.carriles[i].bars;
   Q.pts = Q.carriles[i].zona.pts;
   Q.bi = 0; Q.ti = 0;
@@ -191,10 +220,116 @@ function cerrarCompas() {
   if (Q.bi >= Q.bars.length) exito();
 }
 
+/** LA PRUEBA SALIO. De aca en adelante el jugador ya no tiene nada que hacer: se le paga y se le
+ *  muestra. Los puntos se congelan ANTES de la cinematica (con el reloj de la prueba, no con el
+ *  del premio) — si se calcularan al final, la cinematica formaria parte del tiempo medido. */
 function exito() {
-  Q.fase = 'exito'; Q.faseT = 0;
-  boom(0.26);
-  if (!sfxOne('exHeavy')) beep(70, 0.3, 'sawtooth', 0.07, 38);
+  const zona = (Q.carriles[Q.zi] && Q.carriles[Q.zi].zona) || PULSO_ZONAS[1];
+  const secs = Q.t - Q.tSel;
+  const par = parSecsFor(Q.bars.length, Q.beatMax);
+  const sellos = sellosDe({ errs: Q.errs, secs, par, zona });
+  Q.premio = { zona, secs, par, sellos, n: sellosN(sellos), pts: puntosDe(zona, sellos) };
+  Q.fase = 'cine'; Q.faseT = 0;
+  Q.cine = { beat: 'pirueta', t: 0, tot: 0, sec: false };
+  // LA PANTALLA ARRANCA LIMPIA. Los rotulos de los compases todavia estan colgados: los popups
+  // envejecen con el dt DEL MUNDO, que durante la prueba corre al 8% — 1,1 s de vida son trece
+  // segundos de pared, asi que sin esto el premio se dibuja arriba del ultimo "BREAK TURN".
+  popups.length = 0;
+  // LA PIRUETA QUE SE TECLEO, volada de verdad: se le pasa al sistema de maniobras el ULTIMO
+  // compas que fue una pirueta (el remate no lo es). Regla 1 del plan cerrando el circulo — el
+  // examen pedia la maniobra, y la recompensa es verla salir.
+  const b = [...Q.bars].reverse().find(x => x.move);
+  if (b) startMove(b.move, b.dir);
+  else popup(W / 2, 16, T('pulso_soltar'), P.accent);   // sin piruetas (mision 1): el premio es la suelta
+  boom(0.18);
+}
+
+/** Un cuadro de la cinematica del premio (plan §3 "La recompensa"). Corre en tiempo REAL: mientras
+ *  esto pasa, el mundo se DESHIELA (ver timeScale) — la dilatacion se suelta con la bomba.
+ *
+ *  Es UNA sola cinematica parametrizada por la zona elegida y la clase del buque, no cuatro
+ *  cinematicas escritas a mano: pegarle al radar o al polvorin de un logistico dan imagenes
+ *  distintas porque cambian el punto de impacto, el estallido, el humo y cuanto tarda en irse. */
+function cineStep(dt) {
+  const c = Q.cine, z = Q.premio.zona;
+  c.t += dt; c.tot += dt;
+  // la maniobra la sigue volando SU sistema, cuadro a cuadro (plan §6.4: se usa, no se reforma).
+  // Sin palanca: el avion esta comprometido en la pirueta, nadie la esta corrigiendo.
+  if (run.mv) movesSystem(dt, INP0);
+
+  if (c.beat === 'pirueta') {
+    if (c.t >= PULSO_CINE.PIRUETA) beat('suelta');
+  } else if (c.beat === 'suelta') {
+    if (c.t >= PULSO_CINE.SUELTA) beat('impacto');
+  } else if (c.beat === 'impacto') {
+    if (c.t >= PULSO_CINE.IMPACTO) beat('muerte');
+  } else {
+    // EL SEGUNDO ESTALLIDO: solo el polvorin lo tiene. Es lo que separa "le pegaste" de "la
+    // volaste": el buque ya estaba ardiendo y entonces se va la carga.
+    if (z.sec && !c.sec && c.t >= z.sec) {
+      c.sec = true;
+      run.shake = Math.max(run.shake, 9);
+      boom(0.5 * z.blast * Q.clase.blast);
+      if (!sfxOne('exHeavy')) beep(52, 0.5, 'sawtooth', 0.08, 26);
+    }
+    if (c.t >= PULSO_CINE.MUERTE * Q.clase.sink) return 'objective';
+  }
+  return null;
+}
+
+/** Cambio de compas de la cinematica: cada uno entra con SU sonido y SU sacudida. */
+function beat(n) {
+  const c = Q.cine, z = Q.premio.zona;
+  c.beat = n; c.t = 0;
+  if (n === 'suelta') {
+    // la ristra saliendo: es el unico tramo en que no pasa nada. El silencio es la suelta.
+    sfxOne('waveFly', 0.5);
+    beep(300, 0.09, 'triangle', 0.05, -120);
+  } else if (n === 'impacto') {
+    run.shake = Math.max(run.shake, 6 * z.blast);
+    boom(0.34 * z.blast * Q.clase.blast);
+    if (!sfxOne('exHeavy')) beep(70, 0.3, 'sawtooth', 0.07, 38);
+  }
+  // LOS TEXTOS DE LA CINEMATICA (la zona y la linea de la clase) NO son popups: los dibuja el
+  // render en su lugar fijo. Como popups quedaban flotando en la misma `y` que el rotulo del
+  // ultimo compas y se leian los tres encimados — se vio en la primera captura de Q3.
+}
+
+// palanca NEUTRA para la maniobra de la cinematica (movesSystem espera el input del cuadro)
+const INP0 = { l: 0, r: 0, u: 0, d: 0 };
+
+// ---------------- EL TEATRO (Q5): el corazon y el silencio ----------------
+// El plan §1 dice que el modo ES la tachypsychia: el tiempo estirado, el mundo mudo y las manos.
+// Lo unico que puede contar eso sin escribirlo es el sonido — por eso el latido no es un adorno,
+// es el reloj de la prueba hecho audible: acelera con el margen que se va y no se calma entre
+// pasadas. Cuando la prueba sale, para: el premio devuelve el mundo (ver timeScale).
+
+/** ¿Cuan apurado esta el corazon ahora? 0 = compas recien abierto · 1 = al limite. */
+function urgencia() {
+  if (Q.fase === 'fallo') return 1;                       // pasandote de largo: a mil
+  const m = Q.beatMax > 0 ? Q.beatT / Q.beatMax : 0;
+  return Math.min(1, m + Q.tries * PULSO_TEATRO.HB_TRY);
+}
+
+function latido(dt) {
+  // EL MUNDO ENMUDECIDO: el motor ya esta apagado desde enter(); la musica se agacha CADA CUADRO
+  // (el ducking decae solo, asi que mantenerlo es pedirlo de nuevo). En el premio se suelta: ahi
+  // el mundo vuelve, y que la musica vuelva con el es la mitad del alivio.
+  if (Q.fase !== 'cine') duck(0.55);
+
+  if (Q.fase === 'cine') { Q.hbDub = -1; return; }         // gano: el corazon deja de ser la banda
+  const u = urgencia();
+  Q.hbT = u;
+  const per = PULSO_TEATRO.HB[0] + (PULSO_TEATRO.HB[1] - PULSO_TEATRO.HB[0]) * u;
+  Q.hb += dt;
+  if (Q.hb >= per) {
+    Q.hb = 0; Q.hbDub = PULSO_TEATRO.DUB;
+    beep(58, 0.1, 'sine', 0.05 + u * 0.03, -14);           // el "lub": el golpe grande
+  }
+  if (Q.hbDub >= 0) {
+    Q.hbDub -= dt;
+    if (Q.hbDub < 0) beep(46, 0.13, 'sine', 0.035 + u * 0.02, -10);   // el "dub", mas grave y corto
+  }
 }
 
 /** El fallo (plan §3): NUNCA es muerte. Se paga con la vuelta, y recien el 3er intento pierde. */
@@ -215,6 +350,7 @@ export function update(dtReal, dtMundo) {
   Q.t += dtReal;
   Q.shake = Math.max(0, Q.shake - dtReal * 6);
   run.shake = Math.max(run.shake, Q.shake);
+  latido(dtReal);
 
   if (Q.fase === 'prueba') {
     // EL MARGEN: cada compas tiene su ventana. Agotarla es fallar igual que equivocarse — el
@@ -225,12 +361,9 @@ export function update(dtReal, dtMundo) {
   }
 
   Q.faseT += dtReal;
-  if (Q.fase === 'exito') {
-    // la cinematica completa (pirueta + suelta + muerte por clase) es Q3; por ahora el remate es
-    // el estallido y el cierre de la mision por el embudo de siempre
-    if (Q.faseT > 1.4) return 'objective';
-    return null;
-  }
+  // EL PREMIO: la cinematica compuesta (pirueta + suelta + impacto por zona + muerte por clase).
+  // Cuando termina, la mision se cierra por el embudo de siempre.
+  if (Q.fase === 'cine') return cineStep(dtReal);
   // FALLO: el re-encare corto, con SU COSTO segun cual fallo es (plan §3, regla 4 del genero —
   // fallar duele, pero nunca es un reset seco):
   //   1º  te pasas de largo y volves, con el flak un grado mas cerca (el margen se achica)
@@ -252,7 +385,7 @@ export function update(dtReal, dtMundo) {
 export function reencarar() {
   if (!Q) return;
   Q.fase = 'prueba'; Q.faseT = 0;
-  Q.errs = 0; Q.beatT = 0;
+  Q.errs = 0; Q.beatT = 0; Q.premio = null; Q.cine = null;
   Q.flak = Math.min(PULSO.FLAK_T.length - 1, Q.tries);
   if (carry) carry.flak = Q.flak;
   Q.beatMax = beatFor(Q.t01, Q.flak);
@@ -261,11 +394,57 @@ export function reencarar() {
   beep(700, 0.1, 'square', 0.05, 180);
 }
 
+// ---------------- LO QUE LA ORQUESTACION Y EL RENDER LEEN (Q3) ----------------
+// Todo de solo lectura: el sistema sigue sin llamar hacia arriba. game.js pregunta y decide.
+
+/** El premio ya congelado, para el recuento de la mision (game.js lo pasa a `stats`). */
+export const premio = () => (Q && Q.premio) || null;
+
+/** CUANTO CORRE EL MUNDO detras del vidrio. Durante la prueba, casi nada (PULSO.SLOW: el tiempo
+ *  dilatado del plan §1). En el premio se DESHIELA hasta 1 — la bomba suelta el tiempo, que es la
+ *  otra mitad de la tesis del modo: la lentitud era la concentracion, no una pausa. */
+export function timeScale() {
+  if (!Q) return 1;
+  if (Q.fase !== 'cine') return PULSO.SLOW;
+  const f = Math.min(1, Q.cine.tot / PULSO_CINE.DESHIELO);
+  return PULSO.SLOW + (1 - PULSO.SLOW) * f;
+}
+
+/** Cuanto se inclina EL MUNDO por la pirueta de la cinematica (radianes).
+ *
+ *  Sale de la misma cuenta que el pasillo (core/horizon.js) y respeta cfg.horizon: con el
+ *  horizonte en FIJO devuelve 0 — quien apago el mundo giratorio porque se marea no se lo come
+ *  igual en el climax. La pirueta se sigue leyendo por el resto (el tiron, el humo, la suelta). */
+export const camRoll = () => (Q && Q.fase === 'cine' && cfg.horizon
+  ? horizonRoll(cfg.horizon, spriteRoll(), 0, 0) : 0);
+
+/** Lo que le pasa AL BUQUE en pantalla, para que lo aplique quien lo dibuja (render/world.js, por
+ *  parametro desde game.js — nadie llama hacia arriba). `grow` es el pendiente honesto de Q1: el
+ *  blanco recien DOMINA el cuadro cuando la autopista ya no esta y no le pelea el pixel. */
+export function shipFx() {
+  if (!Q || Q.fase !== 'cine') return null;
+  const c = Q.cine, z = Q.premio.zona;
+  // el zoom corre desde el primer cuadro del premio y no se detiene: es la caida sobre el blanco
+  const gf = Math.min(1, c.tot / (PULSO_CINE.PIRUETA + PULSO_CINE.SUELTA + PULSO_CINE.IMPACTO));
+  const grow = 1 + (PULSO_CINE.ZOOM - 1) * gf * gf;
+  // …y BAJA en el cuadro mientras crece: le estas cayendo encima, asi que el buque deja de estar
+  // clavado en el horizonte y se viene al centro de lo que la cabina deja ver.
+  const drop = PULSO_CINE.DROP * gf;
+  if (c.beat !== 'muerte') return { grow, drop, tilt: 0, sink: 0 };
+  // MUERTE: escora y se va. Cuadratico — el hundimiento empieza casi imperceptible y se acelera,
+  // que es como se hunde un buque de verdad y ademas deja los primeros cuadros para el fuego.
+  const p = Math.min(1, c.t / (PULSO_CINE.MUERTE * Q.clase.sink));
+  const k = z.sink * Q.clase.sink;
+  return { grow, drop, tilt: p * p * 0.26 * k, sink: p * p * 1.15 * k };
+}
+
 // ---------------- SONDA (QUITAR antes de publicar) ----------------
 // Sin esto la prueba no se puede medir desde afuera: los margenes son de decimas y a ojo no se
 // distingue "fallo por tiempo" de "fallo por tecla".
 if (typeof window !== 'undefined') window.__qdbg = () => {
-  if (!Q) return JSON.stringify({ state: S.state, on: false });
+  // sin prueba activa igual se informa el AVANCE del pasillo: es lo que deja medir que la prueba
+  // llega volando al final del nivel y no por un teletransporte (Q4)
+  if (!Q) return JSON.stringify({ state: S.state, on: false, dist: Math.round(run.dist) });
   const b = barNow();
   return JSON.stringify({
     state: S.state, on: true, fase: Q.fase,
@@ -275,6 +454,13 @@ if (typeof window !== 'undefined') window.__qdbg = () => {
     glifo: b ? TOK_GLIFO[b.toks[Q.ti]] || b.toks[Q.ti] : null,
     zi: Q.zi, zona: Q.zi < 0 ? null : Q.carriles[Q.zi].zona.id,
     carriles: Q.carriles.map(c => c.zona.id + ':' + c.bars.map(b2 => b2.seq).join('-')),
+    beat: Q.cine ? Q.cine.beat : null,
+    premio: Q.premio ? { zona: Q.premio.zona.id, pts: Q.premio.pts, n: Q.premio.n,
+      secs: +Q.premio.secs.toFixed(2), par: +Q.premio.par.toFixed(2), sellos: Q.premio.sellos } : null,
+    mv: run.mv || null, roll: +(camRoll()).toFixed(2), tScale: +timeScale().toFixed(2),
+    fx: (f => f && { grow: +f.grow.toFixed(2), tilt: +f.tilt.toFixed(3), sink: +f.sink.toFixed(3) })(shipFx()),
+    sec: !!(Q.cine && Q.cine.sec), clase: Q.clase.str,
+    hb: +Q.hbT.toFixed(2), hbPer: +(PULSO_TEATRO.HB[0] + (PULSO_TEATRO.HB[1] - PULSO_TEATRO.HB[0]) * Q.hbT).toFixed(2),
     perdon: Q.perdon, flak: Q.flak, pts: Q.pts, t01: +Q.t01.toFixed(2),
     beatMax: +Q.beatMax.toFixed(2),
     ti: Q.ti, errs: Q.errs, tries: Q.tries,

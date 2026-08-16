@@ -530,12 +530,20 @@ test('climax: es DATO de la mision, y el default de una con buque es la PASADA',
   assert.equal(climaxOf({ goal: { kind: 'ship' }, climax: 'arena' }), 'arena');
   assert.equal(climaxOf({ goal: { kind: 'distance' } }), null, 'sin buque no hay climax: la cierra el PASILLO');
   assert.equal(climaxOf({ goal: { kind: 'distance' }, climax: 'arena' }), null, 'el campo no le inventa un buque');
+  // EL PULSO entra por la MISMA puerta (Q4): una palabra en el renglon de la mision y nada mas.
+  // Hoy ninguna mision de la campaña lo pide (plan §6.5), pero el enchufe tiene que estar listo
+  // para el dia que m14 exista — o para el dia que el rescate de la PASADA no pase su gate.
+  assert.equal(climaxOf({ goal: { kind: 'ship' }, climax: 'pulso' }), 'pulso');
 });
 
 test('climax: la campaña respeta la regla del autor — la mayoria PASADA, el ARENA ocasional', () => {
   const conBuque = MISSIONS.filter(m => m.goal.kind === 'ship');
   const arena = conBuque.filter(m => climaxOf(m) === 'arena');
-  assert.ok(conBuque.every(m => ['pasada', 'arena'].includes(climaxOf(m))), 'ningun climax desconocido');
+  assert.ok(conBuque.every(m => ['pasada', 'arena', 'pulso'].includes(climaxOf(m))), 'ningun climax desconocido');
+  // …y EL PULSO todavia no juega ninguna: el plan §6.5 lo ata a que caiga el gate de la PASADA o a
+  // que exista m14. Si algun dia se le asigna una mision, este assert es el que hay que venir a
+  // cambiar A PROPOSITO — no puede pasar de contrabando.
+  assert.equal(conBuque.filter(m => climaxOf(m) === 'pulso').length, 0, 'EL PULSO no reemplaza a la PASADA de oficio');
   assert.ok(arena.length * 2 < conBuque.length, 'el ARENA tiene que ser la excepcion, no la regla');
   assert.deepEqual(arena.map(m => m.id), ['m4', 'm12'], 'el callejon de San Carlos y el final');
   assert.equal(MISSIONS.filter(m => m.goal.kind !== 'ship').every(m => climaxOf(m) === null), true);
@@ -578,8 +586,9 @@ test('carril: ensancharlo NO cambia la dificultad del medio', () => {
 // ---------------- EL PULSO: la escalada de la prueba (core/pulso.js) ----------------
 // Es la unica perilla de dificultad del climax, y si se rompe no da error: simplemente la prueba
 // queda regalada o imposible, y eso solo se descubre jugando la campaña entera.
-import { beatFor, barsFor, errFor, poolFor, armar, armarZonas } from '../src/core/pulso.js';
-import { PULSO, COMPASES, PULSO_ZONAS, POOL_BASICO } from '../src/data/pulso.js';
+import { beatFor, barsFor, errFor, poolFor, armar, armarZonas,
+  parSecsFor, sellosDe, puntosDe, sellosN } from '../src/core/pulso.js';
+import { PULSO, PULSO_PREMIO, PULSO_CLASE, COMPASES, PULSO_ZONAS, POOL_BASICO } from '../src/data/pulso.js';
 
 test('pulso: el margen se achica con el nivel y con el flak', () => {
   assert.ok(beatFor(0, 0) > beatFor(1, 0), 'la ultima mision tiene que apretar mas que la primera');
@@ -642,4 +651,61 @@ test('pulso: las zonas arrancan con teclas distintas (elegir es teclear)', () =>
   assert.equal(z.length, PULSO_ZONAS.length);
   const firsts = z.map(o => o.seqs[0][0]);
   assert.equal(new Set(firsts).size, firsts.length, `las zonas arrancan igual: ${firsts.join('')}`);
+});
+
+// ---------------- EL PULSO: el premio (Q3) ----------------
+// Mismo motivo que la escalada: un premio desbalanceado no da error, solo paga de mas o de menos,
+// y eso se descubre recien mirando el recuento de diez misiones.
+
+test('pulso: el par de velocidad sale del margen vigente, no de un numero fijo', () => {
+  // asi el sello es igual de alcanzable en la primera mision (margen holgado) que en la ultima
+  const facil = parSecsFor(3, beatFor(0, 0)), duro = parSecsFor(3, beatFor(1, 0));
+  assert.ok(facil > duro, 'con menos margen, el par tiene que ser mas corto');
+  near(facil / (3 * beatFor(0, 0)), PULSO_PREMIO.PAR);
+  assert.equal(parSecsFor(0, 2), 0);
+  assert.ok(parSecsFor(-2, -2) >= 0, 'no puede haber un par negativo');
+});
+
+test('pulso: los tres sellos miden tres cosas distintas', () => {
+  const brava = PULSO_ZONAS.find(z => z.bars > 0), facil = PULSO_ZONAS.find(z => z.bars < 0);
+  const s = sellosDe({ errs: 0, secs: 1, par: 3, zona: brava });
+  assert.deepEqual(s, { limpio: true, rapido: true, bravo: true });
+  assert.equal(sellosN(s), 3);
+  // un error se lleva SOLO el sello limpio: los otros dos se ganaron y no se pierden
+  const conErr = sellosDe({ errs: 1, secs: 1, par: 3, zona: brava });
+  assert.deepEqual(conErr, { limpio: false, rapido: true, bravo: true });
+  // llegar justo en el par cuenta como rapido; pasarse, no
+  assert.equal(sellosDe({ errs: 0, secs: 3, par: 3, zona: facil }).rapido, true);
+  assert.equal(sellosDe({ errs: 0, secs: 3.01, par: 3, zona: facil }).rapido, false);
+  assert.equal(sellosDe({ errs: 0, secs: 1, par: 3, zona: facil }).bravo, false, 'la zona facil no da sello de brava');
+  // sin datos no puede inventar sellos que no se ganaron (salvo `limpio`, que es no haber errado)
+  assert.deepEqual(sellosDe({}), { limpio: true, rapido: false, bravo: false });
+});
+
+test('pulso: el premio paga la zona y la suman los sellos', () => {
+  const brava = PULSO_ZONAS.find(z => z.bars > 0), facil = PULSO_ZONAS.find(z => z.bars < 0);
+  const nada = { limpio: false, rapido: false, bravo: false };
+  assert.equal(puntosDe(brava, nada), brava.pts, 'sin sellos se paga la base de la zona y nada mas');
+  assert.ok(puntosDe(brava, nada) > puntosDe(facil, nada) * 2, 'la zona brava tiene que pagar el doble largo');
+  const todo = { limpio: true, rapido: true, bravo: true };
+  assert.ok(puntosDe(facil, todo) < puntosDe(brava, nada),
+    'una perfecta en la zona facil no puede pagar mas que una sucia en la brava: elegir es el riesgo');
+  near(puntosDe(brava, todo) / brava.pts, 1 + PULSO_PREMIO.LIMPIO + PULSO_PREMIO.RAPIDO + PULSO_PREMIO.BRAVO);
+  assert.equal(puntosDe(null, todo), 0, 'sin zona no hay premio (y no puede reventar)');
+});
+
+test('pulso: cada clase de buque se muere distinto', () => {
+  // el criterio de cierre de Q3 pide que dos cinematicas no se confundan: si dos clases (o dos
+  // zonas) tuvieran los mismos numeros, seria la misma cinematica con otro nombre
+  const cl = Object.values(PULSO_CLASE);
+  assert.equal(new Set(cl.map(c => c.sink + '/' + c.humo)).size, cl.length);
+  assert.equal(new Set(cl.map(c => c.str)).size, cl.length, 'cada clase tiene su propia linea');
+  const zs = PULSO_ZONAS;
+  assert.equal(new Set(zs.map(z => z.hitV + '/' + z.humo + '/' + z.sink)).size, zs.length,
+    'dos zonas con la misma cinematica: elegir blanco dejaria de significar algo');
+  assert.equal(new Set(zs.map(z => z.muerte)).size, zs.length);
+  // el polvorin es la UNICA con segundo estallido: es lo que lo hace la zona brava
+  assert.deepEqual(zs.filter(z => z.sec).map(z => z.id), ['deposit']);
+  // y el impacto de cada zona esta a distinta altura: arriba el mastil, abajo la flotacion
+  assert.ok(zs[0].hitV < zs[1].hitV && zs[1].hitV < zs[2].hitV);
 });

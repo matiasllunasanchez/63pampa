@@ -1,6 +1,11 @@
 # PLAN — «EL PULSO»: el clímax como prueba de destreza *(plan C del boss + el momento del misil de m14)*
 
-> **Estado: análisis + plan por fases, sin implementar. Cuándo entra:** es el **plan C del
+> **Estado (16/8/2026): IMPLEMENTADO ENTERO — Q0 a Q5 cerradas y verificadas** (`npm run pulso`,
+> ocho secciones). El modo se juega hoy por sonda (`?pulso=<n>[&pasillo]`) y **ninguna misión de la
+> campaña lo pide todavía**, que es exactamente lo que manda el §6.5: se enchufa escribiendo
+> `climax: 'pulso'` en el renglón de una misión, y esa palabra es todo el trabajo que falta.
+>
+> **Cuándo entra:** es el **plan C del
 > clímax** — si el rescate de la PASADA falla su gate (PASADA_ADRENALINA §R6), el boss se
 > resuelve así y el juego queda PASILLO + EL PULSO. Pero tiene **USO DOBLE**: aunque la
 > PASADA sobreviva, EL PULSO es el mecanismo natural del **"momento del misil" de m14**
@@ -89,9 +94,9 @@ Es el clímax de MENOR costo de todos los diseñados — y el único sin deuda 3
 | ~~**Q0**~~ ✅ | Datos: pool de secuencias (`data/pulso.js` — compases rotulados, dificultad por misión, mapa zona→secuencia→cinemática), perillas, strings es/en, sonda `?pulso` / `__qdbg()` | **hecho 16/8/2026**: `check` verde, el pool es data pura y cada compás sale del combo real de una pirueta |
 | ~~**Q1**~~ ✅ | El estado `'pulso'` mínimo: la aproximación 2D se aplana (tempo a ~0.1), cabina, el buque claro, UNA secuencia fija visible con cursor, acierto/fallo binario → victoria o re-encare corto | **hecho 16/8/2026**: ciclo completo medido por sonda — fallo por tiempo → re-encare → secuencia limpia → `results`. `check` verde, `feel` idéntico al baseline |
 | ~~**Q2**~~ ✅ | La prueba completa: compases rotulados (regla 2), autopista visible (regla 3), márgenes y escalada por nivel/`[H]`, perdón de 1 error en fácil, elección de blanco por secuencia, los 3 fallos con sus costos | **hecho 16/8/2026**: `npm run pulso` verde — perfecta gana, el perdón existe al principio y no al final, y los 3 fallos van a su costo. `check` verde (63 unit), `feel` idéntico |
-| **Q3** | La recompensa: cinemática compuesta (pirueta de `moves.js` + suelta + impacto por zona + muerte por clase), estrellas por perfección/velocidad/zona | dos zonas distintas producen dos cinemáticas distintas |
-| **Q4** | Integración: `climax: 'pulso'` en `missions.js` (el enchufe ya existe — `climaxOf()`), campaña con secuencias de la libreta, CICLO con pool básico, PATRIA/MINUTOS SAGRADOS intactos | cambiar el campo cambia el clímax sin código |
-| **Q5** | El teatro: latido que acelera, el mundo enmudecido salvo el corazón y las teclas, flak congelado alrededor (el peligro VISIBLE en pausa — estar quieto en el medio del fuego es la imagen del modo), sal/viñeta en la cabina, fixture completo `npm run pulso` | mirada muda: tensión sin leer nada |
+| ~~**Q3**~~ ✅ | La recompensa: cinemática compuesta (pirueta de `moves.js` + suelta + impacto por zona + muerte por clase), estrellas por perfección/velocidad/zona | **hecho 16/8/2026**: `npm run pulso` §6 — compone `pirueta → suelta → impacto → muerte`, el radar y el polvorín dan dos muertes distintas (sólo el polvorín tiene segundo estallido) y el premio entra al recuento |
+| ~~**Q4**~~ ✅ | Integración: `climax: 'pulso'` en `missions.js` (el enchufe ya existe — `climaxOf()`), campaña con secuencias de la libreta, CICLO con pool básico, PATRIA/MINUTOS SAGRADOS intactos | **hecho 16/8/2026**: `climaxOf` acepta `'pulso'` (unit) y el PASILLO entrega la prueba solo al llegar al buque (`npm run pulso` §7). **Ninguna misión lo pide todavía, a propósito** — ver divergencia 20 |
+| ~~**Q5**~~ ✅ | El teatro: latido que acelera, el mundo enmudecido salvo el corazón y las teclas, flak congelado alrededor (el peligro VISIBLE en pausa — estar quieto en el medio del fuego es la imagen del modo), sal/viñeta en la cabina, fixture completo `npm run pulso` | **hecho 16/8/2026**: el corazón va de 0,95 s a 0,57 s entre latidos con el margen yéndose y no se calma entre pasadas (`npm run pulso` §8) |
 
 **Perillas** (`data/pulso.js`): `PULSO_SLOW 0.08` · `PULSO_T` por compás 1.6→0.9 s según
 nivel · `PULSO_ERR` (1 en fácil, 0 normal) · `PULSO_TRIES 3` · compases 2→4.
@@ -179,9 +184,82 @@ cerrar Q1 (diff vacío contra el baseline guardado).
     escrita encima del buque, y la secuencia y el blanco son las dos cosas que hay que mirar: no
     pueden pelearse el mismo pixel. El flak congelado, además, se dibuja **antes** de la cabina —
     los estallidos están afuera del vidrio; encima parecían mugre en la pantalla.
-18. **Fixture propio: `npm run pulso`** (`tools/fixture_pulso.js`), con el criterio de cierre de Q2
+18. **Fixture propio: `npm run pulso`** *(Q2; Q3–Q5 le agregaron las secciones 6, 7 y 8)* (`tools/fixture_pulso.js`), con el criterio de cierre de Q2
     medido — perfecta gana, un error se perdona en los primeros niveles y no al final, y los tres
     fallos van cada uno a su costo. Dos sondas nuevas nacieron de pelearlo: `__qcfg` (re-entrar con
     otro nivel: la única forma de ver la escalada sin jugar la campaña entera) y `__qhold` (colgar
     el margen para las capturas — sacar una foto tarda más que la ventana de la prueba, así que sin
     eso toda captura salía mostrando el fallo por tiempo). Ambas marcadas QUITAR.
+
+### Divergencias de Q3 *(la recompensa)*
+
+19. **Las "estrellas" del premio son TRES SELLOS que pagan puntos, no una moneda nueva.** El plan §3
+    pedía "estrellas por: sin errores, velocidad, zona brava", pero las estrellas del juego son de
+    la MISIÓN y salen del puntaje contra el par (`starsFor` en `game.js`). Un segundo sistema de
+    estrellas en el clímax habría competido con ése y dejado dos verdades sobre lo mismo. Los sellos
+    (SIN UN ERROR · MANO DE RELÁMPAGO · ZONA BRAVA) son multiplicadores sobre los puntos de la zona,
+    y el total entra al recuento como una fila más (`res_pulso`): el clímax mueve las estrellas de
+    la misión por la misma puerta que todo lo demás.
+20. **El par de velocidad sale del margen VIGENTE, no de un número fijo** (`parSecsFor`). Con un
+    par absoluto, el sello de velocidad habría sido regalado en la primera misión (margen 2,2 s) e
+    imposible en la última (1,1 s). Atado al margen es la misma exigencia en toda la campaña:
+    "tecleaste sin dudar".
+21. **La pirueta del premio se vuela DE VERDAD**: el sistema llama a `moves.startMove()` con el
+    último compás que fue pirueta y después corre `movesSystem()` cuadro a cuadro con la palanca
+    neutra. No se reformó `moves.js` (§6.4): se usa. Como `flight.js` no está corriendo, la
+    maniobra no mueve al avión de lugar — escribe la ACTITUD (`run.mvRoll`, `plane.bank`), que es
+    exactamente lo que desde la cabina se ve: el horizonte dando la vuelta.
+22. **El horizonte del premio respeta `cfg.horizon`.** El giro sale de la misma cuenta del pasillo
+    (`horizonRoll`), así que con el horizonte en FIJO la cinemática no rola. Quien apagó el mundo
+    giratorio porque se marea no se lo come igual en el clímax; la pirueta se sigue leyendo por el
+    tirón, la suelta y el humo.
+23. **El mundo DESHIELA en el premio** (`timeScale`): el `dt` vuelve de 0,08× a 1× en medio segundo.
+    Q1 y Q2 escalaban el tiempo con una constante; ahora lo decide el sistema, que es el único que
+    sabe en qué compás de la cinemática está. Es la otra mitad de la tesis del §1 — la lentitud era
+    la concentración, no una pausa, y soltarla con la bomba es lo que la vuelve legible.
+24. **El buque crece, BAJA en el cuadro y la cabina baja con él** (`ZOOM`/`DROP`/`CABINA`). Es el
+    pendiente honesto de Q1 ("el buque no DOMINA el cuadro") resuelto donde correspondía: durante la
+    prueba el blanco no puede taparle el pixel a la autopista, y en el premio la autopista ya no
+    existe. La cabina bajando NO es rediseñarla — es la misma cabina corrida para abrir cielo.
+25. **`render/world.js` publica la geometría del buque dibujado** (`bargeGeom()`) y acepta un tercer
+    parámetro `fx` con lo que el clímax le está haciendo (crecer, escorar, hundirse), que le pasa
+    `game.js`. Sin eso, el fuego y el impacto habrían tenido que recalcular la escala y el cabeceo
+    por su cuenta: dos copias de una cuenta larga que se desincronizan solas.
+26. **El avión del jugador ya no se dibuja en `'pulso'`.** Estaba tapado por casualidad (el canopy
+    caía justo encima); en cuanto la cinemática baja la cabina, el sprite en tercera persona quedó
+    a la vista en medio del cuadro — dos cámaras del mismo avión al mismo tiempo.
+27. **Los textos de la cinemática no son popups.** Los popups envejecen con el `dt` DEL MUNDO, que
+    acá corre al 8%: 1,1 s de vida son trece segundos de pared. Los tres textos caían encimados en
+    la misma `y` que el rótulo del último compás. Ahora los dibuja el render en su renglón fijo, y
+    tanto al entrar a la prueba como al entrar al premio se limpia la cola de popups colgados.
+
+### Divergencias de Q4 *(integración)*
+
+28. **Ninguna misión de la campaña juega EL PULSO todavía, y es deliberado.** El §6.5 lo prohíbe
+    hasta que pase una de dos cosas: que el rescate de la PASADA falle su gate (R6) y EL PULSO pase
+    a ser el clímax general, o que exista m14 (el momento del misil del guion), que es su vía de
+    entrada garantizada. El enchufe quedó listo y probado — `climax: 'pulso'` en el renglón de una
+    misión y juega. Hay un unit test que **falla si alguna misión lo toma de contrabando**: el día
+    que se le asigne una, ese assert es el que hay que venir a cambiar a propósito.
+29. **El fixture del pasillo usa `&qa`** (el mismo flag que `tools/smoke.js`, que acorta el objetivo
+    al 6%). No es para hacer trampa con el empalme: el fixture no pilotea, y sin nadie esquivando el
+    pasillo entero de una misión de verdad termina con el avión contra un obstáculo antes de llegar
+    al buque. Lo que se mide —que el final del pasillo entrega la prueba— es igual de largo el
+    camino que sea.
+30. **El nombre del buque se calla en `'pulso'`.** Escrito sobre el barco cae justo donde la prueba
+    pone la elección de blanco: se vio recién volando el pasillo entero hasta la prueba (Q4), con
+    "HMS ARDENT" encima del renglón del POLVORÍN.
+
+### Divergencias de Q5 *(el teatro)*
+
+31. **El latido es el reloj de la prueba hecho audible**, no un adorno: el período sale del margen
+    que se está consumiendo (0,95 s → 0,42 s entre latidos) y **arranca más apurado con cada fallo**
+    (`HB_TRY`). No se calma entre pasadas — que es lo que hace que el tercer intento se sienta
+    distinto del primero sin que aparezca ningún cartel nuevo. Es "lub-dub" de verdad: dos golpes,
+    el segundo más grave y corto.
+32. **El mundo enmudecido se hace con el ducking que ya existía** (`audio.duck`), pedido cada cuadro
+    porque decae solo, más el `engineOff()` que ya estaba. En el premio se suelta: que la música
+    vuelva con el mundo es la mitad del alivio.
+33. **La sal del canopy tiene posiciones FIJAS** (reparto determinista por primos, no `Math.random`).
+    Sorteada por cuadro se leía como nieve; la sal está seca y quieta, y es una marca del avión
+    —volaste dos mil metros a ras del Atlántico— no un efecto de partículas.

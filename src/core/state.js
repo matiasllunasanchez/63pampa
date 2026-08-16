@@ -182,6 +182,9 @@ export function resetPlane() {
 export const stats = {
   air: 0, soldiers: 0, zones: 0, shots: 0, hits: 0,
   grazes: 0, fuelPicks: 0, dodges: 0, bestRas: 0, reattacks: 0,
+  // EL PULSO: el premio del climax y cuantos sellos se llevo (0..3). Viven aca y no en el sistema
+  // porque son del recuento de la MISION — el sistema se resetea al re-encarar, el recuento no.
+  pulso: 0, pulsoSellos: 0,
 };
 
 export function resetStats() {

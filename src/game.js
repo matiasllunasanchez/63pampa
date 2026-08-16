@@ -470,6 +470,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         g.setup(m.goal);
       }
       else { objectiveDist = 0; objectiveShip = randomShip(); }
+      // EL PULSO necesita saber CONTRA QUE buque es la prueba: de su clase sale como se muere en
+      // la cinematica del premio. Va aca y no en reset() porque el objetivo se define despues.
+      pulso.setShip(objectiveShip);
       // MUSICA: campaña usa game.mp3; ciclo y supervivencia mantienen la pista elegida en el
       // reproductor (no la re-sortean). Arranca de cero al empezar el mapa, SALVO al reintentar
       // tras morir: ahi continua donde venia, sin corte.
@@ -1294,6 +1297,14 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       beep(700, 0.15, 'square', 0.06, 1000);
       engineOff();
     }
+    // EL PULSO: pasa el premio del climax a las estadisticas de la corrida, para que freezeRun lo
+    // encuentre. Va aca y no adentro del sistema porque `stats` es del recuento de la MISION.
+    function cobrarPulso() {
+      const pr = pulso.premio();
+      if (!pr) return;
+      stats.pulso = pr.pts;
+      stats.pulsoSellos = pr.n;
+    }
     // arma lastRun: el desglose de puntos, las estrellas y la calificacion de la mision
     function freezeRun() {
       winBg = (Math.random() * screens.WIN_BG_N) | 0;
@@ -1304,7 +1315,8 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       const bKills = kills * 120;
       const bAcc = Math.round(acc * 1000);
       const bRas = stats.bestRas * 300;
-      const total = flight + bKills + bAcc + bRas;
+      const bPulso = stats.pulso;                     // el premio del climax (0 si no se jugo EL PULSO)
+      const total = flight + bKills + bAcc + bRas + bPulso;
       const par = m.par || 8000;
       // La 4ª estrella son las MALVINAS: el rango "S", el tope (ver starsFor). El rango de texto
       // deriva directo de las estrellas (antes habia un bonus por precision aparte que competia):
@@ -1318,6 +1330,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
           { k: 'res_kills', v: bKills, n: kills },
           { k: 'res_acc', v: bAcc, n: Math.round(acc * 100) + '%' },
           { k: 'res_ras', v: bRas, n: stats.bestRas },
+          // la fila de EL PULSO SOLO aparece si se jugo: en las misiones con otro climax no hay
+          // renglon vacio ni un cero que haga dudar de si se perdio algo
+          ...(bPulso ? [{ k: 'res_pulso', v: bPulso, n: stats.pulsoSellos + '/3' }] : []),
         ],
       };
     }
@@ -1504,8 +1519,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // ACA, antes de que `dt` toque nada, para que TODO lo de atras del vidrio (el reloj de las
       // olas, el cabeceo del buque, los popups) quede dilatado en sincronia y sin relojes propios.
       // No se toca systems/tempo.js: el MOMENTUM es otro poder y sigue siendo del pasillo.
+      // El factor NO es fijo: en el premio (Q3) el mundo DESHIELA hasta correr normal — la
+      // dilatacion se suelta con la bomba. Lo decide el sistema (timeScale), que es el unico que
+      // sabe en que compas de la cinematica esta.
       const dtReal = dt;
-      if (S.state === 'pulso') dt *= PULSO.SLOW;
+      if (S.state === 'pulso') dt *= pulso.active() ? pulso.timeScale() : PULSO.SLOW;
       run.t += dt;
       // rotacion del fondo del lobby (no avanza jugando: solo mientras se elige)
       if (inLobby()) {
@@ -1643,7 +1661,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
           // hasta aca salvo el tercero: los dos primeros los resuelve el propio re-encare.
           run.shake = Math.max(0, run.shake - dtReal * 10);
           const sig = pulso.update(dtReal, dt);
-          if (sig === 'objective') finishObjective();
+          // EL PREMIO entra al recuento como una fila mas (freezeRun lo suma al total, y de ahi
+          // salen las estrellas de la mision): el climax no tiene una moneda propia.
+          if (sig === 'objective') { cobrarPulso(); finishObjective(); }
           // 2º FALLO: cuesta un avion del escuadron (mismo camino que la pasada gastada — no te
           // derribaron, se te fue la pasada). Volando solo no hay avion que cobrar: se sigue.
           else if (sig && sig.spent) { if (canRelevo(run.lives)) onPassSpent(sig); else pulso.reencarar(); }
@@ -1927,7 +1947,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // y no es casualidad que alcancen los margenes: el cielo y el mar se pintan de -70 a W+140
       // y desde y=-140 justamente para cubrir un giro completo alrededor del centro.
       // Se DESHACE antes de dibujar el avion: el sprite es la "cabina" y queda derecho.
-      const hzW = hzWorld();
+      // …y en EL PULSO lo inclina la PIRUETA DEL PREMIO: la maniobra que se tecleo se vuela de
+      // verdad (systems/moves.js) y desde la cabina eso se ve como el horizonte dando la vuelta.
+      // Se suma en vez de reemplazar porque hzWorld() ya devuelve 0 fuera del pasillo.
+      const hzW = hzWorld() + (S.state === 'pulso' ? pulso.camRoll() : 0);
       if (hzW) {
         ctx.save();
         const hcx = W / 2 + cm.x, hcy = H / 2 + cm.y;
@@ -2030,7 +2053,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // el raster 2D no cubre — el momentum, y el mar puesto por three.
       if (S.state === 'momentum' || hzW) px(-70, H, W + 140, 150, cfg.terrain === 'land' ? LAND.near : theme.water.base2);
       if (!world3D.isSea()) world.drawSea();   // el mar 2D solo cuando three no lo esta poniendo
-      world.drawApproachBarge(objectiveDist, objectiveShip);   // la barcaza objetivo creciendo en el horizonte
+      // la barcaza objetivo creciendo en el horizonte. El tercer parametro es lo que EL PULSO le
+      // esta haciendo en la cinematica del premio (crecer, escorar, hundirse) — null el resto del
+      // tiempo: el buque del pasillo es el mismo, y solo el climax lo mata.
+      world.drawApproachBarge(objectiveDist, objectiveShip, S.state === 'pulso' ? pulso.shipFx() : null);
       world.drawObjectiveMarker(objectiveDist);                // cuña roja en el horizonte: hacia donde vamos
       world.drawWake();
       if (cfg.radarNet) world.drawRadarNet();   // malla del techo de deteccion del radar

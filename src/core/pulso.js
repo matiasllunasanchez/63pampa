@@ -8,7 +8,7 @@
 // La unidad de dificultad es `t01`: el avance de campaña normalizado 0..1 (mision 1 = 0, ultima
 // = 1). Se elige asi y no "numero de nivel" porque los modos tienen largos distintos — CICLO y
 // PATRIA entran con su propia fraccion sin que estas cuentas sepan de misiones.
-import { PULSO, COMPASES, REMATE, POOL_BASICO } from '../data/pulso.js';
+import { PULSO, PULSO_PREMIO, COMPASES, REMATE, POOL_BASICO } from '../data/pulso.js';
 import { moveAllowed } from '../data/upgrades.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -79,3 +79,38 @@ export function armarZonas(zonas, pool, t01, rnd = Math.random) {
     return { zona: z, seqs: [head.seq, ...resto] };
   });
 }
+
+// ---------------- EL PREMIO (Q3) ----------------
+// Tambien es cuenta pura, y por la misma razon que la escalada: si el premio se desbalancea no da
+// error ni se ve — el climax simplemente pasa a pagar de mas o de menos, y eso solo se descubre
+// mirando el recuento de diez misiones. Aca se prueba en un segundo.
+
+/** PAR de tiempo de una secuencia: cuanto tendria que tardar el que no duda.
+ *  `n` compases × su margen × PAR. Sale del margen VIGENTE (que ya trae el nivel y el flak), asi
+ *  que el sello de velocidad es igual de alcanzable en la primera mision que en la ultima. */
+export const parSecsFor = (n, beatMax) => Math.max(0, n) * Math.max(0, beatMax) * PULSO_PREMIO.PAR;
+
+/** Los tres SELLOS del premio (plan §3). `secs` es el tiempo REAL desde que se eligio blanco. */
+export function sellosDe({ errs, secs, par, zona } = {}) {
+  return {
+    limpio: !(errs > 0),
+    rapido: secs > 0 && par > 0 && secs <= par,
+    // la zona brava es la que PIDE MAS compases que el nivel (bars > 0), no la que mas paga: si
+    // algun dia se repesan los puntos, el sello sigue significando lo mismo.
+    bravo: !!(zona && zona.bars > 0),
+  };
+}
+
+/** Puntos del climax: la base de la zona por lo que sumaron los sellos. Entra al recuento de la
+ *  mision como una fila mas (game.js), no como una moneda aparte. */
+export function puntosDe(zona, s) {
+  const base = (zona && zona.pts) || 0;
+  const k = 1
+    + (s && s.limpio ? PULSO_PREMIO.LIMPIO : 0)
+    + (s && s.rapido ? PULSO_PREMIO.RAPIDO : 0)
+    + (s && s.bravo ? PULSO_PREMIO.BRAVO : 0);
+  return Math.round(base * k);
+}
+
+/** Cuantos sellos se llevo (0..3): el numero que se muestra en el recuento. */
+export const sellosN = s => (s ? (s.limpio ? 1 : 0) + (s.rapido ? 1 : 0) + (s.bravo ? 1 : 0) : 0);
