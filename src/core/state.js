@@ -105,6 +105,17 @@ export const cfg = {
   //   'integ'  el avion aguanta y se DEGRADA (mas lento, sin turbo, sin piruetas)
   //   'visual' aguanta igual, pero el daño no toca el desempeño: solo se ve
   dmgMode: 'squad',
+  // QUE LE PASA AL RELEVADO (SPEC_MODO_PASADA RF-15.5). Es TONO, no cuenta: el avion sale de la
+  // partida en los tres casos, y lo unico que cambia es lo que ves y lo que dice la radio.
+  //   'auto'  como venia: campaña = averiado que vuelve a la base (norma 3/8 del guion, donde los
+  //           muertos los decide la historia y no el gameplay) · el resto = derribo arcade
+  //   'dmg'   averiado SIEMPRE, en cualquier modo
+  //   'kill'  derribado SIEMPRE — el arcade crudo, tambien en campaña
+  relevoFx: 'auto',
+  // RALENTI DE LA VENTANA (SPEC_MODO_PASADA RF-12): en la PASADA, los ultimos metros antes del
+  // buque corren mas lento para que la suelta se pueda decidir. Se apaga para quien lo sienta
+  // pastoso — es una ayuda de lectura, no una regla del modo.
+  pasadaSlow: true,
   // RED DE RADAR: la malla que marca la altura a partir de la cual el radar te detecta.
   //   0 = NO · 1 = AL ENTRAR (default) · 2 = SIEMPRE
   // El default es 1 a proposito: volando bajo —que es casi todo el juego— la red seria ruido

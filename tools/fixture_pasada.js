@@ -5,9 +5,11 @@
 // `check` por la misma razon que el fixture de historia: son segundos de vuelo REAL, y lo que
 // prueba no es una formula sino que la fase entera funcione adentro del juego.
 //
-// ESTADO: fase P0. Los pasos del §7 que dependen de sistemas que todavia no existen (bomba,
-// defensa, nafta) se IMPRIMEN COMO PENDIENTES con la fase que los trae — un fixture que calla lo
-// que no cubre se lee como si cubriera todo.
+// ESTADO: las OCHO fases del §8 estan hechas y cubiertas — P0 a P7.
+//
+// OJO CON LA DEFENSA (P3): la zona es LETAL. Las secciones que miden el vuelo, la suelta o el
+// reglamento apagan la defensa con __pdef(0) apenas entran, porque medir el alcance de la ristra no
+// puede depender de esquivar una salva. La defensa se prueba en la seccion 9, con __pdef(1).
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -61,7 +63,7 @@ const LUM = `(() => {
 })()`;
 
 app.whenReady().then(async () => {
-  console.log('\nFIXTURE — FASE PASADA (P0)\n');
+  console.log('\nFIXTURE — MODO PASADA (P0-P7)\n');
   // 1280x760 Y NO 960x540: la pagina tiene encabezado y pie alrededor del canvas, asi que con la
   // ventana justa el canvas queda ANCLADO ABAJO y se pierden los 33 px de ARRIBA — medido, el
   // getBoundingClientRect daba y=-63. Las capturas salian sin el titulo de la fase y sin el
@@ -76,6 +78,7 @@ app.whenReady().then(async () => {
   console.log('1. entrada por sonda y vuelo libre:');
   await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=3');
   await sleep(3000);
+  await js('__pdef(0)');   // P3: la zona es letal; estas secciones miden otra cosa
   let d = await P();
   if (!d) { console.error('   ✗ no entro a la pasada con ?pasada=3'); app.exit(1); return; }
   ok(`entro a la pasada · corrida ${d.corrida} · fase ${d.fase} · ${d.zonas} zonas vivas · ${d.r} m del buque`);
@@ -132,6 +135,7 @@ app.whenReady().then(async () => {
 
   await js(SAMPLER);
   for (let i = 0; i < 90; i++) { if (await P()) break; await sleep(200); }
+  await js('__pdef(0)');   // idem: esta seccion mide la TRANSICION, no la supervivencia
   clearInterval(gas); up('Up');
   d = await P();
   if (!d) { bad('el pasillo nunca desemboco en la pasada'); }
@@ -173,6 +177,7 @@ app.whenReady().then(async () => {
   console.log('\n3. el joystick en la pasada:');
   await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
   await sleep(3000);
+  await js('__pdef(0)');   // P3: la zona es letal; estas secciones miden otra cosa
   if (!await P()) { bad('no se pudo entrar a la pasada para probar el mando'); }
   else {
     await js(`(() => {
@@ -225,6 +230,7 @@ app.whenReady().then(async () => {
   console.log('\nel contador de suelta (cuando tirar):');
   await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
   await sleep(3000);
+  await js('__pdef(0)');   // P3: la zona es letal; estas secciones miden otra cosa
   if (!await P()) { bad('no se pudo entrar a la pasada para probar el contador'); }
   else {
     await js('__pset(900, 35, 0)'); await sleep(150);
@@ -251,6 +257,7 @@ app.whenReady().then(async () => {
     await js('__pkill()'); await sleep(300);        // (re-arma el buque desde cero abajo)
     await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
     await sleep(3000);
+  await js('__pdef(0)');   // P3: la zona es letal; estas secciones miden otra cosa
     let dAhora = null;
     for (let d = 460; d >= 120; d -= 10) {
       await js(`__pset(${d}, 35, 0)`); await sleep(70);
@@ -281,10 +288,24 @@ app.whenReady().then(async () => {
   console.log('\n4. la suelta: las tres bandas, el sapito y la ristra (pasos 2-5):');
   await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
   await sleep(3000);
+  await js('__pdef(0)');   // P3: la zona es letal; estas secciones miden otra cosa
   if (!await P()) { bad('no se pudo entrar a la pasada para probar la suelta'); }
   else {
+    /** Espera a que haya una pasada VIVA. Desde RF-15 hace falta entre una suelta y la siguiente:
+     *  soltar cierra tu corrida y el escuadron tarda ~5 s en devolver el mando (fin de pasada +
+     *  cinematica del relevo). Sin esto, el __pset de la proxima medicion cae en el vacio. */
+    async function esperarPasada() {
+      for (let k = 0; k < 60; k++) { if (await P()) return true; await sleep(200); }
+      return false;
+    }
+
     /** Suelta desde `alt` (con turbo si `turbo`) sobre el eje `off`, y devuelve que paso. */
     async function tirar(alt, turbo, off) {
+      if (!await esperarPasada()) return null;
+      // esta seccion mide LA SUELTA, no la economia del escuadron: se repone el roster para que
+      // medir cuatro bandas no se coma la formacion y la quinta medicion caiga en mision perdida.
+      // Lo que RF-15 cobra se prueba aparte, en la seccion 6.
+      await js('__plives(9)');
       let dd = 420;
       for (let k = 0; k < 16; k++) {
         await js(`__pset(${dd}, ${alt}, ${off})`); await sleep(80);
@@ -299,8 +320,17 @@ app.whenReady().then(async () => {
       await sleep(500);                       // que salga la ristra entera
       if (turbo) up('c');
       await js('__pset(1560, 300, 1.4)');     // apartarse: la bomba ya vuela sola
-      await sleep(3000);
-      const desp = await P();
+      // RF-15: soltar CIERRA la pasada, asi que un sleep fijo puede despertar DESPUES del relevo,
+      // cuando ya no hay instancia que leer (__pdbg da null) — y la medicion se perderia. Se
+      // muestrea hasta que el modulo se apaga y se guarda la ULTIMA lectura viva, que es la que
+      // tiene el daño ya resuelto: el fin de pasada solo llega con todas las bombas en el agua.
+      let desp = null;
+      for (let k = 0; k < 22; k++) {
+        await sleep(180);
+        const s = await P();
+        if (!s) break;
+        desp = s;
+      }
       if (!antes || !desp) return null;
       return { dmg: antes.hp - desp.hp, zonas: antes.zonas - desp.zonas, banda: antes.banda,
                duds: desp.duds - antes.duds, sapitos: desp.sapitos - antes.sapitos, d: dd | 0 };
@@ -330,9 +360,11 @@ app.whenReady().then(async () => {
     await sleep(4500);
     await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
     await sleep(3000);
+  await js('__pdef(0)');   // P3: la zona es letal; estas secciones miden otra cosa
     const eje = await tirar(35, false, Math.PI / 2);          // a lo largo del casco
     await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
     await sleep(3000);
+  await js('__pdef(0)');   // P3: la zona es letal; estas secciones miden otra cosa
     const cruz = await tirar(35, false, 0);                   // cruzando la manga
     // se mide en ZONAS ALCANZADAS, no en daño: una bomba que entra en una zona de 45 y otra en una
     // de 55 suman 100, y una sola que revienta el puente suma 130 — el numero mas grande seria la
@@ -344,6 +376,9 @@ app.whenReady().then(async () => {
 
   // ---------- 9. FIN DE LA PASADA ----------
   console.log('\n5. fin de la pasada (paso 9 del §7):');
+  // desde RF-15 hay que ESPERAR: la ultima medicion de la ristra gasto esa pasada, y el escuadron
+  // tarda ~5 s en devolver el mando. Antes se podia leer de una porque soltar no cerraba nada.
+  for (let k = 0; k < 40 && !await P(); k++) await sleep(200);
   if (await P()) {
     await js('window.__pkill()');
     await sleep(4200);
@@ -353,11 +388,329 @@ app.whenReady().then(async () => {
     await shot('p0_fin');
   } else bad('no hay pasada activa para probar el fin');
 
+  // ---------- 6. RF-15: UN AVION, UNA SUELTA ----------
+  // La regla que define el clímax. Lo que se prueba no es que exista un contador de vidas —eso ya
+  // andaba— sino las cuatro consecuencias que la hacen un juego: soltar TERMINA tu corrida aunque
+  // falles, NO soltar no cuesta nada, el daño al buque sobrevive al cambio de piloto, y el ultimo
+  // avion pierde la mision en vez de relevar.
+  //
+  // La coreografia de cada prueba es la misma y el porque importa: se suelta desde 900 m —donde el
+  // impacto previsto cae unos 600 m corto, o sea fallo GARANTIZADO— y 600 ms despues se aparta el
+  // avion a 1500 m y 300 m de altura. Ese apartarse no es prolijidad: a 35 m y encarado, el avion
+  // llega al buque en 8 s y se lo lleva puesto, y esa muerte tambien descuenta un avion. Sin
+  // apartarlo, la prueba pasaria por el motivo equivocado. Los 600 ms son para que salgan LAS DOS
+  // bombas de la ristra (la segunda va escalonada 0,35 s) antes de mover el avion.
+  console.log('\n6. RF-15 — el escuadron son los intentos:');
+  const gastarPasada = async () => {
+    await js('__pset(900, 35, 0); __pdrop()');
+    await sleep(600);
+    await js('__pset(1500, 300, 1.4)');
+  };
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+  await sleep(3000);
+  await js('__pdef(0)');   // P3: la zona es letal; estas secciones miden otra cosa
+  if (!await P()) bad('no se pudo entrar a la pasada para probar RF-15');
+  else {
+    // 1) NO SOLTAR NO CUESTA. Es la mitad del diseño: sobrevolar sin conseguir la linea es
+    // informacion, no un error del jugador, y cobrarlo haria del modo una loteria de encare.
+    const v0 = (await P()).vidas;
+    await js('__pset(1200, 60, 0)');
+    await sleep(2500);
+    const vSinTirar = (await P()).vidas;
+    if (vSinTirar === v0) ok(`volar sin soltar NO gasta avion: siguen ${vSinTirar}`);
+    else bad(`volar sin soltar bajo los aviones de ${v0} a ${vSinTirar}`);
+
+    // 2) SOLTAR Y ERRAR CIERRA LA PASADA, y entra el siguiente por el relevo de siempre.
+    await gastarPasada();
+    await sleep(4200);
+    const medio = await js('JSON.parse(__pausedbg()).state');
+    await shot('p4_relevo');                  // LA captura: el TURNO DE ... en pantalla, no despues
+    await sleep(4000);
+    const a = await P();
+    if (a && a.vidas === v0 - 1)
+      ok(`soltar y errar CIERRA tu pasada: ${v0} → ${a.vidas} aviones, y se vuelve a la pasada`);
+    else bad(`tras soltar y errar los aviones quedaron en ${a && a.vidas} (esperaba ${v0 - 1})`);
+    if (medio === 'relevo') ok('entre una pasada y la otra corre el relevo del escuadron (TURNO DE ...)');
+    else bad(`tras gastar la pasada el estado fue ${medio}, esperaba relevo`);
+
+    // 3) EL DAÑO AL BUQUE SOBREVIVE AL PILOTO (RF-15.3). Es lo que hace que cuatro aviones sean un
+    // presupuesto y no cuatro intentos sueltos: el segundo termina lo que el primero abrio.
+    //
+    // El daño tiene que ser PARCIAL, asi que se pega de verdad en vez de usar __pkill() —que vacia
+    // el buque ENTERO y lo hunde, o sea que probaria la victoria y no la persistencia. Se entra por
+    // el eje del casco (off = PI/2) y no cruzando la manga: por ahi la ventana dura 1,2 s en vez de
+    // 0,3 y el barrido la encuentra sin depender del azar del cuadro.
+    if (a) {
+      let dPega = null;
+      for (let d = 460; d >= 120; d -= 10) {
+        await js(`__pset(${d}, 35, ${Math.PI / 2})`); await sleep(70);
+        if ((await P()).cue === 0) { dPega = d; break; }
+      }
+      if (dPega === null) bad('no se encontro una suelta que pegue para probar la persistencia del daño');
+      else {
+        await js(`__pset(${dPega}, 35, ${Math.PI / 2}); __pdrop()`);
+        await sleep(600);
+        await js('__pset(1500, 300, 1.4)');       // apartarse, igual que en gastarPasada()
+        await sleep(8200);                        // la pegada + el fin de esa pasada + el relevo
+        const conDaño = await P();
+        const hpAntes = conDaño && conDaño.hp;
+        if (!conDaño || hpAntes >= a.hp) bad(`la suelta a ${dPega} m no dejo daño para medir (${a.hp} → ${hpAntes})`);
+        else {
+          await gastarPasada();                   // ahora una pasada FALLADA: no toca el casco
+          await sleep(8200);
+          const b = await P();
+          if (b && b.hp === hpAntes && b.vidas === conDaño.vidas - 1)
+            ok(`el daño PERSISTE entre pilotos: ${a.hp} → ${hpAntes} de casco, y sigue en ${b.hp} con el siguiente`);
+          else bad(`el casco paso de ${hpAntes} a ${b && b.hp} al cambiar de piloto (deberia quedar igual)`);
+        }
+      }
+    }
+
+    // 4) EL ULTIMO AVION PIERDE LA MISION. No releva: el buque siguio navegando. Se recarga la
+    // pagina para que el buque este entero — si no, la prueba podria terminar por hundimiento y
+    // decir "dead" por el motivo contrario al que se quiere medir.
+    await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+    await sleep(3000);
+  await js('__pdef(0)');   // P3: la zona es letal; estas secciones miden otra cosa
+    await js('__plives(1)');
+    await gastarPasada();
+    await sleep(5600);
+    const fin = await js('JSON.parse(__pausedbg()).state');
+    if (fin === 'dead') ok('gastar la pasada con el ULTIMO avion pierde la mision (no releva)');
+    else bad(`con el ultimo avion el estado quedo en ${fin}, esperaba dead`);
+    await sleep(2600);                        // que la pantalla de fin termine de subir antes de la foto
+    await shot('p4_derrota');
+  }
+
+  // ---------- 7. RF-10 y RF-12: los dos relojes ----------
+  console.log('\n7. RF-10 y RF-12 — la nafta y el ralenti:');
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+  await sleep(3000);
+  await js('__pdef(0)');   // P3: la zona es letal; estas secciones miden otra cosa
+  if (!await P()) bad('no se pudo entrar a la pasada para probar los relojes');
+  else {
+    // RF-12: el mundo se afloja SOLO donde hay algo que decidir — dentro de POPUP_DIST_M, con
+    // bombas y sin haber soltado. Lejos corre 1x, o seria un modo pastoso y no una ayuda.
+    await js('__pset(1200, 40, 0)'); await sleep(150);
+    const lejos = (await P()).lenta;
+    await js('__pset(500, 40, 0)'); await sleep(150);
+    const cerca = (await P()).lenta;
+    if (lejos === 1 && cerca < 1) ok(`el ralenti corre solo en la ventana: ${lejos}x a 1200 m · ${cerca}x a 500 m`);
+    else bad(`el ralenti no distingue la ventana (1200 m → ${lejos}x, 500 m → ${cerca}x)`);
+
+    // RF-10: el tanque seco tambien cierra la corrida, y es el PEOR final — perdiste el avion sin
+    // haber tirado. Es lo que le pone precio a dar otra vuelta buscando la linea.
+    const v0 = (await P()).vidas;
+    await js('__pset(1200, 60, 0); __pseca()');
+    await sleep(5600);
+    const c = await P();
+    if (c && c.vidas === v0 - 1) ok(`el tanque seco gasta la pasada sin haber tirado: ${v0} → ${c.vidas} aviones`);
+    else bad(`con el tanque seco los aviones quedaron en ${c && c.vidas} (esperaba ${v0 - 1})`);
+  }
+
+  // ---------- 8. P1: EL EJE DE ATAQUE Y EL RE-ENCARE ----------
+  // Lo que P1 promete no es una ayuda visual: es que la GEOMETRIA de la corrida sea legible. Se
+  // prueban las tres cosas que la hacen existir — que se entre por la eslora y no de costado, que
+  // el juego sepa distinguir un rumbo del otro, y que sobrevolar sin soltar deje una puerta.
+  console.log('\n8. P1 — el eje de ataque y el re-encare:');
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+  await sleep(3000);
+  await js('__pdef(0)');   // P3: la zona es letal; estas secciones miden otra cosa
+  if (!await P()) bad('no se pudo entrar a la pasada para probar P1');
+  else {
+    // 1) LA ENTRADA ES POR EL EJE. En P0 se entraba a 0,55 rad —casi cruzando la manga—, o sea que
+    // el juego le regalaba al jugador la peor corrida posible y despues le pedia que la entendiera.
+    const e0 = await P();
+    if (e0.encarado) ok(`se ENTRA por el eje del casco: alineacion ${e0.eje} (umbral ${0.82})`);
+    else bad(`la entrada no viene por el eje: alineacion ${e0.eje}`);
+
+    // 2) EL JUEGO DISTINGUE LOS DOS RUMBOS. __pset con off = PI/2 coloca a lo largo del casco y
+    // con off = 0, cruzando la manga: son las dos corridas cuya ventana difiere 4 veces.
+    await js(`__pset(700, 35, ${Math.PI / 2})`); await sleep(150);
+    const eLargo = await P();
+    await js('__pset(700, 35, 0)'); await sleep(150);
+    const eManga = await P();
+    if (eLargo.encarado && !eManga.encarado)
+      ok(`distingue los dos ejes: por la eslora ${eLargo.eje} (encarado) · cruzando la manga ${eManga.eje} (no)`);
+    else bad(`no distingue los ejes: eslora ${eLargo.eje}/${eLargo.encarado} · manga ${eManga.eje}/${eManga.encarado}`);
+
+    // 3) SOBREVOLAR SIN SOLTAR DEJA UNA PUERTA. Es el racetrack: la vuelta pasa de "deambular
+    // hasta que el buque vuelva a estar adelante" a una maniobra con principio y fin. Se coloca el
+    // avion PASADO el buque y alejandose, que es exactamente el egreso de una corrida sin suelta.
+    // a 1160 m y no a 1300: OUT_R son 1150, asi que esto es el instante EXACTO en que una corrida
+    // sin suelta se da por terminada. Colocado mas afuera, la puerta queda pegada al borde de la
+    // zona y la prueba mediria una geometria que en el juego no se da nunca.
+    await js(`__pset(1160, 40, ${Math.PI / 2})`); await sleep(150);
+    await js('__pflip()'); await sleep(400);       // dar vuelta el rumbo: ahora se aleja
+    const g = await P();
+    if (g && g.fase === 'reencare' && g.puerta !== null)
+      ok(`alejandose sin soltar aparece la PUERTA de re-encare: fase ${g.fase}, puerta en x=${g.puerta} m`);
+    else bad(`alejandose no se armo el re-encare: fase ${g && g.fase}, puerta ${g && g.puerta}`);
+    await shot('p1_reencare');
+
+    // y la puerta se APAGA al entrar a la ventana: ya cumplio, y dejarla puesta seria ruido justo
+    // donde el jugador tiene que estar mirando el buque
+    await js(`__pset(400, 35, ${Math.PI / 2})`); await sleep(300);
+    const g2 = await P();
+    if (g2 && g2.puerta === null) ok('entrando a la ventana la puerta se apaga: ya cumplio');
+    else bad(`la puerta sigue puesta dentro de la ventana (${g2 && g2.puerta})`);
+    await shot('p1_eje');
+  }
+
+  // ---------- 9. P3: LA DEFENSA POR CAPAS ----------
+  // Lo que se prueba de cada capa no es que haga daño: es que castigue LA FALTA QUE LE TOCA y
+  // ninguna otra. El cañon cobra volar derecho, el Sea Dart cobra volar alto lejos, y la fusileria
+  // cobra quedarse encima. Si alguna cobrara algo distinto, el nivel dejaria de enseñar a volarlo.
+  console.log('\n9. P3 — la defensa por capas:');
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+  await sleep(3000);
+  if (!await P()) bad('no se pudo entrar a la pasada para probar la defensa');
+  else {
+    // 1) EL TECHO DE RADAR (RF-03). Las dos mitades de la regla, y la de abajo importa mas: no es
+    // que a ras "esquivas mejor", es que el misil NO EXISTE. Eso es lo que convierte la doctrina
+    // real —llegar pegado al agua— en una ventaja de juego y no en una pose.
+    // INVULNERABLE: lo que se mide es DONDE cae la defensa y CUANDO sale, no si te mata. Sin esto
+    // la medicion se corta en el primer impacto — y con el modelo de vida por defecto, eso es el
+    // primero que te roza.
+    await js('__pdef(1); __pinv(1); __pset(1300, 17, 0)'); await sleep(1500);
+    const bajo = await P();
+    if (bajo && !bajo.dart) ok(`a ras (${bajo.alt} m) el Sea Dart NO existe: no hay lanzamiento`);
+    else bad(`entrando a ras igual salio el Sea Dart (alt ${bajo && bajo.alt})`);
+
+    await js('__pset(1300, 70, 0)'); await sleep(1200);      // 2x el techo, y lejos del buque
+    const alto = await P();
+    if (alto && alto.dart) ok(`cruzando el techo a ${alto.alt} m y ${alto.r} m del buque: LANZAMIENTO`);
+    else bad(`cruzando el techo a 70 m y 1300 m no salio el Sea Dart`);
+    await shot('p3_dart');
+
+    // 2) EL CAÑON (RF-04). La primera salva es un AVISO — punteria 0 — y la correccion se gana
+    // tirando. Si la primera ya matara, la capa no se podria aprender: seria una emboscada.
+    await js('__pdef(0)'); await sleep(100);
+    await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+    await sleep(3000);
+    await js('__pdef(1); __pinv(1); __pset(1200, 20, 0)');
+    for (let k = 0; k < 40; k++) { await sleep(200); const a = await P(); if (a && a.salvas >= 1) break; }
+    const s1 = await P();
+    // se mide la DISPERSION con la que salio la salva, no la punteria que queda despues: el
+    // contador avanza AL DISPARAR, asi que leerlo despues de la primera ya da 0.5 aunque esa
+    // primera haya salido a tantear. Lo que importa es con cuanto error salio.
+    if (s1 && s1.salvas >= 1 && s1.disp >= 54)
+      ok(`la PRIMERA salva es de tanteo: ${s1.disp} m de dispersion (COL_JIT_M son 60) — el cañon avisa antes de acertar`);
+    else bad(`la primera salva no fue de tanteo (salvas ${s1 && s1.salvas}, dispersion ${s1 && s1.disp})`);
+
+    // y virar le BORRA la correccion: es el zigzag suave del criterio de RF-04
+    for (let k = 0; k < 30; k++) { await sleep(200); const a = await P(); if (!a || a.punteria >= 1) break; }
+    const tomado = await P();
+    if (!tomado || tomado.punteria < 1) bad(`volando derecho el cañon no llego a tenerte tomado (${tomado && tomado.punteria})`);
+    else {
+      down('q'); await sleep(700); up('q'); await sleep(300);
+      const roto = await P();
+      if (roto && roto.punteria < 1) ok(`derecho te toma (${tomado.punteria}) y un quiebre suave le BORRA la correccion (${roto.punteria})`);
+      else bad(`virando el cañon mantuvo la correccion (${roto && roto.punteria})`);
+    }
+
+    // 3) EL CALOR (RF-09). Insistir es legal y cuesta: la salva cae mas CERRADA. Se mide en la
+    // distancia media de la metralla, que es lo unico que el jugador siente de verdad.
+    await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+    await sleep(3000);
+    // EL ORDEN IMPORTA y costo una medicion: primero se coloca el avion, DESPUES se drenan las
+    // columnas que ya venian en el aire, y recien ahi se reinicia el contador. Al reves, las
+    // columnas de la medicion anterior reventaban a 1300 m del avion recien teletransportado y
+    // metian una media de 259 m que no era la del cañon, era la del teletransporte.
+    // Y se mide desde 1000 m y no desde 1300: a 110 m/s eso deja ~9 s adentro del alcance, tiempo
+    // para tres salvas sin que el avion se vaya de la zona a mitad de la cuenta.
+    // SE MIDE LA DISPERSION, NO LA MEDIA DE DONDE CAYERON. La media de la metralla es el numero
+    // que el jugador SIENTE, pero con dos o tres salvas la domina el azar de un par de tiradas:
+    // medido, dio 55 contra 43 en una corrida y 35 contra 42 en la siguiente — o sea que a veces
+    // "prueba" lo contrario. La dispersion con la que sale la salva es el estado real del tirador
+    // y es lo que el CA de RF-09 pide leer por sonda. La media va igual, como contexto.
+    const medirSalvas = async h => {
+      // A 90 m DE ALTURA: a 20 el avion entraba en el casco antes de juntar las diez columnas y la
+      // medicion se quedaba en null — no por el cañon, por haberse estrellado. `__pinv` cubre la
+      // defensa, NO el buque, y esta bien que sea asi.
+      await js('__pset(1000, 90, 0)');
+      await sleep(1800);                       // que caigan las columnas que ya venian volando
+      await js(`__pheat(${h})`);               // fija el calor Y reinicia la sonda de la metralla
+      for (let k = 0; k < 45; k++) { await sleep(200); const a = await P(); if (!a || a.colN >= 10) break; }
+      const a = await P();
+      return a ? { disp: a.disp, dist: a.colDist } : null;
+    };
+    // __plives(1) NO es para sobrevivir: es para que NO HAYA OLEADA. Con compañeros vivos, uno
+    // esta corriendo casi siempre y el cañon se ocupa de el — la medicion se quedaba sin salvas
+    // que medir (colDist null). Sin escuadron no hay quien te cubra, y el cañon es todo tuyo.
+    await js('__pdef(1); __pinv(1); __plives(1)');
+    const frio = await medirSalvas(0);
+    const caliente = await medirSalvas(1.2);
+    if (frio && caliente && caliente.disp < frio.disp)
+      ok(`el CALOR cierra la salva: ${frio.disp} m de dispersion en frio · ${caliente.disp} m caliente `
+        + `(la metralla cayo a ${frio.dist} m y ${caliente.dist} m de media)`);
+    else bad(`el calor no cerro la salva (frio ${frio && frio.disp}, caliente ${caliente && caliente.disp})`);
+    await shot('p3_columnas');
+
+    // 4) LA FUSILERIA (RF-08) cobra QUEDARSE, no pasar. Es la diferencia que sostiene el modo: con
+    // el modelo de vida por defecto cualquier toque baja el avion, asi que si cobrara el sobrevuelo
+    // TODA pasada terminaria en relevo — incluido el sapito, que se tira pegado a la cubierta.
+    await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+    await sleep(3000);
+    // A 60 m DE ALTURA, no a 30: a 30 el avion entra en el casco antes de terminar de cruzar la
+    // cubierta y la prueba media una colision, no la fusileria. Y se entra desde 200 m tomando el
+    // MAXIMO de la cuenta mientras cruza: la huella son 180 m de largo, o sea ~1,6 s a 110 m/s, y
+    // un unico muestreo puede caer justo despues de salir.
+    await js('__pdef(1); __pinv(1); __pset(200, 60, 0)');
+    let maxFus = 0;
+    for (let k = 0; k < 20; k++) { await sleep(150); const a = await P(); if (a) maxFus = Math.max(maxFus, a.fus); }
+    if (maxFus > 0) ok(`sobre la cubierta corre el reloj de la fusileria: ${maxFus.toFixed(1)} s cruzando`);
+    else bad('sobre la cubierta no corre la fusileria');
+    await js('__pset(900, 60, 0)'); await sleep(1500);
+    const lejos = await P();
+    if (lejos && lejos.fus < maxFus) ok(`saliendo de la cubierta el reloj se enfria: ${lejos.fus} s`);
+    else bad(`el reloj de la fusileria no se enfria al salir (${lejos && lejos.fus} contra ${maxFus})`);
+  }
+
+  // ---------- 10. P7: LA OLEADA ----------
+  // Es lo que separa a este modo de los otros dos del juego. En el PASILLO y en el ARENA volas
+  // solo; aca te turnas con la escuadrilla. Lo que se prueba no es que se vean aviones amigos —
+  // eso seria decorado— sino las dos consecuencias de juego: que TE CUBREN (el cañon tiene un
+  // blanco por vez) y que su daño CUENTA, pero sin robarte el ultimo golpe.
+  console.log('\n10. P7 — la oleada de los Fieles:');
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+  await sleep(3000);
+  if (!await P()) bad('no se pudo entrar a la pasada para probar la oleada');
+  else {
+    await js('__pdef(1); __pinv(1); __pset(1300, 40, 1.4)');
+    let corridas = 0, cubierto = 0, muestras = 0, foto = 0;
+    for (let k = 0; k < 34; k++) {
+      await sleep(500);
+      const a = await P();
+      if (!a) break;
+      muestras++;
+      if (a.oleada.length) corridas = Math.max(corridas, a.oleada.length);
+      if (a.cubierto) cubierto++;
+      // LA FOTO SE SACA CON ALGUIEN EN EL AIRE. Al final del muestreo caia en un hueco de la
+      // oleada y la captura no probaba nada: la primera salio sin un solo avion amigo.
+      if (!foto && a.oleada.length && a.oleada[0].t > 3) { foto = 1; await shot('p7_oleada'); }
+    }
+    if (corridas >= 1) ok(`entre tus corridas ENTRAN los Fieles: hasta ${corridas} corrida(s) amiga(s) a la vez`);
+    else bad('no entro ninguna corrida amiga');
+    // NI ESCUDO NI ADORNO: la cobertura tiene que ser un RITMO. Todo el tiempo cubierto es apagar
+    // una capa; nunca cubierto es que la oleada no hace nada.
+    const pc = muestras ? cubierto / muestras : 0;
+    if (pc > 0.12 && pc < 0.6)
+      ok(`la cobertura es un RITMO, no un escudo: ${(pc * 100) | 0}% del tiempo con el cañon ocupado en un compañero`);
+    else bad(`la cobertura quedo mal dosificada: ${(pc * 100) | 0}% del tiempo cubierto`);
+    if (!foto) bad('no se pudo capturar la oleada en vuelo');
+
+    // SIN ESCUADRON NO HAY OLEADA NI RADIO. Es la misma regla que el aviso del Sea Cat: los ojos
+    // y las voces del modo son los compañeros, y con un solo avion no hay ninguno.
+    await js('__plives(1)'); await sleep(1200);
+    let solo = 0;
+    for (let k = 0; k < 12; k++) { await sleep(400); const a = await P(); if (a && a.oleada.length) solo++; }
+    if (!solo) ok('con UN solo avion no entra nadie: sin escuadron no hay oleada ni radio');
+    else bad(`con un solo avion igual entraron ${solo} corridas amigas`);
+  }
+
   // ---------- lo que todavia no existe ----------
-  console.log('\npasos del §7 que dependen de fases posteriores:');
-  pend(6, 'P3 — Sea Cat: con quiebre no pega, recto pega');
-  pend(7, 'P3 — calor: la corrida 3 tira mas cerrado que la 1');
-  pend(8, 'P4 — la nafta como reloj de la zona');
+  console.log('\nTODAS las fases del §8 estan cubiertas: P0 a P7.');
 
   console.log('\nconsola: ' + (errors.length ? errors.length + ' error(es)' : 'sin errores'));
   for (const e of errors.slice(0, 8)) console.error('   ' + e);

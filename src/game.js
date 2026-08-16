@@ -61,7 +61,7 @@ import * as moves from './systems/moves.js';
 import * as squad from './systems/squad.js';
 import { FIELES } from './data/pilots.js';
 import * as squadRender from './render/squad.js';
-import { canRelevo } from './core/squad.js';
+import { canRelevo, pilotIdx } from './core/squad.js';
 import { RUNWAYS, AIR_START_Y } from './data/runways.js';
 
   (() => {
@@ -523,6 +523,14 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       { label: () => T('optDmg'), opts: DMG_MODES,
         names: () => DMG_MODES.map(m => T('optDmg_' + m)),
         get: () => cfg.dmgMode, set: v => cfg.dmgMode = v, save: 'rasante_averias' },
+      // QUE LE PASA AL RELEVADO (RF-15.5). Va pegada a las dos de arriba porque completa la misma
+      // pregunta: cuántos aviones tenés, cuánto aguanta cada uno, y qué se ve cuando perdés uno.
+      { label: () => T('optRelevo'), opts: ['auto', 'dmg', 'kill'],
+        names: () => ['auto', 'dmg', 'kill'].map(m => T('optRelevo_' + m)),
+        get: () => cfg.relevoFx, set: v => cfg.relevoFx = v, save: 'rasante_relevo' },
+      // RALENTI DE LA PASADA (RF-12): los ultimos metros antes del buque, mas lentos.
+      { label: () => T('optPasadaSlow'), opts: [true, false], names: yesNo,
+        get: () => cfg.pasadaSlow, set: v => cfg.pasadaSlow = v, save: 'rasante_pasada_lenta' },
       // ENEMIGOS: movimiento propio (globos, helos patrullando, cazas que te buscan, fragatas).
       { label: () => T('optEnemies'), opts: [true, false],
         names: () => [T('optEnemiesOn'), T('optEnemiesOff')],
@@ -1391,7 +1399,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       factIdx = (factIdx + 1) % L().facts.length;
       // campaña: el ultimo avion tampoco explota — la escuadrilla entera quedo averiada y la
       // mision se pierde (la pantalla de fin lo dice); en arcade, el derribo clasico
-      if (squad.rosterActive()) dmgFX(); else crashFX();
+      if (relevoRompe()) dmgFX(); else crashFX();
       if (Math.floor(run.score) > best) { best = Math.floor(run.score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
     }
 
@@ -1403,11 +1411,38 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     function onDeath(cause) {
       if (canRelevo(run.lives)) {
         // en campaña el lider NO revienta: queda averiado y vuelve (norma 3/8, GUION_2)
-        if (squad.rosterActive()) dmgFX(); else crashFX();
+        if (relevoRompe()) dmgFX(); else crashFX();
         squad.startRelevo(cause);      // la mision sigue: descuenta y prepara al companero
         setState('relevo');
       } else die(cause);
     }
+
+    // RF-15 — LA PASADA GASTADA. El otro camino por el que se pierde un avion, y el que define el
+    // clímax: soltaste la ristra (o secaste el tanque buscando la linea) y tu corrida termino. No
+    // moriste — por eso NO hay crashFX ni dmgFX acá: no explotó ni lo tocaron, se va con la panza
+    // vacía y le toca al siguiente. Pero el avion sale de la partida igual, y esa es toda la
+    // economia del modo: el escuadron son los INTENTOS contra el buque.
+    //
+    // Se apoya en el relevo de siempre (misma cinematica, misma cuenta, misma re-entrada a la
+    // pasada con el daño al buque intacto). Sin escuadron que releve, el buque siguio navegando:
+    // mision perdida por el embudo de siempre, que reinicia la mision COMPLETA — los aviones que
+    // perdiste en el pasillo son intentos que no tuviste al llegar.
+    function onPassSpent(sig) {
+      if (canRelevo(run.lives)) {
+        // el numeral que asume: startRelevo descuenta y despues calcula, asi que acá se mira una
+        // vida mas adelante para poder NOMBRARLO antes de que empiece la cinematica
+        const next = pilotIdx(run.squad, run.lives - 1);
+        popup(W / 2, 62, T('pasada_turn', { c: squad.pilotName(next) }), P.accent);
+        squad.startRelevo(sig.spent === 'seca' ? 'death_fuel' : 'pasada_why', sig.spent);
+        setState('relevo');
+      } else die(sig.spent === 'seca' ? 'death_fuel' : 'death_pasada');
+    }
+
+    // ¿El relevado se ROMPE o se MUERE? En campaña vuelve averiado (norma 3/8: los muertos los
+    // decide el guion, no el gameplay) y en arcade es el derribo clasico — pero la fila
+    // AL PERDER UN AVION de OPCIONES fuerza cualquiera de los dos en cualquier modo (RF-15.5).
+    // Es tono, no cuenta: el avion sale de la partida en los dos casos.
+    const relevoRompe = () => cfg.relevoFx === 'auto' ? squad.rosterActive() : cfg.relevoFx === 'dmg';
 
     // ---------- update ----------
     // update() es el ORQUESTADOR del frame: corre el prelude (tiempo, sonido, camara,
@@ -1544,10 +1579,12 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         }
         if (S.state === 'pasada') {
           // PASADA (el otro climax): misma disciplina de señales que el arena y el momentum. El
-          // sistema no llama hacia arriba — devuelve 'objective' o { death } y el embudo decide.
+          // sistema no llama hacia arriba — devuelve 'objective', { death } o { spent } (RF-15:
+          // gastaste tu pasada sin morir) y el embudo decide.
           run.shake = Math.max(0, run.shake - dt * 10);
           const sig = pasada.update(dt, inp);
           if (sig === 'objective') finishObjective();
+          else if (sig && sig.spent) onPassSpent(sig);
           else if (sig && sig.death) onDeath(sig.death);
           flags.startReq = false; flags.anyPress = false;
           return;
@@ -2070,7 +2107,8 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         pip: arena.pipId(), parts, popups, selPlane, t: run.t });
       if (S.state === 'pasada' && pasada.active()) pasadaRender.drawPasada({
         pasada: pasada.active(), zones: pasada.zonesOf(), view: pasada.view(), objectiveShip,
-        impact: pasada.impactPoint(), parts, popups, selPlane, t: run.t });
+        impact: pasada.impactPoint(), eje: pasada.axisAlign(), oleada: pasada.oleada(),
+        parts, popups, selPlane, t: run.t });
       ctx.restore();
       // ...y el telon ABRIENDOSE del otro lado: entraste al climax cruzando el banco
       if (veilOut > 0 && (S.state === 'arena' || S.state === 'momentum')) world.drawVeil(veilOut / VEIL_OUT);
@@ -2264,7 +2302,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         veilPrev = S.state;
       }
       if (veilOut > 0) veilOut = Math.max(0, veilOut - raw);
-      const dt = raw * tempo.scale();
+      // RF-12: el ralenti de la ventana de suelta MULTIPLICA al del MOMENTUM, no lo reemplaza —
+      // los dos son escalas del mismo dt, asi que componerlos es multiplicar y nada mas. Como
+      // nada en el juego usa reloj de pared, esto frena bombas, particulas y defensa en sincronia.
+      const dt = raw * tempo.scale() * (S.state === 'pasada' ? pasada.slow() : 1);
       update(dt); draw(); updateMusic(S.state);
       if (playerEl) playerEl.classList.toggle('on', canPickMusic());   // reproductor: solo donde hay pista cambiable
       requestAnimationFrame(frame);

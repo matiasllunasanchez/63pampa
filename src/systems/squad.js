@@ -52,7 +52,7 @@ export function tickExit(dt) { if (exitT >= 0) { exitT += dt; if (exitT > EXIT_T
 
 /** Arranca el relevo: descuenta la vida, congela el punto de la caida y prepara al companero.
  *  game.js ya disparo crashFX() — los restos del lider estan volando cuando esto corre. */
-export function startRelevo(cause) {
+export function startRelevo(cause, spent) {
   run.lives--;
   const next = pilotIdx(run.squad, run.lives);
   const wx = plane.x, wy = Math.max(2, plane.y);
@@ -61,6 +61,10 @@ export function startRelevo(cause) {
   const side = wx > 0 ? -1 : 1;
   rv = {
     t: 0, cause,
+    // RF-15: `spent` = la pasada se gasto (soltaste o secaste el tanque), NO te derribaron. Cambia
+    // el titular de la cinematica y nada mas — la cuenta es la misma. Sin esto la pantalla decia
+    // "DERRIBADO" sobre un avion al que nadie toco, que es la clase de mentira que rompe un juego.
+    spent: spent || null,
     fallen: next - 1, next,
     wx, wy, side,                                       // donde cayo el lider (la camara arranca aca)
     x0: wx + side * 30, y0: Math.min(FLY_TOP - 10, wy + 13),
@@ -89,7 +93,10 @@ export function startRelevo(cause) {
   plane.x = rv.x0; plane.y = rv.y0;
   plane.vx = 0; plane.vy = 0; plane.bank = 0; plane.pitch = 0;
 
-  beep(240, 0.3, 'sawtooth', 0.05, 90);                 // la radio cae de tono: el aviso del derribo
+  // la radio cae de tono en el derribo; gastar la pasada suena distinto — mas corto y sin drama:
+  // no hubo desgracia, hubo una corrida que termino
+  if (spent) beep(340, 0.16, 'square', 0.045, 260);
+  else beep(240, 0.3, 'sawtooth', 0.05, 90);
 }
 
 // Cuanto se agacha la musica mientras habla el piloto. Las grabaciones miden entre 1.42 s

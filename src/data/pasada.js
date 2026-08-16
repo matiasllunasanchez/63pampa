@@ -21,6 +21,26 @@ export const PS = {
   POPUP_DIST_M: 800,     // desde aca el salto habilita la mira sobre las zonas (y corre el
                          // ralenti de la ventana, RF-12)
 
+  // ---- EL EJE DE ATAQUE (RF-02 / P1: la forma de la corrida) ----
+  // El buque tiene la eslora sobre X y la manga sobre Z (three-arena: |x| < 62.5, |z| < 11.25).
+  // Entrar POR EL EJE del casco da una ventana de suelta de 1,2 s a 110 m/s; cruzando la manga,
+  // 0,3 s — medido. O sea que el eje no es una preferencia estetica: es CUATRO VECES la ventana.
+  // Hasta P1 eso no se decia en ningun lado y entrar de costado parecia simplemente injusto.
+  AXIS_LEN_M: 1400,      // largo del pasillo de aproximacion dibujado sobre el agua, por punta
+  AXIS_STEP_M: 70,       // separacion de las marcas del pasillo (de a saltos: es una pista de
+                         // aterrizaje vista desde el aire, no una linea continua)
+  AXIS_W_M: 45,          // media manga del pasillo. NO es cero: dibujado sobre el eje exacto queda
+                         // JUSTO debajo de tu trayectoria y colapsa en el punto de fuga — medido
+                         // en captura, invisible. Con dos bordes separados, la perspectiva los
+                         // hace converger y el pasillo se lee como lo que es: por donde se entra
+  AXIS_OK: 0.82,         // |cos| del angulo entre tu rumbo y el casco para contar como ENCARADO.
+                         // 0.82 son ~35 grados: ancho a proposito — el eje es una invitacion, no
+                         // un riel, y el spec pide que el avion vuele LIBRE
+
+  // ---- EL RE-ENCARE (RF-09 / P1: el racetrack, todavia sin las dos variantes) ----
+  RACE_D_M: 1150,        // a que distancia del buque queda la puerta de re-entrada, sobre el eje
+  RACE_GATE_R: 220,      // radio de la puerta: cruzarla encarado reinicia la corrida
+
   // ---- LA VENTANA DE SUELTA (RF-06: la mecanica central) ----
   BAND_ARM_MIN: 20,      // piso de armado: soltar mas abajo = la bomba llega DORMIDA (golpea y no
                          // explota). Es historico: varios buques cobraron bombas sin estallar
@@ -34,6 +54,58 @@ export const PS = {
   SAPITO_ALT_M: 12,      // altura maxima de suelta para que la bomba pique en el agua (+ turbo)
   SAPITO_PTS: 2000,      // bonus de estilo
 
+  // ---- EL CAÑON DE 4,5" — LAS COLUMNAS DE AGUA (RF-04) ----
+  // La capa que castiga volar DERECHO. La salva no te apunta: apunta a donde vas a estar, y las
+  // columnas CAMINAN sobre tu rumbo — la primera cae corta, la ultima donde estarias dentro de un
+  // segundo y medio. Volar recto es meterse en la ultima. Y como caen sobre el AGUA y se ven
+  // subir, el aviso es el mundo y no un icono: la regla P3 del spec ("el aviso es humano o no es").
+  GUN_RANGE_M: 1500,     // desde aca el buque te toma con el cañon
+  GUN_EVERY_S: 2.9,      // entre salva y salva (se acorta con el calor del re-encare)
+  COL_N: 5,              // columnas por salva
+  COL_STEP_M: 42,        // cuanto camina la salva por columna. Es ~la distancia que volas en
+                         // COL_GAP_S a 110 m/s: por eso derecho te alcanza y virando no
+  COL_GAP_S: 0.38,       // entre columna y columna de la misma salva
+  COL_R: 24,             // radio letal de la columna mientras sube
+  COL_LIFE: 1.7,         // lo que dura la columna en el agua
+  COL_JIT_M: 60,         // dispersion del tirador SIN punteria hecha. Es lo que el CALOR aprieta
+                         // (RF-09): en la corrida 3 la salva cae medible-mente mas cerca que en la 1
+  // EL CAÑON SE APUNTA, NO ACIERTA DE UNA. Sin esto la primera salva mataba a los tres segundos de
+  // entrar —medido, el fixture no llegaba ni a la segunda prueba— y una capa que mata antes de
+  // poder aprenderse no enseña: frustra. Asi el tirador CORRIGE mientras vueles derecho, que es
+  // como se apunta un cañon naval de verdad, y cambiar de rumbo le borra la correccion.
+  GUN_AIM_SALVOS: 2,     // salvas de tanteo antes de tenerte tomado. Va por SALVAS y no por
+                         // segundos porque asi se corrige un cañon naval: se mira donde cayo la
+                         // anterior. El efecto de juego es el que importa — la PRIMERA salva es
+                         // siempre un aviso, nunca una emboscada, y recien la tercera mata. A
+                         // GUN_EVERY_S son ~6 s de rumbo constante: el criterio de RF-04, exacto
+  GUN_RESET_RAD: 0.35,   // cuanto rumbo hay que cambiar para borrarle la correccion (~20 grados:
+                         // un zigzag SUAVE alcanza, no hace falta un tonel)
+  GUN_AIM_MAX: 0.82,     // cuanto de la dispersion llega a comerse la punteria hecha. No es 1:
+                         // aun apuntado, el cañon falla a veces — y esa es la unica razon por la
+                         // que una corrida perfecta se puede tener suerte de sobrevivir
+
+  // ---- EL SEA DART — EL TECHO DE RADAR (RF-03) ----
+  // La capa que castiga volar ALTO lejos del buque, y la tesis del juego hecha sistema. No hay
+  // lock-on ni RWR: lo que hay es una estela que sale del buque y viene. Se esquiva con un quiebre
+  // sostenido porque el misil vira a ritmo LIMITADO — no es un dado, es geometria.
+  DART_V: 250,           // m/s
+  DART_TURN: 1.35,       // rad/s de viraje: menos que el avion, y ahi vive el esquive
+  DART_HIT: 26,          // radio letal
+  DART_LIFE: 9,          // se queda sin motor
+
+  // ---- SEA CAT Y FUSILERIA — LA DEFENSA CORTA (RF-08) ----
+  CAT_T: 3.4,            // segundos desde el lanzamiento hasta el impacto
+  CAT_BREAK: 0.85,       // radianes de cambio de rumbo que lo pierden. El Sea Cat real era
+                         // subsonico y guiado A MANO, asi que un quiebre franco lo dejaba atras
+  // FUSILERIA: es SOBRE LA CUBIERTA, no "cerca del buque", y la diferencia decide el modo. Con un
+  // radio grande, una pasada normal ya se comia un impacto — y con el modelo de vida por defecto
+  // (ESCUADRON, donde cualquier toque baja el avion) eso significa que TODA pasada termina en
+  // relevo. Acotada a la huella del casco, cruzarla a 110 m/s son ~1,2 s por la eslora: nunca
+  // muerde. Muerde el que se QUEDA, que es exactamente la falta que esta capa cobra.
+  FUS_X: 90, FUS_Z: 60,  // media huella vigilada (el casco mide 125 x 22)
+  FUS_ALT: 90,           // altura maxima. Arriba de eso ya sos problema del Sea Dart
+  FUS_BITE_S: 2.5,       // segundos acumulados encima antes de cobrar UN impacto
+
   // ---- DEFENSA CORTA Y CALOR (RF-08/RF-09) ----
   SEACAT_DODGE_S: 1.2,   // ventana de quiebre desde el aviso por radio: el Sea Cat real era
                          // subsonico y guiado a mano, asi que se esquiva de verdad
@@ -41,13 +113,38 @@ export const PS = {
                          // pasada: repetir es legal y cuesta
 
   // ---- LOS RELOJES (RF-10/RF-12) ----
-  FUEL_MIN: 10,          // minutos de nafta de la zona: no hay timer artificial, hay combustible
+  FUEL_MIN: 10,          // minutos de nafta de la zona: no hay timer artificial, hay combustible.
+                         // OJO: RF-15 le cambio la escala y este numero quedo SIN USAR — ver
+                         // PASS_TANK abajo y la divergencia §10.35
   SLOW_FACTOR: 0.85,     // ralenti de la ventana (perilla en OPCIONES). Se aplica escalando el dt
                          // del mundo, como el MOMENTUM — jamas relojes de pared
 
+  // ---- EL FIN DE LA PASADA (RF-15: un avion, una suelta) ----
+  PASS_END_T: 1.9,       // segundos entre que la ristra termina de resolverse y entra el
+                         // siguiente. NO es una pausa tecnica: es el tiempo de VER en que quedo
+                         // tu suelta. Cortar apenas revienta la bomba dejaria al jugador sin
+                         // saber por que perdio el avion, que es la unica leccion de la corrida
+  PASS_TANK: 100,        // nafta con la que ENTRA cada avion a la zona (la escala de run.fuel).
+                         // Es por AVION y no por batalla porque cada relevo es literalmente otra
+                         // maquina. Al drenaje del pasillo (3.2/s) da ~31 s de corrida: alcanza
+                         // para encarar y dudar una vez, no para dar vueltas hasta que salga
+
   // ---- LA OLEADA (RF-11: coreografia, no IA) ----
+  // Lo que convierte un poligono de tiro en un ATAQUE DE ESCUADRILLA, y la diferencia mas grande
+  // entre este modo y los otros dos: en el PASILLO y en el ARENA volas solo. Aca te turnas.
+  // Los Fieles no son IA ni adorno — hacen SU corrida mientras vos das la vuelta, y mientras uno
+  // corre el buque le tira A EL. Esa es la mecanica: el escuadron te compra segundos con su
+  // propio pellejo, que es exactamente lo que hacia un escuadron.
   WAVE_GAP_S: 6,         // separacion entre corridas de los Fieles
-  WING_HIT_P: 0.4,       // probabilidad de que la corrida de un Fiel dañe su zona
+  WING_HIT_P: 0.22,      // probabilidad de que la corrida de un Fiel dañe una zona. BAJA a
+                         // proposito: con 0.4 la oleada bajaba media nave sola en una batalla de
+                         // 36 s —medido— y el jugador pasaba a mirar trabajar a otros. Ablandan,
+                         // no rematan (y nunca voltean la ultima zona: ese golpe es tuyo)
+  WAVE_T: 9,             // lo que dura la corrida de un Fiel, de punta a punta
+  WAVE_D_M: 1250,        // de donde entra y hasta donde sale (sobre el eje, como vos)
+  WAVE_ALT_M: 26,        // su altura de corrida: a ras, como corresponde
+  WAVE_HURT_P: 0.35,     // probabilidad de que la defensa lo AVERIE en su corrida. Nunca lo mata:
+                         // los muertos los decide el guion (Vasco m7, Pichon m9), jamas el azar
 };
 
 // GEOMETRIA DE ENTRADA — DERIVADA de las perillas de arriba, no son perillas nuevas (§0.3: "no

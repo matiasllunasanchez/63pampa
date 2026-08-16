@@ -20,8 +20,89 @@ import * as world3D from '../systems/three-arena.js';
 import { PS } from '../data/pasada.js';
 import { shown as dmgShown } from '../systems/damage.js';
 
+/** ¿El efecto esta lo bastante ADELANTE como para dibujarlo?
+ *
+ *  `project().vis` no contesta esto: un punto que quedo atras proyecta igual, con las coordenadas
+ *  dadas vuelta, y se veian columnas y chapoteos flotando en el cielo sobre el horizonte. El
+ *  margen NO es cero sino MARGEN_M metros: la camara va DETRAS del avion, asi que algo "apenas
+ *  adelante del morro" puede estar atras del ojo — medido en captura, con margen cero seguia
+ *  saliendo un rectangulo palido arriba a la izquierda.
+ */
+const MARGEN_M = 45;
+function adelante(f, A) {
+  return (f.x - A.pos.x) * A.fwd.x + (f.z - A.pos.z) * A.fwd.z > MARGEN_M;
+}
+
 export function drawPasada(w) {
   const { pasada: A, zones, objectiveShip, parts, popups, selPlane } = w;
+  const enEje = w.eje >= PS.AXIS_OK;
+
+  // ---- EL EJE DE ATAQUE: el pasillo de aproximacion, pintado sobre el agua (P1) ----
+  // Es LA respuesta a "no entiendo la idea del nivel". El buque tiene la eslora sobre X, y entrar
+  // por ahi da una ventana de suelta CUATRO VECES mas larga que cruzando la manga (1,2 s contra
+  // 0,3 a 110 m/s, medido). Ese hecho decide la fase entera y hasta P1 no estaba dicho en ningun
+  // lado: el jugador entraba de costado, fallaba, y no tenia como saber que el error fue el rumbo.
+  //
+  // Se dibuja como una PISTA — marcas separadas sobre el mar, no una linea — porque eso es lo que
+  // es: por donde se entra. Se enciende cuando VENIS por ella, asi el acierto se ve antes de
+  // soltar y no despues de errar. Salteando el casco, que ya se dibuja solo.
+  // DOS BORDES Y NO UNA LINEA. Sobre el eje exacto (z = 0) el pasillo cae justo debajo de tu
+  // trayectoria y se hunde entero en el punto de fuga: medido en captura, no se ve nada. Separados
+  // AXIS_W_M a cada lado, la perspectiva los hace CONVERGER hacia el buque — que es exactamente
+  // como se lee una pista desde el aire, y por eso no hay que explicarlo.
+  {
+    ctx.strokeStyle = enEje ? P.accent : P.foam;
+    // fuera del eje NO se apaga casi del todo: es JUSTO cuando mas hace falta verlo. Se atenua lo
+    // suficiente para que encarado se note el premio, y nada mas.
+    ctx.globalAlpha = enEje ? 0.9 : 0.55;
+    ctx.lineWidth = 1;
+    for (let d = 100; d <= PS.AXIS_LEN_M; d += PS.AXIS_STEP_M) {
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+        const a = world3D.project(sx * d, 2, sz * PS.AXIS_W_M);
+        const b = world3D.project(sx * (d + PS.AXIS_STEP_M * 0.55), 2, sz * PS.AXIS_W_M);
+        if (!a.vis || !b.vis) continue;
+        if (Math.max(a.x, b.x) < -40 || Math.min(a.x, b.x) > W + 40) continue;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ---- LA PUERTA DE RE-ENCARE: donde girar para volver a entrar por el eje (P1) ----
+  // Solo existe si sobrevolaste sin soltar. Sin ella "dar otra vuelta" es deambular hasta que el
+  // buque vuelva a estar adelante; con ella es una maniobra con principio y fin — y como el tanque
+  // es de UNA corrida (RF-10), la vuelta tiene precio y conviene que se vea cuanto falta.
+  if (A.gate) {
+    const gp = world3D.project(A.gate.x, 26, A.gate.z);
+    if (gp.vis) {
+      const par = Math.sin(A.t * 5) > -0.3;
+      ctx.globalAlpha = par ? 0.9 : 0.45;
+      ctx.strokeStyle = P.foam; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(gp.x, gp.y, 7, 0, 7); ctx.stroke();
+      px(gp.x - 1, gp.y - 11, 2, 4, P.foam);
+      ctx.globalAlpha = 1;
+      ctx.font = '6px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.foam;
+      const dg = Math.hypot(A.gate.x - A.pos.x, A.gate.z - A.pos.z) | 0;
+      ctx.fillText(T('pasada_gate') + ' ' + dg + ' m', gp.x, gp.y + 16);
+    }
+  }
+
+  // ---- LA OLEADA (P7): los Fieles en su corrida ----
+  // Se dibujan CHICOS y con estela: a 1000 metros un A-4 es un punto que se mueve, y lo que tiene
+  // que leerse no es el avion sino que HAY ALGUIEN MAS ahi haciendo lo mismo que vos. La estela es
+  // lo que cuenta la historia — entra a ras, salta sobre el buque, sale del otro lado.
+  for (const f of w.oleada || []) {
+    if (!adelante(f, A)) continue;
+    const sp = world3D.project(f.x, f.y, f.z);
+    if (!sp.vis) continue;
+    const k = Math.max(1, Math.min(4, 260 / Math.max(60, Math.hypot(f.x - A.pos.x, f.z - A.pos.z))));
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = P.foam; ctx.lineWidth = 1;
+    const tp = world3D.project(f.x - (f.x > 0 ? 1 : -1) * 60, f.y, f.z);
+    if (tp.vis) { ctx.beginPath(); ctx.moveTo(tp.x, tp.y); ctx.lineTo(sp.x, sp.y); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    px(sp.x - k / 2, sp.y - k / 2, k, k, P.foam);
+  }
 
   // ---- zonas: corchetes + etiqueta + HP (vivas); humo (muertas) ----
   // Version simple a proposito: sin arco de pintado ni barra de stagger, que son sistemas del
@@ -80,8 +161,61 @@ export function drawPasada(w) {
       px(hp.x - 1, hp.y - 1, 3, 3, f.sapito ? P.accent : '#e8e4d8');
       continue;
     }
+    // ---- COLUMNA DE AGUA (RF-04) ----
+    // Antes de reventar se ve la MARCA sobre el agua: es el telegrafo, y es lo que hace que la
+    // salva sea esquivable en vez de injusta. Despues, la columna sube — y mientras sube, mata.
+    if (f.k === 'col') {
+      // DELANTE DEL MORRO O NO SE DIBUJA. `project().vis` no alcanza: un punto que quedo ATRAS
+      // igual proyecta, y con las coordenadas dadas vuelta — se veian columnas flotando en el
+      // cielo, sobre el horizonte (primera captura de P3). El producto escalar contra el morro es
+      // la pregunta que `vis` no contesta.
+      if (!adelante(f, A)) continue;
+      const wp = world3D.project(f.x, 0, f.z);
+      if (!wp.vis) continue;
+      const dt0 = f.T - f.wait;
+      if (dt0 < 0) {
+        // el aviso: un circulito que se cierra sobre el punto donde va a caer
+        const k = Math.max(0, Math.min(1, -dt0 / (PS.COL_GAP_S * PS.COL_N)));
+        ctx.strokeStyle = P.warn; ctx.globalAlpha = 0.5;
+        ctx.beginPath(); ctx.arc(wp.x, wp.y, 2 + k * 9, 0, 7); ctx.stroke();
+        ctx.globalAlpha = 1;
+        continue;
+      }
+      // la columna: alta, blanca y fea. Se dibuja en el MUNDO (el tope tambien se proyecta) para
+      // que la altura sea de verdad y no un rectangulo pegado a la pantalla.
+      //
+      // Y SE ACOTA, que no es prolijidad: una columna que revienta pegada a la camara proyecta un
+      // alto enorme y el rectangulo tapaba MEDIA PANTALLA con un bloque gris — se ve en la primera
+      // captura de P3. Proyectar no garantiza un tamaño razonable; dibujar, si.
+      const h = Math.min(1, dt0 * 3.2) * 46 * Math.max(0, 1 - dt0 / PS.COL_LIFE);
+      const tp = world3D.project(f.x, h, f.z);
+      if (!tp.vis || wp.x < -60 || wp.x > W + 60) continue;
+      const hpx = wp.y - tp.y;
+      if (!(hpx > 0) || hpx > H * 1.2) continue;
+      const w2 = Math.max(1, Math.min(22, hpx * 0.16));
+      ctx.globalAlpha = Math.max(0, Math.min(1, f.life));
+      px(wp.x - w2 / 2, tp.y, w2, hpx, '#c9ccc7');
+      px(wp.x - w2, tp.y - 2, w2 * 2, 3, '#e8e4d8');
+      ctx.globalAlpha = 1;
+      continue;
+    }
+
+    // ---- SEA DART (RF-03): la estela que sale del buque y viene ----
+    if (f.k === 'dart') {
+      if (!adelante(f, A)) continue;                        // idem: atras no se dibuja
+      const hp = world3D.project(f.x, f.y, f.z);
+      if (!hp.vis) continue;
+      const tp = world3D.project(f.x - f.vx * 90, f.y - f.vy * 90, f.z - f.vz * 90);
+      ctx.globalAlpha = 0.65; ctx.strokeStyle = '#c9ccc7'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(tp.x, tp.y); ctx.lineTo(hp.x, hp.y); ctx.stroke();
+      ctx.globalAlpha = 1;
+      px(hp.x - 1, hp.y - 1, 3, 3, Math.sin(A.t * 30) > 0 ? P.warn : '#e8e4d8');
+      continue;
+    }
+
     if (f.k === 'splash') {
       // COLUMNA DE AGUA / hongo del impacto, en el mundo
+      if (!adelante(f, A)) continue;                        // atras no se dibuja (ver 'col')
       const wp = world3D.project(f.x, f.y, f.z);
       if (!wp.vis) continue;
       const a = Math.min(1, f.life), r2 = 3 + f.vr * f.T;
@@ -156,7 +290,7 @@ export function drawPasada(w) {
   // regla como regla de medir: la franja clara es la banda que arma, la marca sos vos, y de un
   // vistazo se ve si hay que bajar o aguantar. Es lo que convierte los tres resultados de la
   // suelta —que hasta ahora eran magia— en una decision de palanca.
-  if (A.doneT <= 0) {
+  if (A.doneT <= 0 && !A.spent) {
     const lx = 8, ly0 = 30, lh = H - 62;             // de arriba del tablero hasta debajo del titulo
     const ALT_TOP = 90;                              // tope de la regla en metros (arriba de ALTA)
     const my = a => ly0 + lh * (1 - Math.max(0, Math.min(1, a / ALT_TOP)));
@@ -182,7 +316,9 @@ export function drawPasada(w) {
   // Va bajo el centro y no en el tablero porque en la corrida los ojos estan en el mar, no abajo.
   // Y NO aparece en el ras del sapito: RF-07 pide que esa suelta sea a ojo, y un contador la
   // convertiria en apretar cuando lo dice el cartel.
-  if (A.doneT <= 0 && A.bombs > 0 && A.pos.y >= PS.SAPITO_ALT_M) {
+  // (RF-15: con la pasada ya gastada no hay nada que decidir — el renglon se apaga y deja ver
+  // el veredicto, que es lo unico que importa en esos ultimos segundos)
+  if (A.doneT <= 0 && !A.spent && A.bombs > 0 && A.pos.y >= PS.SAPITO_ALT_M) {
     // ARRIBA, en la franja de cielo bajo el letterbox. Abajo del centro se leia SOBRE EL TABLERO
     // de la cabina —medido en captura, ilegible— y esa franja es la unica que esta despejada en
     // las DOS camaras: en 1a persona la ocupa el parabrisas y en 3a, el cielo.
@@ -192,6 +328,24 @@ export function drawPasada(w) {
       ctx.font = 'bold 13px monospace';
       ctx.fillStyle = Math.sin(A.t * 18) > -0.2 ? P.warn : P.accent;
       ctx.fillText(T('pasada_now'), W / 2, cy);
+    } else if (A.gate) {
+      // volviendo: "SIN LINEA" seria una obviedad — claro que no estas encarado, estas dando la
+      // vuelta. Lo que hace falta saber ahi es que ESTO es una maniobra, que tiene nombre, y
+      // CUANTO falta para virar.
+      //
+      // El numero va acá y no solo en la marca del mundo porque la marca se pierde: en la
+      // geometria del egreso (salis a 1150 m y la puerta esta a 1360) queda casi encima tuyo y un
+      // poco por debajo, o sea tapada por el tablero — medido en captura, no se veia. Un renglon
+      // no se pierde nunca, y la pregunta que contesta es la unica de esa parte de la corrida.
+      ctx.font = '7px monospace'; ctx.fillStyle = P.foam; ctx.globalAlpha = 0.8;
+      ctx.fillText(T('pasada_reencare'), W / 2, cy);
+      ctx.globalAlpha = 1;
+      const gx = A.gate.x - A.pos.x, gz = A.gate.z - A.pos.z;
+      const yendo = gx * A.vel.x + gz * A.vel.z > 0;      // ¿la puerta todavia esta adelante?
+      ctx.font = 'bold 8px monospace';
+      ctx.fillStyle = yendo ? P.foam : P.warn;
+      ctx.fillText(yendo ? T('pasada_turn_in') + '  ' + (Math.hypot(gx, gz) | 0) + ' m'
+        : T('pasada_turn_now'), W / 2, cy + 10);
     } else if (A.cue === null) {
       ctx.font = '7px monospace'; ctx.fillStyle = P.dim; ctx.globalAlpha = 0.7;
       ctx.fillText(T('pasada_noline'), W / 2, cy);
@@ -223,6 +377,21 @@ export function drawPasada(w) {
     px(6, 5, 44 * iv, 3, iv <= 0.25 ? (Math.sin(A.t * 10) > 0 ? '#ff5340' : P.warn) : iv <= 0.5 ? P.warn : P.foam);
   }
 
+  // ---- LA NAFTA, EL RELOJ DE TU CORRIDA (RF-10 + RF-15) ----
+  // Tiene que estar A LA VISTA desde que secar el tanque cuesta un avion: un final que el jugador
+  // no vio venir no enseña nada, enseña que el juego hace trampa. Va arriba a la derecha, en
+  // espejo de la integridad, porque las dos contestan lo mismo — cuanto te queda de ESTE avion.
+  // Se apaga entera con [M] COMBUSTIBLE: NO, igual que en el resto del juego.
+  if (cfg.fuelOn) {
+    const fv = Math.max(0, Math.min(1, run.fuel / PS.PASS_TANK));
+    px(W - 50, 5, 44, 3, '#2e3c45');
+    // el ultimo cuarto PARPADEA: es el aviso de que se te viene el peor de los finales — perder
+    // el avion sin haber tirado. Que el jugador tire "como venga" a esa altura es lo buscado.
+    px(W - 50, 5, 44 * fv, 3, fv <= 0.25 ? (Math.sin(A.t * 9) > 0 ? '#ff5340' : P.warn) : fv <= 0.5 ? P.warn : P.foam);
+    ctx.font = '6px monospace'; ctx.textAlign = 'right'; ctx.fillStyle = fv <= 0.25 ? '#ff5340' : P.dim;
+    ctx.fillText(T('pasada_fuel'), W - 52, 8);
+  }
+
   // ALTURA con el TECHO DE RADAR como referencia: es el unico numero que en esta fase decide algo
   // por si solo (RF-03 — abajo del techo el Sea Dart no existe), asi que se pinta distinto cuando
   // estas a ras. El indicador completo de la banda de armado llega en P5.
@@ -240,8 +409,9 @@ export function drawPasada(w) {
   ctx.fillText(T('pasada_run') + ' ' + A.corrida, 156, H - 4);
   // LA RISTRA: una casilla por bomba, pegada al numero de corrida — las dos cuentan lo mismo,
   // cuanto te queda de ESTA pasada. El renglon es de 480 px y esta medido: ALT 6 · banda 52 ·
-  // VEL 100 · CORRIDA 156 · ristra 196 · zonas al centro (223) · escuadron 265. Si se agrega algo,
-  // se mide de nuevo: acá ya se encimo una vez.
+  // VEL 100 · CORRIDA 156 · ristra 196 · zonas al centro (223) · INTENTOS 265 y sus casillas a
+  // +40 del bloque de zonas. Si se agrega algo, se mide de nuevo: acá ya se encimo dos veces —
+  // la ultima, la etiqueta contra sus propias casillas (medido en captura, 3 px).
   for (let i = 0; i < PS.BOMBS_N; i++)
     px(196 + i * 6, H - 8, 4, 3, i < A.bombs ? P.warn : '#2e3c45');
 
@@ -257,9 +427,9 @@ export function drawPasada(w) {
   for (let i = 0; i < zones.length; i++)
     px(W / 2 - zw / 2 + i * 7, H - 9, 5, 3, zones[i].hp <= 0 ? P.warn : '#2e3c45');
   if (run.squad > 1) {
-    ctx.textAlign = 'left'; ctx.fillText(T('arena_squad'), W / 2 + zw / 2 + 8, H - 4);
+    ctx.textAlign = 'left'; ctx.fillText(T('pasada_tries'), W / 2 + zw / 2 + 8, H - 4);
     for (let i = 0; i < run.squad; i++)
-      px(W / 2 + zw / 2 + 34 + i * 6, H - 9, 4, 3, i < run.lives ? P.accent : '#2e3c45');
+      px(W / 2 + zw / 2 + 40 + i * 6, H - 9, 4, 3, i < run.lives ? P.accent : '#2e3c45');
   }
 
   // ---- AVISO DE MAR: la contracara de volar a ras. El mar puede matar, no puede matar en silencio ----

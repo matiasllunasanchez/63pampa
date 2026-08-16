@@ -148,11 +148,19 @@ cómo VOLÁS la vuelta. Cada re-encare **calienta la defensa**: `+HEAT_RATE` de 
 precisión del cañón por corrida. **CA:** en la corrida 3 el cañón tira medible-mente más
 cerrado que en la 1 (leer por sonda).
 
+> **Ojo con la escala: RF-15 la cambió.** El re-encare existe MIENTRAS no soltaste. Es la
+> vuelta del que no consiguió la línea, y se paga en nafta y calor. Una vez que soltás, la
+> pasada terminó y entra el siguiente del roster — no volvés vos.
+
 ### RF-10 · La nafta es el reloj
 La zona arranca con nafta para ~`FUEL_MIN` minutos de juego. Todo la gasta (turbo y
 chandelle, más). Tanque seco = caída = muerte por el embudo de siempre (`onDeath` decide
 relevo o derribo; el relevo re-entra A LA PASADA con el daño al buque intacto, igual que
 hace el ARENA). **CA:** `[M] COMBUSTIBLE: NO` la apaga, como en el resto del juego.
+
+> El tanque es de la PASADA, no de la batalla (RF-15): mide cuánto podés demorarte
+> buscando la línea antes de tener que tirar como venga. Secarlo gasta un avión igual que
+> soltar, pero sin haber tirado — es el peor de los dos finales posibles de una corrida.
 
 ### RF-11 · La oleada (coreografía, no IA)
 Entre tu corrida y la siguiente, los Fieles vivos del roster hacen las suyas: **splines de
@@ -175,7 +183,9 @@ no rompen spawns ni flak (nada usa reloj de pared).
 
 ### RF-13 · Fin de la batalla
 El buque define sus objetivos = las zonas de su clase (`ships.js`, como ARENA). Todas
-apagadas → `'objective'` → el flujo de siempre (results → epílogo). **CA:** en HISTORIA y
+apagadas → `'objective'` → el flujo de siempre (results → epílogo). El daño **se acumula
+entre pilotos** (RF-15.3), así que las zonas las puede repartir toda la formación. La
+derrota — escuadrón agotado con el buque vivo — es RF-15.4. **CA:** en HISTORIA y
 CICLO encadena igual que hoy encadena el ARENA; ninguna pasada aparece en POR LA PATRIA ni
 en MINUTOS SAGRADOS.
 
@@ -184,6 +194,44 @@ en MINUTOS SAGRADOS.
 (las señaladas — PROPUESTAS §8). `flight.js` señala `'pasada'` o `'arena'` leyendo ese
 campo. Sin el campo → `'pasada'`. **CA:** cambiar el campo de una misión cambia su clímax
 sin tocar código.
+
+### RF-15 · El escuadrón son los INTENTOS, y la derrota es perder la misión
+*(decisión del autor, 16/8/2026 — responde la pregunta que RF-09/RF-10 dejaban abierta;
+lee §10.32 para el porqué y para qué se descartó)*
+
+**La regla, en una línea: un avión, una suelta.** No hay munición infinita ni tiempo
+infinito; hay **una formación**, y cada avión de ella es un intento contra el buque.
+
+1. **Soltar cierra tu pasada.** Pegues o no, tras la ristra la corrida terminó: cartel de
+   resultado y **`TURNO DE <NOMBRE>`** con el siguiente del roster. Es el mismo relevo de
+   `systems/squad.js`, disparado por *haber soltado* y no por haber muerto.
+2. **Sobrevolar sin soltar NO gasta un avión.** Si no lograste la línea (`SIN LINEA`),
+   seguís vos: eso es el re-encare de RF-09, y lo pagás en nafta y en calor de la defensa,
+   no en gente. **Comprometerse es soltar** — por eso la decisión de tirar es la decisión
+   del modo.
+3. **El daño al buque se acumula entre pilotos.** Las zonas ya persisten entre relevos en
+   `arena.js`; la PASADA hereda eso tal cual. Cuatro aviones pican el mismo casco: el
+   segundo termina lo que el primero abrió. Todas las zonas apagadas → RF-13.
+4. **Sin aviones y con el buque vivo → misión PERDIDA**, y se reinicia **la misión
+   completa**, no sólo la pasada. Es lo que le da precio al pasillo: los aviones que
+   perdiste llegando son intentos que no tenés al llegar. El escuadrón no se recarga en la
+   zona (misma razón por la que RF-06 no rearma bombas ahí).
+5. **Qué le pasa al que gastó su pasada.** En CAMPAÑA vuelve averiado a la base (norma 3/8
+   de GUION_2, ya implementada en `game.js`); fuera de la campaña, el relevo arcade de
+   siempre. **Perilla en OPCIONES** para elegir cuál de los dos, en cualquier modo — el
+   default de cada modo no cambia. En los dos casos el avión queda fuera de la partida:
+   la diferencia es el tono, no la cuenta.
+
+**CA:** con escuadrón 4 y un buque de 2 zonas, soltar y errar cuatro veces seguidas da
+misión perdida tras cuatro carteles de relevo; soltar y pegar en la 1ª y la 3ª da victoria
+con un avión sin usar. **CA:** volar tres sobrevuelos sin soltar y recién soltar al cuarto
+gasta UN avión, no cuatro. **CA:** con escuadrón 1, la primera suelta errada pierde la
+misión (es el modo duro, y no hay caso borde nuevo).
+
+**Lo que esto le cambia a RF-09 y RF-10:** siguen enteros, pero cambian de escala. El
+re-encare y la nafta ya no son el techo de la batalla — son el techo de **una** pasada:
+cuánto podés demorarte buscando la línea antes de que el tanque, o la defensa cada vez más
+caliente, te obliguen a tirar como venga. El techo de la batalla es el roster.
 
 ## 5. Requerimientos no funcionales
 
@@ -243,13 +291,13 @@ sin tocar código.
 | Fase | Entrega | Criterio de cierre |
 |---|---|---|
 | ~~**P0**~~ ✅ | Estado `'pasada'` + esqueleto de `systems/pasada.js`/`render/pasada.js` + `?pasada=` + `__pdbg`. La zona 3D compartida con el ARENA, el buque en el centro, el vuelo libre PASILLO-idéntico volando en ella | **hecho 16/8/2026**: se entra por sonda y se vuela; la transición sin corte anda y está medida (§10.4); `npm run pasada` y `npm run check` verdes |
-| **P1** | La corrida: eje de ataque, ingreso, sobrevuelo, re-encare racetrack (todavía sin las dos variantes), auto-retorno de zona. Sin defensa ni bomba | 3 corridas seguidas se vuelan fluidas; feel = PASILLO |
+| ~~**P1**~~ ✅ | La corrida: eje de ataque, ingreso, sobrevuelo, re-encare racetrack (todavía sin las dos variantes de RF-09), auto-retorno de zona | **hecho 16/8/2026**: el eje del casco se ENTRA y se DIBUJA (pasillo de aproximación sobre el agua), la fase es estado real con puerta de re-encare, y `VIRA EN N m` contesta cuánto falta para virar. Fixture sección 8 verde (§10.42–45) |
 | ~~**P2**~~ ✅ | La suelta completa: bomba balística, 3 bandas, ristra de `BOMBS_N` en salva, el sapito con sus 3 salidas, daño por zona, popups | **hecho 16/8/2026**: fixture pasos 2–5 verdes (dulce 130 de daño · dormida 2 impactos sin estallar · sapito entra picando · la ristra alcanza 2 zonas por el eje del casco y 1 cruzando la manga) |
-| **P3** | La defensa por capas: techo Sea Dart, columnas que caminan (solo al avión en corrida), Sea Cat + aviso por radio, fusilería, calor por re-encare | fixture pasos 6–7; cada capa se aprende muriendo UNA vez |
-| **P4** | El reglamento: nafta como reloj, ralentí de la ventana + MOMENTUM sumado, los DOS re-encares con sus precios, derrota/victoria por el embudo (`onDeath` / `'objective'`, relevo re-entra a la pasada) | fixture pasos 8–9 |
-| **P5** ◐ | Legibilidad + audio: HUD de banda de armado, corchetes/zonas, NO DESPERTÓ, silencio del Sea Dart abajo (la recompensa se escucha), sonidos por capa | **adelantado a medias 16/8/2026** por pedido del autor (§10.22–25): contador de suelta + su tic-tac, escalera de armado, distancia al buque y etiquetas de zona sin apilarse. Falta todo lo que depende de P3/P4 (audio por capa, silencio del Sea Dart) |
+| ~~**P3**~~ ✅ | La defensa por capas: techo Sea Dart, columnas que caminan, Sea Cat + aviso por radio, fusilería, calor por re-encare | **hecho 16/8/2026**: fixture sección 9 verde (a ras el Sea Dart no existe · cruzar el techo lejos lo dispara · la 1ª salva es de tanteo · derecho te toma y un quiebre lo borra · el calor cierra la salva · la fusilería cobra quedarse, no pasar). §10.46–51 |
+| **P4** ◐ | El reglamento: RF-15 (una suelta por avión, el roster son los intentos, derrota = misión perdida), nafta como reloj de la corrida, ralentí de la ventana + MOMENTUM sumado, victoria/derrota por el embudo | **hecho 16/8/2026**: fixture secciones 6 y 7 verdes (soltar y errar cierra la pasada 5→4 · volar sin soltar no cuesta · el daño persiste entre pilotos · el último avión pierde la misión · el ralentí solo en la ventana · el tanque seco gasta la pasada). **Falta** el re-encare de RF-09 con su calor: depende del eje de ataque de P1 y del cañón de P3 (§10.36) |
+| ~~**P5**~~ ✅ | Legibilidad + audio: HUD de banda de armado, corchetes/zonas, NO DESPERTÓ, silencio del Sea Dart abajo (la recompensa se escucha), sonidos por capa. **+ (pedido del plan visual, 16/8):** la SOMBRA de la bomba creciendo sobre el agua/cubierta hasta el impacto (legibilidad del sapito) y el silbido de caída — ver PLAN_VISUAL_FASES T4.A3: se hace ACÁ porque estos archivos tienen un solo dueño | **adelantado a medias 16/8/2026** por pedido del autor (§10.22–25): contador de suelta + su tic-tac, escalera de armado, distancia al buque y etiquetas de zona sin apilarse. Falta todo lo que depende de P3/P4 (audio por capa, silencio del Sea Dart) y la sombra/silbido de la bomba |
 | ~~**P6**~~ ✅ | Integración: `climax` en `missions.js`, `flight.js` señala según el campo, ARQUITECTURA + ESTADO + strings en/es, fallback `?no3d` documentado (momentum viejo) | **hecho 16/8/2026**: `climaxOf()` puro en `data/missions.js` con default `'pasada'`, probado en `npm run unit`; m4 y m12 son las dos de ARENA (§10.26–27). Pendiente el combo `'pasada+arena'` (§10.28) |
-| **P7** | La oleada: splines coreografiadas de los Fieles vivos, timing, radio, daño `WING_HIT_P`, cruce de frente en el lateral, averías narradas (sin muertes) | RF-11; con roster 1 no hay oleada |
+| ~~**P7**~~ ✅ | La oleada: corridas coreografiadas de los Fieles vivos, timing, radio, daño `WING_HIT_P`, averías narradas (sin muertes) | **hecho 16/8/2026**: fixture sección 10 verde (entran los Fieles · la cobertura es un ritmo del 26%, ni escudo ni adorno · con un solo avión no entra nadie). §10.54–58 |
 
 **Después de P7** (fuera de este spec): decidir retiro de `momentum.js` viejo (libera el
 nombre MOMENTUM — ver la advertencia de ARQUITECTURA), la 3ª bomba como mejora, m14 con
@@ -436,9 +484,10 @@ oleada completa.
     se llama EL CALLEJÓN DE LAS BOMBAS) y **m12** (el cierre de la campaña se pelea). Galahad y
     Tristram pasaron a PASADA, que además es lo que históricamente les pasó.
 
-28. **El combo `'pasada+arena'` que pidió el autor NO está.** Necesita que la pasada sepa
-    desembocar en el arena, y eso depende de una decisión suya que quedó abierta: *qué pasa si no
-    derrotás al buque en la pasada*. Hasta que la conteste, el campo acepta `'pasada'` o `'arena'`.
+28. ~~**El combo `'pasada+arena'` que pidió el autor NO está.**~~ **Descartado, no pendiente**
+    (16/8/2026). Dependía de *qué pasa si no derrotás al buque*, y el autor contestó otra cosa:
+    **perdés la misión** (RF-15). No hay desemboque al arena. El campo sigue aceptando `'pasada'`
+    o `'arena'`, y ahora es definitivo, no provisorio.
 
 29. **Las etiquetas de zona sólo se dibujan con 14 px de ancho de corchete**, lo que cierra a
     medias el pendiente §10.7: a 500 m los cinco carteles se apilaban en un borrón sobre el buque
@@ -453,3 +502,274 @@ oleada completa.
 31. **Sonda nueva `__pdrop()`**, que suelta sin pasar por la tecla. No es comodidad: cruzando la
     manga la ventana dura 0,3 s y un ida y vuelta de sondeo de más ya la deja atrás, así que
     colocar y soltar tiene que ser **una sola llamada**.
+
+### La derrota, contestada (16/8/2026)
+
+32. **RF-15 nace de una respuesta del autor, y descarta la mitad del reglamento que este spec
+    había supuesto.** Preguntado *qué pasa si no derrotás al buque*, contestó: *"Perdés. Si no
+    derrotás al buque perdés la misión y la tenés que reiniciar (...) cada avión es una vida (...)
+    llegar hasta el final con el escuadrón intacto y son las chances que tenés (...) pasás con el
+    primero, no le pegás, que la pantalla te diga que fallaste, y que venga el otro, TURNO DE
+    PICHÓN."*
+
+    Lo que esto **descarta**: la batalla ya no la limitan la nafta (RF-10) ni el calor de la
+    defensa (RF-09) —que era el modelo implícito: un piloto, pasadas ilimitadas, dos recursos que
+    se agotan—. La limita **el roster**. Los dos recursos viejos no se tiran: bajan a medir UNA
+    corrida (ver las notas dentro de RF-09 y RF-10).
+
+    **Por qué es mejor que el modelo que reemplaza**, y no sólo distinto:
+    - Le pone **nombre y cara a la derrota**. Un tanque vacío es un número; `TURNO DE PICHÓN` es
+      un compañero al que le toca arreglar lo tuyo. El HUD que tacha al caído y la radio que lo
+      nombra ya existen (PROMPT_ESCUADRON): esto los usa para el clímax.
+    - **Ata el pasillo al clímax.** Hasta ahora perder un avión llegando costaba poco. Ahora
+      cuesta un intento contra el buque, y el título del modo —llegar entero— pasa a ser
+      literalmente la mecánica.
+    - **Hace honor al nombre del modo.** Una PASADA es una pasada. Que la suelta la cierre es la
+      regla más corta que existe para que el modo se llame como lo que hace.
+
+    **Las dos cosas que el autor dejó abiertas y acá se resuelven** (dijo *"quizá"* en las dos; si
+    alguna se juega mal, se cambia y se anota acá):
+    - *"quizá completa o quizá esa parte sola"* → **la misión completa**. Reiniciar sólo la pasada
+      obligaría a inventar con cuántos aviones arrancás, y eso desactiva justamente el punto
+      anterior: el pasillo dejaría de costar.
+    - *cuándo se gasta el avión* → **al soltar, no al sobrevolar**. Sobrevolar sin línea no puede
+      costar un piloto: `SIN LINEA` es información, no un error del jugador, y castigarlo haría
+      del modo una lotería de encare. Con esta regla, la pregunta del jugador en cada corrida deja
+      de ser *¿pego?* y pasa a ser **¿tiro ya, o me la juego a dar otra vuelta?** — que es la única
+      decisión que un modo de una sola pasada puede ofrecer.
+
+    **Lo que casi todo esto ya tiene código**: `systems/squad.js` (relevo, cinemática, cuenta),
+    `game.js:901` (campaña = averiado a base · resto = derribo, la perilla de RF-15.5 elige),
+    `arena.js:73` (las zonas persisten entre relevos = RF-15.3). Lo que hay que escribir en P4 es
+    el disparador —*soltar* releva— y el cartel.
+
+### P4 — el reglamento (16/8/2026)
+
+33. **RF-15 se implementó con la señal `{ spent }`, hermana de `{ death }`.** `systems/pasada.js`
+    devuelve `{ spent: 'ristra' | 'seca', dmg }` y `game.js` decide en `onPassSpent()` — misma
+    disciplina del límite que todo lo demás. Lo importante es que NO reusa `{ death }`: gastar la
+    pasada y morir descuentan lo mismo, pero **no son lo mismo** y confundirlos habría puesto una
+    bola de fuego sobre un avión al que nadie tocó. Por eso `onPassSpent()` no llama a `crashFX()`
+    ni a `dmgFX()`: el avión se va con la panza vacía, y eso se tiene que ver.
+
+34. **El fin de pasada espera a que no quede NINGUNA bomba en el aire**, y recién ahí corre
+    `PASS_END_T` (1,9 s). No es una pausa técnica: cortar cuando la ristra sale del avión dejaría
+    al jugador sin ver dónde cayó lo que tiró, o sea sin la única lección de la corrida. El
+    veredicto se dice con tres textos distintos —FALLASTE · TOCADO, NO ALCANZÓ · SIN NAFTA— porque
+    fallar, rozar y quedarse seco enseñan cosas distintas.
+
+35. **`FUEL_MIN` (10 minutos de nafta de la zona) quedó SIN USAR.** Era del modelo viejo —un piloto,
+    la batalla entera— y RF-15 le cambió la escala: ahora el tanque mide UNA corrida. En su lugar
+    entra `PASS_TANK`, que repone el tanque **por avión** en `enter()` (el que releva es literalmente
+    otra máquina) y con el drenaje del pasillo da **~31 s de corrida**. Medido, alcanza para encarar
+    y dudar una vez. `systems/squad.js` sigue sin reponer nada, que es lo correcto ahí.
+    La perilla vieja queda en `data/pasada.js` marcada como sin uso, no borrada: si alguna vez el
+    tanque vuelve a ser de la batalla, el número y su porqué están escritos.
+
+36. **El re-encare de RF-09 NO entró, y es lo único de P4 que falta.** Necesita las dos cosas que
+    todavía no existen: el **eje de ataque de P1** (sin él "dar otra vuelta" no es una maniobra, es
+    deambular) y el **cañón de P3** (sin él, `HEAT_RATE` no tiene sobre qué subir — el calor calienta
+    a nadie). Se avisó antes de construir; el autor eligió P4 igual, y el resto de la fase no
+    dependía de eso. Los pasos 6 y 7 del §7 quedan pendientes, ahora anotados contra P3.
+
+37. **`cfg.relevoFx` separa el TONO de la CUENTA (RF-15.5).** Hasta hoy, que el relevado volviera
+    averiado o explotara lo decidía `squad.rosterActive()`, o sea el modo de juego, y de paso ese
+    mismo flag decide los NOMBRES de los pilotos. Conflatar las dos cosas era deuda: ahora la fila
+    AL PERDER UN AVIÓN de OPCIONES elige `auto` / `dmg` / `kill` en cualquier modo, y `game.js` la
+    lee por `relevoRompe()`. Los nombres siguen colgados del roster, que es donde corresponde.
+
+38. **Tres sondas nuevas, todas por medición y no por comodidad** (`QUITAR` al cerrar la fase):
+    `__plives(n)` fija los aviones que quedan —el caso borde del ÚLTIMO avión tardaría cuatro
+    corridas enteras en llegar por las buenas—; `__pseca()` seca el tanque y prende el combustible
+    (por las buenas son 31 s de vuelo, y la perilla viene apagada por default); y la sección 4 del
+    fixture llama a `__plives(9)` antes de cada medición de banda, porque mide LA SUELTA y no la
+    economía del escuadrón — sin eso, la quinta banda caía en misión perdida.
+
+39. **RF-15 rompió el helper `tirar()` del fixture, y lo rompió con razón.** Leía el estado con un
+    `sleep` fijo después de soltar; ahora soltar CIERRA la pasada, así que ese sleep despertaba
+    cuando ya no había instancia (`__pdbg` → null) y la medición se perdía. Se cambió por un
+    muestreo que guarda la ÚLTIMA lectura viva —que siempre tiene el daño resuelto, porque el fin de
+    pasada solo llega con todas las bombas en el agua— más un `esperarPasada()` entre medición y
+    medición. Es la clase de rotura que se quiere: la prueba vieja describía un juego que ya no es.
+
+40. **La cinemática del relevo se juega en el mundo del PASILLO, no en la zona 3D — y RF-15 acaba
+    de convertir eso en el problema visual más grande del modo.** Se ve en la captura
+    `p4_relevo.png`: el jugador venía atacando un buque en mar abierto y el relevo lo muestra sobre
+    montañas y tierra. **No es una regresión** —morir en la pasada ya hacía esto, y el ARENA
+    también—, pero era un accidente raro y ahora es el camino NORMAL: cada pasada termina acá, así
+    que pasa a ser la pantalla más vista de la fase.
+
+    Arreglarlo es correr el relevo DENTRO de la zona 3D (cámara sobre el agua, el compañero
+    entrando desde afuera del ring) en vez de pasar por el mundo 2D del pasillo. Es trabajo de
+    verdad y toca `systems/squad.js`, `render/squad.js` y el bloque `'relevo'` de `game.js`.
+    **Va con P1**, que es cuando la corrida tenga geometría propia y "de dónde entra el que releva"
+    tenga una respuesta que no sea arbitraria.
+
+41. **Lo que la primera captura de P4 encontró, y por qué se mira una captura.** El fixture daba
+    todo verde y la pantalla igual mentía dos veces: decía **"PATRIA 1 DERRIBADO"** sobre un avión
+    al que nadie tocó, y mostraba el texto de la DERROTA ("se acabó la escuadrilla") en medio de un
+    relevo. Las dos salieron de reusar el relevo tal cual: su titular asume que hubo un derribo y su
+    segunda línea imprime `rv.cause`, que yo estaba llenando con la causa de la pantalla de fin.
+    Se arregló con una marca `rv.spent` que elige un tercer titular (`sq_spent`) y una causa propia
+    (`pasada_why`), más un beep distinto — corto y sin drama, porque no hubo desgracia.
+    **Ninguna prueba automática podía ver esto**: los estados y las cuentas estaban bien. Es el
+    argumento entero a favor de mirar una captura por fase.
+
+### P1 — la forma de la corrida (16/8/2026)
+
+42. **La entrada de P0 le regalaba al jugador la PEOR corrida posible.** `enter()` colocaba el
+    avión con `yaw = 0.55` — casi cruzando la manga del buque, donde la ventana de suelta dura
+    0,3 s — y después el modo le pedía que entendiera el nivel. Ahora se entra sobre la eslora
+    (`yaw = PI/2`, el casco está sobre X), que da 1,2 s. Es **cuatro veces** la ventana, y vale
+    igual para el relevo, que entra por la misma función: el que asume llega briefeado.
+
+43. **El eje se DIBUJA, y ese es el aporte real de P1.** Un pasillo de aproximación marcado sobre
+    el agua, que se enciende cuando venís por él. Sin esto, el hecho más importante de la fase —el
+    rumbo de entrada decide todo— no estaba dicho en ningún lado, y entrar de costado no se sentía
+    difícil: se sentía roto. Es la respuesta directa a *"no entiendo la idea del nivel"*.
+
+    **Se dibuja con DOS BORDES separados `AXIS_W_M` y no sobre el eje exacto.** La primera versión
+    lo puso en `z = 0` y quedaba justo debajo de la trayectoria: se hundía entero en el punto de
+    fuga y **no se veía nada** (medido en captura, `p1_eje.png`). Con dos bordes, la perspectiva los
+    hace converger hacia el buque — que es como se lee una pista desde el aire, y por eso no hay
+    que explicarlo. Fuera del eje se atenúa pero **no se apaga**: es justo cuando más hace falta.
+
+44. **La puerta de re-encare se coloca ADELANTE, no en un radio fijo.** Puesta en `RACE_D_M` a
+    secas quedaba **detrás** del avión cuando el egreso ya lo había llevado más lejos —fase
+    `reencare` y ninguna marca en pantalla, se ve en la primera captura— y una guía que apunta a tu
+    espalda no guía. Ahora va sobre el eje, del lado al que vas, siempre un tramo por delante, y
+    topeada adentro de la zona para no pelearse con la correa del piloto automático.
+
+    Aun así **la marca del mundo sola no alcanza**: en la geometría real del egreso (salís a 1150 m
+    y la puerta queda a 1360) cae casi encima tuyo y un poco por debajo, o sea tapada por el
+    tablero. Por eso el dato va TAMBIÉN al HUD como **`VIRA EN N m`**, que no se pierde nunca y
+    contesta la única pregunta de esa parte de la corrida. La marca del mundo queda como el dónde;
+    el renglón, como el cuánto.
+
+45. **`A.fase` pasó de derivarse a ser estado, porque la puerta necesita memoria.** Recalcularla
+    cada cuadro la hacía saltar de una punta del buque a la otra al cruzar el medio: eso no es una
+    guía, es un parpadeo. Se fija una vez al empezar el re-encare y se apaga al entrar a la ventana
+    — ya cumplió, y dejarla puesta sería ruido justo donde hay que estar mirando el buque.
+    De yapa, cruzarla encarado se festeja UNA vez (`EN EL EJE!`): aprender que el eje era el punto
+    por un acierto propio vale más que leerlo en un cartel, que es lo único que este juego no se
+    puede permitir.
+
+**Lo que sigue siendo de RF-09 y NO entró:** las dos variantes del re-encare (viraje lateral contra
+chandelle) con sus precios distintos. Necesitan el cañón de P3 para que `HEAT_RATE` tenga sobre qué
+subir, y la oleada de P7 para que el viraje lateral signifique cruzarse de frente con los Fieles.
+Hoy el re-encare es uno solo y su precio es la nafta.
+
+### P3 — la defensa por capas (16/8/2026)
+
+46. **Cada capa castiga UNA falta, y ninguna otra.** Es lo que hace que el nivel enseñe a volarlo en
+    vez de castigar al azar: el cañón cobra volar **derecho**, el Sea Dart cobra volar **alto lejos
+    del buque**, y la fusilería cobra **quedarse encima**. Si alguna cobrara algo distinto —o dos
+    cobraran lo mismo— la lección se emborronaría y el jugador aprendería "acá te matan", que no es
+    una lección.
+
+47. **El cañón se APUNTA, no acierta de una — y esto fue el hallazgo de la fase.** La primera
+    versión mataba a los tres segundos de entrar: el fixture no llegaba ni a su segunda prueba. Una
+    capa que mata antes de poder aprenderse no es difícil, es una emboscada. Ahora el tirador
+    corrige **por salva** (`GUN_AIM_SALVOS`): la 1ª tantea, la 2ª corrige, la 3ª te tiene — y un
+    quiebre de ~20° le borra la corrección. A `GUN_EVERY_S` eso da **~6 s de rumbo constante**, que
+    es literalmente el criterio de aceptación de RF-04, salido de la mecánica en vez de puesto a
+    mano. Va por salvas y no por segundos porque así se corrige un cañón naval: mirando dónde cayó
+    la anterior.
+
+48. **La fusilería es SOBRE LA CUBIERTA, no "cerca del buque".** Con un radio grande, una pasada
+    normal ya se comía un impacto — y con el modelo de vida por defecto (ESCUADRÓN, donde cualquier
+    toque baja el avión) eso significa que **toda** pasada termina en relevo, incluido el sapito,
+    que por definición se tira pegado a la cubierta. Acotada a la huella del casco, cruzarla son
+    ~1,2 s y nunca muerde; muerde el que se queda, que es la falta que esta capa cobra.
+
+49. **El Sea Cat es un CHEQUEO y no un perseguidor, a propósito.** El Sea Cat real era subsónico y
+    lo guiaba una persona con un joystick mirando por un visor: un quiebre franco lo dejaba atrás.
+    Modelarlo como misil perfecto sería más "realista" en el código y menos fiel a lo que pasaba.
+    Se anota el rumbo al lanzar y se compara al llegar. El aviso lo grita un compañero — y por eso
+    **puede faltar**: sin escuadrón no hay quien te lo diga. Es la regla del modo en una línea.
+
+50. **Dos llaves nuevas de sonda, y la razón por la que hicieron falta.** P3 volvió la zona letal, y
+    once secciones del fixture que miden **otra cosa** (el vuelo, la suelta, el reglamento) se
+    empezaron a morir a mitad de la medición: medir el alcance de la ristra no puede depender de
+    esquivar una salva. `__pdef(0/1)` apaga la defensa donde no se la mide, y `__pinv(0/1)` hace
+    invulnerable **a la defensa** (no al mar ni al buque) donde lo que se mide es *dónde cae*, no si
+    mata. Sin la segunda, la media de la metralla salía de dos columnas en vez de doce.
+
+51. **El CALOR se mide por DISPERSIÓN y no por dónde cayó la metralla.** La media de la metralla es
+    el número que el jugador siente, pero con dos o tres salvas la domina el azar de un par de
+    tiradas: medido, dio 55 contra 43 en una corrida y **35 contra 42 en la siguiente** — o sea que
+    a veces "probaba" lo contrario. La dispersión con la que sale la salva es el estado real del
+    tirador y es lo que el CA de RF-09 pide leer por sonda. La media quedó igual, como contexto.
+
+52. **Tres bugs de render que sólo aparecieron mirando la captura**, los tres de la misma familia:
+    proyectar no garantiza nada. Una columna que revienta pegada a la cámara proyectaba un alto
+    enorme y su rectángulo **tapaba media pantalla** con un bloque gris; y las columnas y los
+    chapoteos que quedaban **detrás** del avión proyectaban igual, con las coordenadas dadas vuelta,
+    y se veían flotando en el cielo sobre el horizonte. `project().vis` no contesta "¿está
+    adelante?" — eso lo contesta el producto escalar contra el morro, que ahora filtra los tres
+    efectos del mundo. Y el dibujo se acota, siempre.
+
+53. **Un pendiente honesto de legibilidad, no resuelto.** En las capturas de P1 y P3 aparece un
+    rectángulo pálido de ~19×8 px en la misma posición de PANTALLA (≈ 141, 111 en grilla de mundo),
+    con la defensa prendida **y apagada**. Que no se mueva con la escena dice que no es un efecto
+    del mundo — el culling de §10.52 no lo toca — y apunta al arte de la cabina o a una partícula
+    con posición de pantalla. Queda anotado y **sin arreglar**: no se persiguió porque no afecta
+    ninguna decisión del jugador, pero está visto y medido, no ignorado.
+
+### P7 y el cierre del modo (16/8/2026)
+
+> **El pedido que ordenó esta última tanda**, dicho por el autor: *"la prioridad es la jugabilidad
+> pulida del nuevo modo, que sea completamente disfrutable y jugable completo en su totalidad, no
+> importa tanto lo visual sino la sensación de juego. Que realmente se sienta otra parte del juego
+> diferente a los otros dos modos."* Lo que sigue se decidió con ese criterio y no con el orden del
+> §8: primero se midió si la batalla se puede terminar, después se construyó lo que más cambia la
+> sensación, y lo visual quedó donde estaba.
+
+54. **Lo primero fue MEDIR si el modo se puede terminar, que ninguna prueba contestaba.** Una sonda
+    de batalla completa que juega como jugaría alguien que ya entendió el modo: **3 pasadas, 27 s,
+    victoria con 3 aviones de sobra** contra 285 de casco. El modo es completable y su arco dura lo
+    que tiene que durar. Sin ese número, todo lo demás habría sido decorar algo que quizá no
+    cerraba.
+
+55. **Estabas SOLO, y ese era el problema de sensación.** El modo se llama por un ataque de
+    formación y no había nadie más en el aire: contra el PASILLO y el ARENA —donde también volás
+    solo— no se sentía otra cosa, se sentía lo mismo con otras reglas. La oleada es lo que lo
+    separa, y no por lo que se ve sino por **dos consecuencias de juego**:
+    - **Mientras un Fiel corre, el cañón le tira a ÉL.** Un blanco por vez. Esos segundos limpios
+      son la única ayuda del modo que no sale de un HUD sino de que haya alguien más volando.
+    - **Sus bombas cuentan.** El casco que bajó mientras volvías lo bajó otro.
+
+56. **La oleada se movió de lugar después de medirla, y el porqué es RF-15.** Estaba puesta "entre
+    tus corridas" (RF-11) — pero bajo RF-15 vos no das vueltas: soltás y te relevan, así que el
+    hueco entre tus corridas es la cinemática del relevo, no tiempo de vuelo, y **casi no
+    aparecía**. Ahora entra **delante tuyo en la aproximación**, que además es la doctrina real: un
+    compañero entra unos segundos antes, se lleva el cañón, y vos entrás por el hueco que dejó.
+
+57. **Dos dosis que se corrigieron midiendo, no a ojo.**
+    - `WING_HIT_P` bajó de 0.4 a **0.22**, y un Fiel **nunca voltea la última zona viva**. Con 0.4
+      la oleada bajaba media nave sola en una batalla de 36 s y el jugador pasaba a mirar trabajar a
+      otros. Ablandan; el último golpe es tuyo.
+    - Los simultáneos bajaron de 2 a **1**, con el reloj del siguiente arrancando cuando el anterior
+      sale. Con dos, la cobertura era casi permanente —el cañón pasó de 3 salvas a 1 en 15 s— y un
+      escudo constante no es una mecánica, es apagar una capa. Medido ahora: **26% del tiempo
+      cubierto**. Es un ritmo, y aprender a entrar en el hueco del compañero es el juego.
+
+58. **La cobertura tapaba también al Sea Dart, y estaba mal.** El cañón apunta a UN avión; un misil
+    de área no te deja de ver porque otro esté corriendo del otro lado, y el techo de radar es sobre
+    TU altura. Confundirlos hacía de la oleada un escudo que apagaba media fase. Lo encontró la
+    prueba del Dart al ponerse en rojo — que es exactamente para lo que está.
+
+59. **El resto de P5: el ras SE ESCUCHA.** La recompensa de volar pegado al agua no podía ser sólo
+    que no salga un misil: eso es una **ausencia**, y una ausencia no se siente. Bajo el techo de
+    radar el motor y el mar crecen y aparece el salpicado — el avión suena pesado y cercano, y la
+    altura deja de ser un número del HUD para ser algo que se oye. Es la única manera honesta de
+    premiar volar bajo sin poner un cartel que diga "estás volando bajo". Se sumó también el
+    **cañonazo antes del agua**: el disparo se oye antes de que caiga la salva, que es lo que la
+    vuelve esquivable por reflejo y no sólo por haber virado hace un segundo.
+
+60. **RF-09 quedó completo pero VALE POCO, y conviene decirlo.** Las dos maneras de volver están:
+    por abajo (rápido) y la chandelle (más nafta, y el lomo te asoma al Sea Dart), cada una con su
+    precio cobrado mientras volás y nombrada al empezar la corrida siguiente. Pero **bajo RF-15 el
+    re-encare es raro**: sólo lo hace quien no consiguió la línea y decidió no tirar. Es una
+    decisión de borde, no el corazón del modo. Si alguna vez se quiere que pese, lo que hay que
+    cambiar es RF-15, no RF-09.

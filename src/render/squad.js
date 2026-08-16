@@ -103,7 +103,9 @@ export function drawRelevo(rv) {
   ctx.font = 'bold 8px monospace';
   ctx.fillStyle = Math.sin(rv.t * 12) > 0 ? P.warn : '#7d2f1e';
   // campaña (roster): nadie muere — el avion queda AVERIADO y vuelve a la base (norma 3/8)
-  ctx.fillText(T(rosterActive() ? 'sq_dmg' : 'sq_down', { c: pilotName(rv.fallen) }), DW / 2, 10);
+  // TRES titulares, no dos: derribado (arcade), averiado (campaña) y — desde RF-15 — SALE DE LA
+  // CORRIDA, que es lo que pasa cuando gastaste tu pasada sin que nadie te tocara.
+  ctx.fillText(T(rv.spent ? 'sq_spent' : rosterActive() ? 'sq_dmg' : 'sq_down', { c: pilotName(rv.fallen) }), DW / 2, 10);
   // LA CAUSA. Siempre estuvo en rv.cause y nunca se mostraba: el jugador moria sin saber por
   // que (playtest 2/8). Es la unica pantalla que puede contestarle en el momento.
   ctx.font = '7px monospace'; ctx.fillStyle = P.foam;
