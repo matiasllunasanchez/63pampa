@@ -30,6 +30,18 @@ export const CAMPAIGN_CFG = C({});
 // ---------- MISIONES ----------
 // La CAMPAÑA las juega en orden cronologico; el CICLO DE MUERTE elige una al azar entre
 // las que tienen buque (ver SHIP_MISSIONS abajo).
+//   climax → SOLO misiones con buque. 'pasada' (default, se puede omitir) o 'arena'. Es el
+//            desenlace de la mision, y es DATO: cambiarle la palabra a una mision le cambia el
+//            final sin tocar una linea de codigo (SPEC_MODO_PASADA RF-14).
+//            La regla de la campaña, dicha por el autor: la mayoria de los niveles con buque son
+//            PASILLO + PASADA. El ARENA queda para las ocasionales, y son estas dos:
+//              · m4 ARDENT — San Carlos. El callejon ES una arena: agua encerrada entre cerros
+//                con el buque fondeado, y la mision se llama EL CALLEJON DE LAS BOMBAS.
+//              · m12 GLAMORGAN — EL TERO, la mision final. El cierre de la campaña se pelea,
+//                no se pasa de largo.
+//            PROPUESTAS_PASADA §8 proponia dos mas (Galahad y Tristram, fondeados en Bahia
+//            Agradable); quedaron en PASADA por pedido del autor —"ocasionalmente, uno o dos"—
+//            y porque a los dos los bombardearon en corridas de ataque.
 //   par    → puntaje de referencia para las estrellas (★ completar, ★★ par, ★★★ par×1.5)
 //   roster → los Fieles vivos en esa mision (campaña; su largo = escuadron)
 //   story  → secuencia larga de historia (SOLO campaña)
@@ -57,6 +69,7 @@ export const MISSIONS = [
   {
     id: 'm4', name: 'EL CALLEJON DE LAS BOMBAS', date: '21 de mayo de 1982',
     goal: { kind: 'ship', ship: 'HMS ARDENT', dist: 2600 },
+    climax: 'arena',   // ver la nota de arriba
     cfg: C({ sky: 'cloudy', obstacles: 1.7 }),
     roster: F5, par: 8500, story: 'storyM4', brief: 'briefM4', epi: 'epiM4',
   },
@@ -105,10 +118,18 @@ export const MISSIONS = [
   {
     id: 'm12', name: 'EL TERO', date: 'madrugada del 12 de junio de 1982',
     goal: { kind: 'ship', ship: 'HMS GLAMORGAN', dist: 3400 },
+    climax: 'arena',   // ver la nota de arriba
     cfg: C({ sky: 'night', obstacles: 1.7, bombs: 2, fog: 1, fogLen: 2, squad: 3 }),
     roster: F3, par: 14000, story: 'storyM12', brief: 'briefM12', epi: 'epiM12',
   },
 ];
+
+/** QUE CLIMAX juega una mision: 'pasada' · 'arena' · null (no tiene, la cierra el PASILLO).
+ *
+ *  El default vive ACA y no en `game.js` a proposito: es la regla de la campaña, no una decision
+ *  del motor, y siendo pura se puede probar en node sin abrir una ventana (SPEC_MODO_PASADA
+ *  RF-14 — "cambiar el campo de una mision cambia su climax sin tocar codigo"). */
+export const climaxOf = m => m.goal.kind !== 'ship' ? null : (m.climax || 'pasada');
 
 // indices de las misiones CON buque: es el pool del CICLO DE MUERTE y del ARENA (las de
 // distancia no tienen climax que jugar ni layout de zonas que elegir)

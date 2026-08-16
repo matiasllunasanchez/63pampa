@@ -52,8 +52,15 @@ export function drawPasada(w) {
       ctx.moveTo(r.x + r.w - c, r.y + r.h); ctx.lineTo(r.x + r.w, r.y + r.h); ctx.lineTo(r.x + r.w, r.y + r.h - c);
       ctx.stroke(); ctx.globalAlpha = 1;
     }
-    ctx.font = '6px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.warn;
-    ctx.fillText(T(z.label), r.x + r.w / 2, r.y - 3);
+    // EL NOMBRE SOLO CUANDO LA ZONA YA ES UN LUGAR. A 500 metros las cinco zonas ocupan unos
+    // pocos pixeles cada una y los cinco carteles se apilan en un borron ilegible sobre el buque
+    // —se ve en las capturas—, que es peor que no poner nada: parece un error del juego. Debajo de
+    // 14 px de ancho queda el corchete solo, que ya dice "aca hay algo". El nombre aparece cuando
+    // sirve para ELEGIR entre una zona y otra, que es para lo unico que hace falta.
+    if (r.w >= 14) {
+      ctx.font = '6px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.warn;
+      ctx.fillText(T(z.label), r.x + r.w / 2, r.y - 3);
+    }
     const bw = Math.min(r.w, 40), bx0 = r.x + (r.w - bw) / 2;
     px(bx0, r.y + r.h + 2, bw, 2, '#2e3c45');
     px(bx0, r.y + r.h + 2, bw * (z.hp / z.maxHp), 2, P.warn);
@@ -128,11 +135,76 @@ export function drawPasada(w) {
   if (ip) {
     const bp = world3D.project(ip.x, ip.y, ip.z);
     if (bp.vis) {
+      // ENCIMA DEL BUQUE la marca se pone CALIENTE y crece: es el mismo instante que canta el
+      // contador de abajo y que toca el tic-tac. Tres sentidos diciendo lo mismo — el que mira el
+      // mar lo ve, el que mira el tablero lo lee y el que mira nada lo escucha.
+      const abierta = A.cue === 0;
       const dulce = A.banda === 'dulce';
-      ctx.strokeStyle = dulce ? P.accent : P.dim; ctx.globalAlpha = dulce ? 0.9 : 0.55;
-      ctx.beginPath(); ctx.arc(bp.x, bp.y, 4, 0, 7); ctx.stroke();
+      ctx.strokeStyle = abierta ? P.warn : dulce ? P.accent : P.dim;
+      ctx.globalAlpha = abierta ? 1 : dulce ? 0.9 : 0.55;
+      ctx.beginPath(); ctx.arc(bp.x, bp.y, abierta ? 6 : 4, 0, 7); ctx.stroke();
       px(bp.x - 6, bp.y, 3, 1, ctx.strokeStyle); px(bp.x + 4, bp.y, 3, 1, ctx.strokeStyle);
+      if (abierta && Math.sin(A.t * 18) > -0.2) {
+        ctx.beginPath(); ctx.arc(bp.x, bp.y, 9, 0, 7); ctx.stroke();
+      }
       ctx.globalAlpha = 1;
+    }
+  }
+
+  // ---- LA ESCALERA DE ARMADO: la altura de suelta, dibujada ----
+  // La palabra sola (DULCE / DORMIDA / ALTA) no dice CUANTO falta ni PARA DONDE. Esto es la misma
+  // regla como regla de medir: la franja clara es la banda que arma, la marca sos vos, y de un
+  // vistazo se ve si hay que bajar o aguantar. Es lo que convierte los tres resultados de la
+  // suelta —que hasta ahora eran magia— en una decision de palanca.
+  if (A.doneT <= 0) {
+    const lx = 8, ly0 = 30, lh = H - 62;             // de arriba del tablero hasta debajo del titulo
+    const ALT_TOP = 90;                              // tope de la regla en metros (arriba de ALTA)
+    const my = a => ly0 + lh * (1 - Math.max(0, Math.min(1, a / ALT_TOP)));
+    px(lx, ly0, 1, lh, '#2e3c45');
+    const yA = my(PS.BAND_SWEET_MAX), yB = my(PS.BAND_ARM_MIN);
+    px(lx - 1, yA, 3, yB - yA, '#1d3a3f');           // la franja que ARMA
+    px(lx - 2, yA, 5, 1, P.accent); px(lx - 2, yB, 5, 1, P.accent);
+    // el TECHO DE RADAR es otra linea de decision en el mismo eje (RF-03), asi que va en la misma
+    // regla: abajo de ella el Sea Dart no te ve. Punteada para no competir con la banda.
+    const yR = my(PS.RADAR_CEIL_M);
+    for (let i = 0; i < 6; i += 2) px(lx + 4 + i, yR, 1, 1, P.foam);
+    const yMe = my(A.pos.y);
+    const col = A.banda === 'dulce' ? P.accent : A.banda === 'dormida' ? '#ff5340' : P.dim;
+    px(lx - 4, yMe - 1, 4, 3, col);                  // la marca del avion, del color de su banda
+  }
+
+  // ---- EL CONTADOR DE SUELTA: cuantos metros faltan volar para tirar ----
+  // El pedido del autor, literal: "al volar no se cuando disparar". Este es el renglon que lo
+  // contesta, y contesta DOS cosas con un solo numero:
+  //   hay numero  → tu rumbo cruza el buque, y faltan tantos metros
+  //   AHORA       → la bomba pega si soltas en este instante
+  //   SIN LINEA   → no estas encarado; soltar es tirarle al mar
+  // Va bajo el centro y no en el tablero porque en la corrida los ojos estan en el mar, no abajo.
+  // Y NO aparece en el ras del sapito: RF-07 pide que esa suelta sea a ojo, y un contador la
+  // convertiria en apretar cuando lo dice el cartel.
+  if (A.doneT <= 0 && A.bombs > 0 && A.pos.y >= PS.SAPITO_ALT_M) {
+    // ARRIBA, en la franja de cielo bajo el letterbox. Abajo del centro se leia SOBRE EL TABLERO
+    // de la cabina —medido en captura, ilegible— y esa franja es la unica que esta despejada en
+    // las DOS camaras: en 1a persona la ocupa el parabrisas y en 3a, el cielo.
+    const cy = 27;
+    ctx.textAlign = 'center';
+    if (A.cue === 0) {
+      ctx.font = 'bold 13px monospace';
+      ctx.fillStyle = Math.sin(A.t * 18) > -0.2 ? P.warn : P.accent;
+      ctx.fillText(T('pasada_now'), W / 2, cy);
+    } else if (A.cue === null) {
+      ctx.font = '7px monospace'; ctx.fillStyle = P.dim; ctx.globalAlpha = 0.7;
+      ctx.fillText(T('pasada_noline'), W / 2, cy);
+      ctx.globalAlpha = 1;
+    } else {
+      // el numero, y debajo la BARRA que se llena: el numero se lee, la barra se ve de reojo —
+      // que es como se mira un tablero en una corrida de verdad
+      ctx.font = 'bold 9px monospace'; ctx.fillStyle = P.foam;
+      ctx.fillText(T('pasada_cue') + '  ' + (Math.round(A.cue / 5) * 5) + ' m', W / 2, cy);
+      const CUE_VIEW = 600, bw = 78;
+      const k = Math.max(0, Math.min(1, 1 - A.cue / CUE_VIEW));
+      px(W / 2 - bw / 2, cy + 4, bw, 2, '#2e3c45');
+      px(W / 2 - bw / 2, cy + 4, bw * k, 2, k > 0.8 ? P.warn : P.foam);
     }
   }
 
@@ -173,6 +245,13 @@ export function drawPasada(w) {
   for (let i = 0; i < PS.BOMBS_N; i++)
     px(196 + i * 6, H - 8, 4, 3, i < A.bombs ? P.warn : '#2e3c45');
 
+  // DISTANCIA AL BUQUE, al ras del borde derecho: el otro numero que el autor pidio. Es la que
+  // ordena la corrida entera —cuando cortan los spawns, cuando salta la ventana, cuando se repone
+  // la ristra— y hasta ahora habia que adivinarla mirando el tamaño del barco.
+  ctx.textAlign = 'right'; ctx.fillStyle = A.rad < PS.POPUP_DIST_M ? P.foam : P.dim;
+  ctx.fillText(T('pasada_ship') + ' ' + (A.rad | 0) + ' m', W - 6, H - 4);
+  ctx.textAlign = 'left';
+
   // zonas como casillas (progreso del asalto) + escuadron
   const zw = zones.length * 7;
   for (let i = 0; i < zones.length; i++)
@@ -196,17 +275,19 @@ export function drawPasada(w) {
   }
 
   // ---- la correa de la zona: aviso y piloto automatico ----
+  // (los dos bajaron de 30 y 21 a 44 y 54: arriba ahora vive el contador de suelta, que se mira
+  // mil veces por corrida — estos dos son avisos de a ratos y ceden el lugar)
   ctx.textAlign = 'center';
   if (A.auto) {
     ctx.font = 'bold 8px monospace'; ctx.fillStyle = P.warn;
-    ctx.fillText(T('arena_auto'), W / 2, 30);
+    ctx.fillText(T('arena_auto'), W / 2, 44);
   } else if (A.outT > 0) {
     ctx.font = 'bold 8px monospace';
     ctx.fillStyle = Math.sin(A.t * 14) > 0 ? P.warn : P.dim;
-    ctx.fillText(T('arena_out'), W / 2, 30);
+    ctx.fillText(T('arena_out'), W / 2, 44);
   }
   if (A.doneT <= 0 && A.t < 4) {
     ctx.font = '6px monospace'; ctx.fillStyle = P.dim;
-    ctx.fillText(T('pasada_hint'), W / 2, 21);
+    ctx.fillText(T('pasada_hint'), W / 2, 54);
   }
 }

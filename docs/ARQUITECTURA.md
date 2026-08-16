@@ -34,15 +34,20 @@ modos que se juegan sin guion:
 
 | modo | dónde | fases |
 |---|---|---|
-| HISTORIA | menú principal | PASILLO → ARENA, con guion entre niveles |
-| CICLO DE MUERTE | JUEGO RÁPIDO | PASILLO → ARENA, misión al azar |
-| POR LA PATRIA | JUEGO RÁPIDO | solo PASILLO, infinito (nunca entra a ARENA) |
+| HISTORIA | menú principal | PASILLO → **el clímax que diga la misión**, con guion entre niveles |
+| CICLO DE MUERTE | JUEGO RÁPIDO | PASILLO → el clímax de esa misión, misión al azar |
+| POR LA PATRIA | JUEGO RÁPIDO | solo PASILLO, infinito (nunca entra al clímax) |
 | MINUTOS SAGRADOS | JUEGO RÁPIDO | solo ARENA, batallas al azar (nunca cruza el PASILLO) |
 | PASADAS MORTALES | JUEGO RÁPIDO | **aproximación corta → PASADA**: arranca ya volando, en el punto exacto donde el buque asoma en el horizonte (`BARGE_T0` de `render/world.js`), con el mar vacío por delante. No hay spawns: el modo entero es el último tramo del ataque |
 
-> Qué clímax juega un run lo decide `runClimax()` en `game.js`. Hoy contesta `'pasada'` sólo en
-> PASADAS MORTALES y con la sonda `?pasada=`; que lo decida cada misión (campo `climax` en
-> `missions.js`) es la fase **P6** del spec.
+**QUÉ CLÍMAX juega una misión es DATO, no código**: el campo `climax` de `data/missions.js`, con
+`climaxOf()` ahí mismo resolviendo el default — y el default de una misión con buque es la
+**PASADA**; el ARENA quedó como excepción (hoy m4 y m12). Las misiones de distancia no tienen
+clímax: las cierra el PASILLO. `runClimax()` en `game.js` no hace más que consultarlo.
+
+> Los dos modos de **clímax suelto** (MINUTOS SAGRADOS y PASADAS MORTALES) **no miran el campo**, y
+> no es una inconsistencia: esos modos no juegan la misión, juegan un clímax, y el buque es nada
+> más el escenario. La sonda `?pasada=<n>` tampoco lo mira, por lo mismo.
 
 `systems/momentum.js` es el clímax de pasadas VIEJO (bullet-time, cámara en riel): hoy es el
 **fallback sin 3D** de la fase ARENA (web / `?no3d`), no un modo aparte. Ver
@@ -217,6 +222,7 @@ Lo que queda es genuinamente el pegamento:
 | la fase ARENA (vuelo, ring, combate) | `systems/arena.js` (lógica) + `systems/three-arena.js` (mundo 3D) + `render/arena.js` (overlay) |
 | el ARENA VIEJO / fallback sin 3D | `systems/momentum.js` (lógica) + `render/momentum.js` (dibujo) |
 | controles / teclas | `core/input.js` (+ las acciones en `game.js`) |
+| **con qué termina una misión** (PASADA o ARENA) | el campo `climax` de `data/missions.js` — una palabra, sin tocar código. `climaxOf()` vive ahí mismo y resuelve el default (`'pasada'` para toda misión con buque); `runClimax()` en `game.js` sólo lo consulta, y `npm run unit` custodia la regla |
 | **que el JOYSTICK vuele una fase nueva** | la lista `inGame` de `core/input.js`. Es la que decide dónde el pad escribe el vuelo; fuera de ella corre la rama de menús, que **suelta todos los ejes** (el avión se queda sin piloto en el aire). Le pasó a la PASADA. Y si el binding es nuevo, anotalo en la tabla `ctrl*` de `data/strings.js` **en los dos idiomas**: esa tabla es la pantalla CONTROLES de OPCIONES y dice lo que `input.js` *hace*, no lo que debería |
 | el HUD | `render/hud.js` |
 | el mar / los obstáculos en pantalla | `render/world.js` |

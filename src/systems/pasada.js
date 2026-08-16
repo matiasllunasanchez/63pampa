@@ -123,6 +123,7 @@ export function enter(desdePasillo) {
     heat: 0,                       // P4: calor de la defensa por re-encare (HEAT_RATE)
     outT: 0, auto: 0,              // fuera de la zona / piloto automatico
     hitFx: 0, flashL: 0, flashR: 0,
+    cue: null, cueT: 0, rad: ENTRY_D,   // contador de suelta / reloj del tic-tac / distancia al buque
     doneT: 0, boomT: 0, fx: [],
   };
   popup(W / 2, 62, T('pasada_title'), P.warn);
@@ -198,6 +199,34 @@ export function impactPoint() {
   // de LARGO. Sin signo no se puede corregir una suelta — que es justo lo que hay que aprender.
   const pl = Math.hypot(A.pos.x, A.pos.z) || 1;
   return { x: ix, y: 0, z: iz, t, d: (ix * A.pos.x + iz * A.pos.z) / pl };
+}
+
+/** EL CONTADOR DE SUELTA: cuantos METROS faltan volar para que la bomba caiga ENCIMA del buque.
+ *
+ *  Es la respuesta a "no se cuando tirar", y es un numero honesto, no una ayuda: la marca de
+ *  impacto viaja con el avion, asi que se MARCHA desde ella por el rumbo actual y se busca el
+ *  primer paso que cae dentro de la huella del buque. Lo que devuelve:
+ *
+ *    0     la bomba ya pega si soltas AHORA (la ventana esta abierta)
+ *    > 0   metros que faltan volar antes de soltar
+ *    null  el rumbo NO cruza el buque: por mas que vueles derecho, la bomba cae al agua
+ *
+ *  Ese `null` es la mitad del valor del indicador. Une las dos preguntas —¿cuando suelto? y
+ *  ¿estoy encarado?— en un solo dato: si no hay numero, no estas apuntando a nada. Es tambien
+ *  por que se marcha en vez de despejar una formula: la huella del buque son 133 x 30 metros, asi
+ *  que la ventana dura mucho mas entrando por la proa que cruzando la manga, y eso el jugador lo
+ *  tiene que SENTIR sin que nadie se lo explique. */
+const CUE_STEP = 4, CUE_MAX = 1200;
+function releaseCue() {
+  const ip = impactPoint();
+  if (!ip) return null;
+  const hl = Math.hypot(A.vel.x, A.vel.z);
+  if (hl < 0.01) return null;                      // cayendo a plomo: no hay rumbo que marchar
+  if (world3D.hitsShip(ip.x, 0, ip.z)) return 0;
+  const ux = A.vel.x / hl, uz = A.vel.z / hl;
+  for (let s = CUE_STEP; s <= CUE_MAX; s += CUE_STEP)
+    if (world3D.hitsShip(ip.x + ux * s, 0, ip.z + uz * s)) return s;
+  return null;
 }
 
 /** La zona VIVA mas cercana a un punto del mundo. Una bomba que entra por el casco no cae en el
@@ -360,6 +389,29 @@ export function update(dt, inp) {
     A.inRun = 0;
   }
 
+  // ---------- EL CONTADOR DE SUELTA, Y SU TIC-TAC ----------
+  // El numero lo dibuja el HUD; acá vive el SONIDO, porque el tic-tac es la mitad del indicador:
+  // en la corrida la vista esta en el buque y en el mar, no en un renglon. El periodo sale del
+  // TIEMPO que falta (metros / velocidad en el plano), no de los metros: a 100 m/s y a 60 m/s los
+  // mismos 300 metros son dos corridas distintas, y lo que el oido tiene que aprender es el ritmo
+  // que precede a la ventana. Se acelera y sube de tono al acercarse; con la ventana abierta es un
+  // trino agudo y parejo que dice SOLTA. Calla si no hay bombas o si no estas encarado.
+  A.rad = radNow;
+  A.cue = A.doneT > 0 ? null : releaseCue();
+  A.cueT -= dt;
+  if (A.cue !== null && A.bombs > 0 && !A.ripple && A.doneT <= 0) {
+    const vg = Math.max(1, Math.hypot(A.vel.x, A.vel.z) * A.spd);
+    const tRel = A.cue / vg;
+    if (A.cueT <= 0) {
+      const abierta = A.cue === 0;
+      const per = abierta ? 0.13 : Math.max(0.13, Math.min(0.75, tRel * 0.42));
+      // el tono sube de 520 a 1250 Hz en los ultimos 3 segundos: es la cuenta regresiva
+      const k = abierta ? 1 : Math.max(0, Math.min(1, 1 - tRel / 3));
+      beep(520 + k * 730, abierta ? 0.05 : 0.04, 'square', abierta ? 0.045 : 0.03);
+      A.cueT = per;
+    }
+  } else A.cueT = 0;
+
   // ---------- LA SUELTA: [Z] por FLANCO, y la ristra sale escalonada ----------
   if (inp.msl && !A.msl) release();
   A.msl = inp.msl ? 1 : 0;
@@ -459,6 +511,10 @@ if (typeof window !== 'undefined') window.__pset = (dist, alt, off) => {
   A.fwd = forward(A.yaw, A.pitch); A.vel = { ...A.fwd };
   return 'ok';
 };
+// __pdrop: suelta la ristra SIN pasar por la tecla. Existe por una razon de medicion: cruzando la
+// manga del buque la ventana de suelta dura 0,3 s a 110 m/s, y un ida y vuelta de sondeo (poner el
+// avion, leer, mandar la tecla) ya la deja atras. Con esto, colocar y soltar es UNA sola llamada.
+if (typeof window !== 'undefined') window.__pdrop = () => { if (!A) return 'no pasada'; release(); return 'ok'; };
 // __pkill: vacia todas las zonas vivas — prueba el FIN de la pasada y lo que encadena despues.
 if (typeof window !== 'undefined') window.__pkill = () => {
   if (!A || !zones) return 'no pasada';
@@ -475,6 +531,7 @@ if (typeof window !== 'undefined') window.__pdbg = () => A && JSON.stringify({
   bombas: A.bombs, ristra: A.ripple, vuelo: A.fx.filter(f => f.k === 'bomb').length,
   sapitos: A.sapitos, duds: A.duds,
   impacto: (() => { const p = impactPoint(); return p ? +p.d.toFixed(0) : null; })(),
+  cue: A.cue,                                     // metros hasta la ventana (0 = ahora, null = no encara)
   nafta: run.fuel | 0, calor: +A.heat.toFixed(2),
   zonas: zones.filter(z => z.hp > 0).length,
   hp: zones.reduce((s, z) => s + Math.max(0, z.hp), 0) | 0,

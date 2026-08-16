@@ -62,7 +62,13 @@ const LUM = `(() => {
 
 app.whenReady().then(async () => {
   console.log('\nFIXTURE — FASE PASADA (P0)\n');
-  win = new BrowserWindow({ width: 960, height: 540, show: false, webPreferences: { backgroundThrottling: false } });
+  // 1280x760 Y NO 960x540: la pagina tiene encabezado y pie alrededor del canvas, asi que con la
+  // ventana justa el canvas queda ANCLADO ABAJO y se pierden los 33 px de ARRIBA — medido, el
+  // getBoundingClientRect daba y=-63. Las capturas salian sin el titulo de la fase y sin el
+  // contador de suelta, y no era el HUD: era el encuadre. La ventana real del juego
+  // (electron/main.js) es 1280x720 y ahi entra entero.
+  // Ninguna medicion cambia con esto: el brillo se saca del CANVAS con drawImage, no de la ventana.
+  win = new BrowserWindow({ width: 1280, height: 760, show: false, webPreferences: { backgroundThrottling: false } });
   win.webContents.on('console-message', (e, l, m) => { if (l >= 3 && !m.includes('Security Warning')) errors.push(m.slice(0, 300)); });
   win.webContents.on('render-process-gone', (e, d) => errors.push('EL RENDERER MURIO: ' + JSON.stringify(d)));
 
@@ -210,6 +216,62 @@ app.whenReady().then(async () => {
     if (v1 === v0) bad(`la cruceta abajo no cambia la camara (vista ${v0})`);
     else ok(`cruceta abajo = camara: vista ${v0} → ${v1}`);
     await shot('p2_mando');
+  }
+
+  // ---------- EL CONTADOR DE SUELTA ----------
+  // Pedido del autor: "al volar no se cuando disparar". El contador dice cuantos metros faltan
+  // volar para que la bomba caiga encima del buque. Lo que se prueba no es que exista el numero:
+  // es que el numero SEA CIERTO — que soltar cuando el HUD canta AHORA de verdad pegue.
+  console.log('\nel contador de suelta (cuando tirar):');
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+  await sleep(3000);
+  if (!await P()) { bad('no se pudo entrar a la pasada para probar el contador'); }
+  else {
+    await js('__pset(900, 35, 0)'); await sleep(150);
+    const c9 = (await P()).cue;
+    await js('__pset(500, 35, 0)'); await sleep(150);
+    const c5 = (await P()).cue;
+    // se coloca el avion LEJOS antes de la foto para que el contador tenga un numero grande y se
+    // lea. (Y ojo con el nombre del archivo: dos shot() con el mismo nombre y gana el ultimo —
+    // paso, y la captura del contador salia con el avion ya encima del buque.)
+    await js('__pset(1100, 35, 0)');
+    await shot('p5_contador');
+    if (typeof c9 === 'number' && typeof c5 === 'number' && c5 < c9)
+      ok(`encarado, el contador baja al acercarse: ${c9} m a 900 · ${c5} m a 500`);
+    else bad(`el contador no cuenta hacia abajo (900 m → ${c9}, 500 m → ${c5})`);
+
+    // DE COSTADO NO HAY NUMERO: el rumbo no cruza el buque y soltar seria tirarle al mar
+    down('q'); await sleep(1400); up('q'); await sleep(200);
+    const cOff = (await P()).cue;
+    if (cOff === null) ok('virando fuera del eje el contador dice SIN LINEA (null): no estas encarado');
+    else bad(`fuera del eje el contador sigue dando ${cOff} m: estaria mintiendo`);
+
+    // LA PRUEBA QUE IMPORTA: buscar la distancia donde el contador canta AHORA (0) y soltar ahi.
+    // Si el numero es honesto, la bomba pega. Si no, es un adorno.
+    await js('__pkill()'); await sleep(300);        // (re-arma el buque desde cero abajo)
+    await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+    await sleep(3000);
+    let dAhora = null;
+    for (let d = 460; d >= 120; d -= 10) {
+      await js(`__pset(${d}, 35, 0)`); await sleep(70);
+      if ((await P()).cue === 0) { dAhora = d; break; }
+    }
+    if (dAhora === null) bad('el contador nunca llego a AHORA acercandose por el eje');
+    else {
+      // colocar y soltar en UNA llamada: cruzando la manga la ventana dura 0,3 s a 110 m/s, y un
+      // ida y vuelta de mas ya la deja atras (por eso existe __pdrop)
+      // (sin captura del cartel AHORA: cruzando la manga la ventana dura 0,3 s a 110 m/s, y entre
+      // pedir la foto y que salga el avion ya paso. Lo que prueba que el cartel no miente es el daño)
+      const hp0 = (await P()).hp;
+      await js(`__pset(${dAhora}, 35, 0); __pdrop()`);
+      // 2,6 s y no 1,8: desde 35 m la bomba tarda 2,1 s en tocar el agua, mas el escalon de la
+      // ristra. Midiendo antes, el daño todavia no existe y la prueba acusa al contador de mentir
+      await sleep(2600);
+      const a = await P();
+      if (a.hp < hp0) ok(`soltando cuando canta AHORA (a ${dAhora} m) la bomba PEGA: ${hp0} → ${a.hp} de casco`);
+      else bad(`el contador canto AHORA a ${dAhora} m y la suelta no hizo daño (${hp0} → ${a.hp})`);
+      await shot('p5_pegada');
+    }
   }
 
   // ---------- LA SUELTA: pasos 2 a 5 del §7 ----------

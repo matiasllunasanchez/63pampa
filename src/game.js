@@ -3,7 +3,7 @@
 import { STRINGS } from './data/strings.js';
 import { P, SKY_PRESETS, LAND } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
-import { SHIPS, MISSIONS, SHIP_MISSIONS } from './data/missions.js';
+import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf } from './data/missions.js';
 import { UPGRADES, nextUpgrades, moveAllowed } from './data/upgrades.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
@@ -440,11 +440,18 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     function randomMission() { loadLevel(randomShipMission()); }
     /** QUE CLIMAX juega el run: 'pasada' o 'arena' (SPEC_MODO_PASADA RF-14).
      *
-     *  Hoy lo encienden el modo PASADAS MORTALES y la sonda `?pasada=`. El campo `climax` de
-     *  data/missions.js y el default 'pasada' llegan en P6, que es SU fase: hasta entonces las
-     *  misiones de HISTORIA y CICLO siguen terminando en el ARENA — la regla §0.4 del spec
-     *  ("no tocar los modos existentes"). */
-    function runClimax() { return (gameMode === 'pasadas' || pasadaProbe) ? 'pasada' : 'arena'; }
+     *  ES DATO DE LA MISION, no una rama de codigo: sale del campo `climax` de data/missions.js y
+     *  el default —lo que juega una mision con buque que no dice nada— es la PASADA. Cambiar una
+     *  mision de climax es cambiar una palabra en ese archivo.
+     *
+     *  MINUTOS SAGRADOS (gameMode 'arena') y PASADAS MORTALES ('pasadas') son la excepcion, y no
+     *  es una inconsistencia: esos dos modos NO juegan la mision, juegan UN climax suelto — el
+     *  buque es nada mas el escenario. Por eso mandan ellos y no el campo. */
+    function runClimax() {
+      if (gameMode === 'pasadas' || pasadaProbe) return 'pasada';
+      if (gameMode === 'arena') return 'arena';
+      return climaxOf(curMission()) || 'pasada';
+    }
     // define el objetivo del run según el modo (campaña/ciclo: el goal de la mision; supervivencia: infinito)
     // `keepMusic` solo lo pasa el REINTENTO tras un derribo: ahi la musica sigue sonando.
     function setRunObjective(keepMusic) {

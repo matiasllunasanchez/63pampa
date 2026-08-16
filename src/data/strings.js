@@ -226,6 +226,10 @@ export const STRINGS = {
     pasada_band_dormida: 'DORMIDA', pasada_band_dulce: 'ARMA', pasada_band_alta: 'ALTA',
     pasada_dud: 'NO DESPERTO', pasada_sapito: 'EL SAPITO!',
     pasada_rearm: 'RISTRA NUEVA',
+    // EL CONTADOR DE SUELTA. "SIN LINEA" no es un error: es que el rumbo no cruza el buque y la
+    // bomba caeria al agua sueltes cuando sueltes. Decirlo es mas util que no decir nada.
+    pasada_cue: 'SUELTA EN', pasada_now: 'A H O R A', pasada_noline: 'SIN LINEA',
+    pasada_ship: 'BUQUE',
     mom_destroyed: '{z} DESTRUIDO',
     zone_aa: 'CANON AA', zone_radar: 'RADAR', zone_bridge: 'PUENTE',
     zone_engine: 'MOTOR', zone_deposit: 'DEPOSITO',
@@ -1017,6 +1021,8 @@ export const STRINGS = {
     pasada_band_dormida: 'TOO LOW', pasada_band_dulce: 'ARMED', pasada_band_alta: 'HIGH',
     pasada_dud: 'IT NEVER WOKE UP', pasada_sapito: 'SKIP HIT!',
     pasada_rearm: 'NEW STICK',
+    pasada_cue: 'RELEASE IN', pasada_now: 'N O W', pasada_noline: 'NO LINE',
+    pasada_ship: 'SHIP',
     mom_destroyed: '{z} DESTROYED',
     zone_aa: 'AA GUN', zone_radar: 'RADAR', zone_bridge: 'BRIDGE',
     zone_engine: 'ENGINE', zone_deposit: 'CARGO HOLD',

@@ -519,3 +519,24 @@ test('averias: los escalones degradan en orden y el ultimo deja SOLO LO BASICO',
   assert.equal(dmg.turbo || crit.turbo, false, 'el turbo se pierde de AVERIADO para abajo');
   assert.equal(crit.moves, false, 'en critico no salen piruetas: solo volar y disparar');
 });
+
+// ---------- EL CLIMAX DE CADA MISION (SPEC_MODO_PASADA RF-14) ----------
+import { MISSIONS, climaxOf } from '../src/data/missions.js';
+
+test('climax: es DATO de la mision, y el default de una con buque es la PASADA', () => {
+  // El criterio de aceptacion de RF-14, literal: cambiar el campo cambia el climax sin tocar
+  // codigo. Por eso se prueba la funcion con misiones inventadas y no solo con las de la campaña.
+  assert.equal(climaxOf({ goal: { kind: 'ship' } }), 'pasada', 'sin campo, una mision con buque va a la PASADA');
+  assert.equal(climaxOf({ goal: { kind: 'ship' }, climax: 'arena' }), 'arena');
+  assert.equal(climaxOf({ goal: { kind: 'distance' } }), null, 'sin buque no hay climax: la cierra el PASILLO');
+  assert.equal(climaxOf({ goal: { kind: 'distance' }, climax: 'arena' }), null, 'el campo no le inventa un buque');
+});
+
+test('climax: la campaña respeta la regla del autor — la mayoria PASADA, el ARENA ocasional', () => {
+  const conBuque = MISSIONS.filter(m => m.goal.kind === 'ship');
+  const arena = conBuque.filter(m => climaxOf(m) === 'arena');
+  assert.ok(conBuque.every(m => ['pasada', 'arena'].includes(climaxOf(m))), 'ningun climax desconocido');
+  assert.ok(arena.length * 2 < conBuque.length, 'el ARENA tiene que ser la excepcion, no la regla');
+  assert.deepEqual(arena.map(m => m.id), ['m4', 'm12'], 'el callejon de San Carlos y el final');
+  assert.equal(MISSIONS.filter(m => m.goal.kind !== 'ship').every(m => climaxOf(m) === null), true);
+});

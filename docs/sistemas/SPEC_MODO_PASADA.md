@@ -247,8 +247,8 @@ sin tocar código.
 | ~~**P2**~~ ✅ | La suelta completa: bomba balística, 3 bandas, ristra de `BOMBS_N` en salva, el sapito con sus 3 salidas, daño por zona, popups | **hecho 16/8/2026**: fixture pasos 2–5 verdes (dulce 130 de daño · dormida 2 impactos sin estallar · sapito entra picando · la ristra alcanza 2 zonas por el eje del casco y 1 cruzando la manga) |
 | **P3** | La defensa por capas: techo Sea Dart, columnas que caminan (solo al avión en corrida), Sea Cat + aviso por radio, fusilería, calor por re-encare | fixture pasos 6–7; cada capa se aprende muriendo UNA vez |
 | **P4** | El reglamento: nafta como reloj, ralentí de la ventana + MOMENTUM sumado, los DOS re-encares con sus precios, derrota/victoria por el embudo (`onDeath` / `'objective'`, relevo re-entra a la pasada) | fixture pasos 8–9 |
-| **P5** | Legibilidad + audio: HUD de banda de armado, corchetes/zonas, NO DESPERTÓ, silencio del Sea Dart abajo (la recompensa se escucha), sonidos por capa | mirada muda: se entiende sin leer |
-| **P6** | Integración: `climax` en `missions.js`, `flight.js` señala según el campo, ARQUITECTURA + ESTADO + strings en/es, fallback `?no3d` documentado (momentum viejo) | RF-13/14; `check` verde con web |
+| **P5** ◐ | Legibilidad + audio: HUD de banda de armado, corchetes/zonas, NO DESPERTÓ, silencio del Sea Dart abajo (la recompensa se escucha), sonidos por capa | **adelantado a medias 16/8/2026** por pedido del autor (§10.22–25): contador de suelta + su tic-tac, escalera de armado, distancia al buque y etiquetas de zona sin apilarse. Falta todo lo que depende de P3/P4 (audio por capa, silencio del Sea Dart) |
+| ~~**P6**~~ ✅ | Integración: `climax` en `missions.js`, `flight.js` señala según el campo, ARQUITECTURA + ESTADO + strings en/es, fallback `?no3d` documentado (momentum viejo) | **hecho 16/8/2026**: `climaxOf()` puro en `data/missions.js` con default `'pasada'`, probado en `npm run unit`; m4 y m12 son las dos de ARENA (§10.26–27). Pendiente el combo `'pasada+arena'` (§10.28) |
 | **P7** | La oleada: splines coreografiadas de los Fieles vivos, timing, radio, daño `WING_HIT_P`, cruce de frente en el lateral, averías narradas (sin muertes) | RF-11; con roster 1 no hay oleada |
 
 **Después de P7** (fuera de este spec): decidir retiro de `momentum.js` viejo (libera el
@@ -390,3 +390,66 @@ oleada completa.
     (`[F]` / L2), que el ARENA usa desde que existe. Se agregó la fila y una nota al pie: *en la
     PASADA, el MISIL suelta las bombas*. La tabla dice lo que `input.js` **hace**, así que cada
     binding nuevo se anota ahí en el mismo commit — en los dos idiomas.
+
+### P6 y media P5, fuera de orden (16/8/2026)
+
+> **Por qué fuera de orden.** El autor jugó P2 y encontró dos cosas que no dejaban jugar:
+> *"al volar no sé cuándo disparar"* y *"llego a estar tan cerca que entro en modo ARENA, que
+> según entiendo ya no debería aparecer"*. Las dos son fases posteriores (P5 legibilidad, P6
+> integración) pero bloquean el playtest de todo lo demás, así que se adelantaron. **P1, P3 y P4
+> siguen pendientes y en su orden.**
+
+22. **El CONTADOR DE SUELTA no está en el spec, y era lo que faltaba.** La mira de impacto (§10.12)
+    dice *dónde* cae la bomba; no dice *cuándo* soltar, y con el buque a 500 m sobre el mar vacío
+    eso no se deduce. `releaseCue()` **marcha** desde el punto de impacto por el rumbo actual, de a
+    4 m, y devuelve los metros hasta que la marcha cae dentro de la huella del buque. Tres salidas:
+    `0` (la ventana está abierta — el HUD canta **AHORA**), un número (metros que faltan volar) y
+    **`null`, que es la mitad del valor**: tu rumbo no cruza el buque, así que no hay cuándo. Une
+    *¿cuándo suelto?* con *¿estoy encarado?* en un solo dato. Se marcha en vez de despejar una
+    fórmula justamente para que la huella real (133 × 30 m) se sienta.
+
+23. **Medido y con consecuencias de diseño: la ventana dura 0,3 s cruzando la manga y 1,2 s
+    entrando por el eje del casco** (110 m/s contra 30 m y 133 m de huella). Es la misma lección
+    que la ristra (§10.15) dicha por otro lado, y es el argumento más fuerte a favor del **eje de
+    ataque de P1**: hoy el jugador puede entrar por donde quiera y por la manga el modo es
+    injustamente duro.
+
+24. **La ESCALERA DE ARMADO (parte del HUD de P5).** La palabra `DULCE/DORMIDA/ALTA` no dice cuánto
+    falta ni para dónde. La regla vertical de la izquierda pinta la franja que arma, la marca del
+    avión con el color de su banda, y **el techo de radar punteado en el mismo eje** — las dos
+    decisiones de altura del modo (RF-03 y RF-06) leídas de un vistazo.
+
+25. **El contador va ARRIBA, en la franja de cielo bajo el letterbox.** Primero se puso bajo el
+    centro y en la captura se leía **encima del tablero de la cabina**: ilegible. Esa franja es la
+    única despejada en las dos cámaras. Los avisos de la correa y el cartel de controles bajaron a
+    44 y 54 para dejarle el lugar.
+
+26. **RF-14 completo, y el default vive en `data/missions.js`.** `climaxOf(m)` es una función pura
+    ahí mismo —no una rama en `game.js`— porque es la regla de la campaña y siendo pura se prueba
+    en node: `npm run unit` verifica el CA ("cambiar el campo cambia el clímax") con misiones
+    inventadas. `runClimax()` la consulta. **MINUTOS SAGRADOS y PASADAS MORTALES no la miran**, y no
+    es inconsistencia: esos modos no juegan la misión, juegan un clímax suelto.
+
+27. **Las misiones de ARENA quedaron en DOS y no en cuatro.** PROPUESTAS §8 pedía m4 Ardent, m9
+    Galahad, m10 Tristram y m12 Glamorgan. El autor dijo *"PASILLO y ARENA, ocasionalmente"* y
+    *"quizá uno o dos"*, así que quedaron **m4** (San Carlos: el callejón ES una arena, y la misión
+    se llama EL CALLEJÓN DE LAS BOMBAS) y **m12** (el cierre de la campaña se pelea). Galahad y
+    Tristram pasaron a PASADA, que además es lo que históricamente les pasó.
+
+28. **El combo `'pasada+arena'` que pidió el autor NO está.** Necesita que la pasada sepa
+    desembocar en el arena, y eso depende de una decisión suya que quedó abierta: *qué pasa si no
+    derrotás al buque en la pasada*. Hasta que la conteste, el campo acepta `'pasada'` o `'arena'`.
+
+29. **Las etiquetas de zona sólo se dibujan con 14 px de ancho de corchete**, lo que cierra a
+    medias el pendiente §10.7: a 500 m los cinco carteles se apilaban en un borrón sobre el buque
+    —peor que no poner nada, parece un error del juego— y ahora queda el corchete solo. El nombre
+    aparece cuando sirve para ELEGIR entre una zona y otra.
+
+30. **La ventana del fixture pasó a 1280x760.** Con 960x540 la página (que tiene encabezado y pie
+    alrededor del canvas) dejaba el canvas anclado abajo y **se perdían los 33 px de arriba**:
+    `getBoundingClientRect` daba `y = -63`. Las capturas salían sin el título de la fase y sin el
+    contador, y el bug era el encuadre, no el HUD. La ventana real del juego es 1280x720.
+
+31. **Sonda nueva `__pdrop()`**, que suelta sin pasar por la tecla. No es comodidad: cruzando la
+    manga la ventana dura 0,3 s y un ida y vuelta de sondeo de más ya la deja atrás, así que
+    colocar y soltar tiene que ser **una sola llamada**.
