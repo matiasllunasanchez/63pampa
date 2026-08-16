@@ -374,3 +374,72 @@ cuyos NÚMEROS van a terminar en mecánica o en placa, así que conviene confirm
 - **Bombas que rebotaron POR ENCIMA de la cubierta.** El modo lo usa como fallo visible
   del sapito (suelta larga). Hay relatos de rebotes que pasaron de largo; confirmar al
   menos un caso citable.
+
+---
+
+## ❌ La moneda de la escuadrilla (challenge coin) — DESCARTADA, con motivo
+
+**La idea:** la tradición de la *challenge coin* — alguien saca la moneda y golpea la mesa
+en el bar, todos tienen que mostrar la suya, el que no la tiene paga la ronda de todos, y
+si todos la tienen paga el que desafió. La moneda representa a la gente con la que volás.
+
+**Por qué no entra al guion:**
+
+1. **Es una tradición estadounidense.** El ritual del "coin check" se rastrea a la era de
+   Vietnam en las fuerzas armadas de EE.UU. — evolucionó de los *bullet clubs*, donde se
+   llevaba una bala personalizada en el bolsillo. Su expansión masiva es posterior, sobre
+   todo de los años 90 en adelante.
+2. **En Argentina no existe.** Un sitio argentino dedicado a catalogar challenge coins dice
+   textualmente: *"No se conocen Challenge Coins Argentinas."* Si un coleccionista
+   especializado no encuentra ninguna, no es que falte documentación: la tradición no está.
+3. **Sería anacronismo y préstamo cultural a la vez.** En una escuadrilla de 1982 leería
+   como película bélica norteamericana — lo contrario de lo que construyen el mate, el
+   asado y las tonadas.
+4. **Y además es redundante.** La función que cumpliría —un objeto que representa a la
+   gente con la que volás y lo que sobreviviste— ya la cumplen **las estrellitas del
+   Turco**, y mejor: están atadas a la mecánica del regreso y tienen el momento de M7
+   ("hay una estrellita que hoy no se pinta; el tarrito queda abierto toda la noche").
+   Un segundo objeto con la misma función debilitaría al primero.
+
+**Queda anotado para que no vuelva a proponerse.** Si aparece documentación de que algo
+así existía en la Fuerza Aérea Argentina antes de 1982, se reevalúa.
+
+**Fuentes:** [Moviarg — Challenge Coins (sitio argentino)](https://www.moviarg.com/notas/Challenge_Coin.html) ·
+[Cristaux — History of Challenge Coins](https://www.cristaux.com/blog/history-of-challenge-coins/)
+
+## 🟡 A EVALUAR — la regla del "gracias" en el mate
+
+Lo que **sí** vale la pena de la idea anterior no es el objeto: es el **mecanismo**. Una
+regla que todos conocen, y una consecuencia para el que la rompe. Eso genera escenas solo.
+
+Y hay una versión argentina que no requiere investigación porque cualquiera la sabe:
+**decís "gracias" y quedaste afuera de la ronda de mate.** No se avisa, no se negocia,
+todos lo entienden.
+
+**Dónde rendiría más: M13, la noche del asado.** El mate ya viene funcionando como
+termómetro emocional de toda la campaña (frío en el locker de M7, sin cebar en M11, dejado
+por la mitad en M14, y el del Final B). Si en el asado uno de ellos dice "gracias" sin
+pensar —distraído, cansado, con la cabeza en mañana— la mesa se queda muda: acaba de decir
+que se va de la ronda, la noche antes de la misión de la que puede no volver. Nadie tiene
+que explicar nada.
+
+**No está implementado.** Va como propuesta a evaluar, y si entra hay que cuidar que no
+compita con la despedida del Turco ("tres desayunos"), que ocupa un lugar parecido.
+
+## ⚠ PREGUNTA ABIERTA — rituales propios de la Fuerza Aérea Argentina en 1982
+
+La pregunta correcta no es si funcionaba una tradición importada, sino **qué rituales
+tenían ellos**. Eso no se resuelve googleando: se pregunta.
+
+Para cuando haya contacto con un veterano o con la Asociación de Pilotos de Caza:
+
+1. ¿Había algún objeto o gesto compartido de escuadrilla — algo que se llevaba encima,
+   algo que se hacía antes de subir, algo en el bar o en el casino de oficiales?
+2. ¿Existía alguna fórmula fija por radio antes de despegar? *(El guion inventa el ritual
+   de Cóndor; conviene saber cuánto se parece a lo real.)*
+3. ¿Qué se hacía cuando alguien no volvía, esa misma noche? *(El guion inventa la estrellita
+   que no se pinta y el tarrito abierto.)*
+4. ¿El mate circulaba en la línea de vuelo y en el hangar, o era solo de casino?
+
+Las respuestas valen más que cualquier tradición prestada.
+
