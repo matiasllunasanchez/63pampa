@@ -123,6 +123,9 @@ Necesito **más adrenalina y complejidad** en los vuelos, los movimientos y el v
 > Relacionado con #3 y #4.
 
 - [ ] Explorar mecánicas que suban la tensión a ras (obstáculos, ventanas de tiempo, riesgo/recompensa).
+      → **Plan concreto (16/8): [PLAN_AGUA_OLAS.md](../sistemas/PLAN_AGUA_OLAS.md)** — las
+      OLAS como obstáculo del mar (esquive vertical, el impuesto de la banda ×10) + el
+      programa visual del agua.
 
 ## 9. Más variedad y complejidad de enemigos
 

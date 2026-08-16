@@ -406,6 +406,9 @@ las piruetas, horneada para los 6 aviones (§1).
 Hoy el `jet` viene **de frente**, cruza y se va (el 45% suelta dos trazadoras en la pasada). Nunca
 se te pone atrás, así que no hay presión sostenida: el peligro dura el segundo del cruce.
 
+> **→ (16/8) Esto ya tiene plan propio por fases:** [PLAN_HARRIERS_PERSECUCION.md](../sistemas/PLAN_HARRIERS_PERSECUCION.md)
+> (LA COLA: presión → sobrepaso → ventana; + el modo PERSECUCIÓN de numeral).
+
 Lo que falta es que el caza **se te cuelgue de la cola** y quede ahí, disparando, hasta que hagas
 algo. Ciclo propuesto:
 

@@ -1158,3 +1158,34 @@ efecto** — y se rompe recién con la voz del Turco desde la puerta.
 Ojo con la tentación: es la única escena del juego donde estos tipos ganan algo, y va a
 pedir a gritos un tema épico. **No.** El guion la corta a propósito con la cara de Esteban,
 que no festeja. Si la música festeja, contradice la escena.
+
+---
+
+## 🟥 3.9 — el Narwal: **una sola pista, tocada dos veces**
+
+Entraron dos tramos de vuelo sin enemigos, uno en M4 y otro en M5 (ver GUION_3.md, "En
+vuelo"). No son dos escenas: **son la misma escena dos veces**, y la música es el
+instrumento principal para que el jugador lo sienta antes de entenderlo.
+
+### El tránsito (M4) — la pista
+
+Una pista **corta, tranquila y reconocible**, encima del ruido de la turbina. Nada épico:
+es gente laburando. Tiene que quedar pegada al primer paso — que el jugador la reconozca
+después de escucharla una sola vez. Termina limpia cuando arranca el combate.
+
+### El tránsito (M5) — la misma pista, **desarmada**
+
+Misma melodía, mismo tempo, mismo lugar en la misión. Pero **le falta una voz**: se cae el
+instrumento que llevaba la melodía y queda solo el acompañamiento sosteniendo un tema que
+ya nadie toca. Sigue siendo la misma pista y el jugador lo sabe. Simplemente **hay uno
+menos**.
+
+Y cuando Cóndor dice *"hace doce días que no transmite"*, **se corta también el
+acompañamiento**. Entran al Callejón sin música, con la turbina sola.
+
+> **Esto es todo el efecto.** No hace falta ni un motivo de duelo, ni un solo instrumental
+> triste, ni una nota larga. Una pista a la que le sacaron un instrumento dice más que
+> cualquier lamento compuesto — y es exactamente lo que pasó: faltó uno y nadie lo anunció.
+
+> **Regla dura:** la versión de M5 **no puede sonar más triste**. Tiene que sonar *igual,
+> pero incompleta*. Si el compositor la vuelve melancólica, explica el chiste y lo arruina.

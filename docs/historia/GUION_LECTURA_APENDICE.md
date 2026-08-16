@@ -165,6 +165,12 @@ fórmula épica antes de cada misión:
 
 Doce veces escalofrío. La decimocuarta, freno: en M14 el ritual se corta en la mitad.
 
+ **3.9 — Cóndor tiene fuente.** En M4 el Gitano le pregunta de dónde saca las posiciones
+y Cóndor contesta: de un barco pesquero llamado Narwal. En M5 el Narwal ya no está, y lo
+único que cambia es que hay menos marcas en el HUD. Es el mismo sistema de siempre — "la
+señal se pierde y el jugador queda ciego" — pero por una vez la ceguera tiene un nombre y
+una tripulación.
+
 ---
 
 ## Los indicativos — el aviario en la radio

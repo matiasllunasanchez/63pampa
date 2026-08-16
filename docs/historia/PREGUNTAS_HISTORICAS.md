@@ -320,6 +320,65 @@ juego tiene punto de vista argentino declarado, y en el cierre la responsabilida
 reparte entre la junta y el gobierno británico — pero el respeto por los que pelearon se
 mantiene igual para los dos lados.
 
+## ✅ El ARA Narwal (M4 y M5 — 3.9) — VERIFICADO 2026-08-16
+
+**Qué era.** Un buque pesquero de arrastre de **70 metros**, de la Compañía Sudamericana de
+Pesca y Exportación. El **21 de abril de 1982** la Armada Argentina le montó sensores
+electrónicos y lo destinó al Atlántico Sur a **simular pesca mientras relevaba movimientos
+de la flota británica** y transmitía posiciones.
+
+**Quiénes iban a bordo.** Tripulación **civil** —marinos mercantes y pescadores— y **un
+solo oficial de la Armada**, el teniente de navío **Juan Carlos González Llanos**. El
+capitán era **Asterio Daisaku Wagata**, paraguayo de origen japonés.
+
+**Qué pasó.** El **9 de mayo de 1982** lo atacaron **dos Sea Harriers** con bombas de 500 kg
+—bombas originalmente destinadas a la pista de Puerto Argentino—; una impactó directo en el
+casco. **Un muerto: Omar Rupp, contramaestre. Doce heridos sobre veinticinco tripulantes.**
+Los sobrevivientes fueron capturados y llevados al **HMS Hermes**. **Al cuerpo de Rupp lo
+arrojaron al mar al día siguiente.**
+
+**⚠ EL LÍMITE — lo que el guion NO puede afirmar.** Ninguna fuente vincula la inteligencia
+del Narwal con **ningún ataque argentino concreto**. Si el guion dijera "gracias al Narwal
+hundimos tal cosa", eso sería invención nuestra. Por eso en el guion el Narwal aparece
+**solo como origen general de posiciones**, sin ningún resultado atribuido. Mismo criterio
+que con la frase de las turbinas: se usa lo documentado y no se completa el resto.
+
+**⚠ Segundo límite — el estatus del blanco.** El Narwal llevaba sensores militares y hacía
+inteligencia para la Armada: **era legalmente un blanco militar válido**, aunque su
+tripulación fuera civil y no tuviera armas. El guion **no lo presenta como un crimen** ni
+lo adjetiva. Da los hechos —pesquero, civiles, sin armas, tres semanas adentro del bloqueo,
+9 de mayo, un muerto— y deja que pesen solos, igual que con el Belgrano.
+
+**Dónde entró.**
+
+- **M4 (4 de mayo), tramo de vuelo sin enemigos — la plantación.** El Gitano le pregunta a
+  Cóndor de dónde salen las posiciones y Cóndor contesta, sin darle importancia: *"de un
+  barco pesquero llamado Narwal"*. Cierra el Puma: *"No son militares, Gitano. Y están más
+  adentro que nosotros."* Las posiciones que dicta Cóndor **se marcan en el HUD**: el
+  jugador usa la información del Narwal sin saber lo que está usando.
+- **M5 (21 de mayo), mismo tramo — el cobro.** Cóndor se queda corto de posiciones, el
+  Gitano pregunta por el pesquero, hay silencio de radio, y Cóndor responde: *"Hace doce
+  días que no transmite."* **El HUD ya no marca nada.** La pérdida es mecánica, no
+  declarada.
+- **Cierre común — la placa.** Recién ahí el jugador se entera del final, junto con los 323
+  del Belgrano.
+
+**Chequeo de fechas (cierra solo).** Narwal atacado el **9 de mayo**; M4 es el **4 de mayo**
+y M5 el **21 de mayo**. Del 9 al 21 hay **doce días** — que es exactamente lo que dice
+Cóndor. Si alguna vez se mueven las fechas de M4 o M5, **hay que recalcular ese número.**
+
+**Por qué funciona con el sistema que ya existía.** Los A-4 no tenían radar y dependían del
+control de tierra; el guion ya usaba "la señal de Cóndor se pierde y el jugador queda
+ciego" como amenaza recurrente. El Narwal le pone **cara humana** a esa mecánica una sola
+vez, y no se vuelve a tocar.
+
+**A verificar todavía:** nombre completo y grado exacto de Omar Rupp; si el resto de la
+tripulación fue repatriada y cuándo; si el número 25 de tripulantes es el definitivo; y si
+existe registro público de qué transmitió el Narwal (para asegurarse de que el guion no se
+quede corto ni se pase).
+
+**Fuente principal:** [Diario Crónica — la historia del ARA Narwal](https://www.diariocronica.com.ar/)
+
 ## La frase de las turbinas (M5) — ⚠ SIN FUENTE
 
 **Texto usado, literal:** *"Si estás en guerra con Argentina y escuchás el ruido de las
@@ -407,6 +466,88 @@ así existía en la Fuerza Aérea Argentina antes de 1982, se reevalúa.
 **Fuentes:** [Moviarg — Challenge Coins (sitio argentino)](https://www.moviarg.com/notas/Challenge_Coin.html) ·
 [Cristaux — History of Challenge Coins](https://www.cristaux.com/blog/history-of-challenge-coins/)
 
+## 🟡 PREGUNTA ABIERTA — la colaboración de Chile con el Reino Unido (¿entra o no entra?)
+
+**Decisión de Matías (2026-08-16): NO SE TOCA EL GUION POR AHORA.** Queda anotado como
+pregunta abierta, para resolver más adelante. Está investigado y verificado; lo que falta
+decidir es **si conviene meterlo**, no si es cierto.
+
+### Lo que está documentado
+
+**La transacción va al revés de como circula.** No es que "Chile le vendió información a
+Inglaterra": **el Reino Unido le vendió material bélico a Chile a precio simbólico, y Chile
+pagó con inteligencia.**
+
+No es versión argentina ni rumor. Lo reconoció públicamente el **general Fernando Matthei**,
+comandante de la Fuerza Aérea de Chile y miembro de la junta de Pinochet, en entrevistas de
+los años 2000. **Thatcher agradeció la ayuda chilena en público en 1999**, con Pinochet
+detenido en Londres. El enlace británico, el wing commander **Sydney Edwards**, lo contó en
+un libro.
+
+- **Operación Fingent.** Radar **Marconi S259** de la reserva móvil de la RAF; sale de
+  Brize Norton el **5 de mayo de 1982** en un Boeing 747; se instala en **Balmaceda**,
+  apuntado al espacio aéreo de **Comodoro Rivadavia**. Lo operan **cuatro oficiales y siete
+  suboficiales de la RAF vestidos de civil**, presentados como un equipo de ventas que venía
+  a capacitar chilenos. Lo que levanta el radar va al cuartel de inteligencia de la FACh, y
+  de ahí un equipo británico lo retransmite **por satélite a la flota**.
+- **Punta Arenas.** Puesto de mando subterráneo; un oficial de enlace chileno pasa
+  información en tiempo real a Edwards. **Matthei, textual:** *"una hora antes de que
+  llegaran, los ingleses ya estaban informados de su llegada."*
+- **El precio.** Radar + seis **Hunter** + tres **Canberra** de reconocimiento + **Vampire**
+  + misiles, por una cifra nominal (se reporta **menos de una libra esterlina**). También
+  llegó un **C-130 británico pintado con los colores e insignias de la FACh**.
+- **La prueba física.** El **Sea King quemado en Agua Fresca**, cerca de Punta Arenas
+  (mayo del 82): operación **Plum Duff**, el intento del SAS de llegar a **Río Grande** a
+  destruir los Super Étendard y los Exocet. Los comandos se entregaron. Confirma que había
+  operaciones británicas montadas desde suelo chileno.
+
+### ⚠ Los dos límites que decidirían cómo entra (si entra)
+
+1. **Fue la dictadura de Pinochet, no "Chile".** Matthei operó con autorización directa de
+   Pinochet y **con la orden expresa de NO informar a la Cancillería chilena**. El pueblo
+   chileno no supo nada durante veinte años. Esto no es un matiz para suavizar: **es la
+   columna vertebral que el juego ya tiene** — *los de arriba, de los dos lados, salieron
+   ganando*. Pinochet es un "de arriba" más, igual que la junta y que Thatcher.
+   - **Simetría que se regala sola con el Perú:** *Perú es el vecino cuyo **pueblo** movió;
+     Chile es el vecino cuya **dictadura** arregló.* El mismo par de manos, arriba y abajo.
+     Y el remate del Turco en Tandil —"el que te da una mano es el que también tiene
+     frío"— sigue siendo cierto sin tocarle una coma.
+2. **⚠ RESTRICCIÓN DURA: la escuadrilla NO PODÍA SABERLO.** Nada de esto era público en
+   1982; salió recién con Thatcher (1999) y Matthei (2000s). Si un personaje dice "los
+   chilenos nos están vendiendo", se pone conocimiento de 2005 en boca de 1982 — **el mismo
+   error de categoría que ya se cometió una vez con la frase de Iorio.**
+
+### La forma propuesta, si algún día entra
+
+- **Sospecha sin confirmación, en boca de la escuadrilla.** Eso sí es históricamente
+  honesto: los pilotos notaban que los estaban esperando. Una línea, una sola vez, **sin
+  nombrar a Chile** — *"nos están esperando siempre, Puma. Siempre"* — y que nadie pueda
+  probar nada. La paranoia sin objeto es más incómoda y más real que la denuncia.
+- **El dato, seco, en la placa del cierre**, junto a los 323 del Belgrano y el Narwal: qué
+  se transfirió, quién lo autorizó, y que la Cancillería chilena no fue informada. Que el
+  jugador lo entienda recién ahí — y que entienda de paso que **el que arregló con Londres
+  era el mismo tipo de gobierno que lo mandó a él a la isla.**
+
+### ❌ Lo que NO habría que hacer
+
+Una escena de bronca contra Chile. Rompe la tesis, enfrenta al juego con el vecino con el
+que hay una historia larga de vecindad real, y desperdicia el hallazgo: **el enemigo del
+juego no es un país, son los de arriba de cualquier país.** Chile bien contado no debilita
+eso — lo prueba por tercera vez.
+
+### Sin verificar (no usar hasta confirmar)
+
+Circula que el radar de Balmaceda estuvo fuera de servicio en fechas puntuales y que eso
+coincidió con incursiones argentinas exitosas. **No se verificó.** No entra a ningún lado
+hasta tener fuente.
+
+**Fuentes:** [Infobae — Operación Fingent](https://www.infobae.com/sociedad/2019/06/27/operacion-fingent-el-radar-que-los-britanicos-vendieron-a-chile-para-espiar-los-movimientos-argentinos-en-la-guerra-de-malvinas/) ·
+[El Mostrador — la colaboración de Matthei](https://www.elmostrador.cl/noticias/pais/2014/08/21/asi-fue-la-colaboracion-de-matthei-con-inglaterra-para-la-guerra-de-las-malvinas/) ·
+[El Mostrador — ex agente británico](https://www.elmostrador.cl/noticias/pais/2014/07/07/ex-agente-britanico-revela-detalles-de-ayuda-chilena-en-guerra-de-malvinas/) ·
+[MercoPress — memorándum para Thatcher](https://en.mercopress.com/2012/04/05/memorandum-for-lady-thatcher-on-chile-s-support-during-falklands-conflict) ·
+[La Nación — Operación Plum Duff](https://www.lanacion.com.ar/lifestyle/plum-duff-la-fallida-operacion-de-los-comandos-britanicos-en-tierra-del-fuego-que-buscaba-destruir-nid28052024/) ·
+[Zona Militar — los restos del Sea King](https://www.zona-militar.com/2022/05/18/malvinas-40-anos-los-restos-de-un-helicoptero-sea-king-destruido-son-hallados-en-chile/)
+
 ## 🟡 A EVALUAR — la regla del "gracias" en el mate
 
 Lo que **sí** vale la pena de la idea anterior no es el objeto: es el **mecanismo**. Una
@@ -443,3 +584,16 @@ Para cuando haya contacto con un veterano o con la Asociación de Pilotos de Caz
 
 Las respuestas valen más que cualquier tradición prestada.
 
+
+## Los Harrier en la cola (docs/sistemas/PLAN_HARRIERS_PERSECUCION.md)
+
+- **Derribos aire-aire de Sea Harriers.** El diseño asume que NINGÚN Harrier cayó en
+  combate aire-aire en 1982 (por eso el default del juego es AHUYENTARLO, no derribarlo,
+  y el derribo es hazaña rara). → Confirmar que es cero y citar fuente.
+- **Tiempo de estación de la CAP.** El duelo termina solo porque la CAP tenía minutos de
+  loiter (los portaaviones lejos). ¿Cuántos minutos reales de estación tenían los Sea
+  Harrier sobre el estrecho? El juego usa ~45 s de duelo como compresión.
+- **La escapada a ras.** El diseño hace que volar pegado al agua degrade la puntería del
+  cazador (clutter, AIM-9L contra fondo de mar). ¿Cuánto protegía de verdad? Hay
+  escapadas documentadas de A-4 a ras — juntar 1–2 casos citables.
+- **Cañones Aden de 30 mm contra A-4**: ¿hubo derribos a cañón, además de misiles?

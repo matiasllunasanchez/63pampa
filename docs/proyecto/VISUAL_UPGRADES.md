@@ -13,6 +13,87 @@ aparte y se blitea adentro (`game.js:1644` y `:1655` vía `three-world.view()` /
 
 ---
 
+## ⭐ Estrategia global (16/8/2026) — todos los frentes visuales, integrados
+
+> Esta sección MANDA sobre el "Orden global" de abajo (que queda como detalle de los
+> escalones E0/E1/E2). Integra lo que pasó desde el 14/8: la PASADA construida hasta
+> P3+P6, el ARENA con su feel nuevo, el modo historia con el enchufe de retratos andando
+> (silueta mock), y los specs nuevos del agua.
+>
+> **El plan de implementación POR FASES de todo esto (más los frentes pedidos el 16/8:
+> aire/sensaciones, armas, enemigos vivos, avión) es
+> [PLAN_VISUAL_FASES.md](PLAN_VISUAL_FASES.md)** — 9 tandas delegables + carril de
+> producción. Este doc queda como estrategia y detalle de E0/E1/E2.
+
+### La foto del estado (16/8)
+
+| frente | doc rector | estado |
+|---|---|---|
+| Efectos 2D (E0: glow · reflejo · tinte) | este doc | ⬜ sin empezar |
+| Post-pro WebGL (E1: grading · bloom · CRT) | este doc | ⬜ sin empezar |
+| Arte VN por asset (E2: placas · retratos · cuadros) | este doc + RETRATOS.md | ⬜ cero PNG — pero el enchufe YA corre en el juego (cascada + silueta mock en `render/screens.js`, `CARA_NEUTRA` en `core/dialogue.js`). Integración = soltar archivos |
+| El agua + las olas | [SPEC_AGUA_OLAS.md](../sistemas/SPEC_AGUA_OLAS.md) | ⬜ spec cerrado, listo para delegar (Opus medio) |
+| El clímax (PASADA/ARENA) | [SPEC_MODO_PASADA.md](../sistemas/SPEC_MODO_PASADA.md) | 🟡 P0–P3 + P6 hechas; **P5 (legibilidad) pendiente** con deudas anotadas (§10.7 carteles apilados, §10.53) |
+| El buque 3D por clase (piezas nombradas) | PENDIENTES_DE_REDISENO §8 (la "decisión 5" del ARENA) | ⬜ sigue el placeholder de cajas — **lo más visto y más pobre del juego hoy** |
+
+### La lectura (por qué este orden y no otro)
+
+1. **El buque placeholder es la deuda visual número uno**: es el clímax de casi todas las
+   misiones y de dos modos enteros, y hoy es lo peor dibujado de la pantalla. Ya no hay
+   excusa de "esperar al rework de mecánica" — la mecánica nueva EXISTE.
+2. **E0 sigue siendo el mejor peso/precio** (3–4 días, cero riesgo, cero dependencias) y
+   dos de sus piezas alimentan lo que viene: el glow (E0.1) le da de comer al bloom
+   (E1.F3) y el tinte (E0.3) al grading (E1.F2).
+3. **El arte VN no bloquea ni se bloquea**: es producción (generación + curado de Matías),
+   corre en paralelo TODO el tiempo, y el juego lo integra solo. Lo único de código es dar
+   vuelta el guard de `build_web` al primer PNG real.
+4. **El agua ya está pensada**: spec autosuficiente, mezcla visual + gameplay (ROADMAP #8)
+   y no colisiona con nada… salvo su F8 (mar 3D), que toca `three-arena.js` igual que la
+   PASADA — ver la regla de tránsito abajo.
+
+### El orden — dos carriles
+
+**CARRIL CÓDIGO** (secuencial, cada ítem con su gate verde):
+
+| # | qué | por qué acá |
+|---|---|---|
+| 1 | **E0 completo** (E0.1 glow → E0.2 reflejo → E0.3 tinte) | el salto visible más barato; las nocturnas (m13/m14) lo gritan; el reflejo es información de altura que además prepara las olas |
+| 2 | **Agua + olas, F0–F7** (SPEC_AGUA_OLAS) | visual + gameplay juntos; delegable ya; el 70% de la pantalla |
+| 3 | **El buque 3D por clase** — builders t42/t21/log en `ship3d.js` con piezas nombradas (mástil+radar, torretas, chimenea, puente, grúas del log), zonas ancladas a piezas reales (`userData.zone` ya existe) | la deuda nº 1; sirve a ARENA y PASADA a la vez; y la P5 de la PASADA (legibilidad) se apoya en un buque legible — conviene ANTES o JUNTO a P5 |
+| 4 | **Agua F8** (mar 3D ondulando + espuma de proa) | recién acá: para entonces `three-arena.js` quedó quieto (PASADA P5 cerrada, buque nuevo adentro) |
+| 5 | **E1 F1→F3** (pipeline post-pro → grading → bloom) | con E0 hecho, el bloom nace alimentado; el grading absorbe el tinte |
+| 6 | E1 F4 (CRT) y F5 (distorsiones) | solo si después de ver F3 el juego lo pide — son gusto, no calidad |
+
+**CARRIL PRODUCCIÓN** (paralelo desde hoy, sin código — orden de RETRATOS.md §6):
+
+1. Las **~16 placas** de ambiente (fáciles, sin caras, validan el estilo).
+2. Los **retratos neutros** de `CARA_NEUTRA` (uno por personaje con cara) → el modo
+   historia entero deja el mock.
+3. Variantes de expresión que más rinden (el "serio" del Gitano, "la sonrisa" de Puma, la
+   "media sonrisa" del Vasco).
+4. Los **cuadros de M1** completos (la demo) y de ahí en orden de campaña.
+
+Regla del carril: cada tanda se mira **adentro del juego, muda** (el criterio del
+director) antes de encargar la siguiente — el enchufe en caliente lo permite.
+
+### Regla de tránsito (para no pisarse)
+
+`three-arena.js` es zona compartida: PASADA P4/P5/P7 y agua F8 lo tocan. Orden: primero
+cierra la PASADA su legibilidad (P5, idealmente con el buque nuevo del ítem 3), después
+entra agua F8. Todo lo demás de agua (F0–F7) es 2D y corre sin conflicto en paralelo.
+
+### Qué cambió respecto del plan original de abajo
+
+- El pendiente "rework visual del ARENA — esperar al rework de mecánica" quedó
+  **desbloqueado**: la mecánica llegó (ARENA sweet-spot + PASADA P0–P3). El buque 3D entra
+  al orden global como ítem 3.
+- Nace el frente del **agua** (SPEC_AGUA_OLAS), que este doc no cubría; absorbe la parte
+  "mar" del backlog E2.4 y suma gameplay.
+- E2.1 dejó de ser promesa: el mock ya dibuja la caja VN — producir arte tiene retorno
+  inmediato y visible.
+
+---
+
 ## Escalón 0 — Canvas 2D puro (2–4 días, sin dependencias nuevas)
 
 Efectos que no necesitan WebGL. Cada uno es independiente y shippeable por separado.
@@ -189,4 +270,6 @@ los lee directo sin cambio alguno.
 
 - Iluminación dinámica por sprite (normal maps) — requiere renderer WebGL 2D (Pixi), plan aparte.
 - Voces y música nueva (otro dominio).
-- El rework visual del ARENA/MINUTOS SAGRADOS — esperar al rework de mecánica primero.
+- ~~El rework visual del ARENA/MINUTOS SAGRADOS — esperar al rework de mecánica primero.~~
+  **Desbloqueado (16/8):** la mecánica nueva existe (ARENA sweet-spot + PASADA P0–P3). El
+  buque 3D por clase es el ítem 3 de la Estrategia global de arriba.

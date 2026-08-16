@@ -432,6 +432,55 @@ TODOS, Puma. Y ese día va a ser más grande que éste.
 
 **PUMA:** Ojalá la única guerra que nos quede sea esa.
 
+### En vuelo — de dónde salen las posiciones
+
+_(Tramo de tránsito, sin un solo enemigo en pantalla. Altura mínima, formación abierta, el
+mar corriendo abajo. Dos o tres minutos en los que el jugador solamente vuela y escucha: la
+radio es lo único que pasa. Las posiciones que dicta Cóndor **aparecen marcadas en el HUD**
+mientras habla. El jugador las usa. Todavía no sabe de dónde vienen.)_
+
+**CÓNDOR:** Plata Fiel, anoto posiciones. Dos unidades al noreste, rumbo sur, velocidad
+diez. Una tercera más atrás, sin confirmar.
+
+**PUMA:** Copiado, Cóndor.
+
+**GITANO:** Cóndor, una pregunta de curioso nomás. ¿De dónde sacás vos todo eso? Porque
+nosotros acá no vemos un carajo hasta que lo tenemos encima.
+
+**CÓNDOR:** _(sin ningún énfasis, como quien lee una planilla)_ **De un barco pesquero
+llamado Narwal.**
+
+**GITANO:** …¿Un pesquero?
+
+**CÓNDOR:** Un pesquero. Setenta metros. Tira la red, la levanta, la vuelve a tirar. Y
+mientras tanto anota todo lo que le pasa al lado.
+
+**GITANO:** _(riéndose)_ ¡Pará! ¿Me estás diciendo que la flota inglesa le está pasando por
+adelante a unos tipos que están pescando?
+
+**CÓNDOR:** Por adelante, por atrás y por arriba. Hace tres semanas.
+
+**GITANO:** _(la risa se le apaga sola)_ …Tres semanas ahí adentro. ¿Y esos tipos qué son?
+¿Marina?
+
+**CÓNDOR:** Un oficial a bordo. El resto, pescadores.
+
+**GITANO:** ¿Pescadores pescadores?
+
+**CÓNDOR:** Pescadores pescadores.
+
+_(Silencio de radio. Solo la turbina.)_
+
+**VASCO:** Sin nada para tirar.
+
+**CÓNDOR:** Sin nada para tirar.
+
+**PUMA:** _(al final, casi para sí mismo, y es lo único que dice en todo el tramo)_ No son
+militares, Gitano. Y están más adentro que nosotros.
+
+_(Y se termina ahí. Nadie lo comenta, nadie lo agranda. Arranca la misión.)_
+
+
 ### La misión / Epílogo
 
 El jugador les hace sentir miedo A ELLOS: voces británicas de pánico real por radio — "Low
@@ -489,6 +538,41 @@ montañas de cosas para los pibes de las islas. Chocolates, cigarrillos, abrigo�
 **VASCO:** ¿Y?
 
 **GITANO:** _(cerrando la cúpula)_ Y nada. Eso digo. Juntaron.
+
+### En vuelo
+
+_(Mismo tramo, misma altura, diecisiete días después. El jugador reconoce la escena: es el
+rato de calma antes de entrar. Reconoce hasta el ritmo de la radio.)_
+
+**CÓNDOR:** Plata Fiel, posiciones. _(pausa)_ Actividad en San Carlos. Varias unidades.
+
+**GITANO:** ¿Varias cuántas, Cóndor?
+
+**CÓNDOR:** Varias. No tengo número.
+
+**GITANO:** ¿Cómo que no tenés número? La otra vez me diste hasta la velocidad.
+
+**CÓNDOR:** _(nada)_
+
+**GITANO:** Cóndor. Preguntale al pesquero.
+
+_(Y ahí no contesta. Tres segundos de radio abierta: el ruido de fondo y nada más. Es el
+mismo silencio de Cóndor que el juego viene usando como amenaza desde M1 — solo que esta
+vez no se cortó la señal.)_
+
+**GITANO:** Cóndor. El pesquero.
+
+**CÓNDOR:** Hace doce días que no transmite.
+
+_(Silencio. El Vasco se toca la cruz; no lo ve nadie.)_
+
+**GITANO:** _(sin nada arriba, la voz plana)_ …Copiado.
+
+**PUMA:** Formación cerrada. Entramos.
+
+_(Y nadie pregunta más nada. Nadie hace el chiste. Entran al Callejón con lo que tienen,
+que es menos que la vez pasada.)_
+
 
 ### La misión / Epílogo
 
@@ -1589,6 +1673,12 @@ volvieron, los escondieron — porque los sobrevivientes eran la prueba."
 "Del otro lado del mar, un gobierno que venía perdiendo encontró en esta guerra la forma de
 ganar. Hundió un crucero que navegaba fuera de la zona de exclusión y en dirección
 contraria, con más de mil hombres a bordo. Trescientos veintitrés se quedaron ahí."
+
+"Y hubo un barco pesquero llamado Narwal. Setenta metros, tripulación civil, sin un arma
+a bordo. Pasó tres semanas adentro del bloqueo tirando la red para que le creyeran, y
+mandando por radio todo lo que veía pasar. El 9 de mayo lo encontraron dos Harriers.
+Volvieron todos menos uno: Omar Rupp, contramaestre. Su cuerpo no volvió."
+
 
 "Los de arriba, de los dos lados, salieron ganando de una manera o de otra. Los de abajo,
 de los dos lados, están en Darwin y en el fondo del mar."

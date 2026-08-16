@@ -48,7 +48,7 @@ t = re.sub(
     "> entraron en combate.\n", t)
 
 # ---- 3. fuera las citas que son notas de producción ----
-t = re.sub(r"\n> \*\*(Nota de tratamiento|Notas de la escena|Sobre la frase)\b.*?\n(?:>.*\n)*", "\n", t)
+t = re.sub(r"\n> \*\*(Nota de tratamiento|Notas de la escena|Nota de diseño|Sobre la frase)\b.*?\n(?:>.*\n)*", "\n", t)
 
 # ---- 4. acotaciones que hablan del documento y no de la historia ----
 FUERA = [
@@ -139,6 +139,7 @@ TITULOS = [
  ('### La cartela de los que ayudaron _(antes de la frase final)_',
   '### La cartela de los que ayudaron'),
  ('### La noticia — 2 de mayo', '### La noticia — 2 de mayo'),
+ ('### En vuelo — el silencio del Narwal', '### En vuelo'),
 ]
 for a, b in TITULOS:
     t = t.replace(a, b)

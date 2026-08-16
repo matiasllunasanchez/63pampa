@@ -68,6 +68,9 @@ La segunda campaña, a futuro: *"El fantasma del mar"*.
 | [SPEC_MODO_PASADA.md](sistemas/SPEC_MODO_PASADA.md) | 🟥 **análisis funcional del modo PASADA** para IA implementadora: 14 RF con criterios de aceptación, defaults elegidos, sondas (`?pasada=`, `__pdbg`), fixture y plan P0–P7 | **spec — listo para implementar** |
 | [PROPUESTAS_PASADA.md](sistemas/PROPUESTAS_PASADA.md) | 🟥 el clímax de una sola pasada: base histórica, mentiras permitidas, las tres propuestas con referencias (juegos y cine) y **§8b: la decisión — el modo compuesto** (A entrada + B suelta + C oleada) | **decidido 15/8 — el plan ejecutable es el SPEC** |
 | [PROMPT_ARENA_VUELO_LIBRE.md](sistemas/PROMPT_ARENA_VUELO_LIBRE.md) | ARENA como vuelo 3D libre en ring acotado | **vigente** |
+| [SPEC_AGUA_OLAS.md](sistemas/SPEC_AGUA_OLAS.md) | 🟥 **plan ejecutable del agua y las olas** en 9 fases (F0 cimiento `core/sea.js` → F8 mar 3D), escrito prescriptivo para implementador de esfuerzo MEDIO: fórmulas de partida, perillas con valores finales, trampas conocidas del repo, sonda `__ola` y fixture `npm run agua` | **spec — listo para implementar** |
+| [PLAN_HARRIERS_PERSECUCION.md](sistemas/PLAN_HARRIERS_PERSECUCION.md) | 🟥 **los Harrier en la cola** (estilo After Burner: presión → sobrepaso → ventana de contraataque, con análisis de la referencia) + **el modo PERSECUCIÓN** (volar de numeral: mantener la banda de distancia con un líder — m10 LOS PRIMOS). Tres planes por fases (A/B/C) | **diseño decidido — sin implementar** |
+| [PLAN_AGUA_OLAS.md](sistemas/PLAN_AGUA_OLAS.md) | 🟥 **el agua**: programa visual (espuma/viento, camino del sol, agua por clima, mar 3D) + **las OLAS como obstáculo** (esquive vertical, roce generoso, 3 variantes por clima) — concreta ROADMAP #8 e integra VISUAL_UPGRADES E0.2/E0.3 | **decidido — el plan ejecutable es el SPEC** |
 | [PIRUETAS.md](sistemas/PIRUETAS.md) · [VELOCIDAD_MACH.md](sistemas/VELOCIDAD_MACH.md) | maniobras y escalones de velocidad | ⚠ *la tabla misión→mejora quedó desacoplada: las mejoras son roguelike (2 opciones desde M3), el guion no fija cuál va cuándo* |
 | [PROMPT_ALTURAS.md](sistemas/PROMPT_ALTURAS.md) · [PROMPT_COMBUSTIBLE.md](sistemas/PROMPT_COMBUSTIBLE.md) · [PROMPT_ESCUADRON.md](sistemas/PROMPT_ESCUADRON.md) | alturas, combustible, escuadrón | specs |
 
@@ -76,6 +79,7 @@ La segunda campaña, a futuro: *"El fantasma del mar"*.
 | documento | qué es | estado |
 |---|---|---|
 | [ROADMAP.md](proyecto/ROADMAP.md) | backlog de ideas y features (numeradas, referenciables) | vivo |
+| [PLAN_VISUAL_FASES.md](proyecto/PLAN_VISUAL_FASES.md) | 🟥 **EL plan visual por fases**: 9 tandas delegables (luz · aire/sensaciones · agua · armas · enemigos vivos · avión · buque 3D · cierre 3D · post-pro) + carril de producción de arte en paralelo. Integra VISUAL_UPGRADES, SPEC_AGUA_OLAS y los frentes del 16/8 | **vivo — arrancar por T1 + producción** |
 | [ANALISIS_ROADMAP.md](proyecto/ANALISIS_ROADMAP.md) | análisis de cada ítem: facilidad, dependencias, orden | análisis |
 | [ESTADO.md](proyecto/ESTADO.md) | bitácora del estado del proyecto | vivo |
 | [PENDIENTES_DE_REDISENO.md](proyecto/PENDIENTES_DE_REDISENO.md) | inventario de unidades/objetos con estado de arte y specs de sprite | vivo |
