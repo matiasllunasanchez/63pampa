@@ -4,12 +4,15 @@
 // un sistema) porque solo toca stores + paleta + las medidas del mundo: no necesita el closure
 // de game.js. Sacarlo del monolito es lo que permite que systems/collision.js sea un archivo.
 
-import { cam, cfg } from './state.js';
+import { cam, cfg, plane, stats } from './state.js';
 import { run } from './run.js';
 import { parts, popups, obstacles } from './world.js';
 import { P } from '../data/palette.js';
-import { recetaDe, CHUNKS_MAX, CHUNK_LIFE, SEC_N, SEC_T } from '../data/despiece.js';
-import { W, HOR, F } from '../render/ctx.js';
+import { recetaDe, CHUNKS_MAX, CHUNK_LIFE, SEC_N, SEC_T,
+  ONDA_T, ONDA_R, ONDA_PUSH, CERCA, FLASH_T,
+  CHAIN_R, CHAIN_DEPTH, CHAIN_DELAY, DESPIECE, PARTS_MAX } from '../data/despiece.js';
+
+import { W, HOR, F, PZ } from '../render/ctx.js';
 import { boom, duck } from '../systems/audio.js';
 
 /** Proyeccion pseudo-3D: mundo (x,y,z) → pantalla. Devuelve tambien `k` (escala en esa z).
@@ -26,7 +29,7 @@ export function popup(x, y, txt, c, big) {
 
 /** Explosion: reventon de particulas en (x,y,z) + sacudon de camara. `big` la agranda y agacha
  *  la musica un instante (ducking). */
-export function explodeAt(x, y, z, big, noBall) {
+export function explodeAt(x, y, z, big, noBall, noShake) {
   const s = proj(x, y, z);
   for (let i = 0, n = big ? 24 : 12; i < n; i++) {
     const a = Math.random() * 6.283, v = (14 + Math.random() * 55) * Math.min(1.6, s.k / 3 + 0.4);
@@ -41,7 +44,11 @@ export function explodeAt(x, y, z, big, noBall) {
   // `noBall`: el que llama pone su propia bola (el derribo usa una version PIXEL mas chica que
   // no tape los pedazos del avion) — aca quedan las chispas, el sacudon y el ducking.
   if (!noBall) obstacles.push({ type: 'airboom', x, y, z, boomT: 0, scale: big ? 0.85 : 0.42, done: true });
-  run.shake = Math.min(6, run.shake + (big ? 4.5 : 2)); boom(big ? 0.16 : 0.08);
+  // `noShake`: el que llama pone SU sacudon. Lo usa morir() desde D3, que lo escala por distancia —
+  // el sacudon fijo de aca hacia que una explosion a 300 m se sintiera igual que una al lado.
+  // Sin el parametro, el comportamiento es el de siempre (§4.6: explodeAt no se rompe).
+  if (!noShake) run.shake = Math.min(6, run.shake + (big ? 4.5 : 2));
+  boom(big ? 0.16 : 0.08);
   if (big) duck(0.55);                      // explosion grande → ducking de la musica
 }
 
@@ -151,14 +158,22 @@ export function chispazo(x, y, z, clase) {
  *
  *  `explodeAt` sigue existiendo y sigue siendo valido (§4.6): lo usan la bomba, el misil enemigo y
  *  todo lo que no es la muerte de un objeto con receta. */
-export function morir(o, imp) {
+export const MUERTES = [];   // bitacora de las ultimas muertes (la lee la sonda __muertes)
+
+export function morir(o, imp, depth) {
   const r = recetaDe(o.type);
+  const d0 = depth || 0;
+  MUERTES.push({ t: +run.t.toFixed(2), tipo: o.type, depth: d0, z: Math.round(o.z) });
+  if (MUERTES.length > 24) MUERTES.shift();
   const y0 = o.y != null && o.y > 0.4 ? o.y : (o.h ? o.h / 2 : 1);
   // LA BOLA — y su ausencia. Que la carpa no tenga es tan parte de su muerte como que el deposito
   // tenga la grande: una lona que revienta en llamas miente sobre de que esta hecha.
-  if (r.bola) explodeAt(o.x, y0, o.z, r.bola === 'grande');
-  else { run.shake = Math.min(6, run.shake + 1.2); boom(0.06); }
+  if (r.bola) explodeAt(o.x, y0, o.z, r.bola === 'grande', false, true);   // el sacudon lo pone golpe()
+  else boom(0.06);
   chispazo(o.x, y0, o.z, r.chispa);
+  // D3 — LA ONDA Y EL GOLPE. Lo grande manda onda; todo manda golpe, escalado por CUAN CERCA fue.
+  if (r.bola === 'grande') onda(o.x, y0, o.z);
+  golpe(o.x, o.z, r.bola === 'grande' ? 1 : r.bola ? 0.5 : 0.28);
   despiece(o, imp);
   // SECUNDARIAS: el combustible no explota de una: se va prendiendo. Cada una es un 'sec' con su
   // propio reloj — obstaculos como cualquier otro, asi que viajan con el mundo y no se quedan
@@ -173,6 +188,72 @@ export function morir(o, imp) {
   }
   // LA COLUMNA que queda ardiendo en el lugar
   if (r.humo) obstacles.push({ type: 'humo', done: true, x: o.x, y: 0, z: o.z, humoT: 0, humoMax: r.humo });
+  // D4 — EL ENCADENAMIENTO. Solo lo que revienta GRANDE prende a sus vecinos, y solo hasta
+  // CHAIN_DEPTH saltos: sin las dos condiciones, un campamento denso se enciende entero de una vez
+  // y deja de ser una jugada para ser un bug.
+  if (r.bola === 'grande' && d0 < CHAIN_DEPTH) encadenar(o, d0);
+}
+
+/** Prende la mecha de los vecinos dentro de CHAIN_R. No los mata: les pone un RETARDO, que es lo
+ *  que hace que la cadena se lea como una cadena y no como una explosion mas grande (plan §3). */
+function encadenar(o, depth) {
+  let i = 0;
+  for (const v of obstacles) {
+    if (v === o || v.done || v.chainT || v.hp === undefined || !DESPIECE[v.type]) continue;
+    if (Math.hypot(v.x - o.x, v.z - o.z) > CHAIN_R) continue;
+    // ESCALONADOS, no todos con su propio azar. Con retardos sorteados sueltos, dos vecinos podian
+    // caer con 0.12 s de diferencia (medido) — y eso no se lee como una cadena, se lee como una
+    // explosion con eco. Cada victima entra un escalon despues que la anterior.
+    v.chainT = CHAIN_DELAY[0] + i * 0.22 + Math.random() * (CHAIN_DELAY[1] - CHAIN_DELAY[0]) * 0.5;
+    v.chainDepth = depth + 1;
+    i++;
+  }
+}
+
+/** Se consumio la mecha: el vecino muere. Puntua con la racha que ya tenias — encadenar es la
+ *  jugada de estilo, asi que paga como tal, pero con la economia que ya existe y no una nueva. */
+function morirEnCadena(o) {
+  const pts = Math.round(150 * (run.multShow || 1));
+  run.score += pts; stats.air++;
+  const s = proj(o.x, o.h ? o.h / 2 : 1, o.z);
+  popup(s.x, s.y - 8, '+' + pts, P.warn);
+  morir(o, { vz: 12, vy: 6 }, o.chainDepth || 1);
+  o.z = -99; o.done = true;
+}
+
+/** EL GOLPE (D3): lo que la explosion te hace A VOS. `f` es su calibre (1 = deposito).
+ *
+ *  ESTO ES LA ETAPA ENTERA en tres lineas: hasta ahora toda explosion sacudia lo mismo, asi que
+ *  una a 300 m se sentia igual que una pegada al ala — y con eso, ninguna se sentia. Acá el
+ *  sacudon, el fogonazo y el ducking salen de la distancia real al avion.
+ *
+ *  La caida es CUADRATICA y no lineal a proposito: lineal, media pantalla de distancia todavia
+ *  sacudia medio golpe. Lo que se quiere es que a `CERCA` metros ya casi no llegue nada. */
+export function golpe(x, z, f) {
+  const d = Math.hypot(x - plane.x, z - PZ);
+  const cerca = Math.max(0, 1 - d / CERCA);
+  const k = cerca * cerca * f;
+  if (k < 0.02) return;                                  // lejos: se ve, no se siente
+  run.shake = Math.min(7, run.shake + 7 * k);
+  run.flash = Math.min(1, run.flash + 0.9 * k);
+  if (k > 0.35) duck(0.55);                              // solo lo que te alcanza agacha la musica
+}
+
+/** LA ONDA (D3): el anillo que se abre. Es un obstaculo mas — viaja con el mundo y se poda con
+ *  todo lo demas — y ademas EMPUJA el escombro que agarra adentro, que es lo que hace que dos
+ *  muertes juntas se lean como una sola detonacion y no como dos efectos superpuestos. */
+export function onda(x, y, z) {
+  obstacles.push({ type: 'onda', done: true, x, y, z, ondaT: 0 });
+  for (const c of obstacles) {
+    if (c.type !== 'chunk') continue;
+    const d = Math.hypot(c.x - x, c.z - z);
+    if (d > ONDA_R || d < 0.01) continue;
+    const k = (1 - d / ONDA_R) * ONDA_PUSH;
+    c.vx += ((c.x - x) / d) * k;
+    c.vz += ((c.z - z) / d) * k;
+    c.vy += k * 0.35;
+    c.vspin += (Math.random() - 0.5) * k;
+  }
 }
 
 /** UN CUADRO de un pedazo: sigue de largo con su inercia, cae, rebota corto y humea si esta
@@ -217,6 +298,13 @@ export function stepChunk(o, dt) {
  *  (systems/collision.js) y el que quedo detenido tras el derribo (game.js). Una explosion
  *  secundaria que se congela porque el jugador acaba de morir seria justo la mitad del efecto. */
 export function stepDestruccion(o, dt) {
+  // LA MECHA (D4). Va antes del despacho por tipo y NO consume el objeto: el vecino encendido
+  // sigue siendo un obstaculo normal hasta que le toca — se lo puede esquivar, chocar o tirar
+  // durante ese cuarto de segundo, que es exactamente lo que hace legible la cadena.
+  if (o.chainT > 0) {
+    o.chainT -= dt;
+    if (o.chainT <= 0) { o.chainT = 0; morirEnCadena(o); }
+  }
   if (o.type === 'chunk') { stepChunk(o, dt); return true; }
   if (o.type === 'sec') {
     // SECUNDARIA: espera su turno y revienta. El retardo ES la lectura (plan §3) — sin el, cinco
@@ -225,6 +313,7 @@ export function stepDestruccion(o, dt) {
     if (o.t <= 0) { explodeAt(o.x, o.y, o.z, o.grande); o.type = 'airboom'; o.boomT = 0; o.scale = o.grande ? 0.5 : 0.3; }
     return true;
   }
+  if (o.type === 'onda') { o.ondaT += dt; return true; }
   if (o.type === 'humo') {
     // LA COLUMNA: la pira sigue tirando humo despues de que se apago todo lo demas. Sube y se
     // abre con la altura, como el humo de verdad.
@@ -242,6 +331,15 @@ export function stepDestruccion(o, dt) {
     return true;
   }
   return false;
+}
+
+/** TOPE DE PARTICULAS (D5). Se llama despues de podar las muertas, en el mismo lugar y el mismo
+ *  cuadro: si la poblacion se paso del presupuesto, se van las mas viejas — que estan al final de
+ *  su vida y ya casi no se ven. `parts` se MUTA con splice (nunca se reasigna: lo vigila
+ *  `npm run lint:state`). */
+export function capParts() {
+  const sobran = parts.length - PARTS_MAX;
+  if (sobran > 0) parts.splice(0, sobran);
 }
 
 /** Salpicadura de sangre + tierra al eliminar un soldado. */

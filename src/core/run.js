@@ -101,6 +101,10 @@ export const run = {
 
   // --- feedback ---
   shake: 0,        // sacudon de camara: lo suben roce, explosiones, afterburner y colisiones
+  // FOGONAZO de una explosion grande CERCA (PLAN_DESTRUCCION D3): destello de un instante sobre
+  // todo el cuadro. Vive en `run` y no en un modulo de fx porque lo escribe el efecto y lo lee el
+  // dibujo, que son dos lados distintos — igual que `shake`.
+  flash: 0,
   bloodSplat: 0,   // mancha de sangre sobre el sprite (se desvanece en ~3 s)
 };
 
@@ -125,6 +129,6 @@ export function resetRun() {
   bankA: 0,
   freeRoll: 0, freeRollV: 0,
     nextSpawn: 320, nextSoldier: 60, nextBomb: 260,
-    shake: 0, bloodSplat: 0,
+    shake: 0, flash: 0, bloodSplat: 0,
   });
 }

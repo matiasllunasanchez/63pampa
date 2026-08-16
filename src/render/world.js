@@ -16,7 +16,7 @@ import { hzWorld, tiltFade } from '../core/horizon.js';
 // que evaluar la MISMA superficie que se dibuja, y un sistema no puede importar del render.
 import { seaH as seaBase, olaBump, climaDe } from '../core/sea.js';
 import { P, LAND, CLAND } from '../data/palette.js';
-import { CHUNK_LIFE } from '../data/despiece.js';
+import { CHUNK_LIFE, ONDA_T, ONDA_R } from '../data/despiece.js';
 import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
@@ -1155,6 +1155,29 @@ export function drawObstacle(o) {
       ctx.beginPath(); ctx.arc(s.x, s.y, R * (1 + gr * 0.8), 0, 6.2832); ctx.stroke();
       ctx.lineWidth = 1; ctx.globalAlpha = 1;
     }
+  } else if (o.type === 'onda') {
+    // LA ONDA EXPANSIVA (PLAN_DESTRUCCION D3): el anillo que se abre. Dos anillos, no uno:
+    //   · el de AIRE, a la altura del reventón, que es el frente de presión;
+    //   · el de SUELO, aplastado contra el piso — polvo en tierra, corona de espuma en el mar.
+    // El de abajo es el que da la escala: sin él la explosión flota, con él está APOYADA en algo.
+    const f = Math.min(1, o.ondaT / ONDA_T);
+    const s = proj(o.x, o.y, o.z);
+    const g = proj(o.x, 0, o.z);
+    const R = ONDA_R * f * s.k;
+    const fade = (1 - f) * (1 - f);                 // se abre rápido y se apaga rápido
+    ctx.save();
+    ctx.globalAlpha = fade * 0.7;
+    ctx.strokeStyle = '#ffe6ac';
+    // el grosor se acota: cerca, el trazo escalado por perspectiva se volvia una burbuja de jabon
+    ctx.lineWidth = Math.max(1, Math.min(5, (1 - f) * 2.5 * s.k));
+    ctx.beginPath(); ctx.arc(s.x, s.y, R, 0, 6.2832); ctx.stroke();
+    // el anillo de abajo: elipse chata (se ve en perspectiva) del color del suelo que pisa
+    ctx.globalAlpha = fade * 0.55;
+    ctx.strokeStyle = cfg.terrain === 'sea' ? P.foam : '#8a8272';
+    ctx.lineWidth = Math.max(1, Math.min(6, (1 - f) * 3 * g.k));
+    ctx.beginPath(); ctx.ellipse(g.x, g.y, R * 1.15, R * 0.3, 0, 0, 6.2832); ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = 1; ctx.lineWidth = 1;
   } else if (o.type === 'chunk') {
     // PEDAZO DEL AVION derribado (ver die en game.js): fragmento que sigue de largo con la
     // inercia, girando. Un rect rotado con canto iluminado — a esta escala, el TUMBO (rotacion

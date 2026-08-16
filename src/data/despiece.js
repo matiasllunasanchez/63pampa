@@ -19,6 +19,11 @@ import { P, LAND } from './palette.js';
 export const CHUNKS_MAX = 60;
 // segundos humeando antes de disolverse (el mismo reloj `chunkT` del derribo)
 export const CHUNK_LIFE = 4;
+// Tope de PARTICULAS vivas (D5). Los pedazos ya tenian su cap; las particulas no tenian ninguno, y
+// son las que se disparan de a decenas por muerte — tres muertes encadenadas con secundarias y
+// columnas de humo son cientos. Al pasarse se van las MAS VIEJAS, que son las que ya casi se
+// apagaron: el reventon que acaba de nacer nunca se recorta.
+export const PARTS_MAX = 260;
 // SECUNDARIAS del deposito (plan §3): 3-5 reventones en 1.5 s. El pop-pop-pop es lo que convierte
 // "exploto" en "se esta incendiando el combustible" — la muerte dura mas que el frame del impacto.
 export const SEC_N = [3, 5];
@@ -27,6 +32,24 @@ export const SEC_T = 1.5;
 // unico efecto de este plan que sobrevive al momento — el pasillo detrás tuyo es la historia de
 // tu corrida (§1), y una columna a lo lejos es esa historia contada sin texto.
 export const HUMO_T = 6;
+
+// ---------------- LA ONDA Y EL GOLPE (D3) ----------------
+// Lo que separa una explosion de un DETONACION: que te alcance. Todo esto escala con la distancia
+// al avion — el criterio de cierre de la etapa es que la misma explosion se sienta distinta al
+// lado tuyo que a 300 m.
+export const ONDA_T = 0.5;        // segundos que tarda el anillo en abrirse del todo
+export const ONDA_R = 30;         // radio final del anillo, en metros de mundo
+export const ONDA_PUSH = 30;      // cuanto empuja al escombro que agarra adentro
+export const CERCA = 90;          // metros: mas cerca que esto, la explosion te sacude a VOS
+export const FLASH_T = 0.12;      // lo que dura el fogonazo (un parpadeo, no una pantalla blanca)
+
+// ---------------- EL ENCADENAMIENTO (D4) ----------------
+// Una explosion grande prende lo que tiene al lado. Volar UN tiro que tira tres cosas es la jugada
+// de estilo del modo — pero una cadena sin tope es un bucle que se come la mision entera, asi que
+// la profundidad esta acotada y solo encadena lo que revienta GRANDE.
+export const CHAIN_R = 22;            // metros de contagio
+export const CHAIN_DEPTH = 2;         // saltos maximos (el 1º prende al 2º, el 2º al 3º, y basta)
+export const CHAIN_DELAY = [0.25, 0.6];   // el retardo ES la lectura: sin el, la cadena es un ruido
 
 // Colores de escombro por familia. Salen de la paleta del juego, no inventados: el metal militar
 // es el gris verdoso del fuselaje, la mamposteria toma del terreno, y la lona su propio beige.

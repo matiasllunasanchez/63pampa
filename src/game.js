@@ -16,8 +16,8 @@ import { hzWorld, stepHorizon } from './core/horizon.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts,
          prune, clearWorld } from './core/world.js';
 import { run, resetRun } from './core/run.js';
-import { proj, popup, explodeAt, bloodBurst, despiece, morir, stepDestruccion } from './core/fx.js';
-import { CHUNK_LIFE, CHUNKS_MAX } from './data/despiece.js';
+import { proj, popup, explodeAt, bloodBurst, despiece, morir, stepDestruccion, capParts, MUERTES } from './core/fx.js';
+import { CHUNK_LIFE, CHUNKS_MAX, ONDA_T, FLASH_T } from './data/despiece.js';
 import * as momentum from './systems/momentum.js';
 import * as tempo from './systems/tempo.js';
 import * as saves from './systems/saves.js';
@@ -1520,6 +1520,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       }
       tickDuck(dt);                      // el ducking de la musica se recupera solo
       fadeT = Math.max(0, fadeT - dt);   // fundido desde negro (se pinta al final de draw)
+      // FOGONAZO (D3): se apaga solo, rapido. Va acá y no en un sistema porque tiene que correr en
+      // TODOS los estados — la explosión que te mató sigue destellando mientras caés.
+      run.flash = Math.max(0, run.flash - dt / FLASH_T);
       updateSfx(dt, { state: S.state, cfg, plane, boost: run.boost, firing: inp.fire, overheat: run.overheat, soldiers });   // loops con fade
       // camara CERCA: interpola hacia el objetivo; fuera de vuelo (o al morir) vuelve sola a 1
       // para que cada entrada a play arranque con zoom-in suave y sin saltos entre estados
@@ -1574,7 +1577,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
           squad.beginExit();   // la formacion sale de plano detras de la camara (render/squad.js)
         }
         parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
-        prune(parts, p => p.life > 0);
+        prune(parts, p => p.life > 0); capParts();
         popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
         prune(popups, p => p.life > 0);
         run.shake = Math.max(0, run.shake - dt * 10);
@@ -1586,7 +1589,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         if (S.state === 'dead') deathT += dt;
         if (S.state === 'victory') levelT += dt;
         parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
-        prune(parts, p => p.life > 0);
+        prune(parts, p => p.life > 0); capParts();
         // las explosiones siguen VIVAS fuera de 'play' (su reloj lo lleva collisionSystem, que
         // aca no corre): sin esto la bola de fuego del derribado quedaria congelada en el frame 0
         for (const o of obstacles) {
@@ -1600,7 +1603,8 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         }
         prune(obstacles, o => !((o.type === 'airboom' || o.type === 'boom') && o.boomT > 6)
           && !(o.type === 'chunk' && (o.chunkT > CHUNK_LIFE || o.z > 235))
-          && !(o.type === 'humo' && o.humoT > o.humoMax));
+          && !(o.type === 'humo' && o.humoT > o.humoMax)
+          && !(o.type === 'onda' && o.ondaT > ONDA_T));
         engineOff();
         if (S.state === 'momentum') {
           run.shake = Math.max(0, run.shake - dt * 10);
@@ -1819,7 +1823,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         // (flightSystem) NO corre: el avion queda quieto como referencia, no cae ni gasta nafta.
         collisionSystem(dt);
         parts.forEach(p2 => { p2.x += p2.vx * dt; p2.y += p2.vy * dt; p2.vy += 90 * dt; p2.life -= dt; });
-        prune(parts, p2 => p2.life > 0);
+        prune(parts, p2 => p2.life > 0); capParts();
         popups.forEach(p2 => { p2.y -= 14 * dt; p2.life -= dt; });
         prune(popups, p2 => p2.life > 0);
         engineOff();
@@ -1874,7 +1878,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       prune(streaks, s => s.life > 0 && s.r < 260);
 
       parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
-      prune(parts, p => p.life > 0);
+      prune(parts, p => p.life > 0); capParts();
       popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
       prune(popups, p => p.life > 0);
       run.shake = Math.max(0, run.shake - dt * 10);
@@ -2292,6 +2296,15 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         }),
       });
 
+      // FOGONAZO de la explosión cercana (D3): un destello corto sobre todo el cuadro. Va casi al
+      // final —encima del mundo y del HUD— porque es luz que te da en la cara, no algo del mundo.
+      if (run.flash > 0.01) {
+        ctx.globalAlpha = Math.min(0.62, run.flash * 0.62);
+        ctx.fillStyle = '#ffd9a0';
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalAlpha = 1;
+      }
+
       // fundido desde negro (al salir de la historia hacia el despegue) — SIEMPRE al final
       if (fadeT > 0) {
         ctx.globalAlpha = Math.min(1, fadeT / 1.4);
@@ -2404,11 +2417,14 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     //
     // Devuelve la FOTO del escombro que acaba de nacer (cuántos, tamaños, colores, pieza especial)
     // — es lo que permite afirmar "cada tipo se despieza distinto" con números y no de memoria.
-    if (typeof window !== 'undefined') window.__romper = (tipo, imp) => {
+    if (typeof window !== 'undefined') window.__romper = (tipo, imp, d) => {
       const antes = obstacles.length;
+      run.shake = 0; run.flash = 0;   // se mide LO QUE ESTA MUERTE produce, no lo que venia de antes
       // a la ALTURA A LA QUE VAS VOLANDO: plantarlo siempre a ras dejaba el destrozo fuera de
       // cuadro apenas el avion subia un poco, y lo que la sonda tiene que dejar ver es la muerte
-      const o = { type: tipo, x: plane.x + (Math.random() - 0.5) * 6, y: Math.max(1.5, plane.y), h: 3, z: PZ + 42 };
+      // `d` = a cuantos metros por delante del morro. Es el parametro de D3: la misma muerte a 12 m
+      // y a 300 m tiene que dar numeros distintos, y sin poder elegir la distancia eso no se mide.
+      const o = { type: tipo, x: plane.x + (Math.random() - 0.5) * 6, y: Math.max(1.5, plane.y), h: 3, z: PZ + (d || 42) };
       // D2: se llama a la MUERTE COMPLETA, no solo al despiece — es lo unico que permite comparar
       // el caracter de cada tipo (bola o no, chispazo, secundarias, columna de humo).
       morir(o, imp || { vz: run.spd * 0.5 });
@@ -2428,6 +2444,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         sec: todos.filter(c => c.type === 'sec').length,
         humo: (todos.find(c => c.type === 'humo') || {}).humoMax || 0,
         espiral: nuevos.filter(c => c.espiral).length,
+        // EL GOLPE (D3), medido en el instante: cuanto te sacudio y cuanto te encandilo ESTA muerte
+        d: Math.round(o.z - PZ),
+        shake: +run.shake.toFixed(2), flash: +run.flash.toFixed(2),
+        onda: todos.filter(c => c.type === 'onda').length,
         vivos: obstacles.filter(c => c.type === 'chunk').length,
       });
     };
@@ -2448,6 +2468,33 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       return JSON.stringify({ ok: true, tipo, h: alto, z: PZ + 8, spd: run.spd | 0 });
     };
 
+    // LA CADENA A PEDIDO (QUITAR). D4 se trata de lo que le pasa a los VECINOS, y esperar a que la
+    // corrida ponga un depósito con dos carpas al lado no es una prueba. Esto arma la escena —
+    // depósito en el medio, dos carpas a tiro — y le prende fuego al del medio: lo que se propaga
+    // después es la cadena de verdad, no una simulación.
+    if (typeof window !== 'undefined') window.__cadena = (r) => {
+      const rad = r || 10, z = PZ + 60, x = plane.x;
+      const dep = { type: 'depot', x, y: 0, h: 7, z, hp: 3, xa: x };
+      obstacles.push(dep);
+      obstacles.push({ type: 'tent', x: x - rad, y: 0, h: 3, z, hp: 1, xa: x - rad });
+      obstacles.push({ type: 'tent', x: x + rad, y: 0, h: 3, z: z + 4, hp: 1, xa: x + rad });
+      MUERTES.length = 0;
+      morir(dep, { vz: 0 });
+      dep.z = -99; dep.done = true;
+      return JSON.stringify({ ok: true, rad, z });
+    };
+    // CENSO DE PARTICULAS para el presupuesto de D5 (QUITAR).
+    if (typeof window !== 'undefined') window.__pdbg2 = () => JSON.stringify({
+      parts: parts.length, obs: obstacles.length,
+      chunks: obstacles.filter(o => o.type === 'chunk').length,
+      humo: obstacles.filter(o => o.type === 'humo').length,
+      sec: obstacles.filter(o => o.type === 'sec').length,
+    });
+    // bitácora de muertes: quién murió, cuándo y en qué salto de la cadena. Es la única forma de
+    // afirmar "cadena de 3 con retardos legibles" — a ojo, tres explosiones en medio segundo son
+    // una sola explosión con ruido.
+    if (typeof window !== 'undefined') window.__muertes = () => JSON.stringify(MUERTES);
+
     // CENSO DEL ESCOMBRO (QUITAR). Lo que el plan llama "los restos QUEDAN" y "el cap manda" son
     // dos afirmaciones sobre una población de pedazos: hay que poder contarla desde afuera.
     if (typeof window !== 'undefined') window.__chdbg = () => {
@@ -2458,6 +2505,8 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         hot: ch.filter(o => o.hot).length,
         colores: [...new Set(ch.map(o => o.c))],            // de cuántas cosas distintas hay restos
         viejo: +Math.max(0, ...ch.map(o => o.chunkT)).toFixed(2),
+        // la velocidad mas alta del escombro: es como se ve, desde afuera, que la onda EMPUJO
+        vmax: +Math.max(0, ...ch.map(o => Math.hypot(o.vx, o.vz))).toFixed(1),
       });
     };
 

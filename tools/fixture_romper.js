@@ -22,12 +22,15 @@ let win, fails = 0;
 const bad = m => { console.error('   ✗ ' + m); fails++; };
 const ok = m => console.log('   ✓ ' + m);
 const js = s => win.webContents.executeJavaScript(s);
-const romper = (t, imp) => js(`String(window.__romper(${JSON.stringify(t)}, ${JSON.stringify(imp || null)}))`).then(JSON.parse);
+const romper = (t, imp, d) => js(`String(window.__romper(${JSON.stringify(t)}, ${JSON.stringify(imp || null)}, ${d || 0}))`).then(JSON.parse);
 const W = () => js('String(window.__wjump())').then(JSON.parse);
 const chunks = () => js('String(window.__chdbg())').then(JSON.parse);
-async function shot(n) {
+async function shot(n, espera) {
   if (!OUT) return;
-  await sleep(400);   // ventana oculta: el compositor devuelve el ultimo cuadro que pinto
+  // ventana oculta: el compositor devuelve el ultimo cuadro que pinto, asi que hay que darle aire.
+  // Para lo que dura decimas (la onda expansiva) se acorta la espera a proposito: mas vale un
+  // cuadro de hace 100 ms con el anillo abierto que uno fresco con el anillo ya apagado.
+  await sleep(espera === undefined ? 400 : espera);
   fs.writeFileSync(path.join(OUT, n + '.png'), (await win.webContents.capturePage()).toPNG());
 }
 
@@ -136,6 +139,79 @@ app.whenReady().then(async () => {
     if (tipo === 'tent') await shot('d1_choque_tent');
   }
 
+  // ---------- 3b. LA ONDA Y EL GOLPE (D3) ----------
+  // El criterio de cierre, literal: la explosion de un deposito al lado tuyo se SIENTE distinta a
+  // una a 300 m. "Sentir" aca tiene dos numeros: cuanto sacude la camara y cuanto encandila.
+  console.log('\n3b. la onda y el golpe (D3):');
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1&pasillo');
+  await sleep(2200);
+  for (let i = 0; i < 40; i++) { if ((await W()).state === 'play') break; await sleep(200); }
+  const pegado = await romper('depot', { vz: 0 }, 12);
+  await sleep(400);
+  const lejos = await romper('depot', { vz: 0 }, 300);
+  console.log(`   · a ${pegado.d} m: sacudon ${pegado.shake} · fogonazo ${pegado.flash}`);
+  console.log(`   · a ${lejos.d} m: sacudon ${lejos.shake} · fogonazo ${lejos.flash}`);
+  if (pegado.shake > lejos.shake * 3 && pegado.flash > 0.3)
+    ok('la misma explosion se SIENTE distinta segun donde reviente');
+  else bad(`la distancia no cambia el golpe (cerca ${pegado.shake}/${pegado.flash}, lejos ${lejos.shake}/${lejos.flash})`);
+  if (lejos.shake < 0.5 && lejos.flash < 0.05) ok('a 300 m se ve pero no se siente: ni sacudon ni fogonazo');
+  else bad(`a 300 m todavia te sacude (${lejos.shake}) o te encandila (${lejos.flash})`);
+  if (pegado.onda === 1) ok('la explosion grande manda su onda expansiva');
+  else bad(`la onda no salio (${pegado.onda})`);
+  // y la onda EMPUJA lo que agarra adentro
+  {
+    await romper('bldg', { vz: 0 }, 14);      // escombro sembrado alrededor
+    const antes = JSON.parse(await js('String(window.__chdbg())'));
+    await romper('depot', { vz: 0 }, 14);     // y encima, la detonacion grande
+    const post = JSON.parse(await js('String(window.__chdbg())'));
+    if (post.vmax > antes.vmax) ok(`la onda EMPUJA el escombro cercano: velocidad maxima ${antes.vmax} → ${post.vmax}`);
+    else bad(`la onda no empujo nada (${antes.vmax} → ${post.vmax})`);
+  }
+  // la onda dura medio segundo: la foto va PEGADA a la explosion o no queda nada que ver
+  await romper('depot', { vz: 0 }, 30);
+  await shot('d3_onda', 120);
+
+  // ---------- 3c. EL ENCADENAMIENTO (D4) ----------
+  // El criterio: deposito entre dos carpas → cadena de 3, con retardos legibles, y NUNCA cascadas
+  // infinitas.
+  console.log('\n3c. el encadenamiento (D4):');
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1&pasillo');
+  await sleep(2200);
+  for (let i = 0; i < 40; i++) { if ((await W()).state === 'play') break; await sleep(200); }
+  // gas sostenido: sin el, la captura de la cadena sale sobre la pantalla de derribado
+  const gas4 = setInterval(() => win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'w' }), 260);
+  await js('String(window.__cadena(10))');
+  await sleep(560);            // el instante en que la 2ª carpa ya prendio y la 1ª todavia arde
+  await shot('d4_cadena', 150);
+  await sleep(1100);
+  const cad = JSON.parse(await js('String(window.__muertes())'));
+  console.log('   · ' + cad.map(m => `${m.tipo}@${m.t}s(salto ${m.depth})`).join(' → '));
+  if (cad.length === 3) ok(`cadena de ${cad.length}: el deposito prendio las dos carpas`);
+  else bad(`la cadena dio ${cad.length} muertes (se esperaban 3)`);
+  if (cad.length >= 2) {
+    // dos medidas distintas: cuanto tarda cada victima DESDE el disparador (el retardo del plan) y
+    // cuanto se separan entre si (que es lo que hace que se lean como tres golpes y no como uno)
+    const desde = cad.slice(1).map(m => +(m.t - cad[0].t).toFixed(2));
+    const entre = cad.slice(1).map((m, i) => +(m.t - cad[i].t).toFixed(2)).slice(1);
+    if (desde.every(d => d >= 0.2 && d <= 1.4))
+      ok(`los retardos se leen: ${desde.map(d => d + 's').join(' y ')} despues del disparador`);
+    else bad(`retardos ilegibles: ${desde.join(', ')} (tienen que estar entre 0.2 y 1.4 s)`);
+    if (entre.every(d => d >= 0.12))
+      ok(`las victimas caen escalonadas: ${entre.map(d => d + 's').join(', ')} entre una y otra`);
+    else bad(`dos victimas caen juntas (${entre.join(', ')}): la cadena suena a una sola explosion`);
+    if (Math.max(...cad.map(m => m.depth)) <= 2) ok(`la profundidad esta acotada: ${Math.max(...cad.map(m => m.depth))} saltos`);
+    else bad('la cadena paso los 2 saltos');
+  }
+  // FUERA DE RADIO: lo que esta lejos no se prende. Es la otra mitad del criterio — una cadena que
+  // agarra todo no es una cadena, es un incendio.
+  await js('String(window.__cadena(40))');
+  await sleep(1600);
+  clearInterval(gas4);
+  win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'w' });
+  const lejos2 = JSON.parse(await js('String(window.__muertes())'));
+  if (lejos2.length === 1) ok('a 40 m las carpas NO se prenden: el radio manda');
+  else bad(`la cadena alcanzo a ${lejos2.length - 1} vecinos fuera de radio`);
+
   // ---------- 4. LAS SEIS MUERTES, EN IMAGEN (D2) ----------
   // El criterio de cierre de D2 es que se distingan SIN leyenda, y eso no lo puede afirmar un
   // numero: quedan las seis capturas, una por tipo, para mirarlas.
@@ -170,6 +246,50 @@ app.whenReady().then(async () => {
     win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'w' });
     console.log('   · seis capturas en ' + OUT + (((await W()).state === 'play') ? ' — el avion llego vivo al final' : ' — OJO: el avion murio en el medio'));
   }
+
+  // ---------- 5. EL PRESUPUESTO (D5) ----------
+  // El criterio: 60 fps sostenidos en la mision mas densa con 3 muertes encadenadas en pantalla.
+  // Se mide con el rAF de la propia pagina (ve TODOS los cuadros); desde afuera, muestreando, se
+  // perderia justo el pico que interesa.
+  console.log('\n5. el presupuesto (D5) — mision 9, la mas densa:');
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=9&pasillo');
+  await sleep(2500);
+  for (let i = 0; i < 40; i++) { if ((await W()).state === 'play') break; await sleep(200); }
+  const FPS = `(() => { window.__fps = []; let last = performance.now();
+    const loop = () => { const n = performance.now(); window.__fps.push(n - last); last = n;
+      if (window.__fps.length < 400) requestAnimationFrame(loop); };
+    requestAnimationFrame(loop); return 'ok'; })()`;
+  await js(FPS);
+  await sleep(300);
+  const gas5 = setInterval(() => win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'w' }), 260);
+  // el PICO se muestrea mientras las cadenas estan vivas: medirlo al final da cero, porque el
+  // mundo ya se llevo el destrozo por detras del avion
+  let budget = { parts: 0, chunks: 0, sec: 0, humo: 0 };
+  for (let k = 0; k < 3; k++) {
+    await js('String(window.__cadena(10))');
+    for (let m = 0; m < 4; m++) {
+      await sleep(170);
+      const b = JSON.parse(await js('String(window.__pdbg2())'));
+      for (const key of Object.keys(budget)) budget[key] = Math.max(budget[key], b[key]);
+    }
+  }
+  clearInterval(gas5);
+  win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'w' });
+  const ch5 = { n: budget.chunks, max: (await chunks()).max };
+  const dts = JSON.parse(await js('JSON.stringify(window.__fps.slice(20))'));
+  dts.sort((a, b) => a - b);
+  const med = dts[dts.length >> 1];
+  const p95 = dts[Math.floor(dts.length * 0.95)];
+  const lentos = dts.filter(d => d > 20).length;
+  console.log(`   · ${dts.length} cuadros · mediana ${med.toFixed(1)} ms (${(1000 / med) | 0} fps) · p95 ${p95.toFixed(1)} ms · ${lentos} por encima de 20 ms`);
+  console.log(`   · PICO de poblacion: ${budget.parts} particulas · ${budget.chunks} pedazos · ${budget.sec} secundarias · ${budget.humo} columnas`);
+  if (med <= 18) ok(`60 fps sostenidos con tres cadenas encima (mediana ${med.toFixed(1)} ms)`);
+  else bad(`se cae de 60 fps: mediana ${med.toFixed(1)} ms`);
+  if (lentos / dts.length < 0.05) ok(`sin tirones: ${lentos} de ${dts.length} cuadros por encima de 20 ms`);
+  else bad(`${lentos} cuadros lentos de ${dts.length}: hay tirones`);
+  if (budget.parts <= 300 && ch5.n <= ch5.max) ok(`el presupuesto aguanta: ${budget.parts} particulas y ${ch5.n}/${ch5.max} pedazos`);
+  else bad(`presupuesto excedido: ${budget.parts} particulas, ${ch5.n}/${ch5.max} pedazos`);
+  await shot('d5_denso');
 
   console.log('\nconsola: ' + (errors.length ? errors.length + ' error(es)' : 'sin errores'));
   for (const e of errors.slice(0, 8)) console.error('   ' + e);

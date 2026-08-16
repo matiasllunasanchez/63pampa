@@ -15,7 +15,7 @@ import { run } from '../core/run.js';
 import * as dmg from './damage.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, prune } from '../core/world.js';
 import { proj, popup, explodeAt, bloodBurst, morir, stepDestruccion } from '../core/fx.js';
-import { CHUNK_LIFE } from '../data/despiece.js';
+import { CHUNK_LIFE, ONDA_T } from '../data/despiece.js';
 import { sfxOne, beep, boom } from '../systems/audio.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
@@ -314,7 +314,8 @@ export function collisionSystem(dt) {
   }
   prune(obstacles, o => o.z > 2 && !((o.type === 'boom' || o.type === 'airboom') && o.boomT > 6)
     && !(o.type === 'chunk' && (o.chunkT > CHUNK_LIFE || o.z > 235))
-    && !(o.type === 'humo' && o.humoT > o.humoMax));
+    && !(o.type === 'humo' && o.humoT > o.humoMax)
+    && !(o.type === 'onda' && o.ondaT > ONDA_T));
 
   // misiles
   for (const m of missiles) {

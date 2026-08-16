@@ -1,6 +1,7 @@
 # PLAN — LA DESTRUCCIÓN: colisiones mutuas y explosiones con carácter
 
-> **Estado: plan por etapas, sin implementar.** Pedido de Matías (16/8): explosiones más
+> **Estado: TERMINADO — las seis etapas (D0–D5) implementadas y verificadas el 16/8/2026.**
+> Fixture propio: `npm run romper`. Pedido original de Matías (16/8): explosiones más
 > espectaculares, y que **lo que chocás se rompa** — hoy chocar contra un destructible te
 > mata a vos y el objeto queda INTACTO mirando tus pedazos pasar.
 >
@@ -32,9 +33,9 @@ historia de tu corrida. Sobriedad de siempre: escombros, fuego y humo; nada de c
 | ~~**D0**~~ ✅ · El despiece generalizado | El pipeline de `'chunk'` del jugador se vuelve **de todos**: `despiece(o, impulso)` — cada tipo de obstáculo declara su receta de pedazos EN DATA (`data/despiece.js`: cuántos, tamaños, colores de su paleta, y sus piezas especiales — el rotor del helo, el plato del radar, el tanque del depósito). Los pedazos heredan el impulso del asesino (dirección de bala / velocidad del avión / radial de bomba), rebotan y quedan humeando como los del derribo. Perillas + **cap global de chunks vivos** (perf: los más viejos se disuelven antes) | **hecho 16/8/2026**: `npm run romper` verde — 6 firmas de muerte distintas, escombro que dura y toca el suelo, cap 60/60. `check` verde, `feel` idéntico |
 | ~~**D1**~~ ✅ · La destrucción MUTUA *(el pedido central)* | Chocar contra un destructible: el objeto **también** explota y se despieza — con TU velocidad como impulso (los pedazos salen disparados hacia adelante, mezclados con los tuyos: los dos destrozos comparten la escena). La letalidad NO cambia: chocar te mata igual que hoy (la variante "embestir algo blando cuesta avería en vez de muerte" queda ANOTADA como decisión de gameplay aparte, apagada) | **hecho 16/8/2026**: los tres choques dejan escombro del objeto; en los letales conviven con el del avión. La letalidad de los tres quedó igual (verificado). `feel` idéntico |
 | ~~**D2**~~ ✅ · Explosiones con CARÁCTER | La receta de muerte por naturaleza: **depósito/combustible** = bola grande + explosiones secundarias retardadas (pop-pop-pop) + escombros ardiendo + columna de humo que PERSISTE · **AA/vehículos** = chispazo metálico + casco que vuelca · **carpa** = jirones y polvo, SIN bola de fuego · **helo** = el rotor sale volando solo girando + caída en espiral con humo + boom al tocar el suelo (la muerte en dos actos) · **jet** = airboom + resto que cae · **globo** = reventón y desinflado. Todo en la receta de data de D0 | **hecho 16/8/2026**: seis capturas (`d2_*.png`) y seis firmas de muerte medidas — la carpa sin bola, el depósito con 5 secundarias y columna de 6 s, el helo en dos actos. `check` verde, `feel` idéntico |
-| **D3 · La onda y el golpe** | Para explosiones grandes: anillo de onda expansiva + flash de 1 frame + anillo de polvo (tierra) o corona de agua (mar) + shake escalado por cercanía + los escombros cercanos EMPUJADOS por la onda. Se monta sobre el glow de E0.1 si ya está (y si no, funciona igual) | la explosión de un depósito al lado tuyo se SIENTE distinta a una a 300 m |
-| **D4 · El encadenamiento** | Una explosión grande daña lo que tiene a `CHAIN_R` metros: el depósito enciende las carpas vecinas, la AA detona su munición (secundarias). Cap de profundidad de cadena (2 saltos). Las cadenas puntúan con la racha existente — volar UN tiro que tira tres cosas es la jugada de estilo | fixture: depósito entre dos carpas → cadena de 3, con retardos legibles; nunca cascadas infinitas |
-| **D5 · Perf + gate** | Presupuesto: cap de chunks/partículas con poda de los más viejos, cero allocations por frame nuevas, medición en la misión más densa (m9). Fixture `npm run romper` completo + capturas por tipo + `npm run check` con web | 60 fps sostenidos en m9 con 3 muertes encadenadas en pantalla |
+| ~~**D3**~~ ✅ · La onda y el golpe | Para explosiones grandes: anillo de onda expansiva + flash de 1 frame + anillo de polvo (tierra) o corona de agua (mar) + shake escalado por cercanía + los escombros cercanos EMPUJADOS por la onda. Se monta sobre el glow de E0.1 si ya está (y si no, funciona igual) | **hecho 16/8/2026**: medido — a 12 m sacudón 5,25 y fogonazo 0,68; a 300 m, cero y cero. La onda empuja el escombro (18,3 → 40,1 de velocidad). `check` verde, `feel` idéntico |
+| ~~**D4**~~ ✅ · El encadenamiento | Una explosión grande daña lo que tiene a `CHAIN_R` metros: el depósito enciende las carpas vecinas, la AA detona su munición (secundarias). Cap de profundidad de cadena (2 saltos). Las cadenas puntúan con la racha existente — volar UN tiro que tira tres cosas es la jugada de estilo | **hecho 16/8/2026**: medido — depósito → carpa a 0,32 s → carpa a 0,60 s, escalonadas 0,28 s entre sí, 1 salto de profundidad. A 40 m no se prende nada |
+| ~~**D5**~~ ✅ · Perf + gate | Presupuesto: cap de chunks/partículas con poda de los más viejos, cero allocations por frame nuevas, medición en la misión más densa (m9). Fixture `npm run romper` completo + capturas por tipo + `npm run check` con web | **hecho 16/8/2026**: misión 9 con tres cadenas encima — mediana **8,3 ms (120 fps)**, p95 9,0 ms, **0 de 263 cuadros** por encima de 20 ms. Pico: 260 partículas (el tope), 30 pedazos, 6 secundarias, 2 columnas |
 
 ## 3. Perillas *(en `data/despiece.js`, defaults elegidos)*
 
@@ -66,7 +67,7 @@ secundarias del depósito 3–5 en 1.5 s.
 ## 6. Divergencias
 
 **Baseline de `npm run feel` (antes de D0):** 33 asserts, `FEEL: OK`. Verificado **idéntico**
-(diff vacío contra el archivo guardado) al cerrar D0, D1 y D2 — como debe ser: este
+(diff vacío contra el archivo guardado) al cerrar cada etapa, D0 a D5 — como debe ser: este
 plan es 100% presentación.
 
 ### D0 — el despiece generalizado
@@ -144,3 +145,62 @@ plan es 100% presentación.
     sonda no podía comparar el carácter — solo el escombro. La sonda además informa lo que
     realmente se creó (bola, secundarias, humo, espiral), no lo que la receta prometía: así no
     puede confirmar una intención que el código no cumplió.
+
+### D3 — la onda y el golpe
+
+19. **`explodeAt` tomó un parámetro opcional `noShake`.** Era la única forma de escalar el sacudón
+    por distancia sin romper a nadie: el `+4.5` fijo de adentro hacía que una explosión a 300 m se
+    sintiera igual que una pegada al ala — y con eso, ninguna se sentía. Los llamadores viejos no
+    pasan nada y siguen igual (§4.6); `morir()` lo pasa y pone el suyo con `golpe()`.
+20. **La caída del golpe es CUADRÁTICA, no lineal.** Con caída lineal, media pantalla de distancia
+    todavía entregaba medio sacudón. Lo que se busca es que a `CERCA` (90 m) ya no llegue casi
+    nada: medido, a 12 m sacudón **5,25** y fogonazo **0,68**; a 300 m, **0 y 0**.
+21. **El fogonazo vive en `run.flash`**, junto a `shake`, y lo apaga el prelude de `update()` — el
+    que corre en TODOS los estados. La explosión que te mató tiene que seguir destellando mientras
+    caés; si el reloj viviera en un sistema de vuelo, se congelaría justo ahí.
+22. **La onda son DOS anillos, no uno**: el de aire a la altura del reventón y el de suelo aplastado
+    contra el piso — polvo en tierra, corona de espuma en el mar. El de abajo es el que da la
+    escala: sin él la explosión flota, con él está apoyada en algo.
+23. **El grosor del anillo se acota (5–6 px).** Escalado por perspectiva sin tope, de cerca el trazo
+    se convertía en una burbuja de jabón alrededor del fuego.
+24. **El empuje de la onda se aplica al crearla, una sola vez**, sobre el escombro dentro del radio
+    — no es una fuerza sostenida por cuadro. Alcanza para que dos muertes juntas se lean como una
+    detonación en vez de dos efectos superpuestos, y no agrega nada al presupuesto (§4.3: no hay
+    física de rígidos nueva).
+25. **La sonda `__romper` toma la DISTANCIA** (`__romper(tipo, imp, metros)`) y devuelve el sacudón
+    y el fogonazo que esa muerte produjo, con el contador puesto a cero antes. Sin poder elegir la
+    distancia, el criterio de cierre de esta etapa no se puede medir: es una afirmación sobre dos
+    distancias distintas.
+26. **La captura de la onda usa una espera corta (120 ms).** El anillo dura medio segundo y la
+    captura normal espera 400 ms para que el compositor pinte: la foto salía siempre con el anillo
+    ya apagado. Vale más un cuadro de hace 100 ms con la onda abierta que uno fresco sin nada.
+
+### D4 — el encadenamiento
+
+27. **Las víctimas caen ESCALONADAS, no cada una con su propio azar.** Con retardos sorteados
+    sueltos dentro de `CHAIN_DELAY`, dos vecinos podían morir con **0,12 s** de diferencia
+    (medido) — y eso no se lee como una cadena, se lee como una explosión con eco. Cada víctima
+    entra un escalón (0,22 s) después de la anterior, con jitter encima.
+28. **La mecha NO consume al vecino.** El objeto encendido sigue siendo un obstáculo normal hasta
+    que le toca: durante ese cuarto de segundo se lo puede esquivar, chocar o tirar. Es lo que
+    hace la cadena legible en vez de mágica.
+29. **Solo encadena lo que revienta GRANDE** (`bola: 'grande'`), y hasta `CHAIN_DEPTH`. Con
+    cualquiera de las dos condiciones sola, un campamento denso se enciende entero de una vez.
+30. **Las cadenas puntúan con la racha que ya existe** (`150 × multShow`), no con una economía
+    nueva: encadenar es una jugada de estilo, y el juego ya sabe pagar el estilo.
+
+### D5 — presupuesto
+
+31. **Las partículas no tenían NINGÚN tope.** Los pedazos ya tenían el suyo desde D0, pero las
+    partículas —que son las que se disparan de a decenas por muerte— no. `PARTS_MAX 260`, podando
+    las más viejas (las que ya casi se apagaron) en el mismo lugar y el mismo cuadro donde se
+    podan las muertas. En la medición el pico tocó exactamente 260: el tope está activo y es el
+    que manda, no un número decorativo.
+32. **La medición del pico se toma DURANTE las cadenas, no al final.** Medida al final daba cero
+    en todo: el mundo ya se había llevado el destrozo por detrás del avión. El primer intento
+    reportó "0 pedazos" con las tres cadenas recién disparadas y parecía un presupuesto perfecto.
+33. **Los fps se miden con el `requestAnimationFrame` de la propia página**, no muestreando desde
+    el proceso principal: desde afuera se pierde justo el pico que interesa. Mismo criterio que el
+    muestreador del fixture de la PASADA.
+34. **La misión densa es el índice 9** (`?pasada=9&pasillo`), que es misión con buque y por lo
+    tanto alcanzable con la sonda existente — no hizo falta una sonda nueva de nivel.
