@@ -209,6 +209,21 @@ export function drawPasada(w) {
       continue;
     }
 
+    // ---- LA SOGA DE HUMO DEL MISIL (R1) ----
+    // Es LO que se esquiva. Un misil de frente es un punto sin movimiento angular —invisible por
+    // diseño, §1.1— pero la soga que va dejando SI se lee: te dice de donde viene, por donde va, y
+    // cuando la esquivaste la ves pasar de largo. Es la leccion de After Burner.
+    if (f.k === 'humo') {
+      if (!adelante(f, A)) continue;
+      const hp = world3D.project(f.x, f.y, f.z);
+      if (!hp.vis) continue;
+      const k = Math.max(1, Math.min(5, f.r));
+      ctx.globalAlpha = Math.max(0, Math.min(0.7, f.life / PS.DART_SMOKE_LIFE * 0.7));
+      px(hp.x - k / 2, hp.y - k / 2, k, k, '#9aa1a8');
+      ctx.globalAlpha = 1;
+      continue;
+    }
+
     // ---- SEA DART (RF-03): la estela que sale del buque y viene ----
     if (f.k === 'dart') {
       if (!adelante(f, A)) continue;                        // idem: atras no se dibuja

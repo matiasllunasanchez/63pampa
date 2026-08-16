@@ -86,8 +86,8 @@ Es el clímax de MENOR costo de todos los diseñados — y el único sin deuda 3
 
 | fase | entrega | criterio de cierre |
 |---|---|---|
-| **Q0** | Datos: pool de secuencias (`data/pulso.js` — compases rotulados, dificultad por misión, mapa zona→secuencia→cinemática), perillas, strings es/en, sonda `?pulso` / `__qdbg()` | `check` verde; el pool se lee como data |
-| **Q1** | El estado `'pulso'` mínimo: la aproximación 2D se aplana (tempo a ~0.1), cabina, el buque claro, UNA secuencia fija visible con cursor, acierto/fallo binario → victoria o re-encare corto | jugable de punta a punta con una secuencia |
+| ~~**Q0**~~ ✅ | Datos: pool de secuencias (`data/pulso.js` — compases rotulados, dificultad por misión, mapa zona→secuencia→cinemática), perillas, strings es/en, sonda `?pulso` / `__qdbg()` | **hecho 16/8/2026**: `check` verde, el pool es data pura y cada compás sale del combo real de una pirueta |
+| ~~**Q1**~~ ✅ | El estado `'pulso'` mínimo: la aproximación 2D se aplana (tempo a ~0.1), cabina, el buque claro, UNA secuencia fija visible con cursor, acierto/fallo binario → victoria o re-encare corto | **hecho 16/8/2026**: ciclo completo medido por sonda — fallo por tiempo → re-encare → secuencia limpia → `results`. `check` verde, `feel` idéntico al baseline |
 | **Q2** | La prueba completa: compases rotulados (regla 2), autopista visible (regla 3), márgenes y escalada por nivel/`[H]`, perdón de 1 error en fácil, elección de blanco por secuencia, los 3 fallos con sus costos | fixture: perfecta gana; 1 error en fácil perdona; 3 fallos = derrota de siempre |
 | **Q3** | La recompensa: cinemática compuesta (pirueta de `moves.js` + suelta + impacto por zona + muerte por clase), estrellas por perfección/velocidad/zona | dos zonas distintas producen dos cinemáticas distintas |
 | **Q4** | Integración: `climax: 'pulso'` en `missions.js` (el enchufe ya existe — `climaxOf()`), campaña con secuencias de la libreta, CICLO con pool básico, PATRIA/MINUTOS SAGRADOS intactos | cambiar el campo cambia el clímax sin código |
@@ -108,4 +108,35 @@ nivel · `PULSO_ERR` (1 en fácil, 0 normal) · `PULSO_TRIES 3` · compases 2→
 
 ## 7. Divergencias *(completar durante la implementación)*
 
-- *(vacío)*
+**Baseline de `npm run feel` (antes de Q0):** 33 asserts, `FEEL: OK`. Verificado idéntico al
+cerrar Q1 (diff vacío contra el baseline guardado).
+
+1. **No existe perilla de dificultad.** El plan §5 pedía `PULSO_ERR` "1 en fácil, 0 normal" y
+   escalada "por nivel/`[H]`", pero el juego **no tiene** setting de dificultad (`OPT_ROWS` no
+   trae ninguno y no hay `cfg.diff`). Decisión: hoy rige `PULSO.ERR.normal` = cero perdones; la
+   tabla queda en `data/pulso.js` para cuando la escalada por nivel entre en Q2. Lo mismo con
+   `T_BEAT`/`BARS`, que son rangos y Q1 usa el extremo `[0]`.
+2. **`TAPTOK` no distingue Q/E de ←/→ como el plan asumía.** El ejemplo del plan (`Q·E ALABEAR`)
+   sugiere que rolar tiene tokens propios: los tiene (`L`/`R`), pero salen de `keyField`, así que
+   el vocabulario real de la prueba es el de `core/input.js` — que es justamente lo que la regla 1
+   pedía. Los compases de `data/pulso.js` usan esos tokens, verbatim de los `case` de `combo`.
+3. **Dos toques a `core/input.js` (una línea cada uno)**, no un refactor: ruteo de taps frescos a
+   `a.pulsoTap()` cuando el estado es `'pulso'` (espejo exacto del ruteo a `dirTap` en `'play'`) y
+   la `Z` como remate. El detector de combos NO se tocó: la prueba **deletrea** las piruetas, no
+   las dispara.
+4. **`drawApproachBarge` cortaba en `'pulso'`.** Tenía un guard `S.state !== 'play' && !== 'takeoff'`.
+   Se agregó `'pulso'` (una línea en `render/world.js`): sin eso el clímax se quedaba literalmente
+   sin blanco. Confirma la tesis del plan §4 — el buque de la prueba ES el del pasillo.
+5. **La dilatación se aplica en `update()` de `game.js`, no en `tempo.js`** (§6.4 lo exige): una
+   sola línea `if (S.state === 'pulso') dt *= PULSO.SLOW` ANTES de `run.t += dt`, para que todo lo
+   de atrás del vidrio quede dilatado en sincronía. La prueba recibe el `dt` real aparte.
+6. **La cabina va más arriba que en el ARENA**: `COCKPIT_Y` 74 → **104**. Con el offset del ARENA
+   el canopy se comía el cielo y el buque espiaba por una rendija; acá el blanco ES la escena.
+7. **Los popups de fase se quitaron**: se pisaban entre sí arriba (dos textos en la misma `y`) y
+   duplicaban lo que el render ya canta en grande. El motivo del fallo viaja en `Q.motivo` y lo
+   dibuja el render; los popups quedan solo para el rótulo del compás cerrado.
+8. **Pendiente honesto para Q2/Q3 (no resuelto):** el margen de 1,6 s del primer compás es
+   **duro para un compás de 3 toques** — en la primera medición el propio harness lo perdió por
+   llegar tarde. Es el default del plan y no se tocó, pero la escalada de Q2 debería arrancar más
+   holgada. Y el buque, aunque ya se ve claro y entero, todavía no DOMINA el cuadro: agrandarlo es
+   trabajo de la cinemática (Q3).

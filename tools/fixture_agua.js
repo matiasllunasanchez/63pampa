@@ -186,6 +186,39 @@ app.whenReady().then(async () => {
     else bad(`la guarda de distancia no rechazo la segunda (olaOk dijo ${libre})`);
   }
 
+  // ---------- 5b. APARECEN SOLAS ----------
+  // LA PRUEBA QUE FALTABA, y por eso el bug llego al jugador: todo lo de arriba usa __ola, que
+  // saltea la probabilidad a proposito. O sea que se probaba el MECANISMO y nunca el CABLEADO —
+  // y el cableado estaba roto: POR LA PATRIA resolvia el clima como 'calm' (probabilidad cero) y
+  // no salia una sola ola en toda la partida. Verde de punta a punta, y el juego sin olas.
+  console.log('\n5b. las olas aparecen SOLAS, sin sonda (el cableado):');
+  if (!await volar()) bad('no se pudo re-entrar');
+  else {
+    await js("__seaclima('breeze')");
+    const a = await S();
+    if (a.clima !== 'breeze') bad(`el clima no quedo en breeze (${a.clima})`);
+    const d0 = a.dist, o0 = a.sembradas;
+    const t0 = Date.now();
+    while (Date.now() - t0 < 20000) {
+      // se limpia el resto del cielo y se sostiene la altura: lo que se mide es la FRECUENCIA,
+      // no si el avion sobrevive — eso ya lo prueban los pasos 2 a 4
+      await js('__seaclear(); __seaput(6)');
+      await sleep(250);
+    }
+    const b = await S();
+    const dm = b.dist - d0, n = b.sembradas - o0;
+    if (n >= 2) ok(`con viento salen SOLAS: ${n} en ${dm} m — una cada ${(dm / n) | 0} m`);
+    else bad(`en ${dm} m de vuelo con viento salieron ${n} olas: la mecanica no llega al jugador`);
+    // y en calma sigue sin salir ninguna: las dos mitades de la regla, no una
+    await js("__seaclima('calm')");
+    const c0 = (await S()).sembradas;
+    const t1 = Date.now();
+    while (Date.now() - t1 < 8000) { await js('__seaclear(); __seaput(6)'); await sleep(250); }
+    const c = await S();
+    if (c.sembradas === c0) ok('y en calma sigue sin salir ninguna: la regla vale para los dos lados');
+    else bad(`en calma salieron ${c.sembradas - c0} olas`);
+  }
+
   // ---------- 6. LAS OLAS VARIAN DE ALTURA ----------
   // Pedido del autor: "las olas deben ser mas altas algunas y variar altura". Lo que se cuida no es
   // que el numero se mueva —eso lo garantiza un Math.random()— sino la FORMA del reparto: que la

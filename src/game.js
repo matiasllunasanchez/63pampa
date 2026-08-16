@@ -28,6 +28,9 @@ import * as arenaRender from './render/arena.js';
 // PASADA: el otro climax (docs/sistemas/SPEC_MODO_PASADA.md). Comparte la escena 3D con el arena.
 import * as pasada from './systems/pasada.js';
 import * as pasadaRender from './render/pasada.js';
+import * as pulso from './systems/pulso.js';
+import * as pulsoRender from './render/pulso.js';
+import { PULSO } from './data/pulso.js';
 import { spawnSystem } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
 import { inp, mouse, pointer, flags, initInput } from './core/input.js';
@@ -63,7 +66,6 @@ import { FIELES } from './data/pilots.js';
 import * as squadRender from './render/squad.js';
 import { canRelevo, pilotIdx } from './core/squad.js';
 import { RUNWAYS, AIR_START_Y } from './data/runways.js';
-import { climaDe } from './core/sea.js';
 
   (() => {
     'use strict';
@@ -94,10 +96,7 @@ import { climaDe } from './core/sea.js';
     // Se puede apagar en el menú [M] (COMBUSTIBLE: NO) para pruebas / vuelo libre.
     // paleta de tierra (turba malvinense). Se vuela A RAS del suelo para atropellar soldados (no es letal).
 
-    // EL CLIMA DEL MAR se resuelve ACA y se guarda (SPEC_AGUA_OLAS §2): es el unico lugar por el
-    // que pasa toda configuracion de mision, y adentro del loop de puntos del oleaje derivarlo
-    // seria pagarlo miles de veces por cuadro para que de siempre lo mismo.
-    function applyCfg() { applyTheme(cfg); cfg.seaClima = climaDe(cfg); }
+    function applyCfg() { applyTheme(cfg); }
 
     // fija el layout de zonas del MOMENTUM segun la clase del buque
     // (MOM_LAYOUTS/SHIP_CLASS se definen mas abajo; esto solo corre al armar un run)
@@ -333,7 +332,7 @@ import { climaDe } from './core/sea.js';
     ];
     // filas de la vista GUARDAR: el slot nuevo (si hay lugar) + los existentes para pisar
     const pauseSaveRows = () => (saves.canSaveNew() ? [{ id: null }] : []).concat(saves.listSaves());
-    const PAUSABLE = () => S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum' || S.state === 'arena' || S.state === 'pasada';
+    const PAUSABLE = () => S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum' || S.state === 'arena' || S.state === 'pasada' || S.state === 'pulso';
     function pauseToggle() {
       if (!paused && (!PAUSABLE() || cfg.devcam)) return;
       paused = !paused;
@@ -452,6 +451,7 @@ import { climaDe } from './core/sea.js';
      *  es una inconsistencia: esos dos modos NO juegan la mision, juegan UN climax suelto — el
      *  buque es nada mas el escenario. Por eso mandan ellos y no el campo. */
     function runClimax() {
+      if (pulsoProbe) return 'pulso';                      // sonda de EL PULSO (Q1)
       if (gameMode === 'pasadas' || pasadaProbe) return 'pasada';
       if (gameMode === 'arena') return 'arena';
       return climaxOf(curMission()) || 'pasada';
@@ -871,6 +871,21 @@ import { climaDe } from './core/sea.js';
         };
       } catch (e) { return null; }
     })();
+    // ?pulso[&pasillo]: EL PULSO por sonda (PLAN_EL_PULSO Q0). `n` es la mision con buque; con
+    // &pasillo se vuela el nivel y la prueba llega sola al final — que es la unica forma de ver
+    // que NO hay corte (el buque de la prueba es el mismo que venia creciendo en el horizonte).
+    // Sin el parametro, pulsoProbe es null y nada cambia.
+    const pulsoProbe = (() => {
+      try {
+        const v = new URLSearchParams(location.search).get('pulso');
+        if (v === null) return null;
+        const n = +v | 0;
+        return {
+          mission: SHIP_MISSIONS.includes(n) ? n : SHIP_MISSIONS[0],
+          viaPasillo: /\bpasillo\b/.test(location.search),
+        };
+      } catch (e) { return null; }
+    })();
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
     let toT = 0, toCount = 4;
     let levelT = 0;   // temporizador de las tarjetas de transición de nivel / victoria (campaña)
@@ -1122,6 +1137,9 @@ import { climaDe } from './core/sea.js';
         return false;
       },
       launchMissile: () => tryLaunchMissile(),
+      // EL PULSO: los toques de la prueba. Son los MISMOS tokens del detector de combos, asi que
+      // el examen se teclea con el vocabulario que el pasillo enseño (plan §2, regla 1).
+      pulsoTap: tok => { if (S.state === 'pulso') pulso.tap(tok); },
       // VIRAJE DE COMBATE: solo existe en el ARENA. En el pasillo la media vuelta no significa
       // nada (es un scroll lateral: no hay para donde darse vuelta), asi que la tecla no hace nada.
       combatTurn: () => { if (S.state === 'arena' && arena.active()) arena.combatTurn(); },
@@ -1454,6 +1472,13 @@ import { climaDe } from './core/sea.js';
     // Un sistema devuelve true cuando disparo una transicion (objetivo cumplido o muerte):
     // ahi el frame se corta, igual que hacia el `return` suelto de la version monolitica.
     function update(dt) {
+      // EL PULSO: el mundo corre CASI DETENIDO (PULSO.SLOW) pero el reloj de la prueba es de
+      // pared — la mano del jugador compite contra el cronometro, no contra el mundo. Se escala
+      // ACA, antes de que `dt` toque nada, para que TODO lo de atras del vidrio (el reloj de las
+      // olas, el cabeceo del buque, los popups) quede dilatado en sincronia y sin relojes propios.
+      // No se toca systems/tempo.js: el MOMENTUM es otro poder y sigue siendo del pasillo.
+      const dtReal = dt;
+      if (S.state === 'pulso') dt *= PULSO.SLOW;
       run.t += dt;
       // rotacion del fondo del lobby (no avanza jugando: solo mientras se elige)
       if (inLobby()) {
@@ -1589,6 +1614,17 @@ import { climaDe } from './core/sea.js';
           const sig = pasada.update(dt, inp);
           if (sig === 'objective') finishObjective();
           else if (sig && sig.spent) onPassSpent(sig);
+          else if (sig && sig.death) onDeath(sig.death);
+          flags.startReq = false; flags.anyPress = false;
+          return;
+        }
+        if (S.state === 'pulso') {
+          // EL PULSO (el climax como prueba de destreza): misma disciplina que los otros climax —
+          // el sistema devuelve 'objective' o { death } y el embudo decide. El fallo NO llega
+          // hasta aca salvo el tercero: los dos primeros los resuelve el propio re-encare.
+          run.shake = Math.max(0, run.shake - dtReal * 10);
+          const sig = pulso.update(dtReal, dt);
+          if (sig === 'objective') finishObjective();
           else if (sig && sig.death) onDeath(sig.death);
           flags.startReq = false; flags.anyPress = false;
           return;
@@ -2122,6 +2158,9 @@ import { climaDe } from './core/sea.js';
         pasada: pasada.active(), zones: pasada.zonesOf(), view: pasada.view(), objectiveShip,
         impact: pasada.impactPoint(), eje: pasada.axisAlign(), oleada: pasada.oleada(),
         parts, popups, selPlane, t: run.t });
+      // EL PULSO: la cabina y la autopista de la secuencia, ENCIMA del mundo 2D congelado — el
+      // mar, el horizonte y el buque son los del pasillo (no hay escena nueva que dibujar).
+      if (S.state === 'pulso' && pulso.active()) pulsoRender.drawPulso({ Q: pulso.state(), t: run.t });
       ctx.restore();
       // ...y el telon ABRIENDOSE del otro lado: entraste al climax cruzando el banco
       if (veilOut > 0 && (S.state === 'arena' || S.state === 'momentum')) world.drawVeil(veilOut / VEIL_OUT);
@@ -2331,6 +2370,13 @@ import { climaDe } from './core/sea.js';
     // ?pasada=<n>: el climax PASADA, por sonda. Con &pasillo se vuela el nivel y la pasada llega
     // sola al final (RF-01); sin el, se entra derecho a la zona. El modo es CICLO DE MUERTE porque
     // es el que juega una mision suelta y encadena por el embudo normal (results → epilogo).
+    if (pulsoProbe) {
+      gameMode = 'cycle';
+      loadLevel(pulsoProbe.mission);
+      reset(); setRunObjective();
+      if (pulsoProbe.viaPasillo) { run.t = 0; setState(afterBrief()); }
+      else { run.dist = objectiveDist; pulso.enter(false); }
+    }
     if (pasadaProbe) {
       gameMode = 'cycle';
       loadLevel(pasadaProbe.mission);

@@ -208,6 +208,9 @@ export function initInput(cv, a) {
     // la tecla escribe, no de la tecla: asi A/D dan 'l'/'r' o 'L'/'R' segun en que vida esten.
     const kf = keyField(e.code);
     if (!e.repeat && S.state === 'play' && TAPTOK[kf]) dirTap(TAPTOK[kf]);
+    // EL PULSO lee los MISMOS toques que el detector de combos, pero no pasa por el: la prueba
+    // no dispara piruetas, las DELETREA. Mismo vocabulario, otro consumidor.
+    if (!e.repeat && S.state === 'pulso' && TAPTOK[kf]) a.pulsoTap(TAPTOK[kf]);
     // anyPress solo con pulsaciones FRESCAS (!e.repeat): el auto-repeat de una tecla sostenida no
     // debe saltear pantallas (historia, derribado, transiciones). inp si se re-setea siempre.
     if (kf !== undefined) { inp[kf] = 1; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }
@@ -222,6 +225,7 @@ export function initInput(cv, a) {
     // REPARTO DE ENERGIA del ARENA (S1). [G] libre en todo el juego; [TAB] NO servia (es misil).
     if (e.code === 'KeyG' && !e.repeat) a.cyclePip();
     if (e.code === 'KeyZ' || e.code === 'Tab') { inp.msl = true; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }   // misil (Z o TAB)
+    if (!e.repeat && S.state === 'pulso' && e.code === 'KeyZ') a.pulsoTap('Z');   // el remate: la suelta
     if (e.code === 'Enter' && !e.repeat) flags.anyPress = true;
     // MUSICA: tecla 1 = pista anterior, tecla 2 = siguiente (el motor lo ignora fuera de modo)
     if (!e.repeat && (e.code === 'Digit1' || e.code === 'Numpad1')) a.trackPrev();

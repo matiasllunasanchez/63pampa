@@ -305,7 +305,18 @@ export const OLA_SPD = 14;          // velocidad propia hacia el jugador (se sum
 export const OLA_GAP_MIN = 350;     // distancia minima entre olas vivas
 export const OLA_FACE_KILL = 0.55;  // fraccion de la altura que es cara letal; encima, cresta = roce
 export const OLA_SCRAPE_FRAC = 0.45;// cuanto margen de roce consume un cepillado de cresta
-export const OLA_RATE = { calm: 0, breeze: 0.04, storm: 0.12 };  // prob. en la rama de agua del spawn
+// CADA CUANTO VIENE UNA OLA. Es una probabilidad por siembra, y en mar abierto se siembra cada
+// 40-70 m (ver spawnSystem), asi que el numero se traduce asi a metros de vuelo:
+//   calm   0     nunca — el mar de m1 no cambia
+//   breeze 0.08  una cada ~600-900 m: ~7-10 s. Se aprende, y todavia sorprende
+//   storm  0.14  una cada ~500-600 m: ~5 s. Medido, 0.20 daba una cada 2,7 s — con cada ola
+//                tardando ~3 s en cruzar, eso es una pared continua que tapa al resto del nivel
+//
+// SUBIDO desde 0.04/0.12 del spec por medicion, no por gusto: con 0.04 salia una cada ~1500 m, o
+// sea una cada 12-18 s, y una mecanica que aparece dos veces por partida no se aprende — el autor
+// jugo una sesion entera y no vio ninguna. El techo real lo ponen igual OLA_GAP_MIN y el limite de
+// dos vivas: por mas que se suba, no se amontonan.
+export const OLA_RATE = { calm: 0, breeze: 0.08, storm: 0.14 };
 // espuma / viento (F2)
 export const SEA_FOAM_TH = { calm: 0.88, breeze: 0.78, storm: 0.62 };  // umbral de cresta con espuma
 export const SEA_WIND_AMP = 0.45;   // termino direccional de viento en seaH

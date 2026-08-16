@@ -113,6 +113,20 @@ export const PS = {
   DART_TURN: 1.35,       // rad/s de viraje: menos que el avion, y ahi vive el esquive
   DART_HIT: 26,          // radio letal
   DART_LIFE: 9,          // se queda sin motor
+  // ---- R1, EL MISIL JUSTO (PASADA_ADRENALINA §3) ----
+  // El playtest fue lapidario: "los misiles te matan sin verlos, sin sonido, vienen de frente".
+  // Y la vara de R0 le dio la razon: 3,27 s de vida MEDIDOS desde el lanzamiento, contra un punto
+  // de 3x3 px que de frente no tiene movimiento angular. Nada de esto sube el daño — sube lo que
+  // se VE, se OYE y se puede LEER. La regla madre del plan es densidad y teatro, jamas letalidad.
+  DART_RISE_T: 1.0,      // el misil TREPA antes de picar. Es historico (el Sea Dart subia y
+                         // despues caia) y ademas resuelve el problema de fondo: de frente un
+                         // punto no se mueve en pantalla, pero subiendo contra el CIELO si
+  DART_TTI_MIN: 4.5,     // si el misil fuera a impactar antes de esto, NO SE LANZA. Es la regla
+                         // que convierte "muerte sin lectura" en "muerte entendida": nunca sale
+                         // un misil que no te de tiempo de verlo, oirlo y decidir
+  DART_SMOKE_LIFE: 2.0,  // lo que dura cada bocanada de la SOGA DE HUMO. La leccion After Burner:
+                         // lo que se esquiva es la soga, no el punto — y cuando la esquivas, la
+                         // soga pasando de largo es la prueba visible de que lo hiciste bien
 
   // ---- SEA CAT Y FUSILERIA — LA DEFENSA CORTA (RF-08) ----
   CAT_T: 3.4,            // segundos desde el lanzamiento hasta el impacto

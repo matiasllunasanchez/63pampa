@@ -221,6 +221,14 @@ export const STRINGS = {
     arena_low: '! EL MAR — ARRIBA !',
     arena_sunk: 'BUQUE FUERA DE COMBATE!', arena_squad: 'ESCUADRON',
     arena_v1: 'CABINA', arena_v3: 'TERCERA PERSONA',
+    // ---------- EL PULSO (el climax como prueba de destreza) ----------
+    // Sin acentos ni Ñ: la fuente del juego no los tiene (regla del repo).
+    pulso_ya: 'AHORA', pulso_soltar: 'SOLTAR',
+    pulso_ok: 'BLANCO ALCANZADO',
+    pulso_pasaste: 'TE PASASTE DE LARGO', pulso_otra: 'ENCARANDO DE NUEVO',
+    pulso_fallo_err: 'SE TE FUE LA MANO', pulso_fallo_t: 'SE TE PASO EL TIEMPO',
+    pulso_pasadas: 'PASADAS',
+    death_pulso: 'Se acabaron las pasadas',
     arena_out: '! FUERA DE LA ZONA DE COMBATE !', arena_auto: 'REENCARANDO AL BLANCO',
     // PASADA: el otro climax — a ras, saltar, soltar y salir (docs/sistemas/SPEC_MODO_PASADA.md).
     // El cartel de controles es el del arena MENOS lo que la pasada no tiene (media vuelta y
@@ -243,6 +251,7 @@ export const STRINGS = {
     pasada_turn_in: 'VIRA EN', pasada_turn_now: 'V I R A   Y A',
     // P3 — la defensa. El aviso es humano o es el mundo: nunca un icono de lock-on.
     pasada_dart: 'LANZAMIENTO!', pasada_break: 'QUEBRA, {c}!', pasada_break_ok: 'LO PERDISTE',
+    pasada_dart_radio: '{c}: TE SALIO UNO, QUEBRA!',
     // P7 — la oleada. Todo lo que dice la escuadrilla es RADIO: nombre propio, voz de compañero.
     pasada_wave_in: '{c} ENTRANDO', pasada_wave_hit: '{c} LE DIO!',
     pasada_wave_miss: '{c} SE PASO LARGO', pasada_wave_hurt: '{c} TOCADO, SE VUELVE',
@@ -1040,6 +1049,12 @@ export const STRINGS = {
     arena_low: '! SEA — PULL UP !',
     arena_sunk: 'SHIP OUT OF ACTION!', arena_squad: 'SQUADRON',
     arena_v1: 'COCKPIT', arena_v3: 'THIRD PERSON',
+    pulso_ya: 'NOW', pulso_soltar: 'RELEASE',
+    pulso_ok: 'TARGET HIT',
+    pulso_pasaste: 'YOU OVERSHOT', pulso_otra: 'COMING AROUND AGAIN',
+    pulso_fallo_err: 'YOUR HAND SLIPPED', pulso_fallo_t: 'YOU RAN OUT OF TIME',
+    pulso_pasadas: 'PASSES',
+    death_pulso: 'Out of passes',
     arena_out: '! OUTSIDE THE COMBAT ZONE !', arena_auto: 'TURNING BACK TO TARGET',
     pasada_title: 'T H E   R U N',
     pasada_hint: 'NOSE [W]/[S] · ROLL & TURN [Q]/[E] · BRAKE [F] · [Z] RELEASE',
@@ -1054,6 +1069,7 @@ export const STRINGS = {
     pasada_gate: 'GATE', pasada_reencare: 'R U N   I N   A G A I N', pasada_axis: 'ON THE AXIS!',
     pasada_turn_in: 'TURN IN', pasada_turn_now: 'T U R N   N O W',
     pasada_dart: 'MISSILE AWAY!', pasada_break: 'BREAK, {c}!', pasada_break_ok: 'YOU LOST IT',
+    pasada_dart_radio: '{c}: ONE AWAY ON YOU, BREAK!',
     pasada_wave_in: '{c} GOING IN', pasada_wave_hit: '{c} HIT HER!',
     pasada_wave_miss: '{c} WENT LONG', pasada_wave_hurt: '{c} IS HIT, HEADING HOME',
     pasada_re_lat: 'YOU CAME BACK LOW', pasada_re_chan: 'YOU CAME BACK HIGH — MORE FUEL',

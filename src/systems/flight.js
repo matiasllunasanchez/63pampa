@@ -37,6 +37,7 @@ import { movesSystem, mvAllowsFire, mvAllowsTurbo } from './moves.js';
 import * as momentum from './momentum.js';
 import * as arena from './arena.js';
 import * as pasada from './pasada.js';
+import * as pulso from './pulso.js';
 import { engineFly, sfxOne, sfxSrc, beep, boom } from './audio.js';
 import * as dmg from './damage.js';
 import { applyEnergy, applyDrag, speedTarget, windFactor, pitchTarget, scrapeLimit,
@@ -123,7 +124,11 @@ export function flightSystem(dt, deps) {
       // llega por `deps.climax`. La transicion no tiene corte — se entra desde acá, en el mismo
       // frame, sin fade y sin pantalla, y el avion se lleva puesta su altura y su velocidad.
       // Igual que el arena, la PASADA necesita three.js: sin 3D queda el momentum de siempre.
-      if (deps.climax === 'pasada' && pasada.available()) {
+      // EL PULSO: el climax de menor costo y el unico SIN 3D — no hay escena que cargar ni
+      // transicion que empalmar, porque la prueba pasa delante del buque que ya venias viendo.
+      if (deps.climax === 'pulso' && pulso.available()) {
+        if (pulso.readyToEnter(run.dist, deps.objectiveDist)) { pulso.enter(true); return 'pulso'; }
+      } else if (deps.climax === 'pasada' && pasada.available()) {
         if (pasada.readyToEnter(run.dist, deps.objectiveDist)) { pasada.enter(true); return 'pasada'; }
       } else if (arena.available()) {
         if (arena.readyToEnter(run.dist, deps.objectiveDist)) { arena.enter(); return 'arena'; }

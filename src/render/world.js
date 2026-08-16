@@ -14,7 +14,7 @@ import { proj } from '../core/fx.js';
 import { hzWorld, tiltFade } from '../core/horizon.js';
 // EL MAR VIVE EN core/sea.js — puro, sin canvas ni stores — porque la colision de las olas tiene
 // que evaluar la MISMA superficie que se dibuja, y un sistema no puede importar del render.
-import { seaH as seaBase, olaBump } from '../core/sea.js';
+import { seaH as seaBase, olaBump, climaDe } from '../core/sea.js';
 import { P, LAND, CLAND } from '../data/palette.js';
 import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
@@ -467,7 +467,7 @@ function drawSeaDots(landVisible, coastMode) {
   const SPX = 0.93, SPZ = 1.0, farZ = SEA_FAR_Z;  // densidad x4, y ademas /U al subir la resolucion
   const dv = run.dist + momentum.drift();
   const olas = juntarOlas(dv);
-  const clima = cfg.seaClima || 'calm';
+  const clima = climaDe(cfg);   // UNA vez por cuadro, no por punto (SPEC_AGUA_OLAS §6.5)
   const startZ = Math.ceil((dv + 4) / SPZ) * SPZ;
   // paso ADAPTATIVO: cerca muestrea a SPZ/SPX plenos; lejos el paso crece para mantener
   // ~1px de separacion en pantalla (los puntos subpixel no se ven y este loop corre
@@ -1528,7 +1528,9 @@ function approachF(p) {
 export function drawApproachBarge(objectiveDist, objectiveShip) {
   const ph = momentum.phase(), PH = momentum.phases();
   if (objectiveDist <= 0 || ph >= PH.length) return;
-  if (S.state !== 'play' && S.state !== 'takeoff') return;
+  // EL PULSO dibuja el MISMO buque que venia creciendo en el pasillo: la prueba pasa delante de
+  // el, sin cambiar de escena. Si este estado no estuviera, el climax se quedaria sin blanco.
+  if (S.state !== 'play' && S.state !== 'takeoff' && S.state !== 'pulso') return;
   const p = run.dist / objectiveDist;
   const next = PH[ph];
   const t0 = ph === 0 ? BARGE_T0 : PH[ph - 1].at;
@@ -1635,7 +1637,9 @@ export function drawVeil(d) {
 // quedo fuera de pantalla por el paneo, se pega al borde apuntando hacia el lado correcto.
 export function drawObjectiveMarker(objectiveDist) {
   if (objectiveDist <= 0) return;
-  if (S.state !== 'play' && S.state !== 'takeoff') return;
+  // EL PULSO dibuja el MISMO buque que venia creciendo en el pasillo: la prueba pasa delante de
+  // el, sin cambiar de escena. Si este estado no estuviera, el climax se quedaria sin blanco.
+  if (S.state !== 'play' && S.state !== 'takeoff' && S.state !== 'pulso') return;
   const p = run.dist / objectiveDist;
   // se desvanece apenas la barcaza empieza a ser clara (~0.55): a partir de ahi el propio barco
   // es la referencia y el marcador solo taparia el puente.
@@ -1783,7 +1787,9 @@ const SWEEP_DUR = 2.6;      // segundos que tarda el barrido en recorrer la mall
 let netVis = 0, netLastT = 0;
 
 export function drawRadarNet() {
-  if (S.state !== 'play' && S.state !== 'takeoff') return;
+  // EL PULSO dibuja el MISMO buque que venia creciendo en el pasillo: la prueba pasa delante de
+  // el, sin cambiar de escena. Si este estado no estuviera, el climax se quedaria sin blanco.
+  if (S.state !== 'play' && S.state !== 'takeoff' && S.state !== 'pulso') return;
   const A = RADAR_ALT;
   // DENTRO de la zona: la malla vira a rojo y late. Es el mismo dato que la barra del HUD, pero
   // puesto donde el jugador esta mirando (el avion), no en un rincon.

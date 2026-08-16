@@ -108,4 +108,55 @@ tirar a matar) · `HOSE_N 2` · `HOSE_SWEEP_S 3.5` · `NEARMISS_R 14` · `ENTRY_
 
 ## 6. Divergencias del rescate *(completar durante la implementación)*
 
-- *(vacío — anotar acá el baseline de R0 y toda diferencia con el código real)*
+### R0 — la vara (16/8/2026) · **cerrada**
+
+**El baseline, medido en vuelo y no en papel.** `__pdbg` suma `amen` (amenazas visibles ahora),
+`gap`/`gapMax` (segundos seguidos sin nada delante del morro) y el reloj del Dart; `__pvara()`
+reinicia la cuenta y `__pdart()` la lee. Lo medido reproduce el §1:
+
+| medida | baseline | fuente |
+|---|---|---|
+| peor hueco sin NADA visible | **6,1 s** | §1.3 decía "11,6 s de mar vacío" en el ingreso |
+| media de amenazas en pantalla | **0,34** | — |
+| vida desde el lanzamiento del Dart | **3,27 s** (predicho 3,34) | §1.1 lo calculaba en ~3 s |
+
+R0.1. **`amenazasVisibles()` usa el MISMO criterio que el render** (`adelante`, margen de 45 m). La
+vara tiene que medir lo que el jugador *puede ver*, no lo que existe en el mundo; si el render
+cambia de regla, ésta cambia con él o la medición empieza a mentir en silencio.
+
+R0.2. **El TTI del Dart vive a nivel de MÓDULO, no en la instancia.** El impacto que se quiere medir
+es justamente el que destruye la instancia: guardado en `A`, el número se perdía con el avión y la
+sonda leía `null`. Es el caso borde clásico de medir una muerte — el medidor no puede morirse con
+el medido.
+
+R0.3. **El baseline es un número HISTÓRICO, no una aserción viva.** La primera versión afirmaba "el
+Dart da menos de 4,5 s" para probar que el §1.1 se reproducía… y se rompió en cuanto R1 empezó a
+funcionar. Ahora la vara compara contra el número anotado (3,27 s) y exige *mejora*. Congelar el
+mundo viejo en una prueba es garantizar que el rescate la rompa.
+
+### R1 — el misil justo (16/8/2026) · **cerrada**
+
+**Criterios de cierre, medidos:** quieto, **4,84 s** de vida desde el lanzamiento (baseline 3,27) ·
+quebrando, **3/3 esquives sobrevividos** · la soga del esquive pasando de largo, en `r1_soga.png`.
+
+R1.1. **Ningún cambio sube daño.** El Dart pega lo mismo que antes. Lo que cambió es que ahora *se
+ve* (asciende ~1 s contra el cielo, donde un misil de frente por fin tiene movimiento angular), *se
+oye* (whine continuo con tono y ganancia por cercanía), *tiene autor* (fogonazo en cubierta) y
+*deja rastro* (soga de humo de 2 s). Regla madre respetada.
+
+R1.2. **`DART_TTI_MIN` es un GATE de lanzamiento, y tiene una consecuencia geométrica.** Con cierre
+de ~360 m/s, exigir 4,5 s implica lanzar sólo desde ~1.260 m. El misil pasa a ser *de largo alcance
+de verdad*: aparece cuando venís lejos y alto, y no cuando ya estás encima. **Ojo con R2**: bajar
+`ENTRY_D` a 700 dejaría al Dart sin distancia para existir en la corrida. Al llegar a R2 hay que
+decidir entre lanzar desde fuera del ingreso o bajar `DART_V` — **no** bajar `DART_TTI_MIN`, que es
+la regla que arregló la muerte sin lectura.
+
+R1.3. **El esquive se unificó con el del Sea Cat** (mismo ángulo `CAT_BREAK`, misma ventana
+`SEACAT_DODGE_S`): un quiebre sostenido sirve contra las dos cosas. Se aprende UNA maniobra, no dos.
+Perdido el enganche el misil sigue **derecho** en vez de desaparecer — y esa soga pasando de largo
+es la prueba visible de que lo hiciste bien.
+
+R1.4. **`__pdef(0)` pasó a silenciar también la OLEADA.** Apagar la defensa dejaba a los Fieles
+volando, y uno volteó una zona en medio de la medición de la ristra: la prueba del eje dio "2 contra
+2" y acusó al eje de no servir. `__pdef` ahora significa *que en la zona no pase nada más que yo*,
+que es lo que toda sección de medición necesita.

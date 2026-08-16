@@ -62,15 +62,21 @@ let viewMode = 1;          // 1a persona por default, igual que el arena ([V] la
 // SONDA: corridas voladas y segundos por debajo del techo de radar. Son los dos numeros que dicen
 // si el modo esta haciendo lo que promete — si nadie vuela bajo, la capa Sea Dart no enseña nada.
 let corridas = 0, lowT = 0;
-// LLAVE DE LA DEFENSA (P3), solo para sondas — en el juego siempre esta prendida. La zona pasa a
-// ser letal con P3, y las secciones del fixture que miden el VUELO, la SUELTA o el reglamento no
-// tienen por que sobrevivir mientras miden: medir el alcance de la ristra no puede depender de
-// esquivar una salva. La defensa se prueba en su propia seccion, con esto prendido.
+// LLAVE DE "QUE NO PASE NADA MAS QUE YO" (P3 + P7), solo para sondas — en el juego siempre esta
+// prendida. La zona pasa a ser letal con P3 y poblada con P7, y las secciones del fixture que
+// miden el VUELO, la SUELTA o el reglamento no tienen por que sobrevivir ni competir mientras
+// miden: medir el alcance de la ristra no puede depender de esquivar una salva NI de que un
+// compañero no te voltee la zona que estabas contando. Cada cosa se prueba en su seccion.
 let defOn = true;
 // INVULNERABLE, tambien solo para sondas. Medir DONDE cae la metralla —que es lo que dice si el
 // calor aprieta— no puede depender de sobrevivirla: sin esto, la medicion se corta en el primer
 // impacto y el numero sale de dos columnas en vez de doce.
 let invul = false;
+// R0: EL TTI DEL DART SOBREVIVE A LA MUERTE QUE MIDE. Vive a nivel de MODULO y no en la instancia
+// porque el impacto que se quiere medir es justamente el que destruye la instancia: guardado en
+// `A`, el numero se perdia con el avion y la sonda leia null. Es el caso borde clasico de medir
+// una muerte — el medidor no puede morirse con el medido.
+let lastDartTTI = -1, lastDartTTIp = -1;
 
 export const active = () => A;
 export const zonesOf = () => zones || [];
@@ -83,7 +89,7 @@ export const ZONE_R = PS.ZONE_R;
 
 export function setShip(name) { shipCls = SHIP_CLASS[name] || 't42'; zones = null; }
 
-export function resetPasada() { A = null; zones = null; corridas = 0; lowT = 0; defOn = true; invul = false; world3D.resetZones(); }
+export function resetPasada() { A = null; zones = null; corridas = 0; lowT = 0; defOn = true; invul = false; lastDartTTI = -1; lastDartTTIp = -1; world3D.resetZones(); }
 
 /** Un solo gatillo, igual que el arena: el 100% de la distancia de la mision. */
 export function readyToEnter(dist, objectiveDist) {
@@ -158,6 +164,10 @@ export function enter(desdePasillo) {
     dartUsed: 0, catUsed: 0, cat: null, // uno de cada por corrida (RF-03 / RF-08)
     fusT: 0, sprayT: 0,                 // fusileria sobre la cubierta / salpicado del ras
     colSum: 0, colN: 0,                 // sonda del CALOR: que tan cerca te cae la metralla
+    // R0 — LA VARA. Puro mirar: nada de esto cambia una regla.
+    amen: 0, gapNow: 0, gapMax: 0,      // amenazas visibles ahora / hueco actual / peor hueco
+    amenSum: 0, amenN: 0, vidaT: 0,     // para la media de amenazas y el largo de la corrida
+    dartT0: -1, dartTTI: -1, dartTTIp: -1,   // cuando salio el Dart · cuanto vivio · cuanto se predijo
     wave: [], waveT: 1.2, waveN: 0,     // P7: el primero entra casi enseguida (ver stepOleada)
     outT: 0, auto: 0,              // fuera de la zona / piloto automatico
     hitFx: 0, flashL: 0, flashR: 0,
@@ -448,16 +458,46 @@ function fireGuns() {
 /** SEA DART (RF-03). Sale UNO por corrida, y solo si cruzaste el techo de radar LEJOS del buque:
  *  encima del blanco no hay lanzamiento — el misil de area no se tira sobre la propia cubierta, y
  *  ademas es lo que hace que la doctrina (llegar a ras) sea una ventaja y no una pose. */
+/** R1 — ¿SE PUEDE LANZAR? La regla que convierte "muerte sin lectura" en "muerte entendida".
+ *
+ *  Si el misil fuera a impactar antes de DART_TTI_MIN, NO SALE. No se hace mas lento ni mas debil:
+ *  simplemente no se dispara un misil que no te de tiempo de verlo, oirlo y decidir. Y NUNCA sale
+ *  dentro de la ventana de suelta ni con la ristra en el aire — las amenazas se INTERCALAN, no se
+ *  apilan: pedirte que esquives y apuntes en el mismo segundo no es dificultad, es ruido. */
+function puedeDart(rad) {
+  if (A.dartUsed || A.ripple > 0 || A.spent || A.doneT > 0) return false;
+  if (A.pos.y <= PS.RADAR_CEIL_M || rad <= PS.POPUP_DIST_M) return false;
+  const cierre = PS.DART_V + Math.hypot(A.vel.x, A.vel.z) * A.spd;
+  return PS.DART_RISE_T + rad / cierre >= PS.DART_TTI_MIN;
+}
+
 function fireDart() {
   A.dartUsed = 1;
   const wp = { x: 0, y: 22, z: 0 };
   const d = { x: A.pos.x - wp.x, y: A.pos.y - wp.y, z: A.pos.z - wp.z };
   const dl = Math.hypot(d.x, d.y, d.z) || 1;
+  // R0: el reloj del misil. `dartTTIp` es el tiempo de vida PREDICHO con la aritmetica del §1.1
+  // —distancia sobre velocidad de cierre— y `dartTTI` sera el MEDIDO al tocarte. Que los dos
+  // convivan es el punto: si difieren, el que manda es el medido.
+  A.dartT0 = A.t; A.dartTTI = -1;
+  A.dartTTIp = +(PS.DART_RISE_T + dl / (PS.DART_V + Math.hypot(A.vel.x, A.vel.z) * A.spd)).toFixed(2);
+  lastDartTTI = -1; lastDartTTIp = A.dartTTIp;
   A.fx.push({
     k: 'dart', T: 0, life: PS.DART_LIFE,
     x: wp.x, y: wp.y, z: wp.z, vx: d.x / dl, vy: d.y / dl, vz: d.z / dl,
+    brk: 0, ciego: 0, humoT: 0, whineT: 0, yaw0: Math.atan2(A.vel.x, -A.vel.z),
   });
+  // EL FOGONAZO EN CUBIERTA: la amenaza tiene AUTOR. Un misil que aparece de la nada se lee como
+  // arbitrariedad; saliendo del buque se lee como peligro, y de paso te dice para donde mirar.
+  A.fx.push({ k: 'fk3', px: wp.x, py: wp.y, pz: wp.z, vr: 26, life: 0.7, T: 0 });
+  for (let i = 0; i < 10; i++) A.fx.push({
+    k: 'humo', x: wp.x + (Math.random() - 0.5) * 18, y: wp.y + Math.random() * 10,
+    z: wp.z + (Math.random() - 0.5) * 18, life: PS.DART_SMOKE_LIFE * 0.7, T: 0, r: 2,
+  });
+  // EL GRITO POR RADIO, con nombre: es un compañero el que lo ve salir, no un sensor del avion.
   popup(W / 2, 44, T('pasada_dart'), P.warn, true);
+  if (run.lives > 1) popup(W / 2, 56, T('pasada_dart_radio', { c: pilotName(pilotIdx(run.squad, run.lives)) }), P.warn);
+  boom(0.16, true);
   if (!sfxOne('mslFar')) beep(200, 0.5, 'sawtooth', 0.06, 700);
 }
 
@@ -493,6 +533,50 @@ function fireCat() {
 // guion (Vasco m7, Pichon m9). Un compañero perdido al azar arruinaria la historia que el juego
 // esta contando.
 
+// ============================ R0 — LA VARA (medicion) ============================
+// PASADA_ADRENALINA R0: sin numeros, "no genera adrenalina" es una impresion y el rescate no se
+// puede demostrar ni refutar. Esto NO cambia una sola regla del juego — solo lo mira.
+//
+// Las dos varas que pide el plan:
+//   AMENAZAS VISIBLES  cuantas cosas peligrosas hay AHORA delante del morro. De ahi sale el
+//                      numero que mata al modo: cuantos segundos seguidos el mar esta vacio.
+//   TTI DEL DART       cuanto vivis desde que sale el misil hasta que te toca. El §1.1 lo calcula
+//                      en ~3 s de papel; esto lo mide en vuelo, que es lo unico que vale.
+
+/** Margen delante del morro para contar una amenaza como VISIBLE. Es el MISMO criterio que usa
+ *  render/pasada.js para decidir si dibuja algo (`adelante`), a proposito: la vara tiene que medir
+ *  lo que el jugador PUEDE ver, no lo que existe en el mundo. Si el render cambia de regla, esta
+ *  tiene que cambiar con el o la medicion empieza a mentir. */
+const VIS_M = 45;
+const visible = (x, z) => (x - A.pos.x) * A.fwd.x + (z - A.pos.z) * A.fwd.z > VIS_M;
+
+/** Cuantas amenazas hay delante del morro AHORA. Cuenta lo que el jugador puede ver venir:
+ *  columnas (avisando o subiendo), el Dart en vuelo y el Sea Cat viajando. */
+function amenazasVisibles() {
+  if (!A) return 0;
+  let n = 0;
+  for (const f of A.fx) {
+    if (f.k !== 'col' && f.k !== 'dart') continue;
+    if (visible(f.x, f.z)) n++;
+  }
+  if (A.cat) n++;                    // el Sea Cat no tiene cuerpo en el mundo todavia: cuenta igual
+  return n;
+}
+
+/** Un cuadro de la vara. Acumula el HUECO — segundos seguidos sin nada visible — que es la medida
+ *  directa del "tiempo muerto" del §1.3, y el peor hueco de toda la corrida. */
+function stepVara(dt) {
+  const n = amenazasVisibles();
+  A.amen = n;
+  if (n > 0) A.gapNow = 0;
+  else {
+    A.gapNow += dt;
+    if (A.gapNow > A.gapMax) A.gapMax = A.gapNow;
+  }
+  A.vidaT += dt;
+  A.amenSum += n; A.amenN++;
+}
+
 /** ¿Hay un compañero EN SU CORRIDA ahora? Es la pregunta que le hace la defensa. */
 const amigoCorriendo = () => !!(A && A.wave.some(w => w.t > PS.WAVE_T * 0.25 && w.t < PS.WAVE_T * 0.75));
 
@@ -507,6 +591,11 @@ function wavePos(w) {
 }
 
 function stepOleada(dt) {
+  // LA MISMA LLAVE QUE LA DEFENSA. `__pdef(0)` significa "que en la zona no pase nada mas que yo",
+  // y la oleada es exactamente eso: algo mas que pasa. Sin esto, un Fiel podia voltear una zona en
+  // medio de una medicion de la RISTRA y el conteo de "zonas alcanzadas por la salva" contaba la
+  // suya — medido: la prueba del eje dio 2 contra 2 y acuso al eje de no servir.
+  if (!defOn) { A.wave.length = 0; return; }
   // CUANDO. Esto se movio despues de medirlo, y el porque importa: la oleada estaba puesta "entre
   // tus corridas", pero bajo RF-15 vos no das vueltas — soltas y te relevan. O sea que el hueco
   // entre tus corridas es la cinematica del relevo, no tiempo de vuelo, y la oleada casi no
@@ -591,7 +680,7 @@ function stepDefensa(dt, rad) {
   // ---- capa 2: EL TECHO DE RADAR (RF-03) ----
   // Cruzarlo LEJOS te compra un Sea Dart, corra quien corra. Volar abajo no es que "esquiva
   // mejor": es que el misil no existe. Esa es la diferencia entre una estadistica y una regla.
-  if (!A.dartUsed && A.pos.y > PS.RADAR_CEIL_M && rad > PS.POPUP_DIST_M) fireDart();
+  if (puedeDart(rad)) fireDart();
 
   return catYFusileria(dt, rad);
 }
@@ -827,6 +916,7 @@ export function update(dt, inp) {
   const muerte = stepDefensa(dt, radNow);
   if (muerte) { A = null; return muerte; }
   stepOleada(dt);        // P7: los Fieles hacen las suyas mientras vos das la vuelta
+  stepVara(dt);          // R0: la vara. Mira, no toca.
 
   stepFase(radNow);
   // CRUZAR LA PUERTA ENCARADO SE FESTEJA, una sola vez por vuelta. Es el instante en que el
@@ -931,25 +1021,70 @@ function stepFx(dt) {
       continue;
     }
 
-    // ---- SEA DART (RF-03): el misil de area del techo de radar ----
-    // Persigue con RITMO DE VIRAJE LIMITADO — menos que el avion. Ahi vive el esquive: no hay
-    // dado ni ventana, hay geometria, y un quiebre sostenido lo deja pasar de largo.
+    // ---- SEA DART (R1): el misil que se puede LEER ----
+    // Tres cosas lo cambiaron, y ninguna toca el daño:
+    //   ASCENSO   el primer segundo TREPA en vez de venir. Es historico y, sobre todo, resuelve
+    //             el problema de fondo del §1.1: de frente un misil no tiene movimiento angular
+    //             —es un punto que crece— y contra el mar no se ve. Subiendo contra el CIELO, si.
+    //   SOGA      deja humo persistente. Lo que se esquiva es la soga, no el punto, y cuando la
+    //             esquivas verla pasar de largo es la prueba de que lo hiciste bien.
+    //   WHINE     suena mientras viaja, mas agudo y mas fuerte cuanto mas cerca. Un misil mudo es
+    //             una trampa; uno que chilla es una cuenta regresiva que se puede obedecer.
     if (f.k === 'dart') {
       const dx = A.pos.x - f.x, dy = A.pos.y - f.y, dz = A.pos.z - f.z;
       const dl = Math.hypot(dx, dy, dz) || 1;
-      const k = Math.min(1, PS.DART_TURN * dt);
-      f.vx += (dx / dl - f.vx) * k; f.vy += (dy / dl - f.vy) * k; f.vz += (dz / dl - f.vz) * k;
-      const vl = Math.hypot(f.vx, f.vy, f.vz) || 1;
-      f.vx /= vl; f.vy /= vl; f.vz /= vl;
+
+      // la SOGA se va dejando siempre, en las dos fases
+      f.humoT -= dt;
+      if (f.humoT <= 0) {
+        f.humoT = 0.05;
+        A.fx.push({ k: 'humo', x: f.x, y: f.y, z: f.z, life: PS.DART_SMOKE_LIFE, T: 0, r: 1.6 });
+      }
+      // el WHINE: periodo y tono por cercania. Se apaga cuando el misil ya te erro y se va.
+      f.whineT -= dt;
+      if (f.whineT <= 0 && !f.ciego) {
+        const cerca = Math.max(0, Math.min(1, 1 - dl / 1400));
+        f.whineT = 0.16 - cerca * 0.09;
+        beep(700 + cerca * 900, 0.07, 'sawtooth', 0.025 + cerca * 0.045);
+      }
+
+      if (f.T < PS.DART_RISE_T) {          // FASE DE ASCENSO: sube, todavia no te busca
+        f.y += PS.DART_V * 0.6 * dt;
+        continue;
+      }
+
+      // EL ESQUIVE: quiebre SOSTENIDO. Se mide con el mismo criterio que el Sea Cat (mismo angulo,
+      // misma ventana) para que el jugador aprenda UNA maniobra y le sirva contra las dos cosas.
+      // Perdido el enganche el misil sigue DERECHO — y esa soga pasando de largo es el premio.
+      let dyaw = Math.atan2(A.vel.x, -A.vel.z) - f.yaw0;
+      while (dyaw > Math.PI) dyaw -= Math.PI * 2;
+      while (dyaw < -Math.PI) dyaw += Math.PI * 2;
+      if (Math.abs(dyaw) >= PS.CAT_BREAK) f.brk += dt; else f.brk = 0;
+      if (!f.ciego && f.brk >= PS.SEACAT_DODGE_S) {
+        f.ciego = 1;
+        popup(W / 2, 52, T('pasada_break_ok'), P.accent);
+        beep(520, 0.14, 'square', 0.05, 240);
+      }
+
+      if (!f.ciego) {
+        const k = Math.min(1, PS.DART_TURN * dt);
+        f.vx += (dx / dl - f.vx) * k; f.vy += (dy / dl - f.vy) * k; f.vz += (dz / dl - f.vz) * k;
+        const vl = Math.hypot(f.vx, f.vy, f.vz) || 1;
+        f.vx /= vl; f.vy /= vl; f.vz /= vl;
+      }
       f.x += f.vx * PS.DART_V * dt; f.y += f.vy * PS.DART_V * dt; f.z += f.vz * PS.DART_V * dt;
       if (f.y < 1) f.life = 0;
-      if (dl < PS.DART_HIT && A.doneT <= 0 && !A.spent) {
+      if (!f.ciego && dl < PS.DART_HIT && A.doneT <= 0 && !A.spent) {
         f.life = 0;
+        A.dartTTI = lastDartTTI = +(A.t - A.dartT0).toFixed(2);   // R0: lo que VIVISTE tras el lanzamiento
         A.fx.push({ k: 'splash', x: f.x, y: f.y, z: f.z, vr: 34, life: 0.9, T: 0 });
         if (golpe('death_missile')) death = { death: 'death_missile' };
       }
       continue;
     }
+
+    // ---- LA SOGA DE HUMO (R1) ----
+    if (f.k === 'humo') { f.r += dt * 3.2; continue; }
 
     if (f.k === 'bomb') {
       // BALISTICA: hereda la velocidad del avion y cae con gravedad REAL. El impacto se resuelve
@@ -1016,6 +1151,15 @@ if (typeof window !== 'undefined') window.__pflip = () => {
   A.fwd = forward(A.yaw, A.pitch); A.vel = { ...A.fwd };
   return 'ok';
 };
+// __pvara: reinicia la vara de R0. Se llama al empezar una medicion para que el hueco y la media
+// sean de ESE tramo y no de todo lo que paso desde que se entro.
+// __pdart: el reloj del misil, LEIBLE AUNQUE EL AVION YA NO ESTE. Ver `lastDartTTI`.
+if (typeof window !== 'undefined') window.__pdart = () => JSON.stringify({ tti: lastDartTTI, pred: lastDartTTIp });
+if (typeof window !== 'undefined') window.__pvara = () => {
+  if (!A) return 'no pasada';
+  A.gapNow = 0; A.gapMax = 0; A.amenSum = 0; A.amenN = 0; A.vidaT = 0;
+  return 'ok';
+};
 // __pdef: prende o apaga la defensa por capas. Ver el comentario de `defOn`.
 if (typeof window !== 'undefined') window.__pdef = v => {
   defOn = !!(+v);
@@ -1063,6 +1207,12 @@ if (typeof window !== 'undefined') window.__pdbg = () => A && JSON.stringify({
   nafta: run.fuel | 0, calor: +A.heat.toFixed(2),
   gastada: A.spent, lenta: +slow().toFixed(2),     // RF-15: como termino la corrida · RF-12: ralenti
   salvas: A.salvas, dart: A.dartUsed, cat: A.cat ? +A.cat.t.toFixed(1) : null,   // P3: las capas
+  // R0 — LA VARA (PASADA_ADRENALINA §3). `amen` es lo que ves AHORA; `gap` los segundos que
+  // llevas sin ver nada; `gapMax` el peor hueco de la corrida — la medida directa del tiempo
+  // muerto del §1.3. `dartTTI` es lo que viviste desde que salio el misil, medido en vuelo.
+  amen: A.amen, gap: +A.gapNow.toFixed(1), gapMax: +A.gapMax.toFixed(1),
+  amenMed: A.amenN ? +(A.amenSum / A.amenN).toFixed(2) : 0,
+  vidaT: +A.vidaT.toFixed(1), dartTTI: A.dartTTI, dartTTIp: A.dartTTIp,
   punteria: +Math.min(1, A.aimN / PS.GUN_AIM_SALVOS).toFixed(2),   // cuanto te tiene tomado (RF-04)
   disp: A.lastJit === null ? null : +A.lastJit.toFixed(0),        // dispersion de la ultima salva
   colDist: A.colN ? +(A.colSum / A.colN).toFixed(0) : null,   // distancia media de la metralla

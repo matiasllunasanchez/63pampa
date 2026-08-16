@@ -105,11 +105,6 @@ export const cfg = {
   //   'integ'  el avion aguanta y se DEGRADA (mas lento, sin turbo, sin piruetas)
   //   'visual' aguanta igual, pero el daño no toca el desempeño: solo se ve
   dmgMode: 'squad',
-  // EL CLIMA DEL MAR ('calm' | 'breeze' | 'storm'), derivado de viento/lluvia/cielo por climaDe()
-  // en core/sea.js y guardado por applyCfg(). Manda la frecuencia de olas, el umbral de espuma y
-  // el termino de viento del oleaje (SPEC_AGUA_OLAS §2). Es DERIVADO, no una preferencia: no se
-  // guarda ni aparece en OPCIONES.
-  seaClima: 'calm',
   // QUE LE PASA AL RELEVADO (SPEC_MODO_PASADA RF-15.5). Es TONO, no cuenta: el avion sale de la
   // partida en los tres casos, y lo unico que cambia es lo que ves y lo que dice la radio.
   //   'auto'  como venia: campaña = averiado que vuelve a la base (norma 3/8 del guion, donde los

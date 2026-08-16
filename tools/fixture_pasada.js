@@ -467,9 +467,13 @@ app.whenReady().then(async () => {
           await gastarPasada();                   // ahora una pasada FALLADA: no toca el casco
           await sleep(8200);
           const b = await P();
-          if (b && b.hp === hpAntes && b.vidas === conDaño.vidas - 1)
+          // NO SE PIDE IGUALDAD, se pide que NO SE RESTAURE. La asercion estaba sobre-escrita: desde
+          // P7 un Fiel puede pegarle al buque mientras vos volvias, asi que el casco puede BAJAR
+          // entre las dos lecturas — y eso no contradice la persistencia, la confirma. Pedir
+          // igualdad hacia la prueba dependiente del azar de la oleada.
+          if (b && b.hp <= hpAntes && b.vidas === conDaño.vidas - 1)
             ok(`el daño PERSISTE entre pilotos: ${a.hp} → ${hpAntes} de casco, y sigue en ${b.hp} con el siguiente`);
-          else bad(`el casco paso de ${hpAntes} a ${b && b.hp} al cambiar de piloto (deberia quedar igual)`);
+          else bad(`el casco se restauro al cambiar de piloto: ${hpAntes} → ${b && b.hp}`);
         }
       }
     }
@@ -718,6 +722,118 @@ app.whenReady().then(async () => {
     for (let k = 0; k < 12; k++) { await sleep(400); const a = await P(); if (a && a.oleada.length) solo++; }
     if (!solo) ok('con UN solo avion no entra nadie: sin escuadron no hay oleada ni radio');
     else bad(`con un solo avion igual entraron ${solo} corridas amigas`);
+  }
+
+  // ---------- R0: LA VARA (PASADA_ADRENALINA) ----------
+  // Esta seccion NO aprueba el modo: lo MIDE. El plan de rescate arranca de un playtest que dice
+  // "no genera adrenalina", y sin numeros eso no se puede ni demostrar ni refutar. Lo que se
+  // comprueba aca es que la VARA funcione y que reproduzca los numeros del §1 del analisis —
+  // numeros MALOS, que es justamente el punto de partida del rescate.
+  console.log('\nR0 — la vara: el baseline del §1, medido en vuelo:');
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+  await sleep(3000);
+  if (!await P()) bad('no se pudo entrar a la pasada para medir el baseline');
+  else {
+    // 1) EL TIEMPO MUERTO (§1.3). Una corrida entera desde la entrada, sin tocar nada mas que el
+    // gas: cuantos segundos seguidos el mar esta VACIO. El analisis dice 11,6 s de ingreso; lo que
+    // importa no es ese numero sino el HUECO — cuanto tiempo no pasa nada delante del morro.
+    await js('__pdef(1); __pinv(1); __plives(1); __pvara()');
+    // se guarda la ULTIMA lectura viva: la corrida termina estrellandose contra el buque (es una
+    // corrida de ingreso sin virar, a proposito) y leer despues del final da null.
+    const linea = [];
+    let base = null;
+    for (let k = 0; k < 30; k++) {
+      await sleep(400);
+      const a = await P();
+      if (!a) break;
+      base = a;
+      linea.push(`${a.vidaT}s r=${a.r} amen=${a.amen}`);
+    }
+    if (!base) bad('la corrida se corto antes de poder medir el baseline');
+    else {
+      ok(`BASELINE del tiempo muerto: peor hueco ${base.gapMax} s sin NADA visible · `
+        + `media de ${base.amenMed} amenazas en pantalla · corrida de ${base.vidaT} s`);
+      // el criterio del plan (R2) sera "nunca mas de 4 s sin una amenaza visible". Hoy tiene que
+      // FALLAR — si ya pasara, el rescate no tendria de que rescatar y habria que revisar el §1.
+      if (base.gapMax > 4) ok(`el §1.3 se reproduce: hay huecos de ${base.gapMax} s (el objetivo de R2 son 4)`);
+      else bad(`el hueco medido (${base.gapMax} s) ya cumple el objetivo de R2: revisar el analisis §1.3`);
+      console.log('      linea de tiempo: ' + linea.slice(0, 8).join(' · '));
+    }
+
+    // 2) EL MISIL ASESINO (§1.1). Se cruza el techo lejos y se deja que el Dart haga lo suyo SIN
+    // esquivar: lo que se mide es cuanto vive el jugador desde que sale el misil. El analisis lo
+    // calcula en ~3 s de papel; esto es en vuelo.
+    await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+    await sleep(3000);
+    // 1500 m Y NO 1200: desde R1 el misil NO SALE si fuera a impactar antes de DART_TTI_MIN, y a
+    // 1200 m no llega a dar esos 4,5 s. Que la prueba tuviera que alejarse es, en si misma, la
+    // regla de R1 funcionando.
+    await js('__pdef(1); __pinv(0); __plives(9); __pset(1500, 40, 0)');
+    // se lee por __pdart y no por __pdbg: el impacto que se mide DESTRUYE la instancia, asi que
+    // el numero tiene que vivir fuera de ella (ver `lastDartTTI` en el sistema).
+    let tti = null, ttip = null;
+    for (let k = 0; k < 40; k++) {
+      await sleep(200);
+      const dd = JSON.parse(await js('__pdart()'));
+      if (dd.pred > 0) ttip = dd.pred;
+      if (dd.tti > 0) { tti = dd.tti; break; }
+    }
+    if (tti === null && ttip === null) bad('el Sea Dart no llego a salir: no se pudo medir el TTI');
+    else if (tti === null) ok(`BASELINE del Dart: predicho ${ttip} s de vida (no toco en esta corrida)`);
+    else {
+      // EL BASELINE ES UN NUMERO HISTORICO, no una asercion viva. Se midio ANTES de R1 y quedo
+      // anotado en el §6 del plan; la vara sirve para comparar contra el, no para congelar el
+      // mundo viejo. Fijar aca "tiene que ser malo" habria hecho que la prueba se rompiera
+      // justamente cuando el rescate empezara a funcionar — que es lo que paso.
+      const TTI_BASE = 3.27;
+      ok(`el Dart da ${tti} s de vida (predicho ${ttip} s) · baseline pre-R1: ${TTI_BASE} s`);
+      if (tti > TTI_BASE) ok(`R1 mejoro la lectura del misil: ${TTI_BASE} → ${tti} s de tiempo para entender`);
+      else bad(`el Dart no mejoro contra el baseline (${TTI_BASE} s): ahora da ${tti} s`);
+    }
+  }
+
+  // ---------- R1: EL MISIL JUSTO ----------
+  // Los tres criterios de cierre del plan, textuales: quieto te morís HABIENDO VISTO Y OIDO el
+  // misil; quebrando sobrevivís SIEMPRE; y la soga del esquive se ve pasar de largo.
+  console.log('\nR1 — el misil justo:');
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+  await sleep(3000);
+  if (!await P()) bad('no se pudo entrar a la pasada para probar R1');
+  else {
+    // 1) QUIETO: te mata, pero te da tiempo. El baseline de R0 daba 3,27 s; R1 exige >= 3,5 y la
+    // regla de lanzamiento (DART_TTI_MIN 4,5) impide que salga uno mas corto que eso.
+    await js('__pdef(1); __pinv(0); __plives(9); __pset(1500, 40, 0)');
+    let tti = null;
+    for (let k = 0; k < 50; k++) {
+      await sleep(200);
+      const dd = JSON.parse(await js('__pdart()'));
+      if (dd.tti > 0) { tti = dd.tti; break; }
+    }
+    if (tti === null) bad('quieto, el Sea Dart no llego a tocar: no se puede medir el tiempo de lectura');
+    else if (tti >= 3.5) ok(`QUIETO te mata, pero con lectura: ${tti} s desde el lanzamiento (baseline R0: 3.27 s)`);
+    else bad(`quieto el misil sigue matando sin tiempo de leerlo: ${tti} s (R1 exige 3.5)`);
+
+    // 2) QUEBRANDO SE SOBREVIVE SIEMPRE. Tres intentos, y "siempre" es literal: un esquive que
+    // funciona a veces no enseña nada, porque el jugador no puede saber si hizo lo correcto.
+    let vivos = 0, intentos = 0;
+    for (let t = 0; t < 3; t++) {
+      await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1');
+      await sleep(3000);
+      await js('__pdef(1); __pinv(0); __plives(9); __pset(1500, 40, 0)');
+      // esperar a que SALGA el misil, y recien ahi quebrar sostenido
+      let salio = false;
+      for (let k = 0; k < 30; k++) { await sleep(150); const a = await P(); if (a && a.dart) { salio = true; break; } if (!a) break; }
+      if (!salio) continue;
+      intentos++;
+      down('q'); await sleep(2200); up('q');       // quiebre SOSTENIDO, mas que la ventana de 1,2 s
+      await sleep(2500);                            // que el misil pase de largo o pegue
+      const a = await P();
+      if (a) vivos++;
+      if (t === 0 && a) await shot('r1_soga');      // la soga pasando de largo, en captura
+    }
+    if (!intentos) bad('el misil no salio en ninguno de los tres intentos de esquive');
+    else if (vivos === intentos) ok(`QUEBRANDO se sobrevive SIEMPRE: ${vivos}/${intentos} esquives`);
+    else bad(`el quiebre no salva siempre: ${vivos}/${intentos} (R1 exige todos)`);
   }
 
   // ---------- lo que todavia no existe ----------

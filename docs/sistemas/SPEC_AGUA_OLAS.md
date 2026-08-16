@@ -390,3 +390,43 @@ porque una prueba que falla al azar no protege nada: enseña a ignorarla.
 2. **El salto.** La prueba subía a 15 m con el gas clavado; el avión cambia altura por velocidad, la
    ola tardaba mucho más en cruzar y a veces se acababa el tiempo de la prueba. Ahora sostiene la
    altura con toques y espera más — que además es el gesto real, saltar y volver.
+
+### 9. EL BUG QUE LLEGÓ AL JUGADOR: en POR LA PATRIA no salía una sola ola
+
+El autor jugó y preguntó *"no veo las olas activas en por la patria, ¿cada cuánto vienen?"*. La
+respuesta medida era **nunca**: `climaDe` resolvía `calm`, y `OLA_RATE.calm` es 0.
+
+**La causa:** §2 pide resolver el clima "una vez donde se aplica el cfg de misión y guardarlo", y así
+se hizo — en `applyCfg()`, que corre al cargar una misión de campaña. **POR LA PATRIA no pasa por
+ahí**, así que `cfg.seaClima` se quedaba con el valor inicial del store para siempre. Un campo
+derivado y cacheado que sólo se refresca en un camino es un bug esperando: cualquier modo nuevo, o
+cualquier cambio de VIENTO/LLUVIA desde OPCIONES en mitad de una partida, lo dejaba viejo.
+
+**Decisión (divergencia con §2):** el clima **deja de cachearse**. `climaDe(cfg)` se llama donde se
+usa — una vez por siembra (que ocurre cada 40-70 m) y **una vez por cuadro** en `drawSeaDots`. La
+preocupación real de §2 era no derivarlo *por punto* del oleaje, y eso se respeta. No hay caché que
+se pueda poner vieja.
+
+**Por qué el fixture estaba verde igual, que es lo más importante de esta entrada:** todas las
+pruebas usaban `__ola`, que saltea la probabilidad **a propósito**. Se probaba el MECANISMO y nunca
+el CABLEADO. Se agregó el paso **5b**, que vuela con viento sin tocar la sonda y exige que salgan
+solas — y que en calma sigan sin salir.
+
+### 10. `OLA_RATE` subió, con la cadencia medida
+
+Con los defaults del spec (`breeze 0.04`) la ola salía **una cada ~1.500 m ≈ 12-18 s**: una mecánica
+que aparece dos veces por partida no se aprende. La cadencia de siembra en mar abierto es de una
+cada **40-70 m** (`spawnSystem`), así que la probabilidad se traduce directo a metros.
+
+| clima | antes | ahora | medido |
+|---|---|---|---|
+| calm | 0 | 0 | nunca — el mar de m1 no cambia |
+| breeze | 0.04 | **0.08** | una cada 1.043 m ≈ **6,3 s** |
+| storm | 0.12 | **0.14** | una cada 533 m ≈ **3,2 s** |
+
+`storm` se probó primero en 0.20 y daba **una cada 2,7 s**: como cada ola tarda ~3 s en cruzar, eso
+es una pared continua que tapa al resto del nivel. `OLA_GAP_MIN` y el tope de dos vivas ponen el
+techo real, así que subir más no amontona — sólo acerca el piso.
+
+**Este es el número que más probablemente haya que retocar tras jugar una misión de tormenta**, y es
+el único de este bloque que no se pudo validar jugando.

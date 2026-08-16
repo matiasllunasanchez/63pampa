@@ -14,7 +14,7 @@ import { OLA_H, OLA_RATE, OLA_GAP_MIN, OLA_H_VAR, OLA_WZ, OLA_WZ_VAR } from '../
 import { inBank } from './fog.js';
 import { plane } from '../core/state.js';
 import { scrapeLimit } from '../core/physics.js';
-import { olaBump } from '../core/sea.js';
+import { olaBump, climaDe } from '../core/sea.js';
 import { proj } from '../core/fx.js';
 import { SPAWN_X, SPAWN_DENS, SPAWN_Z, SHORE_X, shoreAt, SAND_W, AA_CD, ENEMY_HP, spawnY, SHIP_H,
          CLIFF_H0, CLIFF_H1, CLIFF_HW0, CLIFF_HW1, CLIFF_COAST_BAND, VEIL_STOP } from '../data/tuning.js';
@@ -83,6 +83,10 @@ function squad(x, z, n, coast) {
 // se consulta shoreAt() a la profundidad de spawn (SPAWN_Z) — la misma fuente que render y vuelo.
 const spawnShore = () => shoreAt(run.dist + SPAWN_Z);
 const landLane = () => { const sh = spawnShore(); return -SPAWN_X + Math.random() * Math.max(8, SPAWN_X + sh - SAND_W - 3); };
+// SONDA de calibracion (QUITAR con el resto): cuantas veces se sorteo en la rama de agua y cuantas
+// salio ola. Es lo unico que permite elegir OLA_RATE con un numero en vez de a ojo.
+let sondaSpawns = 0, sondaOlas = 0;
+
 /** ¿Se puede sembrar una ola AHORA? Tres candados, y los tres son de justicia:
  *   · nunca dos juntas (OLA_GAP_MIN) — el mar no es un peine
  *   · maximo dos vivas (§6.4) — con tres, esquivar deja de ser una decision y pasa a ser suerte
@@ -213,7 +217,8 @@ function spawn() {
   // mapa. En m1 (sin viento) OLA_RATE.calm es 0 y no sale jamas; en tormenta sale seguido. Meterla
   // en el reparto de porcentajes le habria robado densidad a los enemigos segun el clima, que es
   // una consecuencia que nadie pidio.
-  if (olaOk() && Math.random() < OLA_RATE[cfg.seaClima || 'calm']) { spawnOla('marejada'); return; }
+  sondaSpawns++;
+  if (olaOk() && Math.random() < OLA_RATE[climaDe(cfg)]) { sondaOlas++; spawnOla('marejada'); return; }
 
   // MAR ABIERTO: fragatas y trafico aereo.
   //
@@ -290,8 +295,12 @@ if (typeof window !== 'undefined') window.__ola = (tipo, alto) => {
 // y para probar "en calma no hay olas" habria que arrancar una mision distinta y volar hasta el
 // mar — con esto la misma corrida sirve para las dos mitades de la regla.
 if (typeof window !== 'undefined') window.__seaclima = c => {
-  cfg.seaClima = c === 'storm' || c === 'breeze' ? c : 'calm';
-  return cfg.seaClima;
+  // escribe las CAUSAS (viento, lluvia, cielo), no el resultado: asi la sonda ejercita climaDe()
+  // en vez de saltearla — que es como se escapo el bug de POR LA PATRIA (ver SPEC §9.9).
+  if (c === 'storm') { cfg.wind = true; cfg.rain = 1; }
+  else if (c === 'breeze') { cfg.wind = true; cfg.rain = 0; if (cfg.sky === 'storm') cfg.sky = 'dusk'; }
+  else { cfg.wind = false; cfg.rain = 0; if (cfg.sky === 'storm') cfg.sky = 'dusk'; }
+  return climaDe(cfg);
 };
 // __seaput: coloca el avion en altura (y carril). Es el equivalente de __pset de la PASADA y
 // existe por lo mismo: la ventana en la que el avion esta EXACTAMENTE a la altura de la cresta
@@ -335,6 +344,7 @@ if (typeof window !== 'undefined') window.__seadbg = () => {
     olas: obstacles.filter(o => o.type === 'ola').length,
     y: +plane.y.toFixed(2), x: +plane.x.toFixed(1),
     scrapeT: +run.scrapeT.toFixed(3), limite: +scrapeLimit(run.spd, run.boost).toFixed(3),
-    clima: cfg.seaClima || 'calm', niebla: inBank(), spd: run.spd | 0,
+    clima: climaDe(cfg), niebla: inBank(), spd: run.spd | 0,
+    dist: run.dist | 0, sorteos: sondaSpawns, sembradas: sondaOlas,
   });
 };
