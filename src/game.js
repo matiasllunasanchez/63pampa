@@ -63,6 +63,7 @@ import { FIELES } from './data/pilots.js';
 import * as squadRender from './render/squad.js';
 import { canRelevo, pilotIdx } from './core/squad.js';
 import { RUNWAYS, AIR_START_Y } from './data/runways.js';
+import { climaDe } from './core/sea.js';
 
   (() => {
     'use strict';
@@ -93,7 +94,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // Se puede apagar en el menú [M] (COMBUSTIBLE: NO) para pruebas / vuelo libre.
     // paleta de tierra (turba malvinense). Se vuela A RAS del suelo para atropellar soldados (no es letal).
 
-    function applyCfg() { applyTheme(cfg); }
+    // EL CLIMA DEL MAR se resuelve ACA y se guarda (SPEC_AGUA_OLAS §2): es el unico lugar por el
+    // que pasa toda configuracion de mision, y adentro del loop de puntos del oleaje derivarlo
+    // seria pagarlo miles de veces por cuadro para que de siempre lo mismo.
+    function applyCfg() { applyTheme(cfg); cfg.seaClima = climaDe(cfg); }
 
     // fija el layout de zonas del MOMENTUM segun la clase del buque
     // (MOM_LAYOUTS/SHIP_CLASS se definen mas abajo; esto solo corre al armar un run)
@@ -1758,7 +1762,16 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // needsMomentum: si el objetivo del run culmina en el climax (barco) o con solo llegar (distancia)
       const needsMomentum = (gameMode === 'campaign' || gameMode === 'cycle') ? goalOf(curMission()).needsMomentum : true;
       const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist, needsMomentum, climax: runClimax() });
-      if (fs === 'momentum' || fs === 'arena' || fs === 'pasada') return;   // ya entro al climax
+      if (fs === 'momentum' || fs === 'arena' || fs === 'pasada') {
+        // FUNDIDO CORTO AL CRUZAR AL CLIMAX (playtest 16/8). RF-01 pedia CERO corte, y la fase se
+        // construyo y se midio asi — pero jugandolo, el autor pidio lo contrario y tiene razon: la
+        // camara SI cambia (el pasillo mira de costado, el climax mira adelante desde la cabina) y
+        // un cambio de camara sin ningun parpadeo no se lee como continuidad, se lee como un
+        // error. "Si cambias de camara MINIMAMENTE fade in - out."
+        // Es corto a proposito: avisa que cambio el mundo, no corta la accion.
+        fadeT = 0.55;
+        return;
+      }
       if (fs === 'objective') { finishObjective(); return; }
       if (fs && fs.death) { onDeath(fs.death); return; }
       // RF-01: con clímax PASADA, los spawns se cortan ENTRY_CLEAR_M antes del buque. El último

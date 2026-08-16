@@ -271,4 +271,122 @@ F0 → F1 → F2 → F3 → F4 → F5 → F6 → F7 → F8. F5 y F6 pueden inter
 > Anotar acá toda diferencia entre este spec y la realidad del código, con la decisión
 > tomada — y el baseline del feeltest al arrancar F0.
 
-- *(vacío)*
+### Baseline de `npm run feel` *(tomado ANTES de tocar nada, 16/8/2026)*
+
+Es el juez de §0.3 y §6.1: este spec no toca la física, así que estos números tienen que seguir
+idénticos en todas las fases. Todos ✓, cero ✗:
+
+| bloque | medición | valor |
+|---|---|---|
+| cabeceo | mantener ARRIBA / ABAJO desde nivelado | 0.50 / 0.50 |
+| energía | tras 4 s: trepando / picando | 144 / 152 (dif +9) |
+| roce | margen a spd 90 sin turbo / spd 280 con turbo | 0.85 / 0.10 |
+| roce | escapa del roce con gas | 0.40 s |
+| arena E1 | cabeceo alcanzable / morro pleno | 51.57° / 0.63 s |
+| arena E2 | vuelta completa banqueando / radio | 5.07 s / 86.95 m |
+| arena E3 | media vuelta guionada / guiñada | 1.08 s / 180.92° |
+| arena E3 | radio frenado · crucero · turbo | 43 · 87 · 134 m |
+| arena E1 | costo de trepar 4 s / freno sostenido | 33.59 / 68.73 m/s |
+| momentum | barra llena con 650 pts / lanzamiento | 1.00 / 3.02 s reales |
+
+Verificación rápida en cada fase: `npm run feel` no debe imprimir ningún `✗`.
+
+### 1. `seaH` se pasa POR REFERENCIA a los mundos 3D — la firma no se podía cambiar de un lado
+
+El spec (§3.1) pide mover `seaH` a `core/sea.js` cambiándole la firma a `seaH(wx, wz, t)` y que
+`world.js` la llame con `run.t`. **La realidad tenía un tercer usuario que el spec no lista**:
+`game.js` pasa la función por referencia a los dos mundos 3D —
+`world3D.frame({ ..., seaH: world.seaH })` — y allá se la invoca con **dos** argumentos
+(`three-arena.js:193`, `three-world.js:329` y `:352`). Cambiarle la firma en el lugar equivocado
+les habría dejado `t` en `undefined`: el mar 3D plano y en silencio, sin romper ninguna prueba.
+
+**Decisión:** `core/sea.js` exporta la función pura de tres argumentos (que es lo que necesitan la
+colisión y los tests), y `render/world.js` conserva `seaH(wx, wz)` como **envoltorio de una línea**
+que le pone `run.t`. Los tres usuarios siguen andando sin tocarlos, y el día que el 3D quiera el
+tiempo explícito (F8) el cambio es local a él.
+
+### 2. Las perillas de §2 entraron enteras en F0, incluidas las de fases futuras
+
+`SEA_FOAM_TH`, `SEA_WIND_AMP` y `SUN_GLINT_HALF` son de F2 y F6 pero el spec las pide en el bloque
+de F0, así que están puestas y **todavía sin usar**. Es deliberado y no deuda: el bloque de perillas
+se lee de una vez y con sus valores finales, que es como se ajusta a ojo.
+
+### 3. La ola NO se puede ver desde `SPAWN_Z` — el mecanismo lo prohíbe
+
+§5.F1 y §6.2 piden que toda ola se vea desde `SPAWN_Z` (320). **No es posible**, y el motivo es
+justamente la tesis del plan: la ola *es* el campo de altura, y el campo de puntos del mar se
+dibuja hasta **190** (`farZ` de `drawSeaDots`, ahora la constante `SEA_FAR_Z`). Donde no hay puntos
+no hay nada que levantar. Mostrarla más lejos exigiría un sprite — que es exactamente lo que §6.2
+prohíbe — o estirar el campo entero, que es un costo que paga todo el juego para un caso raro.
+
+**Decisión:** la ventana de olas se ató a `SEA_FAR_Z` (antes era un `140` suelto) y la ola se ve en
+cuanto hay agua dibujada. A velocidad de crucero eso da **~1,9 s de aviso**. Si en playtest resulta
+corto, las palancas son `OLA_SPD` (menos velocidad propia) o sembrarla más lejos, **no** el render.
+
+### 4. El bug que las pruebas no veían: la ola aparecía DE GOLPE a 158 m
+
+La primera versión de `juntarOlas` usaba una ventana de `OLA_WZ*3 + 140` = 158 m — un número puesto
+pensando en el costo del `exp()` por punto. El fixture daba verde igual (la colisión y el salto no
+dependen de cuándo se dibuja) y a ojo tampoco se notaba, porque **medir el brillo del cuadro
+devuelve el horizonte**, que es lo más claro de la pantalla pase lo que pase.
+
+Se encontró midiendo la **posición proyectada de la cresta** (`vista` en `__seadbg`): la ola
+materializándose a 158 m dejaba 1,4 s de reacción. Medido después del arreglo, el alto aparente de
+la cresta crece 2,9 px (139 m) → 6,9 px (59 m) → 20,2 px (20 m): **crece, casi no baja**, que es lo
+correcto para una marejada de 3 m vista desde el ras. Lo que la hace legible de lejos es la
+ESPUMA, no la silueta — por eso su umbral no depende de la distancia como el destello normal.
+
+### 5. Sondas de F1 *(marcadas QUITAR en `systems/spawn.js`)*
+
+| sonda | para qué | por qué hizo falta |
+|---|---|---|
+| `__ola(tipo)` | siembra una ola salteando clima y GAP | por las buenas es un sorteo del 4%: la prueba mediría paciencia |
+| `__seadbg()` | ola más cercana, **su posición proyectada**, altura, roce y clima | el `vista` es lo que encontró la divergencia 4 |
+| `__seaclima(c)` | fija el clima resuelto | probar "en calma no hay olas" exigiría arrancar otra misión |
+| `__seaput(y,x)` | coloca el avión en altura/carril | la ventana de "a la altura exacta de la cresta" dura décimas |
+| `__seaclear()` | barre todo lo que no sea ola | saltar la ola te sube a la altura de globos y helos: sin esto, "saltó y se murió" acusaba al inocente |
+| `__olaOk()` | contesta la guarda de siembra | es lo único que `__ola` no ejercita, porque la saltea a propósito |
+
+### 6. `SEA_FAR_Z` se extrajo como constante exportada de `render/world.js`
+
+Era el literal `farZ = 190` adentro de `drawSeaDots`. Ahora tiene nombre porque **la ventana de las
+olas tiene que coincidir con él**, y dos números iguales en dos archivos distintos es la forma
+clásica de que uno cambie y el otro no.
+
+### 7. Las olas VARÍAN de altura, y la variación es por tipo *(pedido del autor, 16/8)*
+
+Al ver F1 andando el autor pidió: *"las olas deben ser más altas algunas y variar altura"*. `OLA_H`
+era un valor fijo por tipo, así que todas las marejadas salían idénticas a 3.0.
+
+**Decisión:** `OLA_H` pasa a ser la altura **base** y cada ola sortea un factor. El sorteo va **al
+cuadrado**, no plano: la mayoría sale modesta y las grandes son la excepción — con reparto plano
+todas quedan medianas y ninguna sorprende, que es justo lo que se venía a arreglar. Medido sobre 60
+siembras: rango **2,4 – 5,8**, mediana ~3,5, y **~20 % pasa la banda del ×10 (4,5)**. Ese umbral no
+es decorativo: una ola de 3 se salta sin salir de la banda del multiplicador, una de 5 te obliga a
+irte arriba unos segundos. El factor alto no es "más difícil": es el impuesto de volar a ras.
+
+**Y la variación es POR TIPO, no una sola.** Con un rango único y ancho la marejada trepaba a 5,8 —
+más alta que la base de la ROMPIENTE (5,0)— y la rompiente habría llegado a 9,7, más que una
+REBELDE: los tres tipos dejarían de significar algo antes de existir. Cada uno tiene su banda
+(`OLA_H_VAR`): la marejada varía mucho (es la común, y es donde la variedad se nota), la rompiente
+poco (su identidad es ser parcial y romperse, no la altura) y la rebelde casi nada (es EL evento del
+temporal, y un evento chico no es un evento).
+
+De yapa, el **espesor en z acompaña a la altura** por la raíz del factor (`OLA_WZ_VAR`): una ola más
+alta es también más larga, que es como crece una ola de verdad. Sin eso, las grandes se leían como
+una pared flaca. Y los umbrales de cresta y de cara del render pasaron a ser **relativos a la altura
+de cada ola**: con un umbral fijo, una ola chica salía pintada de espuma casi entera y una grande
+casi nada.
+
+### 8. Dos pruebas del fixture eran inestables por construcción — arregladas
+
+Aparecieron al correr `npm run agua` varias veces seguidas, no en la primera pasada. Van anotadas
+porque una prueba que falla al azar no protege nada: enseña a ignorarla.
+
+1. **El reparto de alturas.** La banda de aceptación era 10–35 % de olas grandes, y con ~22 %
+   esperado en 60 tiradas eso se pone rojo solo cada varias corridas. Se abrió a 5–45 % —lo que se
+   quiere afirmar es "existen y no son la mayoría", cierto en todo ese rango— y la mediana se
+   compara contra el medio del rango **teórico**, no el de la muestra, que se movía con el azar.
+2. **El salto.** La prueba subía a 15 m con el gas clavado; el avión cambia altura por velocidad, la
+   ola tardaba mucho más en cruzar y a veces se acababa el tiempo de la prueba. Ahora sostiene la
+   altura con toques y espera más — que además es el gesto real, saltar y volver.

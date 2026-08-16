@@ -1,5 +1,11 @@
 # SPEC — Modo PASADA · Análisis funcional para implementación
 
+> ⚠️ **RESCATE PRIMERO (16/8, playtest del autor):** el modo construido hasta P3+P6 no
+> genera adrenalina y tiene dos defectos graves medidos (el Sea Dart mata sin lectura; la
+> transición teletransporta al buque). **Antes de P4/P7 corre el plan de rescate:
+> [PASADA_ADRENALINA.md](PASADA_ADRENALINA.md)** — con su gate final: si tras el rescate
+> el playtest no cambia, la PASADA se archiva.
+>
 > **Audiencia de este documento: una IA implementadora trabajando sobre el código del
 > juego, en una sesión nueva y sin el chat donde se decidió esto.** Define QUÉ construir
 > para el modo PASADA — el clímax de una sola pasada contra el buque — con requerimientos

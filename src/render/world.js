@@ -12,8 +12,11 @@ import { run } from '../core/run.js';
 import { wake, obstacles, soldiers } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { hzWorld, tiltFade } from '../core/horizon.js';
+// EL MAR VIVE EN core/sea.js — puro, sin canvas ni stores — porque la colision de las olas tiene
+// que evaluar la MISMA superficie que se dibuja, y un sistema no puede importar del render.
+import { seaH as seaBase, olaBump } from '../core/sea.js';
 import { P, LAND, CLAND } from '../data/palette.js';
-import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX } from '../data/tuning.js';
+import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
 import { inBank, fogVis, fogTop } from '../systems/fog.js';
@@ -95,13 +98,14 @@ const SEA_ALPHA2D = 0.6;
 // campo de altura de la superficie para la malla de puntos (ondas superpuestas). Es del RENDER
 // del mar; el vuelo tiene su propio nivel de ola para el roce (waveNow, en systems/flight.js).
 // campo de altura de la superficie para la malla de puntos (ondas superpuestas)
-export function seaH(wx, wz) {
-  return 1.0
-    + Math.sin(wz * 0.035 - run.t * 1.1) * 0.9           // marejada larga que rueda hacia la cámara
-    + Math.sin(wz * 0.22 + run.t * 2.2) * 0.65
-    + Math.sin(wz * 0.09 - run.t * 1.5 + wx * 0.15) * 0.5
-    + Math.sin(wx * 0.30 + wz * 0.05 + run.t * 1.9) * 0.35;
-}
+/** El campo de altura del mar, ya en `core/sea.js` — acá queda el ENVOLTORIO que le pone el reloj.
+ *
+ *  Se mudó porque la colisión de las olas tiene que evaluar la MISMA superficie que el render, y
+ *  un sistema no puede importar del render. Este envoltorio existe (en vez de exportar la de core
+ *  directamente) porque `world.seaH` se pasa POR REFERENCIA a los mundos 3D —
+ *  `world3D.frame({ seaH: world.seaH })` — y allá se la llama con dos argumentos: cambiarle la
+ *  firma en el lugar equivocado los dejaba con `t` undefined y el mar 3D plano. Ver SPEC §9.1. */
+export const seaH = (wx, wz) => seaBase(wx, wz, run.t);
 
 // paso en pixeles con el que se recorre la fila en la franja de orilla del puerto. 3px basta:
 // la orilla es una curva suave y a menos de eso solo se gastan evaluaciones de seno.
@@ -435,9 +439,35 @@ function drawLand(coastMode) {
 }
 
 // malla de puntos que forma la onda del mar en perspectiva (estilo boostivity)
+// LAS OLAS VIVAS DEL CUADRO. Se arma UNA vez por frame y se pasa entera al muestreo de puntos:
+// filtrar `obstacles` adentro del loop seria hacerlo miles de veces por cuadro (SPEC_AGUA_OLAS
+// §6.5). Se reusa el mismo array siempre — cero allocations por cuadro, que es la otra mitad de
+// la misma regla.
+// HASTA DONDE LLEGA EL MAR DIBUJADO. Era un literal adentro de drawSeaDots; ahora es una constante
+// con nombre porque la ventana de las olas TIENE que coincidir con el (ver juntarOlas).
+export const SEA_FAR_Z = 190;
+const olasVivas = [];
+function juntarOlas(dv) {
+  olasVivas.length = 0;
+  for (const o of obstacles) {
+    // VENTANA EN Z: la gaussiana no aporta un pixel mas alla de 3 sigmas, y evaluarla igual seria
+    // pagar un exp() por punto por cada ola del mundo.
+    //
+    // OJO CON ESTE NUMERO, que es de JUSTICIA y no de rendimiento: si la ventana es mas corta que
+    // el campo de puntos, la ola aparece DE GOLPE a esa distancia — medido, con 158 se materializaba
+    // encima y el jugador tenia 1,4 s. Tiene que cubrir todo el mar que se dibuja (SEA_FAR_Z) mas
+    // la cola de la gaussiana. Mas lejos no se puede: la ola ES el campo de altura, y donde no hay
+    // puntos no hay nada que levantar.
+    if (o.type === 'ola' && o.z < SEA_FAR_Z + OLA_WZ * 3 && o.z > -OLA_WZ * 3) olasVivas.push(o);
+  }
+  return olasVivas;
+}
+
 function drawSeaDots(landVisible, coastMode) {
-  const SPX = 0.93, SPZ = 1.0, farZ = 190;  // densidad x4, y ademas /U al subir la resolucion
+  const SPX = 0.93, SPZ = 1.0, farZ = SEA_FAR_Z;  // densidad x4, y ademas /U al subir la resolucion
   const dv = run.dist + momentum.drift();
+  const olas = juntarOlas(dv);
+  const clima = cfg.seaClima || 'calm';
   const startZ = Math.ceil((dv + 4) / SPZ) * SPZ;
   // paso ADAPTATIVO: cerca muestrea a SPZ/SPX plenos; lejos el paso crece para mantener
   // ~1px de separacion en pantalla (los puntos subpixel no se ven y este loop corre
@@ -463,7 +493,20 @@ function drawSeaDots(landVisible, coastMode) {
     const portRow2 = landVisible && wz < cfg.coast + PORT_AMP + PORT_FOAM;
     for (let wx = x0; wx < xR; wx += sx3) {
       if (portRow2 && wz < cfg.coast + portJut(wx) + PORT_FOAM) continue;
-      const h = seaH(wx, wz);
+      // LA OLA NO ES UN SPRITE: los puntos del mar SE LEVANTAN solos donde pasa el bulto, con la
+      // misma funcion contra la que resuelve la colision. Sin olas vivas esto es el mar de siempre.
+      const hBase = seaBase(wx, wz, run.t);
+      let hOla = 0, olaDom = null, aporteDom = 0;
+      for (let i = 0; i < olas.length; i++) {
+        const o = olas[i];
+        const a = olaBump(o, wx - o.x, dv + o.z - wz);
+        hOla += a;
+        // se guarda la ola que MAS aporta en este punto: los umbrales de cresta y de cara son
+        // relativos a SU altura, no a una constante — desde que las olas varian de altura, un
+        // umbral fijo pintaba de espuma casi toda una ola chica y casi nada de una grande
+        if (a > aporteDom) { aporteDom = a; olaDom = o; }
+      }
+      const h = hBase + hOla;
       const s = proj(wx, h, camZ);
       if (s.x < -4 || s.x > W + 4 || s.y < HOR - 2) continue;
       let hn = (h + 1.4) / 4.8;                              // altura normalizada ~0..1
@@ -471,12 +514,30 @@ function drawSeaDots(landVisible, coastMode) {
       // bandas de luz que viajan por la superficie (movimiento visible aun en la distancia)
       const shimmer = Math.sin(wz * 0.06 - run.t * 2.6 + wx * 0.045);
       if (shimmer > 0.6) hn = Math.min(1, hn + 0.24);
-      const col = hn > 0.72 ? theme.water.crest : hn > 0.42 ? theme.water.mid : theme.water.deep;
+      let col = hn > 0.72 ? theme.water.crest : hn > 0.42 ? theme.water.mid : theme.water.deep;
+      // LA OLA SE TIENE QUE LEER COMO UNA PARED QUE VIENE, no como textura mas brillante. Dos
+      // cosas la separan del mar: la CRESTA se pinta con el color de cresta pase lo que pase con
+      // la altura normalizada, y la CARA —el lado que mira a la camara— se oscurece. Ese contraste
+      // es lo que la hace visible desde SPAWN_Z, que es el requisito de justicia del plan.
+      let olaAqui = 0;
+      if (olaDom && aporteDom > 0.12) {
+        const cara = (dv + olaDom.z - wz) < 0;                 // el frente, del lado de la camara
+        olaAqui = aporteDom / olaDom.h;                        // 0..1 sobre SU propia altura
+        if (olaAqui > 0.6) { col = theme.water.crest; hn = 1; }
+        else if (cara) col = theme.water.deep;
+      }
       // OPACIDAD por cuadrado = SEA_ALPHA2D (perilla global, 0.5) x fade (entrada 3..12u y
       // caida por lejania) x altura de ola: 0.25 de piso en el valle + hasta 0.6 por la
       // cresta (hn 0..1) + 0.15 si lo cruza una banda de luz → rango 12%..50%
       ctx.globalAlpha = SEA_ALPHA2D * fade * (0.25 + hn * 0.6 + (shimmer > 0.6 ? 0.15 : 0));
       px(s.x - dotW / 2, s.y, dotW, dotW, col);
+      // ESPUMA DE LA OLA: motas extra sobre el lomo. Determinista por celda (trampa §1.3 — con
+      // Math.random() por cuadro esto seria un hervidero que titila), y sin depender de `k`: la
+      // ola tiene que verse de LEJOS, que es justamente donde el destello normal no se dibuja.
+      if (olaAqui > 0.42 && Math.sin(wx * 5.3 + wz * 3.1) > -0.15) {
+        ctx.globalAlpha = SEA_ALPHA2D * fade * 1.35;
+        px(s.x - dotW / 2 - 1, s.y - 1, dotW + 2, Math.max(1, dotW * 0.8), theme.water.spark);
+      }
       // destello en las crestas cercanas (titileo determinista, sin flicker feo)
       if (hn > 0.78 && k > 1.6 && Math.sin(wx * 12.9 + wz * 7.3 + run.t * 6) > 0.7) {
         ctx.globalAlpha = SEA_ALPHA2D * fade * 0.55;   // destello de cresta, tambien bajo la perilla

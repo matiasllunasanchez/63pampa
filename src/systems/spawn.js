@@ -10,7 +10,13 @@
 import { cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { obstacles, soldiers } from '../core/world.js';
-import { SPAWN_X, SPAWN_Z, SHORE_X, shoreAt, SAND_W, AA_CD, ENEMY_HP, spawnY, SHIP_H,
+import { OLA_H, OLA_RATE, OLA_GAP_MIN, OLA_H_VAR, OLA_WZ, OLA_WZ_VAR } from '../data/tuning.js';
+import { inBank } from './fog.js';
+import { plane } from '../core/state.js';
+import { scrapeLimit } from '../core/physics.js';
+import { olaBump } from '../core/sea.js';
+import { proj } from '../core/fx.js';
+import { SPAWN_X, SPAWN_DENS, SPAWN_Z, SHORE_X, shoreAt, SAND_W, AA_CD, ENEMY_HP, spawnY, SHIP_H,
          CLIFF_H0, CLIFF_H1, CLIFF_HW0, CLIFF_HW1, CLIFF_COAST_BAND, VEIL_STOP } from '../data/tuning.js';
 
 /** Vida inicial de un enemigo. `hpMax` queda fijo para que la barra pueda dibujar la fraccion
@@ -77,6 +83,47 @@ function squad(x, z, n, coast) {
 // se consulta shoreAt() a la profundidad de spawn (SPAWN_Z) — la misma fuente que render y vuelo.
 const spawnShore = () => shoreAt(run.dist + SPAWN_Z);
 const landLane = () => { const sh = spawnShore(); return -SPAWN_X + Math.random() * Math.max(8, SPAWN_X + sh - SAND_W - 3); };
+/** ¿Se puede sembrar una ola AHORA? Tres candados, y los tres son de justicia:
+ *   · nunca dos juntas (OLA_GAP_MIN) — el mar no es un peine
+ *   · maximo dos vivas (§6.4) — con tres, esquivar deja de ser una decision y pasa a ser suerte
+ *   · JAMAS dentro del banco de niebla (§6.3): ahi ya se juega a otra cosa y una ola invisible es
+ *     una muerte injusta. Es la regla "no matar sin telegrafo", aplicada.
+ */
+function olaOk() {
+  if (inBank()) return false;
+  let n = 0;
+  for (const o of obstacles) {
+    if (o.type !== 'ola') continue;
+    if (++n >= 2) return false;
+    if (Math.abs(o.z - SPAWN_Z) < OLA_GAP_MIN) return false;
+  }
+  return true;
+}
+
+/** Siembra una ola. `kind` decide altura; la MAREJADA es de ancho completo y la mitad de las
+ *  veces trae BRECHA — un hueco por el que se puede pasar sin saltar, para que la respuesta no
+ *  sea siempre la misma tecla. */
+export function spawnOla(kind, hFijo) {
+  // ALTURA SORTEADA CON SESGO (ver OLA_H_VAR): t al cuadrado tira el reparto hacia abajo, asi que
+  // lo normal es una ola modesta y de vez en cuando viene una que hay que tomarse en serio.
+  const t = Math.random();
+  const v = OLA_H_VAR[kind] || OLA_H_VAR.marejada;
+  const f = v.lo + t * t * (v.hi - v.lo);
+  const h = hFijo || OLA_H[kind] * f;
+  const o = {
+    type: 'ola', kind, h, x: 0, z: SPAWN_Z, done: false, ph: Math.random() * 6,
+    // el espesor acompaña a la altura por la RAIZ del factor: crece, pero menos que la altura —
+    // una ola el doble de alta no es el doble de larga
+    wz: OLA_WZ * (1 + (h / OLA_H[kind] - 1) * OLA_WZ_VAR),
+  };
+  if (kind === 'marejada' && Math.random() < 0.5) {
+    o.gapX = (Math.random() * SPAWN_X * 2 - SPAWN_X);
+    o.gapW = 9;
+  }
+  obstacles.push(o);
+  return o;
+}
+
 const waterLane = () => { const sh = spawnShore(); return sh + 3 + Math.random() * Math.max(4, SPAWN_X - sh - 3); };
 
 /** ACANTILADO: una masa de roca que sale del terreno. Cada uno sale distinto — altura sorteada
@@ -159,6 +206,15 @@ function spawn() {
     return;
   }
 
+  // LAS OLAS (SPEC_AGUA_OLAS F1). Van ANTES del sorteo de siempre y con `return`: una ola no
+  // comparte cuadro con una fragata — el mar tiene que quedar despejado para leerla venir.
+  //
+  // Por que aca y no en el sorteo `r`: la frecuencia de la ola es del CLIMA, no de la mezcla del
+  // mapa. En m1 (sin viento) OLA_RATE.calm es 0 y no sale jamas; en tormenta sale seguido. Meterla
+  // en el reparto de porcentajes le habria robado densidad a los enemigos segun el clima, que es
+  // una consecuencia que nadie pidio.
+  if (olaOk() && Math.random() < OLA_RATE[cfg.seaClima || 'calm']) { spawnOla('marejada'); return; }
+
   // MAR ABIERTO: fragatas y trafico aereo.
   //
   // La MEZCLA cambio al sacarle el palo a la fragata. Antes el mastil (34%) era una aguja de
@@ -192,7 +248,7 @@ export function spawnSystem(dt, objectiveDist) {
   if (cfg.obstacles > 0 && run.nextSpawn <= 0) {
     spawn();
     const dens = cfg.terrain === 'coast' ? 0.65 : 1;
-    run.nextSpawn = Math.max(34, (52 + Math.random() * 42) - run.t * 0.8) * dens / cfg.obstacles;
+    run.nextSpawn = Math.max(34, (52 + Math.random() * 42) - run.t * 0.8) * dens * SPAWN_DENS / cfg.obstacles;
   }
 
   // BOMBARDEO (cualquier mapa, cfg.bombs lo regula desde el menu [M]): bombas que caen del
@@ -221,3 +277,64 @@ export function spawnSystem(dt, objectiveDist) {
     }
   }
 }
+
+// SONDAS de desarrollo (SPEC_AGUA_OLAS §4) — QUITAR al cerrar el agua.
+// __ola: inyecta una ola a SPAWN_Z SALTEANDO el clima y el GAP. Existe porque probar la mecanica
+// por las buenas es esperar un sorteo del 4% mientras volas: la ola tardaria minutos en salir y la
+// prueba mediria paciencia, no juego.
+if (typeof window !== 'undefined') window.__ola = (tipo, alto) => {
+  const o = spawnOla(OLA_H[tipo] !== undefined ? tipo : 'marejada', alto);
+  return JSON.stringify({ kind: o.kind, z: o.z | 0, h: +o.h.toFixed(2), wz: +o.wz.toFixed(1), brecha: o.gapW ? (o.gapX | 0) : null });
+};
+// __seaclima: fija el clima del mar resuelto. No es comodidad: el clima sale del cfg de la mision,
+// y para probar "en calma no hay olas" habria que arrancar una mision distinta y volar hasta el
+// mar — con esto la misma corrida sirve para las dos mitades de la regla.
+if (typeof window !== 'undefined') window.__seaclima = c => {
+  cfg.seaClima = c === 'storm' || c === 'breeze' ? c : 'calm';
+  return cfg.seaClima;
+};
+// __seaput: coloca el avion en altura (y carril). Es el equivalente de __pset de la PASADA y
+// existe por lo mismo: la ventana en la que el avion esta EXACTAMENTE a la altura de la cresta
+// dura decimas de segundo, y un ida y vuelta de sondeo ya la deja atras.
+if (typeof window !== 'undefined') window.__seaput = (y, x) => {
+  plane.y = y;
+  if (x !== undefined) plane.x = x;
+  plane.vy = 0;
+  return JSON.stringify({ y: plane.y, x: plane.x });
+};
+// __seaclear: barre TODO lo que no sea ola. El mar de POR LA PATRIA trae fragatas, globos, helos y
+// cazas, y saltar una ola te sube justo a la altura donde vuelan: sin esto, "se salto la ola y se
+// murio" no distingue entre la ola y un globo de barrera, y la prueba acusaria al inocente.
+if (typeof window !== 'undefined') window.__seaclear = () => {
+  for (let i = obstacles.length - 1; i >= 0; i--) if (obstacles[i].type !== 'ola') obstacles.splice(i, 1);
+  return obstacles.length;
+};
+// __olaOk: contesta la GUARDA de siembra (distancia minima, tope de olas vivas, niebla). Es lo
+// unico que __ola no ejercita, justamente porque la saltea a proposito.
+if (typeof window !== 'undefined') window.__olaOk = () => String(olaOk());
+// __seadbg: el estado del mar en una linea — la ola viva mas cercana, la altura del avion, el
+// margen de roce gastado y el clima resuelto.
+if (typeof window !== 'undefined') window.__seadbg = () => {
+  let cerca = null;
+  for (const o of obstacles) {
+    if (o.type !== 'ola') continue;
+    if (!cerca || o.z < cerca.z) cerca = o;
+  }
+  // DONDE SE VE la cresta, en pixeles: es lo que decide si la ola se TELEGRAFIA. Un numero de z
+  // no contesta esa pregunta —una ola puede estar cerca y no verse— y a ojo tampoco: medir el
+  // brillo del cuadro devuelve el horizonte, que es lo mas claro de la pantalla pase lo que pase.
+  let vista = null;
+  if (cerca) {
+    const base = proj(plane.x, 0, cerca.z);
+    const cima = proj(plane.x, olaBump(cerca, plane.x - cerca.x, 0), cerca.z);
+    vista = { y: +cima.y.toFixed(1), alto: +(base.y - cima.y).toFixed(1) };
+  }
+  return JSON.stringify({
+    ola: cerca ? { tipo: cerca.kind, z: +cerca.z.toFixed(1), h: +cerca.h.toFixed(2), brecha: cerca.gapW ? +cerca.gapX.toFixed(1) : null } : null,
+    vista,
+    olas: obstacles.filter(o => o.type === 'ola').length,
+    y: +plane.y.toFixed(2), x: +plane.x.toFixed(1),
+    scrapeT: +run.scrapeT.toFixed(3), limite: +scrapeLimit(run.spd, run.boost).toFixed(3),
+    clima: cfg.seaClima || 'calm', niebla: inBank(), spd: run.spd | 0,
+  });
+};

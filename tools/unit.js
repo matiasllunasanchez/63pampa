@@ -540,3 +540,37 @@ test('climax: la campaña respeta la regla del autor — la mayoria PASADA, el A
   assert.deepEqual(arena.map(m => m.id), ['m4', 'm12'], 'el callejon de San Carlos y el final');
   assert.equal(MISSIONS.filter(m => m.goal.kind !== 'ship').every(m => climaxOf(m) === null), true);
 });
+
+// ---------- EL CARRIL CUBRE LA ZONA DE VUELO (bug del 16/8: la punta era refugio) ----------
+import { FLY_X, SPAWN_X, SPAWN_EDGE, SPAWN_X0, SPAWN_DENS } from '../src/data/tuning.js';
+import { hitbox, planeBox } from '../src/core/hitbox.js';
+
+test('carril: no existe una punta del pasillo donde no te pueda tocar nada', () => {
+  // EL BUG, reportado jugando: "si me pongo BIEN EN LA PUNTA del pasillo, paso todo sin
+  // colisionar". Era exacto — FLY_X 38 contra SPAWN_X 33 dejaba 5 unidades a cada lado donde no
+  // nacia nada, y un obstaculo del carril mas externo no llegaba a tocarte. Medido en el juego:
+  // en el centro morias a los 15-18 s sin esquivar; en la punta sobrevivias indefinidamente.
+  //
+  // Esta prueba es PURA y por eso vale mas que volar 26 segundos: la geometria no tiene varianza.
+  // El obstaculo mas ANGOSTO es el que manda — si ese llega, llegan todos.
+  const { pw } = planeBox(false);
+  const angosto = Math.min(
+    hitbox({ type: 'helo', y: 8 }).hw,     // aereo
+    hitbox({ type: 'mast', h: 6 }).hw,     // de superficie
+  );
+  const alcance = angosto + pw;
+  assert.ok(SPAWN_X >= FLY_X,
+    `el carril (${SPAWN_X}) tiene que llegar al menos hasta el limite de vuelo (${FLY_X})`);
+  // y con margen: si el carril terminara JUSTO en FLY_X, el borde veria la mitad de obstaculos que
+  // el centro (de un lado no hay de donde vengan) y volar pegado a la pared seguiria siendo barato
+  assert.ok(SPAWN_EDGE >= alcance - 1,
+    `el margen del carril (${SPAWN_EDGE}) tiene que cubrir el alcance del obstaculo mas angosto (${alcance})`);
+});
+
+test('carril: ensancharlo NO cambia la dificultad del medio', () => {
+  // El caudal de obstaculos se mide por DISTANCIA, no por ancho: repartir los mismos en un carril
+  // mas ancho baja la densidad que el jugador siente. Arreglar un exploit no puede volver el juego
+  // mas facil de rebote, asi que la cadencia se compensa en la MISMA proporcion.
+  assert.ok(Math.abs(SPAWN_DENS - SPAWN_X0 / SPAWN_X) < 1e-9, 'la compensacion sale de la geometria, no de un numero a ojo');
+  assert.ok(SPAWN_DENS < 1, 'el carril se ensancho, asi que se siembra mas seguido');
+});

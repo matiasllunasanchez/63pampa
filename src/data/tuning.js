@@ -8,7 +8,29 @@
 // ENERGY_* en core/physics.js). SPAWN_X acompaña a FLY_X: si los obstaculos nacieran mas angostos
 // que la zona de vuelo, bastaria irse al costado para esquivarlos todos. Compartidas por el vuelo
 // (limites del avion) y el spawn (ancho del carril de obstaculos).
-export const FLY_X = 38, FLY_TOP = 68, SPAWN_X = 33;
+//
+// ESO ES EXACTAMENTE LO QUE PASABA, y el comentario de arriba lo venia prediciendo desde antes de
+// que ocurriera: con SPAWN_X = 33 contra FLY_X = 38 quedaba una franja de 5 unidades a cada lado
+// donde no nacia NADA. Un obstaculo de tierra alcanza 4,7 (semi-ancho 2,6 + semi-envergadura 2,1)
+// y uno aereo 5,1, asi que desde el borde no llegaban a tocarte ni naciendo en el carril extremo.
+// Medido: en el centro morís a los 6-15 s sin esquivar; pegado a la punta sobrevivías 26 s sin
+// tocar una tecla. Era el pasillo entero resuelto quedandose quieto en una esquina.
+//
+// SPAWN_X pasa a ser FLY_X + SPAWN_EDGE. El margen extra NO es adorno: sin el, el borde igual
+// queda a MITAD de densidad que el centro —de un lado no hay de donde venir— y volar pegado a la
+// pared seguiria siendo la jugada barata. Sembrando un poco mas afuera, el borde ve la misma
+// cantidad de obstaculos que el medio y la esquina deja de ser refugio.
+export const FLY_X = 38, FLY_TOP = 68;
+export const SPAWN_EDGE = 6;              // ~el alcance de un obstaculo aereo (3 + 2,1 del avion)
+export const SPAWN_X = FLY_X + SPAWN_EDGE;
+// EL CARRIL SE ENSANCHO, ASI QUE LA CADENCIA SE COMPENSA. El caudal de obstaculos se mide por
+// DISTANCIA, no por ancho: repartir los mismos obstaculos en un carril mas ancho baja la densidad
+// que el jugador siente (medido: 66 → 88 de ancho es 25% menos de probabilidad de cruzarse uno).
+// Arreglar un exploit no puede volver el juego mas facil de rebote, asi que el intervalo se acorta
+// en la misma proporcion. `SPAWN_X0` es el ancho HISTORICO y esta solo para eso — es la referencia
+// contra la que se mantiene la dificultad de siempre.
+export const SPAWN_X0 = 33;
+export const SPAWN_DENS = SPAWN_X0 / SPAWN_X;   // 0.75: se siembra 1,33x mas seguido
 
 // PROFUNDIDAD DE APARICION: a que z nace todo lo que viene del horizonte (systems/spawn.js). Es
 // el ALCANCE DE VISION del juego — mas lejos = mas tiempo para reaccionar, porque el mundo viene
@@ -241,3 +263,51 @@ export const REATTACK_MAX = 6;      // intentos maximos sobre un mismo blanco
 export const TEMPO_SCALE = 0.35;    // el mundo a ~1/3: se nota de verdad, no un slow-mo timido
 export const TEMPO_DUR = 3;         // s reales que dura el lanzamiento con la barra llena
 export const TEMPO_CHARGE = 650;    // puntos que llenan la barra (subido de 500: que se gane, no que sobre)
+
+// ---------- EL AGUA Y LAS OLAS ----------
+// Plan y porque: docs/sistemas/PLAN_AGUA_OLAS.md · ejecucion por fases: SPEC_AGUA_OLAS.md.
+// La tesis, en una linea: la ola NO es un sprite pegado sobre el mar, es el mismo campo de altura
+// (core/sea.js). El render levanta sus puntos con el y la colision se resuelve contra el mismo
+// bulto — lo que ves es lo que te mata.
+//
+// QUE APORTA AL JUEGO: casi todo el PASILLO se esquiva de costado; la ola obliga el gesto
+// VERTICAL — un toque de gas y volver abajo. Es el mismo gesto del salto de la PASADA, o sea que
+// las olas son su tutorial repartido por la campaña. Y son el impuesto de la banda del x10: el mar
+// te paga por volar ahi abajo, y cada tanto te lo cobra.
+
+// olas-obstaculo
+export const OLA_H = { marejada: 3.0, rompiente: 5.0, rebelde: 8.0 };  // altura de cresta BASE
+// VARIACION DE ALTURA (pedido del autor, 16/8): "las olas deben ser mas altas algunas y variar
+// altura". Cada ola sortea un factor sobre su altura base, y el sorteo va AL CUADRADO: la mayoria
+// sale chica y las grandes son la excepcion. Es lo que hace que una grande se SIENTA grande — con
+// reparto plano, todas quedan medianas y ninguna sorprende.
+//
+// Por que importan estos dos numeros y no son decoracion: la banda del x10 termina en 4.5. Una ola
+// de 3 se salta sin salir de la banda; una de 5 te obliga a irte ARRIBA del multiplicador unos
+// segundos. O sea que el factor alto no es "mas dificil", es el impuesto de volar a ras — que es
+// exactamente lo que las olas vienen a cobrar.
+// Y ES POR TIPO, no uno solo para todas. Con un rango unico y ancho, la marejada trepaba a 5.8 —
+// mas alta que la base de la ROMPIENTE (5.0)— y la rompiente habria llegado a 9.7, mas que una
+// REBELDE. Los tres tipos dejarian de significar algo. Asi cada uno tiene su banda:
+//   marejada  varia MUCHO: es la comun, y es donde la variedad se nota
+//   rompiente  varia poco: su identidad no es la altura sino que es PARCIAL y que se rompe (F4)
+//   rebelde    casi no varia: es EL evento del temporal, y un evento chico no es un evento (F7)
+export const OLA_H_VAR = {
+  marejada: { lo: 0.8, hi: 1.95 },     // 2.4 .. 5.9
+  rompiente: { lo: 0.85, hi: 1.3 },    // 4.3 .. 6.5
+  rebelde: { lo: 0.95, hi: 1.15 },     // 7.6 .. 9.2
+};
+// una ola mas alta es tambien mas LARGA: el espesor en z acompaña a la altura (a la raiz, que es
+// como crece una ola de verdad). Sin esto, las grandes se leen como una pared flaca y falsa.
+export const OLA_WZ_VAR = 0.55;
+export const OLA_WZ = 6;            // espesor del bulto en z (sigma de la gaussiana)
+export const OLA_SPD = 14;          // velocidad propia hacia el jugador (se suma a la relativa)
+export const OLA_GAP_MIN = 350;     // distancia minima entre olas vivas
+export const OLA_FACE_KILL = 0.55;  // fraccion de la altura que es cara letal; encima, cresta = roce
+export const OLA_SCRAPE_FRAC = 0.45;// cuanto margen de roce consume un cepillado de cresta
+export const OLA_RATE = { calm: 0, breeze: 0.04, storm: 0.12 };  // prob. en la rama de agua del spawn
+// espuma / viento (F2)
+export const SEA_FOAM_TH = { calm: 0.88, breeze: 0.78, storm: 0.62 };  // umbral de cresta con espuma
+export const SEA_WIND_AMP = 0.45;   // termino direccional de viento en seaH
+// camino del sol (F6)
+export const SUN_GLINT_HALF = 26;   // semiancho del cono de destellos (unidades de mundo en x)

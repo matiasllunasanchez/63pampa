@@ -46,23 +46,32 @@ export function drawPasada(w) {
   // Se dibuja como una PISTA — marcas separadas sobre el mar, no una linea — porque eso es lo que
   // es: por donde se entra. Se enciende cuando VENIS por ella, asi el acierto se ve antes de
   // soltar y no despues de errar. Salteando el casco, que ya se dibuja solo.
-  // DOS BORDES Y NO UNA LINEA. Sobre el eje exacto (z = 0) el pasillo cae justo debajo de tu
-  // trayectoria y se hunde entero en el punto de fuga: medido en captura, no se ve nada. Separados
-  // AXIS_W_M a cada lado, la perspectiva los hace CONVERGER hacia el buque — que es exactamente
-  // como se lee una pista desde el aire, y por eso no hay que explicarlo.
+  // NO SON DOS LINEAS. Lo fueron, y el autor las mando sacar en el playtest del 16/8: "hay 2 lineas
+  // a los costados en el piso, quitar; de ultima marcar con otra cosa, como bruma, y que solo sea
+  // un FOCO VISIBLE del piloto". Tenia razon — dos rayas sobre el mar se leen como una pista de
+  // aeropuerto, que es una cosa que en el Atlantico Sur no existe.
+  //
+  // Lo que quedo es un CARRIL DE AGUA MAS CLARA: la misma informacion (por aca se entra) dicha por
+  // el mar y no por una marca de HUD tirada al piso. Sin bordes, sin contorno: solo el agua un
+  // poco mas viva por donde conviene venir, y mas viva todavia cuando VENIS por ahi.
   {
-    ctx.strokeStyle = enEje ? P.accent : P.foam;
-    // fuera del eje NO se apaga casi del todo: es JUSTO cuando mas hace falta verlo. Se atenua lo
-    // suficiente para que encarado se note el premio, y nada mas.
-    ctx.globalAlpha = enEje ? 0.9 : 0.55;
-    ctx.lineWidth = 1;
+    ctx.fillStyle = enEje ? P.accent : P.foam;
     for (let d = 100; d <= PS.AXIS_LEN_M; d += PS.AXIS_STEP_M) {
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-        const a = world3D.project(sx * d, 2, sz * PS.AXIS_W_M);
-        const b = world3D.project(sx * (d + PS.AXIS_STEP_M * 0.55), 2, sz * PS.AXIS_W_M);
-        if (!a.vis || !b.vis) continue;
-        if (Math.max(a.x, b.x) < -40 || Math.min(a.x, b.x) > W + 40) continue;
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      for (const sx of [-1, 1]) {
+        const a0 = world3D.project(sx * d, 1, -PS.AXIS_W_M);
+        const a1 = world3D.project(sx * d, 1, PS.AXIS_W_M);
+        const b1 = world3D.project(sx * (d + PS.AXIS_STEP_M), 1, PS.AXIS_W_M);
+        const b0 = world3D.project(sx * (d + PS.AXIS_STEP_M), 1, -PS.AXIS_W_M);
+        if (!a0.vis || !a1.vis || !b0.vis || !b1.vis) continue;
+        if (Math.max(a0.x, a1.x, b0.x, b1.x) < -60 || Math.min(a0.x, a1.x, b0.x, b1.x) > W + 60) continue;
+        // los tramos LEJANOS se desvanecen: el carril nace cerca del buque y se va perdiendo en la
+        // bruma, que es lo que hace que se lea como agua y no como una senda pintada
+        const lej = Math.max(0, Math.min(1, 1 - d / PS.AXIS_LEN_M));
+        ctx.globalAlpha = (enEje ? 0.17 : 0.09) * (0.35 + lej * 0.65);
+        ctx.beginPath();
+        ctx.moveTo(a0.x, a0.y); ctx.lineTo(a1.x, a1.y);
+        ctx.lineTo(b1.x, b1.y); ctx.lineTo(b0.x, b0.y);
+        ctx.closePath(); ctx.fill();
       }
     }
     ctx.globalAlpha = 1;

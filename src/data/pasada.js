@@ -15,9 +15,30 @@ export const PS = {
   ZONE_R: 1600,          // radio de la zona con auto-retorno, el buque al centro (la correa del
                          // arena, pero mas ancha: una corrida necesita pista para encarar)
 
+  // ---- EL EJE VERTICAL: LA MISMA MANO QUE EN EL PASILLO (PENDIENTE, ver abajo) ----
+  // ESTO SALIO DE UN PLAYTEST y TODAVIA NO ESTA RESUELTO: "apenas entra en el modo PASADAS se
+  // invierten los controles y me estrello". El sintoma es real; la CAUSA tiene dos lecturas que
+  // piden arreglos opuestos, y elegir mal empeora el modo:
+  //
+  //   (a) DOS LEYES PARA UNA TECLA. En el pasillo W es GAS (soltas y caes); en la pasada es
+  //       CABECEO (soltas y el morro se auto-nivela). Si la molestia es esa, el arreglo es que
+  //       soltar vuelva a hundir.
+  //   (b) EL TIRON AL CRUZAR. Si venias con W apretada —como el pasillo obliga—, al entrar esa
+  //       misma tecla comanda morro arriba a fondo (PITCH_RATE 1.4 rad/s, 51 grados en 0,64 s):
+  //       el avion trepa, pierde velocidad, y el MUSH_DROP del modelo lo deja caer. Se siente
+  //       como "se invirtio". Si es esta, el arreglo es limitar el comando heredado al cruzar,
+  //       NO agregar hundimiento.
+  //
+  // Se probo (a) y MEDIDO EMPEORA: con el morro hundiendose solo, el avion toca el agua ~2 s
+  // despues de entrar sin que nadie toque nada, y la sonda no llegaba ni a leerlo. Revertido.
+  // Queda preguntado al autor cual de las dos es, porque solo el sabe que tenia apretado.
   // ---- LAS CAPAS DE DEFENSA (RF-03/RF-05: la dificultad es GEOGRAFIA) ----
-  RADAR_CEIL_M: 35,      // techo de radar: abajo de esto el Sea Dart no existe. Es la tesis del
-                         // juego hecha sistema — "los valientes vuelan abajo" con consecuencia
+  // EL TECHO BAJO DE 10 m ES PEDIDO DEL AUTOR (playtest 16/8): "el misil lo tiran unicamente si el
+  // avion se pasa de los 10 metros; si no se pasa, recien el barco lo VE con antiaereos o con lo
+  // que sea visible desde los OJOS, no desde el radar". Es una regla mas dura y mas clara que los
+  // 35 m del spec: abajo de 10 no existe el misil, pero SI existe el que te ve pasar.
+  RADAR_CEIL_M: 10,      // techo de radar: abajo de esto el misil de largo alcance no existe.
+                         // Volar mas bajo que la cubierta de una fragata es la tesis del juego
   POPUP_DIST_M: 800,     // desde aca el salto habilita la mira sobre las zonas (y corre el
                          // ralenti de la ventana, RF-12)
 
@@ -150,7 +171,12 @@ export const PS = {
 // GEOMETRIA DE ENTRADA — DERIVADA de las perillas de arriba, no son perillas nuevas (§0.3: "no
 // inventar valores"). Se usan cuando se entra por sonda, sin pasillo del que heredar altura.
 export const ENTRY_D = PS.ZONE_R * 0.8;          // 1280 m: adentro de la zona y lejos del buque
-export const ENTRY_ALT = PS.RADAR_CEIL_M / 2;    // 17 m: a ras, BAJO el techo de radar (la doctrina)
+// ALTURA DE ENTRADA. Dejo de derivarse del techo de radar cuando el techo bajo de 35 a 10 m (la
+// mitad de 10 son 5 metros, y la cresta mata a 3,5). Es un numero propio y explicito, y elegido
+// para cumplir las dos cosas a la vez: aire suficiente bajo el avion, y POR DEBAJO DEL TECHO DE
+// RADAR — se llega como se llegaba de verdad, por abajo, y el misil de largo alcance no existe
+// hasta que subas. Con la entrada a 18 m, medido, TODA entrada se comia un Sea Dart.
+export const ENTRY_ALT = 8;
 
 // ---- LA BOMBA (P2) ----
 // El §6 del spec no trae daño de bomba: define la VENTANA (las bandas) pero no cuanto pega. Estos

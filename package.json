@@ -26,7 +26,8 @@
     "prebuild:web": "npm run build:game",
     "predist": "npm run build:game",
     "prepack": "npm run build:game",
-    "smoke:web": "electron tools/smoke.js"
+    "smoke:web": "electron tools/smoke.js",
+    "agua": "electron tools/fixture_agua.js"
   },
   "author": "Matias Luna",
   "license": "UNLICENSED",

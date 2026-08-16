@@ -83,7 +83,7 @@ app.whenReady().then(async () => {
   if (!d) { console.error('   ✗ no entro a la pasada con ?pasada=3'); app.exit(1); return; }
   ok(`entro a la pasada · corrida ${d.corrida} · fase ${d.fase} · ${d.zonas} zonas vivas · ${d.r} m del buque`);
   if (d.alt > 35) bad(`la entrada tendria que ser A RAS (bajo el techo de radar); entro a ${d.alt} m`);
-  else ok(`entra a ras: ${d.alt} m, bajo el techo de radar (35 m)`);
+  else ok(`entra a ras: ${d.alt} m, bajo el techo de radar (10 m)`);
   await shot('p0_entrada');
 
   // vuela: la posicion cambia sola, y el morro responde a la tecla
@@ -150,10 +150,18 @@ app.whenReady().then(async () => {
       const banda = cap.slice(i0 - 6, i0 + 7);
       const base = antes.slice().sort((a, b) => a - b)[antes.length >> 1];   // brillo tipico del pasillo
       const min = Math.min(...banda.map(f => f[0]));
-      // FRAME NEGRO: un fundido deja el cuadro casi en cero. El umbral es relativo al pasillo
-      // porque el juego ES oscuro — comparar contra un absoluto seria comparar contra nada.
-      if (min < base * 0.35) bad(`hay un cuadro apagado en la transicion (brillo ${min} vs ${base} del pasillo): eso es un fade`);
-      else ok(`sin cuadro negro: el brillo no baja de ${min} con ${base} de referencia`);
+      // EL CRITERIO SE DIO VUELTA (playtest 16/8). RF-01 pedia CERO fundido y esto probaba que no
+      // lo hubiera; jugandolo, el autor pidio lo contrario: "si cambias de camara MINIMAMENTE
+      // fade in - out". Y tiene razon — la camara SI cambia, y un cambio de camara sin ningun
+      // parpadeo se lee como un error, no como continuidad.
+      //
+      // Asi que ahora se prueba que el fundido EXISTA y sea CORTO. Las dos mitades importan: sin
+      // fundido no se avisa que cambio el mundo; con un fundido largo se corta la accion, que es
+      // exactamente lo que RF-01 vino a evitar y sigue valiendo.
+      const oscuros = banda.filter(f => f[0] < base * 0.72).length;
+      if (!oscuros) bad(`la transicion no tiene NINGUN fundido (minimo ${min} contra ${base} del pasillo)`);
+      else if (min < base * 0.12) bad(`el fundido llega a negro (brillo ${min} vs ${base}): tiene que ser un parpadeo, no un corte`);
+      else ok(`fundido corto al cruzar al climax: ${oscuros} cuadro(s) por debajo del pasillo, minimo ${min} de ${base}`);
       // EL CANVAS SIGUE CAMBIANDO: dos cuadros seguidos identicos = render congelado
       let quietos = 0;
       for (let i = 1; i < banda.length; i++) if (banda[i][1] === banda[i - 1][1]) quietos++;
@@ -572,9 +580,12 @@ app.whenReady().then(async () => {
     // INVULNERABLE: lo que se mide es DONDE cae la defensa y CUANDO sale, no si te mata. Sin esto
     // la medicion se corta en el primer impacto — y con el modelo de vida por defecto, eso es el
     // primero que te roza.
-    await js('__pdef(1); __pinv(1); __pset(1300, 17, 0)'); await sleep(1500);
+    // A 6 m Y NO A 17: el techo bajo de 35 a 10 m por pedido del autor —"el misil lo tiran
+    // unicamente si el avion se pasa de los 10 metros"— asi que 17 m ya es ALTO. La prueba tenia
+    // que bajar con la regla, o estaria midiendo el techo viejo.
+    await js('__pdef(1); __pinv(1); __pset(1300, 6, 0)'); await sleep(1500);
     const bajo = await P();
-    if (bajo && !bajo.dart) ok(`a ras (${bajo.alt} m) el Sea Dart NO existe: no hay lanzamiento`);
+    if (bajo && !bajo.dart) ok(`a ras (${bajo.alt} m, bajo el techo de 10) el Sea Dart NO existe`);
     else bad(`entrando a ras igual salio el Sea Dart (alt ${bajo && bajo.alt})`);
 
     await js('__pset(1300, 70, 0)'); await sleep(1200);      // 2x el techo, y lejos del buque

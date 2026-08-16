@@ -165,3 +165,11 @@ apretado del modo infinito: −8% de banda por nivel, piso 45–90.
 Derribos aire-aire de Harriers (¿ninguno confirmado?) · tiempo real de estación de la CAP
 · AIM-9L todo-aspecto vs la escapada a ras (¿cuánto protegía de verdad el mar?) · los
 cañones Aden de 30 mm contra A-4 (casos).
+
+## 9. Divergencias encontradas *(completar durante la implementación)*
+
+> La IA implementadora anota acá toda diferencia entre este plan y la realidad del código
+> (nombres, estados, convenciones), con la decisión tomada — y el baseline de
+> `npm run feel` al arrancar H0. Este bloque es la memoria para la próxima pasada.
+
+- *(vacío)*

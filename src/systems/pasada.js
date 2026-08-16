@@ -131,7 +131,11 @@ export function enter(desdePasillo) {
   // pasillo (techo FLY_TOP = 68) y se lee 1:1 como metros — la coincidencia no es casual, es la
   // escala que hace que el techo de radar (35 m) caiga justo en el medio de la banda de vuelo.
   const alt = desdePasillo ? Math.max(SEA_KILL * 2, plane.y) : ENTRY_ALT;
-  const spd = run.spd > AR.SPD_MIN ? run.spd : AR.SPD_CRUISE;
+  // SE ENTRA CON VELOCIDAD DE CORRIDA, siempre. El relevo entrega el avion a 56 m/s (lo clampea
+  // startRelevo) y eso esta POR DEBAJO de SPD_MUSH: sin energia el morro se hunde solo a 1,3 rad/s
+  // y desde el ras eso es el agua — medido, el que relevaba se mataba sin tocar nada. Ademas de
+  // injusto era falso: nadie encara un buque planeando. El piso es holgadamente mayor que el mush.
+  const spd = Math.max(run.spd || 0, AR.SPD_CRUISE * 0.8);
   A = {
     t: 0, yaw, pitch: 0, roll: 0,
     pos: { x: -Math.sin(yaw) * ENTRY_D, y: alt, z: Math.cos(yaw) * ENTRY_D },
@@ -656,6 +660,9 @@ export function update(dt, inp) {
   // derecho piden BANQUEO —y banquear ES virar—, A/D derrapan fino, [F]/L2 frena.
   // NO hay reparto de energia (S1) ni media vuelta (E3): son sistemas del ARENA, y el spec pide
   // "ningun control nuevo" en la pasada, no "todos los controles del arena".
+  // EL GAS SE SIENTE COMO EN EL PASILLO (playtest 16/8). Sin comando, el morro cae solo: soltar
+  // W hace bajar, igual que en el pasillo, en vez de dejar la actitud clavada. Es UNA constante,
+  // pero es la diferencia entre que la mano siga funcionando al cruzar al climax o que no.
   const io = {
     pitch: (cfg.arenaInv ? -1 : 1) * (inp.u - inp.d),
     roll: (inp.rollR || 0) - (inp.rollL || 0) + (inp.rollAx || 0),
@@ -1010,7 +1017,13 @@ if (typeof window !== 'undefined') window.__pflip = () => {
   return 'ok';
 };
 // __pdef: prende o apaga la defensa por capas. Ver el comentario de `defOn`.
-if (typeof window !== 'undefined') window.__pdef = v => { defOn = !!(+v); return defOn; };
+if (typeof window !== 'undefined') window.__pdef = v => {
+  defOn = !!(+v);
+  // apagarla BARRE lo que ya venia volando: un Sea Dart lanzado antes de apagar seguia viajando y
+  // mataba en medio de una medicion que nada tenia que ver con la defensa.
+  if (!defOn && A) { A.fx = A.fx.filter(f => f.k !== 'dart' && f.k !== 'col'); A.cat = null; }
+  return defOn;
+};
 // __pinv: invulnerable a la defensa (no al mar ni al buque). Ver el comentario de `invul`.
 if (typeof window !== 'undefined') window.__pinv = v => { invul = !!(+v); return invul; };
 // __pheat: fija el CALOR de la defensa y reinicia la sonda de la metralla. El calor sube una vez

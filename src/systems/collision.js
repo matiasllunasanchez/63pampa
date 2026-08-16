@@ -19,7 +19,14 @@ import { sfxOne, beep, boom } from '../systems/audio.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { PZ } from '../render/ctx.js';
-import { AA_Z0, AA_Z1, AA_CD, shoreAt, SAND_W, SPAWN_X } from '../data/tuning.js';
+import { AA_Z0, AA_Z1, AA_CD, shoreAt, SAND_W, SPAWN_X,
+  OLA_SPD, OLA_FACE_KILL, OLA_SCRAPE_FRAC } from '../data/tuning.js';
+// LAS OLAS USAN EL ROCE QUE YA EXISTE, no uno nuevo (SPEC_AGUA_OLAS §6.1): `scrapeLimit` es la
+// misma funcion que mide el margen contra el agua en el vuelo normal, y por eso `npm run feel`
+// sigue dando los mismos numeros — la ola no recalibra nada, solo adelanta donde esta el agua.
+import { scrapeLimit } from '../core/physics.js';
+// y la ALTURA se evalua contra el mismo bulto que dibuja el mar: una sola fuente de verdad
+import { olaBump } from '../core/sea.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER, isSoftStruct } from '../core/hitbox.js';
 import { mvTight } from '../data/moves.js';
 
@@ -70,7 +77,9 @@ export function collisionSystem(dt) {
 
   // obstáculos
   for (const o of obstacles) {
-    o.z -= (run.spd + (o.type === 'jet' ? 45 : 0)) * dt;   // el avion enemigo viene de frente: cierra mas rapido
+    // el jet viene de frente (cierra mas rapido) y la OLA RUEDA hacia vos: su velocidad propia se
+    // SUMA a la relativa, que es lo que hace que una ola se te venga encima aunque frenes
+    o.z -= (run.spd + (o.type === 'jet' ? 45 : o.type === 'ola' ? OLA_SPD : 0)) * dt;
     // BOMBA cayendo: baja hasta el suelo y ahi se convierte en HONGO (obstaculo de nube)
     if (o.type === 'bomb' && o.y > 0) {
       o.y -= o.vy * dt;
@@ -122,6 +131,36 @@ export function collisionSystem(dt) {
     if (!o.done && o.z <= PZ + 1.5) {
       o.done = true;
       // --- especiales sin colision dura ---
+      // LA OLA (SPEC_AGUA_OLAS F1). Tres desenlaces, y el del medio es la regla de oro del plan:
+      // rozar la CRESTA no mata. Lo que mata es la CARA — el frente por debajo de OLA_FACE_KILL.
+      // Sin el roce generoso la mecanica es injusta, porque la ola tapa el horizonte justo cuando
+      // hay que decidir.
+      //
+      // La altura se evalua contra el MISMO bulto que dibuja el mar (olaBump de core/sea.js), no
+      // contra una caja: lo que ves es lo que te mata. Y en la brecha el bulto YA vale casi cero,
+      // asi que pasar por el hueco sale gratis sin un solo `if` extra.
+      if (o.type === 'ola') {
+        const hAqui = olaBump(o, plane.x - o.x, 0);
+        if (hAqui > 0.25) {
+          if (plane.y < hAqui * OLA_FACE_KILL) return { death: 'death_sea' };
+          if (plane.y < hAqui + 1.2) {
+            // CRESTA: cepillarla cuesta margen de roce — el sistema que ya existe (core/physics),
+            // no uno nuevo. Si el margen ya estaba gastado, esta te cobra la cuenta.
+            run.scrapeT += scrapeLimit(run.spd, run.boost) * OLA_SCRAPE_FRAC;
+            if (run.scrapeT >= scrapeLimit(run.spd, run.boost)) return { death: 'death_sea' };
+            run.shake = Math.min(7, run.shake + 2.2);
+            const sp = proj(plane.x, plane.y, PZ);
+            for (let i = 0; i < 14; i++) parts.push({
+              x: sp.x + (Math.random() - 0.5) * 26, y: sp.y + (Math.random() - 0.5) * 8,
+              vx: (Math.random() - 0.5) * 90, vy: -(30 + Math.random() * 70),
+              life: 0.45 + Math.random() * 0.35, c: Math.random() < 0.6 ? P.foam : P.crest,
+              r: 1.4 + Math.random(),
+            });
+            if (!sfxOne('waterNear')) boom(0.10);
+          }
+        }
+        continue;                                                     // mas arriba: paso limpio
+      }
       if (o.type === 'trench') continue;                              // decorado puro
       if (o.type === 'birds') {                                       // la bandada DAÑA, no derriba
         if (Math.abs(plane.x - o.x) < 4.5 && Math.abs(plane.y - o.y) < 2.6) softHit('hitBirds');
