@@ -100,7 +100,7 @@ export const MISSIONS = [
   {
     id: 'm9', name: 'LO QUE NO SE DICE', date: '8 de junio de 1982',
     goal: { kind: 'ship', ship: 'RFA SIR GALAHAD', dist: 3000 },
-    cfg: C({ sky: 'cloudy', obstacles: 1.7, squad: 3 }),
+    cfg: C({ sky: 'cloudy', obstacles: 1.7, squad: 3, caza: 2 }),
     roster: F3, par: 11000, story: 'storyM9', brief: 'briefM9', epi: 'epiM9',
   },
   {
@@ -112,19 +112,27 @@ export const MISSIONS = [
   {
     id: 'm11', name: 'LA ULTIMA MESA', date: '11 de junio de 1982',
     goal: { kind: 'ship', ship: 'HMS BROADSWORD', dist: 3200 },
-    cfg: C({ sky: 'moon', terrain: 'land', obstacles: 1.7, bombs: 2, fog: 1, squad: 3 }),
+    cfg: C({ sky: 'moon', terrain: 'land', obstacles: 1.7, bombs: 2, fog: 1, squad: 3, caza: 2 }),
     roster: F3, par: 12500, story: 'storyM11', brief: 'briefM11', epi: 'epiM11',
   },
   {
     id: 'm12', name: 'EL TERO', date: 'madrugada del 12 de junio de 1982',
     goal: { kind: 'ship', ship: 'HMS GLAMORGAN', dist: 3400 },
     climax: 'arena',   // ver la nota de arriba
-    cfg: C({ sky: 'night', obstacles: 1.7, bombs: 2, fog: 1, fogLen: 2, squad: 3 }),
+    cfg: C({ sky: 'night', obstacles: 1.7, bombs: 2, fog: 1, fogLen: 2, squad: 3, caza: 2 }),
     roster: F3, par: 14000, story: 'storyM12', brief: 'briefM12', epi: 'epiM12',
   },
 ];
 
-/** QUE CLIMAX juega una mision: 'pasada' · 'arena' · null (no tiene, la cierra el PASILLO).
+// EL PULSO ('pulso', PLAN_EL_PULSO.md) es el tercero, y HOY NINGUNA MISION LO PIDE. No es un
+// olvido: el plan §6.5 lo prohibe explicitamente —«no reemplazar a la PASADA de oficio»— hasta que
+// pase una de dos cosas: que el rescate de la PASADA falle su gate (R6) y EL PULSO pase a ser el
+// climax general, o que exista m14, el momento del misil del guion, que es su via de entrada
+// garantizada. El modo esta entero y probado (`npm run pulso`); lo unico que falta para que un
+// nivel lo juegue es escribir `climax: 'pulso'` en su renglon de arriba. Esa es la prueba de que
+// el climax es DATO: se enchufa con una palabra, no con una rama de codigo.
+
+/** QUE CLIMAX juega una mision: 'pasada' · 'arena' · 'pulso' · null (no tiene, la cierra el PASILLO).
  *
  *  El default vive ACA y no en `game.js` a proposito: es la regla de la campaña, no una decision
  *  del motor, y siendo pura se puede probar en node sin abrir una ventana (SPEC_MODO_PASADA

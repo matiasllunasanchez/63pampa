@@ -25,6 +25,10 @@ export const DMG = {
   death_gunfire: 22,   // trazadora de un caza: la mas barata, pero se acumula
   death_missile: 45,   // misil enganchado: dos y listo
   death_bomb: 50,      // meterse en el hongo de una bomba: media vida de una
+  // LA COLA: los Aden de 30 mm del Sea Harrier. Mas caro que el fuego desde tierra (22) porque es
+  // artilleria de caza a quemarropa, y mas barato que un misil enganchado (45) porque es una
+  // rafaga y no una ojiva. Tres impactos y estas en el piso.
+  death_caza: 34,
 };
 
 /** ¿Esta causa mata SIEMPRE, sin importar el modo? (todo lo que no sea "te dispararon") */

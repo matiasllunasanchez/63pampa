@@ -30,6 +30,12 @@ import { snapshot } from '../systems/caza.js';
 // del nucleo encendido al rescoldo, como las trazadoras del jugador (render/ammo.js) pero mas
 // frias: son ajenas, y el ojo tiene que poder distinguir de un vistazo cual chorro es tuyo
 const HOT = ['#fdfefe', '#d8ecff', '#9ec8f0', '#5f8fc0'];
+// LAS QUE VIENEN A DARTE SON DE OTRO COLOR (H2), y es la unica señal que las distingue. El §6.1
+// prohibe el recuadro de fijado y el tono de lock-on, asi que el aviso de "esta le apunto a vos"
+// tiene que estar en la cosa misma: las de aviso son frias y ajenas, estas son ROJAS y crecen. Es
+// el mismo idioma que el juego ya habla con la soga de humo de los misiles — se lee el rastro, no
+// el proyectil.
+const LET = ['#fff2d8', '#ffcf62', '#f2662a', '#a8331a'];
 
 // PLACEHOLDER: cuanto se oscurece y cuanto se angosta el jet de frente para hacer de cola. Un
 // avion visto desde atras es mas angosto (no se le ve la envergadura entera) y esta a contraluz.
@@ -46,23 +52,39 @@ const PH_DARK = 0.5, PH_SQUASH = 0.74;
 const TRAC_N = 7, TRAC_Z = 5.5;
 
 function drawTrac(f) {
+  const C = f.letal ? LET : HOT;
+  // la letal es mas GORDA ademas de mas roja: viene mas lenta y mas cerca, y si se leyera igual
+  // que las de aviso el jugador no tendria como saber cual de los dos chorros lo va a matar
+  const gordo = f.letal ? 1.7 : 1;
   for (let i = TRAC_N; i >= 1; i--) {
-    const z = f.z - i * TRAC_Z;
+    const z = f.z - i * TRAC_Z * (f.letal ? 0.6 : 1);   // la letal va mas lenta: su traza es mas corta
     if (z <= 1.5) continue;
     const p = proj(f.x, f.y, z);
-    const w = Math.max(1, Math.round(p.k * 0.1));
+    const w = Math.max(1, Math.round(p.k * 0.1 * gordo));
     ctx.globalAlpha = 0.75 * (1 - i / (TRAC_N + 2));
-    px(p.x - w / 2, p.y - w / 2, w, w, HOT[Math.min(HOT.length - 1, i >> 1)]);
+    px(p.x - w / 2, p.y - w / 2, w, w, C[Math.min(C.length - 1, i >> 1)]);
   }
   ctx.globalAlpha = 1;
   const s = proj(f.x, f.y, f.z);
   // la CABEZA nunca baja de 2 px: es el punto que dice donde esta el proyectil ahora, y si se
   // hace de 1 px se pierde contra las motas del mar (que son de 1 px)
-  const w = Math.max(2, Math.round(s.k * 0.17));
+  const w = Math.max(2, Math.round(s.k * 0.17 * gordo));
   ctx.globalAlpha = 0.5;
-  px(s.x - w / 2 - 1, s.y - w / 2 - 1, w + 2, w + 2, HOT[2]);   // halo: sin el, lejos no existe
+  px(s.x - w / 2 - 1, s.y - w / 2 - 1, w + 2, w + 2, C[2]);   // halo: sin el, lejos no existe
   ctx.globalAlpha = 1;
-  px(s.x - w / 2, s.y - w / 2, w, w, HOT[0]);
+  px(s.x - w / 2, s.y - w / 2, w, w, C[0]);
+}
+
+/** LA COLUMNA DE HUMO del Harrier averiado (H3). Es el premio visible del contraataque: se lee de
+ *  lejos, no dice nada y no se puede confundir con otra cosa. Se pinta oscuro sobre el mar claro y
+ *  se va abriendo con la edad, como el humo de verdad. */
+function drawHumo(f) {
+  const s = proj(f.x, f.y, f.z);
+  const edad = 1 - Math.min(1, f.life / 2.2);
+  const w = Math.max(1, s.k * f.r * (0.5 + edad * 1.6));
+  ctx.globalAlpha = Math.min(0.55, f.life * 0.4);
+  px(s.x - w / 2, s.y - w / 2, w, w, edad < 0.4 ? '#20262a' : P.dim);
+  ctx.globalAlpha = 1;
 }
 
 /** El aire sucio que queda donde te cruzo. No es humo: es la marca de que ahi paso algo, y su
@@ -124,7 +146,9 @@ export function drawCaza(lejos) {
   const corte = PZ;
   for (const f of C.fx) {
     if ((f.z > corte) !== !!lejos) continue;
-    if (f.k === 'trac') { if (!(f.wait > 0)) drawTrac(f); } else drawEstela(f);
+    if (f.k === 'trac') { if (!(f.wait > 0)) drawTrac(f); }
+    else if (f.k === 'humo') drawHumo(f);
+    else drawEstela(f);
   }
   if ((C.z > corte) === !!lejos && C.z > 1.5) drawCazaSprite(C);
 }

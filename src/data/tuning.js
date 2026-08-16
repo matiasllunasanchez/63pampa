@@ -418,3 +418,48 @@ export const CAZA_TRAC_N = [5, 8];  // proyectiles por rafaga
 // que con el hueco viejo la pantalla quedaba VACIA mas de la mitad del tiempo y el tell no se leia
 // (en la captura de las trazadoras no habia ni una). El aviso tiene que ser continuo o no es aviso.
 export const CAZA_TRAC_GAP = [0.7, 1.4];  // s entre rafagas
+
+// LOS DIENTES (H2). El §3 paso 2 dice "si madura: rafaga que te alcanza → averia o muerte" y no da
+// numeros. Estos son los elegidos, y todos responden a la MISMA pregunta: ¿como se hace que te
+// mate sin que se sienta injusto? La respuesta del §1 es la de todo el juego — LA SOGA SE ESQUIVA.
+// La rafaga letal no te pega en el instante en que sale: viaja, y mientras viaja todavia podes
+// quebrar. Es la misma lectura que la estela de los misiles, con otro dibujo.
+export const CAZA_SOL_AVISO = 0.72;  // fraccion de solucion en la que la radio grita QUEBRA (§2: el
+                                     // aviso es humano; en un duelo mudo esto no suena y solo ves fuego)
+export const CAZA_LET_N = [3, 5];    // proyectiles de la rafaga que SI viene a darte (mas corta que
+                                     // la de aviso: es un tiro apuntado, no fuego de saturacion)
+export const CAZA_LET_V = 210;       // mas LENTA que la de aviso (340), pero NO para poder esquivarla:
+                                     // de la cola a tu z hay 8 unidades y a cualquier velocidad eso son
+                                     // centesimas. La ventana de esquive es el GRITO (CAZA_SOL_AVISO), que
+                                     // llega casi un segundo antes. Va lenta para que se la VEA irse
+                                     // adelante tuyo: es como se entiende que esas venian con tu nombre.
+export const CAZA_LET_RX = 3.2;      // semiancho del impacto en x (el avion mide ~4 de envergadura util)
+export const CAZA_LET_RY = 2.6;      // idem en y
+export const CAZA_GOLPE_CD = 0.6;    // s de veda tras un impacto: una RAFAGA cobra UN golpe, no uno
+                                     // por proyectil. Sin esto los 3-5 tiros de la misma rafaga
+                                     // entraban de a uno y un solo pase te bajaba el avion entero.
+export const CAZA_SOL_POST = 0.3;    // a cuanto vuelve la solucion despues de tirar: no arranca de cero
+                                     // (sigue prendido de tu cola) pero te da aire para reaccionar
+
+// EL CONTRAATAQUE (H3). La ventana frontal es tu turno y estos son sus numeros.
+export const CAZA_HIT_RX = 5.6;      // caja de impacto de tus balas contra el caza. Es la MISMA que usa
+export const CAZA_HIT_RY = 3.0;      // collision.js para 'helo'/'jet': un caza es un caza.
+export const CAZA_PTS = {
+  ahuyenta: 1500,   // romperle el ataque: caro, y es el desenlace NORMAL (§2)
+  derribo: 6000,    // la hazaña. Ningun Harrier cayo en combate aire-aire: si pasa, que se note
+  sobrevivir: 900,  // aguantarle las pasadas hasta que se le acabe la nafta tambien es ganar
+};
+// PIRUETAS QUE FUERZAN EL SOBREPASO (§3 paso 3). Son exactamente las de esquive: el BREAK TURN, el
+// JINK y el S-TURN. Aca las mejoras del Pichon encuentran su para que — y el gate de campaña sale
+// gratis, porque una pirueta que no aprendiste no se puede ejecutar.
+export const CAZA_MV_FUERZA = ['breakt', 'jink', 'sturn'];
+
+// EL REGLAMENTO (H4). Cuando APARECE el duelo, que es una decision de nivel y no del duelo.
+export const CAZA_DIR_D0 = 420;      // m de vuelo antes del primer duelo posible: nadie te embosca
+                                     // en el despegue, y ademas hace falta ver el pasillo primero
+export const CAZA_DIR_FIN = 520;     // m antes del objetivo en los que YA no arranca: el ultimo tramo
+                                     // es del climax (misma idea que ENTRY_CLEAR_M de la PASADA)
+export const CAZA_DIR_GAP = [55, 95];  // s entre duelos (se acorta con la intensidad)
+export const CAZA_MUDO_P = [0, 0.3, 0.5];  // probabilidad de duelo SIN aviso por radio, por intensidad.
+                                     // §2: sin radar ni RWR el aviso es de Condor o de un Fiel, y a
+                                     // veces no llega. En intensidad 2 (clima cerrado, noche) casi la mitad.
