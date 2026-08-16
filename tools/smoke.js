@@ -120,8 +120,12 @@ app.whenReady().then(async () => {
   const url = (process.env.SMOKE_SRC || path.join(ROOT, 'src', 'index.html'));
   await win.loadURL('file://' + url + '?qa');
   await sleep(2500);
+  // el camino pasa por JUEGO RAPIDO: el selector principal tiene HISTORIA / JUEGO RAPIDO /
+  // OPCIONES / SALIR, y los modos sueltos viven un escalon adentro.
   await tap(win, 'Return');                                       // portada → modeselect
-  for (let i = 0; i < 3; i++) await tap(win, 'Down');             // HISTORIA → ... → MINUTOS SAGRADOS
+  await tap(win, 'Down');                                         // HISTORIA → JUEGO RAPIDO
+  await tap(win, 'Return');                                       // → submenu JUEGO RAPIDO
+  for (let i = 0; i < 2; i++) await tap(win, 'Down');             // CICLO → PATRIA → MINUTOS SAGRADOS
   await tap(win, 'Return');                                       // → menu de avion
   await tap(win, 'Return');                                       // → batalla (arena directo)
   await sleep(4000);
@@ -136,6 +140,38 @@ app.whenReady().then(async () => {
   clearInterval(fire);
   win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Space' });
   await checkAlive(win, 'arena tras disparar');
+
+  // PASADAS MORTALES: la otra fase del climax (systems/pasada.js), entrada POR EL MENU. El fixture
+  // `npm run pasada` la prueba a fondo pero entra por sonda; esto prueba lo que la sonda saltea —
+  // que el camino JUEGO RAPIDO → PASADAS MORTALES → avion → pasada exista y dibuje.
+  console.log('\npasada (PASADAS MORTALES):');
+  // SIN ?qa: ese flag acorta la mision al 6% y la aproximacion entera queda en 156 m, o sea que el
+  // modo ya estaria adentro de la pasada antes del primer chequeo — justo lo que hay que probar.
+  // El tramo largo no se vuela: se salta con __wjump, que para eso esta.
+  await win.loadURL('file://' + url);
+  await sleep(2500);
+  await tap(win, 'Return');                                       // portada → modeselect
+  await tap(win, 'Down');                                         // → JUEGO RAPIDO
+  await tap(win, 'Return');                                       // → submenu
+  for (let i = 0; i < 3; i++) await tap(win, 'Down');             // → PASADAS MORTALES
+  await tap(win, 'Return');                                       // → menu de avion
+  await tap(win, 'Return');                                       // → la corrida, ya volando
+  await sleep(1200);
+  // el modo arranca EN LA APROXIMACION (no adentro de la zona): ya volando, sin obstaculos y con
+  // el buque en el horizonte. Se salta al final del tramo con __wjump en vez de volarlo entero.
+  const aprox = JSON.parse(await win.webContents.executeJavaScript('__wjump()'));
+  if (aprox.state === 'play' && aprox.obj > 0 && aprox.p > 0.3 && aprox.obs === 0)
+    pass(`PASADAS MORTALES arranca en la aproximacion (${(aprox.p * 100) | 0}% del camino, sin obstaculos)`);
+  else fail(`arranque raro de PASADAS MORTALES: ${JSON.stringify(aprox)}`);
+  await win.webContents.executeJavaScript('__wjump(0.985)');
+  const gas = setInterval(() => win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'w' }), 40);
+  await sleep(2500);
+  clearInterval(gas);
+  win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'w' });
+  const enPasada = await win.webContents.executeJavaScript('JSON.parse(__pausedbg()).state');
+  if (enPasada === 'pasada') pass('la aproximacion desemboca en la fase pasada');
+  else fail(`la aproximacion no llego a la pasada (estado: ${enPasada})`);
+  await checkAlive(win, 'pasada');
 
   // INPUT POR MOUSE: ejercita los handlers de puntero (movidos a core/input.js) — apuntado con el
   // mouse y click de canon/misil. El keyboard cubre el resto; sin esto el camino tactil/mouse
@@ -159,12 +195,12 @@ app.whenReady().then(async () => {
   await win.loadURL('file://' + url);
   await sleep(2500);
   await tap(win, 'Return');                                       // portada → modeselect
-  for (let i = 0; i < 4; i++) await tap(win, 'Down');             // → OPCIONES
+  for (let i = 0; i < 2; i++) await tap(win, 'Down');             // → OPCIONES
   await tap(win, 'Return');
   await tap(win, 'Down');                                         // IDIOMA → MEJORAS DEL PICHON
   await tap(win, 'Return');                                       // abrir la sub-pantalla
   await sleep(500);
-  const mej = await win.webContents.executeJavaScript('JSON.parse(__pdbg()).state');
+  const mej = await win.webContents.executeJavaScript('JSON.parse(__pausedbg()).state');
   if (mej === 'mejoras') pass('la sub-pantalla se abre desde OPCIONES');
   else fail(`ENTER en la fila no abrio MEJORAS DEL PICHON (estado: ${mej})`);
   const mp = await probe(win);
@@ -173,7 +209,7 @@ app.whenReady().then(async () => {
   await tap(win, 'Down'); await tap(win, 'Right');                // mover el cursor y ALTERNAR
   await tap(win, 'Escape');
   await sleep(400);
-  const back = await win.webContents.executeJavaScript('JSON.parse(__pdbg()).state');
+  const back = await win.webContents.executeJavaScript('JSON.parse(__pausedbg()).state');
   if (back === 'options') pass('ESC vuelve a OPCIONES');
   else fail(`ESC no volvio a OPCIONES (estado: ${back})`);
 

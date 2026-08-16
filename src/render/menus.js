@@ -25,7 +25,8 @@ export function drawMenu(w) {
   // pantalla ("elegi tu avion") es la instruccion, y va despues de un respiro.
   ctx.fillStyle = P.foam; ctx.font = menuFont(13);
   ctx.fillText(w.gameMode === 'cycle' ? T('modeCycle')
-    : w.gameMode === 'arena' ? T('modeArena') : T('modeSurvival'), W / 2, 35);
+    : w.gameMode === 'arena' ? T('modeArena')
+    : w.gameMode === 'pasadas' ? T('modePasada') : T('modeSurvival'), W / 2, 35);
   ctx.fillStyle = P.dim; ctx.font = labelFont(9);                  // rotulo de seccion: GlimpRThin
   ctx.fillText(T('selTitle'), W / 2, 50);
 
@@ -121,11 +122,11 @@ export function drawModeSelect(w) {
 
   // opciones CHICAS, pegadas a la IZQUIERDA y centradas verticalmente. La ultima es SALIR.
   // el orden tiene que coincidir con MODES en game.js: la fila que se toca sale de ese indice
+  // La lista es una DECISION, no un catalogo: historia o partida suelta. Los cuatro modos sin
+  // guion (ciclo, patria, minutos sagrados, pasadas mortales) viven adentro de JUEGO RAPIDO.
   const opts = [
     { name: T('modeCampaign'), desc: T('modeCampaignDesc') },
-    { name: T('modeCycle'), desc: T('modeCycleDesc') },
-    { name: T('modeSurvival'), desc: T('modeSurvivalDesc') },
-    { name: T('modeArena'), desc: T('modeArenaDesc') },
+    { name: T('modeQuick'), desc: T('modeQuickDesc') },
     { name: T('modeOptions'), desc: T('modeOptionsDesc') },
     { name: T('modeQuit'), desc: T('modeQuitDesc'), quit: true },
   ];
@@ -432,12 +433,16 @@ export const CAMP_ROWS = { y0: 96, rh: 34, headH: 22 };
 
 // texto de cada fila segun su id (los nombres de campaña son PROPIOS y no se traducen)
 function campText(r) {
+  if (r.back) return { name: T('menuBack'), desc: T('menuBackDesc') };
   if (r.id === 'continue') return { name: T('campContinue'), desc: T('campContinueDesc') };
   if (r.id === 'c1') return { name: CAMPAIGNS[0].name, desc: T('campC1Desc') };
   return { name: CAMPAIGNS[1].name, desc: T('campC2Desc') + '  ·  ' + T('campSoon') };
 }
 
-export function drawCampMenu(w) {
+/** LISTA DE FILAS de un submenu (HISTORIA, JUEGO RAPIDO). Es UNA sola funcion y no dos copiadas:
+ *  los dos submenus son la misma pantalla con otro contenido, y tenerla partida en dos garantizaba
+ *  que la proxima vez que se toque el resalte queden distintos. `textOf` traduce fila → textos. */
+function drawRowMenu(w, titleKey, textOf) {
   panel();
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(26);
@@ -445,7 +450,7 @@ export function drawCampMenu(w) {
 
   const { y0, rh, headH } = CAMP_ROWS, x = 40, PAD_X = 9;
   ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(13);
-  ctx.fillText(T('campTitle'), x, y0 - 22);
+  ctx.fillText(T(titleKey), x, y0 - 22);
   ctx.strokeStyle = '#3a464c'; ctx.globalAlpha = 0.5;
   ctx.beginPath(); ctx.moveTo(x, y0 - 17.5); ctx.lineTo(NW - 30, y0 - 17.5); ctx.stroke();
   ctx.globalAlpha = 1;
@@ -466,13 +471,15 @@ export function drawCampMenu(w) {
       y += headH;
       continue;
     }
-    const t = campText(r), on = i === w.sel;
+    const t = textOf(r), on = i === w.sel;
     // deshabilitada: gris SIEMPRE, aun con el cursor encima — el resalte dice "estas aca",
-    // el gris dice "no vas a poder entrar" (confirmar da el beep grave)
-    const col = r.disabled ? '#5a666c' : on ? P.accent : P.body;
+    // el gris dice "no vas a poder entrar" (confirmar da el beep grave).
+    // ATRAS usa los colores de SALIR del menu principal: las dos son la puerta de salida de su
+    // pantalla, y que se pinten igual es lo que las hace reconocibles sin leerlas.
+    const col = r.disabled ? '#5a666c' : r.back ? (on ? P.warn : '#7d6a63') : on ? P.accent : P.body;
     if (on) {
       ctx.font = menuFont(12); const wn = ctx.measureText(t.name).width;
-      ctx.font = labelFont(9); const wd = ctx.measureText(t.desc).width;
+      ctx.font = rowFont(i); const wd = ctx.measureText(t.desc).width;
       const boxW = Math.max(wn, wd) + PAD_X * 2;
       ctx.fillStyle = col; ctx.globalAlpha = 0.13;
       ctx.fillRect(x - PAD_X, y - 13, boxW, 33); ctx.globalAlpha = 1;
@@ -485,12 +492,30 @@ export function drawCampMenu(w) {
     ctx.fillStyle = col; ctx.font = menuFont(12);
     ctx.fillText(t.name, x, y);
     ctx.fillStyle = r.disabled ? '#4a565c' : on ? P.ink : P.dim; ctx.globalAlpha = on ? 0.9 : 0.6;
-    ctx.font = labelFont(9);
+    // LA MISMA fuente de descripcion que el selector de modos (rowFont, hoy descFont): los
+    // submenus se leian con la tipografia de rotulo y quedaban como otra pantalla de otro juego.
+    // Se usa para MEDIR arriba y para DIBUJAR aca — si los dos lados no coinciden, el resalte
+    // de la fila deja de calzar con el texto.
+    ctx.font = rowFont(i);
     ctx.fillText(t.desc, x, y + 14);
     ctx.globalAlpha = 1;
     y += rh;
   }
 }
+
+export function drawCampMenu(w) { drawRowMenu(w, 'campTitle', campText); }
+
+// ---------- JUEGO RAPIDO (submenu de los modos sueltos) ----------
+// Los cuatro modos que se juegan sin guion. PASADAS MORTALES es el banco de pruebas de la fase
+// PASADA, igual que MINUTOS SAGRADOS lo es del ARENA: se entra DERECHO al climax, sin pasillo.
+function quickText(r) {
+  if (r.back) return { name: T('menuBack'), desc: T('menuBackDesc') };
+  if (r.id === 'cycle') return { name: T('modeCycle'), desc: T('modeCycleDesc') };
+  if (r.id === 'survival') return { name: T('modeSurvival'), desc: T('modeSurvivalDesc') };
+  if (r.id === 'arena') return { name: T('modeArena'), desc: T('modeArenaDesc') };
+  return { name: T('modePasada'), desc: T('modePasadaDesc') };
+}
+export function drawQuickMenu(w) { drawRowMenu(w, 'quickTitle', quickText); }
 
 // una fila de partida guardada: 'EL CUADERNO DE MATEO · MISION 2 · 1234 PTS · 05/08 21:33'
 function saveLabel(r) {

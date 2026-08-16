@@ -9,8 +9,10 @@
 //   deps.launchMissile()  dispara el misil del jugador
 //   deps.objectiveDist    distancia del objetivo del run (0 = sin objetivo)
 //   deps.needsMomentum    si el objetivo culmina en el climax (momentum) o con solo llegar
+//   deps.climax           'pasada' | 'arena': QUE climax juega esta mision (SPEC_MODO_PASADA RF-14)
 //
-// Devuelve: 'momentum' (ya entro al climax) · 'objective' (llego a la meta sin climax) ·
+// Devuelve: 'momentum' · 'pasada' · 'arena' (ya entro al climax) · 'objective' (llego a la meta
+//           sin climax) ·
 //           { death } (se estrello) · undefined (segui volando). El orquestador actua sobre eso.
 
 import { plane, cfg, cam, stats, CTRL_BANK } from '../core/state.js';
@@ -34,6 +36,7 @@ import { multOf } from '../core/util.js';
 import { movesSystem, mvAllowsFire, mvAllowsTurbo } from './moves.js';
 import * as momentum from './momentum.js';
 import * as arena from './arena.js';
+import * as pasada from './pasada.js';
 import { engineFly, sfxOne, sfxSrc, beep, boom } from './audio.js';
 import * as dmg from './damage.js';
 import { applyEnergy, applyDrag, speedTarget, windFactor, pitchTarget, scrapeLimit,
@@ -116,7 +119,13 @@ export function flightSystem(dt, deps) {
       // CLIMAX: con 3D disponible, el asalto VOLADO (arena) — una sola entrada al 100%.
       // Sin three/WebGL o con ?no3d (build web), el momentum clasico de pasadas queda
       // como fallback intacto (decision 4 de PROMPT_MOMENTUM_3D.md).
-      if (arena.available()) {
+      // PASADA (SPEC_MODO_PASADA RF-01/RF-14): cual de los dos climax juega la mision es DATO, y
+      // llega por `deps.climax`. La transicion no tiene corte — se entra desde acá, en el mismo
+      // frame, sin fade y sin pantalla, y el avion se lleva puesta su altura y su velocidad.
+      // Igual que el arena, la PASADA necesita three.js: sin 3D queda el momentum de siempre.
+      if (deps.climax === 'pasada' && pasada.available()) {
+        if (pasada.readyToEnter(run.dist, deps.objectiveDist)) { pasada.enter(true); return 'pasada'; }
+      } else if (arena.available()) {
         if (arena.readyToEnter(run.dist, deps.objectiveDist)) { arena.enter(); return 'arena'; }
       } else if (momentum.readyToEnter(run.dist, deps.objectiveDist)) { momentum.enter(); return 'momentum'; }
     } else if (run.dist >= deps.objectiveDist) return 'objective';

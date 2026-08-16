@@ -25,6 +25,9 @@ import * as arena from './systems/arena.js';
 import * as damage from './systems/damage.js';
 import * as arena3D from './systems/three-arena.js';
 import * as arenaRender from './render/arena.js';
+// PASADA: el otro climax (docs/sistemas/SPEC_MODO_PASADA.md). Comparte la escena 3D con el arena.
+import * as pasada from './systems/pasada.js';
+import * as pasadaRender from './render/pasada.js';
 import { spawnSystem } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
 import { inp, mouse, pointer, flags, initInput } from './core/input.js';
@@ -59,7 +62,7 @@ import * as squad from './systems/squad.js';
 import { FIELES } from './data/pilots.js';
 import * as squadRender from './render/squad.js';
 import { canRelevo } from './core/squad.js';
-import { RUNWAYS } from './data/runways.js';
+import { RUNWAYS, AIR_START_Y } from './data/runways.js';
 
   (() => {
     'use strict';
@@ -94,7 +97,7 @@ import { RUNWAYS } from './data/runways.js';
 
     // fija el layout de zonas del MOMENTUM segun la clase del buque
     // (MOM_LAYOUTS/SHIP_CLASS se definen mas abajo; esto solo corre al armar un run)
-    function useShip(s) { momentum.setLayout(s); arena.setShip(s); return s; }
+    function useShip(s) { momentum.setLayout(s); arena.setShip(s); pasada.setShip(s); return s; }
     function randomShip() { return useShip(SHIPS[Math.floor(Math.random() * SHIPS.length)]); }
     // randomiza el mapa. No toca meters (se setea aparte, para pruebas).
     // SIN USO HOY: el ciclo de muerte pasó a jugar las MISSIONS, que traen su propia cfg. Se deja
@@ -114,12 +117,22 @@ import { RUNWAYS } from './data/runways.js';
     // 'campaign' = modo historia: recorre MISSIONS en orden. 'cycle' juega las mismas al azar.
     let gameMode = 'survival';
     let curLevel = 0;
-    let modeSel = 0;                 // pantalla inicial: 0 = CAMPAÑA, 1 = CICLO DE MUERTE, 2 = SUPERVIVENCIA
+    let modeSel = 0;                 // pantalla inicial: 0 = HISTORIA, 1 = JUEGO RAPIDO
+    let quickSel = 0;                // cursor del submenu JUEGO RAPIDO
     // el orden DEBE coincidir con `opts` en menus.drawModeSelect: el click traduce la fila tocada
     // a este indice. 'options' = pantalla de ajustes (idioma); 'quit' = fila SALIR.
-    // 'arena' = BANCO DE PRUEBAS del climax: entra DIRECTO al asalto al buque, sin cruzar el
-    // vuelo. Existe para poder tunear el minijuego sin jugar una mision entera cada vez.
-    const MODES = ['campaign', 'cycle', 'survival', 'arena', 'options', 'quit'];
+    //
+    // 'quick' es un SUBMENU, no un modo: adentro viven los cuatro que se juegan sin guion (ciclo,
+    // patria, minutos sagrados, pasadas mortales). El menu principal quedo con la unica decision
+    // que de verdad hay que tomar al abrir el juego — historia o partida suelta — en vez de seis
+    // filas donde cuatro eran variantes de lo mismo.
+    const MODES = ['campaign', 'quick', 'options', 'quit'];
+    // Los modos de adentro de JUEGO RAPIDO. `arena` y `pasadas` son los dos BANCOS DE PRUEBAS del
+    // climax: entran DIRECTO al buque, sin cruzar el pasillo, y existen para poder tunear cada
+    // fase sin jugar una mision entera cada vez.
+    // `back` es la fila ATRAS: la salida de la pantalla, VISIBLE. ESC y el boton B ya volvian, pero
+    // eso hay que saberlo — una lista sin salida a la vista parece un callejon.
+    const quickRows = () => [{ id: 'cycle' }, { id: 'survival' }, { id: 'arena' }, { id: 'pasadas' }, { id: 'back', back: true }];
 
     // ---------- PAUSA ----------
     // NO es un estado de S: es una BANDERA ortogonal. Con `paused` el frame() saltea update()
@@ -205,6 +218,27 @@ import { RUNWAYS } from './data/runways.js';
       run.dist = objectiveDist;
       arena.enter(); sfxOne('lv1');
     }
+    // PASADAS MORTALES: el otro climax (docs/sistemas/SPEC_MODO_PASADA.md) jugado como lo que es —
+    // UNA CORRIDA DE ATAQUE, no una zona. Y por eso NO se parece a MINUTOS SAGRADOS, que te suelta
+    // adentro del ring: acá el modo es la aproximación y su desenlace.
+    function goPasadas() { gameMode = 'pasadas'; cfg.arenaShip = shipMissionAt(cfg.arenaShip); loadLevel(cfg.arenaShip); setState('menu'); beep(600, 0.08, 'square', 0.05); }
+    /** Arranca UNA corrida suelta: YA VOLANDO, con el buque asomando en el horizonte, y el ultimo
+     *  tramo de mar por delante. Tres decisiones y las tres son el modo:
+     *
+     *  · se arranca en `BARGE_T0` del camino — el punto EXACTO donde el buque se materializa en el
+     *    horizonte (render/world.js). Lo primero que ves es el blanco, lejos;
+     *  · se arranca EN EL AIRE y con velocidad de crucero: no hay pista ni cuenta regresiva, venis
+     *    entrando (reintentar una corrida no puede costar tres segundos de carreteo);
+     *  · NO se entra a la pasada a mano. Entra el vuelo al llegar al objetivo, como en una mision
+     *    de verdad — asi cada intento pasa por la transicion sin corte, que es la mitad del modo. */
+    function startPasadaBattle(nextShip) {
+      if (nextShip) { cfg.arenaShip = randomShipMission(); loadLevel(cfg.arenaShip, true); }
+      reset(); setRunObjective(true);
+      run.dist = objectiveDist * world.BARGE_T0;
+      plane.y = AIR_START_Y; run.gear = 0;
+      run.spd = 62;                      // la velocidad con la que el despegue entrega el avion
+      setState('play'); sfxOne('lv1');
+    }
     // arranca una SECUENCIA de pantallas (clave del guion en STRINGS: 'storyM1', 'epiM4'…).
     // El guion viejo son PANTALLAS ({title, paras}); el motor habla de ESCENAS con lineas — las
     // traduce el adaptador de core/dialogue.js, asi el guion ya escrito anda sin tocarlo.
@@ -257,10 +291,21 @@ import { RUNWAYS } from './data/runways.js';
       const m = MODES[modeSel];
       // HISTORIA ya no arranca directo: pasa por su submenu (CONTINUAR / campañas)
       if (m === 'campaign') { campSel = campFirstSel(); setState('campmenu'); beep(600, 0.08, 'square', 0.05); }
-      else if (m === 'cycle') goCycle();
-      else if (m === 'arena') goArena();
+      else if (m === 'quick') { quickSel = 0; setState('quickmenu'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'options') { setState('options'); beep(600, 0.06, 'square', 0.05); }
       else if (m === 'quit') quitGame();
+    }
+    /** Cursor del submenu JUEGO RAPIDO. Sin encabezados: las cuatro filas son elegibles. */
+    function quickNav(dir) {
+      quickSel = (quickSel + dir + quickRows().length) % quickRows().length;
+      beep(520, 0.05, 'square', 0.04);
+    }
+    function quickConfirm() {
+      const id = quickRows()[quickSel].id;
+      if (id === 'back') { modeSel = MODES.indexOf('quick'); setState('modeselect'); beep(400, 0.06, 'square', 0.05); return; }
+      if (id === 'cycle') goCycle();
+      else if (id === 'arena') goArena();
+      else if (id === 'pasadas') goPasadas();
       else goSurvival();
     }
     /** Cierra el juego. En Electron cierra la ventana (y con ella la app); en el build web
@@ -284,7 +329,7 @@ import { RUNWAYS } from './data/runways.js';
     ];
     // filas de la vista GUARDAR: el slot nuevo (si hay lugar) + los existentes para pisar
     const pauseSaveRows = () => (saves.canSaveNew() ? [{ id: null }] : []).concat(saves.listSaves());
-    const PAUSABLE = () => S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum' || S.state === 'arena';
+    const PAUSABLE = () => S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum' || S.state === 'arena' || S.state === 'pasada';
     function pauseToggle() {
       if (!paused && (!PAUSABLE() || cfg.devcam)) return;
       paused = !paused;
@@ -341,6 +386,7 @@ import { RUNWAYS } from './data/runways.js';
       { head: 'campSecNew' },
       { id: 'c1' },
       { id: 'c2', disabled: !CAMPAIGNS[1].enabled },
+      { id: 'back', back: true },      // la salida de la pantalla, a la vista (ver quickRows)
     ];
     /** Mueve el cursor SALTEANDO encabezados (mismo criterio que OPCIONES). */
     function campNav(dir) {
@@ -357,6 +403,9 @@ import { RUNWAYS } from './data/runways.js';
       const r = campRows()[campSel];
       if (!r || r.head) return;
       if (r.disabled) { beep(140, 0.09, 'square', 0.05); return; }
+      // ATRAS deja el cursor del menu principal SOBRE la fila de la que se vino: volver no puede
+      // costar volver a buscar donde estabas.
+      if (r.id === 'back') { modeSel = MODES.indexOf('campaign'); setState('modeselect'); beep(400, 0.06, 'square', 0.05); return; }
       if (r.id === 'continue') { savesSel = 0; setState('saves'); beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'c1') { startCampaign(); beep(700, 0.08, 'square', 0.05); }
     }
@@ -389,10 +438,17 @@ import { RUNWAYS } from './data/runways.js';
     }
     // elige una mision al azar para el CICLO DE MUERTE (solo las misiones CON buque)
     function randomMission() { loadLevel(randomShipMission()); }
+    /** QUE CLIMAX juega el run: 'pasada' o 'arena' (SPEC_MODO_PASADA RF-14).
+     *
+     *  Hoy lo encienden el modo PASADAS MORTALES y la sonda `?pasada=`. El campo `climax` de
+     *  data/missions.js y el default 'pasada' llegan en P6, que es SU fase: hasta entonces las
+     *  misiones de HISTORIA y CICLO siguen terminando en el ARENA — la regla §0.4 del spec
+     *  ("no tocar los modos existentes"). */
+    function runClimax() { return (gameMode === 'pasadas' || pasadaProbe) ? 'pasada' : 'arena'; }
     // define el objetivo del run según el modo (campaña/ciclo: el goal de la mision; supervivencia: infinito)
     // `keepMusic` solo lo pasa el REINTENTO tras un derribo: ahi la musica sigue sonando.
     function setRunObjective(keepMusic) {
-      if (gameMode === 'campaign' || gameMode === 'cycle' || gameMode === 'arena') {
+      if (gameMode === 'campaign' || gameMode === 'cycle' || gameMode === 'arena' || gameMode === 'pasadas') {
         const m = curMission(), g = goalOf(m);
         objectiveDist = g.dist(m.goal) * QA_DIST;
         objectiveShip = g.label(m.goal);
@@ -437,13 +493,13 @@ import { RUNWAYS } from './data/runways.js';
       // El cursor las saltea igual que a los encabezados.
       { head: 'optSecCtrl' },
       { cols: true },   // rotulos TECLADO / JOYSTICK de las dos columnas
-      ...[['Fly'], ['Gas'], ['Dive'], ['Gun'], ['Msl'], ['Boost'], ['Roll'], ['Pan'], ['Moves']]
+      ...[['Fly'], ['Gas'], ['Dive'], ['Gun'], ['Msl'], ['Boost'], ['Brake'], ['Roll'], ['Pan'], ['Moves']]
         .map(([k]) => ({ ctrl: 'ctrl' + k, kb: 'ctrl' + k + 'K', pad: 'ctrl' + k + 'P' })),
       // NOTAS al pie de la tabla: no son controles ni opciones, son las dos reglas que la tabla
       // sola no alcanza a explicar. Van como tipo aparte (`note`) porque puestas como filas de
       // control se leian como si fueran configurables — el cursor se paraba encima y daban ganas
       // de apretarles izquierda/derecha a ver que cambiaba.
-      { note: 'ctrlHands' }, { note: 'ctrlWasd' },
+      { note: 'ctrlHands' }, { note: 'ctrlWasd' }, { note: 'ctrlBombs' },
       ...[['Aim'], ['Cam'], ['Tempo'], ['Inv'], ['Music'], ['Menu']]
         .map(([k]) => ({ ctrl: 'ctrl' + k, kb: 'ctrl' + k + 'K', pad: 'ctrl' + k + 'P' })),
 
@@ -531,7 +587,8 @@ import { RUNWAYS } from './data/runways.js';
       // campaña/ciclo por debajo, que es lo último que espera alguien tocando OPCIONES.
       // solo misiones CON buque: las de distancia no tienen layout de zonas que atacar
       { label: () => T('optShip'), opts: SHIP_MISSIONS.slice(), names: () => SHIP_MISSIONS.map(i => MISSIONS[i].goal.ship),
-        get: () => shipMissionAt(cfg.arenaShip), set: v => { cfg.arenaShip = v; if (gameMode === 'arena') loadLevel(v, true); },
+        get: () => shipMissionAt(cfg.arenaShip),
+        set: v => { cfg.arenaShip = v; if (gameMode === 'arena' || gameMode === 'pasadas') loadLevel(v, true); },
         save: 'rasante_buque' },
 
       // DEPURACIÓN: lo único que NO persiste, a propósito. MODO CAMARA deja el mundo sin avanzar
@@ -749,7 +806,7 @@ import { RUNWAYS } from './data/runways.js';
     // coincidir con esta. Son dos porque responden preguntas distintas —esta decide si rota el
     // fondo del lobby— pero si divergen, se nota: o el fondo se congela o la musica se corta.
     const inLobby = () => S.state === 'title' || S.state === 'modeselect' || S.state === 'menu' || S.state === 'options'
-      || S.state === 'mejoras' || S.state === 'campmenu' || S.state === 'saves';
+      || S.state === 'mejoras' || S.state === 'campmenu' || S.state === 'quickmenu' || S.state === 'saves';
 
     // ESTRELLAS 1..4 (la 4ª = Malvinas, rango S). Compartido por el recuento de nivel y el
     // derribado de survival: exige el DOBLE del par para las Malvinas, que se sientan merecidas.
@@ -772,6 +829,27 @@ import { RUNWAYS } from './data/runways.js';
       try {
         const id = new URLSearchParams(location.search).get('scene');
         return id && SCENES[id] ? SCENES[id] : null;
+      } catch (e) { return null; }
+    })();
+    // SONDA DE LA PASADA (SPEC_MODO_PASADA §7) — QUITAR al cerrar el modo. Dos formas, y la
+    // diferencia importa:
+    //   ?pasada=<n>            arranca DERECHO en la pasada de la mision n, sin menu ni pasillo.
+    //                          Es la que usa el fixture: sirve para medir bandas, ristras y sapitos
+    //                          sin volar un nivel entero cada vez.
+    //   ?pasada=<n>&pasillo    JUEGA el pasillo de esa mision y lo deja desembocar en la pasada.
+    //                          Es la unica forma de ver la TRANSICION SIN CORTE (RF-01) andando —
+    //                          con ?qa el pasillo dura segundos. Es un parametro que el spec no
+    //                          pide (anotado en §10): sin el, la transicion no se puede observar.
+    // Sin el parametro, pasadaProbe es null y nada cambia.
+    const pasadaProbe = (() => {
+      try {
+        const v = new URLSearchParams(location.search).get('pasada');
+        if (v === null) return null;
+        const n = +v | 0;
+        return {
+          mission: SHIP_MISSIONS.includes(n) ? n : SHIP_MISSIONS[0],
+          viaPasillo: /\bpasillo\b/.test(location.search),
+        };
       } catch (e) { return null; }
     })();
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
@@ -812,6 +890,7 @@ import { RUNWAYS } from './data/runways.js';
       tempo.resetTempo();
       veilOut = 0; veilPrev = '';   // el telon del cordon, cerrado y sin reloj
       arena.resetArena();
+      pasada.resetPasada();
       // NORMA DE CAMPAÑA (3/8, GUION_2): con roster, el relevo es un AVERIADO que vuelve a la
       // base (nadie muere por gameplay); sin roster, el relevo arcade de siempre (PATRIA caido).
       // El roster es POR MISION (los Fieles vivos segun el guion); FIELES queda de respaldo.
@@ -834,7 +913,7 @@ import { RUNWAYS } from './data/runways.js';
     const playerEl = document.getElementById('player');
     const canPickMusic = () => gameMode !== 'campaign'
       && S.state !== 'title' && S.state !== 'modeselect' && S.state !== 'menu' && S.state !== 'options'
-      && S.state !== 'mejoras' && S.state !== 'campmenu' && S.state !== 'saves' && S.state !== 'story'
+      && S.state !== 'mejoras' && S.state !== 'campmenu' && S.state !== 'quickmenu' && S.state !== 'saves' && S.state !== 'story'
       && S.state !== 'epilogue';
 
     // ---------- input ----------
@@ -905,7 +984,14 @@ import { RUNWAYS } from './data/runways.js';
         const row = Math.floor((py - (y0 - rh / 2)) / rh);
         if (row >= 0 && row < MODES.length) { modeSel = row; confirmMode(); }
       },
-      escToMenu: () => { setState('modeselect'); beep(400, 0.06, 'square', 0.05); },
+      // VOLVER: desde la eleccion de avion de un modo suelto se vuelve a JUEGO RAPIDO, que es de
+      // donde se vino — mandarlo al selector principal obligaria a bajar el mismo escalon otra vez.
+      // Desde cualquier otro lado (historia, submenu de campaña, modo camara) va al selector.
+      escToMenu: () => {
+        const suelto = gameMode === 'cycle' || gameMode === 'survival' || gameMode === 'arena' || gameMode === 'pasadas';
+        setState(S.state === 'menu' && suelto ? 'quickmenu' : 'modeselect');
+        beep(400, 0.06, 'square', 0.05);
+      },
       // PAUSA (la logica vive arriba; el input solo enruta). isPaused es el predicado que
       // core/input.js usa para desviar el teclado/el mando al menu en vez de al vuelo.
       isPaused: () => paused,
@@ -915,6 +1001,8 @@ import { RUNWAYS } from './data/runways.js';
       pauseBack: () => pauseBack(),
       // submenu de HISTORIA y lista de partidas guardadas
       campNav: dir => campNav(dir),
+      quickNav: dir => quickNav(dir),
+      quickConfirm: () => quickConfirm(),
       campConfirm: () => campConfirm(),
       savesNav: dir => {
         const n = saves.listSaves().length;
@@ -1025,6 +1113,7 @@ import { RUNWAYS } from './data/runways.js';
         // en el ARENA la misma tecla conmuta cabina ↔ tercera persona (decision del prompt:
         // toggle EN VIVO, no una opcion de menu)
         if (S.state === 'arena') { arena.toggleView(); return; }
+        if (S.state === 'pasada') { pasada.toggleView(); return; }
         camMode = (camMode + 1) % CAM_ZOOMS.length;
         beep(440 + camMode * 120, 0.05, 'square', 0.04);
         if (S.state === 'play' || S.state === 'takeoff') popup(W / 2, 58, camMode ? 'CAM ' + CAM_ZOOMS[camMode] + '×' : 'CAM 1×', P.accent);
@@ -1186,6 +1275,9 @@ import { RUNWAYS } from './data/runways.js';
       // el ARENA maneja su misil SOLO (E5): se PINTA manteniendo el boton y la salva sale al
       // soltarlo, y un flanco de tecla no puede expresar cuanto tiempo te quedaste encima
       if (S.state === 'arena') return;
+      // la PASADA tambien maneja [Z] sola: alli no es un misil sino LA SUELTA de la ristra, y el
+      // flanco lo detecta su propio update (systems/pasada.js) — este embudo es del pasillo.
+      if (S.state === 'pasada') return;
       if (S.state !== 'play' || run.msl <= 0 || run.mslCd > 0) return;
       let tx = plane.x, td = 42;                                  // engancha el blanco aereo mas cercano adelante
       const vm = viewMouse();
@@ -1443,6 +1535,16 @@ import { RUNWAYS } from './data/runways.js';
           flags.startReq = false; flags.anyPress = false;
           return;
         }
+        if (S.state === 'pasada') {
+          // PASADA (el otro climax): misma disciplina de señales que el arena y el momentum. El
+          // sistema no llama hacia arriba — devuelve 'objective' o { death } y el embudo decide.
+          run.shake = Math.max(0, run.shake - dt * 10);
+          const sig = pasada.update(dt, inp);
+          if (sig === 'objective') finishObjective();
+          else if (sig && sig.death) onDeath(sig.death);
+          flags.startReq = false; flags.anyPress = false;
+          return;
+        }
         if (S.state === 'story') {
           // HISTORIA: el motor tipea la linea y guarda su silencio; aca solo se decide QUE PASA
           // cuando la secuencia se termina — el despegue, con FADE.
@@ -1458,8 +1560,9 @@ import { RUNWAYS } from './data/runways.js';
         } else if (S.state === 'menu') {
           // el menú lo comparten SUPERVIVENCIA y CICLO DE MUERTE
           if (flags.startReq) {
-            // MINUTOS SAGRADOS: derecho a la batalla, con el buque elegido en [M]
+            // MINUTOS SAGRADOS / PASADAS MORTALES: derecho al climax, con el buque elegido en OPCIONES
             if (gameMode === 'arena') startArenaBattle(false);
+            else if (gameMode === 'pasadas') startPasadaBattle(false);
             else {
               reset(); setRunObjective();
               // ciclo: briefing corto de la mision; POR LA PATRIA: derecho al despegue
@@ -1471,8 +1574,9 @@ import { RUNWAYS } from './data/runways.js';
           // solo se puede reintentar una vez que subio la pantalla (paso el show del destrozo)
           // reintenta (mismo modo/nivel). La musica NO se reinicia: sigue desde donde venia.
           if (deathT > DEATH_REVEAL && flags.anyPress) {
-            // MINUTOS SAGRADOS reintenta LA BATALLA (mismo buque): no hay despegue al que volver
+            // los dos modos de climax suelto reintentan LO MISMO (mismo buque): no hay despegue al que volver
             if (gameMode === 'arena') startArenaBattle(false);
+            else if (gameMode === 'pasadas') startPasadaBattle(false);
             else { reset(); setRunObjective(true); setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
           }
         } else if (S.state === 'relevo') {
@@ -1500,6 +1604,17 @@ import { RUNWAYS } from './data/runways.js';
             // al buque (las zonas viven en el subsistema, no en la instancia). Pasar por 'play'
             // funcionaba de rebote (flight re-detectaba el objetivo), pero metia un frame del
             // mundo de vuelo en el medio.
+            // el que releva DENTRO del climax vuelve AL CLIMAX que se estaba jugando, con el daño
+            // ya hecho al buque (las zonas viven en el subsistema, no en la instancia). Entra por
+            // la boca de la zona y no heredando el vuelo del anterior: no venia volando el pasillo.
+            if (runClimax() === 'pasada' && pasada.available() && objectiveDist > 0 && run.dist >= objectiveDist) {
+              pasada.enter(false);
+              popup(W / 2, 54, T('sq_yours'), P.accent);
+              if (run.lives === 1) popup(W / 2, 64, T('sq_last'), P.warn);
+              beep(980, 0.14, 'square', 0.06);
+              flags.startReq = false; flags.anyPress = false;
+              return;
+            }
             if (arena.available() && objectiveDist > 0 && run.dist >= objectiveDist) {
               arena.enter();
               popup(W / 2, 54, T('sq_yours'), P.accent);
@@ -1539,6 +1654,8 @@ import { RUNWAYS } from './data/runways.js';
               // al briefing lo mandaba a volar una mision entera de CICLO DE MUERTE, que es
               // OTRO modo.
               startArenaBattle(true);
+            } else if (gameMode === 'pasadas') {
+              startPasadaBattle(true);        // otra pasada, otro buque — mismo criterio que el arena
             } else {
               // ciclo de muerte: otra mision al azar, desde cero
               randomMission(); reset(); setRunObjective(); briefT = 0; setState('brief');
@@ -1596,11 +1713,17 @@ import { RUNWAYS } from './data/runways.js';
 
       // needsMomentum: si el objetivo del run culmina en el climax (barco) o con solo llegar (distancia)
       const needsMomentum = (gameMode === 'campaign' || gameMode === 'cycle') ? goalOf(curMission()).needsMomentum : true;
-      const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist, needsMomentum });
-      if (fs === 'momentum' || fs === 'arena') return;   // ya entro al climax
+      const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist, needsMomentum, climax: runClimax() });
+      if (fs === 'momentum' || fs === 'arena' || fs === 'pasada') return;   // ya entro al climax
       if (fs === 'objective') { finishObjective(); return; }
       if (fs && fs.death) { onDeath(fs.death); return; }
-      spawnSystem(dt, objectiveDist);    // aparicion de obstaculos y soldados (nunca corta el frame)
+      // RF-01: con clímax PASADA, los spawns se cortan ENTRY_CLEAR_M antes del buque. El último
+      // tramo del pasillo se vacía y lo único que queda adelante es el blanco — es la mitad de
+      // "sin corte": no hay obstáculos que desaparezcan de golpe al abrirse el mundo.
+      // En PASADAS MORTALES no hay spawns EN NINGUN momento: el modo entero ES ese último tramo,
+      // y meterle obstáculos lo volvería otra vez el PASILLO con un barco al final.
+      if (gameMode !== 'pasadas' && !(runClimax() === 'pasada' && pasada.spawnsCut(run.dist, objectiveDist)))
+        spawnSystem(dt, objectiveDist);  // aparicion de obstaculos y soldados (nunca corta el frame)
       const hit = collisionSystem(dt);   // impactos → devuelve { death } si un choque fue fatal
       if (hit) { onDeath(hit.death); return; }
       // líneas de velocidad
@@ -1680,7 +1803,11 @@ import { RUNWAYS } from './data/runways.js';
       // ARENA: mundo 3D de VUELO LIBRE (escena propia, ver systems/three-arena.js). Se rinde a
       // la grilla del juego y se blitea 1:1 — sin la equivalencia con proj() del momentum, que
       // aca no aplica: la camara va donde va el avion.
-      arena3D.frame({ state: S.state, arena: arena.active(), view: arena.view(), cfg, t: run.t,
+      // la ESCENA es la misma para las dos fases del climax 3D: lo que cambia es de que sistema
+      // sale el avion que se le pasa (SPEC_MODO_PASADA §3).
+      arena3D.frame({ state: S.state,
+                      arena: S.state === 'pasada' ? pasada.camState() : arena.active(),
+                      view: S.state === 'pasada' ? pasada.view() : arena.view(), cfg, t: run.t,
                       SKY: theme.sky, WATER: theme.water, objectiveShip, seaH: world.seaH });
       if (arena3D.isOn()) {
         const sm = ctx.imageSmoothingEnabled;
@@ -1880,7 +2007,7 @@ import { RUNWAYS } from './data/runways.js';
       // Va antes que drawPlane: esta mas lejos — pintor correcto respecto del que entra.
       if (S.state === 'relevo' && squad.rosterActive() && squad.relevo())
         squadRender.drawFallen({ selPlane, rv: squad.relevo() });
-      if (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena') drawPlane(selPlane, viewMouse, squadZoom());   // en el ARENA (nuevo o fallback) el avion lo pone su propio render
+      if (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada') drawPlane(selPlane, viewMouse, squadZoom());   // en el climax (arena, pasada o fallback) el avion lo pone su propio render
       // la FORMACION del escuadron: SOLO en el despegue y en su salida de plano al CONTROL
       // LIBRE. Nunca durante el PASILLO en si — es costo de render que no aporta y taparia el juego.
       {
@@ -1901,7 +2028,7 @@ import { RUNWAYS } from './data/runways.js';
 
       // en momentum/arena, particulas y popups los dibuja su propio render (nivelados, sobre el
       // barco); dibujarlos tambien aca dejaria una copia fantasma
-      if (S.state !== 'momentum' && S.state !== 'arena') {
+      if (S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada') {
         for (const p of parts) { ctx.globalAlpha = Math.min(1, p.life * 2); px(p.x, p.y, p.r, p.r, p.c); }
         ctx.globalAlpha = 1;
 
@@ -1934,6 +2061,9 @@ import { RUNWAYS } from './data/runways.js';
       if (S.state === 'arena' && arena.active()) arenaRender.drawArena({
         arena: arena.active(), zones: arena.zonesOf(), view: arena.view(), objectiveShip,
         pip: arena.pipId(), parts, popups, selPlane, t: run.t });
+      if (S.state === 'pasada' && pasada.active()) pasadaRender.drawPasada({
+        pasada: pasada.active(), zones: pasada.zonesOf(), view: pasada.view(), objectiveShip,
+        impact: pasada.impactPoint(), parts, popups, selPlane, t: run.t });
       ctx.restore();
       // ...y el telon ABRIENDOSE del otro lado: entraste al climax cruzando el banco
       if (veilOut > 0 && (S.state === 'arena' || S.state === 'momentum')) world.drawVeil(veilOut / VEIL_OUT);
@@ -1964,6 +2094,7 @@ import { RUNWAYS } from './data/runways.js';
       if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t });
       // submenu de HISTORIA y lista de partidas: nativas como el selector de modos (puro texto)
       if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t });
+      if (S.state === 'quickmenu') menus.drawQuickMenu({ sel: quickSel, rows: quickRows(), t: run.t });
       if (S.state === 'saves') menus.drawSaves({ list: saves.listSaves(), sel: savesSel, t: run.t });
       // EL BANCO DEL PICHON: pantalla de mejora entre misiones. Desde M8 (muerto el Pichon,
       // indice 7) las mejoras salen de su libreta y la pantalla cambia de nombre.
@@ -2032,6 +2163,11 @@ import { RUNWAYS } from './data/runways.js';
     /** Densidad del telon en el PASILLO (0..1). La apertura del climax va por veilOut. */
     function veilNow() {
       if (objectiveDist <= 0) return 0;
+      // SIN CORTE (SPEC_MODO_PASADA RF-01): el cordon de bruma es, mirado de frente, un FADE — se
+      // cierra a pared sobre el buque y es lo que esconde el salto al 3D del arena. La pasada no
+      // lo quiere: ahi el mundo se abre y ya, sin telon. Es la diferencia entera entre los dos
+      // climax dicha en una linea.
+      if (runClimax() === 'pasada') return 0;
       if (S.state !== 'play' && S.state !== 'dead' && S.state !== 'relevo') return 0;
       const t = Math.max(0, Math.min(1, (run.dist / objectiveDist - VEIL_IN) / (VEIL_FULL - VEIL_IN)));
       // CUADRATICA: acompaña la disipacion de la niebla desde media aproximacion sin molestar
@@ -2042,8 +2178,11 @@ import { RUNWAYS } from './data/runways.js';
     // SONDA VISUAL (dev): salta a una fraccion del pasillo y/o prende MODO CAMARA sin pasar por
     // el menu. Es la unica forma de MIRAR la aproximacion al buque desde una captura
     // automatizada: volando de verdad no se llega vivo al tramo final del pasillo.
-    // estado de la PAUSA para las sondas (mismo patron que __wjump)
-    if (typeof window !== 'undefined') window.__pdbg = () => JSON.stringify({
+    // estado de la PAUSA y de la pantalla para las sondas (mismo patron que __wjump).
+    // SE LLAMABA __pdbg y se renombro al construir la fase PASADA: el spec de ese modo pide
+    // `__pdbg` para SU sonda y el nombre estaba ocupado por esto, que no es la pasada sino la
+    // pausa. (__udbg tampoco servia: ya es el del BANCO DEL PICHON, mas abajo.) Lo usa tools/smoke.js.
+    if (typeof window !== 'undefined') window.__pausedbg = () => JSON.stringify({
       paused, view: pauseView, sel: pauseSel, saveSel, state: S.state,
     });
     // MOTOR DE HISTORIA para el fixture del locker (SPEC_MODO_HISTORIA §6): lo que el jugador
@@ -2077,6 +2216,7 @@ import { RUNWAYS } from './data/runways.js';
         p: objectiveDist ? +(run.dist / objectiveDist).toFixed(3) : 0,
         dist: Math.round(run.dist), obj: Math.round(objectiveDist),
         obs: obstacles.filter(o => o.z > 3 && !o.decor).length,   // lo que queda ADELANTE
+        y: +plane.y.toFixed(1), spd: run.spd | 0, vidas: run.lives,
         devcam: cfg.devcam, state: S.state,
       });
     };
@@ -2086,7 +2226,13 @@ import { RUNWAYS } from './data/runways.js';
     function frame(now) {
       // el telon del cordon: se arma al entrar al climax y se abre solo (raw: es cinematica, no
       // la toca la camara lenta del MOMENTUM)
-      const raw = Math.min(0.033, (now - last) / 1000); last = now;
+      // EL PISO EN CERO NO ES ADORNO: `last` se siembra con performance.now() y el `now` del PRIMER
+      // requestAnimationFrame es el instante en que ARRANCO ese cuadro, que puede ser ANTERIOR —
+      // medido, -9.6 ms. Un dt negativo hace que todo interpolador corra al reves, y el primero que
+      // se rompe es el volumen del motor (audio.js): sale negativo, el <audio> tira IndexSizeError y,
+      // como es adentro del rAF, se lleva puesto el loop entero. Nadie lo veia porque en la portada
+      // no suena el motor; aparecio al entrar DERECHO al pasillo con la sonda de la PASADA.
+      const raw = Math.max(0, Math.min(0.033, (now - last) / 1000)); last = now;
       // PAUSA: se saltea update() ENTERO (y el reloj del momentum, y el del telon) — el mundo
       // queda clavado tal cual se ve. draw() sigue corriendo: dibuja el frame congelado y el
       // menu encima. pauseT es el unico reloj vivo (parpadeos del overlay).
@@ -2121,5 +2267,15 @@ import { RUNWAYS } from './data/runways.js';
     // ?scene=<ID>: arranca DENTRO de esa escena, sin pasar por el menu ni por una mision. Es como
     // se corre el fixture de aceptacion del locker (SPEC_MODO_HISTORIA §6).
     if (sceneProbe) { dialogue.startSeq([sceneProbe], getLang()); setState('story'); }
+    // ?pasada=<n>: el climax PASADA, por sonda. Con &pasillo se vuela el nivel y la pasada llega
+    // sola al final (RF-01); sin el, se entra derecho a la zona. El modo es CICLO DE MUERTE porque
+    // es el que juega una mision suelta y encadena por el embudo normal (results → epilogo).
+    if (pasadaProbe) {
+      gameMode = 'cycle';
+      loadLevel(pasadaProbe.mission);
+      reset(); setRunObjective();
+      if (pasadaProbe.viaPasillo) { run.t = 0; setState(afterBrief()); }
+      else { run.dist = objectiveDist; pasada.enter(false); }
+    }
     requestAnimationFrame(frame);
   })();

@@ -25,12 +25,17 @@ import { shown as dmgShown } from '../systems/damage.js';
 // VIEJO le clavaba la mira en MOM_AY=60), pero aca la mira NO es fija: cae donde apunta el morro,
 // que en 1a persona es el centro de pantalla (H/2 = 135). Bajar el PNG es lo que hace coincidir
 // el visor pintado con la mira real. Si se cambia el asset de cabina, re-medir.
-const COCKPIT_Y = 74;
+// EXPORTADA: es una medida DEL ASSET (donde cae el visor pintado), no una decision del arena, y la
+// PASADA dibuja la misma cabina con la misma camara.
+export const COCKPIT_Y = 74;
 
 /** El avion en TERCERA persona: el sprite de vuelo (vista trasera) con el alabeo y el cabeceo
  *  reales de la maniobra. La camara va detras, asi que el avion siempre se ve de atras — que es
  *  justo la vista para la que estan horneadas las hojas. */
-function drawThirdPlane(A, selPlane) {
+// EXPORTADA para la fase PASADA (render/pasada.js): es el mismo avion visto desde la misma camara,
+// asi que copiarla seria tener dos verdades sobre como se ve el Pichon de atras. Exportar no le
+// cambia el comportamiento al arena — la condicion que pone el SPEC_MODO_PASADA §9.8.
+export function drawThirdPlane(A, selPlane) {
   const pl = PLANES[selPlane];
   if (!pl.sheetOk) return;
   // el banqueo del sprite se normaliza al ROLL_MAX del modelo: banqueo pleno = hoja al tope
@@ -50,8 +55,10 @@ function drawThirdPlane(A, selPlane) {
     Math.round(bx - spW / 2), Math.round(by - spH / 2), spW, spH);
 }
 
-/** Flecha al borde de pantalla apuntando al buque cuando quedo fuera de cuadro. */
-function shipArrow(sp) {
+/** Flecha al borde de pantalla apuntando al buque cuando quedo fuera de cuadro.
+ *  EXPORTADA para la PASADA por la misma razon que drawThirdPlane: perder el buque de vista pasa
+ *  igual en las dos fases, y la respuesta tiene que ser la misma flecha. */
+export function shipArrow(sp) {
   const cx = W / 2, cy = H / 2;
   let dx = sp.x - cx, dy = sp.y - cy;
   if (!sp.vis) { dx = -dx; dy = -dy; }                  // detras: el rumbo real es el opuesto

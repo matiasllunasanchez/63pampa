@@ -1449,7 +1449,10 @@ function drawShipCloudsFallback(bx, waterY, len, hb0, va) {
 // y crece hasta empalmar con la escala de la fase ARENA que viene (es el final del mapa).
 // EMERGE "hull-down" desde atras del BANCO DE NUBES asentado en el horizonte (drawShipClouds):
 // primero asoma la superestructura sobre las nubes y el casco se descubre al acercarse.
-const BARGE_T0 = 0.45;        // fraccion del recorrido en la que el buque asoma
+// EXPORTADA: el modo PASADAS MORTALES arranca la corrida EXACTAMENTE en este punto del camino,
+// para que lo primero que se vea sea el buque asomando en el horizonte. Si se mueve el valor, ese
+// modo se mueve con el — que es justo lo que se quiere.
+export const BARGE_T0 = 0.45;        // fraccion del recorrido en la que el buque asoma
 // COLUMNA del buque en pantalla. La DERIVA lateral (aparecer corrido y cerrar hacia el rumbo)
 // se probo y se DESCARTO (pedido 11/8): en su lugar el buque aparece clavado en su rumbo y se
 // MATERIALIZA — su opacidad sube a la inversa de la niebla (ver shipA en drawApproachBarge).

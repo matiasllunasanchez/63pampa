@@ -152,7 +152,10 @@ function palette(w) {
 /** Un frame del arena. `w` trae el estado del avion, la paleta y seaH. false ⇒ no hay 3D. */
 export function frame(w) {
   A3.on = false;
-  if (w.state !== 'arena' || !w.arena) return false;
+  // LA ESCENA SE COMPARTE con la fase PASADA (SPEC_MODO_PASADA §3): es el mismo mar, el mismo
+  // buque y la misma camara puesta donde esta el avion. Lo que cambia entre las dos fases es el
+  // reglamento, que vive en los sistemas — este modulo solo recibe un avion y lo dibuja.
+  if ((w.state !== 'arena' && w.state !== 'pasada') || !w.arena) return false;
   if (!init()) { window.__a3 = 'init false'; return false; }
   const r = useRenderer(AW, AH);
   if (!r) { window.__a3 = 'no renderer'; return false; }

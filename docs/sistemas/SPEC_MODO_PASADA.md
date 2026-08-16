@@ -242,9 +242,9 @@ sin tocar código.
 
 | Fase | Entrega | Criterio de cierre |
 |---|---|---|
-| **P0** | Estado `'pasada'` + esqueleto de `systems/pasada.js`/`render/pasada.js` + `?pasada=` + `__pdbg`. La zona 3D compartida con el ARENA, el buque en el centro, el vuelo libre PASILLO-idéntico volando en ella | se entra por sonda, se vuela, `check` verde |
+| ~~**P0**~~ ✅ | Estado `'pasada'` + esqueleto de `systems/pasada.js`/`render/pasada.js` + `?pasada=` + `__pdbg`. La zona 3D compartida con el ARENA, el buque en el centro, el vuelo libre PASILLO-idéntico volando en ella | **hecho 16/8/2026**: se entra por sonda y se vuela; la transición sin corte anda y está medida (§10.4); `npm run pasada` y `npm run check` verdes |
 | **P1** | La corrida: eje de ataque, ingreso, sobrevuelo, re-encare racetrack (todavía sin las dos variantes), auto-retorno de zona. Sin defensa ni bomba | 3 corridas seguidas se vuelan fluidas; feel = PASILLO |
-| **P2** | La suelta completa: bomba balística, 3 bandas, ristra de `BOMBS_N` en salva, el sapito con sus 3 salidas, daño por zona, popups | fixture pasos 2–5 |
+| ~~**P2**~~ ✅ | La suelta completa: bomba balística, 3 bandas, ristra de `BOMBS_N` en salva, el sapito con sus 3 salidas, daño por zona, popups | **hecho 16/8/2026**: fixture pasos 2–5 verdes (dulce 130 de daño · dormida 2 impactos sin estallar · sapito entra picando · la ristra alcanza 2 zonas por el eje del casco y 1 cruzando la manga) |
 | **P3** | La defensa por capas: techo Sea Dart, columnas que caminan (solo al avión en corrida), Sea Cat + aviso por radio, fusilería, calor por re-encare | fixture pasos 6–7; cada capa se aprende muriendo UNA vez |
 | **P4** | El reglamento: nafta como reloj, ralentí de la ventana + MOMENTUM sumado, los DOS re-encares con sus precios, derrota/victoria por el embudo (`onDeath` / `'objective'`, relevo re-entra a la pasada) | fixture pasos 8–9 |
 | **P5** | Legibilidad + audio: HUD de banda de armado, corchetes/zonas, NO DESPERTÓ, silencio del Sea Dart abajo (la recompensa se escucha), sonidos por capa | mirada muda: se entiende sin leer |
@@ -276,4 +276,117 @@ oleada completa.
 > La IA implementadora anota acá toda diferencia entre este spec y la realidad del código,
 > con la decisión tomada. Este bloque es la memoria del proyecto para la próxima pasada.
 
-- *(vacío)*
+### P0 (16/8/2026)
+
+1. **`__pdbg` ya existía y era otra cosa.** El nombre estaba tomado por la sonda de la PAUSA en
+   `game.js` (`{paused, view, sel, saveSel, state}`), y `tools/smoke.js` la usa. `__udbg` tampoco
+   servía: es la del BANCO DEL PICHÓN. **Decisión:** la sonda de la pausa pasó a llamarse
+   `__pausedbg` (dos usos en `smoke.js`, actualizados) y `__pdbg` quedó libre para la PASADA, como
+   pide §7. Ninguna es de juego: las tres son sondas de desarrollo.
+
+2. **Parámetro de sonda extra: `?pasada=<n>&pasillo`.** El spec pide que `?pasada=<n>` entre
+   *derecho* a la zona, sin pasillo — y así quedó, es la que usa el fixture. Pero entonces la
+   transición sin corte (RF-01) **no se puede observar**, porque no hay pasillo del que venir. Se
+   agregó el flag `pasillo`: juega el nivel y lo deja desembocar en la pasada. Sin él, nada cambia.
+
+3. **RF-14 todavía no está: el clímax lo decide la sonda, no `missions.js`.** `runClimax()` en
+   `game.js` devuelve `'pasada'` sólo si la sonda está puesta. El campo `climax` por misión y el
+   default `'pasada'` son **P6**, que es su fase; hasta entonces ningún modo existente cambia de
+   clímax (regla §0.4).
+
+4. **El "sin corte" tenía un dueño concreto: el CORDÓN DE BRUMA.** `veilNow()` cierra un velo negro
+   desde el 55% del camino hasta ser pared sobre el buque — mirado de frente, **es un fade**, y es
+   lo que esconde el teletransporte del ARENA. Con clímax PASADA devuelve 0. Medido con el brillo
+   medio del cuadro, normalizado contra el 60% del mismo run: **ARENA 100% → 87 → 70 → 52 → 40%;
+   PASADA 100% → 101 → 100 → 100 → 101%.** El fixture lo verifica solo.
+
+5. **Bug de arranque encontrado y arreglado (`game.js`): el primer `dt` podía ser NEGATIVO.** `last`
+   se sembraba con `performance.now()` y el `now` del primer `requestAnimationFrame` es el instante
+   en que arrancó ese cuadro — medido, **−9,6 ms**. Con dt negativo el volumen del motor sale
+   negativo, el `<audio>` tira `IndexSizeError` y, como pasa dentro del rAF, **se lleva puesto el
+   loop entero**. Nadie lo veía porque en la portada no suena el motor; apareció al entrar derecho
+   al pasillo con esta sonda. Fix: `Math.max(0, …)` en el `raw` del loop.
+
+6. **Lo que se comparte con el ARENA se exportó, no se copió** (§3 y §9.8): `drawThirdPlane`,
+   `shipArrow` y `COCKPIT_Y` de `render/arena.js`, y la escena de `three-arena.js` (que ahora acepta
+   el estado `'pasada'`). Exportar no le cambia el comportamiento al arena — su fixture es el smoke,
+   que sigue verde. **No** se compartieron los indicadores de sistemas que la pasada no tiene
+   (pintado de misiles, stagger, reparto de energía): dibujar la barra de algo que no existe sería
+   mentirle al jugador. El armado del `io` de vuelo (12 líneas) quedó duplicado a propósito: la
+   pasada no tiene pips ni media vuelta, y compartirlo obligaría a tocar el arena.
+
+7. **Los corchetes de zona sólo se dibujan dentro de `POPUP_DIST_M`.** Es RF-05 (el salto es lo que
+   habilita la mira sobre las zonas) y además resuelve lo que se veía a 1200 m: cinco etiquetas
+   apiladas sobre un buque de diez píxeles. **Sigue pendiente para P5**: entre 800 y ~400 m las
+   etiquetas todavía se pisan entre ellas (el buque ocupa pocos píxeles y las zonas están juntas).
+   Es el mismo comportamiento que tiene el ARENA de lejos, y es trabajo de legibilidad, no de P0.
+
+8. **Pendiente de RF-01 que P0 NO entrega:** el buque todavía no se dibuja en el horizonte *del
+   pasillo* — aparece cuando el mundo se abre. El criterio de aceptación de RF-01 (ni frame negro
+   ni salto de cámara, el canvas cambiando durante toda la transición) sí se cumple y está medido.
+   Queda anotado para P1/P5.
+
+9. **Fase y banda son derivadas, no estado.** `fase` (ingreso/salto/egreso/re-encare) se calcula de
+   la geometría y `banda` de la altura. Alcanza para que la sonda las lea; **P1** las convierte en
+   estado real con el eje de ataque y el re-encare.
+
+### P2 — la suelta (16/8/2026)
+
+11. **§6 no trae daño de bomba.** Define la VENTANA (las bandas) pero no cuánto pega. Se agregaron
+    tres perillas nuevas en `data/pasada.js`, con su porqué: `BOMB.DMG = 90` (apaga de una el radar
+    45, el AA 55 y el motor 70, pero **no el PUENTE de 130, que pide dos** — el blanco duro tiene
+    que sentirse duro, y con 2 bombas por corrida deja la doctrina en 2–4 pasadas), `BOMB.DUD = 0.12`
+    (la dormida golpea y hace ~11: no es cero, y esa es exactamente la historia de las bombas que
+    entraron sin estallar) y `BOMB.G = 9.8` (gravedad real).
+
+12. **Hizo falta la MIRA DE SUELTA.** Con la bomba heredando 100 m/s y cayendo con gravedad real, a
+    35 m de altura el adelanto son **~270 metros**: sin marca, la suelta es adivinar y el CA de la
+    ristra no lo puede cumplir una persona. Es la mentira permitida §3.4 de PROPUESTAS. **Y
+    desaparece por debajo de `SAPITO_ALT_M`**, porque RF-07 pide que el sapito sea a ojo.
+
+13. **El casco NO es agua.** El rayo de la bomba puede pegarle a una pieza sin zona (la chapa) y eso
+    contaba como "cayó al agua": una bomba bien puesta en el medio del buque no hacía nada. Ahora un
+    impacto sin zona se lo cobra **la zona viva más cercana** — una bomba que entra por el casco
+    revienta adentro y se lleva lo que tiene encima.
+
+14. **La ristra se repone por corrida** (`OUT_R` = `POPUP_DIST_M + ENTRY_CLEAR_M/2` = 1150 m). El
+    recurso escaso no son las bombas: son la nafta (RF-10) y una defensa cada vez más caliente
+    (RF-09). El umbral va a la MITAD del tramo limpio porque pedir 1500 dejaba el rearme pegado a la
+    correa del piloto automático, que está en 1600.
+
+15. **El CA de la ristra se mide en ZONAS ALCANZADAS, no en daño.** Dos bombas en zonas de 45 y 55
+    suman 100; una sola que revienta el puente suma 130 — con la métrica de daño, la pasada *peor*
+    ganaba. Medido: **a lo largo del casco 2 zonas de una sola pasada; cruzando la manga, 1.**
+
+16. **`npm run pasada` no entra a `npm run check`**, por el mismo criterio que `npm run story`: son
+    segundos de vuelo real. Se corre a mano después de cada fase, como pide §0.2.
+
+### El JOYSTICK (16/8/2026)
+
+17. **El mando no volaba la pasada.** La lista `inGame` de `core/input.js` —los estados donde el pad
+    escribe el vuelo— era `play · takeoff · momentum · arena`. La PASADA no estaba, así que el
+    `else` (la rama de menús) le **soltaba todos los ejes**: se entraba al clímax sin corte y el
+    avión se quedaba sin piloto. No lo veía nadie porque el fixture y el smoke manejan con teclado.
+    **Regla que queda:** *todo clímax nuevo entra en `inGame`*, y ahora el fixture lo verifica.
+
+18. **Sección 3 nueva del fixture: el mando de punta a punta, con un pad FALSO.** Se pisa
+    `navigator.getGamepads` con un objeto que el script mueve a mano; el poll de `input.js` lo lee
+    como a cualquier otro, así que el camino probado es el real entero (poll → flancos → `setPad`).
+    Cubre los cuatro gestos de la pasada: stick izquierdo = gas, stick derecho = banqueo, **L1 =
+    soltar la ristra** y cruceta abajo = cámara. El umbral del gas es de 0,2 rad y no "subió algo":
+    con el pad muerto el morro **deriva** unas centésimas solo, y esa deriva daba el chequeo por
+    bueno con el mando desconectado.
+
+19. **Un botón nuevo, y no es un control nuevo (§9): cruceta ABAJO = cámara.** Era la última
+    dirección de la cruceta sin dueño en juego. La PASADA y el ARENA conmutan CABINA ↔ TERCERA
+    PERSONA en vivo con `[V]` y el mando **no tenía con qué**: la tabla de OPCIONES decía "—" en la
+    columna JOYSTICK. No agrega una mecánica; le da al pad lo que el teclado ya tenía.
+
+20. **La suelta NO estrena botón: es L1/□, el del misil.** Mismo campo (`inp.msl`) que lee el
+    pasillo, así que "el otro índice tira lo pesado" vale en los tres modos y no hay una mano nueva
+    que aprender. Es lo que pide §9 (*ningún control nuevo*), leído al pie de la letra.
+
+21. **La tabla de CONTROLES de OPCIONES estaba incompleta desde antes.** Le faltaba el **FRENO**
+    (`[F]` / L2), que el ARENA usa desde que existe. Se agregó la fila y una nota al pie: *en la
+    PASADA, el MISIL suelta las bombas*. La tabla dice lo que `input.js` **hace**, así que cada
+    binding nuevo se anota ahí en el mismo commit — en los dos idiomas.

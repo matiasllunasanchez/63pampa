@@ -24,12 +24,25 @@ Todo run del juego se arma combinando dos **fases**, no dos modos:
 
 Los **modos** del menú son combinaciones de estas dos fases:
 
-| modo | fases |
-|---|---|
-| HISTORIA | PASILLO → ARENA, con guion entre niveles |
-| CICLO DE MUERTE | PASILLO → ARENA, misión al azar |
-| POR LA PATRIA | solo PASILLO, infinito (nunca entra a ARENA) |
-| MINUTOS SAGRADOS | solo ARENA, batallas al azar (nunca cruza el PASILLO) |
+Y hay una **tercera fase en construcción**, la **PASADA** — el clímax con la doctrina real (a ras,
+saltar, soltar y salir), estado `'pasada'`, en `systems/pasada.js` + `render/pasada.js`, compartiendo
+la escena 3D con el ARENA. Va por fases: el plan y las divergencias, en
+[SPEC_MODO_PASADA.md](sistemas/SPEC_MODO_PASADA.md).
+
+El menú tiene **dos puertas**: HISTORIA y **JUEGO RÁPIDO**, y adentro de la segunda viven los cuatro
+modos que se juegan sin guion:
+
+| modo | dónde | fases |
+|---|---|---|
+| HISTORIA | menú principal | PASILLO → ARENA, con guion entre niveles |
+| CICLO DE MUERTE | JUEGO RÁPIDO | PASILLO → ARENA, misión al azar |
+| POR LA PATRIA | JUEGO RÁPIDO | solo PASILLO, infinito (nunca entra a ARENA) |
+| MINUTOS SAGRADOS | JUEGO RÁPIDO | solo ARENA, batallas al azar (nunca cruza el PASILLO) |
+| PASADAS MORTALES | JUEGO RÁPIDO | **aproximación corta → PASADA**: arranca ya volando, en el punto exacto donde el buque asoma en el horizonte (`BARGE_T0` de `render/world.js`), con el mar vacío por delante. No hay spawns: el modo entero es el último tramo del ataque |
+
+> Qué clímax juega un run lo decide `runClimax()` en `game.js`. Hoy contesta `'pasada'` sólo en
+> PASADAS MORTALES y con la sonda `?pasada=`; que lo decida cada misión (campo `climax` en
+> `missions.js`) es la fase **P6** del spec.
 
 `systems/momentum.js` es el clímax de pasadas VIEJO (bullet-time, cámara en riel): hoy es el
 **fallback sin 3D** de la fase ARENA (web / `?no3d`), no un modo aparte. Ver
@@ -204,6 +217,7 @@ Lo que queda es genuinamente el pegamento:
 | la fase ARENA (vuelo, ring, combate) | `systems/arena.js` (lógica) + `systems/three-arena.js` (mundo 3D) + `render/arena.js` (overlay) |
 | el ARENA VIEJO / fallback sin 3D | `systems/momentum.js` (lógica) + `render/momentum.js` (dibujo) |
 | controles / teclas | `core/input.js` (+ las acciones en `game.js`) |
+| **que el JOYSTICK vuele una fase nueva** | la lista `inGame` de `core/input.js`. Es la que decide dónde el pad escribe el vuelo; fuera de ella corre la rama de menús, que **suelta todos los ejes** (el avión se queda sin piloto en el aire). Le pasó a la PASADA. Y si el binding es nuevo, anotalo en la tabla `ctrl*` de `data/strings.js` **en los dos idiomas**: esa tabla es la pantalla CONTROLES de OPCIONES y dice lo que `input.js` *hace*, no lo que debería |
 | el HUD | `render/hud.js` |
 | el mar / los obstáculos en pantalla | `render/world.js` |
 | dibujar filas del raster de suelo/mar | `render/world.js` — usá `rowH`, no `1`: con el horizonte girado las filas de 1 px dejan costuras y se ve el fondo por debajo |

@@ -181,6 +181,13 @@ export function initInput(cv, a) {
       if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
       return;
     }
+    if (S.state === 'quickmenu') {                                       // submenu de JUEGO RAPIDO
+      if (isUp(e.code)) { a.quickNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code)) { a.quickNav(1); e.preventDefault(); return; }
+      if (isConfirm(e.code)) { a.quickConfirm(); e.preventDefault(); return; }
+      if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
+      return;
+    }
     if (S.state === 'saves') {                                           // partidas guardadas (cargar)
       if (isUp(e.code)) { a.savesNav(-1); e.preventDefault(); return; }
       if (isDown(e.code)) { a.savesNav(1); e.preventDefault(); return; }
@@ -284,7 +291,14 @@ export function initInput(cv, a) {
   //   gatillo (7)                turbo             △ Triangle (3)     invertir el gas
   //   ✕ Cross (0)                metralleta tambien (y OK / avanzar en menus)
   //   □ Square (2)               misil tambien     ◯ Circle (1)       atras (volver)
-  //   L3 (10) / R3 (11)          pista musical ◄ / ►     cruceta       navegar los menus
+  //   L2 (6)                     freno (arena y pasada)
+  //   cruceta ↑ (12)             reparto de energia (arena)
+  //   cruceta ↓ (13)             camara: cabina ↔ tercera persona (= [V])
+  //   L3 (10) / R3 (11)          pista musical ◄ / ►     cruceta ←/→   esquivar (y navegar menus)
+  //
+  // EN LA PASADA el mando NO cambia de significado, y es a proposito: L1/□ —el boton del misil—
+  // SUELTA LA RISTRA DE BOMBAS. Es el mismo campo (`inp.msl`) que lee el pasillo para el misil, asi
+  // que "el otro indice tira lo pesado" vale en los tres modos y no hay una mano nueva que aprender.
   //
   // R1/L1 son las ARMAS porque es donde estan en cualquier juego de vuelo: el indice dispara y el
   // otro indice suelta el misil, sin soltar los pulgares de los sticks. ✕ y □ quedan como alias —
@@ -352,7 +366,11 @@ export function initInput(cv, a) {
     if (hit(10)) a.trackPrev();
     if (hit(11)) a.trackNext();
 
-    const inGame = S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum' || S.state === 'arena';
+    // QUE ESTADOS SON "JUGAR". Cada climax nuevo tiene que entrar aca o el mando deja de volar al
+    // llegar: el `else` de abajo SUELTA todos los ejes (es la rama de menus). La PASADA se agrego
+    // por eso — se entra sin corte desde el pasillo y el joystick se quedaba muerto en el aire.
+    const inGame = S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum'
+      || S.state === 'arena' || S.state === 'pasada';
     // PAUSA con el mando: Start (9) la abre en juego; abierta, la cruceta/stick navegan,
     // ✕ confirma, ◯ vuelve y Start reanuda. El vuelo se SUELTA (setPad 0) para que al reanudar
     // no quede un eje clavado del frame anterior.
@@ -395,6 +413,10 @@ export function initInput(cv, a) {
       // CRUCETA ARRIBA = reparto de energia. SQUADRONS_UPDATE §6 la daba por ocupada ("la cruceta
       // es esquive"), pero eso vale para 14/15 (izq/der): 12/13 no las lee nadie en juego.
       if (hit(12)) a.cyclePip();
+      // CRUCETA ABAJO = CAMARA (lo mismo que [V]). Era la ultima direccion de la cruceta sin dueño
+      // en juego, y hacia falta: en el ARENA y en la PASADA esa tecla conmuta CABINA ↔ TERCERA
+      // PERSONA en vivo, y con el mando no habia forma de cambiar de vista.
+      if (hit(13)) a.cycleCamera();
       setPad('u', (cfg.padInvY ? ly > 0 : ly < 0) ? 1 : 0);     // potencia (gas / subir) — default: ARRIBA SUBE
       setPad('d', (cfg.padInvY ? ly < 0 : ly > 0) ? 1 : 0);     // picada (bajar)
       setPad('fire', down(5) || down(0));                      // R1 = metralleta (✕ tambien)
@@ -438,6 +460,11 @@ export function initInput(cv, a) {
         if (nu && !nav.u) a.campNav(-1);
         if (nd && !nav.d) a.campNav(1);
         if (confirm) a.campConfirm();
+        if (hit(1)) a.escToMenu();                             // B = volver al selector de modos
+      } else if (S.state === 'quickmenu') {
+        if (nu && !nav.u) a.quickNav(-1);
+        if (nd && !nav.d) a.quickNav(1);
+        if (confirm) a.quickConfirm();
         if (hit(1)) a.escToMenu();                             // B = volver al selector de modos
       } else if (S.state === 'saves') {
         if (nu && !nav.u) a.savesNav(-1);

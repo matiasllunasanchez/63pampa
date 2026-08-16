@@ -188,7 +188,11 @@ export function updateSfx(dt, w) {
 // en una pantalla de menu. Ojo tambien con render: game.js tiene su PROPIO inLobby() para rotar el
 // fondo, y las dos listas tienen que decir lo mismo.
 function inLobby(state) {
-  return state === 'title' || state === 'modeselect' || state === 'options' || state === 'menu';
+  // 'campmenu', 'quickmenu', 'mejoras' y 'saves' son navegacion PREVIA a jugar igual que las otras:
+  // faltaban (el aviso de arriba lo habia anticipado) y entrar al submenu de HISTORIA cortaba la
+  // musica del lobby para arrancar la del juego, sin que hubiera juego todavia.
+  return state === 'title' || state === 'modeselect' || state === 'options' || state === 'menu'
+    || state === 'campmenu' || state === 'quickmenu' || state === 'mejoras' || state === 'saves';
 }
 export function updateMusic(state) {
   lastState = state;
