@@ -877,12 +877,17 @@ app.whenReady().then(async () => {
     // se vuela derecho y se cuenta cuantos segundos seguidos no hay NADA delante del morro.
     // Invulnerable a proposito — lo que se mide es lo que se VE, no lo que se sobrevive.
     await js('__pdef(1); __pinv(1); __plives(1); __pvara()');
-    let den = null, roces = 0, mangMax = 0;
+    let den = null, roces = 0, mangMax = 0, foto = 0;
     for (let k = 0; k < 24; k++) {
       await sleep(400);
       const a = await P();
       if (!a) break;
       den = a; roces = a.roces; mangMax = Math.max(mangMax, a.mangueras);
+      // LA FOTO SE SACA EN VUELO Y CON EL CHORRO ENCIMA. Sacada al final del muestreo caia en la
+      // pantalla de relevo —la corrida termina estrellandose contra el casco, a proposito— y la
+      // captura mostraba un cartel en vez de la unica imagen que R2 tiene para dar. Misma cicatriz
+      // que la foto de la oleada (P7) y que la de la soga (R1): el instante hay que elegirlo.
+      if (!foto && a.mangueras >= 1 && a.r < 520) { foto = 1; await shot('r2_mangueras'); }
     }
     if (!den) bad('la corrida se corto antes de poder medir la densidad');
     else {
@@ -895,7 +900,7 @@ app.whenReady().then(async () => {
       else bad(`la densidad casi no subio: ${den.amenMed} de media contra ${AMEN_BASE} del baseline`);
       if (mangMax >= 1) ok(`las MANGUERAS barren el cielo: hasta ${mangMax} chorro(s) a la vez (HOSE_N son 2)`);
       else bad('no salio ninguna manguera de trazadoras');
-      await shot('r2_mangueras');
+      if (!foto) bad('no se pudo capturar el chorro de trazadoras en vuelo');
     }
 
     // 2) EL ROCE SUMA. Es el unico premio del modo que no pasa por la bomba, y sin el lo optimo es

@@ -229,6 +229,14 @@ ahora sale **antes** de que la sonda coloque el avión (y el teletransporte le b
 así que arranca de cero y necesita ~6 s — que a 20 m de altura no existen. Subir la sonda a 90 m no
 le cambia nada al cañón; solo le da tiempo a la medición.
 
+R2.10. **La captura hay que elegirla, tercera vez.** La foto de las mangueras salió primero en la
+pantalla de relevo (la corrida de medición termina contra el casco, a propósito) y después con el
+chorro *punteado*: balas cada 52 m con estelas de 34 — más hueco que línea, o sea una raya fina
+perdida en el borde. Densificado a `HOSE.EVERY 0.045` y con la cabeza de la trazadora más gorda
+cuando pasa cerca, el chorro se lee. Queda dicho igual: en la captura el chorro barre **bajo, sobre
+el mar**, no alto contra el cielo, y en ese instante el segundo chorro no está en cuadro. Los seis
+criterios medibles cierran; el barrido alto es presentación y es de R5.
+
 R2.9. **El baseline del hueco pasó a constante histórica, igual que el TTI (R0.3).** La aserción
 "tiene que haber huecos de más de 4 s" —que probaba que el §1.3 se reproducía— se rompió en cuanto
 R2 empezó a funcionar. Segunda vez que el mismo error aparece: **congelar el mundo viejo en una

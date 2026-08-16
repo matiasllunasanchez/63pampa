@@ -244,9 +244,12 @@ export const HOSE = {
   // ALTURA DE LA BOCA sobre el agua: la cubierta del buque. Los chorros nacen DEL BUQUE y se ve —
   // el fuego con autor es la mitad de por que da miedo (§1.5).
   Y: 22,
-  // cada cuanto sale una trazadora. Da ~15 balas vivas por chorro: se lee como un chorro y no
-  // cuesta 80 proyecciones por cuadro.
-  EVERY: 0.07,
+  // CADA CUANTO SALE UNA TRAZADORA. A 0,07 el chorro salia PUNTEADO —medido en captura: balas cada
+  // 52 metros con estelas de 34, o sea mas hueco que linea, y de frente se leia como una sola raya
+  // fina perdida en el borde. A 0,045 las estelas se pisan y el chorro se lee como lo que es. Son
+  // ~24 balas vivas por manguera: dos chorros cuestan 48 proyecciones por cuadro, que es menos que
+  // el carril de agua del eje.
+  EVERY: 0.045,
 };
 
 // ---- LA BOMBA (P2) ----

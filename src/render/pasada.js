@@ -252,11 +252,17 @@ export function drawPasada(w) {
         const tp = world3D.project(f.ox + b.dx * rz, f.oy + b.dy * rz, f.oz + b.dz * rz);
         // las trazadoras van CALIENTES y salteadas: una de cada tres en el color de acento hace que
         // el chorro titile como titila de verdad, sin dibujar una bala mas
-        ctx.strokeStyle = (b.t * 100 | 0) % 3 ? P.warn : P.accent;
+        const col = (b.t * 100 | 0) % 3 ? P.warn : P.accent;
+        ctx.strokeStyle = col;
         ctx.globalAlpha = 0.85; ctx.lineWidth = 1;
         if (tp.vis) { ctx.beginPath(); ctx.moveTo(tp.x, tp.y); ctx.lineTo(hp.x, hp.y); ctx.stroke(); }
-        else px(hp.x, hp.y, 1, 1, ctx.strokeStyle);
         ctx.globalAlpha = 1;
+        // LA CABEZA CALIENTE, y mas gorda cuando pasa CERCA. Una trazadora a 200 metros de la
+        // cabina no es una raya de un pixel: es un fogonazo que cruza. Sin esto el chorro se veia
+        // igual de flaco a 700 m que rozandote el ala, y entonces "casi te pega" no se sentia.
+        const dc = Math.hypot(f.ox + b.dx * dd - A.pos.x, f.oz + b.dz * dd - A.pos.z);
+        const k = dc < 240 ? 2 : 1;
+        px(hp.x - (k - 1) / 2, hp.y - (k - 1) / 2, k, k, col);
       }
       continue;
     }
