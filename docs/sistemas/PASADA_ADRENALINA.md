@@ -156,6 +156,18 @@ R1.3. **El esquive se unificó con el del Sea Cat** (mismo ángulo `CAT_BREAK`, 
 Perdido el enganche el misil sigue **derecho** en vez de desaparecer — y esa soga pasando de largo
 es la prueba visible de que lo hiciste bien.
 
+R1.5. **La soga NO quedó demostrada en captura, y el motivo es estructural.** Los dos criterios
+medibles cierran; el tercero (*"el humo del esquive se ve pasar"*) no lo pude probar en una imagen.
+Al quebrar sostenido, el misil termina **detrás del morro**, y el culling del render —que existe
+porque `project()` devuelve coordenadas dadas vuelta para lo que quedó atrás (§10.52 del spec)— lo
+descarta. Bajar el margen para el humo (45 → 6 m) y pintarlo oscuro contra el cielo ayudó, pero no
+alcanza: la parte de la soga que uno querría ver está, literalmente, a la espalda.
+
+Lo que NO hay que hacer es aflojar el margen hasta que aparezca: eso trae de vuelta las columnas
+flotando en el cielo. El arreglo correcto es darle al render una prueba real de *detrás de la
+cámara* (proyectar con el signo de `w`, no con un producto escalar contra el morro) y ahí decidir
+qué se dibuja fuera del cono de visión. **Queda como deuda de R1, anotada y no disimulada.**
+
 R1.4. **`__pdef(0)` pasó a silenciar también la OLEADA.** Apagar la defensa dejaba a los Fieles
 volando, y uno volteó una zona en medio de la medición de la ristra: la prueba del eje dio "2 contra
 2" y acusó al eje de no servir. `__pdef` ahora significa *que en la zona no pase nada más que yo*,

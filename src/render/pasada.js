@@ -29,9 +29,15 @@ import { shown as dmgShown } from '../systems/damage.js';
  *  saliendo un rectangulo palido arriba a la izquierda.
  */
 const MARGEN_M = 45;
-function adelante(f, A) {
-  return (f.x - A.pos.x) * A.fwd.x + (f.z - A.pos.z) * A.fwd.z > MARGEN_M;
+function adelante(f, A, margen) {
+  return (f.x - A.pos.x) * A.fwd.x + (f.z - A.pos.z) * A.fwd.z > (margen === undefined ? MARGEN_M : margen);
 }
+// LA SOGA NECESITA UN MARGEN PROPIO, y chico. El de 45 m existe por las columnas que revientan
+// pegadas a la camara; aplicado al humo tapaba justo lo que hay que ver — al QUEBRAR, el misil te
+// pasa por el costado y su soga cae fuera de esos 45 m, asi que la prueba del esquive mostraba un
+// cielo vacio (medido en captura). Con margen chico la soga barre el borde del cuadro mientras
+// virás, que es exactamente la imagen que dice "lo esquivaste".
+const MARGEN_HUMO = 6;
 
 export function drawPasada(w) {
   const { pasada: A, zones, objectiveShip, parts, popups, selPlane } = w;
@@ -214,12 +220,16 @@ export function drawPasada(w) {
     // diseño, §1.1— pero la soga que va dejando SI se lee: te dice de donde viene, por donde va, y
     // cuando la esquivaste la ves pasar de largo. Es la leccion de After Burner.
     if (f.k === 'humo') {
-      if (!adelante(f, A)) continue;
+      if (!adelante(f, A, MARGEN_HUMO)) continue;
       const hp = world3D.project(f.x, f.y, f.z);
       if (!hp.vis) continue;
-      const k = Math.max(1, Math.min(5, f.r));
-      ctx.globalAlpha = Math.max(0, Math.min(0.7, f.life / PS.DART_SMOKE_LIFE * 0.7));
-      px(hp.x - k / 2, hp.y - k / 2, k, k, '#9aa1a8');
+      // OSCURO Y NO BLANCO. El humo de un motor cohete contra un cielo claro se lee NEGRO, no
+      // blanco — y en gris claro, medido en captura, la soga era invisible justo contra el cielo,
+      // que es donde el ascenso de R1 la pone a proposito. Un pixel de contraste vale mas que uno
+      // de realismo de color.
+      const k = Math.max(2, Math.min(6, f.r));
+      ctx.globalAlpha = Math.max(0, Math.min(0.85, f.life / PS.DART_SMOKE_LIFE * 0.85));
+      px(hp.x - k / 2, hp.y - k / 2, k, k, '#2b3138');
       ctx.globalAlpha = 1;
       continue;
     }

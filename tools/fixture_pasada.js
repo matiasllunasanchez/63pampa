@@ -825,11 +825,22 @@ app.whenReady().then(async () => {
       for (let k = 0; k < 30; k++) { await sleep(150); const a = await P(); if (a && a.dart) { salio = true; break; } if (!a) break; }
       if (!salio) continue;
       intentos++;
-      down('q'); await sleep(2200); up('q');       // quiebre SOSTENIDO, mas que la ventana de 1,2 s
-      await sleep(2500);                            // que el misil pase de largo o pegue
+      // LA FOTO VA EN MEDIO DEL QUIEBRE, no despues. La soga dura DART_SMOKE_LIFE (2 s): sacada
+      // al final del intento —4,7 s despues de empezar a quebrar— el misil ya paso y el humo ya se
+      // disipo, y la captura mostraba un mar vacio. El instante que hay que ver es el misil
+      // pasando de largo CON su soga todavia en el aire.
+      down('q');
+      // LA FOTO DEL ESQUIVE VA EN TERCERA PERSONA. Desde la cabina, quebrando, el misil te pasa por
+      // el costado y por atras: no verlo es CORRECTO —no hay ojos en la nuca— pero entonces la
+      // captura no puede probar nada. En tercera (la tecla V, que el jugador tiene) se ve el avion
+      // virando y la soga pasando de largo, que es la imagen que el criterio pide.
+      if (t === 0) { down('v'); up('v'); }
+      await sleep(1800);
+      if (t === 0) { await shot('r1_soga'); down('v'); up('v'); }
+      await sleep(400); up('q');                    // quiebre SOSTENIDO, mas que la ventana de 1,2 s
+      await sleep(2500);                            // que el misil termine de pasar
       const a = await P();
       if (a) vivos++;
-      if (t === 0 && a) await shot('r1_soga');      // la soga pasando de largo, en captura
     }
     if (!intentos) bad('el misil no salio en ninguno de los tres intentos de esquive');
     else if (vivos === intentos) ok(`QUEBRANDO se sobrevive SIEMPRE: ${vivos}/${intentos} esquives`);
