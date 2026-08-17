@@ -334,10 +334,15 @@ function updateMomentum(dt, inp, mouse, objectiveDist) {
   // ALABEO (roll): ←/→ hacen ROLAR el avion sobre su eje longitudinal (el que apunta a la
   // barcaza). El MUNDO ENTERO (horizonte + barco) gira alrededor del centro; la cabina queda
   // fija (sos vos el que rola). El barco esta ANCLADO (sin balanceo). ↑/↓ mueven la cabina.
+  // TAMBIEN ROLAN Q/E Y EL STICK DERECHO, que es lo que rola en el pasillo, el arena y la pasada:
+  // aca no hay desplazamiento lateral y por eso el rolido se colgo de ←/→, pero la mano que rola
+  // tiene que ser la misma en los cuatro modos. Se SUMAN, no reemplazan: ←/→ siguen rolando.
   const CS = 98;
-  mom.rollV += ((inp.r - inp.l) * 1.6 - mom.rollV) * Math.min(1, dt * 2.8);   // entra/sale con peso
+  const rollIn = Math.max(-1, Math.min(1, (inp.r - inp.l)
+    + (inp.rollR || 0) - (inp.rollL || 0) + (inp.rollAx || 0)));
+  mom.rollV += (rollIn * 1.6 - mom.rollV) * Math.min(1, dt * 2.8);   // entra/sale con peso
   mom.roll += mom.rollV * dt;
-  if (!inp.l && !inp.r) {
+  if (!rollIn) {
     // auto-nivelado suave hacia la vuelta completa mas cercana (permite toneles enteros)
     const lvl = Math.round(mom.roll / (Math.PI * 2)) * Math.PI * 2;
     mom.roll += (lvl - mom.roll) * Math.min(1, dt * 1.1);

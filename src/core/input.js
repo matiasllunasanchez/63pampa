@@ -59,7 +59,13 @@ const KEYMAP = {
 // Es la razon por la que esto no es una opcion aparte: la mira ya dice cuantas manos hay libres.
 const ARROW_FLY = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd' };
 const ARROW_STICK = { ArrowLeft: 'rollL', ArrowRight: 'rollR', ArrowUp: 'camU', ArrowDown: 'camD' };
-const keyField = c => KEYMAP[c] !== undefined ? KEYMAP[c] : (cfg.aim ? ARROW_FLY : ARROW_STICK)[c];
+// EJE Y UNIFICADO (cfg.invY). Se da vuelta ACA, donde la tecla y el stick se traducen a `inp`, y
+// NO en cada modo. Es la diferencia entre "todos los modos usan el mismo eje" y "cada modo se
+// acuerda de invertirlo": el pasillo, el arena, la pasada y la barcaza leen todos `inp.u`, asi que
+// por construccion no pueden decir cosas distintas. Antes el arena y la pasada se lo invertian
+// solas con `cfg.arenaInv` y el pasillo no — y eso era exactamente el bug.
+const vyField = f => cfg.invY && (f === 'u' || f === 'd') ? (f === 'u' ? 'd' : 'u') : f;
+const keyField = c => vyField(KEYMAP[c] !== undefined ? KEYMAP[c] : (cfg.aim ? ARROW_FLY : ARROW_STICK)[c]);
 
 // TOKENS DEL DETECTOR DE COMBOS. Minusculas = stick IZQUIERDO (volar), mayusculas = stick DERECHO.
 // La distincion es lo que permite que una secuencia diga con QUE mano se hace: los rolidos piden
@@ -234,10 +240,13 @@ export function initInput(cv, a) {
   });
   addEventListener('keyup', e => {
     readCaps(e);
-    if (KEYMAP[e.code] !== undefined) inp[KEYMAP[e.code]] = 0;
+    if (KEYMAP[e.code] !== undefined) inp[vyField(KEYMAP[e.code])] = 0;
     // las FLECHAS se sueltan en SUS DOS VIDAS. Si la mira cambia con la tecla apretada, el keyup
     // llegaria con la otra vida activa y el campo viejo quedaria clavado en 1 — el avion doblando solo.
     if (ARROW_FLY[e.code]) { inp[ARROW_FLY[e.code]] = 0; inp[ARROW_STICK[e.code]] = 0; }
+    // LOS VERTICALES SE SUELTAN LOS DOS, por la misma razon que las flechas: si el eje se invierte
+    // (△) con la tecla apretada, el keydown escribio un campo y el keyup limpiaria el otro.
+    if (KEYMAP[e.code] === 'u' || KEYMAP[e.code] === 'd') { inp.u = 0; inp.d = 0; }
     if (isFire(e.code)) inp.fire = false;
     if (isTurbo(e.code)) inp.turbo = false;
     if (e.code === 'KeyZ' || e.code === 'Tab') inp.msl = false;
@@ -397,7 +406,7 @@ export function initInput(cv, a) {
       // COMBOS con el pad: el FLANCO de cada direccion (stick cruzando la zona muerta, o la
       // cruceta) cuenta como un toque — doble flick del stick = doble tap. Mismo detector.
       const dl = (lx < 0 || down(14)) ? 1 : 0, dr = (lx > 0 || down(15)) ? 1 : 0;
-      const du = (cfg.padInvY ? ly > 0 : ly < 0) ? 1 : 0, dd = (cfg.padInvY ? ly < 0 : ly > 0) ? 1 : 0;
+      const du = (cfg.invY ? ly > 0 : ly < 0) ? 1 : 0, dd = (cfg.invY ? ly < 0 : ly > 0) ? 1 : 0;
       if (S.state === 'play') {
         if (dl && !padHeld.l) dirTap('l');
         if (dr && !padHeld.r) dirTap('r');
@@ -410,8 +419,8 @@ export function initInput(cv, a) {
       // stick arriba en el mapeo estandar, y va a 'u' — el mismo campo que escribe la W, asi que
       // las dos entradas no pueden divergir por construccion.
       // Con el stick centrado NO hay gas → el avion cae (mecanica central del juego).
-      // cfg.padInvY lo da vuelta para quien lo prefiera (o para un mando que reporte al reves), y
-      // ahora PERSISTE: △ lo alterna en vivo y la fila EJE Y DEL JOYSTICK lo deja guardado.
+      // cfg.invY lo da vuelta para quien lo prefiera (o para un mando que reporte al reves) — y da
+      // vuelta el teclado CON EL, porque es un solo eje: △ lo alterna en vivo y la fila EJE Y lo guarda.
       if (hit(3)) a.throttleInvert();                          // △ = invertir el eje Y (y lo GUARDA)
       if (hit(1)) a.combatTurn();                              // ◯ = viraje de combate (solo lo lee el ARENA)
       // CRUCETA ARRIBA = reparto de energia. SQUADRONS_UPDATE §6 la daba por ocupada ("la cruceta
@@ -421,8 +430,8 @@ export function initInput(cv, a) {
       // en juego, y hacia falta: en el ARENA y en la PASADA esa tecla conmuta CABINA ↔ TERCERA
       // PERSONA en vivo, y con el mando no habia forma de cambiar de vista.
       if (hit(13)) a.cycleCamera();
-      setPad('u', (cfg.padInvY ? ly > 0 : ly < 0) ? 1 : 0);     // potencia (gas / subir) — default: ARRIBA SUBE
-      setPad('d', (cfg.padInvY ? ly < 0 : ly > 0) ? 1 : 0);     // picada (bajar)
+      setPad('u', du);                                         // potencia (gas / subir) — default: ARRIBA SUBE
+      setPad('d', dd);                                         // picada (bajar)
       setPad('fire', down(5) || down(0));                      // R1 = metralleta (✕ tambien)
       setPad('turbo', down(7));                                // turbo (gatillo)
       setPad('msl', down(4) || down(2));                       // L1 = misil (□ tambien)

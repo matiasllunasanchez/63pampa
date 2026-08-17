@@ -842,15 +842,16 @@ export function update(dt, inp) {
   A.hitFx = Math.max(0, A.hitFx - dt * 5);
 
   // ---------- MANDO: identico al arena (modelo E1/E2, angulos comandados) ----------
-  // W/S piden CABECEO (la fila INVERTIR EJE Y de OPCIONES da vuelta el gesto), Q/E y el stick
-  // derecho piden BANQUEO —y banquear ES virar—, A/D derrapan fino, [F]/L2 frena.
+  // W/S piden CABECEO, Q/E y el stick derecho piden BANQUEO —y banquear ES virar—, A/D derrapan
+  // fino, [F]/L2 frena. El EJE Y viene ya resuelto de core/input.js (cfg.invY, uno para todo el
+  // juego): la pasada NO se lo da vuelta por su cuenta, o volaria al reves que el pasillo.
   // NO hay reparto de energia (S1) ni media vuelta (E3): son sistemas del ARENA, y el spec pide
   // "ningun control nuevo" en la pasada, no "todos los controles del arena".
   // EL GAS SE SIENTE COMO EN EL PASILLO (playtest 16/8). Sin comando, el morro cae solo: soltar
   // W hace bajar, igual que en el pasillo, en vez de dejar la actitud clavada. Es UNA constante,
   // pero es la diferencia entre que la mano siga funcionando al cruzar al climax o que no.
   const io = {
-    pitch: (cfg.arenaInv ? -1 : 1) * (inp.u - inp.d),
+    pitch: inp.u - inp.d,
     roll: (inp.rollR || 0) - (inp.rollL || 0) + (inp.rollAx || 0),
     slip: inp.r - inp.l,
     brake: !!(inp.sink || inp.brake),

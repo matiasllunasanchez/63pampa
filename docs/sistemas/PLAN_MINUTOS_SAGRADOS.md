@@ -259,7 +259,7 @@ Sin esto, todo el resto es "probemos a ver".
 > agua; trepar 4 s cuesta **33,6 m/s** (criterio ≥30); sin energía el morro se hunde solo a ~24°
 > (autoridad cuadrática, `MUSH_DROP` 1,3); auto-nivelado al soltar; techo 200→600; `vy` es
 > consecuencia del morro, así mira = trayectoria = rayo del cañón por construcción.
-> Además entró la fila **EJE Y EN BATALLA** en OPCIONES (`cfg.arenaInv`, decisión D1) y el freno
+> Además entró la fila **EJE Y** en OPCIONES (decisión D1) y el freno
 > **[F] / L2** (`inp.brake` nuevo — campo propio para que L2 no mueva el paneo del pasillo).
 
 **Invertir la relación cabeceo ↔ velocidad vertical.** Hoy el jugador manda `vy` y el cabeceo se
@@ -811,8 +811,10 @@ porque es un scroll lateral; en el arena `↑` es "morro arriba" porque es un av
 que hay que ejecutar juntas, no de a una:
 
 - el mapa de §7 pasa a ser normativo (no una propuesta);
-- `cfg` suma **`arenaInv`** (invertir eje Y del arena) y su fila en OPCIONES — con cabeceo
-  comandado, la opción de invertir deja de ser un lujo;
+- `cfg` suma la opción de invertir el eje Y y su fila en OPCIONES — con cabeceo comandado, deja
+  de ser un lujo. **Corregido después (playtest 16/8):** nació como `cfg.arenaInv`, que invertía
+  SOLO el arena y la pasada, y eso hacía que la misma partida tuviera dos ejes según la fase. Hoy
+  es **`cfg.invY`**, uno solo para teclado, stick y los cuatro modos, aplicado en `core/input.js`;
 - la **pantalla de ayuda / los controles del arena** tienen que decirlo al entrar: el jugador
   viene de una hora de pasillo con otro esquema en los dedos. El cartel de `arena_hint` ya existe
   y es el lugar;

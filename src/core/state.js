@@ -106,15 +106,15 @@ export const cfg = {
   // PERSECUCION: ¿esta mision se vuela de NUMERAL? (PLAN_HARRIERS_PERSECUCION §4, N3). 0 NO · 1 SI.
   // Es dato de mision igual que `caza`; el MODO PERSECUCION del menu no lo usa (se arma solo).
   persec: 0,
-  // EJE Y DEL ARENA: en la fase ARENA W/S comandan el CABECEO (PLAN_MINUTOS_SAGRADOS D1).
-  // 0 = W sube el morro (como el pasillo, donde W es subir) · 1 = INVERTIDO (estilo simulador).
-  // Existe porque con cabeceo comandado, invertir el eje es lo primero que busca quien viene
-  // de un juego de vuelo. Persiste: es una preferencia de la persona, no del mapa.
-  arenaInv: 0,
-  // EJE Y DEL STICK IZQUIERDO (joystick). 0 = ARRIBA SUBE, igual que la W del teclado; 1 = invertido.
-  // Antes esto era una variable suelta de core/input.js que solo se prendia con △ y se perdia al
-  // cerrar el juego: si tu mando reportaba el eje al reves, no habia forma de dejarlo arreglado.
-  padInvY: 0,
+  // EJE Y — UNO SOLO PARA TODO EL JUEGO. 0 = ARRIBA SUBE (default) · 1 = INVERTIDO.
+  // Vale para el TECLADO y el STICK a la vez, y en todos los modos: pasillo, arena, pasada y
+  // barcaza. Lo aplica core/input.js al traducir la tecla o el eje a `inp`, asi que ningun modo
+  // puede tener el eje al reves de otro — no hay dos ajustes que puedan contradecirse.
+  //
+  // Antes eran DOS: `arenaInv` (solo arena y pasada) y `padInvY` (solo el stick). Esa division
+  // es el bug que reporto el playtest: con `arenaInv` en SI, la pasada volaba invertida y el
+  // pasillo no, en la misma partida. Los modos no son esquemas de control distintos.
+  invY: 0,
   // MODELO DE VIDA / AVERIAS (ver core/damage.js). Vale para TODOS los modos y a futuro es una
   // de las perillas de la DIFICULTAD:
   //   'squad'  el de siempre: un impacto y caiste; el escuadron es la barra de vida

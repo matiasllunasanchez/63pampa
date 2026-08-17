@@ -523,7 +523,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // sola no alcanza a explicar. Van como tipo aparte (`note`) porque puestas como filas de
       // control se leian como si fueran configurables — el cursor se paraba encima y daban ganas
       // de apretarles izquierda/derecha a ver que cambiaba.
-      { note: 'ctrlHands' }, { note: 'ctrlWasd' }, { note: 'ctrlBombs' },
+      { note: 'ctrlHands' }, { note: 'ctrlWasd' }, { note: 'ctrlBombs' }, { note: 'ctrlSame' },
       ...[['Aim'], ['Cam'], ['Tempo'], ['Inv'], ['Music'], ['Menu']]
         .map(([k]) => ({ ctrl: 'ctrl' + k, kb: 'ctrl' + k + 'K', pad: 'ctrl' + k + 'P' })),
 
@@ -677,17 +677,12 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       { label: () => T('optMira'), opts: MIRA_IDS, names: () => MIRA_IDS.map(String), preview: 'mira',
         get: () => cfg.mira, set: v => cfg.mira = v, save: 'rasante_mira',
         card: () => prefCard('Mira', () => T('optMira')) },
-      // EJE Y DEL ARENA (PLAN_MINUTOS_SAGRADOS D1): en la batalla W/S comandan el cabeceo;
-      // esta fila lo invierte para quien viene de un juego de vuelo. Solo afecta la fase ARENA.
-      { label: () => T('optArenaInv'), opts: [0, 1], names: () => [T('optArenaInvNo'), T('optArenaInvYes')],
-        get: () => cfg.arenaInv, set: v => cfg.arenaInv = v, save: 'rasante_arena_inv',
-        card: () => prefCard('ArenaInv', () => T('optArenaInv')) },
-      // EJE Y DEL JOYSTICK. Es la MISMA pregunta que la de arriba pero para el mando, y por eso
-      // van pegadas. El default es ARRIBA SUBE: lo mismo que hace la W, para que el teclado y el
-      // stick nunca digan cosas distintas. △ la alterna en vivo y escribe esta misma fila.
-      { label: () => T('optPadY'), opts: [0, 1], names: () => [T('optPadYNo'), T('optPadYYes')],
-        get: () => cfg.padInvY, set: v => cfg.padInvY = v, save: 'rasante_pad_y',
-        card: () => prefCard('PadY', () => T('optPadY')) },
+      // EJE Y — UNA SOLA FILA PARA TODO. Antes eran dos (una del arena, una del joystick) y podian
+      // contradecirse: con la del arena en SI, la pasada volaba invertida y el pasillo no. Ahora
+      // es un solo eje, teclado y stick a la vez, en los cuatro modos. △ la alterna en vivo.
+      { label: () => T('optInvY'), opts: [0, 1], names: () => [T('optInvYNo'), T('optInvYYes')],
+        get: () => cfg.invY, set: v => cfg.invY = v, save: 'rasante_eje_y',
+        card: () => prefCard('InvY', () => T('optInvY')) },
       // ENERGIA: altura y velocidad se intercambian. Estaba en PARTIDA, pero es DESEMPEÑO del
       // avión — lo mismo que todo lo demás de esta pantalla.
       { label: () => T('optEnergy'), opts: [true, false], names: onOff, sw: true,
@@ -799,6 +794,12 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     /** Relee lo guardado. Se valida contra `opts`: un valor viejo o corrupto no puede meter en
      *  `cfg` algo que la fila no ofrece, que es como se cuelan los estados imposibles. */
     function loadOpts() {
+      // EJES VIEJOS: `rasante_arena_inv` (eje del arena) y `rasante_pad_y` (eje del stick) eran dos
+      // ajustes que podían contradecirse, y de hecho se contradecían — quien tenía el del arena en
+      // SÍ volaba la pasada invertida y el pasillo no. No se migran: no hay forma correcta de
+      // fusionar dos valores que se pisan, y quien los tenía puestos tenía justamente el problema.
+      // Se BORRAN para que no queden claves muertas ocupando el almacenamiento.
+      try { localStorage.removeItem('rasante_arena_inv'); localStorage.removeItem('rasante_pad_y'); } catch (e) { }
       // Las de MEJORAS DEL PICHON entran acá aunque vivan en otra pantalla: lo que decide si una
       // fila se relee es que tenga `save`, no dónde se dibuja.
       for (const r of [...OPT_ROWS, MEJ_MASTER, ...MEJ_PREFS]) {
@@ -1241,15 +1242,14 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         if (S.state === 'play' || S.state === 'momentum') popup(W / 2, 58, free ? T('aimFree') : T('aimFixed'), P.accent);
         try { localStorage.setItem('rasante_mira_modo', cfg.aim); } catch (e) { }
       },
-      // △ del mando: da vuelta el eje Y del stick izquierdo y lo GUARDA. Antes era una variable
-      // suelta de core/input.js que se perdia al cerrar, asi que un mando que reportara el eje al
-      // reves no se podia dejar arreglado — y el cartel decia lo contrario de lo que pasaba.
+      // △ del mando: da vuelta EL eje Y —uno solo, teclado y stick, todos los modos— y lo GUARDA.
+      // Escribe la misma fila de OPCIONES y la misma clave, asi que las dos vias no se pisan.
       throttleInvert: () => {
-        cfg.padInvY = cfg.padInvY ? 0 : 1;
-        try { localStorage.setItem('rasante_pad_y', JSON.stringify(cfg.padInvY)); } catch (e) { }
-        beep(cfg.padInvY ? 440 : 660, 0.05, 'square', 0.05);
-        if (S.state === 'play' || S.state === 'momentum' || S.state === 'arena')
-          popup(W / 2, 58, cfg.padInvY ? T('thrDown') : T('thrUp'), P.accent);
+        cfg.invY = cfg.invY ? 0 : 1;
+        try { localStorage.setItem('rasante_eje_y', JSON.stringify(cfg.invY)); } catch (e) { }
+        beep(cfg.invY ? 440 : 660, 0.05, 'square', 0.05);
+        if (S.state === 'play' || S.state === 'momentum' || S.state === 'arena' || S.state === 'pasada')
+          popup(W / 2, 58, cfg.invY ? T('thrDown') : T('thrUp'), P.accent);
       },
     });
 

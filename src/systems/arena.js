@@ -408,11 +408,13 @@ export function update(dt, inp) {
   // (la regeneracion automatica de misiles se saco en E5: ahora se gana con la PASADA LIMPIA)
 
   // ---------- MANDO (modelo E1/E2: angulos comandados) ----------
-  // W/S piden CABECEO (la fila INVERTIR EJE Y de OPCIONES da vuelta el gesto), Q/E y el stick
-  // derecho piden BANQUEO — y banquear ES virar. A/D derrapan fino. [F]/L2 frenan.
-  // Nada de suavizar el input antes de usarlo: la cadena corta sigue siendo la ley.
+  // W/S piden CABECEO, Q/E y el stick derecho piden BANQUEO — y banquear ES virar. A/D derrapan
+  // fino. [F]/L2 frenan. Nada de suavizar el input antes de usarlo: la cadena corta es la ley.
+  // EL EJE Y NO SE INVIERTE ACA. `inp.u` ya viene con el eje que el jugador eligio (core/input.js,
+  // cfg.invY), igual que en el pasillo: si el arena se lo diera vuelta por su cuenta, la misma
+  // partida tendria dos ejes distintos segun la fase — que es el bug que esto vino a matar.
   const io = {
-    pitch: (cfg.arenaInv ? -1 : 1) * (inp.u - inp.d),
+    pitch: inp.u - inp.d,
     roll: (inp.rollR || 0) - (inp.rollL || 0) + (inp.rollAx || 0),
     slip: inp.r - inp.l,
     brake: !!(inp.sink || inp.brake),
