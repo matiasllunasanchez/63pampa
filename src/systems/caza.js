@@ -51,7 +51,7 @@ import {
   CAZA_TRAC_V, CAZA_TRAC_N, CAZA_TRAC_GAP,
   CAZA_SOL_AVISO, CAZA_LET_N, CAZA_LET_V, CAZA_LET_RX, CAZA_LET_RY, CAZA_SOL_POST, CAZA_GOLPE_CD,
   CAZA_HIT_RX, CAZA_HIT_RY, CAZA_PTS, CAZA_MV_FUERZA,
-  CAZA_DIR_D0, CAZA_DIR_FIN, CAZA_DIR_GAP, CAZA_MUDO_P,
+  CAZA_DIR_D0, CAZA_DIR_FIN, CAZA_DIR_GAP, CAZA_DIR_JETS, CAZA_MUDO_P,
 } from '../data/tuning.js';
 import { beep, boom, duck, sfxOne } from './audio.js';
 import * as dmg from './damage.js';
@@ -150,6 +150,7 @@ export function cazaDirector(dt, o) {
   if (D.prox > 0) D.prox -= dt * (0.5 + int * 0.75);
   if (C || D.prox > 0) return;
   if (o.dist < CAZA_DIR_D0) return;
+  if (o.jets < CAZA_DIR_JETS) return;   // primero ves varios venir de frente; la cola viene DESPUES
   if (o.meta && o.meta - o.dist < CAZA_DIR_FIN) return;
   if (o.ciego) return;
   if (o.meta && D.hechos >= int) return;   // en campaña el techo de duelos ES la intensidad

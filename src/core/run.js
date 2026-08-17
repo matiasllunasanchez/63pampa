@@ -99,6 +99,9 @@ export const run = {
   nextSoldier: 0,  // distancia hasta el proximo grupo de soldados
   nextBomb: 260,   // distancia hasta la proxima bomba cayendo (cfg.bombs la regula)
 
+  // --- enemigos aereos pasados ---
+  jets: 0,           // jets de frente que cruzaron al jugador: gate del director de LA COLA
+
   // --- feedback ---
   shake: 0,        // sacudon de camara: lo suben roce, explosiones, afterburner y colisiones
   // FOGONAZO de una explosion grande CERCA (PLAN_DESTRUCCION D3): destello de un instante sobre
@@ -128,6 +131,7 @@ export function resetRun() {
   // plane.vx sale de aca, no al reves. Ver core/physics.js.
   bankA: 0,
   freeRoll: 0, freeRollV: 0,
+    jets: 0,
     nextSpawn: 320, nextSoldier: 60, nextBomb: 260,
     shake: 0, flash: 0, bloodSplat: 0,
   });

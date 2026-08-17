@@ -1917,7 +1917,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // significa pasillo infinito, donde no hay techo de duelos. Con la sonda `?caza` puesta el
       // director se calla: la sonda ya armo el suyo y dos directores serian dos Harrier (§6.2).
       if (!cazaProbe) caza.cazaDirector(dt, {
-        intensidad: cfg.caza, dist: run.dist, meta: objectiveDist, ciego: inBank(),
+        intensidad: cfg.caza, dist: run.dist, meta: objectiveDist, ciego: inBank(), jets: run.jets,
       });
       // PERSECUCION (PLAN_HARRIERS_PERSECUCION, PLAN B). Corre en el mismo lugar que LA COLA y por
       // la misma razon: es una variante del PASILLO, y no tenerle otro sitio desde donde correr es
@@ -2117,7 +2117,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // la barcaza objetivo creciendo en el horizonte. El tercer parametro es lo que EL PULSO le
       // esta haciendo en la cinematica del premio (crecer, escorar, hundirse) — null el resto del
       // tiempo: el buque del pasillo es el mismo, y solo el climax lo mata.
-      world.drawApproachBarge(objectiveDist, objectiveShip, S.state === 'pulso' ? pulso.shipFx() : null);
+      // el cuarto parametro es R3: si el climax de este run es la PASADA, el pasillo dibuja el
+      // buque DE PROA y a la distancia real, para que el corte no mueva ni el tamaño ni el rumbo.
+      world.drawApproachBarge(objectiveDist, objectiveShip, S.state === 'pulso' ? pulso.shipFx() : null,
+        runClimax() === 'pasada');
       world.drawObjectiveMarker(objectiveDist);                // cuña roja en el horizonte: hacia donde vamos
       world.drawWake();
       if (cfg.radarNet) world.drawRadarNet();   // malla del techo de deteccion del radar

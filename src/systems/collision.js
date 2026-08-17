@@ -135,6 +135,7 @@ export function collisionSystem(dt) {
     }
     if (!o.done && o.z <= PZ + 1.5) {
       o.done = true;
+      if (o.type === 'jet') run.jets++;
       // --- especiales sin colision dura ---
       // LA OLA (SPEC_AGUA_OLAS F1). Tres desenlaces, y el del medio es la regla de oro del plan:
       // rozar la CRESTA no mata. Lo que mata es la CARA — el frente por debajo de OLA_FACE_KILL.

@@ -457,6 +457,9 @@ export const CAZA_MV_FUERZA = ['breakt', 'jink', 'sturn'];
 // EL REGLAMENTO (H4). Cuando APARECE el duelo, que es una decision de nivel y no del duelo.
 export const CAZA_DIR_D0 = 420;      // m de vuelo antes del primer duelo posible: nadie te embosca
                                      // en el despegue, y ademas hace falta ver el pasillo primero
+export const CAZA_DIR_JETS = 3;      // jets de frente que tienen que haberte pasado antes del primer
+                                     // duelo: el Harrier te toma la cola DESPUES de que ya viste varios
+                                     // venir de frente — la escalada es el frente primero, la cola despues
 export const CAZA_DIR_FIN = 520;     // m antes del objetivo en los que YA no arranca: el ultimo tramo
                                      // es del climax (misma idea que ENTRY_CLEAR_M de la PASADA)
 export const CAZA_DIR_GAP = [55, 95];  // s entre duelos (se acorta con la intensidad)
