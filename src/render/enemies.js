@@ -73,9 +73,8 @@ const tintCtx = tint.getContext('2d');
  *  proyeccion (k de proj, ya con el zoom de cercania si aplica). `flip` espeja en horizontal.
  *  `flash` = true pinta el sprite de blanco (impacto no letal — ver `tint` arriba).
  *  `dark` (0..1) lo OSCURECE conservando su forma: mismo mecanismo que el flash pero con
- *  'source-atop' y azul de sombra. Nacio para el placeholder del Harrier visto desde atras
- *  (PLAN_HARRIERS_PERSECUCION H1), que hasta que exista su hoja propia es el `jet` de frente
- *  ensombrecido — pero sirve igual para cualquier bicho a contraluz o de noche. */
+ *  'source-atop' y azul de sombra. Nacio para el Harrier de cola (PLAN_HARRIERS_PERSECUCION H1)
+ *  y se queda como respaldo si `jet_rear` no cargo. Sirve para cualquier bicho a contraluz. */
 export function drawFrame(ctx, k, col, row, cx, { bottomY, centerY }, k2, flip, flash, dark) {
   const s = SHEETS[k], b = s.box;
   const cw = b.x1 - b.x0 + 1, ch = b.y1 - b.y0 + 1;

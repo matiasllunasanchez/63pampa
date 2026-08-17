@@ -1,8 +1,8 @@
 # PLAN — Los Harrier en la cola (estilo After Burner) + el modo PERSECUCIÓN
 
-> **Estado: PLAN A COMPLETO (H0–H5) · PLAN B COMPLETO hasta N3, más N5 · PLAN C sin empezar.**
-> Implementado el 16/8; N5 y LA REGLA DEL AMIGO el 17/8. `npm run check` verde,
-> `npm run caza` verde (13 secciones),
+> **Estado: PLAN A COMPLETO (H0–H5, arte incluido) · PLAN B COMPLETO hasta N3, más N5 · PLAN C sin empezar.**
+> Implementado el 16/8; N5 y LA REGLA DEL AMIGO el 17/8; hojas `jet_rear` y `jet_turn`
+> horneadas el 17/8. `npm run check` verde, `npm run caza` verde (13 secciones),
 > `npm run persec` verde (13 secciones) y `npm run feel` **idéntico al baseline** —
 > que es la garantía del §6.4: los dos sistemas LEEN tu vuelo y no lo escriben.
 > **Todo lo que falta está en el §11 «Qué sigue», con su porqué.**
@@ -18,7 +18,8 @@
 > referencia, y de lo que YA estaba anotado en el proyecto:
 > PENDIENTES_DE_REDISENO **§13** (persecución de enemigos + combos de contraataque +
 > lanzamisiles con lock + la base avisa por radio + **a veces sin aviso: sin radar**) y
-> las dos hojas de arte que faltan justo para esto (caza DESDE ATRÁS y poses de viraje).
+> las dos hojas de arte que ~~faltan~~ **ya están horneadas** (caza DESDE ATRÁS: `jet_rear`, y
+> poses de viraje: `jet_turn`).
 
 ## 1. Análisis de la dinámica After Burner *(del video + la saga)*
 
@@ -104,7 +105,7 @@ un pase y control de energía); la ventana frontal generosa; el ahuyentado con c
 | ✅ **H2** | **La presión con dientes**: modelo de solución de tiro (madura con rumbo predecible, se resetea con quiebres, **degradada a ras** — perilla `CAZA_RAS_ALT = 4.5`, la banda del ×10), ráfagas con daño → averías/relevo/muerte (`death_caza`) | fixture: recto te alcanza; quebrando sobrevivís; a ras casi no progresa |
 | ✅ **H3** | **El contraataque**: ventana frontal tirable, ahuyentado por impactos (humo + huida + puntos), derribo raro (`CAZA_HP` alto), combos BREAK/JINK/S-TURN fuerzan sobrepaso (gate: en campaña solo si están aprendidas), MOMENTUM interactúa gratis (escala dt) | fixture: ahuyentar suma; derribar es hazaña; el combo corta la presión |
 | ✅ **H4** | **Reglamento**: aparición por misión (`caza` en `missions.js` como dato — intensidad 0..2; m1=0), 1 duelo a la vez, reloj CAP, aviso-o-silencio según canon, sin duelos dentro de la niebla ciega ni durante ARENA/PASADA, puntaje | en m2 aparece UNA vez scripted; en PATRIA cada tanto; jamás en m1 |
-| 🟨 **H5** | Legibilidad + audio + arte real: hoja del caza desde atrás + poses de viraje cuando salgan de producción; alarma/luz ya existentes conectadas; fixture `npm run caza` completo | gate total + capturas |
+| ✅ **H5** | Legibilidad + audio + arte real: hojas `jet_rear` (5 alabeos de cola) y `jet_turn` (5 yaws de viraje con banqueo) horneadas por el mismo pipeline 3D; render con cascada (`jet_turn` → `jet_rear` → `jet` → silueta P2); fixture `npm run caza` completo (13 secciones) | gate total + capturas |
 
 **Perillas (defaults):** `CAZA_SOL_T 3.5` s de solución · `CAZA_PASSES 3` ·
 `CAZA_CAP_T 45` s · `CAZA_WINDOW 3` s · `CAZA_HP` = ahuyentado a 6 impactos, derribo a 18
@@ -199,8 +200,8 @@ estela signifique algo.
 - **B es independiente de A** (comparten solo la filosofía); puede ir antes o después.
   N3 (m10) rinde más cuando el guion de campaña se remapee a 14.
 - **C depende de A.**
-- **Producción en paralelo**: hoja del caza DESDE ATRÁS + poses de viraje (ya listadas en
-  PENDIENTES) — las pide H5, no H1.
+- **~~Producción en paralelo~~**: ~~hoja del caza DESDE ATRÁS + poses de viraje~~ — **HECHO**
+  (`jet_rear` + `jet_turn`, horneadas el 17/8 por el pipeline 3D de `bake_enemies`).
 - Con **PLAN_VISUAL_FASES**: T5 (enemigos vivos) es cosmética de los existentes y no toca
   esto; si corren cerca en el tiempo, T5 primero (toca render) y LA COLA después (toca
   systems) — no comparten archivos críticos salvo `spawn.js` en H4.
@@ -292,9 +293,8 @@ archivo: la única diferencia entre corridas es el PID de node en el warning de
 - **H1.7 · El placeholder de arte necesitó tres líneas en un módulo compartido.**
   `render/enemies.js:drawFrame` ya tenía el mecanismo del flash blanco pero sólo en blanco; se le
   agregó un parámetro `dark` (0..1) con `source-atop`. Es genérico y sirve para cualquier bicho a
-  contraluz, no sólo para esto. El Harrier de cola es hoy el `jet` de frente oscurecido al 50% y
-  angostado al 74%, con llama de tobera propia — los tres números se van con la hoja real en H5.
-  **No bloquea nada** (regla P2): si la hoja no cargó, hay una silueta dibujada a mano.
+  contraluz, no sólo para esto. El Harrier de cola **ya tiene su hoja propia** (`jet_rear`, 17/8);
+  el oscurecido queda como respaldo si la hoja no cargó (regla P2).
 - **H1.8 · El pico del sobrepaso no se puede medir desde el proceso principal.** Muestreando cada
   90 ms desde afuera, cada ida y vuelta costaba más que el intervalo y el pico medido saltaba de
   z 12 a z 51 entre corridas: el número era del scheduler, no del juego. El muestreo se mudó
@@ -379,9 +379,10 @@ archivo: la única diferencia entre corridas es el PID de node en el warning de
 - **H5.2 · Las trazadoras letales son ROJAS y más gordas.** Prohibido el recuadro de fijado, el
   aviso de "ésta te apunta a vos" tiene que estar en la cosa misma: las de aviso son frías y ajenas,
   éstas son cálidas y crecen. Es el mismo idioma que el juego ya habla con la soga de humo.
-- **H5.3 · El arte del Harrier sigue siendo placeholder y NO bloquea nada** (regla P2). La hoja
-  desde atrás y las poses de viraje quedan en PENDIENTES. Los tres números del placeholder
-  (`PH_DARK` 0.5, `PH_SQUASH` 0.74 y la llama de tobera) se van con la hoja real.
+- **H5.3 · El arte del Harrier ya tiene sus tres hojas** (17/8): `jet` (frente, 5 alabeos),
+  `jet_rear` (cola, 5 alabeos) y `jet_turn` (viraje/recola, 5 yaws 0→180° con banqueo). El render
+  usa una cascada: `jet_turn` en recola, `jet_rear` en cola, `jet` de frente, silueta a mano si
+  nada cargó (P2). Los números del viejo placeholder (`PH_DARK`, `PH_SQUASH`) quedan como respaldo.
 - **H5.4 · El fixture creció a 13 secciones y el modo `manso` nació de ahí.** Las secciones 1-8
   miden la COREOGRAFÍA y corren el duelo **sin las ráfagas que matan**: no se puede juzgar un
   sobrepaso desde la pantalla de derribado. No es una trampa, es el criterio de siempre del repo —
@@ -642,15 +643,12 @@ concretas que sólo el playtest contesta:
 - **¿El apretado escala bien?** `PURS_TIGHT_D` (900 m por escalón) salió de la nada: el §4 hablaba
   de niveles y este modo no los tiene.
 
-### 11.3 — H5 · el arte real *(bloqueado por producción, no por código)*
+### 11.3 — ~~H5 · el arte real~~ ✅ HECHO (17/8)
 
-Falta la **hoja del caza DESDE ATRÁS** y las **poses de viraje** (ya listadas en PENDIENTES §13).
-Hoy el Harrier de cola es el `jet` de frente oscurecido al 50% y angostado al 74%, con llama de
-tobera propia. **No bloquea nada** (regla P2): sin la hoja hay una silueta dibujada a mano.
-
-Cuando lleguen, tocar sólo `src/render/caza.js`: se van `PH_DARK`, `PH_SQUASH` y la llama de tobera
-manual. El parámetro `dark` que se le agregó a `render/enemies.js:drawFrame` **se queda**: es
-genérico y sirve para cualquier bicho a contraluz.
+Las hojas `jet_rear` (cola, 5 alabeos) y `jet_turn` (viraje/recola, 5 yaws con banqueo) están
+horneadas por el pipeline 3D de `bake_enemies`. El render en `caza.js` usa cascada:
+`jet_turn` → `jet_rear` → `jet` → silueta P2. `PH_DARK` y `PH_SQUASH` quedan como respaldo.
+El parámetro `dark` de `enemies.js:drawFrame` **se queda**: es genérico.
 
 ### 11.4 — La decisión que NO es del código: LOS PRIMOS
 
