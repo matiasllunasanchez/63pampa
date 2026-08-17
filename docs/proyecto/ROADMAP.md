@@ -260,19 +260,109 @@ El **momentum lento**, **cambiable a primera persona si se quiere, DURANTE el ju
 > Relacionado con #6 y
 > #13.
 
-## 15. Reabastecimiento con el Hércules
+## 15. Reabastecimiento en vuelo con el Hércules — "la Chancha"
 
-Agregar **reabastecimiento de gasolina asociado al HÉRCULES**.
+Agregar **recarga de combustible en el aire**, acoplándose al KC-130H.
 
-- **Por ahora:** el Hércules volando arriba con la manguera de gasolina conectada.
-- **A futuro:** un **sobrevuelo manteniendo la conexión** con el Hércules por unos metros (mecánica
-  de acople/mantener posición).
+> 🟩 **Reescrito.** Este ítem era un párrafo de dos líneas escrito antes de que el guion 3.0
+> le diera a la Chancha un arco entero. Ya no es "un bidón grande que vuela": es un
+> **personaje**, se **rompe salvando a alguien** en M6, y su rotura es lo que arma la trama
+> del tercer acto. Esta versión es esa, y además está atada a las perillas reales.
 
-> Dónde tocar → mecánica de combustible (`run.fuel`) + un nuevo actor/obstáculo aliado en
-> `systems/spawn.js`.
+### Lo que la Chancha ES en el guion *(y por qué eso manda sobre el diseño)*
 
-- [ ] Hércules como aliado con manguera (versión estática).
-- [ ] Sobrevuelo con conexión sostenida (versión con skill).
+En M6 el Gitano se queda sin nafta de noche y aparece —*"gorda, lenta, hermosa"*—. La
+manguera se conecta a metros del mar. Y entonces los ilumina un reflector y empieza el fuego
+antiaéreo: **la Chancha no se desconecta.** Aguanta, enorme y lenta, hasta que el cordobés
+termina de cargar. Recién ahí rompe: un impacto le arranca un pedazo de ala y se va al oeste
+tosiendo.
+
+> **VOZ DE LA CHANCHA:** *Tranquilo, cordobés. La Chancha no abandona. Servite.*
+
+Desde esa noche **vuela corto**: no sostiene las corridas largas al sur. En M10 Puma lo dice
+seco — *"La Chancha no baja más al sur. Lo que llevamos es lo que hay"* — y en M13 esa
+frase es el nudo entero: *"Sin Chancha no hay nafta de vuelta."*
+
+**Consecuencia de diseño:** la Chancha no puede ser un pickup. Un pickup que se rompe no le
+duele a nadie. Tiene que ser algo que el jugador **aprenda a hacer y después extrañe.**
+
+### El corazón del ítem: cargar nafta te expone al radar
+
+La tentación es hacer un minijuego de acople y listo. La decisión que lo vuelve RASANTE es
+otra: **la Chancha vuela arriba.** Para cargar, el A-4 tiene que **subir por encima de
+`RADAR_ALT = 20`** — el techo que todo el juego te enseñó a no cruzar.
+
+Eso convierte el reabastecimiento en la pregunta que el juego quiere hacer: *¿vale la pena
+que te vean, para tener con qué volver?* Es la misma tensión de #27 (techo de radar variable)
+y de la NIEBLA (#29.1), y sale gratis: no hay que inventar un sistema, hay que **poner la
+manguera arriba del techo.**
+
+Dos reglas más, del mismo palo:
+
+- **Con turbo no se acopla.** Y el turbo es lo que multiplica el puntaje (`run.boost`, ver
+  #8). Cargar **cuesta puntos**, no solo tiempo.
+- **La Chancha no maniobra.** Si viene algo mientras estás conectado, ella no esquiva — y vos
+  tampoco, sin desconectar. Es exactamente lo que hace en M6, y lo hace jugable.
+
+### Cómo podría entrar — tres fases
+
+1. **Aproximación.** Aparece adelante y arriba, lenta y grande. Hay que igualar velocidad y
+   meterse en una ventana de posición.
+2. **Contacto.** Entra la sonda; aparece la barra de carga y la voz de la Chancha.
+3. **Sostener.** La nafta entra **mientras estés dentro de la ventana**, proporcional al
+   tiempo — no todo-o-nada. Salirse desconecta y hay que reintentar; lo que cargaste queda.
+
+**Fuera de campaña** (CICLO DE MUERTE, POR LA PATRIA) es un evento raro que reemplaza al
+bidón cuando hace mucho que no aparece uno: el rescate que no esperabas.
+
+**En campaña**, después de M6 deja de aparecer en las misiones del sur. Es **un flag por
+misión**, no una mecánica nueva — y es lo que convierte la ruta óptima de #28 de opción en
+obligación durante todo el Movimiento III.
+
+> **Dónde tocar** → `cfg.fuelOn` y el drenaje `3.2 + (boost ? 4.2 : 0)` por segundo
+> ([flight.js:181](../../src/systems/flight.js#L181)) · el bidón actual da `+30` con tope 100
+> ([collision.js:203](../../src/systems/collision.js#L203)) y nace con `run.fuelDist > 700`
+> ([spawn.js:158](../../src/systems/spawn.js#L158)) · banda de altura propia en `SPAWN_Y`
+> (hoy `fuel: [4, 26]`, `data/tuning.js`) que **arranque arriba de `RADAR_ALT = 20`** ·
+> movimiento propio con el patrón que ya existe (`mov()`/`sway()` en `systems/spawn.js`).
+
+### Lo que hay que cuidar
+
+- **El bidón y la Chancha no pueden convivir sin decidir cuál manda.** Si los dos dan nafta,
+  el bidón —que agarrás de paso, sin riesgo— vuelve trivial a la Chancha. Propuesta: en
+  **campaña la Chancha reemplaza al bidón**; los bidones quedan para los modos sueltos.
+- **La ventana de acople tiene que ser generosa en Z.** El juego te enseñó a manejar `x` e
+  `y` durante catorce misiones. La **distancia** nunca la practicaste. Si la ventana es
+  exigente en el eje que nadie entrenó, no es difícil: es injusto.
+- **No puede frenar la historia.** Principio 0 del guion. Si el acople falla dos o tres
+  veces seguidas, que se enganche solo. Perder la nafta por no saber acoplar es cortarle la
+  serie al jugador en la mejor parte.
+- **`cfg.fuelOn` arranca APAGADO** (`core/state.js`, decisión de julio 2026: el reloj de
+  nafta está en pausa hasta rebalancearlo). **Este ítem no se puede ni probar sin encenderlo,
+  y no tiene sentido antes de #28.** Orden correcto: #28 primero, #15 después.
+- **`cfg.enemyMove` no la debe apagar.** Esa llave es de enemigos; la Chancha es de los
+  nuestros. Si se apaga con esa llave, la primera prueba va a parecer un bug.
+- **No hay arte de Hércules.** Hay que hornearlo (`tools/bake_enemies.html` → `npx electron
+  tools/bake_enemies_run.js`) y volver a medir la caja en `render/enemies.js`. Es el modelo
+  más grande del juego: la caja va a doler.
+
+### Ya tiene música y ya tiene mejora
+
+No hay que inventarlas, están escritas:
+
+- **Pista 16 `chancha.mp3` — "La Chancha no abandona"** en [SOUNDTRACK.md](../historia/SOUNDTRACK.md):
+  el tema sube sin acelerar mientras entra el antiaéreo —*la máquina se niega a moverse*—
+  hasta un impacto metálico, y después sigue tocando herida y más grave.
+- **"LA CHANCHA"** como mejora del banco del Pichón: un punto de reabastecimiento extra en el
+  nivel. Ver el pool de mejoras.
+
+- [ ] Hércules horneado + caja de colisión medida.
+- [ ] Versión estática: aparece arriba con la manguera, tocarla carga nafta.
+- [ ] Acople sostenido: ventana de posición, barra de carga, carga proporcional al tiempo.
+- [ ] La regla que lo hace el ítem: **acoplar obliga a cruzar `RADAR_ALT`.**
+- [ ] Turbo bloqueado durante el acople.
+- [ ] Asistencia tras fallos repetidos (principio 0).
+- [ ] Flag de campaña: rota desde M6, no aparece en las misiones del sur.
 
 ## 16. Mejorar el nivel de tierra y los soldados
 

@@ -516,6 +516,8 @@ export const PURS_WASH_SHAKE = 4.5;  // sacudon maximo dentro del jet wash (es e
 export const PURS_CHOQUE_D = 6;      // por debajo de esta distancia lo chocaste. Es un avion, no un
                                      // aura: pasarle por encima al lider es exactamente igual de
                                      // fatal que comerse un mastil, y por la misma regla del juego.
+                                     // OJO: el que se mata es EL QUE CHOCA. El lider sigue volando
+                                     // (ver LA REGLA DEL AMIGO en systems/persec.js).
 export const PURS_AVISO_T = 2.2;     // s entre avisos por radio mientras estas fuera de banda: la
                                      // radio insiste, no ametralla
 export const PURS_PTS_S = 45;        // puntos por segundo EN BANDA (el multiplicador de altura del
@@ -532,3 +534,28 @@ export const PURS_TIGHT_MIN = [45, 90];  // el piso: mas apretado que esto deja 
 // indicativo y cambia la voz. No es cosmetica: en un modo infinito, lo unico que puede marcar que
 // pasó algo es que la radio cambie de persona.
 export const PURS_ROTA_D = 1800;    // m entre relevos de lider
+
+// --- N5: EL TIRON del lider, y EL CIERRE (la segunda medicion) ---
+//
+// EL TIRON es "seguirle el ritmo" dicho como evento y no como promedio. La banda que respira
+// (PURS_V_AMP) es una marea: te obliga a corregir todo el tiempo pero nunca te pide una DECISION. El
+// tiron si — el lider abre el turbo, se va, y en tres segundos o le pegas el acelerador a fondo o lo
+// perdiste. Es el unico momento del modo que se recuerda despues de jugarlo.
+//
+// Y SIEMPRE AVISA ANTES. La radio grita PURS_TIRON_AVISO segundos antes de que abra: sin eso el
+// tiron es una emboscada y la respuesta correcta pasa a ser "ir siempre al fondo de la banda por las
+// dudas", que es exactamente el vuelo aburrido que este modo trata de evitar. Es la misma regla que
+// la solucion de tiro del Harrier: la ventana de esquive es el AVISO, no el proyectil.
+export const PURS_TIRON_T = [11, 18];    // s entre tirones (sorteo al terminar el anterior)
+export const PURS_TIRON_AVISO = 1.4;     // s de radio ANTES de que abra el turbo
+export const PURS_TIRON_DUR = [2.6, 4.2];// cuanto quema
+export const PURS_TIRON_F = 1.42;        // factor sobre su velocidad mientras dura. Tu turbo es
+                                         // 1.5x, asi que se le alcanza — apretado, pero se alcanza.
+export const PURS_TIRON_PTS = 500;       // premio por AGUANTARLO ENTERO en banda (x mult de altura)
+
+// EL CIERRE es la SEGUNDA MEDICION que pide el modo: la aguja de la cinta dice DONDE ESTAS, y eso
+// llega tarde. Cuando la aguja toca el borde ya empezo a correr la gracia. El cierre dice PARA DONDE
+// VAS —cuantas unidades por segundo te estas acercando o alejando— que es el dato con el que un
+// numeral real vuela formacion: no se mira la distancia, se mira si crece o se achica.
+export const PURS_CIERRE_S = 3;          // suavizado de la lectura (1/s). Sin esto es un temblor.
+export const PURS_CIERRE_MAX = 45;       // u/s que clavan la flecha en el tope

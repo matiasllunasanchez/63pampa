@@ -1929,6 +1929,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // N1 le puso la banda: si lo perdes o lo chocas, la muerte entra por el embudo de siempre.
       const ps = persec.persecSystem(dt);
       if (ps && ps.death) { onDeath(ps.death); return; }
+      // EL GUION SE LLEVO AL LIDER (LA REGLA DEL AMIGO, systems/persec.js). No es tu muerte: es la
+      // de el, y el pasillo sigue. Se anuncia y nada mas — si el guion quiere que ademas te cueste
+      // algo, es el guion el que lo escribe.
+      if (ps && ps.guion) { popup(W / 2, 46, T(ps.guion), P.warn, true); duck(0.5); }
       // SONDAS DE LA COLA (QUITAR). Las dos son inertes con el juego normal: `czAlto` en null no
       // toca una linea del vuelo y `czMv` en null deja `run.mv` como estaba. La pirueta se inyecta
       // POR UN CUADRO y se restaura enseguida, para que probar el combo que fuerza el sobrepaso no
@@ -2512,6 +2516,12 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       window.__psrec = m => { persec.setRec(+m); return true; };
       window.__psinf = v => { persec.setInf(+v !== 0); return true; };
       window.__psfin = () => { persec.resetPersec(); return true; };
+      window.__pstiron = f => persec.setTiron(+f);
+      window.__psgracia = v => { persec.setFuera(+v); return true; };
+      // EL TANQUE. El fixture es minuto y medio de vuelo real y el combustible es el reloj del run:
+      // sin esto las ultimas secciones miden un mundo detenido por falta de nafta y culpan al tiron.
+      window.__psnafta = () => { run.fuel = 100; return true; };
+      window.__pscaer = m => persec.caerLider(m || undefined);
       window.__psscore = () => Math.floor(run.score);
       // VUELO NIVELADO para el fixture. Es la misma sonda que `__czalto` (clava altura y rumbo) y se
       // expone con otro nombre porque en PERSECUCION resuelve otro problema: sin ella el fixture

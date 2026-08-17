@@ -1,8 +1,9 @@
 # PLAN — Los Harrier en la cola (estilo After Burner) + el modo PERSECUCIÓN
 
-> **Estado: PLAN A COMPLETO (H0–H5) · PLAN B COMPLETO hasta N3 · PLAN C sin empezar.**
-> Implementado el 16/8. `npm run check` verde, `npm run caza` verde (13 secciones),
-> `npm run persec` verde (10 secciones) y `npm run feel` **idéntico al baseline** —
+> **Estado: PLAN A COMPLETO (H0–H5) · PLAN B COMPLETO hasta N3, más N5 · PLAN C sin empezar.**
+> Implementado el 16/8; N5 y LA REGLA DEL AMIGO el 17/8. `npm run check` verde,
+> `npm run caza` verde (13 secciones),
+> `npm run persec` verde (13 secciones) y `npm run feel` **idéntico al baseline** —
 > que es la garantía del §6.4: los dos sistemas LEEN tu vuelo y no lo escriben.
 > **Todo lo que falta está en el §11 «Qué sigue», con su porqué.**
 > Las divergencias encontradas durante la implementación están en el **§9** (plan A)
@@ -127,9 +128,44 @@ habilidad real de 1982.
 | ✅ **N2** | **El modo de menú** PERSECUCIÓN: infinito, la banda se angosta con la distancia, el líder rota entre los Fieles (indicativos + radio con personalidad). ⚠ El menú ya tiene 6 filas con `MODE_ROWS {y0:78, rh:31}` — la 7ª pide reapretar (rh ~27) o paginar: decisión chica de layout | el modo encadena y puntúa (tiempo en banda × multiplicador de altura) |
 | 🟨 **N3** | **Campaña**: m10 «LOS PRIMOS» usa el sistema — **los Mirage peruanos EN PANTALLA como líderes** (resuelve el pendiente explícito de PLAN_CAMPANA_001 §6: hoy son solo texto). Opcional: tramo tutorial de m1 siguiendo a Puma ("pegado al agua, Tero") | m10 deja de ser una misión de distancia pelada |
 | ⬜ **N4** | *(anotada, NO construir)* la variante ofensiva: perseguir a un enemigo que huye manteniéndolo en rango de cañón — comparte toda la infraestructura; candidata a misión de reconocimiento futura | — |
+| ✅ **N5** | **El TIRÓN y el CIERRE** *(pedido de Matías, 17/8 — no estaba en el plan original)*: el líder abre turbo cada tanto y hay que seguirlo, avisado por radio 1,4 s antes; y la cinta gana un segundo riel que dice **para dónde vas** y no sólo dónde estás. Más **LA REGLA DEL AMIGO** escrita como invariante del módulo | el tirón se recuerda después de jugarlo, y el cierre se lee de reojo |
 
 **Perillas:** `PURS_D = [60, 140]` banda inicial · `PURS_GRACE 4` s · `PURS_WASH_D 25` ·
-apretado del modo infinito: −8% de banda por nivel, piso 45–90.
+apretado del modo infinito: −8% de banda por nivel, piso 45–90 ·
+tirón: `PURS_TIRON_T [11,18]` s entre tirones, `PURS_TIRON_AVISO 1.4` s de radio antes,
+`PURS_TIRON_DUR [2.6,4.2]`, `PURS_TIRON_F 1.42` (tu turbo es 1.5×: se alcanza, apretado) ·
+cierre: `PURS_CIERRE_S 3` suavizado, `PURS_CIERRE_MAX 45` u/s de fondo de escala.
+
+### 4b. LA REGLA DEL AMIGO *(regla de diseño, 17/8 — manda sobre el código)*
+
+**Un amigo no se muere solo.** Al líder de la PERSECUCIÓN no lo mata un obstáculo, no lo mata una
+bala tuya, no lo mata que le pases por encima y no lo mata una casualidad de la siembra. La única
+puerta por la que puede caerse del cielo es `caerLider()` — y la llama **el guion**, que por
+definición dice también **cómo** y **por qué**. La IA vuela perfecto: ése es su trabajo.
+
+No es piedad, son dos cosas concretas:
+
+1. **El modo entero descansa en una promesa.** «Su línea es la respuesta correcta del nivel» sólo
+   sirve si su línea es SIEMPRE correcta. Un líder que a veces se come un mástil le enseña al
+   jugador a desconfiar de él, y desde ahí ya no está volando de numeral: está volando solo con un
+   estorbo adelante.
+2. **La muerte de un compañero es el único evento que de verdad importa en esta campaña.** Si pasa
+   por accidente, pasa a ser ruido de fondo — y el día que el guion la necesite (el Vasco a la
+   salida de m7, §5 C3) no va a pesar nada.
+
+**Dónde está la frontera, porque el juego tiene las dos cosas:**
+
+| | quién | se rompe |
+|---|---|---|
+| **el numeral** | el líder de la PERSECUCIÓN, un A-4 de tu escuadrilla | **NO.** Ni chocándolo. Sólo por guion |
+| **el villano** | los Harrier de LA COLA (PLAN A) — los que te sobrepasan con el afterburner | **SÍ.** Se los ahuyenta a cañón y se los derriba |
+
+Es una regla de **bando**, no de sistema. Y los personajes con nombre de la campaña **no se mueren
+en campaña** salvo donde el guion lo escriba.
+
+Chocarlo sigue siendo fatal — **para vos**. Le pasaste por encima al que ibas siguiendo y te fuiste
+al agua; él sigue volando. Que la consecuencia sea toda tuya es además lo único que hace que la
+estela signifique algo.
 
 ## 5. PLAN C — la integración narrativa *(depende de A; corto)*
 
@@ -516,6 +552,48 @@ al agua le seguís el tren cómodo y volando alto te descolgás**. Nadie tuvo qu
   vez de al juego (ver H1.8 y N1.10), y las tres veces el síntoma fue el mismo: **el número estaba
   bien y no era del juego**.
 
+- **N5.1 · El respiro no pedía una decisión: por eso hizo falta el TIRÓN.** `PURS_V_AMP` hace que el
+  líder respire ±16% y eso obliga a corregir *todo el tiempo*, que no es lo mismo que **decidir**.
+  Es una marea, y una marea se administra sin pensarla. El tirón es el mismo modo dicho como
+  evento: abre turbo, se va, y en tres segundos o vas a fondo o lo perdiste. Es el único momento
+  del modo que se recuerda después de jugarlo.
+- **N5.2 · El tirón AVISA 1,4 s antes, y eso no es generosidad.** Sin aviso la respuesta óptima
+  pasa a ser «volar siempre en el fondo de la banda por las dudas», que es exactamente el vuelo
+  aburrido que el modo trata de evitar. Es la misma corrección que ya había hecho falta en el PLAN
+  A (§9, H2.1): **la ventana de esquive es el aviso, no el proyectil**. Dos sistemas distintos,
+  la misma ley.
+- **N5.3 · `PURS_TIRON_F 1.42` contra tu turbo 1.5× — el margen es del 5%, a propósito.** Medido
+  con el fixture: quemando, el líder pasa de 169 a 236 u/s y se va 88 unidades en 1,2 segundos si
+  no reaccionás. Con turbo lo alcanzás; con turbo **y volando a ras** lo alcanzás cómodo, porque tu
+  racha rasante multiplica tu velocidad real y la referencia del líder se calcula sin ella. La
+  tesis del juego otra vez, gratis (ver N1.4).
+- **N5.4 · La aguja de la cinta llega tarde: hizo falta una SEGUNDA medición.** Cuando la aguja
+  toca el borde de la banda, la gracia ya empezó a correr. El **cierre** (u/s a las que te acercás
+  o alejás, suavizado a `PURS_CIERRE_S`) es el único dato del instrumento que habla del futuro, y
+  es como se vuela formación de verdad: no se mira la distancia, se mira si crece o se achica.
+  Su invariante —el signo del cierre es el opuesto al del cambio de distancia— es una aserción del
+  fixture, porque un instrumento con el signo dado vuelta es peor que no tenerlo.
+- **N5.5 · El cierre se dibujaba DENTRO de la cinta y se perdía contra el relleno de la banda.**
+  Visto en la captura `n5_c_cierre`, no en una aserción — la de siempre. Salió a un riel propio a
+  la izquierda, y de paso el instrumento quedó mejor: dos rieles, uno por lado, cada uno con una
+  cosa que decir (izquierda el cierre, derecha la gracia) y la cinta del medio sólo la distancia.
+- **N5.6 · Las secciones nuevas del fixture medían un mundo `dead`, y ni rearmar al líder lo
+  revive.** Cuarta vuelta de la misma trampa (H1.8, N1.10, N2.5). Esta vez un escalón más arriba:
+  las secciones de N1 gastan vidas *a propósito* —se pierde al líder, se lo choca— y para la
+  sección 11 el run estaba terminado; `Lsure()` rearmaba el líder, el objeto existía, y todo
+  medía cero. Diagnosticado leyendo `__pausedbg()`: `state: "dead"` con `L.t` clavado. La cura fue
+  `arrancar()` — **partida nueva** al empezar cada sección que necesita mundo vivo — más pinchar
+  la altura a 45 m (a 8 m el jugador se come un mástil en algún momento de minuto y medio) y una
+  sonda de tanque lleno. Con eso, dos corridas seguidas dan números idénticos.
+  **La lección, ampliada:** no alcanza con preguntar «¿existe lo que voy a medir?» ni con
+  «¿avanza el reloj?» — hay que preguntar **«¿la partida sigue viva?»**.
+- **N5.7 · La REGLA DEL AMIGO no se puede probar del todo, y conviene saber qué sí se probó.** Que
+  el líder no choque son las secciones 2 y 3 (esquiva + carril reservado). Que no lo rompa volarle
+  encima es la sección 13. Que **no lo maten tus balas** no tiene aserción: se sostiene en que
+  `systems/persec.js` no tiene una línea de código de impactos y el líder no vive en `obstacles`.
+  Es una garantía por ausencia — si algún día alguien mete al líder en la lista de colisiones, nada
+  va a ponerse rojo.
+
 ---
 
 ## 11. Qué sigue *(el estado real y todo lo que falta, con su porqué)*
@@ -534,6 +612,10 @@ al agua le seguís el tren cómodo y volando alto te descolgás**. Nadie tuvo qu
 | campaña **m1 «SAL EN LAS ALAS»** | se vuela de numeral detrás de PUMA (`persec: 1`) |
 | `npm run caza` · `npm run persec` | los dos fixtures, con `CAZA_SHOTS=<dir>` / `PURS_SHOTS=<dir>` para dejar capturas |
 
+> **Ojo con las sondas de URL:** `?caza` y `?persec` **no funcionan con `npm start`** — `electron/main.js`
+> usa `win.loadFile()` y ahí no hay query. Para las sondas: `npm run serve` y abrir
+> `http://localhost:8475/src/index.html?persec` en el navegador.
+
 ### 11.2 — LO PRIMERO: el playtest. Nada de abajo importa antes que esto
 
 **Los dos sistemas están verdes en fixture y NINGUNO se jugó con las manos todavía.** Este plan
@@ -548,6 +630,15 @@ concretas que sólo el playtest contesta:
   contra un blanco que teje en tres ejes. Puede ser demasiado. Perilla: `CAZA_HP.ahuyenta`.
 - **¿La banda de PERSECUCIÓN es tensa o es tarea?** `PURS_V_AMP` (±16%) es lo que obliga a dosificar
   el gas. Poco → el modo es un paseo; mucho → es un yo-yo. Es **la** perilla del modo.
+- **¿El TIRÓN se puede aguantar, y se siente?** Es la pregunta más nueva y la más importante del
+  modo (§4b / N5.1–N5.3). Tres cosas a sentir por separado: si **1,4 s de aviso alcanzan** para
+  poner el pulgar en el turbo; si `PURS_TIRON_F 1.42` contra tu 1.5× deja un margen **apretado pero
+  justo** o directamente imposible volando alto; y si terminar uno entero en banda **se siente como
+  un logro** o pasa desapercibido (ahí la perilla es `PURS_TIRON_PTS`, y si el problema es que no se
+  nota, el arreglo no es el número: es el teatro).
+- **¿El riel del CIERRE se lee sin mirarlo?** Es la única parte del instrumento que habla del
+  futuro (N5.4). Si hay que buscarlo con la vista, no está cumpliendo: `PURS_CIERRE_MAX` cambia la
+  sensibilidad y `PURS_CIERRE_S` cuánto tiembla.
 - **¿El apretado escala bien?** `PURS_TIGHT_D` (900 m por escalón) salió de la nada: el §4 hablaba
   de niveles y este modo no los tiene.
 
@@ -606,6 +697,8 @@ explícitamente no construirla y no se construyó.
 |---|---|---|
 | **Las sondas marcadas `QUITAR`** — `?caza`, `?persec`, `__cz*`, `__ps*` | `src/game.js` (dos bloques), y sus exports en `systems/caza.js` / `systems/persec.js` | al cerrar el plan. **Ojo: los dos fixtures viven de ellas** — sacarlas es sacar también `npm run caza` y `npm run persec`, o reescribirlos |
 | **`run.shake` es lo único que estos sistemas le escriben al jugador** (H0.5 y N1.3) | `caza.js:golpeDelPase`, `persec.js:banda` | no se paga, se **vigila**: es feedback de cámara, no física, y `npm run feel` no lo mira. La regla es que no crezca |
+| **`caerLider()` no tiene todavía quién la llame** — la puerta del guion existe y está probada, pero ninguna misión la usa | `systems/persec.js`, `src/game.js` (la señal `{ guion }`) | cuando exista la campaña scripted (§5 C3, el Vasco en m7). Hasta entonces es una puerta cerrada con la llave puesta, a propósito |
+| **El líder no puede ser tocado por balas por AUSENCIA de código, no por una regla** (N5.7) | `systems/persec.js` | se **vigila**: si alguien mete al líder en `obstacles` o en el barrido de impactos, nada se pone rojo |
 | **El modo `manso`** (duelo sin ráfagas letales) | `systems/caza.js` | es un instrumento de prueba, no una dificultad. Si algún día se ofrece al jugador, que sea una decisión explícita y no una filtración |
 | **Agregar un modo al menú JUEGO RÁPIDO rompe `tools/smoke.js`** (N2.4) | `tools/smoke.js`, dos `for` con número fijo de flechas | cada vez que se agregue un modo. Ya está anotado en ARQUITECTURA |
 
@@ -620,5 +713,8 @@ escrito al lado. Las que más mueven la aguja:
 | "volar a ras no me salva lo suficiente" | el factor `0.12` de `stepSolucion` (no es perilla todavía: **si se toca, hacerlo perilla**) |
 | "nunca lo puedo ahuyentar" | `CAZA_HP.ahuyenta` ↓ · `CAZA_WINDOW` ↑ |
 | "el sobrepaso no impresiona" | `CAZA_OVER_T` y la curva `f^2.2` de `stepPos` — la **curva importa más que la duración** (H1.1) |
+| "seguir al líder es un paseo" | `PURS_V_AMP` ↑ · `PURS_TIRON_T` ↓ (más tirones) |
+| "el tirón es injusto / no llego nunca" | `PURS_TIRON_AVISO` ↑ (avisa antes) · `PURS_TIRON_F` ↓ (corre menos) · `PURS_TIRON_DUR` ↓ |
+| "no entiendo si me estoy yendo o volviendo" | `PURS_CIERRE_MAX` ↓ (el riel reacciona antes) · `PURS_CIERRE_S` ↑ (menos temblor) |
 | "la formación es aburrida / imposible" | `PURS_V_AMP` — es **la** perilla del modo |
 | "el modo infinito se pone difícil muy rápido / muy lento" | `PURS_TIGHT_D` |

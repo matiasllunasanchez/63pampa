@@ -16,6 +16,26 @@
 //     decide si eso es relevo o derrota.
 //   · NO DIBUJA. `snapshot()` y lo pinta render/persec.js.
 //
+// ═══ LA REGLA DEL AMIGO ═══════════════════════════════════════════════════════════════════════
+//
+// EL LIDER DE LA PERSECUCION ES UN AMIGO, Y UN AMIGO NO SE MUERE SOLO. No lo mata un obstaculo, no
+// lo mata una bala tuya, no lo mata que le pases por encima, y no lo mata una casualidad de la
+// siembra. La UNICA puerta por la que puede caerse del cielo es `caerLider()`, que la llama el
+// GUION — y un guion, por definicion, dice tambien COMO y POR QUE.
+//
+// No es piedad: es que el modo entero descansa en una promesa. «Su linea es la respuesta correcta
+// del nivel» solo sirve si su linea es SIEMPRE correcta. Un lider que a veces se come un mastil le
+// enseña al jugador a desconfiar de el, y en el momento en que desconfias de el ya no estas volando
+// de numeral — estas volando solo con un estorbo adelante. Y peor: le enseña que la muerte de un
+// compañero es ruido de fondo, cuando en esta campaña es el unico evento que de verdad importa.
+//
+// QUE SI ES DESTRUIBLE, para que quede la frontera escrita: los HARRIER de LA COLA (PLAN A,
+// systems/caza.js). Esos son los villanos que te sobrepasan con el afterburner — se los puede
+// ahuyentar con el cañon y se los puede derribar. La regla del juego es de BANDO, no de sistema:
+// el enemigo que te pasa por al lado se rompe; el numeral de tu escuadrilla no. Y los personajes
+// con nombre de la campaña no se mueren en campaña salvo donde el guion lo diga (el caso escrito
+// es el Vasco a la salida de m7, §5 C3 del plan).
+//
 // EL LIDER NUNCA CHOCA, y es un requisito explicito del §4 (N0). Se sostiene con DOS cosas, no una:
 //   1. ESQUIVA — mira PURS_LOOK hacia adelante y se corre del carril de lo que viene. Es el mismo
 //      mecanismo del esquive automatico del relevo (systems/squad.js), generalizado.
@@ -25,8 +45,8 @@
 // Las dos juntas son la garantia. La primera lo hace CREIBLE (se lo ve esquivar, que es la mitad
 // del punto: por eso seguirlo enseña); la segunda lo hace CIERTO.
 //
-// ESTADO DE LAS FASES: N0 (el lider) y N1 (la cinta de formacion y la banda) hechos. N2 es el modo
-// de menu, N3 la campaña, y N4 queda anotado y sin construir.
+// ESTADO DE LAS FASES: N0 (el lider), N1 (la cinta y la banda), N2 (el modo de menu), N3 (el dato
+// de mision) y N5 (el tiron y el cierre) hechos. N4 queda anotado y sin construir.
 
 import { plane } from '../core/state.js';
 import { run } from '../core/run.js';
@@ -46,6 +66,8 @@ import {
   PURS_SAFE, PURS_LOOK, PURS_AGIL,
   PURS_GRACE, PURS_WASH_D, PURS_WASH_SHAKE, PURS_CHOQUE_D, PURS_AVISO_T, PURS_PTS_S,
   PURS_TIGHT_D, PURS_TIGHT_F, PURS_TIGHT_MIN, PURS_ROTA_D,
+  PURS_TIRON_T, PURS_TIRON_AVISO, PURS_TIRON_DUR, PURS_TIRON_F, PURS_TIRON_PTS,
+  PURS_CIERRE_S, PURS_CIERRE_MAX,
 } from '../data/tuning.js';
 import { PZ } from '../render/ctx.js';
 
@@ -86,6 +108,11 @@ export function startPersec(opts = {}) {
     d0: run.dist,               // desde donde se cuentan los escalones de apretado y los relevos
     pasos: 0,                   // escalones de apretado ya aplicados
     rotas: 0,                   // relevos de lider ya hechos
+    // --- N5: el tiron y el cierre ---
+    tirT: PURS_TIRON_T[0],      // reloj de la fase actual del tiron
+    tirF: 0,                    // 0 esperando · 1 avisado · 2 quemando
+    tirOk: true,                // ¿aguantaste EN BANDA todo el tiron? (el premio es todo o nada)
+    cierre: 0,                  // u/s a las que te acercas (>0) o te alejas (<0), suavizado
   };
   return true;
 }
@@ -111,7 +138,45 @@ function velocidad(t) {
     t: run.t, rasLevel: 0, mult: 1, windF: run.windF, boost: false, afterTier: 0,
   });
   const respiro = Math.sin(t / PURS_V_T[0] * 6.283) * 0.65 + Math.sin(t / PURS_V_T[1] * 6.283) * 0.35;
-  return nominal * (PURS_V_F + PURS_V_AMP * respiro);
+  // EL TIRON multiplica encima de todo lo demas: el respiro sigue corriendo abajo, asi que dos
+  // tirones no se sienten calcados aunque duren lo mismo.
+  return nominal * (PURS_V_F + PURS_V_AMP * respiro) * (L.tirF === 2 ? PURS_TIRON_F : 1);
+}
+
+const rnd = r => r[0] + Math.random() * (r[1] - r[0]);
+
+/** EL TIRON (N5): el lider abre el turbo y hay que seguirlo. Tres tiempos — espera, AVISO, quemada —
+ *  y el aviso es la mitad del mecanismo: ver «EL TIRON» en data/tuning.js.
+ *
+ *  El premio es TODO O NADA a proposito. Si pagara por segundo, la jugada optima seria aguantar dos
+ *  segundos y soltar; asi la jugada optima es la unica que se siente bien: acelerar a fondo y
+ *  aguantar hasta que el otro corte. El §4 pide un minijuego de gas y este es su punto alto. */
+function stepTiron(dt) {
+  L.tirT -= dt;
+  if (L.tirF === 0) {
+    if (L.tirT > 0) return;
+    L.tirF = 1; L.tirT = PURS_TIRON_AVISO;
+    popup(W / 2, 38, T('purs_tiron', { c: L.nombre }), P.accent, true);
+    beep(760, 0.1, 'square', 0.05, 900);
+    duck(0.25);
+    return;
+  }
+  if (L.tirF === 1) {
+    if (L.tirT > 0) return;
+    L.tirF = 2; L.tirT = rnd(PURS_TIRON_DUR); L.tirOk = true;
+    beep(300, 0.35, 'sawtooth', 0.05, 190);
+    return;
+  }
+  // quemando: cualquier cuadro fuera de banda quema el premio, y no se recupera dentro del mismo
+  // tiron — «le seguiste el tren» es una sola cosa y no un promedio
+  if (!(L.d >= L.lo && L.d <= L.hi)) L.tirOk = false;
+  if (L.tirT > 0) return;
+  L.tirF = 0; L.tirT = rnd(PURS_TIRON_T);
+  if (L.tirOk) {
+    run.score += PURS_TIRON_PTS * multOf(plane.y);
+    popup(W / 2, 38, T('purs_pegado'), P.foam);
+    beep(880, 0.12, 'square', 0.05, 1180);
+  }
 }
 
 /** EL ESQUIVE. Mira PURS_LOOK hacia adelante DESDE EL LIDER y se corre del carril de lo que se le
@@ -148,10 +213,21 @@ function esquivar(dt) {
 export function persecSystem(dt) {
   if (!L) return;
   L.t += dt;
+  // EL GUION: la unica puerta por la que el lider se cae del cielo (ver LA REGLA DEL AMIGO arriba).
+  // Se atiende ANTES que nada para que no haya un cuadro de lider muerto que igual esquiva.
+  if (L.guion) {
+    const m = L.guion; L = null;
+    return { guion: m };
+  }
+  stepTiron(dt);
   // LA DISTANCIA ES LA DIFERENCIA DE VELOCIDADES, y no hay mas modelo que ese. Si el lider va mas
   // rapido se aleja; si vos vas mas rapido, se acerca. Es lo que hace que el modo se juegue con el
   // acelerador y no con el timon — el §4 lo dice con todas las letras.
-  L.d += (velocidad(L.t) - run.spd) * dt;
+  const v = velocidad(L.t);
+  L.d += (v - run.spd) * dt;
+  // EL CIERRE (N5): la misma resta, pero SUAVIZADA y guardada para que el HUD la pueda mostrar. Es
+  // la lectura anticipada del modo — ver «EL CIERRE» en data/tuning.js.
+  L.cierre += ((run.spd - v) - L.cierre) * Math.min(1, dt * PURS_CIERRE_S);
   // techo y piso duros de la metrica: mas alla de esto el lider deja de ser un avion en pantalla y
   // pasa a ser un punto o un choque, y las dos cosas las resuelve N1 (la gracia y el jet wash)
   L.d = Math.max(2, Math.min(PURS_D[1] * 3, L.d));
@@ -233,7 +309,10 @@ function banda(dt) {
     L.fuera += dt;
   }
 
-  // CHOQUE: es un avion, no un aura.
+  // CHOQUE: es un avion, no un aura. EL QUE SE MATA SOS VOS — le pasaste por encima al que ibas
+  // siguiendo y te fuiste al agua; el lider sigue volando, porque es un amigo y los amigos no se
+  // mueren por un error tuyo de acelerador (LA REGLA DEL AMIGO, arriba). Que la consecuencia sea
+  // toda tuya es ademas lo unico que hace que la estela signifique algo.
   // Y LA PERSECUCION TERMINA AHI — igual que el duelo de LA COLA cuando te alcanza, y por la misma
   // razon: el relevo tiene que devolverle al compañero un pasillo limpio. Sin esto el lider sobrevive
   // a tu propia muerte, el compañero entra ya fuera de banda con la gracia de otro corriendo, y la
@@ -283,12 +362,28 @@ export function carrilLibre(x) {
   return Math.max(-FLY_X, Math.min(FLY_X, nx));
 }
 
+/** LA PUERTA DEL GUION — la UNICA forma de que el lider se caiga (ver LA REGLA DEL AMIGO arriba).
+ *
+ *  No la llama ningun sistema: la llama el guion de una mision, y por eso pide un `motivo` — una
+ *  clave de `data/strings.js` que dice COMO se cayo. El caso escrito es el Vasco a la salida de m7
+ *  (§5 C3 del plan), enganchado por un Sea Harrier con el jugador al lado sin poder hacer nada.
+ *
+ *  La señal `{ guion }` NO es una muerte tuya: game.js la cuenta como fin de la persecucion. Si el
+ *  guion ademas quiere que eso te cueste algo, es el guion el que lo escribe. */
+export function caerLider(motivo) {
+  if (!L) return false;
+  L.guion = motivo || 'purs_caido';
+  return true;
+}
+
 /** LO QUE VE EL RENDER. Copia chata y de solo lectura (convencion 4: el dibujo lee, no manda). */
 export function snapshot() {
   if (!L) return null;
   return {
     nombre: L.nombre, d: L.d, x: L.x, y: L.y, z: L.z, bank: L.bank, t: L.t,
     lo: L.lo, hi: L.hi, fuera: L.fuera, gracia: PURS_GRACE, banda: L.banda,
+    // N5: `tir` es la fase del tiron (1 = avisado, 2 = quemando) y `cierre` la lectura anticipada
+    tir: L.tirF, cierre: L.cierre, cmax: PURS_CIERRE_MAX,
     wash: L.d < PURS_WASH_D ? 1 - (L.d - PURS_CHOQUE_D) / Math.max(1, PURS_WASH_D - PURS_CHOQUE_D) : 0,
   };
 }
@@ -304,7 +399,25 @@ export function dbgPersec() {
     x: +L.x.toFixed(1), y: +L.y.toFixed(1), z: +L.z.toFixed(1),
     tx: +L.tx.toFixed(1), ty: +L.ty.toFixed(1), bank: +L.bank.toFixed(2),
     spd: +run.spd.toFixed(1), t: +L.t.toFixed(1),
+    tir: L.tirF, tirT: +L.tirT.toFixed(2), tirOk: L.tirOk, cierre: +L.cierre.toFixed(1),
   } : null);
+}
+
+/** Devuelve la GRACIA a cero. Las secciones del tiron dejan al jugador lejos de banda a proposito
+ *  durante segundos, y sin esto se le acaba la gracia en el medio de la prueba: la seccion muere por
+ *  un mecanismo que ya prueban las secciones 5 y 6, y peor, deja el mundo en relevo — o sea que la
+ *  seccion SIGUIENTE mide un lider congelado. Es la tercera vez en este plan. */
+export function setFuera(v) { if (L) L.fuera = +v; }
+
+/** Fuerza la fase del tiron: 0 lo DESARMA por un rato largo (para medir el vuelo de crucero sin que
+ *  se dispare uno en el medio), 1 dispara el aviso, 2 lo pone a quemar. Probar un tiron esperandolo
+ *  son 11 a 18 segundos de vuelo por asercion. */
+export function setTiron(f) {
+  if (!L) return false;
+  L.tirF = +f;
+  L.tirT = +f === 2 ? PURS_TIRON_DUR[1] : (+f === 1 ? PURS_TIRON_AVISO : PURS_TIRON_T[1]);
+  if (+f === 2) L.tirOk = true;
+  return true;
 }
 
 /** Pone la distancia donde se la pida: sirve para mirar los extremos de la banda sin volar hasta

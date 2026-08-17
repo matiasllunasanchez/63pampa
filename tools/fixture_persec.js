@@ -5,8 +5,9 @@
 // Fuera de `npm run check` por lo de siempre: son segundos de VUELO de verdad, y lo que prueba no
 // es una formula sino que el modo entero funcione adentro del juego.
 //
-// ESTADO: N0 (el lider), N1 (la cinta y la banda), N2 (el modo infinito) y N3 (el dato de
-// mision) cubiertos. N4 queda anotado en el plan y sin construir, como pide el §4.
+// ESTADO: N0 (el lider), N1 (la cinta y la banda), N2 (el modo infinito), N3 (el dato de mision)
+// y N5 (el tiron, el cierre y LA REGLA DEL AMIGO) cubiertos. N4 queda anotado en el plan y sin
+// construir, como pide el §4.
 //
 // LOS DOS CRITERIOS DE CIERRE DEL §4, y estan en las secciones 2 y 5:
 //   N0 — "el lider vuela solo un nivel entero, esquivando, creible". Se lo deja volar con el
@@ -58,6 +59,21 @@ async function Lsure() {
   }
   return await L();
 }
+/** Arranca una PARTIDA NUEVA desde cero: recarga la pagina y navega el menu.
+ *
+ *  No es ceremonia. Las secciones de N1 gastan vidas a proposito (se pierde al lider, se lo choca)
+ *  y el run se queda sin ninguna a mitad del fixture: de ahi en adelante el juego queda en `dead`,
+ *  el mundo no avanza un cuadro y TODA seccion posterior mide un lider congelado — que es la misma
+ *  trampa de Lsure una vuelta mas arriba, porque ni rearmar al lider revive una partida terminada.
+ *  Diagnosticado leyendo `__pausedbg()`: `state: "dead"` con `L.t` clavado. */
+async function arrancar() {
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?qa&persec');
+  await sleep(2500);
+  await tap('Return'); await tap('Down'); await tap('Return');
+  await tap('Down'); await tap('Return'); await tap('Return');
+  await sleep(1200);
+}
+
 async function shot(n) {
   if (!OUT) return;
   fs.writeFileSync(path.join(OUT, n + '.png'), (await win.webContents.capturePage()).toPNG());
@@ -88,18 +104,14 @@ const VIGIA = `(() => {
 })()`;
 
 app.whenReady().then(async () => {
-  console.log('\nFIXTURE — PERSECUCION (N0-N3)\n');
+  console.log('\nFIXTURE — PERSECUCION (N0-N3, N5)\n');
   win = new BrowserWindow({ width: 1280, height: 760, show: false, webPreferences: { backgroundThrottling: false } });
   win.webContents.on('console-message', (e, l, m) => { if (l >= 3 && !m.includes('Security Warning')) errors.push(m.slice(0, 300)); });
   win.webContents.on('render-process-gone', (e, d) => errors.push('EL RENDERER MURIO: ' + JSON.stringify(d)));
 
   // ---------- 1. N0 — EL LIDER EXISTE Y VUELA ADELANTE ----------
   console.log('1. N0 — el lider: esta ADELANTE tuyo y a la distancia de arranque:');
-  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?qa&persec');
-  await sleep(2500);
-  await tap('Return'); await tap('Down'); await tap('Return');
-  await tap('Down'); await tap('Return'); await tap('Return');
-  await sleep(1200);
+  await arrancar();
   // VUELO NIVELADO por sonda en vez de tecla sostenida. La unica tecla que evita caerse al mar es
   // W, que es CABECEO: el avion trepa, trepar cuesta velocidad, y el lider se le escapa por un
   // motivo que no tiene nada que ver con lo que se esta midiendo. Medido: con W sostenida el lider
@@ -240,6 +252,105 @@ app.whenReady().then(async () => {
   else ok(`en campaña la banda queda fija en [${c1.lo}, ${c1.hi}] tras 9000 m — el tramo tiene largo escrito`);
   if (c1 && c1.nombre !== c0.nombre) bad('en campaña el lider se relevo solo: el guion decide quien vuela adelante');
   else ok(`y el lider no rota solo: sigue siendo ${c1 && c1.nombre}`);
+
+  // ---------- 11. N5 — EL TIRON: AVISA ANTES, Y DESPUES SE VA ----------
+  // El criterio del §4b es "seguirle el ritmo": lo que hay que probar es que el tiron sea una
+  // DECISION y no una emboscada — o sea que exista aviso ANTES de la quemada, y que la quemada de
+  // verdad lo aleje. Que se sienta bien se mira en la captura, como siempre.
+  console.log('\n11. N5 — el TIRON: la radio avisa ANTES y despues el lider se va de verdad:');
+  // ARRIBA, y por una vez no es lo que el juego quiere: estas tres secciones son minuto y medio de
+  // vuelo pinchado a mano en un pasillo que sigue sembrando, y a 8 m el jugador termina comiendose
+  // un mastil en algun momento — con lo que el mundo entra en relevo y la seccion SIGUIENTE mide un
+  // lider congelado (la trampa de siempre, ver Lsure). A 45 m no hay mastiles. Lo que se mide aca
+  // —el tiron y el signo del cierre— no depende de la altura; el multiplicador si, y no se mide.
+  await arrancar();
+  await Lsure();
+  await js('__psnivel(45)');
+  await js('__psdist(95)'); await js('__psgracia(0)'); await js('__psnafta()');
+  await js('__pstiron(1)');            // aviso disparado
+  await sleep(200);
+  const t1 = await L();
+  if (!t1) bad('no hay lider para probar el tiron');
+  else if (t1.tir !== 1) bad(`el aviso no quedo armado (fase ${t1.tir})`);
+  else ok(`fase AVISO: quedan ${t1.tirT} s antes de que abra turbo — hay tiempo de reaccionar`);
+  await shot('n5_a_aviso');
+  const vAntes = t1 ? t1.v : 0;
+  await js('__pstiron(2)');
+  await sleep(300);
+  const t2 = await L();
+  if (!t2) bad('el lider se perdio durante el tiron');
+  else if (t2.tir !== 2) bad(`no llego a quemar (fase ${t2.tir})`);
+  else if (!(t2.v > vAntes * 1.2)) bad(`el tiron no acelera: ${vAntes} → ${t2.v}`);
+  else ok(`quemando: su velocidad salta ${vAntes} → ${t2.v} (x${(t2.v / vAntes).toFixed(2)})`);
+  await js('__psgracia(0)'); await js('__psnafta()');
+  await sleep(1200);
+  const t3 = await L();
+  if (t3 && !(t3.d > t2.d + 8)) bad(`quemando no se aleja: ${t2.d} → ${t3.d}`);
+  else if (t3) ok(`y se te va: la distancia paso de ${t2.d} a ${t3.d} en 1.2 s sin tocar el gas`);
+  await shot('n5_b_quemando');
+
+  // ---------- 12. N5 — EL CIERRE: LA MEDICION ANTICIPADA ----------
+  // La aguja dice donde estas y llega tarde; el cierre dice para donde vas. Se prueba en los dos
+  // sentidos, porque un signo invertido en un instrumento es peor que no tenerlo.
+  console.log('\n12. N5 — el CIERRE: dice para donde vas, y con el signo correcto:');
+  // partida nueva otra vez: la seccion de arriba deja al jugador 150 unidades fuera de banda a
+  // proposito, o sea que le cuesta el lider y una vida — y el relevo congela el mundo justo cuando
+  // esta seccion quiere medir un cambio de distancia
+  await arrancar();
+  await Lsure();
+  await js('__psnivel(45)');
+  await js('__pstiron(0)');
+  await js('__psdist(95)'); await js('__psgracia(0)'); await js('__psnafta()');
+  await sleep(900);                    // sin tiron, el lider respira alrededor de tu par
+  await js('__pstiron(2)');            // y ahora se va: te estas ALEJANDO, cierre negativo
+  await js('__psgracia(0)'); await js('__psnafta()');
+  await sleep(1000);
+  const cA = await L();
+  await js('__psgracia(0)'); await js('__psnafta()');
+  await sleep(500);
+  const cB = await L();
+  if (!cA || !cB) bad('no hay lider para medir el cierre');
+  else {
+    if (!(cB.cierre < -3)) bad(`con el lider quemando el cierre deberia ser bien negativo, dio ${cB.cierre}`);
+    else ok(`el lider quema y el cierre lo dice antes que la aguja: ${cB.cierre} u/s`);
+    // LA INVARIANTE, y es la unica que importa de un instrumento: el signo del cierre tiene que ser
+    // el OPUESTO al de como cambia la distancia. Un instrumento con el signo dado vuelta es peor
+    // que no tenerlo — te hace acelerar justo cuando habia que soltar.
+    const dd = cB.d - cA.d;
+    if (Math.abs(dd) < 0.5) bad(`la distancia no se movio: no se puede juzgar el signo del cierre [dA ${cA.d} dB ${cB.d} tA ${cA.t} tB ${cB.t}, estado ${await js('__pausedbg()')}]`);
+    else if (Math.sign(cB.cierre) !== -Math.sign(dd)) bad(`SIGNO INVERTIDO: la distancia hizo ${dd.toFixed(1)} y el cierre marca ${cB.cierre}`);
+    else ok(`y el signo es el correcto: la distancia hizo ${dd.toFixed(1)} u y el cierre marca ${cB.cierre} u/s`);
+  }
+  // la captura se toma con la aguja de vuelta en el MEDIO de la banda: es donde se ve si la cola del
+  // cierre se lee como parte del instrumento y no como un pixel suelto
+  await js('__pstiron(0)'); await js('__psdist(95)'); await js('__psgracia(0)'); await js('__psnafta()');
+  await sleep(120);
+  await shot('n5_c_cierre');
+
+  // ---------- 13. LA REGLA DEL AMIGO ----------
+  // El lider no se cae por accidente: la unica puerta es el guion. Se prueba que la puerta EXISTA
+  // y que sea la unica — el resto de la garantia son las secciones 2 y 3 (esquiva y carril).
+  console.log('\n13. LA REGLA DEL AMIGO: el lider solo cae si lo dice el GUION:');
+  await arrancar();
+  await Lsure();
+  await js('__psnivel(45)');
+  await js('__pstiron(0)');            // sin un tiron corriendo, o se va antes de que se lo mida
+  await js('__psgracia(0)'); await js('__psnafta()');
+  const antes = await L();
+  // adentro de la ESTELA (PURS_WASH_D 25) pero por encima del choque: el caso de rozarlo de verdad
+  // es la seccion 7, y ahi el que se muere sos VOS — el lider no se rompe en ninguno de los dos.
+  await js('__psdist(22)');
+  await sleep(250);
+  const rozado = await L();
+  if (!rozado) bad('el lider desaparecio por volarle encima: los amigos no se rompen');
+  else ok(`le volaste adentro de la estela (d ${rozado.d}) y sigue volando: ${rozado.nombre}`);
+  await js('__psdist(95)'); await js('__psgracia(0)'); await js('__psnafta()');
+  await sleep(200);
+  await js('__pscaer("purs_caido")');
+  await sleep(400);
+  const caido = await L();
+  if (caido) bad('el guion mando caer al lider y sigue en el aire: la puerta del guion no funciona');
+  else ok(`y con el guion SI cae (antes volaba ${antes && antes.nombre}) — es la unica puerta`);
 
   console.log('\nconsola: ' + (errors.length ? errors.length + ' error(es)\n  ' + errors.join('\n  ') : 'sin errores'));
   if (errors.length) fails += errors.length;

@@ -49,6 +49,19 @@ export function drawPersec(selPlane) {
   px(s.x - 1, s.y + 0.5 * f, 2, Math.max(1, f), P.accent);
   ctx.globalAlpha = 1;
 
+  // LA LLAMA DEL TIRON (N5). Tiene que verse a la distancia de la banda, donde el avion mide cinco
+  // pixeles: por eso es una pluma detras de la tobera y no un detalle del sprite. El parpadeo sale
+  // del reloj del lider y NO de Math.random() — un patron visual sorteado por cuadro es la trampa
+  // #3 del repo (SPEC_AGUA_OLAS §1) y ademas titila como un pixel roto.
+  if (L.tir === 2) {
+    const p = 0.75 + 0.25 * Math.sin(L.t * 41);
+    const lg = Math.max(3, 7 * f) * p;
+    ctx.globalAlpha = 0.85;
+    px(s.x - 1.5, s.y + 0.4 * f, 3, lg, P.warn);
+    px(s.x - 0.5, s.y + 0.4 * f, 1, lg * 0.6, '#fff2d8');
+    ctx.globalAlpha = 1;
+  }
+
   const smooth = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = false;
   if (pl.sheetOk) {
@@ -121,6 +134,26 @@ export function drawCinta() {
   // instrumento se ve aunque estes mirando el mastil que viene.
   const dentro = L.d >= L.lo && L.d <= L.hi;
   const ay = Math.round(aY(L.d));
+
+  // EL CIERRE (N5): la COLA de la aguja. Sale de la aguja hacia donde vas a estar —abajo si te
+  // estas acercando, arriba si te estas descolgando— y su largo es cuan rapido. La aguja sola dice
+  // donde estas, que es informacion que llega tarde: cuando toca el borde ya empezo la gracia. Esta
+  // cola es la unica parte del instrumento que habla del FUTURO, que es como se vuela formacion de
+  // verdad — no se mira la distancia, se mira si crece o se achica.
+  const c = Math.max(-1, Math.min(1, L.cierre / L.cmax));
+  if (Math.abs(c) > 0.06) {
+    // c > 0 = te acercas = la aguja BAJA (menos distancia es mas abajo en la cinta). Se RECORTA a la
+    // cinta: con la aguja clavada en un extremo la cola se iria del instrumento, y una marca que se
+    // dibuja fuera de su caja es la forma mas facil de que el HUD deje de leerse como un aparato.
+    const y0 = Math.max(y, Math.min(y + h, c > 0 ? ay : ay - Math.abs(c) * h * 0.28));
+    const y1 = Math.max(y, Math.min(y + h, c > 0 ? ay + c * h * 0.28 : ay));
+    // VA POR FUERA, en un riel propio a la izquierda: adentro de la cinta la cola se pierde contra
+    // el relleno de la banda (medido en la captura n5_c). Asi el instrumento queda con dos rieles y
+    // cada uno dice una cosa — izquierda el CIERRE (para donde vas), derecha la GRACIA (cuanto te
+    // queda) — y la cinta del medio sigue siendo solo la distancia.
+    px(x - 5, y0, 2, Math.max(1, y1 - y0), c > 0 ? P.warn : P.accent);
+  }
+
   px(x - 2, ay - 1, w + 4, 2, dentro ? P.foam : P.warn);
 
   // LA GRACIA, como un hilo que se vacia PEGADO a la cinta. Solo aparece cuando estas gastandola:
@@ -137,8 +170,12 @@ export function drawCinta() {
   ctx.font = '6px monospace'; ctx.textAlign = 'center';
   const tw = ctx.measureText(L.nombre).width + 4;
   ctx.globalAlpha = 0.8;
-  px(x + w / 2 - tw / 2, y - 10, tw, 8, '#0d1418');
+  // EL TIRON EN LA PLACA (N5): durante el aviso la placa late, y mientras quema queda encendida. La
+  // radio ya lo grito, pero el grito es un cartel que pasa — y el tiron dura varios segundos con el
+  // jugador mirando el pasillo. Esto es lo que queda prendido mientras tanto.
+  const enc = L.tir === 2 || (L.tir === 1 && Math.sin(L.t * 18) > 0);
+  px(x + w / 2 - tw / 2, y - 10, tw, 8, enc ? P.warn : '#0d1418');
   ctx.globalAlpha = 1;
-  ctx.fillStyle = P.accent;
+  ctx.fillStyle = enc ? '#0d1418' : P.accent;
   ctx.fillText(L.nombre, x + w / 2, y - 4);
 }
