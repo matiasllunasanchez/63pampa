@@ -16,10 +16,9 @@
 // game.js decide: `drawCaza(true)` va con el mundo, antes del avion; `drawCaza(false)` va despues,
 // para lo que quedo mas cerca que el avion. Ver el llamado en draw().
 //
-// ARTE: PLACEHOLDER. El Harrier visto DESDE ATRAS es una hoja que todavia no existe (la pide H5,
-// esta listada en PENDIENTES). Mientras tanto es el `jet` de frente OSCURECIDO y angostado, que es
-// lo que el §3 autoriza explicitamente — y la regla P2 de siempre: funciona sin assets, el arte
-// cae despues. Si la hoja no cargo, mas abajo hay una silueta dibujada a mano.
+// ARTE: tres hojas horneadas — `jet` (de frente), `jet_rear` (de cola) y `jet_turn` (viraje de la
+// recola). Si alguna no cargo, la cadena cae al escalon siguiente (rear → jet oscurecido, turn →
+// rear → jet) y al final a la silueta a mano (regla P2).
 
 import { ctx, px, PZ } from './ctx.js';
 import { proj } from '../core/fx.js';
@@ -37,9 +36,8 @@ const HOT = ['#fdfefe', '#d8ecff', '#9ec8f0', '#5f8fc0'];
 // el proyectil.
 const LET = ['#fff2d8', '#ffcf62', '#f2662a', '#a8331a'];
 
-// PLACEHOLDER: cuanto se oscurece y cuanto se angosta el jet de frente para hacer de cola. Un
-// avion visto desde atras es mas angosto (no se le ve la envergadura entera) y esta a contraluz.
-// Los dos numeros se van con la hoja real en H5.
+// RESPALDO para cuando `jet_rear` no cargo: el jet de frente oscurecido y angostado. Un avion
+// visto desde atras es mas angosto (no se le ve la envergadura entera) y esta a contraluz.
 const PH_DARK = 0.5, PH_SQUASH = 0.74;
 
 /** Una trazadora ajena: cabeza encendida y cola corta muestreada hacia atras en z. Misma tecnica
@@ -97,19 +95,30 @@ function drawEstela(f) {
   ctx.globalAlpha = 1;
 }
 
-/** El caza. `cola` = lo estamos viendo desde atras (placeholder oscurecido y angostado); si no,
- *  esta adelante y de frente, que es el `jet` de siempre sin retocar. */
+/** El caza. Tres hojas por orden de prioridad:
+ *  - `jet_turn`: VIRAJE (recola) — 5 yaws de cola (0°) a frente (180°) con banqueo
+ *  - `jet_rear`: COLA — la vista real de la tobera y la deriva
+ *  - `jet`: FRENTE — el sprite que siempre estuvo, ahora solo para ventana y salida
+ *  Cada hoja cae al siguiente escalon si no cargo, y al final a la silueta a mano. */
 function drawCazaSprite(C) {
   const s = proj(C.x, C.y, C.z);
   const k = s.k;
-  const cola = C.z < PZ + 8;                     // todavia detras tuyo o cruzandote
-  if (enemyArt.ready('jet')) {
-    // la columna de alabeo sale del lado por el que ataca: banquea hacia donde va
+  const cola = C.z < PZ + 8;
+
+  if (C.fase === 'recola' && enemyArt.ready('jet_turn')) {
+    const f = Math.min(1, C.t / C.dur);
+    const cols = enemyArt.SHEETS.jet_turn.cols;
+    const col = Math.max(0, Math.min(cols - 1, Math.round(f * (cols - 1))));
+    const espejo = C.lado < 0;
+    enemyArt.drawFrame(ctx, 'jet_turn', col, 0, s.x, { centerY: s.y }, k, espejo, false, 0);
+  } else if (cola && enemyArt.ready('jet_rear')) {
+    const cols = enemyArt.SHEETS.jet_rear.cols;
+    const col = Math.max(0, Math.min(cols - 1, Math.round((C.lado * 0.5 + 0.5) * (cols - 1))));
+    enemyArt.drawFrame(ctx, 'jet_rear', col, 0, s.x, { centerY: s.y }, k, false, false, 0);
+  } else if (enemyArt.ready('jet')) {
     const cols = enemyArt.SHEETS.jet.cols;
     const col = Math.max(0, Math.min(cols - 1, Math.round((C.lado * 0.5 + 0.5) * (cols - 1))));
     if (cola) {
-      // el angostado se aplica con un scale anclado en el centro del sprite: translate al centro,
-      // escalar, y dibujar con cx = 0 (drawFrame vuelve a trasladar por su cuenta)
       ctx.save();
       ctx.translate(s.x, 0);
       ctx.scale(PH_SQUASH, 1);
@@ -117,16 +126,12 @@ function drawCazaSprite(C) {
       ctx.restore();
     } else enemyArt.drawFrame(ctx, 'jet', col, 0, s.x, { centerY: s.y }, k, false, false, 0);
   } else {
-    // RESPALDO SIN ASSETS (regla P2): silueta a mano. Alas, fuselaje y deriva — lo justo para que
-    // la coreografia se lea igual con la hoja vacia.
     const c = cola ? '#1b2228' : P.bodyDark;
-    px(s.x - 4.2 * k, s.y - 0.4 * k, 8.4 * k, 0.8 * k, c);          // ala
-    px(s.x - 1 * k, s.y - 1.4 * k, 2 * k, 2.8 * k, c);              // fuselaje
-    px(s.x - 0.35 * k, s.y - 2.8 * k, 0.7 * k, 1.5 * k, c);         // deriva
+    px(s.x - 4.2 * k, s.y - 0.4 * k, 8.4 * k, 0.8 * k, c);
+    px(s.x - 1 * k, s.y - 1.4 * k, 2 * k, 2.8 * k, c);
+    px(s.x - 0.35 * k, s.y - 2.8 * k, 0.7 * k, 1.5 * k, c);
     if (!cola) px(s.x - 0.6 * k, s.y - 0.9 * k, 1.2 * k, 0.8 * k, P.canopy);
   }
-  // LLAMA DE LA TOBERA, solo de cola: es lo unico que se ve de verdad de un avion que se te viene
-  // encima desde atras de noche o a contraluz, y ademas da la unica pista de distancia que hay.
   if (cola) {
     const fl = 0.7 + Math.sin(C.t * 34) * 0.3;
     ctx.globalAlpha = 0.65;

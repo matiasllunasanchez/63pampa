@@ -19,6 +19,8 @@
 const FILES = {
   helo: '../assets/world/enemies/helo.png',
   jet: '../assets/world/enemies/jet.png',
+  jet_rear: '../assets/world/enemies/jet_rear.png',
+  jet_turn: '../assets/world/enemies/jet_turn.png',
   radar: '../assets/world/enemies/radar.png',
   aatruck: '../assets/world/enemies/aatruck.png',
   lcu: '../assets/world/enemies/lcu.png',
@@ -33,6 +35,8 @@ const FILES = {
 export const SHEETS = {
   helo: { fw: 64, fh: 48, cols: 8, rows: 2, box: { x0: 6, y0: 16, x1: 57, y1: 36 }, wu: 11.5 },
   jet: { fw: 64, fh: 48, cols: 5, rows: 1, box: { x0: 14, y0: 10, x1: 49, y1: 31 }, wu: 10.5 },
+  jet_rear: { fw: 64, fh: 48, cols: 5, rows: 1, box: { x0: 10, y0: 10, x1: 53, y1: 32 }, wu: 10.5 },
+  jet_turn: { fw: 64, fh: 48, cols: 5, rows: 1, box: { x0: 11, y0: 11, x1: 51, y1: 29 }, wu: 10.5 },
   radar: { fw: 48, fh: 48, cols: 4, rows: 1, box: { x0: 10, y0: 7, x1: 43, y1: 40 }, wu: 6.2 },
   aatruck: { fw: 56, fh: 48, cols: 3, rows: 1, box: { x0: 13, y0: 12, x1: 48, y1: 39 }, wu: 6.6 },
   // lcu y balloon llevan 3 POSES DE ROLIDO (izq/centro/der): el render las cicla con un seno

@@ -350,6 +350,24 @@
         fw: 64, fh: 48, dist: 16, lookY: 0.2,
         frames: [-30, -15, 0, 15, 30].map(a => ({ model: modelJet, roll: a * Math.PI / 180 })), cols: 5,
       },
+      // caza DESDE ATRAS: mismos 5 alabeos pero la camara ve la cola (tobera, deriva, borde de
+      // fuga del ala). Es la vista real de la COLA — el Harrier vuela en tu misma direccion y la
+      // camara esta detras de los dos.
+      jet_rear: {
+        fw: 64, fh: 48, dist: 16, lookY: 0.2, baseYaw: 0,
+        frames: [-30, -15, 0, 15, 30].map(a => ({ model: modelJet, roll: a * Math.PI / 180 })), cols: 5,
+      },
+      // caza EN VIRAJE (recola): 5 yaws de cola (0°) a frente (180°), con alabeo de la virada.
+      // La recola es la vuelta en U: el Harrier pasa de volar adelante tuyo (cola) a volver por
+      // atras (frente). El render elige el frame segun el progreso de la recola.
+      jet_turn: {
+        fw: 64, fh: 48, dist: 18, lookY: 0.2, baseYaw: 0,
+        frames: [0, 40, 90, 140, 180].map((deg, i) => ({
+          model: modelJet,
+          yaw: deg * Math.PI / 180,
+          roll: [0, -25, -35, -25, 0][i] * Math.PI / 180,
+        })), cols: 5,
+      },
       // radar: 4 poses del plato (rota de a 45°)
       radar: {
         fw: 48, fh: 48, dist: 16, lookY: 1.6, quarter: 0.5,
@@ -414,7 +432,7 @@
           const sc = makeScene();
           // capas de rotacion, de adentro hacia afuera: modelo (nariz -z) → volteo hacia la
           // camara (PI) + 3/4 opcional → pose (yaw/alabeo). Grupos separados: ver cabecera.
-          const flip = new THREE.Group(); flip.rotation.y = Math.PI + (spec.quarter || 0);
+          const flip = new THREE.Group(); flip.rotation.y = (spec.baseYaw !== undefined ? spec.baseYaw : Math.PI) + (spec.quarter || 0);
           flip.add(fr.model());
           const pose = new THREE.Group();
           if (fr.yaw) pose.rotation.y = fr.yaw;
