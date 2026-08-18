@@ -20,6 +20,7 @@ import { proj, popup, explodeAt, bloodBurst, despiece, morir, stepDestruccion, c
 import { CHUNK_LIFE, CHUNKS_MAX, ONDA_T, FLASH_T } from './data/despiece.js';
 import * as momentum from './systems/momentum.js';
 import * as tempo from './systems/tempo.js';
+import * as chancha from './systems/chancha.js';
 import * as saves from './systems/saves.js';
 import { CAMPAIGNS } from './data/campaigns.js';
 import * as arena from './systems/arena.js';
@@ -38,6 +39,7 @@ import * as caza from './systems/caza.js';
 import * as persec from './systems/persec.js';
 import { drawCaza } from './render/caza.js';
 import { drawPersec, drawCinta } from './render/persec.js';
+import { drawChancha } from './render/chancha.js';
 import { inp, mouse, pointer, flags, initInput } from './core/input.js';
 import { flightSystem } from './systems/flight.js';
 import { drawPlane } from './render/plane.js';
@@ -205,6 +207,52 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       Object.assign(cfg, MISSIONS[curLevel].cfg); applyCfg();
     }
     function curMission() { return MISSIONS[curLevel]; }
+    /** Una linea de radio de LA CHANCHA. Mismo sitio y mismo estilo que el aviso del escuadron:
+     *  es la misma frecuencia, y que se lea igual es lo que la hace sonar a radio. */
+    function radioCh(key, args) { popup(0, 26, T(key, args), P.crest, true); }
+
+    /** EL PEDIDO (tecla 5). Es una funcion con nombre —y no el cuerpo de la accion— para que la
+     *  sonda del fixture apriete EXACTAMENTE lo mismo que aprieta el jugador: si la sonda
+     *  llamara a `chancha.pedir()` por su cuenta, se saltearia justo los gates que vive aca (el
+     *  estado del juego y la mision) y probaria media mecanica. */
+    function pedirChancha() {
+        const r = chancha.pedir({
+          fuelOn: cfg.fuelOn,
+          enPasillo: S.state === 'play' && !cfg.devcam,
+          // LA ROTURA DEL GUION vuelta mecanica: desde la mision siguiente al epilogo de LA BOMBA
+          // QUE NO DESPERTO, la Chancha vuela corto y no baja al sur (missions.js: chancha:false).
+          // Fuera de campaña —ciclo, por la patria— siempre esta viva: ahi no hay narrativa.
+          viva: !(gameMode === 'campaign' && curMission() && curMission().chancha === false),
+          t: run.t,
+        });
+        if (r === 'nofuel') return;                                    // sin combustible el poder no existe
+        if (r === 'nozone' && chancha.meterVal() < 1) return;           // ni siquiera la tenia lista
+        if (r === 'ok') { beep(520, 0.07, 'square', 0.05, 120); radioCh('ch_call'); return; }
+        // las otras dos lineas del ritual (Condor y la Chancha) las dispara el sistema por dt:
+        // ver el bloque 'ack'/'come' de chancha.tick — aca solo suena el pedido.
+        beep(150, 0.09, 'square', 0.05);
+        radioCh(r === 'early' ? 'ch_early' : r === 'used' ? 'ch_used'
+          : r === 'broken' ? 'ch_broken' : 'ch_nozone');
+      }
+
+    /** Las señales de LA CHANCHA vueltas cosas que se ven y se oyen. Vive en el orquestador —y no
+     *  en el sistema— por la misma regla que el MOMENTUM: el sistema decide, el juego lo cuenta. */
+    function chanchaRadio(sig) {
+      if (sig === 'ready') { beep(660, 0.1, 'square', 0.05, 140); popup(W / 2, 58, T('ch_ready'), P.accent); return; }
+      if (sig === 'ack') { beep(480, 0.05, 'square', 0.04); radioCh('ch_ack'); return; }
+      if (sig === 'come') { beep(430, 0.06, 'square', 0.04); radioCh('ch_come'); return; }
+      if (sig === 'llega') { beep(300, 0.18, 'sawtooth', 0.05, 60); radioCh('ch_arriba'); return; }
+      if (sig === 'conecta') { beep(720, 0.08, 'square', 0.05, 220); radioCh('ch_connect'); return; }
+      if (sig === 'corta' || sig === 'golpe') {
+        // el CHISPAZO: se ve donde estaba la punta de la sonda, no en el medio de la pantalla
+        beep(110, 0.12, 'sawtooth', 0.06, -60);
+        explodeAt(plane.x, plane.y, PZ, false, true, true);
+        radioCh('ch_drop');
+        return;
+      }
+      if (sig === 'lleno') { beep(880, 0.14, 'square', 0.05, 180); radioCh('ch_full'); return; }
+      if (sig === 'adios') { beep(260, 0.14, 'square', 0.04, -80); radioCh('ch_bye'); }
+    }
     // transiciones desde la pantalla inicial de modo
     function goSurvival() { gameMode = 'survival'; setState('menu'); beep(600, 0.08, 'square', 0.05); }
     // PERSECUCION (PLAN_HARRIERS_PERSECUCION §4, N2): pasillo INFINITO como POR LA PATRIA, pero
@@ -524,7 +572,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // control se leian como si fueran configurables — el cursor se paraba encima y daban ganas
       // de apretarles izquierda/derecha a ver que cambiaba.
       { note: 'ctrlHands' }, { note: 'ctrlWasd' }, { note: 'ctrlBombs' }, { note: 'ctrlSame' },
-      ...[['Aim'], ['Cam'], ['Tempo'], ['Inv'], ['Music'], ['Menu']]
+      ...[['Aim'], ['Cam'], ['Tempo'], ['Chancha'], ['Inv'], ['Music'], ['Menu']]
         .map(([k]) => ({ ctrl: 'ctrl' + k, kb: 'ctrl' + k + 'K', pad: 'ctrl' + k + 'P' })),
 
       { head: 'optSecPartida' },
@@ -973,6 +1021,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       clearWorld();     // vacia el campo de obstaculos, balas, particulas…
       momentum.resetMomentum();
       tempo.resetTempo();
+      chancha.resetChancha();   // el poder es de la CORRIDA: se pide una vez y sobrevive al relevo
       veilOut = 0; veilPrev = '';   // el telon del cordon, cerrado y sin reloj
       arena.resetArena();
       pasada.resetPasada();
@@ -1238,6 +1287,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         beep(r === 'on' ? 330 : 520, 0.09, 'square', 0.05, r === 'on' ? -160 : 160);   // slide abajo = el tiempo cae
         popup(W / 2, 58, r === 'on' ? T('tempoOn') : T('tempoOff'), P.accent);
       },
+      chanchaCall: () => pedirChancha(),
       // MIRA fija/movil: la alterna CAPS LOCK (teclado) y tambien la fila de OPCIONES. El aviso
       // en pantalla es el mismo por las dos vias — si no, tocar la tecla no daba ninguna señal.
       aimChanged: free => {
@@ -2266,6 +2316,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // EL LIDER de la PERSECUCION: siempre esta mas lejos que vos (es la definicion del modo), asi
       // que va antes del avion y no necesita el reparto en dos pasadas que si necesita LA COLA.
       drawPersec(selPlane);
+      // LA CHANCHA: siempre esta MAS LEJOS y mas arriba que vos (sostiene formacion adelante), asi
+      // que va antes del avion — pintor correcto respecto del que entra a la canasta.
+      drawChancha();
       // en el climax (arena, pasada o fallback) el avion lo pone su propio render. EL PULSO tampoco
       // lo dibuja: la prueba se ve DESDE LA CABINA, y el sprite en tercera persona quedaba a la
       // vista en cuanto la cinematica del premio baja el canopy — dos camaras del mismo avion.
@@ -2543,6 +2596,38 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // a su nominal y la banda se puede medir.
       window.__psnivel = y => window.__czalto(y);
     }
+    // SONDA DE LA CHANCHA (QUITAR con el resto): llena la barra y adelanta el reloj de la mision.
+    // La mitad del reloj vive aca y no en el sistema porque `run` es del orquestador — y sin esto
+    // cada paso del fixture tendria que jugar CH_MIN_T segundos de verdad (cuatro minutos por
+    // corrida) para llegar a apretar la tecla.
+    if (typeof window !== 'undefined') {
+      window.__chaset = (p2, seg) => {
+        chancha.cargar(p2 === undefined ? undefined : +p2);
+        if (seg !== undefined) run.t = +seg;
+        return window.__chadbg();
+      };
+      window.__chacall = () => { pedirChancha(); return window.__chadbg(); };
+      window.__chaput = (x, y) => { plane.x = +x; plane.y = +y; plane.vy = 0; return JSON.stringify({ x: plane.x, y: plane.y }); };
+      // los otros dos gates, puestos desde afuera: el COMBUSTIBLE apagado (donde el poder no
+      // existe) y la MISION posterior a la rotura del guion. Se escriben las CAUSAS —cfg.fuelOn y
+      // la mision de campaña— para que el fixture ejercite los mismos `if` que el juego.
+      window.__chafuel = v => { cfg.fuelOn = !!v; return cfg.fuelOn; };
+      window.__chamis = n => { gameMode = 'campaign'; curLevel = +n; return JSON.stringify({ id: curMission().id, rota: curMission().chancha === false }); };
+      // EL PRECIO (RF-05): arriba te ve el radar. No es un sistema nuevo —es el de siempre, que
+      // mide altura— y justamente por eso hay que poder comprobar que la cita lo paga.
+      window.__charadar = () => JSON.stringify({ det: +run.detection.toFixed(2), seen: !!run.radarSeen, mult: run.multShow });
+      window.__chanafta = () => +run.fuel.toFixed(2);   // el tanque, que es lo que el poder viene a llenar
+      window.__chagolpe = () => { run.shake = 6; return run.shake; };
+      // CALMA para poder MIRAR la cita: la cita se vuela ARRIBA, y arriba el radar te ve y te
+      // tiran. Es el mismo criterio que `__czcalma` en el duelo — la seccion que mide una cosa
+      // apaga lo que no esta midiendo. En el juego normal esto no existe: que arriba te vean es
+      // justamente el precio del poder (RF-05), y eso se prueba aparte.
+      window.__chacalma = () => {
+        obstacles.length = 0; missiles.length = 0; soldiers.length = 0;
+        run.detection = 0; run.integ = 100;
+        return true;
+      };
+    }
     if (typeof window !== 'undefined') window.__pausedbg = () => JSON.stringify({
       paused, view: pauseView, sel: pauseSel, saveSel, state: S.state,
     });
@@ -2722,6 +2807,21 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // los dos son escalas del mismo dt, asi que componerlos es multiplicar y nada mas. Como
       // nada en el juego usa reloj de pared, esto frena bombas, particulas y defensa en sincronia.
       const dt = raw * tempo.scale() * (S.state === 'pasada' ? pasada.slow() : 1);
+      // LA CHANCHA (SPEC_PODER_CHANCHA) va ACA y no adentro de update(): con el dt del MUNDO —el
+      // ETA es tiempo de mision, asi que pedirla en camara lenta tiene que tardar lo mismo en
+      // tiempo de juego— y en TODOS los estados, que es lo que le permite despedirse sola cuando
+      // el pasillo se termina (muerte, relevo, climax, devcam). El sistema devuelve señales y el
+      // % de tanque del cuadro; escribir `run.fuel` es del orquestador, como corresponde.
+      const ch = chancha.tick(dt, {
+        inPlay: S.state === 'play' && !cfg.devcam,
+        score: run.score, planeX: plane.x, planeY: plane.y, fuel: run.fuel,
+        // un golpe corta la transferencia: la manguera no aguanta un avion sacudido
+        golpe: run.scrapeVib > 0.1 || run.shake > 3,
+      });
+      if (ch.carga > 0) run.fuel = Math.min(100, run.fuel + ch.carga);
+      if (ch.rum) beep(58, 0.3, 'sawtooth', 0.028);                    // los motores del Hercules
+      if (ch.bomba) beep(190, 0.05, 'square', 0.03, 40);               // la bomba de transferencia
+      if (ch.sig) chanchaRadio(ch.sig);
       update(dt); draw(); updateMusic(S.state);
       if (playerEl) playerEl.classList.toggle('on', canPickMusic());   // reproductor: solo donde hay pista cambiable
       requestAnimationFrame(frame);

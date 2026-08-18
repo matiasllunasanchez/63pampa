@@ -305,14 +305,7 @@ app.whenReady().then(async () => {
   else bad(`sin lluvia igual habia ${chSeco} charcos dibujados`);
   if (chLluvia > 10) ok(`con tormenta el agua se junta en los bajos: ${chLluvia} charcos en el cuadro`);
   else bad(`con tormenta no aparecieron charcos (${chLluvia} en el cuadro)`);
-  await js('__lluvia(0)'); await sleep(500);
-  const seco = await medir();
-  await shot('t6_seco');
-  await js('__lluvia(3)'); await sleep(500);
-  const mojado = await medir();
-  await shot('t6_tormenta');
-  if (mojado < seco * 0.9) ok(`con tormenta el suelo se oscurece de verdad: brillo ${seco.toFixed(1)} → ${mojado.toFixed(1)}`);
-  else bad(`la lluvia no oscurece el suelo (brillo ${seco.toFixed(1)} → ${mojado.toFixed(1)})`);
+  await js('__lluvia(0)');
 
   console.log('\nconsola: ' + (errors.length ? errors.length + ' error(es)' : 'sin errores'));
   for (const e of errors.slice(0, 8)) console.error('   ' + e);

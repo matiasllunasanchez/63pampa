@@ -237,6 +237,7 @@ export function initInput(cv, a) {
     if (!e.repeat && (e.code === 'Digit1' || e.code === 'Numpad1')) a.trackPrev();
     if (!e.repeat && (e.code === 'Digit2' || e.code === 'Numpad2')) a.trackNext();
     if (!e.repeat && (e.code === 'Digit4' || e.code === 'Numpad4')) a.tempoToggle();   // MOMENTUM: camara lenta (pasillo)
+    if (!e.repeat && (e.code === 'Digit5' || e.code === 'Numpad5')) a.chanchaCall();   // LA CHANCHA: el reabastecedor (pasillo)
   });
   addEventListener('keyup', e => {
     readCaps(e);

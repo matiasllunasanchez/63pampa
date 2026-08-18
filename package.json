@@ -32,7 +32,8 @@
     "prepack": "npm run build:game",
     "smoke:web": "electron tools/smoke.js",
     "agua": "electron tools/fixture_agua.js",
-    "tierra": "electron tools/fixture_tierra.js"
+    "tierra": "electron tools/fixture_tierra.js",
+    "chancha": "electron tools/fixture_chancha.js"
   },
   "author": "Matias Luna",
   "license": "UNLICENSED",

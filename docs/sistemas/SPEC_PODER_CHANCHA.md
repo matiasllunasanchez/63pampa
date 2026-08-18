@@ -203,4 +203,54 @@ de la escena del guion, pero NO reproducir la escena (esa es del modo historia).
 > Anotar acá toda diferencia entre este spec y la realidad del código, con la decisión
 > tomada. Incluir: a qué id de misión quedó atada la rotura (código 12 vs canon 14).
 
-- *(vacío)*
+### 1. Las sondas se llaman `__cha*`, no `__ch*`
+
+`window.__chdbg` **ya existía**: es el censo del escombro (los `chunk` del despiece). Definir el
+mío encima lo habría pisado en silencio y el fixture de la Chancha habría estado leyendo la
+población de pedazos — de hecho pasó, y la primera corrida lo mostró: `{"n":0,"max":60,…}`.
+Quedaron `__chadbg`, `__chaset`, `__chacall`, `__chaput`, `__chafuel`, `__chamis`, `__chagolpe`,
+`__chanafta`, `__charadar`, `__chacalma`. Todas QUITAR.
+
+### 2. La geometría de la cita no estaba en el spec, y hacía falta medirla
+
+§5 da las ocho perillas de mecánica pero ninguna de dónde está la Chancha. Se agregaron `CH_Z`,
+`CH_HOSE_X/Y/Z`, `CH_DERIVA`, `CH_DERIVA_V` y `CH_SALIDA`, y **la decisión importante es la
+profundidad**: la canasta va a la profundidad de juego (`PZ = 14`), la misma del avión.
+
+Con la canasta a otra profundidad, la proyección (`k = F/z`) las separa en pantalla aunque en el
+mundo estén pegadas: probado con el Hércules a 34 y la canasta a 25, "estar en la caja" se veía
+como estar *al lado*, y la manguera cruzaba media pantalla hasta un aro fuera de cuadro. Con la
+canasta en `PZ` y el Hércules en `CH_Z = 24`, **la caja que se dibuja es exactamente donde hay que
+poner el avión** — que es la única forma de que una cita de puntería sea justa.
+
+### 3. El ritual de radio corre por `dt`
+
+§8.6 prohíbe relojes de pared, así que las dos respuestas (Cóndor y la Chancha) no salen de
+`setTimeout` sino de umbrales sobre un contador que avanza con el `dt` del mundo, adentro de la
+fase `eta`. Pedirla en cámara lenta no descoloca el diálogo, y una pausa no deja a Cóndor
+contestando solo.
+
+### 4. La rotura quedó atada a **m6 en adelante** (código)
+
+El epílogo de la rotura es el de **m5 · LA BOMBA QUE NO DESPERTÓ**, así que el poder existe
+**hasta m5 inclusive** y `chancha: false` está en m6…m12 (los ids del código de hoy, 12 misiones).
+Si el remapeo a 14 de PLAN_CAMPANA_001 se aplica, hay que mover el campo con la misión, no con el
+número: el gate es "después de la rotura", no "de la sexta en adelante".
+
+### 5. "Recibir un golpe" quedó definido como sacudón
+
+El spec no lo define. Se resolvió con lo que ya existe: `run.scrapeVib > 0.1 || run.shake > 3`
+—o sea rozar el mar/suelo o comerse una explosión— y se prueba con la sonda `__chagolpe`.
+
+### 6. El fixture apaga el cielo para medir la cita, salvo donde el precio ES lo medido
+
+`__chacalma` vacía obstáculos, misiles y detección durante los pasos de la cita: sostener el avión
+a 44 m durante los 18 s del ETA sin eso termina en relevo antes de que la Chancha llegue (medido:
+tres relevos seguidos). Es el mismo criterio de `__czcalma` en el duelo. El paso 9 —el precio—
+corre **sin** calma a propósito: apagarlo sería medir un mundo que el jugador nunca juega.
+
+### 7. Un paso más que los ocho del §6: el precio (RF-05)
+
+El §6 lista ocho pasos y ninguno mide RF-05, que es la mitad del diseño del poder. Se agregó el
+paso 9: a ras el radar no te ve y el multiplicador va en ×10; a la altura de la cita te ve y cae a
+×1 (medido: detección 0 → 0,62 · x10 → x1).

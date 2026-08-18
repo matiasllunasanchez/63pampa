@@ -104,6 +104,17 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
   desplegada debajo tuyo, con la línea de umbral punteada a la altura del avión. `SIEMPRE` la deja
   fija para aprender dónde está el techo. La frontera existía desde siempre, pero era invisible:
   se aprendía muriendo.
+- **Los dos poderes de la corrida.** Los dos se cargan **con puntos** (jugar bien es lo que los
+  compra) y cada uno tiene su barra:
+  - **MOMENTUM** (`4`): parte el tiempo unos segundos. Barato y repetible.
+  - **LA CHANCHA** (`5`): llama al **KC-130 reabastecedor**. Es el hermano caro — **una sola vez
+    por corrida**, y recién pasados unos minutos de misión. Pedirla es un ritual de radio y un
+    ETA; después el Hércules aparece **adelante y arriba**, con la canasta colgando, y hay que
+    **subir y meterse en la caja detrás de ella** para que pase el combustible. Lo que compra no
+    es poder: es **tiempo**. Y se paga volando alto, lento y visible — allá arriba el radar te ve
+    y el multiplicador se cae a ×1. En **campaña** deja de estar disponible después de la rotura
+    del guion (LA BOMBA QUE NO DESPERTÓ); en CICLO y POR LA PATRIA está siempre. En ARENA, PASADA
+    y MINUTOS SAGRADOS **nunca**: ahí la nafta es el reloj del clímax.
 - **Cañón 20mm** con calentamiento: derriba globos (+150), helicópteros (+300, 2 impactos)
   y misiles (+400). Mástiles, fragatas y agua NO se destruyen — esquivar es la habilidad central.
 - **Terreno TIERRA** (`cfg.terrain`, fila TERRENO en OPCIONES): además del mar. Sobre tierra el suelo **es letal**

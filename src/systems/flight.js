@@ -29,6 +29,9 @@ import { PORT_H } from '../data/runways.js';
 // EL SUELO TIENE ALTURA (T3): la misma funcion que levanta el pasto y las estructuras es la que
 // decide donde te matas. Si fueran dos, una loma se veria en un lado y mataria en el otro.
 import { tierraH, hayRelieve } from '../core/tierra.js';
+// LA CHANCHA: conectado a la canasta se vuela EN FORMACION, o sea que el mundo avanza menos.
+// Se toca el AVANCE y no `run.spd` a proposito: la velocidad del avion es fisica.
+import { avance as chAvance } from '../systems/chancha.js';
 // cuanto sube la camara con turbo (unidades de mundo): el efecto de 'alejarse'
 const BOOST_LIFT = 2.2;
 // PANEO a fondo del stick derecho, en unidades de mundo. Es "un poco" a proposito: casi el triple
@@ -112,7 +115,7 @@ export function flightSystem(dt, deps) {
     gusts.push({ x: W + 10, y: 4 + Math.random() * (HOR + 26), v: 260 + Math.random() * 170, len: 10 + Math.random() * 18, life: 2 });
   gusts.forEach(g => { g.x -= g.v * dt; g.life -= dt; });
   prune(gusts, g => g.x > -32 && g.life > 0);
-  run.dist += run.spd * dt;
+  run.dist += run.spd * dt * chAvance();
   run.fuelDist += run.spd * dt;
 
   // OBJETIVO cumplido. Segun el tipo de meta (ver GOALS):

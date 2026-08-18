@@ -296,6 +296,39 @@ export const REATTACK_MAX = 6;      // intentos maximos sobre un mismo blanco
 // La punteria con mouse queda en tiempo real (es por frame, no por dt): blancos lentos + mira
 // rapida = el poder. Estos dos son la BASE de las mejoras a futuro (niveles / avance de
 // campaña): extender TEMPO_DUR y abaratar TEMPO_CHARGE es todo el arbol de upgrades.
+// ---------- LA CHANCHA: EL KC-130 REABASTECEDOR (SPEC_PODER_CHANCHA) ----------
+// El hermano CARO del MOMENTUM: misma familia (barra que se carga jugando, una tecla) pero una
+// sola vez por corrida y recien pasado un rato largo de juego. Lo que compra no es poder: es
+// NAFTA, o sea tiempo — y se paga volando alto, lento y visible, que es lo contrario de todo lo
+// que el juego premia. Esa es la mecanica entera.
+export const CH_CHARGE = 2000;   // puntos que llenan la barra (~3x TEMPO_CHARGE: cara a proposito)
+export const CH_MIN_T = 240;     // s de mision antes de poder pedirla
+export const CH_ETA = 18;        // s entre el pedido confirmado y la aparicion
+export const CH_ALT = 48;        // altura de la cita (sobre RADAR_ALT=20, bajo FLY_TOP=68)
+export const CH_BOX = 6;         // radio de la caja de conexion detras de la canasta
+export const CH_RATE = 9;        // % de tanque por segundo conectado (lleno en ~11 s limpios)
+export const CH_WINDOW = 30;     // s desde que aparece hasta que vira a casa
+export const CH_SPD_F = 0.75;    // factor del avance del mundo mientras estas conectado
+// GEOMETRIA DE LA CITA. No estan en el spec y hacen falta para dibujarla: el Hercules va
+// ADELANTE (a CH_Z de profundidad, en formacion — no se acerca ni se aleja) y la canasta cuelga
+// detras y abajo, que es donde de verdad va. El deriva lento en x para que la cita se VUELE.
+// LA PROFUNDIDAD DEL HERCULES. Medida en pantalla, no elegida a ojo: la canasta va a la
+// profundidad de juego (PZ = 14) y el Hercules adelante, y como el factor de escala es F/z, dos
+// profundidades muy distintas separan a los dos en pantalla aunque en el mundo esten pegados —
+// con 34 la manguera cruzaba media pantalla y el avion parecia suelto. Con 24 el tramo se lee
+// como lo que es: la manguera sale de adelante y viene hacia vos.
+export const CH_Z = 24;
+export const CH_HOSE_X = 3;      // cuanto sale la manguera hacia el costado (del ala derecha)
+export const CH_HOSE_Y = 6;      // cuanto cuelga la canasta por debajo del avion
+// LA CANASTA VA A LA PROFUNDIDAD DE JUEGO (PZ = 14), o sea CH_Z - PZ metros por detras del
+// Hercules. No es un capricho de largo de manguera: si la canasta estuviera a otra profundidad
+// que el avion, la proyeccion las separaria en pantalla y "estar en la caja" se veria como estar
+// al lado. A la misma z, la caja que se dibuja es EXACTAMENTE donde hay que poner el avion.
+export const CH_HOSE_Z = 10;
+export const CH_DERIVA = 7;      // amplitud de la deriva lateral (m)
+export const CH_DERIVA_V = 0.22; // velocidad de la deriva (rad/s): lenta, se sigue con el timon
+export const CH_SALIDA = 2.6;    // s que tarda en irse por arriba una vez que termino
+
 export const TEMPO_SCALE = 0.35;    // el mundo a ~1/3: se nota de verdad, no un slow-mo timido
 export const TEMPO_DUR = 3;         // s reales que dura el lanzamiento con la barra llena
 export const TEMPO_CHARGE = 650;    // puntos que llenan la barra (subido de 500: que se gane, no que sobre)

@@ -9,7 +9,7 @@
 // otras pantallas (render/screens.js, render/menus.js).
 
 import { ctx, px, DW as W, DH as H, PZ, U } from './ctx.js';
-import { plane } from '../core/state.js';
+import { plane, cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { shown as dmgShown } from '../systems/damage.js';
 import { proj } from '../core/fx.js';
@@ -21,6 +21,7 @@ import { MSL_MAX, RADAR_ALT } from '../data/tuning.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName } from '../systems/squad.js';
 import { active as tempoActive, meterVal as tempoMeter } from '../systems/tempo.js';
+import { meterVal as chMeter, gastada as chGastada, snapshot as chSnap } from '../systems/chancha.js';
 import { attitude } from '../core/horizon.js';
 import { inBank, bankLeft, fogTop } from '../systems/fog.js';
 
@@ -427,6 +428,29 @@ export function drawHUD(h) {
   const tv = tempoMeter();
   bar(38, H - 22, 44, tv, tempoActive() ? (Math.sin(run.t * 14) > 0 ? P.accent : P.foam)
     : tv >= 1 ? (Math.sin(run.t * 7) > 0 ? P.accent : P.crest) : P.crest, T('bar_tempo'));
+
+  // LA CHANCHA (tecla 5): la barra del hermano caro, JUSTO ENCIMA del MOMENTUM. Mismo lenguaje
+  // visual y otro color a proposito — son dos poderes de la misma familia y hay que poder
+  // distinguirlos de un vistazo sin leer el rotulo.
+  //
+  // Con COMBUSTIBLE: NO el poder no existe, y entonces la barra tampoco: una barra que nunca se
+  // va a poder usar es ruido ocupando el unico lugar libre del HUD.
+  if (cfg.fuelOn) {
+    const cv2 = chMeter();
+    const ch = chSnap();
+    bar(38, H - 36, 44, chGastada() ? 0 : cv2,
+      chGastada() ? P.dim : cv2 >= 1 ? (Math.sin(run.t * 7) > 0 ? P.foam : P.crest) : P.crest, T('bar_chancha'));
+    // EL ESTADO DE LA CITA, en el mismo renglon: la cuenta regresiva mientras viene, y el reloj
+    // de la ventana cuando esta arriba (parpadea enganchado). Sin esto, la ventana se vence sin
+    // que el jugador sepa nunca que habia una.
+    if (ch) {
+      ctx.textAlign = 'left'; ctx.font = '6px monospace';
+      ctx.fillStyle = ch.conn ? P.accent : ch.fase === 'cita' && ch.win < 8 ? P.warn : P.foam;
+      ctx.fillText(ch.fase === 'eta' ? T('ch_eta', { s: Math.ceil(ch.eta) })
+        : ch.conn ? '>>> ' + Math.round(run.fuel) + '%'
+          : Math.ceil(Math.max(0, ch.win)) + 's', 86, H - 33);
+    }
+  }
 
   // municion de misiles: cada pip es el MISIL en miniatura (cuerpo blanco, ojiva gris, llama),
   // el mismo que se ve volar — no un rectangulo generico. Vacio = solo el contorno.

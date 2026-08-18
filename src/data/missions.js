@@ -83,36 +83,42 @@ export const MISSIONS = [
     id: 'm6', name: '25 DE MAYO', date: '25 de mayo de 1982',
     goal: { kind: 'ship', ship: 'HMS COVENTRY', dist: 2800 },
     cfg: C({ sky: 'clear', obstacles: 1.7 }),
+    chancha: false,   // la Chancha vuela corto desde el epilogo de m5: no baja mas al sur
     roster: F5, par: 9500, story: 'storyM6', brief: 'briefM6', epi: 'epiM6',
   },
   {
     id: 'm7', name: 'EL BATIR DE ALAS', date: '25 de mayo de 1982 · segunda salida',
     goal: { kind: 'ship', ship: 'ATLANTIC CONVEYOR', dist: 3000 },
     cfg: C({ obstacles: 1.7, rain: 1, squad: 4 }),
+    chancha: false,   // la Chancha vuela corto desde el epilogo de m5: no baja mas al sur
     roster: F4, par: 10000, story: 'storyM7', brief: 'briefM7', epi: 'epiM7',
   },
   {
     id: 'm8', name: 'EL PIBE', date: '27 de mayo de 1982',
     goal: { kind: 'distance', meters: 3200 },
     cfg: C({ sky: 'storm', obstacles: 1.7, bombs: 2, rain: 2, fog: 1, squad: 4 }),
+    chancha: false,   // la Chancha vuela corto desde el epilogo de m5: no baja mas al sur
     roster: F4, par: 10500, story: 'storyM8', brief: 'briefM8', epi: 'epiM8',
   },
   {
     id: 'm9', name: 'LO QUE NO SE DICE', date: '8 de junio de 1982',
     goal: { kind: 'ship', ship: 'RFA SIR GALAHAD', dist: 3000 },
     cfg: C({ sky: 'cloudy', obstacles: 1.7, squad: 3, caza: 2 }),
+    chancha: false,   // la Chancha vuela corto desde el epilogo de m5: no baja mas al sur
     roster: F3, par: 11000, story: 'storyM9', brief: 'briefM9', epi: 'epiM9',
   },
   {
     id: 'm10', name: 'EL ANGEL DE CORRIENTES', date: '8 de junio de 1982 · segunda salida',
     goal: { kind: 'ship', ship: 'RFA SIR TRISTRAM', dist: 3000 },
     cfg: C({ obstacles: 1.7, bombs: 2, rain: 1, squad: 3 }),
+    chancha: false,   // la Chancha vuela corto desde el epilogo de m5: no baja mas al sur
     roster: F3, par: 11500, story: 'storyM10', brief: 'briefM10', epi: 'epiM10',
   },
   {
     id: 'm11', name: 'LA ULTIMA MESA', date: '11 de junio de 1982',
     goal: { kind: 'ship', ship: 'HMS BROADSWORD', dist: 3200 },
     cfg: C({ sky: 'moon', terrain: 'land', obstacles: 1.7, bombs: 2, fog: 1, squad: 3, caza: 2 }),
+    chancha: false,   // la Chancha vuela corto desde el epilogo de m5: no baja mas al sur
     roster: F3, par: 12500, story: 'storyM11', brief: 'briefM11', epi: 'epiM11',
   },
   {
@@ -120,6 +126,7 @@ export const MISSIONS = [
     goal: { kind: 'ship', ship: 'HMS GLAMORGAN', dist: 3400 },
     climax: 'arena',   // ver la nota de arriba
     cfg: C({ sky: 'night', obstacles: 1.7, bombs: 2, fog: 1, fogLen: 2, squad: 3, caza: 2 }),
+    chancha: false,   // la Chancha vuela corto desde el epilogo de m5: no baja mas al sur
     roster: F3, par: 14000, story: 'storyM12', brief: 'briefM12', epi: 'epiM12',
   },
 ];
