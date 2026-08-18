@@ -155,6 +155,34 @@ function plate(x, y, w, h) {
   }
 }
 
+// EL CUENTAKILOMETROS. Va PEGADO al puntaje porque son los dos numeros que resumen la corrida,
+// pero se dibuja a proposito con OTRO idioma: el puntaje es un contador de arcade (digitos parejos
+// del mismo alto, ceros de relleno apagados, tinta blanca) y esto es un INSTRUMENTO DEL AVION.
+// Dos numeros con la misma pinta a cuatro pixeles uno del otro se leen como uno solo partido al
+// medio, y el jugador termina sin mirar ninguno.
+//
+// Lo que lo hace instrumento y no marcador: el entero grande en ambar, la DECIMA chica y apagada
+// adentro de su ventanita —el tambor de decimas de un odometro, que es la parte que se ve girar—
+// y la unidad al costado. A 100 m/s la decima cambia una vez por segundo: es el unico numero del
+// HUD que se mueve solo y sin que hagas nada, y de ahi le viene el peso.
+const ODO_DEC = '#a2762f';   // el ambar del acento, apagado: misma familia, otro plano
+
+function drawOdo(x, y) {
+  const km = Math.max(0, run.dist) / 1000;
+  const ent = String(Math.floor(km)), dec = Math.floor((km - Math.floor(km)) * 10);
+  plate(x, y, 46, 12);
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 9px monospace'; ctx.fillStyle = P.accent;
+  ctx.fillText(ent, x + 4, 12);
+  const wEnt = ctx.measureText(ent).width;
+  // la ventanita del tambor: un recuadro apenas mas oscuro que la placa, del alto del digito
+  px(x + 3 + wEnt, y + 2, 10, 8, '#141b20');
+  ctx.font = '7px monospace'; ctx.fillStyle = ODO_DEC;
+  ctx.fillText('.' + dec, x + 4 + wEnt, 12);
+  ctx.font = '6px monospace'; ctx.fillStyle = P.dim; ctx.textAlign = 'right';
+  ctx.fillText('KM', x + 43, 12);   // simbolo de unidad: es el mismo en los dos idiomas
+}
+
 /** Barra con marco, bisel y muescas cada 25%. El relleno pierde el ultimo pixel del marco. */
 function bar(x, y, w, val, c, label) {
   plate(x - 2, y - 2, w + 4, 7);
@@ -240,6 +268,7 @@ export function drawHUD(h) {
     ctx.fillStyle = (lead === -1 || i < lead) ? '#3a4750' : P.ink;
     ctx.fillText(digits[i], 6 + i * 6, 12);
   }
+  drawOdo(51, 3);   // los kilometros, al lado del puntaje y con otra voz (ver drawOdo)
   ctx.textAlign = 'right'; ctx.fillStyle = P.dim; ctx.font = '7px monospace';
   ctx.fillText(T('hud_best', { n: best }), W - 16, 12);   // corrido a la izq para no chocar el ícono de sonido
 
