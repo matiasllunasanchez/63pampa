@@ -1,3 +1,22 @@
+> **ESTADO (18/8/2026): TERMINADO — las nueve fases (F0 a F8) del
+> [SPEC_AGUA_OLAS.md](SPEC_AGUA_OLAS.md) están hechas y `npm run agua` cubre los ocho pasos del §4.**
+>
+> | etapa | qué es | estado |
+> |---|---|---|
+> | F0 | `core/sea.js`: una sola superficie para render y colisión | hecho |
+> | O1 / F1 | la marejada — la ola mínima jugable | hecho |
+> | A1 / F2 | espuma por clima y viento que peina el mar | hecho |
+> | A3 / F3 | el avión toca el agua (cortinas, erupción de roce, sal, estela con turbo) | hecho |
+> | O2 / F4 | la rompiente: parcial, se esquiva de costado, rompe y ruge | hecho |
+> | A4 / F5 | un agua por clima + AGUA AUTO en OPCIONES | hecho |
+> | A2 / F6 | el camino del sol | hecho |
+> | O3 / F7 | la ola rebelde y su aviso por radio | hecho |
+> | A5 / F8 | el mar 3D alcanza al 2D + espuma del buque | hecho |
+>
+> Las **24 divergencias** (incluidos tres errores del propio spec que el fixture y las capturas
+> agarraron) están en el §9 del spec. Lo que queda es TUNEO, no construcción: `OLA_RATE.storm`,
+> `OLA_ROMP_P` y `OLA_REB_P` son los tres números que hay que juzgar jugando.
+
 # PLAN — El agua: mejoras visuales + LAS OLAS como obstáculo
 
 > **Estado: plan aprobado en diseño, sin implementar. El plan EJECUTABLE por fases —

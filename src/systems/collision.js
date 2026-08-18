@@ -21,7 +21,7 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { PZ } from '../render/ctx.js';
 import { AA_Z0, AA_Z1, AA_CD, shoreAt, SAND_W, SPAWN_X,
-  OLA_SPD, OLA_FACE_KILL, OLA_SCRAPE_FRAC } from '../data/tuning.js';
+  OLA_SPD, OLA_FACE_KILL, OLA_SCRAPE_FRAC, OLA_ROMP_Z } from '../data/tuning.js';
 // LAS OLAS USAN EL ROCE QUE YA EXISTE, no uno nuevo (SPEC_AGUA_OLAS §6.1): `scrapeLimit` es la
 // misma funcion que mide el margen contra el agua en el vuelo normal, y por eso `npm run feel`
 // sigue dando los mismos numeros — la ola no recalibra nada, solo adelanta donde esta el agua.
@@ -98,6 +98,23 @@ export function collisionSystem(dt) {
           }
         }
       }
+    }
+    // LA ROMPIENTE ROMPE (SPEC_AGUA_OLAS F4.2). A OLA_ROMP_Z la pared deja de ser una loma que
+    // avanza y se vuelve una ola que REVIENTA: la cresta se enrula hacia adelante (lo dibuja
+    // render/world.js con `breakT`), estalla una nube de espuma y empieza a RUGIR.
+    //
+    // El rugido es lo que la separa de la marejada ANTES de que se vea la forma: la marejada
+    // viene callada y esta se anuncia. Es la misma regla del telegrafo, pero por el oido.
+    if (o.type === 'ola' && o.kind === 'rompiente' && !o.breakT && o.z < OLA_ROMP_Z) {
+      o.breakT = run.t;
+      explodeAt(o.x, o.h * 0.8, o.z, false, true);   // sin bola de fuego: es agua, no un impacto
+      boom(0.16);                                    // el golpe seco de la pared cayendo
+    }
+    // RUGIDO sostenido mientras rompe: cadencia baja y ganancia por distancia (§F4.3 — no un
+    // loop nuevo, el `boom()` procedural que ya existe).
+    if (o.breakT && o.z > 4 && o.z < OLA_ROMP_Z) {
+      o.roarT = (o.roarT || 0) - dt;
+      if (o.roarT <= 0) { o.roarT = 0.42; boom(0.05 + 0.09 * (1 - o.z / OLA_ROMP_Z)); }
     }
     if (o.type === 'boom' || o.type === 'airboom') o.boomT += dt;   // el hongo / la bola crecen y se disipan
     if (o.type === 'birds') o.x += o.bvx * dt;              // la bandada deriva

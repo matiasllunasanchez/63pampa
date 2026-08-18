@@ -66,6 +66,11 @@ function flame(x, y0) {
 //
 // Al soltar el turbo no se agregan muestras y la cola se va comiendo el hilo de atras para
 // adelante, que es como se disipa de verdad — no un corte.
+// CORTINAS DE PUNTA DE ALA (F3.1): donde estan las puntas respecto de la sombra, y hasta que
+// altura hay agua que arrancar. RAS_ALT es el techo de la banda del x10 — una sola banda, y
+// ahora tambien un solo efecto que la anuncia.
+const TIP_X = 15, RAS_ALT = 4.5;
+
 const TIP_N = 17;
 const tips = [];
 
@@ -218,6 +223,51 @@ export function drawPlane(selPlane, viewMouse, camScale) {
       const dx = (Math.random() - 0.5) * 46, dy = Math.random() * 8 - 2;
       ctx.globalAlpha = churn * (0.5 + Math.random() * 0.5);
       px(sh.x + dx, sh.y + dy, Math.random() < 0.3 ? 2 : 1, 1, Math.random() < 0.45 ? P.crest : P.foam);
+    }
+    // CORTINAS DE PUNTA DE ALA (SPEC_AGUA_OLAS F3.1). El agua que las puntas arrancan de la
+    // superficie cuando vas DE VERDAD a ras. Empieza en RAS_ALT y no en el 7 de la rociada, y
+    // ese numero no es decorativo: 4.5 es el techo de la banda del x10 (el mismo de `rasNow` en
+    // systems/flight.js). O sea que las cortinas son el INSTRUMENTO de la banda — cuando las
+    // ves, estas cobrando; cuando se apagan, saliste. El HUD te lo dice con un numero; esto te
+    // lo dice sin que despegues la vista del pasillo.
+    //
+    // NO SON LOS VORTICES DE PUNTA DE ALA de `tipTrail`, que el autor dejo apagados a proposito
+    // (commit e8ccbd1). Aquellos son condensacion con turbo, a cualquier altura y en cualquier
+    // terreno; estos son AGUA, solo sobre agua y solo a ras. Si tampoco convencen, se apagan
+    // igual: es este bloque y nada mas.
+    const ras = Math.max(0, 1 - plane.y / RAS_ALT);
+    if (ras > 0) {
+      const gordo = run.boost ? 1.7 : 1;                    // con turbo arranca mas agua
+      for (const sg of [-1, 1]) {
+        const bx = sh.x + sg * TIP_X;
+        for (let i = 0; i < 4; i++) {
+          // la cortina se abre HACIA AFUERA y HACIA ATRAS, y se apaga con la edad: es una
+          // cortina, no un chorro — el agua se despega de la punta y queda atras
+          const f = i / 3;
+          ctx.globalAlpha = ras * gordo * (0.55 - f * 0.32);
+          const w = (2 + f * 5) * gordo;
+          px(bx + sg * f * 5, sh.y - 2 + f * 4, w, 1, f < 0.4 ? P.crest : P.foam);
+        }
+        // gotas sueltas arrancadas de la punta
+        if (Math.random() < 0.6 * gordo) {
+          ctx.globalAlpha = ras * 0.7;
+          px(bx + sg * (2 + Math.random() * 9), sh.y - 3 + Math.random() * 7, 1, 1, P.crest);
+        }
+      }
+    }
+    // ERUPCION DE ROCE (F3.2): mientras el avion RASPA la superficie —el reloj de gracia
+    // corriendo— el agua no se levanta, EXPLOTA. Es el unico feedback visual que dice "esto se
+    // esta consumiendo" sin mirar un instrumento, y va aca y no en el HUD por eso mismo.
+    if (run.scrapeT > 0 && run.scrapeVib > 0) {
+      const er = Math.min(1, run.scrapeVib);
+      for (let i = 0; i < 9; i++) {
+        const dx = (Math.random() - 0.5) * 30, dy = -Math.random() * 9;
+        ctx.globalAlpha = er * (0.35 + Math.random() * 0.55);
+        px(sh.x + dx, sh.y + dy, Math.random() < 0.35 ? 2 : 1, Math.random() < 0.3 ? 2 : 1,
+           Math.random() < 0.6 ? '#f4fbff' : P.crest);
+      }
+      ctx.globalAlpha = er * 0.85;                          // el cuello del chorro, pegado al avion
+      px(sh.x - 7, sh.y - 4, 14, 2, P.foam);
     }
   }
   ctx.globalAlpha = 1;

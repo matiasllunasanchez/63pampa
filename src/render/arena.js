@@ -15,7 +15,7 @@ import { drawMira } from './miras.js';
 import { MSL_MAX } from '../data/tuning.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
 import { PITCH_ROW } from '../core/physics.js';
-import { drawCockpit } from './momentum.js';
+import { drawCockpit, salpicar } from './momentum.js';
 import * as world3D from '../systems/three-arena.js';
 import { AR } from '../data/arena.js';
 import { turnGain } from '../core/aero.js';
@@ -27,6 +27,10 @@ import { shown as dmgShown } from '../systems/damage.js';
 // el visor pintado con la mira real. Si se cambia el asset de cabina, re-medir.
 // EXPORTADA: es una medida DEL ASSET (donde cae el visor pintado), no una decision del arena, y la
 // PASADA dibuja la misma cabina con la misma camara.
+
+// ALTURA bajo la cual el mar salpica el vidrio (F3.3). Es la misma que usa la PASADA para su
+// suelta a ras (SAPITO_ALT_M): abajo de eso estas rozando el Atlantico, y se tiene que notar.
+const SAL_ALT_M = 12;
 export const COCKPIT_Y = 74;
 
 /** El avion en TERCERA persona: el sprite de vuelo (vista trasera) con el alabeo y el cabeceo
@@ -278,6 +282,8 @@ export function drawArena(w) {
 
   // ---- el avion: cabina (1a) o sprite (3a) ----
   if (w.view === 1) {
+    // SAL EN EL PARABRISAS (F3.3): misma regla que en la PASADA — cabina y agua cerca.
+    if (A.pos.y < SAL_ALT_M) salpicar(1 - A.pos.y / SAL_ALT_M);
     drawCockpit({ mom: { t: A.t, hitFx: A.hitFx }, t: w.t, yOff: COCKPIT_Y });
     if (A.flashL > 0) { ctx.globalAlpha = Math.min(1, A.flashL * 9); px(0, 56, 9, 15, '#ffffff'); ctx.globalAlpha = 1; }
     if (A.flashR > 0) { ctx.globalAlpha = Math.min(1, A.flashR * 9); px(W - 9, 56, 9, 15, '#ffffff'); ctx.globalAlpha = 1; }

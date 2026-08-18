@@ -353,6 +353,28 @@ export const OLA_SCRAPE_FRAC = 0.45;// cuanto margen de roce consume un cepillad
 // jugo una sesion entera y no vio ninguna. El techo real lo ponen igual OLA_GAP_MIN y el limite de
 // dos vivas: por mas que se suba, no se amontonan.
 export const OLA_RATE = { calm: 0, breeze: 0.08, storm: 0.14 };
+// LA ROMPIENTE (F4). Que fraccion de las olas es rompiente en vez de marejada.
+//
+// El spec no da este numero, y hace falta uno: la rompiente es la ola que se esquiva DE COSTADO
+// (es parcial, `hw`), y la marejada la que se SALTA. Son las dos respuestas del mar, y la mezcla
+// es lo que impide que el mar tenga una sola tecla. Un tercio es suficiente para que la segunda
+// respuesta se aprenda sin que la primera —el gesto vertical, que es la tesis del item— deje de
+// ser lo normal.
+export const OLA_ROMP_P = 0.35;
+// MEDIA ANCHURA de la rompiente. El spec pedia 22 y esta MAL, y el fixture lo agarro: `hw` no es
+// un ancho, es la SIGMA de una gaussiana — a 22 no termina en 22, termina nunca. Medido: con 22,
+// a 30 unidades del centro el bulto todavia valia el 39% de la altura, o sea que a ras te mataba
+// igual. La "rompiente parcial" cruzaba todo el carril y era una marejada disfrazada.
+//
+// Con 12, a 30 unidades queda en 4% y a 36 (el borde de la zona de vuelo) en nada: hay un lado
+// libre DE VERDAD, que es la unica razon de que este tipo de ola exista.
+export const OLA_ROMP_HW = 12;
+export const OLA_ROMP_Z = 60;       // z donde EMPIEZA A ROMPER (se enrula y ruge)
+// LA OLA REBELDE (F7). El evento del temporal: ancho completo, sin brecha, una sola viva, y
+// nunca en los primeros metros de la corrida — una pared de 8 m a los diez segundos de despegar
+// no es un evento, es una emboscada.
+export const OLA_REB_P = 0.22;      // fraccion de las olas de TORMENTA que salen rebeldes
+export const OLA_REB_D0 = 400;      // m de vuelo antes de la primera posible (§F7.1)
 // espuma / viento (F2)
 export const SEA_FOAM_TH = { calm: 0.88, breeze: 0.78, storm: 0.62 };  // umbral de cresta con espuma
 export const SEA_WIND_AMP = 0.45;   // termino direccional de viento en seaH

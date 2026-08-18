@@ -1,7 +1,7 @@
 // RASANTE — entry point. Los modulos de datos se bundlean con esbuild (npm run build:game);
 // hace falta bundlear porque Electron carga por file://, donde Chromium bloquea los ES modules.
 import { STRINGS } from './data/strings.js';
-import { P, SKY_PRESETS, LAND } from './data/palette.js';
+import { P, SKY_PRESETS } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf } from './data/missions.js';
 import { UPGRADES, nextUpgrades, moveAllowed } from './data/upgrades.js';
@@ -565,8 +565,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         names: () => [T('optSkyDusk'), T('optSkyNight'), T('optSkyStorm'), T('optSkyClear'),
                       T('optSkyCloudy'), T('optSkySun'), T('optSkyMoon'), T('optSkyDawn')],
         get: () => cfg.sky, set: v => { cfg.sky = v; applyCfg(); }, save: 'rasante_fondo' },
-      { label: () => T('optWater'), opts: ['sea', 'violet'],
-        names: () => [T('optWaterSea'), T('optWaterViolet')],
+      // AGUA: AUTO primero (F5) — el mar lo elige el cielo. Los estilos a mano siguen estando y
+      // siguen pisando; los cuatro nuevos son de clima (ver WATER_STYLES en data/palette.js).
+      { label: () => T('optWater'), opts: ['auto', 'sea', 'violet', 'storm', 'night', 'sun', 'dawn'],
+        names: () => [T('optWaterAuto'), T('optWaterSea'), T('optWaterViolet'), T('optWaterStorm'),
+                      T('optWaterNight'), T('optWaterSun'), T('optWaterDawn')],
         get: () => cfg.water, set: v => { cfg.water = v; applyCfg(); }, save: 'rasante_agua' },
       // LLUVIA: ambiente puro (ver cfg.rain en core/state.js y render/rain.js). Va acá y no en el
       // bloque de MAPA justamente porque NO cambia cómo se juega — MAPA es donde vive el VIENTO,
@@ -2111,7 +2114,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // igual de visible, solo que de otro color. Ahora el mundo se sigue dibujando por debajo del
       // borde (ver UNDER en render/world.js) y pinta ENCIMA de este piso; el piso queda para lo que
       // el raster 2D no cubre — el momentum, y el mar puesto por three.
-      if (S.state === 'momentum' || hzW) px(-70, H, W + 140, 150, cfg.terrain === 'land' ? LAND.near : theme.water.base2);
+      if (S.state === 'momentum' || hzW) px(-70, H, W + 140, 150, cfg.terrain === 'land' ? theme.land.near : theme.water.base2);
       if (!world3D.isSea()) world.drawSea();   // el mar 2D solo cuando three no lo esta poniendo
       // la barcaza objetivo creciendo en el horizonte. El tercer parametro es lo que EL PULSO le
       // esta haciendo en la cinematica del premio (crecer, escorar, hundirse) — null el resto del

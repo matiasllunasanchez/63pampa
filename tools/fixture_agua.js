@@ -8,9 +8,8 @@
 // LO QUE ESTE FIXTURE CUIDA, y es lo que hace o rompe la mecanica: la ola es JUSTA. Que no salga
 // donde no corresponde, que se pueda saltar, que rozarle la cresta no mate, y que la cara si.
 //
-// ESTADO: F0 y F1 hechas. Los pasos del §4 que dependen de fases posteriores se imprimen como
-// PENDIENTES con la fase que los trae — un fixture que calla lo que no cubre se lee como si
-// cubriera todo.
+// ESTADO: LAS NUEVE FASES ESTAN HECHAS (F0 a F8). Los ocho pasos del §4 se cubren todos; ya no
+// queda ninguno impreso como PENDIENTE.
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -70,7 +69,7 @@ async function subirA(alt, msMax) {
 }
 
 app.whenReady().then(async () => {
-  console.log('\nFIXTURE — EL AGUA Y LAS OLAS (F0-F1)\n');
+  console.log('\nFIXTURE — EL AGUA Y LAS OLAS (F0-F8)\n');
   win = new BrowserWindow({ width: 1280, height: 760, show: false, webPreferences: { backgroundThrottling: false } });
   win.webContents.on('console-message', (e, l, m) => { if (l >= 3 && !m.includes('Security Warning')) errors.push(m.slice(0, 300)); });
   win.webContents.on('render-process-gone', (e, d) => errors.push('EL RENDERER MURIO: ' + JSON.stringify(d)));
@@ -198,8 +197,15 @@ app.whenReady().then(async () => {
     const a = await S();
     if (a.clima !== 'breeze') bad(`el clima no quedo en breeze (${a.clima})`);
     const d0 = a.dist, o0 = a.sembradas;
+    // LA VENTANA ES LARGA A PROPOSITO, y es la segunda vez que este fixture tropieza con lo
+    // mismo: esto mide una PROBABILIDAD, y una probabilidad medida corto miente. Con 20 s
+    // (~2200 m, ~40 sorteos a 0.08) el valor esperado es 3,2 olas — pero la binomial da 16% de
+    // chance de ver menos de dos. O sea que uno de cada seis corridas daba ROJO con el juego
+    // perfecto. Un test que grita sin motivo una de cada seis veces enseña a ignorarlo, que es
+    // peor que no tenerlo. Con 45 s (~5000 m, ~90 sorteos) el esperado sube a 7,2 y el falso
+    // rojo cae debajo del 1%.
     const t0 = Date.now();
-    while (Date.now() - t0 < 20000) {
+    while (Date.now() - t0 < 45000) {
       // se limpia el resto del cielo y se sostiene la altura: lo que se mide es la FRECUENCIA,
       // no si el avion sobrevive — eso ya lo prueban los pasos 2 a 4
       await js('__seaclear(); __seaput(6)');
@@ -254,10 +260,86 @@ app.whenReady().then(async () => {
     else bad(`el reparto es plano o esta sesgado a lo alto (mediana ${med})`);
   }
 
-  // ---------- lo que llega en fases posteriores ----------
-  console.log('\npasos del §4 que dependen de fases posteriores:');
-  pend(6, 'F4 — la rompiente: esquive lateral por el lado libre');
-  pend(7, 'F7 — la ola rebelde y su aviso por radio');
+  // ---------- 6b. LA ROMPIENTE SE ESQUIVA DE COSTADO (paso 6 del §4) ----------
+  // LA PREGUNTA QUE CONTESTA ESTE PASO: ¿son dos olas distintas o la misma con otro color? La
+  // marejada cruza TODO el carril y la unica respuesta es el gesto vertical. La rompiente es
+  // PARCIAL, asi que hay lado libre — y el paso prueba las dos mitades: por el lado libre se
+  // pasa a una altura a la que, por adentro, la cara te mata.
+  //
+  // NO SE PRUEBA "A RAS" COMO PIDE EL SPEC, y no es una licencia: a ras (y≈1) el mar te mata solo
+  // en menos de un segundo — es el ROCE de siempre (waveNow llega a 1.9), no la ola. Un test a esa
+  // altura da rojo con o sin rompiente y no prueba nada de la rompiente. La altura elegida (3.2)
+  // esta apenas afuera del roce comun y apenas adentro de la cara de una rompiente de 6.
+  // Y la ola se pone con altura FIJA: con la altura sorteada (4.3..6.5) la cara cae entre 2.4 y
+  // 3.6, o sea que el mismo test daria verde o rojo segun el sorteo. Ver §9.
+  console.log('\n6b. la ROMPIENTE se esquiva de costado (paso 6):');
+  const H_ROMP = 6, Y_TEST = 3.2;
+  /** Cruza una rompiente sostenido a Y_TEST en el carril `x`. Devuelve el estado si murio. */
+  async function cruzarRompiente(xDe) {
+    await js(`__seaclear(); window.__ola('rompiente', ${H_ROMP})`);
+    const r0 = await S();
+    if (!r0.ola || r0.ola.tipo !== 'rompiente') return 'NO-SE-SEMBRO';
+    const x = xDe(r0.ola.x);
+    for (let k = 0; k < 45; k++) {
+      await js(`__seaclear(); __seaput(${Y_TEST}, ${x.toFixed(1)})`);
+      await sleep(140);
+      const st = await estado();
+      if (st !== 'play') return st;
+      if ((await S()).ola === null) return null;          // la ola paso y sigue vivo
+    }
+    return null;
+  }
+  if (!await volar()) bad('no se pudo re-entrar');
+  else {
+    // el lado LIBRE es el borde opuesto de la zona de vuelo (FLY_X = 38): adonde se va un jugador
+    const m1 = await cruzarRompiente(cx => (cx <= 0 ? 1 : -1) * 36);
+    if (m1 === 'NO-SE-SEMBRO') bad('la sonda no puso una rompiente');
+    else if (m1) bad(`por el lado LIBRE murio igual (${m1}): la rompiente cruza todo el carril`);
+    else ok('por el lado LIBRE se pasa: la rompiente deja hueco de verdad');
+    // y por ADENTRO, a la MISMA altura, la cara mata: el hueco es del lado libre y de ningun otro
+    const m2 = await cruzarRompiente(cx => cx);
+    if (m2 === 'NO-SE-SEMBRO') bad('la sonda no puso una rompiente (2)');
+    else if (m2) ok(`y por ADENTRO, a la misma altura, mata (${m2}): el hueco no es el carril entero`);
+    else bad('cruzarle la cara a la rompiente no cobro nada: entonces no es una pared');
+  }
+
+  // ---------- 7. LA OLA REBELDE (paso 7 del §4) ----------
+  // Tres reglas y las tres son de justicia, no de dificultad:
+  //   · solo en TORMENTA (en m1 jamas) y nunca en los primeros metros — no es una emboscada
+  //   · NUNCA acompañada: con una rebelde viva no entra otra ola. Es EL evento del tramo
+  //   · el aviso por radio necesita un Fiel vivo que la vea. Volando solo NO llega, y la ola
+  //     igual se ve desde SPAWN_Z: el aviso es ventaja, no el requisito de que sea justa
+  console.log('\n7. la OLA REBELDE (paso 7):');
+  if (!await volar()) bad('no se pudo re-entrar');
+  else {
+    await js("__seaclear(); window.__ola('rebelde')");
+    const r = await S();
+    if (!r.ola || r.ola.tipo !== 'rebelde') bad(`la sonda no puso una rebelde (${r.ola && r.ola.tipo})`);
+    else if (r.ola.h < 7) bad(`la rebelde salio de ${r.ola.h}: no es una pared`);
+    else ok(`la rebelde existe y es una pared: ${r.ola.h} m de ancho completo`);
+    // NUNCA ACOMPAÑADA: con la rebelde viva, el sembrado natural no mete nada
+    const antes = (await S()).olas;
+    const ok2 = await js('__olaOk()');
+    if (ok2 === 'false') ok(`con una rebelde viva (${antes}) la guarda cierra el mar: no entra otra`);
+    else bad('con una rebelde viva la guarda deja sembrar otra ola');
+  }
+  // EL AVISO depende del escuadron, y se prueban LAS DOS MITADES: con Fieles llega, solo no.
+  // Se mira el POPUP, que es lo que ve el jugador — no una variable interna que podria estar
+  // bien mientras la pantalla no muestra nada (es exactamente como se escapo el bug de F1).
+  if (!await volar()) bad('no se pudo re-entrar (aviso)');
+  else {
+    const conAviso = async lives => {
+      await js(`__seaclear(); __sealives(${lives}); __seapop()`);
+      await js("window.__ola('rebelde')");
+      await sleep(220);
+      return JSON.parse(await js('__seapop()')).includes('PARED');
+    };
+    if (await conAviso(4)) ok('con escuadron, la radio avisa la pared');
+    else bad('con escuadron no llego el aviso por radio');
+    if (!await conAviso(1)) ok('y volando SOLO no avisa nadie: sin Fieles no hay ojos');
+    else bad('volando solo igual aviso alguien');
+  }
+
 
   console.log('\nconsola: ' + (errors.length ? errors.length + ' error(es)' : 'sin errores'));
   for (const e of errors.slice(0, 8)) console.error('   ' + e);

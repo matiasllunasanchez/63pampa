@@ -15,9 +15,9 @@ import { hzWorld, tiltFade } from '../core/horizon.js';
 // EL MAR VIVE EN core/sea.js — puro, sin canvas ni stores — porque la colision de las olas tiene
 // que evaluar la MISMA superficie que se dibuja, y un sistema no puede importar del render.
 import { seaH as seaBase, olaBump, climaDe } from '../core/sea.js';
-import { P, LAND, CLAND } from '../data/palette.js';
+import { P, LAND, CLAND, SKY_ASTRO } from '../data/palette.js';
 import { CHUNK_LIFE, ONDA_T, ONDA_R } from '../data/despiece.js';
-import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ } from '../data/tuning.js';
+import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, SEA_FOAM_TH, SUN_GLINT_HALF } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
 import { inBank, fogVis, fogTop } from '../systems/fog.js';
@@ -111,7 +111,7 @@ const SEA_ALPHA2D = 0.6;
  *  directamente) porque `world.seaH` se pasa POR REFERENCIA a los mundos 3D —
  *  `world3D.frame({ seaH: world.seaH })` — y allá se la llama con dos argumentos: cambiarle la
  *  firma en el lugar equivocado los dejaba con `t` undefined y el mar 3D plano. Ver SPEC §9.1. */
-export const seaH = (wx, wz) => seaBase(wx, wz, run.t);
+export const seaH = (wx, wz) => seaBase(wx, wz, run.t, climaDe(cfg));
 
 // paso en pixeles con el que se recorre la fila en la franja de orilla del puerto. 3px basta:
 // la orilla es una curva suave y a menos de eso solo se gastan evaluaciones de seno.
@@ -129,7 +129,7 @@ function portRow(y, wz, k, x0, x1, f) {
   if (R.ground === 'land') {          // PASTO: el mismo campo del mapa de TIERRA, sin base
     px(x0, y, x1 - x0, rowH, groundCol(LAND_ST, f));
     if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) {
-      ctx.globalAlpha = 0.4; px(x0, y, x1 - x0, 1, LAND.furrow); ctx.globalAlpha = 1;
+      ctx.globalAlpha = 0.4; px(x0, y, x1 - x0, 1, theme.land.furrow); ctx.globalAlpha = 1;
     }
     groundMottle(y, wz, k, x1);
     return;                           // no hay franja de pista: se despega del campo
@@ -253,6 +253,7 @@ export function drawFog() {
 }
 
 export function drawSea() {
+  refreshGround();   // el suelo es TEMA: si cambio el cielo, cambian sus tablas
   rowH = hzWorld() ? 2 : 1;   // ver rowH: con el mundo derecho no cambia NADA del dibujo de siempre
   const landMode = cfg.terrain === 'land';
   const coastMode = cfg.terrain === 'coast';
@@ -313,7 +314,7 @@ export function drawSea() {
       const k = F / z;
       px(-70, y, W + 140, rowH, groundCol(LAND_ST, f));
       if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) {           // surco SUAVE (antes corte duro)
-        ctx.globalAlpha = 0.4; px(-70, y, W + 140, 1, LAND.furrow); ctx.globalAlpha = 1;
+        ctx.globalAlpha = 0.4; px(-70, y, W + 140, 1, theme.land.furrow); ctx.globalAlpha = 1;
       }
       groundMottle(y, wz, k, W + 70);
       groundHaze(y, f, W + 140);
@@ -329,7 +330,7 @@ export function drawSea() {
       const f = fRow;   // ya viene clampeado en 1 (ver fRow)
       px(-70, y, Math.max(0, sandSx + 70), rowH, groundCol(CLAND_ST, f));
       if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) {
-        ctx.globalAlpha = 0.4; px(-70, y, Math.max(0, sandSx + 70), 1, CLAND.furrow); ctx.globalAlpha = 1;
+        ctx.globalAlpha = 0.4; px(-70, y, Math.max(0, sandSx + 70), 1, theme.cland.furrow); ctx.globalAlpha = 1;
       }
       groundMottle(y, wz, k, sandSx);
       // playa: arena mojada cerca del agua, seca contra la tierra
@@ -379,18 +380,54 @@ function hash2(a, b) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-const LAND_ST = mkStops(LAND), CLAND_ST = mkStops(CLAND);   // gradientes precalculados del suelo
+// GRADIENTES Y PASTO DEL SUELO ACTIVO. Antes eran dos `const` calculadas una vez al importar, y
+// eso era exactamente lo que clavaba la turba en un solo verde: la paleta del suelo ahora es TEMA
+// (theme.land / theme.cland, PLAN_TIERRA_COSTA T1) y cambia con el cielo.
+//
+// Se recalculan SOLO cuando cambia la paleta, no por fila ni por cuadro: se compara la referencia
+// del objeto, que es barato y exacto porque `applyTheme` asigna el estilo entero.
+let LAND_ST, CLAND_ST, TUFTS, TUFT_TIP, TUFTS_DRY, TUFT_TIP_DRY;
+let palLand = null, palCland = null;
+
+// VARIANTES DE PASTO a partir de UN color. El campo no puede ser de un solo verde —seis tonos son
+// los que le dan grano— pero tampoco puede haber seis listas escritas a mano por clima: seria
+// garantizar que un dia una quede desfasada. Se derivan del `tuft` del estilo multiplicando el
+// brillo; la punta va mas clara, que es lo que le da volumen al matojo.
+const TUFT_F = [1.0, 1.13, 0.84, 1.26, 0.75, 1.34];
+const mul = (hex, f) => {
+  const [r, g, b] = hex2rgb(hex);
+  const c = v => Math.max(0, Math.min(255, Math.round(v * f)));
+  return 'rgb(' + c(r) + ',' + c(g) + ',' + c(b) + ')';
+};
+const tuftSet = (hex, tip) => TUFT_F.map(f => mul(hex, f * (tip ? 1.3 : 1)));
+
+/** Refresca las tablas del suelo si cambio el tema. La llama drawSea antes de pintar una fila. */
+function refreshGround() {
+  if (theme.land !== palLand) {
+    palLand = theme.land;
+    LAND_ST = mkStops(palLand);
+    TUFTS = tuftSet(palLand.tuft, false);
+    TUFT_TIP = tuftSet(palLand.tuft, true);
+  }
+  if (theme.cland !== palCland) {
+    palCland = theme.cland;
+    CLAND_ST = mkStops(palCland);
+    // el pasto SECO de la costa sale del mismo tono de la arena, aclarado: es el pasto que crece
+    // sobre la duna, no el de la turba
+    TUFTS_DRY = tuftSet(palCland.near, false);
+    TUFT_TIP_DRY = tuftSet(palCland.near, true);
+  }
+}
+refreshGround();
 
 // paleta de matojos: varios verdes + un par secos/amarillentos, para que el pasto no sea monocromo.
 // TUFT_TIP es la punta iluminada de cada uno (mismo índice) → le da volumen en vez de ser un rect plano.
-const TUFTS = ['#6d7748', '#7c8a4e', '#5a6a3c', '#8a8c52', '#4f6034', '#94925a'];
-const TUFT_TIP = ['#899366', '#98a66a', '#748558', '#a6a870', '#6a7c50', '#b0ae78'];
+
 
 // matas/rocas dispersas sobre la tierra (parallax de movimiento a ras del suelo). La posición y el
 // color salen de un hash por celda: distribución aleatoria de verdad (sin patrón) y colores variados.
 // pasto seco de la costa (arenoso, casi sin verde) — mismo indice que TUFTS
-const TUFTS_DRY = ['#948a5e', '#a2966a', '#867a52', '#b0a276', '#7c7150', '#a89a66'];
-const TUFT_TIP_DRY = ['#b1a67a', '#c0b386', '#a2966c', '#cdbf92', '#988c68', '#c4b682'];
+
 
 function drawLand(coastMode) {
   // pasos DIVIDIDOS por U al subir la resolucion: sin esto se dibujaria la misma cantidad de
@@ -424,7 +461,7 @@ function drawLand(coastMode) {
       ctx.globalAlpha = fade * 0.85;
       if (h1 > 0.93) {                                                   // roca ocasional (con volumen)
         const w = Math.max(1, k * 0.75), hh = Math.max(1, k * 0.55), rx = s.x - w / 2, ry = s.y - hh;
-        px(rx, ry, w, hh, LAND.rock);
+        px(rx, ry, w, hh, theme.land.rock);
         px(rx, ry, w, Math.max(1, hh * 0.4), '#6b6552');                 // cara iluminada (arriba)
         px(rx, s.y - Math.max(1, hh * 0.28), w, Math.max(1, hh * 0.28), '#3a3529');   // sombra (base)
       } else {                                                          // matojo de pasto
@@ -474,6 +511,17 @@ function drawSeaDots(landVisible, coastMode) {
   const dv = run.dist + momentum.drift();
   const olas = juntarOlas(dv);
   const clima = climaDe(cfg);   // UNA vez por cuadro, no por punto (SPEC_AGUA_OLAS §6.5)
+  // ESPUMA (F2): el umbral de cresta sale del clima, y la compuerta de la mota es una funcion
+  // del punto. En tormenta la compuerta baja adentro de las VETAS del viento (spindrift) y sube
+  // afuera: la misma cantidad de espuma, pero en tiras. Se arman aca —no por punto— por §6.5.
+  const foamTh = SEA_FOAM_TH[clima];
+  const foamGate = clima === 'storm'
+    ? (wx, wz) => 0.35 - Math.sin(wx * 0.21 + wz * 0.135) * 0.95
+    : () => 0.45;
+  // EL CAMINO DEL SOL (F6): la columna de luz sobre el agua, solo con astro a la vista. Es un
+  // CONO y no una franja — se angosta hacia vos y se abre hacia el horizonte, que es como se ve
+  // un reflejo de verdad: el punto de fuga del camino es el ojo que lo mira.
+  const astro = !!SKY_ASTRO[cfg.sky];
   const startZ = Math.ceil((dv + 4) / SPZ) * SPZ;
   // paso ADAPTATIVO: cerca muestrea a SPZ/SPX plenos; lejos el paso crece para mantener
   // ~1px de separacion en pantalla (los puntos subpixel no se ven y este loop corre
@@ -501,7 +549,7 @@ function drawSeaDots(landVisible, coastMode) {
       if (portRow2 && wz < cfg.coast + portJut(wx) + PORT_FOAM) continue;
       // LA OLA NO ES UN SPRITE: los puntos del mar SE LEVANTAN solos donde pasa el bulto, con la
       // misma funcion contra la que resuelve la colision. Sin olas vivas esto es el mar de siempre.
-      const hBase = seaBase(wx, wz, run.t);
+      const hBase = seaBase(wx, wz, run.t, clima);
       let hOla = 0, olaDom = null, aporteDom = 0;
       for (let i = 0; i < olas.length; i++) {
         const o = olas[i];
@@ -542,11 +590,44 @@ function drawSeaDots(landVisible, coastMode) {
       // ola tiene que verse de LEJOS, que es justamente donde el destello normal no se dibuja.
       if (olaAqui > 0.42 && Math.sin(wx * 5.3 + wz * 3.1) > -0.15) {
         ctx.globalAlpha = SEA_ALPHA2D * fade * 1.35;
-        px(s.x - dotW / 2 - 1, s.y - 1, dotW + 2, Math.max(1, dotW * 0.8), theme.water.spark);
+        // LA CRESTA SE ENRULA (F4.2). Cuando la rompiente rompe, su espuma deja de estar sobre
+        // el lomo y CAE HACIA ADELANTE: la mota se corre hacia la camara (abajo en pantalla) y
+        // se agranda con el tiempo desde que rompio. Es la diferencia entre una pared de agua
+        // que avanza y una que se te viene encima.
+        let cy = s.y - 1, cw = dotW + 2;
+        if (olaDom.breakT) {
+          const rot = Math.min(1.6, run.t - olaDom.breakT);
+          cy += rot * 3.2 * Math.min(3, k);        // cae hacia adelante, mas al estar cerca
+          cw += rot * 1.6;
+        }
+        px(s.x - dotW / 2 - 1, cy, cw, Math.max(1, dotW * 0.8), theme.water.spark);
+      }
+      // ESPUMA DEL MAR (F2). Distinta del destello de abajo en las dos cosas que importan:
+      // NO titila (no lleva `run.t`, asi que la mota se queda pegada a la cresta mientras la
+      // cresta exista) y NO pide cercania (`k`), asi que el mar picado se lee tambien de lejos.
+      // El umbral es del CLIMA: en calma casi no hay, con viento salpica, en tormenta hierve.
+      //
+      // LAS VETAS son lo que hace que la tormenta no sea "lo mismo pero mas": en `storm` la
+      // probabilidad se modula con una banda diagonal alineada al viento, asi que la espuma sale
+      // en TIRAS —spindrift, la espuma que el viento arrastra de cresta en cresta— en vez de
+      // repartida pareja. Es el mismo seno que peina la superficie en core/sea.js.
+      if (hn > foamTh && Math.sin(wx * 3.7 + wz * 2.9) > foamGate(wx, wz)) {
+        ctx.globalAlpha = SEA_ALPHA2D * fade * (clima === 'storm' ? 1.15 : 0.85);
+        px(s.x - dotW / 2, s.y - 1, Math.max(1, dotW), Math.max(1, dotW * 0.7), theme.water.spark);
       }
       // destello en las crestas cercanas (titileo determinista, sin flicker feo)
-      if (hn > 0.78 && k > 1.6 && Math.sin(wx * 12.9 + wz * 7.3 + run.t * 6) > 0.7) {
-        ctx.globalAlpha = SEA_ALPHA2D * fade * 0.55;   // destello de cresta, tambien bajo la perilla
+      //
+      // DENTRO DEL CAMINO DEL SOL (F6) el mismo destello se dispara mucho mas seguido y mas
+      // fuerte: no es un efecto nuevo, es el de siempre MODULADO. Ahi ademas se le saca el corte
+      // por cercania (`k > 1.6`), porque la columna de luz es justamente un fenomeno de
+      // DISTANCIA — tiene que llegar hasta el horizonte o no es un camino, es un charco.
+      //
+      // El umbral -0.5 en vez de 0.7 es la "x4 de probabilidad" que pide el spec, traducida: la
+      // fraccion de fases que pasan un umbral u es acos(u)/pi, o sea 25% con 0.7 y 67% con -0.5.
+      const enSol = astro && Math.abs(wx - cam.x) < SUN_GLINT_HALF * (camZ / F);
+      if (hn > 0.78 && (enSol || k > 1.6)
+          && Math.sin(wx * 12.9 + wz * 7.3 + run.t * 6) > (enSol ? -0.5 : 0.7)) {
+        ctx.globalAlpha = Math.min(1, SEA_ALPHA2D * fade * (enSol ? 1.6 : 0.55));
         px(s.x - dotW / 2 - 1, s.y - 1, dotW + 2, Math.max(1, dotW * 0.6), theme.water.spark);
       }
     }
@@ -560,19 +641,24 @@ function drawSeaDots(landVisible, coastMode) {
 // medida que envejecen; y lo viejo se disuelve en MOTAS de espuma sueltas (con posicion fija
 // por punto — wp.seed — para que no titilen cuadro a cuadro).
 export function drawWake() {
+  // CON TURBO LA ESTELA ES OTRA (F3.4): mas ancha y mas blanca. El turbo ya se oye y ya quema
+  // nafta; esto es lo que lo hace VERSE desde afuera del avion — el agua atras tuyo cambia.
+  // Es un multiplicador y no un dibujo aparte a proposito: la estela sigue siendo una sola.
+  const tur = run.boost ? 1 : 0;
+  const wAnch = 1 + tur * 0.45, wAlfa = 1 + tur * 0.3;
   for (const wp of wake) {
     const trail = PZ - wp.z;                       // metros que quedaron atrás
     const s = proj(wp.x, 0, wp.z);
-    const spread = (0.6 + trail * 0.34) * s.k;     // apertura de la V
+    const spread = (0.6 + trail * 0.34) * s.k * wAnch;   // apertura de la V (se abre con el turbo)
     const age = Math.min(1, trail / 11);           // 0 = recien batida · 1 = por disolverse
-    const a = Math.min(0.85, wp.i * (0.3 + trail * 0.055)) * (1 - age * 0.45);
+    const a = Math.min(0.95, wp.i * (0.3 + trail * 0.055) * wAlfa) * (1 - age * 0.45);
     if (a <= 0.02) continue;
     // CENTRO batido: solo mientras es fresco — lengua de espuma con cresta blanca encima
     if (age < 0.35) {
       ctx.globalAlpha = a;
-      px(s.x - s.k * 0.8, s.y, s.k * 1.6, Math.max(1, s.k * 0.25), P.foam);
+      px(s.x - s.k * 0.8 * wAnch, s.y, s.k * 1.6 * wAnch, Math.max(1, s.k * 0.25), P.foam);
       ctx.globalAlpha = a * 0.7;
-      px(s.x - s.k * 0.45, s.y - 1, Math.max(1, s.k * 0.9), 1, '#f2f7fb');
+      px(s.x - s.k * 0.45 * wAnch, s.y - 1, Math.max(1, s.k * 0.9 * wAnch), 1, '#f2f7fb');
     }
     // BRAZOS de la V: cresta clara con espuma corrida un pixel abajo y afuera (le da relieve);
     // el dash se acorta al envejecer — la V se deshilacha en vez de seguir siendo un riel

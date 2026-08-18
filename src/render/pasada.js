@@ -14,7 +14,7 @@ import { T } from '../core/i18n.js';
 import { run } from '../core/run.js';
 import { cfg } from '../core/state.js';
 import { drawMira } from './miras.js';
-import { drawCockpit } from './momentum.js';
+import { drawCockpit, salpicar } from './momentum.js';
 import { drawThirdPlane, shipArrow, COCKPIT_Y } from './arena.js';
 import * as world3D from '../systems/three-arena.js';
 import { PS, HOSE } from '../data/pasada.js';
@@ -311,6 +311,11 @@ export function drawPasada(w) {
   ctx.globalAlpha = 1;
 
   // ---- el avion: cabina (1a) o sprite (3a) ----
+  // SAL EN EL PARABRISAS (F3.3): a ras sobre el agua el mar te salpica el vidrio. Va aca
+  // porque es la unica fase donde conviven las dos cosas —una cabina y el agua a pocos
+  // metros—, y es justo la doctrina del modo: se entra abajo. `salpicar` se auto-limita,
+  // asi que llamarla por cuadro no apila gotas: salpica cada ~0,7 s mientras sigas abajo.
+  if (w.view === 1 && A.pos.y < PS.SAPITO_ALT_M) salpicar(1 - A.pos.y / PS.SAPITO_ALT_M);
   if (w.view === 1) drawCockpit({ mom: { t: A.t, hitFx: A.hitFx }, t: w.t, yOff: COCKPIT_Y });
   else drawThirdPlane(A, selPlane);
 

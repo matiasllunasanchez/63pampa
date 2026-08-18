@@ -430,3 +430,152 @@ techo real, así que subir más no amontona — sólo acerca el piso.
 
 **Este es el número que más probablemente haya que retocar tras jugar una misión de tormenta**, y es
 el único de este bloque que no se pudo validar jugando.
+
+---
+
+## Divergencias de F2 a F8 *(18/8/2026)*
+
+### 11. El viento no tiene DIRECCIÓN en este juego *(F2)*
+
+El spec pide "fase que avanza con `t` **en la dirección del viento de la misión**". No existe tal
+dirección: `cfg.wind` es un **booleano** — hay viento o no hay— y no hay campo de rumbo en
+`data/missions.js` ni en ningún lado. Inventarle uno sería data nueva que nadie mira.
+
+Se eligió una **diagonal fija** (`sin(wx*0.115 + wz*0.165 - t*2.4)`) y se documentó en
+`core/sea.js`. Los otros cuatro senos del mar corren casi todos en `z`; que éste cruce en ángulo es
+lo que hace que un mar con viento se vea **peinado** y no sólo más agitado.
+
+`seaH` ganó un cuarto parámetro `clima` **opcional**: sin él (o en `calm`) devuelve exactamente lo
+de siempre. Era obligatorio que así fuera — la firma se pasa por referencia a los mundos 3D (§9.1).
+
+### 12. El fixture 5b era inestable POR CONSTRUCCIÓN — segunda vez *(F2)*
+
+Al correr el gate de F2, el paso 5b dio rojo con el juego perfecto. No era una regresión: **mide una
+probabilidad con una muestra chica**. Con 20 s (~2.200 m, ~40 sorteos a 0.08) el esperado es 3,2
+olas, pero la binomial da **16% de chance de ver menos de dos** — una de cada seis corridas daba
+rojo sin motivo.
+
+Ventana subida a **45 s** (~5.000 m, ~90 sorteos): el esperado sube a 7,2 y el falso rojo baja del
+1%. Medido después del cambio: **8 olas en 6.219 m**.
+
+> Es la segunda vez que un test de este fixture cría lobos por estadística (la primera está en §8).
+> La regla: **un test que grita sin motivo una de cada seis veces enseña a ignorarlo**, y eso es
+> peor que no tenerlo.
+
+### 13. Las cortinas de punta de ala NO son los vórtices que el autor apagó *(F3.1)*
+
+`tipTrail` (vórtices de condensación con turbo) se apagó a propósito en `e8ccbd1` — "el efecto
+funciona, todavía no convence". **No se reactivó.**
+
+Las cortinas de F3.1 son otra cosa y tienen otro disparador: son **agua**, sólo sobre agua, y sólo
+por debajo de `RAS_ALT = 4.5` — que es exactamente el techo de la banda del ×10 (`rasNow` en
+`systems/flight.js`). O sea que son el **instrumento de la banda**: cuando las ves, estás cobrando.
+Con turbo arrancan más agua (`gordo = 1.7`).
+
+Si tampoco convencen se apagan igual de barato: es un solo bloque en `render/plane.js`.
+
+### 14. La SAL EN EL PARABRISAS no puede vivir donde pasa el roce *(F3.3)*
+
+El spec la pide "al salir de un roce o de una cresta de ola". El roce y las olas son del **PASILLO**,
+y el PASILLO **no tiene vista de cabina** — la tecla V es un zoom, no una primera persona. Puesta
+ahí no se vería nunca.
+
+Vive en `drawCockpit` (`render/momentum.js`), que es la única función que dibuja el parabrisas y la
+comparten ARENA, PASADA y PULSO. La disparan las dos fases donde conviven **cabina y agua a pocos
+metros**: la PASADA (que se entra a ras por doctrina, `ENTRY_ALT = 8`) y el ARENA, por debajo de
+`SAL_ALT_M = 12`. `salpicar()` se auto-limita, así que salpica cada ~0,7 s mientras sigas abajo.
+
+**Corregido por captura:** la primera versión era de un solo tono claro y **desaparecía contra el
+cielo**. Ahora cada gota tiene cuerpo oscuro + brillo, y se lee sobre el vidrio y sobre la cabina.
+
+### 15. `hw: 22` del spec estaba MAL, y el fixture lo agarró *(F4)*
+
+`hw` no es un ancho: es la **sigma de una gaussiana**. Con 22, a 30 unidades del centro el bulto
+todavía valía el **39%** de la altura — o sea que la "rompiente parcial" mataba igual en todo el
+carril y era una marejada disfrazada. El paso 6 del fixture dio rojo la primera vez por esto.
+
+`OLA_ROMP_HW = 12`: a 30 unidades queda en 4% y a 36 (el borde de la zona de vuelo) en nada. **Hay
+lado libre de verdad**, que es la única razón de que este tipo de ola exista.
+
+### 16. El paso 6 no se puede probar "a ras" *(F4)*
+
+El spec pide que el esquive lateral "sobreviva **a ras**". A ras (y≈1) el mar te mata solo en menos
+de un segundo — es el **roce de siempre** (`waveNow()` llega a 1.9), no la ola. Un test a esa altura
+da rojo con o sin rompiente y no prueba nada de la rompiente.
+
+Se prueba a **3.2**: apenas afuera del roce común y apenas adentro de la cara de una rompiente de 6.
+Y la ola se siembra con **altura fija** (`__ola('rompiente', 6)`): con la altura sorteada (4,3..6,5)
+la cara cae entre 2,4 y 3,6 y el mismo test daría verde o rojo según el sorteo.
+
+### 17. Números que el spec no da y las fases necesitaban
+
+| perilla | valor | por qué |
+|---|---|---|
+| `OLA_ROMP_P` | 0.35 | qué fracción de olas es rompiente. Un tercio alcanza para que la segunda respuesta (esquivar) se aprenda sin que la primera (saltar), que es la tesis del ítem, deje de ser lo normal |
+| `OLA_ROMP_Z` | 60 | dónde rompe: se enrula, revienta y empieza a rugir |
+| `OLA_REB_P` | 0.22 | fracción de las olas de tormenta que salen rebeldes |
+| `OLA_REB_D0` | 400 | metros antes de la primera posible. Una pared de 8 m a los diez segundos de despegar no es un evento, es una emboscada |
+| `SAL_ALT_M` | 12 | altura bajo la cual el mar salpica el vidrio (§14) |
+| `SEA_3D_AMP` | 0.6 | el ×0.6 que el spec sí pide, como constante con nombre |
+
+### 18. El AGUA AUTO es una tabla, no un `if` *(F5)*
+
+`WATER_AUTO` vive en `data/palette.js`, al lado de los dos diccionarios que relaciona
+(`WATER_STYLES` y `SKY_PRESETS`). Agregar un cielo nuevo y olvidarse de su agua es **un renglón que
+falta en una tabla**, no una rama escondida en el render.
+
+`cfg.water` pasa a `'auto'` por default y la fila AGUA de OPCIONES suma **siete** opciones (AUTO +
+los seis estilos). Elegir a mano sigue pisando el auto, que es para lo que existe la opción.
+
+### 19. El camino del sol proyecta un ancho CONSTANTE en pantalla *(F6)*
+
+La fórmula del spec (`|wx − cam.x| < SUN_GLINT_HALF * (camZ/F)`) da, al proyectarse, una banda de
+**±26 px fijos** — porque el semiancho en mundo crece con `camZ` exactamente lo que la escala `k`
+decrece. No es la cuña que se abre hacia el horizonte que uno imagina, pero **se lee bien** y es lo
+que el spec pide, así que quedó.
+
+Dos cosas sí se ajustaron: dentro del cono se le saca el corte por cercanía (`k > 1.6`), porque la
+columna de luz es un fenómeno de **distancia** y cortada cerca es un charco, no un camino; y la
+"×4 de probabilidad" se implementó como umbral (`-0.5` en vez de `0.7`): la fracción de fases que
+pasan un umbral `u` es `acos(u)/π`, o sea 25% con 0.7 y **67%** con -0.5.
+
+### 20. La sal garantizada de la rebelde no existe *(F7.3)*
+
+F7.3 pide "sal en el parabrisas garantizada al pasarla a menos de 2 de la cresta". Por §14 la sal
+vive en la cabina y la rebelde en el PASILLO: **no hay parabrisas donde ponerla**. Lo que sí cobra
+el paso cerca de la cresta es lo de F1 — margen de roce, sacudón y spray. No se implementó nada
+nuevo para no inventar un efecto que el spec no describe en la vista que sí existe.
+
+### 21. El aviso por radio se prueba MIRANDO EL POPUP *(F7.2)*
+
+La sonda `__seapop()` devuelve los popups **en pantalla** y los vacía al leer. Se probó así, y no
+contra una variable interna, por lo mismo que se escapó el bug de §9: una variable puede estar bien
+mientras la pantalla no muestra nada. Las dos mitades de la regla tienen su assert — con escuadrón
+llega, volando solo no llega.
+
+### 22. La espuma del buque son los MISMOS puntos del mar *(F8.2)*
+
+Sin geometría nueva ni partículas: en el bucle de la alfombra, los puntos que tocan el casco
+(`dCasco < 7`) o caen en la V de popa se pintan con el color de espuma, con un latido en `t` para
+que sea agua batida y no un contorno pintado. La alfombra ya se recorre entera todos los cuadros, así
+que el costo es una comparación por punto.
+
+### 23. Las fases se cerraron en DOS TANDAS, no de a una *(F5-F8)*
+
+El workflow (§0.1) pide una fase por vez con el gate completo entre medio. F5+F6 se cerraron juntas
+(son intercambiables por §7 y las dos son sólo visuales) y F7+F8 también. **El motivo real es que
+editar el bundle mientras corre `npm run check` invalida el smoke** — la carrera se descubrió
+haciéndola. El gate final se corrió sin tocar nada.
+
+### 24. `dusk → dawn` mandaba el mar dorado a TODO el juego *(F5, corregido por captura)*
+
+El primer mapeo de `WATER_AUTO` seguía el spec y ponía `dusk: 'dawn'`. **El atardecer es el cielo por
+defecto del juego**, así que eso mandaba la paleta dorada del amanecer a todas partes y el Atlántico
+quedaba color barro — se vio en la captura del ARENA, no en el fixture.
+
+`dusk` salió de la tabla: todo cielo que no esté mapeado cae en `sea`, que es el agua que define
+cómo se ve RASANTE. El oro queda reservado para el amanecer, que es cuando de verdad pasa.
+
+> Al perseguir esto se encontró que el ARENA ya tenía **una franja caqui en primer plano** antes de
+> tocar nada (se comprobó forzando `cfg.water = 'sea'`: sigue igual). No es de este spec y no se
+> tocó, pero queda anotado: es el plano del mar 3D / el domo, no la paleta.

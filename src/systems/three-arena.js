@@ -30,6 +30,8 @@ export const RING_R = 700;                 // radio de la zona de combate
 export const SEA_Y = 0;                    // la linea de flotacion es el nivel del mar
 const DOME_R = 4000;                       // radio del domo de cielo
 const SEA_PLANE = 14000;                   // plano de mar (tapa hasta la niebla)
+// CUANTO SE MUEVE EL MAR 3D respecto del 2D (F8.1). Ver el comentario en el bucle de puntos.
+const SEA_3D_AMP = 0.6;
 const DOT_STEP = 6;                        // paso de la alfombra de puntos
 const DOT_N = 104;                         // puntos por lado (104*6 ≈ 624 m alrededor del avion)
 // NIEBLA lejos: el ring mide 700 m de radio, asi que si la niebla mordiera antes se comeria el
@@ -191,12 +193,34 @@ export function frame(w) {
       for (let ix = 0; ix < DOT_N; ix++, i++) {
         const wx = ox + ix * DOT_STEP;
         const h = w.seaH(wx, wz);
-        p.setXYZ(i, wx, SEA_Y + h, wz);
+        // AMPLITUD REDUCIDA (SPEC_AGUA_OLAS F8.1). Es la MISMA agua que el 2D —la de core/sea.js,
+        // no una copia— pero aca se la mira casi desde arriba y a escala de metros: con la
+        // amplitud entera el horizonte hervia y mareaba. El COLOR sigue leyendo la altura REAL
+        // (`h`), asi que el mar se ve igual de vivo; lo que se baja es cuanto se mueve.
+        p.setXYZ(i, wx, SEA_Y + h * SEA_3D_AMP, wz);
         // color por altura de ola, con fade a la base con la distancia (receta del mar 2D)
         let hn = (h + 1.4) / 4.8; hn = hn < 0 ? 0 : hn > 1 ? 1 : hn;
         if (Math.sin(wz * 0.06 - w.t * 2.6 + wx * 0.045) > 0.6) hn = Math.min(1, hn + 0.24);
         let src = hn > 0.72 ? CR : hn > 0.42 ? MI : DE;
         if (hn > 0.78 && Math.sin(wx * 12.9 + wz * 7.3 + w.t * 6) > 0.7) src = SP;
+        // ESPUMA DE PROA Y LINEA DE FLOTACION (F8.2). El buque estaba posado sobre el agua como
+        // una calcomania: nada decia que estuviera METIDO en ella. Ahora los puntos del mar que
+        // le tocan el casco se pintan de espuma, y detras de la popa se abre una V corta.
+        //
+        // NO HAY GEOMETRIA NUEVA NI PARTICULAS: son los MISMOS puntos de la alfombra, pintados de
+        // otro color. Es lo que pide el spec (§F8.2) y ademas es lo unico que no cuesta nada — la
+        // alfombra ya se recorre entera todos los cuadros.
+        if (w.objectiveShip) {
+          const dx = Math.abs(wx) - SHIP_LEN / 2, dz = Math.abs(wz) - shipBeamM();
+          const dCasco = Math.hypot(Math.max(0, dx), Math.max(0, dz));
+          const estela = wx < -SHIP_LEN / 2
+            && Math.abs(Math.abs(wz) - (-SHIP_LEN / 2 - wx) * 0.22 - shipBeamM()) < 5
+            && wx > -SHIP_LEN / 2 - 90;
+          if (dCasco < 7 || estela) {
+            // late con el tiempo para que no sea un contorno pintado: es agua batida
+            if (Math.sin(wx * 0.7 + wz * 0.9 + w.t * 3.4) > (dCasco < 7 ? -0.7 : 0.1)) src = SP;
+          }
+        }
         const d = Math.hypot(wx - px, wz - pz);
         const f = Math.min(1, d / (half * 0.95));
         c.setXYZ(i, src[0] + (BA[0] - src[0]) * f, src[1] + (BA[1] - src[1]) * f, src[2] + (BA[2] - src[2]) * f);

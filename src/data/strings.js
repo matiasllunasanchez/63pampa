@@ -148,7 +148,11 @@ export const STRINGS = {
     optSkyDusk: 'ATARDECER', optSkyNight: 'NOCHE', optSkyStorm: 'TORMENTA',
     optSkyClear: 'DESPEJADO', optSkyCloudy: 'NUBLADO', optSkySun: 'SOL PLENO',
     optSkyMoon: 'LUNA LLENA', optSkyDawn: 'AMANECER',
+    // AVISO DE LA OLA REBELDE (SPEC_AGUA_OLAS F7.2): lo grita un Fiel que la vio antes que vos.
+    ola_call: 'PARED DE AGUA ADELANTE',
     optWater: 'AGUA', optWaterSea: 'MAR', optWaterViolet: 'VIOLETA',
+    optWaterAuto: 'AUTO (segun el cielo)', optWaterStorm: 'TEMPORAL', optWaterNight: 'NOCHE',
+    optWaterSun: 'TURQUESA', optWaterDawn: 'AMANECER',
     // LLUVIA: ambiente puro, no cambia la dificultad (ver render/rain.js)
     optRain: 'LLUVIA', optRainOff: 'NO', optRainDrizzle: 'GARUA', optRainRain: 'LLUVIA', optRainStorm: 'TORMENTA',
     // NIEBLA DE GUERRA: el velo de los COSTADOS (render/marco.js). Es preferencia, no dificultad
@@ -1025,7 +1029,10 @@ export const STRINGS = {
     optSkyDusk: 'DUSK', optSkyNight: 'NIGHT', optSkyStorm: 'STORM',
     optSkyClear: 'CLEAR', optSkyCloudy: 'OVERCAST', optSkySun: 'FULL SUN',
     optSkyMoon: 'FULL MOON', optSkyDawn: 'DAWN',
+    ola_call: 'WALL OF WATER AHEAD',
     optWater: 'WATER', optWaterSea: 'SEA', optWaterViolet: 'VIOLET',
+    optWaterAuto: 'AUTO (follows sky)', optWaterStorm: 'STORM', optWaterNight: 'NIGHT',
+    optWaterSun: 'TURQUOISE', optWaterDawn: 'DAWN',
     optRain: 'RAIN', optRainOff: 'NO', optRainDrizzle: 'DRIZZLE', optRainRain: 'RAIN', optRainStorm: 'STORM',
     optMarco: 'WAR FOG',
     optMarco_off: 'OFF', optMarco_bruma: 'HAZE', optMarco_focus: 'FOCUS',

@@ -192,6 +192,7 @@ Todo lo que pinta. `draw()` en `game.js` gestiona los transforms y delega acá.
 | `arena.js` | el overlay 2D de la fase ARENA: corchetes/HP proyectados desde la escena 3D, fx del duelo, cabina o sprite (1ª/3ª persona, tecla V) y tablero (zonas + escuadrón) |
 | `caza.js` | el Harrier de **LA COLA** y sus trazadoras. Se dibuja en **dos pasadas** (`drawCaza(true/false)`) porque el caza cruza de detrás tuyo a delante y no hay una sola capa correcta |
 | `persec.js` | el líder de la **PERSECUCIÓN** (`drawPersec`, grilla de MUNDO) y su **cinta de formación** (`drawCinta`, grilla de DISEÑO, dentro del `scale(U)` del HUD). Ojo: los dos espacios de coordenadas conviven en este archivo |
+| `sea.js` *(en `core/`)* | **PURO**: el campo de altura del mar y el bulto de las olas. Vive en `core/` y no en `render/` porque la colisión tiene que evaluar la MISMA superficie que se dibuja — lo que ves es lo que te mata |
 | `marco.js` | la **NIEBLA DE GUERRA**: el velo lateral que tapa lo que no es pasillo (`cfg.marco`: BRUMA blanca o FOCUS negro). Su borde interno es la proyección del carril y **nunca la cruza**, así que no puede tapar un obstáculo — por eso es preferencia y no dificultad, al revés que `systems/fog.js` |
 | `theme.js` | `theme.sky`/`theme.water`: la paleta activa (la comparten mar 2D, telón 3D y HUD) |
 | `ctx.js` | *(fundacional, ver arriba)* |
@@ -237,6 +238,8 @@ Lo que queda es genuinamente el pegamento:
 | **que el JOYSTICK vuele una fase nueva** | la lista `inGame` de `core/input.js`. Es la que decide dónde el pad escribe el vuelo; fuera de ella corre la rama de menús, que **suelta todos los ejes** (el avión se queda sin piloto en el aire). Le pasó a la PASADA. Y si el binding es nuevo, anotalo en la tabla `ctrl*` de `data/strings.js` **en los dos idiomas**: esa tabla es la pantalla CONTROLES de OPCIONES y dice lo que `input.js` *hace*, no lo que debería |
 | el HUD | `render/hud.js` |
 | el mar / los obstáculos en pantalla | `render/world.js` |
+| **el agua: la superficie, las olas y el clima del mar** | `core/sea.js` (PURO: `seaH`, `olaBump`, `seaHTotal`, `climaDe` — la MISMA función que dibuja el mar es contra la que resuelve la colisión) + las perillas `OLA_*` / `SEA_*` / `SUN_GLINT_HALF` de `data/tuning.js`. El dibujo está en `drawSeaDots` de `render/world.js`, la siembra en `systems/spawn.js` y los tres desenlaces (cara mata / cresta cuesta / se salta) en `systems/collision.js`. Probalo con `npm run agua`; el plan y las divergencias, en [SPEC_AGUA_OLAS.md](sistemas/SPEC_AGUA_OLAS.md) |
+| **el estilo del agua por clima** | `WATER_STYLES` + `WATER_AUTO` en `data/palette.js` (es una TABLA: agregar un cielo y olvidarse de su agua es un renglón que falta, no un `if` escondido) → `applyTheme` en `render/theme.js` |
 | **el velo de los costados** (NIEBLA DE GUERRA) | `render/marco.js` + las perillas `MARCO_*` de `data/tuning.js`. Ojo con los dos sentidos de "niebla": ésta ENMARCA y no esconde nada que te pueda pegar; la de `systems/fog.js` (`cfg.fog`) SÍ tapa obstáculos y por eso vive en el bloque MAPA |
 | dibujar filas del raster de suelo/mar | `render/world.js` — usá `rowH`, no `1`: con el horizonte girado las filas de 1 px dejan costuras y se ve el fondo por debajo |
 | el sprite del avión | `render/plane.js` |

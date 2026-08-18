@@ -12,7 +12,7 @@
 //
 // ESCALA: unidades de mundo del PASILLO (las mismas de plane.y y de o.z).
 
-import { OLA_WZ } from '../data/tuning.js';
+import { OLA_WZ, SEA_WIND_AMP } from '../data/tuning.js';
 
 /** LA SUPERFICIE BASE: cuatro senos superpuestos. Es el mar de siempre, movido tal cual desde
  *  render/world.js sin tocarle un coeficiente — el mar no tiene que cambiar de aspecto porque el
@@ -20,12 +20,22 @@ import { OLA_WZ } from '../data/tuning.js';
  *
  *  `t` es el reloj de la corrida (run.t). Entra por parametro y no por import a proposito: es lo
  *  que deja probar esta funcion sin levantar el juego. */
-export function seaH(wx, wz, t) {
-  return 1.0
+export function seaH(wx, wz, t, clima) {
+  const base = 1.0
     + Math.sin(wz * 0.035 - t * 1.1) * 0.9           // marejada larga que rueda hacia la camara
     + Math.sin(wz * 0.22 + t * 2.2) * 0.65
     + Math.sin(wz * 0.09 - t * 1.5 + wx * 0.15) * 0.5
     + Math.sin(wx * 0.30 + wz * 0.05 + t * 1.9) * 0.35;
+  // EL VIENTO (F2). Un quinto seno, DIAGONAL: los otros cuatro corren casi todos en z (el mar
+  // rueda hacia la camara) y este cruza en angulo, que es lo que hace que un mar con viento se
+  // vea PEINADO en vez de solo mas agitado.
+  //
+  // `clima` es OPCIONAL y sin el no suma nada: el mar de m1 —y el de cualquier mision sin
+  // viento— queda IDENTICO al de siempre, byte por byte. Esa es la condicion de cierre de la
+  // fase, y por eso el termino se agrega y no se mezcla con los coeficientes de arriba.
+  if (!clima || clima === 'calm') return base;
+  const amp = SEA_WIND_AMP * (clima === 'storm' ? 1.6 : 1);
+  return base + Math.sin(wx * 0.115 + wz * 0.165 - t * 2.4) * amp;
 }
 
 /** LA LOMA DE UNA OLA-OBSTACULO, evaluada en un punto.
@@ -56,8 +66,8 @@ export function olaBump(o, wxRel, dzRel) {
  *
  *  `dv` es la distancia recorrida: las olas viven en z de OBSTACULO (o.z, que baja hacia el
  *  avion) y los puntos del mar en z de MUNDO, asi que la cresta esta en `dv + o.z`. */
-export function seaHTotal(wx, wz, t, olasVivas, dv) {
-  let h = seaH(wx, wz, t);
+export function seaHTotal(wx, wz, t, olasVivas, dv, clima) {
+  let h = seaH(wx, wz, t, clima);
   if (!olasVivas) return h;
   for (let i = 0; i < olasVivas.length; i++) {
     const o = olasVivas[i];
@@ -65,6 +75,11 @@ export function seaHTotal(wx, wz, t, olasVivas, dv) {
   }
   return h;
 }
+
+// LA DIRECCION DEL VIENTO ES FIJA, y no por vagancia: `cfg.wind` del juego es un BOOLEANO — hay
+// viento o no hay— y no existe en ningun lado un rumbo del que sacarla. Inventarle un campo a la
+// mision para que el mar se peine para otro lado seria data nueva que nadie mira. Se elige una
+// diagonal y se documenta (SPEC_AGUA_OLAS §9).
 
 /** EL CLIMA DEL MAR de una mision, resuelto en un solo lugar (SPEC_AGUA_OLAS §2).
  *

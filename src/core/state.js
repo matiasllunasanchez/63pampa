@@ -39,7 +39,10 @@ import { PORT_H, AIR_START_Y } from '../data/runways.js';
 export const CTRL_DIRECT = 0, CTRL_BANK = 1, CTRL_N = 2;
 
 export const cfg = {
-  sky: 'dusk', water: 'sea', terrain: 'sea', wind: true,
+  // AGUA EN AUTO (SPEC_AGUA_OLAS F5): el estilo del mar lo elige el CIELO (WATER_AUTO en
+  // data/palette.js). Es el default porque en campaña la mision ya decide el cielo, y con el agua
+  // clavada en 'sea' un temporal se jugaba sobre el mar celeste del atardecer. Elegir a mano pisa.
+  sky: 'dusk', water: 'auto', terrain: 'sea', wind: true,
   // fuelOn ARRANCA APAGADO (tanque infinito) por decision de diseño de julio 2026: el reloj de
   // combustible queda en pausa hasta rebalancearlo (la ruta optima de bidones es ROADMAP #28).
   // Encenderlo sigue siendo una fila del menu [M]; las misiones no lo pisan (CAMPAIGN_CFG no

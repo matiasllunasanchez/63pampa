@@ -210,6 +210,64 @@ export function drawBargeBow(cx, bw, waterY, hTop, t, haze, sky) {
 /** La cabina. `w.yOff` la baja N pixeles: lo usa la fase ARENA para que el VISOR PINTADO del PNG
  *  caiga sobre la mira del juego. El ARENA VIEJO no lo pasa (0) porque alla la mira es la que se
  *  clava al visor (MOM_AY), al reves — mover el PNG lo desalinearia. */
+// ---------- SAL EN EL PARABRISAS (SPEC_AGUA_OLAS F3.3) ----------
+// Cuando pasas MUY bajo sobre el agua, el mar te salpica el vidrio. Son gotas QUIETAS —pegadas al
+// parabrisas, no al mundo— que se secan en algo mas de un segundo.
+//
+// POR QUE ES DEL VIDRIO Y NO DEL MUNDO: es lo unico del juego que te recuerda que hay una cabina
+// entre vos y el Atlantico. El resto de los efectos de agua pasan alla afuera; este pasa de este
+// lado, y por eso va en la unica funcion que dibuja el vidrio (la comparten ARENA, PASADA y PULSO).
+//
+// POSICION DETERMINISTA por gota (trampa §1.3): con Math.random() por cuadro serian gotas nuevas
+// cada frame, o sea ruido blanco, no salpicaduras. Nacen una vez y se quedan donde cayeron.
+const SAL_DUR = 1.5;
+const sal = [];
+let salT = 0;
+
+/** Salpica el parabrisas. `f` 0..1 es la fuerza (cuanta agua y que tan grande). La llaman las
+ *  fases que tienen cabina Y agua debajo — hoy la PASADA y el ARENA (ver render/pasada.js). */
+export function salpicar(f) {
+  if (salT > SAL_DUR * 0.55) return;         // ya hay una salpicada fresca: no se apilan
+  salT = SAL_DUR;
+  sal.length = 0;
+  const n = 6 + Math.round(Math.min(1, f) * 4);   // 6..10 gotas (§F3.3)
+  for (let i = 0; i < n; i++) {
+    sal.push({
+      x: 20 + Math.random() * (W - 40),
+      y: 18 + Math.random() * (H * 0.62),
+      r: Math.random() < 0.3 ? 2 : 1,
+      a: 0.5 + Math.random() * 0.5,
+    });
+  }
+}
+
+/** Las gotas que ya estan, secandose. La llama drawCockpit al final: van SOBRE el vidrio.
+ *
+ *  Recibe el reloj ABSOLUTO y saca el dt sola: los tres que dibujan cabina (ARENA, PASADA,
+ *  PULSO) ya pasan `t` y ninguno pasa `dt`. Pedirles un campo nuevo a los tres para esto seria
+ *  cambiar tres firmas por una gota de agua. */
+let salLastT = 0;
+function drawSal(t) {
+  const dt = Math.max(0, Math.min(0.1, t - salLastT));   // el clamp cubre el salto entre fases
+  salLastT = t;
+  if (salT <= 0) return;
+  salT -= dt;
+  if (salT <= 0) { sal.length = 0; return; }
+  const f = salT / SAL_DUR;                   // 1 recien salpicado · 0 seco
+  // DOS TONOS POR GOTA, y no es adorno: el fondo del parabrisas es cielo CLARO arriba y cabina
+  // OSCURA abajo. Una gota de un solo tono claro desaparecia contra el cielo — se vio en la
+  // primera captura. Con un cuerpo oscuro y un brillo encima la gota se lee sobre los dos.
+  for (const g of sal) {
+    ctx.globalAlpha = g.a * f;
+    px(g.x, g.y, g.r + 1, g.r + 1, '#5d7280');          // cuerpo: la gota tiene sombra propia
+    ctx.globalAlpha = g.a * f * 1.1;
+    px(g.x, g.y, g.r, g.r, '#f2fbff');                  // brillo arriba a la izquierda
+    ctx.globalAlpha = g.a * f * 0.5;                    // el reguero: corre un pelo hacia abajo
+    px(g.x + 1, g.y + g.r + 1, 1, 1 + g.r, '#8aa6b5');
+  }
+  ctx.globalAlpha = 1;
+}
+
 export function drawCockpit(w) {
   const { mom, t } = w;
   const yOff = w.yOff || 0;
@@ -246,6 +304,7 @@ export function drawCockpit(w) {
   }
   // (los canones estan en las alas, FUERA de la vista: las trazadoras se dibujan antes
   // de la cabina en drawMomentum y el marco las tapa — aca no va ningun fogonazo)
+  drawSal(t);   // la sal va SOBRE el vidrio: ultima, despues del marco
   return { bx, by };
 }
 

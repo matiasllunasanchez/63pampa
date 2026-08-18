@@ -9,14 +9,16 @@
 
 import { cfg } from '../core/state.js';
 import { run } from '../core/run.js';
-import { obstacles, soldiers } from '../core/world.js';
-import { OLA_H, OLA_RATE, OLA_GAP_MIN, OLA_H_VAR, OLA_WZ, OLA_WZ_VAR } from '../data/tuning.js';
+import { obstacles, soldiers, popups } from '../core/world.js';
+import { OLA_H, OLA_RATE, OLA_GAP_MIN, OLA_H_VAR, OLA_WZ, OLA_WZ_VAR, OLA_ROMP_P, OLA_ROMP_HW, OLA_REB_P, OLA_REB_D0 } from '../data/tuning.js';
 import { inBank } from './fog.js';
 import { carrilLibre } from './persec.js';
 import { plane } from '../core/state.js';
 import { scrapeLimit } from '../core/physics.js';
 import { olaBump, climaDe } from '../core/sea.js';
-import { proj } from '../core/fx.js';
+import { proj, popup } from '../core/fx.js';
+import { T } from '../core/i18n.js';
+import { P } from '../data/palette.js';
 import { SPAWN_X, SPAWN_DENS, SPAWN_Z, SHORE_X, shoreAt, SAND_W, AA_CD, ENEMY_HP, spawnY, SHIP_H,
          CLIFF_H0, CLIFF_H1, CLIFF_HW0, CLIFF_HW1, CLIFF_COAST_BAND, VEIL_STOP } from '../data/tuning.js';
 
@@ -101,8 +103,20 @@ function olaOk() {
     if (o.type !== 'ola') continue;
     if (++n >= 2) return false;
     if (Math.abs(o.z - SPAWN_Z) < OLA_GAP_MIN) return false;
+    // CON UNA REBELDE VIVA NO ENTRA NADA MAS (§6.4). Es EL evento del temporal: compartir
+    // pantalla con otra ola lo convertiria en una pared doble, que ya no se lee — se sufre.
+    if (o.kind === 'rebelde') return false;
   }
   return true;
+}
+
+/** ¿Toca REBELDE (F7)? Solo en tormenta, solo pasados los primeros metros, y solo si no hay otra
+ *  ola viva — la rebelde no comparte el mar con nadie. */
+function rebeldeOk() {
+  if (climaDe(cfg) !== 'storm') return false;
+  if (run.dist < OLA_REB_D0) return false;
+  for (const o of obstacles) if (o.type === 'ola') return false;
+  return Math.random() < OLA_REB_P;
 }
 
 /** Siembra una ola. `kind` decide altura; la MAREJADA es de ancho completo y la mitad de las
@@ -125,6 +139,20 @@ export function spawnOla(kind, hFijo) {
     o.gapX = (Math.random() * SPAWN_X * 2 - SPAWN_X);
     o.gapW = 9;
   }
+  // LA ROMPIENTE (F4) es PARCIAL y SIN brecha: el hueco es todo el resto del carril. Por eso no
+  // se salta, se esquiva — y por eso se centra en una franja sorteada en vez de en el eje: si
+  // saliera siempre en el medio, la respuesta seria "irse a un costado" siempre para el mismo
+  // lado y dejaria de ser una lectura.
+  if (kind === 'rompiente') {
+    o.hw = OLA_ROMP_HW;
+    o.x = (Math.random() * 2 - 1) * SPAWN_X * 0.55;
+    o.gapX = 0; o.gapW = 0;
+  }
+  // LA REBELDE AVISA POR RADIO (F7.2), y solo si hay con quien volar: el aviso lo da un Fiel que
+  // la vio antes que vos. Volando solo no hay ojos, y ese silencio es la regla humana del item —
+  // no un castigo mecanico. Con aviso o sin el la ola SIEMPRE se ve desde SPAWN_Z: el aviso es
+  // ventaja, nunca el requisito de que sea justa.
+  if (kind === 'rebelde' && run.lives > 1) popup(0, 26, T('ola_call'), P.warn, true);
   obstacles.push(o);
   return o;
 }
@@ -228,7 +256,14 @@ function spawn() {
   // en el reparto de porcentajes le habria robado densidad a los enemigos segun el clima, que es
   // una consecuencia que nadie pidio.
   sondaSpawns++;
-  if (olaOk() && Math.random() < OLA_RATE[climaDe(cfg)]) { sondaOlas++; spawnOla('marejada'); return; }
+  if (olaOk() && Math.random() < OLA_RATE[climaDe(cfg)]) {
+    sondaOlas++;
+    // QUE CLASE DE OLA. La marejada es la normal —el gesto vertical, la tesis del item— y cada
+    // tanto sale una ROMPIENTE, que es la otra pregunta: parcial, no se salta, se esquiva. Y en
+    // TORMENTA, de vez en cuando, la REBELDE: ancho completo y ocho metros, sin respuesta barata.
+    spawnOla(rebeldeOk() ? 'rebelde' : Math.random() < OLA_ROMP_P ? 'rompiente' : 'marejada');
+    return;
+  }
 
   // MAR ABIERTO: fragatas y trafico aereo.
   //
@@ -328,6 +363,16 @@ if (typeof window !== 'undefined') window.__seaclear = () => {
   for (let i = obstacles.length - 1; i >= 0; i--) if (obstacles[i].type !== 'ola') obstacles.splice(i, 1);
   return obstacles.length;
 };
+// __sealives / __seapop: las dos sondas del AVISO de la rebelde (F7.2). La primera fija cuantos
+// aviones quedan —que es de lo que depende que alguien te avise— y la segunda devuelve los popups
+// EN PANTALLA. Se mira el popup y no una variable interna a proposito: el bug de F1 se escapo
+// justamente por probar el mecanismo sin mirar nunca lo que ve el jugador. QUITAR.
+if (typeof window !== 'undefined') window.__sealives = n => { run.lives = n; run.squad = Math.max(run.squad, n); return run.lives; };
+if (typeof window !== 'undefined') window.__seapop = () => {
+  const txt = popups.map(p => p.txt).join(' | ');
+  popups.length = 0;                     // se vacia al leer: cada consulta mira SU ventana
+  return JSON.stringify(txt);
+};
 // __olaOk: contesta la GUARDA de siembra (distancia minima, tope de olas vivas, niebla). Es lo
 // unico que __ola no ejercita, justamente porque la saltea a proposito.
 if (typeof window !== 'undefined') window.__olaOk = () => String(olaOk());
@@ -349,7 +394,9 @@ if (typeof window !== 'undefined') window.__seadbg = () => {
     vista = { y: +cima.y.toFixed(1), alto: +(base.y - cima.y).toFixed(1) };
   }
   return JSON.stringify({
-    ola: cerca ? { tipo: cerca.kind, z: +cerca.z.toFixed(1), h: +cerca.h.toFixed(2), brecha: cerca.gapW ? +cerca.gapX.toFixed(1) : null } : null,
+    ola: cerca ? { tipo: cerca.kind, z: +cerca.z.toFixed(1), h: +cerca.h.toFixed(2),
+                   x: +(cerca.x || 0).toFixed(1), hw: cerca.hw || null, rompio: !!cerca.breakT,
+                   brecha: cerca.gapW ? +cerca.gapX.toFixed(1) : null } : null,
     vista,
     olas: obstacles.filter(o => o.type === 'ola').length,
     y: +plane.y.toFixed(2), x: +plane.x.toFixed(1),
