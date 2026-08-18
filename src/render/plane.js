@@ -150,7 +150,16 @@ function muzzle(x, y) {
  *  Las medidas verticales salen de medir las hojas horneadas: el frame es de 84 px con el avion
  *  centrado, el ala apoya en y=47..49 y la panza termina en y=52 — que en esta escala (0.567 px
  *  de diseño por px de hoja) son el 3.4 y el 5 de abajo. Si se rehornean los aviones, remedir. */
-function gear(g) {
+/** EL TREN, dibujado en el ORIGEN del contexto actual.
+ *
+ *  `u` dice cuantos pixeles vale una unidad de la grilla de diseño en ese contexto: el jugador lo
+ *  llama con 1, porque ya esta adentro de su `ctx.scale(U, U)`; la FORMACION del escuadron lo
+ *  llama con `U * f`, porque dibuja en pixeles de mundo y cada companero esta a otra distancia.
+ *
+ *  Que el escuadron use ESTE dibujo y no una copia es el punto: despegan con vos, con el mismo
+ *  tren que vos. Dos rutinas de rueda serian un escuadron con dos aviones distintos, y la que no
+ *  se mira se pudre. */
+export function drawGear(g, u) {
   if (g <= 0) return;
   const TIRE = '#14181a', RIM = '#6d7679';
   // el ultimo tramo se apaga: a esa altura la rueda ya esta casi toda tapada por el ala y lo poco
@@ -158,14 +167,14 @@ function gear(g) {
   ctx.globalAlpha = Math.min(1, g * 5);
   // PATA DE PROA: una rueda mas chica todavia, que apenas asoma por debajo de la panza
   const ny = 3.4 + 3.1 * g;
-  if (ny > 5.4) px(-0.5, 5.2, 1, ny - 5.2, TIRE);
-  px(-1, ny, 2, 1, TIRE);
+  if (ny > 5.4) px(-0.5 * u, 5.2 * u, u, (ny - 5.2) * u, TIRE);
+  px(-u, ny * u, 2 * u, u, TIRE);
   // PRINCIPALES
   for (const sgn of [-1, 1]) {
     const gx = sgn * 4, gy = 2.6 + 3.4 * g;
-    if (gy > 4.2) px(gx - 0.5, 4, 1, gy - 4, TIRE);   // pata, colgando de la raiz del ala
-    px(gx - 1, gy, 2, 2, TIRE);                       // rueda
-    px(gx - 1, gy, 2, 1, RIM);                        // brillo del cubo: si no, es un cuadrado negro
+    if (gy > 4.2) px((gx - 0.5) * u, 4 * u, u, (gy - 4) * u, TIRE);   // pata, de la raiz del ala
+    px((gx - 1) * u, gy * u, 2 * u, 2 * u, TIRE);                     // rueda
+    px((gx - 1) * u, gy * u, 2 * u, u, RIM);                          // brillo del cubo: si no, es un cuadrado negro
   }
   ctx.globalAlpha = 1;
 }
@@ -294,7 +303,7 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     // ala, del otro lado del fuselaje, asi que el fuego tiene que asomar por detras y no taparlo.
     // La LLAMA del turbo va ENCIMA: sale de la tobera, que apunta a la camara.
     if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
-    gear(run.gear);   // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma
+    drawGear(run.gear, 1);   // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma
     ctx.drawImage(img, sx4, sy4, SHEET_FW, SHEET_FH, -spW / 2, -spH / 2, spW, spH);
     if (run.boost) flame(0, bodyH2 - 6);
   } else if (pl.ready) {
@@ -309,7 +318,7 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     }
     // mismo orden que arriba: fogonazos detras, llama del turbo adelante
     if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
-    gear(run.gear);
+    drawGear(run.gear, 1);
     ctx.drawImage(pl.img, -PW / 2, -PH / 2, PW, PH);
     if (run.boost) flame(0, PH / 2 - 4);
   } else {
@@ -346,7 +355,9 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     // 0.34 los dos hilos nacian tan afuera que se leian despegados del avion. Y nacen ABAJO, en la
     // linea de la panza (el mismo 0.09 con el que se anclaba el rebote de lluvia): el ala esta por
     // debajo del centro del frame, y saliendo del centro los hilos flotaban sobre el fuselaje.
-    tipTrail(cx, cy + spH * U * 0.09, spW * U * 0.24, bank, !!run.boost && S.state === 'play');
+    // APAGADO POR AHORA. `tipTrail` queda entera y medida — se prende con esta sola linea. Es el
+    // mismo criterio que el rebote de lluvia de arriba: el efecto funciona, todavia no convence.
+    // tipTrail(cx, cy + spH * U * 0.09, spW * U * 0.24, bank, !!run.boost && S.state === 'play');
   }
 
   // mira: en el MOUSE (PC, punteria libre) o adelante del avion (tactil/legacy)
