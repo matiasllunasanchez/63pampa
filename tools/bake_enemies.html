@@ -37,11 +37,16 @@
       r.setSize(w, h, false);
       return r;
     }
-    function makeScene() {
+    function makeScene(spec) {
       const sc = new THREE.Scene();
-      sc.add(new THREE.AmbientLight(0xaebccc, 1.8));   // mas que en bake_planes: estas paletas son mas oscuras
+      const rear = spec && spec.rearFill;
+      sc.add(new THREE.AmbientLight(0xaebccc, rear ? 2.6 : 1.8));
       const dl = new THREE.DirectionalLight(0xe8c07a, 1.6); dl.position.set(-3, 5, 4); sc.add(dl);
       const rim = new THREE.DirectionalLight(0xb06a35, 0.5); rim.position.set(2, 1, -4); sc.add(rim);
+      if (rear) {
+        const fill = new THREE.DirectionalLight(0xd0dce8, 1.3);
+        fill.position.set(1, 2, 12); sc.add(fill);
+      }
       return sc;
     }
     /** Camara FRONTAL, apenas por arriba: el mismo punto de vista con el que el juego ve venir a
@@ -162,6 +167,25 @@
       CYL(g, 0.30, 0.30, 0.3, '#1c211e', -0.58, 0.05, -1.45, 8);
       CYL(g, 0.30, 0.30, 0.3, '#1c211e', 0.58, 0.05, -1.45, 8);
       CYL(g, 0.30, 0.28, 0.4, dk, 0, 0, 2.4, 10);                        // tobera
+      return g;
+    }
+
+    // CAZA DESDE ATRAS: misma geometria + interior de tobera iluminado (ancla visual como
+    // el canopy lo es de frente). CircleGeometry mira +z = hacia la camara en rear.
+    function modelJetRear() {
+      const g = modelJet();
+      const glow = new THREE.Mesh(
+        new THREE.CircleGeometry(0.22, 10),
+        new THREE.MeshBasicMaterial({ color: '#e87040' })
+      );
+      glow.position.set(0, 0, 2.62);
+      g.add(glow);
+      const core = new THREE.Mesh(
+        new THREE.CircleGeometry(0.13, 8),
+        new THREE.MeshBasicMaterial({ color: '#ffc070' })
+      );
+      core.position.set(0, 0, 2.63);
+      g.add(core);
       return g;
     }
 
@@ -354,8 +378,8 @@
       // fuga del ala). Es la vista real de la COLA — el Harrier vuela en tu misma direccion y la
       // camara esta detras de los dos.
       jet_rear: {
-        fw: 64, fh: 48, dist: 16, lookY: 0.2, baseYaw: 0,
-        frames: [-30, -15, 0, 15, 30].map(a => ({ model: modelJet, roll: a * Math.PI / 180 })), cols: 5,
+        fw: 64, fh: 48, dist: 16, lookY: 0.2, baseYaw: 0, rearFill: true,
+        frames: [-30, -15, 0, 15, 30].map(a => ({ model: modelJetRear, roll: a * Math.PI / 180 })), cols: 5,
       },
       // caza EN VIRAJE (recola): 5 yaws de cola (0°) a frente (180°), con alabeo de la virada.
       // La recola es la vuelta en U: el Harrier pasa de volar adelante tuyo (cola) a volver por
@@ -429,7 +453,7 @@
         sheet.width = spec.fw * cols; sheet.height = spec.fh * rows;
         const x2 = sheet.getContext('2d');
         spec.frames.forEach((fr, i) => {
-          const sc = makeScene();
+          const sc = makeScene(spec);
           // capas de rotacion, de adentro hacia afuera: modelo (nariz -z) → volteo hacia la
           // camara (PI) + 3/4 opcional → pose (yaw/alabeo). Grupos separados: ver cabecera.
           const flip = new THREE.Group(); flip.rotation.y = (spec.baseYaw !== undefined ? spec.baseYaw : Math.PI) + (spec.quarter || 0);
