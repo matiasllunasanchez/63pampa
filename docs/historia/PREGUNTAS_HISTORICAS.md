@@ -612,3 +612,18 @@ Las respuestas valen más que cualquier tradición prestada.
 - **Volar de numeral.** El modo PERSECUCIÓN asume que seguir al líder era *la* habilidad:
   su línea esquiva todo y copiarla es leer el terreno con anticipación. ¿Se volaba así de
   pegado en las corridas a ras, o la formación se abría al entrar?
+
+## Poder LA CHANCHA (docs/sistemas/SPEC_PODER_CHANCHA.md) — dudas que abre
+
+- **El apodo.** El juego llama "la Chancha" al KC-130 reabastecedor. ¿Es el apodo real que
+  usaban los tripulantes/pilotos en el 82, o es licencia del guion? (El C-130 en la FAA
+  tiene apodos de esa familia; confirmar cuál corresponde al tanquero.)
+- **Los aviones.** Fueron dos KC-130H del Grupo 1 (matrículas TC-69 y TC-70). → Confirmar
+  matrículas y unidad exacta para cualquier placa futura.
+- **El episodio que inspira la escena del guion** (epílogo de "LA BOMBA QUE NO DESPERTÓ"):
+  un A-4 averiado y perdiendo combustible alimentado en continuo por el KC-130 hasta la
+  base. Hay un caso real documentado muy parecido (mayo del 82). → Confirmar fecha,
+  piloto y escuadrón para poder citarlo.
+- **Parámetros de la cita.** Altura y velocidad típicas del reabastecimiento KC-130 ↔ A-4
+  en 1982, y si TODOS los A-4B/C llevaban sonda fija (el juego asume que sí). El poder usa
+  valores de juego (perillas), pero si alguna placa histórica los menciona, confirmar.
