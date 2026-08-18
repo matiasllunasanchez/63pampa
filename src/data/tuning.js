@@ -374,7 +374,9 @@ export const SUN_GLINT_HALF = 26;   // semiancho del cono de destellos (unidades
 export const CAZA_SOL_T = 3.5;      // s de rumbo predecible que le lleva MADURAR la solucion de tiro
 export const CAZA_PASSES = 3;       // pasadas maximas antes de que se vaya (uno solo por vez: §6.2)
 export const CAZA_CAP_T = 45;       // s de estacion de la CAP: cumplido el reloj, se va (§2, el alivio)
-export const CAZA_WINDOW = 3;       // s que dura la ventana frontal, cuando queda adelante tuyo
+export const CAZA_WINDOW = 4.5;     // s que dura la ventana, cuando queda adelante tuyo mostrandote la
+                                    // COLA. Es TU turno de tirarle: 3 → 4.5 porque no dispara ahi y la
+                                    // unica razon de la fase es darte tiempo de apuntarle.
 // AHUYENTARLO es lo normal; DERRIBARLO es la hazaña. Ningun Harrier cayo en combate aire-aire
 // (§2), asi que el derribo sale tres veces mas caro que romperle el ataque.
 export const CAZA_HP = { ahuyenta: 6, derribo: 18 };
@@ -400,46 +402,23 @@ export const CAZA_SALIDA_T = 2.2;   // s de la huida final, para que la salida s
 // GEOMETRIA del duelo, en unidades de MUNDO (la misma z que obstaculos y balas; el avion vuela en
 // PZ = 14). Tambien fuera del §3: son las posiciones que hacen legible la coreografia.
 export const CAZA_Z_COLA = 6;       // z del caza mientras presiona: DETRAS tuyo (PZ es 14)
+export const CAZA_Z_LEJOS = 320;    // z del horizonte del duelo: por ahi ENTRA de frente y por ahi se va
+                                    // de cola. Todo el ciclo pasa entre esta z y CAZA_Z_COLA.
 // z donde queda tras el sobrepaso. 118 → 62 mirando la captura de la ventana, que salio VACIA: a
 // 118 la escala es 1,14 y el caza medía 12 px pegado a la linea del horizonte, entre las montañas.
 // La ventana es la fase en la que te toca tirarle A EL — un blanco que no se ve no es una ventana,
 // es un hueco. A 62 mide 24 px y se despega del horizonte, que es lo minimo para apuntarle.
 export const CAZA_Z_FRENTE = 62;
 export const CAZA_X_COLA = 26;      // cuanto se abre de tu carril mientras presiona (asoma por el borde)
-export const CAZA_MISS = 7;         // a cuanto de tu ala pasan las trazadoras: cerca para que asuste,
-                                    // lejos para que se lea que PASARON y no que te pegaron
 
-// LAS TRAZADORAS QUE TE PASAN DE LARGO (H1). Son el tell canonico del §1: el aviso llega ANTES que
-// el avion, y son el UNICO aviso garantizado cuando la radio no llega (§2). Van rapido y en
-// rafagas cortas y espaciadas: un chorro continuo se lee como decorado y deja de asustar.
-export const CAZA_TRAC_V = 340;     // velocidad propia hacia adelante (se ve CRUZAR, no flotar)
-export const CAZA_TRAC_N = [5, 8];  // proyectiles por rafaga
-// 1.1-2.2 → 0.7-1.4 mirando las capturas: una rafaga tarda ~0.8 s en cruzar de punta a punta, asi
-// que con el hueco viejo la pantalla quedaba VACIA mas de la mitad del tiempo y el tell no se leia
-// (en la captura de las trazadoras no habia ni una). El aviso tiene que ser continuo o no es aviso.
-export const CAZA_TRAC_GAP = [0.7, 1.4];  // s entre rafagas
-
-// LOS DIENTES (H2). El §3 paso 2 dice "si madura: rafaga que te alcanza → averia o muerte" y no da
-// numeros. Estos son los elegidos, y todos responden a la MISMA pregunta: ¿como se hace que te
-// mate sin que se sienta injusto? La respuesta del §1 es la de todo el juego — LA SOGA SE ESQUIVA.
-// La rafaga letal no te pega en el instante en que sale: viaja, y mientras viaja todavia podes
-// quebrar. Es la misma lectura que la estela de los misiles, con otro dibujo.
+// EL HARRIER NO DISPARA. Aca vivian las trazadoras de aviso (CAZA_TRAC_*, CAZA_MISS) y la rafaga
+// letal (CAZA_LET_*, CAZA_GOLPE_CD, CAZA_FRONT_CD), y se borraron todas con el fuego. El porque
+// esta en el encabezado de systems/caza.js: te mataba antes de que llegaras a verlo.
 export const CAZA_SOL_AVISO = 0.72;  // fraccion de solucion en la que la radio grita QUEBRA (§2: el
-                                     // aviso es humano; en un duelo mudo esto no suena y solo ves fuego)
-export const CAZA_LET_N = [3, 5];    // proyectiles de la rafaga que SI viene a darte (mas corta que
-                                     // la de aviso: es un tiro apuntado, no fuego de saturacion)
-export const CAZA_LET_V = 210;       // mas LENTA que la de aviso (340), pero NO para poder esquivarla:
-                                     // de la cola a tu z hay 8 unidades y a cualquier velocidad eso son
-                                     // centesimas. La ventana de esquive es el GRITO (CAZA_SOL_AVISO), que
-                                     // llega casi un segundo antes. Va lenta para que se la VEA irse
-                                     // adelante tuyo: es como se entiende que esas venian con tu nombre.
-export const CAZA_LET_RX = 3.2;      // semiancho del impacto en x (el avion mide ~4 de envergadura util)
-export const CAZA_LET_RY = 2.6;      // idem en y
-export const CAZA_GOLPE_CD = 0.6;    // s de veda tras un impacto: una RAFAGA cobra UN golpe, no uno
-                                     // por proyectil. Sin esto los 3-5 tiros de la misma rafaga
-                                     // entraban de a uno y un solo pase te bajaba el avion entero.
-export const CAZA_SOL_POST = 0.3;    // a cuanto vuelve la solucion despues de tirar: no arranca de cero
-                                     // (sigue prendido de tu cola) pero te da aire para reaccionar
+                                     // aviso es humano; en un duelo mudo esto no suena). Ya no
+                                     // anuncia balas: anuncia que se te esta pegando al carril.
+export const CAZA_SOL_POST = 0.3;    // a cuanto vuelve la solucion cuando se completa: no arranca de
+                                     // cero (sigue prendido de tu cola) pero te da aire para reaccionar
 
 // EL CONTRAATAQUE (H3). La ventana frontal es tu turno y estos son sus numeros.
 export const CAZA_HIT_RX = 5.6;      // caja de impacto de tus balas contra el caza. Es la MISMA que usa
@@ -454,15 +433,33 @@ export const CAZA_PTS = {
 // gratis, porque una pirueta que no aprendiste no se puede ejecutar.
 export const CAZA_MV_FUERZA = ['breakt', 'jink', 'sturn'];
 
+// MISILES RASTREADORES (desde la cola). La solucion de tiro madura igual que antes, pero en vez de
+// la rafaga letal sale un MISIL lento que el jugador ve acercarse y esquiva con una pirueta. Asi la
+// presion trasera es esquivable visualmente (en vez de morir por algo que no ves) y el daño real
+// viene de frente, donde el intercambio es justo.
+export const CAZA_MSL_VZ = 5;          // velocidad z (lento a proposito: se tiene que VER venir)
+export const CAZA_MSL_TURN = 18;       // aceleracion lateral de tracking (u/s²)
+export const CAZA_MSL_VMAX = 10;       // velocidad lateral maxima (u/s)
+export const CAZA_MSL_LIFE = 4;        // s de vida (se apaga si no llega)
+export const CAZA_MSL_RX = 4.0;        // semiancho del impacto x
+export const CAZA_MSL_RY = 3.2;        // semialto del impacto y
+
 // EL REGLAMENTO (H4). Cuando APARECE el duelo, que es una decision de nivel y no del duelo.
-export const CAZA_DIR_D0 = 420;      // m de vuelo antes del primer duelo posible: nadie te embosca
-                                     // en el despegue, y ademas hace falta ver el pasillo primero
-export const CAZA_DIR_JETS = 3;      // jets de frente que tienen que haberte pasado antes del primer
-                                     // duelo: el Harrier te toma la cola DESPUES de que ya viste varios
-                                     // venir de frente — la escalada es el frente primero, la cola despues
+//
+// LAS TRES PUERTAS SE ABRIERON, y el motivo es medido: con 420 m + 3 jets + 8-16 s de espera, el
+// duelo casi nunca llegaba a armarse — te morias en el pasillo antes, y el Harrier era contenido
+// que nadie veia. Un bicho que no aparece no se tunea: se abarata hasta que aparece.
+export const CAZA_DIR_D0 = 200;      // m de vuelo antes del primer duelo posible: nadie te embosca
+                                     // en el despegue. 420 → 200 (sigue muy por encima del despegue)
+export const CAZA_DIR_JETS = 1;      // jets de frente que tienen que haberte pasado antes del primer
+                                     // duelo: el Harrier te toma la cola DESPUES de haber visto uno
+                                     // venir de frente. 3 → 1: la escalada se conserva, la espera no
 export const CAZA_DIR_FIN = 520;     // m antes del objetivo en los que YA no arranca: el ultimo tramo
                                      // es del climax (misma idea que ENTRY_CLEAR_M de la PASADA)
-export const CAZA_DIR_GAP = [55, 95];  // s entre duelos (se acorta con la intensidad)
+export const CAZA_DIR_INIT = [5, 9]; // s de espera antes del PRIMER duelo (corto: los gates D0 y JETS
+                                      // ya garantizan que no te caiga encima de entrada)
+export const CAZA_DIR_GAP = [18, 32]; // s entre duelos (se acorta con la intensidad)
+export const CAZA_DIR_MAX = 4;        // Harriers simultaneos — se acumulan hasta este tope
 export const CAZA_MUDO_P = [0, 0.3, 0.5];  // probabilidad de duelo SIN aviso por radio, por intensidad.
                                      // §2: sin radar ni RWR el aviso es de Condor o de un Fiel, y a
                                      // veces no llega. En intensidad 2 (clima cerrado, noche) casi la mitad.

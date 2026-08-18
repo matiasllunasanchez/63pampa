@@ -1,24 +1,11 @@
-// EL DIBUJO DE LA COLA: el Harrier del duelo y las trazadoras que te pasan de largo.
+// EL DIBUJO DE LA COLA: los Harriers del duelo, su humo y su estela. Proyectiles NO — el Harrier
+// no dispara (el porque esta en el encabezado de systems/caza.js).
 //
-// Plan: docs/sistemas/PLAN_HARRIERS_PERSECUCION.md, PLAN A · fase H1 (el pase fantasma). La logica
-// vive en systems/caza.js; aca solo se LEE su snapshot y se pinta (convencion 4 de ARQUITECTURA).
+// Plan: docs/sistemas/PLAN_HARRIERS_PERSECUCION.md, PLAN A. La logica vive en systems/caza.js;
+// aca solo se LEE su snapshot y se pinta (convencion 4 de ARQUITECTURA).
 //
-// EL CRITERIO DE H1 ES UNA MIRADA MUDA: se tiene que entender el ciclo sin leer un solo cartel.
-// Las tres cosas que lo cuentan, y ninguna es texto:
-//   1. las TRAZADORAS cruzan de atras hacia adelante y se pierden en el horizonte — algo te esta
-//      tirando desde donde no mirás;
-//   2. el SOBREPASO llega enorme por un costado y se va achicando adelante — el que estaba atras
-//      ahora esta adelante, y eso es tu turno;
-//   3. la SALIDA se aleja hasta ser un punto — se fue, y se ve irse.
-//
-// ORDEN DEL PINTOR: el caza cruza de z 6 (detras tuyo, mas cerca de la camara que el propio avion)
-// a z 118 (lejos, adelante). No hay una sola capa correcta, asi que se dibuja en DOS pasadas y
-// game.js decide: `drawCaza(true)` va con el mundo, antes del avion; `drawCaza(false)` va despues,
-// para lo que quedo mas cerca que el avion. Ver el llamado en draw().
-//
-// ARTE: tres hojas horneadas — `jet` (de frente), `jet_rear` (de cola) y `jet_turn` (viraje de la
-// recola). Si alguna no cargo, la cadena cae al escalon siguiente (rear → jet oscurecido, turn →
-// rear → jet) y al final a la silueta a mano (regla P2).
+// MULTIPLES HARRIERS: snapshot() devuelve un ARRAY de Harriers. Cada uno trae `deFrente` ya
+// resuelto por el sistema: false => jet_rear (le ves la cola), true => jet (te encara).
 
 import { ctx, px, PZ } from './ctx.js';
 import { proj } from '../core/fx.js';
@@ -26,56 +13,11 @@ import { P } from '../data/palette.js';
 import * as enemyArt from './enemies.js';
 import { snapshot } from '../systems/caza.js';
 
-// del nucleo encendido al rescoldo, como las trazadoras del jugador (render/ammo.js) pero mas
-// frias: son ajenas, y el ojo tiene que poder distinguir de un vistazo cual chorro es tuyo
-const HOT = ['#fdfefe', '#d8ecff', '#9ec8f0', '#5f8fc0'];
-// LAS QUE VIENEN A DARTE SON DE OTRO COLOR (H2), y es la unica señal que las distingue. El §6.1
-// prohibe el recuadro de fijado y el tono de lock-on, asi que el aviso de "esta le apunto a vos"
-// tiene que estar en la cosa misma: las de aviso son frias y ajenas, estas son ROJAS y crecen. Es
-// el mismo idioma que el juego ya habla con la soga de humo de los misiles — se lee el rastro, no
-// el proyectil.
-const LET = ['#fff2d8', '#ffcf62', '#f2662a', '#a8331a'];
-
-// RESPALDO para cuando `jet_rear` no cargo: el jet de frente oscurecido y angostado. Un avion
-// visto desde atras es mas angosto (no se le ve la envergadura entera) y esta a contraluz.
 const PH_DARK = 0.5, PH_SQUASH = 0.74;
 
-/** Una trazadora ajena: cabeza encendida y cola corta muestreada hacia atras en z. Misma tecnica
- *  que render/ammo.js — la perspectiva y el enfriado salen solos y todo es px() entero. */
-// LA COLA ES LARGA A PROPOSITO. La primera version muestreaba 3 tramos de 3 unidades y a media
-// distancia cada trazadora quedaba en un pixel suelto: se leia como caspa sobre el mar, no como
-// algo que cruza. Un proyectil que va a 340 unidades por segundo recorre 5,7 por CUADRO — la
-// estela tiene que abarcar varios cuadros de vuelo o no hay linea que ver. Con 7 tramos de 5,5 la
-// traza mide 38 unidades de mundo y se lee como un rayo aunque este a 150 de distancia.
-const TRAC_N = 7, TRAC_Z = 5.5;
+// NO HAY TRAZADORAS. El Harrier no dispara (ver el encabezado de systems/caza.js), asi que el
+// dibujo de proyectiles se fue con ellas: en `fx` solo quedan humo y estela.
 
-function drawTrac(f) {
-  const C = f.letal ? LET : HOT;
-  // la letal es mas GORDA ademas de mas roja: viene mas lenta y mas cerca, y si se leyera igual
-  // que las de aviso el jugador no tendria como saber cual de los dos chorros lo va a matar
-  const gordo = f.letal ? 1.7 : 1;
-  for (let i = TRAC_N; i >= 1; i--) {
-    const z = f.z - i * TRAC_Z * (f.letal ? 0.6 : 1);   // la letal va mas lenta: su traza es mas corta
-    if (z <= 1.5) continue;
-    const p = proj(f.x, f.y, z);
-    const w = Math.max(1, Math.round(p.k * 0.1 * gordo));
-    ctx.globalAlpha = 0.75 * (1 - i / (TRAC_N + 2));
-    px(p.x - w / 2, p.y - w / 2, w, w, C[Math.min(C.length - 1, i >> 1)]);
-  }
-  ctx.globalAlpha = 1;
-  const s = proj(f.x, f.y, f.z);
-  // la CABEZA nunca baja de 2 px: es el punto que dice donde esta el proyectil ahora, y si se
-  // hace de 1 px se pierde contra las motas del mar (que son de 1 px)
-  const w = Math.max(2, Math.round(s.k * 0.17 * gordo));
-  ctx.globalAlpha = 0.5;
-  px(s.x - w / 2 - 1, s.y - w / 2 - 1, w + 2, w + 2, C[2]);   // halo: sin el, lejos no existe
-  ctx.globalAlpha = 1;
-  px(s.x - w / 2, s.y - w / 2, w, w, C[0]);
-}
-
-/** LA COLUMNA DE HUMO del Harrier averiado (H3). Es el premio visible del contraataque: se lee de
- *  lejos, no dice nada y no se puede confundir con otra cosa. Se pinta oscuro sobre el mar claro y
- *  se va abriendo con la edad, como el humo de verdad. */
 function drawHumo(f) {
   const s = proj(f.x, f.y, f.z);
   const edad = 1 - Math.min(1, f.life / 2.2);
@@ -85,8 +27,6 @@ function drawHumo(f) {
   ctx.globalAlpha = 1;
 }
 
-/** El aire sucio que queda donde te cruzo. No es humo: es la marca de que ahi paso algo, y su
- *  trabajo es que el sobrepaso siga contando un segundo despues de que el caza ya no esta. */
 function drawEstela(f) {
   const s = proj(f.x, f.y, f.z);
   const w = Math.max(1, s.k * f.r * 0.5);
@@ -95,30 +35,21 @@ function drawEstela(f) {
   ctx.globalAlpha = 1;
 }
 
-/** El caza. Tres hojas por orden de prioridad:
- *  - `jet_turn`: VIRAJE (recola) — 5 yaws de cola (0°) a frente (180°) con banqueo
- *  - `jet_rear`: COLA — la vista real de la tobera y la deriva
- *  - `jet`: FRENTE — el sprite que siempre estuvo, ahora solo para ventana y salida
- *  Cada hoja cae al siguiente escalon si no cargo, y al final a la silueta a mano. */
-function drawCazaSprite(C) {
-  const s = proj(C.x, C.y, C.z);
+function drawCazaSprite(H) {
+  const s = proj(H.x, H.y, H.z);
   const k = s.k;
-  const cola = C.z < PZ + 8;
+  // QUIEN DECIDE ESTO ES EL SISTEMA (convencion 4): `deFrente` sale del snapshot. Aca no se
+  // adivina por fase ni por z — asi no vuelve a darse vuelta el sprite justo antes del horizonte.
+  const trasero = !H.deFrente;
 
-  if (C.fase === 'recola' && enemyArt.ready('jet_turn')) {
-    const f = Math.min(1, C.t / C.dur);
-    const cols = enemyArt.SHEETS.jet_turn.cols;
-    const col = Math.max(0, Math.min(cols - 1, Math.round(f * (cols - 1))));
-    const espejo = C.lado < 0;
-    enemyArt.drawFrame(ctx, 'jet_turn', col, 0, s.x, { centerY: s.y }, k, espejo, false, 0);
-  } else if (cola && enemyArt.ready('jet_rear')) {
+  if (trasero && enemyArt.ready('jet_rear')) {
     const cols = enemyArt.SHEETS.jet_rear.cols;
-    const col = Math.max(0, Math.min(cols - 1, Math.round((C.lado * 0.5 + 0.5) * (cols - 1))));
+    const col = Math.max(0, Math.min(cols - 1, Math.round((H.lado * 0.5 + 0.5) * (cols - 1))));
     enemyArt.drawFrame(ctx, 'jet_rear', col, 0, s.x, { centerY: s.y }, k, false, false, 0);
   } else if (enemyArt.ready('jet')) {
     const cols = enemyArt.SHEETS.jet.cols;
-    const col = Math.max(0, Math.min(cols - 1, Math.round((C.lado * 0.5 + 0.5) * (cols - 1))));
-    if (cola) {
+    const col = Math.max(0, Math.min(cols - 1, Math.round((H.lado * 0.5 + 0.5) * (cols - 1))));
+    if (trasero) {
       ctx.save();
       ctx.translate(s.x, 0);
       ctx.scale(PH_SQUASH, 1);
@@ -126,14 +57,14 @@ function drawCazaSprite(C) {
       ctx.restore();
     } else enemyArt.drawFrame(ctx, 'jet', col, 0, s.x, { centerY: s.y }, k, false, false, 0);
   } else {
-    const c = cola ? '#1b2228' : P.bodyDark;
+    const c = trasero ? '#1b2228' : P.bodyDark;
     px(s.x - 4.2 * k, s.y - 0.4 * k, 8.4 * k, 0.8 * k, c);
     px(s.x - 1 * k, s.y - 1.4 * k, 2 * k, 2.8 * k, c);
     px(s.x - 0.35 * k, s.y - 2.8 * k, 0.7 * k, 1.5 * k, c);
-    if (!cola) px(s.x - 0.6 * k, s.y - 0.9 * k, 1.2 * k, 0.8 * k, P.canopy);
+    if (!trasero) px(s.x - 0.6 * k, s.y - 0.9 * k, 1.2 * k, 0.8 * k, P.canopy);
   }
-  if (cola) {
-    const fl = 0.7 + Math.sin(C.t * 34) * 0.3;
+  if (trasero) {
+    const fl = 0.7 + Math.sin(H.t * 34) * 0.3;
     ctx.globalAlpha = 0.65;
     px(s.x - 0.5 * k * fl, s.y - 0.2 * k, k * fl, Math.max(1, 0.55 * k), '#f0954a');
     ctx.globalAlpha = 1;
@@ -141,19 +72,17 @@ function drawCazaSprite(C) {
   }
 }
 
-/** UN CUADRO del duelo. `lejos` = la pasada que va CON el mundo (todo lo que esta mas lejos que el
- *  avion); `!lejos` = la que va DESPUES del avion, para lo que quedo mas cerca que el. Las
- *  trazadoras se reparten por el mismo criterio, asi que una que te pasa por al lado se dibuja
- *  encima del ala y no debajo. */
+/** UN CUADRO de la flota. `lejos` = la pasada que va CON el mundo (todo lo que esta mas lejos que
+ *  el avion); `!lejos` = la que va DESPUES del avion. */
 export function drawCaza(lejos) {
-  const C = snapshot();
-  if (!C) return;
+  const fleet = snapshot();
   const corte = PZ;
-  for (const f of C.fx) {
-    if ((f.z > corte) !== !!lejos) continue;
-    if (f.k === 'trac') { if (!(f.wait > 0)) drawTrac(f); }
-    else if (f.k === 'humo') drawHumo(f);
-    else drawEstela(f);
+  for (const H of fleet) {
+    for (const f of H.fx) {
+      if ((f.z > corte) !== !!lejos) continue;
+      if (f.k === 'humo') drawHumo(f);
+      else drawEstela(f);
+    }
+    if ((H.z > corte) === !!lejos && H.z > 1.5) drawCazaSprite(H);
   }
-  if ((C.z > corte) === !!lejos && C.z > 1.5) drawCazaSprite(C);
 }

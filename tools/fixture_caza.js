@@ -92,18 +92,27 @@ app.whenReady().then(async () => {
   let d = await C();
   if (!d) { console.error('   ✗ ?caza no armo el duelo'); app.exit(1); return; }
   ok(`el duelo esta armado · fase ${d.fase} · pasada ${d.pase} · CAP ${d.capT} s`);
-  if (d.z >= d.pz) bad(`arranca ADELANTE tuyo (z ${d.z} contra tu ${d.pz}): tiene que tomarte la COLA`);
-  else ok(`esta en tu COLA: z ${d.z} contra tu z ${d.pz}`);
+  // ENTRA DE FRENTE desde el horizonte, te cruza y RECIEN AHI te toma la cola. Lo que se mide es
+  // donde TERMINA el acercamiento, que es lo que le da los dientes: z por debajo de la tuya.
+  await js(`__czfase('presion')`);
+  await sleep(4500);
+  d = await C();
+  if (d.z >= d.pz) bad(`no llego a tomarte la COLA (z ${d.z} contra tu ${d.pz})`);
+  else ok(`te cruzo y quedo en tu COLA: z ${d.z} contra tu z ${d.pz}`);
   await shot('h1_a_presion');
 
-  // ---------- 2. H1 — LAS TRAZADORAS LLEGAN ANTES QUE EL AVION ----------
-  console.log('\n2. H1 — el aviso llega ANTES que el avion (§1, el tell canonico):');
-  // se fuerza la presion y se deja correr: lo que tiene que haber en pantalla son trazadoras
-  await js(`__czfase('presion')`);
-  await sleep(2500);
+  // ---------- 2. H1 — EL TELL AHORA ES EL AVION MISMO ----------
+  // Ya no hay trazadoras de aviso: el tell es que lo VES entrar de frente y crecer. Se mide que en
+  // el arranque este LEJOS y encarandote — que es lo que lo hace un aviso y no una emboscada.
+  console.log('\n2. H1 — el aviso ES el avion: entra de frente por el horizonte:');
+  await js('__czfin()');
+  await js('__czstart({ mudo: 1, manso: 1 })');
+  await sleep(200);
   d = await C();
-  ok(`presionando desde la cola: fase ${d.fase}, z ${d.z}`);
-  await shot('h1_b_trazadoras');
+  if (!d) bad('no se armo el duelo');
+  else if (!(d.z > 200 && d.frente)) bad(`no entra de frente y lejos (z ${d.z}, frente ${d.frente})`);
+  else ok(`ENTRA POR EL HORIZONTE y encarandote: z ${d.z}, de frente`);
+  await shot('h1_b_entrada');
 
   // ---------- 3. LA SOLUCION DE TIRO MADURA CON EL RUMBO PREDECIBLE ----------
   // H1 no cobra nada todavia (los dientes son H2), pero el numero YA se mide: es lo que va a
@@ -176,18 +185,17 @@ app.whenReady().then(async () => {
 
   // ---------- 7. EL CICLO COMPLETO, SIN AYUDA ----------
   // Lo anterior salta de fase para poder fotografiar; esto lo deja correr SOLO y anota por donde
-  // pasa. Es la unica prueba de que el ciclo del §3 se encadena de verdad.
+  // pasa. Ahora el ciclo es INFINITO (no se va solo), asi que se lo deja 30 s y se mira que fases
+  // toco — tiene que llegar a recola (la vuelta) ademas de las cuatro de siempre.
   console.log('\n7. el ciclo del §3 corre SOLO y se encadena:');
-  // MANSO otra vez, y aca la razon es especialmente clara: dejar correr el ciclo entero volando
-  // recto es exactamente la receta para que la primera rafaga te mate a los 4 segundos. Lo que se
-  // mide es que las fases se ENCADENEN, y para eso hay que llegar vivo hasta la ultima.
   await js('__czfin()');
   await js('__czstart({ manso: 1 })');
   const visto = [];
   for (let i = 0; i < 120; i++) {
     const s = await C();
     if (s && visto[visto.length - 1] !== s.fase) visto.push(s.fase);
-    if (!s && visto.length) break;
+    // el ciclo ya no termina solo: cortamos cuando vimos todas las fases
+    if (visto.includes('recola') && visto.length >= 5) break;
     await sleep(250);
   }
   console.log('      recorrido: ' + visto.join(' → '));
@@ -196,14 +204,14 @@ app.whenReady().then(async () => {
     else bad(`nunca llego a la fase ${f}`);
   }
 
-  // ---------- 8. EL §6: LO QUE NO TIENE QUE PASAR ----------
-  console.log('\n8. §6 — lo que el duelo NO hace:');
-  // con un duelo YA corriendo (si el de arriba se termino, se arma uno): el §6.2 no dice "no se
-  // puede armar", dice UNO POR VEZ, y sin el primero la prueba no probaria nada
+  // ---------- 8. MULTIPLES HARRIERS SE ACUMULAN ----------
+  console.log('\n8. la flota se acumula:');
+  await js('__czfin()');
   await js('__czstart({ manso: 1 })');
-  const dos = await js('__czstart({})');
-  if (dos === true) bad('se armo un SEGUNDO Harrier: el §6.2 dice UNO por vez');
-  else ok('UN solo Harrier: un segundo start() no arma nada (§6.2)');
+  await js('__czstart({ manso: 1 })');
+  const n8 = await js('JSON.parse(__czdbg()).n');
+  if (n8 >= 2) ok(`se armaron ${n8} Harriers simultaneos: la flota se acumula`);
+  else bad(`solo hay ${n8} Harrier: start() deberia poder apilar varios`);
 
   // ---------- 9. H2 — LA SOLUCION DE TIRO, LAS TRES REGLAS ----------
   // Es el criterio de cierre textual de H2: "recto te alcanza; quebrando sobrevivis; a ras casi no
@@ -251,35 +259,55 @@ app.whenReady().then(async () => {
   if (!(q1 < q0)) bad(`quebrando la solucion no baja (${q0} → ${q1}): la maniobra no salva`);
   else ok(`QUEBRANDO se la borras: ${q0} → ${q1}`);
 
-  // ---------- 10. H2 — LA RAFAGA LETAL VIAJA (y por eso se esquiva) ----------
-  // ESTE ES EL CRITERIO DE CIERRE DE H2 — "recto te alcanza" — y se prueba de punta a punta: se deja
-  // la solucion casi madura, se vuela recto, y lo que tiene que pasar es que el avion SALGA TOCADO.
-  // Corre en modelo 'integ' (el A-4 aguanta y se degrada) por una razon de metodo: en 'squad' un
-  // toque te tira, la partida se va a la pantalla de derribado y no queda nada que medir despues.
-  // El impacto es el mismo — lo que cambia es que se lo puede leer.
-  console.log('\n10. H2 — la rafaga que SI viene a darte (el criterio de cierre: recto te alcanza):');
+  // ---------- 10. EL HARRIER NO TE DISPARA ----------
+  // La regla dura del sistema, y la razon de que exista este test: el Harrier NO ataca, en ninguna
+  // fase. Antes te mataba desde lejos en el acercamiento y te morias sin haber llegado a verlo.
+  // Se lo deja correr un ciclo ENTERO (entrada de frente, cruce, sobrepaso, ventana, recola) con la
+  // altura y el rumbo clavados, y la integridad no se tiene que mover un punto.
+  //
+  // SI ALGUN DIA VUELVE A TENER DIENTES, este es el test que hay que reescribir a mano — a
+  // proposito. No es un detalle de tuneo: es la decision de diseño, y tiene que doler cambiarla.
+  console.log('\n10. el Harrier NO te dispara: un ciclo entero sin tocarte:');
   await js('__czfin()');
   await js(`__czmodo('integ')`);
-  const i0 = await js('__czinteg()');
-  await js('__czstart({ mudo: 1 })');
-  await js(`__czfase('presion')`);
   await js('__czalto(30)');
-  await js('__czsol(0.98)');
-  // CORTO Y AL GRANO: 280 ms alcanzan para que la rafaga salga, cruce tu z y se cobre UN impacto,
-  // y no alcanzan para la segunda. Es a proposito — con la solucion madura y el avion clavado
-  // recto, dejarlo correr un segundo entero son tres impactos, o sea el avion en el piso y nada
-  // que medir despues. El fixture necesita al avion VIVO para las secciones que siguen.
-  await sleep(280);
-  const letales = await js('__czletales()');
-  const i1 = await js('__czinteg()');
-  await js('__czfin()');   // se corta el duelo antes de la segunda rafaga
-  if (!letales) bad('la solucion maduro y no salio ninguna rafaga letal');
-  else ok(`salieron ${letales} proyectiles APUNTADOS (los de aviso pasan lejos del ala; estos no)`);
-  if (!(i1 < i0)) bad(`volando RECTO y ALTO con la solucion madura no te toco (integridad ${i0} → ${i1})`);
-  else ok(`RECTO Y ALTO TE ALCANZA: integridad ${i0} → ${i1}`);
-  await shot('h2_a_letal');
+  await js('__czstart({ mudo: 1 })');
+  const n0 = await js('__czinteg()');
+  const ciclo = [];
+  for (let i = 0; i < 60; i++) {
+    const s = await C();
+    if (s && ciclo[ciclo.length - 1] !== s.fase) ciclo.push(s.fase);
+    if (ciclo.includes('recola')) break;
+    await sleep(400);
+  }
+  const n1 = await js('__czinteg()');
+  await js('__czfin()');
+  console.log('      recorrido: ' + ciclo.join(' → '));
+  if (!ciclo.includes('recola')) bad(`el ciclo no llego a recola (${ciclo.join(' → ')}): no se midio nada`);
+  else if (n1 < n0) bad(`te saco integridad durante el ciclo (${n0} → ${n1}): el Harrier NO tiene que disparar`);
+  else ok(`CICLO ENTERO SIN UN RASGUÑO: integridad ${n0} → ${n1}`);
+  await shot('h2_a_sin_fuego');
   await js(`__czmodo('squad')`);
   await js('__czalto(null)');
+
+  // ---------- 10b. DE QUE LADO SE LO VE ----------
+  // La regla del sprite en una linea: de frente mientras VIENE, de cola desde el sobrepaso hasta
+  // el horizonte. Es lo que se veia mal — el caza se daba vuelta justo antes de desaparecer.
+  console.log('\n10b. de que lado se lo ve, fase por fase:');
+  await js('__czfin()');
+  await js('__czstart({ mudo: 1, manso: 1 })');
+  for (const [f, esperado] of [['aviso', true], ['presion', true],
+    ['sobrepaso', false], ['ventana', false], ['recola', false], ['salida', false]]) {
+    await js(`__czfase('${f}')`);
+    await sleep(120);
+    const s = await C();
+    const vis = esperado ? 'DE FRENTE' : 'DE COLA';
+    if (!s) bad(`${f}: el duelo se corto`);
+    else if (s.frente !== esperado) bad(`${f}: se lo ve ${s.frente ? 'DE FRENTE' : 'DE COLA'} y tenia que ser ${vis}`);
+    else ok(`${f}: ${vis}`);
+    await shot('lado_' + f);
+  }
+  await js('__czfin()');
 
   // ---------- 11. H3 — EL CONTRAATAQUE ----------
   // La ventana frontal es tu turno: se le tira desde la sonda y tiene que acumular impactos,
@@ -341,10 +369,10 @@ app.whenReady().then(async () => {
   // respuesta correcta a cada una es "no armes nada".
   console.log('\n13. H4 — el reglamento: las puertas del director:');
   const puertas = [
-    ['intensidad 0 (m1: el tutorial no se pelea)', '{ intensidad: 0, dist: 9000, meta: 0, ciego: false }'],
-    ['los primeros metros (nadie te embosca en el despegue)', '{ intensidad: 2, dist: 50, meta: 0, ciego: false }'],
-    ['el tramo final antes del objetivo (es del climax)', '{ intensidad: 2, dist: 2900, meta: 3000, ciego: false }'],
-    ['adentro del banco de niebla (a ciegas no es dificil, es una moneda)', '{ intensidad: 2, dist: 9000, meta: 0, ciego: true }'],
+    ['intensidad 0 (m1: el tutorial no se pelea)', '{ intensidad: 0, dist: 9000, meta: 0, ciego: false, jets: 99 }'],
+    ['los primeros metros (nadie te embosca en el despegue)', '{ intensidad: 2, dist: 50, meta: 0, ciego: false, jets: 99 }'],
+    ['el tramo final antes del objetivo (es del climax)', '{ intensidad: 2, dist: 2900, meta: 3000, ciego: false, jets: 99 }'],
+    ['adentro del banco de niebla (a ciegas no es dificil, es una moneda)', '{ intensidad: 2, dist: 9000, meta: 0, ciego: true, jets: 99 }'],
   ];
   for (const [nombre, ctx] of puertas) {
     await js('__czfin()');
@@ -354,12 +382,19 @@ app.whenReady().then(async () => {
   }
   // y con todo en verde, SI aparece — si no, las puertas de arriba no probarian nada
   await js('__czfin()');
-  const armoOk = await js(`__czdir({ intensidad: 1, dist: 9000, meta: 0, ciego: false }, 400)`);
+  const armoOk = await js(`__czdir({ intensidad: 1, dist: 9000, meta: 0, ciego: false, jets: 99 }, 400)`);
   if (!armoOk) bad('con todas las condiciones dadas el director NO arma ningun duelo: las puertas de arriba no prueban nada');
   else ok('con el pasillo abierto y la mision en intensidad 1, SI aparece');
+  // Y QUE APAREZCA TEMPRANO, que es el motivo de haber abierto las puertas: con las viejas (420 m
+  // de vuelo y 3 jets vistos) el duelo casi nunca llegaba a armarse — te morias antes y el Harrier
+  // era contenido que nadie veia. Este contexto es el de un pasillo real al minuto de vuelo.
+  await js('__czfin()');
+  const temprano = await js(`__czdir({ intensidad: 1, dist: 250, meta: 12000, ciego: false, jets: 1 }, 400)`);
+  if (!temprano) bad('con 250 m y UN jet visto todavia no arranca: el duelo sigue llegando tarde');
+  else ok('con 250 m recorridos y UN jet visto YA aparece: el duelo llega a jugarse');
   // el techo por mision: en campaña (meta finita) la intensidad ES cuantos duelos hay
   await js('__czfin()');
-  const techo = await js(`__czdirN({ intensidad: 1, dist: 9000, meta: 12000, ciego: false }, 6)`);
+  const techo = await js(`__czdirN({ intensidad: 1, dist: 9000, meta: 12000, ciego: false, jets: 99 }, 6)`);
   if (techo !== 1) bad(`en campaña con intensidad 1 se armaron ${techo} duelos: el techo por mision es la intensidad`);
   else ok('en campaña el techo de duelos ES la intensidad: intensidad 1 → un solo duelo por mision');
   await js('__czfin()');

@@ -908,11 +908,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     })();
     // SONDA DE LA COLA (PLAN_HARRIERS_PERSECUCION §3, fase H0) — QUITAR al cerrar el plan.
     //   ?caza          arma UN duelo apenas arranca el pasillo, con aviso por radio.
-    //   ?caza=mudo     el mismo duelo SIN aviso (el canon del §2: a veces la radio no llega, y
-    //                  las trazadoras pasando son el unico aviso garantizado).
-    //   ?caza=manso    el PASE FANTASMA de H1: el duelo entero SIN rafagas letales. Es para poder
-    //                  mirar la coreografia sin morirse mientras se la mira — se pueden combinar
-    //                  (?caza=mudo,manso). En una partida de verdad no se usa nunca.
+    //   ?caza=mudo     el mismo duelo SIN aviso por radio (el canon del §2: a veces no llega).
+    //   ?caza=manso    INERTE. Apagaba las rafagas letales, y el Harrier ya no dispara nunca (ver
+    //                  el encabezado de systems/caza.js). Se acepta todavia porque las sondas y
+    //                  las capturas viejas lo pasan; no cambia nada.
     // Sin el parametro, cazaProbe es null y nada cambia. El duelo TAMBIEN se arma a mano con
     // __czstart() desde la consola, que es lo que usan las capturas.
     const cazaProbe = (() => {
@@ -1585,7 +1584,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // pidiendo algo, asi los dos conviven sin que el que esta quieto pise al otro.
       stepHorizon(dt, inp.rollAx || (inp.rollR ? 1 : 0) - (inp.rollL ? 1 : 0));
       stepRain(dt);   // igual que el horizonte: arriba de los early-return, o se congela en el relevo
-      stepSpray(dt);  // el salpicado sobre el avion (la geometria la fija render/plane.js)
+      // stepSpray(dt);  — desactivado: el rebote de gotas no convencia visualmente
       // NIEBLA: los bancos se arman y se consumen con run.dist. Los avisos salen de un pulso de un
       // cuadro, no de mirar el estado — asi no hay forma de que el cartel salga dos veces.
       stepFog();
@@ -2498,7 +2497,6 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // mismo impacto se lee como un numero que baja, que es lo que el fixture necesita.
       window.__czmodo = m => { cfg.dmgMode = m; run.integ = 100; return cfg.dmgMode; };
       window.__czinteg = () => run.integ;
-      window.__czletales = () => caza.letales();
       window.__czpegar = n => caza.pegar(+n);
       window.__czfin = () => { caza.resetCaza(); return true; };
       // H4: el director se prueba PURO — se le pasa el contexto y los segundos de golpe, y la
