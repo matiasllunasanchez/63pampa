@@ -225,9 +225,21 @@ app.whenReady().then(async () => {
   else bad(`la resaca casi no se mueve (${rmn.toFixed(2)}-${rmx.toFixed(2)}): sigue siendo una banda fija`);
   // Y NO ROMPE TODA LA PLAYA A LA VEZ: dos puntos de la orilla separados media onda estan en
   // fases opuestas. Sin esto seria una pileta subiendo y bajando, no un mar.
-  const oA = await js('__resaca(0)'), oB = await js('__resaca(63)');
-  if (Math.abs(oA - oB) > 0.15) ok(`la lengua CORRE por la orilla: ${oA.toFixed(2)} en un punto y ${oB.toFixed(2)} 63 m mas alla`);
-  else bad(`toda la playa rompe a la vez (${oA.toFixed(2)} vs ${oB.toFixed(2)})`);
+  //
+  // SE BARRE EL TIEMPO, no se toma UNA foto: los dos puntos estan en fases opuestas, y dos senos
+  // en contrafase se CRUZAN — hay instantes en que valen lo mismo, y ahi la foto decia "toda la
+  // playa rompe a la vez" con la playa perfecta. Medido: 0.20 vs 0.19 en el cruce. Como `resaca`
+  // toma el tiempo por parametro, el barrido es exacto y no depende de cuando corra el fixture.
+  const par = JSON.parse(await js(`(() => {
+    let m = 0, A = 0, B = 0;
+    for (let k = 0; k < 30; k++) {
+      const tt = k * 0.15, a = __resaca(0, tt), b = __resaca(63, tt);
+      if (Math.abs(a - b) > m) { m = Math.abs(a - b); A = a; B = b; }
+    }
+    return JSON.stringify({ m, A, B });
+  })()`));
+  if (par.m > 0.3) ok(`la lengua CORRE por la orilla: en el mismo instante, ${par.A.toFixed(2)} en un punto y ${par.B.toFixed(2)} 63 m mas alla`);
+  else bad(`toda la playa rompe a la vez (la mayor diferencia en 4,5 s fue ${par.m.toFixed(2)})`);
   // SE RETIRA MAS DESPACIO DE LO QUE SUBE: el sesgo es lo que separa una lengua de agua de un
   // seno pintado. Se mide como pasa el tiempo debajo de la mitad de su carrera.
   const bajo = res.filter(v => v < (rmn + rmx) / 2).length;
