@@ -227,6 +227,21 @@ export const ENTRY_D = 700;
 // RADAR — se llega como se llegaba de verdad, por abajo, y el misil de largo alcance no existe
 // hasta que subas. Con la entrada a 18 m, medido, TODA entrada se comia un Sea Dart.
 export const ENTRY_ALT = 8;
+// DESVIO LATERAL HEREDADO DEL CARRIL (R3). Al entrar desde el pasillo, el avion NO se centra en el
+// eje del buque: entra corrido lo mismo que estaba corrido en el carril, porque en el ultimo cuadro
+// del pasillo el buque se veia corrido para ese lado. Centrarlo era un salto lateral gratis, del
+// mismo tamaño que el salto de tamaño que arreglo el buque de proa.
+//
+// El tope existe porque el carril es MUCHO mas ancho, en proporcion, que el cono de la corrida: sin
+// clampear, una entrada desde el borde del carril te dejaba encarando al mar al costado del buque y
+// obligaba a virar antes de empezar — que es peor que el corte que se vino a arreglar. 90 m son
+// tres esloras y media de desvio: se nota que entraste corrido, y el buque sigue estando adelante.
+export const ENTRY_LAT_MAX = 90;
+// PARALAJE DEL CARRIL: cuantos pixeles se corre el buque en el horizonte por cada unidad de carril
+// (`cam.x`). Es la constante con la que el pasillo lo dibuja corrido — vive ACA, y no suelta en el
+// render, porque ahora la lee tambien la PASADA para heredar el desvio. Dos copias de este numero
+// serian dos buques en dos lugares distintos a los dos lados del corte.
+export const LANE_PARALLAX = 1.2;
 
 // LA MANGUERA DE TRAZADORAS (R2) — geometria DERIVADA, no perillas nuevas (§0.3).
 export const HOSE = {

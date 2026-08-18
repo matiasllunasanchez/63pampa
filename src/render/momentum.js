@@ -142,6 +142,71 @@ export function drawBargeHull(cx0, len, deckY, uh, t, haze, sky) {
   ctx.globalAlpha = 1;
 }
 
+/** EL BUQUE DE PROA — la silueta que ve el pasillo cuando el climax es la PASADA (R3).
+ *
+ *  Es OTRO dibujo y no el mismo casco girado, por una razon de escala: de proa, a la distancia a
+ *  la que se corta (`ENTRY_D`), el buque mide siete pixeles de manga. El casco lateral tiene
+ *  perfil, torretas y ventanales; a siete pixeles nada de eso existe. Lo que un buque de proa te
+ *  entrega a esa distancia es exactamente lo que se dibuja aca, y en este orden de importancia:
+ *  la COLUMNA DE HUMO (lo unico alto, y lo primero que se ve de verdad en el mar), el BIGOTE DE
+ *  PROA (lo unico claro), y recien despues la mancha oscura del casco con su palo.
+ *
+ *  `bw` es la MANGA en pixeles y `hTop` la altura de la perilla del palo sobre la flotacion: los
+ *  dos los calcula el pasillo con la escala aparente de la camara del climax, no a ojo.
+ */
+export function drawBargeBow(cx, bw, waterY, hTop, t, haze, sky) {
+  const SKY = sky || '#7d6a4e';
+  const hz = c => mixHex(c, SKY, haze || 0);
+  const w = Math.max(1, bw), half = w / 2;
+  const hullH = Math.max(1, hTop * 0.24);
+  // CASCO: de proa es un tronco que se ABRE hacia arriba (el lanzamiento de las amuras). Dos o
+  // tres filas alcanzan; lo que hace que se lea como buque y no como boya es que la fila de abajo
+  // sea mas angosta que la cubierta.
+  const rows = Math.max(2, Math.min(6, Math.round(hullH)));
+  for (let i = 0; i < rows; i++) {
+    const f = i / (rows - 1);                       // 0 = cubierta, 1 = flotacion
+    const rw = Math.max(1, w * (1 - f * 0.42));
+    px(cx - rw / 2, waterY - hullH + (hullH / rows) * i, rw, hullH / rows + 0.6,
+      hz(f < 0.5 ? SH.hullT : SH.hull));
+  }
+  px(cx - half, waterY - hullH, w, 1, hz(mixHex(SH.deck, SKY, 0.55)));   // canto de cubierta
+  // SUPERESTRUCTURA en tres pisos que se angostan: es la escalera del SUPER lateral, vista de
+  // frente. Con el buque cabeceando, todo el bloque sube y baja junto con el casco.
+  const sup = [[0.62, 0.46], [0.40, 0.68], [0.24, 0.80]];
+  for (const [fw, fh] of sup) {
+    const sw = Math.max(1, w * fw), sh = hTop * fh - hullH;
+    if (sh < 1) continue;
+    px(cx - sw / 2, waterY - hullH - sh, sw, sh, hz(SH.sup));
+    px(cx - sw / 2, waterY - hullH - sh, Math.max(1, sw * 0.4), sh, hz(SH.supL));
+  }
+  px(cx - 0.5, waterY - hTop, 1, hTop - hullH, hz(SH.metal));            // el palo, hasta la perilla
+  if (hTop > 14) {   // ya cerca: la cruceta y el radar girando, lo unico que dice que esta VIVO
+    const rw = Math.max(1, w * 0.5 * Math.abs(Math.cos(t * 1.1)));
+    px(cx - rw / 2, waterY - hTop, rw, 1, hz(SH.metal));
+  }
+  // EL BIGOTE DE PROA: lo mas claro del cuadro y lo que dice que el buque VIENE NAVEGANDO. Se abre
+  // mas ancho que la manga porque eso es lo que hace la ola de proa, y late para no quedar muerto.
+  ctx.globalAlpha = 0.62;
+  const fw = w * (1.5 + Math.sin(t * 2.2) * 0.18);
+  px(cx - fw / 2, waterY - 1, fw, Math.max(1, hullH * 0.3), hz(P.foam));
+  ctx.globalAlpha = 0.3;
+  px(cx - fw * 0.8, waterY, fw * 1.6, 1, hz(P.foam));
+  ctx.globalAlpha = 1;
+  // LA COLUMNA DE HUMO. A esta distancia es LA lectura: sube desde la chimenea, deriva con el
+  // viento y se ensancha al subir. Va mas alta que el palo a proposito — un buque en el mar se ve
+  // por el humo mucho antes que por el casco, y eso es lo que sostiene el ultimo tramo del pasillo
+  // ahora que el casco ya no ocupa media pantalla.
+  ctx.globalAlpha = 0.34;
+  const col = hz('#8b949a');
+  for (let i = 0; i < 9; i++) {
+    const u = i / 8;
+    const sw = Math.max(1, w * (0.34 + u * 1.5));
+    px(cx - sw / 2 + Math.sin(t * 0.5 + i * 0.8) * w * 0.5 + u * u * w * 1.6,
+      waterY - hTop * (0.8 + u * 1.5), sw, Math.max(1, hTop * 0.16), col);
+  }
+  ctx.globalAlpha = 1;
+}
+
 /** La cabina. `w.yOff` la baja N pixeles: lo usa la fase ARENA para que el VISOR PINTADO del PNG
  *  caiga sobre la mira del juego. El ARENA VIEJO no lo pasa (0) porque alla la mira es la que se
  *  clava al visor (MOM_AY), al reves — mover el PNG lo desalinearia. */

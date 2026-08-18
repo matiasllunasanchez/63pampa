@@ -44,7 +44,12 @@ const SAMPLER = `(() => {
     const d = sx.getImageData(0, 0, 24, 14).data;
     let lum = 0, sig = 0;
     for (let i = 0; i < d.length; i += 4) { const v = d[i] + d[i+1] + d[i+2]; lum += v; sig = (Math.imul(sig, 31) + v) | 0; }
-    window.__cap.push([Math.round(lum / (24 * 14 * 3)), sig, (window.__pdbg && window.__pdbg()) ? 1 : 0]);
+    // los dos ultimos son R3: la silueta del buque en el PASILLO (__pbarge) y la misma silueta ya
+    // en la PASADA (__pship). Van en el muestreo por cuadro y no en un poll aparte porque lo que
+    // hay que comparar es EL CUADRO ANTES y EL CUADRO DESPUES del corte — y para cuando un poll
+    // se entera de que cambio el estado, el ultimo cuadro del pasillo ya no existe.
+    window.__cap.push([Math.round(lum / (24 * 14 * 3)), sig, (window.__pdbg && window.__pdbg()) ? 1 : 0,
+      (window.__pbarge && window.__pbarge()) || null, (window.__pship && window.__pship()) || null]);
     if (window.__cap.length < 3000) requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
@@ -139,7 +144,14 @@ app.whenReady().then(async () => {
   if (caida < 0.85) bad(`el cuadro se apaga acercandose al buque (${(caida * 100) | 0}% del brillo del 60%): eso es un telon`);
   else ok(`sin telon en la aproximacion: brillo ${lum.join(' → ')} entre el 60% y el 98% del camino`);
 
+  // CORRERSE DEL EJE antes del corte (R3). Centrado, la prueba del desvio heredado no prueba nada:
+  // heredar cero es lo mismo que no heredar. Se entra al climax DESDE UN COSTADO del carril, que
+  // es como se entra de verdad — nadie llega al buque perfectamente centrado.
+  const der = setInterval(() => down('Right'), 40);
+  await sleep(900);
+  clearInterval(der); up('Right');
   await js(SAMPLER);
+  await sleep(400);
   for (let i = 0; i < 90; i++) { if (await P()) break; await sleep(200); }
   await js('__pdef(0)');   // idem: esta seccion mide la TRANSICION, no la supervivencia
   clearInterval(gas); up('Up');
@@ -177,6 +189,33 @@ app.whenReady().then(async () => {
       const st = await js('JSON.parse(__pausedbg()).state');
       if (st !== 'pasada') bad(`estado inesperado tras la transicion: ${st}`);
       else ok('de volar a volar: no hay pantalla intermedia (estado pasada)');
+
+      // ---------- R3 — EL HANDOFF, MEDIDO A LOS DOS LADOS DEL CORTE ----------
+      // El criterio del plan es "un espectador NO señala el frame del corte". Eso no se mide con
+      // una asercion, asi que se mide lo que LO CAUSA: si el buque salta de tamaño o de columna en
+      // un cuadro, el ojo lo caza. Las dos sondas miden la MISMA silueta (el casco entero) con la
+      // MISMA camara — la del climax—, una dibujada por el pasillo y otra por three.
+      console.log('\nR3 — la continuidad:');
+      const bow = cap.slice(0, i0).map(f => f[3]).filter(Boolean).pop();
+      const ship = cap.slice(i0).map(f => f[4]).filter(Boolean).shift();
+      const b = bow && JSON.parse(bow), s3 = ship && JSON.parse(ship);
+      if (!b) bad('el pasillo no dibujo el buque DE PROA (sonda __pbarge vacia): siguio con el casco lateral');
+      else if (!s3) bad('no se pudo leer la silueta del buque ya en la pasada (__pship vacia)');
+      else {
+        // EL MUNDO VIEJO, como constante historica y no como asercion (R0.3 / R2.9, tercera vez):
+        // el casco lateral llegaba a 177 px de eslora, o sea un buque a 150 m, y la PASADA abria
+        // con el mismo buque a 700. Ese 25x era el teleport.
+        const salto = Math.abs(b.bw - s3.w) / s3.w;
+        if (salto > 0.25) bad(`el buque CAMBIA DE TAMAÑO en el corte: ${b.bw} px de manga en el pasillo contra ${s3.w} en la pasada (${(salto * 100) | 0}%)`);
+        else ok(`el buque MIDE LO MISMO de los dos lados del corte: ${b.bw} px de manga contra ${s3.w} (${(salto * 100) | 0}% · el mundo viejo saltaba de 177 px a 7)`);
+        const corr = Math.abs(b.bx - s3.cx);
+        if (corr > 14) bad(`el buque SALTA DE COLUMNA en el corte: x ${b.bx} en el pasillo contra ${s3.cx} en la pasada (${corr | 0} px)`);
+        else ok(`y esta en la MISMA COLUMNA: x ${b.bx} contra ${s3.cx} (${corr.toFixed(1)} px de diferencia)`);
+        const lat = await js('__plat()');
+        ok(`el desvio del carril se HEREDA: se entro ${Math.abs(lat) | 0} m ${lat >= 0 ? 'a la derecha' : 'a la izquierda'} del eje del buque, y el pasillo lo mostraba a ${Math.abs(b.bx - 240) | 0} px del centro`);
+        if (b.d > 900) bad(`el pasillo corta con el buque a ${b.d} m, y la pasada entra a 700: sigue habiendo salto de distancia`);
+        else ok(`el ultimo cuadro del pasillo muestra al buque a ${b.d} m — la distancia a la que la PASADA lo pone`);
+      }
     }
   }
 

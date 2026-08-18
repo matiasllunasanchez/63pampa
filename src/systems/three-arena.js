@@ -252,6 +252,18 @@ export function project(x, y, z) {
   return { x: (_v.x + 1) / 2 * AW, y: (1 - _v.y) / 2 * AH, vis: _v.z < 1 };
 }
 
+// ESCALA APARENTE — la usa el PASILLO para calzar el handoff (R3). Vive ACA y no en el render
+// porque el numero sale del CAMPO DE LA CAMARA (CAM_FOV) y de la grilla (AH): dos copias de esta
+// cuenta se desincronizan sola la primera vez que alguien toque el campo. A 700 m un buque de 125 m
+// visto DE PROA mide ~7 px de manga: chico de verdad, y esa es la distancia que el pasillo tiene
+// que estar mostrando en el ultimo cuadro si el corte no va a doler.
+export const CAM_FOV = 65;
+export const pxPerM = d => (AH / 2) / Math.tan(CAM_FOV * Math.PI / 360) / Math.max(1, d);
+/** Media manga y altura del casco, en METROS — la silueta que el pasillo tiene que imitar de proa.
+ *  Sale de la misma caja gruesa que usa hitsShip(): una sola definicion de "que tan gordo es". */
+export const shipBeamM = () => SHIP_LEN * 0.09;
+export const shipTopM = () => shipDeck(SHIP_LEN) + SHIP_LEN * 0.16;
+
 const _c = has3D ? new THREE.Vector3() : null;
 /** Rect en pantalla de una zona critica (proyectando las 8 esquinas de su caja). null si la
  *  zona no existe o quedo entera detras de la camara. */
@@ -264,6 +276,23 @@ export function zoneRect3D(id) {
   for (let i = 0; i < 8; i++) {
     _c.set((i & 1 ? 0.5 : -0.5) * g.width, (i & 2 ? 0.5 : -0.5) * g.height, (i & 4 ? 0.5 : -0.5) * g.depth);
     m.localToWorld(_c); _c.project(A3.cam);
+    if (_c.z < 1) vis = true;
+    const sx = (_c.x + 1) / 2 * AW, sy = (1 - _c.y) / 2 * AH;
+    if (sx < x0) x0 = sx; if (sx > x1) x1 = sx;
+    if (sy < y0) y0 = sy; if (sy > y1) y1 = sy;
+  }
+  return vis ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : null;
+}
+
+/** Rect en pantalla del CASCO ENTERO (la caja gruesa de hitsShip). Es la silueta que el jugador
+ *  ve del buque, y la sonda con la que R3 compara los dos lados del corte. */
+export function shipRect3D() {
+  if (!A3.ready) return null;
+  const L = SHIP_LEN, hw = shipBeamM(), top = shipTopM();
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, vis = false;
+  for (let i = 0; i < 8; i++) {
+    _c.set((i & 1 ? 0.5 : -0.5) * L, SEA_Y + (i & 2 ? top : 0), (i & 4 ? hw : -hw));
+    _c.project(A3.cam);
     if (_c.z < 1) vis = true;
     const sx = (_c.x + 1) / 2 * AW, sy = (1 - _c.y) / 2 * AH;
     if (sx < x0) x0 = sx; if (sx > x1) x1 = sx;

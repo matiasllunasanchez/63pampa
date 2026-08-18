@@ -27,6 +27,11 @@ import * as blastArt from './blast.js';
 import * as enemyArt from './enemies.js';
 import * as momentum from '../systems/momentum.js';
 import * as momRender from './momentum.js';
+// R3 — EL HANDOFF. La escala aparente sale de la camara del CLIMAX (una sola definicion, ver
+// three-arena) y la distancia del corte, de la data de la PASADA. El pasillo no inventa ningun
+// tamaño: dibuja el buque a la distancia a la que el jugador REALMENTE esta.
+import { pxPerM, shipBeamM, shipTopM, SHIP_LEN } from '../systems/three-arena.js';
+import { ENTRY_D, LANE_PARALLAX } from '../data/pasada.js';
 
 // ---- SUELO CON GRADIENTE (tierra/costa) ----
 // Antes el piso eran TRES bandas planas con cortes duros (f<0.28/0.6) y se veia artificial.
@@ -1572,7 +1577,7 @@ export const BARGE_T0 = 0.45;        // fraccion del recorrido en la que el buqu
 // MATERIALIZA — su opacidad sube a la inversa de la niebla (ver shipA en drawApproachBarge).
 // BARGE_DRIFT queda como perilla por si algun dia se quiere recuperar la deriva (0 = centrado).
 const BARGE_DRIFT = 0;
-function bargeCol(f) { return W / 2 - cam.x * 1.2 + (1 - f * f * f) * W * BARGE_DRIFT; }
+function bargeCol(f) { return W / 2 - cam.x * LANE_PARALLAX + (1 - f * f * f) * W * BARGE_DRIFT; }
 /** Avance 0..1 de la primera aproximacion (la unica que ve el marcador de objetivo). */
 function approachF(p) {
   const at = momentum.phases()[0].at;
@@ -1584,16 +1589,98 @@ function approachF(p) {
 let LAST_BARGE = null;
 export const bargeGeom = () => LAST_BARGE;
 
+// DISTANCIA REAL del buque en el ultimo tramo del pasillo, cuando el climax es la PASADA (R3).
+// De `BARGE_D0` metros a `ENTRY_D`: al cortar, el jugador esta EXACTAMENTE donde la PASADA lo
+// pone, asi que el buque mide los mismos pixeles de un lado y del otro del corte. La interpolacion
+// va sobre 1/d y no sobre d porque el TAMAÑO APARENTE es el que tiene que crecer parejo — sobre la
+// distancia, el buque se queda invisible medio pasillo y despues salta.
+const BARGE_D0 = 6000;
+const BARGE_GROW = 1.5;   // >1 = el crecimiento se guarda para el final, que es como se acerca algo
+/** Distancia en metros al buque para un avance 0..1 del ultimo tramo. */
+function bargeDist(f) {
+  const a = 1 / BARGE_D0, b = 1 / ENTRY_D;
+  return 1 / (a + (b - a) * Math.pow(f, BARGE_GROW));
+}
+// SILUETA DE PROA tal como quedo este cuadro (cx, manga y alto en px, y la distancia que
+// representa). La lee la sonda del handoff: es la mitad del pasillo de la comparacion que R3 pide.
+let LAST_BOW = null;
+export const bowGeom = () => LAST_BOW;
+// SONDA DEL HANDOFF (R3): el ultimo cuadro del pasillo, para comparar contra el primero de la
+// PASADA (__pship). Puro mirar — no cambia una regla, como toda la vara del rescate.
+if (typeof window !== 'undefined') window.__pbarge = () => JSON.stringify(LAST_BOW && {
+  bx: +LAST_BOW.bx.toFixed(1), bw: +LAST_BOW.bw.toFixed(2),
+  hTop: +LAST_BOW.hTop.toFixed(2), d: Math.round(LAST_BOW.d),
+});
+
+/** LA APROXIMACION DE PROA (R3). `g` = 0..1 desde que asoma hasta el corte.
+ *
+ *  El buque no tiene "escala": tiene DISTANCIA. Todo sale de ahi — manga, alto y hasta si vale la
+ *  pena dibujar el radar. Al llegar a g = 1 la distancia ES `ENTRY_D`, que es donde la PASADA
+ *  coloca al avion, y por eso los dos lados del corte miden lo mismo sin que nadie ajuste nada. */
+function drawBowApproach(g, objectiveShip) {
+  // `d` es a la MITAD del buque; lo que se ve de proa es la PROA, media eslora mas cerca. La
+  // diferencia es el 10% del tamaño en pantalla al cortar — chica, pero es justo la que la sonda
+  // compara, y medir contra una referencia distinta de la que usa el 3D es empezar a mentir.
+  const d = bargeDist(g), k = pxPerM(Math.max(60, d - SHIP_LEN / 2));
+  const bw = shipBeamM() * 2 * k, hTop = shipTopM() * k;
+  // el balanceo del buque va en METROS y no en pixeles: a 6 km no se tiene que mover, a 700 m si.
+  // Y va CHICO: 5 m de guiñada son 1,7 px al cortar. La primera version usaba 26 m —la amplitud
+  // del casco lateral, que a su escala eran 4 px— y de proa se convertia en un buque bailando 17 px
+  // de lado a lado. Ademas de feo, ensuciaba la sonda de la columna: el salto que R3 mide es de
+  // pocos pixeles, y un balanceo mas grande que el salto tapa justo lo que se vino a medir.
+  const bx = bargeCol(g) + Math.sin(run.t * 0.8) * 5 * k;
+  const waterY = HOR + Math.sin(run.t * 1.3) * 2 * k;
+  LAST_BOW = { bx, waterY, bw, hTop, d };
+  // MATERIALIZACION: el mismo fundido cruzado con el banco de nubes que tenia el casco lateral —
+  // entra fantasma y se hace real a medida que la niebla se abre. Es lo unico de la aproximacion
+  // vieja que se conserva tal cual, porque no habla de tamaño sino de aire.
+  const dis = Math.max(0, Math.min(1, g / 0.94));
+  const haze = 0.34 * (1 - g) * (1 - g);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(-80, -80, W + 160, waterY + 2 + 80); ctx.clip();
+  ctx.globalAlpha = 0.15 + 0.85 * dis;
+  // PISO DE LEGIBILIDAD: de proa un destructor mide 7 px de manga al cortar y menos de 1 a 6 km,
+  // asi que a distancia real la silueta desaparece. Lo que NO desaparece en el mar es el HUMO —
+  // se ve un buque por su columna mucho antes que por su casco— y por eso el dibujo recibe un
+  // alto minimo: la columna sigue siendo un hilo en el horizonte todo el tramo. La MANGA no se
+  // toca: si se inflara, el corte volveria a mentir, que es exactamente lo que R3 vino a arreglar.
+  momRender.drawBargeBow(bx, bw, waterY, Math.max(3, hTop), run.t, haze, theme.sky.horizon);
+  ctx.globalAlpha = 1;
+  ctx.restore();
+  drawShipClouds(bx, waterY, Math.max(14, bw * 6), Math.max(1, hTop * 0.3), Math.max(2, hTop * 0.45), dis);
+  // el nombre entra cuando el buque ya es una silueta y no una mota, y va sobre la perilla del
+  // palo (de proa no hay eslora sobre la que apoyarlo)
+  if (bw > 2.2) {
+    ctx.font = '9px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.warn; ctx.globalAlpha = 0.85;
+    ctx.fillText(objectiveShip, bx, waterY - Math.max(3, hTop) - 6);
+    ctx.globalAlpha = 1;
+  }
+}
+
 /** `fx` (o null): lo que EL PULSO le esta haciendo al buque durante la cinematica del premio —
  *  `grow` cuanto crece (la caida encima), `tilt` cuanto escora, `sink` cuanto se hunde. Llega por
- *  parametro desde game.js: el sistema no llama al render ni el render mira al sistema. */
-export function drawApproachBarge(objectiveDist, objectiveShip, fx) {
+ *  parametro desde game.js: el sistema no llama al render ni el render mira al sistema.
+ *
+ *  `deProa` (R3): el climax de este run es la PASADA, asi que el pasillo muestra al buque DE PROA
+ *  y a la distancia de verdad. Con el casco lateral, el ultimo cuadro del pasillo mostraba un
+ *  buque de 177 px —o sea, a 150 m— y la PASADA abria con el mismo buque a 700: el jugador salia
+ *  disparado para atras y giraba 90 grados en un cuadro. Eso era "el teleport" del §1.2. */
+export function drawApproachBarge(objectiveDist, objectiveShip, fx, deProa) {
   const ph = momentum.phase(), PH = momentum.phases();
   if (objectiveDist <= 0 || ph >= PH.length) return;
   // EL PULSO dibuja el MISMO buque que venia creciendo en el pasillo: la prueba pasa delante de
   // el, sin cambiar de escena. Si este estado no estuviera, el climax se quedaria sin blanco.
   if (S.state !== 'play' && S.state !== 'takeoff' && S.state !== 'pulso') return;
   const p = run.dist / objectiveDist;
+  // EL BUQUE DE PROA se lleva el tramo entero, de BARGE_T0 hasta el corte (p = 1) — y no hasta
+  // PH[0].at (0.78) como el casco lateral, que llegaba a su tamaño final y se quedaba clavado el
+  // ultimo quinto del pasillo. Aca la aproximacion no termina antes que el vuelo: el buque sigue
+  // creciendo hasta el cuadro en que se corta, porque hasta ese cuadro te seguis acercando.
+  if (deProa && ph === 0) {
+    if (p >= BARGE_T0) drawBowApproach(Math.min(1, (p - BARGE_T0) / (1 - BARGE_T0)), objectiveShip);
+    else LAST_BOW = null;
+    return;
+  }
   const next = PH[ph];
   const t0 = ph === 0 ? BARGE_T0 : PH[ph - 1].at;
   if (p < t0) return;
@@ -1608,8 +1695,10 @@ export function drawApproachBarge(objectiveDist, objectiveShip, fx) {
   // FLOTACION CLAVADA EN EL HORIZONTE (playtest 7/8: "el barco aparece por debajo del
   // horizonte"). Un buque lejano vive EN la linea del horizonte, siempre — la bajada con f² lo
   // dejaba flotando en mitad del mar a mitad de la aproximacion. Ya no baja NUNCA durante la
-  // primera aproximacion: el pase al climax es un corte de camara (cabina 2D o vuelo libre 3D)
-  // tapado por el cruce del banco de nubes, no hay continuidad de posicion que preservar.
+  // primera aproximacion. (Esta rama es la del climax 2D / EL PULSO, donde el pase SI es un corte
+  // de camara tapado por el banco de nubes. La frase que estaba aca —"no hay continuidad de
+  // posicion que preservar"— se escribio cuando el climax era el ARENA y ya no vale para todos:
+  // cuando el climax es la PASADA hay continuidad y se preserva, arriba, en drawBowApproach.)
   // Entre pasadas del climax 2D (ph > 0) sigue la formula vieja, que alli si empalma.
   const wOff = ph === 0
     ? 0

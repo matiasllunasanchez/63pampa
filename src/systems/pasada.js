@@ -19,7 +19,7 @@
 //
 // ESCALA: 1 unidad = 1 METRO (systems/three-arena.js).
 
-import { setState, cfg, plane, stats } from '../core/state.js';
+import { setState, cam, cfg, plane, stats } from '../core/state.js';
 import { run } from '../core/run.js';
 import { parts, popups, prune, clearWorld } from '../core/world.js';
 import { popup } from '../core/fx.js';
@@ -31,7 +31,7 @@ import { boom, beep, sfxOne, duck, engineFly } from './audio.js';
 import * as world3D from './three-arena.js';
 import { forward, stepFlight, drifting, stepVel } from '../core/aero.js';
 import { AR } from '../data/arena.js';
-import { PS, ENTRY_D, ENTRY_ALT, BOMB, HOSE } from '../data/pasada.js';
+import { PS, ENTRY_D, ENTRY_ALT, ENTRY_LAT_MAX, LANE_PARALLAX, BOMB, HOSE } from '../data/pasada.js';
 // AVERIAS: el escalon de daño entra por el mismo `io` que el resto de las palancas. El modelo de
 // vuelo no sabe de daño — solo de palancas (core/damage.js).
 import * as dmg from './damage.js';
@@ -137,6 +137,14 @@ export function enter(desdePasillo) {
   // pasillo (techo FLY_TOP = 68) y se lee 1:1 como metros — la coincidencia no es casual, es la
   // escala que hace que el techo de radar (35 m) caiga justo en el medio de la banda de vuelo.
   const alt = desdePasillo ? Math.max(SEA_KILL * 2, plane.y) : ENTRY_ALT;
+  // ...Y EL DESVIO LATERAL (R3). El pasillo dibuja el buque corrido `cam.x * LANE_PARALLAX` pixeles
+  // del centro; a la distancia del corte esos pixeles son estos metros. Entrar centrado cuando el
+  // ultimo cuadro te mostraba el buque a la izquierda es un salto lateral — el mismo teleport que
+  // arreglo el buque de proa, pero en el otro eje. Con yaw = PI/2 el costado derecho del avion es
+  // +Z, asi que un buque corrido a la IZQUIERDA (bx < W/2, o sea cam.x > 0) significa que venis
+  // por la derecha de su eje: z positivo.
+  const latPx = desdePasillo ? cam.x * LANE_PARALLAX : 0;
+  const lat = Math.max(-ENTRY_LAT_MAX, Math.min(ENTRY_LAT_MAX, latPx / world3D.pxPerM(ENTRY_D)));
   // SE ENTRA CON VELOCIDAD DE CORRIDA, siempre. El relevo entrega el avion a 56 m/s (lo clampea
   // startRelevo) y eso esta POR DEBAJO de SPD_MUSH: sin energia el morro se hunde solo a 1,3 rad/s
   // y desde el ras eso es el agua — medido, el que relevaba se mataba sin tocar nada. Ademas de
@@ -144,7 +152,7 @@ export function enter(desdePasillo) {
   const spd = Math.max(run.spd || 0, AR.SPD_CRUISE * 0.8);
   A = {
     t: 0, yaw, pitch: 0, roll: 0,
-    pos: { x: -Math.sin(yaw) * ENTRY_D, y: alt, z: Math.cos(yaw) * ENTRY_D },
+    pos: { x: -Math.sin(yaw) * ENTRY_D, y: alt, z: Math.cos(yaw) * ENTRY_D + lat },
     spd, fwd: forward(yaw, 0), up: { x: 0, y: 1, z: 0 },
     vx: 0, vy: 0, lowT: 0,
     vel: forward(yaw, 0),          // TRAYECTORIA: unitario propio, se despega del morro derrapando
@@ -1303,6 +1311,15 @@ if (typeof window !== 'undefined') window.__pvara = () => {
 // primeras salvas caen CORRIDAS y la tercera sobre la linea.
 if (typeof window !== 'undefined') window.__pcols = () => JSON.stringify(
   A ? A.fx.filter(f => f.k === 'col').map(f => ({ salva: f.salva, off: +f.off.toFixed(0) })) : []);
+// __pship: la SILUETA DEL BUQUE en pantalla, ya en la PASADA (R3). Contra `__pbarge` —la silueta
+// del ultimo cuadro del pasillo— es la medida del handoff: si el corte no teletransporta nada, las
+// dos tienen que medir lo mismo y estar en la misma columna.
+if (typeof window !== 'undefined') window.__pship = () => {
+  const r = world3D.shipRect3D();
+  return JSON.stringify(r && { cx: +(r.x + r.w / 2).toFixed(1), w: +r.w.toFixed(2), h: +r.h.toFixed(2) });
+};
+// __plat: el desvio lateral con el que se entro, en metros (R3). Da 0 entrando por sonda.
+if (typeof window !== 'undefined') window.__plat = () => (A ? +A.pos.z.toFixed(1) : null);
 // __pdef: prende o apaga la defensa por capas. Ver el comentario de `defOn`.
 if (typeof window !== 'undefined') window.__pdef = v => {
   defOn = !!(+v);
