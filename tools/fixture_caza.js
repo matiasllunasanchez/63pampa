@@ -290,6 +290,35 @@ app.whenReady().then(async () => {
   await js(`__czmodo('squad')`);
   await js('__czalto(null)');
 
+  // ---------- 10a. LA VELOCIDAD DE CIERRE ES RELATIVA ----------
+  // La regla del pasillo: nada se mueve a una velocidad de animacion, todo se mueve CONTRA la
+  // tuya (collision.js ya la respetaba con los jets de frente, `run.spd + 45`). El Harrier era el
+  // unico que entraba con un lerp a tasa fija — apretabas el turbo y el merge duraba lo mismo.
+  //
+  // Se mide con el mismo Harrier a dos velocidades clavadas: el que vuela mas rapido tiene que
+  // haberlo tenido MAS CERCA al mismo segundo. Si los dos numeros dan parecido, la velocidad de
+  // cierre volvio a ser absoluta y este item se perdio.
+  console.log('\n10a. la velocidad de cierre es RELATIVA a la tuya:');
+  await js('__czfin()');
+  await js('__czalto(34)');
+  await js('__czspd(60)');
+  await js('__czstart({ mudo: 1 })');
+  await sleep(1000);
+  const zLento = (await C()).z;
+  await js('__czfin()');
+  await js('__czspd(180)');
+  await js('__czstart({ mudo: 1 })');
+  await sleep(1000);
+  const zRapido = (await C()).z;
+  await js('__czfin()');
+  await js('__czspd(null)');
+  await js('__czalto(null)');
+  if (!(zRapido < zLento - 60)) {
+    bad(`a 180 no cierra mas rapido que a 60 (z ${zLento} contra ${zRapido}): el merge no mira tu velocidad`);
+  } else {
+    ok(`A MAS GAS, ANTES TE LO SACAS: al segundo, a 60 esta en z ${zLento} y a 180 en z ${zRapido}`);
+  }
+
   // ---------- 10b. DE QUE LADO SE LO VE ----------
   // La regla del sprite en una linea: de frente mientras VIENE, de cola desde el sobrepaso hasta
   // el horizonte. Es lo que se veia mal — el caza se daba vuelta justo antes de desaparecer.

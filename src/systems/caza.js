@@ -48,6 +48,7 @@ import {
   CAZA_SOL_T, CAZA_PASSES, CAZA_CAP_T, CAZA_WINDOW, CAZA_RAS_ALT, CAZA_HP, CAZA_KILLABLE,
   CAZA_PRES_T, CAZA_AVISO_T, CAZA_OVER_T, CAZA_RECOLA_T, CAZA_SALIDA_T,
   CAZA_Z_COLA, CAZA_Z_FRENTE, CAZA_Z_LEJOS, CAZA_X_COLA,
+  CAZA_V_MERGE, CAZA_V_FUGA, CAZA_V_FUGA_MIN,
   CAZA_SOL_AVISO, CAZA_SOL_POST,
   CAZA_HIT_RX, CAZA_HIT_RY, CAZA_PTS, CAZA_MV_FUERZA,
   CAZA_DIR_D0, CAZA_DIR_FIN, CAZA_DIR_INIT, CAZA_DIR_GAP, CAZA_DIR_MAX, CAZA_DIR_JETS, CAZA_MUDO_P,
@@ -271,16 +272,27 @@ function bandeo() {
   };
 }
 
+// LA FUGA, cuando se va ADELANTE tuyo. Aca la velocidad se RESTA y no se suma: vuela en tu mismo
+// sentido, asi que lo que se aleja es la diferencia. La consecuencia es la que el jugador espera —
+// si lo perseguis con el turbo puesto se aleja mas despacio y le podes tirar mas tiempo— y el piso
+// esta para que a fondo no se congele: sin el, con turbo pleno la diferencia daba cero y el
+// Harrier se quedaba flotando adelante para siempre.
+const fuga = () => Math.max(CAZA_V_FUGA_MIN, CAZA_V_FUGA - run.spd);
+
 function stepPos(dt) {
   const f = C.dur > 0 ? Math.min(1, C.t / C.dur) : 1;
   const lerp = (a, b, k) => a + (b - a) * Math.min(1, k * dt);
   if (C.fase === 'aviso' || C.fase === 'presion') {
     C.bx = lerp(C.bx, plane.x + C.lado * CAZA_X_COLA * (1 - C.sol), 1.6);
     C.by = lerp(C.by, plane.y + 1.5, 1.4);
-    // 2 → 0.8: la entrada de frente tiene que DURAR. A 2 el caza cruzaba de 320 a la cola en poco
-    // mas de un segundo y no se leia que venia encarandote; a 0.8 son ~3,4 s de acercamiento, que
-    // es lo que hace falta para que el pase de frente se VEA.
-    C.z = lerp(C.z, CAZA_Z_COLA, 0.8);
+    // VIENE HACIA VOS: cierra a la suma de las dos velocidades, como cualquier cosa del pasillo
+    // (collision.js hace `run.spd + 45` con los jets de frente). Antes era un lerp exponencial a
+    // tasa fija, y eso tenia dos vicios: el turbo no lo hacia pasar antes —volabas mas rapido y el
+    // merge duraba lo mismo, que es imposible— y sobre todo el lerp FRENA cuando llega, asi que
+    // los ultimos metros, justo donde el Harrier ocupa media pantalla, los hacia al ralenti y
+    // quedaba colgado ahi adelante. Con velocidad constante el tamaño crece como 1/z: chico casi
+    // todo el acercamiento y un fogonazo al final, que es como pasa un avion de verdad.
+    C.z = Math.max(CAZA_Z_COLA, C.z - (run.spd + CAZA_V_MERGE) * dt);
   } else if (C.fase === 'sobrepaso') {
     const e = Math.pow(f, 2.2);
     C.z = CAZA_Z_COLA + (CAZA_Z_FRENTE - CAZA_Z_COLA) * e;
@@ -294,11 +306,11 @@ function stepPos(dt) {
   } else if (C.fase === 'recola') {
     // SE VA EN CURVA, no en linea recta hacia el punto de fuga. Antes la x no se tocaba y el
     // Harrier se achicaba clavado en el centro: la lectura era "zoom out", no "se aleja volando".
-    C.z = lerp(C.z, CAZA_Z_LEJOS, 1.8);
+    C.z += fuga() * dt;
     C.bx = lerp(C.bx, plane.x + C.lado * 34, 0.7);
     C.by = lerp(C.by, plane.y + 4, 0.8);
   } else if (C.fase === 'salida') {
-    C.z = lerp(C.z, CAZA_Z_LEJOS, 1.8);
+    C.z += fuga() * dt;
     C.by = lerp(C.by, plane.y + 30, 1.2);
     C.bx = lerp(C.bx, plane.x + C.lado * 40, 1.2);
   }
@@ -333,6 +345,11 @@ function avanzar() {
       ir('recola', CAZA_RECOLA_T);
       return false;
     case 'recola':
+      // NO SE REENCOLA HASTA HABERSE IDO DE VERDAD. Cumplido el reloj todavia se le exige estar
+      // lejos, porque con la fuga relativa la fase ya no dura siempre lo mismo: si lo perseguis,
+      // se aleja mas despacio y te ganaste mas ventana de tiro. Cerrar por reloj lo teletransportaria
+      // al horizonte en la cara del que lo estaba alcanzando.
+      if (C.z < CAZA_Z_LEJOS * 0.7) return false;
       ir('presion', entre(CAZA_PRES_T));
       return false;
     case 'salida':
@@ -373,12 +390,21 @@ export function cazaSystem(dt) {
  *  pierde en el horizonte se le ve la cola, sin excepcion. El render no decide esto. */
 const deFrente = h => h.fase === 'aviso' || h.fase === 'presion';
 
+/** ¿YA TE PASO Y ESTA EN TU COLA? Entonces NO SE DIBUJA, porque tu cola no esta en la pantalla.
+ *
+ *  Terminada la entrada, el Harrier queda clavado en CAZA_Z_COLA los cinco a ocho segundos de la
+ *  presion. A esa z la escala de la proyeccion es F/6 = 22,5, o sea que el sprite mide 236 px de
+ *  ancho sobre una pantalla de 480 — y su carril se cierra sobre el tuyo a medida que la solucion
+ *  de tiro madura, asi que cada tanto se plantaba ENORME en el centro del cuadro. Eso no era
+ *  "asomar por el borde": era medio juego tapado por un avion que ademas esta detras tuyo. */
+const enCola = h => (h.fase === 'aviso' || h.fase === 'presion') && h.z <= PZ;
+
 /** LO QUE VE EL RENDER — la flota entera. */
 export function snapshot() {
   return fleet.map(h => ({
     fase: h.fase, t: h.t, dur: h.dur, pase: h.pase, sol: h.sol,
     x: h.x, y: h.y, z: h.z, lado: h.lado, humo: h.humo, fx: h.fx,
-    deFrente: deFrente(h), bank: h.bank,
+    deFrente: deFrente(h), enCola: enCola(h), bank: h.bank,
   }));
 }
 
@@ -393,7 +419,7 @@ export function dbg() {
     hp: h.hp, humo: +h.humo.toFixed(2), mudo: h.mudo, manso: h.manso,
     x: +h.x.toFixed(1), y: +h.y.toFixed(1), z: +h.z.toFixed(1), lado: h.lado,
     alto: +plane.y.toFixed(1), pz: PZ,
-    frente: deFrente(h),
+    frente: deFrente(h), cola: enCola(h),
     n: fleet.length,
   });
 }

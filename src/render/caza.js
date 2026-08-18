@@ -105,6 +105,8 @@ export function drawCaza(lejos) {
       if (f.k === 'humo') drawHumo(f);
       else drawEstela(f);
     }
-    if ((H.z > corte) === !!lejos && H.z > 1.5) drawCazaSprite(H);
+    // `enCola` lo decide el sistema: ya te paso y esta detras tuyo, asi que no hay nada que
+    // dibujar — la estela y el humo si siguen, porque esos quedaron en el aire delante tuyo.
+    if (!H.enCola && (H.z > corte) === !!lejos && H.z > 1.5) drawCazaSprite(H);
   }
 }

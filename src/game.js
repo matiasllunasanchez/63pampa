@@ -935,6 +935,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     let czAlto = null;       // sonda: altura clavada, para medir la regla del ras (ver __czalto)
     let czAltoX = 0;         // sonda: y el rumbo con ella — sin esto la deriva se lee como quiebre
     let czBrk = 0;           // sonda: segundos de quiebre lateral sostenido (ver __czquiebre)
+    let czSpd = null;        // sonda: velocidad clavada, para medir la velocidad de cierre (ver __czspd)
     let czMv = null;         // sonda: pirueta inyectada por un cuadro (ver __czmv)
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
     let toT = 0, toCount = 4;
@@ -1944,6 +1945,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         plane.y = czAlto; plane.vy = 0;
         plane.x = czAltoX; plane.vx = 0;
       }
+      // VELOCIDAD CLAVADA (sonda, QUITAR). Se pisa DESPUES del motor de vuelo y ANTES del duelo,
+      // que es el unico orden que sirve: la velocidad de cierre del Harrier se calcula contra
+      // `run.spd` de este cuadro, y medirla con el gas de verdad daria un numero distinto cada vez.
+      if (czSpd !== null) run.spd = czSpd;
       const mvSave = run.mv;
       if (czMv) { run.mv = czMv; czMv = null; }
       const cz = caza.cazaSystem(dt);
@@ -2492,6 +2497,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // solucion de tiro menos de lo que recupera en el cuarto de segundo siguiente. Un BREAK TURN
       // de verdad son ~45 u/s de desplazamiento lateral durante tres decimas, y eso es lo que esto
       // reproduce — moviendo el ANCLA del pin de rumbo, no la posicion, para que el pin no lo borre.
+      //   __czspd(v)    CLAVA run.spd (null lo suelta). Es con lo que se mide que la velocidad
+      //                 de cierre sea RELATIVA: mismo Harrier, dos velocidades, dos tiempos.
+      window.__czspd = v => { czSpd = v === null || v === undefined ? null : +v; return czSpd; };
       window.__czquiebre = () => { czBrk = 0.35; return true; };
       window.__czmv = mv => { czMv = mv || null; return czMv; };
       window.__czsol = v => { caza.setSol(+v); return true; };

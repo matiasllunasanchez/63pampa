@@ -433,6 +433,19 @@ export const CAZA_Z_LEJOS = 320;    // z del horizonte del duelo: por ahi ENTRA 
 export const CAZA_Z_FRENTE = 62;
 export const CAZA_X_COLA = 26;      // cuanto se abre de tu carril mientras presiona (asoma por el borde)
 
+// VELOCIDADES PROPIAS, en unidades de mundo por segundo. NO son velocidades de animacion: se
+// suman o se restan a la TUYA, que es la regla de todo lo que vuela en el pasillo. Los jets de
+// frente ya la respetaban (collision.js: `o.z -= (run.spd + 45) * dt`) y los misiles tambien; el
+// Harrier era el unico que se movia con un lerp a tasa fija, y por eso apretar el turbo no lo
+// hacia pasar antes — se quedaba colgado enorme delante de la camara el mismo tiempo siempre.
+export const CAZA_V_MERGE = 58;     // VINIENDO DE FRENTE cierra a run.spd + esto. Que sea una SUMA
+                                    // es todo el punto: a mas gas, antes te lo sacas de encima.
+export const CAZA_V_FUGA = 190;     // YENDOSE ADELANTE TUYO se aleja a esto - run.spd. Aca es una
+                                    // RESTA porque vuela en tu mismo sentido: si lo perseguis con
+                                    // el turbo puesto se aleja mas despacio y le podes tirar mas.
+export const CAZA_V_FUGA_MIN = 45;  // piso de la resta. Sin el, con turbo a fondo la fuga quedaba
+                                    // en cero o negativa y el Harrier no se iba nunca.
+
 // EL HARRIER NO DISPARA. Aca vivian las trazadoras de aviso (CAZA_TRAC_*, CAZA_MISS) y la rafaga
 // letal (CAZA_LET_*, CAZA_GOLPE_CD, CAZA_FRONT_CD), y se borraron todas con el fuego. El porque
 // esta en el encabezado de systems/caza.js: te mataba antes de que llegaras a verlo.
