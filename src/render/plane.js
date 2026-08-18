@@ -293,8 +293,7 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     // Los factores salen de MEDIR el sprite contra su frame: el frame es de 84 px con aire
     // alrededor, y las puntas de ala caen en ~0.34 de su ancho y la panza en ~0.09 de su alto.
     // Con 0.40/0.13 el agua rebotaba AL LADO del avion, no sobre el.
-    anchorSpray(cx, cy, spW * U * 0.34, spH * U * 0.09);
-    drawSpray();
+    // anchorSpray / drawSpray desactivados: el rebote no convencia visualmente
   }
 
   // mira: en el MOUSE (PC, punteria libre) o adelante del avion (tactil/legacy)
