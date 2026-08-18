@@ -2147,7 +2147,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         const sold = soldiers.slice().sort((a, b) => b.z - a.z);
         for (const sd of sold) {
           if (sd.z <= 3 || sd.dead) continue;
-          const s = proj(sd.x, 0, sd.z);
+          const s = proj(sd.x, sd.gy || 0, sd.z);   // T3: parado en SU loma, no en el cero del mundo
           // HOJA de sprites si ya cargo; si no, el soldado dibujado a mano (ver render/soldiers.js)
           if (sd.prone > 0) {
             if (soldierArt.isReady()) soldierArt.drawProne(ctx, s.x, s.y, s.k, sd.dir);

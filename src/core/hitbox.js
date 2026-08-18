@@ -29,13 +29,19 @@ export const isTall = t => TALL.indexOf(t) >= 0;
 export const isStruct = t => STRUCT.indexOf(t) >= 0;
 export const isAir = t => AIR.indexOf(t) >= 0;
 
-/** Caja del obstaculo `o`: { hw, hh, oy } — semi-ancho, semi-alto y centro vertical. */
+/** Caja del obstaculo `o`: { hw, hh, oy } — semi-ancho, semi-alto y centro vertical.
+ *
+ *  `o.gy` es LA ALTURA DEL SUELO donde el obstaculo esta plantado (T3: la turba tiene lomas). Se
+ *  fija una vez al sembrarlo y de ahi lo leen los tres que tienen que coincidir: la caja, el
+ *  dibujo y el overlay. Sin esto, una torre en la ladera se dibujaria trepada a la loma y se
+ *  colisionaria al nivel del mar. Los que no lo traen (el aire, el agua) valen 0. */
 export function hitbox(o) {
+  const gy = o.gy || 0;
   if (isTall(o.type)) {
     // el ACANTILADO trae SU ancho (cada uno se sortea distinto), asi que no sale de la tabla
-    return { hw: o.type === 'cliff' ? o.hw : TALL_HW[o.type], hh: o.h, oy: o.h / 2 };
+    return { hw: o.type === 'cliff' ? o.hw : TALL_HW[o.type], hh: o.h, oy: o.h / 2 + gy };
   }
-  if (isStruct(o.type)) return { hw: STRUCT_HW[o.type], hh: o.h / 2 + 0.4, oy: o.h / 2 };
+  if (isStruct(o.type)) return { hw: STRUCT_HW[o.type], hh: o.h / 2 + 0.4, oy: o.h / 2 + gy };
   const air = isAir(o.type);
   return { hw: air ? 3 : 2.6, hh: air ? 1.6 : 1.9, oy: o.y };
 }

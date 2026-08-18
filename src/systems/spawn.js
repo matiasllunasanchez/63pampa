@@ -10,7 +10,8 @@
 import { cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { obstacles, soldiers, popups } from '../core/world.js';
-import { OLA_H, OLA_RATE, OLA_GAP_MIN, OLA_H_VAR, OLA_WZ, OLA_WZ_VAR, OLA_ROMP_P, OLA_ROMP_HW, OLA_REB_P, OLA_REB_D0 } from '../data/tuning.js';
+import { OLA_H, OLA_RATE, OLA_GAP_MIN, OLA_H_VAR, OLA_WZ, OLA_WZ_VAR, OLA_ROMP_P, OLA_ROMP_HW, OLA_REB_P, OLA_REB_D0,
+  OLA_COSTA_P, OLA_COSTA_OFF } from '../data/tuning.js';
 import { inBank } from './fog.js';
 import { carrilLibre } from './persec.js';
 import { plane } from '../core/state.js';
@@ -21,6 +22,9 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { SPAWN_X, SPAWN_DENS, SPAWN_Z, SHORE_X, shoreAt, SAND_W, AA_CD, ENEMY_HP, spawnY, SHIP_H,
          CLIFF_H0, CLIFF_H1, CLIFF_HW0, CLIFF_HW1, CLIFF_COAST_BAND, VEIL_STOP } from '../data/tuning.js';
+// EL RELIEVE (T3): donde queda plantado cada cosa que se siembra. La misma funcion que dibuja
+// la loma y que decide el choque contra el suelo.
+import { tierraH, hayRelieve } from '../core/tierra.js';
 
 /** Vida inicial de un enemigo. `hpMax` queda fijo para que la barra pueda dibujar la fraccion
  *  (hp/hpMax); sin el, un enemigo tocado no se distingue de uno que nace con menos vida. */
@@ -73,8 +77,12 @@ function mov(type, x) {
 /** Grupo de soldados corriendo. En COSTA son britanicos desembarcando: TODOS corren de derecha
  *  (la playa) a izquierda (tierra adentro), y un poco mas rapido. */
 function squad(x, z, n, coast) {
+  const rel = hayRelieve(cfg);
   for (let i = 0; i < n; i++) soldiers.push({
     x: x + (Math.random() * 10 - 5), z: z + Math.random() * 22, ph: Math.random() * 6,
+    // el suelo donde CORREN (T3). Se fija al nacer: corren en x unos metros durante su vida y la
+    // loma cambia centimetros en esa distancia — recalcularlo por cuadro seria pagar por nada.
+    gy: rel ? tierraH(x, run.dist + z) : 0,
     // SIEMPRE hacia la IZQUIERDA: huyen del avion, que viene de frente. Con direccion al azar
     // algunos corrian hacia la camara y se leia como si cargaran contra el avion.
     dir: -1, v: coast ? 9 : 6,
@@ -117,6 +125,18 @@ function rebeldeOk() {
   if (run.dist < OLA_REB_D0) return false;
   for (const o of obstacles) if (o.type === 'ola') return false;
   return Math.random() < OLA_REB_P;
+}
+
+/** LA ROMPIENTE DE LA COSTA (T4.2): la ola parcial puesta donde el mar de verdad rompe — unos
+ *  metros mar adentro de la orilla, que SERPENTEA, asi que se consulta a la profundidad de
+ *  siembra (la misma fuente que usan el render y el vuelo).
+ *
+ *  Vive aparte para que la sonda del fixture y el sembrado llamen a LA MISMA funcion: si la sonda
+ *  copiara la cuenta, probaria su propia copia y el juego podria sembrar en cualquier lado. */
+export function rompienteCostera() {
+  const o = spawnOla('rompiente');
+  o.x = spawnShore() + OLA_COSTA_OFF;
+  return o;
 }
 
 /** Siembra una ola. `kind` decide altura; la MAREJADA es de ancho completo y la mitad de las
@@ -188,6 +208,15 @@ function spawn() {
   const ph = Math.random() * 6;
 
   if (cfg.terrain === 'coast') {
+    // LA COSTA ROMPE (T4.2). La ROMPIENTE —la ola parcial, la que se esquiva de costado— tambien
+    // nace aca, y donde el mar de verdad rompe: pegada a la orilla, unos metros mar adentro. Es
+    // la ola que la costa pedia y la unica que tiene sentido con la playa al lado: una marejada
+    // de ancho completo contra la orilla no dejaria por donde pasar.
+    if (OLA_RATE[climaDe(cfg)] > 0 && olaOk() && Math.random() < OLA_COSTA_P) {
+      sondaSpawns++; sondaOlas++;
+      rompienteCostera();
+      return;
+    }
     // COSTA: el desembarco. Mucho mas denso que los otros mapas (ver spawnSystem) y con las
     // estructuras britanicas en tierra: carpas (paren soldados), antiaereos (disparan misiles),
     // puestos (algunos con soldados adentro tirando) y barcazas entrando por el agua.
@@ -287,6 +316,25 @@ function spawn() {
  *  mas al pasillo, para que el ultimo tramo contra el buque quede limpio (ver VEIL_* en
  *  data/tuning.js). Al margen del porcentaje se exige SPAWN_Z*1.6 de sobra, asi el ultimo
  *  sembrado alcanza a pasarte antes de que cierre la bruma en cualquier largo de mision. */
+// LO QUE SE APOYA EN EL SUELO Y LO QUE NO (T3). Va por lista de lo que NO se planta —el aire y el
+// agua— y no por lista de lo que si: si mañana entra un obstaculo de tierra nuevo y nadie se
+// acuerda de esta tabla, queda plantado en la loma, que es lo correcto. Al reves quedaria flotando.
+const EN_EL_AIRE = ['helo', 'jet', 'balloon', 'birds', 'fuel', 'bomb', 'boom', 'ola', 'lcu', 'mast'];
+
+/** Le fija `gy` —la altura del suelo donde queda plantado— a todo lo sembrado a partir de `desde`.
+ *
+ *  UNA sola vez, al sembrar: el obstaculo no se mueve en el mundo (se acerca), asi que su loma es
+ *  la misma toda su vida. Y en un solo lugar —aca— en vez de en los veinte `obstacles.push` del
+ *  sorteo, que es donde se olvidaria alguno. */
+function plantar(desde) {
+  if (!hayRelieve(cfg)) return;
+  for (let i = desde; i < obstacles.length; i++) {
+    const o = obstacles[i];
+    if (EN_EL_AIRE.indexOf(o.type) >= 0) continue;
+    o.gy = tierraH(o.x, run.dist + o.z);
+  }
+}
+
 export function spawnSystem(dt, objectiveDist) {
   // el corte nunca cae antes de la mitad del pasillo: en misiones cortas (o con ?qa, que las
   // achica x0.06) el margen de SPAWN_Z se comeria el nivel entero y no apareceria nadie nunca.
@@ -296,7 +344,9 @@ export function spawnSystem(dt, objectiveDist) {
   // intervalo se acorta un 35%.
   run.nextSpawn -= run.spd * dt;
   if (cfg.obstacles > 0 && run.nextSpawn <= 0) {
+    const n0 = obstacles.length;
     spawn();
+    plantar(n0);
     const dens = cfg.terrain === 'coast' ? 0.65 : 1;
     run.nextSpawn = Math.max(34, (52 + Math.random() * 42) - run.t * 0.8) * dens * SPAWN_DENS / cfg.obstacles;
   }
@@ -404,4 +454,12 @@ if (typeof window !== 'undefined') window.__seadbg = () => {
     clima: climaDe(cfg), niebla: inBank(), spd: run.spd | 0,
     dist: run.dist | 0, sorteos: sondaSpawns, sembradas: sondaOlas,
   });
+};
+
+// __olacosta: siembra la rompiente de la COSTA y devuelve donde quedo y donde esta la orilla. La
+// probabilidad real (OLA_COSTA_P sobre las siembras) tardaria kilometros en dar una: lo que hay
+// que poder medir es que ROMPA DONDE CORRESPONDE, no el sorteo.
+if (typeof window !== 'undefined') window.__olacosta = () => {
+  const o = rompienteCostera();
+  return JSON.stringify({ x: +o.x.toFixed(1), orilla: +spawnShore().toFixed(1), hw: o.hw, kind: o.kind });
 };

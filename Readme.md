@@ -436,8 +436,8 @@ y `[ESC]` vuelve. La lista está partida en secciones, y las de prototipado dice
 | CONTROL Y VISTA | control (directo / por alabeo), horizonte, piruetas, mira, red de radar |
 | CONTROLES | teclado y joystick, **solo lectura** |
 | PARTIDA | escuadrón (vidas), combustible, energía, enemigos móviles |
-| AMBIENTE | fondo (8 cielos), agua, **lluvia** (`NO · GARÚA · LLUVIA · TORMENTA`), **niebla de guerra** (`DESACTIVADO · BRUMA · FOCUS`: el velo que tapa los costados de afuera del pasillo — viene en BRUMA) |
-| MAPA · *solo POR LA PATRIA y CICLO DE MUERTE* | terreno, viento, **niebla** (`NO · VISIBLE · CASI NULA`) y **largo de niebla**, obstáculos, bombardeo, costa, pista, acantilado, arranque |
+| AMBIENTE | fondo (8 cielos), agua, **lluvia** (`NO · GARÚA · LLUVIA · TORMENTA`: además de caer, **moja el suelo** — la turba se oscurece y se juntan charcos en los bajos), **niebla de guerra** (`DESACTIVADO · BRUMA · FOCUS`: el velo que tapa los costados de afuera del pasillo — viene en BRUMA) |
+| MAPA · *solo POR LA PATRIA y CICLO DE MUERTE* | terreno (**TIERRA** tiene lomas: a ras hay que seguir el terreno, y el campo trae pedreros, turbales y alambrados; la **COSTA** rompe de verdad — el agua sube por la arena y se retira), **viento** (peina el mar *y* el pasto: con viento la turba se dobla en ondas que cruzan el campo; con tormenta se acuesta y corren rachas de polvo), **niebla** (`NO · VISIBLE · CASI NULA`) y **largo de niebla**, obstáculos, bombardeo, costa, pista, acantilado, arranque |
 | SOLO CICLO DE MUERTE | metros |
 | SOLO MINUTOS SAGRADOS | buque |
 | DEPURACIÓN | hitboxes, modo cámara |

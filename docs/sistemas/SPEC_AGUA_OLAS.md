@@ -579,3 +579,22 @@ cómo se ve RASANTE. El oro queda reservado para el amanecer, que es cuando de v
 > Al perseguir esto se encontró que el ARENA ya tenía **una franja caqui en primer plano** antes de
 > tocar nada (se comprobó forzando `cfg.water = 'sea'`: sigue igual). No es de este spec y no se
 > tocó, pero queda anotado: es el plano del mar 3D / el domo, no la paleta.
+
+## 25. El paso 5b no era flaky: el fixture no fijaba el MAPA *(18/8/2026)*
+
+El §21 explicó los rojos intermitentes de 5b (las olas que aparecen solas) con una binomial: la
+ventana era corta, el valor esperado 3,2, y una de cada seis corridas veía menos de dos. Se alargó
+la ventana a 45 s y el problema pareció irse.
+
+**La causa era otra, y es peor.** POR LA PATRIA no randomiza el mapa: hereda el `cfg` guardado, y
+el terreno vive en `localStorage` (`rasante_terreno`) del **perfil de Electron, que comparten todos
+los fixtures y el smoke**. Cualquiera de ellos que camine OPCIONES puede dejarlo en `land` — y en
+un mapa de tierra el sembrado ni siquiera llega al sorteo de olas: `spawn()` vuelve antes. Cero
+olas en 6 km, con el juego perfecto y el mar impecable. Medido: `sorteos: 0`, `terrain: 'land'`.
+
+O sea que el test no medía una probabilidad ruidosa: medía **otro mapa**. La ventana larga no lo
+arregló, lo hizo menos frecuente.
+
+**El arreglo:** `volar()` fuerza `__tierraset('sea')` al entrar, igual que el fixture ya forzaba el
+clima y por la misma razón. La lección es la de siempre en este repo: si una prueba depende de un
+estado que otro proceso puede escribir, lo tiene que **fijar**, no heredar.

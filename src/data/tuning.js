@@ -378,6 +378,69 @@ export const OLA_REB_D0 = 400;      // m de vuelo antes de la primera posible (�
 // espuma / viento (F2)
 export const SEA_FOAM_TH = { calm: 0.88, breeze: 0.78, storm: 0.62 };  // umbral de cresta con espuma
 export const SEA_WIND_AMP = 0.45;   // termino direccional de viento en seaH
+// ---------- EL RELIEVE DE LA TIERRA (PLAN_TIERRA_COSTA T3) ----------
+// Las lomas de la turba. Es la fase de JUEGO del suelo: `groundY` deja de ser una constante y pasa
+// a ser este campo, o sea que a ras de tierra hay que SEGUIR EL TERRENO.
+//
+// LA AMPLITUD ES CHICA A PROPOSITO. El avion vuela a 60-90 m/s: con 2.2 m de loma y longitudes de
+// onda de cientos de metros, la pendiente maxima queda en ~4% (unos 3.5 m/s de trepada pedida a
+// toda velocidad), que se sigue con el gas y no obliga a memorizar. Una loma agresiva no seria mas
+// dificil, seria una pared invisible — la ola ya cubre el evento brusco, la tierra es lo continuo.
+export const TIERRA_AMP = 2.2;      // altura maxima de la loma (m). En 0 el suelo vuelve a ser plano
+export const TIERRA_LZ = 41;        // lomas largas (~258 m de cresta a cresta)
+export const TIERRA_LZ2 = 17;       // ondulado corto (~107 m)
+export const TIERRA_LX = 29;        // termino en X: la loma no es un tubo, cruzarla tiene lados
+export const TIERRA_LUZ = 0.16;     // cuanto ilumina/oscurece la pendiente al raster (0 = plano visual)
+
+// ---------- LA COSTA ROMPE (PLAN_TIERRA_COSTA T4) ----------
+// LA RESACA. La franja de espuma era una banda de ancho fijo pegada a la orilla: siempre igual,
+// siempre en el mismo lado, y el mar de la costa quedaba muerto justo donde mas vivo esta.
+//
+// La fase va por POSICION A LO LARGO DE LA ORILLA (wz) y no solo por tiempo: si fuera solo tiempo,
+// los tres kilometros de playa subirian y bajarian a la vez, que es una pileta, no un mar.
+export const RESACA_K = 0.05;       // largo de la onda a lo largo de la orilla (~125 m entre lenguas)
+export const RESACA_V = 1.5;        // velocidad con la que la lengua corre por la playa
+export const RESACA_MAX = 0.72;     // hasta que fraccion de la playa sube el agua
+export const RESACA_P = 1.9;        // sesgo: sube de golpe y se RETIRA despacio (potencia > 1)
+// LA ROMPIENTE DE LA COSTA (T4.2). La ola parcial de F4, puesta donde el mar de verdad rompe.
+export const OLA_COSTA_P = 0.16;    // fraccion de las siembras de COSTA que son rompiente
+export const OLA_COSTA_OFF = 9;     // cuanto mar adentro de la orilla rompe
+// KELP. La costa malvinense es kelp puro, y ademas le da textura al agua somera, que hoy es lisa.
+export const KELP_W = 26;           // ancho del bajo con alga, mar adentro de la orilla
+export const KELP_A = 0.55;
+
+// ---------- LO QUE HAY EN EL SUELO (PLAN_TIERRA_COSTA T5) ----------
+// PEDREROS (los *stone runs* de Malvinas): rios de piedra gris que bajan por las laderas. Son
+// reales, son espectaculares, y sobre todo SIRVEN DE LINEA: volar uno es una referencia.
+export const PEDRERO_CADA = 620;    // un pedrero cada tantos metros de pasillo (banda)
+export const PEDRERO_HW = 9;        // semi-ancho del rio de piedra
+export const PEDRERO_SERP = 26;     // cuanto serpentea al bajar
+// TURBALES: los cortes de turba apilada, en tableros rectangulares.
+export const TURBAL_CADA = 430, TURBAL_L = 46, TURBAL_HW = 15;
+// ALAMBRADOS: postes con hilo CRUZANDO el pasillo. Son la unica cosa de tamaño conocido que hay
+// en el paisaje — sin algo asi, la escala de la turba no se lee y el campo podria medir cualquier
+// cosa. Y de paso marcan la velocidad, que es lo que un campo vacio se come.
+export const ALAMBRE_CADA = 340, ALAMBRE_POSTE = 9, ALAMBRE_H = 1.5;
+
+// ---------- LA LLUVIA MOJA EL SUELO (PLAN_TIERRA_COSTA T6) ----------
+export const MOJADO_A = { 0: 0, 1: 0.1, 2: 0.17, 3: 0.24 };   // cuanto oscurece el suelo cada lluvia
+export const CHARCO_P = 0.34;       // fraccion de los bajos que junta agua
+export const CHARCO_H = 0.42;       // por debajo de que fraccion de la loma se considera BAJO
+
+// ---------- EL VIENTO EN EL PASTO (PLAN_TIERRA_COSTA T2) ----------
+// La misma idea que el termino direccional de `seaH`: una fase determinista que cruza el campo.
+// Si el mar se peina y la turba no, el VIENTO no existe — existe el mar con viento.
+//
+// La inclinacion se mide en FRACCION DE LA ALTURA del matojo (0.35 = la punta se corre un tercio
+// de lo que mide), asi vale igual cerca y lejos: el matojo lejano se dobla lo mismo, en menos
+// pixeles, que es lo que hace que la onda se lea como UNA onda cruzando y no como dos escalas.
+export const PASTO_LEAN = { calm: 0, breeze: 0.34, storm: 0.68 };
+export const PASTO_ONDA = 0.55;     // que fraccion de la inclinacion es la ONDA (el resto, constante)
+export const PASTO_V = 2.1;         // velocidad de la onda (rad/s)
+export const PASTO_KX = 0.085, PASTO_KZ = 0.125;   // rumbo de la onda (la misma diagonal del mar)
+export const PASTO_ACOSTAR = 0.2;   // cuanto se ACHATA el matojo con la racha encima (tormenta)
+// RACHAS DE POLVO: solo en tormenta. Pocas y grandes — muchas y chicas es ruido, no viento.
+export const RACHA_N = 5, RACHA_T = 3.4, RACHA_A = 0.2;
 // camino del sol (F6)
 export const SUN_GLINT_HALF = 26;   // semiancho del cono de destellos (unidades de mundo en x)
 

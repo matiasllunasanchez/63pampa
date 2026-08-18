@@ -12,7 +12,7 @@
 //
 // ESCALA: unidades de mundo del PASILLO (las mismas de plane.y y de o.z).
 
-import { OLA_WZ, SEA_WIND_AMP } from '../data/tuning.js';
+import { OLA_WZ, SEA_WIND_AMP, RESACA_K, RESACA_V, RESACA_MAX, RESACA_P } from '../data/tuning.js';
 
 /** LA SUPERFICIE BASE: cuatro senos superpuestos. Es el mar de siempre, movido tal cual desde
  *  render/world.js sin tocarle un coeficiente — el mar no tiene que cambiar de aspecto porque el
@@ -89,4 +89,17 @@ export function seaHTotal(wx, wz, t, olasVivas, dv, clima) {
 export function climaDe(cfg) {
   if ((cfg.rain || 0) >= 1 || cfg.sky === 'storm') return 'storm';
   return cfg.wind ? 'breeze' : 'calm';
+}
+
+/** LA RESACA (PLAN_TIERRA_COSTA T4): cuanto de la playa tiene el agua encima, en [0, RESACA_MAX].
+ *
+ *  Va aca —con el mar y no con la tierra— porque es el AGUA subiendo, no la arena moviendose.
+ *
+ *  La fase depende de la posicion a lo largo de la orilla ademas del tiempo: si dependiera solo
+ *  del tiempo, los tres kilometros de playa subirian y bajarian juntos y seria una pileta. Y sube
+ *  de golpe pero se retira despacio (la potencia RESACA_P), que es lo que hace el agua de verdad
+ *  y lo que separa una lengua de espuma de un seno pintado. */
+export function resaca(wz, t) {
+  const u = 0.5 + 0.5 * Math.sin(wz * RESACA_K - t * RESACA_V);
+  return Math.pow(u, RESACA_P) * RESACA_MAX;
 }

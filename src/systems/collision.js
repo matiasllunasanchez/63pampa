@@ -53,7 +53,11 @@ export function collisionSystem(dt) {
     sd.z -= run.spd * dt;
     sd.x += sd.dir * (sd.v || 6) * dt;                        // corren en diagonal (costa: mas rapido)
     if (sd.z <= PZ + SOLDIER.zFront && sd.z > PZ - SOLDIER.zBack
-      && Math.abs(plane.x - sd.x) < SOLDIER.hw + planeBox(run.rollT > 0 || mvTight(run.mv)).pw && plane.y < SOLDIER.top) {
+      // ATROPELLAR EN LA LOMA (T3): la altura del soldado se mide desde SU suelo, no desde el cero
+      // del mundo. Sin esto, en el lomo de una loma el avion no puede bajar de gy+0.5 y nunca
+      // llegaria a `SOLDIER.top`: la infanteria de las alturas seria invulnerable por accidente.
+      && Math.abs(plane.x - sd.x) < SOLDIER.hw + planeBox(run.rollT > 0 || mvTight(run.mv)).pw
+      && plane.y < (sd.gy || 0) + SOLDIER.top) {
       sd.dead = true;                                        // pase rasante: cabeza / impacto de aire
       sfxOne('body');                                        // impacto de cuerpo (una variante al azar)
       const pts = Math.round(120 * run.multShow);                // escala con el multiplicador (a ras = brutal)

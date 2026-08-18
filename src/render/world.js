@@ -6,7 +6,7 @@
 // sol, nubes, islas) y los loops de entidades del jugador siguen inline en el orquestador.
 
 import { ctx, px, W, H, HOR, F, PZ } from './ctx.js';
-import { theme } from './theme.js';
+import { theme, applyTheme } from './theme.js';
 import { cam, cfg, S, plane } from '../core/state.js';
 import { run } from '../core/run.js';
 import { wake, obstacles, soldiers } from '../core/world.js';
@@ -14,10 +14,14 @@ import { proj } from '../core/fx.js';
 import { hzWorld, tiltFade } from '../core/horizon.js';
 // EL MAR VIVE EN core/sea.js — puro, sin canvas ni stores — porque la colision de las olas tiene
 // que evaluar la MISMA superficie que se dibuja, y un sistema no puede importar del render.
-import { seaH as seaBase, olaBump, climaDe } from '../core/sea.js';
+import { seaH as seaBase, olaBump, climaDe, resaca } from '../core/sea.js';
+// EL RELIEVE (T3): hermano de core/sea.js. Lo que levanta el pasto y las estructuras aca es lo
+// mismo que decide el choque contra el suelo en systems/flight.js.
+import { tierraH, tierraPend, hayRelieve, pedreroAt, turbalAt } from '../core/tierra.js';
 import { P, LAND, CLAND, SKY_ASTRO } from '../data/palette.js';
 import { CHUNK_LIFE, ONDA_T, ONDA_R } from '../data/despiece.js';
-import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, SEA_FOAM_TH, SUN_GLINT_HALF } from '../data/tuning.js';
+import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
+  ALAMBRE_CADA, ALAMBRE_POSTE, ALAMBRE_H, MOJADO_A, CHARCO_P, CHARCO_H, PASTO_LEAN, PASTO_ONDA, PASTO_V, PASTO_KX, PASTO_KZ, PASTO_ACOSTAR, RACHA_N, RACHA_T, RACHA_A } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
 import { inBank, fogVis, fogTop } from '../systems/fog.js';
@@ -256,6 +260,8 @@ export function drawSea() {
   refreshGround();   // el suelo es TEMA: si cambio el cielo, cambian sus tablas
   rowH = hzWorld() ? 2 : 1;   // ver rowH: con el mundo derecho no cambia NADA del dibujo de siempre
   const landMode = cfg.terrain === 'land';
+  const relieveOn = hayRelieve(cfg);
+  const mojado = MOJADO_A[cfg.rain | 0] || 0;   // T6: cuanto oscurece la lluvia el suelo
   const coastMode = cfg.terrain === 'coast';
   const dv = run.dist + momentum.drift();   // distancia VISUAL (drift del momentum incluido)
   // sin base de despegue (misiones de REGRESO) no hay tierra al principio del mapa
@@ -313,9 +319,25 @@ export function drawSea() {
       const f = fRow;   // ya viene clampeado en 1 (ver fRow)
       const k = F / z;
       px(-70, y, W + 140, rowH, groundCol(LAND_ST, f));
+      // VOLUMEN DE LA LOMA (T3). La cara que SUBE alejandose es la que nos da el frente: se
+      // aclara; el lomo de atras se oscurece. Es lo unico que hace visible una loma ANTES de
+      // estar encima — y una loma que no se ve venir no es terreno, es una trampa.
+      if (relieveOn) {
+        const sh = tierraPend(cam.x, wz) * TIERRA_LUZ * 34;
+        if (sh > 0.012 || sh < -0.012) {
+          ctx.globalAlpha = Math.min(0.3, Math.abs(sh));
+          px(-70, y, W + 140, rowH, sh > 0 ? '#f6f0dc' : '#0b0f09');
+          ctx.globalAlpha = 1;
+        }
+      }
       if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) {           // surco SUAVE (antes corte duro)
         ctx.globalAlpha = 0.4; px(-70, y, W + 140, 1, theme.land.furrow); ctx.globalAlpha = 1;
       }
+      turbalRow(y, wz, k);                                               // T5: los cortes de turba
+      // LA LLUVIA MOJA EL SUELO (T6). Es un VELO sobre el color resuelto, no una paleta nueva:
+      // la turba mojada es la misma turba mas oscura y mas fria, y hacerlo asi la deja funcionar
+      // con los cinco climas de T1 en vez de pelearse con ellos.
+      if (mojado > 0) { ctx.globalAlpha = mojado; px(-70, y, W + 140, rowH, '#0c1418'); ctx.globalAlpha = 1; }
       groundMottle(y, wz, k, W + 70);
       groundHaze(y, f, W + 140);
       continue;
@@ -336,11 +358,24 @@ export function drawSea() {
       // playa: arena mojada cerca del agua, seca contra la tierra
       const sandW2 = Math.max(1, shoreSx - sandSx);
       px(sandSx, y, sandW2, 1, f < 0.4 ? '#7d7154' : '#8f8163');
-      px(sandSx + sandW2 * 0.62, y, sandW2 * 0.38, 1, f < 0.4 ? '#6d6350' : '#7c7260');   // franja humeda
-      px(shoreSx, y, Math.max(0, W + 70 - shoreSx), 1, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
-      // rompiente: espuma que respira contra la arena
-      ctx.globalAlpha = 0.35 + 0.35 * Math.max(0, Math.sin(wz * 0.35 - run.t * 2.6));
-      px(shoreSx - 1, y, 2.5, 1, P.foam);
+      // LA RESACA (T4). El agua SUBE por la arena y se retira: la lengua de esta fila sale de
+      // `resaca()`, que tiene fase por posicion a lo largo de la orilla — asi la playa no rompe
+      // toda junta y se ve la lengua correr por la costa.
+      const swash = resaca(wz, run.t);
+      const swashSx = shoreSx - sandW2 * swash;
+      // ARENA MOJADA: la franja que la lengua ya destapo, entre la marca de la subida mas alta y
+      // el agua de ahora. Va del lado de TIERRA del filo —es lo que el agua dejo atras— y es la
+      // mitad que hace legible el movimiento: sin ella sube y baja una raya blanca sola.
+      const maxSx = shoreSx - sandW2 * RESACA_MAX;
+      px(maxSx, y, Math.max(0, swashSx - maxSx), 1, f < 0.4 ? '#5d5546' : '#6a6254');
+      px(swashSx, y, Math.max(0, W + 70 - swashSx), 1, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
+      // KELP (T4.3): el alga del bajo. Malvinas es kelp puro, y ademas le da textura al agua
+      // somera, que sin esto es una banda lisa de color.
+      kelpRow(y, wz, k, shoreW);
+      // LA LENGUA: la espuma va en el BORDE del agua, que ahora se mueve. Mas brillante cuanto
+      // mas alto llego (la lengua que mas sube es la que mas rompe).
+      ctx.globalAlpha = 0.3 + 0.6 * (swash / RESACA_MAX);
+      px(swashSx - 1, y, 2.5, 1, P.foam);
       ctx.globalAlpha = 1;
       groundHaze(y, f, W + 140);   // la bruma cruza tierra, playa y agua: unifica la escena
       continue;
@@ -429,12 +464,68 @@ refreshGround();
 // pasto seco de la costa (arenoso, casi sin verde) — mismo indice que TUFTS
 
 
+/** LA INCLINACION DEL PASTO en un punto del mundo (T2). Vive afuera del loop —y exportada— por
+ *  la misma razon que `seaH` vive en core/sea.js: lo que se mide desde afuera tiene que ser lo
+ *  MISMO que dobla los matojos en pantalla, no una copia parecida.
+ *
+ *  Devuelve fraccion de la altura del matojo: 0 = parado, 0.68 = tumbado por la tormenta. */
+export function pastoLean(wx, wz, t, clima) {
+  const amp = PASTO_LEAN[clima] || 0;
+  if (amp === 0) return 0;
+  // parte CONSTANTE (el viento que sopla siempre) + parte ONDA (la racha que cruza). Solo onda
+  // seria un pasto que se para del todo entre racha y racha, que no es lo que hace el viento.
+  return amp * ((1 - PASTO_ONDA) + PASTO_ONDA * (0.5 + 0.5 * Math.sin(wx * PASTO_KX + wz * PASTO_KZ - t * PASTO_V)));
+}
+
+/** TURBAL (T5): el tablero de turba cortada, fila por fila. Se pinta en el raster —y no como
+ *  prop— porque es EL SUELO lo que esta cortado: un rectangulo oscuro con la cara del corte
+ *  levantada. Es lo que hace que el campo se lea trabajado y no salvaje. */
+function turbalRow(y, wz, k) {
+  const t = turbalAt(wz);
+  if (!t) return;
+  const sx0 = W / 2 + (t.x0 - cam.x) * k, sx1 = W / 2 + (t.x1 - cam.x) * k;
+  if (sx1 < -70 || sx0 > W + 70) return;
+  const x0 = Math.max(-70, sx0), w = Math.min(W + 70, sx1) - x0;
+  if (w <= 0) return;
+  ctx.globalAlpha = t.cara ? 0.75 : 0.45;
+  px(x0, y, w, 1, t.cara ? '#6b5f3f' : theme.land.furrow);   // la cara del corte va CLARA: es turba fresca
+  ctx.globalAlpha = 1;
+}
+
+/** KELP (T4.3): manchas oscuras de alga en el bajo, mar adentro de la orilla. Deterministas por
+ *  banda de mundo —como el moteado del suelo— asi el alga esta SIEMPRE en el mismo lugar del mar
+ *  y no titila; el kelp de verdad tampoco se muda. */
+function kelpRow(y, wz, k, shoreW) {
+  const band = Math.floor(wz / 5);
+  for (let i = 0; i < 3; i++) {
+    const h1 = hash2(band, i * 977 + 31);
+    if (h1 < 0.55) continue;
+    const off = 2 + hash2(band, i * 977 + 53) * KELP_W;
+    const sx = W / 2 + (shoreW + off - cam.x) * k, w = (3 + h1 * 7) * k;
+    if (sx + w < -70 || sx > W + 70) continue;
+    ctx.globalAlpha = KELP_A * (0.6 + h1 * 0.4);
+    px(sx, y, w, 1, '#0f1a14');
+    ctx.globalAlpha = 1;
+  }
+}
+
+// CHARCOS PINTADOS en el ultimo cuadro (T6). La sonda tiene que poder mirar lo que SE DIBUJO —
+// no la perilla— o estaria probando que una constante vale lo que vale.
+let charcosN = 0, charcosUlt = 0;
+
 function drawLand(coastMode) {
   // pasos DIVIDIDOS por U al subir la resolucion: sin esto se dibujaria la misma cantidad de
   // matas pero 1.5x mas grandes (misma imagen agrandada). Bajarlos es lo que convierte los
   // pixeles nuevos en densidad real.
   const SPX = 2.8, SPZ = 2.8, farZ = 190;
   const dv = run.dist + momentum.drift();
+  // EL VIENTO (T2). Se resuelve UNA vez por cuadro, no por matojo: adentro del loop daria siempre
+  // lo mismo y se pagaria miles de veces (la regla §1.5 del plan, la misma del mar).
+  const climaP = climaDe(cfg);
+  const quieto = (PASTO_LEAN[climaP] || 0) === 0;
+  const relieve = hayRelieve(cfg);
+  const mojado = MOJADO_A[cfg.rain | 0] || 0;
+  charcosN = 0;
   const startZ = Math.max(cfg.coast + 2, Math.ceil((dv + 4) / SPZ) * SPZ);
   for (let wz = startZ; wz < dv + farZ; wz += SPZ) {
     const iz = Math.round(wz / SPZ);
@@ -447,7 +538,11 @@ function drawLand(coastMode) {
     for (let wx = Math.ceil((cam.x - halfW) / SPX) * SPX; wx < wxEnd; wx += SPX) {
       const ix = Math.round(wx / SPX);
       const h1 = hash2(ix, iz);
-      if (h1 < 0.5) continue;                                            // densidad dispersa
+      // EL PEDRERO (T5) se consulta ANTES de la densidad: adentro del rio de piedra el suelo esta
+      // lleno, y el sorteo disperso del pasto lo dejaria ralo — un pedrero con claros no es un
+      // pedrero, es pasto gris.
+      const ped = coastMode ? 0 : pedreroAt(wx, wz);
+      if (h1 < 0.5 && ped < 0.3) continue;                               // densidad dispersa
       const h2 = hash2(ix + 1013, iz - 271), h3 = hash2(ix - 577, iz + 977);
       // JITTER: se corre la mata dentro de su celda → rompe la grilla (esto mata el look de patrón)
       const jx = wx + (h2 - 0.5) * SPX * 1.7, jz = wz + (h3 - 0.5) * SPZ * 1.7;
@@ -456,9 +551,37 @@ function drawLand(coastMode) {
       const k = F / camZ;
       const fade = Math.min(1, (camZ - 3) / 9) * (1 - (camZ / farZ) * 0.8);
       if (fade <= 0.03) continue;
-      const s = proj(jx, 0, camZ);
+      // EL PASTO SE LEVANTA CON LA LOMA (T3). Es la mitad visible de la fase: el raster de color
+      // no se mueve (ver divergencia 10 del plan), asi que lo que dibuja el terreno es esto.
+      const gyT = relieve ? tierraH(jx, jz) : 0;
+      const s = proj(jx, gyT, camZ);
       if (s.x < -4 || s.x > W + 4 || s.y < HOR) continue;
       ctx.globalAlpha = fade * 0.85;
+      // CHARCO (T6): el agua se junta en los BAJOS, que es donde se junta de verdad. Por eso esta
+      // fase depende de T3 — sin relieve no hay bajo, y los charcos quedarian salpicados al azar
+      // por una loma que no existe, que es la clase de detalle que se nota que es falso.
+      if (mojado > 0 && relieve && gyT < TIERRA_AMP * CHARCO_H && h2 < CHARCO_P) {
+        charcosN++;
+        const pw = Math.max(1, k * (1.1 + h3 * 1.4)), phh = Math.max(1, k * 0.3);
+        ctx.globalAlpha = fade * (0.4 + mojado * 1.6);
+        px(s.x - pw / 2, s.y - phh, pw, phh, theme.sky.skyMid);          // el charco REFLEJA el cielo
+        px(s.x - pw / 2, s.y - phh, pw, Math.max(1, phh * 0.35), theme.sky.horizon);
+        // TORMENTA: el agua ya no se queda quieta, corre. El reguero sale del charco ladera abajo.
+        if ((cfg.rain | 0) >= 3) px(s.x - pw * 0.12, s.y - phh - k * 0.9, Math.max(1, pw * 0.22), k * 0.9, theme.sky.skyMid);
+        ctx.globalAlpha = 1;
+        continue;
+      }
+      // PIEDRA DEL PEDRERO (T5): adentro del rio casi todo es piedra; en el borde se mezcla con
+      // el pasto, que es como termina un pedrero de verdad — no con un filo.
+      if (ped > 0.2 && h3 < 0.2 + ped * 0.72) {
+        const w = Math.max(1, k * (0.5 + h2 * 0.7)), hh = Math.max(1, k * (0.3 + h2 * 0.35));
+        const rx = s.x - w / 2, ry = s.y - hh;
+        px(rx, ry, w, hh, '#736f63');                                    // la piedra del pedrero es GRIS, no marron
+        px(rx, ry, w, Math.max(1, hh * 0.45), '#9a968a');                // cara al sol
+        px(rx, s.y - Math.max(1, hh * 0.3), w, Math.max(1, hh * 0.3), '#3c3a34');
+        ctx.globalAlpha = 1;
+        continue;
+      }
       if (h1 > 0.93) {                                                   // roca ocasional (con volumen)
         const w = Math.max(1, k * 0.75), hh = Math.max(1, k * 0.55), rx = s.x - w / 2, ry = s.y - hh;
         px(rx, ry, w, hh, theme.land.rock);
@@ -467,16 +590,93 @@ function drawLand(coastMode) {
       } else {                                                          // matojo de pasto
         const TF = coastMode ? TUFTS_DRY : TUFTS, TT = coastMode ? TUFT_TIP_DRY : TUFT_TIP;
         const ci = (h3 * TF.length) | 0;
-        const w = Math.max(1, k * 0.55), hh = Math.max(1, k * (0.65 + h2 * 0.6));
+        const w = Math.max(1, k * 0.55);
+        // LA ONDA: fase determinista por posicion de MUNDO — el matojo no guarda estado, y dos
+        // matojos vecinos se doblan casi igual, que es lo que hace que se vea una racha cruzando
+        // y no cada mata por su cuenta. `ond` va en [0,1]: 0 es quieto, 1 es el pico de la racha.
+        const lean = quieto ? 0 : pastoLean(jx, jz, run.t, climaP);
+        // con la racha encima el matojo ademas se ACUESTA: sin esto se corre la punta pero el
+        // matojo mide lo mismo, y el pasto doblado es mas bajo que el pasto parado.
+        const hh = Math.max(1, k * (0.65 + h2 * 0.6) * (1 - PASTO_ACOSTAR * lean));
         const bx = s.x - w / 2, by = s.y - hh;
-        px(bx, by, w, hh, TF[ci]);                                       // cuerpo
-        px(bx, by, w, Math.max(1, hh * 0.4), TT[ci]);                    // punta iluminada
+        const dx = lean * hh;                                            // corrimiento de la punta, en px
+        // se pinta en DOS tramos: la base queda clavada al suelo y el tramo de arriba ya va
+        // corrido. Un solo rect inclinado despegaria el matojo de la tierra.
+        const hB = hh * 0.5;
+        px(bx, s.y - hB, w, hB, TF[ci]);                                 // base clavada
+        px(bx + dx * 0.5, by, w, hh - hB + 1, TF[ci]);                   // tramo doblado (+1: sin costura)
+        px(bx + dx, by, w, Math.max(1, hh * 0.4), TT[ci]);               // punta iluminada
         if (k > 3) {                                                    // cerca: briznas que se abren
-          px(bx - Math.max(1, w * 0.4), s.y - hh * 0.7, Math.max(1, w * 0.34), hh * 0.7, TF[ci]);
-          px(bx + w, s.y - hh * 0.85, Math.max(1, w * 0.34), hh * 0.85, TT[ci]);
+          px(bx - Math.max(1, w * 0.4) + dx * 0.7, s.y - hh * 0.7, Math.max(1, w * 0.34), hh * 0.7, TF[ci]);
+          px(bx + w + dx * 0.85, s.y - hh * 0.85, Math.max(1, w * 0.34), hh * 0.85, TT[ci]);
         }
       }
     }
+  }
+  ctx.globalAlpha = 1;
+  charcosUlt = charcosN;   // T6: lo que se PINTO este cuadro, para que la sonda no mida una constante
+  drawAlambre(dv, relieve);
+  if (climaP === 'storm') drawRachas(dv, coastMode);
+}
+
+/** ALAMBRADOS (T5): postes con hilo CRUZANDO el pasillo, cada tantos cientos de metros.
+ *
+ *  Son la unica cosa de TAMAÑO CONOCIDO del paisaje. Sin algo asi la turba no tiene escala —
+ *  podria medir cualquier cosa— y ademas, al cruzarlos, marcan la velocidad, que es lo que un
+ *  campo vacio se come. Van a la altura del terreno, como todo lo que se apoya (T3). */
+function drawAlambre(dv, relieve) {
+  const primera = Math.ceil((dv + 3) / ALAMBRE_CADA);
+  for (let n = primera; n < (dv + 170) / ALAMBRE_CADA; n++) {
+    const wz = n * ALAMBRE_CADA, camZ = wz - dv;
+    if (camZ < 3) continue;
+    const k = F / camZ;
+    const fade = Math.min(1, (camZ - 3) / 10) * (1 - Math.min(1, camZ / 170) * 0.75);
+    if (fade <= 0.04) continue;
+    ctx.globalAlpha = fade * 0.9;
+    let prev = null;
+    for (let wx = -72; wx <= 72; wx += ALAMBRE_POSTE) {
+      const gy = relieve ? tierraH(wx, wz) : 0;
+      const b = proj(wx, gy, camZ), t = proj(wx, gy + ALAMBRE_H, camZ);
+      if (b.x < -30 || b.x > W + 30) { prev = null; continue; }
+      px(b.x, t.y, Math.max(1, k * 0.12), Math.max(1, b.y - t.y), '#3b3529');   // el poste
+      // EL HILO: dos hebras entre poste y poste. Se dibujan a mano con rects porque el hilo casi
+      // nunca es horizontal —el terreno sube y baja entre un poste y el otro— y una sola raya
+      // recta delataria que el suelo es plano justo donde T3 dice que no lo es.
+      if (prev) for (const f of [0.92, 0.55]) {
+        const y0 = prev.b.y - (prev.b.y - prev.t.y) * f, y1 = b.y - (b.y - t.y) * f;
+        const pasos = Math.max(2, Math.min(10, (b.x - prev.b.x) | 0));
+        for (let i = 0; i < pasos; i++) {
+          const u = i / pasos;
+          px(prev.b.x + (b.x - prev.b.x) * u, y0 + (y1 - y0) * u, Math.max(1, (b.x - prev.b.x) / pasos), 1, '#6b6455');
+        }
+      }
+      prev = { b, t };
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** RACHAS DE POLVO (T2). Solo con tormenta. Son POCAS y GRANDES a proposito: muchas y chicas se
+ *  leen como ruido de pantalla, no como viento. Cada racha nace, cruza y muere; su numero de
+ *  turno (`n`) sale del reloj, y de ahi por hash su profundidad y su punto de partida — sin
+ *  estado y sin allocations, como todo el resto del suelo. */
+function drawRachas(dv, coastMode) {
+  const col = coastMode ? mul(theme.cland.near, 1.45) : mul(theme.land.near, 1.5);
+  for (let i = 0; i < RACHA_N; i++) {
+    const u = run.t / RACHA_T + i * 0.37;
+    const n = Math.floor(u), ph = u - n;                  // que racha es, y cuanto lleva vivida
+    const wz = dv + 14 + hash2(n, i * 57) * 95;
+    const camZ = wz - dv;
+    const k = F / camZ;
+    const dir = hash2(n, i * 131) > 0.5 ? 1 : -1;
+    const wx = cam.x + (hash2(n, i * 91) * 2 - 1) * 40 - dir * 55 + dir * ph * 110;
+    const s = proj(wx, 0, camZ);
+    if (s.x < -60 || s.x > W + 60) continue;
+    // entra y sale con la misma curva: una racha que aparece de golpe se lee como un parpadeo
+    ctx.globalAlpha = Math.sin(ph * Math.PI) * RACHA_A;
+    const w = Math.max(2, k * 9), h = Math.max(1, k * 0.5);
+    px(s.x - w / 2, s.y - h * 2, w, h, col);
+    px(s.x - w / 2 + dir * w * 0.2, s.y - h * 4, w * 0.7, h, col);   // segunda veta, mas alta y corrida
   }
   ctx.globalAlpha = 1;
 }
@@ -742,7 +942,7 @@ export function drawObstacle(o) {
     // mar abierto — pero tambien era lo que hacia que las fragatas se leyeran como postes
     // clavados en el agua en vez de como buques. Ahora se dibuja el BUQUE, y lo unico que queda
     // de aquel palo es la luz roja de tope, arriba de la superestructura.
-    const base = proj(o.x, 0, o.z);
+    const base = proj(o.x, o.gy || 0, o.z);
     if (enemyArt.ready('fragata')) {
       enemyArt.drawFrame(ctx, 'fragata', 0, 0, base.x, { bottomY: base.y }, k, o.vx < 0);
       // ESTELA de proa: la fragata NAVEGA (cfg.enemyMove) — sin espuma parece fondeada
@@ -868,7 +1068,7 @@ export function drawObstacle(o) {
     // sorteadas del `seed` del objeto: la cresta queda quebrada y estable (no titila), y ningun
     // acantilado se parece al de al lado. En COSTA la roca es arenisca; en tierra, basalto.
     const arenisca = cfg.terrain === 'coast';
-    const base = proj(o.x, 0, o.z);
+    const base = proj(o.x, o.gy || 0, o.z);
     const hw = Math.max(1.5, o.hw * k), th = Math.max(2, o.h * k);
     // el sol pega desde la IZQUIERDA: la roca se apaga de laja en laja hacia la derecha (lerp,
     // no dos bloques planos — con el corte duro cada laja se leia como un edificio aparte)
@@ -924,7 +1124,7 @@ export function drawObstacle(o) {
     px(base.x - hw * 0.9, base.y - Math.max(1, 1.6 * k), hw * 0.55, Math.max(1, 0.6 * k), rock(0.15));
     px(base.x + hw * 0.45, base.y - Math.max(1, 1.4 * k), hw * 0.5, Math.max(1, 0.5 * k), rock(0.8));
   } else if (o.type === 'tree') {
-    const base = proj(o.x, 0, o.z);
+    const base = proj(o.x, o.gy || 0, o.z);
     const th = o.h * k;                                     // altura total en pantalla
     const sway = Math.sin(run.t * 1.3 + o.ph) * 0.5 * k;    // la copa se mece con el viento
     // sombra proyectada en el piso (le da peso al árbol)
@@ -949,7 +1149,7 @@ export function drawObstacle(o) {
     }
   } else if (o.type === 'tent') {
     // CARPA britanica: lona olivo a dos aguas, entrada oscura. Arrasable a ras (no mata).
-    const base = proj(o.x, 0, o.z);
+    const base = proj(o.x, o.gy || 0, o.z);
     ctx.globalAlpha = 0.25;
     px(base.x - 3 * k, base.y - 0.3 * k, 6 * k, Math.max(1, 0.5 * k), '#161d10');   // sombra
     ctx.globalAlpha = 1;
@@ -965,7 +1165,7 @@ export function drawObstacle(o) {
   } else if (o.type === 'aa') {
     // ANTIAEREO: nido de bolsas de arena + pedestal + caños gemelos apuntando alto. Dispara
     // misiles (o.fireT marca el fogonazo). Destruible — es el blanco prioritario del mapa.
-    const base = proj(o.x, 0, o.z);
+    const base = proj(o.x, o.gy || 0, o.z);
     if (enemyArt.ready('aa')) {
       // 2 poses de apunte: los caños CORRIGEN cada tanto — la pieza esta servida, no abandonada
       const col = ((run.t * 0.7 + o.ph) | 0) % 2;
@@ -988,7 +1188,7 @@ export function drawObstacle(o) {
   } else if (o.type === 'bldg') {
     // PUESTO britanico: paredes chapa, techo, puerta y ventanas. Los armados tienen un soldado
     // asomado que tira rafagas (fogonazo en la ventana con o.fireT).
-    const base = proj(o.x, 0, o.z), bh = o.h * k;
+    const base = proj(o.x, o.gy || 0, o.z), bh = o.h * k;
     if (enemyArt.ready('bldg')) {
       // la hoja se escala por ALTURA (o.h varia 7.5-11.5 por spawn): k por el factor contra href
       const fl = !!(o.hitT && run.t - o.hitT < 0.09);
@@ -1013,7 +1213,7 @@ export function drawObstacle(o) {
   } else if (o.type === 'lcu') {
     // BARCAZA DE DESEMBARCO: casco chato en el agua, rampa hacia la playa (izquierda), timonera
     // atras y cascos de soldados asomando. Entra por el lado del mar.
-    const base = proj(o.x, 0, o.z);
+    const base = proj(o.x, o.gy || 0, o.z);
     ctx.globalAlpha = 0.5;                                                           // estela
     px(base.x - 4.6 * k, base.y, 9.2 * k, Math.max(1, 0.4 * k), P.foam);
     ctx.globalAlpha = 1;
@@ -1038,7 +1238,7 @@ export function drawObstacle(o) {
     drawHpBar(base.x, base.y - 3.6 * k, k, o);
   } else if (o.type === 'tower') {
     // TORRE DE COMUNICACIONES: celosia que se angosta, travesaños en X, antenas y baliza roja.
-    const base = proj(o.x, 0, o.z), th = o.h * k;
+    const base = proj(o.x, o.gy || 0, o.z), th = o.h * k;
     const wB = 1.7 * k, wT = 0.5 * k;
     for (let i = 0; i < 7; i++) {                                   // montantes (van cerrando)
       const t0 = i / 7, t1 = (i + 1) / 7;
@@ -1055,7 +1255,7 @@ export function drawObstacle(o) {
     drawHpBar(base.x, base.y - th - 4 * k, k, o);
   } else if (o.type === 'poles') {
     // POSTES CON CABLES: dos palos y el tendido colgando en catenaria. Lo que engancha es el CABLE.
-    const base = proj(o.x, 0, o.z), th = o.h * k, sp = 6 * k;
+    const base = proj(o.x, o.gy || 0, o.z), th = o.h * k, sp = 6 * k;
     for (const sx2 of [base.x - sp, base.x + sp]) {
       px(sx2 - 0.35 * k, base.y - th, Math.max(1, 0.7 * k), th, '#54463a');                  // poste
       px(sx2 - 1.1 * k, base.y - th + 0.5 * k, 2.2 * k, Math.max(1, 0.35 * k), '#4a3e33');   // cruceta
@@ -1070,7 +1270,7 @@ export function drawObstacle(o) {
     ctx.lineWidth = 1;
   } else if (o.type === 'flag') {
     // MASTIL con bandera britanica FLAMEANDO: la Union Jack se dibuja por franjas onduladas.
-    const base = proj(o.x, 0, o.z), th = o.h * k;
+    const base = proj(o.x, o.gy || 0, o.z), th = o.h * k;
     px(base.x - 0.3 * k, base.y - th, Math.max(1, 0.6 * k), th, '#9aa2a6');                  // mastil
     px(base.x - 0.5 * k, base.y - th - 0.5 * k, k, Math.max(1, 0.5 * k), '#c8ced1');         // perilla
     const fw = 5.5 * k, fh = 3.2 * k, fy = base.y - th + 0.4 * k;
@@ -1088,7 +1288,7 @@ export function drawObstacle(o) {
     drawHpBar(base.x, base.y - th - 2 * k, k, o);
   } else if (o.type === 'depot') {
     // DEPOSITO: galpon abovedado con tambores y cajones apilados al lado.
-    const base = proj(o.x, 0, o.z), dh = o.h * k;
+    const base = proj(o.x, o.gy || 0, o.z), dh = o.h * k;
     if (enemyArt.ready('depot')) {
       const fl = !!(o.hitT && run.t - o.hitT < 0.09);
       enemyArt.drawFrame(ctx, 'depot', 0, 0, base.x, { bottomY: base.y }, k * o.h / enemyArt.SHEETS.depot.href, false, fl);
@@ -1111,7 +1311,7 @@ export function drawObstacle(o) {
     drawHpBar(base.x, base.y - dh - 1.8 * k, k, o);
   } else if (o.type === 'radar') {
     // RADAR MOVIL: camion con plato giratorio (reemplaza a los arboles en la costa)
-    const base = proj(o.x, 0, o.z);
+    const base = proj(o.x, o.gy || 0, o.z);
     if (enemyArt.ready('radar')) {
       // 4 poses del plato: rota de a 45° a paso constante. Si el camion RUEDA (vx), se espeja
       // para mirar hacia donde va.
@@ -1134,7 +1334,7 @@ export function drawObstacle(o) {
     drawHpBar(base.x, base.y - 6.2 * k, k, o);
   } else if (o.type === 'aatruck') {
     // CAMION ANTIAEREO: vehiculo con los caños del AA montados atras — dispara como el nido
-    const base = proj(o.x, 0, o.z);
+    const base = proj(o.x, o.gy || 0, o.z);
     if (enemyArt.ready('aatruck')) {
       // la torreta BARRE el cielo en ping-pong (0-1-2-1): busca al avion aunque no dispare
       const col = [0, 1, 2, 1][((run.t * 1.6 + o.ph) | 0) % 4];
@@ -1163,7 +1363,7 @@ export function drawObstacle(o) {
     drawHpBar(base.x, base.y - 5.6 * k, k, o);
   } else if (o.type === 'bomb') {
     // BOMBA cayendo: sombra que crece en el suelo (aviso) + cuerpo con aletas oscilando
-    const sh2 = proj(o.x, 0, o.z);
+    const sh2 = proj(o.x, o.gy || 0, o.z);
     const closeness = Math.max(0, 1 - o.y / 70);
     ctx.globalAlpha = 0.15 + closeness * 0.3;
     px(sh2.x - (1.4 + closeness * 1.2) * k, sh2.y - 0.3 * k, (2.8 + closeness * 2.4) * k, Math.max(1, 0.5 * k), '#0d100a');
@@ -1179,7 +1379,7 @@ export function drawObstacle(o) {
     // mano de abajo queda como respaldo mientras la hoja no cargo o si falla.
     if (boomArt.isReady()) { boomArt.drawBoom(ctx, px, proj, o, k); }
     else {
-      const base = proj(o.x, 0, o.z);
+      const base = proj(o.x, o.gy || 0, o.z);
       const ct = Math.min(1, o.boomT / 1.1);
       const fade = o.boomT > 4.5 ? Math.max(0, 1 - (o.boomT - 4.5) / 1.5) : 1;
       const hot = o.boomT < 0.6;
@@ -1253,7 +1453,7 @@ export function drawObstacle(o) {
     // El de abajo es el que da la escala: sin él la explosión flota, con él está APOYADA en algo.
     const f = Math.min(1, o.ondaT / ONDA_T);
     const s = proj(o.x, o.y, o.z);
-    const g = proj(o.x, 0, o.z);
+    const g = proj(o.x, o.gy || 0, o.z);
     const R = ONDA_R * f * s.k;
     const fade = (1 - f) * (1 - f);                 // se abre rápido y se apaga rápido
     ctx.save();
@@ -1351,7 +1551,7 @@ export function drawObstacle(o) {
   } else if (o.type === 'trench') {
     // TRINCHERA ARGENTINA (decorado, margen izquierdo): bolsas, 3 soldados propios tirando —
     // sus fogonazos y trazas cuentan la batalla del otro lado. No colisiona.
-    const base = proj(o.x, 0, o.z);
+    const base = proj(o.x, o.gy || 0, o.z);
     px(base.x - 3.4 * k, base.y - 1.0 * k, 6.8 * k, 1.0 * k, '#6b5f45');            // parapeto
     px(base.x - 3.4 * k, base.y - 1.0 * k, 6.8 * k, Math.max(1, 0.3 * k), '#7d7052');
     for (let i = 0; i < 3; i++) {                                                    // soldados propios (verde oliva)
@@ -1693,6 +1893,44 @@ let LAST_BOW = null;
 export const bowGeom = () => LAST_BOW;
 // SONDA DEL HANDOFF (R3): el ultimo cuadro del pasillo, para comparar contra el primero de la
 // PASADA (__pship). Puro mirar — no cambia una regla, como toda la vara del rescate.
+// SONDAS DEL SUELO (PLAN_TIERRA_COSTA). `__tierra` devuelve la paleta ACTIVA del suelo —que es
+// justo lo que T1 vino a arreglar: antes era una constante y no habia nada que sondear—;
+// `__tierraset` cambia mapa y cielo pasando por applyTheme, como el menu, en vez de escribir el
+// tema a mano; y `__pasto` mide la inclinacion con la MISMA funcion que dobla los matojos.
+if (typeof window !== 'undefined') {
+  window.__tierra = () => JSON.stringify({
+    terrain: cfg.terrain, sky: cfg.sky, clima: climaDe(cfg),
+    land: { far: theme.land.far, mid: theme.land.mid, near: theme.land.near, tuft: theme.land.tuft },
+    cland: theme.cland.near,
+  });
+  window.__tierraset = (terrain, sky) => {
+    if (terrain) cfg.terrain = terrain;
+    if (sky) cfg.sky = sky;
+    applyTheme(cfg);
+    return cfg.terrain + '/' + cfg.sky;
+  };
+  window.__pasto = (wx, wz) => +pastoLean(+wx || 0, +wz || 0, run.t, climaDe(cfg)).toFixed(4);
+  // EL RELIEVE (T3). `__loma` es la altura del suelo en un punto —la MISMA funcion que usa el
+  // vuelo—; `__suelo` es la foto de lo que decide el roce ahora mismo (donde esta el piso, donde
+  // esta el avion y cuanto margen lleva gastado); `__plantado` dice a que altura quedo clavado
+  // cada obstaculo, que es lo unico que prueba que la caja y el dibujo miran la misma loma.
+  window.__loma = (x, dz) => +tierraH(x === undefined ? plane.x : +x, run.dist + (dz === undefined ? PZ : +dz)).toFixed(3);
+  window.__suelo = () => JSON.stringify({
+    relieve: hayRelieve(cfg), h: +tierraH(plane.x, run.dist + PZ).toFixed(3),
+    y: +plane.y.toFixed(2), sc: +run.scrapeT.toFixed(2), dist: run.dist | 0,
+  });
+  // T4/T5: la resaca, el pedrero y el turbal, medidos con LAS MISMAS funciones que se dibujan.
+  // __lluvia: la perilla de LLUVIA sin pasar por el menu. Escribe la CAUSA (cfg.rain), que es lo
+  // que leen el suelo mojado, los charcos y climaDe — no un resultado ya cocinado.
+  window.__charcos = () => charcosUlt;
+  window.__lluvia = n => { cfg.rain = +n || 0; return cfg.rain; };
+  window.__resaca = (wz, t) => +resaca(+wz || 0, t === undefined ? run.t : +t).toFixed(4);
+  window.__pedrero = (wx, wz) => +pedreroAt(+wx || 0, +wz || 0).toFixed(3);
+  window.__turbal = wz => JSON.stringify(turbalAt(+wz || 0));
+  window.__plantado = () => JSON.stringify(obstacles
+    .filter(o => o.z > 0 && o.z < 400)
+    .map(o => ({ t: o.type, gy: +(o.gy || 0).toFixed(2) })));
+}
 if (typeof window !== 'undefined') window.__pbarge = () => JSON.stringify(LAST_BOW && {
   bx: +LAST_BOW.bx.toFixed(1), bw: +LAST_BOW.bw.toFixed(2),
   hTop: +LAST_BOW.hTop.toFixed(2), d: Math.round(LAST_BOW.d),
@@ -1968,8 +2206,9 @@ export function drawHitboxes() {
   const swp = planeBox(run.rollT > 0 || mvTight(run.mv)).pw;
   for (const sd of soldiers) {
     if (sd.dead || sd.z <= 1 || sd.z > 60) continue;
-    hbBox(sd.x, SOLDIER.top / 2, sd.z, SOLDIER.hw + swp, SOLDIER.top / 2, HB, 0.08);
-    hbBox(sd.x, SOLDIER.top / 2, sd.z, SOLDIER.hw, SOLDIER.top / 2, HB, 0.3);
+    const sgy = sd.gy || 0;
+    hbBox(sd.x, sgy + SOLDIER.top / 2, sd.z, SOLDIER.hw + swp, SOLDIER.top / 2, HB, 0.08);
+    hbBox(sd.x, sgy + SOLDIER.top / 2, sd.z, SOLDIER.hw, SOLDIER.top / 2, HB, 0.3);
   }
   // PERFIL DEL AVION: la otra mitad de cada choque. Sin esto el overlay solo cuenta la mitad.
   const { pw, ph } = planeBox(run.rollT > 0 || mvTight(run.mv));

@@ -26,6 +26,9 @@ import { W, H, HOR, F, PZ } from '../render/ctx.js';
 import { MSL_MAX, FLY_X, FLY_TOP, ROLL_DUR,
          GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT } from '../data/tuning.js';
 import { PORT_H } from '../data/runways.js';
+// EL SUELO TIENE ALTURA (T3): la misma funcion que levanta el pasto y las estructuras es la que
+// decide donde te matas. Si fueran dos, una loma se veria en un lado y mataria en el otro.
+import { tierraH, hayRelieve } from '../core/tierra.js';
 // cuanto sube la camara con turbo (unidades de mundo): el efecto de 'alejarse'
 const BOOST_LIFT = 2.2;
 // PANEO a fondo del stick derecho, en unidades de mundo. Es "un poco" a proposito: casi el triple
@@ -249,7 +252,10 @@ export function flightSystem(dt, deps) {
   let groundY, deathMsg;
   // en COSTA el suelo depende del LADO: tierra a la izquierda de SHORE_X, mar a la derecha
   const onDirt = cfg.terrain === 'land' || (cfg.terrain === 'coast' && plane.x < shoreAt(run.dist + PZ));
-  if (onDirt) { groundY = 0.5; deathMsg = 'death_land'; }
+  // 0.5 sigue siendo el margen de siempre sobre la superficie; lo que cambio es que la superficie
+  // ya no es una constante. Se muestrea BAJO EL AVION (su x, su profundidad de juego) — no bajo la
+  // camara: la loma tiene lados, y de eso se trata.
+  if (onDirt) { groundY = (hayRelieve(cfg) ? tierraH(plane.x, run.dist + PZ) : 0) + 0.5; deathMsg = 'death_land'; }
   else if (overRunway) { groundY = (cfg.cliff ? PORT_H : 0) + 0.9; deathMsg = 'death_land'; }
   else { groundY = waveNow(); deathMsg = 'death_sea'; }
   // TOCAR LA SUPERFICIE: ya no es muerte instantanea. El avion ROZA y tambalea (perdes control:

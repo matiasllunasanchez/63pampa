@@ -48,7 +48,20 @@ async function volar() {
   await tap('Down');                         // CICLO DE MUERTE → POR LA PATRIA
   await tap('Return');                       // → menu de avion
   await tap('Return');                       // → a volar
-  for (let i = 0; i < 60; i++) { if (await estado() === 'play') { await sleep(900); return true; } await sleep(200); }
+  for (let i = 0; i < 60; i++) {
+    if (await estado() === 'play') {
+      // EL MAPA SE FUERZA, como se fuerza el clima. POR LA PATRIA no randomiza nada: hereda el
+      // cfg guardado, y el TERRENO vive en localStorage (`rasante_terreno`) del perfil de
+      // Electron — que comparten todos los fixtures y el smoke, y que cualquiera de ellos puede
+      // dejar en 'land' al caminar OPCIONES. Con el mapa de tierra no se siembra UNA sola ola y
+      // el paso 5b da 0 con el juego perfecto. Esta linea es lo que hace el fixture repetible;
+      // el diagnostico de "flakiness binomial" del §21 estaba mirando el sintoma equivocado.
+      await js("__tierraset('sea')");
+      await sleep(900);
+      return true;
+    }
+    await sleep(200);
+  }
   return false;
 }
 
