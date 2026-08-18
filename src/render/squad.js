@@ -6,14 +6,14 @@
 // (480x270, la llaman junto a drawPlane) y drawRelevo en la GRILLA DE DISEÑO (320x180, la llaman
 // dentro del ctx.scale(U) de las pantallas). Por eso los alias DW/DH de abajo.
 
-import { ctx, px, DW, DH, PZ } from './ctx.js';
+import { ctx, px, DW, DH, PZ, U } from './ctx.js';
 import { plane } from '../core/state.js';
 import { run } from '../core/run.js';
 import { proj } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
-import { PLANE_SCALE } from './plane.js';
+import { PLANE_SCALE, drawGear } from './plane.js';
 import { drawSquadPips } from './hud.js';
 import { formationSlots, RELEVO_WRECK, RELEVO_DUR } from '../core/squad.js';
 import { pilotName, rosterActive, fallenPos } from '../systems/squad.js';
@@ -51,6 +51,18 @@ export function drawFormation({ selPlane, exit }) {
       px(sh.x - 7 * f, sh.y, 14 * f, 1, '#101c1e');
       ctx.globalAlpha = 1;
     }
+    // EL TREN, EL MISMO QUE EL TUYO. Despegan con vos: si vos tenes las ruedas afuera, ellos
+    // tambien, y se recogen a la par. Es el dibujo de render/plane.js llamado con la escala de
+    // ESTE companero (U * f, porque aca se dibuja en pixeles de mundo y cada uno esta a otra
+    // distancia), no una copia — dos rutinas de rueda serian un escuadron con dos aviones
+    // distintos, y la que no se mira se pudre.
+    //
+    // Va ANTES del sprite por la misma razon que en el lider: la pata nace adentro del ala y
+    // solo tiene que verse lo que asoma por debajo.
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    drawGear(run.gear, U * f);
+    ctx.restore();
     if (pl.sheetOk) {
       const col = (SHEET_NF - 1) / 2;                    // nivelados: la formacion no banquea
       const row = plane.pitch > 0.33 ? 0 : 1;            // pero acompañan el cabeceo del lider
