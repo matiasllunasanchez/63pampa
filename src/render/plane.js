@@ -53,6 +53,52 @@ function flame(x, y0) {
   if (Math.random() < 0.35) px(x + (Math.random() < 0.5 ? -1 : 1), y0 + n + 1, 1, 1, '#e0761f');
 }
 
+// VORTICES DE PUNTA DE ALA, y SOLO con el turbo puesto. No es humo de motor —eso ya lo hace la
+// llama de la tobera— sino el hilo que se condensa en el extremo del ala cuando el avion esta
+// cargado. Por eso sale de las PUNTAS y de ningun otro lado, y por eso aparece justo cuando
+// apretas turbo: es el instrumento que te dice que estas exprimiendo el avion.
+//
+// ES UNA HISTORIA DE POSICIONES, una por cuadro, y no un sistema de particulas. La diferencia
+// importa: asi el hilo sigue EXACTAMENTE lo que hiciste —el bob, la vibracion del roce, el
+// alabeo, el tiron de un esquive— en vez de aproximarlo con velocidades. Y como el avion vive
+// clavado en el mismo punto de la pantalla, cada muestra ademas se ABRE hacia afuera y BAJA con
+// la edad: sin eso las diecisiete muestras caerian una encima de otra y el hilo seria un punto.
+//
+// Al soltar el turbo no se agregan muestras y la cola se va comiendo el hilo de atras para
+// adelante, que es como se disipa de verdad — no un corte.
+const TIP_N = 17;
+const tips = [];
+
+function tipTrail(cx, cy, half, bank, on) {
+  const cb = Math.cos(bank * 0.9), sb = Math.sin(bank * 0.9) * 0.5;   // el alabeo sube una punta y baja la otra
+  const rx = cx + half * cb, ry = cy + half * sb;
+  // UN SALTO NO ES UN VUELO. Si el avion aparecio en otro lado —un relevo, volver de un menu, el
+  // corte a otra fase— el hilo viejo no es estela: es basura de la vida anterior colgada en el
+  // aire. Se tira entera y se empieza de nuevo, en vez de dibujar una raya del punto muerto al
+  // punto vivo.
+  const ult = tips[tips.length - 1];
+  if (ult && Math.abs(ult.rx - rx) + Math.abs(ult.ry - ry) > 40) tips.length = 0;
+  if (on) tips.push({ lx: cx - half * cb, ly: cy - half * sb, rx, ry });
+  else if (tips.length) tips.shift();
+  while (tips.length > TIP_N) tips.shift();
+  const n = tips.length;
+  for (let i = 0; i < n; i++) {
+    const p = tips[i];
+    const viejo = n > 1 ? 1 - i / (n - 1) : 0;      // 1 = la muestra mas vieja, la punta del hilo
+    // La V se abre POCO y se hunde MUCHO. Con 10/5.5 los hilos salian disparados a los costados y
+    // quedaban flotando a la altura del fuselaje, como dos rayas sueltas al lado del avion en vez
+    // de algo que sale de el. Visto desde atras y desde arriba, lo que hace un vortice es caer:
+    // casi todo el recorrido es hacia abajo y apenas se abre.
+    const dx = viejo * 3.4, dy = viejo * 9;
+    const w = 1 + viejo * 2.4;
+    ctx.globalAlpha = (1 - viejo * 0.85) * 0.5;
+    const c = viejo < 0.45 ? P.foam : P.crest;
+    px(p.lx - dx - w / 2, p.ly + dy - w / 2, w, w, c);
+    px(p.rx + dx - w / 2, p.ry + dy - w / 2, w, w, c);
+  }
+  ctx.globalAlpha = 1;
+}
+
 /** Los DOS fogonazos, colocados en la RAIZ DEL ALA. Al alabear tienen que acompañar al ala y no
  *  quedarse horizontales: la POSICION gira siempre con el alabeo, y la INCLINACION del fogonazo
  *  entra recien pasada la mitad del giro — antes no se notaria y solo ensuciaria el pixel art
@@ -294,6 +340,13 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     // alrededor, y las puntas de ala caen en ~0.34 de su ancho y la panza en ~0.09 de su alto.
     // Con 0.40/0.13 el agua rebotaba AL LADO del avion, no sobre el.
     // anchorSpray / drawSpray desactivados: el rebote no convencia visualmente
+    //
+    // DE DONDE SALEN. El 0.34 es el BORDE del ala; el hilo no nace ahi sino un poco adentro (0.24),
+    // porque el vortice se enrolla sobre el extremo y no en la punta exacta — y sobre todo porque a
+    // 0.34 los dos hilos nacian tan afuera que se leian despegados del avion. Y nacen ABAJO, en la
+    // linea de la panza (el mismo 0.09 con el que se anclaba el rebote de lluvia): el ala esta por
+    // debajo del centro del frame, y saliendo del centro los hilos flotaban sobre el fuselaje.
+    tipTrail(cx, cy + spH * U * 0.09, spW * U * 0.24, bank, !!run.boost && S.state === 'play');
   }
 
   // mira: en el MOUSE (PC, punteria libre) o adelante del avion (tactil/legacy)
