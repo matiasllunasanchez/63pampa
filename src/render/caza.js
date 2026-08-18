@@ -27,12 +27,36 @@ function drawHumo(f) {
   ctx.globalAlpha = 1;
 }
 
+// LA ESTELA DE PUNTA DE ALA. No es humo de motor: es vapor, asi que nace BLANCO y cerrado y se
+// abre y se apaga hacia el gris del aire. El gradiente va por EDAD y no por distancia — asi el
+// hilo se lee igual pegado a la cola que a 300 m, que es donde el Harrier necesitaba dejar de
+// parecer una figurita.
+const EST = [P.foam, P.crest, '#8d8f92'];
+
 function drawEstela(f) {
   const s = proj(f.x, f.y, f.z);
-  const w = Math.max(1, s.k * f.r * 0.5);
-  ctx.globalAlpha = Math.min(0.4, f.life * 0.4);
-  px(s.x - w / 2, s.y - w / 2, w, w, P.crest);
+  const edad = 1 - Math.min(1, f.life / (f.vida0 || 1.3));
+  const w = Math.max(1, s.k * f.r * (0.5 + edad * 1.7));
+  ctx.globalAlpha = Math.min(0.5, f.life * 0.6) * (1 - edad * 0.6);
+  px(s.x - w / 2, s.y - w / 2, w, w, edad < 0.25 ? EST[0] : edad < 0.55 ? EST[1] : EST[2]);
   ctx.globalAlpha = 1;
+}
+
+/** LA TOBERA ENCENDIDA. Es la misma llama que el turbo tuyo (render/plane.js) pero vista DE PUNTA:
+ *  un cono que te apunta no se alarga, late — asi que en vez de filas que se afinan hacia la punta
+ *  son anillos que se afinan hacia el centro, del rojo apagado de afuera al blanco del nucleo. */
+const FL = ['#cf4d16', '#f07c22', '#ffb43c', '#ffe08a', '#fff6d8'];
+
+function drawTobera(sx, sy, k, t) {
+  const fl = 0.74 + Math.sin(t * 31) * 0.16 + Math.random() * 0.1;   // late cuadro a cuadro
+  const w = Math.max(1, 1.05 * k * fl);
+  ctx.globalAlpha = 0.26;                                            // resplandor sobre el fuselaje
+  px(sx - w, sy - w * 0.5, w * 2, Math.max(1, w), FL[2]);
+  ctx.globalAlpha = 1;
+  for (let i = 0; i < FL.length; i++) {
+    const ww = Math.max(1, w * (1 - i * 0.18));
+    px(sx - ww / 2, sy - ww * 0.28, ww, Math.max(1, ww * 0.56), FL[i]);
+  }
 }
 
 function drawCazaSprite(H) {
@@ -41,14 +65,17 @@ function drawCazaSprite(H) {
   // QUIEN DECIDE ESTO ES EL SISTEMA (convencion 4): `deFrente` sale del snapshot. Aca no se
   // adivina por fase ni por z — asi no vuelve a darse vuelta el sprite justo antes del horizonte.
   const trasero = !H.deFrente;
+  // LA POSE DE ALABEO sale del BANDEO, no del lado sorteado. `lado` es fijo por pasada: con el
+  // avion volaba de costado el ciclo entero, siempre en el mismo frame extremo de la hoja. `bank`
+  // lo calcula el sistema mirando para donde se esta yendo de verdad, asi que el dibujo ahora
+  // acompaña al movimiento — que es la mitad de por que parecia estatico.
+  const pose = cols => Math.max(0, Math.min(cols - 1, Math.round((H.bank * 0.5 + 0.5) * (cols - 1))));
 
   if (trasero && enemyArt.ready('jet_rear')) {
-    const cols = enemyArt.SHEETS.jet_rear.cols;
-    const col = Math.max(0, Math.min(cols - 1, Math.round((H.lado * 0.5 + 0.5) * (cols - 1))));
-    enemyArt.drawFrame(ctx, 'jet_rear', col, 0, s.x, { centerY: s.y }, k, false, false, 0);
+    enemyArt.drawFrame(ctx, 'jet_rear', pose(enemyArt.SHEETS.jet_rear.cols), 0, s.x,
+      { centerY: s.y }, k, false, false, 0);
   } else if (enemyArt.ready('jet')) {
-    const cols = enemyArt.SHEETS.jet.cols;
-    const col = Math.max(0, Math.min(cols - 1, Math.round((H.lado * 0.5 + 0.5) * (cols - 1))));
+    const col = pose(enemyArt.SHEETS.jet.cols);
     if (trasero) {
       ctx.save();
       ctx.translate(s.x, 0);
@@ -63,13 +90,8 @@ function drawCazaSprite(H) {
     px(s.x - 0.35 * k, s.y - 2.8 * k, 0.7 * k, 1.5 * k, c);
     if (!trasero) px(s.x - 0.6 * k, s.y - 0.9 * k, 1.2 * k, 0.8 * k, P.canopy);
   }
-  if (trasero) {
-    const fl = 0.7 + Math.sin(H.t * 34) * 0.3;
-    ctx.globalAlpha = 0.65;
-    px(s.x - 0.5 * k * fl, s.y - 0.2 * k, k * fl, Math.max(1, 0.55 * k), '#f0954a');
-    ctx.globalAlpha = 1;
-    px(s.x - 0.22 * k * fl, s.y - 0.05 * k, Math.max(1, 0.45 * k * fl), Math.max(1, 0.3 * k), '#fff2cf');
-  }
+  // La tobera SOLO se ve de cola: de frente la tapa el propio avion.
+  if (trasero) drawTobera(s.x, s.y, k, H.t);
 }
 
 /** UN CUADRO de la flota. `lejos` = la pasada que va CON el mundo (todo lo que esta mas lejos que

@@ -66,6 +66,13 @@ let C = null;
 /** Sorteo en un rango [lo, hi]. Se llama al ENTRAR a una fase, nunca por cuadro. */
 const entre = ([lo, hi]) => lo + Math.random() * (hi - lo);
 
+// MEDIA ENVERGADURA del Harrier, en unidades de mundo — de donde salen los dos hilos de estela.
+// Sale de medir la hoja `jet_rear` (10,5 unidades de ancho util) y descontar lo que el extremo del
+// ala se mete para adentro del borde del frame. Vive ACA y no se importa del render: un sistema no
+// mira el dibujo (convencion 2). Si algun dia se rehornea el sprite con otra envergadura, este
+// numero se toca a mano y a proposito.
+const CAZA_SEMI = 4.6;
+
 const miIndicativo = () => pilotName(pilotIdx(run.squad, run.lives));
 
 /** ¿Hay al menos un Harrier corriendo? */
@@ -91,10 +98,17 @@ export function start(opts = {}) {
     humo: 0,
     // ENTRA POR EL HORIZONTE, de frente. No aparece pegado a la cola de la nada: el primer ciclo
     // se ve igual que todos los demas (ver "DE QUE LADO SE LO VE" arriba).
+    //
+    // DOS POSICIONES, no una. `bx`/`by` son la TRAYECTORIA (lo que la fase manda) y `x`/`y` son
+    // donde el avion esta DE VERDAD este cuadro: trayectoria + bandeo. Mezclarlas hacia que el
+    // bandeo se lerpeara contra si mismo y quedaba un temblor sucio en vez de un avion volando.
+    bx: plane.x, by: plane.y,
     x: plane.x, y: plane.y, z: CAZA_Z_LEJOS,
     lado: Math.random() < 0.5 ? -1 : 1,
+    seed: Math.random() * 6.283,   // desfase propio: dos Harriers de la flota no bandean igual
+    bank: 0, xPrev: plane.x,
     fx: [],
-    humoT: 0,
+    humoT: 0, estT: 0,
     muerto: false,
   };
   fleet.push(h);
@@ -153,8 +167,30 @@ function stepSolucion(dt) {
 function stepFx(dt) {
   for (const f of C.fx) { f.life -= dt; f.z -= run.spd * dt; }
   let n = 0;
-  for (let i = 0; i < C.fx.length; i++) if (C.fx[i].life > 0 && C.fx[i].z < 260 && C.fx[i].z > 1) C.fx[n++] = C.fx[i];
+  for (let i = 0; i < C.fx.length; i++) {
+    const f = C.fx[i];
+    if (f.life > 0 && f.z < CAZA_Z_LEJOS + 30 && f.z > 1) C.fx[n++] = f;
+  }
   C.fx.length = n;
+  // LA ESTELA SALE DE LAS PUNTAS DE ALA. Son DOS hilos, no uno: el vortice del extremo del ala es
+  // lo que de verdad deja una linea blanca detras de un avion, y sale de ahi y de ningun otro
+  // lado. La tobera tiene su llama y se queda en la tobera (render/caza.js).
+  //
+  // Que sean dos es la mitad del valor: con el alabeo una punta sube y la otra baja, asi que los
+  // hilos se cruzan y se abren solos. Un hilo unico al centro no dice nada de como esta virando.
+  //
+  // Y SE QUEDAN EN EL MUNDO — por eso se les resta `run.spd` como a cualquier cosa del pasillo, y
+  // por eso despues los atravesas.
+  C.estT -= dt;
+  if (C.estT <= 0) {
+    C.estT = 0.045;
+    const ang = C.bank * 0.95;
+    const ca = Math.cos(ang) * CAZA_SEMI, sa = Math.sin(ang) * CAZA_SEMI;
+    for (const s of [-1, 1]) C.fx.push({
+      k: 'estela', x: C.x + s * ca, y: C.y - s * sa, z: C.z,
+      vida0: 0.8, life: 0.8, r: 0.2 + Math.random() * 0.12,
+    });
+  }
   if (C.humo) {
     C.humoT -= dt;
     if (C.humoT <= 0) {
@@ -214,34 +250,67 @@ function derribar() {
   C.muerto = true;
 }
 
+// EL BANDEO: lo que lo hace parecer un avion y no una calcomania que cambia de tamaño.
+//
+// Se suma A LA TRAYECTORIA, en metros de mundo, y la amplitud CRECE CON LA DISTANCIA. Esto ultimo
+// no es un capricho: el tamaño en pantalla va con 1/z, asi que un bandeo de amplitud fija se
+// achica junto con el avion y a 300 m no se ve mover un pixel — que es exactamente por lo que la
+// entrada parecia una foto alejandose. Escalando con z, lo que queda parejo es el movimiento
+// ANGULAR, que es lo que el ojo lee como "ese avion esta volando".
+//
+// El 0.35 de piso es la otra mitad de la cuenta. El desplazamiento EN PANTALLA es amplitud x k, y
+// k va con 1/z: con `esc = 1 + z/120` el bandeo terminaba siendo dieciseis veces mas grande pegado
+// a la cola (z 6) que en el horizonte (z 320) — un avion quieto lejos y epileptico cerca. Con
+// 0.35 + z/110 la relacion baja a dos, que es lo que corresponde: de cerca se mueve algo mas,
+// como pasa de verdad, pero es el mismo avion volando igual.
+function bandeo() {
+  const s = C.seed, esc = 0.35 + C.z / 110;
+  return {
+    x: (Math.sin(run.t * 1.7 + s) * 2.2 + Math.sin(run.t * 2.9 + s * 0.5) * 0.8) * esc,
+    y: (Math.sin(run.t * 1.15 + s * 2.3) * 1.3 + Math.sin(run.t * 0.63 + s * 1.7) * 0.9) * esc,
+  };
+}
+
 function stepPos(dt) {
   const f = C.dur > 0 ? Math.min(1, C.t / C.dur) : 1;
   const lerp = (a, b, k) => a + (b - a) * Math.min(1, k * dt);
   if (C.fase === 'aviso' || C.fase === 'presion') {
-    C.x = lerp(C.x, plane.x + C.lado * CAZA_X_COLA * (1 - C.sol), 1.6);
-    C.y = lerp(C.y, plane.y + 1.5, 1.4);
+    C.bx = lerp(C.bx, plane.x + C.lado * CAZA_X_COLA * (1 - C.sol), 1.6);
+    C.by = lerp(C.by, plane.y + 1.5, 1.4);
     // 2 → 0.8: la entrada de frente tiene que DURAR. A 2 el caza cruzaba de 320 a la cola en poco
     // mas de un segundo y no se leia que venia encarandote; a 0.8 son ~3,4 s de acercamiento, que
-    // es lo que hace falta para que entren dos rafagas y para que el pase de frente se VEA.
+    // es lo que hace falta para que el pase de frente se VEA.
     C.z = lerp(C.z, CAZA_Z_COLA, 0.8);
   } else if (C.fase === 'sobrepaso') {
     const e = Math.pow(f, 2.2);
     C.z = CAZA_Z_COLA + (CAZA_Z_FRENTE - CAZA_Z_COLA) * e;
-    C.x = plane.x + C.lado * (4 + CAZA_X_COLA * 0.20 * (1 - e));
-    C.y = plane.y + 1.5 + 3 * e;
+    C.bx = plane.x + C.lado * (4 + CAZA_X_COLA * 0.20 * (1 - e));
+    C.by = plane.y + 1.5 + 3 * e;
   } else if (C.fase === 'ventana') {
     const jink = Math.sin(run.t * 2.3 + C.lado * 3) * 0.7 + Math.sin(run.t * 3.7 + C.lado) * 0.3;
     C.z = lerp(C.z, CAZA_Z_FRENTE + Math.sin(run.t * 1.1 + C.lado) * 14, 1.2);
-    C.x = lerp(C.x, plane.x + jink * 12, 1.4);
-    C.y = lerp(C.y, plane.y + 6 + Math.sin(run.t * 1.8 + C.lado) * 4, 1.3);
+    C.bx = lerp(C.bx, plane.x + jink * 12, 1.4);
+    C.by = lerp(C.by, plane.y + 6 + Math.sin(run.t * 1.8 + C.lado) * 4, 1.3);
   } else if (C.fase === 'recola') {
+    // SE VA EN CURVA, no en linea recta hacia el punto de fuga. Antes la x no se tocaba y el
+    // Harrier se achicaba clavado en el centro: la lectura era "zoom out", no "se aleja volando".
     C.z = lerp(C.z, CAZA_Z_LEJOS, 1.8);
-    C.y = lerp(C.y, plane.y + 4, 0.8);
+    C.bx = lerp(C.bx, plane.x + C.lado * 34, 0.7);
+    C.by = lerp(C.by, plane.y + 4, 0.8);
   } else if (C.fase === 'salida') {
     C.z = lerp(C.z, CAZA_Z_LEJOS, 1.8);
-    C.y = lerp(C.y, plane.y + 30, 1.2);
-    C.x = lerp(C.x, plane.x + C.lado * 40, 1.2);
+    C.by = lerp(C.by, plane.y + 30, 1.2);
+    C.bx = lerp(C.bx, plane.x + C.lado * 40, 1.2);
   }
+  const b = bandeo();
+  C.x = C.bx + b.x;
+  C.y = C.by + b.y;
+  // ALABEO LEIDO DEL MOVIMIENTO, no sorteado. El sprite tiene cinco poses de alabeo y hasta ahora
+  // se elegia con `lado`, que es fijo por pasada: el avion volaba de costado todo el ciclo. Ahora
+  // la pose sale de para donde se esta yendo de verdad, asi que el bandeo se VE en el dibujo.
+  const vx = (C.x - C.xPrev) / Math.max(dt, 1e-4);
+  C.xPrev = C.x;
+  C.bank += (Math.max(-1, Math.min(1, vx / 26)) - C.bank) * Math.min(1, dt * 6);
 }
 
 /** EL CICLO — infinito hasta que lo elimines. */
@@ -309,7 +378,7 @@ export function snapshot() {
   return fleet.map(h => ({
     fase: h.fase, t: h.t, dur: h.dur, pase: h.pase, sol: h.sol,
     x: h.x, y: h.y, z: h.z, lado: h.lado, humo: h.humo, fx: h.fx,
-    deFrente: deFrente(h),
+    deFrente: deFrente(h), bank: h.bank,
   }));
 }
 
