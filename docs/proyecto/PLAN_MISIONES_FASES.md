@@ -49,10 +49,10 @@ clímax) y ENTER lanza **esa misión aislada** — sin campaña alrededor: al te
 
 | fase | entrega | criterio de cierre |
 |---|---|---|
-| **S0** | La sonda: `?mision=<id>` + `__mision(id)` lanzan la misión aislada (cfg completo de la misión, roster, clímax, chancha/nafta como en campaña) y el fin de misión vuelve al selector (o al menú si entró por URL) | por URL se juega cualquier misión suelta; DEBUG_STATE muestra `results/epilogue → selector`, jamás `brief` de la siguiente |
-| **S1** | La pantalla: fila MISIONES + lista navegable con nombre/fecha/goal/clímax y el toggle [H] historia | se entra, se elige, se juega, ESC vuelve |
-| **S2** | Higiene: `testMode` bloquea récords/saves/ups + badge PRUEBA | media hora de selector deja `localStorage` idéntico (fixture lo verifica) |
-| **S3** | **`npm run misiones`** (`tools/fixture_misiones.js`): recorre TODAS las misiones por sonda con `?qa` — carga, despega, canvas vivo, llega al clímax que declara, 0 errores de consola | **la red de regresión de la campaña entera**, gratis para siempre; entra al hábito de correrla al cerrar cada misión |
+| ~~**S0**~~ ✅ | La sonda: `?mision=<id>` + `__mision(id)` lanzan la misión aislada (cfg completo de la misión, roster, clímax, chancha/nafta como en campaña) y el fin de misión vuelve al selector (o al menú si entró por URL) | por URL se juega cualquier misión suelta; DEBUG_STATE muestra `results/epilogue → selector`, jamás `brief` de la siguiente |
+| ~~**S1**~~ ✅ | La pantalla: fila MISIONES + lista navegable con nombre/fecha/goal/clímax y el toggle [H] historia | se entra, se elige, se juega, ESC vuelve |
+| ~~**S2**~~ ✅ | Higiene: `testMode` bloquea récords/saves/ups + badge PRUEBA | media hora de selector deja `localStorage` idéntico (fixture lo verifica) |
+| ~~**S3**~~ ✅ | **`npm run misiones`** (`tools/fixture_misiones.js`): recorre TODAS las misiones por sonda con `?qa` — carga, despega, canvas vivo, llega al clímax que declara, 0 errores de consola | **la red de regresión de la campaña entera**, gratis para siempre; entra al hábito de correrla al cerrar cada misión |
 
 ---
 
@@ -116,7 +116,7 @@ clímax) y ENTER lanza **esa misión aislada** — sin campaña alrededor: al te
 
 | orden | pieza | prerreq. | tamaño | estado |
 |---|---|---|---|---|
-| 1 | **S** el selector (S0–S3) | — | medio | ⬜ |
+| 1 | **S** el selector (S0–S3) | — | medio | ✅ |
 | 2 | **R** remapeo 12→14 | S3 (la red) | medio | ⬜ |
 | 3 | **T** tramos (T0–T4, incluye M4 piloto) | — | chico | ⬜ |
 | 4 | M1 | T · tambores | chico | ⬜ |
@@ -291,4 +291,59 @@ prueba en 30 segundos, y `npm run misiones` convierte el avance en red de regres
 
 ## 6. Divergencias del plan *(completar durante la implementación)*
 
-- *(vacío)*
+**FASE 0 — EL SELECTOR (19/8, S0–S3 cerradas)**
+
+1. **No hay `gameMode` nuevo: la misión suelta corre en `'cycle'` con `S.test` puesto.** `'cycle'`
+   ya es el modo que juega UNA misión y la desemboca por el embudo normal (objetivo → recuento →
+   epílogo), y su reintento tras un derribo ya vuelve a la MISMA misión — que es literalmente lo
+   que S0 pide. Lo único que hubo que agregarle es *no encadenar la siguiente*. Un modo nuevo
+   habría obligado a tocar los ~20 `if (gameMode === …)` del orquestador, y cada uno de esos `if`
+   es un modo existente que el pedido decía no tocar.
+2. **`S.test` es EL flag de herramienta, y ahora significa tres cosas** (sello PRUEBA + higiene +
+   "esta corrida vuelve a un catálogo"). Se reusa el de PRUEBAS en vez de inventar `testMode`
+   aparte, con el mismo criterio que la divergencia 2 de COMO_PROBAR: un solo dueño, `core/state.js`.
+   La consecuencia buscada: **el selector y PRUEBAS son la misma herramienta con dos catálogos**, y
+   `testBack` (una variable) dice a cuál de los dos se vuelve.
+3. **La misión suelta se juega COMO EN CAMPAÑA: con su roster y con su regla de Chancha.** Es lo
+   que pedía S0 ("roster, chancha/nafta como en campaña") y se implementó como `gameMode ===
+   'campaign' || S.test`. ⚠ **Efecto colateral querido en PRUEBAS**: los momentos que abren una
+   misión (`a.mision`) también heredan el roster y la negativa de la Chancha de esa misión. Es más
+   fiel — probar M7 sin el poder es probar M7 — pero es un cambio de comportamiento de los momentos
+   ya existentes, no una función nueva.
+4. **PRUEBAS y el selector comparten la puerta `abrirMision()`.** El verbo `a.mision` del catálogo
+   dejó de armar su propia corrida y ahora delega. Es la regla de oro de COMO_PROBAR §4 aplicada
+   hacia adentro: si "probar la misión" y "jugar la misión" fueran dos caminos, el selector no
+   garantizaría nada. La diferencia entre un MOMENTO y una MISIÓN quedó en un flag (`aire`: el
+   momento arranca ya volando y sin el fundido de entrada).
+5. **Efecto colateral en PRUEBAS: un momento tampoco encadena.** Antes, terminar la misión de un
+   momento sorteaba otra misión de CICLO DE MUERTE; ahora vuelve al catálogo. Es lo que el modo
+   siempre quiso decir ("ESC vuelve al catálogo") y adelanta media PR4.
+6. **La higiene (S2) es sobre el PROGRESO, no sobre la configuración.** `sinRastro()` bloquea
+   récord, saves y mejoras. Las PREFERENCIAS (mira con CAPS, ejes, idioma, silencio) se siguen
+   escribiendo: son las mismas filas de OPCIONES y bloquearlas haría que la tecla mintiera. O sea:
+   "media hora de selector deja `localStorage` idéntico" vale mientras no cambies un ajuste —
+   y cambiarlo es una decisión, no un rastro.
+7. **El fixture NO usa `?qa`** (el plan lo pedía). `?qa` acorta al 6% y las dos misiones más cortas
+   quedan **más cortas que la carrera de despegue**: M1 (2200 → 132 m) cumple el objetivo antes de
+   levantar y se cierra sin haber volado. El fixture vuela la distancia real y acorta con
+   `__wjump(0.97)` DESPUÉS de medir. (Esto no es un bug del juego: es el techo de `?qa`, y queda
+   anotado porque el remapeo R va a agregar misiones cortas.)
+8. **El fixture no vuela con el gas sostenido, vuela con sondas** (`__czalto` + `__czspd`). Una
+   tecla sostenida es `anyPress` treinta veces por segundo, y `anyPress` es lo que adelanta el
+   recuento y el epílogo: la primera corrida atravesó las dos pantallas y terminó en el menú antes
+   de que el fixture pudiera mirar. Con el vuelo clavado por sonda, las pantallas esperan.
+9. **El fixture despeja el pasillo antes del salto final** (`__chacalma()`). Lo que la red cuida es
+   que la misión CARGUE, VUELE, SE DIBUJE y DESEMBOQUE donde dice — no que se sobreviva. Una
+   fragata en el carril la pondría en rojo por una razón que no tiene que ver con lo que guarda.
+10. **Sondas nuevas** (nacen acá y sirven también en consola y fixtures): `__mision(id[, opts])`
+    lanza la misión aislada y devuelve su ficha (climax declarado, buque, distancia, escuadrón);
+    `__misiones()` lista la campaña — con eso el fixture no tiene copia propia de las misiones y
+    **el remapeo 12→14 lo va a arrastrar solo**. `__pausedbg` ganó `mision`, `climax` y `volver`.
+    Y `?mision=<id>[&historia]` es la misma puerta por URL.
+11. **La ventana del selector es de SEIS filas y la cuenta hay que hacerla con la captura al lado.**
+    Con siete, la séptima descripción aterriza en y=272 —fuera de los 270 de alto— encima del pie
+    del `[H]`. Se vio en la primera captura, no en el código.
+12. **Pendiente conocido: ESC no pausa en `'pasada'` ni en `'pulso'`.** La lista de la pausa en
+    `core/input.js` es `play/takeoff/momentum/arena`, así que desde esos dos clímax no se puede
+    salir al selector con el teclado (sí con el mando, botón Start). Es anterior a esta fase y no
+    se tocó — pero desde el selector se nota más, porque ahora hay a dónde volver.

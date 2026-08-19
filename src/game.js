@@ -132,6 +132,14 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     let modeSel = 0;                 // pantalla inicial: 0 = HISTORIA, 1 = JUEGO RAPIDO
     let quickSel = 0;                // cursor del submenu JUEGO RAPIDO
     let prbSel = 0;                  // cursor del catalogo de PRUEBAS
+    // A DONDE VUELVE una corrida de herramienta (PRUEBAS o el SELECTOR DE MISIONES) cuando se
+    // termina o se sale. Es UNA variable y no dos caminos copiados porque las dos pantallas son
+    // la misma idea —elegir algo, jugarlo, volver a elegir— y lo unico que cambia es el catalogo.
+    let testBack = 'modeselect';
+    let misSel = 0;                  // cursor del SELECTOR DE MISIONES
+    // …y si esa mision se vuela CON su guion. Es una perilla de la PANTALLA (no de la corrida) y
+    // vive fuera del selector a proposito: se elige una vez y queda puesta para las que sigan.
+    let misHist = false;
     // el orden DEBE coincidir con `opts` en menus.drawModeSelect: el click traduce la fila tocada
     // a este indice. 'options' = pantalla de ajustes (idioma); 'quit' = fila SALIR.
     //
@@ -142,7 +150,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // PRUEBAS va DEBAJO de JUEGO RAPIDO y no al final: es la tercera puerta al juego (historia,
     // partida suelta, momento suelto), no un ajuste. OJO — mover una fila de aca corre los indices
     // que tools/smoke.js navega a ciegas con flechas; ya pasó al agregar PERSECUCION.
-    const MODES = ['campaign', 'quick', 'pruebas', 'options', 'quit'];
+    const MODES = ['campaign', 'quick', 'pruebas', 'misiones', 'options', 'quit'];
     // Los modos de adentro de JUEGO RAPIDO. `arena` y `pasadas` son los dos BANCOS DE PRUEBAS del
     // climax: entran DIRECTO al buque, sin cruzar el pasillo, y existen para poder tunear cada
     // fase sin jugar una mision entera cada vez.
@@ -212,6 +220,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       Object.assign(cfg, MISSIONS[curLevel].cfg); applyCfg();
     }
     function curMission() { return MISSIONS[curLevel]; }
+    /** Indice de una mision por su id ('m4') o por su numero. -1 si no existe: quien llama decide
+     *  que hacer con eso (la sonda contesta null; el selector no puede llegar con un id invalido). */
+    const misIdx = id => typeof id === 'number'
+      ? (MISSIONS[id] ? id : -1)
+      : MISSIONS.findIndex(m => m.id === String(id));
     /** Una linea de radio de LA CHANCHA: centrada, debajo del HUD de arriba y encima del horizonte.
      *
      *  Los popups se dibujan CENTRADOS en coordenadas de mundo (ctx.textAlign = 'center'), asi que
@@ -241,7 +254,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         // LA ROTURA DEL GUION vuelta mecanica: desde la mision siguiente al epilogo de LA BOMBA
         // QUE NO DESPERTO, la Chancha vuela corto y no baja al sur (missions.js: chancha:false).
         // Fuera de campaña —ciclo, por la patria— siempre esta viva: ahi no hay narrativa.
-        viva: !(gameMode === 'campaign' && curMission() && curMission().chancha === false),
+        // La otra mitad de "como en campaña" (S0): en el SELECTOR y en PRUEBAS la mision trae SU
+        // regla, asi que probar M7 sin el poder es probar M7 de verdad.
+        viva: !((gameMode === 'campaign' || S.test) && curMission() && curMission().chancha === false),
         t: run.t,
       });
       if (r === 'nofuel') return;                                    // sin combustible el poder no existe
@@ -362,6 +377,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     function upgConfirm() {
       const u = upgOffer[upgSel];
       if (!u || upgT < 0.4) return;      // gracia: la tecla que cerro el epilogo no elige sola
+      // LAS MEJORAS (S2): el banco es de la CAMPAÑA. En las herramientas el epilogo ya vuelve al
+      // catalogo antes de ofrecer nada, asi que esto es el segundo cerrojo de la misma puerta —
+      // el que queda puesto si alguien algun dia hace que una prueba pase por el banco.
+      if (sinRastro()) { salirTest(); return; }
       pichon.push(u.id);
       beep(880, 0.12, 'square', 0.06);
       advanceCampaign();
@@ -372,6 +391,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       if (m === 'campaign') { campSel = campFirstSel(); setState('campmenu'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'quick') { quickSel = 0; setState('quickmenu'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'pruebas') { prbSel = prbFirstSel(); setState('pruebas'); beep(600, 0.08, 'square', 0.05); }
+      else if (m === 'misiones') { setState('misiones'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'options') { setState('options'); beep(600, 0.06, 'square', 0.05); }
       else if (m === 'quit') quitGame();
     }
@@ -389,6 +409,86 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       else if (id === 'persec') goPersec();
       else goSurvival();
     }
+    // ---------- LA MISION SUELTA (PLAN_MISIONES_FASES §1, fase S0) ----------
+    // Jugar UNA mision AISLADA, sin campaña alrededor: con su cfg, su roster, su climax y su regla
+    // de Chancha, pero sin guion encadenado, sin banco del Pichon y sin la mision siguiente. Es la
+    // puerta UNICA de las tres herramientas que la piden — la sonda `__mision` / `?mision=<id>`,
+    // el SELECTOR DE MISIONES y el verbo `mision` del catalogo de PRUEBAS — porque si cada una
+    // armara su propia corrida, "probar la mision" y "jugar la mision" dejarian de ser lo mismo,
+    // que es exactamente lo que el selector viene a garantizar.
+    //
+    // El MODO es 'cycle' a proposito y no uno nuevo: es el que ya juega una mision suelta y la
+    // desemboca por el embudo normal (objetivo → recuento → epilogo), y el reintento tras un
+    // derribo ya vuelve a la MISMA mision. Lo unico que hace falta agregarle es no encadenar la
+    // siguiente — de eso se ocupa `S.test` en el epilogo.
+    //
+    // `S.test` queda puesto: es el flag de HERRAMIENTA (sello PRUEBA en el HUD, candado de
+    // records y saves en S2) y ademas es lo que hace que la mision se juegue CON SU ROSTER y con
+    // la regla de Chancha de la campaña — ver `reset()` y `pedirChancha()`.
+    //
+    // o = { historia, aire, cfg, modo, volver }
+    //   historia · pasa por el guion largo de la mision ([H] en el selector). Por defecto NO: el
+    //              selector existe para ir derecho al despegue.
+    //   aire     · arrancar YA VOLANDO (los MOMENTOS de PRUEBAS; el selector quiere el despegue)
+    //   cfg      · pisa el cfg del mapa (clima, combustible)
+    //   modo     · gameMode alternativo (POR LA PATRIA / PERSECUCION, que no juegan una mision)
+    //   volver   · a que pantalla vuelve al terminar; sin esto conserva la que ya habia
+    function abrirMision(i, o) {
+      o = o || {};
+      gameMode = o.modo || 'cycle';
+      S.test = true;
+      if (o.volver) testBack = o.volver;
+      prbTasks.length = 0;
+      loadLevel(i);
+      if (o.aire || o.cfg) { Object.assign(cfg, o.aire ? { start: 'air' } : {}, o.cfg || {}); applyCfg(); }
+      reset(); setRunObjective();
+      run.t = 0;
+      const m = curMission();
+      if (o.historia && m.story) { initStory(m.story); setState('story'); return m; }
+      // el fundido y el `lv1` son la ENTRADA a la mision, y por eso no van en los momentos: un
+      // momento no empieza, ya esta pasando.
+      if (!o.aire) { fadeT = 1.0; sfxOne('lv1'); }
+      setState(afterBrief());
+      return m;
+    }
+    // EL SELECTOR: la campaña listada, una fila por mision. Las filas son la DATA (el indice en
+    // MISSIONS) y no una copia de sus textos: agregar una mision la pone en la lista sola, que es
+    // la mitad de por que el selector sobrevive al remapeo 12→14.
+    const misRows = () => MISSIONS.map((m, i) => ({ id: m.id, i })).concat([{ id: 'back', back: true }]);
+    function misNav(dir) {
+      const n = misRows().length;
+      misSel = (misSel + dir + n) % n;
+      beep(520, 0.05, 'square', 0.04);
+    }
+    function misConfirm() {
+      const r = misRows()[misSel];
+      if (!r) return;
+      if (r.back) { modeSel = MODES.indexOf('misiones'); setState('modeselect'); beep(400, 0.06, 'square', 0.05); return; }
+      beep(700, 0.08, 'square', 0.05);
+      abrirMision(r.i, { historia: misHist, volver: 'misiones' });
+    }
+    /** [H]: alterna si la mision se vuela con su guion. Dos tonos distintos para no tener que
+     *  mirar el pie de la pantalla cada vez. */
+    function misToggleHist() { misHist = !misHist; beep(misHist ? 700 : 440, 0.06, 'square', 0.05); }
+
+    /** LA HIGIENE DE LAS HERRAMIENTAS (PLAN_MISIONES_FASES S2, y la PR3 de COMO_PROBAR: es la
+     *  MISMA regla para las dos pantallas). Con `S.test` puesto la corrida NO DEJA RASTRO: ni
+     *  record, ni partida guardada, ni mejoras aprendidas. Sin esto el selector es inusable — cada
+     *  vez que probas una mision te ensucia el record y te pisa un save.
+     *
+     *  Lo que SI se sigue escribiendo son las PREFERENCIAS (mira, ejes, idioma, silencio): son las
+     *  mismas filas de OPCIONES, el jugador las cambio a proposito, y bloquearlas haria que CAPS
+     *  prendiera la mira libre y la perdiera al salir. La higiene es sobre el PROGRESO, no sobre
+     *  la configuracion. */
+    const sinRastro = () => S.test;
+
+    /** Sale de una corrida de herramienta y vuelve a SU catalogo (PRUEBAS o MISIONES). Apaga las
+     *  sondas-interruptor que la corrida pudo dejar puestas: ver PRB_NEUTRO. */
+    function salirTest() {
+      S.test = false; prbTasks.length = 0; prbNeutro();
+      setState(testBack);
+    }
+
     // ---------- EL MODO PRUEBAS (docs/proyecto/COMO_PROBAR.md §4) ----------
     // Un catalogo de MOMENTOS: elegis uno y el juego te pone exactamente ahi. Lo que sigue es
     // TODA la logica del modo, y es a proposito que sea tan poca: PRUEBAS es una INTERFAZ sobre
@@ -414,7 +514,8 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       if (r.back) { modeSel = MODES.indexOf('pruebas'); setState('modeselect'); S.test = false; beep(400, 0.06, 'square', 0.05); return; }
       prbTasks.length = 0;
       prbNeutro();
-      S.test = true;                       // el sello del HUD y, desde PR3, el candado de records
+      S.test = true;                       // el sello del HUD y el candado de records (S2)
+      testBack = 'pruebas';                // el momento vuelve AL CATALOGO, no al menu principal
       beep(700, 0.08, 'square', 0.05);
       r.setup(pruebasApi());
     }
@@ -457,21 +558,14 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       const idx = id => Math.max(0, MISSIONS.findIndex(m => m.id === id));
       /** Arranca una mision como corrida suelta: sin guion largo ni tarjeta de briefing — el
        *  camino exacto de ?pasada=<n>&pasillo. `over` pisa el cfg del mapa (clima, combustible). */
-      const abrir = (id, over, modo) => {
-        gameMode = modo || 'cycle';
-        // SIEMPRE se carga la mision, aun en los modos infinitos: es lo que hace el momento
-        // REPRODUCIBLE. Sin esto POR LA PATRIA hereda el cfg del momento anterior y la misma fila
-        // del menu abre una escena distinta segun lo que hayas mirado antes (pasó: la ola rebelde
-        // aparecio sobre un campo verde porque venia el cielo de otra mision).
-        loadLevel(idx(id));
-        // Y SIEMPRE se arranca EN EL AIRE. El modo es "ponerme exactamente ahi": ningun momento
-        // vale tres segundos de carreteo, y la mitad de las sondas del mundo necesitan estar
-        // volando. Un momento que quiera el despegue lo pide con `{ start: 'runway' }`.
-        Object.assign(cfg, { start: 'air' }, over || {}); applyCfg();
-        reset(); setRunObjective();
-        run.t = 0;
-        setState(afterBrief());
-      };
+      // SIEMPRE se carga la mision, aun en los modos infinitos: es lo que hace el momento
+      // REPRODUCIBLE. Sin esto POR LA PATRIA hereda el cfg del momento anterior y la misma fila
+      // del menu abre una escena distinta segun lo que hayas mirado antes (pasó: la ola rebelde
+      // aparecio sobre un campo verde porque venia el cielo de otra mision).
+      // Y SIEMPRE se arranca EN EL AIRE (`aire`). El modo es "ponerme exactamente ahi": ningun
+      // momento vale tres segundos de carreteo, y la mitad de las sondas del mundo necesitan estar
+      // volando. Un momento que quiera el despegue lo pide con `{ start: 'runway' }`.
+      const abrir = (id, over, modo) => abrirMision(idx(id), { aire: true, cfg: over, modo });
       return {
         mision: (id, over) => abrir(id, over),
         patria: over => abrir('m1', over, 'survival'),
@@ -543,7 +637,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         // SALIR: la partida muere aca (sin guardado implicito — guardar es una decision del
         // jugador, no un efecto colateral de irse)
         paused = false;
-        if (S.test) { S.test = false; prbTasks.length = 0; prbNeutro(); setState('pruebas'); }
+        if (S.test) salirTest();
         else { setState('modeselect'); modeSel = 0; }
         beep(400, 0.09, 'square', 0.05);
       }
@@ -554,6 +648,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     }
     /** Guarda (slot nuevo o pisando el elegido) y vuelve al menu raiz con el flash de confirmacion. */
     function doSave() {
+      // LOS SAVES (S2). Hoy la fila GUARDAR solo existe en campaña y las herramientas corren en
+      // otro modo, asi que este candado no deberia poder dispararse — y va igual: es la clase de
+      // regla que se rompe sola el dia que alguien haga la fila visible en otro modo, y ahi el
+      // sintoma seria una partida de otro pisada por una prueba.
+      if (sinRastro()) { beep(140, 0.09, 'square', 0.05); return; }
       const d = { camp: curCampaign, level: curLevel, score: Math.floor(run.score), lives: run.lives, ups: pichon.slice() };
       const row = pauseSaveRows()[saveSel];
       if (!row) return;
@@ -1021,7 +1120,8 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // coincidir con esta. Son dos porque responden preguntas distintas —esta decide si rota el
     // fondo del lobby— pero si divergen, se nota: o el fondo se congela o la musica se corta.
     const inLobby = () => S.state === 'title' || S.state === 'modeselect' || S.state === 'menu' || S.state === 'options'
-      || S.state === 'mejoras' || S.state === 'campmenu' || S.state === 'quickmenu' || S.state === 'pruebas' || S.state === 'saves';
+      || S.state === 'mejoras' || S.state === 'campmenu' || S.state === 'quickmenu' || S.state === 'pruebas'
+      || S.state === 'misiones' || S.state === 'saves';
 
     // ESTRELLAS 1..4 (la 4ª = Malvinas, rango S). Compartido por el recuento de nivel y el
     // derribado de survival: exige el DOBLE del par para las Malvinas, que se sientan merecidas.
@@ -1080,6 +1180,19 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
           mission: SHIP_MISSIONS.includes(n) ? n : SHIP_MISSIONS[0],
           viaPasillo: /\bpasillo\b/.test(location.search),
         };
+      } catch (e) { return null; }
+    })();
+    // ?mision=<id>: LA MISION SUELTA, por URL (PLAN_MISIONES_FASES S0). `<id>` es el de
+    // data/missions.js ('m4') o su numero. Con &historia se pasa por el guion largo de la mision;
+    // sin el se va derecho al despegue, que es para lo que existe. Con ?qa dura segundos.
+    // Es la MISMA puerta que aprieta el selector — no un atajo — asi que si se rompe una, se
+    // rompen las dos y el fixture de S3 lo grita. Sin el parametro, misionProbe es null.
+    const misionProbe = (() => {
+      try {
+        const v = new URLSearchParams(location.search).get('mision');
+        if (v === null) return null;
+        const i = misIdx(/^\d+$/.test(v) ? +v : v);
+        return i < 0 ? null : { i, historia: /\bhistoria\b/.test(location.search) };
       } catch (e) { return null; }
     })();
     // SONDA DE LA COLA (PLAN_HARRIERS_PERSECUCION §3, fase H0) — QUITAR al cerrar el plan.
@@ -1170,7 +1283,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // NORMA DE CAMPAÑA (3/8, GUION_2): con roster, el relevo es un AVERIADO que vuelve a la
       // base (nadie muere por gameplay); sin roster, el relevo arcade de siempre (PATRIA caido).
       // El roster es POR MISION (los Fieles vivos segun el guion); FIELES queda de respaldo.
-      squad.setRoster(gameMode === 'campaign' ? (curMission().roster || FIELES) : null);
+      // …y en las HERRAMIENTAS (S.test: PRUEBAS y el SELECTOR DE MISIONES) tambien, que es la mitad
+      // de "la mision suelta se juega como en campaña" (PLAN_MISIONES_FASES S0): sin el roster, el
+      // relevo cambia de tono y probar la mision dejaria de parecerse a jugarla.
+      squad.setRoster(gameMode === 'campaign' || S.test ? (curMission().roster || FIELES) : null);
       resetFog(); fogWarned = false;   // los bancos de niebla se re-sortean en cada corrida
       // el ESCUADRON de la corrida: cfg.squad aviones y vos de lider. Vive en `run` (no en el
       // sistema) porque lo leen HUD + relevo + este archivo.
@@ -1189,7 +1305,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     const playerEl = document.getElementById('player');
     const canPickMusic = () => gameMode !== 'campaign'
       && S.state !== 'title' && S.state !== 'modeselect' && S.state !== 'menu' && S.state !== 'options'
-      && S.state !== 'mejoras' && S.state !== 'campmenu' && S.state !== 'quickmenu' && S.state !== 'pruebas' && S.state !== 'saves' && S.state !== 'story'
+      && S.state !== 'mejoras' && S.state !== 'campmenu' && S.state !== 'quickmenu' && S.state !== 'pruebas' && S.state !== 'misiones' && S.state !== 'saves' && S.state !== 'story'
       && S.state !== 'epilogue';
 
     // ---------- input ----------
@@ -1266,13 +1382,16 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       escToMenu: () => {
         // en PRUEBAS la salida es el CATALOGO, no el menu principal: el modo es elegir momento
         // tras momento, y hacerte volver a entrar por la puerta cada vez lo vuelve inutilizable.
-        if (S.test) { S.test = false; prbTasks.length = 0; prbNeutro(); setState('pruebas'); beep(400, 0.06, 'square', 0.05); return; }
+        if (S.test) { salirTest(); beep(400, 0.06, 'square', 0.05); return; }
         const suelto = gameMode === 'cycle' || gameMode === 'survival' || gameMode === 'arena' || gameMode === 'pasadas';
         setState(S.state === 'menu' && suelto ? 'quickmenu' : 'modeselect');
         beep(400, 0.06, 'square', 0.05);
       },
       prbNav: dir => prbNav(dir),
       prbConfirm: () => prbConfirm(),
+      misNav: dir => misNav(dir),
+      misConfirm: () => misConfirm(),
+      misToggleHist: () => misToggleHist(),
       // PAUSA (la logica vive arriba; el input solo enruta). isPaused es el predicado que
       // core/input.js usa para desviar el teclado/el mando al menu en vez de al vuelo.
       isPaused: () => paused,
@@ -1675,7 +1794,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // campaña: el ultimo avion tampoco explota — la escuadrilla entera quedo averiada y la
       // mision se pierde (la pantalla de fin lo dice); en arcade, el derribo clasico
       if (relevoRompe()) dmgFX(); else crashFX();
-      if (Math.floor(run.score) > best) { best = Math.floor(run.score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
+      // EL RECORD (S2): en las herramientas no se toca ni en memoria — si solo se salteara el
+      // localStorage, el HUD mostraria un record que se evapora al cerrar el juego.
+      if (!sinRastro() && Math.floor(run.score) > best) { best = Math.floor(run.score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
     }
 
     // EL EMBUDO DE LA MUERTE. Todas las señales { death } de los sistemas (colision, roce,
@@ -1999,7 +2120,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         } else if (S.state === 'epilogue') {
           // EPILOGO: el mismo motor de lineas; al terminar la secuencia, encadena segun el modo
           if (stepStory(dt) === 'end') {
-            if (gameMode === 'campaign') {
+            // HERRAMIENTAS (S0): la mision suelta TERMINA acá y se vuelve al catalogo del que se
+            // vino. Encadenar la siguiente es lo unico que el selector no puede hacer — para eso
+            // esta la campaña.
+            if (S.test) { salirTest(); beep(400, 0.06, 'square', 0.05); }
+            else if (gameMode === 'campaign') {
               // campaña: antes de la siguiente mision pasa por EL BANCO DEL PICHON (elegir una
               // mejora), si el pool no se agoto. Despues, la mision o la victoria final.
               upgOffer = curLevel + 1 < MISSIONS.length ? nextUpgrades(pichon, 2) : [];
@@ -2558,6 +2683,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t });
       if (S.state === 'quickmenu') menus.drawQuickMenu({ sel: quickSel, rows: quickRows(), t: run.t });
       if (S.state === 'pruebas') menus.drawPruebasMenu({ sel: prbSel, rows: prbRows(), t: run.t });
+      if (S.state === 'misiones') menus.drawMisionesMenu({ sel: misSel, rows: misRows(), hist: misHist, t: run.t });
       if (S.state === 'saves') menus.drawSaves({ list: saves.listSaves(), sel: savesSel, t: run.t });
       // EL BANCO DEL PICHON: pantalla de mejora entre misiones. Desde M8 (muerto el Pichon,
       // indice 7) las mejoras salen de su libreta y la pantalla cambia de nombre.
@@ -2798,7 +2924,35 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // el reloj de la corrida y las sondas diferidas que faltan disparar: sin esto, un momento
       // que "no hace nada" no se distingue de una sonda que fallo (paso, y costo media hora)
       t: +run.t.toFixed(2), tareas: prbTasks.length,
+      // LA MISION EN CURSO y a donde vuelve: sin esto el fixture del selector (S3) no puede decir
+      // si la corrida que esta mirando es la que pidio ni si el fin de mision la va a encadenar.
+      mision: (curMission() || {}).id || null, climax: climaxOf(curMission() || { goal: {} }), volver: testBack,
     });
+    // LA MISION SUELTA (PLAN_MISIONES_FASES S0): jugar una mision AISLADA por id, que es como la
+    // van a recorrer el selector y el fixture de S3. Devuelve la ficha de lo que se armo —climax,
+    // roster, distancia— porque una sonda que solo dice "ok" no permite afirmar que la mision se
+    // cargo ENTERA, que es justo lo que el criterio de cierre pide.
+    //   __mision('m4')                    derecho al despegue
+    //   __mision('m4', { historia: 1 })   pasando por el guion largo
+    if (typeof window !== 'undefined') window.__mision = (id, o) => {
+      const i = misIdx(id === undefined ? 0 : id);
+      if (i < 0) return null;
+      const m = abrirMision(i, o);
+      return JSON.stringify({
+        id: m.id, i, state: S.state, test: S.test, volver: testBack,
+        // el climax que DECLARA la mision (null = la cierra el PASILLO). No `runClimax()`: ese
+        // cae a 'pasada' por defecto y solo se consulta cuando el objetivo lo pide, asi que en una
+        // mision de distancia mentiria.
+        climax: climaxOf(m), obj: Math.round(objectiveDist), buque: objectiveShip,
+        roster: (m.roster || []).length, vidas: run.lives,
+        chancha: m.chancha !== false, story: !!m.story,
+      });
+    };
+    // LA CAMPAÑA LISTADA, para que el fixture del selector (S3) la recorra sin tener su propia
+    // copia de las misiones: agregar una la mete en la red de regresion sola. Es la misma idea
+    // que `__prb()` sin argumentos con el catalogo de PRUEBAS.
+    if (typeof window !== 'undefined') window.__misiones = () => JSON.stringify(
+      MISSIONS.map(m => ({ id: m.id, name: m.name, climax: climaxOf(m) })));
     // MODO PRUEBAS (COMO_PROBAR §4): elegir un momento POR ID, que es como lo va a recorrer el
     // guardian del catalogo (PR4). Es la misma puerta que aprieta el jugador —prbConfirm—, no un
     // atajo: si el menu se rompe, la sonda se rompe con el.
@@ -3026,6 +3180,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       if (pulsoProbe.viaPasillo) { run.t = 0; setState(afterBrief()); }
       else { run.dist = objectiveDist; pulso.enter(false); }
     }
+    // ?mision=<id>: la mision suelta arranca sola, sin pasar por el menu. Vuelve AL MENU al
+    // terminar (no hay selector del que se haya venido).
+    if (misionProbe) abrirMision(misionProbe.i, { historia: misionProbe.historia, volver: 'modeselect' });
     if (pasadaProbe) {
       gameMode = 'cycle';
       loadLevel(pasadaProbe.mission);

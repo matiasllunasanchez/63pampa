@@ -5,7 +5,7 @@
 > debajo de JUEGO RÁPIDO) que convierte este catálogo en pantalla elegible.
 >
 > **El hallazgo del relevamiento:** la infraestructura de prueba YA EXISTE y es enorme —
-> **9 fixtures npm** (`story pasada pulso caza persec romper agua tierra chancha`),
+> **10 fixtures npm** (`story pasada pulso caza persec romper agua tierra chancha misiones`),
 > **~80 sondas de consola** (`window.__*`) y **8 parámetros de URL**. Lo que falta no es
 > maquinaria: es un MENÚ que la junte. El modo PRUEBAS es una interfaz sobre la capa de
 > sondas, casi sin lógica nueva.
@@ -18,6 +18,8 @@
 | `?no3d` | fuerza el fallback 2D (el momentum viejo) |
 | `?lang=en` | idioma |
 | `window.__wjump(0.9)` | salta al 90% de la misión en curso |
+| `?mision=<id>` · `__mision('m4')` | **una misión suelta**, con su clímax y su escuadrón, sin campaña alrededor (`&historia` la vuela con su guion). Es la puerta del SELECTOR DE MISIONES — ver [PLAN_MISIONES_FASES §1](PLAN_MISIONES_FASES.md) |
+| `window.__misiones()` | la campaña listada (id, nombre, clímax): con esto un fixture no necesita su propia copia |
 | `npm run <fixture>` | corre la prueba automatizada de ese feature (lista arriba) |
 | `npm run start` | el juego; consola de Electron para las sondas |
 | `DEBUG_STATE=1` | loguea cada transición de estado |
@@ -82,6 +84,7 @@ llegar a verlo)*
 | Fondos de clima (imágenes) | OPCIONES → FONDO | 30 s |
 | **Historia VN** (tipeo, holds, retratos mock, placas) | `?scene=M07_LOCKER` (el fixture del locker) · `npm run story` | 10 s |
 | Guion de campaña completo / banco del Pichón | CAMPAÑA con `?qa` — el epílogo + banco entre misiones · `__udbg` | 2 min |
+| **UNA misión cualquiera, suelta** (su clima, su clímax, su escuadrón) | MENÚ → **MISIONES** · `?mision=m9` · `__mision('m9')` · `npm run misiones` las recorre todas | 15 s |
 | Saves / pausa / récords / música / idioma | ESC en vuelo (pausa+save) · reproductor teclas 1/2 · **L** idioma | 30 s |
 
 ## 3. La brecha — lo que HOY exige consola o suerte *(la lista que justifica el modo PRUEBAS)*
@@ -107,9 +110,17 @@ catálogo. Nada de lo que pase en PRUEBAS toca récords, saves ni desbloqueos.
 |---|---|---|
 | ~~**PR0 · El catálogo en data**~~ ✅ | `data/pruebas.js`: `{ id, titulo, desc, setup }` por momento — `setup` invoca la MISMA capa de sondas/parámetros existente (nada de lógica duplicada). Flag global `testMode` | **HECHO (19/8): 20 momentos, 6 secciones.** El flag es `S.test` (`core/state.js`). Dos tests unitarios lo custodian: uno chequea la forma de la data, el otro corre cada `setup` contra una **api espía** y falla si un momento no llama a la capa de sondas — es la REGLA DE ORO vuelta aserción |
 | ~~**PR1 · El menú**~~ ✅ | Fila PRUEBAS en `MODES` (patrón del submenú de JUEGO RÁPIDO / campmenu: lista + descripción + volver). Badge `PRUEBA` en el HUD mientras está activo | **HECHO (19/8).** Estado `'pruebas'`, fila entre JUEGO RÁPIDO y OPCIONES, lista con **ventana** (27 filas no entran) y marcas `^ n` / `v n`. El sello va **arriba al medio**: la esquina derecha la ocupa el reproductor. Verificado con sonda: se entra por flechas, se elige, se juega y ESC vuelve al catálogo, con un momento de cada familia (clímax, Harrier, destrucción, ola, escena VN) y sin errores de consola |
-| **PR2 · Los momentos sin sonda** | Las sondas chicas que faltan para el §3: relevo a demanda (`__relevo()`), avería directa por nivel, misión directa por id con su clima (`__mision('m9')`), Chancha con nafta al 8%, Harrier por fase, PULSO por zona | los 9 puntos del §3 tienen su momento elegible |
-| **PR3 · La higiene** | `testMode` bloquea: persistencia de récords, escritura de saves, desbloqueos y estadísticas. Verificado por fixture | jugar PRUEBAS media hora deja `localStorage` idéntico |
+| **PR2 · Los momentos sin sonda** | Las sondas chicas que faltan para el §3: relevo a demanda (`__relevo()`), avería directa por nivel, ~~misión directa por id con su clima (`__mision('m9')`)~~ ✅, Chancha con nafta al 8%, Harrier por fase, PULSO por zona | los 9 puntos del §3 tienen su momento elegible |
+| ~~**PR3 · La higiene**~~ ✅ | `testMode` bloquea: persistencia de récords, escritura de saves, desbloqueos y estadísticas. Verificado por fixture | **HECHO (19/8), por la fase S2 del selector**: `sinRastro()` en `game.js` corta el récord (ni en memoria), los saves y las mejoras. Las PREFERENCIAS (mira, ejes, idioma, silencio) siguen escribiéndose a propósito: son las filas de OPCIONES y bloquearlas haría que la tecla mintiera. Medido con el control al lado — muriendo con 123 puntos desde la herramienta el récord no se movió de 10; la misma muerte en POR LA PATRIA lo escribió |
 | **PR4 · El guardián** | `npm run pruebas`: recorre el catálogo ENTERO por sonda y verifica que cada momento carga sin errores de consola y con el canvas vivo — **el catálogo se vuelve red de regresión de todos los features a la vez** | fixture verde en `check` (o aparte si tarda) |
+
+> **`__mision` ya existe (19/8)**, y llegó por el otro lado: la fase S0 del
+> [PLAN_MISIONES_FASES.md](PLAN_MISIONES_FASES.md), que construyó el **SELECTOR DE MISIONES** —
+> una fila propia del menú, hermana de ésta. Las dos pantallas son la misma herramienta con dos
+> catálogos: comparten `S.test` (sello + higiene), la variable `testBack` (a qué catálogo se
+> vuelve) y la puerta `abrirMision()`. Dos consecuencias para este documento: **PR3 quedó hecha**
+> (la higiene la escribió S2 y la verifica `npm run misiones`), y **un momento ya no encadena** —
+> al terminar la misión de un momento se vuelve al catálogo en vez de sortear otra misión.
 
 **Regla de oro**: PRUEBAS es una INTERFAZ sobre las sondas — si un momento necesita
 lógica nueva, esa lógica nace como sonda (utilizable también por consola y fixtures) y

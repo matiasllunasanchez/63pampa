@@ -201,6 +201,16 @@ export function initInput(cv, a) {
       if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
       return;
     }
+    if (S.state === 'misiones') {                                        // SELECTOR DE MISIONES
+      if (isUp(e.code)) { a.misNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code)) { a.misNav(1); e.preventDefault(); return; }
+      if (isConfirm(e.code)) { a.misConfirm(); e.preventDefault(); return; }
+      // [H]: con guion o sin guion. Es una tecla y no una fila porque no se ELIGE — decide como
+      // arranca lo que elijas (PLAN_MISIONES_FASES S1).
+      if (e.code === 'KeyH' && !e.repeat) { a.misToggleHist(); e.preventDefault(); return; }
+      if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
+      return;
+    }
     if (S.state === 'saves') {                                           // partidas guardadas (cargar)
       if (isUp(e.code)) { a.savesNav(-1); e.preventDefault(); return; }
       if (isDown(e.code)) { a.savesNav(1); e.preventDefault(); return; }
@@ -491,6 +501,12 @@ export function initInput(cv, a) {
         if (nu && !nav.u) a.prbNav(-1);
         if (nd && !nav.d) a.prbNav(1);
         if (confirm) a.prbConfirm();
+        if (hit(1)) a.escToMenu();                             // B = volver al selector de modos
+      } else if (S.state === 'misiones') {
+        if (nu && !nav.u) a.misNav(-1);
+        if (nd && !nav.d) a.misNav(1);
+        if (confirm) a.misConfirm();
+        if (hit(2)) a.misToggleHist();                         // X (cuadrado) = el toggle de [H]
         if (hit(1)) a.escToMenu();                             // B = volver al selector de modos
       } else if (S.state === 'saves') {
         if (nu && !nav.u) a.savesNav(-1);

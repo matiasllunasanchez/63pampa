@@ -256,6 +256,14 @@ export const STRINGS = {
     prBadge: 'PRUEBA',
     prSecClimax: 'LOS CLIMAX', prSecCola: 'LA COLA Y EL NUMERAL', prSecDestr: 'LA DESTRUCCION',
     prSecAgua: 'EL AGUA Y EL CLIMA', prSecPoder: 'LOS PODERES', prSecHistoria: 'LA HISTORIA',
+    // EL SELECTOR DE MISIONES (docs/proyecto/PLAN_MISIONES_FASES.md §1, fase S1). Los nombres y
+    // las fechas de las misiones NO estan aca — viven en data/missions.js, que ya es su casa. Aca
+    // esta el MARCO: el rotulo de la pantalla y el pie del toggle de historia.
+    modeMisiones: 'MISIONES', modeMisionesDesc: 'Volar una mision suelta, sin campaña alrededor',
+    misTitle: 'MISIONES  ·  ELEGI UNA Y VOLALA SUELTA',
+    misClimaxNo: 'SOLO PASILLO',
+    misHistOn: '[H]  HISTORIA: SI  ·  se vuela con el guion de la mision',
+    misHistOff: '[H]  HISTORIA: NO  ·  derecho al despegue',
     modePasada: 'PASADAS MORTALES', modePasadaDesc: 'A ras, saltar, soltar y salir',
     modeHint: 'flechas: elegir   ENTER / TOCAR: confirmar',
     portLabel: 'PUERTO', bargeDown: 'BARCAZA DESTRUIDA', reached: 'alcanzados',
@@ -1137,6 +1145,11 @@ export const STRINGS = {
     prBadge: 'TEST',
     prSecClimax: 'THE CLIMAXES', prSecCola: 'THE TAIL AND THE WINGMAN', prSecDestr: 'DESTRUCTION',
     prSecAgua: 'WATER AND WEATHER', prSecPoder: 'THE POWERS', prSecHistoria: 'THE STORY',
+    modeMisiones: 'MISSIONS', modeMisionesDesc: 'Fly a single mission, no campaign around it',
+    misTitle: 'MISSIONS  ·  PICK ONE AND FLY IT ALONE',
+    misClimaxNo: 'CORRIDOR ONLY',
+    misHistOn: '[H]  STORY: YES  ·  flown with the mission script',
+    misHistOff: '[H]  STORY: NO  ·  straight to takeoff',
     modePasada: 'DEADLY RUNS', modePasadaDesc: 'On the deck, pop up, release and out',
     modeHint: 'arrows: choose   ENTER / TAP: confirm',
     portLabel: 'PORT', bargeDown: 'BARGE DESTROYED', reached: 'reached',
