@@ -93,8 +93,17 @@ app.whenReady().then(async () => {
   // "quedan" se mide en el tiempo, no en el instante: se revienta UNA cosa y se mira si sus
   // pedazos siguen ahi un segundo despues, y si llegaron a TOCAR el suelo (que es lo que los
   // separa de una particula — la particula se apaga en el aire, el escombro cae y rebota).
-  await romper('depot', { vz: 0 });
-  await sleep(1600);   // lo suficiente para que suban, caigan y toquen: el escombro CAE, no se apaga
+  //
+  // LA MEDICION SE HACE A RAS Y LEJOS, y hay una razon de mundo detras de cada mitad:
+  //   · A RAS porque el escombro tiene que TOCAR. La sonda planta el destrozo a la altura a la que
+  //     vas volando, y desde 30 m un pedazo tarda mas de un segundo en llegar al piso — llegaba
+  //     tarde y el test decia "esto es una particula" mirando pedazos que todavia caian.
+  //   · LEJOS porque el mundo SIGUE AVANZANDO. Los restos quedan atras a 100 m/s y se podan al
+  //     salir del cuadro (z < 2), que es lo correcto: quedarse no significa acompañarte. Plantado
+  //     a 42 m, el pedazo mas viejo posible dura 0,4 s y el test pedia 0,7.
+  await js('__seaput(2)');
+  await romper('depot', { vz: 0 }, 150);
+  await sleep(1100);   // lo suficiente para que suban, caigan y toquen: el escombro CAE, no se apaga
   let c = await chunks();
   if (c.viejo < 0.7) bad(`el escombro no dura: el pedazo mas viejo tiene ${c.viejo}s`);
   else ok(`el escombro dura: ${c.n} pedazos vivos, el mas viejo de ${c.viejo}s, ${c.suelo} ya en el suelo`);
