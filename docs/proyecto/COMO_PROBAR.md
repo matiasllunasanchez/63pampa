@@ -5,7 +5,7 @@
 > debajo de JUEGO RÁPIDO) que convierte este catálogo en pantalla elegible.
 >
 > **El hallazgo del relevamiento:** la infraestructura de prueba YA EXISTE y es enorme —
-> **10 fixtures npm** (`story pasada pulso caza persec romper agua tierra chancha misiones`),
+> **11 fixtures npm** (`story pasada pulso caza persec romper agua tierra chancha misiones tramos`),
 > **~80 sondas de consola** (`window.__*`) y **8 parámetros de URL**. Lo que falta no es
 > maquinaria: es un MENÚ que la junte. El modo PRUEBAS es una interfaz sobre la capa de
 > sondas, casi sin lógica nueva.
@@ -20,6 +20,7 @@
 | `window.__wjump(0.9)` | salta al 90% de la misión en curso |
 | `?mision=<id>` · `__mision('m4')` | **una misión suelta**, con su clímax y su escuadrón, sin campaña alrededor (`&historia` la vuela con su guion). Es la puerta del SELECTOR DE MISIONES — ver [PLAN_MISIONES_FASES §1](PLAN_MISIONES_FASES.md) |
 | `window.__misiones()` | la campaña listada (id, nombre, clímax): con esto un fixture no necesita su propia copia |
+| `__trdbg()` · `__trset([...])` | **los TRAMOS**: qué tramo rige ahora con sus valores resueltos, e inyectar una lista al run en curso sin editar `missions.js`. `__trclear()`/`__trcount()` son el censo de siembra por tipo. Ver [SPEC_TRAMOS](../sistemas/SPEC_TRAMOS.md) |
 | `npm run <fixture>` | corre la prueba automatizada de ese feature (lista arriba) |
 | `npm run start` | el juego; consola de Electron para las sondas |
 | `DEBUG_STATE=1` | loguea cada transición de estado |

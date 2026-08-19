@@ -118,7 +118,7 @@ clímax) y ENTER lanza **esa misión aislada** — sin campaña alrededor: al te
 |---|---|---|---|---|
 | 1 | **S** el selector (S0–S3) | — | medio | ✅ |
 | 2 | **R** remapeo 12→14 | S3 (la red) | medio | ⬜ |
-| 3 | **T** tramos (T0–T4, incluye M4 piloto) | — | chico | ⬜ |
+| 3 | **T** tramos (T0–T4, incluye M4 piloto) | — | chico | ✅ |
 | 4 | M1 | T · tambores | chico | ⬜ |
 | 5 | M2 | T | chico | ⬜ |
 | 6 | **U** mejoras | R | chico | ⬜ |

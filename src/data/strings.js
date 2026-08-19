@@ -84,6 +84,15 @@ export const STRINGS = {
     ch_early: 'TODAVIA NO, PATRIA. AGUANTA.',
     ch_used: 'YA TE CARGUE HOY. NO HAY MAS.',
     ch_broken: 'LA CHANCHA NO BAJA MAS AL SUR.',
+    // LA RADIO DEL TRANSITO DEL NARWAL (M4 / m3) — SPEC_TRAMOS T4. Son cuatro claves porque el
+    // transito son cuatro tramos: la conversacion entera de GUION_3 no entra en un popup, y lo
+    // que el guion pide no es el texto completo sino que el jugador VUELE mientras escucha. Se
+    // eligieron las cuatro lineas que sostienen la escena: la posicion que el jugador va a usar,
+    // la pregunta de Gitano, la respuesta que planta el Narwal, y el cierre de Puma.
+    m4_radio1: 'CONDOR: ANOTO POSICIONES. DOS AL NORESTE, RUMBO SUR.',
+    m4_radio2: 'GITANO: ¿DE DONDE SACAS VOS TODO ESO, CONDOR?',
+    m4_radio3: 'CONDOR: DE UN BARCO PESQUERO LLAMADO NARWAL.',
+    m4_radio4: 'PUMA: NO SON MILITARES. Y ESTAN MAS ADENTRO QUE NOSOTROS.',
     ch_nozone: 'ACA NO ENTRA NADIE, PATRIA.',
     // menu de PAUSA (overlay sobre la partida congelada)
     pauseTitle: 'PAUSA',
@@ -1006,6 +1015,10 @@ export const STRINGS = {
     ch_early: 'NOT YET, PATRIA. HANG ON.',
     ch_used: 'I FILLED YOU ONCE TODAY. THAT IS ALL.',
     ch_broken: 'THE OLD SOW DOES NOT COME SOUTH ANYMORE.',
+    m4_radio1: 'CONDOR: LOGGING POSITIONS. TWO NORTHEAST, HEADING SOUTH.',
+    m4_radio2: 'GITANO: WHERE DO YOU GET ALL THAT, CONDOR?',
+    m4_radio3: 'CONDOR: FROM A FISHING BOAT CALLED NARWAL.',
+    m4_radio4: 'PUMA: THEY ARE NOT MILITARY. AND DEEPER IN THAN US.',
     ch_nozone: 'NOBODY GOES IN THERE, PATRIA.',
     // PAUSE menu
     pauseTitle: 'PAUSED',

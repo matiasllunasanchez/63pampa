@@ -748,3 +748,93 @@ test('pruebas: ningun momento tiene logica propia — todos llaman a la capa de 
       `${m.id}: el setup no abre ninguna puerta (mision/climax/escena)`);
   }
 });
+
+// ---------- TRAMOS: el guion de spawn por mision (SPEC_TRAMOS RF-01) ----------
+// La resolucion es PURA y por eso se prueba aca, en node pelado y sin abrir una ventana: es la
+// unica capa donde se puede afirmar que las FRACCIONES caen donde tienen que caer. Todo lo demas
+// del item (sembrado, radio) depende de que esta tabla de bordes este bien.
+import { tramoAt, validarTramos, CLAVES } from '../src/core/tramos.js';
+
+const T3 = [
+  { hasta: 0.3, obstacles: 0.3, caza: 0, radio: 'r1' },
+  { hasta: 0.85, obstacles: 1.2, caza: 1 },
+  { hasta: 1, obstacles: 1.8, favor: ['radar'] },
+];
+
+test('tramos: sin tramos, sin objetivo o pasado el ultimo hasta devuelve null (= cfg plano)', () => {
+  // null NO es un error: es "aca manda el cfg de siempre", que es como se cumple RF-04 (una
+  // mision sin tramos se comporta exactamente igual que hoy).
+  assert.equal(tramoAt(500, 2600, undefined), null, 'mision sin tramos');
+  assert.equal(tramoAt(500, 2600, []), null, 'lista vacia');
+  assert.equal(tramoAt(500, 0, T3), null, 'sin objetivo (POR LA PATRIA) no hay tramos');
+  // una lista que no llega a 1: el resto del vuelo es cfg plano, y es deliberado (§2)
+  assert.equal(tramoAt(2000, 2600, [{ hasta: 0.5 }]), null, 'pasado el ultimo hasta');
+});
+
+test('tramos: los bordes — dist 0, el limite entre dos, y dist = objetivo', () => {
+  assert.equal(tramoAt(0, 2600, T3).idx, 0, 'a distancia 0 manda el primero');
+  assert.equal(tramoAt(-50, 2600, T3).idx, 0, 'una distancia negativa no puede caerse de la lista');
+  // `hasta` es el FINAL del tramo y es EXCLUSIVO: justo en el limite ya manda el siguiente
+  assert.equal(tramoAt(2600 * 0.3 - 1, 2600, T3).idx, 0);
+  assert.equal(tramoAt(2600 * 0.3, 2600, T3).idx, 1, 'la fraccion exacta del limite es del siguiente');
+  assert.equal(tramoAt(2600 * 0.9, 2600, T3).idx, 2);
+  // …salvo en el ULTIMO, donde es inclusivo: llegar exacto al objetivo no puede dejar la mision
+  // sin tramo en su ultimo cuadro
+  assert.equal(tramoAt(2600, 2600, T3).idx, 2, 'dist = objetivo sigue adentro del ultimo tramo');
+  assert.equal(tramoAt(2601, 2600, T3), null, 'pasado el objetivo ya no hay tramo');
+});
+
+test('tramos: val() lee la clave del tramo y cae al fallback cuando no la trae', () => {
+  const t = tramoAt(100, 2600, T3);
+  assert.equal(t.val('obstacles', 1.7), 0.3, 'la clave del tramo pisa al cfg');
+  assert.equal(t.val('caza', 2), 0, 'un 0 explicito es un valor, no una ausencia');
+  assert.equal(t.val('bombs', 1.5), 1.5, 'clave ausente = el cfg de la mision');
+  assert.deepEqual(tramoAt(2500, 2600, T3).val('favor', null), ['radar']);
+  assert.equal(tramoAt(2500, 2600, T3).val('radio', null), null, 'el ultimo tramo no declara radio');
+});
+
+test('tramos: un solo tramo cubre la mision entera', () => {
+  const uno = [{ hasta: 1, obstacles: 0.5 }];
+  assert.equal(tramoAt(0, 2600, uno).idx, 0);
+  assert.equal(tramoAt(2600, 2600, uno).idx, 0);
+  assert.equal(tramoAt(1300, 2600, uno).val('obstacles', 9), 0.5);
+});
+
+test('tramos: ?qa comprime la mision a metros y las fracciones sobreviven', () => {
+  // 2600 m con ?qa son 156. El tramo del transito queda en 47 m — pocos metros, pero SIGUE
+  // siendo el tramo 0, que es toda la razon por la que esto se mide en fracciones y no en metros.
+  const qa = 2600 * 0.06;
+  assert.equal(tramoAt(0, qa, T3).idx, 0);
+  assert.equal(tramoAt(qa * 0.29, qa, T3).idx, 0);
+  assert.equal(tramoAt(qa * 0.5, qa, T3).idx, 1);
+  assert.equal(tramoAt(qa, qa, T3).idx, 2);
+});
+
+test('tramos: el validador rechaza lo que no avisaria solo', () => {
+  assert.deepEqual(validarTramos(undefined), [], 'una mision sin tramos es valida');
+  assert.deepEqual(validarTramos(T3), []);
+  // una clave mal escrita no hace NADA y no avisa: es la peor forma de fallar, y por eso el
+  // validador la trata como error de datos
+  assert.equal(validarTramos([{ hasta: 1, obstaculos: 2 }]).length, 1, 'clave desconocida');
+  assert.ok(validarTramos([{ hasta: 0.5 }, { hasta: 0.5 }]).length, 'hasta repetido');
+  assert.ok(validarTramos([{ hasta: 0.8 }, { hasta: 0.4 }]).length, 'hasta que retrocede');
+  assert.ok(validarTramos([{ hasta: 0 }]).length, 'hasta 0 deja un tramo que no existe');
+  assert.ok(validarTramos([{ hasta: 1.4 }]).length, 'hasta mayor que 1');
+  assert.ok(validarTramos([{}]).length, 'sin hasta no hay tramo');
+  assert.ok(validarTramos([]).length, 'lista vacia: sacala y listo');
+  assert.ok(validarTramos([{ hasta: 1, bidones: 'no' }]).length, 'bidones es booleano');
+  assert.ok(validarTramos([{ hasta: 1, favor: 'radar' }]).length, 'favor es una lista');
+  assert.ok(validarTramos([{ hasta: 1, obstacles: -1 }]).length, 'densidad negativa');
+  assert.ok(validarTramos([{ hasta: 1, radio: '' }]).length, 'una radio vacia es una radio muda');
+});
+
+test('tramos: TODAS las misiones de la campaña tienen tramos validos', () => {
+  // El validador corriendo contra los datos de verdad (RF-01). Es la red que hace que agregar
+  // tramos a una mision no pueda salir mal en silencio: se cae aca, en un test de medio segundo,
+  // y no volando la mision para descubrir que el tramo del medio nunca se ejecuta.
+  for (const m of MISSIONS) {
+    const e = validarTramos(m.tramos);
+    assert.deepEqual(e, [], `${m.id}: ${e.join(' · ')}`);
+  }
+  assert.ok(CLAVES.includes('hasta') && CLAVES.includes('radio'));
+});

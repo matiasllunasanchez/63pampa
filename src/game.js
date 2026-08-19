@@ -71,6 +71,9 @@ const CLIMB_NEAR = 4;
 import { MV_HI, MV_LO } from './data/moves.js';
 import * as moves from './systems/moves.js';
 import * as squad from './systems/squad.js';
+// TRAMOS (docs/sistemas/SPEC_TRAMOS.md): el guion de spawn por mision. El orquestador le pasa
+// la lista al empezar la corrida y despacha su radio; el sembrador y LA COLA la leen.
+import * as tramos from './systems/tramos.js';
 import { FIELES } from './data/pilots.js';
 import * as squadRender from './render/squad.js';
 import { canRelevo, pilotIdx } from './core/squad.js';
@@ -236,6 +239,21 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
      *  avion enganchado cae cerca de y=49. La franja de arriba, entre la placa del escuadron y el
      *  reproductor, es la unica que esta libre durante la cita. */
     function radioCh(key, args) { popup(W / 2, 38, T(key, args), P.crest, true); }
+
+    /** LA RADIO DE UN TRAMO (SPEC_TRAMOS RF-03). Mismo tono que la radio de la Chancha —centrada,
+     *  color de cresta, en negrita— porque es la MISMA voz: Condor hablandole al vuelo.
+     *
+     *  PERO UN RENGLON MAS ABAJO (58 y no 38), y esto se vio en la captura del transito del
+     *  Narwal, no en el codigo: en 38 la linea cae ENCIMA del nombre del objetivo y de la barra
+     *  de mision, y "CONDOR: DE UN BARCO PESQUERO LLAMADO NARWAL." sobre "HMS SHEFFIELD" no se
+     *  lee ninguno de los dos. La Chancha se banca ese renglon porque su cita es corta y el
+     *  jugador ya sabe lo que dice; el transito es al reves — es una conversacion de cuatro
+     *  lineas y leerla ES la escena. 58 es la franja que ya usa el aviso de la Chancha lista:
+     *  debajo del rotulo del objetivo y arriba del horizonte. */
+    function radioTramo(key) {
+      beep(430, 0.06, 'square', 0.04);
+      popup(W / 2, 58, T(key), P.crest, true);
+    }
 
     /** EL PEDIDO (tecla 5). Es una funcion con nombre —y no el cuerpo de la accion— para que la
      *  sonda del fixture apriete EXACTAMENTE lo mismo que aprieta el jugador: si la sonda
@@ -748,6 +766,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         g.setup(m.goal);
       }
       else { objectiveDist = 0; objectiveShip = randomShip(); }
+      // LOS TRAMOS de la corrida (SPEC_TRAMOS RF-01). Va ACA y no en `reset()` porque es donde
+      // se calcula `objectiveDist`, y las fracciones no significan nada sin su objetivo: atarlos
+      // al mismo lugar es lo que garantiza que los dos son SIEMPRE del mismo run. Los modos sin
+      // objetivo (POR LA PATRIA) quedan sin tramos, que es el alcance v1 del spec.
+      tramos.setTramos(objectiveDist > 0 && curMission() ? curMission().tramos : null, objectiveDist);
       // EL PULSO necesita saber CONTRA QUE buque es la prueba: de su clase sale como se muere en
       // la cinematica del premio. Va aca y no en reset() porque el objetivo se define despues.
       pulso.setShip(objectiveShip);
@@ -2192,6 +2215,14 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         return;
       }
 
+      // LA RADIO DEL TRAMO (SPEC_TRAMOS RF-03). El sistema devuelve señal y ACA se decide que se
+      // hace con ella: popup y beep, como cualquier otra radio del pasillo. Va adentro del bloque
+      // de 'play' —despues del devcam, que corta antes— y esa ubicacion ES la regla "solo en
+      // vuelo": en relevo, pausa o climax este renglon no se ejecuta, asi que la linea de un
+      // tramo cruzado ahi espera y suena al volver.
+      const trs = tramos.stepTramos();
+      if (trs && trs.radio) radioTramo(trs.radio);
+
       // needsMomentum: si el objetivo del run culmina en el climax (barco) o con solo llegar (distancia)
       const needsMomentum = (gameMode === 'campaign' || gameMode === 'cycle') ? goalOf(curMission()).needsMomentum : true;
       const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist, needsMomentum, climax: runClimax() });
@@ -2231,7 +2262,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // significa pasillo infinito, donde no hay techo de duelos. Con la sonda `?caza` puesta el
       // director se calla: la sonda ya armo el suyo y dos directores serian dos Harrier (§6.2).
       if (!cazaProbe) caza.cazaDirector(dt, {
-        intensidad: cfg.caza, dist: run.dist, meta: objectiveDist, ciego: inBank(), jets: run.jets,
+        // la intensidad sale del TRAMO si la mision los trae (SPEC_TRAMOS RF-02) y del cfg si no:
+        // el transito del Narwal es `caza: 0` sin que la mision entera deje de tener Harriers.
+        intensidad: tramos.val('caza', cfg.caza), dist: run.dist, meta: objectiveDist, ciego: inBank(), jets: run.jets,
       });
       // PERSECUCION (PLAN_HARRIERS_PERSECUCION, PLAN B). Corre en el mismo lugar que LA COLA y por
       // la misma razon: es una variante del PASILLO, y no tenerle otro sitio desde donde correr es
@@ -2948,6 +2981,16 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         chancha: m.chancha !== false, story: !!m.story,
       });
     };
+    // ---------- SONDAS DE LOS TRAMOS (SPEC_TRAMOS §4) — QUITAR al cerrar el item ----------
+    // `__trdbg()` contesta que tramo rige AHORA y con que valores RESUELTOS: es lo unico que
+    // permite afirmar desde afuera que el tramo esta gobernando de verdad y no que la mision
+    // tiene esa densidad de casualidad. `__trset(lista)` inyecta tramos al run EN CURSO —sin
+    // esto, medir una densidad exigiria editar `missions.js`, rebuildear y volver a volar— y
+    // devuelve los errores del validador, que es la misma funcion que corre el unit test.
+    if (typeof window !== 'undefined') {
+      window.__trdbg = () => JSON.stringify(tramos.dbg(cfg));
+      window.__trset = t => JSON.stringify(tramos.setTramosProbe(t, objectiveDist));
+    }
     // LA CAMPAÑA LISTADA, para que el fixture del selector (S3) la recorra sin tener su propia
     // copia de las misiones: agregar una la mete en la red de regresion sola. Es la misma idea
     // que `__prb()` sin argumentos con el catalogo de PRUEBAS.

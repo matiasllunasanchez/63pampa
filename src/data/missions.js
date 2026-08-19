@@ -64,6 +64,29 @@ export const MISSIONS = [
     id: 'm3', name: 'EL DIA QUE SANGRO EL MAR', date: '4 de mayo de 1982',
     goal: { kind: 'ship', ship: 'HMS SHEFFIELD', dist: 2600 },
     cfg: C({ bombs: 0.5 }),
+    // EL TRANSITO DEL NARWAL (GUION_3, "de donde salen las posiciones"), y la primera mision con
+    // TRAMOS (docs/sistemas/SPEC_TRAMOS.md). El guion pide un tramo "sin un solo enemigo en
+    // pantalla" en el que el jugador SOLO VUELA Y ESCUCHA: las posiciones que dicta Condor —que
+    // despues va a usar para encontrar el blanco— salen de un pesquero civil, y eso se planta
+    // liviano para que el cobro de M5 no se vea venir.
+    //
+    // Son CUATRO tramos y no uno porque una radio suena UNA vez por tramo (RF-03): la
+    // conversacion se reparte en cuatro entradas, que es lo que la convierte en conversacion y
+    // no en un cartel. Los cuatro son identicos salvo la linea.
+    //
+    // `obstacles: 0` y no una densidad baja: el criterio del guion es CERO enemigos, y una
+    // densidad chica igual siembra cada doscientos metros. Con `bombs: 0` ademas no cae nada del
+    // cielo — un bombardeo en el tramo mudo contradice la escena tanto como una fragata.
+    // `marcas: true` lo transporta este item y lo va a consumir el de las marcas de Condor.
+    tramos: [
+      { hasta: 0.09, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio1' },
+      { hasta: 0.18, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio2' },
+      { hasta: 0.27, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio3' },
+      { hasta: 0.35, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio4' },
+      // y se termina ahi: mar pleno, con la densidad y LA COLA de una mision de verdad. El salto
+      // de 0 a 1.2 es el punto — el silencio se cobra en el contraste.
+      { hasta: 1, obstacles: 1.2, caza: 1 },
+    ],
     roster: F5, par: 7500, story: 'storyM3', brief: 'briefM3', epi: 'epiM3',
   },
   {

@@ -134,4 +134,83 @@ con 3 tramos → conteo de spawns por tramo (RF-02) · (3) `bidones: false` y `f
 
 ## 8. Divergencias encontradas *(completar durante la implementación)*
 
-- *(vacío)*
+**T0–T4 (19/8/2026). Item cerrado: fixture `npm run tramos` verde, `check` verde, `npm run feel`
+byte a byte idéntico al baseline.**
+
+### Del diseño
+
+1. **El item se partió en dos archivos**, y el spec nombraba uno. `core/tramos.js` es la
+   resolución PURA (fracciones + validador) que importa `npm run unit`; `systems/tramos.js` es el
+   estado de la corrida (qué lista trae la misión, cuál es su objetivo, qué radios ya sonaron).
+   Es la misma división que `core/squad.js` ↔ `systems/squad.js`, y sin ella el núcleo no podía
+   ser puro: la lista y el objetivo son estado de run.
+2. **`val(clave)` pasó a ser `val(clave, fallback)`.** El spec (RF-01) dice "cae al `cfg`", pero un
+   módulo que ve `cfg` deja de ser puro y de correr en node. El fallback lo pone quien pregunta
+   —normalmente `cfg.loQueSea`—, con la ventaja de que el item no se vuelve un segundo dueño de la
+   configuración del mapa.
+3. **El CA de `favor` ("la proporción al menos se duplica") es inalcanzable por construcción**, y
+   el propio §2 tiene la fórmula que lo demuestra: con un solo re-sorteo, un tipo de probabilidad
+   `p` pasa a `p·(2−p)`, así que la ganancia **no puede pasar de `(2−p)`** y sólo se acerca a 2
+   cuando `p` tiende a 0. El fixture afirma contra esa teoría en vez de contra un número redondo:
+   medido sobre el caza (p ≈ 0.11), **10,9% → 20,9% = 1,92×**, con techo teórico 1,89×.
+4. **⚠ `?qa` NO SIRVE para medir el pasillo, y el fixture corre sin él** (§5 pedía lo contrario).
+   Medido: `?qa` acorta la misión al 6%, así que los 2600 m de M2 quedan en **156** — que es menos
+   que la carrera de despegue *y* menos que el primer intervalo de siembra (`run.nextSpawn` nace
+   en 320 m). Consecuencias, las tres comprobadas: una misión de distancia **se cumple sola
+   durante el despegue** y nunca llega a `'play'`; **no nace un solo obstáculo** en toda la
+   corrida; y el corte del VEIL cae en el 50% (su piso "nunca antes de la mitad"). Un fixture con
+   `?qa` habría dado verde midiendo cero contra cero. Que las fracciones sobreviven a la
+   compresión sí se prueba — en `npm run unit`, que es donde se puede.
+5. **`favor` se implementó sembrando y desenterrando**, no clasificando el sorteo por adelantado.
+   Para preguntar "qué tipo va a salir" antes de sembrarlo habría que tener las tres cadenas de
+   umbrales de `spawn()` **además** en una tabla aparte, y dos copias de la misma lista es el bug
+   que este repo ya se comió dos veces (`MODES` y `opts`). Sembrar y deshacer no puede divergir:
+   la mezcla que se inclina es la misma que se juega. **Quedan exentos el bidón y la ola** — no
+   son mezcla: el bidón tiene su propia llave y resetea `run.fuelDist`, y la ola sale del clima y
+   trae su propio reglamento de separación (desenterrarla dejaría el aviso de la rebelde sin ola).
+6. **La supresión de la radio fuera de `'play'` no es un chequeo de estado: es DÓNDE está la
+   llamada.** `stepTramos()` se invoca en el bloque de vuelo de `update()`, así que en relevo,
+   pausa o clímax no se ejecuta y el flanco no se mueve — la línea de un tramo cruzado ahí suena
+   sola al volver al vuelo. Verificado en el fixture pausando y saltando de tramo.
+
+### Del comportamiento (cosas que el spec no dice y ahora se saben)
+
+7. **El contador de siembra NO se reinicia al cambiar de tramo.** `run.nextSpawn` se descuenta con
+   los metros volados, así que al entrar a un tramo flojo viniendo de uno denso el primer spawn
+   ya estaba pago y sale igual — y al revés, **el mar abierto de M4 llega de golpe** apenas se
+   termina el tránsito, porque el contador siguió corriendo durante el silencio. Es correcto (el
+   mundo no se entera de las fracciones) y para M4 es incluso deseable, pero distorsiona cualquier
+   medición chica: el fixture deja asentar el contador antes de contar.
+8. **Medir un tramo exige quedarse adentro del tramo.** Una ventana de 10 s a 74 m/s son 740 m y
+   el tramo flojo de la prueba mide 780: la medición se comía el principio del tramo siguiente y
+   la razón se caía de 6× a 1,9×. El fixture vuelve a saltar al mismo punto cada 400 ms — el
+   sembrador cuenta metros VOLADOS, así que volar se sigue volando; lo único que se congela es en
+   qué parte del mapa está el avión.
+
+### De las fases
+
+9. **Las sondas (`__trdbg`/`__trset`) nacieron en T1 y no en T3**, porque el criterio de cierre de
+   T1 es "fixture pasos 1–3" y esos pasos no se pueden escribir sin ellas. T3 quedó siendo el
+   fixture COMPLETO (los seis pasos) más el `package.json`. Se sumaron dos sondas que el spec no
+   pedía y sin las cuales la densidad no se puede medir desde afuera: **`__trclear()`/`__trcount()`**,
+   el censo de siembra por tipo — mirar `obstacles.length` no sirve, porque la población visible
+   es la resta de dos caudales y el tramo gobierna uno solo. Y `__trdbg` reporta **también el
+   `cfg` del que cae**: sin eso, la regla suprema ("sin tramos, lo resuelto ES el cfg") no se
+   puede comprobar sin meterse en las tripas del bundle.
+
+### De la misión piloto (T4)
+
+10. **M4 (código `m3`) va con `obstacles: 0` en el tránsito, no con 0.3** como proponía
+    PLAN_MISIONES_FASES §4. El criterio de aceptación de esa misma ficha es "0 spawns hostiles en
+    el tránsito" y el guion dice "sin un solo enemigo en pantalla": con 0.3 igual nace algo cada
+    ~200 m. Con 0 el tramo queda literalmente mudo, que es lo que la escena pide. **Efecto
+    colateral a saber: tampoco nacen bidones ahí** (viven en el mismo sorteo), o sea que los
+    primeros 910 m de M4 no reponen combustible.
+11. **`bombs: 0` en el tránsito, que el plan no pedía.** Un bombardeo cayendo del cielo contradice
+    la escena tanto como una fragata, y `bombs` es una población aparte del sorteo de obstáculos:
+    ponerla en 0 es lo único que hace que "sin un solo enemigo" sea cierto.
+12. **El tránsito son CUATRO tramos y no uno**, porque una radio suena una vez por tramo (RF-03).
+    Repartir la conversación en cuatro entradas es lo que la convierte en conversación y no en un
+    cartel; los cuatro son idénticos salvo la línea. Las cuatro claves (`m4_radio1..4`) son el
+    esqueleto de la escena de GUION_3: la posición que el jugador va a usar, la pregunta de
+    Gitano, la respuesta que planta el Narwal y el cierre de Puma.

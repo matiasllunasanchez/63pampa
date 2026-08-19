@@ -81,6 +81,14 @@ tramos: [                            // fracciones de la distancia objetivo, en 
 - Costo estimado: chico (es data + una búsqueda). **Es la mejor relación costo/valor de
   todo este documento**: convierte 14 configs planas en 14 niveles con dramaturgia.
 
+> ✅ **CONSTRUIDO (19/8/2026).** El spec ejecutable quedó en
+> [SPEC_TRAMOS.md](../sistemas/SPEC_TRAMOS.md) y está implementado entero (T0–T4), con
+> `npm run tramos` como fixture y **M4 (m3) como misión piloto: su tránsito se vuela con cero
+> spawns y la conversación del Narwal suena en orden**. Dos cosas cambiaron respecto del boceto
+> de arriba: la clave del sesgo de mezcla se llama **`favor`** (no `densidadDe`) y funciona por
+> re-sorteo, y el tránsito va con **`obstacles: 0`**, no 0.3 — el guion pide "sin un solo
+> enemigo en pantalla" y con 0.3 igual nace algo cada doscientos metros.
+
 ## 3. La tabla maestra *(la campaña de un vistazo — valores PROPUESTOS)*
 
 | M | (código) | goal | clímax | terreno | cielo/clima | obst | bombs | caza | persec | squad | chancha | nafta | enseña |
@@ -139,12 +147,17 @@ real (EL PULSO es su vía de entrada garantizada — PLAN_EL_PULSO §Q4).
 ### M4 — EL DÍA QUE SANGRÓ EL MAR *(m3 · Sheffield — la primera PASADA)*
 - **Guion:** el tránsito del Narwal (2–3 min SOLO radio, las posiciones marcadas en HUD) →
   la misión → primera gran victoria.
-- **Armado (tramos):** 0–35% **tránsito**: obst 0.3, sin enemigos, la conversación del
+- **Armado (tramos):** ✅ **hecho** — 0–35% **tránsito** en CUATRO tramos (una radio suena una
+  vez por tramo, así que la conversación se reparte en cuatro entradas), con `obstacles: 0`,
+  `bombs: 0`, `caza: 0` y `marcas: true`; 35–100% mar abierto (1.2, caza 1). Medido: cero
+  spawns en el tránsito, las cuatro líneas en orden, y el mar abierto llegando con densidad
+  plena. Lo que sigue pendiente son las marcas en el HUD (ítem H). Boceto original: 0–35%
+  **tránsito**: obst 0.3, sin enemigos, la conversación del
   Narwal por radio (`radio:` del tramo) y 🟡 **las marcas de Cóndor en el HUD** (puntitos
   en la barra de misión: los blancos que la radio dicta — chico, y el cobro de M5 lo paga
   doble) · 35–100% mar abierto pleno, caza 1 · clímax **PASADA** (la primera: acá se
   aprenden las bandas — el rescate R1/R2 ya la hizo legible ✅).
-- **Falta:** TRAMOS 🔴 · marcas HUD 🟡 · voces británicas de pánico 🔴 (audio, no bloquea).
+- **Falta:** ~~TRAMOS~~ ✅ · marcas HUD 🟡 · voces británicas de pánico 🔴 (audio, no bloquea).
 
 ### M5 — EL CALLEJÓN DE LAS BOMBAS *(m4 · Ardent · clímax ARENA ✅ ya decidido y cableado)*
 - **Guion:** San Carlos, la boca del lobo; el silencio del Narwal (entrar con MENOS datos).

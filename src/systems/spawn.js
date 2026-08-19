@@ -13,6 +13,10 @@ import { obstacles, soldiers, popups } from '../core/world.js';
 import { OLA_H, OLA_RATE, OLA_GAP_MIN, OLA_H_VAR, OLA_WZ, OLA_WZ_VAR, OLA_ROMP_P, OLA_ROMP_HW, OLA_REB_P, OLA_REB_D0,
   OLA_COSTA_P, OLA_COSTA_OFF } from '../data/tuning.js';
 import { inBank } from './fog.js';
+// TRAMOS (SPEC_TRAMOS RF-02): el guion de spawn por mision. Se LEE, nunca se escribe: `val`
+// devuelve lo que rige a esta altura del vuelo y cae al cfg cuando la mision no tiene tramos —
+// que es como se cumple RF-04 (sin tramos, este archivo se comporta exactamente igual que ayer).
+import { val as trVal } from './tramos.js';
 import { carrilLibre } from './persec.js';
 import { plane } from '../core/state.js';
 import { scrapeLimit } from '../core/physics.js';
@@ -97,6 +101,9 @@ const landLane = () => { const sh = spawnShore(); return -SPAWN_X + Math.random(
 // SONDA de calibracion (QUITAR con el resto): cuantas veces se sorteo en la rama de agua y cuantas
 // salio ola. Es lo unico que permite elegir OLA_RATE con un numero en vez de a ojo.
 let sondaSpawns = 0, sondaOlas = 0;
+// EL CENSO de los TRAMOS (QUITAR con el resto): cuantas cosas nacieron y de que tipo desde la
+// ultima puesta a cero. Es la unica forma de medir la densidad de un tramo desde afuera.
+let censo = { n: 0, tipos: {} };
 
 /** ¿Se puede sembrar una ola AHORA? Tres candados, y los tres son de justicia:
  *   · nunca dos juntas (OLA_GAP_MIN) — el mar no es un peine
@@ -203,7 +210,11 @@ function spawn() {
   // eligen su propio carril (landLane/waterLane, en COSTA) son de TIERRA — el lider vuela sobre
   // el agua y no los cruza.
   const lane = carrilLibre(Math.random() * SPAWN_X * 2 - SPAWN_X);   // acompaña a FLY_X (zona de vuelo)
-  if (cfg.fuelOn && run.fuelDist > 700) { obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false }); run.fuelDist = 0; return; }
+  // LOS BIDONES, y si el tramo los corta (`bidones: false`, SPEC_TRAMOS §2). Es UNA pregunta y
+  // no dos: el combustible tiene que estar prendido en el mapa Y el tramo no tiene que haberlo
+  // cortado. Lo pide M10, donde el ultimo tercio se vuela sabiendo que no aparece ninguno.
+  const bidones = cfg.fuelOn && trVal('bidones', true) !== false;
+  if (bidones && run.fuelDist > 700) { obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false }); run.fuelDist = 0; return; }
   const r = Math.random();
   const ph = Math.random() * 6;
 
@@ -247,7 +258,7 @@ function spawn() {
     else if (r < 0.85) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
     else if (r < 0.93) obstacles.push({ type: 'helo', x: lane, y: spawnY('helo'), z: SPAWN_Z, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
     else if (r < 0.97) obstacles.push({ type: 'jet', x: lane, y: spawnY('jet'), z: SPAWN_Z, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
-    else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false });
+    else if (bidones) obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false });
     else obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
     return;
   }
@@ -272,7 +283,7 @@ function spawn() {
     else if (r < 0.75) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
     else if (r < 0.84) obstacles.push({ type: 'helo', x: lane, y: spawnY('helo'), z: SPAWN_Z, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
     else if (r < 0.92) obstacles.push({ type: 'jet', x: lane, y: spawnY('jet'), z: SPAWN_Z, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
-    else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false });
+    else if (bidones) obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false });
     else obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
     return;
   }
@@ -307,7 +318,7 @@ function spawn() {
   else if (r < 0.54) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
   else if (r < 0.67) obstacles.push({ type: 'helo', x: lane, y: spawnY('helo'), z: SPAWN_Z, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
   else if (r < 0.78) obstacles.push({ type: 'jet', x: lane, y: spawnY('jet'), z: SPAWN_Z, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
-  else if (cfg.fuelOn) obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false });
+  else if (bidones) obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false });
   else obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
 }
 
@@ -343,25 +354,57 @@ export function spawnSystem(dt, objectiveDist) {
   // spawn por distancia. En COSTA el campo es mas denso ("hay un desembarco en marcha"): el
   // intervalo se acorta un 35%.
   run.nextSpawn -= run.spd * dt;
-  if (cfg.obstacles > 0 && run.nextSpawn <= 0) {
-    const n0 = obstacles.length;
+  // LA DENSIDAD DEL TRAMO (RF-02). Se resuelve UNA vez y se usa para las dos cosas —la puerta y
+  // el intervalo— porque son la misma pregunta: un tramo en 0 no siembra, y uno en 1.8 siembra
+  // al doble de ritmo que uno en 0.9.
+  const obst = trVal('obstacles', cfg.obstacles);
+  if (obst > 0 && run.nextSpawn <= 0) {
+    const n0 = obstacles.length, s0 = soldiers.length;
     spawn();
+    // FAVOR: el sesgo de mezcla POR RE-SORTEO (§2). Si lo que salio no esta en la lista del
+    // tramo, se desentierra y se sortea UNA vez mas. Se hace asi —sembrar y deshacer— y no
+    // clasificando el sorteo por adelantado a proposito: las tablas de mezcla por terreno son
+    // tres cadenas de umbrales adentro de `spawn()`, y para poder preguntar "que tipo va a
+    // salir" habria que tenerlas ADEMAS en una tabla aparte. Dos copias de la misma lista es
+    // exactamente el bug que este repo ya se comio dos veces (MODES y `opts`). Sembrar y
+    // deshacer no puede divergir: la mezcla que se inclina es LA MISMA que se juega.
+    //
+    // Quedan EXENTOS el bidon y la ola: no son mezcla. El bidon tiene su propia llave
+    // (`bidones`) y ademas resetea `run.fuelDist`; la ola sale del CLIMA y trae su propio
+    // reglamento de separacion —desenterrarla dejaria el aviso de la rebelde sin ola.
+    const fav = trVal('favor', null);
+    if (fav && obstacles.length > n0) {
+      const tipo = obstacles[n0].type;
+      if (tipo !== 'fuel' && tipo !== 'ola' && fav.indexOf(tipo) < 0) {
+        obstacles.length = n0; soldiers.length = s0;
+        spawn();
+      }
+    }
     plantar(n0);
+    // CENSO DE SIEMBRA (sonda de los TRAMOS, QUITAR). Cuenta lo que ENTRA al mundo, por tipo:
+    // medir la densidad mirando `obstacles.length` no sirve porque el mundo tambien se vacia por
+    // detras — lo que hay en pantalla es la resta de dos caudales, y el tramo gobierna UNO.
+    // Se cuenta DESPUES del re-sorteo de `favor`, que es lo que de verdad quedo sembrado.
+    for (let i = n0; i < obstacles.length; i++) {
+      const t = obstacles[i].type;
+      censo.n++; censo.tipos[t] = (censo.tipos[t] || 0) + 1;
+    }
     const dens = cfg.terrain === 'coast' ? 0.65 : 1;
-    run.nextSpawn = Math.max(34, (52 + Math.random() * 42) - run.t * 0.8) * dens * SPAWN_DENS / cfg.obstacles;
+    run.nextSpawn = Math.max(34, (52 + Math.random() * 42) - run.t * 0.8) * dens * SPAWN_DENS / obst;
   }
 
   // BOMBARDEO (cualquier mapa, cfg.bombs lo regula desde el menu [M]): bombas que caen del
   // cielo. Chocarlas en el aire mata; al tocar el suelo levantan un HONGO que es un obstaculo
   // mas — meterse en la nube daña (sacude, frena, quema combustible) pero no derriba.
-  if (cfg.bombs > 0) {
+  const bombs = trVal('bombs', cfg.bombs);
+  if (bombs > 0) {
     run.nextBomb -= run.spd * dt;
     if (run.nextBomb <= 0) {
       obstacles.push({
         type: 'bomb', x: Math.random() * SPAWN_X * 2 - SPAWN_X, y: 55 + Math.random() * 20,
         z: 130 + Math.random() * 90, vy: 24 + Math.random() * 9, done: false, ph: Math.random() * 6,
       });
-      run.nextBomb = (180 + Math.random() * 150) / cfg.bombs;
+      run.nextBomb = (180 + Math.random() * 150) / bombs;
     }
   }
 
@@ -455,6 +498,12 @@ if (typeof window !== 'undefined') window.__seadbg = () => {
     dist: run.dist | 0, sorteos: sondaSpawns, sembradas: sondaOlas,
   });
 };
+
+// __trclear / __trcount: el CENSO de siembra de los TRAMOS (QUITAR al cerrar el item). Se pone en
+// cero, se vuela un rato, y se pregunta que nacio: con eso el fixture compara densidades entre
+// tramos y comprueba que `bidones: false` y `favor` hacen lo que dicen.
+if (typeof window !== 'undefined') window.__trclear = () => { censo = { n: 0, tipos: {} }; return true; };
+if (typeof window !== 'undefined') window.__trcount = () => JSON.stringify(censo);
 
 // __olacosta: siembra la rompiente de la COSTA y devuelve donde quedo y donde esta la orilla. La
 // probabilidad real (OLA_COSTA_P sobre las siembras) tardaria kilometros en dar una: lo que hay
