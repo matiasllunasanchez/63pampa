@@ -192,7 +192,7 @@ function inLobby(state) {
   // faltaban (el aviso de arriba lo habia anticipado) y entrar al submenu de HISTORIA cortaba la
   // musica del lobby para arrancar la del juego, sin que hubiera juego todavia.
   return state === 'title' || state === 'modeselect' || state === 'options' || state === 'menu'
-    || state === 'campmenu' || state === 'quickmenu' || state === 'mejoras' || state === 'saves';
+    || state === 'campmenu' || state === 'quickmenu' || state === 'pruebas' || state === 'mejoras' || state === 'saves';
 }
 export function updateMusic(state) {
   lastState = state;

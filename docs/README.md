@@ -84,6 +84,7 @@ La segunda campaña, a futuro: *"El fantasma del mar"*.
 | documento | qué es | estado |
 |---|---|---|
 | [ROADMAP.md](proyecto/ROADMAP.md) | backlog de ideas y features (numeradas, referenciables) | vivo |
+| [COMO_PROBAR.md](proyecto/COMO_PROBAR.md) | 🟥 **el catálogo de features con la forma más corta de probar cada una** (9 fixtures npm, ~80 sondas, 8 parámetros de URL — todo relevado) + **el plan del modo PRUEBAS** (fila del menú: catálogo de momentos elegibles, sin ensuciar récords ni saves, fases PR0–PR4) | **modo PRUEBAS: PR0 + PR1 hechos (19/8) — 20 momentos elegibles; faltan PR2–PR4** |
 | [PLAN_VISUAL_FASES.md](proyecto/PLAN_VISUAL_FASES.md) | 🟥 **EL plan visual por fases**: 9 tandas delegables (luz · aire/sensaciones · agua · armas · enemigos vivos · avión · buque 3D · cierre 3D · post-pro) + carril de producción de arte en paralelo. Integra VISUAL_UPGRADES, SPEC_AGUA_OLAS y los frentes del 16/8 | **vivo — arrancar por T1 + producción** |
 | [ANALISIS_ROADMAP.md](proyecto/ANALISIS_ROADMAP.md) | análisis de cada ítem: facilidad, dependencias, orden | análisis |
 | [ESTADO.md](proyecto/ESTADO.md) | bitácora del estado del proyecto | vivo |

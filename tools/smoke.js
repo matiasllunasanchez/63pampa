@@ -199,7 +199,13 @@ app.whenReady().then(async () => {
   await win.loadURL('file://' + url);
   await sleep(2500);
   await tap(win, 'Return');                                       // portada → modeselect
-  for (let i = 0; i < 2; i++) await tap(win, 'Down');             // → OPCIONES
+  // POR NOMBRE, no por cuenta de flechas: agregar una fila al selector (paso con PERSECUCION y
+  // otra vez con PRUEBAS) corria el indice y esta prueba entraba a otra pantalla, para fallar
+  // mucho mas abajo con un mensaje que no hablaba de menus. __pausedbg dice donde esta el cursor.
+  for (let i = 0; i < 8; i++) {
+    if (JSON.parse(await win.webContents.executeJavaScript('__pausedbg()')).modo === 'options') break;
+    await tap(win, 'Down');
+  }
   await tap(win, 'Return');
   await tap(win, 'Down');                                         // IDIOMA → MEJORAS DEL PICHON
   await tap(win, 'Return');                                       // abrir la sub-pantalla

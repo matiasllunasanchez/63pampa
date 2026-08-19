@@ -11,6 +11,8 @@ import {
   PITCH_DELAY, PITCH_RAMP, ENERGY_MAX, SPD_MIN, SCRAPE_BASE, SCRAPE_MIN,
 } from '../src/core/physics.js';
 
+import { PRUEBAS, momentos } from '../src/data/pruebas.js';
+
 const near = (a, b, tol = 1e-6) => assert.ok(Math.abs(a - b) <= tol, `${a} != ${b}`);
 
 test('cabeceo: la zona muerta ignora los toques cortos', () => {
@@ -708,4 +710,41 @@ test('pulso: cada clase de buque se muere distinto', () => {
   assert.deepEqual(zs.filter(z => z.sec).map(z => z.id), ['deposit']);
   // y el impacto de cada zona esta a distinta altura: arriba el mastil, abajo la flotacion
   assert.ok(zs[0].hitV < zs[1].hitV && zs[1].hitV < zs[2].hitV);
+});
+
+// ---------- EL CATALOGO DEL MODO PRUEBAS (COMO_PROBAR §4, PR0) ----------
+// El catalogo se lee como DATA, y eso hay que poder afirmarlo sin abrir una ventana: si una
+// entrada perdiera su `setup` o dos compartieran `id`, el menu se rompe recien al elegir la fila
+// — que es justo el momento en el que uno esta probando OTRA cosa.
+test('pruebas: el catalogo es data bien formada', () => {
+  const ids = momentos().map(m => m.id);
+  assert.ok(ids.length >= 15, 'el catalogo tiene que cubrir la lista de momentos dificiles del §3');
+  assert.equal(new Set(ids).size, ids.length, 'ids repetidos: el fixture no podria nombrar el momento');
+  for (const m of momentos()) {
+    assert.equal(typeof m.setup, 'function', `${m.id} sin setup`);
+    assert.ok(m.titulo && m.desc, `${m.id} sin titulo o descripcion`);
+    // sin acentos ni Ñ: la tipografia del menu no los tiene (misma regla que el resto de la UI)
+    assert.ok(!/[áéíóúÁÉÍÓÚñÑ]/.test(m.titulo + m.desc), `${m.id} tiene acentos`);
+  }
+  // ATRAS es la ultima fila y NO es un momento: una lista sin salida a la vista parece un callejon
+  assert.ok(PRUEBAS[PRUEBAS.length - 1].back);
+  assert.ok(PRUEBAS.some(r => r.head), 'el catalogo va por secciones');
+});
+
+// El `setup` de cada momento NO puede hacer nada por su cuenta: solo llamar verbos de la api. Se
+// corre con una api espia, que es la unica forma de comprobar la REGLA DE ORO (§4, "PRUEBAS es una
+// interfaz sobre las sondas") sin arrancar el juego. Si alguien mete logica de juego en un setup,
+// se cae aca y no tres semanas despues cuando el catalogo diverja del juego real.
+test('pruebas: ningun momento tiene logica propia — todos llaman a la capa de sondas', () => {
+  const VERBOS = ['mision', 'patria', 'persec', 'arena', 'pasada', 'pulso', 'escena', 'recarga', 'luego', 'sonda', 'cfg'];
+  for (const m of momentos()) {
+    const llamadas = [];
+    const espia = {};
+    for (const v of VERBOS) espia[v] = (...a) => { llamadas.push(v); if (v === 'luego') a[1](espia); };
+    m.setup(espia);
+    assert.ok(llamadas.length, `${m.id}: el setup no llamo a la api`);
+    // todo momento tiene que ARRANCAR algo: una sonda suelta sin destino no lleva a ningun lado
+    assert.ok(llamadas.some(v => ['mision', 'patria', 'persec', 'arena', 'pasada', 'pulso', 'escena', 'recarga'].includes(v)),
+      `${m.id}: el setup no abre ninguna puerta (mision/climax/escena)`);
+  }
 });

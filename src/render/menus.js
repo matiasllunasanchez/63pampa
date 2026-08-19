@@ -124,9 +124,13 @@ export function drawModeSelect(w) {
   // el orden tiene que coincidir con MODES en game.js: la fila que se toca sale de ese indice
   // La lista es una DECISION, no un catalogo: historia o partida suelta. Los cuatro modos sin
   // guion (ciclo, patria, minutos sagrados, pasadas mortales) viven adentro de JUEGO RAPIDO.
+  // ⚠️ ESTA LISTA Y `MODES` EN game.js SON LA MISMA LISTA EN DOS LADOS. Si divergen no explota
+  // nada: el cursor se para en una fila y se dibuja otra — que es exactamente lo que paso al
+  // agregar PRUEBAS (el cursor decia 'pruebas' y la pantalla resaltaba OPCIONES).
   const opts = [
     { name: T('modeCampaign'), desc: T('modeCampaignDesc') },
     { name: T('modeQuick'), desc: T('modeQuickDesc') },
+    { name: T('modePruebas'), desc: T('modePruebasDesc') },
     { name: T('modeOptions'), desc: T('modeOptionsDesc') },
     { name: T('modeQuit'), desc: T('modeQuitDesc'), quit: true },
   ];
@@ -458,8 +462,14 @@ function drawRowMenu(w, titleKey, textOf, geo) {
   // las filas se apilan con ALTURAS DISTINTAS (un encabezado ocupa menos que una entrada), asi
   // que la Y se acumula en vez de calcularse por indice: es lo que deja que CONTINUAR entero
   // desaparezca sin dejar el hueco.
+  // VENTANA: con `view` la lista se desliza (el catalogo de PRUEBAS son 27 filas y en 270 px de
+  // alto entran siete). Sin `view` se dibuja entera, que es lo que hacen HISTORIA y JUEGO RAPIDO.
+  const view = (geo && geo.view) || w.rows.length;
+  const i0 = view >= w.rows.length ? 0 : Math.max(0, Math.min(w.rows.length - view, w.sel - Math.floor(view / 2)));
+  const iN = Math.min(w.rows.length, i0 + view);
+
   let y = y0;
-  for (let i = 0; i < w.rows.length; i++) {
+  for (let i = i0; i < iN; i++) {
     const r = w.rows[i];
     if (r.head) {   // ENCABEZADO de seccion: mismo lenguaje que OPCIONES (rotulo + linea al lado)
       ctx.textAlign = 'left'; ctx.fillStyle = P.accent; ctx.globalAlpha = 0.85; ctx.font = labelFont(9);
@@ -501,6 +511,13 @@ function drawRowMenu(w, titleKey, textOf, geo) {
     ctx.globalAlpha = 1;
     y += rh;
   }
+
+  // SIGUE: las dos marcas que dicen que la lista no termina donde termina la pantalla. Sin esto
+  // una lista con ventana miente — parece completa y hay catorce momentos abajo que no existen.
+  ctx.textAlign = 'right'; ctx.fillStyle = P.dim; ctx.globalAlpha = 0.55; ctx.font = '7px monospace';
+  if (i0 > 0) ctx.fillText('^ ' + i0, NW - 30, y0 - 4);
+  if (iN < w.rows.length) ctx.fillText('v ' + (w.rows.length - iN), NW - 30, y + 2);
+  ctx.globalAlpha = 1; ctx.textAlign = 'left';
 }
 
 export function drawCampMenu(w) { drawRowMenu(w, 'campTitle', campText); }
@@ -523,6 +540,22 @@ function quickText(r) {
 // sus filas llevan encabezados de seccion y ahi el aire hace falta.
 export const QUICK_ROWS = { y0: 92, rh: 29, headH: 20 };
 export function drawQuickMenu(w) { drawRowMenu(w, 'quickTitle', quickText, QUICK_ROWS); }
+
+// ---------- PRUEBAS (el catalogo de momentos, COMO_PROBAR §4) ----------
+// Los textos de cada momento vienen en la propia fila (`titulo`/`desc` de data/pruebas.js): a
+// diferencia de los otros dos submenus, este no traduce sus entradas — son rotulos de una
+// herramienta de autor, como los nombres de campaña. El MARCO (titulo, ATRAS) si esta traducido.
+function pruebaText(r) {
+  if (r.back) return { name: T('menuBack'), desc: T('menuBackDesc') };
+  return { name: r.titulo, desc: r.desc };
+}
+// GEOMETRIA PROPIA otra vez, y por la misma cuenta de siempre: son 27 filas. El paso es el MISMO
+// que el de JUEGO RAPIDO (rh 29), que es el minimo con el que la descripcion de una fila no se
+// pega al nombre de la siguiente — con rh 26 entraba una fila mas y se leia como un bloque solo.
+// La cuenta del peor caso, con un encabezado adentro de la ventana: 84 + 18 + 4×29 = 218 para la
+// sexta, su descripcion en 232 y el resalte cerrando en 238, dentro de los 270 de alto.
+export const PRUEBA_ROWS = { y0: 84, rh: 29, headH: 18, view: 6 };
+export function drawPruebasMenu(w) { drawRowMenu(w, 'pruebasTitle', pruebaText, PRUEBA_ROWS); }
 
 // una fila de partida guardada: 'EL CUADERNO DE MATEO · MISION 2 · 1234 PTS · 05/08 21:33'
 function saveLabel(r) {

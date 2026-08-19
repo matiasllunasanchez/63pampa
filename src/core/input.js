@@ -194,6 +194,13 @@ export function initInput(cv, a) {
       if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
       return;
     }
+    if (S.state === 'pruebas') {                                         // catalogo del MODO PRUEBAS
+      if (isUp(e.code)) { a.prbNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code)) { a.prbNav(1); e.preventDefault(); return; }
+      if (isConfirm(e.code)) { a.prbConfirm(); e.preventDefault(); return; }
+      if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
+      return;
+    }
     if (S.state === 'saves') {                                           // partidas guardadas (cargar)
       if (isUp(e.code)) { a.savesNav(-1); e.preventDefault(); return; }
       if (isDown(e.code)) { a.savesNav(1); e.preventDefault(); return; }
@@ -479,6 +486,11 @@ export function initInput(cv, a) {
         if (nu && !nav.u) a.quickNav(-1);
         if (nd && !nav.d) a.quickNav(1);
         if (confirm) a.quickConfirm();
+        if (hit(1)) a.escToMenu();                             // B = volver al selector de modos
+      } else if (S.state === 'pruebas') {
+        if (nu && !nav.u) a.prbNav(-1);
+        if (nd && !nav.d) a.prbNav(1);
+        if (confirm) a.prbConfirm();
         if (hit(1)) a.escToMenu();                             // B = volver al selector de modos
       } else if (S.state === 'saves') {
         if (nu && !nav.u) a.savesNav(-1);

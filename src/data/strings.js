@@ -248,6 +248,14 @@ export const STRINGS = {
     menuBack: 'ATRAS', menuBackDesc: 'Volver al menu principal',
     modeQuick: 'JUEGO RAPIDO', modeQuickDesc: 'Partidas sueltas, sin guion',
     quickTitle: 'JUEGO RAPIDO',
+    // MODO PRUEBAS (docs/proyecto/COMO_PROBAR.md §4): el catalogo de MOMENTOS. Los titulos de cada
+    // momento NO estan aca — viven en data/pruebas.js, como los nombres de campaña, porque son
+    // rotulos de una herramienta de autor. Aca esta el MARCO, que si es pantalla del juego.
+    modePruebas: 'PRUEBAS', modePruebasDesc: 'El catalogo de momentos, sin jugar hasta llegar',
+    pruebasTitle: 'PRUEBAS  ·  ELEGI UN MOMENTO',
+    prBadge: 'PRUEBA',
+    prSecClimax: 'LOS CLIMAX', prSecCola: 'LA COLA Y EL NUMERAL', prSecDestr: 'LA DESTRUCCION',
+    prSecAgua: 'EL AGUA Y EL CLIMA', prSecPoder: 'LOS PODERES', prSecHistoria: 'LA HISTORIA',
     modePasada: 'PASADAS MORTALES', modePasadaDesc: 'A ras, saltar, soltar y salir',
     modeHint: 'flechas: elegir   ENTER / TOCAR: confirmar',
     portLabel: 'PUERTO', bargeDown: 'BARCAZA DESTRUIDA', reached: 'alcanzados',
@@ -1124,6 +1132,11 @@ export const STRINGS = {
     menuBack: 'BACK', menuBackDesc: 'Back to the main menu',
     modeQuick: 'QUICK GAME', modeQuickDesc: 'Single runs, no story',
     quickTitle: 'QUICK GAME',
+    modePruebas: 'TEST BENCH', modePruebasDesc: 'The catalogue of moments, no grinding to get there',
+    pruebasTitle: 'TEST BENCH  ·  PICK A MOMENT',
+    prBadge: 'TEST',
+    prSecClimax: 'THE CLIMAXES', prSecCola: 'THE TAIL AND THE WINGMAN', prSecDestr: 'DESTRUCTION',
+    prSecAgua: 'WATER AND WEATHER', prSecPoder: 'THE POWERS', prSecHistoria: 'THE STORY',
     modePasada: 'DEADLY RUNS', modePasadaDesc: 'On the deck, pop up, release and out',
     modeHint: 'arrows: choose   ENTER / TAP: confirm',
     portLabel: 'PORT', bargeDown: 'BARGE DESTROYED', reached: 'reached',

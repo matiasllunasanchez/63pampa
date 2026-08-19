@@ -103,6 +103,7 @@ Todo lo que es "datos del juego" y no cambia en runtime. Ningún archivo de acá
 | `planes.js` | aviones seleccionables + sprite sheets horneados |
 | `sfx.js` | tabla de efectos de sonido |
 | `tuning.js` | **las perillas**: constantes de ajuste (zona de vuelo, momentum, pirueta) |
+| `pruebas.js` | **el catálogo del MODO PRUEBAS**: un MOMENTO por entrada (`{ id, titulo, desc, setup }`). `setup` recibe la api de verbos que arma `game.js` y solo llama a la capa de sondas — nunca tiene lógica de juego. Ver [COMO_PROBAR.md](proyecto/COMO_PROBAR.md) §4 |
 
 ### Fundacionales — canvas y sonido
 
@@ -187,7 +188,7 @@ Todo lo que pinta. `draw()` en `game.js` gestiona los transforms y delega acá.
 | `hud.js` | instrumentos, avisos, barra de objetivo, cuenta regresiva del despegue, tablero del escuadrón |
 | `squad.js` | la formación del despegue (y su salida de plano) + la sobreimpresión de la cinemática del relevo |
 | `screens.js` | recuento, briefing, derribado, victoria, y el guion narrativo (UNA LÍNEA POR VEZ, leyendo `core/dialogue.js`) |
-| `menus.js` | selección de modo/avión y el menú de configuración `[M]` |
+| `menus.js` | selección de modo/avión, los submenús de HISTORIA / JUEGO RÁPIDO / **PRUEBAS** (los tres son `drawRowMenu`, una sola función con otro contenido; PRUEBAS además usa su `view` para deslizar la lista) y el menú de configuración `[M]`. ⚠️ La lista `opts` de `drawModeSelect` y `MODES` de `game.js` **son la misma lista en dos lados**: si divergen, el cursor se para en una fila y se dibuja otra |
 | `momentum.js` | el render del ARENA VIEJO (barcaza, zonas, cabina, visor) |
 | `arena.js` | el overlay 2D de la fase ARENA: corchetes/HP proyectados desde la escena 3D, fx del duelo, cabina o sprite (1ª/3ª persona, tecla V) y tablero (zonas + escuadrón) |
 | `caza.js` | el Harrier de **LA COLA** y sus trazadoras. Se dibuja en **dos pasadas** (`drawCaza(true/false)`) porque el caza cruza de detrás tuyo a delante y no hay una sola capa correcta |
@@ -257,6 +258,7 @@ Lo que queda es genuinamente el pegamento:
 | cuánto aguanta el avión / el modelo de vida | `core/damage.js` (la tabla y los escalones) + `systems/damage.js` (el estado) + la fila `DAÑO DEL AVION` en OPCIONES → PARTIDA. **No** agregues el chequeo en el sistema que golpea: llamá a `takeHit(cause)` y respetá lo que conteste |
 | las vidas / el relevo del escuadrón | `core/squad.js` (tiempos, indicativos) + `systems/squad.js` (cinemática) + `render/squad.js` (dibujo) |
 | que el horizonte gire al rolar, o el horizonte artificial del HUD | `core/horizon.js` (el ángulo, una sola fuente) + `draw()` en `game.js` (aplica el giro) + `drawADI` en `render/hud.js` |
+| **un MOMENTO nuevo en el modo PRUEBAS** | `data/pruebas.js` — es DATA: una entrada más, con un `setup` que llama a los verbos de `pruebasApi()` (`mision`, `arena`, `pasada`, `pulso`, `escena`, `patria`, `persec`, `recarga`, `luego`, `sonda`, `cfg`). **Si el momento necesita algo que no existe, lo que se agrega es una SONDA** —útil también desde la consola y desde los fixtures— y el catálogo la llama: esa es la regla de oro que evita que el catálogo diverja del juego real, y la custodia un test unitario que corre cada `setup` contra una api espía. Ojo con las **sondas-interruptor** (las que quedan puestas, como `__czcalma`): van anotadas en `PRB_NEUTRO` de `game.js` o contaminan el momento siguiente. Sondas: `__prb(id)` entra a un momento por id, `__prb()` lista el catálogo |
 | **cualquier ajuste del juego** | `OPT_ROWS` en `game.js` → pantalla **OPCIONES**. Es la única: el menú `[M]` ya no existe. Sumá `{ head }` para una sección nueva y `save:` para que persista |
 | **un ajuste que toca al AVIÓN** (piruetas, mira, ejes, esquema de control, desempeño) | `MEJ_PREFS` / `mejRows()` en `game.js` → sub-pantalla **MEJORAS DEL PICHÓN**, que se abre con una fila `{ open: 'mejoras' }` de OPCIONES. Misma forma de fila que `OPT_ROWS` (mudar una es mover el objeto); `card:` es lo que se lee en la tarjeta de la derecha y `sw: true` la pinta como interruptor |
 | que una pirueta se pueda prender y apagar | ya se puede: `cfg.movesOff` (`core/state.js`) + `moveAllowed()` en `data/upgrades.js`, que es la ÚNICA regla de qué pirueta sale — junta TENERLA (el banco, en campaña) con QUERERLA (el menú) |

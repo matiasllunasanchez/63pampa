@@ -23,6 +23,7 @@ import * as tempo from './systems/tempo.js';
 import * as chancha from './systems/chancha.js';
 import * as saves from './systems/saves.js';
 import { CAMPAIGNS } from './data/campaigns.js';
+import { PRUEBAS } from './data/pruebas.js';
 import * as arena from './systems/arena.js';
 import * as damage from './systems/damage.js';
 import * as arena3D from './systems/three-arena.js';
@@ -130,6 +131,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     let curLevel = 0;
     let modeSel = 0;                 // pantalla inicial: 0 = HISTORIA, 1 = JUEGO RAPIDO
     let quickSel = 0;                // cursor del submenu JUEGO RAPIDO
+    let prbSel = 0;                  // cursor del catalogo de PRUEBAS
     // el orden DEBE coincidir con `opts` en menus.drawModeSelect: el click traduce la fila tocada
     // a este indice. 'options' = pantalla de ajustes (idioma); 'quit' = fila SALIR.
     //
@@ -137,7 +139,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // patria, minutos sagrados, pasadas mortales). El menu principal quedo con la unica decision
     // que de verdad hay que tomar al abrir el juego — historia o partida suelta — en vez de seis
     // filas donde cuatro eran variantes de lo mismo.
-    const MODES = ['campaign', 'quick', 'options', 'quit'];
+    // PRUEBAS va DEBAJO de JUEGO RAPIDO y no al final: es la tercera puerta al juego (historia,
+    // partida suelta, momento suelto), no un ajuste. OJO — mover una fila de aca corre los indices
+    // que tools/smoke.js navega a ciegas con flechas; ya pasó al agregar PERSECUCION.
+    const MODES = ['campaign', 'quick', 'pruebas', 'options', 'quit'];
     // Los modos de adentro de JUEGO RAPIDO. `arena` y `pasadas` son los dos BANCOS DE PRUEBAS del
     // climax: entran DIRECTO al buque, sin cruzar el pasillo, y existen para poder tunear cada
     // fase sin jugar una mision entera cada vez.
@@ -366,6 +371,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // HISTORIA ya no arranca directo: pasa por su submenu (CONTINUAR / campañas)
       if (m === 'campaign') { campSel = campFirstSel(); setState('campmenu'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'quick') { quickSel = 0; setState('quickmenu'); beep(600, 0.08, 'square', 0.05); }
+      else if (m === 'pruebas') { prbSel = prbFirstSel(); setState('pruebas'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'options') { setState('options'); beep(600, 0.06, 'square', 0.05); }
       else if (m === 'quit') quitGame();
     }
@@ -383,6 +389,110 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       else if (id === 'persec') goPersec();
       else goSurvival();
     }
+    // ---------- EL MODO PRUEBAS (docs/proyecto/COMO_PROBAR.md §4) ----------
+    // Un catalogo de MOMENTOS: elegis uno y el juego te pone exactamente ahi. Lo que sigue es
+    // TODA la logica del modo, y es a proposito que sea tan poca: PRUEBAS es una INTERFAZ sobre
+    // la capa de sondas que ya existe (~80 `window.__*`, 8 parametros de URL), no una segunda
+    // implementacion del juego. El catalogo vive en data/pruebas.js y cada momento se describe
+    // como una llamada a los verbos de `pruebasApi()`.
+    const prbRows = () => PRUEBAS;
+    /** Mueve el cursor SALTEANDO encabezados (mismo criterio que HISTORIA y OPCIONES). */
+    function prbNav(dir) {
+      const rows = prbRows();
+      let i = prbSel;
+      for (let k = 0; k < rows.length; k++) {
+        i = (i + dir + rows.length) % rows.length;
+        if (!rows[i].head) break;
+      }
+      prbSel = i;
+      beep(520, 0.05, 'square', 0.04);
+    }
+    function prbFirstSel() { return prbRows().findIndex(r => !r.head); }
+    function prbConfirm() {
+      const r = prbRows()[prbSel];
+      if (!r || r.head) return;
+      if (r.back) { modeSel = MODES.indexOf('pruebas'); setState('modeselect'); S.test = false; beep(400, 0.06, 'square', 0.05); return; }
+      prbTasks.length = 0;
+      prbNeutro();
+      S.test = true;                       // el sello del HUD y, desde PR3, el candado de records
+      beep(700, 0.08, 'square', 0.05);
+      r.setup(pruebasApi());
+    }
+
+    // LAS SONDAS PEGAJOSAS. Varias de las sondas del repo son INTERRUPTORES, no acciones: quedan
+    // puestas hasta que alguien las apaga. Desde la consola eso esta bien (las prendiste vos);
+    // desde un catalogo donde se saltan momentos de a uno, es veneno — `__czcalma` deja el pasillo
+    // vacio BORRANDO obstacles cada cuadro, y el momento siguiente, LA CADENA, aparecia sin un solo
+    // pedazo porque el barrido del duelo anterior se los comia. Costo media hora encontrarlo.
+    //
+    // La regla: entrar y salir de un momento pasa por aca, y aca se apaga TODO lo que un momento
+    // pudo dejar prendido — llamando a las MISMAS sondas, nunca tocando la variable por atras.
+    const PRB_NEUTRO = [['czcalma', 0], ['czalto', null], ['czspd', null], ['pdef', 1], ['pinv', 0]];
+    function prbNeutro() {
+      if (typeof window === 'undefined') return;
+      for (const [n, v] of PRB_NEUTRO) { const f = window['__' + n]; if (typeof f === 'function') { try { f(v); } catch (e) { } } }
+    }
+
+    // TAREAS DIFERIDAS del modo. Casi ninguna sonda del mundo sirve antes de que haya mundo:
+    // `__ola` necesita el mar sembrandose, `__czstart` un pasillo andando, `__romper` un avion en
+    // el aire. `a.luego(t, fn)` las agenda por tiempo de corrida y esto las cobra. Es lo unico que
+    // el modo agrega al bucle, y solo corre con `S.test` puesto.
+    const prbTasks = [];
+    function prbTick() {
+      if (!S.test || !prbTasks.length) return;
+      for (let i = prbTasks.length - 1; i >= 0; i--) {
+        if (run.t < prbTasks[i].t) continue;
+        const f = prbTasks.splice(i, 1)[0].fn;
+        // una sonda que revienta no puede llevarse el frame: el catalogo es tambien red de
+        // regresion (PR4) y tiene que poder REPORTAR el momento roto en vez de colgarse
+        try { f(pruebasApi()); } catch (e) { console.warn('[pruebas] fallo una sonda diferida:', e); }
+      }
+    }
+
+    /** LOS VERBOS del catalogo. Cada uno es la MISMA puerta que ya usaban las sondas de URL y los
+     *  fixtures — `mision` es el camino de ?pasada=<n>&pasillo, `escena` el de ?scene=<ID>,
+     *  `sonda` es literalmente window.__*. Si un momento necesitara algo que no esta aca, lo que
+     *  hay que agregar es una SONDA (util tambien desde la consola), no un verbo con logica. */
+    function pruebasApi() {
+      const idx = id => Math.max(0, MISSIONS.findIndex(m => m.id === id));
+      /** Arranca una mision como corrida suelta: sin guion largo ni tarjeta de briefing — el
+       *  camino exacto de ?pasada=<n>&pasillo. `over` pisa el cfg del mapa (clima, combustible). */
+      const abrir = (id, over, modo) => {
+        gameMode = modo || 'cycle';
+        // SIEMPRE se carga la mision, aun en los modos infinitos: es lo que hace el momento
+        // REPRODUCIBLE. Sin esto POR LA PATRIA hereda el cfg del momento anterior y la misma fila
+        // del menu abre una escena distinta segun lo que hayas mirado antes (pasó: la ola rebelde
+        // aparecio sobre un campo verde porque venia el cielo de otra mision).
+        loadLevel(idx(id));
+        // Y SIEMPRE se arranca EN EL AIRE. El modo es "ponerme exactamente ahi": ningun momento
+        // vale tres segundos de carreteo, y la mitad de las sondas del mundo necesitan estar
+        // volando. Un momento que quiera el despegue lo pide con `{ start: 'runway' }`.
+        Object.assign(cfg, { start: 'air' }, over || {}); applyCfg();
+        reset(); setRunObjective();
+        run.t = 0;
+        setState(afterBrief());
+      };
+      return {
+        mision: (id, over) => abrir(id, over),
+        patria: over => abrir('m1', over, 'survival'),
+        persec: over => abrir('m1', over, 'persec'),
+        arena: id => { gameMode = 'arena'; cfg.arenaShip = idx(id); loadLevel(cfg.arenaShip); startArenaBattle(false); },
+        pasada: id => { gameMode = 'cycle'; loadLevel(idx(id)); reset(); setRunObjective(); run.dist = objectiveDist; pasada.enter(false); },
+        pulso: id => { gameMode = 'cycle'; loadLevel(idx(id)); reset(); setRunObjective(); run.dist = objectiveDist; pulso.enter(false); },
+        escena: id => { if (SCENES[id]) { dialogue.startSeq([SCENES[id]], getLang()); setState('story'); } },
+        // lo que se resuelve AL CARGAR (has3D con ?no3d, el idioma) no se puede cambiar en vivo:
+        // el unico momento honesto es recargar con el parametro puesto.
+        recarga: qs => { location.search = qs; },
+        luego: (t, fn) => prbTasks.push({ t, fn }),
+        sonda: (n, ...args) => {
+          const f = typeof window !== 'undefined' && window['__' + n];
+          if (typeof f !== 'function') { console.warn('[pruebas] no existe la sonda __' + n); return null; }
+          return f(...args);
+        },
+        cfg: over => { Object.assign(cfg, over); applyCfg(); },
+      };
+    }
+
     /** Cierra el juego. En Electron cierra la ventana (y con ella la app); en el build web
      *  el navegador ignora close() en una pestaña que no abrio un script — por eso vuelve a la
      *  portada, que es lo mas cercano a 'salir' que se puede hacer ahi. */
@@ -433,7 +543,8 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         // SALIR: la partida muere aca (sin guardado implicito — guardar es una decision del
         // jugador, no un efecto colateral de irse)
         paused = false;
-        setState('modeselect'); modeSel = 0;
+        if (S.test) { S.test = false; prbTasks.length = 0; prbNeutro(); setState('pruebas'); }
+        else { setState('modeselect'); modeSel = 0; }
         beep(400, 0.09, 'square', 0.05);
       }
     }
@@ -910,7 +1021,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // coincidir con esta. Son dos porque responden preguntas distintas —esta decide si rota el
     // fondo del lobby— pero si divergen, se nota: o el fondo se congela o la musica se corta.
     const inLobby = () => S.state === 'title' || S.state === 'modeselect' || S.state === 'menu' || S.state === 'options'
-      || S.state === 'mejoras' || S.state === 'campmenu' || S.state === 'quickmenu' || S.state === 'saves';
+      || S.state === 'mejoras' || S.state === 'campmenu' || S.state === 'quickmenu' || S.state === 'pruebas' || S.state === 'saves';
 
     // ESTRELLAS 1..4 (la 4ª = Malvinas, rango S). Compartido por el recuento de nivel y el
     // derribado de survival: exige el DOBLE del par para las Malvinas, que se sientan merecidas.
@@ -1078,7 +1189,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     const playerEl = document.getElementById('player');
     const canPickMusic = () => gameMode !== 'campaign'
       && S.state !== 'title' && S.state !== 'modeselect' && S.state !== 'menu' && S.state !== 'options'
-      && S.state !== 'mejoras' && S.state !== 'campmenu' && S.state !== 'quickmenu' && S.state !== 'saves' && S.state !== 'story'
+      && S.state !== 'mejoras' && S.state !== 'campmenu' && S.state !== 'quickmenu' && S.state !== 'pruebas' && S.state !== 'saves' && S.state !== 'story'
       && S.state !== 'epilogue';
 
     // ---------- input ----------
@@ -1153,10 +1264,15 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // donde se vino — mandarlo al selector principal obligaria a bajar el mismo escalon otra vez.
       // Desde cualquier otro lado (historia, submenu de campaña, modo camara) va al selector.
       escToMenu: () => {
+        // en PRUEBAS la salida es el CATALOGO, no el menu principal: el modo es elegir momento
+        // tras momento, y hacerte volver a entrar por la puerta cada vez lo vuelve inutilizable.
+        if (S.test) { S.test = false; prbTasks.length = 0; prbNeutro(); setState('pruebas'); beep(400, 0.06, 'square', 0.05); return; }
         const suelto = gameMode === 'cycle' || gameMode === 'survival' || gameMode === 'arena' || gameMode === 'pasadas';
         setState(S.state === 'menu' && suelto ? 'quickmenu' : 'modeselect');
         beep(400, 0.06, 'square', 0.05);
       },
+      prbNav: dir => prbNav(dir),
+      prbConfirm: () => prbConfirm(),
       // PAUSA (la logica vive arriba; el input solo enruta). isPaused es el predicado que
       // core/input.js usa para desviar el teclado/el mando al menu en vez de al vuelo.
       isPaused: () => paused,
@@ -1620,6 +1736,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       const dtReal = dt;
       if (S.state === 'pulso') dt *= pulso.active() ? pulso.timeScale() : PULSO.SLOW;
       run.t += dt;
+      prbTick();   // MODO PRUEBAS: las sondas agendadas con a.luego() (no hace nada sin S.test)
       // rotacion del fondo del lobby (no avanza jugando: solo mientras se elige)
       if (inLobby()) {
         ppalT += dt;
@@ -2440,6 +2557,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // submenu de HISTORIA y lista de partidas: nativas como el selector de modos (puro texto)
       if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t });
       if (S.state === 'quickmenu') menus.drawQuickMenu({ sel: quickSel, rows: quickRows(), t: run.t });
+      if (S.state === 'pruebas') menus.drawPruebasMenu({ sel: prbSel, rows: prbRows(), t: run.t });
       if (S.state === 'saves') menus.drawSaves({ list: saves.listSaves(), sel: savesSel, t: run.t });
       // EL BANCO DEL PICHON: pantalla de mejora entre misiones. Desde M8 (muerto el Pichon,
       // indice 7) las mejoras salen de su libreta y la pantalla cambia de nombre.
@@ -2481,6 +2599,25 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         ctx.fillStyle = '#ffd9a0';
         ctx.fillRect(0, 0, W, H);
         ctx.globalAlpha = 1;
+      }
+
+      // EL SELLO DEL MODO PRUEBAS. Va al final y encima de TODO —climax, cabina, cinematica— por
+      // una razon practica: la mitad de los momentos son pantallas que se parecen mucho a la
+      // partida de verdad, y una captura sin el sello no se puede distinguir de un playtest real.
+      // Se dibuja en espacio de DISEÑO (320×180, ver los dos espacios de coordenadas) y va ARRIBA
+      // AL MEDIO. La esquina derecha parecia libre y no lo es: ahi vive el reproductor de musica y
+      // el sello le caia justo encima del TRACK (se vio en la primera captura).
+      if (S.test) {
+        ctx.save(); ctx.scale(U, U);
+        const txt = T('prBadge');
+        ctx.font = 'bold 6px monospace'; ctx.textAlign = 'center';
+        const bw = ctx.measureText(txt).width + 10;
+        ctx.globalAlpha = 0.6; ctx.fillStyle = '#000';
+        ctx.fillRect(160 - bw / 2, 2, bw, 10);
+        ctx.globalAlpha = 0.95; ctx.fillStyle = P.warn;
+        ctx.fillText(txt, 160, 9);
+        ctx.globalAlpha = 1; ctx.textAlign = 'left';
+        ctx.restore();
       }
 
       // fundido desde negro (al salir de la historia hacia el despegue) — SIEMPRE al final
@@ -2652,7 +2789,27 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     }
     if (typeof window !== 'undefined') window.__pausedbg = () => JSON.stringify({
       paused, view: pauseView, sel: pauseSel, saveSel, state: S.state,
+      // EL CURSOR DE LOS MENUS, para que el smoke deje de navegar a ciegas. Agregar una fila al
+      // selector principal corria los indices que tools/smoke.js apretaba de memoria y la prueba
+      // entraba a OTRA pantalla, fallando mas abajo con un mensaje que no hablaba de menus. Paso
+      // dos veces (PERSECUCION y PRUEBAS): ahora se puede navegar HASTA una fila por nombre.
+      modo: MODES[modeSel], quick: (quickRows()[quickSel] || {}).id || null,
+      prueba: (prbRows()[prbSel] || {}).id || null, test: S.test,
+      // el reloj de la corrida y las sondas diferidas que faltan disparar: sin esto, un momento
+      // que "no hace nada" no se distingue de una sonda que fallo (paso, y costo media hora)
+      t: +run.t.toFixed(2), tareas: prbTasks.length,
     });
+    // MODO PRUEBAS (COMO_PROBAR §4): elegir un momento POR ID, que es como lo va a recorrer el
+    // guardian del catalogo (PR4). Es la misma puerta que aprieta el jugador —prbConfirm—, no un
+    // atajo: si el menu se rompe, la sonda se rompe con el.
+    if (typeof window !== 'undefined') window.__prb = id => {
+      if (id === undefined) return JSON.stringify(prbRows().filter(r => r.id && !r.back).map(r => r.id));
+      const i = prbRows().findIndex(r => r.id === id);
+      if (i < 0) return null;
+      if (S.state !== 'pruebas') { prbSel = prbFirstSel(); setState('pruebas'); }
+      prbSel = i; prbConfirm();
+      return JSON.stringify({ id, state: S.state, test: S.test });
+    };
     // MOTOR DE HISTORIA para el fixture del locker (SPEC_MODO_HISTORIA §6): lo que el jugador
     // tiene en pantalla ahora mismo. Los holds hay que poder MEDIRLOS desde afuera — a ojo, un
     // silencio de 3.6 s y uno de 4.0 s son indistinguibles, y esa diferencia es la actuacion.
