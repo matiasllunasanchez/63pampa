@@ -207,33 +207,47 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       Object.assign(cfg, MISSIONS[curLevel].cfg); applyCfg();
     }
     function curMission() { return MISSIONS[curLevel]; }
-    /** Una linea de radio de LA CHANCHA. Mismo sitio y mismo estilo que el aviso del escuadron:
-     *  es la misma frecuencia, y que se lea igual es lo que la hace sonar a radio. */
-    function radioCh(key, args) { popup(0, 26, T(key, args), P.crest, true); }
+    /** Una linea de radio de LA CHANCHA: centrada, debajo del HUD de arriba y encima del horizonte.
+     *
+     *  Los popups se dibujan CENTRADOS en coordenadas de mundo (ctx.textAlign = 'center'), asi que
+     *  el x=0 del aviso de la ola deja el texto pegado al borde izquierdo y, con la placa del
+     *  escuadron ahi arriba, la linea se leia cortada — y una radio que no se lee no cuenta nada.
+     *  Se vio en la captura de la llegada, no en el codigo.
+     *
+     *  Y va ARRIBA (38) y no en el medio: a media altura tapaba justo al Hercules, que con el
+     *  avion enganchado cae cerca de y=49. La franja de arriba, entre la placa del escuadron y el
+     *  reproductor, es la unica que esta libre durante la cita. */
+    function radioCh(key, args) { popup(W / 2, 38, T(key, args), P.crest, true); }
 
     /** EL PEDIDO (tecla 5). Es una funcion con nombre —y no el cuerpo de la accion— para que la
      *  sonda del fixture apriete EXACTAMENTE lo mismo que aprieta el jugador: si la sonda
      *  llamara a `chancha.pedir()` por su cuenta, se saltearia justo los gates que vive aca (el
      *  estado del juego y la mision) y probaria media mecanica. */
     function pedirChancha() {
-        const r = chancha.pedir({
-          fuelOn: cfg.fuelOn,
-          enPasillo: S.state === 'play' && !cfg.devcam,
-          // LA ROTURA DEL GUION vuelta mecanica: desde la mision siguiente al epilogo de LA BOMBA
-          // QUE NO DESPERTO, la Chancha vuela corto y no baja al sur (missions.js: chancha:false).
-          // Fuera de campaña —ciclo, por la patria— siempre esta viva: ahi no hay narrativa.
-          viva: !(gameMode === 'campaign' && curMission() && curMission().chancha === false),
-          t: run.t,
-        });
-        if (r === 'nofuel') return;                                    // sin combustible el poder no existe
-        if (r === 'nozone' && chancha.meterVal() < 1) return;           // ni siquiera la tenia lista
-        if (r === 'ok') { beep(520, 0.07, 'square', 0.05, 120); radioCh('ch_call'); return; }
-        // las otras dos lineas del ritual (Condor y la Chancha) las dispara el sistema por dt:
-        // ver el bloque 'ack'/'come' de chancha.tick — aca solo suena el pedido.
-        beep(150, 0.09, 'square', 0.05);
-        radioCh(r === 'early' ? 'ch_early' : r === 'used' ? 'ch_used'
-          : r === 'broken' ? 'ch_broken' : 'ch_nozone');
-      }
+      const r = chancha.pedir({
+        fuelOn: cfg.fuelOn,
+        // EL PASILLO DE VERDAD, y por MODO ademas de por estado (RF-07). Mirar solo `S.state`
+        // dejaba un agujero: PASADAS MORTALES arranca con setState('play') —es una aproximacion
+        // corta, no una zona— y ahi el poder quedaba disponible, justo en el modo donde la nafta
+        // ES el reloj del climax. MINUTOS SAGRADOS entra derecho a 'arena' y no tenia el agujero,
+        // pero se nombra igual: que la regla se lea, y no que dependa de un detalle de arranque.
+        enPasillo: S.state === 'play' && !cfg.devcam
+          && gameMode !== 'arena' && gameMode !== 'pasadas',
+        // LA ROTURA DEL GUION vuelta mecanica: desde la mision siguiente al epilogo de LA BOMBA
+        // QUE NO DESPERTO, la Chancha vuela corto y no baja al sur (missions.js: chancha:false).
+        // Fuera de campaña —ciclo, por la patria— siempre esta viva: ahi no hay narrativa.
+        viva: !(gameMode === 'campaign' && curMission() && curMission().chancha === false),
+        t: run.t,
+      });
+      if (r === 'nofuel') return;                                    // sin combustible el poder no existe
+      if (r === 'nozone' && chancha.meterVal() < 1) return;          // ni siquiera la tenia lista
+      if (r === 'ok') { beep(520, 0.07, 'square', 0.05, 120); radioCh('ch_call'); return; }
+      // las otras dos lineas del ritual (Condor y la Chancha) las dispara el sistema por dt:
+      // ver el bloque 'ack'/'come' de chancha.tick — aca solo suena el pedido.
+      beep(150, 0.09, 'square', 0.05);
+      radioCh(r === 'early' ? 'ch_early' : r === 'used' ? 'ch_used'
+        : r === 'broken' ? 'ch_broken' : 'ch_nozone');
+    }
 
     /** Las señales de LA CHANCHA vueltas cosas que se ven y se oyen. Vive en el orquestador —y no
      *  en el sistema— por la misma regla que el MOMENTUM: el sistema decide, el juego lo cuenta. */
@@ -2617,6 +2631,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // existe) y la MISION posterior a la rotura del guion. Se escriben las CAUSAS —cfg.fuelOn y
       // la mision de campaña— para que el fixture ejercite los mismos `if` que el juego.
       window.__chafuel = v => { cfg.fuelOn = !!v; return cfg.fuelOn; };
+      // el MODO, que es la otra mitad del gate de zona (RF-07). Se escribe la causa —gameMode— y
+      // no el resultado, asi la sonda ejercita el mismo `if` que corre en el juego.
+      window.__chamodo = m => { gameMode = String(m); return gameMode; };
       window.__chamis = n => { gameMode = 'campaign'; curLevel = +n; return JSON.stringify({ id: curMission().id, rota: curMission().chancha === false }); };
       // EL PRECIO (RF-05): arriba te ve el radar. No es un sistema nuevo —es el de siempre, que
       // mide altura— y justamente por eso hay que poder comprobar que la cita lo paga.

@@ -25,8 +25,10 @@ let usada = false;     // una sola vez por CORRIDA — sobrevive al relevo, no a
 let lastScore = -1;
 let etaT = 0, winT = 0, salT = 0, pedidoT = 0;
 let conn = false, connT = 0;
-let x = 0, t = 0;      // deriva lateral del Hercules y su reloj propio
-let subeT = 0;         // cuanto lleva IRSE por arriba (la salida)
+// `citaT` es el reloj DE LA CITA, y arranca en cero cuando ella llega. Con un reloj global la
+// deriva valia sin(t*V) para el t que hubiera: la canasta aparecia corrida a un costado al azar y
+// el jugador subia a buscar un blanco que ya se habia ido de donde nacio.
+let x = 0, citaT = 0;
 let rumT = 0, bombaT = 0;   // cadencias de audio (motores / bomba de transferencia)
 
 /** ¿Donde esta la CANASTA ahora? Es el punto que hay que ir a buscar, y lo comparten la
@@ -85,7 +87,6 @@ export function tick(dt, e) {
     if (meter >= 1) out.sig = 'ready';
   }
   lastScore = e.score;
-  t += dt;
 
   if (fase === 'eta') {
     // EL RITUAL DE RADIO corre por `dt` y no por setTimeout (§8.6): asi pedirla en camara lenta
@@ -95,7 +96,7 @@ export function tick(dt, e) {
     if (antes < 0.9 && pedidoT >= 0.9) out.sig = 'ack';
     else if (antes < 2.1 && pedidoT >= 2.1) out.sig = 'come';
     etaT -= dt;
-    if (etaT <= 0) { fase = 'cita'; winT = CH_WINDOW; x = 0; conn = false; out.sig = 'llega'; }
+    if (etaT <= 0) { fase = 'cita'; winT = CH_WINDOW; citaT = 0; x = 0; conn = false; out.sig = 'llega'; }
     return out;
   }
   if (fase === 'yendo') {
@@ -106,7 +107,10 @@ export function tick(dt, e) {
   if (fase !== 'cita') return out;
 
   // LA CITA. Deriva lenta: sin esto la formacion se sostiene sola y no hay nada que volar.
-  x = Math.sin(t * CH_DERIVA_V) * CH_DERIVA;
+  // Empieza CENTRADA (citaT = 0 al llegar) y se va abriendo: se sube a un blanco que esta donde
+  // uno lo vio aparecer, y recien despues hay que acompañarlo.
+  citaT += dt;
+  x = Math.sin(citaT * CH_DERIVA_V) * CH_DERIVA;
   winT -= dt;
 
   // LA CAJA. Es una caja en (x, y) porque la profundidad la fija ella: sostiene formacion, o sea
@@ -152,7 +156,7 @@ export function snapshot() {
   return {
     fase, x, y: alturaHoy(), z: CH_Z,
     bx: c.x, by: c.y, bz: c.z,
-    conn, eta: etaT, win: winT, t,
+    conn, eta: etaT, win: winT, t: citaT,
   };
 }
 
@@ -165,7 +169,7 @@ export function cargar(p) { meter = Math.min(1, meter + (p === undefined ? CH_CH
  *  igual que resetTempo — por eso el "una vez por corrida" sobrevive al relevo. */
 export function resetChancha() {
   fase = 'idle'; meter = 0; usada = false; lastScore = -1;
-  etaT = 0; winT = 0; salT = 0; pedidoT = 0; conn = false; connT = 0; x = 0; t = 0;
+  etaT = 0; winT = 0; salT = 0; pedidoT = 0; conn = false; connT = 0; x = 0; citaT = 0;
   rumT = 0; bombaT = 0;
 }
 

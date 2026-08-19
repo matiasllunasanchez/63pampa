@@ -254,3 +254,47 @@ corre **sin** calma a propósito: apagarlo sería medir un mundo que el jugador 
 El §6 lista ocho pasos y ninguno mide RF-05, que es la mitad del diseño del poder. Se agregó el
 paso 9: a ras el radar no te ve y el multiplicador va en ×10; a la altura de la cita te ve y cae a
 ×1 (medido: detección 0 → 0,62 · x10 → x1).
+
+### 8. El gate de zona miraba el ESTADO y no el MODO — PASADAS MORTALES quedaba abierto
+
+RF-07 dice "ARENA / PASADA / MINUTOS SAGRADOS: jamás". El gate preguntaba `S.state === 'play'`,
+y eso alcanzaba para MINUTOS SAGRADOS —que entra derecho al estado `'arena'`— pero **no** para
+PASADAS MORTALES: ese modo arranca con `setState('play')` (`startPasadaBattle`), porque su
+aproximación corta ES pasillo. O sea que el poder quedaba disponible justo en el modo donde la
+nafta es el reloj del clímax.
+
+Ahora el gate nombra los dos modos (`gameMode !== 'arena' && gameMode !== 'pasadas'`) además del
+estado. Se nombran los dos aunque uno no hiciera falta: que la regla se lea en el código, y no que
+dependa de un detalle de arranque que mañana cambia. Lo cuida el paso 6b del fixture.
+
+### 9. La canasta aparecía corrida a un costado al azar
+
+La deriva lateral usaba un reloj que corría siempre (`sin(t·v)` con el `t` del módulo), así que al
+llegar la Chancha la canasta valía lo que valiera ese seno en ese instante: el jugador subía a
+buscar un blanco que ya se había ido de donde nació. Ahora el reloj de la deriva **arranca en cero
+cuando ella llega** (`citaT`): aparece centrada y se va abriendo. Sale gratis y cambia la lectura
+de la cita — primero se sube, después se acompaña.
+
+### 10. El marcador de rumbo se apagaba justo cuando más servía
+
+RF-03 lo pide "mientras esté en el aire". Estaba condicionado además a volar 14 m por debajo de
+ella, o sea que se apagaba apenas subías — y es ahí, buscándola de costado mientras la deriva la
+corre, cuando hace falta. Ahora se dibuja durante toda la cita y se apaga al **enganchar**, que es
+cuando estorba.
+
+### 11. La radio se leía cortada (visto en una captura, no en el código)
+
+`radioCh` ponía la línea en `x = 0`, copiando el aviso de la ola rebelde. Pero los popups se
+dibujan **centrados** (`ctx.textAlign = 'center'`), así que con `x = 0` el texto queda pegado al
+borde izquierdo — y ahí arriba está la placa del escuadrón. "CHANCHA ARRIBA — SUBI A LA CANASTA"
+aparecía pisada por "PATRIA 1". Ahora va centrada, entre el HUD de arriba y el horizonte.
+
+*(El aviso de la ola rebelde tiene el mismo problema y no se tocó: es de otro sistema y otro plan.
+Queda anotado acá para el día que se lo mire.)*
+
+### 12. Morir durante el ETA también gasta el poder
+
+RF-06 habla de muerte y relevo "durante la cita". Durante el **ETA** —pedida y todavía viniendo—
+pasa lo mismo: se despide y el poder queda gastado. Es deliberado y es la misma regla (§8.5: no hay
+carga parcial que devuelva barra). Medido volándolo: pedirla y caerse al mar antes de que llegue
+cuesta el poder entero, y eso es exactamente lo que hace que el pedido sea una decisión.

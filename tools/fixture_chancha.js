@@ -200,6 +200,22 @@ app.whenReady().then(async () => {
     await js('__chafuel(1)');
   }
 
+  // ---------- 6b. LOS MODOS DE CLIMAX SUELTO ----------
+  // RF-07: en ARENA, PASADA y MINUTOS SAGRADOS, jamas — ahi la nafta ES el reloj del climax.
+  // MINUTOS SAGRADOS entra derecho al estado 'arena' y por eso nunca tuvo el agujero; PASADAS
+  // MORTALES arranca con setState('play') —es una aproximacion corta, no una zona— y ahi el poder
+  // quedaba disponible. Se prueba ese, que es el que se escapaba.
+  console.log('\n6b. en los modos de climax suelto no entra (RF-07):');
+  await js("__chamodo('pasadas'); __chaset(9999, 300); __seapop()");
+  await js('__chacall()');
+  await sleep(250);
+  const suelto = await CH();
+  if ((await radio()).includes('ACA NO ENTRA NADIE')) ok('en PASADAS MORTALES la radio contesta que aca no entra nadie');
+  else bad('en PASADAS MORTALES no contesto ch_nozone');
+  if (suelto.fase === 'idle' && !suelto.usada) ok('y no arma cita: el poder queda intacto para el pasillo');
+  else bad(`en PASADAS MORTALES igual armo la cita (${suelto.fase})`);
+  await js("__chamodo('survival')");
+
   // ---------- 7. LA ROTURA DEL GUION ----------
   console.log('\n7. despues de la rotura, la Chancha no baja al sur (paso 7):');
   const mis = JSON.parse(await js('__chamis(5)'));   // m6: la primera posterior al epilogo de m5

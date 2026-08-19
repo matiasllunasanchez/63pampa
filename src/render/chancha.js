@@ -9,7 +9,6 @@ import { ctx, px, W, H, HOR, F } from './ctx.js';
 import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
 import { run } from '../core/run.js';
-import { plane } from '../core/state.js';
 import { CH_BOX } from '../data/tuning.js';
 import { snapshot } from '../systems/chancha.js';
 
@@ -73,7 +72,10 @@ export function drawChancha() {
   // EL RUMBO: mientras la cita este en el aire y el avion no la tenga a tiro, una flecha en el
   // borde de la pantalla dice para donde esta. Sin esto, la Chancha esta arriba y el jugador
   // mirando el suelo — y la ventana se vence sin que nadie sepa que empezo.
-  if (c.fase === 'cita' && plane.y < c.y - 14) {
+  // (RF-03: mientras este EN EL AIRE. Antes pedia ademas estar 14 m por debajo, y esa condicion
+  // apagaba la flecha justo en el tramo en que mas sirve — cuando ya subiste y la estas buscando
+  // de costado. Se apaga sola al enganchar, que es cuando estorba.)
+  if (c.fase === 'cita' && !c.conn) {
     const mx = Math.max(12, Math.min(W - 12, s.x));
     ctx.globalAlpha = 0.5 + 0.5 * Math.sin(run.t * 6);
     for (let i = 0; i < 4; i++) px(mx - (3 - i), HOR + 12 + i * 2, 2 * (i + 1) - 1, 2, P.accent);
