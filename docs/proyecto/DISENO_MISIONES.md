@@ -15,6 +15,10 @@
 > brecha nº 1 (§8).
 >
 > **Marcas:** ✅ existe y sirve tal cual · 🟡 existe, pide ajuste/dato · 🔴 hay que crearlo.
+>
+> **El plan de EJECUCIÓN de este diseño** (fases por misión, el selector de pruebas, el
+> tablero de orden) vive en [PLAN_MISIONES_FASES.md](PLAN_MISIONES_FASES.md); la mecánica
+> de tramos tiene su spec en [SPEC_TRAMOS.md](../sistemas/SPEC_TRAMOS.md).
 
 ---
 
