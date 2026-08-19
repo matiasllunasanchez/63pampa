@@ -89,6 +89,7 @@ La segunda campaña, a futuro: *"El fantasma del mar"*.
 | [ESTADO.md](proyecto/ESTADO.md) | bitácora del estado del proyecto | vivo |
 | [PENDIENTES_DE_REDISENO.md](proyecto/PENDIENTES_DE_REDISENO.md) | inventario de unidades/objetos con estado de arte y specs de sprite | vivo |
 | [PLAN_CAMPANA_001.md](proyecto/PLAN_CAMPANA_001.md) | mapeo guion → `missions.js` | ✅ **sincronizado con GUION_3 3.7**: 14 misiones, IDs m1–m14 estables, roguelike real, m10 reescrita (Tandil), **§7 desbloqueo del Mirage Mara fuera de campaña**, final de dos rumbos + post-créditos |
+| [DISENO_MISIONES.md](proyecto/DISENO_MISIONES.md) | 🟥 **el armado de las 14 misiones**: relevamiento guion↔código, tabla maestra de la campaña, propuesta por misión (tramos, enemigos, clímax, poderes), el flujo de mejoras, la ventana nueva de la Chancha, la nafta como arco y el veredicto de brechas priorizado | **plan — 10 de 14 armables ya; brechas en §8** |
 
 ## 🚀 publicacion/
 
