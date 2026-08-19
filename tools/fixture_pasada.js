@@ -49,7 +49,8 @@ const SAMPLER = `(() => {
     // hay que comparar es EL CUADRO ANTES y EL CUADRO DESPUES del corte — y para cuando un poll
     // se entera de que cambio el estado, el ultimo cuadro del pasillo ya no existe.
     window.__cap.push([Math.round(lum / (24 * 14 * 3)), sig, (window.__pdbg && window.__pdbg()) ? 1 : 0,
-      (window.__pbarge && window.__pbarge()) || null, (window.__pship && window.__pship()) || null]);
+      (window.__pbarge && window.__pbarge()) || null, (window.__pship && window.__pship()) || null,
+      (window.__fade && window.__fade()) || 0]);
     if (window.__cap.length < 3000) requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
@@ -138,6 +139,12 @@ app.whenReady().then(async () => {
   // fade. Se mide como brillo medio del cuadro, normalizado contra el brillo de ESTE MISMO run al
   // 60% del camino, asi el clima de la mision no ensucia la cuenta. Con el arena baja a ~40%; con
   // la pasada tiene que quedarse donde estaba.
+  // LAS DEFENSAS SE APAGAN ANTES DE TODO. Esta seccion mide el TELON y la TRANSICION, no la
+  // supervivencia: con los Sea Dart encendidos, los saltos de este bloque dejan al avion en medio
+  // de la zona defendida y se pierde ahi. Y entonces el climax se entra por el camino del
+  // RELEVO, que es otro codigo — la prueba terminaba midiendo un cruce que el piloto vivo nunca
+  // hace, y por eso decia que no habia fundido.
+  await js('__pdef(0)');
   const lum = [];
   for (const p of [0.60, 0.85, 0.98]) { await js(`__wjump(${p})`); await sleep(280); lum.push(await js(LUM)); }
   const caida = Math.min(...lum) / lum[0];
@@ -147,13 +154,22 @@ app.whenReady().then(async () => {
   // CORRERSE DEL EJE antes del corte (R3). Centrado, la prueba del desvio heredado no prueba nada:
   // heredar cero es lo mismo que no heredar. Se entra al climax DESDE UN COSTADO del carril, que
   // es como se entra de verdad — nadie llega al buque perfectamente centrado.
+  //
+  // SE VUELVE ATRAS ANTES DE MEDIR, y esto es lo que tenia rota la seccion: el bloque del telon
+  // deja al avion en el 98% del camino, y el corte a la PASADA es en el 100% (`readyToEnter`:
+  // dist >= objectiveDist). Ese 2% son ~50 m, o sea medio segundo: para cuando arrancaba el
+  // muestreo, la transicion YA habia pasado y no quedaba un solo cuadro de pasillo con que
+  // comparar — el fixture se quejaba de eso ("no hay suficientes cuadros") sin decir por que.
+  // Con el 88% quedan ~300 m, unos 3 s: cientos de cuadros de los dos lados del corte.
+  await js('__wjump(0.88)');
+  await js(SAMPLER);
+  await sleep(300);
+  // el desvio se hace ADENTRO de la aproximacion, no antes: es el desvio con el que se cruza el
+  // corte lo que R3 mide, y a tres segundos del buque el avion ya no vuelve solo al eje.
   const der = setInterval(() => down('Right'), 40);
   await sleep(900);
   clearInterval(der); up('Right');
-  await js(SAMPLER);
-  await sleep(400);
   for (let i = 0; i < 90; i++) { if (await P()) break; await sleep(200); }
-  await js('__pdef(0)');   // idem: esta seccion mide la TRANSICION, no la supervivencia
   clearInterval(gas); up('Up');
   d = await P();
   if (!d) { bad('el pasillo nunca desemboco en la pasada'); }
@@ -176,10 +192,19 @@ app.whenReady().then(async () => {
       // Asi que ahora se prueba que el fundido EXISTA y sea CORTO. Las dos mitades importan: sin
       // fundido no se avisa que cambio el mundo; con un fundido largo se corta la accion, que es
       // exactamente lo que RF-01 vino a evitar y sigue valiendo.
-      const oscuros = banda.filter(f => f[0] < base * 0.72).length;
-      if (!oscuros) bad(`la transicion no tiene NINGUN fundido (minimo ${min} contra ${base} del pasillo)`);
+      // SE MIRA EL RELOJ DEL FUNDIDO, no cuantos pixeles se oscurecieron. Contar pixeles mide el
+      // fundido Y las dos escenas a la vez: si el climax es mas brillante que el pasillo —y lo es,
+      // medido 64 → 83— el cuadro fundido sigue siendo mas claro que el pasillo y el test decia
+      // "no hay ningun fundido" con el fundido pintado. Lo que hay que probar es que el fundido
+      // EXISTA y sea CORTO; que no llegue a negro se sigue mirando en pixeles, que es donde eso
+      // si se ve.
+      const fades = cap.slice(i0, i0 + 90).map(f => f[5] || 0);
+      const fMax = Math.max(...fades);
+      const dur = fades.filter(v => v > 0).length / 60;      // segundos aproximados a 60 fps
+      if (fMax <= 0) bad(`la transicion no tiene NINGUN fundido (brillo ${min} contra ${base} del pasillo)`);
+      else if (dur > 1.2) bad(`el fundido dura ${dur.toFixed(2)} s: eso corta la accion, que es lo que RF-01 vino a evitar`);
       else if (min < base * 0.12) bad(`el fundido llega a negro (brillo ${min} vs ${base}): tiene que ser un parpadeo, no un corte`);
-      else ok(`fundido corto al cruzar al climax: ${oscuros} cuadro(s) por debajo del pasillo, minimo ${min} de ${base}`);
+      else ok(`fundido corto al cruzar al climax: arranca en ${fMax} y dura ~${dur.toFixed(2)} s (brillo ${base} → ${min})`);
       // EL CANVAS SIGUE CAMBIANDO: dos cuadros seguidos identicos = render congelado
       let quietos = 0;
       for (let i = 1; i < banda.length; i++) if (banda[i][1] === banda[i - 1][1]) quietos++;

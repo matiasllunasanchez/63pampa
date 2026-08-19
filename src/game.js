@@ -1819,8 +1819,13 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
             // la boca de la zona y no heredando el vuelo del anterior: no venia volando el pasillo.
             // EL PULSO: el companero vuelve A LA PRUEBA, con los intentos gastados y el flak ya
             // encima (enter() sin cfg conserva la cuenta). Perder un avion no limpia la pizarra.
+            // EL FUNDIDO CORTO TAMBIEN VALE ACA. El cruce al climax desde el RELEVO cambia de
+            // camara igual que el del pilo vivo —el pasillo mira de costado, el climax de frente—
+            // y sin el parpadeo se lee como un error, que es justo lo que el fundido vino a
+            // evitar (ver el bloque gemelo del update). Estaba solo en un lado: el relevo entraba
+            // de golpe. Lo agarro el fixture de la PASADA midiendo el fundido con la sonda.
             if (runClimax() === 'pulso' && pulso.available() && objectiveDist > 0 && run.dist >= objectiveDist) {
-              pulso.enter(false);
+              pulso.enter(false); fadeT = 0.55;
               popup(W / 2, 54, T('sq_yours'), P.accent);
               if (run.lives === 1) popup(W / 2, 64, T('sq_last'), P.warn);
               beep(980, 0.14, 'square', 0.06);
@@ -1828,7 +1833,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
               return;
             }
             if (runClimax() === 'pasada' && pasada.available() && objectiveDist > 0 && run.dist >= objectiveDist) {
-              pasada.enter(false);
+              pasada.enter(false); fadeT = 0.55;
               popup(W / 2, 54, T('sq_yours'), P.accent);
               if (run.lives === 1) popup(W / 2, 64, T('sq_last'), P.warn);
               beep(980, 0.14, 'square', 0.06);
@@ -1836,7 +1841,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
               return;
             }
             if (arena.available() && objectiveDist > 0 && run.dist >= objectiveDist) {
-              arena.enter();
+              arena.enter(); fadeT = 0.55;
               popup(W / 2, 54, T('sq_yours'), P.accent);
               if (run.lives === 1) popup(W / 2, 64, T('sq_last'), P.warn);
               beep(980, 0.14, 'square', 0.06);
@@ -2655,6 +2660,12 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       mejSel, mejRows: mejRows().map(r => r.head ? '#' : r.label()),
       movesOff: Object.keys(cfg.movesOff),
     });
+    // __fade (QUITAR): el reloj del FUNDIDO. El fundido corto del cruce al climax es un pedido
+    // del autor ("si cambias de camara MINIMAMENTE fade in - out") y hasta ahora solo se podia
+    // comprobar contando pixeles oscuros — que mide el fundido Y la escena de los dos lados a la
+    // vez, y falla cuando el climax es mas brillante que el pasillo (medido: 64 → 83, el fundido
+    // pintado y el test diciendo que no habia ninguno).
+    if (typeof window !== 'undefined') window.__fade = () => +fadeT.toFixed(3);
     if (typeof window !== 'undefined') window.__wjump = (p, dev) => {
       if (dev !== undefined) cfg.devcam = !!dev;
       if (p !== undefined && objectiveDist > 0) run.dist = Math.max(0, p * objectiveDist);
