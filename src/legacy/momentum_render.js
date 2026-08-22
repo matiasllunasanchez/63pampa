@@ -30,7 +30,7 @@ import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR } from '../data/tuning.js';
 
 // arte de la cabina (marco del visor). Se precarga al importar; hasta que este listo se
 // dibuja el fallback vectorial de abajo, asi el primer momentum nunca aparece vacio.
-const COCKPIT_ASSET = { src: '../assets/planes/a4-skyhawk/cockpit.png', img: new Image(), ready: false };
+const COCKPIT_ASSET = { src: '../assets/planes/cockpitv2.png', img: new Image(), ready: false };
 COCKPIT_ASSET.img.onload = () => { COCKPIT_ASSET.ready = true; };
 COCKPIT_ASSET.img.src = COCKPIT_ASSET.src;
 
@@ -289,24 +289,38 @@ function drawSal(t) {
 // lados; cambiar el PNG obligaba a re-tunear las tres y la que no se miraba quedaba mintiendo.
 //
 // V_VISOR — donde cae el VIDRIO DEL VISOR dentro del PNG, en fraccion de su alto. Es LO UNICO que
-// hay que volver a medir si se recambia la cabina. Medido sobre el asset de 8/2026: el vidrio va
-// de 0.3255 a 0.4609, centro 0.3932.
-export const V_VISOR = 0.3932;
+// hay que volver a medir si se recambia la cabina, y con `cockpitv2` (8/2026) hubo que hacerlo:
+// el visor de esta cabina esta MAS ABAJO que el de la anterior. Medido leyendo el PNG: el vidrio
+// del alza va de 0.374 a 0.498, centro 0.436 (antes 0.3932).
+export const V_VISOR = 0.436;
 
 // V_VIDRIO — donde TERMINA EL PARABRISAS dentro del PNG, en fraccion de su alto: el hueco central
 // transparente va del borde de arriba hasta aca, y de ahi para abajo empieza la visera y el
 // tablero. Medido sobre el asset de 8/2026 leyendo el canal alfa del propio PNG (no a ojo sobre la
-// pantalla): 0.3203.
+// pantalla). Con `cockpitv2` es 0.402 (antes 0.3203 — esta cabina tiene mas parabrisas).
+//
+// MEDIDO, NO ESTIMADO — y la diferencia se pago. Primero se puso 0.503 mirando el PNG y pareciendo
+// razonable ("ahi arranca la visera"); el alfa decia 0.4016. Con 0.503 la ventana quedaba 28 px mas
+// abajo de donde termina el vidrio de verdad, asi que todo lo que se encuadra contra ella —el
+// buque del premio— se dibujaba con el casco DETRAS del tablero. Se descubrio con la sonda
+// `__buque`: cubierta en y=113 y flotacion en 131, con el panel arrancando en 111.
 //
 // Lo necesita cualquiera que quiera pegar algo AL VIDRIO —sal seca, agua corriendo, hielo, sangre—
 // para no terminar pintandolo sobre el tablero o afuera del cuadro. Antes cada uno se lo estimaba
 // contra `top`, y cuando la cabina cambio de encuadre los dos que lo hacian (la sal y el agua del
 // PULSO) quedaron dibujando arriba del borde de arriba: invisibles, sin fallar.
-export const V_VIDRIO = 0.3203;
+export const V_VIDRIO = 0.402;
 
 // LA CABINA ENTERA, SIEMPRE — y de que depende que se pueda.
 //
-// El PNG es 1.833:1 y la pantalla 1.778:1: casi la misma proporcion, o sea que no hay margen para
+// ANCHO PLENO (pedido de Matias, 8/2026). `cockpitv2` es 1.748:1 contra el 1.778:1 de la pantalla:
+// por primera vez el PNG es MAS ANGOSTO que el cuadro, asi que anclado por el alto dejaba una
+// franja de mundo de 4 px a cada lado — y una cabina con mundo a los costados se lee como una
+// calcomania, que es justo lo que el resto de este bloque se propone evitar. La regla nueva es un
+// PISO, no un reemplazo: la cabina nunca puede quedar mas angosta que la pantalla (`altoAncho`).
+// El precio, medido: 4,6 px de arco de canopy que se van por arriba. Se paga sin dudar.
+//
+// El PNG anterior era 1.833:1 y la pantalla 1.778:1: casi la misma proporcion, o sea que no habia margen para
 // elegir. Anclandola por el ANCHO —que es lo que hacia el viejo `COCKPIT_FILL`— el alto cae donde
 // cae, y con una mira baja lo que se va del cuadro es EL PANEL: quedaba el arco del canopy
 // flotando sobre nada. Se ancla al reves: **el ALTO es el que no puede desbordar** —arriba se
@@ -316,6 +330,8 @@ export const V_VIDRIO = 0.3203;
 //
 // LA INVARIANTE, entonces: la cabina NUNCA se recorta. Lo unico que cambia entre modos es DONDE
 // APUNTA, y el tamaño es la consecuencia — no una perilla aparte que alguien tenga que re-tunear.
+// el alto que hace que el PNG mida EXACTO el ancho de la pantalla: el piso de la cuenta de abajo
+const altoAncho = im => (im && im.naturalWidth ? W * im.naturalHeight / im.naturalWidth : 0);
 const altoDe = mira => Math.min(mira / V_VISOR, (H - mira) / (1 - V_VISOR));
 
 // LA MIRA PLENA: la UNICA Y en que la cabina sale entera Y de borde a borde. Sale de despejar
@@ -367,7 +383,10 @@ export function cajaCabina(w) {
   // por ninguno de los dos bordes, y el ancho detras por la proporcion real del PNG. La cabina
   // no se deforma nunca y no se recorta nunca; si algun dia se re-exporta a otra proporcion,
   // esto la sigue solo.
-  const dibH = altoDe(mira) * (w.esc || 1);
+  // …con el PISO de ancho pleno: nunca mas angosta que la pantalla. Se aplica DESPUES de `esc`
+  // porque `esc` es "cuanto de la pantalla se come" y achicar hasta despegarse de los costados es
+  // exactamente lo que no puede pasar.
+  const dibH = Math.max(altoDe(mira) * (w.esc || 1), altoAncho(im));
   const dw = dibH * im.naturalWidth / im.naturalHeight;
   // …y SIN HUECO ABAJO. El visor clavado en la mira es la regla, pero achicar la cabina la
   // despega del borde de abajo y ahi aparece una franja de mundo POR DEBAJO del tablero: eso no

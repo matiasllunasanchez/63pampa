@@ -2591,7 +2591,12 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // sale antes de publicar su geometria — el premio se quedaba sin buque que volar. Pasa solo
       // por las puertas de herramienta, donde se entra al PULSO en una mision cuyo climax declarado
       // es la PASADA; se vio mirando el premio suelto desde el menu CINEMATICAS.
-      world.drawApproachBarge(objectiveDist, objectiveShip, S.state === 'pulso' ? pulso.shipFx() : null,
+      // …y en EL PULSO se le pasa ademas LA VENTANA de la cabina (donde termina el parabrisas): el
+      // buque se encuadra contra el hueco que la cabina deja ver, no contra la pantalla. Lo sabe el
+      // render de la cabina, lo decide el sistema, y los junta aca — que es el trabajo de este
+      // archivo. Se pide ANTES de dibujar porque el buque va primero: es mundo.
+      world.drawApproachBarge(objectiveDist, objectiveShip,
+        S.state === 'pulso' ? pulso.shipFx(pulsoRender.ventana(pulso.state(), run.t)) : null,
         runClimax() === 'pasada' && S.state !== 'pulso');
       world.drawObjectiveMarker(objectiveDist);                // cuña roja en el horizonte: hacia donde vamos
       world.drawWake();

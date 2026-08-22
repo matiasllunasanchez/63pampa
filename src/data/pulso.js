@@ -84,7 +84,20 @@ export const PULSO_CINE = {
   // …y cuanto BAJA en el cuadro mientras crece (pixeles de mundo). Un buque clavado en el
   // horizonte no puede dominar nada: la unica forma de que llene la vista es que se venga al
   // centro de la banda que la cabina deja libre.
-  DROP: 16,
+  // EL TOPE DEL ENCUADRE: que fraccion del ANCHO DE PANTALLA puede llegar a medir la ESLORA del
+  // buque. NO reemplaza al ZOOM de arriba —el acercamiento sigue siendo suyo— sino que lo FRENA
+  // cuando el blanco deja de leerse.
+  //
+  // Se mide por LARGO y no por alto, y costo dos intentos entenderlo: encuadrado contra el alto
+  // de la ventana del parabrisas, el buque llegaba correcto de altura pero con 550 px de eslora
+  // sobre una pantalla de 480 — no se veia un buque, se veia una TAJADA DEL MEDIO de un buque,
+  // plancha gris sin proa ni popa. Un barco se lee cuando entran sus dos puntas.
+  LARGO: 0.95,
+  // …y donde queda su FLOTACION dentro de la ventana que la cabina deja ver (fraccion del alto).
+  // Cerca del filo de la visera: apoyado ahi se siente CERCA, y el cielo que queda arriba es para
+  // el humo — que es la otra mitad de lo que se esta mirando.
+  AGUA: 0.93,
+  DROP: 9,   // idem ZOOM: con la cabina a ancho pleno hay menos cielo, y bajar el buque lo mete bajo la visera
   // cuanto BAJA LA CABINA durante el premio. No es rediseñarla: es la misma cabina corrida, para
   // abrir cielo justo cuando lo que hay que mirar es el buque y ya no hay autopista que leer.
   //

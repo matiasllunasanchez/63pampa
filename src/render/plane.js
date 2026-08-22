@@ -37,23 +37,48 @@ const BOB_Y  = 1.5;    // amplitud del bob vertical (px)
 const BOB_X  = 0.75;    // amplitud de la deriva horizontal (px) — desfasada del bob → flota en "8"
 const WOBBLE = 0.026;  // amplitud de la micro-oscilacion de alabeo (rad, ~1.5°)
 
-/** LLAMA DEL POSTQUEMADOR. Antes era UN rectangulo pálido de 4 px de ancho saliendo de la cola:
- *  a esta resolucion se leia como una barra blanca pegada al avion. Una llama en pixel art se
- *  arma por FILAS que se afinan y se enfrian hacia la punta — del blanco del nucleo al rojo
- *  apagado del final — con el largo parpadeando cuadro a cuadro. */
-function flame(x, y0) {
-  const COL = ['#fff6d8', '#ffe08a', '#ffb43c', '#f07c22', '#cf4d16', '#93300f'];
-  const n = 4 + (Math.random() * 3 | 0);            // largo variable: la llama respira
-  ctx.globalAlpha = 0.28;                           // resplandor alrededor de la tobera
-  px(x - 3, y0 - 1, 6, 3, '#ffb43c');
+/** LA LLAMA DE LA TURBINA. Una sola llama, con INTENSIDAD — no dos efectos distintos.
+ *
+ *  Antes solo existia con el turbo puesto: el resto del tiempo el avion volaba con la turbina
+ *  apagada, que es lo que hacia que se leyera planeando. Ahora hay siempre una llamita mientras
+ *  quede combustible, y el turbo es ESA MISMA llama mas larga, mas ancha y con mas resplandor.
+ *  Que sea la misma y no otra es el punto: el turbo se lee como "mas de lo mismo", que es lo que
+ *  un postquemador es de verdad.
+ *
+ *  `f` es la intensidad, 0..1. El color se reparte PROPORCIONALMENTE a lo largo: con el indice
+ *  crudo (como estaba antes) una llama larga se comia toda la paleta en los primeros pixeles y
+ *  terminaba en un rojo plano — justo con el turbo, que es cuando mas se mira.
+ *
+ *  En pixel art una llama se arma por FILAS que se afinan y se enfrian hacia la punta, con el
+ *  largo parpadeando cuadro a cuadro: eso es lo que la hace respirar en vez de ser una barra. */
+const FCOL = ['#fff6d8', '#ffe08a', '#ffb43c', '#f07c22', '#cf4d16', '#93300f'];
+function flame(x, y0, f) {
+  if (f <= 0.01) return;
+  const largo = 2 + f * 5;
+  const n = Math.max(2, Math.round(largo + Math.random() * (0.8 + f * 2.2)));
+  const w0 = 2 + f * 2.6;                           // ancho del nucleo, en la boca
+  // RESPLANDOR alrededor de la tobera: crece con la intensidad y es lo que hace que el turbo
+  // "ilumine" en vez de solo alargarse
+  ctx.globalAlpha = 0.12 + f * 0.2;
+  px(x - (2 + f * 2), y0 - 1, 4 + f * 4, 3, '#ffb43c');
   ctx.globalAlpha = 1;
   for (let i = 0; i < n; i++) {
-    const w = Math.max(1, 4 - Math.round(i * 3 / n));   // se afina hacia la punta
-    px(x - w / 2, y0 + i, w, 1, COL[Math.min(COL.length - 1, i)]);
+    const w = Math.max(1, Math.round(w0 - i * (w0 - 1) / n));   // se afina hacia la punta
+    px(x - w / 2, y0 + i, w, 1, FCOL[Math.min(FCOL.length - 1, Math.floor(i * FCOL.length / n))]);
   }
-  // diamante de choque: el punto azulado de la garganta, lo que delata que es un reactor
-  if (Math.random() < 0.6) px(x, y0, 1, 1, '#dff3ff');
-  if (Math.random() < 0.35) px(x + (Math.random() < 0.5 ? -1 : 1), y0 + n + 1, 1, 1, '#e0761f');
+  // diamante de choque: el punto azulado de la garganta, lo que delata que es un reactor.
+  // Al ralenti aparece menos seguido — el diamante es cosa de estar empujando.
+  if (Math.random() < 0.25 + f * 0.45) px(x, y0, 1, 1, '#dff3ff');
+  if (Math.random() < 0.15 + f * 0.3) px(x + (Math.random() < 0.5 ? -1 : 1), y0 + n + 1, 1, 1, '#e0761f');
+}
+
+/** La intensidad de ESTE cuadro, suavizada. Sin la rampa, apretar turbo hacia SALTAR la llama de
+ *  3 a 9 px en un cuadro y se leia como un parpadeo, no como una aceleracion. */
+let flameF = 0;
+function stepFlame() {
+  const quiere = run.fuel > 0 ? (run.boost ? 1 : 0.3) : 0;
+  flameF += (quiere - flameF) * 0.18;
+  return flameF;
 }
 
 // VORTICES DE PUNTA DE ALA, y SOLO con el turbo puesto. No es humo de motor —eso ya lo hace la
@@ -341,6 +366,7 @@ export function drawPlane(selPlane, viewMouse, camScale) {
   // con TURBO el avion se ACHICA un poco: acompaña a la camara que sube (ver flight.js) y remata
   // la sensacion de que el avion se despega de vos. Interpolado para que no sea un salto.
   boostSc += ((run.boost ? 0.92 : 1) - boostSc) * 0.08;
+  const ff = stepFlame();   // una sola vez por cuadro: las tres ramas de dibujo la comparten
   const sc = PLANE_SCALE * boostSc * (camScale || 1);
   const spW = SHEET_FW / U * sc, spH = SHEET_FH / U * sc;
   // media altura del CUERPO del avion (sin el aire del frame): a esto se pega la llama del turbo
@@ -382,7 +408,7 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
     drawGear(run.gear, 1);   // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma
     ctx.drawImage(img, sx4, sy4, SHEET_FW, SHEET_FH, -spW / 2, -spH / 2, spW, spH);
-    if (run.boost) flame(0, bodyH2 - 6);
+    flame(0, bodyH2 - 6, ff);
   } else if (pl.ready) {
     const PW = 54, PH = Math.round(PW * pl.h / pl.w);
     // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas (estela cinematica)
@@ -397,13 +423,13 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
     drawGear(run.gear, 1);
     ctx.drawImage(pl.img, -PW / 2, -PH / 2, PW, PH);
-    if (run.boost) flame(0, PH / 2 - 4);
+    flame(0, PH / 2 - 4, ff);
   } else {
     // fallback: sprite de rects (por si la imagen no cargó)
     px(-2, -7, 4, 5, P.bodyDark); px(-1, -8, 2, 2, P.warn);
     px(-20, -1, 40, 3, P.body); px(-20, 0, 6, 2, P.bodyDark); px(14, 0, 6, 2, P.bodyDark);
     px(-3, -3, 6, 6, P.body); px(-2, -4, 4, 2, P.canopy); px(-12, 1, 3, 2, P.accent);
-    const fl = run.boost ? 5 + Math.random() * 4 : (run.fuel > 0 ? 2 + Math.random() * 2 : 0);
+    const fl = ff > 0.01 ? 2 + ff * 5 + Math.random() * (1 + ff * 2) : 0;
     if (fl > 0) { px(-2, 3, 4, fl, run.boost ? P.foam : P.accent); px(-1, 3, 2, fl * 0.6, P.accent); }
     if (inp.fire && !run.overheat && run.fireT > 0.06) { px(-16, -2, 3, 2, P.ink); px(13, -2, 3, 2, P.ink); }
   }

@@ -64,7 +64,7 @@ import { W, PZ } from '../render/ctx.js';
 import {
   CAZA_SOL_T, CAZA_PASSES, CAZA_CAP_T, CAZA_WINDOW, CAZA_RAS_ALT, CAZA_HP, CAZA_KILLABLE,
   CAZA_PRES_T, CAZA_AVISO_T, CAZA_OVER_T, CAZA_RECOLA_T, CAZA_SALIDA_T,
-  CAZA_Z_COLA, CAZA_Z_FRENTE, CAZA_Z_LEJOS, CAZA_X_COLA,
+  CAZA_Z_COLA, CAZA_Z_FRENTE, CAZA_Z_LEJOS, CAZA_X_COLA, CAZA_Y_ENTRA,
   CAZA_V_MERGE, CAZA_V_FUGA, CAZA_V_FUGA_MIN,
   CAZA_AMAGUES, CAZA_AMAGUE_T, CAZA_AMAGUE_GAP, CAZA_AMAGUE_TIRA,
   CAZA_Z_ASOMA, CAZA_X_ASOMA, CAZA_X_ESCONDE,
@@ -124,8 +124,9 @@ export function start(opts = {}) {
     // DOS POSICIONES, no una. `bx`/`by` son la TRAYECTORIA (lo que la fase manda) y `x`/`y` son
     // donde el avion esta DE VERDAD este cuadro: trayectoria + bandeo. Mezclarlas hacia que el
     // bandeo se lerpeara contra si mismo y quedaba un temblor sucio en vez de un avion volando.
-    bx: plane.x, by: plane.y,
-    x: plane.x, y: plane.y, z: CAZA_Z_LEJOS,
+    // NACE POR DEBAJO: sube a tu altura mientras se acerca (ver la fase 'aviso')
+    bx: plane.x, by: Math.max(0.8, plane.y - CAZA_Y_ENTRA),
+    x: plane.x, y: Math.max(0.8, plane.y - CAZA_Y_ENTRA), z: CAZA_Z_LEJOS,
     lado: Math.random() < 0.5 ? -1 : 1,
     seed: Math.random() * 6.283,   // desfase propio: dos Harriers de la flota no bandean igual
     bank: 0, xPrev: plane.x,
@@ -435,7 +436,11 @@ function stepPos(dt) {
     C.z = lerp(C.z, CAZA_Z_COLA + (CAZA_Z_ASOMA - CAZA_Z_COLA) * k, 2.2);
   } else if (C.fase === 'aviso') {
     C.bx = lerp(C.bx, plane.x + C.lado * CAZA_X_COLA * (1 - C.sol), 1.6);
-    C.by = lerp(C.by, plane.y + 1.5, 1.4);
+    // SUBE DESDE ABAJO A MEDIDA QUE SE ACERCA. La altura no se lerpea contra un objetivo fijo:
+    // se interpola con CUAN CERCA esta, asi que la trepada la marca la distancia y no un reloj.
+    // Asi se lo ve LLEGAR desde abajo en vez de aparecer ya puesto a tu altura y solo crecer.
+    const cerca = 1 - Math.min(1, Math.max(0, (C.z - CAZA_Z_COLA) / (CAZA_Z_LEJOS - CAZA_Z_COLA)));
+    C.by = lerp(C.by, Math.max(0.8, plane.y - CAZA_Y_ENTRA * (1 - cerca) + 1.5 * cerca), 1.4);
     // VIENE HACIA VOS: cierra a la suma de las dos velocidades, como cualquier cosa del pasillo
     // (collision.js hace `run.spd + 45` con los jets de frente). Antes era un lerp exponencial a
     // tasa fija, y eso tenia dos vicios: el turbo no lo hacia pasar antes —volabas mas rapido y el
@@ -467,7 +472,10 @@ function stepPos(dt) {
   }
   const b = bandeo();
   C.x = C.bx + b.x;
-  C.y = C.by + b.y;
+  // EL PISO. El clamp va DESPUES del bandeo y no antes: `by` es la trayectoria y `b.y` el
+  // cabeceo vivo que se le suma, asi que acotar solo la trayectoria dejaba al Harrier metiendose
+  // bajo el agua en la parte baja de su propio bandeo — medido, y=-1.2 entrando desde abajo.
+  C.y = Math.max(0.8, C.by + b.y);
   // ALABEO LEIDO DEL MOVIMIENTO, no sorteado. El sprite tiene cinco poses de alabeo y hasta ahora
   // se elegia con `lado`, que es fijo por pasada: el avion volaba de costado todo el ciclo. Ahora
   // la pose sale de para donde se esta yendo de verdad, asi que el bandeo se VE en el dibujo.

@@ -90,9 +90,9 @@ def main():
     # ruta para que `new Image()` no pida un archivo inexistente.
     for key, d in PLANE_DIRS.items():
         js, _ = sub_path(js, f'../assets/planes/{d}/sheet2.png', '')
-    # cabina (momentum en primera persona): hoy solo la del A-4
-    js, ok = sub_path(js, '../assets/planes/a4-skyhawk/cockpit.png',
-                      uri(ASSETS / 'planes' / 'a4-skyhawk' / 'cockpit.png', 'image/png')); n += ok
+    # cabina (primera persona): una sola para todo el juego, suelta en assets/planes/
+    js, ok = sub_path(js, '../assets/planes/cockpitv2.png',
+                      uri(ASSETS / 'planes' / 'cockpitv2.png', 'image/png')); n += ok
     # INTERFAZ: emblema de las Malvinas (4a estrella) y hoja de miras (3x3)
     js, ok = sub_path(js, '../assets/ui/malvinas.webp', uri(ASSETS / 'ui' / 'malvinas.webp', 'image/webp')); n += ok
     js, ok = sub_path(js, '../assets/ui/miras.webp', uri(ASSETS / 'ui' / 'miras.webp', 'image/webp')); n += ok

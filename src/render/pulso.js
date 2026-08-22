@@ -73,6 +73,23 @@ function drawCompas(cx, y, bar, st, ti, t) {
   }
 }
 
+/** LOS PARAMETROS DE LA CABINA de este cuadro. Una sola vez, en un solo lado: los pide el dibujo
+ *  y los pide `ventana()` (que corre ANTES, cuando todavia no se dibujo nada). Escritos dos veces
+ *  se desincronizan en cuanto alguien mueva la mira o el `esc`. */
+function cabinaW(Q, t) {
+  const cine = Q && Q.fase === 'cine' ? Q.cine : null;
+  return { mom: { t: run.t }, t, mira: COCKPIT_MIRA, esc: PULSO_TEATRO.CABINA_ESC,
+           yOff: cine ? cine.cam.off : 0 };
+}
+
+/** LA VENTANA: la Y en que termina el parabrisas — o sea, el alto de mundo que la cabina deja ver.
+ *
+ *  Existe porque el BUQUE se dibuja antes que la cabina (es mundo) y necesita saber contra que se
+ *  esta encuadrando. Con la cabina a ancho pleno esto dejo de ser un detalle: la ventana bajo de
+ *  170 a 136 px, y un buque dimensionado contra la PANTALLA queda medio metido abajo del tablero.
+ *  Lo pide game.js y se lo pasa al sistema, que decide cuanto de ella llenar. */
+export const ventana = (Q, t) => momRender.cajaCabina(cabinaW(Q, t)).vidrio;
+
 /** DONDE PEGO, en pantalla. Sale de la geometria que publico el que dibujo el buque
  *  (render/world.js) y no de una copia de la cuenta: si el buque escora o se hunde, el fuego
  *  escora y se hunde con el. Devuelve null si el buque no esta dibujado (no deberia pasar). */
@@ -391,8 +408,7 @@ export function drawPulso(w) {
   // por la misma razon que el flak — el canopy tiene que poder taparlo.
   // LA CAJA DE LA CABINA, calculada ANTES de dibujar nada: la necesita la ristra (sale de abajo
   // del morro) y despues la usa el propio dibujo de la cabina. Es la misma cuenta, pedida una vez.
-  const cabW = { mom: { t: run.t }, t, mira: COCKPIT_MIRA, esc: PULSO_TEATRO.CABINA_ESC,
-                 yOff: cine ? cine.cam.off : 0 };
+  const cabW = cabinaW(Q, t);
   const caja = momRender.cajaCabina(cabW);
   if (cine) drawCineMundo(Q, cine, t, caja);
 

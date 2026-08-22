@@ -396,7 +396,7 @@ export const camRoll = () => (Q && Q.fase === 'cine' && cfg.horizon
 /** Lo que le pasa AL BUQUE en pantalla, para que lo aplique quien lo dibuja (render/world.js, por
  *  parametro desde game.js — nadie llama hacia arriba). `grow` es el pendiente honesto de Q1: el
  *  blanco recien DOMINA el cuadro cuando la autopista ya no esta y no le pelea el pixel. */
-export function shipFx() {
+export function shipFx(vb) {
   // …y SOLO MIENTRAS EL DIRECTOR CORRE. Desde que la cinematica se apaga sola en su `fin`, la fase
   // del PULSO sigue en 'cine' un cuadro mas (el orquestador cierra la mision en ese mismo cuadro),
   // y sin esta guarda el buque volvia a 1× y sin escora justo ahi: un parpadeo del blanco a tamaño
@@ -420,7 +420,16 @@ export function shipFx() {
   // …y BAJA en el cuadro mientras crece: le estas cayendo encima, asi que el buque deja de estar
   // clavado en el horizonte y se viene al centro de lo que la cabina deja ver.
   const drop = PULSO_CINE.DROP * g;
-  if (!p) return { grow, drop, tilt: 0, sink: 0 };
+  // EL ENCUADRE CONTRA LA VENTANA. `grow` dice como se acerca; esto dice contra QUE se mide que
+  // sea grande — y desde que la cabina va a ancho pleno lo que hay que mirar no es la pantalla
+  // sino el hueco del parabrisas. Entra progresivo con la misma curva del acercamiento: al
+  // principio el buque esta donde el pasillo lo dejo, y al final llena la ventana.
+  // `llena` es el tamaño FINAL (fraccion de la ventana) y `g` el avance del acercamiento: quien
+  // dibuja interpola de "lo que dejo el pasillo" a "lleno la ventana". Se manda asi y no ya
+  // multiplicado porque el encuadre REEMPLAZA al zoom, no se le suma — sumados, el buque llegaba
+  // al doble de grande y se leia como tres planchas grises.
+  const enc = vb > 0 ? { ventana: vb, largo: PULSO_CINE.LARGO, agua: PULSO_CINE.AGUA, g } : null;
+  if (!p) return Object.assign({ grow, drop, tilt: 0, sink: 0 }, enc);
   // MUERTE: escora y se va. La CURVA es de quien es dueño del buque, no del director — igual que
   // la curva de una pirueta es de moves.js. La timeline solo dice cuando empieza y cuanto dura, y
   // eso llega como el avance 0..1 del tramo.
@@ -432,7 +441,8 @@ export function shipFx() {
   // cubierta MEDIO CASCO por debajo del agua antes de que la cinematica terminara, y el recorte del
   // mar se lo comia entero: el ultimo segundo era mar vacio. Un buque no se hunde en tres segundos
   // —lo que se cuenta aca es que EMPEZO a hundirse— y el que se lo termina de tragar es el recuento.
-  return { grow, drop: drop + CINE_VUELO.ESC_DROP * p, tilt: p * p * 0.26 * k, sink: p * p * 0.78 * k };
+  return Object.assign(
+    { grow, drop: drop + CINE_VUELO.ESC_DROP * p, tilt: p * p * 0.26 * k, sink: p * p * 0.78 * k }, enc);
 }
 
 // ---------------- SONDA (QUITAR antes de publicar) ----------------

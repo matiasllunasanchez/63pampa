@@ -530,6 +530,11 @@ export const CAZA_Z_LEJOS = 320;    // z del horizonte del duelo: por ahi ENTRA 
 // 118 la escala es 1,14 y el caza medía 12 px pegado a la linea del horizonte, entre las montañas.
 // La ventana es la fase en la que te toca tirarle A EL — un blanco que no se ve no es una ventana,
 // es un hueco. A 62 mide 24 px y se despega del horizonte, que es lo minimo para apuntarle.
+// CUANTO MAS ABAJO QUE VOS entra, en metros. El Harrier venia clavado a TU altura desde 320 m,
+// asi que no "aparecia": ya estaba, y lo unico que hacia era crecer. Entrando por debajo, sube a
+// tu altura mientras se acerca — se lo ve LLEGAR, que es lo que un avion que te viene a buscar
+// tiene que hacer. Se recorta contra el suelo: si volas a ras, entra desde donde haya lugar.
+export const CAZA_Y_ENTRA = 16;
 export const CAZA_Z_FRENTE = 62;
 export const CAZA_X_COLA = 26;      // cuanto se abre de tu carril mientras presiona (asoma por el borde)
 

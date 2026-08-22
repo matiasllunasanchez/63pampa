@@ -151,11 +151,33 @@
     // la silueta del ala, la deriva, el redondeo del fuselaje y la boca de escape. El detalle
     // chico (paneles, escarapelas) se pierde — por eso el presupuesto de poligonos va al VOLUMEN.
 
-    /** Escape comun a todos: anillo metalico + boca oscura hundida + tobera conica. */
+    /** MATERIAL QUE NO TOMA LUZ. El fuego no se ilumina: se ilumina SOLO. Con el Lambert de todo
+     *  lo demas, la boca de la turbina quedaba apagada del lado en sombra — que es exactamente lo
+     *  contrario de lo que tiene que pasar. */
+    const EMIT = c => new THREE.MeshBasicMaterial({ color: c });
+    const addEmit = (g, geo, c, x, y, z, rx) => {
+      const m = new THREE.Mesh(geo, EMIT(c));
+      m.position.set(x, y, z); if (rx) m.rotation.x = rx;
+      g.add(m); return m;
+    };
+
+    /** Escape comun a todos: anillo metalico + boca hundida + LA TURBINA ENCENDIDA.
+     *
+     *  La camara mira al avion DESDE ATRAS, asi que la tobera apunta justo a ella: es el unico
+     *  lugar del sprite donde se puede ver que el motor esta funcionando. Antes era un cono casi
+     *  negro y el avion se veia apagado, planeando. Ahora tiene tres capas de calor —el rojo
+     *  profundo del fondo, el naranja del anillo interior y el blanco del nucleo— que es como se
+     *  lee una turbina al ralenti. El postquemador NO va aca: eso es la llama de render/plane.js,
+     *  que sale de esta misma boca y crece con el turbo. */
     function nozzle(g, r, z, ring, dark) {
       CYL(g, r, r * 0.92, 0.5, ring, 0, 0, z, 12);
       CYL(g, r * 0.66, r * 0.66, 0.26, dark, 0, 0, z + 0.2, 12);
-      CONE(g, r * 0.5, 0.34, '#191c15', 0, 0, z + 0.34, true, 10);
+      // EL FONDO ROJO de la tobera: lo mas profundo, lo mas apagado
+      addEmit(g, new THREE.CircleGeometry(r * 0.60, 12), '#b8341a', 0, 0, z + 0.30);
+      // el anillo NARANJA a media profundidad
+      addEmit(g, new THREE.CircleGeometry(r * 0.42, 12), '#f07a22', 0, 0, z + 0.33);
+      // y el NUCLEO caliente, chico y blanco: es el punto que delata que el motor esta prendido
+      addEmit(g, new THREE.CircleGeometry(r * 0.20, 10), '#ffe6a8', 0, 0, z + 0.36);
     }
     /** Tanque subalar / pod: cilindro con punta y cola conicas. */
     function tank(g, r, len, c, x, y, z) {

@@ -32,11 +32,27 @@ const FILES = {
   fragata: '../assets/world/enemies/fragata.png',
 };
 
+// EL `wu` DE LOS JETS ESTABA MAL, y era la mitad del problema. Medido: el contenido del sprite
+// del A-4 del jugador ocupa 52 de los 84 px del frame y se dibuja a 0.85, o sea 44 px de pantalla
+// a z=14 -> 4.6 UNIDADES DE MUNDO de envergadura. El Harrier declaraba 10.5: mas del DOBLE que el
+// avion del jugador, cuando un Sea Harrier tiene MENOS envergadura que un A-4 (7,7 m contra 8,4).
+// Con 4.2 (los mismos 4.6 por la relacion real de envergaduras) el Harrier queda a escala: sigue
+// viendose mas grande que vos porque esta MAS CERCA de la camara (z=6 contra tu z=14), que es lo
+// correcto, pero deja de ser un avion de juguete gigante. Pasa de ocupar el 49% del ancho de
+// pantalla al 20%.
+//
+// LOS TRES JETS van al DOBLE de resolucion que el resto (128x96 contra 64x48), y `wu` NO cambia:
+// el mundo no se entera, solo deja de verse el pixel gordo. El motivo esta medido — el Harrier es
+// el unico enemigo que se te pone a z=6, mas cerca de la camara que tu propio avion (z=14), y ahi
+// su sprite se ampliaba 5.4x mientras el tuyo se dibuja a 0.85x.
+// LAS CAJAS LAS MIDE EL HORNEADOR: `npx electron tools/bake_enemies_run.js` las imprime listas
+// para pegar. Antes se contaban a ojo sobre el alfa y un numero mal copiado dejaba al bicho
+// flotando o enterrado, sin prueba que lo agarrara.
 export const SHEETS = {
   helo: { fw: 64, fh: 48, cols: 8, rows: 2, box: { x0: 6, y0: 16, x1: 57, y1: 36 }, wu: 11.5 },
-  jet: { fw: 64, fh: 48, cols: 5, rows: 1, box: { x0: 14, y0: 10, x1: 49, y1: 31 }, wu: 10.5 },
-  jet_rear: { fw: 64, fh: 48, cols: 5, rows: 1, box: { x0: 10, y0: 10, x1: 53, y1: 32 }, wu: 10.5 },
-  jet_turn: { fw: 64, fh: 48, cols: 5, rows: 1, box: { x0: 11, y0: 11, x1: 51, y1: 29 }, wu: 10.5 },
+  jet: { fw: 128, fh: 96, cols: 5, rows: 1, box: { x0: 29, y0: 29, x1: 98, y1: 65 }, wu: 4.2 },
+  jet_rear: { fw: 128, fh: 96, cols: 5, rows: 1, box: { x0: 21, y0: 30, x1: 106, y1: 74 }, wu: 4.2 },
+  jet_turn: { fw: 128, fh: 96, cols: 5, rows: 1, box: { x0: 20, y0: 30, x1: 102, y1: 64 }, wu: 4.2 },
   radar: { fw: 48, fh: 48, cols: 4, rows: 1, box: { x0: 10, y0: 7, x1: 43, y1: 40 }, wu: 6.2 },
   aatruck: { fw: 56, fh: 48, cols: 3, rows: 1, box: { x0: 13, y0: 12, x1: 48, y1: 39 }, wu: 6.6 },
   // lcu y balloon llevan 3 POSES DE ROLIDO (izq/centro/der): el render las cicla con un seno

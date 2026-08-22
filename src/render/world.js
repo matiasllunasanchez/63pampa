@@ -2022,6 +2022,10 @@ function drawBowApproach(g, objectiveShip) {
  *  y a la distancia de verdad. Con el casco lateral, el ultimo cuadro del pasillo mostraba un
  *  buque de 177 px —o sea, a 150 m— y la PASADA abria con el mismo buque a 700: el jugador salia
  *  disparado para atras y giraba 90 grados en un cuadro. Eso era "el teleport" del §1.2. */
+// LO QUE MIDE EL BUQUE DIBUJADO, en unidades de `uh`: casco (1.5) + mastil sobre la cubierta
+// (4.6). Sale de drawBargeHull — si algun dia le crece la antena, este numero se entera.
+const ALTO_BUQUE = 6.1;
+
 export function drawApproachBarge(objectiveDist, objectiveShip, fx, deProa) {
   const ph = momentum.phase(), PH = momentum.phases();
   if (objectiveDist <= 0 || ph >= PH.length) return;
@@ -2046,7 +2050,29 @@ export function drawApproachBarge(objectiveDist, objectiveShip, fx, deProa) {
   const scE = next.scale * 0.82;
   // el `grow` del PULSO se multiplica ACA, antes de derivar uh/hullH/eslora: asi el buque crece
   // ENTERO y clavado en su linea de flotacion, en vez de estirarse.
-  const sc = (sc0 + (scE - sc0) * f) * ((fx && fx.grow) || 1);
+  let sc = sc0 + (scE - sc0) * f;
+  // ENCUADRE CONTRA LA VENTANA DEL PARABRISAS (EL PULSO). El `grow` de arriba dice como se acerca;
+  // esto dice contra QUE se mide que el buque sea grande. Desde que la cabina va a ancho pleno la
+  // pantalla dejo de servir de vara: tiene 270 px pero la ventana 136, y un buque dimensionado
+  // contra la pantalla se dibuja con medio casco abajo del tablero — que es exactamente lo que
+  // pasaba con la muerte del premio.
+  //
+  // ALTO_BUQUE 6.1 = casco (1.5·uh) + mastil (4.6·uh) sobre la cubierta: lo que el buque MIDE
+  // dibujado, no lo que mide su casco. Sale de drawBargeHull, que es quien lo pinta.
+  //
+  // Y SOLO AGRANDA, nunca achica: la aproximacion del pasillo manda mientras el buque sea mas
+  // chico que el encuadre. El premio lo trae encima; no lo empuja para atras.
+  // EL ENCUADRE REEMPLAZA AL ZOOM, no se le suma: `grow` solo manda cuando no hay ventana contra
+  // que medir. Aplicados los dos, el buque terminaba al doble del tamaño buscado — tres planchas
+  // grises llenando el parabrisas, imposible de leer como buque.
+  if (fx && fx.grow) sc *= fx.grow;
+  // …Y EL TOPE DEL ENCUADRE. El acercamiento sigue siendo del `grow` —esa curva es de quien dirige
+  // la cinematica— pero deja de crecer cuando el buque ya no entra en el cuadro: el casco se
+  // dibuja con eslora W*0.82*sc, asi que la escala que lo hace medir `largo` pantallas es esta.
+  // Sin el tope, con la cabina a ancho pleno el buque llegaba a 550 px de eslora sobre 480 de
+  // pantalla y lo que se veia era el medio de un casco, sin proa ni popa: gris sin lectura.
+  const encOn = !!(fx && fx.ventana > 0 && fx.largo > 0);
+  if (encOn) sc = Math.min(sc, fx.largo / 0.82);
   const uh = SHIP_UH * sc, hullH = uh * 1.5;
   const bx = bargeCol(ph === 0 ? f : 1) + Math.sin(run.t * 0.8) * 9 * sc;
   // FLOTACION CLAVADA EN EL HORIZONTE (playtest 7/8: "el barco aparece por debajo del
@@ -2066,7 +2092,17 @@ export function drawApproachBarge(objectiveDist, objectiveShip, fx, deProa) {
   const sink = (1 - reveal) * (hullH + uh * 3.2);                  // cuanto sigue detras del horizonte
   // linea de flotacion en pantalla. El `drop` de EL PULSO la baja durante el premio: el buque se
   // despega del horizonte y se viene encima, que es lo que hace la camara cuando le caes arriba.
-  const waterY = HOR + wOff + ((fx && fx.drop) || 0) + Math.sin(run.t * 1.3) * 1.8 * sc;
+  // …y la FLOTACION se apoya en el filo de la visera cuando hay encuadre: es lo que hace que el
+  // buque se sienta CERCA y no lejos-pero-grande. Nunca por encima del horizonte —un buque no
+  // flota en el cielo— asi que el encuadre solo puede bajarla.
+  const wBase = HOR + wOff + ((fx && fx.drop) || 0) + Math.sin(run.t * 1.3) * 1.8 * sc;
+  // …y con encuadre, la FLOTACION se va apoyando en el filo de la visera: el buque deja de estar
+  // clavado en el horizonte y se viene encima. Interpolado con el avance del acercamiento para que
+  // no salte, y nunca POR ARRIBA del horizonte — un buque no flota en el cielo.
+  const wEnc = Math.max(HOR, fx && fx.ventana ? fx.ventana * (fx.agua || 0.93) : HOR);
+  const waterY = encOn
+    ? wBase + (wEnc - wBase) * Math.max(0, Math.min(1, fx.g || 0))
+    : wBase;
   const by = waterY - hullH + sink;                                // cubierta, hundida mientras este lejos
   // DISIPACION/MATERIALIZACION: un solo reloj para los dos fundidos cruzados (corre con p, el
   // viaje entero, no con la ventana f de crecimiento del casco). Las nubes van de 0.8 a 0.1 y

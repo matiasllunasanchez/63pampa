@@ -125,6 +125,23 @@ box. Argentina 1982 [candado de época]. No text, no watermark.
   = una cara). El `hold` con la cara quieta y el ambiente sonando ES la actuación.
 - Los cuadros sagrados usan el mismo campo `img:` a pantalla completa, sin retrato.
 
+## 🟥 6b. La bajada operativa — prompts escena por escena
+
+Este documento define el SISTEMA. Los prompts concretos, listos para pegar, salen por
+tandas en documentos propios:
+
+| Tanda | Documento | Estado |
+|---|---|---|
+| **Prólogo (P.1–P.4)** | [PROMPTS_VN_PROLOGO.md](PROMPTS_VN_PROLOGO.md) | ✅ 9 placas + 7 retratos |
+| M1–M3 | *(pendiente)* | — |
+| M4–M14 | *(pendiente)* | — |
+
+**⚠ Hallazgo del prólogo:** Esteban y Mateo aparecen **en su casa**, no en la guerra. Los
+tokens de STORYBOARD_1 los describen con mameluco y equipo de campaña, y acá no va nada de
+eso — la primera imagen de Esteban tiene que ser **un padre, no un piloto**. Por eso el
+prólogo suma `tero_civil_*` y `mateo_casa_*`, más **`tero_civil_blanco`** (la cara cuando
+corta el teléfono), que es el único agregado a la economía de expresiones de §4.
+
 ## 6. Orden de producción sugerido
 
 1. **Las 14 placas** (fáciles, sin caras — validan el estilo).
