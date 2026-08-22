@@ -17,6 +17,9 @@ import { P } from '../data/palette.js';
 import { drawMira } from './miras.js';
 import { anchorSpray, drawSpray } from './rain.js';
 import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H } from '../data/planes.js';
+import { skinOf } from '../data/skins.js';
+import { pilotIdx } from '../core/squad.js';
+import { pilotName, rosterActive } from '../systems/squad.js';
 import { ROLL_DUR } from '../data/tuning.js';
 
 const MIRA_SIZE = 17;   // lado de la mira en pixeles de mundo (480x270)
@@ -187,15 +190,33 @@ export function drawGear(g, u) {
 // `camScale` (opcional): empujon de camara del ESCUADRON al CONTROL LIBRE — agranda SOLO el
 // sprite del avion. Acercarse escalando el raster ya dibujado esta prohibido en este juego
 // (parte el mar en rayas, ver CAM_ZOOMS en game.js); esta es la version que el plano puede pagar.
+/** LA SOMBRA, y la MISMA para el lider y para el escuadron.
+ *
+ *  Tres barras que se angostan en vez de un rectangulo: a esta resolucion eso ya lee como una
+ *  elipse. El alfa cae con la altura porque la sombra es la REFERENCIA DE ALTURA del juego — es
+ *  como se ve que estas bajando— y no se apaga nunca del todo (piso 0.08): un avion sin sombra
+ *  no se lee como alto, se lee como despegado del mundo.
+ *
+ *  `f` es la escala del que la proyecta (1 = el lider, que vive clavado en PZ). Esta exportada
+ *  por el mismo motivo que `drawGear`: el escuadron dibujaba SU PROPIA sombra —una sola barra,
+ *  alfa fijo y apagandose por encima de y=6— asi que en cuanto despegaban se quedaban sin ella
+ *  mientras el lider conservaba la suya. Dos rutinas para la misma cosa es un escuadron con dos
+ *  aviones distintos, y la que no se mira se pudre. */
+export function drawShadow(wx, wy, z, f) {
+  f = f || 1;
+  const sh = proj(wx, 0, z);
+  const r = Math.max(0.7, f);                       // el grosor acompaña, pero no se colapsa
+  ctx.globalAlpha = Math.max(0.08, 0.4 - wy * 0.009);
+  px(sh.x - 9 * f, sh.y - r, 18 * f, 1, '#101c1e');
+  px(sh.x - 13 * f, sh.y, 27 * f, 1, '#101c1e');
+  px(sh.x - 9 * f, sh.y + r, 18 * f, 1, '#101c1e');
+  ctx.globalAlpha = 1;
+}
+
 export function drawPlane(selPlane, viewMouse, camScale) {
   const s = proj(plane.x, plane.y, PZ);
-  // SOMBRA sobre el agua (referencia de altura). Tres barras que se angostan en vez de un
-  // rectangulo: a esta resolucion eso ya lee como una elipse.
-  const sh = proj(plane.x, 0, PZ);
-  ctx.globalAlpha = Math.max(0.08, 0.4 - plane.y * 0.009);
-  px(sh.x - 9, sh.y - 1, 18, 1, '#101c1e');
-  px(sh.x - 13, sh.y, 27, 1, '#101c1e');
-  px(sh.x - 9, sh.y + 1, 18, 1, '#101c1e');
+  drawShadow(plane.x, plane.y, PZ, 1);
+  const sh = proj(plane.x, 0, PZ);   // la rociada y las cortinas se miden contra la misma sombra
   // ROCIADA: el avion levanta agua al pasar rasante. Antes eran DOS BARRAS planas cruzando la
   // pantalla; ahora es una lengua de agua bajo el fuselaje, dos brazos en V que se abren hacia
   // atras y gotas sueltas — que es como se lee el agua batida en pixel art.
@@ -335,8 +356,14 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     let row = pc > 0.33 ? 0 : pc < -0.33 ? 2 : 1;
     // POSE EMPINADA de pirueta (run.mvSteep): usa la HOJA 2 (±32° de cabeceo) si cargo; sin
     // ella (build web) cae a la fila normal de trepada/picada — la maniobra se juega igual.
-    let img = pl.sheetImg;
-    if (run.mvSteep && pl.sheet2Ok) { img = pl.sheet2Img; row = run.mvSteep > 0 ? 0 : 1; }
+    // LA SKIN DEL PILOTO QUE VA HOY EN ESTE AVION. En campaña arrancas siendo TERO, y cada
+    // relevo te sube al avion del que sigue: el numeral avanza y la marca del ala CAMBIA sola.
+    // Es la unica señal en pantalla de que ya no estas volando tu avion. Fuera de campaña no
+    // hay roster y `sk` es null, asi que se usa la hoja generica de siempre.
+    const sk = rosterActive() ? skinOf(pilotName(pilotIdx(run.squad, run.lives))) : null;
+    let img = sk ? sk.sheetImg : pl.sheetImg;
+    const hoja2 = sk ? sk.sheet2Img : (pl.sheet2Ok ? pl.sheet2Img : null);
+    if (run.mvSteep && hoja2) { img = hoja2; row = run.mvSteep > 0 ? 0 : 1; }
     else if (run.mvSteep) row = run.mvSteep > 0 ? 0 : 2;
     const sx4 = col * SHEET_FW, sy4 = row * SHEET_FH;
     // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas

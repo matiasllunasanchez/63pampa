@@ -421,7 +421,8 @@ Pichón. Esa mujer tiene dueño de acá a luján y no puede ser el Vasco. Nadie 
 > la foto se ve, de frente, linda, y la pista (peinado, vestido, grano de los 50) está servida en el mismo cuadro.
 
 _(Y en el fuselaje del avión de Esteban, bajo la cabina, hay pintura fresca: **un terito
-chiquito**, patas largas, pecho al frente, gritón. El Turco lo pintó anoche, sin que nadie
+chiquito recortado en BLANCO**, patas largas, pecho al frente, gritón — una silueta maciza,
+sin detalle adentro, que salta contra el camuflaje. El Turco lo pintó anoche, sin que nadie
 se lo pidiera, porque un piloto le contó el apodo y un avión sin su pájaro trae mala
 suerte.)_
 
@@ -1125,7 +1126,7 @@ Esteban se descuelga, baja, el monte aparece. Cámara lenta. Cruza a altura de �
 bajo que los pibes sienten el trueno en el pecho— y **bate las alas**: una a la izquierda,
 una a la derecha. Te veo. Estoy acá.
 
-_(Cuadro de tierra, cámara lenta: el Skyhawk plateado pasando ENORME sobre el pozo, y en el
+_(Cuadro de tierra, cámara lenta: el Skyhawk camuflado pasando ENORME sobre el pozo, y en el
 fuselaje, un segundo apenas, nítido para el que sabe mirar: **el terito pintado.** Corte a
 la cara de Mateo: la boca abriéndose. Él SABE. Lo sabe desde la cocina de marzo.)_
 

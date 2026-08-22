@@ -136,7 +136,7 @@ tu generador soporta image reference.
 | `{TURCO}` | argentine chief mechanic, late 50s, syrian-lebanese descent, olive skin, hooked nose, stocky with a round belly, bald on top with grey sides, cloth cap, glasses pushed up on his forehead, grey DROOPING WALRUS mustache, grease-stained blue overalls plain and unmarked on the back, rag over one shoulder, a small white hand-painted star on the front of his cloth cap, big weathered hands |
 | `{COLORADO}` | argentine corporal, 26 years old, tall and sturdy, fair freckled skin raw red from the cold, red hair, broad honest smile, plain olive field uniform with NO insignia, wool cap, argentine brown leather webbing with canteen, muddy brown leather boots |
 | `{NORMA}` | argentine mother, 47 years old, middle-aged not elderly, dark hair with grey at the temples in a low bun, criolla, warm tired face, gentle firm expression, faded blue dress with a cream floral apron, always the same apron, no military insignia of any kind |
-| `{SKYHAWK}` | A-4B Skyhawk attack jet, bare silver-grey metal, blue-white argentine roundel, worn painted metal, single seat, a row of small plain white stars below the cockpit |
+| `{SKYHAWK}` | A-4B Skyhawk attack jet, argentine air force green-and-brown camouflage, blue-white argentine roundel, worn painted metal, single seat, a row of small plain white stars below the cockpit |
 | `{RASTROJERO}` | rusty old Argentine Rastrojero pickup truck, 1960s workhorse |
 
 **Candado de época — pegalo al final de CADA cuadro que tenga personas:**
@@ -419,7 +419,7 @@ shaky handwriting under the plane): "papá". No watermark.
 ## Briefing *(AIRE)*
 
 ### Cuadro M1.1 — La línea de vuelo
-**Plano:** general de amanecer en Río Gallegos: cuatro Skyhawks plateados escarchados en
+**Plano:** general de amanecer en Río Gallegos: cuatro Skyhawks camuflados escarchados en
 fila, vapor de aliento, cielo patagónico rosa y acero. La primera postal épica del juego.
 
 **PROMPT:**
@@ -1121,7 +1121,7 @@ chamigo."*
 ## MISIÓN 8 — el reconocimiento *(cuadros REESCRITOS del sobrevuelo)*
 
 ### Cuadro M8.A — El paso *(EL CUADRO MÁS IMPORTANTE DEL JUEGO junto con la foto)*
-**Plano:** contrapicado desde el pozo, cámara lenta: el Skyhawk plateado pasando ENORME
+**Plano:** contrapicado desde el pozo, cámara lenta: el Skyhawk camuflado pasando ENORME
 sobre las cabezas, ala inclinada en pleno batir, y en el fuselaje — nítido, imposible de
 no ver — **el terito pintado**. La turba volando por la onda del paso.
 

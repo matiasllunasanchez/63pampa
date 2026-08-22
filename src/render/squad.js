@@ -13,18 +13,29 @@ import { proj } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
-import { PLANE_SCALE, drawGear } from './plane.js';
+import { PLANE_SCALE, drawGear, drawShadow } from './plane.js';
 import { drawSquadPips } from './hud.js';
-import { formationSlots, RELEVO_WRECK, RELEVO_DUR } from '../core/squad.js';
+import { formationSlots, pilotIdx, RELEVO_WRECK, RELEVO_DUR } from '../core/squad.js';
 import { pilotName, rosterActive, fallenPos } from '../systems/squad.js';
+import { skinOf } from '../data/skins.js';
 
 /** La formacion detras del lider. `exit` = null durante el despegue; 0..1 durante la salida de
  *  plano (al CONTROL LIBRE: aceleran, crecen y pasan al costado de la camara — "te siguen ahi
  *  atras aunque no los veas"). Fuera de esos dos momentos NO se dibuja nunca: en vuelo seria
  *  un costo de render que no aporta y taparia el juego. */
+/** La hoja de sprite que le toca al numeral `idx`: la VARIANTE de ese Fiel si existe, o la hoja
+ *  generica del avion elegido. Devolver la generica no es un caso de error — fuera de campaña no
+ *  hay roster, y el build web puede descartar las variantes por el limite de tamaño. */
+function hojaDe(pl, idx) {
+  const sk = rosterActive() ? skinOf(pilotName(idx)) : null;
+  if (sk) return sk.sheetImg;
+  return pl.sheetOk ? pl.sheetImg : null;
+}
+
 export function drawFormation({ selPlane, exit }) {
   const pl = PLANES[selPlane];
   const slots = formationSlots(run.squad);
+  const lider = pilotIdx(run.squad, run.lives);   // los puestos son los numerales que siguen
   const kRef = proj(0, 0, PZ).k;
   const smooth = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = false;
@@ -44,13 +55,12 @@ export function drawFormation({ selPlane, exit }) {
     }
     const s = proj(x, y, z);
     const f = s.k / kRef;
-    // sombra corta: ata cada avion a la pista durante el carreteo (en el aire casi no se ve)
-    if (y < 6) {
-      const sh = proj(x, 0, z);
-      ctx.globalAlpha = 0.18;
-      px(sh.x - 7 * f, sh.y, 14 * f, 1, '#101c1e');
-      ctx.globalAlpha = 1;
-    }
+    // LA SOMBRA, LA MISMA QUE LA TUYA. Es el dibujo de render/plane.js llamado con la escala de
+    // ESTE companero, por el mismo motivo que el tren de abajo. Antes era una sombra propia —una
+    // sola barra, alfa fijo y APAGADA por encima de y=6— asi que los companeros la perdian justo
+    // al levantar mientras el lider seguia con la suya: cinco aviones despegando y uno solo
+    // atado al suelo.
+    drawShadow(x, y, z, f);
     // EL TREN, EL MISMO QUE EL TUYO. Despegan con vos: si vos tenes las ruedas afuera, ellos
     // tambien, y se recogen a la par. Es el dibujo de render/plane.js llamado con la escala de
     // ESTE companero (U * f, porque aca se dibuja en pixeles de mundo y cada uno esta a otra
@@ -63,11 +73,12 @@ export function drawFormation({ selPlane, exit }) {
     ctx.translate(s.x, s.y);
     drawGear(run.gear, U * f);
     ctx.restore();
-    if (pl.sheetOk) {
+    const hoja = hojaDe(pl, lider + 1 + i);
+    if (hoja) {
       const col = (SHEET_NF - 1) / 2;                    // nivelados: la formacion no banquea
       const row = plane.pitch > 0.33 ? 0 : 1;            // pero acompañan el cabeceo del lider
       const w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
-      ctx.drawImage(pl.sheetImg, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH,
+      ctx.drawImage(hoja, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH,
         s.x - w / 2, s.y - h / 2, w, h);
     } else if (pl.ready) {
       const w = 76 * PLANE_SCALE * f, h = w * pl.h / pl.w;
@@ -88,7 +99,9 @@ export function drawFallen({ selPlane, rv }) {
   const f = s.k / proj(0, 0, PZ).k;
   const smooth = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = false;
-  if (pl.sheetOk) {
+  // el que se va es el numeral ANTERIOR al lider actual: a este ya lo relevaron
+  const hoja = hojaDe(pl, Math.max(0, pilotIdx(run.squad, run.lives) - 1));
+  if (hoja) {
     // TAMBALEA: el alabeo oscila alrededor del banqueo de salida y el sprite tirita 1 px —
     // el avion esta ROTO y tiene que verse (playtest 4/8: "mostrar que esta roto")
     const mid = (SHEET_NF - 1) / 2;
@@ -96,7 +109,7 @@ export function drawFallen({ selPlane, rv }) {
     const col = Math.max(0, Math.min(SHEET_NF - 1, mid - rv.side * 2 + wob));
     const jx = Math.sin(rv.t * 31) * f * 0.7, jy = Math.cos(rv.t * 27) * f * 0.6;
     const w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
-    ctx.drawImage(pl.sheetImg, col * SHEET_FW, SHEET_FH, SHEET_FW, SHEET_FH, s.x - w / 2 + jx, s.y - h / 2 + jy, w, h);
+    ctx.drawImage(hoja, col * SHEET_FW, SHEET_FH, SHEET_FW, SHEET_FH, s.x - w / 2 + jx, s.y - h / 2 + jy, w, h);
   } else if (pl.ready) {
     const w = 76 * PLANE_SCALE * f, h = w * pl.h / pl.w;
     ctx.drawImage(pl.img, s.x - w / 2, s.y - h / 2, w, h);

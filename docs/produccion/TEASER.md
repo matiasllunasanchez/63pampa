@@ -1,5 +1,9 @@
 # RASANTE — Teaser · Plan de rodaje FINAL para Kling
 
+> **Hay un segundo teaser, distinto y complementario:** `TEASER_2_LA_ESCUCHA.md` — el
+> ataque contado por un marinero británico. Éste es el corazón; aquél es la amenaza. Si
+> salen los dos, se publica primero el otro.
+
 > **Presupuesto real: 620 créditos · 60 por generación → 10 generaciones. Punto.**
 > Este documento es autocontenido: todos los prompts van completos, sin tokens, listos para
 > pegar. No hace falta abrir ningún otro archivo para rodar el teaser.

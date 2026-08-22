@@ -91,12 +91,19 @@ async function volar(m, i) {
   let bien = true;
 
   // 1. CARGA — por la misma puerta que el selector
+  await js(`__avion(${(i % 4) + 1})`);            // ensuciar: cualquiera MENOS el Skyhawk (indice 0)
   const ficha = JSON.parse(await js(`__mision('${m.id}')`) || 'null');
   if (!ficha) { bad('la sonda __mision no armo la mision'); return false; }
   if (ficha.id !== m.id) { bad(`se pidio ${m.id} y se cargo ${ficha.id}`); bien = false; }
   else if (ficha.climax !== esperado) { bad(`declara climax ${esperado} y la sonda dice ${ficha.climax}`); bien = false; }
   else if (!ficha.roster || !ficha.vidas) { bad('la mision suelta se armo SIN escuadron'); bien = false; }
   else ok(`carga: ${ficha.buque} · ${ficha.obj} m · escuadron de ${ficha.vidas}`);
+
+  // 1b. EL AVION — la mision de campaña se vuela en A-4B venga por la puerta que venga. La sonda
+  // ensucia la eleccion ANTES de abrirla: sin eso esto saldria verde por el default del carrusel
+  // y no probaria que el selector la pisa, que es justo lo que se vino a arreglar.
+  if (ficha.avion !== 'sky') { bad(`se armo con ${ficha.avion} y la campaña vuela SKYHAWK`); bien = false; }
+  else ok('vuela el A-4B aunque venga elegido otro avion');
 
   // 2. DESPEGA — el gas, solo hasta estar en el aire
   const gas = setInterval(() => win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'w' }), 40);

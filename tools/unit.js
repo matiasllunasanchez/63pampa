@@ -878,3 +878,112 @@ test('libreta: es un ARRAY NUEVO cada vez (nadie puede ensuciar el catalogo)', (
   assert.equal(loadAt(3).length, 3);
   assert.equal(UPS.length, 12);
 });
+
+// ---------------- EL DIRECTOR: el calendario de una cinematica (core/cine.js) ----------------
+// Es la mitad PURA del director (docs/sistemas/PLAN_DIRECTOR_CINEMATICAS.md C0): que beat cae en
+// que segundo. Si esto se corre medio segundo, la cinematica no da error — solo se ve mal, y eso
+// se descubre mirando. Aca se descubre en un segundo.
+// `armar` ya es el de core/pulso.js (arma una secuencia de compases): el del director se importa
+// con otro nombre en vez de renombrar ninguno de los dos — cada uno se llama bien en su archivo.
+import { lig, armar as armarCine, enVentana, finDe, parteEn, fParte, rampa } from '../src/core/cine.js';
+import { CINES, PULSO_D_MUERTE, CINE_VUELO } from '../src/data/cines.js';
+
+test('cine: las ligaduras resuelven lo que solo se sabe jugando', () => {
+  assert.equal(lig('$x', { x: 7 }), 7);
+  assert.equal(lig(7, {}), 7, 'lo que no es ligadura pasa tal cual');
+  assert.equal(lig('negro', {}), 'negro', 'un string comun no es una ligadura');
+  assert.equal(lig('$x', {}), undefined, 'sin atar, no inventa un valor');
+  assert.equal(lig('$x', undefined), undefined);
+});
+
+test('cine: un beat sin instante NO ocurre (asi se escribe "esto pasa a veces")', () => {
+  const tl = { beats: [{ t: 0, parte: 'a' }, { t: '$tSec', marca: 'sec' }, { t: 2, fin: true }] };
+  assert.equal(armarCine(tl, {}).length, 2, 'sin ligar, el beat opcional no se agenda');
+  assert.equal(armarCine(tl, { tSec: 1 }).length, 3, 'ligado, ocurre');
+  // …y queda ORDENADO por instante aunque se haya escrito al final (que es lo legible en data)
+  assert.deepEqual(armarCine(tl, { tSec: 1 }).map(b => b.t), [0, 1, 2]);
+  // basura no se cuela como instante
+  assert.equal(armarCine({ beats: [{ t: 'ya' }, { t: NaN }, { t: Infinity }] }, {}).length, 0);
+});
+
+test('cine: la ventana de disparo no repite ni pierde beats', () => {
+  const b = armarCine({ beats: [{ t: 0 }, { t: 0.5 }, { t: 1 }, { t: 2 }] }, {});
+  // (t0, t1]: abierta abajo, cerrada arriba
+  assert.equal(enVentana(b, -1e-6, 0).length, 1, 'el beat en cero dispara en el primer cuadro');
+  assert.equal(enVentana(b, 0, 0.5).length, 1);
+  assert.equal(enVentana(b, 0.5, 0.5).length, 0, 'un cuadro sin avance no re-dispara');
+  // un dt grande (una pestaña que vuelve del fondo) trae varios juntos: la cinematica se pone al
+  // dia en vez de saltearse beats
+  assert.equal(enVentana(b, 0, 2).length, 3);
+  // ningun beat se dispara dos veces recorriendo la timeline en pasos chicos. Las ventanas van
+  // PEGADAS (el t0 de una es el t1 de la anterior, sin holgura): con cualquier solapamiento, un
+  // beat que cae justo en el borde suena dos veces — que en una cinematica es un eco.
+  let n = 0, prev = -1e-6;
+  for (let t = 0; t <= 3; t += 1 / 60) { n += enVentana(b, prev, t).length; prev = t; }
+  assert.equal(n, 4, `cada beat una sola vez (dispararon ${n} de 4)`);
+});
+
+test('cine: partes, avance y fin', () => {
+  const b = armarCine({ beats: [{ t: 0, parte: 'a' }, { t: 1, parte: 'b' }, { t: 3, fin: true }] }, {});
+  assert.equal(finDe(b), 3);
+  assert.equal(parteEn(b, 0.5).id, 'a');
+  assert.equal(parteEn(b, 1).id, 'b', 'la parte cambia EN su instante, no despues');
+  assert.equal(parteEn(b, -1), null, 'antes de la primera parte no hay parte');
+  // el avance de la ultima parte se mide contra el FIN de la timeline
+  assert.equal(fParte(parteEn(b, 2), 2), 0.5);
+  assert.equal(fParte(parteEn(b, 9), 9), 1, 'pasado el fin no se pasa de 1');
+  assert.equal(fParte(null, 1), 0);
+  // sin beat `fin`, el fin es el ultimo beat que haya
+  assert.equal(finDe(armarCine({ beats: [{ t: 0 }, { t: 4 }] }, {})), 4);
+  assert.equal(finDe([]), 0);
+});
+
+test('cine: las rampas entran y salen donde deben', () => {
+  assert.equal(rampa(0, 1, 2, 0), 0);
+  assert.equal(rampa(0, 1, 2, 1), 0.5);
+  assert.equal(rampa(0, 1, 2, 5), 1, 'pasada la duracion se queda en el destino');
+  assert.equal(rampa(0, 1, 0, 0), 1, 'sin duracion es un corte, no una rampa');
+});
+
+test('cine: las curvas de las rampas entran y salen distinto', () => {
+  // 'lineal' es el default y NO cambia nada de lo que ya estaba escrito en data — esa es la
+  // condicion para poder agregar curvas sin repasar las timelines existentes
+  assert.equal(rampa(0, 1, 2, 1), 0.5);
+  assert.equal(rampa(0, 1, 2, 1, 'lineal'), 0.5);
+  assert.equal(rampa(0, 1, 2, 1, 'suave'), 0.5, 'la mitad es la mitad en todas: cambia el CAMINO');
+  assert.ok(rampa(0, 1, 2, 0.5, 'entra') < 0.25, 'entra: arranca despacio');
+  assert.ok(rampa(0, 1, 2, 0.5, 'sale') > 0.25, 'sale: arranca rapido y se asienta');
+  assert.ok(rampa(0, 1, 2, 0.2, 'suave') < rampa(0, 1, 2, 0.2, 'lineal'), 'suave sale de cero sin golpe');
+  // los extremos son sagrados: una curva no puede pasarse ni quedarse corta
+  for (const e of ['lineal', 'suave', 'entra', 'sale']) {
+    assert.equal(rampa(0, 1, 2, 0, e), 0);
+    assert.equal(rampa(0, 1, 2, 2, e), 1);
+    assert.equal(rampa(0, 1, 2, 9, e), 1);
+  }
+  assert.equal(rampa(0, 1, 2, 1, 'noexiste'), 0.5, 'una curva que no existe cae a lineal, no rompe');
+});
+
+test('cine: el premio del PULSO compone en orden y solo la zona brava vuela dos veces', () => {
+  // el criterio de cierre de C0 leido en la data: la cinematica del PULSO es una timeline, y esto
+  // la lee sin abrir el juego
+  // los instantes se miden DESDE que termina la pirueta (`$tPir` = encare + duracion de LA
+  // maniobra que se tecleo), asi que la timeline se liga con eso y no con tiempos absolutos
+  const tPir = CINE_VUELO.POSE_T + 0.7;      // encare + un BREAK TURN
+  const vars = { pirueta: 'breakt', piruetaDir: 1, boom: 1, shake: 6, tPir, muerteDur: 2.6 };
+  const partes = b => b.filter(x => x.parte).map(x => x.parte);
+  const facil = armarCine(CINES.pulso_premio, vars);
+  assert.deepEqual(partes(facil), ['pirueta', 'suelta', 'impacto', 'muerte']);
+  assert.equal(+finDe(facil).toFixed(2), +(tPir + PULSO_D_MUERTE + 2.6).toFixed(2),
+    'el final = fin de la pirueta + los compases fijos + la agonia que estira la clase');
+  assert.equal(facil.filter(b => b.marca === 'sec').length, 0, 'sin santabarbara no hay segundo estallido');
+  const brava = armarCine(CINES.pulso_premio, Object.assign({ secOff: 0.55 }, vars));
+  assert.equal(brava.filter(b => b.marca === 'sec').length, 1);
+  // …y estalla DENTRO de la agonia, no antes de que el buque empiece a morirse
+  const sec = brava.find(b => b.marca === 'sec');
+  assert.ok(sec.t > tPir + PULSO_D_MUERTE && sec.t < finDe(brava));
+  // la pirueta es la que se tecleo, y el rotulo de respaldo solo existe cuando no hay ninguna
+  assert.equal(facil.find(b => b.move).move, 'breakt');
+  assert.equal(facil.filter(b => b.rotulo).length, 0);
+  assert.equal(armarCine(CINES.pulso_premio, { tSinPirueta: 0, tPir: 0.4, muerteDur: 2.6 }).filter(b => b.rotulo).length, 1,
+    'sin piruetas aprendidas el premio se rotula: el examen era soltar');
+});

@@ -160,7 +160,11 @@ export const ROLL_DUR = 0.55;
 // menos de medio segundo el jugador no llega a ver el movimiento — solo ve que desaparece.
 export const GEAR_T = 0.9;
 
-export const MOM_AX = 240, MOM_AY = 60;   // visor fijo en pantalla (W/2, 60) — el reflector del HUD
+// DONDE APUNTA EL ARENA VIEJO, en pantalla. Ya NO es una medida del asset de cabina: desde que la
+// cabina se acomoda sola (V_VISOR / COCKPIT_FILL en render/momentum.js) esto es la mira del modo y
+// el PNG la sigue, igual que en el arena y en la PASADA. Por eso vale el centro y no un numero
+// tuneado contra un dibujo.
+export const MOM_AX = 240, MOM_AY = 135;
 export const MSL_MAX = 3;                 // misiles por pasada
 
 // GEOMETRIA DE LA BARCAZA, en pixeles de PANTALLA (grilla de mundo 480x270). Estos dos numeros

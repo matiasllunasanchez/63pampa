@@ -96,9 +96,15 @@ export function horizonRoll(mode, roll, bank, free) {
   return a ? -a : 0;   // el `? :` evita devolver -0, que no rompe nada pero ensucia comparaciones
 }
 
-/** El modo VIGENTE ahora mismo, o 0. Solo gira en el PASILLO: el momentum tiene su propio roll
- *  (game.js) y en el arena la camara es del sistema 3D. */
-export const hzMode = () => S.state === 'play' ? cfg.horizon : 0;
+/** El modo VIGENTE ahora mismo, o 0. Gira en el PASILLO y en EL PULSO; el momentum tiene su propio
+ *  roll (game.js) y en el arena la camara es del sistema 3D.
+ *
+ *  EL PULSO entra por la CAMARA DE TERCERA de su cinematica del premio (`cam: 'chase'`): ahi se ve
+ *  el sprite del avion y el mundo a la vez, y sin este estado en la lista `hzSprite()` devolvia 0
+ *  — con lo cual el avion rolaba por su cuenta MIENTRAS el mundo rolaba al reves, y la pirueta se
+ *  veia girar dos veces. Quien decide cuanto gira el mundo alli es `pulso.camRoll()`, que sale de
+ *  esta misma cuenta: hay una sola formula, como manda este archivo. */
+export const hzMode = () => S.state === 'play' || S.state === 'pulso' ? cfg.horizon : 0;
 
 /** Angulo del MUNDO este cuadro. Lo consultan draw() y viewMouse() — sin parametros, para que
  *  no puedan discrepar. */

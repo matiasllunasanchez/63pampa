@@ -13,8 +13,18 @@ export const PLANES = [
   { key: 'dagger', name: 'IAI DAGGER', src: '../assets/planes/iai-dagger/preview.webp', sheet: '../assets/planes/iai-dagger/sheet.png', sheet2: '../assets/planes/iai-dagger/sheet2.png', desc: { es: 'Mas rapido y con mas fuego - dificil de controlar', en: 'Faster, harder-hitting - tricky to control' } },
   { key: 'supere', name: 'SUPER ETENDARD', src: '../assets/planes/super-etendard/preview.webp', sheet: '../assets/planes/super-etendard/sheet.png', sheet2: '../assets/planes/super-etendard/sheet2.png', desc: { es: 'Misiones especiales - misiles Exocet', en: 'Special missions - Exocet missiles' } },
   { key: 'a4q', name: 'A-4Q', src: '../assets/planes/a4q/preview.webp', sheet: '../assets/planes/a4q/sheet.png', sheet2: '../assets/planes/a4q/sheet2.png', desc: { es: 'Variante naval - similar al A-4B/C', en: 'Naval variant - similar to the A-4B/C' } },
-  { key: 'pampa', name: 'PAMPA 63', src: '../assets/planes/pampa-63/preview.webp', sheet: '../assets/planes/pampa-63/sheet.png', sheet2: '../assets/planes/pampa-63/sheet2.png', desc: { es: 'Entrenador biplaza IA-63', en: 'IA-63 two-seat trainer' } },
-  { key: 'mirage', name: 'MIRAGE IIIEA', src: '../assets/planes/mirage-iiiea/preview.png', sheet: '../assets/planes/mirage-iiiea/sheet.png', sheet2: '../assets/planes/mirage-iiiea/sheet2.png', desc: { es: 'Interceptor de altura - rapido y con poca autonomia', en: 'High-altitude interceptor - fast, short legs' } },
+  // PAMPA 63 — FUERA DE SELECCION POR AHORA (no borrar: los assets estan horneados y el
+  // modelo vive en tools/bake_planes.html).
+  // El FMA IA-63 Pampa volo por primera vez en OCTUBRE DE 1984, dos años despues de la
+  // guerra: es el unico anacronismo del roster. Vuelve como DESBLOQUEABLE, con la misma
+  // placa honesta que usa el Mirage 5P en M10 — nombrar el hecho y despues ofrecer el
+  // juego, sin fingir que una cosa es la otra. Ver docs/historia/AVIONES_CATALOGO.md.
+  // { key: 'pampa', name: 'PAMPA 63', src: '../assets/planes/pampa-63/preview.webp', sheet: '../assets/planes/pampa-63/sheet.png', sheet2: '../assets/planes/pampa-63/sheet2.png', desc: { es: 'Entrenador biplaza IA-63', en: 'IA-63 two-seat trainer' } },
+  // MIRAGE 5P «MARA»: los diez que mando el PERU. Llegaron a Tandil el 5/6/1982 con la
+  // escarapela argentina ya pintada y NUNCA entraron en combate (GUION_3 M10, verificado).
+  // Por eso su lugar en el juego es el desbloqueo de M10, con la placa que lo dice de frente:
+  // "Nunca llegaron a combatir. Aca, si." Ver docs/historia/AVIONES_CATALOGO.md.
+  { key: 'mirage', name: 'MIRAGE 5P MARA', src: '../assets/planes/mirage-5p/preview.png', sheet: '../assets/planes/mirage-5p/sheet.png', sheet2: '../assets/planes/mirage-5p/sheet2.png', desc: { es: 'El regalo del Peru - rapido, con poca autonomia', en: 'Peru\'s gift - fast, short legs' } },
 ];
 // 84x48 por cuadro (antes 56x32): se re-hornearon a 1.5x al subir la grilla del juego a 480x270.
 // Con el buffer 2x del juego, el sprite cae a 2x EXACTO en pantalla — pixel art nitido.

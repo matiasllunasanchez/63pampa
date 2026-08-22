@@ -265,6 +265,11 @@ export const STRINGS = {
     prBadge: 'PRUEBA',
     prSecClimax: 'LOS CLIMAX', prSecCola: 'LA COLA Y EL NUMERAL', prSecDestr: 'LA DESTRUCCION',
     prSecAgua: 'EL AGUA Y EL CLIMA', prSecPoder: 'LOS PODERES', prSecHistoria: 'LA HISTORIA',
+    // CINEMATICAS (docs/sistemas/PLAN_DIRECTOR_CINEMATICAS.md): la puerta hermana de PRUEBAS. Los
+    // titulos de cada cinematica tampoco estan aca — viven con su timeline, en data/cines.js.
+    modeCines: 'CINEMATICAS', modeCinesDesc: 'Reproducir una cinematica suelta, sin jugar hasta ella',
+    cinesTitle: 'CINEMATICAS  ·  ELEGI UNA',
+    cinBadge: 'CINEMATICA',
     // EL SELECTOR DE MISIONES (docs/proyecto/PLAN_MISIONES_FASES.md §1, fase S1). Los nombres y
     // las fechas de las misiones NO estan aca — viven en data/missions.js, que ya es su casa. Aca
     // esta el MARCO: el rotulo de la pantalla y el pie del toggle de historia.
@@ -1160,6 +1165,9 @@ export const STRINGS = {
     prBadge: 'TEST',
     prSecClimax: 'THE CLIMAXES', prSecCola: 'THE TAIL AND THE WINGMAN', prSecDestr: 'DESTRUCTION',
     prSecAgua: 'WATER AND WEATHER', prSecPoder: 'THE POWERS', prSecHistoria: 'THE STORY',
+    modeCines: 'CUTSCENES', modeCinesDesc: 'Play a single cutscene, no grinding to get there',
+    cinesTitle: 'CUTSCENES  ·  PICK ONE',
+    cinBadge: 'CUTSCENE',
     modeMisiones: 'MISSIONS', modeMisionesDesc: 'Fly a single mission, no campaign around it',
     misTitle: 'MISSIONS  ·  PICK ONE AND FLY IT ALONE',
     misClimaxNo: 'CORRIDOR ONLY',

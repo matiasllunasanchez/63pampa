@@ -466,6 +466,129 @@ así existía en la Fuerza Aérea Argentina antes de 1982, se reevalúa.
 **Fuentes:** [Moviarg — Challenge Coins (sitio argentino)](https://www.moviarg.com/notas/Challenge_Coin.html) ·
 [Cristaux — History of Challenge Coins](https://www.cristaux.com/blog/history-of-challenge-coins/)
 
+## ✅ LAS MUJERES EN MALVINAS — VERIFICADO 2026-08-22 · 🟡 decisión narrativa abierta
+
+**Pregunta de Matías: ¿qué tan imposible es que Norma sea enfermera de guerra?**
+**Respuesta: no es imposible. Está documentado, y su ausencia es un agujero del juego.**
+
+### Los hechos
+
+**Las enfermeras de la Fuerza Aérea — el destino que le queda a mano al guion.**
+**Catorce** enfermeras de la FAA sirvieron en el conflicto, en el **Hospital Militar
+Reubicable de Comodoro Rivadavia**: once módulos conectados en L, con quirófano para
+cirugías simultáneas, terapia intensiva, laboratorio, rayos, 25 camas, cocina y planta
+potabilizadora. **Alicia Mabel Reynoso** tenía **23 años**; venía de la primera camada de
+21 mujeres que ingresaron a la FAA en **1980** — es decir, **eran nuevas, y la guerra las
+agarró con dos años de instrucción.** Recibían heridos y los evacuaban en avión a
+hospitales de distintas provincias. Textual de Reynoso: *"No podíamos decir 'me da miedo,
+quiero volver', los militares no cuestionan las órdenes."*
+
+**Las seis instrumentadoras del ARA Almirante Irízar.** El **7 de junio de 1982** pidieron
+diez instrumentadoras; de 32 disponibles se ofrecieron 20. A las seis elegidas les avisaron
+**con un día de anticipación** y salieron el **8 de junio a las 5 de la mañana**. Eran
+**civiles, no militares**, lo que trajo líos administrativos de rango y autoridad a bordo.
+El Irízar era un rompehielos convertido en buque hospital: **160 camas, terapia intensiva y
+dos quirófanos**. Atendieron **más de 300 heridos entre el 9 y el 14 de junio**, sin
+descanso, haciendo además de enfermeras y camilleras. Fueron: **Silvia Barrera (23)**,
+**Susana Maza (23)**, **Cecilia Ricchieri (23)**, **Norma Etel Navarro**, **María Marta
+Lemme** y **María Angélica Sendes (33)**.
+
+**La única que pisó las islas:** **Liliana Colino**, enfermera del hospital móvil de la FAA
+en Comodoro, que hizo vuelos de emergencia a Puerto Argentino.
+
+**Reconocimiento:** hay **16 mujeres reconocidas oficialmente como veteranas de guerra**.
+
+**El maltrato, que es material dramático de primera:** uniformes de hombre que les
+quedaban enormes; el jefe de cubierta de la Armada, textual: *"¡No puede ser que nos manden
+a estas chiquitas!"*; supersticiones marineras sobre la mujer a bordo.
+
+**Y el silencio, que es LO MISMO que el juego ya denuncia.** Décadas de invisibilidad.
+Textual de una de ellas: *"Nosotras, en cambio, éramos anónimas."* Muchas no lo contaron ni
+en su propia familia durante años. Reynoso escribió **_Crónicas de un olvido_** y **fue
+excluida de un desfile militar en 2019**. Sus compañeros varones fueron reconocidos estando
+en actividad; ellas no.
+
+### ⚠ DOS BANDERAS ROJAS
+
+1. **EL NOMBRE.** Una de las seis instrumentadoras se llama **Norma Etel Navarro** y es una
+   persona real y viva. **Si nuestra Norma se vuelve enfermera de guerra, no puede ir al
+   Irízar**, o hay que cambiarle el nombre: la combinación nombre + rol + buque calca a una
+   veterana real. Si va, va con las **catorce de la FAA en Comodoro** — un grupo, sin
+   sombra sobre ninguna persona identificable. Lo mismo con **Liliana Colino**: nadie más
+   pisó las islas, así que ese lugar **no se puede ocupar** sin escribir sobre ella.
+2. **La regla de la casa "nada machista" corta para los dos lados.** El material de estas
+   mujeres **no es la ternura**: es que eran pibas de 23 con dos años de instrucción, que
+   les dieron ropa de hombre, que les gritaron "chiquitas", y que después las borraron. Si
+   entra edulcorado, las traiciona.
+
+### 🟡 La decisión narrativa (ABIERTA — no se tocó el guion)
+
+**El costo:** hoy Norma es "la que espera", y **la casa es lo que estos dos están
+defendiendo**. Si la madre también está en guerra, el juego se queda sin casa. Y un tercer
+hilo, en una historia que ya intercala aire y tierra, es mucho alcance.
+
+**La versión que consigue la ganancia sin pagar el costo: LA LLAMAN TARDE.** Es
+históricamente exacto —a las instrumentadoras las convocaron el 7 de junio, con un día de
+aviso, seis días antes del final—. Norma llamada en el último tramo cuesta **dos o tres
+escenas, no una campaña**, y el marco oculto queda intacto.
+
+**Y se planta y se cobra con la gramática que el guion ya usa:** en algún cuaderno del
+tramo final, **Mateo escribe que llamó a casa y no atendió nadie**. Supone que salió. Nadie
+explica nada. El jugador se entera al final de dónde estaba. **El cuchillo: las cartas del
+pibe la siguen imaginando en la cocina mientras ella lava sangre de una mesa.** Y en el
+Final A —donde Norma es la lectora— la revelación se agranda sola: leyó el optimismo de su
+hijo sabiendo exactamente lo que una bomba le hace a un cuerpo.
+
+**Alternativas más baratas, si Norma no se mueve:**
+- **Norma enfermera CIVIL en su pueblo**, sin ir a ningún lado. Costo estructural cero, y
+  su espera empeora: sabe demasiado de cuerpos.
+- **La enfermera es OTRO personaje**, una sola escena, y Norma queda como está.
+
+**Fuentes:** [Infobae — las 6 instrumentadoras del Irízar](https://www.infobae.com/sociedad/2020/04/02/la-sorprendente-historia-de-las-6-instrumentadoras-que-salvaron-cientos-de-vidas-en-malvinas/) ·
+[Infobae — el trabajo de las enfermeras de Malvinas](https://www.infobae.com/sociedad/2026/04/02/no-podiamos-decir-me-da-miedo-quiero-volver-los-militares-no-cuestionan-las-ordenes-el-trabajo-de-las-enfermeras-de-malvinas/) ·
+[La Nación — Las chicas de la guerra](https://www.lanacion.com.ar/la-nacion-revista/las-chicas-de-la-guerra-fueron-a-malvinas-cumplieron-tareas-heroicas-enfrentaron-prejuicios-y-hoy-nid03042022/) ·
+[Infobae — la silenciada historia de las veteranas](https://www.infobae.com/2015/03/31/1719360-la-silenciada-historia-las-veteranas-malvinas/) ·
+[ATE — Alicia Reynoso, enfermera de Malvinas contra el olvido](https://ate.org.ar/alicia-reynoso-enfermera-de-malvinas-contra-el-olvido/)
+
+## 🟨 La escalera de ruido del ataque rasante (TEASER 2) — MECANISMO VERIFICADO, CITA NO
+
+**La pregunta:** ¿es cierto que los británicos describían el ataque como una escalera de
+sonido — primero calma, después cañones lejanos, después cañones medios y ametralladoras,
+después los propios soldados con fusiles, y recién ahí el impacto?
+
+**✅ El mecanismo es real y está documentado.**
+- **No había aviso.** Sin AEW y con el terreno arruinando el radar, los A-4 entraban al
+  estrecho de San Carlos **antes de que los misiles pudieran enganchar**. Capitán del **HMS
+  Argonaut**, textual: *"we had little warning of attack because of our lack of AEW, and,
+  being in a land-locked environment, radar detections were difficult."*
+- **Se defendían con los ojos.** El suboficial del director visual pasó a ser *"one of the
+  most important men on board"* (mismo relato).
+- **Las capas abrían en sucesión.** Detección visual → *"a battery of 17 machine guns blazed
+  away"* → Sea Cat → la línea de cañones. Los misiles (Sea Dart, Sea Slug, Sea Wolf) eran
+  para blancos de altura y **no servían a ras del agua**. Bofors 40 mm y Oerlikon 20 mm
+  montados a las apuradas desde depósito; **GPMG en los alerones del puente, operadas por
+  Royal Marines**.
+- **Duraba segundos.** El HMS Coventry: tres bombas de 1.000 lb y *"within twenty minutes
+  was upside down."*
+
+**❌ La cita no existe.** No se encontró **ningún testimonio británico citado** que narre la
+secuencia en ese orden como sensación. Circula como impresión general, no como fuente. → **la
+voz en off del TEASER 2 la escribimos nosotros y no se atribuye a nadie**: sin nombre, sin
+unidad, sin fecha, sin "basado en el testimonio de". Misma política que la frase de las
+turbinas.
+
+**⚠ Corrección técnica que además mejora la escena.** La escalera no es doctrina, es
+**geometría** (a medida que el avión se acerca, las armas de menor alcance recién ahí lo
+alcanzan). Y en San Carlos hay un segundo mecanismo mejor: **el fondeadero era una fila de
+buques**, así que el fuego abría primero en la boca y **el ruido viajaba por la línea hacia
+vos**. Consecuencia dura: **el barco del personaje no puede ser el primero de la fila** — al
+buque efectivamente atacado no le daba tiempo de nada. La escalera es lo que vivían los que
+estaban más adentro.
+
+**Fuentes:** [USNI Proceedings — "Duty in Bomb Alley" (cap. Layman, HMS Argonaut)](https://www.usni.org/magazines/proceedings/1983/august/duty-bomb-alley) ·
+[Peter Johnston — The Royal Navy and the Battle of San Carlos](https://peteajohnston.wordpress.com/2013/05/23/the-royal-navy-and-the-battle-of-san-carlos-21-15-may-1982-the-wrong-enemy-in-the-wrong-place/) ·
+[Royal British Legion — Surviving the Battle of San Carlos](https://www.britishlegion.org.uk/get-involved/remembrance/stories/falklands-surviving-battle-san-carlos)
+
 ## 🟡 PREGUNTA ABIERTA — la colaboración de Chile con el Reino Unido (¿entra o no entra?)
 
 **Decisión de Matías (2026-08-16): NO SE TOCA EL GUION POR AHORA.** Queda anotado como
@@ -627,3 +750,99 @@ Las respuestas valen más que cualquier tradición prestada.
 - **Parámetros de la cita.** Altura y velocidad típicas del reabastecimiento KC-130 ↔ A-4
   en 1982, y si TODOS los A-4B/C llevaban sonda fija (el juego asume que sí). El poder usa
   valores de juego (perillas), pero si alguna placa histórica los menciona, confirmar.
+
+---
+
+## ⚠ ¿Los A-4 de Malvinas iban camuflados? — CONTRADICCIÓN INTERNA, sin resolver
+
+**Lo que dice cada parte del proyecto hoy:**
+
+| Dónde | Qué dice |
+|---|---|
+| `tools/bake_planes.html` (`modelA4`) | **camuflado** — *"FAA: camo MARRON + VERDE"*, `#4e5c38` `#59683f` `#7a5c33` sobre panza gris azulada |
+| Los sprites que vuelan (`assets/planes/a4-skyhawk/sheet.png`) | **camuflados** (salen de ese modelo) |
+| [AVIONES_ESCUADRON.md](AVIONES_ESCUADRON.md), las 5 hojas | ***"Bare silver-grey metal"*** / *"bare unpainted silver-grey aluminium"* |
+| Los tokens `{SKYHAWK_*}` del storyboard | ***"bare worn silver-grey metal"*** |
+
+O sea: **el avión que el jugador vuela está camuflado, y las hojas con las que se dibuja todo
+el arte de referencia dicen metal desnudo.** Cualquier ilustración nueva sale en desacuerdo con
+el juego.
+
+**Lo que hay que verificar** *(hipótesis de trabajo, con confianza alta pero SIN fuente
+citable todavía)*:
+
+1. **A-4B y A-4C de la Fuerza Aérea** (Grupos 5 y 4 de Caza) — se cree que llevaban
+   **camuflaje disruptivo marrón/verde arriba con panza gris claro azulada**. Si es así, las
+   hojas están mal y hay que reescribirlas.
+2. **A-4Q de la Armada** (3ª Escuadrilla Aeronaval) — se cree que llevaban el **esquema naval
+   gris sobre blanco**, no camuflaje. Eso sí coincide con lo que ya tiene el modelo 3D.
+3. ¿Hubo variación entre células o a lo largo de la campaña? ¿Se repintó alguna en el sur?
+
+**Por qué esto no es cosmético — tres cosas del guion dependen de la pintura:**
+
+- 🔴 **El terito de M8.** Todo el reconocimiento padre-hijo depende de que Mateo distinga un
+  pájaro pintado a pincel bajo la cabina, a trescientos metros y a velocidad de pasada. Sobre
+  metal plateado se lee; **sobre camuflaje verde-marrón se pierde**. Si se adopta el
+  camuflaje hay que rediseñar la marca — contorno claro, más tamaño, o llevarla al panel gris
+  de la panza — y eso es una decisión de arte que sostiene la escena más importante del juego.
+- 🟢 **Las estrellitas ganan.** Blancas sobre camuflaje oscuro contrastan mucho mejor que
+  sobre plateado. La cuenta del Turco se vuelve más legible.
+- 🟡 **"Los Fieles de Plata".** Con metal plateado el indicativo es literal; con camuflaje deja
+  de serlo. No es un problema —un indicativo no describe la pintura— pero se pierde una
+  lectura que hoy existe gratis.
+
+### ✅ DECIDIDO (22/8) — camuflaje, y el tero pasa a silueta blanca
+
+**Se adoptó el camuflaje** y se alinearon las cinco hojas, los tokens `{SKYHAWK_*}` y
+`{SKYHAWK}`, y los planos del guion y del storyboard donde el avión se ve de verdad. Queda
+pendiente **la verificación con fuente citable** de los tres puntos de arriba — el juego ya
+volaba camuflado, así que el cambio alinea la documentación con lo que había, no al revés.
+
+**El terito ahora es una SILUETA BLANCA MACIZA**, sin detalle adentro. Es lo único que se lee
+a trescientos metros y a velocidad de pasada contra un fondo verde-marrón, y de que se lea
+depende M8 entero. Además pasó a ser la **marca de sprite** de Tero, desplazando a la fila de
+estrellitas: lo que el jugador reconoce a 20 px es ahora lo mismo que Mateo reconoce desde el
+pozo, que es como tendría que haber sido siempre.
+
+**Tres marcas más hubo que rediseñar**, porque estaban pensadas contra metal plateado y sobre
+camuflaje desaparecían:
+
+| Piloto | Era | Es |
+|---|---|---|
+| **Puma** | dos franjas **oscuras** en la deriva | dos franjas **blancas** |
+| **Vasco** | "el metal más **oscuro** y gastado" | el camuflaje más **desteñido y calcáreo**, el patrón lavado — lo distingue la saturación, no el valor |
+| **Pichón** | un panel de ala en **verde imprimación** | un panel en **gris imprimación** + parches de **metal desnudo** — sobre camuflaje canta más que antes |
+
+**Lo que quedó "plateado" a propósito:** los aviones de **los dibujos de Mateo** (el
+avioncito del Sheffield, los dos volando en formación). Un pibe de dieciocho que nunca los vio
+de cerca los dibuja plateados, como se dibuja un avión de caza. Ahora que el avión real es
+camuflado, ese detalle dejó de ser un error y pasó a decir algo.
+
+> ⚠️ **Deuda que esto deja abierta:** el terito **no existe en el sprite que vuela.** Los
+> sprites salen de `modelA4()` en `tools/bake_planes.html`, que no tiene ninguna marca
+> personal — los cinco Fieles vuelan el mismo modelo. Hoy el terito solo puede verse en arte
+> dibujado a mano (cinemáticas, hojas, el cuadro de M8). Si se quiere de verdad como marca de
+> sprite, hay que agregarlo al modelo 3D y re-hornear.
+
+
+
+### 🟩 (22/8) La bandera en la deriva — adoptada, pendiente de verificar la forma exacta
+
+**Decisión:** todos los aviones del roster llevan la **bandera argentina en la deriva** —
+celeste / blanco / celeste con el sol de mayo—, y es **la única marca que comparten los seis**.
+Está en el modelo 3D (`flagTail()` en `tools/bake_planes.html`, presente en los cinco modelos),
+en los prompts de preview, en las cinco hojas de escuadrilla y en los tokens `{SKYHAWK_*}`.
+Reemplazó una banda naranja de acento que no significaba nada.
+
+**Qué falta confirmar** *(la referencia que lo disparó es una foto de un A-4 de la **Armada**
+en esquema actual, no necesariamente el de 1982)*:
+
+1. ¿Los A-4B de la **Fuerza Aérea** llevaban la bandera en la deriva **en 1982**, o esa marca
+   es posterior / propia de la Armada?
+2. Si la llevaban: ¿en la deriva, en el timón, o en el fuselaje? ¿Con sol de mayo o sin él?
+3. ¿Cambió durante la campaña? *(Hay práctica documentada de agregar o tapar marcas de
+   identificación en tiempo de guerra.)*
+
+**Nota de implementación:** el **sol de mayo no se modela** en el sprite. A 84 px la deriva se
+ve de canto y mide 2 px de ancho: el sol sería un pixel sucio. Va en las ilustraciones y en el
+arte dibujado, donde el tamaño lo permite. En el sprite quedan las tres franjas.

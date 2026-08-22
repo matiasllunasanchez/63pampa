@@ -24,6 +24,7 @@ import * as chancha from './systems/chancha.js';
 import * as saves from './systems/saves.js';
 import { CAMPAIGNS } from './data/campaigns.js';
 import { PRUEBAS } from './data/pruebas.js';
+import { cinematicas } from './data/cines.js';
 import * as arena from './systems/arena.js';
 import * as damage from './systems/damage.js';
 import * as arena3D from './systems/three-arena.js';
@@ -137,6 +138,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     let modeSel = 0;                 // pantalla inicial: 0 = HISTORIA, 1 = JUEGO RAPIDO
     let quickSel = 0;                // cursor del submenu JUEGO RAPIDO
     let prbSel = 0;                  // cursor del catalogo de PRUEBAS
+    let cinSel = 0;                  // cursor del catalogo de CINEMATICAS
     // A DONDE VUELVE una corrida de herramienta (PRUEBAS o el SELECTOR DE MISIONES) cuando se
     // termina o se sale. Es UNA variable y no dos caminos copiados porque las dos pantallas son
     // la misma idea —elegir algo, jugarlo, volver a elegir— y lo unico que cambia es el catalogo.
@@ -155,7 +157,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // PRUEBAS va DEBAJO de JUEGO RAPIDO y no al final: es la tercera puerta al juego (historia,
     // partida suelta, momento suelto), no un ajuste. OJO — mover una fila de aca corre los indices
     // que tools/smoke.js navega a ciegas con flechas; ya pasó al agregar PERSECUCION.
-    const MODES = ['campaign', 'quick', 'pruebas', 'misiones', 'options', 'quit'];
+    // CINEMATICAS va JUSTO DEBAJO de PRUEBAS porque es la misma herramienta con otro catalogo:
+    // una lista de cosas para mirar sin jugar hasta ellas. Separarlas con MISIONES en el medio
+    // hubiera roto la lectura de "las dos puertas de autor, juntas".
+    const MODES = ['campaign', 'quick', 'pruebas', 'cines', 'misiones', 'options', 'quit'];
     // Los modos de adentro de JUEGO RAPIDO. `arena` y `pasadas` son los dos BANCOS DE PRUEBAS del
     // climax: entran DIRECTO al buque, sin cruzar el pasillo, y existen para poder tunear cada
     // fase sin jugar una mision entera cada vez.
@@ -203,7 +208,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     let veilOut = 0, veilPrev = '';
     let objectiveDist = 0;           // distancia meta puerto→barcaza (0 = sin objetivo / infinito)
     let objectiveShip = '';          // nombre de la barcaza objetivo del run
-    const CAMPAIGN_PLANE = 0;        // avión fijo de campaña (0 = A-4 Skyhawk, protagonista)
+    // EL AVION FIJO DE LA CAMPAÑA. Se busca POR CLAVE y no por indice: el roster de PLANES se
+    // reordena (hoy mismo salio el Pampa y el Mirage IIIEA paso a ser 5P), y un 0 escrito a mano
+    // seguiria apuntando "al primero" — que el dia que alguien mueva una linea es otro avion.
+    // La campaña vuela A-4B y la decision esta escrita: docs/historia/AVIONES_ESCUADRON.md.
+    const CAMPAIGN_PLANE = Math.max(0, PLANES.findIndex(p => p.key === 'sky'));
 
     // ---------- TIPOS DE OBJETIVO ----------
     // Un objetivo es ENCHUFABLE: agregar un tipo nuevo (base, convoy, escolta...) es agregar
@@ -420,6 +429,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       if (m === 'campaign') { campSel = campFirstSel(); setState('campmenu'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'quick') { quickSel = 0; setState('quickmenu'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'pruebas') { prbSel = prbFirstSel(); setState('pruebas'); beep(600, 0.08, 'square', 0.05); }
+      else if (m === 'cines') { cinSel = 0; setState('cines'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'misiones') { setState('misiones'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'options') { setState('options'); beep(600, 0.06, 'square', 0.05); }
       else if (m === 'quit') quitGame();
@@ -462,9 +472,17 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     //   cfg      · pisa el cfg del mapa (clima, combustible)
     //   modo     · gameMode alternativo (POR LA PATRIA / PERSECUCION, que no juegan una mision)
     //   volver   · a que pantalla vuelve al terminar; sin esto conserva la que ya habia
+    //   avion    · pisa el avion fijo de campaña (indice en PLANES). Solo para PRUEBAS.
     function abrirMision(i, o) {
       o = o || {};
       gameMode = o.modo || 'cycle';
+      // EL AVION DE LA CAMPAÑA NO SE ELIGE. M1-M14 son las misiones de la campaña vengan por la
+      // puerta que vengan, y la campaña vuela A-4B ("mismo modelo para todos"). Sin esto, el avion
+      // que habia quedado elegido en JUEGO RAPIDO se colaba por el SELECTOR y por los MOMENTOS: se
+      // volaba el guion en un Mirage, y encima se median los tramos contra otro avion.
+      // Los modos que NO son mision (POR LA PATRIA, PERSECUCION) siguen respetando la eleccion del
+      // jugador, y `o.avion` deja pisar la regla a proposito para probar otro avion desde PRUEBAS.
+      if (gameMode === 'cycle') selPlane = o.avion == null ? CAMPAIGN_PLANE : o.avion;
       S.test = true;
       if (o.volver) testBack = o.volver;
       prbTasks.length = 0;
@@ -555,6 +573,36 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       r.setup(pruebasApi());
     }
 
+    // ---------- EL MENU CINEMATICAS (PLAN_DIRECTOR_CINEMATICAS §5) ----------
+    // La puerta hermana de PRUEBAS, y deliberadamente la MISMA mecanica: un catalogo, titulo y
+    // detalle por fila, ENTER reproduce, ESC vuelve al catalogo. Lo unico distinto es de donde
+    // sale la lista: no hay catalogo escrito a mano, se deriva de las timelines de data/cines.js
+    // (`cinematicas()`), asi que una cinematica nueva aparece en el menu sin tocar nada mas.
+    //
+    // Reusa TODO lo de PRUEBAS —la api de verbos, las tareas diferidas, el neutro de las sondas
+    // pegajosas, la vuelta al catalogo— porque es la misma herramienta: si divergieran, un dia
+    // una cinematica se veria distinta segun por que puerta entraste.
+    const cinRows = () => cinematicas().concat([{ id: 'back', back: true }]);
+    function cinNav(dir) {
+      const rows = cinRows();
+      cinSel = (cinSel + dir + rows.length) % rows.length;
+      beep(520, 0.05, 'square', 0.04);
+    }
+    function cinConfirm() {
+      const r = cinRows()[cinSel];
+      if (!r) return;
+      if (r.back) { modeSel = MODES.indexOf('cines'); setState('modeselect'); S.test = false; beep(400, 0.06, 'square', 0.05); return; }
+      // una cinematica sin `ver` esta declarada pero todavia no se puede mirar suelta: se avisa y
+      // no pasa nada, en vez de dejar la pantalla en negro sin explicacion
+      if (typeof r.ver !== 'function') { console.warn('[cines] la cinematica ' + r.id + ' no declara como mirarse (`ver`)'); beep(200, 0.12, 'square', 0.05); return; }
+      prbTasks.length = 0;
+      prbNeutro();
+      S.test = true;
+      testBack = 'cines';                  // la cinematica vuelve AL CATALOGO
+      beep(700, 0.08, 'square', 0.05);
+      r.ver(pruebasApi());
+    }
+
     // LAS SONDAS PEGAJOSAS. Varias de las sondas del repo son INTERRUPTORES, no acciones: quedan
     // puestas hasta que alguien las apaga. Desde la consola eso esta bien (las prendiste vos);
     // desde un catalogo donde se saltan momentos de a uno, es veneno — `__czcalma` deja el pasillo
@@ -607,7 +655,22 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         persec: over => abrir('m1', over, 'persec'),
         arena: id => { gameMode = 'arena'; cfg.arenaShip = idx(id); loadLevel(cfg.arenaShip); startArenaBattle(false); },
         pasada: id => { gameMode = 'cycle'; loadLevel(idx(id)); reset(); setRunObjective(); run.dist = objectiveDist; pasada.enter(false); },
-        pulso: id => { gameMode = 'cycle'; loadLevel(idx(id)); reset(); setRunObjective(); run.dist = objectiveDist; pulso.enter(false); },
+        // LA LIBRETA, igual que en `abrirMision`: EL PULSO arma su examen con las piruetas
+        // APRENDIDAS, y estos verbos no pasan por ahi. Sin esto la prueba salia con la libreta
+        // vacia —secuencias de un solo `Z`, sin una sola pirueta— y tanto el momento de PRUEBAS
+        // como la cinematica del premio mostraban otro juego que el que se juega. Se vio recien al
+        // mirar el premio suelto desde el menu CINEMATICAS.
+        pulso: id => {
+          const i = idx(id);
+          gameMode = 'cycle'; pichon = loadoutAt(i);
+          loadLevel(i); reset(); setRunObjective(); run.dist = objectiveDist;
+          // …Y VOLANDO. `reset()` deja `run.spd` en 6 (el avion quieto en cabecera): quien llega
+          // al buque de verdad llega a velocidad de crucero, y desde que la cinematica del premio
+          // mueve el mundo con `run.spd` (PLAN_CINE_PESO P2) esa diferencia se VE — el mar no
+          // corria. 62 es la misma velocidad con la que el despegue entrega el avion.
+          run.spd = 62;
+          pulso.enter(false);
+        },
         escena: id => { if (SCENES[id]) { dialogue.startSeq([SCENES[id]], getLang()); setState('story'); } },
         // lo que se resuelve AL CARGAR (has3D con ?no3d, el idioma) no se puede cambiar en vivo:
         // el unico momento honesto es recargar con el parametro puesto.
@@ -1136,7 +1199,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // `sheet` (sprite sheet HORNEADO desde el modelo 3D low-poly: 9 frames de 56x32, alabeo
     // -60..+60 en pasos de 15, frame 4 = nivelado) que es el que VUELA — pixel art coherente
     // con el juego y banking real por frame. Regenerar: npx electron tools/bake_planes_run.js
-    let selPlane = 0;
+    let selPlane = CAMPAIGN_PLANE;   // el carrusel abre SIEMPRE en el Skyhawk (ver CAMPAIGN_PLANE)
 
 
 
@@ -1160,7 +1223,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // coincidir con esta. Son dos porque responden preguntas distintas —esta decide si rota el
     // fondo del lobby— pero si divergen, se nota: o el fondo se congela o la musica se corta.
     const inLobby = () => S.state === 'title' || S.state === 'modeselect' || S.state === 'menu' || S.state === 'options'
-      || S.state === 'mejoras' || S.state === 'campmenu' || S.state === 'quickmenu' || S.state === 'pruebas'
+      || S.state === 'mejoras' || S.state === 'campmenu' || S.state === 'quickmenu' || S.state === 'pruebas' || S.state === 'cines'
       || S.state === 'misiones' || S.state === 'saves';
 
     // ESTRELLAS 1..4 (la 4ª = Malvinas, rango S). Compartido por el recuento de nivel y el
@@ -1345,7 +1408,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     const playerEl = document.getElementById('player');
     const canPickMusic = () => gameMode !== 'campaign'
       && S.state !== 'title' && S.state !== 'modeselect' && S.state !== 'menu' && S.state !== 'options'
-      && S.state !== 'mejoras' && S.state !== 'campmenu' && S.state !== 'quickmenu' && S.state !== 'pruebas' && S.state !== 'misiones' && S.state !== 'saves' && S.state !== 'story'
+      && S.state !== 'mejoras' && S.state !== 'campmenu' && S.state !== 'quickmenu' && S.state !== 'pruebas' && S.state !== 'cines' && S.state !== 'misiones' && S.state !== 'saves' && S.state !== 'story'
       && S.state !== 'epilogue';
 
     // ---------- input ----------
@@ -1429,6 +1492,8 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       },
       prbNav: dir => prbNav(dir),
       prbConfirm: () => prbConfirm(),
+      cinNav: dir => cinNav(dir),
+      cinConfirm: () => cinConfirm(),
       misNav: dir => misNav(dir),
       misConfirm: () => misConfirm(),
       misToggleHist: () => misToggleHist(),
@@ -2385,9 +2450,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // y desde y=-140 justamente para cubrir un giro completo alrededor del centro.
       // Se DESHACE antes de dibujar el avion: el sprite es la "cabina" y queda derecho.
       // …y en EL PULSO lo inclina la PIRUETA DEL PREMIO: la maniobra que se tecleo se vuela de
-      // verdad (systems/moves.js) y desde la cabina eso se ve como el horizonte dando la vuelta.
-      // Se suma en vez de reemplazar porque hzWorld() ya devuelve 0 fuera del pasillo.
-      const hzW = hzWorld() + (S.state === 'pulso' ? pulso.camRoll() : 0);
+      // verdad (systems/moves.js) y eso se ve como el horizonte dando la vuelta. REEMPLAZA a
+      // hzWorld() en vez de sumarse: desde que 'pulso' esta en la lista de hzMode() (para que la
+      // camara de tercera compense el rolido del sprite) las dos cuentas darian el mismo giro y
+      // el mundo giraria el doble.
+      const hzW = S.state === 'pulso' ? pulso.camRoll() : hzWorld();
       if (hzW) {
         ctx.save();
         const hcx = W / 2 + cm.x, hcy = H / 2 + cm.y;
@@ -2495,11 +2562,20 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // tiempo: el buque del pasillo es el mismo, y solo el climax lo mata.
       // el cuarto parametro es R3: si el climax de este run es la PASADA, el pasillo dibuja el
       // buque DE PROA y a la distancia real, para que el corte no mueva ni el tamaño ni el rumbo.
+      // …y NUNCA de proa adentro de EL PULSO: la prueba crece, escora y hunde el CASCO LATERAL
+      // (es el buque sobre el que apunta su cinematica), y con la silueta de proa `drawApproachBarge`
+      // sale antes de publicar su geometria — el premio se quedaba sin buque que volar. Pasa solo
+      // por las puertas de herramienta, donde se entra al PULSO en una mision cuyo climax declarado
+      // es la PASADA; se vio mirando el premio suelto desde el menu CINEMATICAS.
       world.drawApproachBarge(objectiveDist, objectiveShip, S.state === 'pulso' ? pulso.shipFx() : null,
-        runClimax() === 'pasada');
+        runClimax() === 'pasada' && S.state !== 'pulso');
       world.drawObjectiveMarker(objectiveDist);                // cuña roja en el horizonte: hacia donde vamos
       world.drawWake();
-      if (cfg.radarNet) world.drawRadarNet();   // malla del techo de deteccion del radar
+      // malla del techo de deteccion del radar. NO en EL PULSO: es un instrumento del PASILLO —
+      // dice a que altura te ven— y en la cinematica del premio no hay nada que decidir con eso.
+      // Aparecio sola cuando la salida paso a trepar de verdad (la trepada cruza RADAR_ALT) y lo
+      // que se ve es una reja roja tapando el buque que se hunde.
+      if (cfg.radarNet && S.state !== 'pulso') world.drawRadarNet();
       if (cfg.hitboxes) world.drawHitboxes();   // depuracion: cajas de colision en verde fluor
       if (cfg.devcam && S.state === 'play') world.drawFlightLane();   // modo camara: el carril del avion
 
@@ -2638,10 +2714,13 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // LA CHANCHA: siempre esta MAS LEJOS y mas arriba que vos (sostiene formacion adelante), asi
       // que va antes del avion — pintor correcto respecto del que entra a la canasta.
       drawChancha();
-      // en el climax (arena, pasada o fallback) el avion lo pone su propio render. EL PULSO tampoco
-      // lo dibuja: la prueba se ve DESDE LA CABINA, y el sprite en tercera persona quedaba a la
-      // vista en cuanto la cinematica del premio baja el canopy — dos camaras del mismo avion.
-      if (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso') drawPlane(selPlane, viewMouse, squadZoom());
+      // en el climax (arena, pasada o fallback) el avion lo pone su propio render. EL PULSO se ve
+      // DESDE LA CABINA y tampoco lo dibuja —el sprite en tercera quedaba a la vista en cuanto la
+      // cinematica baja el canopy: dos camaras del mismo avion— SALVO cuando la cinematica pide
+      // expresamente la camara de tercera (`cam: 'chase'`), que es el plano en el que la pirueta
+      // del premio se VE salir en vez de leerse como un horizonte que gira.
+      const chase = S.state === 'pulso' && cine.cam().modo === 'chase';
+      if (chase || (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso')) drawPlane(selPlane, viewMouse, squadZoom());
       // LA COLA, segunda pasada: lo que quedo MAS CERCA que el avion — el sobrepaso enorme
       // cruzandote y las trazadoras que te estan pasando ahora. Va DESPUES del sprite porque
       // efectivamente esta entre vos y la camara: dibujarlo antes lo dejaria por detras del ala.
@@ -2743,6 +2822,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t });
       if (S.state === 'quickmenu') menus.drawQuickMenu({ sel: quickSel, rows: quickRows(), t: run.t });
       if (S.state === 'pruebas') menus.drawPruebasMenu({ sel: prbSel, rows: prbRows(), t: run.t });
+      if (S.state === 'cines') menus.drawCinesMenu({ sel: cinSel, rows: cinRows(), t: run.t });
       if (S.state === 'misiones') menus.drawMisionesMenu({ sel: misSel, rows: misRows(), hist: misHist, t: run.t });
       if (S.state === 'saves') menus.drawSaves({ list: saves.listSaves(), sel: savesSel, t: run.t });
       // EL BANCO DEL PICHON: pantalla de mejora entre misiones. Desde M8 (muerto el Pichon,
@@ -2795,7 +2875,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // el sello le caia justo encima del TRACK (se vio en la primera captura).
       if (S.test) {
         ctx.save(); ctx.scale(U, U);
-        const txt = T('prBadge');
+        // el sello dice CUAL de las dos herramientas: una captura de una cinematica y una de un
+        // momento de PRUEBAS se parecen demasiado como para que el rotulo sea el mismo
+        const txt = T(testBack === 'cines' ? 'cinBadge' : 'prBadge');
         ctx.font = 'bold 6px monospace'; ctx.textAlign = 'center';
         const bw = ctx.measureText(txt).width + 10;
         ctx.globalAlpha = 0.6; ctx.fillStyle = '#000';
@@ -2999,6 +3081,13 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // cargo ENTERA, que es justo lo que el criterio de cierre pide.
     //   __mision('m4')                    derecho al despegue
     //   __mision('m4', { historia: 1 })   pasando por el guion largo
+    // QUITAR — sonda: elige un avion a mano. Existe para que la prueba del avion de campaña
+    // pruebe el CABLEADO y no el mecanismo: si el fixture no ensucia antes la eleccion, "vuela un
+    // Skyhawk" sale verde por el default y no afirma nada (la leccion de SPEC_AGUA_OLAS §9.9).
+    if (typeof window !== 'undefined') window.__avion = n => {
+      if (n != null) selPlane = ((n | 0) % PLANES.length + PLANES.length) % PLANES.length;
+      return PLANES[selPlane].key;
+    };
     if (typeof window !== 'undefined') window.__mision = (id, o) => {
       const i = misIdx(id === undefined ? 0 : id);
       if (i < 0) return null;
@@ -3009,6 +3098,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         // cae a 'pasada' por defecto y solo se consulta cuando el objetivo lo pide, asi que en una
         // mision de distancia mentiria.
         climax: climaxOf(m), obj: Math.round(objectiveDist), buque: objectiveShip,
+        // el AVION con el que quedo armada: la mision de campaña se vuela en A-4B venga por donde
+        // venga, y sin esto la sonda no permitia afirmarlo (ver CAMPAIGN_PLANE)
+        avion: PLANES[selPlane] && PLANES[selPlane].key,
         roster: (m.roster || []).length, vidas: run.lives,
         chancha: m.chancha !== false, story: !!m.story,
       });
@@ -3038,6 +3130,16 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       if (S.state !== 'pruebas') { prbSel = prbFirstSel(); setState('pruebas'); }
       prbSel = i; prbConfirm();
       return JSON.stringify({ id, state: S.state, test: S.test });
+    };
+    // CINEMATICAS: la misma sonda para la puerta hermana. Sin argumento, la lista de ids; con uno,
+    // la reproduce por la MISMA puerta que aprieta el jugador (cinConfirm), no por un atajo.
+    if (typeof window !== 'undefined') window.__cine = id => {
+      if (id === undefined) return JSON.stringify(cinRows().filter(r => r.id && !r.back).map(r => r.id));
+      const i = cinRows().findIndex(r => r.id === id);
+      if (i < 0) return null;
+      if (S.state !== 'cines') { cinSel = 0; setState('cines'); }
+      cinSel = i; cinConfirm();
+      return JSON.stringify({ id, state: S.state, test: S.test, volver: testBack });
     };
     // MOTOR DE HISTORIA para el fixture del locker (SPEC_MODO_HISTORIA §6): lo que el jugador
     // tiene en pantalla ahora mismo. Los holds hay que poder MEDIRLOS desde afuera — a ojo, un

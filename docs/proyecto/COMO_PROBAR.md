@@ -123,6 +123,13 @@ catálogo. Nada de lo que pase en PRUEBAS toca récords, saves ni desbloqueos.
 > (la higiene la escribió S2 y la verifica `npm run misiones`), y **un momento ya no encadena** —
 > al terminar la misión de un momento se vuelve al catálogo en vez de sortear otra misión.
 
+> **Y desde el 17/8 hay una TERCERA hermana: CINEMATICAS** (fila propia, justo debajo de PRUEBAS),
+> el catálogo del director — ver [PLAN_DIRECTOR_CINEMATICAS.md](../sistemas/PLAN_DIRECTOR_CINEMATICAS.md).
+> Misma mecánica, mismo `S.test`, mismo `testBack`, misma api de verbos (`pruebasApi()`) y la misma
+> regla de oro. La única diferencia es de dónde sale la lista: **no hay catálogo escrito a mano**,
+> se deriva de las timelines de `data/cines.js`, así que una cinemática nueva aparece sola en el
+> menú. Su sonda gemela es `__cine(id)` (sin argumento, la lista).
+
 **Regla de oro**: PRUEBAS es una INTERFAZ sobre las sondas — si un momento necesita
 lógica nueva, esa lógica nace como sonda (utilizable también por consola y fixtures) y
 PRUEBAS solo la llama. Así el catálogo nunca diverge del juego real.

@@ -220,6 +220,78 @@ En orden de retorno:
 4. Regla de todas las tandas de arte: **se miran adentro del juego, mudas**, antes de
    encargar la siguiente.
 
+### 🟩 Auditoría de las imágenes del juego *(21/8)*
+
+Se revisaron TODOS los assets de imagen del repo contra el estilo de la casa (pixel art Metal
+Slug, el mismo de las hojas de personaje y de avión). **La conclusión es buena: la mayor parte
+está bien y no hay que tocarla.** Lo que sigue son las tres excepciones, ordenadas por lo que
+mueven.
+
+| Frente | Estado | Veredicto |
+|---|---|---|
+| `photos/ppal` (14), `photos/win` (5), `photos/lose` (6) | pixel art dithered, ambiente correcto, buena densidad | ✅ **no tocar** |
+| `world/enemies` (13) | renders chicos horneados desde 3D; en juego miden 10-40 px | ✅ **no tocar** — el detalle no se ve a esa escala |
+| `world/terrain_back` (6) | fondos grandes, en estilo | ✅ ya agendado arriba (2-3 climas nuevos) |
+| **`planes/*/preview`** (6) | **cel-shading vectorial**: línea negra gruesa y relleno plano | ❌ **rehacer** |
+| **`world/soldats`** (4) | hoja genérica de asset pack, oscura, con los rótulos de animación en inglés impresos encima | ❌ **rehacer** |
+
+#### 1 · Las ilustraciones del menú de avión — el pipeline ya está escrito
+
+Son la única pantalla del juego que se ve de otro juego: **cel-shading vectorial contra pixel
+art en todo lo demás.** El método, los prompts por avión con sus hexadecimales reales, y los
+prompts de corrección están en
+[AVIONES_CATALOGO.md](../historia/AVIONES_CATALOGO.md) §"Generar las ILUSTRACIONES del roster".
+
+El truco que lo hace confiable: **se le da de comer el cuadro central de la propia hoja de
+sprites** (`col 4, fila 1` de `sheet.png`, escalado ×4 sin suavizar). Eso fija la pose, la
+silueta y la paleta de una, y garantiza lo que hoy no está garantizado — que la ilustración
+del menú y el avión que volás sean el mismo avión.
+
+**Esfuerzo:** 6 imágenes, cero código. Es el mejor retorno por hora de todo este carril.
+
+#### 2 · Los soldados — el asset más pobre, y arrastra un bug
+
+`world/soldats/englishsoldatv2.png` es una hoja de asset pack: paleta oscura, poco contra el
+terreno, y **los rótulos de animación de la hoja impresos encima de los frames** (el propio
+`render/soldiers.js` documenta que tuvo que correr la caja del frame 0 para esquivar la
+etiqueta verde). No es Metal Slug y no es 1982 argentino.
+
+> ⚠️ **El bug que apareció auditando:** `render/soldiers.js:1` tiene **una sola hoja
+> hardcodeada — la INGLESA — y con ella dibuja a todos los soldados del juego.**
+> `argentinesoldatv2.png` existe (968 KB, misma grilla de 931×1024) y **no lo usa nadie**.
+> Además `systems/spawn.js:85` no le pone bando al soldado: el dato no existe en el modelo.
+>
+> Hoy **no se ve**: en el pasillo el soldado mide 8-20 px con `SMOOTH = true`, y a esa escala
+> los uniformes no se distinguen. Es una deuda **latente**, y explota en el primer plano
+> cercano — o sea en el nivel de tierra (ROADMAP #16) y en el minijuego del piloto (#24), que
+> son justamente los dos ítems que harían falta para que los soldados importen.
+>
+> **En un juego cuya tesis es "a los que pelearon, de los dos lados, este juego los respeta
+> por igual", que todos los soldados sean ingleses no es un detalle técnico.**
+
+**Orden correcto:** primero el campo `side` en el spawn (barato, y sin él no hay nada que
+dibujar distinto), después el arte. Rehacer la hoja antes de eso es pintar algo que el juego
+no puede usar.
+
+#### 3 · Lo que falta y ya está arriba en esta misma lista
+
+Placas VN, retratos y cuadros de historia siguen en **cero PNG** con el enchufe andando. Eso
+no cambió y sigue siendo el punto 1 del carril: es lo que convierte el modo historia de
+"pantallas de texto" en un juego.
+
+### El faltante estructural: no hay una biblia de estilo
+
+Cada frente tiene su prompt (hojas de personaje, hojas de avión, previews del roster), y los
+tres repiten el mismo bloque de estilo copiado a mano. **No existe un archivo que diga "así se
+ve RASANTE".** Mientras sean tres, se aguanta; cuando alguien genere el cuarto frente sin
+haber leído los otros tres, el juego se empieza a desarmar de a poco y nadie sabe por qué.
+
+Lo que tendría que fijar, en una página: el bloque de estilo canónico (uno, citable), la
+paleta (`data/palette.js` ya la tiene), el trato de la línea y el dithering, el fondo, la
+regla de "sin texto", el period lock, y los tres canastos de época de
+[AVIONES_CATALOGO.md](../historia/AVIONES_CATALOGO.md). **Es media jornada y evita
+retrabajo indefinido.**
+
 ## 12. Orden de arranque y delegación
 
 - **HOY, en paralelo sin conflicto:** T1 (sesión de código) + carril producción (Matías).

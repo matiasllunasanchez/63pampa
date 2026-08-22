@@ -268,15 +268,54 @@ function drawSal(t) {
   ctx.globalAlpha = 1;
 }
 
+// ---------- LA GEOMETRIA DE LA CABINA ----------
+// UNA sola medida del asset, y todo lo demas se deriva. Antes habia tres constantes a mano en tres
+// archivos (MOM_AY, y un COCKPIT_Y en arena.js y otro en pulso.js) que decian lo mismo desde dos
+// lados; cambiar el PNG obligaba a re-tunear las tres y la que no se miraba quedaba mintiendo.
+//
+// V_VISOR — donde cae el VIDRIO DEL VISOR dentro del PNG, en fraccion de su alto. Es LO UNICO que
+// hay que volver a medir si se recambia la cabina. Medido sobre el asset de 8/2026: el vidrio va
+// de 0.3255 a 0.4609, centro 0.3932.
+export const V_VISOR = 0.3932;
+
+// CUANTO OCUPA, como fraccion del ancho de pantalla. Escala UNIFORME: el alto sale del ancho por
+// la proporcion real del PNG, asi que la cabina no se deforma nunca — mover esta perilla la acerca
+// o la aleja, no la estira.
+//
+// POR QUE NO VA EN 1: el PNG es 1.833:1 y la pantalla 1.778:1, o sea casi lo mismo. A ancho
+// completo la cabina entera mide 268 de los 270 de alto y se come la pantalla; y si ademas se la
+// baja para clavar el visor en la mira, lo que sobra por abajo son las rodillas del piloto. Con la
+// cabina mas chica entra ENTERA y queda mundo alrededor, que es como se ve una cabina de verdad
+// desde atras del piloto.
+export const COCKPIT_FILL = 0.85;
+
+/** La cabina.
+ *
+ *  `mira` es la Y de pantalla donde tiene que caer el VISOR PINTADO — o sea, donde cada modo pone
+ *  su punteria (el arena y la PASADA, en H/2; el PULSO, en su centro util). La cabina se acomoda
+ *  sola: no hay un offset por modo que alguien tenga que re-tunear.
+ *
+ *  `yOff` es un corrimiento EXTRA y animado, encima de la posicion derivada. Lo usa el director
+ *  del PULSO para bajar la cabina en el premio y abrir cielo. */
 export function drawCockpit(w) {
   const { mom, t } = w;
+  const mira = w.mira == null ? H / 2 : w.mira;
   const yOff = w.yOff || 0;
   // solo bob de vuelo: la cabina es la trompa del avion, va clavada a la pantalla
   // (apuntar mueve el MUNDO detras del vidrio, no la cabina)
   const bx = Math.sin(mom.t * 1.4) * 1.5;
   const by = Math.sin(mom.t * 2.2) * 2 + yOff;
-  if (COCKPIT_ASSET.ready && COCKPIT_ASSET.img.naturalWidth) {
-    ctx.drawImage(COCKPIT_ASSET.img, bx - 6, by - 6, W + 12, H + 12);   // sobredimensionado: el bob no muestra bordes
+  const im = COCKPIT_ASSET.img;
+  let dibY = by, dibH = H;                 // la caja REAL del dibujo (el fallback vectorial la llena)
+  if (COCKPIT_ASSET.ready && im.naturalWidth) {
+    // el alto NATURAL a ancho completo sale del asset y no de un numero escrito: si algun dia la
+    // cabina se re-exporta a otra proporcion, esto la sigue solo.
+    // ESCALA UNIFORME: el alto sale del ancho por la proporcion del asset. Nada de estirar para
+    // llenar — el dia que la cabina se re-exporte a otra proporcion, esto la sigue solo.
+    const dw = (W + 12) * COCKPIT_FILL;
+    dibH = dw * im.naturalHeight / im.naturalWidth;
+    dibY = by + mira - V_VISOR * dibH;                   // el visor pintado, clavado en la mira
+    ctx.drawImage(im, bx + (W - dw) / 2, dibY, dw, dibH);
   } else {
     ctx.save();
     ctx.translate(bx, by);
@@ -305,7 +344,9 @@ export function drawCockpit(w) {
   // (los canones estan en las alas, FUERA de la vista: las trazadoras se dibujan antes
   // de la cabina en drawMomentum y el marco las tapa — aca no va ningun fogonazo)
   drawSal(t);   // la sal va SOBRE el vidrio: ultima, despues del marco
-  return { bx, by };
+  // la caja dibujada sale por la puerta: el PULSO reparte su sal contra el vidrio de verdad
+  // y no contra un offset que hacia de proxy.
+  return { bx, by, top: dibY, h: dibH };
 }
 
 // MOMENTUM: barcaza a lo largo, zonas criticas resaltadas, mira y ventana de tiempo
@@ -415,7 +456,7 @@ export function drawMomentum(w) {
   // marco/panel los tapa al nacer)
 
   // ---- cabina en primer plano (camara desde adentro) ----
-  drawCockpit(w);
+  drawCockpit({ ...w, mira: MOM_AY });
 
   // ---- RESPLANDOR de disparo en los bordes: feedback INSTANTANEO al apretar fuego ----
   // (la bala tarda ~1.3s en cruzar el vidrio; sin esto parece que no responde)

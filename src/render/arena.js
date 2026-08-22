@@ -21,17 +21,16 @@ import { AR } from '../data/arena.js';
 import { turnGain } from '../core/aero.js';
 import { shown as dmgShown } from '../systems/damage.js';
 
-// Cuanto BAJA el PNG de la cabina en 1a persona. El visor pintado del asset esta arriba (el ARENA
-// VIEJO le clavaba la mira en MOM_AY=60), pero aca la mira NO es fija: cae donde apunta el morro,
-// que en 1a persona es el centro de pantalla (H/2 = 135). Bajar el PNG es lo que hace coincidir
-// el visor pintado con la mira real. Si se cambia el asset de cabina, re-medir.
-// EXPORTADA: es una medida DEL ASSET (donde cae el visor pintado), no una decision del arena, y la
-// PASADA dibuja la misma cabina con la misma camara.
+// DONDE APUNTA ESTE MODO, en Y de pantalla. En 1a persona la mira cae donde apunta el morro, o
+// sea el centro (H/2 = 135). No es un offset del PNG: la cabina se acomoda SOLA para que su visor
+// pintado caiga justo aca (ver V_VISOR / COCKPIT_FILL en render/momentum.js). Antes esto era un
+// `COCKPIT_Y` tuneado a mano contra el asset, y cada recambio de cabina lo dejaba viejo.
+// EXPORTADA porque la PASADA dibuja la misma cabina con la misma camara.
+export const COCKPIT_MIRA = H / 2;
 
 // ALTURA bajo la cual el mar salpica el vidrio (F3.3). Es la misma que usa la PASADA para su
 // suelta a ras (SAPITO_ALT_M): abajo de eso estas rozando el Atlantico, y se tiene que notar.
 const SAL_ALT_M = 12;
-export const COCKPIT_Y = 74;
 
 /** El avion en TERCERA persona: el sprite de vuelo (vista trasera) con el alabeo y el cabeceo
  *  reales de la maniobra. La camara va detras, asi que el avion siempre se ve de atras — que es
@@ -284,7 +283,7 @@ export function drawArena(w) {
   if (w.view === 1) {
     // SAL EN EL PARABRISAS (F3.3): misma regla que en la PASADA — cabina y agua cerca.
     if (A.pos.y < SAL_ALT_M) salpicar(1 - A.pos.y / SAL_ALT_M);
-    drawCockpit({ mom: { t: A.t, hitFx: A.hitFx }, t: w.t, yOff: COCKPIT_Y });
+    drawCockpit({ mom: { t: A.t, hitFx: A.hitFx }, t: w.t, mira: COCKPIT_MIRA });
     if (A.flashL > 0) { ctx.globalAlpha = Math.min(1, A.flashL * 9); px(0, 56, 9, 15, '#ffffff'); ctx.globalAlpha = 1; }
     if (A.flashR > 0) { ctx.globalAlpha = Math.min(1, A.flashR * 9); px(W - 9, 56, 9, 15, '#ffffff'); ctx.globalAlpha = 1; }
   } else drawThirdPlane(A, selPlane);

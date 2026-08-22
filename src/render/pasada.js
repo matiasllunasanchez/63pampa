@@ -15,7 +15,7 @@ import { run } from '../core/run.js';
 import { cfg } from '../core/state.js';
 import { drawMira } from './miras.js';
 import { drawCockpit, salpicar } from './momentum.js';
-import { drawThirdPlane, shipArrow, COCKPIT_Y } from './arena.js';
+import { drawThirdPlane, shipArrow, COCKPIT_MIRA } from './arena.js';
 import * as world3D from '../systems/three-arena.js';
 import { PS, HOSE } from '../data/pasada.js';
 import { shown as dmgShown } from '../systems/damage.js';
@@ -360,7 +360,7 @@ export function drawPasada(w) {
   // metros—, y es justo la doctrina del modo: se entra abajo. `salpicar` se auto-limita,
   // asi que llamarla por cuadro no apila gotas: salpica cada ~0,7 s mientras sigas abajo.
   if (w.view === 1 && A.pos.y < PS.SAPITO_ALT_M) salpicar(1 - A.pos.y / PS.SAPITO_ALT_M);
-  if (w.view === 1) drawCockpit({ mom: { t: A.t, hitFx: A.hitFx }, t: w.t, yOff: COCKPIT_Y });
+  if (w.view === 1) drawCockpit({ mom: { t: A.t, hitFx: A.hitFx }, t: w.t, mira: COCKPIT_MIRA });
   else drawThirdPlane(A, selPlane);
 
   // ---- MIRA: proyectada desde el MUNDO, sobre el punto adonde apunta el morro ----

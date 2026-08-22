@@ -201,6 +201,13 @@ export function initInput(cv, a) {
       if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
       return;
     }
+    if (S.state === 'cines') {                                           // catalogo de CINEMATICAS
+      if (isUp(e.code)) { a.cinNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code)) { a.cinNav(1); e.preventDefault(); return; }
+      if (isConfirm(e.code)) { a.cinConfirm(); e.preventDefault(); return; }
+      if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
+      return;
+    }
     if (S.state === 'misiones') {                                        // SELECTOR DE MISIONES
       if (isUp(e.code)) { a.misNav(-1); e.preventDefault(); return; }
       if (isDown(e.code)) { a.misNav(1); e.preventDefault(); return; }
@@ -501,6 +508,11 @@ export function initInput(cv, a) {
         if (nu && !nav.u) a.prbNav(-1);
         if (nd && !nav.d) a.prbNav(1);
         if (confirm) a.prbConfirm();
+        if (hit(1)) a.escToMenu();                             // B = volver al selector de modos
+      } else if (S.state === 'cines') {
+        if (nu && !nav.u) a.cinNav(-1);
+        if (nd && !nav.d) a.cinNav(1);
+        if (confirm) a.cinConfirm();
         if (hit(1)) a.escToMenu();                             // B = volver al selector de modos
       } else if (S.state === 'misiones') {
         if (nu && !nav.u) a.misNav(-1);

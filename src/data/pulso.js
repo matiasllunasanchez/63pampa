@@ -57,8 +57,10 @@ export const PULSO_CINE = {
   IMPACTO: 0.7,    // el estallido en la zona elegida
   MUERTE: 2.6,     // el buque muriendo (se estira por clase: ver PULSO_CLASE.sink)
   BOMBAS: 4,       // cuantas bombas tiene la ristra (canon de PASADA §8b)
-  // el mundo VUELVE A CORRER cuando arranca el premio: el tiempo dilatado se suelta en esto.
-  DESHIELO: 0.5,
+  // el mundo VUELVE A CORRER cuando arranca el premio: el tiempo dilatado se suelta en esto. Con
+  // 0,5 s y rampa lineal el arranque y el final del deshielo se notaban los dos como un escalon;
+  // con 0,8 s y curva 'suave' (PLAN_CINE_PESO P4) el mundo sale de la camara lenta respirando.
+  DESHIELO: 0.8,
   // cuanto CRECE el buque durante el premio. El pendiente honesto de Q1 era que el blanco no
   // domina el cuadro; se resuelve aca y no antes a proposito — durante la prueba el buque no
   // puede tapar la autopista, y en el premio la autopista ya no existe.
@@ -69,7 +71,13 @@ export const PULSO_CINE = {
   DROP: 16,
   // cuanto BAJA LA CABINA durante el premio. No es rediseñarla: es la misma cabina corrida, para
   // abrir cielo justo cuando lo que hay que mirar es el buque y ya no hay autopista que leer.
-  CABINA: 44,
+  //
+  // ES UN CORRIMIENTO EXTRA, encima de donde la cabina ya se para sola: desde la cabina nueva de
+  // 8/2026 el PNG se acomoda contra `COCKPIT_MIRA` de render/pulso.js (la mira del modo) y este
+  // numero solo la BAJA desde ahi. Con el encuadre viejo el canopy terminaba justo encima del buque
+  // y le tapaba la muerte. La regla a sostener es "el buque tiene que quedar en cielo limpio": si
+  // se toca COCKPIT_MIRA o COCKPIT_FILL, este es el numero que hay que volver a mirar.
+  CABINA: 104,
 };
 
 // ---------------- EL TEATRO (plan §5, fase Q5) ----------------

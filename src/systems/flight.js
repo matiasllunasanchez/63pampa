@@ -32,14 +32,10 @@ import { tierraH, hayRelieve } from '../core/tierra.js';
 // LA CHANCHA: conectado a la canasta se vuela EN FORMACION, o sea que el mundo avanza menos.
 // Se toca el AVANCE y no `run.spd` a proposito: la velocidad del avion es fisica.
 import { avance as chAvance } from '../systems/chancha.js';
-// cuanto sube la camara con turbo (unidades de mundo): el efecto de 'alejarse'
-const BOOST_LIFT = 2.2;
-// PANEO a fondo del stick derecho, en unidades de mundo. Es "un poco" a proposito: casi el triple
-// del BOOST_LIFT de 2.2, asi que se nota sin discusion, pero el avion no se va de cuadro ni se
-// pierde el horizonte. Es una mirada, no una camara libre.
-const CAM_PAN = 6;
+// BOOST_LIFT y CAM_PAN se mudaron a systems/vuelo.js con la camara que los usa.
 import { multOf } from '../core/util.js';
 import { movesSystem, mvAllowsFire, mvAllowsTurbo } from './moves.js';
+import { stepVuelo } from './vuelo.js';
 import * as momentum from './momentum.js';
 import * as arena from './arena.js';
 import * as pasada from './pasada.js';
@@ -186,45 +182,31 @@ export function flightSystem(dt, deps) {
   run.throttle += ((gasOn ? 1 : 0) - run.throttle) * Math.min(1, dt * 7);
   if (cfg.fuelOn) run.fuel -= (3.2 + (run.boost ? 4.2 : 0)) * dt;   // COMBUSTIBLE: NO (menú [M]) = tanque infinito, para pruebas
   if (run.fuel <= 0) { run.fuel = 0; plane.vy = Math.min(plane.vy, -5); }
-  plane.x += plane.vx * dt;
-  plane.y += plane.vy * dt;
-  if (plane.x < -FLY_X) { plane.x = -FLY_X; plane.vx = 0; }
-  if (plane.x > FLY_X) { plane.x = FLY_X; plane.vx = 0; }
-  if (plane.y > FLY_TOP) { plane.y = FLY_TOP; plane.vy = 0; }
-
-  cam.x += (plane.x * 0.86 - cam.x) * Math.min(1, dt * 7);
-  // PANEO DEL JUGADOR (stick derecho vertical · [R]/[F]): mirar un poco hacia abajo o hacia arriba
-  // sin mover el avion. Es el MISMO mecanismo que el turbo — se corre la camara en el MUNDO — asi
-  // que empujar el stick hacia ABAJO SUBE la camara: entra mas mundo por debajo, que es lo que
-  // uno quiere cuando mira para abajo. Va suavizado (no es un interruptor) y NO afecta al vuelo.
-  const panIn = inp.camAx || (inp.camD + inp.rise) - (inp.camU + inp.sink);
-  run.camPan += (Math.max(-1, Math.min(1, panIn)) * CAM_PAN - run.camPan) * Math.min(1, dt * 4);
-  // TURBO: la camara se VA PARA ATRAS. No se escala el raster (eso partia el mar en rayas, ver
-  // CAM_ZOOMS en game.js): se sube la camara en el MUNDO, asi la proyeccion se recalcula sola,
-  // entra mas agua en pantalla y el avion baja en el cuadro. Es un movimiento de camara real.
-  const camLift = 2.6 + (run.boost ? BOOST_LIFT : 0) + run.camPan;
-  cam.y += (plane.y + camLift - cam.y) * Math.min(1, dt * 3.2);
-  if (cam.y < 3.4) cam.y = 3.4;
-
-  // --- animación de vuelo: alabeo (bank) y cabeceo (pitch) suavizados ---
-  // durante una PIRUETA el alabeo/cabeceo los clava movesSystem (poses de la maniobra)
+  // ---- LA CAMA DE VUELO (systems/vuelo.js): integrar, topes, camara y actitudes con peso. Estas
+  // lineas VIVIAN ACA; se mudaron enteras para poder correrlas tambien en una cinematica, donde el
+  // avion se quedaba quieto y la camara clavada (PLAN_CINE_PESO §0). El pasillo no cambia: es la
+  // misma cuenta, en el mismo orden, con los mismos numeros — lo custodia `npm run feel`.
+  //
+  // La INTENCION sigue siendo de aca: el alabeo mezcla la palanca con la velocidad real (anticipa
+  // y asienta) y el cabeceo pide que la tecla se mantenga un instante, para que los toques rapidos
+  // de gas no sacudan la trompa. Lo que la cama aporta es el PESO con que se llega a eso.
+  let bankTgt = 0, pitchTgt = 0;
   if (!run.mv) {
-    // el alabeo mezcla la intención de giro (input) con la velocidad real → anticipa y asienta
     // Con CONTROL POR ALABEO no hay nada que inferir: el angulo ES el estado del avion, y el
     // sprite tiene que mostrar ESE y no una mezcla de intencion y velocidad. Se normaliza contra
     // BANK_MAX, que es justo el alabeo pleno de la hoja horneada (±60°), asi que bank ±1 = tope.
     const steerV = cfg.control === CTRL_BANK ? run.bankA / BANK_MAX
       : pointer.steer ? plane.vx / 26
         : ((inp.r - inp.l) * 0.9 + (plane.vx / 30) * 0.35);
-    const bankTarget = Math.max(-1, Math.min(1, steerV));
-    // cabeceo: la tecla mueve la trompa SOLO si se mantiene apretada un instante — los toques rápidos
-    // de gas (↑ repetido) no la sacuden y el avión queda recto; si mantenés ↑/↓ sí cabecea.
+    bankTgt = Math.max(-1, Math.min(1, steerV));
     const vin = inp.u - inp.d;   // -1 pica / 0 / +1 trepa
     run.pitchHold = vin !== 0 ? run.pitchHold + dt : 0;
-    const pitchTgt = pitchTarget(vin, run.pitchHold, plane.vy);
-    plane.bank += (bankTarget - plane.bank) * Math.min(1, dt * 9);   // entra/sale con peso
-    plane.pitch += (pitchTgt - plane.pitch) * Math.min(1, dt * PITCH_LERP);   // igual de rapido que el alabeo
+    pitchTgt = pitchTarget(vin, run.pitchHold, plane.vy);
   }
+  stepVuelo(dt, {
+    bank: bankTgt, pitch: pitchTgt, boost: run.boost,
+    pan: inp.camAx || (inp.camD + inp.rise) - (inp.camU + inp.sink),
+  });
 
   // puntaje por altitud + racha rasante
   const alt = plane.y;

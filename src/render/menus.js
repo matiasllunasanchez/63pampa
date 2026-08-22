@@ -32,11 +32,32 @@ export function drawMenu(w) {
   ctx.fillStyle = P.dim; ctx.font = labelFont(9);                  // rotulo de seccion: GlimpRThin
   ctx.fillText(T('selTitle'), W / 2, 50);
 
-  // preview del avión elegido, con leve cabeceo
+  // preview del avión elegido, con leve cabeceo.
+  //
+  // EL SUAVIZADO NO ES UNA PREFERENCIA: depende de cuanto hay que achicar la imagen.
+  // La preview se dibuja a PW unidades de DISEÑO, que en el buffer son PW x 3 (U 1.5 x SC 2 = 3
+  // exacto, ver ctx.js). Con PW = 130 eso da 390 px reales. Entonces:
+  //
+  //   ancho del asset multiplo EXACTO de 390 (390, 780…) → vecino mas cercano: pixel art nitido.
+  //   cualquier otro ancho (hoy son de 977)              → suavizado, o el reescalado por 2.5
+  //                                                        tira filas y columnas desparejas y el
+  //                                                        avion sale dentado y sucio.
+  //
+  // Se decide sola a proposito: las previews se van a rehacer a 390 (ver AVIONES_CATALOGO.md
+  // "Generar las ILUSTRACIONES del roster"), y van a entrar de a una. Con un flag global habria
+  // que acordarse de darlo vuelta el dia exacto en que entra la ultima; asi cada avion se dibuja
+  // como le corresponde desde el momento en que su archivo cambia.
+  //
+  // (Antes esto no fijaba nada y heredaba el suavizado del dibujo anterior: el mismo menu se
+  // veia distinto segun de que pantalla venias.)
+  const PW = 130, PX_REAL = PW * 3;
   const pl = PLANES[w.selPlane];
   if (pl.ready) {
-    const PW = 130, PH = Math.round(PW * pl.h / pl.w);
+    const PH = Math.round(PW * pl.h / pl.w);
+    const smooth = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = !(pl.w % PX_REAL === 0);
     ctx.drawImage(pl.img, Math.round(W / 2 - PW / 2), Math.round(80 - PH / 2 + Math.sin(w.t * 1.6) * 2), PW, PH);
+    ctx.imageSmoothingEnabled = smooth;
   }
   // flechas de selección (parpadean)
   ctx.fillStyle = Math.sin(w.t * 6) > 0 ? P.ink : P.dim; ctx.font = 'bold 15px monospace';
@@ -77,7 +98,12 @@ export function drawMenu(w) {
 // entrada de ARENA son SEIS, y con el paso viejo (y0 86, rh 36) la ultima caia en y=266: la
 // descripcion se salia de los 270 de alto. El toque tactil lee estos mismos numeros, asi que
 // ajustarlos aca reubica tambien las zonas tocables.
-export const MODE_ROWS = { y0: 78, rh: 31 };
+// …y con CINEMATICAS son SIETE: con y0 78 / rh 31 la ultima caia en 264 y "Cerrar el juego"
+// quedaba cortada abajo (se vio en la captura). La cuenta del peor caso es `y0 + 6*rh + 20 <= 270`
+// —el 20 es lo que baja el resalte por debajo del nombre—: 72 + 174 + 20 = 266, adentro. El paso
+// 29 es el mismo minimo de JUEGO RAPIDO y PRUEBAS, el que no pega la descripcion de una fila al
+// nombre de la siguiente.
+export const MODE_ROWS = { y0: 72, rh: 29 };
 
 export function drawTitle(w) {
   ctx.textAlign = 'center';
@@ -133,6 +159,7 @@ export function drawModeSelect(w) {
     { name: T('modeCampaign'), desc: T('modeCampaignDesc') },
     { name: T('modeQuick'), desc: T('modeQuickDesc') },
     { name: T('modePruebas'), desc: T('modePruebasDesc') },
+    { name: T('modeCines'), desc: T('modeCinesDesc') },
     { name: T('modeMisiones'), desc: T('modeMisionesDesc') },
     { name: T('modeOptions'), desc: T('modeOptionsDesc') },
     { name: T('modeQuit'), desc: T('modeQuitDesc'), quit: true },
@@ -559,6 +586,21 @@ function pruebaText(r) {
 // sexta, su descripcion en 232 y el resalte cerrando en 238, dentro de los 270 de alto.
 export const PRUEBA_ROWS = { y0: 84, rh: 29, headH: 18, view: 6 };
 export function drawPruebasMenu(w) { drawRowMenu(w, 'pruebasTitle', pruebaText, PRUEBA_ROWS); }
+
+// ---------- CINEMATICAS (el catalogo del DIRECTOR, PLAN_DIRECTOR_CINEMATICAS §5) ----------
+// La puerta hermana de PRUEBAS, y con la misma mecanica: titulo + detalle por fila y ENTER la
+// reproduce. La diferencia esta en de donde sale la lista — no hay un catalogo escrito a mano,
+// se deriva de las timelines de data/cines.js. Una cinematica nueva aparece sola.
+//
+// Tampoco se traducen las entradas (mismo criterio que PRUEBAS): son rotulos de herramienta de
+// autor. El MARCO —titulo de la pantalla y ATRAS— si esta en los dos idiomas.
+function cineText(r) {
+  if (r.back) return { name: T('menuBack'), desc: T('menuBackDesc') };
+  return { name: r.titulo, desc: r.desc };
+}
+// MISMA GEOMETRIA que PRUEBAS, a proposito: son la misma herramienta con dos catalogos, y que se
+// muevan igual es lo que hace que se sientan la misma puerta.
+export function drawCinesMenu(w) { drawRowMenu(w, 'cinesTitle', cineText, PRUEBA_ROWS); }
 
 // ---------- EL SELECTOR DE MISIONES (PLAN_MISIONES_FASES §1, fase S1) ----------
 // La herramienta: la campaña entera listada, y ENTER vuela ESA mision sola. Igual que el catalogo

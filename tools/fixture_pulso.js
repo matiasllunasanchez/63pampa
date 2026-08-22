@@ -103,7 +103,9 @@ app.whenReady().then(async () => {
   if (!d || d.fase !== 'cine') { bad(`tecleando limpio la fase quedo en ${d && d.fase}`); }
   else ok(`secuencia limpia → premio · zona ${d.premio.zona} · ${d.premio.pts} puntos · sin errores (${d.errs})`);
   await shot('q2_exito');
-  for (let k = 0; k < 40 && (await Q()); k++) await sleep(150);
+  // la espera es GENEROSA: el premio corre en camara lenta (`ritmo`), asi que sus ~6 s de pelicula
+  // son ~9 de reloj de pared. Con el margen justo, bajar el ritmo tumbaba esta seccion sola.
+  for (let k = 0; k < 110 && (await Q()); k++) await sleep(150);
   const st = await js('String(window.__qdbg())');
   if (JSON.parse(st).state !== 'results') bad(`tras el exito el juego quedo en ${JSON.parse(st).state}, no en results`);
   else ok('el exito cierra la mision por el embudo de siempre (results)');
@@ -193,10 +195,12 @@ app.whenReady().then(async () => {
     let d = await tocar({ zona });
     if (!d || d.fase !== 'cine') { bad(`${zona}: la secuencia limpia no llego al premio (${d && d.fase})`); return null; }
     const beats = [], fx = [];
-    let pico = 0, mvVisto = null, secVisto = false, capt = false;
-    for (let k = 0; k < 90; k++) {
+    let pico = 0, mvVisto = null, secVisto = false, capt = false, dir = null;
+    for (let k = 0; k < 160; k++) {
       const s = JSON.parse(await js('String(window.__qdbg())'));
       if (!s.on) break;                                     // la cinematica termino: cerro la mision
+      // …y quien la esta corriendo: EL DIRECTOR, leyendo la timeline de data/cines.js
+      if (!dir) { const d = JSON.parse(await js('String(window.__cdbg())')); if (d && d.id) dir = d; }
       if (s.beat && beats[beats.length - 1] !== s.beat) beats.push(s.beat);
       if (s.mv) mvVisto = s.mv;
       if (s.sec) secVisto = true;
@@ -206,7 +210,7 @@ app.whenReady().then(async () => {
       await sleep(90);
     }
     const ult = fx[fx.length - 1] || { grow: 0, tilt: 0, sink: 0 };
-    return { premio: d.premio, clase: d.clase, beats, mv: mvVisto, sec: secVisto, pico, ult };
+    return { premio: d.premio, clase: d.clase, beats, mv: mvVisto, sec: secVisto, pico, ult, dir };
   }
 
   const A = await filmar('radar', 'radar');
@@ -215,6 +219,11 @@ app.whenReady().then(async () => {
   const B = await filmar('deposit', 'polvorin');
 
   if (A && B) {
+    // LA CINEMATICA NO ESTA EN CODIGO (PLAN_DIRECTOR_CINEMATICAS C0): la corre el director leyendo
+    // una timeline de data/cines.js. Es el criterio de cierre de C0 y por eso se mide primero.
+    if (A.dir && A.dir.id === 'pulso_premio' && A.dir.beats > 0)
+      ok(`la corre EL DIRECTOR desde data: timeline "${A.dir.id}" · ${A.dir.beats} beats · ${A.dir.dur}s`);
+    else bad(`el premio no lo esta corriendo el director (${JSON.stringify(A.dir)})`);
     // los compases de la cinematica, en orden — es la cinematica COMPUESTA del plan §3
     const esperado = ['pirueta', 'suelta', 'impacto', 'muerte'];
     if (A.beats.join('>') !== esperado.join('>')) bad(`la cinematica no compone en orden: ${A.beats.join('>')}`);

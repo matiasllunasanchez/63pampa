@@ -807,7 +807,7 @@ neutral flat mid-grey background, consistent design and consistent scale across
 all views.
 
 VEHICLE: A-4B Skyhawk attack jet in 1982 Argentine Air Force service, bare
-silver-grey metal finish, blue-and-white argentine roundel on wings and fuselage,
+argentine air force green-and-brown camouflage, blue-and-white argentine roundel on wings and fuselage,
 worn and weathered painted metal with visible panel lines and streaking, single
 seat, short delta wings, humpbacked spine, tricycle landing gear.
 
@@ -1034,7 +1034,7 @@ de `STORYBOARD_1.md` (que ya quedó actualizada con esta misma tabla).
 | `{TURCO}` | argentine chief mechanic, late 50s, **syrian-lebanese descent, olive skin, hooked nose**, stocky with a round belly, **bald on top with grey sides, cloth cap, glasses pushed up on his forehead**, **grey DROOPING WALRUS mustache**, grease-stained blue overalls **plain and unmarked on the back**, rag over one shoulder, big weathered hands |
 | `{COLORADO}` | argentine corporal, 26 years old, tall and sturdy, **fair freckled skin raw red from the cold**, red hair, broad honest smile, **plain olive field uniform with NO insignia**, wool cap, **argentine brown leather webbing with canteen**, muddy brown leather boots |
 | `{NORMA}` | 🟨 **3.4 — se le VE la cara** (murió la regla vieja de "siempre de espaldas"): argentine mother, **47 years old, middle-aged not elderly**, dark hair with grey at the temples in a low bun, criolla, warm tired face, gentle and practical expression, **faded blue dress with a cream floral apron, always the same apron**, **no military insignia of any kind** |
-| `{SKYHAWK}` | **A-4B** Skyhawk attack jet, bare silver-grey metal, blue-white argentine roundel, worn painted metal, single seat, **a row of small plain white stars below the cockpit** |
+| `{SKYHAWK}` | **A-4B** Skyhawk attack jet, argentine air force green-and-brown camouflage, blue-white argentine roundel, worn painted metal, single seat, **a row of small plain white stars below the cockpit** |
 | `{RASTROJERO}` | rusty old Argentine Rastrojero pickup truck, 1960s workhorse |
 | `{FOTO_VASCO}` | small worn late-1950s black-and-white photograph, deckled white border, curled corners, showing a beautiful young argentine woman in her mid-thirties laughing on a balcony, late-1950s hair and dress — YOUNG, never elderly |
 | `{LIBRETA_PICHON}` | fat black oilcloth-covered pocket notebook, grease-fingerprinted, swollen with dog-eared pages of pencil engineering sketches and margin calculations, carpenter's pencil |

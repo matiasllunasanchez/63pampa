@@ -9,7 +9,9 @@
 // sorpresa de a uno. El jugador lee adelante, igual que lee el pasillo.
 //
 // Espacio de coordenadas: MUNDO (480×270, W/H de ctx.js) — es la capa donde vive la cabina.
-import { ctx, W, H, px } from './ctx.js';
+import { ctx, W, H, PZ, px } from './ctx.js';
+import { plane } from '../core/state.js';
+import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
 import { T } from '../core/i18n.js';
 import { run } from '../core/run.js';
@@ -17,8 +19,10 @@ import { TOK_GLIFO, PULSO_CINE, PULSO_TEATRO } from '../data/pulso.js';
 import { bargeGeom } from './world.js';
 import * as momRender from './momentum.js';
 
-// La cabina baja lo mismo que en el ARENA: el visor pintado del PNG cae sobre el centro util.
-const COCKPIT_Y = 104;
+// DONDE APUNTA EL PULSO. Mismo contrato que el arena: es la mira del modo, y la cabina se acomoda
+// sola para que su visor pintado caiga aca. El PULSO apunta un poco mas abajo que el arena porque
+// la autopista de tokens vive en la mitad de abajo — y esa diferencia es del MODO, no del asset.
+const COCKPIT_MIRA = 150;
 // La autopista de compases va EN EL CIELO, arriba del buque. Probado a media altura (74) se leia
 // bien pero quedaba ESCRITA ENCIMA del blanco: la secuencia y el buque son las dos cosas que hay
 // que mirar, y no pueden pelearse el mismo pixel. El cielo esta vacio y es lo que sobra.
@@ -105,14 +109,20 @@ function drawCineMundo(Q, c, t) {
   // ---- LA RISTRA (plan §3: el arma son las bombas, no un misil). Salen de abajo del cuadro —de
   // la panza del avion, que esta detras de la cabina— y se ALEJAN hacia el buque: encogen. Es el
   // unico tramo del modo en que el jugador no hace nada, y es a proposito: es el silencio.
-  if (c.beat === 'suelta') {
+  if (c.parte === 'suelta') {
+    // DE DONDE SALEN. En cabina, del borde de abajo del cuadro: la panza del avion esta detras del
+    // canopy y no se ve. En tercera salen DEL AVION, que es media razon para elegir ese plano —
+    // en cabina la ristra aparece de la nada.
+    const chase = c.cam.modo === 'chase';
+    const sp = chase ? proj(plane.x, plane.y, PZ) : { x: W / 2, y: H + 8 };
     for (let i = 0; i < PULSO_CINE.BOMBAS; i++) {
-      const p = Math.max(0, Math.min(1, (c.t / PULSO_CINE.SUELTA) * 1.35 - i * 0.11));
+      // el avance del tramo lo da el director (`fParte`): el render no necesita saber cuanto dura
+      const p = Math.max(0, Math.min(1, c.fParte * 1.35 - i * 0.11));
       if (p <= 0) continue;
-      const x0 = W / 2 + (i - (PULSO_CINE.BOMBAS - 1) / 2) * 5;
+      const x0 = sp.x + (i - (PULSO_CINE.BOMBAS - 1) / 2) * 5;
       const bx2 = x0 + (im.x - x0) * p;
       // parabola: la bomba sube un pelo al salir y despues cae sobre el blanco
-      const by2 = (H + 8) + (im.y - (H + 8)) * (p * p * 0.65 + p * 0.35);
+      const by2 = sp.y + (im.y - sp.y) * (p * p * 0.65 + p * 0.35);
       const s = Math.max(1, 4 * (1 - p * 0.8));
       px(bx2 - s / 2, by2 - s, s, s * 2, '#2b3238');
       px(bx2 - s / 2, by2 - s, s, Math.max(1, s * 0.4), '#5a656d');
@@ -121,22 +131,24 @@ function drawCineMundo(Q, c, t) {
 
   // ---- EL IMPACTO y lo que sigue: el fuego no se apaga cuando termina el compas del estallido,
   // se queda ardiendo toda la muerte.
-  if (c.beat === 'impacto' || c.beat === 'muerte') {
-    const pi = c.beat === 'impacto' ? c.t / PULSO_CINE.IMPACTO : 1;
+  if (c.parte === 'impacto' || c.parte === 'muerte') {
+    const pi = c.parte === 'impacto' ? c.fParte : 1;
     if (pi < 1) estallido(im.x, im.y, uh * 0.95 * z.blast * Q.clase.blast, pi);
     // FOGONAZO a pantalla completa en los primeros cuadros: la pantalla se lava, como en la
     // cabina de verdad. Dura poquisimo — es un golpe, no un fundido.
-    if (c.beat === 'impacto' && c.t < 0.13) {
-      ctx.globalAlpha = 0.75 * (1 - c.t / 0.13);
+    if (c.parte === 'impacto' && c.tParte < 0.13) {
+      ctx.globalAlpha = 0.75 * (1 - c.tParte / 0.13);
       ctx.fillStyle = '#fff6e0'; ctx.fillRect(0, 0, W, H);
       ctx.globalAlpha = 1;
     }
   }
-  if (c.beat === 'muerte') {
+  if (c.parte === 'muerte') {
     const humo = z.humo * Q.clase.humo;
     // EL SEGUNDO ESTALLIDO (solo el polvorin): mas grande que el primero y desde la flotacion
-    if (c.sec) {
-      const ps = Math.min(1, (c.t - z.sec) / 0.9);
+    // la MARCA que dejo la timeline al volar la santabarbara: cuanto hace que estallo
+    const tSec = c.marcas.sec === undefined ? -1 : c.t - c.marcas.sec;
+    if (tSec >= 0) {
+      const ps = Math.min(1, tSec / 0.9);
       if (ps < 1) {
         // RECORTADO EN LA FLOTACION, igual que el casco: sin esto la bola se pintaba mar adentro
         // y a esta escala quedaba una plancha naranja abajo del agua.
@@ -164,7 +176,7 @@ function drawCineMundo(Q, c, t) {
     const n = Math.round(11 * humo);
     for (let i = 0; i < n; i++) {
       const f = i / Math.max(1, n - 1);
-      const sube = Math.min(1, c.t * (0.9 + humo * 0.5)) * f;
+      const sube = Math.min(1, c.tParte * (0.9 + humo * 0.5)) * f;
       const sw = uh * (0.8 + f * 3.2) * humo;
       ctx.globalAlpha = 0.92 - f * 0.62;
       px(im.x - sw / 2 + Math.sin(t * 0.7 + i * 1.3) * uh * 1.1 + sube * uh * 3.4,
@@ -181,18 +193,18 @@ function drawCinePremio(Q, c) {
   const pr = Q.premio;
   ctx.textAlign = 'center';
   // LA ZONA que se eligio, desde el estallido: es la respuesta a la unica decision del modo
-  if (c.beat === 'impacto' || c.beat === 'muerte') {
-    ctx.globalAlpha = Math.min(1, (c.beat === 'impacto' ? c.t : 1) / 0.2);
+  if (c.parte === 'impacto' || c.parte === 'muerte') {
+    ctx.globalAlpha = Math.min(1, (c.parte === 'impacto' ? c.tParte : 1) / 0.2);
     ctx.font = 'bold 9px monospace'; ctx.fillStyle = P.warn;
     ctx.fillText(T(pr.zona.str), W / 2, 11);
   }
-  if (c.beat !== 'muerte') { ctx.globalAlpha = 1; return; }
+  if (c.parte !== 'muerte') { ctx.globalAlpha = 1; return; }
   // LA LINEA DE LA CLASE: lo unico de la cinematica que el jugador va a recordar textualmente
-  ctx.globalAlpha = Math.min(1, c.t / 0.5);
+  ctx.globalAlpha = Math.min(1, c.tParte / 0.5);
   ctx.font = '8px monospace'; ctx.fillStyle = P.foam;
   ctx.fillText(T(Q.clase.str), W / 2, 22);
 
-  const ap = Math.min(1, Math.max(0, c.t - 0.5) / 0.4);
+  const ap = Math.min(1, Math.max(0, c.tParte - 0.5) / 0.4);
   ctx.globalAlpha = ap;
   ctx.textAlign = 'left';
   const sellos = [
@@ -232,17 +244,20 @@ function drawSal(cy) {
   ctx.globalAlpha = 1;
 }
 
-/** `w` = snapshot: { Q, t } — Q es la foto de solo lectura del sistema (systems/pulso.js). */
+/** `w` = snapshot: { Q, cine, t }.
+ *  `Q` es la foto del sistema (systems/pulso.js) y `cine` la del DIRECTOR (systems/cine.js): el
+ *  premio ya no tiene reloj propio, lo lleva la timeline. Los dos llegan por parametro y no por
+ *  import (convencion 4): el que dibuja no toca el estado, y menos el de otro sistema. */
 export function drawPulso(w) {
   const Q = w.Q; if (!Q) return;
   const t = w.t;
-  const cine = Q.fase === 'cine' ? Q.cine : null;
+  const cine = Q.fase === 'cine' ? w.cine : null;
 
   // VIÑETA: el tunel de vision del que esta concentrado. Ademas apaga los bordes para que la
   // secuencia y el buque sean lo unico que compite por la mirada.
   // EN EL PREMIO SE ABRE: la concentracion se suelta junto con el tiempo (ver timeScale) — el
   // tunel era el esfuerzo, y el esfuerzo ya paso.
-  const vg = 0.72 * (cine ? Math.max(0.25, 1 - cine.tot / 1.1) : 1);
+  const vg = 0.72 * (cine ? Math.max(0.25, 1 - cine.t / 1.1) : 1);
   const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.32, W / 2, H / 2, H * 0.95);
   g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${vg.toFixed(3)})`);
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
@@ -272,11 +287,17 @@ export function drawPulso(w) {
 
   // LA CABINA. Se reusa tal cual la del climax 2D (con su `yOff`, igual que el ARENA): es el mismo
   // avion y el mismo vidrio — no hay una cabina distinta por modo.
-  // …y en el premio BAJA: se abre cielo para el buque justo cuando la autopista ya no esta y no
-  // hay nada mas que leer. Es la misma cabina corrida, no otra cabina.
-  const cy = COCKPIT_Y + (cine ? PULSO_CINE.CABINA * Math.min(1, cine.tot / 1.2) : 0);
-  momRender.drawCockpit({ mom: { t: run.t }, t, yOff: cy });
-  drawSal(cy);
+  // …y en el premio la BAJA EL DIRECTOR (verbo `cam`): se abre cielo para el buque justo cuando la
+  // autopista ya no esta y no hay nada mas que leer. Es la misma cabina corrida, no otra cabina, y
+  // el offset viene ya interpolado en el snapshot — el render no mantiene una rampa propia.
+  //
+  // EN TERCERA (`cam: 'chase'`) NO SE DIBUJA NI LA CABINA NI LA SAL: las dos son dispositivos de
+  // primera persona. La sal esta entre el ojo y el mundo, y desde afuera del avion no hay vidrio
+  // donde pegarse. Ahi el avion lo dibuja el orquestador, con el sprite de siempre.
+  if (!cine || cine.cam.modo !== 'chase') {
+    const cab = momRender.drawCockpit({ mom: { t: run.t }, t, mira: COCKPIT_MIRA, yOff: cine ? cine.cam.off : 0 });
+    drawSal(cab.top);
+  }
 
   // EL LATIDO, VISTO. El mismo golpe que se escucha oscurece los bordes un instante: es lo que
   // hace que la viñeta deje de ser un filtro y pase a ser el tunel de vision de alguien que tiene

@@ -20,8 +20,10 @@ OUT = ROOT / 'dist-web' / 'index.html'
 # AVIONES: cada uno vive en assets/planes/<slug>/ con sus archivos siempre igual nombrados
 # (preview.webp|png, sheet.png, y cockpit.png el que lo tenga). Antes estaban todos sueltos en
 # assets/img/ con el nombre embebido en el archivo, y agregar un avion tocaba tres listas.
+# 'pampa' sigue en la lista aunque su entrada este COMENTADA en data/planes.js: los assets
+# existen y se hornean igual, y dejarlo aca hace que descomentarlo sea de verdad una sola linea.
 PLANE_DIRS = {'sky': 'a4-skyhawk', 'dagger': 'iai-dagger', 'supere': 'super-etendard',
-              'a4q': 'a4q', 'pampa': 'pampa-63', 'mirage': 'mirage-iiiea'}
+              'a4q': 'a4q', 'pampa': 'pampa-63', 'mirage': 'mirage-5p'}
 PLANE_PREVIEW_EXT = {'mirage': 'png'}     # el resto es webp
 # El juego usa mp3 originales; para la web se re-embebe la m4a comprimida de assets/music/web/.
 # Las pistas de adrenaline que no entran en el límite de 16 MB se DESCARTAN del build web ('').
@@ -148,6 +150,14 @@ def main():
     # PLACAS y RETRATOS del modo historia (assets/plates/, assets/portraits/): mismo criterio
     # mientras no existan los assets. Cuando se generen, evaluar embeberlos (los retratos son
     # bustos chicos y probablemente entren en el presupuesto de 16 MB).
+    # SKINS DE LOS FIELES (data/skins.js): NO entran — son 10 archivos de ~28 KB y el techo del
+    # build web son 16 MB. Igual que plates/ y portraits/, la ruta la arma el JS concatenando,
+    # asi que en el bundle sobrevive SOLO la base: se reemplaza por un data: muerto. `skinOf()`
+    # devuelve null y el que dibuja cae a la hoja generica — en web los cinco Fieles se ven
+    # iguales, que es exactamente el fallback para el que se diseño el modulo.
+    js, ok = sub_path(js, '../assets/planes/a4-skyhawk/skin_', 'data:,skins-web-off/')
+    if not ok:
+        raise SystemExit('ERROR: no encontre la base de skins en el bundle (cambio data/skins.js?)')
     js, ok = sub_path(js, '../assets/plates/', 'data:,plates-web-off/')
     if not ok:
         raise SystemExit('ERROR: no encontre la base ../assets/plates/ en el bundle (cambio screens.js?)')
