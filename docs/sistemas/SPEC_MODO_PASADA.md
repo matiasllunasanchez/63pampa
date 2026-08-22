@@ -1,5 +1,7 @@
 # SPEC — Modo PASADA · Análisis funcional para implementación
 
+> ⏳ **PENDIENTE — EN CUARENTENA (18/8/2026):** por DIRECCIÓN (`docs/proyecto/ESTADO.md`) la PASADA no genera buenas sensaciones y el clímax pasa a ser EL PULSO. **No se borra**: queda fuera del menú y de los flujos, compilando y con `npm run pasada` verde, para revisarla a fondo en otro momento — hipótesis: incorporarla como módulo de alguna misión (PLAN_REFACTOR §4b).
+
 > ⚠️ **RESCATE PRIMERO (16/8, playtest del autor):** el modo construido hasta P3+P6 no
 > genera adrenalina y tiene dos defectos graves medidos (el Sea Dart mata sin lectura; la
 > transición teletransporta al buque). **Antes de P4/P7 corre el plan de rescate:

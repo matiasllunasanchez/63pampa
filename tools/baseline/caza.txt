@@ -1,0 +1,78 @@
+
+FIXTURE — LA COLA (H#-H#)
+
+#. H# — el cimiento: se entra al duelo por sonda:
+   ✓ el duelo esta armado · fase presion · pasada # · CAP # s
+   ✓ te cruzo y quedo en tu COLA: z # contra tu z #
+
+#. H# — el aviso ES el avion: entra de frente por el horizonte:
+   ✓ ENTRA POR EL HORIZONTE y encarandote: z #, de frente
+
+#. la solucion de tiro ya se MIDE (todavia no cobra — eso es H#):
+   ✓ volando derecho la solucion MADURA: # → #
+
+#. H# — el sobrepaso: el que estaba atras queda ADELANTE:
+   ✓ sobrepasando: el pico fue a z # (venia de la cola en ~#, vos volas en #)
+   ✓ el cruce cercano LLENA la pantalla: #% de los pixeles cambiaron en el pico
+   ✓ quedo ADELANTE tuyo: z # contra tu z # — fase ventana
+
+#. H# — la ventana frontal (## s de frente, esquivandose):
+   ✓ de frente y lejos: fase ventana, z #
+
+#. H# — la salida: se va, y se VE irse:
+   ✓ alejandose: z #
+   ✓ el duelo TERMINO: no queda nada corriendo
+
+#. el ciclo del §# corre SOLO y se encadena:
+      recorrido: aviso → presion → sobrepaso → ventana → recola
+   ✓ paso por la fase aviso
+   ✓ paso por la fase presion
+   ✓ paso por la fase sobrepaso
+   ✓ paso por la fase ventana
+
+#. la flota se acumula:
+   ✓ se armaron # Harriers simultaneos: la flota se acumula
+
+#. H# — la solucion de tiro: las tres reglas del §# hechas numero:
+   ✓ RECTO Y ALTO madura: # → # (+# en # s)
+   ✓ A RAS casi no progresa: +# contra +# arriba — la banda del x# te tapa
+   ✓ QUEBRANDO se la borras: # → #
+
+#. el Harrier NO te dispara: un ciclo entero sin tocarte:
+      recorrido: aviso → presion → sobrepaso → ventana → recola
+   ✓ CICLO ENTERO SIN UN RASGUÑO: integridad # → #
+
+#a. la velocidad de cierre es RELATIVA a la tuya:
+   ✓ A MAS GAS, ANTES TE LO SACAS: al segundo, a # esta en z # y a # en z #
+
+#b. de que lado se lo ve, fase por fase:
+   ✓ aviso: DE FRENTE
+   ✓ presion: DE FRENTE
+   ✓ sobrepaso: DE COLA
+   ✓ ventana: DE COLA
+   ✓ recola: DE COLA
+   ✓ salida: DE COLA
+
+#. H# — el contraataque: ahuyentar es lo normal, derribar es la hazaña:
+   ✓ le pegas y se cuenta: hp # → # (todavia entero: ahuyenta a #)
+   ✓ a # impactos ROMPE EL ATAQUE: humo # · fase salida (se va, no muere)
+   ✓ a # impactos LO BAJASTE: el duelo termina en una bola de fuego, no en una salida
+
+#. H# — el combo corta la presion (§# paso #):
+   ✓ breakt lo obliga a pasarse de largo: fase sobrepaso
+   ✓ jink lo obliga a pasarse de largo: fase sobrepaso
+   ✓ sturn lo obliga a pasarse de largo: fase sobrepaso
+   ✓ una pirueta que no es de esquive (LOW YO-YO) no lo fuerza: sigue en presion
+
+#. H# — el reglamento: las puertas del director:
+   ✓ NO aparece con intensidad # (m#: el tutorial no se pelea)
+   ✓ NO aparece con los primeros metros (nadie te embosca en el despegue)
+   ✓ NO aparece con el tramo final antes del objetivo (es del climax)
+   ✓ NO aparece con adentro del banco de niebla (a ciegas no es dificil, es una moneda)
+   ✓ con el pasillo abierto y la mision en intensidad #, SI aparece
+   ✓ con # m recorridos y UN jet visto YA aparece: el duelo llega a jugarse
+   ✓ en campaña el techo de duelos ES la intensidad: intensidad # → un solo duelo por mision
+
+consola: sin errores
+
+FIXTURE COLA: OK

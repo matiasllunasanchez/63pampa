@@ -523,32 +523,53 @@ test('averias: los escalones degradan en orden y el ultimo deja SOLO LO BASICO',
 });
 
 // ---------- EL CLIMAX DE CADA MISION (SPEC_MODO_PASADA RF-14) ----------
-import { MISSIONS, climaxOf } from '../src/data/missions.js';
+import { MISSIONS, climaxOf, climaxDeclarado } from '../src/data/missions.js';
+import { CLIMAX_EN_CUARENTENA, CLIMAX_SUPLENTE, MODOS_EN_CUARENTENA, climaxEnCuarentena, modoEnCuarentena } from '../src/data/cuarentena.js';
 
-test('climax: es DATO de la mision, y el default de una con buque es la PASADA', () => {
+test('climax: es DATO de la mision (RF-14), y eso lo sigue diciendo el DECLARADO', () => {
   // El criterio de aceptacion de RF-14, literal: cambiar el campo cambia el climax sin tocar
-  // codigo. Por eso se prueba la funcion con misiones inventadas y no solo con las de la campaña.
-  assert.equal(climaxOf({ goal: { kind: 'ship' } }), 'pasada', 'sin campo, una mision con buque va a la PASADA');
-  assert.equal(climaxOf({ goal: { kind: 'ship' }, climax: 'arena' }), 'arena');
-  assert.equal(climaxOf({ goal: { kind: 'distance' } }), null, 'sin buque no hay climax: la cierra el PASILLO');
-  assert.equal(climaxOf({ goal: { kind: 'distance' }, climax: 'arena' }), null, 'el campo no le inventa un buque');
-  // EL PULSO entra por la MISMA puerta (Q4): una palabra en el renglon de la mision y nada mas.
-  // Hoy ninguna mision de la campaña lo pide (plan §6.5), pero el enchufe tiene que estar listo
-  // para el dia que m14 exista — o para el dia que el rescate de la PASADA no pase su gate.
+  // codigo. Se prueba con misiones inventadas y no solo con las de la campaña.
+  // OJO: se prueba contra `climaxDeclarado` y no contra `climaxOf`, porque desde la cuarentena
+  // (PLAN_REFACTOR §4b) son dos preguntas distintas — que PIDE la mision, y que se JUEGA hoy.
+  assert.equal(climaxDeclarado({ goal: { kind: 'ship' } }), 'pasada', 'sin campo, una mision con buque pide la PASADA');
+  assert.equal(climaxDeclarado({ goal: { kind: 'ship' }, climax: 'arena' }), 'arena');
+  assert.equal(climaxDeclarado({ goal: { kind: 'distance' } }), null, 'sin buque no hay climax: la cierra el PASILLO');
+  assert.equal(climaxDeclarado({ goal: { kind: 'distance' }, climax: 'arena' }), null, 'el campo no le inventa un buque');
+  assert.equal(climaxDeclarado({ goal: { kind: 'ship' }, climax: 'pulso' }), 'pulso');
+});
+
+test('cuarentena: lo apartado juega el suplente, y el dato del autor queda INTACTO debajo', () => {
+  // EL CUSTODIO DE RF-A. La cuarentena tiene que ser reversible con un renglon de dato: si
+  // alguien "arregla" esto pisando data/missions.js, la vuelta deja de existir y nadie se
+  // acuerda de que misiones pedian que. Estos asserts son los que no lo dejan pasar.
+  for (const c of CLIMAX_EN_CUARENTENA) {
+    assert.equal(climaxOf({ goal: { kind: 'ship' }, climax: c }), CLIMAX_SUPLENTE, `${c} esta apartado: juega el suplente`);
+    assert.equal(climaxDeclarado({ goal: { kind: 'ship' }, climax: c }), c, `${c} SIGUE declarado: la cuarentena no pisa el dato`);
+  }
+  assert.ok(!climaxEnCuarentena(CLIMAX_SUPLENTE), 'el suplente no puede estar el mismo apartado');
+  assert.equal(climaxOf({ goal: { kind: 'distance' }, climax: 'arena' }), null, 'sin buque sigue sin haber climax');
+  // el suplente pasa derecho: una mision que ya pedia PULSO no se toca
   assert.equal(climaxOf({ goal: { kind: 'ship' }, climax: 'pulso' }), 'pulso');
 });
 
-test('climax: la campaña respeta la regla del autor — la mayoria PASADA, el ARENA ocasional', () => {
+test('cuarentena: HOY no queda ninguna mision jugando algo apartado', () => {
   const conBuque = MISSIONS.filter(m => m.goal.kind === 'ship');
-  const arena = conBuque.filter(m => climaxOf(m) === 'arena');
-  assert.ok(conBuque.every(m => ['pasada', 'arena', 'pulso'].includes(climaxOf(m))), 'ningun climax desconocido');
-  // …y EL PULSO todavia no juega ninguna: el plan §6.5 lo ata a que caiga el gate de la PASADA o a
-  // que exista m14. Si algun dia se le asigna una mision, este assert es el que hay que venir a
-  // cambiar A PROPOSITO — no puede pasar de contrabando.
-  assert.equal(conBuque.filter(m => climaxOf(m) === 'pulso').length, 0, 'EL PULSO no reemplaza a la PASADA de oficio');
+  assert.ok(conBuque.length > 0, 'la campaña tiene misiones con buque');
+  assert.ok(conBuque.every(m => !climaxEnCuarentena(climaxOf(m))), 'ninguna mision entra a un climax apartado');
+  assert.equal(MISSIONS.filter(m => m.goal.kind !== 'ship').every(m => climaxOf(m) === null), true);
+  // y los modos apartados no pueden ser cualquier cosa: son los dos que el plan nombra
+  assert.deepEqual([...MODOS_EN_CUARENTENA].sort(), ['arena', 'pasadas'], 'los modos apartados son MINUTOS SAGRADOS y PASADAS MORTALES');
+  assert.ok(modoEnCuarentena('arena') && modoEnCuarentena('pasadas') && !modoEnCuarentena('cycle'));
+});
+
+test('climax: la campaña respeta la regla del autor — la mayoria PASADA, el ARENA ocasional', () => {
+  // Se mide sobre lo DECLARADO: la cuarentena aparta el climax, no borra el diseño. El dia que
+  // se levante, la campaña tiene que volver exactamente a esto sin que nadie reconstruya nada.
+  const conBuque = MISSIONS.filter(m => m.goal.kind === 'ship');
+  const arena = conBuque.filter(m => climaxDeclarado(m) === 'arena');
+  assert.ok(conBuque.every(m => ['pasada', 'arena', 'pulso'].includes(climaxDeclarado(m))), 'ningun climax desconocido');
   assert.ok(arena.length * 2 < conBuque.length, 'el ARENA tiene que ser la excepcion, no la regla');
   assert.deepEqual(arena.map(m => m.id), ['m4', 'm12'], 'el callejon de San Carlos y el final');
-  assert.equal(MISSIONS.filter(m => m.goal.kind !== 'ship').every(m => climaxOf(m) === null), true);
 });
 
 // ---------- EL CARRIL CUBRE LA ZONA DE VUELO (bug del 16/8: la punta era refugio) ----------
@@ -968,7 +989,7 @@ test('cine: el premio del PULSO compone en orden y solo la zona brava vuela dos 
   // la lee sin abrir el juego
   // los instantes se miden DESDE que termina la pirueta (`$tPir` = encare + duracion de LA
   // maniobra que se tecleo), asi que la timeline se liga con eso y no con tiempos absolutos
-  const tPir = CINE_VUELO.POSE_T + 0.7;      // encare + un BREAK TURN
+  const tPir = CINE_VUELO.RAS_T + CINE_VUELO.POSE_T + 0.7;   // rasante + salto + un BREAK TURN
   const vars = { pirueta: 'breakt', piruetaDir: 1, boom: 1, shake: 6, tPir, muerteDur: 2.6 };
   const partes = b => b.filter(x => x.parte).map(x => x.parte);
   const facil = armarCine(CINES.pulso_premio, vars);

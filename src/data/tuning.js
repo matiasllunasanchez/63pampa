@@ -161,7 +161,7 @@ export const ROLL_DUR = 0.55;
 export const GEAR_T = 0.9;
 
 // DONDE APUNTA EL ARENA VIEJO, en pantalla. Ya NO es una medida del asset de cabina: desde que la
-// cabina se acomoda sola (V_VISOR / COCKPIT_FILL en render/momentum.js) esto es la mira del modo y
+// cabina se acomoda sola (V_VISOR / MIRA_PLENA en legacy/momentum_render.js) esto es la mira del modo y
 // el PNG la sigue, igual que en el arena y en la PASADA. Por eso vale el centro y no un numero
 // tuneado contra un dibujo.
 export const MOM_AX = 240, MOM_AY = 135;
@@ -546,9 +546,49 @@ export const CAZA_V_FUGA = 190;     // YENDOSE ADELANTE TUYO se aleja a esto - r
 export const CAZA_V_FUGA_MIN = 45;  // piso de la resta. Sin el, con turbo a fondo la fuga quedaba
                                     // en cero o negativa y el Harrier no se iba nunca.
 
-// EL HARRIER NO DISPARA. Aca vivian las trazadoras de aviso (CAZA_TRAC_*, CAZA_MISS) y la rafaga
-// letal (CAZA_LET_*, CAZA_GOLPE_CD, CAZA_FRONT_CD), y se borraron todas con el fuego. El porque
-// esta en el encabezado de systems/caza.js: te mataba antes de que llegaras a verlo.
+// ---------- LOS AMAGUES: EL RITMO DE LA COLA ----------
+// Antes de pasarte, el Harrier ASOMA TRES VECES por el borde: aparece despacio, se esconde,
+// vuelve, y recien a la tercera se compromete y te cruza. No es adorno.
+//
+// Es la VENTANA DE REACCION. Un avion que se te pega y te pasa sin previo aviso no se puede
+// contestar — no hay nada que hacer, solo esperar. Tres amagues legibles son tres oportunidades
+// de hacer algo al respecto, y son el gancho del que va a colgar la maniobra de escape o
+// contraataque que todavia no existe: cuando exista, el momento en que esta ASOMANDO es su
+// blanco. Por eso el estado sale en el snapshot y no se queda adentro del sistema.
+export const CAZA_AMAGUES = 3;              // cuantas veces asoma antes de comprometerse
+export const CAZA_AMAGUE_T = [1.1, 1.7];    // s que se queda asomado. LENTO: hay que poder verlo
+export const CAZA_AMAGUE_GAP = [0.7, 1.2];  // s escondido entre amague y amague
+export const CAZA_AMAGUE_TIRA = 2;          // desde que amague empieza a tirarte (y a errar)
+// GEOMETRIA DEL AMAGUE. Asoma DETRAS tuyo (z por debajo de PZ = 14) y bien corrido del carril:
+// a z 10,5 la escala es F/10,5 = 12,9, asi que 15 unidades son ~193 px del centro y el sprite
+// (10,5 de ancho = 135 px) entra en cuadro por la mitad. Eso es lo que se busca — MEDIO Harrier
+// asomando por el costado, no un Harrier entero tapando el juego.
+export const CAZA_Z_ASOMA = 10.5;
+export const CAZA_X_ASOMA = 15;    // corrimiento con el amague afuera
+export const CAZA_X_ESCONDE = 32;  // ...y escondido: fuera del cuadro, a 413 px del centro
+
+// LAS TRAZADORAS QUE PASAN LEJOS. El Harrier vuelve a disparar, pero SIN dientes: no hacen daño y
+// no pueden hacerlo — no hay codigo de impacto para ellas. Son el TELL, y que pasen LEJOS es el
+// contenido del tell: desde atras y en mala posicion, el tiro sale apurado y erra. Ver el
+// encabezado de systems/caza.js — la regla no es "no dispara", es "no te puede pegar".
+export const CAZA_TRAC_V = 340;          // velocidad propia: se ve CRUZAR, no flotar
+export const CAZA_TRAC_N = [4, 7];       // proyectiles por rafaga
+export const CAZA_TRAC_GAP = [0.32, 0.6];// s entre rafagas mientras esta asomado
+export const CAZA_MISS = [13, 25];       // a cuanto de tu ala pasan. El avion mide ~4 de
+                                         // envergadura util: a 13 ya erro por tres aviones.
+
+// ---------- COMO CAEN ----------
+// Tres finales distintos, sorteados al ARMAR cada Harrier. Que el desenlace no sea siempre el
+// mismo es lo que hace que derribar uno se sienta un evento y no una animacion: la primera vez
+// que uno se va girando hasta el agua en vez de reventar, el jugador lo cuenta.
+//   bola     revienta en el aire, ahi mismo. El clasico.
+//   caida    no muere en el aire: se da vuelta, se le va el morro y BAJA girando y humeando
+//            hasta pegar contra el suelo o el agua. Es el unico que se ve terminar.
+//   pedazos  se abre en pedazos y lo que queda cae dando tumbos, mas rapido y mas sucio.
+export const CAZA_FINALES = ['bola', 'caida', 'pedazos'];
+export const CAZA_CAIDA_G = 30;      // gravedad de la caida, u/s². No es realista: es LEGIBLE
+export const CAZA_CAIDA_MAX = 5.5;   // s de tope, por si cae fuera de cuadro y nunca toca nada
+
 export const CAZA_SOL_AVISO = 0.72;  // fraccion de solucion en la que la radio grita QUEBRA (§2: el
                                      // aviso es humano; en un duelo mudo esto no suena). Ya no
                                      // anuncia balas: anuncia que se te esta pegando al carril.

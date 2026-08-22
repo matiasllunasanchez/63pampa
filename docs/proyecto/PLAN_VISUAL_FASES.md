@@ -1,5 +1,7 @@
 # PLAN VISUAL POR FASES — el frente visual completo, en tandas delegables
 
+> ⚠️ **DIRECCIÓN 18/8 (`ESTADO.md`):** T7 (buque 3D) y T8 (mar 3D) quedan **condicionadas** a que ARENA/PASADA sobrevivan. Todo lo del PASILLO (T1–T6, T9) sigue vigente.
+
 > **Qué es:** EL plan de implementación del frente visual entero, en fases. Ejecuta la
 > "Estrategia global (16/8)" de [VISUAL_UPGRADES.md](VISUAL_UPGRADES.md) y le SUMA los
 > frentes pedidos por Matías el 16/8: **ambientes y fondos · sensación de vuelo · assets

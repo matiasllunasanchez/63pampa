@@ -33,6 +33,22 @@ export const mouse = { x: W / 2, y: H * 0.4, on: false };
 export const pointer = { steer: null };   // arrastre de vuelo tactil (null fuera de arrastre)
 export const flags = { anyPress: false, startReq: false };
 
+// QUE FAMILIA DE MANDO HAY ENCHUFADA. No cambia NINGUN binding —el mapeo estandar de la Gamepad API
+// pone A/✕ en 0, B/◯ en 1, X/□ en 2 e Y/△ en 3, o sea en la MISMA posicion fisica— sino los
+// NOMBRES que muestra la pantalla CONTROLES. Un mando de Xbox ya se juega entero; lo unico que
+// estaba mal era leer "◯" cuando el boton dice "B".
+//   'xbox'  Xbox / XInput / cualquier cosa que Steam presente como mando de Xbox
+//   'ps'    PlayStation y el resto (default: es la nomenclatura con la que se escribio el juego)
+// Se muta, no se reasigna (regla de los stores del repo).
+export const padInfo = { kind: 'ps', id: '' };
+const XBOX_RE = /xbox|xinput|x-?box|045e|microsoft/i;
+function readPadKind(gp) {
+  const id = (gp && gp.id) || '';
+  if (id === padInfo.id) return;              // solo se recalcula cuando cambia el mando
+  padInfo.id = id;
+  padInfo.kind = XBOX_RE.test(id) ? 'xbox' : 'ps';
+}
+
 // mapeo de las teclas de vuelo a los ejes de `inp`
 const KEYMAP = {
   // W/A/S/D SON EL STICK IZQUIERDO, SIEMPRE. Es la mano que vuela y nunca cambia de trabajo:
@@ -101,6 +117,11 @@ export function initInput(cv, a) {
   const taps = [];
   const COMBO_WIN = 0.28, COMBO_MAX = 5;
   function dirTap(d) {
+    // EL PULSO DELETREA LOS MISMOS TOQUES. No dispara piruetas: las escribe contra reloj, con el
+    // mismo vocabulario y otro consumidor. Se despacha ACA —y no en cada fuente de entrada— para
+    // que el teclado y el joystick no puedan divergir: cuando esto vivia en el `keydown`, la
+    // prueba se jugaba con teclas y con el mando no se podia jugar en absoluto.
+    if (S.state === 'pulso') { a.pulsoTap(d); return; }
     const now = performance.now() / 1000;
     // un hueco largo CORTA la secuencia: lo de antes ya no es parte de este combo
     if (taps.length && now - taps[taps.length - 1].t > COMBO_WIN) taps.length = 0;
@@ -133,8 +154,12 @@ export function initInput(cv, a) {
       e.preventDefault(); return;
     }
     // ESC en pleno juego = PAUSA (en MODO CAMARA no: ahi Escape ya significa salir, ver abajo)
+    // La lista tiene que coincidir con PAUSABLE() de game.js y con `inGame` de mas abajo (Start del
+    // mando): si un modo esta en una y no en la otra, se pausa con el joystick y no con ESC. Le
+    // pasaba a la PASADA.
     if (!e.repeat && isBack(e.code) && !cfg.devcam
-      && (S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum' || S.state === 'arena')) {
+      && (S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum'
+        || S.state === 'arena' || S.state === 'pasada' || S.state === 'pulso')) {
       a.pauseToggle(); e.preventDefault(); return;
     }
     if (S.state === 'title') { a.startTitle(); e.preventDefault(); return; }   // PORTADA: cualquier tecla
@@ -237,10 +262,7 @@ export function initInput(cv, a) {
     // PIRUETAS: cada toque fresco alimenta el detector de combos (ver dirTap). Sale del CAMPO que
     // la tecla escribe, no de la tecla: asi A/D dan 'l'/'r' o 'L'/'R' segun en que vida esten.
     const kf = keyField(e.code);
-    if (!e.repeat && S.state === 'play' && TAPTOK[kf]) dirTap(TAPTOK[kf]);
-    // EL PULSO lee los MISMOS toques que el detector de combos, pero no pasa por el: la prueba
-    // no dispara piruetas, las DELETREA. Mismo vocabulario, otro consumidor.
-    if (!e.repeat && S.state === 'pulso' && TAPTOK[kf]) a.pulsoTap(TAPTOK[kf]);
+    if (!e.repeat && TAPTOK[kf] && (S.state === 'play' || S.state === 'pulso')) dirTap(TAPTOK[kf]);
     // anyPress solo con pulsaciones FRESCAS (!e.repeat): el auto-repeat de una tecla sostenida no
     // debe saltear pantallas (historia, derribado, transiciones). inp si se re-setea siempre.
     if (kf !== undefined) { inp[kf] = 1; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }
@@ -255,7 +277,9 @@ export function initInput(cv, a) {
     // REPARTO DE ENERGIA del ARENA (S1). [G] libre en todo el juego; [TAB] NO servia (es misil).
     if (e.code === 'KeyG' && !e.repeat) a.cyclePip();
     if (e.code === 'KeyZ' || e.code === 'Tab') { inp.msl = true; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }   // misil (Z o TAB)
-    if (!e.repeat && S.state === 'pulso' && e.code === 'KeyZ') a.pulsoTap('Z');   // el remate: la suelta
+    // EL REMATE ES LA ACCION DE SOLTAR, no una tecla concreta: cualquier entrada de MISIL lo manda
+    // (Z, TAB, y en el mando L1/□). El glifo dice 'Z' con teclado y el boton cuando hay mando.
+    if (!e.repeat && S.state === 'pulso' && (e.code === 'KeyZ' || e.code === 'Tab')) a.pulsoTap('Z');
     if (e.code === 'Enter' && !e.repeat) flags.anyPress = true;
     // MUSICA: tecla 1 = pista anterior, tecla 2 = siguiente (el motor lo ignora fuera de modo)
     if (!e.repeat && (e.code === 'Digit1' || e.code === 'Numpad1')) a.trackPrev();
@@ -326,11 +350,12 @@ export function initInput(cv, a) {
   //   Stick der HORIZONTAL       GIRO LIBRE del horizonte (= [Q]/[E]); analogico
   //   Stick der VERTICAL         PANEO DE CAMARA arriba/abajo (= [R]/[F]); analogico
   //   R1 (5)                     METRALLETA        L1 (4)             MISIL
-  //   gatillo (7)                turbo             △ Triangle (3)     invertir el gas
+  //   gatillo (7)                turbo             △ Triangle (3)     invertir el EJE Y (todo el juego)
   //   ✕ Cross (0)                metralleta tambien (y OK / avanzar en menus)
   //   □ Square (2)               misil tambien     ◯ Circle (1)       atras (volver)
   //   L2 (6)                     freno (arena y pasada)
-  //   cruceta ↑ (12)             reparto de energia (arena)
+  //   cruceta ↑ (12)             el poder del recurso: energia (arena) · LA CHANCHA (pasillo)
+  //   SELECT (8)                 MOMENTUM (camara lenta, pasillo)
   //   cruceta ↓ (13)             camara: cabina ↔ tercera persona (= [V])
   //   L3 (10) / R3 (11)          pista musical ◄ / ►     cruceta ←/→   esquivar (y navegar menus)
   //
@@ -386,8 +411,15 @@ export function initInput(cv, a) {
 
   function pollGamepad() {
     const pads = navigator.getGamepads ? [...navigator.getGamepads()] : [];
-    const gp = pads.find(g => g && g.connected);
+    // SE PREFIERE EL DE MAPEO ESTANDAR. Todos los indices de abajo (0=✕/A, 5=R1/RB, 12-15 cruceta,
+    // ejes 0-3) son los del mapeo `standard`; un mando que reporte `mapping: ''` los tiene en otro
+    // orden y volaria cualquier cosa. Si hay dos conectados —pasa con un adaptador o un mando
+    // fantasma— el estandar gana. Si NO hay ninguno estandar se usa el que haya: es mejor que nada,
+    // y el jugador lo va a notar enseguida.
+    const conectados = pads.filter(g => g && g.connected);
+    const gp = conectados.find(g => g.mapping === 'standard') || conectados[0];
     if (!gp) { btnPrev = []; padLast = performance.now(); requestAnimationFrame(pollGamepad); return; }
+    readPadKind(gp);
     const now = performance.now();
     const dt = Math.min(0.05, (now - padLast) / 1000);   // para el movimiento fluido de la mira
     padLast = now;
@@ -407,8 +439,12 @@ export function initInput(cv, a) {
     // QUE ESTADOS SON "JUGAR". Cada climax nuevo tiene que entrar aca o el mando deja de volar al
     // llegar: el `else` de abajo SUELTA todos los ejes (es la rama de menus). La PASADA se agrego
     // por eso — se entra sin corte desde el pasillo y el joystick se quedaba muerto en el aire.
+    // EL PULSO ESTA EN LA LISTA aunque no se vuele: es la rama donde el mando LEE los sticks, y la
+    // prueba se teclea con ellos. Estando afuera caia en el `else` (menus), que suelta todos los
+    // ejes — con lo cual el unico climax que no se podia jugar con joystick era justo el que ES
+    // teclear. Que escriba `inp.u` de paso no molesta a nadie: en `pulso` no hay vuelo que leerlo.
     const inGame = S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum'
-      || S.state === 'arena' || S.state === 'pasada';
+      || S.state === 'arena' || S.state === 'pasada' || S.state === 'pulso';
     // PAUSA con el mando: Start (9) la abre en juego; abierta, la cruceta/stick navegan,
     // ✕ confirma, ◯ vuelve y Start reanuda. El vuelo se SUELTA (setPad 0) para que al reanudar
     // no quede un eje clavado del frame anterior.
@@ -432,7 +468,8 @@ export function initInput(cv, a) {
       // cruceta) cuenta como un toque — doble flick del stick = doble tap. Mismo detector.
       const dl = (lx < 0 || down(14)) ? 1 : 0, dr = (lx > 0 || down(15)) ? 1 : 0;
       const du = (cfg.invY ? ly > 0 : ly < 0) ? 1 : 0, dd = (cfg.invY ? ly < 0 : ly > 0) ? 1 : 0;
-      if (S.state === 'play') {
+      const teclea = S.state === 'play' || S.state === 'pulso';   // los dos consumen TOQUES
+      if (teclea) {
         if (dl && !padHeld.l) dirTap('l');
         if (dr && !padHeld.r) dirTap('r');
         if (du && !padHeld.u) dirTap('u');
@@ -448,9 +485,14 @@ export function initInput(cv, a) {
       // vuelta el teclado CON EL, porque es un solo eje: △ lo alterna en vivo y la fila EJE Y lo guarda.
       if (hit(3)) a.throttleInvert();                          // △ = invertir el eje Y (y lo GUARDA)
       if (hit(1)) a.combatTurn();                              // ◯ = viraje de combate (solo lo lee el ARENA)
-      // CRUCETA ARRIBA = reparto de energia. SQUADRONS_UPDATE §6 la daba por ocupada ("la cruceta
-      // es esquive"), pero eso vale para 14/15 (izq/der): 12/13 no las lee nadie en juego.
-      if (hit(12)) a.cyclePip();
+      // CRUCETA ARRIBA = EL PODER DEL RECURSO DEL MODO: reparto de energia en el arena, LA CHANCHA
+      // en el pasillo. Quien decide cual es game.js (`modePower`) — aca no se sabe de modos.
+      // SQUADRONS_UPDATE §6 daba la cruceta por ocupada ("es esquive"), pero eso vale para 14/15.
+      if (hit(12)) a.modePower();
+      // SELECT / BACK / VIEW = MOMENTUM (camara lenta). Era la ultima accion del juego que solo
+      // existia en el teclado: se podia jugar TODO con el mando menos bajar el tiempo, que es un
+      // poder y no un ajuste. Es el unico boton que estaba libre.
+      if (hit(8)) a.tempoToggle();
       // CRUCETA ABAJO = CAMARA (lo mismo que [V]). Era la ultima direccion de la cruceta sin dueño
       // en juego, y hacia falta: en el ARENA y en la PASADA esa tecla conmuta CABINA ↔ TERCERA
       // PERSONA en vivo, y con el mando no habia forma de cambiar de vista.
@@ -460,7 +502,10 @@ export function initInput(cv, a) {
       setPad('fire', down(5) || down(0));                      // R1 = metralleta (✕ tambien)
       setPad('turbo', down(7));                                // turbo (gatillo)
       setPad('msl', down(4) || down(2));                       // L1 = misil (□ tambien)
-      setPad('brake', down(6) ? 1 : 0);                        // L2 = freno (solo lo lee el ARENA)
+      // ...y en el PULSO ese mismo boton es EL REMATE, igual que la Z del teclado. Por FLANCO:
+      // sostenerlo tiene que valer una sola suelta, como una tecla que no repite.
+      if (S.state === 'pulso' && (hit(4) || hit(2))) a.pulsoTap('Z');
+      setPad('brake', down(6) ? 1 : 0);                        // L2 = freno (lo leen ARENA y PASADA)
 
       // ---- STICK DERECHO ----
       // X = GIRO LIBRE DEL HORIZONTE (lo que en teclado son [Q]/[E]).
@@ -477,7 +522,7 @@ export function initInput(cv, a) {
       setPad('camAx', ry);
       // Y ADEMAS DAN TOQUES: cada cruce de la zona muerta es un tap en MAYUSCULA para el detector
       // de combos. Es lo que hace que las maniobras que ROLAN se pidan con la mano que rola.
-      if (S.state === 'play') {
+      if (teclea) {
         const rNow = { L: rx < 0 ? 1 : 0, R: rx > 0 ? 1 : 0, U: ry < 0 ? 1 : 0, D: ry > 0 ? 1 : 0 };
         for (const k in rNow) { if (rNow[k] && !rPrev[k]) dirTap(k); rPrev[k] = rNow[k]; }
       }

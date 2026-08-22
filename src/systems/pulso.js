@@ -250,7 +250,7 @@ function exito() {
   cine.start('pulso_premio', {
     pirueta: b ? b.move : undefined,
     piruetaDir: b ? b.dir : 1,
-    tPir: CINE_VUELO.POSE_T + durMv,
+    tPir: CINE_VUELO.RAS_T + CINE_VUELO.POSE_T + durMv,
     tSinPirueta: b ? undefined : 0,
     // el estallido del impacto: lo que propone la zona, escalado por la clase del buque
     boom: 0.34 * zona.blast * Q.clase.blast,
@@ -397,26 +397,42 @@ export const camRoll = () => (Q && Q.fase === 'cine' && cfg.horizon
  *  parametro desde game.js — nadie llama hacia arriba). `grow` es el pendiente honesto de Q1: el
  *  blanco recien DOMINA el cuadro cuando la autopista ya no esta y no le pelea el pixel. */
 export function shipFx() {
-  if (!Q || Q.fase !== 'cine') return null;
+  // …y SOLO MIENTRAS EL DIRECTOR CORRE. Desde que la cinematica se apaga sola en su `fin`, la fase
+  // del PULSO sigue en 'cine' un cuadro mas (el orquestador cierra la mision en ese mismo cuadro),
+  // y sin esta guarda el buque volvia a 1× y sin escora justo ahi: un parpadeo del blanco a tamaño
+  // de horizonte. Que hoy no se vea porque el recuento ya tapo la escena no lo hace correcto.
+  if (!Q || Q.fase !== 'cine' || !cine.active()) return null;
   const z = Q.premio.zona;
-  // el zoom corre desde el primer cuadro del premio y no se detiene: es la caida sobre el blanco.
-  // Se mide contra el instante en que arranca la agonia (PULSO_T_MUERTE, leido de la timeline):
-  // para cuando el buque empieza a morirse, ya lo tenes encima.
-  const gf = Math.min(1, cine.t() / Math.max(0.1, cine.tParte0('muerte')));
-  const grow = 1 + (PULSO_CINE.ZOOM - 1) * gf * gf;
+  // EL ACERCAMIENTO ES UNA SOLA CURVA, de punta a punta del premio. Estuvo partido en dos —el zoom
+  // de la caida hasta la agonia, y el del sobrevuelo durante la agonia— y las DOS arrancaban con
+  // pendiente cero (van al cuadrado): en la costura, que caia justo en el impacto, el buque dejaba
+  // de crecer casi un segundo. Medido con `__buque`: el largo en pantalla pasaba de +70 %/s a
+  // +7 %/s exactamente ahi. Eso es lo que se veia como «el avion frena al segundo que impacta la
+  // bomba» — y no era el avion: en una camara que mira para adelante, el tamaño del blanco es lo
+  // unico que dice a que velocidad vas.
+  //
+  // El exponente es >1 porque un acercamiento ACELERA: el tamaño aparente va con 1/distancia, asi
+  // que a velocidad constante los ultimos metros crecen mucho mas que los primeros.
+  const g = Math.min(1, cine.t() / Math.max(0.1, cine.dur()));
+  const grow = 1 + (PULSO_CINE.ZOOM - 1) * Math.pow(g, PULSO_CINE.ZOOM_CURVA);
+  // LA AGONIA, como avance 0..1 — y 0 mientras el buque todavia no se este muriendo.
+  const p = cine.parte() === 'muerte' ? cine.fParte() : 0;
   // …y BAJA en el cuadro mientras crece: le estas cayendo encima, asi que el buque deja de estar
   // clavado en el horizonte y se viene al centro de lo que la cabina deja ver.
-  const drop = PULSO_CINE.DROP * gf;
-  if (cine.parte() !== 'muerte') return { grow, drop, tilt: 0, sink: 0 };
+  const drop = PULSO_CINE.DROP * g;
+  if (!p) return { grow, drop, tilt: 0, sink: 0 };
   // MUERTE: escora y se va. La CURVA es de quien es dueño del buque, no del director — igual que
   // la curva de una pirueta es de moves.js. La timeline solo dice cuando empieza y cuanto dura, y
   // eso llega como el avance 0..1 del tramo.
-  const p = cine.fParte();
   const k = z.sink * Q.clase.sink;
   // …y SE QUEDA ATRAS. Mientras el buque se hunde, vos estas trepando y alejandote: cae en el
   // cuadro. En una camara 2D —que mira siempre para adelante— esto es lo unico que puede decir
   // "te lo dejaste abajo", y sin eso la escena se lee como el avion estacionado mirando el humo.
-  return { grow, drop: drop + CINE_VUELO.ESC_DROP * p, tilt: p * p * 0.26 * k, sink: p * p * 1.15 * k };
+  // EL HUNDIMIENTO se frena a mitad de camino a proposito. Con 1.15 el buque quedaba con la
+  // cubierta MEDIO CASCO por debajo del agua antes de que la cinematica terminara, y el recorte del
+  // mar se lo comia entero: el ultimo segundo era mar vacio. Un buque no se hunde en tres segundos
+  // —lo que se cuenta aca es que EMPEZO a hundirse— y el que se lo termina de tragar es el recuento.
+  return { grow, drop: drop + CINE_VUELO.ESC_DROP * p, tilt: p * p * 0.26 * k, sink: p * p * 0.78 * k };
 }
 
 // ---------------- SONDA (QUITAR antes de publicar) ----------------

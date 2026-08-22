@@ -2,6 +2,40 @@
 
 _Documento de continuidad. Última actualización: 25 de julio de 2026._
 
+> ## 🧭 DIRECCIÓN (18/8/2026, Matías) — el nivel completo es PASILLO → BARRA → PULSO
+>
+> **Decisión:** ARENA y PASADA **no generan buenas sensaciones al jugar** y quedan
+> **PENDIENTES en cuarentena** (fuera del menú y los flujos, sin borrar, con fixtures):
+> se revisan a fondo en otro momento y, si se puede, se incorporan como módulos de
+> alguna misión. El clímax del nivel es **EL PULSO** (la
+> secuencia de teclas tipo *fatality*), y si se pasa bien se muestra **una de las
+> cinemáticas en producción** (`systems/cine.js` · PLAN_DIRECTOR_CINEMATICAS).
+>
+> **El nivel más completo que se imagina hoy:**
+> `PASILLO` (el vuelo de siempre) → **una MECÁNICA NUEVA similar a la barra de
+> PERSECUCIÓN** (mantener la banda — tensión de precisión dentro del pasillo) →
+> **EL PULSO** → cinemática → fin del nivel. **PERSECUCIÓN** sigue existiendo, pero como
+> variante de pasillo que dura algunas misiones, no como modo aparte.
+>
+> **Consecuencias para los planes abiertos:**
+> - `PLAN_REFACTOR.md` → **STANDBY** (se sigue desarrollando; el refactor espera).
+> - `PASADA_ADRENALINA.md` (rescate R0–R6) → **en pausa**; el gate R6 se da por
+>   resuelto hacia el plan C: PULSO como clímax.
+> - `SPEC_MODO_PASADA.md`, `PLAN_MINUTOS_SAGRADOS.md`, `PROMPT_ARENA_VUELO_LIBRE.md` →
+>   **PENDIENTES (cuarentena, no archivo)**; los modos rápidos MINUTOS SAGRADOS y PASADAS
+>   MORTALES, ocultos del menú por perilla.
+> - `PLAN_VISUAL_FASES.md` **T7 (buque 3D) y T8 (mar 3D)** → condicionadas: solo si
+>   ARENA/PASADA sobreviven. El resto del plan visual (luz, aire, agua 2D, armas,
+>   enemigos, avión) sigue vigente porque es del PASILLO.
+> - Lo que **sí se pule**: PASILLO, sus poderes (MOMENTUM, CHANCHA), LA COLA, las olas,
+>   la destrucción, el modo historia y las cinemáticas.
+>
+> **El plan de gameplay de este nivel, por fases chicas: [PLAN_NIVEL_COMPLETO.md](PLAN_NIVEL_COMPLETO.md).**
+>
+> **Cómo se enchufa el espinazo nuevo:** `missions.js` ya tiene `climax` por misión — el
+> PULSO entra con `climax: 'pulso'` (una palabra por misión); la mecánica de BARRA es lo
+> único nuevo a especificar (hoy solo existe como modo PERSECUCIÓN).
+
 > **ARTE (25/7/2026):** la frase "falta reemplazar arte placeholder" de abajo quedó vieja en
 > buena parte. Hoy los 6 aviones jugables y casi todos los enemigos/props vuelan con **hojas de
 > sprites horneadas** desde modelos low-poly (`tools/bake_planes.html` y `tools/bake_enemies.html`,

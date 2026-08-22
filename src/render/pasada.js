@@ -1,3 +1,11 @@
+// ============================================================================================
+// PENDIENTE — EN CUARENTENA DESDE EL 18/8/2026. Ver PLAN_REFACTOR §4b.
+//
+// Este modulo NO participa del menu ni de ningun flujo de campaña/ciclo: la perilla esta en
+// data/cuarentena.js. Sigue compilando y su fixture sigue verde a proposito — es lo unico que
+// avisa si se pudre mientras espera. NO se pule ni se refactoriza mas alla de lo mecanico: se
+// revisa a fondo despues, y la hipotesis a explorar es entrar como modulo de una mision.
+// ============================================================================================
 // RENDER de la fase PASADA: la capa 2D que va ENCIMA del mundo 3D (systems/three-arena.js, la
 // MISMA escena que usa el arena). Todo en espacio de PANTALLA (grilla 480x270).
 //
@@ -14,7 +22,7 @@ import { T } from '../core/i18n.js';
 import { run } from '../core/run.js';
 import { cfg } from '../core/state.js';
 import { drawMira } from './miras.js';
-import { drawCockpit, salpicar } from './momentum.js';
+import { drawCockpit, salpicar } from '../legacy/momentum_render.js';
 import { drawThirdPlane, shipArrow, COCKPIT_MIRA } from './arena.js';
 import * as world3D from '../systems/three-arena.js';
 import { PS, HOSE } from '../data/pasada.js';

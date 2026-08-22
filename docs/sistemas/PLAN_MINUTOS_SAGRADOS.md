@@ -1,5 +1,7 @@
 # Plan de implementación — MINUTOS SAGRADOS / fase ARENA
 
+> ⏳ **PENDIENTE — EN CUARENTENA (18/8/2026):** por DIRECCIÓN (`docs/proyecto/ESTADO.md`) el ARENA no genera buenas sensaciones; MINUTOS SAGRADOS se oculta del menú. **No se borra**: se revisa a fondo en otro momento, posible módulo de misión (PLAN_REFACTOR §4b).
+
 > **Estado: propuesta de diseño e implementación. Nada de esto está construido.**
 > Escrito el 2/8/2026 contra el código real (`systems/arena.js`, `systems/three-arena.js`,
 > `render/arena.js`, `systems/ship3d.js`, `data/ships.js`), no contra la idea de lo que hacen.

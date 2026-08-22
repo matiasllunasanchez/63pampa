@@ -1,3 +1,18 @@
+// ============================================================================================
+// LEGACY — aislado aca el 18/8/2026 por PLAN_REFACTOR §4b (RF-A).
+//
+// OJO, Y ESTO NO ES UNA FORMALIDAD: la carpeta se llama `legacy` porque este modulo NACIO como
+// el fallback del climax viejo, pero MEDIDO al mudarlo resulto que todavia tiene partes VIVAS
+// que usa el juego de todos los dias. Estan listadas abajo. **No borrar nada de esto** hasta que
+// RF2/RF8 las separen; hoy borrarlo rompe el juego, no limpia deuda.
+// Anotado como divergencia en PLAN_REFACTOR §9.
+//
+// LO QUE SIGUE VIVO ACA:
+//   · `readyToEnter`/`enter` — systems/flight.js:137 los llama como ULTIMO eslabon de la cadena
+//     de climax: es el fallback real cuando no hay 3D. El estado 'momentum' se alcanza.
+//   · `drift()` — render/world.js lo lee en TRES caminos calientes (la distancia visual).
+//   · `phases()`/`phase()` — render/world.js, para la aproximacion al buque.
+// ============================================================================================
 // EL ARENA VIEJO (fallback sin 3D de la fase ARENA): bullet-time sobre el asalto a la barcaza,
 // con camara en riel. El nombre "momentum" quedo por herencia historica — ver el aviso sobre
 // vocabulario en docs/ARQUITECTURA.md (ROADMAP #13 va a reusar "MOMENTUM" para otra cosa). El

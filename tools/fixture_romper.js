@@ -300,6 +300,70 @@ app.whenReady().then(async () => {
   else bad(`presupuesto excedido: ${budget.parts} particulas, ${ch5.n}/${ch5.max} pedazos`);
   await shot('d5_denso');
 
+  // ---------- 6. LAS VARIANTES DEL AIRE (v2 · V1) ----------
+  // EL CRITERIO ES EL §1 DEL PLAN: una variante se distingue por la SILUETA y por el TIEMPO, nunca
+  // solo por el color. Lo que se mide, entonces, es lo unico que sobrevive a una captura en blanco
+  // y negro: CUANTOS PEDAZOS GRANDES quedan y QUE HACEN. El color no entra en ninguna afirmacion
+  // de esta seccion, a proposito.
+  console.log('\n6. las cuatro muertes del aire (v2 V1):');
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?patria&qa');
+  await sleep(2500);
+  const gas6 = setInterval(() => win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'w' }), 60);
+  await sleep(1600); clearInterval(gas6);
+  win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'w' });
+
+  const V = {};
+  for (const id of ['desintegracion', 'ala', 'moribundo', 'partido']) {
+    V[id] = JSON.parse(await js(`String(window.__romper('jet', null, 60, ${JSON.stringify(id)}))`));
+    await sleep(260);
+  }
+  for (const [id, r] of Object.entries(V)) {
+    console.log(`   · ${id.padEnd(15)} ${String(r.n).padStart(2)} pedazos · ${r.grandes} grande(s) · mayor ${r.mayor} · espiral ${r.espiral} · morib ${r.moribundo} · bola ${r.bola}`);
+  }
+  // LA FIRMA de cada una, en pedazos grandes: 0 / 1+tirabuzon / 1 entero que se va / 2 que se separan
+  const silueta = r => [r.grandes, r.espiral, r.moribundo].join('-');
+  const firmasV = Object.fromEntries(Object.entries(V).map(([k, r]) => [k, silueta(r)]));
+  const distintas = new Set(Object.values(firmasV)).size;
+  if (distintas === 4) ok(`las cuatro tienen firma de silueta distinta: ${Object.entries(firmasV).map(([k, f]) => k + '=' + f).join(' · ')}`);
+  else bad(`dos variantes comparten silueta (${distintas} firmas para 4 muertes): ${JSON.stringify(firmasV)}`);
+  if (V.desintegracion.grandes === 0 && V.desintegracion.n >= 10)
+    ok(`desintegracion no deja NADA grande: ${V.desintegracion.n} pedacitos, mayor ${V.desintegracion.mayor}`);
+  else bad(`desintegracion dejo ${V.desintegracion.grandes} pedazo(s) grande(s)`);
+  if (V.moribundo.moribundo === 1 && V.moribundo.bola === 0)
+    ok('moribundo es el unico que NO revienta donde lo tocaste (sin bola, y se va de largo)');
+  else bad(`moribundo: morib=${V.moribundo.moribundo} bola=${V.moribundo.bola}`);
+  if (V.ala.espiral === 1 && V.ala.mayor >= 2) ok(`ala: una pieza grande (${V.ala.mayor}) y el resto en tirabuzon`);
+  else bad(`ala: mayor=${V.ala.mayor} espiral=${V.ala.espiral}`);
+  if (V.partido.grandes === 2 && V.partido.espiral === 0) ok('partido: DOS mitades y ninguna en tirabuzon');
+  else bad(`partido: grandes=${V.partido.grandes} espiral=${V.partido.espiral}`);
+
+  // EL TOPE DE LA MUERTE LARGA (§6.2). Es la unica variante que sobrevive a su propio despiece,
+  // asi que es la unica que puede acumularse: sin cap, ametrallar una formacion deja el cielo
+  // lleno de aviones que se van muriendo para siempre.
+  for (let i = 0; i < 6; i++) { await js(`String(window.__romper('jet', null, ${70 + i * 9}, 'moribundo'))`); await sleep(90); }
+  const vivosM = JSON.parse(await js(`String(window.__moribundos())`));
+  if (vivosM.n <= 2) ok(`el cap del moribundo se cumple: ${vivosM.n} vivos tras pedir 6 (tope 2)`);
+  else bad(`cap del moribundo excedido: ${vivosM.n} vivos (tope 2)`);
+
+  // EL SELECTOR: cada arma tiene que tirar para SU lado. Es lo que hace que la variante signifique
+  // algo — si el dado mandara solo, el arma dejaria de contar la historia de como moriste.
+  const porArma = {};
+  for (const k of ['canon', 'misil', 'cadena']) {
+    const vs = [];
+    for (let i = 0; i < 6; i++) {
+      const r = JSON.parse(await js(`String(window.__romper('jet', null, ${210 + i * 7}, null, ${JSON.stringify(k)}))`));
+      vs.push(r.variante); await sleep(70);
+    }
+    porArma[k] = vs;
+    console.log(`   · ${k.padEnd(7)} → ${vs.join(' ')}`);
+  }
+  const soloDe = (arma, ids) => porArma[arma].every(v => ids.includes(v));
+  if (soloDe('canon', ['ala', 'moribundo'])) ok('el cañon arranca alas o deja moribundos — nunca desintegra');
+  else bad(`el cañon saco variantes que no le corresponden: ${porArma.canon.join(' ')}`);
+  if (soloDe('misil', ['desintegracion', 'partido'])) ok('el misil desintegra o parte — nunca deja un ala girando');
+  else bad(`el misil saco variantes que no le corresponden: ${porArma.misil.join(' ')}`);
+  await shot('v1_variantes');
+
   console.log('\nconsola: ' + (errors.length ? errors.length + ' error(es)' : 'sin errores'));
   for (const e of errors.slice(0, 8)) console.error('   ' + e);
   console.log(fails || errors.length ? `\nFIXTURE ROMPER: FALLA (${fails})\n` : '\nFIXTURE ROMPER: OK\n');

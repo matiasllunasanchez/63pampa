@@ -1,0 +1,45 @@
+estado al arrancar: story · escena M#_LOCKER · linea #
+
+linea # · M#_LOCKER_# · (acotacion) · hold # · cara —
+   "El Turco junta las cosas del Vasco en una caja."
+   un toque la completa: #/# · sigue en la linea #
+   silencio: el juego pedia #s · pasaron #s · # toques ignorados
+
+linea # · M#_LOCKER_# · GITANO · hold # · cara gitano_roto
+   "La casada… Turco, dejámela ver una última vez."
+   un toque la completa: #/# · sigue en la linea #
+   silencio: el juego pedia #s · pasaron #s · # toques ignorados
+
+linea # · M#_LOCKER_# · (acotacion) · hold # · cara —
+   "La da vuelta. Nada más que eso."
+   un toque la completa: #/# · sigue en la linea #
+   silencio: el juego pedia #s · pasaron #s · # toques ignorados
+
+linea # · M#_LOCKER_# · PUMA · hold # · cara puma_quebrado
+   "Sesenta y uno."
+   un toque la completa: #/# · sigue en la linea #
+   silencio: el juego pedia #s · pasaron #s · # toques ignorados
+
+linea # · M#_LOCKER_# · ESTEBAN · hold # · cara tero_roto
+   "El Vasco tenía quince años."
+   un toque la completa: #/# · sigue en la linea #
+   silencio: el juego pedia #s · pasaron #s · # toques ignorados
+
+linea # · M#_LOCKER_# · GITANO · hold # · cara gitano_roto
+   "Tres años le cebé mate a este culiao. Tres años…"
+   un toque la completa: #/# · sigue en la linea #
+   silencio: el juego pedia #s · pasaron #s · # toques ignorados
+
+estado al terminar la escena: modeselect
+
+HOLDS   guion / lo que pidio el motor / lo que se tardo en poder avanzar
+  #: #s → pidio #s ✓ → tardo #s ✓
+  #: #s → pidio #s ✓ → tardo #s ✓
+  #: #s → pidio #s ✓ → tardo #s ✓
+  #: #s → pidio #s ✓ → tardo #s ✓
+  #: #s → pidio #s ✓ → tardo #s ✓
+  #: #s → pidio #s ✓ → tardo #s ✓
+
+errores de consola: #
+
+FIXTURE: OK

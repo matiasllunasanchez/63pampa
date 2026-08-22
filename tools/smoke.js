@@ -116,22 +116,19 @@ app.whenReady().then(async () => {
   // ?qa sino MINUTOS SAGRADOS, que entra DERECHO a la batalla. OJO: con three.js cargado
   // `arena.available()` da true y esto entra a la fase ARENA nueva, NO al fallback en riel
   // de `systems/momentum.js` — ese fallback (`?no3d`) no tiene smoke propio todavía.
-  console.log('\narena (MINUTOS SAGRADOS):');
+  console.log('\narena (MINUTOS SAGRADOS · en cuarentena):');
   const url = (process.env.SMOKE_SRC || path.join(ROOT, 'src', 'index.html'));
   await win.loadURL('file://' + url + '?qa');
   await sleep(2500);
-  // el camino pasa por JUEGO RAPIDO: el selector principal tiene HISTORIA / JUEGO RAPIDO /
-  // OPCIONES / SALIR, y los modos sueltos viven un escalon adentro.
-  await tap(win, 'Return');                                       // portada → modeselect
-  await tap(win, 'Down');                                         // HISTORIA → JUEGO RAPIDO
-  await tap(win, 'Return');                                       // → submenu JUEGO RAPIDO
-  // CICLO → PATRIA → PERSECUCION → MINUTOS SAGRADOS. Son TRES flechas desde que se abre el menu, y
-  // el numero cambia cada vez que se agrega un modo: con la entrada de PERSECUCION (PLAN B, N2)
-  // paso de 2 a 3, y hasta arreglarlo esta misma prueba entraba a otro modo y fallaba mas abajo con
-  // un mensaje que no decia nada de menus.
-  for (let i = 0; i < 3; i++) await tap(win, 'Down');
-  await tap(win, 'Return');                                       // → menu de avion
-  await tap(win, 'Return');                                       // → batalla (arena directo)
+  // ENTRADA POR SONDA, NO POR EL MENU (RF-A, 18/8/2026). El ARENA y PASADAS MORTALES quedaron en
+  // cuarentena y ya no tienen fila en JUEGO RAPIDO, asi que el camino que este smoke recorria
+  // —tres flechas abajo y Enter— dejo de existir. Se entra por el catalogo de PRUEBAS, que es la
+  // puerta que la cuarentena mantiene viva a proposito.
+  //
+  // DE PASO SE VA UNA FRAGILIDAD VIEJA: contar flechas ataba esta prueba al ORDEN del menu, y ya
+  // habia fallado una vez al entrar PERSECUCION (de 2 flechas a 3) con un mensaje que no hablaba
+  // de menus. Lo que hay que probar es que la fase ARRANCA Y DIBUJA, no en que renglon vive.
+  await win.webContents.executeJavaScript("__prb('arena')");
   await sleep(4000);
   await checkAlive(win, 'arena');
 
@@ -145,28 +142,25 @@ app.whenReady().then(async () => {
   win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Space' });
   await checkAlive(win, 'arena tras disparar');
 
-  // PASADAS MORTALES: la otra fase del climax (systems/pasada.js), entrada POR EL MENU. El fixture
-  // `npm run pasada` la prueba a fondo pero entra por sonda; esto prueba lo que la sonda saltea —
-  // que el camino JUEGO RAPIDO → PASADAS MORTALES → avion → pasada exista y dibuje.
-  console.log('\npasada (PASADAS MORTALES):');
+  // PASADAS MORTALES: la otra fase del climax (systems/pasada.js), tambien en cuarentena. Se entra
+  // por `?pasada=<n>&pasillo`, que es la sonda que RF-A garantiza que sigue andando — y ademas es
+  // la unica que prueba lo que el fixture saltea: que el PASILLO desemboque en la pasada sin corte.
+  console.log('\npasada (PASADAS MORTALES · en cuarentena):');
   // SIN ?qa: ese flag acorta la mision al 6% y la aproximacion entera queda en 156 m, o sea que el
   // modo ya estaria adentro de la pasada antes del primer chequeo — justo lo que hay que probar.
   // El tramo largo no se vuela: se salta con __wjump, que para eso esta.
-  await win.loadURL('file://' + url);
+  await win.loadURL('file://' + url + '?pasada=0&pasillo');
   await sleep(2500);
-  await tap(win, 'Return');                                       // portada → modeselect
-  await tap(win, 'Down');                                         // → JUEGO RAPIDO
-  await tap(win, 'Return');                                       // → submenu
-  for (let i = 0; i < 4; i++) await tap(win, 'Down');             // → PASADAS MORTALES (ver la nota de arriba)
-  await tap(win, 'Return');                                       // → menu de avion
-  await tap(win, 'Return');                                       // → la corrida, ya volando
-  await sleep(1200);
-  // el modo arranca EN LA APROXIMACION (no adentro de la zona): ya volando, sin obstaculos y con
-  // el buque en el horizonte. Se salta al final del tramo con __wjump en vez de volarlo entero.
+  // QUE SE AFIRMA ACA, Y QUE SE MUDO. La sonda `?pasada=&pasillo` arranca el nivel DESDE LA PISTA
+  // y lo vuela entero; la entrada por menu de PASADAS MORTALES arrancaba ya adentro de la
+  // aproximacion, y ese `p > 0.3` era una propiedad DEL MODO, que es justo lo que quedo en
+  // cuarentena. No se pierde cobertura: la aproximacion la mide a fondo `npm run pasada` (el telon,
+  // el cruce al climax, el fundido). Aca queda lo que esta puerta si prueba, que es lo que ninguna
+  // otra prueba toca: que el PASILLO de una mision con buque desemboque en la fase pasada.
   const aprox = JSON.parse(await win.webContents.executeJavaScript('__wjump()'));
-  if (aprox.state === 'play' && aprox.obj > 0 && aprox.p > 0.3 && aprox.obs === 0)
-    pass(`PASADAS MORTALES arranca en la aproximacion (${(aprox.p * 100) | 0}% del camino, sin obstaculos)`);
-  else fail(`arranque raro de PASADAS MORTALES: ${JSON.stringify(aprox)}`);
+  if ((aprox.state === 'takeoff' || aprox.state === 'play') && aprox.obj > 0 && aprox.obs === 0)
+    pass(`el pasillo de una mision con buque arranca limpio (objetivo ${aprox.obj} m, sin obstaculos)`);
+  else fail(`arranque raro del pasillo de PASADAS MORTALES: ${JSON.stringify(aprox)}`);
   await win.webContents.executeJavaScript('__wjump(0.985)');
   const gas = setInterval(() => win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'w' }), 40);
   await sleep(2500);

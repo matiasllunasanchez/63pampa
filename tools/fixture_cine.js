@@ -58,6 +58,18 @@ async function trazar(id) {
     await sleep(60);
   }
   if (tr.length < 4) { bad(`${id}: la traza salio vacia (${tr.length} lecturas)`); return null; }
+  // ---- 0. SE APAGA SOLA. Es la red del cuelgue del 22/8: el premio del PULSO termina en un
+  // fundido a BLANCO con opacidad 1, y mientras el director siga vivo ese blanco se sigue pintando
+  // encima de TODO lo que venga despues — el panel de recuento incluido. La pantalla quedaba en
+  // blanco para siempre y no habia forma de salir. Una cinematica que no se apaga no es una
+  // cinematica larga: es un cuelgue, y es el peor que puede tener este sistema porque el ultimo
+  // cuadro de una escena suele ser justamente un fundido opaco.
+  let apagado = false;
+  for (let k = 0; k < 12; k++) {
+    const c = await C();
+    if (!c || c.on === false) { apagado = true; break; }
+    await sleep(60);
+  }
   // ---- 1. QUE SE MUEVE (recorridos de punta a punta)
   const rango = k => { const v = tr.map(x => x[k]).filter(x => typeof x === 'number'); return Math.max(...v) - Math.min(...v); };
   const mov = { alt: rango('alt'), x: rango('x'), dist: rango('dist'), camy: rango('camy'), camx: rango('camx') };
@@ -76,7 +88,7 @@ async function trazar(id) {
     return m;
   };
   const sal = { bank: salto('bank'), pitch: salto('pitch'), roll: salto('roll', true), camy: salto('camy') };
-  return { id, tr, mov, sal, partes: [...new Set(tr.map(x => x.parte).filter(Boolean))] };
+  return { id, tr, mov, sal, apagado, partes: [...new Set(tr.map(x => x.parte).filter(Boolean))] };
 }
 
 app.whenReady().then(async () => {
@@ -97,6 +109,8 @@ app.whenReady().then(async () => {
     if (!R) continue;
     const last = R.tr[R.tr.length - 1];
     ok(`corre y termina · ${last.t}s · ${R.tr.length} lecturas · partes: ${R.partes.join(' → ')}`);
+    if (R.apagado) ok('y SE APAGA SOLA: el director se suelta y no deja nada pintado encima');
+    else bad(`${id}: el director sigue vivo despues del \`fin\` — su ultimo cuadro se queda pintado sobre todo lo que venga (si es un fundido opaco, es la pantalla trabada)`);
     // LO QUE SE MUEVE. Todavia no es una falla (el peso llega en P2/P3): es LA MEDICION que hay
     // que poder comparar antes y despues, y el renglon que hace evidente el diagnostico del §0.
     inf(`se mueve  · altura ${R.mov.alt.toFixed(2)} m · carril ${R.mov.x.toFixed(2)} · avance ${R.mov.dist} m · camara ${R.mov.camy.toFixed(2)}`);

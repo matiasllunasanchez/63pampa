@@ -1,0 +1,16 @@
+
+FIXTURE — EL DIRECTOR: la vara del peso (PLAN_CINE_PESO P#)
+
+catalogo: # cinematica(s) — pulso_premio
+
+pulso_premio:
+   ✓ corre y termina · #s · # lecturas · partes: pirueta → suelta → impacto → muerte
+     se mueve  · altura # m · carril # · avance # m · camara #
+     salta max (por lectura ~# ms) · alabeo # · cabeceo # · rolido # · camara #
+   ✓ el avion vuela: # m de altura y # de carril
+   ✓ el mundo corre debajo: # m
+   ✓ la camara persigue: # de recorrido
+
+consola: sin errores
+
+FIXTURE CINE: OK

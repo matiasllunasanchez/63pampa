@@ -79,57 +79,150 @@ const AVION = [P.body, P.bodyDark, P.canopy];           // fuselaje: el mismo de
 //   caida   'espiral'                   la muerte en dos actos: el resto cae girando y revienta
 //                                       al tocar el suelo
 //   grav    factor de gravedad          lo liviano planea (lona, tela); 1 = escombro normal
+//
+// Y EL PESO (V2 del plan v2) — 'liviano' | 'medio' | 'pesado'. No es decoracion: es lo que decide
+// si un misil manda la cosa VOLANDO por el aire, la VUELCA, o no la mueve y la revienta en el
+// lugar. Va en la receta y no en una tabla aparte porque es una propiedad del objeto, igual que
+// su paleta o su pieza reconocible.
 export const DESPIECE = {
   // DEPOSITO DE COMBUSTIBLE: el mas grande y el mas sucio. Chapa oxidada del tanque.
-  depot: { n: 9, size: [0.7, 1.9], c: OXIDO, hot: 0.85, up: 20, spread: 20, pieza: 'tanque',
+  depot: { masa: 'pesado', n: 9, size: [0.7, 1.9], c: OXIDO, hot: 0.85, up: 20, spread: 20, pieza: 'tanque',
     bola: 'grande', chispa: null, sec: true, humo: HUMO_T },
   // ANTIAEREO: metal, poco pedazo y muy caliente — le vuela la municion adentro
-  aa: { n: 6, size: [0.4, 1.0], c: METAL, hot: 0.8, up: 17, spread: 15, pieza: 'canon',
+  aa: { masa: 'medio', n: 6, size: [0.4, 1.0], c: METAL, hot: 0.8, up: 17, spread: 15, pieza: 'canon',
     bola: 'chica', chispa: 'metal', humo: 2.5 },
-  aatruck: { n: 7, size: [0.5, 1.3], c: METAL, hot: 0.75, up: 15, spread: 15, pieza: 'cabina',
+  aatruck: { masa: 'medio', n: 7, size: [0.5, 1.3], c: METAL, hot: 0.75, up: 15, spread: 15, pieza: 'cabina',
     bola: 'chica', chispa: 'metal', humo: 3 },
   // RADAR: el plato sale entero, girando. Es la pieza mas reconocible del juego.
-  radar: { n: 6, size: [0.5, 1.2], c: METAL, hot: 0.5, up: 16, spread: 14, pieza: 'plato',
+  radar: { masa: 'medio', n: 6, size: [0.5, 1.2], c: METAL, hot: 0.5, up: 16, spread: 14, pieza: 'plato',
     bola: 'chica', chispa: 'metal', humo: 2 },
   // CARPA: lona y polvo. Liviana: vuela lejos y alto, y casi no arde (D2 le saca la bola de fuego)
-  tent: { n: 6, size: [0.5, 1.4], c: LONA, hot: 0.1, up: 24, spread: 22, pieza: null,
+  tent: { masa: 'liviano', n: 6, size: [0.5, 1.4], c: LONA, hot: 0.1, up: 24, spread: 22, pieza: null,
     bola: null, chispa: 'polvo', humo: 0, grav: 0.5 },
   // HELICOPTERO: el rotor se va solo. La muerte en dos actos del plan (D2) empieza en esta pieza.
-  helo: { n: 7, size: [0.5, 1.3], c: METAL, hot: 0.7, up: 18, spread: 16, pieza: 'rotor',
+  helo: { masa: 'medio', n: 7, size: [0.5, 1.3], c: METAL, hot: 0.7, up: 18, spread: 16, pieza: 'rotor',
     bola: 'chica', chispa: 'metal', caida: 'espiral', humo: 3 },
-  // JET: fuselaje de avion — el mismo escombro que el del jugador, que es justo la lectura
-  jet: { n: 8, size: [0.5, 1.4], c: AVION, hot: 0.7, up: 16, spread: 18, pieza: 'ala',
-    bola: 'grande', chispa: null, humo: 0 },
+  // JET: fuselaje de avion — el mismo escombro que el del jugador, que es justo la lectura.
+  //
+  // LAS CUATRO MUERTES DEL AIRE (v2 §3). Se distinguen por CUANTOS PEDAZOS GRANDES quedan y por
+  // que hacen — no por el color, que en las cuatro es el mismo fuselaje:
+  //
+  //   desintegracion  NINGUNO       abanico ancho de pedacitos, y se acabo         (instantanea)
+  //   ala             UNO           el ala sola girando + el resto en tirabuzon    (media)
+  //   partido         DOS           proa girando y cola cayendo plana, separandose (media)
+  //   moribundo       UNO, ENTERO   sigue de largo humeando y revienta lejos       (larga)
+  //
+  // Esa es la prueba del §1: en blanco y negro, "cuantas cosas grandes hay y para donde van" se
+  // lee de un vistazo. Los tiempos ademas no se pisan: la primera termina cuando la ultima empieza.
+  jet: { masa: 'medio', n: 8, size: [0.5, 1.4], c: AVION, hot: 0.7, up: 16, spread: 18, pieza: 'ala',
+    bola: 'grande', chispa: null, humo: 0,
+    variantes: [
+      // EL MISIL NO DEJA NADA. Tambien es la muerte de la onda y de la cadena: energia de sobra.
+      { id: 'desintegracion', peso: 3,
+        cuando: a => a.killer === 'misil' || a.killer === 'onda' || a.killer === 'cadena',
+        receta: { n: 12, size: [0.28, 0.8], up: 26, spread: 40, hot: 0.9, bola: 'grande', pieza: null } },
+      // EL CAÑON ARRANCA UN ALA. La pieza grande gira sola y el resto se va en tirabuzon: es la
+      // misma maquinaria de dos actos del helo (D2), aplicada a otro cuerpo.
+      { id: 'ala', peso: 3, forma: 'ala',
+        cuando: a => a.killer === 'canon' || a.killer === 'choque',
+        receta: { n: 7, size: [0.4, 1.0], up: 14, spread: 14, bola: 'chica', chispa: 'metal' } },
+      // EL QUE SE VA MURIENDO. El unico que NO revienta donde lo tocaste: sigue de largo, baja, y
+      // explota lejos. Por eso tiene cap (MORIBUNDO_MAX) y vida acotada — §6.2.
+      { id: 'moribundo', peso: 2, forma: 'moribundo',
+        cuando: a => a.killer === 'canon',
+        receta: { n: 4, size: [0.3, 0.75], up: 8, spread: 9, bola: null, chispa: 'metal' } },
+      // PARTIDO AL MEDIO. Dos pedazos grandes que se separan, y cada uno cae distinto.
+      { id: 'partido', peso: 2, forma: 'partido',
+        cuando: a => a.killer === 'misil' || a.killer === 'choque',
+        receta: { n: 6, size: [0.4, 1.0], up: 12, spread: 12, bola: 'chica', chispa: 'metal' } },
+    ] },
   // GLOBO: no hay escombro duro; son jirones de tela que caen planeando
-  balloon: { n: 5, size: [0.6, 1.6], c: LONA, hot: 0, up: 10, spread: 20, pieza: 'funda',
+  balloon: { masa: 'liviano', n: 5, size: [0.6, 1.6], c: LONA, hot: 0, up: 10, spread: 20, pieza: 'funda',
     bola: null, chispa: null, humo: 0, grav: 0.25 },
   // CONSTRUCCION: mamposteria. Pesada, poco vuelo, mucho polvo.
-  bldg: { n: 9, size: [0.8, 2.0], c: MAMPO, hot: 0.2, up: 11, spread: 16, pieza: null,
+  bldg: { masa: 'pesado', n: 9, size: [0.8, 2.0], c: MAMPO, hot: 0.2, up: 11, spread: 16, pieza: null,
     bola: 'chica', chispa: 'polvo', humo: 4 },
-  tower: { n: 7, size: [0.6, 1.6], c: MAMPO, hot: 0.2, up: 13, spread: 14, pieza: null,
+  tower: { masa: 'pesado', n: 7, size: [0.6, 1.6], c: MAMPO, hot: 0.2, up: 13, spread: 14, pieza: null,
     bola: null, chispa: 'polvo', humo: 2 },
   // MADERA: el arbol, los postes, el mastil de la fragata
-  tree: { n: 6, size: [0.5, 1.5], c: MADERA, hot: 0.15, up: 14, spread: 18, pieza: null,
+  tree: { masa: 'medio', n: 6, size: [0.5, 1.5], c: MADERA, hot: 0.15, up: 14, spread: 18, pieza: null,
     bola: null, chispa: 'polvo', humo: 0 },
-  poles: { n: 5, size: [0.4, 1.1], c: MADERA, hot: 0.1, up: 12, spread: 16, pieza: 'cable',
+  poles: { masa: 'liviano', n: 5, size: [0.4, 1.1], c: MADERA, hot: 0.1, up: 12, spread: 16, pieza: 'cable',
     bola: null, chispa: 'metal', humo: 0 },
-  mast: { n: 6, size: [0.5, 1.3], c: METAL, hot: 0.5, up: 14, spread: 14, pieza: null,
+  mast: { masa: 'medio', n: 6, size: [0.5, 1.3], c: METAL, hot: 0.5, up: 14, spread: 14, pieza: null,
     bola: 'chica', chispa: 'metal', humo: 2 },
-  flag: { n: 4, size: [0.4, 1.0], c: LONA, hot: 0, up: 18, spread: 20, pieza: null,
+  flag: { masa: 'liviano', n: 4, size: [0.4, 1.0], c: LONA, hot: 0, up: 18, spread: 20, pieza: null,
     bola: null, chispa: 'polvo', humo: 0, grav: 0.6 },
   // BARCAZA DE DESEMBARCO: chapa de barco
-  lcu: { n: 8, size: [0.7, 1.7], c: METAL, hot: 0.6, up: 12, spread: 18, pieza: 'rampa',
+  lcu: { masa: 'pesado', n: 8, size: [0.7, 1.7], c: METAL, hot: 0.6, up: 12, spread: 18, pieza: 'rampa',
     bola: 'grande', chispa: 'metal', sec: true, humo: 5 },
   // AVION DEL JUGADOR: la receta que ya existia en die(), escrita como fila. Es la referencia de
   // la que sale todo el resto — el despiece del derribo es el que se generalizo.
-  plane: { n: 9, size: [0.5, 1.4], c: AVION, hot: 0.6, up: 18, spread: 14, pieza: null,
+  plane: { masa: 'medio', n: 9, size: [0.5, 1.4], c: AVION, hot: 0.6, up: 18, spread: 14, pieza: null,
     bola: null, chispa: null, humo: 0 },   // el derribo pone SU bola pixel aparte (ver die)
 };
 
 // LA RECETA POR DEFECTO. §4.6 del plan: `explodeAt` no se rompe y la migracion es tipo por tipo,
 // asi que lo que no tiene fila igual se despieza — con escombro neutro, sin pieza especial.
-export const DESPIECE_DEF = { n: 5, size: [0.5, 1.2], c: METAL, hot: 0.4, up: 15, spread: 15,
+export const DESPIECE_DEF = { masa: 'medio', n: 5, size: [0.5, 1.2], c: METAL, hot: 0.4, up: 15, spread: 15,
   pieza: null, bola: 'chica', chispa: null, humo: 0 };
 
 /** La receta de un tipo (siempre devuelve una: nada se queda sin morir). */
 export const recetaDe = tipo => DESPIECE[tipo] || DESPIECE_DEF;
+
+// ================= LAS VARIANTES DE MUERTE (PLAN_DESTRUCCION_V2) =================
+//
+// D2 le dio a cada TIPO su receta de muerte. Esto le da a cada muerte sus VARIANTES: la misma
+// cosa se rompe distinto segun que la mato, con cuanta fuerza, desde donde, cuanto pesa y un dado.
+//
+// LA REGLA (plan §1): una variante se distingue por la SILUETA del movimiento y por el TIEMPO,
+// nunca solo por el color. Si dos variantes no se distinguen en una captura en blanco y negro, la
+// segunda no existe.
+
+export const VIDA_LARGA = 7;      // segundos: el techo de vida del pedazo que sobrevive a su muerte
+                                  // (moribundo, tirabuzon, paracaidas). §6.2: la muerte se alarga, pero no sin tope
+export const MORIBUNDO_MAX = 2;   // cuantos "se van muriendo" pueden vivir a la vez (§6.2: sin esto la muerte no tiene tope)
+export const EYECT_P = 0.35;      // probabilidad de que el piloto alcance a eyectarse
+export const SANTABARBARA_P = 0.12;  // la explosion rara del barco: el evento que se comenta
+export let VAR_SEED = null;       // fuerza una variante por id (solo pruebas; null = sortea)
+
+/** Fuerza (o libera) la variante. Es de PRUEBAS: sin esto, afirmar "las cuatro se ven distintas"
+ *  depende de que el dado quiera, y una prueba que depende del azar no prueba nada. */
+export function forzarVariante(id) { VAR_SEED = id || null; }
+
+/** EL DADO de una muerte: 0..1 estable POR OBJETO.
+ *
+ *  Nada de `Math.random()` (trampa §1.4 del plan v2 y §1.3 de SPEC_AGUA_OLAS): si el dado se
+ *  sorteara en el momento de morir, la misma muerte daria una variante distinta en cada corrida y
+ *  el fixture no podria afirmar nada. Sale de lo que el objeto YA trae y no cambia nunca.
+ *
+ *  DIVERGENCIA con el plan §2: `o.seed` NO existe en general — solo lo tiene el acantilado (el
+ *  unico destructible que ademas no se despieza). El resto trae `ph`, la fase que se le sortea al
+ *  nacer, que es igual de estable. Se usa `seed` si esta y `ph`+posicion si no, con el hash de
+ *  senos que el repo ya usa para todo lo determinista. */
+export function dadoDe(o) {
+  if (o.seed != null) return (Math.abs(o.seed) % 9973) / 9973;
+  const s = Math.sin((o.ph || 0) * 127.1 + (o.x || 0) * 311.7 + (o.z || 0) * 74.7) * 43758.5453;
+  return s - Math.floor(s);
+}
+
+/** ELIGE LA VARIANTE de una muerte, ponderada y determinista.
+ *
+ *  `cuando(acta)` filtra las elegibles (un ala arrancada la hace el cañon, no una onda expansiva)
+ *  y `peso` pondera entre las que quedan. Devuelve `null` si el tipo no declara variantes — y ese
+ *  null es la garantia de que esto no rompe nada: sin variantes, se muere exactamente como en D2.
+ */
+export function elegirVariante(tipo, acta) {
+  const vs = (DESPIECE[tipo] || {}).variantes;
+  if (!vs || !vs.length) return null;
+  if (VAR_SEED) return vs.find(v => v.id === VAR_SEED) || null;
+  const ok = vs.filter(v => !v.cuando || v.cuando(acta));
+  const elegibles = ok.length ? ok : vs;
+  const total = elegibles.reduce((a, v) => a + (v.peso || 1), 0);
+  let t = (acta.dado || 0) * total;
+  for (const v of elegibles) { t -= (v.peso || 1); if (t <= 0) return v; }
+  return elegibles[elegibles.length - 1];
+}
+
+/** Los ids de variante de un tipo, en orden. La usa `__romperTodas` para ponerlas en fila. */
+export const variantesDe = tipo => ((DESPIECE[tipo] || {}).variantes || []).map(v => v.id);

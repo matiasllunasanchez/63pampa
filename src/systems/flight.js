@@ -35,8 +35,8 @@ import { avance as chAvance } from '../systems/chancha.js';
 // BOOST_LIFT y CAM_PAN se mudaron a systems/vuelo.js con la camara que los usa.
 import { multOf } from '../core/util.js';
 import { movesSystem, mvAllowsFire, mvAllowsTurbo } from './moves.js';
-import { stepVuelo } from './vuelo.js';
-import * as momentum from './momentum.js';
+import { stepVuelo, estelaVuelo } from './vuelo.js';
+import * as momentum from '../legacy/momentum.js';
 import * as arena from './arena.js';
 import * as pasada from './pasada.js';
 import * as pulso from './pulso.js';
@@ -281,26 +281,10 @@ export function flightSystem(dt, deps) {
     run.scrapeVib = Math.max(0, run.scrapeVib - dt * 6);            // la vibracion se apaga al salir
   }
 
-  // estela sobre el agua
-  const lowI = Math.max(0, 1 - alt / 9);
-  if (lowI > 0 && !overRunway && !onDirt) {
-    wake.push({ x: plane.x, z: PZ, i: lowI, seed: Math.random() * 100 });   // seed: motas estables
-    if (wake.length > 150) wake.shift();
-  }
-  for (const wp of wake) wp.z -= run.spd * dt;
-  prune(wake, w => w.z > 2.4);
-
-  // rocío a ras del agua (escala con la cercanía) — solo sobre agua; sobre tierra levanta polvo
-  const nSpray = alt < 2.8 ? 6 : alt < 4.5 ? 3 : alt < 7 ? 1 : 0;
-  for (let i = 0; i < nSpray; i++) {
-    const s = proj(plane.x + (Math.random() - 0.5) * 4, 0, PZ - Math.random() * 2);
-    const onLand = onDirt;
-    parts.push({
-      x: s.x, y: s.y - 1, vx: (Math.random() - 0.5) * 70, vy: -(50 + Math.random() * 110) * (0.5 + lowI),
-      life: 0.25 + Math.random() * 0.3, c: onLand ? (Math.random() < 0.6 ? '#6b6250' : '#4a4636') : (Math.random() < 0.7 ? P.foam : P.crest), r: 1 + Math.random() * 1.3
-    });
-  }
-  if (alt < 4.5) run.shake = Math.max(run.shake, (4.5 - alt) * 0.3);
+  // EL AGUA QUE LEVANTAS (estela + rocio): vive en la cama de vuelo desde que una cinematica
+  // necesito lo mismo — volar rasante sin agua que reaccione no se lee como rasante. Es el MISMO
+  // codigo en el MISMO lugar del cuadro; lo custodia `npm run feel`.
+  estelaVuelo(dt, { alt, pista: overRunway, tierra: onDirt });
 
   // radar
   if (alt > RADAR_ALT) run.detection += dt / 1.4; else run.detection -= dt / 0.9;

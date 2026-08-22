@@ -16,13 +16,28 @@ import { P } from '../data/palette.js';
 import { T } from '../core/i18n.js';
 import { run } from '../core/run.js';
 import { TOK_GLIFO, PULSO_CINE, PULSO_TEATRO } from '../data/pulso.js';
+import { padInfo } from '../core/input.js';
 import { bargeGeom } from './world.js';
-import * as momRender from './momentum.js';
+import * as momRender from '../legacy/momentum_render.js';
 
 // DONDE APUNTA EL PULSO. Mismo contrato que el arena: es la mira del modo, y la cabina se acomoda
-// sola para que su visor pintado caiga aca. El PULSO apunta un poco mas abajo que el arena porque
-// la autopista de tokens vive en la mitad de abajo — y esa diferencia es del MODO, no del asset.
-const COCKPIT_MIRA = 150;
+// sola para que su visor pintado caiga aca.
+//
+// APUNTA A LA MIRA PLENA (legacy/momentum_render.js): la unica Y en que la cabina sale ENTERA y de borde
+// a borde. Estuvo en 150 —«el PULSO apunta mas abajo porque la autopista de tokens vive en la
+// mitad de abajo»— y esa razon se murio sin que el numero se enterara: la autopista se mudo al
+// CIELO (LANE_Y, aca abajo) y lo unico que quedaba de aquel 150 era una cabina achicada, despegada
+// de los bordes y con el panel a medio salir del cuadro.
+const COCKPIT_MIRA = momRender.MIRA_PLENA;
+
+/** El glifo de un token. Los direccionales son FLECHAS: valen igual para una tecla y para un stick.
+ *  El REMATE no — es un boton, y su nombre depende de con que estas jugando. Decia 'Z' siempre, asi
+ *  que con joystick la prueba pedia una tecla que no ibas a apretar. `padInfo.id` esta vacio hasta
+ *  que se toca un mando, y ahi vuelve a decir 'Z'. */
+function glifo(k) {
+  if (k !== 'Z' || !padInfo.id) return TOK_GLIFO[k] || k;
+  return padInfo.kind === 'xbox' ? 'LB' : 'L1';
+}
 // La autopista de compases va EN EL CIELO, arriba del buque. Probado a media altura (74) se leia
 // bien pero quedaba ESCRITA ENCIMA del blanco: la secuencia y el buque son las dos cosas que hay
 // que mirar, y no pueden pelearse el mismo pixel. El cielo esta vacio y es lo que sobra.
@@ -39,7 +54,7 @@ function drawCompas(cx, y, bar, st, ti, t) {
   ctx.fillStyle = st === 0 ? '#4a5b61' : on ? P.accent : P.dim;
   ctx.fillText(bar.label, cx, y - 10);
   // TOKENS
-  const gs = bar.toks.map(k => TOK_GLIFO[k] || k);
+  const gs = bar.toks.map(glifo);
   const step = 15;
   const x0 = cx - (gs.length - 1) * step / 2;
   for (let i = 0; i < gs.length; i++) {
@@ -231,15 +246,71 @@ function drawCinePremio(Q, c) {
  *  y con posiciones FIJAS: si titilara seria nieve, y la sal esta seca y quieta.
  *
  *  Es teatro puro: no informa nada. Justamente por eso es de Q5 (§5: «tension sin leer nada»). */
-function drawSal(cy) {
+function drawSal(y0, y1) {
+  const alto = Math.max(6, y1 - y0 - 8);
   for (let i = 0; i < PULSO_TEATRO.SAL; i++) {
     // reparto determinista (dos primos y el modulo): la misma sal toda la prueba, y la misma en
     // cada partida — es una marca del avion, no un efecto que se re-sortea
     const fx = ((i * 97) % 101) / 101, fy = ((i * 37) % 53) / 53;
-    const y = 6 + Math.pow(fy, 1.6) * Math.max(0, cy - 14);   // se acumula ARRIBA, donde seca el viento
+    // DENTRO DE LA FRANJA DE VIDRIO, y acumulada ARRIBA, que es donde seca el viento. Estuvo
+    // medida contra el borde de arriba de la cabina y nada mas — cuando la cabina paso a arrancar
+    // en y=0 toda la sal se apilo en un renglon de un pixel. Un efecto que no falla, solo
+    // desaparece, es el que mas tarda en descubrirse.
+    const y = y0 + 4 + Math.pow(fy, 1.6) * alto;
     const x = 14 + fx * (W - 28);
     ctx.globalAlpha = 0.09 + (i % 3) * 0.045;
     px(x, y, 1 + (i % 2), 1, '#dfe8ee');
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** EL AGUA EN EL VIDRIO. Volando a ras el mar SALTA: el canopy se llena de gotas que el viento
+ *  estira hacia atras y hacia los costados. Es lo que separa "vuelo bajo" de RASANTE, y es la mitad
+ *  del modo — el juego se llama asi.
+ *
+ *  Va en la cabina (no hay vidrio en tercera) y su densidad sale de la ALTURA: a 2 m es un manto,
+ *  a 7 no queda nada. El reparto es determinista y lo que se mueve es la FASE — el agua corre por
+ *  el vidrio, no titila (misma regla que la sal seca: `Math.random()` por cuadro es nieve).
+ */
+// SONDA (QUITAR antes de publicar): cuantas gotas quedaron DENTRO del cuadro el ultimo cuadro
+// dibujado. Existe porque este efecto ya se murio dos veces en silencio —una porque nadie lo
+// llamaba y otra porque quedo apuntando a una geometria de cabina que ya no existia, dibujando
+// arriba del borde de arriba— y las dos veces se descubrio jugando, no midiendo. Un efecto que no
+// falla y solo DESAPARECE necesita que alguien lo cuente.
+let aguaN = 0;
+if (typeof window !== 'undefined') window.__vidrio = () => aguaN;
+
+function drawAguaVidrio(y0, y1, alt, t) {
+  aguaN = 0;
+  const d = Math.max(0, 1 - alt / PULSO_TEATRO.AGUA_ALT);   // 0 arriba del techo, 1 pegado al agua
+  if (d <= 0.02) return;
+  const alto = Math.max(10, y1 - y0 - 6);
+  const n = Math.round(PULSO_TEATRO.AGUA * d);
+  for (let i = 0; i < n; i++) {
+    const fa = ((i * 61) % 97) / 97, fb = ((i * 43) % 71) / 71, fc = ((i * 29) % 59) / 59;
+    // CADA GOTA TIENE SU LUGAR EN EL VIDRIO. El primer intento las hacia salir todas de un punto
+    // en el centro y abrirse en abanico: a esa altura el centro del cuadro es JUSTO donde esta el
+    // buque, asi que el agua se leia como si la escupiera el blanco. Mismo error que las lineas de
+    // velocidad naciendo en el punto de fuga, y misma correccion — repartidas de entrada.
+    const x0 = 8 + fa * (W - 16);
+    const lado = (x0 - W / 2) / (W / 2);          // -1 izquierda · 1 derecha
+    // CORREN hacia arriba y hacia afuera: el agua pega abajo del parabrisas y el aire la arrastra
+    // por encima del canopy. La fase avanza con el tiempo y se envuelve; las de los costados corren
+    // mas rapido, que es donde el viento pega de lleno.
+    const v = 0.5 + Math.abs(lado) * 0.8 + fc * 0.45;
+    const p = (fb + t * v) % 1;                   // 0 recien salpicada · 1 llegando al borde
+    const x = x0 + lado * p * 44;
+    // TODO adentro de la franja de vidrio que publica la cabina: fuera de ahi no hay vidrio donde
+    // pegarse, hay tablero — o directamente el borde del cuadro.
+    const y = y1 - 2 - p * alto;
+    const L = 2 + p * 7 * (0.4 + Math.abs(lado));
+    // DOS TONOS, misma razon que las gotas de lluvia de la cabina: el parabrisas tiene cielo CLARO
+    // arriba y mar OSCURO abajo, y un reguero de un solo tono claro desaparece contra el cielo.
+    ctx.globalAlpha = (0.30 + (i % 3) * 0.13) * d * (1 - p * 0.45);
+    if (y >= 0 && y <= H && x > -L && x < W) aguaN++;
+    px(x, y + 1, Math.max(1, L), 1, '#41707f');       // sombra: la gota tiene cuerpo
+    px(x, y, Math.max(1, L), 1, '#cfe6f0');
+    if (i % 2 === 0) px(x + L, y, 2, 1, '#eaf6ff');   // la cabeza de la gota, mas clara
   }
   ctx.globalAlpha = 1;
 }
@@ -296,7 +367,16 @@ export function drawPulso(w) {
   // donde pegarse. Ahi el avion lo dibuja el orquestador, con el sprite de siempre.
   if (!cine || cine.cam.modo !== 'chase') {
     const cab = momRender.drawCockpit({ mom: { t: run.t }, t, mira: COCKPIT_MIRA, yOff: cine ? cine.cam.off : 0 });
-    drawSal(cab.top);
+    drawSal(cab.top, cab.vidrio);
+    // …Y EL AGUA CORRIENDO, encima de la sal. Las dos estan del lado de adentro del vidrio y la
+    // diferencia entre una y otra es toda la idea: la sal esta seca y quieta —una marca vieja del
+    // avion— y el agua CORRE, porque es el mar de ahora. Sale de `plane.y`: a ras es un manto y
+    // arriba del techo no queda ninguna, asi que la trepada la seca sola.
+    //
+    // ES EL AGUA QUE SE VE. El rocio de la cama de vuelo (`estelaVuelo`) SALE del agua a la altura
+    // del morro, o sea abajo del cuadro: en el pasillo se ve porque no hay cabina, pero en primera
+    // persona lo tapa entero el tablero. Volar rasante DESDE ADENTRO es esto — el mar en el vidrio.
+    drawAguaVidrio(cab.top, cab.vidrio, plane.y, t);
   }
 
   // EL LATIDO, VISTO. El mismo golpe que se escucha oscurece los bordes un instante: es lo que
@@ -340,7 +420,7 @@ export function drawPulso(w) {
         for (const k of b.toks) {
           ctx.font = first ? 'bold 10px monospace' : '9px monospace';
           ctx.fillStyle = first ? P.accent : P.ink;
-          ctx.fillText(TOK_GLIFO[k] || k, gx, ly + 3);
+          ctx.fillText(glifo(k), gx, ly + 3);
           gx += 12; first = false;
         }
         gx += 6;

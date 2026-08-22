@@ -196,6 +196,9 @@ app.whenReady().then(async () => {
     if (!d || d.fase !== 'cine') { bad(`${zona}: la secuencia limpia no llego al premio (${d && d.fase})`); return null; }
     const beats = [], fx = [];
     let pico = 0, mvVisto = null, secVisto = false, capt = false, dir = null;
+    // el tamaño del buque EN EL PRIMER CUADRO DE LA AGONIA: contra el se mide que el acercamiento
+    // no se detenga mientras se muere (ver la asercion, mas abajo)
+    let growM0 = null, altM0 = null, altUlt = 0, ras = 0, aguaMax = 0;
     for (let k = 0; k < 160; k++) {
       const s = JSON.parse(await js('String(window.__qdbg())'));
       if (!s.on) break;                                     // la cinematica termino: cerro la mision
@@ -205,12 +208,18 @@ app.whenReady().then(async () => {
       if (s.mv) mvVisto = s.mv;
       if (s.sec) secVisto = true;
       if (s.fx) { fx.push(s.fx); pico = Math.max(pico, s.tScale); }
+      if (s.beat === 'muerte' && growM0 === null) { growM0 = s.fx ? s.fx.grow : 0; altM0 = s.alt; }
+      if (s.alt !== undefined) altUlt = s.alt;
+      // EL RASANTE: cuanto de la cinematica se vuela pegado al agua, y si el agua LLEGA AL VIDRIO.
+      // Lo segundo se cuenta y no se mira: el efecto ya se murio dos veces sin dar error.
+      if (s.alt !== undefined && s.alt <= 3) { ras++; aguaMax = Math.max(aguaMax, +(await js('String(window.__vidrio())')) || 0); }
       // la foto va TARDE en la muerte: los sellos y los puntos entran medio segundo despues
       if (s.beat === 'muerte' && !capt) { capt = true; await sleep(1100); await shot('q3_' + nombre); }
       await sleep(90);
     }
     const ult = fx[fx.length - 1] || { grow: 0, tilt: 0, sink: 0 };
-    return { premio: d.premio, clase: d.clase, beats, mv: mvVisto, sec: secVisto, pico, ult, dir };
+    return { premio: d.premio, clase: d.clase, beats, mv: mvVisto, sec: secVisto, pico, ult, dir,
+             growM0, altM0, altUlt, ras, aguaMax };
   }
 
   const A = await filmar('radar', 'radar');
@@ -232,6 +241,21 @@ app.whenReady().then(async () => {
     else bad('la cinematica no lanzo ninguna maniobra: el premio no es la pirueta tecleada');
     if (A.pico > 0.9) ok(`el mundo DESHIELA en el premio (el tiempo vuelve a correr: ${A.pico}×)`);
     else bad(`el mundo quedo dilatado durante el premio (tope ${A.pico}×)`);
+    // NO SE DETIENE: el playtest 8/2026 fue literal — «el barco NUNCA SE SIGUE ACERCANDO DURANTE SU
+    // DESTRUCCION» y «el avion se queda quieto al lanzar». Eran la MISMA cosa vista dos veces: en
+    // una camara que mira para adelante, el tamaño del blanco es lo unico que dice a que velocidad
+    // vas, asi que un zoom que se satura ES un avion que frena. Las dos mitades se miden aca.
+    // EL RASANTE (playtest 22/8: «la cinematica debe ser MAS rasante» + «el efecto del agua falta»).
+    if (A.ras >= 4) ok(`entra RASANTE: ${A.ras} lecturas pegadas al agua (≤3 m) antes del salto`);
+    else bad(`el tramo rasante casi no existe (${A.ras} lecturas a ≤3 m): el juego se llama asi`);
+    if (A.aguaMax > 8) ok(`y el mar LLEGA AL VIDRIO: ${A.aguaMax} gotas en el cuadro a ras`);
+    else bad(`no hay agua en el vidrio volando a ras (${A.aguaMax} gotas): el efecto se murio otra vez`);
+    if (A.growM0 && A.ult.grow > A.growM0 * 1.2)
+      ok(`el buque SIGUE ACERCANDOSE mientras se muere (${A.growM0}× → ${A.ult.grow}×)`);
+    else bad(`el acercamiento se congela al empezar la agonia (${A.growM0}× → ${A.ult.grow}×)`);
+    if (A.altM0 != null && A.altUlt > A.altM0 + 20)
+      ok(`y el avion SALE trepando hasta el ultimo cuadro (${A.altM0} m → ${A.altUlt} m)`);
+    else bad(`el avion se queda quieto durante la muerte del buque (${A.altM0} m → ${A.altUlt} m)`);
     if (A.ult.grow > 1.5) ok(`el buque DOMINA el cuadro en el premio (crece ${A.ult.grow}×)`);
     else bad(`el buque no crecio en el premio (${A.ult.grow}×)`);
     // …y las dos zonas no pueden dar la misma pelicula

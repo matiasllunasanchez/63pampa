@@ -290,6 +290,46 @@ app.whenReady().then(async () => {
   await js(`__czmodo('squad')`);
   await js('__czalto(null)');
 
+  // ---------- 9b. LOS TRES AMAGUES ----------
+  // El ritmo de la cola: asoma, se esconde, vuelve, se esconde, y a la TERCERA se compromete y te
+  // pasa. Se mide el ciclo entero de una presion sin ayuda — cuantas veces asomo y con que sale.
+  // Es lo que le da al jugador algo que anticipar, y el momento al que va a apuntar la maniobra
+  // que todavia no existe (`__czasoma`).
+  console.log('\n9b. los tres amagues antes de pasarte:');
+  await js('__czfin()');
+  await js('__czalto(34)');
+  await js('__czstart({ mudo: 1 })');
+  await js(`__czfase('presion')`);
+  let picos = 0, vistoAsomado = false, salioDe = '';
+  const fotoDe = {};
+  let dentro = 0, donde = '';   // px del sprite que caen DENTRO del cuadro en el pico del amague
+  for (let i = 0; i < 90; i++) {
+    const a = await C();
+    if (!a) break;
+    if (a.fase !== 'presion') { salioDe = a.fase; break; }
+    if (a.asoma > 0.6 && !vistoAsomado) { vistoAsomado = true; picos++; }
+    // LA FOTO VA EN EL PICO (0.92), no cuando empieza a salir. A 0.6 el Harrier todavia esta a
+    // 338 px del centro, o sea FUERA del cuadro de 480: la primera version de esta captura salio
+    // vacia y parecia un bug del amague cuando era un bug de la foto.
+    if (a.asoma > 0.92 && !fotoDe[picos]) {
+      fotoDe[picos] = 1;
+      const vis = Math.min(a.w, a.sx + a.semi) - Math.max(0, a.sx - a.semi);
+      if (vis > dentro) { dentro = vis; donde = `sx ${a.sx} sy ${a.sy} semi ${a.semi} z ${a.z}`; }
+      await shot('h1_f_amague' + picos);
+    }
+    if (a.asoma < 0.15) vistoAsomado = false;
+    await sleep(120);
+  }
+  await js('__czalto(null)');
+  if (picos < 2) bad(`solo se lo vio asomar ${picos} vez/veces: el ritmo de amagues no esta`);
+  else ok(`ASOMA Y SE ESCONDE: se contaron ${picos} asomadas y termino saliendo a ${salioDe || '(sigue)'}`);
+  if (salioDe !== 'sobrepaso') bad(`despues de los amagues no se comprometio (salio a ${salioDe})`);
+  else ok('a la tercera SE COMPROMETE: pasa a sobrepaso');
+  // Y QUE SE VEA. Un amague fuera del cuadro no es un amague: es un contador subiendo.
+  if (dentro < 40) bad(`en el pico del amague solo entran ${dentro} px del avion: no se lo ve asomar`);
+  else ok(`SE LO VE: entran ${dentro} px en el cuadro de 480 · ${donde}`);
+  await js('__czfin()');
+
   // ---------- 10a. LA VELOCIDAD DE CIERRE ES RELATIVA ----------
   // La regla del pasillo: nada se mueve a una velocidad de animacion, todo se mueve CONTRA la
   // tuya (collision.js ya la respetaba con los jets de frente, `run.spd + 45`). El Harrier era el
@@ -325,7 +365,9 @@ app.whenReady().then(async () => {
   console.log('\n10b. de que lado se lo ve, fase por fase:');
   await js('__czfin()');
   await js('__czstart({ mudo: 1, manso: 1 })');
-  for (const [f, esperado] of [['aviso', true], ['presion', true],
+  // presion paso a FALSE: ahi ya te cruzo y vuela en tu mismo sentido, pegado a tu cola — lo que
+  // se ve cuando asoma es su COLA, no su cara. De frente solo se lo ve en la entrada.
+  for (const [f, esperado] of [['aviso', true], ['presion', false],
     ['sobrepaso', false], ['ventana', false], ['recola', false], ['salida', false]]) {
     await js(`__czfase('${f}')`);
     await sleep(120);
@@ -360,12 +402,40 @@ app.whenReady().then(async () => {
   if (!d11 || !d11.humo) bad('a 6 impactos no se ahuyento');
   else ok(`a ${d11.hp} impactos ROMPE EL ATAQUE: humo ${d11.humo} · fase ${d11.fase} (se va, no muere)`);
   await shot('h3_a_ahuyentado');
-  // y ahora la hazaña: se le sigue pegando MIENTRAS huye, hasta los 18
+  // y ahora la hazaña: se le sigue pegando MIENTRAS huye, hasta los 18. El final se FIJA porque
+  // en el juego se sortea, y una prueba que depende de un sorteo no prueba nada: `bola` es el que
+  // se termina en el aire, asi que es el que puede afirmar "el duelo cerro".
+  await js(`__czfinal('bola')`);
   await js('__czpegar(12)');
   await sleep(300);
   d11 = await C();
   if (d11) bad(`a 18 impactos sigue vivo (hp ${d11.hp}): el derribo no cierra el duelo`);
-  else ok('a 18 impactos LO BAJASTE: el duelo termina en una bola de fuego, no en una salida');
+  else ok('a 18 impactos LO BAJASTE: revienta en el aire y el duelo cierra');
+
+  // ---------- 11b. LOS TRES FINALES ----------
+  // No siempre se muere igual. `bola` revienta y se termina; `caida` y `pedazos` NO mueren en el
+  // aire — pasan a la fase `cayendo` y bajan hasta tocar. Lo que se mide es justo eso: que el
+  // avion siga existiendo despues del derribo y que este BAJANDO.
+  console.log('\n11b. los tres finales del derribo:');
+  for (const fin of ['caida', 'pedazos']) {
+    await js('__czfin()');
+    await js('__czstart({ mudo: 1 })');
+    await js(`__czfase('ventana')`);
+    await sleep(600);
+    await js(`__czfinal('${fin}')`);
+    await js('__czpegar(20)');
+    await sleep(150);
+    const c0 = await C();
+    if (!c0 || c0.fase !== 'cayendo') { bad(`${fin}: no quedo cayendo (fase ${c0 && c0.fase})`); continue; }
+    const y0 = c0.alto !== undefined ? c0.y : null;
+    await sleep(500);
+    const c1 = await C();
+    if (!c1) { ok(`${fin}: cayo y toco antes de medio segundo`); continue; }
+    if (!(c1.y < c0.y)) bad(`${fin}: no esta bajando (y ${c0.y} → ${c1.y})`);
+    else ok(`${fin}: se cae de verdad — y ${c0.y} → ${c1.y}, fase ${c1.fase}`);
+    await shot('h3_final_' + fin);
+  }
+  await js('__czfin()');
 
   // ---------- 12. H3 — LAS PIRUETAS DE ESQUIVE FUERZAN EL SOBREPASO ----------
   console.log('\n12. H3 — el combo corta la presion (§3 paso 3):');

@@ -1,0 +1,59 @@
+
+FIXTURE — LA DESTRUCCION (D#-D#)
+
+#. el despiece por tipo (D#):
+   · depot   # pedazos ## · ##a#d#a ##b#a# ##a#c# · # al rojo · pieza tanque · bola # · # secundarias · humo #s
+   · tent    # pedazos ## · ##a#d#e ##d#f#c ##f# · # al rojo · SIN bola
+   · helo    # pedazos ## · ##a# ##a# ##c# · # al rojo · pieza rotor · bola # · humo #s · cae en espiral
+   · radar   # pedazos ## · ##a# ##a# ##c# · # al rojo · pieza plato · bola # · humo #s
+   · bldg    # pedazos ## · ##d#e ##b#f# ##a#f# · # al rojo · bola # · humo #s
+   · jet     # pedazos ## · ##a#ab ##c#b# #cfe#f# · # al rojo · pieza ala · bola #
+   ✓ los # tipos se despiezan distinto: # firmas distintas
+   ✓ la carpa deja lona (##a#d#e) y el deposito chapa quemada (##a#d#a)
+   ✓ las piezas reconocibles salen marcadas: el plato del radar y el rotor del helo
+
+#b. el caracter de cada muerte (D#):
+   ✓ la carpa muere SIN bola de fuego (jirones y polvo)
+   ✓ el deposito tira # secundarias retardadas (pop-pop-pop)
+   ✓ el deposito deja columna de humo #s y el jet no deja ninguna
+   ✓ el helo cae en DOS ACTOS: el resto se va en espiral y revienta al tocar
+   ✓ la bola escala con lo que muere: deposito # vs radar #
+
+#. los restos quedan y el cap manda:
+   ✓ el escombro dura: # pedazos vivos, el mas viejo de #s, # ya en el suelo
+   ✓ # despieces seguidos y el cap aguanta: # vivos de #
+
+#. la destruccion MUTUA (D#):
+   ✓ depot: la letalidad no cambio (derriba)
+   ✓   # pedazos vivos — # colores del objeto + # del avion, entremezclados
+   ✓ aa: la letalidad no cambio (derriba)
+   ✓   # pedazos vivos — # colores del objeto + # del avion, entremezclados
+   ✓ tent: la letalidad no cambio (se atraviesa)
+   ✓   # pedazos vivos — # colores del objeto
+
+#b. la onda y el golpe (D#):
+   · a # m: sacudon # · fogonazo #
+   · a # m: sacudon # · fogonazo #
+   ✓ la misma explosion se SIENTE distinta segun donde reviente
+   ✓ a # m se ve pero no se siente: ni sacudon ni fogonazo
+   ✓ la explosion grande manda su onda expansiva
+   ✓ la onda EMPUJA el escombro cercano: velocidad maxima # → #
+
+#c. el encadenamiento (D#):
+   · depot@#s(salto #) → tent@#s(salto #) → tent@#s(salto #)
+   ✓ cadena de #: el deposito prendio las dos carpas
+   ✓ los retardos se leen: #s y #s despues del disparador
+   ✓ las victimas caen escalonadas: #s entre una y otra
+   ✓ la profundidad esta acotada: # saltos
+   ✓ a # m las carpas NO se prenden: el radio manda
+
+#. el presupuesto (D#) — mision #, la mas densa:
+   · # cuadros · mediana # ms (# fps) · p# # ms · # por encima de # ms
+   · PICO de poblacion: # particulas · # pedazos · # secundarias · # columnas
+   ✓ # fps sostenidos con tres cadenas encima (mediana # ms)
+   ✓ sin tirones: # de # cuadros por encima de # ms
+   ✓ el presupuesto aguanta: # particulas y #/# pedazos
+
+consola: sin errores
+
+FIXTURE ROMPER: OK

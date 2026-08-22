@@ -1,0 +1,58 @@
+TESTS DE SENSACION (usan las formulas reales de src/core/physics.js)
+
+cabeceo — aparicion del sprite:
+  ✓ mantener ARRIBA desde vuelo nivelado       0.50  (esperado 0.5 ±0.08)
+  ✓ mantener ABAJO desde vuelo nivelado        0.50  (esperado 0.5 ±0.08)
+
+energia — la altura se cambia por velocidad:
+    tras 4s: trepando 144  ·  picando 152  (dif +9)
+  ✓ picar da mas velocidad que trepar         
+
+roce — margen antes de morir:
+  ✓ a baja velocidad (spd=90), sin turbo       0.85  (esperado 0.85 ±0.05)
+  ✓ a fondo (spd=280), con turbo               0.10  (esperado 0.1 ±0.03)
+
+roce — se puede salir dando gas:
+  ✓ escapa del roce con gas                    0.40 s
+
+arena — cabeceo comandado (E1):
+  ✓ cabeceo alcanzable (grados, criterio ≥40)  51.57  (esperado 51.56620156177409 ±0.8)
+  ✓ morro pleno (s)                            0.63  (esperado 0.66 ±0.06)
+  ✓ picar desde 300 m y salir a los 60         minimo 22.0 m
+  ✓ morro tras soltar 3 s (grados → 0)         4.60  (esperado 0 ±6)
+
+arena — el alabeo produce el viraje (E2):
+  ✓ derrape en viraje sostenido (grados, antes 13.5) 0.00  (esperado 0 ±0.5)
+  ✓ derrape maximo COMANDADO (grados)          4.16  (esperado 4.2 ±0.2)
+  ✓ vuelta completa banqueando (s, criterio ≤5.5) 5.07  (esperado 5.1 ±0.25)
+    apretando (banqueo + tirar): 2.2 s — el viraje de combate sale del modelo
+  ✓ radio de giro banqueado (m, criterio ≤110) 86.95  (esperado 89 ±4)
+
+arena — viraje de combate, drift y sweet spot (E3 + S2/S3):
+  ✓ media vuelta guionada (s, criterio ~1.2)   1.08  (esperado 1.2 ±0.25)
+  ✓ guinada acumulada (grados)                 180.92  (esperado 180 ±6)
+  ✓ la media vuelta CUESTA energia             -19 m/s
+    la misma media vuelta banqueando a mano: 2.6 s
+  ✓ el giro aprieta frenando, se abre a fondo  1.24 > 1.03 > 1.00
+    radio: frenado 43 m  ·  crucero 87 m  ·  turbo 134 m
+  ✓ derrapando el morro se despega del rumbo   48°
+  ✓ sin freno: morro = trayectoria (grados)    4.84  (esperado 0 ±8)
+
+arena — energia (E1: la gravedad pelea contra la VELOCIDAD):
+  ✓ costo de trepar 4 s (m/s, criterio ≥30)    33.59  (esperado 33 ±4)
+  ✓ picar regala velocidad                     144 m/s
+  ✓ freno sostenido (m/s)                      68.73  (esperado 66 ±3)
+  ✓ sin energia el morro se hunde solo         pitch 24°
+
+momentum — el especial del pasillo (tecla 4, se carga con puntos):
+  ✓ arranca vacio: sin puntos no hay poder    
+  ✓ barra llena con 650 pts (meter)            1.00  (esperado 1 ±0.001)
+  ✓ aviso 'ready' UNA sola vez                 1.00  (esperado 1 ±0)
+  ✓ llena se LANZA                             escala 0.35
+  ✓ el lanzamiento dura (s reales)             3.02  (esperado 3 ±0.05)
+  ✓ agotado: mundo a 1× y barra a cero        
+  ✓ sin puntos NO recarga (5 s quieto)         0.00  (esperado 0 ±0.001)
+  ✓ la carga sobrevive al relevo              
+  ✓ morir con el poder lanzado lo pierde      
+
+FEEL: OK

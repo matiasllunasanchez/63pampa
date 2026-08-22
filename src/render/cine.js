@@ -18,11 +18,14 @@ export function drawCine(s) {
     const h = Math.round(H * 0.11 * Math.min(1, s.letterbox));
     if (h > 0) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, h); ctx.fillRect(0, H - h, W, h); }
   }
-  // FUNDIDO A NEGRO: lo ultimo de todo, encima de la cabina y del HUD. Un fundido que deja ver los
+  // FUNDIDO: lo ultimo de todo, encima de la cabina y del HUD. Un fundido que deja ver los
   // instrumentos no es un corte, es un filtro.
+  //
+  // EL COLOR LO PIDE LA TIMELINE (negro por omision). A blanco deja de ser un fundido y pasa a ser
+  // un RESPLANDOR: el mismo pixel, y la diferencia entera entre "esto se termino" y "esto reviento".
   if (s.fade > 0) {
     ctx.globalAlpha = Math.min(1, s.fade);
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = s.fadeColor || '#000'; ctx.fillRect(0, 0, W, H);
     ctx.globalAlpha = 1;
   }
 }

@@ -24,7 +24,7 @@ import { P } from '../data/palette.js';
 import { armar, enVentana, finDe, parteEn, fParte as fParteDe, rampa } from '../core/cine.js';
 import { CINES } from '../data/cines.js';
 import { startMove, movesSystem } from './moves.js';
-import { stepVuelo } from './vuelo.js';
+import { stepVuelo, estelaVuelo } from './vuelo.js';
 import { CINE_VUELO } from '../data/cines.js';
 import { beep, boom, sfxOne, engineFly } from './audio.js';
 
@@ -63,7 +63,7 @@ export function start(id, vars) {
     vuelo: null,                 // la CAMA DE VUELO prendida (verbo `vuelo`): ver systems/vuelo.js
     pose: null,                  // altura pedida por el verbo `pose` (y hasta cuando)
     camForce: null,              // solo la sonda __ccam (QUITAR): probar un plano sin recompilar
-    fade: ramp(0, 0, 0, 0), fadeThen: null,
+    fade: ramp(0, 0, 0, 0), fadeColor: '#000', fadeThen: null,
     letterbox: ramp(0, 0, 0, 0),
   };
   C.durTotal = finDe(C.beats);
@@ -106,9 +106,13 @@ export function update(dtReal) {
     plane.vy += (tgt - plane.vy) * Math.min(1, dt * (2 / C.pose.ramp));
   }
   if (C.vuelo) {
-    // objetivos NEUTROS: en una cinematica no hay palanca, asi que el avion tiende a nivel. Lo que
-    // se ve al terminar la maniobra —el avion volviendo despacio de su alabeo— es exactamente eso.
-    stepVuelo(dt, { bank: 0, pitch: 0, boost: C.vuelo.boost });
+    // SIN PALANCA, la actitud la dicta la TRAYECTORIA: el alabeo tiende a nivel y la trompa sigue
+    // a la velocidad vertical. Es lo que hace que la trepada de salida se vea "mirando al cielo" en
+    // vez de un avion horizontal que sube de costado — y sale gratis, porque es la verdad fisica.
+    const pitchTgt = Math.max(-1, Math.min(1, plane.vy / 12));
+    stepVuelo(dt, { bank: 0, pitch: pitchTgt, boost: C.vuelo.boost, techo: C.vuelo.techo });
+    // EL AGUA: la estela y el rocio de volar a ras. Es la mitad de lo que dice "rasante".
+    if (C.vuelo.agua) estelaVuelo(dt, { mas: C.vuelo.agua === true ? 1 : C.vuelo.agua });
     // EL MUNDO CORRE DEBAJO. Es la mitad de la sensacion de volar: sin esto el mar esta quieto y
     // no hay estela ni lineas de velocidad, por mucho que el avion se mueva.
     run.dist += run.spd * dt * C.vuelo.avance;
@@ -133,6 +137,18 @@ export function update(dtReal) {
     if (th.scene) sig.scene = th.scene;
     if (th.radio) sig.radio = th.radio;
   }
+  // ---- Y SE APAGA SOLA. `fin` no es nada mas una señal para arriba: es EL FINAL, y el director se
+  // suelta ahi mismo. Sin esto el ultimo estado de la timeline se quedaba pintado encima de todo lo
+  // que viniera despues — y como el premio del PULSO termina en un RESPLANDOR BLANCO a opacidad 1,
+  // lo que quedaba era la pantalla en blanco, para siempre, sobre el panel de recuento (playtest
+  // 22/8: «quedó en blanco y nunca más pude hacer nada»). El orquestador ya recibio su señal en
+  // `sig`; nadie mas necesita que esto siga vivo.
+  //
+  // Y EL RESPALDO, que es la parte que importa: tambien se suelta si el reloj PASA el final de la
+  // timeline. Una cinematica sin `fin` —o con un `fin` cuya ligadura no se ato, que es una cosa que
+  // esta timeline hace a proposito en otros beats— es exactamente el mismo cuelgue esperando. Una
+  // cinematica no puede durar para siempre: eso no es una politica, es una invariante.
+  if (C.fin || C.t > C.durTotal + 0.5) C = null;
   return Object.keys(sig).length ? sig : null;
 }
 
@@ -146,7 +162,8 @@ function aplicar(b, sig) {
   // que quiera, `false` la apaga (una cinematica que quiera al avion quieto tiene que pedirlo).
   if (b.vuelo !== undefined) {
     C.vuelo = b.vuelo === false ? null : Object.assign(
-      { avance: CINE_VUELO.AVANCE, motor: true, gain: CINE_VUELO.GAIN, boost: false, estelas: false },
+      { avance: CINE_VUELO.AVANCE, motor: true, gain: CINE_VUELO.GAIN, boost: false, estelas: false,
+        agua: CINE_VUELO.AGUA, techo: undefined },
       typeof b.vuelo === 'object' ? b.vuelo : {});
   }
 
@@ -180,6 +197,11 @@ function aplicar(b, sig) {
     const o = typeof b.fade === 'object' ? b.fade : { a: b.fade === 'negro' ? 1 : 0 };
     const dur = o.dur || 0;
     C.fade = ramp(valor(C.fade, C.t), o.a, dur, C.t, o.ease);
+    // EL COLOR DEL FUNDIDO. Negro por omision —fundir es irse— pero un fundido a BLANCO no es lo
+    // mismo: no cierra, REVIENTA. Es el remate de una explosion vista desde adentro y el unico
+    // final honesto para una cinematica que termina alejandose de algo que arde. Un verbo nuevo
+    // (`destello`) hubiera sido este mismo codigo con otro nombre: fundir a un color YA era esto.
+    if (o.color) C.fadeColor = o.color;
     if (b.then) C.fadeThen = Object.assign({ at: C.t + dur }, b.then);
   }
   if (b.letterbox !== undefined) {
@@ -221,6 +243,10 @@ function aplicar(b, sig) {
 // ese tramo es del que es dueño de la escena — igual que la curva de la pirueta es de moves.js.
 
 export const t = () => (C ? C.t : 0);
+/** Cuanto dura la cinematica entera. Lo consulta quien necesita una curva que abarque TODA la
+ *  escena en vez de un tramo: el acercamiento del buque es una sola caida de punta a punta, y
+ *  partirla en tramos fue lo que le puso una costura visible justo en el impacto. */
+export const dur = () => (C ? C.durTotal : 0);
 export const parte = () => (C ? C.parte : null);
 /** Segundos desde que arranco la parte vigente. */
 export function tParte() {
@@ -258,7 +284,7 @@ export const state = () => (C ? {
   // las marcas van con SU INSTANTE (no con "cuanto hace"): asi el render calcula lo que necesita
   // —cuanto hace, o si ya paso— sin que el snapshot tenga que adivinar cual de las dos quiere
   marcas: C.marcas,
-  fade: valor(C.fade, C.t), letterbox: valor(C.letterbox, C.t),
+  fade: valor(C.fade, C.t), fadeColor: C.fadeColor, letterbox: valor(C.letterbox, C.t),
   cam: cam(), control: C.control,
 } : null);
 
@@ -290,6 +316,7 @@ if (typeof window !== 'undefined') window.__cdbg = () => JSON.stringify(C ? {
   marcas: Object.keys(C.marcas), tempo: +tempo().toFixed(2), control: C.control,
   cam: { modo: cam().modo, off: +cam().off.toFixed(1), forzada: !!C.camForce },
   vuelo: C.vuelo ? C.vuelo.avance : null, pose: C.pose ? C.pose.alt : null, ritmo: C.ritmo,
-  fade: +valor(C.fade, C.t).toFixed(2), letterbox: +valor(C.letterbox, C.t).toFixed(2),
+  fade: +valor(C.fade, C.t).toFixed(2), fadeColor: C.fadeColor,
+  letterbox: +valor(C.letterbox, C.t).toFixed(2), techo: C.vuelo ? (C.vuelo.techo || null) : null,
   beats: C.beats.length, dur: +C.durTotal.toFixed(2),
 } : { on: false });

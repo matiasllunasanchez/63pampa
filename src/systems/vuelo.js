@@ -17,6 +17,10 @@
 // Si algun dia el vuelo cambia de peso, las cinematicas cambian con el sin tocarlas.
 import { plane, cam } from '../core/state.js';
 import { run } from '../core/run.js';
+import { wake, parts, prune } from '../core/world.js';
+import { proj } from '../core/fx.js';
+import { P } from '../data/palette.js';
+import { PZ } from '../render/ctx.js';
 import { FLY_X, FLY_TOP } from '../data/tuning.js';
 import { PITCH_LERP } from '../core/physics.js';
 
@@ -37,16 +41,22 @@ export const CAM_PAN = 6;
  *                     Se ignoran mientras hay pirueta: ahi el dueño de la actitud es moves.js.
  *     `pan`           paneo pedido (-1..1). El jugador mira arriba/abajo; una cinematica no.
  *     `boost`         turbo puesto: la camara se va para atras.
+ *     `techo`         tope de altura. Por omision el del juego (`FLY_TOP`): quien vuela el
+ *                     pasillo no lo pasa nunca y no cambia nada. Lo levanta UNA cinematica, y por
+ *                     una razon: el techo es una REGLA DE JUEGO —«hasta aca llega el carril»— y en
+ *                     una salida trepando lo que hacia era FRENAR el avion contra un vidrio
+ *                     invisible justo cuando la escena pide que se vaya (playtest 8/2026).
  */
 export function stepVuelo(dt, o) {
   o = o || {};
+  const techo = o.techo === undefined ? FLY_TOP : o.techo;
   // ---- INTEGRAR. `moves.js` y el bloque de control escriben VELOCIDADES; la posicion se integra
   // en un solo lugar, y este es. Sin esto una pirueta es un sprite rotando sobre una foto.
   plane.x += plane.vx * dt;
   plane.y += plane.vy * dt;
   if (plane.x < -FLY_X) { plane.x = -FLY_X; plane.vx = 0; }
   if (plane.x > FLY_X) { plane.x = FLY_X; plane.vx = 0; }
-  if (plane.y > FLY_TOP) { plane.y = FLY_TOP; plane.vy = 0; }
+  if (plane.y > techo) { plane.y = techo; plane.vy = 0; }
 
   // ---- LA CAMARA LLEGA TARDE, y ese retardo ES el peso. No sigue al avion: lo persigue.
   cam.x += (plane.x * 0.86 - cam.x) * Math.min(1, dt * 7);
@@ -70,4 +80,43 @@ export function stepVuelo(dt, o) {
     plane.bank += ((o.bank || 0) - plane.bank) * Math.min(1, dt * 9);   // entra/sale con peso
     plane.pitch += ((o.pitch || 0) - plane.pitch) * Math.min(1, dt * PITCH_LERP);   // igual de rapido que el alabeo
   }
+}
+
+
+/** EL AGUA QUE LEVANTAS al volar a ras: la estela sobre el mar y el rocio que salta.
+ *
+ *  Vive aca por la misma razon que el resto de la cama: era codigo de `flight.js` y hace falta
+ *  TAMBIEN en una cinematica. Volar rasante sin que el agua reaccione no se lee como rasante — se
+ *  lee como volar bajo sobre una foto, que es de lo que se quejo el playtest.
+ *
+ *  `alt` entra por parametro (y no de `plane.y`) porque el vuelo la calcula una vez por cuadro
+ *  junto con el roce; `pista`/`tierra` apagan el agua donde no hay agua.
+ */
+export function estelaVuelo(dt, o) {
+  o = o || {};
+  const alt = o.alt === undefined ? plane.y : o.alt;
+  // estela sobre el agua
+  const lowI = Math.max(0, 1 - alt / 9);
+  if (lowI > 0 && !o.pista && !o.tierra) {
+    wake.push({ x: plane.x, z: PZ, i: lowI, seed: Math.random() * 100 });   // seed: motas estables
+    if (wake.length > 150) wake.shift();
+  }
+  for (const wp of wake) wp.z -= run.spd * dt;
+  prune(wake, w => w.z > 2.4);
+
+  // rocío a ras del agua (escala con la cercanía) — solo sobre agua; sobre tierra levanta polvo
+  //
+  // `mas` multiplica el rocio y por omision es 1: el PASILLO no cambia. Lo levanta una CINEMATICA,
+  // y por una razon honesta — el pasillo es juego y el rocio no puede taparte lo que tenes que
+  // esquivar; un plano rasante es una TOMA, y ahi el agua saltando ES el tema.
+  const nSpray = Math.round((alt < 2.8 ? 6 : alt < 4.5 ? 3 : alt < 7 ? 1 : 0) * (o.mas || 1));
+  for (let i = 0; i < nSpray; i++) {
+    const s = proj(plane.x + (Math.random() - 0.5) * 4, 0, PZ - Math.random() * 2);
+    const onLand = o.tierra;
+    parts.push({
+      x: s.x, y: s.y - 1, vx: (Math.random() - 0.5) * 70, vy: -(50 + Math.random() * 110) * (0.5 + lowI),
+      life: 0.25 + Math.random() * 0.3, c: onLand ? (Math.random() < 0.6 ? '#6b6250' : '#4a4636') : (Math.random() < 0.7 ? P.foam : P.crest), r: 1 + Math.random() * 1.3
+    });
+  }
+  if (alt < 4.5) run.shake = Math.max(run.shake, (4.5 - alt) * 0.3);
 }

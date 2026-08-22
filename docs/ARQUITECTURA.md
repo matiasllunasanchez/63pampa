@@ -3,10 +3,55 @@
 Mapa de la estructura del código. Para el *qué hace el juego* está el [README](../README.md); esto es
 el *dónde vive cada cosa y por qué*.
 
-El juego era un solo archivo (`src/game.js`, ~3700 líneas). Hoy es un **ensamblador de ~800
-líneas** más 29 módulos. `game.js` conserva lo que es genuinamente "el pegamento": el arranque, el
-bucle (`update`/`draw` como orquestadores), el flujo de misión/campaña, la cámara y el cableado del
-input. Todo lo demás son módulos con dependencias explícitas.
+El juego era un solo archivo (`src/game.js`, ~3700 líneas) y se partió en módulos con dependencias
+explícitas. `game.js` conserva lo que es genuinamente "el pegamento": el arranque, el bucle
+(`update`/`draw` como orquestadores), el flujo de misión/campaña, la cámara y el cableado del input.
+
+> ⚠️ **La frase de arriba describía un ensamblador de ~800 líneas y 29 módulos. Hace rato que no es
+> cierto** — y un mapa que miente es peor que ninguno. Los números reales están abajo.
+
+## Estado real *(medido el 18/8/2026)*
+
+Esta sección existe porque la deriva es silenciosa: nadie decide volver al monolito, se vuelve solo.
+Los números salen de contar, no de recordar, y se vuelven a medir al cerrar cada fase del
+[PLAN DE REFACTOR](proyecto/PLAN_REFACTOR.md).
+
+| medida | valor | objetivo del refactor |
+|---|---|---|
+| `src/` sin bundle ni vendor | **26.434 líneas** en **88 módulos** | — |
+| `game.js` | **3.388 líneas** · 72 imports | < 500 |
+| `render/world.js` | **2.372 líneas** (mar + tierra + obstáculos + buque + nubes) | partido por capas (RF8) |
+| estados de la máquina | **24** · `S.state ===` aparece **101** veces en `game.js` | registro de fases (RF3), < 10 |
+| modos | 6 · `gameMode ===` **37** veces | descriptores (RF5), 0 fuera de `modes/` |
+| decisiones por `o.type` | **138** | registro de entidades (RF6) |
+| sondas `window.__` | **124** (64 dentro de `game.js`) | capa `dev/` (RF1), 0 fuera |
+| copias del fallback de audio | **33** | eventos (RF4), 0 |
+| claves sueltas de `localStorage` | **37**, sin versionar | 1 objeto versionado (RF7) |
+| violaciones de capa | **40** *(techo en `tools/baseline/layers_whitelist.json`)* | 0, con el lint en ERROR |
+
+**Lo que está bien y hay que proteger**: las cuatro convenciones siguen siendo correctas;
+`core/aero.js` ya es el integrador 3D compartido (no hay vuelo duplicado); la capa de datos por
+sistema ya empezó (`data/pasada.js`, `pulso.js`, `arena.js`, `missions.js` con `climax`); y la red
+de pruebas —90 unitarios, `feel`, `lint:state`, `lint:layers`, dos smokes y **12 fixtures**— es lo
+que vuelve posible el refactor. **Con red, se puede.**
+
+### En cuarentena *(desde el 18/8/2026)*
+
+**MINUTOS SAGRADOS (el ARENA) y PASADAS MORTALES están apartados, no borrados.** La perilla es
+[`src/data/cuarentena.js`](../src/data/cuarentena.js) y es la única: saca de sus listas y la parte
+entera revive. Sus módulos siguen compilando y sus fixtures siguen verdes a propósito — es lo que
+avisa si se pudren mientras esperan. Se entra por sonda (`?pasada=`, `__prb('arena')`,
+`npm run pasada`), nunca por el menú. Las misiones que declaraban `climax: 'arena'` **lo siguen
+declarando**: la sustitución por EL PULSO ocurre en `climaxOf`, no pisando el dato.
+
+### `legacy/` — leer antes de borrar
+
+`src/legacy/` tiene el clímax viejo (`momentum.js`, `momentum_render.js`, `three-world.js`). **El
+nombre promete más de lo que la carpeta cumple**: al mudarla se midió que todavía contiene código
+**vivo** —la cabina que usa EL PULSO, `drift()` que `render/world.js` lee en tres caminos calientes,
+el arranque compartido de three.js y el mar 3D del vuelo normal—. Cada archivo lista arriba qué
+parte suya sigue viva. Hoy borrar ahí rompe el juego; separarlo es trabajo de RF2/RF8. Las 7
+dependencias vivas están escritas en el techo del lint de capas y **solo pueden achicarse**.
 
 > **Build**: los módulos son ES modules, pero Electron los carga por `file://` (donde Chromium los
 > bloquea por CORS). Por eso `npm run build:game` los empaqueta con esbuild en `src/game.bundle.js`.
@@ -188,11 +233,11 @@ Todo lo que pinta. `draw()` en `game.js` gestiona los transforms y delega acá.
 | `enemies.js` | hojas horneadas de enemigos y props (helo, jet, vehículos, barcaza, globo, AA, carpa, depósito, puesto, fragata) — cajas medidas sobre el alfa; `world.js` cae a su dibujo a mano si una hoja no cargó |
 | `soldiers.js` | hoja de sprites de los soldados (correr / cuerpo a tierra) |
 | `boom.js` / `blast.js` | hongo de bomba / bola de fuego frontal (hojas de explosión) |
-| `miras.js` | la hoja de miras del menú `[M]` |
+| `miras.js` | la hoja de miras (`assets/miras.webp`), que elige la fila MIRA de **MEJORAS DEL PICHÓN** |
 | `hud.js` | instrumentos, avisos, barra de objetivo, cuenta regresiva del despegue, tablero del escuadrón |
 | `squad.js` | la formación del despegue (y su salida de plano) + la sobreimpresión de la cinemática del relevo |
 | `screens.js` | recuento, briefing, derribado, victoria, y el guion narrativo (UNA LÍNEA POR VEZ, leyendo `core/dialogue.js`) |
-| `menus.js` | selección de modo/avión, los submenús de HISTORIA / JUEGO RÁPIDO / **PRUEBAS** (los tres son `drawRowMenu`, una sola función con otro contenido; PRUEBAS además usa su `view` para deslizar la lista) y el menú de configuración `[M]`. ⚠️ La lista `opts` de `drawModeSelect` y `MODES` de `game.js` **son la misma lista en dos lados**: si divergen, el cursor se para en una fila y se dibuja otra |
+| `menus.js` | selección de modo/avión, los submenús de HISTORIA / JUEGO RÁPIDO / **PRUEBAS** (los tres son `drawRowMenu`, una sola función con otro contenido; PRUEBAS además usa su `view` para deslizar la lista) y las pantallas **OPCIONES** / **MEJORAS DEL PICHÓN** (`drawOptions` / `drawMejoras`; el viejo menú `[M]` ya no existe). ⚠️ La lista `opts` de `drawModeSelect` y `MODES` de `game.js` **son la misma lista en dos lados**: si divergen, el cursor se para en una fila y se dibuja otra |
 | `momentum.js` | el render del ARENA VIEJO (barcaza, zonas, cabina, visor) |
 | `arena.js` | el overlay 2D de la fase ARENA: corchetes/HP proyectados desde la escena 3D, fx del duelo, cabina o sprite (1ª/3ª persona, tecla V) y tablero (zonas + escuadrón) |
 | `caza.js` | el Harrier de **LA COLA** y sus trazadoras. Se dibuja en **dos pasadas** (`drawCaza(true/false)`) porque el caza cruza de detrás tuyo a delante y no hay una sola capa correcta |
@@ -243,6 +288,7 @@ Lo que queda es genuinamente el pegamento:
 | **cuántos INTENTOS tenés contra el buque** | el escuadrón. En la PASADA, cada avión es una suelta: `systems/pasada.js` devuelve `{ spent }` al resolverse la ristra y `onPassSpent()` de `game.js` releva — o pierde la misión si era el último. El daño al buque **persiste entre pilotos** (las zonas viven en el módulo, no en la instancia). Ver SPEC_MODO_PASADA RF-15 |
 | **que el relevado se rompa o se muera** | la fila AL PERDER UN AVIÓN de OPCIONES (`cfg.relevoFx`), leída por `relevoRompe()` en `game.js`. Es TONO, no cuenta: el avión sale de la partida en los tres casos. OJO: los NOMBRES de los pilotos siguen colgados del roster (`squad.rosterActive()`), que es otra pregunta |
 | **que el JOYSTICK vuele una fase nueva** | la lista `inGame` de `core/input.js`. Es la que decide dónde el pad escribe el vuelo; fuera de ella corre la rama de menús, que **suelta todos los ejes** (el avión se queda sin piloto en el aire). Le pasó a la PASADA. Y si el binding es nuevo, anotalo en la tabla `ctrl*` de `data/strings.js` **en los dos idiomas**: esa tabla es la pantalla CONTROLES de OPCIONES y dice lo que `input.js` *hace*, no lo que debería |
+| **qué tecla o botón hace qué, en cada modo** | [CONTROLES.md](sistemas/CONTROLES.md) — la tabla normativa (teclado · joystick · táctil, modo por modo) y los huecos conocidos. Si tocás un binding en `core/input.js`, actualizá ESE doc **y** las filas `ctrl*` de `data/strings.js` en los dos idiomas |
 | el HUD | `render/hud.js` |
 | el mar / los obstáculos en pantalla | `render/world.js` |
 | **el agua: la superficie, las olas y el clima del mar** | `core/sea.js` (PURO: `seaH`, `olaBump`, `seaHTotal`, `climaDe` — la MISMA función que dibuja el mar es contra la que resuelve la colisión) + las perillas `OLA_*` / `SEA_*` / `SUN_GLINT_HALF` de `data/tuning.js`. El dibujo está en `drawSeaDots` de `render/world.js`, la siembra en `systems/spawn.js` y los tres desenlaces (cara mata / cresta cuesta / se salta) en `systems/collision.js`. Probalo con `npm run agua`; el plan y las divergencias, en [SPEC_AGUA_OLAS.md](sistemas/SPEC_AGUA_OLAS.md) |
@@ -272,7 +318,7 @@ Lo que queda es genuinamente el pegamento:
 | que una pirueta se pueda prender y apagar | ya se puede: `cfg.movesOff` (`core/state.js`) + `moveAllowed()` en `data/upgrades.js`, que es la ÚNICA regla de qué pirueta sale — junta TENERLA (el banco, en campaña) con QUERERLA (el menú) |
 | que suene la música del lobby en una pantalla nueva de menú | `inLobby()` en `systems/audio.js` **y** el `inLobby()` de `game.js` — son dos listas distintas y tienen que coincidir |
 | **qué avión vuela la campaña** | `CAMPAIGN_PLANE` en `game.js` — se resuelve **por clave** (`key === 'sky'`), nunca por índice: `PLANES` se reordena y un `0` escrito a mano seguiría apuntando "al primero", que con una línea movida es otro avión. Lo fuerzan las **tres** puertas de una misión: `startCampaign()`, `loadSave()` y `abrirMision()` (el selector MISIONES, los MOMENTOS de PRUEBAS y la sonda `__mision`). Los modos que **no** son misión (POR LA PATRIA, PERSECUCIÓN, JUEGO RÁPIDO) respetan la elección del jugador. La decisión de fondo está en [AVIONES_ESCUADRON.md](historia/AVIONES_ESCUADRON.md) y el catálogo del roster en [AVIONES_CATALOGO.md](historia/AVIONES_CATALOGO.md). Custodia: `npm run misiones` |
-| **cambiar el PNG de la CABINA** (`assets/planes/a4-skyhawk/cockpit.png`) | **una sola medida y todo lo demás se deriva**: `V_VISOR` en `render/momentum.js` — dónde cae el vidrio del visor dentro del PNG, en fracción de su alto (8/2026: el vidrio va de 0.3255 a 0.4609 → 0.3932). Es lo único que hay que volver a medir. Cada modo declara **dónde apunta** (`COCKPIT_MIRA` en `render/arena.js`, que la PASADA importa; el suyo en `render/pulso.js`; `MOM_AY` de `data/tuning.js` para el ARENA VIEJO) y la cabina se para sola para que su visor caiga ahí. `COCKPIT_FILL` es cuánta pantalla ocupa, con **escala uniforme** — no deforma nunca. Ojo: el PNG es 1.833:1 y la pantalla 1.778:1, así que a ancho completo la cabina entera ya se come los 270 px de alto; por eso `FILL < 1` y queda mundo a los costados. Comprobalo con `__prb('arena'\|'pasada'\|'pulso')` — la mira tiene que caer DENTRO del vidrio y las rodillas del piloto tienen que verse |
+| **cambiar el PNG de la CABINA** (`assets/planes/a4-skyhawk/cockpit.png`) | **una sola medida y todo lo demás se deriva**: `V_VISOR` en `legacy/momentum_render.js` — dónde cae el vidrio del visor dentro del PNG, en fracción de su alto (8/2026: el vidrio va de 0.3255 a 0.4609 → 0.3932). Es lo único que hay que volver a medir. Cada modo declara **dónde apunta** (`COCKPIT_MIRA` en `render/arena.js`, que la PASADA importa; el suyo en `render/pulso.js`; `MOM_AY` de `data/tuning.js` para el ARENA VIEJO) y la cabina se para sola para que su visor caiga ahí. **El tamaño no es una perilla**: sale de la mira. La cabina se dibuja con el mayor alto que no desborda por arriba ni por abajo (`altoDe`) y el ancho detrás por la proporción del PNG — así **nunca se recorta**, y si sale más ancha que la pantalla lo que se va por los costados son los rieles. De ahí sale `MIRA_PLENA` (= `V_VISOR × H` ≈ 106): la **única** Y en que la cabina sale entera Y de borde a borde. Un modo puede apuntar más abajo, pero lo paga con una cabina achicada y despegada de los bordes — que es lo que le pasaba a EL PULSO con su vieja mira en 150. Comprobalo con `__prb('arena'\|'pasada'\|'pulso')` — la mira tiene que caer DENTRO del vidrio y las rodillas del piloto tienen que verse |
 | el arte de un avión jugable | `tools/bake_planes.html` → `npx electron tools/bake_planes_run.js` |
 | sonido | `systems/audio.js` + `data/sfx.js` |
 
@@ -281,12 +327,18 @@ Lo que queda es genuinamente el pegamento:
 | comando | qué garantiza |
 |---|---|
 | `lint:state` | nadie reasigna un store compartido (los mutás, no los reemplazás) |
+| `lint:layers` | **el grafo de imports no empeora**. Lee todos los `import` de `src/` y marca lo que cruza capas mal (`data` importando fuera de data, `core` importando canvas o sistemas, `systems` importando render, `render` leyendo tripas de un sistema, y cualquiera **nuevo** colgándose de `legacy/`). Arranca en modo REPORTE con **trinquete**: la lista de hoy (`tools/baseline/layers_whitelist.json`, 40 entradas) es el techo — una violación que no esté ahí es ERROR, y la lista **solo puede achicarse** (`-- --prune`). Cuando llegue a cero pasa a ERROR puro |
 | `unit` | la física pura, con casos de borde (`node:test`, cero dependencias) |
 | `feel` | la *sensación* — importa las fórmulas REALES de `core/physics.js`, no las re-implementa |
 | `smoke` | abre el juego en Electron y falla si el canvas queda en blanco, **deja de cambiar**, no suena o tira error de consola — en menú, PASILLO, derribado, ARENA, combate y mouse. Con three.js cargado (siempre en Electron y en el build web) entra a la fase ARENA nueva, no al fallback en riel de `momentum.js` |
 | `build:web` + `smoke:web` | lo mismo sobre el build web autocontenido |
 
-Y una que corre aparte, a mano, porque son 13 s de silencios reales:
+Y los **fixtures**, que corren aparte porque son minutos de juego real:
+
+| comando | qué garantiza |
+|---|---|
+| `fixtures` | **los 12, en serie, más `feel`**. Uno por línea con su cuenta de ✓/✗ y su tiempo. En serie y no en paralelo a propósito: cada uno levanta su Electron con GPU y en paralelo se pelean por el contexto de WebGL — una prueba que falla por el corredor enseña a ignorar las pruebas. Con `-- --baseline` escribe `tools/baseline/`: `feel` **tal cual** (es determinista y es el juez del refactor) y cada fixture **normalizado** —los números enmascarados—, porque vuelan de verdad con azar en la siembra y un baseline literal fallaría siempre |
+
 
 | comando | qué garantiza |
 |---|---|

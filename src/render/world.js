@@ -29,8 +29,8 @@ import { mvTight } from '../data/moves.js';
 import * as boomArt from './boom.js';
 import * as blastArt from './blast.js';
 import * as enemyArt from './enemies.js';
-import * as momentum from '../systems/momentum.js';
-import * as momRender from './momentum.js';
+import * as momentum from '../legacy/momentum.js';
+import * as momRender from '../legacy/momentum_render.js';
 // R3 — EL HANDOFF. La escala aparente sale de la camara del CLIMAX (una sola definicion, ver
 // three-arena) y la distancia del corte, de la data de la PASADA. El pasillo no inventa ningun
 // tamaño: dibuja el buque a la distancia a la que el jugador REALMENTE esta.
@@ -1484,11 +1484,21 @@ export function drawObstacle(o) {
     // SE DISUELVE, no desaparece: el último medio segundo se va en transparencia. Es lo que hace
     // que el cap global (los más viejos se van antes) no se lea como un parpadeo. Y lo MUY cercano
     // se desvanece también: te pasó por el ala, no es algo que estés mirando.
-    const fade = Math.min(1, Math.max(0, (CHUNK_LIFE - o.chunkT) / 0.5), Math.max(0, (o.z - 3) / 11));
+    const fade = Math.min(1, Math.max(0, ((o.vida || CHUNK_LIFE) - o.chunkT) / 0.5), Math.max(0, (o.z - 3) / 11));
     ctx.save();
     if (fade < 1) ctx.globalAlpha = fade;
     ctx.translate(s.x, s.y); ctx.rotate(o.spin);
-    if (o.pieza) {
+    if (o.paraca) {
+      // EL PARACAIDAS (v2 §3): cupula, cuerdas y el asiento colgando. NO gira — el `spin` va en 0
+      // a proposito. Lo que se lee es que algo baja DESPACIO mientras todo lo demas cae, y esa
+      // lectura la da la cupula quieta; un paracaidas tumbando seria un pedazo mas de escombro.
+      const R = Math.max(2, r * 1.5);
+      ctx.beginPath();
+      ctx.ellipse(0, -R * 0.45, R, R * 0.6, 0, Math.PI, 6.2832);
+      ctx.fillStyle = o.c || '#d8d2c4'; ctx.fill();
+      px(-Math.max(1, R * 0.05), -R * 0.45, Math.max(1, R * 0.1), R * 0.7, o.c2 || '#8f959b');
+      px(-Math.max(1, R * 0.2), R * 0.22, Math.max(2, R * 0.4), Math.max(2, R * 0.34), o.c2 || '#8f959b');
+    } else if (o.pieza) {
       // LA PIEZA RECONOCIBLE (D2): no es un fragmento mas, es LA parte — y por eso tiene silueta
       // propia. Es lo que hace que a 200 m se sepa que lo que cae era un helicoptero: no se lee el
       // escombro, se lee el rotor dando vueltas solo.
@@ -1874,6 +1884,17 @@ function approachF(p) {
 // alla, porque la escala y el cabeceo son una cuenta larga y dos copias se desincronizan solas.
 let LAST_BARGE = null;
 export const bargeGeom = () => LAST_BARGE;
+// SONDA (QUITAR antes de publicar). El TAMAÑO Y LA POSICION del buque tal como quedaron dibujados
+// este cuadro. Sin esto, "el buque no se sigue acercando" solo se puede discutir mirando: el
+// multiplicador del PULSO (`fx.grow`) puede estar creciendo y el buque igual no crecer en pantalla
+// —lo tapa el recorte del mar, o el `drop` ya lo saco del cuadro— y son cosas distintas.
+if (typeof window !== 'undefined') window.__buque = () => JSON.stringify(LAST_BARGE ? {
+  sc: +LAST_BARGE.sc.toFixed(4), largo: +LAST_BARGE.len.toFixed(1),
+  alto: +LAST_BARGE.hullH.toFixed(1), cubierta: +LAST_BARGE.by.toFixed(1),
+  agua: +LAST_BARGE.waterY.toFixed(1), tilt: +LAST_BARGE.tilt.toFixed(3),
+  // cuanto del buque queda ARRIBA de la linea de agua, que es lo unico que el recorte deja ver
+  visible: +(LAST_BARGE.waterY - LAST_BARGE.by).toFixed(1),
+} : null);
 
 // DISTANCIA REAL del buque en el ultimo tramo del pasillo, cuando el climax es la PASADA (R3).
 // De `BARGE_D0` metros a `ENTRY_D`: al cortar, el jugador esta EXACTAMENTE donde la PASADA lo
@@ -2039,7 +2060,13 @@ export function drawApproachBarge(objectiveDist, objectiveShip, fx, deProa) {
   // viaje entero, no con la ventana f de crecimiento del casco). Las nubes van de 0.8 a 0.1 y
   // el buque, a la INVERSA (pedido 11/8): entra FANTASMA (0.15) y se materializa hasta 1 —
   // aparecer es literalmente que el buque se vaya haciendo real a medida que la niebla se abre.
-  const dis = ph === 0 ? Math.max(0, Math.min(1, (p - t0) / (0.97 - t0))) : 1;
+  // …pero EN EL PREMIO ya esta materializado del todo (`fx` solo llega durante la cinematica del
+  // PULSO). Materializarse es un dispositivo de LA APROXIMACION: el buque se hace real a medida que
+  // la niebla se abre. Encima del blanco no queda nada que revelar — y como este reloj corre con el
+  // avance del PASILLO, cualquier cinematica que no venga de volarlo entero (el menu CINEMATICAS,
+  // un fixture) dibujaba el buque a un 20 % de opacidad: un fantasma gris justo en el cuadro donde
+  // tiene que ser una pared de acero.
+  const dis = ph === 0 && !fx ? Math.max(0, Math.min(1, (p - t0) / (0.97 - t0))) : 1;
   ctx.save();
   ctx.beginPath(); ctx.rect(-80, -80, W + 160, waterY + 2 + 80); ctx.clip();   // el mar tapa lo hundido
   // MUERTE (EL PULSO): escora y se hunde. El giro va DESPUES del recorte y no antes — el recorte
@@ -2063,7 +2090,12 @@ export function drawApproachBarge(objectiveDist, objectiveShip, fx, deProa) {
   // se dibujan mas tarde en el orquestador: oscuro sobre claro, cada cosa en su plano.
   // mismo reloj `dis` que la materializacion del casco: banco cerrado de lejos (0.8) que se
   // disipa en escalera hasta 0.1 — nunca a cero; lo que termina de tapar es el velo negro.
-  if (ph === 0) drawShipClouds(bx, waterY, W * 0.82 * sc, uh, hullH, dis);
+  // …pero NO EN EL PREMIO (`fx` solo llega durante la cinematica del PULSO). El banco existe para
+  // que el buque APAREZCA de la bruma mientras te acercas; encima del blanco es niebla entre vos y
+  // algo que tenes a doscientos metros. Y como escala con el buque, al sobrevolarlo (grow > 4) se
+  // convertia en una pared gris que se comia la escena entera — el buque ardiendo, el mar y el
+  // cielo, todo lavado del mismo gris.
+  if (ph === 0 && !fx) drawShipClouds(bx, waterY, W * 0.82 * sc, uh, hullH, dis);
   // EL NOMBRE SE CALLA EN EL PULSO. Escrito sobre el buque cae justo donde la prueba pone la
   // eleccion de blanco (se vio volando el pasillo entero hasta la prueba, Q4): "HMS ARDENT"
   // encima del renglon del POLVORIN. El buque ya se presento en el briefing y en el pasillo; en

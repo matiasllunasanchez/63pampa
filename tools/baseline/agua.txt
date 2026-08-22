@@ -1,0 +1,43 @@
+
+FIXTURE — EL AGUA Y LAS OLAS (F#-F#)
+
+#. el clima manda (paso # del §#):
+   ✓ volando · clima breeze · # m/s
+   ✓ en CALMA no aparece ninguna ola sola: el mar de m# queda como estaba
+
+#. la marejada se SALTA (paso #):
+   ✓ ola inyectada: {"kind":"marejada","z":#,"h":#,"wz":#,"brecha":#}
+   ✓ saltando (llego a # sobre una cresta de #) se pasa limpio
+
+#. quedarse a ras MATA (paso #):
+   ✓ quedandose a ras la CARA de la ola mata (estado relevo)
+
+#. rozar la CRESTA cuesta margen, no la vida (paso #):
+   ✓ cepillando la cresta sube el roce (# → # de #) y se SIGUE volando
+
+#. el mar no es un peine (paso #):
+   ✓ la sonda pone olas a voluntad (# viva) — es lo que hace medible el resto
+   ✓ con una ola recien nacida el spawn natural NO siembra otra (OLA_GAP_MIN)
+
+#b. las olas aparecen SOLAS, sin sonda (el cableado):
+   ✓ con viento salen SOLAS: # en # m — una cada # m
+   ✓ y en calma sigue sin salir ninguna: la regla vale para los dos lados
+
+#. las olas varian de altura (pedido del autor):
+   ✓ varian de verdad: # a # (mediana #)
+   ✓ las grandes existen y son excepcion: # de # (#%) pasan la banda del x# (#)
+   ✓ el sesgo tira para abajo: mediana # debajo del medio del rango (#)
+
+#b. la ROMPIENTE se esquiva de costado (paso #):
+   ✓ por el lado LIBRE se pasa: la rompiente deja hueco de verdad
+   ✓ y por ADENTRO, a la misma altura, mata (relevo): el hueco no es el carril entero
+
+#. la OLA REBELDE (paso #):
+   ✓ la rebelde existe y es una pared: # m de ancho completo
+   ✓ con una rebelde viva (#) la guarda cierra el mar: no entra otra
+   ✓ con escuadron, la radio avisa la pared
+   ✓ y volando SOLO no avisa nadie: sin Fieles no hay ojos
+
+consola: sin errores
+
+FIXTURE AGUA: OK

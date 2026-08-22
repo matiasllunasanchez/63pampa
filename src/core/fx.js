@@ -10,7 +10,8 @@ import { parts, popups, obstacles } from './world.js';
 import { P } from '../data/palette.js';
 import { recetaDe, CHUNKS_MAX, CHUNK_LIFE, SEC_N, SEC_T,
   ONDA_T, ONDA_R, ONDA_PUSH, CERCA, FLASH_T,
-  CHAIN_R, CHAIN_DEPTH, CHAIN_DELAY, DESPIECE, PARTS_MAX } from '../data/despiece.js';
+  CHAIN_R, CHAIN_DEPTH, CHAIN_DELAY, DESPIECE, PARTS_MAX,
+  dadoDe, elegirVariante, MORIBUNDO_MAX, EYECT_P, VIDA_LARGA } from '../data/despiece.js';
 
 import { W, HOR, F, PZ } from '../render/ctx.js';
 import { boom, duck } from '../systems/audio.js';
@@ -80,19 +81,57 @@ function hacerLugar(n) {
   }
 }
 
+/** EL ACTA DE LA MUERTE (PLAN_DESTRUCCION_V2 §2): el contexto que decide la variante.
+ *
+ *  Todo sale de lo que YA existe en el instante del golpe — no hay estado nuevo que mantener ni
+ *  nada que el llamador tenga que recordar. El unico dato que el llamador aporta es `killer`, que
+ *  es lo unico que el objeto no puede saber de si mismo.
+ *
+ *  `lado` se lee del IMPULSO y no de la geometria: el impulso ES por donde entro la energia. Un
+ *  balazo desde atras empuja hacia adelante (vz > 0) y eso es un impacto en la popa.
+ */
+export function actaDe(o, imp, killer) {
+  const I = imp || {};
+  const vx = I.vx || 0, vy = I.vy || 0, vz = I.vz || 0;
+  const lado = Math.abs(vy) > Math.abs(vx) && Math.abs(vy) > Math.abs(vz) && vy < 0 ? 'arriba'
+    : Math.abs(vx) > Math.abs(vz) ? (vx > 0 ? 'der' : 'izq')
+    : (vz >= 0 ? 'popa' : 'proa');
+  const enAire = (o.y || 0) > 4;
+  return {
+    killer: killer || 'canon',
+    imp: { vx, vy, vz },
+    mag: Math.hypot(vx, vy, vz),
+    lado,
+    alt: enAire ? 'aire' : (cfg.terrain === 'sea' ? 'agua' : 'suelo'),
+    masa: recetaDe(o.type).masa || 'medio',
+    dado: dadoDe(o),
+  };
+}
+
 /** DESPIEZA un objeto: lo convierte en escombro segun su receta.
  *
- *  @param o    el obstaculo que muere (de ahi salen tipo y posicion)
- *  @param imp  el IMPULSO del que lo mato, en unidades de mundo:
- *              `{ vz }` hacia adelante (la bala empuja, tu avion arrastra),
- *              `{ vx, vy }` para el que ademas viene de un lado o de arriba.
- *              Sin impulso, el objeto simplemente se desarma donde estaba.
+ *  @param o     el obstaculo que muere (de ahi salen tipo y posicion)
+ *  @param acta  EL ACTA (v2 §2): `{ killer, imp, lado, alt, masa, dado, variante }`. Antes esto
+ *               era el impulso pelado; ahora el impulso viaja adentro (`acta.imp`) junto con el
+ *               resto del contexto. Se cambio la firma en vez de aceptar las dos formas: dos
+ *               verdades para lo mismo es exactamente como se llega a que una quede vieja.
+ *               El impulso sigue siendo lo mismo de siempre — `{ vz }` hacia adelante (la bala
+ *               empuja, tu avion arrastra), `{ vx, vy }` para el que viene de un lado o de arriba.
  *
  *  No explota ni suena: eso lo pone el que llama (explodeAt sigue siendo suyo). Aca solo hay
  *  escombro — es lo que permite migrar tipo por tipo sin romper a nadie (§4.6). */
-export function despiece(o, imp) {
-  const r = recetaDe(o.type);
-  const I = imp || {};
+/** La receta EFECTIVA de una muerte: la del tipo con la variante encima. Un solo lugar donde se
+ *  hace la mezcla — si `morir()` y `despiece()` la resolvieran cada uno por su lado, una variante
+ *  podria cambiar el escombro y no la bola de fuego, que es media muerte. */
+export function recetaEfectiva(tipo, variante) {
+  const r = recetaDe(tipo);
+  return variante && variante.receta ? Object.assign({}, r, variante.receta) : r;
+}
+
+export function despiece(o, acta) {
+  const A = acta || {};
+  const r = recetaEfectiva(o.type, A.variante);
+  const I = A.imp || {};
   const bvz = I.vz || 0, bvx = I.vx || 0, bvy = I.vy || 0;
   hacerLugar(r.n);
   // ALTURA DE ORIGEN: los obstaculos de suelo no llevan `y` (se dibujan desde el piso con su `h`),
@@ -128,6 +167,59 @@ export function despiece(o, imp) {
       ph: Math.random() * 6.28,
     });
   }
+  // LA FORMA DE LA VARIANTE (v2 §3). El escombro ya esta: aca se le da a UNO o DOS pedazos el
+  // papel grande que hace que la muerte se reconozca de lejos. Se REESCRIBEN pedazos que ya
+  // existen en vez de agregar objetos nuevos — asi el presupuesto de D5 no se entera de nada.
+  formaDeVariante(o, A, r, obstacles.slice(-r.n));
+}
+
+/** Le da silueta a la variante. Lo que distingue a las cuatro muertes del aire es CUANTOS PEDAZOS
+ *  GRANDES quedan y que hacen; el color es el mismo fuselaje en las cuatro, y tiene que serlo. */
+function formaDeVariante(o, A, r, cs) {
+  const v = A.variante;
+  if (!v || !cs.length) return;
+  const primero = cs[0], ultimo = cs[cs.length - 1];
+  const lado = A.dado < 0.5 ? -1 : 1;
+  if (v.forma === 'ala') {
+    // EL ALA sale ENTERA, grande y girando rapido; y planea, porque es una superficie.
+    primero.pieza = 'ala'; primero.size = r.size[1] * 2.2; primero.grav = 0.45;
+    primero.vspin2 = lado * 30; primero.vy = 6 + A.dado * 5; primero.vx = lado * 17;
+    // EL RESTO se va en tirabuzon y revienta al tocar. Es la maquinaria de dos actos del helo
+    // (D2) aplicada a otro cuerpo — no un sistema nuevo (§4.3 del plan viejo).
+    ultimo.espiral = true; ultimo.acto2 = true; ultimo.size = r.size[1] * 1.7;
+    ultimo.hot = true; ultimo.vida = VIDA_LARGA; ultimo.pieza = null;
+  } else if (v.forma === 'partido') {
+    // DOS MITADES que se separan: la PROA gira rapido y cae pesada; la COLA cae PLANA, tumbando
+    // despacio y flotando. Van para lados opuestos: es lo que hace legible que se partio.
+    primero.pieza = null; primero.size = r.size[1] * 2.0; primero.vspin = 11 * lado;
+    primero.vx = -lado * (14 + A.dado * 6); primero.grav = 1.2; primero.vida = VIDA_LARGA;
+    ultimo.pieza = null; ultimo.size = r.size[1] * 1.8; ultimo.vspin = 1.3 * lado;
+    ultimo.vx = lado * (14 + A.dado * 6); ultimo.grav = 0.65; ultimo.hot = true;
+    ultimo.vida = VIDA_LARGA;
+  } else if (v.forma === 'moribundo') {
+    // ENTERO Y DE LARGO: este no cae, se ALEJA. La silueta es una linea de humo que se va y una
+    // explosion lejos — la unica de las cuatro que no termina donde empezo.
+    primero.pieza = 'ala'; primero.size = r.size[1] * 2.4;
+    primero.moribundo = true; primero.acto2 = true; primero.hot = true;
+    primero.vida = VIDA_LARGA; primero.grav = 0;
+    primero.vx = (A.dado - 0.5) * 8; primero.vy = -2; primero.vz = 30;
+    primero.vspin = 0.7; primero.vspin2 = 0;
+  }
+  // LA EYECCION. Un piloto que alcanza a salir — no va en `desintegracion` porque de ahi no sale
+  // nadie, y fingir que si seria el festival que el §6.5 prohibe.
+  //
+  // El dado es OTRO: reusar el mismo que eligio la variante ataria las dos decisiones (siempre se
+  // eyectaria en las mismas variantes). Se deriva del primero, que lo mantiene determinista.
+  const dado2 = (A.dado * 7.3) % 1;
+  if (v.forma && dado2 < EYECT_P * (v.forma === 'moribundo' ? 1.8 : 1)) {
+    obstacles.push({
+      type: 'chunk', done: true, chunkT: 0, paraca: true,
+      x: o.x, y: (primero.y || 2) + 1.5, z: o.z,
+      vx: (A.dado - 0.5) * 7, vy: 15, vz: 5,
+      spin: 0, vspin: 0, size: 0.95, hot: false,
+      c: '#d8d2c4', c2: '#8f959b', grav: 0.1, vida: VIDA_LARGA, ph: 0,
+    });
+  }
 }
 
 /** CHISPAZO del primer instante (D2). Dos naturalezas, y se distinguen a un cuadro de distancia:
@@ -159,11 +251,30 @@ export function chispazo(x, y, z, clase) {
  *  `explodeAt` sigue existiendo y sigue siendo valido (§4.6): lo usan la bomba, el misil enemigo y
  *  todo lo que no es la muerte de un objeto con receta. */
 export const MUERTES = [];   // bitacora de las ultimas muertes (la lee la sonda __muertes)
+// La variante que salio en la ULTIMA muerte. La lee la sonda: sin esto, afirmar "salio `ala`" solo
+// se puede por inspeccion visual, que es justo lo que el fixture viene a reemplazar.
+export let ULTIMA_VARIANTE = null;
 
-export function morir(o, imp, depth) {
-  const r = recetaDe(o.type);
+/** Cuantos "se van muriendo" hay en el aire ahora mismo. */
+const moribundosVivos = () => obstacles.reduce((n, c) => n + (c.moribundo ? 1 : 0), 0);
+
+export function morir(o, imp, depth, killer) {
   const d0 = depth || 0;
-  MUERTES.push({ t: +run.t.toFixed(2), tipo: o.type, depth: d0, z: Math.round(o.z) });
+  // EL ACTA Y LA VARIANTE (v2). Se arman ACA, en el unico punto de entrada de la muerte, y no en
+  // cada llamador: quien mata sabe con que mato y nada mas — el resto lo deriva el acta sola.
+  const acta = actaDe(o, imp, killer);
+  acta.variante = elegirVariante(o.type, acta);
+  // CAP DEL MORIBUNDO (§6.2): es el unico que sigue vivo despues de morir, asi que es el unico que
+  // puede acumularse. Pasado el tope cae a `ala`, que es la otra muerte del cañon — no se cancela
+  // la variante, se sustituye: quedarse sin variante seria una muerte generica en medio de otras
+  // cuatro que no lo son.
+  if (acta.variante && acta.variante.forma === 'moribundo' && moribundosVivos() >= MORIBUNDO_MAX) {
+    const alt = (DESPIECE[o.type].variantes || []).find(v => v.forma === 'ala');
+    acta.variante = alt || null;
+  }
+  ULTIMA_VARIANTE = acta.variante ? acta.variante.id : null;
+  const r = recetaEfectiva(o.type, acta.variante);
+  MUERTES.push({ t: +run.t.toFixed(2), tipo: o.type, depth: d0, z: Math.round(o.z), var: ULTIMA_VARIANTE });
   if (MUERTES.length > 24) MUERTES.shift();
   const y0 = o.y != null && o.y > 0.4 ? o.y : (o.h ? o.h / 2 : 1);
   // LA BOLA — y su ausencia. Que la carpa no tenga es tan parte de su muerte como que el deposito
@@ -174,7 +285,7 @@ export function morir(o, imp, depth) {
   // D3 — LA ONDA Y EL GOLPE. Lo grande manda onda; todo manda golpe, escalado por CUAN CERCA fue.
   if (r.bola === 'grande') onda(o.x, y0, o.z);
   golpe(o.x, o.z, r.bola === 'grande' ? 1 : r.bola ? 0.5 : 0.28);
-  despiece(o, imp);
+  despiece(o, acta);
   // SECUNDARIAS: el combustible no explota de una: se va prendiendo. Cada una es un 'sec' con su
   // propio reloj — obstaculos como cualquier otro, asi que viajan con el mundo y no se quedan
   // clavadas en la pantalla mientras el avion sigue.
@@ -217,7 +328,7 @@ function morirEnCadena(o) {
   run.score += pts; stats.air++;
   const s = proj(o.x, o.h ? o.h / 2 : 1, o.z);
   popup(s.x, s.y - 8, '+' + pts, P.warn);
-  morir(o, { vz: 12, vy: 6 }, o.chainDepth || 1);
+  morir(o, { vz: 12, vy: 6 }, o.chainDepth || 1, 'cadena');
   o.z = -99; o.done = true;
 }
 
@@ -272,6 +383,20 @@ export function stepChunk(o, dt) {
       parts.push({ x: es.x, y: es.y, vx: (Math.random() - 0.5) * 8, vy: -6 - Math.random() * 8, life: 0.7, c: '#4a4a44', r: Math.max(1, es.k * 0.3) });
     }
   }
+  // EL QUE SE VA MURIENDO (v2): sostiene el rumbo y baja despacio. No es fisica nueva — es el
+  // mismo pedazo de siempre con el motor todavia empujando, y por eso `grav` 0 y `vz` sostenida.
+  // Termina en `acto2`: revienta al tocar, lejos de donde lo tocaste.
+  if (o.moribundo) {
+    o.vz = Math.max(o.vz, 26);
+    o.vy = Math.max(o.vy - dt * 1.2, -7);
+    // HUMO NEGRO GORDO — es LA firma de esta muerte a distancia, y por eso va aparte del hilito
+    // del `hot`: mas denso, mas grande y mas oscuro. La silueta es la linea que deja, no el pedazo.
+    const ms = proj(o.x, o.y, o.z);
+    parts.push({ x: ms.x, y: ms.y, vx: (Math.random() - 0.5) * 6, vy: -10 - Math.random() * 8,
+      life: 1.1, c: Math.random() < 0.6 ? '#2b2b28' : '#43433c', r: Math.max(1.5, ms.k * 0.55) });
+  }
+  // EL PARACAIDAS baja despacio y NO tumba: uno que girara seria un pedazo mas de escombro.
+  if (o.paraca) { o.vy = Math.max(o.vy, -4.5); o.spin = 0; }
   o.z += o.vz * dt; o.x += o.vx * dt; o.y += o.vy * dt;
   o.vy -= 30 * (o.grav || 1) * dt; o.vz *= Math.max(0, 1 - dt * 0.75);
   o.spin += (o.vspin + (o.vspin2 || 0)) * dt;

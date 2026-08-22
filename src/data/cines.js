@@ -23,7 +23,8 @@
 //   vuelo: { avance }      prende LA CAMA DE VUELO: el avion vuela de verdad debajo de la escena
 //   rotulo: 'clave'        una palabra en pantalla, por clave de strings (nunca texto crudo)
 //   radio: 'clave'         una linea de radio → SEÑAL (la dice el orquestador, no el director)
-//   fade: { a, dur, then } fundido; `then` encadena (→ SEÑAL `{ scene }`)
+//   fade: { a, dur, color, then }  fundido (negro por omision; a blanco es un RESPLANDOR);
+//                          `then` encadena (→ SEÑAL `{ scene }`)
 //   letterbox: { a, dur }  las bandas negras
 //   cam: { modo, off, ramp }   'cabina' | 'chase' (2D); el 3D llega en C2
 //   marca: 'sec'           deja una MARCA con su instante, para que un render la lea
@@ -63,15 +64,45 @@ export const CINE_VUELO = {
   // seguridad (`plane.y < 3` corta la picada) y a ras del agua se volaba MOCHO: la maniobra mas
   // violenta del catalogo terminaba a los 0,78 de sus 1,15 s. Subir un poco y picar es ademas la
   // doctrina real del ataque, asi que el arreglo tecnico y el gesto correcto son el mismo.
+  // A RAS DEL AGUA, primero. El ataque real entra pegado al mar —por abajo del radar— y recien
+  // ahi SALTA para soltar: «a ras, saltar, soltar y salir». La cinematica arrancaba ya en el salto
+  // y el tramo rasante no existia: el avion no se veia nunca cerca del agua, que es donde el modo
+  // vive.
+  //
+  // ES EL TRAMO MAS LARGO DE LA CINEMATICA, y no por capricho. Con 0,4 s existia en la data y no en
+  // la pantalla: entre que la altura tarda en asentarse y que el rocio necesita cuadros para
+  // acumularse, el rasante duraba menos que su propio arranque. El juego se llama RASANTE — este
+  // es el plano que tiene que ganar la escena, no el que la introduce.
+  //
+  // Y MAS ABAJO: 1,5 m. El rocio de la cama de vuelo cambia de escalon a los 2,8 m, asi que a 2,2
+  // se volaba justo del lado flojo — seis motas en vez del manto. Un metro menos es la diferencia
+  // entre "vuela bajo" y "va tocando el agua".
+  RAS_ALT: 1.5, RAS_T: 1.6,
+  // …y cuanto rocio de mas levanta una cinematica respecto del pasillo (systems/vuelo.js `mas`).
+  // El pasillo es juego: el agua no puede taparte lo que tenes que esquivar. Un plano rasante es
+  // una toma, y ahi el agua saltando ES el tema.
+  AGUA: 2.4,
   POSE_ALT: 12, POSE_T: 0.4,
   // LA SALIDA. Un ataque real no termina cuando se suelta: termina cuando saliste. Ningun piloto
   // se quedaba flotando en el lugar mirando hundirse lo que acababa de bombardear — soltaba y se
   // iba a fondo, trepando. Es la doctrina que el juego ya tiene escrita para la PASADA («a ras,
   // saltar, soltar y SALIR») y le faltaba a la cinematica.
-  ESC_ALT: 26, ESC_T: 1.6,
-  // …y el buque se queda ATRAS: cae en el cuadro mientras vos trepas. Es lo unico que en una
-  // camara 2D —que mira siempre para adelante— puede decir "te lo dejaste abajo".
-  ESC_DROP: 34,
+  // DOS FRENOS habia que sacar, y el primero era la `pose`: sostiene la altura pedida, asi que con
+  // un objetivo alcanzable el avion llegaba y SE QUEDABA. Se pide una altura que NO se alcanza en
+  // lo que dura la escena (el avion trepa ~18 por segundo y la salida dura unos cuatro), y de paso
+  // se pide con margen: cerca del objetivo la pose afloja sola, asi que un techo "justo" ya frena
+  // medio segundo antes de llegar. 160 mantiene la trepada a fondo de punta a punta.
+  ESC_ALT: 160, ESC_T: 1.1,
+  // …y el segundo freno era el TECHO DEL CARRIL (FLY_TOP, 68): el avion tocaba el vidrio invisible
+  // del juego a mitad de la salida, se nivelaba y bajaba la trompa. El techo es una regla del
+  // PASILLO —hasta aca llega el carril— y una cinematica no juega en el carril. Se lo levanta
+  // hasta donde no exista, y con eso la trompa se queda mirando al cielo hasta el ultimo cuadro.
+  TECHO_SAL: 400,
+  // …y el buque se queda ABAJO: cae en el cuadro mientras vos trepas, hasta salirse por el borde.
+  // Es lo unico que en una camara 2D —que mira siempre para adelante— puede decir "le pasaste por
+  // encima". Con 34 solo se despegaba del horizonte y se quedaba ahi; el buque tiene que IRSE del
+  // cuadro por abajo, porque eso es lo que hace un blanco al que sobrevolas.
+  ESC_DROP: 96,
 };
 
 // EL PREMIO DEL PULSO (PLAN_EL_PULSO §3 "La recompensa"), primera timeline del director y su
@@ -88,6 +119,11 @@ export const CINE_VUELO = {
 // nada. El mismo numero gobierna la pelicula (`ritmo`) y el mundo detras del vidrio (`tempo`):
 // escritos por separado se desincronizarian en cuanto alguien tocara uno solo.
 const RITMO = 0.7;
+
+// EL DESTELLO FINAL: cuanto tarda el blanco en comerse la pantalla. Corto, porque es un
+// resplandor y no un fundido — con medio segundo todavia se leia como que la pantalla se lavaba.
+// Un golpe de luz es un GOLPE: entra antes de que te des cuenta.
+const DESTELLO = 0.28;
 
 const D_SUELTA = PULSO_CINE.SUELTA;
 const D_IMPACTO = D_SUELTA + PULSO_CINE.IMPACTO;
@@ -122,27 +158,34 @@ export const CINES = {
       // salir la maniobra que se tecleo, y desde la cabina eso no se ve — se lee como un horizonte
       // que gira, y solo si el jugador no tiene el horizonte en FIJO. El `off` de la cabina se
       // rampea igual desde ahora, para que cuando entre ya este abajo.
-      // la cabina baja con 'sale': se descuelga rapido y se asienta, como una cabeza que se acomoda
-      { t: 0, cam: { modo: 'chase', off: PULSO_CINE.CABINA, ramp: 1.2, ease: 'sale' } },
-      // ENCARE: subir un poco antes de picar. Le da aire al SPLIT-S para completarse y es, de
-      // paso, como se encaraba de verdad.
-      { t: 0, pose: { alt: CINE_VUELO.POSE_ALT, ramp: CINE_VUELO.POSE_T } },
-      { t: CINE_VUELO.POSE_T, move: '$pirueta', dir: '$piruetaDir', who: 'player' },
+      // ---- LA CAMARA: UN SOLO PLANO, la cabina, de punta a punta. Estuvo cortando a tercera para
+      // el salto («la recompensa de la regla 1 es VER salir la maniobra, y desde la cabina eso no
+      // se ve») y el playtest dijo lo contrario: la pirueta se siente MEJOR en primera. Y tiene
+      // sentido — desde adentro la maniobra no la mirás, la sufrís, que es lo que la prueba te
+      // acaba de hacer teclear. Sin corte, ademas, el premio es literalmente la continuacion de la
+      // prueba: la misma cabina, el mismo vidrio, el mismo ojo.
+      //
+      // LO QUE CUESTA: con el horizonte en FIJO (opciones) el mundo no se inclina y la maniobra no
+      // tiene con que mostrarse. Se respeta igual — FIJO lo elige quien se marea, y una cinematica
+      // no es lugar para pasarle por encima a eso.
+      { t: 0, cam: { modo: 'cabina', off: PULSO_CINE.CABINA, ramp: 1.2, ease: 'sale' } },
+      // A RAS: el tramo pegado al agua, con su rocio y su estela. Es el encare de verdad.
+      { t: 0, pose: { alt: CINE_VUELO.RAS_ALT, ramp: 0.25 } },
+      // …y EL SALTO: recien ahora sube, que es lo que le da aire a la maniobra para completarse
+      // (el SPLIT-S tiene piso de seguridad) y es, de paso, como se atacaba de verdad.
+      { t: CINE_VUELO.RAS_T, pose: { alt: CINE_VUELO.POSE_ALT, ramp: CINE_VUELO.POSE_T } },
+      { t: CINE_VUELO.RAS_T + CINE_VUELO.POSE_T, move: '$pirueta', dir: '$piruetaDir', who: 'player' },
       { t: 0, fx: { boom: 0.18 } },
       // …y si el Pichon todavia no enseño ninguna pirueta (la primera mision), el premio es LA
       // SUELTA y se rotula. Solo entonces se liga `$tSinPirueta`: el beat existe siempre y ocurre
       // nada mas cuando corresponde — misma idea que el segundo estallido, sin un `if`.
       { t: '$tSinPirueta', rotulo: 'pulso_soltar' },
       // ---- LA SUELTA: el unico tramo en que no pasa nada mas. El silencio es la suelta.
-      // …y de la suelta en adelante, DE VUELTA A LA CABINA: el corte cae justo en el unico lugar
-      // donde se lee como intencion y no como error. De ahi al final el buque tiene que dominar el
-      // cuadro, y en tercera el tercio de abajo es mar vacio — es la cabina la que lo llena.
-      { t: ['$tPir'], cam: { modo: 'cabina' } },
       // ---- LA SALIDA, en el mismo instante que la suelta: gas a fondo y trepada. El avion se VA;
       // lo que sigue —el impacto y la muerte del buque— pasa mientras te alejas, que es como pasa
       // de verdad. Antes el avion se quedaba clavado esperando que el barco se hundiera.
       { t: ['$tPir'], pose: { alt: CINE_VUELO.ESC_ALT, ramp: CINE_VUELO.ESC_T } },
-      { t: ['$tPir'], vuelo: { avance: 1, boost: true, estelas: true } },
+      { t: ['$tPir'], vuelo: { avance: 1, boost: true, estelas: true, techo: CINE_VUELO.TECHO_SAL } },
       { t: ['$tPir'], parte: 'suelta', sfx: { key: 'waveFly', vol: 0.5 },
         beep: [300, 0.09, 'triangle', 0.05, -120] },
       // ---- EL IMPACTO en la zona elegida: el tamaño lo trae la zona y la clase del buque
@@ -155,6 +198,13 @@ export const CINES = {
       // este beat no ocurre — no hay un `if` en ningun lado, simplemente no se agenda.
       { t: ['$tPir', D_IMPACTO, '$secOff'], marca: 'sec', fx: { boom: '$boomSec', shake: 9 },
         sfx: { key: 'exHeavy', beep: [52, 0.5, 'sawtooth', 0.08, 26] } },
+      // ---- EL RESPLANDOR que cierra. La escena no puede terminar en un corte a seco mientras
+      // seguis trepando: un corte ahi se lee como que el juego se colgo. Se cierra a BLANCO —no a
+      // negro— porque lo que estas haciendo es alejarte de algo que arde, y el blanco es la unica
+      // forma de que el ultimo cuadro sea la explosion y no la ausencia de imagen. Arranca justo
+      // lo que dura el destello antes del `fin`, asi que la timeline sigue midiendo lo mismo.
+      { t: ['$tPir', D_IMPACTO, '$muerteDur', -DESTELLO],
+        fade: { a: 1, dur: DESTELLO, ease: 'entra', color: '#f4fbff' } },
       { t: ['$tPir', D_IMPACTO, '$muerteDur'], fin: true },
     ],
   },

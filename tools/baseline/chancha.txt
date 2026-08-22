@@ -1,0 +1,52 @@
+
+FIXTURE — EL PODER LA CHANCHA (H#-H#)
+
+#. pedirla antes de tiempo (paso # del §#):
+   ✓ con la mision recien empezada, la radio contesta que aguantes
+   ✓ y NO cobra la barra: sigue llena (#) y sin usar
+
+#. la cita: viene, aparece y carga SOLO en la canasta (paso #):
+   ✓ pedida: viene en # s (y la barra se consumio: #)
+   ✓ la barra se cobra AL CONFIRMAR, no al conectar: el pedido es irreversible
+   ✓ la Chancha llego: canasta en x #, y # (caja ±#)
+   ✓ a ras del mar la nafta NO sube (# → #): hay que ir a buscarla
+   ✓ metido en la caja, engancha
+   ✓ y la nafta sube enganchado: # → #%
+
+#. el eslabon debil sos vos (paso #):
+   ✓ un drift sostenido corta la transferencia
+   ✓ y volver RETOMA: # → #%
+   ✓ y un golpe la arranca: la manguera no aguanta un avion sacudido
+
+#. la ventana vence y ella vira a casa (paso #):
+   ✓ la ventana se agoto (quedaban # s) y la Chancha se fue: lo no cargado, se perdio
+
+#. una sola vez por corrida (paso #):
+   ✓ el segundo pedido contesta que ya no hay mas
+   ✓ y no viene: se gasto, se gasto
+
+#. con COMBUSTIBLE: NO el poder ni se muestra (paso #):
+   ✓ la tecla es muda: no arma cita ni gasta nada
+   ✓ y no dice nada: el poder no existe, no es que "no se puede ahora"
+
+#b. en los modos de climax suelto no entra (RF#):
+   ✓ en PASADAS MORTALES la radio contesta que aca no entra nadie
+   ✓ y no arma cita: el poder queda intacto para el pasillo
+
+#. despues de la rotura, la Chancha no baja al sur (paso #):
+   ✓ m# viene con la Chancha rota (missions.js: chancha:false)
+   ✓ y la radio contesta la negativa del guion
+   ✓ no viene, y el poder queda intacto para otra mision
+
+#. morir durante la cita no rompe nada (paso #):
+   ✓ el avion se perdio en plena cita (estado relevo) y el juego siguio
+   ✓ la Chancha se despide sola: no queda una cita colgada sin avion
+   ✓ y el poder queda GASTADO: se pidio, vino, y el que no estaba fuiste vos
+
+#. la cita se paga arriba (RF#):
+   ✓ a la altura de la cita el radar te VE (deteccion # → #); a ras, no
+   ✓ y el multiplicador se cae solo: x# a ras, x# arriba
+
+consola: sin errores
+
+FIXTURE CHANCHA: OK

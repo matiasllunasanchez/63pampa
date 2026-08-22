@@ -4,6 +4,7 @@ import { STRINGS } from './data/strings.js';
 import { P, SKY_PRESETS } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf } from './data/missions.js';
+import { modoEnCuarentena } from './data/cuarentena.js';
 import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt } from './data/upgrades.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
@@ -16,9 +17,11 @@ import { hzWorld, stepHorizon } from './core/horizon.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts,
          prune, clearWorld } from './core/world.js';
 import { run, resetRun } from './core/run.js';
-import { proj, popup, explodeAt, bloodBurst, despiece, morir, stepDestruccion, capParts, MUERTES } from './core/fx.js';
-import { CHUNK_LIFE, CHUNKS_MAX, ONDA_T, FLASH_T } from './data/despiece.js';
-import * as momentum from './systems/momentum.js';
+import { proj, popup, explodeAt, bloodBurst, despiece, morir, actaDe, stepDestruccion, capParts, MUERTES } from './core/fx.js';
+import { ULTIMA_VARIANTE } from './core/fx.js';   // QUITAR con las sondas de v2
+import { CHUNK_LIFE, CHUNKS_MAX, ONDA_T, FLASH_T,
+  forzarVariante, variantesDe, recetaDe, MORIBUNDO_MAX } from './data/despiece.js';
+import * as momentum from './legacy/momentum.js';
 import * as tempo from './systems/tempo.js';
 import * as chancha from './systems/chancha.js';
 import * as saves from './systems/saves.js';
@@ -44,7 +47,7 @@ import * as persec from './systems/persec.js';
 import { drawCaza } from './render/caza.js';
 import { drawPersec, drawCinta } from './render/persec.js';
 import { drawChancha } from './render/chancha.js';
-import { inp, mouse, pointer, flags, initInput } from './core/input.js';
+import { inp, mouse, pointer, flags, padInfo, initInput } from './core/input.js';
 import { flightSystem } from './systems/flight.js';
 import { drawPlane } from './render/plane.js';
 import { drawBullet } from './render/ammo.js';
@@ -55,7 +58,7 @@ import * as soldierArt from './render/soldiers.js';
 import { theme, applyTheme } from './render/theme.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack } from './systems/audio.js';
-import * as world3D from './systems/three-world.js';
+import * as world3D from './legacy/three-world.js';
 import { cv, ctx, W, H, HOR, F, PZ, SC, px, panel, U } from './render/ctx.js';
 import * as screens from './render/screens.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
@@ -63,7 +66,7 @@ import * as menus from './render/menus.js';
 import { stepRain, stepSpray, drawRain, RAIN_N } from './render/rain.js';
 import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit } from './systems/fog.js';
 import { MIRA_IDS } from './render/miras.js';
-import * as momRender from './render/momentum.js';
+import * as momRender from './legacy/momentum_render.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
 import { MSL_MAX, ROLL_DUR, GEAR_T, RADAR_ALT, FLY_TOP, VEIL_IN, VEIL_FULL, VEIL_OUT } from './data/tuning.js';
@@ -166,7 +169,12 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // fase sin jugar una mision entera cada vez.
     // `back` es la fila ATRAS: la salida de la pantalla, VISIBLE. ESC y el boton B ya volvian, pero
     // eso hay que saberlo — una lista sin salida a la vista parece un callejon.
-    const quickRows = () => [{ id: 'cycle' }, { id: 'survival' }, { id: 'persec' }, { id: 'arena' }, { id: 'pasadas' }, { id: 'back', back: true }];
+    // LA CUARENTENA FILTRA ACA (PLAN_REFACTOR §4b): las filas de MINUTOS SAGRADOS y PASADAS
+    // MORTALES siguen escritas —no se borro nada— pero data/cuarentena.js las saca de la lista.
+    // Se filtra en vez de comentarlas para que la vuelta sea un renglon de DATO y no un diff.
+    const quickRows = () => [{ id: 'cycle' }, { id: 'survival' }, { id: 'persec' }, { id: 'arena' }, { id: 'pasadas' }]
+      .filter(r => !modoEnCuarentena(r.id))
+      .concat([{ id: 'back', back: true }]);
 
     // ---------- PAUSA ----------
     // NO es un estado de S: es una BANDERA ortogonal. Con `paused` el frame() saltea update()
@@ -892,14 +900,14 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // El cursor las saltea igual que a los encabezados.
       { head: 'optSecCtrl' },
       { cols: true },   // rotulos TECLADO / JOYSTICK de las dos columnas
-      ...[['Fly'], ['Gas'], ['Dive'], ['Gun'], ['Msl'], ['Boost'], ['Brake'], ['Roll'], ['Pan'], ['Moves']]
+      ...[['Fly'], ['Gas'], ['Dive'], ['Gun'], ['Msl'], ['Boost'], ['Brake'], ['Turn'], ['Pips'], ['Roll'], ['Pan'], ['Moves']]
         .map(([k]) => ({ ctrl: 'ctrl' + k, kb: 'ctrl' + k + 'K', pad: 'ctrl' + k + 'P' })),
       // NOTAS al pie de la tabla: no son controles ni opciones, son las dos reglas que la tabla
       // sola no alcanza a explicar. Van como tipo aparte (`note`) porque puestas como filas de
       // control se leian como si fueran configurables — el cursor se paraba encima y daban ganas
       // de apretarles izquierda/derecha a ver que cambiaba.
-      { note: 'ctrlHands' }, { note: 'ctrlWasd' }, { note: 'ctrlBombs' }, { note: 'ctrlSame' },
-      ...[['Aim'], ['Cam'], ['Tempo'], ['Chancha'], ['Inv'], ['Music'], ['Menu']]
+      { note: 'ctrlHands' }, { note: 'ctrlWasd' }, { note: 'ctrlArena' }, { note: 'ctrlBombs' }, { note: 'ctrlSame' }, { note: 'ctrlBoth' },
+      ...[['Aim'], ['Cam'], ['Tempo'], ['Chancha'], ['Inv'], ['Music'], ['Pause'], ['Menu']]
         .map(([k]) => ({ ctrl: 'ctrl' + k, kb: 'ctrl' + k + 'K', pad: 'ctrl' + k + 'P' })),
 
       { head: 'optSecPartida' },
@@ -1642,6 +1650,16 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         popup(W / 2, 58, r === 'on' ? T('tempoOn') : T('tempoOff'), P.accent);
       },
       chanchaCall: () => pedirChancha(),
+      // EL PODER DEL RECURSO, uno por mundo: en el ARENA reparte energia, en el PASILLO llama a LA
+      // CHANCHA. Comparten UN boton del mando (cruceta ARRIBA) porque son la misma pregunta
+      // —administrar lo que te queda— y no coexisten nunca. El teclado los tiene separados ([G] y
+      // [5]) porque ahi no falta espacio; lo que importa es que ninguna accion sea de un solo
+      // aparato. Se despacha ACA y no en input.js: input no sabe de modos, y llamar a los dos a
+      // ciegas hacia que pedir energia en el arena disparara la radio de la Chancha.
+      modePower: () => {
+        if (S.state === 'arena') { if (arena.active()) arena.cyclePip(); return; }
+        if (S.state === 'play') pedirChancha();
+      },
       // MIRA fija/movil: la alterna CAPS LOCK (teclado) y tambien la fila de OPCIONES. El aviso
       // en pantalla es el mismo por las dos vias — si no, tocar la tecla no daba ninguna señal.
       aimChanged: free => {
@@ -1837,7 +1855,13 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // Desde D0 (PLAN_DESTRUCCION) esto sale de la MISMA función que despieza a todo lo demás:
       // la receta 'plane' de data/despiece.js es este mismo destrozo escrito como fila. Era la
       // única muerte decente del juego y ahora es la referencia de la que salen las otras.
-      despiece({ type: 'plane', x: plane.x, y: plane.y, z: PZ }, { vz: spd0 });
+      // el derribo del jugador es el unico despiece() directo (no pasa por morir(): pone su
+      // propia bola pixel). Desde v2 arma su acta como todos — `actaDe` deriva el resto.
+      // El `killer` va fijo en 'choque' por ahora: `crashFX()` no recibe la causa y la receta
+      // 'plane' todavia no declara variantes, asi que el campo esta inerte. Es V5 (el derribo por
+      // causa) el que tiene que hacerle llegar la causa real — y ahi el acta ya lo va a esperar.
+      const oPlane = { type: 'plane', x: plane.x, y: plane.y, z: PZ };
+      despiece(oPlane, actaDe(oPlane, { vz: spd0 }, 'choque'));
       const s = proj(plane.x, 0, PZ);
       for (let i = 0; i < 16; i++) parts.push({ x: s.x + (Math.random() - 0.5) * 24, y: s.y, vx: (Math.random() - 0.5) * 40, vy: -40 - Math.random() * 60, life: 0.6, c: P.foam, r: 1.6 });
       // CHISPAS de pantalla del primer impacto: el reventon inmediato alrededor del avion.
@@ -2058,7 +2082,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
           stepDestruccion(o, dt);
         }
         prune(obstacles, o => !((o.type === 'airboom' || o.type === 'boom') && o.boomT > 6)
-          && !(o.type === 'chunk' && (o.chunkT > CHUNK_LIFE || o.z > 235))
+          && !(o.type === 'chunk' && (o.chunkT > (o.vida || CHUNK_LIFE) || o.z > 235))
           && !(o.type === 'humo' && o.humoT > o.humoMax)
           && !(o.type === 'onda' && o.ondaT > ONDA_T));
         engineOff();
@@ -2834,13 +2858,23 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         view: pauseView, sel: pauseSel, saveSel, rows: pauseRows(),
         saveRows: pauseSaveRows(), t: pauseT, msg: pauseT - pauseMsgT,
       });
+      // NOMBRES DE LOS BOTONES SEGUN EL MANDO. El juego se escribio con nomenclatura PlayStation
+      // (✕ ◯ □ △, L1/R1, gatillo) y los bindings NO cambian: en el mapeo estandar de la Gamepad API
+      // el boton 0 es ✕ en PlayStation y A en Xbox, y estan en el MISMO lugar. Lo unico que cambia
+      // es el cartel — leer "◯" con un mando que dice "B" es la diferencia entre que se entienda o no.
+      // Es una sustitucion sobre el texto ya traducido para no duplicar la tabla `ctrl*` entera en
+      // los dos idiomas por cada familia de mando.
+      const padTxt = t => padInfo.kind !== 'xbox' ? t : t
+        .replace(/✕/g, 'A').replace(/◯/g, 'B').replace(/□/g, 'X').replace(/△/g, 'Y')
+        .replace(/\bL1\b/g, 'LB').replace(/\bR1\b/g, 'RB').replace(/\bL2\b/g, 'LT')
+        .replace(/gatillo|trigger/gi, 'RT');   // 'cruceta' se deja: vale para las dos familias
       if (S.state === 'options') menus.drawOptions({
         t: run.t, sel: optRow,
         rows: OPT_ROWS.map(r => {
           if (r.head) return { head: T(r.head) };
           if (r.cols) return { cols: [T('optColKb'), T('optColPad')] };
           if (r.note) return { note: T(r.note) };
-          if (r.ctrl) return { ctrl: T(r.ctrl), kb: T(r.kb), pad: T(r.pad) };
+          if (r.ctrl) return { ctrl: T(r.ctrl), kb: T(r.kb), pad: padTxt(T(r.pad)) };
           if (r.open) return { label: r.label(), value: r.value() };   // fila que ABRE otra pantalla
           let i = r.opts.findIndex(o => o === r.get()); if (i < 0) i = 0;
           return { label: r.label(), value: r.names()[i], preview: r.preview, raw: r.opts[i] };
@@ -2853,8 +2887,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         rows: mejRows().map(r => {
           if (r.head) return { head: r.head() };
           let i = r.opts.findIndex(o => o === r.get()); if (i < 0) i = 0;
+          // la tarjeta tambien nombra botones (△ del eje Y): misma traduccion que CONTROLES
+          const c = r.card();
           return { label: r.label(), value: r.names()[i], preview: r.preview, raw: r.opts[i],
-                   sw: !!r.sw, swOn: r.get() === true, card: r.card() };
+                   sw: !!r.sw, swOn: r.get() === true,
+                   card: c && { ...c, seq: padTxt(c.seq || '') } };
         }),
       });
 
@@ -2990,6 +3027,8 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // mismo impacto se lee como un numero que baja, que es lo que el fixture necesita.
       window.__czmodo = m => { cfg.dmgMode = m; run.integ = 100; return cfg.dmgMode; };
       window.__czinteg = () => run.integ;
+      window.__czfinal = f => caza.setFinal(String(f));
+      window.__czasoma = () => caza.asomando();
       window.__czpegar = n => caza.pegar(+n);
       window.__czfin = () => { caza.resetCaza(); return true; };
       // H4: el director se prueba PURO — se le pasa el contexto y los segundos de golpe, y la
@@ -3201,7 +3240,8 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     //
     // Devuelve la FOTO del escombro que acaba de nacer (cuántos, tamaños, colores, pieza especial)
     // — es lo que permite afirmar "cada tipo se despieza distinto" con números y no de memoria.
-    if (typeof window !== 'undefined') window.__romper = (tipo, imp, d) => {
+    if (typeof window !== 'undefined') window.__romper = (tipo, imp, d, variante, killer) => {
+      forzarVariante(variante || null);   // v2: sin poder forzarla, "las 4 se ven distintas" depende del dado
       const antes = obstacles.length;
       run.shake = 0; run.flash = 0;   // se mide LO QUE ESTA MUERTE produce, no lo que venia de antes
       // a la ALTURA A LA QUE VAS VOLANDO: plantarlo siempre a ras dejaba el destrozo fuera de
@@ -3211,7 +3251,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       const o = { type: tipo, x: plane.x + (Math.random() - 0.5) * 6, y: Math.max(1.5, plane.y), h: 3, z: PZ + (d || 42) };
       // D2: se llama a la MUERTE COMPLETA, no solo al despiece — es lo unico que permite comparar
       // el caracter de cada tipo (bola o no, chispazo, secundarias, columna de humo).
-      morir(o, imp || { vz: run.spd * 0.5 });
+      morir(o, imp || { vz: run.spd * 0.5 }, 0, killer || 'canon');
       // SOLO los pedazos: explodeAt ademas empuja una bola de fuego ('airboom') al mismo array, y
       // contarla arruinaba las tres medidas (n, tamaños y colores) con un objeto que no es escombro
       const todos = obstacles.slice(antes);
@@ -3233,7 +3273,49 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         shake: +run.shake.toFixed(2), flash: +run.flash.toFixed(2),
         onda: todos.filter(c => c.type === 'onda').length,
         vivos: obstacles.filter(c => c.type === 'chunk').length,
+        // v2: QUE VARIANTE salio y con que acta. Leido de lo que el selector realmente devolvio,
+        // no de lo que se pidio — si se fuerza una que no existe, esto lo delata.
+        variante: ULTIMA_VARIANTE, masa: recetaDe(tipo).masa || null,
+        variantes: variantesDe(tipo),
+        // LO QUE HACE LEGIBLE A UNA VARIANTE (§1): cuantos PEDAZOS GRANDES quedan y que hacen.
+        // Es la unica medida que corresponde con lo que se ve en blanco y negro — el color no
+        // aparece aca a proposito, porque una variante que solo cambia de color no existe.
+        grandes: nuevos.filter(c => c.size > 1.5).length,
+        mayor: +Math.max(...nuevos.map(c => c.size)).toFixed(2),
+        moribundo: nuevos.filter(c => c.moribundo).length,
+        paraca: nuevos.filter(c => c.paraca).length,
+        vidaMax: Math.max(0, ...nuevos.map(c => c.vida || 0)),
       });
+    };
+
+    // ---------- LAS VARIANTES EN FILA (QUITAR) ----------
+    // PLAN_DESTRUCCION_V2 V0. La regla del §1 es que dos variantes tienen que distinguirse en una
+    // captura EN BLANCO Y NEGRO. Eso no se puede afirmar matando una, mirando, matando otra y
+    // acordandose: hay que verlas AL MISMO TIEMPO y con el mismo reloj. Esto las pone en fila.
+    //
+    // Todas nacen a la misma altura, a la misma distancia y en el mismo cuadro: lo unico que
+    // cambia entre ellas es la variante, que es justo lo que se quiere comparar.
+    // Cuantos "se van muriendo" hay en el aire (QUITAR). El cap de §6.2 es una afirmacion sobre el
+    // MUNDO, no sobre una muerte: hay que poder contarlos despues de pedir varias.
+    if (typeof window !== 'undefined') window.__moribundos = () =>
+      JSON.stringify({ n: obstacles.filter(c => c.moribundo).length, tope: MORIBUNDO_MAX });
+
+    if (typeof window !== 'undefined') window.__romperTodas = (tipo, d) => {
+      const ids = variantesDe(tipo);
+      if (!ids.length) return JSON.stringify({ tipo, error: 'el tipo no declara variantes' });
+      const dist = d || 70;
+      const y0 = Math.max(6, plane.y);
+      const paso = ids.length > 1 ? 54 / (ids.length - 1) : 0;
+      const fila = ids.map((id, i) => {
+        const x = ids.length > 1 ? -27 + i * paso : 0;
+        forzarVariante(id);
+        const o = { type: tipo, x, y: y0, h: 3, z: PZ + dist, ph: i * 1.7 };
+        morir(o, { vz: 30 }, 0, 'canon');
+        return { id, x: +x.toFixed(1), salio: ULTIMA_VARIANTE };
+      });
+      forzarVariante(null);
+      return JSON.stringify({ tipo, dist, y: +y0.toFixed(1), n: ids.length, fila,
+        vivos: obstacles.filter(c => c.type === 'chunk').length });
     };
 
     // EMBESTIR A PEDIDO (QUITAR). D1 se trata de lo que pasa al CHOCAR, y esperar a que la corrida

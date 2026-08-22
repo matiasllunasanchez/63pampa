@@ -1,3 +1,11 @@
+// ============================================================================================
+// PENDIENTE — EN CUARENTENA DESDE EL 18/8/2026. Ver PLAN_REFACTOR §4b.
+//
+// Este modulo NO participa del menu ni de ningun flujo de campaña/ciclo: la perilla esta en
+// data/cuarentena.js. Sigue compilando y su fixture sigue verde a proposito — es lo unico que
+// avisa si se pudre mientras espera. NO se pule ni se refactoriza mas alla de lo mecanico: se
+// revisa a fondo despues, y la hipotesis a explorar es entrar como modulo de una mision.
+// ============================================================================================
 // MUNDO 3D DEL ARENA: el espacio abierto donde se pelea el climax.
 //
 // Escena PROPIA, distinta de la del momentum clasico (systems/three-world.js). No es capricho:
@@ -20,7 +28,7 @@
 
 import { SHIP_CLASS } from '../data/ships.js';
 import { buildShips, shipDeck, resetShipZones } from './ship3d.js';
-import { useRenderer, has3D } from './three-world.js';
+import { useRenderer, has3D } from '../legacy/three-world.js';
 
 const THREE = window.THREE || null;
 

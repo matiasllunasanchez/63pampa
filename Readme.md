@@ -138,20 +138,34 @@ hace qué, las convenciones y dónde tocar cada cosa— está en **[`ARQUITECTUR
 la que *rola* gira el horizonte y mueve la cámara. En el mando son los dos sticks. En teclado,
 `W A S D` es **siempre** el izquierdo y las **flechas** son el derecho.
 
+> **Tabla completa, modo por modo (pasillo · arena · pasada · barcaza), con los huecos conocidos:
+> [docs/sistemas/CONTROLES.md](docs/sistemas/CONTROLES.md).** Lo de acá abajo es el resumen.
+
 | Acción    | Teclado                  | Joystick                | Táctil                  |
 |-----------|--------------------------|-------------------------|-------------------------|
-| Gas (subir) | mantener `W` — **si soltás, el avión cae** | stick izq arriba | arrastrar en el 60% izq |
+| Gas / subir | mantener `W` — **si soltás, el avión cae** | stick izq arriba | arrastrar en el 60% izq |
 | Esquivar  | `A` / `D`                | stick izq · cruceta     | ídem arrastre           |
 | Picada    | `S`                      | stick izq abajo         | —                       |
-| Disparar  | `X` / `ESPACIO` / `K`    | **R1** (y `✕`)          | mantener derecha-arriba |
-| Misil     | `Z` / `TAB`              | **L1** (y `▢`)          | —                       |
-| Turbo     | `SHIFT` / `C`            | gatillo                 | mantener derecha-abajo  |
+| Disparar  | `X` / `ESPACIO` / `K` · click izq | **R1** (y `✕`) | mantener derecha-arriba |
+| Misil (en la PASADA, **las bombas**) | `Z` / `TAB` · click der | **L1** (y `□`) | —      |
+| Turbo     | `SHIFT` / `C`            | gatillo (R2)            | mantener derecha-abajo  |
+| Freno *(solo clímax)* | `F`          | **L2**                  | —                       |
 | Rolar / giro 360° | `←` `→` · `Q` `E` | stick der ← →          | —                       |
 | Mirar arriba / abajo | `↑` `↓` · `R` `F` | stick der ↑ ↓        | —                       |
-| Invertir el gas | —                  | `△`                     | —                       |
-| Cámara    | `V` — cicla 4 cámaras: **1× → 1.5× → 2× → 2.5×** (siguen al avión) | — | — |
-| Idioma    | `L` (cambia es ↔ en)     | —                       | —                       |
+| Viraje de combate *(solo ARENA)* | `R` | `◯`                | —                       |
+| Reparto de energía *(solo ARENA)* | `G` | cruceta ↑          | —                       |
+| Invertir el **eje Y** | OPCIONES → `EJE Y` | `△`               | —                       |
+| Cámara *(clímax: cabina ↔ 3ª persona)* | `V` | cruceta ↓        | —                       |
+| Cámara lenta · La Chancha | `4` · `5`    | —                       | —                       |
+| Pausa     | `ESC`                    | **START**               | —                       |
+| Música    | `1` / `2`                | **L3** / **R3**         | —                       |
 | **Piruetas** | **combos direccionales** (ver abajo) | ídem, con los dos sticks | — |
+
+> **El esquema no cambia entre modos.** Los cuatro modos jugables leen los mismos campos: `W` es
+> gas en el pasillo y cabeceo en el clímax, pero en los dos **el avión sube**. El **eje Y es uno
+> solo** (`cfg.invY`) y vale para teclado y stick a la vez, en todos los modos.
+
+> El **idioma** se cambia en OPCIONES (la vieja tecla `L` ya no existe).
 
 > Las **flechas** tienen dos vidas, y la mira decide cuál. Con **MIRA FIJA** (el default) son el
 > stick derecho: las dos manos están en el teclado y tenés el esquema completo. Con **MIRA MÓVIL**
@@ -206,8 +220,9 @@ Se apagan desde OPCIONES → **PIRUETAS: SI/NO** (el tonel queda siempre).
 energía: **[docs/PIRUETAS.md](docs/PIRUETAS.md)**.
 
 **Idiomas:** el juego está internacionalizado (i18n). Se elige el idioma por, en orden, `?lang=xx`
-en la URL, `localStorage 'rasante_lang'`, el idioma del navegador, o español por defecto. La tecla
-`L` lo cambia en vivo. Hoy vienen español e inglés; agregar otro es traducir un bloque en `STRINGS`.
+en la URL, `localStorage 'rasante_lang'`, el idioma del navegador, o español por defecto. Se cambia
+en vivo desde **OPCIONES → IDIOMA** (la vieja tecla `L` ya no existe). Hoy vienen español e inglés;
+agregar otro es traducir un bloque en `STRINGS`.
 
 **Vuelo a gas:** la gravedad tira siempre (`G=22 m/s²`); mantener ARRIBA empuja (`TH=55`);
 ABAJO acelera la caída (`DIVE=30`). Sin gas desde 12 m tocás el agua en ~1 s; en la zona

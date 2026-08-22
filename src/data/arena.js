@@ -1,3 +1,11 @@
+// ============================================================================================
+// PENDIENTE — EN CUARENTENA DESDE EL 18/8/2026. Ver PLAN_REFACTOR §4b.
+//
+// Este modulo NO participa del menu ni de ningun flujo de campaña/ciclo: la perilla esta en
+// data/cuarentena.js. Sigue compilando y su fixture sigue verde a proposito — es lo unico que
+// avisa si se pudre mientras espera. NO se pule ni se refactoriza mas alla de lo mecanico: se
+// revisa a fondo despues, y la hipotesis a explorar es entrar como modulo de una mision.
+// ============================================================================================
 // CONSTANTES DE VUELO DE LA FASE ARENA (PLAN_MINUTOS_SAGRADOS §6). Datos puros.
 //
 // El arena dejo de heredar el sobre de vuelo del PASILLO (decision §3 del plan): alla `y` es una

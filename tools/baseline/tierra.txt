@@ -1,0 +1,46 @@
+
+FIXTURE — LA TIERRA Y LA COSTA (T#-T#)
+
+#. la turba tiene clima (T#):
+   ✓ el ATARDECER queda intacto: la turba sigue siendo ##a#
+   ✓ cinco cielos, cinco turbas: dusk=##a# storm=##f#e night=##f# sun=##f#c# dawn=##f#
+   ✓ y la arena de la COSTA tambien acompaña al cielo
+
+#. el viento peina el pasto (T#):
+   ✓ con VIENTO=NO el pasto esta QUIETO: # muestras, todas en cero
+   ✓ con brisa el pasto esta doblado siempre (minimo #): el viento sopla, no golpea
+   ✓ y la onda CRUZA: la inclinacion va de # a # en el mismo punto
+   ✓ la racha tiene rumbo: a # m de distancia el pasto va al reves (# vs #)
+   ✓ en TORMENTA el pasto se acuesta: # → # en el mismo punto
+
+#. el suelo tiene relieve (T#):
+   ✓ el mapa TIERRA tiene relieve
+   ✓ el terreno sube y baja: de # a # m en # m
+   ✓ y nunca baja del cero del mundo: no hay pozos que el raster no sabria dibujar
+   ✓ la pendiente maxima es del #%: se sigue con el gas
+   ✓ la loma tiene lados: a la misma distancia, # m por izquierda y # por derecha
+   ✓ a # m fijos el suelo alcanza en # de # tramos: hay que SEGUIR el terreno
+   ✓ a # m, con la loma en #, el avion ROZA: el vuelo lee el relieve
+   ✓ y tres metros mas arriba el margen se recupera (# → #): la loma se esquiva subiendo
+   ✓ lo que se apoya en el suelo queda plantado en su loma: cliff@#
+
+#. la costa rompe (T#):
+   ✓ el agua sube y se retira: la lengua va de # a # de la playa
+   ✓ la lengua CORRE por la orilla: en el mismo instante, # en un punto y # # m mas alla
+   ✓ y pasa mas tiempo retirada que encima (# de # muestras): sube de golpe, vuelve despacio
+   ✓ la costa siembra ROMPIENTE (parcial, hw #): se esquiva de costado
+   ✓ y rompe SOBRE el bajo: orilla en #, ola en #
+
+#. el suelo tiene accidentes (T#):
+   ✓ los pedreros van y vienen: # tramos con piedra y # sin, en # km
+   ✓ y son una LINEA, no una alfombra: el mas ancho mide # m
+   ✓ hay turbales cortados: # tramos de tablero en # km
+   ✓ y cada tablero tiene su CARA de corte: se lee como un pozo, no como una mancha
+
+#. la lluvia moja el suelo (T#):
+   ✓ en seco no se junta agua en ningun lado: el suelo mojado es de la LLUVIA, no del mapa
+   ✓ con tormenta el agua se junta en los bajos: # charcos en el cuadro
+
+consola: sin errores
+
+FIXTURE TIERRA: OK

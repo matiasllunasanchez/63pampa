@@ -1,0 +1,56 @@
+
+FIXTURE — EL PULSO (Q#-Q#)
+
+#. entrada por sonda y eleccion de blanco:
+   ✓ entro a la prueba · fase prueba · nivel t#=# · margen #s
+   ✓ tres blancos ofrecidos: radar:dud-rlr-Z | bridge:rlr-dud-dll-Z | deposit:lrl-dud-drr-dud-Z
+   ✓ cada blanco arranca con una tecla distinta: drl
+   ✓ elegir cuesta: radar # compases · polvorin #
+
+#. la secuencia perfecta gana la mision:
+   ✓ secuencia limpia → premio · zona deposit · # puntos · sin errores (#)
+   ✓ el exito cierra la mision por el embudo de siempre (results)
+
+#. el perdon de los primeros niveles:
+   ✓ nivel #: se perdona # error · margen #s
+   ✓ un error en el primer nivel NO tumba la pasada: se perdona y se gana
+   ✓ ultima mision: # perdones · margen #s · lrl-dud-drr-dud-Z
+   ✓ el mismo error al final de la campaña SI tumba la pasada
+
+#. la escalada de la prueba:
+   ✓ de la primera a la ultima: #→# compases y #→#s de margen
+
+#. los tres fallos y lo que cuesta cada uno:
+   ✓ #er fallo por tiempo (timeout) · intentos gastados #
+   ✓ re-encare → fase prueba · flak grado # · margen #s (se achico)
+   ✓ el re-encare sortea una secuencia nueva
+   ✓ #º fallo: cuesta un avion del escuadron (entro en relevo, de # aviones)
+   ✓ el companero vuelve A LA PRUEBA con los intentos gastados (#) y el flak encima (#)
+   ✓ #er fallo → la mision se pierde por el embudo de siempre (dead), con aviones de sobra
+
+#. el premio: la cinematica que se compone (Q#):
+   ✓ la corre EL DIRECTOR desde data: timeline "pulso_premio" · # beats · #s
+   ✓ compone: pirueta → suelta → impacto → muerte
+   ✓ vuela LA pirueta que se tecleo (maniobra "loyo", la corre systems/moves.js)
+   ✓ el mundo DESHIELA en el premio (el tiempo vuelve a correr: #×)
+   ✓ el buque SIGUE ACERCANDOSE mientras se muere (#× → #×)
+   ✓ y el avion SALE trepando hasta el ultimo cuadro (# m → # m)
+   ✓ el buque DOMINA el cuadro en el premio (crece #×)
+   ✓ solo el polvorin vuela por segunda vez (la santabarbara)
+   ✓ se hunde distinto: radar escora # y se hunde # · polvorin # / #
+   ✓ y paga distinto: radar # · polvorin # puntos
+   ✓ el sello de ZONA BRAVA solo lo da la zona brava
+   ✓ la clase del buque pone la linea de la muerte: pulso_c_t#
+   ✓ el premio entra al recuento de la mision: # puntos de #
+
+#. el pasillo desemboca en la prueba (Q#):
+   ✓ el pasillo entrega la prueba solo (llego a # m y entro en fase prueba)
+   ✓ y llego VOLANDO: la distancia crecio durante el viaje, no se teletransporto
+
+#. el teatro: el corazon (Q#):
+   ✓ el corazon acelera con el margen que se va (#s → #s entre latidos)
+   ✓ y no se calma entre pasadas: con # fallo(s) encima arranca en #s
+
+consola: sin errores
+
+FIXTURE PULSO: OK

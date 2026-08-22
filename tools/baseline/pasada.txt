@@ -1,0 +1,99 @@
+
+FIXTURE — MODO PASADA (P#-P#)
+
+#. entrada por sonda y vuelo libre:
+   ✓ entro a la pasada · corrida # · fase salto · # zonas vivas · # m del buque
+   ✓ entra a ras: # m, bajo el techo de radar (# m)
+   ✓ vuela solo: # m en # s a # m/s
+   ✓ [W] levanta el morro (# → # rad) y la altura pasa a # m
+   ✓ [Q] banquea y vira: roll # rad
+   ✓ las tres bandas se leen por altura: # m dormida · # m dulce · # m alta
+
+#. transicion sin corte (RF#), volando el pasillo:
+   ✓ sin telon en la aproximacion: brillo # → # → # entre el #% y el #% del camino
+   ✓ el pasillo desemboco en la pasada · # m de altura · # m/s
+   ✓ fundido corto al cruzar al climax: arranca en # y dura ~# s (brillo # → #)
+   ✓ el canvas cambia en los # cuadros de la transicion
+   ✓ de volar a volar: no hay pantalla intermedia (estado pasada)
+
+R# — la continuidad:
+   ✓ el buque MIDE LO MISMO de los dos lados del corte: # px de manga contra # (#% · el mundo viejo saltaba de # px a #)
+   ✓ y esta en la MISMA COLUMNA: x # contra # (# px de diferencia)
+   ✓ el desvio del carril se HEREDA: se entro # m a la derecha del eje del buque, y el pasillo lo mostraba a # px del centro
+   ✓ el ultimo cuadro del pasillo muestra al buque a # m — la distancia a la que la PASADA lo pone
+
+#. el joystick en la pasada:
+   ✓ stick izq arriba = gas: el morro sube (# → # rad)
+   ✓ stick der = banqueo: roll # rad
+   ✓ L# suelta la ristra: # → # bombas, # en el aire
+   ✓ cruceta abajo = camara: vista # → #
+
+el contador de suelta (cuando tirar):
+   ✓ encarado, el contador baja al acercarse: # m a # · # m a #
+   ✓ virando fuera del eje el contador dice SIN LINEA (null): no estas encarado
+   ✓ soltando cuando canta AHORA (a # m) la bomba PEGA: # → # de casco
+
+#. la suelta: las tres bandas, el sapito y la ristra (pasos ##):
+   ✓ banda DULCE: suelta a # m desde # m → # de daño, # zona(s) fuera
+   ✓ banda DORMIDA: # bomba(s) golpearon sin estallar — # de daño contra los # de la dulce
+   ✓ EL SAPITO: # bomba(s) picaron en el agua y entraron al casco (# de daño)
+   ✓ la RISTRA depende del eje: a lo largo del casco # zonas de una (# de daño) · cruzando la manga # (#)
+
+#. fin de la pasada (paso # del §#):
+   ✓ todas las zonas muertas → results, sin pantallas intermedias
+
+#. RF# — el escuadron son los intentos:
+   ✓ volar sin soltar NO gasta avion: siguen #
+   ✓ soltar y errar CIERRA tu pasada: # → # aviones, y se vuelve a la pasada
+   ✓ entre una pasada y la otra corre el relevo del escuadron (TURNO DE ...)
+   ✓ el daño PERSISTE entre pilotos: # → # de casco, y sigue en # con el siguiente
+   ✓ gastar la pasada con el ULTIMO avion pierde la mision (no releva)
+
+#. RF# y RF# — la nafta y el ralenti:
+   ✓ el ralenti corre solo en la ventana: #x a # m · #x a # m
+   ✓ el tanque seco gasta la pasada sin haber tirado: # → # aviones
+
+#. P# — el eje de ataque y el re-encare:
+   ✓ se ENTRA por el eje del casco: alineacion # (umbral #)
+   ✓ distingue los dos ejes: por la eslora # (encarado) · cruzando la manga # (no)
+   ✓ alejandose sin soltar aparece la PUERTA de re-encare: fase reencare, puerta en x=# m
+   ✓ entrando a la ventana la puerta se apaga: ya cumplio
+
+#. P# — la defensa por capas:
+   ✓ a ras (# m, bajo el techo de #) el Sea Dart NO existe
+   ✓ cruzando el techo a # m y # m del buque: LANZAMIENTO
+   ✓ la PRIMERA salva es de tanteo: # m de dispersion (COL_JIT_M son #) — el cañon avisa antes de acertar
+   ✓ derecho te toma (#) y un quiebre suave le BORRA la correccion (#)
+   ✓ el CALOR cierra la salva: # m de dispersion en frio · # m caliente (la metralla cayo a # m y # m de media)
+   ✓ sobre la cubierta corre el reloj de la fusileria: # s cruzando
+   ✓ saliendo de la cubierta el reloj se enfria: # s
+
+#. P# — la oleada de los Fieles:
+   ✓ entre tus corridas ENTRAN los Fieles: hasta # corrida(s) amiga(s) a la vez
+   ✓ la cobertura es un RITMO, no un escudo: #% del tiempo con el cañon ocupado en un compañero
+   ✓ con UN solo avion no entra nadie: sin escuadron no hay oleada ni radio
+
+R# — la vara: el baseline del §#, medido en vuelo:
+   ✓ la vara mide: peor hueco # s sin NADA visible · media de # amenazas en pantalla · corrida de # s
+      baseline pre-R# (§# del plan): hueco # s · # amenazas de media
+      linea de tiempo: #s r=# amen=# · #s r=# amen=# · #s r=# amen=# · #s r=# amen=# · #s r=# amen=# · #s r=# amen=# · #s r=# amen=# · #s r=# amen=#
+   ✓ el Dart da # s de vida (predicho # s) · baseline pre-R#: # s
+   ✓ R# mejoro la lectura del misil: # → # s de tiempo para entender
+
+R# — el misil justo:
+   ✓ QUIETO te mata, pero con lectura: # s desde el lanzamiento (baseline R#: # s)
+   ✓ QUEBRANDO se sobrevive SIEMPRE: #/# esquives
+
+R# — la densidad:
+   ✓ el mar YA NO SE VACIA: peor hueco # s (baseline # s · el criterio son #)
+   ✓ la corrida se lleno: # amenazas de media en pantalla (baseline #)
+   ✓ las MANGUERAS barren el cielo: hasta # chorro(s) a la vez (HOSE_N son #)
+   ✓ el ROCE se cobra: # pasada(s) cerca premiada(s) en una sola corrida
+   ✓ el cañon ABRE a los # s de entrar (GUN_FIRST_S son #; antes eran #)
+   ✓ la HORQUILLA te ENCUADRA y se cierra: la salva # cae a # m del rumbo · la # a # · la # SOBRE la linea (#)
+
+TODAS las fases del §# estan cubiertas: P# a P#.
+
+consola: sin errores
+
+FIXTURE PASADA: OK

@@ -1,0 +1,99 @@
+
+FIXTURE — EL SELECTOR DE MISIONES (S#): la campaña entera, mision por mision
+
+la campaña son # misiones
+
+
+#. m#  SAL EN LAS ALAS   (solo pasillo)
+   ✓ carga: # m · # m · escuadron de #
+   ✓ vuela el A#B aunque venga elegido otro avion
+   ✓ despega y vuela
+   ✓ se dibuja y se mueve (# colores)
+   ✓ cierra en el recuento (no tiene climax que jugar)
+
+#. m#  BAUTISMO DE FUEGO   (solo pasillo)
+   ✓ carga: # m · # m · escuadron de #
+   ✓ vuela el A#B aunque venga elegido otro avion
+   ✓ despega y vuela
+   ✓ se dibuja y se mueve (# colores)
+   ✓ cierra en el recuento (no tiene climax que jugar)
+
+#. m#  EL DIA QUE SANGRO EL MAR   (pulso)
+   ✓ carga: HMS SHEFFIELD · # m · escuadron de #
+   ✓ vuela el A#B aunque venga elegido otro avion
+   ✓ despega y vuela
+   ✓ se dibuja y se mueve (# colores)
+   ✓ llega al climax que declara: PULSO
+
+#. m#  EL CALLEJON DE LAS BOMBAS   (pulso)
+   ✓ carga: HMS ARDENT · # m · escuadron de #
+   ✓ vuela el A#B aunque venga elegido otro avion
+   ✓ despega y vuela
+   ✓ se dibuja y se mueve (# colores)
+   ✓ llega al climax que declara: PULSO
+
+#. m#  LA BOMBA QUE NO DESPERTO   (pulso)
+   ✓ carga: HMS ANTELOPE · # m · escuadron de #
+   ✓ vuela el A#B aunque venga elegido otro avion
+   ✓ despega y vuela
+   ✓ se dibuja y se mueve (# colores)
+   ✓ llega al climax que declara: PULSO
+
+#. m#  # DE MAYO   (pulso)
+   ✓ carga: HMS COVENTRY · # m · escuadron de #
+   ✓ vuela el A#B aunque venga elegido otro avion
+   ✓ despega y vuela
+   ✓ se dibuja y se mueve (# colores)
+   ✓ llega al climax que declara: PULSO
+
+#. m#  EL BATIR DE ALAS   (pulso)
+   ✓ carga: ATLANTIC CONVEYOR · # m · escuadron de #
+   ✓ vuela el A#B aunque venga elegido otro avion
+   ✓ despega y vuela
+   ✓ se dibuja y se mueve (# colores)
+   ✓ llega al climax que declara: PULSO
+
+#. m#  EL PIBE   (solo pasillo)
+   ✓ carga: # m · # m · escuadron de #
+   ✓ vuela el A#B aunque venga elegido otro avion
+   ✓ despega y vuela
+   ✓ se dibuja y se mueve (# colores)
+   ✓ cierra en el recuento (no tiene climax que jugar)
+
+#. m#  LO QUE NO SE DICE   (pulso)
+   ✓ carga: RFA SIR GALAHAD · # m · escuadron de #
+   ✓ vuela el A#B aunque venga elegido otro avion
+   ✓ despega y vuela
+   ✓ se dibuja y se mueve (# colores)
+   ✓ llega al climax que declara: PULSO
+
+#. m#  EL ANGEL DE CORRIENTES   (pulso)
+   ✓ carga: RFA SIR TRISTRAM · # m · escuadron de #
+   ✓ vuela el A#B aunque venga elegido otro avion
+   ✓ despega y vuela
+   ✓ se dibuja y se mueve (# colores)
+   ✓ llega al climax que declara: PULSO
+
+#. m#  LA ULTIMA MESA   (pulso)
+   ✓ carga: HMS BROADSWORD · # m · escuadron de #
+   ✓ vuela el A#B aunque venga elegido otro avion
+   ✓ despega y vuela
+   ✓ se dibuja y se mueve (# colores)
+   ✓ llega al climax que declara: PULSO
+
+#. m#  EL TERO   (pulso)
+   ✓ carga: HMS GLAMORGAN · # m · escuadron de #
+   ✓ vuela el A#B aunque venga elegido otro avion
+   ✓ despega y vuela
+   ✓ se dibuja y se mueve (# colores)
+   ✓ llega al climax que declara: PULSO
+
+el selector, como herramienta:
+   ✓ la fila MISIONES abre el selector
+   ✓ al terminar vuelve AL SELECTOR (no encadena la siguiente)
+   ✓ no dejo rastro: localStorage identico a como estaba
+
+consola:
+   ✓ sin errores en toda la campaña
+
+MISIONES: OK

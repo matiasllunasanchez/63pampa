@@ -1,0 +1,55 @@
+
+FIXTURE — PERSECUCION (N#-N#, N#)
+
+#. N# — el lider: esta ADELANTE tuyo y a la distancia de arranque:
+   ✓ el lider PATRIA # vuela adelante: z # contra tu z # · distancia #
+   ✓ arranca EN BANDA: # dentro de [#, #] — la primera decision es tuya
+
+#. N# — el criterio del §#: vuela un tramo entero SIN chocar (sembrando de verdad):
+   ✓ sigue volando tras # s de pasillo sembrado · distancia # · carril #
+   ✓ nunca se acerco a menos de # unidades de nada (lo mas cerca: #)
+
+#. N# — el sembrador CONOCE su linea (§#: nada de lo que siembra la cruza):
+   ✓ # carriles sorteados y ninguno cae adentro del corredor del lider
+
+#. N# — estar en banda PAGA (tiempo en banda x multiplicador de altura):
+   ✓ en banda suma: # → # en # s · segundos en banda #
+
+#. N# — la gracia: fuera de banda AVISA, y recien despues cobra:
+   ✓ fuera de banda y VIVO: gracia gastada # de # s
+   ✓ volver a banda la recupera: # → # s gastados
+
+#. N# — y si no volves, lo perdes:
+   ✓ se acabo la gracia y lo perdiste: el modo tiene derrota, y avisada
+
+#. N# — es un avion, no un aura:
+   ✓ pasarle por encima al lider es un choque como cualquier otro del juego
+
+#. N# — el modo infinito: la banda se APRIETA con la distancia:
+   ✓ banda de arranque: [#, #]
+   ✓ tras # m la banda se cerro: [#, #] → [#, #]
+   ✓ el apretado tiene PISO: a # m queda en [#, #] y no baja mas
+
+#. N# — y el lider se RELEVA (en un modo infinito, la radio es lo unico que marca que paso algo):
+   ✓ el lider cambio: PATRIA # → PATRIA #
+
+#. N# — en campaña es DATO de mision y la banda NO se aprieta:
+   ✓ en campaña la banda queda fija en [#, #] tras # m — el tramo tiene largo escrito
+   ✓ y el lider no rota solo: sigue siendo PATRIA #
+
+#. N# — el TIRON: la radio avisa ANTES y despues el lider se va de verdad:
+   ✓ fase AVISO: quedan # s antes de que abra turbo — hay tiempo de reaccionar
+   ✓ quemando: su velocidad salta # → # (x#)
+   ✓ y se te va: la distancia paso de # a # en # s sin tocar el gas
+
+#. N# — el CIERRE: dice para donde vas, y con el signo correcto:
+   ✓ el lider quema y el cierre lo dice antes que la aguja: # u/s
+   ✓ y el signo es el correcto: la distancia hizo # u y el cierre marca # u/s
+
+#. LA REGLA DEL AMIGO: el lider solo cae si lo dice el GUION:
+   ✓ le volaste adentro de la estela (d #) y sigue volando: PATRIA #
+   ✓ y con el guion SI cae (antes volaba PATRIA #) — es la unica puerta
+
+consola: sin errores
+
+FIXTURE PERSECUCION: OK

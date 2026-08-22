@@ -1,3 +1,18 @@
+// ============================================================================================
+// LEGACY — aislado aca el 18/8/2026 por PLAN_REFACTOR §4b (RF-A).
+//
+// OJO, Y ESTO NO ES UNA FORMALIDAD: la carpeta se llama `legacy` porque este modulo NACIO como
+// el fallback del climax viejo, pero MEDIDO al mudarlo resulto que todavia tiene partes VIVAS
+// que usa el juego de todos los dias. Estan listadas abajo. **No borrar nada de esto** hasta que
+// RF2/RF8 las separen; hoy borrarlo rompe el juego, no limpia deuda.
+// Anotado como divergencia en PLAN_REFACTOR §9.
+//
+// LO QUE SIGUE VIVO ACA:
+//   · `has3D` / `useRenderer` — el arranque COMPARTIDO de three.js. systems/three-arena.js
+//     depende de ellos: sin esto no hay 3D en ningun lado.
+//   · `isSea()` / `frame()` / `view()` — el MAR 3D del vuelo normal, que no es el climax viejo.
+//     game.js lo consulta para decidir si dibuja el mar 2D.
+// ============================================================================================
 // MUNDO 3D (three.js) del climax del MOMENTUM.
 //
 // Renderiza cielo + mar + barco de cajas a baja resolucion; game.js blitea el resultado DENTRO
@@ -8,7 +23,7 @@
 // con lo que necesita del mundo. Si three.js no cargo (o ?no3d), todo esto se saltea solo y
 // rige el dibujo 2D de siempre.
 import { SHIP_CLASS } from '../data/ships.js';
-import { buildShips } from './ship3d.js';
+import { buildShips } from '../systems/ship3d.js';
 
 // Las medidas se IMPORTAN de render/ctx.js: antes estaban copiadas aca (W=320, HOR=64, F=90) y si
 // cambiaba la resolucion el 3D se desalineaba del 2D sin tirar ningun error.

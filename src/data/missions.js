@@ -6,6 +6,8 @@
 // El epilogo y el briefing son claves de STRINGS.
 
 // buques britanicos reales (objetivo del vuelo). Tambien los sortea SUPERVIVENCIA.
+import { climaxEnCuarentena, CLIMAX_SUPLENTE } from './cuarentena.js';
+
 export const SHIPS = ['HMS SHEFFIELD', 'HMS COVENTRY', 'HMS ARDENT', 'HMS ANTELOPE',
   'RFA SIR GALAHAD', 'RFA SIR TRISTRAM', 'ATLANTIC CONVEYOR', 'HMS BROADSWORD', 'HMS GLAMORGAN'];
 
@@ -166,8 +168,18 @@ export const MISSIONS = [
  *
  *  El default vive ACA y no en `game.js` a proposito: es la regla de la campaña, no una decision
  *  del motor, y siendo pura se puede probar en node sin abrir una ventana (SPEC_MODO_PASADA
- *  RF-14 — "cambiar el campo de una mision cambia su climax sin tocar codigo"). */
-export const climaxOf = m => m.goal.kind !== 'ship' ? null : (m.climax || 'pasada');
+ *  RF-14 — "cambiar el campo de una mision cambia su climax sin tocar codigo").
+ *
+ *  LA CUARENTENA SE APLICA ACA, Y NO PISANDO EL DATO (PLAN_REFACTOR §4b, 18/8/2026): las dos
+ *  misiones que declaran `climax: 'arena'` LO SIGUEN DECLARANDO, y mientras el ARENA y la PASADA
+ *  esten apartados juegan el suplente. Reescribir los renglones habria borrado la decision del
+ *  autor y despues nadie se acuerda de cuales eran; asi, levantar la cuarentena es sacar una
+ *  entrada de data/cuarentena.js y la campaña vuelve sola a lo que decia. */
+export const climaxDeclarado = m => m.goal.kind !== 'ship' ? null : (m.climax || 'pasada');
+export const climaxOf = m => {
+  const c = climaxDeclarado(m);
+  return c && climaxEnCuarentena(c) ? CLIMAX_SUPLENTE : c;
+};
 
 // indices de las misiones CON buque: es el pool del CICLO DE MUERTE y del ARENA (las de
 // distancia no tienen climax que jugar ni layout de zonas que elegir)

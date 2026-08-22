@@ -1,3 +1,18 @@
+// ============================================================================================
+// LEGACY — aislado aca el 18/8/2026 por PLAN_REFACTOR §4b (RF-A).
+//
+// OJO, Y ESTO NO ES UNA FORMALIDAD: la carpeta se llama `legacy` porque este modulo NACIO como
+// el fallback del climax viejo, pero MEDIDO al mudarlo resulto que todavia tiene partes VIVAS
+// que usa el juego de todos los dias. Estan listadas abajo. **No borrar nada de esto** hasta que
+// RF2/RF8 las separen; hoy borrarlo rompe el juego, no limpia deuda.
+// Anotado como divergencia en PLAN_REFACTOR §9.
+//
+// LO QUE SIGUE VIVO ACA:
+//   · `drawCockpit` / `salpicar` / `MIRA_PLENA` / `V_VISOR` — LA CABINA. La usan
+//     render/pulso.js (EL PULSO es hoy el UNICO climax fuera de cuarentena), y tambien el ARENA
+//     y la PASADA. Es codigo vivo y central, no fallback.
+//   · `drawBargeHull` / `drawBargeBow` — render/world.js dibuja el buque del pasillo con esto.
+// ============================================================================================
 // RENDER del ARENA VIEJO (fallback sin 3D de la fase ARENA): la barcaza en primera persona
 // sobre riel (barcaza, zonas criticas, cabina y visor). El ARENA nuevo (vuelo libre) tiene su
 // propio render en render/arena.js — esto es lo que corre con `?no3d` o si WebGL falla.
@@ -8,7 +23,7 @@
 // Como el resto del render, recibe `w`: un snapshot de solo lectura. Ademas de valores, trae tres
 // FUNCIONES del momentum (momCam, momShipGeom, momZoneRect) porque la geometria cambia por frame
 // y hay que consultarla al dibujar, no antes.
-import { ctx, W, H, px, panel } from './ctx.js';
+import { ctx, W, H, px, panel } from '../render/ctx.js';
 import { P } from '../data/palette.js';
 import { T } from '../core/i18n.js';
 import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR } from '../data/tuning.js';
@@ -278,16 +293,39 @@ function drawSal(t) {
 // de 0.3255 a 0.4609, centro 0.3932.
 export const V_VISOR = 0.3932;
 
-// CUANTO OCUPA, como fraccion del ancho de pantalla. Escala UNIFORME: el alto sale del ancho por
-// la proporcion real del PNG, asi que la cabina no se deforma nunca — mover esta perilla la acerca
-// o la aleja, no la estira.
+// V_VIDRIO — donde TERMINA EL PARABRISAS dentro del PNG, en fraccion de su alto: el hueco central
+// transparente va del borde de arriba hasta aca, y de ahi para abajo empieza la visera y el
+// tablero. Medido sobre el asset de 8/2026 leyendo el canal alfa del propio PNG (no a ojo sobre la
+// pantalla): 0.3203.
 //
-// POR QUE NO VA EN 1: el PNG es 1.833:1 y la pantalla 1.778:1, o sea casi lo mismo. A ancho
-// completo la cabina entera mide 268 de los 270 de alto y se come la pantalla; y si ademas se la
-// baja para clavar el visor en la mira, lo que sobra por abajo son las rodillas del piloto. Con la
-// cabina mas chica entra ENTERA y queda mundo alrededor, que es como se ve una cabina de verdad
-// desde atras del piloto.
-export const COCKPIT_FILL = 0.85;
+// Lo necesita cualquiera que quiera pegar algo AL VIDRIO —sal seca, agua corriendo, hielo, sangre—
+// para no terminar pintandolo sobre el tablero o afuera del cuadro. Antes cada uno se lo estimaba
+// contra `top`, y cuando la cabina cambio de encuadre los dos que lo hacian (la sal y el agua del
+// PULSO) quedaron dibujando arriba del borde de arriba: invisibles, sin fallar.
+export const V_VIDRIO = 0.3203;
+
+// LA CABINA ENTERA, SIEMPRE — y de que depende que se pueda.
+//
+// El PNG es 1.833:1 y la pantalla 1.778:1: casi la misma proporcion, o sea que no hay margen para
+// elegir. Anclandola por el ANCHO —que es lo que hacia el viejo `COCKPIT_FILL`— el alto cae donde
+// cae, y con una mira baja lo que se va del cuadro es EL PANEL: quedaba el arco del canopy
+// flotando sobre nada. Se ancla al reves: **el ALTO es el que no puede desbordar** —arriba se
+// pierde el arco, abajo el panel, y esas dos son justamente las que hacen que se lea como una
+// cabina— y el ancho sale de el. Que termine siendo MAS ancha que la pantalla no cuesta nada: lo
+// que se va por los costados son los rieles.
+//
+// LA INVARIANTE, entonces: la cabina NUNCA se recorta. Lo unico que cambia entre modos es DONDE
+// APUNTA, y el tamaño es la consecuencia — no una perilla aparte que alguien tenga que re-tunear.
+const altoDe = mira => Math.min(mira / V_VISOR, (H - mira) / (1 - V_VISOR));
+
+// LA MIRA PLENA: la UNICA Y en que la cabina sale entera Y de borde a borde. Sale de despejar
+// `altoDe(mira) = H`, que solo se cumple cuando el visor cae donde el PNG lo tiene — a `V_VISOR`
+// de los 270. Cualquier mira mas baja obliga a achicarla, y achicarla la DESPEGA de los bordes:
+// una cabina con mundo a los costados se lee como una calcomania, no como estar adentro.
+//
+// O sea: un modo puede apuntar donde quiera, pero el precio de apuntar lejos de aca es esa
+// despegada. Es la cuenta que hay que tener a mano el dia que se recambie el PNG.
+export const MIRA_PLENA = V_VISOR * H;
 
 /** La cabina.
  *
@@ -299,21 +337,24 @@ export const COCKPIT_FILL = 0.85;
  *  del PULSO para bajar la cabina en el premio y abrir cielo. */
 export function drawCockpit(w) {
   const { mom, t } = w;
-  const mira = w.mira == null ? H / 2 : w.mira;
-  const yOff = w.yOff || 0;
+  // `yOff` NO corre el dibujo: corre LA MIRA, y el tamaño se vuelve a derivar de ahi. Bajar el
+  // PNG a secas dejaba el panel afuera del cuadro (104 px de corrimiento en el premio del PULSO =
+  // un arco de canopy flotando). Bajando la mira, la cabina baja Y SE ACHICA — que ademas es lo
+  // que hace de verdad un encuadre que se abre— pero sigue estando ENTERA.
+  const mira = (w.mira == null ? H / 2 : w.mira) + (w.yOff || 0);
   // solo bob de vuelo: la cabina es la trompa del avion, va clavada a la pantalla
   // (apuntar mueve el MUNDO detras del vidrio, no la cabina)
   const bx = Math.sin(mom.t * 1.4) * 1.5;
-  const by = Math.sin(mom.t * 2.2) * 2 + yOff;
+  const by = Math.sin(mom.t * 2.2) * 2;
   const im = COCKPIT_ASSET.img;
   let dibY = by, dibH = H;                 // la caja REAL del dibujo (el fallback vectorial la llena)
   if (COCKPIT_ASSET.ready && im.naturalWidth) {
-    // el alto NATURAL a ancho completo sale del asset y no de un numero escrito: si algun dia la
-    // cabina se re-exporta a otra proporcion, esto la sigue solo.
-    // ESCALA UNIFORME: el alto sale del ancho por la proporcion del asset. Nada de estirar para
-    // llenar — el dia que la cabina se re-exporte a otra proporcion, esto la sigue solo.
-    const dw = (W + 12) * COCKPIT_FILL;
-    dibH = dw * im.naturalHeight / im.naturalWidth;
+    // ESCALA UNIFORME y ALTO PRIMERO (ver altoDe/MIRA_PLENA arriba): el mayor alto que no se sale
+    // por ninguno de los dos bordes, y el ancho detras por la proporcion real del PNG. La cabina
+    // no se deforma nunca y no se recorta nunca; si algun dia se re-exporta a otra proporcion,
+    // esto la sigue solo.
+    dibH = altoDe(mira);
+    const dw = dibH * im.naturalWidth / im.naturalHeight;
     dibY = by + mira - V_VISOR * dibH;                   // el visor pintado, clavado en la mira
     ctx.drawImage(im, bx + (W - dw) / 2, dibY, dw, dibH);
   } else {
@@ -346,7 +387,9 @@ export function drawCockpit(w) {
   drawSal(t);   // la sal va SOBRE el vidrio: ultima, despues del marco
   // la caja dibujada sale por la puerta: el PULSO reparte su sal contra el vidrio de verdad
   // y no contra un offset que hacia de proxy.
-  return { bx, by, top: dibY, h: dibH };
+  // la caja dibujada sale por la puerta, y con ella LA FRANJA DE VIDRIO ya en coordenadas de
+  // pantalla: quien pega algo al parabrisas no tiene que saber nada del PNG ni re-medirlo.
+  return { bx, by, top: dibY, h: dibH, vidrio: dibY + V_VIDRIO * dibH };
 }
 
 // MOMENTUM: barcaza a lo largo, zonas criticas resaltadas, mira y ventana de tiempo

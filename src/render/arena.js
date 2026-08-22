@@ -1,3 +1,11 @@
+// ============================================================================================
+// PENDIENTE — EN CUARENTENA DESDE EL 18/8/2026. Ver PLAN_REFACTOR §4b.
+//
+// Este modulo NO participa del menu ni de ningun flujo de campaña/ciclo: la perilla esta en
+// data/cuarentena.js. Sigue compilando y su fixture sigue verde a proposito — es lo unico que
+// avisa si se pudre mientras espera. NO se pule ni se refactoriza mas alla de lo mecanico: se
+// revisa a fondo despues, y la hipotesis a explorar es entrar como modulo de una mision.
+// ============================================================================================
 // RENDER del ARENA: la capa 2D que va ENCIMA del mundo 3D (systems/three-arena.js).
 //
 // Todo en espacio de PANTALLA (grilla 480x270). El mundo lo pone three con la camara ya puesta
@@ -15,7 +23,7 @@ import { drawMira } from './miras.js';
 import { MSL_MAX } from '../data/tuning.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
 import { PITCH_ROW } from '../core/physics.js';
-import { drawCockpit, salpicar } from './momentum.js';
+import { drawCockpit, salpicar } from '../legacy/momentum_render.js';
 import * as world3D from '../systems/three-arena.js';
 import { AR } from '../data/arena.js';
 import { turnGain } from '../core/aero.js';
@@ -23,7 +31,7 @@ import { shown as dmgShown } from '../systems/damage.js';
 
 // DONDE APUNTA ESTE MODO, en Y de pantalla. En 1a persona la mira cae donde apunta el morro, o
 // sea el centro (H/2 = 135). No es un offset del PNG: la cabina se acomoda SOLA para que su visor
-// pintado caiga justo aca (ver V_VISOR / COCKPIT_FILL en render/momentum.js). Antes esto era un
+// pintado caiga justo aca (ver V_VISOR / MIRA_PLENA en legacy/momentum_render.js). Antes esto era un
 // `COCKPIT_Y` tuneado a mano contra el asset, y cada recambio de cabina lo dejaba viejo.
 // EXPORTADA porque la PASADA dibuja la misma cabina con la misma camara.
 export const COCKPIT_MIRA = H / 2;

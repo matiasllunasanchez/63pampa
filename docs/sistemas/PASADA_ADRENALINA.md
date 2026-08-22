@@ -1,5 +1,7 @@
 # PASADA — Análisis de adrenalina y PLAN DE RESCATE
 
+> ⏸️ **EN PAUSA (18/8/2026):** por DIRECCIÓN (`docs/proyecto/ESTADO.md`) el gate R6 se resuelve hacia el plan C — **EL PULSO es el clímax del nivel**; la PASADA queda candidata a archivo. R1–R5 no se ejecutan salvo que la PASADA vuelva a considerarse.
+
 > **Estado: análisis hecho sobre el código construido (16/8) + plan de mejoras por fases,
 > sin implementar.** Origen: playtest de Matías — *"no genera adrenalina… los misiles te
 > matan sin verlos, sin sonido, vienen de frente… el barco está de costado en el pasillo y

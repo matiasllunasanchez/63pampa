@@ -1,3 +1,11 @@
+// ============================================================================================
+// PENDIENTE — EN CUARENTENA DESDE EL 18/8/2026. Ver PLAN_REFACTOR §4b.
+//
+// Este modulo NO participa del menu ni de ningun flujo de campaña/ciclo: la perilla esta en
+// data/cuarentena.js. Sigue compilando y su fixture sigue verde a proposito — es lo unico que
+// avisa si se pudre mientras espera. NO se pule ni se refactoriza mas alla de lo mecanico: se
+// revisa a fondo despues, y la hipotesis a explorar es entrar como modulo de una mision.
+// ============================================================================================
 // CONSTANTES DE LA FASE PASADA (SPEC_MODO_PASADA §6). Datos puros: cero imports de logica.
 //
 // EL VUELO NO VIVE ACA. La pasada vuela el MISMO modelo E1/E2 del arena (core/aero.js, numeros en

@@ -55,7 +55,12 @@ export const PULSO_CINE = {
   PIRUETA: 1.15,   // el avion vuela LA maniobra que se tecleo (la corre systems/moves.js)
   SUELTA: 0.85,    // la ristra cayendo — el unico tramo en que no pasa nada mas: es el silencio
   IMPACTO: 0.7,    // el estallido en la zona elegida
-  MUERTE: 2.6,     // el buque muriendo (se estira por clase: ver PULSO_CLASE.sink)
+  // el buque muriendo (se estira por clase: ver PULSO_CLASE.sink). Bajo de 2,6 a pedido del
+  // playtest: «sacar 1 segundo al final hasta que aparece el panel». La agonia era el unico tramo
+  // que se podia recortar sin tocar el arco del ataque — y el que menos pierde, porque lo que hay
+  // que ver ya se vio: el buque escorado y ardiendo se lee en un segundo y medio igual que en dos
+  // y medio. El resto lo cuenta el recuento.
+  MUERTE: 1.75,
   BOMBAS: 4,       // cuantas bombas tiene la ristra (canon de PASADA §8b)
   // el mundo VUELVE A CORRER cuando arranca el premio: el tiempo dilatado se suelta en esto. Con
   // 0,5 s y rampa lineal el arranque y el final del deshielo se notaban los dos como un escalon;
@@ -64,7 +69,16 @@ export const PULSO_CINE = {
   // cuanto CRECE el buque durante el premio. El pendiente honesto de Q1 era que el blanco no
   // domina el cuadro; se resuelve aca y no antes a proposito — durante la prueba el buque no
   // puede tapar la autopista, y en el premio la autopista ya no existe.
-  ZOOM: 2.4,
+  // Es el tamaño del ULTIMO cuadro, no el del impacto: el acercamiento es una sola curva que corre
+  // de punta a punta del premio (ver shipFx). Estuvo partido en dos y la costura caia justo en el
+  // impacto — ahi el buque dejaba de crecer casi un segundo, que es lo que se leia como «el avion
+  // frena al soltar».
+  ZOOM: 4.2,
+  // …y con que curva. >1 porque un acercamiento ACELERA: el tamaño aparente va con 1/distancia,
+  // asi que a velocidad constante los ultimos metros crecen mucho mas que los primeros. Al
+  // cuadrado (2) arrancaba demasiado plano y el buque tardaba en aparecer; 1.5 es el punto donde
+  // domina el cuadro para el impacto Y sigue acelerando hasta el final.
+  ZOOM_CURVA: 1.5,
   // …y cuanto BAJA en el cuadro mientras crece (pixeles de mundo). Un buque clavado en el
   // horizonte no puede dominar nada: la unica forma de que llene la vista es que se venga al
   // centro de la banda que la cabina deja libre.
@@ -72,12 +86,15 @@ export const PULSO_CINE = {
   // cuanto BAJA LA CABINA durante el premio. No es rediseñarla: es la misma cabina corrida, para
   // abrir cielo justo cuando lo que hay que mirar es el buque y ya no hay autopista que leer.
   //
-  // ES UN CORRIMIENTO EXTRA, encima de donde la cabina ya se para sola: desde la cabina nueva de
-  // 8/2026 el PNG se acomoda contra `COCKPIT_MIRA` de render/pulso.js (la mira del modo) y este
-  // numero solo la BAJA desde ahi. Con el encuadre viejo el canopy terminaba justo encima del buque
-  // y le tapaba la muerte. La regla a sostener es "el buque tiene que quedar en cielo limpio": si
-  // se toca COCKPIT_MIRA o COCKPIT_FILL, este es el numero que hay que volver a mirar.
-  CABINA: 104,
+  // ES UN CORRIMIENTO DE LA MIRA, no del dibujo (ver drawCockpit): la cabina baja Y SE ACHICA, pero
+  // sigue estando ENTERA. Bajaba el PNG a secas y con 104 lo que quedaba en pantalla era el arco
+  // del canopy flotando sobre nada — el panel, las manos y las rodillas afuera del cuadro. Una
+  // cabina sin panel no se lee como una cabina; se lee como una calcomania.
+  //
+  // La regla a sostener sigue siendo "el buque tiene que quedar en cielo limpio", y ahora cuesta
+  // MUCHO menos corrimiento: desde que la mira del PULSO apunta a la MIRA PLENA, la cabina ya
+  // arranca alta y con el buque bien arriba del canopy.
+  CABINA: 26,
 };
 
 // ---------------- EL TEATRO (plan §5, fase Q5) ----------------
@@ -92,6 +109,13 @@ export const PULSO_TEATRO = {
   // cada fallo deja el corazon MAS ACELERADO de arranque: no se vuelve a la calma entre pasadas.
   HB_TRY: 0.13,
   SAL: 24,        // motas de sal secas en el vidrio (posiciones fijas, no titilan)
+  // GOTAS de mar en el vidrio volando a ras (a 2 m es un manto; arriba de 7 no queda ninguna).
+  // La sal es una marca vieja del avion; esto es el mar de AHORA, y por eso corre.
+  AGUA: 74,
+  // …y hasta que altura hay agua en el vidrio. Con 7 m el manto se secaba a mitad del salto; el
+  // agua de verdad tarda en irse, y estirarlo hace que la trepada se lea como que te DESPEGAS del
+  // mar en vez de como un interruptor.
+  AGUA_ALT: 11,
 };
 
 // LOS SELLOS del premio (plan §3: "estrellas por sin errores, velocidad, zona brava"). Son

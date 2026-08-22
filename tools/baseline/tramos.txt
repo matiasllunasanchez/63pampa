@@ -1,0 +1,51 @@
+
+FIXTURE — LOS TRAMOS: el guion de spawn por mision (SPEC_TRAMOS)
+
+#. una mision SIN tramos:
+   ✓ no hay tramo vigente: manda el cfg plano (idx null)
+   ✓ los valores resueltos SON los del cfg (obst # · bombs # · caza #)
+
+#. la densidad la manda el tramo:
+   tramo denso (#): # spawns · tramo flojo (#): # · razon #×
+   ✓ el tramo denso siembra al menos #× lo que el flojo (CA del RF#)
+   ✓ la sonda ve el tramo # con su densidad resuelta
+
+#. los bidones cortados:
+   con bidones:false nacieron # bidones de # · sin la llave, # de #
+   ✓ con `bidones: false` no nace un solo bidon en el tramo
+   ✓ y en el tramo de al lado siguen naciendo: la llave es del TRAMO, no del mapa
+
+   la mezcla inclinada (favor):
+   cazas sin favor: #% de # · con favor: #% de # · ganancia #× (techo teorico #×)
+   ✓ `favor` inclina la mezcla cerca de su techo (#× de #× posible)
+
+#. el cordon final (con distancias de verdad):
+   antes del corte: # spawns · pasado el corte: #
+   ✓ pasado el corte no siembra nadie, diga lo que diga el ultimo tramo
+
+#. la radio del tramo:
+   sonaron: m#_radio# → m#_radio# → m#_radio#
+   en pantalla: CONDOR: ANOTO POSICIONES. DOS AL NORESTE, RUMBO SUR.  ·  GITANO: ¿DE DONDE SACAS VOS TODO ESO, CONDOR?  ·  CONDOR: DE UN BARCO PESQUERO LLAMADO NARWAL.
+   ✓ una radio por tramo que la declara, en orden, y ninguna del tramo que no trae
+   ✓ ninguna sono dos veces
+   ✓ las tres llegaron al popup, con texto de verdad
+   ✓ un __wjump(#) dispara SOLO la del tramo vigente, no la cola entera
+   ✓ el cambio de tramo en PAUSA no habla: la linea espera al vuelo
+
+#. la mision piloto — el transito del Narwal (m#):
+   ✓ m# trae # tramos y arranca en el primero
+   en el transito nacieron # obstaculos
+   #. CONTROL LIBRE! | CONDOR: ANOTO POSICIONES. DOS AL NORESTE, RUMBO SUR.
+   #. GITANO: ¿DE DONDE SACAS VOS TODO ESO, CONDOR?
+   #. CONDOR: DE UN BARCO PESQUERO LLAMADO NARWAL.
+   #. PUMA: NO SON MILITARES. Y ESTAN MAS ADENTRO QUE NOSOTROS.
+   ✓ CERO spawns en el transito: "sin un solo enemigo en pantalla"
+   ✓ las cuatro lineas de la conversacion, en el orden del guion
+   ✓ y las cuatro llegaron a la pantalla mientras se volaba
+   pasado el transito nacieron # obstaculos (densidad resuelta #, caza #)
+   ✓ el mar abierto llega con densidad plena y LA COLA habilitada
+
+#. consola:
+   ✓ sin errores
+
+TRAMOS: OK

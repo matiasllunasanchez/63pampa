@@ -235,7 +235,7 @@ export function collisionSystem(dt) {
           // D1: lo chico tambien se despieza. No te mata (es del tamaño de un soldado), pero se
           // ROMPE — pasarle por encima a un nido y verlo seguir ahi era la mitad del problema.
           // D2: y muere con SU receta (chispazo metalico, su humo), no con la explosion generica.
-          morir(o, { vz: run.spd, vy: 4 });
+          morir(o, { vz: run.spd, vy: 4 }, 0, 'choque');
           softHit('hitSmall', 0.55);
           o.z = -99; o.done = true;
         } else if (o.type === 'tent') {
@@ -248,7 +248,7 @@ export function collisionSystem(dt) {
           // Atravesarla sigue sin matar: la letalidad no se toca (§4.1), solo se ve el destrozo.
           // D2: y SIN bola de fuego — es lona: jirones y polvo (por eso va por morir(), que sabe
           // que esta receta no tiene bola).
-          morir(o, { vz: run.spd, vy: 8 });
+          morir(o, { vz: run.spd, vy: 8 }, 0, 'choque');
           o.z = -99; o.done = true;
         } else {
           // ---- D1: LA DESTRUCCION MUTUA (PLAN_DESTRUCCION) ----
@@ -263,7 +263,7 @@ export function collisionSystem(dt) {
           // de qué está hecho el mundo.
           if (o.type !== 'cliff') {
             sfxOne(o.type === 'depot' || o.type === 'lcu' ? 'exXheavy' : 'exXsmall');
-            morir(o, { vz: run.spd, vy: 4 });
+            morir(o, { vz: run.spd, vy: 4 }, 0, 'choque');
             o.z = -99; o.done = true;               // el objeto ya no está: sus restos son lo que queda
           }
           return { death: o.type === 'cliff' ? 'death_cliff'
@@ -335,7 +335,7 @@ export function collisionSystem(dt) {
     }
   }
   prune(obstacles, o => o.z > 2 && !((o.type === 'boom' || o.type === 'airboom') && o.boomT > 6)
-    && !(o.type === 'chunk' && (o.chunkT > CHUNK_LIFE || o.z > 235))
+    && !(o.type === 'chunk' && (o.chunkT > (o.vida || CHUNK_LIFE) || o.z > 235))
     && !(o.type === 'humo' && o.humoT > o.humoMax)
     && !(o.type === 'onda' && o.ondaT > ONDA_T));
 
@@ -392,7 +392,7 @@ export function collisionSystem(dt) {
           const s = proj(o.x, oy, o.z); popup(s.x, s.y - 8, '+' + pts);
           // D2: muere con SU receta. La bala ademas EMPUJA — poquito, pero hacia adelante: el
           // escombro sale para el lado del que disparo, que es de donde vino la energia.
-          morir(o, { vz: 34 });
+          morir(o, { vz: 34 }, 0, 'canon');
           o.z = -99; o.done = true;   // done=true: evita que el obstáculo muerto dispare la colisión del avión
         } else { beep(300, 0.05, 'triangle', 0.04); }
         break;
@@ -441,7 +441,7 @@ export function collisionSystem(dt) {
         const pts = (o.type === 'helo' ? 300 : o.type === 'jet' ? 250 : 150) + 100;   // +bonus por misil
         run.score += pts; stats.air++;
         const s = proj(o.x, o.y, o.z); popup(s.x, s.y - 8, '+' + pts, P.accent);
-        morir(o, { vz: 60, vy: 6 });   // el misil irradia mas que la bala
+        morir(o, { vz: 60, vy: 6 }, 0, 'misil');   // el misil irradia mas que la bala
 
         o.z = -99; o.done = true; o.hp = 0;                 // done=true: no puede chocar al avión luego
         pm.z = 9999; break;

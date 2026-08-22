@@ -273,3 +273,255 @@ ser la misma perilla.
     del buque. El offset del premio pasó de 44 a 104 para volver a dejar el blanco en cielo limpio.
     La regla, escrita al lado del número: *el buque tiene que quedar en cielo limpio* — si la cabina
     se vuelve a mover, ése es el número a mirar.
+
+## 10. EL ATAQUE COMPLETO *(playtest del 17/8)*
+
+> *"El avión está frenando al segundo que impacta la bomba: debe SEGUIR DE LARGO o ir hacia arriba
+> mirando al cielo. Y el avión no va rasante — debe ir rasante al agua, con efectos de agua en la
+> pantalla y en los costados."*
+
+Las dos son la misma familia de error: la cinemática tenía los GESTOS del ataque pero no su
+**recorrido**. Un ataque real es un arco continuo —entrás pegado al mar, saltás, soltás y salís— y
+lo que había era tres poses sueltas con el avión parado entre una y otra.
+
+**El freno.** La `pose` de salida pedía 26 m y una pose SOSTIENE la altura pedida: el avión llegaba
+y se quedaba, que es literalmente frenar. Ahora pide **90** —por encima del techo de vuelo (68)—
+para que no la alcance en lo que dura la escena: la trepada no termina nunca. Y la trompa sigue a la
+trayectoria (`pitch` desde `plane.vy`), así que sube **mirando al cielo** en vez de subir horizontal.
+
+**El rasante.** La cinemática arrancaba ya en el salto: el tramo pegado al agua no existía. Ahora
+empieza con 0,4 s a **2,2 m** —con su estela y su rocío— y recién ahí salta. Tres cosas hicieron
+falta:
+
+- **La estela y el rocío pasaron a la cama de vuelo** (`estelaVuelo`). Era lo que P1 había dejado
+  afuera "porque no era contiguo"; resultó que sí lo era —los dos bloques van juntos en `flight.js`—
+  y ahora que una cinemática los necesita, el motivo para no extraerlos desapareció. `flight.js` la
+  llama en el mismo lugar del cuadro: `feel` idéntico.
+- **Agua en el vidrio** (`PULSO_TEATRO.AGUA`): gotas que el viento estira hacia atrás y hacia los
+  costados, con densidad por altura (a 2 m es un manto, arriba de 7 no queda ninguna). Conviven con
+  la sal: la sal está seca y quieta —es una marca vieja del avión— y el agua corre, es el mar de
+  ahora.
+- **La cámara arranca EN LA CABINA**, que además saca un corte: la prueba se juega en primera
+  persona y el premio la continúa sin cortar. El corte a tercera cae en el salto, que es un golpe.
+
+### Divergencias del ataque completo
+
+23. **Una `pose` inalcanzable es la forma de decir "seguí subiendo".** No hizo falta un verbo nuevo:
+    pedir una altura que no se alcanza en el tiempo de la escena ES una trepada sostenida. Si algún
+    día hace falta "subí a X y quedate", ya funciona — es la misma pose con un número alcanzable.
+24. **La actitud sigue a la trayectoria y no al revés.** En una cinemática no hay palanca, así que
+    el cabeceo sale de `plane.vy`: es la verdad física y sale gratis. En el PASILLO no se toca —ahí
+    la trompa la manda la intención del piloto, que es otra cosa y la sigue calculando `flight.js`.
+25. **La secuencia quedó en 9,4 s** (era 8,9). El tramo rasante suma 0,4 s y es el que hace legible
+    todo lo demás: sin él, el salto no es un salto — es la altura a la que arranca la escena.
+
+---
+
+## 11. LA CABINA ENTERA Y EL SOBREVUELO *(playtest del 22/8)*
+
+Dos pedidos, y de nuevo el segundo era **una sola causa vista dos veces**.
+
+### La cabina
+
+> «la cabina está demasiaaaado abajo, estirala desproporcional para que se vea completa… quizá que
+> no ocupe el ancho total puede ser la solución»
+
+Medido: en el premio se veía **el arco del canopy flotando sobre nada** — el panel, las manos y las
+rodillas quedaban afuera del cuadro. Dos números lo causaban, y los dos por la misma razón: la
+cabina se anclaba **por el ancho**, así que el alto caía donde cayera.
+
+- `COCKPIT_MIRA` del PULSO estaba en **150**, con este comentario al lado: *«el PULSO apunta más
+  abajo porque la autopista de tokens vive en la mitad de abajo»*. Esa razón **ya no existía**: la
+  autopista se mudó al cielo (`LANE_Y = 34`) y el número se quedó. Lo único que seguía haciendo era
+  empujar la cabina fuera del cuadro.
+- `PULSO_CINE.CABINA` bajaba el PNG **104 px más** para abrirle cielo al buque.
+
+El arreglo no es estirar. El PNG es 1.833:1 y la pantalla 1.778:1 —**casi lo mismo**— así que
+deformarlo para que entre no se nota como "cabina más alta", se nota como cabina mal dibujada. Se
+invirtió el anclaje: **el alto es el que no puede desbordar** (arriba se pierde el arco, abajo el
+panel, y esas dos son las que la hacen leer como cabina) y el ancho sale de él. Que termine más
+ancha que la pantalla no cuesta nada — lo que se va por los costados son los rieles.
+
+De ahí sale **`MIRA_PLENA` = `V_VISOR × H` ≈ 106**: la *única* Y en que la cabina sale entera **y**
+de borde a borde. No es una perilla, es una consecuencia — y es la cuenta a tener a mano el día que
+se recambie el PNG. **No hace falta un PNG nuevo.**
+
+### El sobrevuelo
+
+> «el avión se sigue quedando quieto al lanzar el misil, el barco NUNCA SE SIGUE ACERCANDO DURANTE
+> SU DESTRUCCIÓN… o que la trompa del avión suba hacia el cielo y un resplandor blanco cierre»
+
+Las dos mitades eran **lo mismo**. En una cámara que mira siempre para adelante, el **tamaño del
+blanco es lo único que dice a qué velocidad vas**: un zoom que se satura *es* un avión que frena.
+Y se saturaba justo al empezar la agonía (`gf` llegaba a 1 ahí), o sea los últimos tres segundos
+—casi la mitad de la cinemática— con el buque clavado en 2,4×.
+
+Y había un segundo freno, real: el avión tocaba **`FLY_TOP` (68)** a mitad de la salida, se nivelaba
+solo y bajaba la trompa.
+
+Lo que se hizo:
+
+- **`PULSO_CINE.SOBREVUELO`**: el buque sigue creciendo mientras se muere (2,4× → 4,2×) y, con
+  `ESC_DROP` subido a 96, se sale del cuadro **por abajo**. Eso es pasarle por encima — la versión
+  2D de la primera opción del pedido.
+- **`stepVuelo({ techo })`**: el techo es una regla del PASILLO ("hasta acá llega el carril") y una
+  cinemática no juega en el carril. Por omisión sigue siendo `FLY_TOP`, así que el vuelo no cambia
+  en nada (`feel` idéntico); la salida lo levanta y la trompa se queda mirando al cielo hasta el
+  último cuadro. `ESC_ALT` pasó a 160 por lo mismo: cerca del objetivo la `pose` afloja sola.
+- **El banco de nubes se apaga en el premio.** Existe para que el buque APAREZCA de la bruma
+  mientras te acercás; encima del blanco es niebla entre vos y algo que tenés a doscientos metros —
+  y como escala con el buque, al sobrevolarlo se volvía una pared gris que se comía la escena.
+- **El resplandor**: `fade` acepta `color`, y a blanco deja de ser un fundido para ser un golpe de
+  luz. Cierra la escena mientras seguís trepando.
+
+### Divergencias de la cabina y el sobrevuelo
+
+26. **`yOff` corre la MIRA, no el dibujo.** Bajar el PNG a secas recortaba el panel. Bajando la
+    mira, la cabina baja *y se achica* —que es lo que hace de verdad un encuadre que se abre— pero
+    sigue entera. Con eso `PULSO_CINE.CABINA` bajó de 104 a **26**: desde que el PULSO apunta a la
+    mira plena, abrirle cielo al buque cuesta casi nada.
+27. **Un comentario que explica un número no lo mantiene vivo.** El "150" tenía escrita al lado su
+    razón, y la razón se había mudado al cielo hacía commits. La única defensa real es *derivar*: hoy
+    la mira del PULSO **es** `MIRA_PLENA`, así que no hay un número que pueda quedar mintiendo.
+28. **Un verbo `destello` habría sido `fade` con otro nombre.** Fundir a un color ya era esto: se
+    agregó el campo, no el verbo. La regla del §6.5 pide agregar el verbo que falta — no uno que ya
+    está escrito con otras letras.
+29. **Los dos frenos del playtest eran cuatro números y ninguna línea de lógica.** `ESC_ALT`,
+    `TECHO_SAL`, `ESC_DROP` y `SOBREVUELO`. Que "el avión frena" se arregle en data y no en un
+    sistema es exactamente lo que el director vino a comprar.
+30. **La red que faltaba** (`npm run pulso` §6): el buque tiene que seguir creciendo durante la
+    agonía y el avión tiene que seguir trepando hasta el último cuadro. Las dos mitades del mismo
+    defecto, medidas por separado para que la próxima vez el fixture lo diga antes que el playtest.
+
+---
+
+## 12. MÁS RASANTE, Y EL FRENO DE VERDAD *(playtest del 22/8 · segunda pasada)*
+
+Tres pedidos. El tercero traía instrucciones de cómo medirlo —*«corré el juego, sacá capturas, vas
+a ver que la distancia del barco es LA MISMA»*— y así se encontró.
+
+### El freno era la costura, no el avión
+
+Se agregó `__buque()`: **el tamaño y la posición del buque tal como quedaron dibujados este
+cuadro.** Sin eso, "el buque no se sigue acercando" solo se puede discutir mirando — el
+multiplicador puede estar creciendo y el buque no crecer en pantalla, y son cosas distintas.
+
+Medido, el largo en pantalla:
+
+```
+t=0.2 → 3.4 s   178 → 410 px    +70 %/s     la caída
+t=3.6 → 4.4 s   426 → 454 px     +7 %/s     ← acá "frena"
+```
+
+El acercamiento estaba **partido en dos curvas** —el zoom de la caída hasta la agonía, y el del
+sobrevuelo durante la agonía— y las dos arrancaban con **pendiente cero** (van al cuadrado). La
+costura caía exactamente en el impacto. No era el avión: en una cámara que mira siempre para
+adelante, el tamaño del blanco es lo único que dice a qué velocidad vas.
+
+Ahora es **una sola curva** de punta a punta (`ZOOM` = tamaño del último cuadro, `ZOOM_CURVA` = 1.5,
+>1 porque un acercamiento *acelera*: el tamaño aparente va con 1/distancia). El crecimiento
+por cuadro quedó monótono y creciente de principio a fin, sin un solo escalón.
+
+### El agua no faltaba: estaba muerta, dos veces
+
+`drawAguaVidrio` **no se llamaba desde ningún lado** — quedó como código muerto cuando se rehízo el
+bloque de la cabina en `render/pulso.js`. Y al re-conectarla no se veía igual: estaba escrita contra
+`cab.top` con desplazamientos negativos, o sea contra la cabina *vieja* (la que se empujaba 104 px
+hacia abajo). Con la cabina arrancando en y≈0, **todas las gotas caían arriba del borde de arriba**.
+La sal tenía el mismo problema: se apilaba en un renglón de un píxel.
+
+Ninguna de las dos fallaba. Sólo desaparecían.
+
+El arreglo es el mismo que el de la mira: **derivar del asset y publicarlo.** Se midió leyendo el
+canal alfa del PNG —dónde está el hueco transparente del parabrisas— y salió `V_VIDRIO = 0.3203`.
+`drawCockpit` devuelve ahora la franja de vidrio ya en coordenadas de pantalla, y quien pega algo al
+parabrisas no vuelve a estimarla.
+
+También se corrigió el reparto: las gotas salían todas de un punto en el centro y se abrían en
+abanico — y a esa altura el centro del cuadro es **justo donde está el buque**, así que el agua se
+leía como si la escupiera el blanco. Mismo error que las líneas de velocidad naciendo en el punto de
+fuga, misma corrección.
+
+**Y el rocío de la cama de vuelo no sirve acá:** sale del agua a la altura del morro, o sea abajo
+del cuadro. En el pasillo se ve porque no hay cabina; en primera persona lo tapa entero el tablero.
+Volar rasante *desde adentro* es el mar en el vidrio, no el rocío.
+
+### Más rasante
+
+`RAS_T` 0,4 → **1,6 s** y `RAS_ALT` 2,2 → **1,5 m**. Con 0,4 s el tramo existía en la data y no en
+la pantalla: entre que la altura tarda en asentarse y que el agua necesita cuadros para acumularse,
+el rasante duraba menos que su propio arranque. Ahora es **el tramo más largo de la cinemática**, que
+es lo que corresponde a un juego que se llama así. El 1,5 además cae del lado bueno del escalón de
+rocío de la cama (2,8 m).
+
+### Divergencias
+
+31. **Dos cosas que se veían mal eran una sola causa: el buque se dibujaba con la opacidad de la
+    aproximación.** `dis` corre con el avance del PASILLO, así que cualquier cinemática que no venga
+    de volarlo entero —el menú CINEMATICAS, un fixture— pintaba el buque al 20 % justo en el cuadro
+    donde tiene que ser una pared de acero. Se apaga en el premio, igual que el banco de nubes.
+32. **El hundimiento se frena a mitad de camino** (1.15 → 0.78). Con el valor viejo la cubierta
+    quedaba medio casco bajo el agua antes de que la escena terminara y el recorte del mar se lo
+    comía: el último segundo era mar vacío. Un buque no se hunde en tres segundos — lo que la
+    cinemática cuenta es que *empezó*.
+33. **La red que faltaba, otra vez, era de conteo y no de mirada.** `__vidrio()` devuelve cuántas
+    gotas quedaron DENTRO del cuadro, y el fixture exige que a ras haya agua en el vidrio. Un efecto
+    que no falla y sólo desaparece necesita que alguien lo cuente; los dos que había (sal y agua)
+    llevaban commits muertos sin que nada se pusiera rojo.
+34. **La cinemática quedó en 7,8 s** (era 6,6). Todo el crecimiento es el rasante.
+
+---
+
+## 13. EL CUELGUE BLANCO, EL TEMPO Y LA PIRUETA DESDE ADENTRO *(playtest del 22/8 · tercera pasada)*
+
+### El cuelgue (lo primero, aunque vino dicho al pasar)
+
+> «quedó en blanco y nunca más pude hacer nada pero no importa»
+
+Sí importaba: era un **cuelgue duro**. El director no se apagaba nunca. `fin: true` emitía su señal
+hacia arriba y `C` se quedaba viva con el último estado de la timeline — que en el premio es un
+**fundido a blanco con opacidad 1**. `drawCine` lo seguía pintando encima de todo lo que viniera
+después: el panel de recuento estaba ahí abajo, invisible, y no había forma de salir.
+
+**`fin` ahora es el final**: el director se suelta ahí mismo. Y con un respaldo que es la parte que
+importa — también se suelta si el reloj pasa el final de la timeline. Una cinemática sin `fin`, o
+con un `fin` cuya ligadura no se ató (algo que esta timeline hace a propósito en otros beats), era
+exactamente el mismo cuelgue esperando su turno.
+
+**Una cinemática no puede durar para siempre.** Eso no es una política, es una invariante — y ahora
+`npm run cine` la exige para *toda* timeline, no sólo para ésta. Es la red más barata del plan y la
+que más caro habría salido no tener: el último cuadro de una escena suele ser justamente un fundido
+opaco, así que este mismo cuelgue estaba latente en cada cinemática futura.
+
+### El tempo del final
+
+−1,2 s: `PULSO_CINE.MUERTE` 2,6 → **1,75** y `DESTELLO` 0,5 → **0,28**. La agonía era el único tramo
+recortable sin tocar el arco del ataque, y el que menos pierde — el buque escorado y ardiendo se lee
+en un segundo y medio igual que en dos y medio; el resto lo cuenta el recuento. Y medio segundo de
+destello todavía se leía como que la pantalla *se lavaba*: un golpe de luz es un golpe.
+
+### La pirueta desde adentro
+
+Se cae el corte a tercera. La cinemática entera es **un solo plano, la cabina, de punta a punta**.
+
+El argumento viejo era «la recompensa de la regla 1 es VER salir la maniobra, y desde la cabina eso
+no se ve». El playtest dijo lo contrario, y tiene razón: **desde adentro la maniobra no la mirás, la
+sufrís** — que es exactamente lo que la prueba te acaba de hacer teclear. Y sin corte, el premio es
+literalmente la continuación de la prueba: la misma cabina, el mismo vidrio, el mismo ojo. El horizonte
+giratorio hace todo el trabajo (el mundo rola ~50° y la cabina queda quieta).
+
+**Lo que cuesta, dicho:** con el horizonte en FIJO (opciones) el mundo no se inclina y la maniobra se
+queda sin nada que mostrar. Se respeta igual — FIJO lo elige quien se marea, y una cinemática no es
+lugar para pasarle por encima a eso.
+
+### Divergencias
+
+35. **El bug más caro del plan entró por la puerta de un verbo nuevo.** `fade` con `color` era un
+    cambio de un campo; lo que no se pensó fue qué pasa con ese fundido *después* del `fin`. Mientras
+    los fundidos eran a negro y a mitad de camino nadie lo notó. Un verbo que puede dejar la pantalla
+    opaca obliga a decidir quién la limpia — y la respuesta correcta no era "el orquestador", era
+    "la cinemática se termina de verdad".
+36. **La red no estaba porque el fixture medía el `fin` de la timeline, no el del director.** Cortaba
+    la traza con `c.fin` —el flag que la timeline enciende— y nunca preguntaba si el director había
+    soltado. Medir la intención en vez del efecto: el mismo error que la sal dibujada arriba del borde.
+37. **La cinemática quedó en 6,6 s** de los 7,8. Sigue teniendo el rasante como tramo más largo.
