@@ -20,7 +20,7 @@ import { run } from '../core/run.js';
 import { wake, parts, prune } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
-import { PZ } from '../render/ctx.js';
+import { PZ, W } from '../render/ctx.js';
 import { FLY_X, FLY_TOP } from '../data/tuning.js';
 import { PITCH_LERP } from '../core/physics.js';
 
@@ -110,11 +110,26 @@ export function estelaVuelo(dt, o) {
   // y por una razon honesta — el pasillo es juego y el rocio no puede taparte lo que tenes que
   // esquivar; un plano rasante es una TOMA, y ahi el agua saltando ES el tema.
   const nSpray = Math.round((alt < 2.8 ? 6 : alt < 4.5 ? 3 : alt < 7 ? 1 : 0) * (o.mas || 1));
+  // DE DONDE SALE Y HACIA DONDE VA. Por omision es lo del PASILLO: una manchita angosta delante del
+  // morro, que es donde uno la ve desde afuera del avion.
+  //
+  // DESDE ADENTRO ES OTRA COSA, y es el pedido del playtest: «el efecto rasante se hace adelante en
+  // la punta, debe hacerse en los costados, bien alrededor de toda la cabina». Y es la verdad — a
+  // dos metros del agua el avion levanta una cortina que el aire tira PARA ATRAS Y PARA AFUERA, y
+  // desde la cabina lo que ves no es el chorro del morro (ese lo tapa el tablero): son los dos
+  // muros de agua pasandote por al lado del canopy. Tres perillas, y las tres en 0 dejan el
+  // pasillo exactamente como estaba:
+  //   `ancho`  apertura del nacimiento, en unidades de MUNDO (4 = el chorrito del morro)
+  //   `cerca`  cuanto mas cerca de la camara puede nacer: mas cerca = mas grande y mas afuera
+  //   `abre`   cuanto se ABRE cada gota, proporcional a lo lejos del centro que nacio. Es lo que
+  //            convierte una nube que sube en dos cortinas que se van a los costados.
+  const ancho = o.ancho || 4, cerca = o.cerca || 2, abre = o.abre || 0;
   for (let i = 0; i < nSpray; i++) {
-    const s = proj(plane.x + (Math.random() - 0.5) * 4, 0, PZ - Math.random() * 2);
+    const s = proj(plane.x + (Math.random() - 0.5) * ancho, 0, PZ - Math.random() * cerca);
     const onLand = o.tierra;
+    const fuera = abre ? (s.x - W / 2) * abre : 0;
     parts.push({
-      x: s.x, y: s.y - 1, vx: (Math.random() - 0.5) * 70, vy: -(50 + Math.random() * 110) * (0.5 + lowI),
+      x: s.x, y: s.y - 1, vx: (Math.random() - 0.5) * 70 + fuera, vy: -(50 + Math.random() * 110) * (0.5 + lowI),
       life: 0.25 + Math.random() * 0.3, c: onLand ? (Math.random() < 0.6 ? '#6b6250' : '#4a4636') : (Math.random() < 0.7 ? P.foam : P.crest), r: 1 + Math.random() * 1.3
     });
   }

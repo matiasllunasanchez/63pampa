@@ -82,6 +82,21 @@ export const CINE_VUELO = {
   // El pasillo es juego: el agua no puede taparte lo que tenes que esquivar. Un plano rasante es
   // una toma, y ahi el agua saltando ES el tema.
   AGUA: 2.4,
+  // EL ROCIO EN PRIMERA PERSONA. Desde afuera el agua es un chorro delante del morro; desde
+  // ADENTRO ese chorro lo tapa el tablero y lo que se ve son las dos cortinas pasandote por al lado
+  // del canopy. No es un efecto distinto: es el mismo, nacido mas ancho, mas cerca de la camara, y
+  // abriendose hacia afuera (ver `ancho`/`cerca`/`abre` en systems/vuelo.js).
+  ROCIO_1A: { ancho: 34, cerca: 6.5, abre: 3.1 },
+  // LAS LINEAS DE VELOCIDAD, dimensionadas POR PLANO. Es literal el playtest: «está todo
+  // manteniendo el mismo radio y distancia que cuando es tercera persona». Y no puede ser el mismo:
+  // en tercera el punto de fuga esta lejos y las lineas convergen chiquitas sobre el buque; en
+  // CABINA el punto de fuga esta en tu cara y lo que las lineas hacen es PASARTE POR AL LADO —
+  // nacen mas afuera, corren mas rapido, son mas largas y se van del cuadro en vez de amontonarse.
+  // `bajo` es cuanto se corre el PUNTO DE FUGA hacia abajo respecto del horizonte: desde la cabina
+  // el aire no viene del horizonte, viene de donde apunta el morro. Cae cerca del borde de abajo
+  // del parabrisas, que es tambien de donde sale la ristra — las dos cosas nacen en el mismo lugar
+  // porque las dos van adonde va el avion.
+  ESTELA_1A: { r: 1.7, v: 2.4, largo: 3.6, tope: 420, bajo: 58 },
   POSE_ALT: 12, POSE_T: 0.4,
   // LA SALIDA. Un ataque real no termina cuando se suelta: termina cuando saliste. Ningun piloto
   // se quedaba flotando en el lugar mirando hundirse lo que acababa de bombardear — soltaba y se

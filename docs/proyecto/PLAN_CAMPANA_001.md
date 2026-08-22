@@ -16,8 +16,8 @@ ARENA/MOMENTUM). Misión SIN buque o con boss de terreno (que no existe) → goa
 | id | Título | Fecha | Objetivo | Clase | Notas |
 |---|---|---|---|---|---|
 | m1 | SAL EN LAS ALAS | fines de abril | distancia 2200 | — | 🟨 **TUTORIAL PURO: cero fuego enemigo.** Esquivar y tirar a tambores destructibles. |
-| m2 | BAUTISMO DE FUEGO | 1 de mayo | distancia 2600 | — | boss radar (terreno) no existe → distancia |
-| 🟥 m3 | EL INVENTO | primeros de mayo | distancia 2400 | — | NUEVA. Patrulla suave; acá se enseña la mecánica de mejoras. Sin boss. 🟥 **El `epi` NO cierra en la comedia: sigue la cadena del BELGRANO (2 de mayo) y termina en una placa con la cifra 323.** Es el corte de tono más brusco del juego y es a propósito. |
+| m2 | BAUTISMO DE FUEGO | 1 de mayo | distancia 2600 | — | boss radar (terreno) no existe → distancia 🟥 **El `bri` suma LA REVERENCIA DEL GITANO** (thank you + la regla del mate; se cobra en m13). |
+| 🟥 m3 | EL INVENTO | primeros de mayo | distancia 2400 | — | NUEVA. Patrulla suave; acá se enseña la mecánica de mejoras. Sin boss. 🟥 **El `epi` suma LA BURRADA DEL GITANO** (el guiño gamer: la maniobra imposible del lanzamisiles; registro `DIALOGO`, se paga en la libreta de m9). 🟥 **El `epi` NO cierra en la comedia: sigue la cadena del BELGRANO (2 de mayo) y termina en una placa con la cifra 323.** Es el corte de tono más brusco del juego y es a propósito. |
 | m4 | EL DIA QUE SANGRO EL MAR | 4 de mayo | HMS SHEFFIELD | t42 | ex M3. 🟥 **Tramo de tránsito sin enemigos**: diálogo de radio, entra el Narwal. Registro `RADIO` para Cóndor, `DIALOGO` para el resto. Las posiciones que dicta Cóndor **se marcan en el HUD** durante este tramo. |
 | m5 | EL CALLEJON DE LAS BOMBAS | 21 de mayo | HMS ARDENT | t21 | ex M4; sube bombs/obstacles. 🟥 **Tramo de tránsito sin enemigos**, gemelo al de m4: Cóndor se queda corto y **el HUD NO marca posiciones** en toda la misión — es el cobro del Narwal. 🟥 **El `epi` suma LA ESCUCHA**: el Pichón traduce la transmisión interceptada en la sala de radio. Registro `SISTEMA`/radio para la frase en inglés, `DIALOGO` para la traducción. |
 | m6 | LA BOMBA QUE NO DESPERTO | 23 de mayo | HMS ANTELOPE | t21 | ex M5; 🟨 epílogo: **la Chancha se rompe** (texto) |
@@ -27,7 +27,7 @@ ARENA/MOMENTUM). Misión SIN buque o con boss de terreno (que no existe) → goa
 | 🟥 m10 | LOS PRIMOS | 5 de junio | distancia 3400 | — | 🟨 **REESCRITA 3.5.** Reconocimiento armado sin blancos: **el nivel es el clima.** La más larga y la más ciega — frente cerrado, la señal de Cóndor cae, y la nafta importa de verdad (la Chancha está rota desde m6). Primera con 3. La llegada de los Mirage a **Tandil** va como **corte intercalado** (no es escolta: era históricamente imposible). |
 | m11 | LO QUE NO SE DICE | 8 de junio | RFA SIR GALAHAD | log | ex M9; el respiro: vuelven todos |
 | m12 | EL ANGEL CORRENTINO | 8 de junio · 2ª salida | RFA SIR TRISTRAM | log | ex M10; muere CORREA (corte a tierra) + 🟥 el tallado |
-| m13 | LA ULTIMA MESA | 11 de junio | HMS BROADSWORD | t21 | ex M11; el asado + 🟥 LA CARTA (Esteban escribe, no se lee) |
+| m13 | LA ULTIMA MESA | 11 de junio | HMS BROADSWORD | t21 | ex M11; el asado + 🟥 LA CARTA (Esteban escribe, no se lee) 🟥 **El asado suma EL COBRO DE LA REVERENCIA**: le alcanzan el mate y el Gitano dice "Gracias" en castellano — se sale de la ronda. Registro `DIALOGO`; **sin cartel, sin subrayado**. |
 | m14 | EL TERO | 12 de junio · madrugada | HMS GLAMORGAN | t42 | ex M12; nocturna, la imposible. 🟨 Ver §4b: contrarreloj y dos finales. |
 
 Buques nuevos (solo datos, reusan layouts por clase — sin cambios): SIR TRISTRAM → `log`,

@@ -62,6 +62,8 @@ export const PULSO_CINE = {
   // y medio. El resto lo cuenta el recuento.
   MUERTE: 1.75,
   BOMBAS: 4,       // cuantas bombas tiene la ristra (canon de PASADA §8b)
+  ESTELA: 7,       // muestras de humo detras de cada bomba: lo que la hace SALIR de algun lado
+  BOMBA_R: 8,      // tamaño de la bomba AL SALIR, en px de mundo (se encoge al alejarse)
   // el mundo VUELVE A CORRER cuando arranca el premio: el tiempo dilatado se suelta en esto. Con
   // 0,5 s y rampa lineal el arranque y el final del deshielo se notaban los dos como un escalon;
   // con 0,8 s y curva 'suave' (PLAN_CINE_PESO P4) el mundo sale de la camara lenta respirando.
@@ -108,6 +110,16 @@ export const PULSO_TEATRO = {
   DUB: 0.15,      // separacion del segundo golpe del latido (el "lub-DUB")
   // cada fallo deja el corazon MAS ACELERADO de arranque: no se vuelve a la calma entre pasadas.
   HB_TRY: 0.13,
+  // CUANTO DE LA PANTALLA SE COME LA CABINA, como fraccion del maximo que entra sin recortarse
+  // (ver `altoDe` en legacy/momentum_render.js). En 1 la cabina llena el cuadro de borde a borde y
+  // el mundo se mira por el parabrisas y nada mas; el playtest lo llamo "regular" y tiene razon —
+  // el juego se llama RASANTE y lo que hay que ver es EL MAR. Achicandola aparecen las tres cosas
+  // que el tablero tapaba: la estela, el rocio saltando delante del morro, y el buque entero en
+  // cielo limpio arriba del canopy.
+  //
+  // No la despega del borde de abajo: lo que se gana va todo para ARRIBA (ver el anclaje en
+  // drawCockpit). Estas sentado adentro — el panel y las rodillas se van por el borde.
+  CABINA_ESC: 0.74,
   SAL: 24,        // motas de sal secas en el vidrio (posiciones fijas, no titilan)
   // GOTAS de mar en el vidrio volando a ras (a 2 m es un manto; arriba de 7 no queda ninguna).
   // La sal es una marca vieja del avion; esto es el mar de AHORA, y por eso corre.

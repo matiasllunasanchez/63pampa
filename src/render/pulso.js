@@ -116,7 +116,7 @@ function estallido(x, y, r0, p) {
 
 /** LO QUE PASA AFUERA DEL VIDRIO durante el premio: la ristra, el estallido y el buque ardiendo.
  *  Se dibuja ANTES de la cabina — es mundo, y el canopy tiene que poder taparlo. */
-function drawCineMundo(Q, c, t) {
+function drawCineMundo(Q, c, t, cab) {
   const z = Q.premio.zona;
   const im = puntoImpacto(z); if (!im) return;
   const uh = Math.max(2, im.uh);
@@ -125,22 +125,57 @@ function drawCineMundo(Q, c, t) {
   // la panza del avion, que esta detras de la cabina— y se ALEJAN hacia el buque: encogen. Es el
   // unico tramo del modo en que el jugador no hace nada, y es a proposito: es el silencio.
   if (c.parte === 'suelta') {
-    // DE DONDE SALEN. En cabina, del borde de abajo del cuadro: la panza del avion esta detras del
-    // canopy y no se ve. En tercera salen DEL AVION, que es media razon para elegir ese plano —
-    // en cabina la ristra aparece de la nada.
+    // DE DONDE SALEN. En tercera, DEL AVION. En cabina salen de DEBAJO DEL MORRO — y "debajo del
+    // morro" es el borde de abajo del parabrisas, no el borde de abajo de la pantalla: naciendo
+    // ahi la ristra aparecia ya lanzada, de atras del tablero, y el playtest pidio verla SALIR.
+    // Por eso la caja de la cabina se calcula antes de dibujar nada (momRender.cajaCabina).
     const chase = c.cam.modo === 'chase';
-    const sp = chase ? proj(plane.x, plane.y, PZ) : { x: W / 2, y: H + 8 };
+    const sp = chase ? proj(plane.x, plane.y, PZ)
+      : { x: W / 2, y: (cab ? cab.vidrio : H) - 2 };
+    // LA TRAYECTORIA de la bomba `i` en su avance `p`, para poder pedirsela tambien a la estela.
+    const vuelo = (i, p) => {
+      const x0 = sp.x + (i - (PULSO_CINE.BOMBAS - 1) / 2) * 8;
+      return {
+        x: x0 + (im.x - x0) * p,
+        // parabola: la bomba sube un pelo al salir y despues cae sobre el blanco
+        y: sp.y + (im.y - sp.y) * (p * p * 0.65 + p * 0.35),
+        // ARRANCAN GRANDES: salen de al lado tuyo. Con 4 px la ristra nacia ya del tamaño que
+        // tiene a medio camino y no se leia como algo que sale — se leia como algo que aparece.
+        s: Math.max(1, PULSO_CINE.BOMBA_R * (1 - p * 0.86)),
+      };
+    };
     for (let i = 0; i < PULSO_CINE.BOMBAS; i++) {
       // el avance del tramo lo da el director (`fParte`): el render no necesita saber cuanto dura
       const p = Math.max(0, Math.min(1, c.fParte * 1.35 - i * 0.11));
       if (p <= 0) continue;
-      const x0 = sp.x + (i - (PULSO_CINE.BOMBAS - 1) / 2) * 5;
-      const bx2 = x0 + (im.x - x0) * p;
-      // parabola: la bomba sube un pelo al salir y despues cae sobre el blanco
-      const by2 = sp.y + (im.y - sp.y) * (p * p * 0.65 + p * 0.35);
-      const s = Math.max(1, 4 * (1 - p * 0.8));
-      px(bx2 - s / 2, by2 - s, s, s * 2, '#2b3238');
-      px(bx2 - s / 2, by2 - s, s, Math.max(1, s * 0.4), '#5a656d');
+      // LA ESTELA, primero (va DEBAJO de la bomba): el humo que deja al salir, muestreando su
+      // propia trayectoria hacia atras. Sin esto la bomba es un punto que se encoge y no se lee
+      // como algo que SALIO de acá — la estela es lo que dice de donde vino.
+      for (let k = 1; k <= PULSO_CINE.ESTELA; k++) {
+        const pk = p - k * 0.055;
+        if (pk <= 0) break;
+        const q = vuelo(i, pk);
+        const f = 1 - k / (PULSO_CINE.ESTELA + 1);        // 1 pegado a la bomba · 0 deshecho atras
+        // EL HUMO ES CLARO. Con gris de casco se perdia contra el mar —que en este juego tambien
+        // es gris oscuro— y la estela existia en el codigo y no en la pantalla. Lo que se ve de un
+        // arma que sale es el humo, no el fierro: el fierro es un punto.
+        ctx.globalAlpha = 0.85 * f * f * (1 - p * 0.25);
+        const w2 = Math.max(1, q.s * (0.75 + f * 0.75));
+        px(q.x - w2 / 2, q.y - w2 / 2, w2, w2, k % 2 ? '#eaf4f8' : '#b7c8d0');
+      }
+      ctx.globalAlpha = 1;
+      const b = vuelo(i, p);
+      px(b.x - b.s / 2, b.y - b.s, b.s, b.s * 2, '#232a2f');
+      px(b.x - b.s / 2, b.y - b.s, b.s, Math.max(1, b.s * 0.45), '#7c8b94');
+      // EL MOTOR, mientras dura: el fogonazo que la empuja los primeros metros. Es lo que convierte
+      // "un punto que se aleja" en "algo que acaba de salir de abajo tuyo".
+      if (p < 0.3) {
+        const fl = (1 - p / 0.3) * b.s;
+        ctx.globalAlpha = 0.9 - p / 0.4;
+        px(b.x - fl * 0.4, b.y + b.s * 0.6, fl * 0.8, fl * 1.5, '#ffd479');
+        px(b.x - fl * 0.22, b.y + b.s * 0.6, fl * 0.44, fl, '#fff6e0');
+        ctx.globalAlpha = 1;
+      }
     }
   }
 
@@ -354,7 +389,12 @@ export function drawPulso(w) {
 
   // EL PREMIO, lo que pasa AFUERA: la ristra, el estallido, el buque ardiendo. Antes de la cabina
   // por la misma razon que el flak — el canopy tiene que poder taparlo.
-  if (cine) drawCineMundo(Q, cine, t);
+  // LA CAJA DE LA CABINA, calculada ANTES de dibujar nada: la necesita la ristra (sale de abajo
+  // del morro) y despues la usa el propio dibujo de la cabina. Es la misma cuenta, pedida una vez.
+  const cabW = { mom: { t: run.t }, t, mira: COCKPIT_MIRA, esc: PULSO_TEATRO.CABINA_ESC,
+                 yOff: cine ? cine.cam.off : 0 };
+  const caja = momRender.cajaCabina(cabW);
+  if (cine) drawCineMundo(Q, cine, t, caja);
 
   // LA CABINA. Se reusa tal cual la del climax 2D (con su `yOff`, igual que el ARENA): es el mismo
   // avion y el mismo vidrio — no hay una cabina distinta por modo.
@@ -366,7 +406,7 @@ export function drawPulso(w) {
   // primera persona. La sal esta entre el ojo y el mundo, y desde afuera del avion no hay vidrio
   // donde pegarse. Ahi el avion lo dibuja el orquestador, con el sprite de siempre.
   if (!cine || cine.cam.modo !== 'chase') {
-    const cab = momRender.drawCockpit({ mom: { t: run.t }, t, mira: COCKPIT_MIRA, yOff: cine ? cine.cam.off : 0 });
+    const cab = momRender.drawCockpit(cabW);
     drawSal(cab.top, cab.vidrio);
     // …Y EL AGUA CORRIENDO, encima de la sal. Las dos estan del lado de adentro del vidrio y la
     // diferencia entre una y otra es toda la idea: la sal esta seca y quieta —una marca vieja del

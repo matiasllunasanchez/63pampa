@@ -162,6 +162,10 @@ export function despiece(o, acta) {
       // LA MUERTE EN DOS ACTOS (D2): el ULTIMO pedazo es el resto grande — cae girando en espiral,
       // humeando, y revienta al tocar el suelo. Es la caida del helicoptero: el rotor se va por un
       // lado y el fuselaje se hace tirabuzon hasta el final.
+      // LA PIEZA HORNEADA que le toca (render/partes.js). Se reparte por indice y no al azar: el
+      // pedazo 0 es el que las variantes convierten en "la pieza grande", asi que la lista de la
+      // receta ya viene en el orden en que conviene gastarlas.
+      parte: r.partes ? r.partes[i % r.partes.length] : null,
       espiral: r.caida === 'espiral' && i === r.n - 1,
       acto2: r.caida === 'espiral' && i === r.n - 1,
       ph: Math.random() * 6.28,
@@ -182,24 +186,26 @@ function formaDeVariante(o, A, r, cs) {
   const lado = A.dado < 0.5 ? -1 : 1;
   if (v.forma === 'ala') {
     // EL ALA sale ENTERA, grande y girando rapido; y planea, porque es una superficie.
-    primero.pieza = 'ala'; primero.size = r.size[1] * 2.2; primero.grav = 0.45;
+    primero.pieza = 'ala'; primero.parte = 'ala'; primero.size = r.size[1] * 2.2; primero.grav = 0.45;
     primero.vspin2 = lado * 30; primero.vy = 6 + A.dado * 5; primero.vx = lado * 17;
     // EL RESTO se va en tirabuzon y revienta al tocar. Es la maquinaria de dos actos del helo
     // (D2) aplicada a otro cuerpo — no un sistema nuevo (§4.3 del plan viejo).
     ultimo.espiral = true; ultimo.acto2 = true; ultimo.size = r.size[1] * 1.7;
-    ultimo.hot = true; ultimo.vida = VIDA_LARGA; ultimo.pieza = null;
+    ultimo.hot = true; ultimo.vida = VIDA_LARGA; ultimo.pieza = null; ultimo.parte = 'fuselaje';
   } else if (v.forma === 'partido') {
     // DOS MITADES que se separan: la PROA gira rapido y cae pesada; la COLA cae PLANA, tumbando
     // despacio y flotando. Van para lados opuestos: es lo que hace legible que se partio.
-    primero.pieza = null; primero.size = r.size[1] * 2.0; primero.vspin = 11 * lado;
+    // se partio POR EL FUSELAJE: adelante queda el morro, atras la cola con la tobera
+    primero.pieza = null; primero.parte = 'morro'; primero.size = r.size[1] * 2.0; primero.vspin = 11 * lado;
     primero.vx = -lado * (14 + A.dado * 6); primero.grav = 1.2; primero.vida = VIDA_LARGA;
-    ultimo.pieza = null; ultimo.size = r.size[1] * 1.8; ultimo.vspin = 1.3 * lado;
+    ultimo.pieza = null; ultimo.parte = 'cola'; ultimo.size = r.size[1] * 1.8; ultimo.vspin = 1.3 * lado;
     ultimo.vx = lado * (14 + A.dado * 6); ultimo.grav = 0.65; ultimo.hot = true;
     ultimo.vida = VIDA_LARGA;
   } else if (v.forma === 'moribundo') {
     // ENTERO Y DE LARGO: este no cae, se ALEJA. La silueta es una linea de humo que se va y una
     // explosion lejos — la unica de las cuatro que no termina donde empezo.
-    primero.pieza = 'ala'; primero.size = r.size[1] * 2.4;
+    // el que se va muriendo es el AVION todavia entero: el tramo de fuselaje, no un ala suelta
+    primero.pieza = 'ala'; primero.parte = 'fuselaje'; primero.size = r.size[1] * 2.4;
     primero.moribundo = true; primero.acto2 = true; primero.hot = true;
     primero.vida = VIDA_LARGA; primero.grav = 0;
     primero.vx = (A.dado - 0.5) * 8; primero.vy = -2; primero.vz = 30;
@@ -217,7 +223,7 @@ function formaDeVariante(o, A, r, cs) {
       x: o.x, y: (primero.y || 2) + 1.5, z: o.z,
       vx: (A.dado - 0.5) * 7, vy: 15, vz: 5,
       spin: 0, vspin: 0, size: 0.95, hot: false,
-      c: '#d8d2c4', c2: '#8f959b', grav: 0.1, vida: VIDA_LARGA, ph: 0,
+      c: '#d8d2c4', c2: '#8f959b', grav: 0.1, vida: VIDA_LARGA, ph: 0, parte: null,
     });
   }
 }

@@ -112,7 +112,13 @@ export function update(dtReal) {
     const pitchTgt = Math.max(-1, Math.min(1, plane.vy / 12));
     stepVuelo(dt, { bank: 0, pitch: pitchTgt, boost: C.vuelo.boost, techo: C.vuelo.techo });
     // EL AGUA: la estela y el rocio de volar a ras. Es la mitad de lo que dice "rasante".
-    if (C.vuelo.agua) estelaVuelo(dt, { mas: C.vuelo.agua === true ? 1 : C.vuelo.agua });
+    if (C.vuelo.agua) {
+      // …y EN CABINA se abre a los costados: el chorro del morro lo tapa el tablero, y lo que se ve
+      // desde adentro son las dos cortinas pasando al lado del canopy (CINE_VUELO.ROCIO_1A).
+      const primera = cam().modo !== 'chase';
+      estelaVuelo(dt, Object.assign({ mas: C.vuelo.agua === true ? 1 : C.vuelo.agua },
+        primera ? CINE_VUELO.ROCIO_1A : null));
+    }
     // EL MUNDO CORRE DEBAJO. Es la mitad de la sensacion de volar: sin esto el mar esta quieto y
     // no hay estela ni lineas de velocidad, por mucho que el avion se mueva.
     run.dist += run.spd * dt * C.vuelo.avance;
@@ -126,7 +132,11 @@ export function update(dtReal) {
     // erizo blanco encima del buque que se hundia. Mas afuera hacen lo mismo sin taparlo.
     if (C.vuelo.estelas && Math.random() < 0.75) {
       const a = Math.random() * 6.283;
-      streaks.push({ a, r: 70 + Math.random() * 40, v: 240 + Math.random() * 160, life: 0.5 });
+      // …Y SE DIMENSIONAN POR PLANO. Desde la cabina el punto de fuga esta en tu cara: las lineas
+      // no convergen a lo lejos, te pasan por al lado. Mismo efecto, otra escala.
+      const k = cam().modo !== 'chase' ? CINE_VUELO.ESTELA_1A : { r: 1, v: 1, largo: 1, tope: 260, bajo: 0 };
+      streaks.push({ a, r: (70 + Math.random() * 40) * k.r, v: (240 + Math.random() * 160) * k.v,
+        L: 9 * k.largo, rmax: k.tope, dy: k.bajo, life: 0.5 });
     }
   }
 

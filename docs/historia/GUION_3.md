@@ -498,6 +498,20 @@ ventaja.
 el potrero, Tero: cuando el rival tiene botines y vos estás descalzo, gambeteás más pegado
 al piso.
 
+_(Antes de subir. El Turco ceba y el mate arranca la ronda en la línea de vuelo. Le llega
+al Gitano.)_
+
+**GITANO:** _(agarra el mate con las dos manos, se cuadra, levanta los brazos doblados a la
+altura de la cabeza y hace tres pasitos en el lugar — una reverencia ridícula, entera, para
+nadie)_ **THANK YOU.**
+
+**PICHÓN:** _(que no entiende nada)_ …¿Y por qué en inglés?
+
+**GITANO:** _(ya tomando)_ Porque si digo gracias me sacan de la ronda, pibe. Y yo de la
+ronda no me voy.
+
+**EL TURCO:** _(sin levantar la vista de la carga)_ De la ronda no se va nadie.
+
 _(Ritual de Cóndor. Despegue.)_
 
 ### La misión
@@ -588,6 +602,83 @@ _(Silencio. Todos miran.)_
 **GITANO:** _(al borde de las lágrimas de risa)_ "Interesante", dice el culiao. Casi me
 mata una arandela voladora... Ajá... "interesante".
 
+### 🟥 La burrada del Gitano _(3.10 — el guiño; cierra la cadena de risa del hangar)_
+
+_(El Turco empuja un carrito con un misil hacia el otro avión. Y el Gitano, que todavía se
+está secando los ojos de risa, se le cruza adelante y le apoya la mano al misil como quien
+apoya la mano en el hombro de un amigo.)_
+
+**GITANO:** Turco. Turco, pará. Escuchame una cosa que la tengo pensada hace como una semana.
+
+**EL TURCO:** No me toques eso.
+
+**GITANO:** Es un segundo. Mirá. Te vienen dos atrás, ¿sí? Dos. No les ganás de velocidad,
+no les ganás de nada.
+
+**PICHÓN:** No.
+
+**GITANO:** Entonces no jugás a eso. **Ponés la trompa para arriba.** Derechito al cielo,
+hasta que el avión se queda sin nada.
+
+**PICHÓN:** _(que ya está siguiéndolo en serio)_ …Ahí entrás en pérdida.
+
+**GITANO:** Ahí entrás en pérdida. Perfecto. Y ahí **te bajás.**
+
+_(Pausa.)_
+
+**VASCO:** ¿Cómo que te bajás.
+
+**GITANO:** Te bajás, Vasco. Te salís. Y los dos que te venían siguiendo le siguen yendo al
+avión —porque el avión sigue ahí arriba haciendo la suya— y vos ya no estás adentro.
+
+**GITANO:** _(y acá se carga el tubo al hombro)_ Y mientras caés… le metés uno.
+
+**PICHÓN:** ¿Cayendo?
+
+**GITANO:** Cayendo. Total abajo no hay nada, ¿qué te va a pasar?
+
+**EL TURCO:** El suelo, m'hijo. Abajo está el suelo.
+
+**GITANO:** _(sin escucharlo, cada vez más entusiasmado)_ Le metés uno al Harrier, **tirás
+el caño** —no lo vas a andar cargando, ya está usado— y seguís cayendo tranquilo. Y ahí, en
+el aire, acomodás el cuerpo… _(se pone de cabeza, apuntando con las dos manos)_ …y **le
+apuntás a tu propio avión**, que viene bajando por el otro lado.
+
+_(Silencio de hangar. Un pájaro en las chapas.)_
+
+**GITANO:** Te metés adentro, cerrás la cúpula, y seguís volando como si nada.
+
+**PICHÓN:** _(anotando, completamente en serio)_ ¿Y a qué velocidad estarías vos cuando
+saltás?
+
+**GITANO:** Y… despacito.
+
+**VASCO:** _(se persigna sin drama, como quien espanta una mosca)_ Diosito.
+
+**EL TURCO:** _(quitándole el misil de las manos)_ A ver, m'hijo. ¿Vos te pensás que el aire
+es una vereda? _(pausa)_ Te bajás vos de ese avión, y a los treinta segundos te junto con la
+pala en la loma del aca.
+
+**GITANO:** Lo que pasa es que vos no tenés visión, Turco. Nunca la tuviste.
+
+**PUMA:** _(sin levantar la voz y sin levantar la vista del mapa)_ Facundo.
+
+**GITANO:** ¿Qué.
+
+**PUMA:** No.
+
+_(Y se terminó. Vuelven a lo suyo. **Pero el Pichón no tacha lo que anotó.**)_
+
+> **Nota de tratamiento — el guiño.** Es un homenaje a la maniobra imposible que cualquier
+> jugador de Battlefield vio mil veces: subir vertical con los perseguidores encima,
+> eyectarse, voltear al que te sigue con un lanzacohetes **mientras caés**, tirar el tubo, y
+> volver a meterte en tu propio avión en el aire. **La coreografía tiene que respetarse en
+> ese orden** —vertical, salto, disparo en caída, tirar el caño, reingreso— porque el orden
+> ES el chiste para el que lo reconoce. **En pantalla no se nombra ningún juego, ninguna
+> marca y ningún año.** Es un piloto de veintipico diciendo una burrada en un hangar. El que
+> lo tiene que reconocer lo reconoce; el que no, se ríe igual y nunca se entera de que había
+> un chiste adentro del chiste. **Se paga en M9, en la libreta.**
+
 _(A partir de acá, tras cada misión, el juego ofrece **dos mejoras y se elige una** —
 presentadas siempre en el hangar con una viñeta de la dupla. Ver sección 5. El Pichón
 observa, el Turco reniega y prueba, y la escuadrilla vuela cada vez un poco mejor porque un
@@ -616,7 +707,7 @@ una encomienda, años después.)_
 
 ### 🟥 La noticia — 2 de mayo _(cierra la misión; la risa se corta a la mitad)_
 
-_(Sigue la carcajada del hangar por la arandela voladora. El Turco todavía se está
+_(Sigue la carcajada del hangar —la arandela voladora, y encima la burrada del Gitano—. El Turco todavía se está
 acomodando el gorro. Y entra el Pichón desde la sala de radio, sin correr, con la libreta
 en la mano y la cara de alguien que no sabe cómo decir lo que va a decir.)_
 
@@ -1219,6 +1310,15 @@ nadie le pidió: **todo lo que llegaron a probar juntos es un cuarto de lo que h
 adentro.** Un cuaderno de Da Vinci con olor a grasa. El pibe no era un ayudante con ideas:
 era un ingeniero entero, y nadie se dio cuenta a tiempo. Ni él.)_
 
+_(Y en una hoja suelta, casi al final, con la letra más chica y más prolija de todas: un
+A-4 chiquito con la trompa apuntando al cielo, y debajo un monigote cayendo de cabeza con un
+tubo al hombro. Tres flechitas: la subida, la caída, y el reingreso. Al costado, la cuenta
+hecha en serio — velocidad de pérdida, tiempo de caída, segundos que el avión tarda en
+volver a pasar por el mismo punto. Y abajo de todo, subrayado dos veces: **«NO. Se muere.»**
+El pibe lo calculó. Le dio que no. Y lo guardó igual.)_
+
+_(El Turco se ríe una vez, corto, sin querer. Y esa risa es lo peor de toda la noche.)_
+
 **EL TURCO:** _(a la libreta, bajito)_ …Vos y yo tenemos trabajo, pibe.
 
 _(Desde acá, las mejoras salen de la libreta: el Turco de noche, descifrando la letra. El
@@ -1608,6 +1708,18 @@ pasan por la tele.**
 _(Nadie se ríe. El Turco saca del mameluco la foto de la madre del Vasco y la apoya contra
 la damajuana, de cara al fuego. Al lado, la libreta del Pichón. Los que no están en la
 mesa, en la mesa.)_
+
+_(El Turco ceba y le alcanza el mate al Gitano.)_
+
+**GITANO:** _(lo agarra con una sola mano, sin levantarse)_ Gracias.
+
+_(Lo dijo en castellano.)_
+
+_(Y el Turco —que fue el que aquella vez, en la línea de vuelo, remató "de la ronda no se
+va nadie"— no levanta la vista del fuego. Nadie corrige nada. Nadie le dice "eh, dijiste
+gracias". Nadie se lo hace notar, porque todos en esa mesa saben exactamente qué acaba de
+decir y ninguno tiene ganas de decirlo en voz alta. El mate sigue la ronda. La próxima vez
+le pasa por al lado y él ni lo mira.)_
 
 ### La única vez que el Gitano habla en serio
 
@@ -2087,6 +2199,80 @@ habla como habla. Si en una escena ya dijo "m'hijo" y "changuito", no hace falta
 **"Qué pingo ura" y "calma la raja" NO se usan en el guion** — son fórmulas que hoy
 circulan como meme y muy probablemente no existían en 1982.
 Ver PREGUNTAS_HISTORICAS.md.
+
+---
+
+## 🟥 9c. EL GITANO — el guiño gamer, en DOS CANALES
+
+Decisión de autor (Matías): el Gitano lleva frases y gestos icónicos para que el jugador le
+agarre cariño, sea el alivio cómico y meta referencias a videojuegos. **La regla que hace
+que eso no destruya el juego es que las referencias van por dos canales distintos, y los
+canales no se mezclan nunca.**
+
+### CANAL 1 — el Gitano _(diegético: pasa adentro de la ficción, 1982)_
+
+**Regla dura: el Gitano NO puede citar nada que un cordobés de veintipico no pudiera haber
+inventado solo.** Nada de frases célebres de juegos, nada de líneas traducidas, nada que
+suene a que el personaje vio algo que todavía no existe. Lo que sí puede: **gestos** y
+**palabras sueltas en inglés**, que en el 82 cualquiera tenía a mano.
+
+**LA REVERENCIA — el gesto insignia** _(homenaje al prisionero de Metal Slug)_
+
+Levanta los dos brazos doblados a la altura de la cabeza, hace tres pasitos en el lugar, y
+dice **"THANK YOU."** en inglés. Entero, ridículo, sin vergüenza.
+
+**El disparador es el mate**, y eso lo vuelve un chiste con motor propio: cada vez que
+alguien le ceba, el Gitano hace la reverencia. Y hay un motivo declarado en pantalla una
+sola vez, en M2: **si dijera "gracias" en castellano quedaría afuera de la ronda.** Dice
+thank you justamente para no irse.
+
+| Aparición | Dónde | Qué cambia |
+|---|---|---|
+| **La única vez que se ve** | **M2**, en la línea de vuelo antes de la primera misión de verdad | El gesto completo + la regla del mate explicada por el propio chiste. El Turco remata: *"De la ronda no se va nadie."* |
+| **🟥 EL COBRO** | **M13**, el asado | Le alcanzan el mate y dice **"Gracias."** En castellano. Sin levantarse. **Acaba de salirse de la ronda la noche antes de la última misión, y nadie se lo hace notar.** Es el puente hacia la única vez que el Gitano habla en serio |
+
+**⚠ CON UNA SOLA VEZ ALCANZA, Y ES MEJOR ASÍ** _(decisión de Matías, 22/8)_. No es un
+chiste recurrente: **se muestra una vez y no se repite nunca.** Funciona igual porque **la
+regla que se rompe en M13 es VERBAL, no visual**: en M2 el Gitano no dice "yo hago este
+bailecito", dice **"yo de la ronda no me voy"**. Eso es una promesa, y una promesa se
+escucha una sola vez y queda. El cobro no es *"esta vez no hizo el gesto"* — es **"dijo la
+palabra que había jurado no decir"**, y eso pega aunque el gesto se haya visto una vez sola.
+
+*(Si alguna vez se quiere una repetición: el lugar sería M6, delante de la Chancha rota que
+se rompió salvándolo — mismo gesto, sin comedia, la voz chiquita. Está sacado a propósito;
+si vuelve, vuelve ahí y en ningún otro lado.)*
+
+> **Nota de tratamiento.** El cobro de M13 **resuelve la regla del mate** que estaba
+> anotada como pendiente en PREGUNTAS_HISTORICAS. Y no compite con "tres desayunos" del
+> Turco (M14): se complementan. **El Gitano se despide en silencio; el Turco se niega a
+> dejar que alguien se despida.** Uno dice "no vuelvo" sin decirlo; el otro grita "vuelven
+> todos".
+
+### CANAL 2 — el juego _(no diegético: la voz de la máquina, no la del personaje)_
+
+**Acá las referencias son libres, porque el que habla no es un piloto de 1982: es un arcade
+de los 90.** Un cartel del HUD no miente sobre el mundo — es el mismo permiso por el que el
+juego puede tener un contador de vidas.
+
+**El primer bark: `HEAVY MACHINE GUN`.** La primera vez que se juega con el Gitano y se
+sostiene la metralleta X segundos, entra el cartel en letras grandes de arcade, centrado,
+como el anuncio de arma de Metal Slug.
+
+**Reglas del sistema de barks:**
+
+1. **⚠ TIENE QUE FUNCIONAR SIN VOZ.** Es un **cartel**, no un locutor. Si después hay voces
+   generadas, la voz se suma; **el cartel nunca depende de ella.** Es la regla número uno
+   del juego y acá no se hace excepción.
+2. **Una sola vez.** Por campaña, no por misión. Un bark que se repite deja de ser un guiño
+   y pasa a ser ruido.
+3. **Nunca encima de una línea de historia**, nunca en un momento sagrado, nunca sobre una
+   muerte.
+4. **🟥 LOS BARKS SE MUEREN CON EL TONO.** Bank completo hasta M8. En M9–M13 el banco se
+   achica solo. **En M14 no hay ni uno.** El jugador no lo va a poder nombrar, pero va a
+   sentir que el juego se quedó callado — que es exactamente lo que pasó.
+
+> **La prueba para cualquier referencia nueva:** ¿la dice el Gitano, o la dice la máquina?
+> Si la dice el Gitano y es una cita, **no entra**. Si la dice la máquina, entra.
 
 ---
 

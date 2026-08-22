@@ -525,3 +525,94 @@ lugar para pasarle por encima a eso.
     la traza con `c.fin` —el flag que la timeline enciende— y nunca preguntaba si el director había
     soltado. Medir la intención en vez del efecto: el mismo error que la sal dibujada arriba del borde.
 37. **La cinemática quedó en 6,6 s** de los 7,8. Sigue teniendo el rasante como tramo más largo.
+
+---
+
+## 14. LA CABINA MÁS CHICA Y LOS EFECTOS POR PLANO *(playtest del 22/8 · cuarta pasada)*
+
+> «está regular, achicá más la cabina» · «el efecto rasante se hace adelante en la punta, debe
+> hacerse en los costados, bien alrededor de toda la cabina» · «el efecto velocidad MÁS GRANDE si
+> está en primera persona; está todo manteniendo el mismo radio y distancia que cuando es tercera»
+
+Los tres son **la misma observación**: el encuadre pasó a ser primera persona pura y los efectos
+seguían dimensionados para tercera.
+
+### La cabina
+
+`CABINA_ESC` = **0,74** — cuánta pantalla se come, como fracción del máximo que entra sin
+recortarse. En 1 la cabina llenaba el cuadro de borde a borde y el mundo se miraba por el
+parabrisas y nada más. El juego se llama RASANTE: lo que hay que ver es **el mar**.
+
+Achicándola aparecieron las tres cosas que el tablero tapaba: la estela, el rocío saltando delante
+del morro, y el buque entero en cielo limpio arriba del canopy.
+
+**No la despega del borde de abajo.** Al primer intento la cabina achicada dejaba una franja de mar
+*por debajo* del tablero — eso no es una cabina más chica, es una calcomanía de cabina. Ahora se
+apoya en el borde inferior y todo lo que libera se lo queda el mundo, arriba. Con `esc` en 1 las dos
+cuentas dan lo mismo, así que el anclaje sólo actúa al achicar.
+
+### El rocío, por plano
+
+Desde afuera el agua es un chorro delante del morro. **Desde adentro ese chorro lo tapa el tablero**,
+y lo que se ve son las dos cortinas pasando al lado del canopy. No es otro efecto: es el mismo
+nacido más ancho, más cerca de la cámara y abriéndose hacia afuera — tres perillas en `estelaVuelo`
+(`ancho`, `cerca`, `abre`) que en sus valores por omisión dejan el PASILLO exactamente como estaba.
+
+### Las líneas de velocidad, por plano
+
+En tercera el punto de fuga está lejos y las líneas convergen chiquitas sobre el buque. En **cabina
+el punto de fuga está en tu cara** y lo que hacen es pasarte por al lado: nacen más afuera, corren
+más rápido, son más largas y se van del cuadro en vez de amontonarse. El largo del trazo dejó de ser
+un 9 escrito en `game.js` y lo trae cada línea.
+
+### Divergencias
+
+38. **"El mismo efecto" y "el mismo tamaño" no son lo mismo.** Al sacar el corte a tercera (§13) se
+    heredaron las magnitudes de un plano que ya no existía. Todo efecto que nace en el punto de fuga
+    —rocío, líneas, humo— tiene una escala que **es del plano**, no del efecto, y hay que pasársela.
+39. **La mira dejó de ser un clavo y pasó a ser "dónde apunta a tamaño pleno".** Con `esc` < 1 gana
+    el anclaje de abajo y el visor sube. Es a propósito y está escrito al lado de la función: entre
+    respetar la mira y no dejar la cabina flotando, gana no flotar.
+
+---
+
+## 15. EL PUNTO DE FUGA Y LA RISTRA QUE SALE *(playtest del 22/8 · quinta pasada)*
+
+> «el efecto de la velocidad tiene que estar bastante más abajo, el misil debe verse saliendo desde
+> la cabina con una estela atrás»
+
+Otra vez el mismo eje: cosas heredadas de cuando la cámara miraba desde afuera.
+
+### El punto de fuga
+
+Las líneas de velocidad nacían en el horizonte (`HOR - 4`). Eso es correcto **desde afuera**: es el
+punto de fuga de una cámara que mira el mundo. Desde la cabina no — el aire que te pasa converge
+donde **apunta el morro**, bastante más abajo, y con las líneas naciendo arriba parecían venir de
+atrás del riel del canopy en vez de barrerte el vidrio. Ahora cada línea trae su propio `dy` (0 por
+omisión: el pasillo no cambia) y en primera persona cae **58 px más abajo**, cerca del borde inferior
+del parabrisas.
+
+### La ristra que se ve salir
+
+Salía de `y = H + 8` — abajo del borde de la pantalla. Con la cabina llena eso era razonable (la
+panza está detrás del canopy); con la cabina al 74 % el borde de abajo ya no es el avión, es el
+tablero, así que la ristra **aparecía ya lanzada**. Ahora sale del borde de abajo del parabrisas —
+*debajo del morro*, que es donde sale de verdad — y para eso hizo falta partir `drawCockpit` en dos:
+
+**`cajaCabina(w)`** calcula dónde va a caer la cabina **sin dibujar nada**. La ristra se dibuja
+*antes* que el canopy (es mundo, el canopy tiene que poder taparla) pero necesita saber dónde
+termina el vidrio. Sin esto había que elegir entre dibujarla tarde o adivinar la geometría en dos
+lados — que es exactamente cómo se desincronizan las cosas.
+
+Y se le puso lo que le faltaba para leerse: **estela de humo** muestreando su propia trayectoria
+hacia atrás, **fogonazo de motor** los primeros metros, y salida más grande (se encoge al alejarse).
+
+### Divergencias
+
+40. **El humo tiene que ser CLARO.** El primer intento lo pintó gris de casco y desapareció contra
+    el mar — que en este juego también es gris oscuro. La estela existía en el código y no en la
+    pantalla, que es el tercer efecto de esta serie al que le pasa lo mismo. De un arma que sale, lo
+    que se ve es el humo; el fierro es un punto.
+41. **Partir "dónde va" de "dibujarlo" es lo que hace componible un render.** `cajaCabina` no es una
+    refactorización de higiene: es lo que permite que algo que se dibuja ANTES sepa dónde va a estar
+    algo que se dibuja DESPUÉS, sin copiar la cuenta ni invertir el orden de las capas.

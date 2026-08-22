@@ -76,10 +76,10 @@ juego escondido a plena vista. Primer piloto de la historia de su familia; el sa
 arroyo era, sin que ninguno lo dijera, la primera clase de vuelo. Policía bueno, Capitán
 América criollo sin suero: no tiene superpoderes, tiene supercorazón. Movió todo para sacar
 al hijo de las islas. No pudo. Nunca se sabe del todo por qué.
- _(Cambió una cosa: **Esteban no recibe una sola carta de Mateo en todo el juego.** Su
+_(Cambió una cosa: **Esteban no recibe una sola carta de Mateo en todo el juego.** Su
 única información es un punto en un mapa. Eso hace verosímil que no supiera cómo lo
 trataban — y hace más grande la culpa.)_
- _(Nuevo: **"Tero" es su apodo de siempre — veinte años en la Fuerza, con el pájaro
+_(Nuevo: **"Tero" es su apodo de siempre — veinte años en la Fuerza, con el pájaro
 pintado en cada avión que voló.**  3.3: quien guarda y transmite esa historia es
 **Norma** — se la contó a Mateo de chico ("buscá el pájaro y ahí está tu papá"), y la
 siembra vive citada en el cuaderno de M1, no en escena. El Turco pinta el terito en el
@@ -165,7 +165,7 @@ fórmula épica antes de cada misión:
 
 Doce veces escalofrío. La decimocuarta, freno: en M14 el ritual se corta en la mitad.
 
- **3.9 — Cóndor tiene fuente.** En M4 el Gitano le pregunta de dónde saca las posiciones
+**3.9 — Cóndor tiene fuente.** En M4 el Gitano le pregunta de dónde saca las posiciones
 y Cóndor contesta: de un barco pesquero llamado Narwal. En M5 el Narwal ya no está, y lo
 único que cambia es que hay menos marcas en el HUD. Es el mismo sistema de siempre — "la
 señal se pierde y el jugador queda ciego" — pero por una vez la ceguera tiene un nombre y

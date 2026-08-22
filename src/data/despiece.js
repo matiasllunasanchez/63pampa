@@ -79,6 +79,9 @@ const AVION = [P.body, P.bodyDark, P.canopy];           // fuselaje: el mismo de
 //   caida   'espiral'                   la muerte en dos actos: el resto cae girando y revienta
 //                                       al tocar el suelo
 //   grav    factor de gravedad          lo liviano planea (lona, tela); 1 = escombro normal
+//   partes  lista de PIEZAS horneadas    de que se rompe esta cosa, en piezas de verdad. Los
+//           nombres salen de PARTES en render/partes.js (y de la hoja que hornea
+//           tools/bake_partes.html). Sin `partes`, el pedazo cae al rectangulo de siempre.
 //
 // Y EL PESO (V2 del plan v2) — 'liviano' | 'medio' | 'pesado'. No es decoracion: es lo que decide
 // si un misil manda la cosa VOLANDO por el aire, la VUELCA, o no la mueve y la revienta en el
@@ -101,7 +104,10 @@ export const DESPIECE = {
     bola: null, chispa: 'polvo', humo: 0, grav: 0.5 },
   // HELICOPTERO: el rotor se va solo. La muerte en dos actos del plan (D2) empieza en esta pieza.
   helo: { masa: 'medio', n: 7, size: [0.5, 1.3], c: METAL, hot: 0.7, up: 18, spread: 16, pieza: 'rotor',
-    bola: 'chica', chispa: 'metal', caida: 'espiral', humo: 3 },
+    bola: 'chica', chispa: 'metal', caida: 'espiral', humo: 3,
+    // el HELO comparte las piezas de chapa y de tren, pero no las de avion de combate: no tiene
+    // ala ni tobera. El rotor sigue siendo su `pieza` dibujada a mano — es su firma y ya funciona.
+    partes: [null, 'panel', 'fuselaje', 'tren', 'panel', 'cabina', 'panel'] },
   // JET: fuselaje de avion — el mismo escombro que el del jugador, que es justo la lectura.
   //
   // LAS CUATRO MUERTES DEL AIRE (v2 §3). Se distinguen por CUANTOS PEDAZOS GRANDES quedan y por
@@ -116,6 +122,10 @@ export const DESPIECE = {
   // lee de un vistazo. Los tiempos ademas no se pisan: la primera termina cuando la ultima empieza.
   jet: { masa: 'medio', n: 8, size: [0.5, 1.4], c: AVION, hot: 0.7, up: 16, spread: 18, pieza: 'ala',
     bola: 'grande', chispa: null, humo: 0,
+    // DE QUE SE ROMPE UN AVION. El orden importa: el pedazo 0 es el que la variante convierte en
+    // "la pieza grande", asi que el ala va primera. Y el panel va al final porque es el relleno —
+    // el pedazo que no es nada en particular, pero que igual tiene forma de chapa arrancada.
+    partes: ['ala', 'fuselaje', 'estab', 'cola', 'deriva', 'tanque', 'tren', 'panel', 'morro', 'cabina'],
     variantes: [
       // EL MISIL NO DEJA NADA. Tambien es la muerte de la onda y de la cadena: energia de sobra.
       { id: 'desintegracion', peso: 3,
@@ -159,7 +169,10 @@ export const DESPIECE = {
   // AVION DEL JUGADOR: la receta que ya existia en die(), escrita como fila. Es la referencia de
   // la que sale todo el resto — el despiece del derribo es el que se generalizo.
   plane: { masa: 'medio', n: 9, size: [0.5, 1.4], c: AVION, hot: 0.6, up: 18, spread: 14, pieza: null,
-    bola: null, chispa: null, humo: 0 },   // el derribo pone SU bola pixel aparte (ver die)
+    bola: null, chispa: null, humo: 0,     // el derribo pone SU bola pixel aparte (ver die)
+    // TU avion se rompe en las mismas piezas que los demas — tiene que ser asi: es el mismo avion,
+    // y el derribo es la referencia de la que salio todo el despiece (D0).
+    partes: ['fuselaje', 'ala', 'cabina', 'cola', 'estab', 'deriva', 'tren', 'panel', 'morro'] },
 };
 
 // LA RECETA POR DEFECTO. §4.6 del plan: `explodeAt` no se rompe y la migracion es tipo por tipo,

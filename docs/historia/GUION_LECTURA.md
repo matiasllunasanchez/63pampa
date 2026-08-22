@@ -254,6 +254,20 @@ ventaja.
 el potrero, Tero: cuando el rival tiene botines y vos estás descalzo, gambeteás más pegado
 al piso.
 
+_(Antes de subir. El Turco ceba y el mate arranca la ronda en la línea de vuelo. Le llega
+al Gitano.)_
+
+**GITANO:** _(agarra el mate con las dos manos, se cuadra, levanta los brazos doblados a la
+altura de la cabeza y hace tres pasitos en el lugar — una reverencia ridícula, entera, para
+nadie)_ **THANK YOU.**
+
+**PICHÓN:** _(que no entiende nada)_ …¿Y por qué en inglés?
+
+**GITANO:** _(ya tomando)_ Porque si digo gracias me sacan de la ronda, pibe. Y yo de la
+ronda no me voy.
+
+**EL TURCO:** _(sin levantar la vista de la carga)_ De la ronda no se va nadie.
+
 _(Ritual de Cóndor. Despegue.)_
 
 ### La misión
@@ -344,6 +358,74 @@ _(Silencio. Todos miran.)_
 **GITANO:** _(al borde de las lágrimas de risa)_ "Interesante", dice el culiao. Casi me
 mata una arandela voladora... Ajá... "interesante".
 
+### La burrada del Gitano
+
+_(El Turco empuja un carrito con un misil hacia el otro avión. Y el Gitano, que todavía se
+está secando los ojos de risa, se le cruza adelante y le apoya la mano al misil como quien
+apoya la mano en el hombro de un amigo.)_
+
+**GITANO:** Turco. Turco, pará. Escuchame una cosa que la tengo pensada hace como una semana.
+
+**EL TURCO:** No me toques eso.
+
+**GITANO:** Es un segundo. Mirá. Te vienen dos atrás, ¿sí? Dos. No les ganás de velocidad,
+no les ganás de nada.
+
+**PICHÓN:** No.
+
+**GITANO:** Entonces no jugás a eso. **Ponés la trompa para arriba.** Derechito al cielo,
+hasta que el avión se queda sin nada.
+
+**PICHÓN:** _(que ya está siguiéndolo en serio)_ …Ahí entrás en pérdida.
+
+**GITANO:** Ahí entrás en pérdida. Perfecto. Y ahí **te bajás.**
+
+_(Pausa.)_
+
+**VASCO:** ¿Cómo que te bajás.
+
+**GITANO:** Te bajás, Vasco. Te salís. Y los dos que te venían siguiendo le siguen yendo al
+avión —porque el avión sigue ahí arriba haciendo la suya— y vos ya no estás adentro.
+
+**GITANO:** _(y acá se carga el tubo al hombro)_ Y mientras caés… le metés uno.
+
+**PICHÓN:** ¿Cayendo?
+
+**GITANO:** Cayendo. Total abajo no hay nada, ¿qué te va a pasar?
+
+**EL TURCO:** El suelo, m'hijo. Abajo está el suelo.
+
+**GITANO:** _(sin escucharlo, cada vez más entusiasmado)_ Le metés uno al Harrier, **tirás
+el caño** —no lo vas a andar cargando, ya está usado— y seguís cayendo tranquilo. Y ahí, en
+el aire, acomodás el cuerpo… _(se pone de cabeza, apuntando con las dos manos)_ …y **le
+apuntás a tu propio avión**, que viene bajando por el otro lado.
+
+_(Silencio de hangar. Un pájaro en las chapas.)_
+
+**GITANO:** Te metés adentro, cerrás la cúpula, y seguís volando como si nada.
+
+**PICHÓN:** _(anotando, completamente en serio)_ ¿Y a qué velocidad estarías vos cuando
+saltás?
+
+**GITANO:** Y… despacito.
+
+**VASCO:** _(se persigna sin drama, como quien espanta una mosca)_ Diosito.
+
+**EL TURCO:** _(quitándole el misil de las manos)_ A ver, m'hijo. ¿Vos te pensás que el aire
+es una vereda? _(pausa)_ Te bajás vos de ese avión, y a los treinta segundos te junto con la
+pala en la loma del aca.
+
+**GITANO:** Lo que pasa es que vos no tenés visión, Turco. Nunca la tuviste.
+
+**PUMA:** _(sin levantar la voz y sin levantar la vista del mapa)_ Facundo.
+
+**GITANO:** ¿Qué.
+
+**PUMA:** No.
+
+_(Y se terminó. Vuelven a lo suyo. **Pero el Pichón no tacha lo que anotó.**)_
+
+
 _(A partir de acá, tras cada misión, el juego ofrece **dos mejoras y se elige una** —
 presentadas siempre en el hangar con una viñeta de la dupla. El Pichón
 observa, el Turco reniega y prueba, y la escuadrilla vuela cada vez un poco mejor porque un
@@ -372,7 +454,7 @@ una encomienda, años después.)_
 
 ### La noticia — 2 de mayo
 
-_(Sigue la carcajada del hangar por la arandela voladora. El Turco todavía se está
+_(Sigue la carcajada del hangar —la arandela voladora, y encima la burrada del Gitano—. El Turco todavía se está
 acomodando el gorro. Y entra el Pichón desde la sala de radio, sin correr, con la libreta
 en la mano y la cara de alguien que no sabe cómo decir lo que va a decir.)_
 
@@ -792,7 +874,7 @@ _(Silencio. Nadie tiene la respuesta.)_
 **PUMA:** No sé. Nunca se lo pregunté. Un tipo que vuela como volaba él no me tiene que
 explicar de dónde vino. _(mira la foto)_ Y ya nunca lo sabremos.
 
- **GITANO:** _(agarrando el mate frío que tiene en la mano desde hace una hora)_ **Tres
+**GITANO:** _(agarrando el mate frío que tiene en la mano desde hace una hora)_ **Tres
 años le cebé mate a este culiao. Tres años, desde que éramos unos giles en la escuela de aviación.** _(pausa)_ Y
 nunca me dijo ni de qué cuadro era. _(se ríe y llora a la vez)_ Ni de qué cuadro era, Turco.
 
@@ -843,7 +925,7 @@ preguntan... yo no vi nada.
 El Conveyor. En el epílogo se sabrá que su capitán, **Ian North**, murió ayudando a evacuar
 a su tripulación: otro valiente del otro lado.
 
- _(En la base, cuando llega el dato. El Turco escuchándolo con el trapo en la mano.)_
+_(En la base, cuando llega el dato. El Turco escuchándolo con el trapo en la mano.)_
 
 **EL TURCO:** _(después de un rato)_ Se quedó sacando a los suyos. _(deja el trapo)_ Ese
 hombre, si lo cruzabas en un puerto, te convidaba un cigarrillo.
@@ -871,7 +953,7 @@ _(Cuadro siguiente: decenas de casquitos, brazos en alto, gorros revoleados. Y u
 flaco parado al borde del pozo, agitando un cuaderno contra el cielo, gritando un nombre
 que el viento se lleva.)_
 
- **ESTEBAN:** _(en cabina, buscando con los ojos — pero el monte es una multitud de
+**ESTEBAN:** _(en cabina, buscando con los ojos — pero el monte es una multitud de
 casquitos iguales y la velocidad no perdona)_ …¿Estás ahí, Mateo? ¿Alguno de esos sos vos?
 _(el monte ya quedó atrás)_ …Tenías que ser vos. Alguno tenías que ser vos.
 
@@ -955,6 +1037,15 @@ página, la compara con lo que tienen puesto los aviones ahí nomás, y hace la 
 nadie le pidió: **todo lo que llegaron a probar juntos es un cuarto de lo que hay acá
 adentro.** Un cuaderno de Da Vinci con olor a grasa. El pibe no era un ayudante con ideas:
 era un ingeniero entero, y nadie se dio cuenta a tiempo. Ni él.)_
+
+_(Y en una hoja suelta, casi al final, con la letra más chica y más prolija de todas: un
+A-4 chiquito con la trompa apuntando al cielo, y debajo un monigote cayendo de cabeza con un
+tubo al hombro. Tres flechitas: la subida, la caída, y el reingreso. Al costado, la cuenta
+hecha en serio — velocidad de pérdida, tiempo de caída, segundos que el avión tarda en
+volver a pasar por el mismo punto. Y abajo de todo, subrayado dos veces: **«NO. Se muere.»**
+El pibe lo calculó. Le dio que no. Y lo guardó igual.)_
+
+_(El Turco se ríe una vez, corto, sin querer. Y esa risa es lo peor de toda la noche.)_
 
 **EL TURCO:** _(a la libreta, bajito)_ …Vos y yo tenemos trabajo, pibe.
 
@@ -1113,7 +1204,7 @@ allá, antes de salir. Para que nadie pudiera decir nada.
 
 _(Pausa larga.)_
 
- **EL TURCO:** Nadie del otro lado del mundo movió un dedo, m'hijo. El que movió fue el
+**EL TURCO:** Nadie del otro lado del mundo movió un dedo, m'hijo. El que movió fue el
 vecino. _(pausa)_ Es siempre igual: el que te da una mano es el que también tiene frío.
 
 
@@ -1229,7 +1320,7 @@ llueve. Mateo abajo, entero. Correa arriba, no.)_
 **MATEO:** ¡Colorado! ¡No, no, no! ¡Dijiste que salíamos juntos! ¡DIJISTE QUE SALÍAMOS
 JUNTOS!
 
- **CORREA (apenas, buscándole la mano — habla dando por hecho que Mateo sobrevive, y eso
+**CORREA (apenas, buscándole la mano — habla dando por hecho que Mateo sobrevive, y eso
 es lo que parte al medio):** …Vos salís, chamigo. Vos salís seguro. _(le aprieta la mano)_
 Escuchame que es importante. Cuando la veas a la Teresa, decile que la quiero. Y llevale
 jazmines. **Le gustan los jazmines. Regalale jazmines la primera vez.** _(casi
@@ -1301,7 +1392,7 @@ perfecto.
 
 **ESTEBAN:** Entonces no me pidas que vuelva. Pedime que llegue.
 
- **GITANO:** _(se para, y por única vez la tonada no trae chiste — trae fuego)_ ¿Solo?
+**GITANO:** _(se para, y por única vez la tonada no trae chiste — trae fuego)_ ¿Solo?
 ¿Vos estás en pedo, culiao? **Seis veces me trajiste vivo a casa. SEIS. Y la Chancha se
 rompió por traerme a MÍ.** Hoy te toca cobrar. Hoy el cielo te lo abrimos nosotros, aunque
 haya que empujar los misiles con la mano.
@@ -1335,6 +1426,18 @@ pasan por la tele.**
 _(Nadie se ríe. El Turco saca del mameluco la foto de la madre del Vasco y la apoya contra
 la damajuana, de cara al fuego. Al lado, la libreta del Pichón. Los que no están en la
 mesa, en la mesa.)_
+
+_(El Turco ceba y le alcanza el mate al Gitano.)_
+
+**GITANO:** _(lo agarra con una sola mano, sin levantarse)_ Gracias.
+
+_(Lo dijo en castellano.)_
+
+_(Y el Turco —que fue el que aquella vez, en la línea de vuelo, remató "de la ronda no se
+va nadie"— no levanta la vista del fuego. Nadie corrige nada. Nadie le dice "eh, dijiste
+gracias". Nadie se lo hace notar, porque todos en esa mesa saben exactamente qué acaba de
+decir y ninguno tiene ganas de decirlo en voz alta. El mate sigue la ronda. La próxima vez
+le pasa por al lado y él ni lo mira.)_
 
 ### La única vez que el Gitano habla en serio
 

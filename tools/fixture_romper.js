@@ -306,8 +306,13 @@ app.whenReady().then(async () => {
   // y negro: CUANTOS PEDAZOS GRANDES quedan y QUE HACEN. El color no entra en ninguna afirmacion
   // de esta seccion, a proposito.
   console.log('\n6. las cuatro muertes del aire (v2 V1):');
-  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?patria&qa');
+  // la MISMA puerta que el resto del fixture (`?pasada=1&pasillo`): `?patria` cae en el menu de
+  // modos, y ahi las muertes ocurren en un mundo que nadie esta dibujando. Los numeros salian
+  // bien igual —la sonda mide lo que se creo, no lo que se ve— pero medir en una pantalla que no
+  // es la del juego es exactamente como se cuela una afirmacion que no vale.
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pasada=1&pasillo');
   await sleep(2500);
+  for (let i = 0; i < 40; i++) { if ((await W()).state === 'play') break; await sleep(200); }
   const gas6 = setInterval(() => win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'w' }), 60);
   await sleep(1600); clearInterval(gas6);
   win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'w' });

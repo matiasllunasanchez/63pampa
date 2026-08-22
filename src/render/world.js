@@ -20,6 +20,7 @@ import { seaH as seaBase, olaBump, climaDe, resaca } from '../core/sea.js';
 import { tierraH, tierraPend, hayRelieve, pedreroAt, turbalAt } from '../core/tierra.js';
 import { P, LAND, CLAND, SKY_ASTRO } from '../data/palette.js';
 import { CHUNK_LIFE, ONDA_T, ONDA_R } from '../data/despiece.js';
+import { drawParte, yawDe, colorDe } from './partes.js';
 import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
   ALAMBRE_CADA, ALAMBRE_POSTE, ALAMBRE_H, MOJADO_A, CHARCO_P, CHARCO_H, PASTO_LEAN, PASTO_ONDA, PASTO_V, PASTO_KX, PASTO_KZ, PASTO_ACOSTAR, RACHA_N, RACHA_T, RACHA_A } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
@@ -1488,7 +1489,12 @@ export function drawObstacle(o) {
     ctx.save();
     if (fade < 1) ctx.globalAlpha = fade;
     ctx.translate(s.x, s.y); ctx.rotate(o.spin);
-    if (o.paraca) {
+    // LA PIEZA HORNEADA primero: si el pedazo tiene una y la hoja cargo, se dibuja el ala (o el
+    // morro, o el tren) de verdad. Todo lo de abajo queda como respaldo — a esta resolucion un
+    // rectangulo rotado nunca fue escombro de avion, era un cuadrado.
+    if (o.parte && drawParte(ctx, o.parte, yawDe(o), r, colorDe(o))) {
+      // dibujada
+    } else if (o.paraca) {
       // EL PARACAIDAS (v2 §3): cupula, cuerdas y el asiento colgando. NO gira — el `spin` va en 0
       // a proposito. Lo que se lee es que algo baja DESPACIO mientras todo lo demas cae, y esa
       // lectura la da la cupula quieta; un paracaidas tumbando seria un pedazo mas de escombro.
@@ -1517,8 +1523,14 @@ export function drawObstacle(o) {
       px(-r / 2, -r / 4, r, r / 2, o.c || '#3a4038');                 // el fragmento
       px(-r / 2, -r / 4, r, Math.max(1, r * 0.16), o.c2 || '#5c6358'); // canto al sol
     }
-    if (o.hot && Math.sin(o.spin * 3) > 0)                   // rescoldo: parpadea al girar
-      px(r * 0.2, -r / 8, Math.max(1, r * 0.2), Math.max(1, r * 0.2), '#e07030');
+    // RESCOLDO: parpadea al girar. Sobre una PIEZA horneada va mas chico y pegado al centro —
+    // dimensionado para el rectangulo, en un ala de 40 px quedaba un cuadrado naranja del tamaño
+    // de una ventanilla, y volvia a meter en escena justo la forma que estas piezas vinieron a
+    // sacar. Es lo primero que se ve al mirar la captura de cerca.
+    if (o.hot && Math.sin(o.spin * 3) > 0) {
+      const b = o.parte ? Math.max(1, r * 0.1) : Math.max(1, r * 0.2);
+      px(o.parte ? r * 0.06 : r * 0.2, -b / 2, b, b, '#e07030');
+    }
     ctx.restore();
     ctx.globalAlpha = 1;
   } else if (o.type === 'birds') {

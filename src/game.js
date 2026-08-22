@@ -2413,7 +2413,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         }
       }
       streaks.forEach(s => { s.r += s.v * dt; s.life -= dt; });
-      prune(streaks, s => s.life > 0 && s.r < 260);
+      prune(streaks, s => s.life > 0 && s.r < (s.rmax || 260));
 
       parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
       prune(parts, p => p.life > 0); capParts();
@@ -2760,8 +2760,17 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // líneas de velocidad
       ctx.globalAlpha = 0.5;
       for (const s of streaks) {
-        const x1 = W / 2 + Math.cos(s.a) * s.r, y1 = HOR - 4 + Math.sin(s.a) * s.r * 0.62;
-        const x2 = W / 2 + Math.cos(s.a) * (s.r + 9), y2 = HOR - 4 + Math.sin(s.a) * (s.r + 9) * 0.62;
+        // el LARGO del trazo lo trae la linea (9 por omision, lo de siempre). Lo estira quien la
+        // creo: en primera persona el punto de fuga esta en tu cara y una raya de nueve pixeles no
+        // se lee como velocidad, se lee como caspa.
+        const L = s.L || 9;
+        // …y DE DONDE SALEN. Por omision, del horizonte: es el punto de fuga cuando la camara mira
+        // el mundo desde afuera. Desde la CABINA no: el punto de fuga del aire que te pasa esta
+        // donde apunta el morro, bastante mas abajo del horizonte, y con las lineas naciendo
+        // arriba parecian venir de atras del riel del canopy en vez de barrerte el vidrio.
+        const cy = HOR - 4 + (s.dy || 0);
+        const x1 = W / 2 + Math.cos(s.a) * s.r, y1 = cy + Math.sin(s.a) * s.r * 0.62;
+        const x2 = W / 2 + Math.cos(s.a) * (s.r + L), y2 = cy + Math.sin(s.a) * (s.r + L) * 0.62;
         ctx.strokeStyle = P.foam;
         ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
       }

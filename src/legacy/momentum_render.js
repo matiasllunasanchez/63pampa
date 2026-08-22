@@ -334,9 +334,24 @@ export const MIRA_PLENA = V_VISOR * H;
  *  sola: no hay un offset por modo que alguien tenga que re-tunear.
  *
  *  `yOff` es un corrimiento EXTRA y animado, encima de la posicion derivada. Lo usa el director
- *  del PULSO para bajar la cabina en el premio y abrir cielo. */
-export function drawCockpit(w) {
-  const { mom, t } = w;
+ *  del PULSO para bajar la cabina en el premio y abrir cielo.
+ *
+ *  `esc` (1 por omision) es CUANTO DE LA PANTALLA se come, como fraccion del maximo que entra sin
+ *  recortarse. En 1 la cabina llena el cuadro; abajo de 1 se apoya en el borde de ABAJO y todo lo
+ *  que libera se lo queda el mundo, arriba. OJO CON LA MIRA: mientras `esc` es 1 el visor cae
+ *  clavado donde el modo pidio, pero al achicar gana el anclaje de abajo y el visor SUBE. Es a
+ *  proposito — una cabina flotando sobre una franja de mar no es una cabina mas chica, es una
+ *  calcomania— y por eso la mira se lee como "donde apunta a tamaño pleno". */
+/** DONDE VA A CAER LA CABINA este cuadro, sin dibujar nada: `{ bx, by, top, h, vidrio }`.
+ *
+ *  Existe separada porque hay cosas que se dibujan ANTES que la cabina —son mundo, y el canopy
+ *  tiene que poder taparlas— pero necesitan saber donde termina el vidrio: la ristra de bombas del
+ *  PULSO sale de abajo del morro, y "abajo del morro" es el borde de abajo del parabrisas, no un
+ *  numero. Sin esto habia que elegir entre dibujarla tarde (y que el canopy no la tape) o adivinar
+ *  la geometria en dos lados, que es como se desincronizan las cosas.
+ *
+ *  Es la MISMA cuenta que usa drawCockpit — la usa llamando aca, no copiandola. */
+export function cajaCabina(w) {
   // `yOff` NO corre el dibujo: corre LA MIRA, y el tamaño se vuelve a derivar de ahi. Bajar el
   // PNG a secas dejaba el panel afuera del cuadro (104 px de corrimiento en el premio del PULSO =
   // un arco de canopy flotando). Bajando la mira, la cabina baja Y SE ACHICA — que ademas es lo
@@ -344,19 +359,37 @@ export function drawCockpit(w) {
   const mira = (w.mira == null ? H / 2 : w.mira) + (w.yOff || 0);
   // solo bob de vuelo: la cabina es la trompa del avion, va clavada a la pantalla
   // (apuntar mueve el MUNDO detras del vidrio, no la cabina)
-  const bx = Math.sin(mom.t * 1.4) * 1.5;
-  const by = Math.sin(mom.t * 2.2) * 2;
+  const bx = Math.sin(w.mom.t * 1.4) * 1.5;
+  const by = Math.sin(w.mom.t * 2.2) * 2;
   const im = COCKPIT_ASSET.img;
-  let dibY = by, dibH = H;                 // la caja REAL del dibujo (el fallback vectorial la llena)
+  if (!(COCKPIT_ASSET.ready && im.naturalWidth)) return { bx, by, top: by, h: H, vidrio: by + V_VIDRIO * H, dw: W + 12 };
+  // ESCALA UNIFORME y ALTO PRIMERO (ver altoDe/MIRA_PLENA arriba): el mayor alto que no se sale
+  // por ninguno de los dos bordes, y el ancho detras por la proporcion real del PNG. La cabina
+  // no se deforma nunca y no se recorta nunca; si algun dia se re-exporta a otra proporcion,
+  // esto la sigue solo.
+  const dibH = altoDe(mira) * (w.esc || 1);
+  const dw = dibH * im.naturalWidth / im.naturalHeight;
+  // …y SIN HUECO ABAJO. El visor clavado en la mira es la regla, pero achicar la cabina la
+  // despega del borde de abajo y ahi aparece una franja de mundo POR DEBAJO del tablero: eso no
+  // es una cabina mas chica, es una calcomania de cabina. Estas sentado adentro — el panel y las
+  // rodillas se van por el borde y no terminan en el aire. Con `esc` en 1 las dos cuentas dan lo
+  // mismo (altoDe ya se apoya en el borde de abajo), asi que esto solo actua al achicar.
+  const dibY = by + Math.max(mira - V_VISOR * dibH, H - dibH);
+  return { bx, by, top: dibY, h: dibH, vidrio: dibY + V_VIDRIO * dibH, dw };
+}
+
+export function drawCockpit(w) {
+  const { mom, t } = w;
+  const caja = cajaCabina(w);
+  const bx = caja.bx, by = caja.by;
+  const im = COCKPIT_ASSET.img;
+  let dibY = caja.top, dibH = caja.h;      // la caja REAL del dibujo (el fallback vectorial la llena)
   if (COCKPIT_ASSET.ready && im.naturalWidth) {
     // ESCALA UNIFORME y ALTO PRIMERO (ver altoDe/MIRA_PLENA arriba): el mayor alto que no se sale
     // por ninguno de los dos bordes, y el ancho detras por la proporcion real del PNG. La cabina
     // no se deforma nunca y no se recorta nunca; si algun dia se re-exporta a otra proporcion,
     // esto la sigue solo.
-    dibH = altoDe(mira);
-    const dw = dibH * im.naturalWidth / im.naturalHeight;
-    dibY = by + mira - V_VISOR * dibH;                   // el visor pintado, clavado en la mira
-    ctx.drawImage(im, bx + (W - dw) / 2, dibY, dw, dibH);
+    ctx.drawImage(im, bx + (W - caja.dw) / 2, dibY, caja.dw, dibH);
   } else {
     ctx.save();
     ctx.translate(bx, by);
@@ -389,7 +422,7 @@ export function drawCockpit(w) {
   // y no contra un offset que hacia de proxy.
   // la caja dibujada sale por la puerta, y con ella LA FRANJA DE VIDRIO ya en coordenadas de
   // pantalla: quien pega algo al parabrisas no tiene que saber nada del PNG ni re-medirlo.
-  return { bx, by, top: dibY, h: dibH, vidrio: dibY + V_VIDRIO * dibH };
+  return caja;
 }
 
 // MOMENTUM: barcaza a lo largo, zonas criticas resaltadas, mira y ventana de tiempo

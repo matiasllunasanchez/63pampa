@@ -126,6 +126,12 @@ def main():
     js, _ = sub_path(js, '../assets/world/soldats/englishsoldatv2.png', '')
     js, _ = sub_path(js, '../assets/world/explosions/bomb.png', '')
     js, _ = sub_path(js, '../assets/world/explosions/explosions_front.png', '')
+    # PARTES DEL DESPIECE (~54 KB): SI entra. Es lo que hace que un avion se rompa en alas y
+    # fuselaje en vez de en cuadrados, y pesa lo mismo que dos hojas de enemigos. Si algun dia el
+    # bundle roza los 16 MB, esta es candidata a salir: el fallback por codigo (el rectangulo de
+    # siempre, en render/world.js) esta puesto justamente para eso.
+    js, ok = sub_path(js, '../assets/world/explosions/partes.png',
+                      uri(ASSETS / 'world' / 'explosions' / 'partes.png', 'image/png')); n += ok
 
     # re-embeber audio: mp3 del juego -> m4a comprimida (o '' para las que no entran en la web)
     for mp3, m4a in WEB_AUDIO.items():

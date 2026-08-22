@@ -671,7 +671,16 @@ hasta tener fuente.
 [La Nación — Operación Plum Duff](https://www.lanacion.com.ar/lifestyle/plum-duff-la-fallida-operacion-de-los-comandos-britanicos-en-tierra-del-fuego-que-buscaba-destruir-nid28052024/) ·
 [Zona Militar — los restos del Sea King](https://www.zona-militar.com/2022/05/18/malvinas-40-anos-los-restos-de-un-helicoptero-sea-king-destruido-son-hallados-en-chile/)
 
-## 🟡 A EVALUAR — la regla del "gracias" en el mate
+## ✅ RESUELTA (3.11) — la regla del "gracias" en el mate
+
+> **Entró al guion el 22/8/2026, y por una puerta mejor que la prevista: el chiste del
+> Gitano.** La regla se explica sola en **M2** —el Gitano dice "THANK YOU" en inglés
+> *"porque si digo gracias me sacan de la ronda"*— y se cobra en **M13**, cuando le alcanzan
+> el mate y él dice **"Gracias"** en castellano, sin levantarse. Nadie se lo hace notar.
+> Ver GUION_3.md §9c. **No compite con "tres desayunos" del Turco: se complementan.**
+> Lo que sigue es el análisis original.
+
+### El análisis original
 
 Lo que **sí** vale la pena de la idea anterior no es el objeto: es el **mecanismo**. Una
 regla que todos conocen, y una consecuencia para el que la rompe. Eso genera escenas solo.

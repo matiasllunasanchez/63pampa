@@ -73,8 +73,8 @@ Agua: cartwheel + corona de agua · tierra: derrape largo con chispas · AA/misi
 
 | etapa | entrega | criterio de cierre |
 |---|---|---|
-| **V0 · El acta y el selector** | `despiece(o, acta)`, `masa` en las recetas, selector ponderado determinista por `o.seed`, y las sondas `__romper(tipo, variante)` + **`__romperTodas(tipo)`** (pone las N variantes en fila, una al lado de la otra, para compararlas de un vistazo) | cada tipo sin variantes sigue igual que D2; la sonda muestra en fila |
-| **V1 · El aire** | Las 4 variantes + eyección para jet/Harrier, ponderadas por `killer` | `__romperTodas('jet')`: 4 muertes distinguibles en una captura |
+| **V0 · El acta y el selector** ✅ | `despiece(o, acta)`, `masa` en las recetas, selector ponderado determinista por `o.seed`, y las sondas `__romper(tipo, variante)` + **`__romperTodas(tipo)`** (pone las N variantes en fila, una al lado de la otra, para compararlas de un vistazo) | cada tipo sin variantes sigue igual que D2; la sonda muestra en fila |
+| **V1 · El aire** ✅ | Las 4 variantes + eyección para jet/Harrier, ponderadas por `killer` | `__romperTodas('jet')`: 4 muertes distinguibles en una captura |
 | **V2 · Tierra: peso y momento** | Las clases de masa y la tabla de §3 para todo lo de tierra | liviano vuela, medio vuelca, pesado no se mueve — en 3 capturas |
 | **V3 · Helo y globo** | 3 + 3 variantes | capturas |
 | **V4 · Los barcos** | hundimiento por lado + santabárbara rara | capturas; la santabárbara sale ~1 de 8 |
@@ -116,4 +116,62 @@ en V6; mientras no estén, cada variante tiene fallback por código (la regla de
 
 ## 7. Divergencias *(completar — con el baseline de `npm run feel`)*
 
-- *(vacío)*
+### Baseline de `npm run feel` *(tomado antes de V0, 22/8/2026)*
+
+**33 asserts, `FEEL: OK`, cero `✗`** — el mismo que el de PLAN_DESTRUCCION. Verificado **idéntico**
+al cerrar V0 y V1, como corresponde: este plan es 100% presentación.
+
+### V0 — el acta y el selector
+
+1. **`o.seed` NO existe** *(el plan §2 lo da por hecho)*. Lo tiene **solo el acantilado** — que
+   además es el único destructible que no se despieza (divergencia 8 del plan viejo). Todo el resto
+   trae `ph`, la fase que se le sortea al nacer, que es igual de estable. **Decisión:** `dadoDe(o)`
+   usa `seed` si está y si no un hash de senos sobre `ph` + posición — el mismo patrón determinista
+   que el repo ya usa para los destellos del mar. Agregarle `seed` a los ~20 sitios de `spawn.js`
+   habría sido un cambio ancho para conseguir exactamente la misma propiedad.
+
+2. **La firma de `despiece()` cambió, no se amplió.** Pasa de `despiece(o, imp)` a
+   `despiece(o, acta)`, con el impulso adentro (`acta.imp`). Aceptar las dos formas era la
+   alternativa obvia y es justamente cómo se llega a que una de las dos quede vieja: hay **dos**
+   llamadores en todo el repo (`morir()` y el derribo del jugador), así que el costo de migrarlos
+   es menor que el de mantener dos verdades.
+
+3. **La receta efectiva se resuelve en UN lugar** (`recetaEfectiva`). `morir()` decide la bola, el
+   chispazo y las secundarias, y `despiece()` el escombro: si cada uno mezclara la variante por su
+   cuenta, una variante podía cambiar el escombro y no la bola de fuego — media muerte.
+
+4. **El `killer` del derribo del jugador va fijo en `'choque'`.** `crashFX()` no recibe la causa
+   (la variable `deathCause` recién se escribe después), y la receta `plane` todavía no declara
+   variantes, así que el campo está inerte. **Es V5 el que tiene que hacerle llegar la causa real.**
+
+### V1 — el aire
+
+5. **El Harrier de LA COLA no muere por `morir()`.** El plan §3 dice *"el Harrier y el jet"*, pero
+   `systems/caza.js` llama a `explodeAt()` directo (tres sitios), así que **no pasa por el selector
+   y no tiene variantes**. Migrarlo es correcto y es el paso natural, pero cambia cómo se ve el
+   duelo entero de un sistema que otra sesión está tocando ahora mismo — se deja anotado en vez de
+   hacerlo de callado. Las cuatro variantes están sobre el tipo `jet`, que es lo que el criterio de
+   cierre mide (`__romperTodas('jet')`).
+
+6. **Vida POR PEDAZO (`o.vida`), con techo `VIDA_LARGA = 7 s`.** `CHUNK_LIFE` (4 s) barría al
+   `moribundo` justo antes de que llegara a reventar lejos, que es toda su gracia. El techo propio
+   es lo que el §6.2 pide: la muerte se alarga, pero no sin tope.
+
+7. **Pasado el cap, el `moribundo` cae en `ala` — no se queda sin variante.** Cancelarla dejaba una
+   muerte genérica en medio de otras cuatro que no lo son. `ala` es la otra muerte del cañón, así
+   que la sustitución no miente sobre el arma.
+
+8. **La eyección usa un SEGUNDO dado, derivado del primero.** Con el mismo dado que eligió la
+   variante, las dos decisiones quedaban atadas: siempre se eyectaría en las mismas variantes. Se
+   deriva (`dado * 7.3 % 1`), que lo mantiene determinista y reproducible en el fixture.
+
+9. **`ala` y `partido` dejan las dos DOS pedazos grandes**, así que "cuántos grandes" no alcanza
+   para separarlas. La firma que el fixture exige es `grandes-espiral-moribundo`, y ahí salen
+   `2-1-0` y `2-0-0`: lo que las distingue es el **tirabuzón humeante** del resto en `ala`. Medido:
+   `desintegracion=0-0-0 · ala=2-1-0 · moribundo=1-0-1 · partido=2-0-0`.
+
+10. **La sección 6 del fixture entraba por `?patria&qa`, que cae en el MENÚ DE MODOS.** Los números
+    salían bien igual —la sonda mide lo que se creó, no lo que se dibuja— y por eso no lo delataba
+    nada: se vio al sacar la captura. Ahora entra por `?pasada=1&pasillo`, la misma puerta que el
+    resto del fixture. Medir en una pantalla que no es la del juego es exactamente cómo se cuela
+    una afirmación que no vale.
