@@ -4,7 +4,7 @@ import { STRINGS } from './data/strings.js';
 import { P, SKY_PRESETS } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf } from './data/missions.js';
-import { UPGRADES, nextUpgrades, moveAllowed } from './data/upgrades.js';
+import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt } from './data/upgrades.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { multOf } from './core/util.js';
@@ -33,6 +33,8 @@ import * as pasada from './systems/pasada.js';
 import * as pasadaRender from './render/pasada.js';
 import * as pulso from './systems/pulso.js';
 import * as pulsoRender from './render/pulso.js';
+import * as cine from './systems/cine.js';
+import { drawCine } from './render/cine.js';
 import { PULSO } from './data/pulso.js';
 import { spawnSystem } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
@@ -183,6 +185,15 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // los combos no aprendidos no disparan (ver mvOk en el dispatcher); los demas modos no
     // cambian. Viaja en la partida guardada (`ups`).
     let pichon = [];                 // ids aprendidos (orden de eleccion)
+    /** ¿Rige LA LIBRETA — o sea, solo salen las piruetas aprendidas? En campaña siempre, y en las
+     *  HERRAMIENTAS (S.test: el SELECTOR DE MISIONES y PRUEBAS) tambien, porque ahi la mision se
+     *  juega COMO EN CAMPAÑA (mismo criterio que el roster y la Chancha — ver reset() y
+     *  pedirChancha()). En CICLO / PATRIA / MINUTOS SAGRADOS no: ahi se tienen todas.
+     *
+     *  El `gameMode === 'cycle'` del test NO es redundante: los MOMENTOS de PRUEBAS que arrancan
+     *  POR LA PATRIA o PERSECUCION pasan por la misma puerta con `S.test` puesto, y esos modos se
+     *  juegan con todas las piruetas — gatearlos seria probar otro juego que el que van a probar. */
+    const conLibreta = () => gameMode === 'campaign' || (S.test && gameMode === 'cycle');
     let upgOffer = [];               // la oferta de la pantalla actual (2 tarjetas)
     let upgSel = 0, upgT = 0;        // cursor y reloj propio de la pantalla
     // CORDON DE BRUMA (ver VEIL_* en data/tuning.js). Dos densidades, una sola pared:
@@ -457,6 +468,12 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       S.test = true;
       if (o.volver) testBack = o.volver;
       prbTasks.length = 0;
+      // LA LIBRETA DE ESA MISION (el "real real"): la corrida suelta se vuela con las piruetas que
+      // un jugador tendria al llegar ahi, no con las doce. Sin esto el selector medía otro juego:
+      // en M1 se podia tirar un TONEL BARRIL que el guion recien regala al final de la campaña, y
+      // "que agregar o quitar en esta mision" se contestaba sobre un avion que no existe.
+      // La regla vive en data/upgrades.js (una sola fuente, ver loadoutAt).
+      pichon = loadoutAt(i);
       loadLevel(i);
       if (o.aire || o.cfg) { Object.assign(cfg, o.aire ? { start: 'air' } : {}, o.cfg || {}); applyCfg(); }
       reset(); setRunObjective();
@@ -1301,7 +1318,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // conoce. `t01` = avance de campaña normalizado — la única perilla de dificultad que hay.
       pulso.setCfg({
         t01: MISSIONS.length > 1 ? curLevel / (MISSIONS.length - 1) : 0,
-        campaign: gameMode === 'campaign', owned: pichon, off: cfg.movesOff,
+        campaign: conLibreta(), owned: pichon, off: cfg.movesOff,
       });
       // NORMA DE CAMPAÑA (3/8, GUION_2): con roster, el relevo es un AVERIADO que vuelve a la
       // base (nadie muere por gameplay); sin roster, el relevo arcade de siempre (PATRIA caido).
@@ -1487,7 +1504,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         // volar y disparar— que es exactamente lo que pidio el modelo de daño progresivo.
         if (!damage.fx().moves) return false;
         const mvOk = id => moveAllowed(id,
-          { campaign: gameMode === 'campaign', owned: pichon, off: cfg.movesOff });
+          { campaign: conLibreta(), owned: pichon, off: cfg.movesOff });
         switch (seq) {
           // ---- STICK DERECHO (mayusculas): LAS QUE ROLAN ----
           // Un avion rola con la muñeca, no con el timon, y en el mando la muñeca que rola es la
@@ -2337,6 +2354,14 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       const sx = (Math.random() - 0.5) * run.shake, sy = (Math.random() - 0.5) * run.shake;
       const cm = momentum.cam();
       ctx.save(); ctx.translate(Math.round(sx) - cm.x, Math.round(sy) - cm.y);   // momentum: el mundo se mueve, la mira no
+      // R5: ZOOM-PUNCH — el impacto de la bomba empuja la camara hacia adelante un instante. Sin
+      // congelar el mundo, sin mover el eje: solo un scale de 1..1.08 que se abre y se cierra. Es lo
+      // que separa "pego" de "PEGO".
+      const pA = pasada.active();
+      if (pA && pA.zoomPunch > 0) {
+        const zp = 1 + pA.zoomPunch * 0.08;
+        ctx.translate(W / 2, H / 2); ctx.scale(zp, zp); ctx.translate(-W / 2, -H / 2);
+      }
       // ALABEO (momentum): el MUNDO ENTERO (horizonte, mar Y BARCO) gira -mom.roll alrededor
       // del centro — el avion rola sobre su eje longitudinal y la cabina queda fija.
       // drawMomentum deshace esta rotacion recien al dibujar cabina/mira/letterbox.
@@ -2683,7 +2708,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         parts, popups, selPlane, t: run.t });
       // EL PULSO: la cabina y la autopista de la secuencia, ENCIMA del mundo 2D congelado — el
       // mar, el horizonte y el buque son los del pasillo (no hay escena nueva que dibujar).
-      if (S.state === 'pulso' && pulso.active()) pulsoRender.drawPulso({ Q: pulso.state(), t: run.t });
+      // EL DIRECTOR entra por parametro (convencion 4): el premio del PULSO es una timeline de
+      // data/cines.js y su reloj vive alla, no adentro del modo.
+      if (S.state === 'pulso' && pulso.active()) pulsoRender.drawPulso({ Q: pulso.state(), cine: cine.state(), t: run.t });
       ctx.restore();
       // ...y el telon ABRIENDOSE del otro lado: entraste al climax cruzando el banco
       if (veilOut > 0 && (S.state === 'arena' || S.state === 'momentum')) world.drawVeil(veilOut / VEIL_OUT);
@@ -2778,6 +2805,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         ctx.globalAlpha = 1; ctx.textAlign = 'left';
         ctx.restore();
       }
+
+      // EL DIRECTOR, lo que dibuja el: las bandas negras y su propio fundido. Va antes del fundido
+      // de mision porque son dos cosas distintas —uno es de la escena, el otro del cambio de
+      // pantalla— y el de mision tiene que poder tapar al de la escena.
+      drawCine(cine.state());
 
       // fundido desde negro (al salir de la historia hacia el despegue) — SIEMPRE al final
       if (fadeT > 0) {
@@ -3022,6 +3054,17 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         // pidiendo de menos o la sonda llegando 0.11 s tarde
         sinceDone: dlg.done ? +(dlg.t - dlg.tDone).toFixed(3) : 0,
       });
+    };
+    // __mvok: QUE PIRUETAS SALDRIAN AHORA MISMO. Le pregunta a `moveAllowed` con el MISMO estado
+    // que le pasa el dispatcher (ver mvOk), y no a una copia de la regla: si mañana el gate suma
+    // una condicion, esta sonda la contesta sola. Es la unica forma de medir el "real real" del
+    // selector — que la libreta de la mision este puesta se ve en `pichon`, pero que ADEMAS
+    // gatee de verdad solo se sabe preguntando por acá. QUITAR con el resto de las sondas.
+    if (typeof window !== 'undefined') window.__mvok = () => {
+      const st = { campaign: conLibreta(), owned: pichon, off: cfg.movesOff };
+      const si = [], no = [];
+      for (const u of UPGRADES) (moveAllowed(u.id, st) ? si : no).push(u.id);
+      return JSON.stringify({ modo: gameMode, test: S.test, libreta: conLibreta(), si, no });
     };
     // estado del BANCO DEL PICHON para las sondas (oferta, cursor y lo ya aprendido) y el de
     // MEJORAS DEL PICHON, que es donde eso mismo se prende y se apaga. Van juntos porque la

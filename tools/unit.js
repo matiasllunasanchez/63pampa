@@ -838,3 +838,43 @@ test('tramos: TODAS las misiones de la campaña tienen tramos validos', () => {
   }
   assert.ok(CLAVES.includes('hasta') && CLAVES.includes('radio'));
 });
+
+// ---------- EL LOADOUT DE REFERENCIA (data/upgrades.js, el selector "real real") ----------
+// Con que piruetas se vuela una mision suelta. Se prueba aca y no a ojo porque si la cuenta se
+// corre en uno, el selector mide OTRO avion que el de la campaña — y eso no da error: da una
+// pirueta que sale (o no) cuando no debia, que es justo lo que las notas de playtest van a acusar.
+const { loadoutAt: loadAt, UPGRADES: UPS } = await import('../src/data/upgrades.js');
+const { MISSIONS: MIS } = await import('../src/data/missions.js');
+
+test('libreta: la primera mision se vuela SIN mejoras', () => {
+  // El tutorial es el avion de fabrica: el guion no le regalo nada todavia.
+  assert.deepEqual(loadAt(0), []);
+});
+
+test('libreta: se gana UNA por mision, en el orden causal del guion', () => {
+  assert.deepEqual(loadAt(1), [UPS[0].id]);
+  assert.deepEqual(loadAt(3), [UPS[0].id, UPS[1].id, UPS[2].id]);
+  for (let i = 0; i <= MIS.length; i++) assert.equal(loadAt(i).length, Math.min(i, UPS.length));
+});
+
+test('libreta: al final de la campaña queda UNA sin aprender', () => {
+  // 12 mejoras y 11 ventanas (una por epilogo mientras haya mision siguiente): la cuenta del
+  // guion — "una queda sin aprender por partida" — tiene que cerrar sola.
+  const ultima = loadAt(MIS.length - 1);
+  assert.equal(ultima.length, MIS.length - 1);
+  assert.ok(ultima.length < UPS.length, 'la campaña no puede regalar las doce');
+});
+
+test('libreta: nunca desborda ni devuelve basura', () => {
+  assert.deepEqual(loadAt(-5), []);
+  assert.equal(loadAt(999).length, UPS.length);
+  for (const id of loadAt(999)) assert.ok(UPS.some(u => u.id === id), `id desconocido: ${id}`);
+});
+
+test('libreta: es un ARRAY NUEVO cada vez (nadie puede ensuciar el catalogo)', () => {
+  // `pichon` se muta al elegir en el banco: si loadoutAt devolviera una vista del catalogo, una
+  // partida le agregaria mejoras a UPGRADES y la siguiente arrancaria con ellas.
+  const a = loadAt(3); a.push('intruso');
+  assert.equal(loadAt(3).length, 3);
+  assert.equal(UPS.length, 12);
+});

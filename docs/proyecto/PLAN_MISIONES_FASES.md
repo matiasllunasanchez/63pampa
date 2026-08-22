@@ -11,9 +11,23 @@
 > (la tabla maestra y el armado por misión) · [SPEC_TRAMOS.md](../sistemas/SPEC_TRAMOS.md)
 > · `COMO_PROBAR.md` (el catálogo de sondas y fixtures que ya existen).
 
+> ⚠ **DECISIÓN DEL AUTOR (19/8/2026) — el clímax interino es EL PULSO.** Ni el ARENA ni
+> la PASADA convencen todavía en playtest: hasta que se pulan, TODAS las misiones con
+> buque cierran con `climax: 'pulso'` — que ya trae su cinemática final compuesta (Q3:
+> pirueta + suelta + impacto por zona + muerte del buque por clase). Es el ultimátum de
+> PASADA_ADRENALINA §R6 ejecutado por adelantado, y es barato de revertir: el clímax es
+> DATO — cuando un modo se pula, se le devuelve su palabra a cada misión. El ARENA sigue
+> vivo en MINUTOS SAGRADOS y la PASADA en PASADAS MORTALES: se pulen ahí, sin frenar la
+> campaña. La columna "clímax" de la tabla maestra de DISENO_MISIONES queda como objetivo
+> a LARGO plazo, no como el interino.
+
 ## 0. Cómo usar este documento
 
-1. **El orden es el del tablero (§3).** Nunca más de una misión "abierta" a la vez.
+1. **El flujo es JUGAR PRIMERO.** Tras el remapeo (R) viene la fase **V1 (§1b)**: la
+   campaña ENTERA jugable con PULSO. Recién después arranca el pulido misión por misión
+   del §4, **guiado por las notas de playtest de Matías** (jugar por el selector → anotar
+   → sesión de ajuste), en el orden que las notas pidan. Nunca más de una misión
+   "abierta" a la vez.
 2. Cada fase cierra con `npm run check` verde + el fixture que la fase nombre. Cada
    MISIÓN cierra además con su **criterio de aprobación** volado en el selector.
 3. Los prerrequisitos (§2) se construyen **cuando la primera misión los necesita**, no
@@ -21,8 +35,8 @@
 4. Divergencias: las de mecánica van al spec que corresponda; las de misión, acá al §6.
 5. ⚠ **Asserts que van a romperse A PROPÓSITO** (no son regresiones, son decisiones ya
    tomadas — cambiarlos con el commit que los rompe): la ventana de la Chancha en
-   `fixture_chancha` (C1) · el unit "ninguna misión juega EL PULSO" (M14) · todo lo que
-   cuente 12 misiones (R).
+   `fixture_chancha` (C1) · el unit "ninguna misión juega EL PULSO" (se rompe en V1, ya no en M14) · todo lo
+   que cuente 12 misiones (R).
 
 ---
 
@@ -53,6 +67,33 @@ clímax) y ENTER lanza **esa misión aislada** — sin campaña alrededor: al te
 | ~~**S1**~~ ✅ | La pantalla: fila MISIONES + lista navegable con nombre/fecha/goal/clímax y el toggle [H] historia | se entra, se elige, se juega, ESC vuelve |
 | ~~**S2**~~ ✅ | Higiene: `testMode` bloquea récords/saves/ups + badge PRUEBA | media hora de selector deja `localStorage` idéntico (fixture lo verifica) |
 | ~~**S3**~~ ✅ | **`npm run misiones`** (`tools/fixture_misiones.js`): recorre TODAS las misiones por sonda con `?qa` — carga, despega, canvas vivo, llega al clímax que declara, 0 errores de consola | **la red de regresión de la campaña entera**, gratis para siempre; entra al hábito de correrla al cerrar cada misión |
+| ~~**S4**~~ ✅ | **LA LIBRETA DE ESA MISIÓN** (`loadoutAt` en `data/upgrades.js`): la misión suelta se vuela con las piruetas que un jugador tendría al llegar ahí — ni las doce ni ninguna — y el selector las MUESTRA al pie de la fila elegida. Sonda `__mvok()` (qué piruetas saldrían ahora, preguntándole al mismo `moveAllowed` del dispatcher) | medido: m1 con 0 y las 12 bloqueadas · m6 con 5 · fuera de la herramienta siguen saliendo las 12 · 5 unit tests |
+
+---
+
+## 1b. FASE V1 — la campaña entera jugable *(después de R; antes que cualquier pulido)*
+
+Un solo barrido de DATA, sin mecánicas nuevas, para que Matías pueda jugar las 14 de
+punta a punta y empezar a anotar:
+
+- **V1a** `climax: 'pulso'` en TODAS las misiones con buque — incluidas las dos que hoy
+  dicen `arena` (M5 y M14). ⚠ Acá se cambia a propósito el unit que lo prohibía
+  (PLAN_EL_PULSO div. 28: "ese assert es el que hay que venir a cambiar").
+- **V1b** volcar a `missions.js` lo de la tabla maestra (DISENO §3) que NO depende de
+  prerrequisitos: terrenos (M2/M9 a costa), cielos/clima, `caza`, squad. Lo que depende
+  de C/T/H/U queda para el pulido.
+- **V1c** `npm run misiones` verde con las 14 + una vuelta de Matías por el selector.
+- **Criterio:** la campaña completa se juega HOY de punta a punta con clímax uniforme.
+  Todo lo que sigue es pulido sobre algo jugable.
+
+**El circuito de pulido (el modo de trabajo desde acá):** Matías juega por el selector y
+anota en **[misiones/](misiones/)** — un documento de relevamiento POR MISIÓN, con el
+estado actual en código, el checklist de medición y las NOTAS DE PLAYTEST en formato
+fijo. Una sesión de ajuste toma SOLO esas notas + el bloque §4 de las misiones tocadas,
+implementa, corre `npm run misiones` + `npm run check`, tilda "Ajustes derivados" en el
+archivo de la misión, y devuelve. **Los bloques del §4 son el backlog de
+referencia de cada misión, no una obligación de barrerlos en orden** — la prioridad la
+dictan las notas.
 
 ---
 
@@ -118,6 +159,7 @@ clímax) y ENTER lanza **esa misión aislada** — sin campaña alrededor: al te
 |---|---|---|---|---|
 | 1 | **S** el selector (S0–S3) | — | medio | ✅ |
 | 2 | **R** remapeo 12→14 | S3 (la red) | medio | ⬜ |
+| 3′ | **V1** la campaña entera en PULSO (§1b) | R | chico | ⬜ |
 | 3 | **T** tramos (T0–T4, incluye M4 piloto) | — | chico | ✅ |
 | 4 | M1 | T · tambores | chico | ⬜ |
 | 5 | M2 | T | chico | ⬜ |

@@ -293,6 +293,50 @@ export function drawPasada(w) {
       ctx.globalAlpha = 1;
       continue;
     }
+
+    // R5: ONDA EXPANSIVA — el anillo que sale del impacto de la bomba. Dos anillos: el de aire
+    // (a la altura del reventon) y el de mar (aplastado en la superficie). El de abajo es el que
+    // da la escala: sin el, la explosion flota.
+    if (f.k === 'onda') {
+      const sp = world3D.project(f.x, f.y, f.z);
+      const gp = world3D.project(f.x, 0, f.z);
+      if (!sp.vis) continue;
+      const u = Math.min(1, f.T / 0.5);
+      const fade = (1 - u) * (1 - u);
+      const edge = world3D.project(f.x + 28 * u, f.y, f.z);
+      const R = edge.vis ? Math.abs(edge.x - sp.x) : 14 * u;
+      ctx.save();
+      ctx.globalAlpha = fade * 0.75;
+      ctx.strokeStyle = '#ffe6ac';
+      ctx.lineWidth = Math.max(1, Math.min(5, (1 - u) * 2.5));
+      ctx.beginPath(); ctx.arc(sp.x, sp.y, Math.max(2, R), 0, 6.2832); ctx.stroke();
+      if (gp.vis) {
+        ctx.globalAlpha = fade * 0.5;
+        ctx.strokeStyle = P.foam;
+        ctx.lineWidth = Math.max(1, Math.min(5, (1 - u) * 3));
+        ctx.beginPath(); ctx.ellipse(gp.x, gp.y, Math.max(2, R * 1.15), Math.max(1, R * 0.3), 0, 0, 6.2832); ctx.stroke();
+      }
+      ctx.restore();
+      continue;
+    }
+
+    // R5: FOGONAZO EN EL BUQUE — el cañon que dispara, la cubierta que relampaguea. El fuego tiene
+    // AUTOR y DIRECCION: un fogonazo que sale de algun lado da miedo; un efecto sin origen, bronca.
+    if (f.k === 'fk3') {
+      const sp = world3D.project(f.px, f.py, f.pz);
+      if (!sp.vis) continue;
+      const r2 = 2 + f.vr * f.T;
+      const a2 = Math.min(1, f.life / 0.3);
+      ctx.globalAlpha = a2 * (f.T < 0.08 ? 0.95 : 0.55);
+      ctx.fillStyle = f.T < 0.08 ? '#ffe6ac' : '#d98a4a';
+      ctx.beginPath(); ctx.arc(sp.x, sp.y, r2, 0, 7); ctx.fill();
+      ctx.globalAlpha = 1;
+      continue;
+    }
+
+    // R4: SONIDO DIFERIDO — no se dibuja nada, solo audio (ver stepFx en pasada.js)
+    if (f.k === 'snd') continue;
+
     const a = Math.min(1, f.life), r2 = 2 + f.vr * f.T;
     ctx.globalAlpha = a * (f.T < 0.12 ? 0.95 : 0.45);
     ctx.fillStyle = f.T < 0.12 ? P.warn : '#7c838a';

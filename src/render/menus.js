@@ -9,6 +9,7 @@ import { PLANES } from '../data/planes.js';
 import { T, getLang } from '../core/i18n.js';
 import { CAMPAIGNS } from '../data/campaigns.js';
 import { MISSIONS, climaxOf } from '../data/missions.js';
+import { UPGRADES, loadoutAt } from '../data/upgrades.js';
 import { fmtDate } from '../systems/saves.js';
 
 // ELECCION DE AVION — la pantalla previa de CICLO DE MUERTE y POR LA PATRIA. Usa los MISMOS
@@ -577,12 +578,35 @@ function misionText(r) {
     desc: m.date + '   ·   ' + blanco + '   ·   ' + (cl ? cl.toUpperCase() : T('misClimaxNo')),
   };
 }
+// LA LIBRETA DE LA FILA ELEGIDA: con que piruetas se va a volar esa mision. Va abajo de todo y
+// solo de la fila con el cursor —no en cada renglon— porque es un dato de PREPARACION, no de
+// eleccion: no se elige una mision POR su loadout, pero antes de apretar ENTER hay que saber con
+// que avion se sale. Es ademas la mitad visible de "real real": el numero de al lado dice cuantas
+// de las doce se ganaron a esa altura de la campaña.
+function drawLoadout(i) {
+  const ids = loadoutAt(i);
+  ctx.textAlign = 'left'; ctx.font = labelFont(8);
+  ctx.fillStyle = P.dim;
+  ctx.fillText(T('misLibreta', { n: ids.length, m: UPGRADES.length }), 40, NH - 30);
+  ctx.font = descFont(9); ctx.fillStyle = ids.length ? P.foam : P.ink;
+  // los nombres completos no entran (doce mejoras de hasta 15 caracteres): va la lista corta y,
+  // pasadas unas cuantas, se corta con puntos suspensivos — el numero de arriba dice el total.
+  const nombres = ids.map(id => (UPGRADES.find(u => u.id === id) || {}).name || id);
+  let txt = nombres.length ? nombres.join(' · ') : T('misLibretaVacia');
+  while (txt.length > 88 && nombres.length > 1) { nombres.pop(); txt = nombres.join(' · ') + ' …'; }
+  ctx.fillText(txt, 40, NH - 19);
+}
 // GEOMETRIA: son 12 misiones + ATRAS, sin encabezados, con el mismo paso de 29 que PRUEBAS y
 // JUEGO RAPIDO. La ventana es de SEIS y la cuenta es de las que hay que hacer con la captura
 // puesta al lado: con siete, la septima fila cae en 84 + 6×29 = 258 y su DESCRIPCION —que va 14 px
 // mas abajo— aterriza en 272, fuera de los 270 de alto, encima del pie del toggle. Con seis, la
 // ultima cierra en 229, su descripcion en 243, y abajo queda el aire del [H].
-export const MIS_ROWS = { y0: 84, rh: 29, headH: 18, view: 6 };
+// El PIE crecio de una linea a TRES (la libreta: rotulo + lista, y abajo el toggle), asi que la
+// ventana baja de seis filas a CINCO. La cuenta, otra vez con la captura al lado: con seis, la
+// sexta descripcion aterriza en 243 y el rotulo de la libreta arranca en 240 — se superponen, y
+// se ve (se vio: la fila 8 quedo escrita encima de "LIBRETA DEL PICHON"). Con cinco, la ultima
+// descripcion cierra en 214 y quedan 26 px de aire antes del pie.
+export const MIS_ROWS = { y0: 84, rh: 29, headH: 18, view: 5 };
 export function drawMisionesMenu(w) {
   drawRowMenu(w, 'misTitle', misionText, MIS_ROWS);
   // EL TOGGLE DE HISTORIA, al pie y siempre visible. Va afuera de drawRowMenu —y no como una fila
@@ -590,8 +614,10 @@ export function drawMisionesMenu(w) {
   // y una fila que no se puede confirmar en el medio de doce que si, se lee como un error.
   ctx.textAlign = 'left'; ctx.font = descFont(9);
   ctx.fillStyle = w.hist ? P.accent : P.dim; ctx.globalAlpha = w.hist ? 0.95 : 0.7;
-  ctx.fillText(T(w.hist ? 'misHistOn' : 'misHistOff'), 40, NH - 12);
+  ctx.fillText(T(w.hist ? 'misHistOn' : 'misHistOff'), 40, NH - 8);
   ctx.globalAlpha = 1;
+  const r = w.rows[w.sel];
+  if (r && !r.back) drawLoadout(r.i);
 }
 
 // una fila de partida guardada: 'EL CUADERNO DE MATEO · MISION 2 · 1234 PTS · 05/08 21:33'

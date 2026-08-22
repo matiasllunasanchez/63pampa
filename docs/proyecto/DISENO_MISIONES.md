@@ -108,6 +108,11 @@ tramos: [                            // fracciones de la distancia objetivo, en 
 | 13 | m11 | BROADSWORD | PASADA | **tierra** | **moon**, fog | 1.7 | 2 | 2 | 0 | 3 | NO | justa | la noche; el sapito real |
 | 14 | m12 | GLAMORGAN | **PULSO** (el misil) | mar | **night**, fog largo | tramos | 2 | 2 | 0 | 3 | NO | justa | todo lo aprendido |
 
+> ⚠ **Interino (19/8, decisión del autor):** hasta que ARENA y PASADA se pulan en sus
+> modos propios (MINUTOS SAGRADOS / PASADAS MORTALES), la campaña cierra TODOS los buques
+> con `climax: 'pulso'` + su cinemática compuesta (PLAN_MISIONES_FASES §1b). La columna
+> clímax de esta tabla es el objetivo a largo plazo, no el estado interino.
+
 Notas de la tabla: `persec` en M1 ya está en el código ✅ · `caza 2` = los Harriers pesados
 (M7 la salida, M9, M13) · la columna nafta usa §7 · el clímax de M5 y el default PASADA ya
 están como dato en `missions.js` ✅ · M14 cambia `arena` → `pulso` cuando exista la misión

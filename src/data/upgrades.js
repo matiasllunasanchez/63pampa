@@ -53,3 +53,28 @@ export function nextUpgrades(owned, n) {
   const has = id => owned.includes ? owned.includes(id) : owned.has(id);
   return UPGRADES.filter(u => !has(u.id)).slice(0, n);
 }
+
+// ---------- EL LOADOUT DE REFERENCIA (PLAN_MISIONES_FASES §1, el selector "real real") ----------
+// Cuantas mejoras tendria un jugador REAL al entrar a la mision `i`, y cuales.
+//
+// La cuenta sale del flujo de campaña y no de una tabla escrita a mano: el BANCO se abre en el
+// epilogo de cada mision mientras quede una siguiente, asi que al entrar a la mision `i` (0-based)
+// se pasaron `i` ventanas y se eligio una mejora en cada una. Con 12 mejoras y 11 ventanas, una
+// queda sin aprender por partida — que es exactamente lo que pide el guion (§5 de GUION_3).
+//
+// QUE mejoras: las `n` PRIMERAS del orden causal, que es el orden en que el guion las inventa
+// (el Pichon las saca del problema que la escuadrilla acaba de sufrir). Son ademas las mas
+// basicas — TERRAIN MASKING antes que el TONEL BARRIL — asi que "las primeras" y "las que un
+// jugador tendria" son la misma lista, y por eso alcanza una sola funcion.
+//
+// Es una APROXIMACION declarada, no una simulacion: en una partida real el jugador elige UNA de
+// DOS por ventana, asi que su lista puede diferir. Lo que esta funcion garantiza es lo que el
+// selector necesita — volar la mision con la CANTIDAD correcta de piruetas y con las que el guion
+// ya presento, en vez de con las doce (irreal) o con ninguna (tambien irreal).
+//
+// El dia que las ofertas sean al azar (DISENO_MISIONES §5, tarea U), ESTA funcion es el unico
+// lugar donde cambia la regla.
+export function loadoutAt(i) {
+  const n = Math.max(0, Math.min(i | 0, UPGRADES.length));
+  return UPGRADES.slice(0, n).map(u => u.id);
+}

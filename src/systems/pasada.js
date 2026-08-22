@@ -181,7 +181,7 @@ export function enter(desdePasillo) {
     dartT0: -1, dartTTI: -1, dartTTIp: -1,   // cuando salio el Dart · cuanto vivio · cuanto se predijo
     wave: [], waveT: 1.2, waveN: 0,     // P7: el primero entra casi enseguida (ver stepOleada)
     outT: 0, auto: 0,              // fuera de la zona / piloto automatico
-    hitFx: 0, flashL: 0, flashR: 0,
+    hitFx: 0, flashL: 0, flashR: 0, zoomPunch: 0, whooshT: 0,
     cue: null, cueT: 0, rad: ENTRY_D,   // contador de suelta / reloj del tic-tac / distancia al buque
     spent: null, spentT: 0,             // RF-15: como termino esta pasada, y el compas para verlo
     hp0: hpTotal(),                     // casco al empezar TU corrida: dice si tocaste o fallaste
@@ -388,8 +388,14 @@ function bombHit(f, hit) {
   const zoneId = hit ? (hit.zone || nearestZone(f.x, f.y, f.z)) : null;
   A.fx.push({ k: 'splash', x: f.x, y: Math.max(0, f.y), z: f.z, vr: enAgua ? 22 : 34, life: enAgua ? 0.9 : 1.1, T: 0 });
   if (enAgua) { boom(0.08); if (!sfxOne('exSmall')) beep(120, 0.16, 'sawtooth', 0.05, 60); return; }
-  if (!zoneId) {   // le pego al casco y no queda zona viva a la que cobrarle
-    boom(0.2); run.shake = Math.min(6, run.shake + 1.5);
+  // R5: PUNCH DEL IMPACTO — zoom-punch, onda, shake grande. El impacto contra el buque tiene que
+  // sentirse FINAL: no es un chapoteo, es lo que viniste a hacer.
+  A.zoomPunch = 1;
+  A.fx.push({ k: 'onda', x: f.x, y: Math.max(0, f.y), z: f.z, life: 0.55, T: 0 });
+  run.shake = Math.min(8, run.shake + 4);
+  duck(0.7);
+  if (!zoneId) {
+    boom(0.2);
     if (!sfxOne('exMedium')) beep(80, 0.24, 'sawtooth', 0.06, 40);
     return;
   }
@@ -399,7 +405,7 @@ function bombHit(f, hit) {
     run.score += PS.SAPITO_PTS; A.sapitos++;
     popup(W / 2, 50, T('pasada_sapito'), P.accent, true);
     popup(W / 2, 62, '+' + PS.SAPITO_PTS, P.accent);
-    boom(0.26); run.shake = Math.min(6, run.shake + 2.4);
+    boom(0.26); run.shake = Math.min(8, run.shake + 4.5);
     if (!sfxOne('exHeavy')) beep(70, 0.3, 'sawtooth', 0.07, 38);
     return;
   }
@@ -413,7 +419,7 @@ function bombHit(f, hit) {
     return;
   }
   hitZone(zoneId, BOMB.DMG);
-  boom(0.24); run.shake = Math.min(6, run.shake + 2);
+  boom(0.24); run.shake = Math.min(8, run.shake + 4);
   if (!sfxOne('exHeavy')) beep(70, 0.3, 'sawtooth', 0.07, 38);
 }
 
@@ -475,11 +481,16 @@ function fireGuns() {
     });
   }
   A.salvas++;
-  // EL CAÑONAZO SE OYE ANTES DE VER EL AGUA. Es el aviso que convierte la salva en algo que se
-  // puede esquivar por reflejo y no solo por haber virado hace un segundo — y es gratis: el sonido
-  // ya viaja mas rapido que el proyectil.
-  boom(0.07, true);
-  if (!sfxOne('exXsmall')) beep(90, 0.12, 'sawtooth', 0.045, 55);
+  // R4: EL CAÑONAZO LLEGA CON RETARDO POR DISTANCIA. A 700 m y 343 m/s son ~2 s de demora: ves la
+  // columna subir y UN SEGUNDO DESPUES llega el trueno. Es fisica gratis que vende lejania — una
+  // salva que suena inmediata parece estar al lado; una que tarda, lejos. El fogonazo EN el buque
+  // (R5) sale YA porque la luz viaja instantanea; el boom, despues.
+  const boomDelay = Math.max(0.05, A.rad / 343);
+  A.fx.push({ k: 'snd', T: 0, life: boomDelay + 0.1, wait: boomDelay, done: 0 });
+  // R5: FOGONAZO EN EL BUQUE — el cañon TIENE AUTOR. Un fuego que aparece de la nada es
+  // arbitrariedad; saliendo del buque, es peligro, y de paso dice para donde mirar.
+  const fgSide = A.salvas % 2 ? 1 : -1;
+  A.fx.push({ k: 'fk3', px: fgSide * 40, py: 24, pz: 0, vr: 18, life: 0.45, T: 0 });
 }
 
 /** SEA DART (RF-03). Sale UNO por corrida, y solo si cruzaste el techo de radar LEJOS del buque:
@@ -848,6 +859,7 @@ export function update(dt, inp) {
   popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
   prune(popups, p => p.life > 0);
   A.hitFx = Math.max(0, A.hitFx - dt * 5);
+  A.zoomPunch = Math.max(0, A.zoomPunch - dt * 3.5);
 
   // ---------- MANDO: identico al arena (modelo E1/E2, angulos comandados) ----------
   // W/S piden CABECEO, Q/E y el stick derecho piden BANQUEO —y banquear ES virar—, A/D derrapan
@@ -904,6 +916,14 @@ export function update(dt, inp) {
   if (A.doneT <= 0) {
     if (A.pos.y < SEA_KILL) { A = null; return { death: 'death_sea' }; }
     if (world3D.hitsShip(A.pos.x, A.pos.y, A.pos.z)) { A = null; return { death: 'death_mast' }; }
+    // R5: WHOOSH DEL MASTIL. Pasar CERCA del casco sin tocarlo — la pasada que salio bien. El
+    // whoosh dice "eso fue peligroso" y la sacudida lo confirma. Una vez por sobrevuelo.
+    A.whooshT -= dt;
+    if (A.whooshT <= 0 && Math.abs(A.pos.x) < 90 && Math.abs(A.pos.z) < 30 && A.pos.y < 55) {
+      A.whooshT = 2.5;
+      beep(180, 0.18, 'sawtooth', 0.04, 60);
+      run.shake = Math.min(6, run.shake + 2.2);
+    }
   }
 
   // ---------- LA CORRIDA: entrar a la ventana cuenta una ----------
@@ -1225,8 +1245,19 @@ function stepFx(dt) {
       const proy = rx * d.x + ry * d.y + rz * d.z;
       if (!f.roce && proy > 0 && proy < alcanzado && A.doneT <= 0 && !A.spent) {
         const ex = rx - d.x * proy, ey = ry - d.y * proy, ez = rz - d.z * proy;
-        if (Math.hypot(ex, ey, ez) < PS.NEARMISS_R) { f.roce = 1; roce(A.pos.x, A.pos.y, A.pos.z, ROCE_TRAZ); }
+        const dd = Math.hypot(ex, ey, ez);
+        if (dd < PS.NEARMISS_R) { f.roce = 1; roce(A.pos.x, A.pos.y, A.pos.z, ROCE_TRAZ); }
+        // R4: WHIP de la trazadora al pasar CERCA. El tableteo dice "el chorro esta ahi"; el whip
+        // dice "te ROZA". Es el sonido que le faltaba al cruce — sin el, pasar entre dos chorros
+        // era silencioso justo en el instante mas caliente.
+        else if (!f.whip && dd < PS.NEARMISS_R * 3) { f.whip = 1; beep(2200, 0.06, 'sawtooth', 0.035, 800); }
       }
+      continue;
+    }
+
+    // R4: SONIDO DIFERIDO — el boom del cañon llega con retardo por distancia (velocidad del sonido)
+    if (f.k === 'snd') {
+      if (!f.done && f.T >= f.wait) { f.done = 1; boom(0.07, true); if (!sfxOne('exXsmall')) beep(90, 0.12, 'sawtooth', 0.045, 55); }
       continue;
     }
 
