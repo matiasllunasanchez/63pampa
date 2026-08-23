@@ -739,3 +739,23 @@ export const PURS_TIRON_PTS = 500;       // premio por AGUANTARLO ENTERO en band
 // numeral real vuela formacion: no se mira la distancia, se mira si crece o se achica.
 export const PURS_CIERRE_S = 3;          // suavizado de la lectura (1/s). Sin esto es un temblor.
 export const PURS_CIERRE_MAX = 45;       // u/s que clavan la flecha en el tope
+
+// ---------------- LO TRANSONICO (PLAN_TRANSONICO) ----------------
+// El vapor de ala y el cono de Prandtl-Glauert. Todo sale del Mach A NIVEL DEL MAR, que es donde
+// se juega RASANTE (0-68 m).
+//
+// A_MAR = 1200 y no los 1225 del manual: los 1225 son a 15 grados. El aire sobre el Atlantico Sur
+// en mayo anda por los 5, y ahi el sonido viaja a ~1191 km/h. 1200 es el numero correcto PARA EL
+// MAR DE ESTE JUEGO, y de paso baja un pelo la vara del efecto.
+export const A_MAR = 1200;
+// el mismo factor con el que el HUD pasa de unidades de mundo a km/h (render/hud.js)
+export const KMH_U = 4.2;
+// umbral del VAPOR DE ALA: se ve seguido, con racha y sin turbo (M 0.84 es crucero con racha)
+export const M_VAPOR = 0.80;
+// umbral del CONO: pide turbo si o si — con turbo sostenido y sin escalones se llega a M 0.98
+export const M_CONO = 0.95;
+// cono pleno: de aca para arriba ya no crece mas
+export const M_CONO_FULL = 1.05;
+// respiracion del cono (Hz): el regimen transonico es INESTABLE — se forma, se aprieta y revienta.
+// No es un temporizador: es lo que hace que no se lea como una calcomania pegada al avion.
+export const CONO_HZ = 1.9;

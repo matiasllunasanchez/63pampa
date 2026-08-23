@@ -156,7 +156,8 @@ t = re.sub(r"(?m)^\|\s+M(\d+)\s", lambda m: "| M%-5s" % m.group(1), t)
 t = re.sub(r"\(\s*\)", "", t); t = re.sub(r"_\(\s*\)_", "", t)
 t = re.sub(r"(?m)([^\s])   +", r"\1 ", t)
 t = re.sub(r"[ \t]+\n", "\n", t); t = re.sub(r"\n{4,}", "\n\n\n", t)
-t = re.sub(r"(?m)^ +(?=_\(|\*\*)", "", t)   # marcas borradas dejaban sangría fantasma
+t = re.sub(r"(?m)^ +(?=_\(|\*\*)", "", t)
+t = t.replace("_( **", "_(**")   # ídem, marca borrada dentro de una acotación   # marcas borradas dejaban sangría fantasma
 
 FRONT  = open(os.path.join(BASE, "produccion", "_lectura_front.md"), encoding="utf-8").read()
 CIERRE = open(os.path.join(BASE, "produccion", "_lectura_cierre.md"), encoding="utf-8").read()

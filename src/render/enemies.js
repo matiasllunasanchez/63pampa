@@ -30,6 +30,7 @@ const FILES = {
   depot: '../assets/world/enemies/depot.png',
   bldg: '../assets/world/enemies/bldg.png',
   fragata: '../assets/world/enemies/fragata.png',
+  chancha: '../assets/world/enemies/chancha.png',
 };
 
 // EL `wu` DE LOS JETS ESTABA MAL, y era la mitad del problema. Medido: el contenido del sprite
@@ -66,6 +67,9 @@ export const SHEETS = {
   depot: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 11, y0: 14, x1: 55, y1: 34 }, wu: 8.2, href: 5.5 },
   bldg: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 16, y0: 11, x1: 49, y1: 37 }, wu: 6.8, href: 9.5 },
   fragata: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 14, y0: 13, x1: 52, y1: 35 }, wu: 11 },
+  // LA CHANCHA: el unico avion AMIGO horneado, y el objeto mas grande del juego. `wu` 26 es
+  // el mismo ancho que ya usaba su dibujo procedural, asi que la cita no se re-ajusta.
+  chancha: { fw: 160, fh: 96, cols: 1, rows: 1, box: { x0: 6, y0: 3, x1: 153, y1: 67 }, wu: 26 },
 };
 for (const k in SHEETS) {
   const s = SHEETS[k];

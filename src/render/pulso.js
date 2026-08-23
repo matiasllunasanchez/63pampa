@@ -19,6 +19,7 @@ import { TOK_GLIFO, PULSO_CINE, PULSO_TEATRO } from '../data/pulso.js';
 import { padInfo } from '../core/input.js';
 import { bargeGeom } from './world.js';
 import * as momRender from '../legacy/momentum_render.js';
+import { nuevoReguero, humear, MISIL } from './reguero.js';
 
 // DONDE APUNTA EL PULSO. Mismo contrato que el arena: es la mira del modo, y la cabina se acomoda
 // sola para que su visor pintado caiga aca.
@@ -76,10 +77,13 @@ function drawCompas(cx, y, bar, st, ti, t) {
 /** LOS PARAMETROS DE LA CABINA de este cuadro. Una sola vez, en un solo lado: los pide el dibujo
  *  y los pide `ventana()` (que corre ANTES, cuando todavia no se dibujo nada). Escritos dos veces
  *  se desincronizan en cuanto alguien mueva la mira o el `esc`. */
-function cabinaW(Q, t) {
-  const cine = Q && Q.fase === 'cine' ? Q.cine : null;
+function cabinaW(c, t) {
+  // `c` es la foto DEL DIRECTOR (systems/cine.js), no la del PULSO. Estuvo leyendose como `Q.cine`
+  // y ese campo no existe —el snapshot del PULSO es el store, y la cinematica llega aparte, por
+  // parametro— asi que `yOff` valia 0 SIEMPRE: el verbo `cam` del director bajaba la cabina en el
+  // premio y no bajaba nada. Otra perilla muerta sin dar error.
   return { mom: { t: run.t }, t, mira: COCKPIT_MIRA, esc: PULSO_TEATRO.CABINA_ESC,
-           yOff: cine ? cine.cam.off : 0 };
+           yOff: c ? c.cam.off : 0 };
 }
 
 /** LA VENTANA: la Y en que termina el parabrisas — o sea, el alto de mundo que la cabina deja ver.
@@ -88,7 +92,17 @@ function cabinaW(Q, t) {
  *  esta encuadrando. Con la cabina a ancho pleno esto dejo de ser un detalle: la ventana bajo de
  *  170 a 136 px, y un buque dimensionado contra la PANTALLA queda medio metido abajo del tablero.
  *  Lo pide game.js y se lo pasa al sistema, que decide cuanto de ella llenar. */
-export const ventana = (Q, t) => momRender.cajaCabina(cabinaW(Q, t)).vidrio;
+export const ventana = (c, t) => momRender.cajaCabina(cabinaW(c, t)).vidrio;
+
+// QUITAR — la caja REAL de la cabina del PULSO este cuadro. Sin esto, "la cabina sale chica" es
+// una impresion sobre una captura y no un numero, y ya me hizo perder dos vueltas.
+if (typeof window !== 'undefined') window.__cabdbg = () => {
+  const w = window.__cabW;
+  if (!w) return JSON.stringify({ error: 'todavia no se dibujo una cabina' });
+  const c = momRender.cajaCabina(w);
+  return JSON.stringify({ mira: w.mira, yOff: +(w.yOff || 0).toFixed(1), esc: w.esc,
+    top: +c.top.toFixed(1), h: +c.h.toFixed(1), dw: +c.dw.toFixed(1), vidrio: +c.vidrio.toFixed(1) });
+};
 
 /** DONDE PEGO, en pantalla. Sale de la geometria que publico el que dibujo el buque
  *  (render/world.js) y no de una copia de la cuenta: si el buque escora o se hunde, el fuego
@@ -102,6 +116,10 @@ function puntoImpacto(z) {
   const dx = x - g.bx, dy = y - g.waterY;
   return { x: g.bx + dx * c - dy * s, y: g.waterY + dx * s + dy * c, uh: g.uh, g };
 }
+
+// CUANTOS. Son perillas de teatro y por eso viven aca y no en data/: no cambian ninguna regla, y
+// el dia que haya una hoja de sprites para esto se reemplaza el dibujo sin tocar los numeros.
+const FOCOS = 7, SOLDADOS = 9;
 
 /** Un estallido: nucleo claro, bola caliente y esquirlas. Crece y se apaga con `p` (0..1).
  *
@@ -131,6 +149,15 @@ function estallido(x, y, r0, p) {
   ctx.globalAlpha = 1;
 }
 
+// UN REGUERO POR BOMBA. Viven aca y no en la bomba porque la ristra no son objetos: se recalcula
+// entera cada cuadro desde el avance del tramo. El humo, en cambio, ES memoria — y esa memoria hay
+// que guardarla en algun lado.
+const REGS = [];
+const regDe = i => (REGS[i] || (REGS[i] = nuevoReguero()));
+/** Se tiran al entrar y al salir de la suelta: humo de la corrida anterior colgado en el aire es
+ *  basura de otra vida, igual que el `salto` del propio reguero. */
+const limpiarRegs = () => { REGS.length = 0; };
+
 /** LO QUE PASA AFUERA DEL VIDRIO durante el premio: la ristra, el estallido y el buque ardiendo.
  *  Se dibuja ANTES de la cabina — es mundo, y el canopy tiene que poder taparlo. */
 function drawCineMundo(Q, c, t, cab) {
@@ -141,7 +168,8 @@ function drawCineMundo(Q, c, t, cab) {
   // ---- LA RISTRA (plan §3: el arma son las bombas, no un misil). Salen de abajo del cuadro —de
   // la panza del avion, que esta detras de la cabina— y se ALEJAN hacia el buque: encogen. Es el
   // unico tramo del modo en que el jugador no hace nada, y es a proposito: es el silencio.
-  if (c.parte === 'suelta') {
+  if (c.parte !== 'suelta') limpiarRegs();
+  else {
     // DE DONDE SALEN. En tercera, DEL AVION. En cabina salen de DEBAJO DEL MORRO — y "debajo del
     // morro" es el borde de abajo del parabrisas, no el borde de abajo de la pantalla: naciendo
     // ahi la ristra aparecia ya lanzada, de atras del tablero, y el playtest pidio verla SALIR.
@@ -165,23 +193,16 @@ function drawCineMundo(Q, c, t, cab) {
       // el avance del tramo lo da el director (`fParte`): el render no necesita saber cuanto dura
       const p = Math.max(0, Math.min(1, c.fParte * 1.35 - i * 0.11));
       if (p <= 0) continue;
-      // LA ESTELA, primero (va DEBAJO de la bomba): el humo que deja al salir, muestreando su
-      // propia trayectoria hacia atras. Sin esto la bomba es un punto que se encoge y no se lee
-      // como algo que SALIO de acá — la estela es lo que dice de donde vino.
-      for (let k = 1; k <= PULSO_CINE.ESTELA; k++) {
-        const pk = p - k * 0.055;
-        if (pk <= 0) break;
-        const q = vuelo(i, pk);
-        const f = 1 - k / (PULSO_CINE.ESTELA + 1);        // 1 pegado a la bomba · 0 deshecho atras
-        // EL HUMO ES CLARO. Con gris de casco se perdia contra el mar —que en este juego tambien
-        // es gris oscuro— y la estela existia en el codigo y no en la pantalla. Lo que se ve de un
-        // arma que sale es el humo, no el fierro: el fierro es un punto.
-        ctx.globalAlpha = 0.85 * f * f * (1 - p * 0.25);
-        const w2 = Math.max(1, q.s * (0.75 + f * 0.75));
-        px(q.x - w2 / 2, q.y - w2 / 2, w2, w2, k % 2 ? '#eaf4f8' : '#b7c8d0');
-      }
-      ctx.globalAlpha = 1;
+      // LA ESTELA, primero (va DEBAJO de la bomba): el humo que deja al salir. Es EL REGUERO —
+      // la misma mecanica que el humo de tobera y los vortices de punta del avion (render/
+      // reguero.js), en su version de misil: mas grande y blanca.
+      //
+      // Estuvo muestreando la trayectoria hacia atras cuadro a cuadro y se veia bien, pero era una
+      // cuarta estela hecha a mano en un cuarto archivo. El reguero, ademas, deja el humo DONDE EL
+      // ARMA PASO en vez de recalcularlo desde donde esta ahora: por eso se abre y se deshilacha
+      // como humo en vez de acompañar rigido al proyectil.
       const b = vuelo(i, p);
+      humear(regDe(i), b.x, b.y, Object.assign({ t, f: 1 - p * 0.4, on: p < 0.97, corta: true }, MISIL));
       px(b.x - b.s / 2, b.y - b.s, b.s, b.s * 2, '#232a2f');
       px(b.x - b.s / 2, b.y - b.s, b.s, Math.max(1, b.s * 0.45), '#7c8b94');
       // EL MOTOR, mientras dura: el fogonazo que la empuja los primeros metros. Es lo que convierte
@@ -211,6 +232,56 @@ function drawCineMundo(Q, c, t, cab) {
   }
   if (c.parte === 'muerte') {
     const humo = z.humo * Q.clase.humo;
+    // ---- REVIENTA POR DENTRO (pedido de Matias, 8/2026) ----
+    // El buque NO se parte ni se va a pique: se llena de estallidos. Varios focos repartidos a lo
+    // largo del casco CERCA del impacto, cada uno con su retardo — la misma lectura que la cadena
+    // de D4: uno por vez y no todos juntos, que se leeria como una sola explosion mas grande.
+    //
+    // TODO DETERMINISTA (trampa §1.3 del repo): las posiciones y los retardos salen del INDICE con
+    // aritmetica de primos, no de `Math.random()` por cuadro. Con azar por cuadro los focos
+    // saltarian de lugar en cada frame y seria ruido, no una nave reventando.
+    for (let i = 0; i < FOCOS; i++) {
+      const t0 = 0.10 + i * 0.26 + ((i * 53) % 7) / 55;          // cuando le toca a este foco
+      const pf = (c.tParte - t0) / 0.7;
+      if (pf <= 0 || pf >= 1) continue;
+      // repartidos a lo largo del casco, con mas densidad CERCA del impacto (el sesgo al cubo)
+      const u = (((i * 37) % 13) / 13 - 0.5) * 2;
+      const fx2 = im.x + u * u * u * im.g.len * 0.30;
+      const fy2 = im.y + (((i * 29) % 5) / 5 - 0.5) * uh * 0.85;
+      // RECORTADO EN LA FLOTACION, como el casco: sin esto los focos bajos se pintan mar adentro
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, 0, W, im.g.waterY + uh * 0.5); ctx.clip();
+      // EL TAMAÑO: comparable al estallido del impacto (0.95·uh), no un poperío. Con 0.34-0.61 se
+      // veian pops chiquitos contra un buque que en el premio llena la ventana — y lo que se pide
+      // aca es que el barco REVIENTE, no que chisporrotee.
+      estallido(fx2, fy2, uh * (0.58 + ((i * 17) % 4) * 0.13) * z.blast, pf);
+      ctx.restore();
+    }
+    // ---- LOS QUE SALEN DESPEDIDOS ----
+    // Es lo que convierte una explosion en una tripulacion. Van chiquitos y en silueta: a esta
+    // escala una figura de tres pixeles tumbando dice "habia gente" sin volverse un gag.
+    for (let i = 0; i < SOLDADOS; i++) {
+      const t0 = 0.22 + ((i * 41) % 9) / 9 * 0.9;
+      const ps = (c.tParte - t0) / 1.25;
+      if (ps <= 0 || ps >= 1) continue;
+      const lado = i % 2 ? 1 : -1;
+      const sx = im.x + (((i * 23) % 11) / 11 - 0.5) * im.g.len * 0.34;
+      // ARCO: sale para arriba y para afuera, y la gravedad lo baja. Cae AL AGUA, que es donde
+      // termina cualquiera que sale volando de un barco.
+      const vy0 = uh * (1.5 + ((i * 13) % 5) * 0.28);
+      const x = sx + lado * ps * uh * (1.1 + ((i * 7) % 3) * 0.35);
+      const y = im.y - vy0 * ps + uh * 4.6 * ps * ps;
+      if (y > im.g.waterY + uh * 0.3) continue;               // ya se lo trago el mar
+      ctx.globalAlpha = 0.9;
+      const sw = Math.max(1, uh * 0.13), sh2 = Math.max(1, uh * 0.3);
+      // TUMBA: gira mientras cae — un cuerpo que cae derecho se lee como un poste
+      const gir = ps * 9 * lado;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(gir);
+      px(-sw / 2, -sh2 / 2, sw, sh2, '#3d4436');                    // cuerpo
+      px(-sw / 2, -sh2 / 2, sw, Math.max(1, sh2 * 0.3), '#5a6350');  // casco/espalda al sol
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
     // EL SEGUNDO ESTALLIDO (solo el polvorin): mas grande que el primero y desde la flotacion
     // la MARCA que dejo la timeline al volar la santabarbara: cuanto hace que estallo
     const tSec = c.marcas.sec === undefined ? -1 : c.t - c.marcas.sec;
@@ -331,6 +402,11 @@ function drawSal(y0, y1) {
 // falla y solo DESAPARECE necesita que alguien lo cuente.
 let aguaN = 0;
 if (typeof window !== 'undefined') window.__vidrio = () => aguaN;
+// …y LA CAJA de la cabina tal como quedo este cuadro. Tres cosas dependen ya de esta geometria —el
+// agua del vidrio, la ristra que sale de abajo del morro y el encuadre del buque— y ninguna se
+// puede discutir sin poder leerla.
+let cajaUlt = null;
+if (typeof window !== 'undefined') window.__cabina = () => JSON.stringify(cajaUlt);
 
 function drawAguaVidrio(y0, y1, alt, t) {
   aguaN = 0;
@@ -408,8 +484,9 @@ export function drawPulso(w) {
   // por la misma razon que el flak — el canopy tiene que poder taparlo.
   // LA CAJA DE LA CABINA, calculada ANTES de dibujar nada: la necesita la ristra (sale de abajo
   // del morro) y despues la usa el propio dibujo de la cabina. Es la misma cuenta, pedida una vez.
-  const cabW = cabinaW(Q, t);
+  const cabW = cabinaW(cine, t);
   const caja = momRender.cajaCabina(cabW);
+  cajaUlt = { top: +caja.top.toFixed(1), h: +caja.h.toFixed(1), ancho: +caja.dw.toFixed(1), vidrio: +caja.vidrio.toFixed(1), off: +cabW.yOff.toFixed(1) };
   if (cine) drawCineMundo(Q, cine, t, caja);
 
   // LA CABINA. Se reusa tal cual la del climax 2D (con su `yOff`, igual que el ARENA): es el mismo
@@ -422,6 +499,7 @@ export function drawPulso(w) {
   // primera persona. La sal esta entre el ojo y el mundo, y desde afuera del avion no hay vidrio
   // donde pegarse. Ahi el avion lo dibuja el orquestador, con el sprite de siempre.
   if (!cine || cine.cam.modo !== 'chase') {
+    if (typeof window !== 'undefined') window.__cabW = cabW;   // QUITAR con __cabdbg
     const cab = momRender.drawCockpit(cabW);
     drawSal(cab.top, cab.vidrio);
     // …Y EL AGUA CORRIENDO, encima de la sal. Las dos estan del lado de adentro del vidrio y la

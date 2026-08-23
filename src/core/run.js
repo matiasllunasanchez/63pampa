@@ -108,6 +108,10 @@ export const run = {
   // todo el cuadro. Vive en `run` y no en un modulo de fx porque lo escribe el efecto y lo lee el
   // dibujo, que son dos lados distintos — igual que `shake`.
   flash: 0,
+  // dt de PARED del cuadro. Lo escribe game.js y lo leen los efectos cuyo reloj NO se dilata con
+  // el MOMENTUM ni con EL PULSO — el cruce transonico es una cosa que le pasa a la camara, no al
+  // mundo, asi que si se frenara con el mundo dejaria de ser un golpe.
+  dtReal: 0.016,
   bloodSplat: 0,   // mancha de sangre sobre el sprite (se desvanece en ~3 s)
 };
 
@@ -133,6 +137,6 @@ export function resetRun() {
   freeRoll: 0, freeRollV: 0,
     jets: 0,
     nextSpawn: 320, nextSoldier: 60, nextBomb: 260,
-    shake: 0, flash: 0, bloodSplat: 0,
+    shake: 0, flash: 0, dtReal: 0.016, bloodSplat: 0,
   });
 }

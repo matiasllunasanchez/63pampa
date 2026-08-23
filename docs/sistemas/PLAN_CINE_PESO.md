@@ -616,3 +616,95 @@ hacia atrás, **fogonazo de motor** los primeros metros, y salida más grande (s
 41. **Partir "dónde va" de "dibujarlo" es lo que hace componible un render.** `cajaCabina` no es una
     refactorización de higiene: es lo que permite que algo que se dibuja ANTES sepa dónde va a estar
     algo que se dibuja DESPUÉS, sin copiar la cuenta ni invertir el orden de las capas.
+
+---
+
+## 16. EL FRENO QUE NO ERA MÍO *(playtest del 22/8 · sexta pasada)*
+
+> «el avión SIGUE FRENANDO luego de tirar los misiles, no sé si frena o el barco no se mueve pero da
+> la impresión de que frenó»
+
+La curva del acercamiento ya era continua (§12). Lo que frenaba era otra cosa, y estaba puesta por
+**otra sesión trabajando en paralelo sobre los mismos archivos**.
+
+Medido con `__buque`, cuadro a cuadro:
+
+```
+t=4.6 → 6.8 s   grow 2.8 → 4.0     largo en pantalla: 456 px, 456, 456, 456…
+```
+
+El multiplicador subía y **el buque no crecía un píxel durante dos segundos** — un tercio de la
+cinemática. Un `Math.min(sc, tope)` en `drawApproachBarge`, parte de un sistema de *encuadre* que
+la otra sesión agregó para que el buque no desbordara la ventana del parabrisas.
+
+Y había un segundo: el encuadre también **reemplazaba** la flotación (`wBase` → `wEnc`), y como se
+mezcla con el mismo avance que ya llegó a 1, el `ESC_DROP` del sobrevuelo quedaba enteramente
+cancelado. Los dos cues de movimiento congelados a la vez.
+
+### Un tope duro es un freno
+
+**Una derivada cero no se lee como "ya está bien de grande": se lee como que el avión frenó.** En
+una cámara que mira siempre para adelante el tamaño del blanco es lo único que dice a qué velocidad
+vas — es la misma lección de §12, y volvió a pasar por otra puerta.
+
+El tope pasó a ser **blando**: deja pasar entero lo que todavía entra cómodo y comprime el resto
+contra el techo sin alcanzarlo nunca (continua y con la misma pendiente en la rodilla, así que no
+hay codo). El buque crece cada cuadro, cada vez menos, y no se pasa. Y `baja` (el sobrevuelo) se
+separó de `drop` (la aproximación) y se suma **afuera** de la mezcla: el encuadre dice dónde se
+planta el buque para que se lea, el sobrevuelo dice cómo se te va del cuadro después.
+
+### Dos perillas muertas que aparecieron en el camino
+
+1. **`PULSO_TEATRO.CABINA_ESC` (el 74 %) estaba anulado.** La otra sesión cambió el PNG a
+   `cockpitv2` —1.748:1, por primera vez más angosto que la pantalla— y agregó un piso de ancho
+   pleno *después* de `esc`. El piso evita un descuido de 4 px; `esc` es una decisión de encuadre.
+   Aplicado después, el piso vetaba la única perilla con la que un modo puede pedir menos cabina y
+   más mundo. Ahora el piso va **antes**: manda sobre el tamaño natural, no sobre quien encuadra.
+2. **`PULSO_CINE.CABINA` (bajar la cabina en el premio) también.** `cabinaW` leía `Q.cine` y ese
+   campo no existe — el snapshot del PULSO es su store, y la foto del director llega aparte, por
+   parámetro. `yOff` valía 0 siempre.
+
+### Divergencias
+
+42. **Tres bugs de esta serie son el mismo bug: una perilla que no falla, sólo deja de hacer efecto.**
+    El agua del vidrio, la sal, `CABINA_ESC` y `CABINA`. Ninguna dio error nunca. La única defensa que
+    funcionó fue medir el EFECTO (`__vidrio`, `__buque`, `__cabina`) en vez de confiar en la causa.
+43. **Cuando dos sesiones tocan el mismo archivo, el que pierde es el que no dejó una sonda.** El
+    encuadre y el acercamiento son dos diseños razonables que se anulan mutuamente; se descubrió
+    porque `__buque` publica el tamaño DIBUJADO y no el multiplicador pedido. Sin eso, "el avión
+    frena" era indistinguible de "ya lo arreglé".
+
+---
+
+## 17. LA CABINA Y SUS MEDIDAS, JUNTAS *(22/8)*
+
+La cabina es **`assets/planes/cockpitv2.png`** (3543×2027 · 1.748:1). Se probó volver al anterior y
+se volvió acá a pedido; lo que quedó del viaje de ida y vuelta es lo que importa:
+
+**El `src` y sus dos medidas ahora viven en un solo `const COCKPIT`.** Estaban a treinta líneas de
+distancia y pasó exactamente lo que tenía que pasar — el asset se cambió en un lado y
+`V_VISOR`/`V_VIDRIO` en el otro. Una cabina dibujada con el visor y el parabrisas de OTRO PNG **no
+falla**: se ve mal, y hay que mirarla para darse cuenta. Es el mismo patrón que ya nos costó el agua
+del vidrio y la sal.
+
+Los dos assets, medidos leyendo el propio archivo:
+
+| | `cockpitv2.png` (en uso) | `a4-skyhawk/cockpit.png` |
+|---|---|---|
+| proporción | 1.748:1 — **más angosto** que el cuadro | 1.833:1 — más ancho |
+| `visor` | 0.436 | 0.3932 |
+| `vidrio` | 0.3873 | 0.3164 |
+| ¿necesita el piso de ancho pleno? | **sí** | no |
+| ¿lo embebe `build_web.py`? | sí | **no** |
+
+### Divergencias
+
+44. **El piso de `altoAncho` existe por este PNG.** Es el único de los dos más angosto que la
+    pantalla, así que anclado por el alto dejaría 4 px de mundo a cada lado. Queda donde debe estar
+    en el orden: **antes** de `esc`, para que evite el descuido sin vetar la decisión de encuadre.
+45. **Cuando una medida tiene margen de error, el error barato tiene lado.** `vidrio` salía 0.402 o
+    0.3873 según qué franja del ancho se muestree. Se eligió el **chico**: pasarse hacia abajo pone
+    el agua y la sal sobre el TABLERO; quedarse corto las deja sobre vidrio igual.
+46. **Cambiar el PNG rompe el build web si el archivo nuevo no está en la lista de `build_web.py`.**
+    Volver al `a4-skyhawk/cockpit.png` dio *«quedaron rutas ../assets/ sin re-embeber»* — el gate lo
+    agarró, pero es una trampa que no se ve desde el juego de escritorio.

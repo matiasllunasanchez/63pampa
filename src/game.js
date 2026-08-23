@@ -21,6 +21,7 @@ import { proj, popup, explodeAt, bloodBurst, despiece, morir, actaDe, stepDestru
 import { ULTIMA_VARIANTE } from './core/fx.js';   // QUITAR con las sondas de v2
 import { CHUNK_LIFE, CHUNKS_MAX, ONDA_T, FLASH_T,
   forzarVariante, variantesDe, recetaDe, MORIBUNDO_MAX } from './data/despiece.js';
+import { machNow, conoAmt, cruzo } from './core/mach.js';
 import * as momentum from './legacy/momentum.js';
 import * as tempo from './systems/tempo.js';
 import * as chancha from './systems/chancha.js';
@@ -37,8 +38,15 @@ import * as pasada from './systems/pasada.js';
 import * as pasadaRender from './render/pasada.js';
 import * as pulso from './systems/pulso.js';
 import * as pulsoRender from './render/pulso.js';
+import * as machRender from './render/mach.js';
 import * as cine from './systems/cine.js';
 import { drawCine } from './render/cine.js';
+import { nuevoReguero, humear, MISIL } from './render/reguero.js';
+// EL HUMO DE CADA MISIL, guardado APARTE del misil. Va en un WeakMap y no en un campo del objeto
+// porque `pmissiles` es un store del mundo y el render no le escribe encima (convencion 4); cuando
+// el misil muere, su reguero se va con el sin que nadie lo tenga que barrer.
+const REG_MISIL = new WeakMap();
+const regMisil = m => { let r = REG_MISIL.get(m); if (!r) REG_MISIL.set(m, r = nuevoReguero()); return r; };
 import { PULSO } from './data/pulso.js';
 import { spawnSystem } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
@@ -62,6 +70,7 @@ import * as world3D from './legacy/three-world.js';
 import { cv, ctx, W, H, HOR, F, PZ, SC, px, panel, U } from './render/ctx.js';
 import * as screens from './render/screens.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
+import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
 import * as menus from './render/menus.js';
 import { stepRain, stepSpray, drawRain, RAIN_N } from './render/rain.js';
 import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit } from './systems/fog.js';
@@ -966,6 +975,12 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       { label: () => T('optMarco'), opts: ['off', 'bruma', 'focus'],
         names: () => ['off', 'bruma', 'focus'].map(m => T('optMarco_' + m)),
         get: () => cfg.marco, set: v => cfg.marco = v, save: 'rasante_marco' },
+      // LO TRANSONICO (PLAN_TRANSONICO): vapor de ala y cono. Va al lado de la niebla de guerra
+      // por la misma razon — es como querés ver el juego, no una regla del mundo. Y tiene el
+      // escalon intermedio a proposito: 'vapor' deja SOLO lo que un A-4 hacia de verdad.
+      { label: () => T('optMach'), opts: ['off', 'vapor', 'todo'],
+        names: () => ['off', 'vapor', 'todo'].map(m => T('optMach_' + m)),
+        get: () => cfg.mach, set: v => cfg.mach = v, save: 'rasante_mach' },
 
       { head: 'optSecMapa' },
       // elegir COSTA trae su clima: día nublado de desembarco (el FONDO se puede cambiar después)
@@ -1334,6 +1349,8 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     let czBrk = 0;           // sonda: segundos de quiebre lateral sostenido (ver __czquiebre)
     let czSpd = null;        // sonda: velocidad clavada, para medir la velocidad de cierre (ver __czspd)
     let czMv = null;         // sonda: pirueta inyectada por un cuadro (ver __czmv)
+    let machPrev = 0;      // velocidad del cuadro anterior: de aca sale el CRUCE transonico
+    let machHold = null;   // sonda de LO TRANSONICO (QUITAR): fija velocidad/alabeo cuadro a cuadro
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
     let toT = 0, toCount = 4;
     let levelT = 0;   // temporizador de las tarjetas de transición de nivel / victoria (campaña)
@@ -1984,6 +2001,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // dilatacion se suelta con la bomba. Lo decide el sistema (timeScale), que es el unico que
       // sabe en que compas de la cinematica esta.
       const dtReal = dt;
+      run.dtReal = dtReal;   // el reloj de pared, para los efectos que no se dilatan (ver core/run.js)
       if (S.state === 'pulso') dt *= pulso.active() ? pulso.timeScale() : PULSO.SLOW;
       run.t += dt;
       prbTick();   // MODO PRUEBAS: las sondas agendadas con a.luego() (no hace nada sin S.test)
@@ -1998,6 +2016,17 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
           ppalIdx = k >= ppalIdx ? k + 1 : k;
         }
       }
+      // EL CRUCE TRANSONICO (PLAN_TRANSONICO V3): se compara la velocidad con la del cuadro
+      // anterior. Es la unica forma de que sea un EVENTO — mirar `conoAmt` daria "hay cono", que
+      // ya es verdad el cuadro siguiente y dispararia para siempre.
+      if (S.state === 'play' && cfg.mach === 'todo' && cruzo(machPrev, run.spd)) {
+        machRender.cruce();
+        run.shake = Math.min(7, run.shake + 3.2);
+        run.flash = Math.min(1, run.flash + 0.35);
+        beep(150, 0.22, 'sawtooth', 0.05, 620);   // el golpe: grave que sube, no un pitido
+        sfxOne('waveFly');
+      }
+      machPrev = run.spd;
       tickDuck(dt);                      // el ducking de la musica se recupera solo
       fadeT = Math.max(0, fadeT - dt);   // fundido desde negro (se pinta al final de draw)
       // FOGONAZO (D3): se apaga solo, rapido. Va acá y no en un sistema porque tiene que correr en
@@ -2596,7 +2625,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // render de la cabina, lo decide el sistema, y los junta aca — que es el trabajo de este
       // archivo. Se pide ANTES de dibujar porque el buque va primero: es mundo.
       world.drawApproachBarge(objectiveDist, objectiveShip,
-        S.state === 'pulso' ? pulso.shipFx(pulsoRender.ventana(pulso.state(), run.t)) : null,
+        S.state === 'pulso' ? pulso.shipFx(pulsoRender.ventana(cine.state(), run.t)) : null,
         runClimax() === 'pasada' && S.state !== 'pulso');
       world.drawObjectiveMarker(objectiveDist);                // cuña roja en el horizonte: hacia donde vamos
       world.drawWake();
@@ -2699,12 +2728,13 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         px(x0, yTip + L, w, fl, '#ffd479');
         px(x0 + w * 0.25, yTip + L, Math.max(1, w * 0.5), fl * 0.6, '#fff3cf');
         px(x0 + w * 0.25, yTip + L + fl, Math.max(1, w * 0.5), fl * 0.5, '#e8842a');
-        // ESTELA de humo: puntos que se van apagando hacia atras (sin lineas vectoriales)
-        for (let t = 1; t <= 4; t++) {
-          ctx.globalAlpha = 0.34 - t * 0.07;
-          const st = proj(pm.x, pm.y, pm.z - t * 3.5);
-          px(st.x - w * 0.5, st.y, Math.max(1, w), Math.max(1, w), '#c8cfd4');
-        }
+        // ESTELA DE HUMO: EL REGUERO (render/reguero.js), la misma mecanica que el humo de tobera
+        // y los vortices de punta del avion, en su version de misil — mas grande y blanca.
+        //
+        // Antes eran cuatro puntos muestreados hacia atras en z: una recta calculada desde donde
+        // el misil esta AHORA, o sea que se movia rigida con el. El reguero deja el humo DONDE EL
+        // MISIL PASO y ahi se queda abriendose, que es lo que hace que se lea de donde salio.
+        humear(regMisil(pm), s.x, s.y, Object.assign({ t: run.t, f: 1, on: true, corta: true }, MISIL));
         ctx.globalAlpha = 1;
       }
       // NIEBLA: al final del mundo y ADENTRO del giro. Va acá y no antes porque tiene que tapar
@@ -3311,6 +3341,22 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // cambia entre ellas es la variante, que es justo lo que se quiere comparar.
     // Cuantos "se van muriendo" hay en el aire (QUITAR). El cap de §6.2 es una afirmacion sobre el
     // MUNDO, no sobre una muerte: hay que poder contarlos despues de pedir varias.
+    // QUITAR — dispara una PIRUETA a mano. Se tiran con COMBOS de gestos, asi que desde un
+    // fixture no hay forma de pedir una sin reproducir el combo entero: sin esto, "la estela sale
+    // en la maniobra" no se puede afirmar con un numero.
+    if (typeof window !== 'undefined') window.__mv = id => {
+      // 'tonel' entra por otra puerta que las piruetas (startRoll, no startMove) y gira el SPRITE
+      // entero: es el caso que prueba que la estela acompaña la rotacion y no se queda horizontal.
+      const ok = id === 'tonel' ? (startRoll(1), true) : moves.startMove(id || 'barrel', 1);
+      return JSON.stringify({ pedido: id || 'barrel', ok, mv: run.mv || null, rollT: +(run.rollT || 0).toFixed(2) });
+    };
+
+    // QUITAR — la estela de punta de ala: con que fuerza sale y cuantas muestras vivas tiene.
+    if (typeof window !== 'undefined') window.__tipdbg = () =>
+      JSON.stringify({ ...TIP_DBG, bank: +plane.bank.toFixed(2),
+        mv: run.mv || null, roll: +(run.rollT || 0).toFixed(2), boost: !!run.boost,
+        cx: Math.round(proj(plane.x, plane.y, PZ).x), cy: Math.round(proj(plane.x, plane.y, PZ).y) });
+
     if (typeof window !== 'undefined') window.__moribundos = () =>
       JSON.stringify({ n: obstacles.filter(c => c.moribundo).length, tope: MORIBUNDO_MAX });
 
@@ -3374,6 +3420,21 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // afirmar "cadena de 3 con retardos legibles" — a ojo, tres explosiones en medio segundo son
     // una sola explosión con ruido.
     if (typeof window !== 'undefined') window.__muertes = () => JSON.stringify(MUERTES);
+
+    // LO TRANSONICO A PEDIDO (QUITAR). Llegar a Mach 1,4 volando lleva diez segundos de turbo
+    // sostenido y cinco escalones de afterburner: para COMPARAR el efecto a dos velocidades hay que
+    // poder plantarse en cada una. `__mset(spd, bank)` fija las dos cosas cuadro a cuadro (si no,
+    // speedTarget se la lleva de vuelta al cuadro siguiente); `__mset(0)` la suelta.
+    if (typeof window !== 'undefined') window.__mset = (spd, bank, boost) => {
+      machHold = spd ? { spd, bank: bank || 0, boost: !!boost } : null;
+      return JSON.stringify({ hold: machHold });
+    };
+    if (typeof window !== 'undefined') window.__mdbg = () => JSON.stringify({
+      spd: Math.round(run.spd), kmh: Math.round(run.spd * 4.2),
+      mach: +machNow(run.spd).toFixed(2),
+      cono: +conoAmt(run.spd).toFixed(2),
+      bank: +plane.bank.toFixed(2), boost: !!run.boost, tier: run.afterTier, state: S.state,
+    });
 
     // CENSO DEL ESCOMBRO (QUITAR). Lo que el plan llama "los restos QUEDAN" y "el cap manda" son
     // dos afirmaciones sobre una población de pedazos: hay que poder contarla desde afuera.
@@ -3445,7 +3506,12 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       if (ch.rum) beep(58, 0.3, 'sawtooth', 0.028);                    // los motores del Hercules
       if (ch.bomba) beep(190, 0.05, 'square', 0.03, 40);               // la bomba de transferencia
       if (ch.sig) chanchaRadio(ch.sig);
-      update(dt); draw(); updateMusic(S.state);
+      update(dt);
+      // SONDA DE LO TRANSONICO (QUITAR): va ENTRE update y draw a proposito. Puesta antes, la
+      // fisica se la lleva por delante en el mismo cuadro (speedTarget devuelve la velocidad
+      // verdadera y `run.spd` vuelve sola) — medido: pedia 240 y el HUD marcaba 118.
+      if (machHold) { run.spd = machHold.spd; plane.bank = machHold.bank; run.boost = machHold.boost; }
+      draw(); updateMusic(S.state);
       if (playerEl) playerEl.classList.toggle('on', canPickMusic());   // reproductor: solo donde hay pista cambiable
       requestAnimationFrame(frame);
     }

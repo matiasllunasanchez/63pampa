@@ -1008,3 +1008,41 @@ test('cine: el premio del PULSO compone en orden y solo la zona brava vuela dos 
   assert.equal(armarCine(CINES.pulso_premio, { tSinPirueta: 0, tPir: 0.4, muerteDur: 2.6 }).filter(b => b.rotulo).length, 1,
     'sin piruetas aprendidas el premio se rotula: el examen era soltar');
 });
+
+// ---------------- LO TRANSONICO: la vara del vapor y el cono (core/mach.js) ----------------
+// Es la unica cuenta del efecto, y si se corre el efecto deja de significar lo que dice: el cono
+// tiene que ser la recompensa de SOSTENER el turbo, no algo que aparece volando de crucero.
+import { machNow, vaporAmt, conoAmt, cruzo } from '../src/core/mach.js';
+import { M_VAPOR, M_CONO, M_CONO_FULL, A_MAR, KMH_U } from '../src/data/tuning.js';
+import { AFTER_MAX, AFTER_CAP } from '../src/core/physics.js';
+
+test('mach: el numero es el del HUD dividido la velocidad del sonido en el mar', () => {
+  near(machNow(A_MAR / KMH_U), 1, 1e-9);            // por definicion
+  near(machNow(0), 0);
+  // el techo REAL del juego (physics.js): con todos los escalones de afterburner
+  const techo = machNow(280 + AFTER_MAX * AFTER_CAP);
+  assert.ok(techo > 1.6 && techo < 1.8, `el techo del juego da M ${techo.toFixed(2)}`);
+});
+
+test('mach: el cono pide TURBO y el vapor no', () => {
+  // crucero con racha y sin turbo ronda las 240 unidades (base 150 x racha 1.6)
+  assert.equal(conoAmt(240), 0, 'volando de crucero no puede haber cono');
+  assert.ok(vaporAmt(240, 1) > 0, 'pero virando fuerte SI tiene que haber vapor de ala');
+  // turbo sostenido sin escalones: 280
+  assert.ok(conoAmt(280) > 0, 'con turbo sostenido tiene que empezar a haber cono');
+  assert.equal(conoAmt(A_MAR * M_CONO_FULL / KMH_U), 1, 'y llenarse en M_CONO_FULL');
+});
+
+test('mach: el vapor sale de la CARGA, no de la velocidad sola', () => {
+  const rapido = 300;
+  assert.equal(vaporAmt(rapido, 0), 0, 'derecho y sin G no hay vapor por rapido que vayas');
+  assert.ok(vaporAmt(rapido, 0.5) < vaporAmt(rapido, 1), 'mas G, mas vapor');
+  assert.equal(vaporAmt(A_MAR * (M_VAPOR - 0.01) / KMH_U, 1), 0, 'por debajo del umbral, nada');
+});
+
+test('mach: el CRUCE es un evento, no un nivel', () => {
+  const bajo = A_MAR * (M_CONO - 0.02) / KMH_U, alto = A_MAR * (M_CONO + 0.02) / KMH_U;
+  assert.ok(cruzo(bajo, alto), 'de abajo hacia arriba, cruza');
+  assert.ok(!cruzo(alto, alto), 'quedarse adentro NO es cruzar (si no, dispara cada cuadro)');
+  assert.ok(!cruzo(alto, bajo), 'salir tampoco');
+});

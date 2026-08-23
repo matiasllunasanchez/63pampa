@@ -107,6 +107,50 @@ desgaste de catorce misiones.
 **Identidad mecánica: es LA VARA.** Todos los demás se miden contra él. Ninguna perilla
 suya se toca — si un avión tiene que sentirse distinto, se mueve el otro.
 
+### 🟥 EL ARMAMENTO — lo que realmente llevaban *(verificado 2026-08-22)*
+
+**Cañones: dos Colt Mk 12 de 20 mm, 100 proyectiles cada uno.** Y el dato que vale para el
+guion: **eran poco apreciados y se trababan.** Un piloto con los cañones trabados sobre el
+blanco es una escena que se escribe sola.
+
+**Bombas — las tres que efectivamente usaron:**
+
+| Bomba | Peso | Dónde aparece |
+|---|---|---|
+| **Mk 17** | 1000 lb / 454 kg | Los ataques grandes contra buques (12 de mayo, HMS Glasgow y HMS Brilliant) |
+| **Mk 82**, incluida la versión **Snakeye** | 500 lb | Las aletas frenadoras del Snakeye existen **justamente para poder tirar bajo** |
+| **BRP-250 española** | 250 kg | 8 de junio, Sir Galahad y Sir Tristram — **tres por avión** |
+
+**Configuración típica: tres bombas por avión** (una ventral, dos alares), o una sola de
+1000 lb. Tanques externos de 1.400 litros en pilones.
+
+**⚠ NI CONTRAMEDIDAS.** De fábrica **no tenían nada**: ni bengalas, ni lanzadores de chaff,
+ni alerta radar. El chaff que usaron era **casero, cortado con una máquina de hacer fideos**,
+envuelto en papel higiénico y metido en el freno aerodinámico — o sea que **soltar la defensa
+te frenaba.** Historia completa y verificada en PREGUNTAS_HISTORICAS.
+
+**⚠ NO LLEVABAN MISILES AIRE-AIRE.** Bombas y cañón, nada más. Contra un Sea Harrier con
+Sidewinder AIM-9L, un A-4B **no tenía absolutamente nada que hacer**: ni radar para verlo
+venir, ni misil para contestarle. **Esa indefensión no es un detalle técnico del juego: es
+la premisa.** Todo el sistema de LA COLA y del Harrier que persigue se apoya en este hecho.
+*(El A-4Q de la Armada es un caso aparte — ver PREGUNTAS_HISTORICAS.)*
+
+### 🟥 EL PROBLEMA DE LAS ESPOLETAS — el corazón de M6
+
+Volaban tan bajo que **la espoleta no llegaba a armarse antes del impacto**. Resultado:
+**13 bombas pegaron y no explotaron.** Se salvaron por eso, entre otros, el **HMS Antelope**,
+el **HMS Glasgow** y el **HMS Plymouth**. En el intento se perdieron **22 aviones**.
+
+**La frase, y ésta SÍ tiene fuente:** un oficial británico reconoció que **"con seis
+espoletas mejores, habríamos perdido"**.
+
+> **Esto ya está adentro del guion sin que lo hubiéramos verificado:** **M6 se llama "La
+> bomba que no despertó" y su blanco es el HMS Antelope** — que es literalmente uno de los
+> buques que sobrevivieron por una bomba que no explotó. El título del nivel era correcto
+> antes de saberlo. **La frase de las seis espoletas es candidata fuerte para la placa del
+> cierre**, junto a los 323 del Belgrano y el Narwal: es de las pocas citas británicas del
+> juego que tienen fuente de verdad.
+
 > ⚠️ **Bug vivo:** el HUD anuncia `AFTERBURNER x{n}` en inglés (`strings.js`). El A-4B **no
 > tiene posquemador**. En castellano dice `TURBINA` y zafa; el inglés afirma un sistema que
 > ese avión no tenía. Cambio de una línea.
@@ -304,7 +348,7 @@ ctx.drawImage(sheet, 4 * 84, 1 * 84, 84, 84, 0, 0, 336, 336);
 
 | # | Imagen | Rol |
 |---|---|---|
-| 1 | **el cuadro central del sprite** (arriba) | **POSE Y PINTURA.** Qué color va en qué parte |
+| 1 | 🟥 **un render del MODELO 3D en el ángulo nuevo** (o, si no, el cuadro central del sprite) | **POSE Y PINTURA** — y con el render 3D, además **LA FORMA**, que es lo que hoy falla |
 | 2 | **un sprite de vehículo de Metal Slug** | **EL ESTILO.** El mismo archivo para los seis |
 | 3 | **foto o vista de 3 caras del avión REAL** | **LA FORMA.** Una distinta por avión |
 
@@ -316,6 +360,53 @@ ctx.drawImage(sheet, 4 * 84, 1 * 84, 84, 84, 0, 0, 336, 336);
 
 > ⚠️ **Los seis se generan con la MISMA imagen 2.** Cambiar la referencia de estilo a mitad de
 > camino da seis aviones que no parecen del mismo juego.
+
+### 🟥 POR QUÉ SALEN TODOS IGUALES — el diagnóstico *(2026-08-22)*
+
+**No es el texto. Es la POSE.**
+
+El prompt pide el avión **visto desde atrás**. Y desde atrás **desaparecen casi todas las
+diferencias que el propio prompt se pasa veinte líneas describiendo**:
+
+| Lo que el prompt describe | ¿Se ve desde atrás? |
+|---|---|
+| La nariz (corta y roma / larga y puntiaguda / radomo bulboso / dos asientos) | ❌ **Tapada por el fuselaje.** Es el rasgo más distintivo de los seis y no se ve NINGUNO |
+| La planta del ala (delta puro / delta corto / flecha / recta) | ⚠️ Escorzada — un delta grande y uno chico se parecen mucho |
+| El perfil del fuselaje (gordo y corto / largo y esbelto) | ❌ Se ve de punta |
+| La deriva | ❌ De canto |
+| **Si tiene o no cola horizontal** | ✅ **Lo único que sobrevive** |
+
+De todo el sistema de contraste, desde atrás **funciona una sola diferencia**. Por eso salen
+todos iguales — y por eso el Pampa sí se distingue: es el único cuya diferencia (ala recta,
+dos asientos, naranja) sobrevive parcialmente a ese ángulo.
+
+**Y hay una segunda razón, que es real y no se arregla con prompts:** de los seis, **cuatro
+son dos pares de primos de verdad**. El A-4B y el A-4Q **son la misma célula** (la diferencia
+histórica es la pintura y el gancho). El Dagger **es** un Mirage 5. El set tiene **tres
+siluetas reales, no seis.** Pedirle al generador que los separe por forma es pedirle que
+invente una diferencia que no existe.
+
+### El arreglo — tres cambios
+
+**1 · CAMBIAR LA POSE a tres cuartos delantero, ligeramente desde arriba.** Es el cambio que
+hace el 80% del trabajo: en ese ángulo se ven **al mismo tiempo** la nariz, la planta del ala
+y la cola. Es además la pose clásica de pantalla de selección de arcade. *(Ya aplicada abajo.)*
+
+**2 · ABRIR CADA BLOQUE CON EL TEST DE SILUETA** — una línea que describe **la mancha negra**,
+no el avión. El generador se agarra de eso mucho mejor que de una lista de detalles.
+
+**3 · A LOS DOS PARES, SEPARARLOS POR PINTURA Y CARGA, NO POR FORMA.** Es lo honesto y es lo
+que pasaba de verdad: el A-4Q es el Skyhawk **claro y limpio** de la Armada contra el
+**oscuro y sucio** de la Fuerza Aérea; el Mara es el delta **recién salido de fábrica, con
+tanques**, contra el Dagger **camuflado y gastado**. Esa diferencia sí es visible y sí es
+cierta.
+
+> 🟩 **Y el arreglo definitivo, que además es gratis: ya tenés los modelos 3D.**
+> `tools/bake_planes.html` hornea las hojas desde geometría. **Renderizá la preview desde el
+> modelo, en el ángulo nuevo, y usá ESO como imagen 1.** Así la forma no la inventa el
+> generador —la pone el modelo— y la IA queda haciendo solo lo que hace bien: estilo,
+> textura, desgaste y paleta. Mismo criterio que las cinemáticas: **geometría → motor;
+> materia → IA.**
 
 ### El prompt maestro
 
@@ -332,10 +423,13 @@ DO NOT use IMAGE 1 as a shape reference. It is a tiny low-resolution render in w
 every aircraft looks the same. The shape comes from the written description below,
 and the written description WINS over IMAGE 1 in any conflict about shape.
 
-The pose, to be explicit: the aircraft seen from DIRECTLY BEHIND and very slightly
-above, nose pointing away from the viewer, perfectly symmetrical, wings spread
-horizontally and filling the width of the frame, the engine exhaust nozzle facing
-the camera at the centre. Keep exactly that.
+The pose, to be explicit: a FRONT THREE-QUARTER view from slightly ABOVE. The
+aircraft is angled roughly 35 degrees away from the camera so that the viewer sees
+AT THE SAME TIME: the full length and shape of the NOSE, the complete PLANFORM of
+the wing from above, and the TAIL with its fin and with its horizontal tailplanes if
+it has any. Nose pointing forward-left and slightly down. THIS EXACT ANGLE IS
+MANDATORY: seen from behind, all six of these aircraft look identical and the
+drawing is worthless.
 
 IMAGE 2 is the ART STYLE REFERENCE, and you must copy its rendering technique while
 completely ignoring its subject.
@@ -378,6 +472,10 @@ ilustración y el sprite comparten paleta de verdad.
 
 **A-4B SKYHAWK** — `a4-skyhawk/preview.webp`
 ```
+SILHOUETTE TEST - filled in solid black, this must read as a SHORT FAT ARROWHEAD
+with a stubby blunt tip and a small cross near the TOP of the tail. The smallest and
+roundest shape of the set.
+
 A Douglas A-4B Skyhawk. Against the other five, this is the SMALLEST, STUBBIEST
 and ROUNDEST aircraft of the set - it should look almost toy-like next to the
 deltas. Key silhouette points, in order of importance:
@@ -396,6 +494,10 @@ One blue-and-white Argentine roundel on each wing. No personal markings.
 
 **IAI DAGGER** — `iai-dagger/preview.webp`
 ```
+SILHOUETTE TEST - filled in solid black, this must read as ONE LONG CLEAN TRIANGLE
+with a needle sticking out the front and a single fin on top. NO cross near the
+tail, nothing horizontal back there at all.
+
 An IAI Dagger, the israeli Mirage 5. Against the other five, THE DEFINING
 DIFFERENCE IS THAT IT HAS NO HORIZONTAL TAILPLANES AT ALL - the tail is a single
 vertical fin and nothing else. If you draw horizontal tailplanes on this aircraft
@@ -413,6 +515,10 @@ One blue-and-white Argentine roundel on each wing.
 
 **SUPER ÉTENDARD** — `super-etendard/preview.webp`
 ```
+SILHOUETTE TEST - filled in solid black, this must read as a SWEPT-WING DART with a
+rounded blunt head and a clear cross LOW at the back. Two separate shapes back
+there - fin above, tailplanes below - never one triangle.
+
 A Dassault Super Étendard. Against the other five, this is the only one with BOTH
 SWEPT WINGS AND HORIZONTAL TAILPLANES - it is NOT a delta and it is NOT a Skyhawk.
 Key silhouette points:
@@ -430,6 +536,10 @@ One blue-and-white Argentine roundel on each wing.
 
 **A-4Q** — `a4q/preview.webp`
 ```
+SILHOUETTE TEST - IDENTICAL to the A-4B: short fat arrowhead, stubby blunt tip,
+small cross high on the tail. Do not change the shape by even a little. Everything
+that separates this aircraft from the A-4B is PAINT and NAVAL GEAR.
+
 An A-4Q, the NAVAL Skyhawk. This aircraft is DELIBERATELY the same airframe as the
 A-4B - same small stubby body, same short low delta wing, same HIGH-MOUNTED
 horizontal tailplanes near the top of the fin, same blunt nose. Do not redesign it.
@@ -444,6 +554,10 @@ One blue-and-white Argentine roundel on each wing.
 
 **MIRAGE 5P «MARA»** — `mirage-5p/preview.png`
 ```
+SILHOUETTE TEST - the SAME long clean triangle as the Dagger: needle nose, single
+fin, no cross at the tail - PLUS two fat cylinders slung under the wings. The shape
+is a cousin of the Dagger on purpose; what separates them is PAINT and those TANKS.
+
 A Dassault Mirage 5P. Like the Dagger, it HAS NO HORIZONTAL TAILPLANES - a single
 vertical fin and nothing else - and a huge pure triangular delta wing. Against the
 Dagger specifically, two differences that must be visible:
@@ -460,6 +574,10 @@ One blue-and-white Argentine roundel on each wing, freshly painted and crisp.
 
 **PAMPA 63** — `pampa-63/preview.webp` *(entrada comentada; el asset se genera igual)*
 ```
+SILHOUETTE TEST - filled in solid black, this must read as a PLAIN CROSS: a
+straight bar of wing at right angles to the body, no sweep, no triangle anywhere.
+The only non-pointy shape of the set.
+
 An FMA IA-63 Pampa. Against the other five, this is the ONLY one with a STRAIGHT
 WING and TWO SEATS, and the only one that is not a combat jet. Key silhouette
 points:
@@ -494,7 +612,7 @@ Do not redraw anything else.
 | Sale mal | El arreglo |
 |---|---|
 | Quedó suave / vectorial, no pixel art | `redraw all shading as hard dithered pixel clusters with chunky dark outlines; remove every smooth gradient and every soft edge` |
-| Lo giró de perfil o de frente | `rotate the aircraft to be seen from directly behind and slightly above, nose pointing away from the viewer, perfectly symmetrical` |
+| Lo puso de atrás, de perfil puro o de frente puro | `rotate the aircraft to a FRONT THREE-QUARTER view from slightly above, angled about 35 degrees from the camera, so that the nose shape, the full wing planform and the tail are all visible at once` |
 | Le cambió los colores | `restore the exact paint scheme of the reference image - same colours on the same parts` |
 | Le puso cola horizontal a un delta | `remove the horizontal tailplanes completely - a delta wing aircraft has none` |
 | Le puso números o etiquetas | `remove every letter and number from the image and leave those areas blank` |

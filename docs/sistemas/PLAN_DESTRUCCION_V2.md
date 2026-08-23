@@ -60,9 +60,25 @@ aire con caída vertical. Globo (3): reventón · desinflado en espiral · **inc
 cae lento — el mejor de los tres).
 
 ### Los barcos del pasillo (lcu, fragata)
-Hundimiento variable por `lado`: **de proa**, **de popa** o **de quilla** (escora y vuelco);
-fuego en cubierta que persiste; y la **santabárbara** rara (dado bajo): explosión enorme que
-lo parte — el evento que se comenta.
+
+> **CAMBIO DE ALCANCE (Matías, 8/2026): el barco NO se parte en dos.** *"No es un misil que lo
+> hunde como el Titanic; con que se llene de humo y agarres la explosión que hoy usamos para la
+> bomba que cae verticalmente encima del barco, estamos bien."*
+
+Entonces la muerte del barco es, y nada más que:
+
+1. **El hongo que ya existe** — `render/boom.js` / `assets/world/explosions/bomb.png`, la misma
+   explosión de la bomba vertical. **Se reusa, no se hace una nueva**: es la explosión más grande
+   del juego y ya está medida (18 frames, `DUR` atada a la ventana de daño).
+2. **Humo que PERSISTE** en el lugar — el `'humo'` de D2, con la columna larga.
+
+Se cae, por lo tanto: el hundimiento por `lado` (proa/popa/quilla), la escora, el vuelco y el
+partirse al medio. Todo eso era coreografía de hundimiento y el pedido es explícitamente que no la
+haya. **La `santabárbara` queda sin su razón de ser** (era "la explosión enorme que lo parte"): si
+se quiere conservar el evento raro, lo único que puede distinguirlo ya es la ESCALA y la duración
+del hongo, no una silueta distinta — y eso choca con el §1, así que por defecto **se descarta** y
+`SANTABARBARA_P` sale de las perillas. Si Matías la quiere de vuelta, hay que decidir primero qué
+la hace distinguible.
 
 ### El derribo del jugador, por causa
 Agua: cartwheel + corona de agua · tierra: derrape largo con chispas · AA/misil: aéreo
@@ -77,12 +93,12 @@ Agua: cartwheel + corona de agua · tierra: derrape largo con chispas · AA/misi
 | **V1 · El aire** ✅ | Las 4 variantes + eyección para jet/Harrier, ponderadas por `killer` | `__romperTodas('jet')`: 4 muertes distinguibles en una captura |
 | **V2 · Tierra: peso y momento** | Las clases de masa y la tabla de §3 para todo lo de tierra | liviano vuela, medio vuelca, pesado no se mueve — en 3 capturas |
 | **V3 · Helo y globo** | 3 + 3 variantes | capturas |
-| **V4 · Los barcos** | hundimiento por lado + santabárbara rara | capturas; la santabárbara sale ~1 de 8 |
+| **V4 · Los barcos** | el hongo de la bomba vertical (reusado) + humo que persiste. **Sin partirse ni escorar** — ver §3 | una captura: el barco muerto se lee como un incendio, no como un hundimiento coreografiado |
 | **V5 · El jugador** | el derribo por causa | las 4 causas se ven distintas; `DEATH_REVEAL` intacto |
 | **V6 · Las hojas nuevas + gate** | integrar los PNG de §5 que hayan llegado (cada receta con fallback por código mientras no esté la hoja); perf en m9 con variantes largas (`moribundo` cap 2 vivos); `npm run romper` ampliado a la matriz tipo×variante | 120 fps sostenidos como en D5; fixture verde |
 
-**Perillas nuevas** (`data/despiece.js`): `MORIBUNDO_MAX 2` · `EYECT_P 0.35` ·
-`SANTABARBARA_P 0.12` · `VAR_SEED` (para forzar una variante en pruebas).
+**Perillas nuevas** (`data/despiece.js`): `MORIBUNDO_MAX 2` · `EYECT_P 0.35` · `VAR_SEED`
+(para forzar una variante en pruebas). ~~`SANTABARBARA_P`~~ se cae con el cambio de alcance de §3.
 
 ## 5. Las hojas PNG que sirven *(lo que pediría — por prioridad)*
 

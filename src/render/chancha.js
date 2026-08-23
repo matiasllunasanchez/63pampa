@@ -11,6 +11,7 @@ import { P } from '../data/palette.js';
 import { run } from '../core/run.js';
 import { CH_BOX } from '../data/tuning.js';
 import { snapshot } from '../systems/chancha.js';
+import * as enemyArt from './enemies.js';
 
 /** El Hercules, la manguera y la canasta. Se llama desde draw() en 'play', despues del mundo. */
 export function drawChancha() {
@@ -21,21 +22,29 @@ export function drawChancha() {
   const w = 26 * k, h = 3.4 * k;                            // el KC-130 es GRANDE: se lee de lejos
   const bodyY = s.y - h / 2;
 
-  // ALA ALTA de punta a punta (el Hercules es un ala arriba del fuselaje, y esa es su silueta)
-  px(s.x - w / 2, bodyY - h * 0.35, w, Math.max(1, h * 0.34), '#5a6a63');
-  // los cuatro motores, dos por lado, colgando del ala
+  // EL AIRFRAME: la hoja horneada si esta (tools/bake_enemies.html -> modelHercules), y si no el
+  // dibujo procedural de siempre. Es el enchufe que este archivo ya tenia previsto en su cabecera.
+  if (enemyArt.ready('chancha')) {
+    enemyArt.drawFrame(ctx, 'chancha', 0, 0, s.x, { centerY: s.y }, k, false, false, 0);
+  } else {
+    // ALA ALTA de punta a punta (el Hercules es un ala arriba del fuselaje, y esa es su silueta)
+    px(s.x - w / 2, bodyY - h * 0.35, w, Math.max(1, h * 0.34), '#5a6a63');
+    for (const f of [-0.34, -0.19, 0.19, 0.34]) {
+      px(s.x + w * f - Math.max(1, w * 0.022), bodyY - h * 0.35, Math.max(1, w * 0.045), Math.max(1, h * 0.7), '#41504a');
+    }
+    // fuselaje, morro y la cola
+    px(s.x - w * 0.16, bodyY, Math.max(2, w * 0.32), Math.max(1, h * 0.6), '#6b7a72');
+    px(s.x - w * 0.2, bodyY + h * 0.12, Math.max(1, w * 0.05), Math.max(1, h * 0.36), '#8a9992');
+    px(s.x + w * 0.14, bodyY - h * 0.95, Math.max(1, w * 0.035), Math.max(1, h * 1.0), '#5a6a63');
+    px(s.x + w * 0.06, bodyY - h * 1.05, Math.max(1, w * 0.17), Math.max(1, h * 0.22), '#5a6a63');
+  }
+  // LAS HELICES VAN SIEMPRE POR CODIGO, con hoja o sin ella: un disco horneado se ve MUERTO, y lo
+  // que dice que este avion esta volando —y no pegado en el cielo— es que las cuatro giren.
   for (const f of [-0.34, -0.19, 0.19, 0.34]) {
-    px(s.x + w * f - Math.max(1, w * 0.022), bodyY - h * 0.35, Math.max(1, w * 0.045), Math.max(1, h * 0.7), '#41504a');
-    // la helice: un borron claro que gira (no se dibujan palas, se dibuja el disco)
     ctx.globalAlpha = 0.35 + 0.25 * Math.sin(run.t * 30 + f * 9);
     px(s.x + w * f - Math.max(1, w * 0.03), bodyY - h * 0.62, Math.max(1, w * 0.06), Math.max(1, h * 0.28), P.dim);
     ctx.globalAlpha = 1;
   }
-  // fuselaje, morro y la cola en T
-  px(s.x - w * 0.16, bodyY, Math.max(2, w * 0.32), Math.max(1, h * 0.6), '#6b7a72');
-  px(s.x - w * 0.2, bodyY + h * 0.12, Math.max(1, w * 0.05), Math.max(1, h * 0.36), '#8a9992');
-  px(s.x + w * 0.14, bodyY - h * 0.95, Math.max(1, w * 0.035), Math.max(1, h * 1.0), '#5a6a63');
-  px(s.x + w * 0.06, bodyY - h * 1.05, Math.max(1, w * 0.17), Math.max(1, h * 0.22), '#5a6a63');
 
   // LA MANGUERA: sale del ala derecha, cuelga y termina en la canasta. Se dibuja como una
   // cadena de puntos con panza —no una recta— porque una manguera tensa se lee como un palo.

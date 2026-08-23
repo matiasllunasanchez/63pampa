@@ -194,9 +194,12 @@
       CYL(g, 0.42, 0.40, 5.0, camoA, 0, 0, 0.1, 12);              // fuselaje redondo
       CONE(g, 0.40, 1.5, camoA, 0, 0, -3.15, false, 12);          // morro afinado
       CYL(g, 0.30, 0.26, 0.5, camoB, 0, -0.02, -3.85, 10);        // tubo de pitot / punta
-      // ALA: delta recortado, de una pieza y con anhedral leve (el A-4 lo tiene marcado)
-      WING(g, 5.1, 2.5, 0.85, 1.5, 0.14, camoB, -0.16, 0.85);
-      WING(g, 5.1, 2.5, 0.85, 1.5, 0.03, belly, -0.235, 0.85);    // panza clara asomando por debajo
+      // ALA: delta recortado, de una pieza, BAJA y con anhedral leve. El comentario ya decia
+      // "con anhedral leve" pero no se pasaba el parametro, asi que salia PLANA — el mismo vicio
+      // que tenia el Harrier, donde el comentario afirmaba lo que el codigo no hacia. En las fotos
+      // el ala del A-4 va casi recta con apenas caida hacia la punta: eso es un 4, no un 11.
+      WING(g, 5.1, 2.5, 0.85, 1.5, 0.14, camoB, -0.16, 0.85, 4);
+      WING(g, 5.1, 2.5, 0.85, 1.5, 0.03, belly, -0.235, 0.85, 4);   // panza celeste asomando por debajo
       // CAMO: las manchas van a y=0.02, que es JUSTO ENCIMA de la cara superior del ala (el ala
       // arranca en -0.16 y tiene 0.17 de espesor -> su techo esta en 0.01). Puestas mas abajo
       // quedaban DENTRO del ala y el avion se veia de un solo color.
@@ -217,6 +220,13 @@
       CYL(g, 0.27, 0.29, 1.5, camoB, 0.62, 0.10, -0.5, 8);
       CYL(g, 0.19, 0.19, 0.3, '#1b1f17', -0.66, 0.10, -1.22, 8);
       CYL(g, 0.19, 0.19, 0.3, '#1b1f17', 0.66, 0.10, -1.22, 8);
+      // SONDA DE REABASTECIMIENTO EN VUELO: la lanza que sale a la derecha del morro. Es EL rasgo
+      // de estos aviones —en las fotos del Grupo 5 es lo primero que se ve— y ademas SIGNIFICA
+      // algo en este juego, que tiene a la Chancha. Va apenas por fuera del radio del fuselaje
+      // (0.42) para que se despegue del bulto y no se lea como un pixel sucio pegado al morro.
+      CYL(g, 0.075, 0.065, 0.4, camoA, 0.5, 0.08, -2.25, 6);            // la base, gruesa
+      CYL(g, 0.05, 0.042, 2.1, camoB, 0.5, 0.08, -3.3, 6);              // el tubo
+      CONE(g, 0.075, 0.26, '#2b2f28', 0.5, 0.08, -4.45, false, 6);      // la boquilla
       tank(g, 0.17, 1.5, belly, -1.45, -0.42, 0.5);
       tank(g, 0.17, 1.5, belly, 1.45, -0.42, 0.5);
       nozzle(g, 0.34, 2.75, camoB, '#25291f');
@@ -377,14 +387,23 @@
       // VASCO no lleva marca: su distintivo es el CAMUFLAJE LAVADO de abajo. Es el mas viejo y
       // el unico sin nada personal — que es exactamente lo que dice de el el guion.
     };
-    const CAMO_FAA = ['#4e5c38', '#59683f', '#7a5c33', '#a6aeb3'];
-    const CAMO_LAVADO = ['#6d7358', '#767c60', '#948467', '#c2c8cb'];
+    // EL CAMO DE LA FAA, contra las fotos del Grupo 5 (C-207, C-226, C-302 y las de reabastecimiento
+    // en vuelo). Lo que estaba antes era OLIVO con manchitas marrones, y las fotos muestran lo
+    // contrario: el MARRON manda —fuselaje entero, casi milanesa— y el verde entra como manchon.
+    // Y la panza no es gris: es CELESTE, y se ve clarisimo en las tres fotos de abajo.
+    //   [0] camoA  fuselaje, morro y lomo — el marron que domina
+    //   [1] camoB  ala e intakes — el verde del otro tono
+    //   [2] patch  manchones sobre el ala y la banda del lomo — marron sobre verde
+    //   [3] belly  la panza CELESTE
+    const CAMO_FAA = ['#6b5136', '#4c5a39', '#82603a', '#a6bed2'];
+    // el mismo esquema DESGASTADO por el sol y la sal (el avion mas viejo de la escuadrilla)
+    const CAMO_LAVADO = ['#7d6449', '#616d51', '#96795a', '#bed0de'];
 
     const MODELS = {
-      sky: () => modelA4('#4e5c38', '#59683f', '#7a5c33', '#a6aeb3'),   // FAA: camo MARRON + VERDE
+      sky: () => modelA4(...CAMO_FAA),                                  // FAA: camo MARRON + VERDE, panza celeste
       dagger: modelDagger,
       supere: modelSuperE,
-      a4q: () => modelA4('#b4bcc2', '#c2c9ce', '#9aa4ab', '#dfe3e6'),   // Armada: PLATEADO / gris claro
+      a4q: () => modelA4('#b4bcc2', '#c2c9ce', '#9aa4ab', '#dfe3e6'),   // Armada: PLATEADO / gris claro (sin camo)
       pampa: modelPampa,
       mirage: modelMirage,
       // las cinco variantes del A-4 de campaña, una por Fiel (ver MARCAS arriba)
@@ -396,6 +415,22 @@
     };
 
     // hornea todos los sheets; devuelve { key: dataURL_png }
+    /** Espeja la mitad DERECHA sobre la izquierda en la columna del medio (la pose sin alabeo).
+     *  El eje es el centro del frame, que es donde el modelo esta centrado por construccion —
+     *  medido sobre las hojas: la caja del avion cae en x15-68 de 84, centro exacto 42.0. */
+    function simetrizaCentro(ctx2d, canvas) {
+      const col = (ANGLES.length - 1) / 2;
+      for (let row = 0; row * FH < canvas.height; row++) {
+        const im = ctx2d.getImageData(col * FW, row * FH, FW, FH), d = im.data;
+        for (let py = 0; py < FH; py++) for (let px = 0; px < FW / 2; px++) {
+          const sp = FW - 1 - px;
+          const i = (py * FW + px) * 4, j = (py * FW + sp) * 4;
+          d[i] = d[j]; d[i+1] = d[j+1]; d[i+2] = d[j+2]; d[i+3] = d[j+3];
+        }
+        ctx2d.putImageData(im, col * FW, row * FH);
+      }
+    }
+
     function __bake() {
       const R = makeRenderer(), cam = makeCam();
       const outEl = document.getElementById('out');
@@ -426,6 +461,19 @@
             x22.drawImage(R.domElement, i * FW, row * FH);
           });
         });
+        // SIMETRIZAR EL FRAME NIVELADO, dentro del horneo y no como parche despues.
+        //
+        // POR QUE HACE FALTA: el modelo es simetrico y la camara esta en el eje (cam.position.x = 0),
+        // pero la LUZ no — la principal viene de la izquierda (-3,5,4) y el contraluz de la derecha.
+        // Eso es lo que le da volumen al avion en las poses banqueadas y hay que conservarlo. Pero en
+        // la pose NIVELADA, vista de frente, esa misma luz deja las dos alas apenas distintas: unas
+        // filas de pixeles de borde y medio tono de diferencia. A 480x270 el avion ocupa 50 px y eso
+        // se ve como si estuviera torcido.
+        //
+        // Se corrige SOLO en la columna del medio, que es la unica pose que el ojo espera simetrica.
+        // Las banqueadas no se tocan: ahi la asimetria es la pose, no un defecto.
+        simetrizaCentro(x2, sheet);
+        simetrizaCentro(x22, sheet2);
         result[key] = { sheet: sheet.toDataURL('image/png'), sheet2: sheet2.toDataURL('image/png') };
         if (outEl) {   // vista previa (modo browser)
           const h = document.createElement('h2'); h.textContent = key + ' — ' + ANGLES.length + 'x' + PITCHES.length + ' frames de ' + FW + 'x' + FH + ' (filas: trepa/nivel/pica)';

@@ -550,6 +550,98 @@ hijo sabiendo exactamente lo que una bomba le hace a un cuerpo.
 [Infobae — la silenciada historia de las veteranas](https://www.infobae.com/2015/03/31/1719360-la-silenciada-historia-las-veteranas-malvinas/) ·
 [ATE — Alicia Reynoso, enfermera de Malvinas contra el olvido](https://ate.org.ar/alicia-reynoso-enfermera-de-malvinas-contra-el-olvido/)
 
+## ✅ CONTRAMEDIDAS — NO TENÍAN NADA, Y LO FABRICARON A MANO (VERIFICADO 2026-08-22)
+
+**La respuesta corta: de fábrica, nada.** Ni bengalas, ni lanzadores de chaff, ni alerta
+radar. Capitán **Pablo Carballo**, textual: *"Nuestros aviones no tenían receptor de alerta
+radar."* Los A-4, Mirage, Dagger y Canberra **carecían de todo equipo de autodefensa contra
+misiles guiados**.
+
+### Lo que hicieron en su lugar — el chaff de la máquina de fideos
+
+**El mayor Fernando Rezoagli**, jefe del escuadrón técnico del **Grupo de Bombardeo 2**, fue
+mandado a fabricar chaff desde cero. Su relato, textual:
+
+> *"Removí un rollo de aluminio del depósito… llamé a mi hijo mayor, que tenía 15 años… y le
+> dije que trajera tres o cuatro compañeros de clase… y que cada uno trajera unas tijeras."*
+
+**El aluminio salió de los rollos que se usaban para envolver las toberas de escape de los
+motores de los Canberra** y disipar calor. Le sacaron a un sistema para armar otro.
+
+Cortar a mano no alcanzaba. **Un suboficial propuso usar una máquina de hacer fideos.**
+Consiguieron una industrial de una fábrica de pastas llamada **Napoli**, y *"empezamos a
+darle a la manivela 24 horas por día, durante casi una semana."*
+
+### Cómo lo cargaban — esto es lo que sirve para el juego
+
+| Avión | Método |
+|---|---|
+| **Mirage III y Dagger** | Cartuchos de ~1,5 pulgadas de diámetro, **envueltos en papel higiénico y sujetos con cinta adhesiva, metidos en el FRENO AERODINÁMICO.** Se sueltan cuando el piloto abre el freno en vuelo |
+| **Canberra** | Siete lanzadores horizontales en la cola; en cada uno, **un cartucho de arranque de motor ya usado** con una bengala y algo de chaff |
+| **C-130 Hércules** | Bolsas atadas con sogas de tres metros, **tiradas a mano por las puertas traseras** |
+
+**Las bengalas también eran caseras:** pólvora que ardía a **500 °C durante 15 segundos** y
+flotaba bajo un paracaidita.
+
+### ¿Sirvió?
+
+**Poco, y es honesto decirlo.** Rezoagli: *"Es difícil determinar su efectividad."* De los
+Canberras perdidos, dos cayeron por misil sin haber lanzado defensas. **Pero hay un caso
+concreto:** el capitán **Eduardo García Puebla** (indicativo RIFLE 3) **esquivó misiles
+AIM-9L el 1 de mayo de 1982 soltando bengalas y chaff cada 15 segundos**, y es posible que
+eso le haya salvado la vida.
+
+### ⚠ Discrepancia entre fuentes
+
+Una fuente ubica la fábrica en **Paraná, Entre Ríos** (Rezoagli trabajando desde su casa,
+cerca de los hangares de la II Brigada Aérea); otra la ubica en **Comodoro Rivadavia**.
+**Resolver antes de nombrar el lugar en pantalla.** El resto del relato coincide.
+
+### 🟥 Por qué esto importa para RASANTE
+
+1. **M3 "El invento" deja de ser una licencia y pasa a ser documental.** Improvisar equipo
+   era literalmente lo que hacían. El Pichón y el Turco no son un chiste: son el Grupo de
+   Bombardeo 2.
+2. **El detalle del hijo de 15 años con las tijeras** es la tesis del juego contada por la
+   historia real: un padre llama a su hijo adolescente y a los compañeros de escuela a
+   cortar aluminio para que vuelvan los padres de otros.
+3. **El chaff va en el FRENO AERODINÁMICO** — o sea que soltar la defensa **te frena**. Es
+   una mecánica verdadera y cruel, gratis, y encaja con el sistema de LA COLA.
+4. **El aluminio salido de las toberas de los Canberra** es la misma canibalización de M10.
+5. **La máquina de fideos** puede vivir en el taller del Turco como objeto **sin explicar**,
+   y revelarse en una sola línea. Nadie tiene que decir "esto es chaff".
+
+**Estado: investigado y NO implementado.** Pendiente de decisión de autor.
+
+**Fuentes:** [The War Zone — Argentine Air Force Went To War With Chaff Made By Pasta Machine](https://www.twz.com/air/argentine-air-force-went-to-war-with-chaff-made-by-pasta-machine) ·
+[Xataka — la máquina de hacer pasta contra los misiles británicos](https://www.xataka.com/magnet/1982-guerra-malvinas-vio-hecho-insolito-argentina-combatio-misiles-britanicos-maquina-hacer-pasta)
+
+## ✅ ARMAMENTO DE LOS A-4 — VERIFICADO 2026-08-22 *(detalle en AVIONES_CATALOGO.md)*
+
+**Verificado:** 2 × Colt Mk 12 de 20 mm con 100 proyectiles cada uno, poco apreciados y
+**propensos a trabarse** · bombas **Mk 17 de 1000 lb**, **Mk 82 de 500 lb** (incluida la
+**Snakeye** de aletas frenadoras, pensada para lanzar bajo) y **BRP-250 españolas de 250 kg**
+· **tres bombas por avión** como configuración típica · tanques externos de 1.400 l ·
+**sin radar** · **sin misiles aire-aire**.
+
+**Las espoletas:** volaban tan bajo que no llegaban a armarse. **13 bombas impactaron sin
+explotar**; se salvaron el HMS Antelope, el HMS Glasgow y el HMS Plymouth; se perdieron **22
+aviones** en el intento. Cita británica **con fuente**: *"con seis espoletas mejores,
+habríamos perdido"*. **Candidata para la placa del cierre.**
+
+**⚠ A verificar todavía:**
+1. **¿El A-4Q de la Armada llevaba AIM-9B Sidewinder en Malvinas?** Se cree que sí (misiles
+   viejos y poco efectivos), pero **no se confirmó**. No afecta a la campaña —los Fieles son
+   Fuerza Aérea— pero sí a la ficha del A-4Q en el catálogo.
+2. Reparto exacto de pilones en la carga de tres bombas (¿ventral + dos alares?).
+3. Si el Grupo 5 usó Snakeye o solo bombas lisas, y desde qué fecha.
+4. Fecha exacta del cambio de espoletas después de la filtración de la BBC.
+
+**Fuentes:** [Grupo 5 de Caza (Wikipedia)](https://es.wikipedia.org/wiki/Grupo_5_de_Caza) ·
+[aeromáquina — Los A-4 Skyhawks en Malvinas](https://aeromaquina.blogspot.com/2013/04/los-4-skyhawks-en-malvinas-i.html) ·
+[The History Herald — Six Better Fuses](https://thehistoryherald.com/articles/british-irish-history/falklands-war/six-better-fuses/) ·
+[The Skyhawk Association — Argentine Skyhawks in Malvinas](https://www.skyhawk.org/article/argentine-skyhawks-malvinas)
+
 ## 🟨 La escalera de ruido del ataque rasante (TEASER 2) — MECANISMO VERIFICADO, CITA NO
 
 **La pregunta:** ¿es cierto que los británicos describían el ataque como una escalera de
@@ -855,3 +947,12 @@ en esquema actual, no necesariamente el de 1982)*:
 **Nota de implementación:** el **sol de mayo no se modela** en el sprite. A 84 px la deriva se
 ve de canto y mide 2 px de ancho: el sol sería un pixel sucio. Va en las ilustraciones y en el
 arte dibujado, donde el tamaño lo permite. En el sprite quedan las tres franjas.
+
+## LA VOLTERETA (docs/sistemas/PLAN_PIRUETA_VOLTERETA.md)
+
+- **El A-4 como avión acrobático.** El diseño se apoya en que los Blue Angels volaron el
+  A-4F Skyhawk (1974–1986) con loops y verticales en su show — lo que legitima una pirueta
+  vertical "imposible" en el juego. → Confirmar fechas y que el repertorio incluía loops y
+  hammerheads. Los A-4B/C argentinos del 82 son más viejos y pesados: anotar que es licencia.
+- **Bengalas: NO** (ya establecido — sin chaff ni bengalas en los A-4 del 82). La pirueta
+  las reemplaza por vapor.

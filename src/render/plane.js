@@ -14,6 +14,7 @@ import { inp } from '../core/input.js';
 import { proj } from '../core/fx.js';
 import { hzSprite } from '../core/horizon.js';
 import { P } from '../data/palette.js';
+import { drawCono, drawVaporAla, drawCruce } from './mach.js';
 import { drawMira } from './miras.js';
 import { anchorSpray, drawSpray } from './rain.js';
 import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H } from '../data/planes.js';
@@ -51,32 +52,83 @@ const WOBBLE = 0.026;  // amplitud de la micro-oscilacion de alabeo (rad, ~1.5°
  *
  *  En pixel art una llama se arma por FILAS que se afinan y se enfrian hacia la punta, con el
  *  largo parpadeando cuadro a cuadro: eso es lo que la hace respirar en vez de ser una barra. */
-const FCOL = ['#fff6d8', '#ffe08a', '#ffb43c', '#f07c22', '#cf4d16', '#93300f'];
-function flame(x, y0, f) {
+// ---------------- LA TOBERA (reemplaza a la vieja `flame`) ----------------
+//
+// LO QUE HACIA MAL LA VERSION ANTERIOR, y no era el color sino la GEOMETRIA: dibujaba una llama
+// que se estiraba hacia ABAJO en pantalla, o sea una antorcha vista DE COSTADO. Pero en RASANTE
+// el avion se ve DESDE ATRAS: la tobera apunta a la camara. Desde ahi no se ve un penacho — se ve
+// EL DISCO caliente del escape, de frente, y el humo viniendose encima.
+//
+// LOS HECHOS DEL A-4 (por que ademas era falso):
+//   · El Skyhawk monta un TURBORREACTOR SIN POSTQUEMADOR — Wright J65 en los A-4B/C/Q argentinos
+//     (el Sapphire britanico fabricado bajo licencia), P&W J52 en los E/F/M. Sin reheat no hay
+//     nada que arda detras de la tobera: un reactor asi NO tiene llama visible de dia.
+//   · Lo que SI se ve es (a) el interior del cano de escape al rojo, (b) la distorsion del aire
+//     caliente, y sobre todo (c) HUMO. El J65 era celebremente sucio: dejaba un reguero oscuro
+//     que delataba la posicion del avion — un problema tactico real, el mismo que arrastraba el
+//     F-4 con sus J79.
+//   · O sea que la firma visual verdadera del Skyhawk no es fuego: es HUMO y una boca al rojo.
+//
+// EL TURBO, entonces, no alarga nada: pone la boca MAS BLANCA, irradia mas, tiembla mas el aire
+// y ensucia mas el cielo. (El turbo del juego ya era licencia — el A-4 no tenia postquemador.)
+/** DONDE ESTA LA TOBERA dentro del frame, como fraccion del alto y medida DESDE EL CENTRO.
+ *
+ *  Medido sobre la hoja horneada (frame nivelado, 84x84): el naranja emisivo de la tobera cae en
+ *  y = 49, o sea 7 px por debajo del centro del frame (42) -> 7/84.
+ *
+ *  Va como FRACCION y no como pixeles para que sobreviva a un re-horneado a otra resolucion. Y
+ *  esto era el bug de "la llama se ve despegada del avion": estaba anclada a `bodyH2 - 6`, que a
+ *  escala normal cae 8,5 px MAS ABAJO que la tobera real — un hueco del ancho de medio fuselaje
+ *  entre el avion y su propia llama. */
+const TOBERA_F = 7 / 84;
+
+/** LA BOCA AL ROJO, vista de frente. Va DENTRO del contexto del avion (rota con el alabeo, porque
+ *  la tobera es parte del avion) y en unidades de diseño.
+ *
+ *  Tres capas, de afuera hacia adentro: el resplandor que IRRADIA, el anillo del cano, y el nucleo.
+ *  Ninguna se estira: todas se ENCIENDEN. Es la diferencia entre una antorcha y un metal caliente.
+ *
+ *  @param f 0..1 — 0.3 es ralenti, 1 es turbo (ver stepFlame)
+ */
+function tobera(x, y0, f, esc) {
   if (f <= 0.01) return;
-  const largo = 2 + f * 5;
-  const n = Math.max(2, Math.round(largo + Math.random() * (0.8 + f * 2.2)));
-  const w0 = 2 + f * 2.6;                           // ancho del nucleo, en la boca
-  // RESPLANDOR alrededor de la tobera: crece con la intensidad y es lo que hace que el turbo
-  // "ilumine" en vez de solo alargarse
-  ctx.globalAlpha = 0.12 + f * 0.2;
-  px(x - (2 + f * 2), y0 - 1, 4 + f * 4, 3, '#ffb43c');
+  // SE APAGA AL CABECEAR. Cuando el avion trepa o pica, la hoja cambia de fila y el sprite ya no
+  // muestra el cano de frente: el ancla fija de TOBERA_F cae sobre el LOMO del avion y el circulo
+  // aparecia pegado en la espalda. No se corrige moviendo el ancla —habria que medir la tobera
+  // pose por pose, como se hizo con las puntas de ala— sino aceptando lo que dice la geometria:
+  // si no ves el cano, no hay nada que brille. El umbral es el mismo con el que el sprite cambia
+  // de fila (0.33 de cabeceo), asi que el resplandor se va justo cuando la pose se pitcha.
+  const pitch = Math.min(1, Math.abs(plane.pitch) / 0.33);
+  const cara = (1 - pitch) * (run.mvSteep ? 0 : 1);
+  if (cara <= 0.02) return;
+  const u = esc || 1;                          // media del sprite: la boca escala con el avion
+  // PULSO de la turbina: parejo y rapido, con un resto chico de azar para que no sea un metronomo.
+  // Un reactor no titila como una fogata — vibra.
+  const p = 0.86 + 0.10 * Math.sin(run.t * 30) + Math.random() * 0.04;
+  // SOLO EL RESPLANDOR. El anillo y el nucleo se quitaron: eran dos elipses de borde NETO, y un
+  // borde neto mal ubicado se lee como un circulo pegado encima del avion — que es justo lo que se
+  // veia al cabecear. El resplandor no tiene borde, asi que aunque el ancla no sea perfecta se
+  // lee como luz y no como una calcomania.
+  const k = f * cara;
+  const R = u * (3.2 + f * 5.0) * p;
+  const g = ctx.createRadialGradient(x, y0, 0, x, y0, R);
+  g.addColorStop(0, `rgba(255,170,90,${0.34 * k})`);
+  g.addColorStop(0.45, `rgba(224,110,36,${0.22 * k})`);
+  g.addColorStop(1, 'rgba(180,70,22,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.ellipse(x, y0, R, R * 0.72, 0, 0, 6.2832); ctx.fill();
   ctx.globalAlpha = 1;
-  for (let i = 0; i < n; i++) {
-    const w = Math.max(1, Math.round(w0 - i * (w0 - 1) / n));   // se afina hacia la punta
-    px(x - w / 2, y0 + i, w, 1, FCOL[Math.min(FCOL.length - 1, Math.floor(i * FCOL.length / n))]);
-  }
-  // diamante de choque: el punto azulado de la garganta, lo que delata que es un reactor.
-  // Al ralenti aparece menos seguido — el diamante es cosa de estar empujando.
-  if (Math.random() < 0.25 + f * 0.45) px(x, y0, 1, 1, '#dff3ff');
-  if (Math.random() < 0.15 + f * 0.3) px(x + (Math.random() < 0.5 ? -1 : 1), y0 + n + 1, 1, 1, '#e0761f');
 }
 
 /** La intensidad de ESTE cuadro, suavizada. Sin la rampa, apretar turbo hacia SALTAR la llama de
  *  3 a 9 px en un cuadro y se leia como un parpadeo, no como una aceleracion. */
 let flameF = 0;
 function stepFlame() {
-  const quiere = run.fuel > 0 ? (run.boost ? 1 : 0.3) : 0;
+  // SOLO CON TURBO (pedido de Matias, 18/8). Al ralenti el 0.3 pintaba la cola con un naranja que
+  // no le corresponde: la tobera APAGADA ya viene dibujada en la hoja horneada, con su color. Que
+  // el asset mande cuando el motor no esta empujando — el efecto es para lo que el asset no puede
+  // hacer, que es encenderse.
+  const quiere = run.fuel > 0 && run.boost ? 1 : 0;
   flameF += (quiere - flameF) * 0.18;
   return flameF;
 }
@@ -100,18 +152,59 @@ function stepFlame() {
 const TIP_X = 15, RAS_ALT = 4.5;
 
 const TIP_N = 17;
+// QUITAR — lo lee la sonda __tipdbg: sin esto, "la estela sale en la pirueta y no en el turbo"
+// solo se puede afirmar entrecerrando los ojos sobre una captura.
+export const TIP_DBG = { f: 0, n: 0, lx: 0, ly: 0, rx: 0, ry: 0, vio: '', fz: 0 };
 const tips = [];
 
-function tipTrail(cx, cy, half, bank, on) {
-  const cb = Math.cos(bank * 0.9), sb = Math.sin(bank * 0.9) * 0.5;   // el alabeo sube una punta y baja la otra
-  const rx = cx + half * cb, ry = cy + half * sb;
+/** LAS PUNTAS DE ALA, MEDIDAS FRAME POR FRAME sobre la hoja horneada.
+ *
+ *  `TIPS[fila][columna] = [lx, ly, rx, ry]`, en FRACCION del frame y desde su centro: fila =
+ *  cabeceo (trepa/nivel/pica), columna = alabeo (-60..+60). Es la misma fila y la misma columna
+ *  que elige el sprite, asi que la estela sale exactamente de donde el dibujo puso el ala.
+ *
+ *  POR QUE UNA TABLA Y NO TRIGONOMETRIA: el intento anterior calculaba la punta con
+ *  `cos(bank*0.9)` y `sin(bank*0.9)*0.5`, y esos dos factores estaban inventados. Al alabeo maximo
+ *  daba la punta casi en el centro y a 90° la habria dejado horizontal, que es justo lo que se
+ *  veia mal. La hoja YA sabe donde esta el ala en cada pose —incluido el acortamiento real, que
+ *  lleva la semi-envergadura de 0.32 a 0.20 en los extremos— asi que se le pregunta a ella.
+ *
+ *  Se re-mide con tools/… el mismo metodo del resto: leer el alfa del frame. Si se re-hornea la
+ *  hoja con otra geometria de ala, hay que volver a medir esta tabla. */
+// MEDIDA DEL PROPIO SHEET, no estimada a ojo (tools/ ... mide_tips): para cada pose se busca
+// el pixel opaco mas a la izquierda y el mas a la derecha del frame, y la Y media de esa
+// columna extrema. La tabla anterior estaba cerca en X pero se iba hasta 0.065 en Y —unos
+// 5 px— y por eso los hilos nacian al lado de la punta y no EN la punta.
+// CUANTO MAS AFUERA salen los hilos, como factor sobre la X de la punta. 1 = exactamente el
+// borde medido del ala. Subilo para separarlos del avion (1.15 = un 15% mas afuera), bajalo para
+// meterlos adentro. Es LA perilla de "moverlas mas a los costados" — no hay que tocar la tabla.
+//
+// Solo escala la X: la Y sigue siendo la del borde real, asi que los hilos se corren hacia afuera
+// sin despegarse de la linea del ala.
+export const TIP_OUT = 1.30;
+
+const TIPS = [
+  [[-0.214,-0.125,0.19,0.196],[-0.274,-0.06,0.202,0.155],[-0.298,0,0.238,0.244],[-0.321,0.071,0.286,0.19],[-0.31,0.131,0.31,0.131],[-0.286,0.19,0.321,0.071],[-0.238,0.22,0.298,0],[-0.202,0.155,0.274,-0.06],[-0.19,0.196,0.214,-0.125]],
+  [[-0.202,-0.19,0.202,0.131],[-0.262,-0.137,0.214,0.083],[-0.298,-0.065,0.262,0.226],[-0.321,0.012,0.298,0.161],[-0.321,0.083,0.321,0.083],[-0.298,0.161,0.321,0.012],[-0.262,0.226,0.298,-0.065],[-0.214,0.083,0.262,-0.137],[-0.202,0.131,0.202,-0.19]],
+  [[-0.19,-0.238,0.202,0.048],[-0.262,-0.19,0.214,0],[-0.286,-0.119,0.262,0.185],[-0.321,-0.042,0.298,0.107],[-0.321,0.036,0.321,0.036],[-0.298,0.107,0.321,-0.042],[-0.262,0.171,0.286,-0.119],[-0.214,0.101,0.262,-0.19],[-0.202,0.048,0.19,-0.238]],
+];
+
+/** VORTICES DE PUNTA DE ALA. `f` es la FUERZA (0 = nada): con un booleano no se podia pedir
+ *  "fuerte en la pirueta y suave con turbo", que es exactamente para lo que existe. */
+function tipTrail(lx, ly, rx, ry, f) {
+  const on = f > 0.01;
+  // QUITAR con la sonda __tipdbg. Se guardan las DOS puntas ya resueltas: es lo unico que
+  // permite afirmar "siguen al ala" y "giran con el tonel" con numeros en vez de con la vista.
+  TIP_DBG.f = +f.toFixed(2); TIP_DBG.n = tips.length;
+  TIP_DBG.lx = Math.round(lx); TIP_DBG.ly = Math.round(ly);
+  TIP_DBG.rx = Math.round(rx); TIP_DBG.ry = Math.round(ry);
   // UN SALTO NO ES UN VUELO. Si el avion aparecio en otro lado —un relevo, volver de un menu, el
   // corte a otra fase— el hilo viejo no es estela: es basura de la vida anterior colgada en el
   // aire. Se tira entera y se empieza de nuevo, en vez de dibujar una raya del punto muerto al
   // punto vivo.
   const ult = tips[tips.length - 1];
   if (ult && Math.abs(ult.rx - rx) + Math.abs(ult.ry - ry) > 40) tips.length = 0;
-  if (on) tips.push({ lx: cx - half * cb, ly: cy - half * sb, rx, ry });
+  if (on) tips.push({ lx, ly, rx, ry });
   else if (tips.length) tips.shift();
   while (tips.length > TIP_N) tips.shift();
   const n = tips.length;
@@ -123,8 +216,8 @@ function tipTrail(cx, cy, half, bank, on) {
     // de algo que sale de el. Visto desde atras y desde arriba, lo que hace un vortice es caer:
     // casi todo el recorrido es hacia abajo y apenas se abre.
     const dx = viejo * 3.4, dy = viejo * 9;
-    const w = 1 + viejo * 2.4;
-    ctx.globalAlpha = (1 - viejo * 0.85) * 0.5;
+    const w = 1 + viejo * 1.1 * (0.55 + f * 0.45);   // fino: a 3.4 px eran bloques, no un hilo
+    ctx.globalAlpha = (1 - viejo * 0.85) * 0.5 * (0.35 + f * 0.65);
     const c = viejo < 0.45 ? P.foam : P.crest;
     px(p.lx - dx - w / 2, p.ly + dy - w / 2, w, w, c);
     px(p.rx + dx - w / 2, p.ry + dy - w / 2, w, w, c);
@@ -240,6 +333,11 @@ export function drawShadow(wx, wy, z, f) {
 
 export function drawPlane(selPlane, viewMouse, camScale) {
   const s = proj(plane.x, plane.y, PZ);
+  // EL CRUCE (PLAN_TRANSONICO V3): las rayas van en coordenadas de MUNDO y SIN la rotacion del
+  // alabeo — rayan la pantalla, no el avion. Por eso se dibujan aca arriba, antes del save() que
+  // traslada y rota. Su reloj es propio y corre con el dt real: el cruce no se dilata con el
+  // MOMENTUM porque es una cosa que le pasa a la camara, no al mundo.
+  drawCruce(s.x, s.y, Math.min(0.05, run.dtReal || 0.016));
   drawShadow(plane.x, plane.y, PZ, 1);
   const sh = proj(plane.x, 0, PZ);   // la rociada y las cortinas se miden contra la misma sombra
   // ROCIADA: el avion levanta agua al pasar rasante. Antes eran DOS BARRAS planas cruzando la
@@ -342,23 +440,28 @@ export function drawPlane(selPlane, viewMouse, camScale) {
   // camara que rola con el. hz vale justo lo que hay que restar. Con FIJO vale 0 y todo esto se
   // comporta igual que siempre. Ver core/horizon.js.
   const hz = hzSprite();
-  if (rolling) {
-    // PIRUETA: tonel completo — el sprite (vista trasera) rota 360° en el plano de pantalla
-    const pr = 1 - run.rollT / ROLL_DUR;                   // 0→1 durante el tonel
-    ctx.rotate(run.rollDir * pr * Math.PI * 2 + hz);
-    ctx.scale(0.94 + 0.06 * Math.cos(pr * Math.PI * 2), 1);   // leve pulso: vende el giro
-  } else if (run.mvRoll) {
-    // MANIOBRA con rotacion propia: el medio tonel del split-s (queda invertido y pica asi)
-    // o el sobre-banqueo del break turn. Encima, el frame de alabeo/cabeceo sigue normal.
-    ctx.rotate(run.mvRoll + hz);
-    ctx.rotate(wob);
-  } else if (useSheet) {
-    // con frames de alabeo Y cabeceo REALES no hay rotacion ni squash fingidos: solo micro-wobble
-    ctx.rotate(wob);
-  } else {
-    ctx.rotate(bank * 0.42 + wob);
-    ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
-  }
+  // EL GIRO TOTAL DEL SPRITE, resuelto en UN SOLO LUGAR.
+  //
+  // Antes cada rama llamaba a `ctx.rotate` por su cuenta y el angulo se perdia ahi adentro. La
+  // ESTELA DE PUNTA DE ALA se dibuja despues del `restore()`, en coordenadas de mundo, asi que
+  // necesita este mismo angulo para saber donde quedo el ala — y no teniendolo se quedaba
+  // HORIZONTAL mientras el avion daba un tonel, que es justo cuando mas se la mira.
+  //   · tonel     360° en el plano de pantalla (el sprite es vista trasera)
+  //   · mvRoll    medio tonel del split-s / sobre-banqueo del break turn
+  //   · con hoja  solo micro-wobble: el alabeo REAL lo traen los frames, no una rotacion
+  // LA POSE, resuelta aca arriba por el mismo motivo: la estela lee TIPS[fila][columna] y tiene
+  // que ser LA MISMA pose que el sprite dibuja, no una copia de la formula que pueda quedar vieja.
+  const colPose = rolling ? (SHEET_NF - 1) / 2 : Math.round((1 - bank) / 2 * (SHEET_NF - 1));
+  const pcPose = Math.max(-1, Math.min(1, plane.pitch));
+  const rowPose = pcPose > 0.33 ? 0 : pcPose < -0.33 ? 2 : 1;
+  const prRoll = rolling ? 1 - run.rollT / ROLL_DUR : 0;   // 0→1 durante el tonel
+  const spinTot = rolling ? run.rollDir * prRoll * Math.PI * 2 + hz
+    : run.mvRoll ? run.mvRoll + hz + wob
+    : useSheet ? wob
+    : bank * 0.42 + wob;
+  ctx.rotate(spinTot);
+  if (rolling) ctx.scale(0.94 + 0.06 * Math.cos(prRoll * Math.PI * 2), 1);   // leve pulso: vende el giro
+  else if (!run.mvRoll && !useSheet) ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
   // Todo este bloque esta authorado para la grilla de 320x180 (fogonazos, fallback de rects,
   // sangre), asi que se escala por U. Las HOJAS ya vienen horneadas a 1.5x, por eso se dibujan
   // a SHEET_FW/U: ocupan lo mismo en pantalla pero con 1.5x mas pixeles de fuente.
@@ -369,17 +472,19 @@ export function drawPlane(selPlane, viewMouse, camScale) {
   const ff = stepFlame();   // una sola vez por cuadro: las tres ramas de dibujo la comparten
   const sc = PLANE_SCALE * boostSc * (camScale || 1);
   const spW = SHEET_FW / U * sc, spH = SHEET_FH / U * sc;
+  // EL CONO TRANSONICO (PLAN_TRANSONICO V2), DETRAS del sprite: es aire condensado alrededor del
+  // avion, asi que el avion va adentro de la nube y no tapado por ella. Va aca —antes de las tres
+  // ramas de dibujo— para que salga igual con hoja, con sprite viejo o con el fallback de rects.
+  if (alive) drawCono(spW, spH, run.spd, run.t);
   // media altura del CUERPO del avion (sin el aire del frame): a esto se pega la llama del turbo
-  const bodyH2 = SHEET_BODY_H / U * sc / 2;
   if (useSheet) {
     ctx.imageSmoothingEnabled = false;   // pixel art nítido (el save/restore de afuera lo repone)
     // COLUMNA por alabeo. bank>0 = va a la DERECHA → tiene que banquear a la derecha, pero
     // los frames del modelo 3D giran en sentido opuesto al canvas, asi que se INVIERTE el
     // signo (esto corrige el "giraba para el lado contrario"). Nivelado = columna central.
-    const col = rolling ? (SHEET_NF - 1) / 2 : Math.round((1 - bank) / 2 * (SHEET_NF - 1));
+    const col = colPose;
     // FILA por cabeceo. pitch>0 = trepa (morro arriba) → fila 0; nivel → 1; picada → 2
-    const pc = Math.max(-1, Math.min(1, plane.pitch));
-    let row = pc > 0.33 ? 0 : pc < -0.33 ? 2 : 1;
+    let row = rowPose;
     // POSE EMPINADA de pirueta (run.mvSteep): usa la HOJA 2 (±32° de cabeceo) si cargo; sin
     // ella (build web) cae a la fila normal de trepada/picada — la maniobra se juega igual.
     // LA SKIN DEL PILOTO QUE VA HOY EN ESTE AVION. En campaña arrancas siendo TERO, y cada
@@ -408,7 +513,7 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
     drawGear(run.gear, 1);   // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma
     ctx.drawImage(img, sx4, sy4, SHEET_FW, SHEET_FH, -spW / 2, -spH / 2, spW, spH);
-    flame(0, bodyH2 - 6, ff);
+    tobera(0, TOBERA_F * spH, ff, spW / 84 * 2.4);
   } else if (pl.ready) {
     const PW = 54, PH = Math.round(PW * pl.h / pl.w);
     // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas (estela cinematica)
@@ -423,15 +528,24 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
     drawGear(run.gear, 1);
     ctx.drawImage(pl.img, -PW / 2, -PH / 2, PW, PH);
-    flame(0, PH / 2 - 4, ff);
+    tobera(0, TOBERA_F * PH * (84 / 48), ff, PH / 48 * 2.4);
   } else {
     // fallback: sprite de rects (por si la imagen no cargó)
     px(-2, -7, 4, 5, P.bodyDark); px(-1, -8, 2, 2, P.warn);
     px(-20, -1, 40, 3, P.body); px(-20, 0, 6, 2, P.bodyDark); px(14, 0, 6, 2, P.bodyDark);
     px(-3, -3, 6, 6, P.body); px(-2, -4, 4, 2, P.canopy); px(-12, 1, 3, 2, P.accent);
-    const fl = ff > 0.01 ? 2 + ff * 5 + Math.random() * (1 + ff * 2) : 0;
-    if (fl > 0) { px(-2, 3, 4, fl, run.boost ? P.foam : P.accent); px(-1, 3, 2, fl * 0.6, P.accent); }
+    // el fallback de rects usa LA MISMA tobera que las otras dos ramas: si no, cuando la hoja no
+    // carga el avion volveria a tener la antorcha vieja y el juego se contradiria a si mismo
+    tobera(0, 3, ff, 1.1);
     if (inp.fire && !run.overheat && run.fireT > 0.06) { px(-16, -2, 3, 2, P.ink); px(13, -2, 3, 2, P.ink); }
+  }
+  // EL VAPOR DE ALA (PLAN_TRANSONICO V1), DELANTE del sprite: se levanta DEL extrados, o sea que
+  // esta entre el ala y la camara. Es el efecto VERIDICO del A-4 — un Skyhawk virando fuerte en el
+  // aire humedo del Atlantico lo hacia. La G se aproxima con el alabeo (virar es cargar) mas un
+  // empujon fijo durante las piruetas, que son el otro momento en que el avion se carga de verdad.
+  if (alive) {
+    const gLoad = Math.min(1, Math.abs(bank) * 1.15 + (run.mv ? 0.45 : 0) + (run.rollT > 0 ? 0.3 : 0));
+    drawVaporAla(spW, spH, run.spd, gLoad, run.t);
   }
   // mancha de sangre sobre el morro/cabina al atropellar (temporal; hacé un sprite ensangrentado si querés)
   if (run.bloodSplat > 0.02) {
@@ -458,9 +572,32 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     // 0.34 los dos hilos nacian tan afuera que se leian despegados del avion. Y nacen ABAJO, en la
     // linea de la panza (el mismo 0.09 con el que se anclaba el rebote de lluvia): el ala esta por
     // debajo del centro del frame, y saliendo del centro los hilos flotaban sobre el fuselaje.
-    // APAGADO POR AHORA. `tipTrail` queda entera y medida — se prende con esta sola linea. Es el
-    // mismo criterio que el rebote de lluvia de arriba: el efecto funciona, todavia no convence.
-    // tipTrail(cx, cy + spH * U * 0.09, spW * U * 0.24, bank, !!run.boost && S.state === 'play');
+    // LOS VORTICES, con DOS intensidades y no una.
+    //
+    // La regla es del autor: la estela es de las MANIOBRAS. Una pirueta o un tonel es donde el ala
+    // carga de verdad y donde el hilo cuenta algo — que estas exprimiendo el avion. El turbo la
+    // saca mas floja porque ahi el ala no esta cargada: solo vas mas rapido.
+    //
+    // Prendida siempre, como estaba antes, el hilo era permanente y dejaba de significar nada.
+    const enManiobra = !!run.mv || run.rollT > 0;
+    const fuerzaTip = S.state !== 'play' ? 0 : enManiobra ? 1 : (run.boost ? 0.4 : 0);
+    // QUITAR — lo que el RENDER vio en este cuadro. Sin esto, un `f=0` no distingue entre
+    // "la fuerza dio cero" y "esta funcion ni se llamo", que son dos bugs distintos.
+    TIP_DBG.vio = (S.state === 'play' ? 'P' : S.state) + (run.mv || '-') + (run.boost ? 'B' : '');
+    TIP_DBG.fz = fuerzaTip;
+    // LAS DOS PUNTAS, resueltas igual que el sprite: se leen de la tabla medida para ESTA pose y
+    // despues se les aplica EL MISMO giro que se le aplico al dibujo (`spinTot`). Las dos mitades
+    // importan: sin la tabla la punta caia en cualquier lado al banquear, y sin el giro la estela
+    // se quedaba horizontal mientras el avion rolaba.
+    //
+    // OJO CON EL ESPACIO: esto corre DESPUES del `restore()`, o sea en pixeles de MUNDO, y el
+    // sprite se dibujo con `spW`/`spH`. Las fracciones van contra ESO y nada mas.
+    const T = TIPS[rowPose][colPose];
+    const cs = Math.cos(spinTot), sn = Math.sin(spinTot);
+    const gx = (fx, fy) => cx + fx * spW * cs - fy * spH * sn;
+    const gy = (fx, fy) => cy + fx * spW * sn + fy * spH * cs;
+    tipTrail(gx(T[0] * TIP_OUT, T[1]), gy(T[0] * TIP_OUT, T[1]),
+             gx(T[2] * TIP_OUT, T[3]), gy(T[2] * TIP_OUT, T[3]), fuerzaTip);
   }
 
   // mira: en el MOUSE (PC, punteria libre) o adelante del avion (tactil/legacy)

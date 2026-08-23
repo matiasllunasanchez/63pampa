@@ -1,0 +1,23 @@
+# PROMPT REUSABLE — estudiar una maniobra desde un video y planificar su entrada al juego
+
+> **Cómo se usa:** copiá el bloque de abajo en una sesión nueva (Opus medio alcanza; alto
+> si el video es confuso o la maniobra es rara), reemplazá `<LINK>` por el link tal cual
+> (Instagram reel, YouTube, etc.) y mandalo. El resultado es un documento con la misma
+> estructura que [PLAN_PIRUETA_VOLTERETA.md](PLAN_PIRUETA_VOLTERETA.md), que es el modelo.
+> Una maniobra por sesión.
+
+---
+
+Vas a estudiar una maniobra aérea desde este video y a planificar cómo entra al juego RASANTE (como pirueta jugable, como cinemática, como maniobra de un enemigo, o varias de esas). Link: `<LINK>`
+
+**1. Leé primero, en este orden:** `docs/ARQUITECTURA.md` (manda sobre todo) · `docs/sistemas/PLAN_PIRUETA_VOLTERETA.md` (**el modelo exacto del documento que tenés que producir** — misma estructura, mismo nivel de detalle) · `docs/sistemas/PIRUETAS.md` y `src/data/moves.js` (el catálogo y su gramática de combos: 3–4 toques, dos sticks, sin repetición vertical, ninguna secuencia prefijo de otra) · `src/systems/moves.js` (quién vuela las piruetas) · `docs/sistemas/PLAN_DIRECTOR_CINEMATICAS.md` (si el destino es cinemática) · `docs/sistemas/PLAN_HARRIERS_PERSECUCION.md` (si es maniobra del Harrier o contra él).
+
+**2. Mirá el video de verdad, cuadro por cuadro.** Abrilo en el navegador. Primero leé el título/caption (suele nombrar la maniobra y el avión). Si el video no autoreproduce, usá la consola JS para mover `document.querySelector('video').currentTime` y sacá capturas cada 1.5–2.5 s (más finas en el momento clave). Armá la tabla *t · qué pasa · lo que se ve*. Identificá: el nombre real de la maniobra en el vocabulario acrobático (loop, hammerhead, Immelmann, split-S, ocho cubano, cobra, kulbit, tail slide, tonel, knife-edge, etc.), el avión, la FÍSICA que la permite, y sus **tres firmas visuales** (lo que un espectador recuerda). **Si no podés ver el video** (muro de login, bloqueo), decilo y pedime el nombre de la maniobra o capturas — **no inventes lo que no viste**.
+
+**3. Traducila al canon del juego antes de diseñar.** El avión del jugador es un A-4B Skyhawk de 1982: subsónico, cargado, sin toberas vectoriales, **sin chaff ni bengalas**. Preguntate si puede hacerla. Si no: buscá el **pariente honesto** del catálogo acrobático clásico (el Skyhawk fue avión de los Blue Angels — loops, verticales y hammerheads son legítimos) y declará explícitamente qué es licencia arcade (las piruetas del juego ya son "poderes estilo juego de pelea": hay permiso, pero se anota). Lo que el A-4 no tenía (bengalas, TVC) se reemplaza por física real (vapor, vórtices de punta, cono de G) o queda como perilla apagada fuera de campaña. Toda duda histórica va a `docs/historia/PREGUNTAS_HISTORICAS.md`, nunca a una afirmación.
+
+**4. Diseñá el destino.** Decidí y justificá: pirueta jugable (entrada en `data/moves.js` con `dur/steer/fire/turbo/tight/drift`, y un **combo validado contra la gramática** — proponé dos candidatos), cinemática (beats para el director), maniobra de enemigo, o premio del PULSO. Siempre con **el precio** (velocidad, altura, exposición, cañón bloqueado — ninguna maniobra es gratis) y **los ganchos con lo que ya existe**: contra LA COLA (`CAZA_MV_FUERZA`), super-salto/esquive, bonus de estilo `tight`, EL PULSO, el pool del Pichón (gate por misión + el ritual "ESO NO SE PUEDE / A VER, MOSTRAME" para las imposibles). Comprimí los tiempos del video a tiempos de arcade (la más larga del catálogo dura 2.0 s) en una tabla de beats.
+
+**5. Arte.** Decí qué cuadros hacen falta contra las hojas existentes (9 rolidos, cabeceo ±32°, `jet_rear`/`jet_turn` del Harrier), cómo se hornean con `tools/bake_planes.html` (fila nueva), y cuál es el **placeholder** para jugarla desde la primera fase sin esperar el arte (rotaciones exactas de 90°/180°, achique por altura).
+
+**6. Entregá**, sin escribir código: `docs/sistemas/PLAN_PIRUETA_<NOMBRE>.md` con las secciones del modelo (1 la maniobra cuadro por cuadro · 2 canon y solución · 3 el diseño · 4 fases con criterio de cierre · 5 qué NO hacer · 6 divergencias vacías), la fila en `docs/README.md` (tabla de sistemas) y la entrada en PREGUNTAS_HISTORICAS. Voz del repo: español rioplatense, directo, con el porqué de cada decisión. Terminá con un resumen de 10 líneas: qué es la maniobra, qué se vio, qué se cambió por canon, para qué sirve en el juego, y el prompt de kickoff de la fase 0.

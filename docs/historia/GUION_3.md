@@ -218,6 +218,13 @@ las dos aves "humanas" secretas.
 
 ## 🟥 5. Las mejoras — sistema roguelike _(reemplaza al viejo §2c)_
 
+🟥 **3.11 — ESTO CAMBIÓ: ahora sí las define, y no las inventa.** Todas las mejoras pasan a
+ser **improvisaciones argentinas documentadas de 1982**, y todas salen de la cabeza del
+Pichón: el chaff cortado con máquina de fideos, las bengalas caseras, las espoletas de doce
+segundos, las KEMA, las aletas frenadoras. Catálogo completo, con fuentes, precios de cada
+mejora y la regla de atribución, en **[MEJORAS_PICHON.md](MEJORAS_PICHON.md)**. Lo que sigue
+era el criterio viejo y se mantiene como principio de diseño:
+
 **El guion NO define mejoras concretas.** Ni nombres, ni niveles, ni tabla misión→mejora
 (la tabla de la 2.3 queda como referencia de sabor, no como spec). Las define Matías
 después: niveles 1/2/3, piruetas, munición, velocidad. El guion fija solo el sistema
@@ -441,6 +448,34 @@ Escuadrilla CAUQUÉN, autorizada pista dos.
 
 **GITANO:** ¿Viste? Para el comando somos gansos. Por lo menos eligieron uno que vuela.
 
+### 🟥 El ritual de los cinco _(3.11 — sin diálogo; se planta acá y se cobra en M14)_
+
+_(Los cinco caminan hacia los aviones. **No habla nadie.** Diez segundos, cinco gestos, y
+cada uno es distinto. El jugador no tiene que entender nada todavía.)_
+
+_(**PUMA** no mira a nadie: da la vuelta al suyo y toca tres cosas, en orden, sin apurarse.
+Las mismas tres de hace veinte años.)_
+
+_(**EL VASCO** apoya la cruz que lleva al cuello contra el fuselaje, la deja dos segundos,
+se persigna y sube.)_
+
+_(**EL GITANO**, al Turco, señalando su avión con el pulgar: **"Turco, a ésta hoy le
+decimos «el Colectivo». Anotá."** Y sube antes de que le contesten.)_
+
+_(**EL PICHÓN** no sube todavía: apoya la mano abierta en la chapa, al lado de la toma, con
+el motor ya girando. Se queda quieto, escuchando. Después mira al Turco y le hace que sí con
+la cabeza.)_
+
+_(**TERO** se para un segundo delante del suyo. Estira dos dedos y **toca el terito recién
+pintado**. No dice nada.)_
+
+_(**EL TURCO** los mira subir a los cinco desde atrás, con el trapo en el hombro. Cuando el
+último cierra la cúpula, le dice al avión más cercano algo que no se escucha.)_
+
+> **Nota de tratamiento.** **Sin música y sin una sola línea de narración.** Solo el ruido
+> de la pista. Nadie explica ningún gesto acá ni después: el jugador los va a reconocer solo,
+> misión tras misión, y recién en M14 va a entender que los estuvo aprendiendo.
+
 ### La misión _(tutorial sin combate)_
 
 Aprender el rasante sin que nadie dispare: esquivar los mástiles de una flotilla pesquera,
@@ -511,6 +546,10 @@ nadie)_ **THANK YOU.**
 ronda no me voy.
 
 **EL TURCO:** _(sin levantar la vista de la carga)_ De la ronda no se va nadie.
+
+_(Y mientras los otros terminan el mate, el Pichón ya está al lado de su avión con la mano
+abierta apoyada en la chapa y la cabeza gacha, escuchando. No dice nada. Después la saca y
+se seca la palma en el mameluco.)_
 
 _(Ritual de Cóndor. Despegue.)_
 
@@ -588,6 +627,10 @@ siente la diferencia en las manos: el avión responde distinto. **La mecánica d
 enseña acá, en la misión más liviana, no en el medio del fuego.**
 
 ### Epílogo (aire) — el primer fracaso glorioso
+
+_(El Turco está de espaldas al cielo, con las manos adentro de un motor, y de golpe levanta
+la cabeza. "Ahí viene el capitán", dice, sin darse vuelta. Pasan cuatro segundos largos hasta
+que el punto aparece sobre el mar. Nadie le pregunta cómo sabe.)_
 
 De vuelta en el hangar, el Turco y el Pichón prueban el SEGUNDO invento del pibe — algo con
 un carenado y mucha cinta aisladora. Lo encienden. Hace un ruido espantoso, tira una pieza
@@ -771,6 +814,9 @@ TODOS, Puma. Y ese día va a ser más grande que éste.
 
 **PUMA:** Ojalá la única guerra que nos quede sea esa.
 
+_(Camino a los aviones, Esteban se para un segundo delante del suyo, estira dos dedos y toca
+el terito. Sigue caminando.)_
+
 ### 🟥 En vuelo — de dónde salen las posiciones _(3.9: entra el Narwal)_
 
 _(Tramo de tránsito, sin un solo enemigo en pantalla. Altura mínima, formación abierta, el
@@ -881,6 +927,9 @@ montañas de cosas para los pibes de las islas. Chocolates, cigarrillos, abrigo�
 **VASCO:** ¿Y?
 
 **GITANO:** _(cerrando la cúpula)_ Y nada. Eso digo. Juntaron.
+
+_(Y atrás, sin que lo vea nadie, el Vasco apoya la cruz contra el fuselaje. La deja ahí dos
+segundos más de lo que la deja siempre.)_
 
 ### 🟥 En vuelo — el silencio del Narwal _(3.9: el cobro; ver M4)_
 
@@ -1011,6 +1060,8 @@ _(a Vasco, recuperando el chiste porque lo necesita)_ Y si no vuelvo, Vasco, dec
 
 **VASCO:** …Callate, cordobé. _(pero casi se ríe. Casi.)_
 
+**GITANO:** _(al Turco, mientras sube)_ Turco, anotá que hoy ésta se llama «el Confiable».
+
 **ESTEBAN:** _(mirando la bomba bajo el ala)_ Es como el sapito... La piedra va tan
 pegada al agua que no se hunde. El problema... es que nosotros necesitamos que se hunda.
 
@@ -1094,6 +1145,9 @@ cuatro veces.
 **VASCO:** _(se queda pensando la respuesta demasiado tiempo)_ Sí, sí... Tomate eso que se enfría. O armate un mate.
 
 _(Nadie le da importancia. Esa es la idea.)_
+
+_(Camino al avión hace lo de siempre: apoya la cruz en el fuselaje, la deja dos segundos, se
+persigna. Lo que no ve nadie es que esta vez, antes de guardarla, la besa.)_
 
 ### La misión / la muerte _(sin cambios)_
 
@@ -1191,6 +1245,9 @@ preguntan... yo no vi nada.
 
 **GITANO:** NADIE vió nada. Andá a saludar a tu pibe, Tero.
 
+_(Y Puma, que no dijo una palabra más, da la vuelta a su avión y toca las tres cosas de
+siempre. Hoy las toca dos veces cada una.)_
+
 ### La misión _(sin cambios)_
 
 El Conveyor. En el epílogo se sabrá que su capitán, **Ian North**, murió ayudando a evacuar
@@ -1281,6 +1338,11 @@ _Boss: centro logístico de San Carlos. La bisagra del juego._
 pibe que respira un día más. Para eso sirve. No para la bandera del mástil: para el pibe. Siempre fue por los pibes.
 
 **ESTEBAN:** _(pensando en alguien agitando algo contra el cielo)_ …por los pibes.
+
+_(El Pichón apoya la mano en la chapa antes de subir, como siempre, y se queda escuchando
+más de lo que se queda nunca. Después le hace que sí con la cabeza al Turco.)_
+
+_(El avión estaba bien. El avión estaba perfecto.)_
 
 ### La misión / la muerte _(sin cambios)_
 
@@ -1552,6 +1614,9 @@ _(Gitano tiene el mate en la mano y no lo ceba: se le enfría entero y nadie se 
 das cuenta de que ya no te entra más, y seguís volando igual. Eso es todo el secreto, Tero.
 No hay más secreto que ese. Simplemente vivís con ese dolor todos los días.
 
+_(Subiendo, el Gitano dice el nombre del día —«el Petiso»— pero lo dice para adentro, sin
+señalarle nada a nadie, y el Turco no llega a escucharlo. Igual lo anota.)_
+
 ### La misión / Epílogo _(sin cambios)_
 
 Después del Pichón, el jugador espera el próximo golpe. **Y el golpe no llega.** Vuelven
@@ -1695,7 +1760,11 @@ ahora bajo fuego. Podés volar sobre ellos y no podés hacer nada salvo espantar
 ### Interludio — el último asado
 
 Detrás del hangar, un medio tambor con brasas. El Turco consiguió carne, nadie pregunta
-cómo. Gitano canta bajito una zamba, desafinando con dignidad.
+cómo.
+
+_(Antes de sentarse, el Turco pasa por la línea de vuelo. Los tres aviones están cargados y
+quietos bajo la luna. Les pasa la mano por el ala, de uno en uno, y a cada uno le dice algo
+bajito. Después se va al fuego y no lo cuenta.)_ Gitano canta bajito una zamba, desafinando con dignidad.
 
 **GITANO:** Che, ¿saben que pasado mañana debuta Argentina en el Mundial? En España.
 Contra Bélgica.
@@ -1840,6 +1909,17 @@ tu pibe. ¿Escuchaste, Aldao? **A tu pibe.**
 devolvés mañana. ¿Me oíste? Mañana. Me lo trae usted personalmente, Primer Teniente, o lo
 voy a buscar yo a nado. _(a los tres, señalándolos con el dedo, uno por uno)_ Tres
 desayunos. Mañana sirvo TRES desayunos. El que falte me arruina la cuenta.
+
+_(**Y el ritual de los cinco, que ahora es de tres.** El Vasco no está para apoyar la
+cruz; el Pichón no está para escuchar la chapa. **Puma da la vuelta a su avión y toca las
+tres cosas de siempre — pero toca dos y se queda.** No termina. Se sube así.)_
+
+_(**El Gitano no le pone nombre.** Camina hasta el suyo, apoya la frente en el fuselaje un
+segundo, y sube sin decir nada. Es la primera vez en catorce misiones que ese avión sale sin
+nombre.)_
+
+_(**Tero toca el terito.** Igual que siempre. Es el único de los tres que hace su gesto
+entero.)_
 
 _(CAMBIÓ el régimen entero de la despedida: el plan es distraer, destruir Y VOLVER. El Turco
 espera a tres. Nadie anuncia sacrificios. Tres turbinas encienden en la noche.)_
@@ -2273,6 +2353,84 @@ como el anuncio de arma de Metal Slug.
 
 > **La prueba para cualquier referencia nueva:** ¿la dice el Gitano, o la dice la máquina?
 > Si la dice el Gitano y es una cita, **no entra**. Si la dice la máquina, entra.
+
+---
+
+## 🟥 9d. LOS AVIONES SON PERSONAJES — la simbiosis
+
+Decisión de autor (Matías, 2026-08-22): **hay que ver, en cada misión y en cada piloto, que
+el avión no es una máquina.** Es la mascota, el hijo, el animal de trabajo de toda la vida.
+El material ya existe suelto en el guion —el terito, las estrellitas del Turco, la Chancha
+que no abandona, el C-231 canibalizado, el Turco hablándoles bajito "como a caballos antes
+de la tormenta"—. Esto lo vuelve **sistema**.
+
+### La regla que hace que no sea cursi
+
+**⚠ NADIE LO DICE NUNCA.** No existe ni una línea en todo el juego que diga "los pilotos
+quieren a sus aviones". Se ve, no se explica. Un solo personaje que lo verbalice mata la
+idea entera. *(Es la misma ley de los carteles: no explican lo obvio.)*
+
+### Cada uno quiere al avión de una manera distinta
+
+**Y no se prestan el gesto.** Cinco tipos queriendo lo mismo de la misma forma es un solo
+personaje repetido cinco veces.
+
+| Quién | Qué es el avión para él | El gesto — **uno solo, siempre el mismo** |
+|---|---|---|
+| **TERO** | **un caballo.** Criollo, animal de trabajo, compañero de campo | Antes de subir **la toca en el terito, con dos dedos**. Y le dice cosas cortas que en realidad son para Mateo |
+| **PUMA** | **un subordinado.** No la personifica: la manda | **No le habla nunca.** La revisa: **las mismas tres cosas, en el mismo orden, hace veinte años.** Su cariño es un procedimiento |
+| **GITANO** | **un compinche** al que arrastra a hacer macanas | **Le pone nombre, y le cambia el nombre en cada misión.** Nombres ridículos, cada vez peores. *(⚠ Regla de la casa: **el nombre nunca es de mujer.** Nada machista, ni siquiera de chiste)* |
+| **VASCO** | **una iglesia** | **La bendice sin una palabra:** apoya la cruz en el fuselaje, dos segundos, y sube. Es lo único que hace |
+| **PICHÓN** | **un paciente.** No la quiere: la **entiende** | **La escucha.** Apoya la oreja o la mano en la chapa con el motor girando, y diagnostica: *"le duele acá"* |
+| **EL TURCO** | **hijos, todos.** El padre de la flota entera | Les habla bajito. Y **las reconoce por el ruido antes de verlas** — sabe quién vuelve antes de que aparezca el punto en el cielo |
+
+### Las cuatro leyes
+
+1. **El gesto no se explica y no se comenta.** Nadie le pregunta al Vasco qué hace con la
+   cruz. Nadie se ríe del Pichón por escuchar la chapa.
+2. **Un gesto por persona, y no se lo prestan.** Si alguna vez uno hace el gesto de otro,
+   **eso significa algo** y hay que pagarlo.
+3. **🟥 EL AVIÓN SOBREVIVE AL PILOTO.** Es la vuelta cruel de todo esto: cuando muere uno,
+   la máquina sigue. Ya está cobrado en **M10** —el C-231 del Pichón canibalizado, *"a él ya
+   no le hace falta, m'hijo"*— y es la razón por la que ese momento duele.
+4. **🟥 EL DAÑO SE ACUMULA Y SE VE.** El avión del jugador junta parches, remaches nuevos,
+   pintura que no coincide, misión tras misión. **Nadie lo menciona.** Al final el jugador
+   vuela un animal remendado que reconoce de memoria — y eso hace todo el trabajo sin una
+   sola línea de diálogo.
+
+### 🟥 EL REPARTO — dónde cae cada gesto _(3.11: ya está aplicado en el guion)_
+
+**Nunca dos veces seguidas el mismo, y nunca dos en la misma misión.** El jugador los va
+absorbiendo sin registrarlos.
+
+| Misión | Gesto | Cómo entra |
+|---|---|---|
+| **M1** | **los cinco juntos** | "El ritual de los cinco", sin diálogo. La única vez que aparecen todos |
+| **M2** | **PICHÓN** | Mientras los otros toman mate, él ya está con la mano en la chapa, escuchando |
+| **M3** | **TURCO** | *"Ahí viene el capitán"*, de espaldas al cielo, cuatro segundos antes de que aparezca el punto. **Nadie le pregunta cómo sabe** |
+| **M4** | **TERO** | Se para, estira dos dedos, toca el terito, sigue caminando |
+| **M5** | **VASCO** | Antes del Callejón: deja la cruz en el fuselaje **dos segundos más de lo que la deja siempre** |
+| **M6** | **GITANO** | *"Turco, anotá que hoy ésta se llama «el Confiable»"* — y a esa misma le falta la nafta y casi lo mata |
+| **M7** | **VASCO, última vez** | Hace lo de siempre. Y esta vez, antes de guardarla, **la besa.** Nadie lo ve |
+| **M8** | **PUMA** | El día después de la muerte del Vasco toca las tres cosas de siempre, **dos veces cada una** |
+| **M9** | **PICHÓN, última vez** | Escucha más de lo que se queda nunca, aprueba con la cabeza — y remata: *"El avión estaba bien. El avión estaba perfecto."* **El gesto no lo salvó** |
+| **M11** | **GITANO** | Dice el nombre del día para adentro y el Turco no lo escucha. **Igual lo anota** |
+| **M13** | **TURCO** | La noche antes: pasa por la línea, les pasa la mano por el ala de a uno y le dice algo bajito a cada uno. **No lo cuenta** |
+| **M14** | **el ritual roto** | Ya son tres. Puma toca dos de tres y se sube. **El Gitano no le pone nombre.** Tero toca el terito: el único que lo hace entero |
+
+**M10 y M12 no llevan gesto a propósito** — M10 ya tiene el C-231 canibalizado (la ley 3) y
+M12 es el corte a tierra, otro registro. Y **los espacios en blanco son parte del ritmo**: si
+apareciera en las catorce, dejaría de ser un detalle y pasaría a ser un tic.
+
+### Dónde se cobra
+
+- **M1** — se plantan los cinco gestos de una sola vez, sin diálogo *(ver "El ritual de los
+  cinco")*.
+- **M6** — la Chancha se rompe salvando al Gitano. **La máquina hace lo que hace un ser
+  querido: se pone adelante.** Ya escrito.
+- **M10** — el C-231 canibalizado. Ya escrito.
+- **M14** — el ritual de los cinco vuelve, **y está roto**. Ya escrito el marco del ritual
+  invertido; el gesto que falta es el remate.
 
 ---
 

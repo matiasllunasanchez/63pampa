@@ -1885,6 +1885,10 @@ export const BARGE_T0 = 0.45;        // fraccion del recorrido en la que el buqu
 // MATERIALIZA — su opacidad sube a la inversa de la niebla (ver shipA en drawApproachBarge).
 // BARGE_DRIFT queda como perilla por si algun dia se quiere recuperar la deriva (0 = centrado).
 const BARGE_DRIFT = 0;
+// DONDE EMPIEZA A COMPRIMIR el tope del encuadre, como fraccion del tope. Por debajo de esto el
+// buque crece tal cual; por encima se va aplastando contra el tope sin llegar. Ver el bloque en
+// drawApproachBarge — lo que compra es que el acercamiento NUNCA tenga derivada cero.
+const ENC_RODILLA = 0.75;
 function bargeCol(f) { return W / 2 - cam.x * LANE_PARALLAX + (1 - f * f * f) * W * BARGE_DRIFT; }
 /** Avance 0..1 de la primera aproximacion (la unica que ve el marcador de objetivo). */
 function approachF(p) {
@@ -2072,7 +2076,20 @@ export function drawApproachBarge(objectiveDist, objectiveShip, fx, deProa) {
   // Sin el tope, con la cabina a ancho pleno el buque llegaba a 550 px de eslora sobre 480 de
   // pantalla y lo que se veia era el medio de un casco, sin proa ni popa: gris sin lectura.
   const encOn = !!(fx && fx.ventana > 0 && fx.largo > 0);
-  if (encOn) sc = Math.min(sc, fx.largo / 0.82);
+  // …Y EL TOPE ES BLANDO. Estuvo escrito `Math.min(sc, tope)` y eso convierte "se paso de grande"
+  // en "dejo de crecer": medido, el buque quedaba clavado en 456 px los ultimos DOS SEGUNDOS
+  // mientras el acercamiento seguia subiendo de 2.8× a 4.0×. En una camara que mira para adelante
+  // el tamaño del blanco es lo unico que dice a que velocidad vas, asi que una derivada CERO no se
+  // lee como "ya esta bien de grande": se lee como que el avion freno. Es literal el playtest —
+  // «el avion SIGUE FRENANDO luego de tirar los misiles, no se si frena o el barco no se mueve».
+  //
+  // La compresion deja pasar entero lo que todavia entra comodo (hasta la rodilla) y aplasta el
+  // resto CONTRA el tope sin alcanzarlo nunca: el buque crece cada cuadro, cada vez menos, y no se
+  // pasa. Es continua y con la misma pendiente en la rodilla, asi que no hay codo visible.
+  if (encOn) {
+    const tope = fx.largo / 0.82, rod = tope * ENC_RODILLA;
+    if (sc > rod) sc = tope - (tope - rod) * Math.exp(-(sc - rod) / (tope - rod));
+  }
   const uh = SHIP_UH * sc, hullH = uh * 1.5;
   const bx = bargeCol(ph === 0 ? f : 1) + Math.sin(run.t * 0.8) * 9 * sc;
   // FLOTACION CLAVADA EN EL HORIZONTE (playtest 7/8: "el barco aparece por debajo del
@@ -2100,9 +2117,14 @@ export function drawApproachBarge(objectiveDist, objectiveShip, fx, deProa) {
   // clavado en el horizonte y se viene encima. Interpolado con el avance del acercamiento para que
   // no salte, y nunca POR ARRIBA del horizonte — un buque no flota en el cielo.
   const wEnc = Math.max(HOR, fx && fx.ventana ? fx.ventana * (fx.agua || 0.93) : HOR);
-  const waterY = encOn
+  // …y DESPUES de encuadrar, LA SALIDA. `baja` es lo que el buque se corre mientras le pasas por
+  // encima, y va SUMADO afuera de la mezcla a proposito: el encuadre dice donde se PLANTA el buque
+  // para que se lea, y el sobrevuelo dice como se te VA del cuadro despues. Metido adentro de
+  // `wBase` —que es donde estaba— la mezcla se lo comia entero justo cuando el encuadre llega a
+  // pleno, y el buque se quedaba plantado en el filo de la visera hasta el ultimo cuadro.
+  const waterY = (encOn
     ? wBase + (wEnc - wBase) * Math.max(0, Math.min(1, fx.g || 0))
-    : wBase;
+    : wBase) + ((fx && fx.baja) || 0);
   const by = waterY - hullH + sink;                                // cubierta, hundida mientras este lejos
   // DISIPACION/MATERIALIZACION: un solo reloj para los dos fundidos cruzados (corre con p, el
   // viaje entero, no con la ventana f de crecimiento del casco). Las nubes van de 0.8 a 0.1 y

@@ -197,6 +197,31 @@ Escuadrilla CAUQUÉN, autorizada pista dos.
 
 **GITANO:** ¿Viste? Para el comando somos gansos. Por lo menos eligieron uno que vuela.
 
+### El ritual de los cinco
+
+_(Los cinco caminan hacia los aviones. **No habla nadie.** Diez segundos, cinco gestos, y
+cada uno es distinto. El jugador no tiene que entender nada todavía.)_
+
+_(**PUMA** no mira a nadie: da la vuelta al suyo y toca tres cosas, en orden, sin apurarse.
+Las mismas tres de hace veinte años.)_
+
+_(**EL VASCO** apoya la cruz que lleva al cuello contra el fuselaje, la deja dos segundos,
+se persigna y sube.)_
+
+_(**EL GITANO**, al Turco, señalando su avión con el pulgar: **"Turco, a ésta hoy le
+decimos «el Colectivo». Anotá."** Y sube antes de que le contesten.)_
+
+_(**EL PICHÓN** no sube todavía: apoya la mano abierta en la chapa, al lado de la toma, con
+el motor ya girando. Se queda quieto, escuchando. Después mira al Turco y le hace que sí con
+la cabeza.)_
+
+_(**TERO** se para un segundo delante del suyo. Estira dos dedos y **toca el terito recién
+pintado**. No dice nada.)_
+
+_(**EL TURCO** los mira subir a los cinco desde atrás, con el trapo en el hombro. Cuando el
+último cierra la cúpula, le dice al avión más cercano algo que no se escucha.)_
+
+
 ### La misión _(tutorial sin combate)_
 
 Aprender el rasante sin que nadie dispare: esquivar los mástiles de una flotilla pesquera,
@@ -267,6 +292,10 @@ nadie)_ **THANK YOU.**
 ronda no me voy.
 
 **EL TURCO:** _(sin levantar la vista de la carga)_ De la ronda no se va nadie.
+
+_(Y mientras los otros terminan el mate, el Pichón ya está al lado de su avión con la mano
+abierta apoyada en la chapa y la cabeza gacha, escuchando. No dice nada. Después la saca y
+se seca la palma en el mameluco.)_
 
 _(Ritual de Cóndor. Despegue.)_
 
@@ -344,6 +373,10 @@ siente la diferencia en las manos: el avión responde distinto. **La mecánica d
 enseña acá, en la misión más liviana, no en el medio del fuego.**
 
 ### Epílogo (aire) — el primer fracaso glorioso
+
+_(El Turco está de espaldas al cielo, con las manos adentro de un motor, y de golpe levanta
+la cabeza. "Ahí viene el capitán", dice, sin darse vuelta. Pasan cuatro segundos largos hasta
+que el punto aparece sobre el mar. Nadie le pregunta cómo sabe.)_
 
 De vuelta en el hangar, el Turco y el Pichón prueban el SEGUNDO invento del pibe — algo con
 un carenado y mucha cinta aisladora. Lo encienden. Hace un ruido espantoso, tira una pieza
@@ -515,6 +548,9 @@ TODOS, Puma. Y ese día va a ser más grande que éste.
 
 **PUMA:** Ojalá la única guerra que nos quede sea esa.
 
+_(Camino a los aviones, Esteban se para un segundo delante del suyo, estira dos dedos y toca
+el terito. Sigue caminando.)_
+
 ### En vuelo — de dónde salen las posiciones
 
 _(Tramo de tránsito, sin un solo enemigo en pantalla. Altura mínima, formación abierta, el
@@ -621,6 +657,9 @@ montañas de cosas para los pibes de las islas. Chocolates, cigarrillos, abrigo�
 **VASCO:** ¿Y?
 
 **GITANO:** _(cerrando la cúpula)_ Y nada. Eso digo. Juntaron.
+
+_(Y atrás, sin que lo vea nadie, el Vasco apoya la cruz contra el fuselaje. La deja ahí dos
+segundos más de lo que la deja siempre.)_
 
 ### En vuelo
 
@@ -740,6 +779,8 @@ _(a Vasco, recuperando el chiste porque lo necesita)_ Y si no vuelvo, Vasco, dec
 
 **VASCO:** …Callate, cordobé. _(pero casi se ríe. Casi.)_
 
+**GITANO:** _(al Turco, mientras sube)_ Turco, anotá que hoy ésta se llama «el Confiable».
+
 **ESTEBAN:** _(mirando la bomba bajo el ala)_ Es como el sapito... La piedra va tan
 pegada al agua que no se hunde. El problema... es que nosotros necesitamos que se hunda.
 
@@ -823,6 +864,9 @@ cuatro veces.
 **VASCO:** _(se queda pensando la respuesta demasiado tiempo)_ Sí, sí... Tomate eso que se enfría. O armate un mate.
 
 _(Nadie le da importancia. Esa es la idea.)_
+
+_(Camino al avión hace lo de siempre: apoya la cruz en el fuselaje, la deja dos segundos, se
+persigna. Lo que no ve nadie es que esta vez, antes de guardarla, la besa.)_
 
 ### La misión / la muerte
 
@@ -920,6 +964,9 @@ preguntan... yo no vi nada.
 
 **GITANO:** NADIE vió nada. Andá a saludar a tu pibe, Tero.
 
+_(Y Puma, que no dijo una palabra más, da la vuelta a su avión y toca las tres cosas de
+siempre. Hoy las toca dos veces cada una.)_
+
 ### La misión
 
 El Conveyor. En el epílogo se sabrá que su capitán, **Ian North**, murió ayudando a evacuar
@@ -1009,6 +1056,11 @@ _Boss: centro logístico de San Carlos. La bisagra del juego._
 pibe que respira un día más. Para eso sirve. No para la bandera del mástil: para el pibe. Siempre fue por los pibes.
 
 **ESTEBAN:** _(pensando en alguien agitando algo contra el cielo)_ …por los pibes.
+
+_(El Pichón apoya la mano en la chapa antes de subir, como siempre, y se queda escuchando
+más de lo que se queda nunca. Después le hace que sí con la cabeza al Turco.)_
+
+_(El avión estaba bien. El avión estaba perfecto.)_
 
 ### La misión / la muerte
 
@@ -1270,6 +1322,9 @@ _(Gitano tiene el mate en la mano y no lo ceba: se le enfría entero y nadie se 
 das cuenta de que ya no te entra más, y seguís volando igual. Eso es todo el secreto, Tero.
 No hay más secreto que ese. Simplemente vivís con ese dolor todos los días.
 
+_(Subiendo, el Gitano dice el nombre del día —«el Petiso»— pero lo dice para adentro, sin
+señalarle nada a nadie, y el Turco no llega a escucharlo. Igual lo anota.)_
+
 ### La misión / Epílogo
 
 Después del Pichón, el jugador espera el próximo golpe. **Y el golpe no llega.** Vuelven
@@ -1413,7 +1468,11 @@ ahora bajo fuego. Podés volar sobre ellos y no podés hacer nada salvo espantar
 ### Interludio — el último asado
 
 Detrás del hangar, un medio tambor con brasas. El Turco consiguió carne, nadie pregunta
-cómo. Gitano canta bajito una zamba, desafinando con dignidad.
+cómo.
+
+_(Antes de sentarse, el Turco pasa por la línea de vuelo. Los tres aviones están cargados y
+quietos bajo la luna. Les pasa la mano por el ala, de uno en uno, y a cada uno le dice algo
+bajito. Después se va al fuego y no lo cuenta.)_ Gitano canta bajito una zamba, desafinando con dignidad.
 
 **GITANO:** Che, ¿saben que pasado mañana debuta Argentina en el Mundial? En España.
 Contra Bélgica.
@@ -1556,6 +1615,17 @@ tu pibe. ¿Escuchaste, Aldao? **A tu pibe.**
 devolvés mañana. ¿Me oíste? Mañana. Me lo trae usted personalmente, Primer Teniente, o lo
 voy a buscar yo a nado. _(a los tres, señalándolos con el dedo, uno por uno)_ Tres
 desayunos. Mañana sirvo TRES desayunos. El que falte me arruina la cuenta.
+
+_(**Y el ritual de los cinco, que ahora es de tres.** El Vasco no está para apoyar la
+cruz; el Pichón no está para escuchar la chapa. **Puma da la vuelta a su avión y toca las
+tres cosas de siempre — pero toca dos y se queda.** No termina. Se sube así.)_
+
+_(**El Gitano no le pone nombre.** Camina hasta el suyo, apoya la frente en el fuselaje un
+segundo, y sube sin decir nada. Es la primera vez en catorce misiones que ese avión sale sin
+nombre.)_
+
+_(**Tero toca el terito.** Igual que siempre. Es el único de los tres que hace su gesto
+entero.)_
 
 _(CAMBIÓ el régimen entero de la despedida: el plan es distraer, destruir Y VOLVER. El Turco
 espera a tres. Nadie anuncia sacrificios. Tres turbinas encienden en la noche.)_

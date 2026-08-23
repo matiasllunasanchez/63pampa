@@ -198,7 +198,7 @@ app.whenReady().then(async () => {
     let pico = 0, mvVisto = null, secVisto = false, capt = false, dir = null;
     // el tamaño del buque EN EL PRIMER CUADRO DE LA AGONIA: contra el se mide que el acercamiento
     // no se detenga mientras se muere (ver la asercion, mas abajo)
-    let growM0 = null, altM0 = null, altUlt = 0, ras = 0, aguaMax = 0;
+    let growM0 = null, altM0 = null, altUlt = 0, ras = 0, aguaMax = 0, largoM0 = null, largoUlt = 0, quieto = 0, quietoMax = 0;
     for (let k = 0; k < 160; k++) {
       const s = JSON.parse(await js('String(window.__qdbg())'));
       if (!s.on) break;                                     // la cinematica termino: cerro la mision
@@ -208,7 +208,18 @@ app.whenReady().then(async () => {
       if (s.mv) mvVisto = s.mv;
       if (s.sec) secVisto = true;
       if (s.fx) { fx.push(s.fx); pico = Math.max(pico, s.tScale); }
-      if (s.beat === 'muerte' && growM0 === null) { growM0 = s.fx ? s.fx.grow : 0; altM0 = s.alt; }
+      // EL LARGO DIBUJADO, no el multiplicador pedido: son cosas distintas y esa diferencia fue
+      // exactamente el bug del 22/8 — el `grow` subia de 2.8 a 4.0 mientras el buque quedaba clavado
+      // en 456 px, topeado por el encuadre. Medir la causa daba verde con la pantalla congelada.
+      const B = JSON.parse(await js('String(window.__buque())') || 'null');
+      // …y CUANTAS LECTURAS SEGUIDAS quedo del mismo tamaño. Es la vara fina: el total puede subir
+      // y aun asi haber un tramo clavado en el medio, que es lo que el jugador reporta como "frena".
+      if (B) {
+        if (s.beat === 'muerte' && B.largo === largoUlt) { quieto++; quietoMax = Math.max(quietoMax, quieto); }
+        else quieto = 0;
+        largoUlt = B.largo;
+      }
+      if (s.beat === 'muerte' && growM0 === null) { growM0 = s.fx ? s.fx.grow : 0; altM0 = s.alt; largoM0 = B && B.largo; }
       if (s.alt !== undefined) altUlt = s.alt;
       // EL RASANTE: cuanto de la cinematica se vuela pegado al agua, y si el agua LLEGA AL VIDRIO.
       // Lo segundo se cuenta y no se mira: el efecto ya se murio dos veces sin dar error.
@@ -219,7 +230,7 @@ app.whenReady().then(async () => {
     }
     const ult = fx[fx.length - 1] || { grow: 0, tilt: 0, sink: 0 };
     return { premio: d.premio, clase: d.clase, beats, mv: mvVisto, sec: secVisto, pico, ult, dir,
-             growM0, altM0, altUlt, ras, aguaMax };
+             growM0, altM0, altUlt, ras, aguaMax, largoM0, largoUlt, quietoMax };
   }
 
   const A = await filmar('radar', 'radar');
@@ -250,9 +261,11 @@ app.whenReady().then(async () => {
     else bad(`el tramo rasante casi no existe (${A.ras} lecturas a ≤3 m): el juego se llama asi`);
     if (A.aguaMax > 8) ok(`y el mar LLEGA AL VIDRIO: ${A.aguaMax} gotas en el cuadro a ras`);
     else bad(`no hay agua en el vidrio volando a ras (${A.aguaMax} gotas): el efecto se murio otra vez`);
-    if (A.growM0 && A.ult.grow > A.growM0 * 1.2)
-      ok(`el buque SIGUE ACERCANDOSE mientras se muere (${A.growM0}× → ${A.ult.grow}×)`);
-    else bad(`el acercamiento se congela al empezar la agonia (${A.growM0}× → ${A.ult.grow}×)`);
+    // …y se mide EN PIXELES DIBUJADOS. El multiplicador es la intencion; lo que el jugador ve es
+    // la eslora en pantalla, y entre las dos hay un tope de encuadre que ya las desacoplo una vez.
+    if (A.largoM0 && A.largoUlt > A.largoM0 * 1.1 && A.quietoMax === 0)
+      ok(`el buque SIGUE ACERCANDOSE mientras se muere, sin un solo cuadro clavado (${A.largoM0} → ${A.largoUlt} px de eslora)`);
+    else bad(`el acercamiento se frena en la agonia (${A.largoM0} → ${A.largoUlt} px, ${A.quietoMax} lecturas clavadas): un buque que deja de crecer se lee como un avion que freno`);
     if (A.altM0 != null && A.altUlt > A.altM0 + 20)
       ok(`y el avion SALE trepando hasta el ultimo cuadro (${A.altM0} m → ${A.altUlt} m)`);
     else bad(`el avion se queda quieto durante la muerte del buque (${A.altM0} m → ${A.altUlt} m)`);
@@ -261,9 +274,22 @@ app.whenReady().then(async () => {
     // …y las dos zonas no pueden dar la misma pelicula
     if (B.sec && !A.sec) ok('solo el polvorin vuela por segunda vez (la santabarbara)');
     else bad(`el segundo estallido no distingue las zonas (radar ${A.sec} · polvorin ${B.sec})`);
-    if (B.ult.sink > A.ult.sink * 1.4 && B.ult.tilt > A.ult.tilt)
-      ok(`se hunde distinto: radar escora ${A.ult.tilt} y se hunde ${A.ult.sink} · polvorin ${B.ult.tilt} / ${B.ult.sink}`);
-    else bad(`las dos zonas hunden el buque igual (${A.ult.sink} vs ${B.ult.sink})`);
+    // EL BUQUE YA NO SE HUNDE (pedido de Matias, 8/2026): muere reventando por dentro. Esta prueba
+    // exigia lo contrario —que cada zona lo hundiera distinto— y por eso se puso en rojo al apagar
+    // `PULSO_CINE.HUNDIMIENTO`. No se borra: se DA VUELTA, y ahora guarda las dos mitades del
+    // pedido, que son las que se pueden romper sin querer.
+    //
+    // 1. que HOY no se hunda ni escore, en ninguna zona.
+    if (A.ult.sink === 0 && A.ult.tilt === 0 && B.ult.sink === 0 && B.ult.tilt === 0)
+      ok('el buque NO se hunde ni escora: muere reventando por dentro (escora/hundimiento en 0)');
+    else bad(`quedo hundimiento vivo: radar ${A.ult.tilt}/${A.ult.sink} · polvorin ${B.ult.tilt}/${B.ult.sink}`);
+    // 2. …y que la animacion SIGA ENTERA detras de la perilla. Es la mitad que se pierde sola: el
+    // dia que alguien limpie "codigo muerto", esto se va sin que nada falle — y era una opcion de
+    // destruccion que se pidio conservar, no borrar.
+    const H = JSON.parse(await js('String(window.__qhund())'));
+    if (H.on === false && H.curvaSink > 0 && H.curvaTilt > 0)
+      ok(`y la animacion sigue ENTERA detras de la perilla (apagada, pero la curva da ${H.curvaTilt} / ${H.curvaSink})`);
+    else bad(`el hundimiento quedo mal: perilla=${H.on}, curva ${H.curvaTilt}/${H.curvaSink}`);
     if (B.premio.pts > A.premio.pts * 2) ok(`y paga distinto: radar ${A.premio.pts} · polvorin ${B.premio.pts} puntos`);
     else bad(`la zona brava no paga lo que cuesta (${A.premio.pts} vs ${B.premio.pts})`);
     if (B.premio.sellos.bravo && !A.premio.sellos.bravo) ok('el sello de ZONA BRAVA solo lo da la zona brava');

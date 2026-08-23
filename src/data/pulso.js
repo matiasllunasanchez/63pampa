@@ -61,6 +61,14 @@ export const PULSO_CINE = {
   // que ver ya se vio: el buque escorado y ardiendo se lee en un segundo y medio igual que en dos
   // y medio. El resto lo cuenta el recuento.
   MUERTE: 1.75,
+  // ¿SE HUNDE? Hoy NO (pedido de Matias, 8/2026): el buque muere reventando por dentro, no yendose
+  // a pique. La escora y el hundimiento quedan ENTEROS y medidos en `shipFx()` de systems/pulso.js
+  // — no se borraron, se dejaron sin llamar— porque son una opcion de destruccion valida y el dia
+  // que se quiera un buque que SE VA a pique esto se prende con este solo booleano.
+  //
+  // Va como perilla y no comentado a proposito: el codigo comentado se pudre en silencio y no hay
+  // forma de probarlo. Asi sigue compilando y una sonda lo puede encender.
+  HUNDIMIENTO: false,
   BOMBAS: 4,       // cuantas bombas tiene la ristra (canon de PASADA §8b)
   ESTELA: 7,       // muestras de humo detras de cada bomba: lo que la hace SALIR de algun lado
   BOMBA_R: 8,      // tamaño de la bomba AL SALIR, en px de mundo (se encoge al alejarse)
@@ -92,7 +100,13 @@ export const PULSO_CINE = {
   // de la ventana del parabrisas, el buque llegaba correcto de altura pero con 550 px de eslora
   // sobre una pantalla de 480 — no se veia un buque, se veia una TAJADA DEL MEDIO de un buque,
   // plancha gris sin proa ni popa. Un barco se lee cuando entran sus dos puntas.
-  LARGO: 0.95,
+  // Estuvo en 0.95 y se calibro con LA CABINA A ANCHO PLENO, cuando la ventana del parabrisas era
+  // una rendija de 136 px. Desde que la cabina bajo al 74 % (PULSO_TEATRO.CABINA_ESC) la ventana
+  // casi se duplico y ese numero quedo apretando de mas: el buque tocaba el tope a mitad de la
+  // agonia y se quedaba ahi. Con el tope BLANDO (ENC_RODILLA en render/world.js) ademas ya no hace
+  // falta que sea conservador — pasarse un poco al final es lo correcto, porque al final le estas
+  // pasando POR ENCIMA y un blanco sobrevolado desborda el cuadro.
+  LARGO: 1.3,
   // …y donde queda su FLOTACION dentro de la ventana que la cabina deja ver (fraccion del alto).
   // Cerca del filo de la visera: apoyado ahi se siente CERCA, y el cielo que queda arriba es para
   // el humo — que es la otra mitad de lo que se esta mirando.
@@ -132,7 +146,12 @@ export const PULSO_TEATRO = {
   //
   // No la despega del borde de abajo: lo que se gana va todo para ARRIBA (ver el anclaje en
   // drawCockpit). Estas sentado adentro — el panel y las rodillas se van por el borde.
-  CABINA_ESC: 0.74,
+  // ANCHO PLENO TAMBIEN EN EL PULSO (pedido de Matias, 8/2026): vuelve a 1. Estuvo en 0.74 para
+  // que se vieran la estela, el rocio del morro y el buque en cielo limpio — eso se pierde, y es
+  // la contra que se acepto a sabiendas. OJO: `LARGO` de aca arriba se abrio a 1.3 JUSTAMENTE
+  // porque la ventana del parabrisas casi se duplico al bajar la cabina; con la cabina otra vez
+  // llena, esa ventana se achica y el tope hay que volver a mirarlo.
+  CABINA_ESC: 1,
   SAL: 24,        // motas de sal secas en el vidrio (posiciones fijas, no titilan)
   // GOTAS de mar en el vidrio volando a ras (a 2 m es un manto; arriba de 7 no queda ninguna).
   // La sal es una marca vieja del avion; esto es el mar de AHORA, y por eso corre.

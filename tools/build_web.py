@@ -90,9 +90,17 @@ def main():
     # ruta para que `new Image()` no pida un archivo inexistente.
     for key, d in PLANE_DIRS.items():
         js, _ = sub_path(js, f'../assets/planes/{d}/sheet2.png', '')
-    # cabina (primera persona): una sola para todo el juego, suelta en assets/planes/
-    js, ok = sub_path(js, '../assets/planes/cockpitv2.png',
-                      uri(ASSETS / 'planes' / 'cockpitv2.png', 'image/png')); n += ok
+    # CABINA (primera persona): una sola para todo el juego, suelta en assets/planes/.
+    #
+    # EL NOMBRE SE LEE DEL BUNDLE, no se escribe a mano. Estaba fijo en 'cockpitv2.png' y el dia
+    # que el juego paso a 'cockpitv4.png' el build web se cayo entero — con un error que decia
+    # "quedaron rutas sin re-embeber" y no de cual se trataba. El archivo lo elige
+    # legacy/momentum_render.js; aca solo hay que seguirlo.
+    for cab in sorted(set(re.findall(r'\.\./assets/planes/(cockpit[A-Za-z0-9_]*\.png)', js))):
+        f = ASSETS / 'planes' / cab
+        if not f.is_file():
+            raise SystemExit(f'ERROR: el juego pide assets/planes/{cab} y no existe')
+        js, ok = sub_path(js, f'../assets/planes/{cab}', uri(f, 'image/png')); n += ok
     # INTERFAZ: emblema de las Malvinas (4a estrella) y hoja de miras (3x3)
     js, ok = sub_path(js, '../assets/ui/malvinas.webp', uri(ASSETS / 'ui' / 'malvinas.webp', 'image/webp')); n += ok
     js, ok = sub_path(js, '../assets/ui/miras.webp', uri(ASSETS / 'ui' / 'miras.webp', 'image/webp')); n += ok

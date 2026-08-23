@@ -28,9 +28,37 @@ import { P } from '../data/palette.js';
 import { T } from '../core/i18n.js';
 import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR } from '../data/tuning.js';
 
+// LA CABINA Y SUS MEDIDAS, EN UN SOLO LUGAR. Cambiar el PNG es cambiar los TRES numeros juntos:
+// `visor` y `vidrio` son mediciones DE ESE archivo, no constantes del juego. Estuvieron declarados
+// a treinta lineas de distancia del `src` y paso exactamente lo que tenia que pasar — el asset
+// cambio en un lado, las fracciones en el otro, y lo que se ve cuando eso se desincroniza es una
+// cabina entera con el visor y el parabrisas en el lugar equivocado.
+//
+// COMO SE MIDEN (las dos, leyendo el PNG — nunca a ojo sobre la pantalla; ver la divergencia del
+// 0.503 en PLAN_CINE_PESO):
+//   visor   centro del vidrio del ALZA pintado, en fraccion del alto del PNG.
+//   vidrio  donde TERMINA el parabrisas: el ultimo renglon del hueco central transparente, o sea
+//           la ultima fila con alfa ~0 en la franja del medio. De ahi para abajo empieza la visera.
+//
+// ESTE PNG ES MAS ANGOSTO QUE LA PANTALLA (1.748:1 contra 1.778:1) y por eso existe el piso de
+// ancho pleno (`altoAncho`, mas abajo): anclado por el alto dejaria una franja de mundo de 4 px a
+// cada lado. El piso corre ANTES de `esc` — evita el descuido, no veta la decision de encuadre.
+//
+// EL OTRO ASSET, por si se vuelve: `../assets/planes/a4-skyhawk/cockpit.png` — 2816×1536 (1.833:1),
+// visor 0.3932, vidrio 0.3164. Ese es mas ancho que el cuadro y no necesita el piso.
+const COCKPIT = {
+  src: '../assets/planes/cockpitv3.png',   // 3543×2027 · 1.748:1
+  visor: 0.436,     // el vidrio del alza va de 0.374 a 0.498
+  // hueco central transparente: ultima fila con alfa ~0 en la franja del medio (42–58 % del ancho),
+  // 785 de 2027. Se prefiere el valor CHICO frente al 0.402 que salia de una franja mas angosta:
+  // pasarse hacia abajo pone el agua y la sal sobre el TABLERO, y quedarse corto las deja sobre
+  // vidrio igual. Cuando una medida tiene margen de error, el error barato es el de arriba.
+  vidrio: 0.3873,
+};
+
 // arte de la cabina (marco del visor). Se precarga al importar; hasta que este listo se
 // dibuja el fallback vectorial de abajo, asi el primer momentum nunca aparece vacio.
-const COCKPIT_ASSET = { src: '../assets/planes/cockpitv2.png', img: new Image(), ready: false };
+const COCKPIT_ASSET = { src: COCKPIT.src, img: new Image(), ready: false };
 COCKPIT_ASSET.img.onload = () => { COCKPIT_ASSET.ready = true; };
 COCKPIT_ASSET.img.src = COCKPIT_ASSET.src;
 
@@ -288,28 +316,21 @@ function drawSal(t) {
 // archivos (MOM_AY, y un COCKPIT_Y en arena.js y otro en pulso.js) que decian lo mismo desde dos
 // lados; cambiar el PNG obligaba a re-tunear las tres y la que no se miraba quedaba mintiendo.
 //
-// V_VISOR — donde cae el VIDRIO DEL VISOR dentro del PNG, en fraccion de su alto. Es LO UNICO que
-// hay que volver a medir si se recambia la cabina, y con `cockpitv2` (8/2026) hubo que hacerlo:
-// el visor de esta cabina esta MAS ABAJO que el de la anterior. Medido leyendo el PNG: el vidrio
-// del alza va de 0.374 a 0.498, centro 0.436 (antes 0.3932).
-export const V_VISOR = 0.436;
+// V_VISOR / V_VIDRIO — las dos medidas del asset, publicadas. Viven en `COCKPIT` (arriba, pegadas
+// al `src`) y salen por aca porque las usan otros modulos; lo que NO puede volver a pasar es que se
+// editen sin mirar de que PNG son.
+export const V_VISOR = COCKPIT.visor;
 
-// V_VIDRIO — donde TERMINA EL PARABRISAS dentro del PNG, en fraccion de su alto: el hueco central
-// transparente va del borde de arriba hasta aca, y de ahi para abajo empieza la visera y el
-// tablero. Medido sobre el asset de 8/2026 leyendo el canal alfa del propio PNG (no a ojo sobre la
-// pantalla). Con `cockpitv2` es 0.402 (antes 0.3203 — esta cabina tiene mas parabrisas).
+// MEDIDO, NO ESTIMADO — y la diferencia ya se pago una vez. Se puso `vidrio` en 0.503 mirando el
+// PNG y pareciendo razonable ("ahi arranca la visera"); el alfa decia 0.4016. Con 0.503 la ventana
+// quedaba 28 px mas abajo de donde termina el vidrio de verdad, asi que todo lo que se encuadra
+// contra ella —el buque del premio— se dibujaba con el casco DETRAS del tablero.
 //
-// MEDIDO, NO ESTIMADO — y la diferencia se pago. Primero se puso 0.503 mirando el PNG y pareciendo
-// razonable ("ahi arranca la visera"); el alfa decia 0.4016. Con 0.503 la ventana quedaba 28 px mas
-// abajo de donde termina el vidrio de verdad, asi que todo lo que se encuadra contra ella —el
-// buque del premio— se dibujaba con el casco DETRAS del tablero. Se descubrio con la sonda
-// `__buque`: cubierta en y=113 y flotacion en 131, con el panel arrancando en 111.
-//
-// Lo necesita cualquiera que quiera pegar algo AL VIDRIO —sal seca, agua corriendo, hielo, sangre—
-// para no terminar pintandolo sobre el tablero o afuera del cuadro. Antes cada uno se lo estimaba
-// contra `top`, y cuando la cabina cambio de encuadre los dos que lo hacian (la sal y el agua del
-// PULSO) quedaron dibujando arriba del borde de arriba: invisibles, sin fallar.
-export const V_VIDRIO = 0.402;
+// V_VIDRIO lo necesita cualquiera que quiera pegar algo AL VIDRIO —sal seca, agua corriendo, hielo,
+// sangre— para no terminar pintandolo sobre el tablero o afuera del cuadro. Antes cada uno se lo
+// estimaba contra `top`, y cuando la cabina cambio de encuadre los dos que lo hacian (la sal y el
+// agua del PULSO) quedaron dibujando arriba del borde de arriba: invisibles, sin fallar.
+export const V_VIDRIO = COCKPIT.vidrio;
 
 // LA CABINA ENTERA, SIEMPRE — y de que depende que se pueda.
 //
@@ -383,10 +404,17 @@ export function cajaCabina(w) {
   // por ninguno de los dos bordes, y el ancho detras por la proporcion real del PNG. La cabina
   // no se deforma nunca y no se recorta nunca; si algun dia se re-exporta a otra proporcion,
   // esto la sigue solo.
-  // …con el PISO de ancho pleno: nunca mas angosta que la pantalla. Se aplica DESPUES de `esc`
-  // porque `esc` es "cuanto de la pantalla se come" y achicar hasta despegarse de los costados es
-  // exactamente lo que no puede pasar.
-  const dibH = Math.max(altoDe(mira) * (w.esc || 1), altoAncho(im));
+  // …con el PISO de ancho pleno: la cabina no puede quedar accidentalmente mas angosta que la
+  // pantalla. `cockpitv2` es 1.748:1 contra 1.778:1, asi que anclada por el alto deja 4 px de mundo
+  // a cada lado — una sliver que se lee como calcomania y que nadie pidio.
+  //
+  // EL PISO VA ANTES DE `esc`, Y ESO IMPORTA. Aplicado despues, vetaba la unica perilla con la que
+  // un modo puede decir "quiero MENOS cabina y mas mundo": el PULSO la tenia en 0.74 por pedido
+  // expreso y el piso se la comia entera, sin fallar y sin avisar. Son dos cosas distintas — el
+  // piso evita un descuido de 4 px, `esc` es una decision de encuadre— y una no puede pisar a la
+  // otra. Sobre el tamaño natural manda el piso; sobre el tamaño natural manda despues quien
+  // encuadra.
+  const dibH = Math.max(altoDe(mira), altoAncho(im)) * (w.esc || 1);
   const dw = dibH * im.naturalWidth / im.naturalHeight;
   // …y SIN HUECO ABAJO. El visor clavado en la mira es la regla, pero achicar la cabina la
   // despega del borde de abajo y ahi aparece una franja de mundo POR DEBAJO del tablero: eso no

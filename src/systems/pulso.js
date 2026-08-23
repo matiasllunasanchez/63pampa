@@ -442,8 +442,24 @@ export function shipFx(vb) {
   // mar se lo comia entero: el ultimo segundo era mar vacio. Un buque no se hunde en tres segundos
   // —lo que se cuenta aca es que EMPEZO a hundirse— y el que se lo termina de tragar es el recuento.
   return Object.assign(
-    { grow, drop: drop + CINE_VUELO.ESC_DROP * p, tilt: p * p * 0.26 * k, sink: p * p * 0.78 * k }, enc);
+    // `baja` va SEPARADO de `drop` y no sumado: `drop` es de la aproximacion y el encuadre tiene
+    // derecho a reemplazarlo (es el que decide donde se planta el buque para que se lea); `baja` es
+    // el SOBREVUELO y tiene que sobrevivir al encuadre, porque es lo que dice que te lo dejaste
+    // abajo. Sumados en un solo numero, el encuadre se comia los dos.
+    // LA ESCORA Y EL HUNDIMIENTO estan APAGADOS por `PULSO_CINE.HUNDIMIENTO` (ver el porque alla).
+    // La cuenta queda intacta: no se borro una animacion que funciona, se dejo sin llamar.
+    Object.assign({ grow, drop, baja: CINE_VUELO.ESC_DROP * p },
+      PULSO_CINE.HUNDIMIENTO ? curvaHundimiento(p, k) : { tilt: 0, sink: 0 }), enc);
 }
+
+/** LA CURVA DEL HUNDIMIENTO: cuanto escora y cuanto se hunde, segun el avance `p` (0..1) de la
+ *  muerte y el factor `k` de la clase de buque.
+ *
+ *  Vive AFUERA de `shipFx` a proposito: asi se puede evaluar SIN una muerte en curso. Eso es lo
+ *  que permite probar que la animacion sigue entera aunque hoy este apagada — dentro de shipFx,
+ *  con la muerte terminada devuelve ceros y no se distingue "apagada" de "borrada", que es
+ *  justamente lo que hay que custodiar (ver PULSO_CINE.HUNDIMIENTO). */
+export const curvaHundimiento = (p, k) => ({ tilt: p * p * 0.26 * k, sink: p * p * 0.78 * k });
 
 // ---------------- SONDA (QUITAR antes de publicar) ----------------
 // Sin esto la prueba no se puede medir desde afuera: los margenes son de decimas y a ojo no se
@@ -476,6 +492,17 @@ if (typeof window !== 'undefined') window.__qdbg = () => {
   });
 };
 // __qtap: teclea por sonda (el fixture no puede depender del foco del teclado)
+// QUITAR — prende/apaga el HUNDIMIENTO y devuelve el fx resultante. Existe para que el fixture
+// pueda afirmar que la animacion sigue ENTERA detras de la perilla: sin esto, "no la borres, dejala
+// como opcion" no lo custodia nadie y se va el dia que alguien limpie codigo que no se llama.
+if (typeof window !== 'undefined') window.__qhund = on => {
+  if (on !== undefined) PULSO_CINE.HUNDIMIENTO = !!Number(on);
+  // se informan LAS DOS cosas: si esta prendida, y que da LA CURVA evaluada a fondo. La segunda
+  // no depende de que haya una muerte corriendo, que es lo que hacia inutil la primera version.
+  const c = curvaHundimiento(1, 1);
+  return JSON.stringify({ on: PULSO_CINE.HUNDIMIENTO,
+    curvaTilt: +c.tilt.toFixed(3), curvaSink: +c.sink.toFixed(3) });
+};
 if (typeof window !== 'undefined') window.__qtap = tok => tap(tok);
 // __qhold: cuelga el margen del compas. Es SOLO para las capturas: sacar una foto tarda mas que la
 // ventana de la prueba, asi que sin esto toda captura sale mostrando el fallo por tiempo.
