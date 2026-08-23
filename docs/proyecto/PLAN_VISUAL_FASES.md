@@ -43,7 +43,7 @@
 | **T3 · EL AGUA** | mar con clima + olas obstáculo (F0–F7; F8 NO) | SPEC_AGUA_OLAS | ⬜ delegable YA | 4–6 d |
 | **T4 · LAS ARMAS** | cañón (casquillos, impactos por material), misil (drop-ignite, estela), bomba (en PASADA P5) | **acá §5** | ⬜ | 2–3 d |
 | **T5 · ENEMIGOS VIVOS** | AA que trackea, mar que los mueve, rotor-wash, banking, aves que se dispersan | **acá §6** | ⬜ (N2 depende de T3) | 3–4 d |
-| **T6 · EL AVIÓN** | daño visible por averías, tobera por estados, rolidos intermedios, 🟩 **sombras** | **acá §7** | ⬜ (P3 espera arte) | 2–3 d |
+| **T6 · EL AVIÓN** | daño visible por averías, tobera por estados, rolidos intermedios, 🟩 **luz y auto-sombra del sprite** | **acá §7** | ⬜ (P3 espera arte) | 2–3 d |
 | **T7 · EL BUQUE 3D** | los tres cascos por clase con piezas nombradas — la deuda nº 1 | **acá §8** | ⬜ | 4–6 d |
 | **T8 · CIERRE 3D** | agua F8 (mar 3D + espuma de proa) tras PASADA P5 y T7 | SPEC_AGUA_OLAS F8 | ⬜ bloqueada | 1–2 d |
 | **T9 · POST-PRO** | pipeline WebGL + grading + bloom (CRT/distorsiones a criterio) | VISUAL_UPGRADES E1 | ⬜ | 4–6 d |
@@ -183,45 +183,82 @@ Cuando las hojas nuevas salgan de `tools/bake_planes.html` (§10): integrar fram
 (`data/planes.js` `SHEET_NF`/filas + `render/plane.js`). Hasta que el arte exista, esta
 fase no tiene trabajo.
 
-### 🟩 T6.P4 · Sombras del avión *(pedido 22/8 — probar si sube la sensación de calidad)*
+### 🟩 T6.P4 · La luz del avión *(pedido 22/8)*
 
-**La idea, tal como la pidió Matías:** agregarle sombras a los assets de los aviones a ver si
-mejora la calidad visual percibida. Es una fase de **prueba**: se hace, se mira en el juego, y
-si no suma se descarta sin culpa.
+**Lo que se pide,** en las palabras de Matías: sombras **en el asset del avión**, porque
+*"siempre tengo la luz de frente"* y *"si es noche, luz de luna, si es atardecer o sol,
+siempre lo tengo de frente"*.
 
-**Lo que ya hay, para no reinventarlo:** `drawShadow()` en `render/plane.js:338` — **tres
-barras horizontales de 1 px** sobre el agua, con el alfa cayendo según la altura
-(`0.4 - wy * 0.009`). La usan el jugador (`plane.js:356`) y cada avión de la formación
-(`render/squad.js`), así que tocarla los mejora a todos de una.
+Son **dos problemas distintos** y conviene no mezclarlos: uno es de **dirección** y se arregla
+horneando; el otro es de **hora del día** y no se puede arreglar horneando.
 
-**Las tres lecturas posibles, en orden de retorno por esfuerzo:**
+---
 
-1. ⭐ **La sombra proyectada, con forma de avión.** Hoy son tres barras; podría ser **la
-   silueta real**, y sale casi gratis: el sprite ya existe: se dibuja el mismo frame de
-   `sheet.png` aplastado en vertical, en negro y con alfa. Cambia el avión, cambia la sombra —
-   incluso al alabear. Es el salto de calidad más grande por menos código de toda la tanda.
-2. **Sombra de contacto / recorte contra el fondo.** Un halo oscuro de 1 px bajo el sprite para
-   despegarlo del mar. Barato, pero es maquillaje: si el problema es que el avión se pierde
-   contra el agua, la respuesta buena es el contraste de la paleta, no un borde.
-3. **Auto-sombra en el sprite** (el ala proyectando sobre el fuselaje). **Esto NO se dibuja: se
-   hornea.** Sale de la luz del modelo 3D en `tools/bake_planes.html` (hoy Lambert con una
-   direccional y un rim). Es subirle el contraste al horneado, no tocar el render.
+#### A · La luz es frontal, así que el avión es plano *(se arregla en el horneado)*
 
-**Lo que hay que cuidar — y es lo que decide el diseño:**
+Tres causas apiladas en `tools/bake_common.js`, función `escena()`:
 
-> ⚠️ **La sombra NO es decoración: es el instrumento de altura del juego.** En un juego que se
-> llama RASANTE, lo que te dice cuán bajo estás es qué tan cerca tenés la sombra. Si al hacerla
-> más linda se vuelve menos legible —más difusa, más chica, con menos contraste contra el
-> agua— el cambio **empeora el juego aunque mejore la captura**. La prueba no es una captura:
-> es volar rasante y ver si seguís sabiendo a qué altura estás.
+| # | Qué pasa | Dónde |
+|---|---|---|
+| 1 | **La key está del lado de la cámara.** `dl.position.set(-3, 5, 4)` con `z = +4`, y la cámara mira desde `z = +12.5`: ilumina desde donde miramos. Todo lo visible está iluminado y nada cae en sombra | `bake_common.js:87` |
+| 2 | **La ambiente en 1.5**, muy alta: aunque la key se mueva, el relleno levanta las sombras | `bake_common.js:86` |
+| 3 | **No hay shadow map.** `MeshLambertMaterial` sombrea por normal de cara: **el ala no puede proyectar sobre el fuselaje**, que es literalmente lo que se pide | `bake_common.js:127` |
 
-- La sombra se dibuja también para **cada avión de la formación** con su escala: lo que cueste,
-  cuesta ×5 en el despegue.
-- Aplica la regla §0.2: no mueve la mira ni agranda un hitbox. Es presentación.
-- Perilla en `data/tuning.js` con `0 = apagado`, para poder A/B en playtest.
+**Las tres se arreglan juntas o no se nota ninguna.** Mover la key sin bajar la ambiente es
+invisible; prender el shadow map con la luz de frente tira la sombra detrás del avión, donde no
+se ve.
 
-**CA:** volando a 2 m y a 20 m se distingue la altura igual o mejor que ahora, y en captura
-fija el avión se ve apoyado en el mundo y no pegado encima.
+Concretamente: key al lado opuesto de la cámara y más de costado (probar `(-5, 6, -2)`),
+ambiente a 0.7–1.0 compensando con el `rim` que ya existe, y `shadowMap` con la cámara de
+sombra **acotada al bounding box** — a 84 px un shadow map suelto da acné, que es peor que no
+tener sombra.
+
+---
+
+#### B · La luz no acompaña al cielo *(esto NO se arregla horneando)*
+
+El sprite se hornea **una vez**, así que la luz queda cocida adentro: el mismo avión vuela con
+la misma luz en `night`, en `sun`, en `dusk` y en `moon` — y esos presets **dibujan sol o luna
+en el fondo**, así que el desacuerdo se ve. Tres caminos, con su costo real:
+
+| Camino | Qué resuelve | Costo |
+|---|---|---|
+| ⭐ **Tinte por misión** — ya planificado como [E0.3](VISUAL_UPGRADES.md) | el **color** de la luz: luna azul, atardecer naranja, tormenta verdosa. Es un `fillRect` con `multiply` al final del mundo | **medio día, ya está en el plan** |
+| Hornear 2–3 direcciones de luz y elegir por preset | también la **dirección** | ×3 hojas. Con las 5 skins del A-4 son **15 hojas** solo para la campaña |
+| Relighting real (normales/AO en un canal extra) | todo | desproporcionado para 84 px |
+
+**La recomendación: A + E0.3, y parar ahí.** La sensación de "es de noche" la da el tinte
+global y el contraste, no que la sombra del ala cambie de lado — a 84 px eso son dos o tres
+píxeles. Ir a las tres direcciones solo si, con A y E0.3 hechos, la molestia sigue.
+
+> **La decisión que hay que tomar en A, y que depende de B:** desde dónde entra la key. Si los
+> fondos dibujan el sol o la luna en un lugar concreto, conviene **una dirección alta y de
+> costado que no contradiga a ninguno** — no la del preset más lindo. Un avión iluminado desde
+> la izquierda con el sol pintado a la derecha se lee como un error aunque cada pieza esté bien.
+
+---
+
+#### Lo que hay que cuidar — y puede matar el ítem
+
+> ⚠️ **`escena()` es COMPARTIDA.** Desde el refactor de horneado la usan los aviones, los
+> enemigos, la munición y las partes: tocarla re-hornea **todas las familias**, y el propio
+> archivo anota que el criterio de cierre de B0 era que las hojas salieran idénticas. Va como
+> **opción por familia**, igual que ya lo son `o.amb` y `o.rearFill`, encendida solo en aviones.
+
+- **Más contraste no es mejor a 84 px.** El pixel art chico se lee por SILUETA; una sombra
+  fuerte cruzando el ala puede partir el avión en dos manchas y hacerlo *menos* legible en
+  vuelo, que es cuando importa. Si pasa, el ítem se descarta y eso es la respuesta, no un
+  fracaso.
+- 🟥 **Las marcas de los Fieles viven en el ala** (`MARCAS` en `tools/bake_planes.html`): las
+  manchas de Tero, la banda de Puma, las puntas del Gitano, los parches del Pichón. Una sombra
+  del fuselaje cruzando el ala **puede comérselas**. Re-hornear las cinco skins y mirarlas
+  juntas es parte de la fase.
+- Bajar la ambiente oscurece **todo** el sprite: revisar que el avión se siga despegando del mar
+  oscuro. Ahí el `rim` se gana el sueldo.
+
+**CA:** el avión tiene un lado claro y uno oscuro y se le ve el volumen; en vuelo la silueta se
+lee igual de rápido que ahora; las cinco marcas de piloto se siguen distinguiendo en la
+formación; y con E0.3 puesto, una misión nocturna y una de sol pleno **se sienten distintas**.
 
 ## 8. T7 — EL BUQUE 3D POR CLASE *(la deuda visual nº 1 — sesión en esfuerzo ALTO)*
 

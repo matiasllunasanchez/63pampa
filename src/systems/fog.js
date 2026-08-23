@@ -24,7 +24,7 @@
 
 import { run } from '../core/run.js';
 import { cfg } from '../core/state.js';
-import { FOG_TOP, FOG_FRAC, FOG_FLOOR, FOG_LEN, FOG_GAP, FOG_SPREAD, SPAWN_Z } from '../data/tuning.js';
+import { FOG_TOP, FOG_FRAC, FOG_FLOOR, FOG_LEN, FOG_GAP, FOG_SPREAD, FOG_FADE, SPAWN_Z } from '../data/tuning.js';
 
 // Banco activo o el proximo: [z0, z1) en coordenadas de DISTANCIA RECORRIDA (run.dist).
 const bank = { z0: 0, z1: 0, armed: false };
@@ -67,6 +67,24 @@ export const bankAhead = () => (!cfg.fog || !bank.armed || run.dist >= bank.z0) 
 export function tookEntry() { if (!entered || exited) return false; return true; }
 export function takeExit() { if (!exited) return false; exited = false; return true; }
 
+/** CUANTA BRUMA HAY AHORA, de 0 a 1 — la rampa de entrada y de salida del banco.
+ *
+ *  Es lo unico que separa "un tramo de niebla" de "un filtro que se prendio": `inBank()` es un
+ *  booleano y cambia en un metro, asi que el render enganchado a el aparecia DE GOLPE. Esto sube
+ *  a lo largo de FOG_FADE metros y baja igual.
+ *
+ *  Y arranca ANTES del borde (`z0 - FOG_FADE`) a proposito: la bruma se ve venir y te envuelve,
+ *  que es el orden real de las cosas. Las reglas de JUEGO —donde no se siembra, cuando avisa el
+ *  HUD, cuando el Harrier queda ciego— siguen colgadas de `inBank()`: el borde del efecto es
+ *  nitido aunque el de la imagen no lo sea. */
+export function fogFade() {
+  if (!cfg.fog || !bank.armed) return 0;
+  const d = run.dist;
+  const sube = (d - (bank.z0 - FOG_FADE)) / FOG_FADE;
+  const baja = ((bank.z1 + FOG_FADE) - d) / FOG_FADE;
+  return Math.max(0, Math.min(1, sube, baja));
+}
+
 /** Techo del banco, en unidades de mundo. Debajo de esto hay bruma; arriba se ve. */
 export const fogTop = () => FOG_TOP;
 
@@ -84,3 +102,16 @@ export function fogVis() {
 }
 /** Segundos de aviso que da la niebla a la velocidad actual. Lo usa el probe y sirve para calibrar. */
 export const fogWarnSec = () => run.spd > 1 ? fogVis() / run.spd : 0;
+
+// ---------- SONDA (QUITAR) ----------
+// El banco es un TRAMO que aparece cada tantos cientos de metros: mirarlo entrar, sin esto, es
+// volar a ciegas hasta que toque. `__fog(n)` fija la densidad y `__fog(n, 1)` planta el proximo
+// banco justo adelante para poder fotografiar la ENTRADA, que es donde se ve si aparece de golpe.
+if (typeof window !== 'undefined') window.__fog = (n, ya) => {
+  if (n !== undefined) { cfg.fog = +n || 0; resetFog(); }
+  if (ya) { bank.z0 = run.dist + (+ya === 1 ? 60 : +ya); bank.z1 = bank.z0 + 2400; bank.armed = true; }
+  return JSON.stringify({
+    fog: cfg.fog, dist: run.dist | 0, z0: bank.z0 | 0, z1: bank.z1 | 0,
+    dentro: inBank(), falta: bankAhead() | 0, queda: bankLeft() | 0, top: fogTop(),
+  });
+};

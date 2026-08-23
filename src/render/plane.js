@@ -160,8 +160,8 @@ const TIP_X = 15, RAS_ALT = 4.5;
 //
 // `TIP_N` NO la alarga: la LLENA. Son cuantas muestras vivas hay repartidas sobre ese mismo
 // recorrido — sube con el largo para que el hilo no salga punteado.
-const TIP_CAIDA = 47;
-const TIP_N = 66;
+const TIP_CAIDA = 87;
+const TIP_N = 86;
 // QUITAR — lo lee la sonda __tipdbg: sin esto, "la estela sale en la pirueta y no en el turbo"
 // solo se puede afirmar entrecerrando los ojos sobre una captura.
 export const TIP_DBG = { f: 0, n: 0, lx: 0, ly: 0, rx: 0, ry: 0, vio: '', fz: 0 };

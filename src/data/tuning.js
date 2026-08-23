@@ -66,7 +66,17 @@ export const RADAR_ALT = 20;
 // sale sola de poner los dos umbrales cerca. Tres unidades es poco mas que la altura del avion
 // (semieje 1.0), asi que sostenerla con el bob y el viento es una linea de habilidad real; el que
 // no la encuentra sube al radar y come misiles, que es lo que el tramo quiere que pase.
-export const FOG_TOP = 17;
+// EL BANCO NO APARECE DE GOLPE. Un tramo que se enciende en un metro no se lee como niebla: se
+// lee como un filtro que alguien prendio. Con esto la bruma ENTRA (y se va) a lo largo de unos
+// metros, y ademas empieza ANTES del borde del banco — o sea que la ves venir, que es lo que un
+// banco de niebla hace de verdad. A 85 m/s son ~2 s de fundido.
+export const FOG_FADE = 170;   // metros de fundido a cada lado del banco
+// SUBIDO de 17 a 19 por pedido del autor ("dale un poco mas de altura"). Ojo con este numero:
+// la RENDIJA entre el techo del banco y el piso del radar (RADAR_ALT = 20) es una mecanica —el
+// que la encuentra ve sin que lo pinten— y de 3 unidades paso a 1. Sigue existiendo, pero ahora
+// hay que hilvanarla fino. Subirlo hasta 20 o mas la cierra del todo: ahi, para ver, hay que
+// entrar SI o SI a la zona de radar.
+export const FOG_TOP = 19;
 
 // ALCANCE DE VISION dentro del banco, por nivel (0 = sin niebla). Ver fogVis() en systems/fog.js.
 //
