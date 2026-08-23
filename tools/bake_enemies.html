@@ -12,8 +12,11 @@
      rotaciones sobre el mismo objeto compone un euler que no es el que uno espera (la misma
      leccion que dejo la deriva del bake de aviones).
 
-     Los helpers de volumen (CYL/CONE/DOME/PLATE/WING/FIN) estan COPIADOS de bake_planes.html:
-     son herramientas de build, la duplicacion es preferible a compartir modulo entre tools. -->
+     Los helpers de volumen (CYL/CONE/DOME/PLATE/WING/FIN), la luz y la camara salen de
+     tools/bake_common.js — EL HORNO, compartido por los cuatro horneadores desde PLAN_HORNEADO B0.
+     Antes estaban copiados aca con la excusa de que "la duplicacion es preferible a compartir
+     modulo entre tools"; con cuatro copias la regla "una luz, una camara, una paleta" no se podia
+     ni verificar. -->
 
 <head>
   <meta charset="utf-8">
@@ -28,385 +31,54 @@
 <body>
   <div id="out"></div>
   <script src="../src/vendor/three.global.js"></script>
+  <script src="bake_common.js"></script>
+  <script src="models/enemies.js"></script>
+  <script src="models/restos.js"></script>
+  <script src="models/buques.js"></script>
+  <script src="models/harrier.js"></script>
   <script>
     'use strict';
-    const CANOPY = '#8fd0e0';
+    // EL HORNO ES COMPARTIDO (tools/bake_common.js): luz, camara, paleta y primitivas salen de
+    // ahi para los cuatro horneadores — la regla 1 del plan ("una luz, una camara, una paleta")
+    // dejo de ser una promesa repetida en cuatro archivos y pasa a ser un archivo.
+    const CANOPY = BAKE.PAL.canopy;
 
-    function makeRenderer(w, h) {
-      const r = new THREE.WebGLRenderer({ antialias: false, alpha: true });
-      r.setSize(w, h, false);
-      return r;
-    }
-    function makeScene(spec) {
-      const sc = new THREE.Scene();
-      const rear = spec && spec.rearFill;
-      sc.add(new THREE.AmbientLight(0xaebccc, rear ? 2.6 : 1.8));
-      const dl = new THREE.DirectionalLight(0xe8c07a, 1.6); dl.position.set(-3, 5, 4); sc.add(dl);
-      const rim = new THREE.DirectionalLight(0xb06a35, 0.5); rim.position.set(2, 1, -4); sc.add(rim);
-      if (rear) {
-        const fill = new THREE.DirectionalLight(0xd0dce8, 1.3);
-        fill.position.set(1, 2, 12); sc.add(fill);
-      }
-      return sc;
-    }
+    const makeRenderer = (w, h, clipY) => BAKE.renderer(THREE, w, h, clipY);
+    /** LUZ DE LOS ENEMIGOS. El mismo rig de los aviones con MAS EXPOSICION (1.8 contra 1.5):
+     *  a estos se los ve DE FRENTE, con el sol detras, asi que la cara que mira a la camara es la
+     *  que esta en sombra. `rearFill` agrega el relleno frontal de las poses de cola, donde el
+     *  cuerpo se come toda la luz que queda. */
+    const makeScene = spec => BAKE.escena(THREE, spec && spec.rearFill
+      ? { amb: 2.6, rearFill: true } : { amb: 1.8 });
     /** Camara FRONTAL, apenas por arriba: el mismo punto de vista con el que el juego ve venir a
-     *  los enemigos. `dist` regula cuanto llena el frame el modelo. */
-    function makeCam(w, h, dist, lookY) {
-      const cam = new THREE.PerspectiveCamera(24, w / h, 1, 100);
-      cam.position.set(0, 2.0, dist); cam.lookAt(0, lookY !== undefined ? lookY : 0.2, 0);
-      return cam;
-    }
+     *  los enemigos. `dist` regula cuanto llena el frame el modelo.
+     *
+     *  `fov` es la DISTANCIA FOCAL, y es perilla por hoja como la exposicion: 24° es el teleobjetivo
+     *  corto con el que se hornea todo lo del pasillo, y los BUQUES piden 8° a 90 unidades porque
+     *  miden 130 metros — con 24° la popa se va tan atras que la proa sale un 30 % mas grande y el
+     *  casco parece un cono. Sigue siendo el mismo rig: misma altura relativa, mismo lookAt. */
+    const makeCam = (w, h, spec) => BAKE.camara(THREE, w, h,
+      { fov: spec.fov || 24, pos: [0, 2.0, spec.dist], lookY: spec.lookY !== undefined ? spec.lookY : 0.2 });
 
-    // ---------- primitivas (copiadas de bake_planes.html; ver nota de cabecera) ----------
-    const MAT = c => new THREE.MeshLambertMaterial({ color: c });
-    const add = (g, geo, c, x, y, z, rx, ry, rz) => {
-      const m = new THREE.Mesh(geo, MAT(c));
-      m.position.set(x, y, z);
-      if (rx) m.rotation.x = rx; if (ry) m.rotation.y = ry; if (rz) m.rotation.z = rz;
-      g.add(m); return m;
-    };
-    const B = (g, w, h, d, c, x, y, z, ry) => {
-      const m = add(g, new THREE.BoxGeometry(w, h, d), c, x, y, z);
-      if (ry) m.rotation.y = ry; return m;
-    };
-    const CYL = (g, rT, rB, len, c, x, y, z, seg) =>
-      add(g, new THREE.CylinderGeometry(rT, rB, len, seg || 10), c, x, y, z, Math.PI / 2);
-    /** Cilindro PARADO (eje vertical): mastiles, chimeneas. */
-    const POST = (g, rT, rB, len, c, x, y, z, seg) =>
-      add(g, new THREE.CylinderGeometry(rT, rB, len, seg || 8), c, x, y, z);
-    const CONE = (g, r, len, c, x, y, z, back, seg) =>
-      add(g, new THREE.ConeGeometry(r, len, seg || 10), c, x, y, z, back ? Math.PI / 2 : -Math.PI / 2);
-    const DOME = (g, r, c, x, y, z, sx, sy, sz) => {
-      const m = add(g, new THREE.SphereGeometry(r, 10, 7), c, x, y, z);
-      m.scale.set(sx || 1, sy || 1, sz || 1); return m;
-    };
-    function PLATE(g, pts, thick, c, x, y, z) {
-      const sh = new THREE.Shape();
-      sh.moveTo(pts[0][0], pts[0][1]);
-      for (let i = 1; i < pts.length; i++) sh.lineTo(pts[i][0], pts[i][1]);
-      sh.closePath();
-      const m = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: thick, bevelEnabled: false }), MAT(c));
-      m.rotation.x = -Math.PI / 2;
-      const grp = new THREE.Group();
-      grp.add(m); grp.position.set(x, y, z); g.add(grp);
-      return grp;
-    }
-    function WING(g, span, root, tip, sweep, thick, c, y, z, dih) {
-      const s = span / 2, le = root / 2, teTip = le - sweep - tip;
-      if (!dih) return PLATE(g, [[-s, le - sweep], [0, le], [s, le - sweep], [s, teTip], [0, -le], [-s, teTip]],
-        thick, c, 0, y, z);
-      const grp = new THREE.Group(); grp.position.set(0, y, z); g.add(grp);
-      for (const sg of [-1, 1]) {
-        const half = PLATE(grp, [[0, le], [sg * s, le - sweep], [sg * s, teTip], [0, -le]], thick, c, 0, 0, 0);
-        half.rotation.z = -sg * dih * Math.PI / 180;
-      }
-      return grp;
-    }
-    function FIN(g, h, root, tip, sweep, thick, c, y, z) {
-      const le = root / 2, teTip = le - sweep - tip;
-      const grp = PLATE(g, [[0, le], [h, le - sweep], [h, teTip], [0, -le]], thick, c, thick / 2, y, z);
-      grp.rotation.z = Math.PI / 2;
-      return grp;
-    }
-    /** Rueda: cilindro oscuro acostado sobre el eje X, con llanta clara. */
-    function WHEEL(g, r, w, x, y, z) {
-      const m = add(g, new THREE.CylinderGeometry(r, r, w, 10), '#191d18', x, y, z);
-      m.rotation.z = Math.PI / 2;
-      const h = add(g, new THREE.CylinderGeometry(r * 0.45, r * 0.45, w + 0.02, 8), '#3c423a', x, y, z);
-      h.rotation.z = Math.PI / 2;
-      return m;
-    }
+    // ---------- primitivas de volumen (tools/bake_common.js) ----------
+    // Estaban COPIADAS de bake_planes.html con la nota "son herramientas de build, la duplicacion
+    // es preferible a compartir modulo entre tools". Con cuatro copias eso ya no se sostiene.
+    const K = BAKE.kit(THREE);
+    const { MAT, EMIT, add, addEmit, B, CYL, POST, CONE, DOME, PLATE, WING, FIN, WHEEL } = K;
 
-    // ---------- MODELOS (nariz/proa hacia -z; el horneado los da vuelta hacia la camara) ----------
-
-    // HELICOPTERO britanico (silueta tipo Sea King): fuselaje panzon, botalon de cola fino,
-    // rotor principal y de cola, patines. `phase` = 0/1: las palas del rotor en dos angulos —
-    // alternandolas el rotor BATE en vez de quedar pegado como una calcomania.
-    function modelHelo(phase) {
-      const g = new THREE.Group();
-      const grn = '#687a68', grn2 = '#52624f', dk = '#333d34';
-      DOME(g, 0.9, grn, 0, 0, -0.4, 1.0, 0.78, 1.7);                    // fuselaje panzon
-      DOME(g, 0.62, CANOPY, 0, 0.02, -1.7, 0.94, 0.66, 0.9);            // vidrio de cabina
-      B(g, 1.14, 0.5, 1.1, grn2, 0, -0.62, -0.3);                       // panza/bañera
-      CYL(g, 0.30, 0.14, 2.6, grn2, 0, 0.22, 1.8, 8);                   // botalon de cola
-      FIN(g, 0.62, 0.5, 0.28, 0.3, 0.08, grn, 0.32, 3.0);               // deriva
-      const tr = phase ? 0.42 : 0.16;                                    // rotor de cola (2 fases)
-      B(g, 0.08, tr * 2, 0.16, dk, 0.06, 0.62, 3.05);
-      B(g, 0.08, 0.16, tr * 2, dk, 0.06, 0.62, 3.05);
-      for (const sg of [-1, 1]) {                                        // patines
-        B(g, 0.10, 0.42, 0.10, dk, sg * 0.55, -0.95, -0.9);
-        B(g, 0.10, 0.42, 0.10, dk, sg * 0.55, -0.95, 0.3);
-        CYL(g, 0.07, 0.07, 2.4, dk, sg * 0.55, -1.16, -0.3, 6);
-      }
-      POST(g, 0.10, 0.14, 0.5, grn2, 0, 0.82, -0.35);                    // mastil del rotor
-      // ROTOR PRINCIPAL: disco translucido (el barrido) + 3 palas solidas giradas por fase
-      const disc = add(g, new THREE.CylinderGeometry(3.0, 3.0, 0.04, 18), '#aeb6ae', 0, 1.05, -0.35);
-      disc.material.transparent = true; disc.material.opacity = 0.16;
-      for (let i = 0; i < 3; i++) {
-        const a = (phase ? 0.35 : 0) + i * Math.PI * 2 / 3;
-        const b = B(g, 0.16, 0.05, 2.9, dk, Math.sin(a) * 1.45, 1.06, -0.35 + Math.cos(a) * 1.45);
-        b.rotation.y = a;
-      }
-      return g;
-    }
-
-    // CAZA enemigo (silueta tipo Harrier, gris mar britanico): ala alta en flecha caida
-    // (anhedral marcado), tomas grandes a los lados de la cabina, deriva alta.
-    // KC-130 HERCULES — LA CHANCHA. El reabastecedor de la FAA, y el unico avion AMIGO horneado.
-    //
-    // Se lo ve DESDE ATRAS y de cerca (vas a buscarle la canasta), asi que lo que tiene que leerse
-    // es su silueta de carguero: ALA ALTA de punta a punta, cuatro turbohelices colgando de ella,
-    // fuselaje gordo de seccion casi circular y una deriva enorme. Es lo contrario de un caza y
-    // tiene que notarse de un vistazo.
-    //
-    // LAS HELICES NO VAN EN LA HOJA: son discos que giran, y un disco horneado se ve muerto. Las
-    // sigue dibujando render/chancha.js encima del sprite — el airframe lo da la hoja, el
-    // movimiento lo da el codigo.
-    //
-    // Camo de las fotos de la 1a Brigada Aerea (TC-63 y el modelo del C-130): VERDE oscuro con
-    // manchones ARENA y panza gris clara.
-    function modelHercules() {
-      const g = new THREE.Group();
-      const verde = '#3f4c3a', arena = '#8a7c52', gris = '#9aa5a0', dk = '#2b342c';
-      // FUSELAJE: gordo y largo, con la panza clara asomando abajo
-      CYL(g, 1.30, 1.34, 11.0, verde, 0, 0, 0.4, 14);
-      CYL(g, 1.20, 1.24, 11.0, gris, 0, -0.42, 0.4, 14);              // panza
-      DOME(g, 1.30, verde, 0, 0, -5.1, 1, 1, 1.5);                    // morro romo
-      B(g, 1.5, 0.5, 0.9, '#2a3a44', 0, 0.25, -5.4);                  // el vidriado de la cabina
-      // RAMPA de carga: el corte caracteristico bajo la cola
-      CONE(g, 1.30, 3.2, verde, 0, 0.35, 6.6, true, 14);
-      // ALA ALTA de punta a punta, recta y con muy poca flecha: la firma del Hercules
-      WING(g, 22.0, 3.1, 1.8, 0.5, 0.42, verde, 1.35, -0.2, 2);
-      WING(g, 21.0, 2.9, 1.7, 0.5, 0.10, gris, 1.06, -0.2, 2);        // cara inferior clara
-      // MANCHONES de camo sobre el ala y el lomo
-      B(g, 4.2, 0.10, 2.0, arena, -5.2, 1.58, -0.4);
-      B(g, 3.4, 0.10, 1.7, arena, 3.6, 1.58, 0.1);
-      B(g, 2.6, 0.10, 1.5, arena, -1.2, 1.58, 0.5);
-      CYL(g, 1.32, 1.32, 2.6, arena, 0, 0, -1.6, 14);                 // banda sobre el lomo
-      CYL(g, 1.32, 1.32, 1.8, arena, 0, 0, 3.4, 14);
-      // LOS CUATRO MOTORES: gondola larga colgando del ala + el cono de la helice adelante.
-      // El DISCO de la helice no va aca (lo anima el render).
-      for (const x of [-7.4, -4.1, 4.1, 7.4]) {
-        CYL(g, 0.52, 0.48, 3.4, dk, x, 1.05, -0.9, 10);
-        CONE(g, 0.42, 1.0, gris, x, 1.05, -2.9, false, 10);           // cono de la helice
-        B(g, 0.30, 0.55, 1.2, dk, x, 0.65, 0.4);                      // el escape / carenado bajo
-      }
-      // COLA: deriva GRANDE y estabilizador a su base (el Hercules no es cola en T)
-      // La deriva va ANCHA (en las fotos es una pared) y el estabilizador ARRIBA del ala: puesto a
-      // la altura del fuselaje quedaba tapado por el ala alta y el avion perdia la cola de vista.
-      FIN(g, 5.0, 4.2, 1.9, 2.4, 0.42, verde, 1.1, 5.6);
-      WING(g, 9.6, 2.4, 1.2, 0.7, 0.34, verde, 3.4, 6.0, 0);
-      WING(g, 9.0, 2.2, 1.1, 0.7, 0.10, gris, 3.2, 6.0, 0);           // cara inferior clara
-      B(g, 0.55, 1.6, 1.1, arena, 0, 4.9, 6.0);                       // manchon en la deriva
-      return g;
-    }
-
-    function modelJet() {
-      const g = new THREE.Group();
-      const gry = '#6a7570', gry2 = '#59645f', dk = '#454f4b', belly = '#9aa5a0';
-      CYL(g, 0.40, 0.36, 4.6, gry, 0, 0, 0.1, 12);
-      CONE(g, 0.36, 1.3, gry, 0, 0, -2.85, false, 12);
-      // ANHEDRAL SUAVE. El comentario decia "anhedral" y el SIGNO hacia lo contrario: las puntas
-      // subian, que es justo lo que un Harrier no hace. Con el signo corregido caen, como en la
-      // foto — pero a 12 grados quedaba caricaturesco a esta escala, asi que va casi recta con
-      // apenas la caida suficiente para que no se lea como diedro. El signo se verifico MIRANDO
-      // la hoja, no razonando la convencion: +N baja las puntas.
-      WING(g, 5.4, 2.2, 0.7, 1.7, 0.15, gry2, 0.28, 0.55, 5);            // ala ALTA, casi recta
-      WING(g, 5.4, 2.2, 0.7, 1.7, 0.03, belly, 0.20, 0.55, 5);
-      WING(g, 2.3, 0.9, 0.45, 0.6, 0.11, gry2, 0.30, 2.1, 4);            // estabilizador, apenas caido
-      FIN(g, 1.35, 1.25, 0.5, 0.9, 0.10, gry, 0.14, 2.05);
-      DOME(g, 0.34, CANOPY, 0, 0.40, -1.45, 0.85, 0.8, 1.7);
-      CYL(g, 0.44, 0.40, 1.6, gry2, -0.55, 0.05, -0.7, 8);               // tomas grandes
-      CYL(g, 0.44, 0.40, 1.6, gry2, 0.55, 0.05, -0.7, 8);
-      CYL(g, 0.30, 0.30, 0.3, '#1c211e', -0.58, 0.05, -1.45, 8);
-      CYL(g, 0.30, 0.30, 0.3, '#1c211e', 0.58, 0.05, -1.45, 8);
-      CYL(g, 0.30, 0.28, 0.4, dk, 0, 0, 2.4, 10);                        // tobera
-      return g;
-    }
-
-    // CAZA DESDE ATRAS: misma geometria + interior de tobera iluminado (ancla visual como
-    // el canopy lo es de frente). CircleGeometry mira +z = hacia la camara en rear.
-    function modelJetRear() {
-      const g = modelJet();
-      const glow = new THREE.Mesh(
-        new THREE.CircleGeometry(0.22, 10),
-        new THREE.MeshBasicMaterial({ color: '#e87040' })
-      );
-      glow.position.set(0, 0, 2.62);
-      g.add(glow);
-      const core = new THREE.Mesh(
-        new THREE.CircleGeometry(0.13, 8),
-        new THREE.MeshBasicMaterial({ color: '#ffc070' })
-      );
-      core.position.set(0, 0, 2.63);
-      g.add(core);
-      return g;
-    }
-
-    // RADAR MOVIL: camion con plato giratorio. `ang` = yaw del plato (4 poses = el plato ROTA).
-    function modelRadar(ang) {
-      const g = new THREE.Group();
-      const grn = '#5d6152', grn2 = '#6f7362', cab = '#4a4e42';
-      B(g, 2.4, 1.0, 4.2, grn, 0, 0.5, 0.3);                             // caja
-      B(g, 2.4, 0.12, 4.2, grn2, 0, 1.06, 0.3);
-      B(g, 2.2, 1.0, 1.4, cab, 0, 0.5, -2.4);                            // cabina
-      B(g, 1.9, 0.45, 0.1, '#9fb6bd', 0, 0.62, -3.11);                   // parabrisas
-      WHEEL(g, 0.5, 0.35, -1.05, 0, -1.6); WHEEL(g, 0.5, 0.35, 1.05, 0, -1.6);
-      WHEEL(g, 0.5, 0.35, -1.05, 0, 1.5); WHEEL(g, 0.5, 0.35, 1.05, 0, 1.5);
-      POST(g, 0.14, 0.2, 1.4, '#3a3e34', 0, 1.7, 0.6);                   // mastil
-      const dish = new THREE.Group(); dish.position.set(0, 2.5, 0.6); dish.rotation.y = ang; g.add(dish);
-      // el plato: rejilla curva (media luna extruida) + bocina al frente
-      const m = add(dish, new THREE.CylinderGeometry(1.5, 1.5, 0.16, 14, 1, false, 0, Math.PI), '#8a9299', 0, 0, 0);
-      m.rotation.x = Math.PI / 2; m.rotation.z = Math.PI;
-      B(dish, 0.5, 0.4, 0.14, '#aab2b8', 0, 0.35, 0.15);
-      return g;
-    }
-
-    // CAMION ANTIAEREO: chasis con torreta de dos caños atras. `ang` = yaw de la torreta
-    // (3 poses = la torreta BARRE el cielo buscandote).
-    function modelAATruck(ang) {
-      const g = new THREE.Group();
-      const grn = '#575b48', grn2 = '#696d58', cab = '#43473a';
-      B(g, 2.5, 0.9, 4.6, grn, 0, 0.45, 0.2);                            // chasis
-      B(g, 2.5, 0.12, 4.6, grn2, 0, 0.96, 0.2);
-      B(g, 2.3, 1.05, 1.5, cab, 0, 0.55, -2.55);                         // cabina
-      B(g, 2.0, 0.45, 0.1, '#9fb6bd', 0, 0.7, -3.31);
-      WHEEL(g, 0.52, 0.35, -1.1, 0, -1.8); WHEEL(g, 0.52, 0.35, 1.1, 0, -1.8);
-      WHEEL(g, 0.52, 0.35, -1.1, 0, 1.2); WHEEL(g, 0.52, 0.35, 1.1, 0, 1.2);
-      WHEEL(g, 0.52, 0.35, -1.1, 0, 2.2); WHEEL(g, 0.52, 0.35, 1.1, 0, 2.2);
-      const tur = new THREE.Group(); tur.position.set(0, 1.35, 1.1); tur.rotation.y = ang; g.add(tur);
-      B(tur, 1.3, 0.7, 1.3, cab, 0, 0.2, 0);                             // cuna de la torreta
-      for (const sg of [-1, 1]) {                                        // dos caños apuntando alto
-        const c = CYL(tur, 0.09, 0.11, 2.2, '#2b3338', sg * 0.3, 0.85, -0.7, 6);
-        c.rotation.x = Math.PI / 2 - 0.85;                               // ~49° al cielo
-      }
-      return g;
-    }
-
-    // BARCAZA DE DESEMBARCO (LCU): casco chato, rampa de proa (hacia -z: la playa), timonera a
-    // popa y bordas altas. Se hornea apenas girada (3/4) para que se lea el volumen.
-    function modelLcu() {
-      const g = new THREE.Group();
-      const hull = '#6b7566', hull2 = '#7f8975', dk = '#565f52';
-      B(g, 2.6, 0.9, 6.4, hull, 0, 0.45, 0);                             // casco
-      B(g, 2.6, 0.14, 6.4, hull2, 0, 0.97, 0);
-      B(g, 0.18, 0.55, 5.6, hull2, -1.25, 1.15, 0.2);                    // bordas
-      B(g, 0.18, 0.55, 5.6, hull2, 1.25, 1.15, 0.2);
-      const ramp = B(g, 2.3, 0.16, 1.7, '#8a947f', 0, 1.15, -3.5);       // rampa apenas levantada
-      ramp.rotation.x = -0.24;
-      B(g, 1.5, 1.1, 1.2, dk, 0, 1.5, 2.5);                              // timonera
-      B(g, 1.3, 0.35, 0.1, '#9fb6bd', 0, 1.75, 1.94);                    // ventanas
-      POST(g, 0.05, 0.05, 1.1, dk, 0.5, 2.5, 2.7);                       // antena
-      for (let i = 0; i < 3; i++) B(g, 0.5, 0.3, 0.4, '#7d7455', -0.6 + i * 0.6, 1.15, -1.2);  // cascos
-      return g;
-    }
-
-    // GLOBO DE BARRERA: bolsa plateada con tres aletas de cola infladas.
-    function modelBalloon() {
-      const g = new THREE.Group();
-      const sil = '#a3aeb4', sil2 = '#c3ced2', dk = '#7e8a90';
-      DOME(g, 1.0, sil, 0, 0, -0.3, 1.0, 0.82, 1.75);                    // bolsa
-      DOME(g, 0.58, sil2, 0, 0.38, -0.9, 1.15, 0.55, 1.15);              // brillo del lomo
-      CONE(g, 0.5, 1.0, dk, 0, -0.05, 1.45, true, 8);                    // cola que se afina
-      for (let i = 0; i < 3; i++) {                                      // 3 aletas infladas a 120°
-        const a = i * Math.PI * 2 / 3 + Math.PI / 2;                     // una vertical, dos abajo
-        const f = DOME(g, 0.52, i ? sil : sil2, Math.cos(a) * 0.72, Math.sin(a) * 0.72, 1.5, 0.42, 1.0, 1.5);
-        f.rotation.z = a - Math.PI / 2;
-      }
-      return g;
-    }
-
-    // NIDO ANTIAEREO: anillo de bolsas de arena, pedestal y caños gemelos al cielo.
-    // `ang` = yaw de los caños (2 poses: la pieza corrige el apunte).
-    function modelAA(ang) {
-      const g = new THREE.Group();
-      const sand = '#8a7c58', sand2 = '#a4956e', metal = '#3d423b';
-      for (let i = 0; i < 8; i++) {                                      // anillo de bolsas
-        const a = i * Math.PI / 4;
-        const b = B(g, 1.3, 0.62, 0.62, i % 2 ? sand : sand2, Math.cos(a) * 1.55, 0.3, Math.sin(a) * 1.55);
-        b.rotation.y = -a + Math.PI / 2;
-        B(g, 1.0, 0.5, 0.55, i % 2 ? sand2 : sand, Math.cos(a) * 1.5, 0.75, Math.sin(a) * 1.5).rotation.y = -a + Math.PI / 2;
-      }
-      const tur = new THREE.Group(); tur.position.set(0, 0.6, 0); tur.rotation.y = ang; g.add(tur);
-      B(tur, 0.8, 0.9, 0.8, metal, 0, 0.4, 0);                           // pedestal
-      B(tur, 1.1, 0.3, 0.6, '#4a5045', 0, 0.95, 0);                      // cuna
-      for (const sg of [-1, 1]) {                                        // caños gemelos a ~50°
-        const c = CYL(tur, 0.08, 0.10, 2.4, '#2b3338', sg * 0.22, 1.7, -0.75, 6);
-        c.rotation.x = Math.PI / 2 - 0.9;
-      }
-      return g;
-    }
-
-    // CARPA britanica a dos aguas: dos faldones que se ENCUENTRAN en la cumbrera + hastiales
-    // (los triangulos de las puntas) hechos con ShapeGeometry, que ya es un plano vertical — sin
-    // pasar por PLATE, cuya rotacion interna compone mal con un segundo giro (la leccion euler).
-    function modelTent() {
-      const g = new THREE.Group();
-      const lona = '#6d6f4e', lona2 = '#7d7f60', dk = '#20241c';
-      const HALF = 1.15, RIDGE = 1.3, slope = Math.hypot(HALF, RIDGE), ang = Math.atan2(RIDGE, HALF);
-      for (const sg of [-1, 1]) {                                        // faldones
-        const f = B(g, slope, 0.1, 3.2, sg < 0 ? lona2 : lona, sg * HALF / 2, RIDGE / 2, 0);
-        f.rotation.z = -sg * ang;
-      }
-      B(g, 0.2, 0.14, 3.3, '#8d8f70', 0, RIDGE, 0);                      // cumbrera
-      const sh = new THREE.Shape();                                      // hastial (triangulo)
-      sh.moveTo(-HALF + 0.06, 0); sh.lineTo(0, RIDGE - 0.06); sh.lineTo(HALF - 0.06, 0); sh.closePath();
-      for (const zz of [-1.58, 1.55]) {
-        const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), MAT(lona));
-        m.position.set(0, 0, zz); g.add(m);
-      }
-      B(g, 0.66, 0.85, 0.1, dk, 0, 0.42, -1.6);                          // entrada oscura
-      B(g, 2.9, 0.14, 3.6, '#5a5c42', 0, 0.07, 0);                       // faldon sucio al piso
-      return g;
-    }
-
-    // DEPOSITO de suministros: galpon abovedado tipo nissen (boveda escalonada: a 48 px se lee
-    // curva), porton oscuro y tambores apilados al costado.
-    function modelDepot() {
-      const g = new THREE.Group();
-      const w1 = '#75705c', w2 = '#847e68', roof = '#4c4638', dk = '#2a2d24';
-      B(g, 3.4, 1.1, 4.6, w1, 0, 0.55, 0);                               // cuerpo
-      B(g, 2.9, 0.55, 4.6, w2, 0, 1.35, 0);                              // boveda: escalones
-      B(g, 2.0, 0.42, 4.6, roof, 0, 1.82, 0);
-      B(g, 1.0, 0.26, 4.6, '#5a5444', 0, 2.13, 0);
-      B(g, 1.2, 0.95, 0.14, dk, 0, 0.48, -2.32);                         // porton
-      for (let i = 0; i < 3; i++) {                                      // tambores
-        POST(g, 0.28, 0.28, 0.8, i % 2 ? '#6d7a4a' : '#7d8a55', 2.1 + (i % 2) * 0.5, 0.4, -0.8 + i * 0.7, 8);
-      }
-      B(g, 0.8, 0.7, 0.8, '#7a6b4e', -2.25, 0.35, -1.2);                 // cajones
-      B(g, 0.6, 0.5, 0.6, '#8a7a5a', -2.2, 0.95, -1.15);
-      return g;
-    }
-
-    // PUESTO britanico: bloque de chapa a dos plantas, techo con alero, ventanas oscuras y
-    // bolsas de arena al pie. El soldado asomado y su fogonazo siguen por codigo (o.armed).
-    function modelBldg() {
-      const g = new THREE.Group();
-      const wall = '#6e6656', wall2 = '#7d7563', roof = '#463f31', dk = '#23271f';
-      B(g, 3.0, 2.6, 2.4, wall, 0, 1.3, 0);                              // cuerpo
-      B(g, 3.0, 0.5, 2.4, wall2, 0, 2.35, 0);                            // franja alta iluminada
-      B(g, 3.4, 0.3, 2.8, roof, 0, 2.75, 0);                             // techo con alero
-      B(g, 0.6, 0.95, 0.12, '#2a2d24', 0, 0.48, -1.22);                  // puerta
-      for (const sx of [-1.0, 1.0]) B(g, 0.62, 0.5, 0.12, dk, sx, 1.7, -1.22);   // ventanas
-      for (let i = 0; i < 4; i++)                                        // bolsas al pie
-        B(g, 0.7, 0.34, 0.5, i % 2 ? '#8a7c58' : '#a4956e', -1.3 + i * 0.85, 0.17, -1.35);
-      return g;
-    }
-
-    // FRAGATA vista de proa: el casco del mastil de mar abierto. El MASTIL va POR CODIGO encima
-    // (su altura se sortea 11-28 por spawn: un sprite fijo la aplastaria) — esto es solo el buque.
-    function modelFragata() {
-      const g = new THREE.Group();
-      const hull = '#4c5b60', hull2 = '#5c6e73', sup = '#6b7a80';
-      const h = DOME(g, 1.0, hull, 0, 0.3, 0, 2.6, 0.9, 3.2);            // casco (proa afilada por escala z)
-      B(g, 4.6, 0.34, 5.2, hull2, 0, 1.02, 0.3);                         // cubierta
-      B(g, 1.9, 0.9, 2.0, sup, 0, 1.6, 0.9);                             // superestructura
-      B(g, 1.2, 0.5, 1.1, '#7b8a90', 0, 2.25, 1.0);                      // puente
-      B(g, 1.05, 0.22, 0.14, '#20282c', 0, 2.3, 0.42);                   // ventanas del puente
-      POST(g, 0.10, 0.14, 0.8, '#3a4448', 0, 1.4, -0.9, 6);              // pieza de proa
-      B(g, 0.7, 0.3, 0.9, '#3a4448', 0, 1.35, -0.85);
-      return g;
-    }
+    // LOS MODELOS VIVEN EN tools/models/enemies.js (PLAN_HORNEADO B0): un horneador es un
+    // ENCUADRE (que camara, que poses, que grilla) y un modelo es una SILUETA.
+    const { modelHelo, modelHercules, modelJet, modelRadar, modelAATruck, modelLcu, modelBalloon, modelAA, modelTent, modelDepot, modelBldg, modelFragata } = BAKE.familia('enemies');
+    // LOS RESTOS (PLAN_HORNEADO B1): el estado ROTO de cada cosa, en tools/models/restos.js. Van
+    // en ESTE horneador y no en uno propio porque son el MISMO encuadre — la camara que ve venir
+    // al enemigo es la que despues lo ve tirado. Dos hornos serian dos luces.
+    const R = BAKE.familia('restos');
+    // LOS BUQUES (B2): las tres clases del juego, en tools/models/buques.js.
+    const BQ = BAKE.familia('buques');
+    // EL SEA HARRIER (B3): el perseguidor de LA COLA, en tools/models/harrier.js. Va aparte de los
+    // demas enemigos porque es el unico modelo de autor del plan — el criterio de cierre no es una
+    // medida, es que se distinga del jet generico sin leyenda.
+    const HR = BAKE.familia('harrier');
 
     // ---------- catalogo de horneado ----------
     // frames: cada entrada es una POSE (funcion que devuelve el modelo + rotacion del grupo).
@@ -440,20 +112,32 @@
         fw: 128, fh: 96, dist: 16, lookY: 0.2,
         frames: [-30, -15, 0, 15, 30].map(a => ({ model: modelJet, roll: a * Math.PI / 180 })), cols: 5,
       },
-      // caza DESDE ATRAS: mismos 5 alabeos pero la camara ve la cola (tobera, deriva, borde de
-      // fuga del ala). Es la vista real de la COLA — el Harrier vuela en tu misma direccion y la
-      // camara esta detras de los dos.
-      jet_rear: {
-        fw: 128, fh: 96, dist: 16, lookY: 0.2, baseYaw: 0, rearFill: true,
-        frames: [-30, -15, 0, 15, 30].map(a => ({ model: modelJetRear, roll: a * Math.PI / 180 })), cols: 5,
+      // ============================ EL SEA HARRIER (B3) ============================
+      // Las tres poses de LA COLA, y ahora con modelo propio: hasta B3 las horneaba `modelJet` —
+      // el mismo caza generico del pasillo — y el perseguidor era un avion que no era de nadie.
+      // Mismas medidas de frame y misma `dist` que las hojas que reemplazan: el Harrier no puede
+      // cambiar de tamaño en pantalla, que seria un cambio de juego y esto es arte.
+      //
+      // DE FRENTE: 5 columnas de alabeo, la vista de cuando vuelve a encararte tras la recola.
+      harrier: {
+        fw: 128, fh: 96, dist: 16, lookY: 0.2,
+        frames: [-30, -15, 0, 15, 30].map(a => ({ model: HR.harrier, roll: a * Math.PI / 180 })), cols: 5,
       },
-      // caza EN VIRAJE (recola): 5 yaws de cola (0°) a frente (180°), con alabeo de la virada.
-      // La recola es la vuelta en U: el Harrier pasa de volar adelante tuyo (cola) a volver por
-      // atras (frente). El render elige el frame segun el progreso de la recola.
-      jet_turn: {
+      // DESDE ATRAS: mismos 5 alabeos pero la camara ve la cola (las dos toberas calientes, la
+      // deriva, el borde de fuga del ala). Es la vista real de LA COLA — el Harrier vuela en tu
+      // misma direccion y la camara esta detras de los dos.
+      harrier_rear: {
+        fw: 128, fh: 96, dist: 16, lookY: 0.2, baseYaw: 0, rearFill: true,
+        frames: [-30, -15, 0, 15, 30].map(a => ({ model: HR.harrierRear, roll: a * Math.PI / 180 })), cols: 5,
+      },
+      // EN VIRAJE (la recola): 5 yaws de cola (0°) a frente (180°), con el alabeo de la virada.
+      // La recola es la vuelta en U — el Harrier pasa de volar adelante tuyo a volver por atras.
+      // ESTA HOJA EXISTIA DESDE ANTES (`jet_turn`) Y NADIE LA DIBUJABA: se horneaba en cada
+      // horneada y ningun archivo del juego la nombraba. B3 la cablea (ver render/caza.js).
+      harrier_turn: {
         fw: 128, fh: 96, dist: 18, lookY: 0.2, baseYaw: 0,
         frames: [0, 40, 90, 140, 180].map((deg, i) => ({
-          model: modelJet,
+          model: HR.harrier,
           yaw: deg * Math.PI / 180,
           roll: [0, -25, -35, -25, 0][i] * Math.PI / 180,
         })), cols: 5,
@@ -505,6 +189,108 @@
         fw: 64, fh: 48, dist: 16, lookY: 1.0, quarter: 0.15,
         frames: [{ model: modelFragata }], cols: 1,
       },
+
+      // ============================ LOS RESTOS (B1) ============================
+      // Cada resto se hornea con LA MISMA camara que su version viva —misma dist, mismo lookY,
+      // mismo 3/4— y a proposito: el resto tiene que caer exactamente donde estaba la cosa, con
+      // la misma escala, o el cambio se lee como un salto. Lo unico que puede diferir es `lookY`
+      // cuando el resto es mas bajo que el vivo (que es casi siempre: se derrumbo).
+      resto_aa: {
+        fw: 48, fh: 48, dist: 14, lookY: 0.8, quarter: 0.45,
+        frames: [{ model: R.restoAA }], cols: 1,
+      },
+      resto_aatruck: {
+        fw: 56, fh: 48, dist: 16, lookY: 0.9, quarter: 0.5,
+        frames: [{ model: R.restoAATruck }], cols: 1,
+      },
+      resto_radar: {
+        fw: 48, fh: 48, dist: 16, lookY: 1.0, quarter: 0.5,
+        frames: [{ model: R.restoRadar }], cols: 1,
+      },
+      resto_depot: {
+        fw: 64, fh: 48, dist: 15, lookY: 0.8, quarter: 0.4,
+        frames: [{ model: R.restoDepot }], cols: 1,
+      },
+      // TRES ESTADOS DE DERRUMBE, y es el unico resto con mas de una pose: el edificio es lo que
+      // escala por altura en el juego, asi que uno solo se repetiria en toda una base.
+      resto_bldg: {
+        fw: 64, fh: 48, dist: 14, lookY: 1.0, quarter: 0.35,
+        frames: [0, 1, 2].map(n => ({ model: () => R.restoBldg(n) })), cols: 3,
+      },
+      resto_tent: {
+        fw: 48, fh: 48, dist: 12, lookY: 0.25, quarter: 0.35,
+        frames: [{ model: R.restoTent }], cols: 1,
+      },
+      // la pala que queda apuntando al cielo se salia por arriba (el autobox: margen 0). Se mira
+      // mas alto y se toma un paso de distancia — el resto entra entero sin achicarse.
+      resto_helo: {
+        fw: 64, fh: 48, dist: 16.5, lookY: 1.15, quarter: 0.4,
+        frames: [{ model: R.restoHelo }], cols: 1,
+      },
+      resto_jet: {
+        fw: 64, fh: 48, dist: 16, lookY: 0.6, quarter: 0.35,
+        frames: [{ model: R.restoJet }], cols: 1,
+      },
+      // DOS FINALES para la barcaza: escorada sobre una banda, o de proa hundida
+      resto_lcu: {
+        fw: 72, fh: 48, dist: 17, lookY: 0.5, quarter: -0.55,
+        frames: [0, 1].map(n => ({ model: () => R.restoLcu(n) })), cols: 2,
+      },
+      resto_balloon: {
+        fw: 48, fh: 48, dist: 11, lookY: -0.6, quarter: 0.4,
+        frames: [{ model: R.restoBalloon }], cols: 1,
+      },
+
+      // ============================ LOS BUQUES (B2) ============================
+      // TRES CLASES x TRES VISTAS: de costado (lo que ve el pasillo y EL PULSO), de proa (la
+      // aproximacion sin teleport) y hundiendose (el premio del PULSO).
+      //
+      // LA CAMARA ES CASI ORTOGRAFICA, y es la unica familia del horno que lo pide: 8° de campo a
+      // 90 unidades en vez de 24° a 15. No es otra camara —es el mismo rig, misma altura relativa,
+      // mismo lookAt— es otra DISTANCIA FOCAL, la misma perilla por familia que la exposicion.
+      // El motivo esta medido: un destructor mide 130 m y con teleobjetivo corto la popa se va a
+      // 40 unidades de la proa, asi que la proa sale un 30 % mas grande y el buque parece un cono.
+      // El casco 2D que estas hojas reemplazan es ortografico puro; si el horneado no lo fuera,
+      // el respaldo y el sprite no empalmarian.
+      //
+      // `quarter: +PI/2` con `baseYaw: 0` deja la PROA A LA IZQUIERDA — igual que `drawBargeHull`,
+      // que mete la roda hacia adentro desde su borde IZQUIERDO. Salio al reves en la primera
+      // horneada y se ve enseguida en el logistico: la isla es de popa, asi que si aparece a la
+      // derecha el buque esta navegando para el otro lado. Los dos dibujos tienen que empalmar —
+      // el 2D sigue siendo el respaldo cuando la hoja no cargo.
+      //
+      // FRAME de 240x72 para el costado: es la mitad de la eslora maxima que alcanza el buque en
+      // el climax (~456 px medidos), o sea que ahi se dibuja a 1,9x. Es la escala a la que se
+      // dibuja el resto del pixel art del juego, asi que el buque no se ve de otra familia.
+      ...(() => {
+        const out = {};
+        // `clipY: 0` — NADA BAJO LA FLOTACION. Es lo que hace que el borde de abajo del contenido
+        // SEA la linea de agua, y por lo tanto que anclar el sprite por ahi lo plante exactamente
+        // donde el casco 2D ponia su flotacion. Sin el recorte, la obra viva que asoma un pixel
+        // corre al buque entero hacia arriba y queda flotando sobre el mar.
+        // 2,2° a 90 unidades: el teleobjetivo mas largo del horno, y el encuadre sale de la cuenta,
+        // no del ojo — a esa distancia el campo vertical mide 3,46 unidades y el buque 10 de eslora,
+        // asi que entra con 15 px de aire a cada lado. `lookY 1.5` lo centra entre la flotacion y la
+        // perilla del palo.
+        const COSTADO = { fw: 240, fh: 72, dist: 90, fov: 2.42, lookY: 1.76, clipY: 0, baseYaw: 0, quarter: Math.PI / 2 };
+        const PROA = { fw: 56, fh: 72, dist: 90, fov: 2.42, lookY: 1.64, clipY: 0, baseYaw: 0, quarter: 0 };
+        for (const c of ['t42', 't21', 'log']) {
+          // TRES POSES DE CABECEO. El buque se dibuja quieto en pantalla y sin esto se lee como
+          // una foto pegada; el render las cicla con un seno lento. Son ±2,3°: a 400 px de eslora
+          // eso son 16 px de sube y baja en las puntas, que es marejada, no tormenta.
+          out['buque_' + c] = { ...COSTADO,
+            frames: [-0.04, 0, 0.04].map(a => ({ model: () => BQ[c](), roll: a })), cols: 3 };
+          out['proa_' + c] = { ...PROA,
+            frames: [-0.05, 0, 0.05].map(a => ({ model: () => BQ[c](), roll: a })), cols: 3 };
+          // LOS DOS FINALES: de proa (se va de nariz) y de popa. Dos y no uno porque cual toca es
+          // lo unico que el jugador se lleva de como lo hundio.
+          // el que se hunde pide MAS AIRE: la columna de humo sube por encima del palo y el casco
+          // escorado saca la punta fuera del rectangulo que ocupaba navegando
+          out['hundido_' + c] = { ...COSTADO, fov: 3.15, lookY: 2.0,
+            frames: [1, 2].map(n => ({ model: () => BQ.hundido(c, n) })), cols: 2 };
+        }
+        return out;
+      })(),
     };
 
     function __bake() {
@@ -517,8 +303,8 @@
       window.__SHEETS_DATA = {};
       for (const name in SHEETS) {
         const spec = SHEETS[name];
-        const R = makeRenderer(spec.fw, spec.fh);
-        const cam = makeCam(spec.fw, spec.fh, spec.dist, spec.lookY);
+        const R = makeRenderer(spec.fw, spec.fh, spec.clipY);
+        const cam = makeCam(spec.fw, spec.fh, spec);
         const cols = spec.cols, rows = Math.ceil(spec.frames.length / cols);
         const sheet = document.createElement('canvas');
         sheet.width = spec.fw * cols; sheet.height = spec.fh * rows;
@@ -529,10 +315,20 @@
           // camara (PI) + 3/4 opcional → pose (yaw/alabeo). Grupos separados: ver cabecera.
           const flip = new THREE.Group(); flip.rotation.y = (spec.baseYaw !== undefined ? spec.baseYaw : Math.PI) + (spec.quarter || 0);
           flip.add(fr.model());
-          const pose = new THREE.Group();
+          // EL ALABEO VA ADENTRO DEL YAW, EN GRUPOS SEPARADOS, y esto costo un avion apuntando al
+          // cielo. Estaban los dos en el MISMO grupo (`pose.rotation.y` y `pose.rotation.z`), que
+          // es la trampa que esta cabecera ya advertia: con el avion girado 90°, el eje Z dejo de
+          // ser su eje longitudinal, asi que rotar en Z no lo ALABEA — lo ENCABRITA. En la hoja de
+          // viraje el frame del medio (yaw 90°, alabeo -35°) salia con la nariz para arriba.
+          //
+          // Nadie lo vio durante meses porque `jet_turn` era la unica hoja que pedia las dos
+          // rotaciones juntas Y NINGUN ARCHIVO DEL JUEGO LA DIBUJABA (ver render/caza.js, B3). El
+          // horno la horneaba mal en cada pasada y el error no llegaba a la pantalla.
+          const pose = new THREE.Group();                 // el YAW: hacia donde apunta
           if (fr.yaw) pose.rotation.y = fr.yaw;
-          if (fr.roll) pose.rotation.z = fr.roll;
-          pose.add(flip); sc.add(pose);
+          const roll = new THREE.Group();                 // el ALABEO: sobre SU eje, ya girado
+          if (fr.roll) roll.rotation.z = fr.roll;
+          roll.add(flip); pose.add(roll); sc.add(pose);
           R.render(sc, cam);
           x2.drawImage(R.domElement, (i % cols) * spec.fw, Math.floor(i / cols) * spec.fh);
         });
@@ -552,6 +348,18 @@
       return result;
     }
     window.__bake = __bake;
+
+    /** LAS CAJAS, MEDIDAS SOBRE LA HOJA RECIEN HORNEADA (PLAN_HORNEADO B0, regla 3).
+     *  `box` es el rectangulo de CONTENIDO adentro del frame, y de ahi sale donde se ancla cada
+     *  bicho: al suelo los de tierra, al centro los del aire. Hasta B0 se contaban a ojo sobre el
+     *  alfa, una por una — un numero mal copiado dejaba al enemigo flotando o enterrado, y no
+     *  habia ninguna prueba que lo agarrara. El runner escribe lo que devuelve esto en
+     *  assets/world/enemies/cajas.json, al lado de las hojas. */
+    window.__cajas = () => BAKE.medirLote(Object.fromEntries(
+      Object.keys(window.__SHEETS_META).map(k => [k, {
+        data: window.__SHEETS_DATA[k], fw: window.__SHEETS_META[k].fw, fh: window.__SHEETS_META[k].fh,
+      }])));
+
     if (!navigator.userAgent.includes('Electron')) __bake();
   </script>
 </body>

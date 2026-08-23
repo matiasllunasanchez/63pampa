@@ -369,6 +369,79 @@ app.whenReady().then(async () => {
   else bad(`el misil saco variantes que no le corresponden: ${porArma.misil.join(' ')}`);
   await shot('v1_variantes');
 
+  // ---------- 4. LOS RESTOS (PLAN_HORNEADO B1) ----------
+  // El criterio de cierre de B1 es que "el pasillo detras tuyo es la historia de tu corrida" se
+  // VEA. Aca se verifica la mitad que se puede medir: que cada tipo que declara resto lo deje de
+  // verdad, que sea el suyo, que no colisione, y que sobreviva a la columna de humo — que es lo
+  // que hasta B1 era todo lo que quedaba, y se apagaba a los pocos segundos.
+  console.log('\n4. los restos (B1):');
+  const antesR = (await chunks()).n;
+  // EN TIERRA (m11), no sobre el mar: nueve de los diez restos son cosas que quedan APOYADAS, y
+  // sobre agua la foto no dice nada. La barcaza encallada tampoco: encalla en la playa.
+  await js(`window.__mision('m11', { aire: true })`);
+  await sleep(2200);
+  for (let i = 0; i < 30; i++) { if ((await W()).state === 'play') break; await sleep(200); }
+  // Y EL AVION CLAVADO A 14 m. Sin esto la prueba termina con "chocaste el terreno": el avion cae
+  // solo si nadie le da gas, y lo que hay que ver tarda cuatro segundos en aparecer — los restos
+  // salen de abajo de su propia bola de fuego recien cuando el escombro se apaga.
+  await js('window.__nivel(14)');
+  // Y EL PASILLO AL PASO. Para FOTOGRAFIAR los restos hay que esperar a que el escombro se apague
+  // (CHUNK_LIFE son 4 s) — y en 4 s a 90 u/s el mundo se corre 380 unidades, mas que el pasillo
+  // entero. Con la velocidad clavada abajo el mundo casi no avanza y las diez carcasas siguen
+  // donde se plantaron cuando el humo se va. Se suelta enseguida: lo que se mide despues se mide
+  // a velocidad de verdad.
+  await js('window.__mset(6)');
+  const T = JSON.parse(await js('String(window.__restosTodos(58))'));
+  console.log(`   · ${T.n} restos plantados: ` + T.puestos.map(p => p.tipo + '→' + (p.resto || 'NADA')).join(' '));
+  console.log(`   · sin resto (y esta bien): ${T.sinResto.join(' ')}`);
+  const faltan = T.puestos.filter(p => !p.resto);
+  if (!faltan.length) ok(`los ${T.n} tipos con carcasa la dejaron`);
+  else bad(`quedaron sin resto: ${faltan.map(p => p.tipo).join(' ')}`);
+  // CADA UNO EL SUYO. Un solo resto generico para todo seria mas facil y seria el mismo error que
+  // D2 vino a arreglar: si el camion volcado y el deposito quemado son el mismo sprite, el pasillo
+  // no cuenta nada.
+  const hojas = new Set(T.puestos.map(p => p.resto));
+  if (hojas.size === T.n) ok(`${hojas.size} carcasas DISTINTAS: ninguna se repite`);
+  else bad(`solo ${hojas.size} carcasas distintas para ${T.n} tipos`);
+  if (T.sinResto.length) ok(`y ${T.sinResto.length} tipos NO dejan nada (la ausencia tambien dice algo)`);
+  else bad('todos los tipos dejan resto: la ausencia dejo de significar');
+  // LA FOTO SE TOMA TARDE A PROPOSITO. Recien plantados, los diez restos estan tapados por su
+  // propia bola de fuego y la captura no muestra nada: lo que hay que ver es el pasillo DESPUES,
+  // que es justo el momento que B1 inventa.
+  await sleep(4600);
+  await shot('b1_restos', 260);
+  await js('window.__mset(0)');
+  // NO ESTORBAN. Un resto es memoria, no obstaculo: si colisionara, romper cosas te iria cerrando
+  // el pasillo — el castigo exactamente al reves de lo que corresponde.
+  const R0 = JSON.parse(await js('String(window.__restos())'));
+  if (!R0.conHp) ok('ninguna carcasa tiene vida ni colisiona: es memoria, no obstaculo');
+  else bad(`${R0.conHp} restos con hp: van a chocar contra el avion`);
+
+  // LA CARCASA NO TIENE RELOJ, Y ESA ES LA DIFERENCIA QUE TRAE B1.
+  //
+  // Ojo con como se enuncia esto, porque la primera version de la prueba estaba mal: decia "el
+  // resto dura MAS SEGUNDOS que el humo" y fallaba, con razon. A 79 u/s el pasillo se come 570
+  // unidades en 7 s y SPAWN_Z es 320: NADA sobrevive tanto tiempo delante tuyo, ni deberia. Lo
+  // que se afirma no es una duracion, es una CAUSA DE MUERTE — la columna se apaga sola aunque
+  // la estes mirando; la carcasa solo se va cuando el pasillo la deja atras.
+  //
+  // Asi que se planta una fila NUEVA bien lejos y se deja correr lo justo para que las columnas
+  // cortas (radar 2 s, aa 2,5 s) se apaguen EN CUADRO. Al final tienen que quedar las diez
+  // carcasas y menos columnas de las que nacieron.
+  // La fila nueva va lo mas lejos que el pasillo admite (SPAWN_Z es 320 y el avion vuela en 14),
+  // y se espera lo justo: 2,6 s a ~79 u/s son 205 unidades, asi que las diez siguen en cuadro
+  // mientras las columnas cortas —radar 2 s, aa 2,5 s— ya se apagaron.
+  const T2 = JSON.parse(await js('String(window.__restosTodos(290))'));
+  const H0 = JSON.parse(await js('String(window.__restos())'));
+  await sleep(2600);
+  const R = JSON.parse(await js('String(window.__restos())'));
+  if (R.restos >= T2.n) ok(`las ${T2.n} carcasas siguen enteras 2,6 s despues: no tienen reloj`);
+  else bad(`se perdieron carcasas sin que el pasillo las pasara: ${R.restos} de ${T2.n}`);
+  if (R.humos < H0.humos) ok(`y ${H0.humos - R.humos} columnas se apagaron solas en el mismo rato (${H0.humos} → ${R.humos})`);
+  else bad(`ninguna columna se apago: ${H0.humos} → ${R.humos}`);
+  await js('window.__nivel(null)');
+  void antesR;
+
   console.log('\nconsola: ' + (errors.length ? errors.length + ' error(es)' : 'sin errores'));
   for (const e of errors.slice(0, 8)) console.error('   ' + e);
   console.log(fails || errors.length ? `\nFIXTURE ROMPER: FALLA (${fails})\n` : '\nFIXTURE ROMPER: OK\n');

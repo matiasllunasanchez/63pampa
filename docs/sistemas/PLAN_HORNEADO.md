@@ -1,6 +1,6 @@
 # PLAN — EL HORNEADO: todo lo que conviene pasar por low poly → sprite
 
-> **Estado: plan por etapas, sin implementar.** Pedido de Matías (16/8): hornear todo lo
+> **Estado: B0, B1, B2 y B3 implementados (23/8); B4..B7 pendientes.** Pedido de Matías (16/8): hornear todo lo
 > que convenga. Regla que lo ordena (de la charla "runtime vs horneado"): **cámara libre →
 > 3D en runtime (ARENA/PASADA); cámara del pasillo → low poly horneado a sprite.**
 >
@@ -11,9 +11,15 @@
 > paleta, y las cajas de las hojas resultantes se **midieron a mano sobre el alfa**
 > (`render/enemies.js`). Horneado hoy: 6 aviones jugables (con skins por piloto y `sheet2`
 > de ±32°), 14 enemigos/props (`aa aatruck balloon bldg chancha depot fragata helo jet
-> jet_rear jet_turn lcu radar tent`), trazadoras y partes. **PENDIENTES_DE_REDISENO está
-> viejo en dos filas**: el Harrier y el C-130 dicen "no existe" y existen (`jet_rear`/
-> `jet_turn`, `chancha.png`) — se corrige en B0.
+> jet_rear jet_turn lcu radar tent`), trazadoras y partes.
+> *(B3 reemplazo `jet_rear`/`jet_turn` por `harrier`/`harrier_rear`/`harrier_turn`.)*
+>
+> **Lo que B0 cambió de ese relevé:** ya no hay cuatro copias de la luz, la cámara y las
+> primitivas — están en `tools/bake_common.js` (EL HORNO) y los cuatro horneadores lo cargan.
+> Los modelos salieron del HTML a `tools/models/{planes,enemies,ammo,partes}.js`. Las cajas
+> **ya no se miden a mano**: las escanea el horneador y las escribe en
+> `assets/world/enemies/cajas.json` + `src/data/cajas.js`, que es lo que importa
+> `render/enemies.js`. Las dos filas viejas de PENDIENTES (Harrier y C-130) están corregidas.
 >
 > Leer antes: `docs/ARQUITECTURA.md` (manda) · `ESTILO_VISUAL.md` (la biblia: los tamaños
 > 1:1 con `U × SC = 3`, la paleta, "sin texto") · `PENDIENTES_DE_REDISENO.md` (el
@@ -37,10 +43,10 @@
 
 | etapa | qué se hornea | consumidor en código | criterio de cierre |
 |---|---|---|---|
-| **B0 · El horno unificado** | Infra, no arte: módulo compartido de luz/cámara/paleta cuantizada (`tools/bake_common.js`), **autobox** (JSON de cajas por celda escaneando el alfa), catálogo de modelos como módulos `(THREE) => Group` en `tools/models/`. Los cuatro horneadores migran a usarlo. **Re-hornear lo existente tiene que dar hojas idénticas** (o mejores con diff aprobado). Corregir las filas viejas de PENDIENTES | `render/enemies.js` lee las cajas del JSON en vez de constantes a mano | diff visual de las 14 hojas actuales: igual o aprobado; `check` verde |
-| **B1 · Los restos** *(mayor valor / menor costo)* | **El estado ROTO de cada cosa**, con los mismos modelos en configuración de naufragio: AA volcada · camión volcado · radar sin plato · depósito = carcasa negra · edificio en 3 estados de derrumbe · carpa caída · helo estrellado · jet estrellado · lcu encallada/escorada · globo desinflado | `despiece()` / DESTRUCCION v2: **los restos que quedan** dejan de ser solo chunks y tienen silueta propia | `__romperTodas` muestra cada resto; la regla "el pasillo detrás tuyo es la historia de tu corrida" se ve |
-| **B2 · Los buques del pasillo** | Las tres clases (t42 / t21 / log) **de proa** (para la aproximación sin teleport, PASADA R3) y **de costado**, más dos estados de hundimiento (escorado de proa / de popa). **Builders compartidos con `ship3d.js`** — son los mismos cascos que T7 pone en 3D | `drawApproachBarge` (reemplaza el casco lateral genérico del momentum) + el clímax 2D | la continuidad pasillo→PASADA usa el MISMO objeto en dos medios; captura del handoff |
-| **B3 · El Harrier propio** | Un **Sea Harrier FRS.1** de verdad (tomas de aire grandes, ala anhedra, tobera vectorial — la silueta se reconoce) en 3 poses: frente, cola, viraje — reemplaza al jet genérico que hoy hace de Harrier en LA COLA. + skin de jet enemigo genérico para los cazas del gate | `render/enemies.js` (las poses de LA COLA), `systems/caza.js` no cambia | en captura se distingue el Harrier del jet genérico sin leyenda |
+| **B0 · El horno unificado** ✅ | Infra, no arte: módulo compartido de luz/cámara/paleta cuantizada (`tools/bake_common.js`), **autobox** (JSON de cajas por celda escaneando el alfa), catálogo de modelos como módulos `(THREE) => Group` en `tools/models/`. Los cuatro horneadores migran a usarlo. **Re-hornear lo existente tiene que dar hojas idénticas** (o mejores con diff aprobado). Corregir las filas viejas de PENDIENTES | `render/enemies.js` lee las cajas del JSON en vez de constantes a mano | diff visual de las 14 hojas actuales: igual o aprobado; `check` verde |
+| **B1 · Los restos** ✅ *(mayor valor / menor costo)* | **El estado ROTO de cada cosa**, con los mismos modelos en configuración de naufragio: AA volcada · camión volcado · radar sin plato · depósito = carcasa negra · edificio en 3 estados de derrumbe · carpa caída · helo estrellado · jet estrellado · lcu encallada/escorada · globo desinflado | `despiece()` / DESTRUCCION v2: **los restos que quedan** dejan de ser solo chunks y tienen silueta propia | `__restosTodos()` los pone los diez en fila (el nombre `__romperTodas` ya estaba tomado por las variantes de v2); `npm run romper` §4 lo mide |
+| **B2 · Los buques del pasillo** ⚠️✅ | Las tres clases (t42 / t21 / log) **de proa** (para la aproximación sin teleport, PASADA R3) y **de costado**, más dos estados de hundimiento (escorado de proa / de popa). **Builders compartidos con `ship3d.js`** — son los mismos cascos que T7 pone en 3D | `drawApproachBarge` (reemplaza el casco lateral genérico del momentum) + el clímax 2D | la continuidad pasillo→PASADA usa el MISMO objeto en dos medios; captura del handoff |
+| **B3 · El Harrier propio** ✅ | Un **Sea Harrier FRS.1** de verdad (tomas de aire grandes, ala anhedra, tobera vectorial — la silueta se reconoce) en 3 poses: frente, cola, viraje — reemplaza al jet genérico que hoy hace de Harrier en LA COLA. + skin de jet enemigo genérico para los cazas del gate | `render/enemies.js` (las poses de LA COLA), `systems/caza.js` no cambia | en captura se distingue el Harrier del jet genérico sin leyenda |
 | **B4 · Props de terreno y base** | Lo que hoy se dibuja por código o falta: torre de radio, postes con cable, árbol/mata, acantilado (`cliff`), búnker, tambores (tutorial m1), boyas, y la **pista/hangar de BAM Cóndor** (ROADMAP #26.1) | `render/world.js` (`drawObstacle` por tipo) con fallback al dibujo actual si la hoja no carga (patrón existente) | misión de costa/tierra con los props horneados; `check` verde |
 | **B5 · Las partes v2** | Piezas para las variantes de muerte (DESTRUCCION v2): ala suelta, cola, proa y motor de jet/Harrier; rotor y cola de helo; plato de radar; tanque de depósito; rueda/caño de AA | `data/despiece.js` (las recetas referencian piezas horneadas) | `__romperTodas('jet')` con piezas reales |
 | **B6 · Los aviones** | **Rolidos intermedios** (más columnas de alabeo en `sheet`), el **Mirage 5P peruano** como variante del modelo Mirage (los líderes de m10), y opcionalmente Pucará / MB-339 si se confirman jugables (PENDIENTES §1) | `data/planes.js` (`SHEET_NF`), `render/plane.js`, el líder de PERSECUCIÓN | alabeo más fino en captura; m10 con Mirage 5P |
@@ -74,4 +80,210 @@ DESTRUCCION v2 V2 · B3 la pide LA COLA H5 (hoy placeholder aprobado).
 
 ## 5. Divergencias *(completar durante la implementación)*
 
-- *(vacío)*
+**B0 — las cuatro cosas que salieron distinto de como las pedía el plan, y por qué.**
+
+1. **La luz es una, la exposición no.** La regla 1 dice "una luz para todo lo horneado" y ahora
+   lo es: un solo rig (`BAKE.escena`), los mismos tres focos, los mismos colores, las mismas
+   direcciones. Lo que quedó como perilla por familia es el **ambiente**: 1.5 en aviones,
+   munición y partes; 1.8 en enemigos; 2.6 en las poses de cola, que además suman un relleno
+   frontal. No es otra luz, es otra exposición — a los enemigos se los ve **de frente, con el sol
+   detrás**, así que la cara que mira a la cámara es la que está en sombra. Unificar también ese
+   número habría cambiado las 14 hojas, y el criterio de cierre de B0 era justamente que salieran
+   idénticas. Si algún día se decide una exposición única, es un cambio de arte con diff aprobado,
+   no un refactor.
+
+2. **La paleta se comparte, pero todavía no se cuantiza.** `BAKE.PAL` reúne los tonos que estaban
+   repetidos en los cuatro archivos (los tres focos, el vidrio, la bandera de la deriva, los
+   grises del despiece, las tres capas de la turbina) y ningún hex cambió. La **cuantización** del
+   render —el paso de posterizado que el plan nombra al pasar— **no se hizo**: mueve todos los
+   píxeles de todas las hojas, o sea es exactamente lo que B0 no podía hacer. Queda anotado como
+   candidato de una etapa de arte propia.
+
+3. **Los módulos de modelos son scripts clásicos, no módulos ES.** El plan pide el catálogo como
+   módulos `(THREE) => Group`. La firma real es
+   `BAKE.modelos(familia, (THREE, K) => ({ nombre: (…) => Group }))`, donde `K` es el kit de
+   primitivas. Dos motivos: los horneadores se abren con `file://` (el runner de Electron hace
+   `loadFile`) y ahí el navegador **bloquea `import` por CORS**, y meter esbuild en las
+   herramientas por esto sería un build para no ganar nada. Lo importante del pedido se cumple:
+   los modelos viven en archivos propios, reciben `THREE` por parámetro (el patrón de `ship3d.js`)
+   y no saben nada del encuadre — que es lo que va a permitir que B2 comparta cascos con el 3D.
+
+4. **La caja medida viaja en dos archivos, no en uno.** El plan pide "JSON al lado de cada hoja,
+   que `render/enemies.js` pasa a leer". El JSON existe y está al lado de las hojas
+   (`assets/world/enemies/cajas.json`), pero lo que el juego **importa** es `src/data/cajas.js`,
+   el mismo dato como módulo ES. Un `fetch` de JSON no sobrevive ni a `file://` ni al build web de
+   una sola página. Los dos los escribe el mismo runner en el mismo instante, así que no pueden
+   divergir por accidente; y `npm run unit` los compara igual, por si alguien edita uno a mano.
+   Detalle deliberado: **`wu` y `href` NO están en el JSON**. No son medidas, son perillas de arte
+   (dicen qué tan grande se **ve** el bicho, no qué tan grande es el dibujo) y siguen a mano en
+   `render/enemies.js`. El horno mide hechos.
+
+**B1 — lo que salió distinto, y una cosa que el plan daba por sentada y no era cierta.**
+
+5. **El resto no dura "más que el humo": dura hasta que el pasillo lo pasa.** El plan lo enuncia
+   como permanencia y la primera prueba lo escribió así — "la carcasa sigue ahí 7 s después" — y
+   falló, con razón. A 90 u/s el pasillo se come 630 unidades en 7 s y `SPAWN_Z` es 320: **nada**
+   sobrevive tanto tiempo delante tuyo, ni debería. Lo que B1 cambia no es una duración, es una
+   **causa de muerte**: la columna de humo se apaga sola aunque la estés mirando; la carcasa solo
+   se va cuando el pasillo la deja atrás. Así está escrita la prueba ahora, y así está escrito el
+   comentario en `render/world.js` — para que nadie vuelva a "arreglar" el resto poniéndole vida.
+
+6. **Y por lo tanto la frase del §1 hay que leerla con cuidado.** "El pasillo detrás tuyo es la
+   historia de tu corrida" suena a que uno vuelve a mirar, y en RASANTE no se mira atrás nunca: la
+   cámara va clavada adelante. La ventana real en la que una carcasa se ve son los **~3 segundos**
+   que tarda en venirte encima desde que la rompiste a distancia — que es tiempo de sobra para
+   leer una silueta, pero no es un museo. Lo que B1 compra de verdad es que **matar algo lejos
+   deje una marca en el suelo por la que después volás**, en vez de que la cosa desaparezca. Vale
+   la etapa igual; lo que no vale es prometer más de eso. B4 (props de terreno) y una eventual
+   pasada de vuelta sobre el mismo mapa son las que podrían cobrar el resto de la promesa.
+
+7. **El hollín no se pone bajando el brillo.** Los diez restos salieron de la primera horneada
+   como manchas oscuras: quemados de 0,4 a 0,75 sobre las superficies grandes, el camión volcado no
+   se distinguía de una piedra. Es la lección que ya estaba escrita en el modelo de la bomba ("el
+   verde oliva real no se ve") y hubo que aprenderla de nuevo. El método correcto está en
+   `tools/models/restos.js`: las masas grandes se queman **poco** (0,12–0,3, solo para bajarles el
+   tono) y el negro se gasta entero en **manchas chicas** — `tizne()` — encima. Un resto se lee
+   quemado por el CONTRASTE entre lo tiznado y lo que conserva color, no por ser oscuro.
+
+8. **El autobox de B0 se pagó solo en la primera horneada de B1.** De los diez restos, tres
+   violaban la regla de los 2 px de margen sin que nada se viera raro en la vista previa: el plato
+   del radar tirado demasiado lejos, la lona de la carpa desparramada de más y la pala del helo
+   asomando por arriba. Los tres salieron por consola como `⚠ MARGEN 0 px` antes de que nadie
+   mirara la hoja. Con las cajas medidas a mano eso se habría descubierto en el juego, meses
+   después, como "al helicóptero roto le falta un pedazo de arriba".
+
+**B2 — una parte del pedido no se puede hacer hoy, y hay que decirlo antes que nada.**
+
+9. **Compartir los cascos con `ship3d.js` está BLOQUEADO por la cuarentena.** El plan lo pide como
+   deliverable ("son los mismos cascos que T7 pone en 3D") y su criterio de cierre es "la
+   continuidad pasillo→PASADA usa el MISMO objeto en dos medios; captura del handoff". Nada de eso
+   se puede entregar: `systems/ship3d.js` está **en cuarentena desde el 18/8** (ver
+   `data/cuarentena.js` y PLAN_REFACTOR §4b) y su propia cabecera dice *"NO se pule ni se
+   refactoriza más allá de lo mecánico"*; y la PASADA también lo está (`CLIMAX_EN_CUARENTENA`
+   incluye `'pasada'`, y el suplente es EL PULSO), así que el handoff no ocurre en ninguna partida.
+   Lo que sí se hizo es dejarlo **preparado**: los builders de `tools/models/buques.js` reciben
+   `THREE` por parámetro, no importan nada del juego y no saben nada del horno — exactamente el
+   contrato que `ship3d.js` necesita para adoptarlos el día que la cuarentena caiga. El cableado y
+   la captura del handoff quedan pendientes de esa decisión, que no es de esta etapa.
+
+10. **La vista DE PROA se horneó y NO se cableó, y el número dice por qué.** Medido sobre el
+    pasillo real (m3, con `?pasada=3` que fuerza el climax PASADA), la manga del buque de proa va
+    de **1,8 px al asomar a 7,5 px en el corte**, con 8,8 px de alto. Un sprite de 28×60 reducido a
+    eso es puré; el dibujo a mano de `drawBargeBow` en cambio tiene un piso explícito para la
+    columna de humo —lo único que de verdad se ve de un buque lejano en el mar— y a esa escala es
+    estrictamente mejor. Así que las tres hojas de proa quedan horneadas (1 KB cada una) como el
+    arte que B2 debía entregar, y esperan su consumidor real: el handoff a la PASADA del punto
+    anterior. Cablearlas hoy sería cambiar algo bueno por algo peor para poder tildar una casilla.
+
+11. **Lo que SÍ cambió, que era el agujero grande.** Hasta B2 los tres buques del juego se
+    dibujaban con **el mismo casco**: `drawBargeHull` pinta un perfil de destructor genérico, y el
+    SHEFFIELD, el ARDENT y el SIR GALAHAD —un destructor, una fragata y un buque de carga— se veían
+    idénticos. `data/ships.js` ya sabía de qué clase era cada uno y le daba a cada clase sus zonas
+    críticas propias; sólo faltaba que se parecieran a lo que son. Ahora EL PULSO —el único clímax
+    fuera de cuarentena— muestra la clase correcta, y los dos hundimientos (de proa / de popa) son
+    silueta propia en vez del casco intacto rotado.
+
+12. **El dibujo a mano no se va, y no es prudencia.** La hoja entra a partir de **40 px de
+    eslora**; por debajo manda `drawBargeHull`, que tiene un modo propio de tres trazos con perfil
+    de barco para cuando el buque mide tres píxeles. Un sprite de 216 px reducido a 3 es una
+    mancha. Es el patrón del repo (fallback si la hoja no cargó) pero acá además es la decisión
+    correcta por tramo de distancia.
+
+13. **Dos capacidades nuevas del horno, que son generales y no parches de esta etapa.**
+    · **`clipY` — no se hornea lo que el juego ya tapa.** El mar recorta en la flotación y el
+    anclaje del sprite es el borde de abajo del contenido; una obra viva que asome un píxel corre
+    al buque entero hacia arriba y lo deja flotando sobre el agua. Con el plano de recorte, el
+    borde de abajo del contenido **es** la línea de flotación y el anclaje sale gratis. Es también
+    lo que permite que el buque hundiéndose tenga la proa de verdad bajo el agua en vez de estar
+    "inclinado pero flotando alto", que es la silueta de un barco en una ola.
+    · **`fov` por hoja — la distancia focal es perilla, igual que la exposición.** Los buques se
+    hornean con **2,4° a 90 unidades**, el teleobjetivo más largo del proyecto, contra los 24° de
+    todo lo demás. Un destructor mide 130 m: con teleobjetivo corto la popa queda 40 unidades
+    detrás de la proa, la proa sale un 30 % más grande y el casco parece un cono. El casco 2D que
+    estas hojas reemplazan es ortográfico puro; si el horneado no lo fuera, el sprite y su respaldo
+    no empalmarían. Sigue siendo el mismo rig — misma altura relativa, mismo `lookAt`.
+
+14. **La bruma del sprite no es la del 2D, y es una diferencia visible.** `drawBargeHull` mezcla
+    cada color **hacia el color del horizonte** (perspectiva atmosférica de manual); el sprite usa
+    el `dark` de `drawFrame`, que oscurece conservando la forma. Hace el trabajo que importa —que
+    el buque lejano no compita en contraste con los obstáculos del pasillo— pero el tono es otro.
+    Un `haze` que mezclara hacia el horizonte pediría un tercer modo de tinte en `render/enemies.js`
+    y no parecía pagar; queda anotado por si en captura se nota el salto en el umbral de los 40 px.
+
+15. **El agua sigue siendo código, y por eso el buque se ve navegando.** El bigote de proa y la
+    flotación picoteada NO se hornean (§4 del plan: la materia en movimiento es código) — se pintan
+    encima del sprite. Es lo que separa un buque en marcha de un buque fondeado, y además fue el
+    único trozo de `drawBargeHull` que hubo que copiar al camino nuevo.
+
+**B3 — el hallazgo de esta etapa no es el avión: es que había arte muerto y roto.**
+
+16. **`jet_turn` se horneaba desde el 17/8 y NINGÚN archivo del juego la dibujaba.** Se comprobó
+    con un grep sobre `src/`: fuera de la tabla de rutas de `render/enemies.js`, la hoja no
+    aparecía en ninguna parte. El propio [PLAN_HARRIERS_PERSECUCION](PLAN_HARRIERS_PERSECUCION.md)
+    afirmaba —dos veces— que el render usaba una cascada `jet_turn` → `jet_rear` → `jet`. La
+    primera rama nunca existió: la recola se dibujaba con un **cambio de sprite de un cuadro al
+    otro** (el Harrier se iba de cola y de golpe venía de frente). B3 la cableó de verdad, atada al
+    avance de la fase `recola`.
+
+17. **Y al cablearla salió que además estaba MAL HORNEADA.** Lo vio Matías en la lámina: el frame
+    del medio tenía al Harrier apuntando al cielo. Causa: el horneador aplicaba `yaw` y `roll`
+    sobre el **mismo objeto** (`pose.rotation.y` y `pose.rotation.z`), y con el avión ya girado 90°
+    el eje Z deja de ser su eje longitudinal — rotar ahí no lo alabea, lo **encabrita**. Es
+    literalmente la trampa que la cabecera de `bake_enemies.html` advertía desde que se escribió
+    ("encadenar dos rotaciones sobre el mismo objeto compone un euler que no es el que uno
+    espera"). Arreglado anidando los grupos (yaw afuera, alabeo adentro); **ninguna otra hoja
+    cambió** — era la única que pedía las dos rotaciones juntas, y por eso el error nunca se vio.
+
+18. **La lección, que no es sobre el Harrier.** Un asset que se hornea y no se dibuja no está
+    "listo para cuando haga falta": está roto y nadie lo sabe. `jet_turn` pasó meses así, con un
+    documento afirmando que funcionaba. Desde B3 hay una prueba que lo impide —
+    *"toda hoja horneada tiene consumidor en el juego"*— que recorre `cajas.js` y exige que cada
+    hoja esté en la tabla de rutas de `render/enemies.js`. Es barata y habría ahorrado esto.
+
+19. **Qué hace que un Harrier se lea como un Harrier**, en orden de lo que sobrevive a 70 px:
+    las **tomas de aire** (dos barriles pegados al fuselaje detrás de la cabina — es la firma y no
+    hay segunda), las **cuatro toberas vectoriales** (dos frías en la cintura, dos calientes atrás:
+    bultos donde ningún otro avión tiene nada), el **ala alta y ANHEDRA** (las puntas caen: lo
+    contrario de casi todo lo que vuela), que es **panzón y corto** (el motor va en el medio, así
+    que la cintura es lo más gordo y la silueta es de rana, no de flecha), y los **balancines** de
+    punta de ala. La cabina va **adelante** de las tomas, no encima: puesta al medio la burbuja
+    queda encajada entre los dos barriles y el avión se lee como un fuselaje con tres bultos
+    iguales; adelantada se lee la secuencia correcta —nariz, piloto, tomas—.
+
+20. **El jet del pasillo volvió a ser genérico.** Hacía dos trabajos: era el caza anónimo del
+    pasillo Y era el Harrier, así que llevaba las señas del Harrier sin ser ninguno de los dos.
+    Ahora es un caza de línea y se diferencia **punto por punto**: fuselaje fino (no panzón), ala
+    al medio con diedro positivo (no alta y caída), tomas chatas pegadas al costado (no barriles) y
+    UNA tobera atrás (no cuatro en la cintura). Los dos pueden aparecer en el mismo cuadro.
+
+**Lo que B0 verificó, con números.** Las 48 hojas del proyecto (32 de aviones, 14 de enemigos,
+munición y partes) re-horneadas después de cada paso de la migración: **byte-idénticas, 48/48**.
+Las 14 cajas medidas por el escáner **coinciden exactamente** con las 14 que estaban contadas a
+mano — el autobox no cambió ningún anclaje, solo dejó de depender de que alguien copiara bien.
+`npm run feel` idéntico y `npm run check` en verde.
+
+**Lo que B1 verificó, con números.** Diez tipos declaran carcasa y los diez la dejan; **diez hojas
+distintas, ninguna repetida**; seis tipos NO dejan nada y eso también se afirma (`plane` entre
+ellos: lo que se desintegra no deja carcasa); ninguna carcasa tiene `hp`, así que no colisiona —
+romper cosas no te va cerrando el pasillo; las diez siguen enteras 2,6 s después mientras las
+columnas cortas ya se apagaron solas. Todo eso lo mide `npm run romper` (sección 4) con la sonda
+`__restosTodos()`; el arte se mira con la lámina de contacto vivo/roto. Tres pruebas unitarias más
+cierran lo que no se puede ver: que toda receta que promete carcasa tenga la hoja horneada, que
+ninguna se comparta, y que la ausencia siga siendo una elección.
+
+**Lo que B2 verificó, con números.** Tres clases × tres vistas = **nueve hojas, cero avisos de
+margen**. Las tres clases dibujadas en el MISMO momento del pasillo (m3, p=0.86, eslora 177 px) se
+distinguen sin leyenda: el destructor por su palo con radomos y la masa repartida, la fragata por
+ser corta con la isla adelante y la popa vacía, el logístico por los contenedores y la isla a popa.
+Tres pruebas unitarias cierran lo que no se ve: que cada clase tenga sus tres vistas, que ningún
+buque del juego se quede sin clase declarada (un `SIR TRISTRAM` sin clase se dibujaría como Tipo 42
+— un carguero con radomos), y que las tres hojas de costado terminen en la **misma fila**, que es
+la firma de que el recorte bajo la flotación sigue puesto.
+
+**Lo que B3 verificó, con números.** Tres hojas nuevas, cero avisos de margen; `npm run caza` (13
+secciones) en verde tras el cambio; **una sola hoja cambió** al arreglar el euler del horneador
+(`jet.png`, y por el rediseño del genérico, no por el arreglo) — las otras once quedaron
+byte-idénticas, que es la prueba de que el bug afectaba solo a la hoja de viraje. Tres pruebas
+unitarias nuevas: que las tres poses existan con sus 5 columnas y que `jet_rear`/`jet_turn` **no**
+se re-horneen, que `harrier_turn` esté efectivamente atada a la fase `recola` en el render, y la
+general de que ninguna hoja horneada se quede sin consumidor.

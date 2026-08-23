@@ -79,6 +79,13 @@ const AVION = [P.body, P.bodyDark, P.canopy];           // fuselaje: el mismo de
 //   caida   'espiral'                   la muerte en dos actos: el resto cae girando y revienta
 //                                       al tocar el suelo
 //   grav    factor de gravedad          lo liviano planea (lona, tela); 1 = escombro normal
+//   resto   nombre de hoja | null      LO QUE QUEDA EN EL LUGAR (PLAN_HORNEADO B1). El estado roto,
+//                                       horneado con silueta propia, que se planta donde estaba la
+//                                       cosa y se queda ahi hasta que el pasillo lo deja atras. Es
+//                                       lo que convierte "el pasillo detras tuyo es la historia de
+//                                       tu corrida" en algo que se ve: la columna de humo dura 6
+//                                       segundos, el resto dura toda la pasada. `null` es una
+//                                       respuesta valida — lo que se DESINTEGRA no deja carcasa.
 //   partes  lista de PIEZAS horneadas    de que se rompe esta cosa, en piezas de verdad. Los
 //           nombres salen de PARTES en render/partes.js (y de la hoja que hornea
 //           tools/bake_partes.html). Sin `partes`, el pedazo cae al rectangulo de siempre.
@@ -90,21 +97,21 @@ const AVION = [P.body, P.bodyDark, P.canopy];           // fuselaje: el mismo de
 export const DESPIECE = {
   // DEPOSITO DE COMBUSTIBLE: el mas grande y el mas sucio. Chapa oxidada del tanque.
   depot: { masa: 'pesado', n: 9, size: [0.7, 1.9], c: OXIDO, hot: 0.85, up: 20, spread: 20, pieza: 'tanque',
-    bola: 'grande', chispa: null, sec: true, humo: HUMO_T },
+    bola: 'grande', chispa: null, sec: true, humo: HUMO_T, resto: 'resto_depot' },
   // ANTIAEREO: metal, poco pedazo y muy caliente — le vuela la municion adentro
   aa: { masa: 'medio', n: 6, size: [0.4, 1.0], c: METAL, hot: 0.8, up: 17, spread: 15, pieza: 'canon',
-    bola: 'chica', chispa: 'metal', humo: 2.5 },
+    bola: 'chica', chispa: 'metal', humo: 2.5, resto: 'resto_aa' },
   aatruck: { masa: 'medio', n: 7, size: [0.5, 1.3], c: METAL, hot: 0.75, up: 15, spread: 15, pieza: 'cabina',
-    bola: 'chica', chispa: 'metal', humo: 3 },
+    bola: 'chica', chispa: 'metal', humo: 3, resto: 'resto_aatruck' },
   // RADAR: el plato sale entero, girando. Es la pieza mas reconocible del juego.
   radar: { masa: 'medio', n: 6, size: [0.5, 1.2], c: METAL, hot: 0.5, up: 16, spread: 14, pieza: 'plato',
-    bola: 'chica', chispa: 'metal', humo: 2 },
+    bola: 'chica', chispa: 'metal', humo: 2, resto: 'resto_radar' },
   // CARPA: lona y polvo. Liviana: vuela lejos y alto, y casi no arde (D2 le saca la bola de fuego)
   tent: { masa: 'liviano', n: 6, size: [0.5, 1.4], c: LONA, hot: 0.1, up: 24, spread: 22, pieza: null,
-    bola: null, chispa: 'polvo', humo: 0, grav: 0.5 },
+    bola: null, chispa: 'polvo', humo: 0, grav: 0.5, resto: 'resto_tent' },
   // HELICOPTERO: el rotor se va solo. La muerte en dos actos del plan (D2) empieza en esta pieza.
   helo: { masa: 'medio', n: 7, size: [0.5, 1.3], c: METAL, hot: 0.7, up: 18, spread: 16, pieza: 'rotor',
-    bola: 'chica', chispa: 'metal', caida: 'espiral', humo: 3,
+    bola: 'chica', chispa: 'metal', caida: 'espiral', humo: 3, resto: 'resto_helo',
     // el HELO comparte las piezas de chapa y de tren, pero no las de avion de combate: no tiene
     // ala ni tobera. El rotor sigue siendo su `pieza` dibujada a mano — es su firma y ya funciona.
     partes: [null, 'panel', 'fuselaje', 'tren', 'panel', 'cabina', 'panel'] },
@@ -121,7 +128,7 @@ export const DESPIECE = {
   // Esa es la prueba del §1: en blanco y negro, "cuantas cosas grandes hay y para donde van" se
   // lee de un vistazo. Los tiempos ademas no se pisan: la primera termina cuando la ultima empieza.
   jet: { masa: 'medio', n: 8, size: [0.5, 1.4], c: AVION, hot: 0.7, up: 16, spread: 18, pieza: 'ala',
-    bola: 'grande', chispa: null, humo: 0,
+    bola: 'grande', chispa: null, humo: 0, resto: 'resto_jet',
     // DE QUE SE ROMPE UN AVION. El orden importa: el pedazo 0 es el que la variante convierte en
     // "la pieza grande", asi que el ala va primera. Y el panel va al final porque es el relleno —
     // el pedazo que no es nada en particular, pero que igual tiene forma de chapa arrancada.
@@ -148,10 +155,10 @@ export const DESPIECE = {
     ] },
   // GLOBO: no hay escombro duro; son jirones de tela que caen planeando
   balloon: { masa: 'liviano', n: 5, size: [0.6, 1.6], c: LONA, hot: 0, up: 10, spread: 20, pieza: 'funda',
-    bola: null, chispa: null, humo: 0, grav: 0.25 },
+    bola: null, chispa: null, humo: 0, grav: 0.25, resto: 'resto_balloon' },
   // CONSTRUCCION: mamposteria. Pesada, poco vuelo, mucho polvo.
   bldg: { masa: 'pesado', n: 9, size: [0.8, 2.0], c: MAMPO, hot: 0.2, up: 11, spread: 16, pieza: null,
-    bola: 'chica', chispa: 'polvo', humo: 4 },
+    bola: 'chica', chispa: 'polvo', humo: 4, resto: 'resto_bldg' },
   tower: { masa: 'pesado', n: 7, size: [0.6, 1.6], c: MAMPO, hot: 0.2, up: 13, spread: 14, pieza: null,
     bola: null, chispa: 'polvo', humo: 2 },
   // MADERA: el arbol, los postes, el mastil de la fragata
@@ -165,7 +172,7 @@ export const DESPIECE = {
     bola: null, chispa: 'polvo', humo: 0, grav: 0.6 },
   // BARCAZA DE DESEMBARCO: chapa de barco
   lcu: { masa: 'pesado', n: 8, size: [0.7, 1.7], c: METAL, hot: 0.6, up: 12, spread: 18, pieza: 'rampa',
-    bola: 'grande', chispa: 'metal', sec: true, humo: 5 },
+    bola: 'grande', chispa: 'metal', sec: true, humo: 5, resto: 'resto_lcu' },
   // AVION DEL JUGADOR: la receta que ya existia en die(), escrita como fila. Es la referencia de
   // la que sale todo el resto — el despiece del derribo es el que se generalizo.
   plane: { masa: 'medio', n: 9, size: [0.5, 1.4], c: AVION, hot: 0.6, up: 18, spread: 14, pieza: null,

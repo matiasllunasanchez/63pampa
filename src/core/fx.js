@@ -305,6 +305,22 @@ export function morir(o, imp, depth, killer) {
   }
   // LA COLUMNA que queda ardiendo en el lugar
   if (r.humo) obstacles.push({ type: 'humo', done: true, x: o.x, y: 0, z: o.z, humoT: 0, humoMax: r.humo });
+  // EL RESTO (PLAN_HORNEADO B1). Lo que QUEDA: la carcasa, con silueta propia, plantada donde
+  // estaba la cosa. Hasta aca lo unico que sobrevivia a una muerte era la columna de humo, que se
+  // apaga a los 6 segundos — pasabas de vuelta por el mismo lugar y el campamento estaba intacto.
+  // El resto no se apaga: se queda hasta que el pasillo lo deja atras.
+  //
+  // NO LO DEJA LO QUE SE DESINTEGRA. `plane` y las variantes que revientan en el aire no tienen
+  // `resto` en la receta, y eso es una respuesta, no un olvido: un avion que estalla a 200 m no
+  // deja carcasa en el suelo, deja pedazos. La ausencia es tan expresiva como la presencia — la
+  // misma regla que la bola de fuego que la carpa no tiene.
+  //
+  // `pose` se sortea UNA VEZ y viaja con el objeto: el edificio tiene tres estados de derrumbe y
+  // la barcaza dos finales, y si se eligieran al dibujar, el resto parpadearia entre poses.
+  if (r.resto) obstacles.push({
+    type: 'resto', done: true, hoja: r.resto, x: o.x, z: o.z, y: 0,
+    gy: o.gy || 0, h: o.h, pose: Math.random(), flip: Math.random() < 0.5,
+  });
   // D4 — EL ENCADENAMIENTO. Solo lo que revienta GRANDE prende a sus vecinos, y solo hasta
   // CHAIN_DEPTH saltos: sin las dos condiciones, un campamento denso se enciende entero de una vez
   // y deja de ser una jugada para ser un bug.

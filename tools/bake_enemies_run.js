@@ -2,12 +2,40 @@
 //   npx electron tools/bake_enemies_run.js
 // Abre tools/bake_enemies.html en una ventana oculta, ejecuta __bake() y escribe los
 // sprite sheets en assets/world/enemies/<nombre>.png
+//
+// Y ADEMAS MIDE LAS CAJAS (PLAN_HORNEADO B0, regla 3). `box` es el bbox del CONTENIDO adentro del
+// frame, y de ahi sale donde se ancla cada bicho — al suelo los de tierra, al centro los del
+// aire. Antes se contaban a ojo sobre el alfa y se pegaban a mano en src/render/enemies.js: un
+// numero mal copiado dejaba al enemigo flotando o enterrado, y no habia prueba que lo agarrara.
+// Ahora se miden donde se hornean y se escriben en DOS lugares, en el mismo instante:
+//   · assets/world/enemies/cajas.json  — el artefacto, al lado de las hojas, para mirarlo
+//   · src/data/cajas.js                — el mismo dato como modulo ES, que es lo que el juego
+//                                        puede importar (con `file://` y el build de una sola
+//                                        pagina no hay fetch de JSON que sobreviva)
+// Los dos salen de la misma medicion, asi que no pueden divergir; `npm run unit` igual lo revisa.
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
 const ROOT = path.join(__dirname, '..');
 const OUT = path.join(ROOT, 'assets', 'world', 'enemies');
+const CAJAS_JSON = path.join(OUT, 'cajas.json');
+const CAJAS_JS = path.join(ROOT, 'src', 'data', 'cajas.js');
+
+const CABECERA = `// CAJAS DE LAS HOJAS DE SPRITES — GENERADO, NO EDITAR A MANO.
+// Lo escribe \`npx electron tools/bake_enemies_run.js\` midiendo el alfa de cada hoja recien
+// horneada (PLAN_HORNEADO B0, regla 3: "las cajas se miden solas"). La copia legible vive al
+// lado de las hojas, en assets/world/enemies/cajas.json.
+//
+// \`box\` es el rectangulo de CONTENIDO adentro del frame, en la UNION de todas las poses: el
+// frame tiene aire alrededor para que el helo pueda girar el rotor sin cortarse, y anclar por el
+// borde del FRAME dejaria a los vehiculos flotando. \`margen\` es el aire mas chico que queda
+// hasta el borde de la celda — la regla 5 del plan pide 2 px.
+//
+// Lo que NO esta aca es deliberado: \`wu\` (cuantas unidades de mundo mide el bicho) y \`href\`
+// son PERILLAS DE ARTE, no medidas, y viven en src/render/enemies.js. El horno mide hechos; el
+// tamaño en pantalla lo decide un humano.
+`;
 
 app.whenReady().then(async () => {
   const win = new BrowserWindow({ width: 800, height: 600, show: false });
@@ -20,42 +48,26 @@ app.whenReady().then(async () => {
       fs.writeFileSync(path.join(OUT, key + '.png'), Buffer.from(b64, 'base64'));
       console.log(`OK enemies/${key}.png (${(b64.length * 3 / 4 / 1024).toFixed(1)} KB)`);
     }
-    // LAS CAJAS, MEDIDAS. `SHEETS` de src/render/enemies.js lleva el bbox del CONTENIDO dentro
-    // del frame, y de ahi sale donde se ancla cada bicho: al suelo los de tierra, al centro los
-    // del aire. Hasta ahora se median a mano sobre el alfa, una por una — un numero mal copiado
-    // deja al enemigo flotando o enterrado, y no hay prueba que lo agarre. Se mide aca, sobre la
-    // hoja recien horneada, y se imprime listo para pegar.
-    const cajas = await win.webContents.executeJavaScript(`(async () => {
-      const out = {};
-      for (const key in window.__SHEETS_META) {
-        const m = window.__SHEETS_META[key];
-        const im = new Image(); im.src = window.__SHEETS_DATA[key]; await im.decode();
-        const c = document.createElement('canvas');
-        c.width = im.naturalWidth; c.height = im.naturalHeight;
-        const g = c.getContext('2d'); g.drawImage(im, 0, 0);
-        const d = g.getImageData(0, 0, c.width, c.height).data;
-        let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
-        // la UNION de todos los frames, en coordenadas LOCALES al frame: la caja tiene que
-        // contener al bicho en cualquiera de sus poses
-        for (let y = 0; y < c.height; y++) {
-          for (let x = 0; x < c.width; x++) {
-            if (d[(y * c.width + x) * 4 + 3] < 8) continue;
-            const lx = x % m.fw, ly = y % m.fh;
-            if (lx < x0) x0 = lx; if (lx > x1) x1 = lx;
-            if (ly < y0) y0 = ly; if (ly > y1) y1 = ly;
-          }
-        }
-        out[key] = { fw: m.fw, fh: m.fh, cols: m.cols, box: { x0, y0, x1, y1 } };
-      }
-      return JSON.stringify(out);
-    })()`);
-    console.log('\nCAJAS MEDIDAS (pegar en SHEETS de src/render/enemies.js):');
-    const cs = JSON.parse(cajas);
-    for (const k of Object.keys(cs).sort()) {
-      const c = cs[k];
-      console.log(`  ${k}: fw ${c.fw}, fh ${c.fh}, cols ${c.cols}, ` +
-        `box { x0: ${c.box.x0}, y0: ${c.box.y0}, x1: ${c.box.x1}, y1: ${c.box.y1} }`);
+
+    const cajas = await win.webContents.executeJavaScript('__cajas()');
+    fs.writeFileSync(CAJAS_JSON, JSON.stringify(cajas, null, 2) + '\n');
+    const cuerpo = Object.keys(cajas).sort().map(k => {
+      const c = cajas[k];
+      return `  ${k}: { fw: ${c.fw}, fh: ${c.fh}, cols: ${c.cols}, rows: ${c.rows}, ` +
+        `box: { x0: ${c.box.x0}, y0: ${c.box.y0}, x1: ${c.box.x1}, y1: ${c.box.y1} }, margen: ${c.margen} },`;
+    }).join('\n');
+    fs.writeFileSync(CAJAS_JS, `${CABECERA}export const CAJAS = {\n${cuerpo}\n};\n`);
+
+    console.log('\nCAJAS MEDIDAS → assets/world/enemies/cajas.json + src/data/cajas.js');
+    let flacas = 0;
+    for (const k of Object.keys(cajas).sort()) {
+      const c = cajas[k];
+      const aviso = c.margen < 2 ? `  ⚠ MARGEN ${c.margen} px (el plan pide 2)` : '';
+      if (c.margen < 2) flacas++;
+      console.log(`  ${k}: ${c.fw}x${c.fh} x${c.cols} · ` +
+        `box ${c.box.x0},${c.box.y0}–${c.box.x1},${c.box.y1} · margen ${c.margen}${aviso}`);
     }
+    if (flacas) console.log(`\n⚠ ${flacas} hoja(s) con menos de 2 px de aire: el contenido se corta al escalar.`);
     console.log('\nHorneado completo.');
   } catch (e) {
     console.error('ERROR al hornear:', e.message);

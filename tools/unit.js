@@ -6,6 +6,7 @@
 // justo donde suelen romperse las cosas.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor, clamp, clamp01,
   PITCH_DELAY, PITCH_RAMP, ENERGY_MAX, SPD_MIN, SCRAPE_BASE, SCRAPE_MIN,
@@ -1045,4 +1046,148 @@ test('mach: el CRUCE es un evento, no un nivel', () => {
   assert.ok(cruzo(bajo, alto), 'de abajo hacia arriba, cruza');
   assert.ok(!cruzo(alto, alto), 'quedarse adentro NO es cruzar (si no, dispara cada cuadro)');
   assert.ok(!cruzo(alto, bajo), 'salir tampoco');
+});
+
+// ================= EL HORNO (PLAN_HORNEADO B0) =================
+// Las cajas de las hojas de sprites ya no se cuentan a ojo: las mide el horneador escaneando el
+// alfa y las escribe en DOS lugares — el JSON al lado de las hojas y el modulo ES que importa
+// render/enemies.js. Salen de la misma medicion, asi que no pueden divergir... salvo que alguien
+// edite uno de los dos a mano, que es exactamente lo que estas tres pruebas no dejan pasar.
+test('horno: el JSON de cajas y el modulo generado dicen lo mismo', async () => {
+  const { CAJAS } = await import('../src/data/cajas.js');
+  const json = JSON.parse(readFileSync(new URL('../assets/world/enemies/cajas.json', import.meta.url), 'utf8'));
+  assert.deepEqual(Object.keys(CAJAS).sort(), Object.keys(json).sort(),
+    'alguien agrego o saco una hoja en uno solo de los dos');
+  for (const k in json) {
+    assert.deepEqual(CAJAS[k].box, json[k].box, `la caja de '${k}' difiere entre el JSON y el modulo`);
+    assert.equal(CAJAS[k].fw, json[k].fw, `el fw de '${k}' difiere`);
+    assert.equal(CAJAS[k].cols, json[k].cols, `las columnas de '${k}' difieren`);
+  }
+});
+
+test('horno: toda hoja horneada tiene su perilla de tamaño y su archivo', async () => {
+  const { CAJAS } = await import('../src/data/cajas.js');
+  const src = readFileSync(new URL('../src/render/enemies.js', import.meta.url), 'utf8');
+  for (const k in CAJAS) {
+    // `wu` no se puede medir (dice que tan grande se VE el bicho, no que tan grande es el dibujo)
+    // y por eso queda a mano en ARTE. Una hoja nueva sin su wu se dibujaria del tamaño de un pixel.
+    // sin anclar a principio de linea: las hojas de una misma familia se declaran de a varias por
+    // renglon cuando son perillas de un solo campo (los nueve buques de B2)
+    assert.ok(new RegExp(`\\b${k}: \\{[^}]*wu:`).test(src), `la hoja '${k}' no tiene wu en ARTE`);
+    assert.ok(src.includes(`${k}: '../assets/world/enemies/${k}.png'`), `la hoja '${k}' no tiene archivo en FILES`);
+  }
+});
+
+test('horno: el contenido entra en la celda con aire (regla 5 del plan)', async () => {
+  const { CAJAS } = await import('../src/data/cajas.js');
+  // 2 px de margen es la leccion de explosions_front, que se cortaba sola al escalar. Se mide
+  // sobre la UNION de las poses: si el helo se sale de la celda al girar el rotor, salta aca.
+  for (const k in CAJAS) {
+    const c = CAJAS[k];
+    assert.ok(c.box.x1 < c.fw && c.box.y1 < c.fh, `'${k}' se sale de su propia celda`);
+    assert.ok(c.margen >= 2, `'${k}' queda a ${c.margen} px del borde y el plan pide 2`);
+  }
+});
+
+// ================= LOS RESTOS (PLAN_HORNEADO B1) =================
+test('restos: toda receta que promete carcasa tiene la hoja horneada', async () => {
+  const { CAJAS } = await import('../src/data/cajas.js');
+  const { DESPIECE } = await import('../src/data/despiece.js');
+  const conResto = Object.keys(DESPIECE).filter(t => DESPIECE[t].resto);
+  assert.ok(conResto.length >= 10, `solo ${conResto.length} tipos declaran resto`);
+  for (const t of conResto) {
+    // Sin la hoja, `morir()` planta un obstaculo que `drawObstacle` no dibuja: una muerte que
+    // promete carcasa y no la deja. No hay error en runtime que lo delate — salta aca o no salta.
+    assert.ok(CAJAS[DESPIECE[t].resto], `'${t}' promete '${DESPIECE[t].resto}' y esa hoja no existe`);
+  }
+});
+
+test('restos: cada tipo deja el SUYO, ninguno comparte carcasa', async () => {
+  const { DESPIECE } = await import('../src/data/despiece.js');
+  // Es la misma regla que D2 le puso a las muertes: si el camion volcado y el deposito quemado son
+  // el mismo sprite, el pasillo no cuenta nada. Una carcasa generica seria mas facil de hacer y
+  // seria exactamente el error que el plan prohibe.
+  const hojas = Object.keys(DESPIECE).map(t => DESPIECE[t].resto).filter(Boolean);
+  assert.equal(new Set(hojas).size, hojas.length, 'hay dos tipos compartiendo carcasa');
+});
+
+test('restos: lo que se desintegra NO deja carcasa (la ausencia dice algo)', async () => {
+  const { DESPIECE } = await import('../src/data/despiece.js');
+  // Un avion que revienta a 200 m no deja un fuselaje prolijo en el suelo, deja pedazos. Que
+  // `plane` no tenga resto es una decision, no un olvido — igual que la carpa que no tiene bola
+  // de fuego. Si algun dia todos tuvieran carcasa, la carcasa dejaria de significar.
+  assert.ok(!DESPIECE.plane.resto, 'el avion del jugador no puede dejar carcasa: se desintegra');
+  const sin = Object.keys(DESPIECE).filter(t => !DESPIECE[t].resto);
+  assert.ok(sin.length >= 3, `solo ${sin.length} tipos sin carcasa: la ausencia dejo de ser una eleccion`);
+});
+
+// ================= LOS BUQUES (PLAN_HORNEADO B2) =================
+test('buques: cada clase del juego tiene sus tres vistas horneadas', async () => {
+  const { CAJAS } = await import('../src/data/cajas.js');
+  const { SHIP_CLASS } = await import('../src/data/ships.js');
+  const clases = [...new Set(Object.values(SHIP_CLASS))];
+  assert.deepEqual(clases.sort(), ['log', 't21', 't42'], 'aparecio una clase de buque nueva');
+  for (const c of clases) {
+    // Si falta una, el buque de esa clase cae al casco generico y se vuelve indistinguible de los
+    // otros dos — que es exactamente el problema que B2 vino a arreglar, y en silencio.
+    for (const v of ['buque_', 'proa_', 'hundido_']) {
+      assert.ok(CAJAS[v + c], `falta la hoja '${v + c}'`);
+    }
+  }
+});
+
+test('buques: todos los buques del juego tienen clase declarada', async () => {
+  const { SHIPS } = await import('../src/data/missions.js');
+  const { SHIP_CLASS } = await import('../src/data/ships.js');
+  // Un buque sin clase navega de destructor (`|| 't42'` en render/world.js) y eso es un respaldo,
+  // no un plan: el SIR TRISTRAM dibujado como Tipo 42 seria un buque de carga con radomos.
+  for (const n of SHIPS) assert.ok(SHIP_CLASS[n], `'${n}' no declara clase en SHIP_CLASS`);
+});
+
+test('buques: la hoja de costado NO se hornea bajo la flotacion', async () => {
+  const { CAJAS } = await import('../src/data/cajas.js');
+  // El horno recorta en y=0 (`clipY`), asi que el borde de abajo del contenido ES la linea de
+  // agua — y de ahi sale el anclaje. Si alguien sacara el recorte, la obra viva entraria en la
+  // hoja y el buque se dibujaria FLOTANDO por encima del mar, sin ningun error que lo delate.
+  // La firma de que el recorte esta puesto: el contenido llega cerca del borde de abajo pero no
+  // lo toca (2 px de margen), y la caja de las tres clases termina en la misma fila.
+  const filas = ['t42', 't21', 'log'].map(c => CAJAS['buque_' + c].box.y1);
+  assert.equal(new Set(filas).size, 1,
+    `las tres clases no comparten linea de flotacion: ${filas.join(' ')}`);
+});
+
+// ================= EL HARRIER (PLAN_HORNEADO B3) =================
+test('harrier: las tres poses de LA COLA existen y son suyas', async () => {
+  const { CAJAS } = await import('../src/data/cajas.js');
+  for (const k of ['harrier', 'harrier_rear', 'harrier_turn']) {
+    assert.ok(CAJAS[k], `falta la hoja '${k}'`);
+    assert.equal(CAJAS[k].cols, 5, `'${k}' tiene que tener 5 columnas`);
+  }
+  // Y EL JET GENERICO SIGUE SIENDO SUYO: son dos aviones distintos que pueden estar en el mismo
+  // cuadro. Si algun dia vuelven a ser el mismo modelo, esto no lo agarra — pero que las hojas
+  // esten separadas es la condicion previa.
+  assert.ok(CAJAS.jet, 'el caza generico del pasillo no puede desaparecer');
+  assert.ok(!CAJAS.jet_rear && !CAJAS.jet_turn,
+    'jet_rear/jet_turn quedaron sin consumidor al llegar el Harrier: no deben re-hornearse');
+});
+
+test('harrier: la hoja del viraje SE DIBUJA (no se hornea al vacio)', () => {
+  // ESTA PRUEBA EXISTE POR UN CASO REAL. `jet_turn` se horneaba en cada pasada del horno y NINGUN
+  // archivo de src/ la nombraba: pasaron meses con una hoja muerta —y ademas mal horneada, con el
+  // avion encabritado— sin que nada avisara. El doc del plan afirmaba que el render la usaba.
+  // La regla que sale de ahi: una hoja que se hornea tiene que tener consumidor en el juego.
+  const caza = readFileSync(new URL('../src/render/caza.js', import.meta.url), 'utf8');
+  assert.ok(caza.includes("'harrier_turn'"), 'nadie dibuja harrier_turn: volvio a ser arte muerto');
+  assert.ok(caza.includes("H.fase === 'recola'"), 'el viraje ya no se ata a la recola');
+});
+
+test('horno: toda hoja horneada tiene consumidor en el juego', async () => {
+  const { CAJAS } = await import('../src/data/cajas.js');
+  // La generalizacion de la prueba de arriba. `FILES` de render/enemies.js es la lista de lo que
+  // el juego SABE cargar; una hoja horneada que no este ahi es arte que nadie va a ver nunca.
+  const src = readFileSync(new URL('../src/render/enemies.js', import.meta.url), 'utf8');
+  for (const k in CAJAS) {
+    assert.ok(src.includes(`${k}: '../assets/world/enemies/${k}.png'`),
+      `la hoja '${k}' se hornea y el juego no la carga: arte muerto`);
+  }
 });

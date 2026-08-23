@@ -140,8 +140,8 @@ instrumentos abajo. Los 13 px de arriba y abajo los tapa el letterbox.
 | `birds` | bandada (daña, no derriba); variante blanca y oscura, deriva lateral propia | — | 🔵 se queda por código — rehechas con aleteo en TRES poses (arriba/planeo/abajo, con quiebre de ala), cuerpo con panza, tamaños desparejos y bob por ave |
 | `missile` | misil guiado enemigo — lo lanzan el radar, los `aa`, los `aatruck` **y los cazas armados**; variante `tracer` desde puestos y cazas | — | 🔵 rehecho por código: ojiva oscura con canto, escape blanco encarándote, corona de llama que late y estela de humo que se abre atrás |
 | `bomb` | bomba cayendo del cielo (modo BOMBARDEO); chocarla en el aire mata | — | ❌ código |
-| **Harrier británico** | con marcador de zona vulnerable (ROADMAP #20, ayuda española) | — | ⬜ no existe |
-| **C-130 Hércules aliado** | reabastecimiento en vuelo con manguera (ROADMAP #15) | — | ⬜ no existe |
+| **Harrier británico** | el perseguidor de LA COLA (ROADMAP #20) | 3 | ✅ **Sea Harrier FRS.1 propio** ([PLAN_HORNEADO](../sistemas/PLAN_HORNEADO.md) B3, 23/8): `harrier` (de frente) · `harrier_rear` (de cola, las dos toberas encendidas) · `harrier_turn` (la recola, 5 yaws de 0° a 180°). Tomas de aire de barril, ala alta y anhedra, cuatro toberas vectoriales, balancines de punta de ala. El jet genérico del pasillo volvió a ser genérico: los dos pueden estar en el mismo cuadro |
+| **C-130 Hércules aliado** | la chancha del reabastecimiento (ROADMAP #15, SPEC_PODER_CHANCHA) | — | ✅ `enemies/chancha.png` horneada (160×96, el objeto más grande del juego). Vuela el poder entero: llega, larga la manguera y se va |
 
 ### Movimiento propio (`cfg.enemyMove`, menú [M] → "ENEMIGOS: MÓVILES / QUIETOS")
 

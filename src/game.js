@@ -20,7 +20,7 @@ import { run, resetRun } from './core/run.js';
 import { proj, popup, explodeAt, bloodBurst, despiece, morir, actaDe, stepDestruccion, capParts, MUERTES } from './core/fx.js';
 import { ULTIMA_VARIANTE } from './core/fx.js';   // QUITAR con las sondas de v2
 import { CHUNK_LIFE, CHUNKS_MAX, ONDA_T, FLASH_T,
-  forzarVariante, variantesDe, recetaDe, MORIBUNDO_MAX } from './data/despiece.js';
+  forzarVariante, variantesDe, recetaDe, MORIBUNDO_MAX, DESPIECE } from './data/despiece.js';
 import { machNow, conoAmt, cruzo } from './core/mach.js';
 import * as momentum from './legacy/momentum.js';
 import * as tempo from './systems/tempo.js';
@@ -1352,6 +1352,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     let czMv = null;         // sonda: pirueta inyectada por un cuadro (ver __czmv)
     let machPrev = 0;      // velocidad del cuadro anterior: de aca sale el CRUCE transonico
     let machHold = null;   // sonda de LO TRANSONICO (QUITAR): fija velocidad/alabeo cuadro a cuadro
+    let altHold = null;    // sonda de LOS RESTOS (QUITAR): fija la altura cuadro a cuadro
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
     let toT = 0, toCount = 4;
     let levelT = 0;   // temporizador de las tarjetas de transición de nivel / victoria (campaña)
@@ -3337,8 +3338,63 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         moribundo: nuevos.filter(c => c.moribundo).length,
         paraca: nuevos.filter(c => c.paraca).length,
         vidaMax: Math.max(0, ...nuevos.map(c => c.vida || 0)),
+        // EL RESTO (B1): que carcasa quedo en el lugar, y con que pose. `null` es una respuesta
+        // valida — lo que se desintegra no deja nada, y la sonda tiene que poder decirlo.
+        resto: (todos.find(c => c.type === 'resto') || {}).hoja || null,
       });
     };
+
+    // ---------- LOS RESTOS EN FILA (QUITAR) ----------
+    // PLAN_HORNEADO B1. La regla del pasillo dice que lo que queda atras tuyo es la historia de tu
+    // corrida — pero eso no se puede afirmar rompiendo una cosa, mirando, rompiendo otra y
+    // acordandose. `__restosTodos()` planta LA FILA ENTERA de carcasas delante tuyo, una al lado
+    // de la otra y a la misma distancia, que es la unica forma de ver si diez naufragios distintos
+    // se distinguen entre si de un vistazo.
+    //
+    // OJO CON EL NOMBRE: `__romperTodas` ya existe y es OTRA COSA — pone en fila las VARIANTES DE
+    // MUERTE de un tipo (v2 V0). Esta pone en fila los RESTOS de todos los tipos. Se llamo igual
+    // por un rato y la segunda pisaba a la primera sin que nada avisara; el fixture lo agarro.
+    //
+    // Mata de verdad (pasa por `morir()`), asi que lo que aparece es exactamente lo que aparece
+    // jugando: si un resto no sale aca, tampoco sale en la mision.
+    if (typeof window !== 'undefined') window.__restosTodos = (d) => {
+      const tipos = Object.keys(DESPIECE).filter(t => DESPIECE[t].resto);
+      const dist = d || 60, paso = 9;
+      const x0 = plane.x - (tipos.length - 1) * paso / 2;
+      const puestos = [];
+      tipos.forEach((tipo, i) => {
+        const o = { type: tipo, x: x0 + i * paso, y: 1.5, h: 3, z: PZ + dist };
+        morir(o, { vz: 20 }, 0, 'canon');
+        const r = obstacles.filter(c => c.type === 'resto').pop();
+        puestos.push({ tipo, resto: r ? r.hoja : null, x: Math.round(o.x) });
+      });
+      // Y EL CONTRA-EJEMPLO en la misma foto: los tipos que NO dejan resto. Que la lista de abajo
+      // no este vacia es parte de lo que hay que ver — una carcasa para todo seria tan falso como
+      // ninguna. Un avion que revienta en el aire no deja nada en el suelo.
+      const sin = Object.keys(DESPIECE).filter(t => !DESPIECE[t].resto);
+      return JSON.stringify({ d: dist, n: puestos.length, puestos, sinResto: sin });
+    };
+
+    // QUE HAY EN EL PASILLO AHORA MISMO (QUITAR). La diferencia que trae B1 es que la carcasa dura
+    // mas que el humo, y eso solo se puede afirmar contando las dos cosas DESPUES de que pase el
+    // tiempo. `conHp` es la otra mitad: un resto con vida seria un obstaculo, y romper cosas te
+    // iria cerrando el pasillo — el castigo al reves.
+    // EL BUQUE DEL PASILLO, A PEDIDO (QUITAR). PLAN_HORNEADO B2: el criterio es que las tres clases
+    // se distingan, y eso no se puede afirmar volando tres misiones distintas y acordandose de como
+    // se veia la primera. Cambia el buque objetivo sin recargar; el pasillo sigue igual.
+    if (typeof window !== 'undefined') window.__buqueSet = nombre => {
+      if (nombre) { objectiveShip = nombre; pulso.setShip(nombre); }
+      return JSON.stringify({ buque: objectiveShip, clase: SHIP_CLASS[objectiveShip] || null,
+        dist: Math.round(objectiveDist), p: +(run.dist / Math.max(1, objectiveDist)).toFixed(3) });
+    };
+
+    if (typeof window !== 'undefined') window.__restos = () => JSON.stringify({
+      restos: obstacles.filter(c => c.type === 'resto').length,
+      humos: obstacles.filter(c => c.type === 'humo').length,
+      conHp: obstacles.filter(c => c.type === 'resto' && c.hp !== undefined).length,
+      hojas: [...new Set(obstacles.filter(c => c.type === 'resto').map(c => c.hoja))],
+      t: +run.t.toFixed(1),
+    });
 
     // ---------- LAS VARIANTES EN FILA (QUITAR) ----------
     // PLAN_DESTRUCCION_V2 V0. La regla del §1 es que dos variantes tienen que distinguirse en una
@@ -3437,6 +3493,15 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       machHold = spd ? { spd, bank: bank || 0, boost: !!boost } : null;
       return JSON.stringify({ hold: machHold });
     };
+    // EL AVION QUIETO EN EL AIRE (QUITAR). Sin gas el avion cae, y cae rapido: cualquier prueba que
+    // necesite MIRAR el pasillo unos segundos —los restos de B1 tardan 4 s en salir de abajo de su
+    // propia bola de fuego— termina con "chocaste el terreno" en vez de con la foto. Va entre
+    // update y draw por el mismo motivo que `__mset`: puesto antes, la fisica se lo lleva por
+    // delante en el mismo cuadro. `__nivel(null)` lo suelta.
+    if (typeof window !== 'undefined') window.__nivel = y => {
+      altHold = y === null || y === undefined ? null : Math.max(1, y);
+      return JSON.stringify({ hold: altHold, y: +plane.y.toFixed(1) });
+    };
     if (typeof window !== 'undefined') window.__mdbg = () => JSON.stringify({
       spd: Math.round(run.spd), kmh: Math.round(run.spd * 4.2),
       mach: +machNow(run.spd).toFixed(2),
@@ -3519,6 +3584,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // fisica se la lleva por delante en el mismo cuadro (speedTarget devuelve la velocidad
       // verdadera y `run.spd` vuelve sola) — medido: pedia 240 y el HUD marcaba 118.
       if (machHold) { run.spd = machHold.spd; plane.bank = machHold.bank; run.boost = machHold.boost; }
+      if (altHold !== null) { plane.y = altHold; plane.vy = 0; }
       draw(); updateMusic(S.state);
       if (playerEl) playerEl.classList.toggle('on', canPickMusic());   // reproductor: solo donde hay pista cambiable
       requestAnimationFrame(frame);

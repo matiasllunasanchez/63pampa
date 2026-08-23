@@ -24,6 +24,7 @@ import { drawParte, yawDe, colorDe } from './partes.js';
 import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
   ALAMBRE_CADA, ALAMBRE_POSTE, ALAMBRE_H, MOJADO_A, CHARCO_P, CHARCO_H, PASTO_LEAN, PASTO_ONDA, PASTO_V, PASTO_KX, PASTO_KZ, PASTO_ACOSTAR, RACHA_N, RACHA_T, RACHA_A } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
+import { SHIP_CLASS } from '../data/ships.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
 import { inBank, fogVis, fogTop } from '../systems/fog.js';
 import { mvTight } from '../data/moves.js';
@@ -1148,6 +1149,26 @@ export function drawObstacle(o) {
       px(cx + cw * 0.08, top + th * 0.14, Math.max(1, cw * 0.14), Math.max(1, th * 0.08), '#2c3a1a'); // gap oscuro
       px(cx - cw * 0.34, top + th * 0.2, Math.max(1, cw * 0.12), Math.max(1, th * 0.07), '#6f8a44');  // mota clara
     }
+  } else if (o.type === 'resto') {
+    // EL RESTO (PLAN_HORNEADO B1): lo que quedo de algo que rompiste. No tiene estado, no colisiona
+    // y no puntua — es memoria. La regla del pasillo dice que lo que queda atras tuyo es la historia
+    // de tu corrida, y hasta B1 esa historia la contaba una columna de humo que duraba 6 segundos.
+    //
+    // NO HAY RESPALDO POR CODIGO, y es deliberado: sin la hoja no se dibuja NADA. Todo lo demas de
+    // este archivo cae a rectangulos si el sprite no cargo, porque son cosas que el juego necesita
+    // que veas —te matan, te bloquean, valen puntos—. Un resto no hace nada de eso. Un rectangulo
+    // gris en el lugar de un naufragio no cuenta la historia: la ensucia.
+    if (!enemyArt.ready(o.hoja)) return;
+    const base = proj(o.x, o.gy || 0, o.z);
+    const sh = enemyArt.SHEETS[o.hoja];
+    const col = Math.min(sh.cols - 1, (o.pose * sh.cols) | 0);   // la pose, sorteada al morir
+    // los que escalaban por altura en vida siguen escalando por la MISMA altura muertos: un
+    // edificio grande deja un derrumbe grande
+    const kk = sh.href && o.h ? k * o.h / sh.href : k;
+    ctx.globalAlpha = 0.3;
+    px(base.x - sh.wu * 0.4 * k, base.y - 0.3 * k, sh.wu * 0.8 * k, Math.max(1, 0.5 * k), '#161d10');
+    ctx.globalAlpha = 1;
+    enemyArt.drawFrame(ctx, o.hoja, col, 0, base.x, { bottomY: base.y }, kk, o.flip);
   } else if (o.type === 'tent') {
     // CARPA britanica: lona olivo a dos aguas, entrada oscura. Arrasable a ras (no mata).
     const base = proj(o.x, o.gy || 0, o.z);
@@ -2030,6 +2051,72 @@ function drawBowApproach(g, objectiveShip) {
 // (4.6). Sale de drawBargeHull — si algun dia le crece la antena, este numero se entera.
 const ALTO_BUQUE = 6.1;
 
+// ============================ EL CASCO, POR CLASE (PLAN_HORNEADO B2) ============================
+// Hasta B2 los tres buques del juego se dibujaban con EL MISMO casco: `drawBargeHull` pinta un
+// perfil de destructor generico y lo usaban el SHEFFIELD, el ARDENT y el SIR GALAHAD por igual —
+// un destructor, una fragata y un buque de carga, identicos, y lo unico que los distinguia era el
+// nombre escrito arriba. `data/ships.js` ya sabia de que clase era cada uno (`SHIP_CLASS`) y le
+// daba a cada clase sus zonas criticas propias; faltaba que se parecieran a lo que son.
+//
+// EL DIBUJO A MANO NO SE VA, Y NO ES POR PRUDENCIA. Es el patron del repo (si la hoja no cargo,
+// se cae al dibujo de siempre) pero ademas es MEJOR en un tramo concreto: de lejos el buque mide
+// tres pixeles, y ahi `drawBargeHull` tiene un modo propio de tres trazos con perfil de barco
+// mientras que un sprite de 216 px reducido a 3 es una mancha. Asi que la hoja entra cuando el
+// buque ya es grande y el dibujo a mano se queda con la distancia. El umbral es donde el sprite
+// deja de perder informacion: por debajo de ~40 px de eslora se reduce mas de 5×.
+const CASCO_MIN = 40;
+
+/** La hoja que le toca a un buque, o null si no hay ninguna cargada.
+ *  `n` = 0 navegando · 1 hundiendose de proa · 2 de popa. */
+function hojaBuque(nombre, n) {
+  const cl = SHIP_CLASS[nombre] || 't42';       // un buque sin clase declarada navega de destructor
+  const k = (n ? 'hundido_' : 'buque_') + cl;
+  return enemyArt.ready(k) ? k : null;
+}
+
+/** El casco del buque del pasillo. `len` es la ESLORA EN PIXELES y `waterline` la flotacion: los
+ *  dos salen de la cuenta larga de `drawApproachBarge`, que es quien sabe a que distancia esta.
+ *
+ *  La hoja se dibuja con `wu: 1`, asi que pasarle `len` como escala hace que el contenido mida
+ *  exactamente `len` pixeles de ancho — y como no se hornea nada bajo la flotacion (`clipY` del
+ *  horno), anclar por el borde de abajo del contenido lo planta justo en la linea de agua. Los dos
+ *  numeros que el 2D calculaba a ojo salen gratis.
+ *
+ *  EL AGUA SIGUE SIENDO CODIGO. El bigote de proa y la flotacion picoteada NO se hornean (regla
+ *  §4 del plan: la materia en movimiento es codigo) — se pintan encima del sprite, que ademas es
+ *  lo que hace que el buque se vea NAVEGANDO y no fondeado. */
+function drawCascoDelBuque(nombre, cx, len, deckY, uh, hullH, haze, fx) {
+  const hundiendo = fx && fx.sink > 0.12 ? (fx.tilt >= 0 ? 1 : 2) : 0;
+  const hoja = len >= CASCO_MIN ? hojaBuque(nombre, hundiendo) : null;
+  if (!hoja) {
+    momRender.drawBargeHull(cx, len, deckY, uh, run.t, haze, theme.sky.horizon);
+    return;
+  }
+  const waterY = deckY + hullH;
+  const sh = enemyArt.SHEETS[hoja];
+  // CABECEO: tres poses cicladas con un seno lento — el mismo recurso que la barcaza y el globo.
+  // Un buque quieto en pantalla se lee como una foto pegada. El hundido no cabecea: tiene dos
+  // poses y son los dos FINALES (de proa / de popa), no un ciclo.
+  const col = hundiendo ? hundiendo - 1
+    : Math.min(sh.cols - 1, Math.round((Math.sin(run.t * 0.55) * 0.5 + 0.5) * (sh.cols - 1)));
+  // LA BRUMA, con el mecanismo que ya tiene el sprite: `dark` oscurece conservando la forma. No es
+  // lo mismo que el `mixHex` del 2D —aquel mezcla hacia el color del horizonte y este hacia la
+  // sombra— pero hace el trabajo que importa, que es que el buque lejano no compita en contraste
+  // con los obstaculos del pasillo. Anotado en PLAN_HORNEADO §5.
+  enemyArt.drawFrame(ctx, hoja, col, 0, cx, { bottomY: waterY }, len, false, false, haze * 0.8);
+  if (hundiendo) return;                      // el que se hunde ya no hace bigote de proa
+  // EL AGUA (materia = codigo): bigote de proa y la flotacion picoteada, lo mas claro del buque.
+  const u = Math.max(1, uh);
+  ctx.globalAlpha = 0.5;
+  for (let i = 0; i < 7; i++) {
+    px(cx - len / 2 + u + (i / 7) * len * 0.95 + Math.sin(run.t * 2.4 + i * 1.7) * u * 0.35,
+      waterY - 1, u * 0.9, 1, P.foam);
+  }
+  ctx.globalAlpha = 0.75;
+  px(cx - len / 2 + u * 0.95, waterY - Math.max(1, u * 0.3), u * 1.7, Math.max(1, u * 0.3), P.foam);
+  ctx.globalAlpha = 1;
+}
+
 export function drawApproachBarge(objectiveDist, objectiveShip, fx, deProa) {
   const ph = momentum.phase(), PH = momentum.phases();
   if (objectiveDist <= 0 || ph >= PH.length) return;
@@ -2153,7 +2240,7 @@ export function drawApproachBarge(objectiveDist, objectiveShip, fx, deProa) {
   // primeros metros; el alfa de arriba es el que manda la aparicion.
   const haze = ph === 0 ? 0.34 * (1 - f) * (1 - f) : 0;
   ctx.globalAlpha = 0.15 + 0.85 * dis;
-  momRender.drawBargeHull(bx, W * 0.82 * sc, byF, uh, run.t, haze, theme.sky.horizon);
+  drawCascoDelBuque(objectiveShip, bx, W * 0.82 * sc, byF, uh, hullH, haze, fx);
   ctx.globalAlpha = 1;
   ctx.restore();
   // el banco de nubes va DESPUES del casco (lo tapa por la mitad) y ANTES de los enemigos, que
@@ -2295,7 +2382,8 @@ export function drawHitboxes() {
       hbBox(o.x, top / 2, o.z, 10, top / 2, HB_SOFT); continue;
     }
     if (o.type === 'bomb') { hbBox(o.x, o.y, o.z, 2.2, 2.4, HB); continue; }
-    if (o.type === 'airboom' || o.type === 'chunk' || o.type === 'sec' || o.type === 'humo') continue;   // FX puros: no colisionan
+    if (o.type === 'airboom' || o.type === 'chunk' || o.type === 'sec' || o.type === 'humo'
+      || o.type === 'resto') continue;   // FX puros: no colisionan
     const { hw, hh, oy } = hitbox(o);
     hbBox(o.x, oy, o.z, hw, hh, HB);
     // BARRIDO DEL CASCO: a ras del suelo lo vertical engancha aunque el centro no coincida.

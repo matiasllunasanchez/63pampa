@@ -380,8 +380,10 @@ archivo: la única diferencia entre corridas es el PID de node en el warning de
   aviso de "ésta te apunta a vos" tiene que estar en la cosa misma: las de aviso son frías y ajenas,
   éstas son cálidas y crecen. Es el mismo idioma que el juego ya habla con la soga de humo.
 - **H5.3 · El arte del Harrier ya tiene sus tres hojas** (17/8): `jet` (frente, 5 alabeos),
-  `jet_rear` (cola, 5 alabeos) y `jet_turn` (viraje/recola, 5 yaws 0→180° con banqueo). El render
-  usa una cascada: `jet_turn` en recola, `jet_rear` en cola, `jet` de frente, silueta a mano si
+  ~~`jet_rear` (cola, 5 alabeos) y `jet_turn` (viraje/recola, 5 yaws 0→180° con banqueo)~~ →
+  **`harrier_rear` y `harrier_turn` desde PLAN_HORNEADO B3 (23/8): el Harrier dejó de ser el jet
+  genérico y tiene modelo propio** (`tools/models/harrier.js`). El render
+  usa una cascada: `harrier_turn` en recola, `harrier_rear` en cola, `harrier` de frente, silueta a mano si
   nada cargó (P2). Los números del viejo placeholder (`PH_DARK`, `PH_SQUASH`) quedan como respaldo.
 - **H5.4 · El fixture creció a 13 secciones y el modo `manso` nació de ahí.** Las secciones 1-8
   miden la COREOGRAFÍA y corren el duelo **sin las ráfagas que matan**: no se puede juzgar un
@@ -645,9 +647,23 @@ concretas que sólo el playtest contesta:
 
 ### 11.3 — ~~H5 · el arte real~~ ✅ HECHO (17/8)
 
-Las hojas `jet_rear` (cola, 5 alabeos) y `jet_turn` (viraje/recola, 5 yaws con banqueo) están
+> **⚠️ CORRECCIÓN (23/8, PLAN_HORNEADO B3).** Lo que sigue decía que el render usaba una cascada
+> `jet_turn` → `jet_rear` → `jet`. **La primera rama nunca existió**: `jet_turn` se horneaba en
+> cada pasada y NINGÚN archivo de `src/` la nombraba — se comprobó con un grep. La recola se
+> dibujaba con un cambio de sprite de un cuadro al otro (se iba de cola y de golpe venía de
+> frente). B3 la cableó de verdad, y al hacerlo salió a la luz que **la hoja además estaba mal
+> horneada**: el horneador aplicaba yaw y alabeo sobre el MISMO objeto, así que con el avión ya
+> girado 90° el eje Z dejaba de ser su eje longitudinal y el alabeo lo ENCABRITABA en vez de
+> alabearlo — el frame del medio salía con la nariz apuntando al cielo. Es la trampa que la
+> cabecera de `bake_enemies.html` ya advertía. Arreglado anidando los grupos; ninguna otra hoja
+> cambió (era la única que pedía las dos rotaciones juntas). Lo detectó Matías mirando la lámina.
+>
+> **La lección, que no es sobre el Harrier:** un asset que se hornea y no se dibuja no está
+> "listo para cuando haga falta" — está roto y nadie lo sabe. `jet_turn` pasó meses así.
+
+Las hojas `harrier_rear` (cola, 5 alabeos) y `harrier_turn` (viraje/recola, 5 yaws con banqueo) están
 horneadas por el pipeline 3D de `bake_enemies`. El render en `caza.js` usa cascada:
-`jet_turn` → `jet_rear` → `jet` → silueta P2. `PH_DARK` y `PH_SQUASH` quedan como respaldo.
+`harrier_turn` → `harrier_rear` → `harrier` → silueta P2. `PH_DARK` y `PH_SQUASH` quedan como respaldo.
 El parámetro `dark` de `enemies.js:drawFrame` **se queda**: es genérico.
 
 ### 11.4 — La decisión que NO es del código: LOS PRIMOS

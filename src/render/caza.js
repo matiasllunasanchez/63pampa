@@ -6,9 +6,14 @@
 // aca solo se LEE su snapshot y se pinta (convencion 4 de ARQUITECTURA).
 //
 // MULTIPLES HARRIERS: snapshot() devuelve un ARRAY de Harriers. Cada uno trae `deFrente` ya
-// resuelto por el sistema: false => jet_rear (le ves la cola), true => jet (te encara). Y trae
-// `enCola`, que dice que esta detras tuyo y NO hay que dibujarlo — escondido entre amague y
-// amague, o ya pasado de largo en la entrada.
+// resuelto por el sistema: false => `harrier_rear` (le ves la cola), true => `harrier` (te
+// encara). Y trae `enCola`, que dice que esta detras tuyo y NO hay que dibujarlo — escondido entre
+// amague y amague, o ya pasado de largo en la entrada.
+//
+// EL AVION ES SUYO DESDE PLAN_HORNEADO B3. Hasta entonces el perseguidor se dibujaba con `jet` y
+// `jet_rear` — el mismo caza generico del pasillo, con dos poses mas. Ahora hay un Sea Harrier
+// FRS.1 modelado aparte (tools/models/harrier.js) y el caza del pasillo volvio a ser un caza de
+// linea: los dos pueden aparecer en el mismo cuadro y se distinguen sin leyenda.
 
 import { ctx, px, PZ } from './ctx.js';
 import { proj } from '../core/fx.js';
@@ -98,18 +103,31 @@ function drawCazaSprite(H) {
   // acompaña al movimiento — que es la mitad de por que parecia estatico.
   const pose = cols => Math.max(0, Math.min(cols - 1, Math.round((H.bank * 0.5 + 0.5) * (cols - 1))));
 
-  if (trasero && enemyArt.ready('jet_rear')) {
-    enemyArt.drawFrame(ctx, 'jet_rear', pose(enemyArt.SHEETS.jet_rear.cols), 0, s.x,
+  // LA RECOLA SE DIBUJA GIRANDO (PLAN_HORNEADO B3). La hoja `harrier_turn` —cinco yaws de cola
+  // (0°) a frente (180°), con el alabeo de la virada— existia horneada desde antes y NINGUN
+  // archivo del juego la nombraba: se horneaba en cada pasada y no se dibujaba nunca. La recola es
+  // literalmente la vuelta en U —el Harrier deja de irse y vuelve a encararte— y hasta B3 eso era
+  // un CAMBIO DE SPRITE de un cuadro al otro: se iba de cola y de golpe venia de frente.
+  //
+  // La columna sale del avance de la fase, no del reloj: la ultima (180° = de frente) es la misma
+  // pose con la que arranca `presion`, asi que el pase al sprite de frente no tiene salto.
+  if (H.fase === 'recola' && H.dur > 0 && enemyArt.ready('harrier_turn')) {
+    const sh = enemyArt.SHEETS.harrier_turn;
+    const g = Math.max(0, Math.min(1, H.t / H.dur));
+    enemyArt.drawFrame(ctx, 'harrier_turn', Math.min(sh.cols - 1, Math.round(g * (sh.cols - 1))), 0,
+      s.x, { centerY: s.y }, k, false, false, 0);
+  } else if (trasero && enemyArt.ready('harrier_rear')) {
+    enemyArt.drawFrame(ctx, 'harrier_rear', pose(enemyArt.SHEETS.harrier_rear.cols), 0, s.x,
       { centerY: s.y }, k, false, false, 0);
-  } else if (enemyArt.ready('jet')) {
-    const col = pose(enemyArt.SHEETS.jet.cols);
+  } else if (enemyArt.ready('harrier')) {
+    const col = pose(enemyArt.SHEETS.harrier.cols);
     if (trasero) {
       ctx.save();
       ctx.translate(s.x, 0);
       ctx.scale(PH_SQUASH, 1);
-      enemyArt.drawFrame(ctx, 'jet', col, 0, 0, { centerY: s.y }, k, false, false, PH_DARK);
+      enemyArt.drawFrame(ctx, 'harrier', col, 0, 0, { centerY: s.y }, k, false, false, PH_DARK);
       ctx.restore();
-    } else enemyArt.drawFrame(ctx, 'jet', col, 0, s.x, { centerY: s.y }, k, false, false, 0);
+    } else enemyArt.drawFrame(ctx, 'harrier', col, 0, s.x, { centerY: s.y }, k, false, false, 0);
   } else {
     const c = trasero ? '#1b2228' : P.bodyDark;
     px(s.x - 4.2 * k, s.y - 0.4 * k, 8.4 * k, 0.8 * k, c);

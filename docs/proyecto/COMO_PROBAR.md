@@ -69,7 +69,7 @@ llegar a verlo)*
 | feature | cómo probarlo hoy | llega en |
 |---|---|---|
 | Cañón / misil | X·ESPACIO / Z en vuelo | 10 s |
-| **LA COLA** (el Harrier: presión → sobrepaso → ventana; arte propio jet_rear/jet_turn) | `?caza` lo fuerza · en PATRIA aparece tras cruzar jets frontales (el gate) · `__cz*` (`__czstart`) · `npm run caza` | 10 s con sonda |
+| **LA COLA** (el Harrier: presión → sobrepaso → ventana; arte propio: Sea Harrier FRS.1 (`harrier`/`harrier_rear`/`harrier_turn`)) | `?caza` lo fuerza · en PATRIA aparece tras cruzar jets frontales (el gate) · `__cz*` (`__czstart`) · `npm run caza` | 10 s con sonda |
 | Enemigos (jet, helo, globo, AA, radar, fragata, lcu, aves) | POR LA PATRIA, aparecen por spawn; movilidad en OPCIONES → ENEMIGOS | 1–3 min |
 | **LA DESTRUCCIÓN** (despiece por tipo, choque mutuo, cadenas, onda) | `__romper(tipo)` · `__cadena()` · `__chocar()` · `npm run romper` | 10 s con sonda |
 | **LAS OLAS** (marejada/rompiente/rebelde) | `__ola('rebelde')` etc. · con clima: m9 (tormenta) · `npm run agua` | 10 s con sonda |
