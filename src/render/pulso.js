@@ -20,6 +20,12 @@ import { padInfo } from '../core/input.js';
 import { bargeGeom } from './world.js';
 import * as momRender from '../legacy/momentum_render.js';
 import { nuevoReguero, humear, MISIL } from './reguero.js';
+import * as muni from './municion.js';
+// QUE SUELTA EL AVION EN EL PREMIO. El plan del PULSO dice bombas («el arma son las bombas, no un
+// misil», §3) y el catalogo horneado tiene las dos: cambiar de una a otra es esta palabra. Va en
+// MISIL porque es lo que ya venia dibujado —fogonazo de motor y estela de propelente, que una
+// bomba no tiene— y porque es como se lo nombra jugando.
+const MUNI_FILA = muni.MISIL;
 
 // DONDE APUNTA EL PULSO. Mismo contrato que el arena: es la mira del modo, y la cabina se acomoda
 // sola para que su visor pintado caiga aca.
@@ -203,8 +209,18 @@ function drawCineMundo(Q, c, t, cab) {
       // como humo en vez de acompañar rigido al proyectil.
       const b = vuelo(i, p);
       humear(regDe(i), b.x, b.y, Object.assign({ t, f: 1 - p * 0.4, on: p < 0.97, corta: true }, MISIL));
-      px(b.x - b.s / 2, b.y - b.s, b.s, b.s * 2, '#232a2f');
-      px(b.x - b.s / 2, b.y - b.s, b.s, Math.max(1, b.s * 0.45), '#7c8b94');
+      // EL PROYECTIL, del sprite horneado (tools/bake_ammo.html). `caja` es alto de frame y el
+      // proyectil ocupa como dos tercios, asi que se pide mas grande que el rectangulo que habia.
+      //
+      // SE LO VA VIENDO DE COSTADO: sale de cola —te lo ves alejarse por el eje— y a medida que se
+      // va lo agarras de tres cuartos. Eso es `v`, y es lo unico que un proyectil hace en pantalla.
+      //
+      // SI LA HOJA NO CARGO, la receta vieja: cuerpo oscuro con el canto claro. No se borro por lo
+      // de siempre — un asset que falta no puede dejar la ristra invisible.
+      if (!muni.dibujar(MUNI_FILA, Math.min(1, p * 0.85), b.x, b.y - b.s * 0.1, b.s * 3)) {
+        px(b.x - b.s / 2, b.y - b.s, b.s, b.s * 2, '#232a2f');
+        px(b.x - b.s / 2, b.y - b.s, b.s, Math.max(1, b.s * 0.45), '#7c8b94');
+      }
       // EL MOTOR, mientras dura: el fogonazo que la empuja los primeros metros. Es lo que convierte
       // "un punto que se aleja" en "algo que acaba de salir de abajo tuyo".
       if (p < 0.3) {

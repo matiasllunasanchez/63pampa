@@ -17,6 +17,7 @@
     "pasada": "electron tools/fixture_pasada.js",
     "pulso": "electron tools/fixture_pulso.js",
     "cine": "electron tools/fixture_cine.js",
+    "ammo": "electron tools/bake_ammo_run.js",
     "caza": "electron tools/fixture_caza.js",
     "persec": "electron tools/fixture_persec.js",
     "romper": "electron tools/fixture_romper.js",

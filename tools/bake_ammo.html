@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="es">
+<!-- HERRAMIENTA: hornea la hoja de MUNICION desde modelos 3D low-poly, igual que bake_planes.html.
+     - Abrir en el browser (con el server del repo) para VER/tunear los modelos.
+     - `npx electron tools/bake_ammo_run.js` la exporta a assets/ammo/municion.png
+
+     FORMATO: 6 columnas x 2 filas de 16x16.
+       filas    0 = BOMBA (la ristra del PULSO y de la PASADA) · 1 = MISIL (el del pasillo)
+       columnas ANGULO DE VISTA: 0 = de cola pura (se aleja de frente) … 5 = casi de costado.
+
+     POR QUE ESA GRILLA Y NO LA DE LOS AVIONES. Un avion se hornea por alabeo x cabeceo porque
+     ROLA y se lo ve siempre desde atras. Un proyectil no rola: lo unico que cambia es el angulo
+     entre su eje y la camara — sale de cola, y a medida que cae o se desvia se lo empieza a ver
+     de costado. Esa es la grilla que de verdad varia en el juego.
+
+     POR QUE 16 px Y NO 84. La municion se dibuja entre 4 y 16 px en pantalla. Horneada a 84 habria
+     que reducirla 5x y lo que llega es puré: en pixel art el asset se hornea CERCA del tamaño al
+     que se dibuja. A 16 entra la silueta —cuerpo, ojiva y aletas— que es todo lo que se lee. -->
+<head>
+  <meta charset="utf-8">
+  <title>bake_ammo — RASANTE</title>
+  <style>
+    body { background: #10161b; color: #93a7ab; font-family: ui-monospace, Menlo, monospace; padding: 20px; }
+    h2 { color: #e8a33d; font-size: 14px; margin: 18px 0 6px; }
+    canvas.sheet { image-rendering: pixelated; border: 1px solid #2a363d; display: block; }
+  </style>
+</head>
+<body>
+  <div id="out"></div>
+  <script src="../src/vendor/three.global.js"></script>
+  <script>
+    'use strict';
+    const FW = 16, FH = 16;
+    // ANGULO DE VISTA por columna, en grados: cuanto se inclina el eje del proyectil respecto de
+    // la camara. 0 es de cola pura (lo que ves cuando se aleja derecho).
+    const VISTAS = [0, 15, 30, 45, 62, 80];
+    const FILAS = ['bomba', 'misil'];
+
+    function makeRenderer() {
+      const r = new THREE.WebGLRenderer({ antialias: false, alpha: true });
+      r.setSize(FW, FH, false);
+      return r;
+    }
+    // MISMA LUZ QUE LOS AVIONES: si la municion se iluminara distinta se leeria como pegada de
+    // otro juego. Atardecer del Atlantico — calida de arriba a la izquierda, contraluz rojizo.
+    function makeScene() {
+      const sc = new THREE.Scene();
+      sc.add(new THREE.AmbientLight(0xaebccc, 1.5));
+      const dl = new THREE.DirectionalLight(0xe8c07a, 1.6); dl.position.set(-3, 5, 4); sc.add(dl);
+      const rim = new THREE.DirectionalLight(0xb06a35, 0.5); rim.position.set(2, 1, -4); sc.add(rim);
+      return sc;
+    }
+    // La camara mira por el eje Z. El proyectil vive a lo largo de Z con la NARIZ hacia -Z, o sea
+    // alejandose: en la columna 0 se le ve la cola, que es como sale de abajo del avion.
+    function makeCam() {
+      const cam = new THREE.PerspectiveCamera(26, FW / FH, 0.5, 60);
+      cam.position.set(0, 0.55, 6.4); cam.lookAt(0, 0, 0);
+      return cam;
+    }
+
+    const MAT = c => new THREE.MeshLambertMaterial({ color: c });
+    const EMIT = c => new THREE.MeshBasicMaterial({ color: c });
+    const add = (g, geo, c, x, y, z, rx, ry, rz, emit) => {
+      const m = new THREE.Mesh(geo, emit ? EMIT(c) : MAT(c));
+      m.position.set(x, y, z);
+      if (rx) m.rotation.x = rx; if (ry) m.rotation.y = ry; if (rz) m.rotation.z = rz;
+      g.add(m); return m;
+    };
+    /** Cilindro a lo LARGO DE Z (el eje del proyectil). */
+    const CYL = (g, rT, rB, len, c, z, seg) =>
+      add(g, new THREE.CylinderGeometry(rT, rB, len, seg || 10), c, 0, 0, z, Math.PI / 2);
+    /** Cono con la punta hacia -Z (la nariz). */
+    const NOSE = (g, r, len, c, z, seg) =>
+      add(g, new THREE.ConeGeometry(r, len, seg || 10), c, 0, 0, z, -Math.PI / 2);
+    /** CUATRO ALETAS EN CRUZ. `w` es lo que sobresale, `h` la cuerda. Se modelan las cuatro y no
+     *  dos: de cola se ve la cruz entera, y es la unica cosa que distingue una bomba de un palo. */
+    function aletas(g, r, w, h, esp, c, z) {
+      for (let i = 0; i < 4; i++) {
+        const a = i * Math.PI / 2;
+        const m = add(g, new THREE.BoxGeometry(w, esp, h), c,
+          Math.cos(a) * (r + w / 2), Math.sin(a) * (r + w / 2), z);
+        m.rotation.z = a;
+      }
+    }
+
+    // ---------------- LA BOMBA (la ristra del premio y de la PASADA) ----------------
+    // Silueta de Mk-82: cuerpo gordo y corto, ojiva roma y cuatro aletas grandes atras. Lo que la
+    // separa de un misil a 8 px es la PROPORCION —corta y ancha— y esas aletas, que son casi tan
+    // anchas como el cuerpo. La banda amarilla es la marca de arma real (las de practica son
+    // azules): a este tamaño es un pixel, pero es el pixel que dice "esto explota".
+    function modelBomba() {
+      const g = new THREE.Group();
+      // EL VERDE OLIVA REAL NO SE VE. Una Mk-82 es verde oscuro, pero el mar de este juego tambien
+      // es oscuro: horneada con el color de archivo, la bomba era una mancha negra sobre negro.
+      // Misma leccion que el humo de la estela — lo veridico no sirve si desaparece. Se sube el
+      // tono lo justo para que recorte contra el agua, y el contraste se guarda para las aletas.
+      const CUERPO = '#717865', OSCURO = '#41463a', BANDA = '#d8b246';
+      CYL(g, 0.30, 0.30, 1.20, CUERPO, 0, 12);
+      NOSE(g, 0.30, 0.62, CUERPO, -0.90, 12);            // ojiva roma
+      CYL(g, 0.31, 0.31, 0.10, BANDA, -0.44, 12);        // banda de arma real
+      CYL(g, 0.30, 0.22, 0.34, OSCURO, 0.76, 12);        // cono de cola
+      aletas(g, 0.24, 0.30, 0.46, 0.05, OSCURO, 0.82);
+      return g;
+    }
+
+    // ---------------- EL MISIL (el del pasillo) ----------------
+    // Silueta de Exocet: LARGO y fino, blanco de crucero con ojiva gris, alas cortas a media
+    // eslora y aletas de cola. Lo contrario de la bomba en las dos cosas que se leen: proporcion
+    // y color. Y la tobera encendida atras — es lo unico que dice que va con motor y no cayendo.
+    function modelMisil() {
+      const g = new THREE.Group();
+      const CUERPO = '#dfe6ea', OJIVA = '#9aa3ab', ALETA = '#c3cbd1';
+      CYL(g, 0.20, 0.20, 2.00, CUERPO, 0, 12);
+      NOSE(g, 0.20, 0.70, OJIVA, -1.34, 12);
+      CYL(g, 0.205, 0.205, 0.08, '#5a6268', -0.10, 12);  // banda de union
+      aletas(g, 0.17, 0.26, 0.34, 0.045, ALETA, 0.05);   // alas de crucero, a media eslora
+      aletas(g, 0.17, 0.22, 0.30, 0.045, ALETA, 0.92);   // aletas de cola
+      // LA TOBERA, encendida: mismo criterio que la del avion (material que no toma luz — el fuego
+      // se ilumina solo). Tres capas, de lo mas profundo y apagado al nucleo blanco.
+      add(g, new THREE.CircleGeometry(0.17, 10), '#b8341a', 0, 0, 1.02, 0, 0, 0, true);
+      add(g, new THREE.CircleGeometry(0.12, 10), '#f07a22', 0, 0, 1.04, 0, 0, 0, true);
+      add(g, new THREE.CircleGeometry(0.06, 8),  '#ffe6a8', 0, 0, 1.06, 0, 0, 0, true);
+      return g;
+    }
+
+    const MODELS = { bomba: modelBomba, misil: modelMisil };
+
+    function __bake() {
+      const R = makeRenderer(), cam = makeCam();
+      const sheet = document.createElement('canvas');
+      sheet.width = FW * VISTAS.length; sheet.height = FH * FILAS.length;
+      const x2 = sheet.getContext('2d');
+      FILAS.forEach((key, row) => {
+        const sc = makeScene();
+        const model = MODELS[key]();
+        sc.add(model);
+        VISTAS.forEach((v, col) => {
+          // se inclina el MODELO y no la camara: asi la luz queda igual en toda la fila y el
+          // proyectil no cambia de tono al girar (que se leeria como que cambio de material).
+          model.rotation.x = v * Math.PI / 180;
+          R.render(sc, cam);
+          x2.drawImage(R.domElement, col * FW, row * FH);
+        });
+      });
+      const out = sheet.toDataURL('image/png');
+      const outEl = document.getElementById('out');
+      if (outEl) {
+        const h = document.createElement('h2');
+        h.textContent = `municion — ${VISTAS.length}x${FILAS.length} frames de ${FW}x${FH} · filas: ${FILAS.join(' / ')} · vistas: ${VISTAS.join('° ')}°`;
+        const big = document.createElement('canvas'); big.className = 'sheet';
+        big.width = sheet.width * 8; big.height = sheet.height * 8;
+        const bx = big.getContext('2d'); bx.imageSmoothingEnabled = false;
+        bx.drawImage(sheet, 0, 0, big.width, big.height);
+        outEl.appendChild(h); outEl.appendChild(big);
+      }
+      return { municion: out };
+    }
+    window.__bake = __bake;
+    if (!navigator.userAgent.includes('Electron')) __bake();
+  </script>
+</body>
+</html>

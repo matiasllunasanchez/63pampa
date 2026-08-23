@@ -42,6 +42,7 @@ import * as machRender from './render/mach.js';
 import * as cine from './systems/cine.js';
 import { drawCine } from './render/cine.js';
 import { nuevoReguero, humear, MISIL } from './render/reguero.js';
+import * as muni from './render/municion.js';
 // EL HUMO DE CADA MISIL, guardado APARTE del misil. Va en un WeakMap y no en un campo del objeto
 // porque `pmissiles` es un store del mundo y el render no le escribe encima (convencion 4); cuando
 // el misil muere, su reguero se va con el sin que nadie lo tenga que barrer.
@@ -2716,13 +2717,20 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         const w = Math.max(1, k * 0.5);              // ancho del cuerpo
         const L = Math.max(3, k * 3.2);              // largo: se ve como un tubo, no como un punto
         const x0 = s.x - w / 2, yTip = s.y - L / 2;
-        px(x0, yTip + L * 0.18, w, L * 0.82, '#e9edf0');                      // cuerpo blanco
-        px(x0, yTip + L * 0.18, Math.max(1, w * 0.4), L * 0.82, '#ffffff');   // brillo del canto
-        px(x0, yTip, w, L * 0.2, '#9aa3ab');                                  // OJIVA gris
-        px(x0, yTip + L * 0.42, w, Math.max(1, L * 0.06), '#3d444a');         // banda oscura
-        const fw = Math.max(1, k * 0.45);                                     // ALETAS traseras
-        px(x0 - fw, yTip + L * 0.72, fw, Math.max(1, L * 0.2), '#c9d0d6');
-        px(x0 + w, yTip + L * 0.72, fw, Math.max(1, L * 0.2), '#c9d0d6');
+        // EL MISIL, del sprite horneado (tools/bake_ammo.html). Va DE COLA PURA (vista 0): se
+        // aleja derecho por el eje de tiro, asi que no hay nada que verle de costado.
+        //
+        // SI LA HOJA NO CARGO, la receta de rectangulos de siempre — cuerpo blanco, ojiva gris,
+        // banda y aletas. Misma regla que la cabina: un asset que falta no deja un agujero.
+        if (!muni.dibujar(muni.MISIL, 0, s.x, s.y, L * 1.5)) {
+          px(x0, yTip + L * 0.18, w, L * 0.82, '#e9edf0');                      // cuerpo blanco
+          px(x0, yTip + L * 0.18, Math.max(1, w * 0.4), L * 0.82, '#ffffff');   // brillo del canto
+          px(x0, yTip, w, L * 0.2, '#9aa3ab');                                  // OJIVA gris
+          px(x0, yTip + L * 0.42, w, Math.max(1, L * 0.06), '#3d444a');         // banda oscura
+          const fw = Math.max(1, k * 0.45);                                     // ALETAS traseras
+          px(x0 - fw, yTip + L * 0.72, fw, Math.max(1, L * 0.2), '#c9d0d6');
+          px(x0 + w, yTip + L * 0.72, fw, Math.max(1, L * 0.2), '#c9d0d6');
+        }
         // LLAMA del cohete: nucleo claro que se afina, con parpadeo
         const fl = L * (0.3 + Math.random() * 0.25);
         px(x0, yTip + L, w, fl, '#ffd479');

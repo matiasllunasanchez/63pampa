@@ -102,6 +102,8 @@ def main():
             raise SystemExit(f'ERROR: el juego pide assets/planes/{cab} y no existe')
         js, ok = sub_path(js, f'../assets/planes/{cab}', uri(f, 'image/png')); n += ok
     # INTERFAZ: emblema de las Malvinas (4a estrella) y hoja de miras (3x3)
+    # MUNICION: una sola hoja horneada para bombas y misiles (tools/bake_ammo.html).
+    js, ok = sub_path(js, '../assets/ammo/municion.png', uri(ASSETS / 'ammo' / 'municion.png', 'image/png')); n += ok
     js, ok = sub_path(js, '../assets/ui/malvinas.webp', uri(ASSETS / 'ui' / 'malvinas.webp', 'image/webp')); n += ok
     js, ok = sub_path(js, '../assets/ui/miras.webp', uri(ASSETS / 'ui' / 'miras.webp', 'image/webp')); n += ok
     # ILUSTRACIONES de portada y de fin (assets/photos/{ppal,win,lose}/): NO entran en

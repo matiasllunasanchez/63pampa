@@ -127,3 +127,36 @@ copia de nada: es donde vive la versión con reloj, que era la buena.
 Clientes hoy: la ristra del premio del PULSO (`render/pulso.js`) y el misil del pasillo
 (`game.js`). Cada emisor tiene **su** reguero — dos misiles no comparten humo; el del pasillo se
 guarda en un `WeakMap` para no escribirle campos a un store del mundo.
+
+---
+
+## 7. LA MUNICIÓN HORNEADA *(22/8)*
+
+Las bombas y los misiles pasaron a ser **asset**, con la misma cadena que los aviones:
+`tools/bake_ammo.html` (modelo low-poly en three.js) → `npm run ammo` → `assets/ammo/municion.png`
+→ `src/render/municion.js`.
+
+**La grilla no es la de los aviones, y esa es la decisión de diseño.** Un avión se hornea por
+alabeo × cabeceo porque rola y se lo ve siempre desde atrás. Un proyectil **no rola**: sale de cola
+y, a medida que cae o se desvía, se lo empieza a ver de costado. Así que las columnas son el
+**ángulo de vista** (0° = de cola pura … 80° = casi de perfil) y las filas la munición.
+
+**Se hornea a 16 px, no a 84.** La munición se dibuja entre 4 y 16 px en pantalla; horneada a 84
+habría que reducirla 5× y lo que llega es puré. En pixel art el asset se hornea *cerca* del tamaño
+al que se dibuja.
+
+Dos cosas que se pagaron en el camino:
+
+- **El verde oliva real no se ve.** Una Mk-82 es verde oscuro y el mar de este juego también:
+  horneada con el color de archivo, la bomba era una mancha negra sobre negro. Es exactamente la
+  misma lección que el humo de la estela — lo verídico no sirve si desaparece.
+- **Un asset nuevo hay que agregarlo a `tools/build_web.py`.** Si no, el build web falla con
+  *«quedaron rutas ../assets/ sin re-embeber»*, y eso no se ve jugando en escritorio.
+
+Clientes hoy: la ristra del premio del PULSO y el misil del pasillo. Los dos con **plan B**: si la
+hoja no cargó, `dibujar()` devuelve false y cae a la receta de rectángulos de siempre.
+
+> **Qué suelta el avión en el premio.** El plan del PULSO dice bombas (§3: «el arma son las bombas,
+> no un misil»). Hoy está en **misil** (`MUNI_FILA` en `render/pulso.js`) porque es lo que ya venía
+> dibujado —fogonazo de motor y estela de propelente, que una bomba no tiene— y porque es como se lo
+> nombra jugando. Cambiarlo es esa palabra.
