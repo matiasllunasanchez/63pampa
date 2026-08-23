@@ -374,6 +374,29 @@ app.whenReady().then(async () => {
   // VEA. Aca se verifica la mitad que se puede medir: que cada tipo que declara resto lo deje de
   // verdad, que sea el suyo, que no colisione, y que sobreviva a la columna de humo — que es lo
   // que hasta B1 era todo lo que quedaba, y se apagaba a los pocos segundos.
+  // ---------- 7. LAS FIRMAS, HORNEADAS (PLAN_HORNEADO B5) ----------
+  // El criterio de D2 es que cada tipo se distinga sin leyenda, y la pieza que sale ENTERA es la
+  // mitad de esa lectura — a 200 m no se lee el escombro, se lee el rotor dando vueltas solo.
+  // Hasta B5 esa pieza NO tenia modelo: render/world.js la dibujaba con tres recetas a mano para
+  // todas (una barra, una elipse y un bulto), asi que el rotor del helo y el cable de un poste
+  // eran el mismo rectangulo y lo unico que los separaba era el color.
+  console.log('\n7. las firmas horneadas (PLAN_HORNEADO B5):');
+  const FIRMAS = ['helo', 'radar', 'aa', 'aatruck', 'depot', 'lcu', 'balloon', 'poles'];
+  const vistas = {};
+  for (const t of FIRMAS) {
+    const f = await romper(t, null, 40);
+    vistas[t] = f.firma;
+    console.log(`   · ${t.padEnd(8)} promete '${f.pieza}' → dibuja '${f.firma || 'NADA (bulto a mano)'}'`
+      + (f.partes.length ? ` · reparte ${f.partes.join(' ')}` : ''));
+    await sleep(90);
+  }
+  const sinModelo = FIRMAS.filter(t => !vistas[t]);
+  if (!sinModelo.length) ok(`las ${FIRMAS.length} firmas se dibujan con su pieza horneada`);
+  else bad(`caen al bulto a mano: ${sinModelo.join(' ')}`);
+  const nFirmas = new Set(Object.values(vistas).filter(Boolean)).size;
+  if (nFirmas === FIRMAS.length) ok(`${nFirmas} firmas DISTINTAS: ninguna se repite`);
+  else bad(`solo ${nFirmas} firmas distintas para ${FIRMAS.length} tipos`);
+
   console.log('\n4. los restos (B1):');
   const antesR = (await chunks()).n;
   // EN TIERRA (m11), no sobre el mar: nueve de los diez restos son cosas que quedan APOYADAS, y

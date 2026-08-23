@@ -151,7 +151,17 @@ function stepFlame() {
 // ahora tambien un solo efecto que la anuncia.
 const TIP_X = 15, RAS_ALT = 4.5;
 
-const TIP_N = 17;
+// EL LARGO DE LA ESTELA. `TIP_CAIDA` es cuanto CAE la muestra mas vieja, en pixeles de mundo, y
+// es lo unico que la alarga de verdad: el avion vive clavado en la pantalla, asi que el hilo no se
+// dibuja "por donde pasaste" — las muestras nacerian todas en el mismo pixel y lo unico que las
+// separa es este desplazamiento con la edad.
+//
+// Estuvo en 9 y va al TRIPLE (pedido de Matias, 8/2026). Para ×2 poner 18.
+//
+// `TIP_N` NO la alarga: la LLENA. Son cuantas muestras vivas hay repartidas sobre ese mismo
+// recorrido — sube con el largo para que el hilo no salga punteado.
+const TIP_CAIDA = 47;
+const TIP_N = 66;
 // QUITAR — lo lee la sonda __tipdbg: sin esto, "la estela sale en la pirueta y no en el turbo"
 // solo se puede afirmar entrecerrando los ojos sobre una captura.
 export const TIP_DBG = { f: 0, n: 0, lx: 0, ly: 0, rx: 0, ry: 0, vio: '', fz: 0 };
@@ -215,9 +225,14 @@ function tipTrail(lx, ly, rx, ry, f) {
     // quedaban flotando a la altura del fuselaje, como dos rayas sueltas al lado del avion en vez
     // de algo que sale de el. Visto desde atras y desde arriba, lo que hace un vortice es caer:
     // casi todo el recorrido es hacia abajo y apenas se abre.
-    const dx = viejo * 3.4, dy = viejo * 9;
+    // La V se abre POCO comparado con lo que cae: un vortice visto desde atras y desde arriba
+    // sobre todo SE HUNDE. La apertura acompaña al largo pero muy amortiguada — a la par, el hilo
+    // se iria a los costados y volveria a leerse como dos rayas sueltas al lado del fuselaje.
+    const dy = viejo * TIP_CAIDA, dx = viejo * 3.4 * (1 + (TIP_CAIDA / 9 - 1) * 0.35);
     const w = 1 + viejo * 1.1 * (0.55 + f * 0.45);   // fino: a 3.4 px eran bloques, no un hilo
-    ctx.globalAlpha = (1 - viejo * 0.85) * 0.5 * (0.35 + f * 0.65);
+    // el apagado por edad se AFLOJO junto con el largo (0.85 -> 0.72): con la caida al triple, la
+    // cola del hilo quedaba tan tenue que la mitad de lo que se gano en largo no se veia.
+    ctx.globalAlpha = (1 - viejo * 0.72) * 0.5 * (0.35 + f * 0.65);
     const c = viejo < 0.45 ? P.foam : P.crest;
     px(p.lx - dx - w / 2, p.ly + dy - w / 2, w, w, c);
     px(p.rx + dx - w / 2, p.ry + dy - w / 2, w, w, c);

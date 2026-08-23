@@ -1,6 +1,6 @@
 # PLAN — EL HORNEADO: todo lo que conviene pasar por low poly → sprite
 
-> **Estado: B0, B1, B2 y B3 implementados (23/8); B4..B7 pendientes.** Pedido de Matías (16/8): hornear todo lo
+> **Estado: B0, B1, B2, B3 y B5 implementados (23/8); B4, B6 y B7 pendientes.** Pedido de Matías (16/8): hornear todo lo
 > que convenga. Regla que lo ordena (de la charla "runtime vs horneado"): **cámara libre →
 > 3D en runtime (ARENA/PASADA); cámara del pasillo → low poly horneado a sprite.**
 >
@@ -48,7 +48,7 @@
 | **B2 · Los buques del pasillo** ⚠️✅ | Las tres clases (t42 / t21 / log) **de proa** (para la aproximación sin teleport, PASADA R3) y **de costado**, más dos estados de hundimiento (escorado de proa / de popa). **Builders compartidos con `ship3d.js`** — son los mismos cascos que T7 pone en 3D | `drawApproachBarge` (reemplaza el casco lateral genérico del momentum) + el clímax 2D | la continuidad pasillo→PASADA usa el MISMO objeto en dos medios; captura del handoff |
 | **B3 · El Harrier propio** ✅ | Un **Sea Harrier FRS.1** de verdad (tomas de aire grandes, ala anhedra, tobera vectorial — la silueta se reconoce) en 3 poses: frente, cola, viraje — reemplaza al jet genérico que hoy hace de Harrier en LA COLA. + skin de jet enemigo genérico para los cazas del gate | `render/enemies.js` (las poses de LA COLA), `systems/caza.js` no cambia | en captura se distingue el Harrier del jet genérico sin leyenda |
 | **B4 · Props de terreno y base** | Lo que hoy se dibuja por código o falta: torre de radio, postes con cable, árbol/mata, acantilado (`cliff`), búnker, tambores (tutorial m1), boyas, y la **pista/hangar de BAM Cóndor** (ROADMAP #26.1) | `render/world.js` (`drawObstacle` por tipo) con fallback al dibujo actual si la hoja no carga (patrón existente) | misión de costa/tierra con los props horneados; `check` verde |
-| **B5 · Las partes v2** | Piezas para las variantes de muerte (DESTRUCCION v2): ala suelta, cola, proa y motor de jet/Harrier; rotor y cola de helo; plato de radar; tanque de depósito; rueda/caño de AA | `data/despiece.js` (las recetas referencian piezas horneadas) | `__romperTodas('jet')` con piezas reales |
+| **B5 · Las partes v2** ✅ | Piezas para las variantes de muerte (DESTRUCCION v2): ala suelta, cola, proa y motor de jet/Harrier; rotor y cola de helo; plato de radar; tanque de depósito; rueda/caño de AA | `data/despiece.js` (las recetas referencian piezas horneadas) | `__romperTodas('jet')` con piezas reales |
 | **B6 · Los aviones** | **Rolidos intermedios** (más columnas de alabeo en `sheet`), el **Mirage 5P peruano** como variante del modelo Mirage (los líderes de m10), y opcionalmente Pucará / MB-339 si se confirman jugables (PENDIENTES §1) | `data/planes.js` (`SHEET_NF`), `render/plane.js`, el líder de PERSECUCIÓN | alabeo más fino en captura; m10 con Mirage 5P |
 | **B7 · Soldados y munición** | Soldados desde rig low poly (5 poses × 2 naciones: correr, cuerpo a tierra, disparar, saludar, caer) — reemplaza los PNG generados por IA y los pone en la misma luz que los enemigos. Munición: misil del jugador, Sea Cat y Sea Dart como **billboards** para la escena 3D (el punto de 3 px de la PASADA pasa a tener cuerpo), bombas de la ristra | `render/soldiers.js`, `render/pasada.js` | soldados y enemigos comparten luz en captura; el Dart se ve |
 
@@ -255,6 +255,53 @@ DESTRUCCION v2 V2 · B3 la pide LA COLA H5 (hoy placeholder aprobado).
     Ahora es un caza de línea y se diferencia **punto por punto**: fuselaje fino (no panzón), ala
     al medio con diedro positivo (no alta y caída), tomas chatas pegadas al costado (no barriles) y
     UNA tobera atrás (no cuatro en la cintura). Los dos pueden aparecer en el mismo cuadro.
+
+**B5 — había DOS sistemas de escombro, y sólo uno estaba horneado.**
+
+21. **`parte` estaba horneada; `pieza` no.** Un pedazo puede llevar dos cosas: `parte`, que es una
+    fila de la hoja de piezas (ala, morro, tren…) y se reparte por índice entre todos los pedazos;
+    y `pieza`, que es **LA firma del tipo** — la que sale entera y girando, la que hace que a 200 m
+    se sepa que lo que cae era un helicóptero. Las diez `parte` se hornearon con D0. Las `pieza`
+    **nunca**: `render/world.js` las dibujaba con **tres recetas a mano para todas** — una BARRA
+    (rotor, ala, cable, cañón), una ELIPSE (plato) y un BULTO para el resto (tanque, cabina, rampa,
+    funda). O sea que el rotor de un helicóptero y el cable de un poste eran **el mismo
+    rectángulo**, y lo único que los separaba era el color. Es exactamente el problema que las diez
+    piezas de D0 vinieron a arreglar para el avión, sin terminar de arreglarlo para todo lo demás.
+
+22. **Diez piezas nuevas, y dos recetas que apuntaban a la pieza equivocada.** Al darle modelo a
+    `pieza`, la palabra pasó a importar — y dos estaban mal desde siempre, tapadas por el hecho de
+    que todas se dibujaban igual: el **depósito** declaraba `tanque`, que en la hoja es el tanque
+    subalar de un AVIÓN (fino, con puntas cónicas); un depósito de combustible larga **tambores**.
+    Y el **camión AA** declaraba `cabina`, que es la BURBUJA DE VIDRIO de un avión — un camión no
+    tiene eso; larga una **rueda**. Ahora hay una prueba que exige que dos tipos no compartan firma,
+    que es la regla de D2 llevada a las piezas.
+
+23. **El orden de la hoja se mudó a `data/`.** Vivía en `render/partes.js` con una nota que decía
+    que tenía que coincidir con el horneador, y la única custodia era que alguien mirara la salida
+    del runner al hornear. Ahora vive en `data/despiece.js` (lo leen el render **y** `core/fx.js`,
+    así que una copia local sería la tercera) y hay una prueba que **lee el modelo y compara el
+    orden**. Si alguien mete una pieza en el medio, el ala del avión se dibuja como una deriva y no
+    hay error en runtime que lo delate — ahora salta en `npm run unit`.
+
+24. **Y el helo estrenó su otra mitad.** `botalón` — el tubo de cola con la deriva y el rotorcito —
+    es la pieza que dice que se partió en dos, y no puede venir de ninguna otra cosa del roster. El
+    jet y el avión del jugador estrenaron `motor`: un cilindro con la **cara del compresor** a la
+    vista, que es lo único que lo separa de un tacho a esta escala.
+
+25. **Y B5 destapó un bug viejo en la sonda del despiece.** El fixture pasaba `helo` y `radar` y
+    fallaba en los otros seis — con el mundo vacío las ocho firmas salían bien y con el mundo lleno
+    seis aparecían como `null`. La causa no estaba en las piezas: `__romper` medía la muerte con
+    `const antes = obstacles.length` y después `obstacles.slice(antes)`, y esa ventana **miente en
+    cuanto entra a jugar el cap de pedazos**. `capParts()` saca a los más viejos SPLICEÁNDOLOS del
+    array, así que todo se corre a la izquierda y `slice(antes)` empieza tantos lugares más
+    adelante como pedazos se hayan sacado — se pierde el pedazo 0, que es justo el que lleva la
+    firma. Arreglado midiendo por **identidad** (`new Set(obstacles)` + `filter`), que es inmune al
+    splice.
+    **El error es viejo y venía ensuciando en silencio TODAS las medidas de esa sonda** —cuántos
+    pedazos, tamaños, colores, la pieza especial— cada vez que una prueba corría con escombro
+    encima, que es la mitad de las veces. Nadie lo había visto porque las aserciones son de forma
+    ("hay al menos N pedazos", "los colores son distintos") y una ventana corrida las sigue
+    cumpliendo casi siempre.
 
 **Lo que B0 verificó, con números.** Las 48 hojas del proyecto (32 de aviones, 14 de enemigos,
 munición y partes) re-horneadas después de cada paso de la migración: **byte-idénticas, 48/48**.

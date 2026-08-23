@@ -175,8 +175,24 @@
       return grp;
     }
     /** Ala/estabilizador: envergadura, cuerda de raiz, cuerda de punta y FLECHA (cuanto retrasa
-     *  la punta). Con `dih` se arma en DOS MITADES inclinadas — diedro positivo o negativo. Vale
-     *  la pena: cada mitad toma la luz distinto y el ala deja de leerse como una barra plana. */
+     *  la punta). Con `dih` se arma en DOS MITADES inclinadas. Vale la pena: cada mitad toma la
+     *  luz distinto y el ala deja de leerse como una barra plana.
+     *
+     *  ⚠ EL SIGNO DE `dih` ESTA AL REVES DE LA CONVENCION AERONAUTICA, Y ESTO YA COSTO DOS VECES.
+     *
+     *      dih > 0  →  las puntas BAJAN   (anhedro: Harrier, Hercules)   silueta de "A"  /\
+     *      dih < 0  →  las puntas SUBEN   (diedro:  casi todo lo demas)  silueta de "V"  \/
+     *
+     *  Afuera, "anhedro" se escribe con signo NEGATIVO. Aca no: la rotacion se aplica sobre la
+     *  mitad ya espejada, asi que el signo sale invertido. Quien razone la convencion de memoria
+     *  —en vez de mirar la hoja horneada— va a poner el ala al reves, y las dos veces que paso fue
+     *  con el mismo avion: el Sea Harrier de LA COLA, que es justamente el que tiene el anhedro
+     *  mas marcado del roster y donde el error se ve de una.
+     *
+     *  ESTA NOTA VIVE ACA, EN LA PRIMITIVA, y no en el modelo que la usa. La primera vez estaba
+     *  escrita arriba de `modelJet`; al reescribir ese modelo se borro con el, y el error volvio
+     *  en el archivo nuevo el mismo dia. Una leccion guardada en el lugar donde se aprendio se
+     *  pierde con el codigo que la enseño; guardada en la herramienta, la lee el que la use. */
     function WING(g, span, root, tip, sweep, thick, c, y, z, dih) {
       const s = span / 2, le = root / 2, teTip = le - sweep - tip;
       if (!dih) return PLATE(g, [[-s, le - sweep], [0, le], [s, le - sweep], [s, teTip], [0, -le], [-s, teTip]],

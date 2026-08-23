@@ -3295,7 +3295,17 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // — es lo que permite afirmar "cada tipo se despieza distinto" con números y no de memoria.
     if (typeof window !== 'undefined') window.__romper = (tipo, imp, d, variante, killer) => {
       forzarVariante(variante || null);   // v2: sin poder forzarla, "las 4 se ven distintas" depende del dado
-      const antes = obstacles.length;
+      // QUIENES ESTABAN ANTES, POR IDENTIDAD Y NO POR INDICE. Esto decia `obstacles.length` y despues
+      // `obstacles.slice(antes)`, y esa ventana MIENTE en cuanto entra a jugar el cap de pedazos:
+      // `capParts()` saca a los mas viejos SPLICEANDOLOS del array, asi que todo se corre a la
+      // izquierda y `slice(antes)` empieza tantos lugares mas adelante como pedazos se hayan
+      // sacado — se pierde el pedazo 0, que es justo el que lleva LA FIRMA del tipo.
+      //
+      // No es teorico: se vio en el fixture de B5. Con el mundo vacio las ocho firmas salian bien y
+      // con el mundo lleno seis de ocho aparecian como `null`. Y el error es viejo — venia
+      // ensuciando en silencio TODAS las medidas de esta sonda (cuantos pedazos, tamaños, colores)
+      // cada vez que una prueba corria con escombro encima, que es la mitad de las veces.
+      const antes = new Set(obstacles);
       run.shake = 0; run.flash = 0;   // se mide LO QUE ESTA MUERTE produce, no lo que venia de antes
       // a la ALTURA A LA QUE VAS VOLANDO: plantarlo siempre a ras dejaba el destrozo fuera de
       // cuadro apenas el avion subia un poco, y lo que la sonda tiene que dejar ver es la muerte
@@ -3307,7 +3317,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       morir(o, imp || { vz: run.spd * 0.5 }, 0, killer || 'canon');
       // SOLO los pedazos: explodeAt ademas empuja una bola de fuego ('airboom') al mismo array, y
       // contarla arruinaba las tres medidas (n, tamaños y colores) con un objeto que no es escombro
-      const todos = obstacles.slice(antes);
+      const todos = obstacles.filter(c => !antes.has(c));
       const nuevos = todos.filter(c => c.type === 'chunk');
       return JSON.stringify({
         tipo, n: nuevos.length,
@@ -3315,6 +3325,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         size: [+Math.min(...nuevos.map(c => c.size)).toFixed(2), +Math.max(...nuevos.map(c => c.size)).toFixed(2)],
         hot: nuevos.filter(c => c.hot).length,
         pieza: (nuevos.find(c => c.pieza) || {}).pieza || null,
+        // B5: la firma DIBUJADA. `pieza` dice que prometio la receta; esto dice con que se dibuja
+        // de verdad — hasta B5 la respuesta era siempre `null` y la firma caia al bulto a mano.
+        firma: (nuevos.find(c => c.pieza) || {}).parte || null,
+        // y el reparto de piezas horneadas entre TODOS los pedazos, para ver que no se repita
+        partes: [...new Set(nuevos.map(c => c.parte).filter(Boolean))],
         // el CARACTER de la muerte (D2), leido de lo que realmente se creo — no de la receta:
         // asi la sonda no puede confirmar una intencion que el codigo no cumplio
         bola: (todos.find(c => c.type === 'airboom') || {}).scale || 0,

@@ -13,6 +13,26 @@
 // (§4.2). Agregar un tipo tiene que ser agregar una fila, no tocar codigo.
 import { P, LAND } from './palette.js';
 
+// ---------------- LAS PIEZAS DE LA HOJA (PLAN_HORNEADO B5) ----------------
+// EL ORDEN ES EL DE LAS FILAS DE assets/world/explosions/partes.png, y por eso vive en `data/`:
+// lo leen los DOS lados —`render/partes.js` para elegir la fila y `core/fx.js` para saber si una
+// firma esta horneada— y una tercera copia seria una copia que se desincroniza sola. El modelo de
+// cada pieza esta en `tools/models/partes.js`, en este mismo orden; `npm run unit` los compara.
+//
+// Si se agrega una pieza VA AL FINAL. En el medio corre todas las filas y el escombro pasa a ser
+// otra cosa sin que nada avise.
+//
+// LAS DIEZ PRIMERAS son piezas de AVION: se reparten por indice entre los pedazos de cualquier
+// cosa que declare `partes`. LAS DIEZ DE B5 son FIRMAS — la pieza que sale entera y girando, la
+// que hace que a 200 m se sepa que lo que cae era un helicoptero. Van en el campo `pieza`.
+export const PARTES_HOJA = [
+  'ala', 'deriva', 'estab', 'morro', 'cola', 'fuselaje', 'cabina', 'tanque', 'tren', 'panel',
+  'rotor', 'botalon', 'plato', 'canon', 'motor', 'tambor', 'rueda', 'rampa', 'funda', 'cable',
+];
+/** ¿Esta firma tiene modelo horneado? Lo pregunta `despiece()` para decidir si el pedazo 0 se
+ *  dibuja con su pieza de verdad o cae al bulto a mano de siempre. */
+export const piezaHorneada = n => !!n && PARTES_HOJA.includes(n);
+
 // ---------------- LAS PERILLAS (plan §3) ----------------
 // Tope GLOBAL de pedazos vivos. Manda sobre el espectaculo (§4.4): al pasarse, los mas viejos se
 // disuelven antes de tiempo — nunca se le niega el despiece al que acaba de morir.
@@ -96,12 +116,19 @@ const AVION = [P.body, P.bodyDark, P.canopy];           // fuselaje: el mismo de
 // su paleta o su pieza reconocible.
 export const DESPIECE = {
   // DEPOSITO DE COMBUSTIBLE: el mas grande y el mas sucio. Chapa oxidada del tanque.
-  depot: { masa: 'pesado', n: 9, size: [0.7, 1.9], c: OXIDO, hot: 0.85, up: 20, spread: 20, pieza: 'tanque',
+  // LA FIRMA DEL DEPOSITO ES UN TAMBOR, no el tanque subalar (B5). Decia `tanque` y esa pieza es
+  // de AVION —fina y con puntas conicas—: un deposito de combustible no larga eso, larga los
+  // tambores de doscientos litros que tenia apilados afuera. Antes daba igual porque `pieza` se
+  // dibujaba como un bulto gris; ahora que tiene modelo, la palabra importa.
+  depot: { masa: 'pesado', n: 9, size: [0.7, 1.9], c: OXIDO, hot: 0.85, up: 20, spread: 20, pieza: 'tambor',
     bola: 'grande', chispa: null, sec: true, humo: HUMO_T, resto: 'resto_depot' },
   // ANTIAEREO: metal, poco pedazo y muy caliente — le vuela la municion adentro
   aa: { masa: 'medio', n: 6, size: [0.4, 1.0], c: METAL, hot: 0.8, up: 17, spread: 15, pieza: 'canon',
     bola: 'chica', chispa: 'metal', humo: 2.5, resto: 'resto_aa' },
-  aatruck: { masa: 'medio', n: 7, size: [0.5, 1.3], c: METAL, hot: 0.75, up: 15, spread: 15, pieza: 'cabina',
+  // Y LA DEL CAMION ES UNA RUEDA (B5). Decia `cabina`, que en la hoja es la BURBUJA DE VIDRIO de
+  // un avion — un camion no tiene eso. Y le deja al nido AA su cañon: dos antiaereos con la misma
+  // firma serian el error que D2 vino a arreglar.
+  aatruck: { masa: 'medio', n: 7, size: [0.5, 1.3], c: METAL, hot: 0.75, up: 15, spread: 15, pieza: 'rueda',
     bola: 'chica', chispa: 'metal', humo: 3, resto: 'resto_aatruck' },
   // RADAR: el plato sale entero, girando. Es la pieza mas reconocible del juego.
   radar: { masa: 'medio', n: 6, size: [0.5, 1.2], c: METAL, hot: 0.5, up: 16, spread: 14, pieza: 'plato',
@@ -114,7 +141,9 @@ export const DESPIECE = {
     bola: 'chica', chispa: 'metal', caida: 'espiral', humo: 3, resto: 'resto_helo',
     // el HELO comparte las piezas de chapa y de tren, pero no las de avion de combate: no tiene
     // ala ni tobera. El rotor sigue siendo su `pieza` dibujada a mano — es su firma y ya funciona.
-    partes: [null, 'panel', 'fuselaje', 'tren', 'panel', 'cabina', 'panel'] },
+    // el pedazo 0 lo pisa la firma (`rotor`), asi que arranca en null; el BOTALON es la otra
+    // mitad del helo y es suyo — un botalon suelto no puede venir de nada mas del roster
+    partes: [null, 'botalon', 'fuselaje', 'tren', 'panel', 'cabina', 'panel'] },
   // JET: fuselaje de avion — el mismo escombro que el del jugador, que es justo la lectura.
   //
   // LAS CUATRO MUERTES DEL AIRE (v2 §3). Se distinguen por CUANTOS PEDAZOS GRANDES quedan y por
@@ -132,7 +161,7 @@ export const DESPIECE = {
     // DE QUE SE ROMPE UN AVION. El orden importa: el pedazo 0 es el que la variante convierte en
     // "la pieza grande", asi que el ala va primera. Y el panel va al final porque es el relleno —
     // el pedazo que no es nada en particular, pero que igual tiene forma de chapa arrancada.
-    partes: ['ala', 'fuselaje', 'estab', 'cola', 'deriva', 'tanque', 'tren', 'panel', 'morro', 'cabina'],
+    partes: ['ala', 'fuselaje', 'motor', 'cola', 'deriva', 'tanque', 'tren', 'panel', 'morro', 'cabina'],
     variantes: [
       // EL MISIL NO DEJA NADA. Tambien es la muerte de la onda y de la cadena: energia de sobra.
       { id: 'desintegracion', peso: 3,
@@ -179,7 +208,7 @@ export const DESPIECE = {
     bola: null, chispa: null, humo: 0,     // el derribo pone SU bola pixel aparte (ver die)
     // TU avion se rompe en las mismas piezas que los demas — tiene que ser asi: es el mismo avion,
     // y el derribo es la referencia de la que salio todo el despiece (D0).
-    partes: ['fuselaje', 'ala', 'cabina', 'cola', 'estab', 'deriva', 'tren', 'panel', 'morro'] },
+    partes: ['fuselaje', 'ala', 'cabina', 'cola', 'motor', 'deriva', 'tren', 'panel', 'morro'] },
 };
 
 // LA RECETA POR DEFECTO. §4.6 del plan: `explodeAt` no se rompe y la migracion es tipo por tipo,

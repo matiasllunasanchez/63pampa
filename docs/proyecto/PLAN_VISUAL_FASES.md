@@ -43,7 +43,7 @@
 | **T3 · EL AGUA** | mar con clima + olas obstáculo (F0–F7; F8 NO) | SPEC_AGUA_OLAS | ⬜ delegable YA | 4–6 d |
 | **T4 · LAS ARMAS** | cañón (casquillos, impactos por material), misil (drop-ignite, estela), bomba (en PASADA P5) | **acá §5** | ⬜ | 2–3 d |
 | **T5 · ENEMIGOS VIVOS** | AA que trackea, mar que los mueve, rotor-wash, banking, aves que se dispersan | **acá §6** | ⬜ (N2 depende de T3) | 3–4 d |
-| **T6 · EL AVIÓN** | daño visible por averías, tobera por estados, rolidos intermedios | **acá §7** | ⬜ (P3 espera arte) | 2–3 d |
+| **T6 · EL AVIÓN** | daño visible por averías, tobera por estados, rolidos intermedios, 🟩 **sombras** | **acá §7** | ⬜ (P3 espera arte) | 2–3 d |
 | **T7 · EL BUQUE 3D** | los tres cascos por clase con piezas nombradas — la deuda nº 1 | **acá §8** | ⬜ | 4–6 d |
 | **T8 · CIERRE 3D** | agua F8 (mar 3D + espuma de proa) tras PASADA P5 y T7 | SPEC_AGUA_OLAS F8 | ⬜ bloqueada | 1–2 d |
 | **T9 · POST-PRO** | pipeline WebGL + grading + bloom (CRT/distorsiones a criterio) | VISUAL_UPGRADES E1 | ⬜ | 4–6 d |
@@ -182,6 +182,46 @@ en el glow de T1. **CA:** los 4 estados se distinguen en captura.
 Cuando las hojas nuevas salgan de `tools/bake_planes.html` (§10): integrar frames extra
 (`data/planes.js` `SHEET_NF`/filas + `render/plane.js`). Hasta que el arte exista, esta
 fase no tiene trabajo.
+
+### 🟩 T6.P4 · Sombras del avión *(pedido 22/8 — probar si sube la sensación de calidad)*
+
+**La idea, tal como la pidió Matías:** agregarle sombras a los assets de los aviones a ver si
+mejora la calidad visual percibida. Es una fase de **prueba**: se hace, se mira en el juego, y
+si no suma se descarta sin culpa.
+
+**Lo que ya hay, para no reinventarlo:** `drawShadow()` en `render/plane.js:338` — **tres
+barras horizontales de 1 px** sobre el agua, con el alfa cayendo según la altura
+(`0.4 - wy * 0.009`). La usan el jugador (`plane.js:356`) y cada avión de la formación
+(`render/squad.js`), así que tocarla los mejora a todos de una.
+
+**Las tres lecturas posibles, en orden de retorno por esfuerzo:**
+
+1. ⭐ **La sombra proyectada, con forma de avión.** Hoy son tres barras; podría ser **la
+   silueta real**, y sale casi gratis: el sprite ya existe: se dibuja el mismo frame de
+   `sheet.png` aplastado en vertical, en negro y con alfa. Cambia el avión, cambia la sombra —
+   incluso al alabear. Es el salto de calidad más grande por menos código de toda la tanda.
+2. **Sombra de contacto / recorte contra el fondo.** Un halo oscuro de 1 px bajo el sprite para
+   despegarlo del mar. Barato, pero es maquillaje: si el problema es que el avión se pierde
+   contra el agua, la respuesta buena es el contraste de la paleta, no un borde.
+3. **Auto-sombra en el sprite** (el ala proyectando sobre el fuselaje). **Esto NO se dibuja: se
+   hornea.** Sale de la luz del modelo 3D en `tools/bake_planes.html` (hoy Lambert con una
+   direccional y un rim). Es subirle el contraste al horneado, no tocar el render.
+
+**Lo que hay que cuidar — y es lo que decide el diseño:**
+
+> ⚠️ **La sombra NO es decoración: es el instrumento de altura del juego.** En un juego que se
+> llama RASANTE, lo que te dice cuán bajo estás es qué tan cerca tenés la sombra. Si al hacerla
+> más linda se vuelve menos legible —más difusa, más chica, con menos contraste contra el
+> agua— el cambio **empeora el juego aunque mejore la captura**. La prueba no es una captura:
+> es volar rasante y ver si seguís sabiendo a qué altura estás.
+
+- La sombra se dibuja también para **cada avión de la formación** con su escala: lo que cueste,
+  cuesta ×5 en el despegue.
+- Aplica la regla §0.2: no mueve la mira ni agranda un hitbox. Es presentación.
+- Perilla en `data/tuning.js` con `0 = apagado`, para poder A/B en playtest.
+
+**CA:** volando a 2 m y a 20 m se distingue la altura igual o mejor que ahora, y en captura
+fija el avión se ve apoyado en el mundo y no pegado encima.
 
 ## 8. T7 — EL BUQUE 3D POR CLASE *(la deuda visual nº 1 — sesión en esfuerzo ALTO)*
 

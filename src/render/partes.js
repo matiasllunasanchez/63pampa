@@ -22,10 +22,12 @@ export const isReady = () => sheet.complete && sheet.naturalWidth > 0;
 export const FW = 48, FH = 48;
 export const YAWS = 8;
 
-// EL ORDEN ES EL DE LA HOJA. Tiene que coincidir con `PIEZAS` de tools/bake_partes.html — el
-// runner lo imprime al hornear justamente para poder cotejarlo. Si alguien mete una pieza en el
-// medio, todo el escombro pasa a ser otra cosa y no hay error que lo avise.
-export const PARTES = ['ala', 'deriva', 'estab', 'morro', 'cola', 'fuselaje', 'cabina', 'tanque', 'tren', 'panel'];
+// EL ORDEN ES EL DE LA HOJA y vive en `data/despiece.js` (PLAN_HORNEADO B5): lo leen este archivo
+// y `core/fx.js`, asi que una copia local seria la tercera y se desincronizaria sola. El runner lo
+// imprime al hornear y `npm run unit` lo compara contra el modelo — antes de B5 la unica custodia
+// era acordarse de mirar esa salida.
+import { PARTES_HOJA as PARTES } from '../data/despiece.js';
+export { PARTES };
 const FILA = Object.fromEntries(PARTES.map((p, i) => [p, i]));
 
 // ---------- TINTE ----------

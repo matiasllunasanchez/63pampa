@@ -115,9 +115,13 @@ BAKE.modelos('enemies', (THREE, K) => {
     // contrario de las seis señas del Harrier.
     CYL(g, 0.30, 0.34, 5.0, gry, 0, 0, 0.2, 12);                      // fuselaje largo y fino
     CONE(g, 0.30, 1.7, gry, 0, 0, -3.1, false, 12);                   // nariz AFILADA
-    WING(g, 5.6, 2.0, 0.55, 2.0, 0.14, gry2, 0.02, 0.75, 4);          // ala al medio, diedro leve
-    WING(g, 5.6, 2.0, 0.55, 2.0, 0.03, belly, -0.05, 0.75, 4);
-    WING(g, 2.2, 0.85, 0.4, 0.75, 0.1, gry2, 0.04, 2.35, 4);          // estabilizador
+    // DIEDRO (puntas ARRIBA), que es lo contrario del Harrier — y el signo va NEGATIVO para eso:
+    // ver la nota de `WING` en tools/bake_common.js, donde el signo esta invertido respecto de la
+    // convencion aeronautica. Escrito al reves, este caza queda con el ala caida y pasa a
+    // parecerse justo a aquel del que tiene que diferenciarse.
+    WING(g, 5.6, 2.0, 0.55, 2.0, 0.14, gry2, 0.02, 0.75, -4);         // ala al medio, diedro leve
+    WING(g, 5.6, 2.0, 0.55, 2.0, 0.03, belly, -0.05, 0.75, -4);
+    WING(g, 2.2, 0.85, 0.4, 0.75, 0.1, gry2, 0.04, 2.35, -4);         // estabilizador
     FIN(g, 1.5, 1.3, 0.45, 1.0, 0.10, gry, 0.16, 2.2);                // deriva alta en flecha
     DOME(g, 0.30, CANOPY, 0, 0.32, -1.65, 0.8, 0.85, 1.9);            // cabina baja y estirada
     // TOMAS CHATAS pegadas al costado, no barriles: dos cuñas que apenas sobresalen

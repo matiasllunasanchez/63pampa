@@ -1191,3 +1191,44 @@ test('horno: toda hoja horneada tiene consumidor en el juego', async () => {
       `la hoja '${k}' se hornea y el juego no la carga: arte muerto`);
   }
 });
+
+// ================= LAS PARTES v2 (PLAN_HORNEADO B5) =================
+test('partes: el orden de la hoja y el del modelo son el mismo', async () => {
+  const { PARTES_HOJA } = await import('../src/data/despiece.js');
+  // ESTA PRUEBA REEMPLAZA A UN "OJO" EN LA CONSOLA. El runner del horneado imprime el orden de las
+  // filas al terminar, con la nota "tiene que coincidir con PARTES" — o sea que la única custodia
+  // era que alguien mirara esa salida y se acordara. Si una pieza se mete en el MEDIO, todo el
+  // escombro pasa a ser otra cosa: el ala del avion se dibuja como una deriva, el rotor como un
+  // tanque, y no hay error en runtime que lo delate.
+  const src = readFileSync(new URL('../tools/models/partes.js', import.meta.url), 'utf8');
+  const cuerpo = src.slice(src.indexOf('const PIEZAS = {'));
+  const enModelo = [...cuerpo.matchAll(/^ {4}([a-zA-Z]+)\(g[,)]/gm)].map(m => m[1]);
+  assert.deepEqual(enModelo, PARTES_HOJA,
+    'el orden de tools/models/partes.js dejo de coincidir con PARTES_HOJA de data/despiece.js');
+});
+
+test('partes: toda firma que una receta promete tiene modelo', async () => {
+  const { DESPIECE, PARTES_HOJA, piezaHorneada } = await import('../src/data/despiece.js');
+  // `pieza` es LA parte de un tipo — la que sale entera y girando. Una que no esté en la hoja no
+  // rompe nada (cae al bulto a mano) pero pierde justo lo que la hacía la firma. Hasta B5 NINGUNA
+  // estaba horneada; que esto pase es la medida de la etapa.
+  const firmas = [...new Set(Object.keys(DESPIECE).map(t => DESPIECE[t].pieza).filter(Boolean))];
+  assert.ok(firmas.length >= 8, `solo ${firmas.length} tipos declaran firma`);
+  for (const f of firmas) assert.ok(piezaHorneada(f), `la firma '${f}' no tiene modelo horneado`);
+  // y toda pieza de `partes` tambien: son las que se reparten por indice
+  for (const t in DESPIECE) {
+    for (const p of DESPIECE[t].partes || []) {
+      if (p) assert.ok(PARTES_HOJA.includes(p), `'${t}' pide la pieza '${p}', que no existe`);
+    }
+  }
+});
+
+test('partes: dos tipos no comparten firma', async () => {
+  const { DESPIECE } = await import('../src/data/despiece.js');
+  // Es la regla de D2 llevada a las piezas: si el camion AA y el nido AA largan lo mismo, la firma
+  // deja de firmar. Pasó — los dos decían `cabina` y `canon` respectivamente por accidente, y el
+  // deposito declaraba `tanque`, que es una pieza de AVION.
+  const firmas = Object.keys(DESPIECE).map(t => DESPIECE[t].pieza).filter(Boolean);
+  assert.equal(new Set(firmas).size, firmas.length,
+    'hay dos tipos con la misma firma: ' + firmas.join(' '));
+});

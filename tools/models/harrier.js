@@ -15,7 +15,9 @@
 //     atras (calientes). Sobresalen del costado como cuatro muñones. En vuelo van apuntando atras,
 //     pero se ven igual: son bultos donde ningun otro avion tiene nada.
 //  3. **EL ALA ANHEDRA.** Alta y CAIDA — las puntas apuntan al suelo. Es lo contrario del diedro
-//     de casi todo lo que vuela, y de frente convierte al ala en una V invertida.
+//     de casi todo lo que vuela: de frente el ala forma una "A" (/\), nunca una "V". El signo de
+//     `dih` en `WING` esta invertido respecto de la convencion aeronautica — leer la nota de la
+//     primitiva en tools/bake_common.js ANTES de tocar este numero.
 //  4. **ES PANZON Y CORTO.** El motor va en el medio del fuselaje, no atras, asi que la cintura es
 //     lo mas gordo del avion y la cola sale de ahi afinandose. La silueta es de rana, no de flecha.
 //  5. **LOS BALANCINES.** El tren de punta de ala va en dos carenados colgando bajo las alas, casi
@@ -76,8 +78,11 @@ BAKE.modelos('harrier', (THREE, K) => {
 
     // ---- ALA ALTA Y ANHEDRA. El diedro NEGATIVO es la mitad de la silueta de frente: las puntas
     // caen. Va montada arriba del fuselaje, no al medio.
-    WING(g, 4.8, 2.1, 0.7, 1.5, 0.20, GRIS2, 0.36, 0.35, -16);
-    WING(g, 4.8, 2.1, 0.7, 1.5, 0.05, CLARO, 0.25, 0.35, -16);     // la cara de abajo, mas clara
+    // EL SIGNO ES POSITIVO Y ESO ES ANHEDRO: ver la nota de `WING` en tools/bake_common.js. Con
+    // -16 las puntas SUBEN y el avion queda en "V", que es justo lo que un Harrier no hace nunca
+    // — se horneo asi dos veces y las dos las corrigio Matias mirando la lamina.
+    WING(g, 4.8, 2.1, 0.7, 1.5, 0.20, GRIS2, 0.36, 0.35, 15);
+    WING(g, 4.8, 2.1, 0.7, 1.5, 0.05, CLARO, 0.25, 0.35, 15);      // la cara de abajo, mas clara
     // LOS BALANCINES: dos carenados colgando bajo el ala, casi en la punta. Bultos donde ningun
     // otro avion tiene nada, y por eso valen su poligono.
     for (const sg of [-1, 1]) {
@@ -105,7 +110,7 @@ BAKE.modelos('harrier', (THREE, K) => {
     // (tambien caido, como el ala).
     FIN(g, 1.3, 1.5, 0.55, 1.05, 0.11, GRIS2, 0.3, 2.75);
     B(g, 0.16, 0.16, 0.42, OSC, 0, 1.62, 2.5);                       // el carenado de la punta
-    WING(g, 2.2, 0.95, 0.42, 0.7, 0.1, GRIS2, 0.06, 2.9, -14);
+    WING(g, 2.2, 0.95, 0.42, 0.7, 0.1, GRIS2, 0.06, 2.9, 13);      // el estabilizador tambien cae
 
     // ---- CABINA: burbuja ALTA y adelantada, montada casi sobre el radomo.
     // LA CABINA VA ADELANTE DE LAS TOMAS, no encima. Es una diferencia de medio metro real y a

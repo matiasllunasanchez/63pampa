@@ -11,7 +11,7 @@ import { P } from '../data/palette.js';
 import { recetaDe, CHUNKS_MAX, CHUNK_LIFE, SEC_N, SEC_T,
   ONDA_T, ONDA_R, ONDA_PUSH, CERCA, FLASH_T,
   CHAIN_R, CHAIN_DEPTH, CHAIN_DELAY, DESPIECE, PARTS_MAX,
-  dadoDe, elegirVariante, MORIBUNDO_MAX, EYECT_P, VIDA_LARGA } from '../data/despiece.js';
+  dadoDe, elegirVariante, MORIBUNDO_MAX, EYECT_P, VIDA_LARGA, piezaHorneada } from '../data/despiece.js';
 
 import { W, HOR, F, PZ } from '../render/ctx.js';
 import { boom, duck } from '../systems/audio.js';
@@ -165,7 +165,13 @@ export function despiece(o, acta) {
       // LA PIEZA HORNEADA que le toca (render/partes.js). Se reparte por indice y no al azar: el
       // pedazo 0 es el que las variantes convierten en "la pieza grande", asi que la lista de la
       // receta ya viene en el orden en que conviene gastarlas.
-      parte: r.partes ? r.partes[i % r.partes.length] : null,
+      // LA PIEZA HORNEADA que le toca. El pedazo 0 se lleva LA FIRMA del tipo si esa firma tiene
+      // modelo (PLAN_HORNEADO B5) — el rotor del helo, el plato del radar, el cañon del nido. Hasta
+      // B5 `pieza` no tenia hoja y el render la dibujaba con tres recetas a mano para todas: una
+      // barra, una elipse y un bulto. O sea que el rotor de un helicoptero y el cable de un poste
+      // eran el mismo rectangulo, y lo unico que los separaba era el color.
+      parte: i === 0 && piezaHorneada(r.pieza) ? r.pieza
+        : (r.partes ? r.partes[i % r.partes.length] : null),
       espiral: r.caida === 'espiral' && i === r.n - 1,
       acto2: r.caida === 'espiral' && i === r.n - 1,
       ph: Math.random() * 6.28,
