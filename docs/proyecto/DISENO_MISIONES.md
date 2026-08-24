@@ -277,10 +277,25 @@ real (EL PULSO es su vía de entrada garantizada — PLAN_EL_PULSO §Q4).
 
 ## 5. Las mejoras del Pichón — el flujo propuesto
 
-**Hoy en código:** oferta tras CADA epílogo (11 ventanas en 12 misiones), las **dos
-primeras no aprendidas en orden causal** del guion, elegís una; TONEL clásico de fábrica;
-save `ups` ✅. **El guion 3.0 pide otra cosa:** desde M3, y "cada partida arma un avión
-distinto" (azar).
+**Hoy en código (actualizado 23/8 — LA RAMPA DE ENTRADA, pedido de Matías):** el ritmo lo
+dice `ofertaTrasMision(i)` en `data/upgrades.js`, una sola fuente que el selector de misiones
+**deriva** en vez de repetir:
+
+| epílogo de | ofrece | por qué |
+|---|---|---|
+| **M1** (tutorial) | **nada** — el banco ni se abre | que el tutorial no premie es parte de lo que dice: todavía no pasó nada que resolver |
+| **M2** | **UNA, servida** (sin elegir) | se aprende QUÉ es el banco sin tener que decidir. La pantalla es la misma con una sola carta; el subtítulo pasa a "TU PRIMERA MEJORA" y el pie deja de ofrecer las flechas |
+| **M3 en adelante** | **DOS, a elegir** | recién acá empieza el roguelike, y con una pirueta ya en la mano contra la cual comparar |
+
+**Lo que esto arregla:** antes el banco se abría tras CADA epílogo y siempre con dos cartas, o
+sea que **la primera decisión del juego caía justo después del tutorial** — elegir entre dos
+piruetas cuando el jugador todavía no sabe qué es una pirueta ni para qué sirve ninguna de las
+dos. Elegir sin entender no es elegir: es apretar.
+
+Esto es casi la propuesta de la tabla de abajo (1ª ventana tras M2) con una diferencia: la
+propuesta ofrecía **dos fijas** en esa primera ventana y el código sirve **una**. Sigue
+pendiente lo que el guion 3.0 pide además: que las ofertas sean **al azar** del pool no
+aprendido, con gate de tramo. TONEL clásico de fábrica; save `ups` ✅.
 
 **Propuesta (con el remapeo a 14):**
 
@@ -291,9 +306,16 @@ distinto" (azar).
 | 8ª–11ª | M9–M13 | dos al azar del pool completo: **desde M9 (la libreta) entran ASCENSO, SOBRE EL RADAR y TONEL BARRIL** — las que el Turco construye de noche. La pantalla ya cambia de nombre (BANCO → LIBRETA ✅) |
 | — | M13→M14 | **sin oferta** ("lo que llevás al final es todo lo que un pibe de 22 alcanzó a imaginar") |
 
-11 ventanas, 12 mejoras: **una queda sin aprender por partida** ✅ (la cuenta ya cierra
-en el código). El TONEL BARRIL de M14 no depende de tenerlo: la cinemática del final lo
-vuela igual (es de guion, no de inventario).
+⚠️ **LA CUENTA CAMBIÓ CON LA RAMPA.** Con 12 misiones eran 11 ventanas para 12 mejoras y
+**una** quedaba sin aprender — la cuenta que pide el guion (§5 de GUION_3). La rampa le saca
+la ventana al tutorial, así que quedan **10 ventanas y DOS mejoras sin aprender**. Es
+consecuencia directa del pedido, no un descuido, y hay un unit test que se entera si vuelve a
+moverse. Tres salidas si se quiere volver a una: sacar una mejora del catálogo, sumar una
+ventana en otro lado, o aceptar la nueva cuenta y **corregir la frase del guion** — es una
+decisión de autor, no de código. Con el remapeo a 14 misiones la cuenta se recalcula sola.
+
+El TONEL BARRIL de M14 no depende de tenerlo: la cinemática del final lo vuela igual (es de
+guion, no de inventario).
 Costo: 🟡 chico — `nextUpgrades` pasa de "primeras 2" a "2 sorteadas con gate de tramo".
 
 ## 6. LA CHANCHA — invertir la ventana *(decisión de Matías, 18/8, pendiente de aplicar)*

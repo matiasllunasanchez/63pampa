@@ -127,7 +127,7 @@ dictan las notas.
 - **U0** `nextUpgrades` nuevo: 1ª ventana (tras M2) fija = las dos primeras causales;
   después 2 al azar del pool no aprendido, EXCLUYENDO las póstumas (ASCENSO, SOBRE EL
   RADAR, TONEL BARRIL) hasta M9 inclusive; desde M9, pool completo. Sin oferta tras M13.
-- **U1** Unit tests de la ventana (cuenta 11 ofertas, una mejora queda sin aprender, las
+- **U1** Unit tests de la ventana (23/8: con LA RAMPA DE ENTRADA son **10 ofertas** y quedan **dos** mejoras sin aprender — ver `ofertaTrasMision` en `data/upgrades.js`; las
   póstumas jamás antes de M9) + la pantalla ya cambia BANCO→LIBRETA ✅.
 - Criterio: unit verde + una campaña `?qa` muestra ofertas distintas entre dos corridas.
 

@@ -5,7 +5,7 @@ import { P, SKY_PRESETS } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf } from './data/missions.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
-import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt } from './data/upgrades.js';
+import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision } from './data/upgrades.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { multOf } from './core/util.js';
@@ -2285,9 +2285,13 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
             // esta la campaña.
             if (S.test) { salirTest(); beep(400, 0.06, 'square', 0.05); }
             else if (gameMode === 'campaign') {
-              // campaña: antes de la siguiente mision pasa por EL BANCO DEL PICHON (elegir una
-              // mejora), si el pool no se agoto. Despues, la mision o la victoria final.
-              upgOffer = curLevel + 1 < MISSIONS.length ? nextUpgrades(pichon, 2) : [];
+              // campaña: antes de la siguiente mision pasa por EL BANCO DEL PICHON, si el pool no
+              // se agoto Y si a esta mision le toca entregar. CUANTAS cartas ofrece cada epilogo lo
+              // dice `ofertaTrasMision` (data/upgrades.js): el tutorial no entrega nada, la segunda
+              // sirve UNA sin elegir, y de la tercera en adelante son dos a elegir. La regla vive
+              // en data y no aca para que el selector de misiones la derive en vez de repetirla.
+              const nOferta = curLevel + 1 < MISSIONS.length ? ofertaTrasMision(curLevel) : 0;
+              upgOffer = nOferta ? nextUpgrades(pichon, nOferta) : [];
               if (upgOffer.length) { upgSel = 0; upgT = 0; setState('upgrade'); beep(700, 0.07, 'square', 0.05); }
               else advanceCampaign();
             } else if (gameMode === 'arena') {
@@ -3263,6 +3267,28 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // estado del BANCO DEL PICHON para las sondas (oferta, cursor y lo ya aprendido) y el de
     // MEJORAS DEL PICHON, que es donde eso mismo se prende y se apaga. Van juntos porque la
     // pregunta que se le hace desde afuera es una sola: que piruetas VAN A SALIR.
+    // LA CAMPAÑA A PEDIDO (QUITAR). `__campana(n)` arranca la campaña de verdad —gameMode
+    // 'campaign', banco vacio, sin S.test— y salta a la mision `n`. Es lo unico que permite ver EL
+    // RITMO DEL BANCO sin volar doce misiones: cuando se abre, con cuantas cartas y cuando no se
+    // abre. `__mision` no sirve para esto — entra por la puerta de HERRAMIENTAS, que a proposito
+    // NO pasa por el banco (el epilogo vuelve al catalogo).
+    if (typeof window !== 'undefined') window.__campana = n => {
+      startCampaign();
+      const i = Math.max(0, Math.min((n | 0), MISSIONS.length - 1));
+      if (i > 0) { pichon = loadoutAt(i); loadLevel(i); reset(); setRunObjective(); setState(enterMission()); }
+      return JSON.stringify({ modo: gameMode, level: curLevel, pichon: pichon.slice(), test: S.test });
+    };
+    // Y EL EPILOGO A PEDIDO: cierra la mision como si la hubieras terminado, que es el unico
+    // camino por el que el banco se abre.
+    if (typeof window !== 'undefined') window.__finMision = () => {
+      const nOferta = curLevel + 1 < MISSIONS.length ? ofertaTrasMision(curLevel) : 0;
+      upgOffer = nOferta ? nextUpgrades(pichon, nOferta) : [];
+      if (upgOffer.length) { upgSel = 0; upgT = 0; setState('upgrade'); }
+      else advanceCampaign();
+      return JSON.stringify({ state: S.state, level: curLevel, ofrece: upgOffer.length,
+        offer: upgOffer.map(u => u.id), pichon: pichon.slice() });
+    };
+
     if (typeof window !== 'undefined') window.__udbg = () => JSON.stringify({
       state: S.state, level: curLevel, offer: upgOffer.map(u => u.id), sel: upgSel, pichon,
       mejSel, mejRows: mejRows().map(r => r.head ? '#' : r.label()),

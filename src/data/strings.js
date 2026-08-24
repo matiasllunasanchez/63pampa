@@ -355,7 +355,8 @@ export const STRINGS = {
     upgTitle: 'EL BANCO DEL PICHON', upgTitleLib: 'LA LIBRETA DEL PICHON',
     upgRitual: '"ESO NO SE PUEDE."  ...  "A VER. MOSTRAME."',
     upgRitualLib: '"...A VER, PIBE. MOSTRAME."',
-    upgSub: 'ELEGI UNA MEJORA', upgCombo: 'COMBO:',
+    upgSub: 'ELEGI UNA MEJORA', upgSub1: 'TU PRIMERA MEJORA', upgCombo: 'COMBO:',
+    upgHint1: 'ENTER / TOCAR: guardarla en la libreta',
 
     // ---------- HISTORIA (campaña v0.0.1, GUION_2.md) ----------
     // Cada objeto es UNA pantalla. {title,paras} = cinematica; {level,obj} = tarjeta previa
@@ -1237,7 +1238,8 @@ export const STRINGS = {
     upgTitle: "PICHON'S WORKBENCH", upgTitleLib: "PICHON'S NOTEBOOK",
     upgRitual: '"THAT CANNOT BE DONE."  ...  "SHOW ME."',
     upgRitualLib: '"...ALL RIGHT, KID. SHOW ME."',
-    upgSub: 'CHOOSE ONE UPGRADE', upgCombo: 'COMBO:',
+    upgSub: 'CHOOSE ONE UPGRADE', upgSub1: 'YOUR FIRST UPGRADE', upgCombo: 'COMBO:',
+    upgHint1: 'ENTER / TAP: write it in the notebook',
     // Fin de mision. Los textos LARGOS del guion (storyM*/epiM*/briefM*) no estan traducidos
     // todavia: T() cae solo al español, asi que el juego funciona igual (campaña es-only por ahora).
     mom_turn: '! 180 TURN !', mom_pass_n: 'ATTEMPT {n}',

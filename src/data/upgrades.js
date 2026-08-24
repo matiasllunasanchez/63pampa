@@ -6,9 +6,11 @@
 // primero que le muestra a Esteban").
 //
 // El orden es el orden CAUSAL del guion: cada maniobra la inventa el Pichon para resolver
-// el problema que la escuadrilla acaba de sufrir. Entre mision y mision se OFRECEN las dos
-// primeras no aprendidas y se elige UNA (roguelike-lite): las no elegidas quedan esperando.
-// Con 11 huecos y 12 mejoras, una queda sin aprender por partida.
+// el problema que la escuadrilla acaba de sufrir. Entre mision y mision se OFRECEN las primeras
+// no aprendidas y se elige UNA (roguelike-lite): las no elegidas quedan esperando. CUANTAS se
+// ofrecen y desde cuando se puede elegir lo dice `ofertaTrasMision`, mas abajo — el tutorial no
+// entrega nada y la segunda mision sirve una sin elegir. Con 10 ventanas y 12 mejoras, DOS quedan
+// sin aprender por partida.
 //
 // A partir de M8 (muerto el Pichon) la pantalla cambia de nombre: las mejoras salen de su
 // libreta y las construye el Turco solo. Eso lo decide game.js por el indice de mision;
@@ -48,6 +50,31 @@ export function moveAllowed(id, { campaign, owned, off }) {
   return !!owned && (owned.includes ? owned.includes(id) : owned.has(id));
 }
 
+// ---------- CUANDO SE ENTREGA UNA MEJORA, Y SI SE ELIGE ----------
+// LA RAMPA DE ENTRADA (pedido de Matias, 23/8). Antes el banco se abria en el epilogo de TODAS
+// las misiones y siempre con dos cartas: o sea que la primera decision del juego —cual de dos
+// piruetas aprender— caia justo despues del TUTORIAL, cuando el jugador todavia no sabe que es
+// una pirueta ni para que sirve ninguna de las dos. Elegir sin entender no es elegir: es apretar.
+//
+// Ahora la campaña ENSEÑA el mecanismo antes de pedir que se use:
+//
+//   m1 (tutorial) → NADA.  El avion de fabrica y nada mas. Que el tutorial no premie es parte de
+//                          lo que dice: todavia no paso nada que resolver.
+//   m2            → UNA, SIN ELEGIR. El Pichon te pasa la primera. La pantalla es la misma, con
+//                          una sola carta: se aprende QUE es el banco sin tener que decidir.
+//   m3 en adelante→ DOS, a elegir. Recien aca empieza el roguelike, con una pirueta ya en la mano
+//                          para comparar contra la que se ofrece.
+//
+// Devuelve CUANTAS cartas ofrece el epilogo de la mision `i` (0-based). Cero = el banco ni se abre.
+// Es la unica regla del ritmo del banco y vive aca, no en game.js, por dos motivos: se puede
+// probar, y `loadoutAt` la deriva en vez de repetirla — si estuviera escrita dos veces, el
+// selector de misiones mostraria un loadout que la campaña no entrega.
+export function ofertaTrasMision(i) {
+  if ((i | 0) <= 0) return 0;      // el tutorial no entrega
+  if ((i | 0) === 1) return 1;     // la segunda entrega una, servida
+  return 2;                        // de la tercera en adelante, se elige
+}
+
 /** Las proximas `n` mejoras NO aprendidas, en orden del guion. `owned` = Set/array de ids. */
 export function nextUpgrades(owned, n) {
   const has = id => owned.includes ? owned.includes(id) : owned.has(id);
@@ -57,10 +84,15 @@ export function nextUpgrades(owned, n) {
 // ---------- EL LOADOUT DE REFERENCIA (PLAN_MISIONES_FASES §1, el selector "real real") ----------
 // Cuantas mejoras tendria un jugador REAL al entrar a la mision `i`, y cuales.
 //
-// La cuenta sale del flujo de campaña y no de una tabla escrita a mano: el BANCO se abre en el
-// epilogo de cada mision mientras quede una siguiente, asi que al entrar a la mision `i` (0-based)
-// se pasaron `i` ventanas y se eligio una mejora en cada una. Con 12 mejoras y 11 ventanas, una
-// queda sin aprender por partida — que es exactamente lo que pide el guion (§5 de GUION_3).
+// La cuenta sale del flujo de campaña y no de una tabla escrita a mano: se recorre el mismo
+// `ofertaTrasMision` que usa la campaña de verdad y se cuentan las ventanas que SI entregaron.
+// Con la rampa de entrada (m1 nada, m2 una servida, m3+ a elegir) al entrar a la mision `i` se
+// tienen `i - 1` mejoras, y con 12 misiones quedan DOS sin aprender por partida.
+//
+// ⚠ ERAN UNA. El guion (§5 de GUION_3) dice "una queda sin aprender por partida" y esa cuenta
+// salia de 11 ventanas para 12 mejoras. La rampa saca una ventana —la del tutorial— asi que ahora
+// son dos. Es consecuencia directa del pedido, no un descuido; si se quiere volver a una, la
+// perilla es esta funcion (o el largo de UPGRADES), no un parche en game.js.
 //
 // QUE mejoras: las `n` PRIMERAS del orden causal, que es el orden en que el guion las inventa
 // (el Pichon las saca del problema que la escuadrilla acaba de sufrir). Son ademas las mas
@@ -75,6 +107,7 @@ export function nextUpgrades(owned, n) {
 // El dia que las ofertas sean al azar (DISENO_MISIONES §5, tarea U), ESTA funcion es el unico
 // lugar donde cambia la regla.
 export function loadoutAt(i) {
-  const n = Math.max(0, Math.min(i | 0, UPGRADES.length));
-  return UPGRADES.slice(0, n).map(u => u.id);
+  let n = 0;
+  for (let j = 0; j < Math.max(0, i | 0); j++) if (ofertaTrasMision(j) > 0) n++;
+  return UPGRADES.slice(0, Math.min(n, UPGRADES.length)).map(u => u.id);
 }

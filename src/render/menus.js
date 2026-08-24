@@ -719,7 +719,11 @@ export function drawUpgrade(w) {
   ctx.fillStyle = P.dim; ctx.font = descFont(11);
   ctx.fillText(T(w.libreta ? 'upgRitualLib' : 'upgRitual'), NW / 2, 62);
   ctx.fillStyle = P.body; ctx.font = labelFont(12);
-  ctx.fillText(T('upgSub'), NW / 2, 86);
+  // EL SUBTITULO CAMBIA CON LA CANTIDAD DE CARTAS. Con una sola no hay nada que elegir — el
+  // Pichon te la pasa — y decir "ELEGI UNA MEJORA" arriba de una carta unica es pedirle al jugador
+  // que busque la segunda opcion que no existe. Es la primera pantalla de banco de la campaña
+  // (epilogo de m2) y ahi lo que tiene que entender es QUE ES esto, no que decida.
+  ctx.fillText(T(w.offer.length > 1 ? 'upgSub' : 'upgSub1'), NW / 2, 86);
   // dos tarjetas apiladas: nombre + que hace + el combo + la voz del guion
   const x = 52, wCard = NW - 104, hCard = 62, y0 = 100;
   for (let i = 0; i < w.offer.length; i++) {
@@ -743,7 +747,9 @@ export function drawUpgrade(w) {
   }
   if (Math.sin(w.t * 4) > -0.3) {
     ctx.fillStyle = P.dim; ctx.font = descFont(11); ctx.textAlign = 'center';
-    ctx.fillText(T('modeHint'), NW / 2, NH - 14);
+    // con UNA sola carta el pie no puede seguir diciendo "flechas: elegir": no hay segunda opcion
+    // y el jugador la busca. Es la pantalla del epilogo de m2, que es la primera vez que ve esto.
+    ctx.fillText(T(w.offer.length > 1 ? 'modeHint' : 'upgHint1'), NW / 2, NH - 14);
   }
 }
 

@@ -865,7 +865,7 @@ test('tramos: TODAS las misiones de la campaña tienen tramos validos', () => {
 // Con que piruetas se vuela una mision suelta. Se prueba aca y no a ojo porque si la cuenta se
 // corre en uno, el selector mide OTRO avion que el de la campaña — y eso no da error: da una
 // pirueta que sale (o no) cuando no debia, que es justo lo que las notas de playtest van a acusar.
-const { loadoutAt: loadAt, UPGRADES: UPS } = await import('../src/data/upgrades.js');
+const { loadoutAt: loadAt, UPGRADES: UPS, ofertaTrasMision: ofertaTras } = await import('../src/data/upgrades.js');
 const { MISSIONS: MIS } = await import('../src/data/missions.js');
 
 test('libreta: la primera mision se vuela SIN mejoras', () => {
@@ -873,18 +873,35 @@ test('libreta: la primera mision se vuela SIN mejoras', () => {
   assert.deepEqual(loadAt(0), []);
 });
 
-test('libreta: se gana UNA por mision, en el orden causal del guion', () => {
-  assert.deepEqual(loadAt(1), [UPS[0].id]);
-  assert.deepEqual(loadAt(3), [UPS[0].id, UPS[1].id, UPS[2].id]);
-  for (let i = 0; i <= MIS.length; i++) assert.equal(loadAt(i).length, Math.min(i, UPS.length));
+test('libreta: LA RAMPA DE ENTRADA — el tutorial no entrega, la segunda sirve una sin elegir', () => {
+  // Pedido de Matias (23/8). La primera decision del juego —cual de dos piruetas aprender— caia
+  // justo despues del TUTORIAL, cuando el jugador todavia no sabe que es una pirueta. Ahora la
+  // campaña enseña el mecanismo antes de pedir que se use.
+  assert.equal(ofertaTras(0), 0, 'el epilogo del tutorial no puede abrir el banco');
+  assert.equal(ofertaTras(1), 1, 'la segunda entrega UNA, servida: no hay nada que elegir');
+  for (let i = 2; i <= MIS.length; i++) assert.equal(ofertaTras(i), 2, `m${i + 1} tiene que ofrecer dos`);
 });
 
-test('libreta: al final de la campaña queda UNA sin aprender', () => {
-  // 12 mejoras y 11 ventanas (una por epilogo mientras haya mision siguiente): la cuenta del
-  // guion — "una queda sin aprender por partida" — tiene que cerrar sola.
+test('libreta: se gana UNA por ventana, en el orden causal del guion', () => {
+  assert.deepEqual(loadAt(1), [], 'entrando a m2 todavia no hay nada: el tutorial no entrego');
+  assert.deepEqual(loadAt(2), [UPS[0].id], 'entrando a m3, la que sirvio m2');
+  assert.deepEqual(loadAt(4), [UPS[0].id, UPS[1].id, UPS[2].id]);
+  // la cuenta se DERIVA de la misma regla que usa la campaña, no de una tabla aparte
+  for (let i = 0; i <= MIS.length; i++) {
+    let n = 0;
+    for (let j = 0; j < i; j++) if (ofertaTras(j) > 0) n++;
+    assert.equal(loadAt(i).length, Math.min(n, UPS.length), `loadout de i=${i}`);
+  }
+});
+
+test('libreta: al final de la campaña quedan DOS sin aprender', () => {
+  // ERAN UNA, y cambio con la rampa: el guion (§5 de GUION_3) contaba 11 ventanas para 12 mejoras.
+  // Sacarle la ventana al tutorial deja 10, asi que ahora sobran dos. Es consecuencia directa del
+  // pedido y esta anotada en data/upgrades.js — si algun dia se quiere volver a una, la perilla es
+  // `ofertaTrasMision` o el largo de UPGRADES, y esta prueba es la que se entera.
   const ultima = loadAt(MIS.length - 1);
-  assert.equal(ultima.length, MIS.length - 1);
-  assert.ok(ultima.length < UPS.length, 'la campaña no puede regalar las doce');
+  assert.equal(ultima.length, MIS.length - 2);
+  assert.equal(UPS.length - ultima.length, 2, 'la campaña tiene que dejar dos sin aprender');
 });
 
 test('libreta: nunca desborda ni devuelve basura', () => {
@@ -896,8 +913,8 @@ test('libreta: nunca desborda ni devuelve basura', () => {
 test('libreta: es un ARRAY NUEVO cada vez (nadie puede ensuciar el catalogo)', () => {
   // `pichon` se muta al elegir en el banco: si loadoutAt devolviera una vista del catalogo, una
   // partida le agregaria mejoras a UPGRADES y la siguiente arrancaria con ellas.
-  const a = loadAt(3); a.push('intruso');
-  assert.equal(loadAt(3).length, 3);
+  const a = loadAt(4); a.push('intruso');
+  assert.equal(loadAt(4).length, 3);
   assert.equal(UPS.length, 12);
 });
 
