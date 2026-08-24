@@ -8,6 +8,7 @@ import { P } from '../data/palette.js';
 import { T, L } from '../core/i18n.js';
 import { wrapChars } from '../core/util.js';
 import { clamp01 } from '../core/physics.js';
+import { PLACA_DE_CUADRO } from '../data/placas.js';
 
 // Segundos que la pantalla de victoria espera antes de traer la frase de cierre. No es un valor
 // de "sensacion" como los de data/tuning.js: es el ritmo de UNA pantalla, y vive con ella.
@@ -346,12 +347,12 @@ export function drawVictory(w) {
 // texto ya asume ese fondo y cuando se generen aparecen solas. Carga perezosa, cache por
 // nombre, y si el archivo falta no pasa nada (queda la tarjeta negra de siempre).
 const STORY_IMGS = new Map();
-function lazyImg(cache, base, name) {
+function lazyImg(cache, base, name, ext) {
   let e = cache.get(name);
   if (!e) {
     e = { img: new Image(), ok: false };
     e.img.onload = () => { e.ok = true; };
-    e.img.src = base + name + '.png';
+    e.img.src = base + name + (ext || '.png');
     cache.set(name, e);
   }
   return e.ok ? e.img : null;
@@ -361,7 +362,10 @@ function storyImg(name) { return lazyImg(STORY_IMGS, '../assets/story/', name); 
 // (RETRATOS §5: assets/portraits/<cara>.png). Misma cascada: si el asset falta, no pasa nada —
 // la placa cae a la tarjeta negra y el retrato a la silueta placeholder de la caja VN.
 const PLATE_IMGS = new Map(), PORTRAIT_IMGS = new Map();
-function plateImg(name) { return lazyImg(PLATE_IMGS, '../assets/plates/', name); }
+// Las placas van en WEBP y no en PNG: son 32 imagenes de pantalla completa, y en PNG pesarian
+// cerca de 800 KB cada una contra los ~90 KB del webp. Con el techo de 16 MB del build web esa
+// diferencia decide si entran o no. Las genera tools/install_placas.py desde los originales.
+function plateImg(name) { return lazyImg(PLATE_IMGS, '../assets/plates/', name, '.webp'); }
 function portraitImg(name) { return lazyImg(PORTRAIT_IMGS, '../assets/portraits/', name); }
 // tinte del texto por REGISTRO (SISTEMA_DIALOGO.md): 'tierra' = el cuaderno de Mateo (birome);
 // 'carta' = el block militar del padre (papel viejo); sin estilo, la tipografia tecnica de siempre.
@@ -382,9 +386,21 @@ export function drawStory(w) {
   ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, W, H);
   // fondo: el cuadro de la linea/escena (assets/story) o, en VN, la PLACA de ambiente
   // (assets/plates). Si ninguno existe todavia, tarjeta negra — la cascada de RF-01.
-  const bg = (img && storyImg(img)) || (sc.placa && plateImg(sc.placa)) || null;
+  // cascada de tres: el CUADRO propio de la escena si existe, si no la PLACA del lugar donde
+  // pasa ese cuadro (data/placas.js), si no la que la escena declare a mano. Y si no hay
+  // ninguna, tarjeta negra — RF-01 otra vez.
+  const bg = (img && storyImg(img))
+    || (img && PLACA_DE_CUADRO[img] && plateImg(PLACA_DE_CUADRO[img]))
+    || (sc.placa && plateImg(sc.placa)) || null;
   if (bg) {
-    ctx.globalAlpha = 0.85; ctx.drawImage(bg, 0, 0, W, H);
+    // ENCAJADA Y CENTRADA, nunca estirada. Las placas de AIRE son 16:9 y llenan la pantalla,
+    // pero las paginas del cuaderno son 3:4 VERTICAL: estiradas a lo ancho no se leen como una
+    // hoja. Se escala por el lado que primero toca el borde y el resto queda en negro, que es
+    // como se ve una hoja puesta sobre una pantalla.
+    ctx.globalAlpha = 0.85;
+    const esc = Math.min(W / bg.naturalWidth, H / bg.naturalHeight);
+    const bw = bg.naturalWidth * esc, bh = bg.naturalHeight * esc;
+    ctx.drawImage(bg, (W - bw) / 2, (H - bh) / 2, bw, bh);
     ctx.globalAlpha = 0.55; ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, W, H);
     ctx.globalAlpha = 1;
   }

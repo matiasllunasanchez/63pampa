@@ -6,6 +6,16 @@
 > [RETRATOS.md](RETRATOS.md) y de las fichas de [STORYBOARD_1.md](STORYBOARD_1.md) §0.
 >
 > **Empezamos por el prólogo y nada más.** El resto de la campaña sale en tandas.
+>
+> ### ⭐ ¿Solo querés generar? Usá [PROMPTS_VN_PROLOGO_LISTOS.md](PROMPTS_VN_PROLOGO_LISTOS.md)
+>
+> Este documento es la **referencia**: explica el sistema y deja los prompts con el marcador
+> `[AIRE]`/`[TIERRA]` sin resolver, para poder leerlos y editarlos. El otro archivo tiene **los
+> mismos 22 prompts ya ensamblados**, con el bloque de estilo adentro y el nombre de archivo de
+> cada asset: se copia y se pega, sin armar nada.
+>
+> Se regenera con `python3 tools/hacer_prompts_prologo.py`. **Los prompts se editan ACÁ**, nunca
+> en el archivo generado.
 
 ---
 
@@ -33,13 +43,93 @@ anti-aliasing, no photorealism, no 3D render, no smooth digital painting.
 
 *(P.1, P.4 y todas las páginas de diario de la campaña)*
 
+> 🟩 **Corregido 22/8 — el bloque viejo hacía que TODO fuera un dibujo.** Decía *"drawn
+> entirely in blue ballpoint-pen tones **on a lined notebook-paper background**"*, así que el
+> generador dibujaba también el papel: los renglones salían trazados a mano en azul birome, las
+> manchas parecían dibujadas, y una birome apoyada sobre la hoja salía como **el dibujo de una
+> birome**. La hoja dejaba de leerse como una hoja.
+>
+> **El registro TIERRA tiene DOS capas y hay que nombrarlas por separado:**
+>
+> | Capa | Qué es | Cómo se ve |
+> |---|---|---|
+> | **El soporte** | la hoja, los renglones impresos, las manchas, y cualquier objeto real apoyado encima (la birome, la navaja, una foto) | objetos SÓLIDOS con volumen y sombra — pixel art, pero de cosas reales |
+> | **La tinta** | solo lo que Mateo dibujó | trazo de birome azul, ingenuo, plano |
+>
+> El detalle que más arregla la lectura: **los renglones de un cuaderno están IMPRESOS**, son
+> celeste pálido o gris, no azul birome. Y el Rivadavia del guion tiene además **margen rojo**.
+
 ```
-Naive pixel art sketch drawn entirely in blue ballpoint-pen tones on a lined
-notebook-paper background, Metal Slug-inspired sprite proportions but drawn like
-an 18-year-old soldier's heartfelt doodle, single-color blue palette with
-dithered shading, cream paper texture with faint ruled lines, ink smudges and
-damp stains rendered as pixels, crisp clean pixels, no anti-aliasing, hand-made
-naive feel, no photorealism, no 3D render.
+A real sheet of lined notebook paper seen straight on, rendered as detailed 90s
+arcade pixel art: warm cream paper with visible fibre texture, PRINTED pale
+grey-blue ruled lines and a PRINTED red margin line, soft worn edges, damp
+wrinkles and faint brown water stains. The paper itself and anything physically
+resting on it are SOLID REAL OBJECTS with volume and soft contact shadows — they
+are NOT drawings.
+
+Drawn ON that paper, and only that: a naive sketch in dark blue ballpoint-pen
+strokes, Metal Slug-inspired sprite proportions but drawn like an 18-year-old
+soldier's heartfelt doodle, single-colour blue ink with dithered shading, ink
+smudges and visible pen-pressure variation.
+
+Crisp clean pixels, no anti-aliasing, hand-made naive feel in the ink layer only,
+no photorealism, no 3D render.
+```
+
+### 🟩 Bloque `[TINTA]` — la tinta sola, para componer
+
+*(los dibujos de Mateo recortados, que se pegan encima de la hoja)*
+
+Desde que la hoja se genera **vacía** y reutilizable, los dibujos van aparte. Este bloque es el
+`[TIERRA]` **sin el papel**: solo el trazo, sobre fondo plano para recortar.
+
+```
+Naive pixel art line drawing in dark blue ballpoint-pen strokes, Metal Slug-inspired
+sprite proportions but drawn like an 18-year-old soldier's heartfelt doodle,
+single-colour blue ink, slightly wobbly confident lines with visible pen-pressure
+variation and small ink blots, crisp clean pixels, no anti-aliasing, hand-made naive
+feel, no photorealism, no 3D render. Just the ink strokes on a plain flat white
+background for clean cutout — NO paper texture, NO ruled lines, NO page, NO frame.
+```
+
+### 🟩 La birome es siempre la misma — `{BIROME}`
+
+Cuando la birome aparece como **objeto real** —apoyada en una hoja, en un bolsillo, en una
+mano— lleva siempre los mismos tres colores, que son canon:
+
+| Parte | Color |
+|---|---|
+| **Tapa** | blanca |
+| **Tubo** | azul |
+| **Punta** *(el cono)* | marrón claro |
+
+En inglés, para pegar: `a WHITE cap with a pocket clip, a BLUE opaque plastic barrel and a
+LIGHT BROWN tapered tip cone`. La ficha completa del prop está en
+[PROMPTS_HOJAS_PERSONAJE.md](PROMPTS_HOJAS_PERSONAJE.md) `{BIROME}`.
+
+> **Excepción: cuando la birome está DIBUJADA**, como en P.1.c —donde toda la escena es un
+> dibujo de Mateo— no lleva colores: es trazo de tinta azul como todo lo demás. Los tres
+> colores valen solo para la capa física.
+
+### ✂️ Corregir sin regenerar — TIERRA
+
+Si una página ya salió buena salvo por un objeto que quedó dibujado, no hace falta rehacerla:
+
+```
+Keep this image exactly as it is - same page, same paper texture, same stains, same
+ink drawing in the margin, same composition. Change only the [OBJETO]: it must be a
+REAL PHYSICAL OBJECT resting on top of the paper, with a solid opaque body, volume,
+a highlight along one edge and a soft contact shadow on the paper underneath it -
+not an object drawn in ballpoint ink. Do not redraw anything else.
+```
+
+Y si lo que quedó dibujado es **la hoja misma**:
+
+```
+Keep this image exactly as it is. Change only the paper: the ruled lines must be
+PRINTED pale grey-blue lines on real cream paper with visible fibre texture, and the
+stains must be real damp stains in the paper - not lines and stains drawn in blue
+ballpoint ink. The paper is a real sheet, photographed. Do not redraw anything else.
 ```
 
 ### 🔒 Candado de época — va al final de TODO prompt con personas
@@ -169,10 +259,11 @@ propios: `tero_civil_*` y `mateo_casa_*`.
 
 ---
 
-# P.1 — EL ARROYO *(años antes · registro TIERRA · 3:4 vertical)*
+# P.1 — EL ARROYO *(años antes · TIERRA, salvo P.1.c · 3:4 vertical)*
 
 **Decisión:** P.1 **no lleva retratos.** Es un recuerdo dibujado por Mateo, y el diálogo
-flota sobre el dibujo. Meter bustos acá rompería el registro del cuaderno — que es el
+flota sobre el dibujo. 🟩 **La excepción es P.1.c**, que muestra al chico dibujando y por lo
+tanto no puede estar dibujada: va en `[AIRE]`, con la tinta solo adentro de la página. Meter bustos acá rompería el registro del cuaderno — que es el
 dispositivo que sostiene todo el juego. Es cuadro sagrado (RETRATOS.md §2).
 
 ### PLACA P.1.a — el arroyo y el Rastrojero
@@ -200,16 +291,47 @@ No text, no watermark, no signature.
 > **Nota:** este cuadro ya tiene además una versión en video (plano 1 del teaser, `TEASER.md`).
 > La placa fija es la que va adentro del juego; el clip es para el teaser.
 
-### PLACA P.1.c — el cuaderno en las rodillas
+### PLACA P.1.c — el cuaderno en las rodillas *(🟩 la excepción: registro AIRE)*
+
+🟩 **Corregido 22/8 — este cuadro NO es registro TIERRA, y pedirlo así lo rompía.**
+
+P.1 entero es un recuerdo **dibujado por Mateo**… salvo éste, que muestra **a Mateo
+dibujando**. Un dibujo de sí mismo dibujando es una recursión que no cierra, y el generador la
+resolvía mal de la única forma que podía: aplastando todo contra la hoja. La hoja terminaba
+ocupando el cuadro entero, las rodillas quedaban **encima** del papel en vez de debajo, y la
+mano salía enorme.
+
+**Es el único cuadro del juego donde los dos registros conviven** — y eso, bien hecho, es la
+tesis del juego en una imagen: el mundo real en color, y adentro, en tinta, cómo lo ve el
+chico. Va en `[AIRE]`, con la capa de tinta nombrada aparte.
 
 ```
-[TIERRA] Close-up from over a child's shoulder: an open school notebook resting on
-two small knees, a blue ballpoint pen held in a child's hand, and on the open page a
-naive child's drawing of the same creek, the same rusty pickup truck and a little
-airplane crossing the sky. Only the hands and knees visible, no face. Drawn entirely
-in blue ballpoint pen on lined notebook paper, cream paper texture with faint ruled
-lines. 3:4 vertical. No text, no watermark, no signature.
+[AIRE] Over-the-shoulder view from just behind and slightly above a seated
+eight-year-old boy: his lap, his two knees in worn trousers, and an open school
+notebook resting flat across them, one small hand steadying the edge of the page
+while the other holds a ballpoint pen to it. His head is out of frame: no face.
+
+THE NOTEBOOK IS AN OBJECT INSIDE THE SCENE, not the frame itself: its two facing
+pages, the spine between them, its outer edges and its slightly curled corners are
+all clearly visible, and around and beyond it there is real ground — summer grass
+and the low bank of a creek. Never let the page fill the frame.
+
+Everything of the real world is in FULL COLOUR and solid: the boy's skin, his
+trousers, the notebook cover, the grass, the pen with its WHITE cap, BLUE barrel and
+LIGHT BROWN tip.
+
+DRAWN IN BLUE INK ON THE OPEN PAGE, and the only thing in this image that is a
+drawing: a naive child's ballpoint sketch of the creek, a rusty pickup truck and a
+little aeroplane crossing the sky.
+
+Warm summer afternoon light from the side. 3:4 vertical. No text, no letters, no
+words on the page, no watermark, no signature.
 ```
+
+> **Lo que hay que mirar al aprobarla:** que se vea el **borde de la hoja** y algo de pasto
+> alrededor. Si la página llena el cuadro, volvió el error — la corrección es
+> `zoom out so the notebook is a small object resting on the boy's knees with grass visible
+> around it, and never fills the frame`.
 
 ---
 
@@ -271,10 +393,28 @@ signature.
 > imagen ya no corresponde. **O generás tres versiones, o componés por motor.** Por eso la
 > recomendación es el nivel 2.
 
-> **Variante P.2-b (obligatoria, misma placa):** repetir el prompt cambiando la luz a
-> `the warm light drained to a flat grey, the kettle still whistling on the lit stove,
-> the radio now switched on` — es la placa que entra cuando arranca el parte de radio y
-> **no la saca nadie del fuego**. Un solo cambio de placa hace todo el corte de tono.
+### PLACA P.2-b — la misma cocina, lavada *(obligatoria)*
+
+Es la placa que entra cuando arranca el parte de radio y **no la saca nadie del fuego**. Un
+solo cambio de placa hace todo el corte de tono. Mismo encuadre, mismos objetos: lo único que
+cambia es la luz y que la radio ahora está prendida.
+
+```
+[AIRE] Interior of a modest Argentine home kitchen in 1982, the exact same room and
+camera angle as before but the warm light now drained to a flat cold grey through the
+small curtained window, formica table with a plastic tablecloth, four mismatched
+wooden chairs, a kettle still whistling on the lit stove with a thin plume of steam, a
+wall-mounted rotary telephone, a small valve radio on the shelf now switched on with
+its dial glowing faintly, a saint's picture and a wall calendar, worn tiled floor. The
+warmth gone out of the room, everything gone still. NOBODY IN THE FRAME. Empty,
+waiting, quiet. 16:9. Argentina 1982, no modern appliances, no modern military
+equipment, no NATO or US insignia, no national flag. No text, no watermark, no
+signature.
+```
+
+> **Generala como segunda pasada de la 4, no de cero** — si la sacás en otra sesión, los
+> objetos de la cocina van a cambiar de lugar y el corte de tono se rompe: el jugador tiene que
+> ver **la misma cocina** apagándose, no otra cocina.
 
 ### FIGURAS EN ESCENA — P.2
 
@@ -533,20 +673,65 @@ equipment, no NATO or US insignia. No text, no watermark.
 encima con la fuente manuscrita, para que quede editable y traducible (STORYBOARD_1 §0,
 regla de texto, camino 2).
 
-### PLACA P.4 — la hoja
+### PLACA P.4 — la hoja *(vacía — el patrón de las 14 páginas)*
+
+🟩 **La hoja va SIN birome y SIN dibujo.** Es el mismo criterio del nivel 2 que este documento
+ya usa para el registro `[AIRE]` —la placa se genera vacía y lo demás se compone encima—,
+aplicado ahora al cuaderno. Y acá rinde todavía más, porque **esta placa es el fondo de las
+catorce páginas del juego**: si la birome queda horneada, aparece en el mismo lugar en todas,
+y si el avioncito queda horneado, cada página de Mateo tiene el mismo garabato.
+
+Vacía, la hoja se reusa siempre y encima se compone lo que haga falta:
+
+| Capa | Qué es | Cómo se hace |
+|---|---|---|
+| **La hoja** | esta placa | se genera **una vez** y sirve para las 14 |
+| **La tinta** | el dibujo de esa página — el Colorado con capa, la radio sola, el barco chueco | un recorte por página, en tinta azul |
+| **El texto** | el cuerpo de la carta | lo tipografía el motor, para que sea editable y traducible |
+| **Los props** *(opcional)* | la birome, la navaja, la foto de la hermana | recortes reutilizables |
 
 ```
-[TIERRA] A single open notebook page seen straight on, filling the frame, the paper
-damp-wrinkled at one corner with a faint water stain, a blue ballpoint pen lying
-diagonally across the lower third, the ruled lines running edge to edge, one small
-naive drawing in the bottom margin of a tiny airplane flying very low over water with
-three little ripple rings under it. The page otherwise BLANK — no writing, no letters,
-no words anywhere. Cream paper texture, ink smudges rendered as pixels. 3:4 vertical.
+[TIERRA] A single blank open notebook page seen straight on, filling the frame, the
+printed ruled lines running edge to edge, the paper damp-wrinkled at one corner with
+a faint brown water stain, a soft worn edge along the outside, a few pale foxing
+specks. NOTHING RESTING ON IT and NOTHING DRAWN ON IT: no pen, no pencil, no
+drawings, no sketches, no writing, no letters, no words anywhere. Completely empty
+paper — it is a background that other things get composited onto later. 3:4 vertical.
 No text, no watermark, no signature.
 ```
 
 > **La regla `no text` en esta placa no es negociable** — el cuerpo de la carta lo pone el
 > motor. Si el generador escribe algo igual, regenerá: "birome no perdona".
+
+### TINTA P.4 — el avioncito del margen *(recorte)*
+
+El dibujo que va en la hoja de la primera página: el sapito, otra vez, ahora dibujado por el
+hijo. Se genera aparte para poder ponerlo donde convenga y **no gastar una placa nueva**.
+
+```
+[TINTA] One small drawing, alone and centred in the frame: a tiny aeroplane flying
+very low over water, with three little ripple rings in a row underneath it marking
+where it skipped. Nothing else in the frame. No text, no letters, no watermark, no
+signature.
+```
+
+> **El fondo blanco plano acá es a propósito:** este recorte se compone SOBRE la hoja, así que
+> no puede traer su propio papel. Es el equivalente del `flat solid magenta background` de las
+> figuras `[AIRE]` — mismo sistema, otra capa.
+
+### PROP — la birome *(recorte, opcional)*
+
+Para cuando una página la quiera. Los tres colores son canon (ver `{BIROME}` en
+[PROMPTS_HOJAS_PERSONAJE.md](PROMPTS_HOJAS_PERSONAJE.md)).
+
+```
+[AIRE] A single cheap ballpoint pen seen from above, lying diagonally: a WHITE cap with a plain pocket clip, a BLUE opaque plastic
+barrel and a LIGHT BROWN tapered tip cone. A real solid three-dimensional object with
+volume, a highlight running down one side and a soft contact shadow beneath it — NOT
+a drawing of a pen. Slightly chewed cap, ink-stained tip. Flat solid magenta
+background for clean cutout. No text, no letters, no brand, no logo, no watermark,
+no signature.
+```
 
 ---
 
@@ -562,22 +747,24 @@ No text, no watermark, no signature.
 | 6 | P.3.a el teléfono | placa AIRE | — |
 | 7 | P.3.b los papeles | placa AIRE | — |
 | 8 | P.3.c la puerta | placa AIRE | — |
-| 9 | P.4 la hoja en blanco | placa TIERRA | **patrón de TODAS las páginas del cuaderno** |
-| 10 | `mateo_casa_sonrisa` | retrato | — |
-| 11 | `mateo_casa_serio` | retrato | — |
-| 12 | `tero_civil_sonrisa` | retrato | — |
-| 13 | `tero_civil_blanco` | retrato | — |
-| 14 | `norma_calida` | retrato | + epílogos |
-| 15 | `norma_seria` | retrato | + epílogos |
-| 16 | `condor_parlante` | retrato | **las 14 misiones** |
-| 17 | `fig_tero_p2_sentado` | figura | — |
-| 18 | `fig_tero_p2_telefono` | figura | — |
-| 19 | `fig_tero_p2_radio` | figura | — |
-| 20 | `fig_mateo_p2_sentado` | figura | — |
-| 21 | `fig_norma_p2_sirviendo` | figura | + Final B |
-| 22 | `fig_norma_p2_telefono` | figura | — |
+| 9 | 🟩 P.4 la hoja **vacía** | placa TIERRA | **las 14 páginas del cuaderno** |
+| 10 | 🟩 tinta P.4: el avioncito | recorte TINTA | — |
+| 11 | 🟩 la birome | recorte prop | toda página que la quiera |
+| 12 | `mateo_casa_sonrisa` | retrato | — |
+| 13 | `mateo_casa_serio` | retrato | — |
+| 14 | `tero_civil_sonrisa` | retrato | — |
+| 15 | `tero_civil_blanco` | retrato | — |
+| 16 | `norma_calida` | retrato | + epílogos |
+| 17 | `norma_seria` | retrato | + epílogos |
+| 18 | `condor_parlante` | retrato | **las 14 misiones** |
+| 19 | `fig_tero_p2_sentado` | figura | — |
+| 20 | `fig_tero_p2_telefono` | figura | — |
+| 21 | `fig_tero_p2_radio` | figura | — |
+| 22 | `fig_mateo_p2_sentado` | figura | — |
+| 23 | `fig_norma_p2_sirviendo` | figura | + Final B |
+| 24 | `fig_norma_p2_telefono` | figura | — |
 
-**Nueve placas, siete retratos y seis figuras, y el prólogo está entero.** Cuatro de esos dieciséis se
+**Nueve placas, siete retratos, seis figuras y dos recortes, y el prólogo está entero.** Cuatro de esos dieciséis se
 reusan en el final del juego, así que el prólogo paga parte de su propio costo.
 
 **Orden sugerido:** primero la placa 4 (la cocina) — es la que valida el estilo `[AIRE]` y

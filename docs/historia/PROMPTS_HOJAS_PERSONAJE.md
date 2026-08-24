@@ -533,6 +533,10 @@ padre e hijo sin que haga falta decirlo.
 > | **cara de treinta y pico, rasgos anglosajones** | **dieciocho de verdad**: flaco, pómulos marcados, cara y nariz quemadas por el viento, labios partidos, pelusa adolescente. Y **criollo del interior** |
 > | ni frío ni barro | **gorro de lana debajo del casco**, bufanda, manos envueltas en trapos, todo mojado |
 >
+> 🟩 **Ojo: hay un TERCER Mateo, anterior a esta hoja** — el nene de ocho años de P.1. No entra
+> acá porque no comparte nada: ni edad, ni ropa, ni contexto. Vive en su propio token,
+> `{MATEO_NENE}`, más abajo.
+>
 > **Decisión tomada: la hoja tiene DOS ETAPAS en la misma lámina.** Mateo aparece en el juego en dos
 > momentos muy distintos —P.3 es la cocina en el continente, recién incorporado y entero; las cartas
 > del frente son otra persona— y una sola versión no cubre las dos. La fila de arriba es el pibe
@@ -567,7 +571,7 @@ over the parka. Brown leather ankle combat boots. Argentine steel combat helmet
 with an olive cloth cover and netting, chin strap hanging loose and unbuckled,
 COMPLETELY UNMARKED — no painted stripes, no chevrons, no insignia of any kind.
 A knitted wool cap worn UNDER the helmet, showing over his ears. A lined school
-notebook and a blue ballpoint pen in his parka pocket.
+notebook and {BIROME} (white cap, blue barrel, light brown tip) in his parka pocket.
 
 TOP ROW — STAGE ONE, "the boy who leaves": clean, whole, freshly issued. Head
 shaved to the scalp, uniform dry and correct, standing straight, still soft in
@@ -602,6 +606,36 @@ signature.
 > prompt una vez con solo el bloque TOP ROW y una vez con solo el bloque BOTTOM ROW, usando la
 > primera como *image reference* de la segunda. Es la única forma de garantizar que sea el mismo
 > chico.
+
+---
+
+## 🟩 `{MATEO_NENE}` — el hijo, ocho años *(P.1)*
+
+**Por qué existe.** La hoja de `{MATEO}` de arriba es el **conscripto de 18 en Malvinas**, y no
+sirve para P.1: ahí el chico tiene **ocho años** y está en el campo, años antes de la guerra. Sin
+un descriptor propio, el generador improvisa — y lo primero que pierde es que sea **criollo del
+interior**, que es justo lo que lo hermana con el de dieciocho.
+
+**Tiene que leerse como el mismo chico.** Los ojos oscuros grandes y el pelo negro son el puente
+entre el nene del arroyo y el pibe que escribe desde el pozo. Si no se reconocen, el prólogo
+pierde su golpe.
+
+**No necesita lámina de personaje.** En P.1 se le ve la espalda, las manos y las rodillas — la
+cara nunca. Alcanza con el token.
+
+**Descriptor (pegar tal cual):**
+
+```
+argentine boy, EXACTLY 8 years old, skinny, criollo features from the rural
+interior: olive-tan skin, messy black hair cut at home, big dark eyes. Summer
+clothes of the rural argentine countryside in the early 1970s: a worn short-sleeved
+cotton shirt, plain shorts or rolled-up trousers, and alpargatas or bare feet. Small
+hands, a little dirty, a smudge of blue ink on the side of one finger.
+```
+
+> ⚠️ **Época:** si Mateo tiene 18 en 1982, a los ocho estamos alrededor de **1972**. Nada de
+> zapatillas deportivas modernas, nada de ropa con estampas. Campo argentino, verano, chico de
+> pueblo.
 
 ---
 
@@ -1018,6 +1052,42 @@ signature.
 
 ---
 
+## 🟩 `{BIROME}` — la birome de Mateo
+
+**Dónde aparece:** en el bolsillo de Mateo en su hoja de personaje · en la mano del nene en
+P.1.c · apoyada sobre la hoja en P.4 · y en toda página del cuaderno donde se la vea. Es, con
+la navaja del Colorado, una de sus **dos herramientas** (M3: *"una para contar y otra para lo
+que venga"*), y le da nombre a un leitmotiv entero de la banda sonora — *La Birome*.
+
+**Los tres colores son canon y no cambian nunca:**
+
+| Parte | Color |
+|---|---|
+| **Tapa** | blanca |
+| **Tubo** | azul |
+| **Punta** *(el cono)* | marrón claro |
+
+Que sea siempre la misma birome importa más de lo que parece: es el objeto que el jugador ve
+en la mano del chico en el prólogo y sigue viendo, gastado, catorce misiones después.
+
+```
+[AIRE] Extreme close-up of a single cheap ballpoint pen lying on a worn wooden
+surface: a WHITE cap with a plain pocket clip, a BLUE opaque plastic barrel, and a
+LIGHT BROWN tapered tip cone. Plain, cheap, everyday. A real solid three-dimensional
+object with volume, a highlight running down one side of the barrel and a soft
+contact shadow underneath — NOT a drawing of a pen. Slightly chewed at the cap,
+ink-stained at the tip. Warm side light.
+
+16:9 landscape. No text, no letters, no brand, no logo, no watermark, no signature.
+```
+
+> **Cuando aparece sobre una página del cuaderno** va con la fórmula de las dos capas de
+> [PROMPTS_VN_PROLOGO.md](PROMPTS_VN_PROLOGO.md): *"RESTING ON THE PAPER, as a REAL PHYSICAL
+> OBJECT and NOT a drawing: …"*. Sin eso, el registro `[TIERRA]` la convierte en el dibujo de
+> una birome.
+
+---
+
 # Tabla de tokens AMPLIADA — v2
 
 Estos son los descriptores actualizados **con lo que se agregó en las hojas**. Reemplazan a la tabla
@@ -1038,7 +1108,9 @@ de `STORYBOARD_1.md` (que ya quedó actualizada con esta misma tabla).
 | `{RASTROJERO}` | rusty old Argentine Rastrojero pickup truck, 1960s workhorse |
 | `{FOTO_VASCO}` | small worn late-1950s black-and-white photograph, deckled white border, curled corners, showing a beautiful young argentine woman in her mid-thirties laughing on a balcony, late-1950s hair and dress — YOUNG, never elderly |
 | `{LIBRETA_PICHON}` | fat black oilcloth-covered pocket notebook, grease-fingerprinted, swollen with dog-eared pages of pencil engineering sketches and margin calculations, carpenter's pencil |
-| `{CUADERNO_MATEO}` | school Rivadavia hardcover notebook, pale blue cover, swollen with damp, peat sand between the lined pages, blue ballpoint drawings |
+| `{CUADERNO_MATEO}` | classic argentine **"Rivadavia"** school exercise book: **stiff card cover in pale cream sage-green**, a small sepia heraldic emblem near the top and a flowing signature-style logo across the middle (**lettering always illegible, drawn as shapes**), swollen with damp, corners gone soft, peat sand between the lined pages, blue ballpoint drawings |
+| 🟩 `{MATEO_NENE}` | argentine boy, **exactly 8 years old**, skinny, criollo features from the rural interior: **olive-tan skin, messy black hair cut at home, big dark eyes**; early-1970s rural summer clothes — worn short-sleeved cotton shirt, plain shorts or rolled-up trousers, **alpargatas or bare feet**; small hands with a smudge of blue ink on one finger |
+| 🟩 `{BIROME}` | a **WHITE**-capped ballpoint pen with a **BLUE** plastic barrel and a **LIGHT BROWN** tip cone, plain and cheap, a real solid object with volume — never a drawing of a pen |
 | `{CARTA_PADRE}` | single sheet of military-issue lined block paper, folded in four, soft and worn at the folds, covered in cramped printed adult handwriting with several heavy crossings-out, unsigned |
 
 **Además, agregá el candado corto al final de CADA cuadro `[AIRE]` de cinemática:**

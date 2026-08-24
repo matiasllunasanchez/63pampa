@@ -125,6 +125,56 @@ box. Argentina 1982 [candado de época]. No text, no watermark.
   = una cara). El `hold` con la cara quieta y el ambiente sonando ES la actuación.
 - Los cuadros sagrados usan el mismo campo `img:` a pantalla completa, sin retrato.
 
+## 🟩 5b. Idea: retratos con MOVIMIENTO propio *(pedido 22/8 — sin decidir, para no perderla)*
+
+**El disparador:** armar las escenas de historia con Nano Banana en estilo Metal Slug, con
+diálogo y caras de personajes hablando abajo — que **es exactamente el sistema que este
+documento ya describe** (§1, §4, §5). Lo nuevo no es el retrato: es que **el retrato se mueva**,
+y sobre todo **cómo** moverlo sin caer en lo que este documento descartó en §1: generar cada
+cuadro de una escena entera con IA, con el problema de consistencia de caras que eso trae.
+
+**La idea central, en las palabras de Matías:** no hace falta generar TODA la escena con
+personajes con IA. Se puede generar una **hoja de script de movimientos** por personaje —
+parpadeo, boca abierta/cerrada, un gesto chico— y aplicarla **a mano, como se hacían los
+dibujitos antes**: con Claude ayudando a componer, o directamente en Photoshop. Animación de
+sprite clásica, no generación de video cuadro a cuadro.
+
+**Por qué encaja con lo que ya existe, y no es un sistema nuevo:**
+
+- El motor de diálogo ya corre un reloj real durante el `hold` (`dlg.t` en `core/dialogue.js`),
+  que hoy no se usa para nada visual — el retrato queda inmóvil todo el silencio. Ese reloj es
+  el disparador natural de un ciclo de 2-4 cuadros (parpadeo cada tantos segundos, boca en las
+  líneas con `typed` avanzando). No hace falta un sistema de animación nuevo: hace falta un
+  segundo asset por expresión (una tira corta) y unas pocas líneas en el render de la caja VN.
+- Sigue naciendo de las hojas modelo de personaje, igual que hoy (§4): la consistencia no se
+  pierde porque no se genera un cuadro nuevo cada vez — se genera **una vez** la hoja de
+  movimientos de esa expresión, y de ahí se recorta y se compone siempre.
+- No compite con el video de IA que ya está presupuestado en
+  [PLAN_CINEMATICAS.md](../produccion/PLAN_CINEMATICAS.md): ese es para 4-5 momentos gigantes
+  (la transformación del prólogo, el giro de la foto, el batir de alas). Esto es para las
+  **~33 caras que hablan todo el juego**, así que tiene que ser mucho más barato por unidad.
+
+**Lo que falta decidir antes de producir nada** *(por eso queda como idea, no como spec)*:
+
+1. **Qué se anima.** El candidato obvio es parpadeo (barato, universal, sostiene la ilusión de
+   "está vivo" en los `hold` largos) y boca abierta/cerrada sincronizada con el tipeo. Un gesto
+   de cuerpo (encogerse de hombros, mirar para otro lado) ya es por personaje y por línea, y
+   sube el costo de golpe — evaluar si vale la pena o si el parpadeo solo ya alcanza.
+2. **Cuántos cuadros por ciclo.** Con 2 alcanza para parpadeo simple; con 3-4 se puede hacer que
+   no se sienta metronómico (variar el intervalo entre parpadeos con algo de azar, ya como
+   hacen otros ciclos del juego — ver `Math.random` en los patrones de `systems/spawn.js`).
+3. **Quién arma la hoja.** La propuesta es generarla con Nano Banana (misma referencia de
+   personaje que ya usan las hojas de §4) y componerla a mano — no pedirle a la IA que anime,
+   pedirle los cuadros sueltos y armar el ciclo aparte. Eso es justamente lo que la separa de
+   "generar video con personajes" y la mantiene en el presupuesto de un retrato.
+
+**A futuro, explícitamente NO ahora:** una vez que una escena esté compuesta y quieta (fondo +
+retrato ya integrados), esa MISMA captura podría pasar por Kling para sumarle movimiento barato
+—parallax del fondo, una respiración, el pelo con viento— en vez de generar la escena animada
+de cero. Es la lógica que [PLAN_CINEMATICAS.md](../produccion/PLAN_CINEMATICAS.md) ya aplica
+para los 4-5 momentos grandes, extendida hacia abajo; no se evalúa hasta que el retrato quieto
++ el retrato con parpadeo/boca ya estén construidos y se sepa si hacen falta.
+
 ## 🟥 6b. La bajada operativa — prompts escena por escena
 
 Este documento define el SISTEMA. Los prompts concretos, listos para pegar, salen por
@@ -132,9 +182,10 @@ tandas en documentos propios:
 
 | Tanda | Documento | Estado |
 |---|---|---|
-| **Prólogo (P.1–P.4)** | [PROMPTS_VN_PROLOGO.md](PROMPTS_VN_PROLOGO.md) | ✅ 9 placas + 7 retratos |
-| M1–M3 | *(pendiente)* | — |
-| M4–M14 | *(pendiente)* | — |
+| **Prólogo (P.1–P.4)** | [PROMPTS_VN_PROLOGO.md](PROMPTS_VN_PROLOGO.md) — y la versión lista para pegar en [PROMPTS_VN_PROLOGO_LISTOS.md](PROMPTS_VN_PROLOGO_LISTOS.md) | ✅ 9 placas + 7 retratos + 6 figuras |
+| **Las placas de TODA la campaña** | [PROMPTS_PLACAS.md](PROMPTS_PLACAS.md) — lista para pegar en [PROMPTS_PLACAS_LISTOS.md](PROMPTS_PLACAS_LISTOS.md) | 🟩 ✅ 16 lugares + 9 cuadros propios |
+| Retratos M1–M14 | *(pendiente — paso 2)* | — |
+| Figuras M1–M14 | *(pendiente — paso 3)* | — |
 
 **⚠ Hallazgo del prólogo:** Esteban y Mateo aparecen **en su casa**, no en la guerra. Los
 tokens de STORYBOARD_1 los describen con mameluco y equipo de campaña, y acá no va nada de
