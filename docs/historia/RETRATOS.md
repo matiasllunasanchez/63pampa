@@ -107,7 +107,8 @@ de cada uno ES su personaje.
 personajes que costaría el enfoque de escena completa. Y salen todos de las hojas modelo
 ya especificadas, como *image reference* — máxima consistencia.
 
-**El procedimiento está en [`PROMPTS_RETRATOS_LISTOS.md`](PROMPTS_RETRATOS_LISTOS.md)**, y el
+**El canon de los personajes** —alturas medidas, caras, intención— vive en
+[`RETRATOS_CANON.md`](RETRATOS_CANON.md). **El procedimiento está en [`PROMPTS_RETRATOS_LISTOS.md`](PROMPTS_RETRATOS_LISTOS.md)**, y el
 hallazgo del 24/8 cambia lo que dice esta sección: **las láminas finales de
 [`characters_examples/final/`](characters_examples/final/) YA TRAEN, abajo, la tira de cabezas con
 las expresiones de cada personaje.** Unos **25 de los 38 retratos ya están dibujados** — el

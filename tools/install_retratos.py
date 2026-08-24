@@ -64,23 +64,54 @@ def es_fondo(p, fondo, tol):
 
 
 def limpiar_borde(im, tol):
-    """Rellena el fondo DESDE EL BORDE HACIA ADENTRO. Ver punto 2 del docstring.
+    """Saca el fondo DESDE AFUERA HACIA ADENTRO, por ANILLOS. Ver punto 2 del docstring.
 
-    Se siembra en los cuatro vertices y en el medio de cada lado, y solo donde el pixel ya
-    parece fondo — sembrar sobre el personaje se lo comeria entero. Cada semilla arrastra su
-    region conectada, asi que una canaleta negra se va completa y el contorno negro del
-    personaje, que no toca el borde, se queda.
+    POR QUE ANILLOS Y NO SOLO EL BORDE. Las hojas no vienen todas iguales: algunas traen un MARCO
+    NEGRO alrededor del gris. Sembrando unicamente en el borde exterior se aprende "el fondo es
+    negro", se borra el marco, y el gris de adentro queda CERCADO — ya no toca ningun pixel del
+    borde, no hay semilla que lo alcance, y la hoja sale con el fondo puesto. Es lo que pasaba con
+    la hoja de Norma.
+
+    Tampoco alcanza con repetir la pasada sobre el mismo borde: despues de borrar el marco esos
+    pixeles son transparentes y la segunda pasada no encuentra nada que sembrar.
+
+    Asi que se siembra en VARIOS ANILLOS metidos hacia adentro (0%, 1%, 2%, 4% del lado). El
+    anillo 0 se lleva el marco; alguno de los de adentro cae sobre el gris y se lo lleva a el.
+    Cada anillo aprende SU color dominante, asi que no importa de que color sea cada capa.
+
+    Y cada anillo se recorre ENTERO, no en unos pocos puntos: cuando la cabeza toca un lado,
+    parte el fondo en regiones que no se tocan entre si, y una region sin semilla no se rellena
+    nunca. Cuesta poco — floodfill no vuelve a entrar en lo ya transparente.
+
+    El negro de ADENTRO no se toca nunca: es el contorno del personaje, y es lo que hace al
+    estilo. Solo se va lo que esta conectado a un anillo.
     """
     im = im.convert('RGBA')
     w, h = im.size
-    fondo = fondo_de(im)
-    semillas = [(0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1),
-                (w // 2, 0), (w // 2, h - 1), (0, h // 2), (w - 1, h // 2),
-                (w // 4, 0), (3 * w // 4, 0), (w // 4, h - 1), (3 * w // 4, h - 1)]
     px = im.load()
-    for s in semillas:
-        if px[s][3] and es_fondo(px[s], fondo, tol):
-            ImageDraw.floodfill(im, s, (0, 0, 0, 0), thresh=tol)
+    lado = min(w, h)
+    for frac in (0, 0.01, 0.02, 0.04):
+        d = int(lado * frac)
+        if d * 2 >= min(w, h):
+            break
+        x0, y0, x1, y1 = d, d, w - 1 - d, h - 1 - d
+        anillo = ([(x, y0) for x in range(x0, x1 + 1)] + [(x, y1) for x in range(x0, x1 + 1)] +
+                  [(x0, y) for y in range(y0, y1 + 1)] + [(x1, y) for y in range(y0, y1 + 1)])
+        vivos = [s for s in anillo if px[s][3]]
+        if not vivos:
+            continue
+        cuenta = {}
+        for s in vivos:
+            k = tuple(c // 16 for c in px[s][:3])
+            cuenta[k] = cuenta.get(k, 0) + 1
+        dom = max(cuenta, key=cuenta.get)
+        # si lo dominante del anillo es minoritario, ese anillo ya esta sobre el personaje
+        if cuenta[dom] < len(vivos) * 0.35:
+            continue
+        fondo = tuple(v * 16 + 8 for v in dom)
+        for s in vivos:
+            if px[s][3] and es_fondo(px[s], fondo, tol):
+                ImageDraw.floodfill(im, s, (0, 0, 0, 0), thresh=tol)
     return im
 
 
@@ -106,31 +137,37 @@ def sacar_orla(im, tol, fondo):
     return im
 
 
-def cuadrar(im, anclaje):
-    """Recorta al contenido y lo lleva a cuadrado. Ver punto 3 del docstring.
+def cuadrar(im, anclaje, relleno=None):
+    """Lleva la celda a cuadrado. Ver punto 3 del docstring.
 
-    Tres anclajes, y cual sirve depende de QUE trae la celda:
+    Con FONDO MANTENIDO (lo normal) no hay alfa que medir, asi que se cuadra sobre la celda
+    entera: si sobra ancho se centra, y si sobra alto se recorta segun el anclaje. Lo que falte
+    se rellena con el color del propio fondo de la hoja, no con transparencia — asi el borde no
+    se nota.
 
-      top    — la celda vino de cuerpo entero y sobra cuerpo: el cuadrado de arriba es el busto.
-      centro — la celda trae mas o menos un busto y se recorta parejo arriba y abajo.
-      pad    — la celda YA ES una cabeza justa: recortar le come el pelo o el menton, asi que en
-               vez de recortar se RELLENA a los costados. Es el que va para las tiras cosechadas
-               de las laminas, que vienen ajustadas al milimetro.
+    Con FONDO QUITADO se recorta primero al contenido opaco y despues se cuadra, porque ahi el
+    marco de la celda ya no existe y lo unico que importa es donde quedo la cabeza.
+
+    Tres anclajes:
+      top    — la celda trae mas cuerpo del necesario: el cuadrado de arriba es el busto.
+      centro — recorte parejo arriba y abajo.
+      pad    — no recorta: RELLENA a los costados hasta el cuadrado. Para celdas ya ajustadas.
     """
     from PIL import Image as _I
-    caja = im.getbbox()
-    if caja:
-        im = im.crop(caja)
+    if relleno is None:                      # sin fondo: el contenido manda
+        caja = im.getbbox()
+        if caja:
+            im = im.crop(caja)
     w, h = im.size
     if anclaje == 'pad':
         lado = max(w, h)
-        fondo = _I.new('RGBA', (lado, lado), (0, 0, 0, 0))
-        fondo.alpha_composite(im, ((lado - w) // 2, (lado - h) // 2))
-        return fondo
-    if h > w:                       # figura mas alta que ancha: sobra cuerpo
+        base = _I.new('RGBA', (lado, lado), relleno or (0, 0, 0, 0))
+        base.alpha_composite(im.convert('RGBA'), ((lado - w) // 2, (lado - h) // 2))
+        return base
+    if h > w:
         y = 0 if anclaje == 'top' else (h - w) // 2
         return im.crop((0, y, w, y + w))
-    if w > h:                       # mas ancha que alta: se centra
+    if w > h:
         x = (w - h) // 2
         return im.crop((x, 0, x + h, h))
     return im
@@ -142,6 +179,11 @@ def main():
     ap.add_argument('ids', nargs='+', help='un id por celda, de izquierda a derecha')
     ap.add_argument('--tol', type=int, default=180, help='tolerancia del verde (default 180)')
     ap.add_argument('--borde', type=int, default=90, help='tolerancia del relleno de borde (default 90)')
+    ap.add_argument('--fondo', choices=['mantener', 'quitar'], default='mantener',
+                    help='mantener (default) = se corta el rectangulo tal cual, con su fondo gris. '
+                         'La caja de dialogo ya dibuja un recuadro detras, asi que el retrato queda '
+                         'enmarcado. quitar = recorta el fondo a transparencia (para componer sobre '
+                         'una placa)')
     ap.add_argument('--anclaje', choices=['top', 'centro', 'pad'], default='top',
                     help='top = el busto de una celda de cuerpo entero (default) · centro = recorte parejo · '
                          'pad = no recorta, rellena a los costados (para tiras de cabezas ya ajustadas)')
@@ -179,9 +221,12 @@ def main():
     for i, cid in enumerate(args.ids):
         celda = im.crop((round(i * ancho), 0, round((i + 1) * ancho), im.height))
         fondo = fondo_de(celda)
-        celda = limpiar_borde(celda, args.borde)
-        celda = sacar_orla(celda, args.tol, fondo)
-        celda = cuadrar(celda, args.anclaje)
+        if args.fondo == 'quitar':
+            celda = limpiar_borde(celda, args.borde)
+            celda = sacar_orla(celda, args.tol, fondo)
+            celda = cuadrar(celda, args.anclaje)
+        else:
+            celda = cuadrar(celda.convert('RGBA'), args.anclaje, (*fondo, 255))
         out = DESTINO / f'{cid}.png'
         if args.dry_run:
             print(f'  {cid:24s} {celda.width}x{celda.height} -> {LADO}x{LADO}  (no escrito)')
@@ -195,7 +240,8 @@ def main():
         print(f'  {cid:24s} -> assets/portraits/{cid}.png  {LADO}x{LADO}')
 
     if args.preview and hechas:
-        # tira de control sobre damero, que es la unica forma de VER si quedo halo
+        # con el fondo quitado, el damero es la unica forma de VER si quedo halo; con el fondo
+        # puesto no molesta y sirve igual para juzgar el encuadre
         tira = Image.new('RGBA', (LADO * len(hechas), LADO))
         for i, c in enumerate(hechas):
             for y in range(0, LADO, 12):

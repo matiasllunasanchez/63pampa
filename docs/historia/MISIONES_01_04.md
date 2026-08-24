@@ -221,7 +221,7 @@ armados en [`PROMPTS_VN_PROLOGO_LISTOS.md`](PROMPTS_VN_PROLOGO_LISTOS.md).
 > **GITANO:** Regla dos: el mate lo cebo yo. Regla tres: si no volvés, te lo cebo igual, pero solo. Y cebar solo es tristísimo, así que volvé.
 > **VASCO:** *(bajito)* Siempre hacen chistes. Es la manera que tienen de rezar.
 
-Rostros: `puma_reglamentario` · `gitano_sonrisa` · `vasco_cerrado`.
+Rostros: `puma_neutro` · `gitano_neutro` · `vasco_neutro`.
 
 **Pantalla 6 — LA CASADA**
 > **GITANO:** Andá, mirala, Pichón. Está pegada adentro del locker. Esa mujer no es de nadie que esté solo: tiene dueño, y el dueño tiene charreteras.
@@ -229,7 +229,7 @@ Rostros: `puma_reglamentario` · `gitano_sonrisa` · `vasco_cerrado`.
 > *El Vasco se persigna, sube la escalerilla y no contesta. Nunca desmiente nada.*
 > **CÓNDOR:** Escuadrilla CAUQUÉN, autorizada pista dos. Buen vuelo.
 
-Rostros: `gitano_carcajada` · `pichon_sonrisa` · *(sin cara)* · `condor_radio`.
+Rostros: `gitano_sonrisa` · `pichon_sonrisa` · *(sin cara)* · `condor_radio`.
 
 **Pantalla 7 — la tarjeta de nivel** *(sin imagen)*
 `MISIÓN 1 — SAL EN LAS ALAS` · *Objetivo: dominar el vuelo rasante · Mar abierto*
@@ -436,7 +436,7 @@ La más corta de la campaña: **una sola pantalla de entrada**.
 > **ESTEBAN:** ¿Y alcanza?
 > **PUMA:** No. Pero es lo que hay, y lo que hay lo volamos con todo.
 
-Rostros: *(sin cara)* · `puma_reglamentario` · `tero_preocupado` · `puma_ceno`.
+Rostros: *(sin cara)* · `puma_neutro` · `tero_preocupado` · `puma_ceno`.
 
 **Pantalla 2 — tarjeta de nivel:** `MISIÓN 2 — BAUTISMO DE FUEGO` · *1 de mayo de 1982 · Costa*
 
@@ -702,7 +702,7 @@ nivel: la escolta y el tener que irse.
 > **GITANO:** ¡Le dimos! ¡A la Royal Navy le dimos, muchachos! ¡Argentina, carajo!
 > **PUMA:** Veinte marinos, Gitano. Del otro lado hay pibes iguales a nosotros que hoy no vuelven. Alegrate de que nosotros sí. Y callate un minuto por los que no.
 
-Rostros: *(sin cara)* · `gitano_carcajada` · `puma_ceno`.
+Rostros: *(sin cara)* · `gitano_sonrisa` · `puma_ceno`.
 **Es la pantalla que enseña el tono del juego.** Puma corta la celebración, y el jugador aprende
 en qué registro está parado.
 
@@ -712,7 +712,7 @@ en qué registro está parado.
 > *Orden de misión: ataque rasante a la escolta. Hoy sienten miedo ellos.*
 
 Rostros: **`gitano_risa_apagada`** ← *la cabeza que ninguna otra hoja tiene: el medio segundo en
-que la sonrisa cae y aparece el pibe que fue* · `puma_reglamentario`.
+que la sonrisa cae y aparece el pibe que fue* · `puma_neutro`.
 
 **Pantalla 3 — tarjeta:** `MISIÓN 3 — EL DÍA QUE SANGRÓ EL MAR` · *4 de mayo de 1982 · HMS SHEFFIELD*
 
@@ -948,14 +948,14 @@ entrega, **dos quedan sin aprender por partida**.
 > *Los británicos desembarcan. El estrecho se vuelve una trampa de fuego antiaéreo que los propios pilotos bautizan, con humor de velorio, el Callejón de las Bombas. Hay que entrar ahí. Todos los días.*
 > **PUMA:** Es la boca del lobo. Entramos, soltamos, salimos. Nadie se hace el héroe: los héroes no llegan a cebar el mate de la tarde.
 
-Rostros: *(sin cara)* · `puma_reglamentario`.
+Rostros: *(sin cara)* · `puma_neutro`.
 
 **M4_2 — POR EL HIJO DE ALGUIEN**
 > **ESTEBAN:** Puma. Mi hijo está en tierra. Cerca de acá.
 > **PUMA:** Lo sé, Tero. Todos tenemos a alguien abajo. Cada barco que tocamos es una bomba menos cayéndole a los pibes. Volás por tu hijo. Volamos todos por el hijo de alguien.
 > **GITANO:** ¿Vieron que hicieron un festival allá en Buenos Aires? Juntaron montañas de cosas para los pibes. Chocolates, cigarrillos, abrigo... Y nada. Eso digo. Juntaron.
 
-Rostros: `tero_preocupado` · `puma_ceno` · **`gitano_serio`** ← *si el Gitano está serio, algo
+Rostros: `tero_preocupado` · `puma_ceno` · **`gitano_ceno`** ← *si el Gitano está serio, algo
 pasa: es el presagio más barato del juego, y acá se usa para plantar lo que no llegó.*
 
 **Pantalla 3 — tarjeta:** `MISIÓN 4 — EL CALLEJÓN DE LAS BOMBAS` · *21 de mayo de 1982 · HMS ARDENT*
@@ -1068,7 +1068,9 @@ a broken animal leg.`
 # Los rostros del diálogo · M1 a M4
 
 **Los prompts y el procedimiento viven en
-[`PROMPTS_RETRATOS_LISTOS.md`](PROMPTS_RETRATOS_LISTOS.md).** Ese documento se reescribió el 24/8
+[`PROMPTS_RETRATOS_LISTOS.md`](PROMPTS_RETRATOS_LISTOS.md)**, que genera
+[`tools/hacer_prompts_retratos.py`](../../tools/hacer_prompts_retratos.py) — **los ids válidos
+salen de ahí**: `python3 tools/hacer_prompts_retratos.py --ids` los lista todos. Ese documento se reescribió el 24/8
 sobre las láminas finales, y trae el hallazgo que cambia el trabajo: **las láminas de
 `characters_examples/final/` ya traen dibujadas las tiras de expresiones** — unos 25 de los 38
 retratos existen y solo hay que cosecharlos con `tools/install_retratos.py`.
@@ -1079,19 +1081,19 @@ Acá queda únicamente **qué cara pide cada línea de M1 a M4**:
 |---|---|---|---|
 | P3_4 · M2_1 · M4_2 | ESTEBAN | `tero_preocupado` | ✅ en `tero3` |
 | M1_5B *(Cóndor)* · P3_4 | CÓNDOR | `condor_radio` | ❌ generar |
-| M1_3 · M3_2 · M4_1 | PUMA | `puma_reglamentario` | ✅ en `puma` |
+| M1_3 · M3_2 · M4_1 | PUMA | `puma_neutro` | ✅ en `puma` |
 | M3_1 · M4_2 | PUMA | `puma_ceno` | ✅ en `puma` |
-| M1_3 | GITANO | `gitano_sonrisa` | ✅ en `gitano` |
-| M1_5B · M3_1 | GITANO | `gitano_carcajada` | ✅ en `gitano` |
-| M4_2 | GITANO | `gitano_serio` | ❌ generar — **el presagio** |
+| M1_3 | GITANO | `gitano_neutro` | ✅ en `gitano` |
+| M1_5B · M3_1 | GITANO | `gitano_sonrisa` | ✅ en `gitano` |
+| M4_2 | GITANO | `gitano_ceno` | ❌ generar — **el presagio** |
 | M3_2 | GITANO | `gitano_risa_apagada` | ❌ generar — la sonrisa a mitad de caerse |
-| M1_3 | VASCO | `vasco_cerrado` | ✅ en `vasco2` |
+| M1_3 | VASCO | `vasco_neutro` | ✅ en `vasco2` |
 | M1_5B | PICHÓN | `pichon_sonrisa` | ✅ en `pichon3` |
-| M1_7 · M2_5 | TURCO | `turco_ternura` | ❌ generar |
-| P2_3 | MATEO | `mateo_sonrisa` · `mateo_serio` | ✅ en `mato32` *(cabezas sueltas)* |
+| M1_7 · M2_5 | TURCO | `turco_sonrisa` | ❌ generar |
+| P2_3 | MATEO | `mateo_sonrisa` · `mateo_neutro` | ✅ en `mato32` *(cabezas sueltas)* |
 
 **De las doce caras que piden las cuatro primeras misiones, ocho ya están dibujadas.** Las cuatro
-que faltan son `condor_radio`, `gitano_serio`, `gitano_risa_apagada` y `turco_ternura`.
+que faltan son `condor_radio`, `gitano_ceno`, `gitano_risa_apagada` y `turco_sonrisa`.
 
 > **Y una que el guion de M1–M4 todavía no usa pero debería:** `mato32` trae a Mateo en **dos
 > estados** —recién llegado (rapado, limpio) y después de semanas en la isla (pelo crecido,
@@ -1110,6 +1112,6 @@ Cosas que este repaso destapó y que **no** se tocaron:
 | 2 | **Las placas históricas no tienen tratamiento visual definido** | `M3_HIST`, `M4_HIST` y 6 más | son cifras reales sobre muertos reales; pixel art las estetiza. Sin decidir esto no se pueden generar |
 | 3 | **`p4_hoja` sigue sin generarse** | `PROMPTS_PLACAS.md` B1 | es la hoja vacía reutilizable: **las 11 cartas de Mateo la usan**. Hoy caen en `p1c_cuaderno`, que tiene el cuaderno dibujado adentro de la escena |
 | 4 | **EL PULSO en M3 tiene un solo verbo** | `pulso.js` + `loadoutAt(2)` | el jugador llega con una sola pirueta, así que los dos compases de M3 son forzosamente el mismo. Verificar jugando si se lee como intención o como pobreza |
-| 5 | **Falta decidir `tero_joven`** | P1_2 | ver arriba |
+| 5 | **Falta decidir `esteban_joven_calido`** | P1_2 | ver arriba |
 | 6 | **Las claves de radio de M3 se llaman `m4_radio*`** | `strings.js` + `missions.js:84-87` | resto del numerado viejo del guion. Renombrar es mecánico pero toca dos archivos y ninguna prueba lo cubre |
 | 7 | **No separar M4_2 de M4_CARTA** | `strings.js` | «volamos todos por el hijo de alguien» / «también era el hijo de alguien». Si la campaña se reordena, ese par se rompe sin que nada avise |

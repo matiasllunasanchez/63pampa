@@ -14,6 +14,7 @@ su fisico y como se le lee cada una de las seis expresiones.
 
     python3 tools/hacer_prompts_retratos.py
 """
+import sys
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -406,6 +407,9 @@ escala de cabeza, misma altura de ojos.** Eso es lo que hace que la familia se l
 los retratos se alternan en la misma caja de diálogo, y si en uno la cabeza es más grande, al
 cambiar de hablante el busto salta.
 
+> 📐 **El respaldo de estas decisiones** —las alturas medidas, la cara de cada uno y la
+> intención de cada lámina— está en [`RETRATOS_CANON.md`](RETRATOS_CANON.md).
+
 > ⚙ **Este archivo lo genera [`tools/hacer_prompts_retratos.py`](../../tools/hacer_prompts_retratos.py).**
 > El bloque de grilla es literalmente el mismo string en las ocho hojas. **No editar acá**: se
 > toca el script y se regenera, o las hojas se desincronizan y nadie se entera hasta ver el juego.
@@ -437,6 +441,18 @@ falta alguno simplemente no dibuja busto — se puede ir de a uno.
 ---
 
 """
+
+# --ids lista los nombres validos de retrato. Existe porque los ids se nombran a mano en
+# data/strings.js y en la documentacion de misiones, y ahi es donde se desincronizan: un id mal
+# escrito no da error, simplemente no dibuja busto y nadie se entera. Esta es la lista de verdad.
+if '--ids' in sys.argv:
+    todos = ['condor_reposo', 'condor_radio']
+    for p in P:
+        todos += [f'{p["id"]}_{r}' for r in RANURAS[:5]] + [f'{p["id"]}_{p["propia"][0]}']
+    for p in SEC:
+        todos += [f'{p["id"]}_{n}' for n, _ in p['exp']]
+    print('\n'.join(sorted(todos)))
+    raise SystemExit
 
 partes = [CAB] + [hoja(p) + '\n---\n\n' for p in P]
 partes.append("""# Los que no están en `team.png`

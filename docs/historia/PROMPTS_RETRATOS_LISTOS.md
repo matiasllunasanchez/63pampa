@@ -5,6 +5,9 @@ escala de cabeza, misma altura de ojos.** Eso es lo que hace que la familia se l
 los retratos se alternan en la misma caja de diálogo, y si en uno la cabeza es más grande, al
 cambiar de hablante el busto salta.
 
+> 📐 **El respaldo de estas decisiones** —las alturas medidas, la cara de cada uno y la
+> intención de cada lámina— está en [`RETRATOS_CANON.md`](RETRATOS_CANON.md).
+
 > ⚙ **Este archivo lo genera [`tools/hacer_prompts_retratos.py`](../../tools/hacer_prompts_retratos.py).**
 > El bloque de grilla es literalmente el mismo string en las ocho hojas. **No editar acá**: se
 > toca el script y se regenera, o las hojas se desincronizan y nadie se entera hasta ver el juego.
