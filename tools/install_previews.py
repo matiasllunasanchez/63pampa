@@ -24,6 +24,9 @@ Necesita numpy y Pillow. Si no estan:
     python3 -m venv .venv-art && ./.venv-art/bin/pip install numpy Pillow
     ./.venv-art/bin/python tools/install_previews.py ...
 """
+
+# entra al venv de arte si hace falta (ver tools/_venv.py). VA PRIMERO, antes de PIL.
+import _venv  # noqa: F401
 import argparse
 import sys
 from pathlib import Path

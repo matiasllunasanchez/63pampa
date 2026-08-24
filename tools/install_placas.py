@@ -16,6 +16,9 @@ Las originales NO se tocan: quedan al lado, por si hay que rehacer la conversion
 Uso:
     python3 tools/install_placas.py [--calidad 88] [--dry-run]
 """
+
+# entra al venv de arte si hace falta (ver tools/_venv.py). VA PRIMERO, antes de PIL.
+import _venv  # noqa: F401
 import argparse
 import sys
 from pathlib import Path

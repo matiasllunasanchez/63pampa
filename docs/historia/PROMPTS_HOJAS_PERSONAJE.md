@@ -183,7 +183,14 @@ Indicativo **TERO** (el pájaro que grita lejos del nido para alejar al depredad
 su personaje y del final del guion). Es el que vuela; el jugador es él.
 
 > **Construido como su indicativo: es el pájaro.** Alto, enjuto, alerta, el cuello adelantado, nunca
-> del todo quieto. Es el **más flaco y más alto** del escuadrón y el **opuesto exacto de Puma**, que
+> del todo quieto. Es el **más flaco** del escuadrón y el **opuesto exacto de Puma**, que
+>
+> **Medido el 24/8 sobre [`team.png`](characters_examples/final/team.png)** *(la formación de alturas,
+> los ocho sobre la misma línea de piso)*: **el más alto es el VASCO**, no Esteban. Esteban y Puma
+> miden lo mismo —0.91 del más alto, cinco píxeles de diferencia sobre quinientos— y lo que los
+> separa es el **ancho de hombros**: 141 contra 200. Lo de Esteban es la **delgadez** (el más
+> esbelto de los ocho, 3.56 de alto sobre hombros), no la estatura. La tabla completa está en
+> [`PROMPTS_RETRATOS_LISTOS.md`](PROMPTS_RETRATOS_LISTOS.md) §6.
 > es la mole.
 >
 > *Cambios v2:* silueta reforzada con tres formulaciones distintas (el generador ignoró una sola),
@@ -1095,7 +1102,7 @@ de `STORYBOARD_1.md` (que ya quedó actualizada con esta misma tabla).
 
 | Token | Descriptor (inglés, pegar tal cual) |
 |---|---|
-| `{ESTEBAN}` | argentine air force pilot, 41 years old, **very tall and very thin, gaunt and narrow, the tallest and thinnest of the squadron**, neck carried forward, **criollo features, olive skin, black hair greying at the temples**, clean-shaven, tired warm eyes, olive flight suit **unzipped to mid-chest**, no jacket, **white 1960s flight helmet with oxygen mask hanging, under one arm, black leather flight boots** |
+| `{ESTEBAN}` | argentine air force pilot, 41 years old, **very thin, gaunt and narrow — the THINNEST of the squadron, though NOT the tallest: he is average height, the same as Puma, and the Basque is the tall one**, neck carried forward, **criollo features, olive skin, black hair greying at the temples**, clean-shaven, tired warm eyes, olive flight suit **unzipped to mid-chest**, no jacket, **white 1960s flight helmet with oxygen mask hanging, under one arm, black leather flight boots** |
 | `{MATEO}` | argentine army conscript, **18 years old and reads as 18**, skinny teenager, **criollo features, olive skin, black hair, patchy teenage mustache**, **hip-length oversized olive hooded parka (NOT a long coat)**, **argentine brown leather webbing with canteen**, **unmarked steel helmet with cloth cover over a wool cap**, brown leather boots caked in peat mud, notebook and blue pen in his pocket, **wind-burnt face, cracked lips**, clearly the son of a tall lean 41-year-old pilot |
 | `{PUMA}` | argentine squadron leader, 44 years old, **short and very heavy, squat, the broadest and shortest of the squadron**, criollo, sun-darkened, **iron-grey hair cropped to the scalp**, sun-squinted eyes, **grey BRUSH mustache**, **brown leather flight jacket over** his olive flight suit, **helmet held low in one hand**, black leather flight boots |
 | `{GITANO}` | argentine pilot, 33 years old, **the most open silhouette: flight suit pulled down to the waist with sleeves knotted in front, white undershirt, bare arms**, **tall voluminous black curly hair, the darkest-skinned of the squadron**, big warm grin, **brown gourd mate with metal bombilla** in hand, black leather flight boots |

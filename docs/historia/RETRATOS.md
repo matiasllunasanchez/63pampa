@@ -107,14 +107,19 @@ de cada uno ES su personaje.
 personajes que costaría el enfoque de escena completa. Y salen todos de las hojas modelo
 ya especificadas, como *image reference* — máxima consistencia.
 
-**Prompt patrón de retrato:**
-```
-[bloque AIRE de estilo] Portrait bust of {PERSONAJE — descriptor completo de la hoja},
-chest-up, three-quarter view facing slightly left, [EXPRESIÓN — ej: "a small contained
-frown of worry, jaw set"], personal marks clearly visible, neutral dark background for
-clean cutout, consistent framing and scale, pixel art character portrait for a dialogue
-box. Argentina 1982 [candado de época]. No text, no watermark.
-```
+**El procedimiento está en [`PROMPTS_RETRATOS_LISTOS.md`](PROMPTS_RETRATOS_LISTOS.md)**, y el
+hallazgo del 24/8 cambia lo que dice esta sección: **las láminas finales de
+[`characters_examples/final/`](characters_examples/final/) YA TRAEN, abajo, la tira de cabezas con
+las expresiones de cada personaje.** Unos **25 de los 38 retratos ya están dibujados** — el
+trabajo es cosecharlos, no generarlos.
+
+Ese documento trae además la medida real —**108 × 108 px**, que sale de los 36 px de
+diseño de `screens.js:482` por `U·SC = 3`— y la lista de qué detalle sobrevive a esa escala y
+cuál no: a 59 px de cabeza, las pecas del Pichón y la cicatriz en la ceja del Gitano no existen,
+así que las expresiones se dibujan con **cejas, boca y ángulo de cabeza** y nada más.
+
+Para cortar la tira en retratos sueltos: `python3 tools/install_retratos.py <lámina> --region … id1 id2 …` —
+parte la tira, saca el fondo verde y deja cada celda en `assets/portraits/`.
 
 ## 5. Enganche con el motor *(barato a propósito)*
 

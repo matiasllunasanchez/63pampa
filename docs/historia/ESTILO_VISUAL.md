@@ -7,7 +7,55 @@
 
 ---
 
-## 1 · El bloque canónico *(pegar TAL CUAL, sin editar)*
+## 0 · ⚠ Corrección del 24/8 — cuál es el bloque de verdad
+
+**Este archivo se escribió como fuente única, pero no es el que generó el arte del proyecto.**
+Las láminas de personaje de [`characters_examples/final/`](characters_examples/final/) —que son
+el material de referencia— salieron del bloque que vive en
+[`PROMPTS_HOJAS_PERSONAJE.md`](PROMPTS_HOJAS_PERSONAJE.md), y no es el mismo:
+
+```
+Detailed 90s arcade run-and-gun pixel art in the style of Metal Slug (SNK Neo Geo
+era), hand-drawn sprite look, chunky black pixel outlines, expressive exaggerated
+character poses and faces, rich dithered shading, saturated military palette of
+olive drab, steel blue-grey, silver and warm sand with a single red accent when
+noted, dramatic cinematic side-scroller composition, crisp clean pixels, no
+anti-aliasing, no photorealism, no 3D render, no smooth digital painting.
+
+Character sprite model sheet of a single character repeated in several views,
+neutral flat mid-grey background, consistent design across all views, arcade
+sprite proportions, orthographic reference lámina layout.
+```
+
+**Las diferencias que importan**, y que explican por qué usar el de §1 para personajes daba otra
+cosa:
+
+| | §1 *(el de este archivo)* | el que generó las láminas |
+|---|---|---|
+| paleta | «pequeña y disciplinada» | **`saturated military palette of olive drab, steel blue-grey, silver and warm sand`** — nombrada, no abstracta |
+| fondo | no lo dice | **`neutral flat mid-grey background`** |
+| proporciones | «silueta legible primero» | **`arcade sprite proportions, orthographic reference lámina layout`** |
+| negaciones | lista larga *(bloom, lens flare, drop shadow, vector…)* | corta: `no anti-aliasing, no photorealism, no 3D render, no smooth digital painting` |
+
+La lista larga de negaciones de §1 **empuja el resultado lejos** de lo que ya está dibujado:
+pedirle que evite cinco cosas más lo mueve a un registro más duro y más plano que el del juego.
+
+### La regla, y vale para todo frente de arte
+
+**El estilo del proyecto no es el que está escrito: es el que está dibujado.** Si un prompt de
+este archivo y una lámina de `final/` se contradicen, **gana la lámina**. Este archivo describe;
+las láminas definen.
+
+**Para personajes y rostros: usar el bloque de arriba**, y siempre con la lámina final del
+personaje adjunta como referencia de forma. Ver
+[`PROMPTS_RETRATOS_LISTOS.md`](PROMPTS_RETRATOS_LISTOS.md).
+
+**Para placas de ambiente y objetos** —que no tienen lámina final contra la cual comparar— el
+bloque de §1 sigue sirviendo, y es el que produjo las 32 placas instaladas.
+
+---
+
+## 1 · El bloque para PLACAS Y OBJETOS *(no para personajes — ver §0)*
 
 Va **al principio** de todo prompt de imagen del proyecto.
 

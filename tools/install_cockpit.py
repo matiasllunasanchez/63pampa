@@ -18,6 +18,9 @@ Uso:
 Necesita numpy y Pillow:
     python3 -m venv .venv-art && ./.venv-art/bin/pip install numpy Pillow
 """
+
+# entra al venv de arte si hace falta (ver tools/_venv.py). VA PRIMERO, antes de PIL.
+import _venv  # noqa: F401
 import argparse
 import sys
 from pathlib import Path
