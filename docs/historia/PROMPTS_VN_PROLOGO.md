@@ -228,7 +228,7 @@ cuadro de diálogo). Por eso cada escena con gente lleva **tres bloques**:
 
 1. **⚠ LA LUZ TIENE QUE COINCIDIR CON LA PLACA.** Es el único riesgo real de componer: si
    la figura viene iluminada de otro lado, se ve pegoteada. Por eso **cada prompt de figura
-   repite la luz de su placa palabra por palabra** (`warm late-morning light from a small
+   repite la luz de su placa palabra por palabra** (`warm low late-afternoon light from a small
    window on the left`). No es redundancia: es lo que hace que funcione.
 2. **Fondo plano para recortar** — `flat solid magenta background for clean cutout`. El
    magenta porque no existe en la paleta del juego y el recorte sale limpio.
@@ -344,7 +344,7 @@ cara** (canon 3.4).
 ### PLACA P.2 — la cocina de Norma, 1982, cálida
 
 ```
-[AIRE] Interior of a modest Argentine home kitchen in 1982, warm late-morning light
+[AIRE] Interior of a modest Argentine home kitchen in 1982, a Friday afternoon, warm low late-afternoon light
 through a small curtained window, formica table with a plastic tablecloth, four
 mismatched wooden chairs, a kettle on the lit stove with a thin plume of steam, a
 wall-mounted rotary telephone, a small valve radio on the shelf, a saint's picture
@@ -367,7 +367,7 @@ radio, ídem. **Con una sola placa tenés la escena entera.**
 donde la composición familiar dice algo por sí sola):
 
 ```
-[AIRE] Interior of a modest Argentine home kitchen in 1982, warm late-morning light
+[AIRE] Interior of a modest Argentine home kitchen in 1982, a Friday afternoon, warm low late-afternoon light
 through a small curtained window, formica table with a plastic tablecloth, a kettle on
 the lit stove with a thin plume of steam, a wall-mounted rotary telephone, a small
 valve radio on the shelf, worn tiled floor. Three figures, all STATIC, held still
@@ -400,7 +400,7 @@ solo cambio de placa hace todo el corte de tono. Mismo encuadre, mismos objetos:
 cambia es la luz y que la radio ahora está prendida.
 
 ```
-[AIRE] Interior of a modest Argentine home kitchen in 1982, the exact same room and
+[AIRE] Interior of a modest Argentine home kitchen in 1982, a Friday afternoon, the exact same room and
 camera angle as before but the warm light now drained to a flat cold grey through the
 small curtained window, formica table with a plastic tablecloth, four mismatched
 wooden chairs, a kettle still whistling on the lit stove with a thin plume of steam, a
@@ -429,7 +429,7 @@ narrow, neck carried forward, black hair greying at the temples, clean-shaven,
 wearing a plain buttoned civilian shirt with the sleeves rolled up — NO flight suit,
 NO military equipment of any kind —, seated on a wooden kitchen chair seen from
 three-quarter BEHIND, one forearm resting on the table, relaxed, his face turned away
-and NOT legible. STATIC held pose, no motion blur, no action. Warm late-morning light
+and NOT legible. STATIC held pose, no motion blur, no action. Warm low late-afternoon light
 from a small window on the left. Flat solid magenta background for clean cutout.
 Argentina 1982, argentine latin-american person, no modern equipment, no NATO or US
 insignia, no national flag on clothing. No text, no watermark.
@@ -443,7 +443,7 @@ narrow, black hair greying at the temples, plain buttoned civilian shirt with sl
 rolled up, standing with his BACK to the viewer at a wall-mounted rotary telephone,
 the handset held to his ear, the free hand flat against the wall, shoulders very
 still, face NOT visible. STATIC held pose, no motion blur, no action. Warm
-late-morning light from a small window on the left. Flat solid magenta background for
+low late-afternoon light from a small window on the left. Flat solid magenta background for
 clean cutout. Argentina 1982, argentine latin-american person, no modern equipment, no
 NATO or US insignia, no national flag on clothing. No text, no watermark.
 ```
@@ -455,7 +455,7 @@ NATO or US insignia, no national flag on clothing. No text, no watermark.
 narrow, black hair greying at the temples, plain buttoned civilian shirt with sleeves
 rolled up, standing with his BACK to the viewer at a shelf, one hand on the knob of a
 small valve radio, head slightly lowered, completely still, face NOT visible. STATIC
-held pose, no motion blur, no action. Warm late-morning light from a small window on
+held pose, no motion blur, no action. Warm low late-afternoon light from a small window on
 the left. Flat solid magenta background for clean cutout. Argentina 1982, argentine
 latin-american person, no modern equipment, no NATO or US insignia, no national flag
 on clothing. No text, no watermark.
@@ -469,7 +469,7 @@ features, olive skin, head freshly shaved to the scalp for military service, pat
 teenage mustache, plain civilian short-sleeved shirt — NO uniform, NO helmet, NO field
 gear —, seated on a wooden kitchen chair in three-quarter view, leaning back easy with
 one arm hooked over the chair back, small in frame, face small and NOT detailed.
-STATIC held pose, no motion blur, no action. Warm late-morning light from a small
+STATIC held pose, no motion blur, no action. Warm low late-afternoon light from a small
 window on the left. Flat solid magenta background for clean cutout. Argentina 1982,
 argentine latin-american person, no modern military equipment, no NATO or US insignia,
 no national flag on clothing. No text, no watermark.
@@ -482,7 +482,7 @@ no national flag on clothing. No text, no watermark.
 dark hair with grey at the temples pulled back in a low bun, faded blue dress with a
 cream floral apron, standing with her BACK to the viewer at a stove, serving from a pot
 with a wooden spoon, weight on one hip, face NOT visible. STATIC held pose, no motion
-blur, no action. Warm late-morning light from a small window on the left. Flat solid
+blur, no action. Warm low late-afternoon light from a small window on the left. Flat solid
 magenta background for clean cutout. Argentina 1982, argentine latin-american person,
 no military insignia of any kind, no national flag on clothing. No text, no watermark.
 ```
@@ -495,7 +495,7 @@ dark hair with grey at the temples pulled back in a low bun, faded blue dress wi
 cream floral apron, standing in three-quarter view half-turned toward the room, holding
 out a telephone handset on its stretched coiled cord toward someone off-frame, the
 other hand on her hip, face small and NOT detailed. STATIC held pose, no motion blur,
-no action. Warm late-morning light from a small window on the left. Flat solid magenta
+no action. Warm low late-afternoon light from a small window on the left. Flat solid magenta
 background for clean cutout. Argentina 1982, argentine latin-american person, no
 military insignia of any kind, no national flag on clothing. No text, no watermark.
 ```
@@ -553,7 +553,7 @@ gaunt and narrow, neck carried forward, criollo features, olive skin, black hair
 greying at the temples, clean-shaven, tired warm eyes, wearing a plain buttoned
 civilian shirt with the sleeves rolled up — NO flight suit, NO helmet, NO military
 equipment of any kind —, chest-up, three-quarter view facing slightly left, a small
-amused closed-mouth smile, eyes crinkled, relaxed at his own kitchen table, neutral
+amused closed-mouth smile, eyes crinkled, relaxed at his own kitchen table on a Friday afternoon on a Friday afternoon, neutral
 dark background for clean cutout, consistent framing and scale, pixel art character
 portrait for a dialogue box. Argentina 1982, argentine latin-american face, no
 modern equipment, no NATO or US insignia, no national flag on clothing. No text, no

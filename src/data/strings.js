@@ -89,10 +89,36 @@ export const STRINGS = {
     // que el guion pide no es el texto completo sino que el jugador VUELE mientras escucha. Se
     // eligieron las cuatro lineas que sostienen la escena: la posicion que el jugador va a usar,
     // la pregunta de Gitano, la respuesta que planta el Narwal, y el cierre de Puma.
-    m4_radio1: 'CONDOR: ANOTO POSICIONES. DOS AL NORESTE, RUMBO SUR.',
-    m4_radio2: 'GITANO: ¿DE DONDE SACAS VOS TODO ESO, CONDOR?',
-    m4_radio3: 'CONDOR: DE UN BARCO PESQUERO LLAMADO NARWAL.',
-    m4_radio4: 'PUMA: NO SON MILITARES. Y ESTAN MAS ADENTRO QUE NOSOTROS.',
+    // EL TRANSITO DEL NARWAL (GUION_3 M4). Doce entradas y no cuatro: el guion pide "dos o tres
+    // minutos en los que el jugador solamente vuela y escucha", y con cuatro lineas eso no es una
+    // conversacion, es un cartel en cuatro pedazos. La risa del Gitano tiene que tener tiempo de
+    // apagarse sola — ese es el beat, y necesita renglones para caerse.
+    m4_radio1: 'CONDOR: PLATA FIEL, ANOTO POSICIONES. DOS UNIDADES AL NORESTE, RUMBO SUR, VELOCIDAD DIEZ.',
+    m4_radio2: 'CONDOR: UNA TERCERA MAS ATRAS, SIN CONFIRMAR.',
+    m4_radio3: 'PUMA: COPIADO, CONDOR.',
+    m4_radio4: 'GITANO: CONDOR, UNA PREGUNTA DE CURIOSO NOMAS. ¿DE DONDE SACAS VOS TODO ESO?',
+    m4_radio5: 'CONDOR: DE UN BARCO PESQUERO LLAMADO NARWAL.',
+    m4_radio6: 'GITANO: …¿UN PESQUERO?',
+    m4_radio7: 'CONDOR: SETENTA METROS. TIRA LA RED, LA LEVANTA, LA VUELVE A TIRAR.',
+    m4_radio8: 'GITANO: ¡PARA! ¿LA FLOTA INGLESA LE PASA POR ADELANTE A UNOS TIPOS QUE ESTAN PESCANDO?',
+    m4_radio9: 'CONDOR: POR ADELANTE, POR ATRAS Y POR ARRIBA. HACE TRES SEMANAS.',
+    m4_radio10: 'GITANO: …TRES SEMANAS AHI ADENTRO. ¿Y ESOS TIPOS QUE SON? ¿MARINA?',
+    m4_radio11: 'CONDOR: UN OFICIAL A BORDO. EL RESTO, PESCADORES.',
+    m4_radio12: 'VASCO: SIN NADA PARA TIRAR.',
+    // EL COBRO (GUION_3 M5). Mismo tramo que m4, diecisiete dias despues: el jugador reconoce
+    // hasta el ritmo de la radio. La perdida es MECANICA, no declarada — aca el HUD no marca las
+    // unidades, y el jugador sabe exactamente por que. Nadie se lo explica.
+    m5_radio1: 'CONDOR: PLATA FIEL, POSICIONES. ACTIVIDAD EN SAN CARLOS. VARIAS UNIDADES.',
+    m5_radio2: 'GITANO: ¿VARIAS CUANTAS, CONDOR?',
+    m5_radio3: 'CONDOR: VARIAS. NO TENGO NUMERO.',
+    m5_radio4: 'GITANO: ¿COMO QUE NO TENES NUMERO? LA OTRA VEZ ME DISTE HASTA LA VELOCIDAD.',
+    m5_radio5: 'GITANO: CONDOR. PREGUNTALE AL PESQUERO.',
+    m5_radio6: '...',
+    m5_radio7: 'GITANO: CONDOR. EL PESQUERO.',
+    m5_radio8: 'CONDOR: HACE DOCE DIAS QUE NO TRANSMITE.',
+    m5_radio9: 'GITANO: …COPIADO.',
+    m5_radio10: 'PUMA: FORMACION CERRADA. ENTRAMOS.',
+    m4_radio13: 'PUMA: NO SON MILITARES, GITANO. Y ESTAN MAS ADENTRO QUE NOSOTROS.',
     ch_nozone: 'ACA NO ENTRA NADIE, PATRIA.',
     // menu de PAUSA (overlay sobre la partida congelada)
     pauseTitle: 'PAUSA',
@@ -920,16 +946,18 @@ export const STRINGS = {
     // ---------- BRIEFINGS (tarjeta corta de cada mision — la usa el CICLO DE MUERTE) ----------
     briefM1: 'Vuelo de adaptacion sobre mar abierto. Pegado al agua el radar de ellos no te ve: volves con sal en las alas.',
     briefM2: 'Primera salida real contra la flota. Ellos tienen la maquina; nosotros, las manos. Rasante o nada.',
-    briefM3: 'La Task Force navega al este de las islas. Un destructor Tipo 42 cubre la pantalla de radar de la flota. Vola bajo: su radar no distingue un blanco pegado al agua.',
-    briefM4: 'Los britanicos desembarcaron en San Carlos. Las fragatas cubren la cabecera de playa desde el estrecho. El pasillo es angosto y esta erizado de antiaerea.',
-    briefM5: 'Segunda jornada sobre San Carlos. El estrecho ya se gano el apodo de Callejon de las Bombas. La fragata escolta el fondeadero.',
-    briefM6: 'Un Tipo 42 se ofrece de senuelo al noroeste del estrecho para atraer aviones lejos del desembarco. Mordio el anzuelo al reves: hoy el senuelo sos vos.',
-    briefM7: 'Un carguero portacontenedores trae helicopteros pesados para el avance britanico. Sin esos helicopteros, la infanteria camina.',
-    briefM8: 'El corazon del desembarco britanico: la zona mas defendida de la guerra. Cruzar la muralla de fuego y volver para contarlo.',
-    briefM9: 'Buque logistico fondeado en Bahia Agradable, cargado de tropa esperando desembarcar. Esta al descubierto y sin cobertura aerea.',
-    briefM10: 'Misma tarde, segunda salida sobre Fitzroy. El segundo buque de desembarco espera su turno.',
-    briefM11: 'De noche las fragatas martillan los montes alrededor de Puerto Argentino. Hay que callar a la escolta que da fuego naval.',
-    briefM12: 'Mision denegada por el comando. Sin indicativo, sin reabastecedor, sin margen. El buque bombardea el monte. Se vuela igual.',
+    briefM3: 'Patrulla de reconocimiento costero. Sin presion y sin buque: la salida sirve para probar en el aire lo que el Pichon le toco al avion.',
+    briefM4: 'La Task Force navega al este de las islas. Un destructor Tipo 42 cubre la pantalla de radar de la flota. Vola bajo: su radar no distingue un blanco pegado al agua.',
+    briefM5: 'Los britanicos desembarcaron en San Carlos. Las fragatas cubren la cabecera de playa desde el estrecho. El pasillo es angosto y esta erizado de antiaerea.',
+    briefM6: 'Segunda jornada sobre San Carlos. El estrecho ya se gano el apodo de Callejon de las Bombas. La fragata escolta el fondeadero.',
+    briefM7: 'Un Tipo 42 se ofrece de senuelo al noroeste del estrecho para atraer aviones lejos del desembarco. Mordio el anzuelo al reves: hoy el senuelo sos vos.',
+    briefM8: 'Un carguero portacontenedores trae helicopteros pesados para el avance britanico. Sin esos helicopteros, la infanteria camina.',
+    briefM9: 'El corazon del desembarco britanico: la zona mas defendida de la guerra. Cruzar la muralla de fuego y volver para contarlo.',
+    briefM10: 'Reconocimiento armado sobre las islas con el frente cerrado. No hay buque ni blancos: el enemigo es el clima, la niebla y la nafta. La Chancha no baja mas al sur.',
+    briefM11: 'Buque logistico fondeado en Bahia Agradable, cargado de tropa esperando desembarcar. Esta al descubierto y sin cobertura aerea.',
+    briefM12: 'Misma tarde, segunda salida sobre Fitzroy. El segundo buque de desembarco espera su turno.',
+    briefM13: 'De noche las fragatas martillan los montes alrededor de Puerto Argentino. Hay que callar a la escolta que da fuego naval.',
+    briefM14: 'Mision denegada por el comando. Sin indicativo, sin reabastecedor, sin margen. El buque bombardea el monte. Se vuela igual.',
 
     // (los EPILOGOS historicos viven ahora ADENTRO de cada epiM* — la placa es la ultima
     // pantalla de la secuencia. Cifras reales; dudas en docs/PREGUNTAS_HISTORICAS.md)

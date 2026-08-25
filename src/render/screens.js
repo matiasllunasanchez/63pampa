@@ -8,6 +8,7 @@ import { P } from '../data/palette.js';
 import { T, L } from '../core/i18n.js';
 import { wrapChars } from '../core/util.js';
 import { clamp01 } from '../core/physics.js';
+import { radio, restante, visible } from '../core/radioVN.js';
 import { PLACA_DE_CUADRO } from '../data/placas.js';
 
 // Segundos que la pantalla de victoria espera antes de traer la frase de cierre. No es un valor
@@ -54,7 +55,8 @@ const LOSE_SRC = [
   '../assets/photos/lose/lose6.jpg',
 ];
 // FONDO GENERAL (lobby / selección). ppal01 va PRIMERA y es fija: es la portada con la que
-// arranca el juego siempre. El resto rota al azar cada PPAL_ROT segundos (ver game.js).
+// arranca el juego siempre, y ademas dura mas que las otras (ver PPAL_SEG, abajo). El resto rota
+// al azar cada PPAL_ROT segundos (ver game.js).
 // Para sumar una foto: copiarla a la carpeta con el proximo numero y agregar la linea aca.
 const PPAL_SRC = [
   '../assets/photos/ppal/ppal01.jpg',
@@ -74,6 +76,21 @@ const PPAL_SRC = [
 const load = src => { const i = new Image(); if (src) i.src = src; return i; };
 const WIN_BG = WIN_SRC.map(load), LOSE_BG = LOSE_SRC.map(load), PPAL_BG = PPAL_SRC.map(load);
 export const WIN_BG_N = WIN_BG.length, LOSE_BG_N = LOSE_BG.length, PPAL_BG_N = PPAL_BG.length;
+
+// CUANTO DURA CADA FONDO, por indice de PPAL_SRC. Las que no estan aca duran lo de siempre.
+//
+// No todas las fotos valen lo mismo. ppal01 es LA ESCUADRILLA —los seis caminando hacia los
+// aviones, dibujados como los personajes de esta historia— y es la primera que se ve al abrir el
+// juego. Ocho segundos alcanzan para una foto de archivo que ilustra; no alcanzan para una en la
+// que hay gente que el jugador va a conocer, y a la que va a querer volver a mirar despues de
+// jugar. Las demas ilustran; esta presenta.
+//
+// Es una tabla y no un `if (idx === 0)` porque la pregunta "cuanto dura esta foto" se va a volver
+// a hacer con la proxima que valga la pena, y un `if` por foto se convierte en cinco `if`.
+const PPAL_SEG = { 0: 20 };
+
+/** Segundos que dura el fondo `i` del lobby. `def` es el valor de siempre (PPAL_ROT). */
+export const ppalSeg = (i, def) => PPAL_SEG[((i | 0) % PPAL_BG_N + PPAL_BG_N) % PPAL_BG_N] || def;
 
 // Opacidad del velo negro sobre las ilustraciones. En las pantallas de FIN va alto: son las que
 // tienen mas texto encima (puntaje, causa, dato historico) y con la foto muy visible se perdian
@@ -464,12 +481,36 @@ export function drawStory(w) {
 // hablante asomando por el borde superior, nombre en acento y la linea tipeada a la izquierda.
 // Cascada de assets: retrato real (assets/portraits/<cara>.png) → SILUETA placeholder (el mock
 // del 6/8: la caja se ve completa hoy, sin un solo asset generado) → sin `cara`, solo nombre.
-function drawVNBox(w, d, ln) {
-  const k = Math.min(1, d.sceneT / 0.35), ease = 1 - Math.pow(1 - k, 3);   // entrada: sube
-  // la caja CRECE con los renglones: el guion viejo trae lineas largas (hasta que se parta en
-  // lineas del modelo nuevo, D2) y truncarlas seria peor que una caja mas alta
-  const rows = Math.max(2, d.wrap.length);
-  const bx = 6, bw = W - 12, bh = Math.max(46, 26 + rows * 10);
+/** LA CAJA VN — el panel de dialogo de abajo. UNA sola implementacion, dos usuarios.
+ *
+ *  La usan el modo historia (pantalla quieta, texto tipeado, se avanza apretando) y LA RADIO EN
+ *  VUELO (aparece sola, dura unos segundos y se va). Que sea la misma funcion no es prolijidad:
+ *  es lo que garantiza que hablar en tierra y hablar por radio se VEAN igual. Dos copias
+ *  parecidas se separan en la primera correccion que alguien haga en una sola, y el jugador
+ *  percibe eso como dos sistemas distintos aunque no sepa decir por que.
+ *
+ *  @param o.personaje  quien habla (null = acotacion, sin nombre ni busto)
+ *  @param o.cara       id del retrato en assets/portraits (null = sin busto)
+ *  @param o.wrap       los renglones YA PARTIDOS
+ *  @param o.typed      cuantos caracteres mostrar (Infinity = todo)
+ *  @param o.ease       0..1, la entrada subiendo desde el borde
+ *  @param o.cursor     dibujar el cursor de tipeo
+ *  @param o.ok         dibujar el "OK ▼" de avanzar
+ *  @param o.barra      0..1, la barrita de tiempo restante (null = no va)
+ *  @param o.parpadeo   reloj para los parpadeos (segundos)
+ */
+export function cajaVN(o) {
+  const ease = o.ease === undefined ? 1 : o.ease;
+  const rows = Math.max(2, o.wrap.length);
+  // EL BUSTO VA ADENTRO DE LA CAJA (pedido de Matias, 8/2026). Antes asomaba 12 px por encima del
+  // borde superior, apoyado en el aire. Al meterlo adentro, su alto —mas el del nombre, que ahora
+  // va PEGADO ABAJO— pasa a ser un PISO del alto del panel: si la caja fuera mas baja que el
+  // retrato, el busto volveria a salirse por abajo y estariamos en el mismo lugar por el otro lado.
+  const conCara = !!o.cara;
+  const PS = 36, PAD_R = 6;                      // lado del busto y su margen contra el borde
+  const ALTO_NOMBRE = 12;                        // el renglon del nombre + su subrayado
+  const bx = 6, bw = W - 12;
+  const bh = Math.max(conCara ? PAD_R * 2 + PS + ALTO_NOMBRE : 46, 26 + rows * 10);
   const by = (H - bh - 6) + (1 - ease) * (bh + 16);
   // panel oscuro con doble borde, el estilo de expediente del juego
   ctx.globalAlpha = 0.94; ctx.fillStyle = '#070b0f'; ctx.fillRect(bx, by, bw, bh);
@@ -477,11 +518,10 @@ function drawVNBox(w, d, ln) {
   ctx.strokeStyle = '#2c3a44'; ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
   ctx.strokeStyle = '#141d24'; ctx.strokeRect(bx + 2.5, by + 2.5, bw - 5, bh - 5);
   let tx0 = bx + 10, nameX = null;
-  if (ln.cara) {
-    // busto 36x36 que ASOMA por encima de la caja (como en la referencia)
-    const px0 = bx + 8, py0 = by - 12, ps = 36;
+  if (conCara) {
+    const px0 = bx + 8, py0 = by + PAD_R, ps = PS;
     ctx.fillStyle = '#0d1319'; ctx.fillRect(px0, py0, ps, ps);
-    const im = portraitImg(ln.cara);
+    const im = portraitImg(o.cara);
     if (im) ctx.drawImage(im, px0, py0, ps, ps);
     else {
       // MOCK: silueta de busto (cabeza + hombros con luz de canto) hasta que exista el retrato
@@ -496,33 +536,65 @@ function drawVNBox(w, d, ln) {
     ctx.strokeRect(px0 + 0.5, py0 + 0.5, ps - 1, ps - 1); ctx.globalAlpha = 1;
     tx0 = px0 + ps + 10; nameX = px0 + ps / 2;
   }
-  // nombre: debajo del busto (o arriba del texto si no hay cara), con su subrayado de acento
-  ctx.font = 'bold 7px monospace'; ctx.fillStyle = P.accent;
-  if (nameX !== null) {
-    ctx.textAlign = 'center'; ctx.fillText(ln.personaje, nameX, by + bh - 6);
-    const nw = ctx.measureText(ln.personaje).width;
-    px(nameX - nw / 2, by + bh - 4, nw, 1, P.accent);
-  } else {
-    ctx.textAlign = 'left'; ctx.fillText(ln.personaje, tx0, by + 11);
+  // EL NOMBRE VA SIEMPRE PEGADO DEBAJO DEL BUSTO, no al fondo del panel. Colgado del fondo se
+  // despegaba del retrato apenas la caja crecia con los renglones, y quedaban el busto arriba y
+  // su nombre tres renglones abajo, sin nada que los atara.
+  if (o.personaje) {
+    ctx.font = 'bold 7px monospace'; ctx.fillStyle = P.accent;
+    if (nameX !== null) {
+      const nameY = by + PAD_R + PS + 8;
+      ctx.textAlign = 'center'; ctx.fillText(o.personaje, nameX, nameY);
+      const nw = ctx.measureText(o.personaje).width;
+      px(nameX - nw / 2, nameY + 2, nw, 1, P.accent);
+    } else {
+      ctx.textAlign = 'left'; ctx.fillText(o.personaje, tx0, by + 11);
+    }
   }
-  // la linea, tipeada a la izquierda (los renglones ya vienen partidos por el motor)
-  const ty0 = ln.cara ? by + 14 : by + 22;
+  // la linea (los renglones ya vienen partidos por quien llama)
+  const ty0 = conCara ? by + PAD_R + 8 : by + 22;   // primer renglon a la altura del busto
   ctx.textAlign = 'left'; ctx.font = '7px monospace'; ctx.fillStyle = P.ink;
-  let left = d.typed, curX = tx0, curY = ty0;
-  for (let i = 0; i < d.wrap.length; i++) {
+  let left = o.typed === undefined ? Infinity : o.typed, curX = tx0, curY = ty0;
+  for (let i = 0; i < o.wrap.length; i++) {
     const y = ty0 + i * 10;
     if (left <= 0) { curY = y - 10; break; }
-    const shown = d.wrap[i].slice(0, left);
-    left -= d.wrap[i].length + 1;
+    const shown = o.wrap[i].slice(0, left);
+    left -= o.wrap[i].length + 1;
     ctx.fillText(shown, tx0, y);
     curX = tx0 + ctx.measureText(shown).width + 2; curY = y;
   }
-  if (!d.done && Math.sin(d.seqT * 14) > -0.5) px(curX, curY - 6, 4, 7, P.accent);
+  const t = o.parpadeo || 0;
+  if (o.cursor && Math.sin(t * 14) > -0.5) px(curX, curY - 6, 4, 7, P.accent);
   // "OK ▼": el permiso de avanzar. Durante un `hold` no esta — ese vacio ES el silencio (RF-07).
-  if (w.canAdvance && Math.sin(d.seqT * 4) > -0.3) {
+  if (o.ok && Math.sin(t * 4) > -0.3) {
     ctx.textAlign = 'right'; ctx.font = 'bold 7px monospace'; ctx.fillStyle = P.accent;
     ctx.fillText('OK', bx + bw - 16, by + bh - 6);
     px(bx + bw - 13, by + bh - 11, 5, 2, P.accent); px(bx + bw - 12, by + bh - 9, 3, 2, P.accent);
     px(bx + bw - 11, by + bh - 7, 1, 2, P.accent);
   }
+  // LA BARRITA DE TIEMPO. Solo la radio en vuelo la trae, y ocupa el lugar del "OK": las dos
+  // contestan la misma pregunta —cuanto falta para la proxima linea— y la radio la contesta sola
+  // porque el jugador tiene las manos en el avion y no puede apretar nada.
+  if (o.barra !== null && o.barra !== undefined) {
+    const w0 = bw - 12;
+    px(bx + 6, by + bh - 4, w0, 1, '#1c262e');
+    px(bx + 6, by + bh - 4, Math.max(0, Math.round(w0 * o.barra)), 1, P.accent);
+  }
+}
+
+/** LA RADIO EN VUELO: la misma caja del modo historia, abajo, mientras el jugador vuela.
+ *
+ *  La diferencia con el modo historia es una sola y esta en los parametros: `ok: false` y
+ *  `barra`. No se avanza apretando —el jugador tiene las manos en el avion— asi que en el lugar
+ *  donde el modo historia pone el "OK ▼" va la barrita de tiempo. Las dos contestan la misma
+ *  pregunta, cuanto falta; la radio la contesta sola. */
+export function drawRadioVN() {
+  if (!visible()) return;
+  cajaVN({ personaje: radio.personaje, cara: radio.cara, wrap: radio.wrap,
+           ease: radio.ease, ok: false, barra: restante() });
+}
+
+function drawVNBox(w, d, ln) {
+  const k = Math.min(1, d.sceneT / 0.35), ease = 1 - Math.pow(1 - k, 3);   // entrada: sube
+  cajaVN({ personaje: ln.personaje, cara: ln.cara, wrap: d.wrap, typed: d.typed,
+           ease, cursor: !d.done, ok: w.canAdvance, barra: null, parpadeo: d.seqT });
 }

@@ -570,7 +570,9 @@ test('climax: la campaña respeta la regla del autor — la mayoria PASADA, el A
   const arena = conBuque.filter(m => climaxDeclarado(m) === 'arena');
   assert.ok(conBuque.every(m => ['pasada', 'arena', 'pulso'].includes(climaxDeclarado(m))), 'ningun climax desconocido');
   assert.ok(arena.length * 2 < conBuque.length, 'el ARENA tiene que ser la excepcion, no la regla');
-  assert.deepEqual(arena.map(m => m.id), ['m4', 'm12'], 'el callejon de San Carlos y el final');
+  // m5 y m14 desde el guion 3.0: el callejon de San Carlos y el final. Eran m4 y m12 con las
+  // doce misiones viejas — el renumerado los corrio un lugar cada uno, no cambio la decision.
+  assert.deepEqual(arena.map(m => m.id), ['m5', 'm14'], 'el callejon de San Carlos y el final');
 });
 
 // ---------- EL CARRIL CUBRE LA ZONA DE VUELO (bug del 16/8: la punta era refugio) ----------
@@ -865,8 +867,77 @@ test('tramos: TODAS las misiones de la campaña tienen tramos validos', () => {
 // Con que piruetas se vuela una mision suelta. Se prueba aca y no a ojo porque si la cuenta se
 // corre en uno, el selector mide OTRO avion que el de la campaña — y eso no da error: da una
 // pirueta que sale (o no) cuando no debia, que es justo lo que las notas de playtest van a acusar.
-const { loadoutAt: loadAt, UPGRADES: UPS, ofertaTrasMision: ofertaTras } = await import('../src/data/upgrades.js');
+const { loadoutAt: loadAt, UPGRADES: UPS, ofertaTrasMision: ofertaTras, SIN_ENTREGA } = await import('../src/data/upgrades.js');
 const { MISSIONS: MIS } = await import('../src/data/missions.js');
+const { SECUENCIAS } = await import('../src/data/story.js');
+
+// ---------- LA RADIO EN VUELO (core/radioVN.js) ----------
+const RV = await import('../src/core/radioVN.js');
+
+test('radio: el texto del guion ya dice quien habla', () => {
+  // Las claves de tramo vienen como 'CONDOR: ...' — el mismo formato del guion viejo. De ahi
+  // salen el nombre y el retrato sin tocar una linea de datos, y eso es lo que hace que agregar
+  // una linea de radio sea escribir una linea de texto y nada mas.
+  assert.deepEqual(RV.partirHablante('CONDOR: ANOTO POSICIONES.'),
+    { personaje: 'CONDOR', txt: 'ANOTO POSICIONES.' });
+  assert.deepEqual(RV.partirHablante('EL TURCO: DE LA RONDA NO SE VA NADIE.'),
+    { personaje: 'EL TURCO', txt: 'DE LA RONDA NO SE VA NADIE.' });
+  // sin prefijo es una acotacion: caja sin nombre y sin busto
+  assert.equal(RV.partirHablante('...').personaje, null);
+});
+
+test('radio: una linea larga dura mas que una corta, y ninguna es eterna', () => {
+  // El jugador esta VOLANDO. Si la linea se va antes de poder leerla no cuenta nada, y si se
+  // queda para siempre tapa el horizonte. Las dos puntas estan acotadas a proposito.
+  RV.decir('PUMA: COPIADO.', () => null);
+  const corta = RV.radio.dur;
+  RV.decir('CONDOR: SETENTA METROS. TIRA LA RED, LA LEVANTA, LA VUELVE A TIRAR. Y MIENTRAS TANTO ANOTA TODO LO QUE LE PASA AL LADO.', () => null);
+  const larga = RV.radio.dur;
+  assert.ok(larga > corta, 'la linea larga tiene que durar mas');
+  assert.ok(corta >= 2.5, 'ninguna linea puede irse antes de poder leerla');
+  assert.ok(larga <= 9, 'ninguna linea puede quedarse para siempre');
+});
+
+test('radio: se va sola, y la barrita cuenta el tiempo que le queda', () => {
+  // NO SE AVANZA APRETANDO: pedirle un boton a alguien que esta a treinta metros del agua es
+  // pedirle que elija entre leer y volar. La barrita es la unica forma honesta de avisar.
+  RV.decir('CONDOR: PLATA FIEL, POSICIONES.', () => null);
+  assert.equal(RV.restante(), 1, 'recien dicha, la barra esta llena');
+  RV.tickRadio(RV.radio.dur / 2);
+  assert.ok(Math.abs(RV.restante() - 0.5) < 0.05, 'a mitad de camino, media barra');
+  RV.tickRadio(RV.radio.dur);
+  assert.equal(RV.radio.activa, false, 'se apaga sola sin que nadie apriete nada');
+  assert.equal(RV.restante(), 0);
+});
+
+test('radio: callar() MUTA el store, no lo reemplaza', () => {
+  // La invariante de state.js §1: quien tenga una referencia al array de renglones tiene que
+  // seguir viendo el mismo objeto. Reasignarlo no rompe nada visible y por eso es peligroso.
+  RV.decir('GITANO: ¿UN PESQUERO?', () => null);
+  const wrapAntes = RV.radio.wrap;
+  RV.callar();
+  assert.equal(RV.radio.wrap, wrapAntes, 'el array de renglones es el mismo objeto');
+  assert.equal(RV.radio.wrap.length, 0, 'pero quedo vacio');
+  assert.equal(RV.visible(), false);
+});
+
+test('campaña: la tarjeta de nivel dice el numero de mision que le toca', () => {
+  // EL NUMERO ESTA ESCRITO DOS VECES: la posicion en MISSIONS, y el texto de la tarjeta
+  // ("MISIÓN 4 — ..."). Un dato escrito dos veces se desincroniza, y este ya lo hizo: al pasar
+  // de 12 a 14 misiones las tarjetas siguieron diciendo el numero viejo, y en pantalla no se ve
+  // raro — se ve como una mision que se llama distinto de lo que el menu dijo.
+  //
+  // El ID de la escena NO se revisa a proposito: es inmutable (SISTEMA_DIALOGO D1) y su numero
+  // es historia, no posicion. Lo que tiene que estar al dia es el TEXTO.
+  MIS.forEach((mi, i) => {
+    const ids = SECUENCIAS[mi.story] || [];
+    const tarjeta = ids.map(id => SCENES[id]).find(sc => sc && sc.tipo === 'TARJETA');
+    if (!tarjeta) return;                      // no toda mision tiene tarjeta, y esta bien
+    const m = /^MISIÓN (\d+)/.exec(tarjeta.titulo || '');
+    assert.ok(m, `${mi.id}: la tarjeta tiene que empezar con "MISIÓN n" (dice "${tarjeta.titulo}")`);
+    assert.equal(+m[1], i + 1, `${mi.id} es la mision ${i + 1} pero su tarjeta dice ${m[1]}`);
+  });
+});
 
 test('libreta: la primera mision se vuela SIN mejoras', () => {
   // El tutorial es el avion de fabrica: el guion no le regalo nada todavia.
@@ -879,7 +950,14 @@ test('libreta: LA RAMPA DE ENTRADA — el tutorial no entrega, la segunda sirve 
   // campaña enseña el mecanismo antes de pedir que se use.
   assert.equal(ofertaTras(0), 0, 'el epilogo del tutorial no puede abrir el banco');
   assert.equal(ofertaTras(1), 1, 'la segunda entrega UNA, servida: no hay nada que elegir');
-  for (let i = 2; i <= MIS.length; i++) assert.equal(ofertaTras(i), 2, `m${i + 1} tiene que ofrecer dos`);
+  // Y con el guion 3.0 hay una SEGUNDA ventana cerrada: m10 LOS PRIMOS, la primera mision
+  // despues de la muerte del Pichon. Que el banco no se abra esa noche dice algo — el que
+  // inventaba las mejoras no esta. Se prueba que sea EXACTAMENTE esa y no otra.
+  assert.equal(ofertaTras(SIN_ENTREGA), 0, 'la noche sin el Pichon no abre el banco');
+  for (let i = 2; i <= MIS.length; i++) {
+    if (i === SIN_ENTREGA) continue;
+    assert.equal(ofertaTras(i), 2, `m${i + 1} tiene que ofrecer dos`);
+  }
 });
 
 test('libreta: se gana UNA por ventana, en el orden causal del guion', () => {
@@ -894,14 +972,22 @@ test('libreta: se gana UNA por ventana, en el orden causal del guion', () => {
   }
 });
 
-test('libreta: al final de la campaña quedan DOS sin aprender', () => {
-  // ERAN UNA, y cambio con la rampa: el guion (§5 de GUION_3) contaba 11 ventanas para 12 mejoras.
-  // Sacarle la ventana al tutorial deja 10, asi que ahora sobran dos. Es consecuencia directa del
-  // pedido y esta anotada en data/upgrades.js — si algun dia se quiere volver a una, la perilla es
-  // `ofertaTrasMision` o el largo de UPGRADES, y esta prueba es la que se entera.
-  const ultima = loadAt(MIS.length - 1);
-  assert.equal(ultima.length, MIS.length - 2);
-  assert.equal(UPS.length - ultima.length, 2, 'la campaña tiene que dejar dos sin aprender');
+test('libreta: con 14 misiones se aprenden TODAS, y el banco no se queda sin cartas', () => {
+  // LA CUENTA CAMBIO TRES VECES Y ESTA PRUEBA ES LA QUE SE ENTERA. Con 12 misiones sobraban dos
+  // mejoras sin aprender. Con las 14 del guion 3.0 la misma regla daria 13 ventanas para 12
+  // cartas: el banco se quedaria VACIO antes del final y las ultimas misiones no entregarian
+  // nada — en silencio, porque `nextUpgrades` devuelve lista vacia y la pantalla no se abre.
+  // La segunda ventana cerrada (m10) es lo que cuadra la cuenta, y lo hace por una razon de
+  // guion, no numerica. Lo que se prueba aca es que ventanas y cartas EMPATEN.
+  let ventanas = 0;
+  for (let i = 0; i < MIS.length; i++) if (ofertaTras(i) > 0) ventanas++;
+  assert.equal(ventanas, UPS.length, 'una ventana por mejora: ni sobran cartas ni sobran noches');
+  assert.equal(loadAt(MIS.length).length, UPS.length, 'terminada la campaña estan las doce');
+  // y ninguna ventana puede quedar sin cartas para ofrecer
+  for (let i = 0; i < MIS.length; i++) {
+    const o = ofertaTras(i);
+    if (o > 0) assert.ok(loadAt(i).length < UPS.length, `la ventana de i=${i} tiene algo que ofrecer`);
+  }
 });
 
 test('libreta: nunca desborda ni devuelve basura', () => {

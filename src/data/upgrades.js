@@ -65,14 +65,33 @@ export function moveAllowed(id, { campaign, owned, off }) {
 //   m3 en adelante→ DOS, a elegir. Recien aca empieza el roguelike, con una pirueta ya en la mano
 //                          para comparar contra la que se ofrece.
 //
+// ⚠ CON 14 MISIONES LA CUENTA CAMBIO (guion 3.0, 24/8). Antes eran 12 misiones para 12 mejoras
+// y quedaban DOS sin aprender por partida. Ahora hay 14 misiones: con la misma regla habria 13
+// ventanas de entrega para 12 mejoras, o sea que el banco se quedaria SIN CARTAS antes del final
+// y las dos ultimas misiones no entregarian nada — sin que nada avise, porque `nextUpgrades`
+// devuelve lista vacia y la pantalla no se abre.
+//
+// La regla nueva mete UNA SEGUNDA MISION SIN ENTREGA, y no es un parche numerico: es la m10,
+// LOS PRIMOS. Es la unica mision de la campaña donde no se pelea contra nadie —el enemigo es el
+// clima, la nafta y el lugar vacio del Pichon— y es ademas la primera despues de su muerte. Que
+// el banco no se abra ahi DICE algo: el que inventaba las mejoras no esta, y esa noche no hay
+// nada nuevo que aprender. Vuelve a abrirse en m11, ya con el Turco solo.
+//
+// Quedan 12 ventanas para 12 mejoras: se aprenden TODAS por partida, que es la otra diferencia
+// con el esquema viejo. Si se quiere volver a dejar alguna sin aprender, la perilla es esta
+// funcion o el largo de UPGRADES — no un parche en game.js.
+//
 // Devuelve CUANTAS cartas ofrece el epilogo de la mision `i` (0-based). Cero = el banco ni se abre.
 // Es la unica regla del ritmo del banco y vive aca, no en game.js, por dos motivos: se puede
 // probar, y `loadoutAt` la deriva en vez de repetirla — si estuviera escrita dos veces, el
 // selector de misiones mostraria un loadout que la campaña no entrega.
+export const SIN_ENTREGA = 9;      // m10 LOS PRIMOS, 0-based: la mision sin banco (ver arriba)
+
 export function ofertaTrasMision(i) {
-  if ((i | 0) <= 0) return 0;      // el tutorial no entrega
-  if ((i | 0) === 1) return 1;     // la segunda entrega una, servida
-  return 2;                        // de la tercera en adelante, se elige
+  if ((i | 0) <= 0) return 0;              // el tutorial no entrega
+  if ((i | 0) === SIN_ENTREGA) return 0;   // la noche sin el Pichon tampoco
+  if ((i | 0) === 1) return 1;             // la segunda entrega una, servida
+  return 2;                                // de la tercera en adelante, se elige
 }
 
 /** Las proximas `n` mejoras NO aprendidas, en orden del guion. `owned` = Set/array de ids. */

@@ -44,8 +44,8 @@ el nivel **para ver lo que sigue**, no por el divertimento de jugar. Consecuenci
 
 _(Cambió: ya no hay cartas cruzadas; 🟨 3.2: el marco se OCULTA hasta el final; el final es del jugador.)_
 
-Un piloto de caza argentino pelea la guerra desde el cielo mientras su hijo —conscripto con
-tres meses de instrucción— la aguanta desde el pozo, **escribiéndole un cuaderno que él
+Un piloto de caza argentino pelea la guerra desde el cielo mientras su hijo —conscripto que
+ni llegó a terminar la instrucción— la aguanta desde el pozo, **escribiéndole un cuaderno que él
 nunca va a leer**: un diario que le habla al padre porque escribirle a alguien es más fácil
 que escribir al vacío. El padre no puede sacarlo de las islas, así que hace lo único que
 sabe: volar hasta él. **Y recién al final —no antes— el jugador descubre dónde estuvo
@@ -321,12 +321,28 @@ dibujo)_ …Salió mejor el avión que yo, ¿eh?
 
 ### Viñeta P.2 — La cocina _(2 de abril de 1982)_
 
-Mateo, 18, rapado de colimba. Esteban enfrente. Norma de espaldas, sirviendo.
+🟥 **Viernes a la tarde.** Mateo, 18, rapado de colimba, **de franco**: llegó hace un rato
+y el bolso todavía está en la puerta. Un mes de cuartel encima y cara de que lo peor ya pasó.
+Esteban enfrente. Norma de espaldas, sirviendo.
 
-**MATEO:** Tres meses, pá. Hago la colimba, marcho un poco, y el año que viene estoy de
-vuelta arreglándote el Rastrojero.
+**MATEO:** Me quedan dos meses de instrucción, pá. Después es puro marchar. Y para fin de
+año estoy de vuelta arreglándote el Rastrojero.
 
 **ESTEBAN:** _(medio riéndose)_ Vos al Rastrojero lo rompés más de lo que lo arreglás.
+
+**MATEO:** Ah, y sabés que por un pelo no me tocaba la tuya. Un poco más arriba el número y
+en vez de al Ejército me mandaban a la Fuerza Aérea.
+
+**ESTEBAN:** _(sin levantar la vista del mate)_ Le erraste por poco, entonces.
+
+_(Se ríen los tres.)_
+
+> **Nota de tratamiento.** El sorteo del servicio militar iba por los últimos números del
+> documento: los bajos zafaban, los del medio iban al Ejército, los más altos a Fuerza Aérea
+> o Armada. **En pantalla no se dice ninguna cifra** —los cortes exactos variaban año a
+> año—: alcanza con "un poco más arriba el número". Es un chiste de mala suerte entre padre
+> e hijo que dura cuatro segundos, **y no se vuelve a mencionar nunca en todo el juego.** El
+> jugador se acuerda solo.
 
 **NORMA:** _(atiende teléfono)_ Para quién? Tero? _(tomá Tero, es para vos)_. Si hace veinte años que vuela y el
 pájaro lo sigue a todos lados. _(a Mateo, sonriendo al padre)_
@@ -1215,8 +1231,8 @@ yo hasta que volvamos _(a la foto, bajito)_ Señora: su hijo fue el mejor de tod
 > milanesas— y en la mitad de la palabra "tamales" dejó de estar. Así de rápido, pá. Así de
 > nada._
 >
-> _Nadie nos preparó para esto. Tres meses. Nos enseñaron a marchar y a tender la cama. No
-> a que el de al lado se apague en la mitad de una palabra._
+> _Nadie nos preparó para esto. Ni terminamos la instrucción, pá. Nos enseñaron a marchar y
+> a tender la cama. No a que el de al lado se apague en la mitad de una palabra._
 >
 > _El Colorado me dijo "llorá todo hoy, pibe, que mañana no va a haber tiempo". Lloré todo,
 > viejo. ¿Vos también perdés gente ahí arriba? ¿Cómo se hace? Ya sé que no me vas a
@@ -2134,9 +2150,17 @@ que miraron la guerra desde tierra firme, calientes, lejos."
 "Ninguno de **ellos** eligió esta guerra."
 
 "Los mandó una dictadura que ya había hecho todo lo que hizo, y que necesitaba una bandera
-para taparlo. Mandaron pibes de dieciocho años con tres meses de instrucción. Los mandaron
-sin abrigo y los dejaron pasar hambre a doscientos metros de los depósitos. Y cuando
-volvieron, los escondieron — porque los sobrevivientes eran la prueba."
+para taparlo."
+
+"A los de la clase 63 los habían incorporado en marzo. Los subieron a las islas con **menos
+de seis meses de instrucción**. Muchos apenas sabían cargar un arma."
+
+"A los de la clase 62, que ya habían dado la baja y tenían el año completo, los llamaron de
+vuelta. Y hubo hombres más grandes, de otras clases, que no tenían ninguna obligación de ir
+y se ofrecieron igual."
+
+"A todos los mandaron sin abrigo, y los dejaron pasar hambre a doscientos metros de los
+depósitos. Y cuando volvieron, los escondieron — porque los sobrevivientes eran la prueba."
 
 "Del otro lado del mar, un gobierno que venía perdiendo encontró en esta guerra la forma de
 ganar. Hundió un crucero que navegaba fuera de la zona de exclusión y en dirección

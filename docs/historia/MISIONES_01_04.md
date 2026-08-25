@@ -1,5 +1,28 @@
 # RASANTE — Dossier de misiones · M1 a M4
 
+> ## 🔴 DESACTUALIZADO — la campaña pasó de 12 a 14 misiones (24/8)
+>
+> Este dossier se escribió contra la numeración vieja. Al aplicar **GUION_3** se insertaron dos
+> misiones nuevas y todo lo demás corrió un lugar:
+>
+> | acá dice | hoy es |
+> |---|---|
+> | M1 SAL EN LAS ALAS | **m1** ✓ sigue igual |
+> | M2 BAUTISMO DE FUEGO | **m2** ✓ sigue igual |
+> | — | **m3 EL INVENTO** ← nueva, no está documentada acá |
+> | M3 EL DÍA QUE SANGRÓ EL MAR | **m4** |
+> | M4 EL CALLEJÓN DE LAS BOMBAS | **m5** |
+>
+> **Lo que sigue siendo válido:** el vocabulario de las perillas, cómo se leen la distancia y el
+> tiempo, las estrellas, y el contenido de cada misión — solo cambió su número. **Lo que ya no:**
+> los números de misión, los `par` (se recalcularon para la rampa de 14), y la tabla de mejoras.
+>
+> **Y una cosa que cambió de lugar:** el guion y las placas ya no viven en `strings.js` +
+> `placas.js` + `dialogue.js`. Ahora cada escena está entera en
+> [`src/data/story.js`](../../src/data/story.js), con su texto, su placa, la cara de cada hablante
+> y su hold. Las secciones "El guion de M*" de abajo describen el formato viejo.
+
+
 > **Para qué existe.** Hasta hoy, tocar una misión pedía abrir cinco archivos y adivinar cuál de
 > ellos manda. Este documento junta, misión por misión, **todo lo que la define**: la ficha, cada
 > perilla del mapa con su valor y su porqué, la distancia y el tiempo medidos, la composición del

@@ -550,6 +550,92 @@ hijo sabiendo exactamente lo que una bomba le hace a un cuerpo.
 [Infobae — la silenciada historia de las veteranas](https://www.infobae.com/2015/03/31/1719360-la-silenciada-historia-las-veteranas-malvinas/) ·
 [ATE — Alicia Reynoso, enfermera de Malvinas contra el olvido](https://ate.org.ar/alicia-reynoso-enfermera-de-malvinas-contra-el-olvido/)
 
+## ✅ LA COLIMBA DE MATEO — VERIFICADO 2026-08-22 · corregido en guion (3.12)
+
+**El bug que encontró Matías:** en P.2 Mateo decía *"Tres meses, pá… y el año que viene estoy
+de vuelta"*. No cerraba de dos maneras: si "tres meses" era lo que le faltaba, volvía ese
+mismo año, no al siguiente; y **el 2 de abril un conscripto ya tenía que estar en el
+cuartel**, no en la cocina de la madre.
+
+### Lo verificado
+
+- El servicio duraba **alrededor de un año**, organizado por **clases** según año de
+  nacimiento, con **sorteo por los últimos números del documento**. *"Me salvé por número
+  bajo."* Números bajos zafaban; **los del medio iban al Ejército; los más altos a Fuerza
+  Aérea o Armada.**
+- **Clase 62:** incorporada en **marzo de 1981**, instrucción completa, y **para diciembre
+  del 81 la mayoría ya estaba de baja** (bajas escalonadas: noviembre, diciembre, marzo,
+  junio). El 2 de abril muchos eran civiles, y a varios los **reconvocaron**.
+- **Clase 63: incorporada en MARZO DE 1982.** El 2 de abril llevaban **menos de un mes** —
+  apenas el período básico— y estaban en las islas a las pocas semanas.
+- **2 de abril de 1982 = VIERNES.** *(Verificado con calendario.)*
+
+### La corrección aplicada
+
+**Mateo tiene 18 en abril del 82 → nació en el 63 → es clase 63, entró en marzo.** Así que
+en P.2 **está de franco**: la escena pasa un **viernes a la tarde**, con el bolso todavía en
+la puerta, un mes de cuartel encima. El parte de radio y el festejo de Plaza de Mayo fueron
+a lo largo del día, así que la tarde funciona perfecto.
+
+**Su línea nueva:** *"Me quedan dos meses de instrucción, pá. Después es puro marchar. Y para
+fin de año estoy de vuelta arreglándote el Rastrojero."*
+
+**Y el efecto lateral que se ganó:** la última vez que Mateo estuvo en su casa fue **un
+franco cualquiera, y nadie lo supo**.
+
+### 🟥 EL CIERRE REESCRITO — tres grupos, no uno *(decisión de Matías, 22/8)*
+
+Decía *"pibes de dieciocho años con tres meses de instrucción"*: una sola brocha para toda
+la tropa, y encima **generosa con la junta**. Ahora la narración separa **tres grupos**, y
+los tres son ciertos:
+
+1. **La clase 63** — incorporada en **marzo del 82**, subida a las islas **con menos de seis
+   meses de instrucción**. *"Muchos apenas sabían cargar un arma."*
+2. **La clase 62** — ya habían dado la baja y **tenían el año completo**; los llamaron de
+   vuelta.
+3. **Los voluntarios** — hombres más grandes, de otras clases, **sin ninguna obligación de
+   ir**, que se ofrecieron igual.
+
+**Por qué esto es mejor que la versión anterior.** La acusación se afila (la junta mandó a
+los que menos sabían) **sin borrar a los que sí sabían y fueron igual**. Es exactamente la
+regla de la casa: la narración da hechos, los personajes opinan — y la tesis protege a los
+que pelearon, de los dos lados. Un cierre que solo dijera "mandaron pibes sin instrucción"
+convertía a todos en víctimas pasivas; éste distingue **a quién lo mandaron y quién eligió
+ir**.
+
+**⚠ A verificar antes de publicar:** el dato de los **voluntarios de otras clases** está
+puesto en términos generales, sin cifras ni nombres. Si se le quiere poner un número, hay
+que buscar fuente. Como está —"hubo hombres más grandes… que se ofrecieron igual"— es
+seguro.
+
+Mismo criterio aplicado en la sinopsis (§1) y en el cuaderno de M12.
+
+### ✅ APLICADO (3.12) — la ironía del sorteo
+
+**Cómo funcionaba.** Todos los varones de una clase quedaban registrados; un sorteo por
+bolillas cruzado con **los últimos tres números del documento** decidía si servías y en qué
+fuerza. *"Me salvé por número bajo."* Bajos → afuera · del medio → **Ejército** · los más
+altos → **Fuerza Aérea o Armada**.
+
+**En el guion, P.2, dos líneas antes de que suene el teléfono:**
+
+> **MATEO:** Ah, y sabés que por un pelo no me tocaba la tuya. Un poco más arriba el número
+> y en vez de al Ejército me mandaban a la Fuerza Aérea.
+>
+> **ESTEBAN:** *(sin levantar la vista del mate)* Le erraste por poco, entonces.
+>
+> *(Se ríen los tres.)*
+
+**⚠ SIN CIFRAS EN PANTALLA.** Los cortes exactos variaban año a año, así que el guion dice
+"un poco más arriba el número" y nada más — no afirma ningún número concreto.
+
+**Por qué funciona.** Es un chiste de mala suerte de cuatro segundos que **no se vuelve a
+mencionar nunca**. Y "se ríen los tres" incluye a Norma, que es la que en el Final A lee el
+cuaderno décadas después: los tres se rieron del número que lo mató.
+
+**Fuentes:** [El Marplatense — Clase '62, una categoría signada por Malvinas](https://elmarplatense.com/2017/04/02/clase-62-una-categoria-signada-por-malvinas/) ·
+[Servicio militar obligatorio en Argentina — Wikipedia](https://es.wikipedia.org/wiki/Servicio_militar_obligatorio_en_Argentina)
+
 ## ✅ CONTRAMEDIDAS — NO TENÍAN NADA, Y LO FABRICARON A MANO (VERIFICADO 2026-08-22)
 
 **La respuesta corta: de fábrica, nada.** Ni bengalas, ni lanzadores de chaff, ni alerta

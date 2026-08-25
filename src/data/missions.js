@@ -1,5 +1,5 @@
 // MISIONES de la campaña (y del ciclo de muerte, que las juega al azar). Datos puros.
-// v0.0.1 de EL CUADERNO DE MATEO: las 12 misiones de GUION_2.md volcadas con lo que el juego
+// v0.0.2 de EL CUADERNO DE MATEO: las 14 misiones de GUION_3.md volcadas con lo que el juego
 // tiene hoy (ver docs/PLAN_CAMPANA_001.md). Ver GOALS en game.js para los tipos de
 // objetivo: 'ship' culmina en el climax sobre el buque; 'distance' se cumple al llegar
 // (misiones sin boss de buque: el tutorial y las de blanco terrestre, que aun no existe).
@@ -12,15 +12,15 @@ export const SHIPS = ['HMS SHEFFIELD', 'HMS COVENTRY', 'HMS ARDENT', 'HMS ANTELO
   'RFA SIR GALAHAD', 'RFA SIR TRISTRAM', 'ATLANTIC CONVEYOR', 'HMS BROADSWORD', 'HMS GLAMORGAN'];
 
 // LOS FIELES por tramo de campaña: el roster es quien esta VIVO segun el guion, y su largo
-// es el escuadron (las vidas). El Vasco muere en el epilogo de M6 (vuela la M6 entera);
-// el Pichon en el de M8. El jugador siempre es TERO; el orden es el orden de relevo.
+// es el escuadron (las vidas). El Vasco muere en el epilogo de m7 (vuela la m7 entera);
+// el Pichon en el de m9. El jugador siempre es TERO; el orden es el orden de relevo.
 const F5 = ['TERO', 'PUMA', 'GITANO', 'VASCO', 'PICHON'];
 const F4 = ['TERO', 'PUMA', 'GITANO', 'PICHON'];
 const F3 = ['TERO', 'PUMA', 'GITANO'];
 
 // config por mision: TODAS las perillas que la campaña pisa, siempre explicitas — si una
 // clave faltara, quedaria pegado el valor de la mision anterior (Object.assign sobre cfg).
-// La rampa arranca suave (M1 sin bombas ni viento) y termina con todo prendido (M12).
+// La rampa arranca suave (m1 sin bombas ni viento) y termina con todo prendido (m14).
 const C = over => ({
   sky: 'dusk', water: 'sea', terrain: 'sea', wind: true, obstacles: 1, coast: 230,
   bombs: 1, rain: 0, fog: 0, fogLen: 1, squad: 5, caza: 1, persec: 0, ...over,
@@ -37,9 +37,9 @@ export const CAMPAIGN_CFG = C({});
 //            final sin tocar una linea de codigo (SPEC_MODO_PASADA RF-14).
 //            La regla de la campaña, dicha por el autor: la mayoria de los niveles con buque son
 //            PASILLO + PASADA. El ARENA queda para las ocasionales, y son estas dos:
-//              · m4 ARDENT — San Carlos. El callejon ES una arena: agua encerrada entre cerros
+//              · m5 ARDENT — San Carlos. El callejon ES una arena: agua encerrada entre cerros
 //                con el buque fondeado, y la mision se llama EL CALLEJON DE LAS BOMBAS.
-//              · m12 GLAMORGAN — EL TERO, la mision final. El cierre de la campaña se pelea,
+//              · m14 GLAMORGAN — EL TERO, la mision final. El cierre de la campaña se pelea,
 //                no se pasa de largo.
 //            PROPUESTAS_PASADA §8 proponia dos mas (Galahad y Tristram, fondeados en Bahia
 //            Agradable); quedaron en PASADA por pedido del autor —"ocasionalmente, uno o dos"—
@@ -63,7 +63,20 @@ export const MISSIONS = [
     roster: F5, par: 6500, story: 'storyM2', brief: 'briefM2', epi: 'epiM2',
   },
   {
-    id: 'm3', name: 'EL DIA QUE SANGRO EL MAR', date: '4 de mayo de 1982',
+    id: 'm3', name: 'EL INVENTO', date: 'primeros dias de mayo de 1982',
+    goal: { kind: 'distance', meters: 2400 },
+    // LA MISION MAS LIVIANA DE LA CAMPAÑA, Y ES A PROPOSITO (GUION_3 M3): es donde el juego
+    // ENSEÑA el sistema de mejoras. El Pichon le toca el avion a Esteban y el jugador tiene que
+    // poder SENTIR la diferencia en las manos — eso no se percibe esquivando flak. Por eso vuelve
+    // a apagar el bombardeo y la cola, que M2 acababa de prender: la rampa no es monotona, se
+    // afloja justo cuando hay algo nuevo que entender.
+    // `terrain: 'coast'` porque el guion la llama patrulla de reconocimiento COSTERO, y los
+    // "blancos de oportunidad" (boyas, un radar portatil) son la siembra baja de obstaculos.
+    cfg: C({ sky: 'dawn', terrain: 'coast', obstacles: 0.5, bombs: 0, caza: 0 }),
+    roster: F5, par: 7000, story: 'storyM3', brief: 'briefM3', epi: 'epiM3',
+  },
+  {
+    id: 'm4', name: 'EL DIA QUE SANGRO EL MAR', date: '4 de mayo de 1982',
     goal: { kind: 'ship', ship: 'HMS SHEFFIELD', dist: 2600 },
     cfg: C({ bombs: 0.5 }),
     // EL TRANSITO DEL NARWAL (GUION_3, "de donde salen las posiciones"), y la primera mision con
@@ -72,87 +85,134 @@ export const MISSIONS = [
     // despues va a usar para encontrar el blanco— salen de un pesquero civil, y eso se planta
     // liviano para que el cobro de M5 no se vea venir.
     //
-    // Son CUATRO tramos y no uno porque una radio suena UNA vez por tramo (RF-03): la
-    // conversacion se reparte en cuatro entradas, que es lo que la convierte en conversacion y
-    // no en un cartel. Los cuatro son identicos salvo la linea.
+    // Son TRECE tramos y no uno porque una radio suena UNA vez por tramo (RF-03): la
+    // conversacion se reparte en trece entradas, que es lo que la convierte en conversacion y no
+    // en un cartel. Los trece son identicos salvo la linea.
     //
     // `obstacles: 0` y no una densidad baja: el criterio del guion es CERO enemigos, y una
     // densidad chica igual siembra cada doscientos metros. Con `bombs: 0` ademas no cae nada del
     // cielo — un bombardeo en el tramo mudo contradice la escena tanto como una fragata.
     // `marcas: true` lo transporta este item y lo va a consumir el de las marcas de Condor.
     tramos: [
-      { hasta: 0.09, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio1' },
-      { hasta: 0.18, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio2' },
-      { hasta: 0.27, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio3' },
-      { hasta: 0.35, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio4' },
+      { hasta: 0.027, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio1' },
+      { hasta: 0.054, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio2' },
+      { hasta: 0.081, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio3' },
+      { hasta: 0.108, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio4' },
+      { hasta: 0.135, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio5' },
+      { hasta: 0.162, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio6' },
+      { hasta: 0.189, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio7' },
+      { hasta: 0.216, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio8' },
+      { hasta: 0.243, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio9' },
+      { hasta: 0.27, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio10' },
+      { hasta: 0.297, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio11' },
+      { hasta: 0.324, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio12' },
+      { hasta: 0.351, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio13' },
       // y se termina ahi: mar pleno, con la densidad y LA COLA de una mision de verdad. El salto
       // de 0 a 1.2 es el punto — el silencio se cobra en el contraste.
       { hasta: 1, obstacles: 1.2, caza: 1 },
     ],
-    roster: F5, par: 7500, story: 'storyM3', brief: 'briefM3', epi: 'epiM3',
+    roster: F5, par: 7500, story: 'storyM4', brief: 'briefM4', epi: 'epiM4',
   },
   {
-    id: 'm4', name: 'EL CALLEJON DE LAS BOMBAS', date: '21 de mayo de 1982',
+    id: 'm5', name: 'EL CALLEJON DE LAS BOMBAS', date: '21 de mayo de 1982',
     goal: { kind: 'ship', ship: 'HMS ARDENT', dist: 2600 },
     climax: 'arena',   // ver la nota de arriba
+    // EL SILENCIO DEL NARWAL (GUION_3 M5, §3.9). Es el MISMO tramo de transito de m4 —misma
+    // altura, mismo ritmo de radio— diecisiete dias despues, y el jugador lo reconoce. Solo que
+    // esta vez Condor no tiene numeros para dar, y cuando el Gitano le pregunta por el pesquero
+    // no contesta. La entrada `m5_radio6` es literalmente tres puntos: radio abierta y nada.
+    //
+    // `marcas: false` es lo que hace el cobro, y por eso vale mas que cualquier cartel: en m4 el
+    // HUD marcaba las unidades antes de verlas; aca no las marca. El jugador entra a la mision
+    // mas dificil del movimiento con menos informacion en pantalla, y sabe exactamente por que.
+    tramos: [
+      { hasta: 0.03, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio1' },
+      { hasta: 0.06, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio2' },
+      { hasta: 0.09, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio3' },
+      { hasta: 0.12, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio4' },
+      { hasta: 0.15, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio5' },
+      { hasta: 0.19, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio6' },
+      { hasta: 0.22, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio7' },
+      { hasta: 0.25, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio8' },
+      { hasta: 0.28, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio9' },
+      { hasta: 0.31, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio10' },
+      { hasta: 1, obstacles: 1.7, caza: 1 },
+    ],
     cfg: C({ sky: 'cloudy', obstacles: 1.7 }),
-    roster: F5, par: 8500, story: 'storyM4', brief: 'briefM4', epi: 'epiM4',
+    roster: F5, par: 8500, story: 'storyM5', brief: 'briefM5', epi: 'epiM5',
   },
   {
-    id: 'm5', name: 'LA BOMBA QUE NO DESPERTO', date: '23 de mayo de 1982',
+    id: 'm6', name: 'LA BOMBA QUE NO DESPERTO', date: '23 de mayo de 1982',
     goal: { kind: 'ship', ship: 'HMS ANTELOPE', dist: 2800 },
     cfg: C({ sky: 'sun', obstacles: 1.7, fog: 1, fogLen: 0 }),
-    roster: F5, par: 9000, story: 'storyM5', brief: 'briefM5', epi: 'epiM5',
+    roster: F5, par: 9000, story: 'storyM6', brief: 'briefM6', epi: 'epiM6',
   },
   {
-    id: 'm6', name: '25 DE MAYO', date: '25 de mayo de 1982',
+    id: 'm7', name: '25 DE MAYO', date: '25 de mayo de 1982',
     goal: { kind: 'ship', ship: 'HMS COVENTRY', dist: 2800 },
     cfg: C({ sky: 'clear', obstacles: 1.7 }),
-    chancha: false,   // la Chancha vuela corto desde el epilogo de m5: no baja mas al sur
-    roster: F5, par: 9500, story: 'storyM6', brief: 'briefM6', epi: 'epiM6',
+    chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
+    roster: F5, par: 9500, story: 'storyM7', brief: 'briefM7', epi: 'epiM7',
   },
   {
-    id: 'm7', name: 'EL BATIR DE ALAS', date: '25 de mayo de 1982 · segunda salida',
+    id: 'm8', name: 'EL BATIR DE ALAS', date: '25 de mayo de 1982 · segunda salida',
     goal: { kind: 'ship', ship: 'ATLANTIC CONVEYOR', dist: 3000 },
     cfg: C({ obstacles: 1.7, rain: 1, squad: 4 }),
-    chancha: false,   // la Chancha vuela corto desde el epilogo de m5: no baja mas al sur
-    roster: F4, par: 10000, story: 'storyM7', brief: 'briefM7', epi: 'epiM7',
+    chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
+    roster: F4, par: 10000, story: 'storyM8', brief: 'briefM8', epi: 'epiM8',
   },
   {
-    id: 'm8', name: 'EL PIBE', date: '27 de mayo de 1982',
+    id: 'm9', name: 'EL PIBE', date: '27 de mayo de 1982',
     goal: { kind: 'distance', meters: 3200 },
     cfg: C({ sky: 'storm', obstacles: 1.7, bombs: 2, rain: 2, fog: 1, squad: 4 }),
-    chancha: false,   // la Chancha vuela corto desde el epilogo de m5: no baja mas al sur
-    roster: F4, par: 10500, story: 'storyM8', brief: 'briefM8', epi: 'epiM8',
+    chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
+    roster: F4, par: 10500, story: 'storyM9', brief: 'briefM9', epi: 'epiM9',
   },
   {
-    id: 'm9', name: 'LO QUE NO SE DICE', date: '8 de junio de 1982',
+    id: 'm10', name: 'LOS PRIMOS', date: '5 de junio de 1982',
+    goal: { kind: 'distance', meters: 3600 },
+    // LA MAS LARGA DEL JUEGO Y LA UNICA DONDE EL NIVEL ES EL CLIMA (GUION_3 M10). No tiene buque
+    // ni blancos: el enemigo es el frente cerrado, la niebla y la nafta. Por eso `obstacles` baja
+    // a POCOS y `caza` a 0 en la mision numero diez — leerlo como un error de rampa seria leerlo
+    // al reves: es el CONTRASTE de M9. La del Pichon era el infierno lleno; esta es el vacio.
+    //
+    // `fogLen: 3` (MUY LARGO) es la perilla que hace el trabajo: el banco de niebla dura tanto
+    // que volar a ciegas deja de ser un susto y pasa a ser el estado normal del nivel.
+    //
+    // Es ademas la PRIMERA CON TRES — el guion la titula asi. El hueco del Pichon en la
+    // formacion no se nombra: se ve, porque `roster` tiene tres nombres.
+    cfg: C({ sky: 'storm', obstacles: 0.5, bombs: 0, caza: 0, rain: 2, fog: 1, fogLen: 3, squad: 3 }),
+    chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
+    roster: F3, par: 11000, story: 'storyM10', brief: 'briefM10', epi: 'epiM10',
+  },
+  {
+    id: 'm11', name: 'LO QUE NO SE DICE', date: '8 de junio de 1982',
     goal: { kind: 'ship', ship: 'RFA SIR GALAHAD', dist: 3000 },
     cfg: C({ sky: 'cloudy', obstacles: 1.7, squad: 3, caza: 2 }),
-    chancha: false,   // la Chancha vuela corto desde el epilogo de m5: no baja mas al sur
-    roster: F3, par: 11000, story: 'storyM9', brief: 'briefM9', epi: 'epiM9',
+    chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
+    roster: F3, par: 11500, story: 'storyM11', brief: 'briefM11', epi: 'epiM11',
   },
   {
-    id: 'm10', name: 'EL ANGEL DE CORRIENTES', date: '8 de junio de 1982 · segunda salida',
+    id: 'm12', name: 'EL ANGEL DE CORRIENTES', date: '8 de junio de 1982 · segunda salida',
     goal: { kind: 'ship', ship: 'RFA SIR TRISTRAM', dist: 3000 },
     cfg: C({ obstacles: 1.7, bombs: 2, rain: 1, squad: 3 }),
-    chancha: false,   // la Chancha vuela corto desde el epilogo de m5: no baja mas al sur
-    roster: F3, par: 11500, story: 'storyM10', brief: 'briefM10', epi: 'epiM10',
+    chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
+    roster: F3, par: 12000, story: 'storyM12', brief: 'briefM12', epi: 'epiM12',
   },
   {
-    id: 'm11', name: 'LA ULTIMA MESA', date: '11 de junio de 1982',
+    id: 'm13', name: 'LA ULTIMA MESA', date: '11 de junio de 1982',
     goal: { kind: 'ship', ship: 'HMS BROADSWORD', dist: 3200 },
     cfg: C({ sky: 'moon', terrain: 'land', obstacles: 1.7, bombs: 2, fog: 1, squad: 3, caza: 2 }),
-    chancha: false,   // la Chancha vuela corto desde el epilogo de m5: no baja mas al sur
-    roster: F3, par: 12500, story: 'storyM11', brief: 'briefM11', epi: 'epiM11',
+    chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
+    roster: F3, par: 12500, story: 'storyM13', brief: 'briefM13', epi: 'epiM13',
   },
   {
-    id: 'm12', name: 'EL TERO', date: 'madrugada del 12 de junio de 1982',
+    id: 'm14', name: 'EL TERO', date: 'madrugada del 12 de junio de 1982',
     goal: { kind: 'ship', ship: 'HMS GLAMORGAN', dist: 3400 },
     climax: 'arena',   // ver la nota de arriba
     cfg: C({ sky: 'night', obstacles: 1.7, bombs: 2, fog: 1, fogLen: 2, squad: 3, caza: 2 }),
-    chancha: false,   // la Chancha vuela corto desde el epilogo de m5: no baja mas al sur
-    roster: F3, par: 14000, story: 'storyM12', brief: 'briefM12', epi: 'epiM12',
+    chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
+    roster: F3, par: 14000, story: 'storyM14', brief: 'briefM14', epi: 'epiM14',
   },
 ];
 

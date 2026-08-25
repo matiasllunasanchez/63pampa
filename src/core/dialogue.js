@@ -166,22 +166,10 @@ const CARA_NEUTRA = {
   'CLARIBEL': 'claribel_neutro',
 };
 
-// EXCEPCIONES POR ESCENA: cuando la cara NO es la del mapa de arriba.
-//
-// CARA_NEUTRA es por PERSONAJE, y eso alcanza para casi todo el guion — pero no para el prologo.
-// «AÑOS ANTES · UN ARROYO» pasa alrededor de 1972: ahi Esteban tiene treinta y Mateo OCHO. Con el
-// mapa por personaje salian el piloto de 1982 y el conscripto de dieciocho, o sea dos personas
-// que en esa escena todavia no existen.
-//
-// Es POR LINEA y no por personaje-en-la-escena a proposito: Esteban habla dos veces y no es la
-// misma cara — primero le esta enseñando algo lindo a su hijo, y despues le esta diciendo la
-// unica cosa seria de toda la escena («nunca le tengas miedo a la tierra»), que ademas es la
-// frase que el guion recoge catorce misiones despues.
-//
-// La clave es el `img` de la pantalla; el valor, una cara por linea (null = usar CARA_NEUTRA).
-const CARA_ESCENA = {
-  P1_2: ['esteban_joven_calido', 'mateo_nene_asombro', 'esteban_joven_serio'],
-};
+// (Aca vivia CARA_ESCENA, la tabla de excepciones por escena — «en el arroyo, Esteban tiene
+// treinta y Mateo ocho». Se fue el 24/8 cuando el guion se mudo a data/story.js: ahora la cara
+// va escrita en la linea, al lado del texto que la necesita, y una excepcion deja de ser una
+// excepcion. Este mapa de abajo queda SOLO para el adaptador del guion viejo.)
 
 // numeracion de linea: de 10 en 10 y a tres digitos (010, 020…), como manda la regla D1 — asi
 // entra una linea nueva en el medio sin renumerar ni pisar un ID que ya se uso.
@@ -202,8 +190,7 @@ export function sceneFromScreen(sc, id) {
     const { personaje, txt } = splitSpeaker(p);
     // FALTA `hold` en todo el guion viejo: no se inventa (spec §8.3) — cae a 0 y queda anotado
     // en "Divergencias". Los holds de verdad llegan al pasar cada escena al modelo nuevo.
-    const porEscena = (CARA_ESCENA[sc.img] || [])[i];
-    const cara = porEscena || (personaje ? CARA_NEUTRA[personaje] || null : null);
+    const cara = personaje ? CARA_NEUTRA[personaje] || null : null;
     return { id: `${id}_${lineNo(i)}`, personaje, cara, txt, hold: 0 };
   });
   return { id, tipo: STYLE_TIPO[sc.style] || 'VN', titulo: sc.title, img: sc.img, style: sc.style, lineas };

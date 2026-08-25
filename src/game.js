@@ -11,7 +11,7 @@ import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { multOf } from './core/util.js';
 import * as dialogue from './core/dialogue.js';
 import { dlg, seqFromScreens } from './core/dialogue.js';
-import { SCENES } from './data/story.js';
+import { SCENES, SECUENCIAS } from './data/story.js';
 import { S, setState, cfg, cam, plane, stats, resetPlane, resetStats, CTRL_DIRECT, CTRL_BANK } from './core/state.js';
 import { hzWorld, stepHorizon } from './core/horizon.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts,
@@ -70,6 +70,7 @@ import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, update
 import * as world3D from './legacy/three-world.js';
 import { cv, ctx, W, H, HOR, F, PZ, SC, px, panel, U } from './render/ctx.js';
 import * as screens from './render/screens.js';
+import { decir as decirRadio, callar as callarRadio, tickRadio } from './core/radioVN.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
 import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
 import * as menus from './render/menus.js';
@@ -290,8 +291,21 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
      *  debajo del rotulo del objetivo y arriba del horizonte. */
     function radioTramo(key) {
       beep(430, 0.06, 'square', 0.04);
-      popup(W / 2, 58, T(key), P.crest, true);
+      decirRadio(T(key), n => CARA_DE_RADIO[n] || null);
     }
+
+    /** QUIEN TIENE CARA EN LA RADIO. El texto de los tramos ya viene como 'CONDOR: ...', asi que
+     *  el nombre sale del propio guion; lo unico que falta es el id del retrato.
+     *
+     *  Vive aca y no en core/radioVN.js a proposito: ese modulo no tiene por que saber quien es
+     *  Condor. Los ids validos los lista `python3 tools/hacer_prompts_retratos.py --ids`. */
+    const CARA_DE_RADIO = {
+      CONDOR: 'condor_radio', 'CÓNDOR': 'condor_radio',
+      PUMA: 'puma_neutro', GITANO: 'gitano_neutro', VASCO: 'vasco_neutro',
+      PICHON: 'pichon_neutro', 'PICHÓN': 'pichon_neutro',
+      TERO: 'tero_casco', ESTEBAN: 'tero_casco',   // en vuelo van con el casco puesto
+      'EL TURCO': 'turco_neutro', TURCO: 'turco_neutro',
+    };
 
     /** EL PEDIDO (tecla 5). Es una funcion con nombre —y no el cuerpo de la accion— para que la
      *  sonda del fixture apriete EXACTAMENTE lo mismo que aprieta el jugador: si la sonda
@@ -389,11 +403,18 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       run.spd = 62;                      // la velocidad con la que el despegue entrega el avion
       setState('play'); sfxOne('lv1');
     }
-    // arranca una SECUENCIA de pantallas (clave del guion en STRINGS: 'storyM1', 'epiM4'…).
-    // El guion viejo son PANTALLAS ({title, paras}); el motor habla de ESCENAS con lineas — las
-    // traduce el adaptador de core/dialogue.js, asi el guion ya escrito anda sin tocarlo.
+    // arranca una SECUENCIA del guion por su clave ('storyM1', 'epiM4'…).
+    //
+    // PRIMERO data/story.js, que es la fuente de verdad: ahi cada escena trae junto su texto, su
+    // placa, la cara de cada hablante y su hold. El adaptador del guion viejo (PANTALLAS con
+    // {title, paras} en data/strings.js) queda de RESPALDO y no de camino principal: sigue vivo
+    // para que una clave que todavia no se haya mudado no rompa la campaña, y para que
+    // `seqFromScreens` siga probado. Cuando no quede ninguna, se va con el.
     function initStory(key) {
-      dialogue.startSeq(seqFromScreens(L()[key] || STRINGS.es[key] || [], key), getLang());
+      const ids = SECUENCIAS[key];
+      const escenas = ids ? ids.map(id => SCENES[id]).filter(Boolean)
+                          : seqFromScreens(L()[key] || STRINGS.es[key] || [], key);
+      dialogue.startSeq(escenas, getLang());
     }
     /** Un cuadro del motor de historia. Devuelve la señal de pressDialogue() ('complete', 'next',
      *  'scene', 'end') o null; QUIEN DECIDE A DONDE IR es el que llama, no el motor. */
@@ -1240,7 +1261,8 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // ilustracion de fin sorteada al terminar (no por cuadro: si no, parpadearia)
     let deadBg = 0, winBg = 0;
     // FONDO GENERAL del lobby/seleccion: arranca SIEMPRE en ppal01.jpg (indice 0) y a los
-    // PPAL_ROT segundos empieza a rotar al azar, con un cruce suave de PPAL_FADE.
+    // PPAL_ROT segundos empieza a rotar al azar, con un cruce suave de PPAL_FADE. El tiempo lo
+    // pregunta por FOTO (screens.ppalSeg): la portada del escuadron dura mas que las demas.
     const PPAL_ROT = 8, PPAL_FADE = 0.9;
     let ppalIdx = 0, ppalPrev = 0, ppalT = 0, ppalFade = 1;
     // OJO: systems/audio.js tiene su propia lista de estados de lobby (para la MUSICA) y tiene que
@@ -1383,6 +1405,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
 
     let fogWarned = false;   // el aviso de entrada al banco sale UNA vez por banco
     function reset() {
+      callarRadio();   // una linea de radio a medio decir no puede sobrevivir a la corrida
       resetRun();       // toda la corrida (velocidad, nafta, rachas, armas, spawn…) a su estado inicial
       resetPlane();     // el avion a la posicion de arranque
       resetStats();     // los contadores del recuento final
@@ -2011,7 +2034,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       if (inLobby()) {
         ppalT += dt;
         if (ppalFade < 1) ppalFade = Math.min(1, ppalFade + dt / PPAL_FADE);
-        if (ppalT >= PPAL_ROT && screens.PPAL_BG_N > 1) {
+        if (ppalT >= screens.ppalSeg(ppalIdx, PPAL_ROT) && screens.PPAL_BG_N > 1) {
           ppalT = 0; ppalPrev = ppalIdx; ppalFade = 0;
           // sortea una DISTINTA a la actual: repetir se leeria como que no cambio
           let k = (Math.random() * (screens.PPAL_BG_N - 1)) | 0;
@@ -2350,6 +2373,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         collisionSystem(dt);
         parts.forEach(p2 => { p2.x += p2.vx * dt; p2.y += p2.vy * dt; p2.vy += 90 * dt; p2.life -= dt; });
         prune(parts, p2 => p2.life > 0); capParts();
+        tickRadio(dt);                       // la caja de radio baja sola cuando se le acaba el tiempo
         popups.forEach(p2 => { p2.y -= 14 * dt; p2.life -= dt; });
         prune(popups, p2 => p2.life > 0);
         engineOff();
@@ -2854,7 +2878,13 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // LA CINTA DE FORMACION va ADENTRO del ctx.scale(U): es HUD, o sea grilla de DISEÑO (320x180),
       // no de mundo. Ojo con esto — `drawPersec` (el avion del lider) se dibuja arriba, FUERA del
       // scale, porque eso si es mundo. Los dos espacios de coordenadas del repo, en un solo archivo.
-      if (S.state === 'play') { ctx.save(); ctx.scale(U, U); hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip }); drawCinta(); ctx.restore(); }
+      if (S.state === 'play') {
+        ctx.save(); ctx.scale(U, U); hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip }); drawCinta(); ctx.restore();
+        // LA CAJA DE RADIO va en el espacio de DISEÑO (320x180), como el resto de las cajas de
+        // dialogo, y NO en el del HUD: es la misma caja del modo historia y tiene que caer en el
+        // mismo lugar de la pantalla. Se dibuja al final para que quede por encima de todo.
+        ctx.save(); ctx.scale(U, U); screens.drawRadioVN(); ctx.restore();
+      }
       if (S.state === 'momentum' && momentum.active()) momRender.drawMomentum({
         mom: momentum.active(), momPhase: momentum.phase(), phases: momentum.phases(), msl: run.msl, objectiveShip, t: run.t,
         is3D: world3D.isOn(), parts, popups, mouse,

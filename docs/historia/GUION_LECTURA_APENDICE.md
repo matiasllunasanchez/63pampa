@@ -30,8 +30,8 @@ problema mío y quiero saberlo.
 
 _(Cambió: ya no hay cartas cruzadas;  3.2: el marco se OCULTA hasta el final; el final es del jugador.)_
 
-Un piloto de caza argentino pelea la guerra desde el cielo mientras su hijo —conscripto con
-tres meses de instrucción— la aguanta desde el pozo, **escribiéndole un cuaderno que él
+Un piloto de caza argentino pelea la guerra desde el cielo mientras su hijo —conscripto que
+ni llegó a terminar la instrucción— la aguanta desde el pozo, **escribiéndole un cuaderno que él
 nunca va a leer**: un diario que le habla al padre porque escribirle a alguien es más fácil
 que escribir al vacío. El padre no puede sacarlo de las islas, así que hace lo único que
 sabe: volar hasta él. **Y recién al final —no antes— el jugador descubre dónde estuvo
