@@ -232,6 +232,103 @@ Tras cada fase: correr el fixture del locker.
 
 ## 9. Divergencias encontradas *(completar durante la implementación)*
 
+### Ajustes de playtest (19/8/2026) — jugando el guion de M1
+
+**D-14 · TECHO AL SILENCIO: `HOLD_MAX = 1` s.** RF-07 y SISTEMA_DIALOGO decian que el `hold`
+ES la actuacion, y el fixture medía los 4,0 s de "El Vasco tenía quince años" como criterio de
+aceptación. Jugado, esa espera **se siente muerta**, no dramática. Decisión del autor: los datos
+del guion siguen pidiendo sus 2/2,5/4 s —la intención del director queda escrita— y una perilla
+única en `core/dialogue.js` recorta cuánto de eso se respeta en pantalla. Subirla a 4 devuelve el
+diseño original sin tocar una línea de contenido. El recorte vale para el tiempo **y** para el
+input a la vez, para que el cartel nunca mienta. Unit tests y `npm run story` actualizados a
+propósito: ahora comparan **lo que pide el guion contra el techo**, que es la decisión completa.
+
+**D-15 · El parpadeo del prompt arrancaba desfasado.** Estaba atado al reloj de la secuencia, así
+que al habilitarse el avance la onda podía estar en su mitad apagada: hasta ~0,8 s extra de espera
+invisible, sumados al silencio. Ahora el reloj es propio (`sinceReady()` en el motor, porque
+depende del techo): el primer cuadro visible es el primero posible.
+
+**D-16 · El prompt es un ÍCONO, no texto.** El glifo del ENTER dibujado (placa redondeada + flecha
+de retorno), sin la palabra: el gesto es universal y el renglón competía con lo único que importa,
+que es lo que alguien está diciendo. Pleno en la última pantalla de la secuencia, apagado en las
+intermedias — el peso dice "esto cierra algo" sin texto.
+
+**D-17 · El título va CHICO y arriba a la izquierda.** Era 11 px centrado y competía de igual a
+igual con la línea de diálogo. Es un rótulo de ubicación, se lee de reojo. La TARJETA de nivel es
+la excepción: ahí el nombre de la misión ES el contenido.
+
+**D-18 · El sello PRUEBA salió de las pantallas de guion.** Su razón (distinguir una captura de
+prueba de una partida real) vale en el vuelo y no existe en una cinemática. Sigue en las fases de
+vuelo y clímax; en `story`, `epilogue` y `upgrade` era ruido sobre el texto.
+
+### El cuaderno de Mateo (29/8/2026) — RF-05, la mitad TIERRA
+
+RF-05 pedía "fondo de hoja de cuaderno, tipografía manuscrita, texto en bloque, sin retrato" y
+hasta acá estaba entregado a medias: el fondo era la lámina del cuaderno **con el velo negro al
+55% encima**, la tipografía era el monospace de siempre teñido de celeste, y el bloque caía
+**centrado en el medio de la pantalla**, arriba del dibujo. Los tres registros no eran
+distinguibles de un vistazo, que es el CA del requisito. Se cerró entero.
+
+**D-19 · El texto va en la HOJA IZQUIERDA, no centrado.** Las catorce carillas de
+`assets/story/carta*.webp` están dibujadas con el dibujo a la **derecha** del espiral y la hoja
+izquierda **rayada y vacía**: el hueco para el texto ya estaba hecho desde que se generaron las
+láminas, y el texto se dibujaba encima del dibujo. La columna se declara en **fracciones del
+rectángulo de la lámina** y no de la pantalla (`CUAD.x0/x1/y0/y1` en `render/screens.js`), medidas
+sobre `carta1_p4.webp`: así sobrevive al letterbox y a cualquier tamaño de imagen.
+
+**D-20 · La letra es MAYORICE, y la elección no fue de gusto.** El banco de fuentes tenía dos
+manuscritas y la primera candidata —Cochocib— **no tiene un solo acento ni la eñe**. El canvas no
+avisa: le pide el carácter que le falta a otra fuente y sigue, así que "un frío que no tiene
+nombre" saldría con la i de una tipografía y la tilde de otra, en cartas que dicen *frío*, *país*,
+*podés*, *mamá* y *el jujeño* en el mismo párrafo. Se agregó **`node tools/glifos.js`**, que lee
+el `cmap` de cada archivo y lo dice. De paso encontró algo peor y **fuera de este trabajo**:
+`EmbolismSpark`, la fuente que hoy usa el texto corrido del menú de modos, declara los acentos y
+los manda **al mismo glifo que la letra pelada** — el menú se está dibujando sin una sola tilde.
+No se tocó: es otra pantalla y otra decisión.
+
+**D-21 · Se fue el velo; queda una franja abajo.** La lámina va a alfa 1 (es el papel, no una foto
+atrás del texto) y el único oscuro que sobrevive es un degradé de 26 px en el borde inferior. No
+es decoración: los controles y los puntos de avance son de color claro y sobre papel crema no se
+leerían. La línea de barrido y el marco de expediente no entran al cuaderno — son artefactos de
+pantalla y esto es una hoja de papel.
+
+**D-22 · Los dos controles se van a las puntas opuestas de la página.** ANTERIOR arriba a la
+**izquierda**, SIGUIENTE abajo a la **derecha** (`promptCuaderno`): volver donde empieza lo que ya
+leíste, seguir donde termina. Es la única pantalla del juego donde no van juntos, y contradice a
+propósito la regla de `promptAvanzar` ("siempre en el mismo lugar"): esa regla los cuelga del borde
+de la caja de diálogo, y acá no hay caja — hay una hoja que ocupa la pantalla entera, donde dos
+íconos juntos en el medio del papel se leen como algo dibujado en ella. Arriba **no hay franja
+oscura** (D-21: el oscuro vive sólo abajo), así que ANTERIOR lleva una sombra de tinta apenas
+corrida debajo del ícono y de la palabra: sin ella el naranja del acento cae sobre papel crema y el
+control existe pero no se ve, que es peor que no estar.
+
+**D-23 · La línea de NARRADOR de una escena TIERRA no entra al cuaderno.** "Esa misma semana,
+empezaba la guerra." (`P4_1_050`) no la escribió Mateo, así que sale por el camino de siempre: la
+caja VN de abajo, sobre la página oscurecida. El corte de la hoja iluminada al velo **es** la
+marca de que dejó de hablar la carta. Es la misma decisión que ya estaba tomada para el color del
+narrador, llevada hasta el layout.
+
+**D-24 · La placa de ambiente NO sirve como hoja.** La cascada de fondos de `drawStory` tiene tres
+escalones; el cuaderno sólo acepta el primero (`assets/story/carta*.webp`). `p1c_cuaderno` es un
+**dibujo de Mateo escribiendo**, vertical, y la letra le caía encima de las rodillas. Sin carilla
+propia, `drawCuaderno` pinta la suya —crema, renglonada, con el lomo en el medio— y la carta se
+lee igual (RF-01). **Hoy la usa una sola escena: `M11_CARTA`, «LA ÚLTIMA CARTA · SIN COPIAR». El
+guion tiene quince cartas y `assets/story` tiene catorce carillas: a esa le falta la suya.**
+
+**D-25 · El tipeo NO cambió de velocidad.** RF-05 pedía "tipeo más lento (es lectura íntima)" y
+`TYPE_CPS` sigue en 30 para todos los registros. Hacerlo por registro obliga a meter una perilla
+visual adentro del motor de líneas, que es puro a propósito y lo prueba `npm run unit` sin
+navegador. Lo que cambió es **cómo aparece**: los últimos seis caracteres entran pálidos y se van
+afirmando, y en vez del cursor de bloque titilante hay un trazo corto e inclinado que baja hasta
+el renglón — la punta de la birome. Si al jugarlo el ritmo pide ser más lento, la perilla es
+`TYPE_CPS` por escena y este renglón dice qué hay que aceptar a cambio.
+
+**D-26 · Fixture propio: `npm run cuaderno`.** Recorre las quince cartas en el juego de verdad y
+falla si alguna **no entra en la hoja** (`drawCuaderno` avisa por consola cuando ni achicando la
+letra alcanza) o si el wrap propio —que mide en píxeles, porque la manuscrita es proporcional—
+pierde caracteres al final de una frase. Medida al cerrar: **15 cartas · 56 carillas · 8.740
+caracteres, ninguna se derrama**, la más larga son 289 caracteres en 9 renglones.
+
 > La IA implementadora anota acá toda diferencia entre este spec y la realidad del código
 > (nombres de archivos, estados, convenciones), con la decisión tomada. Este bloque es la
 > memoria del proyecto para la próxima pasada.

@@ -6,6 +6,7 @@
 // Lo que necesita saber del juego (estado, config, avion...) NO lo lee de variables globales:
 // entra por parametro. Asi el modulo no depende del closure de game.js y se puede probar solo.
 import { SFXB, SFX_DEF } from '../data/sfx.js';
+import { RAS_MUS, RAS_AGUA } from '../data/tuning.js';
 
 let lastState = 'modeselect';   // ultimo estado conocido, para las llamadas que no lo reciben
 
@@ -64,6 +65,13 @@ let muted = false, musicStarted = false;
 // historia): cuando cambia, la nueva arranca DE CERO en vez de retomar donde habia quedado.
 let curTrack = null;
 let duckT = 0;   // ducking: las explosiones grandes agachan la musica un instante
+// EL SILENCIO DEL PODER RASANTE. Lo prende el orquestador (`setRasante`) y lo leen las dos mitades
+// del audio: la musica se va al hilo y las capas de AMBIENTE se apagan, pero el motor y el agua
+// se quedan — y el agua sube. Es un flag y no un parametro de `updateMusic` porque `updateSfx` lo
+// necesita tambien, y pasarlo dos veces era pedir que se desincronicen.
+let rasOn = false;
+/** ¿El poder RASANTE esta puesto? Lo dice el orquestador una vez por cuadro. */
+export function setRasante(v) { rasOn = !!v; }
 try { muted = localStorage.getItem('rasante_muted') === '1'; } catch (e) { }
 
 
@@ -145,10 +153,16 @@ export function updateSfx(dt, w) {
       sfxTgt.engN = SFX_DEF.engN.v * (1 - mixB * 0.85);
       sfxTgt.engN2 = SFX_DEF.engN2.v * (0.15 + mixB * 0.85);
       if (w.boost) sfxTgt.turbo = SFX_DEF.turbo.v;                        // turbo en loop con fade
-      if (w.state === 'play' && w.plane.y <= 4.5) sfxTgt.waterNear = SFX_DEF.waterNear.v;  // rasante
+      // EL AGUA, y con el poder puesto MAS FUERTE (RF-05). Es la mitad que queda cuando el mundo se
+      // apaga: motor y agua. Que el agua SUBA mientras todo lo demas baja es lo que hace que el
+      // silencio no se lea como que se rompio el sonido — se lee como que te acercaste al mar.
+      if (w.state === 'play' && w.plane.y <= 4.5) sfxTgt.waterNear = SFX_DEF.waterNear.v * (rasOn ? RAS_AGUA : 1);
       if (w.state === 'play' && w.firing && !w.overheat) sfxTgt.gun = SFX_DEF.gun.v;       // metralla
-      // ambiente por contexto del mapa
-      if (w.cfg.sky === 'storm') {
+      // AMBIENTE POR CONTEXTO DEL MAPA — y con el poder puesto, NADA. La tormenta, la batalla y el
+      // viento son el MUNDO, y el mundo es justo lo que el poder apaga: quedan el motor y el agua,
+      // que son el avion. Se saltea el bloque entero en vez de bajarle el volumen a cada capa para
+      // que agregar una capa nueva no se olvide de callarse.
+      if (rasOn) { /* el silencio (RF-05) */ } else if (w.cfg.sky === 'storm') {
         if (w.cfg.terrain === 'sea' || w.cfg.terrain === 'coast') sfxTgt.ambStorm = SFX_DEF.ambStorm.v;
         else sfxTgt.ambRain = SFX_DEF.ambRain.v;
       } else if (w.cfg.terrain === 'coast') {
@@ -211,7 +225,16 @@ export function updateMusic(state) {
   curTrack = want;
   // mezcla dinamica: en MOMENTUM la musica se AHOGA (camara lenta, como bajo el agua) y
   // las explosiones grandes la agachan un instante (ducking). Lerp por frame → suave.
-  const tv = (state === 'momentum' ? 0.10 : 0.30) * (duckT > 0 ? 0.45 : 1);
+  //
+  // Y EN EL PODER RASANTE, EL SILENCIO (SPEC_PODER_RASANTE RF-05). Es el unico boost del juego que
+  // BAJA el volumen — todos los demas gritan y este susurra, y esa es una de las cinco cosas que
+  // lo hacen suyo (§7). La musica no se apaga del todo: queda un hilo de concentracion debajo
+  // (RAS_MUS), que es lo que Matias pidio el 23/8. Con cero se leia como un bug de audio.
+  //
+  // El LERP es el mismo de siempre (0.08 por cuadro), asi que la entrada es un agachon suave y la
+  // salida —al soltar el poder— es la EXHALACION que pide el spec: el sonido volviendo solo. No
+  // hace falta programarla; es la misma rampa leida al reves.
+  const tv = (rasOn ? RAS_MUS : state === 'momentum' ? 0.10 : 0.30) * (duckT > 0 ? 0.45 : 1);
   gm.volume += (tv - gm.volume) * 0.08;
 }
 function startMusicOnce(state) { if (musicStarted || muted) return; musicStarted = true; updateMusic(state || 'modeselect'); }

@@ -1,5 +1,10 @@
 # RASANTE — Las hojas de rostros, una por personaje
 
+> ✅ **Este archivo SIGUE VIGENTE** para las *hojas de rostros completas* (seis celdas por
+> personaje, misma grilla). `PROMPTS_AIRE_LISTOS.md` trae solo los retratos sueltos que piden
+> las escenas del prólogo y M1–M3; para generar la hoja entera de un personaje, es acá.
+
+
 **Ocho hojas, una por personaje, todas con la MISMA GRILLA: seis celdas cuadradas en fila, misma
 escala de cabeza, misma altura de ojos.** Eso es lo que hace que la familia se lea como familia —
 los retratos se alternan en la misma caja de diálogo, y si en uno la cabeza es más grande, al
@@ -25,6 +30,12 @@ celda, contenido distinto.
 | 4 | **ceño** | enojo, dureza |
 | 5 | **roto** | dolor, el quiebre |
 | 6 | **la propia** | Tero con casco · la duda de Puma · la risa que se apaga del Gitano · el rezo del Vasco · los auriculares del Pichón · el orgullo del Turco · el frío de Mateo · el Colorado ofreciendo |
+
+> 📁 **Dos carpetas, y no son lo mismo.** `docs/historia/characters_examples/final/` son las
+> **láminas de personaje**: material de referencia que se adjunta al prompt (IMAGE 1 e IMAGE 2) y
+> vive con la documentación. `assets/source/retratos/` son las **hojas generadas** que salen de
+> estos prompts; de ahí las corta `install_retratos.py` y deja los 108×108 en `assets/portraits/`,
+> que es lo único que el juego empaqueta.
 
 ## Cómo se usa
 

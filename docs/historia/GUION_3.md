@@ -133,7 +133,14 @@ dárselo en la mano cuando vuelva. _"Así no te tengo que contar nada: mirás y 
 
 ### El de la pista — "el Turco" _(sin cambios)_
 
-**Suboficial Miguel Salomón**, mecánico jefe. Pinta **una estrellita por cada regreso**.
+**Suboficial Miguel Salomón**, mecánico jefe. Pinta **una estrellita por cada regreso**. 🟩
+**UNA por avión y por vuelta** — no una fila que se pinta de golpe. Las "cinco estrellitas"
+del epílogo de M1 son **cinco aviones, una cada uno**. Los dos contadores van al revés: las
+estrellas de cada avión **suben** una por misión sobrevivida, y la cantidad de aviones que se
+pintan **baja** cuando alguien no vuelve. El cruce de los dos es el momento de M7 — *"hay una
+estrellita que hoy no se pinta"*. ⚠ **No confundir con las 1–4 estrellas de puntaje por nivel
+del HUD: no tienen nada que ver.** Producción: las pinta el motor sobre un fuselaje limpio,
+no la IA (ver PROMPTS_VN_M1_M3 · M1.e).
 "Los ingleses cuentan lo que bajan. Yo cuento lo que vuelve." 🟨 _(Habla tucumano:
 "m'hijo", "changuito", "esto no lo levanta ni Alá".)_
 
@@ -319,6 +326,19 @@ valientes vuelan abajo, Mateo.
 **ESTEBAN:** Se caen los que le tienen miedo a la tierra. _(le revuelve el pelo, mira el
 dibujo)_ …Salió mejor el avión que yo, ¿eh?
 
+> 🟥 **Nota de tratamiento — por qué se queja.** En el dibujo **están los dos**: un monigote
+> alto de brazo estirado con **«PAPá»** escrito arriba —tres mayúsculas grandes y una «á»
+> chiquita metida a último momento, como escribe un nene de ocho— y otro monigote más chico
+> sentado en la orilla con algo cuadrado en las rodillas. Los dos son **lo peor de la hoja**;
+> el avión es lo mejor. La línea de Esteban no es un chiste suelto: **está señalándose a sí
+> mismo.** Prompt armado: `PROMPTS_TIERRA_LISTOS.md` · P.1a (`p1a_arroyo.png`).
+>
+> 🟥 **Y el sapito de P.1b es de un nene de ocho:** una raya para el agua, la piedra como un
+> óvalo torcido, tres arquitos donde picó y una línea punteada. **Nada de ondas concéntricas,
+> ni profundidad, ni textura de agua.** Esa versión —el agua de verdad, los anillos, la
+> piedra con peso— es la del **cuaderno del final** (CARTA 14): el mismo plano quince años
+> después, y ahí sí le sale.
+
 ### Viñeta P.2 — La cocina _(2 de abril de 1982)_
 
 🟥 **Viernes a la tarde.** Mateo, 18, rapado de colimba, **de franco**: llegó hace un rato
@@ -344,14 +364,15 @@ _(Se ríen los tres.)_
 > e hijo que dura cuatro segundos, **y no se vuelve a mencionar nunca en todo el juego.** El
 > jugador se acuerda solo.
 
-**NORMA:** _(atiende teléfono)_ Para quién? Tero? _(tomá Tero, es para vos)_. Si hace veinte años que vuela y el
-pájaro lo sigue a todos lados. _(a Mateo, sonriendo al padre)_
+_(Suena el teléfono.)_
+
+**NORMA:** _(se levanta y atiende)_ ¿Para quién?... ¿Tero?... Tomá amor. Es para vos.
 
 **ESTEBAN:** _(toma el teléfono)_
 
 **MATEO:** Tero?
 
-**NORMA:** Sí, a tu padre le dicen Tero. El apodo se lo pusieron hace casi 20 años durante la colimba y le quedó para siempre. En el trabajo le dicen así.
+**NORMA:** A tu padre le dicen Tero. Se lo pusieron hace casi veinte años durante la colimba y le quedó para siempre. En el trabajo le dicen así.
 
 **ESTEBAN:** _(corta el teléfono)_ Queda pálido y en silencio.
 
@@ -363,9 +384,13 @@ pájaro lo sigue a todos lados. _(a Mateo, sonriendo al padre)_
 madrugada en las Islas Malvinas...". Los tres quietos. La pava chifla y
 nadie la saca del fuego.)
 
-Cartel: El 2 de abril la Plaza se llenó de gente festejando. Desde el balcón, un general
-envalentonado pronunció: "Si quieren venir, que vengan. Les presentaremos batalla" En esa
-cocina, un padre que conocía la guerra de verdad no salió a festejar.
+Cartel: 🟩 El 2 de abril la Plaza se llenó de gente festejando. En esa cocina, un padre que
+realmente conocía las consecuencias de una guerra no festejó.
+
+> **🟩 Cambió en el código (`data/story.js`, `P2_3_120`): se cayó la cita del balcón.** El
+> cartel ya no reproduce el *"Si quieren venir, que vengan"* de Galtieri. Queda más corto y
+> más seco, y **el juego deja de darle un micrófono al general** — la única voz de esa
+> escena es la de la cocina.
 
 ### Viñeta P.3 — Lo que un padre puede y lo que no
 
@@ -373,7 +398,12 @@ Montaje: el teléfono de la base, papeles, un despacho, una puerta que se cierra
 
 **ESTEBAN (voz superpuesta):** Moví todo. Llamé a todos. Creí que podía. _(la puerta se cierra)_ No pude.
 
-**CÓNDOR (radio, seco):** Aldao. Su hijo ya está embarcado. Está en las islas. Lo siento.
+**CÓNDOR** 🟩 _(**por teléfono**, no por radio — cara `condor_telefono`)_**:** Aldao. Su hijo
+ya está embarcado. Está en las islas. Lo siento.
+
+> **🟩 Cambió en el código (`P3_4_030`).** El parlante militar es del hangar y de las
+> misiones. **Acá Cóndor es una voz del otro lado de una línea telefónica, en una oficina** —
+> y por eso la noticia llega distinto: no es la guerra hablándole, es un tipo llamándolo.
 
 ### 🟨 Viñeta P.4 — La primera página del cuaderno
 
@@ -394,6 +424,13 @@ Montaje: el teléfono de la base, papeles, un despacho, una puerta que se cierra
 >
 > _Mateo._
 
+> 🟥 **Nota de tratamiento — el mapa.** En la hoja de al lado, entre los dibujos sueltos, hay
+> un mapa torcido de la Argentina con monigotes desparramados por todo el país —los pibes de
+> cada provincia— y una raya que sale de cada uno, cruza la costa y **se junta en las islas**.
+> Mateo **dibujó las islas varias veces más grandes de lo que van**: es el único lugar del
+> mapa que le importa, y es donde está parado. Es lo mejor dibujado de la página.
+> **Nadie lo comenta.** Prompt armado: `PROMPTS_TIERRA_LISTOS.md` · CARTA 1 (`carta1_p4.png`).
+
 _Cartel:_ Esa misma semana, empezaba la guerra.
 
 ---
@@ -405,47 +442,79 @@ _Cartel:_ Esa misma semana, empezaba la guerra.
 \*Mar abierto. **TUTORIAL PURO: sin jefe, sin enemigos, sin un solo disparo enemigo.\***
 _(Es la misión de conocer a la familia.)_
 
-### Briefing (aire) _(el diálogo, sin cambios — es el mejor hangar del juego)_
+### 🟩 Briefing · escena 1 — LA LÍNEA DE VUELO _(código: `M1_3`)_
 
 La línea de vuelo de Río Gallegos, de madrugada. El Turco ceba mate como quien da la
 comunión. Esteban conoce a la familia.
 
-**PUMA:** Bienvenido a los Fieles de Plata, Tero. Ya sabés... Regla número uno: pegado al agua el radar de ellos no
-te ve. Volás tan bajo que volvés con sal en las alas. Regla número dos: no hay. Con la uno
-alcanza.
+**PUMA:** Bienvenido al escuadrón, Tero. Primera regla: siempre pegado al agua, el radar de
+ellos no te ve. Hay que volar tan bajo que tenés que volver con sal en las alas. Segunda
+regla: no hay. Con la primera alcanza.
 
-**GITANO:** Regla dos: el mate lo cebo yo, que el Turco lo lava al toque. Regla tres: si no
-volvés, te lo cebo igual, pero solo... Cebar solo es tristísimo, así que volvé.
+**GITANO:** Tercera regla: el mate lo cebo yo. Y si no volvés... te lo cebo igual. Pero
+solo. Cebar solo es tristísimo, así que volvé.
 
-**PICHÓN (nervioso):** ¿Siempre hacen chistes antes de volar?
+**PICHÓN:** ¿Siempre van a hacer estos chistes?
 
-**VASCO (bajito):** Siempre. Es la manera que tienen de rezar.
+**VASCO:** _(sin levantar la vista de la escalerilla, casi para adentro)_ Es la manera que
+tienen de rezar.
 
-**GITANO:** Y el Vasco reza doble: por él y por "la bella dama".
+### 🟩 Briefing · escena 2 — LA CASADA _(código: `M1_5B`)_
 
-**PICHÓN:** ¿Qué dama?
+_(El vestuario, media hora antes de subir. El Vasco cierra su locker rápidamente y se
+aparta. El Pichón alcanza a ver una foto de una mujer.)_
 
-**GITANO:** La mina de la foto, pibe. _(bajando la voz)_ La tiene pegada adentro de la
-puerta del locker. Una diosa, morocha, riéndose. Esa mujer no es de nadie que esté solo,
-Pichón. Esa mujer tiene dueño de acá a luján y no puede ser el Vasco. Nadie tiene un gusto tan feo.
+> **🟩 LA PLACA ES EL VESTUARIO, NO LA FOTO _(29/8)_.** Se ve el vestuario de ellos: los
+> lockers cerrados, uno solo apenas entornado y **negro adentro**, los bancos y las cosas de
+> cada uno. **El jugador NO ve la foto en M1** — la oye describir, oye que le pusieron nombre,
+> y no ve nada. La ve por primera vez en **M7**, cuando ya es otra cosa. *(Prompt en
+> PROMPTS_VN_M1_M3.md · en `story.js` implica cambiar `placa: 'm7_foto_frente'` por
+> `placa: 'vestuario'`.)*
 
-**PICHÓN:** _(va, la mira, y vuelve con los ojos grandes)_ …Es hermosa.
+**GITANO:** _(lo ve mirando y le habla desde el otro lado del banco)_ Andá, mirala, Pichón.
+Está pegada adentro del locker.
 
-**GITANO:** ¿Vio? Casada seguro. Mínimo un coronel. Por eso debe ser tan raro.
+_(Una foto en blanco y negro: una mujer hermosa, sonriendo. El Pichón se queda mirándola.)_
 
-**PICHÓN:** _(bajito, fascinado)_ A mí me dijeron que no habla porque tiene un hermano preso.
+**PICHÓN:** _(sin sacarle los ojos de encima)_ ...es hermosa.
 
-**GITANO:** A mí me dijeron que él estuvo preso.
+**GITANO:** Es "La Casada", le decimos así porque no sabemos quién es, pero esa mujer no es
+de nadie que esté solo…
 
-**PUMA:** _(sin levantar la vista del mapa)_ A mí me dijeron que ustedes dos hablan mucho.
+_(El Vasco se persigna, sube la escalerilla y no contesta. Nunca desmiente nada.)_
 
-**VASCO:** _(se persigna, sube la escalerilla. No desmiente. Nunca desmiente nada.)_
+**GITANO:** _(se acerca al locker, junto al Pichón)_ Creíamos que era la mujer del Vasco.
+Pero él nunca dice nada… de nada. Debe ser algún amorío del pasado... Y que actualmente está
+casada... con alguien de poder. Como un político... o un mafioso... o ambas.
 
-> la foto se ve, de frente, linda, y la pista (peinado, vestido, grano de los 50) está servida en el mismo cuadro.
+**CÓNDOR:** _(shhh, crrr… zkk)_ Escuadrilla CAUQUÉN, acá Cóndor. Aprobado el vuelo de
+adaptación sobre mar abierto, rumbo sudeste. Mantenerse pegaditos al agua todo el trayecto
+que hay radar. Autorizados pista dos. Buen vuelo, muchachos.
+
+> **🟩 Qué cambió acá, y por qué importa.** El bloque de la foto **se separó en su propia
+> escena**, con lugar y hora propios (el vestuario, media hora antes). Antes el Gitano
+> mandaba al Pichón a mirar una foto sin que nadie hubiera dicho **dónde estaban, de quién
+> era el locker ni por qué había una foto ahí**: el jugador leía el chiste sin el chiste.
+>
+> **Y el apodo se volvió canon: "LA CASADA".** Ya no es una especulación suelta — es cómo la
+> llama la escuadrilla, *"porque no sabemos quién es"*. Eso hace que el giro de M7 pegue el
+> doble: **el juego le puso nombre a la mujer equivocada durante siete misiones.**
+>
+> **Se cayeron** los chismes del Pichón (el hermano preso / el Vasco preso) y el remate de
+> Puma *("a mí me dijeron que ustedes dos hablan mucho")*.
+
+### 🟩 Tarjeta de misión _(código: `STORYM1_TARJETA`)_
+
+> **MISIÓN 1 — SAL EN LAS ALAS**
+> *Mar abierto · Objetivo: dominar el vuelo rasante*
+
+### ⚠ EL TERITO — está en el guion y **NO** está todavía en el código
 
 _(Y en el fuselaje del avión de Esteban, bajo la cabina, hay pintura fresca: **un terito
-chiquito recortado en BLANCO**, patas largas, pecho al frente, gritón — una silueta maciza,
-sin detalle adentro, que salta contra el camuflaje. El Turco lo pintó anoche, sin que nadie
+chiquito recortado en BLANCO**, de perfil, quieto y alerta — cuello finito, pecho compacto,
+cola larga en punta, y **la cresta larga y fina barriendo hacia atrás desde la nuca**, que es
+lo que lo hace tero. Una silueta elegante y flaca, sin detalle adentro, que salta contra el
+camuflaje. 🟩 _(Descriptor canónico `{TERITO}` en STORYBOARD_1 §0 y en PROMPTS_VN_M1_M3.)_ El Turco lo pintó anoche, sin que nadie
 se lo pidiera, porque un piloto le contó el apodo y un avión sin su pájaro trae mala
 suerte.)_
 
@@ -456,13 +525,15 @@ los aviones van con nombre.
 
 **ESTEBAN:** _(mira los otros aviones)_ …¿Y el resto tienen estrellas?
 
-**EL TURCO:** _(sigue revisando el fuselaje del avion de Esteban)_ Sí, tengo la costumbre de pintarles una estrella a cada uno por cada vuelta. _(golpeando el fuselaje como a un caballo)_ Traémela entera Tero, eh. Y traete vos adentro, que la estrellita la pinto por vos, no por ella.
+**EL TURCO:** _(sigue revisando el fuselaje)_ Sí, tengo la costumbre de pintarles una
+estrella a cada uno por cada vuelta. _(golpeando el fuselaje como a un caballo)_ Traémela
+entera Tero, eh. Y traete vos adentro, que la estrellita la pinto por vos, no por ella.
 
-**CÓNDOR (radio — primera vez del ritual):** Plata Fiel, Plata Fiel. Aquí Cóndor.
-Cielo despejado al sur. Viento en la cola. Reconocimiento de zona, vuelen bajito y a casa. — Buena suerte, muchachos.
-Escuadrilla CAUQUÉN, autorizada pista dos.
-
-**GITANO:** ¿Viste? Para el comando somos gansos. Por lo menos eligieron uno que vuela.
+> **⚠ ESTO NO ESTÁ EN `story.js`.** Se conserva acá porque **es la raíz de tres sistemas del
+> juego**: el gesto de Tero de §9d (tocar el terito antes de subir, que se cobra en M14), la
+> mecánica de las estrellitas del Turco, y la referencia maestra del asset del terito. **Si
+> se cayó a propósito, hay que decidir qué pasa con esos tres.** Si solo falta migrarlo, va
+> como escena propia entre `M1_5B` y la tarjeta.
 
 ### 🟥 El ritual de los cinco _(3.11 — sin diálogo; se planta acá y se cobra en M14)_
 
@@ -503,7 +574,7 @@ sal en las alas."**
 
 ### Epílogo (aire) _(sin cambios)_
 
-Todos vuelven. El Turco pinta cinco estrellitas con la lengua afuera. Por un rato, esto
+Todos vuelven. El Turco pinta cinco estrellitas con la lengua afuera —🟩 **una en cada avión**. Por un rato, esto
 parece una aventura.
 
 ### El cuaderno (tierra) 🟨 _(página de diario; entra el cuero de oveja del Colorado)_
@@ -530,6 +601,20 @@ parece una aventura.
 > _Mateo._
 
 _(El jugador entiende lo que Mateo sospecha: sí, lo mandó. Es lo único que pudo hacer.)_
+
+> **Nota de tratamiento — la capa.** 🔴 En la hoja, **la capa del superhéroe es el cuero de
+> oveja** que el Colorado le regaló, con la lana para adentro. Lo que a Mateo lo abriga es lo
+> que hace héroe al otro, y el pibe lo dibuja sin darse cuenta de lo que está diciendo.
+> **Nadie lo dice nunca, ni en esta carta ni después.**
+>
+> 🟥 **Nota de tratamiento — a quién protege.** Es **lo único que hay dibujado en toda la
+> hoja**: no hay pozo aparte, no hay objetos, no hay nada más. Es lo único en lo que Mateo
+> piensa. El Colorado está **de brazos abiertos, tapando**, y el cuero de oveja se abre
+> detrás de él **como un techo sobre la trinchera**. Abajo, asomando apenas sobre el
+> parapeto, **seis o siete cabecitas en silueta, sin cara, y el casco más grande que la
+> cabeza**. Son chicos con casco de hombre. No hay armas, ni banderas, ni enemigo.
+> **Mateo tampoco comenta esto.** Él cree que dibujó a un superhéroe.
+> Prompt armado: `PROMPTS_TIERRA_LISTOS.md` · CARTA 2 (`carta2_m1.png`).
 
 ---
 
@@ -598,6 +683,11 @@ chapa toda la noche. A la mañana, agujeros parchados y una estrellita nueva.
 >
 > _Unas ganas de comer el guiso de mamá... Apenas termine esto le pedimos que lo prepare.
 > Anotalo vos también, que yo acá lo tengo escrito._
+> 🟥 **Nota de tratamiento — el recordatorio.** «Yo acá lo tengo escrito» es literal: en un
+> rincón de la hoja de dibujos, chiquito, torcido y **subrayado a mano**, está anotado
+> _pedir a mamá que prepare guiso_. Sin comillas, sin flecha, sin relación con ningún dibujo:
+> una nota que se dejó a sí mismo para no olvidarse.
+> Prompt armado: `PROMPTS_TIERRA_LISTOS.md` · CARTA 3 (`carta3_m2.png`).
 >
 > _Mateo._
 
@@ -1058,6 +1148,13 @@ dieciocho que escucha lo mismo y no sabe si el que pasa es su padre.)_
 > me estoy volviendo para aguantarla._
 >
 > _Mateo._
+> 🟥 **Nota de tratamiento — la hoja más dura.** El guion no dice qué dibujó. Propuesta: tres
+> dibujos, ninguno comentado ni señalado. **Los huesos partidos a lo largo sobre una piedra**
+> y el canto con que los partieron, dibujados de cerca y con atención. **El avión cayendo a
+> lo lejos**, minúsculo, arriba de todo, con muchísimo papel vacío alrededor —el vacío es
+> parte del dibujo—. Y abajo, chico y rápido, **un monigote estaqueado visto desde arriba**,
+> con las cuatro estacas. Sin rótulo, sin énfasis, sin explicación.
+> Prompt armado: `PROMPTS_TIERRA_LISTOS.md` · CARTA 6 (`carta6_m5.png`).
 
 ---
 
@@ -1134,6 +1231,12 @@ Chancha no hay nafta de vuelta". **El Gitano lo sabe mejor que nadie: se rompió
 > peor lugar del mundo, tengo un amigo._
 >
 > _Mateo._
+> 🟥 **Nota de tratamiento — la única hoja sin cascos.** Propuesta: dibuja **el asado que
+> todavía no pasó** —la parrilla, la carne, tres monigotes charlando— y es **la única página
+> del cuaderno donde nadie tiene casco ni ropa militar**, porque es lo que se imagina, no lo
+> que ve. Al lado, chiquita, **la revista encajada en el parapeto para tapar el viento**, con
+> «Estamos ganando» apenas visible en la tapa.
+> Prompt armado: `PROMPTS_TIERRA_LISTOS.md` · CARTA 7 (`carta7_m6.png`).
 
 ---
 
@@ -1652,6 +1755,16 @@ viene haciendo desde la noche del Vasco.
 > micro, pá. Qué manía la de este tipo de planear cosas lindas en el peor lugar del mundo._
 >
 > _Mateo._
+> 🟥 **Nota de tratamiento — el plan.** Propuesta: es **la única hoja donde los dibujos SÍ
+> están conectados**, con flechas de uno al otro, porque un plan tiene orden: la casa con el
+> asado → el micro de larga distancia → Corrientes.
+> **Corrientes es el puente y nada más**: las dos torres en A con los cables abiertos, y
+> abajo apenas una franja de río. Sin palmeras, sin playa, sin postal tropical — el puente
+> solo ya dice Corrientes. Mateo nunca estuvo: lo dibuja de lo que le contaron. Y
+> sostenido entre los dos monigotes, **un pescado absurdamente grande**, casi tan largo como
+> el puente: es una mentira de pescador dibujada por alguien que se la creyó. Los dos
+> monigotes **siguen teniendo casco**: ya no sabe dibujar gente de otra manera.
+> Prompt armado: `PROMPTS_TIERRA_LISTOS.md` · CARTA 12 (`carta12_m11.png`).
 
 _(Ningún presagio explícito. El Colorado planeando un asado es todo lo que hace falta.)_
 
@@ -1860,6 +1973,12 @@ no están en la mesa.
 > _Te quiero, viejo. Volá bajo._
 >
 > _Mateo._
+> 🟥 **Nota de tratamiento — la última página del cuaderno.** El guion no dice qué dibujó.
+> Propuesta: **el sapito**. El mismo plano que P.1b —la piedra rebotando, los tres anillos—
+> pero con la mano de los 18: ahora el agua es agua, la piedra pesa, hay profundidad. La
+> primera página del cuaderno y la última son el mismo dibujo, quince años y una guerra
+> aparte. Nadie lo señala.
+> Prompt armado: `PROMPTS_TIERRA_LISTOS.md` · CARTA 14 (`carta14_m13.png`).
 
 ### LA CARTA — la única del juego _(esa noche, después del asado)_
 

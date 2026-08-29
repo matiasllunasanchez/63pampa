@@ -57,8 +57,8 @@ export function setTramosProbe(t, obj) {
 
 export function resetTramos() { setTramos(null, 0); }
 
-/** UN CUADRO del item, y lo unico que hace es CONTESTAR: `{ radio: clave }` cuando se acaba de
- *  entrar a un tramo que trae linea, o null. Quien la dice es el orquestador — un sistema no
+/** UN CUADRO del item, y lo unico que hace es CONTESTAR: `{ radio, charla }` cuando se acaba de
+ *  entrar a un tramo que trae una cosa o la otra, o null. Quien la dice es el orquestador — un sistema no
  *  llama hacia arriba (convencion 2 de ARQUITECTURA), y ademas la radio es popup + sonido, que
  *  son dos cosas que este archivo no tiene por que conocer.
  *
@@ -75,9 +75,21 @@ export function stepTramos() {
   ultimo = i;
   if (!t) return null;
   const k = t.val('radio', null);
-  if (!k || yaDicha(k)) return null;
-  marcarDicha(k);
-  return { radio: k };
+  // LA CHARLA EN VUELO (SPEC_CHARLAS_VUELO RF-01) viaja por el MISMO flanco que la radio y por la
+  // misma razon: las dos son "algo que pasa AL ENTRAR a un tramo". Compartir el flanco es lo que
+  // garantiza que no puedan desincronizarse — un segundo detector seria un segundo `ultimo` que
+  // alguien tiene que acordarse de mover.
+  //
+  // No lleva lista de dichas: quien decide si la toma es systems/charla.js (`armar` se ignora si
+  // ya hay una corriendo), y ademas una charla NO tiene que sonar una sola vez por corrida sino
+  // una vez por ENTRADA al tramo — al reintentar la mision se vuelve a disparar (RF-06), y eso
+  // sale gratis porque `setTramos` nace de cero con el run.
+  const ch = t.val('charla', null);
+  if ((!k || yaDicha(k)) && !ch) return null;
+  const out = {};
+  if (k && !yaDicha(k)) { marcarDicha(k); out.radio = k; }
+  if (ch) out.charla = ch;
+  return out;
 }
 
 /** Foto del estado para la sonda `__trdbg`. `valores` son los RESUELTOS: lo que el sembrador
@@ -101,6 +113,7 @@ export function dbg(cfg) {
     favor: val('favor', null),
     marcas: val('marcas', false),
     radio: val('radio', null),
+    charla: val('charla', null),
     dichas: dichas.slice(),
   };
 }

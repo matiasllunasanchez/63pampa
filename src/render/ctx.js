@@ -84,6 +84,19 @@ const FONTS = {
   desc: 'EmbolismSpark',// texto corrido del menu (probadas: Opencare, Vegabond, Cochocib,
                         // Kabur, Mayorice, GlimpR thin/italic, SmoothElegant)
   label: 'GlimpRThin',  // rotulos de seccion ("ELEGI MODO DE JUEGO")
+  // LA BIROME DE MATEO: el unico texto del juego que no lo escribe una maquina sino una persona,
+  // a mano, sobre un cuaderno (registro TIERRA — ver drawCuaderno en render/screens.js).
+  //
+  // Se eligio MAYORICE y no la unica otra manuscrita del banco (Cochocib) por una razon que no es
+  // de gusto: Cochocib NO TIENE UN SOLO ACENTO NI LA EÑE. Sin ellos, "un frio que no tiene
+  // nombre" saldria con la i de una fuente y la tilde de otra —o sin tilde— en las cartas de un
+  // pibe que escribe "frío", "país", "podés", "mamá" y "el jujeño" en el mismo parrafo. Mayorice
+  // cubre los acentos, la eñe y los signos de apertura, y ademas es una letra de PALO IMPRENTA a
+  // birome, que es como escribe un conscripto de dieciocho — no una caligrafia inglesa.
+  //
+  // Si algun dia entra otra manuscrita al banco: pasarle antes tools/glifos.js, que es lo que
+  // encontro este agujero.
+  mano: 'Mayorice',
 };
 /** Fuente del logotipo al tamaño pedido, con el monospace de siempre como respaldo. */
 export const titleFont = size => uiFont(FONTS.title, size);
@@ -97,6 +110,9 @@ export const descFont = size => uiFont(FONTS.desc, size, '');
 /** Fuente de los ROTULOS de seccion. Sin negrita: la GlimpR es condensada y fina a proposito —
  *  el rotulo tiene que ordenar la lista, no competir con los nombres de los modos. */
 export const labelFont = size => uiFont(FONTS.label, size, '');
+/** LA LETRA A MANO — la birome de Mateo en las paginas del cuaderno. Sin negrita a proposito: una
+ *  manuscrita engordada deja de parecer escrita y pasa a parecer un rotulo. */
+export const handFont = size => uiFont(FONTS.mano, size, '');
 
 /** Escribe texto ajustado a un ancho maximo, cortando entre palabras y bajando `lh` por linea.
  *  A diferencia de wrapChars (que mide en caracteres), este mide en PIXELES con la tipografia

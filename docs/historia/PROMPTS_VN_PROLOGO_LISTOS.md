@@ -1,5 +1,13 @@
 # PRÓLOGO — los 24 prompts, listos para pegar
 
+> # 🕰 ARCHIVO VIEJO — QUEDÓ DESACTUALIZADO
+> Los prompts de acá son anteriores a las correcciones de agosto (el terito con copete, una
+> estrella por avión por vuelta, el Colorado con retrato, los dibujos sueltos y sin repetir,
+> la mano de Mateo a los 8). **No los uses.**
+>
+> **Usá:** `historia/PROMPTS_AIRE_LISTOS.md` y `historia/PROMPTS_TIERRA_LISTOS.md`.
+
+
 > ⚠️ **GENERADO — no editar a mano.** Sale de
 > [PROMPTS_VN_PROLOGO.md](PROMPTS_VN_PROLOGO.md), que es la fuente de verdad. Allá los prompts
 > arrancan con un marcador `[AIRE]` o `[TIERRA]` que hay que reemplazar por el bloque de estilo

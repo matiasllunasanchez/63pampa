@@ -31,7 +31,10 @@ export const inp = { l: 0, r: 0, u: 0, d: 0, rise: 0, sink: 0, brake: 0, fire: f
   camU: 0, camD: 0, camAx: 0 };
 export const mouse = { x: W / 2, y: H * 0.4, on: false };
 export const pointer = { steer: null };   // arrastre de vuelo tactil (null fuera de arrastre)
-export const flags = { anyPress: false, startReq: false };
+// `backReq`: pidieron VOLVER a la linea anterior del dialogo. Es un pulso aparte de `anyPress` y
+// no un caso del mapeo de teclas porque la misma flecha izquierda, en vuelo, mueve el avion — el
+// que decide que significa es quien lee el pulso, y solo el modo historia lo mira.
+export const flags = { anyPress: false, startReq: false, backReq: false };
 
 // QUE FAMILIA DE MANDO HAY ENCHUFADA. No cambia NINGUN binding —el mapeo estandar de la Gamepad API
 // pone A/✕ en 0, B/◯ en 1, X/□ en 2 e Y/△ en 3, o sea en la MISMA posicion fisica— sino los
@@ -265,6 +268,10 @@ export function initInput(cv, a) {
     if (!e.repeat && TAPTOK[kf] && (S.state === 'play' || S.state === 'pulso')) dirTap(TAPTOK[kf]);
     // anyPress solo con pulsaciones FRESCAS (!e.repeat): el auto-repeat de una tecla sostenida no
     // debe saltear pantallas (historia, derribado, transiciones). inp si se re-setea siempre.
+    // VOLVER ATRAS en el dialogo: flecha izquierda o Backspace. Se marca ANTES de anyPress para
+    // que el mismo evento no cuente como "avanzar" — si contara las dos cosas, retroceder y
+    // avanzar se cancelarian y la tecla no haria nada.
+    if (!e.repeat && (e.code === 'ArrowLeft' || e.code === 'Backspace')) flags.backReq = true;
     if (kf !== undefined) { inp[kf] = 1; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }
     if (isFire(e.code)) { inp.fire = true; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }
     if (isTurbo(e.code)) { inp.turbo = true; if (!e.repeat) flags.anyPress = true; }
@@ -286,6 +293,7 @@ export function initInput(cv, a) {
     if (!e.repeat && (e.code === 'Digit2' || e.code === 'Numpad2')) a.trackNext();
     if (!e.repeat && (e.code === 'Digit4' || e.code === 'Numpad4')) a.tempoToggle();   // MOMENTUM: camara lenta (pasillo)
     if (!e.repeat && (e.code === 'Digit5' || e.code === 'Numpad5')) a.chanchaCall();   // LA CHANCHA: el reabastecedor (pasillo)
+    if (!e.repeat && (e.code === 'Digit6' || e.code === 'Numpad6')) a.rasanteToggle();  // RASANTE: el resorte al ras (pasillo)
   });
   addEventListener('keyup', e => {
     readCaps(e);

@@ -17,6 +17,10 @@ import { inBank } from './fog.js';
 // devuelve lo que rige a esta altura del vuelo y cae al cfg cuando la mision no tiene tramos —
 // que es como se cumple RF-04 (sin tramos, este archivo se comporta exactamente igual que ayer).
 import { val as trVal } from './tramos.js';
+// LA CHARLA EN VUELO (SPEC_CHARLAS_VUELO RF-01): mientras hay una armada o corriendo, aca no
+// nace nadie. Es el mismo patron de gate que la niebla ciega — una condicion de mundo que este
+// archivo consulta, no un estado que administre.
+import { sembrar as cvSembrar } from './charla.js';
 import { carrilLibre } from './persec.js';
 import { plane } from '../core/state.js';
 import { scrapeLimit } from '../core/physics.js';
@@ -347,6 +351,11 @@ function plantar(desde) {
 }
 
 export function spawnSystem(dt, objectiveDist) {
+  // CHARLA EN VUELO: el corredor se vacia SOLO. No se borra nada de lo que ya esta (eso seria
+  // ver desaparecer una fragata delante de los ojos): se deja de sembrar y lo sembrado pasa de
+  // largo, que es el DRENAJE del RF-01. Va antes que todo lo demas porque es la mas fuerte de
+  // las guardas: durante una charla no hay densidad de tramo, ni bombardeo, ni soldados.
+  if (!cvSembrar()) return;
   // el corte nunca cae antes de la mitad del pasillo: en misiones cortas (o con ?qa, que las
   // achica x0.06) el margen de SPAWN_Z se comeria el nivel entero y no apareceria nadie nunca.
   if (objectiveDist > 0 && run.dist >= Math.max(objectiveDist * 0.5,

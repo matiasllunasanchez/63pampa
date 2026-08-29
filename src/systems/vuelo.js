@@ -41,6 +41,12 @@ export const CAM_PAN = 6;
  *                     Se ignoran mientras hay pirueta: ahi el dueño de la actitud es moves.js.
  *     `pan`           paneo pedido (-1..1). El jugador mira arriba/abajo; una cinematica no.
  *     `boost`         turbo puesto: la camara se va para atras.
+ *     `ras`           `{ lift, piso, lat }` o null: LA CAMARA DEL PODER RASANTE. `lift` es la
+ *                     altura de la camara sobre el avion (2.6 es la de siempre; MAS la aleja del
+ *                     agua en el mundo y por lo tanto BAJA al avion en el cuadro), `piso` hasta
+ *                     donde puede bajar, y `lat` cuanto se corre la camara al costado — el avion
+ *                     se va a la izquierda del cuadro. Quien lo pide es el orquestador: este
+ *                     modulo no sabe que existe el poder, solo que le cambiaron el encuadre.
  *     `techo`         tope de altura. Por omision el del juego (`FLY_TOP`): quien vuela el
  *                     pasillo no lo pasa nunca y no cambia nada. Lo levanta UNA cinematica, y por
  *                     una razon: el techo es una REGLA DE JUEGO —«hasta aca llega el carril»— y en
@@ -59,7 +65,16 @@ export function stepVuelo(dt, o) {
   if (plane.y > techo) { plane.y = techo; plane.vy = 0; }
 
   // ---- LA CAMARA LLEGA TARDE, y ese retardo ES el peso. No sigue al avion: lo persigue.
-  cam.x += (plane.x * 0.86 - cam.x) * Math.min(1, dt * 7);
+  // EL CORRIMIENTO LATERAL DEL PODER RASANTE (RF-04). La camara se va A UN COSTADO del avion, asi
+  // que el avion deja el centro del cuadro y se planta abajo a la izquierda — que es el encuadre
+  // que Matias marco con dos referencias del video. No es una camara nueva: es la de siempre
+  // mirando desde otro lado, y por eso hereda su peso (el lerp de abajo) y su transicion.
+  //
+  // EL SIGNO: `cam.x` MAYOR que la x del avion lo empuja hacia la IZQUIERDA de la pantalla, porque
+  // la proyeccion es `W/2 + (x - cam.x) * F/z`. Un `lat` positivo mueve la camara a la derecha y
+  // al avion a la izquierda.
+  const lat = o.ras ? (o.ras.lat || 0) : 0;
+  cam.x += (plane.x * 0.86 + lat - cam.x) * Math.min(1, dt * 7);
   // PANEO DEL JUGADOR (stick derecho vertical · [R]/[F]): mirar un poco hacia abajo o hacia arriba
   // sin mover el avion. Es el MISMO mecanismo que el turbo — se corre la camara en el MUNDO — asi
   // que empujar el stick hacia ABAJO SUBE la camara: entra mas mundo por debajo, que es lo que
@@ -68,9 +83,19 @@ export function stepVuelo(dt, o) {
   // TURBO: la camara se VA PARA ATRAS. No se escala el raster (eso partia el mar en rayas, ver
   // CAM_ZOOMS en game.js): se sube la camara en el MUNDO, asi la proyeccion se recalcula sola,
   // entra mas agua en pantalla y el avion baja en el cuadro. Es un movimiento de camara real.
-  const camLift = 2.6 + (o.boost ? BOOST_LIFT : 0) + run.camPan;
+  // LA CAMARA DEL PODER RASANTE (SPEC_PODER_RASANTE RF-04): la quinta camara del juego, y solo
+  // existe mientras el poder dura. Se pide por `o.ras` —el orquestador lo resuelve, este modulo no
+  // conoce el poder— y son DOS NUMEROS: cuanto se cae la camara respecto del avion, y hasta donde
+  // puede bajar el piso.
+  //
+  // Y LA TRANSICION NO SE PROGRAMA: la camara ya llega tarde (ese lerp de 3.2 es el peso de toda
+  // la cama de vuelo), asi que cambiar el destino la hace VIAJAR sola, de ida y de vuelta, en
+  // medio segundo. Escribir una interpolacion aparte habria sido una segunda camara peleando con
+  // la primera — el criterio de cierre pide "sin corte seco" y esto es exactamente eso, gratis.
+  const camLift = (o.ras ? o.ras.lift : 2.6) + (o.boost ? BOOST_LIFT : 0) + run.camPan;
   cam.y += (plane.y + camLift - cam.y) * Math.min(1, dt * 3.2);
-  if (cam.y < 3.4) cam.y = 3.4;
+  const piso = o.ras ? o.ras.piso : 3.4;
+  if (cam.y < piso) cam.y = piso;
 
   // ---- ACTITUDES CON PESO: el alabeo y el cabeceo no saltan a su objetivo, llegan.
   // Durante una PIRUETA no se tocan: ahi los clava movesSystem (son las poses de la maniobra), y

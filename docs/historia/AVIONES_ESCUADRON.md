@@ -622,3 +622,29 @@ lejanos; en cuadros donde se sepa de quién es el avión, usar el específico:
 
 Y para los cinco: roundel argentino (celeste-blanco), nada moderno, sin texto ni números —
 si el generador mete letras, se regenera o se limpian en edición.
+
+---
+
+## 🟩 LAS ESTRELLITAS DEL TURCO — la regla, para que no se vuelva a pintar mal *(29/8)*
+
+**UNA estrellita por avión y por vuelta.** No es una fila que se pinta de golpe: las "cinco
+estrellitas" del epílogo de M1 son **cinco aviones, una cada uno**. Un avión con cinco
+estrellas en la misión 1 estaría diciendo que ya volvió cinco veces.
+
+**Dos contadores, en direcciones opuestas:**
+
+- **Estrellas por avión: SUBEN.** Una por misión sobrevivida. Después de M1 hay 1; después de
+  M4, 4.
+- **Aviones que se pintan: BAJAN.** Cuando alguien no vuelve, ese avión deja de sumar.
+
+**El cruce de los dos es M7:** *"hay una estrellita que hoy no se pinta. El tarrito queda
+abierto toda la noche."*
+
+**⚠ No confundir con las 1–4 estrellas de puntaje por nivel** (`freezeRun()`, ROADMAP): esas
+son HUD y no tienen ninguna relación. Para hablar de éstas, decir siempre **"las estrellitas
+del Turco"**.
+
+**🟩 Producción: las dibuja EL MOTOR.** Se genera **una sola placa de fuselaje SIN estrellas**
+y el juego pinta las que correspondan según el contador de ese avión. El número es dato, no
+arte — y el momento de M7 sale gratis: el motor no incrementa ese contador y el jugador ve el
+hueco. Ver PROMPTS_VN_M1_M3 · M1.e.

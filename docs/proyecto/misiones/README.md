@@ -2,7 +2,11 @@
 
 Un documento por misión (numeración canon de 14; el id de código adentro). El circuito:
 
-1. **Jugar** por el selector (menú → MISIONES) o `?mision=<id>`.
+1. **Jugar** por el selector (menú → MISIONES) o `?mision=<id>`. Con **[H]** se elige CÓMO se
+   abre la misión — son tres cosas distintas de medir:
+   · **MISIÓN** — derecho al vuelo, sin pantallas (lo que más se usa al ajustar jugabilidad)
+   · **CINEMÁTICAS** — el guion y el epílogo seguidos, sin volar (para medir el ritmo del relato)
+   · **CINE + MISIÓN** — la misión entera, como la vive un jugador de campaña
 2. **Anotar** en el archivo de la misión (sección NOTAS DE PLAYTEST, formato fijo).
 3. **Sesión de ajuste**: una IA toma SOLO las notas + el bloque §4 del
    [PLAN_MISIONES_FASES](../PLAN_MISIONES_FASES.md), implementa, corre

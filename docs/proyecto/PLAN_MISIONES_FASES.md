@@ -68,6 +68,7 @@ clímax) y ENTER lanza **esa misión aislada** — sin campaña alrededor: al te
 | ~~**S2**~~ ✅ | Higiene: `testMode` bloquea récords/saves/ups + badge PRUEBA | media hora de selector deja `localStorage` idéntico (fixture lo verifica) |
 | ~~**S3**~~ ✅ | **`npm run misiones`** (`tools/fixture_misiones.js`): recorre TODAS las misiones por sonda con `?qa` — carga, despega, canvas vivo, llega al clímax que declara, 0 errores de consola | **la red de regresión de la campaña entera**, gratis para siempre; entra al hábito de correrla al cerrar cada misión |
 | ~~**S4**~~ ✅ | **LA LIBRETA DE ESA MISIÓN** (`loadoutAt` en `data/upgrades.js`): la misión suelta se vuela con las piruetas que un jugador tendría al llegar ahí — ni las doce ni ninguna — y el selector las MUESTRA al pie de la fila elegida. Sonda `__mvok()` (qué piruetas saldrían ahora, preguntándole al mismo `moveAllowed` del dispatcher) | medido: m1 con 0 y las 12 bloqueadas · m6 con 5 · fuera de la herramienta siguen saliendo las 12 · 5 unit tests |
+| ~~**S5**~~ ✅ | **LOS TRES MODOS DE APERTURA** ([H] cicla): **MISIÓN** (derecho al vuelo, sin una pantalla) · **CINEMÁTICAS** (el guion y el epílogo seguidos, SIN volar — `verEpilogo()` empalma las dos puntas) · **CINE + MISIÓN** (como la vive un jugador de campaña). Los tres se listan al pie con el activo resaltado | medido en los tres: MISIÓN no muestra pantallas · CINEMÁTICAS recorre `story → epilogue → selector` sin volar nunca · CINE+MISIÓN termina en el vuelo |
 
 ---
 

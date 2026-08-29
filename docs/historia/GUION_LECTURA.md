@@ -87,14 +87,15 @@ en vez de al Ejército me mandaban a la Fuerza Aérea.
 _(Se ríen los tres.)_
 
 
-**NORMA:** _(atiende teléfono)_ Para quién? Tero? _(tomá Tero, es para vos)_. Si hace veinte años que vuela y el
-pájaro lo sigue a todos lados. _(a Mateo, sonriendo al padre)_
+_(Suena el teléfono.)_
+
+**NORMA:** _(se levanta y atiende)_ ¿Para quién?... ¿Tero?... Tomá amor. Es para vos.
 
 **ESTEBAN:** _(toma el teléfono)_
 
 **MATEO:** Tero?
 
-**NORMA:** Sí, a tu padre le dicen Tero. El apodo se lo pusieron hace casi 20 años durante la colimba y le quedó para siempre. En el trabajo le dicen así.
+**NORMA:** A tu padre le dicen Tero. Se lo pusieron hace casi veinte años durante la colimba y le quedó para siempre. En el trabajo le dicen así.
 
 **ESTEBAN:** _(corta el teléfono)_ Queda pálido y en silencio.
 
@@ -106,9 +107,13 @@ pájaro lo sigue a todos lados. _(a Mateo, sonriendo al padre)_
 madrugada en las Islas Malvinas...". Los tres quietos. La pava chifla y
 nadie la saca del fuego.)
 
-Cartel: El 2 de abril la Plaza se llenó de gente festejando. Desde el balcón, un general
-envalentonado pronunció: "Si quieren venir, que vengan. Les presentaremos batalla" En esa
-cocina, un padre que conocía la guerra de verdad no salió a festejar.
+Cartel: 🟩 El 2 de abril la Plaza se llenó de gente festejando. En esa cocina, un padre que
+realmente conocía las consecuencias de una guerra no festejó.
+
+> **🟩 Cambió en el código (`data/story.js`, `P2_3_120`): se cayó la cita del balcón.** El
+> cartel ya no reproduce el *"Si quieren venir, que vengan"* de Galtieri. Queda más corto y
+> más seco, y **el juego deja de darle un micrófono al general** — la única voz de esa
+> escena es la de la cocina.
 
 ### Viñeta P.3 — Lo que un padre puede y lo que no
 
@@ -116,7 +121,12 @@ Montaje: el teléfono de la base, papeles, un despacho, una puerta que se cierra
 
 **ESTEBAN (voz superpuesta):** Moví todo. Llamé a todos. Creí que podía. _(la puerta se cierra)_ No pude.
 
-**CÓNDOR (radio, seco):** Aldao. Su hijo ya está embarcado. Está en las islas. Lo siento.
+**CÓNDOR** 🟩 _(**por teléfono**, no por radio — cara `condor_telefono`)_**:** Aldao. Su hijo
+ya está embarcado. Está en las islas. Lo siento.
+
+> **🟩 Cambió en el código (`P3_4_030`).** El parlante militar es del hangar y de las
+> misiones. **Acá Cóndor es una voz del otro lado de una línea telefónica, en una oficina** —
+> y por eso la noticia llega distinto: no es la guerra hablándole, es un tipo llamándolo.
 
 ### Viñeta P.4 — La primera página del cuaderno
 
@@ -148,47 +158,79 @@ _Cartel:_ Esa misma semana, empezaba la guerra.
 \*Mar abierto. **TUTORIAL PURO: sin jefe, sin enemigos, sin un solo disparo enemigo.\***
 _(Es la misión de conocer a la familia.)_
 
-### Briefing (aire)
+### 🟩 Briefing · escena 1 — LA LÍNEA DE VUELO _(código: `M1_3`)_
 
 La línea de vuelo de Río Gallegos, de madrugada. El Turco ceba mate como quien da la
 comunión. Esteban conoce a la familia.
 
-**PUMA:** Bienvenido a los Fieles de Plata, Tero. Ya sabés... Regla número uno: pegado al agua el radar de ellos no
-te ve. Volás tan bajo que volvés con sal en las alas. Regla número dos: no hay. Con la uno
-alcanza.
+**PUMA:** Bienvenido al escuadrón, Tero. Primera regla: siempre pegado al agua, el radar de
+ellos no te ve. Hay que volar tan bajo que tenés que volver con sal en las alas. Segunda
+regla: no hay. Con la primera alcanza.
 
-**GITANO:** Regla dos: el mate lo cebo yo, que el Turco lo lava al toque. Regla tres: si no
-volvés, te lo cebo igual, pero solo... Cebar solo es tristísimo, así que volvé.
+**GITANO:** Tercera regla: el mate lo cebo yo. Y si no volvés... te lo cebo igual. Pero
+solo. Cebar solo es tristísimo, así que volvé.
 
-**PICHÓN (nervioso):** ¿Siempre hacen chistes antes de volar?
+**PICHÓN:** ¿Siempre van a hacer estos chistes?
 
-**VASCO (bajito):** Siempre. Es la manera que tienen de rezar.
+**VASCO:** _(sin levantar la vista de la escalerilla, casi para adentro)_ Es la manera que
+tienen de rezar.
 
-**GITANO:** Y el Vasco reza doble: por él y por "la bella dama".
+### 🟩 Briefing · escena 2 — LA CASADA _(código: `M1_5B`)_
 
-**PICHÓN:** ¿Qué dama?
+_(El vestuario, media hora antes de subir. El Vasco cierra su locker rápidamente y se
+aparta. El Pichón alcanza a ver una foto de una mujer.)_
 
-**GITANO:** La mina de la foto, pibe. _(bajando la voz)_ La tiene pegada adentro de la
-puerta del locker. Una diosa, morocha, riéndose. Esa mujer no es de nadie que esté solo,
-Pichón. Esa mujer tiene dueño de acá a luján y no puede ser el Vasco. Nadie tiene un gusto tan feo.
+> **🟩 LA PLACA ES EL VESTUARIO, NO LA FOTO _(29/8)_.** Se ve el vestuario de ellos: los
+> lockers cerrados, uno solo apenas entornado y **negro adentro**, los bancos y las cosas de
+> cada uno. **El jugador NO ve la foto en M1** — la oye describir, oye que le pusieron nombre,
+> y no ve nada. La ve por primera vez en **M7**, cuando ya es otra cosa. *(Prompt en
+> PROMPTS_VN_M1_M3.md · en `story.js` implica cambiar `placa: 'm7_foto_frente'` por
+> `placa: 'vestuario'`.)*
 
-**PICHÓN:** _(va, la mira, y vuelve con los ojos grandes)_ …Es hermosa.
+**GITANO:** _(lo ve mirando y le habla desde el otro lado del banco)_ Andá, mirala, Pichón.
+Está pegada adentro del locker.
 
-**GITANO:** ¿Vio? Casada seguro. Mínimo un coronel. Por eso debe ser tan raro.
+_(Una foto en blanco y negro: una mujer hermosa, sonriendo. El Pichón se queda mirándola.)_
 
-**PICHÓN:** _(bajito, fascinado)_ A mí me dijeron que no habla porque tiene un hermano preso.
+**PICHÓN:** _(sin sacarle los ojos de encima)_ ...es hermosa.
 
-**GITANO:** A mí me dijeron que él estuvo preso.
+**GITANO:** Es "La Casada", le decimos así porque no sabemos quién es, pero esa mujer no es
+de nadie que esté solo…
 
-**PUMA:** _(sin levantar la vista del mapa)_ A mí me dijeron que ustedes dos hablan mucho.
+_(El Vasco se persigna, sube la escalerilla y no contesta. Nunca desmiente nada.)_
 
-**VASCO:** _(se persigna, sube la escalerilla. No desmiente. Nunca desmiente nada.)_
+**GITANO:** _(se acerca al locker, junto al Pichón)_ Creíamos que era la mujer del Vasco.
+Pero él nunca dice nada… de nada. Debe ser algún amorío del pasado... Y que actualmente está
+casada... con alguien de poder. Como un político... o un mafioso... o ambas.
 
-> la foto se ve, de frente, linda, y la pista (peinado, vestido, grano de los 50) está servida en el mismo cuadro.
+**CÓNDOR:** _(shhh, crrr… zkk)_ Escuadrilla CAUQUÉN, acá Cóndor. Aprobado el vuelo de
+adaptación sobre mar abierto, rumbo sudeste. Mantenerse pegaditos al agua todo el trayecto
+que hay radar. Autorizados pista dos. Buen vuelo, muchachos.
+
+> **🟩 Qué cambió acá, y por qué importa.** El bloque de la foto **se separó en su propia
+> escena**, con lugar y hora propios (el vestuario, media hora antes). Antes el Gitano
+> mandaba al Pichón a mirar una foto sin que nadie hubiera dicho **dónde estaban, de quién
+> era el locker ni por qué había una foto ahí**: el jugador leía el chiste sin el chiste.
+>
+> **Y el apodo se volvió canon: "LA CASADA".** Ya no es una especulación suelta — es cómo la
+> llama la escuadrilla, *"porque no sabemos quién es"*. Eso hace que el giro de M7 pegue el
+> doble: **el juego le puso nombre a la mujer equivocada durante siete misiones.**
+>
+> **Se cayeron** los chismes del Pichón (el hermano preso / el Vasco preso) y el remate de
+> Puma *("a mí me dijeron que ustedes dos hablan mucho")*.
+
+### 🟩 Tarjeta de misión _(código: `STORYM1_TARJETA`)_
+
+> **MISIÓN 1 — SAL EN LAS ALAS**
+> *Mar abierto · Objetivo: dominar el vuelo rasante*
+
+### EL TERITO — está en el guion y **NO** está todavía en el código
 
 _(Y en el fuselaje del avión de Esteban, bajo la cabina, hay pintura fresca: **un terito
-chiquito recortado en BLANCO**, patas largas, pecho al frente, gritón — una silueta maciza,
-sin detalle adentro, que salta contra el camuflaje. El Turco lo pintó anoche, sin que nadie
+chiquito recortado en BLANCO**, de perfil, quieto y alerta — cuello finito, pecho compacto,
+cola larga en punta, y **la cresta larga y fina barriendo hacia atrás desde la nuca**, que es
+lo que lo hace tero. Una silueta elegante y flaca, sin detalle adentro, que salta contra el
+camuflaje. 🟩 _(Descriptor canónico `{TERITO}` en STORYBOARD_1 §0 y en PROMPTS_VN_M1_M3.)_ El Turco lo pintó anoche, sin que nadie
 se lo pidiera, porque un piloto le contó el apodo y un avión sin su pájaro trae mala
 suerte.)_
 
@@ -199,13 +241,15 @@ los aviones van con nombre.
 
 **ESTEBAN:** _(mira los otros aviones)_ …¿Y el resto tienen estrellas?
 
-**EL TURCO:** _(sigue revisando el fuselaje del avion de Esteban)_ Sí, tengo la costumbre de pintarles una estrella a cada uno por cada vuelta. _(golpeando el fuselaje como a un caballo)_ Traémela entera Tero, eh. Y traete vos adentro, que la estrellita la pinto por vos, no por ella.
+**EL TURCO:** _(sigue revisando el fuselaje)_ Sí, tengo la costumbre de pintarles una
+estrella a cada uno por cada vuelta. _(golpeando el fuselaje como a un caballo)_ Traémela
+entera Tero, eh. Y traete vos adentro, que la estrellita la pinto por vos, no por ella.
 
-**CÓNDOR (radio — primera vez del ritual):** Plata Fiel, Plata Fiel. Aquí Cóndor.
-Cielo despejado al sur. Viento en la cola. Reconocimiento de zona, vuelen bajito y a casa. — Buena suerte, muchachos.
-Escuadrilla CAUQUÉN, autorizada pista dos.
-
-**GITANO:** ¿Viste? Para el comando somos gansos. Por lo menos eligieron uno que vuela.
+> ** ESTO NO ESTÁ EN `story.js`.** Se conserva acá porque **es la raíz de tres sistemas del
+> juego**: el gesto de Tero de §9d (tocar el terito antes de subir, que se cobra en M14), la
+> mecánica de las estrellitas del Turco, y la referencia maestra del asset del terito. **Si
+> se cayó a propósito, hay que decidir qué pasa con esos tres.** Si solo falta migrarlo, va
+> como escena propia entre `M1_5B` y la tarjeta.
 
 ### El ritual de los cinco
 
@@ -243,7 +287,7 @@ sal en las alas."**
 
 ### Epílogo (aire)
 
-Todos vuelven. El Turco pinta cinco estrellitas con la lengua afuera. Por un rato, esto
+Todos vuelven. El Turco pinta cinco estrellitas con la lengua afuera —🟩 **una en cada avión**. Por un rato, esto
 parece una aventura.
 
 ### El cuaderno (tierra)
@@ -270,6 +314,7 @@ parece una aventura.
 > _Mateo._
 
 _(El jugador entiende lo que Mateo sospecha: sí, lo mandó. Es lo único que pudo hacer.)_
+
 
 ---
 

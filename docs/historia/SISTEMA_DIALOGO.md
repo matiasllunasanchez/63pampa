@@ -93,7 +93,7 @@ El jugador nunca tiene que confundir **lo que alguien dice** con **lo que alguie
 | registro | qué es | cómo se ve |
 |---|---|---|
 | `DIALOGO` | alguien hablando, ahora | El cuarto registro, nuevo. Limpio, con el nombre del que habla. |
-| `TIERRA` | el cuaderno de Mateo | Manuscrita grande de pibe, azul birome sobre papel. |
+| `TIERRA` | el cuaderno de Mateo | Manuscrita grande de pibe, azul birome sobre papel. **Entregado el 29/8/2026** (`drawCuaderno`): la carilla dibujada a pantalla completa y sin velo, el texto **en la hoja izquierda** —que en las catorce láminas está rayada y vacía a propósito—, la letra en Mayorice y la tinta del mismo azul que los dibujos de Mateo. La línea que Mateo **no** escribió (`tipo: 'NARRADOR'`) sale de la hoja y cae en la caja de abajo: el corte de la página iluminada al velo es la marca de que dejó de hablar la carta. |
 | `CARTA` | la carta del padre | Apretada, chica, con tachones. Papel oscuro. |
 | `SISTEMA` | briefing, radio, interfaz | Tipografía técnica del juego. |
 

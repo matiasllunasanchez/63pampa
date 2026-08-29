@@ -1,5 +1,15 @@
 # PROMPTS VN — PRÓLOGO (P.1 → P.4)
 
+> # ⛔ NO COPIES PROMPTS DE ESTE ARCHIVO
+> Este documento es **de trabajo**: tiene tokens entre llaves (`{HOJA}`, `{MANO_DE_MATEO}`,
+> `{TERITO}`, `{BIROME}`…) que **no se pegan tal cual** en el generador de imágenes.
+> Sirve para discutir y corregir el criterio, no para producir.
+>
+> **Los prompts listos para copiar y pegar están en:**
+> - `historia/PROMPTS_AIRE_LISTOS.md` — todo lo que es pixel art a color (placas y retratos)
+> - `historia/PROMPTS_TIERRA_LISTOS.md` — todo lo que es cuaderno / birome (P.1 y las cartas)
+
+
 > **Qué es esto.** La lista de producción, escena por escena, en el formato que se va a usar
 > de acá en adelante: **ESCENA + PROMPT DE PLACA**, y debajo **PERSONAJE : EMOCIÓN + PROMPT
 > DE RETRATO**. Es la bajada operativa del sistema definido en
@@ -132,6 +142,43 @@ stains must be real damp stains in the paper - not lines and stains drawn in blu
 ballpoint ink. The paper is a real sheet, photographed. Do not redraw anything else.
 ```
 
+### 🔴 `{MANO_DE_MATEO_NENE}` — el prólogo lo dibuja un chico de OCHO *(29/8)*
+
+**P.1 no la dibuja el mismo Mateo que las cartas.** El arroyo es un recuerdo de años antes:
+**lo dibujó a los ocho**, y tiene que verse. La diferencia entre esos dibujos y los de las
+cartas **es el paso del tiempo, y no la cuenta nadie.**
+
+```
+DRAWN BY MATEO AT EIGHT YEARS OLD. He is better than most kids his age and it
+shows - but he is still eight, and it must read as a CHILD'S drawing at a glance: everything
+sits on ONE single ground line ruled across the bottom, there is NO perspective and NO depth
+at all, the sizes are wrong because he drew biggest whatever he cared about most, the pen
+pressure is HEAVY and the lines are WOBBLY and gone over three or four times, and there is
+NO hatching and NO shading anywhere - a child does not shade. People are big-headed
+matchstick figures with round heads much too large for their bodies, stick arms and legs,
+and a face of two dots and a curved line.
+THE ONE EXCEPTION, and it matters: THE AIRPLANE IS THE BEST THING ON THE PAGE, drawn with
+far more attention, detail and accuracy than anything else - wings, tail, a real shape -
+because it is the thing he studies. Everything else is eight years old; the plane is not.
+```
+
+**Punto por punto contra la mano de los dieciocho:**
+
+| | Mateo a los 8 *(P.1)* | Mateo a los 18 *(las cartas)* |
+|---|---|---|
+| Suelo | **una sola línea rayada abajo**, todo apoyado ahí | paisaje observado, sin línea de piso |
+| Profundidad | **ninguna** | la hay, y funciona |
+| Sombreado | **nada** — un nene no raya | rayado y sombra de verdad |
+| Personas | **cabezas enormes**, palotes | tiesas y mal proporcionadas, pero de adulto |
+| Trazo | **fuerte, tembloroso, repasado 3 o 4 veces** | firme, con arranques falsos |
+| Tamaños | **mal a propósito** — lo más grande es lo que más le importa | correctos |
+| **El avión** | **lo mejor de la página** | **lo mejor de la página** |
+
+**El avión es el puente.** A los ocho ya le sale mejor que todo lo demás, y a los dieciocho
+sigue siendo lo que mejor dibuja. *Canon: en P.1 el padre le dice **"salió mejor el avión que
+yo, ¿eh?"**.* **Es lo único que no cambia entre las dos manos**, y por eso el jugador
+reconoce que es la misma persona sin que nadie se lo diga.
+
 ### 🔒 Candado de época — va al final de TODO prompt con personas
 
 *(en los prompts de abajo ya está escrito adentro de cada uno; esta es la versión suelta
@@ -157,7 +204,7 @@ background for clean cutout.
 ### 🎨 Formatos y cierre
 
 - Placas `[AIRE]` (pantalla completa): **16:9**
-- Páginas `[TIERRA]` (hoja de cuaderno): **3:4 vertical**
+- 🔴 Páginas `[TIERRA]` (las cartas de Mateo): **el CUADERNO ABIERTO en 16:9** — carilla izquierda **en blanco** (la carta la tipografía el motor), carilla derecha **con los dibujos**. Y **todo lo que Mateo dice que dibujó tiene que estar, y grande**. *(Spec completa en PROMPTS_VN_M1_M3.md.)*
 - Retratos y figuras: **fondo plano, recortable**
 - Al final de todo prompt: `no watermark, no signature`
 - **Marca registrada:** "Metal Slug" es de SNK. Como keyword de estilo funciona y el estilo
@@ -259,7 +306,7 @@ propios: `tero_civil_*` y `mateo_casa_*`.
 
 ---
 
-# P.1 — EL ARROYO *(años antes · TIERRA, salvo P.1.c · 3:4 vertical)*
+# P.1 — EL ARROYO *(años antes · registro TIERRA · 16:9 pantalla completa)*
 
 **Decisión:** P.1 **no lleva retratos.** Es un recuerdo dibujado por Mateo, y el diálogo
 flota sobre el dibujo. 🟩 **La excepción es P.1.c**, que muestra al chico dibujando y por lo
@@ -269,22 +316,45 @@ dispositivo que sostiene todo el juego. Es cuadro sagrado (RETRATOS.md §2).
 ### PLACA P.1.a — el arroyo y el Rastrojero
 
 ```
-[TIERRA] Wide shot of a flat Argentine countryside creek on a summer afternoon, low
+[TIERRA] DRAWN BY MATEO AT EIGHT YEARS OLD. He is better than most kids his age and it
+shows - but he is still eight, and it must read as a CHILD'S drawing at a glance: everything
+sits on ONE single ground line ruled across the bottom, there is NO perspective and NO depth
+at all, the sizes are wrong because he drew biggest whatever he cared about most, the pen
+pressure is HEAVY and the lines are WOBBLY and gone over three or four times, and there is
+NO hatching and NO shading anywhere - a child does not shade. People are big-headed
+matchstick figures with round heads much too large for their bodies, stick arms and legs,
+and a face of two dots and a curved line.
+THE ONE EXCEPTION, and it matters: THE AIRPLANE IS THE BEST THING ON THE PAGE, drawn with
+far more attention, detail and accuracy than anything else - wings, tail, a real shape -
+because it is the thing he studies. Everything else is eight years old; the plane is not.
+Wide shot of a flat Argentine countryside creek on a summer afternoon, low
 grassy bank, still shallow water, a rusty 1960s Argentine Rastrojero pickup truck
 parked on the grass in the middle distance, a huge empty pale sky, one small distant
 jet trail crossing it. NOBODY IN THE FRAME. Empty, waiting, quiet. Drawn entirely in
 blue ballpoint pen on lined notebook paper, cream paper texture with faint ruled
-lines, ink smudges as pixels. 3:4 vertical. No text, no watermark, no signature.
+lines, ink smudges as pixels. 16:9 widescreen. No text, no watermark, no signature.
 ```
 
 ### PLACA P.1.b — el sapito *(el plano que da nombre al juego)*
 
 ```
-[TIERRA] Extreme close-up, low angle almost at water level: a flat stone skipping
+[TIERRA] DRAWN BY MATEO AT EIGHT YEARS OLD. He is better than most kids his age and it
+shows - but he is still eight, and it must read as a CHILD'S drawing at a glance: everything
+sits on ONE single ground line ruled across the bottom, there is NO perspective and NO depth
+at all, the sizes are wrong because he drew biggest whatever he cared about most, the pen
+pressure is HEAVY and the lines are WOBBLY and gone over three or four times, and there is
+NO hatching and NO shading anywhere - a child does not shade. People are big-headed
+matchstick figures with round heads much too large for their bodies, stick arms and legs,
+and a face of two dots and a curved line.
+THE ONE EXCEPTION, and it matters: THE AIRPLANE IS THE BEST THING ON THE PAGE, drawn with
+far more attention, detail and accuracy than anything else - wings, tail, a real shape -
+because it is the thing he studies. Everything else is eight years old; the plane is not.
+Extreme close-up, low angle almost at water level: a flat stone skipping
 across the surface of a creek, caught mid-bounce, three small rings of ripples
 trailing behind it marking the three previous bounces, a thin spray of droplets, the
 far bank blurred and low. NOBODY IN THE FRAME. Drawn entirely in blue ballpoint pen
-on lined notebook paper, cream paper texture with faint ruled lines. 3:4 vertical.
+on lined notebook paper, cream paper texture with faint ruled lines running edge to edge.
+16:9 widescreen.
 No text, no watermark, no signature.
 ```
 
@@ -321,10 +391,13 @@ trousers, the notebook cover, the grass, the pen with its WHITE cap, BLUE barrel
 LIGHT BROWN tip.
 
 DRAWN IN BLUE INK ON THE OPEN PAGE, and the only thing in this image that is a
-drawing: a naive child's ballpoint sketch of the creek, a rusty pickup truck and a
-little aeroplane crossing the sky.
+drawing: a child's ballpoint sketch of the creek, a rusty pickup truck and a little
+aeroplane crossing the sky - EVERYTHING SITTING ON ONE SINGLE RULED GROUND LINE, no
+perspective, no shading, heavy wobbly lines gone over several times, the sizes plainly
+wrong. THE AEROPLANE IS THE BEST-DRAWN THING ON THE PAGE by a long way, with real wings
+and a real shape: it is the only thing on that page that does not look eight years old.
 
-Warm summer afternoon light from the side. 3:4 vertical. No text, no letters, no
+Warm summer afternoon light from the side. 16:9 widescreen. No text, no letters, no
 words on the page, no watermark, no signature.
 ```
 
@@ -667,71 +740,75 @@ equipment, no NATO or US insignia. No text, no watermark.
 
 ---
 
-# P.4 — LA PRIMERA PÁGINA DEL CUADERNO *(registro TIERRA · 3:4 vertical)*
+# P.4 — LA PRIMERA PÁGINA DEL CUADERNO *(registro TIERRA · 16:9 pantalla completa)*
 
 **Decisión:** sin retratos, y **sin texto en la imagen.** La carta la tipografía el motor
 encima con la fuente manuscrita, para que quede editable y traducible (STORYBOARD_1 §0,
 regla de texto, camino 2).
 
-### PLACA P.4 — la hoja *(vacía — el patrón de las 14 páginas)*
+### PLACA P.4 — CARTA 1: LA PRIMERA PÁGINA *(cuaderno abierto · 16:9)* 🔴 **v2 — 29/8**
 
-🟩 **La hoja va SIN birome y SIN dibujo.** Es el mismo criterio del nivel 2 que este documento
-ya usa para el registro `[AIRE]` —la placa se genera vacía y lo demás se compone encima—,
-aplicado ahora al cuaderno. Y acá rinde todavía más, porque **esta placa es el fondo de las
-catorce páginas del juego**: si la birome queda horneada, aparece en el mismo lugar en todas,
-y si el avioncito queda horneado, cada página de Mateo tiene el mismo garabato.
+*Cuenta: "Somos pibes de todo el país. Hay uno de Jujuy que nunca había visto el mar y no puede parar de mirarlo. Hay un porteño que extraña el colectivo, ¿podés creer? Extrañar el 60, pá… Me acuerdo lo que me enseñaste del sapito… A mamá le decimos que acá había guiso y pan."*
 
-Vacía, la hoja se reusa siempre y encima se compone lo que haga falta:
-
-| Capa | Qué es | Cómo se hace |
-|---|---|---|
-| **La hoja** | esta placa | se genera **una vez** y sirve para las 14 |
-| **La tinta** | el dibujo de esa página — el Colorado con capa, la radio sola, el barco chueco | un recorte por página, en tinta azul |
-| **El texto** | el cuerpo de la carta | lo tipografía el motor, para que sea editable y traducible |
-| **Los props** *(opcional)* | la birome, la navaja, la foto de la hermana | recortes reutilizables |
+**El patrón de TODAS las cartas del juego.** Cuaderno abierto, carta a la izquierda (en
+blanco, la tipografía el motor), **dibujos sueltos a la derecha**.
 
 ```
-[TIERRA] A single blank open notebook page seen straight on, filling the frame, the
-printed ruled lines running edge to edge, the paper damp-wrinkled at one corner with
-a faint brown water stain, a soft worn edge along the outside, a few pale foxing
-specks. NOTHING RESTING ON IT and NOTHING DRAWN ON IT: no pen, no pencil, no
-drawings, no sketches, no writing, no letters, no words anywhere. Completely empty
-paper — it is a background that other things get composited onto later. 3:4 vertical.
-No text, no watermark, no signature.
+[TIERRA] AN OPEN NOTEBOOK SEEN FROM DIRECTLY ABOVE, filling the entire frame, its two
+facing pages spanning the full width, with the central fold and the wire binding visible
+down the middle. THE LEFT-HAND PAGE IS COMPLETELY BLANK: ruled lines only, no writing, no
+words, no letters, no sentences anywhere on it - the game types the letter over it. THE
+RIGHT-HAND PAGE carries ALL the drawings, in blue ballpoint pen.
+Drawn by an untrained but genuinely gifted 18-year-old who has drawn since he
+was a child, with a ballpoint pen, cold, in bad light. THE LANDSCAPE, THE OBJECTS AND THE
+MACHINES are confident and well observed - he is good at those. THE PEOPLE ARE NOT: they
+are little STICK-LIKE MATCHSTICK FIGURES, stiff and out of proportion, with mitten hands
+and faces of two dots and a line. Some lines gone over twice, a few false starts left in,
+nothing erased. NOTHING IS POLISHED. IT MUST LOOK LIKE A DRAWING, NOT AN ILLUSTRATION.
+These are SEPARATE, UNRELATED DOODLES scattered around the page, NOT one
+composed illustration. Each drawing sits on its own bare patch of paper, at its own size and
+its own slight angle, with clear empty paper between them. There is NO shared ground line,
+NO shared horizon, NO shared perspective and NO background connecting them.
+EXACTLY ONE of each drawing, and NOTHING IS REPEATED anywhere on the spread. If
+there is empty paper left over, LEAVE IT EMPTY - blank ruled paper is the correct result.
+NEVER fill space by duplicating a drawing.
+THE RIGHT-HAND PAGE CONTAINS EXACTLY FOUR SEPARATE DOODLES AND NOTHING ELSE, scattered
+across the page with bare paper between them:
+1. LARGEST, upper middle - THE SEA: long confident horizontal pen strokes for the water,
+   a bare rocky shore, no trees. Standing on the shore with his back to us, ONE small
+   stick figure just looking at it, and a small handwritten label with a short arrow
+   pointing at him.
+   AND RIGHT BESIDE HIM, a SECOND small stick figure in the act of throwing, side-on,
+   arm swung low - and out over the water in front of him, ONE flat stone caught skipping
+   with THREE small ripple rings behind it. A short handwritten arrow points at this second
+   figure.
+2. LOWER LEFT, small, drawn well and separately, floating on bare paper with no street and
+   no ground under it - ONE city BUS seen from the side, boxy 1970s Argentine city bus,
+   drawn in a few confident lines.
+3. UPPER RIGHT, small and rough - a crude wobbly OUTLINE MAP OF ARGENTINA, and around it
+   FOUR OR FIVE tiny stick figures at different points of the map with short lines linking
+   them toward the bottom of the country, like a kid explaining where everyone came from.
+4. LOWER RIGHT, small, drawn carefully and with obvious appetite - ONE deep plate of stew
+   with a spoon in it and steam coming off, and beside it TWO thick slices of bread.
+Cream paper texture, a few ink smudges and a damp wrinkle in one corner. 16:9 widescreen.
+No watermark, no signature.
+TEXT IN IMAGE (Argentine Spanish), handwritten in the same blue ballpoint, small and
+slightly crooked, ONLY these two labels and nothing else:
+  - next to the figure looking at the sea: "el jujeño"
+  - next to the figure throwing the stone: "yo"
 ```
 
-> **La regla `no text` en esta placa no es negociable** — el cuerpo de la carta lo pone el
-> motor. Si el generador escribe algo igual, regenerá: "birome no perdona".
+> **Las únicas palabras de la imagen son "el jujeño" y "yo".** El cuerpo de la carta lo
+> tipografía el motor sobre la carilla izquierda.
 
-### TINTA P.4 — el avioncito del margen *(recorte)*
+> **El "yo" con la flecha es la página entera.** Mateo se dibuja a sí mismo **haciendo el
+> sapito que le enseñó el padre**, al lado del pibe que nunca había visto el mar. La carta
+> está dirigida al padre: **le está mostrando que se acuerda.** Y no lo dice con palabras,
+> lo dice con una flecha.
 
-El dibujo que va en la hoja de la primera página: el sapito, otra vez, ahora dibujado por el
-hijo. Se genera aparte para poder ponerlo donde convenga y **no gastar una placa nueva**.
-
-```
-[TINTA] One small drawing, alone and centred in the frame: a tiny aeroplane flying
-very low over water, with three little ripple rings in a row underneath it marking
-where it skipped. Nothing else in the frame. No text, no letters, no watermark, no
-signature.
-```
-
-> **El fondo blanco plano acá es a propósito:** este recorte se compone SOBRE la hoja, así que
-> no puede traer su propio papel. Es el equivalente del `flat solid magenta background` de las
-> figuras `[AIRE]` — mismo sistema, otra capa.
-
-### PROP — la birome *(recorte, opcional)*
-
-Para cuando una página la quiera. Los tres colores son canon (ver `{BIROME}` en
-[PROMPTS_HOJAS_PERSONAJE.md](PROMPTS_HOJAS_PERSONAJE.md)).
-
-```
-[AIRE] A single cheap ballpoint pen seen from above, lying diagonally: a WHITE cap with a plain pocket clip, a BLUE opaque plastic
-barrel and a LIGHT BROWN tapered tip cone. A real solid three-dimensional object with
-volume, a highlight running down one side and a soft contact shadow beneath it — NOT
-a drawing of a pen. Slightly chewed cap, ink-stained tip. Flat solid magenta
-background for clean cutout. No text, no letters, no brand, no logo, no watermark,
-no signature.
-```
+> **Los cuatro dibujos NO comparten escena.** El colectivo flota sin calle ni piso, el mapa
+> está en otro rincón, el plato en otro. **Es una hoja con garabatos sueltos, no una
+> ilustración.**
 
 ---
 

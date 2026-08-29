@@ -1,5 +1,13 @@
 # RASANTE — Storyboard 1: Prólogo + Movimiento I (M1–M3)
 
+> # ⛔ NO COPIES PROMPTS DE ESTE ARCHIVO
+> Esto es el **storyboard**: los `{TOKEN}` entre llaves son referencias internas de
+> personajes y objetos, no texto de prompt.
+>
+> **Los prompts armados están en** `historia/PROMPTS_AIRE_LISTOS.md` y
+> `historia/PROMPTS_TIERRA_LISTOS.md`.
+
+
 > Guion visual viñeta por viñeta del [GUION_2.md](GUION_2.md), con un prompt listo para
 > pegar en el generador de imágenes por cada cuadro. Cubre Prólogo y Misiones 1–3. Cuando
 > este sistema esté validado, el resto de la campaña sale en serie con el mismo molde.
@@ -137,6 +145,7 @@ tu generador soporta image reference.
 | `{COLORADO}` | argentine corporal, 26 years old, tall and sturdy, fair freckled skin raw red from the cold, red hair, broad honest smile, plain olive field uniform with NO insignia, wool cap, argentine brown leather webbing with canteen, muddy brown leather boots |
 | `{NORMA}` | argentine mother, 47 years old, middle-aged not elderly, dark hair with grey at the temples in a low bun, criolla, warm tired face, gentle firm expression, faded blue dress with a cream floral apron, always the same apron, no military insignia of any kind |
 | `{SKYHAWK}` | A-4B Skyhawk attack jet, argentine air force green-and-brown camouflage, blue-white argentine roundel, worn painted metal, single seat, a row of small plain white stars below the cockpit |
+| 🟩 `{TERITO}` | a southern lapwing (TERO) in strict SIDE PROFILE facing left, standing still and upright on both legs. The defining feature, which must ALWAYS be present: a SINGLE LONG THIN CREST FEATHER sweeping backwards from the back of the skull, longer than the head itself, curving slightly up at the tip. A short straight pointed beak. A slender upright neck. A compact rounded chest. A smooth unbroken back line running to a LONG POINTED TAIL that extends backwards and slightly down. Two thin straight legs with small feet. The whole shape is ELEGANT, THIN AND WIRY, drawn with clean confident lines - NEVER chunky, NEVER a round blob, NEVER a cartoon bird. NOT shouting, NOT with an open beak, NOT leaping, NOT with the chest puffed out: it is simply standing, alert and still. |
 | `{RASTROJERO}` | rusty old Argentine Rastrojero pickup truck, 1960s workhorse |
 
 **Candado de época — pegalo al final de CADA cuadro que tenga personas:**
@@ -162,7 +171,7 @@ flag on clothing. No text, no watermark.
 ### Formatos
 
 - Cuadros de cinemática `[AIRE]`: **16:9** (pantalla completa entre niveles).
-- Páginas de carta y dibujos `[TIERRA]`: **3:4 vertical** (una hoja de cuaderno).
+- 🔴 Páginas de carta y dibujos `[TIERRA]`: **el CUADERNO ABIERTO, 16:9** *(29/8; antes 3:4 vertical)*. Carilla izquierda **en blanco** — el motor tipografía la carta encima; carilla derecha **con los dibujos**. **Todo lo que Mateo dice que dibujó tiene que estar.** Spec en PROMPTS_VN_M1_M3.md.
 - Agregá siempre al final del prompt: `no watermark, no signature`.
   (Steam: las imágenes van sin marcas — ver Pendientes en REFERENCIAS.md.)
 

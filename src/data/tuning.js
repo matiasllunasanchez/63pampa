@@ -347,6 +347,71 @@ export const TEMPO_SCALE = 0.35;    // el mundo a ~1/3: se nota de verdad, no un
 export const TEMPO_DUR = 3;         // s reales que dura el lanzamiento con la barra llena
 export const TEMPO_CHARGE = 650;    // puntos que llenan la barra (subido de 500: que se gane, no que sobre)
 
+// ---------- EL PODER RASANTE (SPEC_PODER_RASANTE, tecla 6) ----------
+// EL CUARTO PODER DEL PASILLO, y el que cierra los cuatro ejes: turbo = velocidad · MOMENTUM =
+// tiempo · CHANCHA = nafta · RASANTE = ALTURA. Con el activo la dinamica vertical se INVIERTE:
+// sin input el avion desciende suave y se ASIENTA al ras — el reposo es la gloria, no la caida.
+//
+// LA CARGA ES SKILL PREVIA, no puntos ni tiempo de pared: se llena con SEGUNDOS EN LA BANDA DEL
+// x10 volados A MANO. Volas bajo para ganarte volar bajo glorioso. Es lo que separa a este poder
+// de un multiplicador gratis (RF-07), y es tambien lo que lo hace del juego: la tesis del juego
+// ("los valientes vuelan abajo") convertida en su propio poder.
+// EL REPOSO DEL RESORTE. El spec decia 3.0 y Matias pidio el avion "bien cerca del agua" al ver el
+// primer encuadre: 2.4 es la altura con la que se saco la captura que aprobo, asi que es la que va
+// — cambiarla despues seria mandar a produccion un cuadro distinto del que se miro.
+// Sigue MUY adentro de la banda del x10 (4.5). El mar plano promedia 1.1 y pica en 1.9, asi que a
+// 2.4 el avion pasa a ras de la cresta: eso es exactamente lo que el COLCHON (RF-02) existe para
+// perdonar, y es la razon por la que las dos perillas se mueven juntas.
+export const RAS_ALT = 2.4;
+export const RAS_SPRING = 6;     // rate del lerp de vuelta al ras. Si en el playtest se siente
+                                 // "riel", se ABLANDA ESTE NUMERO — no se agrega asistencia (§6.1)
+export const RAS_CEIL = 17;      // techo blando: apenas bajo RADAR_ALT (20), el mismo filo que el
+                                 // techo del banco. Con el poder activo, mantener ↑ no lo cruza
+export const RAS_DUR = 12;       // s que dura. La adrenalina es rafaga: subirlo es decision del
+                                 // director (§6.5), no una perilla de balance
+export const RAS_CHARGE_S = 25;  // s acumulados en la banda del x10 (a mano) que llenan la barra
+// LAS DOS CAMARAS DEL PODER (RF-04), como DATA: cuanto se cae la camara respecto del avion
+// (`lift`, contra el 2.6 de siempre) y hasta donde puede bajar en el mundo (`piso`, contra 3.4).
+//
+//   cola    el avion GRANDE y corrido abajo-izquierda, con el agua cercana ocupando el cuadro.
+//   cabina  el mismo encuadre SIN el sprite: la vista del piloto. Sigue detras de la perilla.
+//
+// ⚠ EL SIGNO DE `lift` ES CONTRAINTUITIVO Y ME LO CORRIGIO MATIAS. Bajar la camara respecto del
+// avion NO acerca la escena al agua: lo deja clavado SOBRE la linea del horizonte con una franja
+// fina de mar debajo — lo contrario de rasante. En esta proyeccion la superficie del agua se
+// dibuja desde el horizonte HACIA ABAJO y cuanto MAS ALTA esta la camara, mas mar entra en cuadro
+// y mas abajo queda el avion. O sea: para "el agua llenando el cuadro" la camara SUBE.
+// Elegido mirando un barrido de 2.6 / 4.5 / 6.5 / 9.0 sobre el mismo instante, no razonando.
+//
+// LOS VALORES SON LOS DE LA CAPTURA QUE SE APROBO, no unos parecidos. Salieron de tres barridos
+// sobre el MISMO instante (altura de camara, corrimiento lateral, zoom del sprite) y la eleccion
+// la hizo Matias mirando. Cambiar uno solo por "afinar" manda a produccion un cuadro que nadie vio.
+//
+//   lift  altura de la camara sobre el avion (2.6 es la de siempre). MAS lo BAJA en el cuadro.
+//   piso  hasta donde puede bajar la camara en el mundo.
+//   lat   corrimiento lateral: positivo mueve la camara a la derecha y al avion a la IZQUIERDA.
+//   zoom  cuanto se agranda el SPRITE. Es lo unico que acerca el avion sin tocar `cam.y`.
+export const RAS_CAMS = {
+  cola:   { lift: 3.0, piso: 2.4, lat: 10, zoom: 2.0 },
+  // LA CABINA quedo SIN RESOLVER como eleccion (ver §8): el checkpoint del RF-04 se lo comio el
+  // problema del encuadre, que resulto mas grande que elegir entre dos camaras. Se conserva
+  // entera detras de la perilla, con el mismo encuadre aprobado y sin sprite.
+  cabina: { lift: 3.0, piso: 2.4, lat: 10, zoom: 1 },
+};
+export const RAS_CAM = 'cola';   // 'cola' | 'cabina' — la quinta camara, SOLO durante el poder.
+                                 // Los dos prototipos se prueban a feel y la eleccion es un
+                                 // checkpoint con el director (RF-04): no la decide el codigo
+export const RAS_LATIDO = true;  // el latido bajo el silencio (RF-05)
+// EL TEATRO (RF-05). El poder SUSURRA: es el unico boost del juego que baja el volumen, y esa es
+// una de las cinco cosas que lo hacen suyo (§7). Los numeros salen del pedido de Matias del 23/8 —
+// "silencio, latido, motor del avion, ruido potente del agua, y quiza musica de concentracion":
+export const RAS_MUS = 0.07;     // la musica NO se apaga del todo: queda un hilo de concentracion
+                                 // debajo. Con cero se lee como un bug de audio, no como silencio
+export const RAS_AGUA = 1.9;     // el agua SUBE mientras todo lo demas baja. Es lo que hace que el
+                                 // silencio se lea como "me acerque al mar" y no como una falla
+export const RAS_LAT_T = 0.62;   // s entre latidos. Lento a proposito: es concentracion, no panico
+export const RAS_LAT_HZ = 54;    // el latido, grave y corto — se siente mas que se oye
+
 // ---------- EL AGUA Y LAS OLAS ----------
 // Plan y porque: docs/sistemas/PLAN_AGUA_OLAS.md · ejecucion por fases: SPEC_AGUA_OLAS.md.
 // La tesis, en una linea: la ola NO es un sprite pegado sobre el mar, es el mismo campo de altura
@@ -769,3 +834,22 @@ export const M_CONO_FULL = 1.05;
 // respiracion del cono (Hz): el regimen transonico es INESTABLE — se forma, se aprieta y revienta.
 // No es un temporizador: es lo que hace que no se lea como una calcomania pegada al avion.
 export const CONO_HZ = 1.9;
+
+// ---------------- LAS CHARLAS EN VUELO (SPEC_CHARLAS_VUELO §2) ----------------
+// Dialogo DURANTE la mision jugable: "una pausa sin pausa". El mundo sigue moviendose —fisica,
+// gas, laterales, roce: intactos— pero el kilometraje deja de acreditar hacia el objetivo. La
+// burbuja congela ACREDITACION, jamas fisica ni relojes (§6.1).
+//
+// DRENAJE: al armarse la charla el sembrador se apaga y se espera a que lo YA sembrado pase de
+// largo. Es un TOPE, no una espera fija: si la pantalla queda limpia antes, arranca antes.
+export const CHV_DRAIN_S = 2.5;
+// La nafta no drena mientras se escucha: seria injusto cobrar combustible por una escena que el
+// jugador no pidio y no puede saltear.
+export const CHV_FUEL_FREEZE = true;
+// TOPE DURO por charla. Una escena que no entra en esto no se recorta sola: se parte en dos
+// tramos (§6.4). El tope existe para que un guion mal medido no secuestre la mision.
+export const CHV_MAX_S = 25;
+// letterbox in/out. Corto a proposito: avisa que cambio el registro, no corta la accion.
+export const CHV_FADE = 0.4;
+// a que distancia se pone el numeral que habla, con `formacion: true` en la escena
+export const CHV_FORM_D = 14;

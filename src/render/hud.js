@@ -260,6 +260,11 @@ export function drawSquadPips(x, y) {
 
 export function drawHUD(h) {
       const { best, gameMode, curLevel, objectiveDist, objectiveShip } = h;
+  // EL PODER RASANTE llega POR SNAPSHOT y no por import, a diferencia de sus dos hermanos: el
+  // lint de capas prohibe que `render` importe de `systems`, y las dos violaciones que ya existen
+  // (tempo y chancha) estan en la lista de trinquete, que solo puede achicarse. La convencion 4
+  // dice justamente esto — el dibujo LEE lo que el orquestador le pasa, no va a buscarlo.
+  const ras = h.ras || { on: false, meter: 0, resta: 0, dur: 12 };
   // PUNTAJE: placa de contador con los ceros a la izquierda apagados — lee como marcador arcade
   plate(3, 3, 44, 12);
   ctx.font = '8px monospace'; ctx.textAlign = 'left';
@@ -428,6 +433,22 @@ export function drawHUD(h) {
   const tv = tempoMeter();
   bar(38, H - 22, 44, tv, tempoActive() ? (Math.sin(run.t * 14) > 0 ? P.accent : P.foam)
     : tv >= 1 ? (Math.sin(run.t * 7) > 0 ? P.accent : P.crest) : P.crest, T('bar_tempo'));
+
+  // EL PODER RASANTE (tecla 6): la tercera barra de la familia, encima de las otras dos y con su
+  // propio color. Mismo lenguaje visual — son tres poderes hermanos y hay que poder distinguirlos
+  // de un vistazo sin leer el rotulo.
+  //
+  // ACTIVA MUESTRA EL RELOJ, no la barra: mientras dura, lo unico que importa saber es cuanto
+  // queda. La barra vuelve a ser barra recien cuando el poder se apaga y empieza a ganarse otra
+  // vez — que es cuando de nuevo importa cuanto falta.
+  bar(38, H - 50, 44, ras.on ? ras.resta / ras.dur : ras.meter,
+    ras.on ? (Math.sin(run.t * 10) > 0 ? P.accent : P.canopy)
+      : ras.meter >= 1 ? (Math.sin(run.t * 7) > 0 ? P.accent : P.canopy) : P.canopy, T('bar_rasante'));
+  if (ras.on) {
+    ctx.textAlign = 'left'; ctx.font = '6px monospace';
+    ctx.fillStyle = P.accent;
+    ctx.fillText(Math.ceil(ras.resta) + 's', 86, H - 47);
+  }
 
   // LA CHANCHA (tecla 5): la barra del hermano caro, JUSTO ENCIMA del MOMENTUM. Mismo lenguaje
   // visual y otro color a proposito — son dos poderes de la misma familia y hay que poder

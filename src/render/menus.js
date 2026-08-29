@@ -651,12 +651,26 @@ function drawLoadout(i) {
 export const MIS_ROWS = { y0: 84, rh: 29, headH: 18, view: 5 };
 export function drawMisionesMenu(w) {
   drawRowMenu(w, 'misTitle', misionText, MIS_ROWS);
-  // EL TOGGLE DE HISTORIA, al pie y siempre visible. Va afuera de drawRowMenu —y no como una fila
-  // mas de la lista— porque no es algo que se ELIJA: es el modo en que va a arrancar lo que elijas,
-  // y una fila que no se puede confirmar en el medio de doce que si, se lee como un error.
-  ctx.textAlign = 'left'; ctx.font = descFont(9);
-  ctx.fillStyle = w.hist ? P.accent : P.dim; ctx.globalAlpha = w.hist ? 0.95 : 0.7;
-  ctx.fillText(T(w.hist ? 'misHistOn' : 'misHistOff'), 40, NH - 8);
+  // EL MODO DE APERTURA, al pie y siempre visible. Va afuera de drawRowMenu —y no como una fila
+  // mas de la lista— porque no es algo que se ELIJA de la lista: es COMO va a arrancar lo que
+  // elijas, y una fila que no se puede confirmar en el medio de doce que si, se lee como un error.
+  ctx.textAlign = 'left';
+  // EL MODO: los tres se listan SIEMPRE y se resalta el activo, en vez de mostrar solo el vigente.
+  // Un toggle que cicla y solo canta su estado obliga a apretarlo para descubrir que mas hay; con
+  // los tres a la vista se sabe de antemano cuantas veces hay que apretar y a donde se llega.
+  const modos = ['juego', 'cine', 'ambas'];
+  let mx = 40;
+  ctx.font = descFont(9);
+  ctx.fillStyle = P.dim; ctx.globalAlpha = 0.7;
+  ctx.fillText(T('misModoLbl'), mx, NH - 8);
+  mx += ctx.measureText(T('misModoLbl')).width + 8;
+  for (const m of modos) {
+    const on = m === w.modo, txt = T('misModo_' + m);
+    ctx.fillStyle = on ? P.accent : P.dim;
+    ctx.globalAlpha = on ? 1 : 0.55;
+    ctx.fillText(on ? '[' + txt + ']' : ' ' + txt + ' ', mx, NH - 8);
+    mx += ctx.measureText(on ? '[' + txt + ']' : ' ' + txt + ' ').width + 6;
+  }
   ctx.globalAlpha = 1;
   const r = w.rows[w.sel];
   if (r && !r.back) drawLoadout(r.i);

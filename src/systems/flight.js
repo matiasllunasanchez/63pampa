@@ -32,6 +32,7 @@ import { tierraH, hayRelieve } from '../core/tierra.js';
 // LA CHANCHA: conectado a la canasta se vuela EN FORMACION, o sea que el mundo avanza menos.
 // Se toca el AVANCE y no `run.spd` a proposito: la velocidad del avion es fisica.
 import { avance as chAvance } from '../systems/chancha.js';
+import * as rasante from '../systems/rasante.js';
 // BOOST_LIFT y CAM_PAN se mudaron a systems/vuelo.js con la camara que los usa.
 import { multOf } from '../core/util.js';
 import { movesSystem, mvAllowsFire, mvAllowsTurbo } from './moves.js';
@@ -49,6 +50,43 @@ import { applyEnergy, applyDrag, speedTarget, windFactor, pitchTarget, scrapeLim
 // altura de la ola bajo el avion (marejada): decide el nivel del mar para el roce. Solo el vuelo
 // la usa (el render del mar tiene su propio campo de olas, seaH).
 function waveNow() { return 1.1 + Math.sin(run.t * 1.1) * 0.5 + Math.sin(run.t * 2.3) * 0.3; }
+
+/** EL RESORTE AL RAS (SPEC_PODER_RASANTE RF-01) — el corazon del poder, y son doce lineas.
+ *
+ *  LA INVERSION: sin el poder, soltar el gas es CAER (la gravedad gana y el avion se va al agua);
+ *  con el poder, soltar el gas es ASENTARSE. El default vertical se da vuelta — el reposo es la
+ *  gloria y no el castigo — y eso es todo lo que hace este bloque. La tesis del juego ("los
+ *  valientes vuelan abajo") por doce segundos convertida en la fisica misma del avion.
+ *
+ *  NO ES AUTOPILOTO (§6.1), y la diferencia esta en las dos ramas de abajo: con ↑ apretado manda
+ *  el EMPUJE DE SIEMPRE (`TH`, el mismo numero) y el resorte no existe; recien al soltar aparece.
+ *  El avion nunca deja de responder — lo que cambia es a donde vuelve cuando lo dejas en paz. Si
+ *  en el playtest se siente riel, lo que se ablanda es `RAS_SPRING`; no se agrega asistencia.
+ *
+ *  EL RESORTE ES DE PRIMER ORDEN A PROPOSITO: la velocidad vertical DESEADA es proporcional al
+ *  error de altura, y la real persigue a esa deseada. Un resorte de segundo orden (fuerza
+ *  proporcional al error) oscila —el avion pasaria de largo el ras y rebotaria— y el criterio de
+ *  cierre pide "sin rebote feo". Este no puede pasarse: se frena solo al llegar.
+ *
+ *  EL TECHO ES BLANDO: el empuje se apaga en los ultimos 3 m antes de `RAS_CEIL`, asi que llegar
+ *  arriba se SIENTE como quedarse sin aire y no como chocar un vidrio. El clamp final es la
+ *  garantia dura de que no se cruza; la rampa es la que hace que no se note.
+ */
+function vertRasante(dt, inp, G, TH, DIVE) {
+  const yr = rasante.alt(), techo = rasante.ceil(), k = rasante.spring();
+  if (inp.u && run.fuel > 0) {
+    const suave = Math.max(0, Math.min(1, (techo - plane.y) / 3));
+    plane.vy += (TH * suave - G) * dt;
+  } else {
+    // la vertical DESEADA: proporcional al error, con los topes de siempre — el poder no
+    // inventa velocidades nuevas, solo cambia hacia donde apunta la que ya habia
+    const tgt = Math.max(-20, Math.min(18, (yr - plane.y) * k));
+    plane.vy += (tgt - plane.vy) * Math.min(1, dt * k);
+  }
+  if (inp.d) plane.vy -= DIVE * dt;                 // picar sigue siendo picar: el control no se toca
+  plane.vy = Math.max(-20, Math.min(18, plane.vy));
+  if (plane.y >= techo && plane.vy > 0) plane.vy = 0;   // el techo, duro por debajo de lo blando
+}
 
 // CAÑONES: separacion de cada boca respecto del eje del avion, en unidades de MUNDO. El 0.9 no es
 // arbitrario — es lo que hace falta para que la trazadora nazca justo donde ya se dibuja el
@@ -152,16 +190,22 @@ export function flightSystem(dt, deps) {
     run.bankA = Math.max(-BANK_MAX, Math.min(BANK_MAX, run.bankA));
     plane.vx = bankVx(run.bankA);
     const G = 22, TH = 55, DIVE = 30;
-    plane.vy += (((inp.u && run.fuel > 0) ? TH : 0) - G - (inp.d ? DIVE : 0)) * dt;
-    plane.vy = Math.max(-20, Math.min(18, plane.vy));
+    if (rasante.active()) vertRasante(dt, inp, G, TH, DIVE);
+    else {
+      plane.vy += (((inp.u && run.fuel > 0) ? TH : 0) - G - (inp.d ? DIVE : 0)) * dt;
+      plane.vy = Math.max(-20, Math.min(18, plane.vy));
+    }
   } else {
     plane.vx += (inp.r - inp.l) * 115 * dt;
     if (!inp.r && !inp.l) plane.vx *= Math.max(0, 1 - 4.5 * dt);
     plane.vx = Math.max(-30, Math.min(30, plane.vx));
     // gas: mantener ARRIBA empuja hacia arriba; al soltar, la gravedad gana y el avión cae
     const G = 22, TH = 55, DIVE = 30;
-    plane.vy += (((inp.u && run.fuel > 0) ? TH : 0) - G - (inp.d ? DIVE : 0)) * dt;
-    plane.vy = Math.max(-20, Math.min(18, plane.vy));
+    if (rasante.active()) vertRasante(dt, inp, G, TH, DIVE);
+    else {
+      plane.vy += (((inp.u && run.fuel > 0) ? TH : 0) - G - (inp.d ? DIVE : 0)) * dt;
+      plane.vy = Math.max(-20, Math.min(18, plane.vy));
+    }
   }
   // PIRUETA (tonel): rafaga lateral fuerte que decae + estelas de viento; el perfil de
   // colision se ENCOGE mientras rola (alas "de canto") → pasa por espacios mas finos
@@ -206,6 +250,10 @@ export function flightSystem(dt, deps) {
   stepVuelo(dt, {
     bank: bankTgt, pitch: pitchTgt, boost: run.boost,
     pan: inp.camAx || (inp.camD + inp.rise) - (inp.camU + inp.sink),
+    // LA CAMARA DEL PODER RASANTE (RF-04). `cam()` devuelve null cuando el poder no esta puesto,
+    // y ahi la cama de vuelo usa el encuadre de siempre — que es lo que hace que `feel` de
+    // identico con el poder apagado.
+    ras: rasante.cam(),
   });
 
   // puntaje por altitud + racha rasante
@@ -251,7 +299,20 @@ export function flightSystem(dt, deps) {
   // de la banda. Sin esto, sostenerlo mas alto hacia que la condicion fallara al frame siguiente
   // y el roce se cancelaba solo.
   const scrapeY = groundY + SCRAPE_LIFT;
-  if (plane.y <= (run.scrapeT > 0 ? scrapeY + 0.2 : groundY)) {
+  // EL COLCHON (SPEC_PODER_RASANTE RF-02): con el poder puesto, el AGUA PLANA deja de castigar —
+  // `run.scrapeT` no crece y el roce no mata. Es perdon por MICRO-ERROR DE ALTURA, que es
+  // exactamente el impuesto que el resto del juego te cobra por volar donde el poder te invita a
+  // volar; sin esto, el poder te llevaria al ras y el ras te mataria.
+  //
+  // Y NO ES INVULNERABILIDAD (§6.2). Lo que sigue matando igual, y no pasa por aca:
+  //   · LA CARA DE UNA OLA — vive en systems/collision.js, que este bloque no toca. Rozar la
+  //     cresta tambien sigue costando margen alla: el poder perdona la altura, no clipear olas.
+  //   · todo obstaculo y todo fuego enemigo — sus propias colisiones, intactas.
+  //   · EL SUELO. El colchon es del AGUA y solo del agua: sobre tierra el roce es el de siempre.
+  //     El spec dice "el agua plana" y no menciona la tierra, y ampliarlo por simetria seria
+  //     inventar alcance — anotado en §8.
+  const colchon = rasante.active() && deathMsg === 'death_sea';
+  if (!colchon && plane.y <= (run.scrapeT > 0 ? scrapeY + 0.2 : groundY)) {
     const lim = scrapeLimit(run.spd, run.boost);
     run.scrapeT += dt;
     if (run.scrapeT >= lim) return { death: deathMsg };                 // se agoto el margen
@@ -277,6 +338,9 @@ export function flightSystem(dt, deps) {
     // (el aviso "! SUBI !" lo dibuja el HUD mientras run.scrapeVib este alto: es un estado
     //  persistente, no un evento — antes se disparaba como popup ~30 veces por segundo)
   } else {
+    // Con el COLCHON puesto se cae siempre por aca, y esta bien que asi sea: el margen de roce se
+    // RECUPERA durante el poder al ritmo de siempre. No se regala entero de golpe — el poder no
+    // cura, deja de cobrar.
     run.scrapeT = Math.max(0, run.scrapeT - dt * SCRAPE_RECOVER);   // salir descuenta, pero no borra
     run.scrapeVib = Math.max(0, run.scrapeVib - dt * 6);            // la vibracion se apaga al salir
   }

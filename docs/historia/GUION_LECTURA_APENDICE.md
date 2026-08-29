@@ -116,7 +116,14 @@ dárselo en la mano cuando vuelva. _"Así no te tengo que contar nada: mirás y 
 
 ### El de la pista — "el Turco"
 
-**Suboficial Miguel Salomón**, mecánico jefe. Pinta **una estrellita por cada regreso**.
+**Suboficial Miguel Salomón**, mecánico jefe. Pinta **una estrellita por cada regreso**. 🟩
+**UNA por avión y por vuelta** — no una fila que se pinta de golpe. Las "cinco estrellitas"
+del epílogo de M1 son **cinco aviones, una cada uno**. Los dos contadores van al revés: las
+estrellas de cada avión **suben** una por misión sobrevivida, y la cantidad de aviones que se
+pintan **baja** cuando alguien no vuelve. El cruce de los dos es el momento de M7 — *"hay una
+estrellita que hoy no se pinta"*.  **No confundir con las 1–4 estrellas de puntaje por nivel
+del HUD: no tienen nada que ver.** Producción: las pinta el motor sobre un fuselaje limpio,
+no la IA (ver PROMPTS_VN_M1_M3 · M1.e).
 "Los ingleses cuentan lo que bajan. Yo cuento lo que vuelve."  _(Habla tucumano:
 "m'hijo", "changuito", "esto no lo levanta ni Alá".)_
 

@@ -59,7 +59,7 @@ Sin personas, reutilizables, con variantes de luz. Unas ~16 placas cubren la cam
 3. Línea de vuelo — noche (m13/m14)
 4. Hangar interior — día (banco del Pichón)
 5. Hangar interior — noche con lámpara (la libreta)
-6. Vestuario / lockers (penumbra)
+6. 🟩 **Vestuario / lockers (penumbra)** — prompt escrito 29/8 en PROMPTS_VN_M1_M3.md · todo cerrado, uno entornado y negro adentro
 7. Sala de radio (mapas, la lámpara verde)
 8. La cocina de Norma — 1982 cálida (prólogo)
 9. La cocina de Norma — presente lavado (P.0 / epílogos)
@@ -96,14 +96,14 @@ de cada uno ES su personaje.
 | **Pichón** | entusiasmo · vergüenza *(frenado a mitad de frase)* · miedo · neutro · 🟥 **concentrado con auriculares** *(M5, la escucha)* | Entusiasmo↔vergüenza es su ping-pong cómico con el Turco. El de auriculares se usa dos veces: la escucha de M5 y la noticia del Belgrano en M3. |
 | **Turco** | gruñón (su neutro) · ternura disimulada · roto · orgullo *(estrellitas)* | La gorra con la estrellita en TODOS. |
 | **Mateo** | sonrisa colimba · serio *(solo prólogo — en la isla vive en el registro TIERRA, dibujado por él mismo)* | 2 retratos alcanzan. |
-| **Colorado** | *(sin retrato AIRE — existe solo en los dibujos del cuaderno)* | Su cara es como Mateo lo dibuja: con capa. |
+| 🔴 **Colorado** _(cabo Aníbal Correa)_ | **sonrisa ancha (SU neutro)** · **callado** *(el que sabe esperar — la escena del barro en M5)* · **serio** | 🔴 **29/8: SÍ TIENE RETRATO.** Murió el canon viejo de "existe solo en los dibujos". Es el segundo personaje más importante del registro TIERRA y **muere en M12**: necesita cara. Sigue existiendo *además* como el monigote con capa que dibuja Mateo — **las dos cosas conviven, y el contraste es el punto.** 🔴 **En el registro TIERRA el pelo colorado se dibuja SIN RELLENAR** (papel crudo, contorno y dos rulos) contra el uniforme rayado, **más pecas en la cara**: es la única forma de decir "colorado" a una sola tinta. |
 | **Norma** | 🟨 cálida · seria *(P.2, 1982)* | **Canon 3.4: Norma habla y se la ve** — el jugador tiene que reconocer a sus propios padres en esa cocina. En los epílogos (años después) va en cuadros completos, no en busto. |
 | **Cóndor** | **un parlante de radio / forma de onda** como "retrato" | La máquina de la guerra no tiene cara. El sting 30 suena debajo. |
 | **Piloto peruano (m10)** | 🟨 **busto propio, UNO** — casco bajo el brazo, mameluco de vuelo sin insignias de país | 🟨 3.5: ahora habla **en tierra, en Tandil**, no por radio. Merece cara: es la única persona de afuera que aparece en todo el juego. Que se le vea el cansancio del vuelo largo. |
 | 🟥 **Seño Claribel (post-créditos)** | **busto propio, UNO** — mujer de unos 53 años, sanluiseña, cálida y cansada, ropa de maestra de escuela pública | 🟥 3.6: es la nena de nueve años de la carta de M9, cuarenta y pico de años después. **No se explica nunca.** |
 | 🟥 **El pibe de la 10 (post-créditos)** | **busto propio, UNO** — nene de 8-9 años, camiseta argentina con **TRES** estrellas | 🟥 3.6. Que la camiseta se lea sin que nadie la nombre. |
 
-**Total a generar: ~33 retratos** (contando variantes) contra los cientos de cuadros con
+**Total a generar: ~36 retratos** 🔴 *(+3 del Colorado)* (contando variantes) contra los cientos de cuadros con
 personajes que costaría el enfoque de escena completa. Y salen todos de las hojas modelo
 ya especificadas, como *image reference* — máxima consistencia.
 
@@ -190,6 +190,7 @@ tandas en documentos propios:
 |---|---|---|
 | **Prólogo (P.1–P.4)** | [PROMPTS_VN_PROLOGO.md](PROMPTS_VN_PROLOGO.md) — y la versión lista para pegar en [PROMPTS_VN_PROLOGO_LISTOS.md](PROMPTS_VN_PROLOGO_LISTOS.md) | ✅ 9 placas + 7 retratos + 6 figuras |
 | **Las placas de TODA la campaña** | [PROMPTS_PLACAS.md](PROMPTS_PLACAS.md) — lista para pegar en [PROMPTS_PLACAS_LISTOS.md](PROMPTS_PLACAS_LISTOS.md) | 🟩 ✅ 16 lugares + 9 cuadros propios |
+| 🟥 **Escenas M1–M3** | [PROMPTS_VN_M1_M3.md](PROMPTS_VN_M1_M3.md) | ✅ **16 placas literales al guion, SIN personajes** · las cartas de Mateo en **16:9 pantalla completa** |
 | Retratos M1–M14 | *(pendiente — paso 2)* | — |
 | Figuras M1–M14 | *(pendiente — paso 3)* | — |
 

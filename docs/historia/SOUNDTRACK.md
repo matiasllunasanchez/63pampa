@@ -80,6 +80,59 @@ van completas, porque las canta una persona, no las dibuja un canvas.
 | **Los Fieles** (la hermandad) | `a proud brotherly brass-and-guitar theme that swells like a squadron flying wingtip to wingtip` | Briefings, epílogos de aire, sacrificios |
 | **La Máquina** (la guerra) | `a cold pulsing mechanical synth ostinato like a radar sweeping in the dark` | Task Force, Callejón, misiones tardías |
 
+### 🟥 EL ARCO DE «EL NIDO» — un tema, seis vidas *(3.13 — idea de Matías)*
+
+**El leitmotif de El Nido no aparece: se TRANSFORMA.** Es la misma melodía de punta a punta
+del juego, y lo único que cambia es quién la toca y cómo. El jugador la aprende sin darse
+cuenta en el prólogo y la reconoce, sin poder nombrarla, cuando vuelve hecha otra cosa.
+
+**⚠ LA CONDICIÓN TÉCNICA, Y NO ES NEGOCIABLE:** la melodía tiene que ser **tan simple que se
+pueda silbar**. Si un jugador no puede silbarla después del prólogo, todo este sistema no
+existe. La frase-semilla ya la define así —*un padre silbándole al hijo desde el otro lado
+de un campo*— y esa simpleza es el requisito, no una limitación.
+
+| # | Dónde | Cómo suena | Qué dice sin decirlo |
+|---|---|---|---|
+| **1** | **P.1, el arroyo** *(pista 11)* | **Un hombre silbando. Solo. Sin acompañamiento.** | Así empieza todo: un padre y un hijo en un arroyo |
+| **2** | **Menú y M1–M3** *(pistas 01 y 13)* | **Versión AVENTURA:** guitarra criolla, vientos livianos, ritmo alegre, casi de serie de dibujos. **Simpática y confiada.** | Todavía parece una aventura. Para ellos también lo parecía |
+| **3** | **M4–M8** *(pista 14)* | Misma melodía, **acompañamiento endurecido**: entra percusión militar, se van los vientos, el tempo se pone parejo y terco | Se les fue la sonrisa y ninguno lo dijo |
+| **4** | **M9–M13** | **La melodía empieza a FALTAR.** La toca un solo instrumento, o queda solo el acompañamiento sosteniendo un tema que ya nadie toca | Es el mismo truco que la pista del Narwal: **falta uno y nadie lo anuncia** |
+| **5** | **🟥 M14 / FINAL A** *(pista 28)* | **LA MELODÍA ENTERA, A TODO VOLUMEN: guitarras distorsionadas, batería doble, coro gritado.** Y debajo de todo, casi inaudible, **el silbido del arroyo** | Es la misma canción de la infancia, tocada por un tipo que está por morir arriba del nido de su hijo |
+| **6** | **Créditos** | **Vuelve a ser un silbido. Solo. Como al principio.** | **Porque perdieron.** El tema hace el círculo completo y termina donde empezó: un hombre silbando |
+
+### 🟥 Sobre la referencia de Matías: "Hero" (Chad Kroeger + Josey Scott, Spider-Man 2002)
+
+**La referencia es correcta, y por una razón precisa:** *Hero* no es una canción de triunfo,
+es una canción de **alguien que ganó perdiendo algo**. Triunfal y triste a la vez. Eso es
+exactamente la vida 5 de este tema.
+
+**Pero hay que ubicarla bien, y hay una trampa.** El juego **no termina en victoria** — el
+post-créditos dice literalmente *"¿Y ganaron?" "No."*. Un himno metálico triunfal sobre el
+final del juego contradice la tesis entera. Por eso:
+
+- **SÍ en la pista 28, «La vorágine» (Final A).** Ahí el doc ya pide Mick Gordon y ya dice
+  *"que la furia sea AMOR con otra cara: no es rabia vacía, es un padre peleando sobre el
+  nido"*. **La versión pesada de El Nido va exactamente ahí.**
+- **NO en los créditos.** Los créditos son la vida 6: el silbido solo.
+
+### 🟥 Y una corrección de dirección: que NO suene a 2002
+
+*Hero* sirve como **vara de emoción**, no como referencia de sonido. Si la versión pesada
+suena a nu-metal norteamericano de los 2000, el juego se va del país y de la década.
+
+**La referencia correcta es el HEAVY METAL ARGENTINO de principios de los 80** — V8,
+Riff, y lo que después fue Hermética y Almafuerte. Guitarra sucia, batería seca, voz sin
+técnica y con todo el aire adentro, producción cruda.
+
+**Y acá está el hallazgo:** ese metal nació **exactamente en esos años, con esa misma
+generación**. Los hermanos menores de los pibes de la clase 63 son los que inventaron ese
+sonido. El juego ya cita a **Iorio** en el cierre *(⚠ y hay un problema abierto con su
+nombre de pila — ver PREGUNTAS_HISTORICAS)*, que es el padre de ese género. **Cerrar la
+misión final con el sonido que esa generación estaba a punto de inventar no es un
+anacronismo: es la misma gente.**
+
+---
+
 ### Paleta instrumental y reglas *(sin cambios)*
 
 Lo criollo cerca de Mateo y la tierra; lo eléctrico/orquestal cerca del combate. Todo lo

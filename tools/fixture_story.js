@@ -53,7 +53,13 @@ app.whenReady().then(async () => {
   console.log('estado al arrancar:', d.state, '· escena', d.scene, '· linea', d.line);
   if (d.state !== 'story') { console.error('NO entro a la escena'); app.exit(1); return; }
 
+  // Lo que PIDE el guion, y el TECHO que el motor le aplica en pantalla (core/dialogue.js
+  // HOLD_MAX, decision del autor del 19/8/2026: los silencios largos se sentian muertos al
+  // jugarlos). Se comparan los dos a proposito: que el dato siga pidiendo 4 s es la mitad de la
+  // decision — la intencion del director queda escrita y subir el techo la devuelve entera.
   const holds = [2.0, 1.0, 2.5, 1.5, 4.0, 2.0];
+  const TECHO = 1.0;
+  const esperado = holds.map(h => Math.min(h, TECHO));
   const medidos = [];
   for (let i = 0; i < 6; i++) {
     d = await dbg();
@@ -105,16 +111,17 @@ app.whenReady().then(async () => {
   if (dFin.state !== 'modeselect') bad('la escena suelta tendria que volver al menu');
   await shot('locker_fin');
 
-  console.log('\nHOLDS   guion / lo que pidio el motor / lo que se tardo en poder avanzar');
+  console.log('\nHOLDS   lo que pide el guion / el techo / lo que pidio el motor / lo que tardo');
   holds.forEach((h, i) => {
     const { s, h0 } = medidos[i];
     // h0 vs h: el motor tiene que pedir EXACTO lo que dice el guion (margen: un frame).
     // s vs h: fin a fin. El margen es la granularidad del tapeo (~0.12 s), no del motor —
     // la exactitud al frame la prueba `npm run unit` con reloj determinista.
-    const okPide = Math.abs(h0 - h) <= 0.02;
-    const okDura = Math.abs(s - h) <= 0.2;
+    const okPide = Math.abs(h0 - esperado[i]) <= 0.02;
+    const okDura = Math.abs(s - esperado[i]) <= 0.2;
     if (!okPide || !okDura) fails++;
-    console.log(`  ${i}: ${h.toFixed(1)}s → pidio ${h0.toFixed(3)}s ${okPide ? '✓' : '✗'} → tardo ${s.toFixed(2)}s ${okDura ? '✓' : '✗'}`);
+    const cap = h > TECHO ? ` (recortado de ${h.toFixed(1)})` : '';
+    console.log(`  ${i}: guion ${h.toFixed(1)}s → techo ${esperado[i].toFixed(1)}s${cap} → pidio ${h0.toFixed(3)}s ${okPide ? '✓' : '✗'} → tardo ${s.toFixed(2)}s ${okDura ? '✓' : '✗'}`);
   });
 
   console.log('\nerrores de consola:', errors.length);

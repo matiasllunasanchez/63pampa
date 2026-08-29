@@ -13,16 +13,24 @@
 //     devuelven stepDialogue()/pressDialogue() — los sistemas no llaman "hacia arriba".
 import { wrapChars } from './util.js';
 
-// Velocidad del tipeo. El spec pide ~30 cps (RF-02); el motor viejo de pantallas usaba 19, pero
-// ahi se tipeaba la PANTALLA entera de una vez y hacia falta que fuera ceremonioso. Con una linea
-// por vez, 19 se siente lento de mas.
-export const TYPE_CPS = 30;
+// Velocidad del tipeo. El spec pide ~30 cps (RF-02) y ahi estuvo hasta el 27/8; jugado, 30 va
+// DEMASIADO rapido — la linea termina antes de que el ojo la alcance y el tipeo deja de ser una
+// puesta en escena para volverse un obstaculo. A la mitad, 15 cps, se lee al ritmo en que se
+// escribe, que es de lo que se trata.
+//
+// Es la unica perilla del ritmo del texto: la usan el dialogo, la acotacion y el retraso entre
+// las dos, asi que tocar este numero los mueve a los tres juntos y no se desincronizan.
+export const TYPE_CPS = 15;
 // AUTO-AVANCE (RF-03, apagado por defecto): segundos que queda una linea si nadie toca nada.
 // La formula es de SISTEMA_DIALOGO: 12 caracteres por segundo es LENTO a proposito (el estandar
 // de subtitulado tolera 17) y el minimo evita que un "Sesenta y uno." pase como un parpadeo.
 export const AUTO_MIN = 1.6, AUTO_CPS = 12;
 // ancho de renglon en caracteres (espacio de DISEÑO 320x180, ver ARQUITECTURA)
-export const WRAP_BODY = 52;
+// 68 y no 52 (27/8): el ancho de renglon es LA perilla del alto de la caja de dialogo — la caja
+// mide lo que miden sus renglones, asi que meter mas caracteres por renglon la achica de verdad,
+// mientras que recortar el padding gana cuatro pixeles y aprieta el texto contra el borde. Con el
+// cuerpo en 6 px entran 68 caracteres al lado del busto sin tocar el borde derecho.
+export const WRAP_BODY = 68;
 
 /** EL STORE de la historia. Identidad estable: se MUTA, nunca se reasigna (convencion 1). */
 export const dlg = {
@@ -34,6 +42,7 @@ export const dlg = {
   seqT: 0,        // reloj de la secuencia entera (lo usa la gracia anti-salteo de game.js)
   sceneT: 0,      // reloj de la ESCENA en curso: anima la entrada de la caja VN (sube de abajo)
   typed: 0,       // caracteres ya tipeados de la linea
+  accTyped: 0,    // ...y de la acotacion, que se escribe ANTES (ver ACC_PAUSA)
   done: false,    // la linea termino de tipearse
   wrap: [],       // la linea partida en renglones, para el render
   lang: 'es',
@@ -53,17 +62,59 @@ export function txtOf(ln) {
   return ln[dlg.lang] || ln.es || '';
 }
 
+// TECHO DEL SILENCIO (decision del autor, 19/8/2026 — jugando el guion de M1).
+//
+// Los `hold` del guion llegan hasta 4 s y eran, por diseño, "la actuacion": el silencio despues de
+// una linea era el unico recurso que tiene un juego sin voces para actuar una pausa
+// (SISTEMA_DIALOGO). Jugado, la espera se siente MUERTA — no leida como pausa dramatica sino como
+// que el juego se colgo. Asi que el silencio se recorta acá, en UN lugar, y no borrando los holds
+// del guion: los datos siguen diciendo cuanto dura cada pausa (la intencion del director queda
+// escrita) y esta perilla decide cuanto de eso se respeta en pantalla. Subirla a 4 devuelve el
+// diseño original sin tocar una sola linea de contenido.
+//
+// El recorte vale para el TIEMPO y para el INPUT a la vez: si la tecla se habilitara antes de que
+// aparezca el cartel —o al reves— el prompt estaria mintiendo.
+export const HOLD_MAX = 1;
+
+// LA ACOTACION SE TIPEA ANTES QUE EL DIALOGO, y despues hay una pausa para leerla.
+//
+// Antes aparecia ENTERA de golpe, junto con la primera letra de lo que el personaje dice: los dos
+// textos nacian al mismo tiempo y el ojo no sabia cual leer primero. Pero son consecutivos —
+// «se levanta y atiende» pasa ANTES de «¿Para quien?...»— asi que ahora la caja los muestra en el
+// orden en que ocurren: primero el NOMBRE (que ya estaba desde el cuadro 0), despues la ACCION
+// tipeandose, una pausa, y recien ahi el dialogo.
+//
+// La pausa es corta a proposito: una acotacion son cinco o seis palabras, no un parrafo, y si el
+// silencio se estira se siente igual que el hold largo que ya hubo que recortar (ver HOLD_MAX).
+export const ACC_PAUSA = 0.55;
+
 /** Segundos que faltan de silencio obligatorio. > 0 = el avance esta cerrado (RF-07). */
 export function holdLeft() {
   const ln = line();
   if (!dlg.done || !ln) return 0;
-  return Math.max(0, (ln.hold || 0) - (dlg.t - dlg.tDone));
+  return Math.max(0, Math.min(ln.hold || 0, HOLD_MAX) - (dlg.t - dlg.tDone));
 }
 /** ¿Se puede avanzar? Es tambien lo que decide si se dibuja la flecha de "seguir". */
 export function canAdvance() { return dlg.done && holdLeft() <= 0; }
 
+/** Segundos desde que el avance quedo HABILITADO (0 si todavia no lo esta).
+ *
+ *  Lo necesita el render para que el parpadeo del cartel arranque cuando el cartel aparece. Vive
+ *  acá y no allá porque depende del techo del silencio: el render tendria que rehacer la misma
+ *  cuenta —y el dia que HOLD_MAX cambie, una de las dos copias se olvida. */
+export function sinceReady() {
+  const ln = line();
+  if (!dlg.done || !ln) return 0;
+  return Math.max(0, (dlg.t - dlg.tDone) - Math.min(ln.hold || 0, HOLD_MAX));
+}
+
 /** Cuanto dura una linea sola, con auto-avance encendido (RF-03). */
-export function autoSecs(chars, hold) { return Math.max(AUTO_MIN, chars / AUTO_CPS) + (hold || 0); }
+export function autoSecs(chars, hold, accion) {
+  // `accion` opcional: sin sumarla, el auto-avance de la radio cortaria la linea antes de que
+  // termine de escribirse la acotacion que va adelante.
+  const acc = accion ? accion.length / TYPE_CPS + ACC_PAUSA : 0;
+  return Math.max(AUTO_MIN, chars / AUTO_CPS) + acc + (hold || 0);
+}
 
 /** Arranca una secuencia de escenas. `lang` resuelve es/en por linea sin importar i18n. */
 export function startSeq(scenes, lang) {
@@ -73,9 +124,18 @@ export function startSeq(scenes, lang) {
   startScene();
 }
 function startScene() { dlg.li = 0; dlg.sceneT = 0; startLine(); }
+/** Lo que la linea ACOTA (que esta haciendo), o '' si no acota nada. */
+export function accionDe(ln) { return (ln && ln.accion) || ''; }
+
+/** Segundos que tarda la acotacion en escribirse, mas su pausa de lectura. 0 si no hay. */
+function retrasoAccion(ln) {
+  const a = accionDe(ln).length;
+  return a ? a / TYPE_CPS + ACC_PAUSA : 0;
+}
+
 function startLine() {
   const ln = line(), txt = txtOf(ln);
-  dlg.t = 0; dlg.tDone = 0; dlg.typed = 0;
+  dlg.t = 0; dlg.tDone = 0; dlg.typed = 0; dlg.accTyped = 0;
   dlg.done = !txt;                  // una linea vacia (o una escena sin lineas) ya esta "completa"
   dlg.wrap.length = 0;
   for (const w of wrapChars(txt, (ln && ln.wrap) || WRAP_BODY)) dlg.wrap.push(w);
@@ -86,8 +146,11 @@ function startLine() {
 export function stepDialogue(dt) {
   dlg.seqT += dt; dlg.t += dt; dlg.sceneT += dt;
   const ln = line(), n = txtOf(ln).length;
+  const na = accionDe(ln).length, retraso = retrasoAccion(ln);
+  dlg.accTyped = Math.min(na, Math.floor(dlg.t * TYPE_CPS));
   if (!dlg.done) {
-    dlg.typed = Math.min(n, Math.floor(dlg.t * TYPE_CPS));
+    // el reloj del dialogo arranca DESPUES de la acotacion y de su pausa
+    dlg.typed = Math.min(n, Math.floor(Math.max(0, dlg.t - retraso) * TYPE_CPS));
     if (dlg.typed >= n) { dlg.done = true; dlg.tDone = dlg.t; }
     return null;
   }
@@ -115,6 +178,33 @@ export function advance() {
   if (s && s.lineas && dlg.li + 1 < s.lineas.length) { dlg.li++; startLine(); return 'next'; }
   if (dlg.si + 1 < dlg.seq.length) { dlg.si++; startScene(); return 'scene'; }
   return 'end';
+}
+
+/** VOLVER A LA LINEA ANTERIOR. Existe por un motivo chico y muy real: el texto se avanza solo
+ *  apretando, y una tecla de mas se come una linea que no llegaste a leer. Sin vuelta atras la
+ *  unica salida es rejugar la mision entera para leer una frase.
+ *
+ *  RETROCEDE HASTA EL PRIMER RENGLON DE LA SECUENCIA, cruzando de escena si hace falta: el limite
+ *  del jugador es "lo que vi en esta tanda", no "lo que vi en esta pantalla", y frenar en el borde
+ *  de la escena obligaria a saber donde empieza y termina cada una — que es justo lo que el
+ *  jugador no tiene por que saber.
+ *
+ *  La linea a la que se vuelve arranca YA ESCRITA (no se re-tipea): quien vuelve es porque quiere
+ *  LEER, y verla aparecer letra por letra otra vez seria hacerlo esperar por algo que ya paso.
+ *
+ *  Devuelve 'back' si se movio, o null si ya estaba en la primera. */
+export function backDialogue() {
+  if (dlg.li > 0) { dlg.li--; } else if (dlg.si > 0) {
+    dlg.si--;
+    const prev = dlg.seq[dlg.si];
+    dlg.li = Math.max(0, ((prev && prev.lineas) || []).length - 1);
+    dlg.sceneT = 99;                          // la escena anterior ya entro: no se re-anima
+  } else return null;
+  startLine();
+  dlg.typed = txtOf(line()).length;           // ya escrita: se vuelve para leer, no para esperar
+  dlg.done = true;
+  dlg.tDone = dlg.t;
+  return 'back';
 }
 
 // ---------- adaptador de las pantallas VIEJAS de strings.js ----------

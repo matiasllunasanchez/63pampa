@@ -281,7 +281,7 @@ test('alabeo: es simetrico entre los dos lados', () => {
 // no se nota mirando y arruina la unica actuacion que tiene un juego sin voces.
 const dlgMod = await import('../src/core/dialogue.js');
 const { dlg, startSeq, stepDialogue, pressDialogue, canAdvance, holdLeft, txtOf, line, scene,
-        sceneFromScreen, splitSpeaker, seqFromScreens, autoSecs, TYPE_CPS } = dlgMod;
+        sceneFromScreen, splitSpeaker, seqFromScreens, autoSecs, TYPE_CPS, HOLD_MAX } = dlgMod;
 const { SCENES } = await import('../src/data/story.js');
 
 /** Corre el motor `s` segundos a 60 fps (como el juego). */
@@ -319,25 +319,33 @@ test('historia: un toque COMPLETA la linea, no la saltea (RF-02)', () => {
   assert.equal(dlg.li, 0, 'y seguimos en la MISMA linea');
 });
 
-test('historia: el hold no se puede saltear, y dura exactamente lo que dice (RF-07)', () => {
+test('historia: el hold no se puede saltear, y dura lo que dice hasta el techo (RF-07)', () => {
+  // La linea 010 pide 2.0 s y el techo (HOLD_MAX) los recorta: lo que NO cambia es que mientras
+  // corre el silencio el toque se ignora, que es la regla que RF-07 protege.
   locker();
+  const espera = Math.min(2.0, HOLD_MAX);
   pressDialogue();                                   // completa la linea 010 (hold 2.0)
   assert.equal(canAdvance(), false, 'apenas termina de tipearse ya esta en silencio');
-  near(holdLeft(), 2.0, 1e-9);
-  run60(1.9);
+  near(holdLeft(), espera, 1e-9);
+  run60(espera - 0.1);
   assert.equal(pressDialogue(), null, 'el toque se IGNORA mientras corre el hold');
   assert.equal(dlg.li, 0);
   assert.ok(holdLeft() > 0);
-  run60(0.12);                                       // pasados los 2.0 s
+  run60(0.12);                                       // pasado el silencio
   assert.equal(holdLeft(), 0);
   assert.equal(canAdvance(), true);
   assert.equal(pressDialogue(), 'next');
   assert.equal(dlg.li, 1);
 });
 
-test('historia: el 4.0 de "El Vasco tenia quince años" son 4 segundos clavados', () => {
-  // El criterio de aceptacion textual del spec (§6). Se mide igual que lo viviria el jugador:
-  // apretando cada cuadro desde que la linea quedo completa hasta que el motor deja pasar.
+test('historia: el silencio del Vasco lo recorta el TECHO, y el guion lo sigue pidiendo entero', () => {
+  // Este test cambio a proposito (19/8/2026). Antes exigia los 4.0 s clavados del spec §6 — "el
+  // silencio ES la escena" —; jugado, esa espera se sentia muerta y el autor puso techo de
+  // HOLD_MAX. Lo que se prueba ahora son las DOS mitades de esa decision: que en pantalla se
+  // respeta el techo, y que el DATO del guion sigue diciendo 4.0 (la intencion del director no se
+  // borro — subir HOLD_MAX la devuelve intacta).
+  const linea = SCENES.M07_LOCKER.lineas[4];
+  assert.equal(linea.hold, 4.0, 'el guion tiene que seguir pidiendo sus 4 segundos');
   locker();
   for (let i = 0; i < 4; i++) { pressDialogue(); dlg.t += 99; stepDialogue(0); pressDialogue(); }
   assert.equal(dlg.li, 4, 'estamos en la linea del Vasco');
@@ -345,7 +353,7 @@ test('historia: el 4.0 de "El Vasco tenia quince años" son 4 segundos clavados'
   pressDialogue();                                   // completar el tipeo
   let s = 0;
   while (pressDialogue() === null && s < 10) { stepDialogue(1 / 60); s += 1 / 60; }
-  assert.ok(Math.abs(s - 4.0) < 1 / 30, `el silencio duro ${s.toFixed(3)} s, tenia que durar 4.0`);
+  assert.ok(Math.abs(s - HOLD_MAX) < 1 / 30, `el silencio duro ${s.toFixed(3)} s, el techo es ${HOLD_MAX}`);
 });
 
 test('historia: la secuencia se termina y avisa UNA vez (no se pasa de largo)', () => {
@@ -861,6 +869,52 @@ test('tramos: TODAS las misiones de la campaña tienen tramos validos', () => {
     assert.deepEqual(e, [], `${m.id}: ${e.join(' · ')}`);
   }
   assert.ok(CLAVES.includes('hasta') && CLAVES.includes('radio'));
+});
+
+// ---------- LAS CHARLAS EN VUELO (SPEC_CHARLAS_VUELO) ----------
+// El validador de `core/tramos.js` solo puede comprobar que `charla:` sea TEXTO: core/ no importa
+// contenido, asi que desde alla un id inventado pasa. Aca si se ven las dos mitades, y esta es la
+// unica red que existe — un id mal escrito en un tramo no da error en el juego: la charla
+// simplemente no se arma, y la mision se juega sin la escena sin que nadie se entere.
+const { SCENES: SC_VUELO } = await import('../src/data/story.js');
+const { CHV_MAX_S } = await import('../src/data/tuning.js');
+const { AUTO_MIN, AUTO_CPS } = await import('../src/core/dialogue.js');
+
+/** Cuanto dura una escena 'VUELO' con auto-avance, que es el unico modo que tiene (RF-04). Es la
+ *  formula del motor, importada y no copiada: el dia que el tipeo cambie de ritmo, este techo se
+ *  mueve con el. */
+const duracionCharla = sc => (sc.lineas || []).reduce(
+  (t, ln) => t + Math.max(AUTO_MIN, (ln.es || ln.txt || '').length / AUTO_CPS) + (ln.hold || 0), 0);
+
+test('charlas: toda `charla:` de un tramo apunta a una escena VUELO que existe', () => {
+  for (const m of MISSIONS) {
+    for (const t of m.tramos || []) {
+      if (!t.charla) continue;
+      const sc = SC_VUELO[t.charla];
+      assert.ok(sc, `${m.id}: el tramo pide la charla '${t.charla}' y no existe en story.js`);
+      assert.equal(sc.tipo, 'VUELO', `${m.id}: '${t.charla}' no es una escena de tipo VUELO`);
+    }
+  }
+});
+
+test('charlas: ninguna escena VUELO se pasa del tope duro (CHV_MAX_S)', () => {
+  // §6.4: "no matar la charla por diseño". Una escena que no entra NO se recorta sola — se parte
+  // en dos y se cuelga de dos tramos seguidos. Sin este test eso se descubre volando, y se
+  // descubre mal: la charla se corta a mitad de frase y parece un bug del motor.
+  const vuelo = Object.values(SC_VUELO).filter(sc => sc.tipo === 'VUELO');
+  assert.ok(vuelo.length, 'no hay una sola escena VUELO: el tipo esta declarado y sin usar');
+  for (const sc of vuelo) {
+    const d = duracionCharla(sc);
+    assert.ok(d <= CHV_MAX_S, `${sc.id} dura ${d.toFixed(1)} s y el tope es ${CHV_MAX_S}`);
+  }
+});
+
+test('charlas: una escena VUELO no lleva placa — el fondo es el juego', () => {
+  for (const sc of Object.values(SC_VUELO)) {
+    if (sc.tipo !== 'VUELO') continue;
+    assert.equal(sc.placa, undefined, `${sc.id} trae placa y el fondo de una charla es el vuelo`);
+    assert.ok((sc.lineas || []).length, `${sc.id} no tiene lineas`);
+  }
 });
 
 // ---------- EL LOADOUT DE REFERENCIA (data/upgrades.js, el selector "real real") ----------

@@ -72,6 +72,7 @@ export const STRINGS = {
     // LA CHANCHA (tecla 5): el ritual de radio del reabastecimiento. Las lineas citan el TONO de
     // la escena del guion sin reproducirla — esa es del modo historia.
     bar_chancha: 'CHANCHA', ch_ready: '! CHANCHA LISTA — [5] !',
+    bar_rasante: 'RASANTE',
     ch_call: 'CHANCHA, CHANCHA, ACA PATRIA — VENGO SECO',
     ch_ack: 'CONDOR COPIA. TE LA MANDO.',
     ch_come: 'LA CHANCHA NO ABANDONA. VOY.',
@@ -146,7 +147,7 @@ export const STRINGS = {
     tip1: 'Mas bajo = mas puntos. Rozar obstaculos da bonus.',
     tip2: 'El turbo duplica el puntaje y quema combustible.',
     tip3: 'Muy alto = te detecta el radar.',
-    startPrompt: 'CUALQUIER TECLA  para despegar',
+    startPrompt: 'DESPEGAR',
     selTitle: 'ELEGI TU AVION',
     selHint: '<  >  elegir      ENTER / TOCAR  despegar',
     modePrompt: 'ELEGI MODO DE JUEGO',
@@ -306,12 +307,18 @@ export const STRINGS = {
     misClimaxNo: 'SOLO PASILLO',
     misLibreta: 'LIBRETA DEL PICHON  ·  {n}/{m} MEJORAS A ESTA ALTURA DE LA CAMPAÑA',
     misLibretaVacia: '(sin mejoras: el avion de fabrica, con el tonel clasico)',
-    misHistOn: '[H]  HISTORIA: SI  ·  se vuela con el guion de la mision',
-    misHistOff: '[H]  HISTORIA: NO  ·  derecho al despegue',
+    misModoLbl: '[H]',
+    misModo_juego: 'MISION',
+    misModo_cine: 'CINEMATICAS',
+    misModo_ambas: 'CINE + MISION',
     modePasada: 'PASADAS MORTALES', modePasadaDesc: 'A ras, saltar, soltar y salir',
     modeHint: 'flechas: elegir   ENTER / TOCAR: confirmar',
     portLabel: 'PUERTO', bargeDown: 'BARCAZA DESTRUIDA', reached: 'alcanzados',
-    continuePrompt: 'CUALQUIER TECLA para continuar',
+    continuePrompt: 'CONTINUAR',
+    // el par de la caja de historia: ANTERIOR / SIGUIENTE. `continuePrompt` es otra cosa —
+    // el 'apreta para seguir' de las pantallas de puntaje— y por eso son dos claves y no una.
+    nextPrompt: 'SIGUIENTE',
+    backPrompt: 'ANTERIOR',
     mom_title: 'M O M E N T U M', mom_hint: 'MANTENE LA MIRA EN LA ZONA Y DISPARA [X]',
     mom_pass: 'PASADA {n}/{m}', mom_clear: 'PASADA COMPLETA!', mom_next: 'PROXIMA PASADA >>',
     // ARENA: el asalto volado en 3D (climax con three.js; sin 3D rige el momentum clasico)
@@ -382,6 +389,19 @@ export const STRINGS = {
     upgRitual: '"ESO NO SE PUEDE."  ...  "A VER. MOSTRAME."',
     upgRitualLib: '"...A VER, PIBE. MOSTRAME."',
     upgSub: 'ELEGI UNA MEJORA', upgSub1: 'TU PRIMERA MEJORA', upgCombo: 'COMBO:',
+
+    // ---------- EL PODER RASANTE (SPEC_PODER_RASANTE, tecla 6) ----------
+    // LA RADIO ROTA (RF-05): la doctrina gritada. No es decoracion — es UNO de los cinco
+    // elementos de identidad del §7, y el que dice de QUE escuadron es este poder.
+    rasOn: 'RASANTE', rasOff: 'RASANTE — FIN', rasReady: '! RASANTE LISTO — [6] !',
+    rasante_call_1: 'Pegado al agua el radar de ellos no te ve.',
+    rasante_call_2: '¡Abajo, {n}, abajo!',
+    rasante_call_3: 'Ahi va. Como el Pichon lo dibujo.',
+    // LA LECCION DEL SAPITO: la primera activacion de cada perfil, una vez y nunca mas. Es el
+    // prologo hecho poder — la frase con la que el juego explico por que se vuela abajo.
+    rasLeccion: 'La piedra no se hunde si va rapido y pegada al agua.',
+    ras_no_chancha: 'La canasta esta arriba. Primero solta el ras.',
+    ras_no_cita: 'Ahora no, {n}: tenes la manguera puesta.',
     upgHint1: 'ENTER / TOCAR: guardarla en la libreta',
 
     // ---------- HISTORIA (campaña v0.0.1, GUION_2.md) ----------
@@ -1042,6 +1062,7 @@ export const STRINGS = {
     bar_fuel: 'FUEL', bar_cannon: 'CANNON 20MM', bar_overheat: 'OVERHEAT',
     bar_tempo: 'MOMENTUM', tempoOn: 'MOMENTUM', tempoOff: 'REAL TIME', tempoReady: '! MOMENTUM READY — [4] !',
     bar_chancha: 'TANKER', ch_ready: '! TANKER READY — [5] !',
+    bar_rasante: 'RASANTE',
     ch_call: 'TANKER, TANKER, PATRIA HERE — RUNNING DRY',
     ch_ack: 'CONDOR COPIES. SENDING HER.',
     ch_come: 'THE OLD SOW NEVER QUITS. ON MY WAY.',
@@ -1085,7 +1106,7 @@ export const STRINGS = {
     tip1: 'Lower = more points. Grazing gives a bonus.',
     tip2: 'Boost doubles the score and burns fuel.',
     tip3: 'Too high = radar detects you.',
-    startPrompt: 'ANY KEY or TAP to take off',
+    startPrompt: 'TAKE OFF',
     selTitle: 'CHOOSE YOUR AIRCRAFT',
     selHint: '<  >  choose      ENTER / TAP  take off',
     modePrompt: 'CHOOSE GAME MODE',
@@ -1207,12 +1228,16 @@ export const STRINGS = {
     misClimaxNo: 'CORRIDOR ONLY',
     misLibreta: "PICHON'S NOTEBOOK  ·  {n}/{m} UPGRADES AT THIS POINT OF THE CAMPAIGN",
     misLibretaVacia: '(no upgrades: stock plane, classic barrel roll only)',
-    misHistOn: '[H]  STORY: YES  ·  flown with the mission script',
-    misHistOff: '[H]  STORY: NO  ·  straight to takeoff',
+    misModoLbl: '[H]',
+    misModo_juego: 'MISSION',
+    misModo_cine: 'CUTSCENES',
+    misModo_ambas: 'CUTSCENES + MISSION',
     modePasada: 'DEADLY RUNS', modePasadaDesc: 'On the deck, pop up, release and out',
     modeHint: 'arrows: choose   ENTER / TAP: confirm',
     portLabel: 'PORT', bargeDown: 'BARGE DESTROYED', reached: 'reached',
-    continuePrompt: 'ANY KEY or TAP to continue',
+    continuePrompt: 'CONTINUE',
+    nextPrompt: 'NEXT',
+    backPrompt: 'BACK',
     mom_title: 'M O M E N T U M', mom_hint: 'KEEP THE SIGHT ON THE ZONE AND FIRE [X]',
     mom_pass: 'PASS {n}/{m}', mom_clear: 'PASS COMPLETE!', mom_next: 'NEXT PASS >>',
     // ARENA: the flown 3D assault (three.js climax; without 3D the classic momentum runs)
@@ -1267,6 +1292,15 @@ export const STRINGS = {
     upgRitual: '"THAT CANNOT BE DONE."  ...  "SHOW ME."',
     upgRitualLib: '"...ALL RIGHT, KID. SHOW ME."',
     upgSub: 'CHOOSE ONE UPGRADE', upgSub1: 'YOUR FIRST UPGRADE', upgCombo: 'COMBO:',
+
+    // EL PODER RASANTE (tecla 6)
+    rasOn: 'RASANTE', rasOff: 'RASANTE — OVER', rasReady: '! RASANTE READY — [6] !',
+    rasante_call_1: 'Down on the water their radar cannot see you.',
+    rasante_call_2: 'Get down, {n}, get down!',
+    rasante_call_3: 'There he goes. Just as Pichon drew it.',
+    rasLeccion: 'A stone does not sink if it goes fast and hugs the water.',
+    ras_no_chancha: 'The basket is up there. Let go of the deck first.',
+    ras_no_cita: 'Not now, {n}: you are still plugged in.',
     upgHint1: 'ENTER / TAP: write it in the notebook',
     // Fin de mision. Los textos LARGOS del guion (storyM*/epiM*/briefM*) no estan traducidos
     // todavia: T() cae solo al español, asi que el juego funciona igual (campaña es-only por ahora).

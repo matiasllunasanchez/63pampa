@@ -20,6 +20,8 @@ export const PLACA_DE_CUADRO = {
   // --- prologo -------------------------------------------------------------------------
   INTRO_1: 'final_monte',       INTRO_2: 'cocina_gris',      INTRO_3: 'radio',
   INTRO_4: 'linea_amanecer',    P1_2: 'p1a_arroyo',          P2_3: 'p2_cocina',
+  // el sapito es su propio cuadro: hasta que exista, cae en la placa que ya se genero para el
+  P1_2B: 'p1b_sapito',
   P3_4: 'p3a_telefono',         P4_1: 'p1c_cuaderno',
   // --- misiones ------------------------------------------------------------------------
   M1_3: 'linea_amanecer',   M1_5B: 'm7_foto_frente',  M1_7: 'linea_atardecer',

@@ -2,7 +2,7 @@
 """
 install_retratos — saca los retratos de la caja de dialogo de una LAMINA de personaje.
 
-De donde salen los retratos: las laminas finales de docs/historia/characters_examples/final/
+De donde salen los retratos: las laminas finales de assets/source/retratos/
 YA TRAEN, abajo, una tira de cabezas con las expresiones del personaje, dibujadas en el estilo
 de la casa. Ese es el material bueno. Este script corta esa tira y deja cada cabeza en
 assets/portraits/<id>.png con el tamaño exacto que el motor dibuja.
