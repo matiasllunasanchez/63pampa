@@ -5,7 +5,7 @@
 // orquestador lo restaura antes de llamar aca).
 //
 // Lee el estado de vuelo de los stores (run, plane). Lo que es de MISION/menu (best, gameMode,
-// curLevel, objectiveDist, objectiveShip) vive en game.js y entra por parametro, igual que las
+// objectiveDist, objectiveShip, goalKind) vive en game.js y entra por parametro, igual que las
 // otras pantallas (render/screens.js, render/menus.js).
 
 import { ctx, px, DW as W, DH as H, PZ, U } from './ctx.js';
@@ -16,7 +16,6 @@ import { proj } from '../core/fx.js';
 import { scrapeLimit } from '../core/physics.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
-import { MISSIONS } from '../data/missions.js';
 import { MSL_MAX, RADAR_ALT } from '../data/tuning.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName } from '../systems/squad.js';
@@ -38,30 +37,74 @@ const OBJ_ASSETS = {
 };
 for (const k in OBJ_ASSETS) { const a = OBJ_ASSETS[k]; a.img.onload = () => { a.ready = true; }; if (a.src) a.img.src = a.src; }
 
-function drawHudAsset(a, x, y, kind, hpx) {
+// LOS DOS EXTREMOS DE LA RUTA, cada uno sobre SU PROPIA PLACA. Antes eran dos siluetas sueltas de
+// 8-9 px pintadas directo sobre el cielo: contra un amanecer naranja el buque (que va en `warn`,
+// tambien naranja) desaparecia, y agrandarlo para que se viera lo unico que lograba era que
+// compitiera con el blanco de verdad, que esta en el mundo unos pixeles mas abajo.
+//
+// Con placa se puede al reves: la silueta se achica a lo minimo que sigue siendo reconocible —un
+// casco y un mastil, un muelle y una grua— y el fondo oscuro hace el trabajo de separarla. Es el
+// mismo recurso que ya usa todo instrumento del HUD, asi que ademas empieza a hablar su idioma.
+const RUTA_R = 5;   // medio lado de la placa: 11x11, la mitad de lo que ocupaba el icono suelto
+
+function drawHudAsset(a, x, y, kind, hpx, sinPlaca) {
   if (a.ready && a.img.naturalWidth) {
     const h = hpx, w = Math.max(1, Math.round(h * a.img.naturalWidth / a.img.naturalHeight));
     ctx.drawImage(a.img, Math.round(x - w / 2), Math.round(y - h / 2), w, h);
     return;
   }
-  if (kind === 'port') { px(x - 2, y - 3, 4, 6, P.foam); px(x - 1, y - 5, 2, 2, P.dim); }
-  else if (kind === 'barge') { px(x - 3, y - 2, 7, 4, P.warn); px(x - 1, y - 4, 2, 2, P.warn); }
-  else { ctx.fillStyle = P.ink; ctx.beginPath(); ctx.moveTo(x + 3, y); ctx.lineTo(x - 3, y - 2.5); ctx.lineTo(x - 3, y + 2.5); ctx.closePath(); ctx.fill(); }
+  if (kind === 'plane') {   // el marcador que avanza: sin placa, es el que se MUEVE por la ruta
+    ctx.fillStyle = P.ink;
+    ctx.beginPath(); ctx.moveTo(x + 3, y); ctx.lineTo(x - 3, y - 2.5); ctx.lineTo(x - 3, y + 2.5); ctx.closePath(); ctx.fill();
+    return;
+  }
+  if (!sinPlaca) plate(x - RUTA_R, y - RUTA_R, RUTA_R * 2 + 1, RUTA_R * 2 + 1);
+  if (kind === 'port') {                       // MUELLE: la linea del cantil y la grua
+    px(x - 3, y + 1, 6, 1, P.foam);
+    px(x - 1, y - 2, 1, 3, P.dim);
+    px(x - 1, y - 2, 3, 1, P.dim);
+  } else {                                     // BUQUE: casco y mastil, y nada mas
+    px(x - 3, y, 7, 2, P.warn);
+    px(x, y - 3, 1, 3, P.warn);
+  }
 }
 
-export function drawObjectiveBar(objectiveDist, objectiveShip) {
+export function drawObjectiveBar(objectiveDist, objectiveShip, kind) {
   const cx = W / 2, half = Math.round(W * 0.15);          // 30% del ancho (máx), centrada
-  const x0 = cx - half, x1 = cx + half, y = 26;
+  const x0 = cx - half, x1 = cx + half;
   const prog = Math.max(0, Math.min(1, run.dist / objectiveDist));
-  // nombre de la barcaza objetivo, centrado arriba
-  ctx.font = '6px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.warn;
-  ctx.fillText(objectiveShip, cx, y - 7);
+  // EL NOMBRE, SOLO SI ES UN NOMBRE. Un objetivo de DISTANCIA se rotulaba «2400 m» aca arriba, y
+  // eso es el mismo dato que ahora dicen la cuenta regresiva de al lado del buque y el total del
+  // odometro: tres veces. Con un buque (HMS SHEFFIELD) el rotulo si aporta — es quien es el blanco.
+  const conNombre = kind !== 'distance';
+  // …Y TODO EL INSTRUMENTO SOBRE UNA SOLA PLACA. La ruta era lo unico del HUD dibujado directo
+  // sobre el cielo: los dos iconos tenian su placa y la linea entre ellos no, asi que se leia como
+  // dos botones sueltos unidos por nada. Con una placa pasa a ser un instrumento — y adentro los
+  // iconos ya no necesitan la suya.
+  // LA PLACA APOYA EN EL MARGEN, como todo lo demas del HUD. Estaba mas abajo para dejarle sitio al
+  // contador de mision, que ya no existe: una placa que flota a media banda porque ahi arriba habia
+  // otra cosa es una posicion heredada, no una decision.
+  const py = MARGEN;
+  const y = py + (conNombre ? 13 : 8);   // la ruta, adentro: con nombre baja lo que ocupa el nombre
+  plate(x0 - 9, py, (x1 - x0) + 18, y + 14 - py);
+  if (conNombre) {
+    ctx.font = '6px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.warn;
+    ctx.fillText(objectiveShip, cx, y - 6);
+  }
   // via PUNTEADA (pendiente) que se va rellenando continua (recorrido): lee como ruta de mapa
   for (let dx3 = 0; dx3 < x1 - x0; dx3 += 4) px(x0 + dx3, y, 2, 1, '#2e3c45');
   px(x0, y, Math.round((x1 - x0) * prog), 1, P.accent);
   // extremos: puerto (izq) y barcaza (der) — assets configurables o fallback
-  drawHudAsset(OBJ_ASSETS.port, x0, y, 'port', 8);
-  drawHudAsset(OBJ_ASSETS.barge, x1, y, 'barge', 9);
+  drawHudAsset(OBJ_ASSETS.port, x0, y, 'port', 9, true);
+  drawHudAsset(OBJ_ASSETS.barge, x1, y, 'barge', 9, true);
+  // LO QUE FALTA, pegado al buque y en el color del buque. Va abajo y chico a proposito: no es un
+  // titulo, es una cuenta regresiva — y puesta AHI, contra el icono, el numero se lee como «el
+  // blanco esta a tantos metros» y no como el nombre de algo. Restar en vez de sumar es la mitad
+  // del asunto: lo que importa no es cuanto llevas, es cuanto falta.
+  const falta = Math.max(0, Math.round(objectiveDist - run.dist));
+  ctx.font = '6px monospace'; ctx.textAlign = 'right';
+  ctx.fillStyle = falta <= 0 ? P.accent : P.warn;
+  ctx.fillText(falta + T('obj_m'), x1 + 7, y + 11);
   // marcador del avión avanzando por la línea (+ líneas de boost)
   const pm = x0 + (x1 - x0) * prog;
   if (run.boost) {
@@ -109,34 +152,24 @@ export function drawTakeoff(toT) {
   }
 }
 
-// PANEL DE ESTADO (v1 del panel de daños — roadmap #22): silueta del avion DE ESPALDAS (la misma
-// vista que el sprite en vuelo, asi no hay que traducir mentalmente que parte es cual) con cada
-// parte coloreada por un dato que YA EXISTE. No agrega vida ni sistemas nuevos: es lectura de un
-// vistazo de como viene el avion.
+// ESTADO DEL AVION, en un numero. Fue una SILUETA con cada parte coloreada por un dato (alas =
+// canon, motor = combustible, panza = roce) y el playtest la mando a barra de porcentaje: la
+// silueta ocupaba una placa de 28x26 para decir tres cosas que ya estaban dichas en barras a diez
+// pixeles, y la unica suya —el margen de roce— se leia como un color, no como un dato.
+//
+// EL NUMERO ES EL PEOR DE LOS TRES, que es lo que significa "como viene el avion": un avion con el
+// tanque lleno y el canon fundido no esta al 80%, esta fundido. Los tres siguen siendo datos que
+// YA EXISTEN — esto no agrega vida ni sistemas nuevos, sigue siendo lectura de un vistazo.
+//
 //   alas  → calor del canon      (run.heat / run.overheat)
 //   motor → combustible          (run.fuel)
-//   panza → margen de roce       (run.scrapeT contra su limite)
-// El margen de roce es el UNICO de los tres que hoy no se ve en ningun lado: al salir del roce
-// `scrapeT` se descuenta lento (SCRAPE_RECOVER), asi que la panza queda "castigada" y se recupera.
-function partCol(h) {
-  if (h > 0.6) return P.foam;                                  // sana
-  if (h > 0.3) return P.accent;                                // castigada
-  return Math.sin(run.t * 10) > 0 ? P.warn : '#7d2f1e';        // critica: parpadea
-}
-
-function drawStatusPanel(x, y) {
-  const cx = x + 11;
+//   panza → margen de roce       (run.scrapeT contra su limite) — el unico que no esta en otro lado
+function estadoVal() {
   const hWing = run.overheat ? 0 : 1 - run.heat;
   const hEngine = run.fuel / 100;
   const lim = scrapeLimit(run.spd, run.boost);
   const hBelly = lim > 0 ? 1 - Math.max(0, Math.min(1, run.scrapeT / lim)) : 1;
-  plate(x - 3, y - 8, 28, 26);
-  ctx.fillStyle = P.dim; ctx.font = '6px monospace'; ctx.textAlign = 'left';
-  ctx.fillText(T('hud_status'), x - 1, y - 2);
-  px(cx - 1, y, 2, 5, P.bodyDark);              // deriva (cola) — sin dato asociado
-  px(cx - 11, y + 7, 22, 3, partCol(hWing));    // ALAS  = canon (los caños van en las alas)
-  px(cx - 3, y + 5, 6, 8, partCol(hEngine));    // MOTOR = combustible
-  px(cx - 4, y + 13, 8, 2, partCol(hBelly));    // PANZA = roce (lo que toca el agua)
+  return Math.max(0, Math.min(1, Math.min(hWing, hEngine, hBelly)));
 }
 
 // ---------- KIT DE PIXEL ART DEL HUD ----------
@@ -168,31 +201,71 @@ function plate(x, y, w, h) {
 // HUD que se mueve solo y sin que hagas nada, y de ahi le viene el peso.
 const ODO_DEC = '#a2762f';   // el ambar del acento, apagado: misma familia, otro plano
 
-function drawOdo(x, y) {
+function drawOdo(x, y, totalM) {
   const km = Math.max(0, run.dist) / 1000;
   const ent = String(Math.floor(km)), dec = Math.floor((km - Math.floor(km)) * 10);
-  plate(x, y, 46, 12);
+  // …Y CONTRA QUE. Si la corrida tiene objetivo, el odometro deja de ser un contador abierto y pasa
+  // a ser una fraccion: `0.3 / 2.4 KM`, con el total en el color del blanco. En campaña la corrida
+  // nunca pasa de ese numero, asi que un contador que sube sin techo estaba midiendo contra nada —
+  // y de paso el kilometraje y el objetivo dejan de ser dos instrumentos que dicen lo mismo.
+  const tot = totalM > 0 ? (totalM / 1000).toFixed(1) : null;
+  plate(x, y, tot ? 62 : 46, 12);
+  // la linea de base sale de `y` y ya no esta clavada en 12: desde que el bloque de arriba a la
+  // izquierda se apila (escuadron primero, ver drawHUD) el odometro no siempre esta en la fila 1.
+  const ly = y + 9;
   ctx.textAlign = 'left';
   ctx.font = 'bold 9px monospace'; ctx.fillStyle = P.accent;
-  ctx.fillText(ent, x + 4, 12);
+  ctx.fillText(ent, x + 4, ly);
   const wEnt = ctx.measureText(ent).width;
   // la ventanita del tambor: un recuadro apenas mas oscuro que la placa, del alto del digito
   px(x + 3 + wEnt, y + 2, 10, 8, '#141b20');
   ctx.font = '7px monospace'; ctx.fillStyle = ODO_DEC;
-  ctx.fillText('.' + dec, x + 4 + wEnt, 12);
-  ctx.font = '6px monospace'; ctx.fillStyle = P.dim; ctx.textAlign = 'right';
-  ctx.fillText('KM', x + 43, 12);   // simbolo de unidad: es el mismo en los dos idiomas
+  ctx.fillText('.' + dec, x + 4 + wEnt, ly);
+  if (tot) {
+    ctx.font = '7px monospace'; ctx.fillStyle = P.warn;
+    ctx.fillText('/ ' + tot, x + 18 + wEnt, ly);
+  }
+  ctx.font = F_ROT; ctx.fillStyle = P.dim; ctx.textAlign = 'right';
+  ctx.fillText('KM', x + (tot ? 59 : 43), ly);   // simbolo de unidad: es el mismo en los dos idiomas
 }
 
-/** Barra con marco, bisel y muescas cada 25%. El relleno pierde el ultimo pixel del marco. */
+// EL RITMO DEL TABLERO. Un instrumento mide INSTR de alto (rotulo + barra, ver bar()) y entre uno y
+// otro va AIRE. Los 17 resultantes son el UNICO paso con que se apila cualquier cosa del HUD.
+//
+// Estuvo en 14 —o sea sin aire— porque 14 era justo lo que teselaba, y teselar era exactamente el
+// problema: las placas se TOCABAN y cada columna se leia como un bloque oscuro partido en franjas
+// en vez de como tres instrumentos separados (playtest 29/8, «estado y cañón están muy cerca»).
+// Tres pixeles alcanzan: a esta escala un pixel es un pixel, y la placa ya trae su propio borde.
+const AIRE = 3, INSTR = 14, FILA = INSTR + AIRE;
+// …y el MARGEN contra el borde del cuadro, que es el mismo para las cuatro esquinas. Estaba en 3
+// arriba a la izquierda, 4 abajo, 6 arriba a la derecha y 2 en el gas: cuatro numeros distintos
+// para la misma decision. Como `bar()` dibuja su placa en x-2, una barra que empieza en
+// MARGEN + 2 apoya su placa exactamente en el margen.
+const MARGEN = 4;
+// LA TIPOGRAFIA DEL TABLERO, en dos tamaños y no en uno. El ROTULO dice como se llama el
+// instrumento —se lee una vez y despues ya lo sabes de memoria— y el VALOR es lo que se mira todo
+// el tiempo. Estaban los dos en 6 px y el resultado era un tablero que gritaba los nombres tan
+// fuerte como los numeros (playtest 29/8: «mas chicos los textos»). Con el rotulo en 5 el ojo va
+// solo a lo que cambia. En la grilla de diseño 5 px caen en 15 reales (U 1.5 x SC 2 = 3 exacto),
+// asi que no hay medio pixel: el tipo sigue siendo duro.
+const F_ROT = '5px monospace', F_VAL = '6px monospace';
+
+/** Barra con marco, bisel y muescas cada 25%. El relleno pierde el ultimo pixel del marco.
+ *
+ *  LA PLACA INCLUYE EL ROTULO. Antes cubria solo la barra y el nombre quedaba escrito directo
+ *  sobre el mundo: en las esquinas de abajo eso funciona —el mar y la tierra son oscuros— pero
+ *  RASANTE y MOMENTUM se mudaron arriba a la derecha, contra el cielo del amanecer, y ahi el gris
+ *  del rotulo desaparecia. Un instrumento que solo se lee sobre fondo oscuro no es un instrumento.
+ *  Los 14 px de alto ademas TESELAN con el paso de 14 con que se apilan las barras: se tocan y no
+ *  se pisan. */
 function bar(x, y, w, val, c, label) {
-  plate(x - 2, y - 2, w + 4, 7);
+  plate(x - 2, y - 9, w + 4, INSTR);
   const fw = Math.round(w * Math.max(0, Math.min(1, val)));
   px(x, y, fw, 3, c);
   if (fw > 1) { ctx.globalAlpha = 0.4; px(x, y, fw, 1, '#f2f7fb'); ctx.globalAlpha = 1; }   // bisel
   ctx.fillStyle = '#0a0e11';                                  // muescas de escala
   for (let i = 1; i < 4; i++) ctx.fillRect(x + Math.round(w * i / 4), y, 1, 3);
-  ctx.fillStyle = P.dim; ctx.font = '6px monospace'; ctx.textAlign = 'left';
+  ctx.fillStyle = P.dim; ctx.font = F_ROT; ctx.textAlign = 'left';
   ctx.fillText(label, x, y - 4);
 }
 
@@ -208,7 +281,10 @@ function bar(x, y, w, val, c, label) {
 //
 // Va abajo a la IZQUIERDA, en espejo del panel de estado: las dos esquinas de abajo quedan siendo
 // instrumentos y el centro de la pantalla, que es donde se juega, sigue limpio.
-const ADI = { cx: 20, cy: 145, r: 10 };
+// …y CUADRADO CON EL RESTO: su placa (28x26 centrada en cx,cy) apoya a la izquierda en MARGEN y
+// deja AIRE contra la barra de combustible, que es la fila R1. No es simetria por simetria — un
+// tablero donde cada instrumento arranca en una columna distinta se lee como cosas apiladas.
+const ADI = { cx: MARGEN + 14, cy: 147, r: 10 };
 const ADI_SKY = '#3c6c8e', ADI_GND = '#6b4a2a', ADI_LINE = '#f2f7fb';
 
 function drawADI() {
@@ -243,53 +319,87 @@ function drawADI() {
 // Que el pip siga ahi, oscuro y cruzado, es lo que hace que una vida menos sea un companero
 // menos y no un numero menos. Al lado, el indicativo del piloto al mando (PATRIA n).
 // Lo comparte el HUD de vuelo y la sobreimpresion del relevo (render/squad.js).
+export const SQUAD_H = 17;   // alto de la placa: dos renglones (ver abajo)
+
 export function drawSquadPips(x, y) {
   const fallen = pilotIdx(run.squad, run.lives);
-  plate(x, y, run.squad * 8 + 6 + 38, 9);
+  const nombre = pilotName(fallen);
+  // DOS RENGLONES y no uno: el rotulo arriba y la formacion abajo. En una sola linea el nombre del
+  // piloto quedaba pegado al ultimo pip y se leia como un pip mas con letras. Ademas esto le da al
+  // bloque el ancho de una placa de instrumento y no el de una tira, que es lo que pasa a ser
+  // desde que vive en la esquina de arriba a la izquierda (playtest 29/8).
+  ctx.textAlign = 'left';
+  ctx.font = F_ROT;
+  const wRot = ctx.measureText(T('hud_squad')).width;
+  ctx.font = F_VAL;
+  const wFila = run.squad * 8 + 2 + ctx.measureText(nombre).width;
+  plate(x, y, Math.round(Math.max(wRot, wFila)) + 8, SQUAD_H);
+  ctx.fillStyle = P.dim; ctx.font = F_ROT;
+  ctx.fillText(T('hud_squad'), x + 4, y + 7);
   for (let i = 0; i < run.squad; i++) {
-    const bx = x + 3 + i * 8, by = y + 3;
+    const bx = x + 4 + i * 8, by = y + 10;
     const down = i < fallen;
     const c = down ? '#3a4750' : i === fallen ? P.accent : P.foam;   // el actual, en acento
     px(bx, by + 1, 7, 1, c);                                         // alas
     px(bx + 3, by, 1, 3, c);                                         // fuselaje
     if (down) { px(bx + 1, by, 1, 1, P.warn); px(bx + 3, by + 1, 1, 1, P.warn); px(bx + 5, by + 2, 1, 1, P.warn); }
   }
-  ctx.fillStyle = P.dim; ctx.font = '6px monospace'; ctx.textAlign = 'left';
-  ctx.fillText(pilotName(fallen), x + 6 + run.squad * 8, y + 7);
+  // EL NOMBRE DEL QUE VUELA, EN ACENTO. Estaba en `dim` —el gris de los rotulos— y ahi el piloto
+  // era una etiqueta mas. Es la unica persona que hay en el HUD: va del color del que manda.
+  ctx.fillStyle = P.accent; ctx.font = F_VAL;
+  ctx.fillText(nombre, x + 6 + run.squad * 8, y + 15);
 }
 
 export function drawHUD(h) {
-      const { best, gameMode, curLevel, objectiveDist, objectiveShip } = h;
+      const { best, gameMode, objectiveDist, objectiveShip } = h;
   // EL PODER RASANTE llega POR SNAPSHOT y no por import, a diferencia de sus dos hermanos: el
   // lint de capas prohibe que `render` importe de `systems`, y las dos violaciones que ya existen
   // (tempo y chancha) estan en la lista de trinquete, que solo puede achicarse. La convencion 4
   // dice justamente esto — el dibujo LEE lo que el orquestador le pasa, no va a buscarlo.
   const ras = h.ras || { on: false, meter: 0, resta: 0, dur: 12 };
-  // PUNTAJE: placa de contador con los ceros a la izquierda apagados — lee como marcador arcade
-  plate(3, 3, 44, 12);
-  ctx.font = '8px monospace'; ctx.textAlign = 'left';
-  const digits = String(Math.floor(run.score)).padStart(6, '0');
-  const lead = digits.search(/[1-9]/);                        // hasta aca son ceros de relleno
-  for (let i = 0; i < digits.length; i++) {
-    ctx.fillStyle = (lead === -1 || i < lead) ? '#3a4750' : P.ink;
-    ctx.fillText(digits[i], 6 + i * 6, 12);
+  // ---- LA ESQUINA DE LA CORRIDA (arriba a la izquierda), apilada de arriba abajo ----------------
+  // QUIEN VUELA MANDA. El escuadron pasa a encabezar el bloque y el puntaje se va: en CAMPAÑA los
+  // puntos se cobran en el recuento, asi que un contador de arcade corriendo en pantalla no decide
+  // nada — y estaba ocupando la esquina donde uno mira primero (playtest 29/8). Los kilometros se
+  // quedan: son lo unico que dice cuanto llevas cuando la mision no tiene barra de objetivo.
+  const campana = gameMode === 'campaign';
+  let ty = 3;
+  // vidas del escuadron. Con 1 avion no se dibuja: seria un tablero de nada
+  if (run.squad > 1) { drawSquadPips(MARGEN, ty); ty += SQUAD_H + AIRE; }
+  let tx = MARGEN;
+  if (!campana) {
+    // PUNTAJE: placa de contador con los ceros a la izquierda apagados — lee como marcador arcade.
+    // Sobrevive en JUEGO RAPIDO, que es el modo donde el puntaje ES el juego.
+    plate(tx, ty, 44, 12);
+    ctx.font = '8px monospace'; ctx.textAlign = 'left';
+    const digits = String(Math.floor(run.score)).padStart(6, '0');
+    const lead = digits.search(/[1-9]/);                      // hasta aca son ceros de relleno
+    for (let i = 0; i < digits.length; i++) {
+      ctx.fillStyle = (lead === -1 || i < lead) ? '#3a4750' : P.ink;
+      ctx.fillText(digits[i], tx + 3 + i * 6, ty + 9);
+    }
+    tx += 48;
   }
-  drawOdo(51, 3);   // los kilometros, al lado del puntaje y con otra voz (ver drawOdo)
-  ctx.textAlign = 'right'; ctx.fillStyle = P.dim; ctx.font = '7px monospace';
-  ctx.fillText(T('hud_best', { n: best }), W - 16, 12);   // corrido a la izq para no chocar el ícono de sonido
-
-  // vidas del escuadron, bajo el puntaje. Con 1 avion no se dibuja: seria un tablero de nada
-  if (run.squad > 1) drawSquadPips(3, 17);
-
-  // modo campaña: PROGRESO de la campaña arriba al centro. No repite el nombre del blanco —
-  // de eso ya se ocupa la barra de objetivo, justo abajo.
-  if (gameMode === 'campaign') {
-    ctx.textAlign = 'center'; ctx.font = 'bold 8px monospace'; ctx.fillStyle = P.accent;
-    ctx.fillText(T('hud_mission', { n: curLevel + 1, m: MISSIONS.length }), W / 2, 12);
+  drawOdo(tx, ty, objectiveDist);   // los kilometros, al lado del puntaje y con otra voz (ver drawOdo)
+  if (!campana) {
+    // EL RECORD, en el mismo bloque que el puntaje contra el que se compara — y NO en campaña, donde
+    // un maximo historico global no significa nada (cada mision tiene su recuento). De paso deja de
+    // pelearse la esquina derecha con el boton de sonido y el reproductor, que son HTML.
+    // …y en SU RENGLON: al lado del odometro caia sobre la ruta del objetivo, que arranca en x=112.
+    ctx.textAlign = 'left'; ctx.font = '7px monospace';
+    const bTxt = T('hud_best', { n: best });
+    plate(MARGEN, ty + 12 + AIRE, Math.round(ctx.measureText(bTxt).width) + 6, 11);
+    ctx.fillStyle = P.dim;
+    ctx.fillText(bTxt, MARGEN + 3, ty + 23);
   }
+
+  // EL CONTADOR DE MISION SE FUE (playtest 29/8). «MISION 3/14» arriba del todo era lo unico del
+  // HUD que hablaba del MENU y no del vuelo: en que numero de la campaña estas no cambia nada de lo
+  // que haces en los proximos diez segundos, y lo dice el briefing antes de despegar. Encima ocupaba
+  // el renglon mas visible de la pantalla, que ahora se lo queda la ruta.
 
   // barra de misión puerto→barcaza (modos con objetivo: ciclo de muerte y campaña)
-  if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip);
+  if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind);
 
   // AVISO DE ROCE "! SUBI !" — es un ESTADO persistente (estás rozando la superficie), no un
   // evento, asi que vive en el HUD fijo arriba del velocimetro y parpadea como el resto de los
@@ -414,41 +524,59 @@ export function drawHUD(h) {
     ctx.globalAlpha = 1;
   }
 
-  // panel de estado del avion — abajo a la derecha, en la misma columna que el gas y el canon:
-  // queda debajo de la palanca (termina en y=119) y arriba del rotulo del canon (y=169)
-  drawStatusPanel(287, 140);
-  // horizonte artificial, en la esquina de enfrente y a la misma altura que el panel de estado
+  // horizonte artificial, en la esquina de abajo a la izquierda
   drawADI();
 
-  bar(6, H - 8, 60, run.fuel / 100, run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam, T('bar_fuel'));
+  // LAS TRES FILAS del tablero de abajo, medidas desde el borde y con el mismo paso en las dos
+  // columnas: lo que hace que el HUD se lea como un tablero y no como cosas puestas donde entraban.
+  const R1 = H - 8, R2 = R1 - FILA, R3 = R2 - FILA;
+
+  // ---- COLUMNA IZQUIERDA: EL AVION (lo que se gasta volando) -----------------------------------
+  bar(6, R1, 60, run.fuel / 100, run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam, T('bar_fuel'));
   // INTEGRIDAD DEL AVION: solo cuando el modelo de vida la usa (en ESCUADRON no existe — la
   // barra de vida es el escuadron y una barra siempre llena seria una mentira ocupando lugar).
   if (dmgShown()) {
     const iv = run.integ / 100;
-    bar(6, H - 22, 60, iv, iv <= 0.25 ? (Math.sin(run.t * 10) > 0 ? '#ff5340' : P.warn) : iv <= 0.5 ? P.warn : P.foam, T('dmg_bar'));
+    bar(ADI.cx + 14 + AIRE + 2, R2, 44, iv, iv <= 0.25 ? (Math.sin(run.t * 10) > 0 ? '#ff5340' : P.warn) : iv <= 0.5 ? P.warn : P.foam, T('dmg_bar'));
   }
-  bar(W - 66, H - 8, 60, run.heat, run.overheat ? P.warn : P.accent, run.overheat ? T('bar_overheat') : T('bar_cannon'));
-  // MOMENTUM (tecla 4): la barra del especial, a la derecha del ADI. Se carga con puntos;
-  // LLENA parpadea despacio (esta lista para lanzar) y LANZADA parpadea rapido (se gasta).
-  const tv = tempoMeter();
-  bar(38, H - 22, 44, tv, tempoActive() ? (Math.sin(run.t * 14) > 0 ? P.accent : P.foam)
-    : tv >= 1 ? (Math.sin(run.t * 7) > 0 ? P.accent : P.crest) : P.crest, T('bar_tempo'));
 
-  // EL PODER RASANTE (tecla 6): la tercera barra de la familia, encima de las otras dos y con su
-  // propio color. Mismo lenguaje visual — son tres poderes hermanos y hay que poder distinguirlos
-  // de un vistazo sin leer el rotulo.
+  // ---- COLUMNA DERECHA: EL ARMA, apilada -------------------------------------------------------
+  // ESTADO arriba (como viene el avion), CAÑON en el medio y MISILES abajo, DEBAJO del canon y no
+  // al lado de la nafta: los misiles son armamento, no consumo de vuelo, y tenerlos en la esquina
+  // opuesta a su barra obligaba a cruzar la pantalla para leer "con que puedo tirar".
+  const ev = estadoVal();
+  bar(254, R3, 60, ev, ev <= 0.25 ? (Math.sin(run.t * 10) > 0 ? P.warn : '#7d2f1e') : ev <= 0.5 ? P.accent : P.foam, T('hud_status'));
+  // …y su NUMERO, al final del rotulo. Una barra dice "poco"; el porcentaje dice cuanto, que es lo
+  // que hace falta para decidir si volves o seguis.
+  ctx.textAlign = 'right'; ctx.font = F_ROT;
+  ctx.fillStyle = ev <= 0.25 ? P.warn : P.dim;
+  ctx.fillText(Math.round(ev * 100) + '%', 314, R3 - 4);
+  bar(254, R2, 60, run.heat, run.overheat ? P.warn : P.accent, run.overheat ? T('bar_overheat') : T('bar_cannon'));
+
+  // ---- ARRIBA A LA DERECHA: LOS PODERES DE RACHA ------------------------------------------------
+  // RASANTE y MOMENTUM se mudan a la esquina que quedo libre al sacar MEJOR. Los dos se GANAN
+  // volando —no se gastan como la nafta— asi que no son del bloque del avion: son del bloque de la
+  // corrida, y estando arriba se leen de reojo sin bajar la vista del horizonte.
+  // Arrancan en y=22 y no mas arriba porque los primeros 12 px de esa esquina son del boton de
+  // sonido, que es HTML y esta encima del canvas (ver index.html).
   //
   // ACTIVA MUESTRA EL RELOJ, no la barra: mientras dura, lo unico que importa saber es cuanto
   // queda. La barra vuelve a ser barra recien cuando el poder se apaga y empieza a ganarse otra
   // vez — que es cuando de nuevo importa cuanto falta.
-  bar(38, H - 50, 44, ras.on ? ras.resta / ras.dur : ras.meter,
+  const P1 = 24, P2 = P1 + FILA;
+  bar(W - MARGEN - 46, P1, 44, ras.on ? ras.resta / ras.dur : ras.meter,
     ras.on ? (Math.sin(run.t * 10) > 0 ? P.accent : P.canopy)
       : ras.meter >= 1 ? (Math.sin(run.t * 7) > 0 ? P.accent : P.canopy) : P.canopy, T('bar_rasante'));
   if (ras.on) {
-    ctx.textAlign = 'left'; ctx.font = '6px monospace';
+    ctx.textAlign = 'right'; ctx.font = F_ROT;
     ctx.fillStyle = P.accent;
-    ctx.fillText(Math.ceil(ras.resta) + 's', 86, H - 47);
+    ctx.fillText(Math.ceil(ras.resta) + 's', W - MARGEN - 50, P1 + 5);
   }
+  // MOMENTUM (tecla 4): se carga con puntos; LLENA parpadea despacio (esta lista para lanzar) y
+  // LANZADA parpadea rapido (se gasta).
+  const tv = tempoMeter();
+  bar(W - MARGEN - 46, P2, 44, tv, tempoActive() ? (Math.sin(run.t * 14) > 0 ? P.accent : P.foam)
+    : tv >= 1 ? (Math.sin(run.t * 7) > 0 ? P.accent : P.crest) : P.crest, T('bar_tempo'));
 
   // LA CHANCHA (tecla 5): la barra del hermano caro, JUSTO ENCIMA del MOMENTUM. Mismo lenguaje
   // visual y otro color a proposito — son dos poderes de la misma familia y hay que poder
@@ -459,26 +587,29 @@ export function drawHUD(h) {
   if (cfg.fuelOn) {
     const cv2 = chMeter();
     const ch = chSnap();
-    bar(38, H - 36, 44, chGastada() ? 0 : cv2,
+    bar(ADI.cx + 14 + AIRE + 2, R3, 44, chGastada() ? 0 : cv2,
       chGastada() ? P.dim : cv2 >= 1 ? (Math.sin(run.t * 7) > 0 ? P.foam : P.crest) : P.crest, T('bar_chancha'));
     // EL ESTADO DE LA CITA, en el mismo renglon: la cuenta regresiva mientras viene, y el reloj
     // de la ventana cuando esta arriba (parpadea enganchado). Sin esto, la ventana se vence sin
     // que el jugador sepa nunca que habia una.
     if (ch) {
-      ctx.textAlign = 'left'; ctx.font = '6px monospace';
+      ctx.textAlign = 'left'; ctx.font = F_ROT;
       ctx.fillStyle = ch.conn ? P.accent : ch.fase === 'cita' && ch.win < 8 ? P.warn : P.foam;
       ctx.fillText(ch.fase === 'eta' ? T('ch_eta', { s: Math.ceil(ch.eta) })
         : ch.conn ? '>>> ' + Math.round(run.fuel) + '%'
-          : Math.ceil(Math.max(0, ch.win)) + 's', 86, H - 33);
+          : Math.ceil(Math.max(0, ch.win)) + 's', 86, R3 + 3);
     }
   }
 
   // municion de misiles: cada pip es el MISIL en miniatura (cuerpo blanco, ojiva gris, llama),
   // el mismo que se ve volar — no un rectangulo generico. Vacio = solo el contorno.
-  ctx.textAlign = 'left'; ctx.font = '6px monospace'; ctx.fillStyle = P.dim;
-  ctx.fillText('MISIL', 72, H - 11);
+  // MISIL usa la MISMA convencion que bar(): placa en y-9, rotulo en y-4 y el contenido en y. Es
+  // lo que lo deja caer exactamente en la fila R1, alineado con el combustible del otro lado.
+  plate(252, R1 - 9, 64, INSTR);
+  ctx.textAlign = 'left'; ctx.font = F_ROT; ctx.fillStyle = P.dim;
+  ctx.fillText('MISIL', 254, R1 - 4);
   for (let i = 0; i < MSL_MAX; i++) {
-    const on = i < run.msl, bx = 72 + i * 9, by = H - 8;
+    const on = i < run.msl, bx = 254 + i * 9, by = R1;
     if (on) {
       px(bx + 1, by, 5, 2, '#e9edf0');                        // cuerpo blanco
       px(bx + 6, by, 1, 2, '#9aa3ab');                        // ojiva gris
@@ -492,18 +623,26 @@ export function drawHUD(h) {
   }
 
   // palanca de gas (throttle) — vertical, borde derecho
-  const tx = W - 9, tyTop = 46, tyBot = 118, tH = tyBot - tyTop;
-  plate(tx - 3, tyTop - 3, 10, tH + 6);
+  const gx = W - MARGEN - 7, tyTop = P2 + 9 + AIRE + 11, tyBot = 118, tH = tyBot - tyTop;
+  plate(gx - 3, tyTop - 3, 10, tH + 6);
   ctx.fillStyle = P.dim;                                     // marcas de la corredera
-  for (let i = 0; i <= 4; i++) ctx.fillRect(tx - 2, Math.round(tyBot - tH * (i / 4)), 2, 1);
+  for (let i = 0; i <= 4; i++) ctx.fillRect(gx - 2, Math.round(tyBot - tH * (i / 4)), 2, 1);
   const fillH = Math.round(tH * Math.max(0, Math.min(1, run.throttle)));
   const tcol = run.fuel <= 0 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim)
     : run.throttle > 0.66 ? P.foam : run.throttle > 0.15 ? P.accent : P.bodyDark;
-  px(tx, tyBot - fillH, 4, fillH, tcol);                     // relleno desde abajo
-  if (fillH > 1) { ctx.globalAlpha = 0.35; px(tx, tyBot - fillH, 1, fillH, '#f2f7fb'); ctx.globalAlpha = 1; }
-  px(tx - 2, tyBot - fillH - 1, 8, 2, P.ink);                // perilla de la palanca
-  px(tx - 2, tyBot - fillH - 1, 8, 1, '#f2f7fb');            // canto superior de la perilla
-  ctx.fillStyle = P.dim; ctx.font = '6px monospace'; ctx.textAlign = 'right';
-  ctx.fillText(run.fuel <= 0 ? T('thr_dead') : T('thr'), W - 4, tyTop - 4);
+  px(gx, tyBot - fillH, 4, fillH, tcol);                     // relleno desde abajo
+  if (fillH > 1) { ctx.globalAlpha = 0.35; px(gx, tyBot - fillH, 1, fillH, '#f2f7fb'); ctx.globalAlpha = 1; }
+  px(gx - 2, tyBot - fillH - 1, 8, 2, P.ink);                // perilla de la palanca
+  px(gx - 2, tyBot - fillH - 1, 8, 1, '#f2f7fb');            // canto superior de la perilla
+  // EL ROTULO DEL GAS, sobre placa (vive contra el cielo) y CON EL BORDE DERECHO DE LA PALANCA. La
+  // placa del rotulo es mas ancha que la corredera —la palabra mide mas que 10 px— asi que si no
+  // comparten un borde se leen como dos cosas puestas ahi cerca. Compartiendo el derecho, que es el
+  // mismo de ESTADO / CAÑON / MISIL, la columna entera queda a plomo.
+  ctx.font = F_ROT; ctx.textAlign = 'right';
+  const thrTxt = run.fuel <= 0 ? T('thr_dead') : T('thr');
+  const thrW = Math.round(ctx.measureText(thrTxt).width) + 6;
+  plate(W - MARGEN - thrW, tyTop - 11, thrW, 9);
+  ctx.fillStyle = run.fuel <= 0 ? P.warn : P.dim;
+  ctx.fillText(thrTxt, W - MARGEN - 3, tyTop - 4);
 }
 

@@ -1,10 +1,5 @@
 # RASANTE — Las hojas de rostros, una por personaje
 
-> ✅ **Este archivo SIGUE VIGENTE** para las *hojas de rostros completas* (seis celdas por
-> personaje, misma grilla). `PROMPTS_AIRE_LISTOS.md` trae solo los retratos sueltos que piden
-> las escenas del prólogo y M1–M3; para generar la hoja entera de un personaje, es acá.
-
-
 **Ocho hojas, una por personaje, todas con la MISMA GRILLA: seis celdas cuadradas en fila, misma
 escala de cabeza, misma altura de ojos.** Eso es lo que hace que la familia se lea como familia —
 los retratos se alternan en la misma caja de diálogo, y si en uno la cabeza es más grande, al
@@ -30,12 +25,6 @@ celda, contenido distinto.
 | 4 | **ceño** | enojo, dureza |
 | 5 | **roto** | dolor, el quiebre |
 | 6 | **la propia** | Tero con casco · la duda de Puma · la risa que se apaga del Gitano · el rezo del Vasco · los auriculares del Pichón · el orgullo del Turco · el frío de Mateo · el Colorado ofreciendo |
-
-> 📁 **Dos carpetas, y no son lo mismo.** `docs/historia/characters_examples/final/` son las
-> **láminas de personaje**: material de referencia que se adjunta al prompt (IMAGE 1 e IMAGE 2) y
-> vive con la documentación. `assets/source/retratos/` son las **hojas generadas** que salen de
-> estos prompts; de ahí las corta `install_retratos.py` y deja los 108×108 en `assets/portraits/`,
-> que es lo único que el juego empaqueta.
 
 ## Cómo se usa
 
@@ -1227,6 +1216,127 @@ python3 tools/install_retratos.py <la-hoja-generada>.png --anclaje pad condor_re
 > Y en la celda 2, el borde de la silueta apenas iluminado. **La radio es la opción
 > mejor**: una silueta humana invita a preguntarse quién es, y el punto de Cóndor es
 > que no importa.
+
+---
+
+# Retratos DERIVADOS — sacar uno nuevo de los que ya existen
+
+A veces una escena pide una cara que no está en las seis celdas: alguien saludando, alguien con el
+casco puesto, una mano en el cuadro. **No hace falta rehacer la hoja entera** — se deriva del
+retrato que ya existe, y así el nuevo nace con la misma cara, el mismo trazo y el mismo fondo que
+sus hermanos.
+
+## Lo que sale mal, y cómo se evita
+
+**El generador re-encuadra.** Pedirle «que la cabeza quede igual que en IMAGE 1» no alcanza: lo
+acepta y hace zoom igual. Y los retratos se alternan en la misma caja de diálogo, así que si en uno
+la cabeza es más grande, al cambiar de hablante el busto **salta**.
+
+**La solución es darle números, no comparaciones.** Medidos sobre los retratos que ya existen
+(108 × 108 px):
+
+| | |
+|---|---|
+| **alto de la cabeza** *(pelo a mentón)* | **69 % del alto del cuadro** |
+| ancho de la cabeza | 74 % del ancho |
+| el pelo empieza a | 6 % desde arriba |
+| los hombros entran a | 75 % desde arriba |
+
+Un porcentaje se verifica de un vistazo; «igual que la otra imagen» no.
+
+**Y si un gesto no entra a ese tamaño, se corta.** Nunca se aleja la cámara: la cabeza se queda
+donde está y lo que sobra sale del cuadro. Es lo que hacen las novelas visuales desde siempre —
+un gesto se reconoce por la silueta, no por verlo entero.
+
+## El prompt patrón
+
+```
+[BLOQUE DE ESTILO]
+
+IMAGE 1 is an existing portrait of this exact character. Copy his face, his hair,
+his skin tone, his clothing, his patches, his line work, his shading and his flat
+mid-grey background EXACTLY.
+
+THE FRAMING IS FIXED AND IT IS NOT NEGOTIABLE. In the square cell:
+  - the head, from the top of the hair to the chin, is 69% of the cell height
+  - the top of the hair sits 6% down from the top edge
+  - the shoulders enter at 75% down
+Do NOT zoom in. Do NOT zoom out. Do NOT re-frame. If something does not fit inside
+the cell at that head size, let it be CUT OFF by the edge of the cell.
+
+CHANGE ONLY: {QUE CAMBIA}
+
+ONE cell, exactly square, flat mid-grey background, same as IMAGE 1.
+
+[LOS TRES CANDADOS]
+```
+
+---
+
+## Listo para pegar: `gitano_saludo` — serio, saludando
+
+**Adjuntar:** `assets/portraits/gitano_ceno.png` *(su cara seria: la cara en blanco, sin rastro de
+la sonrisa. Es la base correcta — el saludo no se hace riéndose)*
+
+```
+Detailed 90s arcade run-and-gun pixel art in the style of Metal Slug (SNK Neo Geo
+era), hand-drawn sprite look, chunky black pixel outlines, expressive exaggerated
+character poses and faces, rich dithered shading, saturated military palette of
+olive drab, steel blue-grey, silver and warm sand with a single red accent when
+noted, dramatic cinematic side-scroller composition, crisp clean pixels, no
+anti-aliasing, no photorealism, no 3D render, no smooth digital painting.
+
+IMAGE 1 is an existing portrait of this exact character. Copy his face, his curly
+black hair, his olive-bronze skin, his olive flight suit with its shoulder patch and
+chest patches, his line work, his shading and his flat mid-grey background EXACTLY.
+
+THE FRAMING IS FIXED AND IT IS NOT NEGOTIABLE. In the square cell:
+  - his head, from the top of the hair to the chin, is 69% of the cell height
+  - the top of his hair sits 6% down from the top edge
+  - his shoulders enter at 75% down, and his chest fills the bottom quarter
+Do NOT zoom in. Do NOT zoom out. Do NOT re-frame. His head must come out the SAME
+SIZE as in IMAGE 1 - if the arm does not fit at that size, let it be CUT OFF by the
+edge of the cell.
+
+CHANGE ONLY - he is giving a military salute:
+  - his RIGHT hand is raised to his brow, fingers straight and held together,
+    thumb tucked, palm angled slightly down and forward, fingertips just touching
+    the outer edge of his eyebrow
+  - the forearm comes up from the lower right of the cell, elbow out to the side
+    and OUTSIDE the frame - only the hand and part of the forearm are visible
+  - his head stays straight, chin level, looking directly at the camera
+  - his expression is the serious one of IMAGE 1: level eyebrows, mouth closed and
+    flat, eyes steady. No trace of a smile anywhere. He is not sad and he is not
+    angry - he is formal, which on this man is unusual and should read as such.
+
+ONE cell, exactly square, flat mid-grey background, same grey as IMAGE 1.
+
+PERIOD LOCK - Argentina 1982: no modern military equipment, no digital or woodland
+camouflage, no nylon webbing, no NATO or US insignia, no invented unit patches, no
+name tapes.
+
+ABSOLUTELY NO TEXT anywhere: no letters, no labels, no cell numbers, no captions
+under the faces, no watermark, no signature. The cells are unlabelled.
+```
+
+**Guardar como:** `assets/portraits/gitano_saludo.png` *(cortar con `--anclaje pad`)*
+
+**Correcciones**, en orden de probabilidad:
+
+| Si pasa | Pegarle esto |
+|---|---|
+| la cabeza sale más grande *(lo más común)* | `The head is too big. Redraw it so the head from hair to chin is exactly 69% of the cell height, with the hair starting 6% down and the shoulders entering at 75% down. Let the arm be cut off by the edge instead of shrinking him.` |
+| la mano queda flotando o lejos de la cara | `The fingertips must touch the outer end of his eyebrow. The hand rests against the brow, it does not float beside the head.` |
+| se le escapa una sonrisa | `No smile. Keep the completely straight face of IMAGE 1: level eyebrows, closed flat mouth, steady eyes.` |
+| entra el codo / se aleja | `The elbow is outside the frame. Only the hand and part of the forearm are visible, entering from the lower right edge.` |
+
+> **Nota de época, por si querés cambiarlo:** en la mayoría de los ejércitos no se saluda «sin
+> cubrir» —sin gorra ni casco—. Acá está bien igual: es un piloto en la línea de vuelo, no una
+> formación, y el saludo informal entre compañeros existe. Si preferís que sea reglamentario,
+> agregá al prompt `wearing his white flight helmet, visor up` y usá `gitano_ceno` igual de base.
+
+> **Sobre el tamaño del archivo:** que salga enorme no importa. `install_retratos.py` lo lleva a
+> 108 × 108 y lo deja en `assets/portraits/`. Lo que importa es el ENCUADRE, no los píxeles.
 
 ---
 

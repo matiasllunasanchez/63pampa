@@ -148,6 +148,7 @@ Todo lo que es "datos del juego" y no cambia en runtime. Ningún archivo de acá
 | `planes.js` | aviones seleccionables + sprite sheets horneados |
 | `sfx.js` | tabla de efectos de sonido |
 | `tuning.js` | **las perillas**: constantes de ajuste (zona de vuelo, momentum, pirueta) |
+| `moves.js` | **el catálogo de PIRUETAS** (`dur`, `steer`, `fire`, `turbo`, `tight`, `drift`) + la gramática de los combos escrita en prosa arriba, y `WINGMV`: las perillas de las **piruetas de actor** (dónde nace un Fiel, cuánto tarda en entrar y en irse, su tope de vida). Ver [PLAN_MANIOBRAS_FASES.md](sistemas/PLAN_MANIOBRAS_FASES.md) |
 | `cines.js` | **las CINEMÁTICAS declaradas**: una lista de beats `{ t, ...verbos }` por escena, que interpreta `systems/cine.js`, más el `titulo`/`desc`/`ver` con que cada una se muestra en el menú **CINEMÁTICAS** (el catálogo se deriva de acá: una timeline nueva aparece sola). Hoy: el premio del PULSO. Ver [PLAN_DIRECTOR_CINEMATICAS.md](sistemas/PLAN_DIRECTOR_CINEMATICAS.md) |
 | `pruebas.js` | **el catálogo del MODO PRUEBAS**: un MOMENTO por entrada (`{ id, titulo, desc, setup }`). `setup` recibe la api de verbos que arma `game.js` y solo llama a la capa de sondas — nunca tiene lógica de juego. Ver [COMO_PROBAR.md](proyecto/COMO_PROBAR.md) §4 |
 

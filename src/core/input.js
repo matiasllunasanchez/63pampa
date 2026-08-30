@@ -236,6 +236,21 @@ export function initInput(cv, a) {
       if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
       return;
     }
+    if (S.state === 'maniobras') {                                       // catalogo de MANIOBRAS
+      if (isUp(e.code)) { a.mvNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code)) { a.mvNav(1); e.preventDefault(); return; }
+      if (isConfirm(e.code)) { a.mvConfirm(); e.preventDefault(); return; }
+      if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
+      return;
+    }
+    if (S.state === 'mvvars') {                                          // sus tres presentaciones
+      if (isUp(e.code)) { a.mvVarNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code)) { a.mvVarNav(1); e.preventDefault(); return; }
+      if (isConfirm(e.code)) { a.mvVarConfirm(); e.preventDefault(); return; }
+      // ESC vuelve UN nivel (a la lista de maniobras), no al menu principal: es un submenu.
+      if (isBack(e.code)) { a.mvBack(); e.preventDefault(); return; }
+      return;
+    }
     if (S.state === 'misiones') {                                        // SELECTOR DE MISIONES
       if (isUp(e.code)) { a.misNav(-1); e.preventDefault(); return; }
       if (isDown(e.code)) { a.misNav(1); e.preventDefault(); return; }
@@ -567,6 +582,16 @@ export function initInput(cv, a) {
         if (nd && !nav.d) a.cinNav(1);
         if (confirm) a.cinConfirm();
         if (hit(1)) a.escToMenu();                             // B = volver al selector de modos
+      } else if (S.state === 'maniobras') {
+        if (nu && !nav.u) a.mvNav(-1);
+        if (nd && !nav.d) a.mvNav(1);
+        if (confirm) a.mvConfirm();
+        if (hit(1)) a.escToMenu();                             // B = volver al selector de modos
+      } else if (S.state === 'mvvars') {
+        if (nu && !nav.u) a.mvVarNav(-1);
+        if (nd && !nav.d) a.mvVarNav(1);
+        if (confirm) a.mvVarConfirm();
+        if (hit(1)) a.mvBack();                                // B = volver a la lista de maniobras
       } else if (S.state === 'misiones') {
         if (nu && !nav.u) a.misNav(-1);
         if (nd && !nav.d) a.misNav(1);

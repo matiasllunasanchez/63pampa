@@ -48,6 +48,10 @@ export const cfg = {
   // data/palette.js). Es el default porque en campaña la mision ya decide el cielo, y con el agua
   // clavada en 'sea' un temporal se jugaba sobre el mar celeste del atardecer. Elegir a mano pisa.
   sky: 'dusk', water: 'auto', terrain: 'sea', wind: true,
+  // COMO SE VE LA RADIO EN VUELO (SPEC_CHARLAS_VUELO §0b): 'toast' = una linea que entra y se va ·
+  // 'panel' = las ultimas cuatro, como un chat. Las dos viven en la MISMA banda libre y ninguna
+  // toca la UI: lo que cambia es si lo dicho se puede releer.
+  radioUI: 'toast',
   // fuelOn ARRANCA APAGADO (tanque infinito) por decision de diseño de julio 2026: el reloj de
   // combustible queda en pausa hasta rebalancearlo (la ruta optima de bidones es ROADMAP #28).
   // Encenderlo sigue siendo una fila del menu [M]; las misiones no lo pisan (CAMPAIGN_CFG no

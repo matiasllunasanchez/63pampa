@@ -57,26 +57,46 @@ app.whenReady().then(async () => {
       await sleep(50);
     }
     while ((await dbg()).seqT < 0.45) await sleep(50);   // la gracia anti-salteo del arranque
-    let d = await dbg(), n = 0, escritas = 0;
-    const titulo = d.titulo;
-    for (; n < 40; n++) {
-      const linea = d.line;
-      await tap();                                       // completar el tipeo de golpe
-      d = await dbg();
-      if (d.line === linea) {
-        // sigue en la misma linea: se completo. LA CARTA SE ESCRIBIO ENTERA (punto 2).
-        if (d.typed !== d.len) mal(`${id} · ${d.id}: quedaron ${d.len - d.typed} caracteres sin escribir`);
-        if (d.tipo === 'TIERRA') { escritas++; caracteres += d.len; }
-        while (d.holdLeft > 0) { await sleep(80); d = await dbg(); }
-        if (OUT && escritas === 1) {
-          const url = await js("document.getElementById('g').toDataURL('image/png')");
-          fs.writeFileSync(path.join(OUT, id + '.png'), Buffer.from(url.split(',')[1], 'base64'));
-        }
-        await tap();                                     // y pasar a la siguiente
-        d = await dbg();
+    let d = await dbg(), escritas = 0;
+    const titulo = d.titulo, indices = [];
+    for (let n = 0; n < 40 && d.state === 'story'; n++) {
+      // LA FOTO DE LA LINEA SE SACA ANTES DE TOCAR NADA, y de ahi salen las cuentas.
+      //
+      // ACA HABIA UNA CARRERA, y se la comio el propio fixture: contaba la linea DESPUES del toque
+      // y solo si seguia en la misma. Entre leer el estado y mandar la tecla hay un ida y vuelta de
+      // IPC, y si en ese hueco el tipeo terminaba solo, el toque PASABA la linea en vez de
+      // completarla — la carilla no se revisaba y no se sumaba. Se veia como una diferencia tonta
+      // en el total impreso (8.740 contra los 8.842 que tiene el guion), pero lo que decia de
+      // verdad es que el fixture podia saltearse una carta entera sin avisar, que es exactamente
+      // lo que vino a custodiar.
+      //
+      // Ahora la linea se cuenta pase lo que pase con el toque: si el toque la completo, valen los
+      // numeros de despues; si la paso porque ya se habia terminado sola, valen los de antes — y
+      // en los dos casos la carilla se escribio entera, que es lo que hay que verificar.
+      const antes = d;
+      if (!antes.done) { await tap(); d = await dbg(); }
+      const paso = d.id !== antes.id;                    // el toque la paso en vez de completarla
+      const fin = paso ? antes : d;
+      if (!paso && !fin.done) mal(`${id} · ${fin.id}: la tecla no completo el tipeo`);
+      if (fin.typed !== fin.len) mal(`${id} · ${fin.id}: quedaron ${fin.len - fin.typed} caracteres sin escribir`);
+      if (fin.tipo === 'TIERRA') { escritas++; caracteres += fin.len; indices.push(fin.line); }
+      if (paso) continue;                                // ya esta en la siguiente
+      while (d.holdLeft > 0) { await sleep(80); d = await dbg(); }
+      if (OUT && escritas === 1) {
+        const url = await js("document.getElementById('g').toDataURL('image/png')");
+        fs.writeFileSync(path.join(OUT, id + '.png'), Buffer.from(url.split(',')[1], 'base64'));
       }
-      if (d.state !== 'story') break;                    // se acabo la secuencia
+      await tap();                                       // y pasar a la siguiente
+      d = await dbg();
     }
+    // LAS CARILLAS TIENEN QUE SER CORRELATIVAS desde la primera. Es la unica forma de afirmar
+    // "se revisaron TODAS" sin clavar en el fixture cuantas lineas tiene cada carta — un numero
+    // que el guion mueve cada vez que alguien escribe un renglon. Un hueco en esta lista es una
+    // carilla que nadie miro.
+    const esperados = indices.length ? indices[0] : 0;
+    for (let i = 1; i < indices.length; i++)
+      if (indices[i] !== indices[i - 1] + 1) mal(`${id}: se saltearon carillas — vi las lineas ${indices.join(',')}`);
+    if (indices.length && indices[0] !== 0) mal(`${id}: la primera carilla que vi es la linea ${esperados}, no la 0`);
     renglones += escritas;
     const derrame = ruido.filter(m => m.includes('cuaderno:'));
     for (const m of derrame) mal(m);

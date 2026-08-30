@@ -286,21 +286,29 @@ el `cmap` de cada archivo y lo dice. De paso encontró algo peor y **fuera de es
 los manda **al mismo glifo que la letra pelada** — el menú se está dibujando sin una sola tilde.
 No se tocó: es otra pantalla y otra decisión.
 
-**D-21 · Se fue el velo; queda una franja abajo.** La lámina va a alfa 1 (es el papel, no una foto
-atrás del texto) y el único oscuro que sobrevive es un degradé de 26 px en el borde inferior. No
-es decoración: los controles y los puntos de avance son de color claro y sobre papel crema no se
-leerían. La línea de barrido y el marco de expediente no entran al cuaderno — son artefactos de
-pantalla y esto es una hoja de papel.
+**D-21 · Se fue el velo; queda una franja RESERVADA abajo.** La lámina va a alfa 1 (es el papel, no
+una foto atrás del texto) y el único oscuro que sobrevive es un degradé de 22 px en el borde
+inferior. No es decoración: los controles son de color claro y sobre papel crema no se leerían. Y
+es **reservada** de verdad, no por costumbre — `CUAD.franja` la usan **los dos**, el degradé y el
+piso de la caja de escritura (`bh = min(lo que da la lámina, lo que queda hasta la franja)`), así
+que no hay dos números que se puedan despegar: una carta larga se achica antes que meter un renglón
+abajo de los botones. Sin ese `min` la carilla daba de sí hasta y=169 y la zona empieza en 158 —
+once píxeles de superposición esperando una carta larga. La línea de barrido y el marco de
+expediente no entran al cuaderno: son artefactos de pantalla y esto es una hoja de papel.
 
-**D-22 · Los dos controles se van a las puntas opuestas de la página.** ANTERIOR arriba a la
-**izquierda**, SIGUIENTE abajo a la **derecha** (`promptCuaderno`): volver donde empieza lo que ya
-leíste, seguir donde termina. Es la única pantalla del juego donde no van juntos, y contradice a
-propósito la regla de `promptAvanzar` ("siempre en el mismo lugar"): esa regla los cuelga del borde
-de la caja de diálogo, y acá no hay caja — hay una hoja que ocupa la pantalla entera, donde dos
-íconos juntos en el medio del papel se leen como algo dibujado en ella. Arriba **no hay franja
-oscura** (D-21: el oscuro vive sólo abajo), así que ANTERIOR lleva una sombra de tinta apenas
-corrida debajo del ícono y de la palabra: sin ella el naranja del acento cae sobre papel crema y el
-control existe pero no se ve, que es peor que no estar.
+**D-22 · Los dos controles, abajo, en el mismo renglón y contra cada borde.** `ANTERIOR ◀` a la
+izquierda, `SIGUIENTE ▶` a la derecha, los dos con la **misma forma** —palabra y después ícono—
+porque son el mismo control en direcciones opuestas (`promptCuaderno`). Contradice a propósito la
+regla de `promptAvanzar` ("siempre en el mismo lugar"): esa regla los cuelga del borde de la caja
+de diálogo, y acá no hay caja, hay una hoja.
+
+*Tres pasadas hicieron falta, y las dos primeras dejaron enseñanzas.* Primero fueron a las dos
+esquinas de abajo, con formas distintas (ícono→palabra a la izquierda, palabra→ícono a la derecha):
+dos botones que se leían como de sistemas distintos. Después ANTERIOR subió al extremo superior
+izquierdo, y ahí apareció el problema real: **arriba no hay franja oscura**, así que el naranja del
+acento caía sobre papel crema y hubo que inventarle una sombra de tinta para que se viera. Un
+control que necesita un truco para existir está en el lugar equivocado. La versión que quedó no
+necesita nada: los dos viven adentro de la zona que ya está oscura y reservada para ellos.
 
 **D-23 · La línea de NARRADOR de una escena TIERRA no entra al cuaderno.** "Esa misma semana,
 empezaba la guerra." (`P4_1_050`) no la escribió Mateo, así que sale por el camino de siempre: la
@@ -323,11 +331,58 @@ afirmando, y en vez del cursor de bloque titilante hay un trazo corto e inclinad
 el renglón — la punta de la birome. Si al jugarlo el ritmo pide ser más lento, la perilla es
 `TYPE_CPS` por escena y este renglón dice qué hay que aceptar a cambio.
 
+**D-27 · Los puntitos de avance no entran a la hoja.** El resto de las pantallas de guion dibuja
+un punto por línea de la escena abajo del todo. En el cuaderno esa fila era lo único que quedaba en
+el medio de la página delatando que hay una interfaz — y una carta no viene con un indicador de
+cuántos renglones le faltan: se lee hasta que se termina. Lo que informaba (que la escena tiene más
+de una carilla) ya lo dicen los dos controles. **Siguen existiendo en las demás pantallas de
+historia**, que es donde el layout centrado los pide. La franja oscura se queda igual: es la zona de
+los dos controles (D-21/D-22).
+
+**D-28 · La narración de la caja VN se alineó a la izquierda.** Iba **centrada**, con este
+argumento: no la dice nadie, así que no se alinea contra un busto que no existe. Jugado es al revés
+— un párrafo centrado obliga a buscar dónde empieza cada renglón, y en una escena que alterna
+líneas con hablante y líneas de narración el ojo salta de margen en cada una. Lo que separa una
+acotación de una voz ya lo dicen el tinte apagado y la ausencia de nombre y de busto; la alineación
+no tenía que trabajar de eso. Se fue con ella la cuenta que centraba el renglón **completo** (para
+que el texto no se corriera un píxel con cada letra nueva, arreglo del 27/8): alineado a la
+izquierda ese problema no existe. **Esto NO es del cuaderno** — toca `cajaVN`, o sea todas las
+líneas de narración del modo historia.
+
+**D-29 · El título de escena dejó de dibujarse — en el cuaderno y en todas las pantallas.** Era el
+rótulo de ubicación arriba a la izquierda ("RÍO GALLEGOS · LA LÍNEA DE VUELO"), chico y de reojo,
+como el "PUERTO ARGENTINO · 1982" de una película (D-17). Lo que pasa en la práctica es que **las
+placas ya dicen dónde estamos**, y mucho mejor que cinco píxeles de texto: la cocina de 1982 se
+reconoce sin que nadie la nombre. El rótulo duplicaba la imagen y sobre las placas claras la
+ensuciaba. En el cuaderno era peor todavía: la pantalla ya **es** un cuaderno abierto y la letra ya
+**es** la de Mateo — un renglón que dice "CARTA DE MATEO" arriba de la carta de Mateo no agrega
+nada y le roba el primer renglón a la única voz de la página.
+
+**El dato no se borró**: `titulo` sigue en cada escena de `data/story.js`, lo devuelve `__sdbg` y lo
+imprimen los fixtures (así se sabe en qué escena estás sin mirar la pantalla). Se fue el dibujo, que
+es lo que se puede volver atrás en un renglón.
+
+**La TARJETA de nivel es la excepción** y conserva su título grande al centro: ahí el nombre de la
+misión ES el contenido de la pantalla. Y queda **abierto**, por decisión de Matías: si conviene
+separar los capítulos / las misiones por nombre antes de empezar, la tarjeta es la pieza que lo
+resuelve — y es la conversación que hay que tener antes de volver a poner un rótulo en ningún lado.
+
 **D-26 · Fixture propio: `npm run cuaderno`.** Recorre las quince cartas en el juego de verdad y
 falla si alguna **no entra en la hoja** (`drawCuaderno` avisa por consola cuando ni achicando la
 letra alcanza) o si el wrap propio —que mide en píxeles, porque la manuscrita es proporcional—
-pierde caracteres al final de una frase. Medida al cerrar: **15 cartas · 56 carillas · 8.740
-caracteres, ninguna se derrama**, la más larga son 289 caracteres en 9 renglones.
+pierde caracteres al final de una frase. Además exige que las carillas de cada carta salgan
+**correlativas desde la primera**, que es la única forma de afirmar "se revisaron todas" sin clavar
+en el fixture cuántas líneas tiene cada carta — un número que el guion mueve cada vez que alguien
+escribe un renglón. Medida al cerrar: **15 cartas · 56 carillas · 8.842 caracteres, ninguna se
+derrama**; la más larga son 289 caracteres en 9 renglones.
+
+*Y esa comprobación nació de un error del propio fixture.* Contaba la línea **después** del toque y
+sólo si seguía en la misma: entre leer el estado y mandar la tecla hay un ida y vuelta de IPC, y si
+en ese hueco el tipeo terminaba solo, el toque **pasaba** la línea en vez de completarla — la
+carilla no se revisaba ni se sumaba. Se veía como una diferencia tonta en el total impreso (8.740
+contra los 8.842 que tiene el guion, medidos contra `data/story.js`), pero lo que decía de verdad
+es que el fixture podía saltearse una carta entera sin avisar, que es justo lo que vino a custodiar.
+Ahora la línea se cuenta pase lo que pase con el toque, y el total es el mismo en cada corrida.
 
 > La IA implementadora anota acá toda diferencia entre este spec y la realidad del código
 > (nombres de archivos, estados, convenciones), con la decisión tomada. Este bloque es la

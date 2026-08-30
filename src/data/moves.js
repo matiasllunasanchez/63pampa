@@ -120,3 +120,88 @@ export const mvTight = mv => !!(mv && MOVES[mv] && MOVES[mv].tight);
 // de los cazas (15-25). Que el SPLIT-S sea justamente el combo que se habilita ahi pasa a ser una
 // salida: la maniobra que te tira para abajo es la forma de salir del techo y del trafico de una.
 export const MV_HI = 18, MV_LO = 14;
+
+// ---------------- EL MENU MANIOBRAS (PLAN_MANIOBRAS_FASES: la puerta del jugador) ----------------
+// El catalogo se DERIVA de MOVES, igual que el de CINEMATICAS se deriva de las timelines: una
+// pirueta nueva aparece en el menu sin tocar nada mas, y ninguna lista puede quedar
+// desincronizada de la otra porque hay una sola.
+//
+// Los COMBOS son un ROTULO, no la verdad: la verdad es el dispatcher de game.js, y quien la
+// verifica es `npm run maniobras` (lee los `case` de ahi y prueba la gramatica). Estan escritos
+// pegados al bloque de prosa de arriba —que dice lo mismo— para que un cambio en uno deje al otro
+// a la vista.
+const COMBO = {
+  splits: '↑↓↓ (alto)', breakt: '↓←← · ↓→→', hiyo: '↑↓↑ · ↓↑↑ (alto)', loyo: '↓↑↓',
+  jink: '↑←→ · ↑→←', sturn: '←→← · →←→', mask: '⟳↓↓↓ · ↑↓↓ (bajo)', popup: '↓↑↑ (bajo)',
+  climb: '⟳↑↑↑', climbmax: '⟳↑↑↑ (contra el radar)', spin: '↓⟳←← · ↓⟳→→',
+  barrel: '⟳↓→↑← · ⟳↓←↑→', tonel: '⟳←←← · ⟳→→→',
+};
+
+// EL TONEL entra a mano y no es un olvido: no esta en MOVES porque conserva su camino legado
+// (run.rollT en flight.js). El dia que se mude al catalogo, esta linea se cae sola.
+const TONEL = { id: 'tonel', name: 'TONEL', dur: 0.55, legado: true };
+
+/** Las filas del menu MANIOBRAS: la pirueta, con que se pide y que hace. */
+export const maniobras = () => [TONEL, ...Object.keys(MOVES).map(id => ({ id, ...MOVES[id] }))]
+  .map(m => ({
+    id: m.id, titulo: m.name,
+    desc: (COMBO[m.id] || '—') + '   ·   ' + m.dur + ' s'
+      + (m.legado ? '   ·   camino legado' : '   ·   ' + (m.steer ? 'palanca ' + m.steer : 'sin palanca')),
+  }));
+
+// LAS TRES PRESENTACIONES (la regla del 16/8: toda maniobra se diseña una vez y se entrega en tres
+// formas). Cada una es una llamada a los verbos de `pruebasApi()` — exactamente el mismo patron que
+// data/pruebas.js: DATA que describe llamadas a la capa de sondas, sin una linea de logica de juego.
+//
+// El retardo de 1,4 s no es decorativo: entra volando desde el aire, y lanzar la pirueta en el
+// primer cuadro la haria arrancar con el avion todavia acomodandose.
+export const MV_VISTAS = [
+  {
+    id: 'yo', titulo: 'LA LANZO YO',
+    desc: 'El poder del jugador: tu avion la vuela, como con el combo',
+    setup: (a, mv) => { a.patria(); a.luego(1.4, g => { g.sonda('pasilloLimpio'); g.sonda('mv', mv); }); },
+  },
+  {
+    id: 'companero', titulo: 'UN COMPAÑERO',
+    desc: 'Un Fiel entra de costado, la vuela en escena y se va',
+    setup: (a, mv) => { a.patria(); a.luego(1.4, g => { g.sonda('pasilloLimpio'); g.sonda('mvactor', mv, 'izq'); }); },
+  },
+  {
+    id: 'cine', titulo: 'COMO CINEMATICA',
+    desc: 'La misma maniobra filmada: bandas negras y el mundo en camara lenta',
+    setup: (a, mv) => { a.patria(); a.luego(1.4, g => { g.sonda('pasilloLimpio'); g.sonda('mvfilm', mv); }); },
+  },
+];
+
+// ---------------- LAS PIRUETAS DE ACTOR (PLAN_MANIOBRAS_FASES M1) ----------------
+// Las perillas de `systems/wingmv.js`: un Fiel que ENTRA en escena, vuela una de estas maniobras y
+// se va. Son de PUESTA EN ESCENA, no de juego — ninguna afecta al avion del jugador.
+//
+// La regla que las ordena: **el actor tiene que entrar volando, hacer la figura ADENTRO del cuadro
+// y salirse**. Los tres momentos son de duracion fija y la maniobra dura lo que dure (`dur` del
+// catalogo), asi que una escena arma su tiempo total sumando ENTRA + dur + SALE.
+export const WINGMV = {
+  ENTRA: 1.0,      // segundos de entrada en escena (interpolados con smoothstep: entra volando)
+  SALE: 1.4,       // segundos de salida de plano
+  // NACE AFUERA DEL CARRIL del jugador (FLY_X = 38) — de eso se trata "entrar de costado". Es
+  // tambien la razon por la que `movesSystem` no le aplica los topes: en su primer cuadro lo
+  // teletransportarian al borde.
+  X0: 66,
+  // LAS PROFUNDIDADES, en absoluto y no relativas al avion del jugador (PZ = 14 en render/ctx.js).
+  // Son numeros y no un import a proposito: un SISTEMA no puede importar del render (lo vigila
+  // `npm run lint:layers`), y ademas la profundidad a la que entra un actor es una decision de
+  // puesta en escena — no "donde esta el jugador mas cinco".
+  Z: 19,           // z de crucero del actor: MAS LEJOS que el jugador, para no cruzarsele encima
+  Z0: 5,           // z de nacimiento de la entrada 'atras': cerca de la camara, para sobrepasar
+  Z_MAX: 104,      // se lo considera fuera de escena cuando se aleja mas que esto
+  DY: 7,           // cuanto MAS ALTO encara: la figura queda en cielo limpio, no sobre el morro
+  // cuanto ADELANTA el punto de arranque hacia el lado opuesto al de entrada: entra por izquierda
+  // y vuela la figura hacia la derecha, asi la maniobra cruza el cuadro en vez de salirse por
+  // donde entro.
+  ENC: 12,
+  SPD: 82,
+  SAL_VX: 42, SAL_VY: 10, SAL_VZ: 26,   // empuje de la salida (lateral · vertical · alejarse)
+  // TOPE DURO DE VIDA. Misma leccion que el director de cinematicas: algo que entra a escena tiene
+  // que tener escrito COMO SE TERMINA, o un caso raro lo deja ahi para siempre.
+  VIDA: 9,
+};

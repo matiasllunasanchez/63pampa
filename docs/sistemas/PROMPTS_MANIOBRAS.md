@@ -10,6 +10,18 @@
 > **Revisado contra el código (16/8):** de las 17, **9 ya existen o están cubiertas** y no
 > llevan prompt (§1). Quedan **8 prompts** (§2).
 >
+> **Regla de las TRES PRESENTACIONES (16/8, Matías):** toda maniobra del jugador/amigo se
+> diseña una vez (sus beats) y se entrega en tres formas — **poder del jugador** (combo →
+> `moves.js`, como hoy), **actor amigo in-game** (un Fiel entra de costado o de atrás y la
+> ejecuta — verbo `actor` del director) y **cabina** (1ª persona sobre los mismos beats).
+> Está exigido en el paso 4 de PROMPT_MANIOBRA.md, así que **los prompts de abajo la
+> heredan sin cambios**. Las de enemigo/muerte (VIFF, pedal, caída, barrena) quedan
+> exceptuadas por naturaleza y sus prompts ya lo dicen.
+>
+> **La IMPLEMENTACIÓN de todas vive en [PLAN_MANIOBRAS_FASES.md](PLAN_MANIOBRAS_FASES.md)**
+> (cimientos M0–M2 + una maniobra por fase). Estos prompts quedan para las sesiones de
+> DISEÑO individuales; el programa los usa como "diseño exprés" cuando el plan no existe.
+>
 > **Cómo se usa:** cada prompt es autosuficiente y **delega el procedimiento** a
 > [PROMPT_MANIOBRA.md](PROMPT_MANIOBRA.md) — la IA lee ahí los pasos (leer el repo, canon,
 > diseño, arte, entrega) y acá recibe la FICHA de la maniobra (lo que el diagrama muestra),

@@ -84,6 +84,8 @@ llegar a verlo)*
 | **La tierra y la costa nuevas** (turba con relieve, rompiente) | m13 (tierra) o misiones de costa · `npm run tierra` · `__olacosta` | 1–3 min |
 | Niebla (banco: velo/cubierta) / lluvia | misiones con `fog`/`rain` (m6, m9…) con `?qa` | 1–2 min |
 | Fondos de clima (imágenes) | OPCIONES → FONDO | 30 s |
+| **Diálogos EN VUELO** (las charlas de los tramos, sin volar la misión) | MENÚ → MISIONES → **[H]** hasta `DIÁLOGOS EN VUELO` → ENTER · cualquier tecla pasa al siguiente, ESC sale · sondas `__radiodbg` / `__toastbanda` / `__logdbg` | 20 s |
+| **Las dos formas de la radio** (toast / panel tipo chat) | OPCIONES → `RADIO EN VUELO` · o en vivo con `__cfgset('radioUI','panel')` | 10 s |
 | **Historia VN** (tipeo, holds, retratos mock, placas) | `?scene=M07_LOCKER` (el fixture del locker) · `npm run story` | 10 s |
 | **EL CUADERNO DE MATEO** (registro TIERRA: hoja izquierda, letra manuscrita, tinta de birome) | `?scene=P4_1` la primera página · `?scene=M4_CARTA` la carta más larga (289 caracteres) · `?scene=M11_CARTA` la única sin carilla dibujada (hoja pintada a mano) · `npm run cuaderno` recorre las quince | 15 s |
 | Acentos y eñes de una tipografía nueva | `node tools/glifos.js` — lee el `cmap` y avisa cuál no puede escribir en castellano | 2 s |

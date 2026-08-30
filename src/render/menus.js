@@ -160,6 +160,7 @@ export function drawModeSelect(w) {
     { name: T('modeQuick'), desc: T('modeQuickDesc') },
     { name: T('modePruebas'), desc: T('modePruebasDesc') },
     { name: T('modeCines'), desc: T('modeCinesDesc') },
+    { name: T('modeManiobras'), desc: T('modeManiobrasDesc') },
     { name: T('modeMisiones'), desc: T('modeMisionesDesc') },
     { name: T('modeOptions'), desc: T('modeOptionsDesc') },
     { name: T('modeQuit'), desc: T('modeQuitDesc'), quit: true },
@@ -602,6 +603,30 @@ function cineText(r) {
 // muevan igual es lo que hace que se sientan la misma puerta.
 export function drawCinesMenu(w) { drawRowMenu(w, 'cinesTitle', cineText, PRUEBA_ROWS); }
 
+// ---------- EL MENU MANIOBRAS (PLAN_MANIOBRAS_FASES) ----------
+// Dos pantallas con la MISMA geometria que PRUEBAS y CINEMATICAS, por la misma razon de siempre:
+// son la misma herramienta con otro catalogo, y que se muevan igual es lo que hace que se sientan
+// la misma puerta. La primera lista las piruetas; la segunda, las tres presentaciones de la que
+// elegiste — y lleva su nombre en el rotulo, para que no haya que acordarse de que se apreto.
+function mvText(r) {
+  // el ATRAS de las variantes vuelve UN nivel (a la lista), no al menu principal — y el renglon
+  // tiene que decir a donde va: un "volver al menu principal" que no vuelve ahi es una mentira
+  // chica que igual se paga en confianza.
+  if (r.back) return { name: T('menuBack'), desc: T(r.volver || 'menuBackDesc') };
+  return { name: r.titulo, desc: r.desc };
+}
+export function drawManiobrasMenu(w) { drawRowMenu(w, 'mvTitle', mvText, PRUEBA_ROWS); }
+export function drawMvVarsMenu(w) {
+  drawRowMenu(w, 'mvVarsTitle', mvText, PRUEBA_ROWS);
+  // EL NOMBRE DE LA MANIOBRA, abajo de todo: el mismo lugar donde el selector de misiones pone la
+  // libreta. Es contexto —"esto es de lo que estamos hablando"— y no una fila elegible.
+  if (!w.mv) return;
+  ctx.textAlign = 'left'; ctx.font = labelFont(8); ctx.fillStyle = P.dim;
+  ctx.fillText(T('mvTitle').split('·')[0].trim(), 40, NH - 30);
+  ctx.font = descFont(11); ctx.fillStyle = P.accent;
+  ctx.fillText(w.mv.titulo + '   ·   ' + w.mv.desc, 40, NH - 18);
+}
+
 // ---------- EL SELECTOR DE MISIONES (PLAN_MISIONES_FASES §1, fase S1) ----------
 // La herramienta: la campaña entera listada, y ENTER vuela ESA mision sola. Igual que el catalogo
 // de PRUEBAS, las entradas NO se traducen: son los nombres y las fechas de data/missions.js, que
@@ -658,7 +683,7 @@ export function drawMisionesMenu(w) {
   // EL MODO: los tres se listan SIEMPRE y se resalta el activo, en vez de mostrar solo el vigente.
   // Un toggle que cicla y solo canta su estado obliga a apretarlo para descubrir que mas hay; con
   // los tres a la vista se sabe de antemano cuantas veces hay que apretar y a donde se llega.
-  const modos = ['juego', 'cine', 'ambas'];
+  const modos = ['juego', 'cine', 'ambas', 'radio'];
   let mx = 40;
   ctx.font = descFont(9);
   ctx.fillStyle = P.dim; ctx.globalAlpha = 0.7;

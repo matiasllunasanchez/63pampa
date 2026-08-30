@@ -9,7 +9,7 @@
 
 import { cfg } from '../core/state.js';
 import { run } from '../core/run.js';
-import { obstacles, soldiers, popups } from '../core/world.js';
+import { obstacles, soldiers, popups, bullets, missiles, pmissiles } from '../core/world.js';
 import { OLA_H, OLA_RATE, OLA_GAP_MIN, OLA_H_VAR, OLA_WZ, OLA_WZ_VAR, OLA_ROMP_P, OLA_ROMP_HW, OLA_REB_P, OLA_REB_D0,
   OLA_COSTA_P, OLA_COSTA_OFF } from '../data/tuning.js';
 import { inBank } from './fog.js';
@@ -464,6 +464,23 @@ if (typeof window !== 'undefined') window.__seaput = (y, x) => {
 if (typeof window !== 'undefined') window.__seaclear = () => {
   for (let i = obstacles.length - 1; i >= 0; i--) if (obstacles[i].type !== 'ola') obstacles.splice(i, 1);
   return obstacles.length;
+};
+// QUITAR — EL PASILLO ENTERO, VACIO: obstaculos (olas incluidas), soldados y TODO LO QUE YA ESTA
+// EN VUELO hacia el jugador (balas, misiles). Es el hermano mayor de `__seaclear`, que a proposito
+// deja las olas y no toca los proyectiles porque a las olas las viene a medir.
+//
+// Existe para `npm run maniobras` (PLAN_MANIOBRAS_FASES M0): ahi lo que se mide son las CURVAS de
+// una pirueta, y para eso el avion tiene que llegar vivo al final de la maniobra sin que nadie lo
+// pilotee. Limpiar los obstaculos no alcanzaba — un misil lanzado cinco segundos antes seguia
+// viajando y mataba en el medio de la medicion, con un sintoma que no se parece en nada a su
+// causa: el reloj de la pirueta clavado en cero y "no termina" (al morir, flight.js deja de correr
+// y `movesSystem` no se llama mas).
+//
+// Los stores se MUTAN (splice/length = 0), nunca se reasignan: convencion 1 de ARQUITECTURA.
+if (typeof window !== 'undefined') window.__pasilloLimpio = () => {
+  obstacles.length = 0; soldiers.length = 0;
+  bullets.length = 0; missiles.length = 0; pmissiles.length = 0;
+  return true;
 };
 // __sealives / __seapop: las dos sondas del AVISO de la rebelde (F7.2). La primera fija cuantos
 // aviones quedan —que es de lo que depende que alguien te avise— y la segunda devuelve los popups

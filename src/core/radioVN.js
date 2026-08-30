@@ -26,7 +26,10 @@ import { wrapChars } from './util.js';
 // segundos que dura una linea: un piso para las cortas, y despues por largo de texto. 15 cps es
 // mas lento que leer comodo a proposito — el jugador esta volando, no leyendo.
 const T_MIN = 2.6, T_POR_CHAR = 1 / 15, T_MAX = 9;
-const ANCHO = 34;                    // caracteres por renglon en la caja (mismo que el modo historia)
+// EL TOAST ES ANGOSTO Y DE DOS RENGLONES (ver drawRadioVN): 38 caracteres por renglon a cuerpo 6
+// entran en los 226 px de la banda libre. No es el ancho del modo historia a proposito — alla la
+// caja ocupa la pantalla entera porque no hay nada mas que mirar; aca hay un avion que volar.
+const ANCHO = 38;
 
 /** ESTADO DE IDENTIDAD ESTABLE (state.js §1): se MUTA, nunca se reasigna. */
 export const radio = {
@@ -50,11 +53,31 @@ export function partirHablante(raw) {
 
 /** Arranca una linea. `caraDe` traduce nombre → id de retrato (lo pasa el orquestador para que
  *  este modulo no dependa del catalogo de caras: aca no se sabe quien es Condor). */
+// ---------- EL HISTORIAL (solo lo usa el PANEL) ----------
+// El TOAST es una linea que pasa y no deja nada: es un aviso. El PANEL es lo contrario — la radio
+// de la escuadrilla, donde lo que se dijo hace diez segundos todavia se puede leer. Las dos formas
+// se alimentan del MISMO `decir()`: el historial se llena siempre y lo mira quien lo necesita.
+//
+// CUATRO entradas y no mas: cinco ya no entran en la banda libre del HUD, y un log que crece hasta
+// tapar el mundo es exactamente lo que la ley del §0b prohibe.
+export const LOG_N = 4;
+export const log = [];          // el mas NUEVO al final (identidad estable: se muta)
+
+/** Envejece el historial. `dt` en segundos; las entradas viejas se apagan solas. */
+export function tickLog(dt) {
+  for (const e of log) e.t += dt;
+  while (log.length > LOG_N) log.shift();
+}
+
 export function decir(raw, caraDe) {
   const { personaje, txt } = partirHablante(raw);
   radio.personaje = personaje;
   radio.cara = personaje && caraDe ? caraDe(personaje) || null : null;
   radio.wrap = wrapChars(txt, ANCHO);
+  // el historial se llena SIEMPRE, use o no el panel: cambiar de presentacion en OPCIONES no puede
+  // dejar un log vacio esperando a que alguien vuelva a hablar
+  log.push({ personaje: radio.personaje, cara: radio.cara, txt, t: 0 });
+  while (log.length > LOG_N) log.shift();
   radio.dur = Math.min(T_MAX, Math.max(T_MIN, T_MIN + txt.length * T_POR_CHAR));
   radio.t = 0;
   radio.activa = true;
@@ -72,6 +95,7 @@ export function callar() {
 }
 
 export function tickRadio(dt) {
+  tickLog(dt);                     // el historial envejece SIEMPRE, hable alguien o no
   if (!radio.activa) {
     if (radio.ease > 0) radio.ease = Math.max(0, radio.ease - dt / SALIDA);
     return;

@@ -20,7 +20,7 @@ import { wrapChars } from './util.js';
 //
 // Es la unica perilla del ritmo del texto: la usan el dialogo, la acotacion y el retraso entre
 // las dos, asi que tocar este numero los mueve a los tres juntos y no se desincronizan.
-export const TYPE_CPS = 15;
+export const TYPE_CPS = 20;
 // AUTO-AVANCE (RF-03, apagado por defecto): segundos que queda una linea si nadie toca nada.
 // La formula es de SISTEMA_DIALOGO: 12 caracteres por segundo es LENTO a proposito (el estandar
 // de subtitulado tolera 17) y el minimo evita que un "Sesenta y uno." pase como un parpadeo.

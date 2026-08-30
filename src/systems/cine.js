@@ -91,7 +91,13 @@ export function update(dtReal) {
 
   // LA PIRUETA LA SIGUE VOLANDO SU SISTEMA, cuadro a cuadro. El director la larga y la acompaña;
   // no la interpola el mismo (plan §6.4). Cuando moves.js termina, se suelta solo.
-  if (run.mv) movesSystem(dt, INP0);
+  //
+  // …PERO SOLO SI EL AVION ES SUYO, y eso se lee en la cama de vuelo (`C.vuelo`). En una cinematica
+  // como el premio del PULSO el director es el dueño y tiene que llamarla; en el PASILLO el dueño
+  // es flight.js, que YA la llama — sin esta guarda, una timeline corrida sobre el vuelo normal
+  // (el menu MANIOBRAS, presentacion "como cinematica") hacia avanzar la maniobra DOS VECES por
+  // cuadro: duraba la mitad y se veia al doble de velocidad.
+  if (C.vuelo && run.mv) movesSystem(dt, INP0);
 
   // …y LA CAMA DE VUELO debajo (PLAN_CINE_PESO): integra la posicion, persigue con la camara y
   // devuelve las actitudes a nivel con el MISMO peso que el pasillo — es literalmente su codigo.

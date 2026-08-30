@@ -2463,7 +2463,11 @@ export function drawHitboxes() {
 //     FLY_TOP — el techo de vuelo
 //   - un tick sobre el marco a la altura ACTUAL del avion
 // Todo se proyecta con proj(), asi que acompaña a la camara este donde este.
-export function drawFlightLane() {
+/** `soloCarril`: dibuja el marco de la zona de vuelo pero SIN la ayuda de teclas del modo camara.
+ *  Lo pide el modo DIALOGOS del selector, que usa la maquinaria del modo camara para otra cosa —
+ *  ahi las teclas de camara existen, pero no son lo que el jugador vino a hacer, y el renglon le
+ *  compite a la caja de dialogo que es lo unico que hay que mirar. */
+export function drawFlightLane(soloCarril) {
   const G = '#39ff14';
   ctx.strokeStyle = G; ctx.lineWidth = 1;
   // bordes del corredor sobre el piso
@@ -2492,7 +2496,7 @@ export function drawFlightLane() {
   // ayuda de teclas (arriba, fuera del paso del HUD)
   ctx.font = '8px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = G;
   ctx.globalAlpha = 0.8;
-  ctx.fillText('CAM LIBRE   ↑↓ avanzar · ←→ lateral · R/F altura · SHIFT x4', W / 2, 14);
+  if (!soloCarril) ctx.fillText('CAM LIBRE   ↑↓ avanzar · ←→ lateral · R/F altura · SHIFT x4', W / 2, 14);
   ctx.globalAlpha = 1;
 }
 

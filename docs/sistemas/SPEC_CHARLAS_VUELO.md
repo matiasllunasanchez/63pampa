@@ -20,6 +20,56 @@
 > idéntica: una misión sin charlas no cambia en nada) · `core/dialogue.js` ·
 > `SPEC_MODO_HISTORIA.md` (RF-09 ya anticipaba escenas disparadas por evento de misión).
 
+## 0b. LOS DOS TIPOS DE DIÁLOGO *(decisión del autor, 19/8/2026 — la ley que ordena todo)*
+
+**El diálogo NUNCA se superpone a la UI.** O se acopla —chico, en una banda libre, sin tapar un
+solo instrumento— o va en modo PAUSA, que se lleva la UI entera y pide el 100% de la atención. No
+hay punto medio: una caja de diálogo encima del combustible y la munición es lo peor de los dos
+mundos — ni se lee cómoda ni deja jugar.
+
+| | **PAUSA** (`charla:`) | **TOAST** (`radio:`) |
+|---|---|---|
+| qué es | el diálogo que PIDE atención | un aviso que pasa |
+| cuándo | arranque de misión, momentos del guion | radio de rutina, avisos, color |
+| presentación | UI fuera + letterbox + **velo negro** + caja VN grande, como en tierra | toast chico centrado abajo, **arriba de la banda del HUD**, entra subiendo y se va solo |
+| avance | el jugador lee y avanza | automático, con barrita de tiempo |
+| el mundo | la burbuja: vuela pero no acredita (RF-02) | nada se congela: se sigue jugando |
+| dónde vive | `systems/charla.js` + `cajaVN` | `core/radioVN.js` + `drawRadioVN` (toast propio) |
+
+**El TOAST tiene DOS formas, y se eligen en OPCIONES** (`RADIO EN VUELO`, `cfg.radioUI`) para poder
+compararlas jugando en vez de en el papel:
+
+- **`toast`** (default) — UNA línea que entra subiendo, con busto y barrita de tiempo, y se va. Sin
+  historial: es un aviso, y un aviso que se queda deja de ser un aviso.
+- **`panel`** — las ÚLTIMAS CUATRO, como un chat: la nueva abajo a pleno, las viejas apagándose por
+  edad y por posición. La radio de la escuadrilla, donde lo que se dijo hace diez segundos todavía
+  se puede leer. Tope de cuatro porque cinco ya no entran en la banda libre — y un log que crece
+  hasta tapar el mundo es exactamente lo que la ley de arriba prohíbe.
+
+Las dos se alimentan del MISMO `decir()`: el historial se llena siempre, así cambiar de forma en
+OPCIONES no deja un panel vacío esperando a que alguien vuelva a hablar.
+
+**La banda del toast es una regla escrita en código**: `HUD_TINTA` en `render/screens.js` marca lo
+más alto que pinta el HUD de vuelo, y el toast cierra por encima. La sonda `__toastbanda()` la
+expone para que una prueba pueda afirmarlo — mirar una captura no alcanza, porque el toast aparece
+y se va.
+
+**Consecuencia sobre `cajaVN`:** su comentario dice que hablar en tierra y hablar por radio tienen
+que VERSE IGUAL. Sigue valiendo — **para el diálogo tipo PAUSA**. El toast es otra cosa por
+naturaleza (un aviso, no una escena) y se ve como lo que es.
+
+### El dato histórico que ordena QUIÉN avisa qué *(verificado, 19/8/2026)*
+
+Los A-4 no tenían radar ni alerta radar: por eso dependían del control de tierra. Pero lo que el
+radar de Puerto Argentino (un AN/TPS-43F) podía ver eran **AVIONES** — la CAP de Sea Harriers—,
+**no misiles**: un radar de vigilancia aérea no reporta el lanzamiento de un Sea Dart desde un
+buque. El aviso de misil, en la guerra real, venía de los **ojos del numeral** (la estela y el
+grito por radio) o del fogonazo del lanzamiento.
+
+**Regla de contenido que sale de ahí:** *Cóndor avisa aviones; el numeral avisa misiles.* Es
+además la mejor versión jugable — hace que tener escuadrón vivo valga (menos Fieles = menos ojos =
+menos avisos), que es exactamente lo que el guion ya cuenta.
+
 ## 1. Requerimientos
 
 ### RF-01 · El disparador es un tramo
@@ -114,6 +164,19 @@ charlas = cero diferencia (el assert más importante) · `feel` idéntico.
 5. Texto por strings/story.js — nada en código.
 
 ## 7. Divergencias
+
+### 8 · El `radio:` dejó de usar `cajaVN` y pasó a ser un TOAST *(19/8/2026)*
+
+Jugando el modo DIÁLOGOS se vio lo que la captura no dejaba discutir: la caja de radio, anclada al
+borde de abajo y creciendo con los renglones, **tapaba el combustible, los misiles, el cañón y el
+escuadrón**. El autor puso la ley (§0b) y el `radio:` pasó a un toast propio: 226×30 px centrado,
+dos renglones de 38 caracteres, busto de 22 px, barrita de tiempo al ras, entrada subiendo.
+
+**`HUD_TINTA` se midió en captura, no se dedujo.** La cuenta desde `bar()` de `hud.js` daba 120
+(la barra en `H-50` con su rótulo en `y-4`), y a esa altura el toast **todavía** le comía la
+etiqueta RASANTE. El valor real es 110: la columna de medidores de la izquierda sube más que lo
+que la cuenta sugería. Queda anotado porque el próximo que mueva el HUD va a tener que volver a
+mirar una captura, no una fórmula.
 
 > **Baseline de `npm run feel`** (tomado antes de tocar una línea, el 27/8/2026 — `md5`
 > `54edf5490828fc762637824f2304f989`, 64 líneas): **FEEL: OK**, sin un solo número movido.

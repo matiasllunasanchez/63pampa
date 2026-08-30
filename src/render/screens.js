@@ -8,7 +8,7 @@ import { P } from '../data/palette.js';
 import { T, L } from '../core/i18n.js';
 import { wrapChars } from '../core/util.js';
 import { clamp01 } from '../core/physics.js';
-import { radio, restante, visible } from '../core/radioVN.js';
+import { radio, restante, visible, log } from '../core/radioVN.js';
 import { sinceReady, txtOf } from '../core/dialogue.js';
 import { PLACA_DE_CUADRO } from '../data/placas.js';
 
@@ -466,9 +466,10 @@ export function drawStory(w) {
   // de sitio respecto del dialogo, asi que el ojo salta arriba y abajo entre una linea y la
   // siguiente de la MISMA escena.
   //
-  // Ahora usa la misma caja de abajo, sin busto y sin nombre —no la dice nadie— y con el texto
-  // CENTRADO, que es lo que la distingue del dialogo sin necesitar otro color ni otro tipo.
+  // Ahora usa la misma caja de abajo, sin busto y sin nombre —no la dice nadie— y en tinta
+  // apagada, que es lo que la distingue del dialogo sin necesitar otro tipo ni otra alineacion.
   // La imagen queda entera arriba y el texto siempre aparece en el mismo lugar.
+  // (Ademas iba CENTRADA hasta el 29/8; ver la nota en cajaVN de por que se alineo a la izquierda.)
   //
   // CARTA NO entra aca: ese registro es el papel del block del padre, y ahi el texto ES la
   // pantalla — meterlo en una caja lo volveria un dialogo mas. (TIERRA tampoco, pero ese ya se
@@ -480,26 +481,25 @@ export function drawStory(w) {
   // hoja limpia al velo es la marca de que dejo de hablar la carta.
   const esNarracion = tipo === 'NARRADOR' || (tipo === 'VN' && ln && !ln.personaje);
   const vnBox = ln && (esNarracion || (tipo === 'VN' && ln.personaje));
-  // TITULO de la escena: NO se tipea. Es el rotulo del lugar ("RÍO GALLEGOS · LA LÍNEA DE VUELO"),
-  // no algo que alguien diga — queda fijo mientras pasan las lineas de la escena.
-  // EL TITULO: chico y ARRIBA A LA IZQUIERDA (pedido del autor, 19/8/2026). Era grande y centrado
-  // —11 px en el medio del cuadro— y competia de igual a igual con la linea de dialogo, que es lo
-  // que hay que leer. Es un rotulo de ubicacion, como el "PUERTO ARGENTINO · 1982" de una pelicula:
-  // se lee una vez, de reojo, y se sale del camino. La TARJETA de nivel es la excepcion y conserva
-  // su titulo grande al centro — ahi el nombre de la mision ES el contenido de la pantalla.
-  if (sc.titulo) {
-    if (card) {
-      ctx.textAlign = 'center';
-      ctx.font = 'bold 11px monospace'; ctx.fillStyle = P.warn;
-      wrapChars(sc.titulo, 32).forEach((t, i) => ctx.fillText(t, W / 2, 76 + i * 14));
-    } else {
-      // El rotulo recupera el margen izquierdo: el control de VOLVER se mudo al borde de la caja
-      // (ver promptAvanzar), asi que arriba a la izquierda ya no hay con que pisarse.
-      ctx.textAlign = 'left';
-      ctx.font = 'bold 5px monospace'; ctx.fillStyle = P.accent; ctx.globalAlpha = 0.75;
-      ctx.fillText(sc.titulo, 14, 17);
-      ctx.globalAlpha = 1;
-    }
+  // EL TITULO DE ESCENA NO SE DIBUJA MAS (pedido de Matias, 29/8/2026).
+  //
+  // Era el rotulo de ubicacion arriba a la izquierda —"RÍO GALLEGOS · LA LÍNEA DE VUELO"— y venia
+  // de la idea de cine: se lee una vez, de reojo, y se sale del camino. Lo que pasa en la practica
+  // es que las placas de ambiente YA DICEN DONDE ESTAMOS, mucho mejor que cinco pixeles de texto:
+  // la linea de vuelo al amanecer se reconoce sin que nadie la nombre. El rotulo quedaba
+  // duplicando la imagen y, sobre las placas claras, ensuciandola.
+  //
+  // EL DATO NO SE BORRA: `titulo` sigue en cada escena de data/story.js, lo lee la sonda `__sdbg`
+  // y lo imprimen los fixtures (asi se sabe en que escena estas sin mirar la pantalla). Lo que se
+  // fue es el dibujo, que es la decision que se puede volver atras en un renglon.
+  //
+  // LA TARJETA DE NIVEL ES LA EXCEPCION y conserva su titulo grande al centro: ahi el nombre de la
+  // mision ES el contenido de la pantalla, y ademas es justo la pieza que resuelve —o no— separar
+  // los capitulos por nombre antes de empezar, que quedo abierto.
+  if (sc.titulo && card) {
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 11px monospace'; ctx.fillStyle = P.warn;
+    wrapChars(sc.titulo, 32).forEach((t, i) => ctx.fillText(t, W / 2, 76 + i * 14));
   }
   if (vnBox) { drawVNBox(w, d, ln, d.si + 1 >= d.seq.length && d.li + 1 >= ((sc.lineas || []).length), esNarracion); return; }
   // ---- layout centrado (narracion, tarjeta de nivel, cuaderno y carta) ----
@@ -561,7 +561,7 @@ export function drawStory(w) {
 //      que dibujo el colectivo 60 de la primera pagina.
 //   3. NO HAY VELO. La lamina va a alfa 1 y el unico oscuro que queda es la franja de abajo, que
 //      es donde viven los controles y los puntos de avance.
-//   4. LOS CONTROLES SE VAN A LAS PUNTAS OPUESTAS DE LA HOJA (ver promptCuaderno).
+//   4. LOS CONTROLES VAN ABAJO, EN SU PROPIA FRANJA RESERVADA (ver promptCuaderno).
 //
 // Es un layout PROPIO, no una variante del centrado, y vale SOLO para TIERRA. Las cartas del padre
 // (CARTA) siguen con el layout de siempre: son otro papel, otra letra y otra mano.
@@ -579,7 +579,12 @@ const CUAD = {
   cuerpo: 9, paso: 12,       // cuerpo de la letra y separacion de renglones, en unidades de diseño
   minEsc: 0.74,              // hasta donde se achica la letra cuando una carta larga no entra
   fresco: 6,                 // cuantos caracteres quedan "mojados" detras de la punta
-  franja: 26,                // alto de la franja oscura de abajo
+  // LA ZONA DE LOS CONTROLES, abajo de todo. Es una franja RESERVADA (pedido de Matias,
+  // 29/8/2026): la carta se corta antes de llegar, siempre, aunque le sobren renglones. Por eso
+  // `franja` la usan LOS DOS —el degrade oscuro y el piso de la caja de escritura— y no hay dos
+  // numeros que se puedan despegar: subirla o bajarla mueve las dos cosas juntas.
+  franja: 22,
+  aire: 3,                   // lo que separa el ultimo renglon de la carta del borde de esa zona
   // LA COLUMNA DE ESCRITURA, en fracciones del rectangulo de la LAMINA y no de la pantalla: la
   // lamina entra encajada y centrada, asi que en fracciones los margenes sobreviven a cualquier
   // tamaño de imagen y al letterbox. Medidos sobre carta1_p4.webp (960x536): el rayado de la hoja
@@ -649,26 +654,33 @@ function drawCuaderno(w, d, sc, ln, hoja) {
   for (let i = 0; i < 30; i++) px(Math.random() * W, Math.random() * (H - CUAD.franja), 1, 1, '#6b5f42');
   ctx.globalAlpha = 1;
   // LA FRANJA DE ABAJO — el unico oscuro que queda en la pantalla, y no es decoracion: los
-  // controles y los puntos de avance son de color claro y sobre papel crema no se leerian. Que
-  // ademas despegue la pagina de la barra de estado es lo que la vuelve util para ver de un
-  // vistazo donde termina la carta y empieza el juego.
+  // controles son de color claro y sobre papel crema no se leerian. Es ademas la zona RESERVADA:
+  // la carta se corta antes (ver `bh` mas abajo), asi que aca nunca hay dos textos encimados.
+  // Tres paradas y no dos: con un degrade lineal la zona util —los ultimos 8 px, donde caen las
+  // palabras— se quedaba a mitad de camino, y sobre las carillas de fondo mas claro el naranja del
+  // acento se lavaba. La parada del medio adelanta el oscuro y deja el arranque igual de suave.
   const gr = ctx.createLinearGradient(0, H - CUAD.franja, 0, H);
-  gr.addColorStop(0, 'rgba(8,11,16,0)'); gr.addColorStop(1, 'rgba(8,11,16,0.80)');
+  gr.addColorStop(0, 'rgba(8,11,16,0)');
+  gr.addColorStop(0.55, 'rgba(8,11,16,0.55)');
+  gr.addColorStop(1, 'rgba(8,11,16,0.90)');
   ctx.fillStyle = gr; ctx.fillRect(0, H - CUAD.franja, W, CUAD.franja);
 
   // ---- la columna de la hoja izquierda ----
   const bx = lam.x + lam.w * CUAD.x0, bw = lam.w * (CUAD.x1 - CUAD.x0);
-  const by = lam.y + lam.h * CUAD.y0, bh = lam.h * (CUAD.y1 - CUAD.y0);
+  const by = lam.y + lam.h * CUAD.y0;
+  // EL PISO MANDA SOBRE LA LAMINA. La caja mide lo que dice la lamina O lo que queda hasta la zona
+  // reservada, lo que sea MENOS: una carta larga se achica (el autoajuste de abajo) antes que
+  // meter un renglon abajo de los botones. Sin este `min`, la carilla del cuaderno da de si hasta
+  // y = 169 y la zona empieza en 158 — once pixeles de superposicion esperando una carta larga.
+  const bh = Math.min(lam.h * (CUAD.y1 - CUAD.y0), (H - CUAD.franja - CUAD.aire) - by);
   ctx.textAlign = 'left';
-  let y0 = by;
-  // EL ROTULO ("CARTA DE MATEO") arriba de la columna y con la misma tinta, aguada. En el cuaderno
-  // no puede ser el rotulo naranja de las demas pantallas —naranja sobre crema no se lee— y puesto
-  // ahi pasa por lo que es: el encabezado que alguien escribe arriba de la pagina.
-  if (sc.titulo) {
-    ctx.font = handFont(6); ctx.fillStyle = CUAD.tinta; ctx.globalAlpha = 0.5;
-    ctx.fillText(sc.titulo, bx, y0); ctx.globalAlpha = 1;
-    y0 += CUAD.paso * 0.95;
-  }
+  // SIN ENCABEZADO (pedido de Matias, 29/8/2026). El titulo de la escena ("CARTA DE MATEO", "LA
+  // PRIMERA PÁGINA DEL CUADERNO") se dibujaba arriba de la columna, con la misma tinta aguada.
+  // Se lo comio su propia logica: la pantalla ya ES un cuaderno abierto y la letra ya ES la de
+  // Mateo — un renglon que dice "carta de Mateo" arriba de la carta de Mateo no agrega nada y le
+  // roba el primer renglon a la unica voz de la pagina. El dato sigue en los datos y en la sonda
+  // (ver la nota en drawStory); lo que se fue es el dibujo.
+  const y0 = by;
 
   // ---- la carta, partida y escrita ----
   const txt = txtOf(ln), alto = bh - (y0 - by);
@@ -755,16 +767,26 @@ function drawCuaderno(w, d, sc, ln, hoja) {
     ctx.restore();
   }
 
-  // ---- la franja: los dos controles y el avance ----
+  // ---- los dos controles ----
+  //
+  // SIN LOS PUNTITOS DE AVANCE (pedido de Matias, 29/8/2026). El resto de las pantallas de guion
+  // dibuja un punto por linea de la escena abajo del todo, y en el cuaderno esa fila era lo unico
+  // que quedaba en el medio de la hoja delatando que hay una interfaz. Una carta no viene con un
+  // indicador de cuantos renglones le faltan: se lee hasta que se termina.
+  //
+  // La franja oscura SE QUEDA aunque los puntos se hayan ido: es la zona de los dos controles.
   const last = d.si + 1 >= d.seq.length && d.li + 1 >= ((sc.lineas || []).length);
   promptCuaderno(w, d, last);
-  const n = (sc.lineas || []).length;
-  for (let i = 0; i < n; i++)
-    px(W / 2 - n * 4 + i * 8 + 2, H - 13, 3, 3, i === d.li ? P.accent : '#5b6168');
 }
 
-/** LOS DOS CONTROLES DEL CUADERNO, en las puntas opuestas de la pagina (pedido de Matias,
- *  29/8/2026): ANTERIOR arriba a la IZQUIERDA, SIGUIENTE abajo a la DERECHA.
+/** LOS DOS CONTROLES DEL CUADERNO: los dos ABAJO, en el mismo renglon, uno contra cada borde
+ *  (pedido de Matias, 29/8/2026 — es la tercera pasada sobre esto y la que quedo).
+ *
+ *      ANTERIOR ◀                                                        SIGUIENTE ▶
+ *
+ *  Los dos con la misma forma —palabra y despues icono— porque son el mismo control en direcciones
+ *  opuestas. Y viven adentro de la franja RESERVADA de abajo (`CUAD.franja`), que ningun otro texto
+ *  puede pisar: la caja de escritura de la carta se corta antes de llegar ahi, siempre.
  *
  *  Es la UNICA pantalla del juego donde los dos no van juntos, y hay un motivo. En las demas se
  *  cuelgan del borde de la caja de dialogo, que ya es un rectangulo opaco al que pertenecen (ver
@@ -776,37 +798,32 @@ function drawCuaderno(w, d, sc, ln, hoja) {
  *  y desaparece mientras corre un `hold` (RF-07); VOLVER esta fijo y no depende del hold, porque el
  *  silencio impide adelantarse, no volver a leer. */
 function promptCuaderno(w, d, last) {
-  // ANTERIOR ARRIBA A LA IZQUIERDA (pedido de Matias, 29/8/2026, corrigiendo la primera pasada,
-  // que lo puso abajo). Los dos controles quedan en diagonal, uno en cada punta de la pagina:
-  // VOLVER donde empieza lo que ya leiste, SEGUIR donde termina.
+  const y = H - 4 - LADO_TECLA, base = y + LADO_TECLA - 2;   // el mismo renglon para los dos
+  ctx.font = '5px monospace'; ctx.fillStyle = P.accent;
+  // ANTERIOR pegado al borde izquierdo. PALABRA Y DESPUES ICONO, igual que SIGUIENTE: los dos son
+  // el mismo control en direcciones opuestas y tienen que armarse con las mismas piezas en el
+  // mismo orden. Antes iba al reves (icono y despues palabra) y arriba de todo, y quedaban dos
+  // botones distintos en dos alturas distintas.
   //
-  // ARRIBA NO HAY FRANJA OSCURA —el pedido es que el oscuro viva solo abajo— asi que el naranja
-  // del acento cae sobre papel crema, y ahi no se lee. Se dibuja con una SOMBRA DE TINTA apenas
-  // corrida debajo: la misma solucion que usa cualquier rotulo sobre fondo claro, y cuesta un
-  // fillText de mas. Sin ella el control existe pero no se ve, que es peor que no estar.
-  if (d.li > 0 || d.si > 0) {                              // el hold cierra AVANZAR, no VOLVER
-    const yV = 4;
-    ctx.save();
-    ctx.globalAlpha = 0.28; ctx.strokeStyle = CUAD.tinta; ctx.fillStyle = CUAD.tinta;
-    ctx.font = '5px monospace'; ctx.textAlign = 'left';
-    ctx.fillText(T('backPrompt'), 4 + LADO_TECLA + 3.6, yV + LADO_TECLA - 1.4);
-    ctx.strokeRect(4.9, yV + 0.9, LADO_TECLA - 1, LADO_TECLA - 1);
-    ctx.restore();
-    ctx.globalAlpha = 0.9;
-    dibujarTeclaFlecha(4, yV, LADO_TECLA, -1);
-    ctx.font = '5px monospace'; ctx.fillStyle = P.accent; ctx.textAlign = 'left';
-    ctx.fillText(T('backPrompt'), 4 + LADO_TECLA + 3, yV + LADO_TECLA - 2);
+  // No depende de `canAdvance`: el hold cierra AVANZAR, no VOLVER — el silencio impide adelantarse,
+  // no volver a leer.
+  if (d.li > 0 || d.si > 0) {
+    ctx.globalAlpha = 0.62;
+    ctx.textAlign = 'left';
+    ctx.fillText(T('backPrompt'), 4, base);
+    dibujarTeclaFlecha(4 + ctx.measureText(T('backPrompt')).width + 3, y, LADO_TECLA, -1);
     ctx.globalAlpha = 1;
   }
+  // SIGUIENTE pegado al derecho. Parpadea al habilitarse y desaparece mientras corre un `hold`
+  // (RF-07); la ultima pantalla dice otra palabra y va a pleno, porque ahi la palabra ES
+  // informacion nueva y no un recordatorio del gesto.
   if (!w.canAdvance || Math.sin(sinceReady() * 5) <= -0.35) return;
-  // SIGUIENTE abajo a la derecha, adentro de la franja: ahi el acento se lee solo y no necesita
-  // sombra. La ultima pantalla dice otra palabra y va a pleno — es informacion, no un recordatorio.
   const ultima = last && w.state !== 'epilogue';
-  const xI = W - 4 - LADO_TECLA, yS = H - 4 - LADO_TECLA;
+  const xI = W - 4 - LADO_TECLA;
   ctx.globalAlpha = ultima ? 1 : 0.62;
-  ctx.font = '5px monospace'; ctx.fillStyle = P.accent; ctx.textAlign = 'right';
-  ctx.fillText(T(ultima ? 'startPrompt' : 'nextPrompt'), xI - 3, yS + LADO_TECLA - 2);
-  dibujarTeclaFlecha(xI, yS, LADO_TECLA, 1);
+  ctx.textAlign = 'right';
+  ctx.fillText(T(ultima ? 'startPrompt' : 'nextPrompt'), xI - 3, base);
+  dibujarTeclaFlecha(xI, y, LADO_TECLA, 1);
   ctx.globalAlpha = 1;
 }
 
@@ -1039,27 +1056,29 @@ export function cajaVN(o) {
   }
   // la linea (los renglones ya vienen partidos por quien llama)
   const ty0 = (conCara ? by + PAD_R + 6 : by + 13) + dy;   // primer renglon a la altura del busto
-  // CENTRADO para la NARRACION: no la dice nadie, asi que no se alinea contra un busto que no
-  // existe. Alineada a la izquierda como el dialogo quedaba pidiendo un hablante que falta.
-  const cen = !!o.centrado;
-  // EL CENTRADO SE CALCULA SOBRE EL RENGLON COMPLETO, no sobre lo que va escrito (arreglo 27/8).
+  // TODO A LA IZQUIERDA, dialogo y narracion por igual (pedido de Matias, 29/8/2026).
   //
-  // Con textAlign 'center' el navegador centra LO QUE SE LE PASA, asi que cada letra nueva movia
-  // todo el renglon un pixel a la izquierda: el texto se corria mientras se escribia y era muy
-  // dificil de leer. Ahora se mide el renglon entero UNA vez, se saca de ahi su borde izquierdo, y
-  // lo tipeado se dibuja alineado a la izquierda desde ese punto — el texto queda clavado y solo
-  // crece hacia la derecha, como en una maquina de escribir.
+  // La narracion venia CENTRADA, con este argumento: no la dice nadie, asi que no se alinea contra
+  // un busto que no existe. Lo que se ve al jugarlo es lo contrario — un parrafo centrado obliga a
+  // buscar donde empieza cada renglon, y en una escena donde se alternan lineas con hablante y
+  // lineas de narracion el ojo salta de margen en cada una. Lo que separa una acotacion de una voz
+  // ya lo dicen el tinte apagado y la ausencia de nombre y de busto; la alineacion no tenia que
+  // trabajar de eso.
+  //
+  // (Aca vivia la cuenta que centraba el renglon COMPLETO en vez de lo que iba escrito, para que
+  // el texto no se corriera un pixel a la izquierda con cada letra nueva. Se fue con el centrado:
+  // alineado a la izquierda el problema no existe, el texto arranca clavado en tx0 y solo crece
+  // hacia la derecha.)
   ctx.textAlign = 'left';
   ctx.font = '6px monospace'; ctx.fillStyle = o.tinta || P.ink;
   let left = o.typed === undefined ? Infinity : o.typed, curX = tx0, curY = ty0;
   for (let i = 0; i < o.wrap.length; i++) {
     const y = ty0 + i * FILA;
     if (left <= 0) { curY = y - FILA; break; }
-    const x = cen ? bx + bw / 2 - ctx.measureText(o.wrap[i]).width / 2 : tx0;
     const shown = o.wrap[i].slice(0, left);
     left -= o.wrap[i].length + 1;
-    ctx.fillText(shown, x, y);
-    curX = x + ctx.measureText(shown).width + 2; curY = y;
+    ctx.fillText(shown, tx0, y);
+    curX = tx0 + ctx.measureText(shown).width + 2; curY = y;
   }
   const t = o.parpadeo || 0;
   if (o.cursor && Math.sin(t * 14) > -0.5) px(curX, curY - 5, 3, 6, P.accent);
@@ -1077,23 +1096,132 @@ export function cajaVN(o) {
   return { bx, by, bw, bh };
 }
 
-/** LA RADIO EN VUELO: la misma caja del modo historia, abajo, mientras el jugador vuela.
- *
- *  La diferencia con el modo historia es una sola y esta en los parametros: `ok: false` y
- *  `barra`. No se avanza apretando —el jugador tiene las manos en el avion— asi que en el lugar
- *  donde el modo historia pone el "OK ▼" va la barrita de tiempo. Las dos contestan la misma
- *  pregunta, cuanto falta; la radio la contesta sola. */
+// ---------- EL TOAST: la radio EN VUELO ----------
+//
+// LA REGLA QUE LO ORDENA TODO (decision del autor, 19/8/2026): **el dialogo no se superpone NUNCA
+// a la UI.** O se acopla —chico, en una banda libre, sin tapar un solo instrumento— o va en modo
+// PAUSA, que se lleva la UI entera y pide el 100% de la atencion. No hay punto medio: una caja de
+// dialogo encima del combustible y de la munición es lo peor de los dos mundos — ni se lee comoda
+// ni deja jugar.
+//
+// POR QUE NO ES `cajaVN`. La caja del modo historia esta anclada al borde de abajo y crece con los
+// renglones: en vuelo eso significa taparle al jugador la nafta, el cañon, los misiles y el
+// escuadron justo cuando alguien le esta hablando. El comentario de `cajaVN` dice que las dos
+// formas de hablar tienen que VERSE IGUAL, y sigue siendo cierto — pero para el dialogo que PIDE
+// atencion. La radio en vuelo es otra cosa: es un aviso que pasa, y se ve como lo que es.
+//
+// LA BANDA. El HUD de vuelo vive en los 50 px de abajo (ver render/hud.js: todo cuelga de H-50
+// para arriba) y en los ~40 de arriba (puntaje, kilometro, barra de objetivo). El toast entra
+// entero entre las dos, pegado al piso de la banda libre: `TOAST_Y2` es su borde inferior y esta
+// DOS pixeles por encima de donde empieza el HUD. Ese numero es la regla escrita en codigo — si
+// alguien baja el toast, la prueba de `npm run charlas` lo cachetea.
+// EL NUMERO, calculado y no estimado. La barra mas alta del HUD es la de RASANTE, que `hud.js`
+// planta en `H-50` = 130; `bar()` dibuja su PLACA dos pixeles mas arriba (128) y su ETIQUETA en
+// `y-4` con cuerpo 6, o sea que su tinta empieza en ~120. El toast cierra en 118: dos pixeles de
+// aire contra lo mas alto que dibuja la UI de vuelo.
+// MEDIDO EN CAPTURA, no deducido: la cuenta de `bar()` daba 120 y a esa altura el toast todavia
+// le comia la etiqueta RASANTE. La columna de medidores de la izquierda (RASANTE / MOMENTUM /
+// CHANCHA) es lo mas alto que sube el HUD de vuelo, y su rotulo mas alto pinta hasta ~112.
+const HUD_TINTA = 110;                                   // lo mas alto que pinta el HUD de vuelo
+const TOAST_Y2 = HUD_TINTA - 2, TOAST_H = 30, TOAST_W = 226, TOAST_CARA = 22;
+
 export function drawRadioVN() {
   if (!visible()) return;
-  cajaVN({ personaje: radio.personaje, cara: radio.cara, wrap: radio.wrap,
-           ease: radio.ease, barra: restante() });
+  const ease = radio.ease;
+  const bw = TOAST_W, bh = TOAST_H;
+  const bx = Math.round((W - bw) / 2);
+  // entra SUBIENDO desde abajo y se va por el mismo camino: el movimiento dice "esto pasa", que es
+  // exactamente lo que un aviso tiene que decir
+  const by = Math.round(TOAST_Y2 - bh + (1 - ease) * (bh + 10));
+  ctx.globalAlpha = 0.92 * (0.35 + 0.65 * ease);
+  ctx.fillStyle = '#070b0f'; ctx.fillRect(bx, by, bw, bh);
+  ctx.globalAlpha = ease;
+  ctx.strokeStyle = '#2c3a44'; ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  // el busto, chico: alcanza para saber QUIEN habla sin robarle lugar al mundo
+  let tx = bx + 6;
+  if (radio.cara) {
+    const ps = TOAST_CARA, py0 = by + (bh - ps) / 2;
+    ctx.fillStyle = '#0d1319'; ctx.fillRect(tx, py0, ps, ps);
+    const im = portraitImg(radio.cara);
+    if (im) ctx.drawImage(im, tx, py0, ps, ps);
+    else {                                            // misma silueta de respaldo que la caja VN
+      const u = ps / 36;
+      ctx.fillStyle = '#22303b';
+      ctx.fillRect(tx + 13 * u, py0 + 6 * u, 10 * u, 11 * u);
+      ctx.fillRect(tx + 6 * u, py0 + 20 * u, 24 * u, 16 * u);
+    }
+    ctx.globalAlpha = 0.7 * ease; ctx.strokeStyle = P.accent;
+    ctx.strokeRect(tx + 0.5, py0 + 0.5, ps - 1, ps - 1); ctx.globalAlpha = ease;
+    tx += ps + 5;
+  }
+  ctx.textAlign = 'left';
+  let ty = by + 10;
+  if (radio.personaje) {
+    ctx.font = 'bold 5px monospace'; ctx.fillStyle = P.accent;
+    ctx.fillText(radio.personaje, tx, ty);
+    ty += 7;
+  }
+  ctx.font = '6px monospace'; ctx.fillStyle = P.ink;
+  // hasta DOS renglones: un aviso que necesita tres es una charla, y una charla va en PAUSA
+  for (let i = 0; i < Math.min(2, radio.wrap.length); i++) ctx.fillText(radio.wrap[i], tx, ty + i * 7);
+  // la barrita de tiempo, al ras del borde de abajo: es la unica forma honesta de decir "esto se
+  // va a ir" sin pedirle al jugador que mire un reloj
+  const r = restante();
+  if (r > 0) { px(bx + 1, by + bh - 2, (bw - 2) * r, 1, P.accent); }
+  ctx.globalAlpha = 1;
 }
+
+// ---------- EL PANEL: la radio de la escuadrilla ----------
+//
+// La otra presentacion del MISMO dato (perilla en OPCIONES). Donde el toast muestra UNA linea que
+// pasa, el panel muestra LAS ULTIMAS CUATRO — la radio como la escucha un piloto: lo que se dijo
+// hace diez segundos todavia esta ahi.
+//
+// Vive en LA MISMA BANDA que el toast y con el mismo tope (`HUD_TINTA`): la ley del §0b no cambia
+// porque cambie la forma. Crece HACIA ARRIBA desde el piso de la banda, asi que la linea nueva
+// siempre aparece en el mismo lugar y las viejas se van corriendo — leer siempre en el mismo
+// renglon es la mitad de por que un chat se puede seguir de reojo.
+const PANEL_W = 210, PANEL_FILA = 9, PANEL_VIDA = 14;    // segundos que una linea queda legible
+
+export function drawRadioPanel() {
+  if (!log.length) return;
+  const bx = Math.round((W - PANEL_W) / 2);
+  let y = TOAST_Y2 - 3;                                   // el piso: el mismo del toast
+  // de la mas NUEVA a la mas vieja, subiendo
+  for (let i = log.length - 1; i >= 0; i--) {
+    const e = log[i];
+    const vida = 1 - Math.min(1, e.t / PANEL_VIDA);
+    if (vida <= 0) continue;
+    // la nueva a pleno; las viejas se apagan por edad Y por posicion — las dos cosas dicen "esto
+    // ya paso" y juntas se leen sin tener que pensarlo
+    const a = vida * (i === log.length - 1 ? 1 : 0.55);
+    const linea = (e.personaje ? e.personaje + ': ' : '') + e.txt;
+    const txt = linea.length > 46 ? linea.slice(0, 45) + '…' : linea;
+    // el fondo va MAS opaco que el texto (0.9 contra `a`): sobre la pista clara, una fila vieja al
+    // 55% de alfa con fondo al 55% no se leia — lo que se apaga con la edad es la TINTA, no la
+    // plaquita que la sostiene
+    ctx.globalAlpha = Math.min(0.9, a + 0.35); px(bx, y - PANEL_FILA + 2, PANEL_W, PANEL_FILA - 1, '#070b0f');
+    ctx.globalAlpha = a;
+    ctx.textAlign = 'left'; ctx.font = '6px monospace';
+    // el NOMBRE en acento y lo dicho en tinta normal: en un chat, quien habla se busca primero
+    const nom = e.personaje ? e.personaje + ': ' : '';
+    ctx.fillStyle = P.accent; ctx.fillText(nom, bx + 4, y - 1);
+    ctx.fillStyle = P.ink;
+    ctx.fillText(txt.slice(nom.length), bx + 4 + ctx.measureText(nom).width, y - 1);
+    y -= PANEL_FILA;
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** El borde INFERIOR del toast, para que la prueba pueda afirmar que no pisa el HUD. */
+export const toastBanda = () => ({ y2: TOAST_Y2, h: TOAST_H, y1: TOAST_Y2 - TOAST_H, hudTinta: HUD_TINTA });
 
 function drawVNBox(w, d, ln, last, narra) {
   const k = Math.min(1, d.sceneT / 0.35), ease = 1 - Math.pow(1 - k, 3);   // entrada: sube
   const caja = cajaVN({ personaje: ln.personaje, cara: ln.cara, accion: ln.accion, wrap: d.wrap,
            typed: d.typed, accTyped: d.accTyped, ease, cursor: !d.done, barra: null, parpadeo: d.seqT,
-           // la narracion va centrada y en tinta apagada: se lee como acotacion, no como voz
-           centrado: narra, tinta: narra ? '#9fb3bc' : null });
+           // la narracion se lee como acotacion y no como voz por el TINTE apagado —y por no traer
+           // nombre ni busto—, no por la alineacion: va a la izquierda como el dialogo (29/8)
+           tinta: narra ? '#9fb3bc' : null });
   promptAvanzar(w, d, last, caja);
 }

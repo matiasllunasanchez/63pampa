@@ -143,6 +143,8 @@ export const STRINGS = {
     campSoon: 'PROXIMAMENTE',
     thr: 'GAS', thr_dead: 'SIN GAS',
     hud_status: 'ESTADO',
+    hud_squad: 'ESCUADRON',
+    obj_m: ' m',
     title: 'R A S A N T E', subtitle: 'Batalla por Malvinas · Atlantico Sur · 1982',
     tip1: 'Mas bajo = mas puntos. Rozar obstaculos da bonus.',
     tip2: 'El turbo duplica el puntaje y quema combustible.',
@@ -297,7 +299,11 @@ export const STRINGS = {
     // CINEMATICAS (docs/sistemas/PLAN_DIRECTOR_CINEMATICAS.md): la puerta hermana de PRUEBAS. Los
     // titulos de cada cinematica tampoco estan aca — viven con su timeline, en data/cines.js.
     modeCines: 'CINEMATICAS', modeCinesDesc: 'Reproducir una cinematica suelta, sin jugar hasta ella',
+    modeManiobras: 'MANIOBRAS', modeManiobrasDesc: 'Cada pirueta del catalogo, en sus tres presentaciones',
     cinesTitle: 'CINEMATICAS  ·  ELEGI UNA',
+    mvTitle: 'MANIOBRAS  ·  ELEGI UNA',
+    mvVarsTitle: 'COMO LA QUERES VER',
+    mvVarsBack: 'Volver a la lista de maniobras',
     cinBadge: 'CINEMATICA',
     // EL SELECTOR DE MISIONES (docs/proyecto/PLAN_MISIONES_FASES.md §1, fase S1). Los nombres y
     // las fechas de las misiones NO estan aca — viven en data/missions.js, que ya es su casa. Aca
@@ -311,6 +317,9 @@ export const STRINGS = {
     misModo_juego: 'MISION',
     misModo_cine: 'CINEMATICAS',
     misModo_ambas: 'CINE + MISION',
+    misModo_radio: 'DIALOGOS EN VUELO',
+    optRadioUI: 'RADIO EN VUELO', optRadioToast: 'TOAST (una linea)', optRadioPanel: 'PANEL (ultimas 4)',
+    misRadioHud: 'DIALOGO {n}/{m}  ·  AL {p}% DE LA MISION  ·  TECLA: EL QUE SIGUE  ·  ESC: SALIR',
     modePasada: 'PASADAS MORTALES', modePasadaDesc: 'A ras, saltar, soltar y salir',
     modeHint: 'flechas: elegir   ENTER / TOCAR: confirmar',
     portLabel: 'PUERTO', bargeDown: 'BARCAZA DESTRUIDA', reached: 'alcanzados',
@@ -477,7 +486,7 @@ export const STRINGS = {
           'El Vasco se persigna, sube la escalerilla y no contesta. Nunca desmiente nada.',
           'CÓNDOR: Escuadrilla CAUQUÉN, autorizada pista dos. Buen vuelo.']
       },
-      { level: 'MISIÓN 1 — SAL EN LAS ALAS', obj: 'Objetivo: dominar el vuelo rasante · Mar abierto' },
+      { level: 'CON SAL EN LAS ALAS', obj: 'Objetivo: dominar el vuelo rasante · Mar abierto' },
     ],
     epiM1: [
       {
@@ -501,7 +510,7 @@ export const STRINGS = {
           'ESTEBAN: ¿Y alcanza?',
           'PUMA: No. Pero es lo que hay, y lo que hay lo volamos con todo.']
       },
-      { level: 'MISIÓN 2 — BAUTISMO DE FUEGO', obj: '1 de mayo de 1982 · Costa' },
+      { level: 'EL BAUTISMO DE FUEGO', obj: '1 de mayo de 1982 · Costa' },
     ],
     epiM2: [
       {
@@ -530,7 +539,7 @@ export const STRINGS = {
           'PUMA: Ojalá la única guerra que nos quede sea esa.',
           'Orden de misión: ataque rasante a la escolta. Hoy sienten miedo ellos.']
       },
-      { level: 'MISIÓN 3 — EL DÍA QUE SANGRÓ EL MAR', obj: '4 de mayo de 1982 · HMS SHEFFIELD' },
+      { level: 'EL DÍA QUE SANGRÓ EL MAR', obj: '4 de mayo de 1982 · HMS SHEFFIELD' },
     ],
     epiM3: [
       {
@@ -564,7 +573,7 @@ export const STRINGS = {
           'PUMA: Lo sé, Tero. Todos tenemos a alguien abajo. Cada barco que tocamos es una bomba menos cayéndole a los pibes. Volás por tu hijo. Volamos todos por el hijo de alguien.',
           'GITANO: ¿Vieron que hicieron un festival allá en Buenos Aires? Juntaron montañas de cosas para los pibes. Chocolates, cigarrillos, abrigo... Y nada. Eso digo. Juntaron.']
       },
-      { level: 'MISIÓN 4 — EL CALLEJÓN DE LAS BOMBAS', obj: '21 de mayo de 1982 · HMS ARDENT' },
+      { level: 'EL CALLEJÓN DE LAS BOMBAS', obj: '21 de mayo de 1982 · HMS ARDENT' },
     ],
     epiM4: [
       {
@@ -598,7 +607,7 @@ export const STRINGS = {
           'GITANO: Entonces elijo pegarle y volver a cebar el mate. Que la bomba haga lo que pueda. Y si no vuelvo, Vasco, le avisás vos a tu casada, que con el coronel ya tiene práctica en dar malas noticias.',
           'VASCO: ...Callate, cordobés. (pero casi se ríe. Casi.)']
       },
-      { level: 'MISIÓN 5 — LA BOMBA QUE NO DESPERTÓ', obj: '23 de mayo de 1982 · HMS ANTELOPE' },
+      { level: 'LA BOMBA QUE NO DESPERTÓ', obj: '23 de mayo de 1982 · HMS ANTELOPE' },
     ],
     epiM5: [
       {
@@ -642,7 +651,7 @@ export const STRINGS = {
           'VASCO: (se queda pensando la respuesta demasiado tiempo) ...Sí. Vamos, que el chocolate se enfría.',
           'Nadie le da importancia.']
       },
-      { level: 'MISIÓN 6 — 25 DE MAYO', obj: '25 de mayo de 1982 · HMS COVENTRY' },
+      { level: 'PASTELITOS', obj: '25 de mayo de 1982 · HMS COVENTRY' },
     ],
     epiM6: [
       {
@@ -698,7 +707,7 @@ export const STRINGS = {
           'PUMA: (lo mira largo; sabe exactamente lo que le está pidiendo) ...Tenés treinta segundos de desvío y ni uno más. Y si me preguntan, yo no vi nada.',
           'GITANO: Nadie vio nada. Andá a saludar al pibe, Tero.']
       },
-      { level: 'MISIÓN 7 — EL BATIR DE ALAS', obj: '25 de mayo de 1982 · ATLANTIC CONVEYOR' },
+      { level: 'EL BATIR DE LAS ALAS', obj: '25 de mayo de 1982 · ATLANTIC CONVEYOR' },
     ],
     epiM7: [
       {
@@ -734,7 +743,7 @@ export const STRINGS = {
           'PUMA: (honesto, porque el pibe merece la verdad) No sé, Pichón. Pero sirvió. Cada vez que entramos, allá abajo hay un pibe que respira un día más. Para eso sirve. No para la bandera del mástil: para el pibe. Siempre fue por el pibe.',
           'ESTEBAN: (pensando en un cuaderno agitándose contra el cielo) ...por el pibe.']
       },
-      { level: 'MISIÓN 8 — EL PIBE', obj: 'Cruzar el fuego de San Carlos · Centro logístico' },
+      { level: 'EL PIBE', obj: 'Cruzar el fuego de San Carlos · Centro logístico' },
     ],
     epiM8: [
       {
@@ -774,7 +783,7 @@ export const STRINGS = {
           'ESTEBAN: Puma. ¿Se te fue alguna vez esto de acá? (se toca el pecho)',
           'PUMA: (como quien informa el clima) No. Se te suma otro y otro y otro, y un día te das cuenta de que ya no te entra más, y seguís volando igual. Eso es todo el secreto, Tero. No hay más secreto que ese.']
       },
-      { level: 'MISIÓN 9 — LO QUE NO SE DICE', obj: '8 de junio de 1982 · RFA SIR GALAHAD' },
+      { level: 'LO QUE NO SE DICE', obj: '8 de junio de 1982 · RFA SIR GALAHAD' },
     ],
     epiM9: [
       {
@@ -803,7 +812,7 @@ export const STRINGS = {
           'PUMA: Otra vez. Ahora.',
           'Nada más. Se suben.']
       },
-      { level: 'MISIÓN 10 — EL ÁNGEL DE CORRIENTES', obj: '8 de junio de 1982 · RFA SIR TRISTRAM' },
+      { level: 'ÁNGEL DE CORRIENTES', obj: '8 de junio de 1982 · RFA SIR TRISTRAM' },
     ],
     epiM10: [
       {
@@ -853,7 +862,7 @@ export const STRINGS = {
           'GITANO: (sin un solo chiste) No va solo. Ni en pedo va solo. Cuarenta días le cebé mate a este tipo.',
           'PUMA: (sonríe por primera vez en tres misiones) ...Plata Fiel completa, entonces. Una vez más. La última.']
       },
-      { level: 'MISIÓN 11 — LA ÚLTIMA MESA', obj: '11 de junio de 1982 · HMS BROADSWORD' },
+      { level: 'LA CENA', obj: '11 de junio de 1982 · HMS BROADSWORD' },
     ],
     epiM11: [
       {
@@ -905,7 +914,7 @@ export const STRINGS = {
           'GITANO: (la última sonrisa) Escuchame, Tero: llegá. Por el Vasco, por el Pichón, por todos los que no llegamos a nada: LLEGÁ.',
           'EL TURCO: (le mete el pincel de las estrellitas en el bolsillo del traje) Me lo devolvés mañana. ¿Me oíste? Me lo trae usted personalmente, Primer Teniente, o lo voy a buscar yo a nado.']
       },
-      { level: 'MISIÓN 12 — EL TERO', obj: 'Madrugada del 12 de junio · HMS GLAMORGAN' },
+      { level: 'EL TERO', obj: 'Madrugada del 12 de junio · HMS GLAMORGAN' },
     ],
     epiM12: [
       {
@@ -1102,6 +1111,8 @@ export const STRINGS = {
     campSoon: 'COMING SOON',
     thr: 'THR', thr_dead: 'NO THR',
     hud_status: 'STATUS',
+    hud_squad: 'SQUADRON',
+    obj_m: ' m',
     title: 'R A S A N T E', subtitle: 'Battle for Malvinas · South Atlantic · 1982',
     tip1: 'Lower = more points. Grazing gives a bonus.',
     tip2: 'Boost doubles the score and burns fuel.',
@@ -1221,7 +1232,11 @@ export const STRINGS = {
     prSecClimax: 'THE CLIMAXES', prSecCola: 'THE TAIL AND THE WINGMAN', prSecDestr: 'DESTRUCTION',
     prSecAgua: 'WATER AND WEATHER', prSecPoder: 'THE POWERS', prSecHistoria: 'THE STORY',
     modeCines: 'CUTSCENES', modeCinesDesc: 'Play a single cutscene, no grinding to get there',
+    modeManiobras: 'MANEUVERS', modeManiobrasDesc: 'Every aerobatic move, in its three presentations',
     cinesTitle: 'CUTSCENES  ·  PICK ONE',
+    mvTitle: 'MANEUVERS  ·  PICK ONE',
+    mvVarsTitle: 'HOW DO YOU WANT TO SEE IT',
+    mvVarsBack: 'Back to the maneuver list',
     cinBadge: 'CUTSCENE',
     modeMisiones: 'MISSIONS', modeMisionesDesc: 'Fly a single mission, no campaign around it',
     misTitle: 'MISSIONS  ·  PICK ONE AND FLY IT ALONE',
@@ -1232,6 +1247,9 @@ export const STRINGS = {
     misModo_juego: 'MISSION',
     misModo_cine: 'CUTSCENES',
     misModo_ambas: 'CUTSCENES + MISSION',
+    misModo_radio: 'IN-FLIGHT DIALOGUE',
+    optRadioUI: 'IN-FLIGHT RADIO', optRadioToast: 'TOAST (one line)', optRadioPanel: 'PANEL (last 4)',
+    misRadioHud: 'LINE {n}/{m}  ·  AT {p}% OF THE MISSION  ·  KEY: NEXT  ·  ESC: EXIT',
     modePasada: 'DEADLY RUNS', modePasadaDesc: 'On the deck, pop up, release and out',
     modeHint: 'arrows: choose   ENTER / TAP: confirm',
     portLabel: 'PORT', bargeDown: 'BARGE DESTROYED', reached: 'reached',

@@ -140,6 +140,12 @@ const RITMO = 0.7;
 // Un golpe de luz es un GOLPE: entra antes de que te des cuenta.
 const DESTELLO = 0.28;
 
+// LA MANIOBRA FILMADA (menu MANIOBRAS): las perillas de la unica timeline generica del juego.
+// `LENTO` es a la vez el `tempo` que pide la escena Y el divisor con que se convierte la duracion
+// de catalogo a segundos de pared — por eso vive en un solo lugar: escritos por separado, las
+// bandas se levantan a destiempo en cuanto alguien toca uno.
+export const MV_FILM = { LENTO: 0.45, ENTRA: 0.35, COLA: 0.6, SALE: 0.5 };
+
 const D_SUELTA = PULSO_CINE.SUELTA;
 const D_IMPACTO = D_SUELTA + PULSO_CINE.IMPACTO;
 
@@ -221,6 +227,35 @@ export const CINES = {
       { t: ['$tPir', D_IMPACTO, '$muerteDur', -DESTELLO],
         fade: { a: 1, dur: DESTELLO, ease: 'entra', color: '#f4fbff' } },
       { t: ['$tPir', D_IMPACTO, '$muerteDur'], fin: true },
+    ],
+  },
+  // LA MANIOBRA FILMADA (menu MANIOBRAS, presentacion "como cinematica"). Es GENERICA: cual pirueta
+  // se vuela llega por ligadura (`$mv`), asi que esta sola timeline sirve para las trece.
+  //
+  // NO TIENE `titulo` a proposito — por eso no aparece en el menu CINEMATICAS. Ese catalogo lista
+  // escenas que se pueden mirar SOLAS, y esta no lo es: sin la ligadura puesta no hay nada que ver.
+  //
+  // Lo que la hace "filmada" y no "jugada" son dos cosas y las dos son verbos que ya existian: las
+  // BANDAS NEGRAS (que dicen "esto no lo estas jugando") y el MUNDO EN CAMARA LENTA (`tempo`). El
+  // avion lo sigue volando flight.js: el director no prende su cama de vuelo (`vuelo`) porque en el
+  // PASILLO el dueño del avion es el vuelo, y encenderla seria un segundo piloto.
+  maniobra: {
+    id: 'maniobra',
+    beats: [
+      { t: 0, letterbox: { a: 1, ramp: MV_FILM.ENTRA, ease: 'sale' },
+        tempo: { a: MV_FILM.LENTO, ramp: 0.4, ease: 'suave' } },
+      { t: MV_FILM.ENTRA, move: '$mv', dir: '$dir', who: 'player' },
+      // …y se levantan solas. El instante sale de la duracion de LA maniobra que se pidio (`$dur`),
+      // no de un numero fijo: un BREAK TURN dura 0,7 s y SOBRE EL RADAR 2, y con un compas fijo la
+      // corta quedaba medio segundo mirando un avion nivelado.
+      //
+      // OJO CON LOS DOS RELOJES: `$dur` llega ya convertida a segundos de PARED (la ata __mvfilm
+      // dividiendo por LENTO). El reloj de la timeline es de pared y el de la maniobra es el del
+      // MUNDO, que aca corre a menos de la mitad — con la duracion de catalogo a secas, las bandas
+      // se levantaban cuando la pirueta iba por el 45 %.
+      { t: ['$dur', MV_FILM.COLA], letterbox: { a: 0, ramp: MV_FILM.SALE, ease: 'entra' },
+        tempo: { a: 1, ramp: MV_FILM.SALE, ease: 'suave' } },
+      { t: ['$dur', MV_FILM.COLA, MV_FILM.SALE], fin: true },
     ],
   },
 };

@@ -29,7 +29,7 @@ import * as chancha from './systems/chancha.js';
 import * as saves from './systems/saves.js';
 import { CAMPAIGNS } from './data/campaigns.js';
 import { PRUEBAS } from './data/pruebas.js';
-import { cinematicas } from './data/cines.js';
+import { cinematicas, MV_FILM } from './data/cines.js';
 import * as arena from './systems/arena.js';
 import * as damage from './systems/damage.js';
 import * as arena3D from './systems/three-arena.js';
@@ -72,7 +72,7 @@ import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, update
 import * as world3D from './legacy/three-world.js';
 import { cv, ctx, W, H, HOR, F, PZ, SC, px, panel, U } from './render/ctx.js';
 import * as screens from './render/screens.js';
-import { decir as decirRadio, callar as callarRadio, tickRadio } from './core/radioVN.js';
+import { decir as decirRadio, callar as callarRadio, tickRadio, radio as radioBox, restante as radioRest, visible as radioVis, log as radioLog } from './core/radioVN.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
 import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
 import * as menus from './render/menus.js';
@@ -88,7 +88,7 @@ import { MSL_MAX, ROLL_DUR, GEAR_T, RADAR_ALT, FLY_TOP, VEIL_IN, VEIL_FULL, VEIL
 // borde y pasa a ofrecerte cruzarlo. 4 unidades: lo justo para que salga del ASCENSO anterior y
 // repetir el combo, sin que se dispare desde una altura donde todavia tenias margen.
 const CLIMB_NEAR = 4;
-import { MV_HI, MV_LO } from './data/moves.js';
+import { MV_HI, MV_LO, maniobras, MV_VISTAS, MOVES } from './data/moves.js';
 import * as moves from './systems/moves.js';
 import * as squad from './systems/squad.js';
 // TRAMOS (docs/sistemas/SPEC_TRAMOS.md): el guion de spawn por mision. El orquestador le pasa
@@ -100,6 +100,10 @@ import * as tramos from './systems/tramos.js';
 import * as charla from './systems/charla.js';
 import { FIELES } from './data/pilots.js';
 import * as squadRender from './render/squad.js';
+// LAS PIRUETAS DE ACTOR (PLAN_MANIOBRAS_FASES M1): un Fiel entra, vuela una maniobra y se va. Es
+// puesta en escena — no dispara, no choca y no toca al jugador (regla §3.7 del plan).
+import * as wingmv from './systems/wingmv.js';
+import { drawActores } from './render/wingmv.js';
 import { canRelevo, pilotIdx } from './core/squad.js';
 import { RUNWAYS, AIR_START_Y } from './data/runways.js';
 
@@ -160,6 +164,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     let quickSel = 0;                // cursor del submenu JUEGO RAPIDO
     let prbSel = 0;                  // cursor del catalogo de PRUEBAS
     let cinSel = 0;                  // cursor del catalogo de CINEMATICAS
+    let mvSel = 0, mvVarSel = 0, mvPick = null;   // MANIOBRAS: cursor de la lista, de las variantes, y la elegida
     // A DONDE VUELVE una corrida de herramienta (PRUEBAS o el SELECTOR DE MISIONES) cuando se
     // termina o se sale. Es UNA variable y no dos caminos copiados porque las dos pantallas son
     // la misma idea —elegir algo, jugarlo, volver a elegir— y lo unico que cambia es el catalogo.
@@ -168,6 +173,12 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // y de ahi al catalogo. Es un flag de la CORRIDA y no del menu (el menu ya eligio) para que la
     // rama del estado 'story' no tenga que saber de que pantalla vino.
     let testCine = false;
+    // MODO DIALOGOS del selector: recorrer las charlas EN VUELO de la mision (las `radio:` de los
+    // tramos) sin tener que volarla. Se apoya entero en el MODO CAMARA (cfg.devcam), que ya
+    // congela el mundo, hace inmortal al avion y ya tickea la caja de radio: lo unico que agrega
+    // es saltar de una linea a la otra y ponerse en el punto del mapa donde cada una suena — que
+    // es la mitad de la pregunta ("que dicen Y EN QUE MOMENTO").
+    let testRadio = false, radioBeat = 0;
     let misSel = 0;                  // cursor del SELECTOR DE MISIONES
     // …y si esa mision se vuela CON su guion. Es una perilla de la PANTALLA (no de la corrida) y
     // vive fuera del selector a proposito: se elige una vez y queda puesta para las que sigan.
@@ -177,7 +188,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     //   0 · MISION      — derecho al despegue, sin una pantalla (lo que mas se usa al ajustar)
     //   1 · CINEMATICAS — el guion y el epilogo SIN volar: se leen las dos puntas de la mision
     //   2 · CINE+MISION — la mision entera, como la vive un jugador de campaña
-    const MIS_MODOS = ['juego', 'cine', 'ambas'];
+    const MIS_MODOS = ['juego', 'cine', 'ambas', 'radio'];
     let misModo = 0;
     // el orden DEBE coincidir con `opts` en menus.drawModeSelect: el click traduce la fila tocada
     // a este indice. 'options' = pantalla de ajustes (idioma); 'quit' = fila SALIR.
@@ -192,7 +203,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // CINEMATICAS va JUSTO DEBAJO de PRUEBAS porque es la misma herramienta con otro catalogo:
     // una lista de cosas para mirar sin jugar hasta ellas. Separarlas con MISIONES en el medio
     // hubiera roto la lectura de "las dos puertas de autor, juntas".
-    const MODES = ['campaign', 'quick', 'pruebas', 'cines', 'misiones', 'options', 'quit'];
+    const MODES = ['campaign', 'quick', 'pruebas', 'cines', 'maniobras', 'misiones', 'options', 'quit'];
     // Los modos de adentro de JUEGO RAPIDO. `arena` y `pasadas` son los dos BANCOS DE PRUEBAS del
     // climax: entran DIRECTO al buque, sin cruzar el pasillo, y existen para poder tunear cada
     // fase sin jugar una mision entera cada vez.
@@ -245,6 +256,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     let veilOut = 0, veilPrev = '';
     let objectiveDist = 0;           // distancia meta puerto→barcaza (0 = sin objetivo / infinito)
     let objectiveShip = '';          // nombre de la barcaza objetivo del run
+    // …y de QUE TIPO es ese objetivo ('ship' | 'distance'). El HUD lo necesita para decidir si el
+    // rotulo de la ruta es un NOMBRE (un buque, que hay que decir) o una DISTANCIA (que ya la dicen
+    // la cuenta regresiva y el total del odometro, y repetirla tres veces no la hace mas clara).
+    let objectiveKind = 'ship';
     // EL AVION FIJO DE LA CAMPAÑA. Se busca POR CLAVE y no por indice: el roster de PLANES se
     // reordena (hoy mismo salio el Pampa y el Mirage IIIEA paso a ser 5P), y un 0 escrito a mano
     // seguiria apuntando "al primero" — que el dia que alguien mueva una linea es otro avion.
@@ -576,6 +591,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       else if (m === 'quick') { quickSel = 0; setState('quickmenu'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'pruebas') { prbSel = prbFirstSel(); setState('pruebas'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'cines') { cinSel = 0; setState('cines'); beep(600, 0.08, 'square', 0.05); }
+      else if (m === 'maniobras') { mvSel = 0; setState('maniobras'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'misiones') { setState('misiones'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'options') { setState('options'); beep(600, 0.06, 'square', 0.05); }
       else if (m === 'quit') quitGame();
@@ -631,6 +647,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       if (gameMode === 'cycle') selPlane = o.avion == null ? CAMPAIGN_PLANE : o.avion;
       S.test = true;
       testCine = !!o.soloCine;         // modo CINEMATICAS: la mision se lee, no se vuela
+      testRadio = !!o.radio;           // modo DIALOGOS: se recorren las charlas, no se vuela
       if (o.volver) testBack = o.volver;
       prbTasks.length = 0;
       // LA LIBRETA DE ESA MISION (el "real real"): la corrida suelta se vuela con las piruetas que
@@ -641,9 +658,16 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       pichon = loadoutAt(i);
       loadLevel(i);
       if (o.aire || o.cfg) { Object.assign(cfg, o.aire ? { start: 'air' } : {}, o.cfg || {}); applyCfg(); }
+      // el recorrido de charlas se hace DENTRO del modo camara: mundo quieto, avion inmortal, y
+      // la caja de radio ya tickea sola ahi (ver el bloque de cfg.devcam en update)
+      cfg.devcam = testRadio;
       reset(); setRunObjective();
       run.t = 0;
       const m = curMission();
+      // MODO DIALOGOS: derecho al mapa, sin despegue ni fundido — no hay mision que empezar, hay
+      // charlas que mirar. Se entra en 'play' (el modo camara vive adentro de ese estado) y se
+      // arranca parado en la primera.
+      if (testRadio) { setState('play'); irACharla(0); return m; }
       if (o.historia && m.story) { initStory(m.story); setState('story'); return m; }
       // el fundido y el `lv1` son la ENTRADA a la mision, y por eso no van en los momentos: un
       // momento no empieza, ya esta pasando.
@@ -660,6 +684,33 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       initStory(m.epi); setState('epilogue');
       beep(500, 0.05, 'square', 0.04);
     }
+    // ---------- EL RECORRIDO DE DIALOGOS (modo DIALOGOS del selector) ----------
+    // Las charlas en vuelo de una mision son las `radio:` de sus tramos, y su MOMENTO es la
+    // fraccion del recorrido en la que suenan. Recorrerlas es entonces: pararse en esa fraccion
+    // del mapa y decir la linea. Nada de esto es logica nueva — es la data de los tramos leida en
+    // orden y las dos funciones que el juego ya usa para hablar.
+
+    /** Las charlas de la mision en curso, en orden: `{ frac, clave }`. Vacio si no tiene. */
+    function charlasDe(m) {
+      const out = [];
+      let desde = 0;
+      for (const t of (m && m.tramos) || []) {
+        if (t.radio) out.push({ frac: (desde + t.hasta) / 2, clave: t.radio });   // el MEDIO del tramo
+        desde = t.hasta;
+      }
+      return out;
+    }
+    /** Se para en la charla `n` (con vuelta al principio) y la dice. Mueve `run.dist` para que el
+     *  MUNDO sea el de ese momento de la mision: el punto del mapa es la mitad del dato. */
+    function irACharla(n) {
+      const ch = charlasDe(curMission());
+      if (!ch.length) return null;
+      radioBeat = ((n % ch.length) + ch.length) % ch.length;
+      const c = ch[radioBeat];
+      run.dist = Math.max(0, objectiveDist * c.frac);
+      radioTramo(c.clave);             // la MISMA puerta que usa el vuelo: se ve igual que en juego
+      return c;
+    }
     // EL SELECTOR: la campaña listada, una fila por mision. Las filas son la DATA (el indice en
     // MISSIONS) y no una copia de sus textos: agregar una mision la pone en la lista sola, que es
     // la mitad de por que el selector sobrevive al remapeo 12→14.
@@ -675,7 +726,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       if (r.back) { modeSel = MODES.indexOf('misiones'); setState('modeselect'); beep(400, 0.06, 'square', 0.05); return; }
       beep(700, 0.08, 'square', 0.05);
       const modo = MIS_MODOS[misModo];
-      abrirMision(r.i, { historia: modo !== 'juego', soloCine: modo === 'cine', volver: 'misiones' });
+      abrirMision(r.i, {
+        historia: modo === 'cine' || modo === 'ambas',
+        soloCine: modo === 'cine', radio: modo === 'radio', volver: 'misiones',
+      });
     }
     /** [H]: cicla MISION → CINEMATICAS → CINE+MISION. Tres tonos distintos (uno por modo) para no
      *  tener que mirar el pie cada vez que se aprieta. */
@@ -699,6 +753,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
      *  sondas-interruptor que la corrida pudo dejar puestas: ver PRB_NEUTRO. */
     function salirTest() {
       S.test = false; prbTasks.length = 0; prbNeutro();
+      // el modo DIALOGOS deja el MODO CAMARA puesto: apagarlo es parte de salir. Sin esto, la
+      // mision siguiente arrancaba con el mundo congelado y el avion quieto — y el sintoma
+      // ("no puedo volar") no se parece en nada a la causa.
+      testRadio = false; cfg.devcam = false;
       setState(testBack);
     }
 
@@ -761,6 +819,47 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       testBack = 'cines';                  // la cinematica vuelve AL CATALOGO
       beep(700, 0.08, 'square', 0.05);
       r.ver(pruebasApi());
+    }
+
+    // ---------- EL MENU MANIOBRAS (PLAN_MANIOBRAS_FASES) ----------
+    // La tercera puerta hermana de PRUEBAS y CINEMATICAS, y la MISMA mecanica otra vez. Lo unico
+    // propio es que tiene DOS NIVELES: primero la pirueta, y adentro sus tres presentaciones. Son
+    // dos niveles y no un toggle porque la lista de arriba es "que maniobra" y la de adentro es
+    // "como la quiero ver": son dos preguntas, y mezclarlas en una fila obligaba a leer el modo en
+    // un renglon que ya decia otra cosa.
+    //
+    // El catalogo se DERIVA de data/moves.js (`maniobras()`), igual que el de CINEMATICAS se
+    // deriva de las timelines: una pirueta nueva aparece sola.
+    const mvRows = () => maniobras().concat([{ id: 'back', back: true }]);
+    const mvVarRows = () => MV_VISTAS.concat([{ id: 'back', back: true, volver: 'mvVarsBack' }]);
+    function mvNav(dir) {
+      const rows = mvRows();
+      mvSel = (mvSel + dir + rows.length) % rows.length;
+      beep(520, 0.05, 'square', 0.04);
+    }
+    function mvConfirm() {
+      const r = mvRows()[mvSel];
+      if (!r) return;
+      if (r.back) { modeSel = MODES.indexOf('maniobras'); setState('modeselect'); S.test = false; beep(400, 0.06, 'square', 0.05); return; }
+      mvPick = r; mvVarSel = 0; setState('mvvars'); beep(600, 0.08, 'square', 0.05);
+    }
+    function mvVarNav(dir) {
+      const rows = mvVarRows();
+      mvVarSel = (mvVarSel + dir + rows.length) % rows.length;
+      beep(520, 0.05, 'square', 0.04);
+    }
+    function mvVarConfirm() {
+      const r = mvVarRows()[mvVarSel];
+      if (!r || !mvPick) return;
+      if (r.back) { setState('maniobras'); beep(400, 0.06, 'square', 0.05); return; }
+      // se entra por la MISMA puerta que PRUEBAS y CINEMATICAS —los verbos, las tareas diferidas,
+      // el neutro de las sondas pegajosas— porque es la misma herramienta con un catalogo mas.
+      prbTasks.length = 0;
+      prbNeutro();
+      S.test = true;
+      testBack = 'mvvars';                 // la maniobra vuelve A SUS VARIANTES, no al catalogo
+      beep(700, 0.08, 'square', 0.05);
+      r.setup(pruebasApi(), mvPick.id);
     }
 
     // LAS SONDAS PEGAJOSAS. Varias de las sondas del repo son INTERRUPTORES, no acciones: quedan
@@ -1003,9 +1102,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         const m = curMission(), g = goalOf(m);
         objectiveDist = g.dist(m.goal) * QA_DIST;
         objectiveShip = g.label(m.goal);
+        objectiveKind = m.goal.kind || 'ship';
         g.setup(m.goal);
       }
-      else { objectiveDist = 0; objectiveShip = randomShip(); }
+      else { objectiveDist = 0; objectiveShip = randomShip(); objectiveKind = 'ship'; }
       // LOS TRAMOS de la corrida (SPEC_TRAMOS RF-01). Va ACA y no en `reset()` porque es donde
       // se calcula `objectiveDist`, y las fracciones no significan nada sin su objetivo: atarlos
       // al mismo lugar es lo que garantiza que los dos son SIEMPRE del mismo run. Los modos sin
@@ -1094,6 +1194,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // Desde la campaña v0.0.1 cada misión pisa TAMBIÉN la lluvia (la rampa de clima del guion),
       // así que la vieja media-verdad del encabezado quedó saldada: en campaña, todo este bloque
       // lo decide la misión.
+      { label: () => T('optRadioUI'), opts: ['toast', 'panel'],
+        names: () => [T('optRadioToast'), T('optRadioPanel')],
+        get: () => cfg.radioUI, set: v => cfg.radioUI = v, save: 'rasante_radioui' },
+
       { head: 'optSecAmbiente' },
       { note: 'optNoteAmbiente' },
       { label: () => T('optSky'), opts: ['dusk', 'night', 'storm', 'clear', 'cloudy', 'sun', 'moon', 'dawn'],
@@ -1391,6 +1495,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // fondo del lobby— pero si divergen, se nota: o el fondo se congela o la musica se corta.
     const inLobby = () => S.state === 'title' || S.state === 'modeselect' || S.state === 'menu' || S.state === 'options'
       || S.state === 'mejoras' || S.state === 'campmenu' || S.state === 'quickmenu' || S.state === 'pruebas' || S.state === 'cines'
+      || S.state === 'maniobras' || S.state === 'mvvars'
       || S.state === 'misiones' || S.state === 'saves';
 
     // ESTRELLAS 1..4 (la 4ª = Malvinas, rango S). Compartido por el recuento de nivel y el
@@ -1555,6 +1660,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       resetPlane();     // el avion a la posicion de arranque
       resetStats();     // los contadores del recuento final
       clearWorld();     // vacia el campo de obstaculos, balas, particulas…
+      wingmv.limpiar();  // …y saca de escena a los actores: una pirueta ajena no sobrevive al reset
       momentum.resetMomentum();
       tempo.resetTempo();
       chancha.resetChancha();   // el poder es de la CORRIDA: se pide una vez y sobrevive al relevo
@@ -1692,6 +1798,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       prbConfirm: () => prbConfirm(),
       cinNav: dir => cinNav(dir),
       cinConfirm: () => cinConfirm(),
+      mvNav: dir => mvNav(dir),
+      mvConfirm: () => mvConfirm(),
+      mvVarNav: dir => mvVarNav(dir),
+      mvVarConfirm: () => mvVarConfirm(),
+      mvBack: () => { setState('maniobras'); beep(400, 0.06, 'square', 0.05); },
       misNav: dir => misNav(dir),
       misConfirm: () => misConfirm(),
       misToggleHist: () => misToggleHist(),
@@ -2181,6 +2292,17 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       const dtReal = dt;
       run.dtReal = dtReal;   // el reloj de pared, para los efectos que no se dilatan (ver core/run.js)
       if (S.state === 'pulso') dt *= pulso.active() ? pulso.timeScale() : PULSO.SLOW;
+      // …y LA CAMARA LENTA DEL DIRECTOR cuando una timeline corre sobre el vuelo normal (verbo
+      // `tempo`; hoy, la maniobra filmada del menu MANIOBRAS).
+      //
+      // VA DESPUES DE `dtReal`, Y ESA ES TODA LA CUESTION. El reloj de una cinematica es de PARED
+      // —lo dice el contrato de systems/cine.js— asi que una escena que dilata el mundo no puede
+      // dilatarse a si misma. Puesto antes (primer intento, en el calculo del dt del cuadro) el
+      // `tempo` se aplicaba TAMBIEN al reloj que mide la timeline: los dos relojes se estiraban
+      // juntos, nada cambiaba en relativo, y las bandas negras se levantaban a destiempo. Ojo con
+      // el nombre: `dtReal` no es el reloj de pared del sistema, es "el dt antes de los
+      // reescalados de escena" — y por eso el orden de estas dos lineas importa.
+      else if (S.state === 'play' && cine.active()) dt *= cine.tempo();
       run.t += dt;
       prbTick();   // MODO PRUEBAS: las sondas agendadas con a.luego() (no hace nada sin S.test)
       // rotacion del fondo del lobby (no avanza jugando: solo mientras se elige)
@@ -2496,6 +2618,14 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         flags.startReq = false; flags.anyPress = false;
         return;
       }
+      // MODO DIALOGOS (selector): cualquier tecla pasa a la charla siguiente, y de la ultima vuelve
+      // a la primera — la gracia es poder mirar la misma diez veces mientras se ajusta como se ve.
+      //
+      // VA ACA, PEGADO AL BORRADO DEL FLAG, y no adentro del bloque de `cfg.devcam` que sigue: la
+      // linea de abajo apaga `anyPress` para el resto del cuadro, asi que cualquier lector del flag
+      // que viva mas abajo lo encuentra siempre en false. (Se perdio media hora con eso: la tecla
+      // llegaba, el modo la ignoraba, y no habia error que mirar.)
+      if (testRadio && flags.anyPress) irACharla(radioBeat + 1);
       flags.anyPress = false;
 
       squad.tickExit(dt);   // reloj de la salida de plano de la formacion (solo corre si arranco)
@@ -2588,6 +2718,15 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // y el ciclo entero dura casi un minuto. En el juego normal `cazaCalma` es siempre false.
       if (cazaCalma) { obstacles.length = 0; missiles.length = 0; soldiers.length = 0; run.detection = 0; }
       if (cazaProbe && !cazaArmed && run.t > 1.5) { cazaArmed = true; caza.start(cazaProbe); }
+      // LOS ACTORES: los Fieles que entraron a hacer una pirueta en escena. Corren con el dt del
+      // MUNDO —si el tiempo se dilata, la figura se dilata con el— y no devuelven señal: no pueden
+      // matar a nadie ni terminar nada. Se limpian solos (tope de vida en data/moves.js).
+      wingmv.update(dt);
+      // EL DIRECTOR, tambien en el PASILLO. Hasta ahora solo corria adentro del PULSO (que lo
+      // actualiza el mismo): esto es lo que deja mirar una maniobra FILMADA sobre el vuelo normal.
+      // Corre con el reloj de PARED —una cinematica no se dilata con el mundo que ella misma
+      // dilata— y su señal `done` no tiene a quien avisarle: la timeline se apaga sola.
+      if (S.state === 'play') cine.update(dtReal);
       // EL DIRECTOR (H4): decide SI hay duelo, mirando la mision y no el duelo. La intensidad es
       // dato de nivel (cfg.caza, 0..2 — m1 en 0 porque el tutorial no se pelea) y `meta` en 0
       // significa pasillo infinito, donde no hay techo de duelos. Con la sonda `?caza` puesta el
@@ -2831,7 +2970,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // que se ve es una reja roja tapando el buque que se hunde.
       if (cfg.radarNet && S.state !== 'pulso') world.drawRadarNet();
       if (cfg.hitboxes) world.drawHitboxes();   // depuracion: cajas de colision en verde fluor
-      if (cfg.devcam && S.state === 'play') world.drawFlightLane();   // modo camara: el carril del avion
+      if (cfg.devcam && S.state === 'play') world.drawFlightLane(testRadio);   // modo camara: el carril del avion
 
       // ráfagas de viento
       ctx.globalAlpha = 0.35;
@@ -2986,6 +3125,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // cabina del PULSO: la camara esta ADENTRO del avion, asi que un avion en tercera en el mismo
       // cuadro serian dos aviones. Con la camara 'cola' si se dibuja — ahi la gracia es justamente
       // verlo siluetado contra el cielo.
+      // LOS ACTORES, ANTES del avion del jugador: vuelan MAS LEJOS (z mayor), asi que el pintor
+      // correcto los pone atras. Van adentro del giro del horizonte por la misma razon que el
+      // resto del mundo — si el mundo se inclina, ellos se inclinan con el.
+      drawActores(selPlane, wingmv.state());
       if (!rasante.enCabina()
         && (chase || (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom());
       // LA COLA, segunda pasada: lo que quedo MAS CERCA que el avion — el sobrepaso enorme
@@ -3050,14 +3193,17 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // no de mundo. Ojo con esto — `drawPersec` (el avion del lider) se dibuja arriba, FUERA del
       // scale, porque eso si es mundo. Los dos espacios de coordenadas del repo, en un solo archivo.
       if (S.state === 'play') {
-        ctx.save(); ctx.scale(U, U); hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip,
+        ctx.save(); ctx.scale(U, U); hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip, goalKind: objectiveKind,
           // EL PODER RASANTE va por snapshot (convencion 4): el lint de capas prohibe que el
           // render importe de systems, y la lista de excepciones solo puede achicarse.
           ras: { on: rasante.active(), meter: rasante.meterVal(), resta: rasante.restante(), dur: RAS_DUR } }); drawCinta(); ctx.restore();
-        // LA CAJA DE RADIO va en el espacio de DISEÑO (320x180), como el resto de las cajas de
-        // dialogo, y NO en el del HUD: es la misma caja del modo historia y tiene que caer en el
-        // mismo lugar de la pantalla. Se dibuja al final para que quede por encima de todo.
-        ctx.save(); ctx.scale(U, U); screens.drawRadioVN(); ctx.restore();
+        // LA RADIO EN VUELO va en el espacio de DISEÑO (320x180) y se dibuja al final: es lo
+        // ultimo que entra, arriba de todo. QUE FORMA tiene la elige el jugador en OPCIONES —
+        // TOAST (una linea que pasa) o PANEL (las ultimas cuatro, como un chat). Las dos respetan
+        // la misma banda y ninguna toca la UI (SPEC_CHARLAS_VUELO §0b).
+        ctx.save(); ctx.scale(U, U);
+        if (cfg.radioUI === 'panel') screens.drawRadioPanel(); else screens.drawRadioVN();
+        ctx.restore();
       }
       if (S.state === 'momentum' && momentum.active()) momRender.drawMomentum({
         mom: momentum.active(), momPhase: momentum.phase(), phases: momentum.phases(), msl: run.msl, objectiveShip, t: run.t,
@@ -3108,6 +3254,8 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       if (S.state === 'quickmenu') menus.drawQuickMenu({ sel: quickSel, rows: quickRows(), t: run.t });
       if (S.state === 'pruebas') menus.drawPruebasMenu({ sel: prbSel, rows: prbRows(), t: run.t });
       if (S.state === 'cines') menus.drawCinesMenu({ sel: cinSel, rows: cinRows(), t: run.t });
+      if (S.state === 'maniobras') menus.drawManiobrasMenu({ sel: mvSel, rows: mvRows(), t: run.t });
+      if (S.state === 'mvvars') menus.drawMvVarsMenu({ sel: mvVarSel, rows: mvVarRows(), t: run.t, mv: mvPick });
       if (S.state === 'misiones') menus.drawMisionesMenu({ sel: misSel, rows: misRows(), modo: MIS_MODOS[misModo], t: run.t });
       if (S.state === 'saves') menus.drawSaves({ list: saves.listSaves(), sel: savesSel, t: run.t });
       // EL BANCO DEL PICHON: pantalla de mejora entre misiones. Desde M8 (muerto el Pichon,
@@ -3165,32 +3313,12 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         ctx.globalAlpha = 1;
       }
 
-      // EL SELLO DEL MODO PRUEBAS. Va al final y encima de TODO —climax, cabina, cinematica— por
-      // una razon practica: la mitad de los momentos son pantallas que se parecen mucho a la
-      // partida de verdad, y una captura sin el sello no se puede distinguir de un playtest real.
-      // Se dibuja en espacio de DISEÑO (320×180, ver los dos espacios de coordenadas) y va ARRIBA
-      // AL MEDIO. La esquina derecha parecia libre y no lo es: ahi vive el reproductor de musica y
-      // el sello le caia justo encima del TRACK (se vio en la primera captura).
-      // …pero SOLO donde una captura podria confundirse con una partida de verdad: el vuelo y los
-      // climax. En las pantallas de GUION no distingue nada —una cinematica es una cinematica, se
-      // vea donde se vea— y ahi el sello es puro ruido encima del texto, que es lo unico que hay
-      // que leer. (Lo pregunto el autor jugando el guion de M1: "el texto PRUEBA para que esta?".
-      // La respuesta era buena para el vuelo y no existia para una pantalla de dialogo.)
-      const selloAca = S.state !== 'story' && S.state !== 'epilogue' && S.state !== 'upgrade';
-      if (S.test && selloAca) {
-        ctx.save(); ctx.scale(U, U);
-        // el sello dice CUAL de las dos herramientas: una captura de una cinematica y una de un
-        // momento de PRUEBAS se parecen demasiado como para que el rotulo sea el mismo
-        const txt = T(testBack === 'cines' ? 'cinBadge' : 'prBadge');
-        ctx.font = 'bold 6px monospace'; ctx.textAlign = 'center';
-        const bw = ctx.measureText(txt).width + 10;
-        ctx.globalAlpha = 0.6; ctx.fillStyle = '#000';
-        ctx.fillRect(160 - bw / 2, 2, bw, 10);
-        ctx.globalAlpha = 0.95; ctx.fillStyle = P.warn;
-        ctx.fillText(txt, 160, 9);
-        ctx.globalAlpha = 1; ctx.textAlign = 'left';
-        ctx.restore();
-      }
+      // EL SELLO DEL MODO PRUEBAS SE FUE (playtest 29/8). Estuvo arriba al medio para distinguir
+      // una captura de herramienta de un playtest de verdad, y se mudo dos veces esquivando cosas:
+      // primero la esquina derecha (ahi vive el reproductor) y despues el centro, donde terminaba
+      // encima del titulo de la PASADA y del nombre del blanco. Un rotulo que no cabe en ningun
+      // lado sin tapar algo es un rotulo que el HUD no tiene lugar para tener: quien saca la
+      // captura sabe si esta en una prueba, y `S.test` sigue existiendo para todo lo demas.
 
       // EL DIRECTOR, lo que dibuja el: las bandas negras y su propio fundido. Va antes del fundido
       // de mision porque son dos cosas distintas —uno es de la escena, el otro del cambio de
@@ -3474,6 +3602,27 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       cinSel = i; cinConfirm();
       return JSON.stringify({ id, state: S.state, test: S.test, volver: testBack });
     };
+    // __cfgset / __cfgget: una perilla de OPCIONES desde afuera. Existe para poder COMPARAR dos
+    // presentaciones de lo mismo en la misma escena — cambiarla a mano obliga a salir del vuelo,
+    // y al volver ya no es la misma corrida. QUITAR con el resto.
+    if (typeof window !== 'undefined') window.__cfgset = (k, v) => { cfg[k] = v; return String(cfg[k]); };
+    if (typeof window !== 'undefined') window.__cfgget = k => String(cfg[k]);
+    // __logdbg: el HISTORIAL de la radio (lo que dibuja el PANEL), de lo mas viejo a lo mas nuevo.
+    if (typeof window !== 'undefined') window.__logdbg = () => JSON.stringify(
+      radioLog.map(e => ({ q: e.personaje, t: +e.t.toFixed(1), txt: e.txt.slice(0, 28) })));
+    // __toastbanda: donde vive el toast y donde empieza el HUD. Es la sonda de LA REGLA — "el
+    // dialogo no se superpone a la UI" no se puede afirmar mirando una captura, porque el toast
+    // aparece y se va. QUITAR con el resto.
+    if (typeof window !== 'undefined') window.__toastbanda = () => JSON.stringify(screens.toastBanda());
+    // __radiodbg: LA CAJA DE RADIO tal como se ve ahora — quien habla, que dice, y donde estamos
+    // parados del recorrido. Sin esto, "las charlas se recorren" solo se puede afirmar mirando
+    // capturas de a una. QUITAR con el resto de las sondas.
+    if (typeof window !== 'undefined') window.__radiodbg = () => JSON.stringify({
+      visible: radioVis(), personaje: radioBox.personaje, cara: radioBox.cara,
+      txt: radioBox.wrap.join(' '), resta: +radioRest().toFixed(2),
+      beat: radioBeat, total: charlasDe(curMission()).length, dist: run.dist | 0,
+      frac: objectiveDist ? +(run.dist / objectiveDist).toFixed(3) : 0, radioMode: testRadio,
+    });
     // MOTOR DE HISTORIA para el fixture del locker (SPEC_MODO_HISTORIA §6): lo que el jugador
     // tiene en pantalla ahora mismo. Los holds hay que poder MEDIRLOS desde afuera — a ojo, un
     // silencio de 3.6 s y uno de 4.0 s son indistinguibles, y esa diferencia es la actuacion.
@@ -3687,11 +3836,34 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // QUITAR — dispara una PIRUETA a mano. Se tiran con COMBOS de gestos, asi que desde un
     // fixture no hay forma de pedir una sin reproducir el combo entero: sin esto, "la estela sale
     // en la maniobra" no se puede afirmar con un numero.
-    if (typeof window !== 'undefined') window.__mv = id => {
+    if (typeof window !== 'undefined') window.__mv = (id, dir, tgt) => {
       // 'tonel' entra por otra puerta que las piruetas (startRoll, no startMove) y gira el SPRITE
       // entero: es el caso que prueba que la estela acompaña la rotacion y no se queda horizontal.
-      const ok = id === 'tonel' ? (startRoll(1), true) : moves.startMove(id || 'barrel', 1);
-      return JSON.stringify({ pedido: id || 'barrel', ok, mv: run.mv || null, rollT: +(run.rollT || 0).toFixed(2) });
+      if (id === 'tonel') { startRoll(dir || 1); return JSON.stringify({ pedido: 'tonel', ok: true, mv: null, rollT: +(run.rollT || 0).toFixed(2) }); }
+      const m = id || 'barrel';
+      // EL ASCENSOR NECESITA UN TECHO. `climb`/`climbmax` trepan HASTA `run.mvTgt`, y el combo se
+      // lo pasa (ver el dispatcher, mas arriba). Sin el la sonda las lanzaba con techo 0, o sea
+      // convertia la maniobra que trepa en una picada al mar — y el fixture habria medido eso.
+      // La sonda REPITE la eleccion del dispatcher en vez de inventar una: lo que se prueba tiene
+      // que ser lo que se juega.
+      const t = tgt !== undefined ? +tgt : m === 'climbmax' ? FLY_TOP : m === 'climb' ? RADAR_ALT : 0;
+      const ok = moves.startMove(m, dir || 1, t);
+      return JSON.stringify({ pedido: m, ok, tgt: t, mv: run.mv || null, rollT: +(run.rollT || 0).toFixed(2) });
+    };
+
+    // QUITAR — LA MANIOBRA FILMADA: la misma pirueta, pero corrida por EL DIRECTOR sobre el vuelo
+    // normal (bandas negras + mundo en camara lenta, ver la timeline `maniobra` en data/cines.js).
+    // Es la tercera presentacion del menu MANIOBRAS. Las ligaduras se atan aca porque son lo unico
+    // que la timeline no puede saber: cual pirueta y cuanto dura.
+    if (typeof window !== 'undefined') window.__mvfilm = (id, dir) => {
+      const m = id || 'barrel';
+      const M = MOVES[m];
+      if (!M) return JSON.stringify({ error: 'no existe la maniobra ' + m });
+      // la duracion va convertida a segundos de PARED: la maniobra corre con el reloj del MUNDO,
+      // que esta escena pone en camara lenta (ver MV_FILM en data/cines.js).
+      const dur = M.dur / MV_FILM.LENTO;
+      const ok = cine.start('maniobra', { mv: m, dir: dir === undefined ? 1 : +dir, dur });
+      return JSON.stringify({ mv: m, dur: +dur.toFixed(2), ok });
     };
 
     // QUITAR — la estela de punta de ala: con que fuerza sale y cuantas muestras vivas tiene.
