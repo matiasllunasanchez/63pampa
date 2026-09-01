@@ -976,20 +976,22 @@ test('radio: callar() MUTA el store, no lo reemplaza', () => {
 });
 
 test('campaña: la tarjeta de nivel dice el numero de mision que le toca', () => {
-  // EL NUMERO ESTA ESCRITO DOS VECES: la posicion en MISSIONS, y el texto de la tarjeta
-  // ("MISIÓN 4 — ..."). Un dato escrito dos veces se desincroniza, y este ya lo hizo: al pasar
-  // de 12 a 14 misiones las tarjetas siguieron diciendo el numero viejo, y en pantalla no se ve
-  // raro — se ve como una mision que se llama distinto de lo que el menu dijo.
+  // EL NUMERO ESTA ESCRITO DOS VECES: la posicion en MISSIONS, y el campo `capitulo` de la
+  // tarjeta. Un dato escrito dos veces se desincroniza, y este ya lo hizo: al pasar de 12 a 14
+  // misiones las tarjetas siguieron diciendo el numero viejo, y en pantalla no se ve raro — se ve
+  // como una mision que se llama distinto de lo que el menu dijo.
+  //
+  // El titulo YA NO lleva el numero en el texto (pedido de Matias, 30/8): la pantalla lo pinta
+  // aparte, chico, arriba del nombre ("CAPÍTULO n"). Por eso el chequeo pasa a mirar `capitulo`.
   //
   // El ID de la escena NO se revisa a proposito: es inmutable (SISTEMA_DIALOGO D1) y su numero
-  // es historia, no posicion. Lo que tiene que estar al dia es el TEXTO.
+  // es historia, no posicion. Lo que tiene que estar al dia es `capitulo`.
   MIS.forEach((mi, i) => {
     const ids = SECUENCIAS[mi.story] || [];
     const tarjeta = ids.map(id => SCENES[id]).find(sc => sc && sc.tipo === 'TARJETA');
     if (!tarjeta) return;                      // no toda mision tiene tarjeta, y esta bien
-    const m = /^MISIÓN (\d+)/.exec(tarjeta.titulo || '');
-    assert.ok(m, `${mi.id}: la tarjeta tiene que empezar con "MISIÓN n" (dice "${tarjeta.titulo}")`);
-    assert.equal(+m[1], i + 1, `${mi.id} es la mision ${i + 1} pero su tarjeta dice ${m[1]}`);
+    assert.ok(tarjeta.capitulo != null, `${mi.id}: la tarjeta tiene que traer "capitulo"`);
+    assert.equal(tarjeta.capitulo, i + 1, `${mi.id} es la mision ${i + 1} pero su tarjeta dice capitulo ${tarjeta.capitulo}`);
   });
 });
 

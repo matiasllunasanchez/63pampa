@@ -494,12 +494,19 @@ export function drawStory(w) {
   // fue es el dibujo, que es la decision que se puede volver atras en un renglon.
   //
   // LA TARJETA DE NIVEL ES LA EXCEPCION y conserva su titulo grande al centro: ahi el nombre de la
-  // mision ES el contenido de la pantalla, y ademas es justo la pieza que resuelve —o no— separar
-  // los capitulos por nombre antes de empezar, que quedo abierto.
+  // mision ES el contenido de la pantalla. Ya no dice "MISIÓN N —" (pedido de Matias, 30/8): el
+  // numero de capitulo, cuando la escena lo trae (`capitulo` en data/story.js), se pinta chico y
+  // aparte arriba del nombre — no pegado en la misma linea.
   if (sc.titulo && card) {
     ctx.textAlign = 'center';
+    let ty = 76;
+    if (sc.capitulo) {
+      ctx.font = '6px monospace'; ctx.fillStyle = '#7d8f97';
+      ctx.fillText(`CAPÍTULO ${sc.capitulo}`, W / 2, ty);
+      ty += 12;
+    }
     ctx.font = 'bold 11px monospace'; ctx.fillStyle = P.warn;
-    wrapChars(sc.titulo, 32).forEach((t, i) => ctx.fillText(t, W / 2, 76 + i * 14));
+    wrapChars(sc.titulo, 32).forEach((t, i) => ctx.fillText(t, W / 2, ty + i * 14));
   }
   if (vnBox) { drawVNBox(w, d, ln, d.si + 1 >= d.seq.length && d.li + 1 >= ((sc.lineas || []).length), esNarracion); return; }
   // ---- layout centrado (narracion, tarjeta de nivel, cuaderno y carta) ----

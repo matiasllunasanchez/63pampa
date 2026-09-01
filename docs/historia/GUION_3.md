@@ -137,12 +137,12 @@ dárselo en la mano cuando vuelva. _"Así no te tengo que contar nada: mirás y 
 **UNA por avión y por vuelta** — no una fila que se pinta de golpe. Las "cinco estrellitas"
 del epílogo de M1 son **cinco aviones, una cada uno**. Los dos contadores van al revés: las
 estrellas de cada avión **suben** una por misión sobrevivida, y la cantidad de aviones que se
-pintan **baja** cuando alguien no vuelve. El cruce de los dos es el momento de M7 — *"hay una
-estrellita que hoy no se pinta"*. ⚠ **No confundir con las 1–4 estrellas de puntaje por nivel
+pintan **baja** cuando alguien no vuelve. El cruce de los dos es el momento de M7 — _"hay una
+estrellita que hoy no se pinta"_. ⚠ **No confundir con las 1–4 estrellas de puntaje por nivel
 del HUD: no tienen nada que ver.** Producción: las pinta el motor sobre un fuselaje limpio,
-no la IA (ver PROMPTS_VN_M1_M3 · M1.e).
-"Los ingleses cuentan lo que bajan. Yo cuento lo que vuelve." 🟨 _(Habla tucumano:
-"m'hijo", "changuito", "esto no lo levanta ni Alá".)_
+no la IA (ver PROMPTS*VN_M1_M3 · M1.e).
+"Los ingleses cuentan lo que bajan. Yo cuento lo que vuelve." 🟨 *(Habla tucumano:
+"m'hijo", "changuito", "esto no lo levanta ni Alá".)\_
 
 ### El que protege al hijo — "Colorado" 🟨
 
@@ -204,22 +204,22 @@ una tripulación.
 Regla igual que siempre: apodos humanos para la gente, aves para la radio. Tero y Pichón,
 las dos aves "humanas" secretas.
 
-| Misión | Título                    | Indicativo             | Nota                               |
-| ------ | ------------------------- | ---------------------- | ---------------------------------- |
-| M1     | Sal en las alas           | **CAUQUÉN**            | 🟨 ahora tutorial puro             |
-| M2     | Bautismo de fuego         | **CHIMANGO**           |                                    |
-| 🟥 M3  | El invento                | **BENTEVEO**           | nueva — el que se mete en todo     |
-| M4     | El día que sangró el mar  | **ALBATROS**           | ex M3                              |
-| M5     | El callejón de las bombas | **AGUILUCHO**          | ex M4                              |
-| M6     | La bomba que no despertó  | **CARANCHO**           | ex M5 · 🟨 acá se rompe la Chancha |
-| M7     | 25 de Mayo                | **ZORZAL**             | ex M6 · muere el Vasco             |
-| M8     | El batir de alas          | **HORNERO**            | ex M7 · el sobrevuelo              |
-| M9     | El pibe                   | **GOLONDRINA**         | ex M8 · muere el Pichón            |
+| Misión | Título                    | Indicativo             | Nota                                 |
+| ------ | ------------------------- | ---------------------- | ------------------------------------ |
+| M1     | Sal en las alas           | **CAUQUÉN**            | 🟨 ahora tutorial puro               |
+| M2     | Bautismo de fuego         | **CHIMANGO**           |                                      |
+| 🟥 M3  | El invento                | **BENTEVEO**           | nueva — el que se mete en todo       |
+| M4     | El día que sangró el mar  | **ALBATROS**           | ex M3                                |
+| M5     | El callejón de las bombas | **AGUILUCHO**          | ex M4                                |
+| M6     | La bomba que no despertó  | **CARANCHO**           | ex M5 · 🟨 acá se rompe la Chancha   |
+| M7     | 25 de Mayo                | **ZORZAL**             | ex M6 · muere el Vasco               |
+| M8     | El batir de alas          | **HORNERO**            | ex M7 · el sobrevuelo                |
+| M9     | El pibe                   | **GOLONDRINA**         | ex M8 · muere el Pichón              |
 | 🟥 M10 | Los primos                | **CHINGOLO**           | nueva — la primera con tres · Tandil |
-| M11    | Lo que no se dice         | **CALANDRIA**          | ex M9 · el respiro                 |
-| M12    | El ángel Correntino       | **CHAJÁ**              | ex M10 · muere Correa              |
-| M13    | La última mesa            | **CABURÉ**             | ex M11 · el asado                  |
-| M14    | El tero                   | **— (sin indicativo)** | misión denegada: **Plata Fiel**    |
+| M11    | Lo que no se dice         | **CALANDRIA**          | ex M9 · el respiro                   |
+| M12    | El ángel Correntino       | **CHAJÁ**              | ex M10 · muere Correa                |
+| M13    | La última mesa            | **CABURÉ**             | ex M11 · el asado                    |
+| M14    | El tero                   | **— (sin indicativo)** | misión denegada: **Plata Fiel**      |
 
 ---
 
@@ -299,12 +299,12 @@ La única vez que el orden se rompe es M12, que corta a tierra en pleno vuelo.
 
 ## 🟨 7. Mapa emocional — cuatro movimientos _(renumerado)_
 
-| Movimiento           | Misiones        | Lo que se siente                         | Lo que se instala                                                          |
-| -------------------- | --------------- | ---------------------------------------- | -------------------------------------------------------------------------- |
-| **I — El nido**      | P.1–P.4 + M1–M4 | Orgullo, risa, hermandad — y el primer golpe | La familia. La escuadrilla. La brecha. El invento. 🟥 **El Belgrano (cierra M3): la risa se corta a la mitad.** |
-| **II — El callejón** | M5–M8           | Desgaste, primera pérdida, ternura       | 🟥 **La escucha (M5): del otro lado les tienen miedo.** La Chancha rota. Muere el Vasco. El sobrevuelo. |
-| **III — Solo**       | M9–M13          | Duelo, frío, 🟥 ternura que llega tarde, rabia | Muere el Pichón. 🟥 Los primos (Tandil). El respiro. Muere Correa. El asado. La carta. |
-| **IV — El tero**     | M14 + Finales   | Contrarreloj, sacrificio, LA DECISIÓN    | 🟥 Dos finales. La mesa.                                                   |
+| Movimiento           | Misiones        | Lo que se siente                               | Lo que se instala                                                                                               |
+| -------------------- | --------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **I — El nido**      | P.1–P.4 + M1–M4 | Orgullo, risa, hermandad — y el primer golpe   | La familia. La escuadrilla. La brecha. El invento. 🟥 **El Belgrano (cierra M3): la risa se corta a la mitad.** |
+| **II — El callejón** | M5–M8           | Desgaste, primera pérdida, ternura             | 🟥 **La escucha (M5): del otro lado les tienen miedo.** La Chancha rota. Muere el Vasco. El sobrevuelo.         |
+| **III — Solo**       | M9–M13          | Duelo, frío, 🟥 ternura que llega tarde, rabia | Muere el Pichón. 🟥 Los primos (Tandil). El respiro. Muere Correa. El asado. La carta.                          |
+| **IV — El tero**     | M14 + Finales   | Contrarreloj, sacrificio, LA DECISIÓN          | 🟥 Dos finales. La mesa.                                                                                        |
 
 ---
 
@@ -388,7 +388,7 @@ Cartel: 🟩 El 2 de abril la Plaza se llenó de gente festejando. En esa cocina
 realmente conocía las consecuencias de una guerra no festejó.
 
 > **🟩 Cambió en el código (`data/story.js`, `P2_3_120`): se cayó la cita del balcón.** El
-> cartel ya no reproduce el *"Si quieren venir, que vengan"* de Galtieri. Queda más corto y
+> cartel ya no reproduce el _"Si quieren venir, que vengan"_ de Galtieri. Queda más corto y
 > más seco, y **el juego deja de darle un micrófono al general** — la única voz de esa
 > escena es la de la cocina.
 
@@ -417,7 +417,7 @@ ya está embarcado. Está en las islas. Lo siento.
 > Cuando vuelva, te lo doy en la mano. Te lo leo y me río con vos. Mientras tanto te
 > sigo contando, como si estuvieras acá._
 >
-> \_Me acuerdo lo que me enseñaste del sapito. Sé que vos estás arriba. Mientras yo sigo bancandola acá, vos me ves desde arriba, chiquito pero seguro. Contame vos cómo se ve todo desde arriba...
+> \_Le estuve enseñando a hacer sapito al jujeño. Sé que vos estás arriba. Mientras yo sigo bancandola acá, vos me ves desde arriba, chiquito pero seguro. Contame vos cómo se ve todo desde arriba...
 >
 > _A mamá, cuando volvamos, le decimos que acá había guiso y pan. Los dos la misma
 > mentira, ¿eh? Que para eso somos los hombres de la casa._
@@ -467,9 +467,9 @@ aparta. El Pichón alcanza a ver una foto de una mujer.)_
 > **🟩 LA PLACA ES EL VESTUARIO, NO LA FOTO _(29/8)_.** Se ve el vestuario de ellos: los
 > lockers cerrados, uno solo apenas entornado y **negro adentro**, los bancos y las cosas de
 > cada uno. **El jugador NO ve la foto en M1** — la oye describir, oye que le pusieron nombre,
-> y no ve nada. La ve por primera vez en **M7**, cuando ya es otra cosa. *(Prompt en
+> y no ve nada. La ve por primera vez en **M7**, cuando ya es otra cosa. _(Prompt en
 > PROMPTS_VN_M1_M3.md · en `story.js` implica cambiar `placa: 'm7_foto_frente'` por
-> `placa: 'vestuario'`.)*
+> `placa: 'vestuario'`.)_
 
 **GITANO:** _(lo ve mirando y le habla desde el otro lado del banco)_ Andá, mirala, Pichón.
 Está pegada adentro del locker.
@@ -497,16 +497,16 @@ que hay radar. Autorizados pista dos. Buen vuelo, muchachos.
 > era el locker ni por qué había una foto ahí**: el jugador leía el chiste sin el chiste.
 >
 > **Y el apodo se volvió canon: "LA CASADA".** Ya no es una especulación suelta — es cómo la
-> llama la escuadrilla, *"porque no sabemos quién es"*. Eso hace que el giro de M7 pegue el
+> llama la escuadrilla, _"porque no sabemos quién es"_. Eso hace que el giro de M7 pegue el
 > doble: **el juego le puso nombre a la mujer equivocada durante siete misiones.**
 >
 > **Se cayeron** los chismes del Pichón (el hermano preso / el Vasco preso) y el remate de
-> Puma *("a mí me dijeron que ustedes dos hablan mucho")*.
+> Puma _("a mí me dijeron que ustedes dos hablan mucho")_.
 
 ### 🟩 Tarjeta de misión _(código: `STORYM1_TARJETA`)_
 
 > **MISIÓN 1 — SAL EN LAS ALAS**
-> *Mar abierto · Objetivo: dominar el vuelo rasante*
+> _Mar abierto · Objetivo: dominar el vuelo rasante_
 
 ### ⚠ EL TERITO — está en el guion y **NO** está todavía en el código
 
@@ -514,9 +514,9 @@ _(Y en el fuselaje del avión de Esteban, bajo la cabina, hay pintura fresca: **
 chiquito recortado en BLANCO**, de perfil, quieto y alerta — cuello finito, pecho compacto,
 cola larga en punta, y **la cresta larga y fina barriendo hacia atrás desde la nuca**, que es
 lo que lo hace tero. Una silueta elegante y flaca, sin detalle adentro, que salta contra el
-camuflaje. 🟩 _(Descriptor canónico `{TERITO}` en STORYBOARD_1 §0 y en PROMPTS_VN_M1_M3.)_ El Turco lo pintó anoche, sin que nadie
+camuflaje. 🟩 _(Descriptor canónico `{TERITO}` en STORYBOARD*1 §0 y en PROMPTS_VN_M1_M3.)* El Turco lo pintó anoche, sin que nadie
 se lo pidiera, porque un piloto le contó el apodo y un avión sin su pájaro trae mala
-suerte.)_
+suerte.)\_
 
 **ESTEBAN:** _(lo ve; toca la pintura fresca con un dedo)_ …¿Y esto?
 
@@ -2290,7 +2290,6 @@ a bordo. Pasó tres semanas adentro del bloqueo tirando la red para que le creye
 mandando por radio todo lo que veía pasar. El 9 de mayo lo encontraron dos Harriers.
 Volvieron todos menos uno: Omar Rupp, contramaestre. Su cuerpo no volvió."
 
-
 "Los de arriba, de los dos lados, salieron ganando de una manera o de otra. Los de abajo,
 de los dos lados, están en Darwin y en el fondo del mar."
 
@@ -2370,17 +2369,17 @@ _Cartel final, letra de Mateo:_ **"Volveremos. Volveremos otra vez."**
 Una marca cada tantas líneas, no en todas. Sin caricatura. _(Verificar vigencia 1982 de
 cada regionalismo → PREGUNTAS_HISTORICAS.md.)_
 
-| Personaje             | Origen                             | Marcas                                                                                                |
-| --------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| **Gitano**            | Córdoba capital                    | "culiao" (afecto o insulto según tono), "¿qué hacé?", tonada estirada, diminutivos, remata con chiste |
-| **Colorado**          | Corrientes                         | "chamigo", "angá", pausado, dulzura guaraní, "pue" final                                              |
-| **Turco**             | Tucumán (sirio-libanés)            | "m'hijo", "chango/changuito", refranes inventados, "esto no lo levanta ni Alá". **Su comodín es "aca"** — ver §9b |
-| **Puma**              | Castrense, 3 generaciones          | Cero lunfardo; frases cortas; que UNA vez se le escape algo humano y se note muchísimo                |
-| **Vasco**             | Mar del Plata (colectividad vasca) | Casi no habla; seco y al hueso                                                                        |
-| **Tero / Mateo**      | Prov. de Buenos Aires              | Rioplatense llano; Mateo escribe "pa"/"ma", nunca completo                                            |
-| **Pichón**            | Entre Ríos                         | Habla rapidísimo cuando se entusiasma y se frena avergonzado a mitad de frase                         |
-| **Norma**             | Prov. de Buenos Aires              | Habla poco y justo: cálida, práctica, sin vueltas. La que pone nombre a las cosas ("a tu padre le dicen Tero") |
-| **Piloto peruano (M10)** | Perú                            | Limpio, cálido, formal-cariñoso: "hermano". Habla en tierra, en Tandil — nunca por radio en combate     |
+| Personaje                | Origen                             | Marcas                                                                                                            |
+| ------------------------ | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Gitano**               | Córdoba capital                    | "culiao" (afecto o insulto según tono), "¿qué hacé?", tonada estirada, diminutivos, remata con chiste             |
+| **Colorado**             | Corrientes                         | "chamigo", "angá", pausado, dulzura guaraní, "pue" final                                                          |
+| **Turco**                | Tucumán (sirio-libanés)            | "m'hijo", "chango/changuito", refranes inventados, "esto no lo levanta ni Alá". **Su comodín es "aca"** — ver §9b |
+| **Puma**                 | Castrense, 3 generaciones          | Cero lunfardo; frases cortas; que UNA vez se le escape algo humano y se note muchísimo                            |
+| **Vasco**                | Mar del Plata (colectividad vasca) | Casi no habla; seco y al hueso                                                                                    |
+| **Tero / Mateo**         | Prov. de Buenos Aires              | Rioplatense llano; Mateo escribe "pa"/"ma", nunca completo                                                        |
+| **Pichón**               | Entre Ríos                         | Habla rapidísimo cuando se entusiasma y se frena avergonzado a mitad de frase                                     |
+| **Norma**                | Prov. de Buenos Aires              | Habla poco y justo: cálida, práctica, sin vueltas. La que pone nombre a las cosas ("a tu padre le dicen Tero")    |
+| **Piloto peruano (M10)** | Perú                               | Limpio, cálido, formal-cariñoso: "hermano". Habla en tierra, en Tandil — nunca por radio en combate               |
 
 ## 🟥 9b. EL TUCUMANO DEL TURCO — banco de palabras y regla de oro
 
@@ -2403,14 +2402,14 @@ _(Mismo principio que "la sonrisa de Puma": el recurso vale por lo que se admini
 
 ### El banco
 
-| Palabra | Qué es | Cómo la usa el Turco |
-|---|---|---|
-| **aca** | su comodín absoluto (vulgar, ≈ "mierda"; también "mezquino") | **la palabra madre.** "no sirve ni aca" · "esto no anda ni en aca" · "en la loma del aca" (lejísimos) · "hasta el aca" (harto / hasta las manos) · "una aca esto" · "sos un aca" · "te wa se aca" |
-| **chango / changuito** | pibe, muchacho (NO vulgar) | su forma de llamar al Pichón y a Mateo. **Cariño puro.** |
-| **cajeta / ura** | vulgares fuertes (genitales femeninos) | ⚠ **usar con cuentagotas y solo como interjección de bronca** (un tornillo pasado, un motor que no arranca). NUNCA dirigidas a una persona: al Turco lo queremos. |
-| **mavé** | "permítame ver" / pedir permiso | perfecta para él metiéndose entre los pibes a mirar un fuselaje |
-| **giriar** | escupir | gesto de mecánico: giria antes de agarrar una llave |
-| **"esto no lo levanta ni Alá"** | refrán inventado propio | ya canon — su marca sirio-libanesa |
+| Palabra                         | Qué es                                                       | Cómo la usa el Turco                                                                                                                                                                              |
+| ------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **aca**                         | su comodín absoluto (vulgar, ≈ "mierda"; también "mezquino") | **la palabra madre.** "no sirve ni aca" · "esto no anda ni en aca" · "en la loma del aca" (lejísimos) · "hasta el aca" (harto / hasta las manos) · "una aca esto" · "sos un aca" · "te wa se aca" |
+| **chango / changuito**          | pibe, muchacho (NO vulgar)                                   | su forma de llamar al Pichón y a Mateo. **Cariño puro.**                                                                                                                                          |
+| **cajeta / ura**                | vulgares fuertes (genitales femeninos)                       | ⚠ **usar con cuentagotas y solo como interjección de bronca** (un tornillo pasado, un motor que no arranca). NUNCA dirigidas a una persona: al Turco lo queremos.                                 |
+| **mavé**                        | "permítame ver" / pedir permiso                              | perfecta para él metiéndose entre los pibes a mirar un fuselaje                                                                                                                                   |
+| **giriar**                      | escupir                                                      | gesto de mecánico: giria antes de agarrar una llave                                                                                                                                               |
+| **"esto no lo levanta ni Alá"** | refrán inventado propio                                      | ya canon — su marca sirio-libanesa                                                                                                                                                                |
 
 ### Cómo dosificar
 
@@ -2449,21 +2448,21 @@ alguien le ceba, el Gitano hace la reverencia. Y hay un motivo declarado en pant
 sola vez, en M2: **si dijera "gracias" en castellano quedaría afuera de la ronda.** Dice
 thank you justamente para no irse.
 
-| Aparición | Dónde | Qué cambia |
-|---|---|---|
-| **La única vez que se ve** | **M2**, en la línea de vuelo antes de la primera misión de verdad | El gesto completo + la regla del mate explicada por el propio chiste. El Turco remata: *"De la ronda no se va nadie."* |
-| **🟥 EL COBRO** | **M13**, el asado | Le alcanzan el mate y dice **"Gracias."** En castellano. Sin levantarse. **Acaba de salirse de la ronda la noche antes de la última misión, y nadie se lo hace notar.** Es el puente hacia la única vez que el Gitano habla en serio |
+| Aparición                  | Dónde                                                             | Qué cambia                                                                                                                                                                                                                           |
+| -------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **La única vez que se ve** | **M2**, en la línea de vuelo antes de la primera misión de verdad | El gesto completo + la regla del mate explicada por el propio chiste. El Turco remata: _"De la ronda no se va nadie."_                                                                                                               |
+| **🟥 EL COBRO**            | **M13**, el asado                                                 | Le alcanzan el mate y dice **"Gracias."** En castellano. Sin levantarse. **Acaba de salirse de la ronda la noche antes de la última misión, y nadie se lo hace notar.** Es el puente hacia la única vez que el Gitano habla en serio |
 
 **⚠ CON UNA SOLA VEZ ALCANZA, Y ES MEJOR ASÍ** _(decisión de Matías, 22/8)_. No es un
 chiste recurrente: **se muestra una vez y no se repite nunca.** Funciona igual porque **la
 regla que se rompe en M13 es VERBAL, no visual**: en M2 el Gitano no dice "yo hago este
 bailecito", dice **"yo de la ronda no me voy"**. Eso es una promesa, y una promesa se
-escucha una sola vez y queda. El cobro no es *"esta vez no hizo el gesto"* — es **"dijo la
+escucha una sola vez y queda. El cobro no es _"esta vez no hizo el gesto"_ — es **"dijo la
 palabra que había jurado no decir"**, y eso pega aunque el gesto se haya visto una vez sola.
 
-*(Si alguna vez se quiere una repetición: el lugar sería M6, delante de la Chancha rota que
+_(Si alguna vez se quiere una repetición: el lugar sería M6, delante de la Chancha rota que
 se rompió salvándolo — mismo gesto, sin comedia, la voz chiquita. Está sacado a propósito;
-si vuelve, vuelve ahí y en ningún otro lado.)*
+si vuelve, vuelve ahí y en ningún otro lado.)_
 
 > **Nota de tratamiento.** El cobro de M13 **resuelve la regla del mate** que estaba
 > anotada como pendiente en PREGUNTAS_HISTORICAS. Y no compite con "tres desayunos" del
@@ -2511,21 +2510,21 @@ de la tormenta"—. Esto lo vuelve **sistema**.
 
 **⚠ NADIE LO DICE NUNCA.** No existe ni una línea en todo el juego que diga "los pilotos
 quieren a sus aviones". Se ve, no se explica. Un solo personaje que lo verbalice mata la
-idea entera. *(Es la misma ley de los carteles: no explican lo obvio.)*
+idea entera. _(Es la misma ley de los carteles: no explican lo obvio.)_
 
 ### Cada uno quiere al avión de una manera distinta
 
 **Y no se prestan el gesto.** Cinco tipos queriendo lo mismo de la misma forma es un solo
 personaje repetido cinco veces.
 
-| Quién | Qué es el avión para él | El gesto — **uno solo, siempre el mismo** |
-|---|---|---|
-| **TERO** | **un caballo.** Criollo, animal de trabajo, compañero de campo | Antes de subir **la toca en el terito, con dos dedos**. Y le dice cosas cortas que en realidad son para Mateo |
-| **PUMA** | **un subordinado.** No la personifica: la manda | **No le habla nunca.** La revisa: **las mismas tres cosas, en el mismo orden, hace veinte años.** Su cariño es un procedimiento |
-| **GITANO** | **un compinche** al que arrastra a hacer macanas | **Le pone nombre, y le cambia el nombre en cada misión.** Nombres ridículos, cada vez peores. *(⚠ Regla de la casa: **el nombre nunca es de mujer.** Nada machista, ni siquiera de chiste)* |
-| **VASCO** | **una iglesia** | **La bendice sin una palabra:** apoya la cruz en el fuselaje, dos segundos, y sube. Es lo único que hace |
-| **PICHÓN** | **un paciente.** No la quiere: la **entiende** | **La escucha.** Apoya la oreja o la mano en la chapa con el motor girando, y diagnostica: *"le duele acá"* |
-| **EL TURCO** | **hijos, todos.** El padre de la flota entera | Les habla bajito. Y **las reconoce por el ruido antes de verlas** — sabe quién vuelve antes de que aparezca el punto en el cielo |
+| Quién        | Qué es el avión para él                                        | El gesto — **uno solo, siempre el mismo**                                                                                                                                                   |
+| ------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **TERO**     | **un caballo.** Criollo, animal de trabajo, compañero de campo | Antes de subir **la toca en el terito, con dos dedos**. Y le dice cosas cortas que en realidad son para Mateo                                                                               |
+| **PUMA**     | **un subordinado.** No la personifica: la manda                | **No le habla nunca.** La revisa: **las mismas tres cosas, en el mismo orden, hace veinte años.** Su cariño es un procedimiento                                                             |
+| **GITANO**   | **un compinche** al que arrastra a hacer macanas               | **Le pone nombre, y le cambia el nombre en cada misión.** Nombres ridículos, cada vez peores. _(⚠ Regla de la casa: **el nombre nunca es de mujer.** Nada machista, ni siquiera de chiste)_ |
+| **VASCO**    | **una iglesia**                                                | **La bendice sin una palabra:** apoya la cruz en el fuselaje, dos segundos, y sube. Es lo único que hace                                                                                    |
+| **PICHÓN**   | **un paciente.** No la quiere: la **entiende**                 | **La escucha.** Apoya la oreja o la mano en la chapa con el motor girando, y diagnostica: _"le duele acá"_                                                                                  |
+| **EL TURCO** | **hijos, todos.** El padre de la flota entera                  | Les habla bajito. Y **las reconoce por el ruido antes de verlas** — sabe quién vuelve antes de que aparezca el punto en el cielo                                                            |
 
 ### Las cuatro leyes
 
@@ -2534,8 +2533,8 @@ personaje repetido cinco veces.
 2. **Un gesto por persona, y no se lo prestan.** Si alguna vez uno hace el gesto de otro,
    **eso significa algo** y hay que pagarlo.
 3. **🟥 EL AVIÓN SOBREVIVE AL PILOTO.** Es la vuelta cruel de todo esto: cuando muere uno,
-   la máquina sigue. Ya está cobrado en **M10** —el C-231 del Pichón canibalizado, *"a él ya
-   no le hace falta, m'hijo"*— y es la razón por la que ese momento duele.
+   la máquina sigue. Ya está cobrado en **M10** —el C-231 del Pichón canibalizado, _"a él ya
+   no le hace falta, m'hijo"_— y es la razón por la que ese momento duele.
 4. **🟥 EL DAÑO SE ACUMULA Y SE VE.** El avión del jugador junta parches, remaches nuevos,
    pintura que no coincide, misión tras misión. **Nadie lo menciona.** Al final el jugador
    vuela un animal remendado que reconoce de memoria — y eso hace todo el trabajo sin una
@@ -2546,20 +2545,20 @@ personaje repetido cinco veces.
 **Nunca dos veces seguidas el mismo, y nunca dos en la misma misión.** El jugador los va
 absorbiendo sin registrarlos.
 
-| Misión | Gesto | Cómo entra |
-|---|---|---|
-| **M1** | **los cinco juntos** | "El ritual de los cinco", sin diálogo. La única vez que aparecen todos |
-| **M2** | **PICHÓN** | Mientras los otros toman mate, él ya está con la mano en la chapa, escuchando |
-| **M3** | **TURCO** | *"Ahí viene el capitán"*, de espaldas al cielo, cuatro segundos antes de que aparezca el punto. **Nadie le pregunta cómo sabe** |
-| **M4** | **TERO** | Se para, estira dos dedos, toca el terito, sigue caminando |
-| **M5** | **VASCO** | Antes del Callejón: deja la cruz en el fuselaje **dos segundos más de lo que la deja siempre** |
-| **M6** | **GITANO** | *"Turco, anotá que hoy ésta se llama «el Confiable»"* — y a esa misma le falta la nafta y casi lo mata |
-| **M7** | **VASCO, última vez** | Hace lo de siempre. Y esta vez, antes de guardarla, **la besa.** Nadie lo ve |
-| **M8** | **PUMA** | El día después de la muerte del Vasco toca las tres cosas de siempre, **dos veces cada una** |
-| **M9** | **PICHÓN, última vez** | Escucha más de lo que se queda nunca, aprueba con la cabeza — y remata: *"El avión estaba bien. El avión estaba perfecto."* **El gesto no lo salvó** |
-| **M11** | **GITANO** | Dice el nombre del día para adentro y el Turco no lo escucha. **Igual lo anota** |
-| **M13** | **TURCO** | La noche antes: pasa por la línea, les pasa la mano por el ala de a uno y le dice algo bajito a cada uno. **No lo cuenta** |
-| **M14** | **el ritual roto** | Ya son tres. Puma toca dos de tres y se sube. **El Gitano no le pone nombre.** Tero toca el terito: el único que lo hace entero |
+| Misión  | Gesto                  | Cómo entra                                                                                                                                           |
+| ------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M1**  | **los cinco juntos**   | "El ritual de los cinco", sin diálogo. La única vez que aparecen todos                                                                               |
+| **M2**  | **PICHÓN**             | Mientras los otros toman mate, él ya está con la mano en la chapa, escuchando                                                                        |
+| **M3**  | **TURCO**              | _"Ahí viene el capitán"_, de espaldas al cielo, cuatro segundos antes de que aparezca el punto. **Nadie le pregunta cómo sabe**                      |
+| **M4**  | **TERO**               | Se para, estira dos dedos, toca el terito, sigue caminando                                                                                           |
+| **M5**  | **VASCO**              | Antes del Callejón: deja la cruz en el fuselaje **dos segundos más de lo que la deja siempre**                                                       |
+| **M6**  | **GITANO**             | _"Turco, anotá que hoy ésta se llama «el Confiable»"_ — y a esa misma le falta la nafta y casi lo mata                                               |
+| **M7**  | **VASCO, última vez**  | Hace lo de siempre. Y esta vez, antes de guardarla, **la besa.** Nadie lo ve                                                                         |
+| **M8**  | **PUMA**               | El día después de la muerte del Vasco toca las tres cosas de siempre, **dos veces cada una**                                                         |
+| **M9**  | **PICHÓN, última vez** | Escucha más de lo que se queda nunca, aprueba con la cabeza — y remata: _"El avión estaba bien. El avión estaba perfecto."_ **El gesto no lo salvó** |
+| **M11** | **GITANO**             | Dice el nombre del día para adentro y el Turco no lo escucha. **Igual lo anota**                                                                     |
+| **M13** | **TURCO**              | La noche antes: pasa por la línea, les pasa la mano por el ala de a uno y le dice algo bajito a cada uno. **No lo cuenta**                           |
+| **M14** | **el ritual roto**     | Ya son tres. Puma toca dos de tres y se sube. **El Gitano no le pone nombre.** Tero toca el terito: el único que lo hace entero                      |
 
 **M10 y M12 no llevan gesto a propósito** — M10 ya tiene el C-231 canibalizado (la ley 3) y
 M12 es el corte a tierra, otro registro. Y **los espacios en blanco son parte del ritmo**: si
@@ -2567,8 +2566,8 @@ apareciera en las catorce, dejaría de ser un detalle y pasaría a ser un tic.
 
 ### Dónde se cobra
 
-- **M1** — se plantan los cinco gestos de una sola vez, sin diálogo *(ver "El ritual de los
-  cinco")*.
+- **M1** — se plantan los cinco gestos de una sola vez, sin diálogo _(ver "El ritual de los
+  cinco")_.
 - **M6** — la Chancha se rompe salvando al Gitano. **La máquina hace lo que hace un ser
   querido: se pone adelante.** Ya escrito.
 - **M10** — el C-231 canibalizado. Ya escrito.
@@ -2596,8 +2595,8 @@ jugador queda ciego.
 
 **5. El miedo inglés se cuenta con audio.** Voces británicas de pánico real por radio
 ("Low level! Here they come again!"). 🟥 **Y una vez, una sola, se cuenta con texto:** la
-transmisión interceptada de M5 que traduce el Pichón — *"…no mires al cielo. Porque la
-muerte viene a ras del suelo."* Es la única vez en todo el juego en que estos tipos se
+transmisión interceptada de M5 que traduce el Pichón — _"…no mires al cielo. Porque la
+muerte viene a ras del suelo."_ Es la única vez en todo el juego en que estos tipos se
 enteran de que no están perdiendo, y dura lo que dura la frase. **La frase entra sin firma,
 sin nombre y sin fecha, porque no tiene fuente documentada** (ver PREGUNTAS_HISTORICAS.md);
 así va literal sin que el juego afirme nada falso.

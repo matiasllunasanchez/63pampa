@@ -94,19 +94,11 @@ export const MISSIONS = [
     // cielo — un bombardeo en el tramo mudo contradice la escena tanto como una fragata.
     // `marcas: true` lo transporta este item y lo va a consumir el de las marcas de Condor.
     tramos: [
-      { hasta: 0.027, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio1' },
-      { hasta: 0.054, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio2' },
-      { hasta: 0.081, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio3' },
-      { hasta: 0.108, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio4' },
-      { hasta: 0.135, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio5' },
-      { hasta: 0.162, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio6' },
-      { hasta: 0.189, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio7' },
-      { hasta: 0.216, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio8' },
-      { hasta: 0.243, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio9' },
-      { hasta: 0.27, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio10' },
-      { hasta: 0.297, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio11' },
-      { hasta: 0.324, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio12' },
-      { hasta: 0.351, obstacles: 0, caza: 0, bombs: 0, marcas: true, radio: 'm4_radio13' },
+      { hasta: 0.07, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M4_NARWAL_A' },
+      { hasta: 0.14, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M4_NARWAL_B' },
+      { hasta: 0.21, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M4_NARWAL_C' },
+      { hasta: 0.28, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M4_NARWAL_D' },
+      { hasta: 0.351, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M4_NARWAL_E' },
       // y se termina ahi: mar pleno, con la densidad y LA COLA de una mision de verdad. El salto
       // de 0 a 1.2 es el punto — el silencio se cobra en el contraste.
       { hasta: 1, obstacles: 1.2, caza: 1 },
@@ -126,16 +118,9 @@ export const MISSIONS = [
     // HUD marcaba las unidades antes de verlas; aca no las marca. El jugador entra a la mision
     // mas dificil del movimiento con menos informacion en pantalla, y sabe exactamente por que.
     tramos: [
-      { hasta: 0.03, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio1' },
-      { hasta: 0.06, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio2' },
-      { hasta: 0.09, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio3' },
-      { hasta: 0.12, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio4' },
-      { hasta: 0.15, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio5' },
-      { hasta: 0.19, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio6' },
-      { hasta: 0.22, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio7' },
-      { hasta: 0.25, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio8' },
-      { hasta: 0.28, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio9' },
-      { hasta: 0.31, obstacles: 0, caza: 0, bombs: 0, marcas: false, radio: 'm5_radio10' },
+      { hasta: 0.11, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M5_NARWAL_A' },
+      { hasta: 0.21, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M5_NARWAL_B' },
+      { hasta: 0.31, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M5_NARWAL_C' },
       { hasta: 1, obstacles: 1.7, caza: 1 },
     ],
     cfg: C({ sky: 'cloudy', obstacles: 1.7 }),
