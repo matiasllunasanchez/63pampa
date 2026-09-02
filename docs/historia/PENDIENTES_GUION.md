@@ -45,18 +45,6 @@ Es de arte/gameplay, no de `story.js`, pero está sin definir.
 
 - [ ] DEJAR COMO ESTÁ _(no entra al juego)_ · [X] AGREGAR LO DEL GUION · [ ] DEBATIR
 
-### 🔴 G-08 · El objetivo — **hecha la mitad; falta la de motor**
-
-**Aplicado**: las 14 tarjetas de misión llevan ahora una segunda línea `OBJETIVO · …`
-(«Entrar al Callejón, soltar sobre la fragata HMS Ardent y salir», etc.). Eso resuelve el problema
-para el que lee la tarjeta.
-
-**Falta la segunda capa**, que es motor: **Cóndor diciéndolo por radio en el primer tramo**, para el
-que ya está volando. La cañería existe (`charla:` en los tramos), pero hay que decidir si se escribe
-una charla de objetivo por misión o si se genera desde el mismo texto de la tarjeta.
-
-- [ ] ALCANZA con la tarjeta · [ ] SUMAR la radio de Cóndor · [ ] DEBATIR
-
 ### G-09 · Orden de posmisión
 
 También de tu playtest: **la pantalla de mejoras tiene que venir inmediatamente después de la

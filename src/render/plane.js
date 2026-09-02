@@ -21,6 +21,7 @@ import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H } from '../data/plan
 import { skinOf } from '../data/skins.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName, rosterActive } from '../systems/squad.js';
+import { nivel } from '../core/desgaste.js';   // el avion remendado — GUION_3 §9d, ley 4
 import { ROLL_DUR } from '../data/tuning.js';
 
 const MIRA_SIZE = 17;   // lado de la mira en pixeles de mundo (480x270)
@@ -300,6 +301,129 @@ function muzzle(x, y) {
  *  Que el escuadron use ESTE dibujo y no una copia es el punto: despegan con vos, con el mismo
  *  tren que vos. Dos rutinas de rueda serian un escuadron con dos aviones distintos, y la que no
  *  se mira se pudre. */
+// ============================ EL AVION REMENDADO ============================
+//
+// LA LEY 4 de la simbiosis piloto-avion (GUION_3 §9d): la celula junta parches, remaches nuevos y
+// pintura que no coincide mision tras mision, Y NADIE LO MENCIONA. No hay linea de dialogo, no hay
+// cartel, no hay contador en el HUD. Al final el jugador vuela un animal remendado que reconoce de
+// memoria — y eso hace todo el trabajo solo. Si algun dia aparece un texto explicando esto, esta
+// mal hecho: el texto le roba el hallazgo al jugador.
+//
+// POR QUE ES UN OVERLAY Y NO UN SPRITE. Los aviones estan HORNEADOS (tools/bake_planes.html, y las
+// MARCAS de data/skins.js): una variante por nivel de daño multiplicaria las hojas —tres filas por
+// nueve columnas por dos hojas, por cada skin de piloto— y el juego ya viene grande. Los parches se
+// pintan ENCIMA del frame, dentro del mismo contexto que ya lo dibujo, asi que heredan gratis el
+// alabeo, el cabeceo, el bob, la vibracion y el achique del turbo.
+//
+// DETERMINISTAS, NUNCA `Math.random()`. Un parche sorteado por cuadro no es un parche: es ruido, y
+// a 60 fps el avion titila entero. La forma de cada uno sale de `azarP(i, k)`, que es una funcion
+// PURA del indice — la misma chapa en el mismo lugar, cuadro tras cuadro y partida tras partida.
+
+/** Ruido determinista: mismo (i,k) → mismo numero, siempre. No es azar, es una tabla que no ocupa. */
+const azarP = (i, k) => { const x = Math.sin((i + 1) * 91.7 + k * 47.13) * 43758.5453; return x - Math.floor(x); };
+
+// LA PINTURA QUE NO COINCIDE. Ninguno de estos colores es el del avion (P.body = #93a7ab): esa es
+// toda la idea. Son lo que hay en el deposito — otra partida de gris, primer verde sin terminar de
+// pintar, chapa nueva sin pintar todavia.
+const PIEL = {
+  claro:  '#a9b6b3',   // panel nuevo, todavia sin envejecer
+  verde:  '#7d8b82',   // otra partida de pintura: tira a verde
+  primer: '#5e6a63',   // primer antioxido, ni llegaron a taparlo
+  hollin: '#454f52',   // el borde chamuscado del impacto que hubo abajo
+  remache:'#39434a',   // el remache visto a contraluz
+  brillo: '#c3cecb',   // el filo de arriba de la chapa nueva, donde pega el sol
+};
+
+// CUANTO TARDA cada parche en terminar de aparecer, en unidades de `nivel()`. Sin esto los parches
+// aparecerian de golpe al cruzar su umbral y el avion daria un salto entre dos misiones.
+const RAMPA = 0.14;
+
+// LA CHAPERIA, EN ORDEN DE APARICION. Cada entrada es una reparacion concreta, no una mancha
+// decorativa: por eso estan authoradas a mano y no sorteadas.
+//   u      donde cae a lo largo del ALA: -1 punta izquierda · 0 el fuselaje · +1 punta derecha
+//   v      corrimiento vertical, en fraccion del ALTO del frame (negativo = hacia el timon)
+//   w/h    tamaño, en fraccion del ANCHO del frame
+//   desde  a partir de que `nivel()` empieza a asomar
+//
+// EL ORDEN CUENTA UNA HISTORIA: primero la punta del ala derecha (lo que primero raspa cuando pasas
+// bajo), despues la panza (el fuego de superficie viene de abajo), despues el fuselaje, y el timon
+// —lo ultimo que se rompe y lo primero que se nota— recien pasada la mitad de la campaña.
+const PARCHES = [
+  { u:  0.78, v:  0.005, w: 0.075, h: 0.026, tipo: 'panel',    desde: 0.05 },  // punta del ala derecha
+  { u: -0.42, v:  0.030, w: 0.055, h: 0.022, tipo: 'mancha',   desde: 0.12 },  // panza, bajo el ala izq
+  { u:  0.34, v:  0.028, w: 0.048, h: 0.018, tipo: 'remaches', desde: 0.20 },  // costura del encastre der
+  { u: -0.70, v: -0.005, w: 0.070, h: 0.024, tipo: 'panel',    desde: 0.28 },  // punta del ala izquierda
+  { u:  0.05, v: -0.055, w: 0.038, h: 0.030, tipo: 'mancha',   desde: 0.36 },  // lomo, detras de la cabina
+  { u: -0.20, v:  0.010, w: 0.045, h: 0.020, tipo: 'remaches', desde: 0.44 },  // encastre izquierdo
+  { u:  0.55, v: -0.012, w: 0.058, h: 0.020, tipo: 'panel',    desde: 0.52 },  // borde de ataque derecho
+  { u:  0.02, v: -0.115, w: 0.030, h: 0.036, tipo: 'panel',    desde: 0.60 },  // EL TIMON
+  { u: -0.88, v:  0.012, w: 0.048, h: 0.018, tipo: 'mancha',   desde: 0.68 },  // la punta pelada
+  { u:  0.24, v:  0.048, w: 0.052, h: 0.016, tipo: 'mancha',   desde: 0.76 },  // hollin bajo el fuselaje
+  { u: -0.55, v:  0.026, w: 0.050, h: 0.018, tipo: 'remaches', desde: 0.84 },  // media ala izquierda
+  { u:  0.00, v:  0.038, w: 0.036, h: 0.020, tipo: 'panel',    desde: 0.92 },  // la panza misma
+];
+
+/** LOS PARCHES, encima del sprite y adentro de su mismo contexto.
+ *
+ *  @param mw,mh  el frame ya dibujado, en unidades de diseño (asi las fracciones son del frame)
+ *  @param T      las puntas de ala MEDIDAS de ESTA pose (la misma tabla TIPS que usa la estela):
+ *                los parches se acuestan con el ala en vez de quedarse pegados en horizontal
+ *  @param n      `nivel()` de core/desgaste.js — a 0 esta funcion no dibuja nada
+ */
+function parches(mw, mh, T, n) {
+  if (!(n > 0.001)) return;                       // avion recien salido de fabrica: no hay overlay
+  // EL FUSELAJE ESTA ENTRE LAS DOS PUNTAS. Sacarlo de la tabla y no ponerlo en (0,0) es lo que hace
+  // que al banquear los parches se corran CON el avion: la linea del ala se inclina y ellos con ella.
+  const mx = (T[0] + T[2]) / 2, my = (T[1] + T[3]) / 2;
+  const MEDIA = 0.321;                            // media envergadura NIVELADA (TIPS[1][4]), la vara
+  for (let i = 0; i < PARCHES.length; i++) {
+    const p = PARCHES[i];
+    const a = (n - p.desde) / RAMPA;
+    if (a <= 0) continue;                         // todavia no le toco a este
+    const al = a > 1 ? 1 : a;
+    const su = p.u < 0 ? -p.u : p.u;
+    const lx = (p.u > 0 ? T[2] : T[0]) - mx, ly = (p.u > 0 ? T[3] : T[1]) - my;
+    const x = (mx + su * lx) * mw;
+    const y = (my + su * ly + p.v) * mh;
+    // ESCORZO: banqueado, el ala se ve casi de canto y una chapa pegada a ella tiene que angostarse
+    // igual que la chapa de verdad. Se nota mas cuanto mas afuera esta el parche, de ahi la mezcla.
+    const esc = Math.min(1, Math.abs(lx) / MEDIA);
+    const angosto = 1 - su * (1 - esc) * 0.85;
+    const w = Math.max(1, p.w * mw * angosto), h = Math.max(1, p.h * mw);
+    ctx.globalAlpha = al * 0.92;
+    if (p.tipo === 'remaches') {
+      // UNA COSTURA DE REMACHES NUEVOS. No es una chapa: es la fila de puntos que deja el que la
+      // atornillo. Se dibuja como puntos sueltos porque una linea continua se lee como un cable.
+      const cn = Math.max(2, Math.round(w / 2));
+      for (let k = 0; k < cn; k++)
+        px(x - w / 2 + k * (w / (cn - 1 || 1)), y + (azarP(i, k) < 0.35 ? 1 : 0), 1, 1, PIEL.remache);
+    } else if (p.tipo === 'mancha') {
+      // PINTURA QUE NO COINCIDE. El borde es irregular a proposito —tres rectangulos corridos— para
+      // que se lea como brochazo y no como una calcomania rectangular.
+      const c = azarP(i, 0) < 0.5 ? PIEL.verde : PIEL.primer;
+      px(x - w / 2, y - h / 2, w, h, c);
+      px(x - w / 2 - 1 + azarP(i, 1) * 2, y - h / 2 - 1, w * 0.55, h * 0.6, c);
+      px(x - w / 2 + w * 0.4, y + h / 2 - h * 0.5, w * 0.6, h * 0.7, c);
+      ctx.globalAlpha = al * 0.35;
+      px(x - w / 2 + 1, y + h / 2 - 1, w * 0.7, 1, PIEL.hollin);
+    } else {
+      // UN PANEL DE REEMPLAZO: chapa mas clara que el resto, con el filo de arriba brillando y una
+      // sombra abajo. Es lo que delata a un avion reparado visto desde atras.
+      px(x - w / 2, y - h / 2, w, h, PIEL.claro);
+      ctx.globalAlpha = al * 0.55;
+      px(x - w / 2, y - h / 2, w, 1, PIEL.brillo);
+      px(x - w / 2, y + h / 2 - 1, w, 1, PIEL.hollin);
+      // los cuatro remaches de las esquinas: sin ellos el panel parece una mancha de luz
+      ctx.globalAlpha = al * 0.8;
+      px(x - w / 2, y - h / 2, 1, 1, PIEL.remache);
+      px(x + w / 2 - 1, y - h / 2, 1, 1, PIEL.remache);
+      px(x - w / 2, y + h / 2 - 1, 1, 1, PIEL.remache);
+      px(x + w / 2 - 1, y + h / 2 - 1, 1, 1, PIEL.remache);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
 export function drawGear(g, u) {
   if (g <= 0) return;
   const TIRE = '#14181a', RIM = '#6d7679';
@@ -528,6 +652,14 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
     drawGear(run.gear, 1);   // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma
     ctx.drawImage(img, sx4, sy4, SHEET_FW, SHEET_FH, -spW / 2, -spH / 2, spW, spH);
+    // LA CHAPERIA, ENCIMA DE LA CHAPA. Va aca —despues del frame y antes de la tobera— porque es
+    // pintura sobre el avion, no un efecto en el aire: tiene que taparse con el humo del escape y
+    // con el vapor del ala, igual que se taparia la pintura de verdad.
+    //
+    // Solo en esta rama, que es la del sprite horneado: la pose y la tabla TIPS de la que salen las
+    // posiciones existen unicamente aca. Las otras dos ramas son emergencias (la hoja no cargo) y un
+    // avion de emergencia sin parches es mejor que parches cayendo al lado del avion.
+    parches(spW, spH, TIPS[rowPose][colPose], nivel());
     tobera(0, TOBERA_F * spH, ff, spW / 84 * 2.4);
   } else if (pl.ready) {
     const PW = 54, PH = Math.round(PW * pl.h / pl.w);

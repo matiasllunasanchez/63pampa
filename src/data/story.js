@@ -609,7 +609,7 @@ export const SCENES = {
     titulo: 'CON SAL EN LAS ALAS', capitulo: 1,
     lineas: [
       { id: 'M01_TARJETA_010', personaje: null, cara: null, hold: 0,
-        es: 'Mar abierto · Objetivo: dominar el vuelo rasante', en: '' },
+        es: 'Mar abierto · Vuelo de adaptación', en: '' },
       { id: 'M01_TARJETA_020', personaje: null, cara: null, hold: 0,
         es: 'OBJETIVO · Vuelo de adaptación sobre mar abierto. Aprender el rasante: cuanto más bajo, mejor.', en: '' },
     ],
@@ -2050,6 +2050,156 @@ export const SCENES = {
   // ---------- CHARLAS EN VUELO (tipo 'VUELO', SPEC_CHARLAS_VUELO RF-05) ----------
   // Se cuelgan de un TRAMO, no de una secuencia: ver el campo `charla:` en data/missions.js.
 
+  // ---------- LA RADIO DEL OBJETIVO (G-08) ----------
+  // El jugador tiene que enterarse de a que va la mision MIENTRAS VUELA, no solo leyendo la
+  // tarjeta. La tarjeta es para el que lee; esto es para el que ya esta volando, y es como los
+  // pilotos lo recibian de verdad.
+  //
+  // CADA UNA ABRE CON SU INDICATIVO (GUION_3 §4, el aviario): apodos humanos para la gente, aves
+  // para la radio. Cauquen, Chimango, Benteveo, Albatros... Se dicen una vez por mision y nadie
+  // los explica — y por eso, cuando en M14 Condor dice «no hay indicativo asignado», el jugador
+  // sabe exactamente que se rompio aunque no lo pueda nombrar.
+  //
+  // M14 NO TIENE ESCENA DE OBJETIVO, Y ES A PROPOSITO. Esa noche la mision esta DENEGADA: no hay
+  // pajaro, no hay orden y no hay nadie mandandolos. Puma apaga la radio con dos dedos. Ponerle
+  // una radio de objetivo seria contradecir la escena que abre la mision.
+  //
+  // Ninguna llega a los 23 s de CHV_MAX_S.
+  M01_OBJETIVO: {
+    id: 'M01_OBJETIVO', tipo: 'VUELO', titulo: 'OBJETIVO',
+    lineas: [
+      { id: 'M01_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
+        es: 'Escuadrilla Cauquén, aquí Cóndor. Adaptación sobre mar abierto, rumbo sudeste.', en: '' },
+      { id: 'M01_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.8,
+        es: 'No hay nada que atacar hoy. Hay que aprender a volar abajo: cuanto más pegado al agua, mejor.', en: '' },
+      { id: 'M01_OBJETIVO_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.2,
+        es: 'Copiado. Vení atrás mío, Tero, y no me pierdas la cola.', en: '' },
+    ],
+  },
+  M02_OBJETIVO: {
+    id: 'M02_OBJETIVO', tipo: 'VUELO', titulo: 'OBJETIVO',
+    lineas: [
+      { id: 'M02_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
+        es: 'Escuadrilla Chimango, aquí Cóndor. Cruce de costa autorizado.', en: '' },
+      { id: 'M02_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.0,
+        es: 'Radar activo en toda la aproximación. Entran, cruzan y vuelven. Nada más.', en: '' },
+      { id: 'M02_OBJETIVO_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.2,
+        es: 'Chimango copia. Pegaditos.', en: '' },
+    ],
+  },
+  M03_OBJETIVO: {
+    id: 'M03_OBJETIVO', tipo: 'VUELO', titulo: 'OBJETIVO',
+    lineas: [
+      { id: 'M03_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
+        es: 'Escuadrilla Benteveo, aquí Cóndor. Patrulla de reconocimiento costero.', en: '' },
+      { id: 'M03_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.0,
+        es: 'Blancos de oportunidad nada más: boyas, un radar portátil si aparece. Sin presión.', en: '' },
+      { id: 'M03_OBJETIVO_030', personaje: 'EL TURCO', cara: 'turco_neutro', hold: 1.5,
+        es: 'Y me lo prueban despacio al invento del changuito, ¿eh? Despacio.', en: '' },
+    ],
+  },
+  M04_OBJETIVO: {
+    id: 'M04_OBJETIVO', tipo: 'VUELO', titulo: 'OBJETIVO',
+    lineas: [
+      { id: 'M04_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
+        es: 'Escuadrilla Albatros, aquí Cóndor. Blanco: destructor, clase 42.', en: '' },
+      { id: 'M04_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
+        es: 'Es el que le da cobertura al resto de la flota. Si cae ése, el resto queda mirando.', en: '' },
+    ],
+  },
+  M05_OBJETIVO: {
+    id: 'M05_OBJETIVO', tipo: 'VUELO', titulo: 'OBJETIVO',
+    lineas: [
+      { id: 'M05_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
+        es: 'Escuadrilla Aguilucho, aquí Cóndor. Entrada al estrecho de San Carlos.', en: '' },
+      { id: 'M05_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.0,
+        es: 'Blanco: fragata en el fondeadero. Entran, sueltan y salen por el norte.', en: '' },
+      { id: 'M05_OBJETIVO_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.5,
+        es: 'Nadie se hace el héroe ahí adentro. Entramos, soltamos, salimos.', en: '' },
+    ],
+  },
+  M06_OBJETIVO: {
+    id: 'M06_OBJETIVO', tipo: 'VUELO', titulo: 'OBJETIVO',
+    lineas: [
+      { id: 'M06_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
+        es: 'Escuadrilla Carancho, aquí Cóndor. Fragata al noroeste del estrecho.', en: '' },
+      { id: 'M06_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
+        es: 'Aviso de armamento: a esta altura la espoleta puede no armarse. Lo saben.', en: '' },
+      { id: 'M06_OBJETIVO_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.5,
+        es: 'Le pegamos igual. Que la bomba haga lo que pueda.', en: '' },
+    ],
+  },
+  M07_OBJETIVO: {
+    id: 'M07_OBJETIVO', tipo: 'VUELO', titulo: 'OBJETIVO',
+    lineas: [
+      { id: 'M07_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
+        es: 'Escuadrilla Zorzal, aquí Cóndor. Destructor en el estrecho.', en: '' },
+      { id: 'M07_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
+        es: 'Feliz veinticinco, muchachos. A ver si me lo bajan.', en: '' },
+    ],
+  },
+  M08_OBJETIVO: {
+    id: 'M08_OBJETIVO', tipo: 'VUELO', titulo: 'OBJETIVO',
+    lineas: [
+      { id: 'M08_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
+        es: 'Escuadrilla Hornero, aquí Cóndor. Blanco: carguero grande, mucho porte.', en: '' },
+      { id: 'M08_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
+        es: 'Trae los helicópteros pesados. Si no llega, la infantería cruza la isla a pie.', en: '' },
+    ],
+  },
+  M09_OBJETIVO: {
+    id: 'M09_OBJETIVO', tipo: 'VUELO', titulo: 'OBJETIVO',
+    lineas: [
+      { id: 'M09_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
+        es: 'Escuadrilla Golondrina, aquí Cóndor. Centro logístico en San Carlos.', en: '' },
+      { id: 'M09_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
+        es: 'Es lo más defendido que hay sobre las islas. No tengo mejores noticias.', en: '' },
+      { id: 'M09_OBJETIVO_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.5,
+        es: 'Pichón, vos pegado a mí. No te separás ni para respirar.', en: '' },
+    ],
+  },
+  M10_OBJETIVO: {
+    id: 'M10_OBJETIVO', tipo: 'VUELO', titulo: 'OBJETIVO',
+    lineas: [
+      { id: 'M10_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
+        es: 'Escuadrilla Chingolo, aquí Cóndor. Reconocimiento armado sobre las islas.', en: '' },
+      { id: 'M10_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
+        es: 'Salen, miran, si hay algo lo tocan, y vuelven. El clima está peor que el enemigo.', en: '' },
+      { id: 'M10_OBJETIVO_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.5,
+        es: 'Y hoy la nafta se cuida. Lo que llevamos es lo que hay.', en: '' },
+    ],
+  },
+  M11_OBJETIVO: {
+    id: 'M11_OBJETIVO', tipo: 'VUELO', titulo: 'OBJETIVO',
+    lineas: [
+      { id: 'M11_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
+        es: 'Escuadrilla Calandria, aquí Cóndor. Apoyo sobre Fitzroy.', en: '' },
+      { id: 'M11_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
+        es: 'Buque de desembarco fondeado, con tropa a bordo. Está descargando.', en: '' },
+    ],
+  },
+  M12_OBJETIVO: {
+    id: 'M12_OBJETIVO', tipo: 'VUELO', titulo: 'OBJETIVO',
+    lineas: [
+      { id: 'M12_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
+        es: 'Escuadrilla Chajá, aquí Cóndor. Segunda salida sobre Fitzroy.', en: '' },
+      { id: 'M12_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
+        es: 'El otro buque sigue ahí. Mismo fondeadero, misma entrada.', en: '' },
+      { id: 'M12_OBJETIVO_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.5,
+        es: 'Otra vez. Ahora.', en: '' },
+    ],
+  },
+  M13_OBJETIVO: {
+    id: 'M13_OBJETIVO', tipo: 'VUELO', titulo: 'OBJETIVO',
+    lineas: [
+      { id: 'M13_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
+        es: 'Escuadrilla Caburé, aquí Cóndor. Apoyo a las posiciones de los montes.', en: '' },
+      { id: 'M13_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
+        es: 'Hay fragatas dando fuego naval sobre nuestra gente. Hay que espantarlas de la costa.', en: '' },
+      { id: 'M13_OBJETIVO_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.5,
+        es: 'Esta noche volamos sobre las cabezas de los nuestros. Ojo con lo que sueltan.', en: '' },
+    ],
+  },
   // EL RITUAL DE CONDOR (GUION_3, M1). En el guion escrito esto se decia en tierra, antes de
   // subir; dicho EN VUELO es otra cosa — la voz entra por la radio con el avion ya volando y el
   // mar pasando abajo, que es como los pilotos la escuchaban de verdad. Es la formula que se va

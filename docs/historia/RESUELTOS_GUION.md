@@ -780,3 +780,25 @@ Cuatro commits en la rama `guion/m13-y-retratos`.
 Lector tolerante de marcas. Acepta `[x]`, `[X]`, **`[X}`**, `(x)` y `{x}`, porque una marca escrita
 a mano sale como sale y un lector estricto **la ignora en silencio** — que es exactamente como se
 pierde una respuesta y se termina preguntando dos veces lo mismo. Pasó con `M13-04`.
+
+
+## ✅ G-08 · El objetivo de la misión — **completo**
+Las dos capas. La tarjeta, para el que lee, ya estaba. Ahora está **la radio, para el que ya está
+volando**: 13 escenas `VUELO` nuevas, `M01_OBJETIVO` … `M13_OBJETIVO`, colgadas del **primer tramo**
+de cada misión.
+
+**Cada una abre con su indicativo** — Cauquén, Chimango, Benteveo, Albatros, Aguilucho, Carancho,
+Zorzal, Hornero, Golondrina, Chingolo, Calandria, Chajá, Caburé. Es el aviario de §4 del guion, que
+estaba escrito y **no se usaba en ninguna parte**: apodos humanos para la gente, aves para la radio.
+Se dicen una vez por misión y nadie los explica.
+
+> **M14 no tiene escena de objetivo, y ése es el punto.** Esa noche la misión está DENEGADA: no hay
+> pájaro asignado, no hay orden y no hay nadie mandándolos. Puma apaga la radio con dos dedos.
+> Ponerle una radio de objetivo contradiría la escena que abre la misión — y además es lo que hace
+> que «no hay indicativo asignado» signifique algo: **el jugador escuchó trece**.
+
+10 misiones no tenían `tramos:` y se les creó el bloque; `m1`, `m4` y `m5` ya tenían, y el objetivo
+se metió **antes** de lo que había. Las 23 escenas `VUELO` del juego entran en `CHV_MAX_S`: la más
+larga es `M05_NARWAL_B` con 22,6 s de 25.
+
+De paso, la tarjeta de M1 decía «Objetivo» dos veces.
