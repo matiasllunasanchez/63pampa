@@ -54,12 +54,28 @@ export const MISSIONS = [
     id: 'm1', name: 'SAL EN LAS ALAS', date: 'fines de abril de 1982',
     goal: { kind: 'distance', meters: 2200 },
     cfg: C({ sky: 'dawn', wind: false, obstacles: 0.5, bombs: 0, caza: 0, persec: 1 }),
+    // G-05: las dos charlas en vuelo del tutorial. El ritual de Condor se dice EN VUELO y no en
+    // tierra — la voz entra por la radio con el mar pasando abajo, que es como se escuchaba de
+    // verdad — y los gansos son el respiro. `obstacles: 0` porque una charla pide cero enemigos en
+    // pantalla (SPEC_CHARLAS_VUELO RF-01); el resto de la mision queda como estaba.
+    tramos: [
+      { hasta: 0.06, obstacles: 0, caza: 0, bombs: 0, charla: 'M01_OBJETIVO' },
+      { hasta: 0.12, obstacles: 0, caza: 0, bombs: 0, charla: 'M01_RITUAL' },
+      { hasta: 0.30, obstacles: 0, caza: 0, bombs: 0, charla: 'M01_GANSOS' },
+      { hasta: 1 },
+    ],
     roster: F5, par: 5000, story: 'storyM1', brief: 'briefM1', epi: 'epiM1',
   },
   {
     id: 'm2', name: 'BAUTISMO DE FUEGO', date: '1 de mayo de 1982',
     goal: { kind: 'distance', meters: 2600 },
     cfg: C({ bombs: 0.5 }),
+    // G-08: el objetivo por radio, en el primer tramo. `obstacles: 0` no es cosmetico — una charla
+    // en vuelo pide CERO enemigos en pantalla (SPEC_CHARLAS_VUELO RF-01).
+    tramos: [
+      { hasta: 0.1, obstacles: 0, caza: 0, bombs: 0, charla: 'M02_OBJETIVO' },
+      { hasta: 1 },
+    ],
     roster: F5, par: 6500, story: 'storyM2', brief: 'briefM2', epi: 'epiM2',
   },
   {
@@ -73,6 +89,12 @@ export const MISSIONS = [
     // `terrain: 'coast'` porque el guion la llama patrulla de reconocimiento COSTERO, y los
     // "blancos de oportunidad" (boyas, un radar portatil) son la siembra baja de obstaculos.
     cfg: C({ sky: 'dawn', terrain: 'coast', obstacles: 0.5, bombs: 0, caza: 0 }),
+    // G-08: el objetivo por radio, en el primer tramo. `obstacles: 0` no es cosmetico — una charla
+    // en vuelo pide CERO enemigos en pantalla (SPEC_CHARLAS_VUELO RF-01).
+    tramos: [
+      { hasta: 0.1, obstacles: 0, caza: 0, bombs: 0, charla: 'M03_OBJETIVO' },
+      { hasta: 1 },
+    ],
     roster: F5, par: 7000, story: 'storyM3', brief: 'briefM3', epi: 'epiM3',
   },
   {
@@ -94,11 +116,12 @@ export const MISSIONS = [
     // cielo — un bombardeo en el tramo mudo contradice la escena tanto como una fragata.
     // `marcas: true` lo transporta este item y lo va a consumir el de las marcas de Condor.
     tramos: [
-      { hasta: 0.07, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M4_NARWAL_A' },
-      { hasta: 0.14, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M4_NARWAL_B' },
-      { hasta: 0.21, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M4_NARWAL_C' },
-      { hasta: 0.28, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M4_NARWAL_D' },
-      { hasta: 0.351, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M4_NARWAL_E' },
+      { hasta: 0.04, obstacles: 0, caza: 0, bombs: 0, charla: 'M04_OBJETIVO' },
+      { hasta: 0.07, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_A' },
+      { hasta: 0.14, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_B' },
+      { hasta: 0.21, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_C' },
+      { hasta: 0.28, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_D' },
+      { hasta: 0.351, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_E' },
       // y se termina ahi: mar pleno, con la densidad y LA COLA de una mision de verdad. El salto
       // de 0 a 1.2 es el punto — el silencio se cobra en el contraste.
       { hasta: 1, obstacles: 1.2, caza: 1 },
@@ -118,9 +141,10 @@ export const MISSIONS = [
     // HUD marcaba las unidades antes de verlas; aca no las marca. El jugador entra a la mision
     // mas dificil del movimiento con menos informacion en pantalla, y sabe exactamente por que.
     tramos: [
-      { hasta: 0.11, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M5_NARWAL_A' },
-      { hasta: 0.21, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M5_NARWAL_B' },
-      { hasta: 0.31, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M5_NARWAL_C' },
+      { hasta: 0.05, obstacles: 0, caza: 0, bombs: 0, charla: 'M05_OBJETIVO' },
+      { hasta: 0.11, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M05_NARWAL_A' },
+      { hasta: 0.21, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M05_NARWAL_B' },
+      { hasta: 0.31, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M05_NARWAL_C' },
       { hasta: 1, obstacles: 1.7, caza: 1 },
     ],
     cfg: C({ sky: 'cloudy', obstacles: 1.7 }),
@@ -130,6 +154,12 @@ export const MISSIONS = [
     id: 'm6', name: 'LA BOMBA QUE NO DESPERTO', date: '23 de mayo de 1982',
     goal: { kind: 'ship', ship: 'HMS ANTELOPE', dist: 2800 },
     cfg: C({ sky: 'sun', obstacles: 1.7, fog: 1, fogLen: 0 }),
+    // G-08: el objetivo por radio, en el primer tramo. `obstacles: 0` no es cosmetico — una charla
+    // en vuelo pide CERO enemigos en pantalla (SPEC_CHARLAS_VUELO RF-01).
+    tramos: [
+      { hasta: 0.1, obstacles: 0, caza: 0, bombs: 0, charla: 'M06_OBJETIVO' },
+      { hasta: 1 },
+    ],
     roster: F5, par: 9000, story: 'storyM6', brief: 'briefM6', epi: 'epiM6',
   },
   {
@@ -137,6 +167,12 @@ export const MISSIONS = [
     goal: { kind: 'ship', ship: 'HMS COVENTRY', dist: 2800 },
     cfg: C({ sky: 'clear', obstacles: 1.7 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
+    // G-08: el objetivo por radio, en el primer tramo. `obstacles: 0` no es cosmetico — una charla
+    // en vuelo pide CERO enemigos en pantalla (SPEC_CHARLAS_VUELO RF-01).
+    tramos: [
+      { hasta: 0.1, obstacles: 0, caza: 0, bombs: 0, charla: 'M07_OBJETIVO' },
+      { hasta: 1 },
+    ],
     roster: F5, par: 9500, story: 'storyM7', brief: 'briefM7', epi: 'epiM7',
   },
   {
@@ -144,6 +180,12 @@ export const MISSIONS = [
     goal: { kind: 'ship', ship: 'ATLANTIC CONVEYOR', dist: 3000 },
     cfg: C({ obstacles: 1.7, rain: 1, squad: 4 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
+    // G-08: el objetivo por radio, en el primer tramo. `obstacles: 0` no es cosmetico — una charla
+    // en vuelo pide CERO enemigos en pantalla (SPEC_CHARLAS_VUELO RF-01).
+    tramos: [
+      { hasta: 0.1, obstacles: 0, caza: 0, bombs: 0, charla: 'M08_OBJETIVO' },
+      { hasta: 1 },
+    ],
     roster: F4, par: 10000, story: 'storyM8', brief: 'briefM8', epi: 'epiM8',
   },
   {
@@ -151,6 +193,12 @@ export const MISSIONS = [
     goal: { kind: 'distance', meters: 3200 },
     cfg: C({ sky: 'storm', obstacles: 1.7, bombs: 2, rain: 2, fog: 1, squad: 4 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
+    // G-08: el objetivo por radio, en el primer tramo. `obstacles: 0` no es cosmetico — una charla
+    // en vuelo pide CERO enemigos en pantalla (SPEC_CHARLAS_VUELO RF-01).
+    tramos: [
+      { hasta: 0.1, obstacles: 0, caza: 0, bombs: 0, charla: 'M09_OBJETIVO' },
+      { hasta: 1 },
+    ],
     roster: F4, par: 10500, story: 'storyM9', brief: 'briefM9', epi: 'epiM9',
   },
   {
@@ -168,6 +216,12 @@ export const MISSIONS = [
     // formacion no se nombra: se ve, porque `roster` tiene tres nombres.
     cfg: C({ sky: 'storm', obstacles: 0.5, bombs: 0, caza: 0, rain: 2, fog: 1, fogLen: 3, squad: 3 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
+    // G-08: el objetivo por radio, en el primer tramo. `obstacles: 0` no es cosmetico — una charla
+    // en vuelo pide CERO enemigos en pantalla (SPEC_CHARLAS_VUELO RF-01).
+    tramos: [
+      { hasta: 0.1, obstacles: 0, caza: 0, bombs: 0, charla: 'M10_OBJETIVO' },
+      { hasta: 1 },
+    ],
     roster: F3, par: 11000, story: 'storyM10', brief: 'briefM10', epi: 'epiM10',
   },
   {
@@ -175,6 +229,12 @@ export const MISSIONS = [
     goal: { kind: 'ship', ship: 'RFA SIR GALAHAD', dist: 3000 },
     cfg: C({ sky: 'cloudy', obstacles: 1.7, squad: 3, caza: 2 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
+    // G-08: el objetivo por radio, en el primer tramo. `obstacles: 0` no es cosmetico — una charla
+    // en vuelo pide CERO enemigos en pantalla (SPEC_CHARLAS_VUELO RF-01).
+    tramos: [
+      { hasta: 0.1, obstacles: 0, caza: 0, bombs: 0, charla: 'M11_OBJETIVO' },
+      { hasta: 1 },
+    ],
     roster: F3, par: 11500, story: 'storyM11', brief: 'briefM11', epi: 'epiM11',
   },
   {
@@ -182,6 +242,12 @@ export const MISSIONS = [
     goal: { kind: 'ship', ship: 'RFA SIR TRISTRAM', dist: 3000 },
     cfg: C({ obstacles: 1.7, bombs: 2, rain: 1, squad: 3 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
+    // G-08: el objetivo por radio, en el primer tramo. `obstacles: 0` no es cosmetico — una charla
+    // en vuelo pide CERO enemigos en pantalla (SPEC_CHARLAS_VUELO RF-01).
+    tramos: [
+      { hasta: 0.1, obstacles: 0, caza: 0, bombs: 0, charla: 'M12_OBJETIVO' },
+      { hasta: 1 },
+    ],
     roster: F3, par: 12000, story: 'storyM12', brief: 'briefM12', epi: 'epiM12',
   },
   {
@@ -189,6 +255,12 @@ export const MISSIONS = [
     goal: { kind: 'ship', ship: 'HMS BROADSWORD', dist: 3200 },
     cfg: C({ sky: 'moon', terrain: 'land', obstacles: 1.7, bombs: 2, fog: 1, squad: 3, caza: 2 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
+    // G-08: el objetivo por radio, en el primer tramo. `obstacles: 0` no es cosmetico — una charla
+    // en vuelo pide CERO enemigos en pantalla (SPEC_CHARLAS_VUELO RF-01).
+    tramos: [
+      { hasta: 0.1, obstacles: 0, caza: 0, bombs: 0, charla: 'M13_OBJETIVO' },
+      { hasta: 1 },
+    ],
     roster: F3, par: 12500, story: 'storyM13', brief: 'briefM13', epi: 'epiM13',
   },
   {

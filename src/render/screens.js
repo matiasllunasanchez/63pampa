@@ -395,6 +395,52 @@ function portraitImg(name) { return lazyImg(PORTRAIT_IMGS, '../assets/portraits/
 // su hoja — un tinte solo no alcanzaba para que una carta escrita a birome pareciera una carta.
 const STORY_STYLES = { CARTA: '#c9b48a' };
 
+// EL INTERSTICIAL: negro pleno con una linea de texto, y nada mas.
+//
+// Lo usa la campaña para dos cosas (PENDIENTES_GUION G-09): el TITULO DE LA MISION unos segundos
+// antes de que aparezca la escena con imagen, y el «DIA SIGUIENTE» entre una mision y la que sigue.
+//
+// POR QUE NEGRO PLENO Y NO UNA TARJETA. La tarjeta de mision ya existe y tiene marco, placa y dos
+// lineas de datos: es una PANTALLA. Esto es un RESPIRO — el corte que separa dos cosas para que no
+// se lean como una sola. Si tuviera marco dejaria de separar y pasaria a ser una pantalla mas.
+//
+// Comparte el grano y la scanline con drawStory a proposito: tiene que verse de la misma familia,
+// no de otro juego. Sin marco de expediente, que es lo unico que lo distingue.
+//
+// `p` es 0..1: el avance del intersticial. Entra y sale con un fundido corto — el texto aparece
+// despues del negro y se va antes, asi el corte nunca deja el texto colgado sobre la escena.
+export function interstitial(txt, p, t) {
+  ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, W, H);
+  // grano y scanline, iguales a los de la pantalla de historia
+  ctx.globalAlpha = 0.10;
+  for (let i = 0; i < 42; i++) px(Math.random() * W, Math.random() * H, 1, 1, '#8a9ba1');
+  ctx.globalAlpha = 0.05;
+  px(0, ((t || 0) * 9) % (H + 30) - 15, W, 7, '#eaf6ff');
+  ctx.globalAlpha = 1;
+  // el texto vive en el tercio central del intersticial: 0.2 para entrar, 0.2 para salir
+  const a = clamp01(Math.min(p / 0.2, (1 - p) / 0.2));
+  if (a <= 0 || !txt) return;
+  ctx.globalAlpha = a;
+  ctx.textAlign = 'center';
+  // LA TIPOGRAFIA ES LA DE LA TARJETA DE MISION, literalmente la misma que `drawStory` usa para
+  // `sc.titulo` cuando la escena es TARJETA: `bold 11px monospace` en `P.warn`. Y no es un gusto:
+  // el uso principal de esta pantalla es el NOMBRE DE LA MISION unos segundos antes de la escena,
+  // o sea que el jugador va a ver el mismo texto dos veces seguidas. Con dos fuentes distintas se
+  // leen como dos pantallas de dos juegos; con la misma, la negra es la que ANTICIPA a la otra.
+  //
+  // (Antes iba con `titleFont(16)` en `P.accent` — el logotipo del menu, que es la familia de la
+  // PORTADA y no la del expediente.)
+  ctx.fillStyle = P.warn; ctx.font = 'bold 11px monospace';
+  // SE PARTE EN RENGLONES, con el mismo ancho de 32 caracteres que la tarjeta. Sin esto los
+  // titulos largos del guion —«EL DIA QUE SANGRO EL MAR»— se salen de los 320 de ancho del
+  // espacio de DISEÑO y quedan cortados contra los bordes. El bloque se centra de verdad: con dos
+  // renglones, uno queda arriba y otro abajo del medio, no los dos por debajo.
+  const ls = wrapChars(String(txt).toUpperCase(), 32);
+  const y0 = H / 2 + 4 - (ls.length - 1) * 7;
+  ls.forEach((t2, i) => ctx.fillText(t2, W / 2, y0 + i * 14));
+  ctx.globalAlpha = 1; ctx.textAlign = 'left';
+}
+
 // pantalla de HISTORIA: negro tipo "pantalla de carga" con grano de pelicula y scanline,
 // texto tipeado letra a letra con cursor. NO se ve el terreno de juego (eso llega con el fade).
 //

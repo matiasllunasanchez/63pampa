@@ -73,6 +73,8 @@ export const STRINGS = {
     // la escena del guion sin reproducirla — esa es del modo historia.
     bar_chancha: 'CHANCHA', ch_ready: '! CHANCHA LISTA — [5] !',
     bar_rasante: 'RASANTE',
+    // EL INTERSTICIAL DE CAMPAÑA (G-09): el corte entre una mision y la que sigue.
+    inter_dia: 'DÍA SIGUIENTE',
     ch_call: 'CHANCHA, CHANCHA, ACA PATRIA — VENGO SECO',
     ch_ack: 'CONDOR COPIA. TE LA MANDO.',
     ch_come: 'LA CHANCHA NO ABANDONA. VOY.',
@@ -1072,6 +1074,7 @@ export const STRINGS = {
     bar_tempo: 'MOMENTUM', tempoOn: 'MOMENTUM', tempoOff: 'REAL TIME', tempoReady: '! MOMENTUM READY — [4] !',
     bar_chancha: 'TANKER', ch_ready: '! TANKER READY — [5] !',
     bar_rasante: 'RASANTE',
+    inter_dia: 'THE NEXT DAY',
     ch_call: 'TANKER, TANKER, PATRIA HERE — RUNNING DRY',
     ch_ack: 'CONDOR COPIES. SENDING HER.',
     ch_come: 'THE OLD SOW NEVER QUITS. ON MY WAY.',

@@ -1,17 +1,35 @@
-# RESUELTOS — GUION_3 aplicado a `story.js`
+# RESUELTOS — lo que ya está en `story.js`
 
-Lo que ya está cerrado. Vive separado de [PENDIENTES_GUION.md](PENDIENTES_GUION.md) para que ese
-archivo tenga sólo lo que falta decidir. Acá queda el registro de qué se decidió y por qué, que es
-lo que hay que consultar cuando dentro de tres meses alguien pregunte «¿esto por qué quedó así?».
+Registro de qué se decidió y por qué. Los pendientes viven en
+[PENDIENTES_GUION.md](PENDIENTES_GUION.md); el arte, en
+[RETRATOS_PENDIENTES.md](RETRATOS_PENDIENTES.md) (caras) y
+[IMAGENES_PENDIENTES.md](IMAGENES_PENDIENTES.md) (cuadros).
 
-Los ítems marcados **✅ aplicado** están escritos en `story.js`. Los marcados **queda como está**
-son los que se decidieron a favor del juego y contra el guion: GUION_3 quedó desactualizado ahí, y
-las diferencias están listadas en la sección **TUS CAMBIOS vs GUION_3** de este mismo archivo.
+**✅ aplicado** = escrito en `story.js`. **queda como está** = se decidió a favor del juego y contra
+el guion; esas divergencias están al final, en *Tus cambios vs GUION_3*, y hay que bajarlas a
+GUION_3 antes de volver a usarlo como fuente.
 
 Verificación al día: `npm run check` en verde — sintaxis, `lint:state`, `lint:layers`, 118 tests,
 feel, smoke, fixture cine y fixture maniobras.
 
+## Índice
+
+1. [Por misión](#1-por-misión) — 70 ítems
+2. [Los 16 debates](#2-los-16-debates)
+3. [Sistemas](#3-sistemas) — 1
+4. [Técnico](#4-técnico) — 5
+5. [Tus cambios vs GUION_3](#5-tus-cambios-vs-guion_3) — 7
+
 ---
+
+# 1. Por misión
+
+## PRÓLOGO
+
+### ✅ P-01 · La primera línea de Mateo — **queda como está**
+Se mantiene la del juego: «En dos meses se termina la instrucción, pá. Después es puro marchar hasta
+fin de año. Cuando te quieras dar cuenta ya estoy de vuelta arreglándote el Rastrojero.»
+No se toca `story.js`.
 
 ### P-02 · P.2 — el remate del sorteo
 - Guion: «**Le erraste por poco**, entonces.» · Juego: «**Te salvaste por poco**, entonces.»
@@ -28,9 +46,7 @@ feel, smoke, fixture cine y fixture maniobras.
 ### ✅ P-06 · Carta 1 — **aplicado**
 `P4_1_020` termina ahora en «Mientras tanto te sigo contando, como si estuvieras acá.»
 
----
-
-# 2. MISIÓN 1 — Sal en las alas
+## MISIÓN 1 — Sal en las alas
 
 ### ✅ M1-01 · **EL TERITO** — **aplicado**: escena nueva `M1_TERITO`
 Seis líneas, entre `M1_5B` y el ritual. Entra el terito pintado, entra que el Turco bautiza los
@@ -81,9 +97,7 @@ lana»; es el objeto que vuelve en M12 tapando a Mateo hasta el final), el ponch
 pozo y el viento, la hermana en Corrientes, el rótulo «el Colorado» debajo del dibujo, y el
 párrafo del apodo — que cierra con `P2_3_080`, donde Norma se lo cuenta a Mateo en la cocina.
 
----
-
-# 3. MISIÓN 2 — Bautismo de fuego
+## MISIÓN 2 — Bautismo de fuego
 
 ### 🔴 M2-01 · La reverencia del Gitano — dos gestos distintos
 - Guion: levanta los dos brazos doblados a la altura de la cabeza, **tres pasitos en el lugar**, una reverencia ridícula entera, y dice «THANK YOU».
@@ -111,9 +125,7 @@ Guion (seco): «Tiene la carpa llena de cajas. **Nosotros afuera, las cajas aden
 Juego: «Tiene su carpa custodiada y llena de cajas. **Estamos convencidos de que son las raciones y demás cosas que nos mandan.** Pero nadie dice nada acá…»
 - [X] DEJAR COMO ESTÁ · [ ] REEMPLAZAR POR EL GUION · [ ] DEBATIR
 
----
-
-# 4. MISIÓN 3 — El invento
+## MISIÓN 3 — El invento
 
 ### M3-01 · El Turco pierde su comodín
 Guion: «Bajate de ahí, chango. **Eso no se toca ni en aca.**» · Juego: «Bajate de ahí, chango. **Va a hace cagada.**»
@@ -169,9 +181,7 @@ Quedó **sin** las acotaciones de entrada del Pichón, que están en M3-13 y mar
 
 ### ✅ M3-14 · La cifra del Belgrano — **queda como está** (la línea de narrador, no la placa seca)
 
----
-
-# 5. MISIÓN 4 — El día que sangró el mar
+## MISIÓN 4 — El día que sangró el mar
 
 ### ✅ M4-01 · **EL NARWAL — aplicado como charla en vuelo**
 > **⚠ Corrección de mi relevamiento.** Yo puse que el Narwal «no existe en `story.js`» y que la
@@ -201,6 +211,8 @@ palabra de la tesis sin perder el gancho con Mateo. El «guardá silencio» qued
 
 ### ✅ M4-03 · «guardá silencio» — **queda como está**
 
+## MISIÓN 5 — El callejón de las bombas
+
 ### ✅ M5-01 · **EL SILENCIO DEL NARWAL — aplicado como charla en vuelo**
 Mismo caso que M4-01: ya existía como `m5_radio1…10`, incluida la entrada `m5_radio6: '...'` —
 la radio abierta y nada.
@@ -220,9 +232,7 @@ signos de exclamación, para que el «Sí…» de Esteban tenga contra qué caer
 
 ### ✅ M5-05 · Carta 6, «al churrasco» — **queda como está**
 
----
-
-# 7. MISIÓN 6 — La bomba que no despertó
+## MISIÓN 6 — La bomba que no despertó
 
 ### ✅ M6-02 · El chiste de la casada nº3 — **lo reescribiste, y quedó mejor**
 Ahora: «Y si no vuelvo… **Mandale un saludo a tu casada de mi parte, Vasco.**» / *(sacude la
@@ -263,9 +273,7 @@ De acá salen `chancha: false` en m7 y m8 (que ya estaba en `missions.js` sin ca
 
 ### ✅ M6-06 · Carta 7, la revista y el viento — **queda como está**
 
----
-
-# 8. MISIÓN 7 — 25 de Mayo (muere el Vasco)
+## MISIÓN 7 — 25 de Mayo (muere el Vasco)
 
 ### ✅ M7-01 · El beso a la cruz — **aplicado (la propuesta)**
 `M6_2_050`, última línea del briefing, `tipo: 'CUADRO'` — plano cerrado, sin busto, igual que el
@@ -301,16 +309,14 @@ hasta que **vuelva donde pertenece**». Cerrado.
 Entraron los dos párrafos: «Nadie nos preparó para esto… No a que el de al lado se apague en la
 mitad de una palabra» y «En el cuaderno dibujé la radio del jujeño sola en el pozo».
 
----
-
-# 9. MISIÓN 8 — El batir de alas
-
 ### 🔴 M7-10 · `M6_CARTA` → `M6_PADRE`, dos pantallas seguidas que se contradicen
 Acá es donde el problema se ve en pantalla: `epiM7` corre `M6_CARTA` («Ya sé que no me vas a
 contestar») e inmediatamente `M6_PADRE` («Hijo: me preguntaste cómo se hace…»).
 **La decisión no es de esta misión: es global. Está en G-01.**
 
 - [X] VER G-01
+
+## MISIÓN 8 — El batir de alas
 
 ### ✅ M8-02 · El gesto de Puma — **aplicado**
 `M7_2_040`: «Y Puma, que no dijo una palabra más, da la vuelta a su avión y toca las tres cosas de
@@ -333,9 +339,7 @@ reconocí?**", te voy a decir.»
 DEBATIR. Mientras no entre, esta carta **afirma algo que el jugador nunca vio**. Funciona igual
 (Mateo lo cuenta), pero pierde la prueba visual, que era el punto.
 
----
-
-# 10. MISIÓN 9 — El pibe (muere el Pichón)
+## MISIÓN 9 — El pibe (muere el Pichón)
 
 ### ✅ M9-01 · «por los pibes» / «por el pibe» — **aplicado (la propuesta)**
 Puma: «Siempre fue por **los pibes**.» Esteban: «…por **el pibe**.» La diferencia entre las dos
@@ -355,16 +359,13 @@ y nadie se dio cuenta a tiempo. Ni él.**»
 «Tengo miedo, te lo digo por primera vez. **Mucho miedo. Pero no del frío ni del hambre: miedo de no
 verte más.**»
 
----
-
-# 11. MISIÓN 10 — Los primos
-
-*La misión mejor migrada del juego: `M10_HUECO`, `M10_TANDIL`, `M10_NOTICIA`, `M10_CUADERNO` y
-`M10_MIRAGE` coinciden con el guion casi línea por línea.*
+## MISIÓN 10 — Los primos
 
 ### ✅ M10-01 · El saludo del piloto peruano — **aplicado**
 Como `accion:` de su última línea: se da vuelta, busca al mecánico entre los otros y **le hace un
 saludo corto con dos dedos en la sien** antes de decir «Cuídenlos, hermano».
+
+## MISIÓN 11 — Lo que no se dice
 
 ### ✅ M11-01 · El nombre dicho para adentro — **aplicado**
 `M9_1_050`: «Subiendo, el Gitano dice el nombre del día. Pero lo dice para adentro, sin señalarle
@@ -376,9 +377,7 @@ comedia, y es todo el duelo del Gitano en una acotación.
 
 ### ✅ M11-03 · Carta 12 — **queda como está**, con el párrafo que el guion no tiene. Hay que actualizar GUION_3.
 
----
-
-# 13. MISIÓN 12 — El ángel Correntino (muere Correa)
+## MISIÓN 12 — El ángel Correntino (muere Correa)
 
 ### ✅ M12-02 · «¡Abajo, Mateo!» y el grito — **aplicado**
 Correa lo llama por el nombre, no «correntino». Y entró el grito entero: «¡Colorado! ¡No, no, no!
@@ -418,9 +417,7 @@ más. Estoy solo. Me quiero ir a casa, pa. Me quiero ir a casa.»
 El choque que había marcado —que `M10_PADRE` contestaba a un pedido que ya no existía— **desapareció
 solo**: `M10_PADRE` se fue con G-01.
 
----
-
-# 14. MISIÓN 13 — La última mesa
+## MISIÓN 13 — La última mesa
 
 ### ⚠ M13-01 · El briefing dejó de telegrafiar — **aplicado**, pero M13-04 lo desarma
 Puma quedó como el guion: «Esa flota tiene encima toda la defensa antiaérea que les queda. Y la
@@ -448,6 +445,42 @@ cobra algo que el jugador vio.
 ### ✅ M13-03 · La foto y la gorra en la pared — **aplicado**
 Como `accion:` de la línea de Puma: «Los mira. Mira la foto del Vasco y la gorra del Pichón colgadas
 en la pared. Sonríe por primera vez en tres misiones.» El paréntesis salió del `es:`.
+
+### ✅ M13-05 · El gesto del Turco — **aplicado**
+`M11_ASADO1_010`: «Antes de sentarse, el Turco pasa por la línea de vuelo. Los tres aviones están
+cargados y quietos bajo la luna. Les pasa la mano por el ala, de uno en uno, y a cada uno le dice
+algo bajito. **Después se va al fuego y no lo cuenta.**»
+
+Es el último de los gestos de §9d antes de M14, y el único del Turco en toda la segunda mitad.
+
+### ✅ M13-06 · El «Gracias» — **aplicado**
+Tres líneas al final de `M11_ASADO1`: el Turco le alcanza el mate, el Gitano lo agarra con una sola
+mano sin levantarse y dice **«Gracias.»** Y el cierre: «Lo dijo en castellano. El Turco no levanta
+la vista del fuego. Nadie corrige nada, nadie se lo hace notar. El mate sigue la ronda, y la próxima
+vez le pasa por al lado y él ni lo mira.»
+
+**Es el cobro de M2**, donde el Gitano explicó por qué decía THANK YOU: *«si digo gracias me sacan
+de la ronda, y yo de la ronda no me voy»*. Era una promesa, y la rompe la noche antes de la última
+misión. El peso está en que **nadie se lo hace notar**: los tres en esa mesa saben exactamente qué
+acaba de decir. Y es el puente a la escena siguiente, la única vez que el Gitano habla en serio.
+
+*(Sigue funcionando con tu decisión de M2-01 —el saludo militar en vez de la reverencia— porque la
+regla que se rompe acá es **verbal, no visual**.)*
+
+### ✅ M13-07 · El Mundial — **aplicado**
+Era un error de hecho: el asado es el **11 de junio** y el debut contra Bélgica fue el **13**.
+«Mañana» pasó a «**pasado mañana**», entró «En España. Contra Bélgica», y volvió la línea de Puma en
+el medio —«Mirá vos. Argentina juega.»— que es la que deja respirar el remate:
+«Acá también juega Argentina. **Todos los días.** Pero estos partidos no los pasan por la tele.»
+
+### ✅ M13-08 · El Gitano en serio — **aplicado, en tres tiempos**
+Era un bloque de texto y ahora son tres líneas con el mate en el medio. Entró la que faltaba:
+«**Yo me crié adivinando de qué humor venía por cómo sonaba la puerta al llegar.**» Y el cierre que
+el Gitano se pone solo: «*(la sonrisa volviendo)* **Bueno, basta que me emociono.**»
+
+El silencio entre una y otra es lo que la hace confesión en vez de discurso.
+
+## MISIÓN 14 — El tero y los dos finales
 
 ### ✅ M14-12 · **LA DECISIÓN, sin menú — aplicada**
 `M12_FINAL` dejó de decidir por el jugador. Se fue «Tenía el combustible justo para volver. No tenía
@@ -488,6 +521,43 @@ jazminero, la navaja del Colorado contra la azucarera, «¿Y eso qué importa, m
 Es **el único camino de todo el juego** en el que Esteban se entera, y llega décadas tarde.
 Placa `cocina_calida`, contra el `cocina_gris` del Final A: la convención ya estaba en el código.
 
+---
+
+# 2. Los 16 debates
+
+Contexto completo de cada uno en [DEBATE_PENDIENTES.md](DEBATE_PENDIENTES.md).
+
+Contexto completo de cada uno en [DEBATE_PENDIENTES.md](DEBATE_PENDIENTES.md).
+
+| | decisión | qué quedó en `story.js` |
+| --- | --- | --- |
+| **P-05** | dejar | «mis contactos en Corrientes» se queda: es lo que explica cómo Esteban le consiguió un cabo correntino al hijo |
+| **M1-03** | dejar | la foto de la Casada **se ve** en M1 (`m7_foto_frente`). ⚠ Hay que corregir GUION_3: la nota del 29/8 dice lo contrario |
+| **M3-03** | entra | `M03_ARANDELA_010` — el Turco de espaldas al cielo: «Ahí viene el capitán» |
+| **M3-07** | entra | el carrito con el misil, como `accion:` de la primera y la última línea de la burrada. Cero líneas nuevas |
+| **M3-13** | entra | `M03_BELGRANO_010` — el Pichón entra sin correr, y todavía se están riendo de la arandela |
+| **M4-04** | separada, misma placa | `M3_2` pasó de `hangar_dia` a `linea_amanecer`: mismo momento, con un silencio en el medio |
+| **M5-03** | entran | el Turco «bajito, desde la puerta, sin entrar», y el cierre «nadie festeja. El orgullo dura lo que dura una frase» |
+| **M6-01** | **no entra** | el Gitano no bautiza el avión en M6. **Achica G-03**: quedan sólo los nombres que ya están escritos |
+| **M7-02** | la anécdota cortada | el Vasco arranca «…y el tipo me hace repetir el aterrizaje cuatro veces. Cuatro. Yo tenía diecinueve años y—» y no la termina |
+| **M7-05** | entran | «Cuatro aviones donde había cinco» + «hay una estrellita que hoy no se pinta. El tarrito queda abierto toda la noche» |
+| **M8-01** | entra, y sale el duplicado | escena nueva `M7_TESIS` en `epiM8`. Y `M7_HIST` ya no cuenta que Ian North murió evacuando: ahora lo dice el Turco |
+| **M8-03** | meterla ya | `M7_SOBREVUELO`, línea `tipo: 'CUADRO'` con `img: 'M8_TERITO'`. Cae a la placa hasta que exista el asset |
+| **M9-04** | entra | la hoja suelta con «NO. Se muere.» subrayado dos veces, y «el Turco se ríe una vez, corto, sin querer» |
+| **M10-03** | dejar | el desbloqueo del Mirage se queda como última tarjeta de `epiM10` |
+| **M12-01** | la del guion, partida | Correa en tres tiempos: «Vos salís seguro» + silencio · los jazmines y Teresa · «Vas a quedar como un señor, angá» |
+| **M12-03** | entra | el inventario: la mochila volcada, la foto, el mate, el cuero de oveja tapándolo, y Mateo guardando la foto en el cuaderno |
+
+**Dos efectos secundarios:**
+- **M1-03 obliga a corregir GUION_3.** La nota del 29/8 —«el jugador NO ve la foto en M1»— quedó anulada. Vale la 8a: apariciones en M1, M4, M6 y reveal en M7.
+- **M6-01 achica G-03.** Si el Gitano no bautiza el avión en M6, no hay que inventar catorce nombres: quedan «el Colectivo» (M1) y el que falte en M14, donde el gesto se cobra por ausencia.
+
+---
+
+---
+
+# 3. Sistemas
+
 ### ✅ G-01 · **RESUELTO — nadie se escribe nada**
 Regla del autor, y ya estaba en GUION_3 nota 1:
 
@@ -509,9 +579,56 @@ Se arreglaron de paso otras dos cosas de la misma regla:
 
 ---
 
-# TUS CAMBIOS EN `story.js` vs GUION_3
+# 4. Técnico
 
-*Decisiones tuyas que el guion todavía no refleja. No son errores: son lo que quedó. GUION_3 hay que bajarlo a esto antes de volver a usarlo como fuente.*
+### ✅ T-01 · IDs de línea duplicados — **corregido**
+Los ids se habían roto al escribir líneas nuevas copiando la de arriba: 15 ids repetidos, uno de
+ellos ocho veces (`M6_LOCKER2_040`). Se renumeró **de diez en diez, en el orden en que están** —el
+orden era el correcto, los números no—: **101 líneas en 18 escenas**, sin tocar una sola palabra.
+
+`M07_LOCKER` quedó intacta a propósito: sus ids están asertados en `tools/unit.js` como fixture de
+aceptación.
+
+Estado: **0 ids duplicados**, y 0 líneas cuyo id no coincida con su escena y su posición.
+
+### ✅ T-07 · `personaje: 'NARRADOR'` — **corregido**
+`M6_LOCKER2` tenía la línea del silencio como `personaje: 'NARRADOR', cara: ''`, que habría impreso
+«NARRADOR» como si fuera alguien hablando. Pasó a `personaje: null, cara: null, tipo: 'NARRADOR'`.
+
+### ✅ T-08 · `vazco_espalda` — **corregido**
+Con z. Ahora `vasco_espalda`. Y de paso `vasco_sonriente` → **`vasco_sonrisa`**, que ya existía como
+archivo: un retrato menos para generar.
+
+### ✅ T-09 · La estructura de las líneas — **normalizada entera**
+No eran dos líneas: era todo el archivo desparejo por copiar y pegar. Se auditaron **los 492
+objetos de línea** y se emparejaron a una sola forma:
+
+```js
+      { id: '...', personaje: X, cara: Y, hold: N,
+        accion: '...',            // opcional
+        es: '...', en: '' },
+```
+
+Lo que se corrigió:
+
+| | |
+| --- | --- |
+| **2** líneas terminaban en `es: '...'}` sin `en: ''` | `M03_BURRADA_150` y `_160` |
+| **9** tenían `accion:'...'` sin espacio | repartidas en 8 escenas |
+| **12** líneas con la indentación corrida | apertura a 6 espacios, continuación a 8 |
+
+Estado: **492 objetos, 0 desvíos.** Todos tienen `personaje`, `cara`, `hold`, `es` y `en`; todos
+abren con `id, personaje, cara, hold` en ese orden y cierran en `es, en`. Los que llevan `accion`,
+`tipo` o `img` los tienen en el medio, que es donde van.
+
+### ✅ T-12 · El build web — **fuera del tablero**
+El target es **Electron + Steam**. El techo de 16 MB era del build web y no aplica. Retirado.
+
+---
+
+# 5. Tus cambios vs GUION_3
+
+*Decisiones tuyas que el guion todavía no refleja. No son errores: son lo que quedó.*
 
 ### D-01 · La burrada del Gitano — tres cambios
 - **El paracaídas.** No está en el guion, y era deliberado: sin paracaídas el Turco puede contestar «El suelo, m'hijo. Abajo está el suelo». Vos lo reforzaste con «¿Usarías el eyector?». Queda, y el cobro de M9 se reformuló sobre el reingreso (M9-04).
@@ -549,25 +666,139 @@ Las que escribiste en la burrada y el 25 de mayo (`gitano_imaginando`, `vasco_so
 `turco_pensante`, `puma_espaldas`…). Están en `T-06` con la lista completa.
 
 
+
 ---
 
-## ✅ T-01 · IDs de línea duplicados — **corregido**
-Los ids se habían roto al escribir líneas nuevas copiando la de arriba: 15 ids repetidos, uno de
-ellos ocho veces (`M6_LOCKER2_040`). Se renumeró **de diez en diez, en el orden en que están** —el
-orden era el correcto, los números no—: **101 líneas en 18 escenas**, sin tocar una sola palabra.
+# 6. M14 y el cierre — la tanda grande
 
-`M07_LOCKER` quedó intacta a propósito: sus ids están asertados en `tools/unit.js` como fixture de
-aceptación.
+## ✅ M14 · el medio que faltaba
+Escrito entero desde GUION_3. Escenas nuevas y reescrituras:
 
-Estado: **0 ids duplicados**, y 0 líneas cuyo id no coincida con su escena y su posición.
+| | |
+| --- | --- |
+| **M14-01** `M12_RADIO` | Cómo se enteran: el parte de rutina de Cóndor con la coordenada y «conscriptos clase 63». Tero va al mapa y apoya el dedo. **Nadie grita.** Es el mismo punto que tenía subrayado desde M12 |
+| **M14-04 · M14-05** | El tero lo **contesta Esteban**: Puma pregunta, y el que sabe es él. «…Grita lejos del nido. Se hace el herido.» Y el cierre: «vos entrás y sacás a tu pibe. ¿Escuchaste, Aldao? A tu pibe» |
+| **M14-03** | «**Tres desayunos.** Mañana sirvo TRES desayunos. El que falte me arruina la cuenta.» Es la línea que dice que nadie se está despidiendo |
+| 🔴 **M14-02** | **El ritual invertido**, el cobro de `M1_CINCO`: Puma toca la foto del panel y después dos de las tres cosas —no termina—, el Gitano **no le pone nombre al avión** por primera vez en catorce misiones, y Tero toca el terito entero |
+| 🔴 **M14-06** `M12_RELOJ` | «¡ADELANTARON EL BOMBARDEO! ¡No es a las seis, es—!» y estática. La única radio de la misión, y la que mata el margen |
+| 🔴 **M14-07** | La muerte del Gitano, **la propuesta**: se abre con una línea suya («¡Miren qué lindo brillo cordobés!»), quiebra como quiebra siempre, y **el último misil ya vencido lo alcanza de rebote**. Su última línea no habla de él: «Mandale saludos a tu pibe, Tero». Puma remata tres segundos después: «Plata 3 fuera» |
+| 🔴 **M14-08** | La muerte de Puma en tres tiempos: la charla previa con «Gracias. De corazón», los dos minutos de IA, «¡MANDALE, TERO!», y recién ahí —tranquilo, casi divertido— «**Pifié. Me quedé sin nafta.**» |
+| **M14-09 · M14-10** | Las trayectorias que se cruzan: la salva del buque ya en el aire cruzándose con el misil argentino. Y «…**Llegué, Mateo. Llegué.** Estoy acá arriba, hijo. Por favor, Mateo. Por favor.» |
+| **M14-11** | El tonel barril **no entra**, por tu decisión |
+| **M12_FINAL** | Salió la línea de Cóndor «si quiere volver, es ahora»: era, textualmente, una opción en pantalla, y la decisión va sin menú |
 
-## ✅ T-07 · `personaje: 'NARRADOR'` — **corregido**
-`M6_LOCKER2` tenía la línea del silencio como `personaje: 'NARRADOR', cara: ''`, que habría impreso
-«NARRADOR» como si fuera alguien hablando. Pasó a `personaje: null, cara: null, tipo: 'NARRADOR'`.
+## ✅ M14-16 → M14-20 · el cierre común
+`CIERRE_1` (los diez párrafos sobre fotos reales), `CIERRE_2` (**el Narwal último y solo**, que era
+tu elección: es el único párrafo que el jugador puede atar a algo que jugó), `CIERRE_3` (la cartela,
+la frase de Iorio y la dedicatoria) y `POSTCRED` (el museo, «Seño Claribel», «¿Y ganaron?» / «No.»).
 
-## ✅ T-08 · `vazco_espalda` — **corregido**
-Con z. Ahora `vasco_espalda`. Y de paso `vasco_sonriente` → **`vasco_sonrisa`**, que ya existía como
-archivo: un retrato menos para generar.
+Los cuatro corren **en los dos finales**: `epiM14A` y `epiM14B` terminan igual.
 
-## ✅ T-12 · El build web — **fuera del tablero**
-El target es **Electron + Steam**. El techo de 16 MB era del build web y no aplica. Retirado.
+> ⚠ **La lista de países quedó en Perú solo.** GUION_3 pide «confirmar la lista y qué aportó cada
+> uno antes de nombrar a nadie», y no está verificada. Nombrar de más es peor que nombrar de menos.
+> Queda anotado en el código y va a `PREGUNTAS_HISTORICAS.md`.
+
+## ✅ M13-10 · la carta a Norma
+`M11_CARTA_NORMA`, última escena del epílogo de M13: se lo muestra escribir —la letra apretada, los
+tachones— **y no deja leer ni una línea**. La deja parada en el locker, sin cerrar el sobre, con un
+solo nombre en el frente. Se lee entera en `EPI_A2`, y sólo en el Final A.
+
+## ✅ G-06 · la respuesta a Claribel
+Sin subrayarla, como pedía el guion: en la post-créditos, «la seño se queda mirando el cuaderno un
+segundo de más». Está parada frente a una vitrina que contiene una carta dirigida a ella.
+
+## ✅ G-05 · las charlas de M1 — **enganchadas**
+`m1` tiene tramos por primera vez: `M01_RITUAL` a los 12% y `M01_GANSOS` a los 30%, con `obstacles: 0`.
+Estaban escritas hace semanas y no las veía nadie.
+
+## ✅ T-02 · `M07_LOCKER` — **fusionado**
+No se tocó la escena (sus ids son fixture de aceptación en `tools/unit.js`). Lo que aportaba y no
+estaba en la que se juega —**el `CUADRO` del dorso de la foto**— pasó a `M6_LOCKER2`.
+
+## ✅ T-10 · las 23 strings del Narwal — **borradas**
+Salieron de `strings.js`. Las reemplazaron las ocho escenas `VUELO`.
+
+## ✅ M10-02 · `condor_reposo`
+`M10_HUECO` usaba `condor_radio`, que rompía la convención del resto de la campaña.
+
+## ✅ M13-09 · «La llevo conmigo»
+## ✅ M13-11 · Carta 14 — entró «Acá los pibes cantan bajito para no llorar» y «Voy a estar mirando para arriba hasta el final, buscándote»
+
+
+## ✅ G-03 · Los nombres del avión del Gitano — **sin nombres**
+Queda «el Colectivo» de M1 y la ausencia de M14, que es donde el gesto se cobra. No se inventan
+catorce. La decisión de M6-01 ya lo había achicado.
+
+## ✅ T-03 · `M01_RITUAL` y `M01_GANSOS` — **resuelto por G-05**
+Colgadas de los dos primeros tramos de `m1`. Estaban escritas hace semanas y no las veía nadie.
+
+## ⚠ G-08 · El objetivo de la misión — **mitad aplicada**
+Las 14 tarjetas llevan una segunda línea `OBJETIVO · …`. La segunda capa —Cóndor por radio en el
+primer tramo— sigue abierta y es motor.
+
+
+## ✅ M13-04 · «La última» — **sacado**
+Puma cierra en «…Plata Fiel completa, entonces. **Una vez más.**» Sin eso, el destelegrafiado de
+M13-01 no servía de nada: se sacaba el anuncio de una línea y volvía dos después.
+
+## ✅ G-07 · Pasada de dialectos — **hecha, y corta a propósito**
+§9 pide **una marca cada tantas líneas, no en todas**. Cuatro toques, y ninguno en un momento
+sagrado del Turco (§9b: en el locker del Vasco, la libreta del Pichón, el pincel, la frase de la
+tesis y el mate del Final B **no putea**, y eso es lo que hace que su vulgaridad signifique algo):
+
+| dónde | qué entró |
+| --- | --- |
+| `M10_HUECO` — el Turco canibalizando el avión del Pichón | «No baja un tornillo al sur desde hace veinte días. **Ni aca.**» — su palabra madre, que no aparecía ni una vez en toda la campaña |
+| `M03_BURRADA` — el Turco escuchando | «Si, obvio... ¿y? **Mavé.**» |
+| `M12_TIERRA` — Correa empujando a Mateo al pozo | «¡Abajo, Mateo! ¡ABAJO, **chamigo**!» |
+| `M12_TIERRA` — los jazmines | «Escuchame que es importante, **pue**.» |
+
+## ✅ T-04 · La numeración doble — **renombrado todo**
+**90 escenas renombradas y 387 líneas renumeradas.** La misión de cada escena la mandó `SECUENCIAS`,
+que es la fuente de verdad — no el prefijo del id, que venía de la campaña vieja de 12.
+
+Ahora `M12_1` es de la misión 12 y `M14_GITANO` de la 14. Antes `M10_1` era de la 12 y `M12_1` de
+la 14, y `M10_TARJETA` y `STORYM10_TARJETA` eran dos misiones distintas.
+
+> **Y el renombre encontró la bomba que justificaba hacerlo.** Al mapear, `M10_HIST` (Sir Tristram)
+> y `M12_HIST` (Glamorgan) cayeron los dos en `M12_HIST`. **JavaScript no se queja de una clave
+> repetida: se queda con la última en silencio.** El epílogo de M12 habría mostrado el hundimiento
+> del Glamorgan. Se resolvió con `M14_HIST`, y el chequeo de claves duplicadas queda como parte del
+> control.
+
+`M07_LOCKER` quedó intacta: sus ids son fixture de aceptación en `tools/unit.js`.
+
+## ✅ T-11 · El selector de diálogos — **arreglado**
+`charlasDe()` en `game.js` leía sólo `t.radio`. Cuando el Narwal pasó de `radio:` a `charla:`, los
+diálogos de m4 y m5 desaparecieron del selector **sin que nada fallara**. Ahora lee las dos y
+`irACharla()` despacha por la puerta que corresponde: `charla.armar()` o `radioTramo()`.
+
+## ✅ T-05 · Commiteado
+Cuatro commits en la rama `guion/m13-y-retratos`.
+
+## 🛠 `tools/leer_marcas.py` — nuevo
+Lector tolerante de marcas. Acepta `[x]`, `[X]`, **`[X}`**, `(x)` y `{x}`, porque una marca escrita
+a mano sale como sale y un lector estricto **la ignora en silencio** — que es exactamente como se
+pierde una respuesta y se termina preguntando dos veces lo mismo. Pasó con `M13-04`.
+
+
+## ✅ G-08 · El objetivo de la misión — **completo**
+Las dos capas. La tarjeta, para el que lee, ya estaba. Ahora está **la radio, para el que ya está
+volando**: 13 escenas `VUELO` nuevas, `M01_OBJETIVO` … `M13_OBJETIVO`, colgadas del **primer tramo**
+de cada misión.
+
+**Cada una abre con su indicativo** — Cauquén, Chimango, Benteveo, Albatros, Aguilucho, Carancho,
+Zorzal, Hornero, Golondrina, Chingolo, Calandria, Chajá, Caburé. Es el aviario de §4 del guion, que
+estaba escrito y **no se usaba en ninguna parte**: apodos humanos para la gente, aves para la radio.
+Se dicen una vez por misión y nadie los explica.
+
+> **M14 no tiene escena de objetivo, y ése es el punto.** Esa noche la misión está DENEGADA: no hay
+> pájaro asignado, no hay orden y no hay nadie mandándolos. Puma apaga la radio con dos dedos.
+> Ponerle una radio de objetivo contradiría la escena que abre la misión — y además es lo que hace
+> que «no hay indicativo asignado» signifique algo: **el jugador escuchó trece**.
+
+10 misiones no tenían `tramos:` y se les creó el bloque; `m1`, `m4` y `m5` ya tenían, y el objetivo
+se metió **antes** de lo que había. Las 23 escenas `VUELO` del juego entran en `CHV_MAX_S`: la más
+larga es `M05_NARWAL_B` con 22,6 s de 25.
+
+De paso, la tarjeta de M1 decía «Objetivo» dos veces.
