@@ -395,6 +395,38 @@ function portraitImg(name) { return lazyImg(PORTRAIT_IMGS, '../assets/portraits/
 // su hoja — un tinte solo no alcanzaba para que una carta escrita a birome pareciera una carta.
 const STORY_STYLES = { CARTA: '#c9b48a' };
 
+// EL INTERSTICIAL: negro pleno con una linea de texto, y nada mas.
+//
+// Lo usa la campaña para dos cosas (PENDIENTES_GUION G-09): el TITULO DE LA MISION unos segundos
+// antes de que aparezca la escena con imagen, y el «DIA SIGUIENTE» entre una mision y la que sigue.
+//
+// POR QUE NEGRO PLENO Y NO UNA TARJETA. La tarjeta de mision ya existe y tiene marco, placa y dos
+// lineas de datos: es una PANTALLA. Esto es un RESPIRO — el corte que separa dos cosas para que no
+// se lean como una sola. Si tuviera marco dejaria de separar y pasaria a ser una pantalla mas.
+//
+// Comparte el grano y la scanline con drawStory a proposito: tiene que verse de la misma familia,
+// no de otro juego. Sin marco de expediente, que es lo unico que lo distingue.
+//
+// `p` es 0..1: el avance del intersticial. Entra y sale con un fundido corto — el texto aparece
+// despues del negro y se va antes, asi el corte nunca deja el texto colgado sobre la escena.
+export function interstitial(txt, p, t) {
+  ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, W, H);
+  // grano y scanline, iguales a los de la pantalla de historia
+  ctx.globalAlpha = 0.10;
+  for (let i = 0; i < 42; i++) px(Math.random() * W, Math.random() * H, 1, 1, '#8a9ba1');
+  ctx.globalAlpha = 0.05;
+  px(0, ((t || 0) * 9) % (H + 30) - 15, W, 7, '#eaf6ff');
+  ctx.globalAlpha = 1;
+  // el texto vive en el tercio central del intersticial: 0.2 para entrar, 0.2 para salir
+  const a = clamp01(Math.min(p / 0.2, (1 - p) / 0.2));
+  if (a <= 0 || !txt) return;
+  ctx.globalAlpha = a;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = P.accent; ctx.font = titleFont(16);
+  ctx.fillText(String(txt).toUpperCase(), W / 2, H / 2 + 5);
+  ctx.globalAlpha = 1; ctx.textAlign = 'left';
+}
+
 // pantalla de HISTORIA: negro tipo "pantalla de carga" con grano de pelicula y scanline,
 // texto tipeado letra a letra con cursor. NO se ve el terreno de juego (eso llega con el fade).
 //

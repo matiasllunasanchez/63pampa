@@ -1391,3 +1391,57 @@ test('partes: dos tipos no comparten firma', async () => {
   assert.equal(new Set(firmas).size, firmas.length,
     'hay dos tipos con la misma firma: ' + firmas.join(' '));
 });
+
+// ---------------------------------------------------------------------------------------------
+// EL CONTRATO DE LOS CUATRO GANCHOS DE MOTOR (docs/historia/PLAN_4_PENDIENTES.md, fase 0).
+//
+// POR QUE ESTOS TESTS EXISTEN. Los cuatro pendientes de motor se escriben en paralelo, en archivos
+// distintos, y recien despues se cuelgan de game.js. Lo unico compartido entre las cuatro vias son
+// estas firmas. Si una via las cambia sobre la marcha, las otras tres se enteran cuando ya no se
+// puede: en el merge. Esto lo convierte en un fallo de test, que es donde tiene que doler.
+//
+// NO prueban comportamiento — todavia no hay comportamiento que probar. Prueban que la costura
+// existe y tiene la forma acordada.
+// ---------------------------------------------------------------------------------------------
+
+test('ganchos: desgaste acumula, escala 0..1 y se resetea MUTANDO', async () => {
+  const m = await import('../src/core/desgaste.js');
+  const ref = m.desgaste;                       // identidad estable: el store se comparte
+  assert.equal(m.nivel(), 0, 'celula nueva arranca en 0');
+  m.tickDesgaste(5); m.misionCumplida();
+  assert.ok(m.nivel() > 0 && m.nivel() < 1, 'el nivel vive en 0..1');
+  m.tickDesgaste(1000);
+  assert.equal(m.nivel(), 1, 'satura en 1, no se pasa');
+  m.resetDesgaste();
+  assert.equal(m.nivel(), 0);
+  assert.equal(m.desgaste, ref, 'resetDesgaste REASIGNO el store en vez de mutarlo');
+});
+
+test('ganchos: los barks respetan la curva del tono', async () => {
+  const { BARKS, barkDe, barksVivos } = await import('../src/data/barks.js');
+  assert.ok(BARKS.length >= 1, 'tiene que existir al menos HEAVY MACHINE GUN');
+  for (const b of BARKS) {
+    assert.ok(b.id && b.texto && b.cuando, `bark incompleto: ${JSON.stringify(b)}`);
+    // §9c: el banco se achica en M9-M13 y en M14 NO HAY NI UNO. Es la regla que hace que el
+    // jugador sienta que el juego se quedo callado sin poder nombrarlo.
+    assert.ok(b.hasta <= 13, `el bark '${b.id}' puede sonar en M14, y en M14 no suena ninguno`);
+  }
+  assert.equal(barkDe('__no_existe__'), null);
+  assert.equal(barksVivos(14, new Set()).length, 0, 'M14 tiene que quedar muda');
+  const usados = new Set(BARKS.map(b => b.id));
+  assert.equal(barksVivos(1, usados).length, 0, 'un bark usado no vuelve a sonar en la campaña');
+});
+
+test('ganchos: interstitial() y drawBark() existen con la firma acordada', () => {
+  // LOS MODULOS DE RENDER NO SE PUEDEN IMPORTAR ACA: `render/ctx.js` toca `document` al cargar, y
+  // en node no hay canvas. Se leen como texto, que es lo que ya hace el resto de los tests que
+  // miran fuentes. Alcanza: lo que se esta fijando es la FIRMA, no el dibujo.
+  const scr = readFileSync(new URL('../src/render/screens.js', import.meta.url), 'utf8');
+  const brk = readFileSync(new URL('../src/render/bark.js', import.meta.url), 'utf8');
+  assert.match(scr, /export function interstitial\(txt, p, t\)/,
+    'falta interstitial(txt, p, t) en render/screens.js');
+  assert.match(brk, /export function drawBark\(txt, p\)/,
+    'falta drawBark(txt, p) en render/bark.js');
+  assert.match(brk, /export const BARK_S = [\d.]+/,
+    'BARK_S es cuanto dura el cartel en pantalla');
+});

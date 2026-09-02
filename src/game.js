@@ -26,6 +26,22 @@ import * as momentum from './legacy/momentum.js';
 import * as tempo from './systems/tempo.js';
 import * as rasante from './systems/rasante.js';
 import * as chancha from './systems/chancha.js';
+// ---- GANCHOS DE MOTOR (docs/historia/PLAN_4_PENDIENTES.md) ----------------------------------
+// Las cuatro piezas que faltan se escriben en archivos propios y se cuelgan ACA, en la fase 2.
+// Los imports estan puestos y las firmas cerradas y testeadas (tools/unit.js, «ganchos:») para que
+// las cuatro vias puedan trabajar en paralelo sin inventar cada una su forma de engancharse.
+//
+// DONDE VA CADA UNA, y esto es el contrato:
+//   G-09  interstitial(txt, p, t)      → la cadena de posmision, cerca de `S.state === 'epilogue'`.
+//                                        Hoy: results → epilogue → upgrade. Tiene que quedar
+//                                        results → upgrade → epilogue → «DIA SIGUIENTE» → brief.
+//   G-04  tickDesgaste(n) / nivel()    → donde ya se cuentan los impactos del jugador. Y el
+//                                        acumulado ENTRA AL PAYLOAD de systems/saves.js: si no se
+//                                        guarda, el avion se cura solo al cargar una partida.
+//   G-02  barksVivos() / drawBark()    → el bucle de vuelo. La condicion del arma sostenida sale de
+//                                        systems/flight.js, que ya lleva el estado del canon.
+//
+// Estan importados y todavia sin llamar a proposito: la fase 0 fija la costura, no el cableado.
 import * as saves from './systems/saves.js';
 import { CAMPAIGNS } from './data/campaigns.js';
 import { PRUEBAS } from './data/pruebas.js';

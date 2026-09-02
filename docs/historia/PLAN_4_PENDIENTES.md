@@ -23,6 +23,24 @@ el final.**
 
 ---
 
+# ✅ FASE 0 — el contrato — **HECHA**
+
+Ya está commiteada. Las cuatro vías pueden arrancar.
+
+| | |
+| --- | --- |
+| `src/core/desgaste.js` | store de identidad estable. `tickDesgaste(n)` · `misionCumplida()` · `nivel()` → 0..1 · `resetDesgaste()` |
+| `src/data/barks.js` | `BARKS` con `HEAVY MACHINE GUN`, `barkDe(id)`, `barksVivos(n, usados)`. **La curva del tono vive en el campo `hasta`**, no en el código |
+| `src/render/bark.js` | `drawBark(txt, p)` y `BARK_S` |
+| `src/render/screens.js` | `interstitial(txt, p, t)` — negro pleno, mismo grano y scanline que la pantalla de historia, sin marco |
+| `src/game.js` | el bloque `// ---- GANCHOS DE MOTOR ----` con los tres puntos de cableado documentados. **Sin llamar a nada todavía**: la fase 0 fija la costura, no el cableado |
+| `tools/unit.js` | **tres tests de contrato**. Si una vía cambia una firma sobre la marcha, falla acá y no en el merge |
+
+Uno de esos tests ya hace trabajo: verifica que **ningún bark pueda sonar en M14**, que es la regla
+§9c que hace que el jugador sienta que el juego se quedó callado sin poder nombrarlo.
+
+<details><summary>Lo que decía el plan original</summary>
+
 # FASE 0 — el contrato *(1 sesión, 20 min, bloqueante)*
 
 Antes de abrir nada en paralelo hay que dejar clavadas las costuras, porque son lo único compartido.
@@ -42,6 +60,8 @@ pantallas.interstitial(txt, seg)                      // negro + texto, para G-0
 3. `tools/unit.js`: un test por gancho que sólo verifica que existe y que el no-op no rompe nada.
 
 Sin esto, dos sesiones inventan dos formas de colgarse del mismo lugar.
+
+</details>
 
 ---
 
