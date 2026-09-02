@@ -47,6 +47,7 @@ export const SCENES = {
       { id: 'M5_ESCUCHA_060', personaje: 'PICHÓN', cara: 'pichon_auriculares', hold: 4.0,
         es: ' ..."no mires al cielo. Porque la muerte viene a ras del suelo."', en: '' },
       { id: 'M5_ESCUCHA_070', personaje: 'EL TURCO', cara: 'turco_orgullo', hold: 1.5,
+        accion: 'Bajito, desde la puerta, sin entrar.',
         es: 'Escribila, changuito. Esa escribila.', en: '' },
       { id: 'M5_ESCUCHA_080', personaje: 'GITANO', cara: 'gitano_sonrisa', hold: 1.2,
         es: 'Al ras del suelo... ¿Escuchaste, Tero? Nos tienen miedo.', en: '' },
@@ -54,6 +55,10 @@ export const SCENES = {
       // y del lado de aca hay un chico de dieciocho que escucha lo mismo y no sabe quien pasa
       { id: 'M5_ESCUCHA_090', personaje: 'ESTEBAN', cara: 'tero_preocupado', hold: 3.5,
         es: 'Sí...', en: '' },
+      // EL ORGULLO DURA UNA FRASE Y SE TERMINA. Sin este cierre la escena se lee como arenga: es la
+      // unica vez en todo el juego que se enteran de que no estan perdiendo, y dura eso.
+      { id: 'M5_ESCUCHA_100', personaje: null, cara: null, hold: 3.0,
+        es: 'Y ahí se corta. Nadie festeja. El orgullo dura lo que dura una frase.', en: '' },
     ],
   },
   M2_MATE: {
@@ -234,14 +239,19 @@ export const SCENES = {
   M03_ARANDELA: {
     id: 'M03_ARANDELA', tipo: 'VN', titulo: 'EL PRIMER FRACASO GLORIOSO', placa: 'hangar_dia',
     lineas: [
-      { id: 'M03_ARANDELA_010', personaje: null, cara: null, hold: 2.0,
+      // EL GESTO DEL TURCO (§9d, M3): reconoce los aviones por el ruido, antes de verlos. NADIE LE
+      // PREGUNTA COMO SABE, ni aca ni nunca. Es su unica aparicion hasta M13.
+      { id: 'M03_ARANDELA_010', personaje: 'EL TURCO', cara: 'turco_neutro', hold: 4.0,
+        accion: 'De espaldas al cielo, con las manos adentro de un motor. Levanta la cabeza. Pasan cuatro segundos largos hasta que el punto aparece sobre el mar.',
+        es: 'Ahí viene el capitán.', en: '' },
+      { id: 'M03_ARANDELA_020', personaje: null, cara: null, hold: 2.0,
         es: 'Prueban el invento del pibe: algo con una tapa y mucha cinta aislante. Hace un ruido espantoso. Una pieza de metal al rojo vivo sale volando, y se apaga con humo. Le vuela el gorro al Turco y le roza la oreja al Gitano.', en: '' },
-      { id: 'M03_ARANDELA_020', personaje: 'EL TURCO', cara: 'turco_neutro', hold: 1.0,
+      { id: 'M03_ARANDELA_030', personaje: 'EL TURCO', cara: 'turco_neutro', hold: 1.0,
         accion: 'Levanta el gorro del piso y le sopla el polvo, muy tranquilo.',
         es: 'No sirve, changuito. Te dije que no sirve.', en: '' },
-      { id: 'M03_ARANDELA_030', personaje: 'PICHÓN', cara: 'pichon_neutro', hold: 1.5,
+      { id: 'M03_ARANDELA_040', personaje: 'PICHÓN', cara: 'pichon_neutro', hold: 1.5,
         es: 'Mmmm... interesante.', en: '' },
-      { id: 'M03_ARANDELA_040', personaje: 'GITANO', cara: 'gitano_sonrisa', hold: 1.0,
+      { id: 'M03_ARANDELA_050', personaje: 'GITANO', cara: 'gitano_sonrisa', hold: 1.0,
         accion: 'Se acerca frotandose la oreja y ríe.',
         es: 'Interesante dice el culiao... Casi me vuela la oreja con una arandela... Ajá... interesante.', en: '' },
     ],
@@ -253,12 +263,13 @@ export const SCENES = {
     id: 'M03_BURRADA', tipo: 'VN', titulo: 'LA BURRADA DEL GITANO', placa: 'hangar_dia',
     lineas: [
       { id: 'M03_BURRADA_010', personaje: 'GITANO', cara: 'gitano_sonrisa', hold: 0.5,
+        accion: 'El Turco empuja un carrito con un misil hacia el otro avión. El Gitano se le cruza adelante y le apoya la mano encima, como quien apoya la mano en el hombro de un amigo.',
         es: 'Turco, cuchá. Tengo una idea tremenda y quería saber si es posible.', en: '' },
       { id: 'M03_BURRADA_020', personaje: 'EL TURCO', cara: 'turco_pensante', hold: 1.0,
         es: 'Escucho.', en: '' },
       { id: 'M03_BURRADA_030', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0.6,
         es: 'Venís volando, y aparecen dos atrás, ¿sí? Ellos más veloces que nosotros y no son fáciles de perder. Además su armamento es mucho mejor que el nuestro.', en: '' },
-         { id: 'M03_BURRADA_040', personaje: 'EL TURCO', cara: 'turco_pensante', hold: 1.0,
+      { id: 'M03_BURRADA_040', personaje: 'EL TURCO', cara: 'turco_pensante', hold: 1.0,
         es: 'Si, obvio... ¿y?', en: '' },
       { id: 'M03_BURRADA_050', personaje: 'GITANO', cara: 'gitano_explicando_mira_arriba', hold: 0.5,
         accion: 'El Vasco, que caminaba por ahí, se detiene a escuchar debido al entusiasmo del Gitano.',
@@ -273,9 +284,9 @@ export const SCENES = {
         es: 'Te bajás, Vasco. Abrís la cabina y te tirás. Con paracaídas obviamente, por las dudas. ', en: '' },
       { id: 'M03_BURRADA_100', personaje: 'VASCO', cara: 'vasco_rezo', hold: 1.2,
         es: 'Diosito.', en: '' },
-       { id: 'M03_BURRADA_110', personaje: 'GITANO', cara: 'gitano_imaginando', hold: 0.6,
+      { id: 'M03_BURRADA_110', personaje: 'GITANO', cara: 'gitano_imaginando', hold: 0.6,
         es: 'Los que te siguen, le siguen yendo al avión, pero vos ya no estás adentro. Y mientras caés… LES DISPARÁS.', en: '' },
-       { id: 'M03_BURRADA_120', personaje: 'PICHÓN', cara: 'pichon_pensante', hold: 0.6,
+      { id: 'M03_BURRADA_120', personaje: 'PICHÓN', cara: 'pichon_pensante', hold: 0.6,
         es: '¿Y con qué?', en: '' },
       { id: 'M03_BURRADA_130', personaje: 'GITANO', cara: 'gitano_emocionado', hold: 2.0,
         es: 'Con lo que sea que te lleves encima. Un revolver, una ametralladora, un lanzacohetes... lo que sea.', en: '' },
@@ -283,15 +294,16 @@ export const SCENES = {
         accion: 'El Vasco se da media vuelta y se aleja.',
         es: 'Buenas tardes, muchachos.', en: '' },
       { id: 'M03_BURRADA_150', personaje: 'GITANO', cara: 'gitano_emocionado', hold: 2.0,
-        accion:'Gitano sigue completamente emocionado contando. El Puma ve la situación y se acerca.',
-        es: 'Vos estás en un estado de locura e inconciencia temporal. ¿Me explico? No le tirás un tiro, porque si le pifiás te comés un garrón de la gran flauta. Les vaciás el cargador, los reventás a balazos.'},
+        accion: 'Gitano sigue completamente emocionado contando. El Puma ve la situación y se acerca.',
+        es: 'Vos estás en un estado de locura e inconciencia temporal. ¿Me explico? No le tirás un tiro, porque si le pifiás te comés un garrón de la gran flauta. Les vaciás el cargador, los reventás a balazos.', en: '' },
       { id: 'M03_BURRADA_160', personaje: 'GITANO', cara: 'gitano_volando', hold: 2.0,
-        es: 'Ya aseguradas las bajas, acomodás el cuerpo en caída libre, y le apuntás a tu propio avión, que viene bajando por el otro lado. Te metés adentro, cerrás la cúpula, y seguís volando como si nada.'},
+        es: 'Ya aseguradas las bajas, acomodás el cuerpo en caída libre, y le apuntás a tu propio avión, que viene bajando por el otro lado. Te metés adentro, cerrás la cúpula, y seguís volando como si nada.', en: '' },
       { id: 'M03_BURRADA_170', personaje: 'PICHÓN', cara: 'pichon_pensante', hold: 0.6,
         es: '¿Y a qué velocidad estarías vos cuando saltás? ¿Usarías el eyector?', en: '' },
       { id: 'M03_BURRADA_180', personaje: 'GITANO', cara: 'gitano_pensativo', hold: 0.8,
         es: 'Y... yo calculo...', en: '' },
       { id: 'M03_BURRADA_190', personaje: 'EL TURCO', cara: 'turco_enojado', hold: 1.0,
+        accion: 'Le saca el misil de las manos.',
         es: 'A ver, m\'hijo. ¿Vos te pensás que el aire es una vereda? Vos te bajás de ese avión en el aire y a los treinta segundos te junto con pala.', en: '' },
       { id: 'M03_BURRADA_200', personaje: 'GITANO', cara: 'gitano_ansioso', hold: 0.8,
         es: 'Pero el paracaídas...', en: '' },
@@ -320,33 +332,37 @@ export const SCENES = {
   M03_BELGRANO: {
     id: 'M03_BELGRANO', tipo: 'VN', titulo: '2 DE MAYO', placa: 'radio',
     lineas: [
-      { id: 'M03_BELGRANO_010', personaje: 'PICHÓN', cara: 'pichon_preocupado', hold: 2.5,
+      // VIENE DE LA CARCAJADA DEL HANGAR. El Pichon entra SIN CORRER, y el Gitano todavia tiene
+      // media sonrisa puesta: por eso la risa se corta a la mitad en vez de terminarse.
+      { id: 'M03_BELGRANO_010', personaje: null, cara: null, hold: 2.0,
+        es: 'Todavía se están riendo de la arandela cuando el Pichón entra desde la sala de radio. Sin correr, con la libreta en la mano y la cara de alguien que no sabe cómo decir lo que va a decir.', en: '' },
+      { id: 'M03_BELGRANO_020', personaje: 'PICHÓN', cara: 'pichon_preocupado', hold: 2.5,
         es: 'Huuuu... hundieron al Belgrano.', en: '' },
-      { id: 'M03_BELGRANO_020', personaje: 'GITANO', cara: 'gitano_risa_apagada', hold: 1.0,
+      { id: 'M03_BELGRANO_030', personaje: 'GITANO', cara: 'gitano_risa_apagada', hold: 1.0,
         es: '¿Al crucero? Pero si el crucero está afuera de la zona, Pichón. Está navegando para el otro lado.', en: '' },
-      { id: 'M03_BELGRANO_030', personaje: 'PICHÓN', cara: 'pichon_preocupado', hold: 1.2,
+      { id: 'M03_BELGRANO_040', personaje: 'PICHÓN', cara: 'pichon_preocupado', hold: 1.2,
         es: 'Sí, ya sé... El ataque fue desde un submarino. Dos torpedos.', en: '' },
-      { id: 'M03_BELGRANO_040', personaje: 'PUMA', cara: 'puma_ceno', hold: 0.6,
+      { id: 'M03_BELGRANO_050', personaje: 'PUMA', cara: 'puma_ceno', hold: 0.6,
         es: '¿Cuántos?', en: '' },
-      { id: 'M03_BELGRANO_050', personaje: 'PICHÓN', cara: 'pichon_roto', hold: 2.5,
+      { id: 'M03_BELGRANO_060', personaje: 'PICHÓN', cara: 'pichon_roto', hold: 2.5,
         es: 'No se sabe... No se sabe todavía. Se está hundiendo... con la gente adentro. Además hay temporal. Y dicen que hay balsas en el agua desde hace horas.', en: '' },
       // M3-12: EL GORRO. Es el mismo que le volo la arandela dos escenas antes, y por eso ata la
       // risa con el corte sin una sola palabra. Nadie lo comenta.
-      { id: 'M03_BELGRANO_060', personaje: null, cara: null, hold: 3.0,
+      { id: 'M03_BELGRANO_070', personaje: null, cara: null, hold: 3.0,
         es: 'Silencio largo. El Turco deja el gorro sobre el banco y no lo levanta más.', en: '' },
-      { id: 'M03_BELGRANO_070', personaje: 'GITANO', cara: 'gitano_ceno', hold: 1.5,
+      { id: 'M03_BELGRANO_080', personaje: 'GITANO', cara: 'gitano_ceno', hold: 1.5,
         es: 'Pero no estaba en la zona... estaba yéndose, Puma.', en: '' },
-      { id: 'M03_BELGRANO_080', personaje: 'PUMA', cara: 'puma_roto', hold: 1.5,
+      { id: 'M03_BELGRANO_090', personaje: 'PUMA', cara: 'puma_roto', hold: 1.5,
         es: 'Sí.', en: '' },
-      { id: 'M03_BELGRANO_090', personaje: 'GITANO', cara: 'gitano_roto', hold: 0.5,
+      { id: 'M03_BELGRANO_100', personaje: 'GITANO', cara: 'gitano_roto', hold: 0.5,
         es: '¿Y entonces qué carajo...?', en: '' },
-      { id: 'M03_BELGRANO_100', personaje: 'PUMA', cara: 'puma_roto', hold: 3.0,
+      { id: 'M03_BELGRANO_110', personaje: 'PUMA', cara: 'puma_roto', hold: 3.0,
         es: 'Y entonces nada, Facundo. Esto es así. Mañana volamos.', en: '' },
       // los otros dos gestos: el Vasco reza con la mano y el Turco ordena porque no sabe que otra
       // cosa hacer. Ninguno de los dos se explica — es el §9d otra vez.
-      { id: 'M03_BELGRANO_110', personaje: null, cara: null, hold: 3.5,
+      { id: 'M03_BELGRANO_120', personaje: null, cara: null, hold: 3.5,
         es: 'Se va. Nadie se mueve. El Vasco se toca la cruz. El Turco, al rato, junta las herramientas de a una, muy despacio, como si ordenar sirviera para algo.', en: '' },
-      { id: 'M03_BELGRANO_120', personaje: null, cara: null, hold: 4.0,
+      { id: 'M03_BELGRANO_130', personaje: null, cara: null, hold: 4.0,
         es: 'El Belgrano se hundió con 323 muertos... Casi la mitad de todos los argentinos caídos en la guerra. En una sola tarde... ', en: '' },
     ],
   },
@@ -691,7 +707,7 @@ export const SCENES = {
     ],
   },
   M3_2: {
-    id: 'M3_2', tipo: 'VN', titulo: 'LA GAMBETA', placa: 'hangar_dia',
+    id: 'M3_2', tipo: 'VN', titulo: 'LA GAMBETA', placa: 'linea_amanecer',
     lineas: [
       // LA PROFECIA. Se dice en voz baja y nadie la subraya — es el unico momento del juego que
       // mira mas alla de la guerra, y funciona porque el jugador sabe como termina.
@@ -850,7 +866,7 @@ export const SCENES = {
       { id: 'M5_2_010', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
         es: 'Entonces, elijo pegarle y volver a cebar el mate. Que la bomba haga lo que pueda. Y si no vuelvo... Mandale un saludo a tu casada de mi parte, Vasco.', en: '' },
       { id: 'M5_2_020', personaje: 'VASCO', cara: 'vasco_neutro', hold: 0,
-        accion:'Sacude la cabeza, por primera vez casi riéndose.',
+        accion: 'Sacude la cabeza, por primera vez casi riéndose.',
         es: '...cerrá la boca, cordobés.', en: '' },
     ],
   },
@@ -871,7 +887,7 @@ export const SCENES = {
       { id: 'M5_EPI_020', personaje: null, cara: null, hold: 0,
         es: 'Del otro lado, un hombre murió tratando de salvar a los suyos.', en: '' },
       { id: 'M5_EPI_030', personaje: 'VASCO', cara: 'vasco_neutro', hold: 0,
-        accion:'Mirando el lejano resplandor, casi murmurando.',
+        accion: 'Mirando el lejano resplandor, casi murmurando.',
         es: 'Que Dios lo tenga en la gloria. Al de allá también.', en: '' },
     ],
   },
@@ -882,16 +898,16 @@ export const SCENES = {
       { id: 'M5_CHANCHA_010', personaje: null, cara: null, hold: 0,
         es: 'En el regreso, a Gitano no le cierra la cuenta de combustible. Viento de frente, tanque picado, la aguja bajando.', en: '' },
       { id: 'M5_CHANCHA_020', personaje: 'GITANO', cara: 'gitano_panico', hold: 0,
-        accion:'Por primera vez sin humor.',
+        accion: 'Por primera vez sin humor.',
         es: 'Muchachos... no me da eh... No me da la nafta.', en: '' },
       { id: 'M5_CHANCHA_030', personaje: 'CÓNDOR', cara: 'condor_reposo', hold: 0,
         es: 'Plata 2, mantenga rumbo. La Chancha va a buscarlo.', en: '' },
       { id: 'M5_CHANCHA_040', personaje: null, cara: null, hold: 0,
         es: 'Y de la nada, de noche y a metros del mar, aparece la Chancha: el Hércules reabastecedor de combustible. La manguera se conecta en el aire al avión del Gitano.', en: '' },
-        { id: 'M5_CHANCHA_050', personaje: 'LA CHANCHA', cara: null, hold: 0,
+      { id: 'M5_CHANCHA_050', personaje: 'LA CHANCHA', cara: null, hold: 0,
         es: 'Tranquilo, cordobés. La Chancha no abandona. Servite.', en: '' },
       { id: 'M5_CHANCHA_060', personaje: 'GITANO', cara: 'gitano_llorando', hold: 0,
-        accion:'Con los ojos llorosos y la voz quebrada',
+        accion: 'Con los ojos llorosos y la voz quebrada',
         es: 'Cuando volvamos me vuelvo vegetariano en tu honor.', en: '' },
       // M6-04: EL SEGUNDO MOVIMIENTO, que es donde pasa lo importante. La Chancha NO SE DESCONECTA:
       // aguanta el antiaereo con la manguera puesta hasta que el Gitano termina de cargar. La
@@ -949,18 +965,22 @@ export const SCENES = {
     id: 'M6_2', tipo: 'VN',
     titulo: 'EL VASCO HABLA', placa: 'vestuario', img: 'M6_2',
     lineas: [
-      { id: 'M6_2_010', personaje: null, cara: null, hold: 0,
+      // SE LO ESCUCHA HABLAR DE MAS, no se cuenta que hablo de mas. Y la anecdota NO SE TERMINA:
+      // el «¿vos estas bien?» cae en la mitad de la frase, que es donde se nota.
+      { id: 'M6_2_010', personaje: null, cara: null, hold: 1.2,
         es: 'El Vasco habla más que en las cinco misiones anteriores juntas. Del chocolate, del frío, de una anécdota de la escuela de aviación que nadie le pidió.', en: '' },
-      { id: 'M6_2_020', personaje: 'GITANO', cara: 'gitano_sorprendido', hold: 0,
+      { id: 'M6_2_020', personaje: 'VASCO', cara: 'vasco_neutro', hold: 0.4,
+        es: '…y el tipo me hace repetir el aterrizaje cuatro veces. Cuatro. Yo tenía diecinueve años y—', en: '' },
+      { id: 'M6_2_030', personaje: 'GITANO', cara: 'gitano_sorprendido', hold: 0,
         accion: 'Escuchando sorprendido.',
         es: ' Vasco. ¿Vos estás bien?', en: '' },
-      { id: 'M6_2_030', personaje: 'VASCO', cara: 'vasco_sonrisa', hold: 0,
+      { id: 'M6_2_040', personaje: 'VASCO', cara: 'vasco_sonrisa', hold: 0,
         accion: 'Se queda pensando la respuesta demasiado tiempo',
         es: 'Sí, ¿por? Se te enfría el chocolate.', en: '' },
       // EL GESTO DEL VASCO POR ULTIMA VEZ (§9d). Va como CUADRO y no como linea de narrador: la
       // idea es que el jugador MIRE la cruz, no que lea que el Vasco la beso. Mismo recurso que el
       // dorso de la foto. Nadie lo ve dentro de la ficcion, y nadie lo comenta nunca.
-      { id: 'M6_2_040', personaje: null, cara: null, hold: 3.5,
+      { id: 'M6_2_050', personaje: null, cara: null, hold: 3.5,
         tipo: 'CUADRO', img: 'M7_CRUZ',
         es: 'Camino al avión hace lo de siempre: apoya la cruz en el fuselaje, la deja dos segundos, se persigna. Lo que no ve nadie es que esta vez, antes de guardarla, la besa.', en: '' },
     ],
@@ -984,9 +1004,15 @@ export const SCENES = {
       { id: 'M6_EPI_030', personaje: 'VASCO', cara: 'vasco_piloto', hold: 0,
         accion: 'Un ruido corto, el sonido de alguien que va a decir algo y no llega. Estática.',
         es: '...', en: '...' },
-      { id: 'M6_EPI_040', personaje: 'PUMA', cara: 'puma_piloto_triste', hold: 0,
+      { id: 'M6_EPI_040', personaje: null, cara: null, hold: 4.0,
+        es: 'Silencio total. Cuatro aviones donde había cinco.', en: '' },
+      { id: 'M6_EPI_050', personaje: 'PUMA', cara: 'puma_piloto_triste', hold: 0,
         accion: 'Se le quiebra la voz.',
         es: 'Hm... Plata Fiel... a casa. Volvemos a casa.', en: '' },
+      // EL COBRO DE LAS CINCO ESTRELLITAS DE M1. El jugador vio al Turco pintarlas con la lengua
+      // afuera; ahora ve el tarrito abierto y a nadie pintando. No se subraya.
+      { id: 'M6_EPI_060', personaje: null, cara: null, hold: 4.0,
+        es: 'En la base, el Turco agarra el pincel. Lo deja. Hay una estrellita que hoy no se pinta. El tarrito queda abierto toda la noche.', en: '' },
     ],
   },
   M6_LOCKER1: {
@@ -1016,23 +1042,23 @@ export const SCENES = {
       { id: 'M6_LOCKER2_040', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
         accion: 'Se le quiebra la voz.',
         es: 'Toda la guerra lo cargamos con la morocha esta. Toda la guerra, Turco. Y resulta que no sólo está muerta, sino que era la vieja... ¡La vieja! Y el tipo nunca dijo nada. Nos dejó reír. Nos regaló el chiste para que tuviéramos de qué reírnos.', en: '' },
-        { id: 'M6_LOCKER2_050', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
+      { id: 'M6_LOCKER2_050', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
         es: '¿Y el "perdoname"? ¿Perdoname de qué?', en: '' },
-        { id: 'M6_LOCKER2_060', personaje: null, cara: null, tipo: 'NARRADOR', hold: 0,
+      { id: 'M6_LOCKER2_060', personaje: null, cara: null, tipo: 'NARRADOR', hold: 0,
         es: 'Todos se mantienen en silencio.', en: '' },
-        { id: 'M6_LOCKER2_070', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
+      { id: 'M6_LOCKER2_070', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
         es: 'Che, Puma. Vos que lo conocías de antes. Lo del puerto, lo del hermano preso… ¿era verdad algo de eso?', en: '' },
-        { id: 'M6_LOCKER2_080', personaje: 'PUMA', cara: 'puma_espaldas', hold: 0,
+      { id: 'M6_LOCKER2_080', personaje: 'PUMA', cara: 'puma_espaldas', hold: 0,
         es: 'No sé, Facundo.', en: '' },
-         { id: 'M6_LOCKER2_090', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
+      { id: 'M6_LOCKER2_090', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
         es: '¿Cómo que no sabés?', en: '' },
-        { id: 'M6_LOCKER2_100', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
-        accion:'Mientras mira la foto.',
+      { id: 'M6_LOCKER2_100', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        accion: 'Mientras mira la foto.',
         es: 'No sé. Nunca se lo pregunté. Un tipo que volaba como él no me tiene que explicar de dónde vino. Y ya nunca lo sabremos.', en: '' },
-       { id: 'M6_LOCKER2_110', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
+      { id: 'M6_LOCKER2_110', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
         es: 'Tres años le cebé mate a ese culiao. Tres años, desde que éramos unos giles en la escuela de aviación. Y nunca me dijo ni de qué cuadro era. Ni de qué cuadro era, Turco.', en: '' },
      
-        { id: 'M6_LOCKER2_120', personaje: 'EL TURCO', cara: 'turco_ternura', hold: 0,
+      { id: 'M6_LOCKER2_120', personaje: 'EL TURCO', cara: 'turco_ternura', hold: 0,
         accion: 'Guarda la foto en el bolsillo del mameluco y murmura.',
         es: 'Me la quedo hasta que vuelva donde pertenece. Señora: su hijo fue el mejor de todos nosotros.', en: '' },
     ],
@@ -1114,12 +1140,38 @@ export const SCENES = {
       // LA MITAD DE LA ASIMETRIA (nota 8a-bis). Mateo lo reconocio —vio el terito— y el jugador lo
       // sabe por el cuaderno. El que no lo sabe es Tero, y esta linea es la pregunta con la que se
       // queda: en el Final A se muere con ella, en el Final B la respuesta le llega de viejo.
-      { id: 'M7_SOBREVUELO_040', personaje: 'ESTEBAN', cara: 'tero_casco', hold: 3.5,
+      // LA PRUEBA. La carta de Mateo afirma «le vi EL TERITO, TU pajaro» — y el jugador tiene que
+      // haberlo visto una vez. Va como CUADRO: la imagen ES la escena. El asset todavia no existe
+      // (ver IMAGENES_PENDIENTES) y hasta entonces cae a la placa.
+      { id: 'M7_SOBREVUELO_040', personaje: null, cara: null, hold: 3.0,
+        tipo: 'CUADRO', img: 'M8_TERITO',
+        es: 'Desde el pozo: el Skyhawk pasando enorme, y en el fuselaje, un segundo apenas, nítido para el que sabe mirar, el terito pintado. Corte a la cara de Mateo: la boca abriéndose. Él sabe.', en: '' },
+      { id: 'M7_SOBREVUELO_050', personaje: 'ESTEBAN', cara: 'tero_casco', hold: 3.5,
         accion: 'Busca con los ojos, pero el monte es una multitud de casquitos iguales y la velocidad no perdona.',
         es: '¿Estás ahí, Mateo? ¿Alguno de esos sos vos? Tenías que ser vos... Alguno tenías que ser vos...', en: '' },
-      { id: 'M7_SOBREVUELO_050', personaje: 'PUMA', cara: 'puma_piloto_neutro', hold: 0,
-        accion:'Suena radio. Estática.',
+      { id: 'M7_SOBREVUELO_060', personaje: 'PUMA', cara: 'puma_piloto_neutro', hold: 0,
+        accion: 'Suena radio. Estática.',
         es: 'Vamos, Tero. Vamos a casa.', en: '' },
+    ],
+  },
+  // LA FRASE DE LA TESIS, dicha por un personaje y no por una placa. El jugador la vuelve a leer
+  // antes de los creditos, firmada por un veterano de verdad — y esta es la unica vez que alguien
+  // la dice en pantalla. Va sobre un ENEMIGO que murio siendo bueno, no sobre el Peru: el Peru no
+  // es «el otro lado», es el vecino.
+  M7_TESIS: {
+    id: 'M7_TESIS', tipo: 'VN', titulo: 'EL CAPITÁN DEL BARCO QUE HUNDIMOS', placa: 'hangar_dia',
+    lineas: [
+      { id: 'M7_TESIS_010', personaje: null, cara: null, hold: 1.5,
+        es: 'En la base, cuando llega el dato del Conveyor. El Turco lo escucha con el trapo en la mano.', en: '' },
+      { id: 'M7_TESIS_020', personaje: 'EL TURCO', cara: 'turco_neutro', hold: 2.0,
+        accion: 'Después de un rato. Deja el trapo.',
+        es: 'Se quedó sacando a los suyos. Ese hombre, si lo cruzabas en un puerto, te convidaba un cigarrillo.', en: '' },
+      { id: 'M7_TESIS_030', personaje: 'GITANO', cara: 'gitano_ceno', hold: 0.8,
+        es: 'Turco, era el enemigo.', en: '' },
+      { id: 'M7_TESIS_040', personaje: 'EL TURCO', cara: 'turco_neutro', hold: 1.5,
+        es: 'Era el capitán del barco que hundimos, m\'hijo. El enemigo es otra cosa.', en: '' },
+      { id: 'M7_TESIS_050', personaje: 'EL TURCO', cara: 'turco_roto', hold: 4.0,
+        es: 'Hay gente buena en todos lados, ¿viste? Lo que pasa es que no nos dejan conocernos.', en: '' },
     ],
   },
   M7_CARTA: {
@@ -1147,7 +1199,7 @@ export const SCENES = {
       { id: 'M7_HIST_010', personaje: null, cara: null, hold: 0,
         es: 'El carguero fue alcanzado por misiles Exocet lanzados desde Super Etendard.', en: '' },
       { id: 'M7_HIST_020', personaje: null, cara: null, hold: 0,
-        es: 'Murieron 12 hombres, entre ellos su capitán, Ian North, que murió ayudando a evacuar a su tripulación.', en: '' },
+        es: 'Murieron 12 hombres, entre ellos su capitán, Ian North.', en: '' },
       { id: 'M7_HIST_030', personaje: null, cara: null, hold: 0,
         es: 'Con él se perdieron los helicópteros pesados Chinook. Sin ese transporte, la infantería británica cruzó la isla a pie.', en: '' },
     ],
@@ -1200,7 +1252,7 @@ export const SCENES = {
         accion: 'Sorprendido, casi como un nene.',
         es: '...ah. Me dieron. ¿Capitán? Me dieron.', en: '' },
       { id: 'M8_EPI_030', personaje: null, cara: null, hold: 0,
-        accion:'Comienza la estática.',
+        accion: 'Comienza la estática.',
         es: '..toda..vía.. skk..tda..skkk..quiero, no. Todavksskkk..  ', en: '' },
       { id: 'M8_EPI_040', personaje: 'GITANO', cara: 'gitano_gritando_llorando_piloto', hold: 0,
         es: '¡Era un pibe, Puma! ¡Lo trajimos a la guerra y era un PIBE!', en: '' },
@@ -1220,8 +1272,17 @@ export const SCENES = {
       // pibe no era un ayudante con ideas, y nadie se dio cuenta a tiempo. Ni el.
       { id: 'M8_LIBRETA_030', personaje: null, cara: null, hold: 3.5,
         es: 'Vuelve una página, la compara con lo que tienen puesto los aviones ahí nomás, y hace la cuenta que nadie le pidió: todo lo que llegaron a probar juntos es un cuarto de lo que hay acá adentro. El pibe no era un ayudante con ideas. Era un ingeniero entero, y nadie se dio cuenta a tiempo. Ni él.', en: '' },
-      { id: 'M8_LIBRETA_040', personaje: 'EL TURCO', cara: 'turco_ternura', hold: 0,
-        accion:'Mira la libreta, y murmura.',
+      // EL COBRO DE LA BURRADA DE M3. El calculo va sobre EL REINGRESO —volver a meterse en el
+      // propio avion en el aire—, que es imposible con paracaidas y sin paracaidas. El pibe lo
+      // calculo, le dio que no, y lo guardo igual.
+      { id: 'M8_LIBRETA_040', personaje: null, cara: null, hold: 3.0,
+        es: 'Y en una hoja suelta, casi al final, con la letra más chica y más prolija de todas: un A-4 chiquito con la trompa apuntando al cielo, y debajo un monigote cayendo. Tres flechitas: la subida, la caída, y el reingreso.', en: '' },
+      { id: 'M8_LIBRETA_050', personaje: null, cara: null, hold: 3.5,
+        es: 'Al costado, la cuenta hecha en serio: velocidad de caída, velocidad del avión bajando, segundos en que los dos pasan por el mismo punto. Y abajo de todo, subrayado dos veces: «NO. Se muere.»', en: '' },
+      { id: 'M8_LIBRETA_060', personaje: null, cara: null, hold: 4.0,
+        es: 'El Turco se ríe una vez, corto, sin querer. Y esa risa es lo peor de toda la noche.', en: '' },
+      { id: 'M8_LIBRETA_070', personaje: 'EL TURCO', cara: 'turco_ternura', hold: 0,
+        accion: 'Mira la libreta, y murmura.',
         es: 'Vos y yo tenemos trabajo, pibe.', en: '' },
     ],
   },
@@ -1333,8 +1394,22 @@ export const SCENES = {
         es: 'Correa empuja a Mateo al fondo del pozo y le pone el cuerpo encima. Blanco. Humo. Tierra que llueve. Mateo abajo, entero. Correa arriba, no.', en: '' },
       { id: 'M10_TIERRA_040', personaje: 'MATEO', cara: 'mateo_roto', hold: 1.5,
         es: '¡Colorado! ¡No, no, no! ¡Dijiste que salíamos juntos! ¡DIJISTE QUE SALÍAMOS JUNTOS!', en: '' },
-      { id: 'M10_TIERRA_050', personaje: 'CORREA', cara: null, hold: 0,
-        es: '(apenas, buscándole la mano) ...andá a Corrientes igual, pibe. Presentate solo. Decile a mi hermana que su hermano cuidó a un pibe hasta el final. Que no fue en vano. Que no fue...', en: '' },
+      // HABLA DANDO POR HECHO QUE MATEO SOBREVIVE, y eso es lo que parte al medio. Por eso va
+      // partida: primero el «vos salis seguro» y el silencio, y recien despues el encargo.
+      { id: 'M10_TIERRA_050', personaje: 'CORREA', cara: 'colorado_roto', hold: 3.0,
+        accion: 'Apenas, buscándole la mano. Se la aprieta.',
+        es: '…Vos salís, chamigo. Vos salís seguro.', en: '' },
+      { id: 'M10_TIERRA_060', personaje: 'CORREA', cara: 'colorado_roto', hold: 1.5,
+        es: 'Escuchame que es importante. Cuando la veas a la Teresa, decile que la quiero. Y llevale jazmines. Le gustan los jazmines. Regalale jazmines la primera vez.', en: '' },
+      { id: 'M10_TIERRA_070', personaje: 'CORREA', cara: 'colorado_roto', hold: 4.0,
+        accion: 'Casi sonriendo.',
+        es: '…Vas a quedar como un señor, angá. Vos… vos me la vas a cuidar como yo te—', en: '' },
+      // EL INVENTARIO. Cobra el cuero de oveja de la carta 2, mete la foto de Teresa DENTRO del
+      // cuaderno —que es lo que despues llega en la encomienda— y planta la navaja del final.
+      { id: 'M10_TIERRA_080', personaje: null, cara: null, hold: 4.0,
+        es: 'Un cuadro quieto: la mochila del Colorado volcada. La foto gastada de la hermana. El mate. Todo el inventario de un hombre bueno. Y sobre los hombros de Mateo, el cuero de oveja que le dio en abril, tapándolo hasta el final.', en: '' },
+      { id: 'M10_TIERRA_090', personaje: null, cara: null, hold: 3.5,
+        es: 'Mateo, con la mano que le queda libre, saca la foto de la mochila y se la guarda en el cuaderno. Donde van las cosas que hay que devolver en persona.', en: '' },
     ],
   },
   M10_PISTA: {
@@ -1426,12 +1501,31 @@ export const SCENES = {
     id: 'M11_ASADO1', tipo: 'VN',
     titulo: 'EL ÚLTIMO ASADO', placa: 'fogon', img: 'M11_ASADO1',
     lineas: [
-      { id: 'M11_ASADO1_010', personaje: null, cara: null, hold: 0,
-        es: 'Detrás del hangar, un medio tambor con brasas. El Turco consiguió carne, nadie pregunta cómo. Gitano canta bajito una zamba, desafinando con dignidad.', en: '' },
+      // EL GESTO DEL TURCO (§9d, M13). Les habla bajito a los aviones, como a caballos antes de la
+      // tormenta. NO LO CUENTA: se va al fuego y no dice nada. Es la ultima vez que los tres estan
+      // enteros, y el unico que lo sabe es el.
+      { id: 'M11_ASADO1_010', personaje: null, cara: null, hold: 3.0,
+        es: 'Antes de sentarse, el Turco pasa por la línea de vuelo. Los tres aviones están cargados y quietos bajo la luna. Les pasa la mano por el ala, de uno en uno, y a cada uno le dice algo bajito. Después se va al fuego y no lo cuenta.', en: '' },
       { id: 'M11_ASADO1_020', personaje: null, cara: null, hold: 0,
+        es: 'Detrás del hangar, un medio tambor con brasas. El Turco consiguió carne, nadie pregunta cómo. Gitano canta bajito una zamba, desafinando con dignidad.', en: '' },
+      { id: 'M11_ASADO1_030', personaje: null, cara: null, hold: 0,
         es: 'Sobre la mesa, contra la damajuana, la foto de la vieja del Vasco. Al lado, la libreta del Pichón. Los que no están en la mesa, en la mesa.', en: '' },
-      { id: 'M11_ASADO1_030', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
+      { id: 'M11_ASADO1_040', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
         es: 'Che, ¿saben que mañana debuta Argentina en el Mundial? Acá también juega Argentina mañana. Pero este partido no lo pasan por la tele.', en: '' },
+      // EL COBRO DE M2. Alla el Gitano dijo THANK YOU y explico por que: «si digo gracias me sacan
+      // de la ronda, y yo de la ronda no me voy». Era una promesa. Acá la rompe, en castellano, sin
+      // levantarse, la noche antes de la ultima mision.
+      //
+      // NADIE SE LO HACE NOTAR, y eso es todo el peso de la escena: los tres en esa mesa saben
+      // exactamente que acaba de decir, y ninguno tiene ganas de decirlo en voz alta. Es el puente
+      // a la unica vez que el Gitano habla en serio, que es la escena siguiente.
+      { id: 'M11_ASADO1_050', personaje: null, cara: null, hold: 1.5,
+        es: 'El Turco ceba y le alcanza el mate al Gitano.', en: '' },
+      { id: 'M11_ASADO1_060', personaje: 'GITANO', cara: 'gitano_neutro', hold: 3.0,
+        accion: 'Lo agarra con una sola mano, sin levantarse.',
+        es: 'Gracias.', en: '' },
+      { id: 'M11_ASADO1_070', personaje: null, cara: null, hold: 4.0,
+        es: 'Lo dijo en castellano. El Turco no levanta la vista del fuego. Nadie corrige nada, nadie se lo hace notar. El mate sigue la ronda, y la próxima vez le pasa por al lado y él ni lo mira.', en: '' },
     ],
   },
   M11_ASADO2: {
@@ -1871,7 +1965,7 @@ export const SECUENCIAS = {
   storyM7: ['M6_1', 'M6_2', 'STORYM6_TARJETA'],
   epiM7: ['M6_EPI', 'M6_LOCKER1', 'M6_LOCKER2', 'M6_CARTA', 'M6_HIST'],
   storyM8: ['M7_1', 'M7_2', 'STORYM7_TARJETA'],
-  epiM8: ['M7_SOBREVUELO', 'M7_CARTA', 'M7_HIST'],
+  epiM8: ['M7_SOBREVUELO', 'M7_TESIS', 'M7_CARTA', 'M7_HIST'],
   storyM9: ['M8_1', 'M8_2', 'STORYM8_TARJETA'],
   epiM9: ['M8_EPI', 'M8_LIBRETA', 'M8_CARTA'],
   storyM10: ['M10_HUECO', 'M10_TARJETA'],

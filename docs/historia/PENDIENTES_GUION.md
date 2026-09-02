@@ -1,224 +1,43 @@
-# PENDIENTES DE GUION — lo que falta decidir
+# PENDIENTES — lo que falta decidir
 
-Sólo lo que sigue abierto. Lo cerrado está en [RESUELTOS_GUION.md](RESUELTOS_GUION.md);
-todo lo de arte —retratos y cuadros— está en [IMAGENES_PENDIENTES.md](IMAGENES_PENDIENTES.md).
+**37 ítems abiertos.** Lo cerrado —93 ítems— está en [RESUELTOS_GUION.md](RESUELTOS_GUION.md) y el arte en
+[RETRATOS_PENDIENTES.md](RETRATOS_PENDIENTES.md) (caras) y
+[IMAGENES_PENDIENTES.md](IMAGENES_PENDIENTES.md) (cuadros).
 
-`story.js` es la fuente de verdad. Marcá **una** casilla por ítem:
-`DEJAR COMO ESTÁ` · `REEMPLAZAR / AGREGAR LO DEL GUION` · `LA PROPUESTA` *(una tercera vía mía,
-justificada arriba del ítem)* · `DEBATIR`.
-
-Los **🔴** rompen una cadena de plantado-y-cobro: si no van, hay que sacar también la otra mitad.
-
----
+Marcá **una** casilla por ítem: `DEJAR COMO ESTÁ` · `REEMPLAZAR / AGREGAR LO DEL GUION` ·
+`LA PROPUESTA` *(una tercera vía mía, justificada arriba)* · `DEBATIR`.
+Los **🔴** rompen una cadena de plantado-y-cobro.
 
 ## Dónde está el trabajo
 
-| | |
-| --- | --- |
-| **Sin contestar** | `P-01` · `M13-04` → `M13-11` · `M14-01` → `M14-11` · `M14-16` → `M14-20` |
-| **Aparcado en DEBATIR** | 16 ítems, de `P-05` a `M12-03` |
-| **Sistemas** | `G-02` → `G-09` |
-| **Técnico** | `T-02` `T-04` `T-05` `T-09` `T-10` `T-11` |
+| | ítems | |
+| --- | :-: | --- |
+| **Guion** | 23 | `M10-02` · `M13-04` `M13-07`→`M13-11` · `M14-01`→`M14-11` · `M14-16`→`M14-20` |
+| **Sistemas** | 8 | `G-02` → `G-09` |
+| **Técnico** | 6 | `T-02` `T-03` `T-04` `T-05` `T-10` `T-11` |
 
-**El grueso que queda es M14.** Los dos finales ya están escritos (`epiM14A` / `epiM14B`), pero
-falta todo el medio: cómo se enteran, el ritual invertido, el reloj, las dos muertes reescritas,
-el tonel barril, y el cierre común con la post-créditos.
+**El grueso es M14: 16 ítems**, y son las escenas más importantes del juego. Los dos finales ya
+están escritos (`epiM14A` / `epiM14B`); falta todo el medio — cómo se enteran, el ritual invertido,
+el reloj, las dos muertes reescritas, el tonel barril, y el cierre común con la post-créditos.
 
-Y falta **una cosa de motor**: nadie elige cuál de las dos secuencias de final corre.
-
----
-
-### P-01 · P.2 — el Rastrojero en la primera línea de Mateo
-- Guion: «Me quedan dos meses de instrucción, pá. Después es puro marchar. **Y para fin de año estoy de vuelta arreglándote el Rastrojero.**»
-- Juego: «En dos meses se termina la instrucción, pá. Después es puro marchar hasta fin de año. Cuando te quieras dar cuenta ya estoy de vuelta arreglándote el Rastrojero.»
-- Dicen casi lo mismo; el guion es más corto y deja el Rastrojero de remate, que es lo que engancha con la respuesta del padre.
-
-> **Propuesta** — Quedarse con la del juego —que suena más a pibe— pero cortarla donde corta el guion: «En dos meses se termina la instrucción, pá. Después es puro marchar. **Y para fin de año estoy de vuelta arreglándote el Rastrojero.**» El Rastrojero tiene que ser la última palabra: es lo que engancha con la respuesta del padre.
-
-- [X DEJAR COMO ESTÁ · [ ] REEMPLAZAR POR EL GUION · [ ] DEBATIR · [ ] LA PROPUESTA
-
-### P-05 · P.3 — «mis contactos en Corrientes»
-- Guion: «Moví todo. Llamé a todos. Creí que podía. …No pude.»
-- Juego: «Llamé a todos. **A todos mis contactos en Corrientes.** Creí que podía sacarlo… No pude.»
-- Corrientes es del Colorado. Los Aldao son de Prov. de Buenos Aires (§9). Parece un arrastre de una versión vieja.
-- [ ] DEJAR COMO ESTÁ · [ ] REEMPLAZAR POR EL GUION · [X] DEBATIR
-
-### M1-03 · `M1_5B` — la placa tiene que ser el VESTUARIO
-Decisión del 29/8 anotada en el guion: el jugador **no ve la foto en M1**; la oye describir y
-no ve nada. La ve por primera vez en M7. Hoy: `placa: 'm7_foto_frente'` → `placa: 'vestuario'`.
-- [ ] DEJAR COMO ESTÁ · [ ] REEMPLAZAR POR EL GUION · [X] DEBATIR
-
-### 🔴 M3-03 · **«Ahí viene el capitán»** — no existe
-El gesto del Turco de M3 (§9d): de espaldas al cielo, con las manos adentro de un motor,
-levanta la cabeza y lo dice **cuatro segundos antes de que aparezca el punto sobre el mar**.
-Nadie le pregunta cómo sabe. Es el único gesto del Turco antes de M13.
-
-> **Propuesta** — No hace falta una escena. Va como **primera línea de `M03_ARANDELA`**, con el Turco de espaldas y las manos en un motor, y una acotación de cuatro segundos hasta que aparece el punto. Cuesta una línea en vez de una escena, y el gesto queda plantado igual.
-
-- [ ] DEJAR COMO ESTÁ *(no entra al juego)* · [ ] AGREGAR LO DEL GUION · [X] DEBATIR · [ ] LA PROPUESTA
-
-### M3-07 · La burrada — falta el misil
-En el guion arranca porque el Turco **empuja un carrito con un misil** y el Gitano le apoya la
-mano encima «como quien apoya la mano en el hombro de un amigo» («No me toques eso»), se lo
-carga al hombro en el medio, y el Turco **se lo saca de las manos** al final. Eso es lo que
-sostiene el enojo del Turco durante toda la escena.
-
-> **Propuesta** — El misil no necesita escena: va como `accion:` de la primera línea del Gitano («se le cruza al Turco, que empuja un carrito con un misil, y le apoya la mano encima»), y el Turco se lo saca de las manos en su última línea. Cuesta cero líneas y le da motivo al enojo.
-
-- [ ] DEJAR COMO ESTÁ *(no entra al juego)* · [ ] AGREGAR LO DEL GUION · [X] DEBATIR · [ ] LA PROPUESTA
-
-### M3-13 · El Belgrano — cómo entra la noticia
-Falta: el Pichón entra desde la sala de radio **sin correr**, con la libreta en la mano y «la
-cara de alguien que no sabe cómo decir lo que va a decir», y **el Gitano todavía tiene media
-sonrisa puesta**. Es lo que hace que la risa se corte a la mitad en vez de terminarse.
-- [ ] DEJAR COMO ESTÁ *(no entra al juego)* · [ ] AGREGAR LO DEL GUION · [X] DEBATIR
-
-### M4-04 · La profecía de la gambeta — ¿pegada o separada?
-El guion la pone **después del minuto de silencio, en voz baja, en la misma escena**. El juego
-la cortó a una escena aparte (`M3_2`) con placa de hangar, lo que le saca el silencio de
-antes.
-
-> **Propuesta** — Dejarla separada como está —el corte le da el silencio— pero **sin cambiar de placa**: que siga en `linea_amanecer` y no salte a `hangar_dia`. Hoy el cambio de fondo la lee como otro día y otro lugar; con la misma placa se lee como el mismo momento con un silencio en el medio.
-
-- [ ] DEJAR COMO ESTÁ *(escena aparte, con placa de hangar)* · [ ] REEMPLAZAR POR EL GUION *(pegada, después del silencio)* · [X] DEBATIR · [ ] LA PROPUESTA
+Y falta **una pieza de motor**: nadie elige cuál de las dos secuencias de final corre.
 
 ---
 
-# 6. MISIÓN 5 — El callejón de las bombas
+# 1. Guion
 
-### M5-03 · `M5_ESCUCHA` — dos acotaciones
-Falta que el Turco lo diga «**bajito, desde la puerta, sin entrar**», y el cierre: «**Y ahí se
-corta. Nadie festeja. El orgullo dura lo que dura una frase.**»
-- [ ] DEJAR COMO ESTÁ *(no entra al juego)* · [ ] AGREGAR LO DEL GUION · [X] DEBATIR
-
-### 🔴 M6-01 · **«el Confiable»** — el gesto del Gitano de M6, no existe
-«Turco, anotá que hoy ésta se llama «**el Confiable**».» Y a **esa misma** se le acaba la nafta
-y casi lo mata. El chiste se paga solo dentro de la misma misión.
-
-> **Propuesta** — El nombre en el briefing **y el cobro por radio dentro de la misma misión**: cuando se queda sin nafta, antes del «no me da», el Gitano dice «Turco… el Confiable me cagó». El chiste se paga solo, en dos líneas, sin escena nueva. Ni el guion ni el juego lo cobran.
-
-- [ ] DEJAR COMO ESTÁ *(no entra al juego)* · [ ] AGREGAR LO DEL GUION · [X] DEBATIR · [ ] LA PROPUESTA
-
-### M7-02 · El Vasco habla — sigue contado, no dicho
-Lo tocaste (`gitano_sorprendido`, «Sí, ¿por? Se te enfría el chocolate.») pero el problema de
-fondo sigue: la línea 010 **narra** que el Vasco habla de más en vez de dejar que hable.
-
-> **Propuesta** *(sin cambios respecto de la pasada anterior)* — **La anécdota cortada por la
-> mitad.** Que el Vasco arranque «…y el tipo me hace repetir el aterrizaje cuatro veces. Cuatro. Yo
-> tenía diecinueve—» y no lo termine, y que el «Vasco, ¿vos estás bien?» caiga justo ahí. Se lo
-> escucha hablar de más *y* se ve que no está bien, en dos líneas.
-
-- [ ] DEJAR COMO ESTÁ · [ ] REEMPLAZAR POR EL GUION · [X] DEBATIR · [ ] LA PROPUESTA
-
-### M7-05 · La muerte — faltan el remate y el cierre
-Mejoraste la escena (el Vasco tiene línea propia con la estática en la `accion`, y a Puma «se le
-quiebra la voz»). Siguen faltando las dos que cierran:
-- «*(Silencio total. **Cuatro aviones donde había cinco**.)*»
-- Y en la base: «*El Turco agarra el pincel, lo deja. **Hay una estrellita que hoy no se pinta. El tarrito queda abierto toda la noche.***»
-
-La segunda cobra M1-07 (las cinco estrellitas), que marcaste AGREGAR.
-
-- [ ] DEJAR COMO ESTÁ · [ ] AGREGAR LO DEL GUION · [X] DEBATIR
-
-### 🔴 M8-01 · **LA FRASE DE LA TESIS** — escena entera, no existe
-En la base, cuando llega el dato de Ian North. El Turco con el trapo en la mano:
-> «Se quedó sacando a los suyos. *(deja el trapo)* Ese hombre, si lo cruzabas en un puerto, te convidaba un cigarrillo.»
-> «Turco, era el enemigo.»
-> «**Era el capitán del barco que hundimos, m'hijo. El enemigo es otra cosa.** *(pausa)* **Hay gente buena en todos lados, ¿viste? Lo que pasa es que no nos dejan conocernos.**»
-
-Hoy Ian North sólo aparece en la placa histórica `M7_HIST`, como dato. **Es la tesis del juego
-dicha en voz de personaje**, y el jugador la vuelve a leer antes de los créditos firmada por
-un veterano de verdad. Sin esta escena, la frase final llega sin haber sido dicha nunca.
-
-> **Propuesta** — Que la línea del Turco **reemplace** al dato de `M7_HIST_020` («murió ayudando a evacuar a su tripulación»), no que se sume. Hoy la placa histórica ya lo cuenta, en registro de enciclopedia; si además lo dice el Turco, se cuenta dos veces y la segunda pierde. Que el dato llegue una sola vez, y por la boca del mecánico.
-
-- [ ] DEJAR COMO ESTÁ *(no entra al juego)* · [ ] AGREGAR LO DEL GUION · [X] DEBATIR · [ ] LA PROPUESTA
-
-### 🔴 M8-03 · El sobrevuelo — falta el terito en pantalla
-El guion pide el cuadro desde tierra: el Skyhawk pasando ENORME sobre el pozo y **en el
-fuselaje, un segundo apenas, nítido para el que sabe mirar: el terito pintado**. Corte a la
-cara de Mateo: la boca abriéndose. **Él SABE.**
-Sin eso, la carta de Mateo («le vi EL TERITO») afirma algo que el jugador nunca vio.
-
-> **Propuesta** — Una sola línea `tipo: 'CUADRO'` con su `img` propia —el fuselaje pasando enorme y el terito— metida en `M7_SOBREVUELO`. No hace falta escena; hace falta **que se vea una vez**, porque de eso depende que la carta de Mateo no afirme algo que el jugador nunca vio.
-
-- [ ] DEJAR COMO ESTÁ *(no entra al juego)* · [ ] AGREGAR LO DEL GUION · [X] DEBATIR · [ ] LA PROPUESTA
-
-### 🔴 M9-04 · **La libreta — la hoja de la burrada (el cobro de M3)**
-En una hoja suelta, con la letra más chica y más prolija: un A-4 con la trompa al cielo, un
-monigote cayendo, tres flechitas, la cuenta hecha en serio, y abajo subrayado dos veces:
-«**NO. Se muere.**» *El pibe lo calculó. Le dio que no. Y lo guardó igual.*
-Y: «**El Turco se ríe una vez, corto, sin querer. Y esa risa es lo peor de toda la noche.**»
-
-> **Propuesta — actualizada.** Con el paracaídas confirmado en M3-05, el cálculo **no puede ser
-> sobre el salto**: con paracaídas, saltar se sobrevive. Que sea **sobre el reingreso**, que en
-> `story.js` ya está escrito con todas las letras («le apuntás a tu propio avión, que viene bajando
-> por el otro lado… te metés adentro, cerrás la cúpula»).
->
-> La cuenta del Pichón: velocidad de caída con paracaídas abierto, velocidad del avión en picada,
-> **segundos de coincidencia: cero**. Y abajo, subrayado dos veces: «NO. Se muere.»
-> El cobro queda intacto y además apunta a la parte más disparatada de la burrada, no a la más
-> creíble.
-
-- [ ] DEJAR COMO ESTÁ *(no entra)* · [ ] AGREGAR LO DEL GUION · [ ] LA PROPUESTA · [X] DEBATIR
+## MISIÓN 10
 
 ### M10-02 · `condor_radio` vs `condor_reposo`
 `M10_HUECO_120` usa `cara: 'condor_radio'`; toda la campaña usa `condor_reposo`. Si el retrato
 no existe, cae al placeholder **y se ve igual que si faltara el asset**.
 - [ ] DEJAR COMO ESTÁ *(`condor_radio`)* · [ ] CORREGIR a `condor_reposo` · [ ] DEBATIR *(primero hay que chequear si el retrato existe)*
 
-### M10-03 · El desbloqueo del Mirage — dónde va
-El guion lo marca «**registro SISTEMA — fuera de la campaña**». En `story.js` es una `TARJETA`
-más dentro de `epiM10`, o sea que se lee como una escena de la historia.
-- [ ] DEJAR COMO ESTÁ · [ ] REEMPLAZAR POR EL GUION · [X] DEBATIR
-
----
-
-# 12. MISIÓN 11 — Lo que no se dice
-
-### 🔴 M12-01 · **LOS JAZMINES** — la muerte de Correa está en la versión vieja
-- Guion: «…Vos salís, chamigo. Vos salís seguro. *(le aprieta la mano)* Escuchame que es importante. **Cuando la veas a la Teresa, decile que la quiero. Y llevale jazmines. Le gustan los jazmines. Regalale jazmines la primera vez.** *(casi sonriendo)* …**Vas a quedar como un señor, angá.** Vos… vos me la vas a cuidar como yo te—»
-- Juego: «…andá a Corrientes igual, pibe. Presentate solo. Decile a mi hermana que su hermano cuidó a un pibe hasta el final. Que no fue en vano. Que no fue…»
-
-Tres cosas se pierden con la versión vieja: **el nombre** (Teresa, nota 10), **los jazmines**
-—que vuelven en el Final B, con Norma mirando el jazminero por la ventana— y sobre todo el
-registro: el guion hace que Correa **hable dando por hecho que Mateo sobrevive**, y *eso* es lo
-que parte al medio. La versión del juego es un tipo despidiéndose.
-
-> **Propuesta** — La del guion, pero **partida en dos con un hold largo en el medio**: primero «Vos salís, chamigo. Vos salís seguro.» y silencio; recién después los jazmines. El golpe no está en el encargo, está en que lo hace dando por hecho que Mateo vive — y eso necesita el silencio antes, no después.
-
-- [ ] DEJAR COMO ESTÁ · [ ] REEMPLAZAR POR EL GUION · [X] DEBATIR · [ ] LA PROPUESTA
-
-### 🔴 M12-03 · El cuadro quieto del inventario
-«La mochila del Colorado volcada. **La foto gastada de la hermana.** El mate. Todo el inventario
-de un hombre bueno. Y sobre los hombros de Mateo, **el cuero de oveja que el Colorado le dio en
-abril — tapándolo hasta el final.** Mateo, con la mano que le queda libre, **saca la foto de la
-mochila y se la guarda en el cuaderno — donde van las cosas que hay que devolver en persona.**»
-
-Es lo que hace que la encomienda del final tenga contenido, y el cobro del cuero de M1.
-- [ ] DEJAR COMO ESTÁ *(no entra al juego)* · [ ] AGREGAR LO DEL GUION · [X] DEBATIR
+## MISIÓN 13 — La última mesa
 
 ### M13-04 · «Una vez más.» / «Una vez más. La última.»
 El juego agrega «**La última**». El guion corta antes: nadie dice que no vuelven.
 - [ ] DEJAR COMO ESTÁ · [X} REEMPLAZAR POR EL GUION · [ ] DEBATIR
-
-### M13-05 · El gesto del Turco de M13
-«Antes de sentarse, el Turco pasa por la línea de vuelo. Los tres aviones están cargados y
-quietos bajo la luna. **Les pasa la mano por el ala, de uno en uno, y a cada uno le dice algo
-bajito. Después se va al fuego y no lo cuenta.**»
-- [ ] DEJAR COMO ESTÁ *(no entra al juego)* · [ ] AGREGAR LO DEL GUION · [ ] DEBATIR
-
-### 🔴 M13-06 · **EL «GRACIAS»** — el cobro de M2, no existe
-El Turco ceba y le alcanza el mate al Gitano. «*(lo agarra con una sola mano, sin levantarse)*
-**Gracias.**» *(Lo dijo en castellano.)* Y nadie se lo hace notar — «todos en esa mesa saben
-exactamente qué acaba de decir y ninguno tiene ganas de decirlo en voz alta».
-
-Acaba de salirse de la ronda la noche antes de la última misión. Es el puente hacia la escena
-en que habla en serio, y es **el ítem más barato de esta lista**: tres líneas.
-
-> **Nota** — Ojo, esto **no se cayó con tu decisión de M2-01**. El guion aclara que la regla que se rompe acá es **verbal, no visual**: en M2 el Gitano no promete un gesto, promete «yo de la ronda no me voy». El cobro funciona igual con el saludo de soldado.
-
-- [ ] DEJAR COMO ESTÁ *(no entra al juego)* · [ ] AGREGAR LO DEL GUION · [ ] DEBATIR
 
 ### M13-07 · El Mundial — la fecha y el remate
 - Guion: «**pasado mañana** debuta Argentina en el Mundial. En España. **Contra Bélgica.**» / Puma: «**Mirá vos. Argentina juega.**» / «Acá también juega Argentina. **Todos los días.** Pero estos partidos no los pasan por la tele.»
@@ -253,13 +72,7 @@ nosotros. Aunque sea una vez. Aunque sea bajito.**»
 Y en el juego falta también «**Voy a estar mirando para arriba hasta el final, buscándote**».
 - [ ] DEJAR COMO ESTÁ *(no entra al juego)* · [ ] AGREGAR LO DEL GUION · [ ] DEBATIR
 
----
-
-# 15. MISIÓN 14 — El tero
-
-> **Acá está el grueso del trabajo.** El final de `story.js` es de la versión anterior del
-> guion: final único, el Gitano y Puma mueren de otra manera, y no existen ni los dos finales,
-> ni el cierre común, ni la post-créditos. Son ~90 líneas nuevas.
+## MISIÓN 14 — El tero
 
 ### M14-01 · Cómo se enteran — falta la escena
 La sala de radio de noche, los tres escuchando el tráfico de rutina, y en el medio de un parte
@@ -382,15 +195,7 @@ Es donde se cierra Claribel con una sola palabra.
 
 ---
 
-# 15b. TUS CAMBIOS EN `story.js` vs GUION_3
-
-*Lo que reescribiste a mano y todavía no está reflejado en el guion. Nada de esto es un error —
-son decisiones tuyas—, pero GUION_3 quedó desactualizado en estos puntos y conviene bajarlo ahí
-antes de que el guion vuelva a usarse como fuente.*
-
----
-
-# 16. DECISIONES GLOBALES
+# 2. Sistemas
 
 ### G-02 · Los barks (§9c, canal 2)
 `HEAVY MACHINE GUN` la primera vez que se sostiene la metralleta, con las reglas: cartel sin
@@ -446,6 +251,8 @@ de la escena con imagen. Y **«DÍA SIGUIENTE»** entre misiones.
 
 ---
 
+# 3. Técnico
+
 ### T-02 · `M07_LOCKER` no está en ninguna secuencia
 Duplica a `M6_LOCKER1`/`M6_LOCKER2` (que sí se juegan) con **mejor texto** — es la escena que se
 usó como fixture de aceptación, con los holds ya actuados (el 4.0 de «El Vasco tenía quince
@@ -464,12 +271,9 @@ Con las ~90 líneas de M14 y las escenas nuevas por delante, esto se va a poner 
 todo a la numeración nueva es mecánico y se puede hacer con un script, en un commit aparte.
 - [ ] DEJAR COMO ESTÁ · [ ] RENOMBRAR todo a la numeración nueva · [ ] DEBATIR
 
-### T-09 · Dos líneas de `M03_BURRADA` sin campo `en`
-Las dos nuevas («No le tirás un tiro…» y «Aseguradas las bajas…») terminan en `es: '…'}` sin `en`.
-El resto del archivo siempre lleva `en: ''`. Funciona, pero rompe la forma y el día que se traduzca
-va a ser el único lugar donde falte.
-
-- [ ] DEJAR COMO ESTÁ · [ ] CORREGIR · [ ] DEBATIR
+### T-05 · Nada de esta sesión está commiteado
+`story.js`, `screens.js`, `GUION_3.md`, las herramientas y los retratos están todos sin commitear.
+- [ ] DEJAR COMO ESTÁ · [ ] COMMITEAR antes de seguir · [ ] DEBATIR
 
 ### T-10 · Las 23 líneas de radio del Narwal quedaron sin consumidor
 `m4_radio1…13` y `m5_radio1…10` siguen en `data/strings.js` (ES y EN) y ya no las usa nadie: los
@@ -488,6 +292,3 @@ puerta — hay que enseñarle a distinguir las dos.
 
 - [ ] DEJAR COMO ESTÁ · [ ] ARREGLAR el selector · [ ] DEBATIR
 
-### T-05 · Nada de esta sesión está commiteado
-`story.js`, `screens.js`, `GUION_3.md`, las herramientas y los retratos están todos sin commitear.
-- [ ] DEJAR COMO ESTÁ · [ ] COMMITEAR antes de seguir · [ ] DEBATIR
