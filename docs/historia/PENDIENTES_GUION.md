@@ -28,12 +28,6 @@ Y falta **una pieza de motor**: nadie elige cuál de las dos secuencias de final
 
 ## MISIÓN 10
 
-### M13-04 · «Una vez más.» / «Una vez más. La última.»
-
-El juego agrega «**La última**». El guion corta antes: nadie dice que no vuelven.
-
-- [ ] DEJAR COMO ESTÁ · [X} REEMPLAZAR POR EL GUION · [ ] DEBATIR
-
 # 2. Sistemas
 
 ### G-02 · Los barks (§9c, canal 2)
@@ -51,15 +45,8 @@ Es de arte/gameplay, no de `story.js`, pero está sin definir.
 
 - [ ] DEJAR COMO ESTÁ _(no entra al juego)_ · [X] AGREGAR LO DEL GUION · [ ] DEBATIR
 
-### G-07 · Los dialectos (§9) — pasada fina pendiente
-
-Estado hoy: el Turco casi no dice **«aca»** (su comodín); el Colorado no dice **«angá»** ni
-**«pue»** ni una vez; el Gitano dice «culiao/culiau» seguido; el Turco dice «Ura» **dirigido a
-una persona**, que su propia regla prohíbe.
-
-- [ ] DEJAR COMO ESTÁ · [X] HACER LA PASADA de dialectos · [ ] DEBATIR
-
 ### 🔴 G-08 · El objetivo — **hecha la mitad; falta la de motor**
+
 **Aplicado**: las 14 tarjetas de misión llevan ahora una segunda línea `OBJETIVO · …`
 («Entrar al Callejón, soltar sobre la fragata HMS Ardent y salir», etc.). Eso resuelve el problema
 para el que lee la tarjeta.
@@ -81,32 +68,3 @@ de la escena con imagen. Y **«DÍA SIGUIENTE»** entre misiones.
 ---
 
 # 3. Técnico
-
-### T-04 · La numeración doble
-
-Los ids internos son de la campaña vieja de 12 (`M3_*` = misión **4**, `M10_*` = misión **12**) y
-las dos misiones nuevas usan la nueva (`M03_*` = misión **3**, `M10_HUECO` = misión **10**).
-Resultado: **`M10_TARJETA` y `STORYM10_TARJETA` son dos misiones distintas**, y `M5_ESCUCHA` vive
-en `epiM5` junto a `M4_EPI` y `M4_CARTA`.
-
-Con las ~90 líneas de M14 y las escenas nuevas por delante, esto se va a poner peor. Renombrar
-todo a la numeración nueva es mecánico y se puede hacer con un script, en un commit aparte.
-
-- [ ] DEJAR COMO ESTÁ · [X] RENOMBRAR todo a la numeración nueva · [ ] DEBATIR
-
-### T-05 · Nada de esta sesión está commiteado
-
-`story.js`, `screens.js`, `GUION_3.md`, las herramientas y los retratos están todos sin commitear.
-
-- [ ] DEJAR COMO ESTÁ · [X] COMMITEAR antes de seguir · [ ] DEBATIR
-
-### T-11 · El modo DIÁLOGOS del selector no ve las charlas
-
-`charlasDe()` en `game.js` arma su recorrido leyendo `t.radio` de cada tramo. Los tramos del Narwal
-ahora traen `t.charla`, así que **el recorrido de diálogos de m4 y m5 quedó vacío**: en el juego se
-ven, en el selector no.
-
-No lo toqué porque es motor y no data, y porque `irACharla()` llama a `radioTramo()`, que es la otra
-puerta — hay que enseñarle a distinguir las dos.
-
-- [ ] DEJAR COMO ESTÁ · [X] ARREGLAR el selector · [ ] DEBATIR

@@ -103,11 +103,11 @@ export const MISSIONS = [
     // cielo — un bombardeo en el tramo mudo contradice la escena tanto como una fragata.
     // `marcas: true` lo transporta este item y lo va a consumir el de las marcas de Condor.
     tramos: [
-      { hasta: 0.07, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M4_NARWAL_A' },
-      { hasta: 0.14, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M4_NARWAL_B' },
-      { hasta: 0.21, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M4_NARWAL_C' },
-      { hasta: 0.28, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M4_NARWAL_D' },
-      { hasta: 0.351, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M4_NARWAL_E' },
+      { hasta: 0.07, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_A' },
+      { hasta: 0.14, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_B' },
+      { hasta: 0.21, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_C' },
+      { hasta: 0.28, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_D' },
+      { hasta: 0.351, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_E' },
       // y se termina ahi: mar pleno, con la densidad y LA COLA de una mision de verdad. El salto
       // de 0 a 1.2 es el punto — el silencio se cobra en el contraste.
       { hasta: 1, obstacles: 1.2, caza: 1 },
@@ -127,9 +127,9 @@ export const MISSIONS = [
     // HUD marcaba las unidades antes de verlas; aca no las marca. El jugador entra a la mision
     // mas dificil del movimiento con menos informacion en pantalla, y sabe exactamente por que.
     tramos: [
-      { hasta: 0.11, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M5_NARWAL_A' },
-      { hasta: 0.21, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M5_NARWAL_B' },
-      { hasta: 0.31, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M5_NARWAL_C' },
+      { hasta: 0.11, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M05_NARWAL_A' },
+      { hasta: 0.21, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M05_NARWAL_B' },
+      { hasta: 0.31, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M05_NARWAL_C' },
       { hasta: 1, obstacles: 1.7, caza: 1 },
     ],
     cfg: C({ sky: 'cloudy', obstacles: 1.7 }),

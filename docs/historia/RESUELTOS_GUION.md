@@ -735,3 +735,48 @@ Colgadas de los dos primeros tramos de `m1`. Estaban escritas hace semanas y no 
 ## ⚠ G-08 · El objetivo de la misión — **mitad aplicada**
 Las 14 tarjetas llevan una segunda línea `OBJETIVO · …`. La segunda capa —Cóndor por radio en el
 primer tramo— sigue abierta y es motor.
+
+
+## ✅ M13-04 · «La última» — **sacado**
+Puma cierra en «…Plata Fiel completa, entonces. **Una vez más.**» Sin eso, el destelegrafiado de
+M13-01 no servía de nada: se sacaba el anuncio de una línea y volvía dos después.
+
+## ✅ G-07 · Pasada de dialectos — **hecha, y corta a propósito**
+§9 pide **una marca cada tantas líneas, no en todas**. Cuatro toques, y ninguno en un momento
+sagrado del Turco (§9b: en el locker del Vasco, la libreta del Pichón, el pincel, la frase de la
+tesis y el mate del Final B **no putea**, y eso es lo que hace que su vulgaridad signifique algo):
+
+| dónde | qué entró |
+| --- | --- |
+| `M10_HUECO` — el Turco canibalizando el avión del Pichón | «No baja un tornillo al sur desde hace veinte días. **Ni aca.**» — su palabra madre, que no aparecía ni una vez en toda la campaña |
+| `M03_BURRADA` — el Turco escuchando | «Si, obvio... ¿y? **Mavé.**» |
+| `M12_TIERRA` — Correa empujando a Mateo al pozo | «¡Abajo, Mateo! ¡ABAJO, **chamigo**!» |
+| `M12_TIERRA` — los jazmines | «Escuchame que es importante, **pue**.» |
+
+## ✅ T-04 · La numeración doble — **renombrado todo**
+**90 escenas renombradas y 387 líneas renumeradas.** La misión de cada escena la mandó `SECUENCIAS`,
+que es la fuente de verdad — no el prefijo del id, que venía de la campaña vieja de 12.
+
+Ahora `M12_1` es de la misión 12 y `M14_GITANO` de la 14. Antes `M10_1` era de la 12 y `M12_1` de
+la 14, y `M10_TARJETA` y `STORYM10_TARJETA` eran dos misiones distintas.
+
+> **Y el renombre encontró la bomba que justificaba hacerlo.** Al mapear, `M10_HIST` (Sir Tristram)
+> y `M12_HIST` (Glamorgan) cayeron los dos en `M12_HIST`. **JavaScript no se queja de una clave
+> repetida: se queda con la última en silencio.** El epílogo de M12 habría mostrado el hundimiento
+> del Glamorgan. Se resolvió con `M14_HIST`, y el chequeo de claves duplicadas queda como parte del
+> control.
+
+`M07_LOCKER` quedó intacta: sus ids son fixture de aceptación en `tools/unit.js`.
+
+## ✅ T-11 · El selector de diálogos — **arreglado**
+`charlasDe()` en `game.js` leía sólo `t.radio`. Cuando el Narwal pasó de `radio:` a `charla:`, los
+diálogos de m4 y m5 desaparecieron del selector **sin que nada fallara**. Ahora lee las dos y
+`irACharla()` despacha por la puerta que corresponde: `charla.armar()` o `radioTramo()`.
+
+## ✅ T-05 · Commiteado
+Cuatro commits en la rama `guion/m13-y-retratos`.
+
+## 🛠 `tools/leer_marcas.py` — nuevo
+Lector tolerante de marcas. Acepta `[x]`, `[X]`, **`[X}`**, `(x)` y `{x}`, porque una marca escrita
+a mano sale como sale y un lector estricto **la ignora en silencio** — que es exactamente como se
+pierde una respuesta y se termina preguntando dos veces lo mismo. Pasó con `M13-04`.

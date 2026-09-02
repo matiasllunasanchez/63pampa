@@ -690,12 +690,19 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // del mapa y decir la linea. Nada de esto es logica nueva — es la data de los tramos leida en
     // orden y las dos funciones que el juego ya usa para hablar.
 
-    /** Las charlas de la mision en curso, en orden: `{ frac, clave }`. Vacio si no tiene. */
+    /** Las charlas de la mision en curso, en orden: `{ frac, clave, tipo }`. Vacio si no tiene.
+     *
+     *  UN TRAMO PUEDE HABLAR DE DOS MANERAS y el recorrido tiene que ver las dos: `radio:` es una
+     *  linea suelta de data/strings.js, y `charla:` es una escena entera de data/story.js. Cuando
+     *  el Narwal paso de una a la otra, este recorrido se quedo leyendo solo `radio` y los
+     *  dialogos de m4 y m5 desaparecieron del selector sin que nada fallara. */
     function charlasDe(m) {
       const out = [];
       let desde = 0;
       for (const t of (m && m.tramos) || []) {
-        if (t.radio) out.push({ frac: (desde + t.hasta) / 2, clave: t.radio });   // el MEDIO del tramo
+        const frac = (desde + t.hasta) / 2;                                  // el MEDIO del tramo
+        if (t.radio) out.push({ frac, clave: t.radio, tipo: 'radio' });
+        if (t.charla) out.push({ frac, clave: t.charla, tipo: 'charla' });
         desde = t.hasta;
       }
       return out;
@@ -708,7 +715,9 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       radioBeat = ((n % ch.length) + ch.length) % ch.length;
       const c = ch[radioBeat];
       run.dist = Math.max(0, objectiveDist * c.frac);
-      radioTramo(c.clave);             // la MISMA puerta que usa el vuelo: se ve igual que en juego
+      // LA MISMA PUERTA QUE USA EL VUELO, la que corresponda: se ve igual que en juego.
+      if (c.tipo === 'charla') charla.armar(c.clave);
+      else radioTramo(c.clave);
       return c;
     }
     // EL SELECTOR: la campaña listada, una fila por mision. Las filas son la DATA (el indice en
