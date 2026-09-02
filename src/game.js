@@ -26,6 +26,7 @@ import * as momentum from './legacy/momentum.js';
 import * as tempo from './systems/tempo.js';
 import * as rasante from './systems/rasante.js';
 import * as chancha from './systems/chancha.js';
+import { desgaste, misionCumplida, resetDesgaste } from './core/desgaste.js';
 // ---- GANCHOS DE MOTOR (docs/historia/PLAN_4_PENDIENTES.md) ----------------------------------
 // Las cuatro piezas que faltan se escriben en archivos propios y se cuelgan ACA, en la fase 2.
 // Los imports estan puestos y las firmas cerradas y testeadas (tools/unit.js, «ganchos:») para que
@@ -573,12 +574,38 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     function startCampaign() {
       gameMode = 'campaign'; curCampaign = 0; selPlane = CAMPAIGN_PLANE;
       pichon = [];                       // campaña nueva: el banco del Pichon arranca vacio
+      resetDesgaste();                   // ...y celula nueva: sin parches (G-04)
       loadLevel(0); reset();
       setRunObjective(); setState(enterMission());
+    }
+    /** DESPUES DEL RECUENTO. En campaña va primero EL BANCO DEL PICHON y despues el epilogo, que
+     *  es donde esta la carta de Mateo.
+     *
+     *  POR QUE ESTE ORDEN. Antes la mejora llegaba al final de todo el epilogo — despues del
+     *  cuaderno, de la placa historica y de la carta — y para entonces la recompensa de la mision
+     *  que acababa de terminar ya no se sentia como recompensa. Ahora se cobra caliente, y la carta
+     *  queda de cierre, que es lo que es.
+     *
+     *  CUANTAS ofrece cada mision lo dice `ofertaTrasMision` (data/upgrades.js): el tutorial no
+     *  entrega nada, la segunda sirve UNA sin elegir, y de la tercera en adelante son dos a elegir.
+     *  La regla vive en data y no aca para que el selector de misiones la derive en vez de repetirla. */
+    function trasResultados() {
+      if (gameMode === 'campaign' && !S.test) {
+        const nOferta = curLevel + 1 < MISSIONS.length ? ofertaTrasMision(curLevel) : 0;
+        upgOffer = nOferta ? nextUpgrades(pichon, nOferta) : [];
+        if (upgOffer.length) { upgSel = 0; upgT = 0; setState('upgrade'); return; }
+      }
+      irAlEpilogo();
+    }
+    /** El epilogo de la mision que se acaba de volar. */
+    function irAlEpilogo() {
+      if (!lastRun || !lastRun.mission || !lastRun.mission.epi) { advanceCampaign(); return; }
+      initStory(lastRun.mission.epi); setState('epilogue');
     }
     /** Siguiente mision de campaña (conservando el puntaje acumulado) o victoria si era la ultima. */
     function advanceCampaign() {
       if (curLevel + 1 < MISSIONS.length) {
+        misionCumplida();                // una salida mas encima de la celula (G-04)
         const keep = run.score; loadLevel(curLevel + 1); reset(); run.score = keep;
         setRunObjective(); setState(enterMission());
       } else { setState('victory'); levelT = 0; }
@@ -598,7 +625,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       if (sinRastro()) { salirTest(); return; }
       pichon.push(u.id);
       beep(880, 0.12, 'square', 0.06);
-      advanceCampaign();
+      irAlEpilogo();        // la carta de Mateo va DESPUES del banco (G-09)
     }
     function confirmMode() {
       const m = MODES[modeSel];
@@ -1035,7 +1062,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // regla que se rompe sola el dia que alguien haga la fila visible en otro modo, y ahi el
       // sintoma seria una partida de otro pisada por una prueba.
       if (sinRastro()) { beep(140, 0.09, 'square', 0.05); return; }
-      const d = { camp: curCampaign, level: curLevel, score: Math.floor(run.score), lives: run.lives, ups: pichon.slice() };
+      // EL DESGASTE VIAJA CON LA PARTIDA. Sin esto el avion se cura solo al cargar: la cicatriz
+      // es de la campaña, no de la sesion.
+      const d = { camp: curCampaign, level: curLevel, score: Math.floor(run.score), lives: run.lives,
+        ups: pichon.slice(), desg: { i: desgaste.impactos, m: desgaste.misiones } };
       const row = pauseSaveRows()[saveSel];
       if (!row) return;
       if (row.id === null) saves.saveGame(d); else saves.overwriteSave(row.id, d);
@@ -1084,6 +1114,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       curCampaign = CAMPAIGNS[rec.camp] && CAMPAIGNS[rec.camp].enabled ? rec.camp : 0;
       gameMode = 'campaign'; selPlane = CAMPAIGN_PLANE;
       pichon = Array.isArray(rec.ups) ? rec.ups.slice() : [];   // las mejoras viajan con la partida
+      // y la chapa con la que se sigue volando. Una partida vieja (sin `desg`) entra con el avion
+      // sano: se degrada de nuevo, que es mejor que romper el guardado.
+      resetDesgaste();
+      if (rec.desg) { desgaste.impactos = rec.desg.i | 0; desgaste.misiones = rec.desg.m | 0; }
       loadLevel(Math.min(rec.level || 0, MISSIONS.length - 1));
       reset();
       run.score = rec.score || 0;
@@ -1098,9 +1132,32 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // El TREN va con la puerta de entrada: si el nivel empieza ya volando, viene recogido de fabrica
     // (nunca hubo pista de la que levantarlo); si hay carrera, baja para el despegue.
     function afterBrief() { run.gear = cfg.start === 'air' ? 0 : 1; return cfg.start === 'air' ? 'play' : 'takeoff'; }
+    // ---------- EL INTERSTICIAL (G-09) ----------
+    // Negro con una linea y nada mas. No es una pantalla: es un CORTE, el respiro que separa dos
+    // cosas para que no se lean como una sola. Lo usa la campaña para dos momentos:
+    //   · el TITULO de la mision, antes de que aparezca la escena con su imagen;
+    //   · el «DIA SIGUIENTE», entre una mision y la que sigue.
+    //
+    // ES EXCLUSIVO DE CAMPAÑA. Por el mismo bloque de posmision pasan las herramientas (`S.test`) y
+    // los modos arena, pasadas y ciclo: ninguno lo ve, y por eso el gate esta en quien lo arma y no
+    // adentro del estado.
+    let interTxt = '', interT = 0, interDur = 0, interNext = null;
+    const INTER_TIT = 2.2;    // el titulo de la mision
+    const INTER_DIA = 1.8;    // «DIA SIGUIENTE» — mas corto: es un corte, no una portada
+
+    /** Arma el intersticial y devuelve el estado, para poder hacer `setState(armarInter(...))`. */
+    function armarInter(txt, seg, next) {
+      interTxt = txt || ''; interT = 0; interDur = seg; interNext = next || null;
+      return 'inter';
+    }
+
     function enterMission() {
       const m = curMission();
-      if (gameMode === 'campaign' && m.story) { initStory(m.story); return 'story'; }
+      // EL TITULO EN NEGRO ANTES DE LA ESCENA. Sin esto la primera linea del guion entra encima de
+      // la pantalla anterior y las dos misiones se leen como una sola tirada.
+      if (gameMode === 'campaign' && m.story) {
+        return armarInter(m.name, INTER_TIT, () => { initStory(m.story); setState('story'); });
+      }
       briefT = 0; return 'brief';
     }
     // elige una mision al azar para el CICLO DE MUERTE (solo las misiones CON buque)
@@ -2602,7 +2659,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
           const full = resRow >= nRows && resT > nRows * 0.45 + 0.7;
           if (flags.anyPress && resT > 0.5) {
             if (!full) { resT = nRows * 0.45 + 0.8; resRow = nRows; }   // completar de un saque
-            else { initStory(lastRun.mission.epi); setState('epilogue'); beep(500, 0.05, 'square', 0.04); }
+            else { trasResultados(); beep(500, 0.05, 'square', 0.04); }
           }
         } else if (S.state === 'epilogue') {
           // EPILOGO: el mismo motor de lineas; al terminar la secuencia, encadena segun el modo
@@ -2612,14 +2669,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
             // esta la campaña.
             if (S.test) { salirTest(); beep(400, 0.06, 'square', 0.05); }
             else if (gameMode === 'campaign') {
-              // campaña: antes de la siguiente mision pasa por EL BANCO DEL PICHON, si el pool no
-              // se agoto Y si a esta mision le toca entregar. CUANTAS cartas ofrece cada epilogo lo
-              // dice `ofertaTrasMision` (data/upgrades.js): el tutorial no entrega nada, la segunda
-              // sirve UNA sin elegir, y de la tercera en adelante son dos a elegir. La regla vive
-              // en data y no aca para que el selector de misiones la derive en vez de repetirla.
-              const nOferta = curLevel + 1 < MISSIONS.length ? ofertaTrasMision(curLevel) : 0;
-              upgOffer = nOferta ? nextUpgrades(pichon, nOferta) : [];
-              if (upgOffer.length) { upgSel = 0; upgT = 0; setState('upgrade'); beep(700, 0.07, 'square', 0.05); }
+              // EL BANCO YA PASO (va despues del recuento, ver `trasResultados`). Lo que queda es
+              // el corte al dia siguiente. La ultima mision no lo lleva: de ahi se va a victoria y
+              // un «dia siguiente» antes del final seria una promesa que el juego no cumple.
+              if (curLevel + 1 < MISSIONS.length) setState(armarInter(T('inter_dia'), INTER_DIA, advanceCampaign));
               else advanceCampaign();
             } else if (gameMode === 'arena') {
               // MINUTOS SAGRADOS: otra BATALLA al azar. Este modo no tiene camino — encadenarlo
@@ -2632,6 +2685,14 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
               // ciclo de muerte: otra mision al azar, desde cero
               randomMission(); reset(); setRunObjective(); briefT = 0; setState('brief');
             }
+          }
+        } else if (S.state === 'inter') {
+          // corre solo y se puede saltear con una tecla despues de medio segundo: son un par de
+          // segundos de negro, y obligar a mirarlos es castigar al que ya lo vio diez veces.
+          interT += dt;
+          if (interT >= interDur || (flags.anyPress && interT > 0.5)) {
+            const f = interNext; interNext = null; interDur = 0;
+            if (f) f();
           }
         } else if (S.state === 'upgrade') {
           // EL BANCO DEL PICHON: reloj propio (run.t queda quieto entre misiones). La eleccion
@@ -3269,6 +3330,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       if (S.state === 'victory') screens.drawVictory({ score: run.score, levelT, t: run.t });
       if (S.state === 'epilogue' || S.state === 'story')
         screens.drawStory({ dlg, state: S.state, t: run.t, canAdvance: dialogue.canAdvance() });
+      // EL INTERSTICIAL VA ACA ADENTRO, con la historia y no con los menus: dibuja en la grilla de
+      // DISEÑO (320x180) y necesita el `scale` puesto. Afuera del restore pintaba un rectangulo de
+      // 320x180 en coordenadas nativas y el mundo se veia asomando por los costados.
+      if (S.state === 'inter') screens.interstitial(interTxt, interDur ? interT / interDur : 1, run.t);
       ctx.restore();
       // PORTADA y MODOS van en coordenadas NATIVAS (fuera del scale): mas pixeles por letra.
       // El fondo (drawPpalBg) si va escalado — es la grilla de diseño y cubre toda la pantalla.
@@ -3415,6 +3480,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // Sin esto no hay forma de verificar desde afuera que el premio de un climax entro al
       // desglose de puntos — la pantalla de resultados es texto dibujado, no un dato leible.
       window.__lastRun = () => lastRun;
+      // el estado de la maquina, para verificar la cadena de posmision (G-09) desde afuera
+      // salta el intersticial en curso y dispara lo que venia despues: sirve para recorrer la
+      // cadena de posmision sin esperar los segundos de negro.
+      window.__interYa = () => { const f = interNext; interNext = null; interDur = 0; if (f) f(); return S.state; };
+      window.__estado = () => JSON.stringify({ st: S.state, nivel: curLevel, inter: interTxt, interT: +interT.toFixed(2), interDur, oferta: upgOffer.length, runT: +run.t.toFixed(2) });
       window.__czstart = o => caza.start(o || {});
       window.__czdbg = () => caza.dbg();
       window.__czfase = f => caza.forceFase(f);
@@ -3693,10 +3763,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // Y EL EPILOGO A PEDIDO: cierra la mision como si la hubieras terminado, que es el unico
     // camino por el que el banco se abre.
     if (typeof window !== 'undefined') window.__finMision = () => {
-      const nOferta = curLevel + 1 < MISSIONS.length ? ofertaTrasMision(curLevel) : 0;
-      upgOffer = nOferta ? nextUpgrades(pichon, nOferta) : [];
-      if (upgOffer.length) { upgSel = 0; upgT = 0; setState('upgrade'); }
-      else advanceCampaign();
+      // ENTRA POR LA MISMA PUERTA QUE EL JUEGO. Antes esta sonda repetia a mano la cadena de
+      // posmision, y cuando la cadena cambio (G-09: el banco pasa a ir ANTES del epilogo) la sonda
+      // siguio contando la version vieja. Una sonda que no usa el camino real deja de ser sonda.
+      trasResultados();
       return JSON.stringify({ state: S.state, level: curLevel, ofrece: upgOffer.length,
         offer: upgOffer.map(u => u.id), pichon: pichon.slice() });
     };
