@@ -120,7 +120,7 @@ export const SCENES = {
         es: '¿Y si no alcanza?', en: '' },
       { id: 'M10_HUECO_110', personaje: 'PUMA', cara: 'puma_ceno', hold: 1.5,
         es: 'Alcanza si volvés cuando te digo que vuelvas. Cuando te digo, Aldao.', en: '' },
-      { id: 'M10_HUECO_120', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 2.5,
+      { id: 'M10_HUECO_120', personaje: 'CÓNDOR', cara: 'condor_reposo', hold: 2.5,
         es: 'Plata Fiel, aquí Cóndor. Techo bajo, visibilidad nula al sur, frente cerrado sobre las islas. Reconocimiento armado, vuelen bajito y a casa. Buena suerte, muchachos.', en: '' },
     ],
   },
@@ -129,6 +129,8 @@ export const SCENES = {
     lineas: [
       { id: 'M10_TARJETA_010', personaje: null, cara: null, hold: 0,
         es: '5 de junio de 1982 · El enemigo es el clima', en: '' },
+      { id: 'M10_TARJETA_020', personaje: null, cara: null, hold: 0,
+        es: 'OBJETIVO · Reconocimiento armado sobre las islas. Salir, mirar, y volver con la nafta que hay.', en: '' },
     ],
   },
   // TANDIL: la segunda y ultima vez que el juego rompe su regla de montaje (la otra es M12).
@@ -234,6 +236,8 @@ export const SCENES = {
     lineas: [
       { id: 'M03_TARJETA_010', personaje: null, cara: null, hold: 0,
         es: 'Primeros días de mayo de 1982 · Patrulla costera', en: '' },
+      { id: 'M03_TARJETA_020', personaje: null, cara: null, hold: 0,
+        es: 'OBJETIVO · Patrulla de reconocimiento costero. Probar el invento del Pichón.', en: '' },
     ],
   },
   M03_ARANDELA: {
@@ -606,6 +610,8 @@ export const SCENES = {
     lineas: [
       { id: 'STORYM1_TARJETA_010', personaje: null, cara: null, hold: 0,
         es: 'Mar abierto · Objetivo: dominar el vuelo rasante', en: '' },
+      { id: 'STORYM1_TARJETA_020', personaje: null, cara: null, hold: 0,
+        es: 'OBJETIVO · Vuelo de adaptación sobre mar abierto. Aprender el rasante: cuanto más bajo, mejor.', en: '' },
     ],
   },
   M1_7: {
@@ -662,6 +668,8 @@ export const SCENES = {
     lineas: [
       { id: 'STORYM2_TARJETA_010', personaje: null, cara: null, hold: 0,
         es: '1 de mayo de 1982 · Costa', en: '' },
+      { id: 'STORYM2_TARJETA_020', personaje: null, cara: null, hold: 0,
+        es: 'OBJETIVO · Primera salida de verdad. Cruzar la costa y volver.', en: '' },
     ],
   },
   M2_5: {
@@ -726,6 +734,8 @@ export const SCENES = {
     lineas: [
       { id: 'STORYM3_TARJETA_010', personaje: null, cara: null, hold: 0,
         es: '4 de mayo de 1982 · HMS SHEFFIELD', en: '' },
+      { id: 'STORYM3_TARJETA_020', personaje: null, cara: null, hold: 0,
+        es: 'OBJETIVO · Atacar al destructor HMS Sheffield.', en: '' },
     ],
   },
   M3_6: {
@@ -804,6 +814,8 @@ export const SCENES = {
     lineas: [
       { id: 'STORYM4_TARJETA_010', personaje: null, cara: null, hold: 0,
         es: '21 de mayo de 1982 · HMS ARDENT', en: '' },
+      { id: 'STORYM4_TARJETA_020', personaje: null, cara: null, hold: 0,
+        es: 'OBJETIVO · Entrar al Callejón, soltar sobre la fragata HMS Ardent y salir.', en: '' },
     ],
   },
   M4_EPI: {
@@ -876,6 +888,8 @@ export const SCENES = {
     lineas: [
       { id: 'STORYM5_TARJETA_010', personaje: null, cara: null, hold: 0,
         es: '23 de mayo de 1982 · HMS ANTELOPE', en: '' },
+      { id: 'STORYM5_TARJETA_020', personaje: null, cara: null, hold: 0,
+        es: 'OBJETIVO · Pegarle al HMS Antelope sabiendo que la bomba puede no armarse.', en: '' },
     ],
   },
   M5_EPI: {
@@ -991,6 +1005,8 @@ export const SCENES = {
     lineas: [
       { id: 'STORYM6_TARJETA_010', personaje: null, cara: null, hold: 0,
         es: '25 de mayo de 1982 · HMS COVENTRY', en: '' },
+      { id: 'STORYM6_TARJETA_020', personaje: null, cara: null, hold: 0,
+        es: 'OBJETIVO · Hundir el destructor HMS Coventry.', en: '' },
     ],
   },
   M6_EPI: {
@@ -1034,6 +1050,11 @@ export const SCENES = {
     lineas: [
       { id: 'M6_LOCKER2_010', personaje: null, cara: null, hold: 0,
         es: 'Rosa Elena Arrieta. 1926 – 1961. "Te amo, mamá. Perdoname."', en: '' },
+      // EL DORSO DE LA FOTO: la imagen ES el contenido, asi que esta linea sola cambia de registro
+      // a CUADRO sin cortar la escena. Venia de M07_LOCKER, el fixture de aceptacion.
+      { id: 'M6_LOCKER2_005', personaje: null, cara: null, hold: 2.5,
+        tipo: 'CUADRO', img: 'M7_FOTO_DORSO',
+        es: 'La da vuelta. Nada más que eso.', en: '' },
       { id: 'M6_LOCKER2_020', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
         accion: 'Mira la foto y murmura', 
         es: 'Sesenta y uno.', en: '' },
@@ -1125,6 +1146,8 @@ export const SCENES = {
     lineas: [
       { id: 'STORYM7_TARJETA_010', personaje: null, cara: null, hold: 0,
         es: '25 de mayo de 1982 · ATLANTIC CONVEYOR', en: '' },
+      { id: 'STORYM7_TARJETA_020', personaje: null, cara: null, hold: 0,
+        es: 'OBJETIVO · Hundir el Atlantic Conveyor y cortarles los helicópteros pesados.', en: '' },
     ],
   },
   M7_SOBREVUELO: {
@@ -1240,6 +1263,8 @@ export const SCENES = {
     lineas: [
       { id: 'STORYM8_TARJETA_010', personaje: null, cara: null, hold: 0,
         es: 'Cruzar el fuego de San Carlos · Centro logístico', en: '' },
+      { id: 'STORYM8_TARJETA_020', personaje: null, cara: null, hold: 0,
+        es: 'OBJETIVO · Cruzar la muralla de fuego de San Carlos hasta el centro logístico.', en: '' },
     ],
   },
   M8_EPI: {
@@ -1324,6 +1349,8 @@ export const SCENES = {
     lineas: [
       { id: 'STORYM9_TARJETA_010', personaje: null, cara: null, hold: 0,
         es: '8 de junio de 1982 · RFA SIR GALAHAD', en: '' },
+      { id: 'STORYM9_TARJETA_020', personaje: null, cara: null, hold: 0,
+        es: 'OBJETIVO · Apoyo sobre Fitzroy. Atacar al RFA Sir Galahad.', en: '' },
     ],
   },
   M9_EPI: {
@@ -1380,6 +1407,8 @@ export const SCENES = {
     lineas: [
       { id: 'STORYM10_TARJETA_010', personaje: null, cara: null, hold: 0,
         es: '8 de junio de 1982 · RFA SIR TRISTRAM', en: '' },
+      { id: 'STORYM10_TARJETA_020', personaje: null, cara: null, hold: 0,
+        es: 'OBJETIVO · Segunda salida sobre Fitzroy. Atacar al RFA Sir Tristram.', en: '' },
     ],
   },
   M10_TIERRA: {
@@ -1495,6 +1524,8 @@ export const SCENES = {
     lineas: [
       { id: 'STORYM11_TARJETA_010', personaje: null, cara: null, hold: 0,
         es: '11 de junio de 1982 · HMS BROADSWORD', en: '' },
+      { id: 'STORYM11_TARJETA_020', personaje: null, cara: null, hold: 0,
+        es: 'OBJETIVO · Apoyo a los montes: espantar a las fragatas que los martillan de noche.', en: '' },
     ],
   },
   M11_ASADO1: {
@@ -1556,7 +1587,8 @@ export const SCENES = {
         accion: 'La sonrisa volviendo.',
         es: 'Bueno, basta que me emociono.', en: '' },
       { id: 'M11_ASADO2_060', personaje: 'ESTEBAN', cara: 'tero_neutro', hold: 0,
-        es: '(mirando la foto) ¿Me la prestás mañana? Que la vieja vuele una vez con la escuadrilla del hijo.', en: '' },
+        accion: 'Mirando la foto.',
+        es: '¿Me la prestás mañana? La llevo conmigo. Que la vieja vuele una vez con la escuadrilla del hijo.', en: '' },
       { id: 'M11_ASADO2_070', personaje: 'EL TURCO', cara: 'turco_ternura', hold: 0,
         es: '(alzando el vaso de vino en tetra) Por los que no están en la mesa.', en: '' },
       { id: 'M11_ASADO2_080', personaje: 'TODOS', cara: null, hold: 0,
@@ -1580,13 +1612,48 @@ export const SCENES = {
     titulo: 'LA ÚLTIMA PÁGINA · II', placa: 'p1c_cuaderno', img: 'carta14_m13',
     lineas: [
       { id: 'M11_CARTA2_010', personaje: null, cara: null, hold: 0,
-        es: 'Si no nos vemos: gracias por el cielo. Por el sapito, por el Rastrojero, por enseñarme a mirar para arriba. Si escucho un motor bien bajo, bien rasante, voy a saber que sos vos, y voy a estar tranquilo.', en: '' },
+        es: 'Acá los pibes cantan bajito para no llorar. Ojalá algún día, allá, alguien cante por nosotros. Aunque sea una vez. Aunque sea bajito.', en: '' },
       { id: 'M11_CARTA2_020', personaje: null, cara: null, hold: 0,
-        es: 'Cuidámela a mamá. Y perdón por las mentiras del guiso, pero decíselas igual.', en: '' },
+        es: 'Si no nos vemos: gracias por el cielo. Por el sapito, por el Rastrojero, por enseñarme a mirar para arriba. Voy a estar mirando para arriba hasta el final, buscándote. Si escucho un motor bien bajo, bien rasante, voy a saber que sos vos, y voy a estar tranquilo.', en: '' },
       { id: 'M11_CARTA2_030', personaje: null, cara: null, hold: 0,
-        es: 'Ser valiente no es no tener miedo, pá. Es escribirte igual, con la mano temblando.', en: '' },
+        es: 'Cuidámela a mamá. Y perdón por las mentiras del guiso, pero decíselas igual.', en: '' },
       { id: 'M11_CARTA2_040', personaje: null, cara: null, hold: 0,
+        es: 'Ser valiente no es no tener miedo, pá. Es escribirte igual, con la mano temblando.', en: '' },
+      { id: 'M11_CARTA2_050', personaje: null, cara: null, hold: 0,
         es: 'Te quiero, viejo. Volá bajo. Mateo.', en: '' },
+    ],
+  },
+  // LA UNICA CARTA DEL JUEGO, y el jugador NO LA PUEDE LEER. Se lo muestra escribir —la letra
+  // apretada, los tachones, la lapicera que se frena y sigue— y nada mas. Esa ignorancia es
+  // deliberada: es la misma que va a tener Norma durante años con el cuaderno.
+  //
+  // Se lee entera en EPI_A2, y SOLO en el Final A.
+  M11_CARTA_NORMA: {
+    id: 'M11_CARTA_NORMA', tipo: 'VN', titulo: 'POR LAS DUDAS', placa: 'm13_carta_locker',
+    lineas: [
+      { id: 'M11_CARTA_NORMA_010', personaje: null, cara: null, hold: 2.5,
+        es: 'Las brasas apagándose. Esteban solo, con una hoja de block militar apoyada en la rodilla.', en: '' },
+      { id: 'M11_CARTA_NORMA_020', personaje: null, cara: null, hold: 3.5,
+        es: 'La cámara lo muestra escribir: la letra apretada, los tachones, la lapicera que se frena y sigue. No deja leer ni una línea. Escribe mucho. Tacha más.', en: '' },
+      { id: 'M11_CARTA_NORMA_030', personaje: null, cara: null, hold: 3.0,
+        es: 'Al final dobla la hoja en cuatro, despacio, y la mete en el sobre sin cerrar. En el frente escribe un solo nombre: Norma.', en: '' },
+      { id: 'M11_CARTA_NORMA_040', personaje: null, cara: null, hold: 4.0,
+        es: 'La deja en su locker, apoyada contra la pared del fondo, parada, como quien deja algo que espera no necesitar. Cierra el locker. Se va a dormir.', en: '' },
+    ],
+  },
+  // ---------- M14 · EL TERO ----------
+  // COMO SE ENTERAN: de rebote, en un parte de rutina. Nadie grita. Y la coordenada que Condor lee
+  // es el punto que Tero tiene subrayado en el mapa desde M12.
+  M12_RADIO: {
+    id: 'M12_RADIO', tipo: 'VN', titulo: 'UN PARTE DE RUTINA', placa: 'radio',
+    lineas: [
+      { id: 'M12_RADIO_010', personaje: null, cara: null, hold: 2.0,
+        es: 'La sala de radio, de noche. Los tres escuchando el tráfico de Cóndor como todas las noches.', en: '' },
+      { id: 'M12_RADIO_020', personaje: 'CÓNDOR', cara: 'condor_reposo', hold: 3.0,
+        accion: 'Leyendo, sin dramatismo, en el medio de un parte.',
+        es: '…bombardeo naval previsto sobre posiciones del sector, efectivo 06:00. Unidades en el área: elementos del Regimiento… conscriptos clase 63…', en: '' },
+      { id: 'M12_RADIO_030', personaje: null, cara: null, hold: 4.0,
+        es: 'Tero no escucha el resto. Esa coordenada la tiene subrayada en el mapa hace semanas. Se levanta despacio, va al mapa, apoya el dedo. Puma lo mira. El Gitano deja el mate por la mitad. Nadie grita.', en: '' },
     ],
   },
   M12_1: {
@@ -1605,14 +1672,37 @@ export const SCENES = {
     id: 'M12_2', tipo: 'VN',
     titulo: 'EL PAGO DEL APODO', placa: 'linea_amanecer', img: 'M12_2',
     lineas: [
-      { id: 'M12_2_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
-        es: '¿Sabés por qué te pusieron Tero? El tero grita lejos del nido. Se hace el herido, arma escándalo, se ofrece al zorro para que el zorro lo corra a él. Da la vida distrayendo, y el nido queda a salvo.', en: '' },
-      { id: 'M12_2_020', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
-        es: 'Esta noche los teros somos nosotros: gritamos, brillamos, hacemos el escándalo. Vos pasás por abajo, calladito, y llegás al nido. ¿Estamos?', en: '' },
-      { id: 'M12_2_030', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
+      // LO CONTESTA ESTEBAN. Puma pregunta y el que sabe es el: hace veinte años que vuela con ese
+      // pajaro pintado. Que se lo explique Puma lo volveria una clase; que lo conteste el lo
+      // vuelve una sentencia sobre si mismo.
+      { id: 'M12_2_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.5,
+        accion: 'Le aprieta el hombro.',
+        es: 'Che, Tero. Veinte años con ese pájaro pintado. ¿Alguna vez te preguntaste qué hace el tero cuando el zorro se le acerca al nido?', en: '' },
+      { id: 'M12_2_020', personaje: 'ESTEBAN', cara: 'tero_neutro', hold: 2.0,
+        accion: 'La voz baja.',
+        es: '…Grita lejos del nido. Se hace el herido.', en: '' },
+      { id: 'M12_2_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.5,
+        es: 'Da la vida distrayendo, y el nido queda a salvo.', en: '' },
+      { id: 'M12_2_040', personaje: 'PUMA', cara: 'puma_ceno', hold: 2.5,
+        es: 'Hoy tu nido está en ese mapa. Hoy todos somos teros. Nosotros distraemos: vos entrás y sacás a tu pibe. ¿Escuchaste, Aldao? A tu pibe.', en: '' },
+      { id: 'M12_2_050', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
         es: '(la última sonrisa) Escuchame, Tero: llegá. Por el Vasco, por el Pichón, por todos los que no llegamos a nada: LLEGÁ.', en: '' },
-      { id: 'M12_2_040', personaje: 'EL TURCO', cara: 'turco_ternura', hold: 0,
-        es: '(le mete el pincel de las estrellitas en el bolsillo del traje) Me lo devolvés mañana. ¿Me oíste? Me lo trae usted personalmente, Primer Teniente, o lo voy a buscar yo a nado.', en: '' },
+      { id: 'M12_2_060', personaje: 'EL TURCO', cara: 'turco_ternura', hold: 0,
+        accion: 'Le mete el pincel de las estrellitas en el bolsillo del traje.',
+        es: 'Me lo devolvés mañana. ¿Me oíste? Mañana. Me lo trae usted personalmente, Primer Teniente, o lo voy a buscar yo a nado.', en: '' },
+      // LOS TRES DESAYUNOS. Es la linea que dice que NADIE SE ESTA DESPIDIENDO: el Turco no despide
+      // heroes, espera a tres para el desayuno. Se cobra sola en cualquiera de los dos finales.
+      { id: 'M12_2_070', personaje: 'EL TURCO', cara: 'turco_ternura', hold: 3.0,
+        accion: 'A los tres, señalándolos con el dedo, uno por uno.',
+        es: 'Tres desayunos. Mañana sirvo TRES desayunos. El que falte me arruina la cuenta.', en: '' },
+      // EL RITUAL INVERTIDO — el cobro de M1_CINCO. Ya son tres, y dos de los tres estan rotos.
+      // Nadie lo comenta. El jugador los aprendio en M1 sin saber que los estaba aprendiendo.
+      { id: 'M12_2_080', personaje: null, cara: null, hold: 2.5,
+        es: 'Puma mira la foto pegada en su panel —tres generaciones de uniforme, y él de chico a upa del abuelo— y la toca con dos dedos. Después da la vuelta a su avión y toca las tres cosas de siempre. Toca dos. Se queda. No termina. Se sube así.', en: '' },
+      { id: 'M12_2_090', personaje: null, cara: null, hold: 2.5,
+        es: 'El Gitano no le pone nombre. Camina hasta el suyo, apoya la frente en el fuselaje un segundo, y sube sin decir nada. Es la primera vez en catorce misiones que ese avión sale sin nombre.', en: '' },
+      { id: 'M12_2_100', personaje: null, cara: null, hold: 3.5,
+        es: 'Tero toca el terito. Igual que siempre. Es el único de los tres que hace su gesto entero.', en: '' },
     ],
   },
   STORYM12_TARJETA: {
@@ -1621,27 +1711,76 @@ export const SCENES = {
     lineas: [
       { id: 'STORYM12_TARJETA_010', personaje: null, cara: null, hold: 0,
         es: 'Madrugada del 12 de junio · HMS GLAMORGAN', en: '' },
+      { id: 'STORYM12_TARJETA_020', personaje: null, cara: null, hold: 0,
+        es: 'OBJETIVO · Callar los cañones del HMS Glamorgan antes de las 06:00.', en: '' },
+    ],
+  },
+  // FASE 1 — EL RELOJ. La UNICA radio de toda la mision, y es la que mata el margen comodo. De
+  // aca al final el nivel es una flecha.
+  M12_RELOJ: {
+    id: 'M12_RELOJ', tipo: 'VN', titulo: 'ADELANTARON EL BOMBARDEO', placa: 'cabina_noche',
+    lineas: [
+      { id: 'M12_RELOJ_010', personaje: null, cara: null, hold: 2.0,
+        es: 'A mitad de camino. El HUD marca la hora sin alarma: llegan con margen.', en: '' },
+      { id: 'M12_RELOJ_020', personaje: 'EL TURCO', cara: 'turco_roto', hold: 3.5,
+        accion: 'Por handy, lejísimo, entre estática.',
+        es: '…me copian… cambió el… ¡ADELANTARON EL BOMBARDEO! ¡No es a las seis, es—!', en: '' },
+      { id: 'M12_RELOJ_030', personaje: null, cara: null, hold: 3.0,
+        es: 'Estática. Nada más. El margen cómodo acaba de morir.', en: '' },
     ],
   },
   M12_GITANO: {
     id: 'M12_GITANO', tipo: 'VN',
     titulo: 'PRIMER TERO', placa: 'cabina_noche', img: 'M12_GITANO',
     lineas: [
-      { id: 'M12_GITANO_010', personaje: null, cara: null, hold: 0,
-        es: 'Un enjambre de misiles se cierra sobre la formación. Gitano rompe hacia arriba, enciende todo lo que se puede encender, se vuelve el blanco más luminoso del cielo.', en: '' },
-      { id: 'M12_GITANO_020', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
-        es: '¡Acá estoy, ingleses! ¡Miren qué lindo brillo cordobés! ¡Vengan todos que hay para todos! ¡TERO, ANDÁ! ¡Viva la Patria... la de los pibes, carajo, la de los pibes—!', en: '' },
+      { id: 'M12_GITANO_010', personaje: null, cara: null, hold: 1.5,
+        es: 'El corredor de piquetes y la fragata de guardia. El Gitano se abre alto y ruidoso —el señuelo más alegre del Atlántico Sur— para que Tero y Puma pasen pegados al agua.', en: '' },
+      // SE ABRE CON UNA LINEA SUYA (no se muere callado, que no es el) PERO NO ANUNCIA NADA: se
+      // esta haciendo el payaso, como siempre. La muerte llega DESPUES y sin aviso.
+      { id: 'M12_GITANO_020', personaje: 'GITANO', cara: 'gitano_neutro', hold: 1.5,
+        es: '¡Acá estoy, ingleses! ¡Miren qué lindo brillo cordobés!', en: '' },
+      { id: 'M12_GITANO_030', personaje: null, cara: null, hold: 2.0,
+        es: 'Los misiles suben hacia él. El Gitano quiebra como quiebra siempre, la gambeta cordobesa, y los misiles se desvían.', en: '' },
+      // EN ACCION Y SIN ANUNCIO: el ultimo misil, ya vencido, lo alcanza de rebote en el quiebre
+      // final. Su ultima linea no habla de el.
+      { id: 'M12_GITANO_040', personaje: 'GITANO', cara: 'gitano_neutro', hold: 1.0,
+        es: 'Mandale saludos a tu pibe, Tero.', en: '' },
+      { id: 'M12_GITANO_050', personaje: null, cara: null, hold: 3.0,
+        es: 'Y el último, ya vencido, lo alcanza de rebote en el quiebre.', en: '' },
+      { id: 'M12_GITANO_060', personaje: 'PUMA', cara: 'puma_roto', hold: 4.0,
+        accion: 'Tres segundos después. La voz quebrada exactamente un milímetro.',
+        es: 'Plata 3 fuera.', en: '' },
     ],
   },
   M12_PUMA: {
     id: 'M12_PUMA', tipo: 'VN',
     titulo: 'SEGUNDO TERO', placa: 'cabina_noche', img: 'M12_PUMA',
     lineas: [
-      { id: 'M12_PUMA_010', personaje: null, cara: null, hold: 0,
-        es: 'Queda la última línea antiaérea, la que no se puede cruzar y disparar a la vez. Puma se adelanta, se mete de frente en el fuego, y apaga las baterías con el único fierro que le queda: su propio avión.', en: '' },
-      { id: 'M12_PUMA_020', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
-        es: 'Plata Fiel... misión cumplida. Tero: era verdad lo que dijo el Pichón. No es la bandera. Nunca fue la bandera. Es el pibe. Andá a buscar a tu pibe.', en: '' },
-      { id: 'M12_PUMA_030', personaje: null, cara: null, hold: 0,
+      { id: 'M12_PUMA_010', personaje: null, cara: null, hold: 1.5,
+        es: 'Queda el enjambre de escolta: lo más denso del juego, imposible para dos.', en: '' },
+      { id: 'M12_PUMA_020', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.0,
+        es: 'Tero, voy a encargarme de esto y despejarte el camino. Quedate cerca mío, y apenas veas el espacio te metés y me pasás. No pierdas tiempo, yo me encargo del resto y después me sumo con vos.', en: '' },
+      { id: 'M12_PUMA_030', personaje: 'ESTEBAN', cara: 'tero_preocupado', hold: 0.8,
+        es: 'Puma, ¿vos estás seguro? Podemos juntos.', en: '' },
+      { id: 'M12_PUMA_040', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.0,
+        es: 'No hay tiempo. Tu pibe te necesita.', en: '' },
+      { id: 'M12_PUMA_050', personaje: 'ESTEBAN', cara: 'tero_neutro', hold: 1.5,
+        es: 'Gracias. De corazón.', en: '' },
+      // LA UNICA VEZ QUE SE LO OYE HUMANO ES ANTES DE MORIR, y es una puteada de cancha.
+      { id: 'M12_PUMA_060', personaje: 'PUMA', cara: 'puma_neutro', hold: 2.0,
+        accion: 'Riendo.',
+        es: 'Qué quilombo, che. Voy a tener que sacar los prohibidos.', en: '' },
+      { id: 'M12_PUMA_070', personaje: null, cara: null, hold: 3.0,
+        es: 'Puma se mete solo. Dos minutos de maniobras que ningún tutorial enseñó, enemigos cayendo de a pares, y el jugador pasando por el costado y viendo, en el resto de la pantalla, por qué este señor era el capitán.', en: '' },
+      { id: 'M12_PUMA_080', personaje: 'PUMA', cara: 'puma_ceno', hold: 1.5,
+        es: '¡MANDALE, TERO!', en: '' },
+      // Y RECIEN ACA, tranquilo y casi divertido. No anuncia el sacrificio: informa un error.
+      { id: 'M12_PUMA_090', personaje: 'PUMA', cara: 'puma_neutro', hold: 2.5,
+        accion: 'Tranquilo, casi divertido.',
+        es: 'Pifié. Me quedé sin nafta.', en: '' },
+      { id: 'M12_PUMA_100', personaje: null, cara: null, hold: 3.0,
+        es: 'Endereza el avión contra el buque de escolta principal y se va entero, con las tres generaciones pegadas al panel. La explosión más grande del juego. Su muerte es la puerta: abre el corredor final.', en: '' },
+      { id: 'M12_PUMA_110', personaje: null, cara: null, hold: 3.0,
         es: 'Quedás solo en el cielo negro. Delante, la costa. El Glamorgan escupiendo fuego. Y detrás del fuego, el monte.', en: '' },
     ],
   },
@@ -1649,13 +1788,23 @@ export const SCENES = {
     id: 'M12_TARDE', tipo: 'VN',
     titulo: 'LLEGAR TARDE', placa: 'final_monte', img: 'M12_TARDE',
     lineas: [
-      { id: 'M12_TARDE_010', personaje: null, cara: null, hold: 0,
-        es: 'Rompés la última defensa. Tenés el blanco adelante. Vas a llegar. Estás llegando. Llegás.', en: '' },
-      { id: 'M12_TARDE_020', personaje: null, cara: null, hold: 0,
-        es: 'Y entonces, antes de que sueltes, el monte recibe la salva completa. El lugar donde está Mateo estalla en una sola luz blanca. Y se apaga.', en: '' },
-      { id: 'M12_TARDE_030', personaje: 'ESTEBAN', cara: 'tero_neutro', hold: 0,
-        es: '(un susurro) ...llegué. Llegué, hijo. Estoy acá arriba. Mirame. Estoy volando bajo. Mirame como aquella vez. MIRAME, MATEO.', en: '' },
-      { id: 'M12_TARDE_040', personaje: null, cara: null, hold: 0,
+      { id: 'M12_TARDE_010', personaje: null, cara: null, hold: 1.5,
+        es: 'Nada. Restos, humo, columnas de agua. Sin música: viento, motor, y el pitido suave del reloj. A lo lejos, la silueta del buque de bombardeo en posición de tiro. Y detrás, en la costa, chiquito: el sector de Mateo.', en: '' },
+      { id: 'M12_TARDE_020', personaje: null, cara: null, hold: 1.5,
+        es: 'Llegás al alcance justo cuando el reloj muere. Soltás.', en: '' },
+      // LAS TRAYECTORIAS QUE SE CRUZAN. Es el plano del juego entero: la venganza que llega y la
+      // desgracia que ya partio, en la misma pantalla y al mismo tiempo.
+      { id: 'M12_TARDE_030', personaje: null, cara: null, hold: 2.0,
+        es: 'El misil corre bajo, rasante, como todo lo que este juego enseñó. Y cuando le faltan segundos, el buque completa su salva: sus proyectiles ya están en el aire, cruzándose en pantalla con el misil argentino que va a matarlo.', en: '' },
+      { id: 'M12_TARDE_040', personaje: null, cara: null, hold: 2.5,
+        es: 'El misil impacta. El buque muere. Y a lo lejos, la salva cae sobre el sector de Mateo. Columnas de tierra a contraluz del amanecer.', en: '' },
+      { id: 'M12_TARDE_050', personaje: null, cara: null, hold: 3.0,
+        es: 'Plano de la cara de Tero, sin entender lo que acaba de ver. Llegó. Ganó. No alcanzó. Tres segundos. Nada más.', en: '' },
+      { id: 'M12_TARDE_060', personaje: 'ESTEBAN', cara: 'tero_roto', hold: 4.0,
+        accion: 'Un susurro.',
+        es: '…Llegué, Mateo. Llegué. Estoy acá arriba, hijo. Por favor, Mateo. Por favor.', en: '' },
+      // EL TONEL BARRIL (M14-11) NO ENTRA, por decision del autor.
+      { id: 'M12_TARDE_070', personaje: null, cara: null, hold: 3.0,
         es: 'Ninguna respuesta de tierra. Nunca más una respuesta de tierra.', en: '' },
     ],
   },
@@ -1663,9 +1812,7 @@ export const SCENES = {
     id: 'M12_FINAL', tipo: 'VN',
     titulo: 'EL COMBUSTIBLE JUSTO', placa: 'linea_noche', img: 'M12_FINAL',
     lineas: [
-      { id: 'M12_FINAL_010', personaje: 'CÓNDOR', cara: 'condor_reposo', hold: 0,
-        es: '(casi con lástima) Tero... está en reserva. Si sale AHORA, llega. Repito: si quiere volver, es ahora.', en: '' },
-      { id: 'M12_FINAL_020', personaje: null, cara: null, hold: 2.0,
+      { id: 'M12_FINAL_010', personaje: null, cara: null, hold: 2.0,
         es: 'Sobre el sector humeante aparece la última oleada. De frente. El mar abierto queda a la izquierda, y el HUD marca la ruta a casa.', en: '' },
       // LA DECISION, SIN MENU (GUION_3 nota 7). No hay cartel, no hay opciones en pantalla y no hay
       // final correcto: lo que el jugador haga con el timon ES la decision. Por eso la escena
@@ -1787,6 +1934,102 @@ export const SCENES = {
         es: '¿Me vio?… ¡Me vio! ¡NORMA! ¡Mateo ese día me vio!', en: '' },
       { id: 'EPI_B3_040', personaje: null, cara: null, hold: 4.0,
         es: 'Sin cartel. El mate quieto, el cuaderno abierto en la página del cielo. El Turco mira a Esteban abrazar a Norma, que entró corriendo secándose las manos. La cámara se aleja.', en: '' },
+    ],
+  },
+  // ---------- CIERRE COMUN · lo corren LOS DOS FINALES ----------
+  // Sobre fotografias reales: veteranos, el mar, Darwin, las cruces blancas. El juego da los
+  // hechos y no adjetiva. La unica bandera que no saluda es la de los que los mandaron a morir.
+  CIERRE_1: {
+    id: 'CIERRE_1', tipo: 'VN', titulo: '14 DE JUNIO DE 1982', placa: 'radio',
+    lineas: [
+      { id: 'CIERRE_1_010', personaje: null, cara: null, hold: 3.0,
+        es: 'El 14 de junio de 1982, tras setenta y cuatro días, cesaron los combates.', en: '' },
+      { id: 'CIERRE_1_020', personaje: null, cara: null, hold: 3.0,
+        es: 'No volvieron el Vasco, ni el Pichón, ni el Gitano, ni el Puma. No volvió el cabo Aníbal Correa, que murió tapando con su cuerpo a un pibe que conocía hacía dos meses.', en: '' },
+      { id: 'CIERRE_1_030', personaje: null, cara: null, hold: 3.0,
+        es: 'Del otro lado del mar tampoco volvieron los suyos: pibes iguales a los nuestros, mandados por otros que miraron la guerra desde tierra firme, calientes, lejos.', en: '' },
+      { id: 'CIERRE_1_040', personaje: null, cara: null, hold: 3.5,
+        es: 'Ninguno de ellos eligió esta guerra.', en: '' },
+      { id: 'CIERRE_1_050', personaje: null, cara: null, hold: 3.0,
+        es: 'Los mandó una dictadura que ya había hecho todo lo que hizo, y que necesitaba una bandera para taparlo.', en: '' },
+      { id: 'CIERRE_1_060', personaje: null, cara: null, hold: 3.0,
+        es: 'A los de la clase 63 los habían incorporado en marzo. Los subieron a las islas con menos de seis meses de instrucción. Muchos apenas sabían cargar un arma.', en: '' },
+      { id: 'CIERRE_1_070', personaje: null, cara: null, hold: 3.0,
+        es: 'A los de la clase 62, que ya habían dado la baja y tenían el año completo, los llamaron de vuelta. Y hubo hombres más grandes, de otras clases, que no tenían ninguna obligación de ir y se ofrecieron igual.', en: '' },
+      { id: 'CIERRE_1_080', personaje: null, cara: null, hold: 3.5,
+        es: 'A todos los mandaron sin abrigo, y los dejaron pasar hambre a doscientos metros de los depósitos. Y cuando volvieron, los escondieron: porque los sobrevivientes eran la prueba.', en: '' },
+      { id: 'CIERRE_1_090', personaje: null, cara: null, hold: 3.5,
+        es: 'Del otro lado del mar, un gobierno que venía perdiendo encontró en esta guerra la forma de ganar. Hundió un crucero que navegaba fuera de la zona de exclusión y en dirección contraria, con más de mil hombres a bordo. Trescientos veintitrés se quedaron ahí.', en: '' },
+      { id: 'CIERRE_1_100', personaje: null, cara: null, hold: 4.0,
+        es: 'Los de arriba, de los dos lados, salieron ganando de una manera o de otra. Los de abajo, de los dos lados, están en Darwin y en el fondo del mar.', en: '' },
+    ],
+  },
+  // EL NARWAL VA ULTIMO Y SOLO. Es el unico parrafo del cierre que el jugador puede atar a algo que
+  // JUGO —las charlas de M4 y el silencio de M5—, y en el medio de la lista se leeria como un dato
+  // mas. Aca se entera de como termino, igual que se entero la escuadrilla: nunca.
+  CIERRE_2: {
+    id: 'CIERRE_2', tipo: 'VN', titulo: 'EL NARWAL', placa: 'radio',
+    lineas: [
+      { id: 'CIERRE_2_010', personaje: null, cara: null, hold: 3.0,
+        es: 'Y hubo un barco pesquero llamado Narwal. Setenta metros, tripulación civil, sin un arma a bordo.', en: '' },
+      { id: 'CIERRE_2_020', personaje: null, cara: null, hold: 3.0,
+        es: 'Pasó tres semanas adentro del bloqueo tirando la red para que le creyeran, y mandando por radio todo lo que veía pasar.', en: '' },
+      { id: 'CIERRE_2_030', personaje: null, cara: null, hold: 4.0,
+        es: 'El 9 de mayo lo encontraron dos Harriers. Volvieron todos menos uno: Omar Rupp, contramaestre. Su cuerpo no volvió.', en: '' },
+      { id: 'CIERRE_2_040', personaje: null, cara: null, hold: 4.5,
+        es: 'A los que pelearon —a los de los dos lados— este juego los respeta por igual. La única bandera que no saluda es la de los que los mandaron a morir.', en: '' },
+    ],
+  },
+  // LA CARTELA, LA FRASE Y LA DEDICATORIA.
+  // ⚠ LA LISTA DE PAISES ESTA SIN VERIFICAR (GUION_3: «confirmar lista y que aporto cada uno antes
+  // de nombrar a nadie»). Hasta que el historiador la cierre va solo el Peru, que si esta
+  // verificado — ver PREGUNTAS_HISTORICAS.md. Nombrar de mas seria peor que nombrar de menos.
+  CIERRE_3: {
+    id: 'CIERRE_3', tipo: 'CARTA', titulo: 'ANTES DE LOS CRÉDITOS', placa: 'p3b_papeles',
+    lineas: [
+      { id: 'CIERRE_3_010', personaje: null, cara: null, hold: 4.0,
+        es: 'A los pueblos que nos tendieron una mano cuando el mundo miraba para otro lado. Al Perú, el primero.', en: '' },
+      { id: 'CIERRE_3_020', personaje: null, cara: null, hold: 5.0,
+        es: '«Allá hay gente tan buena como acá, lo que pasa es que no nos dejan conocernos. Si las naciones dejaran conocer a su gente buena, no viviríamos en este infierno.» — Diego Iorio', en: '' },
+      { id: 'CIERRE_3_030', personaje: null, cara: null, hold: 4.0,
+        es: 'Las Islas Malvinas continúan siendo objeto de un reclamo de soberanía por parte de la República Argentina, sostenido por medios diplomáticos y conforme al derecho internacional.', en: '' },
+      { id: 'CIERRE_3_040', personaje: null, cara: null, hold: 4.5,
+        es: 'En homenaje a los caídos, a los veteranos y a sus familias. De los dos lados del mar. Y a los mecánicos, que contaban lo que volvía.', en: '' },
+    ],
+  },
+  // POST-CREDITOS. La seño ES Claribel, la nena de nueve años de Villa Mercedes que en M9 le
+  // escribio a Mateo «cuando seas viejito contame como era el mar de ahi». Se cierra con UNA SOLA
+  // PALABRA, en boca del pibe, y no se explica nunca. El que leyo esa pagina se da cuenta.
+  POSTCRED: {
+    id: 'POSTCRED', tipo: 'VN', titulo: 'EL PIBE DE LA 10', placa: 'museo',
+    lineas: [
+      { id: 'POSTCRED_010', personaje: null, cara: null, hold: 2.5,
+        es: 'El museo escolar. La vitrina, con el cuaderno abierto en la página del monte. Un pibe con la 10 de la tercera estrella.', en: '' },
+      { id: 'POSTCRED_020', personaje: 'PIBE', cara: 'pibe_diez_asombro', hold: 1.0,
+        es: 'Seño Claribel… ¿y volvieron?', en: '' },
+      { id: 'POSTCRED_030', personaje: 'SEÑO', cara: 'claribel_neutro', hold: 1.5,
+        es: 'Algunos. Otros se quedaron cuidando las islas.', en: '' },
+      { id: 'POSTCRED_040', personaje: 'PIBE', cara: 'pibe_diez_timido', hold: 0.8,
+        accion: 'Sin despegar los ojos del cuaderno.',
+        es: '¿Y ganaron?', en: '' },
+      // LA UNICA VEZ EN TODO EL JUEGO que alguien contesta esa pregunta de frente. Va ANTES de la
+      // frase a proposito: la frase no celebra un triunfo, viene despues de un no.
+      { id: 'POSTCRED_050', personaje: 'SEÑO', cara: 'claribel_neutro', hold: 3.5,
+        es: 'No.', en: '' },
+      { id: 'POSTCRED_060', personaje: 'PIBE', cara: 'pibe_diez_timido', hold: 2.0,
+        es: '…Ah.', en: '' },
+      { id: 'POSTCRED_070', personaje: 'SEÑO', cara: 'claribel_calida', hold: 1.5,
+        accion: 'Se agacha a su altura y le acomoda el cuello de la camiseta. El gesto viene primero, la frase después.',
+        es: 'El chico que escribió esto tenía la misma edad que tu hermano. Hasta el último día estuvo escribiendo este cuaderno.', en: '' },
+      { id: 'POSTCRED_080', personaje: 'SEÑO', cara: 'claribel_emocionada', hold: 4.0,
+        es: 'Lo que importa es que ellos lo dieron todo con el corazón. Nunca, nunca, nunca. Nunca dudes del corazón de un argentino.', en: '' },
+      // G-06: la respuesta de Mateo a Claribel, escrita y nunca enviada, sigue entre esas paginas.
+      // Ella esta parada frente a una vitrina que contiene una carta dirigida a ella. NO SE
+      // SUBRAYA: es un plano de un segundo de mas y nada mas.
+      { id: 'POSTCRED_090', personaje: null, cara: null, hold: 3.0,
+        es: 'El pibe apoya la mano en el vidrio. La seño se queda mirando el cuaderno un segundo de más.', en: '' },
+      { id: 'POSTCRED_100', personaje: null, cara: null, hold: 5.0,
+        es: '«Volveremos. Volveremos otra vez.»', en: '' },
     ],
   },
   M12_HIST: {
@@ -1994,13 +2237,13 @@ export const SECUENCIAS = {
   storyM12: ['M10_1', 'STORYM10_TARJETA'],
   epiM12: ['M10_TIERRA', 'M10_PISTA', 'M10_CARTA', 'M10_HIST'],
   storyM13: ['M11_1', 'M11_2', 'STORYM11_TARJETA'],
-  epiM13: ['M11_ASADO1', 'M11_ASADO2', 'M11_CARTA', 'M11_CARTA2'],
-  storyM14: ['M12_1', 'M12_2', 'STORYM12_TARJETA'],
+  epiM13: ['M11_ASADO1', 'M11_ASADO2', 'M11_CARTA', 'M11_CARTA2', 'M11_CARTA_NORMA'],
+  storyM14: ['M12_RADIO', 'M12_1', 'M12_2', 'STORYM12_TARJETA'],
   // EL VUELO Y LA DECISION. Termina en `M12_FINAL`, que ya no remata: el timon es del jugador.
-  epiM14: ['M12_GITANO', 'M12_PUMA', 'M12_TARDE', 'M12_FINAL'],
+  epiM14: ['M12_RELOJ', 'M12_GITANO', 'M12_PUMA', 'M12_TARDE', 'M12_FINAL'],
   // LOS DOS FINALES (GUION_3 nota 7). No hay final correcto y no hay menu: el jugador viro a la
   // oleada o viro al mar, y eso ES la decision. QUIEN ELIGE CUAL DE LAS DOS SECUENCIAS CORRE
   // TODAVIA NO EXISTE — es trabajo de motor, no de datos (ver PENDIENTES_GUION, M14-12).
-  epiM14A: ['EPI_A1', 'EPI_A2', 'EPI_MESA1', 'EPI_A3', 'M12_HIST'],
-  epiM14B: ['EPI_B1', 'EPI_B2', 'EPI_B3', 'M12_HIST'],
+  epiM14A: ['EPI_A1', 'EPI_A2', 'EPI_MESA1', 'EPI_A3', 'M12_HIST', 'CIERRE_1', 'CIERRE_2', 'CIERRE_3', 'POSTCRED'],
+  epiM14B: ['EPI_B1', 'EPI_B2', 'EPI_B3', 'M12_HIST', 'CIERRE_1', 'CIERRE_2', 'CIERRE_3', 'POSTCRED'],
 };

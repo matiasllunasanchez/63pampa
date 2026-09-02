@@ -54,6 +54,15 @@ export const MISSIONS = [
     id: 'm1', name: 'SAL EN LAS ALAS', date: 'fines de abril de 1982',
     goal: { kind: 'distance', meters: 2200 },
     cfg: C({ sky: 'dawn', wind: false, obstacles: 0.5, bombs: 0, caza: 0, persec: 1 }),
+    // G-05: las dos charlas en vuelo del tutorial. El ritual de Condor se dice EN VUELO y no en
+    // tierra — la voz entra por la radio con el mar pasando abajo, que es como se escuchaba de
+    // verdad — y los gansos son el respiro. `obstacles: 0` porque una charla pide cero enemigos en
+    // pantalla (SPEC_CHARLAS_VUELO RF-01); el resto de la mision queda como estaba.
+    tramos: [
+      { hasta: 0.12, obstacles: 0, caza: 0, bombs: 0, charla: 'M01_RITUAL' },
+      { hasta: 0.30, obstacles: 0, caza: 0, bombs: 0, charla: 'M01_GANSOS' },
+      { hasta: 1 },
+    ],
     roster: F5, par: 5000, story: 'storyM1', brief: 'briefM1', epi: 'epiM1',
   },
   {

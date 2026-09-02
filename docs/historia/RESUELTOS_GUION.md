@@ -665,3 +665,73 @@ es otra cosa?»).
 Las que escribiste en la burrada y el 25 de mayo (`gitano_imaginando`, `vasco_sorprendido`,
 `turco_pensante`, `puma_espaldas`…). Están en `T-06` con la lista completa.
 
+
+
+---
+
+# 6. M14 y el cierre — la tanda grande
+
+## ✅ M14 · el medio que faltaba
+Escrito entero desde GUION_3. Escenas nuevas y reescrituras:
+
+| | |
+| --- | --- |
+| **M14-01** `M12_RADIO` | Cómo se enteran: el parte de rutina de Cóndor con la coordenada y «conscriptos clase 63». Tero va al mapa y apoya el dedo. **Nadie grita.** Es el mismo punto que tenía subrayado desde M12 |
+| **M14-04 · M14-05** | El tero lo **contesta Esteban**: Puma pregunta, y el que sabe es él. «…Grita lejos del nido. Se hace el herido.» Y el cierre: «vos entrás y sacás a tu pibe. ¿Escuchaste, Aldao? A tu pibe» |
+| **M14-03** | «**Tres desayunos.** Mañana sirvo TRES desayunos. El que falte me arruina la cuenta.» Es la línea que dice que nadie se está despidiendo |
+| 🔴 **M14-02** | **El ritual invertido**, el cobro de `M1_CINCO`: Puma toca la foto del panel y después dos de las tres cosas —no termina—, el Gitano **no le pone nombre al avión** por primera vez en catorce misiones, y Tero toca el terito entero |
+| 🔴 **M14-06** `M12_RELOJ` | «¡ADELANTARON EL BOMBARDEO! ¡No es a las seis, es—!» y estática. La única radio de la misión, y la que mata el margen |
+| 🔴 **M14-07** | La muerte del Gitano, **la propuesta**: se abre con una línea suya («¡Miren qué lindo brillo cordobés!»), quiebra como quiebra siempre, y **el último misil ya vencido lo alcanza de rebote**. Su última línea no habla de él: «Mandale saludos a tu pibe, Tero». Puma remata tres segundos después: «Plata 3 fuera» |
+| 🔴 **M14-08** | La muerte de Puma en tres tiempos: la charla previa con «Gracias. De corazón», los dos minutos de IA, «¡MANDALE, TERO!», y recién ahí —tranquilo, casi divertido— «**Pifié. Me quedé sin nafta.**» |
+| **M14-09 · M14-10** | Las trayectorias que se cruzan: la salva del buque ya en el aire cruzándose con el misil argentino. Y «…**Llegué, Mateo. Llegué.** Estoy acá arriba, hijo. Por favor, Mateo. Por favor.» |
+| **M14-11** | El tonel barril **no entra**, por tu decisión |
+| **M12_FINAL** | Salió la línea de Cóndor «si quiere volver, es ahora»: era, textualmente, una opción en pantalla, y la decisión va sin menú |
+
+## ✅ M14-16 → M14-20 · el cierre común
+`CIERRE_1` (los diez párrafos sobre fotos reales), `CIERRE_2` (**el Narwal último y solo**, que era
+tu elección: es el único párrafo que el jugador puede atar a algo que jugó), `CIERRE_3` (la cartela,
+la frase de Iorio y la dedicatoria) y `POSTCRED` (el museo, «Seño Claribel», «¿Y ganaron?» / «No.»).
+
+Los cuatro corren **en los dos finales**: `epiM14A` y `epiM14B` terminan igual.
+
+> ⚠ **La lista de países quedó en Perú solo.** GUION_3 pide «confirmar la lista y qué aportó cada
+> uno antes de nombrar a nadie», y no está verificada. Nombrar de más es peor que nombrar de menos.
+> Queda anotado en el código y va a `PREGUNTAS_HISTORICAS.md`.
+
+## ✅ M13-10 · la carta a Norma
+`M11_CARTA_NORMA`, última escena del epílogo de M13: se lo muestra escribir —la letra apretada, los
+tachones— **y no deja leer ni una línea**. La deja parada en el locker, sin cerrar el sobre, con un
+solo nombre en el frente. Se lee entera en `EPI_A2`, y sólo en el Final A.
+
+## ✅ G-06 · la respuesta a Claribel
+Sin subrayarla, como pedía el guion: en la post-créditos, «la seño se queda mirando el cuaderno un
+segundo de más». Está parada frente a una vitrina que contiene una carta dirigida a ella.
+
+## ✅ G-05 · las charlas de M1 — **enganchadas**
+`m1` tiene tramos por primera vez: `M01_RITUAL` a los 12% y `M01_GANSOS` a los 30%, con `obstacles: 0`.
+Estaban escritas hace semanas y no las veía nadie.
+
+## ✅ T-02 · `M07_LOCKER` — **fusionado**
+No se tocó la escena (sus ids son fixture de aceptación en `tools/unit.js`). Lo que aportaba y no
+estaba en la que se juega —**el `CUADRO` del dorso de la foto**— pasó a `M6_LOCKER2`.
+
+## ✅ T-10 · las 23 strings del Narwal — **borradas**
+Salieron de `strings.js`. Las reemplazaron las ocho escenas `VUELO`.
+
+## ✅ M10-02 · `condor_reposo`
+`M10_HUECO` usaba `condor_radio`, que rompía la convención del resto de la campaña.
+
+## ✅ M13-09 · «La llevo conmigo»
+## ✅ M13-11 · Carta 14 — entró «Acá los pibes cantan bajito para no llorar» y «Voy a estar mirando para arriba hasta el final, buscándote»
+
+
+## ✅ G-03 · Los nombres del avión del Gitano — **sin nombres**
+Queda «el Colectivo» de M1 y la ausencia de M14, que es donde el gesto se cobra. No se inventan
+catorce. La decisión de M6-01 ya lo había achicado.
+
+## ✅ T-03 · `M01_RITUAL` y `M01_GANSOS` — **resuelto por G-05**
+Colgadas de los dos primeros tramos de `m1`. Estaban escritas hace semanas y no las veía nadie.
+
+## ⚠ G-08 · El objetivo de la misión — **mitad aplicada**
+Las 14 tarjetas llevan una segunda línea `OBJETIVO · …`. La segunda capa —Cóndor por radio en el
+primer tramo— sigue abierta y es motor.
