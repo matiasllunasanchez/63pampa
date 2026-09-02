@@ -467,6 +467,19 @@ acaba de decir. Y es el puente a la escena siguiente, la única vez que el Gitan
 *(Sigue funcionando con tu decisión de M2-01 —el saludo militar en vez de la reverencia— porque la
 regla que se rompe acá es **verbal, no visual**.)*
 
+### ✅ M13-07 · El Mundial — **aplicado**
+Era un error de hecho: el asado es el **11 de junio** y el debut contra Bélgica fue el **13**.
+«Mañana» pasó a «**pasado mañana**», entró «En España. Contra Bélgica», y volvió la línea de Puma en
+el medio —«Mirá vos. Argentina juega.»— que es la que deja respirar el remate:
+«Acá también juega Argentina. **Todos los días.** Pero estos partidos no los pasan por la tele.»
+
+### ✅ M13-08 · El Gitano en serio — **aplicado, en tres tiempos**
+Era un bloque de texto y ahora son tres líneas con el mate en el medio. Entró la que faltaba:
+«**Yo me crié adivinando de qué humor venía por cómo sonaba la puerta al llegar.**» Y el cierre que
+el Gitano se pone solo: «*(la sonrisa volviendo)* **Bueno, basta que me emociono.**»
+
+El silencio entre una y otra es lo que la hace confesión en vez de discurso.
+
 ## MISIÓN 14 — El tero y los dos finales
 
 ### ✅ M14-12 · **LA DECISIÓN, sin menú — aplicada**

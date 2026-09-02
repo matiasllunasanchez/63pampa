@@ -1,3 +1,22 @@
+> # ⛔ DOCUMENTO RETIRADO — no contestar acá
+>
+> Este archivo fue el **primer** comparador GUION_3 vs `story.js`, línea por línea: **942
+> decisiones**. Quedó reemplazado por el juego de documentos por tema, que es más chico porque
+> agrupa y porque ya tiene 93 ítems aplicados:
+>
+> - **[PENDIENTES_GUION.md](PENDIENTES_GUION.md)** — lo que falta decidir
+> - **[RESUELTOS_GUION.md](RESUELTOS_GUION.md)** — lo cerrado, con el porqué
+> - **[RETRATOS_PENDIENTES.md](RETRATOS_PENDIENTES.md)** y **[IMAGENES_PENDIENTES.md](IMAGENES_PENDIENTES.md)** — el arte
+>
+> **Las mismas preguntas están en los dos lados** —el Mundial, la historia del Gitano, la frase del
+> Turco, los tres desayunos, «Pifié»— y eso es lo que hacía que parecieran repetidas. Se contestan
+> **sólo en PENDIENTES**.
+>
+> De las 9 marcas que tenía este archivo, 8 ya están en `story.js`. La novena («Moví todo. Llamé a
+> todos») quedó anulada por `P-05`, que contestaste después y con más información.
+>
+> Se conserva sólo como registro.
+
 # MERGE — GUION_3 contra el juego
 
 > **Qué es esto.** El guion del juego se migró desde `data/strings.js` cuando esa fuente ya estaba

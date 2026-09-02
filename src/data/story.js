@@ -1510,8 +1510,15 @@ export const SCENES = {
         es: 'Detrás del hangar, un medio tambor con brasas. El Turco consiguió carne, nadie pregunta cómo. Gitano canta bajito una zamba, desafinando con dignidad.', en: '' },
       { id: 'M11_ASADO1_030', personaje: null, cara: null, hold: 0,
         es: 'Sobre la mesa, contra la damajuana, la foto de la vieja del Vasco. Al lado, la libreta del Pichón. Los que no están en la mesa, en la mesa.', en: '' },
-      { id: 'M11_ASADO1_040', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
-        es: 'Che, ¿saben que mañana debuta Argentina en el Mundial? Acá también juega Argentina mañana. Pero este partido no lo pasan por la tele.', en: '' },
+      // LA FECHA IMPORTA: el asado es el 11 y el debut fue el 13. «Mañana» era un error de hecho.
+      // Y la linea de Puma en el medio deja respirar el remate.
+      { id: 'M11_ASADO1_040', personaje: 'GITANO', cara: 'gitano_neutro', hold: 1.0,
+        es: 'Che, ¿saben que pasado mañana debuta Argentina en el Mundial? En España. Contra Bélgica.', en: '' },
+      { id: 'M11_ASADO1_050', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.5,
+        accion: 'Mirando el fuego.',
+        es: 'Mirá vos. Argentina juega.', en: '' },
+      { id: 'M11_ASADO1_060', personaje: 'GITANO', cara: 'gitano_neutro', hold: 3.0,
+        es: 'Acá también juega Argentina. Todos los días. Pero estos partidos no los pasan por la tele.', en: '' },
       // EL COBRO DE M2. Alla el Gitano dijo THANK YOU y explico por que: «si digo gracias me sacan
       // de la ronda, y yo de la ronda no me voy». Era una promesa. Acá la rompe, en castellano, sin
       // levantarse, la noche antes de la ultima mision.
@@ -1519,12 +1526,12 @@ export const SCENES = {
       // NADIE SE LO HACE NOTAR, y eso es todo el peso de la escena: los tres en esa mesa saben
       // exactamente que acaba de decir, y ninguno tiene ganas de decirlo en voz alta. Es el puente
       // a la unica vez que el Gitano habla en serio, que es la escena siguiente.
-      { id: 'M11_ASADO1_050', personaje: null, cara: null, hold: 1.5,
+      { id: 'M11_ASADO1_070', personaje: null, cara: null, hold: 1.5,
         es: 'El Turco ceba y le alcanza el mate al Gitano.', en: '' },
-      { id: 'M11_ASADO1_060', personaje: 'GITANO', cara: 'gitano_neutro', hold: 3.0,
+      { id: 'M11_ASADO1_080', personaje: 'GITANO', cara: 'gitano_neutro', hold: 3.0,
         accion: 'Lo agarra con una sola mano, sin levantarse.',
         es: 'Gracias.', en: '' },
-      { id: 'M11_ASADO1_070', personaje: null, cara: null, hold: 4.0,
+      { id: 'M11_ASADO1_090', personaje: null, cara: null, hold: 4.0,
         es: 'Lo dijo en castellano. El Turco no levanta la vista del fuego. Nadie corrige nada, nadie se lo hace notar. El mate sigue la ronda, y la próxima vez le pasa por al lado y él ni lo mira.', en: '' },
     ],
   },
@@ -1532,15 +1539,27 @@ export const SCENES = {
     id: 'M11_ASADO2', tipo: 'VN',
     titulo: 'LA ÚNICA VEZ QUE EL GITANO HABLA EN SERIO', placa: 'fogon', img: 'M11_ASADO2',
     lineas: [
-      { id: 'M11_ASADO2_010', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
-        es: 'El "perdoname" del Vasco no me lo puedo sacar. Yo sé lo que es tener algo que pedirle perdón a la vieja de uno. Mi viejo pegaba. Y un día decidí que yo iba a ser exactamente lo contrario de eso. Así que no, muchachos: no soy gracioso. Soy lo contrario de mi viejo. Es distinto. Cuesta más.', en: '' },
-      { id: 'M11_ASADO2_020', personaje: 'EL TURCO', cara: 'turco_ternura', hold: 0,
-        es: '(después de un rato largo) Te salió bien, cordobés.', en: '' },
-      { id: 'M11_ASADO2_030', personaje: 'ESTEBAN', cara: 'tero_neutro', hold: 0,
+      // LA UNICA VEZ QUE EL GITANO HABLA EN SERIO. Va en tres tiempos con el mate en el medio, no
+      // en un bloque: el silencio entre una y otra es lo que la hace confesion y no discurso.
+      { id: 'M11_ASADO2_010', personaje: 'GITANO', cara: 'gitano_neutro', hold: 2.5,
+        es: 'El "perdoname" del Vasco no me lo puedo sacar. Yo sé lo que es tener algo que pedirle perdón a la vieja de uno.', en: '' },
+      { id: 'M11_ASADO2_020', personaje: 'GITANO', cara: 'gitano_neutro', hold: 2.0,
+        accion: 'Ceba y pasa el mate.',
+        es: 'Mi viejo pegaba. Fuerte... Seguido... A todos... Yo me crié adivinando de qué humor venía por cómo sonaba la puerta al llegar.', en: '' },
+      { id: 'M11_ASADO2_030', personaje: 'GITANO', cara: 'gitano_neutro', hold: 3.0,
+        accion: 'Mira el fuego.',
+        es: 'Y un día decidí que yo iba a ser exactamente lo contrario de eso. Todo lo contrario, todo el tiempo, aunque me costara. Así que no, muchachos: no soy gracioso. Soy lo contrario de mi viejo. Es distinto. Cuesta más.', en: '' },
+      { id: 'M11_ASADO2_040', personaje: 'EL TURCO', cara: 'turco_ternura', hold: 2.0,
+        accion: 'Después de un rato largo.',
+        es: 'Te salió bien, cordobés.', en: '' },
+      { id: 'M11_ASADO2_050', personaje: 'GITANO', cara: 'gitano_sonrisa', hold: 1.5,
+        accion: 'La sonrisa volviendo.',
+        es: 'Bueno, basta que me emociono.', en: '' },
+      { id: 'M11_ASADO2_060', personaje: 'ESTEBAN', cara: 'tero_neutro', hold: 0,
         es: '(mirando la foto) ¿Me la prestás mañana? Que la vieja vuele una vez con la escuadrilla del hijo.', en: '' },
-      { id: 'M11_ASADO2_040', personaje: 'EL TURCO', cara: 'turco_ternura', hold: 0,
+      { id: 'M11_ASADO2_070', personaje: 'EL TURCO', cara: 'turco_ternura', hold: 0,
         es: '(alzando el vaso de vino en tetra) Por los que no están en la mesa.', en: '' },
-      { id: 'M11_ASADO2_050', personaje: 'TODOS', cara: null, hold: 0,
+      { id: 'M11_ASADO2_080', personaje: 'TODOS', cara: null, hold: 0,
         es: 'Por los que no están.', en: '' },
     ],
   },

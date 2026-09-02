@@ -1,6 +1,6 @@
 # PENDIENTES — lo que falta decidir
 
-**37 ítems abiertos.** Lo cerrado —93 ítems— está en [RESUELTOS_GUION.md](RESUELTOS_GUION.md) y el arte en
+**35 ítems abiertos.** Lo cerrado —93 ítems— está en [RESUELTOS_GUION.md](RESUELTOS_GUION.md) y el arte en
 [RETRATOS_PENDIENTES.md](RETRATOS_PENDIENTES.md) (caras) y
 [IMAGENES_PENDIENTES.md](IMAGENES_PENDIENTES.md) (cuadros).
 
@@ -12,7 +12,7 @@ Los **🔴** rompen una cadena de plantado-y-cobro.
 
 | | ítems | |
 | --- | :-: | --- |
-| **Guion** | 23 | `M10-02` · `M13-04` `M13-07`→`M13-11` · `M14-01`→`M14-11` · `M14-16`→`M14-20` |
+| **Guion** | 21 | `M10-02` · `M13-04` `M13-09` `M13-10` `M13-11` · `M14-01`→`M14-11` · `M14-16`→`M14-20` |
 | **Sistemas** | 8 | `G-02` → `G-09` |
 | **Técnico** | 6 | `T-02` `T-03` `T-04` `T-05` `T-10` `T-11` |
 
@@ -31,25 +31,13 @@ Y falta **una pieza de motor**: nadie elige cuál de las dos secuencias de final
 ### M10-02 · `condor_radio` vs `condor_reposo`
 `M10_HUECO_120` usa `cara: 'condor_radio'`; toda la campaña usa `condor_reposo`. Si el retrato
 no existe, cae al placeholder **y se ve igual que si faltara el asset**.
-- [ ] DEJAR COMO ESTÁ *(`condor_radio`)* · [ ] CORREGIR a `condor_reposo` · [ ] DEBATIR *(primero hay que chequear si el retrato existe)*
+- [ ] DEJAR COMO ESTÁ *(`condor_radio`)* · [X] CORREGIR a `condor_reposo` · [ ] DEBATIR *(primero hay que chequear si el retrato existe)*
 
 ## MISIÓN 13 — La última mesa
 
 ### M13-04 · «Una vez más.» / «Una vez más. La última.»
 El juego agrega «**La última**». El guion corta antes: nadie dice que no vuelven.
 - [ ] DEJAR COMO ESTÁ · [X} REEMPLAZAR POR EL GUION · [ ] DEBATIR
-
-### M13-07 · El Mundial — la fecha y el remate
-- Guion: «**pasado mañana** debuta Argentina en el Mundial. En España. **Contra Bélgica.**» / Puma: «**Mirá vos. Argentina juega.**» / «Acá también juega Argentina. **Todos los días.** Pero estos partidos no los pasan por la tele.»
-- Juego: «**mañana** debuta… Acá también juega Argentina **mañana**. Pero **este partido** no lo pasan por la tele.»
-- El asado es el 11 de junio y el debut fue el **13**: «pasado mañana» es el dato correcto. Y la línea de Puma en el medio es la que deja respirar el remate.
-- [ ] DEJAR COMO ESTÁ · [ ] REEMPLAZAR POR EL GUION · [ ] DEBATIR
-
-### M13-08 · El Gitano en serio — hoy es un solo bloque
-El guion lo reparte en tres tiempos con el mate en el medio, y tiene una línea que el juego no
-tiene: «**Yo me crié adivinando de qué humor venía por cómo sonaba la puerta al llegar.**»
-También falta el cierre: «*(la sonrisa volviendo)* **Bueno, basta que me emociono.**»
-- [ ] DEJAR COMO ESTÁ · [ ] REEMPLAZAR POR EL GUION · [ ] DEBATIR
 
 ### M13-09 · «La llevo conmigo»
 Guion: «¿Me la prestás mañana? **La llevo conmigo.** Que la vieja vuele una vez con la
