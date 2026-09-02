@@ -1,3 +1,9 @@
+> # ✅ CERRADO — no contestar acá
+>
+> Los 16 se decidieron y se aplicaron. Este archivo queda como registro: sirve para ver cada uno
+> con la escena alrededor, que es lo que costaba recordar. El resultado está en
+> [RESUELTOS_GUION.md](RESUELTOS_GUION.md), sección *Los 16 debates*.
+
 # LOS 16 A DEBATIR — cada uno en su lugar
 
 Cada ítem con la escena real de `story.js` alrededor, para no tener que ir a buscarla.

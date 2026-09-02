@@ -12,7 +12,7 @@ placeholder y en pantalla se ve exactamente igual que si el asset simplemente fa
 ## Cómo leer las tablas
 
 - **🔴 BLOQUEANTE** — `story.js` ya lo pide. La escena está escrita y sale con placeholder.
-- **· propuesto** — no lo pide nadie todavía. Marcá `[x]` los que quieras que se hagan.
+- **[ ] propuesto** — no lo pide nadie todavía. Poné una **`x`** adentro del corchete (`[x]`) en los que quieras que se hagan.
 
 ## El problema de nombres, antes de generar nada
 
@@ -43,14 +43,14 @@ Quedan afuera de la grilla, porque no son emociones: `condor_reposo`, `condor_ra
 | id | estado | dónde / por qué |
 | --- | --- | --- |
 | `tero_llorando_aterrado` | 🔴 **BLOQUEANTE** | `M8_EPI` — la muerte del Pichón. Renombrar a `tero_p_roto`: está en cabina |
-| `tero_p_neutro` | · propuesto | es el protagonista y vuela catorce misiones con una sola cara de casco |
-| `tero_p_ceno` | · propuesto | |
-| `tero_p_gritando` | · propuesto | M14: «¡Llegué, Mateo!» |
-| `tero_risa` | · propuesto | no tiene ninguna. Se ríe en M1, M2 y M3 |
-| `tero_orgullo` | · propuesto | el sobrevuelo de M8 |
-| `tero_viejo_neutro` | · propuesto | **Final B**, décadas después: hoy sale con la cara de 1982 |
-| `tero_viejo_roto` | · propuesto | «¿Sabés que nunca supe si me vio?» |
-| `tero_viejo_emocionado` | · propuesto | «¡Me vio! ¡NORMA! ¡Mateo ese día me vio!» |
+| `tero_p_neutro` | **[ ]** propuesto | es el protagonista y vuela catorce misiones con una sola cara de casco |
+| `tero_p_ceno` | **[ ]** propuesto | |
+| `tero_p_gritando` | **[ ]** propuesto | M14: «¡Llegué, Mateo!» |
+| `tero_risa` | **[ ]** propuesto | no tiene ninguna. Se ríe en M1, M2 y M3 |
+| `tero_orgullo` | **[ ]** propuesto | el sobrevuelo de M8 |
+| `tero_viejo_neutro` | **[ ]** propuesto | **Final B**, décadas después: hoy sale con la cara de 1982 |
+| `tero_viejo_roto` | **[ ]** propuesto | «¿Sabés que nunca supe si me vio?» |
+| `tero_viejo_emocionado` | **[ ]** propuesto | «¡Me vio! ¡NORMA! ¡Mateo ese día me vio!» |
 
 ## PUMA
 
@@ -62,9 +62,9 @@ Quedan afuera de la grilla, porque no son emociones: `condor_reposo`, `condor_ra
 | `puma_espaldas` | 🔴 **BLOQUEANTE** | `M6_LOCKER2` — no contesta y no da la cara |
 | `puma_piloto_neutro` | 🔴 **BLOQUEANTE** | `M7_SOBREVUELO` → `puma_p_neutro` |
 | `puma_piloto_triste` | 🔴 **BLOQUEANTE** | `M6_EPI`, la muerte del Vasco → `puma_p_roto` |
-| `puma_p_ceno` | · propuesto | |
-| `puma_p_gritando` | · propuesto | M14: «¡MANDALE, TERO!» |
-| `puma_risa` | · propuesto | M14, la única vez que se lo ve humano: «Qué quilombo, che» |
+| `puma_p_ceno` | **[ ]** propuesto | |
+| `puma_p_gritando` | **[ ]** propuesto | M14: «¡MANDALE, TERO!» |
+| `puma_risa` | **[ ]** propuesto | M14, la única vez que se lo ve humano: «Qué quilombo, che» |
 
 ## GITANO — el que más caras necesita y el que menos tiene
 
@@ -87,9 +87,9 @@ Es el alivio cómico del juego y hoy tiene el mismo repertorio que el Vasco, que
 | `gitano_serio_triste` | 🔴 **BLOQUEANTE** | `M7_2` |
 | `gitano_p_gritando` | 🔴 **BLOQUEANTE** | `M6_EPI` — «¡SALTÁ, VASCO, SALTÁ!». Era `piloto_gritando` |
 | `gitano_p_roto` | 🔴 **BLOQUEANTE** | `M8_EPI` — «¡Era un pibe, Puma!». Era `gritando_llorando_piloto` |
-| `gitano_p_neutro` | · propuesto | |
-| `gitano_carcajada` | · propuesto | tiene `risa_apagada` pero **no tiene una risa entera**, y es su registro base |
-| `gitano_fuego` | · propuesto | M13: «¿Vos estás en pedo, culiao? SEIS veces me trajiste vivo». Por única vez la tonada no trae chiste |
+| `gitano_p_neutro` | **[ ]** propuesto | |
+| `gitano_carcajada` | **[ ]** propuesto | tiene `risa_apagada` pero **no tiene una risa entera**, y es su registro base |
+| `gitano_fuego` | **[ ]** propuesto | M13: «¿Vos estás en pedo, culiao? SEIS veces me trajiste vivo». Por única vez la tonada no trae chiste |
 
 > **De 15 a 12** si se aceptan las dos unificaciones. Los siete matices del Gitano entusiasmado que
 > pide la burrada son la misma actuación: a 108 px no se distinguen.
@@ -103,7 +103,7 @@ Es el alivio cómico del juego y hoy tiene el mismo repertorio que el Vasco, que
 | `vasco_espalda` | 🔴 **BLOQUEANTE** | `M03_BURRADA` — se va de la escena. *(era `vazco_espalda`, con z)* |
 | `vasco_sorprendido` | 🔴 **BLOQUEANTE** | `M03_BURRADA` — «¿Cómo que te bajás?» |
 | `vasco_piloto` | 🔴 **BLOQUEANTE** | `M6_EPI` → `vasco_p_neutro`. **Es el último plano del Vasco vivo** |
-| `vasco_besa_cruz` | · propuesto | M7. Puede resolverse con el CUADRO `M7_CRUZ` en vez de un retrato — decidir cuál |
+| `vasco_besa_cruz` | **[ ]** propuesto | M7. Puede resolverse con el CUADRO `M7_CRUZ` en vez de un retrato — decidir cuál |
 
 ## PICHÓN
 
@@ -112,10 +112,10 @@ Es el alivio cómico del juego y hoy tiene el mismo repertorio que el Vasco, que
 | id | estado | dónde / por qué |
 | --- | --- | --- |
 | `pichon_pensante` | 🔴 **BLOQUEANTE** | `M03_BURRADA` — «¿Y con qué?», «¿usarías el eyector?» |
-| `pichon_p_neutro` | · propuesto | |
-| `pichon_p_roto` | · propuesto | M9: «…ah. Me dieron. ¿Capitán? Me dieron.» **Su muerte no tiene cara** |
-| `pichon_entusiasmado` | · propuesto | M3: habla rapidísimo cuando se entusiasma (§9) y hoy usa `sonrisa` |
-| `pichon_avergonzado` | · propuesto | M3: se frena a mitad de frase. Hoy usa `preocupado` |
+| `pichon_p_neutro` | **[ ]** propuesto | |
+| `pichon_p_roto` | **[ ]** propuesto | M9: «…ah. Me dieron. ¿Capitán? Me dieron.» **Su muerte no tiene cara** |
+| `pichon_entusiasmado` | **[ ]** propuesto | M3: habla rapidísimo cuando se entusiasma (§9) y hoy usa `sonrisa` |
+| `pichon_avergonzado` | **[ ]** propuesto | M3: se frena a mitad de frase. Hoy usa `preocupado` |
 
 ---
 
@@ -130,11 +130,11 @@ Es el alivio cómico del juego y hoy tiene el mismo repertorio que el Vasco, que
 | `turco_ternura` | 🔴 **BLOQUEANTE · el más urgente** | **seis escenas**: `M1_7` `M2_5` `M6_LOCKER2` `M8_LIBRETA` `M11_ASADO2` `M12_2`. Nunca existió: los seis momentos tiernos del Turco salen con placeholder |
 | `turco_enojado` | 🔴 **BLOQUEANTE** | `M03_BURRADA` — «¿Vos te pensás que el aire es una vereda?» |
 | `turco_pensante` | 🔴 **BLOQUEANTE** | `M03_BURRADA` — «Escucho.» |
-| `turco_risa` | · propuesto | se ríe todo el tiempo y no tiene una sola cara de reírse |
-| `turco_puteando` | · propuesto | §9b: «putea todo el día, y cuando deja de putear se te congela la sangre». Sin esta cara, la mitad de esa regla no se ve |
-| `turco_viejo_neutro` | · propuesto | **Final B**: de civil, la gorra en la rodilla |
-| `turco_viejo_sonrisa` | · propuesto | «…El pibe dibujaba bien, ¿eh?» |
-| `turco_viejo_orgullo` | · propuesto | **el remate del juego entero**: «…M'hijo. Acá dice que te vio.» |
+| `turco_risa` | **[ ]** propuesto | se ríe todo el tiempo y no tiene una sola cara de reírse |
+| `turco_puteando` | **[ ]** propuesto | §9b: «putea todo el día, y cuando deja de putear se te congela la sangre». Sin esta cara, la mitad de esa regla no se ve |
+| `turco_viejo_neutro` | **[ ]** propuesto | **Final B**: de civil, la gorra en la rodilla |
+| `turco_viejo_sonrisa` | **[ ]** propuesto | «…El pibe dibujaba bien, ¿eh?» |
+| `turco_viejo_orgullo` | **[ ]** propuesto | **el remate del juego entero**: «…M'hijo. Acá dice que te vio.» |
 
 ## CÓNDOR — no es una persona, es un parlante
 
@@ -151,10 +151,10 @@ Es el alivio cómico del juego y hoy tiene el mismo repertorio que el Vasco, que
 
 | id | estado | dónde / por qué |
 | --- | --- | --- |
-| `mateo_emocionado` | · propuesto | la página del cielo: «¡¡PÁ!! TE VI» |
-| `mateo_llorando` | · propuesto | M12, la muerte del Colorado. Hoy usa `roto` |
-| `mateo_agotado` | · propuesto | M13, la última página |
-| `mateo_nene_dibujando` | · propuesto | es lo que hace todo el prólogo y no hay cara para eso |
+| `mateo_emocionado` | **[ ]** propuesto | la página del cielo: «¡¡PÁ!! TE VI» |
+| `mateo_llorando` | **[ ]** propuesto | M12, la muerte del Colorado. Hoy usa `roto` |
+| `mateo_agotado` | **[ ]** propuesto | M13, la última página |
+| `mateo_nene_dibujando` | **[ ]** propuesto | es lo que hace todo el prólogo y no hay cara para eso |
 
 ## NORMA
 
@@ -162,9 +162,9 @@ Es el alivio cómico del juego y hoy tiene el mismo repertorio que el Vasco, que
 
 | id | estado | dónde / por qué |
 | --- | --- | --- |
-| `norma_asustada` | · propuesto | P.2, el teléfono |
-| `norma_vieja_neutro` | · propuesto | **Final A**, firmando la encomienda años después |
-| `norma_vieja_rota` | · propuesto | leyendo la carta |
+| `norma_asustada` | **[ ]** propuesto | P.2, el teléfono |
+| `norma_vieja_neutro` | **[ ]** propuesto | **Final A**, firmando la encomienda años después |
+| `norma_vieja_rota` | **[ ]** propuesto | leyendo la carta |
 
 ## COLORADO / Correa
 
@@ -172,7 +172,7 @@ Es el alivio cómico del juego y hoy tiene el mismo repertorio que el Vasco, que
 
 | id | estado | dónde / por qué |
 | --- | --- | --- |
-| `colorado_muriendo` | · propuesto | M12, los jazmines. Es **su escena** y hoy va con `roto` |
+| `colorado_muriendo` | **[ ]** propuesto | M12, los jazmines. Es **su escena** y hoy va con `roto` |
 
 ## Los que ya están completos
 
