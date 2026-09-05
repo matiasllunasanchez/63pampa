@@ -67,6 +67,34 @@ export const bankAhead = () => (!cfg.fog || !bank.armed || run.dist >= bank.z0) 
 export function tookEntry() { if (!entered || exited) return false; return true; }
 export function takeExit() { if (!exited) return false; exited = false; return true; }
 
+/** EL PERFIL DE LA BRUMA POR ENCIMA DEL HORIZONTE. Puro, y por eso vive aca y no en el dibujo:
+ *  es la unica parte de la niebla que se puede probar sin una pantalla, y es justo la que se
+ *  rompio dos veces.
+ *
+ *  `u`  0 arriba del todo, 1 en el horizonte — la rampa del CIELO de siempre.
+ *  `t`  0 en el horizonte, 1 a FOG_CALLE pixeles de altura — la rampa de la ROCA.
+ *  `cn` cuanto canon hay (0 mar abierto, 1 entre dos laderas plenas).
+ *
+ *  SOBRE MAR ABIERTO (`cn` = 0) DEVUELVE EXACTAMENTE LA CUENTA DE SIEMPRE, bit a bit: arriba del
+ *  horizonte no hay nada cerca —hay cielo, o sea infinito— y ahi la bruma cerrada y pareja es lo
+ *  correcto. Esa igualdad es la garantia de que esto no le lava el cielo al resto del juego, y la
+ *  cuida `npm run unit`.
+ *
+ *  ADENTRO DEL CAÑON lo de arriba del horizonte no esta en el infinito: son las laderas, y estan a
+ *  treinta metros. Con la cuenta del cielo, la roca de arriba de la linea desaparecia entera bajo
+ *  un gris plano mientras la de abajo seguia graduandose, y el ojo lee esa frontera como UNA REGLA
+ *  cruzando las dos laderas. Medido en la columna que cae sobre el cerro: 128..134 en veintiseis
+ *  filas, o sea plancha. Con el perfil de roca: 113..134, o sea cerro. */
+export function alfaCielo(u, t, cn) {
+  const cielo = 0.55 + 0.4 * u * u;
+  if (!cn) return cielo;                       // ⚠ CERO EXACTO sin callejon: la de siempre
+  // la roca ARRANCA en el horizonte con el mismo valor que el agua de la fila de abajo (asi no hay
+  // juntura) y SE ABRE hacia arriba, que ademas es lo que pasa: mirando al cenit se atraviesan
+  // pocos metros de banco —su techo esta en FOG_TOP— y por eso desde adentro se ve el cielo.
+  const roca = 0.96 * (1 - t) * (1 - t);
+  return cielo + (roca - cielo) * cn;
+}
+
 /** CUANTA BRUMA HAY AHORA, de 0 a 1 — la rampa de entrada y de salida del banco.
  *
  *  Es lo unico que separa "un tramo de niebla" de "un filtro que se prendio": `inBank()` es un

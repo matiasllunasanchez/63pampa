@@ -1582,3 +1582,44 @@ test('zigzag: TODAS las misiones de la campaña traen data sana', async () => {
     assert.equal(e.length, 0, `la mision ${m.id} tiene el zigzag mal: ${e.join(' · ')}`);
   }
 });
+import { alfaCielo } from '../src/systems/fog.js';
+
+test('niebla: sin callejon, el cielo es EXACTAMENTE el de siempre', () => {
+  // La garantia del arreglo del canon: sobre mar abierto no cambia un solo pixel. Se compara con
+  // `Object.is` y no con una tolerancia — lo que se afirma es que es la MISMA cuenta, no una
+  // parecida (misma regla que el cero exacto del zigzag).
+  for (let i = 0; i <= 10; i++) {
+    const u = i / 10;
+    for (const t of [0, 0.3, 1]) {
+      assert.ok(Object.is(alfaCielo(u, t, 0), 0.55 + 0.4 * u * u),
+        `u=${u} t=${t}: ${alfaCielo(u, t, 0)}`);
+    }
+  }
+});
+
+test('niebla: adentro del callejon la bruma SE ABRE hacia arriba', () => {
+  // Es el bug entero: con la cuenta del cielo, arriba del horizonte quedaba una chapa plana y
+  // cerrada que borraba la ladera. Adentro del canon tiene que ser lo contrario — cerrada contra
+  // el horizonte, abriendose con la altura — y ademas MONOTONA, para que no aparezca una banda.
+  let prev = Infinity;
+  for (let i = 0; i <= 10; i++) {
+    const t = i / 10;
+    const a = alfaCielo(1 - t, t, 1);
+    assert.ok(a < prev, `no se abre en t=${t}: ${a} >= ${prev}`);
+    prev = a;
+  }
+  // pegada al horizonte es casi opaca: ahi se mira a lo largo de kilometros de banco
+  assert.ok(alfaCielo(1, 0, 1) > 0.9, 'el horizonte tiene que quedar cerrado');
+  // y arriba del todo no queda nada: por ahi se sale del banco
+  assert.ok(alfaCielo(0, 1, 1) < 0.02, 'arriba tiene que abrirse del todo');
+});
+
+test('niebla: el canon MEZCLA, no conmuta', () => {
+  // `cn` sale de cuanta roca asoma sobre el horizonte, y esa cantidad crece y decrece sola con la
+  // ventana del trazado y con la altura del avion. Si el perfil saltara de una cuenta a la otra,
+  // el cielo cambiaria de golpe en pleno vuelo — que es la clase de parpadeo que este item ya
+  // se comio dos veces.
+  const a0 = alfaCielo(0.8, 0.2, 0), a1 = alfaCielo(0.8, 0.2, 1);
+  const medio = alfaCielo(0.8, 0.2, 0.5);
+  assert.ok(Math.abs(medio - (a0 + a1) / 2) < 1e-9, `la mezcla no es lineal: ${medio}`);
+});

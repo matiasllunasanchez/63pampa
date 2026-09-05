@@ -888,6 +888,32 @@ que se ponga ahí.
     una **línea vertical cruzando media pantalla**, que no tenía nada que ver con el callejón. Se
     cierra con un `beginPath()` a cada lado del dibujo.
 
+88. **LA NIEBLA CREÍA QUE EL CERRO ERA CIELO.** Todo el dibujo del banco de bruma es POR FILAS, y
+    la fila dice la profundidad: contra el horizonte se mira a lo largo de kilómetros de bruma, a
+    los pies se la mira casi en vertical. Eso vale para el AGUA, que es un plano. Arriba del
+    horizonte, en mar abierto, no hay plano: hay cielo, o sea infinito, y por eso el velo se pinta
+    ahí **parejo y cerrado (0.95)**. Correcto sobre el mar, **falso adentro del callejón**: lo que
+    hay arriba de la línea son las laderas, y están a treinta metros.
+
+    Medido en la columna que cae sobre el cerro: **128..134 en veintiséis filas** — o sea plancha,
+    la roca desaparecía entera. Y como abajo de la línea seguía graduándose, el ojo leía esa
+    frontera entre "plano" y "degradado" como **una regla apoyada sobre el paisaje**, cruzando las
+    dos laderas de lado a lado. No era un canto de dibujo: era el modelo equivocado.
+
+    Ahora, adentro del cañón, la bruma arranca en el horizonte con el mismo valor que el agua de la
+    fila de abajo —así no hay juntura— y **se abre hacia arriba**, que además es lo que pasa de
+    verdad: mirando al cenit se atraviesan pocos metros de banco. Misma columna: **113..134**, o sea
+    cerro. Entra y sale sola con la altura del avión y con la ventana del trazado (`canon()`), así
+    que volando por encima de las crestas vuelve el cielo de siempre.
+89. **La prueba de píxeles para esto era RUIDOSA y se fue.** Veintiséis filas arriba del horizonte
+    puede haber cielo por encima de la cresta, no roca, así que el brillo de la columna no dice lo
+    que uno supone: el primer intento afirmaba "lo más cerrado tiene que estar pegado al horizonte"
+    y fallaba con razón. El segundo comparaba contra el mismo banco sin callejón y también, porque
+    ahí la columna muestra el atardecer, que varía más que la roca con bruma. El perfil se sacó a
+    `alfaCielo()` en `systems/fog.js` —puro, tres números normalizados— y se prueba en
+    `npm run unit`, incluido el **cero exacto** con `Object.is` para mar abierto. Una prueba
+    determinista de 0.05 ms contra una de veinte segundos que fallaba sola.
+
 ### Lo que queda para el próximo playtest
 
 - El **ritmo**: `ZZ_PUNTA_CADA` 190 m es una punta cada ~2,5 s a velocidad de crucero.

@@ -12,7 +12,7 @@ import { run } from '../core/run.js';
 import { wake, obstacles, soldiers } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { hzWorld, tiltFade } from '../core/horizon.js';
-import { bendW } from '../core/zigzag.js';
+import { bendW, paredH } from '../core/zigzag.js';
 import { techoLadera } from './paredes.js';
 // EL MAR VIVE EN core/sea.js — puro, sin canvas ni stores — porque la colision de las olas tiene
 // que evaluar la MISMA superficie que se dibuja, y un sistema no puede importar del render.
@@ -28,7 +28,7 @@ import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_F
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { SHIP_CLASS } from '../data/ships.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
-import { inBank, fogVis, fogTop, fogFade } from '../systems/fog.js';
+import { inBank, fogVis, fogTop, fogFade, alfaCielo } from '../systems/fog.js';
 import { mvTight } from '../data/moves.js';
 import * as boomArt from './boom.js';
 import * as blastArt from './blast.js';
@@ -237,6 +237,38 @@ const FOG_EDGE = 24, FOG_ONDA = 7;
 // pasaba de recta a SIERRA, que tampoco es niebla. Con 10 el diente cae por debajo de lo que el
 // ojo separa a esta escala y el filo se lee como un borde deshilachado.
 const FOG_SEG = 10;
+// LA BRUMA ADENTRO DE UN CAÑON: cuantos pixeles sube por encima del horizonte antes de abrirse.
+//
+// EL PROBLEMA QUE RESUELVE. Todo el dibujo de la niebla es POR FILAS, y la fila dice la
+// profundidad: cerca del horizonte se mira a lo largo de kilometros de bruma, a tus pies se la
+// mira casi en vertical. Eso vale para el AGUA, que es un plano. Arriba del horizonte, en mar
+// abierto, no hay plano: hay cielo, o sea infinito, y por eso el velo se pinta ahi parejo y
+// cerrado (0.95). Correcto sobre el mar.
+//
+// ADENTRO DEL CALLEJON ES FALSO: lo que hay arriba del horizonte no esta en el infinito, son las
+// laderas, y estan A TREINTA METROS. El resultado medido era que la roca de arriba de la linea
+// desaparecia entera bajo un gris plano mientras la de abajo seguia graduandose — y el ojo lee esa
+// frontera entre "plano" y "degradado" como UNA REGLA apoyada sobre el paisaje, cruzando las dos
+// laderas de lado a lado. No era un canto de dibujo: era la niebla creyendo que el cerro es cielo.
+//
+// LA BRUMA NO TIENE TAPA: sube por encima del horizonte y SE ABRE, que ademas es lo que pasa de
+// verdad — mirando hacia arriba se atraviesan pocos metros de banco (su techo esta en FOG_TOP) y
+// por eso se ve. Sesenta y cuatro pixeles con caida cuadratica pasan la cresta de una ladera plena
+// sin dejarle leche al cielo ni al HUD — el mismo cuidado que ya se toma el velo lateral
+// (MARCO_SKY en render/marco.js).
+const FOG_CALLE = 64;
+
+/** CUANTO CAÑON HAY (0..1): cuanta roca asoma POR ENCIMA del horizonte ahora mismo.
+ *
+ *  Se mide con la ladera que viene, no con `pared()`: el booleano del trazado esta puesto desde el
+ *  arranque de la mision —mucho antes de que el callejon exista— y ademas sigue puesto cuando se
+ *  vuela POR ENCIMA de las crestas, que es justo el caso en el que arriba del horizonte vuelve a
+ *  haber cielo y la niebla de siempre tiene razon. Asi entra y sale sola, con la altura y con la
+ *  ventana del trazado. */
+function canon() {
+  const h = Math.max(paredH(run.dist + 60, -1), paredH(run.dist + 60, 1));
+  return Math.max(0, Math.min(1, (h - cam.y) / 12));
+}
 
 /** Cuanto estas METIDO en la niebla: 1 bien adentro, 0 en el techo o arriba. */
 function fogInside() {
@@ -265,7 +297,21 @@ export function drawFog() {
   // Son las MISMAS filas del mar (un plano horizontal se proyecta igual), asi que no hay geometria
   // nueva: se pintan de gris. Cuanto mas alto vas, mas cerrada se ve la cubierta.
   const deck = (1 - inside) * fade;
-  if (deck > 0.01) {
+  // ADENTRO DEL CALLEJON LA CUBIERTA NO TIENE FILO NI TAPA. El filo dentado de mas abajo dibuja el
+  // TECHO del banco visto desde arriba, y eso es lo correcto sobre mar abierto: se ve la panza de
+  // la niebla acostada en el agua. Entre dos cerros no se ve ningun techo — se ve bruma metida en
+  // un canon, subiendo por las laderas. Dibujar el filo ahi es dibujar una tapa que no existe.
+  const cn = canon();
+  if (deck > 0.01 && cn > 0.01) {
+    for (let y = HOR - FOG_CALLE; y < yEnd; y++) {
+      const f = Math.max(0, Math.min(1, (y - HOR) / (H - HOR)));
+      // por encima del horizonte se abre en cuadratica; por debajo, la cubierta de siempre
+      const u = y < HOR ? 1 - (HOR - y) / FOG_CALLE : 1;
+      const arriba = y < HOR ? u * u * cn : 1;
+      ctx.globalAlpha = deck * (0.95 - f * 0.72) * arriba;
+      px(-70, y, W + 140, rowH, fogCol(f));
+    }
+  } else if (deck > 0.01) {
     // EL FILO, pintado POR COLUMNAS — el unico tramo del render de la niebla que no va por filas.
     // Cada columna tiene su propia altura de arranque (dos senos, deterministas y lentos: el
     // banco respira al avanzar) y adentro de ella el gris sube de 0 a lleno. Sin esto el techo es
@@ -314,7 +360,10 @@ export function drawFog() {
       const u = Math.max(0, Math.min(1, (y + 140) / (HOR + 141)));   // 0 arriba del todo, 1 al horizonte
       // el minimo NO baja de 0.55: adentro del banco el cielo sigue lechoso. La regla del tramo es
       // "abajo ciego, arriba se ve" — arriba se VE, pero a traves de bruma.
-      ctx.globalAlpha = velo * (0.55 + 0.4 * u * u);
+      // ...SALVO EN UN CAÑON, donde arriba del horizonte no hay cielo sino ROCA A TREINTA METROS
+      // (ver FOG_CALLE). El perfil vive en systems/fog.js porque es puro y ahi se puede probar.
+      const t = Math.max(0, Math.min(1, (HOR - y) / FOG_CALLE));
+      ctx.globalAlpha = velo * alfaCielo(u, t, cn);
       px(-70, y, W + 140, 1, FOG_C);
     }
   }
