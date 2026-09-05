@@ -24,7 +24,7 @@ import { proj } from '../core/fx.js';
 import { pared, paredH, paredXAt, paredCara } from '../core/zigzag.js';
 import { tierraH, hayRelieve } from '../core/tierra.js';
 import { theme } from './theme.js';
-import { ZZ_PARED_Z, ZZ_PARED_PASO, ZZ_MESETA_W, ZZ_NIEBLA_Z0, ZZ_NIEBLA_FIN } from '../data/tuning.js';
+import { ZZ_PARED_Z, ZZ_PARED_PASO, ZZ_MESETA_W, ZZ_NIEBLA_Z0, ZZ_NIEBLA_FULL } from '../data/tuning.js';
 
 /** LA CARA DE LA LADERA ES TIERRA EXPUESTA: MARRON, no verde y no gris.
  *
@@ -161,7 +161,11 @@ export function drawParedes() {
     // cuadrilatero entre las dos: dibujar cada muestra como una barra suelta deja costuras
     // verticales que titilan al avanzar (se probo, y se ve).
     let prev = null;
-    for (let camZ = ZZ_PARED_Z; camZ >= 3; camZ -= ZZ_PARED_PASO) {
+    // SE MARCHA HASTA EL HORIZONTE (ZZ_PARED_Z) y no hasta una distancia comoda: parando antes,
+    // entre la ultima rebanada y la linea del horizonte queda una franja sin dibujar y por ahi se
+    // ve el mar — el cerro aparece CORTADO. El paso crece con la distancia para que las columnas
+    // lejanas no cuesten de mas: alla todas pintan el mismo color de niebla igual.
+    for (let camZ = ZZ_PARED_Z; camZ >= 3; camZ -= Math.max(ZZ_PARED_PASO, camZ * 0.05)) {
       const wz = dv + camZ;
       // LA PARED SE MUEVE EN X con las PUNTAS DE TIERRA (Z3.b): el borde no es una recta, entra y
       // sale. Es lo que de verdad hace el callejon — el jugador zigzaguea esquivando promontorios,
@@ -182,20 +186,24 @@ export function drawParedes() {
         // LA NIEBLA DE DISTANCIA, primero de todo: la usan la meseta Y la cara, y la meseta se
         // dibuja antes. Declararla mas abajo la dejaba en zona muerta temporal y el render se caia
         // en el primer cuadro con un ReferenceError.
-        const f = 1 - camZ / ZZ_PARED_Z;
+        const f = Math.max(0, 1 - camZ / ZZ_NIEBLA_FULL);
         // LA NIEBLA LLEGA A 1 ANTES DEL LIMITE DE DIBUJO, y de eso depende que no se vea el corte:
         // si en el ultimo metro dibujado la ladera todavia conserva algo de su color, ahi hay un
         // canto — una linea vertical donde el terreno simplemente termina. Saturando la niebla en
         // ZZ_NIEBLA_FIN, el ultimo tramo se pinta EXACTAMENTE del color del horizonte y el corte
         // queda invisible por construccion, no por suerte.
         const niebla = Math.max(0, Math.min(1,
-          (camZ - ZZ_NIEBLA_Z0) / (ZZ_PARED_Z * ZZ_NIEBLA_FIN - ZZ_NIEBLA_Z0)));
+          (camZ - ZZ_NIEBLA_Z0) / (ZZ_NIEBLA_FULL - ZZ_NIEBLA_Z0)));
         // LA MESETA, PRIMERO (va detras de la cara: la cara le tapa el filo y el empalme queda
         // limpio). Solo se dibuja cuando LA CAMARA ESTA POR ENCIMA de esta cresta — es una
         // superficie horizontal, y desde abajo no se ve: dibujarla igual la proyectaria por encima
         // del horizonte, o sea pintando cielo. Que aparezca al trepar no es un truco: es
         // exactamente lo que pasa cuando subis lo suficiente para ver arriba del cerro.
-        if (cam.y > gy + h) {
+        // LAS DOS CRESTAS, no solo esta. El cuadrilatero de la meseta usa la altura de ESTA
+        // columna y la de la anterior; si una esta arriba de la camara y la otra abajo, la
+        // proyeccion cruza el horizonte y el cuadro sale dado vuelta — una cuña enorme y plana
+        // tapando media pantalla. Con las dos abajo, la superficie es coherente.
+        if (cam.y > gy + h && cam.y > gy + prev.h) {
           // EL ANCHO DE LA MESETA CRECE CON LA DISTANCIA, y sin eso hay un agujero. Con un ancho
           // FIJO de 200 unidades la meseta tapa de sobra cerca, pero a 180 m su borde exterior cae
           // en la columna 425 de una pantalla de 480: por esas 55 columnas se veia EL MAR pasando
@@ -206,8 +214,8 @@ export function drawParedes() {
           // para tapar el ancho de pantalla A ESTA PROFUNDIDAD. El fijo queda como piso.
           const mesaW = Math.max(ZZ_MESETA_W, (W / 2 + 40) * camZ / F);
           const fueraA = proj(wxc + lado * mesaW, gy + h, camZ);
-          const fueraB = proj(prev.wxc + lado * mesaW, gy + prev.h, camZ + ZZ_PARED_PASO);
-          const fM = 1 - camZ / ZZ_PARED_Z;
+          const fueraB = proj(prev.wxc + lado * mesaW, gy + prev.h, prev.camZ);
+          const fM = Math.max(0, 1 - camZ / ZZ_NIEBLA_FULL);
           ctx.globalAlpha = 1;                                   // opaca, como la ladera
           ctx.fillStyle = mez(mez(T.lejos, T.cerca, Math.min(1, fM * 1.6)), nieblaCol(), niebla);
           quad(ctx, prev.top.x, prev.top.y, top.x, top.y, fueraA.x, fueraA.y, fueraB.x, fueraB.y);
@@ -309,7 +317,7 @@ export function drawParedes() {
         ctx.fillStyle = L.som;
         quad(ctx, x0, prev.base.y - sh, x1, base.y - sh, x1, base.y, x0, prev.base.y);
       }
-      prev = { base, top, wx, wxc, h };
+      prev = { base, top, wx, wxc, h, camZ };
     }
   }
   ctx.globalAlpha = 1;

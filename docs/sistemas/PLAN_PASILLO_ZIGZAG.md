@@ -697,6 +697,27 @@ los cuatro momentos (paso 10 del fixture):
     tenía azul dominante** (`b > g`) — era el pasto de la meseta en sombra. Cuarta vez en este ítem
     que la pantalla sugiere una cosa y los números dicen otra.
 
+### Del DUODÉCIMO playtest *(el corte de verdad)*
+
+61. **El arreglo anterior (ancho de meseta adaptativo) atacaba el síntoma, no la causa.** El corte
+    seguía: la ladera se dibujaba **sólo hasta 260 m**, y entre la última rebanada y la línea del
+    horizonte quedaba una franja sin dibujar por donde se veía el mar. Un terreno tiene que
+    recederse **hasta el punto de fuga**, igual que el agua. `ZZ_PARED_Z` pasó de 260 a **1200 m**,
+    con paso adaptativo (crece con la distancia) para que las columnas lejanas no cuesten de más:
+    allá todas pintan el mismo color de niebla igual.
+62. **La niebla se separó de la distancia de dibujo** (`ZZ_NIEBLA_FULL`, 210 m absolutos). Antes era
+    una fracción de `ZZ_PARED_Z`, así que estirar el dibujo hasta el horizonte habría estirado la
+    niebla con él y el cerro lejano habría conservado color propio — o sea, la silueta recortada de
+    vuelta. Son dos cosas distintas y ahora son dos perillas distintas.
+63. **La meseta exige que la cámara esté sobre LAS DOS crestas del tramo**, no sólo sobre la de esta
+    columna. El cuadrilátero usa la altura de esta y la de la anterior; con una arriba y otra abajo
+    la proyección cruza el horizonte y el cuadro sale dado vuelta — una cuña enorme y plana tapando
+    media pantalla, que es parte de lo que se veía "roto".
+64. **Y los píxeles azules que quedaban eran el CIELO.** La sonda muestreaba desde `fy = 0.365`, que
+    es justo la línea del horizonte, y en tormenta el cielo es gris azulado (`b > g`). El instrumento
+    estaba mal calibrado, no el dibujo. Quinta vez en el ítem que conviene desconfiar de la primera
+    lectura.
+
 ### Lo que queda para el próximo playtest
 
 - El **ritmo**: `ZZ_PUNTA_CADA` 190 m es una punta cada ~2,5 s a velocidad de crucero.

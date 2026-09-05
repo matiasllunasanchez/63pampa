@@ -972,9 +972,17 @@ export const ZZ_PARED_LIBRE = 1.05;
 // cada cuantos metros cambia de altura la cresta. Chico = sierra dentada; grande = lomas largas.
 // 55 da cerros que se leen como cerros a la velocidad a la que se vuela.
 export const ZZ_PARED_BANDA = 55;
-// hasta que profundidad se dibuja la ladera y con que paso. 260 la mete adentro de la bruma sin
-// llegar a SPAWN_Z (no hace falta: mas alla no se distingue de la niebla).
-export const ZZ_PARED_Z = 260, ZZ_PARED_PASO = 4;
+// HASTA DONDE SE DIBUJA LA LADERA. Tiene que llegar AL HORIZONTE, no a una distancia comoda: con
+// 260 m (el primer valor) la ultima rebanada caia unos pixeles por debajo del horizonte y entre
+// ella y la linea del horizonte quedaba una FRANJA SIN NADA — por ahi se veia el mar, y el cerro
+// se leia cortado. Un terreno tiene que recederse hasta el punto de fuga igual que el agua.
+//
+// Que sean 1200 m no cuesta lo que parece: pasada la niebla total todas las columnas pintan
+// exactamente el mismo color, y el paso crece con la distancia (ver ZZ_PARED_PASO).
+export const ZZ_PARED_Z = 1200;
+// PASO base, en metros. Cerca se muestrea fino; lejos el paso crece con la profundidad para que
+// cada columna siga midiendo ~un pixel — la misma idea que el paso adaptativo del mar.
+export const ZZ_PARED_PASO = 4;
 // DESDE DONDE empieza a comerse la ladera la niebla de distancia. Entre esto y ZZ_PARED_Z el cerro
 // se funde al color del horizonte — SIN perder opacidad: lo que se desvanece es su color, no su
 // materia. Bajarlo mete mas niebla; subirlo deja el fondo mas nitido y arriesga que se note el
@@ -991,10 +999,11 @@ export const ZZ_PARED_PEND = 0.45;
 // a lo largo de cientos de metros, que es la otra mitad de por que se veia plano.
 export const ZZ_PARED_ONDA = 4.5;
 export const ZZ_NIEBLA_Z0 = 70;
-// FRACCION de ZZ_PARED_Z en la que la niebla ya es TOTAL. El ultimo 18% del dibujo se pinta
-// exactamente del color del horizonte, asi que el corte donde termina el terreno no se puede ver
-// — no queda color propio que lo delate. Subirlo hasta 1 devuelve la linea vertical.
-export const ZZ_NIEBLA_FIN = 0.82;
+// A QUE DISTANCIA la niebla ya es TOTAL, en metros ABSOLUTOS. Va aparte de ZZ_PARED_Z a proposito:
+// la distancia de dibujo tiene que llegar al horizonte (1200 m) pero la niebla tiene que cerrar
+// mucho antes, o el cerro lejano conservaria color propio y se veria su silueta recortada contra
+// el agua. Pasado esto, cada columna pinta el mismo color y el terreno se funde de verdad.
+export const ZZ_NIEBLA_FULL = 210;
 
 // ---------------- LAS PUNTAS DE TIERRA (PLAN_PASILLO_ZIGZAG Z3.b) ----------------
 // LO QUE DE VERDAD HACE EL CALLEJON, y lo dijo el playtest: no es que el camino doble — es que
