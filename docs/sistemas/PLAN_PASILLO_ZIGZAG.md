@@ -683,6 +683,20 @@ los cuatro momentos (paso 10 del fixture):
     regueros de una ladera erosionada. Los manchones que ya había son horizontales; con sólo esos
     la cara se leía "en capas".
 
+### Del UNDÉCIMO playtest *(el agujero de la meseta)*
+
+59. **Por el borde de la meseta se veía el mar**, y era un ancho fijo contra una perspectiva.
+    `ZZ_MESETA_W` extendía la superficie 200 unidades hacia afuera: de sobra cerca, pero **a 180 m
+    su borde exterior cae en la columna 425 de una pantalla de 480**, así que por esas 55 columnas
+    asomaba el agua que se dibuja detrás. Se veía cerca del horizonte, hacia afuera, y sólo volando
+    alto — o sea justo cuando la meseta aparece. Ahora el ancho **crece con la profundidad**, la
+    misma cuenta que el `halfW` del pasto en `world.js`: cuánto mundo hay que barrer para tapar el
+    ancho de pantalla a esa distancia. El fijo quedó como piso.
+60. **Y se confirmó midiendo, no mirando.** La captura corregida todavía mostraba una banda
+    azulada a media ladera que parecía otro agujero; el muestreo de píxeles dijo que **ningún punto
+    tenía azul dominante** (`b > g`) — era el pasto de la meseta en sombra. Cuarta vez en este ítem
+    que la pantalla sugiere una cosa y los números dicen otra.
+
 ### Lo que queda para el próximo playtest
 
 - El **ritmo**: `ZZ_PUNTA_CADA` 190 m es una punta cada ~2,5 s a velocidad de crucero.

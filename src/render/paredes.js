@@ -196,8 +196,17 @@ export function drawParedes() {
         // del horizonte, o sea pintando cielo. Que aparezca al trepar no es un truco: es
         // exactamente lo que pasa cuando subis lo suficiente para ver arriba del cerro.
         if (cam.y > gy + h) {
-          const fueraA = proj(wxc + lado * ZZ_MESETA_W, gy + h, camZ);
-          const fueraB = proj(prev.wxc + lado * ZZ_MESETA_W, gy + prev.h, camZ + ZZ_PARED_PASO);
+          // EL ANCHO DE LA MESETA CRECE CON LA DISTANCIA, y sin eso hay un agujero. Con un ancho
+          // FIJO de 200 unidades la meseta tapa de sobra cerca, pero a 180 m su borde exterior cae
+          // en la columna 425 de una pantalla de 480: por esas 55 columnas se veia EL MAR pasando
+          // por detras del cerro, cerca del horizonte y hacia afuera. Se ve mejor cuanto mas alto
+          // se vuela, que es justo cuando la meseta aparece.
+          //
+          // Es la misma cuenta que el `halfW` del pasto en world.js: cuanto mundo hay que barrer
+          // para tapar el ancho de pantalla A ESTA PROFUNDIDAD. El fijo queda como piso.
+          const mesaW = Math.max(ZZ_MESETA_W, (W / 2 + 40) * camZ / F);
+          const fueraA = proj(wxc + lado * mesaW, gy + h, camZ);
+          const fueraB = proj(prev.wxc + lado * mesaW, gy + prev.h, camZ + ZZ_PARED_PASO);
           const fM = 1 - camZ / ZZ_PARED_Z;
           ctx.globalAlpha = 1;                                   // opaca, como la ladera
           ctx.fillStyle = mez(mez(T.lejos, T.cerca, Math.min(1, fM * 1.6)), nieblaCol(), niebla);
