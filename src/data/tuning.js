@@ -895,6 +895,85 @@ export const AGUA3D_NUBE_LARGO = 700;
 export const AGUA3D_ESTELA = 420;
 // cuanto BLANQUEA la estela (0 = sin estela, 1 = espuma llena)
 export const AGUA3D_ESPUMA = 1.8;
+// ALTURA REAL del oleaje, en metros: cuanto LEVANTA la geometria del agua (0 = mar plano, todo
+// el relieve pintado). Es lo que le da cuerpo al mar, como el desplazamiento de la alfombra 2D.
+export const AGUA3D_ALTO = 3.5;
+
+// ---------------- EL DUOTONO DE MISION (PLAN_MEJORAS_3D P3) ----------------
+// La geometria iluminada del 3D (hoy el buque) remapeada a una rampa de DOS colores sacados del
+// clima: la luminancia manda, la sombra se va al agua profunda y la luz al resplandor del sol. Es
+// la receta de Pigeon (ANALISIS_REFERENTES_3D §1): sin texturas, un mundo se ve terminado con
+// valor + rampa + niebla. Sin esto el buque es el mismo gris de chapa bajo cualquier cielo.
+//
+// APAGADO POR DEFECTO hasta que Matias vea las ocho capturas y decida: con FUERZA en 0 el parche
+// del shader devuelve el color original bit a bit, o sea que esto no cambia un pixel.
+export const DUOTONO3D = false;
+// cuanto pesa la rampa contra el color propio del material (0 = nada, 1 = duotono puro y el buque
+// pierde su chapa). Arriba de ~0.6 deja de ser un clima y pasa a ser un filtro.
+export const DUOTONO3D_FUERZA = 0.45;
+// curva de la luminancia antes de entrar a la rampa: >1 manda mas superficie a la sombra,
+// <1 la abre hacia la luz.
+export const DUOTONO3D_GAMMA = 1.0;
+
+// ---------------- LA BRUMA EN CAPAS (PLAN_MEJORAS_3D P6) ----------------
+// Dos bandas translucidas apoyadas en el agua, del color del horizonte del clima. Lo que el fog
+// no da: CAPAS. Sale de GliderVR (ANALISIS_REFERENTES_3D §3) — la profundidad de ese juego son
+// dos telones, no un shader atmosferico.
+// APAGADA POR DEFECTO hasta que Matias vea las capturas: con la escala en 0 las bandas ni se
+// dibujan.
+export const BRUMA3D = false;
+// alfa de la banda de adelante y la de atras. La de adelante pesa mas: es la que "corta" el mar
+// lejano; la de atras solo tiñe el pie del cielo.
+export const BRUMA3D_ALFA0 = 0.35;
+export const BRUMA3D_ALFA1 = 0.2;
+// a que distancia esta cada banda, en metros. La primera va MAS ALLA del ring de combate (700 m)
+// para no meterse entre el avion y el buque; la segunda, a mitad de camino del domo.
+export const BRUMA3D_R0 = 2200;
+export const BRUMA3D_R1 = 3400;
+// ALTO de la banda de adelante, en metros (la de atras es 1,8 veces mas alta). La banda va
+// CENTRADA EN EL OJO —ahi cae el horizonte— y se desvanece por arriba y por abajo, asi que esto
+// es el ancho de la franja: 900 m a 2200 de distancia son unos 23 grados de cielo.
+export const BRUMA3D_ALTO = 900;
+
+// ---------------- LA BANDADA DEL 3D (PLAN_MEJORAS_3D P2/B1) ----------------
+// Aves ambient en el cielo del ARENA/PASADA: paralaje y escala, cero gameplay (las aves que
+// hacen daño son las del pasillo 2D y siguen siendo esas). Sale de Pigeon: un cielo vacio no
+// tiene tamaño. APAGADAS POR DEFECTO hasta la decision de Matias.
+export const AVES3D = false;
+// techo duro de sprites. El plan pide cap y esta es: pase lo que pase, no hay mas aves que esto.
+export const AVES3D_MAX = 30;
+// cuantas bandadas (de 6 aves cada una)
+export const AVES3D_BANDADAS = 4;
+// cada cuantos metros se repite el mundo de las aves: la bandada que se fue por atras vuelve a
+// entrar por adelante. Mas grande = mas rato sin ver a nadie; mas chico = se nota el truco. 420
+// esta elegido por lo mismo que la envergadura: a mas de 200 m un ave no se ve, asi que el mundo
+// tiene que traerlas cerca o no hay bandada.
+export const AVES3D_TILE = 260;
+// envergadura del sprite, EN METROS DE MENTIRA. Una gaviota cocinera abre 1,3 m y con eso el ave
+// no existe: el juego dibuja 480x270, o sea 212 px de distancia focal, asi que 1,3 m a 180 m son
+// UN PIXEL Y MEDIO de cuadro, cuerpo y alas incluidos — se probo y en la captura no habia nada.
+// Es la misma licencia que ya se toma el ave del pasillo 2D, que tampoco esta a escala: en pixel
+// art la silueta manda sobre la medida. Con 5 m el ave a 100 m es un cuerpo de dos pixeles con
+// alas de siete, que es exactamente lo que hace falta para que se lea el aleteo.
+export const AVES3D_ENVERG = 5;
+
+// ---------------- EL TERRENO 3D DE LA BAHIA (PLAN_MEJORAS_3D P4/T3D-1) ----------------
+// Una bahia con lomas alrededor del ring de combate: heightmap determinista + una textura de
+// turba generada al cargar + la niebla que ya esta. Sale de GliderVR. APAGADO POR DEFECTO: la
+// bahia es para los climax que la piden (m5 el callejon, m11/m12 fondeados), no para el mar
+// abierto — un buque en alta mar rodeado de cerros seria peor que no tener cerros.
+export const TERRENO3D = false;
+// medio lado del parche de terreno, en metros (el parche entero mide el doble)
+export const TERRENO3D_R = 4200;
+// segmentos por lado. 160 son 26 mil vertices, que es un pestañeo para la GPU y alcanza para que
+// una loma de 600 m se lea como loma.
+export const TERRENO3D_SEG = 160;
+// donde esta la ORILLA, en metros desde el centro. Tiene que quedar afuera del ring de combate
+// (700 m) con aire: adentro se pelea, no se aterriza.
+export const TERRENO3D_COSTA = 1250;
+// cuanto trepa la tierra firme lejos de la costa, en metros. Los cerros de Malvinas rondan los
+// 200-700 m; esto es la base sobre la que las lomas suman.
+export const TERRENO3D_ALTO = 320;
 
 // ---------------- EL PASILLO EN ZIGZAG (docs/sistemas/PLAN_PASILLO_ZIGZAG.md) ----------------
 // El carril que DOBLA, con el modelo del RIEL CURVO (OutRun / After Burner): el carril no se

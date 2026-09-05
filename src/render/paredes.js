@@ -21,7 +21,7 @@ import { ctx, px, W, H, HOR, F } from './ctx.js';
 import { cam, cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { proj } from '../core/fx.js';
-import { pared, paredH, paredXAt, paredCara, telonVis } from '../core/zigzag.js';
+import { pared, paredH, paredXAt, paredCara, telonVis, bendW } from '../core/zigzag.js';
 import { tierraH, hayRelieve } from '../core/tierra.js';
 import { theme } from './theme.js';
 import { P } from '../data/palette.js';
@@ -225,6 +225,55 @@ export function drawTelonTierra(zfx) {
   }
   ctx.globalAlpha = 1;
 }
+
+/** EL FILO QUE LE PASA POR DELANTE a un punto del callejon: la `y` de PANTALLA del borde de roca
+ *  mas alto que cubre su columna, mirando solo lo que esta MAS CERCA que el. `null` si no lo
+ *  cubre nada, y entonces el punto se ve entero.
+ *
+ *  ES LA MEDIA QUE FALTABA. El primer intento contestaba por si o por no —una linea de vision
+ *  contra la roca, y el objeto se dibujaba o no se dibujaba—, y por eso a un cañon al que la loma
+ *  le tiene que tapar SOLO LOS PIES se lo dibujaba entero: quedaba montado encima del terreno.
+ *  Un obstaculo detras de un cerro casi nunca esta tapado del todo ni visible del todo; asoma. La
+ *  respuesta correcta no es un booleano, es DONDE lo corta.
+ *
+ *  SE RECORRE LA MISMA TIRA DE COLUMNAS QUE DIBUJA LA LADERA, con la misma `paredCara` y el mismo
+ *  apoyo en el terreno. Tiene que ser asi: si el filo que recorta y el filo que se pinta salieran
+ *  de dos cuentas distintas, el objeto se cortaria en una linea que no esta en la pantalla — que
+ *  es peor que no recortarlo.
+ *
+ *  EL OJO SE PUEDE PASAR APARTE (`ex`/`ey`) y la distancia volada tambien (`dv`): es lo que
+ *  permite preguntarle al motor "¿y desde arriba de las crestas?" o barrer el callejon entero sin
+ *  tener que volarlo. Sin eso, la unica forma de comprobar esto es mirar una captura y creerle. */
+export function techoLadera(wx, camZ, ex, ey, dv) {
+  const p = pared();
+  if (!p || camZ <= 4) return null;
+  const lado = wx >= 0 ? 1 : -1;
+  const d = dv === undefined ? run.dist : dv;
+  const oX = px2(wx, camZ, ex);
+  const relieve = hayRelieve(cfg);
+  let techo = null;
+  // el paso es mas grueso que el del dibujo a proposito: aca no se pinta nada, se busca un borde,
+  // y un error de medio metro de profundidad en el filo no se ve. Lo que si se veria es el costo.
+  for (let z = 4; z < camZ; z += Math.max(6, z * 0.08)) {
+    const wz = d + z;
+    const h = paredH(wz, lado);
+    if (h <= 0.05) continue;
+    const pie = lado * paredXAt(wz, lado);
+    const cre = lado * paredCara(wz, lado, h);
+    const a = px2(pie, z, ex), b = px2(cre, z, ex);
+    if (oX < Math.min(a, b) || oX > Math.max(a, b)) continue;   // la roca no llega a esta columna
+    const gy = relieve ? tierraH(pie, wz) : 0;
+    const y = py2(gy + h, z, ey);
+    if (techo === null || y < techo) techo = y;
+  }
+  return techo;
+}
+
+/** proj() con el ojo puesto a mano. Son las dos mitades de core/fx.js con `cam` como parametro —
+ *  no se puede usar `proj` directo porque ahi el ojo es SIEMPRE la camara, y media prueba de esto
+ *  consiste justamente en mirar desde otro lado. */
+const px2 = (x, z, ex) => W / 2 + (x - (ex === undefined ? cam.x : ex) + bendW(z)) * (F / z);
+const py2 = (y, z, ey) => HOR + ((ey === undefined ? cam.y : ey) - y) * (F / z);
 
 /** ¿Hay algo que dibujar? Barato y primero: sin paredes esto no cuesta ni un `proj`. */
 export const hayParedes = () => !!pared();

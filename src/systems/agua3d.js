@@ -10,9 +10,18 @@
 // El modulo NO lee estado del juego: lo construye y lo actualiza three-arena.js pasandole datos.
 // Vive aparte porque es una PIEZA de escena con vida propia, como ship3d.js — y porque asi el
 // dia que se decida el default, prender o apagar esto es una linea alla y nada aca.
-import { AGUA3D, AGUA3D_NIVELES, AGUA3D_DISTORT, AGUA3D_CURVA, AGUA3D_VETA, AGUA3D_LARGO, AGUA3D_CIELO, AGUA3D_AZUL, AGUA3D_ROMPE, AGUA3D_NUBE, AGUA3D_NUBE_LARGO, AGUA3D_ESTELA, AGUA3D_ESPUMA } from '../data/tuning.js';
+import { AGUA3D, AGUA3D_NIVELES, AGUA3D_DISTORT, AGUA3D_CURVA, AGUA3D_VETA, AGUA3D_LARGO, AGUA3D_CIELO, AGUA3D_AZUL, AGUA3D_ROMPE, AGUA3D_NUBE, AGUA3D_NUBE_LARGO, AGUA3D_ESTELA, AGUA3D_ESPUMA, AGUA3D_ALTO } from '../data/tuning.js';
 
 const WATER_NORMALS_SRC = '../assets/world/waternormals.jpg';
+
+// las aguas construidas (hoy: la del ARENA y la del PASILLO). Solo la usa la sonda de tuneo,
+// que tiene que poder mover las dos a la vez o el A/B compara peras con manzanas.
+const vivos = [];
+
+// EL PARCHE DE CERCA: cuanto mar tiene relieve de verdad, y con cuanto detalle. 950 m con paso de
+// ~4,7 m — alcanza para la ola corta (30 m) y son 40 mil vertices, que la GPU dibuja sin
+// despeinarse. Mas grande no sirve: el vertex apaga el relieve a los 420 m.
+const PARCHE_M = 950, PARCHE_SEG = 200;
 
 // modo VIVO: arranca en el default de tuning y lo pisa la sonda __agua3d() para el A/B sin
 // recompilar. Es la unica variable mutable del modulo.
@@ -30,12 +39,73 @@ export const esCartoon = () => modo === 'cartoon';
 //  2. LA RAMPA TOON (lo nuevo): la luminancia del albedo se cuantiza a N escalones y cada
 //     escalon se mapea a un tono de WATER_STYLES (valle → cuerpo → cresta → destello). El
 //     resultado es plano por zonas: exactamente las vetas grandes de la referencia.
+// LO QUE COMPARTEN LOS DOS SHADERS. La ola se declara UNA vez y la usan el vertex (para levantar
+// la geometria) y el fragment (para pintarla). Si vivieran separadas, la cresta pintada y la
+// cresta levantada se irian corriendo una de la otra al primer ajuste.
+const COMUN = `
+  uniform float toonFreq;
+  uniform vec2 toonDir;
+  uniform float toonEsc;
+  uniform vec2 toonOff;
+  uniform float toonAlto;
+  float a3swell( vec2 pmet, float dmet, float tt ) {
+    // cada armonico se apaga a SU escala: a 480x270 una ola de 30 m a un kilometro no es ola,
+    // es moire.
+    float fc = 1.0 - smoothstep( 150.0, 620.0, dmet );
+    float fl = 1.0 - smoothstep( 380.0, 1500.0, dmet );
+    float sw = dot( pmet, toonDir );
+    float sw2 = dot( pmet, vec2( -toonDir.y, toonDir.x ) * 0.35 + toonDir * 0.94 );
+    return sin( sw * toonFreq - tt * 0.9 ) * 0.62 * fl
+         + sin( sw2 * toonFreq * 3.3 + tt * 1.7 ) * 0.38 * fc;
+  }
+`;
+
+// EL VERTEX: la ola se LEVANTA de verdad.
+//
+// Sin esto el mar es un plano y todo su relieve es sombreado — se ve pintado, sin cuerpo. Lo que
+// el mar 2D hace con la alfombra (desplazar cada punto por seaH) lo hace aca la GPU. El
+// desplazamiento se apaga a los ~420 m para que el parche denso empalme sin escalon con el plano
+// grande, que sigue siendo liso.
+function parcharVertex(mat) {
+  const v = mat.vertexShader;
+  const ANCLA = `mirrorCoord = modelMatrix * vec4( position, 1.0 );
+					worldPosition = mirrorCoord.xyzw;
+					mirrorCoord = textureMatrix * mirrorCoord;
+					vec4 mvPosition =  modelViewMatrix * vec4( position, 1.0 );
+					gl_Position = projectionMatrix * mvPosition;`;
+  if (v.indexOf('worldPosition = mirrorCoord.xyzw;') < 0) return false;
+  const i = v.indexOf('void main() {');
+  if (i < 0) return false;
+  const j = v.indexOf('gl_Position = projectionMatrix * mvPosition;', i);
+  if (j < 0) return false;
+  const fin = j + 'gl_Position = projectionMatrix * mvPosition;'.length;
+  mat.vertexShader = COMUN + v.slice(0, i) + `void main() {
+    vec4 wp = modelMatrix * vec4( position, 1.0 );
+    vec2 pmet = ( wp.xz + toonOff ) / toonEsc;
+    float dmet = length( cameraPosition - wp.xyz ) / toonEsc;
+    float fadeGeo = 1.0 - smoothstep( 180.0, 420.0, dmet );
+    wp.y += a3swell( pmet, dmet, time ) * toonAlto * toonEsc * fadeGeo;
+    worldPosition = wp;
+    mirrorCoord = textureMatrix * wp;
+    vec4 mvPosition = viewMatrix * wp;
+    gl_Position = projectionMatrix * mvPosition;` + v.slice(fin);
+  return true;
+}
+
 function parchar(mat) {
   const f = mat.fragmentShader;
   if (!f || f.indexOf('vec3 albedo = mix(') < 0) return false;   // three cambio el shader: no tocar
   const ALBEDO = 'vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), reflectionSample + specularLight, reflectance );';
   if (f.indexOf(ALBEDO) < 0) return false;
   mat.fragmentShader = f
+    // EL DESPLAZAMIENTO DEL MUNDO. En el ARENA la camara VIAJA y el agua se queda quieta, asi que
+    // alcanza con worldPosition. En el PASILLO es al reves —la camara esta clavada en z=0 y el
+    // mundo viene hacia vos—, asi que el patron tiene que correr por su cuenta. Se le suma el
+    // offset ACA, en el ruido base, y no solo en las vetas: si corriera una capa sola, el agua
+    // se partiria en dos mares moviendose distinto.
+    .replace(
+      'vec4 noise = getNoise( worldPosition.xz * size );',
+      'vec4 noise = getNoise( ( worldPosition.xz + toonOff ) * size );')
     .replace(
       'float reflectance = rf0 + ( 1.0 - rf0 ) * pow( ( 1.0 - theta ), 5.0 );',
       'float reflectance = min( rf0 + ( 1.0 - rf0 ) * pow( ( 1.0 - theta ), 5.0 ), 0.55 );')
@@ -55,16 +125,15 @@ function parchar(mat) {
         // justamente porque sus vetas van TODAS para el mismo lado, alineadas al viento. Aca se
         // hace lo mismo: dos senos en espacio de mundo sobre el eje del oleaje, uno largo y uno
         // corto, que corren con el tiempo. Cuantizados dan las vetas grandes de la referencia.
-        float sw = dot( worldPosition.xz, toonDir );
-        float sw2 = dot( worldPosition.xz, vec2( -toonDir.y, toonDir.x ) * 0.35 + toonDir * 0.94 );
+        // TODO LO QUE SE MIDE EN METROS se convierte aca. El ARENA trabaja en metros (1 u = 1 m)
+        // pero el PASILLO tiene su propia escala (1 u ~ 2,8 m), y sin esto el mismo oleaje de
+        // 100 m salia catorce veces mas grande en una escena que en la otra.
+        vec2 pmet = ( worldPosition.xz + toonOff ) / toonEsc;
+        float dmet = length( worldToEye ) / toonEsc;
         // LAS VETAS SE APAGAN CON LA DISTANCIA, cada una a su escala. A 480x270 una onda de 24 m
         // vista a un kilometro cae en menos de un pixel: no se ve como ola, se ve como MOIRE
         // (rayas finas hirviendo sobre el horizonte). Cada armonico muere antes de llegar ahi.
-        float dcam = length( worldToEye );
-        float fadeCorta = 1.0 - smoothstep( 150.0, 620.0, dcam );
-        float fadeLarga = 1.0 - smoothstep( 380.0, 1500.0, dcam );
-        float swell = sin( sw * toonFreq - time * 0.9 ) * 0.62 * fadeLarga
-                    + sin( sw2 * toonFreq * 3.3 + time * 1.7 ) * 0.38 * fadeCorta;
+        float swell = a3swell( pmet, dmet, time );
         float lum = clamp( dot( albedo, vec3( 0.299, 0.587, 0.114 ) ) * toonGain
                          + swell * toonSwell, 0.0, 1.0 );
         float n = max( 2.0, toonN );
@@ -100,8 +169,8 @@ function parchar(mat) {
         // MUY largas (cientos de metros) que corren lentas y tiñen el agua hacia el tono del
         // cielo. No es una nube dibujada — es la MANCHA de una nube sobre el agua, que es lo
         // unico que se ve desde arriba. Barato: dos senos mas, sin textura ni segunda pasada.
-        float nub = sin( dot( worldPosition.xz, toonNubeDir ) * toonNubeF + time * 0.10 ) * 0.55
-                  + sin( dot( worldPosition.xz, vec2( -toonNubeDir.y, toonNubeDir.x ) ) * toonNubeF * 0.63 - time * 0.07 ) * 0.45;
+        float nub = sin( dot( pmet, toonNubeDir ) * toonNubeF + time * 0.10 ) * 0.55
+                  + sin( dot( pmet, vec2( -toonNubeDir.y, toonNubeDir.x ) ) * toonNubeF * 0.63 - time * 0.07 ) * 0.45;
         ramp = mix( ramp, toonNubeCol, clamp( nub, 0.0, 1.0 ) * toonNube );
 
         if ( swell + ( lum - 0.32 ) * 1.6 > toonCap ) ramp = toonSpark;
@@ -147,7 +216,7 @@ function parchar(mat) {
 
 /** Construye el plano de agua cartoon. `size` en metros (cuadrado). Devuelve el mesh o null si
  *  el addon Water no esta en el bundle (el juego sigue con la alfombra de puntos, sin ruido). */
-export function crear(THREE, size) {
+export function crear(THREE, size, escala) {
   if (!THREE || !THREE.Water) return null;
   const wn = new THREE.TextureLoader().load(WATER_NORMALS_SRC,
     (tx) => { tx.wrapS = tx.wrapT = THREE.RepeatWrapping; });
@@ -185,6 +254,10 @@ export function crear(THREE, size) {
   u.wakeAmp = { value: AGUA3D_ESPUMA };
   u.wakePos = { value: new THREE.Vector2() };
   u.wakeDir = { value: new THREE.Vector2(1, 0) };
+  // unidades de mundo por METRO de esta escena, y el desplazamiento del mundo (ver el parche)
+  u.toonEsc = { value: escala || 1 };
+  u.toonAlto = { value: AGUA3D_ALTO };
+  u.toonOff = { value: new THREE.Vector2() };
   u.toonSwell = { value: AGUA3D_VETA };
   u.toonFreq = { value: 2 * Math.PI / AGUA3D_LARGO };
   u.toonDir = { value: new THREE.Vector2(0.86, 0.51).normalize() };
@@ -194,7 +267,7 @@ export function crear(THREE, size) {
   u.toonCrest = { value: new THREE.Color('#aed2cc') };
   u.toonSpark = { value: new THREE.Color('#e8f4f0') };
   // las declaraciones de los uniforms nuevos van al tope del fragment shader
-  w.material.fragmentShader = `
+  w.material.fragmentShader = COMUN + `
     uniform float toonN;
     uniform float toonGain;
     uniform float toonSpec;
@@ -213,8 +286,6 @@ export function crear(THREE, size) {
     uniform vec2 wakePos;
     uniform vec2 wakeDir;
     uniform float toonSwell;
-    uniform float toonFreq;
-    uniform vec2 toonDir;
     uniform vec3 toonAbyss;
     uniform vec3 toonDeep;
     uniform vec3 toonMid;
@@ -226,8 +297,34 @@ export function crear(THREE, size) {
   // se ve peor, pero un mar VERTICAL es una pared en medio de la pantalla.
   w.rotation.x = -Math.PI / 2;
   w.renderOrder = -5;                      // mismo plano que el mar liso al que reemplaza
-  w.material.parcheOk = parchar(w.material);
+  w.material.parcheOk = parchar(w.material) && parcharVertex(w.material);
+  // EL PARCHE DENSO. El plano grande tiene CUATRO vertices: sirve para el fondo, pero no hay
+  // nada que levantar en el. La malla de cerca comparte el MISMO material —asi no hay costura de
+  // color— y es la que tiene vertices para que la ola suba. Mas alla de ~420 m el vertex apaga el
+  // desplazamiento, que es donde termina esta malla: por eso el empalme no se ve.
+  {
+    const esc = escala || 1;
+    const g = new THREE.PlaneGeometry(PARCHE_M * esc, PARCHE_M * esc, PARCHE_SEG, PARCHE_SEG);
+    const m = new THREE.Mesh(g, w.material);
+    m.rotation.x = -Math.PI / 2;
+    m.renderOrder = -4;                    // encima del plano grande, que es el fondo
+    m.frustumCulled = false;               // se reubica entera todos los cuadros
+    w.userData.malla = m;
+    // LA MALLA NO PUEDE DIBUJARSE DENTRO DE SU PROPIO REFLEJO. El Water renderea la escena a un
+    // render target para el espejo y se esconde a si mismo mientras lo hace; la malla es OTRO
+    // objeto con el MISMO material, asi que quedaba dibujandose con la textura del espejo puesta
+    // como destino — GL_INVALID_OPERATION, "feedback loop", en cada cuadro. Se la esconde junto
+    // con el plano.
+    const antes = w.onBeforeRender;
+    w.onBeforeRender = function (renderer, scene, camera, geometry, material, group) {
+      const vis = m.visible;
+      m.visible = false;
+      antes.call(this, renderer, scene, camera, geometry, material, group);
+      m.visible = vis;
+    };
+  }
   // se publica el resultado del parche: sin el, la rampa NO corre y un A/B seria mentira
+  vivos.push(w);
   if (typeof window !== 'undefined') { window.__a3parche = w.material.parcheOk ? 'ok' : 'NO AGARRO'; window.__a3mesh = w; }
   w.material.needsUpdate = true;
   return w;
@@ -245,6 +342,21 @@ function tinte(col, hex) {
   if (azul <= 0) return col;
   col.getHSL(HSL);
   return col.setHSL(HSL.h + (AZUL_H - HSL.h) * azul, HSL.s * (1 - 0.15 * azul), HSL.l);
+}
+
+/** Mete el agua en la escena. Son DOS objetos (el plano de fondo y la malla de cerca) y hay que
+ *  agregarlos y prenderlos juntos: por eso esto vive aca y no en cada llamador. */
+export function agregar(scene, w) {
+  if (!w) return;
+  scene.add(w);
+  if (w.userData.malla) scene.add(w.userData.malla);
+}
+
+/** Prende o apaga el agua entera. */
+export function ver(w, on) {
+  if (!w) return;
+  w.visible = on;
+  if (w.userData.malla) w.userData.malla.visible = on;
 }
 
 /** Tiñe la rampa con el estilo de agua del clima activo (WATER_STYLES ya resuelto por theme). */
@@ -279,11 +391,18 @@ export function buque(w, on, x, z, dx, dz, len, beam) {
 /** Un cuadro: mueve el oleaje y re-centra el plano bajo el avion.
  *  `t` es el reloj ABSOLUTO del run (no un delta): asi el agua no depende de que nadie acumule
  *  nada, y una pausa o un salto de estado no le deja el oleaje colgado. */
-export function frame(w, t, px, pz, y) {
+export function frame(w, t, px, pz, y, offX, offZ) {
   if (!w) return;
   const u = w.material.uniforms;
   if (u.time) u.time.value = t * 0.6;
   w.position.set(px, y, pz);
+  // la malla densa viaja con el plano, apenas por encima para que donde el relieve se apaga no
+  // peleen por el z-buffer
+  const m = w.userData.malla;
+  if (m) m.position.set(px, y + 0.03 * u.toonEsc.value, pz);
+  // sin offset el agua vive donde esta (ARENA); con offset, el mundo corre bajo una camara
+  // quieta (PASILLO). Ver el comentario del parche.
+  if (u.toonOff) u.toonOff.value.set(offX || 0, offZ || 0);
 }
 
 // ---- SONDA de desarrollo (P1/W2) — QUITAR cuando el default quede decidido ----
@@ -295,8 +414,12 @@ export function frame(w, t, px, pz, y) {
 // rampa cuesta un build y un arranque; con esto una sola corrida barre todas. QUITAR con la sonda
 // de arriba cuando el look quede cerrado.
 if (typeof window !== 'undefined') window.__a3set = (o) => {
-  const w = window.__a3mesh;
-  if (!w) return 'sin agua construida';
+  if (!vivos.length) return 'sin agua construida';
+  let out = '';
+  for (const w of vivos) out = a3set1(w, o);
+  return out;
+};
+function a3set1(w, o) {
   const u = w.material.uniforms;
   if (o.n !== undefined) u.toonN.value = o.n;
   if (o.gain !== undefined) u.toonGain.value = o.gain;
@@ -306,6 +429,7 @@ if (typeof window !== 'undefined') window.__a3set = (o) => {
   if (o.cap !== undefined) u.toonCap.value = o.cap;
   if (o.nube !== undefined) u.toonNube.value = o.nube;
   if (o.estela !== undefined) u.wakeAmp.value = o.estela;
+  if (o.alto !== undefined) u.toonAlto.value = o.alto;
   if (o.azul !== undefined) azul = o.azul;
   if (o.swell !== undefined) u.toonSwell.value = o.swell;
   if (o.largo !== undefined) u.toonFreq.value = 2 * Math.PI / o.largo;
@@ -313,9 +437,9 @@ if (typeof window !== 'undefined') window.__a3set = (o) => {
   return JSON.stringify({ n: u.toonN.value,
     gain: u.toonGain.value, spec: u.toonSpec.value, curve: u.toonCurve.value,
     sky: u.toonSky.value, cap: u.toonCap.value, azul,
-    nube: u.toonNube.value, estela: u.wakeAmp.value, veta: u.toonSwell.value, largo: (2 * Math.PI / u.toonFreq.value).toFixed(1),
+    nube: u.toonNube.value, estela: u.wakeAmp.value, alto: u.toonAlto.value, veta: u.toonSwell.value, largo: (2 * Math.PI / u.toonFreq.value).toFixed(1),
     distort: u.distortionScale.value });
-};
+}
 
 if (typeof window !== 'undefined') window.__agua3d = (m) => {
   if (m !== undefined) setModo(m);

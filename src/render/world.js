@@ -12,7 +12,8 @@ import { run } from '../core/run.js';
 import { wake, obstacles, soldiers } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { hzWorld, tiltFade } from '../core/horizon.js';
-import { bendW, tapadoPorLadera } from '../core/zigzag.js';
+import { bendW } from '../core/zigzag.js';
+import { techoLadera } from './paredes.js';
 // EL MAR VIVE EN core/sea.js — puro, sin canvas ni stores — porque la colision de las olas tiene
 // que evaluar la MISMA superficie que se dibuja, y un sistema no puede importar del render.
 import { seaH as seaBase, olaBump, climaDe, resaca } from '../core/sea.js';
@@ -785,6 +786,12 @@ function juntarOlas(dv) {
   return olasVivas;
 }
 
+/** LAS OLAS VIVAS, para quien las necesite AFUERA del dibujo 2D. La pide game.js cuando el mar
+ *  lo esta poniendo three (systems/olas3d.js les da cuerpo alla): con el mar 3D `drawSeaDots` no
+ *  corre, y era el unico que llamaba a `juntarOlas`. Mismo array reusado, misma ventana — que la
+ *  ventana coincida con el mar dibujado es de JUSTICIA, ver el comentario de arriba. */
+export function olasDelCuadro() { return juntarOlas(); }
+
 function drawSeaDots(landVisible, coastMode) {
   const SPX = 0.93, SPZ = 1.0, farZ = SEA_FAR_Z;  // densidad x4, y ademas /U al subir la resolucion
   const dv = run.dist + momentum.drift();
@@ -1020,19 +1027,37 @@ function hitFlash(sx, sy, k, o, w, h) {
   ctx.globalAlpha = 1;
 }
 
+/** ⚠ LOS DE LA LADERA LOS RECORTA EL CERRO (zigzag Z5). Los obstaculos se dibujan DESPUES de las
+ *  paredes, o sea siempre encima, y mientras todos vivian adentro del carril eso no se notaba: no
+ *  hay roca que los pueda tapar ahi. Un cañon parado ARRIBA del cerro rompe la suposicion —
+ *  volando bajo, con una loma mas cerca adelante, se lo veia FLOTANDO sobre la montaña que
+ *  deberia estarlo escondiendo.
+ *
+ *  SE RECORTA, NO SE DECIDE. El primer arreglo contestaba por si o por no: si la linea de vision
+ *  al medio del objeto tocaba roca, no se dibujaba. Con eso, un cañon al que la loma le tiene que
+ *  tapar SOLO LOS PIES se dibujaba entero y quedaba montado encima del terreno — que es el mismo
+ *  error de antes, mas chico. Un obstaculo detras de un cerro casi nunca esta tapado del todo ni
+ *  visible del todo: asoma. Asi que se le pone un techo al dibujo en el filo que le pasa por
+ *  delante (`techoLadera`, que recorre la misma tira de columnas que pinta la ladera) y el sprite
+ *  sale cortado exactamente ahi.
+ *
+ *  Ordenarlo de verdad —meter las laderas en la misma lista por z que los obstaculos— son 130
+ *  columnas por cuadro; esto es un recorrido grueso por antiaereo de ladera, y ninguno para el
+ *  resto del mundo. */
 export function drawObstacle(o) {
-  // ⚠ LOS DE LA LADERA SE TAPAN CON EL CERRO (zigzag Z5). Los obstaculos se dibujan DESPUES de las
-  // paredes, o sea siempre encima, y mientras todos vivian adentro del carril eso no se notaba: no
-  // hay roca que los pueda tapar ahi. Un cañon parado ARRIBA del cerro rompe la suposicion —
-  // volando bajo, con una loma mas cerca adelante, se lo veia FLOTANDO sobre la montaña que
-  // deberia estarlo escondiendo.
-  //
-  // Se prueba la linea de vision al MEDIO del objeto y no a sus pies: con los pies, un cañon
-  // asomando media silueta por detras de una loma desaparecia entero, que se ve peor que el error
-  // que se venia a arreglar. Ordenarlo de verdad —meter las laderas en la misma lista por z que
-  // los obstaculos— son 130 columnas por cuadro; esto son doce muestras por antiaereo.
-  if (o.enLadera && tapadoPorLadera(o.x, (o.gy || 0) + (o.h || 3) * 0.5, o.z, run.dist,
-      cam.x, cam.y)) return;
+  if (!o.enLadera) return dibujarObstaculo(o);
+  const corte = techoLadera(o.x, o.z);
+  if (corte === null) return dibujarObstaculo(o);
+  const kk = F / o.z, base = HOR + (cam.y - (o.gy || 0)) * kk;
+  if (corte >= base) return dibujarObstaculo(o);              // el filo le queda por debajo: entero
+  if (corte <= base - (o.h || 3) * kk) return;                // tapado hasta la punta: nada que ver
+  ctx.save();
+  ctx.beginPath(); ctx.rect(-80, -200, W + 160, corte + 200); ctx.clip();
+  dibujarObstaculo(o);
+  ctx.restore();
+}
+
+function dibujarObstaculo(o) {
   const k = F / o.z;
   if (o.type === 'mast') {
     // SIN PALO. Durante mucho tiempo esto fue un mastil de 11 a 28 metros con su verga cruzada y

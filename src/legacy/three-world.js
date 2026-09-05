@@ -24,6 +24,8 @@
 // rige el dibujo 2D de siempre.
 import { SHIP_CLASS } from '../data/ships.js';
 import { buildShips } from '../systems/ship3d.js';
+import * as agua3d from '../systems/agua3d.js';
+import * as olas3d from '../systems/olas3d.js';
 
 // Las medidas se IMPORTAN de render/ctx.js: antes estaban copiadas aca (W=320, HOR=64, F=90) y si
 // cambiaba la resolucion el 3D se desalineaba del 2D sin tirar ningun error.
@@ -57,8 +59,13 @@ const SEA_ALPHA = 0.6;    // opacidad de los cuadrados del mar 3D (momentum)
 // (bandas, receta de puntos, cielo, sol), el cambio de renderer al cruzar la costa siempre
 // dejaba una diferencia visible. El 2D clasico corre TODO el vuelo (identico por definicion)
 // y el 3D queda para el MOMENTUM (otro plano de camara, ahi no hay transicion que igualar).
-const SEA3D_FLIGHT = false;
-const MOM3D = { ready: false, failed: false, on: false, renderer: null, scene: null, cam: null, ship: null, ships: null, debris: null, waterTex: null, waterGeo: null };
+// ...ESO FUE CON EL MAR DE PUNTOS. El agua cartoon (systems/agua3d.js, PLAN_MEJORAS_3D P1) es
+// otra cosa, y Matias pidio poder probarla en el pasillo: ahora la fila AGUA 3D del menu [M] la
+// prende y la apaga EN VIVO, para comparar contra el 2D sin salir del vuelo. Sigue apagada por
+// defecto, y sigue entrando solo en mar abierto pasada la costa — el salto al cruzarla es
+// exactamente el problema que hizo apagar esto en su momento, y no esta resuelto.
+let sea3dFlight = false;
+const MOM3D = { ready: false, failed: false, on: false, renderer: null, scene: null, cam: null, ship: null, ships: null, debris: null, waterTex: null, waterGeo: null, agua: null, aguaTry: false };
 function m3tex(w, h, paint) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   paint(c.getContext('2d'), w, h);
@@ -278,7 +285,8 @@ export function frame(w) {
   // mar abierto: pasada la franja de costa/pista (que es arte 2D, igual que en drawSea).
   // 'dead' y 'relevo' estan por lo mismo: el show del derribo y la cinematica del escuadron
   // pasan sobre este mar — sin ellos el telon 3D se apagaria un frame y el agua "saltaria" a 2D.
-  const wantSea = SEA3D_FLIGHT && !wantMom
+  sea3dFlight = w.cfg.agua3d === '3d';
+  const wantSea = sea3dFlight && !wantMom
     && (w.state === 'play' || w.state === 'takeoff' || w.state === 'dead' || w.state === 'relevo')
     && w.cfg.terrain === 'sea' && (w.dist + w.momDrift) >= w.cfg.coast + 80;
   if ((!wantMom && !wantSea) || !useRenderer(M3W, M3H)) return false;
@@ -306,6 +314,43 @@ export function frame(w) {
     MOM3D.cam.position.set(w.cam.x, w.cam.y + M3_WATER, 0);
     MOM3D.cam.rotation.set(0, 0, 0);
     MOM3D.sea = true;
+  }
+  // EL AGUA CARTOON EN EL PASILLO. Se construye la primera vez que se la pide (un solo intento,
+  // igual que en el arena) y convive con el mar de puntos: el que no manda queda invisible, asi
+  // el menu puede alternar en vivo sin reconstruir nada.
+  if (!wantMom && !MOM3D.aguaTry) {
+    MOM3D.aguaTry = true;
+    // 1 unidad de esta escena son 125/M3_LEN metros — el buque de 125 m mide M3_LEN aca.
+    MOM3D.agua = agua3d.crear(THREE, 13500, M3_LEN / 125);
+    if (MOM3D.agua) { MOM3D.agua.position.y = M3_WATER - 0.05; agua3d.agregar(MOM3D.scene, MOM3D.agua); }
+  }
+  const cartoon = !!MOM3D.agua && !wantMom;
+  if (MOM3D.agua) {
+    agua3d.ver(MOM3D.agua, cartoon);
+    if (cartoon) {
+      agua3d.palette(MOM3D.agua, w.WATER, w.SKY);
+      // el offset va NEGATIVO en z: asi las olas VIENEN hacia la camara. Con el signo al reves
+      // el mar se aleja de vos mientras volas hacia adelante, y se nota de inmediato.
+      agua3d.frame(MOM3D.agua, w.t, MOM3D.cam.position.x, 0, M3_WATER - 0.05, 0, -(w.dist + w.momDrift));
+      agua3d.buque(MOM3D.agua, false);       // en el pasillo no hay buque al que hacerle estela
+    }
+  }
+  // LAS OLAS ESQUIVABLES. Sin esto el mar 3D las borra de la pantalla y siguen matando: es lo
+  // primero que hay que tener resuelto antes de que este mar pueda ser el default.
+  if (cartoon) {
+    olas3d.crear(THREE, MOM3D.scene, M3_WATER);
+    olas3d.frame(w.olas, w.dist + w.momDrift, MOM3D.cam.position.x,
+      // el mismo semiancho por fila que usa la alfombra 2D, con un margen
+      (cz) => Math.min(320, (W / 2 + 15) * cz / F + 12),
+      (wx, wz) => w.seaH(wx, wz), MOM3D.wCols);
+  } else {
+    olas3d.frame(null);
+  }
+  // el mar de puntos y su plano ceden la escena cuando manda el cartoon
+  if (MOM3D.waterFlat) {
+    MOM3D.waterFlat.visible = !cartoon;
+    MOM3D.patch.visible = !cartoon;
+    MOM3D.dots.visible = !cartoon;
   }
   // el sol replica el parallax del 2D (pantalla: W/2 - w.cam.x*1.4) — sin salto en la transicion
   MOM3D.sun.position.x = MOM3D.cam.position.x - 36.56 * w.cam.x;
@@ -391,6 +436,14 @@ if (has3D) setTimeout(() => { try { mom3DInit(); } catch (e) { } }, 400);
 export function isOn() { return MOM3D.on; }
 /** ¿El 3D esta pintando solo cielo+mar (vuelo sobre mar abierto)? */
 export function isSea() { return MOM3D.sea; }
+
+// ---- SONDA de la prueba del agua en el pasillo (PLAN_MEJORAS_3D §5b) — QUITAR con la decision.
+// Dice si el mar 3D esta puesto y por que no, que es la pregunta que uno se hace mirando la
+// pantalla: casi siempre la respuesta es "todavia no pasaste la costa".
+if (typeof window !== 'undefined') window.__ras3d = () => JSON.stringify({
+  pedido: sea3dFlight, mar3d: MOM3D.sea, cartoon: !!(MOM3D.agua && MOM3D.agua.visible),
+  parche: window.__a3parche || '(sin construir)',
+});
 /** El canvas de three, para bliteralo en el canvas del juego. */
 export function view() { return MOM3D.renderer.domElement; }
 /** Fuerza el repintado del telon: lo llama game.js cuando termina de cargar un fondo por clima. */

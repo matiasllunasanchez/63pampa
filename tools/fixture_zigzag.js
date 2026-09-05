@@ -458,8 +458,8 @@ app.whenReady().then(async () => {
     await js("window.__cfgset('zigzag', 0)");
   }
 
-  // ---------- 13. Z5b — LA LADERA TAPA LO QUE TIENE DELANTE ----------
-  console.log('\n13. el cerro tapa a los antiaereos de arriba:');
+  // ---------- 13. Z5b — LA LADERA RECORTA LO QUE TIENE DELANTE ----------
+  console.log('\n13. el cerro recorta a los antiaereos de arriba:');
   {
     await js("window.__cfgset('zigzag', 2)");
     await sostener(300);
@@ -469,34 +469,36 @@ app.whenReady().then(async () => {
       // sonda por sonda, el avion SIGUE VOLANDO entre llamada y llamada, asi que la cresta que
       // media node y la que evaluaba el motor eran de dos metros de camino distintos. La prueba
       // daba cero y el que estaba mal era el metro, no lo medido.
+      //
+      // Y SE BARRE EL CALLEJON ENTERO, no los cuatrocientos metros que el fixture alcanza a volar.
       const r = JSON.parse(await js(`(() => {
         const d0 = JSON.parse(__zzdbg());
-        let abajo = 0, arriba = 0, total = 0;
-        // SE BARRE EL CALLEJON ENTERO, no los cuatrocientos metros que el fixture alcanza a
-        // volar: la oclusion es geometria, y con una sola posicion de avion se estaba mirando una
-        // muestra ridicula — cinco puestos, y encima todos en la rampa de entrada donde los
-        // cerros todavia miden tres metros.
+        let corta = 0, tapa = 0, total = 0, arriba = 0;
         for (let dv = d0.arranque + 200; dv < d0.arranque + 3200; dv += 60) {
           for (const lado of [-1, 1]) for (let z = 60; z <= 400; z += 20) {
             const h = __zzalto(dv + z, lado);
             if (h < 6) continue;
-            // el puesto: parado en la meseta, unos metros mas afuera que el filo
+            // el puesto: un cañon de 4.4 m parado en la meseta, unos metros mas afuera que el filo
             const x = lado * (__zzcara(dv + z, lado, h) + 6);
             total++;
-            if (__zztapa(x, h + 2, z, 1, 0, dv)) abajo++;
-            if (__zztapa(x, h + 2, z, 260, 0, dv)) arriba++;
+            const c = __zzcorte(x, h, 4.4, z, 1, dv);
+            if (c === 1) corta++; else if (c === 2) tapa++;
+            if (__zzcorte(x, h, 4.4, z, 260, dv) !== 0) arriba++;
           }
         }
-        return JSON.stringify({ abajo, arriba, total });
+        return JSON.stringify({ corta, tapa, total, arriba });
       })()`));
-      // VOLANDO BAJO, LAS PUNTAS DE ADELANTE ESCONDEN COSAS. Sin la prueba de profundidad esto
-      // era 0 y el cañon se veia FLOTANDO sobre la montaña que deberia estarlo tapando.
-      if (r.abajo > 0) ok(`volando a ras, el cerro tapa ${r.abajo} de ${r.total} puestos de ladera`);
-      else bad(`a ras del agua no se tapa ninguno de ${r.total}: la prueba de profundidad no rige`);
-      // DESDE ARRIBA NO TAPA NADA, y esta es la mitad que evita el arreglo tramposo: esconderlos
-      // siempre tambien daria cero flotando, y seria mucho peor.
-      if (r.arriba === 0) ok('y por encima de las crestas no se tapa ninguno — se ven todos');
-      else bad(`desde arriba se tapan ${r.arriba}: la oclusion esconde lo que se tiene que ver`);
+      // LO QUE IMPORTA ES EL CASO DEL MEDIO. Que alguno desaparezca entero ya lo hacia la version
+      // anterior; lo que se rompia era el cañon al que la loma le tapa SOLO LOS PIES y se dibujaba
+      // completo, montado encima del terreno. Si esto es cero, el recorte no esta recortando nada.
+      if (r.corta > 0) ok(`volando a ras, ${r.corta} de ${r.total} puestos asoman CORTADOS por el filo`);
+      else bad('ninguno queda cortado a medias: el recorte no rige, se volvio al si-o-no');
+      if (r.tapa > 0) ok(`y ${r.tapa} quedan tapados enteros detras de una punta`);
+      else bad('ninguno queda tapado entero');
+      // DESDE ARRIBA NO SE TOCA NINGUNO, y esta es la mitad que evita el arreglo tramposo:
+      // esconderlos siempre tambien daria cero flotando, y seria mucho peor.
+      if (r.arriba === 0) ok('y por encima de las crestas no se recorta ninguno — se ven todos enteros');
+      else bad(`desde arriba se recortan ${r.arriba}: el corte esconde lo que se tiene que ver`);
     }
     await js("window.__cfgset('zigzag', 0)");
   }

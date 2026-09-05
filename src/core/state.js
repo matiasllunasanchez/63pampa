@@ -48,11 +48,15 @@ export const cfg = {
   // data/palette.js). Es el default porque en campaña la mision ya decide el cielo, y con el agua
   // clavada en 'sea' un temporal se jugaba sobre el mar celeste del atardecer. Elegir a mano pisa.
   sky: 'dusk', water: 'auto', terrain: 'sea', wind: true,
-  // DESENFOQUE DE VELOCIDAD (render/desenfoque.js): el barrido radial del mundo con el turbo, el
-  // momentum y el poder rasante. Es AMBIENTE PURO —no toca la deteccion ni la velocidad— y por eso
-  // puede ser una preferencia y no un handicap. Se puede apagar por dos motivos honestos: es lo
-  // unico del juego que pega un pegado de pantalla completa por cuadro, y el movimiento periferico
-  // le cae mal a mucha gente.
+  // AGUA 3D en el PASILLO: '2d' es el mar de siempre (el default, y lo que define como se ve
+  // RASANTE); '3d' pone el agua cartoon de systems/agua3d.js — la misma del climax — en mar
+  // abierto pasada la costa. Es una PRUEBA con perilla, no una decision tomada: ver
+  // docs/sistemas/PLAN_MEJORAS_3D.md §5b.
+  agua3d: '2d',
+  // DESENFOQUE DEL TURBO (render/desenfoque.js): el barrido radial del mundo al acelerar. Es
+  // AMBIENTE PURO —no toca la deteccion ni la velocidad— y por eso puede ser una preferencia y no
+  // un handicap. Se puede apagar por dos motivos honestos: es lo unico del juego que pega un
+  // pegado de pantalla completa por cuadro, y el movimiento periferico le cae mal a mucha gente.
   desenfoque: 'on',
   // COMO SE VE LA RADIO EN VUELO (SPEC_CHARLAS_VUELO §0b): 'toast' = una linea que entra y se va ·
   // 'panel' = las ultimas cuatro, como un chat. Las dos viven en la MISMA banda libre y ninguna

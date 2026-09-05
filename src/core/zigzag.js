@@ -477,36 +477,6 @@ export function paredEntra(wz, lado) {
   return ZZ_PUNTA_MAX * p.alto * hondo * esc * perfil * perfil * ventana(wz, zz.spec, zz.obj);
 }
 
-/** ¿LA LADERA TAPA ESTE PUNTO? La linea de vision del ojo al punto, muestreada, contra la MISMA
- *  roca que mata (`enPared`). Devuelve true si en el camino hay cerro.
- *
- *  EXISTE POR LOS ANTIAEREOS DE LA LADERA (Z5). Los obstaculos se dibujan DESPUES de las paredes,
- *  o sea siempre encima — y eso era invisible mientras todos vivian adentro del carril, donde no
- *  hay roca que los pueda tapar. Un cañon parado ARRIBA del cerro rompe esa suposicion: volando
- *  bajo, con una loma mas cercana adelante, se lo veia FLOTANDO sobre la montaña que deberia
- *  estarlo escondiendo. No es un problema de dibujo sino de que faltaba la prueba de profundidad.
- *
- *  LAS MUESTRAS VAN REPARTIDAS POR TODO EL LARGO, y el primer intento las apiño cerca del objeto
- *  por un razonamiento que la prueba desarmo: parecia que lo que tapa a un cañon parado en la
- *  cresta tenia que ser la loma justo anterior. NO ES ASI, y la geometria lo dice sola — un punto
- *  sobre la meseta, unos metros mas afuera que el filo, se ve perfectamente desde abajo: la
- *  visual sale con MAS pendiente que el talud y nunca lo cruza. Con las muestras apiñadas ahi, la
- *  prueba media CERO oclusiones a ras del agua.
- *
- *  Lo que de verdad los tapa son LAS PUNTAS DE TIERRA, los promontorios que se meten adentro del
- *  pasillo — y esos pueden estar en cualquier parte de la linea, incluso pegados a la camara,
- *  donde la visual todavia va baja y la punta es enorme en pantalla. Por eso: parejo.
- *
- *  Es a proposito la MISMA fuente que la colision: lo que te tapa es lo que te mata. */
-const VISTA = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.78, 0.85, 0.9, 0.95, 0.98];
-export function tapadoPorLadera(ox, oy, camZ, dv, ex, ey) {
-  if (!pared() || camZ <= 6) return false;
-  for (const f of VISTA) {
-    if (enPared(ex + (ox - ex) * f, ey + (oy - ey) * f, dv + camZ * f, 0, 1)) return true;
-  }
-  return false;
-}
-
 /** CUANTO VALE EL CALLEJON PARA EL FONDO (0..1), mirando TAMBIEN `antes` metros adelante.
  *
  *  Lo consume el TELON DE TIERRA del horizonte (render/paredes.js), y las dos puntas de ese

@@ -134,6 +134,29 @@ export function drawPasada(w) {
   // SOLO DESDE LA VENTANA (POPUP_DIST_M). Es RF-05 —el salto es lo que habilita la mira sobre las
   // zonas— y ademas resuelve lo que se ve a 1200 m: cinco etiquetas apiladas sobre un buque que
   // mide diez pixeles. De lejos se ve UN buque, que es lo que se ve de lejos.
+  // ---- EL NOMBRE DEL BUQUE, SOBRE EL AGUA (PLAN_MEJORAS_3D P5) ----
+  //
+  // La leccion de Pigeon (ANALISIS_REFERENTES_3D §1): el mundo se rotula EN el mundo, no en el
+  // HUD. De lejos el objetivo es una mancha gris en el horizonte y lo unico que dice como se
+  // llama es una linea del encabezado — que nadie mira mientras vuela. Puesto ahi arriba, el
+  // buque TIENE NOMBRE desde el primer segundo, y el nombre es la mitad de lo que hace que
+  // hundirlo pese.
+  //
+  // SOLO DE LEJOS, y se va al acercarse: cerca aparecen las etiquetas de zona (PUENTE, RADAR) y
+  // dos capas de texto encima del mismo buque es exactamente el borron que esas etiquetas ya
+  // aprendieron a evitar. Se apaga bastante antes de la ventana de suelta.
+  const rBuque = Math.hypot(A.pos.x, A.pos.z);
+  const aName = Math.max(0, Math.min(1, (rBuque - PS.POPUP_DIST_M) / 420));
+  if (aName > 0.02 && objectiveShip) {
+    const rs = world3D.shipRect3D();
+    if (rs && rs.w > 2) {
+      ctx.globalAlpha = aName * 0.6;
+      ctx.font = '6px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.dim;
+      ctx.fillText(objectiveShip, rs.x + rs.w / 2, rs.y - 5);
+      ctx.globalAlpha = 1;
+    }
+  }
+
   const cerca = Math.hypot(A.pos.x, A.pos.z) < PS.POPUP_DIST_M;
   for (const z of zones) {
     if (!cerca) break;
