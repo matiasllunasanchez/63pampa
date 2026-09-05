@@ -18,7 +18,7 @@ const POR_BANDADA = 6;
 // adelante. Es el mismo truco que la alfombra de puntos — nadie mira dos veces al mismo pajaro.
 const wrap = (v, t) => { const h = t / 2; return ((v + h) % t + t) % t - h; };
 
-let on = AVES3D;
+let encendidas = AVES3D;
 // diagnostico de la sonda: a que distancia paso el ave mas cercana en el ultimo cuadro.
 let dMin = 0, nCerca = 0;
 
@@ -43,8 +43,14 @@ function pintarAve(x, w, h, pose, blanca) {
 }
 
 /** Construye las aves y las cuelga de la escena. `tex` es el helper de canvas del arena. */
-export function crear(THREE, sc, tex) {
+export function crear(THREE, sc, tex, esc, escY) {
   if (!THREE || !sc) return null;
+  // `esc`: unidades de escena por METRO en el PLANO (x/z). El arena esta en metros (1); el
+  // pasillo, en las suyas (1 u ≈ 2,8 m).
+  // `escY` existe porque la escena del pasillo NO es uniforme: su eje vertical esta EN METROS
+  // (`w.cam.y son metros de altitud`, dice el modulo) mientras el horizontal va en unidades. Sin
+  // separarlos, las bandadas caian a un tercio de su altura y volaban por debajo del avion.
+  const E = esc || 1;
   // seis materiales y nada mas: dos especies por tres poses. Cambiar de pose es cambiar de
   // material, que con treinta sprites no se nota y evita un shader propio.
   const mats = [];
@@ -60,8 +66,8 @@ export function crear(THREE, sc, tex) {
   const n = Math.min(AVES3D_MAX, AVES3D_BANDADAS * POR_BANDADA);
   for (let i = 0; i < n; i++) {
     const s = new THREE.Sprite(mats[0]);
-    s.scale.setScalar(AVES3D_ENVERG);
-    s.visible = on;
+    s.scale.setScalar(AVES3D_ENVERG * E);
+    s.visible = encendidas;
     // la semilla: numeros feos a proposito (primos y decimales sin redondear) para que las
     // bandadas no caigan en fila ni compartan periodo
     s.userData = {
@@ -72,17 +78,23 @@ export function crear(THREE, sc, tex) {
     };
     sc.add(s); aves.push(s);
   }
-  return { aves, mats };
+  return { aves, mats, esc: E, escY: escY === undefined ? E : escY };
 }
 
 /** Un cuadro. `t` es el reloj absoluto del run; `px/py/pz` el avion (las bandadas se envuelven
  *  alrededor suyo, nunca lo siguen). */
-export function frame(A, t, px, py, pz) {
+export function frame(A, t, px, py, pz, on, zRef) {
   if (!A) return;
+  if (on !== undefined) encendidas = !!on;
   dMin = 1e9; nCerca = 0;
+  // px/py/pz llegan EN METROS y la escena puede no estar en metros. `zRef` es la z (en metros)
+  // que cae en el cero de la escena: en el arena es 0 —el mundo esta quieto y la camara viaja—
+  // y en el pasillo es la distancia recorrida, porque ahi la camara esta clavada y lo que corre
+  // es el mundo. Es la misma distincion que el agua resolvio con toonOff.
+  const E = A.esc || 1, EY = A.escY === undefined ? E : A.escY, zr = zRef || 0;
   for (const s of A.aves) {
-    s.visible = on;
-    if (!on) continue;
+    s.visible = encendidas;
+    if (!encendidas) continue;
     const u = s.userData, b = u.band;
     // RUTA DE LA BANDADA: rumbo propio y constante, altura propia. Recta y no circular a
     // proposito — una bandada que gira alrededor tuyo se lee como un adorno atado a la camara.
@@ -109,7 +121,7 @@ export function frame(A, t, px, py, pz) {
     }
     if (d2 < dMin * dMin) dMin = Math.sqrt(d2);
     if (d2 < 250000) nCerca++;              // dentro de 500 m
-    s.position.set(x, y, z);
+    s.position.set(x * E, y * EY, (z - zr) * E);
     // el aleteo: cada ave con su fase, tres poses (con dos, el ala teletransporta)
     const w = Math.sin(t * 9 + u.fase);
     const pose = w > 0.4 ? 2 : w < -0.4 ? 0 : 1;
@@ -120,7 +132,7 @@ export function frame(A, t, px, py, pz) {
 
 // ---- SONDA de desarrollo (P2/B1) — QUITAR cuando el default quede decidido ----
 if (typeof window !== 'undefined') window.__aves3d = (v) => {
-  if (v !== undefined) on = !!(+v);
-  return JSON.stringify({ on, max: AVES3D_MAX, bandadas: AVES3D_BANDADAS, porBandada: POR_BANDADA,
+  if (v !== undefined) encendidas = !!(+v);
+  return JSON.stringify({ on: encendidas, max: AVES3D_MAX, bandadas: AVES3D_BANDADAS, porBandada: POR_BANDADA,
     dMin: +dMin.toFixed(1), nCerca, enverg: AVES3D_ENVERG });
 };

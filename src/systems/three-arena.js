@@ -31,6 +31,7 @@ import { buildShips, shipDeck, resetShipZones } from './ship3d.js';
 import { useRenderer, has3D } from '../legacy/three-world.js';
 import * as agua3d from './agua3d.js';
 import * as duotono3d from './duotono3d.js';
+import { DUOTONO3D_FUERZA } from '../data/tuning.js';
 import * as bruma3d from './bruma3d.js';
 import * as aves3d from './aves3d.js';
 import * as tierra3d from './tierra3d.js';
@@ -201,6 +202,9 @@ export function frame(w) {
   if (!r) { window.__a3 = 'no renderer'; return false; }
   window.__a3 = 'ok';
   palette(w);
+  // LAS TRES CAPAS, DESDE OPCIONES (P3/P6/P2). Se leen por cuadro y no al construir: la fila del
+  // menu se alterna EN VUELO, que es la unica forma honesta de comparar dos looks.
+  duotono3d.setFuerza(w.cfg.duo3d === 'on' ? DUOTONO3D_FUERZA : 0);
 
   const A = w.arena, px = A.pos.x, py = A.pos.y, pz = A.pos.z;
 
@@ -214,8 +218,8 @@ export function frame(w) {
   // horizonte real del mar (a 620 m son 9°) y aparecia una banda de "suelo" del domo sobre el
   // agua — se veia como un manchon marron cruzando la pantalla. El sol acompaña al domo.
   A3.sea.position.x = px; A3.sea.position.z = pz;
-  bruma3d.frame(A3.bruma, px, py, pz);
-  aves3d.frame(A3.aves, w.t || 0, px, py, pz);
+  bruma3d.frame(A3.bruma, px, py, pz, w.cfg.bruma3d === 'on');
+  aves3d.frame(A3.aves, w.t || 0, px, py, pz, w.cfg.aves3d === 'on');
   // LA BAHIA (P4) se construye PEREZOSA la primera vez, porque necesita la turba del clima (LAND)
   // y eso recien existe con el snapshot en la mano. Un solo intento, como el agua.
   if (!A3.tierra && w.LAND) {

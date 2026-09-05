@@ -237,6 +237,41 @@ ensamblaje de esas piezas — escribirlo antes sería inventar).
 
 ## §7 · Divergencias y baselines *(cada plan anota bajo su título)*
 
+### P3/P6/P2 EN EL PASILLO — las tres capas con perilla de OPCIONES *(pedido de Matías, 5/9)*
+
+Las tres nacieron para la escena del clímax y valen igual en el pasillo, **porque el pasillo
+tiene su propia escena 3D**: el buque del final (`legacy/three-world.js`, el mismo modelo de
+`ship3d.js`) y, con AGUA 3D puesta, el mar abierto. Ahora se prenden desde el menú [M]:
+
+| fila de OPCIONES | `cfg` | qué toca |
+|---|---|---|
+| `BUQUE CON EL CLIMA` | `duo3d` | el buque del clímax **en las dos escenas** |
+| `BRUMA EN CAPAS` | `bruma3d` | las bandas del horizonte en las dos |
+| `BANDADAS` | `aves3d` | las aves en las dos |
+
+**Se leen POR CUADRO, no al construir**: la fila se alterna en vuelo y se compara sin salir de la
+partida, que es la única forma honesta de elegir un look. Las tres arrancan en `off`.
+
+**Lo que costó, y es la misma trampa que ya había pisado el agua:** la escena del pasillo no está
+en metros. `agua3d` lo había resuelto con `toonEsc`; acá hicieron falta **dos** escalas:
+
+1. **`esc`, unidades por metro en el plano** (1 u ≈ 2,8 m — el buque de 125 m mide `M3_LEN`). Sin
+   esto una banda de bruma a dos kilómetros salía catorce veces más lejos, o sea afuera del mundo.
+2. **`escY` aparte, porque la escena NO es uniforme**: su eje vertical está EN METROS (`w.cam.y
+   son metros de altitud`, dice el propio módulo) mientras el horizontal va en unidades. Con una
+   sola escala las bandadas caían a un tercio de su altura y volaban *por debajo* del avión.
+3. **`zRef` para las aves**: en el arena el mundo está quieto y la cámara viaja; en el pasillo la
+   cámara está clavada en z=0 y lo que corre es el mundo. Se les pasa la distancia recorrida como
+   referencia. Es la misma distinción que el agua resolvió con `toonOff`, y por el mismo motivo.
+
+**Dónde se ve y dónde no:** la escena 3D del pasillo sólo corre en el clímax del *momentum* y, con
+`AGUA 3D` en sí, en mar abierto pasada la costa + 80. Fuera de eso el pasillo es raster 2D y estas
+tres capas no tienen dónde entrar — el mundo 2D ya toma el clima por paleta.
+
+**El buque 2D de la aproximación no toma el duotono** y no puede: es una hoja de sprites horneada
+(`enemyArt.drawFrame`), no un material. Si alguna vez se quiere, es un tinte sobre el sprite en el
+render 2D — el mismo pendiente que ya anotó P3 para el avión del jugador.
+
 ### P5 — los nombres en el mundo
 
 **Baseline `npm run feel`:** 34 asserts, `FEEL: OK`. Idéntico.

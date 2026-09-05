@@ -31,9 +31,14 @@ let escala = BRUMA3D ? 1 : 0;
 // la vez el dia que el pasillo tenga las suyas.
 const vivas = [];
 
-/** Construye las dos bandas y las cuelga de la escena. `tex` es el helper de canvas del arena. */
-export function crear(THREE, sc, tex) {
+/** Construye las dos bandas y las cuelga de la escena. `tex` es el helper de canvas del arena.
+ *  `esc` son UNIDADES DE ESCENA POR METRO: el arena trabaja en metros (1) y el pasillo tiene su
+ *  propia escala (1 u ≈ 2,8 m). Es la misma cuenta que ya hizo el agua para vivir en las dos
+ *  escenas — sin esto, una banda a dos kilometros salia catorce veces mas lejos en una que en la
+ *  otra, o sea afuera del mundo. */
+export function crear(THREE, sc, tex, esc) {
   if (!THREE || !sc) return null;
+  const E = esc || 1;
   // el degrade de alfa vive en la TEXTURA y no en el material: asi las dos capas comparten una
   // sola imagen y el desvanecido no cuesta un shader.
   const t = tex(4, 64, (x, w, h) => {
@@ -47,7 +52,7 @@ export function crear(THREE, sc, tex) {
   });
   const capas = CAPAS.map(c => {
     const m = new THREE.Mesh(
-      new THREE.CylinderGeometry(c.r, c.r, c.alto, 24, 1, true),
+      new THREE.CylinderGeometry(c.r * E, c.r * E, c.alto * E, 24, 1, true),
       new THREE.MeshBasicMaterial({
         map: t, side: THREE.BackSide, transparent: true, fog: false,
         depthWrite: false, opacity: c.alfa * escala,
@@ -65,11 +70,15 @@ export function crear(THREE, sc, tex) {
 }
 
 /** Las bandas siguen al avion en x/z (nunca se ve un borde) y su MEDIO va a la altura del ojo:
- *  ahi esta el horizonte, y es donde la bruma se junta. */
-export function frame(capas, px, py, pz) {
+ *  ahi esta el horizonte, y es donde la bruma se junta. `on` la prende o la apaga por cuadro —
+ *  es la fila de OPCIONES, que se alterna en vuelo. */
+export function frame(capas, px, py, pz, on) {
   if (!capas) return;
-  for (const m of capas) {
-    m.visible = escala > 0;
+  const v = on === undefined ? escala > 0 : !!on;
+  for (let i = 0; i < capas.length; i++) {
+    const m = capas[i];
+    m.visible = v;
+    if (v) m.material.opacity = m.userData.alfa;
     m.position.set(px, py, pz);
   }
 }
@@ -94,5 +103,8 @@ if (typeof window !== 'undefined') window.__bruma3d = (v) => {
     setEscala(v);
     for (const m of vivas) { m.material.opacity = m.userData.alfa * escala; m.visible = escala > 0; }
   }
-  return JSON.stringify({ escala, capas: vivas.length, alfas: CAPAS.map(c => +(c.alfa * escala).toFixed(3)) });
+  // se informa lo que las bandas REALMENTE tienen puesto: la fila de OPCIONES las prende por
+  // cuadro, asi que un contador global mentiria (y mintio una vez).
+  return JSON.stringify({ escala, capas: vivas.length, visibles: vivas.filter(m => m.visible).length,
+    alfas: vivas.map(m => +m.material.opacity.toFixed(3)) });
 };

@@ -53,6 +53,15 @@ export const cfg = {
   // abierto pasada la costa. Es una PRUEBA con perilla, no una decision tomada: ver
   // docs/sistemas/PLAN_MEJORAS_3D.md §5b.
   agua3d: '2d',
+  // LAS TRES CAPAS DEL CLIMAX 3D, TAMBIEN EN EL PASILLO (PLAN_MEJORAS_3D P3/P6/P2). Nacieron
+  // para la escena del climax y valen igual aca, porque el pasillo tiene su propia escena 3D (el
+  // buque del final y, con AGUA 3D puesta, el mar). Son PRESENTACION PURA: ninguna toca una
+  // colision, un puntaje ni una deteccion, asi que pueden ser preferencia y no dificultad.
+  //   duo3d    el buque toma la rampa de dos colores del clima en vez de su gris de chapa
+  //   bruma3d  dos bandas translucidas en el horizonte: profundidad que el fog solo no da
+  //   aves3d   bandadas de ambiente cruzando el cielo
+  // Las tres arrancan APAGADAS: son propuestas a la vista, no decisiones tomadas.
+  duo3d: 'off', bruma3d: 'off', aves3d: 'off',
   // DESENFOQUE DEL TURBO (render/desenfoque.js): el barrido radial del mundo al acelerar. Es
   // AMBIENTE PURO —no toca la deteccion ni la velocidad— y por eso puede ser una preferencia y no
   // un handicap. Se puede apagar por dos motivos honestos: es lo unico del juego que pega un

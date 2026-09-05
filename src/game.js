@@ -1308,6 +1308,19 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       { label: () => T('optAgua3D'), opts: ['2d', '3d'],
         names: () => [T('optAgua3D_2d'), T('optAgua3D_3d')],
         get: () => cfg.agua3d, set: v => cfg.agua3d = v, save: 'rasante_agua3d' },
+      // LAS TRES CAPAS DEL 3D (PLAN_MEJORAS_3D P3/P6/P2), en las dos escenas. Van con perilla y no
+      // con un default porque son propuestas visuales a la vista: se alternan EN VUELO y se
+      // comparan sin salir de la partida, que es la unica forma honesta de elegir un look.
+      { note: 'optNote3D' },
+      { label: () => T('optDuo3D'), opts: ['on', 'off'],
+        names: () => [T('optDuo3D_on'), T('optDuo3D_off')],
+        get: () => cfg.duo3d, set: v => cfg.duo3d = v, save: 'rasante_duo3d' },
+      { label: () => T('optBruma3D'), opts: ['on', 'off'],
+        names: () => [T('optBruma3D_on'), T('optBruma3D_off')],
+        get: () => cfg.bruma3d, set: v => cfg.bruma3d = v, save: 'rasante_bruma3d' },
+      { label: () => T('optAves3D'), opts: ['on', 'off'],
+        names: () => [T('optAves3D_on'), T('optAves3D_off')],
+        get: () => cfg.aves3d, set: v => cfg.aves3d = v, save: 'rasante_aves3d' },
       // DESENFOQUE DEL TURBO (render/desenfoque.js). Va en el bloque de AMBIENTE, al lado de la
       // lluvia, porque es exactamente lo mismo que ella: cambia como se VE el vuelo y no como se
       // juega. Se apaga entero desde aca — es el unico efecto del juego que pega un pegado de

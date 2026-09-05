@@ -212,6 +212,12 @@ export const STRINGS = {
     // LLUVIA: ambiente puro, no cambia la dificultad (ver render/rain.js)
     optNoteAgua3D: 'PRUEBA — con el agua 3D las olas esquivables NO se dibujan (siguen matando).',
     optAgua3D: 'AGUA 3D (PASILLO)', optAgua3D_2d: 'no', optAgua3D_3d: 'si',
+    // LAS TRES CAPAS DEL 3D (P3/P6/P2). Van juntas y pegadas al agua 3D porque son la misma
+    // pregunta: como se ve el mundo cuando lo pone three.
+    optNote3D: 'PRUEBA — las tres capas valen en el climax Y en el pasillo. No tocan el juego.',
+    optDuo3D: 'BUQUE CON EL CLIMA', optDuo3D_on: 'si', optDuo3D_off: 'no',
+    optBruma3D: 'BRUMA EN CAPAS', optBruma3D_on: 'si', optBruma3D_off: 'no',
+    optAves3D: 'BANDADAS', optAves3D_on: 'si', optAves3D_off: 'no',
     optBlur: 'DESENFOQUE DE TURBO', optBlurOn: 'si', optBlurOff: 'no',
     optRain: 'LLUVIA', optRainOff: 'NO', optRainDrizzle: 'GARUA', optRainRain: 'LLUVIA', optRainStorm: 'TORMENTA',
     // NIEBLA DE GUERRA: el velo de los COSTADOS (render/marco.js). Es preferencia, no dificultad
@@ -1178,6 +1184,10 @@ export const STRINGS = {
     optWaterSun: 'TURQUOISE', optWaterDawn: 'DAWN',
     optNoteAgua3D: 'TEST — with 3D water the dodgeable waves are NOT drawn (they still kill).',
     optAgua3D: '3D WATER (CORRIDOR)', optAgua3D_2d: 'no', optAgua3D_3d: 'yes',
+    optNote3D: 'TEST — the three layers apply to the climax AND the corridor. No gameplay.',
+    optDuo3D: 'SHIP TAKES THE WEATHER', optDuo3D_on: 'yes', optDuo3D_off: 'no',
+    optBruma3D: 'LAYERED HAZE', optBruma3D_on: 'yes', optBruma3D_off: 'no',
+    optAves3D: 'BIRD FLOCKS', optAves3D_on: 'yes', optAves3D_off: 'no',
     optBlur: 'TURBO BLUR', optBlurOn: 'yes', optBlurOff: 'no',
     optRain: 'RAIN', optRainOff: 'NO', optRainDrizzle: 'DRIZZLE', optRainRain: 'RAIN', optRainStorm: 'STORM',
     optMarco: 'WAR FOG',

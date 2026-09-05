@@ -24,6 +24,10 @@
 // rige el dibujo 2D de siempre.
 import { SHIP_CLASS } from '../data/ships.js';
 import { buildShips } from '../systems/ship3d.js';
+import * as duotono3d from '../systems/duotono3d.js';
+import * as bruma3d from '../systems/bruma3d.js';
+import * as aves3d from '../systems/aves3d.js';
+import { DUOTONO3D_FUERZA } from '../data/tuning.js';
 import * as agua3d from '../systems/agua3d.js';
 import * as olas3d from '../systems/olas3d.js';
 
@@ -65,7 +69,7 @@ const SEA_ALPHA = 0.6;    // opacidad de los cuadrados del mar 3D (momentum)
 // defecto, y sigue entrando solo en mar abierto pasada la costa — el salto al cruzarla es
 // exactamente el problema que hizo apagar esto en su momento, y no esta resuelto.
 let sea3dFlight = false;
-const MOM3D = { ready: false, failed: false, on: false, renderer: null, scene: null, cam: null, ship: null, ships: null, debris: null, waterTex: null, waterGeo: null, agua: null, aguaTry: false };
+const MOM3D = { bruma: null, aves: null, ready: false, failed: false, on: false, renderer: null, scene: null, cam: null, ship: null, ships: null, debris: null, waterTex: null, waterGeo: null, agua: null, aguaTry: false };
 function m3tex(w, h, paint) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   paint(c.getContext('2d'), w, h);
@@ -189,6 +193,10 @@ function mom3DInit() {
     // escena (M3_LEN), donde una unidad son ~2.8 m.
     const ships = buildShips(THREE, M3_LEN);
     for (const k in ships) { ships[k].position.set(0, M3_DECK, -60); ships[k].visible = false; sc.add(ships[k]); }
+    // DUOTONO (PLAN_MEJORAS_3D P3): el buque del climax del PASILLO es el MISMO modelo que el del
+    // arena (ship3d.js), asi que toma la rampa del clima con una linea. Y hace falta las dos
+    // veces por la misma razon: sin esto es el mismo gris de chapa abajo de cualquier cielo.
+    for (const k in ships) duotono3d.aplicar(THREE, ships[k]);
 
     // restos flotando alrededor del barco (bob lento en camara lenta; siguen la z del barco)
     const debris = new THREE.Group();
@@ -198,6 +206,12 @@ function mom3DInit() {
       d2.rotation.y = i2 * 0.7;
     }
     debris.position.y = M3_WATER + 0.15; sc.add(debris);
+
+    // LA BRUMA Y LAS BANDADAS, TAMBIEN ACA (P6/P2). `M3_LEN / 125` son las unidades de escena por
+    // METRO de esta escena (el buque de 125 m mide M3_LEN): es la misma conversion que ya hizo el
+    // agua para vivir en las dos. Nacen apagadas y las prende la fila de OPCIONES.
+    MOM3D.bruma = bruma3d.crear(THREE, sc, m3tex, M3_LEN / 125);
+    MOM3D.aves = aves3d.crear(THREE, sc, m3tex, M3_LEN / 125, 1);
 
     MOM3D.renderer = r; MOM3D.scene = sc; MOM3D.cam = cam; MOM3D.ships = ships; MOM3D.debris = debris;
     MOM3D.ship = ships.t42;
@@ -220,6 +234,7 @@ function m3Palette(w) {
   if (MOM3D.palKey === key) return;
   MOM3D.palKey = key;
   MOM3D.scene.fog.color.set(w.SKY.horizon);
+  duotono3d.palette(THREE, w.WATER, w.SKY);   // la rampa del clima, la misma que usa el arena
   const old = [MOM3D.skyMat.map, MOM3D.sunMat.map, MOM3D.waterMat.map];
   const tbi = w.tbackImg();
   MOM3D.sun.visible = !tbi;   // con imagen de fondo, el sol lo trae la imagen
@@ -315,6 +330,17 @@ export function frame(w) {
     MOM3D.cam.rotation.set(0, 0, 0);
     MOM3D.sea = true;
   }
+  // LAS TRES CAPAS, DESDE OPCIONES (P3/P6/P2) — las mismas del climax, con la misma perilla.
+  // La bruma se planta EN LA CAMARA (ahi cae el horizonte); las aves viven en el mundo, asi que
+  // se les pasa la distancia recorrida como referencia: aca la camara esta clavada y lo que corre
+  // es el mundo, al reves que en el arena.
+  duotono3d.setFuerza(w.cfg.duo3d === 'on' ? DUOTONO3D_FUERZA : 0);
+  const escM = 125 / M3_LEN;                          // metros por unidad de esta escena
+  const cx = MOM3D.cam.position.x, cy = MOM3D.cam.position.y;
+  bruma3d.frame(MOM3D.bruma, cx, cy, 0, w.cfg.bruma3d === 'on');
+  aves3d.frame(MOM3D.aves, w.t, cx * escM, cy, (w.dist + w.momDrift) * escM,
+    w.cfg.aves3d === 'on', (w.dist + w.momDrift) * escM);
+
   // EL AGUA CARTOON EN EL PASILLO. Se construye la primera vez que se la pide (un solo intento,
   // igual que en el arena) y convive con el mar de puntos: el que no manda queda invisible, asi
   // el menu puede alternar en vivo sin reconstruir nada.
