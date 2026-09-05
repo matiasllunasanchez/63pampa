@@ -92,6 +92,7 @@ import * as screens from './render/screens.js';
 import { decir as decirRadio, callar as callarRadio, tickRadio, radio as radioBox, restante as radioRest, visible as radioVis, log as radioLog } from './core/radioVN.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
 import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
+import { drawDesenfoque, BLUR_DBG } from './render/desenfoque.js';   // BLUR_DBG: QUITAR con __blurdbg
 import * as menus from './render/menus.js';
 import { stepRain, stepSpray, drawRain, RAIN_N } from './render/rain.js';
 import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit } from './systems/fog.js';
@@ -1300,6 +1301,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         names: () => [T('optWaterAuto'), T('optWaterSea'), T('optWaterViolet'), T('optWaterStorm'),
                       T('optWaterNight'), T('optWaterSun'), T('optWaterDawn')],
         get: () => cfg.water, set: v => { cfg.water = v; applyCfg(); }, save: 'rasante_agua' },
+      // DESENFOQUE DE VELOCIDAD (render/desenfoque.js). Va en el bloque de AMBIENTE, al lado de la
+      // lluvia, porque es exactamente lo mismo que ella: cambia como se VE el vuelo y no como se
+      // juega. Se apaga entero desde aca — es el unico efecto del juego que pega un pegado de
+      // pantalla completa por cuadro.
+      { label: () => T('optBlur'), opts: ['on', 'off'],
+        names: () => [T('optBlurOn'), T('optBlurOff')],
+        get: () => cfg.desenfoque, set: v => cfg.desenfoque = v, save: 'rasante_desenfoque' },
       // LLUVIA: ambiente puro (ver cfg.rain en core/state.js y render/rain.js). Va acá y no en el
       // bloque de MAPA justamente porque NO cambia cómo se juega — MAPA es donde vive el VIENTO,
       // que sí te corta la velocidad.
@@ -3338,6 +3346,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       }
 
       if (zoomOn) ctx.restore();   // el HUD (y la capa momentum) van SIN zoom
+      // EL DESENFOQUE DE VELOCIDAD: barrido radial del mundo desde el punto de fuga, con el avion a
+      // foco adentro de un hueco. Va sobre el MUNDO y bajo el HUD, en el mismo escalon que el tinte
+      // del momentum y por la misma razon: es el AIRE el que cambia, no los instrumentos.
+      //   TURBO     la condicion es la MISMA que enciende la llama de la tobera (plane.js): sin
+      //             nafta no hay turbo, y un mundo barrido sin llama seria el juego contradiciendose.
+      //   MOMENTUM  va ANTES del tinte frio y la viñeta de aca abajo, que siguen intactos: aquello
+      //             es el color del tiempo partido, esto es el encierro. Se ven los dos.
+      //   RASANTE   el poder, con su propio marco (ver la tabla MODOS en render/desenfoque.js).
+      drawDesenfoque(S.state === 'play' && run.boost && run.fuel > 0 ? 1 : 0,
+                     S.state === 'play' && tempo.active() ? 1 : 0,
+                     S.state === 'play' && rasante.active() ? 1 : 0);
       // MOMENTUM: tinte frio + viñeta mientras el tiempo esta partido. Va sobre el MUNDO y bajo
       // el HUD: la cabina sigue nitida — es el aire el que cambia, no los instrumentos.
       if (S.state === 'play' && tempo.active()) {
@@ -4064,6 +4083,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     };
 
     // QUITAR — la estela de punta de ala: con que fuerza sale y cuantas muestras vivas tiene.
+    if (typeof window !== 'undefined') window.__blurdbg = () =>
+      JSON.stringify({ ...BLUR_DBG, on: cfg.desenfoque, boost: !!run.boost,
+                       mom: tempo.active(), ras: rasante.active() });
     if (typeof window !== 'undefined') window.__tipdbg = () =>
       JSON.stringify({ ...TIP_DBG, bank: +plane.bank.toFixed(2),
         mv: run.mv || null, roll: +(run.mvRoll || 0).toFixed(2), boost: !!run.boost,

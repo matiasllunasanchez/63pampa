@@ -48,6 +48,12 @@ export const cfg = {
   // data/palette.js). Es el default porque en campaña la mision ya decide el cielo, y con el agua
   // clavada en 'sea' un temporal se jugaba sobre el mar celeste del atardecer. Elegir a mano pisa.
   sky: 'dusk', water: 'auto', terrain: 'sea', wind: true,
+  // DESENFOQUE DE VELOCIDAD (render/desenfoque.js): el barrido radial del mundo con el turbo, el
+  // momentum y el poder rasante. Es AMBIENTE PURO —no toca la deteccion ni la velocidad— y por eso
+  // puede ser una preferencia y no un handicap. Se puede apagar por dos motivos honestos: es lo
+  // unico del juego que pega un pegado de pantalla completa por cuadro, y el movimiento periferico
+  // le cae mal a mucha gente.
+  desenfoque: 'on',
   // COMO SE VE LA RADIO EN VUELO (SPEC_CHARLAS_VUELO §0b): 'toast' = una linea que entra y se va ·
   // 'panel' = las ultimas cuatro, como un chat. Las dos viven en la MISMA banda libre y ninguna
   // toca la UI: lo que cambia es si lo dicho se puede releer.

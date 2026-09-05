@@ -207,6 +207,7 @@ export const STRINGS = {
     optWater: 'AGUA', optWaterSea: 'MAR', optWaterViolet: 'VIOLETA',
     optWaterAuto: 'AUTO (segun el cielo)', optWaterStorm: 'TEMPORAL', optWaterNight: 'NOCHE',
     optWaterSun: 'TURQUESA', optWaterDawn: 'AMANECER',
+    optBlur: 'DESENFOQUE DE VELOCIDAD', optBlurOn: 'si', optBlurOff: 'no',
     // LLUVIA: ambiente puro, no cambia la dificultad (ver render/rain.js)
     optRain: 'LLUVIA', optRainOff: 'NO', optRainDrizzle: 'GARUA', optRainRain: 'LLUVIA', optRainStorm: 'TORMENTA',
     // NIEBLA DE GUERRA: el velo de los COSTADOS (render/marco.js). Es preferencia, no dificultad
@@ -1169,6 +1170,7 @@ export const STRINGS = {
     optWater: 'WATER', optWaterSea: 'SEA', optWaterViolet: 'VIOLET',
     optWaterAuto: 'AUTO (follows sky)', optWaterStorm: 'STORM', optWaterNight: 'NIGHT',
     optWaterSun: 'TURQUOISE', optWaterDawn: 'DAWN',
+    optBlur: 'SPEED BLUR', optBlurOn: 'yes', optBlurOff: 'no',
     optRain: 'RAIN', optRainOff: 'NO', optRainDrizzle: 'DRIZZLE', optRainRain: 'RAIN', optRainStorm: 'STORM',
     optMarco: 'WAR FOG',
     optMarco_off: 'OFF', optMarco_bruma: 'HAZE', optMarco_focus: 'FOCUS',
