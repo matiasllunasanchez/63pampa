@@ -410,6 +410,97 @@ app.whenReady().then(async () => {
     await js("window.__cfgset('zigzag', 0)");
   }
 
+  // ---------- 12. Z6 — EL TELON: EL HORIZONTE NO SE CORTA ----------
+  //
+  // ESTE BLOQUE MIDE PIXELES Y NO ESTADO, y tiene que ser asi: lo que se esta arreglando es que
+  // adentro del estrecho el horizonte se abria al mar entre las dos laderas, y eso no lo dice
+  // ningun numero del motor — lo dice la fila de pantalla justo arriba del horizonte. Es la
+  // tercera vez en este item que el sintoma solo aparece muestreando el canvas.
+  console.log('\n12. el telon: el horizonte se cubre de tierra y no se corta:');
+  if (!await volar()) { bad('no se pudo entrar a POR LA PATRIA'); }
+  else {
+    await vaciar();
+    // LA BANDA CENTRAL Y NADA MAS: a los costados hay HUD (el tanque de GAS le cae justo encima
+    // a la altura del horizonte), y un panel opaco no se oscurece por mas telon que haya detras.
+    const fila = async dy => JSON.parse(await js(`(() => {
+      const c = document.querySelector('canvas'), g = c.getContext('2d');
+      const e = c.height / 270, y = Math.round((96 - ${dy}) * e), o = [];
+      const d = g.getImageData(0, y, c.width, 1).data;
+      for (let i = Math.round(c.width * 0.16); i < c.width * 0.76; i += Math.max(1, Math.round(e))) {
+        const q = i * 4; o.push(0.3 * d[q] + 0.6 * d[q + 1] + 0.1 * d[q + 2]);
+      }
+      return JSON.stringify(o);
+    })()`));
+    await js('window.__zzset(null)');
+    await js("window.__cfgset('zigzag', 0)");
+    await sostener(400);
+    const sin = [await fila(3), await fila(9)];
+    await js("window.__cfgset('zigzag', 2)");
+    await sostener(500);
+    const con = [await fila(3), await fila(9)];
+    if (!(await Z()).on) bad('el callejon no se encendio: la medicion no vale');
+    else for (let f = 0; f < 2; f++) {
+      const a = sin[f], b = con[f];
+      let mas = 0, menos = 0;
+      for (let i = 0; i < a.length; i++) (b[i] < a[i] - 6 ? mas++ : b[i] > a[i] + 12 ? menos++ : 0);
+      const alt = f ? 9 : 3;
+      // SE OSCURECE CASI TODA LA BANDA. No el 100%: donde ya habia una isla del fondo o una
+      // ladera cercana, el telon queda detras y no cambia nada — y eso esta bien.
+      if (mas > a.length * 0.55) ok(`a ${alt} px del horizonte, ${mas} de ${a.length} columnas se cubren de tierra`);
+      else bad(`a ${alt} px del horizonte solo se cubren ${mas} de ${a.length}: el horizonte sigue abierto`);
+      // Y NADA SE ACLARA. Si el telon dejara ver cielo por un valle, ahi habria columnas MAS
+      // claras que sin el; se tolera un puñado por las nubes, que siguen corriendo entre las dos
+      // mediciones (el reloj no se puede parar: en pausa no se rehace la tabla del zigzag).
+      if (menos <= Math.max(3, a.length * 0.06)) ok(`y no se abre ni un hueco de cielo (${menos} columnas mas claras)`);
+      else bad(`${menos} columnas quedaron MAS claras: el telon tiene puertas`);
+    }
+    await shot('zz_11_telon');
+    await js("window.__cfgset('zigzag', 0)");
+  }
+
+  // ---------- 13. Z5b — LA LADERA TAPA LO QUE TIENE DELANTE ----------
+  console.log('\n13. el cerro tapa a los antiaereos de arriba:');
+  {
+    await js("window.__cfgset('zigzag', 2)");
+    await sostener(300);
+    if (!(await Z()).on) bad('no se pudo encender el callejon');
+    else {
+      // TODO EL CENSO EN UNA SOLA EVALUACION, y esto lo enseño la primera version: preguntando
+      // sonda por sonda, el avion SIGUE VOLANDO entre llamada y llamada, asi que la cresta que
+      // media node y la que evaluaba el motor eran de dos metros de camino distintos. La prueba
+      // daba cero y el que estaba mal era el metro, no lo medido.
+      const r = JSON.parse(await js(`(() => {
+        const d0 = JSON.parse(__zzdbg());
+        let abajo = 0, arriba = 0, total = 0;
+        // SE BARRE EL CALLEJON ENTERO, no los cuatrocientos metros que el fixture alcanza a
+        // volar: la oclusion es geometria, y con una sola posicion de avion se estaba mirando una
+        // muestra ridicula — cinco puestos, y encima todos en la rampa de entrada donde los
+        // cerros todavia miden tres metros.
+        for (let dv = d0.arranque + 200; dv < d0.arranque + 3200; dv += 60) {
+          for (const lado of [-1, 1]) for (let z = 60; z <= 400; z += 20) {
+            const h = __zzalto(dv + z, lado);
+            if (h < 6) continue;
+            // el puesto: parado en la meseta, unos metros mas afuera que el filo
+            const x = lado * (__zzcara(dv + z, lado, h) + 6);
+            total++;
+            if (__zztapa(x, h + 2, z, 1, 0, dv)) abajo++;
+            if (__zztapa(x, h + 2, z, 260, 0, dv)) arriba++;
+          }
+        }
+        return JSON.stringify({ abajo, arriba, total });
+      })()`));
+      // VOLANDO BAJO, LAS PUNTAS DE ADELANTE ESCONDEN COSAS. Sin la prueba de profundidad esto
+      // era 0 y el cañon se veia FLOTANDO sobre la montaña que deberia estarlo tapando.
+      if (r.abajo > 0) ok(`volando a ras, el cerro tapa ${r.abajo} de ${r.total} puestos de ladera`);
+      else bad(`a ras del agua no se tapa ninguno de ${r.total}: la prueba de profundidad no rige`);
+      // DESDE ARRIBA NO TAPA NADA, y esta es la mitad que evita el arreglo tramposo: esconderlos
+      // siempre tambien daria cero flotando, y seria mucho peor.
+      if (r.arriba === 0) ok('y por encima de las crestas no se tapa ninguno — se ven todos');
+      else bad(`desde arriba se tapan ${r.arriba}: la oclusion esconde lo que se tiene que ver`);
+    }
+    await js("window.__cfgset('zigzag', 0)");
+  }
+
   console.log('\nconsola:');
   if (!errors.length) ok('sin errores');
   else { bad(`${errors.length} error(es):`); for (const e of errors.slice(0, 8)) console.error('      ' + e); }

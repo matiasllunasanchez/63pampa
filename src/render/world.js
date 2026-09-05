@@ -12,7 +12,7 @@ import { run } from '../core/run.js';
 import { wake, obstacles, soldiers } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { hzWorld, tiltFade } from '../core/horizon.js';
-import { bendW } from '../core/zigzag.js';
+import { bendW, tapadoPorLadera } from '../core/zigzag.js';
 // EL MAR VIVE EN core/sea.js — puro, sin canvas ni stores — porque la colision de las olas tiene
 // que evaluar la MISMA superficie que se dibuja, y un sistema no puede importar del render.
 import { seaH as seaBase, olaBump, climaDe, resaca } from '../core/sea.js';
@@ -1021,6 +1021,18 @@ function hitFlash(sx, sy, k, o, w, h) {
 }
 
 export function drawObstacle(o) {
+  // ⚠ LOS DE LA LADERA SE TAPAN CON EL CERRO (zigzag Z5). Los obstaculos se dibujan DESPUES de las
+  // paredes, o sea siempre encima, y mientras todos vivian adentro del carril eso no se notaba: no
+  // hay roca que los pueda tapar ahi. Un cañon parado ARRIBA del cerro rompe la suposicion —
+  // volando bajo, con una loma mas cerca adelante, se lo veia FLOTANDO sobre la montaña que
+  // deberia estarlo escondiendo.
+  //
+  // Se prueba la linea de vision al MEDIO del objeto y no a sus pies: con los pies, un cañon
+  // asomando media silueta por detras de una loma desaparecia entero, que se ve peor que el error
+  // que se venia a arreglar. Ordenarlo de verdad —meter las laderas en la misma lista por z que
+  // los obstaculos— son 130 columnas por cuadro; esto son doce muestras por antiaereo.
+  if (o.enLadera && tapadoPorLadera(o.x, (o.gy || 0) + (o.h || 3) * 0.5, o.z, run.dist,
+      cam.x, cam.y)) return;
   const k = F / o.z;
   if (o.type === 'mast') {
     // SIN PALO. Durante mucho tiempo esto fue un mastil de 11 a 28 metros con su verga cruzada y

@@ -114,7 +114,7 @@ import * as squad from './systems/squad.js';
 import * as tramos from './systems/tramos.js';
 import * as zigzag from './systems/zigzag.js';
 import * as zigzagCore from './core/zigzag.js';
-import { drawParedes } from './render/paredes.js';
+import { drawParedes, drawTelonTierra } from './render/paredes.js';
 // LAS CHARLAS EN VUELO (docs/sistemas/SPEC_CHARLAS_VUELO.md): dialogo durante la mision jugable.
 // El sistema es dueño de la FASE y nada mas; el que arranca el motor de lineas, el que apaga el
 // HUD y el que corta en la muerte es este archivo — el sistema devuelve señales.
@@ -3091,6 +3091,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         px(ix, HOR - 1, is.w, 2, theme.sky.horizon);
         ctx.globalAlpha = 1;
       }
+      // EL TELON DE TIERRA DEL CALLEJON (zigzag Z6), si hay laderas. Va ACA —despues de las
+      // colinas y ANTES del mar— porque es fondo: el raster del agua le pisa el pie y la juntura
+      // de abajo no hay que fingirla. Las cuatro islas de arriba son un archipielago con mar en
+      // el medio, y adentro de un estrecho eso se lee como que la tierra se CORTA.
+      drawTelonTierra(zfx);
 
       // RELLENO BAJO EL MUNDO, cuando rota (alabeo del momentum, u HORIZONTE GIRATORIO): con el
       // mundo girado la esquina de abajo deja de estar tapada por el borde de la pantalla.
@@ -3759,15 +3764,34 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // es lo mismo que "¿hay una punta?": las puntas son intermitentes por diseño, asi que
       // medirlas en una ventana corta es tirar una moneda. La ladera, en cambio, esta o no esta.
       window.__zzalto = (z, lado) => zigzagCore.paredH(+z, +lado);
+      // LA CARA de la ladera a esa altura, y ¿TAPA la ladera este punto? El segundo es el que
+      // importa: la oclusion de los antiaereos de la loma no se puede comprobar mirando una
+      // captura —hay que saber si el motor cree que se ve o no—. El OJO se puede pasar aparte
+      // para poder preguntar "¿y desde arriba?" sin tener que trepar el avion hasta ahi.
+      window.__zzcara = (z, lado, y) => zigzagCore.paredCara(+z, +lado, +y);
+      // `dv` se puede pisar para poder barrer el callejon ENTERO sin volarlo: la oclusion es
+      // geometria pura, y una prueba que solo mire los 400 m que el fixture alcanza a volar mide
+      // una muestra ridicula de un callejon de kilometros.
+      window.__zztapa = (x, y, z, ey, ex, dv) => zigzagCore.tapadoPorLadera(+x, +y, +z,
+        dv === undefined ? run.dist : +dv,
+        ex === undefined ? cam.x : +ex, ey === undefined ? cam.y : +ey);
       // CENSO DE LOS ANTIAEREOS DE LA LADERA (Z5): cuantos hay arriba y cuantos abajo. Sin esto,
       // "estan en las lomas" solo se puede comprobar mirando una captura y creyendo.
-      window.__zzaa = () => {
+      window.__zzaa = (detalle) => {
         let arriba = 0, agua = 0;
+        const lista = [];
         for (const o of obstacles) {
           if (o.done || (o.type !== 'aa' && o.type !== 'aatruck')) continue;
-          if (o.enLadera) arriba++; else agua++;
+          if (!o.enLadera) { agua++; continue; }
+          arriba++;
+          if (detalle) lista.push({
+            x: +o.x.toFixed(1), gy: +(o.gy || 0).toFixed(1), z: +o.z.toFixed(0),
+            // el alto del CERRO donde esta parado, y si el motor lo da por tapado
+            h: +zigzagCore.paredH(run.dist + o.z, o.x >= 0 ? 1 : -1).toFixed(1),
+            tapa: zigzagCore.tapadoPorLadera(o.x, (o.gy || 0) + (o.h || 3) * 0.5, o.z, run.dist, cam.x, cam.y),
+          });
         }
-        return JSON.stringify({ arriba, agua });
+        return JSON.stringify(detalle ? lista : { arriba, agua });
       };
       // CENSO: cuantos obstaculos vivos quedaron DENTRO de la ladera. Tiene que ser 0 siempre —
       // un obstaculo enterrado en la roca es invisible y mata, la peor combinacion que hay.

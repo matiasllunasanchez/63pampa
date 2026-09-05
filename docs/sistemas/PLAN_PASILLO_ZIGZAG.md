@@ -820,6 +820,50 @@ Las tres piezas que el plan dejaba como opcionales, y ninguna toca el núcleo.
     sembrador no siembra a propósito. Se vuelve a entrar a POR LA PATRIA. Es la enésima vez en este
     ítem que la prueba estaba mal parada, y por eso queda escrito en el propio fixture.
 
+## Z6 — EL TELÓN DE TIERRA, Y EL CERRO QUE TAPA *(construida)*
+
+Dos correcciones de playtest sobre Z5, y las dos son de PERSPECTIVA.
+
+- **EL HORIZONTE SE CIERRA.** Las colinas del fondo de siempre son cuatro islas sueltas con mar
+  entre medio — un archipiélago, que está bien en mar abierto. Adentro del callejón se lee como que
+  la tierra **se corta**: las laderas se van al punto de fuga y ahí, justo en el medio, el horizonte
+  se abre al agua. Un estrecho entre cerros no tiene horizonte de mar adelante: tiene más tierra.
+  El telón es una sierra **continua** cruzando todo el ancho, en dos capas (la de atrás más baja y
+  lavada hacia el cielo), encendida sólo cuando hay laderas y **asomando 900 m antes** — así se
+  ENTRA al callejón en vez de que el callejón aparezca.
+- **EL CERRO TAPA LO QUE TIENE DELANTE.** Los obstáculos se dibujan después de las paredes, o sea
+  siempre encima. Mientras todos vivían adentro del carril eso no se notaba: no hay roca que los
+  pueda tapar ahí. Un cañón parado ARRIBA del cerro rompe la suposición, y volando bajo se lo veía
+  **pintado en el medio de la cara de la montaña**. Ahora se prueba la línea de visión contra la
+  MISMA roca que mata. Medido barriendo el callejón entero: **983 de 1800** puestos quedan tapados
+  desde el agua, **0** desde arriba de las crestas.
+
+### Divergencias de Z6
+
+81. **BUG: estuve midiendo contra un binario que no era el mío.** `src/index.html` carga
+    `game.bundle.js`, y **`npm run zigzag` no reconstruye el bundle** (sí lo hacen `npm start` y
+    `npm run check`). La prueba de oclusión daba **10 de 1800** y el diagnóstico decía que la
+    geometría era marginal; con el bundle al día da **983**. Nada estaba mal salvo el metro. Es la
+    trampa más cara de este ítem porque el fixture CORRE Y PASA sobre código viejo: no falla, miente.
+    **Regla: `npm run build:game` antes de cualquier fixture que mida código recién tocado.**
+82. **Las muestras de la línea de visión iban apiñadas cerca del objeto, por un razonamiento que la
+    prueba desarmó.** Parecía que a un cañón sobre la cresta lo tapaba la loma justo anterior. No es
+    así, y la geometría lo dice sola: un punto sobre la meseta, unos metros más afuera que el filo,
+    **se ve** desde abajo — la visual sale con más pendiente que el talud y nunca lo cruza. Lo que
+    de verdad los tapa son LAS PUNTAS, y ésas pueden estar en cualquier parte de la línea, incluso
+    pegadas a la cámara. Se reparten parejo.
+83. **BUG: mi propia niebla deshacía lo que el telón acababa de tapar.** El velo del pie arrancaba
+    tres píxeles por encima del horizonte y ACLARABA esa franja: la prueba de píxeles contó **51
+    columnas más claras que sin callejón**. Una niebla que destapa no es niebla, es una raya. Empieza
+    en HOR-2.
+84. **Con telón puesto, las laderas ya no se funden hacia el mar.** Lo que hay detrás de la punta
+    lejana de una ladera dejó de ser agua: es la sierra. Fundiendo igual hacia el tono del mar, el
+    cerro se aclaraba y quedaba **recortado contra la masa oscura de atrás** — exactamente el canto
+    que la niebla vino a sacar, corrido de lugar.
+85. **El perfil de la sierra tiene un PISO y no puede llegar a cero.** Si un valle del telón baja
+    hasta el horizonte, ahí mismo reaparece el agujero: una muesca de mar abierto en el medio de un
+    estrecho. La sierra puede tener valles; no puede tener puertas.
+
 ### Lo que queda para el próximo playtest
 
 - El **ritmo**: `ZZ_PUNTA_CADA` 190 m es una punta cada ~2,5 s a velocidad de crucero.
