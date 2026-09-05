@@ -114,7 +114,7 @@ import * as squad from './systems/squad.js';
 import * as tramos from './systems/tramos.js';
 import * as zigzag from './systems/zigzag.js';
 import * as zigzagCore from './core/zigzag.js';
-import { drawParedes, drawTelonTierra } from './render/paredes.js';
+import { drawParedes, drawTelonTierra, techoLadera } from './render/paredes.js';
 // LAS CHARLAS EN VUELO (docs/sistemas/SPEC_CHARLAS_VUELO.md): dialogo durante la mision jugable.
 // El sistema es dueño de la FASE y nada mas; el que arranca el motor de lineas, el que apaga el
 // HUD y el que corta en la muerte es este archivo — el sistema devuelve señales.
@@ -3769,12 +3769,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // captura —hay que saber si el motor cree que se ve o no—. El OJO se puede pasar aparte
       // para poder preguntar "¿y desde arriba?" sin tener que trepar el avion hasta ahi.
       window.__zzcara = (z, lado, y) => zigzagCore.paredCara(+z, +lado, +y);
-      // `dv` se puede pisar para poder barrer el callejon ENTERO sin volarlo: la oclusion es
-      // geometria pura, y una prueba que solo mire los 400 m que el fixture alcanza a volar mide
-      // una muestra ridicula de un callejon de kilometros.
-      window.__zztapa = (x, y, z, ey, ex, dv) => zigzagCore.tapadoPorLadera(+x, +y, +z,
-        dv === undefined ? run.dist : +dv,
-        ex === undefined ? cam.x : +ex, ey === undefined ? cam.y : +ey);
+      // CUANTO LO RECORTA EL CERRO: 0 se ve entero, 1 asoma cortado, 2 no se ve nada. El OJO y la
+      // distancia volada se pueden pisar (`ey`, `dv`) para poder preguntar "¿y desde arriba de las
+      // crestas?" o barrer el callejon entero sin tener que volarlo — sin eso, la unica forma de
+      // comprobar esto es mirar una captura y creerle.
+      window.__zzcorte = (x, gy, alto, z, ey, dv) => {
+        const c = techoLadera(+x, +z, undefined, ey === undefined ? undefined : +ey,
+          dv === undefined ? undefined : +dv);
+        if (c === null) return 0;
+        const k = F / +z, base = HOR + ((ey === undefined ? cam.y : +ey) - +gy) * k;
+        return c >= base ? 0 : c <= base - +alto * k ? 2 : 1;
+      };
       // CENSO DE LOS ANTIAEREOS DE LA LADERA (Z5): cuantos hay arriba y cuantos abajo. Sin esto,
       // "estan en las lomas" solo se puede comprobar mirando una captura y creyendo.
       window.__zzaa = (detalle) => {
@@ -3788,7 +3793,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             x: +o.x.toFixed(1), gy: +(o.gy || 0).toFixed(1), z: +o.z.toFixed(0),
             // el alto del CERRO donde esta parado, y si el motor lo da por tapado
             h: +zigzagCore.paredH(run.dist + o.z, o.x >= 0 ? 1 : -1).toFixed(1),
-            tapa: zigzagCore.tapadoPorLadera(o.x, (o.gy || 0) + (o.h || 3) * 0.5, o.z, run.dist, cam.x, cam.y),
+            corte: window.__zzcorte(o.x, o.gy || 0, o.h || 3, o.z),
           });
         }
         return JSON.stringify(detalle ? lista : { arriba, agua });
