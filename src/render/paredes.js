@@ -199,11 +199,17 @@ export function drawParedes() {
         // superficie horizontal, y desde abajo no se ve: dibujarla igual la proyectaria por encima
         // del horizonte, o sea pintando cielo. Que aparezca al trepar no es un truco: es
         // exactamente lo que pasa cuando subis lo suficiente para ver arriba del cerro.
-        // LAS DOS CRESTAS, no solo esta. El cuadrilatero de la meseta usa la altura de ESTA
-        // columna y la de la anterior; si una esta arriba de la camara y la otra abajo, la
-        // proyeccion cruza el horizonte y el cuadro sale dado vuelta — una cuña enorme y plana
-        // tapando media pantalla. Con las dos abajo, la superficie es coherente.
-        if (cam.y > gy + h && cam.y > gy + prev.h) {
+        // ⚠ LA MESETA NO SE PUEDE SALTEAR NUNCA — SE RECORTA. Exigir que la camara este sobre LAS
+        // DOS crestas del tramo (el intento anterior) evitaba el cuadro dado vuelta, pero a costa
+        // de no dibujar nada en los tramos donde una cresta esta arriba y la otra abajo. Y ahi,
+        // entre la cara del acantilado y la tierra de arriba, quedaba UN AGUJERO por el que se veia
+        // el mar. Era mi propio arreglo el que lo abria.
+        //
+        // La forma correcta de una superficie horizontal que la camara no alcanza a mirar por
+        // encima no es "no dibujarla": es que su borde se va AL HORIZONTE. Asi que se recortan los
+        // cuatro vertices contra HOR y se dibuja siempre que quede area — el tramo de transicion
+        // se llena solo, sin cuñas invertidas y sin huecos.
+        {
           // EL ANCHO DE LA MESETA CRECE CON LA DISTANCIA, y sin eso hay un agujero. Con un ancho
           // FIJO de 200 unidades la meseta tapa de sobra cerca, pero a 180 m su borde exterior cae
           // en la columna 425 de una pantalla de 480: por esas 55 columnas se veia EL MAR pasando
@@ -215,22 +221,42 @@ export function drawParedes() {
           const mesaW = Math.max(ZZ_MESETA_W, (W / 2 + 40) * camZ / F);
           const fueraA = proj(wxc + lado * mesaW, gy + h, camZ);
           const fueraB = proj(prev.wxc + lado * mesaW, gy + prev.h, prev.camZ);
+          // RECORTE AL HORIZONTE: una superficie horizontal nunca se ve por encima de HOR. Con la
+          // camara bajo la cresta, su borde ES el horizonte, y el cuadrilatero se aplasta contra
+          // el en vez de darse vuelta.
+          const yA = Math.max(fueraA.y, HOR), yB = Math.max(fueraB.y, HOR);
+          const tA = Math.max(top.y, HOR), tB = Math.max(prev.top.y, HOR);
           const fM = Math.max(0, 1 - camZ / ZZ_NIEBLA_FULL);
+          // SE DIBUJA SIEMPRE. El recorte contra HOR ya resuelve los tres casos solo: con la camara
+          // por encima de la cresta sale la superficie normal; por debajo, los cuatro vertices caen
+          // en el horizonte y el cuadrilatero queda de area cero (no pinta nada, y la cara tapa);
+          // y en el tramo de TRANSICION —una cresta arriba y otra abajo— sale la cuña que llena el
+          // hueco, que es justamente lo que faltaba.
+          //
+          // ⚠ NADA DE PONERLE UNA CONDICION DE "¿hay altura?" comparando el borde con la cresta:
+          // los dos estan A LA MISMA ALTURA DE MUNDO, asi que su `y` de pantalla es IDENTICA y la
+          // condicion nunca se cumple — la meseta desaparecia entera. El alto del cuadrilatero sale
+          // de la diferencia de PROFUNDIDAD entre las dos columnas, no del ancho hacia afuera.
           ctx.globalAlpha = 1;                                   // opaca, como la ladera
           ctx.fillStyle = mez(mez(T.lejos, T.cerca, Math.min(1, fM * 1.6)), nieblaCol(), niebla);
-          quad(ctx, prev.top.x, prev.top.y, top.x, top.y, fueraA.x, fueraA.y, fueraB.x, fueraB.y);
-          // el FILO del borde, mas claro: es lo que hace legible donde termina la tierra y
-          // empieza el aire — o sea, donde te caes del cerro.
-          ctx.fillStyle = mez(T.borde, nieblaCol(), niebla);
-          ctx.globalAlpha = 0.6 * (1 - niebla * 0.8);
-          const fil = Math.max(1, base.k * 0.8);
-          quad(ctx, prev.top.x, prev.top.y, top.x, top.y,
-            top.x + lado * fil, top.y + fil * 0.3, prev.top.x + lado * fil, prev.top.y + fil * 0.3);
-          // …y encima, el CAMPO: matas y algun arbol. Es lo que le da escala a la meseta.
-          // la vegetacion SI se desvanece con alfa: son motas de un pixel, y una mota tapada por
-          // niebla y una mota que no esta se ven igual. Lo que no puede ser transparente es la
-          // MASA del cerro, que es lo que dejaba ver el cielo por detras.
-          vegetacion(T, wxc, wz, camZ, gy + h, lado, 1 - niebla);
+          quad(ctx, prev.top.x, tB, top.x, tA, fueraA.x, yA, fueraB.x, yB);
+          // EL FILO Y EL CAMPO solo cuando la camara mira POR ENCIMA de esta cresta: son detalles
+          // de la superficie de arriba, y desde abajo esa superficie no se ve. Va como `if` y NO
+          // como `continue` — un `continue` aca se saltearia el dibujo de LA CARA, que es lo unico
+          // que no puede faltar nunca (fue el error de un minuto atras).
+          if (cam.y > gy + h) {
+            // el FILO del borde, mas claro: hace legible donde termina la tierra y empieza el aire
+            ctx.fillStyle = mez(T.borde, nieblaCol(), niebla);
+            ctx.globalAlpha = 0.6 * (1 - niebla * 0.8);
+            const fil = Math.max(1, base.k * 0.8);
+            quad(ctx, prev.top.x, prev.top.y, top.x, top.y,
+              top.x + lado * fil, top.y + fil * 0.3, prev.top.x + lado * fil, prev.top.y + fil * 0.3);
+            // …y encima, el CAMPO: matas y algun arbol. Es lo que le da escala a la meseta.
+            // la vegetacion SI se desvanece con alfa: son motas de un pixel, y una mota tapada por
+            // niebla y una mota que no esta se ven igual. Lo que no puede ser transparente es la
+            // MASA del cerro.
+            vegetacion(T, wxc, wz, camZ, gy + h, lado, 1 - niebla);
+          }
         }
         // FUNDIDO CON LA DISTANCIA: la ladera se pierde en la bruma en vez de terminar en un
         // filo a 260 m. Es el mismo criterio que el `fade` del pasto.

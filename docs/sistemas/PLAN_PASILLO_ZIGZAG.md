@@ -718,6 +718,29 @@ los cuatro momentos (paso 10 del fixture):
     estaba mal calibrado, no el dibujo. Quinta vez en el ítem que conviene desconfiar de la primera
     lectura.
 
+### Del DECIMOTERCER playtest *(el agujero de verdad, y dos errores míos seguidos)*
+
+65. **El agujero estaba ENTRE LA CARA DEL ACANTILADO Y LA TIERRA DE ARRIBA**, y lo había abierto yo
+    en la divergencia 63. Aquella condición —"dibujar la meseta sólo si la cámara está sobre LAS DOS
+    crestas del tramo"— evitaba el cuadro dado vuelta a costa de **no dibujar nada** en los tramos
+    de transición, con una cresta arriba y otra abajo. Ahí quedaba el hueco por donde se veía el mar.
+    **Yo venía arreglando el horizonte y el problema estaba en la juntura.**
+66. **La forma correcta no es saltear: es RECORTAR.** Una superficie horizontal que la cámara no
+    alcanza a mirar por encima no desaparece — su borde se va al horizonte. Se recortan los cuatro
+    vértices contra `HOR` y se dibuja **siempre**: con la cámara sobre la cresta sale la superficie
+    normal, por debajo los cuatro vértices caen en el horizonte y el cuadrilátero queda de área cero
+    (no pinta, y la cara tapa), y en la transición sale la cuña que llena el hueco.
+67. **Dos errores más en el camino, los dos míos y los dos anotados porque son fáciles de repetir.**
+    (a) Puse un `continue` para saltar el filo y la vegetación cuando la cámara está bajo la cresta:
+    eso **también saltaba el dibujo de la cara**, que es lo único que no puede faltar nunca. Va como
+    `if`. (b) Le puse al cuadrilátero una condición de "¿tiene altura?" comparando el borde exterior
+    con la cresta — **están a la misma altura de mundo**, así que su `y` de pantalla es idéntica, la
+    condición nunca se cumplía y la meseta desapareció entera. El alto del cuadrilátero sale de la
+    diferencia de PROFUNDIDAD entre columnas, no del ancho hacia afuera.
+68. **Y el detector de agujeros que escribí no servía**: contaba como agua el terreno lejano, que por
+    diseño se pinta **del color del mar** (divergencia 50). Medir estaba bien; medir con un
+    instrumento que confunde la solución con el problema, no.
+
 ### Lo que queda para el próximo playtest
 
 - El **ritmo**: `ZZ_PUNTA_CADA` 190 m es una punta cada ~2,5 s a velocidad de crucero.
