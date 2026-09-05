@@ -370,12 +370,21 @@ export function paredH(wz, lado) {
   const v = ventana(wz, zz.spec, zz.obj);
   if (v <= 0) return 0;
   const sd = lado > 0 ? 7717 : 1259;
+  // TRES ESCALAS, y la mas larga es la que cambia todo. Con solo las dos cortas los cerros
+  // quedaban todos entre 12 y 29 m: variaban, pero como se ven quince bandas a la vez el ojo
+  // promedia y la sierra se lee PAREJA. El MACIZO —una onda de ~220 m— hace que haya tramos de
+  // lomas bajas y despues una mole: eso es lo que se lee como paisaje irregular y no como una
+  // pared con dientes.
+  const B2 = ZZ_PARED_BANDA * 4;
+  const b2 = Math.floor(wz / B2), u2 = wz / B2 - b2;
+  const m0 = hash1(b2 * 17 + sd + 101), m1 = hash1((b2 + 1) * 17 + sd + 101);
+  const macizo = 0.5 + (m0 + (m1 - m0) * suave(u2)) * 0.85;   // 0.50 .. 1.35
   const b = Math.floor(wz / ZZ_PARED_BANDA);
   const u = wz / ZZ_PARED_BANDA - b;
   const a = hash1(b * 31 + sd), c = hash1((b + 1) * 31 + sd);
   const cerro = a + (c - a) * suave(u);                       // la loma, continua entre bandas
   const filo = (hash1(Math.floor(wz / 7) * 13 + sd) - 0.5) * 0.22;   // el detalle que la quiebra
-  return ZZ_PARED_H * p.alto * v * Math.max(0.25, 0.55 + cerro * 0.45 + filo);
+  return ZZ_PARED_H * p.alto * v * macizo * Math.max(0.3, 0.72 + cerro * 0.4 + filo);
 }
 
 /** ¿ESTE PUNTO ESTA ADENTRO DE LA ROCA? `x` en el marco del carril, `y` en metros, `wz` la

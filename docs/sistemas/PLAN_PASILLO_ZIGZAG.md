@@ -651,6 +651,20 @@ los cuatro momentos (paso 10 del fixture):
     resolvieron **muestreando píxeles del canvas** (`getImageData`) y comparándolos con los valores
     que el código creía estar usando.
 
+### Del NOVENO playtest *(el paisaje, antes de Z5)*
+
+53. **Los cerros eran todos parecidos, y el problema no era el rango sino la ESCALA.** Con dos
+    escalas de ruido (55 m y 7 m) las alturas ya variaban entre 12 y 29 m — pero como se ven quince
+    bandas a la vez, el ojo promedia y la sierra se lee pareja. Se sumó una tercera escala, **el
+    MACIZO** (~220 m): ahora hay tramos largos de lomas bajas y después una mole. Medido sobre 20 km:
+    **de 9 a 40 m**, con estructura, no con dientes.
+54. **La cara se texturó en vez de modelarse**, que fue la propuesta del autor y es la correcta para
+    este motor: *"quizá texturas directamente en vez de algo realmente con cuerpo"*. Tres franjas
+    planas dan volumen pero no dan MATERIA — la ladera se leía como cartulina doblada. Ahora lleva
+    **manchones** de tierra más clara y más oscura, deterministas por banda de 9 m, que al volar
+    pasan como vetas y afloramientos. Modelar relieve real habría sido más caro **y se habría visto
+    peor**.
+
 ### Lo que queda para el próximo playtest
 
 - El **ritmo**: `ZZ_PUNTA_CADA` 190 m es una punta cada ~2,5 s a velocidad de crucero.

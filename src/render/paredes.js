@@ -255,15 +255,28 @@ export function drawParedes() {
             x0, prev.base.y + (prev.top.y - prev.base.y) * b, x1, base.y + (top.y - base.y) * b,
             x1, base.y + (top.y - base.y) * a, x0, prev.base.y + (prev.top.y - prev.base.y) * a);
         }
-        // VETAS: una linea oscura a media ladera, a altura despareja por banda. Es lo mismo que le
-        // da grano a los acantilados sueltos (`drawObstacle` con 'cliff'), y es lo que le pone
-        // ESCALA a la roca — sin una marca horizontal, un cerro de 26 m y uno de 60 se ven igual.
-        const vy = 0.30 + tinte * 0.4;
-        ctx.globalAlpha = aBase * 0.35 * (1 - niebla);
-        ctx.fillStyle = L.veta;
-        const vh = Math.max(1, base.k * 0.5);
-        quad(ctx, x0, prev.base.y + (prev.top.y - prev.base.y) * vy, x1, base.y + (top.y - base.y) * vy,
-          x1, base.y + (top.y - base.y) * vy + vh, x0, prev.base.y + (prev.top.y - prev.base.y) * vy + vh);
+        // LA TEXTURA DE LA CARA. Tres franjas planas dan volumen pero no dan MATERIA: la ladera se
+        // leia como cartulina doblada. En vez de modelar relieve de verdad —que en este motor
+        // seria caro y ademas se veria peor— se pinta TEXTURA: manchones de tierra mas clara y mas
+        // oscura repartidos por la cara, deterministas por banda de mundo.
+        //
+        // No son ruido: cada manchon abarca una banda de ~9 m a lo largo del camino, asi que al
+        // volar se ven pasar como vetas y afloramientos, y le dan ESCALA al cerro — sin una marca
+        // asi, uno de 10 m y uno de 40 se ven exactamente igual.
+        const bandaT = Math.floor(wz / 9);
+        const alfaT = aBase * (1 - niebla);
+        for (let m = 0; m < 3; m++) {
+          const hm = hash2(bandaT, m * 271 + (lado > 0 ? 61 : 17));
+          if (hm < 0.42) continue;                              // la cara no se cubre entera
+          const y0 = 0.08 + hash2(bandaT, m * 271 + 7) * 0.72;
+          const y1 = Math.min(1, y0 + 0.07 + hm * 0.15);
+          const claro = hash2(bandaT, m * 271 + 33) > 0.55;
+          ctx.globalAlpha = alfaT * (claro ? 0.22 : 0.3);
+          ctx.fillStyle = claro ? L.luz : L.veta;
+          quad(ctx,
+            x0, prev.base.y + (prev.top.y - prev.base.y) * y1, x1, base.y + (top.y - base.y) * y1,
+            x1, base.y + (top.y - base.y) * y0, x0, prev.base.y + (prev.top.y - prev.base.y) * y0);
+        }
         // CORONA de turba sobre la cresta
         const gr = Math.max(1, base.k * 0.7);
         ctx.globalAlpha = aBase;
