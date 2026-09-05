@@ -25,6 +25,7 @@ import { armar, enVentana, finDe, parteEn, fParte as fParteDe, rampa } from '../
 import { CINES } from '../data/cines.js';
 import { startMove, movesSystem } from './moves.js';
 import { stepVuelo, estelaVuelo } from './vuelo.js';
+import * as teatro from './teatro.js';
 import { CINE_VUELO } from '../data/cines.js';
 import { beep, boom, sfxOne, engineFly } from './audio.js';
 
@@ -229,6 +230,11 @@ function aplicar(b, sig) {
   // en cooldown o el avion ya viene en una maniobra, startMove dice que no y la cinematica sigue:
   // una cinematica nunca puede trabar el juego.
   if (b.move && (!b.who || b.who === 'player')) startMove(b.move, b.dir);
+  // ---- EL TEATRO AEREO (PLAN_TEATRO_AEREO TA3): la coreografia como DATO. El beat describe la
+  // escena y quien la monta es `systems/teatro.js`, que ya sabe hacerla — el director no
+  // reimplementa nada, y por eso el verbo es una linea. Nada de lo que monta entra en las cinco
+  // listas de core/world.js, asi que una timeline no puede lastimar al jugador por accidente.
+  if (b.teatro) teatro.escena(b.teatro === true ? {} : b.teatro);
 
   if (b.fx) {
     if (b.fx.boom !== undefined) boom(b.fx.boom);

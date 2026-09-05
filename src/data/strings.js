@@ -143,7 +143,7 @@ export const STRINGS = {
     campSecContinue: 'CONTINUAR', campSecNew: 'NUEVA PARTIDA',
     campContinue: 'PARTIDAS GUARDADAS',
     campContinueDesc: 'RETOMAR DONDE LA DEJASTE',
-    campC1Desc: 'CAMPANA 1 — MAYO DE 1982',
+    campC1Desc: 'Mayo 1982',
     campC2Desc: 'CAMPANA 2',
     campSoon: 'PROXIMAMENTE',
     thr: 'GAS', thr_dead: 'SIN GAS',

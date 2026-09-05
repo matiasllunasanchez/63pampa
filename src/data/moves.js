@@ -181,6 +181,11 @@ export const MV_VISTAS = [
     setup: (a, mv) => { a.patria(); a.luego(1.4, g => { g.sonda('pasilloLimpio'); g.sonda('mvactor', mv); }); },
   },
   {
+    id: 'esquiva', titulo: 'ESQUIVANDO',
+    desc: 'Le tiran, la usa para esquivar y contesta al salir (EL TEATRO AEREO)',
+    setup: (a, mv) => { a.patria(); a.luego(1.4, g => { g.sonda('pasilloLimpio'); g.sonda('teatro', mv); }); },
+  },
+  {
     id: 'cine', titulo: 'COMO CINEMATICA',
     desc: 'La misma maniobra filmada: bandas negras y el mundo en camara lenta',
     setup: (a, mv) => { a.patria(); a.luego(1.4, g => { g.sonda('pasilloLimpio'); g.sonda('mvfilm', mv); }); },

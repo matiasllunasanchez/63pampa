@@ -1582,6 +1582,58 @@ test('zigzag: TODAS las misiones de la campaña traen data sana', async () => {
     assert.equal(e.length, 0, `la mision ${m.id} tiene el zigzag mal: ${e.join(' · ')}`);
   }
 });
+
+// ================= LOS SOLDADOS HORNEADOS (PLAN_HORNEADO B7) =================
+// El soldado dejo de venir de una lamina generada por IA y sale del horno, con la misma luz que
+// todo lo demas. Lo que estas pruebas cuidan NO es el arte —eso se mira— sino el ENCUADRE: la hoja
+// se ancla por la CELDA (todas las poses comparten camara y linea de suelo) en vez de por trece
+// cajas medidas a mano, y ese contrato esta escrito en DOS archivos que nadie obliga a coincidir.
+
+const numDe = (src, nombre) => {
+  const m = src.match(new RegExp(`${nombre}\\s*=\\s*(-?[0-9.]+)`));
+  assert.ok(m, `no se encontro '${nombre}'`);
+  return parseFloat(m[1]);
+};
+
+test('soldados: el encuadre del horno y el del render son EL MISMO', () => {
+  // SI ESTOS NUMEROS DIVERGEN NO HAY ERROR DE RUNTIME: el soldado simplemente queda flotando sobre
+  // el pasto o enterrado hasta las rodillas, y eso se descubre mirando una captura meses despues.
+  // Es el mismo tipo de bug que el autobox de B0 vino a matar para los enemigos; aca la hoja no
+  // lleva cajas, asi que lo que hay que custodiar es el acuerdo entre el horneador y el dibujante.
+  const horno = readFileSync(new URL('../tools/bake_soldiers.html', import.meta.url), 'utf8');
+  const render = readFileSync(new URL('../src/render/soldiers.js', import.meta.url), 'utf8');
+  for (const n of ['FW', 'FH', 'WU', 'PASOS']) {
+    assert.equal(numDe(render, n), numDe(horno, n), `'${n}' no coincide entre el horno y el render`);
+  }
+  // el suelo se declara derivado en el horno (FH - 3) y literal en el render: se compara el valor
+  assert.equal(numDe(render, 'SUELO'), numDe(horno, 'FH') - 4, 'la linea de suelo dejo de coincidir');
+});
+
+test('soldados: la hoja horneada tiene la grilla que el render espera', () => {
+  // Lee el IHDR del PNG (ancho y alto, big endian en los bytes 16..24) sin decodificar la imagen.
+  // Si alguien re-hornea con otra grilla —una pose mas, otro tamaño de celda— el render seguiria
+  // recortando en las coordenadas viejas y sacaria medio soldado de cada celda.
+  // El modulo NO se importa: crea un `Image()`, que en node no existe. Se leen sus constantes del
+  // texto, que es lo mismo que hace la prueba de arriba y no obliga a meter un DOM falso.
+  const render = readFileSync(new URL('../src/render/soldiers.js', import.meta.url), 'utf8');
+  const FW = numDe(render, 'FW'), FH = numDe(render, 'FH');
+  const PASOS = numDe(render, 'PASOS'), BERGEN = numDe(render, 'FILA_BERGEN');
+  const png = readFileSync(new URL('../assets/world/soldats/soldados.png', import.meta.url));
+  const w = png.readUInt32BE(16), h = png.readUInt32BE(20);
+  assert.equal(w, (PASOS + 1) * FW, 'la hoja no tiene las columnas que el render recorta');
+  assert.equal(h, (BERGEN + 1) * FH, 'la hoja no tiene las dos filas de equipo');
+});
+
+test('soldados: el que desembarca lleva bergen y el de guarnicion no', () => {
+  // La fila de la hoja la elige `sd.bergen`, que pone systems/spawn.js. Si el dato deja de nacer,
+  // el juego dibuja siempre la fila 0 y las dos filas horneadas se vuelven una sola — arte muerto
+  // a medias, que es peor que arte muerto entero porque nadie lo nota.
+  const spawn = readFileSync(new URL('../src/systems/spawn.js', import.meta.url), 'utf8');
+  assert.ok(/bergen:\s*!!coast/.test(spawn), 'los soldados dejaron de declarar su equipo');
+  const game = readFileSync(new URL('../src/game.js', import.meta.url), 'utf8');
+  assert.ok(game.includes('sd.bergen'), 'el render de soldados dejo de mirar el equipo');
+});
+
 import { alfaCielo } from '../src/systems/fog.js';
 
 test('niebla: sin callejon, el cielo es EXACTAMENTE el de siempre', () => {

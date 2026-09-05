@@ -1,4 +1,27 @@
-const SRC = '../assets/world/soldats/englishsoldatv2.png';
+// LOS SOLDADOS — la hoja horneada de la infanteria de tierra (PLAN_HORNEADO B7).
+//
+// DE DONDE VIENE. Hasta esta etapa los soldados eran el UNICO habitante del juego generado por IA
+// (`englishsoldatv2.png`, una lamina de ~128 px por fila con las animaciones rotuladas en verde), y
+// por lo tanto el unico iluminado por otro sol que el resto del mundo. Ahora sale del horno
+// (`tools/bake_soldiers.html` + `tools/models/soldiers.js`, `npm run soldados`) con los mismos tres
+// focos que los enemigos, los aviones y la municion.
+//
+// ============================ EL ANCLAJE ES LA CELDA ============================
+// Esto es lo que mas cambio, y no es un detalle de implementacion. La lamina vieja traia cada pose
+// en un rectangulo distinto —seis frames de carrera de 55 a 68 px de ancho y un cuerpo a tierra de
+// 113x92—, asi que este archivo guardaba TRECE numeros medidos a mano sobre el alfa, con la nota
+// "si se cambia la hoja hay que volver a medirlas". Trece numeros que ninguna prueba custodiaba y
+// que dependian de que alguien se acordara.
+//
+// La hoja horneada no los necesita: todas las poses salen de la MISMA camara, asi que la celda es
+// una ventana fija al mundo —`WU` unidades de lado— con el suelo siempre en la misma fila. Dibujar
+// es una sola cuenta: la celda entera, escalada por `k`, apoyada por su linea de suelo. El soldado
+// corriendo y el tendido comparten el piso por construccion, no porque dos cajas coincidan.
+//
+// LOS DOS NUMEROS DE ABAJO SON EL CONTRATO con tools/bake_soldiers.html, que los declara igual.
+// Hay una prueba en `npm run unit` que los compara: si el horneador cambia el encuadre y esto no,
+// el soldado flota o se entierra y no hay error de runtime que lo delate.
+const SRC = '../assets/world/soldats/soldados.png';
 
 export const sheet = new Image();
 sheet.src = SRC;
@@ -7,56 +30,45 @@ sheet.src = SRC;
  *  Las dos cosas ya fallaron una vez. `complete && naturalWidth` no depende de ninguna. */
 export const isReady = () => sheet.complete && sheet.naturalWidth > 0;
 
-// La hoja v2 es una GRILLA de ~128 px por fila, con las animaciones rotuladas en verde y en
-// PERFIL MIRANDO A LA IZQUIERDA — que es justo hacia donde huyen del avion. La v1 era una vista
-// de espaldas: se veia el ciclo de carrera pero no el rumbo.
-//
-// Las cajas NO estan puestas a ojo: se midieron sobre el alfa (bandas vacias entre filas,
-// columnas vacias entre frames). Si se cambia la hoja hay que volver a medirlas.
+export const FW = 24, FH = 24;      // lado de la celda, en pixeles de la hoja
+export const WU = 2.9;              // lo que mide esa celda en unidades de MUNDO
+export const SUELO = 20;            // fila del piso dentro de la celda
+export const PASOS = 6;             // columnas del ciclo de carrera; la 6 es el cuerpo a tierra
+export const COL_TIERRA = PASOS;
+/** Filas: 0 = guarnicion (mochila chica) · 1 = desembarco (bergen). La UNICA diferencia entre las
+ *  dos es la silueta de la espalda, y alcanza: a 12 px no se lee otra cosa. */
+export const FILA_BERGEN = 1;
 
-// "Running" — fila y=128, mitad derecha. 6 frames corriendo hacia la IZQUIERDA.
-// El alto se fija en 96 desde y=160 para TODOS: el frame 0 trae encima la etiqueta verde de la
-// animacion, y su caja natural (y=144, h=112) la incluiria.
-export const RUN_LEFT = [
-  { x: 474, y: 160, w: 59, h: 96 },
-  { x: 558, y: 162, w: 58, h: 94 },
-  { x: 623, y: 160, w: 67, h: 96 },
-  { x: 701, y: 160, w: 62, h: 96 },
-  { x: 776, y: 160, w: 68, h: 96 },
-  { x: 857, y: 160, w: 55, h: 96 },
-];
-// "Going prone" — fila y=512, mitad derecha, primer frame: el cuerpo ya tendido.
-export const PRONE = { x: 465, y: 568, w: 113, h: 92 };
-
-// SUAVIZADO al achicar. La hoja viene a ~96 px de alto y en juego el soldado mide 8-20: es una
-// reduccion de 5x-10x. Con nearest-neighbour se caen filas enteras y el soldado TITILA al cambiar
-// de frame (cada frame pierde pixeles distintos). Con suavizado la silueta queda estable, que a
-// este tamaño importa mas que la nitidez — no hay detalle que preservar.
+// SUAVIZADO al achicar. La celda viene a 24 px y en juego el soldado mide 8-20: es una reduccion
+// de 1.2x-3x. Con nearest-neighbour se caen filas enteras y el soldado TITILA al cambiar de frame
+// (cada frame pierde pixeles distintos). Con suavizado la silueta queda estable, que a este tamaño
+// importa mas que la nitidez — no hay detalle que preservar.
 export const SMOOTH = true;
 
-// Los frames de la hoja miran a la DERECHA, asi que se espejan cuando el soldado va hacia la
-// izquierda — que es siempre, porque huyen del avion. (Se deja la condicion y no un espejo fijo:
-// si algun dia un soldado corre hacia la derecha, sale bien solo.)
-const flipIf = (ctx, x, dir) => { if (dir < 0) { ctx.translate(x, 0); ctx.scale(-1, 1); ctx.translate(-x, 0); } };
+// Los frames se hornean mirando a la IZQUIERDA, que es hacia donde huyen SIEMPRE (`dir: -1` en
+// systems/spawn.js: con direccion al azar algunos corrian hacia la camara y se leia como si
+// cargaran contra el avion). Asi que el caso normal NO espeja nada — al reves de la lamina vieja,
+// que venia mirando a la derecha y se espejaba en todos los cuadros de todas las partidas.
+const flipIf = (ctx, x, dir) => { if (dir > 0) { ctx.translate(x, 0); ctx.scale(-1, 1); ctx.translate(-x, 0); } };
 
-/** Soldado corriendo, de perfil hacia donde indica `dir`. `ph` es la fase del ciclo. */
-export function drawRunBack(ctx, x, y, k, ph, dir) {
-  const f = RUN_LEFT[((ph | 0) % RUN_LEFT.length + RUN_LEFT.length) % RUN_LEFT.length];
-  const h = Math.max(4, k * 2.05), w = h * f.w / f.h;
+/** LA CUENTA UNICA: pinta la celda (col, fila) apoyada por su linea de suelo en (x, y). */
+function celda(ctx, col, fila, x, y, k, dir) {
+  const s = Math.max(5, k * WU);
   ctx.save();
   ctx.imageSmoothingEnabled = SMOOTH;
   flipIf(ctx, x, dir);
-  ctx.drawImage(sheet, f.x, f.y, f.w, f.h, Math.round(x - w / 2), Math.round(y - h), Math.round(w), Math.round(h));
+  ctx.drawImage(sheet, col * FW, fila * FH, FW, FH,
+    Math.round(x - s / 2), Math.round(y - s * (SUELO + 1) / FH), Math.round(s), Math.round(s));
   ctx.restore();
 }
 
+/** Soldado corriendo, de perfil hacia donde indica `dir`. `ph` es la fase del ciclo. */
+export function drawRunBack(ctx, x, y, k, ph, dir, bergen) {
+  const col = ((ph | 0) % PASOS + PASOS) % PASOS;
+  celda(ctx, col, bergen ? FILA_BERGEN : 0, x, y, k, dir);
+}
+
 /** Soldado cuerpo a tierra. */
-export function drawProne(ctx, x, y, k, dir) {
-  const f = PRONE;
-  const h = Math.max(2, k * 0.95), w = h * f.w / f.h;
-  ctx.save();
-  ctx.imageSmoothingEnabled = SMOOTH;
-  flipIf(ctx, x, dir);
-  ctx.drawImage(sheet, f.x, f.y, f.w, f.h, Math.round(x - w / 2), Math.round(y - h), Math.round(w), Math.round(h));
-  ctx.restore();
+export function drawProne(ctx, x, y, k, dir, bergen) {
+  celda(ctx, COL_TIERRA, bergen ? FILA_BERGEN : 0, x, y, k, dir);
 }

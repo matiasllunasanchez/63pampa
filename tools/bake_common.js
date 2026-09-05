@@ -303,5 +303,54 @@
     }
   }
 
-  root.BAKE = { PAL, renderer, escena, camara, kit, modelos, familia, medir, medirLote, simetrizaCentro };
+  // ============================ EL CONTORNO ============================
+  /** UN FILO DE 1 px ALREDEDOR DEL CONTENIDO: CLARO arriba y a la izquierda, OSCURO abajo y a la
+   *  derecha. Es lo unico que hace que una figura chica se despegue de un fondo del MISMO TONO.
+   *
+   *  POR QUE ESTA CAPACIDAD EXISTE, con el caso que la pidio. El soldado horneado se ve perfecto
+   *  sobre la arena, sobre el mar y sobre la nieve, y DESAPARECE sobre la turba del atardecer
+   *  (#4a5138): las dos cosas son verde oliva oscuro, y a 12 px de alto la silueta se funde. Es la
+   *  misma leccion que ya dejaron la bomba en verde oliva real, el humo gris casco sobre el mar
+   *  gris y los restos de B1 quemados de mas — **lo veridico no sirve si desaparece**— solo que
+   *  esta vez el problema no es el color del modelo sino que NO HAY color de modelo que sirva: el
+   *  soldado tiene que estar sobre turba, sobre arena y sobre nieve en la misma partida.
+   *
+   *  La solucion no la invento el horno: la tenia el dibujo a mano de `render/world.js`, que llego
+   *  a ella por el mismo camino ("al oscurecer el uniforme el bloque y el cuerpo se fundian en una
+   *  mancha"). Un contorno de UN solo tono falla contra la mitad de los fondos; con los dos, contra
+   *  ninguno — el filo claro salva los fondos oscuros y el oscuro salva los claros, y siempre hay
+   *  uno de los dos peleando.
+   *
+   *  VA EN EL HORNO Y NO EN EL RENDER, aunque el problema sea del fondo, porque el filo no depende
+   *  del fondo: depende de la SILUETA, que es lo unico que el horno sabe y el render no. Hacerlo en
+   *  el juego seria redibujar el sprite cuatro veces por soldado por cuadro para sacar un dato que
+   *  no cambia nunca.
+   *
+   *  El filo COME 1 px de margen, asi que el encuadre tiene que dejar 3 (la regla 5 pide 2 de aire
+   *  DESPUES del contorno). Se aplica celda por celda para que no se derrame entre frames vecinos. */
+  function contorno(g, canvas, fw, fh, claro, oscuro) {
+    const hex = c => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
+    const L = hex(claro), O = hex(oscuro);
+    for (let cy = 0; cy * fh < canvas.height; cy++) {
+      for (let cx = 0; cx * fw < canvas.width; cx++) {
+        const im = g.getImageData(cx * fw, cy * fh, fw, fh), d = im.data;
+        const op = (x, y) => x >= 0 && y >= 0 && x < fw && y < fh && d[(y * fw + x) * 4 + 3] > 8;
+        const orig = d.slice();
+        const opO = (x, y) => x >= 0 && y >= 0 && x < fw && y < fh && orig[(y * fw + x) * 4 + 3] > 8;
+        for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) {
+          if (op(x, y)) continue;
+          // el orden importa: si el cuerpo esta ABAJO o a la DERECHA, este pixel vacio es el borde
+          // de arriba/izquierda — el lado del sol — y va claro. Si no, es el lado en sombra.
+          const c = (opO(x, y + 1) || opO(x + 1, y)) ? L
+            : (opO(x, y - 1) || opO(x - 1, y)) ? O : null;
+          if (!c) continue;
+          const i = (y * fw + x) * 4;
+          d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+        }
+        g.putImageData(im, cx * fw, cy * fh);
+      }
+    }
+  }
+
+  root.BAKE = { PAL, renderer, escena, camara, kit, modelos, familia, medir, medirLote, simetrizaCentro, contorno };
 })(window);

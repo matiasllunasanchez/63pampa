@@ -33,6 +33,12 @@ const ONLY = (process.env.MV_ONLY || '').split(',').filter(Boolean);
 // Se escribe aca y no se lee del modulo porque el fixture corre en node y el catalogo es del
 // bundle; si cambian alla, lo unico que pasa es que este margen queda holgado.
 const WINGMV_T = 1.5 + 1.4;   // ENTRA_ATRAS (la mas larga) + SALE
+// LA BANDA DE LA ESQUIVADA (TEATRO AEREO TA1), en unidades de MUNDO. Debajo de TA_CERCA el tiro le
+// paso por encima y la esquivada no ocurrio; por arriba de TA_LEJOS nadie le apunto y no se lee.
+// Se escriben aca —y no se leen de data/teatro.js— por el mismo motivo que WINGMV_T: el fixture
+// corre en node y el catalogo es del bundle. Es una VARA, no una copia: si el sistema cambia sus
+// numeros, esto sigue preguntando lo mismo.
+const TA_CERCA = 3.5, TA_LEJOS = 40;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
 let win, fails = 0;
@@ -317,6 +323,167 @@ app.whenReady().then(async () => {
     }
     if (!mal) ok(`sin decir lado entra por ATRAS y sobrepasa: z ${zs[0]} → ${Math.max(...zs).toFixed(0)} (el jugador esta en ${PZ}), por el hombro ${xs[0] > 0 ? 'derecho' : 'izquierdo'}`);
     await shot('act_sobrepaso');
+  }
+
+  // ---------- 4. LA VALLA: el TEATRO AEREO no puede lastimar a nadie ----------
+  // (docs/sistemas/PLAN_TEATRO_AEREO.md, TA0.)
+  //
+  // La promesa del teatro no es "el daño esta en cero": es que **no hay codigo de daño**, porque
+  // nada del teatro entra en las cinco listas de core/world.js —los cinco contratos de daño del
+  // juego—. Eso no se prueba leyendo una bandera adentro: se prueba CONTANDO desde afuera.
+  //
+  // LA MEDICION ES ATOMICA, y es la unica forma en que sirve. Se lee, se hace el acto del teatro y
+  // se vuelve a leer DENTRO DE UNA SOLA EVALUACION de JavaScript: el bucle del juego no corre entre
+  // dos sentencias, asi que el delta es del acto y de nada mas. Medido con un sleep en el medio, lo
+  // que se mide es el sembrador del pasillo y el puntaje que sube solo con la distancia — el primer
+  // intento afirmaba `missiles === 0` y `score === 0` y fallaba por eso, midiendo el juego en vez
+  // del teatro.
+  console.log('\n4. la valla del TEATRO AEREO (TA0):');
+  {
+    await js('window.__mvreset()');
+    gas(); await limpiar();
+    // el delta de las cinco listas + lo que se acredita, alrededor de un acto del teatro
+    const valla = async actos => JSON.parse(await js(`String((() => {
+      const a = JSON.parse(window.__listas());
+      ${actos}
+      const b = JSON.parse(window.__listas());
+      const d = {}; for (const k in a) d[k] = b[k] - a[k];
+      return JSON.stringify(d);
+    })())`));
+    let mal = 0;
+    const falla = m => { bad('valla: ' + m); mal++; };
+    const sucio = (d, que) => {
+      const ks = Object.keys(d).filter(k => d[k] !== 0);
+      if (ks.length) falla(`${que} movio ${ks.map(k => k + ' ' + (d[k] > 0 ? '+' : '') + d[k]).join(', ')} — el teatro toco algo del JUEGO`);
+    };
+
+    sucio(await valla(`
+      window.__mvblanco(null, 'der');
+      window.__teatrotiro({ x: 14, y: 24, z: 60, vz: -120 });
+      window.__teatrotiro({ x: -14, y: 22, z: 60, vz: -110, tipo: 'misil' });
+      window.__mvactor('barrel');
+    `), 'montar la escena entera (blanco + 2 tiros + Fiel)');
+
+    let vivos = 0, tirosVistos = 0, blancoVisto = false, estadoMalo = null, medioHecho = false;
+    for (let t0 = Date.now(); Date.now() - t0 < 8000;) {
+      gas(); await limpiar();
+      const A = JSON.parse(await js('String(window.__mvactordbg())'));
+      const T = JSON.parse(await js('String(window.__teatrodbg())'));
+      if (A.some(a => a.bando === 'blanco')) blancoVisto = true;
+      tirosVistos = Math.max(tirosVistos, T.length);
+      if (A.some(a => a.pj.mv)) falla('un actor le metio una maniobra AL JUGADOR');
+      const st = await estado();
+      if (st !== 'play') { estadoMalo = st; break; }
+      // …y OTRA VEZ EN EL MEDIO de la escena: que el primer cuadro este limpio no dice nada de los
+      // que siguen. Un tiro que se registrara al morir, o un blanco que se anotara al llegar a su
+      // marca, se veria aca y no arriba.
+      if (!medioHecho && T.length) {
+        medioHecho = true;
+        sucio(await valla(`window.__teatrotiro({ x: 0, y: 26, z: 70, vz: -140 });`), 'tirar en medio de la escena');
+      }
+      vivos = A.length + T.length;
+      if (!vivos) break;
+      await sleep(80);
+    }
+    if (estadoMalo) falla(`el juego se fue de 'play' a '${estadoMalo}': el teatro no puede terminar nada`);
+    if (!blancoVisto) falla('el BLANCO no llego a verse en escena');
+    if (!tirosVistos) falla('los tiros de utileria no llegaron a verse');
+    if (!medioHecho) falla('no se llego a medir la valla en el medio de la escena');
+    if (vivos) falla(`quedaron ${vivos} en escena: los topes duros de vida no se cumplieron`);
+
+    if (!mal) ok(`la escena entera no toco ninguna de las 5 listas del juego, no acredito nada y se fue sola · ${tirosVistos} tiros vistos a la vez`);
+    await shot('valla');
+  }
+
+  // ---------- 5. LA ESQUIVADA Y EL DERRIBO (TA1 · TA2) ----------
+  //
+  // LA REGLA de TA1: el tiro apunta a donde el Fiel YA NO VA A ESTAR. Eso no se afirma leyendo el
+  // codigo que apunta —seria preguntarle a la respuesta— sino **midiendo la distancia minima entre
+  // cada tiro y el Fiel, cuadro a cuadro**, y exigiendo que caiga en una BANDA:
+  //   · demasiado cerca  → es un impacto: la esquivada no ocurrio y el tiro lo atraveso
+  //   · demasiado lejos  → nadie le apunto: no se lee como esquivada, se lee como ruido de fondo
+  // Un numero, no una impresion. Y de paso: los tiros del BLANCO no pueden matar (`mata` en false),
+  // asi que ni siquiera existe el codigo con el que podrian.
+  console.log('\n5. la esquivada y el derribo (TA1 · TA2):');
+  for (const mv of ['tonel', 'barrel', 'breakt', 'splits']) {
+    await js('window.__mvreset()');
+    gas(); await limpiar();
+    const r = JSON.parse(await js(`String(window.__teatro(${JSON.stringify(mv)}))`));
+    let mal = 0;
+    const falla = m => { bad(`esquiva ${mv}: ${m}`); mal++; };
+    if (r.error) { falla(r.error); continue; }
+
+    let dMin = 1e9, lecturas = 0, huboBlanco = false, mvVisto = false;
+    let derribo = false, matadores = 0, tocoAlJugador = null, marca = { tiroBlanco: 0, tiroFiel: 0 };
+    for (let t0 = Date.now(); Date.now() - t0 < 11000;) {
+      gas(); await limpiar();
+      const A = JSON.parse(await js('String(window.__mvactordbg())'));
+      const T = JSON.parse(await js('String(window.__teatrodbg())'));
+      const fiel = A.find(a => a.bando === 'fiel');
+      if (A.some(a => a.bando === 'blanco')) huboBlanco = true;
+      if (fiel && fiel.mv === mv) mvVisto = true;
+      if (A.some(a => a.pj.mv)) tocoAlJugador = true;
+      for (const t of T) {
+        if (t.de !== 'blanco') continue;
+        if (t.mata) matadores++;
+        lecturas++;
+        // la distancia se mide contra el FIEL, que es a quien supuestamente le estan tirando
+        if (fiel) dMin = Math.min(dMin, Math.hypot(t.x - fiel.x, t.y - fiel.y, t.z - fiel.z));
+      }
+      // EL DERRIBO se lee del marcador del teatro y no de "el blanco ya no esta": un blanco que se
+      // va solo cuando se le acaba el crucero desaparece igual, y con esa vara la asercion se
+      // cumplia sola. Se descubrio mirando una traza: el misil erraba y el fixture decia que si.
+      // LOS CONTEOS SALEN DEL MARCADOR y no de las muestras: un tiro rapido que acierta vive menos
+      // que un cuadro, y muestreando se cuenta el reloj del que mira. La DISTANCIA si se muestrea,
+      // porque es lo unico que solo existe cuadro a cuadro.
+      marca = JSON.parse(await js('String(window.__teatromarca())'));
+      if (marca.derribos) derribo = true;
+      if (!A.length && !T.length) break;
+      await sleep(70);
+    }
+    if (!huboBlanco) falla('el blanco no llego a escena');
+    if (!mvVisto) falla('el Fiel no llego a volar la pirueta');
+    if (!marca.tiroBlanco) falla('el blanco NO TIRO: sin tiro no hay esquivada que mirar');
+    if (matadores) falla(`${matadores} tiros del blanco venian marcados como capaces de matar`);
+    if (tocoAlJugador) falla('un actor le metio una maniobra AL JUGADOR');
+    if (!lecturas) falla('los tiros del blanco no llegaron a verse en ninguna muestra');
+    else if (dMin < TA_CERCA) falla(`el tiro le paso a ${dMin.toFixed(1)} (minimo ${TA_CERCA}): eso es un impacto, no una esquivada`);
+    else if (dMin > TA_LEJOS) falla(`el tiro mas cercano paso a ${dMin.toFixed(1)} (maximo ${TA_LEJOS}): nadie le apunto`);
+    if (!marca.tiroFiel) falla('el Fiel no contesto al salir (TA2)');
+    if (!derribo) falla('el blanco no cayo: la escena pedia derribarlo');
+    if (!mal) ok(`${mv} · el tiro le paso a ${dMin.toFixed(1)} del Fiel (banda ${TA_CERCA}-${TA_LEJOS}) · ${marca.tiroBlanco} tiros enemigos, ${marca.tiroFiel} del Fiel · lo bajo`);
+    await shot('esquiva_' + mv);
+  }
+
+  // ---------- 6. LA COREOGRAFIA COMO DATO (TA3) ----------
+  // La misma escena, montada por EL DIRECTOR desde un beat (`teatro:` en data/cines.js). Lo que se
+  // afirma es que **el verbo alcanza**: la timeline no describe ni un tiro ni una pirueta, dice
+  // "aca va una escena del teatro" y la escena se monta sola.
+  console.log('\n6. la coreografia como dato (TA3):');
+  {
+    await js('window.__mvreset()');
+    gas(); await limpiar();
+    const r = JSON.parse(await js("String(window.__teatrofilm('barrel'))"));
+    let mal = 0;
+    const falla = m => { bad('teatro filmado: ' + m); mal++; };
+    if (!r.ok) falla('la timeline no arranco');
+    let lbMax = 0, huboBlanco = false, huboTiro = false, apagado = false;
+    for (let t0 = Date.now(); Date.now() - t0 < 14000;) {
+      gas(); await limpiar();
+      const c = JSON.parse(await js('String(window.__cdbg())') || 'null');
+      const A = JSON.parse(await js('String(window.__mvactordbg())'));
+      const T = JSON.parse(await js('String(window.__teatrodbg())'));
+      if (A.some(a => a.bando === 'blanco')) huboBlanco = true;
+      if (T.length) huboTiro = true;
+      if (c && c.id) lbMax = Math.max(lbMax, c.letterbox || 0);
+      else if (huboBlanco) { apagado = true; break; }
+      await sleep(80);
+    }
+    if (!huboBlanco) falla('el beat `teatro` no monto la escena');
+    if (!huboTiro) falla('la escena montada por el director no llego a tirar');
+    if (!apagado) falla('el director no se apago solo despues de la escena');
+    if (!mal) ok(`el beat \`teatro:\` monto blanco, tiros y derribo — y las bandas negras se fueron solas (letterbox max ${lbMax.toFixed(2)})`);
+    await shot('teatro_film');
   }
 
   console.log('\nconsola:');

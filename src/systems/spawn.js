@@ -7,7 +7,7 @@
 // Es el sistema mas limpio del motor: solo escribe los arrays del mundo y lee la corrida y el
 // mapa. No dibuja, no suena, no decide transiciones.
 
-import { cfg } from '../core/state.js';
+import { cfg, stats } from '../core/state.js';
 import { run } from '../core/run.js';
 import { obstacles, soldiers, popups, bullets, missiles, pmissiles } from '../core/world.js';
 import { OLA_H, OLA_RATE, OLA_GAP_MIN, OLA_H_VAR, OLA_WZ, OLA_WZ_VAR, OLA_ROMP_P, OLA_ROMP_HW, OLA_REB_P, OLA_REB_D0,
@@ -96,6 +96,11 @@ function squad(x, z, n, coast) {
     // SIEMPRE hacia la IZQUIERDA: huyen del avion, que viene de frente. Con direccion al azar
     // algunos corrian hacia la camara y se leia como si cargaran contra el avion.
     dir: -1, v: coast ? 9 : 6,
+    // EL EQUIPO, que es la unica diferencia de dibujo entre los dos (PLAN_HORNEADO B7): el que
+    // desembarca lleva el bergen —la mochila enorme del yomp— y el de guarnicion no. A 12 px lo
+    // que cambia es la silueta de la espalda, y es exactamente lo que separa a una fuerza que
+    // acaba de bajar de una lancha de una que ya estaba ahi.
+    bergen: !!coast,
   });
 }
 
@@ -526,6 +531,19 @@ if (typeof window !== 'undefined') window.__seaclear = () => {
 // y `movesSystem` no se llama mas).
 //
 // Los stores se MUTAN (splice/length = 0), nunca se reasignan: convencion 1 de ARQUITECTURA.
+// QUITAR — LA VALLA DE EL TEATRO AEREO (PLAN_TEATRO_AEREO TA0). Cuenta las CINCO listas de
+// `core/world.js`, que son los cinco contratos de daño del juego. La afirmacion que sostiene todo
+// el plan es que una escena entera del teatro —blancos entrando, tiros cruzando, un Fiel volando
+// una pirueta— **no mueve ninguno de estos numeros**: no hay daño porque el teatro no esta en las
+// listas donde vive el daño. Se mide desde afuera, contando, y no leyendo una bandera adentro.
+if (typeof window !== 'undefined') window.__listas = () => JSON.stringify({
+  obstacles: obstacles.length, soldiers: soldiers.length,
+  bullets: bullets.length, missiles: missiles.length, pmissiles: pmissiles.length,
+  // …y LO QUE SE ACREDITA, que es la otra mitad de la misma promesa: un derribo de utileria no
+  // suma puntos, ni derribos aereos, ni disparos. La escena se mira; no se juega.
+  score: run.score, air: stats.air, shots: stats.shots, hits: stats.hits,
+});
+
 if (typeof window !== 'undefined') window.__pasilloLimpio = () => {
   obstacles.length = 0; soldiers.length = 0;
   bullets.length = 0; missiles.length = 0; pmissiles.length = 0;

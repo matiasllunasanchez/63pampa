@@ -14,5 +14,5 @@ export const CAMPAIGNS = [
   // Operacion Rosario). Vivia al principio de storyM1 y abria la campaña 1 con una clase de
   // historia; la campaña 1 arranca ahora en el arroyo. La apertura queda RESERVADA aca: es esta
   // campaña —la de la flota— la que si necesita el contexto antes de la primera salida.
-  { id: 'fantasma', name: 'EL FANTASMA DEL MAR', missions: null, intro: 'storyC2Intro', enabled: false },
+  // { id: 'fantasma', name: 'EL FANTASMA DEL MAR', missions: null, intro: 'storyC2Intro', enabled: false },
 ];

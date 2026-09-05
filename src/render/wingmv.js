@@ -14,6 +14,7 @@ import { ctx, PZ, U } from './ctx.js';
 import { proj } from '../core/fx.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
 import { PLANE_SCALE, drawShadow } from './plane.js';
+import * as enemyArt from './enemies.js';
 
 /** Los actores en escena, del mas lejano al mas cercano (pintor correcto: uno puede pasar por
  *  delante de otro). `selPlane` es el avion elegido — los Fieles vuelan el mismo modelo.
@@ -31,6 +32,17 @@ export function drawActores(selPlane, lista) {
     const s = proj(B.x, B.y, B.z);
     const f = s.k / kRef;                       // escala por distancia: lejos, chico
     drawShadow(B.x, B.y, B.z, f);
+    // UN BLANCO DEL TEATRO usa la hoja del caza enemigo y no el modelo propio. Es el mismo actor
+    // —misma entrada, misma maquinaria de vida, mismas curvas si vuela una pirueta— y lo unico que
+    // cambia es de quien es. Sale por arriba porque `drawFrame` ya resuelve su propia escala y su
+    // propio anclaje: meterlo en el bloque de abajo seria pelearle a dos sistemas de medida.
+    if (B.bando === 'blanco') {
+      if (enemyArt.ready('jet')) {
+        const col = Math.round((Math.max(-1, Math.min(1, -B.bank)) * 0.5 + 0.5) * (enemyArt.SHEETS.jet.cols - 1));
+        enemyArt.drawFrame(ctx, 'jet', col, 0, s.x, { centerY: s.y - B.pitch * 1.8 * f }, s.k, false, false);
+      }
+      continue;
+    }
     ctx.save();
     ctx.translate(s.x, s.y - B.pitch * 1.8 * f);
     // EL ROLIDO DE LA MANIOBRA gira el sprite entero (el modelo es vista trasera), igual que en el

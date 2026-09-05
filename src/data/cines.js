@@ -258,6 +258,25 @@ export const CINES = {
       { t: ['$dur', MV_FILM.COLA, MV_FILM.SALE], fin: true },
     ],
   },
+  // EL TEATRO AEREO FILMADO (PLAN_TEATRO_AEREO TA3): la coreografia como DATO.
+  //
+  // Es la misma pelicula que `maniobra` —bandas negras y mundo en camara lenta— pero lo que pasa
+  // adentro no lo vuela el jugador: **un blanco le tira a un companero, el companero lo esquiva con
+  // la pirueta y le contesta al salir**. Todo eso es UN VERBO (`teatro`), porque la escena ya sabe
+  // montarse sola en `systems/teatro.js`; el director no reimplementa nada.
+  //
+  // TAMPOCO TIENE `titulo`: la pirueta llega por ligadura, asi que sin atarla no hay nada que ver.
+  teatro: {
+    id: 'teatro',
+    beats: [
+      { t: 0, letterbox: { a: 1, ramp: MV_FILM.ENTRA, ease: 'sale' },
+        tempo: { a: MV_FILM.LENTO, ramp: 0.4, ease: 'suave' } },
+      { t: MV_FILM.ENTRA, teatro: { mv: '$mv', derriba: '$derriba' } },
+      { t: ['$dur', MV_FILM.COLA], letterbox: { a: 0, ramp: MV_FILM.SALE, ease: 'entra' },
+        tempo: { a: 1, ramp: MV_FILM.SALE, ease: 'suave' } },
+      { t: ['$dur', MV_FILM.COLA, MV_FILM.SALE], fin: true },
+    ],
+  },
 };
 
 /** EL CATALOGO: las cinematicas mirables, en el orden en que estan escritas. Lo lee el menu

@@ -23,6 +23,7 @@ import { plane } from '../core/state.js';
 import { run } from '../core/run.js';
 import { FLY_X } from '../data/tuning.js';
 import { MOVES, WINGMV } from '../data/moves.js';
+import { TEATRO } from '../data/teatro.js';
 import { startMove, movesSystem } from './moves.js';
 
 // LOS ACTORES EN ESCENA. Store de identidad estable (convencion 1): se MUTA, nunca se reasigna —
@@ -79,7 +80,7 @@ function entrada(lado) {
   }
   const s = lado === 'der' ? 1 : -1;
   return { x: plane.x + s * WINGMV.X0, y: plane.y + WINGMV.DY, z: WINGMV.Z, salX: s, salZ: 0,
-    mx: plane.x - s * WINGMV.ENC, dur: WINGMV.ENTRA };
+    mx: plane.x - s * WINGMV.ENC, lado: s, dur: WINGMV.ENTRA };
 }
 
 /** Mete un actor que vuela `id` y se va.
@@ -92,16 +93,42 @@ function entrada(lado) {
  *  Devuelve el actor (o null si el id no existe: una escena que pide una maniobra que no esta no
  *  puede trabar el juego).  */
 export function entra(id, lado, o) {
-  const M = MOVES[id]; if (!M) return null;
+  // `id` null/false = SIN MANIOBRA: entra, cruza y se va (fase 'crucero'). Es el caso del BLANCO
+  // que todavia no hace nada — el que hace falta en TA0 del TEATRO AEREO para poder afirmar la
+  // valla antes de que exista una coreografia. Un id que NO EXISTE se sigue rechazando: pedir una
+  // maniobra que no esta es un error, no querer ninguna es una decision.
+  const M = id ? MOVES[id] : null;
+  if (id && !M) return null;
   o = o || {};
   lado = ladoDe(lado);
   const e = entrada(lado);
   // el punto donde ARRANCA la maniobra: adelante del jugador y a su altura de trabajo, para que la
   // figura caiga adentro del cuadro y no en un borde.
-  const mx = o.x === undefined ? e.mx : o.x;
+  // …y CRUZA el cuadro, salvo que la escena diga que no. Un actor que entra de costado y se va al
+  // otro lado es lo que hace que la figura atraviese el plano; pero un BLANCO que le tira al Fiel
+  // tiene que QUEDARSE EN SU LADO, porque si cruza termina justo del lado hacia el que el otro
+  // esta escapando — y entonces el tiro y la esquivada van al mismo lugar. Eso no es un detalle de
+  // gusto: fue lo que hizo que tres de cuatro esquivadas midieran impacto en `npm run maniobras`.
+  const mx = o.x !== undefined ? o.x
+    : (o.cruza === false && e.lado) ? plane.x + e.lado * WINGMV.ENC : e.mx;
   const my = o.y === undefined ? Math.max(8, plane.y + WINGMV.DY) : o.y;
   const a = {
-    id, lado, fase: 'entra', t: 0, vida: 0, dur: e.dur,
+    id: id || null, lado, fase: 'entra', t: 0, vida: 0, dur: e.dur,
+    // EL BANDO. Un 'blanco' es un actor del TEATRO AEREO: la misma coreografia de entrada, la
+    // misma maquinaria de vida y salida, otro sprite. No se copia nada — si mañana la entrada
+    // cambia, cambia para los dos. Y sigue sin estar en ninguna de las cinco listas del juego
+    // (`core/world.js`), que es lo unico que garantiza que no puede lastimar a nadie.
+    bando: o.bando === 'blanco' ? 'blanco' : 'fiel',
+    // CUANTO SE QUEDA MIRANDO, si no vuela ninguna maniobra. Una escena lo pisa cuando el blanco
+    // tiene que seguir ahi mientras el Fiel entra y hace su figura.
+    crucero: o.crucero === undefined ? TEATRO.CRUCERO : o.crucero,
+    // LA COREOGRAFIA de EL TEATRO AEREO, si la escena se la puso: `{ n, cada, tipo, mata }`. Este
+    // modulo NO la ejecuta —no sabe apuntar ni le corresponde—, solo la lleva escrita encima para
+    // que `systems/teatro.js` la lea. Un actor que ademas supiera disparar seria dos sistemas.
+    tira: o.tira || null, tirados: 0, tiroT: 0,
+    // EL PUNTO QUE VA A VACIAR: donde estaba cuando arranco la pirueta. Es la mira de la esquivada
+    // (TA1) y se escribe aca porque aca es donde se sabe — el instante exacto del arranque.
+    p0: null,
     cuerpo: { x: e.x, y: e.y, z: e.z, vx: 0, vy: 0, bank: 0, pitch: 0 },
     // el ESTADO de maniobra del actor: el mismo juego de campos que `run` usa para el jugador, y
     // por eso el motor no se entera de la diferencia. Arranca limpio (sin cooldown heredado).
@@ -141,12 +168,22 @@ export function update(dt) {
       // constante, asi el cabeceo entra y sale con la misma curva que el movimiento.
       B.pitch = Math.max(-1, Math.min(1, (B.y - py0) / Math.max(1e-4, dt) / 26));
       if (a.t >= a.dur) {
-        a.fase = 'mv'; a.t = 0;
+        a.t = 0;
         B.vx = 0; B.vy = 0; B.bank = 0;
+        if (!a.id) { a.fase = 'crucero'; continue; }   // sin maniobra: cruza y se va
+        a.fase = 'mv';
+        a.p0 = { x: B.x, y: B.y, z: B.z };
         // MUDO: el rotulo con el nombre y el golpe de sonido son del JUGADOR ("vos hiciste esto").
         // Un actor que los disparara llenaria la pantalla de carteles anunciando piruetas ajenas.
         startMove(a.id, a.est.mvDir, a.est.mvTgt, { cuerpo: B, est: a.est, mudo: true });
       }
+    } else if (a.fase === 'crucero') {
+      // CRUZA. Sin maniobra que lo mueva, lo unico que hace es sostener su altura y su rumbo por
+      // un rato — el tiempo de que se lo vea. Es una fase y no un `sale` inmediato porque una
+      // escena necesita un momento en el que el blanco ESTA ahi, y no solo entrando o yendose.
+      B.pitch += (0 - B.pitch) * Math.min(1, dt * 3);
+      B.bank += (0 - B.bank) * Math.min(1, dt * 3);
+      if (a.t >= a.crucero) { a.fase = 'sale'; a.t = 0; }
     } else if (a.fase === 'mv') {
       // LA MANIOBRA, volada por el MISMO motor que la del jugador. `movesSystem` escribe
       // velocidades y actitudes; la posicion la integra quien es dueño del cuerpo — para el
@@ -181,11 +218,15 @@ export function update(dt) {
 
 /** Saca a todos de escena (cambio de fase, muerte, reinicio). El store se MUTA. */
 export function limpiar() { actores.length = 0; }
+
+/** Saca UNO de escena. Lo usa `systems/teatro.js` cuando derriba un blanco: quien decide que algo
+ *  se muere es la coreografia, pero quien es dueño de la lista es este modulo. */
+export function sacar(a) { const i = actores.indexOf(a); if (i >= 0) actores.splice(i, 1); }
 export const cuantos = () => actores.length;
 
 /** Foto de solo lectura para el render (convencion 4: el que dibuja no toca el estado). */
 export const state = () => actores.map(a => ({
-  id: a.id, fase: a.fase, x: a.cuerpo.x, y: a.cuerpo.y, z: a.cuerpo.z,
+  id: a.id, bando: a.bando, fase: a.fase, x: a.cuerpo.x, y: a.cuerpo.y, z: a.cuerpo.z,
   bank: a.cuerpo.bank, pitch: a.cuerpo.pitch, roll: a.est.mvRoll || 0,
 }));
 
@@ -198,10 +239,18 @@ if (typeof window !== 'undefined') window.__mvactor = (id, lado, dir) => {
   return JSON.stringify(a ? { id: a.id, lado: a.lado, fase: a.fase, x: +a.cuerpo.x.toFixed(1), y: +a.cuerpo.y.toFixed(1), z: +a.cuerpo.z.toFixed(1), n: actores.length }
     : { error: 'no existe la maniobra ' + id, n: actores.length });
 };
+// QUITAR — UN BLANCO del TEATRO AEREO: el mismo actor, otro bando. Sin maniobra entra, cruza y se
+// va (`__mvblanco()`); con una, la vuela igual que un Fiel (`__mvblanco('barrel')`).
+if (typeof window !== 'undefined') window.__mvblanco = (id, lado) => {
+  const a = entra(id || null, lado, { bando: 'blanco' });
+  return JSON.stringify(a ? { id: a.id, bando: a.bando, lado: a.lado, fase: a.fase, x: +a.cuerpo.x.toFixed(1), z: +a.cuerpo.z.toFixed(1), n: actores.length }
+    : { error: 'no existe la maniobra ' + id, n: actores.length });
+};
 // QUITAR — la foto de los actores en escena, con SU estado de maniobra: es lo que deja afirmar
 // desde un fixture que el Fiel volo la pirueta entera y no que aparecio y se fue.
 if (typeof window !== 'undefined') window.__mvactordbg = () => JSON.stringify(actores.map(a => ({
-  id: a.id, fase: a.fase, mv: a.est.mv || null, t: +a.est.mvT.toFixed(2), vida: +a.vida.toFixed(2),
+  id: a.id, bando: a.bando, fase: a.fase, mv: a.est.mv || null, t: +a.est.mvT.toFixed(2), vida: +a.vida.toFixed(2),
+  tirados: a.tirados, p0: a.p0 ? { x: +a.p0.x.toFixed(2), y: +a.p0.y.toFixed(2), z: +a.p0.z.toFixed(2) } : null,
   x: +a.cuerpo.x.toFixed(2), y: +a.cuerpo.y.toFixed(2), z: +a.cuerpo.z.toFixed(2),
   roll: +(a.est.mvRoll || 0).toFixed(3), bank: +a.cuerpo.bank.toFixed(3),
   // el estado del JUGADOR, para poder afirmar lo mas importante: que el actor no lo toco

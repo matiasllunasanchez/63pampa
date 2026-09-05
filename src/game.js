@@ -106,7 +106,7 @@ import { MSL_MAX, GEAR_T, RADAR_ALT, FLY_TOP, VEIL_IN, VEIL_FULL, VEIL_OUT,
 // borde y pasa a ofrecerte cruzarlo. 4 unidades: lo justo para que salga del ASCENSO anterior y
 // repetir el combo, sin que se dispare desde una altura donde todavia tenias margen.
 const CLIMB_NEAR = 4;
-import { MV_HI, MV_LO, maniobras, MV_VISTAS, MOVES } from './data/moves.js';
+import { MV_HI, MV_LO, maniobras, MV_VISTAS, MOVES, WINGMV } from './data/moves.js';
 import * as moves from './systems/moves.js';
 import * as squad from './systems/squad.js';
 // TRAMOS (docs/sistemas/SPEC_TRAMOS.md): el guion de spawn por mision. El orquestador le pasa
@@ -125,6 +125,8 @@ import * as squadRender from './render/squad.js';
 // puesta en escena — no dispara, no choca y no toca al jugador (regla §3.7 del plan).
 import * as wingmv from './systems/wingmv.js';
 import { drawActores } from './render/wingmv.js';
+import * as teatro from './systems/teatro.js';
+import { drawTiros } from './render/teatro.js';
 import { canRelevo, pilotIdx } from './core/squad.js';
 import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
@@ -1086,7 +1088,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       ...(saves.listSaves().length ? [{ head: 'campSecContinue' }, { id: 'continue' }] : []),
       { head: 'campSecNew' },
       { id: 'c1' },
-      { id: 'c2', disabled: !CAMPAIGNS[1].enabled },
+      // { id: 'c2', disabled: !CAMPAIGNS[1].enabled },
       { id: 'back', back: true },      // la salida de la pantalla, a la vista (ver quickRows)
     ];
     /** Mueve el cursor SALTEANDO encabezados (mismo criterio que OPCIONES). */
@@ -1796,6 +1798,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       resetStats();     // los contadores del recuento final
       clearWorld();     // vacia el campo de obstaculos, balas, particulas…
       wingmv.limpiar();  // …y saca de escena a los actores: una pirueta ajena no sobrevive al reset
+      teatro.limpiar();  // …y los tiros de utileria de EL TEATRO AEREO, por el mismo motivo
       momentum.resetMomentum();
       tempo.resetTempo();
       chancha.resetChancha();   // el poder es de la CORRIDA: se pide una vez y sobrevive al relevo
@@ -2885,6 +2888,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // MUNDO —si el tiempo se dilata, la figura se dilata con el— y no devuelven señal: no pueden
       // matar a nadie ni terminar nada. Se limpian solos (tope de vida en data/moves.js).
       wingmv.update(dt);
+      // LOS TIROS DE UTILERIA (EL TEATRO AEREO, TA0). Van con los actores y por la misma razon:
+      // corren con el dt del MUNDO y no devuelven señal. **No estan en ninguna de las cinco listas
+      // de core/world.js**, asi que la rutina de colision ni siquiera los ve — no hay daño porque
+      // no hay codigo de daño (docs/sistemas/PLAN_TEATRO_AEREO.md §2).
+      teatro.update(dt);
       // EL DIRECTOR, tambien en el PASILLO. Hasta ahora solo corria adentro del PULSO (que lo
       // actualiza el mismo): esto es lo que deja mirar una maniobra FILMADA sobre el vuelo normal.
       // Corre con el reloj de PARED —una cinematica no se dilata con el mundo que ella misma
@@ -3181,11 +3189,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           const s = proj(sd.x, sd.gy || 0, sd.z);   // T3: parado en SU loma, no en el cero del mundo
           // HOJA de sprites si ya cargo; si no, el soldado dibujado a mano (ver render/soldiers.js)
           if (sd.prone > 0) {
-            if (soldierArt.isReady()) soldierArt.drawProne(ctx, s.x, s.y, s.k, sd.dir);
+            if (soldierArt.isReady()) soldierArt.drawProne(ctx, s.x, s.y, s.k, sd.dir, sd.bergen);
             else world.drawSoldierProne(s.x, s.y, s.k, sd.dir);
             continue;
           }
-          if (soldierArt.isReady()) soldierArt.drawRunBack(ctx, s.x, s.y, s.k, run.t * 11 + sd.ph, sd.dir);
+          if (soldierArt.isReady()) soldierArt.drawRunBack(ctx, s.x, s.y, s.k, run.t * 11 + sd.ph, sd.dir, sd.bergen);
           else world.drawSoldier(s.x, s.y, s.k, Math.sin(run.t * 12 + sd.ph));
         }
       }
@@ -3322,6 +3330,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // correcto los pone atras. Van adentro del giro del horizonte por la misma razon que el
       // resto del mundo — si el mundo se inclina, ellos se inclinan con el.
       drawActores(selPlane, wingmv.state());
+      // …y sus tiros, en el mismo plano y con el mismo criterio de pintor. Se dibujan FRIOS: el
+      // naranja es de lo que lastima, y esto no puede lastimar a nadie (ver render/teatro.js).
+      drawTiros(teatro.state());
       if (!rasante.enCabina()
         && (chase || (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom());
       // LA COLA, segunda pasada: lo que quedo MAS CERCA que el avion — el sobrepaso enorme
@@ -4143,6 +4154,23 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // que esta escena pone en camara lenta (ver MV_FILM en data/cines.js).
       const dur = M.dur / MV_FILM.LENTO;
       const ok = cine.start('maniobra', { mv: m, dir: dir === undefined ? 1 : +dir, dur });
+      return JSON.stringify({ mv: m, dur: +dur.toFixed(2), ok });
+    };
+
+    // QUITAR — EL TEATRO AEREO FILMADO (PLAN_TEATRO_AEREO TA3): la misma escena que `__teatro`,
+    // pero montada por EL DIRECTOR desde una timeline (`teatro` en data/cines.js). Es la prueba de
+    // que la coreografia es DATO: el beat dice `teatro: {...}` y nadie escribe una linea de logica.
+    // Las ligaduras se atan aca porque son lo unico que la timeline no puede saber.
+    if (typeof window !== 'undefined') window.__teatrofilm = (id, derriba) => {
+      const m = id || 'barrel';
+      const M = MOVES[m];
+      if (!M) return JSON.stringify({ error: 'no existe la maniobra ' + m });
+      // la duracion en segundos de PARED, y con el tiempo que la escena necesita ademas de la
+      // figura: el Fiel entra, la vuela, sale y contesta. Con la duracion pelada las bandas se
+      // levantaban cuando el blanco todavia no habia terminado de caer.
+      wingmv.limpiar(); teatro.limpiar();      // arranca de cero, igual que `__teatro`
+      const dur = (WINGMV.ENTRA_ATRAS + M.dur + WINGMV.SALE) / MV_FILM.LENTO;
+      const ok = cine.start('teatro', { mv: m, derriba: derriba === undefined ? 1 : +derriba, dur });
       return JSON.stringify({ mv: m, dur: +dur.toFixed(2), ok });
     };
 

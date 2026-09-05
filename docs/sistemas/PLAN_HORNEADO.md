@@ -1,6 +1,8 @@
 # PLAN — EL HORNEADO: todo lo que conviene pasar por low poly → sprite
 
-> **Estado: B0, B1, B2, B3 y B5 implementados (23/8); B4, B6 y B7 pendientes.** Pedido de Matías (16/8): hornear todo lo
+> **Estado (relevado sobre el repo el 5/9/2026 — ver §6): B0, B1, B2, B3, B5, B6 y B7 implementados;
+> B4 pendiente y recortado por el callejón.** De B7 quedan afuera Sea Cat y Sea Dart, bloqueados
+> por la cuarentena de la PASADA (§6.2). Los soldados se hornearon el 5/9 — ver §7. Pedido de Matías (16/8): hornear todo lo
 > que convenga. Regla que lo ordena (de la charla "runtime vs horneado"): **cámara libre →
 > 3D en runtime (ARENA/PASADA); cámara del pasillo → low poly horneado a sprite.**
 >
@@ -47,10 +49,10 @@
 | **B1 · Los restos** ✅ *(mayor valor / menor costo)* | **El estado ROTO de cada cosa**, con los mismos modelos en configuración de naufragio: AA volcada · camión volcado · radar sin plato · depósito = carcasa negra · edificio en 3 estados de derrumbe · carpa caída · helo estrellado · jet estrellado · lcu encallada/escorada · globo desinflado | `despiece()` / DESTRUCCION v2: **los restos que quedan** dejan de ser solo chunks y tienen silueta propia | `__restosTodos()` los pone los diez en fila (el nombre `__romperTodas` ya estaba tomado por las variantes de v2); `npm run romper` §4 lo mide |
 | **B2 · Los buques del pasillo** ⚠️✅ | Las tres clases (t42 / t21 / log) **de proa** (para la aproximación sin teleport, PASADA R3) y **de costado**, más dos estados de hundimiento (escorado de proa / de popa). **Builders compartidos con `ship3d.js`** — son los mismos cascos que T7 pone en 3D | `drawApproachBarge` (reemplaza el casco lateral genérico del momentum) + el clímax 2D | la continuidad pasillo→PASADA usa el MISMO objeto en dos medios; captura del handoff |
 | **B3 · El Harrier propio** ✅ | Un **Sea Harrier FRS.1** de verdad (tomas de aire grandes, ala anhedra, tobera vectorial — la silueta se reconoce) en 3 poses: frente, cola, viraje — reemplaza al jet genérico que hoy hace de Harrier en LA COLA. + skin de jet enemigo genérico para los cazas del gate | `render/enemies.js` (las poses de LA COLA), `systems/caza.js` no cambia | en captura se distingue el Harrier del jet genérico sin leyenda |
-| **B4 · Props de terreno y base** | Lo que hoy se dibuja por código o falta: torre de radio, postes con cable, árbol/mata, acantilado (`cliff`), búnker, tambores (tutorial m1), boyas, y la **pista/hangar de BAM Cóndor** (ROADMAP #26.1) | `render/world.js` (`drawObstacle` por tipo) con fallback al dibujo actual si la hoja no carga (patrón existente) | misión de costa/tierra con los props horneados; `check` verde |
+| **B4 · Props de terreno y base** ⚠️ *(recortado, ver §6.1)* | Lo que sigue dibujado por código: torre de radio (`tower`), postes con cable (`poles`), árbol/mata (`tree`), mástil (`mast`), bandera (`flag`), trinchera (`trench`), tambores (`fuel`), y la **pista/hangar de BAM Cóndor** (ROADMAP #26.1). **El acantilado (`cliff`) SALE del alcance**: el callejón lo convirtió en sistema (`render/paredes.js` + `core/zigzag.js`), no en prop | `render/world.js` (`drawObstacle` por tipo) con fallback al dibujo actual si la hoja no carga (patrón existente) | misión de costa/tierra con los props horneados; `check` verde |
 | **B5 · Las partes v2** ✅ | Piezas para las variantes de muerte (DESTRUCCION v2): ala suelta, cola, proa y motor de jet/Harrier; rotor y cola de helo; plato de radar; tanque de depósito; rueda/caño de AA | `data/despiece.js` (las recetas referencian piezas horneadas) | `__romperTodas('jet')` con piezas reales |
-| **B6 · Los aviones** | **Rolidos intermedios** (más columnas de alabeo en `sheet`), el **Mirage 5P peruano** como variante del modelo Mirage (los líderes de m10), y opcionalmente Pucará / MB-339 si se confirman jugables (PENDIENTES §1) | `data/planes.js` (`SHEET_NF`), `render/plane.js`, el líder de PERSECUCIÓN | alabeo más fino en captura; m10 con Mirage 5P |
-| **B7 · Soldados y munición** | Soldados desde rig low poly (5 poses × 2 naciones: correr, cuerpo a tierra, disparar, saludar, caer) — reemplaza los PNG generados por IA y los pone en la misma luz que los enemigos. Munición: misil del jugador, Sea Cat y Sea Dart como **billboards** para la escena 3D (el punto de 3 px de la PASADA pasa a tener cuerpo), bombas de la ristra | `render/soldiers.js`, `render/pasada.js` | soldados y enemigos comparten luz en captura; el Dart se ve |
+| **B6 · Los aviones** ✅ *(salvo una decisión de diseño)* | **Rolidos intermedios** (más columnas de alabeo en `sheet`), el **Mirage 5P peruano** como variante del modelo Mirage (los líderes de m10), y opcionalmente Pucará / MB-339 si se confirman jugables (PENDIENTES §1) | `data/planes.js` (`SHEET_NF`), `render/plane.js`, el líder de PERSECUCIÓN | **cerrado**: `SHEET_NF = 9` (−60..+60 cada 15°) y el Mirage 5P horneado (`tools/models/planes.js` → `mirage`) y jugable en el roster. Pucará / MB-339 no son deuda de horno: siguen sin confirmarse jugables |
+| **B7 · Soldados y munición** ✅ *(salvo lo bloqueado, ver §6.2 y §7)* | **Munición ✅**: bomba y misil horneados en `assets/ammo/municion.png` (`tools/models/ammo.js`), consumidos por la ristra del PULSO, el pasillo y el HUD. **Soldados**: rig low poly con **las poses que el juego dibuja** —correr y cuerpo a tierra— × dos equipos (guarnición / desembarco con bergen); reemplaza el PNG generado por IA y los pone en la misma luz que los enemigos. **Sea Cat y Sea Dart: BLOQUEADOS** — son billboards de la PASADA, que está en cuarentena | `render/soldiers.js`, `render/pasada.js` | soldados y enemigos comparten luz en captura; el Dart se ve *(pendiente de que caiga la cuarentena)* |
 
 ## 3. Orden y esfuerzo
 
@@ -334,3 +336,126 @@ byte-idénticas, que es la prueba de que el bug afectaba solo a la hoja de viraj
 unitarias nuevas: que las tres poses existan con sus 5 columnas y que `jet_rear`/`jet_turn` **no**
 se re-horneen, que `harrier_turn` esté efectivamente atada a la fase `recola` en el render, y la
 general de que ninguna hoja horneada se quede sin consumidor.
+
+---
+
+## 6. Relevé del 5/9/2026 — qué queda, medido contra el repo y no contra el papel
+
+Entre agosto y hoy el proyecto se movió bastante (el **callejón**, las tres capas del 3D, el telón
+del horizonte reemplazado por imágenes), y el encabezado de este plan había quedado mintiendo en
+dos direcciones a la vez: daba por pendiente algo ya hecho y por pendiente entero algo que el
+juego se comió por otro lado. Esto es lo que hay, verificado archivo por archivo.
+
+### 6.1 B4 se achicó, y no por falta de ganas
+
+El plan pedía hornear el **acantilado** como un prop más de la lista. Eso ya no aplica: el relieve
+dejó de ser un objeto y pasó a ser un **sistema**. `render/paredes.js` dibuja las laderas del
+callejón como una tira de columnas a lo largo de `z`, y la altura la evalúa `paredH()` de
+`core/zigzag.js` — **la misma función con la que choca el avión**, que es la regla del repo desde
+`core/sea.js`: lo que ves es lo que te mata. Un sprite no puede cumplir ese contrato. Hornear un
+`cliff` hoy sería meter un prop suelto adentro de un terreno que ya tiene forma propia, y encima
+uno que no colisionaría igual que lo que dibuja.
+
+Lo que **sí** sigue dibujado a mano en `render/world.js` y califica para B4:
+`tower` · `poles` · `tree` · `mast` · `flag` · `trench` · `fuel`, más la pista y el hangar de
+BAM Cóndor (hoy código en `drawRunway`, con los estilos en `data/runways.js`).
+
+La moraleja, que no es sobre el acantilado: **un plan de horneado se pudre**. Enumera props, y los
+props son justamente lo que un rediseño de terreno se lleva puesto. Conviene releer B4 contra el
+código antes de cada tanda, no confiar en la lista.
+
+### 6.2 B7 no era una etapa, eran tres cosas con destinos distintos
+
+- **Munición: hecha.** `assets/ammo/municion.png` (bomba y misil, 6 vistas × 2 filas de 16×16),
+  modelo en `tools/models/ammo.js`, consumida por `render/municion.js` desde la ristra del PULSO,
+  el pasillo y el HUD.
+- **Sea Cat y Sea Dart: bloqueados**, y no por esfuerzo. Son billboards de la escena 3D de la
+  PASADA, y la PASADA está en cuarentena (`CLIMAX_EN_CUARENTENA = ['arena', 'pasada']`). Hornearlos
+  hoy sería exactamente el error que B3 dejó documentado en la divergencia 18 — arte que nadie
+  dibuja no está "listo para cuando haga falta", está roto y nadie lo sabe. Esperan la misma
+  decisión que las hojas de proa de B2.
+- **Soldados: lo único de B7 que se podía hacer, y es lo que se hizo.** Ver §7.
+
+### 6.3 B6 estaba cerrada y el plan no se había enterado
+
+`SHEET_NF = 9` en `data/planes.js`: los rolidos intermedios que pedía el plan ya están (−60 a +60
+cada 15°). Y el **Mirage 5P** no es una variante pendiente: es un modelo del horno
+(`tools/models/planes.js` → `mirage`), horneado a `assets/planes/mirage-5p/` y **jugable en el
+roster** como `MIRAGE 5P MARA`. Lo que queda —Pucará y MB-339— no es deuda de horneado: es una
+decisión de diseño sin tomar sobre si son aviones jugables.
+
+---
+
+## 7. B7 · los soldados — lo que salió distinto
+
+**26. El plan pedía cinco poses y se hornearon dos, a propósito.** "Correr, cuerpo a tierra,
+disparar, saludar, caer" — el juego dibuja exactamente **dos** de esas: `drawRunBack` y
+`drawProne`, y nada más. Hornear las otras tres sería repetir el error que B3 dejó escrito en la
+divergencia 18: `jet_turn` se horneó durante meses sin que ningún archivo la dibujara, y no estaba
+"lista para cuando hiciera falta" — estaba rota y nadie lo sabía. Las tres poses que faltan se
+hornean el día que haya un soldado que dispare; el modelo (`tools/models/soldiers.js`) ya está
+armado por huesos, así que agregar una pose es una función, no una etapa.
+
+**27. Y pedía dos NACIONES, que es una distinción que el juego no tiene.** Los soldados que uno
+ametralla son todos del mismo bando; lo que `systems/spawn.js` sí distinguía desde antes es
+`coast` — si el grupo acaba de bajar de una lancha o si ya estaba ahí. Eso no es una nación, es un
+**equipo**, y da una diferencia mucho más honesta: el que desembarca lleva el **bergen**, la mochila
+enorme del yomp, y el de guarnición no. A 12 px de alto no se lee un uniforme ni una insignia; se
+lee la silueta de la espalda, y esa es justamente la que cambia. Dos filas en la hoja, un `!!coast`
+en el spawn, cero datos nuevos.
+
+**28. LA MEJOR CAJA ES LA QUE NO HACE FALTA.** Esto es lo que más cambió y no es de arte. La lámina
+generada por IA traía cada pose en un rectángulo distinto —seis frames de carrera de 55 a 68 px de
+ancho y un cuerpo a tierra de 113×92—, así que `render/soldiers.js` guardaba **trece números
+medidos a mano sobre el alfa**, con la nota "si se cambia la hoja hay que volver a medirlas".
+Trece números que ninguna prueba custodiaba.
+
+La hoja horneada no los necesita: todas las poses salen de la MISMA cámara, así que la celda es una
+**ventana fija al mundo** —2,9 unidades de lado— con el suelo siempre en la misma fila. Dibujar es
+una sola cuenta: la celda entera, escalada por `k`, apoyada por su línea de suelo. El soldado
+corriendo y el tendido comparten el piso *por construcción*, no porque dos cajas coincidan. Es la
+regla 3 ("las cajas se miden solas") llevada un paso más allá — y el único número que queda por
+custodiar es que el horneador y el render declaren el mismo encuadre, que es lo que hace la prueba
+nueva.
+
+**29. El contorno: el problema no era el color del modelo, era que NO HAY color que sirva.** La
+primera horneada se veía perfecta sobre la arena, sobre el mar y sobre la nieve — y **desaparecía
+sobre la turba del atardecer** (`#4a5138`), que es del mismo verde oliva oscuro que el uniforme.
+Es la cuarta vez que este proyecto tropieza con lo mismo (la bomba en verde oliva real, el humo
+gris casco sobre el mar gris, los restos de B1 quemados de más): **lo verídico no sirve si
+desaparece**. Pero esta vez aclarar el uniforme no arreglaba nada, porque el soldado tiene que
+estar sobre turba, sobre arena y sobre nieve **en la misma partida**.
+
+La solución no la inventó el horno: la tenía el dibujo a mano de `render/world.js`, que llegó a
+ella por el mismo camino y lo dejó anotado. Un **filo de 1 px de DOS tonos** —claro arriba y a la
+izquierda, oscuro abajo y a la derecha— nunca falla contra todos los fondos a la vez: el claro
+salva los oscuros y el oscuro salva los claros. Ahora es una capacidad general del horno
+(`BAKE.contorno`, al lado de `clipY` y `simetrizaCentro`) y no un parche de esta hoja, porque el
+filo depende de la SILUETA —lo único que el horno sabe y el render no— y no del fondo. Hacerlo en
+el juego sería redibujar el sprite cuatro veces por soldado y por cuadro para sacar un dato que no
+cambia nunca. De yapa, el filo oscuro de abajo cae en la fila `SUELO + 1` y hace de **sombra de
+contacto** justo donde el render apoya la celda.
+
+**30. La rodilla sale de la VELOCIDAD del muslo, no de su posición.** La primera versión ataba la
+flexión a `sin` —o sea a dónde está la pierna— y el resultado era que en los dos cuadros de paso
+cruzado las dos piernas quedaban rectas y paralelas: el soldado parecía **parado**. La flexión va
+con `cos`: la rodilla se dobla en la *recuperación* (la pierna que viene de atrás sin tocar el
+piso) y se estira en la que lleva el peso. Es la diferencia entre seis frames y un ciclo de carrera.
+
+**31. Y el build web ganó los soldados, que estaban afuera.** La lámina de IA pesaba ~450 KB y
+`tools/build_web.py` la dejaba fuera del bundle por el tope de 16 MB, así que **en la web los
+soldados caían al dibujo a mano** — una plataforma entera sin el asset. La hoja horneada pesa
+**1,8 KB**: 250 veces menos, porque un rig low poly a 24 px no tiene que guardar el ruido de una
+imagen generada. Ahora entra, y el respaldo de `render/world.js` volvió a ser lo que dice ser: un
+respaldo.
+
+**Lo que B7 verificó, con números.** Una hoja de **7×2 frames de 24×24** (1,8 KB) contra los ~450 KB
+que reemplaza · margen medido **2 px** con el contorno ya puesto, y el contenido llega exactamente
+hasta `SUELO + 1` (la sombra de contacto) y ni una fila más · las **48 hojas existentes se
+re-hornearon byte-idénticas** después de tocar `bake_common.js`, que era la condición para agregarle
+una capacidad · lámina de contacto del soldado a `k` = 3, 5, 7 y 10 sobre los cuatro fondos que de
+verdad tiene abajo (turba, arena, mar, nieve): antes del contorno era ilegible sobre turba, después
+se despega de los cuatro · `npm run feel` idéntico y `npm run check` en verde con **136** unitarias,
+tres de ellas nuevas: que el encuadre del horno y el del render sean el mismo, que la grilla del PNG
+sea la que el render recorta, y que el equipo (`bergen`) siga naciendo en el spawn y llegando al
+dibujo — si ese dato se pierde, las dos filas horneadas se vuelven una sola y nadie lo nota.

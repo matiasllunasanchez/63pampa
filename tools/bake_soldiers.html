@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="es">
+<!-- HERRAMIENTA: hornea la hoja de los SOLDADOS de infantería desde el rig low poly
+     (PLAN_HORNEADO B7), igual que bake_ammo.html con la munición.
+     - Abrir en el browser (con el server del repo) para VER/tunear el rig.
+     - `npx electron tools/bake_soldiers_run.js` (o `npm run soldados`) la exporta a
+       assets/world/soldats/soldados.png
+
+     FORMATO: 7 columnas x 2 filas de 24x24.
+       filas    0 = GUARNICION (mochila chica) · 1 = DESEMBARCO (bergen)
+       columnas 0..5 = ciclo de carrera · 6 = cuerpo a tierra
+
+     ============================ EL ANCLAJE VA EN LA CELDA, NO EN UNA CAJA ============================
+     Esta hoja NO lleva cajas medidas, y es la diferencia grande con lo que reemplaza. La lámina de
+     IA traía cada pose en un rectángulo distinto —seis frames de carrera de 55 a 68 px de ancho, y
+     un cuerpo a tierra de 113x92— así que `render/soldiers.js` guardaba trece números medidos a
+     mano sobre el alfa, con la nota "si se cambia la hoja hay que volver a medirlas". Trece números
+     que ninguna prueba custodiaba.
+
+     Acá la celda es una VENTANA FIJA AL MUNDO: 2,6 unidades de lado, con el SUELO siempre en la
+     misma fila (a 2 px del borde de abajo). Todas las poses se hornean con esa misma cámara, así
+     que el soldado corriendo y el tendido comparten el piso por construcción. Dibujar es entonces
+     una sola cuenta —la celda entera, escalada por `k`, apoyada por su línea de suelo— y no hay
+     ninguna medida que copiar: si el rig cambia, la hoja cambia y el juego no se entera.
+
+     Es la regla 3 del horno ("las cajas se miden solas") llevada un paso más: la mejor caja es la
+     que no hace falta.
+
+     POR QUE 24 px. El soldado se dibuja entre 4 y 20 px en pantalla. Horneado a 84 habría que
+     reducirlo 5x y lo que llega es puré — la misma cuenta que dejó la munición en 16. A 24 entra
+     lo único que se lee a esa distancia: el casco, el bulto de la espalda y el paso.
+
+     POR QUE DE PERFIL Y MIRANDO A LA IZQUIERDA. Los soldados SIEMPRE huyen hacia la izquierda
+     (`dir: -1` en systems/spawn.js: con dirección al azar algunos corrían hacia la cámara y se leía
+     como si cargaran contra el avión). Así que se hornean ya mirando hacia allá y el juego no
+     espeja nada en el caso normal — al revés de la lámina vieja, que venía mirando a la derecha y
+     se espejaba SIEMPRE. -->
+<head>
+  <meta charset="utf-8">
+  <title>bake_soldiers — RASANTE</title>
+  <style>
+    body { background: #10161b; color: #93a7ab; font-family: ui-monospace, Menlo, monospace; padding: 20px; }
+    h2 { color: #e8a33d; font-size: 14px; margin: 18px 0 6px; }
+    canvas.sheet { image-rendering: pixelated; border: 1px solid #2a363d; display: block; }
+  </style>
+</head>
+<body>
+  <div id="out"></div>
+  <script src="../src/vendor/three.global.js"></script>
+  <script src="bake_common.js"></script>
+  <script src="models/soldiers.js"></script>
+  <script>
+    'use strict';
+    const FW = 24, FH = 24;
+    const PASOS = 6;                 // frames del ciclo de carrera
+    const COLS = PASOS + 1;          // + el cuerpo a tierra
+    const FILAS = [false, true];     // guarnición / desembarco (bergen)
+
+    // LA VENTANA: cuántas unidades de mundo mide el lado de la celda, y en qué fila cae el suelo.
+    // Los dos números son el CONTRATO con render/soldiers.js — están repetidos allá y hay una
+    // prueba que los compara, porque si divergen el soldado flota o se entierra sin que nada falle.
+    const WU = 2.9;                  // lado de la celda, en unidades de mundo
+    const SUELO = FH - 4;            // fila del piso: 1 px para el contorno + 2 de aire
+
+    // EL HORNO ES COMPARTIDO (tools/bake_common.js). MISMA LUZ QUE TODO LO DEMAS — que es el punto
+    // entero de esta etapa: los soldados eran el único habitante iluminado por otro sol.
+    // `amb` va en 1.8, el número de los ENEMIGOS y no el de los aviones: a los soldados se los ve
+    // desde el mismo lado y a la misma distancia que a un nido AA, no desde atrás como al avión
+    // propio.
+    const makeRenderer = () => BAKE.renderer(THREE, FW, FH);
+    const makeScene = () => BAKE.escena(THREE, { amb: 1.8 });
+
+    // LA CAMARA sale de la cuenta, no del ojo: 24° de campo (el teleobjetivo corto de todo lo del
+    // pasillo) y la distancia que hace que WU unidades llenen exactamente el alto del frame. El
+    // centro se corre para que el suelo caiga en la fila SUELO — o sea que el encuadre lo fija la
+    // geometría y no un número tanteado.
+    const FOV = 24;
+    const DIST = (WU / 2) / Math.tan(FOV * Math.PI / 360);
+    const CY = WU / 2 - (FH - SUELO) / FH * WU;     // altura del eje de la cámara sobre el suelo
+    const makeCam = () => BAKE.camara(THREE, FW, FH,
+      { fov: FOV, pos: [0, CY, DIST], lookY: CY, near: 0.5, far: 60 });
+
+    // EL MODELO VIVE EN tools/models/soldiers.js (PLAN_HORNEADO B0): un horneador es un ENCUADRE
+    // (qué cámara, qué poses, qué grilla) y un modelo es una SILUETA.
+    const M = BAKE.familia('soldiers');
+
+    function __bake() {
+      const R = makeRenderer(), cam = makeCam();
+      const sheet = document.createElement('canvas');
+      sheet.width = FW * COLS; sheet.height = FH * FILAS.length;
+      const x2 = sheet.getContext('2d');
+      FILAS.forEach((bergen, row) => {
+        for (let col = 0; col < COLS; col++) {
+          const sc = makeScene();
+          const tierra = col === PASOS;
+          sc.add(M.soldado({ p: col / PASOS, bergen, tierra }));
+          R.render(sc, cam);
+          x2.drawImage(R.domElement, col * FW, row * FH);
+        }
+      });
+      // EL FILO DE 1 px, claro arriba-izquierda y oscuro abajo-derecha (ver BAKE.contorno). Sin
+      // esto el soldado se ve bien sobre la arena, sobre el mar y sobre la nieve, y DESAPARECE
+      // sobre la turba del atardecer, que es del mismo verde oliva oscuro que el uniforme. Los dos
+      // tonos son los del dibujo a mano (`SOL.LIT` / `SOL.RIM` en render/world.js), que llego a la
+      // misma solucion por el mismo camino: el sprite y su respaldo tienen que empalmar.
+      // El filo oscuro de abajo cae en la fila SUELO+1 y hace de sombra de contacto — que es
+      // exactamente donde el render apoya la celda.
+      BAKE.contorno(x2, sheet, FW, FH, '#a8aa78', '#12150c');
+      const out = sheet.toDataURL('image/png');
+      const outEl = document.getElementById('out');
+      if (outEl) {
+        const h = document.createElement('h2');
+        h.textContent = `soldados — ${COLS}x${FILAS.length} frames de ${FW}x${FH} · `
+          + `filas: guarnicion / desembarco · celda ${WU} u, suelo en la fila ${SUELO}`;
+        const big = document.createElement('canvas'); big.className = 'sheet';
+        big.width = sheet.width * 8; big.height = sheet.height * 8;
+        const bx = big.getContext('2d'); bx.imageSmoothingEnabled = false;
+        bx.drawImage(sheet, 0, 0, big.width, big.height);
+        outEl.appendChild(h); outEl.appendChild(big);
+      }
+      return { soldados: out };
+    }
+    window.__bake = __bake;
+
+    /** LA MEDICION, que acá NO produce una caja para el juego sino una VERIFICACION del encuadre.
+     *  El juego ancla por la celda (ver cabecera), así que ninguna de estas medidas se copia a
+     *  ningún lado; lo que importa es que el contenido entre con los 2 px de aire de la regla 5 y
+     *  que los pies caigan en la fila del suelo. Si el rig crece y se sale, esto lo dice antes de
+     *  que alguien mire la hoja. */
+    window.__medida = async () => {
+      const m = await BAKE.medir(window.__bake().soldados, FW, FH);
+      return { ...m, suelo: SUELO, wu: WU };
+    };
+
+    if (!navigator.userAgent.includes('Electron')) __bake();
+  </script>
+</body>
+</html>

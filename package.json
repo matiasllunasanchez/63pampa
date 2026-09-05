@@ -19,6 +19,7 @@
     "cine": "electron tools/fixture_cine.js",
     "maniobras": "electron tools/fixture_maniobras.js",
     "ammo": "electron tools/bake_ammo_run.js",
+    "soldados": "electron tools/bake_soldiers_run.js",
     "caza": "electron tools/fixture_caza.js",
     "persec": "electron tools/fixture_persec.js",
     "romper": "electron tools/fixture_romper.js",
