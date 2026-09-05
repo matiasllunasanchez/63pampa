@@ -831,12 +831,14 @@ Dos correcciones de playtest sobre Z5, y las dos son de PERSPECTIVA.
   El telón es una sierra **continua** cruzando todo el ancho, en dos capas (la de atrás más baja y
   lavada hacia el cielo), encendida sólo cuando hay laderas y **asomando 900 m antes** — así se
   ENTRA al callejón en vez de que el callejón aparezca.
-- **EL CERRO TAPA LO QUE TIENE DELANTE.** Los obstáculos se dibujan después de las paredes, o sea
-  siempre encima. Mientras todos vivían adentro del carril eso no se notaba: no hay roca que los
-  pueda tapar ahí. Un cañón parado ARRIBA del cerro rompe la suposición, y volando bajo se lo veía
-  **pintado en el medio de la cara de la montaña**. Ahora se prueba la línea de visión contra la
-  MISMA roca que mata. Medido barriendo el callejón entero: **983 de 1800** puestos quedan tapados
-  desde el agua, **0** desde arriba de las crestas.
+- **EL CERRO RECORTA LO QUE TIENE DELANTE.** Los obstáculos se dibujan después de las paredes, o
+  sea siempre encima. Mientras todos vivían adentro del carril eso no se notaba: no hay roca que
+  los pueda tapar ahí. Un cañón parado ARRIBA del cerro rompe la suposición, y volando bajo se lo
+  veía **pintado en el medio de la cara de la montaña**. Ahora el dibujo del objeto lleva un TECHO
+  en el filo que le pasa por delante (`techoLadera`, que recorre la misma tira de columnas que
+  pinta la ladera) y sale cortado exactamente ahí. Medido barriendo el callejón entero desde el
+  agua: **494 de 1800** asoman cortados, **1130** quedan tapados enteros, y **0** se tocan desde
+  arriba de las crestas.
 
 ### Divergencias de Z6
 
@@ -863,6 +865,19 @@ Dos correcciones de playtest sobre Z5, y las dos son de PERSPECTIVA.
 85. **El perfil de la sierra tiene un PISO y no puede llegar a cero.** Si un valle del telón baja
     hasta el horizonte, ahí mismo reaparece el agujero: una muesca de mar abierto en el medio de un
     estrecho. La sierra puede tener valles; no puede tener puertas.
+
+86. **BUG: la respuesta no era un booleano, era DÓNDE.** El primer arreglo contestaba por sí o
+    por no —una línea de visión contra la roca, y el objeto se dibujaba o no—, y con eso un cañón
+    al que la loma le tiene que tapar SOLO LOS PIES se dibujaba entero, montado encima del terreno.
+    Es el mismo error de antes, más chico. Un obstáculo detrás de un cerro casi nunca está tapado
+    del todo ni visible del todo: **asoma**. La línea de visión se fue entera (era una segunda
+    verdad sobre lo mismo) y quedó el recorte, que además se calcula con la misma cuenta que pinta
+    la ladera — si el filo que recorta y el filo que se ve salieran de dos cuentas distintas, el
+    objeto se cortaría en una línea que no está en la pantalla, que es peor que no recortarlo.
+87. **BUG mío, y clásico: `save`/`restore` NO guardan el camino.** El rectángulo del recorte quedaba
+    de camino actual y el primer `stroke()` posterior que dibujara sin abrir el suyo lo arrastraba:
+    una **línea vertical cruzando media pantalla**, que no tenía nada que ver con el callejón. Se
+    cierra con un `beginPath()` a cada lado del dibujo.
 
 ### Lo que queda para el próximo playtest
 

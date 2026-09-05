@@ -1053,8 +1053,13 @@ export function drawObstacle(o) {
   if (corte <= base - (o.h || 3) * kk) return;                // tapado hasta la punta: nada que ver
   ctx.save();
   ctx.beginPath(); ctx.rect(-80, -200, W + 160, corte + 200); ctx.clip();
+  // ⚠ EL PATH NO SE VA CON EL `restore()`. `save`/`restore` guardan el ESTADO, no el camino: el
+  // rectangulo del recorte queda de camino actual, y el primer `stroke()` de mas adelante que
+  // dibuje sin abrir el suyo lo arrastra — un borde de recorte pintado cruzando la pantalla.
+  ctx.beginPath();
   dibujarObstaculo(o);
   ctx.restore();
+  ctx.beginPath();
 }
 
 function dibujarObstaculo(o) {
