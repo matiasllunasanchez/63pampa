@@ -665,6 +665,24 @@ los cuatro momentos (paso 10 del fixture):
     pasan como vetas y afloramientos. Modelar relieve real habría sido más caro **y se habría visto
     peor**.
 
+### Del DÉCIMO playtest *(y una afirmación mía que estaba mal)*
+
+55. **Yo dije que modelar relieve "se vería peor", y lo dije sin haberlo probado.** El autor lo
+    cuestionó y tenía razón. La causa real de que la ladera se viera plana no era la textura: era
+    **geometría**. La cara se dibujaba perfectamente VERTICAL, y una cara vertical se lee como muro
+    por mucha textura que se le ponga encima.
+56. **La ladera es un TALUD: la cresta se retira hacia afuera** (`ZZ_PARED_PEND` 0.45 — un cerro de
+    26 m tiene la cresta 12 m más afuera que el pie). Es la mejora que más hizo, y es una línea de
+    geometría, no de dibujo: `paredCara()` la usan **el render y la colisión**, así que el talud que
+    se ve es el que mata. **Y trae una regla de juego que sale gratis y es buena**: el callejón es
+    angosto abajo y ancho arriba, así que volar a ras aprieta y trepar afloja, al precio del radar.
+57. **El pie ondula** (`ZZ_PARED_ONDA` ±4,5 m, dos senos incommensurables como `shoreAt`). Era la
+    otra mitad: la base de la ladera era una recta de tiralíneas a lo largo de cientos de metros.
+58. **Estriación vertical**: cada columna del talud se aclara o se oscurece un poco según su
+    posición de mundo, y como una columna **es** una franja vertical, salen las cárcavas y los
+    regueros de una ladera erosionada. Los manchones que ya había son horizontales; con sólo esos
+    la cara se leía "en capas".
+
 ### Lo que queda para el próximo playtest
 
 - El **ritmo**: `ZZ_PUNTA_CADA` 190 m es una punta cada ~2,5 s a velocidad de crucero.

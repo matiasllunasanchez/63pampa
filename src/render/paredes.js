@@ -21,7 +21,7 @@ import { ctx, px, W, H, HOR, F } from './ctx.js';
 import { cam, cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { proj } from '../core/fx.js';
-import { pared, paredH, paredXAt } from '../core/zigzag.js';
+import { pared, paredH, paredXAt, paredCara } from '../core/zigzag.js';
 import { tierraH, hayRelieve } from '../core/tierra.js';
 import { theme } from './theme.js';
 import { ZZ_PARED_Z, ZZ_PARED_PASO, ZZ_MESETA_W, ZZ_NIEBLA_Z0, ZZ_NIEBLA_FIN } from '../data/tuning.js';
@@ -166,13 +166,18 @@ export function drawParedes() {
       // LA PARED SE MUEVE EN X con las PUNTAS DE TIERRA (Z3.b): el borde no es una recta, entra y
       // sale. Es lo que de verdad hace el callejon — el jugador zigzaguea esquivando promontorios,
       // con la camara completamente quieta.
-      const wx = lado * paredXAt(wz, lado);
+      const wx = lado * paredXAt(wz, lado);                 // EL PIE de la ladera
       const h = paredH(wz, lado);
       if (h <= 0.05) { prev = null; continue; }          // fuera de la ventana: el paisaje se abre
+      // LA CRESTA VA MAS AFUERA QUE EL PIE — la ladera es un TALUD, no un muro. Es lo unico que de
+      // verdad la saca de plana: por mucha textura que se le ponga encima, una cara VERTICAL se lee
+      // como pared. Y no es dibujo: `paredCara` es la misma funcion contra la que resuelve la
+      // colision, asi que el talud que ves es el talud que te mata.
+      const wxc = lado * paredCara(wz, lado, h);
       // la ladera se APOYA en el terreno, como todo lo que se apoya (PLAN_TIERRA_COSTA T3)
       const gy = relieve ? tierraH(wx, wz) : 0;
       const base = proj(wx, gy, camZ);
-      const top = proj(wx, gy + h, camZ);
+      const top = proj(wxc, gy + h, camZ);
       if (prev) {
         // LA NIEBLA DE DISTANCIA, primero de todo: la usan la meseta Y la cara, y la meseta se
         // dibuja antes. Declararla mas abajo la dejaba en zona muerta temporal y el render se caia
@@ -191,8 +196,8 @@ export function drawParedes() {
         // del horizonte, o sea pintando cielo. Que aparezca al trepar no es un truco: es
         // exactamente lo que pasa cuando subis lo suficiente para ver arriba del cerro.
         if (cam.y > gy + h) {
-          const fueraA = proj(wx + lado * ZZ_MESETA_W, gy + h, camZ);
-          const fueraB = proj(prev.wx + lado * ZZ_MESETA_W, gy + prev.h, camZ + ZZ_PARED_PASO);
+          const fueraA = proj(wxc + lado * ZZ_MESETA_W, gy + h, camZ);
+          const fueraB = proj(prev.wxc + lado * ZZ_MESETA_W, gy + prev.h, camZ + ZZ_PARED_PASO);
           const fM = 1 - camZ / ZZ_PARED_Z;
           ctx.globalAlpha = 1;                                   // opaca, como la ladera
           ctx.fillStyle = mez(mez(T.lejos, T.cerca, Math.min(1, fM * 1.6)), nieblaCol(), niebla);
@@ -208,7 +213,7 @@ export function drawParedes() {
           // la vegetacion SI se desvanece con alfa: son motas de un pixel, y una mota tapada por
           // niebla y una mota que no esta se ven igual. Lo que no puede ser transparente es la
           // MASA del cerro, que es lo que dejaba ver el cielo por detras.
-          vegetacion(T, wx, wz, camZ, gy + h, lado, 1 - niebla);
+          vegetacion(T, wxc, wz, camZ, gy + h, lado, 1 - niebla);
         }
         // FUNDIDO CON LA DISTANCIA: la ladera se pierde en la bruma en vez de terminar en un
         // filo a 260 m. Es el mismo criterio que el `fade` del pasto.
@@ -242,11 +247,18 @@ export function drawParedes() {
         // cada franja se funde con la niebla POR SEPARADO: asi el volumen del cerro se sigue
         // leyendo mientras se aleja, en vez de aplanarse de golpe a un solo tono.
         const nb = c => mez(c, FOG, niebla);
-        const cuerpo = L.cuerpo;
+        // ESTRIACION VERTICAL. Cada columna del talud se aclara o se oscurece un poco segun su
+        // posicion de mundo, y como una columna ES una franja vertical, el resultado son las
+        // carcavas y los regueros de una ladera erosionada. Es la textura que faltaba: los
+        // manchones son horizontales, y con solo esos la cara se leia "en capas".
+        const est = hash2(Math.floor(wz / 3), 77 + (lado > 0 ? 5 : 0));
+        const estriar = c => est < 0.42 ? mez(c, L.som, (0.42 - est) * 0.55)
+          : est > 0.62 ? mez(c, L.luz, (est - 0.62) * 0.45) : c;
+        const cuerpo = estriar(L.cuerpo);
         const franjas = [
-          [0.00, 0.34, nb(mez(L.som, cuerpo, 0.4 + tinte * 0.2))],   // el pie, en sombra
-          [0.34, 0.72, nb(cuerpo)],                                   // el cuerpo: tierra
-          [0.72, 1.00, nb(mez(cuerpo, L.luz, 0.5 + tinte * 0.3))],    // el hombro, al sol
+          [0.00, 0.34, nb(estriar(mez(L.som, cuerpo, 0.4 + tinte * 0.2)))],   // el pie, en sombra
+          [0.34, 0.72, nb(cuerpo)],                                           // el cuerpo: tierra
+          [0.72, 1.00, nb(estriar(mez(cuerpo, L.luz, 0.5 + tinte * 0.3)))],   // el hombro, al sol
         ];
         for (const [a, b, col] of franjas) {
           ctx.globalAlpha = aBase;
@@ -288,7 +300,7 @@ export function drawParedes() {
         ctx.fillStyle = L.som;
         quad(ctx, x0, prev.base.y - sh, x1, base.y - sh, x1, base.y, x0, prev.base.y);
       }
-      prev = { base, top, wx, h };
+      prev = { base, top, wx, wxc, h };
     }
   }
   ctx.globalAlpha = 1;

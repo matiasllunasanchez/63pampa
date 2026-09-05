@@ -979,6 +979,17 @@ export const ZZ_PARED_Z = 260, ZZ_PARED_PASO = 4;
 // se funde al color del horizonte — SIN perder opacidad: lo que se desvanece es su color, no su
 // materia. Bajarlo mete mas niebla; subirlo deja el fondo mas nitido y arriesga que se note el
 // canto donde termina el dibujo.
+// LA PENDIENTE DE LA LADERA: cuanto se RETIRA la cresta hacia afuera por cada metro de altura.
+// Con 0.45, un cerro de 26 m tiene la cresta 12 m mas afuera que el pie.
+//
+// ES LO QUE SEPARA UN CERRO DE UN MURO, y es geometria de verdad, no textura: la primera version
+// dibujaba la cara perfectamente VERTICAL, y una cara vertical se lee como pared por mas textura
+// que se le ponga encima. Ademas le da al callejon una regla nueva y natural: abajo es angosto y
+// arriba es ancho, asi que volar a ras aprieta y trepar afloja — al precio del radar.
+export const ZZ_PARED_PEND = 0.45;
+// ONDULACION del pie de la ladera, en unidades de mundo. Sin esto la base es una recta de tiralineas
+// a lo largo de cientos de metros, que es la otra mitad de por que se veia plano.
+export const ZZ_PARED_ONDA = 4.5;
 export const ZZ_NIEBLA_Z0 = 70;
 // FRACCION de ZZ_PARED_Z en la que la niebla ya es TOTAL. El ultimo 18% del dibujo se pinta
 // exactamente del color del horizonte, asi que el corte donde termina el terreno no se puede ver

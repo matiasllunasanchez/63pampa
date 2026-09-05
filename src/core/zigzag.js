@@ -26,7 +26,8 @@
 import { ZZ_CURV_MAX, ZZ_LARGO_MIN, ZZ_EMPALME, ZZ_BEND_Z, ZZ_BEND_PASO,
   ZZ_CENTRIF, ZZ_DERIVA_MAX, ZZ_TILT, ZZ_CAM_LEAD,
   ZZ_PARED_X, ZZ_PARED_H, ZZ_PARED_BANDA,
-  ZZ_PUNTA_CADA, ZZ_PUNTA_LARGO, ZZ_PUNTA_MAX, ZZ_PUNTA_P, ZZ_PUNTA_RAMPA } from '../data/tuning.js';
+  ZZ_PUNTA_CADA, ZZ_PUNTA_LARGO, ZZ_PUNTA_MAX, ZZ_PUNTA_P, ZZ_PUNTA_RAMPA,
+  ZZ_PARED_PEND, ZZ_PARED_ONDA } from '../data/tuning.js';
 
 /** Las claves que un `zigzag:` puede traer. Cualquier otra es error de DATOS y el validador la
  *  rechaza, por la misma razon que en los tramos: una clave mal escrita no hace nada y no avisa,
@@ -397,11 +398,14 @@ export function enPared(x, y, wz, talud, libre) {
   const p = pared();
   if (!p) return 0;
   const lado = x >= 0 ? 1 : -1;
-  const borde = paredXAt(wz, lado) - (talud || 0);
-  if (Math.abs(x) < borde) return 0;
   const h = paredH(wz, lado);
   if (h <= 0) return 0;
-  return y < h * (libre || 1) ? lado : 0;   // por encima de la cresta se pasa
+  if (y >= h * (libre || 1)) return 0;      // por encima de la cresta se pasa
+  // SE EVALUA LA CARA A LA ALTURA DEL AVION, no el pie: la ladera se retira al subir, asi que
+  // volando alto queda mas lugar. Es la misma funcion que dibuja el talud — lo que ves es lo que
+  // te mata, tambien de este lado.
+  const borde = paredCara(wz, lado, y) - (talud || 0);
+  return Math.abs(x) >= borde ? lado : 0;
 }
 
 /** EL CARRIL SEGURO entre `d0` y `d0 + alcance` metros: `{ lo, hi }`, el intervalo de `x` que
@@ -495,5 +499,26 @@ export function topeCarril(x, wz, talud) {
 export function paredXAt(wz, lado) {
   const p = pared();
   if (!p) return 0;
-  return p.x - paredEntra(wz, lado);
+  // LA ONDULACION DEL PIE. Sin esto la base de la ladera es una recta de tiralineas a lo largo de
+  // cientos de metros — la mitad de por que el cerro se veia plano no era la textura, era que su
+  // borde inferior era perfecto. Dos senos incommensurables, el idioma del repo (shoreAt son tres).
+  const onda = (Math.sin(wz * 0.031 + (lado > 0 ? 2.1 : 0)) * 0.62
+    + Math.sin(wz * 0.087 + (lado > 0 ? 4.4 : 1.2)) * 0.38) * ZZ_PARED_ONDA;
+  return p.x - paredEntra(wz, lado) + onda;
+}
+
+/** LA CARA DE LA LADERA A LA ALTURA `y`: la pared no es vertical, se RETIRA hacia afuera al subir.
+ *
+ *  Es la pieza que convierte un muro en un cerro, y es geometria, no dibujo: la usa el render para
+ *  poner la cresta mas afuera que el pie, y la usa la colision para que lo que te mata sea
+ *  exactamente lo que ves — la regla del repo desde core/sea.js.
+ *
+ *  Efecto de juego, y es bueno: el callejon es ANGOSTO ABAJO y ANCHO ARRIBA. Volar a ras aprieta;
+ *  trepar afloja, al precio de que arriba te carga el radar. */
+export function paredCara(wz, lado, y) {
+  const base = paredXAt(wz, lado);
+  const h = paredH(wz, lado);
+  if (h <= 0) return base;
+  const f = Math.max(0, Math.min(1, (y || 0) / h));
+  return base + h * ZZ_PARED_PEND * f;
 }
