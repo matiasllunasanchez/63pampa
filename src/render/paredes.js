@@ -21,13 +21,10 @@ import { ctx, px, W, H, HOR, F } from './ctx.js';
 import { cam, cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { proj } from '../core/fx.js';
-import { pared, paredH, paredXAt, paredCara, telonVis, bendW } from '../core/zigzag.js';
+import { pared, paredH, paredXAt, paredCara, bendW } from '../core/zigzag.js';
 import { tierraH, hayRelieve } from '../core/tierra.js';
 import { theme } from './theme.js';
-import { P } from '../data/palette.js';
-import { ZZ_PARED_Z, ZZ_PARED_PASO, ZZ_MESETA_W, ZZ_NIEBLA_Z0, ZZ_NIEBLA_FULL,
-  ZZ_TELON_ANTES, ZZ_TELON_H, ZZ_TELON_H2, ZZ_TELON_LAVADO, ZZ_TELON_BRUMA,
-  ZZ_TELON_FUNDE } from '../data/tuning.js';
+import { ZZ_PARED_Z, ZZ_PARED_PASO, ZZ_MESETA_W, ZZ_NIEBLA_Z0, ZZ_NIEBLA_FULL } from '../data/tuning.js';
 
 // SOLAPE entre poligonos vecinos, en pixeles. Dos cuadrilateros que comparten un borde EXACTO no
 // se tocan en el pixel: el redondeo del rasterizado deja pasar el fondo por la juntura, y a lo
@@ -143,87 +140,7 @@ function hash2(a, b) {
  *  Es la misma fuente que dibuja esa fila (`theme.water.base0` / `theme.land.far`), asi que si
  *  algun dia cambia la paleta, cambian los dos juntos. */
 function nieblaCol() {
-  const base = cfg.terrain === 'land' ? theme.land.far : theme.water.base0;
-  // ...SALVO QUE HAYA TELON, y entonces lo que hay detras del cerro lejano no es el mar: es la
-  // sierra del fondo (Z6). Fundiendo igual hacia el agua, la punta lejana de la ladera se aclaraba
-  // hasta el tono del mar y quedaba recortada contra la masa oscura de atras — el mismo canto de
-  // antes, corrido de lugar. El telon manda tanto como mandaba el agua.
-  const t = telonVis(run.dist, ZZ_TELON_ANTES);
-  return t > 0 ? mez(base, P.island, ZZ_TELON_FUNDE * t) : base;
-}
-
-/** EL PERFIL DE LA SIERRA DEL FONDO, en 0..1, a la coordenada de pantalla corrida `u`.
- *
- *  Tres senos de largo distinto, que es el idioma del repo (`shoreAt` son tres, `tierraH` dos).
- *  Con uno solo la cresta es un metronomo y se lee como una guarda repetida; con tres, no se
- *  encuentra el ciclo mirandola.
- *
- *  ⚠ EL PISO NO ES CERO — es lo unico importante de esta funcion. Si el perfil llega a bajar hasta
- *  el horizonte, ahi mismo vuelve el agujero que el telon vino a tapar: una muesca de mar abierto
- *  en el medio de un estrecho entre cerros. La sierra puede tener valles; no puede tener puertas. */
-function crestaFondo(u) {
-  const v = 0.44 + 0.30 * Math.sin(u / 97) + 0.17 * Math.sin(u / 41 + 1.9)
-    + 0.09 * Math.sin(u / 17 + 4.3);
-  return Math.max(0.28, Math.min(1, v));
-}
-
-/** EL TELON DE TIERRA: la sierra continua del horizonte mientras hay callejon.
- *
- *  VA CON EL FONDO Y NO CON LAS LADERAS, y por eso se dibuja desde game.js justo despues de las
- *  colinas de siempre y ANTES del mar: asi el raster del agua le pisa el pie y la juntura de abajo
- *  no existe — no hay que fingirla. Dibujado despues (junto con las paredes) habria que inventar
- *  donde termina, que es exactamente la clase de canto que este telon vino a sacar.
- *
- *  DOS CAPAS. Una silueta sola, por bien recortada que este, se lee como cartulina: no tiene aire
- *  adentro. La de atras va mas baja, mas lavada hacia el cielo y con menos parallax; la de
- *  adelante, oscura y llena. La diferencia de velocidad entre las dos es lo que las separa en
- *  profundidad — el mismo truco de las colinas del fondo, que ya se corren a x3.5.
- *
- *  `zfx` es el corrimiento por RUMBO que ya reciben el telon de clima y las colinas: si el fondo
- *  entero se corre al doblar y esta sierra no, se despega de todo lo demas. */
-export function drawTelonTierra(zfx) {
-  const vis = telonVis(run.dist, ZZ_TELON_ANTES);
-  if (vis <= 0.01) return;
-  const HZ = theme.sky.horizon;
-  // LA MASA es la MISMA de las colinas del fondo (`P.island`), y eso no es pereza: la sierra del
-  // callejon y las islas del horizonte son la misma tierra vista de lejos. Con un tono propio se
-  // veian dos paisajes distintos pegados, uno atras del otro.
-  const capas = [
-    { k: ZZ_TELON_H2, par: 1.6, fase: 3100, col: mez(P.island, HZ, ZZ_TELON_LAVADO), luz: null },
-    { k: 1, par: 2.6, fase: 0, col: P.island, luz: '#2a3844' },
-  ];
-  for (const c of capas) {
-    const desp = cam.x * c.par + zfx + run.dist * 0.05 + c.fase;
-    const alto = u => ZZ_TELON_H * c.k * vis * crestaFondo(u);
-    const PASO = 4;
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = c.col;
-    ctx.beginPath();
-    ctx.moveTo(-10, HOR + 2);
-    for (let sx = -10; sx <= W + 10; sx += PASO) ctx.lineTo(sx, HOR + 1 - alto(sx + desp));
-    ctx.lineTo(W + 10, HOR + 2);
-    ctx.closePath(); ctx.fill();
-    if (!c.luz) continue;
-    // LAS LADERAS QUE SUBEN, al sol. Es el mismo criterio que las colinas del fondo — sin esto la
-    // sierra es una mancha negra recortada y no se le lee ni un pliegue.
-    ctx.fillStyle = c.luz;
-    for (let sx = -10; sx <= W + 10; sx += PASO) {
-      const y0 = alto(sx + desp), y1 = alto(sx + PASO + desp);
-      if (y1 <= y0) continue;
-      quad(ctx, sx, HOR + 1 - y0, sx + PASO, HOR + 1 - y1, sx + PASO, HOR + 2, sx, HOR + 2);
-    }
-  }
-  // LA BRUMA AL PIE. Sin ella la sierra se apoya en el mar con un canto de un pixel, que a esta
-  // escala es una raya. Tres franjas y no un degrade: el resto del juego es raster, y un degrade
-  // suave aca se nota mas que la costura que viene a tapar.
-  // ⚠ EMPIEZA EN HOR-2 Y NO MAS ARRIBA. Arrancando tres pixeles antes, este velo ACLARABA la
-  // franja que el telon acababa de cubrir: la prueba de pixeles conto 51 columnas mas claras que
-  // sin callejon. Una niebla que deshace lo que vino a tapar no es niebla, es una raya.
-  for (let i = 0; i < 3; i++) {
-    ctx.globalAlpha = ZZ_TELON_BRUMA * (1 - i / 3) * vis;
-    px(-10, HOR - 2 + i * 2, W + 20, 2, HZ);
-  }
-  ctx.globalAlpha = 1;
+  return cfg.terrain === 'land' ? theme.land.far : theme.water.base0;
 }
 
 /** EL FILO QUE LE PASA POR DELANTE a un punto del callejon: la `y` de PANTALLA del borde de roca

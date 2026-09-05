@@ -381,15 +381,28 @@ app.whenReady().then(async () => {
   // SE VUELVE A ENTRAR A POR LA PATRIA. El bloque anterior deja el vuelo al 95% de m5, o sea
   // ADENTRO DEL VEIL —el cordon final donde el sembrador no siembra a proposito—, y ahi no nace
   // nada de nada: la prueba medía cero y el motor estaba bien.
-  if (!await volar()) { bad('no se pudo entrar a POR LA PATRIA'); }
-  else {
+  //
+  // Y SE VUELVE A ENTRAR CADA VEZ QUE SE MUERE, que no es lujo: este bloque enciende los
+  // antiaereos a 2.2 y despues vuela adentro de su alcance, asi que el avion se lo comen LOS
+  // PROPIOS CAÑONES que la prueba vino a contar. Cuando pasaba eso el bucle cortaba y el fixture
+  // reportaba CERO antiaereos sobre un motor que estaba sembrando bien — la prueba se mataba sola
+  // y le echaba la culpa al codigo. Se vio en una corrida de tres.
+  const montar = async () => {
     await vaciar();
     await js("window.__cfgset('zigzag', 2)");
     await js(`window.__zzset(${JSON.stringify({ amp: 0, largo: 800, seed: 9, paredes: { alto: 1, x: 46, mata: false } })})`);
     await js("window.__cfgset('obstacles', 2.2)");
-    let arriba = 0, enterrados = 0;
+  };
+  if (!await volar()) { bad('no se pudo entrar a POR LA PATRIA'); }
+  else {
+    await montar();
+    let arriba = 0, enterrados = 0, muertes = 0;
     for (let i = 0; i < 90; i++) {
-      if (await estado() !== 'play') break;
+      if (await estado() !== 'play') {
+        if (++muertes > 3 || !await volar()) break;
+        await montar();
+        continue;
+      }
       const d = await Z();
       const l = await js(`Number(window.__zzentra(${d.dist + 14}, -1))`);
       const r = await js(`Number(window.__zzentra(${d.dist + 14}, 1))`);
@@ -410,56 +423,8 @@ app.whenReady().then(async () => {
     await js("window.__cfgset('zigzag', 0)");
   }
 
-  // ---------- 12. Z6 — EL TELON: EL HORIZONTE NO SE CORTA ----------
-  //
-  // ESTE BLOQUE MIDE PIXELES Y NO ESTADO, y tiene que ser asi: lo que se esta arreglando es que
-  // adentro del estrecho el horizonte se abria al mar entre las dos laderas, y eso no lo dice
-  // ningun numero del motor — lo dice la fila de pantalla justo arriba del horizonte. Es la
-  // tercera vez en este item que el sintoma solo aparece muestreando el canvas.
-  console.log('\n12. el telon: el horizonte se cubre de tierra y no se corta:');
-  if (!await volar()) { bad('no se pudo entrar a POR LA PATRIA'); }
-  else {
-    await vaciar();
-    // LA BANDA CENTRAL Y NADA MAS: a los costados hay HUD (el tanque de GAS le cae justo encima
-    // a la altura del horizonte), y un panel opaco no se oscurece por mas telon que haya detras.
-    const fila = async dy => JSON.parse(await js(`(() => {
-      const c = document.querySelector('canvas'), g = c.getContext('2d');
-      const e = c.height / 270, y = Math.round((96 - ${dy}) * e), o = [];
-      const d = g.getImageData(0, y, c.width, 1).data;
-      for (let i = Math.round(c.width * 0.16); i < c.width * 0.76; i += Math.max(1, Math.round(e))) {
-        const q = i * 4; o.push(0.3 * d[q] + 0.6 * d[q + 1] + 0.1 * d[q + 2]);
-      }
-      return JSON.stringify(o);
-    })()`));
-    await js('window.__zzset(null)');
-    await js("window.__cfgset('zigzag', 0)");
-    await sostener(400);
-    const sin = [await fila(3), await fila(9)];
-    await js("window.__cfgset('zigzag', 2)");
-    await sostener(500);
-    const con = [await fila(3), await fila(9)];
-    if (!(await Z()).on) bad('el callejon no se encendio: la medicion no vale');
-    else for (let f = 0; f < 2; f++) {
-      const a = sin[f], b = con[f];
-      let mas = 0, menos = 0;
-      for (let i = 0; i < a.length; i++) (b[i] < a[i] - 6 ? mas++ : b[i] > a[i] + 12 ? menos++ : 0);
-      const alt = f ? 9 : 3;
-      // SE OSCURECE CASI TODA LA BANDA. No el 100%: donde ya habia una isla del fondo o una
-      // ladera cercana, el telon queda detras y no cambia nada — y eso esta bien.
-      if (mas > a.length * 0.55) ok(`a ${alt} px del horizonte, ${mas} de ${a.length} columnas se cubren de tierra`);
-      else bad(`a ${alt} px del horizonte solo se cubren ${mas} de ${a.length}: el horizonte sigue abierto`);
-      // Y NADA SE ACLARA. Si el telon dejara ver cielo por un valle, ahi habria columnas MAS
-      // claras que sin el; se tolera un puñado por las nubes, que siguen corriendo entre las dos
-      // mediciones (el reloj no se puede parar: en pausa no se rehace la tabla del zigzag).
-      if (menos <= Math.max(3, a.length * 0.06)) ok(`y no se abre ni un hueco de cielo (${menos} columnas mas claras)`);
-      else bad(`${menos} columnas quedaron MAS claras: el telon tiene puertas`);
-    }
-    await shot('zz_11_telon');
-    await js("window.__cfgset('zigzag', 0)");
-  }
-
-  // ---------- 13. Z5b — LA LADERA RECORTA LO QUE TIENE DELANTE ----------
-  console.log('\n13. el cerro recorta a los antiaereos de arriba:');
+  // ---------- 12. Z5b — LA LADERA RECORTA LO QUE TIENE DELANTE ----------
+  console.log('\n12. el cerro recorta a los antiaereos de arriba:');
   {
     await js("window.__cfgset('zigzag', 2)");
     await sostener(300);

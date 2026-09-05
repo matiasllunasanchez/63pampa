@@ -820,25 +820,34 @@ Las tres piezas que el plan dejaba como opcionales, y ninguna toca el núcleo.
     sembrador no siembra a propósito. Se vuelve a entrar a POR LA PATRIA. Es la enésima vez en este
     ítem que la prueba estaba mal parada, y por eso queda escrito en el propio fixture.
 
-## Z6 — EL TELÓN DE TIERRA, Y EL CERRO QUE TAPA *(construida)*
+## Z6 — EL CERRO QUE RECORTA *(construida)*, y EL TELÓN *(construido y DESCARTADO)*
 
-Dos correcciones de playtest sobre Z5, y las dos son de PERSPECTIVA.
+**EL CERRO RECORTA LO QUE TIENE DELANTE.** Los obstáculos se dibujan después de las paredes, o sea
+siempre encima. Mientras todos vivían adentro del carril eso no se notaba: no hay roca que los
+pueda tapar ahí. Un cañón parado ARRIBA del cerro rompe la suposición, y volando bajo se lo veía
+**pintado en el medio de la cara de la montaña**. Ahora el dibujo del objeto lleva un TECHO en el
+filo que le pasa por delante (`techoLadera`, que recorre la misma tira de columnas que pinta la
+ladera) y sale cortado exactamente ahí. Medido barriendo el callejón entero desde el agua: **494
+de 1800** asoman cortados, **1130** quedan tapados enteros, y **0** se tocan desde arriba de las
+crestas.
 
-- **EL HORIZONTE SE CIERRA.** Las colinas del fondo de siempre son cuatro islas sueltas con mar
-  entre medio — un archipiélago, que está bien en mar abierto. Adentro del callejón se lee como que
-  la tierra **se corta**: las laderas se van al punto de fuga y ahí, justo en el medio, el horizonte
-  se abre al agua. Un estrecho entre cerros no tiene horizonte de mar adelante: tiene más tierra.
-  El telón es una sierra **continua** cruzando todo el ancho, en dos capas (la de atrás más baja y
-  lavada hacia el cielo), encendida sólo cuando hay laderas y **asomando 900 m antes** — así se
-  ENTRA al callejón en vez de que el callejón aparezca.
-- **EL CERRO RECORTA LO QUE TIENE DELANTE.** Los obstáculos se dibujan después de las paredes, o
-  sea siempre encima. Mientras todos vivían adentro del carril eso no se notaba: no hay roca que
-  los pueda tapar ahí. Un cañón parado ARRIBA del cerro rompe la suposición, y volando bajo se lo
-  veía **pintado en el medio de la cara de la montaña**. Ahora el dibujo del objeto lleva un TECHO
-  en el filo que le pasa por delante (`techoLadera`, que recorre la misma tira de columnas que
-  pinta la ladera) y sale cortado exactamente ahí. Medido barriendo el callejón entero desde el
-  agua: **494 de 1800** asoman cortados, **1130** quedan tapados enteros, y **0** se tocan desde
-  arriba de las crestas.
+### ⛔ EL TELÓN DE TIERRA: construido, jugado y SACADO
+
+Se construyó una sierra continua cruzando todo el horizonte —dos capas, asomando 900 m antes,
+con las laderas fundiéndose hacia ella en vez de hacia el mar— para tapar lo que en el playtest se
+leía como que **la tierra se corta**: adentro del estrecho, las laderas se van al punto de fuga y
+ahí, justo en el medio, el horizonte se abre al agua.
+
+**Matías lo sacó en el playtest siguiente: el fondo lo va a resolver con una IMAGEN.** Y es la
+decisión correcta — un horizonte de Malvinas pintado a mano gana por lejos contra tres senos, y el
+juego ya tiene el mecanismo (`tbackImg`, el telón de clima). El código se fue entero: nada queda
+apagado esperando. Lo que queda es el diagnóstico, que sigue valiendo para la imagen que venga: el
+problema NO era que faltara relleno, era que **un estrecho entre cerros no tiene horizonte de mar
+adelante**.
+
+Las divergencias 83, 84 y 85 son de ese código y ya no hay dónde mirarlas. Quedan escritas igual:
+la 84 (qué hay detrás de la punta lejana de una ladera) le va a volver a pasar a cualquier fondo
+que se ponga ahí.
 
 ### Divergencias de Z6
 

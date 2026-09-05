@@ -477,20 +477,6 @@ export function paredEntra(wz, lado) {
   return ZZ_PUNTA_MAX * p.alto * hondo * esc * perfil * perfil * ventana(wz, zz.spec, zz.obj);
 }
 
-/** CUANTO VALE EL CALLEJON PARA EL FONDO (0..1), mirando TAMBIEN `antes` metros adelante.
- *
- *  Lo consume el TELON DE TIERRA del horizonte (render/paredes.js), y las dos puntas de ese
- *  maximo son cada una un sintoma que se vio:
- *  · SIN el termino de adelante, la sierra del fondo aparecia de golpe justo cuando ya estabas
- *    adentro — y una tierra que se materializa en el horizonte se lee como un error, no como un
- *    lugar al que llegas. Con el, la masa oscura asoma un kilometro antes y va creciendo.
- *  · SIN el termino de aca, se apagaba al llegar al final de la ventana mientras las laderas de
- *    al lado seguian ahi: el fondo se abria al mar con el callejon todavia puesto. */
-export function telonVis(d, antes) {
-  if (!pared()) return 0;
-  return Math.max(ventana(d, zz.spec, zz.obj), ventana(d + (antes || 0), zz.spec, zz.obj));
-}
-
 /** UN PUESTO EN LA LADERA: donde plantar un antiaereo ARRIBA del cerro, del lado `lado`.
  *
  *  Devuelve `{ x, gy }` o null si ahi no hay cerro. La `x` cae unos metros MAS AFUERA de la

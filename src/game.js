@@ -114,7 +114,7 @@ import * as squad from './systems/squad.js';
 import * as tramos from './systems/tramos.js';
 import * as zigzag from './systems/zigzag.js';
 import * as zigzagCore from './core/zigzag.js';
-import { drawParedes, drawTelonTierra, techoLadera } from './render/paredes.js';
+import { drawParedes, techoLadera } from './render/paredes.js';
 // LAS CHARLAS EN VUELO (docs/sistemas/SPEC_CHARLAS_VUELO.md): dialogo durante la mision jugable.
 // El sistema es dueño de la FASE y nada mas; el que arranca el motor de lineas, el que apaga el
 // HUD y el que corta en la muerte es este archivo — el sistema devuelve señales.
@@ -3117,11 +3117,6 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         px(ix, HOR - 1, is.w, 2, theme.sky.horizon);
         ctx.globalAlpha = 1;
       }
-      // EL TELON DE TIERRA DEL CALLEJON (zigzag Z6), si hay laderas. Va ACA —despues de las
-      // colinas y ANTES del mar— porque es fondo: el raster del agua le pisa el pie y la juntura
-      // de abajo no hay que fingirla. Las cuatro islas de arriba son un archipielago con mar en
-      // el medio, y adentro de un estrecho eso se lee como que la tierra se CORTA.
-      drawTelonTierra(zfx);
 
       // RELLENO BAJO EL MUNDO, cuando rota (alabeo del momentum, u HORIZONTE GIRATORIO): con el
       // mundo girado la esquina de abajo deja de estar tapada por el borde de la pantalla.

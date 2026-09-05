@@ -1135,32 +1135,6 @@ export const ZZ_ARRANQUE_BASE = 160;
 // el borde de la pantalla desde cualquier altura jugable.
 export const ZZ_MESETA_W = 200;
 
-// ---------------- EL TELON DE TIERRA DEL HORIZONTE (zigzag Z6) ----------------
-// Una sierra CONTINUA cruzando todo el ancho del horizonte, encendida solo cuando hay callejon.
-//
-// POR QUE: las colinas del fondo de siempre (`isles` en game.js) son cuatro islas sueltas con mar
-// entre medio, y eso esta bien en mar abierto — es un archipielago. Adentro del callejon se lee
-// como que la tierra SE CORTA: las laderas de los costados se van al punto de fuga y ahi, en el
-// medio, el horizonte se abre al agua. Un estrecho entre cerros no tiene horizonte de mar
-// adelante; tiene mas tierra. El telon es esa tierra, y no toca ni la colision ni el carril.
-//
-// CUANTOS METROS ANTES asoma la sierra en el horizonte. Es lo que hace que se ENTRE al callejon en
-// vez de que el callejon aparezca: primero se ve la masa oscura lejos, despues se mete uno adentro.
-export const ZZ_TELON_ANTES = 900;
-// altura en PIXELES de la cresta mas alta de la sierra de adelante. Se dibuja en pantalla, como
-// las colinas del fondo, porque es fondo: no tiene profundidad propia contra la que proyectar.
-export const ZZ_TELON_H = 21;
-// la capa de ATRAS: mas baja y mas lavada hacia el cielo. Dos capas y no una porque una sola
-// silueta plana se lee como un recorte de cartulina — la que se ve por atras es la que da aire.
-export const ZZ_TELON_H2 = 0.78, ZZ_TELON_LAVADO = 0.42;
-// LA BRUMA AL PIE: alfa del velo del color del horizonte sobre la juntura de la sierra con el mar.
-// Es lo que evita el canto duro, y es el mismo recurso que ya usan las colinas del fondo.
-export const ZZ_TELON_BRUMA = 0.42;
-// CUANTO SE FUNDEN LAS LADERAS HACIA LA SIERRA DEL FONDO en vez de hacia el mar. Con telon
-// puesto, lo que hay detras de la punta lejana de una ladera YA NO ES AGUA: es la sierra. Sin
-// esto, el cerro se aclaraba hasta el tono del mar lejano y quedaba una punta clara pegada contra
-// una masa oscura — el mismo canto que la niebla vino a sacar, corrido de lugar.
-
 // QUE FRACCION de los antiaereos nace EN LA LADERA en vez de en el agua (zigzag Z5). No es 1 a
 // proposito: un callejon donde todos estan arriba deja el agua vacia, y la mezcla de los dos es lo
 // que obliga a mirar arriba Y abajo.
@@ -1168,4 +1142,3 @@ export const ZZ_LADERA_P = 0.55;
 // RAFAGA de los antiaereos de la ladera: cuantos tiros seguidos y cada cuanto. Es lo que convierte
 // un cañon suelto en una MANGUERA cruzando el pasillo, que es la imagen de San Carlos.
 export const ZZ_LADERA_RAFAGA = 3, ZZ_LADERA_RAF_CD = 0.16;
-export const ZZ_TELON_FUNDE = 0.55;
