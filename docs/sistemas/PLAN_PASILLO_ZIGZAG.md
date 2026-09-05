@@ -788,6 +788,38 @@ los cuatro momentos (paso 10 del fixture):
     era la costura de un píxel, no la línea verde. Afirmar el resultado antes de comprobarlo es el
     error que más veces se repitió en este ítem.
 
+## Z5 — EL VESTIDO DEL CALLEJÓN *(construida)*
+
+Las tres piezas que el plan dejaba como opcionales, y ninguna toca el núcleo.
+
+- **ANTIAÉREOS EN LAS LADERAS.** En San Carlos estaban en las lomas. Sembrados en el agua —que es
+  donde el sembrador los pone siempre— el callejón queda de decorado: el fuego sigue viniendo de
+  donde venía en mar abierto y los cerros no participan. Ahora una parte (`ZZ_LADERA_P`, 55%) nace
+  **arriba del cerro**, parada sobre la meseta. Medido volando: hasta **once a la vez**.
+- **LA MANGUERA.** Los de la ladera tiran **de a tres seguidos** y después descansan
+  (`ZZ_LADERA_RAFAGA`). Es la misma arma y el mismo dibujo — sólo cambia la cadencia — y tres
+  trazadoras juntas cruzando el pasillo son una manguera, que es la imagen del lugar. **No hizo
+  falta un sistema nuevo**: el fuego de tierra ya dibuja trazadoras.
+- **LA RADIO DE LA BOCA Y DE LA SALIDA.** Dos líneas de Puma en los tramos de m5, puro dato: «AHÍ
+  ESTÁ. LA BOCA DEL LOBO» al entrar y «SE ABRE. MAR ABIERTO ADELANTE — Y EL ARDENT ESPERANDO» al
+  salir.
+
+### Divergencias de Z5
+
+78. **`enLadera` exime de dos reglas, y hay que decir por qué.** El tope contra el hueco del carril
+    y el censo de enterrados miran la `x` y la altura del CERRO, no la del objeto: un cañón parado
+    ARRIBA les parece enterrado. Sin la exención el tope los empujaba al agua. El censo sigue
+    exigiendo **cero** enterrados para todo lo demás, y el fixture lo comprueba en la misma corrida.
+79. **BUG: el recorte del carril seguro dejaba el callejón MUDO.** El intento de sembrar el
+    antiaéreo de la ladera estaba *después* del `return` que saltea el ciclo cuando el canal está
+    cerrado — y con puntas grandes el canal está cerrado muy seguido. Medido: **no nacía un solo
+    antiaéreo, ni arriba ni en el agua**. Ahora se intenta ANTES del recorte, que además es lo
+    correcto: el que está arriba del cerro no ocupa el canal.
+80. **Y el fixture midió cero sobre un motor que ya andaba.** El bloque de Z5 corría justo después
+    del de m5, que deja el vuelo al 95% — o sea **adentro del VEIL**, el cordón final donde el
+    sembrador no siembra a propósito. Se vuelve a entrar a POR LA PATRIA. Es la enésima vez en este
+    ítem que la prueba estaba mal parada, y por eso queda escrito en el propio fixture.
+
 ### Lo que queda para el próximo playtest
 
 - El **ritmo**: `ZZ_PUNTA_CADA` 190 m es una punta cada ~2,5 s a velocidad de crucero.

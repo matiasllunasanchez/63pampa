@@ -21,7 +21,7 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { PZ } from '../render/ctx.js';
 import { topeCarril } from '../core/zigzag.js';
-import { ZZ_PARED_TALUD } from '../data/tuning.js';
+import { ZZ_PARED_TALUD, ZZ_LADERA_RAFAGA, ZZ_LADERA_RAF_CD } from '../data/tuning.js';
 import { AA_Z0, AA_Z1, AA_CD, shoreAt, SAND_W, SPAWN_X,
   OLA_SPD, OLA_FACE_KILL, OLA_SCRAPE_FRAC, OLA_ROMP_Z } from '../data/tuning.js';
 // LAS OLAS USAN EL ROCE QUE YA EXISTE, no uno nuevo (SPEC_AGUA_OLAS §6.1): `scrapeLimit` es la
@@ -146,8 +146,13 @@ export function collisionSystem(dt) {
       // mueven solos y se meten en la roca — el censo del fixture encontro 21 globos enterrados en
       // una sola corrida. Un obstaculo adentro de la tierra es invisible y mata, que es la peor
       // combinacion que hay. Sin paredes, `topeCarril` devuelve la x tal cual.
-      const tx = topeCarril(o.x, run.dist + o.z, ZZ_PARED_TALUD);
-      if (tx !== o.x) { o.x = tx; if (o.vx) o.vx = -o.vx; if (o.xa !== undefined) o.xa = tx; }
+      // los de la LADERA (zigzag Z5) quedan exentos: estan PARADOS ARRIBA del cerro, no metidos
+      // adentro. El tope mira la x y la altura del cerro, no la del objeto, asi que sin esta
+      // excepcion los empujaria al agua — que es exactamente lo contrario de lo que se busca.
+      if (!o.enLadera) {
+        const tx = topeCarril(o.x, run.dist + o.z, ZZ_PARED_TALUD);
+        if (tx !== o.x) { o.x = tx; if (o.vx) o.vx = -o.vx; if (o.xa !== undefined) o.xa = tx; }
+      }
     }
     // BARCAZA navegando: entra de la derecha hacia la playa; al TOCAR la costa encalla y
     // desembarca su patrulla (que sale corriendo hacia la izquierda)
@@ -298,7 +303,15 @@ export function collisionSystem(dt) {
     if ((o.type === 'aa' || o.type === 'aatruck') && !o.done && o.hp > 0 && o.z > AA_Z0 && o.z < AA_Z1) {
       o.cd -= dt;
       if (o.cd <= 0) {
-        o.cd = AA_CD; o.fireT = run.t;
+        // LA MANGUERA (zigzag Z5): los de la ladera tiran DE A TRES seguidos y despues descansan.
+        // Un cañon suelto es un punto que dispara; tres trazadoras juntas cruzando el pasillo son
+        // una manguera, que es la imagen de San Carlos. Es la misma arma y el mismo dibujo — lo
+        // unico que cambia es la cadencia.
+        if (o.enLadera) {
+          o.raf = (o.raf || 0) + 1;
+          o.cd = o.raf < ZZ_LADERA_RAFAGA ? ZZ_LADERA_RAF_CD : (o.raf = 0, AA_CD * 1.35);
+        } else o.cd = AA_CD;
+        o.fireT = run.t;
         missiles.push({ x: o.x, y: 2, z: o.z, done: false });
         beep(760, 0.1, 'square', 0.05);
       }

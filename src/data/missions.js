@@ -147,14 +147,14 @@ export const MISSIONS = [
       { hasta: 0.31, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M05_NARWAL_C' },
       // LA BOCA: el paisaje se cierra y la mision empieza de verdad. Densidad a la mitad — lo que
       // esta pasando aca es el CALLEJON apareciendo, y no hace falta competirle con enemigos.
-      { hasta: 0.40, obstacles: 1.0, caza: 1 },
+      { hasta: 0.40, obstacles: 1.0, caza: 1, radio: 'm5_boca' },
       // EL CALLEJON. Es el nombre de la mision: la tierra encima y el cielo lleno. `favor` inclina
       // la mezcla a los antiaereos, que es lo que habia en las laderas de San Carlos, y el
       // bombardeo sube — las bombas que le dan el nombre al lugar.
       { hasta: 0.88, obstacles: 1.7, caza: 1, bombs: 2, favor: ['aa', 'aatruck'] },
       // LA SALIDA a la bahia: las laderas bajan (lo hace el `hasta` del zigzag) y el fuego afloja.
       // El respiro dura poco: ahi asoma el ARDENT.
-      { hasta: 1, obstacles: 1.1, caza: 1 },
+      { hasta: 1, obstacles: 1.1, caza: 1, radio: 'm5_salida' },
     ],
     // EL CALLEJON DE LAS BOMBAS, literal (PLAN_PASILLO_ZIGZAG Z4). El estrecho de San Carlos era un
     // brazo de mar angosto y torcido entre cerros de turba, y las fragatas fondeadas veian aparecer

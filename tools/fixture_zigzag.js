@@ -376,6 +376,40 @@ app.whenReady().then(async () => {
     }
   }
 
+  // ---------- 11. Z5 — EL VESTIDO: ANTIAEREOS EN LAS LADERAS ----------
+  console.log('\n11. los antiaereos disparan DESDE las lomas:');
+  // SE VUELVE A ENTRAR A POR LA PATRIA. El bloque anterior deja el vuelo al 95% de m5, o sea
+  // ADENTRO DEL VEIL —el cordon final donde el sembrador no siembra a proposito—, y ahi no nace
+  // nada de nada: la prueba medía cero y el motor estaba bien.
+  if (!await volar()) { bad('no se pudo entrar a POR LA PATRIA'); }
+  else {
+    await vaciar();
+    await js("window.__cfgset('zigzag', 2)");
+    await js(`window.__zzset(${JSON.stringify({ amp: 0, largo: 800, seed: 9, paredes: { alto: 1, x: 46, mata: false } })})`);
+    await js("window.__cfgset('obstacles', 2.2)");
+    let arriba = 0, enterrados = 0;
+    for (let i = 0; i < 90; i++) {
+      if (await estado() !== 'play') break;
+      const d = await Z();
+      const l = await js(`Number(window.__zzentra(${d.dist + 14}, -1))`);
+      const r = await js(`Number(window.__zzentra(${d.dist + 14}, 1))`);
+      await js(`window.__chaput(${l > r ? 26 : -26}, 13)`);
+      if (d.dist > d.arranque + 150) {
+        arriba = Math.max(arriba, JSON.parse(await js('String(window.__zzaa())')).arriba);
+        enterrados = Math.max(enterrados, await js('Number(window.__zzobs())'));
+      }
+      await sleep(130);
+    }
+    if (arriba >= 3) ok(`hasta ${arriba} antiaereos a la vez plantados en las laderas`);
+    else bad(`casi no nacen antiaereos en la ladera: ${arriba}`);
+    // la exencion no puede convertirse en una puerta trasera para enterrar cosas
+    if (enterrados === 0) ok('y sigue sin haber un solo obstaculo enterrado en la roca');
+    else bad(`${enterrados} obstaculo(s) enterrados`);
+    await shot('zz_10_laderas');
+    await js("window.__cfgset('obstacles', 0)");
+    await js("window.__cfgset('zigzag', 0)");
+  }
+
   console.log('\nconsola:');
   if (!errors.length) ok('sin errores');
   else { bad(`${errors.length} error(es):`); for (const e of errors.slice(0, 8)) console.error('      ' + e); }

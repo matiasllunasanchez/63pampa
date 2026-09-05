@@ -97,6 +97,8 @@ export const STRINGS = {
     // minutos en los que el jugador solamente vuela y escucha", y con cuatro lineas eso no es una
     // conversacion, es un cartel en cuatro pedazos. La risa del Gitano tiene que tener tiempo de
     // apagarse sola — ese es el beat, y necesita renglones para caerse.
+    m5_boca: 'PUMA: AHI ESTA. LA BOCA DEL LOBO. ENTRAMOS, SOLTAMOS, SALIMOS.',
+    m5_salida: 'PUMA: SE ABRE. MAR ABIERTO ADELANTE — Y EL ARDENT ESPERANDO.',
     m4_radio1: 'CONDOR: PLATA FIEL, ANOTO POSICIONES. DOS UNIDADES AL NORESTE, RUMBO SUR, VELOCIDAD DIEZ.',
     m4_radio2: 'CONDOR: UNA TERCERA MAS ATRAS, SIN CONFIRMAR.',
     m4_radio3: 'PUMA: COPIADO, CONDOR.',
@@ -1093,6 +1095,8 @@ export const STRINGS = {
     ch_early: 'NOT YET, PATRIA. HANG ON.',
     ch_used: 'I FILLED YOU ONCE TODAY. THAT IS ALL.',
     ch_broken: 'THE OLD SOW DOES NOT COME SOUTH ANYMORE.',
+    m5_boca: 'PUMA: THERE IT IS. THE WOLF\'S MOUTH. WE GO IN, WE DROP, WE GET OUT.',
+    m5_salida: 'PUMA: IT OPENS UP. OPEN SEA AHEAD — AND THE ARDENT WAITING.',
     m4_radio1: 'CONDOR: LOGGING POSITIONS. TWO NORTHEAST, HEADING SOUTH.',
     m4_radio2: 'GITANO: WHERE DO YOU GET ALL THAT, CONDOR?',
     m4_radio3: 'CONDOR: FROM A FISHING BOAT CALLED NARWAL.',

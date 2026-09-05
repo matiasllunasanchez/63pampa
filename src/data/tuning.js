@@ -1055,3 +1055,11 @@ export const ZZ_ARRANQUE_BASE = 160;
 // que se ve cuando se la pasa por encima, que si no seria un vacio. 200 alcanza para tapar hasta
 // el borde de la pantalla desde cualquier altura jugable.
 export const ZZ_MESETA_W = 200;
+
+// QUE FRACCION de los antiaereos nace EN LA LADERA en vez de en el agua (zigzag Z5). No es 1 a
+// proposito: un callejon donde todos estan arriba deja el agua vacia, y la mezcla de los dos es lo
+// que obliga a mirar arriba Y abajo.
+export const ZZ_LADERA_P = 0.55;
+// RAFAGA de los antiaereos de la ladera: cuantos tiros seguidos y cada cuanto. Es lo que convierte
+// un cañon suelto en una MANGUERA cruzando el pasillo, que es la imagen de San Carlos.
+export const ZZ_LADERA_RAFAGA = 3, ZZ_LADERA_RAF_CD = 0.16;

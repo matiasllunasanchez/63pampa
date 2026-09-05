@@ -3759,11 +3759,22 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // es lo mismo que "¿hay una punta?": las puntas son intermitentes por diseño, asi que
       // medirlas en una ventana corta es tirar una moneda. La ladera, en cambio, esta o no esta.
       window.__zzalto = (z, lado) => zigzagCore.paredH(+z, +lado);
+      // CENSO DE LOS ANTIAEREOS DE LA LADERA (Z5): cuantos hay arriba y cuantos abajo. Sin esto,
+      // "estan en las lomas" solo se puede comprobar mirando una captura y creyendo.
+      window.__zzaa = () => {
+        let arriba = 0, agua = 0;
+        for (const o of obstacles) {
+          if (o.done || (o.type !== 'aa' && o.type !== 'aatruck')) continue;
+          if (o.enLadera) arriba++; else agua++;
+        }
+        return JSON.stringify({ arriba, agua });
+      };
       // CENSO: cuantos obstaculos vivos quedaron DENTRO de la ladera. Tiene que ser 0 siempre —
       // un obstaculo enterrado en la roca es invisible y mata, la peor combinacion que hay.
       window.__zzobs = (detalle) => {
+        // los de la LADERA no cuentan: estan PARADOS ARRIBA del cerro, no enterrados adentro.
         const malos = obstacles.filter(o =>
-          !o.done && o.z > 0 && zigzagCore.enPared(o.x, (o.y || 0) + 0.5, run.dist + o.z, 0, 1));
+          !o.done && o.z > 0 && !o.enLadera && zigzagCore.enPared(o.x, (o.y || 0) + 0.5, run.dist + o.z, 0, 1));
         if (!detalle) return malos.length;
         return JSON.stringify(malos.map(o => ({ t: o.type, x: +o.x.toFixed(1), z: +o.z.toFixed(0), mv: !!(o.vx || o.mvA || o.home) })));
       };

@@ -22,8 +22,8 @@ import { val as trVal } from './tramos.js';
 // archivo consulta, no un estado que administre.
 import { sembrar as cvSembrar } from './charla.js';
 import { carrilLibre } from './persec.js';
-import { carrilSeguro } from '../core/zigzag.js';
-import { ZZ_PARED_TALUD } from '../data/tuning.js';
+import { carrilSeguro, puestoLadera } from '../core/zigzag.js';
+import { ZZ_PARED_TALUD, ZZ_LADERA_P } from '../data/tuning.js';
 import { plane } from '../core/state.js';
 import { scrapeLimit } from '../core/physics.js';
 import { olaBump, climaDe } from '../core/sea.js';
@@ -190,6 +190,30 @@ export function spawnOla(kind, hFijo) {
   return o;
 }
 
+/** UN ANTIAEREO EN LA LADERA (zigzag Z5), o null si no hay callejon o si el sorteo dice que no.
+ *
+ *  EN SAN CARLOS LOS ANTIAEREOS ESTABAN EN LAS LOMAS. Sembrados en el agua —que es donde el
+ *  sembrador los pone siempre— el callejon queda de decorado: el fuego sigue viniendo de donde
+ *  venia en mar abierto y los cerros no participan. Puestos arriba, el jugador entra a un pasillo
+ *  que le tira desde los dos costados y desde ARRIBA, que es lo que el nombre de la mision promete.
+ *
+ *  `enLadera: true` los exime de dos reglas que valen para todo lo demas: el tope contra el hueco
+ *  del carril (systems/collision.js) y el censo de "obstaculos enterrados" (`__zzobs`). No estan
+ *  enterrados: estan PARADOS ARRIBA, que es justo lo contrario, y el chequeo no sabe distinguirlo
+ *  porque mira la x y la altura del cerro, no la del objeto.
+ *
+ *  Devuelve null la mayoria de las veces (`ZZ_LADERA_P`): un callejon donde CADA antiaereo esta en
+ *  la ladera deja el agua vacia, y la mezcla de los dos es lo que hace que haya que mirar arriba
+ *  y abajo. */
+function enLadera(tipo) {
+  const pu = Math.random() < ZZ_LADERA_P ? puestoLadera(run.dist + SPAWN_Z, Math.random() < 0.5 ? -1 : 1) : null;
+  if (!pu) return null;
+  const base = tipo === 'aa'
+    ? { type: 'aa', h: 4.4, y: 1.8, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD }
+    : { type: 'aatruck', h: 4.6, y: 1.9, ...hpOf('aatruck'), cd: 1.3 + Math.random() * AA_CD };
+  return { ...base, x: pu.x, gy: pu.gy, z: SPAWN_Z, enLadera: true, done: false, ph: Math.random() * 6 };
+}
+
 const waterLane = () => { const sh = spawnShore(); return sh + 3 + Math.random() * Math.max(4, SPAWN_X - sh - 3); };
 
 /** ACANTILADO: una masa de roca que sale del terreno. Cada uno sale distinto — altura sorteada
@@ -229,6 +253,14 @@ function spawn() {
   let lo = -SPAWN_X, hi = SPAWN_X;
   const seg = carrilSeguro(run.dist, SPAWN_Z, ZZ_PARED_TALUD);
   if (seg) { lo = Math.max(lo, seg.lo); hi = Math.min(hi, seg.hi); }
+  // ⚠ EL ANTIAEREO DE LA LADERA SE INTENTA ANTES DEL RECORTE, y esto no es un atajo: no ocupa el
+  // canal —esta ARRIBA del cerro— asi que el hueco libre del agua no lo condiciona. Puesto
+  // despues, se lo comia el `return` de abajo: medido, en el callejon el canal esta cerrado tan
+  // seguido que NO NACIA UN SOLO antiaereo, ni arriba ni en el agua, y el pasillo quedaba mudo.
+  if (seg) {
+    const la = enLadera(Math.random() < 0.5 ? 'aa' : 'aatruck');
+    if (la) { obstacles.push(la); return; }
+  }
   if (hi - lo < 6) return;                       // el callejon no deja lugar: este ciclo no siembra
   const lane = carrilLibre(lo + Math.random() * (hi - lo));   // acompaña a FLY_X (zona de vuelo)
   // LOS BIDONES, y si el tramo los corta (`bidones: false`, SPEC_TRAMOS §2). Es UNA pregunta y
@@ -259,7 +291,7 @@ function spawn() {
       obstacles.push({ type: 'tent', x, h: 3.4, y: 1.4, z: SPAWN_Z, ...hpOf('tent'), done: false, ph });
       squad(x - 3, SPAWN_Z + 2, 2 + (Math.random() * 2 | 0), true);          // la carpa pare su patrulla
     }
-    else if (r < 0.30) obstacles.push({ type: 'aa', x: landLane(), h: 4.4, y: 1.8, z: SPAWN_Z, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
+    else if (r < 0.30) obstacles.push(enLadera('aa') || { type: 'aa', x: landLane(), h: 4.4, y: 1.8, z: SPAWN_Z, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
     else if (r < 0.40) {
       const h = 7.5 + Math.random() * 4;
       // armed: tiene soldados adentro tirando al avion (rafaga corta, hay que esquivar)
@@ -272,7 +304,7 @@ function spawn() {
     }
     // los arboles de la costa se reemplazaron por VEHICULOS: radar movil y camion antiaereo
     else if (r < 0.57) obstacles.push({ type: 'radar', x: landLane(), h: 5, y: 2, z: SPAWN_Z, ...hpOf('radar'), ...mov('radar'), done: false, ph });
-    else if (r < 0.64) obstacles.push({ type: 'aatruck', x: landLane(), h: 4.6, y: 1.9, z: SPAWN_Z, ...hpOf('aatruck'), ...mov('aatruck'), cd: 1.3 + Math.random() * AA_CD, done: false, ph });
+    else if (r < 0.64) obstacles.push(enLadera('aatruck') || { type: 'aatruck', x: landLane(), h: 4.6, y: 1.9, z: SPAWN_Z, ...hpOf('aatruck'), ...mov('aatruck'), cd: 1.3 + Math.random() * AA_CD, done: false, ph });
     // trinchera ARGENTINA (decorado, bien a la izquierda): tira contra los britanicos
     else if (r < 0.70) obstacles.push({ type: 'trench', x: -SPAWN_X + Math.random() * 8, z: SPAWN_Z, decor: true, cd: 0.8 + Math.random(), done: false, ph });
     else if (r < 0.76) obstacles.push({ type: 'birds', x: lane, y: spawnY('birds'), z: SPAWN_Z, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
@@ -298,7 +330,7 @@ function spawn() {
       if (Math.random() < 0.5) {
         obstacles.push({ type: 'tent', x: lane, h: 3.4, y: 1.4, z: SPAWN_Z, ...hpOf('tent'), done: false, ph });
         squad(lane - 3, SPAWN_Z + 2, 2, false);
-      } else obstacles.push({ type: 'aa', x: lane, h: 4.4, y: 1.8, z: SPAWN_Z, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
+      } else obstacles.push(enLadera('aa') || { type: 'aa', x: lane, h: 4.4, y: 1.8, z: SPAWN_Z, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
     }
     else if (r < 0.66) obstacles.push({ type: 'birds', x: lane, y: spawnY('birds'), z: SPAWN_Z, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
     else if (r < 0.75) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });

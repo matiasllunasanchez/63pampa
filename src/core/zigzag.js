@@ -477,6 +477,23 @@ export function paredEntra(wz, lado) {
   return ZZ_PUNTA_MAX * p.alto * hondo * esc * perfil * perfil * ventana(wz, zz.spec, zz.obj);
 }
 
+/** UN PUESTO EN LA LADERA: donde plantar un antiaereo ARRIBA del cerro, del lado `lado`.
+ *
+ *  Devuelve `{ x, gy }` o null si ahi no hay cerro. La `x` cae unos metros MAS AFUERA de la
+ *  cresta —o sea sobre la meseta, no colgando de la cara— y `gy` es la altura del cerro, que es
+ *  lo que hace que el cañon quede parado sobre la tierra y no flotando.
+ *
+ *  Es la pieza de Z5: en San Carlos los antiaereos estaban EN LAS LOMAS, tirandole a los aviones
+ *  desde arriba y desde los dos lados. Puestos en el agua —donde el sembrador los pone siempre—
+ *  el callejon queda como decorado y el fuego sigue viniendo de donde venia en mar abierto. */
+export function puestoLadera(wz, lado) {
+  const p = pared();
+  if (!p) return null;
+  const h = paredH(wz, lado);
+  if (h < 6) return null;                       // en un saldo bajo no hay donde poner nada
+  return { x: lado * (paredCara(wz, lado, h) + 4 + Math.random() * 10), gy: h };
+}
+
 /** TOPA una `x` contra el hueco libre del callejon a la profundidad `wz`.
  *
  *  Existe por LOS QUE SE MUEVEN. Un obstaculo puede nacer en un carril perfectamente seguro y
