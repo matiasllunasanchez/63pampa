@@ -224,7 +224,9 @@ def main():
     OUT.write_text(html, encoding='utf-8')
     mb = OUT.stat().st_size / 1024 / 1024
     print(f'OK: {OUT.relative_to(ROOT)} ({mb:.1f} MB) — {n} assets re-embebidos')
-    print(f'   límite Artifact: 16 MB {"✓" if mb < 16 else "✗ EXCEDE"}')
+    # El techo de 16 MB era del Artifact web. EL TARGET ES ELECTRON + STEAM: no aplica y no
+    # falla nada — se informa como referencia por si algun dia se vuelve a publicar en web.
+    print(f'   (referencia Artifact web 16 MB: {"entra" if mb < 16 else "no entra — no aplica, el target es Electron"})')
 
 
 if __name__ == '__main__':

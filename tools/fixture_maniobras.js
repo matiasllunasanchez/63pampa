@@ -32,7 +32,7 @@ const ONLY = (process.env.MV_ONLY || '').split(',').filter(Boolean);
 // ENTRA + SALE de data/moves.js (WINGMV): lo que un actor tarda en escena ademas de la maniobra.
 // Se escribe aca y no se lee del modulo porque el fixture corre en node y el catalogo es del
 // bundle; si cambian alla, lo unico que pasa es que este margen queda holgado.
-const WINGMV_T = 1.0 + 1.4;
+const WINGMV_T = 1.5 + 1.4;   // ENTRA_ATRAS (la mas larga) + SALE
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
 let win, fails = 0;
@@ -100,12 +100,11 @@ async function correr(id, dur) {
     gas();
     await js('window.__mvreset()');
     const d = await D();
-    if (!d.mv && d.rollT <= 0 && d.cd <= 0) break;
+    if (!d.mv && d.cd <= 0) break;
     await sleep(50);
   }
   const r = JSON.parse(await js(`String(window.__mv(${JSON.stringify(id)}))`));
   const tr = [];
-  const legado = id === 'tonel';
   let visto = false, fin = null;
   // margen generoso sobre `dur`: el reloj de la maniobra corre con el dt DEL MUNDO y el fixture
   // muestrea con el de pared. Lo que se afirma es que TERMINA, no cuanto tarda el reloj de pared.
@@ -114,7 +113,7 @@ async function correr(id, dur) {
     gas(); await limpiar();
     const d = await D();
     tr.push(d);
-    const activa = legado ? d.rollT > 0 : d.mv === id;
+    const activa = d.mv === id;
     if (activa) visto = true;
     if (visto && !activa) { fin = d; break; }
     // …y si el juego se fue de 'play' (choque, relevo, muerte) se corta y se dice: una maniobra
@@ -182,15 +181,15 @@ app.whenReady().then(async () => {
   console.log('\n1. el catalogo, una por una:');
 
   const CAT = JSON.parse(await js('String(window.__mvcat())'));
-  // EL TONEL entra a mano: no esta en MOVES porque conserva su camino legado (run.rollT en
-  // flight.js) y comparte nada mas el cooldown. El plan lo cuenta entre las piruetas existentes,
-  // asi que la vara tambien — si algun dia se muda al catalogo, esta linea se cae sola.
-  const IDS = ['tonel', ...Object.keys(CAT)].filter(id => !ONLY.length || ONLY.includes(id));
+  // EL TONEL YA NO ENTRA A MANO: se mudo a MOVES y sale del catalogo como las demas. Mientras
+  // estuvo afuera, esta lista lo agregaba a mano y la seccion 2 (los actores) no podia probarlo —
+  // que es exactamente el agujero por el que la primera fila del menu MANIOBRAS no hacia nada.
+  const IDS = Object.keys(CAT).filter(id => !ONLY.length || ONLY.includes(id));
   const FLY_X = 38, FLY_TOP = 68;
   let pasaron = 0;
 
   for (const id of IDS) {
-    const M = CAT[id] || { dur: 0.55, name: 'TONEL (legado)', fire: true, turbo: false };
+    const M = CAT[id];
     const { r, tr, visto, fin, salida, muerto } = await correr(id, M.dur);
     const nom = `${id} (${M.name})`;
     let mal = 0;
@@ -203,7 +202,7 @@ app.whenReady().then(async () => {
 
     // 2. dura lo declarado — el reloj de la maniobra tiene que ACERCARSE a su `dur`
     const tMax = Math.max(0, ...tr.map(x => x.t || 0));
-    if (id !== 'tonel' && visto && tMax < M.dur * 0.5)
+    if (visto && tMax < M.dur * 0.5)
       falla(`se corto a la mitad: el reloj llego a ${tMax.toFixed(2)} s de ${M.dur} declarados`);
 
     // 3. el contrato del catalogo == lo que el juego pregunta
@@ -214,7 +213,7 @@ app.whenReady().then(async () => {
     }
 
     // 4. se mueve (o rola): una pirueta que no mueve nada es una animacion
-    const my = rango(tr, 'y'), mx = rango(tr, 'x'), mr = rango(tr, 'roll') + rango(tr, 'rollT');
+    const my = rango(tr, 'y'), mx = rango(tr, 'x'), mr = rango(tr, 'roll');
     if (my < 0.4 && mx < 0.4 && mr < 0.2) falla('no movio NADA: ni altura, ni carril, ni rolido');
 
     // 5. sale sana
@@ -227,7 +226,7 @@ app.whenReady().then(async () => {
 
     if (!mal) {
       pasaron++;
-      ok(`${nom} · ${id === 'tonel' ? 'reloj legado (run.rollT)' : tMax.toFixed(2) + '/' + M.dur + 's'} · altura ${my.toFixed(1)} · carril ${mx.toFixed(1)} · rolido ${mr.toFixed(2)} · sale a ${salida.spd} y ${salida.y} m`);
+      ok(`${nom} · ${tMax.toFixed(2)}/${M.dur}s · altura ${my.toFixed(1)} · carril ${mx.toFixed(1)} · rolido ${mr.toFixed(2)} · sale a ${salida.spd} y ${salida.y} m`);
     }
     await shot('mv_' + id);
   }
@@ -243,9 +242,6 @@ app.whenReady().then(async () => {
   // muestra y no al final: que el jugador quede igual DESPUES no prueba que no lo empujaron en el
   // medio.
   //
-  // El TONEL legado no tiene version de actor y no es un olvido: no esta en MOVES, vive en el
-  // camino viejo de flight.js (run.rollT) que solo sabe de `plane`. El dia que se mude al catalogo
-  // entra a esta lista sola.
   console.log('\n2. las mismas, volando un actor (M1):');
   let actOk = 0;
   const ACT = Object.keys(CAT).filter(id => !ONLY.length || ONLY.includes(id));
@@ -288,6 +284,40 @@ app.whenReady().then(async () => {
   console.log('');
   if (actOk === ACT.length) ok(`las ${ACT.length} del catalogo tambien se vuelan COMO ACTOR, y el jugador no se entera`);
   else bad(`${ACT.length - actOk} de ${ACT.length} fallaron como actor`);
+
+  // ---------- 3. EL SOBREPASO: la entrada de casa ----------
+  // Un actor sin lado tiene que entrar POR ATRAS, y "por atras" no es un rotulo: es que NACE MAS
+  // CERCA DE LA CAMARA QUE EL JUGADOR y termina MAS LEJOS. Eso es lo que se mide — que la
+  // profundidad CRUCE la del avion propio (PZ = 14). Sin este guardian, cambiar un numero de
+  // puesta en escena podia dejar al Fiel apareciendo delante, y el fixture no se enteraba.
+  console.log('\n3. la entrada por omision (sobrepaso):');
+  {
+    await js('window.__mvreset()');
+    gas(); await limpiar();
+    const r = JSON.parse(await js("String(window.__mvactor('barrel'))"));
+    const zs = [], xs = [];
+    let lado = r.lado;
+    for (let t0 = Date.now(); Date.now() - t0 < 4200;) {
+      gas(); await limpiar();
+      const A = JSON.parse(await js('String(window.__mvactordbg())'));
+      if (!A.length) break;
+      zs.push(A[0].z); xs.push(A[0].x);
+      await sleep(60);
+    }
+    const PZ = 14;
+    let mal = 0;
+    const falla = m => { bad('sobrepaso: ' + m); mal++; };
+    if (lado !== 'atras') falla(`sin lado entro por '${lado}' y no por atras (WINGMV.LADO)`);
+    if (!zs.length) falla('no se lo vio en escena');
+    else {
+      if (zs[0] >= PZ) falla(`nacio DELANTE del jugador (z ${zs[0]} ≥ ${PZ}): eso no es un sobrepaso`);
+      if (Math.max(...zs) <= PZ) falla(`nunca paso al jugador (z maxima ${Math.max(...zs)} ≤ ${PZ})`);
+      // y no le pasa por encima: en el cuadro mas cercano tiene que estar a un costado
+      if (Math.abs(xs[0]) < 4) falla(`paso por encima del jugador (x ${xs[0]}): tiene que pasar por un hombro`);
+    }
+    if (!mal) ok(`sin decir lado entra por ATRAS y sobrepasa: z ${zs[0]} → ${Math.max(...zs).toFixed(0)} (el jugador esta en ${PZ}), por el hombro ${xs[0] > 0 ? 'derecho' : 'izquierdo'}`);
+    await shot('act_sobrepaso');
+  }
 
   console.log('\nconsola:');
   if (errors.length) { for (const e of errors.slice(0, 6)) bad(e); }

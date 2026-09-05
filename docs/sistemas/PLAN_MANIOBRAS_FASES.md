@@ -217,3 +217,47 @@ viraje de combate, energía) · el especial del PASILLO.
 20. **Una sola perilla para la cámara lenta y la conversión de relojes** (`MV_FILM.LENTO`): es a la
     vez el `tempo` que pide la escena y el divisor con que la duración de catálogo se convierte a
     segundos de pared. Escritos por separado, las bandas se destiempan en cuanto alguien toca uno.
+
+
+### Divergencias del TONEL AL CATÁLOGO y el SOBREPASO *(pedido del 4/9)*
+
+21. **La primera fila del menú no hacía nada, y era una deuda vieja que recién ahí se cobró.** El
+    TONEL —la pirueta original del juego— vivía **fuera de `MOVES`**, con reloj propio (`run.rollT`)
+    en `flight.js`. Mientras la única forma de verlo fue volarlo, eso no molestaba a nadie. Dejó de
+    ser cierto con las tres presentaciones: "un compañero" y "como cinemática" preguntan por el
+    catálogo, no lo encontraban, y la primera fila de MANIOBRAS era una fila muerta. **Se mudó a
+    `MOVES`** (`dur: ROLL_DUR`, `steer: null`, `tight: true`) y las tres presentaciones le salieron
+    gratis. La red de regresión pasó de 13 filas escritas a mano a 13 derivadas: `npm run maniobras`
+    lo prueba ahora también **como actor**, que era justo lo que no podía probar.
+22. **`legado` es lo único que quedó de su historia, y son dos cosas concretas.** (a) **No lo apaga
+    `cfg.moves`**: el tonel es del juego desde el primer día, no un poder que alguien aprendió, y la
+    perilla de maniobras no puede quitarle al jugador algo que no eligió tener. (b) **El gas sigue
+    respondiendo mientras rola**: una pirueta normal es dueña del avión y el bloque de control de
+    `flight.js` no corre, pero el tonel nunca fue así —vivía aparte y sólo pisaba `vx`—. `mvLegado()`
+    conserva esa forma: se guarda la ráfaga lateral que escribió la maniobra, se vuela el avión como
+    siempre, y se devuelve la ráfaga al final. Sin eso, tirar un tonel apagaba el motor medio segundo.
+23. **Lo que se borró al mudarlo vale más que lo que se agregó.** `run.rollT` desapareció del store,
+    y con él la doble pregunta `run.rollT > 0 || mvTight(run.mv)` que había en cinco lugares de
+    `collision.js` y `world.js`, las dos ramas de `spriteRoll()` en `core/horizon.js`, el bloque de
+    ráfaga y estelas de `flight.js` (las estelas ya las emitía `moves.js` con la misma receta), y el
+    caso aparte del fixture. Una excepción sostenida durante años cuesta más en los bordes que en el
+    centro.
+24. **El compañero entra POR ATRÁS, sobrepasando** (`WINGMV.LADO`, pedido del 4/9). Uno que aparece
+    de golpe en un borde es un sprite que se prendió: existe recién cuando se lo ve. Uno que te pasa
+    —nace pegado a la cámara, un hombro al costado y más abajo, y se va adelantando mientras trepa—
+    **ya estaba ahí antes de que lo miraras**. Los costados no se van: siguen siendo lo que hay que
+    pedir cuando la escena quiere que el Fiel **atraviese** el plano. `'auto'` sortea con los pesos
+    de `WINGMV.MEZCLA` (4 atrás · 1 izquierda · 1 derecha).
+25. **La entrada de atrás dura más** (`ENTRA_ATRAS` 1,5 s contra 1,0 s de los costados): un sobrepaso
+    hay que **verlo**. Con el segundo de los laterales el Fiel aparecía de la nada y ya estaba
+    adelante — el sobrepaso, que es todo el punto, pasaba en tres cuadros. El morro acompaña con
+    cabeceo sacado de la velocidad vertical real; sin eso se leía como un sprite subiendo en vertical.
+26. **El hombro se sortea y manda sobre todo lo demás**: por dónde pasa, hacia dónde vuela la figura
+    y por dónde se va. El que te pasa por la izquierda no se cruza a la derecha para irse. Ojo con el
+    signo: la fase de salida empuja hacia `-salX`, así que la entrada de atrás guarda el hombro
+    **invertido**. Y `mvDir` sale del **signo** de `salX`, no de su valor: la salida de atrás se abre
+    apenas (0,35) y usarlo crudo achicaba la pirueta entera a un tercio.
+27. **El fixture mide el sobrepaso por la profundidad, no por el rótulo** (sección 3): sin decir lado
+    tiene que entrar por atrás, **nacer más cerca de la cámara que el jugador** (`z < PZ`) y terminar
+    más lejos (`z > PZ`), pasando por un hombro y no por encima. Un guardián sobre un número de
+    puesta en escena, que es exactamente la clase de cosa que se rompe sin que nadie se entere.

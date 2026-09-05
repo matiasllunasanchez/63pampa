@@ -20,6 +20,8 @@ import { sfxOne, beep, boom } from '../systems/audio.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { PZ } from '../render/ctx.js';
+import { topeCarril } from '../core/zigzag.js';
+import { ZZ_PARED_TALUD } from '../data/tuning.js';
 import { AA_Z0, AA_Z1, AA_CD, shoreAt, SAND_W, SPAWN_X,
   OLA_SPD, OLA_FACE_KILL, OLA_SCRAPE_FRAC, OLA_ROMP_Z } from '../data/tuning.js';
 // LAS OLAS USAN EL ROCE QUE YA EXISTE, no uno nuevo (SPEC_AGUA_OLAS §6.1): `scrapeLimit` es la
@@ -56,7 +58,7 @@ export function collisionSystem(dt) {
       // ATROPELLAR EN LA LOMA (T3): la altura del soldado se mide desde SU suelo, no desde el cero
       // del mundo. Sin esto, en el lomo de una loma el avion no puede bajar de gy+0.5 y nunca
       // llegaria a `SOLDIER.top`: la infanteria de las alturas seria invulnerable por accidente.
-      && Math.abs(plane.x - sd.x) < SOLDIER.hw + planeBox(run.rollT > 0 || mvTight(run.mv)).pw
+      && Math.abs(plane.x - sd.x) < SOLDIER.hw + planeBox(mvTight(run.mv)).pw
       && plane.y < (sd.gy || 0) + SOLDIER.top) {
       sd.dead = true;                                        // pase rasante: cabeza / impacto de aire
       sfxOne('body');                                        // impacto de cuerpo (una variante al azar)
@@ -121,7 +123,7 @@ export function collisionSystem(dt) {
       if (o.roarT <= 0) { o.roarT = 0.42; boom(0.05 + 0.09 * (1 - o.z / OLA_ROMP_Z)); }
     }
     if (o.type === 'boom' || o.type === 'airboom') o.boomT += dt;   // el hongo / la bola crecen y se disipan
-    if (o.type === 'birds') o.x += o.bvx * dt;              // la bandada deriva
+    if (o.type === 'birds') { o.x += o.bvx * dt; o.x = topeCarril(o.x, run.dist + o.z, ZZ_PARED_TALUD); }   // la bandada deriva
     // MOVIMIENTO PROPIO (cfg.enemyMove): la personalidad se sortea en spawn.js (sway / drive /
     // home) y aca solo se APLICA — con la llave del menu apagada quedan plantados donde nacieron.
     if (cfg.enemyMove) {
@@ -140,6 +142,12 @@ export function collisionSystem(dt) {
         if (o.x > right) { o.x = right; o.vx = -Math.abs(o.vx); }
         else if (o.x < -SPAWN_X) { o.x = -SPAWN_X; o.vx = Math.abs(o.vx); }
       }
+      // EL CALLEJON TAMBIEN LOS TOPA (zigzag Z3.b). Nacer en un carril seguro no alcanza: estos se
+      // mueven solos y se meten en la roca — el censo del fixture encontro 21 globos enterrados en
+      // una sola corrida. Un obstaculo adentro de la tierra es invisible y mata, que es la peor
+      // combinacion que hay. Sin paredes, `topeCarril` devuelve la x tal cual.
+      const tx = topeCarril(o.x, run.dist + o.z, ZZ_PARED_TALUD);
+      if (tx !== o.x) { o.x = tx; if (o.vx) o.vx = -o.vx; if (o.xa !== undefined) o.xa = tx; }
     }
     // BARCAZA navegando: entra de la derecha hacia la playa; al TOCAR la costa encalla y
     // desembarca su patrulla (que sale corriendo hacia la izquierda)
@@ -215,7 +223,7 @@ export function collisionSystem(dt) {
       // (cfg.hitboxes). Si estuvieran duplicadas, el overlay podria mostrar una caja y el juego
       // usar otra.
       const { hw, hh, oy } = hitbox(o);
-      const { pw, ph: ph2 } = planeBox(run.rollT > 0 || mvTight(run.mv));
+      const { pw, ph: ph2 } = planeBox(mvTight(run.mv));
       const dx = Math.abs(plane.x - o.x) - (hw + pw);
       const dy = Math.abs(plane.y - oy) - (hh + ph2);
       const reach = hullReach(o, hw);
@@ -275,7 +283,7 @@ export function collisionSystem(dt) {
           : o.type === 'helo' ? 'death_helo' : o.type === 'jet' ? 'death_jet' : 'death_balloon' };
         }
       } else if (dx < 3 && dy < 3) {
-        const pir = run.rollT > 0 || mvTight(run.mv);    // rozar EN PIRUETA: bonus grande (estilo)
+        const pir = mvTight(run.mv);    // rozar EN PIRUETA: bonus grande (estilo)
         const pts = pir ? 250 : 75;
         run.score += pts; stats.grazes++; run.shake = Math.min(6, run.shake + 1.5);
         sfxOne('graze');                                 // roza1/roza2: el premio sonoro del roce
@@ -348,7 +356,7 @@ export function collisionSystem(dt) {
     m.y += Math.max(-14, Math.min(14, (plane.y - m.y) * 2.0 * trk)) * dt;
     if (!m.done && m.z <= PZ + 1.2) {
       m.done = true;
-      if (Math.abs(plane.x - m.x) < (run.rollT > 0 || mvTight(run.mv) ? 1.6 : 3) && Math.abs(plane.y - m.y) < (run.rollT > 0 || mvTight(run.mv) ? 1.2 : 2.2)) {
+      if (Math.abs(plane.x - m.x) < (mvTight(run.mv) ? 1.6 : 3) && Math.abs(plane.y - m.y) < (mvTight(run.mv) ? 1.2 : 2.2)) {
         // TE PEGO. Con el modelo de vida por integridad puede que lo aguantes — pero aguantarlo
         // NO es esquivarlo: el `continue` es lo que impide que el impacto te pague los 75 puntos
         // y el cartel de ESQUIVASTE, que estaban abajo porque antes no habia forma de sobrevivir.

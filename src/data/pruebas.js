@@ -118,6 +118,26 @@ export const PRUEBAS = [
     setup: a => { a.patria({ terrain: 'coast', coast: 120 }); a.luego(2, g => g.sonda('olacosta')); },
   },
 
+  { head: 'prSecCallejon' },
+  {
+    id: 'callejon', titulo: 'EL CALLEJON DE LAS BOMBAS', desc: 'La mision m5 en la boca del callejon, con las laderas encima',
+    // se entra a la mision y se salta a la BOCA (el zigzag de m5 arranca en 0.33): sin el salto
+    // habria que volar el transito mudo del Narwal entero para ver una ladera.
+    setup: a => { a.mision('m5'); a.luego(1.4, g => g.sonda('wjump', 0.36)); },
+  },
+  {
+    id: 'callejonPuntas', titulo: 'EL CALLEJON A FONDO', desc: 'Bien adentro, donde las puntas ocupan casi todo el pasillo',
+    setup: a => { a.mision('m5'); a.luego(1.4, g => g.sonda('wjump', 0.72)); },
+  },
+  {
+    id: 'callejonSalida', titulo: 'LA SALIDA A LA BAHIA', desc: 'Las laderas bajan y el mar se abre: ahi asoma el ARDENT',
+    setup: a => { a.mision('m5'); a.luego(1.4, g => g.sonda('wjump', 0.9)); },
+  },
+  {
+    id: 'callejonSuelto', titulo: 'EL CALLEJON SUELTO', desc: 'Sin mision: el carril con laderas para mirarlo tranquilo',
+    setup: a => { a.patria({ obstacles: 0 }); a.luego(1.2, g => g.cfg({ zigzag: 2 })); },
+  },
+
   { head: 'prSecPoder' },
   {
     id: 'chancha', titulo: 'LA CHANCHA CON LA NAFTA JUSTA', desc: 'El KC-130 pedido al 8% de tanque: el momento dramatico',

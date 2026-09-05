@@ -22,7 +22,7 @@ import { skinOf } from '../data/skins.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName, rosterActive } from '../systems/squad.js';
 import { nivel } from '../core/desgaste.js';   // el avion remendado — GUION_3 §9d, ley 4
-import { ROLL_DUR } from '../data/tuning.js';
+import { MOVES } from '../data/moves.js';
 
 const MIRA_SIZE = 17;   // lado de la mira en pixeles de mundo (480x270)
 const AIM_PITCH = 5;    // cuanto sube/baja la mira FIJA con el cabeceo (unidades de mundo)
@@ -594,7 +594,10 @@ export function drawPlane(selPlane, viewMouse, camScale) {
   const bank = Math.max(-1, Math.min(1, plane.bank));
   const pl = PLANES[selPlane];
   const useSheet = pl.sheetOk;   // sprite HORNEADO: el alabeo lo traen los frames
-  let rolling = run.rollT > 0;
+  // EL TONEL, ahora una entrada del catalogo como cualquier otra (data/moves.js). Se lo sigue
+  // preguntando aparte porque es la unica pirueta que gira el sprite ENTERO 360°: pose centrada y
+  // pulso de escala. El angulo ya no se recalcula aca — lo trae `run.mvRoll`, escrito por el motor.
+  const rolling = run.mv === 'tonel';
   // HORIZONTE GIRATORIO: con cfg.horizon prendido, el giro de la pirueta ya se lo comio el MUNDO
   // (game.js rota el fondo entero) y el avion tiene que quedar DERECHO, como visto desde una
   // camara que rola con el. hz vale justo lo que hay que restar. Con FIJO vale 0 y todo esto se
@@ -614,8 +617,8 @@ export function drawPlane(selPlane, viewMouse, camScale) {
   const colPose = rolling ? (SHEET_NF - 1) / 2 : Math.round((1 - bank) / 2 * (SHEET_NF - 1));
   const pcPose = Math.max(-1, Math.min(1, plane.pitch));
   const rowPose = pcPose > 0.33 ? 0 : pcPose < -0.33 ? 2 : 1;
-  const prRoll = rolling ? 1 - run.rollT / ROLL_DUR : 0;   // 0→1 durante el tonel
-  const spinTot = rolling ? run.rollDir * prRoll * Math.PI * 2 + hz
+  const prRoll = rolling ? Math.min(1, run.mvT / MOVES.tonel.dur) : 0;   // 0→1 durante el tonel
+  const spinTot = rolling ? run.mvRoll + hz
     : run.mvRoll ? run.mvRoll + hz + wob
     : useSheet ? wob
     : bank * 0.42 + wob;
@@ -712,7 +715,7 @@ export function drawPlane(selPlane, viewMouse, camScale) {
   // aire humedo del Atlantico lo hacia. La G se aproxima con el alabeo (virar es cargar) mas un
   // empujon fijo durante las piruetas, que son el otro momento en que el avion se carga de verdad.
   if (alive) {
-    const gLoad = Math.min(1, Math.abs(bank) * 1.15 + (run.mv ? 0.45 : 0) + (run.rollT > 0 ? 0.3 : 0));
+    const gLoad = Math.min(1, Math.abs(bank) * 1.15 + (run.mv ? 0.45 : 0) + (rolling ? 0.3 : 0));
     drawVaporAla(spW, spH, run.spd, gLoad, run.t);
   }
   // mancha de sangre sobre el morro/cabina al atropellar (temporal; hacé un sprite ensangrentado si querés)
@@ -747,7 +750,7 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     // saca mas floja porque ahi el ala no esta cargada: solo vas mas rapido.
     //
     // Prendida siempre, como estaba antes, el hilo era permanente y dejaba de significar nada.
-    const enManiobra = !!run.mv || run.rollT > 0;
+    const enManiobra = !!run.mv;
     const fuerzaTip = S.state !== 'play' ? 0 : enManiobra ? 1 : (run.boost ? 0.4 : 0);
     // QUITAR — lo que el RENDER vio en este cuadro. Sin esto, un `f=0` no distingue entre
     // "la fuerza dio cero" y "esta funcion ni se llamo", que son dos bugs distintos.

@@ -99,8 +99,8 @@ import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './legacy/momentum_render.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
-import { MSL_MAX, ROLL_DUR, GEAR_T, RADAR_ALT, FLY_TOP, VEIL_IN, VEIL_FULL, VEIL_OUT,
-  RAS_DUR, RAS_LAT_HZ } from './data/tuning.js';
+import { MSL_MAX, GEAR_T, RADAR_ALT, FLY_TOP, VEIL_IN, VEIL_FULL, VEIL_OUT,
+  RAS_DUR, RAS_LAT_HZ, ZZ_FONDO_K } from './data/tuning.js';
 // ¿"cerca" del techo del radar? Es la ventana donde '↑ arriba + ↑↑' deja de ofrecerte llegar al
 // borde y pasa a ofrecerte cruzarlo. 4 unidades: lo justo para que salga del ASCENSO anterior y
 // repetir el combo, sin que se dispare desde una altura donde todavia tenias margen.
@@ -111,6 +111,9 @@ import * as squad from './systems/squad.js';
 // TRAMOS (docs/sistemas/SPEC_TRAMOS.md): el guion de spawn por mision. El orquestador le pasa
 // la lista al empezar la corrida y despacha su radio; el sembrador y LA COLA la leen.
 import * as tramos from './systems/tramos.js';
+import * as zigzag from './systems/zigzag.js';
+import * as zigzagCore from './core/zigzag.js';
+import { drawParedes } from './render/paredes.js';
 // LAS CHARLAS EN VUELO (docs/sistemas/SPEC_CHARLAS_VUELO.md): dialogo durante la mision jugable.
 // El sistema es dueño de la FASE y nada mas; el que arranca el motor de lineas, el que apaga el
 // HUD y el que corta en la muerte es este archivo — el sistema devuelve señales.
@@ -122,7 +125,7 @@ import * as squadRender from './render/squad.js';
 import * as wingmv from './systems/wingmv.js';
 import { drawActores } from './render/wingmv.js';
 import { canRelevo, pilotIdx } from './core/squad.js';
-import { RUNWAYS, AIR_START_Y } from './data/runways.js';
+import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
   (() => {
     'use strict';
@@ -1193,6 +1196,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // al mismo lugar es lo que garantiza que los dos son SIEMPRE del mismo run. Los modos sin
       // objetivo (POR LA PATRIA) quedan sin tramos, que es el alcance v1 del spec.
       tramos.setTramos(objectiveDist > 0 && curMission() ? curMission().tramos : null, objectiveDist);
+      // EL ZIGZAG de la corrida (PLAN_PASILLO_ZIGZAG Z1) va al lado de los tramos y por la misma
+      // razon exacta: su ventana `desde`/`hasta` son fracciones, y una fraccion sin su objetivo
+      // no significa nada. A diferencia de los tramos, un modo SIN objetivo si puede llevar
+      // zigzag (el preset del menu en POR LA PATRIA): ahi la ventana vale entera.
+      zigzag.setZigzag(curMission() ? curMission().zigzag : null, objectiveDist);
       // EL PULSO necesita saber CONTRA QUE buque es la prueba: de su clase sale como se muere en
       // la cinematica del premio. Va aca y no en reset() porque el objetivo se define despues.
       pulso.setShip(objectiveShip);
@@ -1319,6 +1327,13 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         save: 'rasante_terreno' },
       { label: () => T('optWind'), opts: [true, false], names: yesNo,
         get: () => cfg.wind, set: v => cfg.wind = v, save: 'rasante_viento' },
+      // EL PASILLO EN ZIGZAG (PLAN_PASILLO_ZIGZAG). Va en el bloque de MAPA porque es eso: la
+      // forma del carril. Es una perilla de PROTOTIPO —una mision de verdad trae su trazado en
+      // el campo `zigzag:`, que pisa a esta— y por eso el default es RECTO: con RECTO el juego
+      // es, bit a bit, el de antes de que el item existiera.
+      { label: () => T('optZigzag'), opts: [0, 1, 2],
+        names: () => [T('optZigzag_0'), T('optZigzag_1'), T('optZigzag_2')],
+        get: () => cfg.zigzag | 0, set: v => cfg.zigzag = v, save: 'rasante_zigzag' },
       // NIEBLA: va acá, con VIENTO y OBSTÁCULOS, porque CAMBIA CÓMO SE JUEGA — no es ambiente.
       { label: () => T('optFog'), opts: [0, 1, 2],
         names: () => [T('optFogOff'), T('optFogLight'), T('optFogThick')],
@@ -1696,6 +1711,16 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     const persecProbe = (() => {
       try { return new URLSearchParams(location.search).has('persec'); } catch (e) { return false; }
     })();
+    // SONDA `?zigzag=1|2` (PLAN_PASILLO_ZIGZAG §5) — QUITAR al cerrar el item. Prende el preset
+    // del carril curvo al cargar, para poder mirar una curva en POR LA PATRIA sin editar datos.
+    // Escribe `cfg.zigzag`, o sea la MISMA causa que la fila del menu: la sonda ejercita el
+    // camino del juego y no uno paralelo.
+    (() => {
+      try {
+        const v = new URLSearchParams(location.search).get('zigzag');
+        if (v !== null) cfg.zigzag = Math.max(0, Math.min(2, parseInt(v, 10) || 1));
+      } catch (e) { /* sin URL (tests): el zigzag queda apagado, que es el default */ }
+    })();
     let persecArmed = false;
     let cazaArmed = false;   // la sonda arma UNO solo, no uno por cuadro
     let cazaCalma = false;   // sonda: pasillo vacio para poder mirar el duelo (ver el update)
@@ -1782,7 +1807,13 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       run.squad = run.lives = cfg.squad;
       squad.resetSquad();
       toT = 0; toCount = 4;
-      cam.x = 0; cam.y = 4;
+      // LA CAMARA ARRANCA DONDE ESTA EL AVION, no en una constante. Con ACANTILADO el avion nace
+      // sobre la meseta (`resetPlane`: PORT_H + 1.2 = 16.2 m) y la camara quedaba clavada en 4,
+      // o sea ONCE METROS POR DEBAJO del borde — y como el raster del mar decide "esto es pared
+      // de acantilado" comparando la altura de camara contra la meseta, la pantalla entera se
+      // llenaba de roca y no se veia ni la pista. Es un bug viejo de la opcion ACANTILADO, no del
+      // callejon: se reproduce igual con el zigzag apagado.
+      cam.x = 0; cam.y = (cfg.cliff ? PORT_H : 0) + 4;
     }
 
     // (el boton tactil de misil se quito: tapaba la barra de combustible. En tactil el misil
@@ -2183,9 +2214,15 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // ('LLL' / 'RRR'); antes eran tres del izquierdo y se disparaba solo esquivando.
     // Devuelve true si el tonel ARRANCO — el detector de combos lo usa para saber si consumio la
     // secuencia. Sin esto, un tonel en cooldown dejaria el buffer sucio.
+    //
+    // Desde que el tonel se mudo al catalogo (data/moves.js) esto es `startMove('tonel')` y nada
+    // mas: la curva, el cooldown y las estelas son las de cualquier pirueta. Lo que sigue viviendo
+    // aca es SU FIRMA SONORA, que no es la de las demas — por eso entra `mudo` y los sonidos se
+    // tocan abajo, iguales a los de siempre.
     function startRoll(dir) {
-      if (S.state !== 'play' || run.rollT > 0 || run.rollCd > 0 || run.mv) return false;
-      run.rollT = ROLL_DUR; run.rollDir = dir; run.rollCd = 1.15;
+      if (S.state !== 'play') return false;
+      if (!moves.startMove('tonel', dir, 0, { mudo: true })) return false;
+      run.rollDir = dir;                        // lo lee el horizonte giratorio (core/horizon.js)
       sfxOne('waveFly');                        // rafaga de aire de la pirueta
       // ROCE del aire al girar, A VECES. Siempre seria una firma sonora fija y el tonel pasaria a
       // sonar a animacion; que salga aleatorio lo mantiene vivo. Va mas bajo que el roce de verdad:
@@ -2387,6 +2424,18 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       else if (S.state === 'play' && cine.active()) dt *= cine.tempo();
       run.t += dt;
       prbTick();   // MODO PRUEBAS: las sondas agendadas con a.luego() (no hace nada sin S.test)
+      // EL ZIGZAG (PLAN_PASILLO_ZIGZAG Z1): rehace la tabla del carril curvo, o la APAGA.
+      //
+      // VA ACA, SIN NINGUN `if` DELANTE, y esa es toda la decision de diseño: el sistema decide
+      // adentro si hay trazado (mira el estado, el cfg y la mision). Puesto detras de una
+      // condicion, existiria el camino en el que no se llama y la tabla queda encendida del
+      // cuadro anterior — o sea, el mundo doblado adentro del ARENA. Apagar es la mitad
+      // importante de este renglon.
+      //
+      // Lo unico que se paga por estar tan arriba es que la tabla se arma con el `run.dist` del
+      // cuadro ANTERIOR (flightSystem lo adelanta mas abajo): 1,2 m a velocidad de crucero, que
+      // sobre un radio de curva de 600 m no se ve ni midiendolo.
+      zigzag.stepZigzag();
       // rotacion del fondo del lobby (no avanza jugando: solo mientras se elige)
       if (inLobby()) {
         ppalT += dt;
@@ -2964,6 +3013,11 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
 
       if (!world3D.isOn() && !arena3D.isOn()) {   // ---- mundo 2D: en el climax 3D lo reemplaza el blit de arriba ----
       // cielo y sol 2D: en mar-abierto-3D los pone three (nubes/islas siguen 2D encima)
+      // EL FONDO GIRA CON EL RUMBO (zigzag Z2). Es lo mas barato del item y lo que mas vende que
+      // doblaste: las sierras y el telon se corren al virar. Sin esto el mundo dobla y el
+      // horizonte se queda mirando para el mismo lado — que es la costura que delata el truco
+      // del riel curvo. Vale 0 con el pasillo recto.
+      const zfx = zigzag.headingZigzag() * ZZ_FONDO_K;
       const tbA = tbackImg();                  // imagen de fondo del clima (si esta cargada)
       const tb2 = world3D.isSea() ? null : tbA;      // en mar-3D la pinta el telon de three
       if (!world3D.isSea()) {
@@ -2972,21 +3026,30 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
         // sol) + parallax suave (x0.8) para que el telon tambien respire
         const dw = W + 140, dh = dw * tb2.naturalHeight / tb2.naturalWidth;
         ctx.fillStyle = '#0a1014'; ctx.fillRect(-70, -140, dw, HOR + 144);   // margen sobre la imagen
-        ctx.drawImage(tb2, -70 - cam.x * 0.8, HOR - tbackHor() * dh, dw, dh);
+        // EL TELON SE CORRE TOPEADO. El resto del fondo (nubes, sierras) da la vuelta con un
+        // modulo, asi que puede correrse lo que quiera; el telon es UNA imagen dibujada una vez,
+        // con 70 px de margen a cada lado — pasado eso se ve su BORDE, un bloque duro en la
+        // esquina. Aparecio en la primera captura de la curva y es el unico artefacto que dejo
+        // el item. Se topea en 60 y no se agranda la imagen a proposito: agrandarla la escala
+        // tambien en alto y cambiaria el encuadre del cielo en TODAS las misiones, con zigzag o
+        // sin el. El costo es que en una curva sostenida y larga el telon deja de acompañar —
+        // es lo mas lejano que hay en pantalla, y es lo que menos se nota.
+        const zfxT = Math.max(-60, Math.min(60, zfx));
+        ctx.drawImage(tb2, -70 - cam.x * 0.8 - zfxT, HOR - tbackHor() * dh, dw, dh);
       } else {
       const g = ctx.createLinearGradient(0, 0, 0, HOR);
       g.addColorStop(0, theme.sky.skyTop); g.addColorStop(0.6, theme.sky.skyMid); g.addColorStop(1, theme.sky.horizon);
       ctx.fillStyle = g; ctx.fillRect(-70, -140, W + 140, HOR + 144);   // margenes: paneo + rolls completos del momentum
       ctx.globalAlpha = 0.4; px(-70, HOR - 10, W + 140, 10, theme.sky.sunGlow); ctx.globalAlpha = 1;
       // sol bajo
-      const sunX = W / 2 - cam.x * 1.4;
+      const sunX = W / 2 - cam.x * 1.4 - zfx;
       px(sunX - 7, HOR - 11, 14, 8, theme.sky.sun);
       ctx.globalAlpha = 0.35; px(sunX - 10, HOR - 13, 20, 12, theme.sky.sunGlow); ctx.globalAlpha = 1;
       }
       }
       // nubes
       for (const c of clouds) {
-        const cx = ((c.x - cam.x * 2.2 - run.t * 2) % (W + 80) + W + 80) % (W + 80) - 40;
+        const cx = ((c.x - cam.x * 2.2 - run.t * 2 - zfx) % (W + 80) + W + 80) % (W + 80) - 40;
         px(cx, c.y, c.w, 3, P.cloud); px(cx + 5, c.y - 2, c.w * 0.5, 2, P.cloud);
       }
       // COLINAS en el horizonte: SIEMPRE (el parallax de estas montañas es la vida del fondo;
@@ -2994,7 +3057,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // DOS TONOS — las laderas que miran al sol (izquierda) se iluminan, las otras quedan en
       // sombra. El dibujo viejo eran dos triangulos planos de un solo color: carton pintado.
       for (const is of isles) {
-        const ix = ((is.x - cam.x * 3.5) % (W + 160) + W + 160) % (W + 160) - 80;
+        const ix = ((is.x - cam.x * 3.5 - zfx) % (W + 160) + W + 160) % (W + 160) - 80;
         const hsh = n => { const v = Math.sin(is.seed * 12.9898 + n * 78.233) * 43758.5453; return v - Math.floor(v); };
         const N = 6, peak = 1 + Math.round(hsh(99) * (N - 2));
         const ys = [0];                                   // altura de cada vertice de la cresta
@@ -3048,6 +3111,16 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       world.drawApproachBarge(objectiveDist, objectiveShip,
         S.state === 'pulso' ? pulso.shipFx(pulsoRender.ventana(cine.state(), run.t)) : null,
         runClimax() === 'pasada' && S.state !== 'pulso');
+      // LAS PAREDES DEL CALLEJON (zigzag Z3) van DESPUES del buque de aproximacion, y esto es
+      // orden de profundidad, no capricho: el buque objetivo esta a UN KILOMETRO y las laderas
+      // dentro de los 260 m, asi que los cerros TAPAN al buque y a los hongos de flak que lo
+      // rodean. Dibujadas antes (primera version), las nubes del buque aparecian FLOTANDO POR
+      // ENCIMA del terreno — se veia el humo de un antiaereo lejano pintado sobre un cerro que
+      // esta mucho mas cerca.
+      //
+      // Siguen ANTES del marcador de objetivo y de los obstaculos: el marcador es informacion que
+      // no se puede tapar, y los obstaculos viven adentro del carril, mas cerca que las paredes.
+      drawParedes();
       world.drawObjectiveMarker(objectiveDist);                // cuña roja en el horizonte: hacia donde vamos
       world.drawWake();
       // malla del techo de deteccion del radar. NO en EL PULSO: es un instrumento del PASILLO —
@@ -3648,6 +3721,34 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       window.__trdbg = () => JSON.stringify(tramos.dbg(cfg));
       window.__trset = t => JSON.stringify(tramos.setTramosProbe(t, objectiveDist));
     }
+    // ---------- SONDAS DEL ZIGZAG (PLAN_PASILLO_ZIGZAG §5) — QUITAR al cerrar el item ----------
+    // `__zzdbg()` contesta lo RESUELTO de este cuadro (curvatura, deriva, si se sostiene con la
+    // palanca, el corrimiento del carril a la profundidad de siembra), que es lo unico que
+    // permite afirmar desde afuera que el trazado esta rigiendo. `__zzset(spec)` inyecta un
+    // trazado al run EN CURSO y devuelve los errores del validador — la misma funcion que corre
+    // el unit test; `__zzset(null)` devuelve el mando a la mision. Y `__zzbend(z)` es el numero
+    // con el que el fixture compara EL DIBUJO contra el nucleo: si la pantalla y la tabla no
+    // coinciden, el item esta mintiendo en algun lado.
+    if (typeof window !== 'undefined') {
+      window.__zzdbg = () => JSON.stringify(zigzag.dbg());
+      window.__zzset = z => JSON.stringify(zigzag.setZigzagProbe(z));
+      window.__zzbend = z => zigzagCore.bendW(+z);
+      // CUANTO SE METE LA TIERRA a esa profundidad y de ese lado. Es la sonda del callejon: sin
+      // ella, "hay puntas" solo se puede comprobar mirando una captura.
+      window.__zzentra = (z, lado) => zigzagCore.paredEntra(+z, +lado);
+      // ALTURA de la ladera ahi. Es la sonda que contesta "¿hay callejon en este punto?", que NO
+      // es lo mismo que "¿hay una punta?": las puntas son intermitentes por diseño, asi que
+      // medirlas en una ventana corta es tirar una moneda. La ladera, en cambio, esta o no esta.
+      window.__zzalto = (z, lado) => zigzagCore.paredH(+z, +lado);
+      // CENSO: cuantos obstaculos vivos quedaron DENTRO de la ladera. Tiene que ser 0 siempre —
+      // un obstaculo enterrado en la roca es invisible y mata, la peor combinacion que hay.
+      window.__zzobs = (detalle) => {
+        const malos = obstacles.filter(o =>
+          !o.done && o.z > 0 && zigzagCore.enPared(o.x, (o.y || 0) + 0.5, run.dist + o.z, 0, 1));
+        if (!detalle) return malos.length;
+        return JSON.stringify(malos.map(o => ({ t: o.type, x: +o.x.toFixed(1), z: +o.z.toFixed(0), mv: !!(o.vx || o.mvA || o.home) })));
+      };
+    }
     // ---------- SONDAS DE LAS CHARLAS EN VUELO (SPEC_CHARLAS_VUELO §4) — QUITAR al cerrar ----------
     // `__cvdbg()` contesta LA FASE y los tres gates RESUELTOS (sembrar / avance / hablando), mas
     // la linea que se esta diciendo. Los gates van resueltos y no como estado interno por la
@@ -3932,9 +4033,10 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // fixture no hay forma de pedir una sin reproducir el combo entero: sin esto, "la estela sale
     // en la maniobra" no se puede afirmar con un numero.
     if (typeof window !== 'undefined') window.__mv = (id, dir, tgt) => {
-      // 'tonel' entra por otra puerta que las piruetas (startRoll, no startMove) y gira el SPRITE
-      // entero: es el caso que prueba que la estela acompaña la rotacion y no se queda horizontal.
-      if (id === 'tonel') { startRoll(dir || 1); return JSON.stringify({ pedido: 'tonel', ok: true, mv: null, rollT: +(run.rollT || 0).toFixed(2) }); }
+      // 'tonel' entra por SU accion (startRoll) y no por startMove directo: la accion es la que
+      // toca su firma sonora. De ahi para adentro es una pirueta como las otras — mismo reloj,
+      // mismo catalogo—, y es el caso que prueba que la estela acompaña la rotacion del sprite.
+      if (id === 'tonel') { const okT = startRoll(dir || 1); return JSON.stringify({ pedido: 'tonel', ok: okT, mv: run.mv || null }); }
       const m = id || 'barrel';
       // EL ASCENSOR NECESITA UN TECHO. `climb`/`climbmax` trepan HASTA `run.mvTgt`, y el combo se
       // lo pasa (ver el dispatcher, mas arriba). Sin el la sonda las lanzaba con techo 0, o sea
@@ -3943,7 +4045,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
       // que ser lo que se juega.
       const t = tgt !== undefined ? +tgt : m === 'climbmax' ? FLY_TOP : m === 'climb' ? RADAR_ALT : 0;
       const ok = moves.startMove(m, dir || 1, t);
-      return JSON.stringify({ pedido: m, ok, tgt: t, mv: run.mv || null, rollT: +(run.rollT || 0).toFixed(2) });
+      return JSON.stringify({ pedido: m, ok, tgt: t, mv: run.mv || null });
     };
 
     // QUITAR — LA MANIOBRA FILMADA: la misma pirueta, pero corrida por EL DIRECTOR sobre el vuelo
@@ -3964,7 +4066,7 @@ import { RUNWAYS, AIR_START_Y } from './data/runways.js';
     // QUITAR — la estela de punta de ala: con que fuerza sale y cuantas muestras vivas tiene.
     if (typeof window !== 'undefined') window.__tipdbg = () =>
       JSON.stringify({ ...TIP_DBG, bank: +plane.bank.toFixed(2),
-        mv: run.mv || null, roll: +(run.rollT || 0).toFixed(2), boost: !!run.boost,
+        mv: run.mv || null, roll: +(run.mvRoll || 0).toFixed(2), boost: !!run.boost,
         cx: Math.round(proj(plane.x, plane.y, PZ).x), cy: Math.round(proj(plane.x, plane.y, PZ).y) });
 
     if (typeof window !== 'undefined') window.__moribundos = () =>

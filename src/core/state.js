@@ -2,7 +2,7 @@
 //
 // Esto NO es una bolsa donde va todo. La regla que lo mantiene chico:
 //   si una variable la escribe UN SOLO sistema, no entra aca — se queda con su sistema.
-// Por eso `fireT`, `nextSpawn`, `windT`, `rollT` y compania no estan: tienen un dueño claro y
+// Por eso `fireT`, `nextSpawn`, `windT`, `rollCd` y compania no estan: tienen un dueño claro y
 // viajan al modulo que los escribe cuando ese modulo se extrae.
 //
 // Hay dos formas distintas de compartir, y la diferencia es a proposito:
@@ -155,6 +155,14 @@ export const cfg = {
   // permanente sobre algo que todavia no te afecta. Aparece cuando cruzas el techo, que es
   // cuando pasa a importar. El modo SIEMPRE queda para aprender donde esta el techo.
   radarNet: 1,
+  // EL PASILLO EN ZIGZAG (docs/sistemas/PLAN_PASILLO_ZIGZAG.md): el carril que dobla.
+  //   0 = NO (default, el pasillo recto de siempre) · 1 = SUAVE · 2 = CALLEJON
+  // Es una perilla de PROTOTIPO, no de contenido: una mision de verdad trae su propio trazado
+  // en el campo `zigzag:` de data/missions.js, que pisa a esto. Existe para poder mirar una
+  // curva en POR LA PATRIA —que es infinito y no tiene fracciones— sin editar datos.
+  // EL DEFAULT ES 0 Y ESO NO ES UN DETALLE: con 0 el juego entero es, bit a bit, el de antes
+  // de que el item existiera.
+  zigzag: 0,
   // ENEMIGOS MOVILES: los que hoy podian quedarse quietos se mueven — el globo cabecea colgado
   // del cable, el helicoptero patrulla de lado a lado, el caza teje y busca tu carril, los
   // vehiculos ruedan y la fragata del mastil navega. Apagarlo los deja plantados como antes.

@@ -145,8 +145,34 @@ export const MISSIONS = [
       { hasta: 0.11, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M05_NARWAL_A' },
       { hasta: 0.21, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M05_NARWAL_B' },
       { hasta: 0.31, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M05_NARWAL_C' },
-      { hasta: 1, obstacles: 1.7, caza: 1 },
+      // LA BOCA: el paisaje se cierra y la mision empieza de verdad. Densidad a la mitad — lo que
+      // esta pasando aca es el CALLEJON apareciendo, y no hace falta competirle con enemigos.
+      { hasta: 0.40, obstacles: 1.0, caza: 1 },
+      // EL CALLEJON. Es el nombre de la mision: la tierra encima y el cielo lleno. `favor` inclina
+      // la mezcla a los antiaereos, que es lo que habia en las laderas de San Carlos, y el
+      // bombardeo sube — las bombas que le dan el nombre al lugar.
+      { hasta: 0.88, obstacles: 1.7, caza: 1, bombs: 2, favor: ['aa', 'aatruck'] },
+      // LA SALIDA a la bahia: las laderas bajan (lo hace el `hasta` del zigzag) y el fuego afloja.
+      // El respiro dura poco: ahi asoma el ARDENT.
+      { hasta: 1, obstacles: 1.1, caza: 1 },
     ],
+    // EL CALLEJON DE LAS BOMBAS, literal (PLAN_PASILLO_ZIGZAG Z4). El estrecho de San Carlos era un
+    // brazo de mar angosto y torcido entre cerros de turba, y las fragatas fondeadas veian aparecer
+    // a los A-4 de golpe por encima de una cresta. Esto es eso: laderas a los dos lados y
+    // promontorios que se meten en el pasillo y hay que rodear.
+    //
+    // `amp: 0` — CAMARA QUIETA. El carril no dobla: lo que zigzaguea es el jugador esquivando la
+    // tierra. (La maquinaria del carril curvo existe y esta probada; el dato dice que aca no se
+    // usa. Ver las divergencias 22-26 del plan: doblar la camara se probo y se sintio mal.)
+    //
+    // `desde: 0.33` engancha justo despues del transito mudo del Narwal — el jugador sale del
+    // silencio y se le cierra el paisaje encima, que es la escena. `hasta: 0.9` abre la bahia
+    // ANTES del climax: el buque tiene que aparecer en mar abierto, no entre dos cerros.
+    zigzag: {
+      amp: 0, largo: 800, seed: 5,
+      desde: 0.33, hasta: 0.9,
+      paredes: { alto: 1, x: 46, mata: true },
+    },
     cfg: C({ sky: 'cloudy', obstacles: 1.7 }),
     roster: F5, par: 8500, story: 'storyM5', brief: 'briefM5', epi: 'epiM5',
   },

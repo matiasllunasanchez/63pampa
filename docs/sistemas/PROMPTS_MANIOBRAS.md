@@ -42,7 +42,7 @@ largo. Las maniobras "imposibles" van al enemigo o a cinemática, no al catálog
 | **Ranversman** (wingover: subida en viraje, revierte en el tope, baja) | sí | es el RE-ENCARE de la PASADA, y **ya está implementado** (`systems/pasada.js`: `reHigh` = chandelle por arriba / viraje lateral por abajo, RF-09) | **existe — sin prompt** |
 | **Power Loop** (loop completo) | sí (con energía) | pirueta de premio (PULSO) + cinemática; "EL RULO" | no |
 | **Loaded Roll** (tonel BAJO G, rolando mientras tira) | sí | un tonel con trayectoria en hélice = el **TONEL BARRIL** (`barrel`, con `drift` de campana) | **existe — sin prompt** |
-| **Aileron Roll** | sí | es el **TONEL** (la pirueta original, `run.rollT`) | **existe — sin prompt** |
+| **Aileron Roll** | sí | es el **TONEL** (la pirueta original; desde el 4/9 en `MOVES`) | **existe — sin prompt** |
 | **Split-S** | sí | `splits` en el catálogo | **existe — sin prompt** |
 | **360° Min Radius Turn** (viraje cerrado completo) | sí | en el PASILLO es imposible (el carril avanza: no hay vuelta de 360°); en 3D **ya existe** como la MEDIA VUELTA del ARENA (`[R]`, viraje de combate) y el re-encare de la PASADA; el BREAK TURN es su versión de pasillo | **existe — sin prompt** |
 | **Slow Speed Pass** (pasada al borde de la pérdida) | sí | no es pirueta, es un ESTADO de vuelo — y **ya existe** donde importa: LA CHANCHA (conectado a la canasta se vuela en formación, `flight.js`) y PERSECUCIÓN (mantener banda con el líder) | **existe — sin prompt** |

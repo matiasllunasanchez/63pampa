@@ -14,13 +14,22 @@ import { recetaDe, CHUNKS_MAX, CHUNK_LIFE, SEC_N, SEC_T,
   dadoDe, elegirVariante, MORIBUNDO_MAX, EYECT_P, VIDA_LARGA, piezaHorneada } from '../data/despiece.js';
 
 import { W, HOR, F, PZ } from '../render/ctx.js';
+import { bendW } from './zigzag.js';
 import { boom, duck } from '../systems/audio.js';
 
 /** Proyeccion pseudo-3D: mundo (x,y,z) → pantalla. Devuelve tambien `k` (escala en esa z).
  *  Es la primitiva mas usada del juego (~40 sitios): la lee todo el render y las colisiones. */
 export function proj(x, y, z) {
   const k = F / z;
-  return { x: W / 2 + (x - cam.x) * k, y: HOR + (cam.y - y) * k, k };
+  // EL ZIGZAG (PLAN_PASILLO_ZIGZAG Z1) entra ACA y en ningun lado mas del vuelo: a la
+  // profundidad `z` el carril esta corrido de costado por lo que doblo el trazado entre la
+  // camara y ese punto. Como TODO lo que se dibuja en el mundo pasa por esta funcion, con una
+  // linea dobla el mundo entero — los obstaculos, el avion, las balas, las sombras, los popups.
+  //
+  // Con el zigzag apagado `bendW()` devuelve CERO EXACTO, asi que esto es `+ 0` y la cuenta
+  // vuelve a ser, bit a bit, la de siempre. Esa es la garantia del item, y la cuida
+  // `npm run unit`.
+  return { x: W / 2 + (x - cam.x + bendW(z)) * k, y: HOR + (cam.y - y) * k, k };
 }
 
 /** Texto flotante de feedback (puntaje, aviso) en coordenadas de mundo. */

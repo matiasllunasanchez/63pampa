@@ -48,7 +48,7 @@
 | **Reflejo del avión en el agua** (propuesto, 1 día, "el temáticamente obligatorio") | VISUAL_UPGRADES **E0.2** | NO se re-propone acá. Va junto con A3 — comparten la idea "cerca del agua = información de juego" |
 | **Tinte de clima por misión** (propuesto) | VISUAL_UPGRADES **E0.3** | complementa A4: el tinte tiñe el frame, A4 cambia la PALETA del agua. Se hacen juntos |
 | **Rociada bajo el fuselaje + sombra + estela** (🔵 HECHO) | PENDIENTES_DE_REDISENO §2 | A3 la AMPLÍA (cortinas de punta de ala, sal en parabrisas), no la crea |
-| **`waternormals.jpg` + `three/Water`** (asset y código vivos) | `systems/three-world.js:35` | el mar 3D con shader YA existe en el ARENA VIEJO. A5 decide: la alfombra de puntos (el look del juego) se queda como estilo — el shader es la alternativa realista, y probablemente NO es el look |
+| **`waternormals.jpg` + `three/Water`** (asset y código vivos) | `systems/three-world.js:35` | el mar 3D con shader YA existe en el ARENA VIEJO. A5 decide: la alfombra de puntos (el look del juego) se queda como estilo — el shader es la alternativa realista, y probablemente NO es el look. **✅ RESUELTO (16/8): construido y medido.** Con grade CARTOON el shader SÍ habla el idioma del juego — está implementado en `systems/agua3d.js` detrás de la perilla `AGUA3D` (default `'puntos'`: nada cambió sin decisión). El A/B con captura existe; **falta que Matías elija el default**. Ver [PLAN_MEJORAS_3D §P1 y §7](PLAN_MEJORAS_3D.md) |
 | **"Obstáculos que obliguen a bajar, riesgo/recompensa"** (pedido, sin forma) | ROADMAP **#8** + ANALISIS #8 | la Parte O es su forma concreta |
 
 ## Parte A — mejoras visuales *(cada etapa shippeable sola, Canvas 2D puro)*

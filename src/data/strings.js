@@ -13,6 +13,7 @@ export const STRINGS = {
     pageFooter: '<kbd>W</kbd>: gas — si soltás, el avión cae &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: esquivar &nbsp;·&nbsp; <kbd>S</kbd>: picada &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: rolar &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: mirar arriba/abajo &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>ESPACIO</kbd>: cañón &nbsp;·&nbsp; <kbd>Z</kbd>: misil (y las bombas de la pasada) &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: turbo &nbsp;·&nbsp; <kbd>F</kbd>: freno &nbsp;·&nbsp; <kbd>ESC</kbd>: pausa &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: mira libre (click: cañón · click der: misil)<br>Joystick (PlayStation o Xbox): stick izq vuela · stick der rola y mira · R1/RB cañón · L1/LB misil · R2/RT turbo · L2/LT freno · START pausa<br>Táctil: arrastrá a la izquierda para volar · derecha arriba: fuego · derecha abajo: turbo<br>Volar bajo multiplica. Rozar obstáculos da bonus. El turbo duplica puntos y quema combustible.',
     aria: 'Juego Rasante: WASD para volar, flechas para rolar y mirar, X dispara, Shift turbo',
     death_land: 'Chocaste el terreno', death_sea: 'Impactaste el mar',
+    death_pared: 'Te comiste la ladera',
     death_mast: 'Chocaste una fragata', death_tree: 'Chocaste un arbol', death_helo: 'Colision con helicoptero',
     death_jet: 'Choque con avion enemigo', death_balloon: 'Globo de barrera',
     death_missile: 'Te alcanzo un misil',
@@ -212,6 +213,8 @@ export const STRINGS = {
     // — no tapa nada que te pueda pegar. La otra NIEBLA, la de abajo, si.
     optMarco: 'NIEBLA DE GUERRA',
     optMarco_off: 'DESACTIVADO', optMarco_bruma: 'BRUMA', optMarco_focus: 'FOCUS',
+    optZigzag: 'PASILLO EN ZIGZAG',
+    optZigzag_0: 'RECTO', optZigzag_1: 'SUAVE', optZigzag_2: 'CALLEJON',
     optTerrain: 'TERRENO', optTerrainSea: 'MAR', optTerrainLand: 'TIERRA', optTerrainCoast: 'COSTA',
     optWind: 'VIENTO',
     // NIEBLA: dificultad, no ambiente (ver systems/fog.js)
@@ -298,6 +301,7 @@ export const STRINGS = {
     prBadge: 'PRUEBA',
     prSecClimax: 'LOS CLIMAX', prSecCola: 'LA COLA Y EL NUMERAL', prSecDestr: 'LA DESTRUCCION',
     prSecAgua: 'EL AGUA Y EL CLIMA', prSecPoder: 'LOS PODERES', prSecHistoria: 'LA HISTORIA',
+    prSecCallejon: 'EL CALLEJON',
     // CINEMATICAS (docs/sistemas/PLAN_DIRECTOR_CINEMATICAS.md): la puerta hermana de PRUEBAS. Los
     // titulos de cada cinematica tampoco estan aca — viven con su timeline, en data/cines.js.
     modeCines: 'CINEMATICAS', modeCinesDesc: 'Reproducir una cinematica suelta, sin jugar hasta ella',
@@ -1020,6 +1024,7 @@ export const STRINGS = {
     pageFooter: '<kbd>W</kbd>: throttle — release and you fall &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: dodge &nbsp;·&nbsp; <kbd>S</kbd>: dive &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: roll &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: look up/down &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>SPACE</kbd>: cannon &nbsp;·&nbsp; <kbd>Z</kbd>: missile (and the pass bombs) &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: boost &nbsp;·&nbsp; <kbd>F</kbd>: airbrake &nbsp;·&nbsp; <kbd>ESC</kbd>: pause &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: free aim (click: cannon · right click: missile)<br>Gamepad (PlayStation or Xbox): left stick flies · right stick rolls and looks · R1/RB cannon · L1/LB missile · R2/RT boost · L2/LT airbrake · START pause<br>Touch: drag on the left to fly · top-right: fire · bottom-right: boost<br>Flying low multiplies. Grazing obstacles gives a bonus. Boost doubles points and burns fuel.',
     aria: 'Rasante game: arrows to maneuver, X to fire, Shift to boost',
     death_land: 'You hit the ground', death_sea: 'You hit the sea',
+    death_pared: 'You flew into the hillside',
     death_mast: 'You hit a frigate', death_tree: 'You hit a tree', death_helo: 'Collided with a helicopter',
     death_jet: 'Hit an enemy plane', death_balloon: 'Barrage balloon',
     death_missile: 'A missile hit you',
@@ -1167,6 +1172,8 @@ export const STRINGS = {
     optRain: 'RAIN', optRainOff: 'NO', optRainDrizzle: 'DRIZZLE', optRainRain: 'RAIN', optRainStorm: 'STORM',
     optMarco: 'WAR FOG',
     optMarco_off: 'OFF', optMarco_bruma: 'HAZE', optMarco_focus: 'FOCUS',
+    optZigzag: 'WINDING CORRIDOR',
+    optZigzag_0: 'STRAIGHT', optZigzag_1: 'GENTLE', optZigzag_2: 'ALLEY',
     optTerrain: 'TERRAIN', optTerrainSea: 'SEA', optTerrainLand: 'LAND', optTerrainCoast: 'COAST',
     optWind: 'WIND',
     optFog: 'FOG', optFogOff: 'NO', optFogLight: 'THIN', optFogThick: 'NEAR ZERO',
@@ -1234,6 +1241,7 @@ export const STRINGS = {
     prBadge: 'TEST',
     prSecClimax: 'THE CLIMAXES', prSecCola: 'THE TAIL AND THE WINGMAN', prSecDestr: 'DESTRUCTION',
     prSecAgua: 'WATER AND WEATHER', prSecPoder: 'THE POWERS', prSecHistoria: 'THE STORY',
+    prSecCallejon: 'THE ALLEY',
     modeCines: 'CUTSCENES', modeCinesDesc: 'Play a single cutscene, no grinding to get there',
     modeManiobras: 'MANEUVERS', modeManiobrasDesc: 'Every aerobatic move, in its three presentations',
     cinesTitle: 'CUTSCENES  ·  PICK ONE',

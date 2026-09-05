@@ -24,6 +24,11 @@ aparte y se blitea adentro (`game.js:1644` y `:1655` vía `three-world.view()` /
 > aire/sensaciones, armas, enemigos vivos, avión) es
 > [PLAN_VISUAL_FASES.md](PLAN_VISUAL_FASES.md)** — 9 tandas delegables + carril de
 > producción. Este doc queda como estrategia y detalle de E0/E1/E2.
+>
+> **Y el 16/8 se sumó [ANALISIS_REFERENTES_3D.md](ANALISIS_REFERENTES_3D.md)**: tres
+> juegos three.js de navegador jugados y analizados, con 7 propuestas para el 3D (agua
+> cartoon, duotono, terreno de bahía, la bandada, el último vuelo…) y **la puerta grande
+> del §5b: el prototipo del PASILLO EN 3D** — afecta el orden de T7/T8 si se decide.
 
 ### La foto del estado (16/8)
 

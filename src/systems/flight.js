@@ -23,7 +23,7 @@ import { proj, popup } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
-import { MSL_MAX, FLY_X, FLY_TOP, ROLL_DUR,
+import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE,
          GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT } from '../data/tuning.js';
 import { PORT_H } from '../data/runways.js';
 // EL SUELO TIENE ALTURA (T3): la misma funcion que levanta el pasto y las estructuras es la que
@@ -35,8 +35,10 @@ import { avance as chAvance } from '../systems/chancha.js';
 import * as rasante from '../systems/rasante.js';
 // BOOST_LIFT y CAM_PAN se mudaron a systems/vuelo.js con la camara que los usa.
 import { multOf } from '../core/util.js';
-import { movesSystem, mvAllowsFire, mvAllowsTurbo } from './moves.js';
+import { movesSystem, mvAllowsFire, mvAllowsTurbo, mvLegado } from './moves.js';
 import { stepVuelo, estelaVuelo } from './vuelo.js';
+import * as zigzag from './zigzag.js';
+import { enPared, pared as paredCfg } from '../core/zigzag.js';
 import * as momentum from '../legacy/momentum.js';
 import * as arena from './arena.js';
 import * as pasada from './pasada.js';
@@ -177,7 +179,14 @@ export function flightSystem(dt, deps) {
   }
 
   // maniobra (control normal — durante una PIRUETA el dueño es movesSystem)
-  if (run.mv) { /* la pirueta ya escribio vx/vy */ } else if (pointer.steer) {
+  //
+  // EL TONEL es la excepcion y siempre lo fue: mientras rola, el gas SIGUE RESPONDIENDO. Vivia
+  // fuera del catalogo, en un bloque propio que corria DESPUES del control y solo pisaba `vx`.
+  // Mudado al catalogo (data/moves.js), `mvLegado()` es lo que conserva esa forma: se guarda la
+  // rafaga lateral que escribio la maniobra, se vuela el avion como siempre, y se devuelve la
+  // rafaga al final. Sin esto, tirar un tonel apagaria el motor durante medio segundo.
+  const rollVx = mvLegado() ? plane.vx : null;
+  if (run.mv && rollVx === null) { /* la pirueta ya escribio vx/vy */ } else if (pointer.steer) {
     const wx = (pointer.steer.x - W / 2) / (F / PZ) + cam.x;
     const wy = cam.y - (pointer.steer.y - HOR) / (F / PZ);
     plane.vx = Math.max(-30, Math.min(30, (wx - plane.x) * 5));
@@ -207,20 +216,12 @@ export function flightSystem(dt, deps) {
       plane.vy = Math.max(-20, Math.min(18, plane.vy));
     }
   }
-  // PIRUETA (tonel): rafaga lateral fuerte que decae + estelas de viento; el perfil de
-  // colision se ENCOGE mientras rola (alas "de canto") → pasa por espacios mas finos
+  // LA RAFAGA DEL TONEL, devuelta despues del control (ver `rollVx` arriba). La curva y las
+  // estelas de viento viven ahora en `systems/moves.js` como las de cualquier otra pirueta; lo
+  // unico que queda aca es el orden: la rafaga manda sobre el vx que acaba de escribir el control.
+  // El perfil de colision se sigue encogiendo mientras rola — eso lo dice `tight` en el catalogo.
   run.rollCd = Math.max(0, run.rollCd - dt);
-  if (run.rollT > 0) {
-    run.rollT -= dt;
-    plane.vx = run.rollDir * 40 * (0.45 + run.rollT / ROLL_DUR);
-    if (Math.random() < 0.85) {
-      const sp2 = proj(plane.x + (Math.random() - 0.5) * 3, plane.y + (Math.random() - 0.5) * 2, PZ);
-      parts.push({
-        x: sp2.x - run.rollDir * 10, y: sp2.y, vx: -run.rollDir * (55 + Math.random() * 40),
-        vy: (Math.random() - 0.5) * 20, life: 0.3, c: P.crest, r: 1
-      });
-    }
-  }
+  if (rollVx !== null) plane.vx = rollVx;
   // throttle (palanca de gas): sube al dar gas, baja al soltar — solo indicador visual
   const gasOn = run.fuel > 0 && (inp.u || (pointer.steer && plane.vy > 0.5));
   run.throttle += ((gasOn ? 1 : 0) - run.throttle) * Math.min(1, dt * 7);
@@ -254,6 +255,14 @@ export function flightSystem(dt, deps) {
     // y ahi la cama de vuelo usa el encuadre de siempre — que es lo que hace que `feel` de
     // identico con el poder apagado.
     ras: rasante.cam(),
+    // EL ZIGZAG (PLAN_PASILLO_ZIGZAG Z2). Los dos valen 0 con el pasillo recto, que es lo que
+    // hace que `npm run feel` de identico — la misma mecanica que `ras`, que devuelve null.
+    deriva: zigzag.derivaZigzag(),
+    lead: zigzag.leadZigzag(),
+    // EL CALLEJON CORRE EL TOPE hasta la roca: sin esto el avion se frena en FLY_X, que esta
+    // MAS ADENTRO que la cara de la ladera, y la pared no se puede chocar (medido: el avion
+    // clavado en 38 con la roca empezando en 42). Null sin paredes.
+    limX: (paredCfg() ? paredCfg().x : 0) || undefined,
   });
 
   // puntaje por altitud + racha rasante
@@ -311,6 +320,26 @@ export function flightSystem(dt, deps) {
   //   · EL SUELO. El colchon es del AGUA y solo del agua: sobre tierra el roce es el de siempre.
   //     El spec dice "el agua plana" y no menciona la tierra, y ampliarlo por simetria seria
   //     inventar alcance — anotado en §8.
+  // LA LADERA DEL CALLEJON (zigzag Z3). Se evalua con la MISMA funcion que la dibuja
+  // (core/zigzag.js), que es la regla del repo desde el mar y la turba: lo que ves es lo que te
+  // mata. El PIE cobra antes que la cara —la roca no es un vidrio vertical— y por encima de la
+  // cresta se pasa: trepar para saltar el cerro es una salida legitima, y cara, porque arriba te
+  // carga el radar.
+  //
+  // `mata: false` la vuelve un TOPE duro en vez de una muerte: el avion no puede pasar y roza.
+  // Es lo que usa el preset SUAVE del menu, para poder mirar el carril sin morirse.
+  const golpePared = enPared(plane.x, plane.y, run.dist + PZ, ZZ_PARED_TALUD, ZZ_PARED_LIBRE);
+  if (golpePared) {
+    const p = paredCfg();
+    if (p && p.mata) return { death: 'death_pared' };
+    // TOPE: se lo frena contra el borde, como el tope del carril de siempre (FLY_X)
+    const borde = (p ? p.x : 0) - ZZ_PARED_TALUD;
+    plane.x = golpePared > 0 ? borde : -borde;
+    if (golpePared > 0 ? plane.vx > 0 : plane.vx < 0) plane.vx = 0;
+    run.scrapeVib = 1;
+    run.shake = Math.min(7, run.shake + 18 * dt);
+  }
+
   const colchon = rasante.active() && deathMsg === 'death_sea';
   if (!colchon && plane.y <= (run.scrapeT > 0 ? scrapeY + 0.2 : groundY)) {
     const lim = scrapeLimit(run.spd, run.boost);

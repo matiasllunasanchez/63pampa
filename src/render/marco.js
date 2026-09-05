@@ -20,9 +20,10 @@
 // saca el filo. Un poligono con un solo degradado dejaba un canto duro en la parte donde la cuña
 // se cierra — se veia el truco.
 
-import { ctx, W, H, HOR } from './ctx.js';
+import { ctx, W, H, HOR, F } from './ctx.js';
 import { cam, cfg } from '../core/state.js';
 import { MARCO_X, MARCO_REACH, MARCO_A, MARCO_COL, MARCO_SKY } from '../data/tuning.js';
+import { bendW, pared } from '../core/zigzag.js';
 
 // margen de dibujo hacia afuera de la pantalla: con el HORIZONTE GIRATORIO el mundo rota y las
 // esquinas dejan de estar tapadas por el borde. Mismo motivo que el -70/W+140 del cielo.
@@ -35,7 +36,9 @@ function hexA(c, k) {
 }
 
 /** ¿Esta activo el marco? Unico lugar del codigo que sabe que 'off' es el valor apagado. */
-const marcoOn = () => cfg.marco === 'bruma' || cfg.marco === 'focus';
+// ...y se apaga solo cuando hay PAREDES (zigzag Z3): la ladera ya dice donde termina el carril,
+// y un velo encima de una montaña es una montaña borrosa.
+const marcoOn = () => (cfg.marco === 'bruma' || cfg.marco === 'focus') && !pared();
 
 /** El velo lateral. Se dibuja DENTRO del giro del horizonte (es aire del mundo, rola con el) y
  *  ANTES del avion, la lluvia y los popups: el marco esta afuera, nunca sobre tu propio avion. */
@@ -64,8 +67,13 @@ export function drawMarco() {
     // HUD quedaba sobre bruma a 0.38 y dejaba de leerse.
     const sk = dy >= 0 ? 0 : Math.min(1, -dy / HOR);
     const aFade = MARCO_SKY + (1 - MARCO_SKY) * (1 - sk) * (1 - sk);
-    const xL = W / 2 + (-MARCO_X - cam.x) * k;          // borde IZQUIERDO del carril en pantalla
-    const xR = W / 2 + (MARCO_X - cam.x) * k;
+    // EL VELO DOBLA CON EL CARRIL (zigzag Z1). Aca `k` ya ES F/z —la misma escala que el mar—,
+    // asi que la profundidad de la fila sale de invertirlo. Sin esto el velo se quedaria recto
+    // mientras el mundo dobla, y taparia justo el lado de adentro de la curva: exactamente lo
+    // que el marco promete no hacer nunca (su regla es que jamas cruza el carril).
+    const zb = k > 0.0001 ? bendW(F / k) * k : 0;
+    const xL = W / 2 + (-MARCO_X - cam.x) * k + zb;    // borde IZQUIERDO del carril en pantalla
+    const xR = W / 2 + (MARCO_X - cam.x) * k + zb;
     const rL = Math.min(reachMax, xL), rR = Math.min(reachMax, W - xR);
     if (rL <= 0 && rR <= 0 && dy > 0) break;            // el carril ya es mas ancho que la pantalla
     if (rL > 0) {

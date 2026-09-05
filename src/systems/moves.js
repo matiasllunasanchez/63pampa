@@ -5,8 +5,9 @@
 // que la maniobra deja libre (`steer`), a media autoridad — esta comprometido en la maniobra,
 // no paseando.
 //
-// El TONEL (barrel roll) NO pasa por aca: conserva su camino legado (run.rollT en flight.js).
-// Comparten el cooldown (run.rollCd), asi que no se encadenan tonel y pirueta sin pagar.
+// EL TONEL TAMBIEN PASA POR ACA desde que se mudo al catalogo (data/moves.js): era la unica
+// pirueta con camino propio, y esa excepcion dejaba a la primera fila del menu MANIOBRAS sin las
+// otras dos presentaciones. Todas comparten el cooldown (run.rollCd): no se encadenan sin pagar.
 
 import { plane, cfg, S } from '../core/state.js';
 import { run } from '../core/run.js';
@@ -49,9 +50,11 @@ export function startMove(id, dir, tgt, act) {
   const B = cuerpoDe(act), E = estadoDe(act);
   // EL GATE `cfg.moves` ES DEL JUGADOR. Es la perilla con la que se apagan SUS poderes (banco del
   // Pichon, opciones); un Fiel que entra a hacer una pirueta en escena no depende de eso — es
-  // decorado, no un poder que alguien haya aprendido.
-  if (B === plane && !cfg.moves) return false;
-  if (E.mv || E.rollT > 0 || E.rollCd > 0) return false;
+  // decorado, no un poder que alguien haya aprendido. El TONEL es la excepcion (`legado`): existe
+  // desde el primer dia del juego y nunca dependio de esa perilla — apagarlo con ella seria
+  // quitarle al jugador algo que no eligio tener.
+  if (B === plane && !cfg.moves && !MOVES[id].legado) return false;
+  if (E.mv || E.rollCd > 0) return false;
   const M = MOVES[id]; if (!M) return false;
   E.mv = id; E.mvT = 0; E.mvDir = dir || 1; E.mvY0 = B.y; E.mvTgt = tgt || 0;
   E.mvRoll = 0; E.mvSteep = 0; E.mvSeed = (Math.random() * 9999) | 0;
@@ -73,6 +76,14 @@ export function startMove(id, dir, tgt, act) {
  *  actores son escena, no gameplay), asi que no tiene a quien contestarle. */
 export const mvAllowsFire = () => !run.mv || MOVES[run.mv].fire;
 export const mvAllowsTurbo = () => !run.mv || MOVES[run.mv].turbo;
+
+/** ¿La maniobra activa del jugador es LEGADA (el tonel)? Lo pregunta flight.js.
+ *
+ *  Una maniobra normal es DUEÑA del avion: mientras dura, el bloque de control de flight.js no
+ *  corre. El tonel nunca fue asi —vivia aparte y el gas seguia respondiendo durante el giro— y esa
+ *  diferencia es parte de como se siente. Al mudarlo al catalogo, esta bandera es lo que la
+ *  conserva: el tonel impone SOLO su rafaga lateral y el resto del avion se sigue volando. */
+export const mvLegado = () => !!(run.mv && MOVES[run.mv].legado);
 
 // perfil suave 0→1→0 (campana) — la base de los empujes que entran y salen con peso
 const bell = p => Math.sin(Math.PI * Math.max(0, Math.min(1, p)));
@@ -119,6 +130,17 @@ export function movesSystem(dt, inp, act) {
         if (B.y < 3) { B.vy = Math.max(B.vy, 0); E.mvT = Math.max(E.mvT, M.dur * 0.62); }  // piso: endereza ya
       } else { E.mvRoll = dir * (Math.PI + ss((p - 0.62) / 0.38) * Math.PI); E.mvSteep = 0; B.vy *= 0.6; }
       B.vx = sx + drift; B.bank = 0; B.pitch = p > 0.28 && p < 0.62 ? -1 : 0;
+      break;
+    }
+    case 'tonel': {
+      // EL TONEL clasico (aileron roll): rola 360° en el lugar con una RAFAGA LATERAL que decae.
+      // Es la maniobra original del juego y esta es su curva de siempre, movida tal cual desde
+      // flight.js: `40 · (0.45 + restante/dur)` — empuja fuerte al entrar y se va apagando.
+      // Escrita con el tiempo TRANSCURRIDO (p) en vez del restante, que es la convencion de este
+      // modulo; `0.45 + (1 - p)` es la misma recta.
+      B.vx = dir * 40 * (0.45 + (1 - p));
+      E.mvRoll = dir * p * Math.PI * 2;
+      B.bank = 0; B.pitch = 0;
       break;
     }
     case 'spin': {
@@ -293,7 +315,7 @@ if (typeof window !== 'undefined') window.__mvdbg = () => {
     // lo que el resto del juego PREGUNTA (flight.js y el HUD llaman a estas dos, no al catalogo)
     puedeFuego: mvAllowsFire(), puedeTurbo: mvAllowsTurbo(),
     roll: +(run.mvRoll || 0).toFixed(3), steep: run.mvSteep || 0,
-    rollT: +(run.rollT || 0).toFixed(3), cd: +(run.rollCd || 0).toFixed(2),
+    cd: +(run.rollCd || 0).toFixed(2),
     x: +plane.x.toFixed(2), y: +plane.y.toFixed(2),
     vx: +plane.vx.toFixed(2), vy: +plane.vy.toFixed(2),
     bank: +plane.bank.toFixed(3), pitch: +plane.pitch.toFixed(3),
@@ -314,7 +336,7 @@ if (typeof window !== 'undefined') window.__mvdbg = () => {
 // una que existe para el jugador y no para el que mide.
 if (typeof window !== 'undefined') window.__mvreset = (y, spd) => {
   run.mv = null; run.mvT = 0; run.mvRoll = 0; run.mvSteep = 0;
-  run.rollT = 0; run.rollCd = 0;
+  run.rollCd = 0;
   plane.x = 0; plane.vx = 0; plane.vy = 0; plane.bank = 0; plane.pitch = 0;
   plane.y = y === undefined ? 24 : +y;
   run.spd = spd === undefined ? 78 : +spd;

@@ -853,3 +853,185 @@ export const CHV_MAX_S = 25;
 export const CHV_FADE = 0.4;
 // a que distancia se pone el numeral que habla, con `formacion: true` en la escena
 export const CHV_FORM_D = 14;
+
+// ---------------- EL AGUA 3D DEL CLIMAX (PLAN_MEJORAS_3D P1) ----------------
+// Dos formas de contar el mar del ARENA/PASADA, y son EXCLUYENTES en el fondo del plano:
+//   'puntos'  la alfombra de puntos desplazada por seaH (SPEC_AGUA_OLAS F8) — el look actual,
+//             el mismo mar que el 2D, sobre un plano liso hundido.
+//   'cartoon' el shader Water de three (normales animadas) POSTERIZADO a la rampa del clima:
+//             azul plano con vetas blancas grandes. Sale del analisis de Battle Typer
+//             (docs/proyecto/ANALISIS_REFERENTES_3D §2) — el agua de shader deja de verse
+//             "realista pegada" cuando se la cuantiza a los siete tonos de WATER_STYLES.
+// En 'cartoon' la alfombra de puntos CAMBIA DE OFICIO: el shader cuenta el cuerpo del mar y los
+// puntos quedan solo como ESPUMA (crestas y destellos, cerca), que es lo que da referencia de
+// velocidad al volar a ras. Antes quedaban todos, y de cerca tapaban el agua con cuadraditos.
+export const AGUA3D = 'cartoon';
+// escalones de la rampa toon. 4 es poster duro (comic), 8 casi continuo. 5 es el punto donde
+// las vetas se leen como VETAS y no como degrade.
+export const AGUA3D_NIVELES = 8;
+// cuanto ondula la normal map: mas alto = mar mas picado. El legado usaba 2.6 para un mar
+// visto de costado; de arriba se lee mejor un poco mas calmo.
+export const AGUA3D_DISTORT = 2.2;
+// curva de reparto de la rampa: <1 corre el mar hacia las vetas claras, >1 hacia el cuerpo oscuro.
+// 1.4 deja el mar mayormente CUERPO con las vetas como vetas; abajo de 1 el verde claro se come
+// la pantalla y el mar se ve pintado.
+export const AGUA3D_CURVA = 1.4;
+// cuanto pesa la VETA DIRECCIONAL (el oleaje alineado) en la rampa
+export const AGUA3D_VETA = 0.14;
+// largo de la veta larga, en metros
+export const AGUA3D_LARGO = 100;
+// cuanto tapa el color del agua al reflejo del cielo (1 = opaca, 0 = espejo)
+export const AGUA3D_CIELO = 0.30;
+// corrimiento del TONO del agua 3D hacia el azul acero (0 = el color del 2D tal cual). El climax
+// llena la pantalla de agua y el verde de WATER_STYLES se confundia con el verde oliva del avion.
+export const AGUA3D_AZUL = 0.5;
+// desde que altura de ola la cresta ROMPE y se pinta blanca (1 = nunca)
+export const AGUA3D_ROMPE = 0.90;
+// cuanto tiñe el agua la MANCHA DE NUBE reflejada (0 = un solo azul, plano)
+export const AGUA3D_NUBE = 0.14;
+// largo de esa mancha, en metros: son nubes, van en cientos de metros
+export const AGUA3D_NUBE_LARGO = 700;
+// largo de la estela del buque, en metros (la V de Kelvin y la remolinada de popa)
+export const AGUA3D_ESTELA = 420;
+// cuanto BLANQUEA la estela (0 = sin estela, 1 = espuma llena)
+export const AGUA3D_ESPUMA = 1.8;
+
+// ---------------- EL PASILLO EN ZIGZAG (docs/sistemas/PLAN_PASILLO_ZIGZAG.md) ----------------
+// El carril que DOBLA, con el modelo del RIEL CURVO (OutRun / After Burner): el carril no se
+// mueve en x absoluto — lo que dobla es lo que la camara VE. Todo lo demas (el avion en
+// ±FLY_X, lo que nace en ±SPAWN_X, las colisiones por |plane.x - o.x|) sigue viviendo en el
+// MARCO DEL CARRIL y no cambia una linea. Ver §1 del plan para por que se descarto el otro
+// modelo, y §9 para lo que NO hay que hacer.
+//
+// TODO ESTO ES UN NO-OP CON EL ZIGZAG APAGADO: `bendW()` devuelve exactamente 0 y cada termino
+// sumado es `+ 0`, que en punto flotante devuelve el valor original bit a bit.
+
+// LA CURVATURA MAXIMA, en rad/m (radio 600 m). Es la perilla madre y sale de una cuenta, no del
+// gusto: con ZZ_CENTRIF da 18 m/s de deriva a velocidad de crucero (74 m/s), o sea el 60% de los
+// 30 m/s que da la palanca a fondo. La curva mas cerrada del juego SIEMPRE se puede sostener
+// yendo normal — y el jugador siente que la esta sosteniendo, que es distinto de que sea gratis.
+export const ZZ_CURV_MAX = 1 / 600;
+// LA DERIVA: deriva = curv * spd * ZZ_CENTRIF, en m/s. curv*spd es la velocidad de guiñada
+// (rad/s), asi que esta constante son "metros de corrimiento lateral por radian girado".
+// Es proporcional a la velocidad UNA vez y no al cuadrado: asi el turbo es peligroso (RF-04)
+// sin volverse absurdo.
+export const ZZ_CENTRIF = 150;
+// tope de la deriva. Debajo de los 30 m/s de la palanca a proposito: aun en el peor caso, ir a
+// fondo hacia adentro deja UNA chance.
+export const ZZ_DERIVA_MAX = 26;
+// desde aca el avion avisa que se le va (banqueo al tope + roce). Sin cartel: el avion lo dice.
+export const ZZ_DERIVA_AVISO = 22;
+// EMPALME entre curvaturas distintas, en metros. Una curva entra en ~1,6 s a crucero: se ve
+// venir y no sacude. Tambien es el ancho del fundido de la ventana desde/hasta.
+export const ZZ_EMPALME = 120;
+// largo minimo de una curva (media onda), en metros. Menos que esto no es una curva, es un
+// tiron — el validador lo rechaza en vez de dejarlo pasar.
+export const ZZ_LARGO_MIN = 250;
+// LA TABLA de corrimiento lateral: hasta que profundidad se calcula y con que paso. 400 cubre
+// SPAWN_Z (320) con margen; con paso 4 son 101 muestras por cuadro, que es nada.
+export const ZZ_BEND_Z = 400, ZZ_BEND_PASO = 4;
+// cuanto INCLINA la curva el horizonte, en radianes (~10°). Debajo de BANK_TILT (0.44) a
+// proposito: la curva inclina menos que la palanca a fondo, asi el jugador sigue mandando sobre
+// el horizonte en vez de que se lo mueva el mapa.
+//
+// BAJADO DE 0.30 (17°) A 0.18 POR PLAYTEST. Sobre mar abierto —plano y sin nada al costado— 17°
+// sostenidos durante toda una curva marean: el mundo se inclina y el ojo no tiene contra que
+// explicarlo. La inclinacion no es lo que comunica la curva; lo que la comunica son LAS PAREDES
+// y el fondo corriendose. Este numero solo la acompaña.
+export const ZZ_TILT = 0.18;
+// cuanto ADELANTA la camara la mirada hacia el apice, en unidades de mundo.
+//
+// BAJADO DE 9 A 4 POR PLAYTEST, y es la mitad del diagnostico del mareo: con 9, el avion quedaba
+// corrido un 18% del ancho del cuadro sin ninguna razon visible ("se mueve casi solo para un
+// costado sin sentido"). El paneo del stick derecho (CAM_PAN) es 6, o sea que la mirada a la
+// curva ahora es MENOS que mirar para abajo a proposito — que es la proporcion correcta.
+export const ZZ_CAM_LEAD = 4;
+// cuanto se corren el telon y las colinas del horizonte con el rumbo, en pixeles por radian.
+// Es lo mas barato que existe y lo que mas vende que doblaste: las sierras del fondo se mueven.
+export const ZZ_FONDO_K = 140;
+
+// ---------------- LAS PAREDES DEL CALLEJON (PLAN_PASILLO_ZIGZAG Z3) ----------------
+// Las laderas a los costados del carril. NO son decorado: son EL MARCO DE REFERENCIA que hace
+// legible el viraje —sin nada al costado, el mundo inclinandose sobre mar plano marea— y son la
+// consecuencia que convierte el trazado en una regla: seguis el camino o chocas.
+//
+// Viven en el MARCO DEL CARRIL, igual que todo lo demas: se dibujan a ±ZZ_PARED_X y doblan en
+// pantalla con el mismo `bendW(z)` que el resto del mundo.
+
+// semi-ancho del callejon, en unidades de mundo. SPAWN_X es ~41: cinco de margen para que nada
+// pueda nacer adentro de la roca aun antes del recorte del sembrador.
+export const ZZ_PARED_X = 46;
+// EL PIE de la ladera: cuanto antes del muro empieza a cobrar. La roca no es un vidrio vertical.
+export const ZZ_PARED_TALUD = 4;
+// altura plena de la ladera. Mas que CLIFF_H1 (22) porque es un CERRO, no un acantilado suelto —
+// pero por debajo de FLY_TOP (68): saltarla por arriba es una salida legitima, y cara (arriba te
+// carga el radar).
+export const ZZ_PARED_H = 26;
+// margen para pasarla por encima: hay que superar la cresta por un 5%.
+export const ZZ_PARED_LIBRE = 1.05;
+// cada cuantos metros cambia de altura la cresta. Chico = sierra dentada; grande = lomas largas.
+// 55 da cerros que se leen como cerros a la velocidad a la que se vuela.
+export const ZZ_PARED_BANDA = 55;
+// hasta que profundidad se dibuja la ladera y con que paso. 260 la mete adentro de la bruma sin
+// llegar a SPAWN_Z (no hace falta: mas alla no se distingue de la niebla).
+export const ZZ_PARED_Z = 260, ZZ_PARED_PASO = 4;
+// DESDE DONDE empieza a comerse la ladera la niebla de distancia. Entre esto y ZZ_PARED_Z el cerro
+// se funde al color del horizonte — SIN perder opacidad: lo que se desvanece es su color, no su
+// materia. Bajarlo mete mas niebla; subirlo deja el fondo mas nitido y arriesga que se note el
+// canto donde termina el dibujo.
+export const ZZ_NIEBLA_Z0 = 70;
+// FRACCION de ZZ_PARED_Z en la que la niebla ya es TOTAL. El ultimo 18% del dibujo se pinta
+// exactamente del color del horizonte, asi que el corte donde termina el terreno no se puede ver
+// — no queda color propio que lo delate. Subirlo hasta 1 devuelve la linea vertical.
+export const ZZ_NIEBLA_FIN = 0.82;
+
+// ---------------- LAS PUNTAS DE TIERRA (PLAN_PASILLO_ZIGZAG Z3.b) ----------------
+// LO QUE DE VERDAD HACE EL CALLEJON, y lo dijo el playtest: no es que el camino doble — es que
+// LA TIERRA SE METE ADENTRO DEL PASILLO y hay que esquivarla.
+//
+// El primer intento doblaba el CARRIL, y aunque funcionaba, se sentia mal: "como si se moviese el
+// avion solo". Tenia razon — con la camara virando, el jugador deja de ser el dueño del avion.
+// Aca la camara no se mueve NADA: el mundo esta derecho, y lo que cambia es la forma de la costa.
+// El zigzag lo hace el jugador esquivando, que es donde tiene que estar.
+//
+// LA GARANTIA DE PASO: en cada banda, UNA sola punta y de UN solo lado (lo sortea el hash). Asi el
+// callejon nunca se cierra por construccion — no hace falta ningun chequeo de "¿se puede pasar?",
+// que es la clase de cosa que falla el dia que alguien toca un numero.
+
+// cada cuantos metros PUEDE haber una punta. 190 a velocidad de crucero es una cada ~2,5 s.
+export const ZZ_PUNTA_CADA = 190;
+// cuantos metros de largo tiene la punta a lo largo del camino. 70 la hace un promontorio y no
+// una pared cruzada: se ve venir, se rodea, se sale.
+export const ZZ_PUNTA_LARGO = 70;
+// CUANTO SE METE la punta mas grande, en unidades de mundo. Con ZZ_PARED_X = 46, una punta de 66
+// pone la cara de la roca en x = +20: el pasillo queda abierto SOLO del otro lado, y hay que
+// cruzarlo entero. A 30 m/s de palanca, ir de x=0 a x=33 lleva ~1,1 s, y la punta se ve venir
+// desde 260 m (3,5 s) — exigente y justo.
+//
+// SUBIDO DE 30 A 66 POR PEDIDO DEL PLAYTEST ("que ocupen mas espacio del pasillo para obligar al
+// jugador a moverse casi al otro extremo"). No todas llegan ahi: el tamaño se sortea en tres
+// escalones (ver `paredEntra`), y esta perilla es el techo del mas grande.
+export const ZZ_PUNTA_MAX = 66;
+// EN CUANTOS METROS el callejon llega a su dureza plena. Arranca al 55% y escala: las primeras
+// puntas son de aprendizaje y las ultimas son las que ocupan todo. Se mide desde donde empieza el
+// callejon, no desde el despegue.
+export const ZZ_PUNTA_RAMPA = 2600;
+// que fraccion de las bandas trae punta. 0.72: la mayoria, pero no todas — un callejon donde
+// SIEMPRE hay una punta deja de tener ritmo y pasa a ser una slalom de metronomo.
+export const ZZ_PUNTA_P = 0.72;
+
+// ---------------- CUANDO ARRANCA EL CALLEJON, Y SU MESETA (Z3.c) ----------------
+
+// EL CALLEJON NO EMPIEZA EN EL METRO CERO. Un callejon que ya esta ahi al soltar el freno no es un
+// lugar al que se ENTRA — es el mapa, y encima tapa el despegue. Este es el piso absoluto en
+// metros; ademas, en una mision que despega de tierra, las paredes esperan a que la base quede
+// atras (`cfg.coast` + margen). Con `desde` declarado, manda `desde` — esto es solo el piso.
+export const ZZ_ARRANQUE = 700;
+// cuanto margen despues del final de la base antes de que aparezca la primera ladera
+export const ZZ_ARRANQUE_BASE = 160;
+
+// LA MESETA: cuanto se extiende hacia AFUERA la superficie de tierra arriba de la ladera. Es lo
+// que hace que la pared deje de ser una pared y pase a ser un CERRO con su campo arriba — y es lo
+// que se ve cuando se la pasa por encima, que si no seria un vacio. 200 alcanza para tapar hasta
+// el borde de la pantalla desde cualquier altura jugable.
+export const ZZ_MESETA_W = 200;

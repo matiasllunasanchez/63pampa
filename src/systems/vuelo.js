@@ -58,10 +58,27 @@ export function stepVuelo(dt, o) {
   const techo = o.techo === undefined ? FLY_TOP : o.techo;
   // ---- INTEGRAR. `moves.js` y el bloque de control escriben VELOCIDADES; la posicion se integra
   // en un solo lugar, y este es. Sin esto una pirueta es un sprite rotando sobre una foto.
-  plane.x += plane.vx * dt;
+  // LA DERIVA DE LA CURVA (zigzag Z2) se suma ACA, en la integracion, y NUNCA a `plane.vx`.
+  // No es un detalle de estilo: con CONTROL POR ALABEO, `flight.js` ASIGNA `plane.vx` entero
+  // cada cuadro (`plane.vx = bankVx(...)`), asi que un empujon a la velocidad se pisaria solo y
+  // el modo por alabeo no sentiria la curva. Sumada a la posicion, la centrifuga la sienten los
+  // dos esquemas de control igual.
+  //
+  // Como el resto de lo que este modulo no conoce (el poder RASANTE, el techo de una cinematica),
+  // llega POR PARAMETRO: la cama de vuelo no sabe que existe el zigzag. Sin el parametro vale 0,
+  // y por eso una cinematica —o el juego con el pasillo recto— integra exactamente como siempre.
+  plane.x += (plane.vx + (o.deriva || 0)) * dt;
   plane.y += plane.vy * dt;
-  if (plane.x < -FLY_X) { plane.x = -FLY_X; plane.vx = 0; }
-  if (plane.x > FLY_X) { plane.x = FLY_X; plane.vx = 0; }
+  // EL TOPE LATERAL, que por omision es el carril de siempre. Lo levanta EL CALLEJON (zigzag Z3)
+  // y por una razon de correccion, no de gusto: con paredes, la cara de la roca queda MAS AFUERA
+  // que FLY_X, asi que el avion se frenaba contra el borde invisible de siempre y no podia tocar
+  // la ladera nunca — la pared quedaba de adorno. Con paredes, el limite del carril ES la roca.
+  //
+  // Es el mismo mecanismo que `techo`: un parametro con default, para que sin callejon la cuenta
+  // sea exactamente la de siempre y `feel` no se mueva.
+  const limX = o.limX || FLY_X;
+  if (plane.x < -limX) { plane.x = -limX; plane.vx = 0; }
+  if (plane.x > limX) { plane.x = limX; plane.vx = 0; }
   if (plane.y > techo) { plane.y = techo; plane.vy = 0; }
 
   // ---- LA CAMARA LLEGA TARDE, y ese retardo ES el peso. No sigue al avion: lo persigue.
@@ -74,7 +91,11 @@ export function stepVuelo(dt, o) {
   // la proyeccion es `W/2 + (x - cam.x) * F/z`. Un `lat` positivo mueve la camara a la derecha y
   // al avion a la izquierda.
   const lat = o.ras ? (o.ras.lat || 0) : 0;
-  cam.x += (plane.x * 0.86 + lat - cam.x) * Math.min(1, dt * 7);
+  // LA MIRADA AL APICE (zigzag Z2): en la curva la camara se adelanta HACIA ADENTRO, que es lo
+  // que hace un piloto y lo que hace que la curva se descubra a tiempo en vez de aparecer. Entra
+  // por el mismo renglon que el corrimiento del poder RASANTE porque es lo mismo —correr la
+  // camara al costado— y asi hereda gratis el peso del lerp: la mirada VIAJA, no salta.
+  cam.x += (plane.x * 0.86 + lat + (o.lead || 0) - cam.x) * Math.min(1, dt * 7);
   // PANEO DEL JUGADOR (stick derecho vertical · [R]/[F]): mirar un poco hacia abajo o hacia arriba
   // sin mover el avion. Es el MISMO mecanismo que el turbo — se corre la camara en el MUNDO — asi
   // que empujar el stick hacia ABAJO SUBE la camara: entra mas mundo por debajo, que es lo que

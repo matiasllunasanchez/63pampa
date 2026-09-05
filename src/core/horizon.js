@@ -25,7 +25,10 @@
 // atrapado. Ver el bloque OPT_ROWS en game.js.
 import { S, cfg, plane } from './state.js';
 import { run } from './run.js';
-import { ROLL_DUR } from '../data/tuning.js';
+// LA CURVA DEL ZIGZAG tambien inclina el mundo (PLAN_PASILLO_ZIGZAG Z2). Se importa del
+// NUCLEO y no del sistema porque core no puede importar systems — y ademas la formula tiene que
+// ser una sola, la misma que lee la sonda.
+import { tilt as zzTilt } from './zigzag.js';
 
 export const HZ_FIX = 0, HZ_MOVES = 1, HZ_ALL = 2, HZ_FREE = 3;
 export const HZ_N = 4;
@@ -75,11 +78,12 @@ export const tiltFade = tilt => {
   return t <= TILT_FADE0 ? 1 : t >= TILT_FADE1 ? 0 : 1 - (t - TILT_FADE0) / (TILT_FADE1 - TILT_FADE0);
 };
 
-/** Rotacion propia del SPRITE por pirueta: tonel legado (run.rollT) o maniobra (run.mvRoll).
- *  Es la MISMA cuenta que hace render/plane.js — de ahi sale, para que no haya dos formulas. */
-export const spriteRoll = () => run.rollT > 0
-  ? run.rollDir * (1 - run.rollT / ROLL_DUR) * Math.PI * 2
-  : run.mvRoll;
+/** Rotacion propia del SPRITE por pirueta. Es la MISMA cuenta que hace render/plane.js — de ahi
+ *  sale, para que no haya dos formulas.
+ *
+ *  Antes tenia dos ramas porque el tonel llevaba su propio reloj (`run.rollT`) fuera del catalogo.
+ *  Mudado a MOVES, escribe `mvRoll` como las demas y las dos ramas eran la misma. */
+export const spriteRoll = () => run.mvRoll;
 
 /** PURA (se prueba en Node, sin canvas): angulo del mundo en radianes.
  *  Es el OPUESTO al del avion — si el avion rola a la derecha y la camara va con el, el mundo
@@ -89,10 +93,18 @@ export const spriteRoll = () => run.rollT > 0
  *  con una sola excepcion: durante una pirueta el banqueo continuo no se cuenta. Es que el alabeo
  *  del sprite durante la maniobra ya no significa lo que significa volando derecho, y sumarlo
  *  metia un temblor en el angulo justo cuando el mundo esta dando la vuelta. */
-export function horizonRoll(mode, roll, bank, free) {
+export function horizonRoll(mode, roll, bank, free, zz) {
   if (!mode) return 0;
   const b = mode >= HZ_ALL && !roll ? Math.max(-1, Math.min(1, bank)) * BANK_TILT : 0;
-  const a = roll + b + (mode === HZ_FREE ? free || 0 : 0);
+  // LA CURVA DEL ZIGZAG inclina el mundo con la MISMA compuerta que el banqueo continuo
+  // (mode >= HZ_ALL, que es el default). Va con esa compuerta y no con una propia por dos
+  // razones: en FIJO no se inclina nada —la salida del que se marea vale igual con el pasillo
+  // doblando— y en EN PIRUETAS el modo promete que entre pirueta y pirueta el horizonte esta
+  // quieto; una curva no es una pirueta, y romperle esa promesa seria cambiarle el significado
+  // a una opcion que ya existe. Durante una pirueta se descuenta, igual que el banqueo: ahi el
+  // mundo ya esta dando la vuelta y sumarle la curva metia un temblor.
+  const c = mode >= HZ_ALL && !roll ? (zz || 0) : 0;
+  const a = roll + b + c + (mode === HZ_FREE ? free || 0 : 0);
   return a ? -a : 0;   // el `? :` evita devolver -0, que no rompe nada pero ensucia comparaciones
 }
 
@@ -108,7 +120,7 @@ export const hzMode = () => S.state === 'play' || S.state === 'pulso' ? cfg.hori
 
 /** Angulo del MUNDO este cuadro. Lo consultan draw() y viewMouse() — sin parametros, para que
  *  no puedan discrepar. */
-export const hzWorld = () => horizonRoll(hzMode(), spriteRoll(), plane.bank, run.freeRoll);
+export const hzWorld = () => horizonRoll(hzMode(), spriteRoll(), plane.bank, run.freeRoll, zzTilt());
 
 /** Cuanto hay que SUMARLE a la rotacion del sprite para cancelar la que el mundo ya absorbio.
  *  Si no, el avion giraria dos veces (una por el mundo, otra por si mismo) y el efecto se

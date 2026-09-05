@@ -3,8 +3,8 @@
 //
 // Son "poderes" estilo juego de pelea: una secuencia de dos toques direccionales las lanza, y
 // durante la maniobra el avion NO se controla — salvo el eje que cada una deja libre (`steer`).
-// El tonel (barrel roll) es la pirueta original del juego y conserva su camino legado
-// (run.rollT); las demas usan run.mv.
+// El tonel es la pirueta ORIGINAL del juego: durante años vivio fuera de este catalogo, con un
+// reloj propio (run.rollT). Ya no — es una entrada mas, y `legado` marca lo unico que conservo.
 //
 //   dur    duracion en segundos
 //   steer  eje que el jugador SIGUE controlando: 'x' (lateral), 'y' (vertical) o null (nada)
@@ -61,7 +61,19 @@
 // REGLA DE DISEÑO: ninguna secuencia puede ser PREFIJO de otra, o la corta dispararia antes de que
 // la larga se complete. El caso inverso (una corta que es el FINAL de una larga, como '←←' dentro
 // de '↓←←') lo resuelve la coincidencia por sufijo mas largo en core/input.js.
+import { ROLL_DUR } from './tuning.js';
+
 export const MOVES = {
+  // EL TONEL (aileron roll): la pirueta ORIGINAL del juego. Vivio años fuera del catalogo, en un
+  // camino propio (`run.rollT` en flight.js), y eso estaba bien mientras la unica forma de verla
+  // fuera volandola. Dejo de estarlo cuando aparecieron las OTRAS DOS PRESENTACIONES (un actor que
+  // la vuela en escena, y la maniobra filmada): las dos preguntan por MOVES, no encontraban al
+  // tonel, y la primera fila del menu MANIOBRAS no hacia nada. Ahora es una entrada como las once
+  // restantes y las tres presentaciones le salen gratis.
+  //
+  // `legado` marca lo unico que quedo de su historia: NO lo apaga la perilla de maniobras
+  // (`cfg.moves`). El tonel es del juego desde el primer dia, no un poder que alguien aprendio.
+  tonel: { dur: ROLL_DUR, name: 'TONEL', steer: null, fire: true, turbo: false, tight: true, legado: true },
   // medio tonel invertido + picada fuerte: la salida vertical hacia ABAJO. Pide altura.
   // DISPARA aunque quede invertido: el cañon sigue montado en las alas y la punteria del juego
   // (mira libre o auto-apuntado) no depende de para donde este la panza. El tonel clasico
@@ -137,16 +149,16 @@ const COMBO = {
   barrel: '⟳↓→↑← · ⟳↓←↑→', tonel: '⟳←←← · ⟳→→→',
 };
 
-// EL TONEL entra a mano y no es un olvido: no esta en MOVES porque conserva su camino legado
-// (run.rollT en flight.js). El dia que se mude al catalogo, esta linea se cae sola.
-const TONEL = { id: 'tonel', name: 'TONEL', dur: 0.55, legado: true };
-
-/** Las filas del menu MANIOBRAS: la pirueta, con que se pide y que hace. */
-export const maniobras = () => [TONEL, ...Object.keys(MOVES).map(id => ({ id, ...MOVES[id] }))]
+/** Las filas del menu MANIOBRAS: la pirueta, con que se pide y que hace.
+ *
+ *  Sale ENTERA de MOVES —el tonel incluido, desde que se mudo al catalogo— y por eso ninguna fila
+ *  del menu puede ofrecer algo que el motor no sepa volar. Cuando el tonel estaba fuera, esta
+ *  lista lo agregaba a mano y las tres presentaciones se lo encontraban ausente. */
+export const maniobras = () => Object.keys(MOVES).map(id => ({ id, ...MOVES[id] }))
   .map(m => ({
     id: m.id, titulo: m.name,
     desc: (COMBO[m.id] || '—') + '   ·   ' + m.dur + ' s'
-      + (m.legado ? '   ·   camino legado' : '   ·   ' + (m.steer ? 'palanca ' + m.steer : 'sin palanca')),
+      + '   ·   ' + (m.steer ? 'palanca ' + m.steer : 'sin palanca'),
   }));
 
 // LAS TRES PRESENTACIONES (la regla del 16/8: toda maniobra se diseña una vez y se entrega en tres
@@ -163,8 +175,10 @@ export const MV_VISTAS = [
   },
   {
     id: 'companero', titulo: 'UN COMPAÑERO',
-    desc: 'Un Fiel entra de costado, la vuela en escena y se va',
-    setup: (a, mv) => { a.patria(); a.luego(1.4, g => { g.sonda('pasilloLimpio'); g.sonda('mvactor', mv, 'izq'); }); },
+    desc: 'Un Fiel te sobrepasa por atras, la vuela en escena y se va',
+    // sin lado: entra por donde diga WINGMV.LADO, que es ATRAS (sobrepasando). Poner 'izq'/'der'
+    // aca es lo unico que hace falta para verla cruzar el cuadro de costado.
+    setup: (a, mv) => { a.patria(); a.luego(1.4, g => { g.sonda('pasilloLimpio'); g.sonda('mvactor', mv); }); },
   },
   {
     id: 'cine', titulo: 'COMO CINEMATICA',
@@ -181,7 +195,25 @@ export const MV_VISTAS = [
 // y salirse**. Los tres momentos son de duracion fija y la maniobra dura lo que dure (`dur` del
 // catalogo), asi que una escena arma su tiempo total sumando ENTRA + dur + SALE.
 export const WINGMV = {
+  // DE DONDE VIENE, por omision. Es 'atras' y no un costado a proposito: un companero que aparece
+  // de golpe en un borde es un sprite que se prendio: existe recien cuando se lo ve. Uno que TE
+  // SOBREPASA —nace atras y abajo, te pasa por un hombro y se va adelantando— ya estaba ahi antes
+  // de que lo miraras, que es lo que hace que la escena tenga un mundo y no una entrada.
+  //
+  // Se cambia por escena: `entra(id, 'izq')` / `'der'` piden el costado, y 'auto' sortea con los
+  // pesos de MEZCLA. Los costados siguen sirviendo para lo que son buenos —cruzar el cuadro de
+  // lado a lado— y por eso no se van.
+  LADO: 'atras',
+  // los pesos del sorteo de 'auto': mayormente por atras, y de vez en cuando un costado para que
+  // no se vuelva una formula. Son PESOS relativos, no porcentajes: se normalizan solos.
+  MEZCLA: { atras: 4, izq: 1, der: 1 },
   ENTRA: 1.0,      // segundos de entrada en escena (interpolados con smoothstep: entra volando)
+  // LA ENTRADA DE ATRAS DURA MAS y no es un numero suelto: un sobrepaso hay que VERLO. Con el
+  // segundo de los costados, el Fiel aparecia de la nada y ya estaba adelante — el sobrepaso, que
+  // es todo el punto de entrar por atras, pasaba en tres cuadros.
+  ENTRA_ATRAS: 1.5,
+  PASA_X: 10,      // por que hombro pasa: cuanto se corre al costado para no cruzarse por encima
+  PASA_DY: 6,      // cuanto MAS BAJO nace, para SUBIR al pasar (el que sobrepasa trepa)
   SALE: 1.4,       // segundos de salida de plano
   // NACE AFUERA DEL CARRIL del jugador (FLY_X = 38) — de eso se trata "entrar de costado". Es
   // tambien la razon por la que `movesSystem` no le aplica los topes: en su primer cuadro lo

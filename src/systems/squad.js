@@ -81,7 +81,7 @@ export function startRelevo(cause, spent) {
   run.afterT = 0; run.afterTier = 0; run.afterGrace = 0;
   run.boost = false; run.throttle = 0;
   run.heat = 0; run.overheat = false;                   // canon propio, frio
-  run.rollT = 0; run.rollCd = 0;
+  run.rollCd = 0;
   run.mv = null; run.mvT = 0; run.mvRoll = 0; run.mvSteep = 0;
   run.bloodSplat = 0;
   run.gear = 0;                                         // llega volando: tren recogido

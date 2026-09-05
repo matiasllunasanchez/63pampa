@@ -68,7 +68,6 @@ export const run = {
   gear: 1,         // 1 = bajado (en pista) · 0 = recogido. Lo anima el despegue; ver render/plane.js
 
   // --- maniobra ---
-  rollT: 0,        // tonel en curso (segundos restantes) — camino legado del barrel roll
   rollCd: 0,       // cooldown COMPARTIDO de todas las piruetas
   rollDir: 1,      // hacia que lado rola
   // PIRUETAS de combate (data/moves.js). mv = id activo o null; las ejecuta systems/moves.js.
@@ -129,7 +128,7 @@ export function resetRun() {
     gear: 1,
     windT: 0, windF: 1,
     fireT: 0, msl: MSL_MAX, mslCd: 0, mslRegen: 0,
-    rollT: 0, rollCd: 0,
+    rollCd: 0,
     mv: null, mvT: 0, mvY0: 0, mvRoll: 0, mvSteep: 0, mvSeed: 0, mvTgt: 0, camPan: 0,
     // alabeo VIVO del control por ALABEO (cfg.control = 1), en radianes. Es el estado del avion:
   // plane.vx sale de aca, no al reves. Ver core/physics.js.

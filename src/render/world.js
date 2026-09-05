@@ -12,6 +12,7 @@ import { run } from '../core/run.js';
 import { wake, obstacles, soldiers } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { hzWorld, tiltFade } from '../core/horizon.js';
+import { bendW } from '../core/zigzag.js';
 // EL MAR VIVE EN core/sea.js — puro, sin canvas ni stores — porque la colision de las olas tiene
 // que evaluar la MISMA superficie que se dibuja, y un sistema no puede importar del render.
 import { seaH as seaBase, olaBump, climaDe, resaca } from '../core/sea.js';
@@ -58,7 +59,7 @@ function groundMottle(y, wz, k, xEnd) {
     const h1 = hash2(band, i * 131);
     if (h1 < 0.45) continue;
     const wxP = (hash2(band, i * 131 + 7) * 2 - 1) * 330;
-    const sxP = W / 2 + (wxP - cam.x) * k, wP = (6 + h1 * 14) * k;
+    const sxP = W / 2 + (wxP - cam.x) * k + ZB, wP = (6 + h1 * 14) * k;
     if (sxP + wP < -70 || sxP > xEnd) continue;
     ctx.globalAlpha = 0.10 + h1 * 0.06;
     px(sxP, y, Math.min(wP, xEnd - sxP), 1, h1 > 0.72 ? '#0a0c08' : '#f4eede');
@@ -86,6 +87,18 @@ function groundHaze(y, f, w2) {
 // translucidas —surcos, bruma— no pueden solaparse, porque el solape se pintaria dos veces y la
 // costura volveria, ahora en oscuro.
 let rowH = 1;
+// EL CORRIMIENTO DEL CARRIL de la fila que se esta pintando, YA EN PIXELES (zigzag Z1).
+//
+// Es hermana exacta de `rowH`: se pone una vez por fila y la leen los ayudantes que pintan esa
+// fila. Se hace asi —y no pasandola por parametro a los seis ayudantes— porque este archivo ya
+// tiene ese patron andando y porque deshacerlo es borrar los `+ ZB`, sin tocar ninguna firma.
+//
+// Los puntos del mar, los matojos, las rachas y TODOS los sprites no estan aca: esos pasan por
+// proj(), que ya doblo. Lo que queda para ZB es lo que se dibuja por FILA con una cuenta propia:
+// la pista, el moteado, los turbales, el kelp y los filos de la costa.
+//
+// Con el zigzag apagado vale 0 y cada `+ ZB` es `+ 0` — la cuenta de siempre, bit a bit.
+let ZB = 0;
 
 // FILAS DE MAS, POR DEBAJO DEL BORDE DE LA PANTALLA. Con el mundo girado, la esquina de abajo deja
 // de estar tapada por el borde: el raster se acaba en H y aparece el CORTE del terreno, un borde
@@ -150,13 +163,13 @@ function portRow(y, wz, k, x0, x1, f) {
   const vl = Math.sin(wz * 0.22) + Math.sin(wz * 0.07);              // turba malvinense
   px(x0, y, x1 - x0, rowH, vl > 0.8 ? '#39402f' : vl < -0.8 ? '#2b3226' : '#323a2b');
   // --- PISTA --- solo se pinta la parte del tramo que le toca (recorte contra [x0,x1))
-  const a = W / 2 + (-R.hw - cam.x) * k, b = W / 2 + (R.hw - cam.x) * k;
+  const a = W / 2 + (-R.hw - cam.x) * k + ZB, b = W / 2 + (R.hw - cam.x) * k + ZB;
   const ra = Math.max(a, x0), rb = Math.min(b, x1);
   const bw = Math.max(1, 0.5 * k);
   if (rb > ra) {
     px(ra, y, rb - ra, 1, R.surf);
     if (R.center && Math.floor(wz / 9) % 2 === 0) {                  // eje discontinuo
-      const ex = W / 2 + (0 - cam.x) * k - bw / 2;
+      const ex = W / 2 + (0 - cam.x) * k + ZB - bw / 2;
       if (ex >= x0 && ex + bw <= x1) px(ex, y, bw, 1, '#9aa39b');
     }
     // FRENADAS: dos pares de manchas oscuras a los lados del eje, la marca de las ruedas al tocar.
@@ -164,7 +177,7 @@ function portRow(y, wz, k, x0, x1, f) {
     if (R.skid && (wz % 24) < 3.5) {
       ctx.globalAlpha = 0.3;
       for (const off of [-3.4, -2.2, 2.2, 3.4]) {
-        const sxk = W / 2 + (off - cam.x) * k, wk = Math.max(1, 0.7 * k);
+        const sxk = W / 2 + (off - cam.x) * k + ZB, wk = Math.max(1, 0.7 * k);
         if (sxk >= x0 && sxk + wk <= x1) px(sxk, y, wk, 1, '#14181a');
       }
       ctx.globalAlpha = 1;
@@ -333,7 +346,9 @@ export function drawSea() {
     // degradado, y extrapolarla mas alla del primer plano da colores fuera de la rampa.
     const fRow = Math.min(1, dy / (H - HOR));
     if (landVisible && wzP < cfg.coast - PORT_AMP) {   // fila ENTERA de meseta: sin recorrer columnas
-      portRow(y, wzP, F / (wzP - dv), -70, W + 70, fRow);
+      const kM = F / (wzP - dv);
+      ZB = bendW(wzP - dv) * kM;
+      portRow(y, wzP, kM, -70, W + 70, fRow);
       continue;
     }
     if (landVisible && wz < cfg.coast + PORT_AMP + PORT_FOAM) {
@@ -342,18 +357,26 @@ export function drawSea() {
       // PORT_STEP px y se pintan TRAMOS, en vez de partir la fila en un punto (que es lo que se
       // puede hacer en COSTA, donde el corte es uno solo por fila).
       const k = F / z, kP = F / (wzP - dv);
+      // DOS PLANOS EN LA MISMA FILA: el mar a su profundidad y la meseta a la suya, cada uno con
+      // su escala — y por lo tanto con su propio corrimiento de carril. Se calculan los dos y se
+      // le da a cada ayudante el suyo.
+      const zbS = bendW(z) * k, zbP = bendW(wzP - dv) * kP;
+      ZB = zbS;
       const f = fRow;   // ya viene clampeado en 1 (ver fRow)
       px(-70, y, W + 140, rowH, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
       let land0 = null, rock0 = null, foam0 = null;
       const flush = (sx) => {
-        if (land0 !== null) { portRow(y, wzP, kP, land0, sx, f); land0 = null; }
+        if (land0 !== null) { ZB = zbP; portRow(y, wzP, kP, land0, sx, f); ZB = zbS; land0 = null; }
         if (rock0 !== null) { cliffFace(y, k, rock0, sx, f); rock0 = null; }
         if (foam0 !== null) { px(foam0, y, sx - foam0, 1, P.foam); foam0 = null; }
       };
       for (let sx = -70; sx <= W + PORT_STEP; sx += PORT_STEP) {
         // la orilla se evalua en la x de MUNDO de cada plano: la meseta con su propia escala
-        const edgeP = cfg.coast + portJut((sx - W / 2) / kP + cam.x);
-        const edge = cfg.coast + portJut((sx - W / 2) / k + cam.x);
+        // ⚠ ESTAS DOS SON PROYECCIONES INVERSAS (de pantalla a mundo), asi que el corrimiento
+        // se RESTA. Sumarlo aca —el error facil— torceria la orilla al reves que el terreno y
+        // la costa quedaria partida de la tierra.
+        const edgeP = cfg.coast + portJut((sx - W / 2 - zbP) / kP + cam.x);
+        const edge = cfg.coast + portJut((sx - W / 2 - zbS) / k + cam.x);
         const cls = wzP < edgeP ? 1                       // meseta / pista
           : wz < edge ? 3                                 // pared del acantilado
             : wz < edge + PORT_FOAM ? 2                   // rompiente
@@ -369,6 +392,7 @@ export function drawSea() {
     if (landMode) {                                                      // TIERRA: gradiente continuo
       const f = fRow;   // ya viene clampeado en 1 (ver fRow)
       const k = F / z;
+      ZB = bendW(z) * k;
       px(-70, y, W + 140, rowH, groundCol(LAND_ST, f));
       // VOLUMEN DE LA LOMA (T3). La cara que SUBE alejandose es la que nos da el frente: se
       // aclara; el lomo de atras se oscurece. Es lo unico que hace visible una loma ANTES de
@@ -397,9 +421,10 @@ export function drawSea() {
       // COSTA: cada fila se parte en la LINEA DE COSTA — que SERPENTEA (shoreAt(wz), senos en
       // coordenadas de mundo): tierra arenosa a la izquierda, playa ancha, rompiente, y mar.
       const k = F / z;
+      ZB = bendW(z) * k;
       const shoreW = shoreAt(wz);
-      const sandSx = W / 2 + (shoreW - SAND_W - cam.x) * k;
-      const shoreSx = W / 2 + (shoreW - cam.x) * k;
+      const sandSx = W / 2 + (shoreW - SAND_W - cam.x) * k + ZB;
+      const shoreSx = W / 2 + (shoreW - cam.x) * k + ZB;
       const f = fRow;   // ya viene clampeado en 1 (ver fRow)
       px(-70, y, Math.max(0, sandSx + 70), rowH, groundCol(CLAND_ST, f));
       if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) {
@@ -534,7 +559,7 @@ export function pastoLean(wx, wz, t, clima) {
 function turbalRow(y, wz, k) {
   const t = turbalAt(wz);
   if (!t) return;
-  const sx0 = W / 2 + (t.x0 - cam.x) * k, sx1 = W / 2 + (t.x1 - cam.x) * k;
+  const sx0 = W / 2 + (t.x0 - cam.x) * k + ZB, sx1 = W / 2 + (t.x1 - cam.x) * k + ZB;
   if (sx1 < -70 || sx0 > W + 70) return;
   const x0 = Math.max(-70, sx0), w = Math.min(W + 70, sx1) - x0;
   if (w <= 0) return;
@@ -552,7 +577,7 @@ function kelpRow(y, wz, k, shoreW) {
     const h1 = hash2(band, i * 977 + 31);
     if (h1 < 0.55) continue;
     const off = 2 + hash2(band, i * 977 + 53) * KELP_W;
-    const sx = W / 2 + (shoreW + off - cam.x) * k, w = (3 + h1 * 7) * k;
+    const sx = W / 2 + (shoreW + off - cam.x) * k + ZB, w = (3 + h1 * 7) * k;
     if (sx + w < -70 || sx > W + 70) continue;
     ctx.globalAlpha = KELP_A * (0.6 + h1 * 0.4);
     px(sx, y, w, 1, '#0f1a14');
@@ -584,9 +609,12 @@ function drawLand(coastMode) {
     // ancho de pantalla a esta fila (antes era fijo ±74 → dejaba huecos en los bordes lejanos).
     // +20px de margen; tope de 340 para no iterar de más en la banda del horizonte.
     const halfW = Math.min(340, (W / 2 + 20) * (wz - dv) / F);
+    // el EJE DE LA PANTALLA a esta profundidad (zigzag Z1): las matas se dibujan con proj() y ya
+    // doblan, pero la ventana de cuales se recorren tiene que acompañar o el campo se corta.
+    const cxL = cam.x - bendW(wz - dv);
     // costa: el limite es LA ORILLA de esta fila (serpentea) menos el ancho de playa
-    const wxEnd = coastMode ? Math.min(cam.x + halfW, shoreAt(wz) - SAND_W - 0.5) : cam.x + halfW;
-    for (let wx = Math.ceil((cam.x - halfW) / SPX) * SPX; wx < wxEnd; wx += SPX) {
+    const wxEnd = coastMode ? Math.min(cxL + halfW, shoreAt(wz) - SAND_W - 0.5) : cxL + halfW;
+    for (let wx = Math.ceil((cxL - halfW) / SPX) * SPX; wx < wxEnd; wx += SPX) {
       const ix = Math.round(wx / SPX);
       const h1 = hash2(ix, iz);
       // EL PEDRERO (T5) se consulta ANTES de la densidad: adentro del rio de piedra el suelo esta
@@ -720,7 +748,7 @@ function drawRachas(dv, coastMode) {
     const camZ = wz - dv;
     const k = F / camZ;
     const dir = hash2(n, i * 131) > 0.5 ? 1 : -1;
-    const wx = cam.x + (hash2(n, i * 91) * 2 - 1) * 40 - dir * 55 + dir * ph * 110;
+    const wx = cam.x - bendW(camZ) + (hash2(n, i * 91) * 2 - 1) * 40 - dir * 55 + dir * ph * 110;
     const s = proj(wx, 0, camZ);
     if (s.x < -60 || s.x > W + 60) continue;
     // entra y sale con la misma curva: una racha que aparece de golpe se lee como un parpadeo
@@ -792,7 +820,12 @@ function drawSeaDots(landVisible, coastMode) {
     // franja acorde al FRUSTUM: el ancho visible crece con la distancia (antes era ±74 fijo
     // y el mar quedaba "cortito" a lo lejos, p.ej. detras de la pista durante el despegue)
     const half = Math.min(320, (W / 2 + 10) * camZ / F + 6);
-    const xL = coastMode ? Math.max(cam.x - half, shoreAt(wz) + 1) : cam.x - half, xR = cam.x + half;   // costa: solo lado agua
+    // EL EJE DE LA PANTALLA A ESTA PROFUNDIDAD (zigzag Z1). Los puntos se dibujan con proj(), que
+    // ya dobla — pero QUE PUNTOS se recorren sale de esta ventana, y si quedara centrada en
+    // cam.x el mar se terminaria antes de tiempo del lado de adentro de la curva y sobraria del
+    // otro. Con el zigzag apagado, bendW es 0 y `cx` ES cam.x.
+    const cx = cam.x - bendW(camZ);
+    const xL = coastMode ? Math.max(cx - half, shoreAt(wz) + 1) : cx - half, xR = cx + half;   // costa: solo lado agua
     const sx3 = Math.max(SPX, camZ * 0.011);                   // paso x adaptativo (~1px)
     const x0 = Math.ceil(xL / sx3) * sx3;
     const portRow2 = landVisible && wz < cfg.coast + PORT_AMP + PORT_FOAM;
@@ -875,7 +908,9 @@ function drawSeaDots(landVisible, coastMode) {
       //
       // El umbral -0.5 en vez de 0.7 es la "x4 de probabilidad" que pide el spec, traducida: la
       // fraccion de fases que pasan un umbral u es acos(u)/pi, o sea 25% con 0.7 y 67% con -0.5.
-      const enSol = astro && Math.abs(wx - cam.x) < SUN_GLINT_HALF * (camZ / F);
+      // el camino del sol se mide contra el EJE DE LA PANTALLA y no contra cam.x: el sol se
+      // dibuja en el centro del cuadro, asi que su reflejo tiene que seguir doblando con el.
+      const enSol = astro && Math.abs(wx - cx) < SUN_GLINT_HALF * (camZ / F);
       if (hn > 0.78 && (enSol || k > 1.6)
           && Math.sin(wx * 12.9 + wz * 7.3 + run.t * 6) > (enSol ? -0.5 : 0.7)) {
         ctx.globalAlpha = Math.min(1, SEA_ALPHA2D * fade * (enSol ? 1.6 : 0.55));
@@ -2442,7 +2477,7 @@ export function drawHitboxes() {
   }
   // SOLDADOS: la caja llena es el CUERPO; el contorno tenue es el alcance real del atropello
   // (cuerpo + semi-envergadura del avion), que es lo que de verdad decide el impacto.
-  const swp = planeBox(run.rollT > 0 || mvTight(run.mv)).pw;
+  const swp = planeBox(mvTight(run.mv)).pw;
   for (const sd of soldiers) {
     if (sd.dead || sd.z <= 1 || sd.z > 60) continue;
     const sgy = sd.gy || 0;
@@ -2450,7 +2485,7 @@ export function drawHitboxes() {
     hbBox(sd.x, sgy + SOLDIER.top / 2, sd.z, SOLDIER.hw, SOLDIER.top / 2, HB, 0.3);
   }
   // PERFIL DEL AVION: la otra mitad de cada choque. Sin esto el overlay solo cuenta la mitad.
-  const { pw, ph } = planeBox(run.rollT > 0 || mvTight(run.mv));
+  const { pw, ph } = planeBox(mvTight(run.mv));
   hbBox(plane.x, plane.y, PZ, pw, ph, HB_PLANE, 0.3);
 }
 

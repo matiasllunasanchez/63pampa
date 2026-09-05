@@ -102,7 +102,7 @@ siempre: es la mecánica original, no una pirueta nueva.
 
 | combo | maniobra | de dónde sale la pose |
 |---|---|---|
-| ←← →← | **BARREL ROLL** (tonel) | rotación completa del sprite + 2 fantasmas translúcidos (camino legado) |
+| ←← →← | **BARREL ROLL** (tonel) | rotación completa del sprite + 2 fantasmas translúcidos |
 | ↓↓ alto | **SPLIT-S** | medio tonel **rotando el sprite** 180° (`run.mvRoll`) + fila de picada de la **hoja 2** |
 | ↓↓ bajo | **TERRAIN MASKING** | alabeo/cabeceo normales de la hoja base |
 | ↑↑ bajo | **POP-UP** | fila de trepada de la **hoja 2** |

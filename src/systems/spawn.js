@@ -22,6 +22,8 @@ import { val as trVal } from './tramos.js';
 // archivo consulta, no un estado que administre.
 import { sembrar as cvSembrar } from './charla.js';
 import { carrilLibre } from './persec.js';
+import { carrilSeguro } from '../core/zigzag.js';
+import { ZZ_PARED_TALUD } from '../data/tuning.js';
 import { plane } from '../core/state.js';
 import { scrapeLimit } from '../core/physics.js';
 import { olaBump, climaDe } from '../core/sea.js';
@@ -213,7 +215,22 @@ function spawn() {
   // se siembra: un solo lugar donde pasa, un solo lugar donde puede fallar. Los pocos tipos que
   // eligen su propio carril (landLane/waterLane, en COSTA) son de TIERRA — el lider vuela sobre
   // el agua y no los cruza.
-  const lane = carrilLibre(Math.random() * SPAWN_X * 2 - SPAWN_X);   // acompaña a FLY_X (zona de vuelo)
+  // EL CALLEJON RECORTA EL CARRIL (zigzag Z3): con paredes puestas, nada nace adentro de la roca.
+  // `anchoLibre` devuelve null sin paredes, y entonces esto es el sorteo de siempre — el sembrador
+  // no sabe que existe el zigzag.
+  // EL CALLEJON RECORTA EL CARRIL (zigzag Z3): nada nace donde la tierra se mete. Se pregunta por
+  // el TRAMO ENTERO que el obstaculo va a recorrer, no por el hueco de este metro — si no, nace en
+  // un hueco que se cierra antes de que llegue y termina enterrado en la roca. Sin paredes
+  // devuelve `null` y esto es el sorteo de siempre.
+  //
+  // EL INTERVALO PUEDE NO CONTENER AL CERO: con una punta grande la unica franja libre esta toda
+  // de un lado del pasillo. Y puede estar VACIO — ahi no se siembra y listo. Forzar un carril
+  // seria plantar un obstaculo adentro de la roca: invisible, y letal.
+  let lo = -SPAWN_X, hi = SPAWN_X;
+  const seg = carrilSeguro(run.dist, SPAWN_Z, ZZ_PARED_TALUD);
+  if (seg) { lo = Math.max(lo, seg.lo); hi = Math.min(hi, seg.hi); }
+  if (hi - lo < 6) return;                       // el callejon no deja lugar: este ciclo no siembra
+  const lane = carrilLibre(lo + Math.random() * (hi - lo));   // acompaña a FLY_X (zona de vuelo)
   // LOS BIDONES, y si el tramo los corta (`bidones: false`, SPEC_TRAMOS §2). Es UNA pregunta y
   // no dos: el combustible tiene que estar prendido en el mapa Y el tramo no tiene que haberlo
   // cortado. Lo pide M10, donde el ultimo tercio se vuela sabiendo que no aparece ninguno.

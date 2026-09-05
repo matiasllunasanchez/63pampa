@@ -1445,3 +1445,140 @@ test('ganchos: interstitial() y drawBark() existen con la firma acordada', () =>
   assert.match(brk, /export const BARK_S = [\d.]+/,
     'BARK_S es cuanto dura el cartel en pantalla');
 });
+
+// ---------------------------------------------------------------------------------------------
+// EL PASILLO EN ZIGZAG (docs/sistemas/PLAN_PASILLO_ZIGZAG.md, fase Z0)
+// ---------------------------------------------------------------------------------------------
+
+test('zigzag: APAGADO devuelve CERO EXACTO — la garantia de que nada cambia', async () => {
+  const z = await import('../src/core/zigzag.js');
+  z.reset();
+  // Object.is y no ==: -0 tambien seria "igual a 0" con ==, y lo que se esta afirmando es que
+  // el termino sumado es el cero que deja `x + 0 === x` bit a bit. Esta es LA prueba del item:
+  // si esto vale, un mapa sin zigzag se dibuja igual que antes de que el modulo existiera.
+  for (const zz of [0, 0.5, 1, 14, 100, 320, 400, 999, -5, NaN]) {
+    assert.ok(Object.is(z.bendW(zz), 0), `bendW(${zz}) tiene que ser 0 exacto y es ${z.bendW(zz)}`);
+  }
+  for (const spd of [0, 62, 74, 150, 300]) {
+    assert.ok(Object.is(z.deriva(spd), 0), `deriva(${spd}) tiene que ser 0 exacto`);
+  }
+  assert.equal(z.zz.on, false);
+  assert.equal(z.zz.curv, 0);
+});
+
+test('zigzag: apagar() deja el store en cero, no solo el interruptor', async () => {
+  const z = await import('../src/core/zigzag.js');
+  z.reset();
+  z.rebuild(500, { amp: 1, largo: 600, seed: 5 }, 0);
+  assert.notEqual(z.zz.curv, 0, 'la curva tiene que estar doblando para que la prueba valga');
+  z.apagar();
+  // sin esto, la curvatura vieja quedaria empujando la deriva despues de entrar al climax
+  assert.ok(Object.is(z.zz.curv, 0), 'apagar() tiene que borrar la curvatura');
+  assert.ok(Object.is(z.deriva(150), 0));
+  assert.ok(Object.is(z.bendW(320), 0));
+});
+
+test('zigzag: la recta no dobla y la curva dobla lo que dice la geometria', async () => {
+  const z = await import('../src/core/zigzag.js');
+  const { ZZ_CURV_MAX } = await import('../src/data/tuning.js');
+  const trazado = [[400, 0], [800, 1], [400, 0]];
+  z.reset();
+  // EN LA RECTA: cero, aunque el zigzag este PRENDIDO. Es lo que hace que el transito del
+  // Narwal (m5, primer tercio) siga siendo el tramo recto de siempre con el callejon declarado.
+  z.rebuild(0, { trazado }, 0);
+  assert.ok(Math.abs(z.bendW(320)) < 0.001, `en la recta bendW debe ser ~0 y es ${z.bendW(320)}`);
+  // ADENTRO DE LA CURVA: bend(z) = curv * z^2 / 2. Con curvatura plena y z=320 son 85,3 m.
+  // Se compara contra la GEOMETRIA y no contra un numero grabado: si alguien cambia el paso de
+  // integracion o ZZ_CURV_MAX, este test sigue diciendo la verdad.
+  z.rebuild(400 + 800 / 2, { trazado }, 0);
+  const teorico = ZZ_CURV_MAX * 320 * 320 / 2;
+  assert.ok(Math.abs(z.bendW(320) - teorico) / teorico < 0.05,
+    `bendW(320) deberia ser ~${teorico.toFixed(1)} m y es ${z.bendW(320).toFixed(1)}`);
+});
+
+test('zigzag: el trazado es DETERMINISTA — la misma mision dobla siempre igual', async () => {
+  const z = await import('../src/core/zigzag.js');
+  const spec = { amp: 0.8, largo: 550, seed: 7 };
+  const leer = () => { z.rebuild(1234, spec, 0); return z.bendW(300); };
+  const a = leer(), b = leer();
+  assert.equal(a, b, 'dos reconstrucciones iguales tienen que dar el mismo trazado');
+  // y otra semilla tiene que dar OTRO camino: si no, la semilla no sirve para nada
+  z.rebuild(1234, { amp: 0.8, largo: 550, seed: 8 }, 0);
+  assert.notEqual(z.bendW(300), a, 'cambiar la semilla tiene que cambiar el trazado');
+});
+
+test('zigzag: la curvatura no salta — el empalme la hace continua', async () => {
+  const z = await import('../src/core/zigzag.js');
+  const { ZZ_EMPALME, ZZ_CURV_MAX } = await import('../src/data/tuning.js');
+  // un salto de recta a curva plena: sin empalme el horizonte daria un tiron
+  const spec = { trazado: [[400, 0], [800, 1]] };
+  let maxSalto = 0, prev = z.curvAt(0, spec, 0);
+  for (let d = 1; d < 1200; d++) {
+    const c = z.curvAt(d, spec, 0);
+    maxSalto = Math.max(maxSalto, Math.abs(c - prev));
+    prev = c;
+  }
+  // el techo teorico de una rampa suave de ZZ_EMPALME metros es 1.5*ZZ_CURV_MAX/ZZ_EMPALME
+  const techo = 1.5 * ZZ_CURV_MAX / ZZ_EMPALME;
+  assert.ok(maxSalto <= techo * 1.05,
+    `la curvatura salta ${maxSalto.toExponential(2)} por metro, techo ${techo.toExponential(2)}`);
+});
+
+test('zigzag: la ventana desde/hasta se resuelve por FRACCION y sobrevive a ?qa', async () => {
+  const z = await import('../src/core/zigzag.js');
+  const spec = { amp: 1, largo: 600, seed: 1, desde: 0.35, hasta: 0.9 };
+  // la MISMA fraccion en dos misiones de largo muy distinto tiene que dar la misma ventana:
+  // es lo que hace que `?qa` (que comprime al 6%) no rompa el guion del trazado.
+  for (const obj of [2600, 156]) {
+    assert.ok(z.ventana(obj * 0.1, spec, obj) === 0, 'antes de `desde` la ventana esta cerrada');
+    assert.ok(z.ventana(obj * 0.62, spec, obj) > 0.99, 'en el medio esta abierta');
+    assert.ok(z.ventana(obj * 0.99, spec, obj) < 0.5, 'sobre `hasta` se esta cerrando');
+  }
+  // SIN OBJETIVO (POR LA PATRIA, infinito) la ventana es entera: no hay fraccion de algo que
+  // no termina, y el modo tiene que poder usar el zigzag igual.
+  assert.equal(z.ventana(50000, spec, 0), 1);
+});
+
+test('zigzag: la deriva tira hacia AFUERA y esta topada', async () => {
+  const z = await import('../src/core/zigzag.js');
+  const { ZZ_DERIVA_MAX } = await import('../src/data/tuning.js');
+  z.reset();
+  z.rebuild(0, { trazado: [[400, 1]] }, 0);   // curva a la DERECHA, plena desde el metro 0
+  z.rebuild(300, { trazado: [[400, 1]] }, 0);
+  assert.ok(z.zz.curv > 0, 'la curva tiene que estar doblando a la derecha');
+  assert.ok(z.deriva(74) < 0, 'doblando a la derecha, la centrifuga tira a la IZQUIERDA');
+  // el tope existe para que entrar con turbo sea un RIESGO y no una muerte sin salida:
+  // 37,5 m/s crudos contra 30 de palanca no se sostienen ni yendo a fondo.
+  assert.ok(Math.abs(z.deriva(400)) <= ZZ_DERIVA_MAX + 1e-9, 'la deriva tiene que estar topada');
+});
+
+test('zigzag: el validador rechaza la data que no avisa sola', async () => {
+  const z = await import('../src/core/zigzag.js');
+  const { ZZ_LARGO_MIN } = await import('../src/data/tuning.js');
+  assert.deepEqual(z.validarZigzag(undefined), [], 'sin zigzag es valido: casi ninguna mision lo lleva');
+  assert.deepEqual(z.validarZigzag({ amp: 0.7, largo: 600, seed: 3 }), []);
+  assert.deepEqual(z.validarZigzag({ trazado: [[400, 0], [600, -0.8]] }), []);
+  const casos = [
+    [{ amp: 1, trazado: [[400, 0]] }, 'las dos formas a la vez'],
+    [{ largo: 600 }, 'procedural sin amp'],
+    [{ amp: 2 }, 'amp fuera de rango'],
+    [{ amp: 1, largo: ZZ_LARGO_MIN - 1 }, 'una curva mas corta que el minimo'],
+    [{ amp: 1, desde: 0.9, hasta: 0.3 }, 'la ventana al reves'],
+    [{ amp: 1, amplitud: 3 }, 'una clave mal escrita'],
+    [{ trazado: [[400, 3]] }, 'curvatura fuera de [-1,1]'],
+    [{ amp: 1, paredes: { alto: 2 } }, 'pared con alto invalido'],
+    [{ amp: 1, paredes: { altura: 1 } }, 'pared con clave mal escrita'],
+  ];
+  for (const [data, por] of casos) {
+    assert.ok(z.validarZigzag(data).length > 0, `tendria que rechazar ${por}: ${JSON.stringify(data)}`);
+  }
+});
+
+test('zigzag: TODAS las misiones de la campaña traen data sana', async () => {
+  const z = await import('../src/core/zigzag.js');
+  const { MISSIONS } = await import('../src/data/missions.js');
+  for (const m of MISSIONS) {
+    const e = z.validarZigzag(m.zigzag);
+    assert.equal(e.length, 0, `la mision ${m.id} tiene el zigzag mal: ${e.join(' · ')}`);
+  }
+});

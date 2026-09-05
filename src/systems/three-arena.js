@@ -29,6 +29,7 @@
 import { SHIP_CLASS } from '../data/ships.js';
 import { buildShips, shipDeck, resetShipZones } from './ship3d.js';
 import { useRenderer, has3D } from '../legacy/three-world.js';
+import * as agua3d from './agua3d.js';
 
 const THREE = window.THREE || null;
 
@@ -41,6 +42,7 @@ const SEA_PLANE = 14000;                   // plano de mar (tapa hasta la niebla
 // CUANTO SE MUEVE EL MAR 3D respecto del 2D (F8.1). Ver el comentario en el bucle de puntos.
 const SEA_3D_AMP = 0.6;
 const DOT_STEP = 6;                        // paso de la alfombra de puntos
+const DOT_SIZE = 2.8;                      // tamaño del punto con el mar de siempre
 const DOT_N = 104;                         // puntos por lado (104*6 ≈ 624 m alrededor del avion)
 // NIEBLA lejos: el ring mide 700 m de radio, asi que si la niebla mordiera antes se comeria el
 // mar del combate entero y todo quedaria del color del horizonte (probado: mar marron).
@@ -54,6 +56,9 @@ const A3 = {
   ready: false, failed: false, on: false, palKey: '',
   scene: null, cam: null, ships: null, ship: null, dome: null, sun: null,
   sea: null, dots: null, dotsGeo: null, cols: null,
+  // AGUA CARTOON (P1): se construye PEREZOSA la primera vez que el modo la pide, para no pagar
+  // el render target del Water en las partidas que juegan con la alfombra de puntos.
+  agua: null, aguaTry: false,
 };
 
 function tex(w, h, paint) {
@@ -101,9 +106,13 @@ function init() {
     const n = DOT_N * DOT_N;
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
-    g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+    // el color va en CUATRO componentes: three prende USE_COLOR_ALPHA con itemSize 4 y eso da
+    // ALPHA POR PUNTO, que es la unica forma de que un punto se APAGUE en vez de fundirse a un
+    // color de fondo. Con el mar de siempre el alpha es 1 y no cambia nada; con el agua cartoon
+    // es lo que hace que la espuma se desvanezca sin dejar un borde.
+    g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 4), 4));
     const dots = new THREE.Points(g, new THREE.PointsMaterial({
-      vertexColors: true, size: 2.8, sizeAttenuation: true, transparent: true, opacity: 0.75,
+      vertexColors: true, size: DOT_SIZE, sizeAttenuation: true, transparent: true, opacity: 0.75,
     }));
     dots.frustumCulled = false; sc.add(dots);
     A3.dots = dots; A3.dotsGeo = g;
@@ -154,6 +163,7 @@ function palette(w) {
   });
   A3.sun.material.needsUpdate = true;
   A3.sea.material.color.set(WA.base1);
+  agua3d.palette(A3.agua, WA, S);              // la rampa toon se tiñe con el mismo estilo de clima
   const c = h => { const k2 = new THREE.Color(h); return [k2.r, k2.g, k2.b]; };
   A3.cols = [c(WA.crest), c(WA.mid), c(WA.deep), c(WA.base1), c(WA.spark)];
   for (const t of old) if (t) t.dispose();
@@ -184,12 +194,38 @@ export function frame(w) {
   // horizonte real del mar (a 620 m son 9°) y aparecia una banda de "suelo" del domo sobre el
   // agua — se veia como un manchon marron cruzando la pantalla. El sol acompaña al domo.
   A3.sea.position.x = px; A3.sea.position.z = pz;
+  // AGUA CARTOON (P1): con el modo en 'cartoon' el plano liso cede el fondo al shader Water
+  // posterizado y la alfombra de puntos queda ENCIMA como capa de cercania (referencia de
+  // velocidad al volar a ras). Un solo intento de construccion: si el addon no esta, se sigue
+  // con el mar de siempre y no se vuelve a probar.
+  if (agua3d.esCartoon() && !A3.agua && !A3.aguaTry) {
+    A3.aguaTry = true;
+    A3.agua = agua3d.crear(THREE, SEA_PLANE);
+    if (A3.agua) { A3.agua.position.y = SEA_Y - 0.35; A3.scene.add(A3.agua); }
+  }
+  if (A3.agua) {
+    const on = agua3d.esCartoon();
+    A3.agua.visible = on;
+    A3.sea.visible = !on;                      // los dos fondos no conviven: uno tapa al otro
+    if (on) {
+      agua3d.frame(A3.agua, w.t, px, pz, SEA_Y - 0.35);
+      // LA ESTELA DEL BUQUE la dibuja el agua, no la alfombra: es una mancha continua de agua
+      // batida y con puntos sueltos se ve como puntos sueltos. El buque del arena esta en el
+      // origen con la proa al +x; si algun dia navega, esto pasa a leer su transform.
+      agua3d.buque(A3.agua, !!w.objectiveShip, 0, 0, 1, 0, SHIP_LEN, shipBeamM());
+    }
+  }
+  // CON EL AGUA CARTOON LA ALFOMBRA NO CORRE. El shader cuenta el cuerpo del mar, las crestas
+  // rompiendo y la estela: los puntos ya no tienen oficio, y a esta resolucion lo unico que
+  // agregaban eran cuadrados blancos sueltos. Ni se recorre (son 10.816 puntos por cuadro).
+  const cartoon = !!(A3.agua && A3.agua.visible);
+  A3.dots.visible = !cartoon;
   A3.dome.position.set(px, py, pz);
   A3.sun.position.set(px - DOME_R * 0.42, py + DOME_R * 0.10, pz - DOME_R * 0.88);
 
   // ALFOMBRA DE PUNTOS anclada a la reja del mundo (snap al paso): si la grilla se centrara en
   // el avion sin snap, los puntos se deslizarian con vos y el mar se veria "pegado" al avion.
-  {
+  if (!cartoon) {
     const p = A3.dotsGeo.attributes.position, c = A3.dotsGeo.attributes.color;
     const [CR, MI, DE, BA, SP] = A3.cols;
     const half = (DOT_N - 1) / 2 * DOT_STEP;
@@ -231,7 +267,7 @@ export function frame(w) {
         }
         const d = Math.hypot(wx - px, wz - pz);
         const f = Math.min(1, d / (half * 0.95));
-        c.setXYZ(i, src[0] + (BA[0] - src[0]) * f, src[1] + (BA[1] - src[1]) * f, src[2] + (BA[2] - src[2]) * f);
+        c.setXYZW(i, src[0] + (BA[0] - src[0]) * f, src[1] + (BA[1] - src[1]) * f, src[2] + (BA[2] - src[2]) * f, 1);
       }
     }
     p.needsUpdate = true; c.needsUpdate = true;
