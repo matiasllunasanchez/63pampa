@@ -26,6 +26,12 @@ import { tierraH, hayRelieve } from '../core/tierra.js';
 import { theme } from './theme.js';
 import { ZZ_PARED_Z, ZZ_PARED_PASO, ZZ_MESETA_W, ZZ_NIEBLA_Z0, ZZ_NIEBLA_FULL } from '../data/tuning.js';
 
+// SOLAPE entre poligonos vecinos, en pixeles. Dos cuadrilateros que comparten un borde EXACTO no
+// se tocan en el pixel: el redondeo del rasterizado deja pasar el fondo por la juntura, y a lo
+// largo de toda la cresta eso se lee como UN HILO dibujado encima del cerro. Estirar medio pixel
+// cada pieza sobre su vecina lo tapa, y no cuesta nada.
+const SOLAPE = 0.9;
+
 /** LA CARA DE LA LADERA ES TIERRA EXPUESTA: MARRON, no verde y no gris.
  *
  *  Dos intentos antes de acertar, y los dos por la misma confusion. El primero uso la paleta del
@@ -239,18 +245,17 @@ export function drawParedes() {
           // de la diferencia de PROFUNDIDAD entre las dos columnas, no del ancho hacia afuera.
           ctx.globalAlpha = 1;                                   // opaca, como la ladera
           ctx.fillStyle = mez(mez(T.lejos, T.cerca, Math.min(1, fM * 1.6)), nieblaCol(), niebla);
-          quad(ctx, prev.top.x, tB, top.x, tA, fueraA.x, yA, fueraB.x, yB);
+          quad(ctx, prev.top.x, tB + SOLAPE, top.x, tA + SOLAPE, fueraA.x, yA, fueraB.x, yB);
           // EL FILO Y EL CAMPO solo cuando la camara mira POR ENCIMA de esta cresta: son detalles
           // de la superficie de arriba, y desde abajo esa superficie no se ve. Va como `if` y NO
           // como `continue` — un `continue` aca se saltearia el dibujo de LA CARA, que es lo unico
           // que no puede faltar nunca (fue el error de un minuto atras).
           if (cam.y > gy + h) {
-            // el FILO del borde, mas claro: hace legible donde termina la tierra y empieza el aire
-            ctx.fillStyle = mez(T.borde, nieblaCol(), niebla);
-            ctx.globalAlpha = 0.6 * (1 - niebla * 0.8);
-            const fil = Math.max(1, base.k * 0.8);
-            quad(ctx, prev.top.x, prev.top.y, top.x, top.y,
-              top.x + lado * fil, top.y + fil * 0.3, prev.top.x + lado * fil, prev.top.y + fil * 0.3);
+            // NO VA UN "FILO" ADEMAS DE LA CORONA. Habia dos marcas dibujadas sobre el MISMO borde
+            // —una clara aca y una oscura abajo— y dos lineas en el mismo lugar no se leen como un
+            // borde: se leen como un HILO pintado encima del cerro. Queda una sola, la corona, y
+            // del color del pasto de arriba, para que sea el pasto doblandose sobre el filo y no
+            // una raya. El borde igual se entiende: lo marca el cambio de verde a marron.
             // …y encima, el CAMPO: matas y algun arbol. Es lo que le da escala a la meseta.
             // la vegetacion SI se desvanece con alfa: son motas de un pixel, y una mota tapada por
             // niebla y una mota que no esta se ven igual. Lo que no puede ser transparente es la
@@ -318,10 +323,18 @@ export function drawParedes() {
           [0.34, 0.72, nb(cuerpo)],                                           // el cuerpo: tierra
           [0.72, 1.00, nb(estriar(mez(cuerpo, L.luz, 0.5 + tinte * 0.3)))],   // el hombro, al sol
         ];
+        // EL SOLAPE, que es lo que mata EL HILO. Dos poligonos que comparten un borde exacto no
+        // se tocan en el pixel: el redondeo del rasterizado deja una costura de un pixel por la
+        // que se ve el fondo, y a lo largo de toda la cresta eso se lee como un HILO dibujado.
+        // Cada franja se estira medio pixel hacia abajo (tapa la juntura con la de abajo) y la de
+        // arriba, ademas, medio hacia arriba (tapa la juntura con la meseta, que se dibujo antes).
+        // Es el remedio clasico de esta clase de costura y no cuesta nada.
         for (const [a, b, col] of franjas) {
           ctx.globalAlpha = aBase;
           ctx.fillStyle = col;
-          quad(ctx, pX(b), pY(b), cX(b), cY(b), cX(a), cY(a), pX(a), pY(a));
+          const sb = b >= 0.99 ? SOLAPE : 0;
+          quad(ctx, pX(b), pY(b) - sb, cX(b), cY(b) - sb,
+            cX(a), cY(a) + SOLAPE, pX(a), pY(a) + SOLAPE);
         }
         // LA TEXTURA DE LA CARA. Tres franjas planas dan volumen pero no dan MATERIA: la ladera se
         // leia como cartulina doblada. En vez de modelar relieve de verdad —que en este motor
@@ -343,11 +356,18 @@ export function drawParedes() {
           ctx.fillStyle = claro ? L.luz : L.veta;
           quad(ctx, pX(y1), pY(y1), cX(y1), cY(y1), cX(y0), cY(y0), pX(y0), pY(y0));
         }
-        // CORONA de turba sobre la cresta
-        const gr = Math.max(1, base.k * 0.7);
-        ctx.globalAlpha = aBase;
-        ctx.fillStyle = mez(T.corona, nieblaCol(), niebla);
-        quad(ctx, x0, prev.top.y, x1, top.y, x1, top.y + gr, x0, prev.top.y + gr);
+        // NO HAY CORONA. Era una franja de pasto dibujada en la cresta de CADA columna, y ese es
+        // el HILO VERDE que se veia: cuando por detras hay un cerro mas alto, esa franja queda con
+        // marron arriba y marron abajo, y deja de leerse como el filo de un cerro para leerse como
+        // una linea pintada cruzando la ladera. Geometricamente estaba bien —es pasto sobre una
+        // loma cercana— pero el ojo la lee como un error, y en esto manda el ojo.
+        //
+        // El borde no necesita marca: lo dice el cambio de verde (meseta) a marron (cara). Y donde
+        // no hay meseta porque la cresta esta sobre la camara, tampoco hay filo que marcar — hay
+        // cielo.
+        //
+        // ⚠ Fue la segunda vez que este borde se llevo una linea encima. Antes eran DOS (corona +
+        // filo). Si alguien vuelve a querer marcar la cresta: no.
         // SOMBRA al pie: asienta la ladera contra el agua o la turba en vez de dejarla flotando
         const sh = Math.max(1, base.k * 0.6);
         ctx.globalAlpha = aBase * 0.5 * (1 - niebla);

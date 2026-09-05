@@ -766,6 +766,28 @@ los cuatro momentos (paso 10 del fixture):
     para juzgar el dibujo. Se inyecta el mismo trazado con `mata: false`: idéntico en forma y en
     color, y deja volar.
 
+### Del DECIMOQUINTO playtest *(el hilo de la cresta)*
+
+73. **La cresta llevaba DOS líneas dibujadas encima**: la CORONA (una franja de pasto en el filo) y
+    el FILO (una segunda marca más clara). Dos marcas sobre el mismo borde no se leen como un borde:
+    se leen como **un hilo pintado**. Se quitaron las dos. El borde no necesita marca — lo dice el
+    cambio de verde (meseta) a marrón (cara), y donde no hay meseta porque la cresta está sobre la
+    cámara, tampoco hay filo que marcar: hay cielo.
+74. **La corona era geométricamente correcta y aun así estaba mal.** Es pasto sobre una loma
+    cercana; cuando por detrás hay un cerro más alto, esa franja queda con marrón arriba y marrón
+    abajo, y cruza la ladera como una línea. En esto manda el ojo, no la geometría.
+75. **También se solaparon los polígonos vecinos** (`SOLAPE` 0,9 px). Dos cuadriláteros que comparten
+    un borde exacto no se tocan en el píxel: el redondeo del rasterizado deja pasar el fondo por la
+    juntura, y a lo largo de toda la cresta eso también se lee como un hilo. Es el remedio clásico y
+    no cuesta nada.
+76. **Y el autor tenía razón sobre por qué se me escapaba: "no te das cuenta porque volás a la
+    altura del hilo".** Mis capturas caían siempre en la franja de alturas donde el artefacto queda
+    de canto. Verificado ahora a **seis alturas distintas**, de 6 m (crestas sobre la cámara, sin
+    meseta) a 40 m (mirando el campo desde arriba).
+77. **Y dije "el hilo desapareció" antes de mirar.** No había desaparecido: lo que había arreglado
+    era la costura de un píxel, no la línea verde. Afirmar el resultado antes de comprobarlo es el
+    error que más veces se repitió en este ítem.
+
 ### Lo que queda para el próximo playtest
 
 - El **ritmo**: `ZZ_PUNTA_CADA` 190 m es una punta cada ~2,5 s a velocidad de crucero.
