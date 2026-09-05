@@ -294,6 +294,21 @@ export function drawParedes() {
         // posicion de mundo, y como una columna ES una franja vertical, el resultado son las
         // carcavas y los regueros de una ladera erosionada. Es la textura que faltaba: los
         // manchones son horizontales, y con solo esos la cara se leia "en capas".
+        // ⚠ LA CARA ES UN TALUD, ASI QUE SU X TAMBIEN INTERPOLA. Desde que la cresta se retira
+        // hacia afuera (`paredCara`), el pie y la cresta NO estan en la misma columna de pantalla.
+        // Los cuadrilateros de la cara se dibujaban con la x DEL PIE de punta a punta, asi que la
+        // cara terminaba mas adentro que donde arranca la meseta — y entre las dos quedaba una
+        // franja sin pintar por la que se veia el mundo de atras. ESE era el agujero entre la
+        // pared y la tierra de arriba; se encontro pintando la ladera de magenta y la meseta de
+        // cian, que es lo unico que lo hizo evidente.
+        //
+        // Estas cuatro funciones dan el punto de la cara a la fraccion `t` de altura, para la
+        // columna anterior (p) y para esta (c). Con ellas cada franja es un TRAPECIO inclinado
+        // hacia afuera, y el borde de arriba coincide exactamente con el de la meseta.
+        const pX = t => prev.base.x + (prev.top.x - prev.base.x) * t;
+        const pY = t => prev.base.y + (prev.top.y - prev.base.y) * t;
+        const cX = t => base.x + (top.x - base.x) * t;
+        const cY = t => base.y + (top.y - base.y) * t;
         const est = hash2(Math.floor(wz / 3), 77 + (lado > 0 ? 5 : 0));
         const estriar = c => est < 0.42 ? mez(c, L.som, (0.42 - est) * 0.55)
           : est > 0.62 ? mez(c, L.luz, (est - 0.62) * 0.45) : c;
@@ -306,9 +321,7 @@ export function drawParedes() {
         for (const [a, b, col] of franjas) {
           ctx.globalAlpha = aBase;
           ctx.fillStyle = col;
-          quad(ctx,
-            x0, prev.base.y + (prev.top.y - prev.base.y) * b, x1, base.y + (top.y - base.y) * b,
-            x1, base.y + (top.y - base.y) * a, x0, prev.base.y + (prev.top.y - prev.base.y) * a);
+          quad(ctx, pX(b), pY(b), cX(b), cY(b), cX(a), cY(a), pX(a), pY(a));
         }
         // LA TEXTURA DE LA CARA. Tres franjas planas dan volumen pero no dan MATERIA: la ladera se
         // leia como cartulina doblada. En vez de modelar relieve de verdad —que en este motor
@@ -328,9 +341,7 @@ export function drawParedes() {
           const claro = hash2(bandaT, m * 271 + 33) > 0.55;
           ctx.globalAlpha = alfaT * (claro ? 0.22 : 0.3);
           ctx.fillStyle = claro ? L.luz : L.veta;
-          quad(ctx,
-            x0, prev.base.y + (prev.top.y - prev.base.y) * y1, x1, base.y + (top.y - base.y) * y1,
-            x1, base.y + (top.y - base.y) * y0, x0, prev.base.y + (prev.top.y - prev.base.y) * y0);
+          quad(ctx, pX(y1), pY(y1), cX(y1), cY(y1), cX(y0), cY(y0), pX(y0), pY(y0));
         }
         // CORONA de turba sobre la cresta
         const gr = Math.max(1, base.k * 0.7);

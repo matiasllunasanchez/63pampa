@@ -741,6 +741,31 @@ los cuatro momentos (paso 10 del fixture):
     diseño se pinta **del color del mar** (divergencia 50). Medir estaba bien; medir con un
     instrumento que confunde la solución con el problema, no.
 
+### Del DECIMOCUARTO playtest *(el agujero, encontrado de verdad)*
+
+69. **EL AGUJERO ERA MÍO Y LO ABRÍ CON LA PENDIENTE.** Al hacer que la cresta se retire hacia afuera
+    (divergencia 56) cambié la proyección del borde superior, pero **los cuadriláteros de la cara
+    siguieron dibujándose con la `x` DEL PIE de punta a punta**. Con el talud, el pie y la cresta no
+    están en la misma columna de pantalla: la cara terminaba más adentro que donde arranca la
+    meseta, y entre las dos quedaba una franja **sin pintar** por la que se veía el mundo de atrás.
+    Ahora la `x` interpola junto con la `y` y cada franja es un trapecio inclinado hacia afuera,
+    cuyo borde superior coincide exactamente con el de la meseta.
+70. **Se encontró pintando la ladera de MAGENTA y la meseta de CIAN.** Cuatro intentos anteriores
+    fallaron porque cada uno atacaba una hipótesis distinta —el ancho de la meseta, la distancia de
+    dibujo, el color de la niebla, el recorte al horizonte— y todos "mejoraban" algo sin cerrar el
+    agujero. Con dos colores imposibles, la franja sin pintar entre ellos fue evidente en la primera
+    captura. **Cuando el síntoma se resiste, hay que dejar de razonar sobre el dibujo y hacer que el
+    dibujo se delate.**
+71. **Y el autor tenía razón en sospechar del método**: yo estaba probando en **m5** por `?mision=`
+    y él jugaba **POR LA PATRIA** con el preset del menú. No era la causa del bug —está en el
+    dibujo, no en el modo— pero sí de por qué mis capturas no lo mostraban tan claro: en m5 el cielo
+    nublado y el mar sin lluvia disimulan la franja. Reproducirlo **por el camino del jugador** fue
+    lo que lo puso a la vista.
+72. **Para capturar dentro del callejón hay que apagar la letalidad, no la geometría.** Centrar el
+    avión lo mata contra una punta y la cámara de la muerte queda DENTRO del cerro, que no sirve
+    para juzgar el dibujo. Se inyecta el mismo trazado con `mata: false`: idéntico en forma y en
+    color, y deja volar.
+
 ### Lo que queda para el próximo playtest
 
 - El **ritmo**: `ZZ_PUNTA_CADA` 190 m es una punta cada ~2,5 s a velocidad de crucero.
