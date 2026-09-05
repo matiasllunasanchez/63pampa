@@ -209,8 +209,10 @@ export const STRINGS = {
     optWater: 'AGUA', optWaterSea: 'MAR', optWaterViolet: 'VIOLETA',
     optWaterAuto: 'AUTO (segun el cielo)', optWaterStorm: 'TEMPORAL', optWaterNight: 'NOCHE',
     optWaterSun: 'TURQUESA', optWaterDawn: 'AMANECER',
-    optBlur: 'DESENFOQUE DE VELOCIDAD', optBlurOn: 'si', optBlurOff: 'no',
     // LLUVIA: ambiente puro, no cambia la dificultad (ver render/rain.js)
+    optNoteAgua3D: 'PRUEBA — con el agua 3D las olas esquivables NO se dibujan (siguen matando).',
+    optAgua3D: 'AGUA 3D (PASILLO)', optAgua3D_2d: 'no', optAgua3D_3d: 'si',
+    optBlur: 'DESENFOQUE DE TURBO', optBlurOn: 'si', optBlurOff: 'no',
     optRain: 'LLUVIA', optRainOff: 'NO', optRainDrizzle: 'GARUA', optRainRain: 'LLUVIA', optRainStorm: 'TORMENTA',
     // NIEBLA DE GUERRA: el velo de los COSTADOS (render/marco.js). Es preferencia, no dificultad
     // — no tapa nada que te pueda pegar. La otra NIEBLA, la de abajo, si.
@@ -1174,7 +1176,9 @@ export const STRINGS = {
     optWater: 'WATER', optWaterSea: 'SEA', optWaterViolet: 'VIOLET',
     optWaterAuto: 'AUTO (follows sky)', optWaterStorm: 'STORM', optWaterNight: 'NIGHT',
     optWaterSun: 'TURQUOISE', optWaterDawn: 'DAWN',
-    optBlur: 'SPEED BLUR', optBlurOn: 'yes', optBlurOff: 'no',
+    optNoteAgua3D: 'TEST — with 3D water the dodgeable waves are NOT drawn (they still kill).',
+    optAgua3D: '3D WATER (CORRIDOR)', optAgua3D_2d: 'no', optAgua3D_3d: 'yes',
+    optBlur: 'TURBO BLUR', optBlurOn: 'yes', optBlurOff: 'no',
     optRain: 'RAIN', optRainOff: 'NO', optRainDrizzle: 'DRIZZLE', optRainRain: 'RAIN', optRainStorm: 'STORM',
     optMarco: 'WAR FOG',
     optMarco_off: 'OFF', optMarco_bruma: 'HAZE', optMarco_focus: 'FOCUS',

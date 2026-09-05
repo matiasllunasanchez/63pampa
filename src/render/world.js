@@ -786,6 +786,12 @@ function juntarOlas(dv) {
   return olasVivas;
 }
 
+/** LAS OLAS VIVAS, para quien las necesite AFUERA del dibujo 2D. La pide game.js cuando el mar
+ *  lo esta poniendo three (systems/olas3d.js les da cuerpo alla): con el mar 3D `drawSeaDots` no
+ *  corre, y era el unico que llamaba a `juntarOlas`. Mismo array reusado, misma ventana — que la
+ *  ventana coincida con el mar dibujado es de JUSTICIA, ver el comentario de arriba. */
+export function olasDelCuadro() { return juntarOlas(); }
+
 function drawSeaDots(landVisible, coastMode) {
   const SPX = 0.93, SPZ = 1.0, farZ = SEA_FAR_Z;  // densidad x4, y ademas /U al subir la resolucion
   const dv = run.dist + momentum.drift();

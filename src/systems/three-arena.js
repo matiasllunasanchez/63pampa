@@ -30,6 +30,10 @@ import { SHIP_CLASS } from '../data/ships.js';
 import { buildShips, shipDeck, resetShipZones } from './ship3d.js';
 import { useRenderer, has3D } from '../legacy/three-world.js';
 import * as agua3d from './agua3d.js';
+import * as duotono3d from './duotono3d.js';
+import * as bruma3d from './bruma3d.js';
+import * as aves3d from './aves3d.js';
+import * as tierra3d from './tierra3d.js';
 
 const THREE = window.THREE || null;
 
@@ -59,6 +63,12 @@ const A3 = {
   // AGUA CARTOON (P1): se construye PEREZOSA la primera vez que el modo la pide, para no pagar
   // el render target del Water en las partidas que juegan con la alfombra de puntos.
   agua: null, aguaTry: false,
+  // BRUMA EN CAPAS (P6): las dos bandas translucidas apoyadas en el agua.
+  bruma: null,
+  // LA BANDADA (P2/B1): aves ambient, presentacion pura.
+  aves: null,
+  // LA BAHIA (P4): el terreno 3D, cuando el climax lo pide.
+  tierra: null, tierraL: '',
 };
 
 function tex(w, h, paint) {
@@ -117,6 +127,10 @@ function init() {
     dots.frustumCulled = false; sc.add(dots);
     A3.dots = dots; A3.dotsGeo = g;
 
+    // BRUMA (P6): va despues del mar y antes de las luces; se pinta con el clima en palette().
+    A3.bruma = bruma3d.crear(THREE, sc, tex);
+    A3.aves = aves3d.crear(THREE, sc, tex);
+
     // luces: ambiente frio + sol calido + rim (mismo esquema que el momentum)
     sc.add(new THREE.AmbientLight(0xaebccc, 1.6));
     const dl = new THREE.DirectionalLight(0xe8c07a, 1.7); dl.position.set(-320, 380, 260); sc.add(dl);
@@ -129,6 +143,9 @@ function init() {
       ships[k].visible = false;
       sc.add(ships[k]);
     }
+    // DUOTONO (P3): el buque —lo unico de la escena que no venia del clima— entra a la rampa.
+    // Con la perilla apagada el parche existe pero no tiñe nada.
+    for (const k in ships) duotono3d.aplicar(THREE, ships[k]);
     A3.ships = ships; A3.ship = ships.t42;
 
     A3.scene = sc; A3.cam = cam; A3.ready = true;
@@ -164,6 +181,9 @@ function palette(w) {
   A3.sun.material.needsUpdate = true;
   A3.sea.material.color.set(WA.base1);
   agua3d.palette(A3.agua, WA, S);              // la rampa toon se tiñe con el mismo estilo de clima
+  duotono3d.palette(THREE, WA, S);             // y el buque toma la rampa de DOS colores del clima (P3)
+  bruma3d.palette(A3.bruma, S);                // la bruma es el aire de ESE dia: el color del horizonte
+  if (A3.tierra && w.LAND) tierra3d.palette(A3.tierra, w.LAND);   // la turba de la bahia va con el cielo
   const c = h => { const k2 = new THREE.Color(h); return [k2.r, k2.g, k2.b]; };
   A3.cols = [c(WA.crest), c(WA.mid), c(WA.deep), c(WA.base1), c(WA.spark)];
   for (const t of old) if (t) t.dispose();
@@ -194,6 +214,15 @@ export function frame(w) {
   // horizonte real del mar (a 620 m son 9°) y aparecia una banda de "suelo" del domo sobre el
   // agua — se veia como un manchon marron cruzando la pantalla. El sol acompaña al domo.
   A3.sea.position.x = px; A3.sea.position.z = pz;
+  bruma3d.frame(A3.bruma, px, py, pz);
+  aves3d.frame(A3.aves, w.t || 0, px, py, pz);
+  // LA BAHIA (P4) se construye PEREZOSA la primera vez, porque necesita la turba del clima (LAND)
+  // y eso recien existe con el snapshot en la mano. Un solo intento, como el agua.
+  if (!A3.tierra && w.LAND) {
+    A3.tierra = tierra3d.crear(THREE, A3.scene, tex, w.LAND);
+    if (A3.tierra) duotono3d.aplicar(THREE, A3.tierra);
+  }
+  tierra3d.frame(A3.tierra);
   // AGUA CARTOON (P1): con el modo en 'cartoon' el plano liso cede el fondo al shader Water
   // posterizado y la alfombra de puntos queda ENCIMA como capa de cercania (referencia de
   // velocidad al volar a ras). Un solo intento de construccion: si el addon no esta, se sigue
@@ -201,11 +230,11 @@ export function frame(w) {
   if (agua3d.esCartoon() && !A3.agua && !A3.aguaTry) {
     A3.aguaTry = true;
     A3.agua = agua3d.crear(THREE, SEA_PLANE);
-    if (A3.agua) { A3.agua.position.y = SEA_Y - 0.35; A3.scene.add(A3.agua); }
+    if (A3.agua) { A3.agua.position.y = SEA_Y - 0.35; agua3d.agregar(A3.scene, A3.agua); }
   }
   if (A3.agua) {
     const on = agua3d.esCartoon();
-    A3.agua.visible = on;
+    agua3d.ver(A3.agua, on);
     A3.sea.visible = !on;                      // los dos fondos no conviven: uno tapa al otro
     if (on) {
       agua3d.frame(A3.agua, w.t, px, pz, SEA_Y - 0.35);

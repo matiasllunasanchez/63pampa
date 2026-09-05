@@ -1301,7 +1301,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         names: () => [T('optWaterAuto'), T('optWaterSea'), T('optWaterViolet'), T('optWaterStorm'),
                       T('optWaterNight'), T('optWaterSun'), T('optWaterDawn')],
         get: () => cfg.water, set: v => { cfg.water = v; applyCfg(); }, save: 'rasante_agua' },
-      // DESENFOQUE DE VELOCIDAD (render/desenfoque.js). Va en el bloque de AMBIENTE, al lado de la
+      // AGUA 3D EN EL PASILLO: la prueba de PLAN_MEJORAS_3D §5b. Va pegada a AGUA porque es la
+      // misma pregunta —como se ve el mar— y porque asi se alterna sin salir del vuelo: la fila
+      // no reconstruye nada, solo cambia cual de los dos mares esta visible.
+      { note: 'optNoteAgua3D' },
+      { label: () => T('optAgua3D'), opts: ['2d', '3d'],
+        names: () => [T('optAgua3D_2d'), T('optAgua3D_3d')],
+        get: () => cfg.agua3d, set: v => cfg.agua3d = v, save: 'rasante_agua3d' },
+      // DESENFOQUE DEL TURBO (render/desenfoque.js). Va en el bloque de AMBIENTE, al lado de la
       // lluvia, porque es exactamente lo mismo que ella: cambia como se VE el vuelo y no como se
       // juega. Se apaga entero desde aca — es el unico efecto del juego que pega un pegado de
       // pantalla completa por cuadro.
@@ -2996,7 +3003,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // MOM3D.sea). El blit va DENTRO de los transforms (roll/paneo/zoom/shake le pegan al 3D);
       // la capa 2D va encima. Sin THREE/WebGL o con ?no3d, ambas flags quedan false y pinta el
       // 2D de siempre. La fase ARENA (vuelo libre) usa su PROPIA escena — ver mas abajo.
-      world3D.frame({ state: S.state, mom: momentum.active(), dist: run.dist, momDrift: momentum.drift(), cfg, cam, t: run.t, SKY: theme.sky, WATER: theme.water, objectiveShip, seaH: world.seaH, momShipGeom: momentum.shipGeom, tbackImg, tbackHor: tbackHor() });
+      world3D.frame({ state: S.state, mom: momentum.active(), dist: run.dist, momDrift: momentum.drift(), cfg, cam, t: run.t, SKY: theme.sky, WATER: theme.water, objectiveShip, seaH: world.seaH, momShipGeom: momentum.shipGeom, tbackImg, tbackHor: tbackHor(),
+        // las olas SOLO cuando el mar 3D las va a dibujar: con el mar 2D el recorrido de
+        // obstaculos ya lo hace drawSeaDots y este seria un segundo barrido por cuadro al pedo.
+        olas: cfg.agua3d === '3d' ? world.olasDelCuadro() : null });
       if (world3D.isOn() || world3D.isSea()) {
         const sm = ctx.imageSmoothingEnabled;
         ctx.imageSmoothingEnabled = false;
@@ -3011,7 +3021,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       arena3D.frame({ state: S.state,
                       arena: S.state === 'pasada' ? pasada.camState() : arena.active(),
                       view: S.state === 'pasada' ? pasada.view() : arena.view(), cfg, t: run.t,
-                      SKY: theme.sky, WATER: theme.water, objectiveShip, seaH: world.seaH });
+                      // LAND va con el resto de la paleta: el terreno 3D (P4) se pinta con la
+                      // MISMA turba que el pasillo, o la bahia del climax seria de otro juego.
+                      SKY: theme.sky, WATER: theme.water, LAND: theme.land,
+                      objectiveShip, seaH: world.seaH });
       if (arena3D.isOn()) {
         const sm = ctx.imageSmoothingEnabled;
         ctx.imageSmoothingEnabled = false;
@@ -3351,14 +3364,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       }
 
       if (zoomOn) ctx.restore();   // el HUD (y la capa momentum) van SIN zoom
-      // EL DESENFOQUE DE VELOCIDAD: barrido radial del mundo desde el punto de fuga, con el avion a
-      // foco adentro de un hueco. Va sobre el MUNDO y bajo el HUD, en el mismo escalon que el tinte
-      // del momentum y por la misma razon: es el AIRE el que cambia, no los instrumentos.
-      //   TURBO     la condicion es la MISMA que enciende la llama de la tobera (plane.js): sin
-      //             nafta no hay turbo, y un mundo barrido sin llama seria el juego contradiciendose.
-      //   MOMENTUM  va ANTES del tinte frio y la viñeta de aca abajo, que siguen intactos: aquello
-      //             es el color del tiempo partido, esto es el encierro. Se ven los dos.
-      //   RASANTE   el poder, con su propio marco (ver la tabla MODOS en render/desenfoque.js).
+      // EL DESENFOQUE DEL TURBO: barrido radial del mundo desde el punto de fuga, con el avion a
+      // foco adentro de un hueco. Va sobre el MUNDO y bajo el HUD, en el mismo escalon que el
+      // tinte del momentum y por la misma razon: es el AIRE el que cambia, no los instrumentos.
+      // La condicion es la MISMA que enciende la llama de la tobera (plane.js): sin nafta no hay
+      // turbo, y un mundo barrido sin llama seria el juego contradiciendose a si mismo.
+      // EL MOMENTUM TRAE EL MISMO BARRIDO Y OTRO MARCO — mucho mas cerrado (ver desenfoque.js). Va
+      // ANTES del tinte frio y la viñeta de aca abajo, que siguen intactos: aquello es el color del
+      // tiempo partido, esto es el encierro. Se ven los dos.
       drawDesenfoque(S.state === 'play' && run.boost && run.fuel > 0 ? 1 : 0,
                      S.state === 'play' && tempo.active() ? 1 : 0,
                      S.state === 'play' && rasante.active() ? 1 : 0);
@@ -3860,7 +3873,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // __cfgset / __cfgget: una perilla de OPCIONES desde afuera. Existe para poder COMPARAR dos
     // presentaciones de lo mismo en la misma escena — cambiarla a mano obliga a salir del vuelo,
     // y al volver ya no es la misma corrida. QUITAR con el resto.
-    if (typeof window !== 'undefined') window.__cfgset = (k, v) => { cfg[k] = v; return String(cfg[k]); };
+    // aplica el tema despues de escribir: `sky` y `water` son una ELECCION, y la paleta viva sale
+    // de resolverla (render/theme.js). Sin esto, __cfgset('sky','storm') dejaba el cielo del menu
+    // pisado pero el mundo pintado con la paleta anterior — media comparacion.
+    if (typeof window !== 'undefined') window.__cfgset = (k, v) => { cfg[k] = v; applyCfg(); return String(cfg[k]); };
     if (typeof window !== 'undefined') window.__cfgget = k => String(cfg[k]);
     // __logdbg: el HISTORIAL de la radio (lo que dibuja el PANEL), de lo mas viejo a lo mas nuevo.
     if (typeof window !== 'undefined') window.__logdbg = () => JSON.stringify(
@@ -4124,8 +4140,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
     // QUITAR — la estela de punta de ala: con que fuerza sale y cuantas muestras vivas tiene.
     if (typeof window !== 'undefined') window.__blurdbg = () =>
-      JSON.stringify({ ...BLUR_DBG, on: cfg.desenfoque, boost: !!run.boost,
-                       mom: tempo.active(), ras: rasante.active() });
+      JSON.stringify({ ...BLUR_DBG, on: cfg.desenfoque, boost: !!run.boost, mom: tempo.active(), ras: rasante.active() });
     if (typeof window !== 'undefined') window.__tipdbg = () =>
       JSON.stringify({ ...TIP_DBG, bank: +plane.bank.toFixed(2),
         mv: run.mv || null, roll: +(run.mvRoll || 0).toFixed(2), boost: !!run.boost,
