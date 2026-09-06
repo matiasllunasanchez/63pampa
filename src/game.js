@@ -1361,8 +1361,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // forma del carril. Es una perilla de PROTOTIPO —una mision de verdad trae su trazado en
       // el campo `zigzag:`, que pisa a esta— y por eso el default es RECTO: con RECTO el juego
       // es, bit a bit, el de antes de que el item existiera.
-      { label: () => T('optZigzag'), opts: [0, 1, 2],
-        names: () => [T('optZigzag_0'), T('optZigzag_1'), T('optZigzag_2')],
+      // ...y las dos COSTAS: tierra de un solo lado, mar abierto del otro. Van en la misma fila
+      // porque son la misma pregunta —que forma tiene el carril— y porque asi se alternan sin
+      // salir del vuelo, que es como se compara de verdad.
+      { label: () => T('optZigzag'), opts: [0, 1, 2, 3, 4],
+        names: () => [T('optZigzag_0'), T('optZigzag_1'), T('optZigzag_2'),
+                      T('optZigzag_3'), T('optZigzag_4')],
         get: () => cfg.zigzag | 0, set: v => cfg.zigzag = v, save: 'rasante_zigzag' },
       // NIEBLA: va acá, con VIENTO y OBSTÁCULOS, porque CAMBIA CÓMO SE JUEGA — no es ambiente.
       { label: () => T('optFog'), opts: [0, 1, 2],

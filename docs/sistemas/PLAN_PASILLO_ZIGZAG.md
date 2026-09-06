@@ -914,6 +914,40 @@ que se ponga ahí.
     `npm run unit`, incluido el **cero exacto** con `Object.is` para mar abierto. Una prueba
     determinista de 0.05 ms contra una de veinte segundos que fallaba sola.
 
+## Z7 — LA COSTA DE UN SOLO LADO *(construida)*
+
+Pedido de playtest: que el modo pueda ser **de un solo costado** — costa o acantilado — en vez de
+siempre un callejón. Ahora las paredes traen `lado: 'ambos' | 'izq' | 'der'`, y `'ambos'` es el
+default, así que toda la data que ya existe significa exactamente lo mismo.
+
+**No es medio callejón: es otra cosa de jugar.** En el callejón el pasillo está cerrado y el
+trabajo es elegir por qué lado rodear cada promontorio. Con una costa sola, el mar de al lado es
+una salida SIEMPRE disponible, así que la tensión no está en pasar sino en **cuánto te animás a
+arrimarte a la tierra** —que es donde están los antiaéreos y el puntaje de rasante— antes de
+abrirte. Es el estrecho contra la costa de la isla.
+
+En el menú son dos valores más de la misma fila (COSTA IZQUIERDA / COSTA DERECHA), y `?zigzag=3|4`.
+
+### Divergencias de Z7
+
+90. **Una sola puerta, y ninguna rama nueva.** El lado ya viajaba como parámetro por `paredH`,
+    `paredXAt`, `paredEntra`, `puestoLadera`, el recorte de los antiaéreos y la niebla del cañón,
+    así que apagar un costado no necesitaba un camino nuevo en ningún lado: necesitaba que la
+    altura de ese costado fuera **cero**, que es lo mismo que ya pasa fuera de la ventana del
+    trazado. La colisión, la siembra, el dibujo y el recorte se enteraron solos.
+91. **Con una sola costa, TODAS las puntas van ahí.** Dejando el sorteo 50/50, la mitad de las
+    bandas pondría su promontorio en el lado que no existe y se perdería: el ritmo del callejón se
+    partiría al medio sin que nada lo diga. Lo que se conserva es **una punta por banda** —que es
+    la garantía de paso—, no que caiga cara o cruz.
+92. **El lado abierto no es una pared lejos: NO es una pared.** `paredXAt` devolvía el borde de
+    siempre para el costado apagado, y con eso el carril seguro y el tope de los que se mueven
+    seguían creyendo que había roca a 46 — justo al filo de donde nace todo. El mar abierto quedaba
+    recortado por un muro invisible. Ahora ese costado se manda fuera de todo tope.
+93. **La garantía se prueba con `Object.is`, como el cero exacto del zigzag.** Un test barre miles
+    de muestras comparando el trazado sin `lado` contra el mismo con `lado: 'ambos'`: altura y
+    borde, los dos costados, muestra por muestra. Si algún día alguien "unifica" el camino nuevo
+    con el viejo y corre un metro el callejón de m5, salta ahí.
+
 ### Lo que queda para el próximo playtest
 
 - El **ritmo**: `ZZ_PUNTA_CADA` 190 m es una punta cada ~2,5 s a velocidad de crucero.

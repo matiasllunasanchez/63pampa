@@ -226,6 +226,7 @@ export const STRINGS = {
     optMarco_off: 'DESACTIVADO', optMarco_bruma: 'BRUMA', optMarco_focus: 'FOCUS',
     optZigzag: 'PASILLO EN ZIGZAG',
     optZigzag_0: 'RECTO', optZigzag_1: 'SUAVE', optZigzag_2: 'CALLEJON',
+    optZigzag_3: 'COSTA IZQUIERDA', optZigzag_4: 'COSTA DERECHA',
     optTerrain: 'TERRENO', optTerrainSea: 'MAR', optTerrainLand: 'TIERRA', optTerrainCoast: 'COSTA',
     optWind: 'VIENTO',
     // NIEBLA: dificultad, no ambiente (ver systems/fog.js)
@@ -1194,6 +1195,7 @@ export const STRINGS = {
     optMarco_off: 'OFF', optMarco_bruma: 'HAZE', optMarco_focus: 'FOCUS',
     optZigzag: 'WINDING CORRIDOR',
     optZigzag_0: 'STRAIGHT', optZigzag_1: 'GENTLE', optZigzag_2: 'ALLEY',
+    optZigzag_3: 'LEFT SHORE', optZigzag_4: 'RIGHT SHORE',
     optTerrain: 'TERRAIN', optTerrainSea: 'SEA', optTerrainLand: 'LAND', optTerrainCoast: 'COAST',
     optWind: 'WIND',
     optFog: 'FOG', optFogOff: 'NO', optFogLight: 'THIN', optFogThick: 'NEAR ZERO',

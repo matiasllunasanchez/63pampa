@@ -1634,6 +1634,48 @@ test('soldados: el que desembarca lleva bergen y el de guarnicion no', () => {
   assert.ok(game.includes('sd.bergen'), 'el render de soldados dejo de mirar el equipo');
 });
 
+import { rebuild as zzRebuild, reset as zzReset, paredH as zzH, paredXAt as zzX,
+  paredEntra as zzEntra, ladoActivo } from '../src/core/zigzag.js';
+
+test('callejon: una COSTA deja el otro lado abierto de punta a punta', () => {
+  // El pedido: poder tener tierra de UN solo lado (costa o acantilado) en vez de callejon. La
+  // prueba no mira una muestra: barre kilometros, porque lo que se afirma es que del lado abierto
+  // NUNCA hay roca — no que casi nunca.
+  for (const [lado, dentro, fuera] of [['izq', -1, 1], ['der', 1, -1]]) {
+    zzReset();
+    zzRebuild(0, { amp: 0, largo: 800, seed: 3, paredes: { alto: 1, x: 46, lado } }, 0, 0);
+    let hay = 0;
+    for (let wz = 50; wz < 4000; wz += 7) {
+      assert.equal(zzH(wz, fuera), 0, `${lado}: hay cerro del lado abierto en ${wz}`);
+      assert.equal(zzEntra(wz, fuera), 0, `${lado}: hay punta del lado abierto en ${wz}`);
+      if (zzH(wz, dentro) > 0) hay++;
+    }
+    assert.ok(hay > 400, `${lado}: casi no hay tierra del lado que si va (${hay})`);
+    // ...y el lado abierto no puede topar nada: si `paredXAt` devolviera el borde de siempre,
+    // el carril seguro y el tope de los que se mueven creerian que hay un muro invisible en 46.
+    assert.ok(zzX(1000, fuera) > 200, 'el lado abierto tiene que quedar fuera de todo tope');
+    assert.equal(ladoActivo(fuera), false);
+    assert.equal(ladoActivo(dentro), true);
+  }
+  zzReset();
+});
+
+test('callejon: `ambos` es EXACTAMENTE el callejon de siempre', () => {
+  // La garantia de la extension: la data que ya existe no cambia ni un metro. Se compara el
+  // trazado sin `lado` contra el mismo con `lado: ambos`, muestra por muestra y con `Object.is`.
+  const base = { amp: 0, largo: 800, seed: 9, paredes: { alto: 1, x: 46 } };
+  const conLado = { amp: 0, largo: 800, seed: 9, paredes: { alto: 1, x: 46, lado: 'ambos' } };
+  const leer = spec => {
+    zzReset(); zzRebuild(0, spec, 0, 0);
+    const o = [];
+    for (let wz = 50; wz < 3000; wz += 11) for (const l of [-1, 1]) o.push(zzH(wz, l), zzX(wz, l));
+    return o;
+  };
+  const a = leer(base), b = leer(conLado);
+  for (let i = 0; i < a.length; i++) assert.ok(Object.is(a[i], b[i]), `difieren en ${i}: ${a[i]} vs ${b[i]}`);
+  zzReset();
+});
+
 import { alfaCielo } from '../src/systems/fog.js';
 
 test('niebla: sin callejon, el cielo es EXACTAMENTE el de siempre', () => {

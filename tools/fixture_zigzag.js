@@ -468,6 +468,52 @@ app.whenReady().then(async () => {
     await js("window.__cfgset('zigzag', 0)");
   }
 
+  // ---------- 13. Z7 — LA COSTA DE UN SOLO LADO ----------
+  console.log('\n13. la costa de un solo lado:');
+  if (!await volar()) { bad('no se pudo entrar a POR LA PATRIA'); }
+  else {
+    await vaciar();
+    for (const [preset, nom, dentro, fuera] of [[3, 'COSTA IZQUIERDA', -1, 1], [4, 'COSTA DERECHA', 1, -1]]) {
+      await js(`window.__cfgset('zigzag', ${preset})`);
+      await sostener(400);
+      const d = await Z();
+      if (!d.on) { bad(`el preset ${nom} no encendio`); continue; }
+      // EL BARRIDO ENTERO, no una muestra: lo que se afirma es que del lado abierto NUNCA hay
+      // roca. Una muestra suelta no distingue "no hay costa" de "justo ahi no habia cerro".
+      const r = JSON.parse(await js(`(() => {
+        const dv = JSON.parse(__zzdbg()).dist;
+        let hay = 0, sobra = 0, n = 0;
+        for (let wz = dv + 100; wz < dv + 4000; wz += 7) {
+          n++;
+          if (__zzalto(wz, ${fuera}) > 0 || __zzentra(wz, ${fuera}) > 0) sobra++;
+          if (__zzalto(wz, ${dentro}) > 0) hay++;
+        }
+        return JSON.stringify({ hay, sobra, n });
+      })()`));
+      if (r.sobra === 0) ok(`${nom}: el otro costado es mar abierto en las ${r.n} muestras`);
+      else bad(`${nom}: hay tierra del lado abierto en ${r.sobra} de ${r.n} muestras`);
+      if (r.hay > r.n * 0.4) ok(`${nom}: y la costa esta puesta (${r.hay} de ${r.n})`);
+      else bad(`${nom}: casi no hay costa (${r.hay} de ${r.n})`);
+    }
+    // ...y con una costa sola, sigue sin enterrarse nada en la roca. El recorte del carril mira
+    // los DOS bordes; si el lado abierto mintiera un borde, la siembra se apretaria contra la
+    // costa o —peor— nacerian cosas adentro del cerro.
+    await js("window.__cfgset('obstacles', 2.2)");
+    let enterrados = 0, muertes = 0;
+    for (let i = 0; i < 60; i++) {
+      if (await estado() !== 'play') { if (++muertes > 3 || !await volar()) break; await vaciar(); await js("window.__cfgset('zigzag', 4)"); await js("window.__cfgset('obstacles', 2.2)"); continue; }
+      const d = await Z();
+      await js(`window.__chaput(${(await js(`Number(window.__zzentra(${d.dist + 14}, 1))`)) > 1 ? -24 : 18}, 12)`);
+      if (d.dist > d.arranque + 150) enterrados = Math.max(enterrados, await js('Number(window.__zzobs())'));
+      await sleep(130);
+    }
+    if (enterrados === 0) ok('y con una costa sola no se entierra un solo obstaculo');
+    else bad(`${enterrados} obstaculo(s) enterrados con costa de un lado`);
+    await shot('zz_11_costa');
+    await js("window.__cfgset('obstacles', 0)");
+    await js("window.__cfgset('zigzag', 0)");
+  }
+
   console.log('\nconsola:');
   if (!errors.length) ok('sin errores');
   else { bad(`${errors.length} error(es):`); for (const e of errors.slice(0, 8)) console.error('      ' + e); }

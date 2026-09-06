@@ -33,7 +33,10 @@ import { ZZ_CURV_MAX, ZZ_LARGO_MIN, ZZ_EMPALME, ZZ_BEND_Z, ZZ_BEND_PASO,
  *  rechaza, por la misma razon que en los tramos: una clave mal escrita no hace nada y no avisa,
  *  que es la peor forma de fallar. */
 export const CLAVES = ['amp', 'largo', 'seed', 'trazado', 'paredes', 'desde', 'hasta'];
-export const CLAVES_PARED = ['alto', 'x', 'mata'];
+export const CLAVES_PARED = ['alto', 'x', 'mata', 'lado'];
+// DE QUE LADO hay tierra. 'ambos' es el callejon (el default y lo que habia siempre); 'izq' y
+// 'der' dejan el otro costado ABIERTO al mar — una costa, o un acantilado de un solo lado.
+export const LADOS = ['ambos', 'izq', 'der'];
 
 /** hash entero → [0,1). La misma copia de bolsillo que usan core/tierra.js y render/world.js:
  *  este modulo es puro y no puede importar del render. */
@@ -114,6 +117,8 @@ export function validarZigzag(z) {
         e.push(`paredes: 'x' tiene que ser un numero > 0 y es ${JSON.stringify(p.x)}`);
       if (p.mata !== undefined && typeof p.mata !== 'boolean')
         e.push(`paredes: 'mata' tiene que ser booleano y es ${JSON.stringify(p.mata)}`);
+      if (p.lado !== undefined && LADOS.indexOf(p.lado) < 0)
+        e.push(`paredes: 'lado' tiene que ser uno de ${LADOS.join(', ')} y es ${JSON.stringify(p.lado)}`);
     }
   }
   return e;
@@ -351,7 +356,23 @@ export function pared() {
     x: typeof p.x === 'number' ? p.x : ZZ_PARED_X,
     alto: typeof p.alto === 'number' ? p.alto : 1,
     mata: p.mata !== false,
+    // DE QUE LADO HAY TIERRA. El default es 'ambos' —el callejon— y es lo que hace que toda la
+    // data que ya existe siga significando exactamente lo mismo.
+    lado: LADOS.indexOf(p.lado) > 0 ? p.lado : 'ambos',
   };
+}
+
+/** ¿Hay tierra de ESTE lado? (-1 izquierda, +1 derecha).
+ *
+ *  UNA SOLA PUERTA para toda la cadena, y es a proposito: el lado ya viajaba como parametro por
+ *  `paredH`, `paredXAt`, `paredEntra`, `puestoLadera` y el dibujo, asi que apagar un costado no
+ *  necesita un camino nuevo en ningun lado — necesita que la altura de ese costado sea CERO, que
+ *  es lo mismo que ya pasa fuera de la ventana del trazado. La colision, la siembra, el recorte
+ *  de los antiaereos y la niebla del canon se enteran solos. */
+export function ladoActivo(lado) {
+  const p = pared();
+  if (!p) return false;
+  return p.lado === 'ambos' || (p.lado === 'izq' ? lado < 0 : lado > 0);
 }
 
 /** ALTURA DE LA LADERA en metros a la profundidad de mundo `wz`, del lado `lado` (-1 izquierda,
@@ -367,7 +388,7 @@ export function pared() {
  *  esta abierto; entra con el mismo fundido con el que entra la curva. */
 export function paredH(wz, lado) {
   const p = pared();
-  if (!p) return 0;
+  if (!p || !ladoActivo(lado)) return 0;      // costa de un solo lado: el otro es mar abierto
   const v = ventana(wz, zz.spec, zz.obj);
   if (v <= 0) return 0;
   const sd = lado > 0 ? 7717 : 1259;
@@ -454,7 +475,14 @@ export function paredEntra(wz, lado) {
   if (hash1(b * 7919 + 13) > ZZ_PUNTA_P) return 0;              // esta banda no trae punta
   // DE QUE LADO. Una sola punta por banda: si el sorteo la puso a la izquierda, la derecha esta
   // limpia, y viceversa. Aca vive la garantia de paso.
-  const suLado = hash1(b * 4241 + 77) < 0.5 ? -1 : 1;
+  // ...Y CON UNA SOLA COSTA, TODAS VAN AHI. Dejando el sorteo, la mitad de las bandas pondria su
+  // punta en el lado que no existe y el promontorio se perderia: el ritmo del callejon se partiria
+  // al medio sin que nada lo diga. Lo que se conserva es UNA PUNTA POR BANDA, que es la garantia
+  // de paso — no de que caiga cara o cruz.
+  const p2 = pared();
+  const uno = p2.lado !== 'ambos';
+  if (!ladoActivo(lado)) return 0;
+  const suLado = uno ? lado : (hash1(b * 4241 + 77) < 0.5 ? -1 : 1);
   if (suLado !== lado) return 0;
   // DONDE arranca dentro de su banda, y cuanto se mete (no todas llegan al maximo)
   const off = hash1(b * 331 + 5) * (ZZ_PUNTA_CADA - ZZ_PUNTA_LARGO);
@@ -516,6 +544,10 @@ export function topeCarril(x, wz, talud) {
 export function paredXAt(wz, lado) {
   const p = pared();
   if (!p) return 0;
+  // EL LADO ABIERTO NO ES UNA PARED LEJOS: NO ES UNA PARED. Devolver `p.x` ahi dejaria al carril
+  // seguro y al tope de los que se mueven creyendo que hay roca a 46 —justo al filo de donde nace
+  // todo— y el mar abierto quedaria recortado por un muro invisible. Se manda afuera de todo.
+  if (!ladoActivo(lado)) return p.x + 200;
   // LA ONDULACION DEL PIE. Sin esto la base de la ladera es una recta de tiralineas a lo largo de
   // cientos de metros — la mitad de por que el cerro se veia plano no era la textura, era que su
   // borde inferior era perfecto. Dos senos incommensurables, el idioma del repo (shoreAt son tres).

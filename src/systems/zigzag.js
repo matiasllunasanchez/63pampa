@@ -50,6 +50,18 @@ const PRESETS = {
   1: { amp: 0, largo: 800, seed: 3, paredes: { alto: 0.6, x: 52, mata: false } },
   // CALLEJON: laderas plenas y letales, puntas a fondo. Es Bomb Alley.
   2: { amp: 0, largo: 800, seed: 9, paredes: { alto: 1, x: 46, mata: true } },
+  // COSTA IZQUIERDA / COSTA DERECHA: tierra de UN SOLO LADO y mar abierto del otro.
+  //
+  // No es medio callejon: es otra cosa de jugar. En el callejon el pasillo esta cerrado y el
+  // trabajo es elegir por que lado rodear cada promontorio; con una costa sola, el mar de al lado
+  // es una salida SIEMPRE disponible, asi que la tension no esta en pasar sino en cuanto te
+  // animas a arrimarte a la tierra —que es donde estan los antiaereos y el puntaje de rasante—
+  // antes de abrirte. Es el estrecho contra la costa de la isla.
+  //
+  // Las puntas siguen siendo UNA POR BANDA: con un solo costado van todas ahi, porque si no la
+  // mitad caeria en el lado que no existe y el ritmo se partiria al medio.
+  3: { amp: 0, largo: 800, seed: 4, paredes: { alto: 1, x: 46, mata: true, lado: 'izq' } },
+  4: { amp: 0, largo: 800, seed: 6, paredes: { alto: 1, x: 46, mata: true, lado: 'der' } },
 };
 
 // LOS ESTADOS EN LOS QUE EL CALLEJON EXISTE. Es la MISMA lista que dibuja el mundo del pasillo
