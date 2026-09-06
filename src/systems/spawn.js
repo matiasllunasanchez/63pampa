@@ -22,7 +22,7 @@ import { val as trVal } from './tramos.js';
 // archivo consulta, no un estado que administre.
 import { sembrar as cvSembrar } from './charla.js';
 import { carrilLibre } from './persec.js';
-import { carrilSeguro, puestoLadera } from '../core/zigzag.js';
+import { carrilSeguro, puestoLadera, barreraCerca } from '../core/zigzag.js';
 import { ZZ_PARED_TALUD, ZZ_LADERA_P } from '../data/tuning.js';
 import { plane } from '../core/state.js';
 import { scrapeLimit } from '../core/physics.js';
@@ -262,6 +262,11 @@ function spawn() {
   // canal —esta ARRIBA del cerro— asi que el hueco libre del agua no lo condiciona. Puesto
   // despues, se lo comia el `return` de abajo: medido, en el callejon el canal esta cerrado tan
   // seguido que NO NACIA UN SOLO antiaereo, ni arriba ni en el agua, y el pasillo quedaba mudo.
+  // ⚠ NADA NACE ENCIMA DE UNA BARRERA (zigzag Z8). Un obstaculo plantado adentro del muro o del
+  // puente queda invisible y mata igual — la peor combinacion que hay, la misma que persigue el
+  // censo de enterrados. Y ademas es donde el jugador esta mirando ARRIBA para pasarla: llenarle
+  // el agua de cosas justo ahi es pedirle dos lecturas a la vez.
+  if (barreraCerca(run.dist + SPAWN_Z - 40, 100)) return;
   if (seg) {
     const la = enLadera(Math.random() < 0.5 ? 'aa' : 'aatruck');
     if (la) { obstacles.push(la); return; }

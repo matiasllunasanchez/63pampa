@@ -114,7 +114,7 @@ import * as squad from './systems/squad.js';
 import * as tramos from './systems/tramos.js';
 import * as zigzag from './systems/zigzag.js';
 import * as zigzagCore from './core/zigzag.js';
-import { drawParedes, techoLadera } from './render/paredes.js';
+import { drawParedes, drawBarreras, techoLadera } from './render/paredes.js';
 // LAS CHARLAS EN VUELO (docs/sistemas/SPEC_CHARLAS_VUELO.md): dialogo durante la mision jugable.
 // El sistema es dueño de la FASE y nada mas; el que arranca el motor de lineas, el que apaga el
 // HUD y el que corta en la muerte es este archivo — el sistema devuelve señales.
@@ -1364,9 +1364,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // ...y las dos COSTAS: tierra de un solo lado, mar abierto del otro. Van en la misma fila
       // porque son la misma pregunta —que forma tiene el carril— y porque asi se alternan sin
       // salir del vuelo, que es como se compara de verdad.
-      { label: () => T('optZigzag'), opts: [0, 1, 2, 3, 4],
+      { label: () => T('optZigzag'), opts: [0, 1, 2, 3, 4, 5],
         names: () => [T('optZigzag_0'), T('optZigzag_1'), T('optZigzag_2'),
-                      T('optZigzag_3'), T('optZigzag_4')],
+                      T('optZigzag_3'), T('optZigzag_4'), T('optZigzag_5')],
         get: () => cfg.zigzag | 0, set: v => cfg.zigzag = v, save: 'rasante_zigzag' },
       // NIEBLA: va acá, con VIENTO y OBSTÁCULOS, porque CAMBIA CÓMO SE JUEGA — no es ambiente.
       { label: () => T('optFog'), opts: [0, 1, 2],
@@ -3167,6 +3167,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // Siguen ANTES del marcador de objetivo y de los obstaculos: el marcador es informacion que
       // no se puede tapar, y los obstaculos viven adentro del carril, mas cerca que las paredes.
       drawParedes();
+      drawBarreras();   // cruza el pasillo entero: va DESPUES de las laderas y antes de lo que vuela
       world.drawObjectiveMarker(objectiveDist);                // cuña roja en el horizonte: hacia donde vamos
       world.drawWake();
       // malla del techo de deteccion del radar. NO en EL PULSO: es un instrumento del PASILLO —
@@ -3804,6 +3805,19 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // importa: la oclusion de los antiaereos de la loma no se puede comprobar mirando una
       // captura —hay que saber si el motor cree que se ve o no—. El OJO se puede pasar aparte
       // para poder preguntar "¿y desde arriba?" sin tener que trepar el avion hasta ahi.
+      // LA BARRERA que viene: donde esta, de que tipo y entre que alturas. Sin esto, "hay una
+      // barrera y se pasa por abajo" solo se puede comprobar mirando una captura y creyendo.
+      window.__zzbarr = () => {
+        const b = zigzagCore.barreraCerca(run.dist + 4, 1200);
+        return b ? JSON.stringify({ tipo: b.tipo, idx: b.idx, cz: +(b.z0 - run.dist).toFixed(0),
+          y0: +b.y0.toFixed(1), y1: +b.y1.toFixed(1) }) : '';
+      };
+      // ...y la de una profundidad de MUNDO cualquiera, para poder censar el callejon entero sin
+      // volarlo: son kilometros, y a 150 m/s mirarlos de a uno es media hora de fixture.
+      window.__zzbarrAt = (wz) => {
+        const b = zigzagCore.barreraDe(+wz);
+        return b ? JSON.stringify({ tipo: b.tipo, y0: +b.y0.toFixed(1), y1: +b.y1.toFixed(1) }) : '';
+      };
       window.__zzcara = (z, lado, y) => zigzagCore.paredCara(+z, +lado, +y);
       // CUANTO LO RECORTA EL CERRO: 0 se ve entero, 1 asoma cortado, 2 no se ve nada. El OJO y la
       // distancia volada se pueden pisar (`ey`, `dv`) para poder preguntar "¿y desde arriba de las

@@ -1135,6 +1135,54 @@ export const ZZ_ARRANQUE_BASE = 160;
 // el borde de la pantalla desde cualquier altura jugable.
 export const ZZ_MESETA_W = 200;
 
+// ---------------- LAS BARRERAS: EL CALLEJON CERRADO (zigzag Z8) ----------------
+// Cada tanto, el callejon se CIERRA de lado a lado y hay que pasarlo por arriba o por abajo. Es la
+// unica excepcion a la garantia de paso de las puntas ("nunca las dos a la vez"), y es a proposito:
+// lo que aquella regla protege es que el pasillo se pueda recorrer ESQUIVANDO DE COSTADO. La
+// barrera cambia de eje — te saca del plano horizontal y te obliga a usar la unica herramienta que
+// el juego tenia guardada, que es la altura.
+//
+// DOS FORMAS, y las dos salen del mismo primitivo (una franja maciza entre dos alturas):
+//   ROCA     macizo desde el agua hasta su cresta. Se pasa POR ARRIBA, trepando.
+//   PUENTE   una losa colgada en el aire. Se pasa POR ABAJO —rasante, que es el juego— o por
+//            encima, que es mas seguro y mas lento.
+//
+// SE VE VENIR. El callejon se dibuja hasta 1200 m y la barrera cruza el pasillo entero, asi que a
+// 150 m/s aparece OCHO SEGUNDOS antes de llegar. Eso es lo que la separa de una trampa: no hay que
+// memorizarla, hay que leerla.
+
+// cada cuantos metros hay una. 900 a 150 m/s es una cada seis segundos de callejon.
+export const ZZ_BARR_CADA = 900;
+// cuanto mide de PROFUNDIDAD la franja, en metros. Es un muro, no una loncha: con menos de veinte
+// se cruza antes de que el ojo la resuelva, y pasa a ser un dado en vez de una lectura.
+export const ZZ_BARR_LARGO = 22;
+// LA ROCA: entre que alturas queda su cresta. Es un COLLADO entre dos cerros — mas baja que las
+// laderas de al lado (26), que es lo que un collado es de verdad.
+//
+// BAJADO DOS VECES, y la segunda la decidio una medicion, no el gusto. Primero 30..42: a cuarenta
+// metros de distancia eso LLENA la pantalla de marron, geometricamente correcto y visualmente
+// ilegible. Despues 24..34, y ahi aparecio lo importante: volando a 40 m SIN NINGUNA BARRERA el
+// avion se muere en TRES SEGUNDOS, porque RADAR_ALT es 20 y arriba te llueven misiles. O sea que
+// una roca que pide 34 no pide una trepada: pide comerse una oleada. La barrera no puede depender
+// de una mecanica de castigo para ser pasable.
+//
+// 14..20 la deja justo DEBAJO del filo del radar: el jugador tiene que salir de la franja rasante
+// —que es donde vive y donde puntua— y asomarse al borde, sin cruzarlo. Ese es el precio correcto,
+// y es el mismo que el juego ya cobra en todos lados. El que quiera pasarla mas arriba, puede: le
+// va a costar el radar, y esa sigue siendo su decision.
+export const ZZ_BARR_ROCA = [14, 20];
+// EL PUENTE: a que altura queda su PANZA (por debajo se pasa) y cuanto mide de grosor.
+//
+// Y ACA ESTA LA ASIMETRIA QUE HACE QUE LAS DOS FORMAS NO SEAN LA MISMA: la roca te empuja HACIA
+// ARRIBA, hacia el borde del radar, o sea afuera de donde el juego premia. El puente te empuja
+// HACIA ABAJO, a pasar por un hueco de doce metros a ras del agua — que es exactamente lo que el
+// juego se llama. Una es el precio, la otra es la recompensa, y por eso conviene mezclarlas.
+export const ZZ_BARR_PUENTE = [13, 20];
+export const ZZ_BARR_GROSOR = 5;
+// margen de gracia, en metros: la barrera cobra un poco mas adentro de lo que se dibuja. Misma
+// razon que el talud de la ladera — morir contra una linea invisible pegada al dibujo es injusto.
+export const ZZ_BARR_MARGEN = 1.2;
+
 // QUE FRACCION de los antiaereos nace EN LA LADERA en vez de en el agua (zigzag Z5). No es 1 a
 // proposito: un callejon donde todos estan arriba deja el agua vacia, y la mezcla de los dos es lo
 // que obliga a mirar arriba Y abajo.

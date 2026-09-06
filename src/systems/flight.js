@@ -38,7 +38,7 @@ import { multOf } from '../core/util.js';
 import { movesSystem, mvAllowsFire, mvAllowsTurbo, mvLegado } from './moves.js';
 import { stepVuelo, estelaVuelo } from './vuelo.js';
 import * as zigzag from './zigzag.js';
-import { enPared, pared as paredCfg } from '../core/zigzag.js';
+import { enPared, enBarrera, pared as paredCfg } from '../core/zigzag.js';
 import * as momentum from '../legacy/momentum.js';
 import * as arena from './arena.js';
 import * as pasada from './pasada.js';
@@ -328,6 +328,10 @@ export function flightSystem(dt, deps) {
   //
   // `mata: false` la vuelve un TOPE duro en vez de una muerte: el avion no puede pasar y roza.
   // Es lo que usa el preset SUAVE del menu, para poder mirar el carril sin morirse.
+  // LA BARRERA (zigzag Z8): el callejon cerrado de lado a lado. La `x` no entra en la cuenta — de
+  // eso se trata. Va ANTES de la ladera porque es mas fuerte: adentro de una barrera no importa
+  // donde estes de costado, ya chocaste.
+  if (enBarrera(plane.y, run.dist + PZ)) return { death: 'death_barrera' };
   const golpePared = enPared(plane.x, plane.y, run.dist + PZ, ZZ_PARED_TALUD, ZZ_PARED_LIBRE);
   if (golpePared) {
     const p = paredCfg();

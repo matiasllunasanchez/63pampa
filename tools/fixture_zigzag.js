@@ -514,6 +514,85 @@ app.whenReady().then(async () => {
     await js("window.__cfgset('zigzag', 0)");
   }
 
+  // ---------- 14. Z8 — LA BARRERA: EL CALLEJON CERRADO ----------
+  //
+  // DOS AFIRMACIONES, y las dos hacen falta. Que se pueda pasar sin la otra seria un decorado; que
+  // mate sin la otra seria una trampa. Lo que NO puede probar este fixture es el TIEMPO DE
+  // REACCION —un `keyDown` sostenido no le llega al juego, ver el encabezado— asi que la altura se
+  // planta con la sonda: esto comprueba la GEOMETRIA (el hueco existe y el macizo cierra), y si la
+  // barrera se ve venir con tiempo suficiente lo dice el playtest, no esto.
+  console.log('\n14. la barrera cierra el callejon y deja pasar por el hueco:');
+  if (!await volar()) { bad('no se pudo entrar a POR LA PATRIA'); }
+  else {
+    await vaciar();
+    await js("window.__cfgset('zigzag', 5)");
+    await sostener(400);
+    if (!(await Z()).on) bad('el preset CALLEJON CERRADO no encendio');
+    else {
+      // EL CENSO DE BARRERAS a lo largo de kilometros: que existan, que sean de las dos formas y
+      // que ninguna pida una altura que el avion no tenga.
+      const r = JSON.parse(await js(`(() => {
+        const d0 = JSON.parse(__zzdbg());
+        let roca = 0, puente = 0, imposible = 0, huecoMin = 99;
+        for (let dv = d0.arranque + 300; dv < d0.arranque + 9000; dv += 11) {
+          const b = JSON.parse(__zzbarrAt(dv) || 'null');
+          if (!b) continue;
+          if (b.tipo === 'roca') { roca++; if (b.y1 > 60) imposible++; }
+          else { puente++; huecoMin = Math.min(huecoMin, b.y0); if (b.y1 > 60) imposible++; }
+        }
+        return JSON.stringify({ roca, puente, imposible, huecoMin });
+      })()`));
+      if (r.roca > 0 && r.puente > 0) ok(`hay barreras de las dos formas (${r.roca} muestras de roca, ${r.puente} de puente)`);
+      else bad(`falta una de las dos formas: roca ${r.roca}, puente ${r.puente}`);
+      // NINGUNA PUEDE PEDIR LO QUE EL AVION NO TIENE. El techo de vuelo es 68: una barrera que
+      // pida mas que eso es una muerte sin salida, no un obstaculo.
+      if (r.imposible === 0) ok('y ninguna pide una altura fuera del techo de vuelo');
+      else bad(`${r.imposible} barrera(s) piden mas de 60 m: eso es una muerte sin salida`);
+      if (r.huecoMin >= 12) ok(`el hueco mas bajo de un puente queda a ${r.huecoMin} m — se pasa rasante`);
+      else bad(`hay un puente con la panza a ${r.huecoMin} m: no entra el avion`);
+    }
+    // ...Y EN VUELO: cruzarla por el hueco se pasa, y cruzarla por el macizo mata. La segunda es
+    // la que separa una barrera de un decorado.
+    let paso = 0, murio = 0;
+    for (const modo of ['hueco', 'macizo']) {
+      for (let intento = 0; intento < 3 && (modo === 'hueco' ? paso : murio) === 0; intento++) {
+        if (await estado() !== 'play' && !await volar()) break;
+        await vaciar();
+        await js("window.__cfgset('zigzag', 5)");
+        await sostener(300);
+        let vista = null;
+        for (let i = 0; i < 90; i++) {
+          if (await estado() !== 'play') { if (modo === 'macizo') murio++; break; }
+          const b = JSON.parse(await js('String(window.__zzbarr())') || 'null');
+          // HABERLA PASADO se mide por el INDICE de la barrera, no por su distancia: `barreraCerca`
+          // solo mira HACIA ADELANTE, asi que apenas se cruza una, la sonda ya esta reportando la
+          // siguiente y su distancia vuelve a ser positiva. Midiendolo por distancia, "pase" no
+          // ocurria nunca y el fixture acusaba de muro a una barrera que se cruzaba bien.
+          if (b && vista !== null && b.idx !== vista && modo === 'hueco') { paso++; break; }
+          if (b && b.cz < 120) vista = b.idx;
+          // por el HUECO: arriba de la roca, abajo del puente. Por el MACIZO: derecho al medio.
+          let alt = 12;
+          // SE TREPA TARDE Y SE BAJA APENAS SE PASA. Volar alto no es gratis: medido, a 40 m el
+          // radar mata en tres segundos sin que haya una sola barrera. Una prueba que se quede
+          // arriba esperando esta midiendo el radar, no la barrera.
+          if (b && b.cz < 160) {
+            alt = modo === 'hueco'
+              ? (b.tipo === 'roca' ? b.y1 + 8 : Math.max(5, b.y0 - 6))
+              : (b.tipo === 'roca' ? Math.max(4, b.y1 / 2) : (b.y0 + b.y1) / 2);
+          }
+          await js(`window.__chaput(0, ${alt})`);
+          await sleep(120);
+        }
+      }
+    }
+    if (paso > 0) ok('por el hueco se pasa: la barrera quedo atras y el avion sigue volando');
+    else bad('no se pudo pasar la barrera ni por el hueco: esto no es un obstaculo, es un muro');
+    if (murio > 0) ok('y por el macizo mata — no es un decorado que se cruza de largo');
+    else bad('atravesar el macizo NO mata: la barrera no cierra nada');
+    await shot('zz_12_barrera');
+    await js("window.__cfgset('zigzag', 0)");
+  }
+
   console.log('\nconsola:');
   if (!errors.length) ok('sin errores');
   else { bad(`${errors.length} error(es):`); for (const e of errors.slice(0, 8)) console.error('      ' + e); }

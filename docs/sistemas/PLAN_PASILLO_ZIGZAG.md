@@ -948,6 +948,54 @@ En el menú son dos valores más de la misma fila (COSTA IZQUIERDA / COSTA DEREC
     borde, los dos costados, muestra por muestra. Si algún día alguien "unifica" el camino nuevo
     con el viejo y corre un metro el callejón de m5, salta ahí.
 
+## Z8 — LAS BARRERAS: EL CALLEJÓN CERRADO *(construida)*
+
+Pedido de playtest: que en algunas secciones el callejón tenga **cobertura total** y obligue a
+pasar por arriba o por abajo — un puente o un bloqueo. Es la **única excepción a la garantía de
+paso** de las puntas, y está puesta a mano: lo que aquella regla protege es poder recorrer el
+pasillo *esquivando de costado*. La barrera **cambia de eje** a propósito — te saca del plano
+horizontal y te obliga a usar la altura, que es la herramienta que el juego tenía guardada.
+
+Un solo primitivo (`barreraDe`): una franja maciza entre dos alturas que cruza el pasillo entero.
+Con `y0` en cero es una **ROCA** —un collado entre los dos cerros— y se pasa por arriba; con `y0`
+en el aire es un **PUENTE** y se pasa por abajo (o por encima, más seguro y más lento). Es dato:
+`paredes: { barreras: 'roca' | 'puente' | 'mezcla' }`, y `'no'` es el default. En el menú, el
+preset **CALLEJÓN CERRADO** (`?zigzag=5`).
+
+**Se ve venir.** El callejón se dibuja hasta 1200 m y la barrera cruza el pasillo entero, así que a
+150 m/s aparece **ocho segundos antes** de llegar. Eso es lo que la separa de una trampa: no hay
+que memorizarla, hay que leerla.
+
+### Divergencias de Z8
+
+94. **La altura de la roca la decidió una MEDICIÓN, no el gusto — y es la lección del ítem.**
+    Primero 30..42 m: a cuarenta metros de distancia eso llena la pantalla de marrón, correcto
+    geométricamente e ilegible en la práctica. Después 24..34, y ahí apareció lo importante:
+    **volando a 40 m sin ninguna barrera el avión se muere en tres segundos**, porque `RADAR_ALT`
+    es 20 y arriba llueven misiles. O sea que una roca que pide 34 no pide una trepada: pide
+    comerse una oleada. **Una barrera no puede depender de una mecánica de castigo para ser
+    pasable.** 14..20 la deja justo debajo del filo del radar: hay que salir de la franja rasante
+    —donde el jugador vive y puntúa— y asomarse al borde, sin cruzarlo.
+95. **Y de ahí salió la asimetría que hace que las dos formas no sean la misma.** La roca empuja
+    HACIA ARRIBA, al borde del radar, o sea afuera de donde el juego premia. El puente empuja HACIA
+    ABAJO, a pasar por un hueco de doce metros a ras del agua — que es exactamente lo que el juego
+    se llama. Una es el precio, la otra es la recompensa. Por eso conviene mezclarlas.
+96. **BUG: el margen de gracia agrandaba el puente hacia abajo.** Lo sumaba a los dos lados, así
+    que la panza cobraba MÁS ABAJO de donde se dibuja: el hueco por el que hay que pasar quedaba
+    más chico que el que se ve, que es exactamente lo que el margen viene a evitar. El margen
+    **achica lo que mata, nunca lo agranda**.
+97. **`mata: false` y `barreras` son incompatibles, y lo rechaza el validador.** Una barrera que no
+    mata no cierra nada: se la atraviesa y queda como un decorado que el avión cruza por el medio,
+    que se ve peor que no tenerla.
+98. **La prueba de "se pasa" se medía por distancia y nunca ocurría.** `barreraCerca` sólo mira
+    hacia adelante, así que apenas se cruza una, la sonda ya reporta la siguiente y su distancia
+    vuelve a ser positiva. El fixture acusaba de muro a una barrera que se cruzaba bien. Se mide
+    por el **índice** de la barrera.
+99. **Lo que el fixture NO puede probar, y queda escrito:** el tiempo de reacción. Una tecla
+    sostenida no le llega al juego (ver el encabezado del fixture), así que la altura se planta con
+    la sonda: esto comprueba la **geometría** —el hueco existe, el macizo cierra— y si la barrera
+    se ve venir con tiempo suficiente lo dice el playtest, no esto.
+
 ### Lo que queda para el próximo playtest
 
 - El **ritmo**: `ZZ_PUNTA_CADA` 190 m es una punta cada ~2,5 s a velocidad de crucero.

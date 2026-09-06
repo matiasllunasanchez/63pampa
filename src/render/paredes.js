@@ -21,10 +21,11 @@ import { ctx, px, W, H, HOR, F } from './ctx.js';
 import { cam, cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { proj } from '../core/fx.js';
-import { pared, paredH, paredXAt, paredCara, bendW } from '../core/zigzag.js';
+import { pared, paredH, paredXAt, paredCara, bendW, barreraCerca } from '../core/zigzag.js';
 import { tierraH, hayRelieve } from '../core/tierra.js';
 import { theme } from './theme.js';
-import { ZZ_PARED_Z, ZZ_PARED_PASO, ZZ_MESETA_W, ZZ_NIEBLA_Z0, ZZ_NIEBLA_FULL } from '../data/tuning.js';
+import { ZZ_PARED_Z, ZZ_PARED_PASO, ZZ_MESETA_W, ZZ_NIEBLA_Z0, ZZ_NIEBLA_FULL,
+  ZZ_PARED_X } from '../data/tuning.js';
 
 // SOLAPE entre poligonos vecinos, en pixeles. Dos cuadrilateros que comparten un borde EXACTO no
 // se tocan en el pixel: el redondeo del rasterizado deja pasar el fondo por la juntura, y a lo
@@ -424,6 +425,84 @@ export function drawParedes() {
         quad(ctx, x0, prev.base.y - sh, x1, base.y - sh, x1, base.y, x0, prev.base.y);
       }
       prev = { base, top, wx, wxc, h, camZ };
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** LA BARRERA que cierra el callejon (zigzag Z8). Se dibuja DESPUES de las laderas y antes de los
+ *  obstaculos, y cruza el pasillo entero: es lo unico del mundo que no tiene por donde rodearse.
+ *
+ *  DOS CARAS Y NADA MAS. La FRONTAL —la que mira al avion— es la que dice donde esta el hueco, y
+ *  es la unica que el jugador necesita leer a 150 m/s. La de ARRIBA (o la panza, si el puente
+ *  queda por encima de la camara) le da el espesor, que es lo que la separa de una calcomania
+ *  pegada al aire. Mas caras seria dibujo que nadie mira.
+ *
+ *  ⚠ SE PINTA DE PUNTA A PUNTA Y UN POCO MAS (`ZZ_PARED_X * 2`): la barrera tiene que ENTRARSE en
+ *  las dos laderas, no llegar justo. Llegando justo, entre su borde y la cara del cerro queda una
+ *  rendija por la que se ve el mundo de atras — el mismo agujero que costo tres playtests en la
+ *  juntura de la meseta, en otro lugar. */
+export function drawBarreras() {
+  const p = pared();
+  if (!p || p.barreras === 'no') return;
+  const dv = run.dist;
+  const b = barreraCerca(dv + 4, ZZ_PARED_Z);
+  if (!b) return;
+  const z0 = b.z0 - dv, z1 = b.z1 - dv;
+  if (z1 <= 3) return;
+  const cz = Math.max(3, z0);
+  const T = tierraArriba(), L = caraLadera();
+  const ancho = ZZ_PARED_X * 2;
+  // la niebla de distancia, la misma de las laderas: una barrera lejana no puede ser mas nitida
+  // que el cerro que tiene al lado
+  const niebla = Math.max(0, Math.min(1, (cz - ZZ_NIEBLA_Z0) / (ZZ_NIEBLA_FULL - ZZ_NIEBLA_Z0)));
+  const FOG = nieblaCol();
+  const nb = c => mez(c, FOG, niebla);
+  const puente = b.tipo === 'puente';
+  // EL PUENTE ES OBRA DE MANO DEL HOMBRE y la roca no: el puente va gris y parejo (hormigon,
+  // chapa), la roca va con las mismas tres franjas de tierra que el talud. Es lo que hace que se
+  // lean distinto de lejos, que es cuando hay que decidir si se pasa por arriba o por abajo.
+  const cara = puente ? mez(theme.land.rock, '#20262b', 0.55) : L.cuerpo;
+  const arriba = puente ? mez(theme.land.rock, '#39424a', 0.4) : T.cerca;
+
+  const A = proj(-ancho, b.y1, cz), B = proj(ancho, b.y1, cz);
+  const C = proj(-ancho, b.y0, cz), D = proj(ancho, b.y0, cz);
+  // LA TAPA (o la panza): se dibuja primero, va detras. Se elige cual segun de que lado la mira la
+  // camara — desde abajo de un puente se ve su panza, desde arriba su lomo, y dibujar la que no es
+  // deja la barrera dada vuelta.
+  {
+    const yTapa = cam.y > b.y1 ? b.y1 : b.y0;
+    const lejos1 = proj(-ancho, yTapa, z1), lejos2 = proj(ancho, yTapa, z1);
+    const cerca1 = proj(-ancho, yTapa, cz), cerca2 = proj(ancho, yTapa, cz);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = nb(cam.y > b.y1 ? arriba : mez(cara, L.som, 0.45));
+    quad(ctx, lejos1.x, lejos1.y, lejos2.x, lejos2.y, cerca2.x, cerca2.y, cerca1.x, cerca1.y);
+  }
+  // LA CARA FRONTAL, en franjas como el talud: es lo que da la altura de un vistazo.
+  const franjas = puente
+    ? [[0, 1, cara]]
+    : [[0, 0.36, mez(L.som, cara, 0.45)], [0.36, 0.74, cara], [0.74, 1, mez(cara, L.luz, 0.5)]];
+  const pxY = t => C.y + (A.y - C.y) * t, pxY2 = t => D.y + (B.y - D.y) * t;
+  for (const [t0, t1, col] of franjas) {
+    ctx.fillStyle = nb(col);
+    quad(ctx, C.x, pxY(t1) - (t1 >= 0.99 ? 0.9 : 0), D.x, pxY2(t1) - (t1 >= 0.99 ? 0.9 : 0),
+      D.x, pxY2(t0) + 0.9, C.x, pxY(t0) + 0.9);
+  }
+  // EL FILO DE ARRIBA, una linea clara: es LA COTA que hay que superar, y sin marcarla el ojo no
+  // sabe si ya la paso. En el puente marca ademas el borde del hueco de abajo.
+  ctx.globalAlpha = 1 - niebla;
+  ctx.fillStyle = puente ? '#8d9aa2' : T.corona;
+  quad(ctx, A.x, A.y, B.x, B.y, B.x, B.y + Math.max(1, A.k * 0.5), A.x, A.y + Math.max(1, A.k * 0.5));
+  if (puente) {
+    // LA PANZA marcada tambien: por ahi se pasa, asi que su borde es informacion, no adorno.
+    ctx.fillStyle = '#5a656d';
+    quad(ctx, C.x, C.y - Math.max(1, C.k * 0.4), D.x, D.y - Math.max(1, D.k * 0.4), D.x, D.y, C.x, C.y);
+    // LAS PATAS, contra las dos laderas. Sin ellas la losa flota y no se lee como puente.
+    ctx.fillStyle = nb(mez(cara, L.som, 0.35));
+    for (const lado of [-1, 1]) {
+      const px0 = proj(lado * (ZZ_PARED_X - 3), b.y0, cz), px1 = proj(lado * (ZZ_PARED_X - 3), 0, cz);
+      const w = Math.max(1, 2.2 * px0.k);
+      quad(ctx, px0.x - w, px0.y, px0.x + w, px0.y, px1.x + w, px1.y, px1.x - w, px1.y);
     }
   }
   ctx.globalAlpha = 1;

@@ -62,6 +62,10 @@ const PRESETS = {
   // mitad caeria en el lado que no existe y el ritmo se partiria al medio.
   3: { amp: 0, largo: 800, seed: 4, paredes: { alto: 1, x: 46, mata: true, lado: 'izq' } },
   4: { amp: 0, largo: 800, seed: 6, paredes: { alto: 1, x: 46, mata: true, lado: 'der' } },
+  // CERRADO: el callejon con BARRERAS — cada tanto se cierra de lado a lado y hay que pasarlo por
+  // arriba (roca) o por abajo (puente). Va como preset aparte y no encima de CALLEJON porque son
+  // dos cosas distintas de jugar, y hay que poder mirar una sin la otra.
+  5: { amp: 0, largo: 800, seed: 9, paredes: { alto: 1, x: 46, mata: true, barreras: 'mezcla' } },
 };
 
 // LOS ESTADOS EN LOS QUE EL CALLEJON EXISTE. Es la MISMA lista que dibuja el mundo del pasillo

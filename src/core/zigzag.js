@@ -27,16 +27,20 @@ import { ZZ_CURV_MAX, ZZ_LARGO_MIN, ZZ_EMPALME, ZZ_BEND_Z, ZZ_BEND_PASO,
   ZZ_CENTRIF, ZZ_DERIVA_MAX, ZZ_TILT, ZZ_CAM_LEAD,
   ZZ_PARED_X, ZZ_PARED_H, ZZ_PARED_BANDA,
   ZZ_PUNTA_CADA, ZZ_PUNTA_LARGO, ZZ_PUNTA_MAX, ZZ_PUNTA_P, ZZ_PUNTA_RAMPA,
-  ZZ_PARED_PEND, ZZ_PARED_ONDA } from '../data/tuning.js';
+  ZZ_PARED_PEND, ZZ_PARED_ONDA,
+  ZZ_BARR_CADA, ZZ_BARR_LARGO, ZZ_BARR_ROCA, ZZ_BARR_PUENTE, ZZ_BARR_GROSOR,
+  ZZ_BARR_MARGEN } from '../data/tuning.js';
 
 /** Las claves que un `zigzag:` puede traer. Cualquier otra es error de DATOS y el validador la
  *  rechaza, por la misma razon que en los tramos: una clave mal escrita no hace nada y no avisa,
  *  que es la peor forma de fallar. */
 export const CLAVES = ['amp', 'largo', 'seed', 'trazado', 'paredes', 'desde', 'hasta'];
-export const CLAVES_PARED = ['alto', 'x', 'mata', 'lado'];
+export const CLAVES_PARED = ['alto', 'x', 'mata', 'lado', 'barreras'];
 // DE QUE LADO hay tierra. 'ambos' es el callejon (el default y lo que habia siempre); 'izq' y
 // 'der' dejan el otro costado ABIERTO al mar — una costa, o un acantilado de un solo lado.
 export const LADOS = ['ambos', 'izq', 'der'];
+// QUE FORMA tienen las barreras que cierran el callejon (zigzag Z8). 'no' es el default.
+export const BARRERAS = ['no', 'roca', 'puente', 'mezcla'];
 
 /** hash entero → [0,1). La misma copia de bolsillo que usan core/tierra.js y render/world.js:
  *  este modulo es puro y no puede importar del render. */
@@ -119,6 +123,10 @@ export function validarZigzag(z) {
         e.push(`paredes: 'mata' tiene que ser booleano y es ${JSON.stringify(p.mata)}`);
       if (p.lado !== undefined && LADOS.indexOf(p.lado) < 0)
         e.push(`paredes: 'lado' tiene que ser uno de ${LADOS.join(', ')} y es ${JSON.stringify(p.lado)}`);
+      if (p.barreras !== undefined && BARRERAS.indexOf(p.barreras) < 0)
+        e.push(`paredes: 'barreras' tiene que ser uno de ${BARRERAS.join(', ')} y es ${JSON.stringify(p.barreras)}`);
+      if (p.barreras !== undefined && p.barreras !== 'no' && p.mata === false)
+        e.push("paredes: no se pueden pedir 'barreras' con 'mata: false' — una barrera que no mata no cierra nada");
     }
   }
   return e;
@@ -359,6 +367,11 @@ export function pared() {
     // DE QUE LADO HAY TIERRA. El default es 'ambos' —el callejon— y es lo que hace que toda la
     // data que ya existe siga significando exactamente lo mismo.
     lado: LADOS.indexOf(p.lado) > 0 ? p.lado : 'ambos',
+    // LAS BARRERAS SOLO EXISTEN SI LA LADERA MATA, y no es una limitacion tecnica: una barrera que
+    // no mata no cierra nada — se la atraviesa y queda como un decorado que el avion cruza por el
+    // medio, que se ve peor que no tenerla. El validador lo rechaza en la data; aca se apaga sola
+    // por si alguien construye la config a mano.
+    barreras: p.mata !== false && BARRERAS.indexOf(p.barreras) > 0 ? p.barreras : 'no',
   };
 }
 
@@ -407,6 +420,73 @@ export function paredH(wz, lado) {
   const cerro = a + (c - a) * suave(u);                       // la loma, continua entre bandas
   const filo = (hash1(Math.floor(wz / 7) * 13 + sd) - 0.5) * 0.22;   // el detalle que la quiebra
   return ZZ_PARED_H * p.alto * v * macizo * Math.max(0.3, 0.72 + cerro * 0.4 + filo);
+}
+
+/** LA BARRERA que cruza el callejon a la profundidad de mundo `wz`, o null.
+ *
+ *  Devuelve `{ z0, z1, tipo, y0, y1 }`: la franja maciza va de `y0` a `y1` y ocupa TODO el ancho
+ *  del pasillo. Con `y0` en cero es una ROCA y se pasa por arriba; con `y0` en el aire es un
+ *  PUENTE y se pasa por abajo (o por encima).
+ *
+ *  ES LA UNICA EXCEPCION A LA GARANTIA DE PASO de las puntas, y esta puesta a mano: las puntas
+ *  prometen que el pasillo nunca se cierra PORQUE lo que protegen es poder recorrerlo esquivando
+ *  de costado. La barrera cambia de eje a proposito — te saca del plano horizontal y te obliga a
+ *  usar la altura, que es la herramienta que el juego tenia guardada.
+ *
+ *  SOLO DONDE EL CALLEJON ESTA HECHO (ventana casi plena). En la boca y en la salida las laderas
+ *  todavia estan subiendo, asi que una barrera ahi seria un muro plantado en mar abierto — y
+ *  ademas taparia justo la entrada, que es donde el jugador esta leyendo el lugar por primera vez.
+ *
+ *  Determinista por banda, como todo lo demas: la misma mision trae la misma barrera en el mismo
+ *  metro, corrida tras corrida. */
+export function barreraDe(wz) {
+  const p = pared();
+  if (!p || p.barreras === 'no') return null;
+  const idx = Math.floor(wz / ZZ_BARR_CADA);
+  // DONDE cae adentro de su banda. El margen de los extremos evita que dos barreras vecinas
+  // queden pegadas a la juntura de las bandas y se lean como una sola pared doble.
+  const off = ZZ_BARR_LARGO + hash1(idx * 9187 + 41) * (ZZ_BARR_CADA - ZZ_BARR_LARGO * 3);
+  const z0 = idx * ZZ_BARR_CADA + off, z1 = z0 + ZZ_BARR_LARGO;
+  if (wz < z0 || wz >= z1) return null;
+  // el callejon tiene que estar HECHO: se pregunta por el centro de la franja, no por `wz`, asi
+  // la barrera entra o no entra ENTERA — media barrera es un muro cortado al medio.
+  if (ventana((z0 + z1) / 2, zz.spec, zz.obj) < 0.9) return null;
+  const puente = p.barreras === 'puente'
+    || (p.barreras === 'mezcla' && hash1(idx * 577 + 3) < 0.5);
+  const r = hash1(idx * 3313 + 7);
+  if (puente) {
+    const bajo = ZZ_BARR_PUENTE[0] + r * (ZZ_BARR_PUENTE[1] - ZZ_BARR_PUENTE[0]);
+    return { z0, z1, tipo: 'puente', y0: bajo, y1: bajo + ZZ_BARR_GROSOR, idx };
+  }
+  return { z0, z1, tipo: 'roca', y0: 0, y1: ZZ_BARR_ROCA[0] + r * (ZZ_BARR_ROCA[1] - ZZ_BARR_ROCA[0]), idx };
+}
+
+/** ¿Este punto esta adentro de una barrera? La `x` no entra en la cuenta: la barrera cruza el
+ *  pasillo ENTERO — de eso se trata. Cobra `ZZ_BARR_MARGEN` mas adentro de lo que se dibuja, por
+ *  la misma razon que el talud de la ladera: morir contra una linea invisible pegada al dibujo es
+ *  injusto, y el jugador no puede medir pixeles a 150 m/s. */
+export function enBarrera(y, wz) {
+  const b = barreraDe(wz);
+  if (!b) return null;
+  const m = ZZ_BARR_MARGEN;
+  // ⚠ EL MARGEN ACHICA LO QUE MATA, NUNCA LO AGRANDA. El primer intento lo sumaba hacia abajo y
+  // el puente cobraba MAS ABAJO de su panza: el hueco por el que hay que pasar se hacia mas
+  // chico que el que se ve, que es exactamente el bug que el margen viene a evitar.
+  const lo = b.y0 > 0 ? b.y0 + m : -1;   // la roca llega al agua: por abajo no se pasa
+  const hi = b.y1 - m;
+  return y > lo && y < hi ? b : null;
+}
+
+/** LA PROXIMA BARRERA a partir de `wz` y dentro de `alcance` metros, o null. La usan el sembrador
+ *  (para no plantar nada adentro) y el dibujo (para no recorrer mil metros buscandola). */
+export function barreraCerca(wz, alcance) {
+  if (!pared() || pared().barreras === 'no') return null;
+  // basta con mirar la banda de aca y la siguiente: una barrera mide 22 m y las bandas 900
+  for (let d = wz; d <= wz + alcance; d += ZZ_BARR_LARGO / 2) {
+    const b = barreraDe(d);
+    if (b) return b;
+  }
+  return null;
 }
 
 /** ¿ESTE PUNTO ESTA ADENTRO DE LA ROCA? `x` en el marco del carril, `y` en metros, `wz` la
