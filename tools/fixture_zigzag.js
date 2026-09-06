@@ -396,10 +396,14 @@ app.whenReady().then(async () => {
   if (!await volar()) { bad('no se pudo entrar a POR LA PATRIA'); }
   else {
     await montar();
+    // EL PRESUPUESTO ES GENEROSO A PROPOSITO. Cada muerte reinicia la distancia, asi que hay que
+    // volver a volar los ~850 m que tarda en formarse el callejon antes de poder medir de nuevo —
+    // con noventa vueltas, dos muertes dejaban la prueba sin margen y reportaba CERO antiaereos
+    // sobre un motor que sembraba bien. Se vio dando 0 y 6 en dos corridas seguidas sin tocar nada.
     let arriba = 0, enterrados = 0, muertes = 0;
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < 180; i++) {
       if (await estado() !== 'play') {
-        if (++muertes > 3 || !await volar()) break;
+        if (++muertes > 5 || !await volar()) break;
         await montar();
         continue;
       }
@@ -407,7 +411,7 @@ app.whenReady().then(async () => {
       const l = await js(`Number(window.__zzentra(${d.dist + 14}, -1))`);
       const r = await js(`Number(window.__zzentra(${d.dist + 14}, 1))`);
       await js(`window.__chaput(${l > r ? 26 : -26}, 13)`);
-      if (d.dist > d.arranque + 150) {
+      if (d.dist > d.arranque + 100) {
         arriba = Math.max(arriba, JSON.parse(await js('String(window.__zzaa())')).arriba);
         enterrados = Math.max(enterrados, await js('Number(window.__zzobs())'));
       }
@@ -533,17 +537,21 @@ app.whenReady().then(async () => {
       // que ninguna pida una altura que el avion no tenga.
       const r = JSON.parse(await js(`(() => {
         const d0 = JSON.parse(__zzdbg());
-        let roca = 0, puente = 0, imposible = 0, huecoMin = 99;
-        for (let dv = d0.arranque + 300; dv < d0.arranque + 9000; dv += 11) {
+        const n = {}; let imposible = 0, huecoMin = 99;
+        for (let dv = d0.arranque + 300; dv < d0.arranque + 14000; dv += 11) {
           const b = JSON.parse(__zzbarrAt(dv) || 'null');
           if (!b) continue;
-          if (b.tipo === 'roca') { roca++; if (b.y1 > 60) imposible++; }
-          else { puente++; huecoMin = Math.min(huecoMin, b.y0); if (b.y1 > 60) imposible++; }
+          n[b.tipo] = (n[b.tipo] || 0) + 1;
+          if (b.y1 > 60) imposible++;
+          if (b.tipo !== 'roca') huecoMin = Math.min(huecoMin, b.y0);
         }
-        return JSON.stringify({ roca, puente, imposible, huecoMin });
+        return JSON.stringify({ n, imposible, huecoMin });
       })()`));
-      if (r.roca > 0 && r.puente > 0) ok(`hay barreras de las dos formas (${r.roca} muestras de roca, ${r.puente} de puente)`);
-      else bad(`falta una de las dos formas: roca ${r.roca}, puente ${r.puente}`);
+      // LAS CUATRO PIELES TIENEN QUE SALIR. Son el mismo objeto con otra ropa, asi que si una no
+      // aparece nunca no es que se vea poco: es que el sorteo no la contempla y esta muerta.
+      const faltan = ['roca', 'arco', 'puente', 'cables'].filter(t => !r.n[t]);
+      if (!faltan.length) ok(`salen las cuatro pieles (${JSON.stringify(r.n)})`);
+      else bad(`no sale nunca: ${faltan.join(', ')} — ${JSON.stringify(r.n)}`);
       // NINGUNA PUEDE PEDIR LO QUE EL AVION NO TIENE. El techo de vuelo es 68: una barrera que
       // pida mas que eso es una muerte sin salida, no un obstaculo.
       if (r.imposible === 0) ok('y ninguna pide una altura fuera del techo de vuelo');
@@ -576,8 +584,13 @@ app.whenReady().then(async () => {
           // radar mata en tres segundos sin que haya una sola barrera. Una prueba que se quede
           // arriba esperando esta midiendo el radar, no la barrera.
           if (b && b.cz < 160) {
+            // POR EL HUECO: arriba de la roca; POR DENTRO del arco (en el centro es donde mas alto
+            // esta); por abajo del puente y de los cables. Por el MACIZO: derecho al medio de la
+            // franja que mata, que en el arco es el centro de la boveda.
             alt = modo === 'hueco'
-              ? (b.tipo === 'roca' ? b.y1 + 8 : Math.max(5, b.y0 - 6))
+              ? (b.tipo === 'roca' ? b.y1 + 8
+                : b.tipo === 'arco' ? b.y0 * 0.45
+                  : Math.max(4, b.y0 - 5))
               : (b.tipo === 'roca' ? Math.max(4, b.y1 / 2) : (b.y0 + b.y1) / 2);
           }
           await js(`window.__chaput(0, ${alt})`);

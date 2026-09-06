@@ -957,10 +957,18 @@ pasillo *esquivando de costado*. La barrera **cambia de eje** a propósito — t
 horizontal y te obliga a usar la altura, que es la herramienta que el juego tenía guardada.
 
 Un solo primitivo (`barreraDe`): una franja maciza entre dos alturas que cruza el pasillo entero.
-Con `y0` en cero es una **ROCA** —un collado entre los dos cerros— y se pasa por arriba; con `y0`
-en el aire es un **PUENTE** y se pasa por abajo (o por encima, más seguro y más lento). Es dato:
-`paredes: { barreras: 'roca' | 'puente' | 'mezcla' }`, y `'no'` es el default. En el menú, el
-preset **CALLEJÓN CERRADO** (`?zigzag=5`).
+**Cuatro pieles sobre el mismo objeto** — es la observación del autor, y es exacta: por dentro son
+todas lo mismo y lo único que cambia es cómo se dibujan.
+
+| piel | por dónde se pasa | qué hace de verdad |
+|---|---|---|
+| **ROCA** — un collado entre los dos cerros | por ARRIBA | te empuja al filo del radar, o sea afuera de donde el juego premia |
+| **ARCO** de roca — los cerros se cierran y dejan una boca curva | por ABAJO, por el centro de la boca | la única cuya colisión no es recta: el hueco es un arco de verdad |
+| **PUENTE** de vigas — tablero, celosía de paso superior, pilares, luces de tope | por ABAJO (o por encima) | el más reconocible de los cuatro a 800 m |
+| **CABLES** — dos torres de alta tensión y el manojo cruzando | por ABAJO o por ARRIBA | el peligro real del vuelo rasante: el cable casi no se ve, **la torre sí** |
+
+Es dato: `paredes: { barreras: 'roca' | 'arco' | 'puente' | 'cables' | 'mezcla' }`, y `'no'` es el
+default. En el menú, el preset **CALLEJÓN CERRADO** (`?zigzag=5`), que va con `'mezcla'`.
 
 **Se ve venir.** El callejón se dibuja hasta 1200 m y la barrera cruza el pasillo entero, así que a
 150 m/s aparece **ocho segundos antes** de llegar. Eso es lo que la separa de una trampa: no hay
@@ -995,6 +1003,30 @@ que memorizarla, hay que leerla.
     sostenida no le llega al juego (ver el encabezado del fixture), así que la altura se planta con
     la sonda: esto comprueba la **geometría** —el hueco existe, el macizo cierra— y si la barrera
     se ve venir con tiempo suficiente lo dice el playtest, no esto.
+
+100. **«Se ve medio feo» era literal: una losa.** Un rectángulo oscuro flotando, sin estructura, sin
+     apoyos que se leyeran y sin nada que le diera escala. Lo que lo arregló no fue más detalle
+     sino **estructura con sentido**: la celosía del puente va de PASO SUPERIOR (arriba del
+     tablero) y no debajo, porque debajo estaría dibujando material adentro del hueco por el que
+     hay que pasar — la colisión diría que no hay nada y el ojo vería vigas.
+101. **BUG: las torres del tendido salían en SUBPÍXEL.** Medido: 0,6 px de ancho a 130 m. El
+     tendido entero era invisible — no un obstáculo tenso, un obstáculo que no está. El cable puede
+     no verse; **el anuncio del cable, no**. Torres el doble de anchas, doce metros más altas (para
+     que la punta se recorte contra el CIELO, único fondo contra el que un hierro negro se lee
+     solo) y luz roja de aviso latiendo, igual que las de verdad.
+102. **El arco leía como un portón de hormigón hasta que le pusimos pasto.** Su lomo es recto —
+     tiene que serlo, porque es la cota por encima de la cual se puede pasar—, y un lomo recto de
+     roca se lee como obra. Con la misma turba que corona las laderas pasa a leerse como lo que es:
+     el cerro que sigue por encima del hueco. **La continuidad la hace el color, no la forma.**
+103. **El margen de gracia tuvo que volverse proporcional.** Fijo en 1,2 m a cada lado, un manojo
+     de cables de 4,5 m quedaba con el hueco invertido (`lo` por encima de `hi`) y **no mataba
+     nunca**: la barrera más fina del juego era la única que no existía. Ahora el margen es un
+     tercio de la franja, con tope.
+104. **El fixture de los antiaéreos se quedaba sin nafta, no sin razón.** Cada muerte reinicia la
+     distancia, así que hay que volver a volar los ~850 m que tarda en formarse el callejón antes
+     de poder medir; con noventa vueltas de presupuesto, dos muertes dejaban la prueba sin margen y
+     reportaba CERO sobre un motor que sembraba bien. Se vio dando **0 y 6 en dos corridas seguidas
+     sin tocar nada**, que es la firma de una prueba mal parada.
 
 ### Lo que queda para el próximo playtest
 

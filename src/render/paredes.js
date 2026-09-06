@@ -21,7 +21,7 @@ import { ctx, px, W, H, HOR, F } from './ctx.js';
 import { cam, cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { proj } from '../core/fx.js';
-import { pared, paredH, paredXAt, paredCara, bendW, barreraCerca } from '../core/zigzag.js';
+import { pared, paredH, paredXAt, paredCara, bendW, barreraCerca, arcoY } from '../core/zigzag.js';
 import { tierraH, hayRelieve } from '../core/tierra.js';
 import { theme } from './theme.js';
 import { ZZ_PARED_Z, ZZ_PARED_PASO, ZZ_MESETA_W, ZZ_NIEBLA_Z0, ZZ_NIEBLA_FULL,
@@ -433,10 +433,10 @@ export function drawParedes() {
 /** LA BARRERA que cierra el callejon (zigzag Z8). Se dibuja DESPUES de las laderas y antes de los
  *  obstaculos, y cruza el pasillo entero: es lo unico del mundo que no tiene por donde rodearse.
  *
- *  DOS CARAS Y NADA MAS. La FRONTAL —la que mira al avion— es la que dice donde esta el hueco, y
- *  es la unica que el jugador necesita leer a 150 m/s. La de ARRIBA (o la panza, si el puente
- *  queda por encima de la camara) le da el espesor, que es lo que la separa de una calcomania
- *  pegada al aire. Mas caras seria dibujo que nadie mira.
+ *  CUATRO PIELES Y UN SOLO OBJETO. Por dentro todas son lo mismo —una franja maciza entre dos
+ *  alturas— y lo unico que cambia es como se dibujan. La excepcion es el ARCO, cuyo hueco es curvo
+ *  de verdad tambien en la colision: si el hueco se dibuja curvo y se cobra recto, el dibujo miente
+ *  justo donde el jugador esta apuntando.
  *
  *  ⚠ SE PINTA DE PUNTA A PUNTA Y UN POCO MAS (`ZZ_PARED_X * 2`): la barrera tiene que ENTRARSE en
  *  las dos laderas, no llegar justo. Llegando justo, entre su borde y la cara del cerro queda una
@@ -448,64 +448,219 @@ export function drawBarreras() {
   const dv = run.dist;
   const b = barreraCerca(dv + 4, ZZ_PARED_Z);
   if (!b) return;
-  const z0 = b.z0 - dv, z1 = b.z1 - dv;
-  if (z1 <= 3) return;
-  const cz = Math.max(3, z0);
+  const cz = Math.max(3, b.z0 - dv), cz1 = Math.max(4, b.z1 - dv);
+  if (b.z1 - dv <= 3) return;
   const T = tierraArriba(), L = caraLadera();
   const ancho = ZZ_PARED_X * 2;
-  // la niebla de distancia, la misma de las laderas: una barrera lejana no puede ser mas nitida
-  // que el cerro que tiene al lado
   const niebla = Math.max(0, Math.min(1, (cz - ZZ_NIEBLA_Z0) / (ZZ_NIEBLA_FULL - ZZ_NIEBLA_Z0)));
   const FOG = nieblaCol();
   const nb = c => mez(c, FOG, niebla);
-  const puente = b.tipo === 'puente';
-  // EL PUENTE ES OBRA DE MANO DEL HOMBRE y la roca no: el puente va gris y parejo (hormigon,
-  // chapa), la roca va con las mismas tres franjas de tierra que el talud. Es lo que hace que se
-  // lean distinto de lejos, que es cuando hay que decidir si se pasa por arriba o por abajo.
-  const cara = puente ? mez(theme.land.rock, '#20262b', 0.55) : L.cuerpo;
-  const arriba = puente ? mez(theme.land.rock, '#39424a', 0.4) : T.cerca;
+  const P4 = { b, cz, cz1, ancho, T, L, nb, niebla };
+  ctx.globalAlpha = 1;
+  if (b.tipo === 'puente') barrPuente(P4);
+  else if (b.tipo === 'cables') barrCables(P4);
+  else if (b.tipo === 'arco') barrArco(P4);
+  else barrRoca(P4);
+  ctx.globalAlpha = 1;
+}
 
-  const A = proj(-ancho, b.y1, cz), B = proj(ancho, b.y1, cz);
-  const C = proj(-ancho, b.y0, cz), D = proj(ancho, b.y0, cz);
-  // LA TAPA (o la panza): se dibuja primero, va detras. Se elige cual segun de que lado la mira la
-  // camara — desde abajo de un puente se ve su panza, desde arriba su lomo, y dibujar la que no es
-  // deja la barrera dada vuelta.
-  {
-    const yTapa = cam.y > b.y1 ? b.y1 : b.y0;
-    const lejos1 = proj(-ancho, yTapa, z1), lejos2 = proj(ancho, yTapa, z1);
-    const cerca1 = proj(-ancho, yTapa, cz), cerca2 = proj(ancho, yTapa, cz);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = nb(cam.y > b.y1 ? arriba : mez(cara, L.som, 0.45));
-    quad(ctx, lejos1.x, lejos1.y, lejos2.x, lejos2.y, cerca2.x, cerca2.y, cerca1.x, cerca1.y);
-  }
-  // LA CARA FRONTAL, en franjas como el talud: es lo que da la altura de un vistazo.
-  const franjas = puente
-    ? [[0, 1, cara]]
-    : [[0, 0.36, mez(L.som, cara, 0.45)], [0.36, 0.74, cara], [0.74, 1, mez(cara, L.luz, 0.5)]];
-  const pxY = t => C.y + (A.y - C.y) * t, pxY2 = t => D.y + (B.y - D.y) * t;
-  for (const [t0, t1, col] of franjas) {
-    ctx.fillStyle = nb(col);
-    quad(ctx, C.x, pxY(t1) - (t1 >= 0.99 ? 0.9 : 0), D.x, pxY2(t1) - (t1 >= 0.99 ? 0.9 : 0),
-      D.x, pxY2(t0) + 0.9, C.x, pxY(t0) + 0.9);
-  }
-  // EL FILO DE ARRIBA, una linea clara: es LA COTA que hay que superar, y sin marcarla el ojo no
-  // sabe si ya la paso. En el puente marca ademas el borde del hueco de abajo.
+/** Una cara vertical de punta a punta, entre dos alturas, a la profundidad `z`. Es el ladrillo con
+ *  el que estan hechas tres de las cuatro pieles. */
+function franjaAncha(ancho, y0, y1, z, col, alpha) {
+  const A = proj(-ancho, y1, z), B = proj(ancho, y1, z);
+  const C = proj(-ancho, y0, z), D = proj(ancho, y0, z);
+  ctx.globalAlpha = alpha === undefined ? 1 : alpha;
+  ctx.fillStyle = col;
+  quad(ctx, A.x, A.y, B.x, B.y, D.x, D.y, C.x, C.y);
+  return { A, B, C, D };
+}
+
+/** EL COLLADO DE ROCA: macizo desde el agua. Se pasa POR ARRIBA. Es la unica de las cuatro que
+ *  empuja hacia el filo del radar, o sea afuera de donde el juego premia — el contrapeso de las
+ *  otras tres, que empujan hacia abajo. */
+function barrRoca({ b, cz, cz1, ancho, T, L, nb, niebla }) {
+  // la tapa primero (va detras), y solo la que la camara puede ver
+  const yT = cam.y > b.y1 ? b.y1 : b.y0;
+  const l1 = proj(-ancho, yT, cz1), l2 = proj(ancho, yT, cz1);
+  const c1 = proj(-ancho, yT, cz), c2 = proj(ancho, yT, cz);
+  ctx.fillStyle = nb(cam.y > b.y1 ? T.cerca : mez(L.cuerpo, L.som, 0.45));
+  quad(ctx, l1.x, l1.y, l2.x, l2.y, c2.x, c2.y, c1.x, c1.y);
+  // la cara, en las mismas tres franjas que el talud: pie en sombra, cuerpo, hombro al sol
+  const h = b.y1;
+  franjaAncha(ancho, 0, h * 0.36, cz, nb(mez(L.som, L.cuerpo, 0.45)));
+  franjaAncha(ancho, h * 0.34, h * 0.74, cz, nb(L.cuerpo));
+  const top = franjaAncha(ancho, h * 0.72, h, cz, nb(mez(L.cuerpo, L.luz, 0.5)));
+  // EL FILO: es LA COTA que hay que superar, y sin marcarla el ojo no sabe si ya la paso
   ctx.globalAlpha = 1 - niebla;
-  ctx.fillStyle = puente ? '#8d9aa2' : T.corona;
-  quad(ctx, A.x, A.y, B.x, B.y, B.x, B.y + Math.max(1, A.k * 0.5), A.x, A.y + Math.max(1, A.k * 0.5));
-  if (puente) {
-    // LA PANZA marcada tambien: por ahi se pasa, asi que su borde es informacion, no adorno.
-    ctx.fillStyle = '#5a656d';
-    quad(ctx, C.x, C.y - Math.max(1, C.k * 0.4), D.x, D.y - Math.max(1, D.k * 0.4), D.x, D.y, C.x, C.y);
-    // LAS PATAS, contra las dos laderas. Sin ellas la losa flota y no se lee como puente.
-    ctx.fillStyle = nb(mez(cara, L.som, 0.35));
-    for (const lado of [-1, 1]) {
-      const px0 = proj(lado * (ZZ_PARED_X - 3), b.y0, cz), px1 = proj(lado * (ZZ_PARED_X - 3), 0, cz);
-      const w = Math.max(1, 2.2 * px0.k);
-      quad(ctx, px0.x - w, px0.y, px0.x + w, px0.y, px1.x + w, px1.y, px1.x - w, px1.y);
+  ctx.fillStyle = T.corona;
+  quad(ctx, top.A.x, top.A.y, top.B.x, top.B.y,
+    top.B.x, top.B.y + Math.max(1, top.A.k * 0.6), top.A.x, top.A.y + Math.max(1, top.A.k * 0.6));
+}
+
+/** EL ARCO DE ROCA: los dos cerros se cierran arriba y dejan una boca CURVA. Se pasa por abajo.
+ *
+ *  Se dibuja por REBANADAS VERTICALES a lo ancho de la boca, cada una desde la curva del intrados
+ *  hasta el lomo. Es la unica forma de que la silueta sea de verdad un arco y no un rectangulo con
+ *  las esquinas pintadas: la curva la da la misma funcion contra la que se resuelve la colision. */
+function barrArco({ b, cz, cz1, ancho, T, L, nb, niebla }) {
+  // LAS PATAS: de punta a punta y macizas, con la misma cara de tierra del talud
+  for (const lado of [-1, 1]) {
+    const x0 = lado * b.w, x1 = lado * ancho;
+    const A = proj(x0, b.y1, cz), B = proj(x1, b.y1, cz);
+    const C = proj(x0, 0, cz), D = proj(x1, 0, cz);
+    ctx.fillStyle = nb(L.cuerpo);
+    quad(ctx, A.x, A.y, B.x, B.y, D.x, D.y, C.x, C.y);
+  }
+  // LA BOVEDA, rebanada por rebanada
+  const N = 26;
+  for (let i = 0; i < N; i++) {
+    const xa = -b.w + (i / N) * b.w * 2, xb = -b.w + ((i + 1) / N) * b.w * 2;
+    const ya = arcoY(b, xa), yb = arcoY(b, xb);
+    const A = proj(xa, b.y1, cz), B = proj(xb, b.y1, cz);
+    const C = proj(xa, ya, cz), D = proj(xb, yb, cz);
+    // el tono cambia con la altura de la rebanada: la clave del arco al sol, los arranques en
+    // sombra. Es lo que le da volumen a una silueta que si no seria una mancha recortada.
+    const k = 1 - Math.abs(xa) / b.w;
+    ctx.fillStyle = nb(mez(L.cuerpo, L.luz, k * 0.5));
+    quad(ctx, A.x, A.y, B.x, B.y, D.x, D.y, C.x, C.y);
+  }
+  // EL INTRADOS marcado con una linea oscura: es el borde del hueco, o sea informacion pura
+  ctx.globalAlpha = 1 - niebla;
+  ctx.fillStyle = L.som;
+  for (let i = 0; i < N; i++) {
+    const xa = -b.w + (i / N) * b.w * 2, xb = -b.w + ((i + 1) / N) * b.w * 2;
+    const C = proj(xa, arcoY(b, xa), cz), D = proj(xb, arcoY(b, xb), cz);
+    quad(ctx, C.x, C.y, D.x, D.y, D.x, D.y + Math.max(1, C.k * 0.5), C.x, C.y + Math.max(1, C.k * 0.5));
+  }
+  // EL LOMO, que le da espesor y lo separa del cielo
+  ctx.globalAlpha = 1;
+  const l1 = proj(-ancho, b.y1, cz1), l2 = proj(ancho, b.y1, cz1);
+  const c1 = proj(-ancho, b.y1, cz), c2 = proj(ancho, b.y1, cz);
+  ctx.fillStyle = nb(cam.y > b.y1 ? T.cerca : mez(L.cuerpo, L.som, 0.5));
+  quad(ctx, l1.x, l1.y, l2.x, l2.y, c2.x, c2.y, c1.x, c1.y);
+  // EL GORRO DE PASTO. Sin el, el lomo recto de la masa lo hace leer como un PORTON de hormigon;
+  // con la misma turba que corona las laderas, se lee como lo que es: el cerro que sigue por
+  // encima del hueco. Es el mismo verde de la meseta — la continuidad la hace el color, no la
+  // forma, y por eso alcanza con una franja fina.
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = nb(T.corona);
+  quad(ctx, c1.x, c1.y, c2.x, c2.y, c2.x, c2.y + Math.max(1, c1.k * 0.9), c1.x, c1.y + Math.max(1, c1.k * 0.9));
+}
+
+/** EL PUENTE DE VIGAS. Tablero, celosia y pilares — y la celosia va ARRIBA del tablero, no abajo,
+ *  que no es un capricho estetico: abajo estaria adentro del hueco por el que hay que pasar, o sea
+ *  dibujando material donde la colision dice que no hay. Un puente de paso inferior lo resuelve
+ *  solo, y ademas es el que se ve en las fotos. */
+function barrPuente({ b, cz, cz1, ancho, L, nb, niebla }) {
+  const acero = mez(theme.land.rock, '#20262b', 0.55);
+  const claro = mez(theme.land.rock, '#48535c', 0.5);
+  const alto = b.y1 - b.y0;
+  // el canto del tablero (la panza y el espesor), que es el borde del hueco
+  const tab = franjaAncha(ancho, b.y0, b.y0 + alto * 0.34, cz, nb(acero));
+  // LA CELOSIA: diagonales alternadas entre el tablero y el cordon superior. Se dibuja con
+  // cuadrilateros finos y no con `stroke` porque el resto del juego es raster y una linea
+  // antialiaseada se ve de otro juego.
+  ctx.globalAlpha = 1;
+  const N = 14, paso = ancho * 2 / N;
+  for (let i = 0; i < N; i++) {
+    const xa = -ancho + i * paso, xb = xa + paso;
+    const subeA = i % 2 === 0;
+    const A = proj(xa, subeA ? b.y0 + alto * 0.34 : b.y1, cz);
+    const B = proj(xb, subeA ? b.y1 : b.y0 + alto * 0.34, cz);
+    const w = Math.max(1, 0.5 * A.k);
+    ctx.fillStyle = nb(claro);
+    quad(ctx, A.x, A.y, B.x, B.y, B.x + w, B.y, A.x + w, A.y);
+    // los montantes verticales, uno de cada dos: sin ellos la celosia se lee como un zigzag suelto
+    if (i % 2 === 0) {
+      const V0 = proj(xa, b.y0 + alto * 0.34, cz), V1 = proj(xa, b.y1, cz);
+      quad(ctx, V0.x - w, V0.y, V0.x + w, V0.y, V1.x + w, V1.y, V1.x - w, V1.y);
     }
   }
+  // el cordon superior, una viga llena que cierra la celosia arriba
+  franjaAncha(ancho, b.y1 - alto * 0.16, b.y1, cz, nb(acero));
+  // LOS PILARES, hasta el agua y pegados a las dos laderas. Sin ellos la losa flota.
+  ctx.fillStyle = nb(mez(acero, L.som, 0.4));
+  for (const lado of [-1, 1]) {
+    const A = proj(lado * (ZZ_PARED_X - 4), b.y0 + alto * 0.34, cz), B = proj(lado * (ZZ_PARED_X - 4), 0, cz);
+    const w = Math.max(1, 2.6 * A.k);
+    quad(ctx, A.x - w, A.y, A.x + w, A.y, B.x + w, B.y, B.x - w, B.y);
+  }
+  // LAS LUCES DE TOPE, rojas y latiendo: es lo que lo hace legible a 800 m, cuando la celosia
+  // todavia mide dos pixeles y no se lee nada.
+  const lit = 0.55 + 0.45 * Math.sin(run.t * 3);
+  ctx.globalAlpha = (1 - niebla) * lit;
+  for (const lado of [-1, 1]) {
+    const s = proj(lado * (ZZ_PARED_X - 4), b.y1 + 1.5, cz);
+    const r = Math.max(1, 0.9 * s.k);
+    px(s.x - r / 2, s.y - r / 2, r, r, '#ff5a3c');
+  }
+  // la panza marcada: por ahi se pasa, asi que su borde es informacion, no adorno
+  ctx.globalAlpha = 1 - niebla;
+  ctx.fillStyle = '#5a656d';
+  quad(ctx, tab.C.x, tab.C.y - Math.max(1, tab.C.k * 0.4), tab.D.x, tab.D.y - Math.max(1, tab.D.k * 0.4),
+    tab.D.x, tab.D.y, tab.C.x, tab.C.y);
+}
+
+/** EL TENDIDO: dos torres en las laderas y el manojo de cables cruzando el pasillo.
+ *
+ *  Es lo que de verdad mata pilotos bajos, y es tenso PORQUE casi no se ve. Por eso el peso del
+ *  dibujo esta en LAS TORRES: son altas, oscuras y estan siempre en el mismo sitio, asi que el
+ *  cable no hay que verlo — hay que deducirlo. Un obstaculo invisible del que se ve el anuncio es
+ *  tension; uno del que no se ve nada es una moneda al aire, que es otra cosa. */
+function barrCables({ b, cz, ancho, L, nb, niebla }) {
+  const hierro = mez(theme.land.rock, '#191d22', 0.62);
+  const torreX = ZZ_PARED_X - 3;
+  // LAS TORRES, primero: celosia simplificada — dos patas que se abren y tres travesaños.
   ctx.globalAlpha = 1;
+  ctx.fillStyle = nb(hierro);
+  for (const lado of [-1, 1]) {
+    // LA TORRE VA GRANDE Y ALTA: es el ANUNCIO, y el anuncio no puede ser sutil. Con `b.y1 + 4` se
+    // quedaba a la altura del cable y se confundia con el, asi que no anunciaba nada; subiendola
+    // doce metros la punta queda contra el CIELO, que es el unico fondo del juego contra el que un
+    // hierro negro se recorta solo.
+    const pie = 7, cabeza = 2.2, altoT = b.y1 + 12;
+    // ⚠ LAS PATAS VAN GRUESAS. Con medio metro de ancho la torre salia en SUBPIXEL —medido: 0.6 px
+    // a 130 m— y el tendido entero quedaba invisible: no un obstaculo tenso, un obstaculo que no
+    // esta. El cable puede no verse; el anuncio del cable, no.
+    for (const s of [-1, 1]) {
+      const A = proj(lado * torreX + s * cabeza, altoT, cz), B = proj(lado * torreX + s * pie, 0, cz);
+      const w = Math.max(1.6, 2.1 * A.k);
+      quad(ctx, A.x - w, A.y, A.x + w, A.y, B.x + w, B.y, B.x - w, B.y);
+    }
+    for (let i = 1; i <= 3; i++) {
+      const y = altoT * (i / 4), an = cabeza + (pie - cabeza) * (1 - i / 4);
+      const A = proj(lado * torreX - an, y, cz), B = proj(lado * torreX + an, y, cz);
+      const h = Math.max(1.4, 1.5 * A.k);
+      quad(ctx, A.x, A.y - h, B.x, B.y - h, B.x, B.y, A.x, A.y);
+    }
+    // LA LUZ DE AVISO en la punta, roja y latiendo. Es lo mismo que llevan las torres de verdad y
+    // por la misma razon: a 800 m la celosia mide dos pixeles y lo unico que se lee es el punto.
+    const lit = 0.5 + 0.5 * Math.sin(run.t * 2.6 + (lado > 0 ? 1.7 : 0));
+    const s2 = proj(lado * torreX, altoT + 1.5, cz);
+    const r = Math.max(1, 1.1 * s2.k);
+    ctx.globalAlpha = (1 - niebla) * lit;
+    px(s2.x - r / 2, s2.y - r / 2, r, r, '#ff5a3c');
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = nb(hierro);
+  }
+  // EL MANOJO: tres cables con panza de catenaria, dibujados por tramos. Ocupan TODA la franja que
+  // mata, de arriba a abajo — asi no queda un hueco entre cable y cable por el que el jugador crea
+  // que pasa y despues muera sin entender.
+  const N = 18;
+  for (let c = 0; c < 3; c++) {
+    const yBorde = b.y1 - (c / 2) * (b.y1 - b.y0) * 0.55;
+    const panza = (b.y1 - b.y0) * 0.45;
+    ctx.globalAlpha = 1 - niebla * 0.7;
+    ctx.fillStyle = nb(mez(hierro, L.luz, 0.35 + c * 0.12));
+    for (let i = 0; i < N; i++) {
+      const ua = i / N, ub = (i + 1) / N;
+      const xa = -torreX + ua * torreX * 2, xb = -torreX + ub * torreX * 2;
+      const ya = yBorde - Math.sin(ua * Math.PI) * panza, yb = yBorde - Math.sin(ub * Math.PI) * panza;
+      const A = proj(xa, ya, cz), B = proj(xb, yb, cz);
+      const w = Math.max(1, 1.05 * A.k);
+      quad(ctx, A.x, A.y - w, B.x, B.y - w, B.x, B.y + w, A.x, A.y + w);
+    }
+  }
 }
 
 /** Un cuadrilatero. Se dibuja con path y no con `px` porque la ladera es un TRAPECIO: sus dos

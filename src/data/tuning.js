@@ -1179,6 +1179,15 @@ export const ZZ_BARR_ROCA = [14, 20];
 // juego se llama. Una es el precio, la otra es la recompensa, y por eso conviene mezclarlas.
 export const ZZ_BARR_PUENTE = [13, 20];
 export const ZZ_BARR_GROSOR = 5;
+// EL ARCO DE ROCA: los dos cerros se cierran arriba y dejan un hueco CURVO. `ALTO` es la luz en el
+// centro (donde el arco es mas alto) y `ANCHO` el semiancho de la boca. Es la unica de las cuatro
+// pieles cuya colision no es una franja recta — el hueco es un arco, asi que la roca baja hacia
+// los costados, y si la cuenta no siguiera la curva el dibujo estaria mintiendo.
+export const ZZ_BARR_ARCO = [14, 21], ZZ_BARR_ARCO_ANCHO = 30, ZZ_BARR_ARCO_MASA = 16;
+// LOS CABLES: a que altura cuelga el tendido y cuanto ocupa de arriba a abajo (el manojo entero,
+// con la panza de la catenaria incluida). Es lo que de verdad mata pilotos bajos, y es tenso
+// porque casi no se ve — por eso las TORRES van bien marcadas: el cable se adivina desde ellas.
+export const ZZ_BARR_CABLE = [11, 18], ZZ_BARR_CABLE_MANOJO = 4.5;
 // margen de gracia, en metros: la barrera cobra un poco mas adentro de lo que se dibuja. Misma
 // razon que el talud de la ladera — morir contra una linea invisible pegada al dibujo es injusto.
 export const ZZ_BARR_MARGEN = 1.2;

@@ -1717,3 +1717,40 @@ test('niebla: el canon MEZCLA, no conmuta', () => {
   const medio = alfaCielo(0.8, 0.2, 0.5);
   assert.ok(Math.abs(medio - (a0 + a1) / 2) < 1e-9, `la mezcla no es lineal: ${medio}`);
 });
+import { barreraDe, enBarrera, arcoY } from '../src/core/zigzag.js';
+
+test('barreras: el arco cobra la CURVA, no un rectangulo', () => {
+  // Es la unica piel cuya colision no es una franja recta, y tiene que serlo: si el hueco se
+  // dibuja curvo y se cobra recto, el dibujo miente justo donde el jugador esta apuntando.
+  zzReset();
+  zzRebuild(0, { amp: 0, largo: 800, seed: 3, paredes: { alto: 1, x: 46, mata: true, barreras: 'arco' } }, 0, 0);
+  let b = null;
+  for (let wz = 100; wz < 4000 && !b; wz += 2) b = barreraDe(wz);
+  assert.ok(b && b.tipo === 'arco', 'no aparecio ningun arco');
+  const wz = (b.z0 + b.z1) / 2;
+  // EN EL CENTRO la boca es mas alta que EN EL BORDE. Con un rectangulo darian lo mismo, y esa
+  // igualdad es exactamente el bug que este test existe para atrapar.
+  assert.ok(arcoY(b, 0) > arcoY(b, b.w * 0.9) + 3, 'la boca no es curva');
+  // volar bajo por el centro pasa; volar a la misma altura pegado a la pata, no
+  const bajo = arcoY(b, 0) * 0.5;
+  assert.equal(enBarrera(0, bajo, wz), null, 'no se pasa por el centro del arco');
+  assert.ok(enBarrera(b.w * 0.97, bajo, wz), 'se pasa pegado a la pata, donde hay roca');
+  // y las patas son macizas de punta a punta
+  assert.ok(enBarrera(b.w + 5, 2, wz), 'la pata del arco no cierra');
+  zzReset();
+});
+
+test('barreras: el manojo de cables MATA (el margen no puede comerse la franja)', () => {
+  // Con el margen fijo en 1.2 a cada lado, una franja de 4.5 m quedaba con el hueco invertido y
+  // no mataba NUNCA: la barrera mas fina del juego era la unica que no existia.
+  zzReset();
+  zzRebuild(0, { amp: 0, largo: 800, seed: 3, paredes: { alto: 1, x: 46, mata: true, barreras: 'cables' } }, 0, 0);
+  let b = null;
+  for (let wz = 100; wz < 4000 && !b; wz += 2) b = barreraDe(wz);
+  assert.ok(b && b.tipo === 'cables', 'no aparecio ningun tendido');
+  const wz = (b.z0 + b.z1) / 2;
+  assert.ok(enBarrera(0, (b.y0 + b.y1) / 2, wz), 'el manojo de cables no mata');
+  assert.equal(enBarrera(0, b.y0 - 3, wz), null, 'no se puede pasar por debajo del cable');
+  assert.equal(enBarrera(0, b.y1 + 3, wz), null, 'no se puede pasar por encima del cable');
+  zzReset();
+});

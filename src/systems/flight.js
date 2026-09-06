@@ -331,7 +331,7 @@ export function flightSystem(dt, deps) {
   // LA BARRERA (zigzag Z8): el callejon cerrado de lado a lado. La `x` no entra en la cuenta — de
   // eso se trata. Va ANTES de la ladera porque es mas fuerte: adentro de una barrera no importa
   // donde estes de costado, ya chocaste.
-  if (enBarrera(plane.y, run.dist + PZ)) return { death: 'death_barrera' };
+  if (enBarrera(plane.x, plane.y, run.dist + PZ)) return { death: 'death_barrera' };
   const golpePared = enPared(plane.x, plane.y, run.dist + PZ, ZZ_PARED_TALUD, ZZ_PARED_LIBRE);
   if (golpePared) {
     const p = paredCfg();
