@@ -1066,6 +1066,19 @@ que memorizarla, hay que leerla.
      Andrés no se parece a nada más del juego. Los caballetes van pegados a las laderas a propósito:
      un palo en el medio estaría adentro del hueco por el que hay que pasar.
 
+111. **El de acero era una regla metálica, y lo salvó la misma receta que el de madera.** No era
+     falta de detalle: la celosía vive ADENTRO del canto del puente, así que con cinco metros las
+     cruces salían de siete de ancho por cinco de alto — unas equis tan aplastadas que a 130 m no
+     se leían. Canto 5 → 9. Y los pilares estaban pintados casi negros contra un barranco casi
+     negro, o sea **no estaban**: el puente flotaba porque sus apoyos no se veían. Van más claros
+     que la roca (hormigón, no sombra), con zapata, y algo más adentro para recortarse contra el
+     agua. Más un montante por tramo: sin ese ritmo vertical, la celosía se lee como un zigzag
+     suelto flotando y no como estructura.
+
+     La regla que sale de las tres pieles construidas: **lo que las saca de "calcomanía" es algo
+     parado en el agua y un ritmo vertical denso**. Al de madera lo salvaron los caballetes y la
+     baranda; al de acero, los pilares y los montantes; al tendido, las torres.
+
 ### Lo que queda para el próximo playtest
 
 - El **ritmo**: `ZZ_PUNTA_CADA` 190 m es una punta cada ~2,5 s a velocidad de crucero.

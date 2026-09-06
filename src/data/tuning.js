@@ -1178,7 +1178,11 @@ export const ZZ_BARR_ROCA = [14, 20];
 // HACIA ABAJO, a pasar por un hueco de doce metros a ras del agua — que es exactamente lo que el
 // juego se llama. Una es el precio, la otra es la recompensa, y por eso conviene mezclarlas.
 export const ZZ_BARR_PUENTE = [13, 20];
-export const ZZ_BARR_GROSOR = 5;
+// EL CANTO DEL PUENTE DE ACERO. Subio de 5 a 9, y no es gusto: la celosia vive ADENTRO de este
+// numero, asi que con cinco metros las cruces salian de siete de ancho por cinco de alto — unas
+// equis tan aplastadas que a 130 m no se leian, y el puente entero quedaba como una regla
+// metalica cruzando el barranco. Con nueve, la celosia tiene proporcion de celosia.
+export const ZZ_BARR_GROSOR = 9;
 // EL ARCO DE ROCA: los dos cerros se cierran arriba y dejan un hueco CURVO. `ALTO` es la luz en el
 // centro (donde el arco es mas alto) y `ANCHO` el semiancho de la boca. Es la unica de las cuatro
 // pieles cuya colision no es una franja recta — el hueco es un arco, asi que la roca baja hacia

@@ -585,57 +585,74 @@ function barrMadera({ b, cz, cz1, ancho, L, nb, niebla }) {
   quad(ctx, C.x, C.y - Math.max(1, C.k * 0.45), D.x, D.y - Math.max(1, D.k * 0.45), D.x, D.y, C.x, C.y);
 }
 
-/** EL PUENTE DE VIGAS. Tablero, celosia y pilares — y la celosia va ARRIBA del tablero, no abajo,
- *  que no es un capricho estetico: abajo estaria adentro del hueco por el que hay que pasar, o sea
- *  dibujando material donde la colision dice que no hay. Un puente de paso inferior lo resuelve
- *  solo, y ademas es el que se ve en las fotos. */
+/** EL PUENTE DE VIGAS DE ACERO. Tablero, celosia y pilares — y la celosia va ARRIBA del tablero,
+ *  no abajo, que no es un capricho estetico: abajo estaria adentro del hueco por el que hay que
+ *  pasar, o sea dibujando material donde la colision dice que no hay. Un puente de paso inferior
+ *  lo resuelve solo, y ademas es el que se ve en las fotos.
+ *
+ *  LO QUE LO SACO DE "REGLA METALICA" ES LO MISMO QUE FUNCIONO EN EL DE MADERA: algo parado EN EL
+ *  AGUA y un ritmo vertical denso. Los pilares estaban dibujados casi negros contra un barranco
+ *  casi negro —o sea, no estaban— y los montantes iban uno de cada dos. Ahora los pilares van mas
+ *  claros que la roca y con zapata, y hay un montante por tramo. */
 function barrPuente({ b, cz, cz1, ancho, L, nb, niebla }) {
-  const acero = mez(theme.land.rock, '#20262b', 0.55);
-  const claro = mez(theme.land.rock, '#48535c', 0.5);
+  const acero = mez(theme.land.rock, '#2b333a', 0.6);
+  const claro = mez(theme.land.rock, '#7e8a93', 0.62);
   const alto = b.y1 - b.y0;
-  // el canto del tablero (la panza y el espesor), que es el borde del hueco
-  const tab = franjaAncha(ancho, b.y0, b.y0 + alto * 0.34, cz, nb(acero));
-  // LA CELOSIA: diagonales alternadas entre el tablero y el cordon superior. Se dibuja con
-  // cuadrilateros finos y no con `stroke` porque el resto del juego es raster y una linea
-  // antialiaseada se ve de otro juego.
+  const yTab = b.y0 + alto * 0.26;           // arriba del tablero; de ahi para arriba, celosia
+  // EL TABLERO CON ESPESOR: la cara de arriba primero (va detras), despues el canto de frente.
   ctx.globalAlpha = 1;
-  const N = 14, paso = ancho * 2 / N;
+  {
+    const l1 = proj(-ancho, yTab, cz1), l2 = proj(ancho, yTab, cz1);
+    const c1 = proj(-ancho, yTab, cz), c2 = proj(ancho, yTab, cz);
+    ctx.fillStyle = nb(cam.y > yTab ? claro : mez(acero, L.som, 0.35));
+    quad(ctx, l1.x, l1.y, l2.x, l2.y, c2.x, c2.y, c1.x, c1.y);
+  }
+  const tab = franjaAncha(ancho, b.y0, yTab, cz, nb(acero));
+  // LA CELOSIA: diagonales alternadas MAS un montante por tramo. Se dibuja con cuadrilateros finos
+  // y no con `stroke` porque el resto del juego es raster y una linea antialiaseada se ve de otro
+  // juego. El montante en cada tramo es lo que le da el RITMO — sin el, la celosia se lee como un
+  // zigzag suelto flotando y no como estructura.
+  const N = 20, paso = ancho * 2 / N;
   for (let i = 0; i < N; i++) {
     const xa = -ancho + i * paso, xb = xa + paso;
-    const subeA = i % 2 === 0;
-    const A = proj(xa, subeA ? b.y0 + alto * 0.34 : b.y1, cz);
-    const B = proj(xb, subeA ? b.y1 : b.y0 + alto * 0.34, cz);
-    const w = Math.max(1, 0.5 * A.k);
+    const sube = i % 2 === 0;
+    const A = proj(xa, sube ? yTab : b.y1, cz), B = proj(xb, sube ? b.y1 : yTab, cz);
+    const w = Math.max(1, 0.75 * A.k);
     ctx.fillStyle = nb(claro);
     quad(ctx, A.x, A.y, B.x, B.y, B.x + w, B.y, A.x + w, A.y);
-    // los montantes verticales, uno de cada dos: sin ellos la celosia se lee como un zigzag suelto
-    if (i % 2 === 0) {
-      const V0 = proj(xa, b.y0 + alto * 0.34, cz), V1 = proj(xa, b.y1, cz);
-      quad(ctx, V0.x - w, V0.y, V0.x + w, V0.y, V1.x + w, V1.y, V1.x - w, V1.y);
-    }
+    const V0 = proj(xa, yTab, cz), V1 = proj(xa, b.y1, cz);
+    quad(ctx, V0.x - w, V0.y, V0.x + w, V0.y, V1.x + w, V1.y, V1.x - w, V1.y);
   }
   // el cordon superior, una viga llena que cierra la celosia arriba
-  franjaAncha(ancho, b.y1 - alto * 0.16, b.y1, cz, nb(acero));
-  // LOS PILARES, hasta el agua y pegados a las dos laderas. Sin ellos la losa flota.
-  ctx.fillStyle = nb(mez(acero, L.som, 0.4));
+  franjaAncha(ancho, b.y1 - alto * 0.13, b.y1, cz, nb(acero));
+  // LOS PILARES, hasta el agua y con zapata. Iban casi negros contra un barranco casi negro: el
+  // puente flotaba porque sus apoyos, sencillamente, no se veian. Van MAS CLAROS que la roca —
+  // hormigon, no sombra— y algo mas adentro, para que se recorten contra el agua y no contra el
+  // cerro.
   for (const lado of [-1, 1]) {
-    const A = proj(lado * (ZZ_PARED_X - 4), b.y0 + alto * 0.34, cz), B = proj(lado * (ZZ_PARED_X - 4), 0, cz);
-    const w = Math.max(1, 2.6 * A.k);
+    const cx = lado * (ZZ_PARED_X - 8);
+    const A = proj(cx, yTab, cz), B = proj(cx, 0, cz);
+    const w = Math.max(1.4, 2.4 * A.k);
+    ctx.fillStyle = nb(mez(claro, L.som, 0.3));
     quad(ctx, A.x - w, A.y, A.x + w, A.y, B.x + w, B.y, B.x - w, B.y);
+    // la zapata: ensancha al pie y lo asienta en el agua en vez de dejarlo clavado
+    const z = Math.max(1, 1.2 * B.k);
+    ctx.fillStyle = nb(mez(acero, L.som, 0.2));
+    quad(ctx, B.x - w * 1.9, B.y - z, B.x + w * 1.9, B.y - z, B.x + w * 1.9, B.y + z, B.x - w * 1.9, B.y + z);
   }
   // LAS LUCES DE TOPE, rojas y latiendo: es lo que lo hace legible a 800 m, cuando la celosia
   // todavia mide dos pixeles y no se lee nada.
   const lit = 0.55 + 0.45 * Math.sin(run.t * 3);
   ctx.globalAlpha = (1 - niebla) * lit;
   for (const lado of [-1, 1]) {
-    const s = proj(lado * (ZZ_PARED_X - 4), b.y1 + 1.5, cz);
-    const r = Math.max(1, 0.9 * s.k);
+    const s = proj(lado * (ZZ_PARED_X - 8), b.y1 + 1.8, cz);
+    const r = Math.max(1, 1.1 * s.k);
     px(s.x - r / 2, s.y - r / 2, r, r, '#ff5a3c');
   }
   // la panza marcada: por ahi se pasa, asi que su borde es informacion, no adorno
   ctx.globalAlpha = 1 - niebla;
   ctx.fillStyle = '#5a656d';
-  quad(ctx, tab.C.x, tab.C.y - Math.max(1, tab.C.k * 0.4), tab.D.x, tab.D.y - Math.max(1, tab.D.k * 0.4),
+  quad(ctx, tab.C.x, tab.C.y - Math.max(1, tab.C.k * 0.45), tab.D.x, tab.D.y - Math.max(1, tab.D.k * 0.45),
     tab.D.x, tab.D.y, tab.C.x, tab.C.y);
 }
 
