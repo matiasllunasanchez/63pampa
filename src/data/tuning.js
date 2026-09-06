@@ -1183,7 +1183,14 @@ export const ZZ_BARR_GROSOR = 5;
 // centro (donde el arco es mas alto) y `ANCHO` el semiancho de la boca. Es la unica de las cuatro
 // pieles cuya colision no es una franja recta — el hueco es un arco, asi que la roca baja hacia
 // los costados, y si la cuenta no siguiera la curva el dibujo estaria mintiendo.
-export const ZZ_BARR_ARCO = [14, 21], ZZ_BARR_ARCO_ANCHO = 30, ZZ_BARR_ARCO_MASA = 16;
+// EL ARCO: luz en el centro, semiancho del vano y espesor del PUENTE de roca que queda encima.
+//
+// LA MASA BAJO DE 16 A 7 Y EL VANO SUBIO DE 30 A 36 por el mismo motivo: con dieciseis metros de
+// roca sobre un vano de sesenta, el arco no era un arco — era un PORTON, un muro macizo con un
+// agujero. Un arco de mar es lo contrario: un puente de piedra FINO sobre un vano grande, y lo que
+// impresiona es justamente que se sostenga. Al adelgazarlo, ademas, pasarlo por arriba deja de
+// pedir la trepada de un cerro entero.
+export const ZZ_BARR_ARCO = [15, 22], ZZ_BARR_ARCO_ANCHO = 36, ZZ_BARR_ARCO_MASA = 7;
 // LOS CABLES: a que altura cuelga el tendido y cuanto ocupa de arriba a abajo (el manojo entero,
 // con la panza de la catenaria incluida). Es lo que de verdad mata pilotos bajos, y es tenso
 // porque casi no se ve — por eso las TORRES van bien marcadas: el cable se adivina desde ellas.

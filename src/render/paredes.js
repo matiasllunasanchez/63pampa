@@ -21,7 +21,7 @@ import { ctx, px, W, H, HOR, F } from './ctx.js';
 import { cam, cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { proj } from '../core/fx.js';
-import { pared, paredH, paredXAt, paredCara, bendW, barreraCerca, arcoY } from '../core/zigzag.js';
+import { pared, paredH, paredXAt, paredCara, bendW, barreraCerca, arcoY, arcoTop } from '../core/zigzag.js';
 import { tierraH, hayRelieve } from '../core/tierra.js';
 import { theme } from './theme.js';
 import { ZZ_PARED_Z, ZZ_PARED_PASO, ZZ_MESETA_W, ZZ_NIEBLA_Z0, ZZ_NIEBLA_FULL,
@@ -499,52 +499,75 @@ function barrRoca({ b, cz, cz1, ancho, T, L, nb, niebla }) {
 
 /** EL ARCO DE ROCA: los dos cerros se cierran arriba y dejan una boca CURVA. Se pasa por abajo.
  *
- *  Se dibuja por REBANADAS VERTICALES a lo ancho de la boca, cada una desde la curva del intrados
- *  hasta el lomo. Es la unica forma de que la silueta sea de verdad un arco y no un rectangulo con
- *  las esquinas pintadas: la curva la da la misma funcion contra la que se resuelve la colision. */
+ *  SE DIBUJA ENTERO POR REBANADAS VERTICALES, de punta a punta del pasillo — patas incluidas. Es
+ *  la unica forma de que la silueta sea de verdad un arco y no un rectangulo con las esquinas
+ *  pintadas: cada rebanada va desde el suelo (o desde la curva del intrados, si esta en el vano)
+ *  hasta el lomo, y las dos curvas salen de las MISMAS funciones contra las que resuelve la
+ *  colision. Lo que se ve es lo que mata, tambien acá — y por eso el lomo puede ser irregular.
+ *
+ *  Y va con la textura del talud: tres franjas de altura y estriado vertical por banda de mundo.
+ *  Sin eso, por bien recortada que este la silueta, la piedra se lee como cartulina — que es
+ *  exactamente lo que pasaba con la primera version. */
 function barrArco({ b, cz, cz1, ancho, T, L, nb, niebla }) {
-  // LAS PATAS: de punta a punta y macizas, con la misma cara de tierra del talud
-  for (const lado of [-1, 1]) {
-    const x0 = lado * b.w, x1 = lado * ancho;
-    const A = proj(x0, b.y1, cz), B = proj(x1, b.y1, cz);
-    const C = proj(x0, 0, cz), D = proj(x1, 0, cz);
-    ctx.fillStyle = nb(L.cuerpo);
-    quad(ctx, A.x, A.y, B.x, B.y, D.x, D.y, C.x, C.y);
+  const N = 64, paso = ancho * 2 / N;
+  const lomo = [];
+  for (let i = 0; i <= N; i++) {
+    const x = -ancho + i * paso;
+    lomo.push({ x, top: arcoTop(b, x), pie: Math.abs(x) < b.w ? arcoY(b, x) : 0 });
   }
-  // LA BOVEDA, rebanada por rebanada
-  const N = 26;
+  // EL CUERPO, rebanada por rebanada y en tres franjas de altura, como el talud
   for (let i = 0; i < N; i++) {
-    const xa = -b.w + (i / N) * b.w * 2, xb = -b.w + ((i + 1) / N) * b.w * 2;
-    const ya = arcoY(b, xa), yb = arcoY(b, xb);
-    const A = proj(xa, b.y1, cz), B = proj(xb, b.y1, cz);
-    const C = proj(xa, ya, cz), D = proj(xb, yb, cz);
-    // el tono cambia con la altura de la rebanada: la clave del arco al sol, los arranques en
-    // sombra. Es lo que le da volumen a una silueta que si no seria una mancha recortada.
-    const k = 1 - Math.abs(xa) / b.w;
-    ctx.fillStyle = nb(mez(L.cuerpo, L.luz, k * 0.5));
+    const a = lomo[i], c = lomo[i + 1];
+    if (a.top - a.pie <= 0.2 && c.top - c.pie <= 0.2) continue;
+    // el estriado: cada columna se aclara o se oscurece un poco segun su posicion de mundo. Es lo
+    // que le pone carcavas a la piedra — el mismo recurso que la cara de la ladera.
+    const e = hash2(Math.floor(a.x / 3), 991 + b.idx);
+    const est = c0 => e < 0.42 ? mez(c0, L.som, (0.42 - e) * 0.5)
+      : e > 0.62 ? mez(c0, L.luz, (e - 0.62) * 0.4) : c0;
+    // la CLAVE del arco al sol, los arranques en sombra: es lo que le da volumen a la boveda
+    const k = Math.max(0, 1 - Math.abs(a.x) / (b.w * 1.4));
+    const base = mez(L.cuerpo, L.luz, k * 0.4);
+    for (const [t0, t1, col] of [[0, 0.38, mez(L.som, base, 0.5)], [0.36, 0.76, base],
+      [0.74, 1, mez(base, L.luz, 0.45)]]) {
+      const ya0 = a.pie + (a.top - a.pie) * t0, ya1 = a.pie + (a.top - a.pie) * t1;
+      const yc0 = c.pie + (c.top - c.pie) * t0, yc1 = c.pie + (c.top - c.pie) * t1;
+      const A = proj(a.x, ya1, cz), B = proj(c.x, yc1, cz);
+      const C = proj(a.x, ya0, cz), D = proj(c.x, yc0, cz);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = nb(est(col));
+      quad(ctx, A.x, A.y - 0.6, B.x, B.y - 0.6, D.x, D.y + 0.6, C.x, C.y + 0.6);
+    }
+  }
+  // EL ESPESOR: la cara de atras asomando por encima del lomo. Sin esto el arco es una calcomania
+  // recortada; con esto se ve que la piedra tiene FONDO.
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = nb(cam.y > b.y1 ? T.cerca : mez(L.cuerpo, L.som, 0.55));
+  for (let i = 0; i < N; i++) {
+    const a = lomo[i], c = lomo[i + 1];
+    const A = proj(a.x, a.top, cz1), B = proj(c.x, c.top, cz1);
+    const C = proj(a.x, a.top, cz), D = proj(c.x, c.top, cz);
     quad(ctx, A.x, A.y, B.x, B.y, D.x, D.y, C.x, C.y);
   }
-  // EL INTRADOS marcado con una linea oscura: es el borde del hueco, o sea informacion pura
+  // EL GORRO DE PASTO, siguiendo el lomo. Es lo que ata el arco al paisaje: la misma turba que
+  // corona las laderas, y por eso deja de leerse como obra y pasa a leerse como el cerro que
+  // sigue por encima del hueco. La continuidad la hace el color, no la forma.
+  ctx.fillStyle = nb(T.corona);
+  for (let i = 0; i < N; i++) {
+    const a = lomo[i], c = lomo[i + 1];
+    const A = proj(a.x, a.top, cz), B = proj(c.x, c.top, cz);
+    const g = Math.max(1, A.k * 0.8);
+    quad(ctx, A.x, A.y, B.x, B.y, B.x, B.y + g, A.x, A.y + g);
+  }
+  // EL INTRADOS marcado en sombra: es el borde del hueco por el que hay que entrar, o sea
+  // informacion pura y no adorno.
   ctx.globalAlpha = 1 - niebla;
   ctx.fillStyle = L.som;
   for (let i = 0; i < N; i++) {
-    const xa = -b.w + (i / N) * b.w * 2, xb = -b.w + ((i + 1) / N) * b.w * 2;
-    const C = proj(xa, arcoY(b, xa), cz), D = proj(xb, arcoY(b, xb), cz);
-    quad(ctx, C.x, C.y, D.x, D.y, D.x, D.y + Math.max(1, C.k * 0.5), C.x, C.y + Math.max(1, C.k * 0.5));
+    const a = lomo[i], c = lomo[i + 1];
+    if (Math.abs(a.x) >= b.w) continue;
+    const C = proj(a.x, a.pie, cz), D = proj(c.x, c.pie, cz);
+    quad(ctx, C.x, C.y, D.x, D.y, D.x, D.y + Math.max(1, C.k * 0.55), C.x, C.y + Math.max(1, C.k * 0.55));
   }
-  // EL LOMO, que le da espesor y lo separa del cielo
-  ctx.globalAlpha = 1;
-  const l1 = proj(-ancho, b.y1, cz1), l2 = proj(ancho, b.y1, cz1);
-  const c1 = proj(-ancho, b.y1, cz), c2 = proj(ancho, b.y1, cz);
-  ctx.fillStyle = nb(cam.y > b.y1 ? T.cerca : mez(L.cuerpo, L.som, 0.5));
-  quad(ctx, l1.x, l1.y, l2.x, l2.y, c2.x, c2.y, c1.x, c1.y);
-  // EL GORRO DE PASTO. Sin el, el lomo recto de la masa lo hace leer como un PORTON de hormigon;
-  // con la misma turba que corona las laderas, se lee como lo que es: el cerro que sigue por
-  // encima del hueco. Es el mismo verde de la meseta — la continuidad la hace el color, no la
-  // forma, y por eso alcanza con una franja fina.
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = nb(T.corona);
-  quad(ctx, c1.x, c1.y, c2.x, c2.y, c2.x, c2.y + Math.max(1, c1.k * 0.9), c1.x, c1.y + Math.max(1, c1.k * 0.9));
 }
 
 /** EL PUENTE DE VIGAS. Tablero, celosia y pilares — y la celosia va ARRIBA del tablero, no abajo,

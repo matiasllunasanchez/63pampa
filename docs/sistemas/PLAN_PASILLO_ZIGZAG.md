@@ -1028,6 +1028,23 @@ que memorizarla, hay que leerla.
      reportaba CERO sobre un motor que sembraba bien. Se vio dando **0 y 6 en dos corridas seguidas
      sin tocar nada**, que es la firma de una prueba mal parada.
 
+105. **El arco era un PORTÓN, y lo arreglaron las proporciones antes que el detalle.** Dieciséis
+     metros de roca maciza sobre un vano de sesenta no es un arco: es un muro con un agujero. Un
+     arco de mar es lo contrario — un puente de piedra **fino** sobre un vano grande, y lo que
+     impresiona es justamente que se sostenga. Masa 16 → 7, vano 30 → 36. De paso, pasarlo por
+     arriba dejó de pedir la trepada de un cerro entero.
+106. **Y el lomo recto era la otra mitad: la piedra no tiene cantos de tiralíneas.** Pero apenas el
+     dibujo se despeina hay que elegir — o la silueta sube por encima de lo que mata (roca pintada
+     por la que se vuela) o baja por debajo (cielo pintado que mata). La salida es que sean **la
+     misma cuenta**: `arcoTop()` la usan el dibujo y la colisión, igual que `arcoY()` para el
+     intradós. Es la misma lección que el talud, en otro sitio. La onda sólo **hunde** el lomo,
+     nunca lo levanta: `y1` sigue siendo la cota que siempre salva, y el jugador tiene derecho a
+     que esa altura exista.
+107. **Se dibuja por rebanadas de punta a punta, patas incluidas** — no un rectángulo con las
+     esquinas pintadas —, y con la textura del talud: tres franjas de altura, estriado vertical por
+     banda de mundo, y la clave del arco al sol contra los arranques en sombra. Sin eso, por bien
+     recortada que esté la silueta, la piedra se lee como cartulina.
+
 ### Lo que queda para el próximo playtest
 
 - El **ritmo**: `ZZ_PUNTA_CADA` 190 m es una punta cada ~2,5 s a velocidad de crucero.

@@ -486,6 +486,26 @@ export function arcoY(b, x) {
   return u >= 1 ? 0 : b.y0 * Math.sqrt(1 - u * u);
 }
 
+/** EL LOMO DEL ARCO: a que altura queda su cara de ARRIBA en la `x` pedida.
+ *
+ *  ⚠ EXISTE PARA QUE EL DIBUJO PUEDA SER IRREGULAR SIN MENTIR. Con un lomo recto, el arco se leia
+ *  como un porton de hormigon: la piedra no tiene cantos de tiralineas. Pero apenas el dibujo se
+ *  despeina hay que elegir — o la silueta sube por encima de lo que mata (roca pintada por la que
+ *  se vuela) o baja por debajo (cielo pintado que mata). La salida es que sean LA MISMA CUENTA, y
+ *  esta es. Es la misma leccion que el talud de la ladera, en otro sitio.
+ *
+ *  Nunca pasa de `y1`: esa sigue siendo LA COTA por encima de la cual se pasa, y el jugador tiene
+ *  derecho a que exista una altura que siempre lo salva. Lo que hace la onda es HUNDIR el lomo
+ *  hacia los hombros, que es como se gasta la piedra de verdad. */
+export function arcoTop(b, x) {
+  if (!b.w) return b.y1;
+  const u = Math.min(1, Math.abs(x) / (b.w * 1.5));
+  // dos senos incommensurables con la fase de la barrera: dos arcos distintos no se gastan igual
+  const onda = (Math.sin(x * 0.085 + b.idx * 1.7) * 0.6 + Math.sin(x * 0.19 + b.idx * 3.1) * 0.4 + 1) / 2;
+  const hundido = 0.30 * u * u + 0.12 * (1 - onda);
+  return b.y1 * (1 - Math.min(0.42, hundido));
+}
+
 /** ¿Este punto esta adentro de una barrera? La `x` no entra en la cuenta: la barrera cruza el
  *  pasillo ENTERO — de eso se trata. Cobra `ZZ_BARR_MARGEN` mas adentro de lo que se dibuja, por
  *  la misma razon que el talud de la ladera: morir contra una linea invisible pegada al dibujo es
@@ -500,10 +520,13 @@ export function enBarrera(x, y, wz) {
   // EL ARCO: adentro de la boca, la roca empieza en la curva; afuera, es pata maciza de punta a
   // punta. Es la unica piel cuya cuenta mira la `x`, y tiene que mirarla — si el hueco se dibuja
   // curvo y se cobra recto, el dibujo miente justo donde el jugador esta apuntando.
-  if (b.tipo === 'arco' && Math.abs(x) < b.w) {
-    return y > arcoY(b, x) + m && y < b.y1 - m ? b : null;
+  if (b.tipo === 'arco') {
+    const techo = arcoTop(b, x) - m;
+    // adentro del vano la roca empieza en la curva; afuera, es pata maciza hasta el agua
+    return Math.abs(x) < b.w
+      ? (y > arcoY(b, x) + m && y < techo ? b : null)
+      : (y < techo ? b : null);
   }
-  if (b.tipo === 'arco') return y < b.y1 - m ? b : null;
   // ⚠ EL MARGEN ACHICA LO QUE MATA, NUNCA LO AGRANDA. El primer intento lo sumaba hacia abajo y
   // el puente cobraba MAS ABAJO de su panza: el hueco por el que hay que pasar se hacia mas
   // chico que el que se ve, que es exactamente el bug que el margen viene a evitar.
