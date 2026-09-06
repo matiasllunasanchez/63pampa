@@ -21,7 +21,7 @@ import { ctx, px, W, H, HOR, F } from './ctx.js';
 import { cam, cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { proj } from '../core/fx.js';
-import { pared, paredH, paredXAt, paredCara, bendW, barreraCerca, arcoY, arcoTop } from '../core/zigzag.js';
+import { pared, paredH, paredXAt, paredCara, bendW, barreraCerca } from '../core/zigzag.js';
 import { tierraH, hayRelieve } from '../core/tierra.js';
 import { theme } from './theme.js';
 import { ZZ_PARED_Z, ZZ_PARED_PASO, ZZ_MESETA_W, ZZ_NIEBLA_Z0, ZZ_NIEBLA_FULL,
@@ -459,7 +459,7 @@ export function drawBarreras() {
   ctx.globalAlpha = 1;
   if (b.tipo === 'puente') barrPuente(P4);
   else if (b.tipo === 'cables') barrCables(P4);
-  else if (b.tipo === 'arco') barrArco(P4);
+  else if (b.tipo === 'madera') barrMadera(P4);
   else barrRoca(P4);
   ctx.globalAlpha = 1;
 }
@@ -497,77 +497,92 @@ function barrRoca({ b, cz, cz1, ancho, T, L, nb, niebla }) {
     top.B.x, top.B.y + Math.max(1, top.A.k * 0.6), top.A.x, top.A.y + Math.max(1, top.A.k * 0.6));
 }
 
-/** EL ARCO DE ROCA: los dos cerros se cierran arriba y dejan una boca CURVA. Se pasa por abajo.
+/** EL PUENTE DE MADERA: un viaducto de troncos apoyado en los dos barrancos.
  *
- *  SE DIBUJA ENTERO POR REBANADAS VERTICALES, de punta a punta del pasillo — patas incluidas. Es
- *  la unica forma de que la silueta sea de verdad un arco y no un rectangulo con las esquinas
- *  pintadas: cada rebanada va desde el suelo (o desde la curva del intrados, si esta en el vano)
- *  hasta el lomo, y las dos curvas salen de las MISMAS funciones contra las que resuelve la
- *  colision. Lo que se ve es lo que mata, tambien acá — y por eso el lomo puede ser irregular.
+ *  REEMPLAZA AL ARCO DE ROCA. El arco se dibujaba como una PLACA a una sola profundidad pegada
+ *  delante del pasillo, y por eso se leia como una FIGURITA: no salia del terreno, estaba puesto
+ *  encima. Para que saliera de la misma estructura tendria que ser un AGUJERO en el terreno, y el
+ *  terreno del callejon es un campo de alturas — puede subir y bajar, no puede tener huecos.
  *
- *  Y va con la textura del talud: tres franjas de altura y estriado vertical por banda de mundo.
- *  Sin eso, por bien recortada que este la silueta, la piedra se lee como cartulina — que es
- *  exactamente lo que pasaba con la primera version. */
-function barrArco({ b, cz, cz1, ancho, T, L, nb, niebla }) {
-  const N = 64, paso = ancho * 2 / N;
-  const lomo = [];
-  for (let i = 0; i <= N; i++) {
-    const x = -ancho + i * paso;
-    lomo.push({ x, top: arcoTop(b, x), pie: Math.abs(x) < b.w ? arcoY(b, x) : 0 });
+ *  Un puente no tiene ese problema: ES una cosa aparte apoyada sobre el barranco, asi que leerse
+ *  como un objeto puesto ahi no es un defecto — es lo que es. Y la madera ademas se separa sola de
+ *  la roca por color, que es lo que le faltaba al arco para no confundirse con el cerro.
+ *
+ *  SE DIBUJA CON FONDO: el tablero va de `cz` a `cz1` y no en un solo plano. Es la otra mitad de
+ *  por que aquello parecia una calcomania — una cosa sin espesor no esta en el mundo, esta pegada
+ *  a la pantalla. */
+function barrMadera({ b, cz, cz1, ancho, L, nb, niebla }) {
+  const T = tierraArriba();
+  // LA MADERA SALE DEL TEMA, como todo: es la turba calentada al naranja. Una paleta fija seria el
+  // bug de "el puente no tiene clima" — de noche o con tormenta seguiria siendo el mismo marron
+  // mientras el cerro de al lado cambia.
+  const tabla = mez(T.furrow, '#8a5a33', 0.55);
+  const claro = mez(tabla, L.luz, 0.45);
+  const oscuro = mez(tabla, L.som, 0.5);
+  const canto = b.y1 - b.y0;
+  const yTab = b.y0 + canto * 0.42;          // arriba del tablero; lo de encima es baranda
+  // EL TABLERO CON ESPESOR: primero la cara de arriba (de cz1 a cz), despues el canto de frente.
+  ctx.globalAlpha = 1;
+  {
+    const l1 = proj(-ancho, yTab, cz1), l2 = proj(ancho, yTab, cz1);
+    const c1 = proj(-ancho, yTab, cz), c2 = proj(ancho, yTab, cz);
+    ctx.fillStyle = nb(cam.y > yTab ? claro : oscuro);
+    quad(ctx, l1.x, l1.y, l2.x, l2.y, c2.x, c2.y, c1.x, c1.y);
   }
-  // EL CUERPO, rebanada por rebanada y en tres franjas de altura, como el talud
-  for (let i = 0; i < N; i++) {
-    const a = lomo[i], c = lomo[i + 1];
-    if (a.top - a.pie <= 0.2 && c.top - c.pie <= 0.2) continue;
-    // el estriado: cada columna se aclara o se oscurece un poco segun su posicion de mundo. Es lo
-    // que le pone carcavas a la piedra — el mismo recurso que la cara de la ladera.
-    const e = hash2(Math.floor(a.x / 3), 991 + b.idx);
-    const est = c0 => e < 0.42 ? mez(c0, L.som, (0.42 - e) * 0.5)
-      : e > 0.62 ? mez(c0, L.luz, (e - 0.62) * 0.4) : c0;
-    // la CLAVE del arco al sol, los arranques en sombra: es lo que le da volumen a la boveda
-    const k = Math.max(0, 1 - Math.abs(a.x) / (b.w * 1.4));
-    const base = mez(L.cuerpo, L.luz, k * 0.4);
-    for (const [t0, t1, col] of [[0, 0.38, mez(L.som, base, 0.5)], [0.36, 0.76, base],
-      [0.74, 1, mez(base, L.luz, 0.45)]]) {
-      const ya0 = a.pie + (a.top - a.pie) * t0, ya1 = a.pie + (a.top - a.pie) * t1;
-      const yc0 = c.pie + (c.top - c.pie) * t0, yc1 = c.pie + (c.top - c.pie) * t1;
-      const A = proj(a.x, ya1, cz), B = proj(c.x, yc1, cz);
-      const C = proj(a.x, ya0, cz), D = proj(c.x, yc0, cz);
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = nb(est(col));
-      quad(ctx, A.x, A.y - 0.6, B.x, B.y - 0.6, D.x, D.y + 0.6, C.x, C.y + 0.6);
+  franjaAncha(ancho, b.y0, yTab, cz, nb(tabla));
+  // LOS TABLONES, uno por uno: es lo que dice "madera" y no "viga". Se dibujan como costuras
+  // verticales sobre el canto, alternando el tono — a esta escala la veta no se ve, la juntura si.
+  const NT = 40, pasoT = ancho * 2 / NT;
+  for (let i = 0; i < NT; i++) {
+    if (i % 2) continue;
+    const x = -ancho + i * pasoT;
+    const A = proj(x, yTab, cz), B = proj(x + pasoT * 0.5, b.y0, cz);
+    ctx.fillStyle = nb(i % 4 === 0 ? oscuro : claro);
+    quad(ctx, A.x, A.y, B.x, A.y, B.x, B.y, A.x, B.y);
+  }
+  // LA BARANDA: postes y un pasamanos corrido. Es lo que lo vuelve reconocible de lejos, cuando el
+  // tablero todavia mide tres pixeles — la silueta de una baranda no se parece a nada mas.
+  const NP = 22, pasoP = ancho * 2 / NP;
+  ctx.fillStyle = nb(oscuro);
+  for (let i = 0; i <= NP; i++) {
+    const x = -ancho + i * pasoP;
+    const A = proj(x, b.y1, cz), B = proj(x, yTab, cz);
+    const w = Math.max(1, 0.45 * A.k);
+    quad(ctx, A.x - w, A.y, A.x + w, A.y, B.x + w, B.y, B.x - w, B.y);
+  }
+  franjaAncha(ancho, b.y1 - canto * 0.14, b.y1, cz, nb(claro));
+  // LAS TORRES DE CABALLETE, contra los dos barrancos: dos montantes que se abren hacia abajo y
+  // las cruces de San Andres entre ellos. Es la firma del viaducto de madera, y va PEGADA a las
+  // laderas para no meter palos adentro del hueco por el que hay que pasar.
+  for (const lado of [-1, 1]) {
+    const cx = lado * (ZZ_PARED_X - 5), cab = 3, pie = 7;
+    ctx.fillStyle = nb(tabla);
+    for (const sg of [-1, 1]) {
+      const A = proj(cx + sg * cab, b.y0, cz), B = proj(cx + sg * pie, 0, cz);
+      const w = Math.max(1.2, 1.5 * A.k);
+      quad(ctx, A.x - w, A.y, A.x + w, A.y, B.x + w, B.y, B.x - w, B.y);
+    }
+    // las cruces, en dos pisos
+    ctx.fillStyle = nb(oscuro);
+    for (let piso = 0; piso < 2; piso++) {
+      const y0 = b.y0 * (piso / 2), y1 = b.y0 * ((piso + 1) / 2);
+      const an0 = cab + (pie - cab) * (1 - piso / 2), an1 = cab + (pie - cab) * (1 - (piso + 1) / 2);
+      for (const sg of [-1, 1]) {
+        const A = proj(cx - sg * an1, y1, cz), B = proj(cx + sg * an0, y0, cz);
+        const w = Math.max(1, 0.6 * A.k);
+        quad(ctx, A.x - w, A.y, A.x + w, A.y, B.x + w, B.y, B.x - w, B.y);
+      }
+      // el travesaño horizontal que cierra el piso
+      const H1 = proj(cx - an1, y1, cz), H2 = proj(cx + an1, y1, cz);
+      const h = Math.max(1, 0.5 * H1.k);
+      quad(ctx, H1.x, H1.y - h, H2.x, H2.y - h, H2.x, H2.y, H1.x, H1.y);
     }
   }
-  // EL ESPESOR: la cara de atras asomando por encima del lomo. Sin esto el arco es una calcomania
-  // recortada; con esto se ve que la piedra tiene FONDO.
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = nb(cam.y > b.y1 ? T.cerca : mez(L.cuerpo, L.som, 0.55));
-  for (let i = 0; i < N; i++) {
-    const a = lomo[i], c = lomo[i + 1];
-    const A = proj(a.x, a.top, cz1), B = proj(c.x, c.top, cz1);
-    const C = proj(a.x, a.top, cz), D = proj(c.x, c.top, cz);
-    quad(ctx, A.x, A.y, B.x, B.y, D.x, D.y, C.x, C.y);
-  }
-  // EL GORRO DE PASTO, siguiendo el lomo. Es lo que ata el arco al paisaje: la misma turba que
-  // corona las laderas, y por eso deja de leerse como obra y pasa a leerse como el cerro que
-  // sigue por encima del hueco. La continuidad la hace el color, no la forma.
-  ctx.fillStyle = nb(T.corona);
-  for (let i = 0; i < N; i++) {
-    const a = lomo[i], c = lomo[i + 1];
-    const A = proj(a.x, a.top, cz), B = proj(c.x, c.top, cz);
-    const g = Math.max(1, A.k * 0.8);
-    quad(ctx, A.x, A.y, B.x, B.y, B.x, B.y + g, A.x, A.y + g);
-  }
-  // EL INTRADOS marcado en sombra: es el borde del hueco por el que hay que entrar, o sea
-  // informacion pura y no adorno.
+  // la panza marcada: por ahi se pasa, asi que su borde es informacion y no adorno
   ctx.globalAlpha = 1 - niebla;
-  ctx.fillStyle = L.som;
-  for (let i = 0; i < N; i++) {
-    const a = lomo[i], c = lomo[i + 1];
-    if (Math.abs(a.x) >= b.w) continue;
-    const C = proj(a.x, a.pie, cz), D = proj(c.x, c.pie, cz);
-    quad(ctx, C.x, C.y, D.x, D.y, D.x, D.y + Math.max(1, C.k * 0.55), C.x, C.y + Math.max(1, C.k * 0.55));
-  }
+  const C = proj(-ancho, b.y0, cz), D = proj(ancho, b.y0, cz);
+  ctx.fillStyle = mez(oscuro, L.som, 0.5);
+  quad(ctx, C.x, C.y - Math.max(1, C.k * 0.45), D.x, D.y - Math.max(1, D.k * 0.45), D.x, D.y, C.x, C.y);
 }
 
 /** EL PUENTE DE VIGAS. Tablero, celosia y pilares — y la celosia va ARRIBA del tablero, no abajo,

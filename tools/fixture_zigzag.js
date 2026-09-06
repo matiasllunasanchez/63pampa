@@ -549,7 +549,7 @@ app.whenReady().then(async () => {
       })()`));
       // LAS CUATRO PIELES TIENEN QUE SALIR. Son el mismo objeto con otra ropa, asi que si una no
       // aparece nunca no es que se vea poco: es que el sorteo no la contempla y esta muerta.
-      const faltan = ['roca', 'arco', 'puente', 'cables'].filter(t => !r.n[t]);
+      const faltan = ['roca', 'puente', 'madera', 'cables'].filter(t => !r.n[t]);
       if (!faltan.length) ok(`salen las cuatro pieles (${JSON.stringify(r.n)})`);
       else bad(`no sale nunca: ${faltan.join(', ')} — ${JSON.stringify(r.n)}`);
       // NINGUNA PUEDE PEDIR LO QUE EL AVION NO TIENE. El techo de vuelo es 68: una barrera que
@@ -584,13 +584,10 @@ app.whenReady().then(async () => {
           // radar mata en tres segundos sin que haya una sola barrera. Una prueba que se quede
           // arriba esperando esta midiendo el radar, no la barrera.
           if (b && b.cz < 160) {
-            // POR EL HUECO: arriba de la roca; POR DENTRO del arco (en el centro es donde mas alto
-            // esta); por abajo del puente y de los cables. Por el MACIZO: derecho al medio de la
-            // franja que mata, que en el arco es el centro de la boveda.
+            // POR EL HUECO: arriba de la roca, por abajo de las otras tres. Por el MACIZO: derecho
+            // al medio de la franja que mata.
             alt = modo === 'hueco'
-              ? (b.tipo === 'roca' ? b.y1 + 8
-                : b.tipo === 'arco' ? b.y0 * 0.45
-                  : Math.max(4, b.y0 - 5))
+              ? (b.tipo === 'roca' ? b.y1 + 8 : Math.max(4, b.y0 - 5))
               : (b.tipo === 'roca' ? Math.max(4, b.y1 / 2) : (b.y0 + b.y1) / 2);
           }
           await js(`window.__chaput(0, ${alt})`);

@@ -29,7 +29,7 @@ import { ZZ_CURV_MAX, ZZ_LARGO_MIN, ZZ_EMPALME, ZZ_BEND_Z, ZZ_BEND_PASO,
   ZZ_PUNTA_CADA, ZZ_PUNTA_LARGO, ZZ_PUNTA_MAX, ZZ_PUNTA_P, ZZ_PUNTA_RAMPA,
   ZZ_PARED_PEND, ZZ_PARED_ONDA,
   ZZ_BARR_CADA, ZZ_BARR_LARGO, ZZ_BARR_ROCA, ZZ_BARR_PUENTE, ZZ_BARR_GROSOR,
-  ZZ_BARR_ARCO, ZZ_BARR_ARCO_ANCHO, ZZ_BARR_ARCO_MASA, ZZ_BARR_CABLE, ZZ_BARR_CABLE_MANOJO,
+  ZZ_BARR_MADERA, ZZ_BARR_MADERA_CANTO, ZZ_BARR_CABLE, ZZ_BARR_CABLE_MANOJO,
   ZZ_BARR_MARGEN } from '../data/tuning.js';
 
 /** Las claves que un `zigzag:` puede traer. Cualquier otra es error de DATOS y el validador la
@@ -41,9 +41,9 @@ export const CLAVES_PARED = ['alto', 'x', 'mata', 'lado', 'barreras'];
 // 'der' dejan el otro costado ABIERTO al mar — una costa, o un acantilado de un solo lado.
 export const LADOS = ['ambos', 'izq', 'der'];
 // QUE FORMA tienen las barreras que cierran el callejon (zigzag Z8). 'no' es el default.
-export const BARRERAS = ['no', 'roca', 'arco', 'puente', 'cables', 'mezcla'];
+export const BARRERAS = ['no', 'roca', 'puente', 'madera', 'cables', 'mezcla'];
 // las que el sorteo de 'mezcla' puede sacar. Es la lista de PIELES, y el orden no importa.
-const BARR_MEZCLA = ['roca', 'arco', 'puente', 'cables'];
+const BARR_MEZCLA = ['roca', 'puente', 'madera', 'cables'];
 
 /** hash entero → [0,1). La misma copia de bolsillo que usan core/tierra.js y render/world.js:
  *  este modulo es puro y no puede importar del render. */
@@ -459,9 +459,9 @@ export function barreraDe(wz) {
     : p.barreras;
   const r = hash1(idx * 3313 + 7);
   const entre = ([a, b]) => a + r * (b - a);
-  // LAS CUATRO PIELES SALEN DEL MISMO OBJETO: una franja maciza entre dos alturas. Lo unico que
-  // cambia de verdad es EL ARCO, cuyo hueco es curvo — por eso lleva `w`, el semiancho de la boca,
-  // y por eso es la unica cuya colision no es una linea recta (ver `enBarrera`).
+  // LAS CUATRO PIELES SALEN DEL MISMO OBJETO: una franja maciza entre dos alturas, y lo unico que
+  // cambia es como se dibujan. Hubo una quinta —un ARCO DE ROCA, con hueco curvo— y se saco: ver
+  // el comentario de ZZ_BARR_MADERA en data/tuning.js.
   if (tipo === 'puente') {
     const bajo = entre(ZZ_BARR_PUENTE);
     return { z0, z1, tipo, y0: bajo, y1: bajo + ZZ_BARR_GROSOR, w: 0, idx };
@@ -470,40 +470,11 @@ export function barreraDe(wz) {
     const alto = entre(ZZ_BARR_CABLE);
     return { z0, z1, tipo, y0: alto, y1: alto + ZZ_BARR_CABLE_MANOJO, w: 0, idx };
   }
-  if (tipo === 'arco') {
-    const luz = entre(ZZ_BARR_ARCO);
-    return { z0, z1, tipo, y0: luz, y1: luz + ZZ_BARR_ARCO_MASA, w: ZZ_BARR_ARCO_ANCHO, idx };
+  if (tipo === 'madera') {
+    const tablero = entre(ZZ_BARR_MADERA);
+    return { z0, z1, tipo, y0: tablero, y1: tablero + ZZ_BARR_MADERA_CANTO, w: 0, idx };
   }
   return { z0, z1, tipo: 'roca', y0: 0, y1: entre(ZZ_BARR_ROCA), w: 0, idx };
-}
-
-/** LA CURVA DEL ARCO: a que altura queda su intrados (la cara de abajo) en la `x` pedida.
- *  Cero en las patas y `y0` en el centro — media elipse, que es la forma que toma la piedra cuando
- *  el mar le come el pie a un promontorio. Fuera de la boca no hay arco: hay pata. */
-export function arcoY(b, x) {
-  if (!b.w) return b.y0;
-  const u = Math.abs(x) / b.w;
-  return u >= 1 ? 0 : b.y0 * Math.sqrt(1 - u * u);
-}
-
-/** EL LOMO DEL ARCO: a que altura queda su cara de ARRIBA en la `x` pedida.
- *
- *  ⚠ EXISTE PARA QUE EL DIBUJO PUEDA SER IRREGULAR SIN MENTIR. Con un lomo recto, el arco se leia
- *  como un porton de hormigon: la piedra no tiene cantos de tiralineas. Pero apenas el dibujo se
- *  despeina hay que elegir — o la silueta sube por encima de lo que mata (roca pintada por la que
- *  se vuela) o baja por debajo (cielo pintado que mata). La salida es que sean LA MISMA CUENTA, y
- *  esta es. Es la misma leccion que el talud de la ladera, en otro sitio.
- *
- *  Nunca pasa de `y1`: esa sigue siendo LA COTA por encima de la cual se pasa, y el jugador tiene
- *  derecho a que exista una altura que siempre lo salva. Lo que hace la onda es HUNDIR el lomo
- *  hacia los hombros, que es como se gasta la piedra de verdad. */
-export function arcoTop(b, x) {
-  if (!b.w) return b.y1;
-  const u = Math.min(1, Math.abs(x) / (b.w * 1.5));
-  // dos senos incommensurables con la fase de la barrera: dos arcos distintos no se gastan igual
-  const onda = (Math.sin(x * 0.085 + b.idx * 1.7) * 0.6 + Math.sin(x * 0.19 + b.idx * 3.1) * 0.4 + 1) / 2;
-  const hundido = 0.30 * u * u + 0.12 * (1 - onda);
-  return b.y1 * (1 - Math.min(0.42, hundido));
 }
 
 /** ¿Este punto esta adentro de una barrera? La `x` no entra en la cuenta: la barrera cruza el
@@ -511,22 +482,15 @@ export function arcoTop(b, x) {
  *  la misma razon que el talud de la ladera: morir contra una linea invisible pegada al dibujo es
  *  injusto, y el jugador no puede medir pixeles a 150 m/s. */
 export function enBarrera(x, y, wz) {
+  // `x` NO ENTRA EN LA CUENTA de ninguna de las cuatro pieles: la barrera cruza el pasillo entero,
+  // de eso se trata. Queda en la firma porque la hubo — el arco de roca miraba la `x` para seguir
+  // la curva de su vano— y porque cualquier piel futura con hueco lateral la va a necesitar.
   const b = barreraDe(wz);
   if (!b) return null;
   // EL MARGEN SE ACHICA CON LA FRANJA. Fijo en 1.2, un manojo de cables de 4.5 m quedaba con el
   // hueco invertido (`lo` por encima de `hi`) y no mataba NUNCA: la barrera mas fina del juego era
   // la unica que no existia.
   const m = Math.min(ZZ_BARR_MARGEN, (b.y1 - b.y0) * 0.3);
-  // EL ARCO: adentro de la boca, la roca empieza en la curva; afuera, es pata maciza de punta a
-  // punta. Es la unica piel cuya cuenta mira la `x`, y tiene que mirarla — si el hueco se dibuja
-  // curvo y se cobra recto, el dibujo miente justo donde el jugador esta apuntando.
-  if (b.tipo === 'arco') {
-    const techo = arcoTop(b, x) - m;
-    // adentro del vano la roca empieza en la curva; afuera, es pata maciza hasta el agua
-    return Math.abs(x) < b.w
-      ? (y > arcoY(b, x) + m && y < techo ? b : null)
-      : (y < techo ? b : null);
-  }
   // ⚠ EL MARGEN ACHICA LO QUE MATA, NUNCA LO AGRANDA. El primer intento lo sumaba hacia abajo y
   // el puente cobraba MAS ABAJO de su panza: el hueco por el que hay que pasar se hacia mas
   // chico que el que se ve, que es exactamente el bug que el margen viene a evitar.

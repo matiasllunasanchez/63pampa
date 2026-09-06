@@ -1717,26 +1717,26 @@ test('niebla: el canon MEZCLA, no conmuta', () => {
   const medio = alfaCielo(0.8, 0.2, 0.5);
   assert.ok(Math.abs(medio - (a0 + a1) / 2) < 1e-9, `la mezcla no es lineal: ${medio}`);
 });
-import { barreraDe, enBarrera, arcoY } from '../src/core/zigzag.js';
 
-test('barreras: el arco cobra la CURVA, no un rectangulo', () => {
-  // Es la unica piel cuya colision no es una franja recta, y tiene que serlo: si el hueco se
-  // dibuja curvo y se cobra recto, el dibujo miente justo donde el jugador esta apuntando.
+import { barreraDe, enBarrera } from '../src/core/zigzag.js';
+
+test('barreras: el puente de madera deja pasar por abajo y mata en el tablero', () => {
+  // Reemplaza al test del ARCO DE ROCA, que se saco junto con la piel: se dibujaba como una placa
+  // a una sola profundidad y se leia como una figurita pegada delante del pasillo (ver
+  // ZZ_BARR_MADERA en data/tuning.js). Lo que se afirma acá es lo mismo que se afirmaba de aquel:
+  // que el hueco por el que hay que pasar EXISTE y que el macizo cierra.
   zzReset();
-  zzRebuild(0, { amp: 0, largo: 800, seed: 3, paredes: { alto: 1, x: 46, mata: true, barreras: 'arco' } }, 0, 0);
+  zzRebuild(0, { amp: 0, largo: 800, seed: 3, paredes: { alto: 1, x: 46, mata: true, barreras: 'madera' } }, 0, 0);
   let b = null;
   for (let wz = 100; wz < 4000 && !b; wz += 2) b = barreraDe(wz);
-  assert.ok(b && b.tipo === 'arco', 'no aparecio ningun arco');
+  assert.ok(b && b.tipo === 'madera', 'no aparecio ningun puente de madera');
   const wz = (b.z0 + b.z1) / 2;
-  // EN EL CENTRO la boca es mas alta que EN EL BORDE. Con un rectangulo darian lo mismo, y esa
-  // igualdad es exactamente el bug que este test existe para atrapar.
-  assert.ok(arcoY(b, 0) > arcoY(b, b.w * 0.9) + 3, 'la boca no es curva');
-  // volar bajo por el centro pasa; volar a la misma altura pegado a la pata, no
-  const bajo = arcoY(b, 0) * 0.5;
-  assert.equal(enBarrera(0, bajo, wz), null, 'no se pasa por el centro del arco');
-  assert.ok(enBarrera(b.w * 0.97, bajo, wz), 'se pasa pegado a la pata, donde hay roca');
-  // y las patas son macizas de punta a punta
-  assert.ok(enBarrera(b.w + 5, 2, wz), 'la pata del arco no cierra');
+  assert.ok(enBarrera(0, (b.y0 + b.y1) / 2, wz), 'el tablero no mata');
+  assert.equal(enBarrera(0, b.y0 - 3, wz), null, 'no se puede pasar por abajo del tablero');
+  assert.equal(enBarrera(0, b.y1 + 3, wz), null, 'no se puede pasar por encima');
+  // y el hueco de abajo tiene que entrar un avion: si el tablero cuelga a cinco metros, no es una
+  // barrera, es una pared con un chiste adentro
+  assert.ok(b.y0 >= 10, `el tablero cuelga a ${b.y0} m: no entra el avion`);
   zzReset();
 });
 

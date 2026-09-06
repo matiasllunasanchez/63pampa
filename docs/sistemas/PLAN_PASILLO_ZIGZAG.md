@@ -963,7 +963,7 @@ todas lo mismo y lo único que cambia es cómo se dibujan.
 | piel | por dónde se pasa | qué hace de verdad |
 |---|---|---|
 | **ROCA** — un collado entre los dos cerros | por ARRIBA | te empuja al filo del radar, o sea afuera de donde el juego premia |
-| **ARCO** de roca — los cerros se cierran y dejan una boca curva | por ABAJO, por el centro de la boca | la única cuya colisión no es recta: el hueco es un arco de verdad |
+| **MADERA** — viaducto de troncos: tablero, baranda y caballetes con cruces | por ABAJO | se separa de la roca por COLOR, que es lo que le faltaba al arco |
 | **PUENTE** de vigas — tablero, celosía de paso superior, pilares, luces de tope | por ABAJO (o por encima) | el más reconocible de los cuatro a 800 m |
 | **CABLES** — dos torres de alta tensión y el manojo cruzando | por ABAJO o por ARRIBA | el peligro real del vuelo rasante: el cable casi no se ve, **la torre sí** |
 
@@ -1044,6 +1044,27 @@ que memorizarla, hay que leerla.
      esquinas pintadas —, y con la textura del talud: tres franjas de altura, estriado vertical por
      banda de mundo, y la clave del arco al sol contra los arranques en sombra. Sin eso, por bien
      recortada que esté la silueta, la piedra se lee como cartulina.
+
+108. **⛔ EL ARCO DE ROCA SE SACÓ: era una figurita.** Y el diagnóstico de Matías es el correcto —
+     «no parece que salga de la misma estructura». No parecía porque no salía: se dibujaba como una
+     **placa a una sola profundidad** pegada delante del pasillo. Las dos correcciones anteriores
+     (proporción, y después silueta irregular + textura) atacaron síntomas; el problema era que la
+     cosa no estaba en el mundo, estaba pegada a la pantalla.
+
+     Y no tenía arreglo por ahí: para que el arco saliera de verdad del terreno tendría que ser un
+     **agujero** en él, y el terreno del callejón es un campo de alturas — puede subir y bajar, no
+     puede tener huecos. Ésa es la razón de fondo, y por eso la respuesta no era insistir.
+
+     Lo reemplaza un **puente de madera**, que no tiene el problema porque **es** una cosa aparte
+     apoyada sobre el barranco: leerse como un objeto puesto ahí no es un defecto, es lo que es. Y
+     la madera se separa sola de la roca **por color**, que es lo otro que le faltaba al arco — se
+     confundía con el cerro.
+109. **Se dibuja CON FONDO** (el tablero va de `cz` a `cz1`, no en un solo plano). Es la otra mitad
+     de por qué aquello parecía una calcomanía: **una cosa sin espesor no está en el mundo**.
+110. **La firma del viaducto son la baranda y los caballetes, no el tablero.** A 800 m el tablero
+     mide tres píxeles y no dice nada; la silueta de una baranda de postes y de una cruz de San
+     Andrés no se parece a nada más del juego. Los caballetes van pegados a las laderas a propósito:
+     un palo en el medio estaría adentro del hueco por el que hay que pasar.
 
 ### Lo que queda para el próximo playtest
 
