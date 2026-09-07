@@ -48,54 +48,143 @@ BAKE.modelos('enemies', (THREE, K) => {
     return g;
   }
 
-  // CAZA enemigo (silueta tipo Harrier, gris mar britanico): ala alta en flecha caida
-  // (anhedral marcado), tomas grandes a los lados de la cabina, deriva alta.
-  // KC-130 HERCULES — LA CHANCHA. El reabastecedor de la FAA, y el unico avion AMIGO horneado.
+  // ============================ KC-130 HERCULES — LA CHANCHA ============================
+  // El reabastecedor de la FAA, el unico avion AMIGO horneado y el objeto mas grande del juego:
+  // a la profundidad de la cita (CH_Z = 24) se dibuja 146 px de ancho, o sea que ocupa un tercio
+  // de la pantalla durante los 30 s que dura la ventana. A ese tamaño no perdona nada.
   //
-  // Se lo ve DESDE ATRAS y de cerca (vas a buscarle la canasta), asi que lo que tiene que leerse
-  // es su silueta de carguero: ALA ALTA de punta a punta, cuatro turbohelices colgando de ella,
-  // fuselaje gordo de seccion casi circular y una deriva enorme. Es lo contrario de un caza y
-  // tiene que notarse de un vistazo.
+  // ============ SE LA VE DESDE ATRAS Y DESDE ABAJO, Y ESO CAMBIA TODO EL MODELO ============
+  // La primera version se horneaba desde ATRAS Y AL MISMO NIVEL, y salia una CRUZ: de popa pura un
+  // ala no tiene planta, una deriva es su espesor y un estabilizador es una raya. Cuatro
+  // superficies grandes, todas de canto, y el avion mas reconocible del mundo se leia como un
+  // palito con dos travesaños.
+  //
+  // Se hornea DESDE ABAJO (ver el encuadre en bake_enemies.html) y aparecen de golpe la planta del
+  // ala, las cuatro gondolas, la panza, los carenados del tren y el remangue de la rampa — que es
+  // donde vive todo lo que hace que un Hercules sea un Hercules. La camara no es un detalle del
+  // horneado: es la mitad del modelo.
+  //
+  // PERO NO DESDE LOS 31° QUE PIDE LA GEOMETRIA DE LA CITA, sino desde 12. A 31° un avion nivelado
+  // se ve realmente en picada —la trompa a 13° de elevacion, el timon a 50°— y un recorte 2D no
+  // tiene paralaje ni horizonte propio con que vender que el que esta torcido sos vos. El motivo
+  // completo esta en el horneador; lo que importa aca es que el modelo se arma NIVELADO y que la
+  // mentira son doce grados de camara, no una pose.
   //
   // LAS HELICES NO VAN EN LA HOJA: son discos que giran, y un disco horneado se ve muerto. Las
   // sigue dibujando render/chancha.js encima del sprite — el airframe lo da la hoja, el
-  // movimiento lo da el codigo.
+  // movimiento lo da el codigo. Lo que el modelo SI pone es el cono de cada helice, que es de
+  // donde el disco tiene que salir.
   //
-  // Camo de las fotos de la 1a Brigada Aerea (TC-63 y el modelo del C-130): VERDE oscuro con
-  // manchones ARENA y panza gris clara.
+  // ⚠ LA POSICION DE LOS MOTORES ES UN CONTRATO CON render/chancha.js, que dibuja los cuatro
+  // discos en fracciones del ancho. Si se mueven aca y no alla, las helices quedan flotando al
+  // lado de sus gondolas. `npm run unit` compara los dos numeros.
+  //
+  // Camo de las fotos de la 1a Brigada Aerea: VERDE oscuro con manchones ARENA y panza gris clara.
+  // Aclarado respecto de la primera horneada: contra el cielo de la cita el verde de foto se
+  // empastaba con la propia sombra del ala.
+
+  /** Motores, en unidades del modelo y medidos del avion real: 4,9 m y 9,9 m del eje contra una
+   *  semi-envergadura de 20,2 m. La primera version los tenia en 4.1 y 7.4 —un 50 % mas afuera—
+   *  y eso le comia la firma: en un Hercules los cuatro motores estan APIÑADOS contra el fuselaje
+   *  y despues hay un tramo largo de ala pelada hasta la punta. */
+  const CH_MOT = [2.9, 5.9];
+  const CH_SPAN = 22.0;
+
   function modelHercules() {
     const g = new THREE.Group();
-    const verde = '#3f4c3a', arena = '#8a7c52', gris = '#9aa5a0', dk = '#2b342c';
-    // FUSELAJE: gordo y largo, con la panza clara asomando abajo
-    CYL(g, 1.30, 1.34, 11.0, verde, 0, 0, 0.4, 14);
-    CYL(g, 1.20, 1.24, 11.0, gris, 0, -0.42, 0.4, 14);              // panza
-    DOME(g, 1.30, verde, 0, 0, -5.1, 1, 1, 1.5);                    // morro romo
-    B(g, 1.5, 0.5, 0.9, '#2a3a44', 0, 0.25, -5.4);                  // el vidriado de la cabina
-    // RAMPA de carga: el corte caracteristico bajo la cola
-    CONE(g, 1.30, 3.2, verde, 0, 0.35, 6.6, true, 14);
-    // ALA ALTA de punta a punta, recta y con muy poca flecha: la firma del Hercules
-    WING(g, 22.0, 3.1, 1.8, 0.5, 0.42, verde, 1.35, -0.2, 2);
-    WING(g, 21.0, 2.9, 1.7, 0.5, 0.10, gris, 1.06, -0.2, 2);        // cara inferior clara
+    const verde = '#4a5842', verde2 = '#5a684e', arena = '#8f8055';
+    const gris = '#8e9a95', grisD = '#6d7975', dk = '#2b342c', neg = '#1c221d';
+
+    // FUSELAJE: tubo de seccion casi circular, r 1.30 = los 4,9 m de diametro a escala.
+    CYL(g, 1.28, 1.32, 10.6, verde, 0, 0, -1.2, 14);
+    CYL(g, 1.20, 1.24, 10.6, gris, 0, -0.34, -1.2, 14);              // panza clara
+    DOME(g, 1.29, verde, 0, 0, -6.3, 1, 1, 1.35);                    // morro romo
+    B(g, 1.42, 0.42, 0.8, '#2a3a44', 0, 0.34, -6.6);                 // el vidriado de la cabina
+
+    // LA COLA QUE SE REMANGA. Un C-130 no termina en punta: desde dos tercios atras el fuselaje
+    // sube para dejar salir la rampa, y ESE QUIEBRE es media silueta cuando se lo mira de abajo.
+    // Va en un grupo propio con su rotacion — encadenarla sobre el cono compondria un euler que
+    // no es el que uno espera (la leccion de la deriva del bake de aviones).
+    const cola = new THREE.Group();
+    cola.position.set(0, 0, 4.0); cola.rotation.x = -0.21;
+    g.add(cola);
+    CONE(cola, 1.29, 4.6, verde, 0, 0, 2.1, true, 14);
+    // LA RAMPA, que es lo que se ve de abajo y lo que dice "carguero" sin ninguna otra pista.
+    // Va CLARA y ancha: la primera version era un panel fino y oscuro y se comia con la sombra del
+    // cono, o sea que el remangue estaba modelado y no se veia. Un quiebre solo se lee si los dos
+    // lados tienen tonos distintos.
+    B(cola, 2.05, 0.24, 3.0, gris, 0, -0.80, 1.1);
+    B(cola, 1.75, 0.16, 0.5, grisD, 0, -0.94, 2.6);                  // el filo de la rampa
+    B(cola, 0.5, 0.30, 0.7, neg, 0, -0.55, 3.9);                     // el paragolpes de cola
+
+    // LA DERIVA: alta y ANCHA — en las fotos es una pared, y de tres cuartos por fin se ve.
+    FIN(g, 4.4, 4.6, 2.1, 2.5, 0.50, verde, 1.10, 4.9);
+    // EL FILETE DORSAL: la vela baja que sube del lomo hasta la base de la deriva. Es lo que
+    // separa la cola de un Hercules de la de cualquier otro carguero de cuatro motores.
+    FIN(g, 1.25, 4.4, 0.12, 4.25, 0.34, verde, 1.05, 2.2);
+    // ESTABILIZADOR A LA BASE DE LA DERIVA (el Hercules NO es cola en T). La version anterior lo
+    // subia a media deriva con una nota que decia por que: desde atras y al mismo nivel, el ala
+    // alta se lo comia. Con la camara desde abajo ese problema no existe —el estabilizador queda
+    // recortado contra el cielo— asi que vuelve a su altura real. El encuadre pago la correccion.
+    // EL ESTABILIZADOR LLEVA SU PROPIO TONO ABAJO, mas oscuro que el del ala. Con el mismo gris
+    // los dos planos quedaban del mismo color a la misma distancia aparente y el Hercules se leia
+    // como un BIPLANO. Estan a 6 unidades uno del otro y la perspectiva no alcanza para separarlos:
+    // lo que los separa es que uno esta mas a la sombra que el otro, que ademas es verdad.
+    WING(g, 8.8, 2.5, 1.30, 0.6, 0.34, verde, 1.42, 5.5, 0);
+    WING(g, 8.4, 2.3, 1.24, 0.6, 0.10, grisD, 1.20, 5.5, 0);
+    B(g, 0.52, 1.7, 1.0, arena, 0, 4.6, 5.2);                        // manchon en la deriva
+
+    // ALA ALTA de punta a punta, recta y con muy poca flecha: la firma. Diedro LEVE — y el signo
+    // va NEGATIVO para que las puntas SUBAN (ver la nota de WING en bake_common.js, donde el signo
+    // esta invertido respecto de la convencion aeronautica).
+    WING(g, CH_SPAN, 3.1, 1.75, 0.35, 0.44, verde, 1.40, -0.6, -1.6);
+    WING(g, CH_SPAN - 0.7, 2.9, 1.65, 0.35, 0.12, gris, 1.12, -0.6, -1.6);
     // MANCHONES de camo sobre el ala y el lomo
-    B(g, 4.2, 0.10, 2.0, arena, -5.2, 1.58, -0.4);
-    B(g, 3.4, 0.10, 1.7, arena, 3.6, 1.58, 0.1);
-    B(g, 2.6, 0.10, 1.5, arena, -1.2, 1.58, 0.5);
-    CYL(g, 1.32, 1.32, 2.6, arena, 0, 0, -1.6, 14);                 // banda sobre el lomo
-    CYL(g, 1.32, 1.32, 1.8, arena, 0, 0, 3.4, 14);
-    // LOS CUATRO MOTORES: gondola larga colgando del ala + el cono de la helice adelante.
-    // El DISCO de la helice no va aca (lo anima el render).
-    for (const x of [-7.4, -4.1, 4.1, 7.4]) {
-      CYL(g, 0.52, 0.48, 3.4, dk, x, 1.05, -0.9, 10);
-      CONE(g, 0.42, 1.0, gris, x, 1.05, -2.9, false, 10);           // cono de la helice
-      B(g, 0.30, 0.55, 1.2, dk, x, 0.65, 0.4);                      // el escape / carenado bajo
+    B(g, 4.0, 0.10, 1.9, arena, -5.0, 1.63, -0.7);
+    B(g, 3.2, 0.10, 1.6, arena, 3.4, 1.63, -0.2);
+    CYL(g, 1.31, 1.31, 2.4, arena, 0, 0, -2.6, 14);                  // banda sobre el lomo
+    CYL(g, 1.31, 1.31, 1.7, arena, 0, 0, 2.2, 14);
+
+    // LOS CARENADOS DEL TREN: los dos bultos largos a los costados de la panza donde se guarda el
+    // tren principal. Desde abajo son enormes y no los tiene ningun otro avion del juego.
+    for (const sg of [-1, 1]) {
+      B(g, 0.80, 1.05, 5.0, gris, sg * 1.22, -0.50, -0.6);
+      B(g, 0.84, 0.30, 5.0, grisD, sg * 1.22, -0.92, -0.6);          // la cara de abajo, en sombra
     }
-    // COLA: deriva GRANDE y estabilizador a su base (el Hercules no es cola en T)
-    // La deriva va ANCHA (en las fotos es una pared) y el estabilizador ARRIBA del ala: puesto a
-    // la altura del fuselaje quedaba tapado por el ala alta y el avion perdia la cola de vista.
-    FIN(g, 5.0, 4.2, 1.9, 2.4, 0.42, verde, 1.1, 5.6);
-    WING(g, 9.6, 2.4, 1.2, 0.7, 0.34, verde, 3.4, 6.0, 0);
-    WING(g, 9.0, 2.2, 1.1, 0.7, 0.10, gris, 3.2, 6.0, 0);           // cara inferior clara
-    B(g, 0.55, 1.6, 1.1, arena, 0, 4.9, 6.0);                       // manchon en la deriva
+
+    // LOS CUATRO MOTORES: gondola larga que sale ADELANTE del ala + el cono de la helice + el
+    // escape atras. El DISCO de la helice no va aca (lo anima el render).
+    for (const sg of [-1, 1]) for (const mx of CH_MOT) {
+      const x = sg * mx;
+      CYL(g, 0.46, 0.43, 4.0, verde2, x, 1.10, -2.0, 10);
+      CYL(g, 0.44, 0.41, 4.0, grisD, x, 0.94, -2.0, 10);             // la panza de la gondola
+      CONE(g, 0.33, 0.95, gris, x, 1.10, -4.35, false, 10);          // cono de la helice
+      CYL(g, 0.26, 0.22, 1.0, neg, x, 0.98, 0.30, 8);                // el escape
+    }
+
+    // LOS PODS DE MANGUERA (Mk 32), que son lo que la hace CHANCHA y no un carguero cualquiera.
+    // Van pegados al pilon del motor interno y no afuera del externo como en las fotos, a
+    // proposito: `CH_HOSE_X` del juego larga la manguera a 3 m del eje —que a esta escala cae
+    // justo en el motor interno— y una manguera que sale de la nada se nota en el acto, mientras
+    // que un pod diez metros corrido no lo nota nadie. El juego manda; la foto informa.
+    for (const sg of [-1, 1]) {
+      const x = sg * CH_MOT[0];
+      // ⚠ NO SE VA A LEER COMO UN POD, Y ESTA BIEN ASI. Un Mk 32 mide 4,5 x 0,6 m: a la escala a
+      // la que se dibuja la Chancha eso son CUATRO PIXELES de diametro. Ninguna cantidad de modelo
+      // lo va a convertir en algo reconocible, y hacerlo mas grande de lo que es para que "se
+      // note" seria mentir sobre el tamaño del avion. Lo que el pod tiene que hacer no es leerse:
+      // es ESTAR — que la manguera salga de un cuerpo y no del aire. Por eso lleva un punto de
+      // anclaje (la boca) y por eso render/chancha.js arranca la manguera ahi y no en el fuselaje,
+      // que es de donde salia hasta hoy.
+      //
+      // Colgado mas abajo y mas atras que la gondola: puesto a la altura del motor se fundia con
+      // el —los dos son un cilindro— y el motor interno se leia como mas largo que el externo, que
+      // es peor que no tener pod.
+      CYL(g, 0.30, 0.30, 2.0, gris, x, 0.10, 1.15, 10);
+      CONE(g, 0.30, 0.7, gris, x, 0.10, -0.05, false, 10);           // ojiva del pod
+      CYL(g, 0.16, 0.14, 0.5, neg, x, 0.10, 2.30, 8);                // la boca por donde sale
+      B(g, 0.13, 0.90, 0.8, verde2, x, 0.62, 0.90);                  // el pilon que lo cuelga
+    }
     return g;
   }
 
@@ -298,5 +387,5 @@ BAKE.modelos('enemies', (THREE, K) => {
     return g;
   }
 
-  return { modelHelo, modelHercules, modelJet, modelRadar, modelAATruck, modelLcu, modelBalloon, modelAA, modelTent, modelDepot, modelBldg, modelFragata };
+  return { modelHelo, modelHercules, CH_MOT, CH_SPAN, modelJet, modelRadar, modelAATruck, modelLcu, modelBalloon, modelAA, modelTent, modelDepot, modelBldg, modelFragata };
 });

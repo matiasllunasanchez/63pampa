@@ -152,7 +152,7 @@ export const SHEETS = {};
 for (const k in CAJAS) {
   const c = CAJAS[k], a = ARTE[k];
   if (!a) { console.warn(`enemies: la hoja '${k}' no tiene wu en ARTE — no se dibuja`); continue; }
-  SHEETS[k] = { fw: c.fw, fh: c.fh, cols: c.cols, rows: c.rows, box: c.box, ...a };
+  SHEETS[k] = { fw: c.fw, fh: c.fh, cols: c.cols, rows: c.rows, box: c.box, puntos: c.puntos, ...a };
 }
 
 for (const k in SHEETS) {
@@ -170,6 +170,26 @@ export const ready = k => { const s = SHEETS[k]; return s.img.complete && s.img.
 // hitbox de depuracion — el destello tiene que tener LA FORMA del bicho, no la de su caja.
 const tint = document.createElement('canvas');
 const tintCtx = tint.getContext('2d');
+
+/** DONDE CAE, EN PANTALLA, UN ANCLA DE LA HOJA. `i` es el indice en `puntos` (lo escribe el horno
+ *  proyectando un punto del MODELO con la misma camara con la que horneo — ver bake_enemies_run).
+ *  Recibe el mismo anclaje y la misma escala que `drawFrame`, asi que devuelve exactamente el
+ *  lugar donde ese punto del modelo quedo dibujado.
+ *
+ *  Existe para lo que se pinta por CODIGO ENCIMA del sprite y tiene que caer preciso: hoy, los
+ *  cuatro discos de helice de la Chancha, que no se hornean porque un disco quieto se ve muerto.
+ *  Antes iban en fracciones a ojo del ancho del avion, y cada vez que el modelo movia un motor las
+ *  helices quedaban al lado de su gondola sin que nada lo dijera.
+ *
+ *  Devuelve tambien `esc` (pixeles de pantalla por pixel de hoja) para dimensionar lo que se pinte. */
+export function anclaje(k, i, cx, { bottomY, centerY }, k2) {
+  const s = SHEETS[k], b = s.box, p = s.puntos && s.puntos[i];
+  if (!p) return null;
+  const cw = b.x1 - b.x0 + 1, ch = b.y1 - b.y0 + 1;
+  const esc = s.wu * k2 / cw;
+  const top = bottomY !== undefined ? bottomY - (b.y1 + 1) * esc : centerY - (b.y0 + ch / 2) * esc;
+  return { x: cx + (p[0] - (b.x0 + cw / 2)) * esc, y: top + p[1] * esc, esc };
+}
 
 /** Dibuja el frame (col,row) de la hoja `k`.
  *  `cx` = centro horizontal en pantalla. `bottomY` o `centerY`: los de TIERRA anclan el pie del

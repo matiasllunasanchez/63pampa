@@ -9,7 +9,7 @@ import { ctx, px, W, H, HOR, F } from './ctx.js';
 import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
 import { run } from '../core/run.js';
-import { CH_BOX } from '../data/tuning.js';
+import { CH_BOX, CH_DERIVA_V } from '../data/tuning.js';
 import { snapshot } from '../systems/chancha.js';
 import * as enemyArt from './enemies.js';
 
@@ -24,8 +24,19 @@ export function drawChancha() {
 
   // EL AIRFRAME: la hoja horneada si esta (tools/bake_enemies.html -> modelHercules), y si no el
   // dibujo procedural de siempre. Es el enchufe que este archivo ya tenia previsto en su cabecera.
-  if (enemyArt.ready('chancha')) {
-    enemyArt.drawFrame(ctx, 'chancha', 0, 0, s.x, { centerY: s.y }, k, false, false, 0);
+  //
+  // EL ALABEO NO ES DECORACION: SE LO SACA A LA DERIVA. La Chancha se hamaca CH_DERIVA metros a
+  // los costados mientras esperas, y hasta ahora se hamacaba SIN INCLINARSE — un avion que se
+  // traslada de costado con las alas a nivel, que es lo que hace una calcomania y no un avion.
+  // La columna sale de la MISMA formula con la que systems/chancha.js calcula esa deriva
+  // (`x = sin(t·V)`), asi que la banda es su VELOCIDAD lateral: cuando arranca para la derecha
+  // baja el ala derecha, y al llegar al extremo pasa por nivel. No hay un seno nuevo ni un estado
+  // nuevo — es el mismo dato leido una vez mas, que es la regla de este repo.
+  const deriva = Math.cos(c.t * CH_DERIVA_V);          // > 0: se va hacia +x (la derecha)
+  const bank = deriva > 0.25 ? 0 : deriva < -0.25 ? 2 : 1;
+  const hoja = enemyArt.ready('chancha');
+  if (hoja) {
+    enemyArt.drawFrame(ctx, 'chancha', bank, 0, s.x, { centerY: s.y }, k, false, false, 0);
   } else {
     // ALA ALTA de punta a punta (el Hercules es un ala arriba del fuselaje, y esa es su silueta)
     px(s.x - w / 2, bodyY - h * 0.35, w, Math.max(1, h * 0.34), '#5a6a63');
@@ -40,19 +51,48 @@ export function drawChancha() {
   }
   // LAS HELICES VAN SIEMPRE POR CODIGO, con hoja o sin ella: un disco horneado se ve MUERTO, y lo
   // que dice que este avion esta volando —y no pegado en el cielo— es que las cuatro giren.
-  for (const f of [-0.34, -0.19, 0.19, 0.34]) {
-    ctx.globalAlpha = 0.35 + 0.25 * Math.sin(run.t * 30 + f * 9);
-    px(s.x + w * f - Math.max(1, w * 0.03), bodyY - h * 0.62, Math.max(1, w * 0.06), Math.max(1, h * 0.28), P.dim);
+  //
+  // DONDE VAN LO DICE EL HORNO. Con la hoja puesta, la posicion de cada disco sale de `anclaje()`:
+  // el horneador proyecta el cono de cada helice del modelo con la MISMA camara con la que horneo
+  // y escribe el pixel en src/data/cajas.js. Antes eran cuatro fracciones del ancho puestas a ojo
+  // —±0.19 y ±0.34—, y estaban atadas a que los motores del modelo no se movieran nunca: cuando se
+  // corrigieron a su posicion real (estaban un 50 % afuera) las cuatro helices habrian quedado
+  // flotando al lado de sus gondolas, y no hay error de runtime que avise de eso.
+  // Sin hoja, se cae a las fracciones de siempre, que es lo que el dibujo procedural necesita.
+  //
+  // EL DISCO SE VE DE CANTO. La hoja se hornea desde 12° por debajo, asi que el circulo de 4,1 m de
+  // la helice se proyecta casi de perfil: ancho entero, alto una fraccion. Dibujarlo redondo la
+  // haria parecer de frente. La proporcion exacta seria sen(12°) = 0,21 —tres pixeles, o sea nada—
+  // y va en 0,30: una helice girando se ve como una banda BORROSA, mas gorda que el plano
+  // geometrico que barre. Es de las pocas veces que el dibujo le gana a la cuenta.
+  const HEL_D = 2.64;                                  // diametro del disco, en unidades de mundo
+  for (let i = 0; i < 4; i++) {
+    const a = hoja ? enemyArt.anclaje('chancha', i, s.x, { centerY: s.y }, k) : null;
+    const f = [-0.34, -0.19, 0.19, 0.34][i];
+    const hx = a ? a.x : s.x + w * f;
+    const hy = a ? a.y : bodyY - h * 0.62;
+    const dw = Math.max(2, HEL_D * k), dh = Math.max(1, dw * 0.30);
+    ctx.globalAlpha = 0.30 + 0.22 * Math.sin(run.t * 30 + i * 2.2);
+    px(hx - dw / 2, hy - dh / 2, dw, dh, P.dim);
+    ctx.globalAlpha = 0.5;
+    px(hx - dw / 2, hy - dh / 2, dw, Math.max(1, dh * 0.22), P.dim);   // el filo del disco
     ctx.globalAlpha = 1;
   }
 
-  // LA MANGUERA: sale del ala derecha, cuelga y termina en la canasta. Se dibuja como una
+  // LA MANGUERA: sale del POD del ala derecha, cuelga y termina en la canasta. Se dibuja como una
   // cadena de puntos con panza —no una recta— porque una manguera tensa se lee como un palo.
+  //
+  // DE DONDE SALE, HASTA HOY, ERA EL CENTRO DEL FUSELAJE: la cadena arrancaba en `s`, o sea que la
+  // manguera nacia en la panza del Hercules y no en un pod. Nadie lo habia notado porque el
+  // airframe tampoco tenia pod donde nacer. Ahora el modelo lleva uno y el horno dice en que pixel
+  // quedo (`anclaje` indice 4), asi que la manguera sale de donde tiene que salir.
+  const pod = hoja ? enemyArt.anclaje('chancha', 4, s.x, { centerY: s.y }, k) : null;
+  const ox = pod ? pod.x : s.x, oy = pod ? pod.y : s.y;
   const b = proj(c.bx, c.by, c.bz);
-  const cuelga = Math.abs(b.y - s.y) * 0.25;
+  const cuelga = Math.abs(b.y - oy) * 0.25;
   for (let i = 0; i <= 12; i++) {
     const u = i / 12;
-    const hx = s.x + (b.x - s.x) * u, hy = s.y + (b.y - s.y) * u + Math.sin(u * Math.PI) * cuelga;
+    const hx = ox + (b.x - ox) * u, hy = oy + (b.y - oy) * u + Math.sin(u * Math.PI) * cuelga;
     px(hx, hy, Math.max(1, k * 0.16), Math.max(1, k * 0.16), '#2c332f');
   }
   // LA CANASTA: el aro. Es lo que hay que ir a buscar, asi que se dibuja MAS claro que el resto

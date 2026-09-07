@@ -3,6 +3,10 @@
 // horneada (PLAN_HORNEADO B0, regla 3: "las cajas se miden solas"). La copia legible vive al
 // lado de las hojas, en assets/world/enemies/cajas.json.
 //
+// `puntos` (solo donde hace falta) son ANCLAS: coordenadas del modelo proyectadas con la misma
+// camara del horneado, en pixeles de la hoja. Las usa lo que se dibuja por CODIGO encima del
+// sprite y tiene que caer en un lugar preciso — hoy, los cuatro discos de helice de la Chancha.
+//
 // `box` es el rectangulo de CONTENIDO adentro del frame, en la UNION de todas las poses: el
 // frame tiene aire alrededor para que el helo pueda girar el rotor sin cortarse, y anclar por el
 // borde del FRAME dejaria a los vehiculos flotando. `margen` es el aire mas chico que queda
@@ -19,7 +23,7 @@ export const CAJAS = {
   buque_log: { fw: 240, fh: 72, cols: 3, rows: 1, box: { x0: 24, y0: 8, x1: 215, y1: 69 }, margen: 2 },
   buque_t21: { fw: 240, fh: 72, cols: 3, rows: 1, box: { x0: 47, y0: 20, x1: 196, y1: 69 }, margen: 2 },
   buque_t42: { fw: 240, fh: 72, cols: 3, rows: 1, box: { x0: 24, y0: 10, x1: 216, y1: 69 }, margen: 2 },
-  chancha: { fw: 160, fh: 96, cols: 1, rows: 1, box: { x0: 6, y0: 3, x1: 153, y1: 67 }, margen: 3 },
+  chancha: { fw: 160, fh: 112, cols: 3, rows: 1, box: { x0: 6, y0: 23, x1: 153, y1: 88 }, margen: 6, puntos: [[44.7, 71.84], [62.65, 71.84], [97.35, 71.84], [115.3, 71.84], [100.47, 70.85]] },
   depot: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 11, y0: 14, x1: 55, y1: 34 }, margen: 8 },
   fragata: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 14, y0: 13, x1: 52, y1: 35 }, margen: 11 },
   harrier: { fw: 128, fh: 96, cols: 5, rows: 1, box: { x0: 32, y0: 26, x1: 95, y1: 67 }, margen: 26 },

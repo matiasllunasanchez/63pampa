@@ -57,8 +57,23 @@
      *  corto con el que se hornea todo lo del pasillo, y los BUQUES piden 8° a 90 unidades porque
      *  miden 130 metros — con 24° la popa se va tan atras que la proa sale un 30 % mas grande y el
      *  casco parece un cono. Sigue siendo el mismo rig: misma altura relativa, mismo lookAt. */
-    const makeCam = (w, h, spec) => BAKE.camara(THREE, w, h,
-      { fov: spec.fov || 24, pos: [0, 2.0, spec.dist], lookY: spec.lookY !== undefined ? spec.lookY : 0.2 });
+    //
+    // `elev` INCLINA LA CAMARA POR DEBAJO del objeto, girandola sobre el eje del modelo (no la
+    // baja y ya: la distancia se conserva, asi que el encuadre no cambia de tamaño). Con elev 0
+    // la cuenta da exactamente [0, 2.0, dist], que es lo que tenian todas las hojas antes de que
+    // esta perilla existiera — por eso ninguna cambio un byte al agregarla.
+    //
+    // La pidio LA CHANCHA y es una perilla de ENCUADRE, no de arte: a que altura se para el que
+    // mira. Hasta ahora todo el roster se veia desde arriba porque todo el roster esta en el
+    // suelo o a tu altura; el Hercules es el unico objeto del juego que esta ARRIBA TUYO y al que
+    // te acercas por abajo, y horneado al mismo nivel salia una cruz (ver tools/models/enemies.js).
+    const makeCam = (w, h, spec) => {
+      const e = (spec.elev || 0) * Math.PI / 180;
+      const d = spec.dist;
+      return BAKE.camara(THREE, w, h, { fov: spec.fov || 24,
+        pos: [0, 2.0 * Math.cos(e) - d * Math.sin(e), d * Math.cos(e)],
+        lookY: spec.lookY !== undefined ? spec.lookY : 0.2 });
+    };
 
     // ---------- primitivas de volumen (tools/bake_common.js) ----------
     // Estaban COPIADAS de bake_planes.html con la nota "son herramientas de build, la duplicacion
@@ -68,7 +83,7 @@
 
     // LOS MODELOS VIVEN EN tools/models/enemies.js (PLAN_HORNEADO B0): un horneador es un
     // ENCUADRE (que camara, que poses, que grilla) y un modelo es una SILUETA.
-    const { modelHelo, modelHercules, modelJet, modelRadar, modelAATruck, modelLcu, modelBalloon, modelAA, modelTent, modelDepot, modelBldg, modelFragata } = BAKE.familia('enemies');
+    const { modelHelo, modelHercules, CH_MOT, modelJet, modelRadar, modelAATruck, modelLcu, modelBalloon, modelAA, modelTent, modelDepot, modelBldg, modelFragata } = BAKE.familia('enemies');
     // LOS RESTOS (PLAN_HORNEADO B1): el estado ROTO de cada cosa, en tools/models/restos.js. Van
     // en ESTE horneador y no en uno propio porque son el MISMO encuadre — la camara que ve venir
     // al enemigo es la que despues lo ve tirado. Dos hornos serian dos luces.
@@ -101,11 +116,52 @@
       // a 0.85x. Medido: cada pixel suyo era 6.3 veces mas gordo que uno tuyo. El aspecto del
       // frame no cambia (64/48 == 128/96), asi que el encuadre es identico: la hoja solo gana
       // pixeles. Los enemigos que se quedan lejos no necesitan esto y siguen en 64x48.
-      // LA CHANCHA: una sola pose (vuela recta y pareja: es un carguero, no bandea). Frame grande
-      // porque se la ve MUY de cerca durante la cita — es el objeto mas grande del juego.
+      // ============================ LA CHANCHA ============================
+      // El objeto mas grande del juego: a la profundidad de la cita se dibuja 146 px de ancho —
+      // casi 1:1 contra los 148 px de contenido de la hoja, o sea que cada pixel horneado es un
+      // pixel de pantalla. Por eso el frame es grande y por eso no perdona nada.
+      //
+      // `elev: 12` — LA CAMARA VA POR DEBAJO, pero MUCHO MENOS DE LO QUE DICE LA GEOMETRIA, y esa
+      // diferencia es la decision de arte de esta hoja.
+      //
+      // Horneada al mismo nivel (como estaba) la silueta era una CRUZ: de popa pura el ala, la
+      // deriva y el estabilizador se ven todos de canto, y no hay detalle que arregle eso.
+      //
+      // La geometria exacta de la cita pide 31°: la canasta cuelga CH_HOSE_Y = 6 m abajo y
+      // CH_HOSE_Z = 10 m atras, asi que el jugador la busca desde ahi. Se horneo asi y quedo MAL,
+      // y no por un error: a 31° y a esa distancia un avion NIVELADO se ve de verdad muy en
+      // picada —el timon queda a 50° de elevacion y la trompa a 13°, o sea 36° de diferencia— y el
+      // fuselaje se proyecta como una columna vertical. Un recorte 2D no tiene con que vender eso:
+      // no hay paralaje, no hay horizonte propio, no hay nada que diga "estas mirando para
+      // arriba". Lo unico que llega es un Hercules cayendo de trompa.
+      //
+      // 12° es donde las dos cosas se cumplen: alcanza para abrir la planta del ala, las cuatro
+      // gondolas, la panza y los carenados del tren —todo lo que faltaba— y el fuselaje sigue
+      // leyendose HORIZONTAL, que es como vuelan los aviones. La camara miente doce grados a
+      // favor de la lectura, y esta anotado para que nadie la "corrija" a la cuenta exacta.
+      //
+      // TRES POSES DE ALABEO, y el render NO las cicla con un seno decorativo: las elige con la
+      // MISMA formula con la que systems/chancha.js calcula su deriva lateral. La Chancha se
+      // hamaca ±7 m mientras esperas, y ahora BANDEA HACIA DONDE SE VA, que es lo que hace
+      // cualquiera que vuela en formacion. Es la regla del repo —lo que ves es lo que pasa— en un
+      // sprite.
       chancha: {
-        fw: 160, fh: 96, dist: 34, lookY: 0.6, baseYaw: 0,
-        frames: [{ model: modelHercules }], cols: 1,
+        fw: 160, fh: 112, dist: 40, elev: 12, lookY: 2.8, baseYaw: 0,
+        frames: [-0.10, 0, 0.10].map(a => ({ model: modelHercules, roll: a })), cols: 3,
+        // LAS CUATRO HELICES: el punto del modelo donde esta el cono de cada una. El horno lo
+        // proyecta y escribe el pixel de la hoja; render/chancha.js dibuja ahi los discos, que
+        // siguen siendo codigo porque giran. Si mañana los motores se mueven en el modelo, las
+        // helices se mueven solas.
+        // Los cuatro conos de helice (0-3, de izquierda a derecha) y LA BOCA DEL POD de estribor
+        // (4), que es de donde tiene que salir la manguera. Hasta hoy la manguera nacia en el
+        // centro del fuselaje porque no habia forma de saber donde estaba el pod.
+        //
+        // Se proyectan sobre la pose NIVELADA. Con ±0.10 rad de alabeo el pod se corre 0,29
+        // unidades, o sea 2 px en pantalla: menos que el grosor de la propia manguera.
+        puntos: [
+          ...CH_MOT.flatMap(mx => [-mx, mx]).sort((a, b) => a - b).map(x => [x, 1.10, -4.35]),
+          [CH_MOT[0], 0.10, 2.30],
+        ],
       },
       // caza: 5 columnas de alabeo -30..+30
       jet: {
@@ -333,7 +389,24 @@
           x2.drawImage(R.domElement, (i % cols) * spec.fw, Math.floor(i / cols) * spec.fh);
         });
         result[name] = sheet.toDataURL('image/png');
-        window.__SHEETS_META[name] = { fw: spec.fw, fh: spec.fh, cols };
+        // PUNTOS DE ANCLAJE: coordenadas del MODELO que el juego necesita ubicar en la HOJA.
+        // Los pide la Chancha, que dibuja sus cuatro discos de helice por codigo encima del sprite
+        // (un disco horneado se ve muerto) y hasta ahora los ponia en fracciones a ojo del ancho.
+        // Cada vez que el modelo movia un motor las helices quedaban flotando al lado de su
+        // gondola, y no habia nada que lo dijera. Ahora el horno PROYECTA el punto del modelo con
+        // la misma camara con la que hornea y escribe el pixel: es exactamente el mismo argumento
+        // que el autobox de B0 —el horno mide hechos— aplicado a un punto en vez de a una caja.
+        window.__SHEETS_META[name] = { fw: spec.fw, fh: spec.fh, cols,
+          puntos: (spec.puntos || []).map(pt => {
+            const v = new THREE.Vector3(pt[0], pt[1], pt[2]);
+            // el modelo se dibuja adentro de `flip` (baseYaw + quarter); se aplica lo mismo al
+            // punto, si no el ancla queda del lado equivocado del avion
+            const yaw = (spec.baseYaw !== undefined ? spec.baseYaw : Math.PI) + (spec.quarter || 0);
+            v.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+            v.project(cam);
+            return [+((v.x * 0.5 + 0.5) * spec.fw).toFixed(2),
+                    +((1 - (v.y * 0.5 + 0.5)) * spec.fh).toFixed(2)];
+          }) };
         window.__SHEETS_DATA[name] = result[name];
         if (outEl) {
           const h = document.createElement('h2');
@@ -355,10 +428,18 @@
      *  alfa, una por una — un numero mal copiado dejaba al enemigo flotando o enterrado, y no
      *  habia ninguna prueba que lo agarrara. El runner escribe lo que devuelve esto en
      *  assets/world/enemies/cajas.json, al lado de las hojas. */
-    window.__cajas = () => BAKE.medirLote(Object.fromEntries(
-      Object.keys(window.__SHEETS_META).map(k => [k, {
-        data: window.__SHEETS_DATA[k], fw: window.__SHEETS_META[k].fw, fh: window.__SHEETS_META[k].fh,
-      }])));
+    window.__cajas = async () => {
+      const out = await BAKE.medirLote(Object.fromEntries(
+        Object.keys(window.__SHEETS_META).map(k => [k, {
+          data: window.__SHEETS_DATA[k], fw: window.__SHEETS_META[k].fw, fh: window.__SHEETS_META[k].fh,
+        }])));
+      // los puntos de anclaje viajan al lado de la caja: los dos son medidas de la hoja
+      for (const k in out) {
+        const p = window.__SHEETS_META[k].puntos;
+        if (p && p.length) out[k].puntos = p;
+      }
+      return out;
+    };
 
     if (!navigator.userAgent.includes('Electron')) __bake();
   </script>

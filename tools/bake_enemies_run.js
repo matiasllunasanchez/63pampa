@@ -27,6 +27,10 @@ const CABECERA = `// CAJAS DE LAS HOJAS DE SPRITES — GENERADO, NO EDITAR A MAN
 // horneada (PLAN_HORNEADO B0, regla 3: "las cajas se miden solas"). La copia legible vive al
 // lado de las hojas, en assets/world/enemies/cajas.json.
 //
+// \`puntos\` (solo donde hace falta) son ANCLAS: coordenadas del modelo proyectadas con la misma
+// camara del horneado, en pixeles de la hoja. Las usa lo que se dibuja por CODIGO encima del
+// sprite y tiene que caer en un lugar preciso — hoy, los cuatro discos de helice de la Chancha.
+//
 // \`box\` es el rectangulo de CONTENIDO adentro del frame, en la UNION de todas las poses: el
 // frame tiene aire alrededor para que el helo pueda girar el rotor sin cortarse, y anclar por el
 // borde del FRAME dejaria a los vehiculos flotando. \`margen\` es el aire mas chico que queda
@@ -53,8 +57,11 @@ app.whenReady().then(async () => {
     fs.writeFileSync(CAJAS_JSON, JSON.stringify(cajas, null, 2) + '\n');
     const cuerpo = Object.keys(cajas).sort().map(k => {
       const c = cajas[k];
+      // `puntos` solo aparece en las hojas que declararon anclas (hoy, las helices de la Chancha):
+      // una clave vacia en las otras 38 seria ruido en un archivo generado que se lee a mano.
+      const pts = c.puntos ? `, puntos: [${c.puntos.map(p => `[${p[0]}, ${p[1]}]`).join(', ')}]` : '';
       return `  ${k}: { fw: ${c.fw}, fh: ${c.fh}, cols: ${c.cols}, rows: ${c.rows}, ` +
-        `box: { x0: ${c.box.x0}, y0: ${c.box.y0}, x1: ${c.box.x1}, y1: ${c.box.y1} }, margen: ${c.margen} },`;
+        `box: { x0: ${c.box.x0}, y0: ${c.box.y0}, x1: ${c.box.x1}, y1: ${c.box.y1} }, margen: ${c.margen}${pts} },`;
     }).join('\n');
     fs.writeFileSync(CAJAS_JS, `${CABECERA}export const CAJAS = {\n${cuerpo}\n};\n`);
 
