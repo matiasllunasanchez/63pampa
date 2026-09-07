@@ -173,9 +173,13 @@ export function flightSystem(dt, deps) {
   // seguidos con `charla:`, y sin congelar, la primera escena se comia los seis —el odometro cruza
   // los 913 m mientras habla— y las otras cinco no se armaban nunca, porque `charla.armar()` se
   // ignora si ya hay una corriendo. De seis lineas se escuchaba una. Ver §7 divergencia 12.
-  const avAcred = chAvance() * cvAvance();
-  run.dist += run.spd * dt * avAcred;
-  run.fuelDist += run.spd * dt * avAcred;
+  // CADA ODOMETRO CON LO QUE LE CORRESPONDE. `run.dist` lleva los dos factores —LA CHANCHA vuela
+  // en formacion y el mundo avanza menos; la charla lo congela del todo—, pero `run.fuelDist` solo
+  // el de la charla: la divergencia 10 del §7 pide que el odometro del bidon se congele HABLANDO,
+  // y nunca dijo nada de la canasta. Meterle `chAvance()` seria cambiarle el ritmo de los bidones
+  // a LA CHANCHA de arriba, que no es de este item.
+  run.dist += run.spd * dt * chAvance() * cvAvance();
+  run.fuelDist += run.spd * dt * cvAvance();
 
   // OBJETIVO cumplido. Segun el tipo de meta (ver GOALS):
   //   - con climax (ship): al acercarse al blanco arranca el asalto por pasadas (MOMENTUM)
