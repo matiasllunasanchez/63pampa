@@ -4,6 +4,7 @@ import { STRINGS } from './data/strings.js';
 import { P, SKY_PRESETS } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf } from './data/missions.js';
+import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
 import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision } from './data/upgrades.js';
 import { DMG_MODES } from './core/damage.js';
@@ -100,7 +101,10 @@ import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './legacy/momentum_render.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
-import { MSL_MAX, GEAR_T, RADAR_ALT, FLY_TOP, VEIL_IN, VEIL_FULL, VEIL_OUT,
+import { LAND_APPROACH_M, LAND_ALT0, LAND_SPD_MIN, LAND_SPD_MAX, LAND_SPD_OK,
+         LAND_VY_SUAVE, LAND_VY_DURO, LAND_PITCH_OK, LAND_GEAR_DRAG, LAND_GEAR_MIN_T,
+         LAND_COSTO_CHAPA, LAND_PTS } from './data/tuning.js';
+import { MSL_MAX, GEAR_T, RADAR_ALT, FLY_TOP, FLY_X, VEIL_IN, VEIL_FULL, VEIL_OUT,
   RAS_DUR, RAS_LAT_HZ, ZZ_FONDO_K } from './data/tuning.js';
 // ¿"cerca" del techo del radar? Es la ventana donde '↑ arriba + ↑↑' deja de ofrecerte llegar al
 // borde y pasa a ofrecerte cruzarlo. 4 unidades: lo justo para que salga del ASCENSO anterior y
@@ -112,6 +116,7 @@ import * as squad from './systems/squad.js';
 // TRAMOS (docs/sistemas/SPEC_TRAMOS.md): el guion de spawn por mision. El orquestador le pasa
 // la lista al empezar la corrida y despacha su radio; el sembrador y LA COLA la leen.
 import * as tramos from './systems/tramos.js';
+import * as fases from './systems/fases.js';
 import * as zigzag from './systems/zigzag.js';
 import * as zigzagCore from './core/zigzag.js';
 import { drawParedes, drawBarreras, techoLadera } from './render/paredes.js';
@@ -310,19 +315,30 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     };
     function goalOf(m) { return GOALS[m.goal.kind] || GOALS.ship; }
 
+    /** TODO LO QUE SE PUEDE CARGAR COMO NIVEL: la campaña, y detras las misiones del banco de
+     *  pruebas (data/pruebas_misiones.js). `curLevel` indexa ESTA lista.
+     *
+     *  LA SEPARACION ES EL PUNTO, y por eso son dos listas y no una: `MISSIONS` sigue siendo LA
+     *  CAMPAÑA —su largo decide cuando se termina el juego, su orden es el del guion, y
+     *  `SHIP_MISSIONS` la usa de pool para el CICLO DE MUERTE—, asi que todo lo que RECORRE la
+     *  campaña (el encadenado, el guardado, el selector de misiones, el ciclo) le sigue
+     *  preguntando a `MISSIONS` y no se entera de que hay nada mas. Lo unico que mira `NIVELES` es
+     *  RESOLVER: dado un id o un indice, que mision es. Poner las de prueba AL FINAL es lo que
+     *  hace que los indices de campaña no se muevan ni un lugar. */
+    const NIVELES = MISSIONS.concat(MISIONES_PRUEBA);
     /** Carga la mision `i`. `keepCfg` NO pisa la config de mapa: lo usa MINUTOS SAGRADOS al
      *  cambiar de buque, para no perder el FONDO/AGUA que elegiste para mirarlo. */
     function loadLevel(i, keepCfg) {
-      curLevel = Math.max(0, Math.min(MISSIONS.length - 1, i));
+      curLevel = Math.max(0, Math.min(NIVELES.length - 1, i));
       if (keepCfg) return;
-      Object.assign(cfg, MISSIONS[curLevel].cfg); applyCfg();
+      Object.assign(cfg, NIVELES[curLevel].cfg); applyCfg();
     }
-    function curMission() { return MISSIONS[curLevel]; }
+    function curMission() { return NIVELES[curLevel]; }
     /** Indice de una mision por su id ('m4') o por su numero. -1 si no existe: quien llama decide
      *  que hacer con eso (la sonda contesta null; el selector no puede llegar con un id invalido). */
     const misIdx = id => typeof id === 'number'
-      ? (MISSIONS[id] ? id : -1)
-      : MISSIONS.findIndex(m => m.id === String(id));
+      ? (NIVELES[id] ? id : -1)
+      : NIVELES.findIndex(m => m.id === String(id));
     /** Una linea de radio de LA CHANCHA: centrada, debajo del HUD de arriba y encima del horizonte.
      *
      *  Los popups se dibujan CENTRADOS en coordenadas de mundo (ctx.textAlign = 'center'), asi que
@@ -605,7 +621,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
     /** El epilogo de la mision que se acaba de volar. */
     function irAlEpilogo() {
-      if (!lastRun || !lastRun.mission || !lastRun.mission.epi) { advanceCampaign(); return; }
+      const sinEpi = !lastRun || !lastRun.mission || !lastRun.mission.epi;
+      // EN LAS HERRAMIENTAS EL RECUENTO ES EL FINAL. Una mision del banco de pruebas no lleva
+      // `epi` a proposito (no hay nada que leer), y sin esta guarda caia en `advanceCampaign()`,
+      // que al no tener campaña siguiente terminaba mostrando la pantalla de VICTORIA — el final
+      // del juego entero por haber volado una prueba. Volver al catalogo es lo mismo que hace el
+      // epilogo cuando termina con `S.test` puesto.
+      if (sinEpi && S.test) { salirTest(); return; }
+      if (sinEpi) { advanceCampaign(); return; }
       initStory(lastRun.mission.epi); setState('epilogue');
     }
     /** Siguiente mision de campaña (conservando el puntaje acumulado) o victoria si era la ultima. */
@@ -955,7 +978,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  `sonda` es literalmente window.__*. Si un momento necesitara algo que no esta aca, lo que
      *  hay que agregar es una SONDA (util tambien desde la consola), no un verbo con logica. */
     function pruebasApi() {
-      const idx = id => Math.max(0, MISSIONS.findIndex(m => m.id === id));
+      const idx = id => Math.max(0, NIVELES.findIndex(m => m.id === id));
       /** Arranca una mision como corrida suelta: sin guion largo ni tarjeta de briefing — el
        *  camino exacto de ?pasada=<n>&pasillo. `over` pisa el cfg del mapa (clima, combustible). */
       // SIEMPRE se carga la mision, aun en los modos infinitos: es lo que hace el momento
@@ -1023,7 +1046,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     ];
     // filas de la vista GUARDAR: el slot nuevo (si hay lugar) + los existentes para pisar
     const pauseSaveRows = () => (saves.canSaveNew() ? [{ id: null }] : []).concat(saves.listSaves());
-    const PAUSABLE = () => S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum' || S.state === 'arena' || S.state === 'pasada' || S.state === 'pulso';
+    const PAUSABLE = () => S.state === 'play' || S.state === 'takeoff' || S.state === 'landing' || S.state === 'momentum' || S.state === 'arena' || S.state === 'pasada' || S.state === 'pulso';
     function pauseToggle() {
       if (!paused && (!PAUSABLE() || cfg.devcam)) return;
       paused = !paused;
@@ -1204,6 +1227,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // no significa nada. A diferencia de los tramos, un modo SIN objetivo si puede llevar
       // zigzag (el preset del menu en POR LA PATRIA): ahi la ventana vale entera.
       zigzag.setZigzag(curMission() ? curMission().zigzag : null, objectiveDist);
+      // LAS FASES de la corrida (PLAN_MISION_CINCO_FASES §11), tercer vecino de la misma cuadra y
+      // por el mismo motivo: tambien son fracciones de `objectiveDist`. La diferencia con los
+      // tramos es el ALCANCE — las fases pasan de 1, porque la VUELTA ocurre despues del buque.
+      // Una mision sin `fases` (o sea: todas las de hoy) entra como null y nadie lee nada.
+      fases.setFases(objectiveDist > 0 && curMission() ? curMission().fases : null, objectiveDist);
       // EL PULSO necesita saber CONTRA QUE buque es la prueba: de su clase sale como se muere en
       // la cinematica del premio. Va aca y no en reset() porque el objetivo se define despues.
       pulso.setShip(objectiveShip);
@@ -1290,6 +1318,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       { label: () => T('optRadioUI'), opts: ['toast', 'panel'],
         names: () => [T('optRadioToast'), T('optRadioPanel')],
         get: () => cfg.radioUI, set: v => cfg.radioUI = v, save: 'rasante_radioui' },
+      // EL TABLERO: completo siempre, o solo lo que tiene algo que decir. Va PEGADA a la radio
+      // porque las dos contestan la misma pregunta —cuanta pantalla ocupa la UI mientras volas— y
+      // porque las dos son presentacion pura: ninguna cambia un numero del juego.
+      { label: () => T('optHudAuto'), opts: ['fijo', 'auto'],
+        names: () => [T('optHudFijo'), T('optHudPorDemanda')],
+        get: () => cfg.hudAuto, set: v => cfg.hudAuto = v, save: 'rasante_hudauto' },
 
       { head: 'optSecAmbiente' },
       { note: 'optNoteAmbiente' },
@@ -1768,6 +1802,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     let altHold = null;    // sonda de LOS RESTOS (QUITAR): fija la altura cuadro a cuadro
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
     let toT = 0, toCount = 4;
+    // EL ATERRIZAJE (§4). Viven con la maquina de estados y no en `run` por la misma regla que los
+    // relojes de las pantallas: son de ESTE momento, no del vuelo. `landDown` es el tren MANDADO
+    // (lo que apretaste); `run.gear` es el tren REAL, que tarda GEAR_T en llegar — la distancia
+    // entre los dos es media mecanica.
+    let landT = 0, landDown = false, landGearT = -1;
     let levelT = 0;   // temporizador de las tarjetas de transición de nivel / victoria (campaña)
     let briefT = 0;   // temporizador de la tarjeta de briefing corto (ciclo de muerte)
     // Los CONTADORES de la corrida viven en core/state.js (`stats`), porque los escriben varios
@@ -1826,7 +1865,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // (nadie llama hacia arriba), y quien dispara la entrada es flight.js, que tampoco las
       // conoce. `t01` = avance de campaña normalizado — la única perilla de dificultad que hay.
       pulso.setCfg({
-        t01: MISSIONS.length > 1 ? curLevel / (MISSIONS.length - 1) : 0,
+        // ACOTADO A 1: `curLevel` puede apuntar a una mision del BANCO DE PRUEBAS, que vive
+        // despues de la campaña y daria una fraccion mayor que uno — o sea EL PULSO mas duro que
+        // en la mision final. Un valor normalizado tiene que estar normalizado.
+        t01: MISSIONS.length > 1 ? Math.min(1, curLevel / (MISSIONS.length - 1)) : 0,
         campaign: conLibreta(), owned: pichon, off: cfg.movesOff,
       });
       // NORMA DE CAMPAÑA (3/8, GUION_2): con roster, el relevo es un AVERIADO que vuelve a la
@@ -2114,6 +2156,19 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (S.state === 'arena') { if (arena.active()) arena.cyclePip(); return; }
         if (S.state === 'play') pedirChancha();
       },
+      /** EL TREN [T] — la tercera de las cuatro medidas del aterrizaje (§4).
+       *
+       *  Solo en la aproximacion: en el pasillo el tren no existe como decision (se recoge solo al
+       *  despegar) y darle una tecla ahi seria ofrecer un boton que no hace nada el 95% del vuelo.
+       *  `landGearT` anota CUANDO se mando por primera vez, que es lo que despues se califica —
+       *  sacarlo encima de la pista cuenta como no haberlo sacado. */
+      gearToggle: () => {
+        if (S.state !== 'landing') return;
+        landDown = !landDown;
+        if (landDown && landGearT < 0) landGearT = landT;
+        beep(landDown ? 330 : 260, 0.1, 'square', 0.05);
+        popup(W / 2, 64, T(landDown ? 'land_gear_down' : 'land_gear_up'), P.dim);
+      },
       // MIRA fija/movil: la alterna CAPS LOCK (teclado) y tambien la fila de OPCIONES. El aviso
       // en pantalla es el mismo por las dos vias — si no, tocar la tecla no daba ninguna señal.
       aimChanged: free => {
@@ -2199,10 +2254,105 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // objetivo cumplido → RECUENTO. Congela aca las estadisticas de la mision: entre niveles de
     // campaña se llama reset(), que las borraria.
     function finishObjective() {
+      // EL BUQUE DEJA DE SER EL FINAL (PLAN_MISION_CINCO_FASES §11). Si la mision declara una fase
+      // MAS ALLA del objetivo, el climax no cierra nada: devuelve al pasillo, y lo que sigue es la
+      // VUELTA — el pasillo de siempre, con las voces de vuelta y sin bombas.
+      //
+      // VA EN EL EMBUDO y no en cada climax: los cinco caminos que terminaban una mision pasaban
+      // por aca, asi que esta es la unica linea del juego que hay que cambiar para que el regreso
+      // exista. El `!run.climaxHecho` lo hace idempotente — si algo volviera a llamar, cierra.
+      if (!run.climaxHecho && fases.hayVuelta()) { volverDelBlanco(); return; }
       freezeRun();
       setState('results'); levelT = 0; resT = 0; resRow = 0;
       beep(700, 0.15, 'square', 0.06, 1000);
       engineOff();
+    }
+    /** LLEGASTE A CASA: arranca la aproximacion final (PLAN_MISION_CINCO_FASES §4).
+     *
+     *  EL MUNDO VUELVE A LA BASE, y esa es la decision de diseño del item. El terreno del juego
+     *  tiene UNA costa (`cfg.coast`): la tierra es lo que queda por DEBAJO de esa z, o sea que
+     *  hay base cerca y mar lejos — la geometria del despegue. "Mar cerca y pista lejos" no se
+     *  puede expresar sin una segunda costa, que seria reescribir el raster del mundo entero.
+     *  Asi que el regreso no dibuja una pista acercandose desde el horizonte: te DEJA sobre tu
+     *  base, en corta final, y lo que se juega son los ultimos novecientos metros. Se gana todo el
+     *  render del puerto —la turba, los estilos de pista, las balizas, la meseta— sin una linea
+     *  nueva, y se pierde el plano de la pista creciendo a lo lejos. Es el intercambio honesto:
+     *  la MECANICA de las cuatro medidas entera, la pelicula de la aproximacion no.
+     *
+     *  El tren entra RECOGIDO a proposito: sacarlo es la tercera de las cuatro medidas. */
+    function iniciarAterrizaje() {
+      landT = 0; landDown = false; landGearT = -1;
+      run.dist = -LAND_APPROACH_M;
+      plane.y = LAND_ALT0; plane.vy = 0;
+      run.gear = 0;
+      clearWorld({ keepFx: true });
+      setState('landing'); fadeT = 0.55;
+      // sin popup de "CORTA FINAL": el encabezado del HUD ya lo dice y queda puesto todo el rato.
+      // Con los dos, el titulo salia escrito dos veces, uno encima del otro.
+      beep(700, 0.1, 'square', 0.05);
+    }
+    /** LAS RUEDAS TOCARON: se cobran las cuatro medidas y recien ahi cierra la mision.
+     *
+     *  NINGUNA DE LAS CUATRO PUEDE MATARTE, y no es una concesion: es la mitigacion que el propio
+     *  plan escribe en §8 ("si frustra, arruina la misión ganada"). Volviste — lo que se decide
+     *  aca es con que cara. Un aterrizaje roto cuesta chapa y puntaje, y la mision se completa
+     *  igual, que es la unica forma de que el cierre no se lea como un peaje.
+     *
+     *  Se guarda el desglose en `stats.land` para que el RECUENTO pueda mostrar las cuatro por
+     *  separado: "llegaste mal" no enseña nada, "llegaste rapido y sin tren" si. */
+    function calificarAterrizaje() {
+      const spd = run.spd, vy = plane.vy, gear = run.gear;
+      // ACTITUD: el cabeceo real del avion al tocar. De trompa te clavas; con la nariz arriba la
+      // pata de cola entra primero, que es como se hace.
+      const pitch = plane.vy / 22;
+      const bien = {
+        spd: spd >= LAND_SPD_OK[0] && spd <= LAND_SPD_OK[1],
+        vy: vy >= LAND_VY_SUAVE,
+        gear: gear >= 0.999 && landGearT >= 0 && landT - landGearT >= LAND_GEAR_MIN_T,
+        pitch: pitch >= LAND_PITCH_OK,
+      };
+      // el cobro es PROPORCIONAL a lo lejos que quedaste, no un interruptor: pasarte por poco de
+      // la ventana de velocidad no puede costar lo mismo que llegar al doble.
+      const fuera = (v, lo, hi) => v < lo ? (lo - v) / lo : v > hi ? (v - hi) / hi : 0;
+      const exceso = {
+        spd: Math.min(1, fuera(spd, LAND_SPD_MIN, LAND_SPD_MAX) * 2.2),
+        vy: Math.min(1, Math.max(0, (LAND_VY_SUAVE - vy) / (LAND_VY_SUAVE - LAND_VY_DURO))),
+        gear: bien.gear ? 0 : (gear >= 0.999 ? 0.4 : 1),
+        pitch: Math.min(1, Math.max(0, (LAND_PITCH_OK - pitch) * 3)),
+      };
+      let chapa = 0, n = 0;
+      for (const k of ['spd', 'vy', 'gear', 'pitch']) { chapa += LAND_COSTO_CHAPA[k] * exceso[k]; if (bien[k]) n++; }
+      run.integ = Math.max(1, run.integ - chapa);   // NUNCA a 0: el avion llego, aunque llegue roto
+      stats.land = { n, bien, spd: Math.round(spd), vy: +vy.toFixed(1), gear: +gear.toFixed(2), chapa: Math.round(chapa) };
+      stats.landPts = Math.round(LAND_PTS * (n / 4));
+      // el golpe se SIENTE proporcional a lo mal que entro: una toma de manual casi no sacude.
+      run.shake = Math.min(8, run.shake + 1 + exceso.vy * 6);
+      if (n === 4) { sfxOne('lv1'); beep(880, 0.16, 'square', 0.06, 1200); }
+      else { boom(0.05 + exceso.vy * 0.1, false); beep(220, 0.18, 'sawtooth', 0.05, 110); }
+      popup(W / 2, 54, T(n === 4 ? 'land_perfecto' : n >= 2 ? 'land_ok' : 'land_mal'), n >= 2 ? P.accent : P.warn);
+      engineOff();
+      // …y recien ahora el recuento. La pantalla de resultado aparece DESPUES de aterrizar, que es
+      // el pedido literal del §8: sin esto la mision se sentia ganada en el buque y la vuelta
+      // entera quedaba de epilogo.
+      finishObjective();
+    }
+    /** SALIR DEL BLANCO HACIA LA VUELTA: el climax termino y todavia hay que volver a casa.
+     *
+     *  No hay cartel ni pantalla, y es a proposito: el §11 pide que el cambio de mitad se sienta
+     *  en las manos y en el sonido —vuelven las voces, vuelve la siembra— y no que lo anuncie un
+     *  rotulo. Lo unico que se ve es el mismo fundido corto de 0.55 s que ya usa el cruce de ida,
+     *  porque tambien aca cambia la camara (el climax mira de frente, el pasillo de costado). */
+    function volverDelBlanco() {
+      run.climaxHecho = 1;
+      // el premio del climax se cobra IGUAL — se gano, aunque la mision siga. Sin esto los puntos
+      // del Pulso se perdian por el camino y el recuento del final mentia.
+      cobrarPulso();
+      setState('play'); fadeT = 0.55;
+      // el mundo lo vacio el `enter()` del climax; se vuelve al pasillo con el contador de siembra
+      // recien puesto para que la vuelta no herede el ultimo intervalo de la aproximacion.
+      run.nextSpawn = 320; run.nextBomb = 260; run.nextSoldier = 60;
+      squad.beginExit();
+      beep(560, 0.12, 'square', 0.05);
     }
     // EL PULSO: pasa el premio del climax a las estadisticas de la corrida, para que freezeRun lo
     // encuentre. Va aca y no adentro del sistema porque `stats` es del recuento de la MISION.
@@ -2222,8 +2372,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const bKills = kills * 120;
       const bAcc = Math.round(acc * 1000);
       const bRas = stats.bestRas * 300;
-      const bPulso = stats.pulso;                     // el premio del climax (0 si no se jugo EL PULSO)
-      const total = flight + bKills + bAcc + bRas + bPulso;
+      const bPulso = stats.pulso;
+      const bLand = stats.landPts || 0;   // la toma, que se cobra DESPUES de la vuelta (§4)                     // el premio del climax (0 si no se jugo EL PULSO)
+      const total = flight + bKills + bAcc + bRas + bPulso + bLand;
       const par = m.par || 8000;
       // La 4ª estrella son las MALVINAS: el rango "S", el tope (ver starsFor). El rango de texto
       // deriva directo de las estrellas (antes habia un bonus por precision aparte que competia):
@@ -2240,6 +2391,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           // la fila de EL PULSO SOLO aparece si se jugo: en las misiones con otro climax no hay
           // renglon vacio ni un cero que haga dudar de si se perdio algo
           ...(bPulso ? [{ k: 'res_pulso', v: bPulso, n: stats.pulsoSellos + '/3' }] : []),
+          // …y la del ATERRIZAJE con el mismo criterio: solo en las misiones que se cierran
+          // aterrizando. `n/4` es el desglose de las cuatro medidas — decir "llegaste mal" no
+          // enseña nada; decir 2/4 te manda a mirar cual de las dos fallaste.
+          ...(stats.land ? [{ k: 'res_land', v: stats.landPts || 0, n: stats.land.n + '/4' }] : []),
         ],
       };
     }
@@ -2553,7 +2708,60 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         }
         parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
         prune(parts, p => p.life > 0); capParts();
-        popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
+        popups.forEach(p => { p.y -= p.vy * dt; p.life -= dt; });
+        prune(popups, p => p.life > 0);
+        run.shake = Math.max(0, run.shake - dt * 10);
+        flags.anyPress = false; flags.backReq = false;
+        return;
+      }
+
+      // ---------- LA APROXIMACION FINAL (PLAN_MISION_CINCO_FASES §4) ----------
+      // El espejo del despegue, y por eso vive al lado: es el otro momento en que el avion y la
+      // pista se tocan. La diferencia es quien manda — el despegue es una animacion con cuenta
+      // regresiva, y esto lo volas vos.
+      if (S.state === 'landing') {
+        landT += dt;
+        // GAS Y CABECEO, con la misma cama del pasillo pero simplificada: aca no hay enemigos, no
+        // hay racha y no hay viento. Lo unico que existe son las cuatro medidas.
+        const gas = inp.u ? 1 : (inp.d ? -1 : 0);
+        run.spd += (gas > 0 ? 34 : gas < 0 ? -30 : -7) * dt;
+        // EL TREN FRENA, y ese es su precio (§4): sacarlo temprano te deja corto de velocidad, y
+        // sacarlo tarde te deja llegando picado. No es un adorno — es la tercera medida.
+        if (landDown) run.spd -= LAND_GEAR_DRAG * dt;
+        run.spd = Math.max(18, Math.min(170, run.spd));
+        run.gear = landDown ? Math.min(1, run.gear + dt / GEAR_T) : Math.max(0, run.gear - dt / GEAR_T);
+        // EL DESCENSO ES UN OBJETIVO, NO UNA ACELERACION, y esto se aprendio mirando: con
+        // `vy += fuerzas * dt` la velocidad vertical se desbocaba —el avion tocaba en tres
+        // segundos de una aproximacion de doce— y encima el numero del HUD no paraba quieto, o
+        // sea que la medida que hay que leer era la menos leible de las tres.
+        //
+        // Con un objetivo al que se tiende, el modelo dice lo que tiene que decir: la VELOCIDAD
+        // decide si te hundis o flotas (lento te caes, rapido no bajas) y el cabeceo es la
+        // correccion inmediata. Redondear con gas justo antes de tocar baja la vy: eso es la
+        // recogida, y sale sola de esta cuenta sin ser un caso especial.
+        const vyTgt = gas * 6 + (run.spd - 58) * 0.14 - 2.6;
+        plane.vy += (vyTgt - plane.vy) * Math.min(1, dt * 2.2);
+        plane.vy = Math.max(-20, Math.min(10, plane.vy));
+        plane.y += plane.vy * dt;
+        plane.x += (inp.l ? -1 : inp.r ? 1 : 0) * 22 * dt;
+        plane.x = Math.max(-FLY_X, Math.min(FLY_X, plane.x));
+        run.dist += run.spd * dt;
+        cam.x += (plane.x * 0.86 - cam.x) * Math.min(1, dt * 7);
+        cam.y += (plane.y + 2.6 - cam.y) * Math.min(1, dt * 7);
+        if (cam.y < 3.4) cam.y = 3.4;
+        engineFly(run.spd, false, 0.017);
+        // polvo al pasar bajito, el mismo del carreteo
+        if (plane.y < 2.5 && Math.random() < 0.6) {
+          const s = proj(plane.x + (Math.random() - 0.5) * 3, 0, PZ - Math.random() * 1.5);
+          parts.push({ x: s.x, y: s.y - 1, vx: (Math.random() - 0.5) * 30, vy: -(15 + Math.random() * 25), life: 0.4, c: '#6b6f62', r: 1.2 });
+        }
+        // TOCASTE. No hay forma de fallar el aterrizaje "del todo": tarde o temprano el avion baja,
+        // y cuando baja se califica lo que hiciste. Es la regla del §4 escrita en el control de
+        // flujo — no hay ninguna rama de este bloque que lleve a `die()`.
+        if (plane.y <= 0) { plane.y = 0; calificarAterrizaje(); return; }
+        parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
+        prune(parts, p => p.life > 0); capParts();
+        popups.forEach(p => { p.y -= p.vy * dt; p.life -= dt; });
         prune(popups, p => p.life > 0);
         run.shake = Math.max(0, run.shake - dt * 10);
         flags.anyPress = false; flags.backReq = false;
@@ -2679,7 +2887,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           run.dist += adv;                     // la mision sigue: el escuadron no deja de volar
           for (const o of obstacles) if (o.type !== 'chunk' && o.type !== 'airboom') o.z -= adv;
           for (const sd of soldiers) sd.z -= adv;
-          popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
+          popups.forEach(p => { p.y -= p.vy * dt; p.life -= dt; });
           prune(popups, p => p.life > 0);
           run.shake = Math.max(0, run.shake - dt * 8);
           engineFly(run.spd * 0.9, false, 0.015);   // el motor del companero: la escena no queda muda
@@ -2831,7 +3039,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         parts.forEach(p2 => { p2.x += p2.vx * dt; p2.y += p2.vy * dt; p2.vy += 90 * dt; p2.life -= dt; });
         prune(parts, p2 => p2.life > 0); capParts();
         tickRadio(dt);                       // la caja de radio baja sola cuando se le acaba el tiempo
-        popups.forEach(p2 => { p2.y -= 14 * dt; p2.life -= dt; });
+        popups.forEach(p2 => { p2.y -= p2.vy * dt; p2.life -= dt; });
         prune(popups, p2 => p2.life > 0);
         engineOff();
         return;
@@ -2869,6 +3077,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       }
       if (fs === 'objective') { finishObjective(); return; }
       if (fs && fs.death) { onDeath(fs.death); return; }
+      // LLEGASTE A CASA (PLAN_MISION_CINCO_FASES §11): la VUELTA se termino. En una mision sin
+      // fases esto es siempre falso y el pasillo cierra donde cerro siempre — en el objetivo.
+      if (fases.llegaste()) { iniciarAterrizaje(); return; }
       // RF-01: con clímax PASADA, los spawns se cortan ENTRY_CLEAR_M antes del buque. El último
       // tramo del pasillo se vacía y lo único que queda adelante es el blanco — es la mitad de
       // "sin corte": no hay obstáculos que desaparezcan de golpe al abrirse el mundo.
@@ -2909,7 +3120,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (!cazaProbe) caza.cazaDirector(dt, {
         // la intensidad sale del TRAMO si la mision los trae (SPEC_TRAMOS RF-02) y del cfg si no:
         // el transito del Narwal es `caza: 0` sin que la mision entera deje de tener Harriers.
-        intensidad: tramos.val('caza', cfg.caza), dist: run.dist, meta: objectiveDist, ciego: inBank(), jets: run.jets,
+        // …y de la FASE si la mision declara fases, con la cadena tramo → fase → cfg (la misma
+        // que usa el sembrador). Y `voces` viaja en el mismo paquete: en las fases mudas el duelo
+        // arranca sin aviso por radio, que es como el silencio del §11.2 llega a LA COLA sin que
+        // caza.js tenga que enterarse de que existen las fases.
+        // …y si te PINTARON en un filo, el mundo te espera armado por el resto de la corrida
+        // (§11.3). Es el precio de 'cap': no perdes la partida, perdes la sorpresa. `run.pintado`
+        // vale 0 en toda mision sin fases, asi que el pasillo de siempre no se entera.
+        intensidad: tramos.val('caza', fases.val('caza', cfg.caza)) + run.pintado,
+        voces: fases.val('voces', true),
+        dist: run.dist, meta: objectiveDist, ciego: inBank(), jets: run.jets,
       });
       // PERSECUCION (PLAN_HARRIERS_PERSECUCION, PLAN B). Corre en el mismo lugar que LA COLA y por
       // la misma razon: es una variante del PASILLO, y no tenerle otro sitio desde donde correr es
@@ -2956,7 +3176,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
       parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
       prune(parts, p => p.life > 0); capParts();
-      popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
+      popups.forEach(p => { p.y -= p.vy * dt; p.life -= dt; });
       prune(popups, p => p.life > 0);
       run.shake = Math.max(0, run.shake - dt * 10);
       run.bloodSplat = Math.max(0, run.bloodSplat - dt * 0.3);   // la mancha de sangre se desvanece (~3 s)
@@ -2975,7 +3195,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // ESTADOS QUE LLEVAN MARCO: los del PASILLO, donde hay un carril que enmarcar. El 'takeoff'
     // entra porque el despegue ya es el pasillo (con la formacion delante), y 'dead'/'relevo'
     // porque el mundo sigue en pantalla — apagar el velo justo ahi seria un parpadeo.
-    const MARCO_STATES = ['play', 'takeoff', 'dead', 'relevo', 'pulso'];
+    const MARCO_STATES = ['play', 'takeoff', 'landing', 'dead', 'relevo', 'pulso'];
 
     function draw() {
       ctx.setTransform(SC, 0, 0, SC, 0, 0);   // buffer 2×: todo el dibujo sigue en coords 320×180
@@ -3449,6 +3669,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       ctx.save(); ctx.scale(U, U);
       if (inLobby()) screens.drawPpalBg(ppalPrev, ppalIdx, ppalFade);   // portada / lobby
       if (S.state === 'takeoff') hud.drawTakeoff(toT);
+      // LA CORTA FINAL: las ventanas se resuelven ACA y no en el HUD, con las mismas constantes que
+      // despues CALIFICAN la toma. Si el dibujo tuviera su propia idea de "velocidad correcta", el
+      // instrumento y el juez podrian discrepar — y no hay nada peor que un HUD en verde y un
+      // resultado en rojo.
+      if (S.state === 'landing') hud.drawLanding({
+        spd: run.spd, vy: plane.vy, gear: run.gear, alt: plane.y,
+        spdOk: run.spd >= LAND_SPD_OK[0] && run.spd <= LAND_SPD_OK[1],
+        vyOk: plane.vy >= LAND_VY_SUAVE,
+        gearOk: run.gear >= 0.999,
+      });
       if (S.state === 'relevo' && squad.relevo()) squadRender.drawRelevo(squad.relevo());
       if (S.state === 'menu') {
         menus.drawMenu({ selPlane, gameMode, t: run.t });
@@ -3781,6 +4011,22 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     if (typeof window !== 'undefined') {
       window.__trdbg = () => JSON.stringify(tramos.dbg(cfg));
       window.__trset = t => JSON.stringify(tramos.setTramosProbe(t, objectiveDist));
+    }
+    // ---------- SONDAS DE LAS FASES (PLAN_MISION_CINCO_FASES §11) — QUITAR al cerrar el item ----
+    // Hermanas exactas de las dos de arriba, y por el mismo motivo: `__fsdbg()` contesta que fase
+    // rige AHORA y con que valores RESUELTOS —incluido el cfg del que se cae, que es lo que hace
+    // comprobable desde afuera la regla suprema: sin fases, lo resuelto ES el cfg— y `__fsset(l)`
+    // inyecta fases al run EN CURSO devolviendo los errores del validador, la misma funcion que
+    // corre el unit test. Sin ellas, probar un techo de filo exigiria editar data, rebuildear y
+    // volver a volar los primeros dos minutos.
+    if (typeof window !== 'undefined') {
+      window.__fsdbg = () => JSON.stringify(fases.dbg(cfg, RADAR_ALT));
+      window.__fsset = l => JSON.stringify(fases.setFasesProbe(l, objectiveDist));
+      // `__vuelta()` deja la corrida COMO SI el climax ya se hubiera jugado, que es la unica forma
+      // de pararse en el regreso sin volar la mision entera: sin la marca, cualquier salto pasado
+      // el objetivo vuelve a entrar al climax en el mismo cuadro (los tres `readyToEnter` son
+      // `dist >= objetivo`). Pone exactamente lo mismo que `volverDelBlanco()`.
+      window.__vuelta = () => { run.climaxHecho = 1; return JSON.stringify({ climaxHecho: run.climaxHecho, hayVuelta: fases.hayVuelta() }); };
     }
     // ---------- SONDAS DEL ZIGZAG (PLAN_PASILLO_ZIGZAG §5) — QUITAR al cerrar el item ----------
     // `__zzdbg()` contesta lo RESUELTO de este cuadro (curvatura, deriva, si se sostiene con la

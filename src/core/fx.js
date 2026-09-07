@@ -32,9 +32,36 @@ export function proj(x, y, z) {
   return { x: W / 2 + (x - cam.x + bendW(z)) * k, y: HOR + (cam.y - y) * k, k };
 }
 
-/** Texto flotante de feedback (puntaje, aviso) en coordenadas de mundo. */
+// CUANTO DURA UN CARTEL: sale del LARGO DEL TEXTO, y no de una constante.
+//
+// Volando rasante nadie lee de un tiron. Se lee en RAFAGAS de decimas, entre correccion y
+// correccion, porque la vista no se puede ir del centro: leer siete palabras cuesta tres o cuatro
+// vistazos repartidos en varios segundos. Con una duracion fija —1,1 s para todo— un "+400"
+// sobraba y una linea de radio de diez palabras se iba antes de que se terminara de leer. Eso no
+// es un cartel que se pierde: es un cartel que le enseña al jugador a no leer los carteles.
+//
+// EL PISO ES EL VALOR DE SIEMPRE, y es deliberado: los puntajes son de una palabra y tienen que
+// salir identicos al cuadro, porque son la mitad de los popups del juego y la que define el ritmo.
+// Lo unico que cambia es lo que antes se iba corto.
+export const POP_VIDA = 1.1;            // lo que dura un cartel de UNA palabra (el puntaje)
+export const POP_SUBE = 14 * POP_VIDA;  // lo que sube de punta a punta: SIEMPRE lo mismo
+
+/** Segundos que un cartel necesita en pantalla para su texto. */
+export function vidaCartel(txt) {
+  const palabras = String(txt).trim().split(/\s+/).length;
+  return Math.max(POP_VIDA, Math.min(6, 0.6 + palabras * 0.32));
+}
+
+/** Texto flotante de feedback (puntaje, aviso) en coordenadas de mundo.
+ *
+ *  SUBE SIEMPRE LO MISMO, no siempre a la misma velocidad: la velocidad sale de la vida
+ *  (`POP_SUBE / life`). Con la velocidad fija, un cartel que dura cuatro segundos se iba 56 px
+ *  para arriba y terminaba de leerse en otra parte de la pantalla —o encima de otro instrumento—
+ *  que es justo lo que la duracion variable venia a arreglar. El de una palabra da 14 exacto, o
+ *  sea el numero de siempre. */
 export function popup(x, y, txt, c, big) {
-  popups.push({ x, y, txt, c: c || P.accent, life: 1.1, big: !!big });
+  const life = vidaCartel(txt);
+  popups.push({ x, y, txt, c: c || P.accent, life, vy: POP_SUBE / life, big: !!big });
 }
 
 /** Explosion: reventon de particulas en (x,y,z) + sacudon de camara. `big` la agranda y agacha

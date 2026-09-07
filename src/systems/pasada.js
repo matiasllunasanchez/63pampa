@@ -864,7 +864,7 @@ function catYFusileria(dt, rad) {
 
 export function update(dt, inp) {
   A.t += dt;
-  popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
+  popups.forEach(p => { p.y -= p.vy * dt; p.life -= dt; });
   prune(popups, p => p.life > 0);
   A.hitFx = Math.max(0, A.hitFx - dt * 5);
   A.zoomPunch = Math.max(0, A.zoomPunch - dt * 3.5);
