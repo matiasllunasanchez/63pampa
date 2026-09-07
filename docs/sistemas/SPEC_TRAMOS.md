@@ -241,13 +241,25 @@ byte a byte idéntico al baseline.**
       la lista de `spawn.js`: sigue contestando, y contesta vacío. Lo que ve el jugador se lee hoy
       por **`__radiodbg()`** — y a diferencia del popup, la caja **no se vacía al leerla**, así que
       hay que descartar lo repetido o una línea que todavía está en pantalla se cuenta dos veces.
-14. **El primer tramo de M4 se lo come la carrera de despegue.** `run.dist` acredita durante
-    `'takeoff'`, y al llegar a `'play'` el odómetro ya marca ~155 m: el tramo `hasta: 0.04` de M4
-    son 104 m, así que **`M04_OBJETIVO` nunca llega a ser vigente volando**. Le pasa lo mismo al
-    `hasta: 0.06` de M1 (132 m). No es del item —el flanco hace exactamente lo que el RF-03 pide—
-    pero es la razón por la que el fixture camina el tránsito a saltos en vez de volarlo de
-    corrido, y queda anotado acá porque el arreglo es de datos: **ningún tramo que tenga que sonar
-    puede terminar antes de los ~170 m**.
+14. **La carrera de despegue se comía el primer tramo de M1, M4 y M5** — *arreglado el 6/9/2026*.
+    `run.dist` acredita durante `'takeoff'`, y al llegar a `'play'` el odómetro ya marca **153–154 m**
+    (medido en las catorce misiones; la carrera dura 3 s y la velocidad la fija `spdBase0`). Un
+    tramo que **termina** antes de eso empieza y termina adentro de la carrera y nunca llega a ser
+    vigente — y si trae `charla:` o `radio:`, esa línea **no se dice**, sin que falle nada: la
+    misión se juega sin ella y nadie se entera. Caían tres: `M01_OBJETIVO` (0.06 de 2200 = 132 m),
+    `M04_OBJETIVO` (0.04 de 2600 = 104 m) y `M05_OBJETIVO` (0.05 de 2600 = 130 m). Las otras once
+    llegaban a `'play'` con `idx: 0`.
+
+    No es del item —el flanco hace exactamente lo que el RF-03 pide— y por eso el arreglo es de
+    datos: en las tres, **los límites de la conversación se repartieron parejo entre el despegue y
+    el límite que ya cerraba el tramo callado** (0.30 en M1, 0.351 en M4, 0.31 en M5). Así entran
+    todas las líneas, con ~2 s de aire entre una y otra, y la parte muda sigue terminando
+    exactamente donde el autor la cerró.
+
+    **Y ahora hay red:** `npm run unit` recorre las catorce y falla si el primer tramo que habla
+    termina antes de los 155 m. Es la clase de dato que se rompe solo — alcanza con que alguien
+    toque `meters` o `dist` de una misión para que un límite en fracciones caiga adentro de la
+    carrera, y el síntoma es una línea que deja de decirse.
 15. **`charla.avance()` existía, resolvía bien y no lo consumía nadie** — *conectado el 6/9/2026*.
     `systems/charla.js` exponía el factor que congela la acreditación mientras se habla
     (`__cvdbg().avance` contestaba `0`), pero el odómetro del pasillo era

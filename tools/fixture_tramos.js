@@ -405,21 +405,28 @@ app.whenReady().then(async () => {
   const t0 = await TR();
   if (t0.n === 7) ok(`m4 trae ${t0.n} tramos: los seis del transito y el mar abierto`);
   else bad(`m4 reporta ${t0.n} tramos`);
-  if (t0.idx !== 0)
-    console.log(`   ↑ OJO: al llegar a 'play' el odometro ya marca ${t0.dist} m y rige el tramo ${t0.idx}. El primer tramo del transito termina a los ${Math.round(0.04 * t0.obj)} m, o sea ADENTRO de la carrera de despegue: volando, 'M04_OBJETIVO' no llega a ser vigente. Ver §8 divergencia 14.`);
+  // EL PRIMER TRAMO TIENE QUE SEGUIR VIVO AL LLEGAR A 'play', y esto era un `↑ OJO` hasta que se
+  // arreglo el dato: `run.dist` acredita durante la carrera de despegue, que termina a los ~155 m,
+  // y el tramo de `M04_OBJETIVO` decia 0.04 —104 m—, o sea que empezaba y terminaba adentro de la
+  // carrera. La mision se jugaba sin su primera linea y nada fallaba. Ahora se afirma, y el piso
+  // ademas lo cuida `npm run unit` para las catorce. Ver §8 divergencia 14.
+  if (t0.idx === 0) ok(`al llegar a 'play' el odometro marca ${t0.dist} m y todavia rige el tramo 0: el despegue no se come la primera linea`);
+  else bad(`al llegar a 'play' (${t0.dist} m) ya rige el tramo ${t0.idx}: el despegue se comio el tramo de 'M04_OBJETIVO'`);
   const ESCENAS = ['M04_OBJETIVO', 'M04_NARWAL_A', 'M04_NARWAL_B',
     'M04_NARWAL_C', 'M04_NARWAL_D', 'M04_NARWAL_E'];
-  // un punto ADENTRO de cada tramo del transito (0.04 · 0.07 · 0.14 · 0.21 · 0.28 · 0.351)
-  const PUNTOS = [0.02, 0.055, 0.10, 0.17, 0.24, 0.32];
-  // SE CORTA LA QUE VENIA CORRIENDO antes de empezar: al llegar a 'play' el tramo 1 ya armo su
-  // escena, y con una charla abierta el primer salto no armaria nada — `armar()` se ignora.
-  await js('__cvcut()');
+  // Un punto ADENTRO de cada tramo del transito (0.10 · 0.15 · 0.20 · 0.25 · 0.30 · 0.351). EL
+  // PRIMERO ES `null` Y NO UN SALTO: al llegar a 'play' el tramo 0 YA es vigente —el odometro marca
+  // 153 m de 260— y el juego ya armo `M04_OBJETIVO` solo, que es exactamente lo que el arreglo del
+  // despegue vino a conseguir. Saltar adentro del mismo tramo no mueve el flanco y no dispara nada;
+  // y cortarla para "empezar limpio" seria PERDERLA, porque el tramo no vuelve a cambiar. Se la
+  // mira donde esta.
+  const PUNTOS = [null, 0.12, 0.17, 0.22, 0.27, 0.33];
   await js('__trclear()');
   const dichoEnVuelo = [];        // las escenas que pasaron, en orden
   const conTexto = new Set();     // …y cuales llegaron a poner una linea EN PANTALLA
   const sucios = [];              // tramos del transito que resolvieron algo distinto de cero
   for (const p of PUNTOS) {
-    await js(`__wjump(${p})`);
+    if (p !== null) await js(`__wjump(${p})`);
     let esc = null, txt = '';
     const lim = Date.now() + 40000;
     while (Date.now() < lim) {
@@ -431,8 +438,9 @@ app.whenReady().then(async () => {
         if (cv.fase === 'activa' && cv.txt && cv.txt.length > 3) txt = cv.txt;
       } else if (esc) break;                    // hablo y ya volvio a idle: al tramo siguiente
       // SE VUELVE A SALTAR AL MISMO PUNTO mientras habla, por lo mismo que en `contar`: el avion
-      // sigue volando y sin esto la escena terminaria dos tramos mas adelante.
-      await js(`__wjump(${p})`);
+      // sigue volando y sin esto la escena terminaria dos tramos mas adelante. (Con `null` no hace
+      // falta: durante la charla el odometro esta congelado y el avion no se mueve del tramo 0.)
+      if (p !== null) await js(`__wjump(${p})`);
       await sleep(150);
     }
     if (esc) dichoEnVuelo.push(esc);

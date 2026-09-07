@@ -58,9 +58,17 @@ export const MISSIONS = [
     // tierra — la voz entra por la radio con el mar pasando abajo, que es como se escuchaba de
     // verdad — y los gansos son el respiro. `obstacles: 0` porque una charla pide cero enemigos en
     // pantalla (SPEC_CHARLAS_VUELO RF-01); el resto de la mision queda como estaba.
+    //
+    // EL PRIMER LIMITE ESTA DESPUES DEL DESPEGUE, y ese es el piso de todo tramo que tenga que
+    // hablar: `run.dist` acredita durante `'takeoff'`, asi que al llegar a `'play'` el odometro ya
+    // marca ~155 m. Este decia 0.06 —132 m— o sea que el tramo empezaba y terminaba adentro de la
+    // carrera y `M01_OBJETIVO` nunca llegaba a ser vigente: la mision se jugaba sin su primera
+    // linea y nada fallaba. Los tres limites se repartieron parejo entre el despegue y el 0.30 que
+    // ya cerraba el tramo callado, asi que las tres escenas entran con ~2 s de aire entre una y
+    // otra y la parte muda sigue terminando donde estaba. Ver SPEC_TRAMOS §8 divergencia 14.
     tramos: [
-      { hasta: 0.06, obstacles: 0, caza: 0, bombs: 0, charla: 'M01_OBJETIVO' },
-      { hasta: 0.12, obstacles: 0, caza: 0, bombs: 0, charla: 'M01_RITUAL' },
+      { hasta: 0.12, obstacles: 0, caza: 0, bombs: 0, charla: 'M01_OBJETIVO' },
+      { hasta: 0.21, obstacles: 0, caza: 0, bombs: 0, charla: 'M01_RITUAL' },
       { hasta: 0.30, obstacles: 0, caza: 0, bombs: 0, charla: 'M01_GANSOS' },
       { hasta: 1 },
     ],
@@ -107,20 +115,30 @@ export const MISSIONS = [
     // despues va a usar para encontrar el blanco— salen de un pesquero civil, y eso se planta
     // liviano para que el cobro de M5 no se vea venir.
     //
-    // Son TRECE tramos y no uno porque una radio suena UNA vez por tramo (RF-03): la
-    // conversacion se reparte en trece entradas, que es lo que la convierte en conversacion y no
-    // en un cartel. Los trece son identicos salvo la linea.
+    // Son SEIS tramos y no uno porque una charla se arma UNA vez por tramo (RF-03, y `armar()` se
+    // ignora si ya hay una corriendo): la conversacion se reparte en seis entradas, que es lo que
+    // la convierte en conversacion y no en un cartel. Los seis son identicos salvo la escena.
+    // (Decia TRECE: era la version por `radio:`, cuando cada linea suelta de strings.js iba en su
+    // propio tramo. Al pasar a `charla:` cada entrada paso a ser una escena entera de story.js.)
     //
     // `obstacles: 0` y no una densidad baja: el criterio del guion es CERO enemigos, y una
     // densidad chica igual siembra cada doscientos metros. Con `bombs: 0` ademas no cae nada del
     // cielo — un bombardeo en el tramo mudo contradice la escena tanto como una fragata.
     // `marcas: true` lo transporta este item y lo va a consumir el de las marcas de Condor.
+    //
+    // LOS SEIS LIMITES SE REPARTEN PAREJO ENTRE EL DESPEGUE Y EL 0.351, y no es cosmetico: el
+    // primero decia 0.04 —104 m— y `run.dist` acredita durante `'takeoff'`, que termina a los
+    // ~155. O sea que el tramo de `M04_OBJETIVO` empezaba y terminaba adentro de la carrera y la
+    // conversacion arrancaba por la segunda linea, sin que nada fallara. Repartidos, las seis
+    // escenas entran con ~1,8 s de aire entre una y otra —que es lo que las hace conversacion y no
+    // cartel— y el transito sigue terminando exactamente donde el autor lo cerro.
+    // Ver SPEC_TRAMOS §8 divergencia 14.
     tramos: [
-      { hasta: 0.04, obstacles: 0, caza: 0, bombs: 0, charla: 'M04_OBJETIVO' },
-      { hasta: 0.07, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_A' },
-      { hasta: 0.14, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_B' },
-      { hasta: 0.21, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_C' },
-      { hasta: 0.28, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_D' },
+      { hasta: 0.10, obstacles: 0, caza: 0, bombs: 0, charla: 'M04_OBJETIVO' },
+      { hasta: 0.15, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_A' },
+      { hasta: 0.20, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_B' },
+      { hasta: 0.25, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_C' },
+      { hasta: 0.30, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_D' },
       { hasta: 0.351, obstacles: 0, caza: 0, bombs: 0, marcas: true, charla: 'M04_NARWAL_E' },
       // y se termina ahi: mar pleno, con la densidad y LA COLA de una mision de verdad. El salto
       // de 0 a 1.2 es el punto — el silencio se cobra en el contraste.
@@ -140,10 +158,14 @@ export const MISSIONS = [
     // `marcas: false` es lo que hace el cobro, y por eso vale mas que cualquier cartel: en m4 el
     // HUD marcaba las unidades antes de verlas; aca no las marca. El jugador entra a la mision
     // mas dificil del movimiento con menos informacion en pantalla, y sabe exactamente por que.
+    //
+    // Los cuatro limites del silencio, repartidos entre el despegue y el 0.31 que abre LA BOCA, por
+    // lo mismo que en m4: el primero decia 0.05 —130 m— y el despegue acredita hasta los ~155, asi
+    // que `M05_OBJETIVO` no llegaba a ser vigente nunca. Ver SPEC_TRAMOS §8 divergencia 14.
     tramos: [
-      { hasta: 0.05, obstacles: 0, caza: 0, bombs: 0, charla: 'M05_OBJETIVO' },
-      { hasta: 0.11, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M05_NARWAL_A' },
-      { hasta: 0.21, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M05_NARWAL_B' },
+      { hasta: 0.10, obstacles: 0, caza: 0, bombs: 0, charla: 'M05_OBJETIVO' },
+      { hasta: 0.17, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M05_NARWAL_A' },
+      { hasta: 0.24, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M05_NARWAL_B' },
       { hasta: 0.31, obstacles: 0, caza: 0, bombs: 0, marcas: false, charla: 'M05_NARWAL_C' },
       // LA BOCA: el paisaje se cierra y la mision empieza de verdad. Densidad a la mitad — lo que
       // esta pasando aca es el CALLEJON apareciendo, y no hace falta competirle con enemigos.

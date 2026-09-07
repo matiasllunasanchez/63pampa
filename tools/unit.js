@@ -871,6 +871,30 @@ test('tramos: TODAS las misiones de la campaña tienen tramos validos', () => {
   assert.ok(CLAVES.includes('hasta') && CLAVES.includes('radio'));
 });
 
+// LO QUE EL DESPEGUE SE COME. `run.dist` acredita durante `'takeoff'`, asi que al llegar a `'play'`
+// el odometro ya marca ~155 m: un tramo que TERMINA antes de eso empieza y termina adentro de la
+// carrera y nunca llega a ser vigente. Si trae `charla:` o `radio:`, esa linea no se dice — y no
+// falla nada: la mision se juega sin ella y nadie se entera. Le pasaba a M01_OBJETIVO (132 m),
+// M04_OBJETIVO (104 m) y M05_OBJETIVO (130 m). Ver SPEC_TRAMOS §8 divergencia 14.
+//
+// EL NUMERO ES MEDIDO, no deducido: 153-154 m en las catorce misiones (la carrera dura 3 s y la
+// velocidad la fija `spdBase0` en game.js). Se guarda con margen — lo que se quiere atajar es un
+// tramo que cae ADENTRO, no uno que roza el borde.
+const DESPEGUE_M = 155;
+test('tramos: ningun tramo que hable termina adentro de la carrera de despegue', () => {
+  for (const m of MISSIONS) {
+    const obj = m.goal.kind === 'ship' ? m.goal.dist : m.goal.meters;
+    for (const t of m.tramos || []) {
+      if (!t.charla && !t.radio) continue;
+      const fin = t.hasta * obj;
+      assert.ok(fin > DESPEGUE_M,
+        `${m.id}: el tramo de '${t.charla || t.radio}' termina a los ${Math.round(fin)} m y el `
+        + `despegue llega a ${DESPEGUE_M} — esa linea no se dice nunca`);
+      break;                      // solo el primero puede caer adentro: los `hasta` van creciendo
+    }
+  }
+});
+
 // ---------- LAS CHARLAS EN VUELO (SPEC_CHARLAS_VUELO) ----------
 // El validador de `core/tramos.js` solo puede comprobar que `charla:` sea TEXTO: core/ no importa
 // contenido, asi que desde alla un id inventado pasa. Aca si se ven las dos mitades, y esta es la
