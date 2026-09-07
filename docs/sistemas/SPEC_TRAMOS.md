@@ -200,7 +200,8 @@ byte a byte idéntico al baseline.**
 
 ### De la misión piloto (T4)
 
-10. **M4 (código `m3`) va con `obstacles: 0` en el tránsito, no con 0.3** como proponía
+10. **M4 (código `m3`) va con `obstacles: 0` en el tránsito, no con 0.3**  *(el código de M4 hoy
+    es `m4`; ver la divergencia 13)* como proponía
     PLAN_MISIONES_FASES §4. El criterio de aceptación de esa misma ficha es "0 spawns hostiles en
     el tránsito" y el guion dice "sin un solo enemigo en pantalla": con 0.3 igual nace algo cada
     ~200 m. Con 0 el tramo queda literalmente mudo, que es lo que la escena pide. **Efecto
@@ -213,4 +214,83 @@ byte a byte idéntico al baseline.**
     Repartir la conversación en cuatro entradas es lo que la convierte en conversación y no en un
     cartel; los cuatro son idénticos salvo la línea. Las cuatro claves (`m4_radio1..4`) son el
     esqueleto de la escena de GUION_3: la posición que el jugador va a usar, la pregunta de
-    Gitano, la respuesta que planta el Narwal y el cierre de Puma.
+    Gitano, la respuesta que planta el Narwal y el cierre de Puma.  *(Hoy son SEIS tramos y no
+    llevan `radio:` sino `charla:`; ver la divergencia 13.)*
+
+### Del realineado del fixture *(6/9/2026)*
+
+> `npm run tramos` estaba en rojo en HEAD limpio, y **ninguna de las fallas era del item**: el
+> fixture había quedado apuntando a una campaña que ya no existe. Estas tres son lo que había que
+> saber para leerlo.
+
+13. **⚠ LOS CÓDIGOS DE MISIÓN SE RENUMERARON, y este documento habla en la numeración vieja.**
+    Cuando se escribió T4 la campaña tenía doce misiones y el tránsito del Narwal era *"M4 (código
+    `m3`)"*: hoy son catorce y **el código coincide con el número** — el tránsito es `m4`, y `m3`
+    es EL INVENTO, que trae dos tramos. Todo lo que este §8 diga de `m3` hay que leerlo como `m4`.
+    Con la renumeración se movieron tres cosas más, y el fixture las tenía todas viejas:
+    - **La misión sin tramos ya no es `m2`, es `m14`** — y es la única: las otras trece llevan al
+      menos el tramo del objetivo por radio (G-08). Entrar a `m2` creyendo que está limpia no sólo
+      rompe el paso 1: su primer tramo trae una **charla en vuelo**, que apaga el sembrador, así
+      que los pasos 2, 3 y 5 —que siguen volando esa misma corrida— medían **cero contra cero**.
+    - **El tránsito pasó de RADIOS a CHARLAS.** Son seis escenas de `data/story.js`
+      (`M04_OBJETIVO`, `M04_NARWAL_A..E`) y no cuatro claves de `data/strings.js`. Una charla **no
+      pasa por `dichas`** —ese registro es sólo de radios—, así que la conversación se mira por
+      `__cvdbg()`. Las `m4_radio1..13` siguen en `strings.js` sin dueño; el fixture usa cuatro de
+      ellas como líneas de prueba del motor, que es todo lo que le hacen falta.
+    - **La radio dejó de ser un `popup` y pasó a la caja de `core/radioVN.js`.** `__seapop()` mira
+      la lista de `spawn.js`: sigue contestando, y contesta vacío. Lo que ve el jugador se lee hoy
+      por **`__radiodbg()`** — y a diferencia del popup, la caja **no se vacía al leerla**, así que
+      hay que descartar lo repetido o una línea que todavía está en pantalla se cuenta dos veces.
+14. **El primer tramo de M4 se lo come la carrera de despegue.** `run.dist` acredita durante
+    `'takeoff'`, y al llegar a `'play'` el odómetro ya marca ~155 m: el tramo `hasta: 0.04` de M4
+    son 104 m, así que **`M04_OBJETIVO` nunca llega a ser vigente volando**. Le pasa lo mismo al
+    `hasta: 0.06` de M1 (132 m). No es del item —el flanco hace exactamente lo que el RF-03 pide—
+    pero es la razón por la que el fixture camina el tránsito a saltos en vez de volarlo de
+    corrido, y queda anotado acá porque el arreglo es de datos: **ningún tramo que tenga que sonar
+    puede terminar antes de los ~170 m**.
+15. **`charla.avance()` existía, resolvía bien y no lo consumía nadie** — *conectado el 6/9/2026*.
+    `systems/charla.js` exponía el factor que congela la acreditación mientras se habla
+    (`__cvdbg().avance` contestaba `0`), pero el odómetro del pasillo era
+    `run.dist += run.spd * dt * chAvance()` en `systems/flight.js` y ahí sólo entraba el factor de
+    LA CHANCHA. Consecuencia medida en M4: volando de corrido, la primera escena del tránsito **se
+    comía los seis tramos** y las otras cinco se perdían, porque `charla.armar()` se ignora si ya
+    hay una corriendo. Es de SPEC_CHARLAS_VUELO (§7 divergencia 12, donde está el arreglo y el
+    porqué se escapó); acá importa por lo que define de la medición.
+
+    **El paso 7 camina el tránsito a saltos igual, y ahora por una sola razón: la divergencia 14.**
+    Con el congelamiento puesto las seis escenas encadenan solas —verificado, `M04_NARWAL_A → B →
+    C → D → E`— pero `M04_OBJETIVO` sigue sin sonar volando, porque su tramo termina dentro de la
+    carrera de despegue. Entrar a cada tramo con un salto es el mismo mecanismo que el RF-03 tiene
+    que aguantar, sin el relleno, y es lo único que permite afirmar las **seis**.
+
+16. **Tres agujeros de medición que estuvieron dando verde de casualidad** *(6/9/2026)*. Salieron
+    corriendo el fixture cuatro veces seguidas en vez de una, y ninguno era del item. Van juntos
+    porque los tres son la misma clase de error: **un número que no puede distinguir "el tramo hizo
+    esto" de "la medición se rompió".**
+
+    - **Un cero no puede afirmar nada, y este fixture afirmaba con ceros.** Un avión caído no
+      siembra, así que una ventana que cae fuera del vuelo devuelve `0` de los dos lados y se lee
+      como una propiedad del tramo. Ahora **el estado viaja con el censo** (`contar` lo adjunta) y
+      cada aserción lo mira primero.
+    - **Y hay que vigilarlo DURANTE la ventana, no al cerrarla.** Un relevo que empieza y termina
+      adentro no deja rastro —para cuando se pregunta, el avión ya volvía a volar— y lo único que
+      queda es un censo bajo. Medido: **16 spawns donde el mismo tramo da 23**, y la razón de la CA
+      se cayó a 2,67×. No cuesta una llamada de más: `__wjump` ya devuelve `state` y `vidas`.
+    - **`favor: ['jet']` hace la ventana letal, y eso sesgaba la mezcla en silencio.** El caza
+      **busca tu carril** (`home` en `spawn.js`), así que la ventana CON favor moría mucho más que
+      la de control, y se comparaba una ventana entera contra media. Se ve en la corrida vieja del
+      §8 divergencia 3: *"16,9% de 65"* contra *"9,6% de 146"* — la mitad de la muestra. Ahora esas
+      dos ventanas **vacían el corredor** en el mismo pulso del salto (`__pasilloLimpio`); el censo
+      no se entera, porque cuenta lo que NACE. Lo único con tope de población es la ola, y por eso
+      la proporción se mide sobre la mezcla **sin olas ni bidones** — que además es lo correcto: los
+      dos están exentos del re-sorteo (divergencia 5).
+
+    **Y el ruido, que era el que quedaba.** La mezcla es una medición de conteo: con `p ≈ 0,11` y
+    `N` spawns por ventana, la desviación **relativa** de la razón es `√(1/(p·N) + 1/(p'·N)) ≈
+    √(13,9/N)`. A velocidad de crucero entran ~135 por ventana de diez segundos → **±30%** sobre una
+    razón cuyo techo es 1,89, o sea que el umbral de 1,5 cae adentro del ruido. Medido, tres
+    corridas seguidas del mismo código: **1,49 · 2,46 · 1,58** — una falla de cada tres, por dado.
+    La sección ahora vuela a **300 m/s con ventanas de 30 s** (~1150 muestras, ±11%, el umbral a más
+    de dos sigmas): la velocidad **no toca la mezcla** —el sorteo es un `Math.random` contra
+    umbrales por terreno y el intervalo de siembra se cuenta en metros—, así que correr más rápido
+    saca más muestras del mismo dado, no lo carga. Verificado: 1,77 · 2,01 · 2,02.

@@ -3876,7 +3876,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         txt: dialogue.txtOf(dialogue.line()),
         // el corredor, tal como lo ve el drenaje
         obst: obstacles.length, sold: soldiers.length, msl: missiles.length,
-        dist: Math.round(run.dist), fuel: +run.fuel.toFixed(2),
+        // LOS DOS ODOMETROS, porque el RF-02 congela los dos y hasta ahora solo se podia mirar uno.
+        // `fuelDist` es el que decide cuando nace un bidon: si corriera hablando, aparece uno
+        // apenas termina la charla pagado con metros que el jugador no volo (§7 divergencia 10).
+        dist: Math.round(run.dist), fuelDist: Math.round(run.fuelDist), fuel: +run.fuel.toFixed(2),
       });
       window.__cvarm = id => JSON.stringify({ ok: !!SCENES[id] && charla.armar(id), fase: charla.faseDe() });
       window.__cvcut = () => JSON.stringify({ cortada: charla.cortar(), fase: charla.faseDe() });

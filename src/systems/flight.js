@@ -32,6 +32,11 @@ import { tierraH, hayRelieve } from '../core/tierra.js';
 // LA CHANCHA: conectado a la canasta se vuela EN FORMACION, o sea que el mundo avanza menos.
 // Se toca el AVANCE y no `run.spd` a proposito: la velocidad del avion es fisica.
 import { avance as chAvance } from '../systems/chancha.js';
+// LA CHARLA EN VUELO: mientras se habla el mundo sigue igual pero el KILOMETRAJE no acredita
+// (SPEC_CHARLAS_VUELO RF-02, "una pausa sin pausa"). Es el hermano de `chAvance`, y por eso entra
+// por la misma puerta: la velocidad del avion es fisica y no se toca — lo que cambia es cuanto de
+// esa velocidad se ANOTA en el odometro.
+import { avance as cvAvance } from '../systems/charla.js';
 import * as rasante from '../systems/rasante.js';
 // BOOST_LIFT y CAM_PAN se mudaron a systems/vuelo.js con la camara que los usa.
 import { multOf } from '../core/util.js';
@@ -151,8 +156,20 @@ export function flightSystem(dt, deps) {
     gusts.push({ x: W + 10, y: 4 + Math.random() * (HOR + 26), v: 260 + Math.random() * 170, len: 10 + Math.random() * 18, life: 2 });
   gusts.forEach(g => { g.x -= g.v * dt; g.life -= dt; });
   prune(gusts, g => g.x > -32 && g.life > 0);
-  run.dist += run.spd * dt * chAvance();
-  run.fuelDist += run.spd * dt;
+  // LOS DOS ODOMETROS SE CONGELAN JUNTOS, y el segundo no es un detalle: `run.fuelDist` es lo que
+  // decide cuando nace un bidon (spawn.js), asi que dejarlo corriendo haria aparecer uno apenas
+  // termina la charla, pagado con metros que el jugador no volo (SPEC_CHARLAS_VUELO §7
+  // divergencia 10). El factor de la charla multiplica a los dos.
+  //
+  // ESTABA ESCRITO EN EL SPEC Y NO EN EL CODIGO. `charla.avance()` existia, resolvia bien y no lo
+  // consumia nadie: el fixture miraba el VALOR del gate y nunca su EFECTO, asi que el cable estuvo
+  // cortado sin que nada se quejara. Lo que rompia: en M4 el transito del Narwal son seis tramos
+  // seguidos con `charla:`, y sin congelar, la primera escena se comia los seis —el odometro cruza
+  // los 913 m mientras habla— y las otras cinco no se armaban nunca, porque `charla.armar()` se
+  // ignora si ya hay una corriendo. De seis lineas se escuchaba una. Ver §7 divergencia 12.
+  const avAcred = chAvance() * cvAvance();
+  run.dist += run.spd * dt * avAcred;
+  run.fuelDist += run.spd * dt * avAcred;
 
   // OBJETIVO cumplido. Segun el tipo de meta (ver GOALS):
   //   - con climax (ship): al acercarse al blanco arranca el asalto por pasadas (MOMENTUM)

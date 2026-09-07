@@ -269,3 +269,70 @@ tramos seguidos. De paso el chiste llega **después** del silencio, que es donde
 El RF-02 nombra `run.dist` y el combustible. `run.fuelDist` —el odómetro que decide cuándo
 nace un bidón— también es **acreditación**, y dejarlo corriendo haría aparecer un bidón
 apenas termina la charla, pagado con metros que el jugador no voló.
+
+### 11 · Los códigos de misión se renumeraron, y el fixture apuntaba a los viejos *(6/9/2026)*
+
+`npm run charlas` estaba en rojo en HEAD limpio, con las tres fallas en el paso 1 y **ninguna del
+item**. La sección se escribió cuando la campaña tenía doce misiones y `m4` era *"la que más tramos
+tiene y ninguno declara `charla:`"*. Hoy son catorce, el código coincide con el número, y **`m4` ES
+la misión de las charlas** — el tránsito del Narwal son seis escenas (`M04_OBJETIVO`,
+`M04_NARWAL_A..E`). Preguntarle a `m4` por el idle devuelve `M04_NARWAL_A` corriendo, el sembrador
+apagado y los tres gates dados vuelta.
+
+Y no alcanza con cambiarle la misión: **no queda ninguna misión con tramos y sin `charla:`**, porque
+las trece que tienen tramos llevan al menos el objetivo por radio (G-08). Así que la regla suprema
+se prueba ahora en dos mitades, las dos con dato real: **`m14`** (la única sin tramos, y por lo tanto
+sin charlas) para la fase, los tres gates resueltos y que el pasillo siembre; y **`m4` en el mar
+abierto** —el último tramo, densidad 1.2 y LA COLA prendida— para que los tramos sigan resolviendo
+con `charla: null`. Lo mismo pasa en el paso 5: `m3` sigue siendo la patrulla costera, pero su
+primer tramo **ya armó `M03_OBJETIVO`** al despegar, así que hay que cortarla antes de medir o
+`__cvarm` no toma nada (`armar()` se ignora si ya hay una corriendo).
+
+Corolario para el que escriba el próximo fixture: **cualquier espera larga adentro de una misión con
+objetivo tiene que volver a saltar al punto que está midiendo.** Quince segundos a 74 m/s son 1100 m
+— la espera termina dos tramos más adelante, del otro lado del corte del VEIL, o directamente en el
+clímax.
+
+### 12 · `charla.avance()` resolvía bien y **no lo consumía nadie** — CONECTADO *(6/9/2026)*
+
+El RF-02 y las divergencias 2 y 10 de acá arriba dicen que la acreditación se congela desde `armada`
+y hasta volver a `idle`, `run.fuelDist` incluido. **No pasaba.** El gate existía y contestaba bien
+(`__cvdbg().avance` daba `0` mientras se hablaba), pero el odómetro del pasillo era
+
+```js
+run.dist += run.spd * dt * chAvance();     // systems/flight.js — sólo LA CHANCHA
+run.fuelDist += run.spd * dt;              // …y este, ni eso
+```
+
+Medido antes del arreglo: una charla de `M01_RITUAL` acreditaba **1188 m hablando**, de 305 a 1493.
+
+**Cómo se escapó, que es lo que hay que aprender:** el fixture miraba el **valor** del gate y nunca
+su **efecto**. Un gate que resuelve bien y no tiene consumidor es invisible para cualquier prueba
+que sólo lo interrogue a él. Ahora `npm run charlas` §3 mide **los dos odómetros**: `dist` acredita
+hacia el objetivo y `fuelDist` decide cuándo nace un bidón, y el RF-02 congela los dos.
+
+**Y se mide entre dos fotos que las dos son de la fase `activa`** —las mismas que ya prueban el
+auto-avance— y no de punta a punta de la burbuja. El intervalo entero queda así adentro de la región
+congelada y el número no depende de cada cuánto sondee el fixture: midiendo del armado al `idle`, la
+foto del final llega hasta 250 ms tarde, o sea **18 m de holgura a velocidad de crucero**, que es más
+grande que lo que se quiere detectar (dio 10 m de "fuga" con el arreglo ya puesto y correcto). Entre
+las dos fotos activas da **0 m** donde volando serían ~270.
+
+**Lo que rompía, y por qué no era cosmético:** en M4 el tránsito del Narwal son seis tramos seguidos
+con `charla:`. Sin congelar, la primera escena **se comía los seis** —el odómetro cruza los 913 m
+mientras habla— y las otras cinco no se armaban nunca, porque `charla.armar()` se ignora si ya hay
+una corriendo. Volando M4 de verdad se escuchaba **una** de las seis. Lo mismo le esperaba a M5.
+
+**El arreglo** es un factor compartido en `systems/flight.js`, por la misma puerta que LA CHANCHA
+(la velocidad del avión es física y no se toca; lo que cambia es cuánto de ella se **anota**):
+
+```js
+const avAcred = chAvance() * cvAvance();
+run.dist += run.spd * dt * avAcred;
+run.fuelDist += run.spd * dt * avAcred;
+```
+
+Verificado volando M4 de corrido: las escenas encadenan solas `M04_NARWAL_A → B → C → D → E`, cada
+una esperando a que la anterior cierre. **Falta `M04_OBJETIVO`**, y eso es otra cosa: su tramo
+(`hasta: 0.04` = 104 m) termina adentro de la carrera de despegue, que consume ~155 m. Es de datos y
+está anotado en SPEC_TRAMOS §8 divergencia 14.

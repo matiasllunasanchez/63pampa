@@ -6,6 +6,10 @@
 //   C0 — 1. UNA MISION SIN CHARLAS NO CAMBIA EN NADA. Es el assert mas importante del spec y
 //           hereda la regla suprema de los TRAMOS: en 'idle' el sistema contesta que si a todo y
 //           no toca un solo numero. Se miden los GATES RESUELTOS, no el estado interno.
+//           OJO CON LOS CODIGOS DE MISION: este fixture se escribio cuando `m4` era "la que mas
+//           tramos tiene y ninguno declara charla". Hoy m4 ES la mision de las charlas —el
+//           transito del Narwal son seis— y NO QUEDA ninguna mision con tramos y sin `charla:`.
+//           Ver la divergencia 11 del §7 del spec.
 //        2. SE ARMA Y ARRANCA (RF-01) — con el corredor ya limpio, el dialogo empieza enseguida.
 //        3. EL MOTOR ES EL DE SIEMPRE Y AVANZA SOLO (RF-04): sin tocar una tecla, la linea cambia.
 //        4. TERMINA SOLA Y VUELVE EL MUNDO: la burbuja no deja el pasillo apagado.
@@ -67,6 +71,25 @@ async function hasta(pred, ms, paso) {
   return c;
 }
 
+/** Lo mismo, pero SIN DEJAR QUE EL AVION SE CORRA del punto `p` del pasillo: se vuelve a saltar
+ *  ahi cada vuelta. Hace falta en cualquier espera larga adentro de una mision con objetivo —
+ *  quince segundos a 74 m/s son mil cien metros, o sea que la espera termina dos tramos mas
+ *  adelante, del otro lado del corte del VEIL, o directamente en el climax.
+ *
+ *  El salto no altera lo que se mide: el sembrador cuenta METROS VOLADOS y volar se sigue
+ *  volando; lo unico que se congela es en que parte del mapa esta el avion. */
+async function hastaEn(p, pred, ms, paso) {
+  const t0 = Date.now();
+  let c = await CV();
+  while (Date.now() - t0 < ms) {
+    if (c && pred(c)) return c;
+    await js(`__wjump(${p})`);
+    await sleep(paso === undefined ? 300 : paso);
+    c = await CV();
+  }
+  return c;
+}
+
 app.whenReady().then(async () => {
   console.log('\nFIXTURE — LAS CHARLAS EN VUELO: dialogo sin pausar el mundo (SPEC_CHARLAS_VUELO)\n');
   win = new BrowserWindow({ width: 1000, height: 640, show: false, webPreferences: { backgroundThrottling: false } });
@@ -75,14 +98,27 @@ app.whenReady().then(async () => {
   const cargar = async qs => { await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + qs); await sleep(2600); };
 
   // ================= 1. UNA MISION SIN CHARLAS (el assert mas importante del spec) =================
-  // Se vuela una mision REAL de la campaña —m4, la que mas tramos tiene de todas— sin una sola
-  // `charla:` en ninguno de ellos. Si el item cambiara algo, es la mision donde mas se notaria.
+  // ESTA SECCION VUELA DOS MISIONES, y hasta hoy le alcanzaba con una. Se escribio cuando m4 era
+  // "la que mas tramos tiene y ninguno declara charla": hoy m4 ES la mision de las charlas —el
+  // transito del Narwal son seis escenas— y NO QUEDA NINGUNA mision con tramos y sin `charla:`,
+  // porque las trece que tienen tramos llevan al menos el objetivo por radio (G-08). Preguntarle
+  // a m4 por el idle devuelve `M04_NARWAL_A` corriendo, el sembrador apagado y los tres gates
+  // dados vuelta — que es exactamente lo que este paso estaba reportando como falla del item.
+  //
+  // Asi que la regla suprema se prueba en sus dos mitades, las dos con dato real:
+  //   · `m14` — la UNICA mision sin tramos y por lo tanto sin charlas. Ahi se miran la fase y los
+  //     TRES GATES RESUELTOS, que es lo que de verdad leen los otros modulos, y que el pasillo
+  //     siembre con el sistema en idle.
+  //   · `m4` en el MAR ABIERTO (el ultimo tramo, pasado el transito) — un tramo de verdad, con
+  //     densidad 1.2 y LA COLA prendida, que no pide charla. Ahi se mira que los tramos sigan
+  //     resolviendo y que la clave nueva no haya roto la resolucion de las viejas.
+  // Ver la divergencia 11 del §7 del spec.
   console.log('1. una mision SIN charlas se comporta igual que hoy:');
   await cargar('');
   if (!await js('typeof window.__cvdbg === "function"')) {
     console.error('   ✗ la sonda __cvdbg no existe'); app.exit(1); return;
   }
-  await js(`__mision('m4')`);
+  await js(`__mision('m14')`);
   if (!await volando()) { console.error('   ✗ no se pudo entrar a volar'); app.exit(1); return; }
   const limpio = await CV();
   if (limpio && limpio.fase === 'idle' && limpio.escena === null)
@@ -94,17 +130,22 @@ app.whenReady().then(async () => {
   if (limpio && limpio.sembrar === true && limpio.avance === 1 && limpio.hablando === false)
     ok('los tres gates en su valor neutro: siembra sí, avance ×1, nadie hablando');
   else bad(`los gates en idle son ${JSON.stringify(limpio && { s: limpio.sembrar, a: limpio.avance, h: limpio.hablando })}`);
-  // …y el mundo se comporta: pasado el tramo mudo del Narwal el pasillo siembra como siempre.
-  // Se espera de verdad — `run.nextSpawn` se descuenta con METROS VOLADOS y no se reinicia con el
-  // salto, asi que el primer obstaculo despues de un `__wjump` tarda lo que tenia pago.
-  await js('__wjump(0.45)');
-  const pobl = await hasta(c => c.obst > 0, 12000, 400);
+  // …y el mundo se comporta: con la charla en idle el pasillo siembra como siempre. Se espera de
+  // verdad — `run.nextSpawn` se descuenta con METROS VOLADOS y no se reinicia con el salto, asi
+  // que el primer obstaculo despues de un `__wjump` tarda lo que tenia pago (320 m).
+  const pobl = await hastaEn(0.45, c => c.obst > 0, 14000, 400);
   if (pobl && pobl.obst > 0) ok(`el pasillo sigue vivo: ${pobl.obst} obstaculo(s) en el corredor`);
   else bad('con la charla en idle el pasillo quedo vacio — el gate esta cortando lo que no debe');
-  // y los tramos, intactos: la clave nueva no rompio la resolucion de las viejas
+  // Y LOS TRAMOS, INTACTOS, en la mision que mas tiene. Se salta al mar abierto y se espera a que
+  // cierre sola la escena que el transito armo en el despegue: hasta que no vuelva a idle, lo que
+  // se estaria mirando es una charla y no un tramo.
+  await js(`__mision('m4')`);
+  if (!await volando()) { console.error('   ✗ no se pudo entrar a volar m4'); app.exit(1); return; }
+  const marIdle = await hastaEn(0.45, c => c.fase === 'idle', 45000, 300);
   const tr = await TR();
-  if (tr && tr.charla === null && tr.idx !== null) ok(`los tramos siguen resolviendo (idx ${tr.idx}) y ninguno pide charla`);
-  else bad(`los tramos reportan ${JSON.stringify(tr && { idx: tr.idx, charla: tr.charla })}`);
+  if (marIdle && marIdle.fase === 'idle' && tr && tr.charla === null && tr.idx !== null)
+    ok(`en el mar abierto de m4 rige el tramo ${tr.idx} (obst ${tr.obstacles}, caza ${tr.caza}) y no pide charla`);
+  else bad(`los tramos reportan ${JSON.stringify(tr && { idx: tr.idx, charla: tr.charla })} con la charla en '${marIdle && marIdle.fase}'`);
 
   // ================= 2. SE ARMA Y ARRANCA (RF-01) =================
   console.log('\n2. la charla se arma sola y arranca con el corredor limpio:');
@@ -142,6 +183,24 @@ app.whenReady().then(async () => {
     ok(`avanzo sola de la linea ${li0} a la ${sig.li} en ${((Date.now() - t0) / 1000).toFixed(1)} s, sin tocar una tecla`);
     console.log(`   linea ${sig.li}: "${sig.txt}"`);
   } else bad('la linea no avanzo sola en 18 s: el auto-avance no esta corriendo');
+  // …Y EN ESE MISMO TRAMO, LOS ODOMETROS QUIETOS (RF-02, y las divergencias 2 y 10 del §7). Se mide
+  // ENTRE ESTAS DOS FOTOS y no de punta a punta de la burbuja a proposito: las dos son de la fase
+  // 'activa', o sea que el intervalo entero esta adentro de la region congelada y el numero no
+  // depende de cada cuanto sondee el fixture. Midiendolo del armado al idle, la foto del final
+  // llega hasta 250 ms tarde —18 m a velocidad de crucero— y esa holgura es mas grande que lo que
+  // se quiere detectar.
+  //
+  // ESTE FIXTURE MIRABA EL VALOR DEL GATE Y NUNCA SU EFECTO, y por eso el cable estuvo cortado
+  // meses sin que nada se quejara: `avance` contestaba 0, pero el factor no entraba en `run.dist`
+  // (systems/flight.js solo multiplicaba por el de LA CHANCHA) y de las seis escenas del transito
+  // de M4 se escuchaba una. Se miden LOS DOS odometros: `dist` acredita hacia el objetivo y
+  // `fuelDist` decide cuando nace un bidon — el RF-02 congela los dos.
+  const dQuieto = sig && activa ? sig.dist - activa.dist : null;
+  const fQuieto = sig && activa ? sig.fuelDist - activa.fuelDist : null;
+  console.log(`   en esos ${((Date.now() - t0) / 1000).toFixed(1)} s de charla el mundo avanzo ${dQuieto} m de objetivo y ${fQuieto} m de bidon (a ${activa && activa.dist ? '~74 m/s' : '—'} serian ~${Math.round(((Date.now() - t0) / 1000) * 74)})`);
+  if (dQuieto !== null && dQuieto <= 2 && fQuieto <= 2)
+    ok('los dos odometros quedaron congelados mientras se hablaba: la burbuja no acredita');
+  else bad(`el odometro no se congelo: ${dQuieto} m hacia el objetivo y ${fQuieto} m hacia el proximo bidon, hablando`);
 
   // ================= 4. TERMINA SOLA Y EL MUNDO VUELVE =================
   console.log('\n4. termina sola y el pasillo vuelve:');
@@ -154,7 +213,6 @@ app.whenReady().then(async () => {
   else bad('la charla dejo `dlg.auto` prendido: el proximo guion se va a avanzar solo');
   if (fin && fin.cortada === false) ok('cerro por las buenas: no figura como cortada');
   else bad('la charla figura como cortada y nadie la corto');
-
   // ================= 5. EL DRENAJE, CON EL CORREDOR LLENO (RF-01) =================
   // Recien acá el drenaje mide algo: se arma con el corredor POBLADO. Es la unica forma de ver
   // que lo sembrado PASA DE LARGO en vez de desaparecer — que la charla borrara el corredor
@@ -171,6 +229,13 @@ app.whenReady().then(async () => {
   if (!await volando()) { console.error('   ✗ no se pudo entrar a volar'); app.exit(1); return; }
   const errT = JSON.parse(await js('__trset([{"hasta":1,"obstacles":0,"bombs":0,"caza":0}])'));
   if (errT.length) bad(`el validador rechazo los tramos de prueba: ${errT.join(' · ')}`);
+  // EL TRAMO DEL OBJETIVO YA ARMO SU CHARLA. m3 declara `M03_OBJETIVO` en su primer tramo, como
+  // las trece misiones con tramos (G-08), asi que al entrar hay una escena corriendo y el
+  // sembrador apagado: mientras dure, ni el corredor se puebla ni `__cvarm` toma nada —`armar()`
+  // se ignora si ya hay una— y esta seccion mediria el reloj de la escena anterior. Se la corta y
+  // se empieza a medir con el pasillo prendido. El `__trset` de arriba ya dejo la lista sin
+  // charlas, asi que no se re-arma sola.
+  await js('__cvcut()');
   const lleno = await hasta(c => c.sold >= 3, 25000, 300);
   if (!lleno || lleno.sold < 3) bad(`el corredor no se poblo (${lleno && lleno.sold} soldados): no se puede medir el drenaje`);
   else {
