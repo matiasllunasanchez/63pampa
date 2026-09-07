@@ -218,7 +218,22 @@ app.whenReady().then(async () => {
 
   // ---------- 7. LA ROTURA DEL GUION ----------
   console.log('\n7. despues de la rotura, la Chancha no baja al sur (paso 7):');
-  const mis = JSON.parse(await js('__chamis(5)'));   // m6: la primera posterior al epilogo de m5
+  // LA MISION SE BUSCA, NO SE CUENTA. Esto decia `__chamis(5)` con la nota "m6: la primera
+  // posterior al epilogo de m5". Cuando el guion se renumero, el 5 quedo apuntando a una mision
+  // ANTERIOR a la rotura y las tres aserciones de este paso se pusieron en rojo — no porque el
+  // juego se hubiera roto, sino porque el numero no describia nada: era una posicion en una lista
+  // que se movio. Y como este fixture no esta en `npm run check`, la deriva vivio sin que nadie la
+  // viera.
+  //
+  // Ahora se pide LA PRIMERA MISION QUE DECLARE LA CHANCHA ROTA, que es lo que la prueba quiso
+  // decir siempre. La proxima renumeracion no la toca; lo unico que la rompe es que el guion deje
+  // de tener rotura, y en ese caso lo dice con todas las letras en vez de fallar de costado.
+  let mis = null;
+  for (let n = 0; n < 40 && !mis; n++) {
+    const m = JSON.parse(await js(`__chamis(${n})`));
+    if (m.rota) mis = m;
+  }
+  if (!mis) { bad('ninguna mision de la campaña declara chancha:false: se perdio la rotura del guion'); mis = { id: '(ninguna)', rota: false }; }
   await js('__chaset(9999, 300); __seapop()');
   await js('__chacall()');
   await sleep(250);
