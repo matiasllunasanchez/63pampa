@@ -529,9 +529,13 @@ app.whenReady().then(async () => {
   if (!await volar()) { bad('no se pudo entrar a POR LA PATRIA'); }
   else {
     await vaciar();
-    await js("window.__cfgset('zigzag', 5)");
+    // EL CALLEJON DE SIEMPRE MAS LA PERILLA DE BARRERAS EN "MUCHAS". Son dos cosas ortogonales
+    // desde que las barreras salieron del preset: el trazado dice la FORMA del pasillo, la perilla
+    // dice CUANTAS barreras lo cierran.
+    await js("window.__cfgset('zigzag', 2)");
+    await js("window.__cfgset('barreras', 2)");
     await sostener(400);
-    if (!(await Z()).on) bad('el preset CALLEJON CERRADO no encendio');
+    if (!(await Z()).on) bad('el callejon no encendio');
     else {
       // EL CENSO DE BARRERAS a lo largo de kilometros: que existan, que sean de las dos formas y
       // que ninguna pida una altura que el avion no tenga.
@@ -566,7 +570,8 @@ app.whenReady().then(async () => {
       for (let intento = 0; intento < 3 && (modo === 'hueco' ? paso : murio) === 0; intento++) {
         if (await estado() !== 'play' && !await volar()) break;
         await vaciar();
-        await js("window.__cfgset('zigzag', 5)");
+        await js("window.__cfgset('zigzag', 2)");
+        await js("window.__cfgset('barreras', 2)");
         await sostener(300);
         let vista = null;
         for (let i = 0; i < 90; i++) {
@@ -599,7 +604,33 @@ app.whenReady().then(async () => {
     else bad('no se pudo pasar la barrera ni por el hueco: esto no es un obstaculo, es un muro');
     if (murio > 0) ok('y por el macizo mata — no es un decorado que se cruza de largo');
     else bad('atravesar el macizo NO mata: la barrera no cierra nada');
+    // ...Y CON LA PERILLA EN NINGUNA, NO HAY NI UNA. Es la mitad que hace que la perilla sea una
+    // perilla y no un adorno: si "ninguna" siguiera trayendo barreras, apagarlas seria imposible.
+    await js("window.__cfgset('barreras', 0)");
+    await sostener(300);
+    const sinB = JSON.parse(await js(`(() => {
+      const dv = JSON.parse(__zzdbg()).dist;
+      let n = 0;
+      for (let wz = dv + 100; wz < dv + 9000; wz += 11) if (__zzbarrAt(wz)) n++;
+      return JSON.stringify({ n });
+    })()`));
+    if (sinB.n === 0) ok('y con la perilla en NINGUNA no hay una sola barrera en nueve kilometros');
+    else bad(`con la perilla en NINGUNA quedan ${sinB.n} muestras con barrera`);
+    // ...y con una COSTA sola tampoco, aunque la perilla este a fondo: una barrera cierra el
+    // pasillo de lado a lado, y con mar abierto de un lado no hay pasillo que cerrar.
+    await js("window.__cfgset('barreras', 2)");
+    await js("window.__cfgset('zigzag', 3)");
+    await sostener(300);
+    const costaB = JSON.parse(await js(`(() => {
+      const dv = JSON.parse(__zzdbg()).dist;
+      let n = 0;
+      for (let wz = dv + 100; wz < dv + 9000; wz += 11) if (__zzbarrAt(wz)) n++;
+      return JSON.stringify({ n });
+    })()`));
+    if (costaB.n === 0) ok('y con una costa sola no aparece ninguna, aunque la perilla este a fondo');
+    else bad(`con una costa sola aparecen ${costaB.n} muestras con barrera`);
     await shot('zz_12_barrera');
+    await js("window.__cfgset('barreras', 0)");
     await js("window.__cfgset('zigzag', 0)");
   }
 

@@ -1398,10 +1398,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // ...y las dos COSTAS: tierra de un solo lado, mar abierto del otro. Van en la misma fila
       // porque son la misma pregunta —que forma tiene el carril— y porque asi se alternan sin
       // salir del vuelo, que es como se compara de verdad.
-      { label: () => T('optZigzag'), opts: [0, 1, 2, 3, 4, 5],
+      { label: () => T('optZigzag'), opts: [0, 1, 2, 3, 4],
         names: () => [T('optZigzag_0'), T('optZigzag_1'), T('optZigzag_2'),
-                      T('optZigzag_3'), T('optZigzag_4'), T('optZigzag_5')],
+                      T('optZigzag_3'), T('optZigzag_4')],
         get: () => cfg.zigzag | 0, set: v => cfg.zigzag = v, save: 'rasante_zigzag' },
+      // LAS BARRERAS, en su propia fila. Es CUANTAS hay, no que forma tiene el pasillo: son dos
+      // preguntas distintas y antes vivian pegadas en un preset ("CALLEJON CERRADO"), lo que
+      // obligaba a elegir la forma del carril para poder elegir si habia barreras.
+      { note: 'optNoteBarreras' },
+      { label: () => T('optBarreras'), opts: [0, 1, 2],
+        names: () => [T('optBarreras_0'), T('optBarreras_1'), T('optBarreras_2')],
+        get: () => cfg.barreras | 0, set: v => cfg.barreras = v, save: 'rasante_barreras' },
       // NIEBLA: va acá, con VIENTO y OBSTÁCULOS, porque CAMBIA CÓMO SE JUEGA — no es ambiente.
       { label: () => T('optFog'), opts: [0, 1, 2],
         names: () => [T('optFogOff'), T('optFogLight'), T('optFogThick')],

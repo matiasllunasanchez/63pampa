@@ -49,7 +49,7 @@ const PRESETS = {
   // siempre). Es para acostumbrarse al callejon sin morirse.
   1: { amp: 0, largo: 800, seed: 3, paredes: { alto: 0.6, x: 52, mata: false } },
   // CALLEJON: laderas plenas y letales, puntas a fondo. Es Bomb Alley.
-  2: { amp: 0, largo: 800, seed: 9, paredes: { alto: 1, x: 46, mata: true } },
+  2: { amp: 0, largo: 800, seed: 9, paredes: { alto: 1, x: 46, mata: true, barreras: 'mezcla' } },
   // COSTA IZQUIERDA / COSTA DERECHA: tierra de UN SOLO LADO y mar abierto del otro.
   //
   // No es medio callejon: es otra cosa de jugar. En el callejon el pasillo esta cerrado y el
@@ -62,10 +62,6 @@ const PRESETS = {
   // mitad caeria en el lado que no existe y el ritmo se partiria al medio.
   3: { amp: 0, largo: 800, seed: 4, paredes: { alto: 1, x: 46, mata: true, lado: 'izq' } },
   4: { amp: 0, largo: 800, seed: 6, paredes: { alto: 1, x: 46, mata: true, lado: 'der' } },
-  // CERRADO: el callejon con BARRERAS — cada tanto se cierra de lado a lado y hay que pasarlo por
-  // arriba (roca) o por abajo (puente). Va como preset aparte y no encima de CALLEJON porque son
-  // dos cosas distintas de jugar, y hay que poder mirar una sin la otra.
-  5: { amp: 0, largo: 800, seed: 9, paredes: { alto: 1, x: 46, mata: true, barreras: 'mezcla' } },
 };
 
 // LOS ESTADOS EN LOS QUE EL CALLEJON EXISTE. Es la MISMA lista que dibuja el mundo del pasillo
@@ -140,7 +136,12 @@ export function stepZigzag() {
   const arranque = cfg.start === 'air'
     ? ZZ_ARRANQUE
     : Math.max(ZZ_ARRANQUE, (cfg.coast || 0) + ZZ_ARRANQUE_BASE);
-  rebuild(run.dist, z, objetivo, arranque);
+  // LAS BARRERAS SON ORTOGONALES AL TRAZADO y por eso viajan aparte: cuantas hay es una perilla
+  // de OPCIONES (NINGUNA / POCAS / MUCHAS) y no una propiedad del carril. Antes vivian pegadas a
+  // un preset —"CALLEJON CERRADO"— y eso obligaba a elegir la forma del pasillo para poder
+  // elegir si habia barreras, que son dos preguntas distintas. La mision puede apagarlas igual
+  // declarando `paredes: { barreras: 'no' }`.
+  rebuild(run.dist, z, objetivo, arranque, cfg.barreras | 0);
   return zz;
 }
 

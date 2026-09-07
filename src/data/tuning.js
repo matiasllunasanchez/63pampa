@@ -1151,8 +1151,16 @@ export const ZZ_MESETA_W = 200;
 // 150 m/s aparece OCHO SEGUNDOS antes de llegar. Eso es lo que la separa de una trampa: no hay que
 // memorizarla, hay que leerla.
 
-// cada cuantos metros hay una. 900 a 150 m/s es una cada seis segundos de callejon.
-export const ZZ_BARR_CADA = 900;
+// EL TAMAÑO DE LA BANDA en la que puede caer una barrera, y CON QUE PROBABILIDAD cae en cada una
+// (ninguno / pocos / muchos, la perilla de OPCIONES).
+//
+// La cantidad es ALEATORIA y no un metronomo: antes habia exactamente una cada 900 m y el callejon
+// se aprendia de memoria en dos vueltas — sabias cuando venia la proxima sin mirar. Ahora la banda
+// es mas chica y en cada una se sortea si hay o no: con POCOS aparecen espaciadas y con MUCHOS se
+// encadenan, pero en los dos casos NO SE SABE. La banda sigue garantizando que dos nunca se
+// pisen, que es lo unico que no puede ser al azar.
+export const ZZ_BARR_CADA = 620;
+export const ZZ_BARR_P = [0, 0.38, 0.85];
 // cuanto mide de PROFUNDIDAD la franja, en metros. Es un muro, no una loncha: con menos de veinte
 // se cruza antes de que el ojo la resuelva, y pasa a ser un dado en vez de una lectura.
 export const ZZ_BARR_LARGO = 22;

@@ -28,7 +28,7 @@ import { ZZ_CURV_MAX, ZZ_LARGO_MIN, ZZ_EMPALME, ZZ_BEND_Z, ZZ_BEND_PASO,
   ZZ_PARED_X, ZZ_PARED_H, ZZ_PARED_BANDA,
   ZZ_PUNTA_CADA, ZZ_PUNTA_LARGO, ZZ_PUNTA_MAX, ZZ_PUNTA_P, ZZ_PUNTA_RAMPA,
   ZZ_PARED_PEND, ZZ_PARED_ONDA,
-  ZZ_BARR_CADA, ZZ_BARR_LARGO, ZZ_BARR_ROCA, ZZ_BARR_PUENTE, ZZ_BARR_GROSOR,
+  ZZ_BARR_CADA, ZZ_BARR_LARGO, ZZ_BARR_ROCA, ZZ_BARR_PUENTE, ZZ_BARR_GROSOR, ZZ_BARR_P,
   ZZ_BARR_MADERA, ZZ_BARR_MADERA_CANTO, ZZ_BARR_CABLE, ZZ_BARR_CABLE_MANOJO,
   ZZ_BARR_MARGEN } from '../data/tuning.js';
 
@@ -236,6 +236,10 @@ export const zz = {
   // ANTES DE ESTOS METROS no hay callejon. Lo escribe systems/zigzag.js, que es el unico que sabe
   // donde termina la pista y si la mision arranca en el aire.
   arranque: 0,
+  // CUANTAS BARRERAS (0 ninguna, 1 pocas, 2 muchas). Es una perilla de OPCIONES, asi que la lee el
+  // sistema y la deja aca: el nucleo no importa `cfg` — lo prueba `npm run unit` sin pantalla ni
+  // configuracion, y una sola lectura de cfg lo ataria a todo el juego.
+  barr: 0,
 };
 
 const N_TABLA = Math.floor(ZZ_BEND_Z / ZZ_BEND_PASO) + 1;
@@ -268,8 +272,9 @@ export function reset() { apagar(); zz.d0 = 0; zz.obj = 0; zz.head = 0; zz.arran
  *
  *  Se integra con Euler en pasos de ZZ_BEND_PASO metros porque es exacto de sobra para una
  *  curva de radio 600: el paso es el 0,7% del radio. */
-export function rebuild(d0, spec, objetivo, arranque) {
+export function rebuild(d0, spec, objetivo, arranque, barr) {
   zz.arranque = arranque > 0 ? arranque : 0;
+  zz.barr = Math.max(0, Math.min(ZZ_BARR_P.length - 1, barr | 0));
   zz.spec = spec || null;
   zz.d0 = d0;
   zz.obj = objetivo > 0 ? objetivo : 0;
@@ -445,7 +450,18 @@ export function paredH(wz, lado) {
 export function barreraDe(wz) {
   const p = pared();
   if (!p || p.barreras === 'no') return null;
+  // SOLO CON LAS DOS LADERAS. Una barrera es "el pasillo cerrado de lado a lado", y con una costa
+  // sola el otro lado es mar abierto: cerraria un pasillo que no existe, y el jugador la rodearia
+  // por afuera sin enterarse de que era una barrera. Es la misma razon por la que el marco lateral
+  // se apaga cuando hay paredes — un efecto que promete algo tiene que poder cumplirlo.
+  if (p.lado !== 'ambos') return null;
+  const P = ZZ_BARR_P[zz.barr] || 0;
+  if (P <= 0) return null;
   const idx = Math.floor(wz / ZZ_BARR_CADA);
+  // ¿ESTA BANDA TRAE BARRERA? El sorteo es lo que hace que la cantidad sea aleatoria en vez de un
+  // metronomo. Determinista por banda: la misma mision trae las mismas barreras en los mismos
+  // metros, corrida tras corrida.
+  if (hash1(idx * 2749 + 61) >= P) return null;
   // DONDE cae adentro de su banda. El margen de los extremos evita que dos barreras vecinas
   // queden pegadas a la juntura de las bandas y se lean como una sola pared doble.
   const off = ZZ_BARR_LARGO + hash1(idx * 9187 + 41) * (ZZ_BARR_CADA - ZZ_BARR_LARGO * 3);

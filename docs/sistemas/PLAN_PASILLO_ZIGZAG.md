@@ -967,8 +967,21 @@ todas lo mismo y lo único que cambia es cómo se dibujan.
 | **PUENTE** de vigas — tablero, celosía de paso superior, pilares, luces de tope | por ABAJO (o por encima) | el más reconocible de los cuatro a 800 m |
 | **CABLES** — dos torres de alta tensión y el manojo cruzando | por ABAJO o por ARRIBA | el peligro real del vuelo rasante: el cable casi no se ve, **la torre sí** |
 
-Es dato: `paredes: { barreras: 'roca' | 'arco' | 'puente' | 'cables' | 'mezcla' }`, y `'no'` es el
-default. En el menú, el preset **CALLEJÓN CERRADO** (`?zigzag=5`), que va con `'mezcla'`.
+**CUÁNTAS hay es una perilla de OPCIONES —NINGUNA / POCAS / MUCHAS— y no una propiedad del
+carril.** Antes vivían pegadas a un preset («CALLEJÓN CERRADO»), y eso obligaba a elegir la forma
+del pasillo para poder elegir si había barreras: dos preguntas distintas en la misma fila. El dato
+de la misión sigue eligiendo las PIELES (`paredes: { barreras: 'roca' | 'puente' | 'madera' |
+'cables' | 'mezcla' }`) y puede apagarlas del todo con `'no'`.
+
+**La cantidad es aleatoria**, no un metrónomo: la banda es de 620 m y en cada una se sortea si hay
+o no. Con POCAS aparecen espaciadas y con MUCHAS se encadenan, pero en los dos casos **no se sabe**
+— antes había exactamente una cada 900 m y el callejón se aprendía de memoria en dos vueltas. La
+banda sigue garantizando que dos nunca se pisen, que es lo único que no puede ser al azar.
+
+**Sólo con las dos laderas.** Una barrera es «el pasillo cerrado de lado a lado», y con una costa
+sola el otro lado es mar abierto: cerraría un pasillo que no existe y el jugador la rodearía por
+afuera sin enterarse de que era una barrera.
+
 
 **Se ve venir.** El callejón se dibuja hasta 1200 m y la barrera cruza el pasillo entero, así que a
 150 m/s aparece **ocho segundos antes** de llegar. Eso es lo que la separa de una trampa: no hay
@@ -1078,6 +1091,19 @@ que memorizarla, hay que leerla.
      La regla que sale de las tres pieles construidas: **lo que las saca de "calcomanía" es algo
      parado en el agua y un ritmo vertical denso**. Al de madera lo salvaron los caballetes y la
      baranda; al de acero, los pilares y los montantes; al tendido, las torres.
+
+112. **Las barreras salieron del preset: son ORTOGONALES al trazado.** Vivían dentro de «CALLEJÓN
+     CERRADO», así que para tener barreras había que aceptar una forma de pasillo, y para cambiar
+     la forma del pasillo había que renunciar a las barreras. Son dos preguntas distintas y ahora
+     son dos filas distintas. El núcleo **no lee `cfg`** —lo prueba `npm run unit` sin pantalla ni
+     configuración— así que la densidad viaja como parámetro de `rebuild()` y queda en el store.
+113. **La cantidad pasó a sortearse por banda.** Una cada 900 m exactas es un metrónomo: se aprende
+     de memoria en dos vueltas y deja de leerse. Banda de 620 m con probabilidad por banda (0 /
+     0,38 / 0,85) da racimos y respiros sin que dos se pisen nunca.
+114. **Y hay dos asserts que hacen que la perilla sea una perilla:** con NINGUNA no aparece una
+     sola en nueve kilómetros, y con una costa sola tampoco aparece aunque la perilla esté a fondo.
+     Sin el primero, apagarlas sería imposible; sin el segundo, la barrera cerraría un pasillo que
+     no existe.
 
 ### Lo que queda para el próximo playtest
 

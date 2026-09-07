@@ -191,6 +191,9 @@ export const cfg = {
   // EL DEFAULT ES 0 Y ESO NO ES UN DETALLE: con 0 el juego entero es, bit a bit, el de antes
   // de que el item existiera.
   zigzag: 0,
+  // CUANTAS BARRERAS cierran el callejon (0 ninguna, 1 pocas, 2 muchas). Ortogonal al trazado:
+  // es CUANTAS hay, no que forma tiene el pasillo. Solo rigen con laderas de los DOS lados.
+  barreras: 0,
   // ENEMIGOS MOVILES: los que hoy podian quedarse quietos se mueven — el globo cabecea colgado
   // del cable, el helicoptero patrulla de lado a lado, el caza teje y busca tu carril, los
   // vehiculos ruedan y la fragata del mastil navega. Apagarlo los deja plantados como antes.

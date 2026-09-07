@@ -1856,6 +1856,7 @@ test('callejon: una COSTA deja el otro lado abierto de punta a punta', () => {
   zzReset();
 });
 
+
 import { barreraDe, enBarrera } from '../src/core/zigzag.js';
 
 test('barreras: el puente de madera deja pasar por abajo y mata en el tablero', () => {
@@ -1864,7 +1865,7 @@ test('barreras: el puente de madera deja pasar por abajo y mata en el tablero', 
   // ZZ_BARR_MADERA en data/tuning.js). Lo que se afirma acá es lo mismo que se afirmaba de aquel:
   // que el hueco por el que hay que pasar EXISTE y que el macizo cierra.
   zzReset();
-  zzRebuild(0, { amp: 0, largo: 800, seed: 3, paredes: { alto: 1, x: 46, mata: true, barreras: 'madera' } }, 0, 0);
+  zzRebuild(0, { amp: 0, largo: 800, seed: 3, paredes: { alto: 1, x: 46, mata: true, barreras: 'madera' } }, 0, 0, 2);
   let b = null;
   for (let wz = 100; wz < 4000 && !b; wz += 2) b = barreraDe(wz);
   assert.ok(b && b.tipo === 'madera', 'no aparecio ningun puente de madera');
@@ -1878,11 +1879,31 @@ test('barreras: el puente de madera deja pasar por abajo y mata en el tablero', 
   zzReset();
 });
 
+test('barreras: la perilla manda — NINGUNA no trae ni una, y una COSTA sola tampoco', () => {
+  // Son las dos mitades que hacen que la perilla sea una perilla. Sin la primera, apagarlas seria
+  // imposible; sin la segunda, una barrera cerraria un pasillo que no existe y el jugador la
+  // rodearia por el mar abierto sin enterarse de que era una barrera.
+  const spec = { amp: 0, largo: 800, seed: 3, paredes: { alto: 1, x: 46, mata: true, barreras: 'mezcla' } };
+  const contar = (sp, dens) => {
+    zzReset(); zzRebuild(0, sp, 0, 0, dens);
+    let n = 0;
+    for (let wz = 100; wz < 9000; wz += 11) if (barreraDe(wz)) n++;
+    return n;
+  };
+  assert.equal(contar(spec, 0), 0, 'con NINGUNA sigue habiendo barreras');
+  const pocas = contar(spec, 1), muchas = contar(spec, 2);
+  assert.ok(pocas > 0, 'con POCAS no hay ninguna');
+  assert.ok(muchas > pocas * 1.4, `MUCHAS (${muchas}) tiene que ser bastante mas que POCAS (${pocas})`);
+  const costa = { ...spec, paredes: { ...spec.paredes, lado: 'izq' } };
+  assert.equal(contar(costa, 2), 0, 'con una costa sola aparecen barreras');
+  zzReset();
+});
+
 test('barreras: el manojo de cables MATA (el margen no puede comerse la franja)', () => {
   // Con el margen fijo en 1.2 a cada lado, una franja de 4.5 m quedaba con el hueco invertido y
   // no mataba NUNCA: la barrera mas fina del juego era la unica que no existia.
   zzReset();
-  zzRebuild(0, { amp: 0, largo: 800, seed: 3, paredes: { alto: 1, x: 46, mata: true, barreras: 'cables' } }, 0, 0);
+  zzRebuild(0, { amp: 0, largo: 800, seed: 3, paredes: { alto: 1, x: 46, mata: true, barreras: 'cables' } }, 0, 0, 2);
   let b = null;
   for (let wz = 100; wz < 4000 && !b; wz += 2) b = barreraDe(wz);
   assert.ok(b && b.tipo === 'cables', 'no aparecio ningun tendido');
