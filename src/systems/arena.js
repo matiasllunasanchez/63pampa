@@ -407,7 +407,7 @@ function fireHoming(z) {
 
 export function update(dt, inp) {
   A.t += dt;
-  popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
+  popups.forEach(p => { p.y -= p.vy * dt; p.life -= dt; });
   prune(popups, p => p.life > 0);
   A.hitFx = Math.max(0, A.hitFx - dt * 5);
   A.flashL = Math.max(0, A.flashL - dt);

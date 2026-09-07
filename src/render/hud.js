@@ -118,6 +118,57 @@ export function drawObjectiveBar(objectiveDist, objectiveShip, kind) {
 // colores de la bandera argentina, para el conteo del despegue
 const CELESTE = '#75aadb', BLANCO = '#f2f7fb';
 
+/** LA CORTA FINAL (PLAN_MISION_CINCO_FASES §4): las cuatro medidas, en pantalla.
+ *
+ *  SIN ESTO EL ATERRIZAJE NO SE PUEDE JUGAR, y no es una figura: velocidad, regimen de descenso y
+ *  tren son tres numeros que el jugador no tiene de donde sacar mirando el mundo — el avion se ve
+ *  igual bajando a 4 que a 12. La barra de altura si es leible sola (es la distancia al piso), y
+ *  por eso no esta: lo que se dibuja es lo que NO se puede ver.
+ *
+ *  Cada medida se pinta VERDE cuando esta en su ventana y AMBAR cuando no, que es la unica forma
+ *  de ensenar las ventanas sin un tutorial: se aprenden mirandolas cambiar de color mientras
+ *  corregis. */
+export function drawLanding(d) {
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(0, 17, W, 15);
+  ctx.fillStyle = P.ink; ctx.font = '7px monospace';
+  ctx.fillText(T('land_call'), W / 2, 27);
+
+  // las tres cifras, en una fila. Se usa `tabular` a mano (monospace) para que no bailen.
+  const fila = [
+    { r: T('land_hud_spd'), v: Math.round(d.spd), ok: d.spdOk },
+    { r: T('land_hud_vy'), v: d.vy.toFixed(1), ok: d.vyOk },
+    { r: T('land_hud_gear'), v: d.gear >= 0.999 ? T('land_hud_si') : d.gear > 0 ? '· ·' : T('land_hud_no'), ok: d.gearOk },
+  ];
+  const x0 = W / 2 - 54;
+  fila.forEach((f, i) => {
+    const x = x0 + i * 54;
+    ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(x - 24, H - 34, 48, 18);
+    ctx.font = '5px monospace'; ctx.fillStyle = P.dim;
+    ctx.fillText(f.r, x, H - 27);
+    ctx.font = 'bold 8px monospace'; ctx.fillStyle = f.ok ? P.foam : P.warn;
+    ctx.fillText(String(f.v), x, H - 19);
+  });
+
+  // EL AVISO DEL TREN, y no es un adorno: [T] es una tecla que no se usa en NINGUN otro momento
+  // del juego, asi que sin decirlo aca la tercera de las cuatro medidas seria indescubrible — el
+  // jugador perderia chapa por no saber que existe un boton. Se muestra solo mientras el tren esta
+  // arriba, y parpadea si ya estas bajo: a esa altura ya es tarde y tiene que picar.
+  if (d.gear < 0.999) {
+    const tarde = d.alt < 6;
+    ctx.font = '6px monospace';
+    ctx.fillStyle = tarde ? (Math.sin(run.t * 9) > 0 ? P.warn : P.dim) : P.dim;
+    ctx.fillText(T('land_gear_hint'), W / 2, H - 40);
+  }
+
+  // LA ALTURA, como barra vertical al costado: es la unica de las cuatro que es una CUENTA
+  // REGRESIVA — las otras tres son estados, esta se acaba.
+  const hh = 40, hx = W - 14, hy = H - 62;
+  ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(hx - 3, hy, 8, hh);
+  const f01 = Math.max(0, Math.min(1, d.alt / 16));
+  ctx.fillStyle = P.crest; ctx.fillRect(hx - 2, hy + hh - f01 * hh, 6, Math.max(1, f01 * hh));
+}
+
 export function drawTakeoff(toT) {
   ctx.textAlign = 'center';
   // placa oscura detras del encabezado: cae sobre el amanecer y sin esto no se lee
@@ -249,6 +300,29 @@ const MARGEN = 4;
 // solo a lo que cambia. En la grilla de diseño 5 px caen en 15 reales (U 1.5 x SC 2 = 3 exacto),
 // asi que no hay medio pixel: el tipo sigue siendo duro.
 const F_ROT = '5px monospace', F_VAL = '6px monospace';
+// LA COLUMNA DERECHA, de arriba abajo, y las dos medidas juntas porque son la misma decision: los
+// primeros 12 px de esa esquina NO son del canvas (ahi vive el boton de sonido, que es HTML — ver
+// index.html), debajo va el reloj del rasante cuando esta encendido, y despues el gas.
+//
+// El gas arrancaba en 64 porque tenia dos barras encima. Ya no las tiene —se fueron a los bordes—
+// asi que sube y la corredera pasa de 54 px de recorrido a 76. Es el unico instrumento del HUD que
+// se OPERA en vez de leerse, y una palanca con mas recorrido se apunta mejor.
+const RELOJ_Y = 15;                  // la placa del reloj del rasante: 15..25
+const GAS_TOP = 42, GAS_BOT = 118;   // la corredera del gas
+
+// LAS TRES FILAS del tablero de abajo, medidas desde el borde y con el mismo paso en las dos
+// columnas: lo que hace que el HUD se lea como un tablero y no como cosas puestas donde entraban.
+const R1 = H - 8, R2 = R1 - FILA, R3 = R2 - FILA;
+
+/** LO MAS ALTO QUE PINTA EL TABLERO DE VUELO: el canto de las placas de la fila 3 (`bar()` dibuja
+ *  su placa nueve pixeles arriba de la barra).
+ *
+ *  Se EXPORTA para que la banda de la voz (render/screens.js) no tenga que copiar el numero. Lo
+ *  copiaba, y la copia se pudrio: decia 110 porque la escribio la epoca en que RASANTE y MOMENTUM
+ *  eran la cuarta y la quinta barra de la pila de la izquierda. Desde entonces se mudaron dos
+ *  veces y el toast siguio esquivando un instrumento que ya no estaba ahi. Con esto, el dia que
+ *  las filas se muevan otra vez, la banda se mueve con ellas. */
+export const HUD_TECHO = R3 - 9;
 
 /** Barra con marco, bisel y muescas cada 25%. El relleno pierde el ultimo pixel del marco.
  *
@@ -267,6 +341,43 @@ function bar(x, y, w, val, c, label) {
   for (let i = 1; i < 4; i++) ctx.fillRect(x + Math.round(w * i / 4), y, 1, 3);
   ctx.fillStyle = P.dim; ctx.font = F_ROT; ctx.textAlign = 'left';
   ctx.fillText(label, x, y - 4);
+}
+
+/** ¿SE DIBUJA ESTE INSTRUMENTO? `algo` es si el instrumento tiene algo que decir AHORA MISMO.
+ *
+ *  Con el TABLERO COMPLETO (el default) contesta que si a todo y el HUD es el de siempre: esta
+ *  funcion no hace nada, ni siquiera lee el argumento en la practica.
+ *
+ *  Con el TABLERO POR DEMANDA (PLAN_UI D) un instrumento SANO no se dibuja. La idea es que la
+ *  aparicion pase a ser el dato: si algo esta en pantalla, es porque hay algo que hacer. En reposo
+ *  quedan las cuatro cosas que se miran igual —velocidad y altura, el gas, la ruta y el escuadron—
+ *  mas los dos rieles, que ocupan dos pixeles y no le sacan lugar a nadie.
+ *
+ *  LO QUE NO SE OCULTA NUNCA, y no es olvido: el ADI (la pregunta "¿donde esta el suelo?" es
+ *  accionable siempre, sobre todo rolado), la velocidad y la altura (los dos numeros que deciden
+ *  todo el vuelo), el gas (es lo unico que se OPERA y no se lee) y la ruta.
+ *
+ *  Y NO HAY HISTERESIS a proposito, porque no hace falta: la nafta, la integridad y los misiles
+ *  solo bajan, y el medidor de la chancha solo sube, asi que cada umbral se cruza UNA vez. El unico
+ *  que va y viene es el calor del cañon, y por eso su umbral esta en 0,05 y no en 0 — abajo de ahi
+ *  la barra ya no muestra nada y el instrumento se apaga una sola vez, al final del enfriado. */
+function pide(algo) { return cfg.hudAuto !== 'auto' || algo; }
+
+/** UN RIEL: la barra de un poder de racha, pegada a un borde y creciendo de abajo hacia arriba.
+ *
+ *  Sin rotulo, sin placa y sin numero, a proposito. Un riel no se LEE: se vigila de reojo, que es
+ *  un trabajo distinto — a la periferia le llegan el movimiento y el contraste, no el texto. El
+ *  rotulo de 5 px que tenian estas dos barras arriba a la derecha era tinta gastada en algo que
+ *  nadie miraba de frente, y el numero tampoco se leia nunca.
+ *
+ *  A cambio, el recorrido pasa de 44 px a la ALTURA ENTERA de la pantalla. La misma cantidad de
+ *  informacion, ocho veces mas larga y en el unico lugar donde no compite con nada: el margen del
+ *  HUD es 4, asi que de x 0 a 3 (y de 316 a 319) no se dibuja nada mas en todo el juego. */
+function riel(x, val, col) {
+  px(x, 0, 2, H, '#0a0e11aa');                                // la corredera, apenas insinuada
+  const fh = Math.round(H * Math.max(0, Math.min(1, val)));
+  px(x, H - fh, 2, fh, col);
+  if (fh > 1) { ctx.globalAlpha = 0.45; px(x, H - fh, 2, 1, '#f2f7fb'); ctx.globalAlpha = 1; }   // el canto de arriba
 }
 
 // ---------- HORIZONTE ARTIFICIAL (ADI) ----------
@@ -527,15 +638,14 @@ export function drawHUD(h) {
   // horizonte artificial, en la esquina de abajo a la izquierda
   drawADI();
 
-  // LAS TRES FILAS del tablero de abajo, medidas desde el borde y con el mismo paso en las dos
-  // columnas: lo que hace que el HUD se lea como un tablero y no como cosas puestas donde entraban.
-  const R1 = H - 8, R2 = R1 - FILA, R3 = R2 - FILA;
+  // LAS TRES FILAS del tablero de abajo (ver R1/R2/R3 arriba, junto al techo que salen de ellas).
 
   // ---- COLUMNA IZQUIERDA: EL AVION (lo que se gasta volando) -----------------------------------
-  bar(6, R1, 60, run.fuel / 100, run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam, T('bar_fuel'));
+  if (pide(run.fuel < 60))
+    bar(6, R1, 60, run.fuel / 100, run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam, T('bar_fuel'));
   // INTEGRIDAD DEL AVION: solo cuando el modelo de vida la usa (en ESCUADRON no existe — la
   // barra de vida es el escuadron y una barra siempre llena seria una mentira ocupando lugar).
-  if (dmgShown()) {
+  if (dmgShown() && pide(run.integ < 100)) {
     const iv = run.integ / 100;
     bar(ADI.cx + 14 + AIRE + 2, R2, 44, iv, iv <= 0.25 ? (Math.sin(run.t * 10) > 0 ? '#ff5340' : P.warn) : iv <= 0.5 ? P.warn : P.foam, T('dmg_bar'));
   }
@@ -545,38 +655,49 @@ export function drawHUD(h) {
   // al lado de la nafta: los misiles son armamento, no consumo de vuelo, y tenerlos en la esquina
   // opuesta a su barra obligaba a cruzar la pantalla para leer "con que puedo tirar".
   const ev = estadoVal();
-  bar(254, R3, 60, ev, ev <= 0.25 ? (Math.sin(run.t * 10) > 0 ? P.warn : '#7d2f1e') : ev <= 0.5 ? P.accent : P.foam, T('hud_status'));
-  // …y su NUMERO, al final del rotulo. Una barra dice "poco"; el porcentaje dice cuanto, que es lo
-  // que hace falta para decidir si volves o seguis.
-  ctx.textAlign = 'right'; ctx.font = F_ROT;
-  ctx.fillStyle = ev <= 0.25 ? P.warn : P.dim;
-  ctx.fillText(Math.round(ev * 100) + '%', 314, R3 - 4);
-  bar(254, R2, 60, run.heat, run.overheat ? P.warn : P.accent, run.overheat ? T('bar_overheat') : T('bar_cannon'));
-
-  // ---- ARRIBA A LA DERECHA: LOS PODERES DE RACHA ------------------------------------------------
-  // RASANTE y MOMENTUM se mudan a la esquina que quedo libre al sacar MEJOR. Los dos se GANAN
-  // volando —no se gastan como la nafta— asi que no son del bloque del avion: son del bloque de la
-  // corrida, y estando arriba se leen de reojo sin bajar la vista del horizonte.
-  // Arrancan en y=22 y no mas arriba porque los primeros 12 px de esa esquina son del boton de
-  // sonido, que es HTML y esta encima del canvas (ver index.html).
-  //
-  // ACTIVA MUESTRA EL RELOJ, no la barra: mientras dura, lo unico que importa saber es cuanto
-  // queda. La barra vuelve a ser barra recien cuando el poder se apaga y empieza a ganarse otra
-  // vez — que es cuando de nuevo importa cuanto falta.
-  const P1 = 24, P2 = P1 + FILA;
-  bar(W - MARGEN - 46, P1, 44, ras.on ? ras.resta / ras.dur : ras.meter,
-    ras.on ? (Math.sin(run.t * 10) > 0 ? P.accent : P.canopy)
-      : ras.meter >= 1 ? (Math.sin(run.t * 7) > 0 ? P.accent : P.canopy) : P.canopy, T('bar_rasante'));
-  if (ras.on) {
+  // el umbral de ESTADO no esta en 1 sino en 0,97, y es el mismo motivo que el 0,05 del cañon: el
+  // margen de roce sube y baja solo mientras se vuela rasante, y en 1 el instrumento parpadearia
+  // con cada ola. Tres puntos de zona muerta alcanzan para que aparezca cuando algo paso de verdad.
+  if (pide(ev < 0.97)) {
+    bar(254, R3, 60, ev, ev <= 0.25 ? (Math.sin(run.t * 10) > 0 ? P.warn : '#7d2f1e') : ev <= 0.5 ? P.accent : P.foam, T('hud_status'));
+    // …y su NUMERO, al final del rotulo. Una barra dice "poco"; el porcentaje dice cuanto, que es
+    // lo que hace falta para decidir si volves o seguis.
     ctx.textAlign = 'right'; ctx.font = F_ROT;
-    ctx.fillStyle = P.accent;
-    ctx.fillText(Math.ceil(ras.resta) + 's', W - MARGEN - 50, P1 + 5);
+    ctx.fillStyle = ev <= 0.25 ? P.warn : P.dim;
+    ctx.fillText(Math.round(ev * 100) + '%', 314, R3 - 4);
   }
-  // MOMENTUM (tecla 4): se carga con puntos; LLENA parpadea despacio (esta lista para lanzar) y
-  // LANZADA parpadea rapido (se gasta).
+  if (pide(run.heat > 0.05 || run.overheat))
+    bar(254, R2, 60, run.heat, run.overheat ? P.warn : P.accent, run.overheat ? T('bar_overheat') : T('bar_cannon'));
+
+  // ---- LOS BORDES: LOS PODERES DE RACHA ---------------------------------------------------------
+  // RASANTE y MOMENTUM dejan de ser barras con rotulo y pasan a ser dos RIELES en los bordes
+  // laterales: izquierda rasante, derecha momentum, siempre. Los dos se GANAN volando —no se
+  // gastan como la nafta— asi que nunca fueron del bloque del avion; y ninguno de los dos se lee
+  // de verdad: se vigilan de reojo mientras se mira el centro, que es un trabajo distinto y que un
+  // rotulo de 5 px no hace. En el borde el recorrido pasa de 44 px a 180 (ver `riel`).
+  //
+  // ACTIVO MUESTRA LO QUE QUEDA, igual que cuando eran barras: mientras dura, el unico dato es
+  // cuanto falta para que se apague. Vacio vuelve a ser "cuanto falta para tenerlo".
+  riel(1, ras.on ? ras.resta / ras.dur : ras.meter,
+    ras.on ? (Math.sin(run.t * 10) > 0 ? P.accent : P.canopy)
+      : ras.meter >= 1 ? (Math.sin(run.t * 7) > 0 ? P.accent : P.canopy) : P.canopy);
+  // MOMENTUM (tecla 4): se carga con puntos; LLENO parpadea despacio (esta listo para lanzar) y
+  // LANZADO parpadea rapido (se gasta).
   const tv = tempoMeter();
-  bar(W - MARGEN - 46, P2, 44, tv, tempoActive() ? (Math.sin(run.t * 14) > 0 ? P.accent : P.foam)
-    : tv >= 1 ? (Math.sin(run.t * 7) > 0 ? P.accent : P.crest) : P.crest, T('bar_tempo'));
+  riel(W - 3, tv, tempoActive() ? (Math.sin(run.t * 14) > 0 ? P.accent : P.foam)
+    : tv >= 1 ? (Math.sin(run.t * 7) > 0 ? P.accent : P.crest) : P.crest);
+  // EL RELOJ DEL RASANTE, y SOLO mientras esta encendido. Es el unico numero que los rieles no
+  // pueden dar —cuantos segundos quedan, no que fraccion— y es el unico momento en que hace falta:
+  // con el poder apagado la pregunta es otra ("¿cuanto falta para tenerlo?") y esa la contesta el
+  // largo del riel. Vive en la esquina que las barras dejaron libre, asi que no ocupa lugar nuevo.
+  if (ras.on) {
+    ctx.font = F_ROT; ctx.textAlign = 'right';
+    const rTxt = T('bar_rasante') + ' ' + Math.ceil(ras.resta) + 's';
+    const rW = Math.round(ctx.measureText(rTxt).width) + 6;
+    plate(W - MARGEN - rW, RELOJ_Y, rW, 11);
+    ctx.fillStyle = P.accent;
+    ctx.fillText(rTxt, W - MARGEN - 3, RELOJ_Y + 7);
+  }
 
   // LA CHANCHA (tecla 5): la barra del hermano caro, JUSTO ENCIMA del MOMENTUM. Mismo lenguaje
   // visual y otro color a proposito — son dos poderes de la misma familia y hay que poder
@@ -584,9 +705,10 @@ export function drawHUD(h) {
   //
   // Con COMBUSTIBLE: NO el poder no existe, y entonces la barra tampoco: una barra que nunca se
   // va a poder usar es ruido ocupando el unico lugar libre del HUD.
-  if (cfg.fuelOn) {
+  const chSnapshot = chSnap();
+  if (cfg.fuelOn && pide(chMeter() >= 1 || chGastada() || !!chSnapshot)) {
     const cv2 = chMeter();
-    const ch = chSnap();
+    const ch = chSnapshot;
     bar(ADI.cx + 14 + AIRE + 2, R3, 44, chGastada() ? 0 : cv2,
       chGastada() ? P.dim : cv2 >= 1 ? (Math.sin(run.t * 7) > 0 ? P.foam : P.crest) : P.crest, T('bar_chancha'));
     // EL ESTADO DE LA CITA, en el mismo renglon: la cuenta regresiva mientras viene, y el reloj
@@ -605,25 +727,27 @@ export function drawHUD(h) {
   // el mismo que se ve volar — no un rectangulo generico. Vacio = solo el contorno.
   // MISIL usa la MISMA convencion que bar(): placa en y-9, rotulo en y-4 y el contenido en y. Es
   // lo que lo deja caer exactamente en la fila R1, alineado con el combustible del otro lado.
-  plate(252, R1 - 9, 64, INSTR);
-  ctx.textAlign = 'left'; ctx.font = F_ROT; ctx.fillStyle = P.dim;
-  ctx.fillText('MISIL', 254, R1 - 4);
-  for (let i = 0; i < MSL_MAX; i++) {
-    const on = i < run.msl, bx = 254 + i * 9, by = R1;
-    if (on) {
-      px(bx + 1, by, 5, 2, '#e9edf0');                        // cuerpo blanco
-      px(bx + 6, by, 1, 2, '#9aa3ab');                        // ojiva gris
-      px(bx + 1, by, 5, 1, '#ffffff');                        // brillo del canto
-      px(bx, by + 2, 2, 1, '#c9d0d6');                        // aleta
-      px(bx - 1, by, 1, 2, P.accent);                         // llama
-    } else {
-      ctx.fillStyle = '#2e3c45';
-      ctx.fillRect(bx, by, 7, 1); ctx.fillRect(bx, by + 1, 1, 1); ctx.fillRect(bx + 6, by + 1, 1, 1);
+  if (pide(run.msl < MSL_MAX)) {
+    plate(252, R1 - 9, 64, INSTR);
+    ctx.textAlign = 'left'; ctx.font = F_ROT; ctx.fillStyle = P.dim;
+    ctx.fillText('MISIL', 254, R1 - 4);
+    for (let i = 0; i < MSL_MAX; i++) {
+      const on = i < run.msl, bx = 254 + i * 9, by = R1;
+      if (on) {
+        px(bx + 1, by, 5, 2, '#e9edf0');                      // cuerpo blanco
+        px(bx + 6, by, 1, 2, '#9aa3ab');                      // ojiva gris
+        px(bx + 1, by, 5, 1, '#ffffff');                      // brillo del canto
+        px(bx, by + 2, 2, 1, '#c9d0d6');                      // aleta
+        px(bx - 1, by, 1, 2, P.accent);                       // llama
+      } else {
+        ctx.fillStyle = '#2e3c45';
+        ctx.fillRect(bx, by, 7, 1); ctx.fillRect(bx, by + 1, 1, 1); ctx.fillRect(bx + 6, by + 1, 1, 1);
+      }
     }
   }
 
   // palanca de gas (throttle) — vertical, borde derecho
-  const gx = W - MARGEN - 7, tyTop = P2 + 9 + AIRE + 11, tyBot = 118, tH = tyBot - tyTop;
+  const gx = W - MARGEN - 7, tyTop = GAS_TOP, tyBot = GAS_BOT, tH = tyBot - tyTop;
   plate(gx - 3, tyTop - 3, 10, tH + 6);
   ctx.fillStyle = P.dim;                                     // marcas de la corredera
   for (let i = 0; i <= 4; i++) ctx.fillRect(gx - 2, Math.round(tyBot - tH * (i / 4)), 2, 1);

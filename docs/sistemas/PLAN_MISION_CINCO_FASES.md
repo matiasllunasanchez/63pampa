@@ -420,3 +420,89 @@ Escribime, corto:
   no es "game over".
 - **Si el rasante opcional del tránsito da algo** (puntaje, un blanco de oportunidad) o es solo
   para jugar.
+
+---
+
+## 11 · LA FORMA DEFINITIVA — DOS MITADES, DOS VERBOS
+
+> **Decisión del autor, 6/9/2026.** Corrige el §2 y el §5: la misión ya no es *una curva con dos
+> jorobas de peligro*. Son **dos mitades que se juegan distinto**.
+>
+> | | El verbo | La tensión |
+> |---|---|---|
+> | **LA IDA** | ser un fantasma | sigilo, concentración, sostener una línea, atacar |
+> | **LA VUELTA** | la guerra | el PASILLO de hoy, tal cual, sin nada nuevo |
+>
+> Entrás como fantasma y salís a las trompadas. **El peso dramático está en los dos lados** — no
+> porque la vuelta sea más peligrosa, sino porque pide otra cosa. Esto además desactiva solo el
+> riesgo del **anticlímax** (§8): después del buque no viene "lo mismo pero más difícil", viene un
+> juego distinto.
+
+### 11.1 · EL FILO — la mecánica de la ida
+
+**No es una mecánica nueva: es una que ya está escrita y a la que le falta la perilla.**
+
+`tuning.js:64-68` la nombra y la describe hace meses — **LA RENDIJA**:
+
+> *«entre 17 y 20 queda una RENDIJA de 3 unidades donde VES y NO te pintan. No hay código que la
+> implemente — sale sola de poner los dos umbrales cerca. Tres unidades es poco más que la altura
+> del avión, así que sostenerla con el bob y el viento es **una línea de habilidad real**.»*
+
+Y `tuning.js:55` ya pide lo que falta: *«a futuro debería poder **BAJAR por tramo de misión y
+estrangular el corredor** (ROADMAP #27)»*.
+
+**La mecánica es exactamente eso: la fase estrangula el techo.** Las tres piezas ya funcionan:
+
+| Pieza | Qué hace hoy | Dónde |
+|---|---|---|
+| **El piso** | tocar el agua no mata al instante: hay un margen que se agota, y a más velocidad menos margen (0,85 s → 0,18 s) | `SCRAPE_*`, `run.scrapeT` |
+| **El techo** | sobre `RADAR_ALT` la detección carga en **1,4 s** y descarga en 0,9 | `flight.js:387` |
+| **La barra** | el HUD ya dibuja la carga del radar pasando 0,3 | `hud.js:415, 431` |
+
+Hoy la banda va de 0 a 20 unidades y ahí entra un colectivo. `RADAR_ALT` pasa de constante a
+**valor resuelto por la fase**, y con el techo cerca del mar el avión (semieje 1,0) queda
+hilvanando fino entre el agua y el radar, movido por el bob, el viento y el oleaje.
+
+> **Cierra solo con lo que ya hay:** la racha rasante premia volar bajo `CAZA_RAS_ALT = 4.5`. El
+> tramo de filo te pide sostener **justo la banda que el juego ya te paga**. La mecánica nueva y
+> la vieja hablan el mismo idioma, y eso no hubo que diseñarlo.
+
+### 11.2 · RESPIRAR Y APRETAR — cómo se arma la ida
+
+Alternada, y **sale de `tramos` sin inventar nada** (una línea de radio por tramo, RF-03):
+
+```
+transito   corredor ANCHO    · radio ON   · charla        ← respirás
+filo 1     corredor ANGOSTO  · radio OFF  · sin siembra   ← te concentrás
+transito   ancho             · radio ON   · charla
+filo 2     más angosto       · radio OFF
+descenso                     · se apagan las voces
+rasante    el pasillo mudo
+blanco     el clímax de hoy (el Pulso)
+vuelta     el PASILLO DE HOY, tal cual
+```
+
+**Y esto le da al silencio de radio un motivo mejor que el histórico:** en los tramos de filo no
+hay radio **porque estás conteniendo la respiración**. La ausencia deja de ser un dato de época y
+pasa a ser la consecuencia de lo que el jugador está haciendo con las manos.
+
+### 11.3 · QUÉ PASA SI TE PINTAN — `pinta`, y es una perilla
+
+El autor pidió: *«si te pasás te detectan y perdiste»*. La objeción práctica es **dónde cae esa
+muerte**: el primer filo está en el minuto 1 de una misión de 6, así que morir ahí te cobra
+**rejugar la parte tranquila**, que castiga con repetición y no con dificultad.
+
+Queda como **dato de la fase**, y lo decide el playtest:
+
+- `pinta: 'cap'` *(default)* — te vieron. No perdés la corrida: perdés el silencio. De ahí en
+  adelante la misión es la difícil (la CAP despierta, el mundo te espera armado).
+- `pinta: 'muerte'` — la versión seca que pidió el autor. Se prende cambiando una palabra en
+  `pruebas.js`.
+
+### 11.4 · QUÉ SE CAE DE LAS SECCIONES VIEJAS
+
+- **§2 fase 5 y §5**: ~~"el doble de amenaza que la ida"~~ y ~~"los Harriers de frente"~~. La
+  vuelta usa la siembra normal del pasillo. Sigue en pie el problema técnico de que hoy **no se
+  siembra nada pasado el objetivo** (el corte del cordón final, `spawn.js:361`, queda trabado para
+  siempre una vez cruzado) — pero pasa de "escribir un sembrador nuevo" a "destrabar una guarda".
+- **§6 "Falta"**: sale *"los Harriers de frente"*; entra *"el techo de radar por fase"*.

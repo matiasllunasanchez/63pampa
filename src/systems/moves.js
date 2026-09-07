@@ -16,7 +16,7 @@ import { proj, popup } from '../core/fx.js';
 import { sfxOne, beep } from './audio.js';
 import { P } from '../data/palette.js';
 import { PZ, W, H } from '../render/ctx.js';
-import { FLY_X, FLY_TOP } from '../data/tuning.js';
+import { FLY_X, FLY_TOP, FUEL_PIRUETA } from '../data/tuning.js';
 import { MOVES } from '../data/moves.js';
 
 const MV_CD = 1.15;          // cooldown compartido con el tonel (mismo valor que startRoll)
@@ -57,6 +57,15 @@ export function startMove(id, dir, tgt, act) {
   if (E.mv || E.rollCd > 0) return false;
   const M = MOVES[id]; if (!M) return false;
   E.mv = id; E.mvT = 0; E.mvDir = dir || 1; E.mvY0 = B.y; E.mvTgt = tgt || 0;
+  // EL PICO DE NAFTA (PLAN_MISION_CINCO_FASES §3: "si no cuestan, el jugador vuela haciendo
+  // toneles"). Va ACA, en el unico lugar por donde entran TODAS las piruetas —el tonel legado
+  // incluido, que llega por `startMove('tonel')`—, asi que no hay forma de estrenar una maniobra
+  // nueva y olvidarse de cobrarla.
+  //
+  // SOLO AL JUGADOR (`B === plane`): un Fiel piruetando en una cinematica no gasta de tu tanque.
+  // Y solo con COMBUSTIBLE: SI — con el tanque infinito las piruetas siguen siendo gratis, que es
+  // lo que las mantiene libres en los modos donde la nafta no es el tema.
+  if (B === plane && cfg.fuelOn) run.fuel = Math.max(0, run.fuel - FUEL_PIRUETA);
   E.mvRoll = 0; E.mvSteep = 0; E.mvSeed = (Math.random() * 9999) | 0;
   // feedback de entrada: nombre de la maniobra sobre el velocimetro + rafaga de aire. Es del
   // JUGADOR: el rotulo y el sonido dicen "vos hiciste esto". Un actor los apaga (`act.mudo`) o la

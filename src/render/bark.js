@@ -14,7 +14,18 @@
 import { ctx, DW as W, DH as H } from './ctx.js';
 import { P } from '../data/palette.js';
 
-export const BARK_S = 2.4;          // cuanto dura en pantalla, de punta a punta
+// CUANTO DURA: sale del LARGO, igual que los carteles del mundo (`vidaCartel` en core/fx.js) y
+// por el mismo motivo — volando se lee en rafagas de decimas, asi que el tiempo que un texto
+// necesita en pantalla crece con las palabras. Lo que cambia es el PISO: un popup comparte
+// pantalla con los puntajes y arranca en 1,1 s, pero el bark esta SOLO y en grande, asi que por
+// debajo de 2,4 s se lee como un parpadeo. HEAVY MACHINE GUN son tres palabras: 2,4 s justos.
+export const BARK_S = 2.4;          // piso: lo que dura el mas corto, de punta a punta
+
+/** Segundos que un bark necesita en pantalla para su texto. */
+export function barkDur(txt) {
+  const palabras = String(txt).trim().split(/\s+/).length;
+  return Math.max(BARK_S, Math.min(6, 1.2 + palabras * 0.35));
+}
 
 /** Dibuja el cartel. `p` es 0..1: el avance del bark. Fuera de rango no dibuja nada. */
 export function drawBark(txt, p) {

@@ -71,6 +71,15 @@ export const cfg = {
   // 'panel' = las ultimas cuatro, como un chat. Las dos viven en la MISMA banda libre y ninguna
   // toca la UI: lo que cambia es si lo dicho se puede releer.
   radioUI: 'toast',
+  // TABLERO POR DEMANDA (PLAN_UI D): con 'auto', un instrumento SANO no se dibuja y aparece recien
+  // cuando hay algo que hacer al respecto —la nafta cuando baja, el cañon cuando disparaste, el
+  // misil cuando gastaste uno—. Es divulgacion progresiva: la APARICION pasa a ser el dato.
+  //
+  // ARRANCA EN 'fijo', que es el tablero completo de siempre, y no por prudencia: la contra de
+  // esta idea es real y esta escrita en el oficio —un instrumento que va y viene no genera memoria
+  // muscular, y el que recien empieza no sabe que existe hasta que le falla—. Es una perilla para
+  // decidirla jugando, no una decision ya tomada.
+  hudAuto: 'fijo',
   // fuelOn ARRANCA APAGADO (tanque infinito) por decision de diseño de julio 2026: el reloj de
   // combustible queda en pausa hasta rebalancearlo (la ruta optima de bidones es ROADMAP #28).
   // Encenderlo sigue siendo una fila del menu [M]; las misiones no lo pisan (CAMPAIGN_CFG no
@@ -237,6 +246,11 @@ export const stats = {
   // EL PULSO: el premio del climax y cuantos sellos se llevo (0..3). Viven aca y no en el sistema
   // porque son del recuento de la MISION — el sistema se resetea al re-encarar, el recuento no.
   pulso: 0, pulsoSellos: 0,
+  // EL ATERRIZAJE (PLAN_MISION_CINCO_FASES §4): el desglose de las cuatro medidas y su premio.
+  // Declarados ACA aunque casi ninguna mision los use, porque `resetStats` recorre las CLAVES: una
+  // que no este declarada no se limpia entre corridas, y la toma de la mision anterior se colaria
+  // en el recuento de la siguiente. Arrancan en 0 (falsy) y por eso la fila no aparece sola.
+  land: 0, landPts: 0,
 };
 
 export function resetStats() {

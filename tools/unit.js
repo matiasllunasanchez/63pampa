@@ -871,6 +871,178 @@ test('tramos: TODAS las misiones de la campaña tienen tramos validos', () => {
   assert.ok(CLAVES.includes('hasta') && CLAVES.includes('radio'));
 });
 
+// ---------- FASES: la forma de una mision entera (PLAN_MISION_CINCO_FASES §11) ----------
+// Misma razon que los tramos para probarse aca: la resolucion es PURA, y es la unica capa donde se
+// puede afirmar que las fracciones caen donde tienen que caer. Lo que este archivo agrega sobre
+// aquel es la HERENCIA DEL TIPO — el escalon del medio entre lo que la fase declara y el cfg — y
+// las fracciones MAYORES QUE 1, que son toda la razon por la que las fases existen aparte.
+import { faseAt, validarFases, CLAVES as CLAVES_F } from '../src/core/fases.js';
+import { TIPOS, TIPOS_VALIDOS } from '../src/data/fases.js';
+import { FILO_RADAR, RADAR_ALT as RADAR_ALT_U } from '../src/data/tuning.js';
+
+// la ida sigilosa y la vuelta guerra, en su forma minima: respirar / apretar / atacar / pelear
+const F5 = [
+  { tipo: 'transito', hasta: 0.25, radio: 'f1' },
+  { tipo: 'filo', hasta: 0.45 },
+  { tipo: 'rasante', hasta: 0.74 },
+  { tipo: 'blanco', hasta: 1 },
+  { tipo: 'vuelta', hasta: 1.9 },
+];
+
+test('fases: sin fases, sin objetivo o pasada la ultima devuelve null (= cfg plano)', () => {
+  // null NO es un error: es "aca manda el cfg de siempre". Es como se cumple la regla suprema —
+  // una mision sin `fases` (o sea: las catorce de la campaña) se comporta EXACTAMENTE igual que hoy.
+  assert.equal(faseAt(500, 2600, undefined), null, 'mision sin fases');
+  assert.equal(faseAt(500, 2600, []), null, 'lista vacia');
+  assert.equal(faseAt(500, 0, F5), null, 'sin objetivo (POR LA PATRIA) no hay fases');
+  assert.equal(faseAt(2600 * 2, 2600, F5), null, 'pasada la ultima fase: ya aterrizaste');
+});
+
+test('fases: LA VUELTA vive pasado el objetivo, que es lo que un tramo no puede hacer', () => {
+  // ESTA es la diferencia con los tramos, y la razon de que el item exista aparte: `hasta` pasa
+  // de 1. En 1.0 justo todavia manda 'blanco' (el limite es exclusivo); un metro despues del
+  // buque ya es la vuelta, y sigue siendolo a lo largo de casi otra mision entera.
+  assert.equal(faseAt(2599, 2600, F5).tipo, 'blanco', 'hasta el buque, la corrida final');
+  // EN EL OBJETIVO EXACTO YA ES 'vuelta', y no es un borde mal puesto: `hasta` es exclusivo salvo
+  // en la ultima fase (la regla de los tramos, sin cambiarla), asi que 'blanco' cubre [0.74, 1) —
+  // que es toda la aproximacion — y el instante 1.0 es de la vuelta. Cae justo bien: 1.0 es
+  // EXACTAMENTE donde flight.js dispara el climax, y el climax es un estado aparte que no lee
+  // fases. Cuando el jugador vuelve al pasillo, ya esta parado en la vuelta sin ningun flanco extra.
+  assert.equal(faseAt(2600, 2600, F5).tipo, 'vuelta', 'el objetivo exacto es donde arranca la vuelta');
+  assert.equal(faseAt(2600 * 1.5, 2600, F5).tipo, 'vuelta');
+  assert.equal(faseAt(2600 * 1.9, 2600, F5).tipo, 'vuelta', 'el ultimo hasta es inclusivo');
+});
+
+test('fases: los bordes — dist 0, el limite entre dos, y una distancia negativa', () => {
+  assert.equal(faseAt(0, 2600, F5).idx, 0, 'a distancia 0 manda la primera');
+  assert.equal(faseAt(-50, 2600, F5).idx, 0, 'una distancia negativa no puede caerse de la lista');
+  assert.equal(faseAt(2600 * 0.25 - 1, 2600, F5).tipo, 'transito');
+  assert.equal(faseAt(2600 * 0.25, 2600, F5).tipo, 'filo', 'la fraccion exacta del limite es de la siguiente');
+});
+
+test('fases: val() lee en TRES escalones — la fase, su tipo, y recien ahi el cfg', () => {
+  // el escalon del medio es todo el aporte de este archivo sobre el de tramos: una fase declara
+  // `{ tipo: 'filo', hasta: X }` y ya viene con el techo, el silencio y la nafta del filo puestos.
+  const filo = faseAt(2600 * 0.3, 2600, F5);
+  assert.equal(filo.val('radar', RADAR_ALT_U), FILO_RADAR, 'el default del TIPO pisa al de tuning');
+  assert.equal(filo.val('obstacles', 1.7), 0, 'un 0 heredado del tipo es un valor, no una ausencia');
+  assert.equal(filo.val('nafta', 1), 2, 'el filo cuesta el doble: es el regimen rasante');
+
+  // …y lo que el tipo NO declara cae hasta el cfg. Es lo que deja que 'rasante' sea literalmente
+  // el pasillo de hoy sin repetir la densidad de cada mision que lo use.
+  const ras = faseAt(2600 * 0.6, 2600, F5);
+  assert.equal(ras.val('obstacles', 1.7), 1.7, 'el rasante no opina de la siembra: manda el cfg');
+  assert.equal(ras.val('voces', true), false, 'pero si opina del silencio');
+
+  // y lo que la fase declara explicitamente gana sobre su propio tipo
+  const propio = faseAt(10, 2600, [{ tipo: 'filo', hasta: 1, radar: 3.5 }]);
+  assert.equal(propio.val('radar', RADAR_ALT_U), 3.5, 'la fase pisa a su tipo');
+});
+
+test('fases: ?qa comprime la mision a metros y las fracciones sobreviven', () => {
+  // 2600 m con ?qa son 156, y la vuelta cae en 296. Sigue siendo la vuelta, que es toda la razon
+  // por la que esto se mide en fracciones y no en metros.
+  const qa = 2600 * 0.06;
+  assert.equal(faseAt(0, qa, F5).tipo, 'transito');
+  assert.equal(faseAt(qa * 0.3, qa, F5).tipo, 'filo');
+  assert.equal(faseAt(qa * 1.5, qa, F5).tipo, 'vuelta');
+});
+
+test('fases: el validador rechaza lo que no avisaria solo', () => {
+  assert.deepEqual(validarFases(undefined), [], 'una mision sin fases es valida');
+  assert.deepEqual(validarFases(F5), []);
+  // una clave o un tipo mal escritos no hacen NADA y no avisan: es la peor forma de fallar
+  assert.ok(validarFases([{ tipo: 'filos', hasta: 1 }]).length, 'tipo desconocido');
+  assert.ok(validarFases([{ hasta: 1 }]).length, 'sin tipo no hay de quien heredar');
+  assert.ok(validarFases([{ tipo: 'filo', hasta: 1, radares: 4 }]).length, 'clave desconocida');
+  assert.ok(validarFases([{ tipo: 'filo', hasta: 0.5 }, { tipo: 'vuelta', hasta: 0.5 }]).length, 'hasta repetido');
+  assert.ok(validarFases([{ tipo: 'filo', hasta: 0.8 }, { tipo: 'vuelta', hasta: 0.4 }]).length, 'hasta que retrocede');
+  assert.ok(validarFases([{ tipo: 'filo', hasta: 0 }]).length, 'hasta 0 deja una fase que no existe');
+  assert.ok(validarFases([{ tipo: 'filo', hasta: 40 }]).length, 'hasta fuera del tope');
+  assert.ok(validarFases([]).length, 'lista vacia: sacala y listo');
+  assert.ok(validarFases([{ tipo: 'filo', hasta: 1, radar: 0 }]).length, 'un techo en 0 no es un filo: es no poder volar');
+  assert.ok(validarFases([{ tipo: 'filo', hasta: 1, voces: 'no' }]).length, 'voces es booleano');
+  assert.ok(validarFases([{ tipo: 'filo', hasta: 1, pinta: 'explota' }]).length, 'pinta solo acepta cap|muerte');
+  // …y una lista con la vuelta pasando de 1 tiene que ser VALIDA: es el caso de uso del item
+  assert.deepEqual(validarFases([{ tipo: 'blanco', hasta: 1 }, { tipo: 'vuelta', hasta: 1.9 }]), []);
+});
+
+test('fases: TODAS las misiones de la campaña siguen SIN fases, y eso es el criterio de exito', () => {
+  // La red de la regla suprema. Mientras esto sea cierto, la campaña no puede haber cambiado: sin
+  // lista, `faseAt` devuelve null y cada lector cae a su fallback de siempre por el mismo camino.
+  for (const m of MISSIONS) {
+    assert.equal(m.fases, undefined, `${m.id} no deberia declarar fases todavia`);
+    const e = validarFases(m.fases);
+    assert.deepEqual(e, [], `${m.id}: ${e.join(' · ')}`);
+  }
+});
+
+// ---------- EL BANCO DE PRUEBAS: t15 IDA Y VUELTA (PLAN_MISION_CINCO_FASES §5) ----------
+const { MISIONES_PRUEBA } = await import('../src/data/pruebas_misiones.js');
+const { SHIPS: SHIPS_T15, CAMPAIGN_CFG } = await import('../src/data/missions.js');
+
+test('t15: la mision del banco es valida y NO se coló en la campaña', () => {
+  // LA SEPARACION ES LA MITAD DEL ITEM. `MISSIONS` es la campaña: su largo decide cuando termina
+  // el juego y es el pool del CICLO DE MUERTE. Si t15 entrara ahi, aparecería sorteada a mitad de
+  // una partida de verdad y corrreria el final un renglon.
+  assert.equal(MISSIONS.findIndex(m => m.id === 't15'), -1, 't15 no puede estar en la campaña');
+  assert.equal(MISIONES_PRUEBA.length, 1);
+  const t15 = MISIONES_PRUEBA[0];
+  assert.equal(t15.id, 't15');
+  const e = validarFases(t15.fases);
+  assert.deepEqual(e, [], `t15: ${e.join(' · ')}`);
+  // el buque tiene que ser uno de la lista: `useShip` saca de ahi el layout de zonas del climax
+  assert.ok(SHIPS_T15.includes(t15.goal.ship), 't15 apunta a un buque que no existe');
+});
+
+test('t15: declara las cinco fases del plan, en orden, y la vuelta pasa del buque', () => {
+  const t15 = MISIONES_PRUEBA[0];
+  const tipos = t15.fases.map(f => f.tipo);
+  // el orden del plan, con el transito PARTIDO en dos por los filos (§11.2: respirar y apretar)
+  assert.deepEqual(tipos, ['transito', 'filo', 'transito', 'filo', 'descenso', 'rasante', 'blanco', 'vuelta']);
+  assert.ok(t15.fases[t15.fases.length - 1].hasta > 1, 'la vuelta tiene que vivir pasado el objetivo');
+  // EL SEGUNDO FILO APRIETA MAS QUE EL PRIMERO: el primero enseña la banda, el segundo la cobra.
+  // Sin esta diferencia son dos veces la misma prueba y el tramo no tiene curva.
+  const filos = t15.fases.filter(f => f.tipo === 'filo');
+  const techo = f => faseAt(0, 1, [{ ...f, hasta: 1 }]).val('radar', RADAR_ALT_U);
+  assert.ok(techo(filos[1]) < techo(filos[0]), 'el segundo filo tiene que ser mas angosto');
+});
+
+test('t15: es una herramienta — sin guion, sin cartas y sin roster de campaña', () => {
+  const t15 = MISIONES_PRUEBA[0];
+  for (const k of ['story', 'brief', 'epi', 'roster', 'date'])
+    assert.equal(t15[k], undefined, `t15 no deberia traer '${k}': es un banco, no un nivel del guion`);
+  // el cfg tiene que estar COMPLETO: es un Object.assign sobre un objeto compartido, asi que una
+  // clave ausente no queda en su default — queda pegada de la mision anterior
+  for (const k of Object.keys(CAMPAIGN_CFG))
+    assert.ok(k in t15.cfg, `al cfg de t15 le falta '${k}' (se pegaria el de la mision anterior)`);
+  assert.equal(t15.cfg.fuelOn, true, 'la nafta es media prueba: el plan la pide mostrada siempre');
+});
+
+test('epilogo: TODAS las misiones de campaña tienen epi, y por eso el banco puede no tenerlo', () => {
+  // `irAlEpilogo()` manda a `advanceCampaign()` a la mision sin `epi`. Eso esta bien para la
+  // campaña y seria un desastre para una prueba —termina en la pantalla de VICTORIA—, y por eso
+  // el camino sin epilogo esta guardado por `S.test`. Esta red sostiene la otra mitad: que no
+  // exista una mision de campaña sin epilogo que caiga en esa misma rama sin querer.
+  for (const m of MISSIONS) assert.ok(m.epi, `${m.id} no tiene epilogo`);
+});
+
+test('fases: el catalogo de tipos cubre las cinco del plan mas el filo', () => {
+  for (const t of ['transito', 'filo', 'descenso', 'rasante', 'blanco', 'vuelta'])
+    assert.ok(TIPOS_VALIDOS.includes(t), `falta el tipo ${t}`);
+  // los defaults de un tipo solo pueden declarar claves VALIDAS: un default con una clave mal
+  // escrita seria invisible — no lo agarra el validador de fases, porque nadie lo escribio en data
+  for (const [t, d] of Object.entries(TIPOS))
+    for (const k of Object.keys(d))
+      assert.ok(CLAVES_F.includes(k), `el tipo ${t} declara una clave desconocida: ${k}`);
+  // el transito es el unico que promete CERO enemigos, y es la mitad de la escena
+  assert.equal(TIPOS.transito.obstacles, 0);
+  assert.equal(TIPOS.transito.caza, 0);
+  assert.equal(TIPOS.transito.bombs, 0);
+  // el filo estrangula de verdad: su techo tiene que estar MUY por debajo del radar de siempre
+  assert.ok(TIPOS.filo.radar < RADAR_ALT_U / 2, 'un filo que no estrangula no es un filo');
+});
+
 // ---------- LAS CHARLAS EN VUELO (SPEC_CHARLAS_VUELO) ----------
 // El validador de `core/tramos.js` solo puede comprobar que `charla:` sea TEXTO: core/ no importa
 // contenido, asi que desde alla un id inventado pasa. Aca si se ven las dos mitades, y esta es la
@@ -1660,6 +1832,43 @@ test('callejon: una COSTA deja el otro lado abierto de punta a punta', () => {
   zzReset();
 });
 
+import { barreraDe, enBarrera } from '../src/core/zigzag.js';
+
+test('barreras: el puente de madera deja pasar por abajo y mata en el tablero', () => {
+  // Reemplaza al test del ARCO DE ROCA, que se saco junto con la piel: se dibujaba como una placa
+  // a una sola profundidad y se leia como una figurita pegada delante del pasillo (ver
+  // ZZ_BARR_MADERA en data/tuning.js). Lo que se afirma acá es lo mismo que se afirmaba de aquel:
+  // que el hueco por el que hay que pasar EXISTE y que el macizo cierra.
+  zzReset();
+  zzRebuild(0, { amp: 0, largo: 800, seed: 3, paredes: { alto: 1, x: 46, mata: true, barreras: 'madera' } }, 0, 0);
+  let b = null;
+  for (let wz = 100; wz < 4000 && !b; wz += 2) b = barreraDe(wz);
+  assert.ok(b && b.tipo === 'madera', 'no aparecio ningun puente de madera');
+  const wz = (b.z0 + b.z1) / 2;
+  assert.ok(enBarrera(0, (b.y0 + b.y1) / 2, wz), 'el tablero no mata');
+  assert.equal(enBarrera(0, b.y0 - 3, wz), null, 'no se puede pasar por abajo del tablero');
+  assert.equal(enBarrera(0, b.y1 + 3, wz), null, 'no se puede pasar por encima');
+  // y el hueco de abajo tiene que entrar un avion: si el tablero cuelga a cinco metros, no es una
+  // barrera, es una pared con un chiste adentro
+  assert.ok(b.y0 >= 10, `el tablero cuelga a ${b.y0} m: no entra el avion`);
+  zzReset();
+});
+
+test('barreras: el manojo de cables MATA (el margen no puede comerse la franja)', () => {
+  // Con el margen fijo en 1.2 a cada lado, una franja de 4.5 m quedaba con el hueco invertido y
+  // no mataba NUNCA: la barrera mas fina del juego era la unica que no existia.
+  zzReset();
+  zzRebuild(0, { amp: 0, largo: 800, seed: 3, paredes: { alto: 1, x: 46, mata: true, barreras: 'cables' } }, 0, 0);
+  let b = null;
+  for (let wz = 100; wz < 4000 && !b; wz += 2) b = barreraDe(wz);
+  assert.ok(b && b.tipo === 'cables', 'no aparecio ningun tendido');
+  const wz = (b.z0 + b.z1) / 2;
+  assert.ok(enBarrera(0, (b.y0 + b.y1) / 2, wz), 'el manojo de cables no mata');
+  assert.equal(enBarrera(0, b.y0 - 3, wz), null, 'no se puede pasar por debajo del cable');
+  assert.equal(enBarrera(0, b.y1 + 3, wz), null, 'no se puede pasar por encima del cable');
+  zzReset();
+});
+
 test('callejon: `ambos` es EXACTAMENTE el callejon de siempre', () => {
   // La garantia de la extension: la data que ya existe no cambia ni un metro. Se compara el
   // trazado sin `lado` contra el mismo con `lado: ambos`, muestra por muestra y con `Object.is`.
@@ -1716,41 +1925,4 @@ test('niebla: el canon MEZCLA, no conmuta', () => {
   const a0 = alfaCielo(0.8, 0.2, 0), a1 = alfaCielo(0.8, 0.2, 1);
   const medio = alfaCielo(0.8, 0.2, 0.5);
   assert.ok(Math.abs(medio - (a0 + a1) / 2) < 1e-9, `la mezcla no es lineal: ${medio}`);
-});
-
-import { barreraDe, enBarrera } from '../src/core/zigzag.js';
-
-test('barreras: el puente de madera deja pasar por abajo y mata en el tablero', () => {
-  // Reemplaza al test del ARCO DE ROCA, que se saco junto con la piel: se dibujaba como una placa
-  // a una sola profundidad y se leia como una figurita pegada delante del pasillo (ver
-  // ZZ_BARR_MADERA en data/tuning.js). Lo que se afirma acá es lo mismo que se afirmaba de aquel:
-  // que el hueco por el que hay que pasar EXISTE y que el macizo cierra.
-  zzReset();
-  zzRebuild(0, { amp: 0, largo: 800, seed: 3, paredes: { alto: 1, x: 46, mata: true, barreras: 'madera' } }, 0, 0);
-  let b = null;
-  for (let wz = 100; wz < 4000 && !b; wz += 2) b = barreraDe(wz);
-  assert.ok(b && b.tipo === 'madera', 'no aparecio ningun puente de madera');
-  const wz = (b.z0 + b.z1) / 2;
-  assert.ok(enBarrera(0, (b.y0 + b.y1) / 2, wz), 'el tablero no mata');
-  assert.equal(enBarrera(0, b.y0 - 3, wz), null, 'no se puede pasar por abajo del tablero');
-  assert.equal(enBarrera(0, b.y1 + 3, wz), null, 'no se puede pasar por encima');
-  // y el hueco de abajo tiene que entrar un avion: si el tablero cuelga a cinco metros, no es una
-  // barrera, es una pared con un chiste adentro
-  assert.ok(b.y0 >= 10, `el tablero cuelga a ${b.y0} m: no entra el avion`);
-  zzReset();
-});
-
-test('barreras: el manojo de cables MATA (el margen no puede comerse la franja)', () => {
-  // Con el margen fijo en 1.2 a cada lado, una franja de 4.5 m quedaba con el hueco invertido y
-  // no mataba NUNCA: la barrera mas fina del juego era la unica que no existia.
-  zzReset();
-  zzRebuild(0, { amp: 0, largo: 800, seed: 3, paredes: { alto: 1, x: 46, mata: true, barreras: 'cables' } }, 0, 0);
-  let b = null;
-  for (let wz = 100; wz < 4000 && !b; wz += 2) b = barreraDe(wz);
-  assert.ok(b && b.tipo === 'cables', 'no aparecio ningun tendido');
-  const wz = (b.z0 + b.z1) / 2;
-  assert.ok(enBarrera(0, (b.y0 + b.y1) / 2, wz), 'el manojo de cables no mata');
-  assert.equal(enBarrera(0, b.y0 - 3, wz), null, 'no se puede pasar por debajo del cable');
-  assert.equal(enBarrera(0, b.y1 + 3, wz), null, 'no se puede pasar por encima del cable');
-  zzReset();
 });

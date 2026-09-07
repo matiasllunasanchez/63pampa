@@ -1211,3 +1211,86 @@ export const ZZ_LADERA_P = 0.55;
 // RAFAGA de los antiaereos de la ladera: cuantos tiros seguidos y cada cuanto. Es lo que convierte
 // un cañon suelto en una MANGUERA cruzando el pasillo, que es la imagen de San Carlos.
 export const ZZ_LADERA_RAFAGA = 3, ZZ_LADERA_RAF_CD = 0.16;
+
+// ---------------- LAS FASES DE UNA MISION (PLAN_MISION_CINCO_FASES §11) ----------------
+//
+// EL FILO: el techo de radar ESTRANGULADO por fase. No es una mecanica nueva — es la RENDIJA que
+// este mismo archivo describe arriba (ver FOG_TOP / RADAR_ALT) con la perilla que le faltaba, la
+// que el ROADMAP #27 venia pidiendo: "bajar por tramo de mision y estrangular el corredor".
+//
+// Entre el agua (que ya cobra con SCRAPE_*) y el techo queda una banda que hay que SOSTENER, con
+// el bob, el viento y el oleaje moviendote. Bajar la mata; subir te pinta.
+//
+// 6 Y NO 3: la racha rasante ya premia volar bajo CAZA_RAS_ALT (4.5), asi que con el techo en 6 el
+// tramo pide sostener JUSTO la banda que el juego ya paga — la mecanica nueva y la vieja hablan el
+// mismo idioma. Por debajo de ~4 el margen deja de alcanzar para el oleaje y el filo se vuelve una
+// moneda al aire; por encima de ~9 entra un colectivo y deja de haber filo.
+// ES LA PERILLA NUMERO UNO A CALIBRAR DESPUES DEL PRIMER PLAYTEST.
+export const FILO_RADAR = 6;
+
+// TOPE de `hasta` en una lista de fases. A diferencia de los TRAMOS —que viven adentro del pasillo
+// y por eso cortan en 1— las fases cubren la MISION ENTERA, y la vuelta ocurre PASADO el objetivo:
+// sus fracciones son mayores que 1 a proposito. El tope existe igual para que un 40 escrito de mas
+// sea un error de datos y no una fase que no termina nunca.
+export const FASE_MAX_HASTA = 4;
+
+// CONSUMO BASE del pasillo, en % de tanque por segundo. Estaba escrito a mano adentro de
+// systems/flight.js —el unico numero de combustible del juego sin constante propia— y sale aca
+// para que la fase pueda multiplicarlo (PLAN_MISION_CINCO_FASES §3). Los valores son EXACTAMENTE
+// los que estaban: crucero 3.2, y el turbo suma 4.2 encima.
+export const FUEL_RATE = 3.2;
+export const FUEL_BOOST = 4.2;
+
+// EL PICO POR PIRUETA (§3 del plan: "si no cuestan, el jugador vuela haciendo toneles"). Es un
+// cobro FIJO al arrancar la maniobra, no una tasa: lo que se paga es la decision, no el rato que
+// dura. 1.5% de tanque es ~medio segundo de crucero — se siente en una cadena de piruetas y no
+// castiga la que te salva la vida, que es exactamente el equilibrio que el item pide.
+// Solo cobra con COMBUSTIBLE: SI; sin el, las piruetas siguen siendo gratis como siempre.
+export const FUEL_PIRUETA = 1.5;
+
+// ---------------- EL ATERRIZAJE (PLAN_MISION_CINCO_FASES §4) ----------------
+//
+// Lo unico enteramente nuevo del plan: existe el despegue y el aterrizaje habia que escribirlo.
+// Se miden CUATRO cosas, y las cuatro pelean entre si — esa es toda la mecanica:
+//   velocidad · regimen de descenso · cuando sacas el tren · actitud al tocar
+//
+// LA REGLA QUE MANDA SOBRE TODAS: un mal aterrizaje CUESTA (chapa y puntaje) y NUNCA hace perder
+// la mision. Llegaste; lo que se decide aca es COMO llegaste. Por eso no hay una sola constante
+// de muerte en este bloque.
+
+// LARGO DE LA APROXIMACION, en metros. A velocidad de toma son ~12 s: alcanza para bajar,
+// estabilizar y sacar el tren sin que se haga un tramo aparte.
+// …y esta medido contra el descenso, no elegido a ojo: desde LAND_ALT0 y con el avion estable en
+// la ventana de velocidad, la toma cae alrededor de los seis segundos. 520 m es lo que se recorre
+// en ese rato, o sea que las ruedas tocan CERCA de la cabecera y no cuatrocientos metros antes.
+export const LAND_APPROACH_M = 520;
+// ALTURA a la que arranca la aproximacion (unidades de mundo). Bien por debajo de RADAR_ALT: ya
+// no hay radar que te busque, estas en tu casa.
+export const LAND_ALT0 = 13;
+
+// LA VENTANA DE VELOCIDAD. El A-4C entra en perdida a ~225 km/h (dato de ficha), y en las
+// unidades del juego la referencia es el crucero: 62 al entregar el despegue, 150 de techo.
+// Debajo de MIN te caes de cola; arriba de MAX rebotas o te arrancas el tren.
+export const LAND_SPD_MIN = 42, LAND_SPD_MAX = 88;
+// …y la ventana COMODA de adentro, que es la que puntua perfecto.
+export const LAND_SPD_OK = [50, 74];
+
+// REGIMEN DE DESCENSO al tocar (unidades por segundo, negativo = bajando). Bajar rapido esta bien
+// LEJOS y mal CERCA: lo que se mide es el ultimo instante, no todo el descenso.
+export const LAND_VY_SUAVE = -4.5;   // hasta aca, toma de manual
+export const LAND_VY_DURO = -11;     // pasado esto, el tren pega contra la pista
+
+// LA ACTITUD: nariz arriba. Se lee del cabeceo real del avion al tocar — de trompa te clavas.
+export const LAND_PITCH_OK = -0.12;
+
+// EL TREN. `GEAR_T` (arriba) ya dice lo que tarda en moverse; esto es lo que CUESTA tenerlo
+// afuera: frena. Es el precio de sacarlo temprano, y la razon de que el momento importe.
+export const LAND_GEAR_DRAG = 26;    // cuanto empuja la velocidad hacia abajo, por segundo
+// …y cuanto antes de tocar hay que tenerlo ABAJO para que cuente como bien sacado.
+export const LAND_GEAR_MIN_T = 1.2;  // segundos
+
+// EL COSTO, en chapa (0..100) y en puntos. Son CUATRO cobros independientes que se suman: se
+// puede llegar mal de una sola cosa y bien de las otras tres, que es lo que hace que valga la pena
+// corregir una y no rendirse.
+export const LAND_COSTO_CHAPA = { spd: 14, vy: 22, gear: 30, pitch: 12 };
+export const LAND_PTS = 2500;        // el premio por la toma perfecta; cada falla descuenta

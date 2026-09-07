@@ -165,7 +165,12 @@ export function cazaDirector(dt, o) {
   if (o.meta && D.hechos >= int) return;
   D.hechos++;
   D.prox = entre(CAZA_DIR_GAP);
-  start({ mudo: Math.random() < CAZA_MUDO_P[int] });
+  // EL DUELO MUDO YA EXISTIA como sorteo (`CAZA_MUDO_P`: a mas intensidad, mas chance de que
+  // nadie te avise). `o.voces === false` no agrega una mecanica nueva — CLAVA esa moneda en cruz.
+  // Es lo que hace que el silencio de radio de una fase (PLAN_MISION_CINCO_FASES §11.2) alcance
+  // tambien a LA COLA sin que este archivo tenga que saber que es una fase: le llega un valor ya
+  // resuelto en el mismo paquete que la intensidad, igual que `ciego` o `jets`.
+  start({ mudo: o.voces === false || Math.random() < CAZA_MUDO_P[int] });
 }
 
 /** Pasa a la fase `f` con su duracion. */

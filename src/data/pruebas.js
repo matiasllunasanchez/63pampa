@@ -30,6 +30,19 @@
 // `{ head }` = encabezado de seccion; el cursor no se para ahi (mismo criterio que el menu de
 // HISTORIA y que OPCIONES).
 export const PRUEBAS = [
+  { head: 'prSecMision' },
+  {
+    id: 'idayvuelta', titulo: 'IDA Y VUELTA', desc: 'Las cinco fases: sigilo, blanco y regreso · ~6 min',
+    // LA UNICA FILA DEL CATALOGO QUE SE VUELA ENTERA, y por eso arranca distinto a todas las
+    // demas: los otros momentos te ponen EN un instante, y este existe para medir el TIEMPO — que
+    // el transito respire, que el silencio se note, que la vuelta no se sienta un epilogo. Saltar
+    // a una parte seria medir otra cosa, asi que no lleva ni una sonda diferida.
+    // `start: 'runway'` —contra el `aire: true` que el verbo pone por defecto— porque la mision
+    // termina aterrizando: la unica prueba del juego que se cierra con las ruedas tiene que
+    // empezar con las ruedas.
+    setup: a => a.mision('t15', { start: 'runway' }),
+  },
+
   { head: 'prSecClimax' },
   {
     id: 'pasada', titulo: 'LA PASADA', desc: 'A ras, saltar, soltar y salir · HMS SHEFFIELD',

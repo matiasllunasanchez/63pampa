@@ -11,6 +11,7 @@ import { clamp01 } from '../core/physics.js';
 import { radio, restante, visible, log } from '../core/radioVN.js';
 import { sinceReady, txtOf } from '../core/dialogue.js';
 import { PLACA_DE_CUADRO } from '../data/placas.js';
+import { HUD_TECHO } from './hud.js';
 
 // Segundos que la pantalla de victoria espera antes de traer la frase de cierre. No es un valor
 // de "sensacion" como los de data/tuning.js: es el ritmo de UNA pantalla, y vive con ella.
@@ -1163,19 +1164,20 @@ export function cajaVN(o) {
 // formas de hablar tienen que VERSE IGUAL, y sigue siendo cierto — pero para el dialogo que PIDE
 // atencion. La radio en vuelo es otra cosa: es un aviso que pasa, y se ve como lo que es.
 //
-// LA BANDA. El HUD de vuelo vive en los 50 px de abajo (ver render/hud.js: todo cuelga de H-50
-// para arriba) y en los ~40 de arriba (puntaje, kilometro, barra de objetivo). El toast entra
-// entero entre las dos, pegado al piso de la banda libre: `TOAST_Y2` es su borde inferior y esta
-// DOS pixeles por encima de donde empieza el HUD. Ese numero es la regla escrita en codigo — si
-// alguien baja el toast, la prueba de `npm run charlas` lo cachetea.
-// EL NUMERO, calculado y no estimado. La barra mas alta del HUD es la de RASANTE, que `hud.js`
-// planta en `H-50` = 130; `bar()` dibuja su PLACA dos pixeles mas arriba (128) y su ETIQUETA en
-// `y-4` con cuerpo 6, o sea que su tinta empieza en ~120. El toast cierra en 118: dos pixeles de
-// aire contra lo mas alto que dibuja la UI de vuelo.
-// MEDIDO EN CAPTURA, no deducido: la cuenta de `bar()` daba 120 y a esa altura el toast todavia
-// le comia la etiqueta RASANTE. La columna de medidores de la izquierda (RASANTE / MOMENTUM /
-// CHANCHA) es lo mas alto que sube el HUD de vuelo, y su rotulo mas alto pinta hasta ~112.
-const HUD_TINTA = 110;                                   // lo mas alto que pinta el HUD de vuelo
+// LA BANDA. El HUD de vuelo vive en el tablero de abajo y en la franja de arriba (escuadron,
+// kilometro, barra de objetivo). El toast entra entero entre las dos, pegado al piso de la banda
+// libre: `TOAST_Y2` es su borde inferior y esta DOS pixeles por encima de donde empieza el HUD.
+// Ese numero es la regla del §0b escrita en codigo, y la sonda `__toastbanda()` la deja medir.
+//
+// EL NUMERO NO SE COPIA: SALE DEL TABLERO. `HUD_TECHO` es el canto de las placas de la fila mas
+// alta del HUD de vuelo, calculado en render/hud.js con las mismas constantes con que se apilan.
+//
+// Estuvo COPIADO y en 110, y la copia se pudrio: ese numero lo escribio la epoca en que RASANTE y
+// MOMENTUM eran la cuarta y la quinta barra de la pila de la izquierda y subian hasta ~112. Desde
+// entonces se mudaron dos veces —arriba a la derecha primero, a los rieles de los bordes despues
+// (PLAN_UI B)— y el toast siguio esquivando un instrumento que ya no estaba ahi: diecinueve
+// pixeles de banda libre que la voz no estaba usando por miedo a un fantasma.
+const HUD_TINTA = HUD_TECHO;                             // lo mas alto que pinta el HUD de vuelo
 const TOAST_Y2 = HUD_TINTA - 2, TOAST_H = 30, TOAST_W = 226, TOAST_CARA = 22;
 
 export function drawRadioVN() {

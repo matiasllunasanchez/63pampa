@@ -298,6 +298,10 @@ export function initInput(cv, a) {
     if (e.code === 'KeyR' && !e.repeat) a.combatTurn();
     // REPARTO DE ENERGIA del ARENA (S1). [G] libre en todo el juego; [TAB] NO servia (es misil).
     if (e.code === 'KeyG' && !e.repeat) a.cyclePip();
+    // EL TREN [T] — solo lo escucha la aproximacion final (§4 del plan de las cinco fases). La
+    // tecla estaba libre y es la inicial de TREN, que en un juego en español es la mnemotecnia
+    // buena; el resto del vuelo la accion se ignora sola.
+    if (e.code === 'KeyT' && !e.repeat) a.gearToggle();
     if (e.code === 'KeyZ' || e.code === 'Tab') { inp.msl = true; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }   // misil (Z o TAB)
     // EL REMATE ES LA ACCION DE SOLTAR, no una tecla concreta: cualquier entrada de MISIL lo manda
     // (Z, TAB, y en el mando L1/□). El glifo dice 'Z' con teclado y el boton cuando hay mando.

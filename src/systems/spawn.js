@@ -17,6 +17,18 @@ import { inBank } from './fog.js';
 // devuelve lo que rige a esta altura del vuelo y cae al cfg cuando la mision no tiene tramos —
 // que es como se cumple RF-04 (sin tramos, este archivo se comporta exactamente igual que ayer).
 import { val as trVal } from './tramos.js';
+import { val as fsVal } from './fases.js';
+
+/** LA CADENA DE RESOLUCION, de lo mas especifico a lo mas general: TRAMO → FASE → cfg.
+ *
+ *  Los dos items son el mismo mecanismo (leer, nunca escribir el cfg) con alcances distintos: el
+ *  tramo es el guion de siembra ADENTRO del pasillo, la fase es la forma de la mision entera. Que
+ *  el tramo gane no es arbitrario — es el que habla de un pedazo mas chico del vuelo, y una mision
+ *  puede declarar los dos sin que se peleen.
+ *
+ *  NO ES UN `if` DE FASE: nadie pregunta "¿esto es un filo?". Se pide un VALOR y se contesta con
+ *  el que corresponda, que es la misma forma que ya tenia `trVal`. */
+const val = (clave, base) => trVal(clave, fsVal(clave, base));
 // LA CHARLA EN VUELO (SPEC_CHARLAS_VUELO RF-01): mientras hay una armada o corriendo, aca no
 // nace nadie. Es el mismo patron de gate que la niebla ciega — una condicion de mundo que este
 // archivo consulta, no un estado que administre.
@@ -190,7 +202,13 @@ export function spawnOla(kind, hFijo) {
   // la vio antes que vos. Volando solo no hay ojos, y ese silencio es la regla humana del item —
   // no un castigo mecanico. Con aviso o sin el la ola SIEMPRE se ve desde SPAWN_Z: el aviso es
   // ventaja, nunca el requisito de que sea justa.
-  if (kind === 'rebelde' && run.lives > 1) popup(0, 26, T('ola_call'), P.warn, true);
+  // …Y SOLO SI EL ESCUADRON ESTA HABLANDO (PLAN_MISION_CINCO_FASES §11.2). En las fases mudas el
+  // aviso no sale, y la razon es la misma regla humana de la linea de arriba llevada un paso mas:
+  // no es que no haya ojos, es que nadie transmite. Un compañero gritando "¡OLA!" en el tramo
+  // donde el silencio de radio ES la escena la rompe entera — y es de las pocas voces que igual
+  // sonarian, porque la ola no es siembra: sale del clima.
+  if (kind === 'rebelde' && run.lives > 1 && val('voces', true) !== false)
+    popup(0, 26, T('ola_call'), P.warn, true);
   obstacles.push(o);
   return o;
 }
@@ -276,7 +294,7 @@ function spawn() {
   // LOS BIDONES, y si el tramo los corta (`bidones: false`, SPEC_TRAMOS §2). Es UNA pregunta y
   // no dos: el combustible tiene que estar prendido en el mapa Y el tramo no tiene que haberlo
   // cortado. Lo pide M10, donde el ultimo tercio se vuela sabiendo que no aparece ninguno.
-  const bidones = cfg.fuelOn && trVal('bidones', true) !== false;
+  const bidones = cfg.fuelOn && val('bidones', true) !== false;
   if (bidones && run.fuelDist > 700) { obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false }); run.fuelDist = 0; return; }
   const r = Math.random();
   const ph = Math.random() * 6;
@@ -415,9 +433,21 @@ export function spawnSystem(dt, objectiveDist) {
   // largo, que es el DRENAJE del RF-01. Va antes que todo lo demas porque es la mas fuerte de
   // las guardas: durante una charla no hay densidad de tramo, ni bombardeo, ni soldados.
   if (!cvSembrar()) return;
+  // EL CORDON FINAL es de la APROXIMACION, no del resto de la corrida. La condicion es
+  // `dist >= corte`, asi que una vez cruzada se queda cruzada para siempre — y eso, en una mision
+  // con VUELTA (PLAN_MISION_CINCO_FASES §11), significaba que pasado el buque no volvia a nacer
+  // NADA nunca mas: la fase podia declarar la densidad que quisiera y el `return` estaba antes de
+  // que alguien la leyera. El regreso quedaba mudo por accidente.
+  //
+  // El `< objectiveDist` es toda la correccion, y no afloja el cordon ni un metro: entre el corte
+  // y el buque no siembra nadie, igual que siempre. Lo unico que cambia es que DEL OTRO LADO del
+  // objetivo el pasillo vuelve a estar vivo, que es exactamente lo que el velo vino a proteger
+  // (que no se crucen obstaculos por delante del buque que crece) y del otro lado ya no aplica:
+  // ahi el buque quedo atras.
+  //
   // el corte nunca cae antes de la mitad del pasillo: en misiones cortas (o con ?qa, que las
   // achica x0.06) el margen de SPAWN_Z se comeria el nivel entero y no apareceria nadie nunca.
-  if (objectiveDist > 0 && run.dist >= Math.max(objectiveDist * 0.5,
+  if (objectiveDist > 0 && run.dist < objectiveDist && run.dist >= Math.max(objectiveDist * 0.5,
     Math.min(objectiveDist * VEIL_STOP, objectiveDist - SPAWN_Z * 1.6))) return;
   // spawn por distancia. En COSTA el campo es mas denso ("hay un desembarco en marcha"): el
   // intervalo se acorta un 35%.
@@ -425,7 +455,7 @@ export function spawnSystem(dt, objectiveDist) {
   // LA DENSIDAD DEL TRAMO (RF-02). Se resuelve UNA vez y se usa para las dos cosas —la puerta y
   // el intervalo— porque son la misma pregunta: un tramo en 0 no siembra, y uno en 1.8 siembra
   // al doble de ritmo que uno en 0.9.
-  const obst = trVal('obstacles', cfg.obstacles);
+  const obst = val('obstacles', cfg.obstacles);
   if (obst > 0 && run.nextSpawn <= 0) {
     const n0 = obstacles.length, s0 = soldiers.length;
     spawn();
@@ -440,7 +470,7 @@ export function spawnSystem(dt, objectiveDist) {
     // Quedan EXENTOS el bidon y la ola: no son mezcla. El bidon tiene su propia llave
     // (`bidones`) y ademas resetea `run.fuelDist`; la ola sale del CLIMA y trae su propio
     // reglamento de separacion —desenterrarla dejaria el aviso de la rebelde sin ola.
-    const fav = trVal('favor', null);
+    const fav = val('favor', null);
     if (fav && obstacles.length > n0) {
       const tipo = obstacles[n0].type;
       if (tipo !== 'fuel' && tipo !== 'ola' && fav.indexOf(tipo) < 0) {
@@ -464,7 +494,7 @@ export function spawnSystem(dt, objectiveDist) {
   // BOMBARDEO (cualquier mapa, cfg.bombs lo regula desde el menu [M]): bombas que caen del
   // cielo. Chocarlas en el aire mata; al tocar el suelo levantan un HONGO que es un obstaculo
   // mas — meterse en la nube daña (sacude, frena, quema combustible) pero no derriba.
-  const bombs = trVal('bombs', cfg.bombs);
+  const bombs = val('bombs', cfg.bombs);
   if (bombs > 0) {
     run.nextBomb -= run.spd * dt;
     if (run.nextBomb <= 0) {

@@ -233,7 +233,7 @@ function updateMomentum(dt, inp, mouse, objectiveDist) {
   // AUDIO de camara lenta: el motor pasa a ser un rumble GRAVE y ahogado con un pulso
   // lento tipo latido (el lowpass de 320Hz del motor hace el resto del efecto "bajo el agua")
   engineRumble(mom.t);
-  popups.forEach(p => { p.y -= 14 * dt; p.life -= dt; });
+  popups.forEach(p => { p.y -= p.vy * dt; p.life -= dt; });
   prune(popups, p => p.life > 0);
 
   // ---- FX de CAMARA LENTA (viven en coords de mundo; corren tambien durante el outro) ----

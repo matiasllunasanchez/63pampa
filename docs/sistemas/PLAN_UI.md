@@ -91,6 +91,83 @@ deja `AIRE` contra el combustible.
 Para distinguir nombre de distancia, `game.js` publica ahora `objectiveKind` junto al rótulo — el
 render no adivina leyendo el string.
 
+## 1c. Fase B — el tablero de las dos esquinas *(aplicada)*
+
+De las cuatro propuestas del artifact **"Cuatro tableros y una voz"** (6/9/2026), se ejecutó la
+**B**, con la **D** como perilla encima. El diagnóstico que las ordenaba: el HUD se lee de reojo, y
+la periferia recibe movimiento y contraste, no texto ni números.
+
+| Qué | Antes | Ahora |
+|---|---|---|
+| **RASANTE · MOMENTUM** | dos barras con rótulo arriba a la derecha | **dos rieles en los bordes laterales**, izquierda rasante y derecha momentum. Sin rótulo, sin placa y sin número: un riel no se lee, se vigila. A cambio el recorrido pasa de 44 px a **180** — la altura entera— en la única franja donde no compite con nada (el margen del HUD es 4, así que de `x 0` a `3` y de `316` a `319` no se dibuja nada más en todo el juego) |
+| **El reloj del rasante** | siempre, al lado de su barra | **sólo mientras el poder está encendido**, en la esquina que las barras dejaron libre. Es el único dato que un riel no puede dar —cuántos segundos, no qué fracción— y es el único momento en que hace falta |
+| **El gas** | arrancaba en `y=64`, debajo de las dos barras | sube a `GAS_TOP = 42`: la corredera pasa de **54 px de recorrido a 76**. Es el único instrumento que se *opera* en vez de leerse, y una palanca más larga se apunta mejor |
+| **La banda de la voz** | el toast cerraba en `y=118` | cierra en **127**. El número ya no se copia: sale de `HUD_TECHO`, que `render/hud.js` calcula con las mismas constantes con que apila las filas |
+
+### El fantasma de los diecinueve píxeles
+
+`HUD_TINTA` valía 110 y estaba **copiado a mano** en `render/screens.js`. Ese número lo escribió la
+época en que RASANTE y MOMENTUM eran la cuarta y la quinta barra de la pila de la izquierda y
+subían hasta ~112. Desde entonces se mudaron dos veces —arriba a la derecha en U1, a los rieles
+ahora— y el toast siguió esquivando un instrumento que ya no estaba ahí: diecinueve píxeles de
+banda libre que la voz no usaba por miedo a un fantasma.
+
+Ahora `hud.js` **exporta** `HUD_TECHO = R3 - 9` (el canto de las placas de la fila más alta) y
+`screens.js` lo importa. El día que las filas se muevan otra vez, la banda se mueve con ellas.
+
+## 1d. Fase D — el tablero por demanda *(aplicada, apagada por default)*
+
+`cfg.hudAuto`, fila **TABLERO** en OPCIONES, al lado de **RADIO EN VUELO** porque las dos contestan
+la misma pregunta —cuánta pantalla ocupa la UI mientras volás— y ninguna cambia un número del
+juego. Con `auto`, un instrumento **sano** no se dibuja:
+
+| Instrumento | Aparece cuando |
+|---|---|
+| COMB | la nafta baja de 60 % |
+| AVIÓN | la integridad no está al 100 % |
+| CHANCHA | el medidor se llenó, ya se gastó, o hay cita en curso |
+| ESTADO | el peor de los tres baja de 97 % |
+| CAÑÓN | `heat > 0.05` o está recalentado |
+| MISIL | falta al menos uno |
+
+No se ocultan nunca el ADI (la pregunta "¿dónde está el suelo?" es accionable siempre, y más
+rolado), la velocidad y la altura, el gas, la ruta ni el escuadrón. Los rieles tampoco: ocupan dos
+píxeles y no le sacan lugar a nadie.
+
+**Casi sin histéresis, y por qué**: nafta, integridad y misiles sólo bajan, y el medidor de la
+chancha sólo sube, así que cada umbral se cruza una vez. Los dos que van y vienen tienen su umbral
+corrido en vez de un temporizador: el calor del cañón en 0,05 y no en 0, y ESTADO en 97 % y no en
+100 — el margen de roce sube y baja solo mientras se vuela rasante, y en 100 el instrumento
+parpadearía con cada ola.
+
+**Arranca en `fijo`** —el tablero completo de siempre— y no por prudencia: la contra está escrita en
+el oficio y es real. Un instrumento que va y viene no genera memoria muscular, y el que recién
+empieza no sabe que existe hasta que le falla. Es una perilla para decidirla jugando.
+
+## 1e. La duración del cartel *(aplicada)*
+
+`popup()` plantaba **1,1 s para cualquier texto**. Volando rasante nadie lee de un tirón: se lee en
+ráfagas de décimas, así que un `+400` sobraba y una línea de radio de diez palabras se iba antes de
+terminar de leerse — que no es un cartel que se pierde, es un cartel que enseña a no leer los
+carteles.
+
+```
+vidaCartel(txt) = max(1,1 · min(6 · 0,6 + palabras × 0,32))   // core/fx.js
+barkDur(txt)    = max(2,4 · min(6 · 1,2 + palabras × 0,35))   // render/bark.js
+```
+
+**El piso es el valor de siempre**, y es la parte que importa: los puntajes son de una palabra y
+salen idénticos al cuadro. Lo único que cambió es lo que antes se iba corto.
+
+**Y sube siempre lo mismo, no siempre a la misma velocidad.** El popup ahora lleva su `vy`
+(`POP_SUBE / life`): con la velocidad fija, un cartel de cuatro segundos se iba 56 px para arriba y
+terminaba de leerse encima de otro instrumento — justo lo que la duración variable venía a
+arreglar. El de una palabra da 14 exacto, el número de siempre.
+
+Los dos pisos son distintos a propósito: un popup comparte pantalla con los puntajes y arranca en
+1,1 s; el bark está solo y en grande, y por debajo de 2,4 s se lee como un parpadeo.
+
+
 ## 2. Divergencias
 
 1. **`ESTADO` sigue duplicando dos de sus tres datos.** El porcentaje es el mínimo de cañón,
@@ -114,8 +191,25 @@ render no adivina leyendo el string.
    dibujan en espacio de mundo, antes del HUD, y suben por esa franja. Ya estaba apretada —la
    auditoría lo marcó— y ahora se ve. Arreglo pendiente: bajar la banda de popups, no achicar la ruta.
 
+7. **Los popups de aviso NO se mudaron a una banda.** Parecía el arreglo obvio —hay births en
+   `y=38` y `y=46` que suben 15 px y entran en la placa de la ruta— pero cada uno de esos números
+   tiene una razón de escena escrita al lado: la radio de la Chancha va en 38 justamente porque a
+   media altura tapaba al Hércules, y la radio de tramo ya bajó a 58 por la placa. No es una
+   constante mal puesta repetida catorce veces: son catorce decisiones. Unificarlas es un trabajo
+   de guion, no de refactor.
+8. **El gas se movió, y eso cuesta memoria muscular.** Es la excepción a "posición estable" de toda
+   esta fase. Se aceptó porque el gas no se *lee* —se opera, y se opera con una tecla— y porque 22
+   px más de corredera son 22 px más de resolución en el único control analógico del juego.
+9. **El reloj del rasante quedó bajo el reproductor de música**, que es HTML y vive en los primeros
+   ~15 px de esa esquina. No se pisan (la placa arranca en 15), pero están pegados. En campaña el
+   reproductor está oculto, así que el caso apretado es sólo JUEGO RÁPIDO.
+
 ## 3. Lo que sigue pendiente *(de la auditoría, sin decidir)*
 
+- **El odómetro choca con la ruta en JUEGO RÁPIDO.** Con el puntaje visible, el odómetro se corre
+  a `x=52` y su `KM` queda detrás de la placa de la ruta, que arranca en 100. En campaña no pasa
+  (sin puntaje, el odómetro apoya en el margen). Visto en la captura del 6/9.
+- **La banda de popups** sigue subiendo por la franja de la ruta: ver divergencia 7.
 - **Las unidades mienten entre modos.** Pasillo: altura 0..68 rotulada `M`, radar a 20,
   `spd × 4.2`. Pasada: metros reales, radar a **10**, `spd × 3.6`. Mismo rótulo, dos escalas y dos
   factores. Es el arreglo más barato y el de mayor efecto que queda.

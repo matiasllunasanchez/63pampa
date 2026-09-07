@@ -24,7 +24,13 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
 import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE,
-         GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT } from '../data/tuning.js';
+         GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
+         FUEL_RATE, FUEL_BOOST } from '../data/tuning.js';
+// LAS FASES (PLAN_MISION_CINCO_FASES §11). Se LEEN, nunca se escriben, igual que los tramos en el
+// sembrador: `fsVal` contesta lo que rige a esta altura del vuelo y cae al valor de siempre cuando
+// la mision no declara fases — que es como se cumple la regla suprema (sin fases, este archivo se
+// comporta exactamente igual que ayer, y lo custodia `npm run feel`).
+import { val as fsVal } from './fases.js';
 import { PORT_H } from '../data/runways.js';
 // EL SUELO TIENE ALTURA (T3): la misma funcion que levanta el pasto y las estructuras es la que
 // decide donde te matas. Si fueran dos, una loma se veria en un lado y mataria en el otro.
@@ -157,7 +163,13 @@ export function flightSystem(dt, deps) {
   // OBJETIVO cumplido. Segun el tipo de meta (ver GOALS):
   //   - con climax (ship): al acercarse al blanco arranca el asalto por pasadas (MOMENTUM)
   //   - sin climax (distance): llegar a la distancia YA cierra la mision
-  if (deps.objectiveDist > 0) {
+  // EL CLIMAX SE JUEGA UNA SOLA VEZ POR CORRIDA (PLAN_MISION_CINCO_FASES §11: la VUELTA).
+  // Los tres `readyToEnter` son `dist >= objetivo`, y `pulso.available()` es literalmente `true`,
+  // asi que en una mision que SIGUE volando pasado el buque la condicion nunca se apaga: al
+  // volver al pasillo se re-entraba al climax en el mismo cuadro, para siempre. `run.climaxHecho`
+  // lo marca al salir, y vale 0 en toda mision que termina en el objetivo — o sea todas las de
+  // hoy, que entran por aca exactamente como entraban.
+  if (deps.objectiveDist > 0 && !run.climaxHecho) {
     if (deps.needsMomentum) {
       // CLIMAX: con 3D disponible, el asalto VOLADO (arena) — una sola entrada al 100%.
       // Sin three/WebGL o con ?no3d (build web), el momentum clasico de pasadas queda
@@ -225,7 +237,15 @@ export function flightSystem(dt, deps) {
   // throttle (palanca de gas): sube al dar gas, baja al soltar — solo indicador visual
   const gasOn = run.fuel > 0 && (inp.u || (pointer.steer && plane.vy > 0.5));
   run.throttle += ((gasOn ? 1 : 0) - run.throttle) * Math.min(1, dt * 7);
-  if (cfg.fuelOn) run.fuel -= (3.2 + (run.boost ? 4.2 : 0)) * dt;   // COMBUSTIBLE: NO (menú [M]) = tanque infinito, para pruebas
+  // COMBUSTIBLE: NO (menú [M]) = tanque infinito, para pruebas.
+  // EL MULTIPLICADOR ES DE LA FASE (§3 del plan): crucero x1, rasante y filo x2, descenso x1.3, y
+  // la vuelta x0.85 — venis liviano, soltaste las bombas, y el regreso sale mas barato que la ida.
+  // Sin fases devuelve 1 y la cuenta es LA MISMA de siempre, hasta el ultimo decimal.
+  //
+  // EL TURBO NO SE MULTIPLICA, y es deliberado: el posquemador quema lo que quema por su cuenta —
+  // no es mas caro por volar bajo. Multiplicar el total haria que el turbo costara el doble en
+  // rasante, que es donde mas se usa, y eso es una regla de dificultad que nadie pidio.
+  if (cfg.fuelOn) run.fuel -= (FUEL_RATE * fsVal('nafta', 1) + (run.boost ? FUEL_BOOST : 0)) * dt;
   if (run.fuel <= 0) { run.fuel = 0; plane.vy = Math.min(plane.vy, -5); }
   // ---- LA CAMA DE VUELO (systems/vuelo.js): integrar, topes, camara y actitudes con peso. Estas
   // lineas VIVIAN ACA; se mudaron enteras para poder correrlas tambien en una cinematica, donde el
@@ -384,8 +404,30 @@ export function flightSystem(dt, deps) {
   estelaVuelo(dt, { alt, pista: overRunway, tierra: onDirt });
 
   // radar
-  if (alt > RADAR_ALT) run.detection += dt / 1.4; else run.detection -= dt / 0.9;
+  // EL TECHO LO PONE LA FASE (EL FILO, §11.1), y sin fases es RADAR_ALT como siempre. Esta linea
+  // ES la mecanica entera del tramo de concentracion: no hay codigo nuevo, hay un umbral que se
+  // acerca al agua. Entre el mar —que ya cobra con SCRAPE_*— y este techo queda una banda que hay
+  // que SOSTENER con el bob, el viento y el oleaje encima. Es la RENDIJA que tuning.js viene
+  // describiendo desde la niebla, con la perilla que le faltaba (ROADMAP #27).
+  if (alt > fsVal('radar', RADAR_ALT)) run.detection += dt / 1.4; else run.detection -= dt / 0.9;
   run.detection = Math.max(0, Math.min(1, run.detection));
+  // TE PINTARON (§11.3). Solo puede pasar en una mision con fases: sin ellas `pinta` no existe y
+  // nada de esto corre — el radar sigue siendo la oleada de misiles de siempre y nada mas.
+  //
+  // 'muerte' es la version seca que pidio el autor. 'cap' es el default, y la razon es DONDE cae
+  // el castigo: el primer filo esta en el minuto uno de una mision de seis, asi que morir ahi no
+  // cobra dificultad — cobra REJUGAR la parte tranquila. Con 'cap' no perdes la corrida, perdes
+  // el silencio: `run.pintado` es un trinquete que sube una vez y de ahi en adelante el mundo te
+  // espera armado (se suma a la intensidad de LA COLA en game.js).
+  if (run.detection >= 1 && !run.pintado) {
+    const pinta = fsVal('pinta', null);
+    if (pinta === 'muerte') return { death: 'death_pintado' };
+    if (pinta === 'cap') {
+      run.pintado = 1;
+      popup(W / 2, 46, T('pintado'), P.warn);
+      popup(W / 2, 56, T('pintado2'), P.accent);
+    }
+  }
   if (run.detection >= 1) {
     // OLEADAS QUE CRECEN SIN TECHO. Cada vez que el radar completa la carga dispara una tanda
     // mas grande que la anterior: 1, 1, 2, 2, 3, 3... y ademas RECARGA MAS RAPIDO (el residual

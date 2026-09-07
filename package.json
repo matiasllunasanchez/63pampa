@@ -41,6 +41,7 @@
     "rasante": "electron tools/fixture_rasante.js",
     "misiones": "electron tools/fixture_misiones.js",
     "tramos": "electron tools/fixture_tramos.js",
+    "fases": "electron tools/fixture_fases.js",
     "zigzag": "electron tools/fixture_zigzag.js",
     "charlas": "electron tools/fixture_charlas.js",
     "cuaderno": "electron tools/fixture_cuaderno.js",
