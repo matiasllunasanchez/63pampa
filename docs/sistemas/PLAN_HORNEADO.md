@@ -459,3 +459,114 @@ se despega de los cuatro · `npm run feel` idéntico y `npm run check` en verde 
 tres de ellas nuevas: que el encuadre del horno y el del render sean el mismo, que la grilla del PNG
 sea la que el render recorta, y que el equipo (`bergen`) siga naciendo en el spawn y llegando al
 dibujo — si ese dato se pierde, las dos filas horneadas se vuelven una sola y nadie lo nota.
+
+---
+
+## 8. B7b · la Chancha — el hallazgo no fue el modelo, fue la cámara
+
+*Pedido del 5/9/2026, después de los soldados: «¿la chancha se puede mejorar y hornear BIEN?».*
+
+El KC-130 ya estaba horneado desde B0 y el sprite se dibujaba. Lo que no estaba bien era **desde
+dónde**, y eso resultó ser casi todo.
+
+**32. De popa pura, cualquier avión es una cruz.** La hoja se horneaba desde atrás y **al mismo
+nivel** — el encuadre de todo el roster, porque todo el roster está en el suelo o a tu altura. Pero
+de popa pura un ala no tiene planta, una deriva es su espesor y un estabilizador es una raya:
+cuatro superficies grandes, las cuatro de canto. El avión más reconocible del mundo se leía como un
+palito con dos travesaños, y ninguna cantidad de detalle lo iba a arreglar, porque el problema no
+era lo que estaba modelado sino que **nada de lo modelado miraba a la cámara**.
+
+**33. El encuadre venía escrito en `data/tuning.js` hacía meses — y de todos modos hubo que
+mentirle.** La canasta cuelga `CH_HOSE_Y = 6` m por debajo del Hercules y `CH_HOSE_Z = 10` m por
+detrás: o sea que el jugador la busca desde **31° por debajo**. La Chancha es el único objeto del
+juego que está ARRIBA TUYO y al que te acercás por abajo, y se horneaba como si fuera un camión.
+
+Se horneó a esa cuenta y **quedó mal**, pero no por un error: a 31° y a esa distancia un avión
+NIVELADO se ve de verdad muy en picada. La trompa queda a 13° de elevación y el timón a 50° — 36°
+de diferencia— así que el fuselaje se proyecta como una columna vertical. Es geometría correcta y
+lectura pésima, porque **un recorte 2D no tiene con qué vender esa perspectiva**: no hay paralaje,
+no hay horizonte propio, no hay nada que le diga al jugador "el que está torcido sos vos". Lo único
+que llega es un Hercules cayendo de trompa. Fue exactamente lo que marcó Matías al verlo.
+
+El valor que sirve es **12°**: alcanza para abrir la planta del ala, las cuatro góndolas, la panza,
+los carenados del tren y el remangue de la rampa —todo lo que faltaba, que es lo que mataba a la
+cruz— y el fuselaje se sigue leyendo **horizontal, como vuelan los aviones**. La cámara miente doce
+grados a favor de la lectura, y está anotado en el horneador para que nadie lo "corrija" a la cuenta
+exacta.
+
+**La cámara no es un detalle del horneado: es la mitad del modelo.** `elev` queda como perilla
+general del horno, y con `elev: 0` la cuenta da exactamente la posición de antes, así que las 38
+hojas restantes no cambiaron un byte.
+
+**34. Y el encuadre pagó una corrección que estaba trabada.** El estabilizador se horneaba a media
+deriva, con una nota que explicaba por qué: desde atrás y al mismo nivel, el ala alta se lo comía.
+Con la cámara desde abajo ese problema no existe —queda recortado contra el cielo— así que volvió a
+su altura real, que es la base de la deriva (el Hercules no es cola en T). Una decisión de arte
+tomada para tapar una limitación del encuadre, y que el encuadre nuevo dejó sin motivo.
+
+**35. Los motores estaban un 50 % afuera, y eso le comía la firma.** Medido contra el avión real:
+las góndolas van a 4,9 m y 9,9 m del eje sobre una semi-envergadura de 20,2 m. El modelo las tenía
+en el equivalente a 7,5 m y 13,6 m. En un Hercules los cuatro motores están **apiñados** contra el
+fuselaje y después hay un tramo largo de ala pelada hasta la punta; repartidos parejos el avión
+pasa a parecer un cuatrimotor genérico.
+
+**36. Y al corregirlos habrían quedado cuatro hélices flotando al lado de sus góndolas.** Los discos
+de hélice se dibujan por código encima del sprite —un disco quieto se ve muerto— y su posición eran
+**cuatro fracciones del ancho puestas a ojo** (±0,19 y ±0,34), atadas a que los motores del modelo
+no se movieran nunca. No hay error de runtime que delate eso.
+
+La solución es el autobox de B0 aplicado a un punto en vez de a una caja: la hoja puede declarar
+**`puntos`** —coordenadas del MODELO— y el horno las **proyecta con la misma cámara con la que
+hornea** y escribe el píxel en `cajas.js`, al lado de la caja. `render/enemies.js` gana `anclaje()`,
+que las convierte a pantalla con el mismo anclaje y la misma escala que `drawFrame`. Si mañana un
+motor se mueve en el modelo, la hélice se mueve sola. **El horno mide hechos**, y dónde quedó
+dibujado un punto del modelo es un hecho.
+
+**37. Y de paso salió que la manguera nacía en la panza.** Al buscar dónde anclar el pod se vio que
+la cadena de puntos de la manguera arrancaba en `s` — el centro del fuselaje. Nadie lo había notado
+porque el airframe tampoco tenía un pod de dónde nacer. Ahora el modelo lleva los dos pods Mk 32 y
+uno de ellos declara su boca como ancla, así que la manguera sale de donde tiene que salir.
+
+**38. El pod NO se va a leer como un pod, y así está anotado en el modelo.** Un Mk 32 mide
+4,5 × 0,6 m: a la escala a la que se dibuja la Chancha eso son **cuatro píxeles** de diámetro.
+Agrandarlo para que "se note" sería mentir sobre el tamaño del avión. Lo que el pod tiene que hacer
+no es leerse: es **estar**. Es la contracara de la lección del contorno de los soldados — a veces la
+respuesta no es hacer el detalle más visible, es aceptar que no se ve y quedarse con lo que sí
+aporta.
+
+**39. Y volaba de costado con las alas a nivel.** La Chancha se hamaca `CH_DERIVA = 7` m a los
+costados mientras esperás, y lo hacía sin inclinarse — que es lo que hace una calcomanía, no un
+avión. Ahora tiene tres poses de alabeo, y el render **no las cicla con un seno decorativo**: la
+columna sale de la MISMA fórmula con la que `systems/chancha.js` calcula esa deriva, así que la
+banda es su *velocidad lateral* — cuando arranca para la derecha baja el ala derecha, y al llegar al
+extremo pasa por nivel. No hay un seno nuevo ni un estado nuevo: es el mismo dato leído una vez más.
+
+**40. Dos cosas chicas que sí se ven a 146 px.** La rampa era un panel fino y oscuro y se comía con
+la sombra del cono: el remangue estaba modelado y no se veía — **un quiebre sólo se lee si los dos
+lados tienen tonos distintos**. Y el estabilizador llevaba el mismo gris que el ala, a una distancia
+aparente parecida, así que el Hercules se leía como un **biplano**; lo que los separa no es la
+perspectiva, es que uno está más a la sombra que el otro (que además es verdad).
+
+**Lo que B7b verificó, con números.** La hoja pasa de **1 pose de 160×96 a 3 de 160×112**, con el
+mismo ancho de contenido —148 px: la Chancha no cambia de tamaño en pantalla, que sería cambiar el
+juego— y la misma altura de contenido que antes, 65 px, ahora ocupada por la panza en vez de por el
+canto de cuatro superficies · el barrido de elevación se miró a 0°, 10°, 14°, 18° y 26° antes de
+elegir: a 0 es una cruz, a 18 ya cabecea y a 26 está en picada · margen **6 px** ·
+**las 38 hojas restantes byte-idénticas** después de agregarle `elev` y `puntos` al horno, que era la
+condición para tocarlo · cinco anclas proyectadas y escritas por el horneador, con dos pruebas
+nuevas: que las cuatro hélices salgan simétricas y a la misma altura y que el pod caiga del lado de
+estribor, y que el render las use en vez de fracciones a ojo · `npm run feel` idéntico y
+`npm run check` en verde con **154** unitarias.
+
+**41. Y de paso se arregló el fixture, que estaba en rojo por un número que no describía nada.**
+`npm run chancha` fallaba tres aserciones del paso 7 (la rotura del guion): pedía `__chamis(5)` con
+la nota "m6, la primera posterior al epílogo de m5", y cuando el guion se renumeró ese 5 quedó
+apuntando a una misión ANTERIOR a la rotura. Ahora **busca** la primera misión que declare
+`chancha: false` en vez de contar posiciones, así que la próxima renumeración no la toca; lo único
+que la rompe es que el guion deje de tener rotura, y en ese caso lo dice con todas las letras.
+El fixture cierra **OK** y encuentra **m7**.
+
+La lección es del mismo tamaño que las de arriba: **un índice en una lista de autor no es un dato,
+es una foto de la lista**. Y como este fixture no está en `npm run check`, la deriva vivió sin que
+nadie la viera — que es el argumento para que las pruebas que no corren siempre se escriban buscando
+y no contando.

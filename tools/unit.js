@@ -1950,3 +1950,31 @@ test('niebla: el canon MEZCLA, no conmuta', () => {
   const medio = alfaCielo(0.8, 0.2, 0.5);
   assert.ok(Math.abs(medio - (a0 + a1) / 2) < 1e-9, `la mezcla no es lineal: ${medio}`);
 });
+
+// ================= LA CHANCHA (PLAN_HORNEADO B7b) =================
+test('chancha: la hoja trae las cinco anclas que el render dibuja encima', async () => {
+  // Las helices y la manguera NO se hornean —un disco quieto se ve muerto, y la manguera se mueve—
+  // asi que se pintan por codigo sobre el sprite. Donde van lo mide el horno proyectando puntos
+  // del modelo con la misma camara con la que horneo. Si el modelo mueve un motor y la hoja no se
+  // re-hornea, o si alguien saca un ancla, las helices quedan flotando al lado de sus gondolas y
+  // la manguera vuelve a nacer en la panza — dos cosas que ningun error de runtime delata.
+  const { CAJAS } = await import('../src/data/cajas.js');
+  const p = CAJAS.chancha.puntos;
+  assert.ok(Array.isArray(p) && p.length === 5,
+    'la Chancha tiene que declarar 4 helices + la boca del pod');
+  // las cuatro helices estan a la MISMA altura y simetricas respecto del centro del frame
+  const cx = CAJAS.chancha.fw / 2;
+  assert.equal(p[0][1], p[3][1], 'las helices dejaron de estar a la misma altura');
+  assert.ok(Math.abs((p[0][0] + p[3][0]) / 2 - cx) < 1.5, 'las helices externas no son simetricas');
+  assert.ok(Math.abs((p[1][0] + p[2][0]) / 2 - cx) < 1.5, 'las helices internas no son simetricas');
+  // el pod es de ESTRIBOR: cae del lado +x, o sea a la derecha del centro
+  assert.ok(p[4][0] > cx, 'la boca del pod dejo de estar en el ala de estribor');
+});
+
+test('chancha: el render usa las anclas y no fracciones a ojo', () => {
+  const r = readFileSync(new URL('../src/render/chancha.js', import.meta.url), 'utf8');
+  assert.ok(r.includes("anclaje('chancha'"), 'el render volvio a poner las helices a ojo');
+  assert.ok(/anclaje\('chancha', 4,/.test(r), 'la manguera dejo de salir del pod');
+  // y el alabeo sale de la MISMA formula que la deriva de systems/chancha.js, no de un seno nuevo
+  assert.ok(r.includes('CH_DERIVA_V'), 'el alabeo de la Chancha dejo de atarse a su deriva');
+});
