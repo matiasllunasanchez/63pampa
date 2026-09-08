@@ -84,7 +84,7 @@ export const cfg = {
   // combustible queda en pausa hasta rebalancearlo (la ruta optima de bidones es ROADMAP #28).
   // Encenderlo sigue siendo una fila del menu [M]; las misiones no lo pisan (CAMPAIGN_CFG no
   // trae fuelOn), asi que este default manda en TODOS los modos.
-  obstacles: 1, coast: 230, meters: 3000, fuelOn: false, energy: true,
+  obstacles: 1, coast: 230, meters: 3000, fuelOn: false, energy: true, fuelScale: 1,
   bombs: 1,   // BOMBARDEO: densidad de bombas cayendo (0=no, 0.5, 1, 2) — menu [M]
   // LLUVIA: 0 NO · 1 GARUA · 2 LLUVIA · 3 TORMENTA (render/rain.js). Es AMBIENTE PURO — no toca la
   // deteccion, ni la velocidad, ni cuando aparecen los obstaculos. Que sea una fila de OPCIONES es

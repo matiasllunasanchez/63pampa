@@ -58,7 +58,25 @@ const t15 = {
     // la nafta "mostrada todo el tiempo", y sin esto el poder de la Chancha ni siquiera existe
     // (su gate es `cfg.fuelOn`) — o sea que el transito se quedaria sin su unica exigencia.
     fuelOn: true,
+    // …Y EL RELOJ CORRIENDO A LA ESCALA DE ESTA MISION. Sin esto t15 es INVOLABLE, y no por
+    // dificultad: el tanque son 100 unidades a 3.2 %/s, o sea TREINTA Y UN SEGUNDOS de vuelo —
+    // un numero calibrado contra pasillos de medio minuto. Esta mision dura cinco.
+    //
+    // 0.08 sale de una cuenta y no de probar numeros. Sumando cada fase por su multiplicador, la
+    // IDA son 326 "segundos de crucero" (25x1 + 20x2 + 15x1 + 20x2 + 20x1.3 + 90x2) y la VUELTA
+    // otros 102 (120x0.85). A 3.2 x 0.08 = 0.256 %/s eso da:
+    //     ida     83% del tanque   → llegas al buque raspando, que es lo que el plan pide
+    //     mision  109%             → NO cierra con un tanque: hay que reabastecer una vez
+    // O sea que la Chancha deja de ser un lujo y pasa a ser el gozne de la mision, que es
+    // exactamente el papel que le da el §3 del plan.
+    fuelScale: 0.08,
   }),
+  // …Y POR ESO LA CHANCHA TIENE QUE PODER PEDIRSE EN EL TRANSITO. `CH_MIN_T` son 240 s, un numero
+  // pensado contra misiones cuyo pasillo dura medio minuto: ahi la espera dice "esto es un recurso
+  // de mision larga". Aca la espera dejaria el poder afuera de TODA la ida — justo del tramo donde
+  // el plan lo pone ("La Chancha vive aca", §2 fase 1) y donde decide si llegas con una bomba o con
+  // tres. 45 s es despues del despegue y del primer respiro, no antes.
+  chanchaMinT: 45,
   // PAR PROVISORIO. Los pares de campaña van de 5.000 a 14.000 sobre misiones de 3 km; esta mide
   // diez veces mas y ademas cobra la vuelta entera, asi que el puntaje va a ser otro orden. 20.000
   // es una apuesta para que las estrellas no salgan las cuatro de arriba en el primer vuelo: es

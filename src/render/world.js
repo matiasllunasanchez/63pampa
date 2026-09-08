@@ -2648,11 +2648,16 @@ const SWEEP_DUR = 2.6;      // segundos que tarda el barrido en recorrer la mall
 // se lee como un glitch.
 let netVis = 0, netLastT = 0;
 
-export function drawRadarNet() {
+/** `techo` = la altura del radar AHORA. Llega por parametro y no de `RADAR_ALT` porque desde que
+ *  existe EL FILO (PLAN_MISION_CINCO_FASES §11.1) el techo lo pone la FASE, y este archivo es
+ *  render: no puede importar `systems/` para preguntarlo. Sin esto la malla se dibujaba catorce
+ *  unidades por encima del peligro real y, con la opcion en su default (`radarNet: 1`, "solo al
+ *  entrar"), directamente NO APARECIA: volabas pintado y el instrumento no decia nada. */
+export function drawRadarNet(techo) {
   // EL PULSO dibuja el MISMO buque que venia creciendo en el pasillo: la prueba pasa delante de
   // el, sin cambiar de escena. Si este estado no estuviera, el climax se quedaria sin blanco.
   if (S.state !== 'play' && S.state !== 'takeoff' && S.state !== 'pulso') return;
-  const A = RADAR_ALT;
+  const A = techo === undefined ? RADAR_ALT : techo;
   // DENTRO de la zona: la malla vira a rojo y late. Es el mismo dato que la barra del HUD, pero
   // puesto donde el jugador esta mirando (el avion), no en un rincon.
   const inside = plane.y > A;

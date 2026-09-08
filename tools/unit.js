@@ -1856,7 +1856,6 @@ test('callejon: una COSTA deja el otro lado abierto de punta a punta', () => {
   zzReset();
 });
 
-
 import { barreraDe, enBarrera } from '../src/core/zigzag.js';
 
 test('barreras: el puente de madera deja pasar por abajo y mata en el tablero', () => {

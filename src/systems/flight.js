@@ -266,7 +266,13 @@ export function flightSystem(dt, deps) {
   // EL TURBO NO SE MULTIPLICA, y es deliberado: el posquemador quema lo que quema por su cuenta —
   // no es mas caro por volar bajo. Multiplicar el total haria que el turbo costara el doble en
   // rasante, que es donde mas se usa, y eso es una regla de dificultad que nadie pidio.
-  if (cfg.fuelOn) run.fuel -= (FUEL_RATE * fsVal('nafta', 1) + (run.boost ? FUEL_BOOST : 0)) * dt;
+  // …Y LA ESCALA DE LA MISION (`cfg.fuelScale`, 1 = la de siempre). El modelo de nafta esta
+  // calibrado contra pasillos de MEDIO MINUTO: 100 de tanque a 3.2 %/s son 31 segundos de vuelo.
+  // Una mision de cinco minutos (las cinco fases) se queda seca en el primer tramo, y eso no es
+  // dificultad — es una unidad que no escala. La escala corre el RELOJ, no la dramaturgia: los
+  // multiplicadores de fase siguen diciendo lo mismo (el rasante cuesta el doble que el crucero),
+  // solo que medidos contra un vuelo que dura diez veces mas.
+  if (cfg.fuelOn) run.fuel -= (FUEL_RATE * fsVal('nafta', 1) + (run.boost ? FUEL_BOOST : 0)) * (cfg.fuelScale || 1) * dt;
   if (run.fuel <= 0) { run.fuel = 0; plane.vy = Math.min(plane.vy, -5); }
   // ---- LA CAMA DE VUELO (systems/vuelo.js): integrar, topes, camara y actitudes con peso. Estas
   // lineas VIVIAN ACA; se mudaron enteras para poder correrlas tambien en una cinematica, donde el

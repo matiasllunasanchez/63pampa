@@ -210,13 +210,23 @@ app.whenReady().then(async () => {
       return { tasa: (f0 - +(await js('__chanafta()'))) / (ms / 1000), st };
     };
     const gT = await gasto(0.04), gF = await gasto(0.13);
-    const cerca = (a, b) => Math.abs(a - b) < 0.35;
+    // LA REFERENCIA LLEVA LA ESCALA DE LA MISION. t15 declara `fuelScale: 0.08` porque el modelo
+    // de nafta esta calibrado contra pasillos de medio minuto (100 de tanque a 3.2 %/s son 31 s de
+    // vuelo) y esta mision dura cinco minutos. Asi que lo esperado no es FUEL_RATE pelado sino
+    // FUEL_RATE x escala: 0.256 %/s de crucero y el doble en el filo.
+    // SE AFIRMAN LAS DOS COSAS —el numero Y la razon— a proposito: el numero atrapa que la escala
+    // se aplique, y la razon atrapa que el multiplicador de FASE siga diciendo lo que dice. Con una
+    // sola de las dos, bajar la escala a cero daria verde en la razon y romper el x2 daria verde en
+    // el numero si alguien ajusta la escala para compensar.
+    const ESPERADO_CRUCERO = 3.2 * 0.08, ESPERADO_FILO = ESPERADO_CRUCERO * 2;
+    const cerca = (a, b) => Math.abs(a - b) < 0.05;
     if (gT.st !== 'play' || gF.st !== 'play') bad(`la medicion no sobrevivio: transito '${gT.st}', filo '${gF.st}'`);
     // contra el NUMERO, no contra una razon: 3.2 %/s de crucero y 6.4 en el filo son FUEL_RATE x1
     // y x2. Una razon sola no distingue "el multiplicador anda" de "las dos fases estan mal".
-    else if (cerca(gT.tasa, 3.2) && cerca(gF.tasa, 6.4))
-      ok(`el tanque obedece a la fase: ${gT.tasa.toFixed(2)}%/s en transito (x1) y ${gF.tasa.toFixed(2)}%/s en filo (x2)`);
-    else bad(`tasas transito ${gT.tasa.toFixed(2)}%/s (esperada 3.2) y filo ${gF.tasa.toFixed(2)}%/s (esperada 6.4)`);
+    else if (cerca(gT.tasa, ESPERADO_CRUCERO) && cerca(gF.tasa, ESPERADO_FILO)
+             && Math.abs(gF.tasa / gT.tasa - 2) < 0.15)
+      ok(`el tanque obedece a la fase: ${gT.tasa.toFixed(3)}%/s en transito y ${gF.tasa.toFixed(3)}%/s en filo (x${(gF.tasa / gT.tasa).toFixed(2)})`);
+    else bad(`tasas transito ${gT.tasa.toFixed(3)}%/s (esperada ${ESPERADO_CRUCERO.toFixed(3)}) y filo ${gF.tasa.toFixed(3)}%/s (esperada ${ESPERADO_FILO.toFixed(3)})`);
     await js('__czcalma(0)');   // la calma es PEGAJOSA: se apaga o contamina lo que venga despues
   }
 

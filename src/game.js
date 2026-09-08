@@ -429,6 +429,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // regla, asi que probar M7 sin el poder es probar M7 de verdad.
         viva: !((gameMode === 'campaign' || S.test) && curMission() && curMission().chancha === false),
         t: run.t,
+        // CUANTO HAY QUE ESPERAR, y por que puede no ser CH_MIN_T. Los 240 s por defecto se
+        // eligieron contra misiones cuyo pasillo dura MEDIO MINUTO: ahi la espera dice "esto es un
+        // recurso de mision larga, no un boton". En una mision de cinco minutos (las cinco fases)
+        // ese mismo numero deja el poder afuera justo del tramo donde el plan lo pone — el
+        // transito, que es su lugar natural y donde decide si llegas con una bomba o con tres.
+        // La mision lo puede correr; el default no se toca.
+        minT: curMission() && curMission().chanchaMinT !== undefined ? curMission().chanchaMinT : undefined,
       });
       if (r === 'nofuel') return;                                    // sin combustible el poder no existe
       if (r === 'nozone' && chancha.meterVal() < 1) return;          // ni siquiera la tenia lista
@@ -3401,7 +3408,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // dice a que altura te ven— y en la cinematica del premio no hay nada que decidir con eso.
       // Aparecio sola cuando la salida paso a trepar de verdad (la trepada cruza RADAR_ALT) y lo
       // que se ve es una reja roja tapando el buque que se hunde.
-      if (cfg.radarNet && S.state !== 'pulso') world.drawRadarNet();
+      if (cfg.radarNet && S.state !== 'pulso') world.drawRadarNet(fases.val('radar', RADAR_ALT));
       if (cfg.hitboxes) world.drawHitboxes();   // depuracion: cajas de colision en verde fluor
       if (cfg.devcam && S.state === 'play') world.drawFlightLane(testRadio);   // modo camara: el carril del avion
 
@@ -3641,6 +3648,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // scale, porque eso si es mundo. Los dos espacios de coordenadas del repo, en un solo archivo.
       if (S.state === 'play') {
         ctx.save(); ctx.scale(U, U); hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip, goalKind: objectiveKind,
+        radarAlt: fases.val('radar', RADAR_ALT),
           // EL PODER RASANTE va por snapshot (convencion 4): el lint de capas prohibe que el
           // render importe de systems, y la lista de excepciones solo puede achicarse.
           ras: { on: rasante.active(), meter: rasante.meterVal(), resta: rasante.restante(), dur: RAS_DUR } }); drawCinta(); ctx.restore();

@@ -55,7 +55,8 @@ export function pedir(g) {
   if (!g.enPasillo) return 'nozone';     // ARENA / PASADA / MINUTOS: ahi la nafta ES el reloj
   if (!g.viva) return 'broken';          // la mision es posterior a la rotura del guion
   if (usada) return 'used';
-  if (g.t < CH_MIN_T) return 'early';
+  // la espera la puede correr la mision (`g.minT`); sin decir nada, CH_MIN_T de siempre
+  if (g.t < (g.minT === undefined ? CH_MIN_T : g.minT)) return 'early';
   if (meter < 1) return 'empty';
   usada = true; meter = 0;
   fase = 'eta'; etaT = CH_ETA; pedidoT = 0;

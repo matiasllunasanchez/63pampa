@@ -574,7 +574,9 @@ export function drawHUD(h) {
   // y que la RED, pero en el lugar donde el jugador ya esta mirando el numero que lo causa.
   // la altura se pone ROJA por CUALQUIERA de los dos peligros de altura: te ven arriba, o te
   // estas comiendo el agua abajo. Es el mismo numero el que te metio en las dos.
-  const seen = plane.y > RADAR_ALT || scraping;
+  // EL TECHO ES EL DE LA FASE, no la constante: con EL FILO puesto el numero tiene que ponerse
+  // rojo a 6 y no a 20. Llega en `h` por la misma razon que a la malla — render no ve los sistemas.
+  const seen = plane.y > (h.radarAlt === undefined ? RADAR_ALT : h.radarAlt) || scraping;
   const aTxt = Math.round(plane.y) + T('alt');
   const gap = 6;
   const wS = ctx.measureText(sTxt).width, wA = ctx.measureText(aTxt).width;
