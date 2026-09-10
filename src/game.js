@@ -3071,6 +3071,23 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         return;
       }
 
+      // EL RELOJ DE LA CAJA DE RADIO, y su ausencia era un bug de tres sintomas.
+      //
+      // `tickRadio` estaba llamado UNICAMENTE adentro del bloque del MODO CAMARA, que corta con un
+      // `return` unas lineas mas arriba. O sea que en vuelo normal la caja nunca avanzaba, y eso
+      // se veia asi:
+      //   · `radio.ease` se quedaba en 0 — y el dibujo pinta el FONDO con alfa fijo (0.32) pero el
+      //     TEXTO y el borde con `globalAlpha = ease`. Resultado: un rectangulo negro sin una letra.
+      //   · `radio.t` nunca llegaba a `dur`, asi que la caja no se iba NUNCA.
+      //   · y como con ease 0 la caja se dibuja en su posicion de "entrando desde abajo" (y=137),
+      //     quedaba clavada a media pantalla.
+      // El playtest lo reporto como tres cosas distintas ("se ve el cuadrado negro", "no vi nunca
+      // texto") y era una sola linea en el lugar equivocado.
+      //
+      // NO ES SOLO DE LAS FASES: la misma caja la usan las radios de TRAMO, asi que el transito del
+      // Narwal en la campaña venia mudo por lo mismo. Se vio ahora porque las fases hablan once
+      // veces por mision y el sintoma dejo de ser intermitente.
+      tickRadio(dt);
       // LA RADIO DEL TRAMO (SPEC_TRAMOS RF-03). El sistema devuelve señal y ACA se decide que se
       // hace con ella: popup y beep, como cualquier otra radio del pasillo. Va adentro del bloque
       // de 'play' —despues del devcam, que corta antes— y esa ubicacion ES la regla "solo en

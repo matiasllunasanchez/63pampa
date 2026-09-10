@@ -146,17 +146,20 @@ const t15 = {
     { tipo: 'vuelta', hasta: 1.85, radio: 'fase_chancha_vuelta', bidones: false, chancha: true },
     { tipo: 'vuelta', hasta: 2.0, radio: 'fase_casa', bidones: false },
   ],
-  // …Y UNA CHARLA EN VUELO, para ver el OTRO formato de dialogo. Los `radio:` son una linea con
-  // retrato en la caja chica; una `charla:` es una escena entera de data/story.js corriendo en
-  // vuelo (SPEC_CHARLAS_VUELO), con su propia caja y su propio ritmo. Van por TRAMOS y no por
-  // fases a proposito: es la demostracion de que los dos items conviven sin pisarse — el tramo
-  // solo trae la charla, y todas las densidades siguen saliendo de la fase.
-  // M01_GANSOS es contenido de M1 reusado: esta mision es un banco, no tiene guion propio.
-  tramos: [
-    { hasta: 0.02 },
-    { hasta: 0.038, charla: 'M01_GANSOS' },
-    { hasta: 1 },
-  ],
+  // NO HAY `charla:` ACA, Y ES A PROPOSITO. Se probo una (M01_GANSOS) para tener a la vista el
+  // otro formato de dialogo y el playtest la devolvio como "el juego se FRENO con el avion volando
+  // pero sin avanzar durante varios segundos". Medido: 3 metros en 1.2 s donde tendrian que ser 75.
+  //
+  // LA CAUSA NO ES LA CHARLA SINO QUE NO TIENE QUIEN LA DIBUJE: `drawStory` es lo unico que pinta
+  // `dlg`, y game.js lo llama SOLO en los estados 'story' y 'epilogue'. Una charla en vuelo corre
+  // su maquina de estados, congela el odometro (`cvAvance`, "una pausa sin pausa") hasta
+  // CHV_MAX_S = 25 s… y no muestra una letra. `npm run charlas` esta en verde porque comprueba la
+  // maquina, no los pixeles.
+  //
+  // Es un agujero PRE-EXISTENTE y no de esta mision —las charlas de m1/m2/m3 en campaña estan
+  // igual—, pero mientras no tenga caja no se pone en un banco de pruebas: lo unico que aporta es
+  // un freno inexplicable. Los `radio:` de cada fase si se ven, y son el formato que esta mision
+  // viene a mostrar.
 };
 
 /** Las misiones que NO son la campaña. `game.js` las concatena a `MISSIONS` para resolver una
