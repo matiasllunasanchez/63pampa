@@ -595,6 +595,29 @@ export function drawHUD(h) {
     ctx.fillStyle = Math.sin(run.t * (scraping ? 30 : 14)) > 0 ? P.warn : '#7d2f1e';
     ctx.fillText(scraping ? T('scrape') : T('radar'), W / 2, warnY);
   }
+  // LAS ESTRELLAS DE BUSQUEDA (PLAN_ESTRELLAS_BUSQUEDA §7), pegadas al aviso de radar porque son
+  // EL MISMO DATO EN OTRA ESCALA: la barra es "te estan viendo AHORA", las estrellas son "cuantos
+  // te buscan". Ponerlas en otro rincon obligaria a cruzar dos lugares para entender una cosa.
+  //
+  // MARCAS Y NO ESTRELLITAS: el juego no tiene ese registro visual — un icono de arcade moderno
+  // aca desentonaria con todo lo demas. Cuatro cuñas que se llenan dicen lo mismo y hablan el
+  // idioma del tablero.
+  if (h.estrellas > 0) {
+    // EL ROTULO importa tanto como las marcas: sin el, cuatro cuñas al lado del aviso de radar se
+    // leen como cualquier otro indicador. Dice BUSQUEDA y no "estrellas" — el contador de GTA fue
+    // la analogia de la que nacio el item, no lo que el juego pone en pantalla. Lo que se cuenta
+    // es cuantos te estan buscando.
+    const n = h.estrellas, ex = W / 2 - 13, ey = warnY - 14;
+    plate(ex - 22, ey - 5, 51, 8);
+    ctx.textAlign = 'right'; ctx.font = F_ROT; ctx.fillStyle = P.dim;
+    ctx.fillText(T('est_rotulo'), ex - 4, ey);
+    ctx.textAlign = 'center';
+    for (let i = 0; i < 4; i++) px(ex + i * 7, ey - 3, 5, 4, i < n ? P.warn : '#2a3239');
+    // EL RELOJ DEL ESCONDITE, debajo. Es lo que vuelve la mecanica jugable: si bajar veinte
+    // segundos baja una estrella, el jugador tiene que VER esos veinte segundos correr. Sin esto
+    // esconderse no es una decision, es fe. Solo aparece mientras el reloj corre de verdad.
+    if (h.escondite > 0) px(ex, ey + 2, Math.max(1, Math.round(25 * h.escondite)), 1, P.foam);
+  }
   // BARRA de carga del radar, bajo el aviso. Sin numero de oleada: el dato que importa es cuanto
   // falta para la proxima tanda, y eso ya lo dice la barra llenandose.
   if (painted && !scraping) {

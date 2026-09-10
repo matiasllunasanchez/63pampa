@@ -31,6 +31,7 @@ import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE,
 // la mision no declara fases — que es como se cumple la regla suprema (sin fases, este archivo se
 // comporta exactamente igual que ayer, y lo custodia `npm run feel`).
 import { val as fsVal, techoRadar } from './fases.js';
+import * as est from './estrellas.js';
 import { PORT_H } from '../data/runways.js';
 // EL SUELO TIENE ALTURA (T3): la misma funcion que levanta el pasto y las estructuras es la que
 // decide donde te matas. Si fueran dos, una loma se veria en un lado y mataria en el otro.
@@ -451,14 +452,18 @@ export function flightSystem(dt, deps) {
   // cobra dificultad — cobra REJUGAR la parte tranquila. Con 'cap' no perdes la corrida, perdes
   // el silencio: `run.pintado` es un trinquete que sube una vez y de ahi en adelante el mundo te
   // espera armado (se suma a la intensidad de LA COLA en game.js).
-  if (run.detection >= 1 && !run.pintado) {
+  // TE PINTARON: la barra se completo. Con `pinta: 'muerte'` es el final seco que el autor pidio
+  // como opcion; con 'cap' —el default— SUMA UNA ESTRELLA (PLAN_ESTRELLAS_BUSQUEDA §3). Antes esto
+  // encendia `run.pintado`, un trinquete de una sola direccion; ahora deja un numero que se puede
+  // bajar escondiendose, que es todo el punto del item.
+  //
+  // NO SE ANUNCIA ACA. El orquestador MIRA `run.estrellas` cambiar y decide que decir: es un
+  // numero del store, o sea que no hace falta inventarle una señal nueva al contrato de retorno
+  // de este sistema — que ya devuelve climax, objetivo y muerte, y no quiere una cuarta cosa.
+  if (run.detection >= 1) {
     const pinta = fsVal('pinta', null);
     if (pinta === 'muerte') return { death: 'death_pintado' };
-    if (pinta === 'cap') {
-      run.pintado = 1;
-      popup(W / 2, 46, T('pintado'), P.warn);
-      popup(W / 2, 56, T('pintado2'), P.accent);
-    }
+    if (pinta === 'cap') est.sumar();
   }
   if (run.detection >= 1) {
     // OLEADAS QUE CRECEN SIN TECHO. Cada vez que el radar completa la carga dispara una tanda

@@ -117,6 +117,9 @@ import * as squad from './systems/squad.js';
 // la lista al empezar la corrida y despacha su radio; el sembrador y LA COLA la leen.
 import * as tramos from './systems/tramos.js';
 import * as fases from './systems/fases.js';
+import * as estrellas from './systems/estrellas.js';
+import { piso as pisoEstrella } from './core/estrellas.js';
+import { EST_MAX } from './data/tuning.js';
 import * as zigzag from './systems/zigzag.js';
 import * as zigzagCore from './core/zigzag.js';
 import { drawParedes, drawBarreras, techoLadera } from './render/paredes.js';
@@ -621,6 +624,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  Se usa `apuntar` y no `decir` a proposito: `decir` ademas ENCIENDE la caja de radio, y una
      *  charla que dispare el toast de radio en cada linea seria la misma frase dos veces en
      *  pantalla, en dos cajas distintas. */
+    /** QUE DICE CONDOR AL SUBIR UNA ESTRELLA. Es una TABLA indexada por nivel y no una cadena de
+     *  `if`: la convencion de la casa vale tambien para el texto, y asi agregar un nivel es
+     *  agregar un renglon. El indice 0 no existe (subir nunca lleva a cero). */
+    const EST_LINEA = [null, 'est_sube1', 'est_sube2', 'est_sube3', 'est_sube4'];
+    const estrellaLinea = n => EST_LINEA[Math.max(1, Math.min(EST_LINEA.length - 1, n))];
+
     function anotarCharla() {
       const ln = dialogue.line();
       if (!ln) return;
@@ -1894,6 +1903,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       pulso.resetPulso();
       caza.resetCaza();   // LA COLA: una corrida nueva no hereda el Harrier de la anterior
       charla.resetCharla(); charlaFin = false;   // ni la charla a medio decir de la corrida anterior
+      estrellas.resetEstrellas();   // ni las estrellas de la corrida anterior: te buscan por lo que hiciste EN ESTA
       persec.resetPersec();   // PERSECUCION: idem con el lider
       // …y en el MODO PERSECUCION se arma de entrada, con el roster de la corrida como pool de
       // lideres. No es una mecanica que aparece: es de lo que se trata la partida.
@@ -3131,6 +3141,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // adelante ve la costa antes que vos, y esa es la razon de que haya alguien mas volando.
       const fss = fases.stepFases();
       if (fss && fss.radio) radioTramo(fss.radio);
+      // LAS ESTRELLAS DE BUSQUEDA (PLAN_ESTRELLAS_BUSQUEDA §3). Dos mitades:
+      //   · el RELOJ DEL ESCONDITE, contra el techo de la FASE y no contra la constante —
+      //     esconderse en un FILO es mucho mas dificil que en mar abierto, y eso es correcto:
+      //     en el filo hay alguien mirando de cerca;
+      //   · y el FLANCO, que se mira sobre `run.estrellas` en vez de pedirle una señal nueva al
+      //     contrato de `flightSystem`. Quien habla es el orquestador, como con todo lo demas.
+      const estAntes = run.estrellas;
+      const estBaja = estrellas.step(dt, plane.y <= fases.techoRadar(RADAR_ALT));
+      if (estBaja) radioTramo(run.estrellas === 0 ? 'est_limpio' : 'est_baja');
+      else if (run.estrellas > estAntes) radioTramo(estrellaLinea(run.estrellas));
 
       // needsMomentum: si el objetivo del run culmina en el climax (barco) o con solo llegar (distancia)
       const needsMomentum = (gameMode === 'campaign' || gameMode === 'cycle') ? goalOf(curMission()).needsMomentum : true;
@@ -3197,7 +3217,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // …y si te PINTARON en un filo, el mundo te espera armado por el resto de la corrida
         // (§11.3). Es el precio de 'cap': no perdes la partida, perdes la sorpresa. `run.pintado`
         // vale 0 en toda mision sin fases, asi que el pasillo de siempre no se entera.
-        intensidad: tramos.val('caza', fases.val('caza', cfg.caza)) + run.pintado,
+        // …Y LAS ESTRELLAS LE PONEN EL PISO (PLAN_ESTRELLAS_BUSQUEDA §5): a cero la cola es la
+        // que la mision quiso, y de ★1 en adelante se habilita aunque la fase la haya apagado.
+        // Es un piso y no una suma: sumar hacia arriba desbordaba el rango 0..2 que el director
+        // acota igual, y ademas hacia que una mision sin cola pasara a tenerla el doble.
+        intensidad: pisoEstrella('caza', tramos.val('caza', fases.val('caza', cfg.caza)), run.estrellas),
         voces: fases.val('voces', true),
         dist: run.dist, meta: objectiveDist, ciego: inBank(), jets: run.jets,
       });
@@ -3705,6 +3729,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (S.state === 'play') {
         ctx.save(); ctx.scale(U, U); hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip, goalKind: objectiveKind,
         radarAlt: fases.techoRadar(RADAR_ALT),
+        // el contador y su reloj de escondite, por snapshot (convencion 4: el render no importa
+        // de systems — lo vigila `npm run lint:layers`)
+        estrellas: run.estrellas, escondite: estrellas.progreso(),
           // EL PODER RASANTE va por snapshot (convencion 4): el lint de capas prohibe que el
           // render importe de systems, y la lista de excepciones solo puede achicarse.
           ras: { on: rasante.active(), meter: rasante.meterVal(), resta: rasante.restante(), dur: RAS_DUR } }); drawCinta(); ctx.restore();
@@ -4102,6 +4129,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // de pararse en el regreso sin volar la mision entera: sin la marca, cualquier salto pasado
       // el objetivo vuelve a entrar al climax en el mismo cuadro (los tres `readyToEnter` son
       // `dist >= objetivo`). Pone exactamente lo mismo que `volverDelBlanco()`.
+      // el contador de busqueda y su reloj de escondite, mas la puerta para ponerlo a mano: sin
+      // esto, probar el nivel 3 exige volar alto hasta que el radar cargue tres veces.
+      window.__estdbg = () => estrellas.dbg();
+      window.__estset = n => { run.estrellas = Math.max(0, Math.min(EST_MAX, n | 0)); return estrellas.dbg(); };
       window.__vuelta = () => { run.climaxHecho = 1; return JSON.stringify({ climaxHecho: run.climaxHecho, hayVuelta: fases.hayVuelta() }); };
     }
     // ---------- SONDAS DEL ZIGZAG (PLAN_PASILLO_ZIGZAG §5) — QUITAR al cerrar el item ----------

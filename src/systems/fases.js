@@ -149,6 +149,7 @@ export function dbg(cfg, radarAlt) {
     cfg: cfg ? { obstacles: cfg.obstacles, caza: cfg.caza, bombs: cfg.bombs } : null,
     obstacles: val('obstacles', cfg ? cfg.obstacles : null),
     caza: val('caza', cfg ? cfg.caza : null),
+    solo: val('solo', null),
     bombs: val('bombs', cfg ? cfg.bombs : null),
     radar: +techoRadar(radarAlt).toFixed(2),   // el RESUELTO, con la rampa aplicada
     agua: val('agua', 1),

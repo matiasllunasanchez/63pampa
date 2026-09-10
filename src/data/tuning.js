@@ -1319,3 +1319,21 @@ export const LAND_GEAR_MIN_T = 1.2;  // segundos
 // corregir una y no rendirse.
 export const LAND_COSTO_CHAPA = { spd: 14, vy: 22, gear: 30, pitch: 12 };
 export const LAND_PTS = 2500;        // el premio por la toma perfecta; cada falla descuenta
+
+// ---------------- LAS ESTRELLAS DE BUSQUEDA (PLAN_ESTRELLAS_BUSQUEDA.md) ----------------
+//
+// El radar con MEMORIA: cuantos te estan buscando. Sube al quedarte expuesto (completar la barra
+// de deteccion, que ya existe) y baja si te escondes a ras. Decide QUIEN TE BUSCA — el otro eje,
+// QUE HAY, lo sigue decidiendo la distancia (el `solo` de la fase), y los dos no se mezclan.
+export const EST_MAX = 4;
+// SEGUNDOS CONTINUOS por debajo del techo vigente para bajar una estrella. Continuo y no
+// acumulado: asomarse reinicia el reloj, y eso es lo que lo convierte en un compromiso.
+//
+// 20 SALE DE UNA CUENTA. Esconderse es volar rasante, que quema al doble: a la escala de t15 son
+// ~8% del tanque por estrella, o sea que bajar de cuatro a cero cuesta un tercio de la mision
+// escondido. Tiene que doler. Es LA PERILLA que va a mover el primer playtest.
+export const EST_PERDER_S = 20;
+// …pero un bob no te delata. Asomarse menos que esto no reinicia el reloj: sin esta gracia, el
+// oleaje y el cabeceo hacen imposible sostener veinte segundos limpios y la mecanica seria una
+// moneda al aire en vez de una decision.
+export const EST_GRACIA_S = 1.2;

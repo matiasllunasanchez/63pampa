@@ -18,6 +18,8 @@ import { inBank } from './fog.js';
 // que es como se cumple RF-04 (sin tramos, este archivo se comporta exactamente igual que ayer).
 import { val as trVal } from './tramos.js';
 import { val as fsVal } from './fases.js';
+import { piso as pisoEst, listaCon } from '../core/estrellas.js';
+import { nivel as nivelEst } from './estrellas.js';
 
 /** LA CADENA DE RESOLUCION, de lo mas especifico a lo mas general: TRAMO → FASE → cfg.
  *
@@ -29,6 +31,16 @@ import { val as fsVal } from './fases.js';
  *  NO ES UN `if` DE FASE: nadie pregunta "¿esto es un filo?". Se pide un VALOR y se contesta con
  *  el que corresponda, que es la misma forma que ya tenia `trVal`. */
 const val = (clave, base) => trVal(clave, fsVal(clave, base));
+
+/** …Y ENCIMA DE TODO, LAS ESTRELLAS (PLAN_ESTRELLAS_BUSQUEDA §5). No pisan lo resuelto: le ponen
+ *  un PISO. Que sea `Math.max` y no reemplazo es la mitad del diseño — una mision que ya bombardea
+ *  fuerte no se ablanda porque el jugador tenga cero estrellas. Este eje SUBE; nunca afloja.
+ *
+ *  Y son DOS EJES QUE NO SE MEZCLAN: la distancia decide QUE HAY (el `solo` de la fase: naturaleza
+ *  en mar abierto, defensa cerca del blanco) y las estrellas QUIEN TE BUSCA. Por eso la lista
+ *  blanca se UNE en vez de reemplazarse: si el nivel la pisara, subir de altura haria aparecer un
+ *  globo en medio del oceano. */
+const valEst = (clave, base) => pisoEst(clave, val(clave, base), nivelEst());
 // LA CHARLA EN VUELO (SPEC_CHARLAS_VUELO RF-01): mientras hay una armada o corriendo, aca no
 // nace nadie. Es el mismo patron de gate que la niebla ciega — una condicion de mundo que este
 // archivo consulta, no un estado que administre.
@@ -487,7 +499,7 @@ export function spawnSystem(dt, objectiveDist) {
     // SE REINTENTA UN PUÑADO DE VECES y despues se deja el hueco. Sin reintentos la densidad se
     // desplomaria (cada sorteo fallido seria un hueco), y con reintentos infinitos una lista mal
     // escrita colgaria el frame. Seis alcanza para que la densidad se parezca a la pedida.
-    const solo = val('solo', null);
+    const solo = listaCon(val('solo', null), nivelEst());
     if (solo) {
       for (let i = 0; i < 6 && obstacles.length > n0; i++) {
         const tipo = obstacles[n0].type;
@@ -519,7 +531,7 @@ export function spawnSystem(dt, objectiveDist) {
   // BOMBARDEO (cualquier mapa, cfg.bombs lo regula desde el menu [M]): bombas que caen del
   // cielo. Chocarlas en el aire mata; al tocar el suelo levantan un HONGO que es un obstaculo
   // mas — meterse en la nube daña (sacude, frena, quema combustible) pero no derriba.
-  const bombs = val('bombs', cfg.bombs);
+  const bombs = valEst('bombs', cfg.bombs);
   if (bombs > 0) {
     run.nextBomb -= run.spd * dt;
     if (run.nextBomb <= 0) {

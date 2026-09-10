@@ -32,11 +32,11 @@ export const run = {
   detection: 0,    // carga del radar enemigo (0..1); al llegar a 1 dispara una OLEADA de misiles
   radarWave: 0,    // oleadas disparadas en esta corrida: cada una es MAS grande que la anterior
   radarSeen: false,// ¿ya se aviso "te detecto el radar"? (el aviso largo va una sola vez)
-  // TE PINTARON EN UN FILO (PLAN_MISION_CINCO_FASES §11.3). Es un TRINQUETE: sube una vez y no
-  // baja mas en toda la corrida. No te mata — te saca el silencio: de aca en adelante el mundo te
-  // espera armado, y eso se cobra sumandose a la intensidad de LA COLA. Vale 0 en toda mision sin
-  // fases, asi que el pasillo de siempre no se entera de que existe.
-  pintado: 0,
+  // CUANTOS TE ESTAN BUSCANDO (PLAN_ESTRELLAS_BUSQUEDA.md). Sube al completarse la barra del
+  // radar y BAJA si te escondes a ras — a diferencia del `pintado` que reemplaza, que era este
+  // mismo trinquete sin niveles y sin vuelta atras. Decide QUIEN TE BUSCA; que HAY en el mundo lo
+  // sigue decidiendo la distancia. Vale 0 en toda mision que no lo use.
+  estrellas: 0,
   // EL CLIMAX YA SE JUGO. Solo lo enciende una mision con VUELTA, que es la unica que sigue
   // volando pasado el buque; sin el, los `readyToEnter` —que son todos `dist >= objetivo`— la
   // devolverian al climax en el cuadro siguiente, sin fin.
@@ -129,7 +129,7 @@ export function resetRun() {
   Object.assign(run, {
     t: 0, dist: 0, spd: 6, fuelDist: 0,
     integ: 100, hurtT: 0,
-    fuel: 100, heat: 0, overheat: false, detection: 0, radarWave: 0, radarSeen: false, pintado: 0, climaxHecho: 0, boost: false, throttle: 0,
+    fuel: 100, heat: 0, overheat: false, detection: 0, radarWave: 0, radarSeen: false, estrellas: 0, climaxHecho: 0, boost: false, throttle: 0,
     score: 0, mult: 1, multShow: 1, streak: 0, rasLevel: 0, graceT: 0,
     afterT: 0, afterTier: 0, afterGrace: 0,
     scrapeT: 0, scrapeVib: 0,

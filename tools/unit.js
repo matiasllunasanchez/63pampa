@@ -1094,6 +1094,78 @@ test('fases: el catalogo de tipos cubre las cinco del plan mas el filo', () => {
   assert.ok(TIPOS.filo.radar < RADAR_ALT_U / 2, 'un filo que no estrangula no es un filo');
 });
 
+// ---------- ESTRELLAS DE BUSQUEDA (PLAN_ESTRELLAS_BUSQUEDA §3-§5) ----------
+// La matematica es PURA y por eso se prueba aca. Lo que se afirma no son numeros sino las tres
+// reglas que hacen que el item no rompa lo que ya existe: el piso SUBE y nunca afloja, la lista
+// blanca se UNE y no se reemplaza, y el reloj del escondite es CONTINUO pero perdona el bob.
+import { acotar, nivelDe, piso, listaCon, pasoEscondite } from '../src/core/estrellas.js';
+import { NIVELES } from '../src/data/estrellas.js';
+import { EST_MAX, EST_PERDER_S, EST_GRACIA_S } from '../src/data/tuning.js';
+
+test('estrellas: el contador se acota, y fuera de rango no hay agujeros en la tabla', () => {
+  assert.equal(acotar(-3), 0);
+  assert.equal(acotar(99), EST_MAX);
+  assert.equal(acotar(2.7), 2, 'se trunca: el indice de una tabla no puede ser fraccionario');
+  // nunca undefined: un nivel fuera de rango seria un `undefined` silencioso al leerle una clave
+  for (const n of [-1, 0, EST_MAX, EST_MAX + 5]) assert.ok(nivelDe(n), `nivel ${n} sin entrada`);
+  assert.equal(NIVELES.length, EST_MAX + 1, 'la tabla tiene que cubrir de 0 al tope');
+});
+
+test('estrellas: el piso SUBE y nunca afloja lo que la fase ya decidio', () => {
+  // …porque este eje decide QUIEN TE BUSCA, no que hay. Una mision que ya bombardea fuerte no se
+  // ablanda porque el jugador tenga cero estrellas: eso seria el eje pisando al otro.
+  assert.equal(piso('bombs', 1, 0), 1, 'a cero estrellas, lo del cfg manda');
+  assert.equal(piso('bombs', 0, 0), 0, 'la ida limpia ES el estado de cero estrellas');
+  assert.ok(piso('bombs', 0, 2) > 0, 'con estrellas, la ida deja de estar limpia');
+  assert.equal(piso('caza', 2, 1), 2, 'una mision con la cola a fondo no baja por tener una sola');
+  // y es monotono: mas estrellas nunca puede significar menos presion
+  for (let n = 1; n <= EST_MAX; n++) {
+    assert.ok(piso('bombs', 0, n) >= piso('bombs', 0, n - 1), `bombs bajo de ${n-1} a ${n}`);
+    assert.ok(piso('caza', 0, n) >= piso('caza', 0, n - 1), `caza bajo de ${n-1} a ${n}`);
+  }
+});
+
+test('estrellas: la lista blanca se UNE, y por eso un globo no aparece en mar abierto', () => {
+  const MAR = ['ola', 'birds'];
+  assert.deepEqual(listaCon(MAR, 0), MAR, 'a cero, la lista de la fase intacta');
+  const tres = listaCon(MAR, 3);
+  assert.ok(MAR.every(t => tres.includes(t)), 'lo que la fase permitia sigue permitido');
+  assert.ok(tres.includes('helo') && tres.includes('jet'), 'a ★3 te mandan a buscar');
+  // LA REGLA DEL §2: el nivel agrega lo que TE BUSCA, nunca lo que la DISTANCIA pone en el mundo.
+  // Si un globo entrara por aca, subir de altura lo haria aparecer en medio del oceano.
+  for (let n = 0; n <= EST_MAX; n++)
+    assert.ok(!listaCon(MAR, n).includes('balloon'), `★${n} metio un globo: los ejes se mezclaron`);
+  // sin lista blanca no hay nada que unir: el sembrador sigue sin recortar
+  assert.equal(listaCon(null, 4), null);
+  assert.deepEqual(MAR, ['ola', 'birds'], 'y no se muta la lista de la fase');
+});
+
+test('estrellas: el escondite es CONTINUO — asomarse de verdad reinicia el reloj', () => {
+  const paso = (st, bajo, dt = 1) => pasoEscondite(dt, st, bajo, EST_PERDER_S, EST_GRACIA_S);
+  let st = { reloj: 0, fuera: 0 };
+  for (let i = 0; i < 5; i++) st = paso(st, true);
+  assert.ok(st.reloj >= 5 && !st.baja, 'cinco segundos abajo, todavia no baja');
+  // asomarse MAS que la gracia lo borra: esconderse es un compromiso, no algo que se junte de a ratos
+  st = paso(st, false, EST_GRACIA_S + 0.5);
+  assert.equal(st.reloj, 0, 'asomarse de verdad reinicia');
+});
+
+test('estrellas: …pero un bob no te delata (la gracia)', () => {
+  // sin esta gracia el oleaje y el cabeceo hacen imposible sostener el rasante limpio, y la
+  // mecanica deja de ser una decision para ser una moneda al aire.
+  let st = { reloj: 8, fuera: 0 };
+  st = pasoEscondite(EST_GRACIA_S * 0.5, st, false, EST_PERDER_S, EST_GRACIA_S);
+  assert.equal(st.reloj, 8, 'un toque afuera no borra lo acumulado');
+  st = pasoEscondite(0.2, st, true, EST_PERDER_S, EST_GRACIA_S);
+  assert.equal(st.fuera, 0, 'y al volver abajo la gracia se repone');
+});
+
+test('estrellas: completar el ciclo baja una, y el sobrante no se tira', () => {
+  const st = pasoEscondite(2, { reloj: EST_PERDER_S - 0.5, fuera: 0 }, true, EST_PERDER_S, EST_GRACIA_S);
+  assert.equal(st.baja, true, 'llegado el tope, baja una estrella');
+  near(st.reloj, 1.5);   // el sobrante arranca el ciclo siguiente: no se regala medio segundo
+});
+
 // ---------- LAS CHARLAS EN VUELO (SPEC_CHARLAS_VUELO) ----------
 // El validador de `core/tramos.js` solo puede comprobar que `charla:` sea TEXTO: core/ no importa
 // contenido, asi que desde alla un id inventado pasa. Aca si se ven las dos mitades, y esta es la
