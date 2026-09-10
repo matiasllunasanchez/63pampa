@@ -1042,3 +1042,38 @@ arte dibujado, donde el tamaño lo permite. En el sprite quedan las tres franjas
   hammerheads. Los A-4B/C argentinos del 82 son más viejos y pesados: anotar que es licencia.
 - **Bengalas: NO** (ya establecido — sin chaff ni bengalas en los A-4 del 82). La pirueta
   las reemplaza por vapor.
+
+## EL RADAR QUE TE BUSCA (idea de las "estrellas", 10/9/2026)
+
+Propuesta del autor: que sostenerse detectado por el radar suba un contador tipo GTA — mas
+enemigos y, cerca del objetivo, Harriers — y que esconderse rasante lo baje, con una linea de
+radio que lo narre ("parece que los perdimos").
+
+**Lo que ya se dio por bueno** (base solida, no hace falta confirmarlo para avanzar):
+
+- La flota britanica tenia **piquetes de radar** adelantados cuyo trabajo era ver venir los
+  ataques a baja cota y **vectorear a los Sea Harrier** encima. Que el radar "te mande a buscar"
+  no es licencia: es el diseno defensivo real.
+- Los pilotos argentinos volaban a ras del agua por el **horizonte de radar**: contra un blanco
+  pegado al mar el alcance util se desploma, y subir te hace visible desde mucho mas lejos. El
+  techo de radar del juego (RADAR_ALT, y el FILO de las fases) traduce un fenomeno fisico real.
+- Misiles de a bordo y CAP de Sea Harrier como respuesta a la deteccion: si.
+
+**Lo que hay que confirmar antes de escribirlo como mecanica:**
+
+1. **Perder el contacto.** ¿Con que frecuencia un blanco que bajaba al ras desaparecia de las
+   pantallas? ¿Se lo daba por "contacto perdido" o se lo seguia por prediccion de rumbo?
+2. **El tiempo de reaccion.** Desde que un piquete detecta hasta que una CAP esta encima:
+   ¿minutos? Es el numero que decide si "bajar y esconderse" puede funcionar de verdad o si el
+   Harrier ya te alcanzo igual.
+3. **¿Se daba por derribado a alguien que volvio?** Hay reclamos de derribo inciertos de los dos
+   lados en el conflicto, pero no tengo un caso documentado para apoyar la linea "creen que
+   moriste". **Decision de diseno provisional:** la radio dice "LOS PERDIMOS" (contacto perdido)
+   y no "te dan por muerto" — se sostiene con lo que ya sabemos, y ademas es mejor tension: si
+   solo te perdieron, te pueden volver a encontrar.
+4. **Los Harriers cerca del objetivo.** ¿La CAP se concentraba sobre la fuerza de desembarco o
+   patrullaba adelantada? Decide si "mas cerca del blanco, mas Harriers" es fiel o es una
+   comodidad de diseno.
+
+> Nada de esto bloquea la mecanica: el bucle detectar → perseguir → esconderse → perder contacto
+> se sostiene con lo de arriba. Lo que se confirme afina los NUMEROS y la linea de radio.
