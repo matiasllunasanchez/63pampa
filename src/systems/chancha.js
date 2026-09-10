@@ -57,6 +57,9 @@ export function pedir(g) {
   if (usada) return 'used';
   // la espera la puede correr la mision (`g.minT`); sin decir nada, CH_MIN_T de siempre
   if (g.t < (g.minT === undefined ? CH_MIN_T : g.minT)) return 'early';
+  // FUERA DE LA ZONA DE ESPERA. Solo aplica si la mision declara zonas: sin ellas el poder es el
+  // de siempre y este renglon no existe.
+  if (g.conZona && !g.enZona) return 'nozona';
   if (meter < 1) return 'empty';
   usada = true; meter = 0;
   fase = 'eta'; etaT = CH_ETA; pedidoT = 0;

@@ -45,6 +45,16 @@ export const vigente = () => faseAt(run.dist, objetivo, lista);
  *  es como se llama el tramo sino donde termina el vuelo — una mision podria cerrar con otro tipo
  *  y el regreso tendria que existir igual. Preguntar por el nombre seria el `if (fase === ...)`
  *  que la convencion del repo prohibe; preguntar por la geometria es leer el dato. */
+/** ¿LA MISION DECLARA ZONAS DE ESPERA DE LA CHANCHA? Si ninguna fase las declara, el poder se
+ *  comporta como siempre (se pide donde sea). Lo pregunta el orquestador antes de gatear. */
+export const hayZonaChancha = () => hayFases() && lista.some(f => f.chancha === true);
+
+/** ¿ESTA MISION SIGUE DESPUES DEL BUQUE? Es la pregunta que decide si el climax cierra la mision
+ *  o si todavia falta volver, y por eso vive aca y no en game.js: la contesta la DATA.
+ *
+ *  Es "alguna fase pasa de 1" y no "hay una fase llamada 'vuelta'" a proposito: lo que importa no
+ *  es como se llama el tramo sino donde termina el vuelo. Preguntar por el nombre seria el
+ *  `if (fase === ...)` que la convencion del repo prohibe; preguntar por la geometria es leer. */
 export const hayVuelta = () => hayFases() && lista[lista.length - 1].hasta > 1;
 
 /** ¿YA SE VOLO TODO? Cierto cuando la corrida paso el ultimo `hasta` de una mision con vuelta: no

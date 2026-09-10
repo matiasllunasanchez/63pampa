@@ -478,6 +478,31 @@ export function spawnSystem(dt, objectiveDist) {
         spawn();
       }
     }
+    // SOLO: la lista BLANCA de la fase (PLAN_MISION_CINCO_FASES §11). `favor` INCLINA la mezcla;
+    // esta la RECORTA — lo que no esta en la lista no aparece, y punto. Existe porque la ida de
+    // t15 pide algo que un sesgo no puede dar: "en la IDA solo deben aparecer obstaculos, OLAS,
+    // BANDADAS, nada mas". Con `favor` igual se colaba un helicoptero cada tantos sorteos, y un
+    // helicoptero en el tramo de sigilo no es una probabilidad baja: es la escena rota.
+    //
+    // SE REINTENTA UN PUÑADO DE VECES y despues se deja el hueco. Sin reintentos la densidad se
+    // desplomaria (cada sorteo fallido seria un hueco), y con reintentos infinitos una lista mal
+    // escrita colgaria el frame. Seis alcanza para que la densidad se parezca a la pedida.
+    const solo = val('solo', null);
+    if (solo) {
+      for (let i = 0; i < 6 && obstacles.length > n0; i++) {
+        const tipo = obstacles[n0].type;
+        // el BIDON y la OLA quedan exentos por lo mismo que en `favor`: no son mezcla. Al bidon lo
+        // gobierna su propia llave (`bidones`) y a la ola el clima.
+        if (tipo === 'fuel' || tipo === 'ola' || solo.indexOf(tipo) >= 0) break;
+        obstacles.length = n0; soldiers.length = s0;
+        spawn();
+      }
+      // seis intentos y seguia sin salir nada de la lista: se deja el hueco antes que romper la regla
+      if (obstacles.length > n0) {
+        const tipo = obstacles[n0].type;
+        if (tipo !== 'fuel' && tipo !== 'ola' && solo.indexOf(tipo) < 0) { obstacles.length = n0; soldiers.length = s0; }
+      }
+    }
     plantar(n0);
     // CENSO DE SIEMBRA (sonda de los TRAMOS, QUITAR). Cuenta lo que ENTRA al mundo, por tipo:
     // medir la densidad mirando `obstacles.length` no sirve porque el mundo tambien se vacia por

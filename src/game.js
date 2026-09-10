@@ -436,6 +436,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // transito, que es su lugar natural y donde decide si llegas con una bomba o con tres.
         // La mision lo puede correr; el default no se toca.
         minT: curMission() && curMission().chanchaMinT !== undefined ? curMission().chanchaMinT : undefined,
+        // LA ZONA DE ESPERA (PLAN_MISION_CINCO_FASES §11). Si la mision declara alguna fase con
+        // `chancha: true`, el pedido SOLO vale adentro de esas fases: el Hercules orbita en un
+        // punto de la ruta, no te sigue. Es historico y ademas convierte el poder en una decision
+        // de RUTA — pasarte de la zona es perderla — en vez de un boton que se aprieta cuando el
+        // tanque baja. Una mision que no declara ninguna zona se comporta como siempre.
+        conZona: fases.hayZonaChancha(),
+        enZona: fases.val('chancha', false) === true,
       });
       if (r === 'nofuel') return;                                    // sin combustible el poder no existe
       if (r === 'nozone' && chancha.meterVal() < 1) return;          // ni siquiera la tenia lista

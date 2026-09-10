@@ -19,6 +19,11 @@ import { CAMPAIGN_CFG } from './missions.js';
 // perillas completo; extenderlo con `...` garantiza que estan todas sin repetir ninguna.
 const P = over => ({ ...CAMPAIGN_CFG, ...over });
 
+// LO QUE PUEDE NACER EN LA IDA. Todo esto es MUNDO, no enemigo: la ola que hay que saltar, la
+// bandada que hay que esquivar, el globo de barrera colgado de su cable, los postes y el arbol.
+// Nada dispara, nada persigue. Es la definicion de "sigilo" dicha en tipos de spawn.
+const IDA = ['ola', 'birds', 'balloon', 'poles', 'tree'];
+
 // ---------------------------------------------------------------------------------------------
 // t15 · IDA Y VUELTA — el banco de la estructura de cinco fases.
 //
@@ -75,7 +80,9 @@ const t15 = {
   // de mision larga". Aca la espera dejaria el poder afuera de TODA la ida — justo del tramo donde
   // el plan lo pone ("La Chancha vive aca", §2 fase 1) y donde decide si llegas con una bomba o con
   // tres. 45 s es despues del despegue y del primer respiro, no antes.
-  chanchaMinT: 45,
+  // LA ESPERA POR TIEMPO SE AFLOJA porque ahora manda la ZONA: la primera zona cae a los ~50 s
+  // de vuelo y no tendria sentido llegar a ella con el poder todavia bloqueado por reloj.
+  chanchaMinT: 40,
   // PAR PROVISORIO. Los pares de campaña van de 5.000 a 14.000 sobre misiones de 3 km; esta mide
   // diez veces mas y ademas cobra la vuelta entera, asi que el puntaje va a ser otro orden. 20.000
   // es una apuesta para que las estrellas no salgan las cuatro de arriba en el primer vuelo: es
@@ -103,19 +110,41 @@ const t15 = {
   // dura diez, y el segundo se mudo al final —pegado al blanco— porque el pedido fue textual:
   // "llegando cerca ahi si mas concentracion".
   fases: [
-    { tipo: 'transito', hasta: 0.05, radio: 'fase_salida' },
-    { tipo: 'filo', hasta: 0.10, radio: 'fase_filo' },
-    { tipo: 'transito', hasta: 0.16, radio: 'fase_libre' },
-    { tipo: 'descenso', hasta: 0.20, radio: 'fase_descenso' },
-    { tipo: 'rasante', hasta: 0.45, radio: 'fase_rasante' },
-    { tipo: 'rasante', hasta: 0.80, radio: 'fase_trafico' },
-    { tipo: 'filo', hasta: 0.87, radar: 6, radio: 'fase_filo2' },
-    { tipo: 'blanco', hasta: 1, radio: 'fase_blanco' },
-    // LA VUELTA, EN TRES: vuelven las voces · llegan los cazas · se ve la costa. Es la mitad
-    // dificil y la mas larga, y sin partirla tendria una sola linea en tres minutos.
-    { tipo: 'vuelta', hasta: 1.35, radio: 'fase_vuelta' },
-    { tipo: 'vuelta', hasta: 1.70, radio: 'fase_cazas' },
-    { tipo: 'vuelta', hasta: 2.0, radio: 'fase_casa' },
+    // ── LA IDA: NATURALEZA, NO GUERRA ──────────────────────────────────────────────────────
+    // Decision del autor tras el playtest: "en la IDA solo debe aparecer obstaculos como los
+    // puentes o cosas asi, OLAS, BANDADAS, y obstaculos de los acantilados, nada mas". Va por
+    // `solo`, que RECORTA la mezcla en vez de inclinarla — con `favor` igual se colaba un
+    // helicoptero cada tantos sorteos, y un helicoptero en el tramo de sigilo no es una
+    // probabilidad baja: es la escena rota. Los puentes y los acantilados no estan en la lista
+    // porque no los siembra este sistema: son del CALLEJON (cfg.zigzag), que va por su cuenta.
+    //
+    // Y SIN BIDONES. Tambores de combustible flotando en el Atlantico no significan nada —
+    // "¿que sentido tiene eso?"—. Aca el combustible tiene UNA fuente y es historica: el
+    // Hercules. Ver la nota de las zonas mas abajo.
+    { tipo: 'transito', hasta: 0.05, radio: 'fase_salida', solo: IDA, bidones: false },
+    { tipo: 'filo', hasta: 0.10, radio: 'fase_filo', bidones: false },
+    // LA ZONA DE LA CHANCHA, EN LA IDA. Cae justo donde Puma te dice que subas a respirar, y no
+    // es casualidad que quede bien: el enganche real se hacia A QUINCE MIL PIES. El Hercules
+    // esta arriba, y para engancharse hay que dejar el ras — que es exactamente la tension que
+    // el poder ya tenia escrita (no convive con el RASANTE).
+    { tipo: 'transito', hasta: 0.16, radio: 'fase_chancha_ida', solo: IDA, bidones: false, chancha: true },
+    { tipo: 'descenso', hasta: 0.20, radio: 'fase_descenso', solo: IDA, bidones: false },
+    { tipo: 'rasante', hasta: 0.45, radio: 'fase_rasante', solo: IDA, bidones: false },
+    { tipo: 'rasante', hasta: 0.80, radio: 'fase_trafico', solo: IDA, bidones: false },
+    { tipo: 'filo', hasta: 0.87, radar: 6, radio: 'fase_filo2', bidones: false },
+    { tipo: 'blanco', hasta: 1, radio: 'fase_blanco', bidones: false },
+    // ── LA VUELTA: LA GUERRA ───────────────────────────────────────────────────────────────
+    // Sin `solo`: aca nace todo lo que el pasillo sabe hacer — helicopteros, barcazas, aviones —
+    // ademas de lo que ya habia en la ida. Es la mitad dificil, y es historia: al atacar
+    // revelaste la posicion y los que estaban cerca salen a buscarte.
+    { tipo: 'vuelta', hasta: 1.30, radio: 'fase_vuelta', bidones: false },
+    { tipo: 'vuelta', hasta: 1.60, radio: 'fase_cazas', bidones: false },
+    // LA SEGUNDA ZONA, la de la EMERGENCIA. Historico tambien: la Chancha los esperaba al
+    // retornar si venian con daños, perdidas de combustible o demoras. Y como el poder se gasta
+    // UNA sola vez, aca esta la decision entera de la mision: la usaste a la ida para llegar
+    // holgado, o la guardaste para volver. Las dos son defendibles, y esa es la idea.
+    { tipo: 'vuelta', hasta: 1.85, radio: 'fase_chancha_vuelta', bidones: false, chancha: true },
+    { tipo: 'vuelta', hasta: 2.0, radio: 'fase_casa', bidones: false },
   ],
   // …Y UNA CHARLA EN VUELO, para ver el OTRO formato de dialogo. Los `radio:` son una linea con
   // retrato en la caja chica; una `charla:` es una escena entera de data/story.js corriendo en

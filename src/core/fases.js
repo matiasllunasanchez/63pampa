@@ -24,7 +24,7 @@ import { FASE_MAX_HASTA } from '../data/tuning.js';
 /** Las claves que una fase puede traer. Cualquier otra es error de DATOS y el validador la
  *  rechaza: una clave mal escrita (`radares` por `radar`) no hace nada y no avisa — la fase
  *  simplemente se comporta como si no la trajera, que es la peor forma de fallar. */
-export const CLAVES = ['tipo', 'hasta', 'obstacles', 'caza', 'bombs', 'radar', 'agua', 'voces', 'nafta', 'pinta', 'radio'];
+export const CLAVES = ['tipo', 'hasta', 'obstacles', 'caza', 'bombs', 'bidones', 'solo', 'chancha', 'radar', 'agua', 'voces', 'nafta', 'pinta', 'radio'];
 
 /** Como se valida cada clave. `tipo` y `hasta` van aparte: son las dos obligatorias. */
 const TIPOS_DE_CLAVE = {
@@ -33,6 +33,15 @@ const TIPOS_DE_CLAVE = {
   bombs: v => typeof v === 'number' && v >= 0,
   // el techo del filo, en unidades de mundo. Tiene que ser POSITIVO: un techo en 0 no seria un
   // filo estrecho, seria una fase donde volar ya es imposible.
+  // BIDONES: los tambores de combustible flotando. Booleano, igual que en los tramos.
+  bidones: v => typeof v === 'boolean',
+  // SOLO: la lista BLANCA de lo que puede nacer en esta fase. A diferencia de `favor`, que
+  // inclina la mezcla con un re-sorteo, esta la RECORTA: lo que no esta en la lista no aparece.
+  solo: v => Array.isArray(v) && v.length > 0 && v.every(t => typeof t === 'string'),
+  // CHANCHA: esta fase es la ZONA DE ESPERA del Hercules. Historico — los cazas se encontraban
+  // con el en una zona determinada sobre el Atlantico, no en cualquier lado — y ademas convierte
+  // el poder en una decision de RUTA y no solo de tanque: si te pasas de la zona, te la perdiste.
+  chancha: v => typeof v === 'boolean',
   radar: v => typeof v === 'number' && v > 0,
   // cuanto PERDONA el agua en esta fase (multiplicador del margen de roce). >= 1: una fase puede
   // ablandar el mar, nunca endurecerlo — para eso ya estan la velocidad y el turbo.

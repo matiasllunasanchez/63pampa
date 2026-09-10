@@ -44,6 +44,10 @@ export const STRINGS = {
     fase_trafico: 'CONDOR: PLATA FIEL, TENES ANTIAEREA ADELANTE. OJO.',
     fase_cazas: 'CONDOR: ESTAN LLEGANDO CAZAS DESDE EL NORTE. OJO.',
     fase_casa: 'PUMA: YA SE VE LA COSTA. TRAELO ENTERO.',
+    // LAS DOS ZONAS DE LA CHANCHA. El Hercules ORBITA en un punto de la ruta y no te sigue, asi
+    // que la radio tiene que decir donde esta — si no, el poder se vuelve un boton sin lugar.
+    fase_chancha_ida: 'CONDOR: LA CHANCHA ORBITA ACA ARRIBA. SI VAS A CARGAR, ES AHORA.',
+    fase_chancha_vuelta: 'CONDOR: LA CHANCHA TE ESPERA. SI TE QUEDASTE CORTO, SUBI.',
     fase_vuelta: 'PUMA: YA SABEN DONDE ESTAMOS. AHORA NOS BUSCAN.',
     death_mast: 'Chocaste una fragata', death_tree: 'Chocaste un arbol', death_helo: 'Colision con helicoptero',
     death_jet: 'Choque con avion enemigo', death_balloon: 'Globo de barrera',
@@ -1091,6 +1095,8 @@ export const STRINGS = {
     fase_trafico: 'CONDOR: PLATA FLIGHT, TRIPLE-A AHEAD. WATCH IT.',
     fase_cazas: 'CONDOR: FIGHTERS INBOUND FROM THE NORTH. WATCH IT.',
     fase_casa: 'PUMA: COAST IN SIGHT. BRING IT HOME IN ONE PIECE.',
+    fase_chancha_ida: 'CONDOR: THE TANKER IS ORBITING ABOVE. IF YOU ARE TAKING FUEL, NOW.',
+    fase_chancha_vuelta: 'CONDOR: THE TANKER IS HOLDING FOR YOU. IF YOU ARE SHORT, CLIMB.',
     fase_vuelta: 'PUMA: THEY KNOW WHERE WE ARE NOW. THEY ARE COMING.',
     death_mast: 'You hit a frigate', death_tree: 'You hit a tree', death_helo: 'Collided with a helicopter',
     death_jet: 'Hit an enemy plane', death_balloon: 'Barrage balloon',
