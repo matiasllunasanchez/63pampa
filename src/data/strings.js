@@ -28,9 +28,22 @@ export const STRINGS = {
     // EL AVISO DEL FILO (PLAN_MISION_CINCO_FASES §11.2). Lo dice PUMA y no Condor a proposito:
     // el que va adelante ve la costa antes que vos, y esa es la razon de que haya alguien mas
     // volando. El prefijo 'PUMA:' es lo que le pone cara — asi lee la caja de radio.
+    // CADA ETAPA DEL MAPA, MARCADA POR UNA LINEA. Y el reparto de QUIEN habla no es adorno: es la
+    // mecanica del silencio contada sin un solo cartel. Hasta el descenso habla PUMA —el escuadron,
+    // que va con vos—; del descenso al blanco habla solo CONDOR, que es tierra y no esta en riesgo;
+    // y en la vuelta PUMA vuelve. El jugador no tiene que entender la regla: la escucha.
+    fase_salida: 'PUMA: PLATA FIEL, EN RUTA. NOS QUEDA MAR POR DELANTE.',
     fase_filo: 'PUMA: EL RADAR ESTA CERCA. MANTENTE RASANTE.',
-    fase_filo2: 'PUMA: OTRO CORDON. ABAJO, Y NO RESPIRES.',
     fase_libre: 'PUMA: ESTAMOS LIMPIOS. PODES SUBIR A RESPIRAR.',
+    fase_descenso: 'PUMA: BAJAMOS. DE ACA EN ADELANTE NO SE HABLA.',
+    fase_rasante: 'CONDOR: PLATA FIEL, TE SIGO YO. NO CONTESTES.',
+    fase_filo2: 'CONDOR: OTRO CORDON ADELANTE. ABAJO, Y NO RESPIRES.',
+    fase_blanco: 'CONDOR: AHI LO TENES. ES TUYO.',
+    // CONDOR AVISA LO QUE VIENE, que es lo que hace un radar de tierra: no te cuenta donde estas
+    // —eso ya lo sabes— te cuenta que hay adelante. Es la voz util del silencio.
+    fase_trafico: 'CONDOR: PLATA FIEL, TENES ANTIAEREA ADELANTE. OJO.',
+    fase_cazas: 'CONDOR: ESTAN LLEGANDO CAZAS DESDE EL NORTE. OJO.',
+    fase_casa: 'PUMA: YA SE VE LA COSTA. TRAELO ENTERO.',
     fase_vuelta: 'PUMA: YA SABEN DONDE ESTAMOS. AHORA NOS BUSCAN.',
     death_mast: 'Chocaste una fragata', death_tree: 'Chocaste un arbol', death_helo: 'Colision con helicoptero',
     death_jet: 'Choque con avion enemigo', death_balloon: 'Globo de barrera',
@@ -1068,9 +1081,16 @@ export const STRINGS = {
     land_hud_spd: 'SPD', land_hud_vy: 'V/S', land_hud_gear: 'GEAR',
     land_hud_si: 'DOWN', land_hud_no: 'UP',
     land_gear_hint: '[T] LOWER GEAR',
+    fase_salida: 'PUMA: PLATA FLIGHT, ON ROUTE. NOTHING BUT SEA AHEAD.',
     fase_filo: 'PUMA: RADAR AHEAD. STAY ON THE DECK.',
-    fase_filo2: 'PUMA: ANOTHER PICKET. DOWN, AND HOLD YOUR BREATH.',
     fase_libre: 'PUMA: WE ARE CLEAR. CLIMB AND BREATHE.',
+    fase_descenso: 'PUMA: GOING DOWN. NOBODY TALKS FROM HERE.',
+    fase_rasante: 'CONDOR: PLATA FLIGHT, I HAVE YOU. DO NOT ANSWER.',
+    fase_filo2: 'CONDOR: ANOTHER PICKET AHEAD. DOWN, AND HOLD YOUR BREATH.',
+    fase_blanco: 'CONDOR: THERE IT IS. IT IS YOURS.',
+    fase_trafico: 'CONDOR: PLATA FLIGHT, TRIPLE-A AHEAD. WATCH IT.',
+    fase_cazas: 'CONDOR: FIGHTERS INBOUND FROM THE NORTH. WATCH IT.',
+    fase_casa: 'PUMA: COAST IN SIGHT. BRING IT HOME IN ONE PIECE.',
     fase_vuelta: 'PUMA: THEY KNOW WHERE WE ARE NOW. THEY ARE COMING.',
     death_mast: 'You hit a frigate', death_tree: 'You hit a tree', death_helo: 'Collided with a helicopter',
     death_jet: 'Hit an enemy plane', death_balloon: 'Barrage balloon',

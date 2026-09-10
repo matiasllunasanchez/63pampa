@@ -1004,6 +1004,7 @@ test('fases: TODAS las misiones de la campaña siguen SIN fases, y eso es el cri
 // ---------- EL BANCO DE PRUEBAS: t15 IDA Y VUELTA (PLAN_MISION_CINCO_FASES §5) ----------
 const { MISIONES_PRUEBA } = await import('../src/data/pruebas_misiones.js');
 const { SHIPS: SHIPS_T15, CAMPAIGN_CFG } = await import('../src/data/missions.js');
+const { STRINGS } = await import('../src/data/strings.js');
 
 test('t15: la mision del banco es valida y NO se coló en la campaña', () => {
   // LA SEPARACION ES LA MITAD DEL ITEM. `MISSIONS` es la campaña: su largo decide cuando termina
@@ -1022,14 +1023,31 @@ test('t15: la mision del banco es valida y NO se coló en la campaña', () => {
 test('t15: declara las cinco fases del plan, en orden, y la vuelta pasa del buque', () => {
   const t15 = MISIONES_PRUEBA[0];
   const tipos = t15.fases.map(f => f.tipo);
-  // EL ORDEN, corregido por el primer playtest: se arranca suelto, el filo se ANUNCIA y dura poco,
-  // se respira, y el segundo filo se mudo al final —pegado al blanco— porque el pedido fue
-  // "llegando cerca ahi si mas concentracion". Respirar / apretar / respirar / apretar (§11.2).
-  assert.deepEqual(tipos, ['transito', 'filo', 'transito', 'descenso', 'rasante', 'filo', 'blanco', 'vuelta']);
-  // LOS DOS FILOS SE AVISAN, y el aviso es la mitad del item: sin el, el jugador descubre el techo
-  // nuevo comiendose una oleada de misiles. Es lo unico que hace ensenable la mecanica.
-  for (const f of t15.fases.filter(f => f.tipo === 'filo'))
-    assert.ok(f.radio, `un filo sin \`radio\` no avisa, y entonces no ensena nada`);
+  // LA FORMA, sin ser fragil con las repeticiones: los tramos largos estan PARTIDOS en varias
+  // fases del mismo tipo para que Condor tenga donde hablar (una fase suena una sola vez), asi
+  // que lo que se afirma es la SECUENCIA DE ETAPAS, colapsando consecutivas iguales.
+  const etapas = tipos.filter((t, i) => t !== tipos[i - 1]);
+  assert.deepEqual(etapas, ['transito', 'filo', 'transito', 'descenso', 'rasante', 'filo', 'blanco', 'vuelta']);
+  // CADA ETAPA MARCADA POR UN DIALOGO. Es la regla que fijo el autor mirando el mapa —"que se
+  // marquen las etapas del mapa con dialogos, seguramente sera asi todo"—, y sin esta red una
+  // fase nueva se cuela muda y el jugador la cruza sin enterarse de que cambio algo.
+  for (const f of t15.fases) assert.ok(f.radio, `la fase '${f.tipo}' (hasta ${f.hasta}) no dice nada`);
+  // …Y EL REPARTO DE VOCES ES LA MECANICA DEL SILENCIO. Del descenso al blanco tiene que hablar
+  // SOLO Condor: si un dia alguien le pone una linea de PUMA a una fase muda, el efecto entero
+  // —que las voces vuelvan en la vuelta— deja de existir, y no lo agarraria ninguna otra prueba.
+  // EL DESCENSO QUEDA AFUERA a proposito, y la prueba misma lo enseño: su linea es PUMA
+  // DESPIDIENDOSE ("BAJAMOS. DE ACA EN ADELANTE NO SE HABLA"). Es el cierre de la radio del
+  // escuadron, no una violacion del silencio — la fase donde empieza es justo la que lo anuncia.
+  const mudas = ['rasante', 'blanco'];
+  for (const f of t15.fases) {
+    if (!mudas.includes(f.tipo)) continue;
+    assert.ok(STRINGS.es[f.radio].startsWith('CONDOR'),
+      `la fase muda '${f.tipo}' la dice alguien que no es Condor: ${STRINGS.es[f.radio]}`);
+  }
+  // …y la vuelta las devuelve: su primera linea es del ESCUADRON, no de tierra. Ese contraste es
+  // el "pase de lista gratis" del §2 del plan.
+  assert.ok(STRINGS.es[t15.fases.find(f => f.tipo === 'vuelta').radio].startsWith('PUMA'),
+    'la vuelta tiene que devolver la voz del escuadron');
   // …Y LA VUELTA MIDE LO MISMO QUE LA IDA: es la decision del autor sobre la forma de la mision.
   const vuelta = t15.fases[t15.fases.length - 1];
   assert.equal(vuelta.hasta, 2, 'la vuelta tiene que medir lo mismo que la ida (hasta 2.0)');

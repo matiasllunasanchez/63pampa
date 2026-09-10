@@ -81,32 +81,52 @@ const t15 = {
   // es una apuesta para que las estrellas no salgan las cuatro de arriba en el primer vuelo: es
   // de lo primero que hay que corregir con un numero medido.
   par: 20000,
-  // LA FORMA, corregida por el PRIMER PLAYTEST (7/9/2026). La version anterior tenia dos filos de
-  // veintidos segundos pegados al despegue y tardaba CIEN segundos en llegar al descenso; el
-  // reporte fue "no aburre pero es DEMASIADO LARGO" y, del filo, "es dificil tedioso y largo".
-  // Lo que cambio, y por que cada cosa:
+  // CADA ETAPA DEL MAPA ESTA MARCADA POR UNA LINEA DE RADIO, y es decision del autor sobre como va
+  // a funcionar el juego entero: "que se marquen las etapas del mapa con dialogos, seguramente
+  // sera asi todo". Una fase sin `radio` es una fase que el jugador cruza sin enterarse.
   //
-  //   · ARRANCA SUELTO. Los primeros veinte segundos se vuelan alto, con radio y sin presion. No
-  //     es relleno: es la linea de base contra la que el filo se siente estrecho.
-  //   · EL FILO SE ANUNCIA. Un Fiel avisa por radio ANTES de que el techo baje. Sin el aviso el
-  //     jugador descubre el corredor nuevo comiendose una oleada, que es aprender de la peor forma.
-  //   · Y DURA DIEZ SEGUNDOS. Un sostener de precision pasa de desafio a desgaste alrededor de los
-  //     ocho; veintidos eran tres veces eso.
-  //   · DESPUES SE RESPIRA, y tambien se avisa. Apretar sin soltar no es ritmo.
-  //   · EL SEGUNDO FILO SE MUDO AL FINAL, pegado al blanco, y aprieta mas (techo 6 contra 9). El
-  //     pedido fue textual: "llegando cerca ahi si mas concentracion".
-  //   · LA VUELTA MIDE LO MISMO QUE LA IDA (hasta 2.0 = otros 29 km) y es la MITAD DIFICIL. Es
-  //     historia ademas de dramaturgia: al atacar revelaste la posicion, y los que estaban cerca
-  //     salen a buscarte. Ida sigilosa, vuelta perseguida.
+  // Y EL REPARTO DE QUIEN HABLA ES LA MECANICA DEL SILENCIO, contada sin un solo cartel:
+  //   · hasta el descenso habla PUMA — el escuadron, que va con vos;
+  //   · del descenso al blanco habla SOLO CONDOR, que es tierra y no esta en riesgo;
+  //   · y en la vuelta PUMA vuelve.
+  // El jugador no tiene que entender la regla: la escucha. Ese es el "pase de lista gratis" del
+  // §2 del plan, funcionando sin una linea de codigo dedicada.
+  //
+  // CONDOR AVISA LO QUE VIENE. No te dice donde estas —eso ya lo sabes—: te dice que hay adelante.
+  // Por eso los tramos largos estan PARTIDOS en dos o tres fases del mismo tipo: una fase suena
+  // una sola vez, asi que un rasante de dos minutos con una linea es un rasante mudo. Partirlo no
+  // cambia nada del juego (los dos pedazos resuelven igual) y le da a Condor donde hablar.
+  //
+  // LA FORMA salio del primer playtest: la version anterior tenia dos filos de veintidos segundos
+  // pegados al despegue y tardaba CIEN segundos en llegar al descenso ("no aburre pero es
+  // DEMASIADO LARGO", "es dificil tedioso y largo"). Ahora se arranca suelto, el filo se ANUNCIA y
+  // dura diez, y el segundo se mudo al final —pegado al blanco— porque el pedido fue textual:
+  // "llegando cerca ahi si mas concentracion".
   fases: [
-    { tipo: 'transito', hasta: 0.05 },
+    { tipo: 'transito', hasta: 0.05, radio: 'fase_salida' },
     { tipo: 'filo', hasta: 0.10, radio: 'fase_filo' },
     { tipo: 'transito', hasta: 0.16, radio: 'fase_libre' },
-    { tipo: 'descenso', hasta: 0.20 },
-    { tipo: 'rasante', hasta: 0.80 },
+    { tipo: 'descenso', hasta: 0.20, radio: 'fase_descenso' },
+    { tipo: 'rasante', hasta: 0.45, radio: 'fase_rasante' },
+    { tipo: 'rasante', hasta: 0.80, radio: 'fase_trafico' },
     { tipo: 'filo', hasta: 0.87, radar: 6, radio: 'fase_filo2' },
-    { tipo: 'blanco', hasta: 1 },
-    { tipo: 'vuelta', hasta: 2.0, radio: 'fase_vuelta' },
+    { tipo: 'blanco', hasta: 1, radio: 'fase_blanco' },
+    // LA VUELTA, EN TRES: vuelven las voces · llegan los cazas · se ve la costa. Es la mitad
+    // dificil y la mas larga, y sin partirla tendria una sola linea en tres minutos.
+    { tipo: 'vuelta', hasta: 1.35, radio: 'fase_vuelta' },
+    { tipo: 'vuelta', hasta: 1.70, radio: 'fase_cazas' },
+    { tipo: 'vuelta', hasta: 2.0, radio: 'fase_casa' },
+  ],
+  // …Y UNA CHARLA EN VUELO, para ver el OTRO formato de dialogo. Los `radio:` son una linea con
+  // retrato en la caja chica; una `charla:` es una escena entera de data/story.js corriendo en
+  // vuelo (SPEC_CHARLAS_VUELO), con su propia caja y su propio ritmo. Van por TRAMOS y no por
+  // fases a proposito: es la demostracion de que los dos items conviven sin pisarse — el tramo
+  // solo trae la charla, y todas las densidades siguen saliendo de la fase.
+  // M01_GANSOS es contenido de M1 reusado: esta mision es un banco, no tiene guion propio.
+  tramos: [
+    { hasta: 0.02 },
+    { hasta: 0.038, charla: 'M01_GANSOS' },
+    { hasta: 1 },
   ],
 };
 
