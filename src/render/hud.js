@@ -16,7 +16,7 @@ import { proj } from '../core/fx.js';
 import { scrapeLimit } from '../core/physics.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
-import { MSL_MAX, RADAR_ALT } from '../data/tuning.js';
+import { MSL_MAX, RADAR_ALT, EST_MAX } from '../data/tuning.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName } from '../systems/squad.js';
 import { active as tempoActive, meterVal as tempoMeter } from '../systems/tempo.js';
@@ -504,6 +504,21 @@ function drawADI() {
 // Lo comparte el HUD de vuelo y la sobreimpresion del relevo (render/squad.js).
 export const SQUAD_H = 17;   // alto de la placa: dos renglones (ver abajo)
 
+/** EL ANCHO DE LA PLACA DEL ESCUADRON. Sale aparte porque el panel de NIVEL DE ALERTA se dibuja
+ *  justo debajo y tiene que medir LO MISMO — y dos copias de esta cuenta es el bug que este repo
+ *  ya se comio dos veces. El ancho depende del texto, asi que hay que medirlo, no adivinarlo.
+ *
+ *  Vale aunque no haya placa (`run.squad <= 1`): el panel de alerta igual necesita un ancho, y que
+ *  sea el que la placa TENDRIA es lo que mantiene la columna alineada cuando el escuadron aparece. */
+export function anchoSquad() {
+  const nombre = pilotName(pilotIdx(run.squad, run.lives));
+  ctx.font = F_ROT;
+  const wRot = ctx.measureText(T('hud_squad')).width;
+  ctx.font = F_VAL;
+  const wFila = Math.max(2, run.squad) * 8 + 2 + ctx.measureText(nombre).width;
+  return Math.round(Math.max(wRot, wFila)) + 8;
+}
+
 export function drawSquadPips(x, y) {
   const fallen = pilotIdx(run.squad, run.lives);
   const nombre = pilotName(fallen);
@@ -512,11 +527,7 @@ export function drawSquadPips(x, y) {
   // bloque el ancho de una placa de instrumento y no el de una tira, que es lo que pasa a ser
   // desde que vive en la esquina de arriba a la izquierda (playtest 29/8).
   ctx.textAlign = 'left';
-  ctx.font = F_ROT;
-  const wRot = ctx.measureText(T('hud_squad')).width;
-  ctx.font = F_VAL;
-  const wFila = run.squad * 8 + 2 + ctx.measureText(nombre).width;
-  plate(x, y, Math.round(Math.max(wRot, wFila)) + 8, SQUAD_H);
+  plate(x, y, anchoSquad(), SQUAD_H);
   ctx.fillStyle = P.dim; ctx.font = F_ROT;
   ctx.fillText(T('hud_squad'), x + 4, y + 7);
   for (let i = 0; i < run.squad; i++) {
@@ -531,6 +542,35 @@ export function drawSquadPips(x, y) {
   // era una etiqueta mas. Es la unica persona que hay en el HUD: va del color del que manda.
   ctx.fillStyle = P.accent; ctx.font = F_VAL;
   ctx.fillText(nombre, x + 6 + run.squad * 8, y + 15);
+}
+
+/** NIVEL DE ALERTA — cuantos te estan buscando (PLAN_ESTRELLAS_BUSQUEDA §7).
+ *
+ *  VIVE DEBAJO DEL ESCUADRON Y CON SU MISMO ANCHO, por pedido del autor, y la ubicacion dice algo:
+ *  la esquina de arriba a la izquierda es QUIEN VUELA — cuantos quedan y quien manda. Cuantos te
+ *  buscan es la otra mitad de la misma pregunta, y leerlas juntas es leer la corrida.
+ *
+ *  NUMEROS Y NO ESTRELLAS. El contador de GTA fue la analogia de la que nacio el item, no lo que
+ *  el juego muestra: un icono de arcade moderno desentonaria con todo lo demas del tablero. Cuatro
+ *  cifras, la actual encendida y las pasadas tambien — se lee como un nivel, que es lo que es.
+ *
+ *  Y DEBAJO CORRE EL RELOJ DEL ESCONDITE, que es lo que vuelve la mecanica jugable: si sostener el
+ *  rasante veinte segundos baja un nivel, el jugador tiene que VER esos veinte segundos correr.
+ *  Sin el, esconderse no es una decision — es fe. */
+export const ALERTA_H = 15;
+
+export function drawAlerta(x, y, w, n, prog) {
+  plate(x, y, w, ALERTA_H);
+  ctx.textAlign = 'left'; ctx.font = F_ROT;
+  ctx.fillStyle = n > 0 ? P.warn : P.dim;
+  ctx.fillText(T('est_rotulo'), x + 4, y + 7);
+  ctx.font = F_VAL;
+  for (let i = 1; i <= EST_MAX; i++) {
+    ctx.fillStyle = i <= n ? P.warn : '#3a4750';
+    ctx.fillText(String(i), x + 4 + (i - 1) * 7, y + 14);
+  }
+  // el reloj, al ras del canto de abajo: la misma convencion que la barrita de la caja de radio
+  if (prog > 0) px(x + 1, y + ALERTA_H - 2, Math.max(1, Math.round((w - 2) * prog)), 1, P.foam);
 }
 
 export function drawHUD(h) {
@@ -552,6 +592,10 @@ export function drawHUD(h) {
   let ty = 3;
   // vidas del escuadron. Con 1 avion no se dibuja: seria un tablero de nada
   if (run.squad > 1) { drawSquadPips(MARGEN, ty); ty += SQUAD_H + AIRE; }
+  // …Y JUSTO DEBAJO, EL NIVEL DE ALERTA. Solo cuando hay algo que decir: a nivel cero el panel
+  // seria una fila vacia ocupando la esquina, y el HUD de este juego no muestra instrumentos que
+  // no tienen nada que contar (misma regla que la barra de la Chancha sin combustible).
+  if (h.estrellas > 0) { drawAlerta(MARGEN, ty, anchoSquad(), h.estrellas, h.escondite); ty += ALERTA_H + AIRE; }
   // PERSECUCION no tiene objetivo NI record: la cinta no tiene contra que medir, asi que el
   // kilometraje se queda aca como contador abierto — la forma que le toca cuando no hay meta.
   if (objectiveDist <= 0 && gameMode !== 'survival') { drawOdo(MARGEN, ty); ty += 12 + AIRE; }
@@ -594,29 +638,6 @@ export function drawHUD(h) {
     // parpadeo mas rapido para el roce: la urgencia se lee en el ritmo, no solo en el texto
     ctx.fillStyle = Math.sin(run.t * (scraping ? 30 : 14)) > 0 ? P.warn : '#7d2f1e';
     ctx.fillText(scraping ? T('scrape') : T('radar'), W / 2, warnY);
-  }
-  // LAS ESTRELLAS DE BUSQUEDA (PLAN_ESTRELLAS_BUSQUEDA §7), pegadas al aviso de radar porque son
-  // EL MISMO DATO EN OTRA ESCALA: la barra es "te estan viendo AHORA", las estrellas son "cuantos
-  // te buscan". Ponerlas en otro rincon obligaria a cruzar dos lugares para entender una cosa.
-  //
-  // MARCAS Y NO ESTRELLITAS: el juego no tiene ese registro visual — un icono de arcade moderno
-  // aca desentonaria con todo lo demas. Cuatro cuñas que se llenan dicen lo mismo y hablan el
-  // idioma del tablero.
-  if (h.estrellas > 0) {
-    // EL ROTULO importa tanto como las marcas: sin el, cuatro cuñas al lado del aviso de radar se
-    // leen como cualquier otro indicador. Dice BUSQUEDA y no "estrellas" — el contador de GTA fue
-    // la analogia de la que nacio el item, no lo que el juego pone en pantalla. Lo que se cuenta
-    // es cuantos te estan buscando.
-    const n = h.estrellas, ex = W / 2 - 13, ey = warnY - 14;
-    plate(ex - 22, ey - 5, 51, 8);
-    ctx.textAlign = 'right'; ctx.font = F_ROT; ctx.fillStyle = P.dim;
-    ctx.fillText(T('est_rotulo'), ex - 4, ey);
-    ctx.textAlign = 'center';
-    for (let i = 0; i < 4; i++) px(ex + i * 7, ey - 3, 5, 4, i < n ? P.warn : '#2a3239');
-    // EL RELOJ DEL ESCONDITE, debajo. Es lo que vuelve la mecanica jugable: si bajar veinte
-    // segundos baja una estrella, el jugador tiene que VER esos veinte segundos correr. Sin esto
-    // esconderse no es una decision, es fe. Solo aparece mientras el reloj corre de verdad.
-    if (h.escondite > 0) px(ex, ey + 2, Math.max(1, Math.round(25 * h.escondite)), 1, P.foam);
   }
   // BARRA de carga del radar, bajo el aviso. Sin numero de oleada: el dato que importa es cuanto
   // falta para la proxima tanda, y eso ya lo dice la barra llenandose.
