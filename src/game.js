@@ -90,7 +90,7 @@ import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, update
 import * as world3D from './legacy/three-world.js';
 import { cv, ctx, W, H, HOR, F, PZ, SC, px, panel, U } from './render/ctx.js';
 import * as screens from './render/screens.js';
-import { decir as decirRadio, callar as callarRadio, tickRadio, radio as radioBox, restante as radioRest, visible as radioVis, log as radioLog } from './core/radioVN.js';
+import { decir as decirRadio, apuntar as apuntarRadio, callar as callarRadio, tickRadio, radio as radioBox, restante as radioRest, visible as radioVis, log as radioLog } from './core/radioVN.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
 import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
 import { drawDesenfoque, BLUR_DBG } from './render/desenfoque.js';   // BLUR_DBG: QUITAR con __blurdbg
@@ -604,7 +604,27 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         return;
       }
       if (!autoDeCharla) { dlg.auto = true; autoDeCharla = true; }
+      // …Y LO DICHO QUEDA ANOTADO. Pedido del autor: "una vez pasado el texto conviene tenerlo en
+      // algun box historico". El historial ya existe —es el que alimenta el modo PANEL de la radio
+      // (OPCIONES → RADIO: PANEL, las ultimas cuatro lineas como un chat)—, pero solo lo llenaba
+      // `decir()`, o sea las radios. Las charlas pasaban y no dejaban rastro.
+      // Se anota AL ENTRAR a cada linea, no al terminarla: asi lo que se lee en el panel es lo
+      // mismo que se esta escuchando, y no va un renglon atrasado.
+      const liAntes = dlg.li, siAntes = dlg.si;
       if (dialogue.stepDialogue(dt) === 'auto' && dialogue.advance() === 'end') charlaFin = true;
+      if (dlg.li !== liAntes || dlg.si !== siAntes) anotarCharla();
+    }
+
+    /** Anota en el HISTORIAL de la radio la linea de charla que esta sonando. Es el mismo log que
+     *  mira el modo PANEL, asi que una conversacion en vuelo se puede releer igual que un aviso.
+     *
+     *  Se usa `apuntar` y no `decir` a proposito: `decir` ademas ENCIENDE la caja de radio, y una
+     *  charla que dispare el toast de radio en cada linea seria la misma frase dos veces en
+     *  pantalla, en dos cajas distintas. */
+    function anotarCharla() {
+      const ln = dialogue.line();
+      if (!ln) return;
+      apuntarRadio(ln.personaje || null, ln.cara || null, dialogue.txtOf(ln));
     }
 
     function startCampaign() {
@@ -3694,6 +3714,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // la misma banda y ninguna toca la UI (SPEC_CHARLAS_VUELO §0b).
         ctx.save(); ctx.scale(U, U);
         if (cfg.radioUI === 'panel') screens.drawRadioPanel(); else screens.drawRadioVN();
+        // LA CHARLA EN VUELO, en su propia caja y un escalon arriba del toast. Va DESPUES de la
+        // radio para que, si las dos coinciden, la conversacion quede encima del aviso.
+        if (charla.hablando()) screens.drawCharla({ dlg });
         ctx.restore();
       }
       if (S.state === 'momentum' && momentum.active()) momRender.drawMomentum({

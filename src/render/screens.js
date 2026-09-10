@@ -1233,6 +1233,73 @@ export function drawRadioVN() {
   ctx.globalAlpha = 1;
 }
 
+/** LA CHARLA EN VUELO (SPEC_CHARLAS_VUELO): la caja que le faltaba.
+ *
+ *  POR QUE NO ALCANZABA `drawStory`. Aquella es la tarjeta de HISTORIA y arranca con un
+ *  `fillRect(0,0,W,H)`: tapa el mundo entero, que es correcto en 'story' y absurdo volando. El
+ *  resultado de no tener una propia fue un bug de manual — la charla corria su maquina, congelaba
+ *  el odometro hasta 25 s y NO DIBUJABA NADA. El jugador veia el avion volando sin avanzar.
+ *
+ *  ES HERMANA DEL TOAST DE RADIO a proposito: misma banda, mismo busto, mismo borde. Las dos son
+ *  "alguien esta hablando mientras volas" y tienen que leerse como la misma familia — lo unico que
+ *  las separa es que la charla es una CONVERSACION (se tipea, dura, puede ocupar tres renglones) y
+ *  la radio es un aviso que pasa.
+ *
+ *  Va un escalon MAS ARRIBA que el toast para que, si una radio de tramo cae encima de una charla,
+ *  las dos se lean en vez de pisarse. */
+const CHV_W = 262, CHV_H = 38, CHV_CARA = 26;
+
+export function drawCharla(w) {
+  const d = w.dlg;
+  const sc = d.seq[d.si];
+  const ln = sc && sc.lineas ? sc.lineas[d.li] : null;
+  if (!ln) return;
+  const bw = CHV_W, bh = CHV_H;
+  const bx = Math.round((W - bw) / 2);
+  // entra subiendo, igual que el toast, pero desde SU banda: la del toast menos su alto
+  const ease = Math.max(0, Math.min(1, d.sceneT / 0.3));
+  const by = Math.round((HUD_TINTA - 2 - TOAST_H - 3) - bh + (1 - ease) * (bh + 10));
+  ctx.globalAlpha = 0.94 * (0.4 + 0.6 * ease);
+  ctx.fillStyle = '#070b0f'; ctx.fillRect(bx, by, bw, bh);
+  ctx.globalAlpha = ease;
+  ctx.strokeStyle = '#3a4c58'; ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+
+  let tx = bx + 6;
+  if (ln.cara) {
+    const ps = CHV_CARA, py0 = by + (bh - ps) / 2;
+    ctx.fillStyle = '#0d1319'; ctx.fillRect(tx, py0, ps, ps);
+    const im = portraitImg(ln.cara);
+    if (im) ctx.drawImage(im, tx, py0, ps, ps);
+    else {                                            // la misma silueta de respaldo que el toast
+      const u = ps / 36;
+      ctx.fillStyle = '#22303b';
+      ctx.fillRect(tx + 13 * u, py0 + 6 * u, 10 * u, 11 * u);
+      ctx.fillRect(tx + 6 * u, py0 + 20 * u, 24 * u, 16 * u);
+    }
+    ctx.globalAlpha = 0.7 * ease; ctx.strokeStyle = P.accent;
+    ctx.strokeRect(tx + 0.5, py0 + 0.5, ps - 1, ps - 1); ctx.globalAlpha = ease;
+    tx += ps + 5;
+  }
+  ctx.textAlign = 'left';
+  let ty = by + 10;
+  if (ln.personaje) {
+    ctx.font = 'bold 5px monospace'; ctx.fillStyle = P.accent;
+    ctx.fillText(ln.personaje, tx, ty);
+    ty += 7;
+  }
+  // EL TIPEO ES DEL MOTOR: `d.typed` cuenta sobre el texto ENTERO, asi que se va gastando renglon
+  // por renglon. Es la misma cuenta que hace `drawStory` — el efecto tiene que ser el mismo aunque
+  // la caja sea otra.
+  ctx.font = '6px monospace'; ctx.fillStyle = P.ink;
+  let left = d.typed;
+  for (let i = 0; i < Math.min(3, d.wrap.length); i++) {
+    if (left <= 0) break;
+    ctx.fillText(d.wrap[i].slice(0, left), tx, ty + i * 7);
+    left -= d.wrap[i].length + 1;                     // +1: el espacio que se comio el wrap
+  }
+  ctx.globalAlpha = 1;
+}
+
 // ---------- EL PANEL: la radio de la escuadrilla ----------
 //
 // La otra presentacion del MISMO dato (perilla en OPCIONES). Donde el toast muestra UNA linea que

@@ -69,6 +69,18 @@ export function tickLog(dt) {
   while (log.length > LOG_N) log.shift();
 }
 
+/** ANOTA EN EL HISTORIAL SIN ENCENDER LA CAJA.
+ *
+ *  Existe para las CHARLAS EN VUELO, que tienen caja propia: si usaran `decir()` la misma frase
+ *  aparecería dos veces en pantalla, en dos cajas distintas. Lo que comparten con la radio no es
+ *  la presentacion — es la MEMORIA: el modo PANEL muestra las ultimas cuatro cosas que se dijeron,
+ *  y una conversacion que no deja rastro ahi es una conversacion que no se puede releer. */
+export function apuntar(personaje, cara, txt) {
+  if (!txt) return;
+  log.push({ personaje: personaje || null, cara: cara || null, txt, t: 0 });
+  while (log.length > LOG_N) log.shift();
+}
+
 export function decir(raw, caraDe) {
   const { personaje, txt } = partirHablante(raw);
   radio.personaje = personaje;

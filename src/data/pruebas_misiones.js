@@ -22,7 +22,18 @@ const P = over => ({ ...CAMPAIGN_CFG, ...over });
 // LO QUE PUEDE NACER EN LA IDA. Todo esto es MUNDO, no enemigo: la ola que hay que saltar, la
 // bandada que hay que esquivar, el globo de barrera colgado de su cable, los postes y el arbol.
 // Nada dispara, nada persigue. Es la definicion de "sigilo" dicha en tipos de spawn.
-const IDA = ['ola', 'birds', 'balloon', 'poles', 'tree'];
+// LO QUE PUEDE NACER EN LA IDA, y son DOS listas porque el playtest separo dos cosas que yo habia
+// puesto juntas.
+//
+// MAR ABIERTO es naturaleza y nada mas: la ola que hay que saltar y la bandada que hay que
+// esquivar. Ni un globo — "es mucho tramo de globos demasiado lejos del objetivo".
+const IDA_MAR = ['ola', 'birds'];
+// …Y DE LA MITAD EN ADELANTE aparece la DEFENSA. El globo de barrera no es fauna: es una cosa que
+// alguien colgo de un cable para proteger algo, asi que tiene que aparecer cerca de lo que
+// protege. Textual del autor: "a partir de la mitad en adelante recien aparecen los primeros
+// globos como para proteger la zona". El dato dice lo mismo que la intuicion: un globo lejos del
+// blanco no defiende nada, decora.
+const IDA_DEFENSA = ['ola', 'birds', 'balloon', 'poles'];
 
 // ---------------------------------------------------------------------------------------------
 // t15 · IDA Y VUELTA — el banco de la estructura de cinco fases.
@@ -111,38 +122,32 @@ const t15 = {
   // "llegando cerca ahi si mas concentracion".
   fases: [
     // ── LA IDA: NATURALEZA, NO GUERRA ──────────────────────────────────────────────────────
-    // Decision del autor tras el playtest: "en la IDA solo debe aparecer obstaculos como los
-    // puentes o cosas asi, OLAS, BANDADAS, y obstaculos de los acantilados, nada mas". Va por
-    // `solo`, que RECORTA la mezcla en vez de inclinarla — con `favor` igual se colaba un
-    // helicoptero cada tantos sorteos, y un helicoptero en el tramo de sigilo no es una
-    // probabilidad baja: es la escena rota. Los puentes y los acantilados no estan en la lista
-    // porque no los siembra este sistema: son del CALLEJON (cfg.zigzag), que va por su cuenta.
+    // `solo` RECORTA la mezcla (a diferencia de `favor`, que solo la inclina): lo que no esta en
+    // la lista no aparece. Los puentes y los acantilados no figuran porque no los siembra este
+    // sistema — son del CALLEJON (cfg.zigzag), que va por su cuenta.
     //
-    // Y SIN BIDONES. Tambores de combustible flotando en el Atlantico no significan nada —
-    // "¿que sentido tiene eso?"—. Aca el combustible tiene UNA fuente y es historica: el
-    // Hercules. Ver la nota de las zonas mas abajo.
-    { tipo: 'transito', hasta: 0.05, radio: 'fase_salida', solo: IDA, bidones: false },
-    { tipo: 'filo', hasta: 0.10, radio: 'fase_filo', bidones: false },
-    // LA ZONA DE LA CHANCHA, EN LA IDA. Cae justo donde Puma te dice que subas a respirar, y no
-    // es casualidad que quede bien: el enganche real se hacia A QUINCE MIL PIES. El Hercules
-    // esta arriba, y para engancharse hay que dejar el ras — que es exactamente la tension que
-    // el poder ya tenia escrita (no convive con el RASANTE).
-    { tipo: 'transito', hasta: 0.16, radio: 'fase_chancha_ida', solo: IDA, bidones: false, chancha: true },
-    { tipo: 'descenso', hasta: 0.20, radio: 'fase_descenso', solo: IDA, bidones: false },
-    { tipo: 'rasante', hasta: 0.45, radio: 'fase_rasante', solo: IDA, bidones: false },
-    { tipo: 'rasante', hasta: 0.80, radio: 'fase_trafico', solo: IDA, bidones: false },
-    { tipo: 'filo', hasta: 0.87, radar: 6, radio: 'fase_filo2', bidones: false },
-    { tipo: 'blanco', hasta: 1, radio: 'fase_blanco', bidones: false },
+    // `bombs: 0` EN TODA LA IDA, y el motivo es de guion antes que de dificultad: una bomba
+    // cayendo del cielo significa QUE TE VIERON, y la ida entera es el tramo en el que no te
+    // vieron. Textual: "vi bombas cayendo, no deberian caer en la ida". El tipo `transito` ya lo
+    // traia; `descenso`, `rasante` y `blanco` heredaban el cfg y por eso bombardeaban.
+    //
+    // Y SIN BIDONES en ninguna fase: tambores flotando en el Atlantico no significan nada. El
+    // combustible tiene una sola fuente y es el Hercules (ver las zonas mas abajo).
+    { tipo: 'transito', hasta: 0.05, radio: 'fase_salida', solo: IDA_MAR, bombs: 0, bidones: false },
+    { tipo: 'filo', hasta: 0.10, radio: 'fase_filo', bombs: 0, bidones: false },
+    { tipo: 'transito', hasta: 0.16, radio: 'fase_chancha_ida', solo: IDA_MAR, bombs: 0, bidones: false, chancha: true },
+    { tipo: 'descenso', hasta: 0.20, radio: 'fase_descenso', solo: IDA_MAR, bombs: 0, bidones: false },
+    { tipo: 'rasante', hasta: 0.50, radio: 'fase_rasante', solo: IDA_MAR, bombs: 0, bidones: false },
+    // LA MITAD: de aca en adelante el mundo esta DEFENDIDO. Es el primer globo del vuelo, y su
+    // aparicion es informacion — "hay algo cerca que vale la pena proteger".
+    { tipo: 'rasante', hasta: 0.80, radio: 'fase_trafico', solo: IDA_DEFENSA, bombs: 0, bidones: false },
+    { tipo: 'filo', hasta: 0.87, radar: 6, radio: 'fase_filo2', bombs: 0, bidones: false },
+    { tipo: 'blanco', hasta: 1, radio: 'fase_blanco', solo: IDA_DEFENSA, bombs: 0, bidones: false },
     // ── LA VUELTA: LA GUERRA ───────────────────────────────────────────────────────────────
-    // Sin `solo`: aca nace todo lo que el pasillo sabe hacer — helicopteros, barcazas, aviones —
-    // ademas de lo que ya habia en la ida. Es la mitad dificil, y es historia: al atacar
-    // revelaste la posicion y los que estaban cerca salen a buscarte.
+    // Sin `solo` y sin `bombs: 0`: aca nace todo lo que el pasillo sabe hacer —helicopteros,
+    // barcazas, aviones— y ahora SI te bombardean, porque ahora si te vieron.
     { tipo: 'vuelta', hasta: 1.30, radio: 'fase_vuelta', bidones: false },
     { tipo: 'vuelta', hasta: 1.60, radio: 'fase_cazas', bidones: false },
-    // LA SEGUNDA ZONA, la de la EMERGENCIA. Historico tambien: la Chancha los esperaba al
-    // retornar si venian con daños, perdidas de combustible o demoras. Y como el poder se gasta
-    // UNA sola vez, aca esta la decision entera de la mision: la usaste a la ida para llegar
-    // holgado, o la guardaste para volver. Las dos son defendibles, y esa es la idea.
     { tipo: 'vuelta', hasta: 1.85, radio: 'fase_chancha_vuelta', bidones: false, chancha: true },
     { tipo: 'vuelta', hasta: 2.0, radio: 'fase_casa', bidones: false },
   ],
