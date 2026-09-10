@@ -1022,8 +1022,17 @@ test('t15: la mision del banco es valida y NO se coló en la campaña', () => {
 test('t15: declara las cinco fases del plan, en orden, y la vuelta pasa del buque', () => {
   const t15 = MISIONES_PRUEBA[0];
   const tipos = t15.fases.map(f => f.tipo);
-  // el orden del plan, con el transito PARTIDO en dos por los filos (§11.2: respirar y apretar)
-  assert.deepEqual(tipos, ['transito', 'filo', 'transito', 'filo', 'descenso', 'rasante', 'blanco', 'vuelta']);
+  // EL ORDEN, corregido por el primer playtest: se arranca suelto, el filo se ANUNCIA y dura poco,
+  // se respira, y el segundo filo se mudo al final —pegado al blanco— porque el pedido fue
+  // "llegando cerca ahi si mas concentracion". Respirar / apretar / respirar / apretar (§11.2).
+  assert.deepEqual(tipos, ['transito', 'filo', 'transito', 'descenso', 'rasante', 'filo', 'blanco', 'vuelta']);
+  // LOS DOS FILOS SE AVISAN, y el aviso es la mitad del item: sin el, el jugador descubre el techo
+  // nuevo comiendose una oleada de misiles. Es lo unico que hace ensenable la mecanica.
+  for (const f of t15.fases.filter(f => f.tipo === 'filo'))
+    assert.ok(f.radio, `un filo sin \`radio\` no avisa, y entonces no ensena nada`);
+  // …Y LA VUELTA MIDE LO MISMO QUE LA IDA: es la decision del autor sobre la forma de la mision.
+  const vuelta = t15.fases[t15.fases.length - 1];
+  assert.equal(vuelta.hasta, 2, 'la vuelta tiene que medir lo mismo que la ida (hasta 2.0)');
   assert.ok(t15.fases[t15.fases.length - 1].hasta > 1, 'la vuelta tiene que vivir pasado el objetivo');
   // EL SEGUNDO FILO APRIETA MAS QUE EL PRIMERO: el primero enseña la banda, el segundo la cobra.
   // Sin esta diferencia son dos veces la misma prueba y el tramo no tiene curva.

@@ -310,9 +310,16 @@ export function drawDead(w) {
   const yScore = hasAward ? 100 : 74;
   ctx.fillStyle = P.ink; ctx.font = menuFont(14);
   ctx.fillText(T('scoreLabel', { n: Math.floor(w.score) }), W / 2, yScore);
-  ctx.fillStyle = Math.floor(w.score) >= w.best && w.best > 0 ? P.accent : P.dim;
-  ctx.font = labelFont(9);
-  ctx.fillText((Math.floor(w.score) >= w.best && w.best > 0 ? T('newRecord') : T('bestDead', { n: w.best })), W / 2, yScore + 13);
+  // EL RECORD, SOLO SI HAY UNO. `best` llega en CERO fuera de POR LA PATRIA —el unico modo que lo
+  // hace y el unico que lo muestra— y tambien en una partida nueva. Antes el cero pasaba igual y la
+  // pantalla decia «MEJOR 0», que no es un record sino un cero; y en los modos con objetivo llegaba
+  // a decir «NUEVO RECORD» por un maximo hecho en otro modo que ademas no se iba a guardar.
+  if (w.best > 0) {
+    const supera = Math.floor(w.score) >= w.best;
+    ctx.fillStyle = supera ? P.accent : P.dim;
+    ctx.font = labelFont(9);
+    ctx.fillText(supera ? T('newRecord') : T('bestDead', { n: w.best }), W / 2, yScore + 13);
+  }
 
   ctx.fillStyle = '#8a9ba1'; ctx.font = descFont(9);
   wrapText('» ' + L().facts[w.factIdx], W / 2, yScore + 32, 260, 11);

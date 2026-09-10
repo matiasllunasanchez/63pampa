@@ -16,7 +16,7 @@
 //
 // ESTE ARCHIVO NO TIENE LOGICA. Es la tabla; la resuelve core/fases.js y la sostiene
 // systems/fases.js, con la misma division que core/tramos.js ↔ systems/tramos.js.
-import { FILO_RADAR } from './tuning.js';
+import { FILO_RADAR, FILO_AGUA } from './tuning.js';
 
 /** LOS DEFAULTS DE CADA TIPO, y la regla es que **solo declaran lo que el tipo CAMBIA**.
  *
@@ -45,7 +45,7 @@ export const TIPOS = {
   // no hay radio PORQUE ESTAS CONTENIENDO LA RESPIRACION, que es mejor motivo que el historico.
   // La nafta va a x2 aunque no sea el rasante del pasillo porque el regimen es el mismo: volar
   // pegado al agua cuesta el doble, y el filo es exactamente eso con el techo mas cerca.
-  filo: { obstacles: 0, caza: 0, bombs: 0, radar: FILO_RADAR, voces: false, nafta: 2, pinta: 'cap' },
+  filo: { obstacles: 0, caza: 0, bombs: 0, radar: FILO_RADAR, agua: FILO_AGUA, voces: false, nafta: 2, pinta: 'cap' },
 
   // EL DESCENSO. No cambia la siembra —la hereda del cfg— porque su tension no es el enemigo:
   // es la decision de cuando bajar. Lo unico suyo es que aca se apagan las voces.
@@ -58,9 +58,11 @@ export const TIPOS = {
   // pasillo solo (VEIL_STOP), asi que no necesita apagar nada — el mundo ya se limpio.
   blanco: { voces: false, nafta: 2, pinta: 'cap' },
 
-  // LA VUELTA: la guerra. El pasillo de siempre, con la siembra del cfg y las voces de vuelta.
-  // x0.85 porque venis liviano: soltaste las bombas, y la vuelta es mas barata que la ida (§3).
-  vuelta: { voces: true, nafta: 0.85, pinta: 'cap' },
+  // LA VUELTA: la guerra, y la mitad DIFICIL de la mision. No hereda la siembra del cfg — la sube,
+  // y el motivo es historico ademas de dramatico: al atacar revelaste la posicion, y los que
+  // estaban cerca salen a buscarte. Ida sigilosa, vuelta perseguida.
+  // x0.85 de nafta porque venis liviano: soltaste las bombas, y volver sale mas barato (§3).
+  vuelta: { obstacles: 1.6, caza: 2, voces: true, nafta: 0.85, pinta: 'cap' },
 };
 
 /** Los tipos validos, para el validador y para los mensajes de error. */

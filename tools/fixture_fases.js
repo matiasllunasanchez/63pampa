@@ -94,8 +94,8 @@ app.whenReady().then(async () => {
     // ---------- 3. LAS FASES GOBIERNAN ----------
     console.log('\n3. cada fraccion contesta su fase, con los valores resueltos:');
     const esperado = [
-      [0.04, 'transito'], [0.13, 'filo'], [0.22, 'transito'],
-      [0.30, 'filo'], [0.42, 'descenso'], [0.70, 'rasante'], [0.96, 'blanco'],
+      [0.03, 'transito'], [0.08, 'filo'], [0.13, 'transito'],
+      [0.18, 'descenso'], [0.50, 'rasante'], [0.84, 'filo'], [0.95, 'blanco'],
     ];
     for (const [p, tipo] of esperado) {
       const f = await fasePorFraccion(p);
@@ -104,8 +104,8 @@ app.whenReady().then(async () => {
     }
     // EL FILO ESTRANGULA DE VERDAD, y el segundo mas que el primero: el primero enseña la banda,
     // el segundo la cobra. Sin esa diferencia son dos veces la misma prueba.
-    const f1 = await fasePorFraccion(0.13), f2 = await fasePorFraccion(0.30);
-    const transito = await fasePorFraccion(0.04);
+    const f1 = await fasePorFraccion(0.08), f2 = await fasePorFraccion(0.84);
+    const transito = await fasePorFraccion(0.03);
     if (f1.radar < transito.radar) ok(`el filo baja el techo de ${transito.radar} a ${f1.radar}`);
     else bad(`el filo no estrangula: techo ${f1.radar} contra ${transito.radar} del transito`);
     if (f2.radar < f1.radar) ok(`y el segundo filo aprieta mas que el primero (${f2.radar} < ${f1.radar})`);
@@ -118,17 +118,17 @@ app.whenReady().then(async () => {
 
     // ---------- 4. LA VUELTA VIVE PASADO EL BUQUE ----------
     console.log('\n4. la vuelta — lo que un tramo no puede hacer:');
-    const v = await fasePorFraccion(1.3);
-    if (v && v.tipo === 'vuelta') ok(`a p=1.3, pasado el buque, sigue habiendo fase: ${v.tipo}`);
+    const v = await fasePorFraccion(1.5);
+    if (v && v.tipo === 'vuelta') ok(`a p=1.5, pasado el buque, sigue habiendo fase: ${v.tipo}`);
     else bad(`pasado el objetivo la fase es '${v && v.tipo}' y deberia ser 'vuelta'`);
     if (v && v.voces === true) ok('y las voces VUELVEN: es el pase de lista, gratis');
     else bad(`la vuelta reporta voces=${v && v.voces}`);
     if (v && v.nafta === 0.85) ok('y quema menos: venis liviano, sin bombas');
     else bad(`la nafta de la vuelta es x${v && v.nafta}`);
     // …y pasada la ULTIMA fase ya no hay nada: aterrizaste
-    const fin = await fasePorFraccion(2.5);
+    const fin = await fasePorFraccion(2.6);
     if (fin && fin.idx === null) ok('pasada la ultima fase no hay fase: se acabo la mision');
-    else bad(`a p=2.5 todavia reporta ${JSON.stringify(fin && fin.tipo)}`);
+    else bad(`a p=2.6 todavia reporta ${JSON.stringify(fin && fin.tipo)}`);
   }
 
   // ---------- 4b. LO QUE CADA FASE CAMBIA DE VERDAD (paso 3) ----------
@@ -147,7 +147,11 @@ app.whenReady().then(async () => {
       while (Date.now() - t0 < ms) { await sleep(300); await js(`__wjump(${p})`); }
       return JSON.parse(await js('String(__trcount())'));
     };
-    const enTransito = await contar(0.04, 4000);
+    // LA CALMA PUESTA PARA CONTAR. `__trcount` cuenta NACIMIENTOS, no poblacion, asi que limpiar
+    // el mundo por cuadro no toca la medicion — y evita que el avion se muera a mitad de la cuenta,
+    // que es lo que pasaba desde que la vuelta subio a `caza: 2`.
+    await js('__czcalma(1)');
+    const enTransito = await contar(0.03, 4000);
     const enCordon = await contar(0.85, 4000);
     if (enTransito.n === 0) ok('transito: CERO enemigos, "sin un solo enemigo en pantalla"');
     else bad(`nacieron ${enTransito.n} enemigos en un transito que tiene que estar limpio`);
@@ -160,13 +164,19 @@ app.whenReady().then(async () => {
     // objetivo`). `run.climaxHecho` es la marca que dice "el climax ya se jugo", y es la misma que
     // pone el juego al salir del blanco, asi que esto reproduce el estado real y no uno inventado.
     await js('__vuelta()');
-    const enVuelta = await contar(1.25, 4000);
+    const enVuelta = await contar(1.5, 4000);
     if (enVuelta.n > 0) ok(`la VUELTA siembra: ${enVuelta.n} enemigos pasado el buque (el cordon ya no la ahoga)`);
     else bad('pasado el buque no nacio nadie: el corte del cordon final sigue trabado');
 
     // EL TECHO DE RADAR. Se mide donde duele: a una altura que es SEGURA en el transito y te
     // PINTA en el filo. Si el umbral no fuera el de la fase, los dos darian igual.
+    await js('__czcalma(0)');
     const detEn = async (p, alt, ms) => {
+      // UNA PULSADA DE CALMA ANTES DE MEDIR: pone `run.detection` en cero y barre los misiles que
+      // dejo la medicion anterior. Sin esto la barra llegaba cargada de un bloque al siguiente y el
+      // transito "detectaba" a una altura que es segura — y encima los misiles viejos mataban al
+      // avion en mitad de la cuenta siguiente.
+      await js('__czcalma(1)'); await sleep(450); await js('__czcalma(0)');
       // NO SE BAJA A RAS PARA RESETEAR LA BARRA. La primera version lo hacia con `__czalto(1)`, y
       // ahi el avion ROZA el agua: se le agota el margen de SCRAPE y se muere en mitad de la
       // medicion. Con el vuelo detenido la deteccion se queda en cero, asi que el filo daba un
@@ -178,13 +188,13 @@ app.whenReady().then(async () => {
       while (Date.now() - t0 < ms) { await sleep(250); await js(`__wjump(${p})`); d = JSON.parse(await js('String(__charadar())')).det; }
       return d;
     };
-    const altPrueba = 9;   // debajo de RADAR_ALT=20 (seguro arriba) y encima de FILO_RADAR=6
-    const dTransito = await detEn(0.04, altPrueba, 1500);
-    const dFilo = await detEn(0.13, altPrueba, 1500);
+    const altPrueba = 13;  // debajo de RADAR_ALT=20 (seguro en transito) y encima de FILO_RADAR=9
+    const dTransito = await detEn(0.03, altPrueba, 1500);
+    const dFilo = await detEn(0.084, altPrueba, 1500);
     if (dTransito === 0) ok(`a ${altPrueba} de altura el transito no te ve (deteccion ${dTransito})`);
     else bad(`el transito detecto a ${altPrueba} de altura: ${dTransito}`);
     if (dFilo > 0) ok(`…y a LA MISMA altura el filo si te pinta (deteccion ${dFilo}): el techo es de la fase`);
-    else bad(`el filo no detecto a ${altPrueba} de altura teniendo el techo en 6`);
+    else bad(`el filo no detecto a ${altPrueba} de altura teniendo el techo en 9`);
 
     // EL TANQUE. La misma ventana de vuelo en dos fases con multiplicador distinto tiene que
     // gastar distinto. Se compara transito (x1) contra filo (x2).
@@ -209,7 +219,7 @@ app.whenReady().then(async () => {
       const st = JSON.parse(await js('__pausedbg()')).state;
       return { tasa: (f0 - +(await js('__chanafta()'))) / (ms / 1000), st };
     };
-    const gT = await gasto(0.04), gF = await gasto(0.13);
+    const gT = await gasto(0.03), gF = await gasto(0.084);
     // LA REFERENCIA LLEVA LA ESCALA DE LA MISION. t15 declara `fuelScale: 0.08` porque el modelo
     // de nafta esta calibrado contra pasillos de medio minuto (100 de tanque a 3.2 %/s son 31 s de
     // vuelo) y esta mision dura cinco minutos. Asi que lo esperado no es FUEL_RATE pelado sino
@@ -218,7 +228,7 @@ app.whenReady().then(async () => {
     // se aplique, y la razon atrapa que el multiplicador de FASE siga diciendo lo que dice. Con una
     // sola de las dos, bajar la escala a cero daria verde en la razon y romper el x2 daria verde en
     // el numero si alguien ajusta la escala para compensar.
-    const ESPERADO_CRUCERO = 3.2 * 0.08, ESPERADO_FILO = ESPERADO_CRUCERO * 2;
+    const ESPERADO_CRUCERO = 3.2 * 0.065, ESPERADO_FILO = ESPERADO_CRUCERO * 2;
     const cerca = (a, b) => Math.abs(a - b) < 0.05;
     if (gT.st !== 'play' || gF.st !== 'play') bad(`la medicion no sobrevivio: transito '${gT.st}', filo '${gF.st}'`);
     // contra el NUMERO, no contra una razon: 3.2 %/s de crucero y 6.4 en el filo son FUEL_RATE x1
@@ -271,7 +281,7 @@ app.whenReady().then(async () => {
       const fv = await FS();
       if (fv && fv.tipo === 'vuelta') ok(`y al volver al pasillo la fase vigente es '${fv.tipo}' (voces ${fv.voces})`);
       else bad(`tras el climax la fase es '${fv && fv.tipo}' y deberia ser 'vuelta'`);
-      await js('__wjump(1.7)');       // pasado el ultimo hasta de t15 (1.62): llegaste
+      await js('__wjump(2.1)');       // pasado el ultimo hasta de t15 (2.0): llegaste
       for (let i = 0; i < 40; i++) { s = (await estado()).state; if (s !== 'play') break; await sleep(200); }
       if (s === 'landing') ok('pasada la ultima fase arranca LA CORTA FINAL, no el recuento');
       else bad(`pasada la ultima fase el estado es '${s}' y deberia ser 'landing'`);

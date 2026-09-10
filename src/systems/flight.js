@@ -30,7 +30,7 @@ import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE,
 // sembrador: `fsVal` contesta lo que rige a esta altura del vuelo y cae al valor de siempre cuando
 // la mision no declara fases — que es como se cumple la regla suprema (sin fases, este archivo se
 // comporta exactamente igual que ayer, y lo custodia `npm run feel`).
-import { val as fsVal } from './fases.js';
+import { val as fsVal, techoRadar } from './fases.js';
 import { PORT_H } from '../data/runways.js';
 // EL SUELO TIENE ALTURA (T3): la misma funcion que levanta el pasto y las estructuras es la que
 // decide donde te matas. Si fueran dos, una loma se veria en un lado y mataria en el otro.
@@ -393,7 +393,12 @@ export function flightSystem(dt, deps) {
 
   const colchon = rasante.active() && deathMsg === 'death_sea';
   if (!colchon && plane.y <= (run.scrapeT > 0 ? scrapeY + 0.2 : groundY)) {
-    const lim = scrapeLimit(run.spd, run.boost);
+    // EL AGUA PERDONA MAS EN UN FILO (§11.1). El tramo es de SIGILO: lo que tiene que matarte es
+    // que te vean, no un panzazo. Sin esto el agua se comia casi todas las muertes del filo —el
+    // playtest no llego nunca a descubrir para que era el tramo— porque a 150 m/s el margen son
+    // 0.64 s y el techo te empuja justo ahi. Fuera de un filo el multiplicador es 1 y la cuenta es
+    // exactamente la de siempre, que es lo que `npm run feel` custodia.
+    const lim = scrapeLimit(run.spd, run.boost) * fsVal('agua', 1);
     run.scrapeT += dt;
     if (run.scrapeT >= lim) return { death: deathMsg };                 // se agoto el margen
     // PISO, no altura fija: no se hunde, no salta solo, pero SI podes trepar dando gas.
@@ -436,7 +441,7 @@ export function flightSystem(dt, deps) {
   // acerca al agua. Entre el mar —que ya cobra con SCRAPE_*— y este techo queda una banda que hay
   // que SOSTENER con el bob, el viento y el oleaje encima. Es la RENDIJA que tuning.js viene
   // describiendo desde la niebla, con la perilla que le faltaba (ROADMAP #27).
-  if (alt > fsVal('radar', RADAR_ALT)) run.detection += dt / 1.4; else run.detection -= dt / 0.9;
+  if (alt > techoRadar(RADAR_ALT)) run.detection += dt / 1.4; else run.detection -= dt / 0.9;
   run.detection = Math.max(0, Math.min(1, run.detection));
   // TE PINTARON (§11.3). Solo puede pasar en una mision con fases: sin ellas `pinta` no existe y
   // nada de esto corre — el radar sigue siendo la oleada de misiles de siempre y nada mas.

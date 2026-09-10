@@ -25,6 +25,13 @@ export const STRINGS = {
     land_hud_spd: 'VEL', land_hud_vy: 'DESC', land_hud_gear: 'TREN',
     land_hud_si: 'ABAJO', land_hud_no: 'ARRIBA',
     land_gear_hint: '[T] SACAR EL TREN',
+    // EL AVISO DEL FILO (PLAN_MISION_CINCO_FASES §11.2). Lo dice PUMA y no Condor a proposito:
+    // el que va adelante ve la costa antes que vos, y esa es la razon de que haya alguien mas
+    // volando. El prefijo 'PUMA:' es lo que le pone cara — asi lee la caja de radio.
+    fase_filo: 'PUMA: EL RADAR ESTA CERCA. MANTENTE RASANTE.',
+    fase_filo2: 'PUMA: OTRO CORDON. ABAJO, Y NO RESPIRES.',
+    fase_libre: 'PUMA: ESTAMOS LIMPIOS. PODES SUBIR A RESPIRAR.',
+    fase_vuelta: 'PUMA: YA SABEN DONDE ESTAMOS. AHORA NOS BUSCAN.',
     death_mast: 'Chocaste una fragata', death_tree: 'Chocaste un arbol', death_helo: 'Colision con helicoptero',
     death_jet: 'Choque con avion enemigo', death_balloon: 'Globo de barrera',
     death_missile: 'Te alcanzo un misil',
@@ -1061,6 +1068,10 @@ export const STRINGS = {
     land_hud_spd: 'SPD', land_hud_vy: 'V/S', land_hud_gear: 'GEAR',
     land_hud_si: 'DOWN', land_hud_no: 'UP',
     land_gear_hint: '[T] LOWER GEAR',
+    fase_filo: 'PUMA: RADAR AHEAD. STAY ON THE DECK.',
+    fase_filo2: 'PUMA: ANOTHER PICKET. DOWN, AND HOLD YOUR BREATH.',
+    fase_libre: 'PUMA: WE ARE CLEAR. CLIMB AND BREATHE.',
+    fase_vuelta: 'PUMA: THEY KNOW WHERE WE ARE NOW. THEY ARE COMING.',
     death_mast: 'You hit a frigate', death_tree: 'You hit a tree', death_helo: 'Collided with a helicopter',
     death_jet: 'Hit an enemy plane', death_balloon: 'Barrage balloon',
     death_missile: 'A missile hit you',

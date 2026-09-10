@@ -168,6 +168,129 @@ Los dos pisos son distintos a propósito: un popup comparte pantalla con los pun
 1,1 s; el bark está solo y en grande, y por debajo de 2,4 s se lee como un parpadeo.
 
 
+## 1f. La ruta, en una fila *(aplicada)*
+
+Eran **tres renglones apilados y 27 px de alto**: el nombre del buque arriba en cuerpo 6 y color de
+aviso, la ruta en el medio, la cuenta regresiva abajo. El bloque más grande y más ruidoso del HUD,
+arriba al centro, para decir tres cosas que no cambian de un cuadro al otro — y el nombre del
+buque, que no cambia **nunca** en toda la misión, estaba escrito más grande que la velocidad.
+
+Puestos **en fila**, los tres entran en 11 px y se leen en el orden en que se preguntan:
+
+> `HMS SHEFFIELD` · ▸ ——————— ⊥ · `2447 m`
+> quién es el blanco · dónde estoy · cuánto falta
+
+| | Antes | Ahora |
+|---|---|---|
+| alto | 27 | **11** |
+| nombre | cuerpo 6, `P.warn`, centrado arriba | cuerpo 5, `P.dim`, en la fila. Es contexto, no un valor que se vigile |
+| la línea | 96 px de recorrido | 52 |
+| íconos | 9 px | 7 · y el marcador del avión ahora también sale de `hpx` (estaba clavado en 6 y se comía el renglón) |
+| ancho | fijo, 30 % de la pantalla | **sale del contenido**, y la placa se centra como un bloque — con nombre a la izquierda y número a la derecha, centrar la *línea* dejaba el instrumento corrido |
+| el aviso de viento | `topBase = 38` | 24: la ruta cierra en 15, así que sube con ella en vez de dejar hueco |
+
+Área: **134 × 11 contra 114 × 27** — un tercio de la tinta.
+
+
+## 1g. MEJOR es de POR LA PATRIA *(aplicada)*
+
+Estaba en todos los modos menos campaña, y ahí mentía dos veces.
+
+`rasante_frontal_best` es **un número global**: una corrida de CICLO DE MUERTE, del ARENA o de las
+PASADAS lo empujaba igual, así que el máximo que veías en un modo podía haberse hecho en otro. Y en
+los modos con objetivo la corrida ni siquiera es comparable — termina cuando llegás al buque, no
+cuando te matan, o sea que el puntaje lo decide la distancia y no cómo volaste.
+
+**POR LA PATRIA es el único modo donde una corrida es una corrida**: infinita, sin objetivo, y se
+acaba cuando te caés. Ahí un máximo histórico dice algo.
+
+Tres lugares, una decisión:
+
+| Dónde | Antes | Ahora |
+|---|---|---|
+| HUD (`render/hud.js`) | en todo modo salvo campaña | `gameMode === 'survival'` |
+| El récord se **escribe** (`game.js`) | en toda corrida que no sea de herramienta | además, sólo en `survival`. Un récord que se hace en un modo y se luce en otro no es un récord |
+| Pantalla de derribo (`drawDead`) | siempre; decía «MEJOR 0» en partida nueva y «NUEVO RECORD» en modos que no lo iban a guardar | `best` llega en **cero** fuera de POR LA PATRIA —el mismo criterio que ya usaba `stars`— y la línea no se dibuja con cero |
+
+El HUD **sí** muestra `MEJOR 0` en POR LA PATRIA sin récord todavía: ahí el cero es honesto —es el
+instrumento de ese modo diciendo que no marcaste nada— mientras que en la pantalla de derribo se
+leía como un veredicto.
+
+
+## 1h. El puntaje se va, el kilometraje entra al objetivo *(aplicada)*
+
+Dos decisiones del playtest del 8/9 que dejan la esquina superior izquierda con una sola cosa.
+
+**El PUNTAJE salió de todos los modos.** Ya estaba oculto en campaña; ahora tampoco está en JUEGO
+RÁPIDO. Un contador de arcade corriendo arriba a la izquierda no cambia nada de lo que hacés en los
+próximos diez segundos: los puntos se cobran cuando la corrida termina, y ahí tienen una pantalla
+entera para decirse. Estaba ocupando la esquina donde uno mira primero para dar un número que sólo
+importa después.
+
+**El KILOMETRAJE se mudó adentro de la ruta**, cuando hay ruta. `0.1 / 2.6` es cuánto llevás **de
+esta ruta**: es parte del objetivo, no un instrumento aparte cuatro filas más abajo que lo repite.
+
+| | Antes | Ahora |
+|---|---|---|
+| con objetivo | odómetro en su placa arriba a la izquierda | dentro de la fila de la ruta, pegado al buque |
+| sin objetivo (POR LA PATRIA) | igual | **se queda arriba a la izquierda**, en forma de contador abierto: no hay ruta donde meterlo, y sin nada contra qué medir la fracción no existe |
+| la cuenta regresiva en metros | `2447 m` al final de la fila | **reemplazada por la fracción** |
+
+Las dos decían el mismo hecho —`2.6 − 0.1` es lo que falta— y ponerlas juntas habría sido decirlo
+dos veces en dos unidades. Se eligió la fracción porque además dice **contra qué**, que la cuenta
+sola no dice. Dentro de la fila: lo hecho en acento, el total en el color del blanco (que es lo que
+lo ata al ícono del buque que tiene al lado) y `KM` en cuerpo 5.
+
+El bloque superior izquierdo queda con **escuadrón** y nada más — salvo en POR LA PATRIA, donde
+lleva escuadrón, odómetro y MEJOR.
+
+
+## 1i. Una sola cinta para todos los modos *(aplicada)*
+
+El renglón de arriba al centro **significa una cosa sola: cómo va esta corrida**. Lo que cambia
+entre modos es contra qué va, no la pregunta:
+
+```
+con objetivo    HMS SHEFFIELD  ▸——⊥  0.2 / 2.6 KM     contra el buque
+POR LA PATRIA   0.3 KM         ▸——⚑  149 / 48200      contra tu récord
+```
+
+Es la **misma información** —dónde estás de lo que te propusiste— así que es el mismo instrumento y
+no dos. Hay un solo `cinta()` y dos llamadores; escribirlo dos veces era garantizar que se
+separaran a la primera corrección (uno se achica, el otro no, y el HUD tiene dos idiomas en el
+mismo renglón).
+
+**Anatomía**, 11 px de alto: rótulo de contexto (cuerpo 5, apagado — no cambia o cambia despacio) ·
+línea con las dos puntas y el marcador · fracción (cuerpo 6: lo hecho en acento, la meta en el
+color de la meta, que es lo que la ata al ícono de al lado).
+
+### Lo que esto resolvió en POR LA PATRIA
+
+Kilometraje, puntaje y récord eran **tres placas sueltas apiladas en la esquina** diciendo lo
+mismo desde tres lados. Ahora son una cinta: los kilómetros como rótulo (cuánto aguantaste), el
+puntaje contra el récord como fracción, y la línea mostrando cuánto te falta para batirlo. **El
+puntaje vuelve al HUD, pero sólo acá** — en POR LA PATRIA el puntaje *es* el juego; en los modos
+con objetivo lo decide la distancia y no cómo volaste.
+
+| Caso | Qué se ve |
+|---|---|
+| récord > 0 | la cinta completa, con línea y bandera |
+| **sin récord todavía** | sin línea: una barra que avanza hacia cero no avanza hacia nada. Quedan kilometraje y puntaje |
+| **pasaste tu marca** | bandera y récord en **acento**. La línea ya está llena y el marcador clavado en la punta: no hace falta un cartel, que en POR LA PATRIA taparía mundo justo cuando más se arriesga |
+
+### Detalles que salieron de probarlo
+
+- **La marca a batir es una bandera, no una estrella.** El primer intento fue un asterisco: a
+  cuerpo 5 un asterisco es una cruz roja y no se lee como "hasta acá". Una bandera —mástil y paño—
+  es la misma silueta mínima que el muelle y el buque del otro lado, así que además habla el mismo
+  idioma.
+- **`drawOdo` quedó sólo para PERSECUCIÓN**, el único modo sin objetivo *ni* récord: ahí no hay
+  cinta posible y el kilometraje vuelve a ser un contador abierto arriba a la izquierda. Se le cayó
+  la rama de la fracción, que ya no la usa nadie.
+- La esquina superior izquierda queda con **el escuadrón y nada más** en todos los modos salvo
+  persecución.
+
+
 ## 2. Divergencias
 
 1. **`ESTADO` sigue duplicando dos de sus tres datos.** El porcentaje es el mínimo de cañón,
@@ -204,11 +327,23 @@ Los dos pisos son distintos a propósito: un popup comparte pantalla con los pun
    ~15 px de esa esquina. No se pisan (la placa arranca en 15), pero están pegados. En campaña el
    reproductor está oculto, así que el caso apretado es sólo JUEGO RÁPIDO.
 
+10. **El nombre del buque se quedó, achicado.** La alternativa era sacarlo: no cambia nunca, lo dice
+    el briefing, y el total del odómetro ya está pintado en el color del blanco. Sacarlo dejaría la
+    ruta en ~90 px de ancho en vez de 134. Se mantuvo porque es lo único de la pantalla que dice
+    *contra qué* estás volando, y porque el pedido fue achicar, no sacar.
+
+11. **El récord dejó de escribirse fuera de POR LA PATRIA, y eso no se pidió explícitamente.** El
+    pedido fue sacarlo de la vista; restringir también la *escritura* es la consecuencia — si sólo
+    se ocultara, una corrida de CICLO seguiría inflando en silencio el número que POR LA PATRIA
+    muestra. Revertir es sacar una condición en `game.js`.
+
+12. **La cuenta regresiva en metros desapareció**, y había sido un pedido explícito ("que vaya
+    restando los metros"). No sobrevivió a meter el kilometraje en la misma fila: dos números para
+    el mismo hecho, a tres píxeles uno del otro. Si se la extraña, el reemplazo natural es que la
+    fracción cuente al revés (`2.5 / 2.6` bajando), no volver a tener las dos.
+
 ## 3. Lo que sigue pendiente *(de la auditoría, sin decidir)*
 
-- **El odómetro choca con la ruta en JUEGO RÁPIDO.** Con el puntaje visible, el odómetro se corre
-  a `x=52` y su `KM` queda detrás de la placa de la ruta, que arranca en 100. En campaña no pasa
-  (sin puntaje, el odómetro apoya en el margen). Visto en la captura del 6/9.
 - **La banda de popups** sigue subiendo por la franja de la ruta: ver divergencia 7.
 - **Las unidades mienten entre modos.** Pasillo: altura 0..68 rotulada `M`, radar a 20,
   `spd × 4.2`. Pasada: metros reales, radar a **10**, `spd × 3.6`. Mismo rótulo, dos escalas y dos

@@ -1229,12 +1229,29 @@ export const ZZ_LADERA_RAFAGA = 3, ZZ_LADERA_RAF_CD = 0.16;
 // Entre el agua (que ya cobra con SCRAPE_*) y el techo queda una banda que hay que SOSTENER, con
 // el bob, el viento y el oleaje moviendote. Bajar la mata; subir te pinta.
 //
-// 6 Y NO 3: la racha rasante ya premia volar bajo CAZA_RAS_ALT (4.5), asi que con el techo en 6 el
-// tramo pide sostener JUSTO la banda que el juego ya paga — la mecanica nueva y la vieja hablan el
-// mismo idioma. Por debajo de ~4 el margen deja de alcanzar para el oleaje y el filo se vuelve una
-// moneda al aire; por encima de ~9 entra un colectivo y deja de haber filo.
-// ES LA PERILLA NUMERO UNO A CALIBRAR DESPUES DEL PRIMER PLAYTEST.
-export const FILO_RADAR = 6;
+// 9 Y NO 6, y el numero lo corrigio el primer playtest. Con el techo en 6 la banda medida contra
+// la velocidad REAL del tramo era impracticable: al filo se llega a ~150 m/s, y ahi tocar el agua
+// deja 0.64 s de margen (0.35 con turbo). O sea que el jugador quedaba prensado entre un techo que
+// lo pinta en 1.4 s y un piso que lo mata en medio segundo — y lo que lo mataba era el PISO, que
+// es justo el fracaso aburrido. Textual del playtest: "es dificil tedioso y largo".
+// 9 deja una banda volable que sigue estando muy por debajo de RADAR_ALT (20) y sigue premiando la
+// racha rasante (CAZA_RAS_ALT 4.5) al que quiera apretar mas de lo necesario.
+export const FILO_RADAR = 9;
+
+// LA RAMPA DEL TECHO, en metros. El techo NO cae de golpe de 20 a 9 al entrar al filo: baja a lo
+// largo de estos metros. Es la correccion del sintoma mas concreto del playtest — "yendo con turbo
+// al querer bajar rapido el avion me rebota y se me hace pelota": un techo que aparece de golpe
+// obliga a una picada de panico, y una picada con turbo contra el agua es 0.21 s de margen. Con la
+// rampa ya venis bajando cuando el techo muerde, y la decision deja de ser un reflejo.
+// 900 m son ~6 s a velocidad de crucero: alcanza para acomodarse sin que el tramo se vuelva rampa.
+export const FILO_RAMPA_M = 900;
+
+// CUANTO PERDONA EL AGUA adentro de un filo (multiplicador del margen de roce). El tramo es de
+// SIGILO: lo que tiene que matarte es que te vean, no un panzazo. Con el margen de siempre el agua
+// se comia casi todas las muertes del filo y la mecanica no llegaba a existir — el jugador nunca
+// descubria para que era el tramo. x3 lleva el margen a 150 m/s de 0.64 s a 1.9 s: seguis sin poder
+// vivir en el agua, pero un toque ya no es una sentencia.
+export const FILO_AGUA = 3;
 
 // TOPE de `hasta` en una lista de fases. A diferencia de los TRAMOS —que viven adentro del pasillo
 // y por eso cortan en 1— las fases cubren la MISION ENTERA, y la vuelta ocurre PASADO el objetivo:

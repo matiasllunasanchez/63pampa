@@ -1,8 +1,8 @@
 // HUD: la capa de instrumentos y avisos sobre el vuelo, mas la cuenta regresiva del despegue.
 //
-// Puntaje, best, progreso de campaña, barra de objetivo, velocidad, radar, viento, multiplicador,
-// combustible, calor del canon, misiles y la palanca de gas. Va SIN el zoom de camara (el
-// orquestador lo restaura antes de llamar aca).
+// Escuadron, ruta del objetivo (con su kilometraje adentro), velocidad, altura, radar, viento,
+// multiplicador, combustible, calor del canon, misiles, la palanca de gas y los dos rieles de
+// racha. Va SIN el zoom de camara (el orquestador lo restaura antes de llamar aca).
 //
 // Lee el estado de vuelo de los stores (run, plane). Lo que es de MISION/menu (best, gameMode,
 // objectiveDist, objectiveShip, goalKind) vive en game.js y entra por parametro, igual que las
@@ -54,8 +54,11 @@ function drawHudAsset(a, x, y, kind, hpx, sinPlaca) {
     return;
   }
   if (kind === 'plane') {   // el marcador que avanza: sin placa, es el que se MUEVE por la ruta
+    // el tamaño sale de `hpx` como el de los assets: la ruta se achico a una fila de 11 px y un
+    // triangulo clavado en 6 de alto se comia el renglon entero
+    const r2 = hpx / 2;
     ctx.fillStyle = P.ink;
-    ctx.beginPath(); ctx.moveTo(x + 3, y); ctx.lineTo(x - 3, y - 2.5); ctx.lineTo(x - 3, y + 2.5); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x + r2, y); ctx.lineTo(x - r2, y - r2 + 0.5); ctx.lineTo(x - r2, y + r2 - 0.5); ctx.closePath(); ctx.fill();
     return;
   }
   if (!sinPlaca) plate(x - RUTA_R, y - RUTA_R, RUTA_R * 2 + 1, RUTA_R * 2 + 1);
@@ -69,50 +72,131 @@ function drawHudAsset(a, x, y, kind, hpx, sinPlaca) {
   }
 }
 
+// LA CINTA DE LA CORRIDA — la fila de arriba al centro, y el mismo verbo para todos los modos.
+//
+// ESE LUGAR DE LA PANTALLA SIGNIFICA UNA COSA SOLA: como va esta corrida. Lo que cambia entre
+// modos es CONTRA QUE va, no la pregunta:
+//
+//   con objetivo   contra el buque   ·  `HMS SHEFFIELD  ▸——⊥  0.2 / 2.6 KM`
+//   POR LA PATRIA  contra tu record  ·  `0.3 KM         ▸——★  1244 / 48200`
+//
+// Son la MISMA informacion —donde estas de lo que te propusiste— asi que son el mismo instrumento
+// y no dos. Escribirlo dos veces era garantizar que se separaran a la primera correccion: uno se
+// achica, el otro no, y de golpe el HUD tiene dos idiomas en el mismo renglon.
+//
+// LA ANATOMIA, en 11 px de alto: ROTULO (contexto, cuerpo 5, apagado — no cambia o cambia despacio)
+// · LINEA con las dos puntas y el marcador · FRACCION (cuerpo 6: lo hecho en acento, la meta en el
+// color de la meta, que es lo que la ata al icono de al lado).
+//
+// EL ANCHO SALE DEL CONTENIDO y la placa se centra como un bloque: con el rotulo a la izquierda y
+// el numero a la derecha, centrar la LINEA dejaba el instrumento visiblemente corrido.
+const CINTA_LINEA = 44;   // el recorrido, adentro de la placa
+
+/** `o` = { rot, prog, meta, a, b, uni, boost }
+ *    rot    texto de contexto a la izquierda (o null)
+ *    prog   0..1 — donde esta el marcador
+ *    meta   'buque' | 'record' — que se dibuja en la punta derecha
+ *    metaCol color de la meta y de `b` (default: el naranja de aviso)
+ *    a, b   los dos lados de la fraccion (`b` null = no hay meta: solo el numero, sin linea)
+ *    uni    unidad al final (o null)
+ *    boost  estelas atras del marcador */
+function cinta(o) {
+  const conLinea = o.b != null;
+  ctx.font = F_VAL;
+  const aW = Math.round(ctx.measureText(o.a).width);
+  const bW = o.b ? Math.round(ctx.measureText(o.b).width) : 0;
+  ctx.font = F_ROT;
+  const uniW = o.uni ? Math.round(ctx.measureText(o.uni).width) + 2 : 0;
+  const rotW = o.rot ? Math.round(ctx.measureText(o.rot).width) + 5 : 0;
+  const linW = conLinea ? CINTA_LINEA + 5 + 3 : 0;
+  const ancho = 4 + rotW + linW + aW + (o.b ? 3 + bW : 0) + uniW + 4;
+  const bx0 = Math.round(W / 2 - ancho / 2);
+  const py = MARGEN, y = py + 5;                     // la fila, al medio de una placa de 11
+  plate(bx0, py, ancho, 11);
+  if (o.rot) {
+    ctx.textAlign = 'left'; ctx.fillStyle = P.dim;   // apagado: es contexto, no un valor
+    ctx.fillText(o.rot, bx0 + 4, y + 2);
+  }
+  let kx = bx0 + 4 + rotW;
+  if (conLinea) {
+    const x0 = kx, x1 = x0 + CINTA_LINEA;
+    // via PUNTEADA (pendiente) que se va rellenando continua (recorrido): lee como ruta de mapa
+    for (let dx3 = 0; dx3 < CINTA_LINEA; dx3 += 4) px(x0 + dx3, y, 2, 1, '#2e3c45');
+    px(x0, y, Math.round(CINTA_LINEA * o.prog), 1, P.accent);
+    if (o.meta === 'buque') {
+      drawHudAsset(OBJ_ASSETS.port, x0, y, 'port', 7, true);
+      drawHudAsset(OBJ_ASSETS.barge, x1, y, 'barge', 7, true);
+    } else {
+      // EL CERO y LA MARCA A BATIR. La marca es una BANDERA de meta y no una estrella: probada con
+      // asterisco, a cuerpo 5 un asterisco es una cruz roja y no se lee como «hasta aca». Una
+      // bandera es la misma silueta minima que el muelle y el buque del otro lado — un mastil y
+      // algo colgando— asi que ademas habla el mismo idioma.
+      px(x0, y - 2, 1, 5, P.dim);
+      const mc = o.metaCol || P.warn;
+      px(x1, y - 3, 1, 7, mc);                       // el mastil
+      px(x1 + 1, y - 3, 3, 1, mc);                   // el paño
+      px(x1 + 1, y - 2, 2, 1, mc);
+      px(x1 + 1, y - 1, 1, 1, mc);
+    }
+    // el marcador que avanza (+ estelas de turbo)
+    const pm = x0 + CINTA_LINEA * o.prog;
+    if (o.boost) {
+      ctx.strokeStyle = P.foam; ctx.globalAlpha = 0.7;
+      for (let i = 1; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(pm - 2 - i * 3, y); ctx.lineTo(pm - i * 3, y); ctx.stroke(); }
+      ctx.globalAlpha = 1;
+    }
+    drawHudAsset(OBJ_ASSETS.plane, pm, y, 'plane', 6);
+    kx = x1 + 6;
+  }
+  ctx.textAlign = 'left'; ctx.font = F_VAL;
+  ctx.fillStyle = P.accent; ctx.fillText(o.a, kx, y + 2);
+  kx += aW + 3;
+  if (o.b) { ctx.fillStyle = o.metaCol || P.warn; ctx.fillText(o.b, kx, y + 2); kx += bW + 2; }
+  if (o.uni) { ctx.font = F_ROT; ctx.fillStyle = P.dim; ctx.fillText(o.uni, kx, y + 2); }
+}
+
+/** CON OBJETIVO: contra el buque. El kilometraje va ACA DENTRO y no en su propia placa — «0.1 / 2.6»
+ *  es cuanto llevas DE ESTA RUTA, o sea parte del objetivo. Reemplazo a la cuenta regresiva en
+ *  metros que estaba en este mismo renglon: las dos decian el mismo hecho (2.6 - 0.1 es lo que
+ *  falta) y ponerlas juntas era decirlo dos veces en dos unidades. Gano la fraccion porque ademas
+ *  dice contra que, que la cuenta sola no dice.
+ *
+ *  EL NOMBRE, SOLO SI ES UN NOMBRE: un objetivo de DISTANCIA se rotulaba «2400 m», que es el mismo
+ *  dato que ya dice el total tres pixeles a la derecha. Con un buque el rotulo si aporta — es lo
+ *  unico en pantalla que dice CONTRA QUE estas volando. */
 export function drawObjectiveBar(objectiveDist, objectiveShip, kind) {
-  const cx = W / 2, half = Math.round(W * 0.15);          // 30% del ancho (máx), centrada
-  const x0 = cx - half, x1 = cx + half;
-  const prog = Math.max(0, Math.min(1, run.dist / objectiveDist));
-  // EL NOMBRE, SOLO SI ES UN NOMBRE. Un objetivo de DISTANCIA se rotulaba «2400 m» aca arriba, y
-  // eso es el mismo dato que ahora dicen la cuenta regresiva de al lado del buque y el total del
-  // odometro: tres veces. Con un buque (HMS SHEFFIELD) el rotulo si aporta — es quien es el blanco.
-  const conNombre = kind !== 'distance';
-  // …Y TODO EL INSTRUMENTO SOBRE UNA SOLA PLACA. La ruta era lo unico del HUD dibujado directo
-  // sobre el cielo: los dos iconos tenian su placa y la linea entre ellos no, asi que se leia como
-  // dos botones sueltos unidos por nada. Con una placa pasa a ser un instrumento — y adentro los
-  // iconos ya no necesitan la suya.
-  // LA PLACA APOYA EN EL MARGEN, como todo lo demas del HUD. Estaba mas abajo para dejarle sitio al
-  // contador de mision, que ya no existe: una placa que flota a media banda porque ahi arriba habia
-  // otra cosa es una posicion heredada, no una decision.
-  const py = MARGEN;
-  const y = py + (conNombre ? 13 : 8);   // la ruta, adentro: con nombre baja lo que ocupa el nombre
-  plate(x0 - 9, py, (x1 - x0) + 18, y + 14 - py);
-  if (conNombre) {
-    ctx.font = '6px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.warn;
-    ctx.fillText(objectiveShip, cx, y - 6);
-  }
-  // via PUNTEADA (pendiente) que se va rellenando continua (recorrido): lee como ruta de mapa
-  for (let dx3 = 0; dx3 < x1 - x0; dx3 += 4) px(x0 + dx3, y, 2, 1, '#2e3c45');
-  px(x0, y, Math.round((x1 - x0) * prog), 1, P.accent);
-  // extremos: puerto (izq) y barcaza (der) — assets configurables o fallback
-  drawHudAsset(OBJ_ASSETS.port, x0, y, 'port', 9, true);
-  drawHudAsset(OBJ_ASSETS.barge, x1, y, 'barge', 9, true);
-  // LO QUE FALTA, pegado al buque y en el color del buque. Va abajo y chico a proposito: no es un
-  // titulo, es una cuenta regresiva — y puesta AHI, contra el icono, el numero se lee como «el
-  // blanco esta a tantos metros» y no como el nombre de algo. Restar en vez de sumar es la mitad
-  // del asunto: lo que importa no es cuanto llevas, es cuanto falta.
-  const falta = Math.max(0, Math.round(objectiveDist - run.dist));
-  ctx.font = '6px monospace'; ctx.textAlign = 'right';
-  ctx.fillStyle = falta <= 0 ? P.accent : P.warn;
-  ctx.fillText(falta + T('obj_m'), x1 + 7, y + 11);
-  // marcador del avión avanzando por la línea (+ líneas de boost)
-  const pm = x0 + (x1 - x0) * prog;
-  if (run.boost) {
-    ctx.strokeStyle = P.foam; ctx.globalAlpha = 0.7;
-    for (let i = 1; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(pm - 2 - i * 3, y); ctx.lineTo(pm - i * 3, y); ctx.stroke(); }
-    ctx.globalAlpha = 1;
-  }
-  drawHudAsset(OBJ_ASSETS.plane, pm, y, 'plane', 7);
+  const km = Math.max(0, run.dist) / 1000;
+  cinta({
+    rot: kind !== 'distance' ? objectiveShip : null,
+    prog: Math.max(0, Math.min(1, run.dist / objectiveDist)),
+    meta: 'buque',
+    a: km.toFixed(1), b: '/ ' + (objectiveDist / 1000).toFixed(1),
+    uni: 'KM',                                       // el simbolo es el mismo en los dos idiomas
+    boost: run.boost,
+  });
+}
+
+/** POR LA PATRIA: contra tu record. Sin objetivo no hay ruta, pero la pregunta del renglon es la
+ *  misma —¿como va esta corrida?— y las tres cosas que la contestan son la misma info: el
+ *  kilometraje dice cuanto aguantaste, el puntaje cuanto sacaste y el record contra que se compara.
+ *  Estaban en tres placas sueltas apiladas en la esquina; son un instrumento.
+ *
+ *  SIN RECORD TODAVIA no se dibuja la linea: una barra que avanza hacia cero no avanza hacia nada.
+ *  Queda el kilometraje y el puntaje, que es exactamente lo que hay para decir. */
+export function drawCorridaBar(best) {
+  const km = Math.max(0, run.dist) / 1000;
+  const pts = Math.floor(run.score);
+  cinta({
+    rot: km.toFixed(1) + ' KM',
+    prog: best > 0 ? Math.max(0, Math.min(1, pts / best)) : 0,
+    meta: 'record',
+    a: String(pts), b: best > 0 ? '/ ' + best : null,
+    // PASASTE TU MARCA: la bandera y el numero se prenden en acento. Es el unico aviso que hace
+    // falta —la linea ya esta llena y el marcador clavado en la punta— y evita el cartel, que en
+    // POR LA PATRIA taparia mundo justo cuando el jugador esta arriesgando mas.
+    metaCol: best > 0 && pts >= best ? P.accent : P.warn,
+    uni: null, boost: run.boost,
+  });
 }
 
 // colores de la bandera argentina, para el conteo del despegue
@@ -240,11 +324,10 @@ function plate(x, y, w, h) {
   }
 }
 
-// EL CUENTAKILOMETROS. Va PEGADO al puntaje porque son los dos numeros que resumen la corrida,
-// pero se dibuja a proposito con OTRO idioma: el puntaje es un contador de arcade (digitos parejos
-// del mismo alto, ceros de relleno apagados, tinta blanca) y esto es un INSTRUMENTO DEL AVION.
-// Dos numeros con la misma pinta a cuatro pixeles uno del otro se leen como uno solo partido al
-// medio, y el jugador termina sin mirar ninguno.
+// EL CUENTAKILOMETROS SUELTO. Queda para el unico modo que no tiene NI objetivo NI record contra
+// que medirse (PERSECUCION): ahi no hay cinta posible y el kilometraje vuelve a ser lo que era, un
+// contador abierto arriba a la izquierda. Con objetivo o en POR LA PATRIA el numero vive adentro de
+// la cinta (ver `cinta`), que es donde significa algo.
 //
 // Lo que lo hace instrumento y no marcador: el entero grande en ambar, la DECIMA chica y apagada
 // adentro de su ventanita —el tambor de decimas de un odometro, que es la parte que se ve girar—
@@ -252,17 +335,10 @@ function plate(x, y, w, h) {
 // HUD que se mueve solo y sin que hagas nada, y de ahi le viene el peso.
 const ODO_DEC = '#a2762f';   // el ambar del acento, apagado: misma familia, otro plano
 
-function drawOdo(x, y, totalM) {
+function drawOdo(x, y) {
   const km = Math.max(0, run.dist) / 1000;
   const ent = String(Math.floor(km)), dec = Math.floor((km - Math.floor(km)) * 10);
-  // …Y CONTRA QUE. Si la corrida tiene objetivo, el odometro deja de ser un contador abierto y pasa
-  // a ser una fraccion: `0.3 / 2.4 KM`, con el total en el color del blanco. En campaña la corrida
-  // nunca pasa de ese numero, asi que un contador que sube sin techo estaba midiendo contra nada —
-  // y de paso el kilometraje y el objetivo dejan de ser dos instrumentos que dicen lo mismo.
-  const tot = totalM > 0 ? (totalM / 1000).toFixed(1) : null;
-  plate(x, y, tot ? 62 : 46, 12);
-  // la linea de base sale de `y` y ya no esta clavada en 12: desde que el bloque de arriba a la
-  // izquierda se apila (escuadron primero, ver drawHUD) el odometro no siempre esta en la fila 1.
+  plate(x, y, 46, 12);
   const ly = y + 9;
   ctx.textAlign = 'left';
   ctx.font = 'bold 9px monospace'; ctx.fillStyle = P.accent;
@@ -272,12 +348,8 @@ function drawOdo(x, y, totalM) {
   px(x + 3 + wEnt, y + 2, 10, 8, '#141b20');
   ctx.font = '7px monospace'; ctx.fillStyle = ODO_DEC;
   ctx.fillText('.' + dec, x + 4 + wEnt, ly);
-  if (tot) {
-    ctx.font = '7px monospace'; ctx.fillStyle = P.warn;
-    ctx.fillText('/ ' + tot, x + 18 + wEnt, ly);
-  }
   ctx.font = F_ROT; ctx.fillStyle = P.dim; ctx.textAlign = 'right';
-  ctx.fillText('KM', x + (tot ? 59 : 43), ly);   // simbolo de unidad: es el mismo en los dos idiomas
+  ctx.fillText('KM', x + 43, ly);   // simbolo de unidad: es el mismo en los dos idiomas
 }
 
 // EL RITMO DEL TABLERO. Un instrumento mide INSTR de alto (rotulo + barra, ver bar()) y entre uno y
@@ -468,49 +540,37 @@ export function drawHUD(h) {
   // (tempo y chancha) estan en la lista de trinquete, que solo puede achicarse. La convencion 4
   // dice justamente esto — el dibujo LEE lo que el orquestador le pasa, no va a buscarlo.
   const ras = h.ras || { on: false, meter: 0, resta: 0, dur: 12 };
-  // ---- LA ESQUINA DE LA CORRIDA (arriba a la izquierda), apilada de arriba abajo ----------------
-  // QUIEN VUELA MANDA. El escuadron pasa a encabezar el bloque y el puntaje se va: en CAMPAÑA los
-  // puntos se cobran en el recuento, asi que un contador de arcade corriendo en pantalla no decide
-  // nada — y estaba ocupando la esquina donde uno mira primero (playtest 29/8). Los kilometros se
-  // quedan: son lo unico que dice cuanto llevas cuando la mision no tiene barra de objetivo.
-  const campana = gameMode === 'campaign';
+  // ---- LA ESQUINA DE LA CORRIDA (arriba a la izquierda) ----------------------------------------
+  // QUIEN VUELA, Y NADA MAS. Todo lo que decia COMO VA LA CORRIDA se fue de esta esquina a la
+  // cinta de arriba al centro, que es el renglon que significa exactamente eso (ver `cinta`).
+  //
+  // EL PUNTAJE ya no vive suelto aca. En los modos con objetivo directamente no esta: un contador
+  // de arcade corriendo arriba a la izquierda no cambia nada de lo que haces en los proximos diez
+  // segundos, y los puntos se cobran cuando la corrida termina, con una pantalla entera para
+  // decirse. En POR LA PATRIA si esta —ahi el puntaje ES el juego— pero adentro de la cinta, junto
+  // al kilometraje y al record, porque los tres contestan la misma pregunta.
   let ty = 3;
   // vidas del escuadron. Con 1 avion no se dibuja: seria un tablero de nada
   if (run.squad > 1) { drawSquadPips(MARGEN, ty); ty += SQUAD_H + AIRE; }
-  let tx = MARGEN;
-  if (!campana) {
-    // PUNTAJE: placa de contador con los ceros a la izquierda apagados — lee como marcador arcade.
-    // Sobrevive en JUEGO RAPIDO, que es el modo donde el puntaje ES el juego.
-    plate(tx, ty, 44, 12);
-    ctx.font = '8px monospace'; ctx.textAlign = 'left';
-    const digits = String(Math.floor(run.score)).padStart(6, '0');
-    const lead = digits.search(/[1-9]/);                      // hasta aca son ceros de relleno
-    for (let i = 0; i < digits.length; i++) {
-      ctx.fillStyle = (lead === -1 || i < lead) ? '#3a4750' : P.ink;
-      ctx.fillText(digits[i], tx + 3 + i * 6, ty + 9);
-    }
-    tx += 48;
-  }
-  drawOdo(tx, ty, objectiveDist);   // los kilometros, al lado del puntaje y con otra voz (ver drawOdo)
-  if (!campana) {
-    // EL RECORD, en el mismo bloque que el puntaje contra el que se compara — y NO en campaña, donde
-    // un maximo historico global no significa nada (cada mision tiene su recuento). De paso deja de
-    // pelearse la esquina derecha con el boton de sonido y el reproductor, que son HTML.
-    // …y en SU RENGLON: al lado del odometro caia sobre la ruta del objetivo, que arranca en x=112.
-    ctx.textAlign = 'left'; ctx.font = '7px monospace';
-    const bTxt = T('hud_best', { n: best });
-    plate(MARGEN, ty + 12 + AIRE, Math.round(ctx.measureText(bTxt).width) + 6, 11);
-    ctx.fillStyle = P.dim;
-    ctx.fillText(bTxt, MARGEN + 3, ty + 23);
-  }
+  // PERSECUCION no tiene objetivo NI record: la cinta no tiene contra que medir, asi que el
+  // kilometraje se queda aca como contador abierto — la forma que le toca cuando no hay meta.
+  if (objectiveDist <= 0 && gameMode !== 'survival') { drawOdo(MARGEN, ty); ty += 12 + AIRE; }
+  // LA CINTA: contra el buque si hay objetivo, contra tu record si es POR LA PATRIA.
+  //
+  // EL RECORD ES DE POR LA PATRIA Y DE NINGUN OTRO MODO. `rasante_frontal_best` es UN numero
+  // global: mientras lo escribia cualquier modo, una corrida de CICLO o del ARENA podia inflar el
+  // maximo que se veia en otro lado. Y en los modos con objetivo la corrida ni siquiera es
+  // comparable — termina cuando llegas al buque, no cuando te matan, o sea que el puntaje lo decide
+  // la distancia y no como volaste. POR LA PATRIA es el unico donde una corrida es una corrida:
+  // infinita, sin objetivo, y se acaba cuando te caes.
+  if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind);
+  else if (gameMode === 'survival') drawCorridaBar(best);
 
   // EL CONTADOR DE MISION SE FUE (playtest 29/8). «MISION 3/14» arriba del todo era lo unico del
   // HUD que hablaba del MENU y no del vuelo: en que numero de la campaña estas no cambia nada de lo
   // que haces en los proximos diez segundos, y lo dice el briefing antes de despegar. Encima ocupaba
   // el renglon mas visible de la pantalla, que ahora se lo queda la ruta.
 
-  // barra de misión puerto→barcaza (modos con objetivo: ciclo de muerte y campaña)
-  if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind);
 
   // AVISO DE ROCE "! SUBI !" — es un ESTADO persistente (estás rozando la superficie), no un
   // evento, asi que vive en el HUD fijo arriba del velocimetro y parpadea como el resto de los
@@ -597,7 +657,8 @@ export function drawHUD(h) {
   // sube y queda compacto. Antes esta banda tenia dos filas (radar y viento); el radar se mudo
   // abajo junto al altimetro, asi que el viento sube a la fila que quedo libre — si no, quedaba
   // un hueco flotando en el medio de la pantalla.
-  const topBase = objectiveDist > 0 ? 38 : 20;
+  // …y la cinta cierra en y=15, no en 31: el aviso sube con ella en vez de dejar un hueco.
+  const topBase = (objectiveDist > 0 || gameMode === 'survival') ? 24 : 20;
 
   if (run.windF < 0.97) {
     ctx.textAlign = 'center'; ctx.font = 'bold 7px monospace';

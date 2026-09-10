@@ -15,6 +15,7 @@
 // la mision no te deje el techo de radar del ultimo filo pegado al modo siguiente.
 import { faseAt, validarFases } from '../core/fases.js';
 import { run } from '../core/run.js';
+import { FILO_RAMPA_M } from '../data/tuning.js';
 
 let lista = null;        // las fases de la mision en curso (null = mision sin fases: todas las de hoy)
 let objetivo = 0;        // la distancia meta contra la que se miden las fracciones
@@ -54,6 +55,32 @@ export const llegaste = () => hayVuelta() && run.dist > objetivo * lista[lista.l
 /** El TIPO vigente, o null. Es lo que preguntan los que solo quieren saber "¿esto es un filo?"
  *  sin pedir un valor — el HUD y las sondas, no los sistemas de juego. */
 export const tipo = () => { const f = vigente(); return f ? f.tipo : null; };
+
+/** EL TECHO DEL RADAR AHORA, CON LA RAMPA DE ENTRADA (PLAN_MISION_CINCO_FASES §11.1).
+ *
+ *  Un techo que cae de golpe de 20 a 9 obliga a una picada de panico, y una picada con turbo
+ *  contra el agua deja dos decimas de margen: el primer playtest lo reporto como "yendo con turbo
+ *  al querer bajar rapido el avion me rebota y se me hace pelota". Con la rampa el techo BAJA a lo
+ *  largo de `FILO_RAMPA_M` metros desde el borde de la fase, asi que cuando muerde ya venis
+ *  bajando y la decision deja de ser un reflejo.
+ *
+ *  SOLO BAJANDO. Al salir de un filo el techo vuelve a subir de una: recuperar el cielo no es una
+ *  maniobra que haya que preparar, y hacerla gradual solo lograria que el jugador no se entere de
+ *  que ya puede respirar.
+ *
+ *  Sin fases devuelve `base` y no hay rampa que valga — la campaña entra y sale por el mismo
+ *  camino de siempre. */
+export function techoRadar(base) {
+  const f = vigente();
+  if (!f) return base;
+  const techo = f.val('radar', base);
+  const anterior = f.idx > 0 ? faseAt(objetivo * (lista[f.idx - 1].hasta - 1e-9), objetivo, lista) : null;
+  const techoAnt = anterior ? anterior.val('radar', base) : base;
+  if (!(techo < techoAnt)) return techo;                 // no baja: nada que rampear
+  const desde = f.idx > 0 ? lista[f.idx - 1].hasta * objetivo : 0;
+  const t = Math.max(0, Math.min(1, (run.dist - desde) / FILO_RAMPA_M));
+  return techoAnt + (techo - techoAnt) * t;
+}
 
 /** EL LECTOR. `fallback` es lo que rige sin fases — normalmente `cfg.loQueSea` o la constante de
  *  tuning de siempre, que este modulo no importa a proposito: quien pregunta ya sabe cual es su
@@ -113,7 +140,8 @@ export function dbg(cfg, radarAlt) {
     obstacles: val('obstacles', cfg ? cfg.obstacles : null),
     caza: val('caza', cfg ? cfg.caza : null),
     bombs: val('bombs', cfg ? cfg.bombs : null),
-    radar: val('radar', radarAlt),
+    radar: +techoRadar(radarAlt).toFixed(2),   // el RESUELTO, con la rampa aplicada
+    agua: val('agua', 1),
     voces: val('voces', true),
     nafta: val('nafta', 1),
     pinta: val('pinta', 'cap'),

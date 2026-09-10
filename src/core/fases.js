@@ -24,7 +24,7 @@ import { FASE_MAX_HASTA } from '../data/tuning.js';
 /** Las claves que una fase puede traer. Cualquier otra es error de DATOS y el validador la
  *  rechaza: una clave mal escrita (`radares` por `radar`) no hace nada y no avisa — la fase
  *  simplemente se comporta como si no la trajera, que es la peor forma de fallar. */
-export const CLAVES = ['tipo', 'hasta', 'obstacles', 'caza', 'bombs', 'radar', 'voces', 'nafta', 'pinta', 'radio'];
+export const CLAVES = ['tipo', 'hasta', 'obstacles', 'caza', 'bombs', 'radar', 'agua', 'voces', 'nafta', 'pinta', 'radio'];
 
 /** Como se valida cada clave. `tipo` y `hasta` van aparte: son las dos obligatorias. */
 const TIPOS_DE_CLAVE = {
@@ -34,6 +34,9 @@ const TIPOS_DE_CLAVE = {
   // el techo del filo, en unidades de mundo. Tiene que ser POSITIVO: un techo en 0 no seria un
   // filo estrecho, seria una fase donde volar ya es imposible.
   radar: v => typeof v === 'number' && v > 0,
+  // cuanto PERDONA el agua en esta fase (multiplicador del margen de roce). >= 1: una fase puede
+  // ablandar el mar, nunca endurecerlo — para eso ya estan la velocidad y el turbo.
+  agua: v => typeof v === 'number' && v >= 1,
   voces: v => typeof v === 'boolean',
   nafta: v => typeof v === 'number' && v >= 0,
   pinta: v => PINTAS.indexOf(v) >= 0,

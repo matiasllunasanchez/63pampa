@@ -2554,7 +2554,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (relevoRompe()) dmgFX(); else crashFX();
       // EL RECORD (S2): en las herramientas no se toca ni en memoria — si solo se salteara el
       // localStorage, el HUD mostraria un record que se evapora al cerrar el juego.
-      if (!sinRastro() && Math.floor(run.score) > best) { best = Math.floor(run.score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
+      //
+      // …y SOLO LO HACE «POR LA PATRIA», que es el unico modo donde el HUD lo muestra (ver el
+      // bloque del record en render/hud.js). El numero es uno solo y global: mientras lo escribia
+      // cualquier modo, una corrida de CICLO o del ARENA podia inflar el maximo que despues se veia
+      // en otro lado. Un record que se hace en un modo y se luce en otro no es un record.
+      if (gameMode === 'survival' && !sinRastro() && Math.floor(run.score) > best) { best = Math.floor(run.score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
     }
 
     // EL EMBUDO DE LA MUERTE. Todas las señales { death } de los sistemas (colision, roce,
@@ -3075,6 +3080,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (trs && trs.charla && SCENES[trs.charla]) charla.armar(trs.charla);
       // ?charla=<ID> (sonda, QUITAR): la misma puerta, disparada por distancia en vez de por tramo.
       if (charlaProbe && !charlaArmed && run.dist >= 300) { charlaArmed = true; charla.armar(charlaProbe); }
+      // LA RADIO DE LA FASE (PLAN_MISION_CINCO_FASES §11), en el mismo renglon y por el mismo
+      // flanco que la del tramo. Es lo que AVISA antes de que el corredor se estrangule: sin esto
+      // el filo empieza sin decir nada y el jugador descubre el techo nuevo comiendose una oleada
+      // de misiles, que es aprender de la peor forma. Lo dice un Fiel, no Condor — el que va
+      // adelante ve la costa antes que vos, y esa es la razon de que haya alguien mas volando.
+      const fss = fases.stepFases();
+      if (fss && fss.radio) radioTramo(fss.radio);
 
       // needsMomentum: si el objetivo del run culmina en el climax (barco) o con solo llegar (distancia)
       const needsMomentum = (gameMode === 'campaign' || gameMode === 'cycle') ? goalOf(curMission()).needsMomentum : true;
@@ -3408,7 +3420,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // dice a que altura te ven— y en la cinematica del premio no hay nada que decidir con eso.
       // Aparecio sola cuando la salida paso a trepar de verdad (la trepada cruza RADAR_ALT) y lo
       // que se ve es una reja roja tapando el buque que se hunde.
-      if (cfg.radarNet && S.state !== 'pulso') world.drawRadarNet(fases.val('radar', RADAR_ALT));
+      if (cfg.radarNet && S.state !== 'pulso') world.drawRadarNet(fases.techoRadar(RADAR_ALT));
       if (cfg.hitboxes) world.drawHitboxes();   // depuracion: cajas de colision en verde fluor
       if (cfg.devcam && S.state === 'play') world.drawFlightLane(testRadio);   // modo camara: el carril del avion
 
@@ -3648,7 +3660,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // scale, porque eso si es mundo. Los dos espacios de coordenadas del repo, en un solo archivo.
       if (S.state === 'play') {
         ctx.save(); ctx.scale(U, U); hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip, goalKind: objectiveKind,
-        radarAlt: fases.val('radar', RADAR_ALT),
+        radarAlt: fases.techoRadar(RADAR_ALT),
           // EL PODER RASANTE va por snapshot (convencion 4): el lint de capas prohibe que el
           // render importe de systems, y la lista de excepciones solo puede achicarse.
           ras: { on: rasante.active(), meter: rasante.meterVal(), resta: rasante.restante(), dur: RAS_DUR } }); drawCinta(); ctx.restore();
@@ -3701,7 +3713,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       }
       // DERRIBADO: esperar a que se vea el destrozo; despues la pantalla sube con un fade corto
       if (S.state === 'dead' && deathT > DEATH_REVEAL)
-        screens.drawDead({ score: run.score, best, deathCause, deathT, factIdx, t: run.t,
+        // `best` en CERO fuera de POR LA PATRIA: es el mismo criterio que ya usa `stars` —lo que no
+        // es de este modo llega apagado y el render no tiene que saber en que modo esta.
+        screens.drawDead({ score: run.score, best: gameMode === 'survival' ? best : 0, deathCause, deathT, factIdx, t: run.t,
           reveal: Math.min(1, (deathT - DEATH_REVEAL) / 0.35), stars: deadStars, awardT: deathT - DEATH_REVEAL - 0.2, bg: deadBg,
           out: squad.rosterActive() });   // campaña: la escuadrilla quedo fuera de combate, no "derribado"
       if (S.state === 'results') screens.drawResults({ lastRun, resRow, resT, t: run.t, bg: winBg });
