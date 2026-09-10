@@ -54,7 +54,7 @@
 // cicla independientemente hasta que lo ahuyentes o lo derriben — si no los eliminas, se acumulan
 // como moscas. Es la presion dramatica de la cola: el pasillo se llena si no te defendes.
 
-import { plane, stats } from '../core/state.js';
+import { plane, cfg, stats } from '../core/state.js';
 import { run } from '../core/run.js';
 import { bullets } from '../core/world.js';
 import { popup, proj, chispazo, explodeAt } from '../core/fx.js';
@@ -73,9 +73,14 @@ import {
   CAZA_SOL_AVISO, CAZA_SOL_POST,
   CAZA_HIT_RX, CAZA_HIT_RY, CAZA_PTS, CAZA_MV_FUERZA,
   CAZA_DIR_D0, CAZA_DIR_FIN, CAZA_DIR_INIT, CAZA_DIR_GAP, CAZA_DIR_MAX, CAZA_DIR_JETS, CAZA_MUDO_P,
+  CAZA_SOBRE_TERRENO, ZZ_PARED_TALUD, ZZ_PARED_LIBRE,
 } from '../data/tuning.js';
 import { beep, boom, duck, sfxOne } from './audio.js';
 import { pilotName } from './squad.js';
+// EL TERRENO, con las MISMAS funciones que resuelven la colision del jugador: si el enemigo
+// tuviera su propia idea de donde esta la roca habria dos verdades (ver `pisoTerreno`).
+import { enPared, paredH } from '../core/zigzag.js';
+import { tierraH, hayRelieve } from '../core/tierra.js';
 import { pilotIdx } from '../core/squad.js';
 
 // ---- estado privado ----
@@ -426,6 +431,26 @@ function stepCaida(dt) {
   if (C.z < 1.5 || C.t > CAZA_CAIDA_MAX) C.muerto = true;
 }
 
+/** LA ALTURA MINIMA A LA QUE PUEDE VOLAR EL HARRIER en (x, su profundidad), en unidades de mundo.
+ *
+ *  Son tres pisos y manda el mas alto: el nivel del mar de siempre, la LADERA del callejon si el
+ *  avion esta metido en su huella, y el RELIEVE de tierra/costa. El margen sobre la cresta es el
+ *  mismo `ZZ_PARED_LIBRE` con el que el jugador la puede saltar: si al Harrier le alcanzara con
+ *  menos, estaria pasando por donde a vos te matan. */
+function pisoTerreno(x, y) {
+  const wz = run.dist + C.z;
+  let piso = 0.8;
+  // LA LADERA. `enPared` contesta si ESTA cota esta adentro de la roca; si lo esta, el piso pasa a
+  // ser la cresta con el mismo margen que el juego le exige al jugador para saltarla.
+  if (enPared(x, y, wz, ZZ_PARED_TALUD, ZZ_PARED_LIBRE)) {
+    const h = paredH(wz, x >= 0 ? 1 : -1);
+    if (h > 0) piso = Math.max(piso, h * ZZ_PARED_LIBRE + CAZA_SOBRE_TERRENO);
+  }
+  // EL RELIEVE de TIERRA y COSTA, que es el otro suelo que el juego tiene.
+  if (hayRelieve(cfg)) piso = Math.max(piso, tierraH(x, wz) + CAZA_SOBRE_TERRENO);
+  return piso;
+}
+
 function stepPos(dt) {
   const f = C.dur > 0 ? Math.min(1, C.t / C.dur) : 1;
   const lerp = (a, b, k) => a + (b - a) * Math.min(1, k * dt);
@@ -480,7 +505,23 @@ function stepPos(dt) {
   // EL PISO. El clamp va DESPUES del bandeo y no antes: `by` es la trayectoria y `b.y` el
   // cabeceo vivo que se le suma, asi que acotar solo la trayectoria dejaba al Harrier metiendose
   // bajo el agua en la parte baja de su propio bandeo — medido, y=-1.2 entrando desde abajo.
-  C.y = Math.max(0.8, C.by + b.y);
+  //
+  // …Y EL PISO NO ES 0.8: ES EL TERRENO. Hasta aca el unico piso del Harrier era el nivel del mar,
+  // asi que en un CALLEJON —donde el cerro mide entre 17 y 39 unidades— volaba LITERALMENTE DENTRO
+  // DE LA ROCA, y se lo veia pasar a traves del acantilado. Lo reporto el autor jugando: "los
+  // harriers pasan a traves o directamente ENCIMA del terreno, deberian esquivar e irse, o irse
+  // por arriba para no chocar".
+  //
+  // SE VA POR ARRIBA, que es la opcion que el autor nombro y ademas la unica que no le rompe el
+  // ciclo al duelo: abortar la pasada al entrar en callejon dejaria al Harrier desapareciendo en
+  // mitad de una maniobra, que se lee peor que el bug. Trepar sobre la cresta es lo que haria un
+  // piloto, y encima lo pone donde se lo ve.
+  //
+  // SE PREGUNTA CON LAS MISMAS FUNCIONES QUE MATAN AL JUGADOR (`enPared`, `paredH` de
+  // core/zigzag.js, `tierraH` de core/tierra.js). Es la regla de la casa desde el mar y la turba:
+  // si el enemigo usara su propia idea de donde esta la roca, el dia que la ladera cambie de forma
+  // habria dos verdades y el Harrier volveria a enterrarse.
+  C.y = Math.max(pisoTerreno(C.x, C.y), C.by + b.y);
   // ALABEO LEIDO DEL MOVIMIENTO, no sorteado. El sprite tiene cinco poses de alabeo y hasta ahora
   // se elegia con `lado`, que es fijo por pasada: el avion volaba de costado todo el ciclo. Ahora
   // la pose sale de para donde se esta yendo de verdad, asi que el bandeo se VE en el dibujo.

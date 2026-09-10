@@ -1337,3 +1337,9 @@ export const EST_PERDER_S = 20;
 // oleaje y el cabeceo hacen imposible sostener veinte segundos limpios y la mecanica seria una
 // moneda al aire en vez de una decision.
 export const EST_GRACIA_S = 1.2;
+
+// CUANTO LE SOBRA AL HARRIER sobre el terreno, en unidades de mundo. Hasta que esto existio su
+// unico piso era el nivel del mar, asi que en un CALLEJON volaba dentro de la roca y se lo veia
+// atravesar el acantilado. No es holgura de dibujo: es la altura a la que un avion pasa una
+// cresta sin rozarla, y el sprite ya mide ~2 de semi-alto.
+export const CAZA_SOBRE_TERRENO = 2.5;
