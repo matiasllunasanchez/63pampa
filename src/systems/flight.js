@@ -50,7 +50,7 @@ import { multOf } from '../core/util.js';
 import { movesSystem, mvAllowsFire, mvAllowsTurbo, mvLegado } from './moves.js';
 import { stepVuelo, estelaVuelo } from './vuelo.js';
 import * as zigzag from './zigzag.js';
-import { enPared, enBarrera, pared as paredCfg } from '../core/zigzag.js';
+import { enPared, enBarrera, paredCara, pared as paredCfg } from '../core/zigzag.js';
 import * as momentum from '../legacy/momentum.js';
 import * as arena from './arena.js';
 import * as pasada from './pasada.js';
@@ -384,9 +384,24 @@ export function flightSystem(dt, deps) {
   if (golpePared) {
     const p = paredCfg();
     if (p && p.mata) return { death: 'death_pared' };
-    // TOPE: se lo frena contra el borde, como el tope del carril de siempre (FLY_X)
-    const borde = (p ? p.x : 0) - ZZ_PARED_TALUD;
-    plane.x = golpePared > 0 ? borde : -borde;
+    // TOPE: se lo frena contra el borde, como el tope del carril de siempre (FLY_X).
+    //
+    // Y EL BORDE ES LA CARA REAL, no la base constante. Antes se DETECTABA con `paredCara` —la
+    // cara de verdad, con su punta, su ondulacion y su retiro por altura— y se REPOSICIONABA con
+    // `p.x - TALUD`, una constante que esta siempre igual o MAS AFUERA. O sea que al topar se
+    // empujaba al avion de vuelta ADENTRO de la roca, `enPared` volvia a cobrar al cuadro
+    // siguiente, y el lazo se cerraba: plane.x pisado cada cuadro (control lateral perdido) con la
+    // vibracion y el sacudon prendidos, hasta que la geometria retrocedia sola.
+    //
+    // Medido con el preset SUAVE —que es una fila normal del menu, no una sonda—: el borde real
+    // baja hasta 14.7 contra el 48 de la constante, y en el 21.9% del recorrido la posicion de
+    // rebote seguia estando adentro de la roca. Ni siquiera hace falta una punta: la ondulacion
+    // sola ya alcanza.
+    //
+    // El epsilon existe porque `enPared` compara con `>=`: hay que quedar ESTRICTAMENTE afuera o
+    // el cuadro siguiente vuelve a cobrar. 0.05 no se ve.
+    const borde = paredCara(run.dist + PZ, golpePared, plane.y) - ZZ_PARED_TALUD;
+    plane.x = golpePared * (borde - 0.05);
     if (golpePared > 0 ? plane.vx > 0 : plane.vx < 0) plane.vx = 0;
     run.scrapeVib = 1;
     run.shake = Math.min(7, run.shake + 18 * dt);

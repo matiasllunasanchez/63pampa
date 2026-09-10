@@ -536,15 +536,14 @@ export function barreraCerca(wz, alcance) {
 export function enPared(x, y, wz, talud, libre) {
   const p = pared();
   if (!p) return 0;
-  const lado = x >= 0 ? 1 : -1;
-  const h = paredH(wz, lado);
-  if (h <= 0) return 0;
-  if (y >= h * (libre || 1)) return 0;      // por encima de la cresta se pasa
-  // SE EVALUA LA CARA A LA ALTURA DEL AVION, no el pie: la ladera se retira al subir, asi que
-  // volando alto queda mas lugar. Es la misma funcion que dibuja el talud — lo que ves es lo que
-  // te mata, tambien de este lado.
-  const borde = paredCara(wz, lado, y) - (talud || 0);
-  return Math.abs(x) >= borde ? lado : 0;
+  for (const lado of (x >= 0 ? [1, -1] : [-1, 1])) {
+    const h = paredH(wz, lado);
+    if (h <= 0) continue;
+    if (y >= h * (libre || 1)) continue;      // por encima de la cresta se pasa
+    const borde = paredCara(wz, lado, y) - (talud || 0);
+    if (lado * x >= borde) return lado;
+  }
+  return 0;
 }
 
 /** EL CARRIL SEGURO entre `d0` y `d0 + alcance` metros: `{ lo, hi }`, el intervalo de `x` que
