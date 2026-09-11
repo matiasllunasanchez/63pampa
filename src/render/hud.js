@@ -613,6 +613,7 @@ const BAL_W = 7;
 // son la misma cosa — alarma que no suena — y tienen que verse igual.
 const BAL_APAGADA = '#3a4750';
 const ALERTA_NUEVA_S = 1.6;   // cuanto destella la baliza que se acaba de ganar
+const BARRA_POCO = 0.25;      // desde cuanto le queda a la barra del escondite empieza a parpadear
 // lo minimo que entra: margen, radar, aire, las cuatro con un pixel entre cada una, margen
 const ALERTA_MIN_W = 3 + 9 + 3 + BAL_W + (EST_MAX - 1) * (BAL_W + 1) + 3;
 
@@ -675,9 +676,13 @@ export function drawAlerta(x, y, w, n, prog) {
   // El surco detras es lo que ya se desconto, en el gris de la baliza apagada: sin el, una raya
   // corta no dice de cuanto.
   if (n > 0) {
-    const bw = w - 2, by = y + ALERTA_H - 2;
+    const bw = w - 2, by = y + ALERTA_H - 2, resta = 1 - prog;
     px(x + 1, by, bw, 1, BAL_APAGADA);
-    px(x + 1, by, Math.max(1, Math.round(bw * (1 - prog))), 1, P.warn);
+    // CUANDO QUEDA POCO, PARPADEA (pedido del autor, 11/9): el ultimo cuarto —cinco segundos de
+    // veinte— es cuando aguantar un poco mas paga, y un parpadeo se ve de reojo, sin mirar la esquina.
+    // Parpadea apagandose, no cambiando de rojo: lo que titila es lo que le queda a la alarma.
+    const titila = resta <= BARRA_POCO && Math.floor(run.t * 5) % 2 === 1;
+    if (!titila) px(x + 1, by, Math.max(1, Math.round(bw * resta)), 1, P.warn);
   }
 }
 
