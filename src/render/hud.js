@@ -559,8 +559,9 @@ export function drawSquadPips(x, y) {
  *  pensarlo. Y se portan como las estrellas de GTA, que es la analogia de la que nacio el item:
  *    · las que no tenes estan APAGADAS pero a la vista: se ve cuantas pueden venir todavia;
  *    · la que acabas de ganar DESTELLA un rato, con rayos: el flanco se ve, no solo se oye;
- *    · mientras estas ESCONDIDO parpadean todas —te perdieron y te buscan—, y quietas quiere decir
- *      que te estan viendo.
+ *    · mientras estas ESCONDIDO parpadea la de arriba —la que el reloj esta descontando y se va a
+ *      apagar—, cada vez mas rapido al final; las de abajo quedan quietas, siguen ganadas;
+ *    · todas quietas quiere decir que te estan viendo.
  *  El radar dice lo mismo desde el otro lado: con tu contacto parpadeando rapido y encendido, te
  *  tienen; con el eco lento y apagado, te buscan donde estabas.
  *
@@ -663,11 +664,26 @@ export function drawAlerta(x, y, w, n, prog) {
   const x0 = x + 15, libre = x + w - 3 - x0;
   const paso = Math.max(BAL_W + 1, Math.min(BAL_W + 4, Math.floor((libre - BAL_W) / (EST_MAX - 1))));
   const bx0 = x0 + Math.max(0, Math.floor((libre - BAL_W - paso * (EST_MAX - 1)) / 2));
-  const parpadeo = Math.floor(run.t * 4) % 2 === 1;
+  // EL PARPADEO DEL FINAL, UNO SOLO PARA LA BARRA Y LAS BALIZAS. En el ultimo cuarto del reloj del
+  // escondite —cinco segundos de veinte— la barra titila, y ACELERA HASTA APAGARSE (pedido del autor,
+  // 11/9): de TITILA_HZ[0] a TITILA_HZ[1]. La fase se INTEGRA sobre lo que va del cuarto (u, de 0 a
+  // 1) en vez de hacer floor(t * f): con una frecuencia que cambia, eso salta de fase cada cuadro y
+  // el parpadeo tartamudea. Y como avanza con la barra y no con el reloj de pared, si la gracia
+  // congela la barra, el parpadeo se congela con ella: el reloj esta en pausa y se ve en pausa.
+  const resta = 1 - prog;
+  const u = Math.max(0, Math.min(1, (BARRA_POCO - resta) / BARRA_POCO));
+  const ciclos = CUARTO_S * (TITILA_HZ[0] * u + (TITILA_HZ[1] - TITILA_HZ[0]) * u * u / 2);
+  const titila = resta <= BARRA_POCO && ciclos % 1 >= 0.5;
+  // ESCONDIDO PARPADEA SOLO LA ULTIMA (pedido del autor, 11/9): la de arriba, que es la que el reloj
+  // esta descontando y la que se va a apagar. Las de abajo quedan quietas —siguen ganadas— y asi el
+  // ojo va a la unica que esta en juego. A 2 Hz mientras hay tiempo; en el ultimo cuarto, AL RITMO
+  // DE LA BARRA y en fase con ella: cuando la barra se apaga, se apaga ella. Leen del mismo
+  // `titila`, asi que no se pueden desincronizar.
+  const parpadeo = resta <= BARRA_POCO ? titila : Math.floor(run.t * 4) % 2 === 1;
   for (let i = 1; i <= EST_MAX; i++) {
     const modo = i > n ? 'off'
       : i > alertaDe && run.t - alertaT < ALERTA_NUEVA_S ? 'nueva'
-        : !visto && parpadeo ? 'baja' : 'on';
+        : i === n && !visto && parpadeo ? 'baja' : 'on';
     baliza(bx0 + (i - 1) * paso, y + 5, modo);
   }
   // EL RELOJ DEL ESCONDITE, ROJO Y DESCONTANDO (pedido del autor, 11/9): arranca LLENO apenas se
@@ -678,19 +694,11 @@ export function drawAlerta(x, y, w, n, prog) {
   // El surco detras es lo que ya se desconto, en el gris de la baliza apagada: sin el, una raya
   // corta no dice de cuanto.
   if (n > 0) {
-    const bw = w - 2, by = y + ALERTA_H - 2, resta = 1 - prog;
+    const bw = w - 2, by = y + ALERTA_H - 2;
     px(x + 1, by, bw, 1, BAL_APAGADA);
-    // CUANDO QUEDA POCO, PARPADEA (pedido del autor, 11/9): el ultimo cuarto —cinco segundos de
-    // veinte— es cuando aguantar un poco mas paga, y un parpadeo se ve de reojo, sin mirar la esquina.
+    // CUANDO QUEDA POCO, PARPADEA (el `titila` de arriba, el mismo de las balizas): el ultimo cuarto
+    // es cuando aguantar un poco mas paga, y un parpadeo se ve de reojo, sin mirar la esquina.
     // Parpadea apagandose, no cambiando de rojo: lo que titila es lo que le queda a la alarma.
-    // …Y ACELERA HASTA APAGARSE (pedido del autor, 11/9): de TITILA_HZ[0] a TITILA_HZ[1]. La fase se
-    // INTEGRA sobre lo que va del cuarto (u, de 0 a 1) en vez de hacer floor(t * f): con una
-    // frecuencia que cambia, eso salta de fase cada cuadro y el parpadeo tartamudea. Y como avanza
-    // con la barra y no con el reloj de pared, si la gracia congela la barra, el parpadeo se congela
-    // con ella: el reloj esta en pausa y se ve en pausa. Si EST_PERDER_S cambia, se estira igual.
-    const u = Math.max(0, Math.min(1, (BARRA_POCO - resta) / BARRA_POCO));
-    const ciclos = CUARTO_S * (TITILA_HZ[0] * u + (TITILA_HZ[1] - TITILA_HZ[0]) * u * u / 2);
-    const titila = resta <= BARRA_POCO && ciclos % 1 >= 0.5;
     if (!titila) px(x + 1, by, Math.max(1, Math.round(bw * resta)), 1, P.warn);
   }
 }

@@ -177,7 +177,7 @@ de donde salió el item:
 | **nivel 0** (nadie te busca) | las cuatro apagadas | verde opaco, girando, sin contacto |
 | nivel no alcanzado | apagadas, pero a la vista: se ve cuántas pueden venir | — |
 | **te ven** (el reloj de escondite en cero) | encendidas y quietas, con el brillo que gira | parpadeo rápido y encendido |
-| **te buscan** (escondido, el reloj corre) | parpadean todas, rojo ↔ rojo apagado | parpadeo lento y apagado: el eco viejo |
+| **te buscan** (escondido, el reloj corre) | parpadea sólo la de arriba (la que se está apagando), rojo ↔ rojo apagado; las de abajo, quietas | parpadeo lento y apagado: el eco viejo |
 | **recién ganada** (1,6 s) | destella en blanco, con rayos | — |
 
 - **A nivel 0 el panel también está** (pedido del autor, 11/9), pero sólo donde el contador
@@ -188,7 +188,8 @@ de donde salió el item:
   autor, 11/9): arranca llena apenas se enciende una baliza y baja mientras estás escondido; al
   vaciarse se apaga una y la barra vuelve a arrancar llena. Asomarse más que la gracia la vuelve a
   llenar. En el último cuarto (los últimos cinco segundos) parpadea, y cada vez más rápido: de 4 veces por
-  segundo a 12 justo antes de apagarse. Si bajar veinte segundos baja una estrella, el jugador tiene que ver esos veinte segundos
+  segundo a 12 justo antes de apagarse. Parpadea con ella SOLO la última baliza encendida
+  —la que se está apagando—, al mismo ritmo y en fase; las de abajo quedan quietas. Si bajar veinte segundos baja una estrella, el jugador tiene que ver esos veinte segundos
   irse. El parpadeo dice *qué* está pasando; la barra, *cuánto* le queda a la alarma.
 - "Te ven" no le pide un dato nuevo al sistema: es `progreso() === 0`. El escondite sólo corre bajo
   el techo, y asomarse más que la gracia lo vuelve a cero. Durante la gracia el panel sigue
