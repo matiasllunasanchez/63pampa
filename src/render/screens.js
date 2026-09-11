@@ -1205,46 +1205,76 @@ function vozCaja() {
 // instrumento del que cuelga.
 const TOAST_H = 23;
 
-export function drawRadioVN(o) {
+// ---------- MI VOZ: el que transmite ----------
+//
+// DIFERENCIAR EMISOR DE RECEPTOR (playtest 11/9). Lo que dice el piloto que vuela sale de SU CARA
+// —el cuadro de arriba de la esquina izquierda, afuera del tablero— en una caja que ENTRA DE ATRAS
+// de la cara hacia la derecha, como las balizas de atras del radar, con el borde en acento. Los
+// otros siguen llegando por sus canales: la radio cuelga de la cinta y la charla va en su caja. Asi
+// se lee de un vistazo quien transmite (yo, abajo, pegado a mi cara) y que me llega.
+//
+// Vale para las dos voces: una linea mia de RADIO y una linea mia de una CHARLA salen igual. Si
+// hablo mientras una charla de otros esta en pantalla, la caja de charla sube arriba de la mia.
+// Sin cuadro (un indicativo sin retrato) mi voz vuelve a la radio de arriba, como las demas.
+const PROPIA_PAD = 4;
+let propiaRadio = false;              // ¿mi voz de radio esta en la banda ESTE cuadro? (la mira la charla)
+let techoAhora = null, techoPrev = null;
+/** LO MAS ALTO QUE OCUPO LA VOZ EN LA BANDA DE ABAJO el cuadro anterior (mi caja o la de charla),
+ *  o null. Lo lee el HUD, via game.js, para apoyar los avisos de altura arriba y no debajo: el HUD
+ *  se dibuja antes que la voz, asi que mira el cuadro de antes — un cuadro no se ve. */
+export const techoBanda = () => techoPrev;
+function nuevoCuadroVoz() { techoPrev = techoAhora; techoAhora = null; propiaRadio = false; }
+const subeTecho = y => { techoAhora = techoAhora == null ? y : Math.min(techoAhora, y); };
+const hablaYo = (yo, nombre) => !!(yo && nombre && sinTilde(nombre) === sinTilde(yo.nombre));
+
+/** Mi caja, al lado de mi cara. `o` = { filas, font, paso, typed (o null: todo), ease 0..1, barra }. */
+function drawVozPropia(yo, o) {
+  const x0 = yo.x + yo.lado + VOZ.aire, y = yo.y, h = yo.lado;
+  ctx.font = o.font;
+  let anchoTxt = 20;
+  for (const f of o.filas) anchoTxt = Math.max(anchoTxt, ctx.measureText(f).width);
+  const w = Math.min(W - VOZ.margen - x0, Math.ceil(anchoTxt) + PROPIA_PAD * 2);
+  const e = 1 - Math.pow(1 - Math.max(0, Math.min(1, o.ease)), 3);     // entra rapido, frena al llegar
+  const bx = x0 + Math.round(-(1 - e) * (w + VOZ.aire));
+  ctx.save();
+  ctx.beginPath(); ctx.rect(yo.x + yo.lado, y - 1, W, h + 2); ctx.clip();   // sale DE ATRAS de la cara
+  ctx.globalAlpha = 0.94; ctx.fillStyle = '#070b0f'; ctx.fillRect(bx, y, w, h);
+  ctx.globalAlpha = 0.75; ctx.strokeStyle = P.accent; ctx.strokeRect(bx + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.fillStyle = P.ink;
+  const n = o.filas.length, ty0 = y + Math.round((h - n * o.paso) / 2) + o.paso - 1;
+  let left = o.typed == null ? Infinity : o.typed;
+  for (let i = 0; i < n && left > 0; i++) {
+    ctx.fillText(o.filas[i].slice(0, left), bx + PROPIA_PAD, ty0 + i * o.paso);
+    left -= o.filas[i].length + 1;                    // +1: el espacio que se comio el wrap
+  }
+  if (o.barra > 0) px(bx + 1, y + h - 2, (w - 2) * o.barra, 1, P.accent);
+  ctx.restore();
+  subeTecho(y);
+}
+
+export function drawRadioVN() {
+  nuevoCuadroVoz();
   if (!visible()) return;
   const ease = radio.ease;
-  // ¿HABLA MI AVION? Entonces la linea sale DE MI CARA —el cuadro del piloto, al lado del
-  // horizonte— y no de la cinta. Arriba habla la radio de los otros; abajo, pegado a mis
-  // instrumentos, hablo yo. Sin cuadro (un indicativo sin retrato) todo va arriba, como antes.
-  //
-  // …SALVO QUE LA BANDA DE ABAJO ESTE OCUPADA POR UNA CHARLA. El globo sube de la cara hasta
-  // y 108..131 y la caja de charla ocupa 89..127 y se dibuja DESPUES: se vio en la primera captura,
-  // con la charla de arranque de mision en pantalla, el globo quedaba tapado. Entonces mi linea va
-  // arriba como las demas — y el marco de mi cara igual se prende, asi se sigue sabiendo quien habla.
+  // ¿HABLA MI AVION? Entonces la linea sale de mi cara (ver drawVozPropia), no de la cinta.
   const yo = pilotoCaja();
-  const esYo = !!(yo && radio.personaje && sinTilde(radio.personaje) === sinTilde(yo.nombre));
-  const mia = esYo && !(o && o.charla);
-  // SI SOY YO, LA CARA ES LA DEL CUADRO — con su gesto de este momento — y no el retrato de radio.
-  // Se vio en captura: con la charla en pantalla mi linea subia arriba con `tero_casco` mientras el
-  // cuadro de abajo mostraba a TERO a cara descubierta. Dos caras del mismo piloto en el mismo cuadro.
-  const caraVoz = esYo ? yo.cara : radio.cara;
-  let bx, y0, bw;
-  if (mia) { bw = vozMin() - VOZ.cara - VOZ.gap; bx = yo.x; y0 = yo.y - VOZ.aire - TOAST_H; }
-  else ({ x: bx, y: y0, w: bw } = vozCaja());
+  if (hablaYo(yo, radio.personaje)) {
+    drawVozPropia(yo, { filas: radio.wrap.slice(0, 2), font: '5px monospace', paso: VOZ.fila, ease, barra: restante() });
+    propiaRadio = true;
+    return;
+  }
+  const caraVoz = radio.cara;
+  const { x: bx, y: y0, w: bw } = vozCaja();
   const bh = TOAST_H;
-  // la de los otros BAJA desde la cinta; la mia SUBE desde la cara. Las dos salen de donde viene
-  // lo que dicen, y el movimiento sigue diciendo "esto pasa".
-  const by = Math.round(mia ? y0 + (1 - ease) * 6 : y0 - (1 - ease) * 6);
+  // BAJA desde la cinta: sale de donde viene lo que dice, y el movimiento dice "esto pasa"
+  const by = Math.round(y0 - (1 - ease) * 6);
   ctx.globalAlpha = 0.92 * (0.35 + 0.65 * ease);
   ctx.fillStyle = '#070b0f'; ctx.fillRect(bx, by, bw, bh);
   ctx.globalAlpha = ease;
   ctx.strokeStyle = '#2c3a44'; ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
-  // LA COLITA, solo en la mia: apunta a la cara de la que sale. Sin ella el globo flota suelto
-  // encima del tablero y no se lee como dicho por nadie.
-  if (mia) {
-    const c0 = yo.x + Math.round(yo.lado / 2) - 2;
-    ctx.fillStyle = '#070b0f';
-    ctx.fillRect(c0, by + bh, 5, 1); ctx.fillRect(c0 + 1, by + bh + 1, 3, 1); ctx.fillRect(c0 + 2, by + bh + 2, 1, 1);
-  }
-  // el busto, chico: alcanza para saber QUIEN habla sin robarle lugar al mundo. En la mia no va:
-  // la cara esta justo abajo, y dos veces la misma cara a veinte pixeles es ruido.
+  // el busto, chico: alcanza para saber QUIEN habla sin robarle lugar al mundo
   let tx = bx + VOZ.pad;
-  if (caraVoz && !mia) {
+  if (caraVoz) {
     const ps = VOZ.cara, py0 = by + Math.round((bh - ps) / 2);
     ctx.fillStyle = '#0d1319'; ctx.fillRect(tx, py0, ps, ps);
     const im = portraitImg(caraVoz);
@@ -1292,17 +1322,24 @@ export function drawRadioVN(o) {
  *  en el ancho de la cinta (~145 px) eso son seis renglones colgando sobre el horizonte. Se quedo
  *  abajo, sola, en el piso que era del toast. Si algun dia sube, sube RE-PARTIDA, no achicada. */
 const CHV_W = 262, CHV_H = 38, CHV_CARA = 26;
-/** El canto de arriba de la caja de charla (ya entrada: la entrada la trae de 6 px mas abajo). Lo
- *  lee el HUD, via game.js, para apoyar los avisos de altura arriba de ella y no debajo. */
-export const charlaTecho = () => HUD_TINTA - 2 - CHV_H;
 
 export function drawCharla(w) {
   const d = w.dlg;
   const sc = d.seq[d.si];
   const ln = sc && sc.lineas ? sc.lineas[d.li] : null;
   if (!ln) return;
+  // SI LA LINEA ES MIA, sale de mi cara como mi radio (ver drawVozPropia), tipeandose igual
+  const yo = pilotoCaja();
+  if (hablaYo(yo, ln.personaje)) {
+    drawVozPropia(yo, { filas: d.wrap.slice(0, 3), font: '6px monospace', paso: 7, typed: d.typed,
+      ease: Math.max(0, Math.min(1, d.sceneT / 0.3)) });
+    return;
+  }
   const bw = CHV_W, bh = CHV_H;
-  const bx = Math.round((W - bw) / 2);
+  // la caja de los otros no pisa mi cara: si hace falta, arranca despues de ella
+  const bx = Math.max(Math.round((W - bw) / 2), yo ? yo.x + yo.lado + VOZ.aire : 0);
+  // y si mi voz de radio esta en la banda, sube arriba de ella
+  const piso = propiaRadio && yo ? yo.y - 2 : HUD_TINTA - 2;
   // entra subiendo desde el piso de la banda de abajo, que ahora es SOLO suya: la radio subio a
   // colgar de la cinta del objetivo (ver `vozCaja`).
   //
@@ -1311,7 +1348,8 @@ export function drawCharla(w) {
   // piloto, los puntitos y el combustible (se vio en captura, a media entrada). Una caja de dialogo
   // que pasa por encima de los instrumentos, aunque sea medio segundo, es lo que el §0b prohibe.
   const ease = Math.max(0, Math.min(1, d.sceneT / 0.3));
-  const by = Math.round((HUD_TINTA - 2) - bh + (1 - ease) * 6);
+  const by = Math.round(piso - bh + (1 - ease) * 6);
+  subeTecho(by);
   ctx.globalAlpha = 0.94 * (0.4 + 0.6 * ease);
   ctx.fillStyle = '#070b0f'; ctx.fillRect(bx, by, bw, bh);
   ctx.globalAlpha = ease;
@@ -1367,6 +1405,7 @@ export function drawCharla(w) {
 const PANEL_FILA = 7, PANEL_VIDA = 14;                    // segundos que una linea queda legible
 
 export function drawRadioPanel() {
+  nuevoCuadroVoz();
   if (!log.length) return;
   const { x: bx, y: y0, w: bw } = vozCaja();
   ctx.textAlign = 'left'; ctx.font = '5px monospace';

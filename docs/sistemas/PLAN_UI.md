@@ -585,6 +585,31 @@ del escondite viaja con las balizas, que es de quien es. A nivel cero queda el r
 sigue enseñando que el sistema existe (el motivo del pedido anterior), sin cuatro balizas apagadas
 ocupando la columna.
 
+## 1v. La fila como la cabina del A-4, y mi voz sale de mi cara _(aplicada)_
+
+Pedido del 11/9: ordenar los cuadrados como en la cabina, y separar el cuadro del piloto para que lo
+que dice salga de ahí — "diferenciar emisor de receptor".
+
+**La fila en tres grupos**, con más aire entre grupos que adentro de cada uno:
+
+| Grupo | Instrumentos | Por qué |
+| --- | --- | --- |
+| izquierda | SALUD, CAÑÓN, estante de MISILES | el combate: con qué peleo y cuánto aguanto |
+| centro | MACH, VELOCIDAD, **horizonte**, ALTITUD | la "T" de toda cabina: el horizonte adelante, la velocidad a su izquierda (el Mach al lado, como el KNOTS/MACH del A-4) y la altitud a su derecha |
+| derecha | GAS (RPM), NAFTA, CHANCHA | el motor |
+
+El horizonte dejó la esquina izquierda después de estar ahí desde que existe: con el tablero ocupando
+la fila entera, el centro es el lugar del instrumento principal. Queda a 7 px del centro exacto de la
+pantalla, porque el grupo se centra en el hueco entre los otros dos (aire igual a los dos lados).
+
+**La cara del piloto salió de la fila**: va arriba de la esquina izquierda, sobre SALUD. **Mi voz**
+—una línea mía de radio o de una charla— sale en una caja con borde en acento que **entra de atrás de
+la cara** hacia la derecha, como las balizas de atrás del radar. Los que me hablan siguen llegando por
+sus canales: la radio cuelga de la cinta y la charla va en su caja, que ahora arranca después de mi
+cara y **sube arriba de mi caja** si hablamos a la vez. Los avisos de altura se apoyan arriba de lo
+más alto que ocupe la voz en la banda (`techoBanda` en `render/screens.js`, que mira el cuadro
+anterior porque el HUD se dibuja antes que la voz).
+
 
 ## 2. Divergencias
 
