@@ -663,8 +663,17 @@ export function drawAlerta(x, y, w, n, prog) {
         : !visto && parpadeo ? 'baja' : 'on';
     baliza(bx0 + (i - 1) * paso, y + 5, modo);
   }
-  // el reloj, al ras del canto de abajo: la misma convencion que la barrita de la caja de radio
-  if (prog > 0) px(x + 1, y + ALERTA_H - 2, Math.max(1, Math.round((w - 2) * prog)), 1, P.foam);
+  // EL RELOJ DEL ESCONDITE, ROJO Y DESCONTANDO (pedido del autor, 11/9): arranca LLENO apenas se
+  // enciende una baliza y baja mientras estas escondido; cuando se vacia, se apaga una y el
+  // siguiente arranca lleno otra vez. Asomarse mas que la gracia lo vuelve a llenar. Lleno que se
+  // vacia se lee como "lo que le queda a la alarma"; la version anterior, una raya que crecia, se
+  // leia como algo cargandose — o sea, como si te estuvieran encontrando, que es al reves.
+  // El surco oscuro detras es lo que ya se desconto: sin el, una raya corta no dice de cuanto.
+  if (n > 0) {
+    const bw = w - 2, by = y + ALERTA_H - 2;
+    px(x + 1, by, bw, 1, '#3a1a14');
+    px(x + 1, by, Math.max(1, Math.round(bw * (1 - prog))), 1, P.warn);
+  }
 }
 
 export function drawHUD(h) {

@@ -184,9 +184,11 @@ de donde salió el item:
   puede subir —misiones con fases—: el instrumento tiene que estar antes de que pase nada, o el
   jugador se entera de que existe en el mismo instante en que ya lo castiga. Sin fases no se
   dibuja: sería un tablero que nunca va a contar nada.
-- **El reloj de escondite se muestra mientras corre**, como una rayita al pie de la placa: si
-  bajar veinte segundos baja una estrella, el jugador tiene que ver esos veinte segundos correr.
-  El parpadeo dice *qué* está pasando; el reloj, *cuánto* falta.
+- **El reloj de escondite es una barrita ROJA al pie de la placa que DESCUENTA** (pedido del
+  autor, 11/9): arranca llena apenas se enciende una baliza y baja mientras estás escondido; al
+  vaciarse se apaga una y la barra vuelve a arrancar llena. Asomarse más que la gracia la vuelve a
+  llenar. Si bajar veinte segundos baja una estrella, el jugador tiene que ver esos veinte segundos
+  irse. El parpadeo dice *qué* está pasando; la barra, *cuánto* le queda a la alarma.
 - "Te ven" no le pide un dato nuevo al sistema: es `progreso() === 0`. El escondite sólo corre bajo
   el techo, y asomarse más que la gracia lo vuelve a cero. Durante la gracia el panel sigue
   diciendo "te buscan" aunque el aviso de radar ya cargue: un bob no te delata, y es el mismo reloj.
