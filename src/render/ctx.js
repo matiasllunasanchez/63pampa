@@ -97,7 +97,13 @@ const FONTS = {
   // Si algun dia entra otra manuscrita al banco: pasarle antes tools/glifos.js, que es lo que
   // encontro este agujero.
   mano: 'Mayorice',
+  // EL AVISO DE RADAR (11/9): la placa que entra desde la izquierda en vuelo. Letra de CARTEL DE
+  // DISPLAY y no el monospace de los rotulos: es una alarma, y tiene que verse distinta a todo lo
+  // que se lee tranquilo.
+  aviso: 'Gomarice',
 };
+/** Fuente de los avisos de vuelo (la placa del RADAR), sin negrita: la display ya es gruesa. */
+export const avisoFont = size => uiFont(FONTS.aviso, size, '');
 /** Fuente del logotipo al tamaño pedido, con el monospace de siempre como respaldo. */
 export const titleFont = size => uiFont(FONTS.title, size);
 /** Fuente de los nombres de opcion del menu. OJO: el resalte de la fila se MIDE con esta misma

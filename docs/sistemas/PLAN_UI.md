@@ -557,6 +557,22 @@ suben arriba de los relojes, o arriba de la caja de charla si hay una: un aviso 
 De paso, el cuadro del piloto y el reloj de nafta se pisaban un píxel. La fila sale ahora de una sola
 cuenta (`COL(i)` en `render/hud.js`).
 
+## 1t. El radar deja el centro y entra desde la izquierda _(aplicada)_
+
+Pedido del 11/9: sacar el "! RADAR !" del medio y llevar su barra cerca de los datos del radar, con
+una letra más linda, que aparezca desde la izquierda y se vuelva a ocultar.
+
+La barra es la **carga del radar** (`run.detection`): se llena en 1,4 s volando arriba del techo de
+radar y se vacía en 0,9 s abajo. Llena, sale una tanda de misiles —y con fases, una baliza— y
+rearranca desde la **marca de acento**, que se corre con cada tanda: por eso las tandas se acercan.
+
+Ahora es una **placa que entra desde la izquierda** (0,22 s, frenando al llegar) cuando la barra
+empieza a cargar y **se va cuando se vacía**, en la columna de arriba a la izquierda, debajo del
+panel de alerta (o del escuadrón, en las misiones sin fases). Dice RADAR en la letra de cartel del
+juego (`Gomarice`, rol `aviso` en `render/ctx.js`): roja y titilando mientras te ven, gris mientras
+baja. En el centro, arriba de los relojes, queda sólo el "¡SUBÍ!" del roce. `radar` quedó sin uso en
+`data/strings.js` (divergencia 19b).
+
 
 ## 2. Divergencias
 

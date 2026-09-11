@@ -8,7 +8,7 @@
 // objectiveDist, objectiveShip, goalKind) vive en game.js y entra por parametro, igual que las
 // otras pantallas (render/screens.js, render/menus.js).
 
-import { ctx, px, DW as W, DH as H, PZ, U } from './ctx.js';
+import { ctx, px, DW as W, DH as H, PZ, U, avisoFont } from './ctx.js';
 import { plane, cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { shown as dmgShown } from '../systems/damage.js';
@@ -929,6 +929,37 @@ export function drawAlerta(x, y, w, n, prog) {
   }
 }
 
+/** LA CARGA DEL RADAR (`run.detection`, playtest 11/9). Cuanto le falta al radar enemigo para
+ *  fijarte: se llena en 1,4 s volando arriba del techo de radar y se vacia en 0,9 s abajo. Llena,
+ *  sale una tanda de misiles (y con fases, una baliza); despues rearranca desde la MARCA DE ACENTO,
+ *  que se corre con cada tanda — por eso las tandas se van acercando.
+ *
+ *  Era un "! RADAR !" parpadeando en el centro, con esta barra abajo. Ahora es una PLACA QUE ENTRA
+ *  DESDE LA IZQUIERDA cuando el radar te empieza a cargar y se vuelve a ir cuando la barra se vacia,
+ *  pegada al panel de alerta: todo lo que dice quien te busca vive en esa columna. La palabra va en
+ *  la letra de los avisos (`avisoFont`), roja y titilando mientras te estan viendo, apagada mientras
+ *  la barra baja. Devuelve el `y` donde sigue la columna. */
+const RADAR_H = 12, RADAR_ENTRA = 0.22;
+let radarK = 0, radarT = -1;
+function drawRadar(x, y, w, visto) {
+  // el reloj de la entrada sale de `run.t`, como el de la cara: el HUD no recibe dt
+  const dt = radarT < 0 || run.t < radarT ? 0 : Math.min(0.1, run.t - radarT);
+  radarT = run.t;
+  radarK = run.detection > 0.001 ? Math.min(1, radarK + dt / RADAR_ENTRA) : Math.max(0, radarK - dt / RADAR_ENTRA);
+  if (radarK <= 0) return y;
+  const e = 1 - Math.pow(1 - radarK, 3);                  // entra rapido y frena al llegar
+  const x0 = Math.round(x - (x + w + 2) * (1 - e));
+  plate(x0, y, w, RADAR_H);
+  ctx.font = avisoFont(9); ctx.textAlign = 'left';
+  ctx.fillStyle = visto ? (Math.sin(run.t * 14) > 0 ? P.warn : '#7d2f1e') : P.dim;
+  ctx.fillText('RADAR', x0 + 3, y + 9);                   // la misma palabra en los dos idiomas
+  const bx = x0 + 3 + Math.ceil(ctx.measureText('RADAR').width) + 4, bw = x0 + w - 3 - bx;
+  px(bx, y + 4, bw, 3, BAL_APAGADA);
+  px(bx, y + 4, Math.round(bw * Math.max(0, Math.min(1, run.detection))), 3, P.warn);
+  if (run.radarWave > 0) px(bx + Math.round(bw * Math.min(0.55, 0.35 + run.radarWave * 0.03)), y + 3, 1, 5, P.accent);
+  return y + RADAR_H + AIRE;
+}
+
 export function drawHUD(h) {
   cajaCinta = null;   // ver cintaCaja: una caja de otro cuadro no cuenta
   cajaPiloto = null;  // idem: la cara de la que sale mi voz es la de ESTE cuadro
@@ -959,6 +990,8 @@ export function drawHUD(h) {
   // (misma regla que la Chancha sin combustible).
   vigilaAlerta(h.estrellas | 0);
   if (h.estrellas > 0 || h.busqueda) { drawAlerta(MARGEN, ty, anchoSquad(), h.estrellas | 0, h.escondite); ty += ALERTA_H + AIRE; }
+  // …Y DEBAJO, LA CARGA DEL RADAR, que entra y sale sola (ver drawRadar).
+  ty = drawRadar(MARGEN, ty, anchoSquad(), plane.y > (h.radarAlt === undefined ? RADAR_ALT : h.radarAlt));
   // PERSECUCION no tiene objetivo NI record: la cinta no tiene contra que medir, asi que el
   // kilometraje se queda aca como contador abierto — la forma que le toca cuando no hay meta.
   if (objectiveDist <= 0 && gameMode !== 'survival') { drawOdo(MARGEN, ty); ty += 12 + AIRE; }
@@ -987,30 +1020,20 @@ export function drawHUD(h) {
   // lejos del numero que los causa obligaba a barrer la pantalla. Ahora comparten una sola fila,
   // justo encima de la velocidad y la altura.
   //
-  // PRIORIDAD: el roce gana. Estar rozando es muerte en segundos; el radar es una amenaza que
-  // tarda. Con los dos activos se muestra el urgente.
+  // EL RADAR YA NO AVISA ACA (11/9): su carga es una placa que entra desde la izquierda, pegada al
+  // panel de alerta (ver drawRadar). En el centro queda solo el roce, que es muerte en segundos.
   const scraping = run.scrapeVib > 0.6;
-  const painted = run.detection > 0.3;
   // LOS AVISOS SE APOYAN ARRIBA DE LOS RELOJES (11/9), o arriba de la caja de charla si hay una
   // (`h.charlaTecho`, lo mide game.js): desde que velocidad y altura pasaron a relojes, el centro de
   // la fila de abajo esta ocupado, y un "¡SUBI!" tapado por la charla es un aviso que no existe.
-  // De abajo hacia arriba: la barra del radar (piso-6..piso-2), el aviso (piso-8) y la niebla.
+  // De abajo hacia arriba: el aviso de roce (piso-8) y la niebla.
   const piso = h.charlaTecho == null ? CUADROS_Y : h.charlaTecho;
   const warnY = piso - 8;
-  if (scraping || painted) {
+  if (scraping) {
     ctx.textAlign = 'center'; ctx.font = 'bold 8px monospace';
-    // parpadeo mas rapido para el roce: la urgencia se lee en el ritmo, no solo en el texto
-    ctx.fillStyle = Math.sin(run.t * (scraping ? 30 : 14)) > 0 ? P.warn : '#7d2f1e';
-    ctx.fillText(scraping ? T('scrape') : T('radar'), W / 2, warnY);
-  }
-  // BARRA de carga del radar, bajo el aviso. Sin numero de oleada: el dato que importa es cuanto
-  // falta para la proxima tanda, y eso ya lo dice la barra llenandose.
-  if (painted && !scraping) {
-    plate(W / 2 - 22, warnY + 2, 44, 4);
-    px(W / 2 - 20, warnY + 3, Math.round(40 * run.detection), 2, P.warn);
-    // marca del residual: donde rearranca la barra tras la proxima oleada (cada vez mas llena),
-    // asi se ve que el ciclo se acorta sin poner un contador
-    if (run.radarWave > 0) px(W / 2 - 20 + Math.round(40 * Math.min(0.55, 0.35 + run.radarWave * 0.03)), warnY + 2, 1, 4, P.accent);
+    // parpadeo rapido: la urgencia se lee en el ritmo, no solo en el texto
+    ctx.fillStyle = Math.sin(run.t * 30) > 0 ? P.warn : '#7d2f1e';
+    ctx.fillText(T('scrape'), W / 2, warnY);
   }
 
   // NIEBLA: CUANTO FALTA PARA SALIR. Sin esto el banco no es tension sino aguantar a ciegas sin
