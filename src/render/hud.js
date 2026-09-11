@@ -16,7 +16,8 @@ import { proj } from '../core/fx.js';
 import { scrapeLimit } from '../core/physics.js';
 import { T } from '../core/i18n.js';
 import { P, RADAR_VERDE, RADAR_OPACO } from '../data/palette.js';
-import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS } from '../data/tuning.js';
+import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP } from '../data/tuning.js';
+import { machNow } from '../core/mach.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName } from '../systems/squad.js';
 import { active as tempoActive, meterVal as tempoMeter } from '../systems/tempo.js';
@@ -462,13 +463,9 @@ let cajaCinta = null;
 export const cintaCaja = () => cajaCinta;
 // LA COLUMNA DERECHA, de arriba abajo, y las dos medidas juntas porque son la misma decision: los
 // primeros 12 px de esa esquina NO son del canvas (ahi vive el boton de sonido, que es HTML — ver
-// index.html), debajo va el reloj del rasante cuando esta encendido, y despues el gas.
-//
-// El gas arrancaba en 64 porque tenia dos barras encima. Ya no las tiene —se fueron a los bordes—
-// asi que sube y la corredera pasa de 54 px de recorrido a 76. Es el unico instrumento del HUD que
-// se OPERA en vez de leerse, y una palanca con mas recorrido se apunta mejor.
+// index.html), y debajo va el reloj del rasante cuando esta encendido. El gas vivio abajo de el,
+// como corredera vertical, hasta el 11/9: ahora es un reloj de la fila de abajo.
 const RELOJ_Y = 15;                  // la placa del reloj del rasante: 15..25
-const GAS_TOP = 42, GAS_BOT = 118;   // la corredera del gas
 
 // LOS CUADRADOS DE ABAJO (playtest 10/9): horizonte, piloto, nafta y chancha, todos del MISMO lado
 // y apoyados en el margen de abajo, como una fila de instrumentos de tablero de verdad. A la
@@ -476,6 +473,16 @@ const GAS_TOP = 42, GAS_BOT = 118;   // la corredera del gas
 // puntitos de la chancha y las dos barras de SALUD se fueron adentro de sus relojes — un instrumento
 // por cosa, y todos con la misma forma. Las filas de placas (R1/R2) se fueron con la ultima barra.
 const CUADRO = 26, CUADROS_Y = H - MARGEN - CUADRO;
+/** El x del cuadrado `i` de la fila, contando desde el margen izquierdo. Los cuatro de la izquierda
+ *  salian de cuentas sueltas y el piloto y la nafta quedaron pisandose un pixel. */
+const COL = i => MARGEN + i * (CUADRO + AIRE);
+// LOS RELOJES DEL VUELO (ver drawHUD): hasta donde llega cada escala, y el ancho del estante de
+// misiles que les hizo lugar.
+const VEL_TOPE = 1400;              // km/h: pasa Mach 1 (1200) con aire; la postcombustion la clava
+// El Mach arranca en 0,2 y no en 0,4: el crucero anda por 0,26 a 0,5, y con la escala en 0,4 la
+// aguja pasaba media mision clavada en cero, que en un tablero se lee como un instrumento roto.
+const MACH_DE = 0.2, MACH_A = 1.4;
+const RACK_W = 12;
 
 /** LO MAS ALTO QUE PINTA EL TABLERO DE VUELO: el canto de los cuadrados. Fue el de la fila de placas
  *  de SALUD, cuatro pixeles mas arriba, hasta que SALUD paso a ser un cuadrado.
@@ -601,17 +608,25 @@ function pxLinea(x0, y0, x1, y1, col) {
   for (let i = 0; i <= n; i++) px(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, 1, 1, col);
 }
 
-/** `o` = { val 0..1, col, ico, icoCol, zona: [desde, hasta] en rojo, fin: icono al final de la
- *  escala (o null), txt: el numero al pie, txtCol } */
+/** `o` = { val 0..1, col, ico, icoCol, zona: [desde, hasta] en rojo, zonas: [[desde, hasta, col]]
+ *  (varias y de cualquier color; manda sobre `zona`), marcas: [[f, col]] marcas LARGAS, fin: icono
+ *  al final de la escala (o null), txt: el numero al pie, txtCol } */
 function reloj(x, y, o) {
   plate(x, y, CUADRO, CUADRO);
   const cx = x + 13, cy = y + 16, r = 10;
   const ang = f => Math.PI + Math.PI * Math.max(0, Math.min(1, f));
   // LA ESCALA: trece marcas. Las de la zona van en rojo — el peligro es parte del dial, no un aviso
+  const zonas = o.zonas || (o.zona ? [[o.zona[0], o.zona[1], P.warn]] : []);
   for (let i = 0; i <= 12; i++) {
     const f = i / 12, a = ang(f);
-    const enZona = o.zona && f >= o.zona[0] && f <= o.zona[1];
-    px(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 1, 1, enZona ? P.warn : '#55676f');
+    const z = zonas.find(([d, h]) => f >= d && f <= h);
+    px(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 1, 1, z ? z[2] : '#55676f');
+  }
+  // LAS MARCAS LARGAS: un punto de la escala que importa por si solo (Mach 1, el techo del radar).
+  // Cruzan el aro para afuera y para adentro: se ven aunque caigan entre dos marcas comunes.
+  for (const [f, col] of o.marcas || []) {
+    const a = ang(f), c = Math.cos(a), s = Math.sin(a);
+    pxLinea(cx + c * (r - 2), cy + s * (r - 2), cx + c * (r + 1), cy + s * (r + 1), col);
   }
   const a = ang(o.val);
   pxLinea(cx, cy, cx + Math.cos(a) * (r - 2), cy + Math.sin(a) * (r - 2), o.col);
@@ -666,7 +681,7 @@ function gestoDeseado() {
 
 /** Dibuja la cara y devuelve el x donde sigue el tablero (sin cara: el mismo x, no queda hueco). */
 function drawPiloto() {
-  const x = ADI.cx + 14 + AIRE, y = ADI.cy - 13;
+  const x = COL(1), y = CUADROS_Y;
   const nombre = pilotName(pilotIdx(run.squad, run.lives));
   const base = CARA_PILOTO[sinTilde(nombre)];
   if (!base) return x;
@@ -976,11 +991,12 @@ export function drawHUD(h) {
   // tarda. Con los dos activos se muestra el urgente.
   const scraping = run.scrapeVib > 0.6;
   const painted = run.detection > 0.3;
-  // Apilado de la esquina inferior, de abajo hacia arriba: velocidad+altura (H-4), barra del
-  // radar (H-19..H-15) y el aviso (H-21). Los 7 px de la linea de velocidad suben hasta H-11,
-  // asi que la barra tiene que terminar arriba de eso — con warnY = H-13 la barra caia justo
-  // encima del "KM/H".
-  const warnY = H - 21;
+  // LOS AVISOS SE APOYAN ARRIBA DE LOS RELOJES (11/9), o arriba de la caja de charla si hay una
+  // (`h.charlaTecho`, lo mide game.js): desde que velocidad y altura pasaron a relojes, el centro de
+  // la fila de abajo esta ocupado, y un "¡SUBI!" tapado por la charla es un aviso que no existe.
+  // De abajo hacia arriba: la barra del radar (piso-6..piso-2), el aviso (piso-8) y la niebla.
+  const piso = h.charlaTecho == null ? CUADROS_Y : h.charlaTecho;
+  const warnY = piso - 8;
   if (scraping || painted) {
     ctx.textAlign = 'center'; ctx.font = 'bold 8px monospace';
     // parpadeo mas rapido para el roce: la urgencia se lee en el ritmo, no solo en el texto
@@ -1012,36 +1028,8 @@ export function drawHUD(h) {
     px(W / 2 - 20, warnY - 6.5, Math.max(1, Math.round(40 * left / tot)), 2, plane.y >= fogTop() ? P.foam : P.warn);
   } else fogSeen = 0;
 
-  // VELOCIDAD y ALTURA, uno al lado del otro abajo al centro. Van juntos a proposito: son los dos
-  // numeros que deciden todo el vuelo (rapido = menos margen; alto = te ve el radar), y tenerlos
-  // en la misma linea evita barrer la pantalla para cruzarlos.
-  //
-  // Se dibujan por separado porque cada uno tiene SU color: la velocidad avisa de turbo/racha/
-  // viento, y la altura avisa del RADAR. Para que el conjunto quede centrado sin importar cuantos
-  // digitos tenga cada uno, se miden los dos anchos y se reparte a mano.
-  ctx.font = '7px monospace'; ctx.textAlign = 'left';
-  const sTxt = Math.round(run.spd * 4.2) + T('kmh')
-    + (run.afterTier > 0 ? ' »' + run.afterTier : run.boost ? T('turboTag') : run.windF < 0.97 ? ' ▼' : '');
-  // DENTRO DEL RADAR: la altura se pone ROJA y parpadea. Es el mismo dato que la barra de arriba
-  // y que la RED, pero en el lugar donde el jugador ya esta mirando el numero que lo causa.
-  // la altura se pone ROJA por CUALQUIERA de los dos peligros de altura: te ven arriba, o te
-  // estas comiendo el agua abajo. Es el mismo numero el que te metio en las dos.
-  // EL TECHO ES EL DE LA FASE, no la constante: con EL FILO puesto el numero tiene que ponerse
-  // rojo a 6 y no a 20. Llega en `h` por la misma razon que a la malla — render no ve los sistemas.
-  const seen = plane.y > (h.radarAlt === undefined ? RADAR_ALT : h.radarAlt) || scraping;
-  const aTxt = Math.round(plane.y) + T('alt');
-  const gap = 6;
-  const wS = ctx.measureText(sTxt).width, wA = ctx.measureText(aTxt).width;
-  let cx3 = W / 2 - (wS + gap + wA) / 2;
-  ctx.fillStyle = run.afterTier > 0 ? P.warn : run.boost || run.rasLevel > 0 ? P.accent : run.windF < 0.97 ? P.crest : P.dim;
-  ctx.fillText(sTxt, cx3, H - 4);
-  cx3 += wS + gap;
-  ctx.fillStyle = seen ? (Math.sin(run.t * (scraping ? 30 : 14)) > 0 ? P.warn : '#7d2f1e')   // peligro: parpadea
-    : plane.y <= 4.5 ? P.accent : P.dim;                                   // a ras: acento (zona x10)
-  ctx.fillText(aTxt, cx3, H - 4);
-  // marca de que la altura esta EN ZONA DE RADAR: un subrayado rojo bajo el numero, para que se
-  // distinga del acento naranja del rasante aunque el parpadeo este en su fase apagada
-  if (seen) px(cx3, H - 2, wA, 1, P.warn);
+  // (VELOCIDAD y ALTURA eran texto aca, abajo al centro, hasta el 11/9: ahora son relojes — ver
+  // EL CENTRO, mas abajo. Sus colores de aviso se fueron con ellos, a las agujas.)
   ctx.textAlign = 'center';
 
   // --- aviso de la banda superior ---
@@ -1101,7 +1089,7 @@ export function drawHUD(h) {
   drawPiloto();
   // NAFTA y CHANCHA, los dos relojes de la fila. La chancha solo con COMBUSTIBLE: SI — un reloj que
   // nunca se va a poder usar es ruido ocupando un cuadrado.
-  const xNafta = ADI.cx + 13 + (CUADRO + AIRE), xCha = xNafta + CUADRO + AIRE;
+  const xNafta = COL(2), xCha = COL(3);
   if (pide(run.fuel < 60)) reloj(xNafta, CUADROS_Y, {
     val: run.fuel / 100, ico: 'nafta', zona: [0, 0.25],
     col: run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam,
@@ -1140,6 +1128,48 @@ export function drawHUD(h) {
       col: run.overheat ? (Math.sin(run.t * 12) > 0 ? P.warn : '#7d2f1e') : run.heat > 0.75 ? P.warn : P.accent,
       txt: Math.round(run.heat * 100) + '%', txtCol: run.overheat ? P.warn : P.dim });
 
+  // ---- EL CENTRO: LOS CUATRO DEL VUELO (playtest 11/9) -----------------------------------------
+  // VELOCIDAD, MACH, ALTITUD y GAS, en relojes como los del resto de la fila. Pedido del autor con
+  // fotos de la cabina del A-4 Skyhawk, que era toda analogica: la idea es que el jugador mire abajo
+  // y sienta lo mismo que nuestros pilotos — un tablero lleno de agujas. El numero sigue al pie de
+  // cada uno: la aguja dice "mas o menos cuanto" de reojo, y el numero "cuanto" cuando hay tiempo.
+  //
+  // Van en su propio grupo, centrado entre los cuatro de la izquierda y el estante de misiles, con
+  // mas aire a los costados que entre ellos: un tablero de verdad se lee por grupos.
+  const finIzq = COL(3) + CUADRO, xRack = xSalud - AIRE - RACK_W;
+  const x0 = Math.round((finIzq + xRack - (4 * CUADRO + 3 * AIRE)) / 2);
+  const xV = i => x0 + i * (CUADRO + AIRE);
+  // VELOCIDAD, en km/h. La aguja toma el color de lo que la esta empujando —turbo o racha en acento,
+  // postcombustion en rojo, viento en contra en cresta—, que eran las etiquetas del numero de antes.
+  // La marca larga es Mach 1.
+  const kmh = run.spd * KMH_U, mach = machNow(run.spd);
+  const colVel = run.afterTier > 0 ? P.warn : run.boost || run.rasLevel > 0 ? P.accent : run.windF < 0.97 ? P.crest : P.foam;
+  reloj(xV(0), CUADROS_Y, { val: kmh / VEL_TOPE, ico: 'vel', col: colVel, marcas: [[A_MAR / VEL_TOPE, P.foam]],
+    txt: String(Math.round(kmh)), txtCol: colVel === P.foam ? P.dim : colVel });
+  // MACH, aparte, como en el A-4. Lo que esta en acento es el regimen del cono (core/mach.js) y la
+  // marca larga, otra vez, Mach 1.
+  const fM = m => (m - MACH_DE) / (MACH_A - MACH_DE);
+  reloj(xV(1), CUADROS_Y, { val: fM(mach), ico: 'mach', col: mach >= M_CONO ? P.accent : P.foam,
+    zonas: [[fM(M_CONO), 1, P.accent]], marcas: [[fM(1), P.foam]],
+    txt: mach.toFixed(2), txtCol: mach >= M_CONO ? P.accent : P.dim });
+  // ALTITUD, en metros y con la escala ESTIRADA ABAJO (raiz cuadrada): el juego entero pasa en los
+  // primeros veinte metros, y con una escala lineal el rasante eran dos marcas. Rojo el agua, acento
+  // la franja del rasante (x10), y la marca larga roja es el techo del radar DE LA FASE (llega en `h`).
+  // La aguja se pone roja y parpadea con cualquiera de los dos peligros de altura: te ven, o rozas.
+  const fA = a => Math.sqrt(Math.max(0, Math.min(1, a / FLY_TOP)));
+  const techo = h.radarAlt === undefined ? RADAR_ALT : h.radarAlt;
+  const rozando = run.scrapeVib > 0.6, visto = plane.y > techo || rozando;
+  reloj(xV(2), CUADROS_Y, { val: fA(plane.y), ico: 'alt',
+    col: visto ? (Math.sin(run.t * (rozando ? 30 : 14)) > 0 ? P.warn : '#7d2f1e') : plane.y <= 4.5 ? P.accent : P.foam,
+    zonas: [[0, fA(1.2), P.warn], [fA(1.2) + 0.01, fA(4.5), P.accent]], marcas: [[fA(techo), P.warn]],
+    txt: Math.round(plane.y) + 'm', txtCol: visto ? P.warn : P.dim });
+  // GAS: la palanca, leida como las RPM de un tablero de verdad. Era la corredera vertical del borde
+  // derecho; sin nafta, la aguja parpadea (el reloj de nafta, a la izquierda, dice por que).
+  reloj(xV(3), CUADROS_Y, { val: run.throttle, ico: 'gas',
+    col: run.fuel <= 0 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim)
+      : run.throttle > 0.66 ? P.foam : run.throttle > 0.15 ? P.accent : P.bodyDark,
+    txt: Math.round(Math.max(0, Math.min(1, run.throttle)) * 100) + '%', txtCol: run.fuel <= 0 ? P.warn : P.dim });
+
   // ---- LOS BORDES: LOS PODERES DE RACHA ---------------------------------------------------------
   // RASANTE y MOMENTUM dejan de ser barras con rotulo y pasan a ser dos RIELES en los bordes
   // laterales: izquierda rasante, derecha momentum, siempre. Los dos se GANAN volando —no se
@@ -1177,16 +1207,13 @@ export function drawHUD(h) {
 
   // municion de misiles: cada pip es el MISIL en miniatura (cuerpo blanco, ojiva gris, llama),
   // el mismo que se ve volar — no un rectangulo generico. Vacio = solo el contorno.
-  // MISIL usa la MISMA convencion que bar(): placa en y-9, rotulo en y-4 y el contenido en y.
-  // Va a la izquierda de SALUD, con AIRE, y APOYADA EN EL MISMO PISO que los cuadrados: arriba de
-  // SALUD vivia antes, cuando SALUD era una placa baja; ahora SALUD es un cuadrado y ocupa esa columna.
-  const xMsl = xSalud - AIRE - 64, yMsl = CUADROS_Y + CUADRO - INSTR + 9;
+  // LOS MISILES, EN UN ESTANTE ANGOSTO (playtest 11/9): del alto de los cuadrados, al lado de SALUD,
+  // uno arriba del otro y sin rotulo —cada pip ES un misil—. La placa de 64 que tenian estaba casi
+  // vacia, y los cuatro relojes del vuelo necesitaban ese lugar.
   if (pide(run.msl < MSL_MAX)) {
-    plate(xMsl, yMsl - 9, 64, INSTR);
-    ctx.textAlign = 'left'; ctx.font = F_ROT; ctx.fillStyle = P.dim;
-    ctx.fillText('MISIL', xMsl + 2, yMsl - 4);
+    plate(xRack, CUADROS_Y, RACK_W, CUADRO);
     for (let i = 0; i < MSL_MAX; i++) {
-      const on = i < run.msl, bx = xMsl + 2 + i * 9, by = yMsl;
+      const on = i < run.msl, bx = xRack + 3, by = CUADROS_Y + 5 + i * 7;
       if (on) {
         px(bx + 1, by, 5, 2, '#e9edf0');                      // cuerpo blanco
         px(bx + 6, by, 1, 2, '#9aa3ab');                      // ojiva gris
@@ -1200,27 +1227,6 @@ export function drawHUD(h) {
     }
   }
 
-  // palanca de gas (throttle) — vertical, borde derecho
-  const gx = W - MARGEN - 7, tyTop = GAS_TOP, tyBot = GAS_BOT, tH = tyBot - tyTop;
-  plate(gx - 3, tyTop - 3, 10, tH + 6);
-  ctx.fillStyle = P.dim;                                     // marcas de la corredera
-  for (let i = 0; i <= 4; i++) ctx.fillRect(gx - 2, Math.round(tyBot - tH * (i / 4)), 2, 1);
-  const fillH = Math.round(tH * Math.max(0, Math.min(1, run.throttle)));
-  const tcol = run.fuel <= 0 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim)
-    : run.throttle > 0.66 ? P.foam : run.throttle > 0.15 ? P.accent : P.bodyDark;
-  px(gx, tyBot - fillH, 4, fillH, tcol);                     // relleno desde abajo
-  if (fillH > 1) { ctx.globalAlpha = 0.35; px(gx, tyBot - fillH, 1, fillH, '#f2f7fb'); ctx.globalAlpha = 1; }
-  px(gx - 2, tyBot - fillH - 1, 8, 2, P.ink);                // perilla de la palanca
-  px(gx - 2, tyBot - fillH - 1, 8, 1, '#f2f7fb');            // canto superior de la perilla
-  // EL ROTULO DEL GAS, sobre placa (vive contra el cielo) y CON EL BORDE DERECHO DE LA PALANCA. La
-  // placa del rotulo es mas ancha que la corredera —la palabra mide mas que 10 px— asi que si no
-  // comparten un borde se leen como dos cosas puestas ahi cerca. Compartiendo el derecho, que es el
-  // mismo de ESTADO / CAÑON / MISIL, la columna entera queda a plomo.
-  ctx.font = F_ROT; ctx.textAlign = 'right';
-  const thrTxt = run.fuel <= 0 ? T('thr_dead') : T('thr');
-  const thrW = Math.round(ctx.measureText(thrTxt).width) + 6;
-  plate(W - MARGEN - thrW, tyTop - 11, thrW, 9);
-  ctx.fillStyle = run.fuel <= 0 ? P.warn : P.dim;
-  ctx.fillText(thrTxt, W - MARGEN - 3, tyTop - 4);
+  // (LA PALANCA DE GAS del borde derecho se fue al reloj de GAS, en el centro de la fila: 11/9.)
 }
 

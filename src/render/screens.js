@@ -1292,6 +1292,9 @@ export function drawRadioVN(o) {
  *  en el ancho de la cinta (~145 px) eso son seis renglones colgando sobre el horizonte. Se quedo
  *  abajo, sola, en el piso que era del toast. Si algun dia sube, sube RE-PARTIDA, no achicada. */
 const CHV_W = 262, CHV_H = 38, CHV_CARA = 26;
+/** El canto de arriba de la caja de charla (ya entrada: la entrada la trae de 6 px mas abajo). Lo
+ *  lee el HUD, via game.js, para apoyar los avisos de altura arriba de ella y no debajo. */
+export const charlaTecho = () => HUD_TINTA - 2 - CHV_H;
 
 export function drawCharla(w) {
   const d = w.dlg;

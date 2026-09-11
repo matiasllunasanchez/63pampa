@@ -536,6 +536,27 @@ ahorrar— y en una V los caídos cuestan contarlos. El mismo tablero se ve en e
 
 `hud_squad` (el rótulo) quedó sin uso en `data/strings.js`, por la misma razón que la divergencia 19b.
 
+## 1s. El tablero del A-4: velocidad, Mach, altitud y gas en relojes _(aplicada)_
+
+Pedido del 11/9, con fotos de la cabina del A-4 Skyhawk: todo analógico, y la idea de que el jugador
+sienta lo mismo que nuestros pilotos al mirar abajo — un tablero lleno de agujas. Los cuatro son
+relojes como los demás, con el número al pie:
+
+| Reloj | Escala | Marcas |
+| --- | --- | --- |
+| **velocidad** | 0–1400 km/h | la larga es Mach 1; la aguja toma el color de lo que la empuja (turbo o racha en acento, postcombustión en rojo, viento en contra en cresta) |
+| **Mach** | 0,2–1,4 | en acento, el régimen del cono (desde 0,95); la larga, Mach 1 |
+| **altitud** | 0–68 m, **estirada abajo** (raíz cuadrada) | rojo el agua, acento la franja del rasante (x10) y la larga roja es el techo del radar de la fase |
+| **gas** | 0–100 % | la palanca leída como las RPM de un tablero de verdad; parpadea sin nafta |
+
+Van en un grupo propio en el centro de la fila, con más aire a los costados que entre ellos. Para que
+entren, **MISIL pasó a un estante angosto** (12 px, los tres misiles uno arriba del otro, sin rótulo)
+y **la corredera de gas del borde derecho se fue**. Los avisos de altura (¡SUBÍ!, el radar, la niebla)
+suben arriba de los relojes, o arriba de la caja de charla si hay una: un aviso tapado no existe.
+
+De paso, el cuadro del piloto y el reloj de nafta se pisaban un píxel. La fila sale ahora de una sola
+cuenta (`COL(i)` en `render/hud.js`).
+
 
 ## 2. Divergencias
 
@@ -632,6 +653,12 @@ ahorrar— y en una V los caídos cuestan contarlos. El mismo tablero se ve en e
     el *daño* (balas y agua), no todos los *modos*: en ESCUADRÓN no hay chapa adonde pase el resto, y
     darle escudo ahí ablanda el modo por defecto — un avión dejaría de caer a la primera trazadora.
     Si se lo quiere, es una línea en `systems/damage.js` (`takeHit`) y en el vuelo.
+24. **Se perdió el número de escalón de la postcombustión** (el `»n` que seguía a la velocidad). La
+    aguja de velocidad se pone roja con postcombustión, pero ya no dice en qué escalón va. Quedaron
+    sin uso `kmh`, `alt`, `turboTag`, `thr` y `thr_dead` en `data/strings.js` (misma razón que 19b).
+25. **Mach va en su propio reloj**, aunque el A-4 real lo combina con la velocidad en uno solo. A 26 px,
+    dos escalas en un mismo reloj no se leen; separado, además, suma perillas, que es la sensación que
+    se buscaba (§1s).
 
 ## 3. Lo que sigue pendiente _(de la auditoría, sin decidir)_
 

@@ -3736,6 +3736,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (S.state === 'play') {
         ctx.save(); ctx.scale(U, U); hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip, goalKind: objectiveKind,
         radarAlt: fases.techoRadar(RADAR_ALT),
+        // donde empieza la caja de charla, si hay una: los avisos de altura se apoyan arriba de ella
+        charlaTecho: charla.hablando() ? screens.charlaTecho() : null,
         // el contador y su reloj de escondite, por snapshot (convencion 4: el render no importa
         // de systems — lo vigila `npm run lint:layers`)
         estrellas: run.estrellas, escondite: estrellas.progreso(),

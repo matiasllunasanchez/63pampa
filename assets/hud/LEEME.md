@@ -28,6 +28,10 @@ exacto o ×3** entra sin medio píxel; cualquier otro se escala y pierde el filo
 | `chancha` | el reloj de la Chancha | 7 × 4 | 21 × 12 | avión tanque (Hercules KC-130) **de costado** — de arriba se confunde con la cruz |
 | `emergencia` | la marca del final del reloj de la Chancha | 5 × 7 | 15 × 21 | gota de combustible con signo de admiración |
 | `canon` | el reloj del cañón | 7 × 5 | 21 × 15 | proyectil o cañón |
+| `vel` | el reloj de velocidad | 7 × 5 | 21 × 15 | cheurones o flecha de velocidad |
+| `mach` | el reloj de Mach | 5 × 5 | 15 × 15 | una M, como la del Machmetro |
+| `alt` | el reloj de altitud | 7 × 7 | 21 × 21 | flecha que sube desde una línea (el agua) |
+| `gas` | el reloj de gas (RPM) | 5 × 7 | 15 × 21 | palanca de gas |
 | `vida` | el reloj de salud, escala de arriba (la chapa) | 6 × 6 | 18 × 18 | cruz **blanca** (la roja es un emblema protegido) |
 | `ola` | el reloj de salud, escala de abajo en ESCUADRÓN (el agua) | 6 × 2 | 18 × 6 | una línea de ola, bien chata (arriba y abajo hay marcas del reloj y el borde) |
 | `escudo` | el reloj de salud, escala de abajo con chapa (el escudo) | 5 × 5 | 15 × 15 | escudo; **la esquina de arriba a la derecha vacía** (al lado cae una marca del reloj) |
@@ -64,6 +68,15 @@ escudo
 #####
 .###.
 ..#..
+
+vel       mach    alt       gas
+#...#..   #...#   ...#...   .###.
+.#...#.   ##.##   ..###..   .###.
+..#...#   #.#.#   .#.#.#.   ..#..
+.#...#.   #...#   ...#...   ..#..
+#...#..   #...#   ...#...   ..#..
+                  .......   #####
+                  #######   #...#
 ```
 
 `#` es el color principal y `+` el secundario (en la gota y el surtidor, el `+` es un calado).
