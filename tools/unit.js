@@ -476,7 +476,7 @@ test('mejoras: acepta un Set ademas de un array (owned viaja de las dos formas)'
   assert.equal(moveAllowed('jink', { campaign: true, owned: new Set(['mask']), off: {} }), false);
 });
 
-// ---------- INTEGRIDAD / MODELOS DE VIDA (src/core/damage.js) ----------
+// ---------- INTEGRIDAD / MODELOS DE SALUD (src/core/damage.js) ----------
 // La regla que sostiene todo el sistema: te DISPARAN → daño; CHOCAS algo → muerte, en los tres
 // modos. Si esto se afloja, el rasante deja de tener consecuencias y el juego cambia de genero.
 import { applyHit, effects, tierOf, isFatal, DMG_MODES, DMG } from '../src/core/damage.js';

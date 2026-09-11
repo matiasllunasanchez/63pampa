@@ -160,7 +160,7 @@ export const cfg = {
   // es el bug que reporto el playtest: con `arenaInv` en SI, la pasada volaba invertida y el
   // pasillo no, en la misma partida. Los modos no son esquemas de control distintos.
   invY: 0,
-  // MODELO DE VIDA / AVERIAS (ver core/damage.js). Vale para TODOS los modos y a futuro es una
+  // MODELO DE SALUD / AVERIAS (ver core/damage.js). Vale para TODOS los modos y a futuro es una
   // de las perillas de la DIFICULTAD:
   //   'squad'  el de siempre: un impacto y caiste; el escuadron es la barra de vida
   //   'integ'  el avion aguanta y se DEGRADA (mas lento, sin turbo, sin piruetas)

@@ -1,4 +1,4 @@
-// INTEGRIDAD DEL AVION: los tres modelos de VIDA del juego, como datos y funciones PURAS.
+// INTEGRIDAD DEL AVION: los tres modelos de SALUD del juego, como datos y funciones PURAS.
 //
 // Hasta ahora el juego tenia UN solo modelo: cualquier impacto mata y se descuenta un avion del
 // escuadron (systems/squad.js). Este modulo agrega los otros dos que pidio el autor y deja los

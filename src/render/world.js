@@ -1027,7 +1027,7 @@ export function drawWake() {
   ctx.globalAlpha = 1;
 }
 
-// BARRA DE VIDA de los enemigos que aguantan mas de un tiro. Los de un solo tiro (globo) no la
+// BARRA DE SALUD de los enemigos que aguantan mas de un tiro. Los de un solo tiro (globo) no la
 // llevan: seria ruido. Aparece cuando ya estan lo bastante cerca como para tirarles, y se queda
 // visible (y opaca) apenas los tocaste, para que se lea el progreso de la rafaga.
 function drawHpBar(sx, sy, k, o) {
