@@ -3732,6 +3732,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // el contador y su reloj de escondite, por snapshot (convencion 4: el render no importa
         // de systems — lo vigila `npm run lint:layers`)
         estrellas: run.estrellas, escondite: estrellas.progreso(),
+        // ¿EN ESTA CORRIDA PUEDE SUBIR? Solo con fases: sin ellas `pinta` no se resuelve y completar
+        // la barra del radar dispara la oleada de siempre sin sumar nada. Decide si el panel se ve
+        // a nivel cero (apagado, esperando) o no existe.
+        busqueda: fases.hayFases(),
           // EL PODER RASANTE va por snapshot (convencion 4): el lint de capas prohibe que el
           // render importe de systems, y la lista de excepciones solo puede achicarse.
           ras: { on: rasante.active(), meter: rasante.meterVal(), resta: rasante.restante(), dur: RAS_DUR } }); drawCinta(); ctx.restore();

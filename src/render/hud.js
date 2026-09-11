@@ -577,6 +577,9 @@ const RADAR_GIRO = 4.2;   // rad/s del barrido: una vuelta cada segundo y medio
 // TODO VERDE, por pedido del autor (11/9): el verde de fosforo de una pantalla de radar es lo que
 // lo hace radar antes que la forma. Cinco tonos de la misma tinta, del aro apagado a la punta.
 const RADAR_VERDE = { aro: '#3a9448', onda: '#2c6e37', lejos: '#1f5c2a', cerca: '#3fae52', punta: '#8dff9a', eje: '#5fd06e' };
+// …Y OPACO A NIVEL CERO: la misma tinta sin brillo. Gira igual —el radar esta prendido y mirando—,
+// pero no tiene a nadie: sin contacto y sin la punta encendida. Encenderse es la noticia.
+const RADAR_OPACO = { aro: '#26502e', onda: '#1d3d23', lejos: '#183a1f', cerca: '#23532b', punta: '#35703f', eje: '#2e5e36' };
 // LAS ONDITAS: el pulso que sale del centro, en tres radios, por tramos de fila como el aro. El
 // cuarto paso del ciclo no dibuja nada — la onda llega al aro y se pierde en el.
 const RADAR_ONDAS = [
@@ -585,8 +588,8 @@ const RADAR_ONDAS = [
   [[1, 3, 5], [2, 2, 2], [2, 6, 6], [3, 1, 1], [3, 7, 7], [4, 1, 1], [4, 7, 7], [5, 1, 1], [5, 7, 7], [6, 2, 2], [6, 6, 6], [7, 3, 5]],
 ];
 
-function radarAlerta(x, y, visto) {
-  const V = RADAR_VERDE;
+function radarAlerta(x, y, visto, activo) {
+  const V = activo ? RADAR_VERDE : RADAR_OPACO;
   for (const [f, a, b] of RADAR_ARO) px(x + a, y + f, b - a + 1, 1, V.aro);
   const onda = RADAR_ONDAS[Math.floor(run.t * 3.2) % (RADAR_ONDAS.length + 1)];
   if (onda) for (const [f, a, b] of onda) px(x + a, y + f, b - a + 1, 1, V.onda);
@@ -599,8 +602,9 @@ function radarAlerta(x, y, visto) {
   px(cx, cy, 1, 1, V.eje);
   // EL CONTACTO SOS VOS, y parpadea siempre — pero no igual. Mientras te ven, rapido y encendido:
   // te tienen. Escondido, lento y apagado: es el eco viejo de donde te vieron por ultima vez.
+  // A nivel cero no hay contacto: nadie te busca, no hay eco que marcar.
   const on = visto ? Math.floor(run.t * 8) % 2 === 0 : Math.floor(run.t * 2.5) % 2 === 0;
-  if (on) px(x + 6, y + 2, 1, 1, visto ? '#d8ffdc' : V.cerca);
+  if (activo && on) px(x + 6, y + 2, 1, 1, visto ? '#d8ffdc' : V.cerca);
 }
 
 // LA BALIZA: 7x7, una cupula de cinco filas sobre su pie de dos. Tan alta como ancha a proposito:
@@ -649,7 +653,7 @@ export function drawAlerta(x, y, w, n, prog) {
   // aviso de radar ya este cargando, y es a proposito: un bob no te delata, y el panel cuenta el
   // mismo reloj que decide eso. Lo que te esta viendo AHORA lo dice la barra del radar, abajo.
   const visto = !(prog > 0);
-  radarAlerta(x + 3, y + 3, visto);
+  radarAlerta(x + 3, y + 3, visto, n > 0);
   // las cuatro, repartidas en lo que deja el radar y centradas ahi: la placa mide lo que mide el
   // escuadron, que depende del nombre del piloto, asi que el paso se acomoda y no la placa
   const x0 = x + 15, libre = x + w - 3 - x0;
@@ -685,11 +689,15 @@ export function drawHUD(h) {
   let ty = 3;
   // vidas del escuadron. Con 1 avion no se dibuja: seria un tablero de nada
   if (run.squad > 1) { drawSquadPips(MARGEN, ty); ty += SQUAD_H + AIRE; }
-  // …Y JUSTO DEBAJO, EL NIVEL DE ALERTA. Solo cuando hay algo que decir: a nivel cero el panel
-  // seria una fila vacia ocupando la esquina, y el HUD de este juego no muestra instrumentos que
-  // no tienen nada que contar (misma regla que la barra de la Chancha sin combustible).
+  // …Y JUSTO DEBAJO, EL NIVEL DE ALERTA. A NIVEL CERO TAMBIEN, por pedido del autor (11/9): las
+  // cuatro apagadas y el radar girando en verde opaco. Que el instrumento este ahi antes de que
+  // pase nada es lo que le enseña al jugador que existe —y que se puede encender—; aparecer recien
+  // con la primera baliza era enterarse del sistema en el mismo instante en que ya te castiga.
+  // PERO SOLO DONDE PUEDE SUBIR (`h.busqueda`, ver game.js). En una mision sin el sistema seria un
+  // tablero de nada, y el HUD de este juego no muestra instrumentos que nunca van a contar algo
+  // (misma regla que la Chancha sin combustible).
   vigilaAlerta(h.estrellas | 0);
-  if (h.estrellas > 0) { drawAlerta(MARGEN, ty, anchoSquad(), h.estrellas, h.escondite); ty += ALERTA_H + AIRE; }
+  if (h.estrellas > 0 || h.busqueda) { drawAlerta(MARGEN, ty, anchoSquad(), h.estrellas | 0, h.escondite); ty += ALERTA_H + AIRE; }
   // PERSECUCION no tiene objetivo NI record: la cinta no tiene contra que medir, asi que el
   // kilometraje se queda aca como contador abierto — la forma que le toca cuando no hay meta.
   if (objectiveDist <= 0 && gameMode !== 'survival') { drawOdo(MARGEN, ty); ty += 12 + AIRE; }

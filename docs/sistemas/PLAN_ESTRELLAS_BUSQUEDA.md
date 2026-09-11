@@ -174,11 +174,16 @@ de donde salió el item:
 
 | estado | balizas | contacto en el radar |
 |---|---|---|
+| **nivel 0** (nadie te busca) | las cuatro apagadas | verde opaco, girando, sin contacto |
 | nivel no alcanzado | apagadas, pero a la vista: se ve cuántas pueden venir | — |
 | **te ven** (el reloj de escondite en cero) | encendidas y quietas, con el brillo que gira | parpadeo rápido y encendido |
 | **te buscan** (escondido, el reloj corre) | parpadean todas, rojo ↔ rojo apagado | parpadeo lento y apagado: el eco viejo |
 | **recién ganada** (1,6 s) | destella en blanco, con rayos | — |
 
+- **A nivel 0 el panel también está** (pedido del autor, 11/9), pero sólo donde el contador
+  puede subir —misiones con fases—: el instrumento tiene que estar antes de que pase nada, o el
+  jugador se entera de que existe en el mismo instante en que ya lo castiga. Sin fases no se
+  dibuja: sería un tablero que nunca va a contar nada.
 - **El reloj de escondite se muestra mientras corre**, como una rayita al pie de la placa: si
   bajar veinte segundos baja una estrella, el jugador tiene que ver esos veinte segundos correr.
   El parpadeo dice *qué* está pasando; el reloj, *cuánto* falta.
