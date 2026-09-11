@@ -522,6 +522,20 @@ Vive en `core/damage.js` (`ESCUDO`, `absorber`, `dmgRoce`, `recargar`: puros y c
 `systems/damage.js` (`roce`, `tickEscudo`). El vuelo y las crestas llaman a `roce` sólo con chapa; en
 ESCUADRÓN corre la cuenta de siempre, así que `npm run feel` no se mueve.
 
+## 1r. El escuadrón en un renglón _(aplicada)_
+
+Pedido del 11/9: la formación con el dibujo del avión de la cinta, tantos como aviones haya, en un
+renglón y sin el rótulo ESCUADRÓN. Los aviones van en fila, con la nariz hacia el blanco, como el
+que avanza por la ruta: el que vuela en acento, los que esperan claros y los caídos oscuros y
+**tachados en rojo** (siguen ahí: una vida menos es un compañero menos). El nombre del que vuela
+queda al final, en acento, separado por el doble de aire que hay entre aviones.
+
+La placa baja de 17 a 11 de alto, la misma que la cinta, y el nivel de alerta sube 6 px con ella.
+Se descartó la formación en V: con cinco o seis aviones pide tres filas —el mismo alto que se quería
+ahorrar— y en una V los caídos cuestan contarlos. El mismo tablero se ve en el relevo.
+
+`hud_squad` (el rótulo) quedó sin uso en `data/strings.js`, por la misma razón que la divergencia 19b.
+
 
 ## 2. Divergencias
 

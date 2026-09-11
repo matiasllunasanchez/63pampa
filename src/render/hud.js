@@ -711,11 +711,19 @@ function drawPiloto() {
 }
 
 
-// TABLERO DEL ESCUADRON: un avioncito por vida — los caidos quedan TACHADOS, no desaparecen.
-// Que el pip siga ahi, oscuro y cruzado, es lo que hace que una vida menos sea un companero
-// menos y no un numero menos. Al lado, el indicativo del piloto al mando (PATRIA n).
+// TABLERO DEL ESCUADRON: un avion por vida — los caidos quedan TACHADOS, no desaparecen.
+// Que el avion siga ahi, oscuro y cruzado, es lo que hace que una vida menos sea un companero
+// menos y no un numero menos. Al lado, el indicativo del piloto al mando.
 // Lo comparte el HUD de vuelo y la sobreimpresion del relevo (render/squad.js).
-export const SQUAD_H = 17;   // alto de la placa: dos renglones (ver abajo)
+//
+// UN RENGLON Y SIN ROTULO (playtest 11/9). Los aviones son el MISMO dibujo que avanza por la ruta
+// de la cinta, uno detras del otro con la nariz hacia el blanco: una formacion en fila, que se
+// cuenta de un vistazo. El rotulo ESCUADRON se fue — seis aviones en fila ya dicen que son un
+// escuadron — y con el, el segundo renglon: la placa baja de 17 a 11, la misma altura que la cinta.
+// El nombre va despues de un hueco del doble del que hay entre aviones, para que no se lea como un
+// avion mas con letras (que era el motivo de los dos renglones, playtest 29/8).
+export const SQUAD_H = 11;
+const SQ_PASO = 9;           // el avion mide 7, y entre uno y otro van 2
 
 /** EL ANCHO DE LA PLACA DEL ESCUADRON. Sale aparte porque el panel de NIVEL DE ALERTA se dibuja
  *  justo debajo y tiene que medir LO MISMO — y dos copias de esta cuenta es el bug que este repo
@@ -729,36 +737,26 @@ export const SQUAD_H = 17;   // alto de la placa: dos renglones (ver abajo)
  *  balizas se salian por el costado. Crece la columna entera, y las dos placas siguen iguales. */
 export function anchoSquad() {
   const nombre = pilotName(pilotIdx(run.squad, run.lives));
-  ctx.font = F_ROT;
-  const wRot = ctx.measureText(T('hud_squad')).width;
   ctx.font = F_VAL;
-  const wFila = Math.max(2, run.squad) * 8 + 2 + ctx.measureText(nombre).width;
-  return Math.max(ALERTA_MIN_W, Math.round(Math.max(wRot, wFila)) + 8);
+  const wFila = Math.max(2, run.squad) * SQ_PASO + 3 + ctx.measureText(nombre).width;
+  return Math.max(ALERTA_MIN_W, Math.round(wFila) + 6);
 }
 
 export function drawSquadPips(x, y) {
   const fallen = pilotIdx(run.squad, run.lives);
   const nombre = pilotName(fallen);
-  // DOS RENGLONES y no uno: el rotulo arriba y la formacion abajo. En una sola linea el nombre del
-  // piloto quedaba pegado al ultimo pip y se leia como un pip mas con letras. Ademas esto le da al
-  // bloque el ancho de una placa de instrumento y no el de una tira, que es lo que pasa a ser
-  // desde que vive en la esquina de arriba a la izquierda (playtest 29/8).
   ctx.textAlign = 'left';
   plate(x, y, anchoSquad(), SQUAD_H);
-  ctx.fillStyle = P.dim; ctx.font = F_ROT;
-  ctx.fillText(T('hud_squad'), x + 4, y + 7);
   for (let i = 0; i < run.squad; i++) {
-    const bx = x + 4 + i * 8, by = y + 10;
-    const down = i < fallen;
-    const c = down ? '#3a4750' : i === fallen ? P.accent : P.foam;   // el actual, en acento
-    px(bx, by + 1, 7, 1, c);                                         // alas
-    px(bx + 3, by, 1, 3, c);                                         // fuselaje
-    if (down) { px(bx + 1, by, 1, 1, P.warn); px(bx + 3, by + 1, 1, 1, P.warn); px(bx + 5, by + 2, 1, 1, P.warn); }
+    const ax = x + 3 + i * SQ_PASO, down = i < fallen;
+    // el que vuela, en acento; los que esperan, claros; los caidos, oscuros y tachados en rojo
+    iconoEn(ax + 3, y + 5, 'avion', down ? '#3a4750' : i === fallen ? P.accent : P.foam);
+    if (down) pxLinea(ax, y + 7, ax + 6, y + 3, P.warn);
   }
   // EL NOMBRE DEL QUE VUELA, EN ACENTO. Estaba en `dim` —el gris de los rotulos— y ahi el piloto
   // era una etiqueta mas. Es la unica persona que hay en el HUD: va del color del que manda.
   ctx.fillStyle = P.accent; ctx.font = F_VAL;
-  ctx.fillText(nombre, x + 6 + run.squad * 8, y + 15);
+  ctx.fillText(nombre, x + 5 + run.squad * SQ_PASO, y + 8);
 }
 
 /** NIVEL DE ALERTA — cuantos te estan buscando (PLAN_ESTRELLAS_BUSQUEDA §7).
