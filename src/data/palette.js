@@ -8,6 +8,14 @@ export const P = {
   accent: '#e8a33d', warn: '#d94f30', ink: '#e8eef0', dim: '#8a9ba1',
   cloud: '#4a5761', island: '#1b2429'
 };
+// EL VERDE DEL RADAR (11/9): el de fosforo de una pantalla de radar, que es lo que hace leer
+// "radar" antes que la forma. Dos intensidades de la misma tinta, del aro a la punta del barrido:
+// VERDE es el radar que te tiene; OPACO, el que esta prendido y mirando pero no tiene a nadie.
+// Viven aca y no en el render porque los usan DOS dibujos del mismo instrumento —el icono del panel
+// de alerta (render/hud.js) y la red de radar en el aire (render/world.js)— y si no comparten el
+// color el jugador no los une.
+export const RADAR_VERDE = { aro: '#3a9448', onda: '#2c6e37', lejos: '#1f5c2a', cerca: '#3fae52', punta: '#8dff9a', eje: '#5fd06e' };
+export const RADAR_OPACO = { aro: '#26502e', onda: '#1d3d23', lejos: '#183a1f', cerca: '#23532b', punta: '#35703f', eje: '#2e5e36' };
 // EL AGUA (SPEC_AGUA_OLAS F5). Cada estilo son SIETE tonos y siempre los mismos siete, porque el
 // render del mar los usa por NOMBRE: base0/1/2 son las tres bandas del raster por distancia, deep
 // el valle y la cara de la ola, mid el cuerpo, crest la cresta y spark el destello y la espuma.

@@ -744,7 +744,8 @@ de la flota los pintaba más arriba.
 
 - **Que se vea venir.** El jugador tiene que entender por qué de golpe lo detectan a una altura que
   antes era segura. ✅ **Ya está la mitad resuelta**: la **RED DE RADAR** (menú `[M]`) dibuja la
-  malla del techo en perspectiva y se pone roja al cruzarla. Si el techo pasa a ser variable, la
+  malla del techo en perspectiva y se enciende al cruzarla (verde viva y latiendo desde el 11/9;
+  antes, roja). Si el techo pasa a ser variable, la
   red **baja con él** sola (lee `RADAR_ALT`) — habría que animar la transición y sumarle un aviso.
 - **Que el corredor no sea imposible.** Si el techo baja a 12 y hay mástiles de 11-28 de alto, hay
   tramos sin solución. Habría que **coordinar el techo con el spawn**: en zona de radar bajo,

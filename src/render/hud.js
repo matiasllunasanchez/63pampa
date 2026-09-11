@@ -15,7 +15,7 @@ import { shown as dmgShown } from '../systems/damage.js';
 import { proj } from '../core/fx.js';
 import { scrapeLimit } from '../core/physics.js';
 import { T } from '../core/i18n.js';
-import { P } from '../data/palette.js';
+import { P, RADAR_VERDE, RADAR_OPACO } from '../data/palette.js';
 import { MSL_MAX, RADAR_ALT, EST_MAX } from '../data/tuning.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName } from '../systems/squad.js';
@@ -574,12 +574,9 @@ export const ALERTA_H = 15;
 const RADAR_ARO = [[0, 3, 5], [1, 1, 2], [1, 6, 7], [2, 1, 1], [2, 7, 7], [3, 0, 0], [3, 8, 8],
   [4, 0, 0], [4, 8, 8], [5, 0, 0], [5, 8, 8], [6, 1, 1], [6, 7, 7], [7, 1, 2], [7, 6, 7], [8, 3, 5]];
 const RADAR_GIRO = 4.2;   // rad/s del barrido: una vuelta cada segundo y medio
-// TODO VERDE, por pedido del autor (11/9): el verde de fosforo de una pantalla de radar es lo que
-// lo hace radar antes que la forma. Cinco tonos de la misma tinta, del aro apagado a la punta.
-const RADAR_VERDE = { aro: '#3a9448', onda: '#2c6e37', lejos: '#1f5c2a', cerca: '#3fae52', punta: '#8dff9a', eje: '#5fd06e' };
-// …Y OPACO A NIVEL CERO: la misma tinta sin brillo. Gira igual —el radar esta prendido y mirando—,
-// pero no tiene a nadie: sin contacto y sin la punta encendida. Encenderse es la noticia.
-const RADAR_OPACO = { aro: '#26502e', onda: '#1d3d23', lejos: '#183a1f', cerca: '#23532b', punta: '#35703f', eje: '#2e5e36' };
+// TODO VERDE, por pedido del autor (11/9): RADAR_VERDE cuando te buscan y RADAR_OPACO a nivel
+// cero —gira igual, pero sin contacto y sin la punta encendida: encenderse es la noticia—. Los
+// tonos viven en data/palette.js, compartidos con la red de radar en el aire (render/world.js).
 // LAS ONDITAS: el pulso que sale del centro, en tres radios, por tramos de fila como el aro. El
 // cuarto paso del ciclo no dibuja nada — la onda llega al aro y se pierde en el.
 const RADAR_ONDAS = [

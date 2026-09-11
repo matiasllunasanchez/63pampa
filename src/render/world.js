@@ -20,7 +20,7 @@ import { seaH as seaBase, olaBump, climaDe, resaca } from '../core/sea.js';
 // EL RELIEVE (T3): hermano de core/sea.js. Lo que levanta el pasto y las estructuras aca es lo
 // mismo que decide el choque contra el suelo en systems/flight.js.
 import { tierraH, tierraPend, hayRelieve, pedreroAt, turbalAt } from '../core/tierra.js';
-import { P, LAND, CLAND, SKY_ASTRO } from '../data/palette.js';
+import { P, LAND, CLAND, SKY_ASTRO, RADAR_VERDE } from '../data/palette.js';
 import { CHUNK_LIFE, ONDA_T, ONDA_R } from '../data/despiece.js';
 import { drawParte, yawDe, colorDe } from './partes.js';
 import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
@@ -2640,7 +2640,11 @@ export function drawFlightLane(soloCarril) {
 // calcomania del HUD y no como algo que esta ahi afuera.
 const NET_STEP = 24;        // separacion entre travesaños, en unidades de mundo
 const NET_Z0 = 18, NET_Z1 = 232;
-const NET_CYAN = '#2fe0d0', NET_WARN = '#ff5a3c';
+// VERDE, por pedido del autor (11/9), y EL MISMO VERDE que el radar del panel de alerta: son
+// el mismo instrumento. Afuera, el tono medio (la malla solo se ve con RED DE RADAR: SIEMPRE);
+// adentro, la punta encendida del barrido y latiendo. La diferencia sigue estando —brillo y
+// pulso—, solo que ya no la dice el rojo.
+const NET_AFUERA = RADAR_VERDE.cerca, NET_ADENTRO = RADAR_VERDE.punta;
 const SWEEP_DUR = 2.6;      // segundos que tarda el barrido en recorrer la malla
 
 // visibilidad animada de la red (modo AL ENTRAR): 0 = invisible, 1 = plena. Se interpola para que
@@ -2658,7 +2662,7 @@ export function drawRadarNet(techo) {
   // el, sin cambiar de escena. Si este estado no estuviera, el climax se quedaria sin blanco.
   if (S.state !== 'play' && S.state !== 'takeoff' && S.state !== 'pulso') return;
   const A = techo === undefined ? RADAR_ALT : techo;
-  // DENTRO de la zona: la malla vira a rojo y late. Es el mismo dato que la barra del HUD, pero
+  // DENTRO de la zona: la malla se enciende y late. Es el mismo dato que la barra del HUD, pero
   // puesto donde el jugador esta mirando (el avion), no en un rincon.
   const inside = plane.y > A;
   // MODO 1 (AL ENTRAR, default): solo se ve estando dentro. MODO 2: siempre.
@@ -2671,14 +2675,14 @@ export function drawRadarNet(techo) {
   // APAGADO POR INCLINACION. Esta malla se lee como TECHO porque es un plano horizontal visto
   // desde abajo: los largueros fugan al horizonte y los dos bordes marcados son las paredes del
   // corredor. Con el mundo rolado esa lectura se cae — la rejilla pasa a ser una pared de lineas
-  // naranjas cruzando el mar, y sus bordes, que derecho eran informacion, se leen como el
+  // cruzando el mar, y sus bordes, que derecho eran informacion, se leen como el
   // contorno de una chapa flotando. Deja de informar y pasa a ser ruido, asi que se funde.
   // No se pierde nada: el aviso RADAR, la barra de carga y la altura en rojo estan en el HUD,
   // que NO gira. Ver tiltFade en core/horizon.js — se mide la inclinacion que se VE, venga del
   // tonel, del giro libre o del banqueo.
   const lean = tiltFade(hzWorld());
   if (lean < 0.02) return;
-  const col = inside ? NET_WARN : NET_CYAN;
+  const col = inside ? NET_ADENTRO : NET_AFUERA;
   const pulse = (inside ? 0.55 + 0.45 * Math.abs(Math.sin(run.t * 6)) : 1) * netVis * lean;
   // el BARRIDO recorre la profundidad en bucle; `sweepZ` es donde esta ahora
   const sweepZ = NET_Z1 - ((run.t / SWEEP_DUR) % 1) * (NET_Z1 - NET_Z0);
