@@ -3721,6 +3721,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         vg.addColorStop(0, 'rgba(4,8,18,0)'); vg.addColorStop(1, 'rgba(4,8,18,0.55)');
         ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
       }
+      // LA VISION DEL RADAR: la escena en verde mientras te ven (ver world.drawRadarTinte). Mismo
+      // escalon que el tinte del momentum —sobre el mundo, bajo el HUD— y colgada de la misma opcion
+      // que la red: quien apago RED DE RADAR no quiere que el radar le pinte la pantalla.
+      if (cfg.radarNet) world.drawRadarTinte(fases.techoRadar(RADAR_ALT));
       // HUD en GRILLA DE DISEÑO (320x180): se dibuja con ctx.scale(U). Ver la nota de DW/DH en
       // render/ctx.js — U x SC da 3 exacto, asi que no hay medio pixel ni borroneo.
       // LA CINTA DE FORMACION va ADENTRO del ctx.scale(U): es HUD, o sea grilla de DISEÑO (320x180),

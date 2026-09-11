@@ -2743,3 +2743,40 @@ export function drawRadarNet(techo) {
   }
   ctx.globalAlpha = 1;
 }
+
+// ---------- LA VISION DEL RADAR ----------
+// Mientras el radar te ve, la ESCENA se ve como en su pantalla: verde de fosforo, casi monocroma,
+// con las lineas de un tubo. Pedido del autor (11/9): "como si se estuviese dentro de la vision del
+// radar". SOLO LA ESCENA: game.js lo llama despues del mundo y antes del HUD, en el mismo escalon
+// que el tinte frio del MOMENTUM — los instrumentos conservan sus colores, que son informacion.
+//
+// ES UN SEPIA VERDE Y NO UN VELO: el modo de mezcla 'color' conserva la LUZ de cada pixel y le
+// cambia solo el tono, asi que el mar, las olas y los obstaculos se leen igual de bien. Lo que se
+// pierde es el color, que es justamente la sensacion de estar mirando por el radar.
+//
+// CRECE CON LA CARGA: entrar ya tiñe, y a medida que la barra del radar se llena el verde gana.
+// No llega a monocromo pleno a proposito: el rojo de un misil tiene que seguir asomando.
+const TINTE_BASE = 0.35, TINTE_CARGA = 0.25;   // mezcla al entrar, y lo que le suma la barra llena
+let tinteVis = 0, tinteLastT = 0;
+
+export function drawRadarTinte(techo) {
+  const A = techo === undefined ? RADAR_ALT : techo;
+  const want = S.state === 'play' && plane.y > A ? 1 : 0;
+  // entra y sale fundido, con el mismo reloj que la red: un salto de color a pantalla completa
+  // se lee como un corte de camara, no como algo que te esta pasando
+  const dt = Math.max(0, Math.min(0.05, run.t - tinteLastT)); tinteLastT = run.t;
+  tinteVis += (want - tinteVis) * Math.min(1, dt * 5);
+  if (tinteVis < 0.02) return;
+  const a = tinteVis * (TINTE_BASE + TINTE_CARGA * Math.max(0, Math.min(1, run.detection)));
+  ctx.save();
+  ctx.globalCompositeOperation = 'color';
+  ctx.globalAlpha = a;
+  ctx.fillStyle = RADAR_VERDE.cerca;
+  ctx.fillRect(0, 0, W, H);
+  // las lineas del tubo, una cada dos filas y apenas: son lo que dice "pantalla" y no "filtro"
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = a * 0.12;
+  ctx.fillStyle = '#000';
+  for (let y = 0; y < H; y += 2) ctx.fillRect(0, y, W, 1);
+  ctx.restore();
+}
