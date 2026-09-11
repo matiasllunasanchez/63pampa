@@ -614,6 +614,8 @@ const BAL_W = 7;
 const BAL_APAGADA = '#3a4750';
 const ALERTA_NUEVA_S = 1.6;   // cuanto destella la baliza que se acaba de ganar
 const BARRA_POCO = 0.25;      // desde cuanto le queda a la barra del escondite empieza a parpadear
+const TITILA_HZ = [4, 12];    // ese parpadeo: al empezar el ultimo cuarto, y justo al apagarse
+const CUARTO_S = 5;           // lo que dura ese cuarto con EST_PERDER_S = 20 (ver drawAlerta)
 // lo minimo que entra: margen, radar, aire, las cuatro con un pixel entre cada una, margen
 const ALERTA_MIN_W = 3 + 9 + 3 + BAL_W + (EST_MAX - 1) * (BAL_W + 1) + 3;
 
@@ -681,7 +683,14 @@ export function drawAlerta(x, y, w, n, prog) {
     // CUANDO QUEDA POCO, PARPADEA (pedido del autor, 11/9): el ultimo cuarto —cinco segundos de
     // veinte— es cuando aguantar un poco mas paga, y un parpadeo se ve de reojo, sin mirar la esquina.
     // Parpadea apagandose, no cambiando de rojo: lo que titila es lo que le queda a la alarma.
-    const titila = resta <= BARRA_POCO && Math.floor(run.t * 5) % 2 === 1;
+    // …Y ACELERA HASTA APAGARSE (pedido del autor, 11/9): de TITILA_HZ[0] a TITILA_HZ[1]. La fase se
+    // INTEGRA sobre lo que va del cuarto (u, de 0 a 1) en vez de hacer floor(t * f): con una
+    // frecuencia que cambia, eso salta de fase cada cuadro y el parpadeo tartamudea. Y como avanza
+    // con la barra y no con el reloj de pared, si la gracia congela la barra, el parpadeo se congela
+    // con ella: el reloj esta en pausa y se ve en pausa. Si EST_PERDER_S cambia, se estira igual.
+    const u = Math.max(0, Math.min(1, (BARRA_POCO - resta) / BARRA_POCO));
+    const ciclos = CUARTO_S * (TITILA_HZ[0] * u + (TITILA_HZ[1] - TITILA_HZ[0]) * u * u / 2);
+    const titila = resta <= BARRA_POCO && ciclos % 1 >= 0.5;
     if (!titila) px(x + 1, by, Math.max(1, Math.round(bw * resta)), 1, P.warn);
   }
 }
