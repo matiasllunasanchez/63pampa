@@ -608,6 +608,10 @@ function radarAlerta(x, y, visto, activo) {
 // con cuatro filas salia un bombin, y lo que la hace BALIZA es la cupula parada. El brillo que la
 // cruza es lo que la vuelve GIRATORIA y no un foco: una luz fija es una luz, una que gira es alarma.
 const BAL_W = 7;
+// EL GRIS DE LO APAGADO: la cupula de una baliza que no tenes y el surco de la barra del
+// escondite. Es UNO a proposito (pedido del autor, 11/9): lo que se desconto y lo que no hay
+// son la misma cosa — alarma que no suena — y tienen que verse igual.
+const BAL_APAGADA = '#3a4750';
 const ALERTA_NUEVA_S = 1.6;   // cuanto destella la baliza que se acaba de ganar
 // lo minimo que entra: margen, radar, aire, las cuatro con un pixel entre cada una, margen
 const ALERTA_MIN_W = 3 + 9 + 3 + BAL_W + (EST_MAX - 1) * (BAL_W + 1) + 3;
@@ -615,7 +619,7 @@ const ALERTA_MIN_W = 3 + 9 + 3 + BAL_W + (EST_MAX - 1) * (BAL_W + 1) + 3;
 function baliza(x, y, modo) {
   const off = modo === 'off';
   const flash = modo === 'nueva' && Math.floor(run.t * 12) % 2 === 0;
-  const cup = off ? '#3a4750' : flash ? '#fff1e8' : modo === 'baja' ? '#7d2f1e' : P.warn;
+  const cup = off ? BAL_APAGADA : flash ? '#fff1e8' : modo === 'baja' ? '#7d2f1e' : P.warn;
   px(x + 2, y, 3, 1, cup);
   px(x + 1, y + 1, 5, 4, cup);
   px(x, y + 5, BAL_W, 1, off ? '#2e3c45' : P.dim);
@@ -668,10 +672,11 @@ export function drawAlerta(x, y, w, n, prog) {
   // siguiente arranca lleno otra vez. Asomarse mas que la gracia lo vuelve a llenar. Lleno que se
   // vacia se lee como "lo que le queda a la alarma"; la version anterior, una raya que crecia, se
   // leia como algo cargandose — o sea, como si te estuvieran encontrando, que es al reves.
-  // El surco oscuro detras es lo que ya se desconto: sin el, una raya corta no dice de cuanto.
+  // El surco detras es lo que ya se desconto, en el gris de la baliza apagada: sin el, una raya
+  // corta no dice de cuanto.
   if (n > 0) {
     const bw = w - 2, by = y + ALERTA_H - 2;
-    px(x + 1, by, bw, 1, '#3a1a14');
+    px(x + 1, by, bw, 1, BAL_APAGADA);
     px(x + 1, by, Math.max(1, Math.round(bw * (1 - prog))), 1, P.warn);
   }
 }
