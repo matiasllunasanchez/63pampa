@@ -13,30 +13,30 @@ bandas negras en pasada/arena, panel de texto en el pulso— y una cuarta capa (
 flotaba encima de todas. Además: seis barras a la vez, dos escalas distintas para la altura, y tres
 cosas peleándose la esquina superior derecha.
 
-## 1. Fase U1 — la esquina de la corrida *(aplicada)*
+## 1. Fase U1 — la esquina de la corrida _(aplicada)_
 
 Lo que el playtest del 29/8 decidió, elemento por elemento.
 
-| Qué | Antes | Ahora |
-|---|---|---|
-| **ESTADO** | silueta del avión, 28×26, tres partes coloreadas | **barra con porcentaje**, en la columna derecha. El número es **el peor de los tres** (cañón, combustible, roce): un avión con el tanque lleno y el cañón fundido no está al 80 %, está fundido |
-| **MISIL** | pips en el centro-abajo, al lado del combustible | **debajo de CAÑÓN**, columna derecha. Son armamento, no consumo de vuelo |
-| **RASANTE · MOMENTUM** | dos de tres barras apiladas abajo a la izquierda | **arriba a la derecha**, en la esquina que liberó MEJOR. Se *ganan* volando; no son del bloque del avión |
-| **CHANCHA** | tercera barra de la misma pila | se queda **al lado del combustible**: es reabastecimiento, no racha |
-| **PUNTAJE** | siempre | **oculto en campaña** (los puntos se cobran en el recuento). Vive en JUEGO RÁPIDO, que es donde el puntaje *es* el juego |
-| **MEJOR** | arriba a la derecha, tapado por el reproductor | **oculto en campaña**; en juego rápido baja al bloque de la izquierda, junto al puntaje contra el que se compara |
-| **KM** | al lado del puntaje | se queda. Es lo único que dice cuánto llevás cuando la misión no tiene barra de objetivo |
-| **ESCUADRÓN** | tira de pips bajo el puntaje, nombre en gris | **encabeza el bloque superior izquierdo**: placa de dos renglones, rótulo `ESCUADRON`, y el **nombre del que vuela en acento** |
-| **Sello PRUEBA** | arriba al centro | **se fue** |
-| **Íconos de la ruta** | siluetas sueltas de 8-9 px sobre el cielo | **placa oscura de 11×11** y silueta mínima adentro (casco y mástil · muelle y grúa) |
-| **Reproductor de música** | — | ya estaba oculto en campaña (`canPickMusic`). Sin cambios |
+| Qué                       | Antes                                            | Ahora                                                                                                                                                                                           |
+| ------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ESTADO**                | silueta del avión, 28×26, tres partes coloreadas | **barra con porcentaje**, en la columna derecha. El número es **el peor de los tres** (cañón, combustible, roce): un avión con el tanque lleno y el cañón fundido no está al 80 %, está fundido |
+| **MISIL**                 | pips en el centro-abajo, al lado del combustible | **debajo de CAÑÓN**, columna derecha. Son armamento, no consumo de vuelo                                                                                                                        |
+| **RASANTE · MOMENTUM**    | dos de tres barras apiladas abajo a la izquierda | **arriba a la derecha**, en la esquina que liberó MEJOR. Se _ganan_ volando; no son del bloque del avión                                                                                        |
+| **CHANCHA**               | tercera barra de la misma pila                   | se queda **al lado del combustible**: es reabastecimiento, no racha                                                                                                                             |
+| **PUNTAJE**               | siempre                                          | **oculto en campaña** (los puntos se cobran en el recuento). Vive en JUEGO RÁPIDO, que es donde el puntaje _es_ el juego                                                                        |
+| **MEJOR**                 | arriba a la derecha, tapado por el reproductor   | **oculto en campaña**; en juego rápido baja al bloque de la izquierda, junto al puntaje contra el que se compara                                                                                |
+| **KM**                    | al lado del puntaje                              | se queda. Es lo único que dice cuánto llevás cuando la misión no tiene barra de objetivo                                                                                                        |
+| **ESCUADRÓN**             | tira de pips bajo el puntaje, nombre en gris     | **encabeza el bloque superior izquierdo**: placa de dos renglones, rótulo `ESCUADRON`, y el **nombre del que vuela en acento**                                                                  |
+| **Sello PRUEBA**          | arriba al centro                                 | **se fue**                                                                                                                                                                                      |
+| **Íconos de la ruta**     | siluetas sueltas de 8-9 px sobre el cielo        | **placa oscura de 11×11** y silueta mínima adentro (casco y mástil · muelle y grúa)                                                                                                             |
+| **Reproductor de música** | —                                                | ya estaba oculto en campaña (`canPickMusic`). Sin cambios                                                                                                                                       |
 
 ### Lo que apareció al mover las cosas
 
 **Los rótulos de las barras no estaban sobre nada.** La placa cubría la barra pero no su nombre. En
 las esquinas de abajo eso funcionaba —el mar y la tierra son oscuros— pero RASANTE y MOMENTUM se
 mudaron contra el cielo del amanecer y el gris del rótulo desapareció. Ahora **la placa incluye el
-rótulo**: 14 px de alto, que además *teselan* con el paso de 14 con que se apilan las barras — se
+rótulo**: 14 px de alto, que además _teselan_ con el paso de 14 con que se apilan las barras — se
 tocan y no se pisan. Lo mismo el rótulo del GAS, que vive contra el cielo por definición.
 
 **El odómetro tenía la línea de base clavada en `y=12`.** Desde que el bloque superior izquierdo se
@@ -45,7 +45,7 @@ apila (escuadrón primero), el odómetro dejó de estar siempre en la fila 1. Ah
 **Los primeros 12 px de la esquina superior derecha no son del canvas**: ahí está el botón de sonido,
 que es HTML. Por eso las dos barras arrancan en `y=22` y el GAS bajó a `y=56`.
 
-## 1b. Fase U2 — el ritmo y la ruta *(aplicada)*
+## 1b. Fase U2 — el ritmo y la ruta _(aplicada)_
 
 ### El ritmo
 
@@ -55,13 +55,13 @@ leía como un bloque oscuro partido en franjas y no como tres instrumentos.
 
 Hoy hay dos constantes y todo sale de ellas:
 
-| | |
-|---|---|
-| `INSTR` | 14 — rótulo + barra |
-| `AIRE` | 3 — entre un instrumento y el siguiente |
-| `FILA` | 17 — el único paso con que se apila cualquier cosa del HUD |
-| `MARGEN` | 4 — contra el borde, **en las cuatro esquinas** |
-| `F_ROT` / `F_VAL` | 5 px el rótulo, 6 px el valor |
+|                   |                                                            |
+| ----------------- | ---------------------------------------------------------- |
+| `INSTR`           | 14 — rótulo + barra                                        |
+| `AIRE`            | 3 — entre un instrumento y el siguiente                    |
+| `FILA`            | 17 — el único paso con que se apila cualquier cosa del HUD |
+| `MARGEN`          | 4 — contra el borde, **en las cuatro esquinas**            |
+| `F_ROT` / `F_VAL` | 5 px el rótulo, 6 px el valor                              |
 
 **Y dos tamaños de letra, no uno.** El rótulo dice cómo se llama el instrumento —se lee una vez y
 después ya lo sabés de memoria— y el valor es lo que se mira todo el tiempo. Estaban los dos en 6 px
@@ -79,30 +79,30 @@ deja `AIRE` contra el combustible.
 
 ### La ruta
 
-| Qué | Antes | Ahora |
-|---|---|---|
-| **La línea** | dos íconos con placa unidos por una línea dibujada directo sobre el cielo | **un solo instrumento sobre una placa**: muelle, ruta, marcador y buque adentro. Los íconos ya no necesitan la suya |
-| **Los metros** | `2400 m` como título centrado arriba | **cuenta regresiva** chica, abajo y pegada al buque, en el color del buque. Lo que importa no es cuánto llevás: es cuánto falta |
-| **El nombre** | siempre | **solo si es un nombre.** Un objetivo de distancia se rotulaba `2400 m`, que es el mismo dato que ahora dicen la cuenta regresiva y el total del odómetro. Con un buque (`HMS SHEFFIELD`) el rótulo sí aporta |
-| **El odómetro** | contador abierto `0.4 KM` | **fracción** `0.4 / 2.4 KM`, con el total en el color del blanco. En campaña la corrida nunca pasa de ese número, así que un contador sin techo medía contra nada |
-| **`MISION n/m`** | y=12 | **se fue.** Era lo único del HUD que hablaba del *menú* y no del vuelo: en qué número de la campaña estás no cambia nada de lo que hacés en los próximos diez segundos, y lo dice el briefing antes de despegar. Ocupaba el renglón más visible de la pantalla |
-| **La placa de la ruta** | flotando a media banda | apoya en `MARGEN`, como todo el resto. Estaba más abajo para dejarle sitio al contador — una posición heredada, no una decisión |
+| Qué                     | Antes                                                                     | Ahora                                                                                                                                                                                                                                                          |
+| ----------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **La línea**            | dos íconos con placa unidos por una línea dibujada directo sobre el cielo | **un solo instrumento sobre una placa**: muelle, ruta, marcador y buque adentro. Los íconos ya no necesitan la suya                                                                                                                                            |
+| **Los metros**          | `2400 m` como título centrado arriba                                      | **cuenta regresiva** chica, abajo y pegada al buque, en el color del buque. Lo que importa no es cuánto llevás: es cuánto falta                                                                                                                                |
+| **El nombre**           | siempre                                                                   | **solo si es un nombre.** Un objetivo de distancia se rotulaba `2400 m`, que es el mismo dato que ahora dicen la cuenta regresiva y el total del odómetro. Con un buque (`HMS SHEFFIELD`) el rótulo sí aporta                                                  |
+| **El odómetro**         | contador abierto `0.4 KM`                                                 | **fracción** `0.4 / 2.4 KM`, con el total en el color del blanco. En campaña la corrida nunca pasa de ese número, así que un contador sin techo medía contra nada                                                                                              |
+| **`MISION n/m`**        | y=12                                                                      | **se fue.** Era lo único del HUD que hablaba del _menú_ y no del vuelo: en qué número de la campaña estás no cambia nada de lo que hacés en los próximos diez segundos, y lo dice el briefing antes de despegar. Ocupaba el renglón más visible de la pantalla |
+| **La placa de la ruta** | flotando a media banda                                                    | apoya en `MARGEN`, como todo el resto. Estaba más abajo para dejarle sitio al contador — una posición heredada, no una decisión                                                                                                                                |
 
 Para distinguir nombre de distancia, `game.js` publica ahora `objectiveKind` junto al rótulo — el
 render no adivina leyendo el string.
 
-## 1c. Fase B — el tablero de las dos esquinas *(aplicada)*
+## 1c. Fase B — el tablero de las dos esquinas _(aplicada)_
 
 De las cuatro propuestas del artifact **"Cuatro tableros y una voz"** (6/9/2026), se ejecutó la
 **B**, con la **D** como perilla encima. El diagnóstico que las ordenaba: el HUD se lee de reojo, y
 la periferia recibe movimiento y contraste, no texto ni números.
 
-| Qué | Antes | Ahora |
-|---|---|---|
-| **RASANTE · MOMENTUM** | dos barras con rótulo arriba a la derecha | **dos rieles en los bordes laterales**, izquierda rasante y derecha momentum. Sin rótulo, sin placa y sin número: un riel no se lee, se vigila. A cambio el recorrido pasa de 44 px a **180** — la altura entera— en la única franja donde no compite con nada (el margen del HUD es 4, así que de `x 0` a `3` y de `316` a `319` no se dibuja nada más en todo el juego) |
-| **El reloj del rasante** | siempre, al lado de su barra | **sólo mientras el poder está encendido**, en la esquina que las barras dejaron libre. Es el único dato que un riel no puede dar —cuántos segundos, no qué fracción— y es el único momento en que hace falta |
-| **El gas** | arrancaba en `y=64`, debajo de las dos barras | sube a `GAS_TOP = 42`: la corredera pasa de **54 px de recorrido a 76**. Es el único instrumento que se *opera* en vez de leerse, y una palanca más larga se apunta mejor |
-| **La banda de la voz** | el toast cerraba en `y=118` | cierra en **127**. El número ya no se copia: sale de `HUD_TECHO`, que `render/hud.js` calcula con las mismas constantes con que apila las filas |
+| Qué                      | Antes                                         | Ahora                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------ | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **RASANTE · MOMENTUM**   | dos barras con rótulo arriba a la derecha     | **dos rieles en los bordes laterales**, izquierda rasante y derecha momentum. Sin rótulo, sin placa y sin número: un riel no se lee, se vigila. A cambio el recorrido pasa de 44 px a **180** — la altura entera— en la única franja donde no compite con nada (el margen del HUD es 4, así que de `x 0` a `3` y de `316` a `319` no se dibuja nada más en todo el juego) |
+| **El reloj del rasante** | siempre, al lado de su barra                  | **sólo mientras el poder está encendido**, en la esquina que las barras dejaron libre. Es el único dato que un riel no puede dar —cuántos segundos, no qué fracción— y es el único momento en que hace falta                                                                                                                                                              |
+| **El gas**               | arrancaba en `y=64`, debajo de las dos barras | sube a `GAS_TOP = 42`: la corredera pasa de **54 px de recorrido a 76**. Es el único instrumento que se _opera_ en vez de leerse, y una palanca más larga se apunta mejor                                                                                                                                                                                                 |
+| **La banda de la voz**   | el toast cerraba en `y=118`                   | cierra en **127**. El número ya no se copia: sale de `HUD_TECHO`, que `render/hud.js` calcula con las mismas constantes con que apila las filas                                                                                                                                                                                                                           |
 
 ### El fantasma de los diecinueve píxeles
 
@@ -115,20 +115,19 @@ banda libre que la voz no usaba por miedo a un fantasma.
 Ahora `hud.js` **exporta** `HUD_TECHO = R3 - 9` (el canto de las placas de la fila más alta) y
 `screens.js` lo importa. El día que las filas se muevan otra vez, la banda se mueve con ellas.
 
-## 1d. Fase D — el tablero por demanda *(aplicada, apagada por default)*
+## 1d. Fase D — el tablero por demanda _(aplicada, apagada por default)_
 
 `cfg.hudAuto`, fila **TABLERO** en OPCIONES, al lado de **RADIO EN VUELO** porque las dos contestan
 la misma pregunta —cuánta pantalla ocupa la UI mientras volás— y ninguna cambia un número del
 juego. Con `auto`, un instrumento **sano** no se dibuja:
 
-| Instrumento | Aparece cuando |
-|---|---|
-| COMB | la nafta baja de 60 % |
-| AVIÓN | la integridad no está al 100 % |
-| CHANCHA | el medidor se llenó, ya se gastó, o hay cita en curso |
-| ESTADO | el peor de los tres baja de 97 % |
-| CAÑÓN | `heat > 0.05` o está recalentado |
-| MISIL | falta al menos uno |
+| Instrumento | Aparece cuando                                        |
+| ----------- | ----------------------------------------------------- |
+| COMB        | la nafta baja de 60 %                                 |
+| CHANCHA     | el medidor se llenó, ya se gastó, o hay cita en curso |
+| SALUD       | la total no está entera, o la temporal baja de 97 %   |
+| CAÑÓN       | `heat > 0.05` o está recalentado                      |
+| MISIL       | falta al menos uno                                    |
 
 No se ocultan nunca el ADI (la pregunta "¿dónde está el suelo?" es accionable siempre, y más
 rolado), la velocidad y la altura, el gas, la ruta ni el escuadrón. Los rieles tampoco: ocupan dos
@@ -144,7 +143,7 @@ parpadearía con cada ola.
 el oficio y es real. Un instrumento que va y viene no genera memoria muscular, y el que recién
 empieza no sabe que existe hasta que le falla. Es una perilla para decidirla jugando.
 
-## 1e. La duración del cartel *(aplicada)*
+## 1e. La duración del cartel _(aplicada)_
 
 `popup()` plantaba **1,1 s para cualquier texto**. Volando rasante nadie lee de un tirón: se lee en
 ráfagas de décimas, así que un `+400` sobraba y una línea de radio de diez palabras se iba antes de
@@ -167,8 +166,7 @@ arreglar. El de una palabra da 14 exacto, el número de siempre.
 Los dos pisos son distintos a propósito: un popup comparte pantalla con los puntajes y arranca en
 1,1 s; el bark está solo y en grande, y por debajo de 2,4 s se lee como un parpadeo.
 
-
-## 1f. La ruta, en una fila *(aplicada)*
+## 1f. La ruta, en una fila _(aplicada)_
 
 Eran **tres renglones apilados y 27 px de alto**: el nombre del buque arriba en cuerpo 6 y color de
 aviso, la ruta en el medio, la cuenta regresiva abajo. El bloque más grande y más ruidoso del HUD,
@@ -180,19 +178,18 @@ Puestos **en fila**, los tres entran en 11 px y se leen en el orden en que se pr
 > `HMS SHEFFIELD` · ▸ ——————— ⊥ · `2447 m`
 > quién es el blanco · dónde estoy · cuánto falta
 
-| | Antes | Ahora |
-|---|---|---|
-| alto | 27 | **11** |
-| nombre | cuerpo 6, `P.warn`, centrado arriba | cuerpo 5, `P.dim`, en la fila. Es contexto, no un valor que se vigile |
-| la línea | 96 px de recorrido | 52 |
-| íconos | 9 px | 7 · y el marcador del avión ahora también sale de `hpx` (estaba clavado en 6 y se comía el renglón) |
-| ancho | fijo, 30 % de la pantalla | **sale del contenido**, y la placa se centra como un bloque — con nombre a la izquierda y número a la derecha, centrar la *línea* dejaba el instrumento corrido |
-| el aviso de viento | `topBase = 38` | 24: la ruta cierra en 15, así que sube con ella en vez de dejar hueco |
+|                    | Antes                               | Ahora                                                                                                                                                           |
+| ------------------ | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| alto               | 27                                  | **11**                                                                                                                                                          |
+| nombre             | cuerpo 6, `P.warn`, centrado arriba | cuerpo 5, `P.dim`, en la fila. Es contexto, no un valor que se vigile                                                                                           |
+| la línea           | 96 px de recorrido                  | 52                                                                                                                                                              |
+| íconos             | 9 px                                | 7 · y el marcador del avión ahora también sale de `hpx` (estaba clavado en 6 y se comía el renglón)                                                             |
+| ancho              | fijo, 30 % de la pantalla           | **sale del contenido**, y la placa se centra como un bloque — con nombre a la izquierda y número a la derecha, centrar la _línea_ dejaba el instrumento corrido |
+| el aviso de viento | `topBase = 38`                      | 24: la ruta cierra en 15, así que sube con ella en vez de dejar hueco                                                                                           |
 
 Área: **134 × 11 contra 114 × 27** — un tercio de la tinta.
 
-
-## 1g. MEJOR es de POR LA PATRIA *(aplicada)*
+## 1g. MEJOR es de POR LA PATRIA _(aplicada)_
 
 Estaba en todos los modos menos campaña, y ahí mentía dos veces.
 
@@ -206,18 +203,17 @@ acaba cuando te caés. Ahí un máximo histórico dice algo.
 
 Tres lugares, una decisión:
 
-| Dónde | Antes | Ahora |
-|---|---|---|
-| HUD (`render/hud.js`) | en todo modo salvo campaña | `gameMode === 'survival'` |
-| El récord se **escribe** (`game.js`) | en toda corrida que no sea de herramienta | además, sólo en `survival`. Un récord que se hace en un modo y se luce en otro no es un récord |
-| Pantalla de derribo (`drawDead`) | siempre; decía «MEJOR 0» en partida nueva y «NUEVO RECORD» en modos que no lo iban a guardar | `best` llega en **cero** fuera de POR LA PATRIA —el mismo criterio que ya usaba `stars`— y la línea no se dibuja con cero |
+| Dónde                                | Antes                                                                                        | Ahora                                                                                                                     |
+| ------------------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| HUD (`render/hud.js`)                | en todo modo salvo campaña                                                                   | `gameMode === 'survival'`                                                                                                 |
+| El récord se **escribe** (`game.js`) | en toda corrida que no sea de herramienta                                                    | además, sólo en `survival`. Un récord que se hace en un modo y se luce en otro no es un récord                            |
+| Pantalla de derribo (`drawDead`)     | siempre; decía «MEJOR 0» en partida nueva y «NUEVO RECORD» en modos que no lo iban a guardar | `best` llega en **cero** fuera de POR LA PATRIA —el mismo criterio que ya usaba `stars`— y la línea no se dibuja con cero |
 
 El HUD **sí** muestra `MEJOR 0` en POR LA PATRIA sin récord todavía: ahí el cero es honesto —es el
 instrumento de ese modo diciendo que no marcaste nada— mientras que en la pantalla de derribo se
 leía como un veredicto.
 
-
-## 1h. El puntaje se va, el kilometraje entra al objetivo *(aplicada)*
+## 1h. El puntaje se va, el kilometraje entra al objetivo _(aplicada)_
 
 Dos decisiones del playtest del 8/9 que dejan la esquina superior izquierda con una sola cosa.
 
@@ -230,11 +226,11 @@ importa después.
 **El KILOMETRAJE se mudó adentro de la ruta**, cuando hay ruta. `0.1 / 2.6` es cuánto llevás **de
 esta ruta**: es parte del objetivo, no un instrumento aparte cuatro filas más abajo que lo repite.
 
-| | Antes | Ahora |
-|---|---|---|
-| con objetivo | odómetro en su placa arriba a la izquierda | dentro de la fila de la ruta, pegado al buque |
-| sin objetivo (POR LA PATRIA) | igual | **se queda arriba a la izquierda**, en forma de contador abierto: no hay ruta donde meterlo, y sin nada contra qué medir la fracción no existe |
-| la cuenta regresiva en metros | `2447 m` al final de la fila | **reemplazada por la fracción** |
+|                               | Antes                                      | Ahora                                                                                                                                          |
+| ----------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| con objetivo                  | odómetro en su placa arriba a la izquierda | dentro de la fila de la ruta, pegado al buque                                                                                                  |
+| sin objetivo (POR LA PATRIA)  | igual                                      | **se queda arriba a la izquierda**, en forma de contador abierto: no hay ruta donde meterlo, y sin nada contra qué medir la fracción no existe |
+| la cuenta regresiva en metros | `2447 m` al final de la fila               | **reemplazada por la fracción**                                                                                                                |
 
 Las dos decían el mismo hecho —`2.6 − 0.1` es lo que falta— y ponerlas juntas habría sido decirlo
 dos veces en dos unidades. Se eligió la fracción porque además dice **contra qué**, que la cuenta
@@ -244,8 +240,7 @@ lo ata al ícono del buque que tiene al lado) y `KM` en cuerpo 5.
 El bloque superior izquierdo queda con **escuadrón** y nada más — salvo en POR LA PATRIA, donde
 lleva escuadrón, odómetro y MEJOR.
 
-
-## 1i. Una sola cinta para todos los modos *(aplicada)*
+## 1i. Una sola cinta para todos los modos _(aplicada)_
 
 El renglón de arriba al centro **significa una cosa sola: cómo va esta corrida**. Lo que cambia
 entre modos es contra qué va, no la pregunta:
@@ -269,14 +264,14 @@ color de la meta, que es lo que la ata al ícono de al lado).
 Kilometraje, puntaje y récord eran **tres placas sueltas apiladas en la esquina** diciendo lo
 mismo desde tres lados. Ahora son una cinta: los kilómetros como rótulo (cuánto aguantaste), el
 puntaje contra el récord como fracción, y la línea mostrando cuánto te falta para batirlo. **El
-puntaje vuelve al HUD, pero sólo acá** — en POR LA PATRIA el puntaje *es* el juego; en los modos
+puntaje vuelve al HUD, pero sólo acá** — en POR LA PATRIA el puntaje _es_ el juego; en los modos
 con objetivo lo decide la distancia y no cómo volaste.
 
-| Caso | Qué se ve |
-|---|---|
-| récord > 0 | la cinta completa, con línea y bandera |
-| **sin récord todavía** | sin línea: una barra que avanza hacia cero no avanza hacia nada. Quedan kilometraje y puntaje |
-| **pasaste tu marca** | bandera y récord en **acento**. La línea ya está llena y el marcador clavado en la punta: no hace falta un cartel, que en POR LA PATRIA taparía mundo justo cuando más se arriesga |
+| Caso                   | Qué se ve                                                                                                                                                                          |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| récord > 0             | la cinta completa, con línea y bandera                                                                                                                                             |
+| **sin récord todavía** | sin línea: una barra que avanza hacia cero no avanza hacia nada. Quedan kilometraje y puntaje                                                                                      |
+| **pasaste tu marca**   | bandera y récord en **acento**. La línea ya está llena y el marcador clavado en la punta: no hace falta un cartel, que en POR LA PATRIA taparía mundo justo cuando más se arriesga |
 
 ### Detalles que salieron de probarlo
 
@@ -284,11 +279,195 @@ con objetivo lo decide la distancia y no cómo volaste.
   cuerpo 5 un asterisco es una cruz roja y no se lee como "hasta acá". Una bandera —mástil y paño—
   es la misma silueta mínima que el muelle y el buque del otro lado, así que además habla el mismo
   idioma.
-- **`drawOdo` quedó sólo para PERSECUCIÓN**, el único modo sin objetivo *ni* récord: ahí no hay
+- **`drawOdo` quedó sólo para PERSECUCIÓN**, el único modo sin objetivo _ni_ récord: ahí no hay
   cinta posible y el kilometraje vuelve a ser un contador abierto arriba a la izquierda. Se le cayó
   la rama de la fracción, que ya no la usa nadie.
 - La esquina superior izquierda queda con **el escuadrón y nada más** en todos los modos salvo
   persecución.
+
+## 1j. La radio cuelga del objetivo _(aplicada)_
+
+El toast y el panel de radio **se mudaron de la banda de abajo a colgar de la cinta**, a un `AIRE`
+debajo y **con su mismo ancho**. Lo que dice la radio es casi siempre sobre esa ruta —el buque, la
+costa, el que viene—: leerlo pegado al instrumento que lo explica es leerlo una vez sola.
+
+|         | Antes                             | Ahora                                                                               |
+| ------- | --------------------------------- | ----------------------------------------------------------------------------------- |
+| lugar   | banda de abajo, `y 97…127`        | debajo de la cinta, `y 18…41`                                                       |
+| ancho   | 226 fijo                          | **el de la cinta** (sonda: 144 con HMS SHEFFIELD, 143 con un objetivo de distancia) |
+| cuerpo  | 6, busto de 22, 30 de alto        | **5**, busto de 16, **23** de alto                                                  |
+| entrada | sube desde abajo                  | baja desde la cinta                                                                 |
+| panel   | crecía hacia arriba desde el piso | crece hacia abajo desde la cinta; la línea nueva siempre en el renglón de arriba    |
+
+**"El mismo ancho" es verdad por construcción.** Un renglón de radio son `VOZ_COLS` = 38 caracteres,
+y ese número vive ahora en `data/tuning.js`: lo leen el motor de radio (para partir el texto) y el
+HUD (para darle a la cinta un **ancho mínimo** — lo que ocupan 38 caracteres en cuerpo 5 más el
+marco del toast). Con un buque de nombre largo la cinta ya es más ancha; con un objetivo de
+**distancia** (sin nombre, ~100 px) la cinta **estira la línea de la ruta** hasta el mínimo. Gana
+resolución en vez de ganar alto.
+
+La cinta publica su caja cada cuadro (`cintaCaja()` en `hud.js`) y el toast cuelga de ella; la
+sonda `__toastbanda()` devuelve las dos para que una prueba pueda afirmarlo. `__decir(txt)` dispara
+una línea al instante (QUITAR).
+
+## 1k. El cuadro del piloto, y CHANCHA y AVIÓN en puntitos _(aplicada)_
+
+**La cara del que vuela**, al lado del horizonte y del mismo alto que su placa (`x 35…61`,
+`y 134…160`). Inmersión pura: cambia por lo mismo que el tablero, un instante antes de que se lea
+en un número. Las caras ya existían — los cinco Fieles tienen neutro, ceño, preocupado, sonrisa y
+roto (108×108).
+
+| Gesto          | Cuándo (de más a menos urgente)                                                                                                                                                                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **roto**       | integridad ≤ 30 (sólo con averías que la usen)                                                                                                                                                                                                                           |
+| **preocupado** | recién golpeado (la chapa acaba de bajar, 0,6 s), rozando, pintado por el radar, nafta < 25, **margen de roce < 50 %**. Es la panza y no ESTADO entero: ESTADO incluye la nafta, y con el tanque por debajo de la mitad la cara quedaba preocupada el resto de la misión |
+| **sonrisa**    | un salto de ≥ 250 puntos en un cuadro — algo se fue al agua — durante 1,4 s                                                                                                                                                                                              |
+| **ceño**       | turbo, cañón caliente o recalentado, racha rasante                                                                                                                                                                                                                       |
+| **neutro**     | el resto                                                                                                                                                                                                                                                                 |
+
+Subir de gesto es inmediato; **bajar espera 0,9 s** — sin eso un roce de un cuadro hace parpadear la
+cara, y una cara que parpadea es un indicador roto. Además el piloto se sacude un píxel con el
+sacudón de cámara y se tiñe de rojo con el fogonazo del impacto. Tabla y umbrales en
+`data/gestos.js`.
+
+**De ahí sale la voz de mi avión.** Si la línea de radio la dice el piloto que vuela, el toast no
+baja de la cinta: **sube de la cara**, como un globo con colita, sin busto (la cara está justo
+abajo), y el marco del cuadro se prende mientras habla. Arriba habla la radio de los otros; abajo,
+pegado a mis instrumentos, hablo yo.
+
+**CHANCHA y AVIÓN pasaron de barras a cinco puntos**, en una placa al lado de la cara. De las dos
+importa la proporción y no la carga: de la chancha, cuánto falta para poder pedirla (el quinto punto
+recién cuando se puede, y ahí parpadea); del avión, cuánto aguanta. Con una cita de chancha en curso,
+su fila muestra la cuenta regresiva o el llenado en vez de los puntos. **ESTADO sigue siendo barra.**
+
+Los retratos se cargan ahora desde `render/retratos.js`, un solo cache para el HUD y las cajas de
+diálogo: `hud.js` no puede importar `screens.js` sin un ciclo que deja `HUD_TECHO` sin inicializar.
+
+### Lo que salió de probarlo (10/9)
+
+- **El globo quedaba debajo de la caja de charla.** Sube de la cara hasta `y 108…131` y la charla
+  ocupa `89…127` y se dibuja después; la primera captura lo agarró con la charla de arranque de
+  misión en pantalla. Con una charla abajo, mi línea va **arriba** como las demás.
+- **…y arriba mostraba otra cara.** El toast usaba el retrato de radio (`tero_casco`, con casco y
+  máscara) mientras el cuadro mostraba a TERO a cara descubierta. Ahora, si habla mi piloto, el
+  toast usa **la cara del cuadro con su gesto de ese momento**.
+- **La caja de charla barría 48 px al entrar** —`bh + 10`— y en su piso nuevo eso cruzaba la cara,
+  los puntitos y el combustible. Ahora barre 6, como el toast.
+- **La cara se trababa en preocupado.** La primera versión miraba ESTADO entero, que incluye la
+  nafta: con el tanque por debajo de la mitad la cara quedaba preocupada el resto de la misión. Mira
+  sólo la panza (`margenRoce()`, extraída de `estadoVal()`).
+- **El gesto se verifica con un dato**: `__toastbanda()` devuelve `piloto.cara`, la que se está
+  viendo. Secuencia medida en m4: `tero_neutro` → turbo → `tero_ceno` → al soltar, `tero_neutro` en
+  1 s (lo que tarda en bajar de gesto).
+
+## 1l. SALUD: una total y una temporal _(aplicada)_
+
+ESTADO y AVIÓN **se unificaron en un solo instrumento, SALUD**, con dos barras (idea del playtest del
+10/9). Hay dos relojes que te bajan del cielo, y **uno vuelve y el otro no**:
+
+| Barra                      | Qué mide                                                    | Se recupera                                                                                                                      |
+| -------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **total** (3 px, con el %) | los golpes — la integridad del avión                        | **no**. Sus muescas en 25/50/75 son los escalones de avería: bajo la del medio te quedás sin turbo, bajo la primera sin piruetas |
+| **temporal** (2 px)        | el roce — lo que queda del reloj de gracia al tocar el agua | **sí**, sola, al salir (a un tercio de la velocidad con que se gasta)                                                            |
+
+Va en el lugar y del tamaño de ESTADO. La fila de AVIÓN salió de los puntitos (queda sólo CHANCHA)
+y `estadoVal()` se borró: el cañón y la nafta ya tienen sus barras.
+
+**Por qué no entran la nafta y el cañón:** ESTADO los mezclaba con el roce en un solo número y no se
+sabía cuál de los tres lo bajaba. Además la nafta lo dejaba naranja el resto de la misión, y el
+cañón recalentado no te baja: sólo te deja sin tirar.
+
+**En ESCUADRÓN no hay total**: un golpe te baja y la vida es el escuadrón. Ahí SALUD lleva sólo la
+temporal, en el renglón grueso. Un total siempre lleno sería una mentira.
+
+### SALUD, probada (10/9)
+
+Con la sonda nueva `__golpe(causa)` (un impacto por `damage.takeHit`, QUITAR): dos ráfagas de caza
+dejaron la chapa en **78** y **56**, sin caer — la total cruzó la marca de 75 y quedó arriba de la
+de 50, así que todavía hay turbo. Un roce corto vació la temporal a ~¾ en ámbar, y 1,5 s después
+estaba entera otra vez. En ESCUADRÓN, SALUD es una sola barra gruesa, sin %.
+
+**`run.hurtT` es un campo muerto.** `damage.js` lo pone en 0,6 en cada golpe y nada lo baja ni lo
+lee. La cara se apoyó en él y quedaba roja y preocupada el resto de la misión después del primer
+impacto; ahora detecta el golpe por su cuenta (la chapa que baja) con un reloj propio de 0,6 s.
+
+## 1m. Relojes en vez de barras, e íconos en vez de palabras *(aplicada)*
+
+El tablero de abajo pasa a ser **una fila de cuadrados iguales**, todos con la forma del horizonte
+artificial y apoyados en el margen de abajo:
+
+| Izquierda (de la esquina hacia adentro) | Derecha |
+|---|---|
+| horizonte · **piloto** · **nafta** · **chancha** | **cañón** en la esquina; VIDA y MISIL a su izquierda |
+
+- **NAFTA**: reloj con aguja, zona roja en el primer cuarto y el % al pie. Reemplaza la barra COMB.
+- **CHANCHA**: el mismo reloj, y **el final de la escala es el ícono de emergencia**: cuando la aguja
+  llega, se la puede pedir. Con una cita en curso el número cuenta lo que importa (cuánto falta para
+  que llegue, cuánto dura la ventana, cuánto tanque va entrando). Reemplaza los puntitos.
+- **CAÑÓN**: no tiene munición que contar —dispara hasta recalentarse y se traba hasta enfriar—, así
+  que el reloj marca **temperatura**, con la zona roja donde se traba.
+- **VIDA**: pierde la palabra y gana **la cruz**.
+
+**Los íconos son una tabla, no dibujos sueltos** (`data/iconos.js`). Cada uno tiene la LETRA que se
+dibuja hoy y el archivo que la reemplaza cuando exista: se pone el PNG en `assets/hud/` y se escribe
+su nombre en la tabla. Nada más.
+
+**Por qué una tabla y no probar si el archivo está:** un `new Image()` a un archivo que no existe
+ensucia la consola con un error de red por cada ícono, y `npm run smoke` falla justamente porque
+vigila que la consola esté limpia.
+
+**El build web ya sabe de la carpeta.** `tools/build_web.py` falla a propósito si queda una ruta
+`../assets/` sin embeber; como el ícono se arma concatenando, se reemplaza la base por un `data:`
+muerto, igual que retratos y placas. Cuando los PNG existan conviene embeberlos de verdad (son
+cientos de bytes): está anotado en el mismo lugar del script.
+
+**El tamaño**: 7 px de la grilla de diseño = **21 px reales**. Un PNG de 7×7 o de 21×21 entra sin
+medio píxel; cualquier otro tamaño se escala y pierde el filo.
+
+**Los rieles de los costados ahora llevan su letra** (`R` y `M`), a media altura. En el playtest hubo
+que preguntar dos veces qué eran: un riel sin marca sólo funciona si ya sabés qué es.
+
+
+## 1n. Las siluetas de la ruta *(aplicada)*
+
+Puerto, buque y avión eran rectángulos sueltos (una raya con un palito, dos líneas, un triángulo),
+con un sistema de PNG propio (`OBJ_ASSETS`) distinto del de los íconos del tablero. Ahora son
+**dibujos en píxeles dentro de la misma tabla** (`data/iconos.js`, campo `pix`), y un PNG los
+reemplaza igual que a cualquier otro ícono: "cómo cambio un ícono" tiene una sola respuesta.
+
+| Ícono | Tamaño (diseño) | Qué es |
+|---|---|---|
+| `buque` | 11 × 5 | destructor Tipo 42 de costado: casco largo y bajo, superestructura con chimenea y mástil — el Sheffield, el Coventry, el Glasgow |
+| `puerto` | 7 × 6 | muelle con pilotes y una grúa (dos colores: muelle y grúa) |
+| `avion` | 7 × 5 | visto desde arriba, apuntando al buque, con alas y cola |
+| `bandera` | 4 × 7 | la marca a batir de POR LA PATRIA |
+
+En `pix`, `#` pinta el color principal que pasa quien dibuja y `+` el secundario. Un PNG que
+reemplace una silueta va del mismo tamaño que el dibujo, o ×3 en píxeles reales.
+
+
+## 1o. Siluetas para todo, y el nombre del blanco en su cuadro *(aplicada)*
+
+**Ningún ícono es ya una letra.** Todos tienen una silueta provisoria en píxeles en
+`data/iconos.js`, y el listado de lo que falta conseguir —nombre, tamaño, qué buscar y el dibujo
+actual— está en **`assets/hud/LEEME.md`**, en la carpeta donde van los PNG.
+
+**Un buque por clase**, y la clase sale de `SHIP_CLASS` (`data/ships.js`), la misma tabla que elige
+el sprite del mundo: destructor (Sheffield, Coventry, Glamorgan), fragata (Ardent, Antelope,
+Broadsword), desembarco (Sir Galahad, Sir Tristram) y **portacontenedores** para el Atlantic
+Conveyor, que es la única excepción por nombre: el mundo lo dibuja con la hoja de desembarco porque
+no hay otra, pero arriba se puede decir la verdad.
+
+**Las misiones por distancia terminan en una bandera**, no en un destructor: no hay barco.
+
+**El nombre del blanco sale de la ruta y va en su propio cuadro, rojo**, pegado a los kilómetros y
+compartiendo el canto con la cinta: se lee como una pestaña del mismo instrumento. **`km` en
+minúscula y roja**: más chica sin bajar de cuerpo, y es además el símbolo correcto. La radio cuelga
+del instrumento entero (cinta + cuadro).
+
+**La cruz de VIDA es blanca**: la cruz roja sobre fondo claro es un emblema protegido por los
+Convenios de Ginebra, y a más de un juego le pidieron sacarla. De paso la placa de VIDA volvió a
+alinear con la de MISIL (estaba 9 px corrida desde que la cruz reemplazó a la palabra).
 
 
 ## 2. Divergencias
@@ -321,7 +500,7 @@ con objetivo lo decide la distancia y no cómo volaste.
    constante mal puesta repetida catorce veces: son catorce decisiones. Unificarlas es un trabajo
    de guion, no de refactor.
 8. **El gas se movió, y eso cuesta memoria muscular.** Es la excepción a "posición estable" de toda
-   esta fase. Se aceptó porque el gas no se *lee* —se opera, y se opera con una tecla— y porque 22
+   esta fase. Se aceptó porque el gas no se _lee_ —se opera, y se opera con una tecla— y porque 22
    px más de corredera son 22 px más de resolución en el único control analógico del juego.
 9. **El reloj del rasante quedó bajo el reproductor de música**, que es HTML y vive en los primeros
    ~15 px de esa esquina. No se pisan (la placa arranca en 15), pero están pegados. En campaña el
@@ -330,10 +509,10 @@ con objetivo lo decide la distancia y no cómo volaste.
 10. **El nombre del buque se quedó, achicado.** La alternativa era sacarlo: no cambia nunca, lo dice
     el briefing, y el total del odómetro ya está pintado en el color del blanco. Sacarlo dejaría la
     ruta en ~90 px de ancho en vez de 134. Se mantuvo porque es lo único de la pantalla que dice
-    *contra qué* estás volando, y porque el pedido fue achicar, no sacar.
+    _contra qué_ estás volando, y porque el pedido fue achicar, no sacar.
 
 11. **El récord dejó de escribirse fuera de POR LA PATRIA, y eso no se pidió explícitamente.** El
-    pedido fue sacarlo de la vista; restringir también la *escritura* es la consecuencia — si sólo
+    pedido fue sacarlo de la vista; restringir también la _escritura_ es la consecuencia — si sólo
     se ocultara, una corrida de CICLO seguiría inflando en silencio el número que POR LA PATRIA
     muestra. Revertir es sacar una condición en `game.js`.
 
@@ -342,7 +521,42 @@ con objetivo lo decide la distancia y no cómo volaste.
     el mismo hecho, a tres píxeles uno del otro. Si se la extraña, el reemplazo natural es que la
     fracción cuente al revés (`2.5 / 2.6` bajando), no volver a tener las dos.
 
-## 3. Lo que sigue pendiente *(de la auditoría, sin decidir)*
+13. **La charla no subió con la radio.** Sus renglones son de `WRAP_BODY` = 68 caracteres; en el ancho
+    de la cinta eso son seis renglones colgando sobre el horizonte. Se quedó abajo, sola, en el piso
+    que era del toast. Si sube, sube re-partida, no achicada.
+14. **Los popups de aviso ahora cruzan la banda de la radio.** Nacen en `y 38…56` y suben 15 px: pasan
+    por `y 18…41`, donde cuelga el toast, y quedan tapados si coinciden. Es la misma colisión que
+    tenían con la placa de la ruta (divergencia 7), más grande. El arreglo natural es el canje: los
+    avisos bajan a la banda que la radio acaba de dejar libre — pero cada `y` tiene su razón de
+    escena, así que es decisión de guion.
+15. **TERO vuela a cara descubierta.** `tero_casco` es el único retrato con casco y no tiene gestos;
+    alternarlo haría aparecer y desaparecer el casco con cada cambio de cara. Si se lo quiere con
+    casco en vuelo, hacen falta ceño, preocupado, sonrisa y roto con casco (108×108).
+16. **El globo de mi piloto se cruzaba con la caja de charla** (`y 108…131` contra `89…127`). No era
+    raro: la primera captura lo agarró con la charla de arranque de misión en pantalla, y la caja de
+    charla se dibuja después, así que el globo quedaba tapado. **Resuelto**: con una charla en la
+    banda de abajo, mi línea va arriba como las demás, y el marco de mi cara igual se prende.
+17. **Los rieles laterales no se reconocen solos.** En el playtest del 10/9 hubo que preguntar qué
+    eran. Es el costo anotado en §1c: un riel sin rótulo sólo funciona si ya sabés qué es.
+
+18. **SALUD en el modo por defecto muestra sólo la mitad.** Con averías en ESCUADRÓN —el default— no
+    hay golpes que contar, así que la barra total no aparece y SALUD es sólo el roce. La idea de "saber
+    la vida de mi avión" se cumple entera recién con averías en INTEGRIDAD o VISUAL. Cambiar el
+    default es una decisión de dificultad, no de UI.
+
+19b. **Quedaron cinco textos sin uso** (`bar_fuel`, `bar_cannon`, `bar_chancha`, `bar_tempo`,
+    `hud_vida`): los rótulos que reemplazaron los íconos. NO se borraron. Otra sesión está editando
+    `data/strings.js` en paralelo —se vio en vivo: `hud_vida` pasó de `VIDA` a `SALUD` mientras
+    duraba este cambio— y borrar claves de un archivo que otro está tocando es pisarle el trabajo
+    por una limpieza cosmética. Además, si algún rótulo vuelve a querer texto, la clave ya está.
+
+19. **El cañón analógico marca temperatura, no cantidad.** El pedido decía "que muestren cantidades",
+    pero el cañón del juego no tiene munición contable: sólo calor, con traba al llegar al tope. La
+    aguja marca cuánto le queda antes de trabarse, y el número al pie lo dice exacto.
+20. **La fila izquierda se apoya en el margen de abajo**, así que el horizonte bajó de `y 134` a
+    `y 150` y su placa pasó de 28 a 26 de ancho, para que los cuatro cuadrados sean idénticos.
+
+## 3. Lo que sigue pendiente _(de la auditoría, sin decidir)_
 
 - **La banda de popups** sigue subiendo por la franja de la ruta: ver divergencia 7.
 - **Las unidades mienten entre modos.** Pasillo: altura 0..68 rotulada `M`, radar a 20,

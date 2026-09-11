@@ -254,7 +254,7 @@ export const GUN_COOL_FIRE = 0.22;
 export const GUN_COOL_IDLE = 0.5;
 export const GUN_RESET = 0.3;
 
-// VIDA DE LOS ENEMIGOS. El globo cae de un tiro (es un globo); las aeronaves aguantan una rafaga
+// SALUD DE LOS ENEMIGOS. El globo cae de un tiro (es un globo); las aeronaves aguantan una rafaga
 // corta, para que valga la pena sostener el disparo y apuntar. Los que tienen mas de 1 muestran
 // barra de vida (ver drawHpBar en render/world.js).
 export const ENEMY_HP = { balloon: 1, helo: 4, jet: 3, aa: 3, bldg: 4, lcu: 2, tent: 1, radar: 2, aatruck: 3, tower: 3, depot: 3, flag: 1 };
@@ -853,6 +853,12 @@ export const CHV_MAX_S = 25;
 export const CHV_FADE = 0.4;
 // a que distancia se pone el numeral que habla, con `formacion: true` en la escena
 export const CHV_FORM_D = 14;
+
+// CUANTOS CARACTERES TIENE UN RENGLON DE RADIO EN VUELO. Es UN numero y lo leen dos capas: el motor
+// de radio (core/radioVN.js) parte el texto con el, y el HUD (render/hud.js) le da a la cinta de
+// arriba al centro el ancho minimo para que ese renglon entre colgado debajo, en cuerpo 5. Con una
+// copia de cada lado, el dia que alguien cambie una el texto se sale de la caja.
+export const VOZ_COLS = 38;
 
 // ---------------- EL AGUA 3D DEL CLIMAX (PLAN_MEJORAS_3D P1) ----------------
 // Dos formas de contar el mar del ARENA/PASADA, y son EXCLUYENTES en el fondo del plano:

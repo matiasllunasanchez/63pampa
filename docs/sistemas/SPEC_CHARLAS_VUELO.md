@@ -49,6 +49,12 @@ compararlas jugando en vez de en el papel:
 Las dos se alimentan del MISMO `decir()`: el historial se llena siempre, así cambiar de forma en
 OPCIONES no deja un panel vacío esperando a que alguien vuelva a hablar.
 
+> **Actualización 10/9/2026 (PLAN_UI §1j–1k).** El TOAST y el PANEL ya no van abajo: cuelgan de la
+> cinta del objetivo, a un aire, con su mismo ancho (`cintaCaja()` en `render/hud.js`). Si la línea
+> la dice **el piloto que vuela**, sale del cuadro de su cara, al lado del horizonte. La **charla**
+> se quedó en la banda de abajo: sus renglones de 68 caracteres no entran en el ancho de la cinta.
+> `__toastbanda()` ahora devuelve la caja de la cinta y la de la voz.
+
 **La banda del toast es una regla escrita en código**: `HUD_TINTA` en `render/screens.js` marca lo
 más alto que pinta el HUD de vuelo, y el toast cierra por encima. La sonda `__toastbanda()` la
 expone para que una prueba pueda afirmarlo — mirar una captura no alcanza, porque el toast aparece

@@ -184,6 +184,17 @@ def main():
     js, ok = sub_path(js, '../assets/portraits/', 'data:,portraits-web-off/')
     if not ok:
         raise SystemExit('ERROR: no encontre la base ../assets/portraits/ en el bundle (cambio screens.js?)')
+    # ICONOS DEL TABLERO (assets/hud/, tabla en data/iconos.js): la ruta la arma el JS concatenando,
+    # igual que retratos y placas, asi que en el bundle sobrevive SOLO la base.
+    #
+    # HOY NO HAY NINGUNO: la tabla los tiene todos en `png: null` y el HUD dibuja la letra. Se
+    # reemplaza la base por un data: muerto para que no quede una ruta viva. CUANDO SE DIBUJEN los
+    # iconos —son de 21x21, unos cientos de bytes cada uno— conviene embeberlos de verdad: recorrer
+    # assets/hud/*.png y sustituir '../assets/hud/<archivo>' por su data URI, como hacen las hojas
+    # de enemigos mas arriba.
+    js, ok = sub_path(js, '../assets/hud/', 'data:,hud-web-off/')
+    if not ok:
+        raise SystemExit('ERROR: no encontre la base ../assets/hud/ en el bundle (cambio render/iconos.js?)')
 
     if '../assets/' in js:
         raise SystemExit('ERROR: quedaron rutas ../assets/ sin re-embeber en game.js')

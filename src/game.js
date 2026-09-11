@@ -1333,7 +1333,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         get: () => cfg.squad, set: v => cfg.squad = v, save: 'rasante_escuadron' },
       { label: () => T('optFuel'), opts: [true, false], names: yesNo,
         get: () => cfg.fuelOn, set: v => cfg.fuelOn = v, save: 'rasante_combustible' },
-      // MODELO DE VIDA (core/damage.js). Va PEGADO a ESCUADRON porque las dos filas contestan la
+      // MODELO DE SALUD (core/damage.js). Va PEGADO a ESCUADRON porque las dos filas contestan la
       // misma pregunta —cuanto aguanta el jugador— y separarlas obligaba a leerlas dos veces.
       // Vale para TODOS los modos y a futuro es una perilla de la dificultad.
       { label: () => T('optDmg'), opts: DMG_MODES,
@@ -3748,7 +3748,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // TOAST (una linea que pasa) o PANEL (las ultimas cuatro, como un chat). Las dos respetan
         // la misma banda y ninguna toca la UI (SPEC_CHARLAS_VUELO §0b).
         ctx.save(); ctx.scale(U, U);
-        if (cfg.radioUI === 'panel') screens.drawRadioPanel(); else screens.drawRadioVN();
+        // `charla`: si hay una conversacion en la banda de abajo, la voz de mi avion no puede salir de
+        // mi cara (el globo quedaria debajo de la caja de charla) y va arriba con las demas.
+        if (cfg.radioUI === 'panel') screens.drawRadioPanel(); else screens.drawRadioVN({ charla: charla.hablando() });
         // LA CHARLA EN VUELO, en su propia caja y un escalon arriba del toast. Va DESPUES de la
         // radio para que, si las dos coinciden, la conversacion quede encima del aviso.
         if (charla.hablando()) screens.drawCharla({ dlg });
@@ -3992,6 +3994,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // mismo impacto se lee como un numero que baja, que es lo que el fixture necesita.
       window.__czmodo = m => { cfg.dmgMode = m; run.integ = 100; return cfg.dmgMode; };
       window.__czinteg = () => run.integ;
+      // __golpe: UN impacto de fuego enemigo sobre mi avion, por la misma puerta que usan los sistemas
+      // (`damage.takeHit`). Existe para ver la barra TOTAL de SALUD bajar sin tener que ir a buscar un
+      // antiaereo — `__chocar` no sirve, una colision mata siempre. Solo informa si el avion cae; no
+      // dispara el relevo. QUITAR con el resto.
+      window.__golpe = causa => { const cae = damage.takeHit(causa || 'death_gunfire'); return JSON.stringify({ cae, integ: run.integ }); };
       window.__czfinal = f => caza.setFinal(String(f));
       window.__czasoma = () => caza.asomando();
       window.__czpegar = n => caza.pegar(+n);
@@ -4289,6 +4296,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // __radiodbg: LA CAJA DE RADIO tal como se ve ahora — quien habla, que dice, y donde estamos
     // parados del recorrido. Sin esto, "las charlas se recorren" solo se puede afirmar mirando
     // capturas de a una. QUITAR con el resto de las sondas.
+    // __decir: dispara UNA linea de radio ya, sin esperar al tramo que la trae. Existe para medir
+    // donde cuelga la voz (debajo de la cinta, con su ancho) en una captura: el toast aparece y se
+    // va, y esperar al tramo de verdad son minutos de vuelo. QUITAR con el resto.
+    if (typeof window !== 'undefined') window.__decir = raw => { decirRadio(String(raw), n => CARA_DE_RADIO[n] || null); return JSON.stringify(screens.toastBanda()); };
     if (typeof window !== 'undefined') window.__radiodbg = () => JSON.stringify({
       visible: radioVis(), personaje: radioBox.personaje, cara: radioBox.cara,
       txt: radioBox.wrap.join(' '), resta: +radioRest().toFixed(2),

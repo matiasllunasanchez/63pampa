@@ -11,7 +11,8 @@ import { clamp01 } from '../core/physics.js';
 import { radio, restante, visible, log } from '../core/radioVN.js';
 import { sinceReady, txtOf } from '../core/dialogue.js';
 import { PLACA_DE_CUADRO } from '../data/placas.js';
-import { HUD_TECHO } from './hud.js';
+import { HUD_TECHO, cintaCaja, vozMin, VOZ, pilotoCaja, sinTilde } from './hud.js';
+import { retrato } from './retratos.js';
 
 // Segundos que la pantalla de victoria espera antes de traer la frase de cierre. No es un valor
 // de "sensacion" como los de data/tuning.js: es el ritmo de UNA pantalla, y vive con ella.
@@ -389,12 +390,13 @@ function storyImg(name) { return lazyImg(STORY_IMGS, '../assets/story/', name, '
 // PLACAS de ambiente (RETRATOS §3: assets/plates/<id>.png) y RETRATOS de dialogo
 // (RETRATOS §5: assets/portraits/<cara>.png). Misma cascada: si el asset falta, no pasa nada —
 // la placa cae a la tarjeta negra y el retrato a la silueta placeholder de la caja VN.
-const PLATE_IMGS = new Map(), PORTRAIT_IMGS = new Map();
+const PLATE_IMGS = new Map();
 // Las placas van en WEBP y no en PNG: son 32 imagenes de pantalla completa, y en PNG pesarian
 // cerca de 800 KB cada una contra los ~90 KB del webp. Con el techo de 16 MB del build web esa
 // diferencia decide si entran o no. Las genera tools/install_placas.py desde los originales.
 function plateImg(name) { return lazyImg(PLATE_IMGS, '../assets/plates/', name, '.webp'); }
-function portraitImg(name) { return lazyImg(PORTRAIT_IMGS, '../assets/portraits/', name); }
+// los retratos se cargan en render/retratos.js: el mismo cache lo usa el cuadro del piloto (hud.js)
+const portraitImg = retrato;
 // tinte del texto por REGISTRO (SISTEMA_DIALOGO.md): 'carta' = el block militar del padre (papel
 // viejo); sin estilo, la tipografia tecnica de siempre.
 //
@@ -1171,40 +1173,81 @@ export function cajaVN(o) {
 // formas de hablar tienen que VERSE IGUAL, y sigue siendo cierto — pero para el dialogo que PIDE
 // atencion. La radio en vuelo es otra cosa: es un aviso que pasa, y se ve como lo que es.
 //
-// LA BANDA. El HUD de vuelo vive en el tablero de abajo y en la franja de arriba (escuadron,
-// kilometro, barra de objetivo). El toast entra entero entre las dos, pegado al piso de la banda
-// libre: `TOAST_Y2` es su borde inferior y esta DOS pixeles por encima de donde empieza el HUD.
-// Ese numero es la regla del §0b escrita en codigo, y la sonda `__toastbanda()` la deja medir.
+// DOS BANDAS PARA LA VOZ, cada una con su dueño (playtest 10/9).
 //
-// EL NUMERO NO SE COPIA: SALE DEL TABLERO. `HUD_TECHO` es el canto de las placas de la fila mas
-// alta del HUD de vuelo, calculado en render/hud.js con las mismas constantes con que se apilan.
+// LA RADIO (toast y panel) CUELGA DE LA CINTA DEL OBJETIVO, con su mismo ancho — ver `vozCaja`.
+// Lo que dice la radio es casi siempre sobre esa ruta: el buque, la costa, el que viene. Leerlo
+// pegado al instrumento que lo explica es leerlo una vez sola, y de paso la radio deja la franja
+// de encima del tablero, que es por donde pasa el avion cuando va rasante.
 //
-// Estuvo COPIADO y en 110, y la copia se pudrio: ese numero lo escribio la epoca en que RASANTE y
-// MOMENTUM eran la cuarta y la quinta barra de la pila de la izquierda y subian hasta ~112. Desde
-// entonces se mudaron dos veces —arriba a la derecha primero, a los rieles de los bordes despues
-// (PLAN_UI B)— y el toast siguio esquivando un instrumento que ya no estaba ahi: diecinueve
-// pixeles de banda libre que la voz no estaba usando por miedo a un fantasma.
+// LA CHARLA se queda en la banda de abajo, sola (ver `drawCharla`): sus renglones son el doble de
+// largos y no entran en el ancho de la cinta.
+//
+// EL PISO DE LA BANDA DE ABAJO no se copia: sale del tablero. `HUD_TECHO` es el canto de las
+// placas de la fila mas alta del HUD de vuelo, calculado en render/hud.js con las mismas
+// constantes con que se apilan. Estuvo COPIADO y en 110, y la copia se pudrio (PLAN_UI §1c).
 const HUD_TINTA = HUD_TECHO;                             // lo mas alto que pinta el HUD de vuelo
-const TOAST_Y2 = HUD_TINTA - 2, TOAST_H = 30, TOAST_W = 226, TOAST_CARA = 22;
 
-export function drawRadioVN() {
+/** DONDE CUELGA LA VOZ ESTE CUADRO: debajo de la cinta, a un AIRE, con SU ancho y centrada con
+ *  ella. El ancho nunca baja de `vozMin` —el mismo minimo con que la cinta se estira—, asi que
+ *  "el mismo ancho" es verdad por construccion y el renglon siempre entra. Sin cinta este cuadro
+ *  (un modo sin objetivo ni record) cuelga del mismo lugar, como si la hubiera. */
+function vozCaja() {
+  const c = cintaCaja(), min = vozMin();
+  const w = Math.max(min, c ? c.w : 0);
+  const x = c ? c.x + Math.round((c.w - w) / 2) : Math.round((W - w) / 2);
+  const y = (c ? c.y2 : VOZ.margen + 11) + VOZ.aire;
+  return { x, y, w };
+}
+
+// EL TOAST: nombre y dos renglones en cuerpo 5, busto de 16. Era de cuerpo 6, busto de 22 y 30 px
+// de alto; colgado de una cinta de 11 queda en 23 — un aviso no puede pesar el triple que el
+// instrumento del que cuelga.
+const TOAST_H = 23;
+
+export function drawRadioVN(o) {
   if (!visible()) return;
   const ease = radio.ease;
-  const bw = TOAST_W, bh = TOAST_H;
-  const bx = Math.round((W - bw) / 2);
-  // entra SUBIENDO desde abajo y se va por el mismo camino: el movimiento dice "esto pasa", que es
-  // exactamente lo que un aviso tiene que decir
-  const by = Math.round(TOAST_Y2 - bh + (1 - ease) * (bh + 10));
+  // ¿HABLA MI AVION? Entonces la linea sale DE MI CARA —el cuadro del piloto, al lado del
+  // horizonte— y no de la cinta. Arriba habla la radio de los otros; abajo, pegado a mis
+  // instrumentos, hablo yo. Sin cuadro (un indicativo sin retrato) todo va arriba, como antes.
+  //
+  // …SALVO QUE LA BANDA DE ABAJO ESTE OCUPADA POR UNA CHARLA. El globo sube de la cara hasta
+  // y 108..131 y la caja de charla ocupa 89..127 y se dibuja DESPUES: se vio en la primera captura,
+  // con la charla de arranque de mision en pantalla, el globo quedaba tapado. Entonces mi linea va
+  // arriba como las demas — y el marco de mi cara igual se prende, asi se sigue sabiendo quien habla.
+  const yo = pilotoCaja();
+  const esYo = !!(yo && radio.personaje && sinTilde(radio.personaje) === sinTilde(yo.nombre));
+  const mia = esYo && !(o && o.charla);
+  // SI SOY YO, LA CARA ES LA DEL CUADRO — con su gesto de este momento — y no el retrato de radio.
+  // Se vio en captura: con la charla en pantalla mi linea subia arriba con `tero_casco` mientras el
+  // cuadro de abajo mostraba a TERO a cara descubierta. Dos caras del mismo piloto en el mismo cuadro.
+  const caraVoz = esYo ? yo.cara : radio.cara;
+  let bx, y0, bw;
+  if (mia) { bw = vozMin() - VOZ.cara - VOZ.gap; bx = yo.x; y0 = yo.y - VOZ.aire - TOAST_H; }
+  else ({ x: bx, y: y0, w: bw } = vozCaja());
+  const bh = TOAST_H;
+  // la de los otros BAJA desde la cinta; la mia SUBE desde la cara. Las dos salen de donde viene
+  // lo que dicen, y el movimiento sigue diciendo "esto pasa".
+  const by = Math.round(mia ? y0 + (1 - ease) * 6 : y0 - (1 - ease) * 6);
   ctx.globalAlpha = 0.92 * (0.35 + 0.65 * ease);
   ctx.fillStyle = '#070b0f'; ctx.fillRect(bx, by, bw, bh);
   ctx.globalAlpha = ease;
   ctx.strokeStyle = '#2c3a44'; ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
-  // el busto, chico: alcanza para saber QUIEN habla sin robarle lugar al mundo
-  let tx = bx + 6;
-  if (radio.cara) {
-    const ps = TOAST_CARA, py0 = by + (bh - ps) / 2;
+  // LA COLITA, solo en la mia: apunta a la cara de la que sale. Sin ella el globo flota suelto
+  // encima del tablero y no se lee como dicho por nadie.
+  if (mia) {
+    const c0 = yo.x + Math.round(yo.lado / 2) - 2;
+    ctx.fillStyle = '#070b0f';
+    ctx.fillRect(c0, by + bh, 5, 1); ctx.fillRect(c0 + 1, by + bh + 1, 3, 1); ctx.fillRect(c0 + 2, by + bh + 2, 1, 1);
+  }
+  // el busto, chico: alcanza para saber QUIEN habla sin robarle lugar al mundo. En la mia no va:
+  // la cara esta justo abajo, y dos veces la misma cara a veinte pixeles es ruido.
+  let tx = bx + VOZ.pad;
+  if (caraVoz && !mia) {
+    const ps = VOZ.cara, py0 = by + Math.round((bh - ps) / 2);
     ctx.fillStyle = '#0d1319'; ctx.fillRect(tx, py0, ps, ps);
-    const im = portraitImg(radio.cara);
+    const im = portraitImg(caraVoz);
     if (im) ctx.drawImage(im, tx, py0, ps, ps);
     else {                                            // misma silueta de respaldo que la caja VN
       const u = ps / 36;
@@ -1214,18 +1257,18 @@ export function drawRadioVN() {
     }
     ctx.globalAlpha = 0.7 * ease; ctx.strokeStyle = P.accent;
     ctx.strokeRect(tx + 0.5, py0 + 0.5, ps - 1, ps - 1); ctx.globalAlpha = ease;
-    tx += ps + 5;
+    tx += ps + VOZ.gap;
   }
   ctx.textAlign = 'left';
-  let ty = by + 10;
+  let ty = by + 7;
   if (radio.personaje) {
     ctx.font = 'bold 5px monospace'; ctx.fillStyle = P.accent;
     ctx.fillText(radio.personaje, tx, ty);
-    ty += 7;
-  }
-  ctx.font = '6px monospace'; ctx.fillStyle = P.ink;
-  // hasta DOS renglones: un aviso que necesita tres es una charla, y una charla va en PAUSA
-  for (let i = 0; i < Math.min(2, radio.wrap.length); i++) ctx.fillText(radio.wrap[i], tx, ty + i * 7);
+    ty += VOZ.fila;
+  } else ty += 2;
+  ctx.font = '5px monospace'; ctx.fillStyle = P.ink;
+  // hasta DOS renglones: un aviso que necesita tres es una charla, y una charla va en su caja
+  for (let i = 0; i < Math.min(2, radio.wrap.length); i++) ctx.fillText(radio.wrap[i], tx, ty + i * VOZ.fila);
   // la barrita de tiempo, al ras del borde de abajo: es la unica forma honesta de decir "esto se
   // va a ir" sin pedirle al jugador que mire un reloj
   const r = restante();
@@ -1240,13 +1283,14 @@ export function drawRadioVN() {
  *  resultado de no tener una propia fue un bug de manual — la charla corria su maquina, congelaba
  *  el odometro hasta 25 s y NO DIBUJABA NADA. El jugador veia el avion volando sin avanzar.
  *
- *  ES HERMANA DEL TOAST DE RADIO a proposito: misma banda, mismo busto, mismo borde. Las dos son
- *  "alguien esta hablando mientras volas" y tienen que leerse como la misma familia — lo unico que
- *  las separa es que la charla es una CONVERSACION (se tipea, dura, puede ocupar tres renglones) y
- *  la radio es un aviso que pasa.
+ *  ES HERMANA DEL TOAST DE RADIO a proposito: mismo busto, mismo borde. Las dos son "alguien esta
+ *  hablando mientras volas" y tienen que leerse como la misma familia — lo que las separa es que la
+ *  charla es una CONVERSACION (se tipea, dura, ocupa hasta tres renglones) y la radio es un aviso.
  *
- *  Va un escalon MAS ARRIBA que el toast para que, si una radio de tramo cae encima de una charla,
- *  las dos se lean en vez de pisarse. */
+ *  YA NO COMPARTEN BANDA (playtest 10/9). La radio subio a colgar de la cinta del objetivo con su
+ *  mismo ancho; la charla NO PUDO ir con ella: sus renglones son de `WRAP_BODY` = 68 caracteres, y
+ *  en el ancho de la cinta (~145 px) eso son seis renglones colgando sobre el horizonte. Se quedo
+ *  abajo, sola, en el piso que era del toast. Si algun dia sube, sube RE-PARTIDA, no achicada. */
 const CHV_W = 262, CHV_H = 38, CHV_CARA = 26;
 
 export function drawCharla(w) {
@@ -1256,9 +1300,15 @@ export function drawCharla(w) {
   if (!ln) return;
   const bw = CHV_W, bh = CHV_H;
   const bx = Math.round((W - bw) / 2);
-  // entra subiendo, igual que el toast, pero desde SU banda: la del toast menos su alto
+  // entra subiendo desde el piso de la banda de abajo, que ahora es SOLO suya: la radio subio a
+  // colgar de la cinta del objetivo (ver `vozCaja`).
+  //
+  // SEIS PIXELES DE BARRIDO, no el alto de la caja. El barrido era de `bh + 10` = 48 px hacia
+  // abajo: cuando la caja vivia mas arriba caia sobre el cielo, pero en este piso cruzaba la cara del
+  // piloto, los puntitos y el combustible (se vio en captura, a media entrada). Una caja de dialogo
+  // que pasa por encima de los instrumentos, aunque sea medio segundo, es lo que el §0b prohibe.
   const ease = Math.max(0, Math.min(1, d.sceneT / 0.3));
-  const by = Math.round((HUD_TINTA - 2 - TOAST_H - 3) - bh + (1 - ease) * (bh + 10));
+  const by = Math.round((HUD_TINTA - 2) - bh + (1 - ease) * 6);
   ctx.globalAlpha = 0.94 * (0.4 + 0.6 * ease);
   ctx.fillStyle = '#070b0f'; ctx.fillRect(bx, by, bw, bh);
   ctx.globalAlpha = ease;
@@ -1306,17 +1356,21 @@ export function drawCharla(w) {
 // pasa, el panel muestra LAS ULTIMAS CUATRO — la radio como la escucha un piloto: lo que se dijo
 // hace diez segundos todavia esta ahi.
 //
-// Vive en LA MISMA BANDA que el toast y con el mismo tope (`HUD_TINTA`): la ley del §0b no cambia
-// porque cambie la forma. Crece HACIA ARRIBA desde el piso de la banda, asi que la linea nueva
-// siempre aparece en el mismo lugar y las viejas se van corriendo — leer siempre en el mismo
-// renglon es la mitad de por que un chat se puede seguir de reojo.
-const PANEL_W = 210, PANEL_FILA = 9, PANEL_VIDA = 14;    // segundos que una linea queda legible
+// Cuelga del MISMO lugar que el toast y con el mismo ancho (`vozCaja`): cambiar de forma en
+// OPCIONES no puede mudar la radio de lugar. Crece HACIA ABAJO desde la cinta, con la linea NUEVA
+// siempre en el renglon de arriba y las viejas corriendose debajo — leer siempre en el mismo
+// renglon es la mitad de por que un chat se puede seguir de reojo. (Abajo crecia hacia arriba desde
+// el piso; es la misma regla puesta del otro lado.)
+const PANEL_FILA = 7, PANEL_VIDA = 14;                    // segundos que una linea queda legible
 
 export function drawRadioPanel() {
   if (!log.length) return;
-  const bx = Math.round((W - PANEL_W) / 2);
-  let y = TOAST_Y2 - 3;                                   // el piso: el mismo del toast
-  // de la mas NUEVA a la mas vieja, subiendo
+  const { x: bx, y: y0, w: bw } = vozCaja();
+  ctx.textAlign = 'left'; ctx.font = '5px monospace';
+  // cuantos caracteres entran, MEDIDO: el ancho ya no es un numero fijo, es el de la cinta
+  const cols = Math.max(12, Math.floor((bw - 8) / ctx.measureText('0').width));
+  let y = y0;
+  // de la mas NUEVA a la mas vieja, bajando
   for (let i = log.length - 1; i >= 0; i--) {
     const e = log[i];
     const vida = 1 - Math.min(1, e.t / PANEL_VIDA);
@@ -1325,25 +1379,31 @@ export function drawRadioPanel() {
     // ya paso" y juntas se leen sin tener que pensarlo
     const a = vida * (i === log.length - 1 ? 1 : 0.55);
     const linea = (e.personaje ? e.personaje + ': ' : '') + e.txt;
-    const txt = linea.length > 46 ? linea.slice(0, 45) + '…' : linea;
-    // el fondo va MAS opaco que el texto (0.9 contra `a`): sobre la pista clara, una fila vieja al
-    // 55% de alfa con fondo al 55% no se leia — lo que se apaga con la edad es la TINTA, no la
-    // plaquita que la sostiene
-    ctx.globalAlpha = Math.min(0.9, a + 0.35); px(bx, y - PANEL_FILA + 2, PANEL_W, PANEL_FILA - 1, '#070b0f');
+    const txt = linea.length > cols ? linea.slice(0, cols - 1) + '…' : linea;
+    // el fondo va MAS opaco que el texto (0.9 contra `a`): una fila vieja al 55% de alfa con fondo
+    // al 55% no se leia — lo que se apaga con la edad es la TINTA, no la plaquita que la sostiene
+    ctx.globalAlpha = Math.min(0.9, a + 0.35); px(bx, y, bw, PANEL_FILA - 1, '#070b0f');
     ctx.globalAlpha = a;
-    ctx.textAlign = 'left'; ctx.font = '6px monospace';
     // el NOMBRE en acento y lo dicho en tinta normal: en un chat, quien habla se busca primero
     const nom = e.personaje ? e.personaje + ': ' : '';
-    ctx.fillStyle = P.accent; ctx.fillText(nom, bx + 4, y - 1);
+    ctx.fillStyle = P.accent; ctx.fillText(nom, bx + 4, y + 5);
     ctx.fillStyle = P.ink;
-    ctx.fillText(txt.slice(nom.length), bx + 4 + ctx.measureText(nom).width, y - 1);
-    y -= PANEL_FILA;
+    ctx.fillText(txt.slice(nom.length), bx + 4 + ctx.measureText(nom).width, y + 5);
+    y += PANEL_FILA;
   }
   ctx.globalAlpha = 1;
 }
 
-/** El borde INFERIOR del toast, para que la prueba pueda afirmar que no pisa el HUD. */
-export const toastBanda = () => ({ y2: TOAST_Y2, h: TOAST_H, y1: TOAST_Y2 - TOAST_H, hudTinta: HUD_TINTA });
+/** DONDE ESTA LA VOZ, para que una prueba pueda afirmar la regla sin mirar capturas (el toast
+ *  aparece y se va): cuelga de la cinta a un aire (`y1` = `cinta.y2` + aire) y tiene su ancho.
+ *  `charla` es el piso de la banda de abajo, que ahora es solo de la charla. */
+export const toastBanda = () => {
+  const v = vozCaja();
+  return { x: v.x, w: v.w, y1: v.y, y2: v.y + TOAST_H, cinta: cintaCaja(), vozMin: vozMin(),
+    // el cuadro del piloto con la cara que muestra AHORA: el gesto se afirma con un dato, no a ojo
+    piloto: pilotoCaja(),
+    charla: { y2: HUD_TINTA - 2, h: CHV_H }, hudTinta: HUD_TINTA };
+};
 
 function drawVNBox(w, d, ln, last, narra) {
   const k = Math.min(1, d.sceneT / 0.35), ease = 1 - Math.pow(1 - k, 3);   // entrada: sube

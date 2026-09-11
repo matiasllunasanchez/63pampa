@@ -16,61 +16,27 @@ import { proj } from '../core/fx.js';
 import { scrapeLimit } from '../core/physics.js';
 import { T } from '../core/i18n.js';
 import { P, RADAR_VERDE, RADAR_OPACO } from '../data/palette.js';
-import { MSL_MAX, RADAR_ALT, EST_MAX } from '../data/tuning.js';
+import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS } from '../data/tuning.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName } from '../systems/squad.js';
 import { active as tempoActive, meterVal as tempoMeter } from '../systems/tempo.js';
 import { meterVal as chMeter, gastada as chGastada, snapshot as chSnap } from '../systems/chancha.js';
 import { attitude } from '../core/horizon.js';
+import { retrato, silueta } from './retratos.js';
+import { icono, iconoEn } from './iconos.js';
+import { ICONO_BUQUE, ICONO_BUQUE_NOMBRE } from '../data/iconos.js';
+import { SHIP_CLASS } from '../data/ships.js';
+import { CARA_PILOTO, GESTOS, GESTO_SOSTEN, SONRISA_PTS, SONRISA_T } from '../data/gestos.js';
+import { radio, visible as radioVisible } from '../core/radioVN.js';
 import { inBank, bankLeft, fogTop } from '../systems/fog.js';
 
 // largo del banco tal como se vio al entrar: la barra necesita un TOTAL contra el que vaciarse, y
 // el sistema solo sabe cuanto FALTA (el largo se sortea por banco).
 let fogSeen = 0;
 
-// barra de mision: puerto (izq) → barcaza objetivo (der). Assets configurables como data URI;
-// mientras `src` este vacio se dibuja un fallback.
-const OBJ_ASSETS = {
-  port: { src: '', img: new Image(), ready: false },   // icono del PUERTO (extremo izquierdo)
-  barge: { src: '', img: new Image(), ready: false },   // icono del OBJETIVO / barcaza (extremo derecho)
-  plane: { src: '', img: new Image(), ready: false },   // AVIÓN que avanza por la línea
-};
-for (const k in OBJ_ASSETS) { const a = OBJ_ASSETS[k]; a.img.onload = () => { a.ready = true; }; if (a.src) a.img.src = a.src; }
-
-// LOS DOS EXTREMOS DE LA RUTA, cada uno sobre SU PROPIA PLACA. Antes eran dos siluetas sueltas de
-// 8-9 px pintadas directo sobre el cielo: contra un amanecer naranja el buque (que va en `warn`,
-// tambien naranja) desaparecia, y agrandarlo para que se viera lo unico que lograba era que
-// compitiera con el blanco de verdad, que esta en el mundo unos pixeles mas abajo.
-//
-// Con placa se puede al reves: la silueta se achica a lo minimo que sigue siendo reconocible —un
-// casco y un mastil, un muelle y una grua— y el fondo oscuro hace el trabajo de separarla. Es el
-// mismo recurso que ya usa todo instrumento del HUD, asi que ademas empieza a hablar su idioma.
-const RUTA_R = 5;   // medio lado de la placa: 11x11, la mitad de lo que ocupaba el icono suelto
-
-function drawHudAsset(a, x, y, kind, hpx, sinPlaca) {
-  if (a.ready && a.img.naturalWidth) {
-    const h = hpx, w = Math.max(1, Math.round(h * a.img.naturalWidth / a.img.naturalHeight));
-    ctx.drawImage(a.img, Math.round(x - w / 2), Math.round(y - h / 2), w, h);
-    return;
-  }
-  if (kind === 'plane') {   // el marcador que avanza: sin placa, es el que se MUEVE por la ruta
-    // el tamaño sale de `hpx` como el de los assets: la ruta se achico a una fila de 11 px y un
-    // triangulo clavado en 6 de alto se comia el renglon entero
-    const r2 = hpx / 2;
-    ctx.fillStyle = P.ink;
-    ctx.beginPath(); ctx.moveTo(x + r2, y); ctx.lineTo(x - r2, y - r2 + 0.5); ctx.lineTo(x - r2, y + r2 - 0.5); ctx.closePath(); ctx.fill();
-    return;
-  }
-  if (!sinPlaca) plate(x - RUTA_R, y - RUTA_R, RUTA_R * 2 + 1, RUTA_R * 2 + 1);
-  if (kind === 'port') {                       // MUELLE: la linea del cantil y la grua
-    px(x - 3, y + 1, 6, 1, P.foam);
-    px(x - 1, y - 2, 1, 3, P.dim);
-    px(x - 1, y - 2, 3, 1, P.dim);
-  } else {                                     // BUQUE: casco y mastil, y nada mas
-    px(x - 3, y, 7, 2, P.warn);
-    px(x, y - 3, 1, 3, P.warn);
-  }
-}
+// LAS SILUETAS DE LA RUTA (puerto, buque, avion, bandera) viven en la tabla de iconos
+// (data/iconos.js), dibujadas en pixeles; un PNG las reemplaza igual que a cualquier otro icono.
+// Antes tenian un sistema de assets propio aca, con rectangulos sueltos de respaldo.
 
 // LA CINTA DE LA CORRIDA — la fila de arriba al centro, y el mismo verbo para todos los modos.
 //
@@ -108,51 +74,61 @@ function cinta(o) {
   ctx.font = F_ROT;
   const uniW = o.uni ? Math.round(ctx.measureText(o.uni).width) + 2 : 0;
   const rotW = o.rot ? Math.round(ctx.measureText(o.rot).width) + 5 : 0;
-  const linW = conLinea ? CINTA_LINEA + 5 + 3 : 0;
-  const ancho = 4 + rotW + linW + aW + (o.b ? 3 + bW : 0) + uniW + 4;
-  const bx0 = Math.round(W / 2 - ancho / 2);
+  // EL NOMBRE DEL BLANCO, en SU cuadro y en rojo, pegado a los kilometros (playtest 11/9). Estaba a la
+  // izquierda de la ruta, en gris: lejos del numero con el que se asocia. Pegado al total, y del color
+  // del total, el cuadro se lee de un tiron — «2.6 km hasta el HMS SHEFFIELD».
+  const nomW = o.nombre ? Math.round(ctx.measureText(o.nombre).width) + 8 : 0;
+  let linea = CINTA_LINEA;
+  let ancho = 4 + rotW + (conLinea ? linea + 5 + 5 : 0) + aW + (o.b ? 3 + bW : 0) + uniW + 4;
+  const conNombre = () => ancho + (nomW ? nomW - 1 : 0);   // el instrumento entero: cinta + cuadro
+  // EL MINIMO: el ancho que la radio necesita para colgar debajo con el MISMO ancho (ver VOZ). Lo
+  // que falta se lo lleva la LINEA de la ruta, que gana resolucion en vez de ganar alto. Sin linea
+  // (POR LA PATRIA sin record) no se estira nada: el toast se defiende solo con el mismo minimo.
+  const min = vozMin();
+  if (conLinea && conNombre() < min) { const falta = min - conNombre(); linea += falta; ancho += falta; }
+  const total = conNombre();
+  const bx0 = Math.round(W / 2 - total / 2);
   const py = MARGEN, y = py + 5;                     // la fila, al medio de una placa de 11
   plate(bx0, py, ancho, 11);
+  if (o.nombre) {
+    // comparte el canto con la cinta: se lee como una pestaña del mismo instrumento, no como otro
+    plate(bx0 + ancho - 1, py, nomW, 11);
+    ctx.textAlign = 'left'; ctx.fillStyle = P.warn;
+    ctx.fillText(o.nombre, bx0 + ancho + 3, py + 7);
+  }
   if (o.rot) {
     ctx.textAlign = 'left'; ctx.fillStyle = P.dim;   // apagado: es contexto, no un valor
     ctx.fillText(o.rot, bx0 + 4, y + 2);
   }
   let kx = bx0 + 4 + rotW;
   if (conLinea) {
-    const x0 = kx, x1 = x0 + CINTA_LINEA;
+    const x0 = kx, x1 = x0 + linea;
     // via PUNTEADA (pendiente) que se va rellenando continua (recorrido): lee como ruta de mapa
-    for (let dx3 = 0; dx3 < CINTA_LINEA; dx3 += 4) px(x0 + dx3, y, 2, 1, '#2e3c45');
-    px(x0, y, Math.round(CINTA_LINEA * o.prog), 1, P.accent);
-    if (o.meta === 'buque') {
-      drawHudAsset(OBJ_ASSETS.port, x0, y, 'port', 7, true);
-      drawHudAsset(OBJ_ASSETS.barge, x1, y, 'barge', 7, true);
-    } else {
-      // EL CERO y LA MARCA A BATIR. La marca es una BANDERA de meta y no una estrella: probada con
-      // asterisco, a cuerpo 5 un asterisco es una cruz roja y no se lee como «hasta aca». Una
-      // bandera es la misma silueta minima que el muelle y el buque del otro lado — un mastil y
-      // algo colgando— asi que ademas habla el mismo idioma.
-      px(x0, y - 2, 1, 5, P.dim);
-      const mc = o.metaCol || P.warn;
-      px(x1, y - 3, 1, 7, mc);                       // el mastil
-      px(x1 + 1, y - 3, 3, 1, mc);                   // el paño
-      px(x1 + 1, y - 2, 2, 1, mc);
-      px(x1 + 1, y - 1, 1, 1, mc);
-    }
+    for (let dx3 = 0; dx3 < linea; dx3 += 4) px(x0 + dx3, y, 2, 1, '#2e3c45');
+    px(x0, y, Math.round(linea * o.prog), 1, P.accent);
+    // LAS PUNTAS. Con buque: el muelle y la silueta de SU clase. Por distancia: el muelle y una
+    // BANDERA — antes terminaba en un destructor aunque no hubiera barco. En POR LA PATRIA: el cero
+    // y la bandera de la marca a batir (ver drawCorridaBar).
+    if (o.meta === 'record') px(x0, y - 2, 1, 5, P.dim);
+    else iconoEn(x0, y, 'puerto', P.foam, P.dim);
+    if (o.meta === 'buque') iconoEn(x1, y, o.buque || 'buque_t42', P.warn);
+    else iconoEn(x1 + 1.5, y, 'bandera', o.metaCol || P.warn);   // +1,5: el mastil cae justo en x1
     // el marcador que avanza (+ estelas de turbo)
-    const pm = x0 + CINTA_LINEA * o.prog;
+    const pm = x0 + linea * o.prog;
     if (o.boost) {
       ctx.strokeStyle = P.foam; ctx.globalAlpha = 0.7;
       for (let i = 1; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(pm - 2 - i * 3, y); ctx.lineTo(pm - i * 3, y); ctx.stroke(); }
       ctx.globalAlpha = 1;
     }
-    drawHudAsset(OBJ_ASSETS.plane, pm, y, 'plane', 6);
-    kx = x1 + 6;
+    iconoEn(pm, y, 'avion', P.ink);
+    kx = x1 + 8;   // el buque mide 11: medio casco a la derecha del final de la linea
   }
   ctx.textAlign = 'left'; ctx.font = F_VAL;
   ctx.fillStyle = P.accent; ctx.fillText(o.a, kx, y + 2);
   kx += aW + 3;
   if (o.b) { ctx.fillStyle = o.metaCol || P.warn; ctx.fillText(o.b, kx, y + 2); kx += bW + 2; }
-  if (o.uni) { ctx.font = F_ROT; ctx.fillStyle = P.dim; ctx.fillText(o.uni, kx, y + 2); }
+  if (o.uni) { ctx.font = F_ROT; ctx.fillStyle = o.uniCol || P.dim; ctx.fillText(o.uni, kx, y + 2); }
+  cajaCinta = { x: bx0, w: total, y2: py + 11 };   // la voz cuelga del instrumento ENTERO   // de aca cuelga la radio (ver cintaCaja)
 }
 
 /** CON OBJETIVO: contra el buque. El kilometraje va ACA DENTRO y no en su propia placa — «0.1 / 2.6»
@@ -166,12 +142,16 @@ function cinta(o) {
  *  unico en pantalla que dice CONTRA QUE estas volando. */
 export function drawObjectiveBar(objectiveDist, objectiveShip, kind) {
   const km = Math.max(0, run.dist) / 1000;
+  const esBuque = kind !== 'distance';
   cinta({
-    rot: kind !== 'distance' ? objectiveShip : null,
+    nombre: esBuque ? objectiveShip : null,
     prog: Math.max(0, Math.min(1, run.dist / objectiveDist)),
-    meta: 'buque',
+    meta: esBuque ? 'buque' : 'distancia',
+    buque: esBuque ? (ICONO_BUQUE_NOMBRE[objectiveShip] || ICONO_BUQUE[SHIP_CLASS[objectiveShip]] || 'buque_t42') : null,
     a: km.toFixed(1), b: '/ ' + (objectiveDist / 1000).toFixed(1),
-    uni: 'KM',                                       // el simbolo es el mismo en los dos idiomas
+    // 'km' en MINUSCULA y del color del total: mas chica sin bajar de cuerpo, y es ademas el simbolo
+    // correcto del kilometro (el SI no lo escribe en mayuscula)
+    uni: 'km', uniCol: P.warn,
     boost: run.boost,
   });
 }
@@ -187,7 +167,7 @@ export function drawCorridaBar(best) {
   const km = Math.max(0, run.dist) / 1000;
   const pts = Math.floor(run.score);
   cinta({
-    rot: km.toFixed(1) + ' KM',
+    rot: km.toFixed(1) + ' km',   // en minuscula, como en la cinta con objetivo
     prog: best > 0 ? Math.max(0, Math.min(1, pts / best)) : 0,
     meta: 'record',
     a: String(pts), b: best > 0 ? '/ ' + best : null,
@@ -287,24 +267,64 @@ export function drawTakeoff(toT) {
   }
 }
 
-// ESTADO DEL AVION, en un numero. Fue una SILUETA con cada parte coloreada por un dato (alas =
-// canon, motor = combustible, panza = roce) y el playtest la mando a barra de porcentaje: la
-// silueta ocupaba una placa de 28x26 para decir tres cosas que ya estaban dichas en barras a diez
-// pixeles, y la unica suya —el margen de roce— se leia como un color, no como un dato.
+// EL MARGEN DE ROCE — la parte TEMPORAL de la SALUD (ver drawVida).
 //
-// EL NUMERO ES EL PEOR DE LOS TRES, que es lo que significa "como viene el avion": un avion con el
-// tanque lleno y el canon fundido no esta al 80%, esta fundido. Los tres siguen siendo datos que
-// YA EXISTEN — esto no agrega vida ni sistemas nuevos, sigue siendo lectura de un vistazo.
+// Tocar el agua no mata al instante: hay un reloj de gracia (`scrapeLimit`: 0,85 s lento, 0,18 s a
+// fondo, y con turbo poco mas de la mitad). Rozando se llena; afuera se vacia despacio, a un tercio
+// de la velocidad — rozar dos veces seguidas es peor que una. Esto devuelve lo que QUEDA de ese
+// reloj: 1 entero, 0 te estrellas.
 //
-//   alas  → calor del canon      (run.heat / run.overheat)
-//   motor → combustible          (run.fuel)
-//   panza → margen de roce       (run.scrapeT contra su limite) — el unico que no esta en otro lado
-function estadoVal() {
-  const hWing = run.overheat ? 0 : 1 - run.heat;
-  const hEngine = run.fuel / 100;
+// Era una de las tres partes de ESTADO (el peor de cañon, nafta y roce), el unico de los tres que no
+// estaba en otro instrumento. ESTADO se fue (playtest 10/9): el cañon y la nafta tienen sus barras,
+// y el roce paso a ser la barra temporal de SALUD.
+function margenRoce() {
   const lim = scrapeLimit(run.spd, run.boost);
-  const hBelly = lim > 0 ? 1 - Math.max(0, Math.min(1, run.scrapeT / lim)) : 1;
-  return Math.max(0, Math.min(1, Math.min(hWing, hEngine, hBelly)));
+  return lim > 0 ? 1 - Math.max(0, Math.min(1, run.scrapeT / lim)) : 1;
+}
+
+/** LA SALUD DEL AVION: DOS BARRAS en un instrumento (playtest 10/9, idea de Matias).
+ *
+ *  Hay dos relojes que te bajan, y uno vuelve y el otro no:
+ *    TOTAL     los GOLPES (la integridad). No se recupera. Sus muescas en 25/50/75 son los ESCALONES
+ *              de averia (core/damage.js): bajo la del medio te quedas sin turbo, bajo la primera
+ *              sin piruetas. El % es de esta, que es "cuanto le queda a mi avion".
+ *    TEMPORAL  el ROCE (`margenRoce`). Se vacia rozando y se RECUPERA sola al salir.
+ *
+ *  Reemplaza a ESTADO y a AVION, que decian casi lo mismo desde dos lados: ESTADO mezclaba cañon,
+ *  nafta y roce en un solo numero y no se sabia cual de los tres era; AVION contaba golpes en otro
+ *  rincon. La nafta y el cañon NO entran: tienen sus barras, y la nafta dejaba la vida naranja el
+ *  resto de la mision.
+ *
+ *  EN ESCUADRON NO HAY TOTAL: un golpe te baja (la vida es el escuadron, arriba a la izquierda). Ahi
+ *  SALUD lleva solo la temporal, en el renglon grueso — un total siempre lleno seria una mentira. */
+function drawVida(x0, y, w0) {
+  const x = x0, w = w0;   // la cruz va en el renglon del rotulo: no le quita ancho a las barras
+  const total = dmgShown() ? Math.max(0, Math.min(1, run.integ / 100)) : null;
+  const temp = margenRoce();
+  plate(x - 2, y - 9, w + 4, INSTR);
+  // LA CRUZ en vez de la palabra: es salud, y una cruz lo dice en cualquier idioma y en menos lugar.
+  // BLANCA Y NO ROJA: la cruz roja sobre fondo claro es un emblema protegido (Convenios de Ginebra)
+  // y a mas de un juego le pidieron sacarla. Una cruz clara dice «salud» igual.
+  icono(x, y - 9, 7, 'vida', P.foam);
+  const rozando = run.scrapeVib > 0.6;
+  if (total !== null) {
+    const col = total <= 0.25 ? (Math.sin(run.t * 10) > 0 ? '#ff5340' : P.warn) : total <= 0.5 ? P.warn : P.foam;
+    px(x, y - 2, w, 3, '#2e3c45');
+    const fw = Math.round(w * total);
+    if (fw > 0) px(x, y - 2, fw, 3, col);
+    if (fw > 1) { ctx.globalAlpha = 0.4; px(x, y - 2, fw, 1, '#f2f7fb'); ctx.globalAlpha = 1; }   // bisel
+    ctx.fillStyle = '#0a0e11';                                  // las muescas: los escalones
+    for (let i = 1; i < 4; i++) ctx.fillRect(x + Math.round(w * i / 4), y - 2, 1, 3);
+    ctx.textAlign = 'right'; ctx.fillStyle = total <= 0.25 ? P.warn : P.dim;
+    ctx.fillText(Math.round(total * 100) + '%', x + w, y - 4);
+  }
+  // la temporal: calma (cresta) llena, ambar gastandose, roja y parpadeando cuando queda poco o
+  // mientras se esta rozando — ahi es cuando el jugador tiene que mirarla
+  const ty = total !== null ? y + 2 : y - 2, th = total !== null ? 2 : 3;
+  const tcol = temp < 0.35 || rozando ? (Math.sin(run.t * 16) > 0 ? P.warn : '#7d2f1e') : temp < 1 ? P.accent : P.crest;
+  px(x, ty, w, th, '#2e3c45');
+  const tw = Math.round(w * Math.max(0, Math.min(1, temp)));
+  if (tw > 0) px(x, ty, tw, th, tcol);
 }
 
 // ---------- KIT DE PIXEL ART DEL HUD ----------
@@ -372,6 +392,29 @@ const MARGEN = 4;
 // solo a lo que cambia. En la grilla de diseño 5 px caen en 15 reales (U 1.5 x SC 2 = 3 exacto),
 // asi que no hay medio pixel: el tipo sigue siendo duro.
 const F_ROT = '5px monospace', F_VAL = '6px monospace';
+
+// LA VOZ CUELGA DE LA CINTA (playtest 10/9). El toast de radio y el panel ya no viven abajo, sobre
+// el tablero: van DEBAJO DEL OBJETIVO y con SU MISMO ANCHO, porque lo que dice la radio es casi
+// siempre sobre esa ruta —el buque, la costa, el que viene— y leerlo pegado al instrumento que lo
+// explica es leerlo una vez sola.
+//
+// Para que "el mismo ancho" sea verdad en TODA mision, la cinta tiene un ANCHO MINIMO: el que
+// necesita un renglon de radio (`VOZ_COLS` caracteres en cuerpo 5) mas el marco del toast. Con un
+// buque de nombre largo la cinta ya es mas ancha y no pasa nada; con un objetivo de DISTANCIA (sin
+// nombre, ~100 px) estira la linea de la ruta hasta ese minimo.
+//
+// El marco vive ACA y no en screens.js porque es parte de la cuenta del ancho de la cinta, y la
+// cinta es de este archivo: si el toast engordara su busto sin que la cinta lo supiera, el
+// renglon dejaria de entrar sin que nadie tocara el texto.
+export const VOZ = { pad: 4, cara: 16, gap: 4, fila: 6, aire: AIRE, margen: MARGEN };
+export function vozMin() {
+  ctx.font = F_ROT;
+  return Math.ceil(ctx.measureText('0'.repeat(VOZ_COLS)).width) + VOZ.pad * 2 + VOZ.cara + VOZ.gap;
+}
+// la caja que la cinta ocupo ESTE cuadro. Se borra al empezar cada HUD: una caja vieja, de un
+// cuadro que ya paso, colgaria la radio de una cinta que no esta.
+let cajaCinta = null;
+export const cintaCaja = () => cajaCinta;
 // LA COLUMNA DERECHA, de arriba abajo, y las dos medidas juntas porque son la misma decision: los
 // primeros 12 px de esa esquina NO son del canvas (ahi vive el boton de sonido, que es HTML — ver
 // index.html), debajo va el reloj del rasante cuando esta encendido, y despues el gas.
@@ -384,7 +427,12 @@ const GAS_TOP = 42, GAS_BOT = 118;   // la corredera del gas
 
 // LAS TRES FILAS del tablero de abajo, medidas desde el borde y con el mismo paso en las dos
 // columnas: lo que hace que el HUD se lea como un tablero y no como cosas puestas donde entraban.
-const R1 = H - 8, R2 = R1 - FILA, R3 = R2 - FILA;
+const R1 = H - 8, R2 = R1 - FILA;
+// LOS CUATRO CUADRADOS DE ABAJO (playtest 10/9): horizonte, piloto, nafta y chancha, todos del
+// MISMO lado y apoyados en el margen de abajo, como una fila de instrumentos de tablero de verdad.
+// A la derecha, el quinto: el cañon. La barra de COMB y los puntitos de la chancha se fueron adentro
+// de sus relojes — un instrumento por cosa, y todos con la misma forma.
+const CUADRO = 26, CUADROS_Y = H - MARGEN - CUADRO;
 
 /** LO MAS ALTO QUE PINTA EL TABLERO DE VUELO: el canto de las placas de la fila 3 (`bar()` dibuja
  *  su placa nueve pixeles arriba de la barra).
@@ -394,7 +442,7 @@ const R1 = H - 8, R2 = R1 - FILA, R3 = R2 - FILA;
  *  eran la cuarta y la quinta barra de la pila de la izquierda. Desde entonces se mudaron dos
  *  veces y el toast siguio esquivando un instrumento que ya no estaba ahi. Con esto, el dia que
  *  las filas se muevan otra vez, la banda se mueve con ellas. */
-export const HUD_TECHO = R3 - 9;
+export const HUD_TECHO = Math.min(CUADROS_Y, R2 - 9);
 
 /** Barra con marco, bisel y muescas cada 25%. El relleno pierde el ultimo pixel del marco.
  *
@@ -467,12 +515,12 @@ function riel(x, val, col) {
 // …y CUADRADO CON EL RESTO: su placa (28x26 centrada en cx,cy) apoya a la izquierda en MARGEN y
 // deja AIRE contra la barra de combustible, que es la fila R1. No es simetria por simetria — un
 // tablero donde cada instrumento arranca en una columna distinta se lee como cosas apiladas.
-const ADI = { cx: MARGEN + 14, cy: 147, r: 10 };
+const ADI = { cx: MARGEN + 13, cy: CUADROS_Y + 13, r: 10 };
 const ADI_SKY = '#3c6c8e', ADI_GND = '#6b4a2a', ADI_LINE = '#f2f7fb';
 
 function drawADI() {
   const { cx, cy, r } = ADI;
-  plate(cx - 14, cy - 13, 28, 26);
+  plate(cx - 13, cy - 13, CUADRO, CUADRO);
   // la bola girada, fila por fila y pixel por pixel. Son ~340 pruebas por cuadro (nada) y evita
   // arc()+clip, que entra con ANTIALIAS: en un HUD de pixel art duro un borde borroneado se lee
   // como suciedad, no como instrumento.
@@ -497,6 +545,126 @@ function drawADI() {
   // muesca de las 12: marca donde queda ARRIBA para el avion, siempre en el mismo lugar
   px(cx, cy - r, 1, 2, P.accent);
 }
+
+// ---------- EL RELOJ: un cuadrado con aguja, hermano del horizonte ----------
+// La misma caja de 26 y el mismo lenguaje: arco de escala arriba, aguja desde el eje, icono abajo a
+// la izquierda y el numero abajo a la derecha. Analogico para leer de un vistazo (donde apunta) y
+// con numero para decidir (cuanto exactamente).
+//
+// El arco barre media vuelta, de 180 a 360 grados: vacio a la izquierda, lleno a la derecha, y el
+// medio arriba. La mitad de abajo queda libre a proposito — ahi viven el icono y el numero.
+function pxLinea(x0, y0, x1, y1, col) {
+  const n = Math.max(1, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
+  for (let i = 0; i <= n; i++) px(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, 1, 1, col);
+}
+
+/** `o` = { val 0..1, col, ico, icoCol, zona: [desde, hasta] en rojo, fin: icono al final de la
+ *  escala (o null), txt: el numero al pie, txtCol } */
+function reloj(x, y, o) {
+  plate(x, y, CUADRO, CUADRO);
+  const cx = x + 13, cy = y + 16, r = 10;
+  const ang = f => Math.PI + Math.PI * Math.max(0, Math.min(1, f));
+  // LA ESCALA: trece marcas. Las de la zona van en rojo — el peligro es parte del dial, no un aviso
+  for (let i = 0; i <= 12; i++) {
+    const f = i / 12, a = ang(f);
+    const enZona = o.zona && f >= o.zona[0] && f <= o.zona[1];
+    px(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 1, 1, enZona ? P.warn : '#55676f');
+  }
+  const a = ang(o.val);
+  pxLinea(cx, cy, cx + Math.cos(a) * (r - 2), cy + Math.sin(a) * (r - 2), o.col);
+  px(cx - 1, cy - 1, 2, 2, P.ink);                       // el eje
+  if (o.fin) icono(x + CUADRO - 8, y + 9, 6, o.fin, o.finCol || P.warn);   // su '+' es calado (data/iconos.js)
+  icono(x + 2, y + CUADRO - 9, 7, o.ico, o.icoCol || P.dim);
+  if (o.txt) {
+    ctx.font = F_ROT; ctx.textAlign = 'right'; ctx.fillStyle = o.txtCol || P.dim;
+    ctx.fillText(o.txt, x + CUADRO - 3, y + CUADRO - 4);
+    ctx.textAlign = 'left';
+  }
+}
+
+// ---------- EL CUADRO DEL PILOTO (playtest 10/9) ----------
+// La cara del que vuela, al lado del horizonte y del mismo alto que su placa. Es INMERSION: no
+// dice nada que el tablero no diga, pero lo dice con la cara de alguien — y un instante antes de
+// que el jugador lo lea en un numero. Los gestos y sus umbrales viven en data/gestos.js.
+//
+// Y ES DE DONDE SALE LA VOZ DE MI AVION. Si la linea de radio la dice el piloto que vuela, el
+// toast no baja de la cinta: sube de esta cara (ver drawRadioVN). Arriba habla la radio de los
+// otros; aca abajo, pegado a mis instrumentos, hablo yo.
+const PILOTO = { lado: 26, cara: 22 };
+let gesto = 'neutro', gestoT = 0, ultPts = 0, sonrisaT = 0, ultT = -1, precargada = null;
+// EL GOLPE, con reloj PROPIO. `run.hurtT` parecia servir ("fogonazo rojo en el HUD") pero nada en el
+// juego lo baja ni lo lee: damage.js lo pone en 0,6 y queda ahi para siempre. Apoyarse en el dejaba
+// la cara roja y preocupada el resto de la mision despues del primer impacto (se vio en captura).
+// El golpe se detecta aca, cuando la chapa BAJA de un cuadro al otro.
+const GOLPE_T = 0.6;
+let golpeT = 0, ultInteg = 100;
+let cajaPiloto = null;
+/** El cuadro del piloto ESTE cuadro (o null si no hay cara que mostrar). Lo lee el toast. */
+export const pilotoCaja = () => cajaPiloto;
+/** El mismo criterio de nombre en todos lados: sin tildes y en mayusculas (PICHÓN = PICHON). */
+export const sinTilde = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+
+/** Que cara le toca AHORA, por lo mismo que lo dice el tablero. De mas a menos urgente. */
+function gestoDeseado() {
+  if (dmgShown() && run.integ <= 30) return 'roto';
+  // LA PANZA bajo 50 %: volar a un metro con el margen de roce casi agotado dejaba la cara neutra
+  // hasta el cuadro en que el avion ya tocaba el agua (se vio en la captura a 1,2 m).
+  //
+  // Es la panza y NO ESTADO entero, a proposito. ESTADO es el minimo de cañon, nafta y panza, y con
+  // la nafta por debajo de la mitad queda naranja el resto de la mision: mirando ESTADO, la cara se
+  // quedaba preocupada para siempre (la sonda lo mostro: seguia preocupada 2,5 s despues de soltar el
+  // turbo). La nafta ya tiene su propio umbral, abajo, en 25 %.
+  if (golpeT > 0 || run.scrapeVib > 0.6 || run.detection > 0.3 || margenRoce() < 0.5
+      || (cfg.fuelOn && run.fuel < 25)) return 'preocupado';
+  if (sonrisaT > 0) return 'sonrisa';
+  if (run.boost || run.overheat || run.heat > 0.5 || run.rasLevel > 0) return 'ceno';
+  return 'neutro';
+}
+
+/** Dibuja la cara y devuelve el x donde sigue el tablero (sin cara: el mismo x, no queda hueco). */
+function drawPiloto() {
+  const x = ADI.cx + 14 + AIRE, y = ADI.cy - 13;
+  const nombre = pilotName(pilotIdx(run.squad, run.lives));
+  const base = CARA_PILOTO[sinTilde(nombre)];
+  if (!base) return x;
+  // el reloj del cuadro sale de `run.t`: el HUD no recibe dt, y una corrida nueva (run.t que
+  // vuelve para atras) arranca la cara de cero en vez de heredar la sonrisa de la anterior
+  const nueva = ultT < 0 || run.t < ultT;
+  const dt = nueva ? 0 : Math.min(0.1, run.t - ultT);
+  if (nueva) { gesto = 'neutro'; gestoT = 0; sonrisaT = 0; ultPts = run.score; golpeT = 0; ultInteg = run.integ; }
+  // un golpe es la chapa que BAJA; que suba (avion nuevo del relevo, o una sonda) no es golpe
+  if (run.integ < ultInteg) golpeT = GOLPE_T;
+  ultInteg = run.integ;
+  golpeT = Math.max(0, golpeT - dt);
+  ultT = run.t;
+  if (run.score - ultPts >= SONRISA_PTS) sonrisaT = SONRISA_T;
+  ultPts = run.score;
+  sonrisaT = Math.max(0, sonrisaT - dt);
+  const quiere = gestoDeseado();
+  if (quiere !== gesto && (GESTOS.indexOf(quiere) < GESTOS.indexOf(gesto) || gestoT >= GESTO_SOSTEN)) { gesto = quiere; gestoT = 0; }
+  gestoT += dt;
+  // las cinco caras del que vuela se piden juntas la primera vez: si no, el primer gesto de cada
+  // una tardaria un cuadro en cargar y se veria la neutra en el momento justo del susto
+  if (precargada !== base) { precargada = base; for (const g of GESTOS) retrato(base + '_' + g); }
+
+  plate(x, y, PILOTO.lado, PILOTO.lado);
+  // el sacudon tambien lo sufre el piloto: un pixel, nada mas
+  const j = run.shake > 2 ? Math.round((Math.random() - 0.5) * 2) : 0;
+  const cara = retrato(base + '_' + gesto) ? base + '_' + gesto : base + '_neutro';
+  const im = retrato(cara);
+  if (im) ctx.drawImage(im, x + 2 + j, y + 2, PILOTO.cara, PILOTO.cara);
+  else silueta(x + 2, y + 2, PILOTO.cara);
+  // el impacto: el mismo fogonazo rojo que ya usa el HUD, sobre la cara
+  if (golpeT > 0) { ctx.globalAlpha = Math.min(0.45, golpeT * 0.75); px(x + 2, y + 2, PILOTO.cara, PILOTO.cara, '#ff3a24'); ctx.globalAlpha = 1; }
+  // CUANDO HABLA, el marco se prende: la linea sale de aca y el ojo tiene que saber de donde
+  const habla = radioVisible() && radio.personaje && sinTilde(radio.personaje) === sinTilde(nombre);
+  if (habla) { ctx.strokeStyle = P.accent; ctx.strokeRect(x + 0.5, y + 0.5, PILOTO.lado - 1, PILOTO.lado - 1); }
+  // `cara` es la que se esta viendo AHORA (con su gesto): si mi linea tiene que ir arriba porque
+  // abajo hay una charla, el toast usa ESTA y no el retrato de radio — ver drawRadioVN
+  cajaPiloto = { x, y, lado: PILOTO.lado, nombre, cara, gesto };
+  return x + PILOTO.lado + AIRE;
+}
+
 
 // TABLERO DEL ESCUADRON: un avioncito por vida — los caidos quedan TACHADOS, no desaparecen.
 // Que el pip siga ahi, oscuro y cruzado, es lo que hace que una vida menos sea un companero
@@ -704,6 +872,8 @@ export function drawAlerta(x, y, w, n, prog) {
 }
 
 export function drawHUD(h) {
+  cajaCinta = null;   // ver cintaCaja: una caja de otro cuadro no cuenta
+  cajaPiloto = null;  // idem: la cara de la que sale mi voz es la de ESTE cuadro
       const { best, gameMode, objectiveDist, objectiveShip } = h;
   // EL PODER RASANTE llega POR SNAPSHOT y no por import, a diferencia de sus dos hermanos: el
   // lint de capas prohibe que `render` importe de `systems`, y las dos violaciones que ya existen
@@ -883,33 +1053,47 @@ export function drawHUD(h) {
   // LAS TRES FILAS del tablero de abajo (ver R1/R2/R3 arriba, junto al techo que salen de ellas).
 
   // ---- COLUMNA IZQUIERDA: EL AVION (lo que se gasta volando) -----------------------------------
-  if (pide(run.fuel < 60))
-    bar(6, R1, 60, run.fuel / 100, run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam, T('bar_fuel'));
-  // INTEGRIDAD DEL AVION: solo cuando el modelo de vida la usa (en ESCUADRON no existe — la
-  // barra de vida es el escuadron y una barra siempre llena seria una mentira ocupando lugar).
-  if (dmgShown() && pide(run.integ < 100)) {
-    const iv = run.integ / 100;
-    bar(ADI.cx + 14 + AIRE + 2, R2, 44, iv, iv <= 0.25 ? (Math.sin(run.t * 10) > 0 ? '#ff5340' : P.warn) : iv <= 0.5 ? P.warn : P.foam, T('dmg_bar'));
+  // LA CARA DEL PILOTO al lado del horizonte, y al lado de la cara la CHANCHA en puntitos (ver
+  // drawPiloto / drawPuntos). Los golpes del avion estan en la barra TOTAL de SALUD.
+  drawPiloto();
+  // NAFTA y CHANCHA, los dos relojes de la fila. La chancha solo con COMBUSTIBLE: SI — un reloj que
+  // nunca se va a poder usar es ruido ocupando un cuadrado.
+  const xNafta = ADI.cx + 13 + (CUADRO + AIRE), xCha = xNafta + CUADRO + AIRE;
+  if (pide(run.fuel < 60)) reloj(xNafta, CUADROS_Y, {
+    val: run.fuel / 100, ico: 'nafta', zona: [0, 0.25],
+    col: run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam,
+    txt: Math.round(run.fuel) + '%', txtCol: run.fuel < 25 ? P.warn : P.dim });
+  const ch = chSnap(), cv = chMeter(), gastada = chGastada();
+  if (cfg.fuelOn && pide(cv >= 1 || gastada || !!ch)) {
+    // EL FINAL DE LA ESCALA ES LA EMERGENCIA: cuando la aguja llega al icono, la Chancha se puede
+    // pedir. Con una cita en curso el numero cuenta lo que importa — cuanto falta para que llegue,
+    // cuanto dura la ventana, o cuanto tanque va entrando.
+    const enCita = !!ch && (ch.fase === 'eta' || ch.conn || ch.win > 0);
+    reloj(xCha, CUADROS_Y, {
+      val: gastada ? 0 : cv, ico: 'chancha', fin: 'emergencia',
+      finCol: cv >= 1 && !gastada ? (Math.sin(run.t * 7) > 0 ? P.accent : P.foam) : P.warn,
+      col: gastada ? P.dim : cv >= 1 ? (Math.sin(run.t * 7) > 0 ? P.foam : P.crest) : P.crest,
+      txt: enCita ? (ch.fase === 'eta' ? Math.ceil(ch.eta) + 's'
+        : ch.conn ? Math.round(run.fuel) + '%' : Math.ceil(Math.max(0, ch.win)) + 's')
+        : Math.round(cv * 100) + '%',
+      txtCol: ch && ch.conn ? P.accent : ch && ch.fase === 'cita' && ch.win < 8 ? P.warn : P.dim });
   }
 
   // ---- COLUMNA DERECHA: EL ARMA, apilada -------------------------------------------------------
-  // ESTADO arriba (como viene el avion), CAÑON en el medio y MISILES abajo, DEBAJO del canon y no
+  // SALUD arriba (como viene el avion), CAÑON en el medio y MISILES abajo, DEBAJO del canon y no
   // al lado de la nafta: los misiles son armamento, no consumo de vuelo, y tenerlos en la esquina
   // opuesta a su barra obligaba a cruzar la pantalla para leer "con que puedo tirar".
-  const ev = estadoVal();
-  // el umbral de ESTADO no esta en 1 sino en 0,97, y es el mismo motivo que el 0,05 del cañon: el
-  // margen de roce sube y baja solo mientras se vuela rasante, y en 1 el instrumento parpadearia
-  // con cada ola. Tres puntos de zona muerta alcanzan para que aparezca cuando algo paso de verdad.
-  if (pide(ev < 0.97)) {
-    bar(254, R3, 60, ev, ev <= 0.25 ? (Math.sin(run.t * 10) > 0 ? P.warn : '#7d2f1e') : ev <= 0.5 ? P.accent : P.foam, T('hud_status'));
-    // …y su NUMERO, al final del rotulo. Una barra dice "poco"; el porcentaje dice cuanto, que es
-    // lo que hace falta para decidir si volves o seguis.
-    ctx.textAlign = 'right'; ctx.font = F_ROT;
-    ctx.fillStyle = ev <= 0.25 ? P.warn : P.dim;
-    ctx.fillText(Math.round(ev * 100) + '%', 314, R3 - 4);
-  }
+  // SALUD (ver drawVida): la total si no esta entera, o la temporal si bajo. El umbral de la temporal
+  // es 0,97 y no 1 por el mismo motivo que el 0,05 del cañon: sube y baja sola volando rasante.
+  if (pide((dmgShown() && run.integ < 100) || margenRoce() < 0.97)) drawVida(225, R2, 60);
   if (pide(run.heat > 0.05 || run.overheat))
-    bar(254, R2, 60, run.heat, run.overheat ? P.warn : P.accent, run.overheat ? T('bar_overheat') : T('bar_cannon'));
+    // EL CAÑON, en la esquina de la derecha: el espejo del horizonte. No tiene municion que contar
+    // —dispara hasta recalentarse y se traba hasta enfriar—, asi que el reloj marca TEMPERATURA, con
+    // la zona roja donde se traba.
+    reloj(W - MARGEN - CUADRO, CUADROS_Y, {
+      val: run.heat, ico: 'canon', zona: [0.75, 1],
+      col: run.overheat ? (Math.sin(run.t * 12) > 0 ? P.warn : '#7d2f1e') : run.heat > 0.75 ? P.warn : P.accent,
+      txt: Math.round(run.heat * 100) + '%', txtCol: run.overheat ? P.warn : P.dim });
 
   // ---- LOS BORDES: LOS PODERES DE RACHA ---------------------------------------------------------
   // RASANTE y MOMENTUM dejan de ser barras con rotulo y pasan a ser dos RIELES en los bordes
@@ -920,6 +1104,11 @@ export function drawHUD(h) {
   //
   // ACTIVO MUESTRA LO QUE QUEDA, igual que cuando eran barras: mientras dura, el unico dato es
   // cuanto falta para que se apague. Vacio vuelve a ser "cuanto falta para tenerlo".
+  // …Y CON SU LETRA. En el playtest del 10/9 hubo que preguntar dos veces que eran estos dos rieles:
+  // sin marca, un riel solo funciona si ya sabes que es. La marca va a media altura, que es el unico
+  // tramo del borde donde no hay nada mas.
+  icono(0, H / 2 - 3, 6, 'rasante', P.canopy);
+  icono(W - 6, H / 2 - 3, 6, 'momentum', P.crest);
   riel(1, ras.on ? ras.resta / ras.dur : ras.meter,
     ras.on ? (Math.sin(run.t * 10) > 0 ? P.accent : P.canopy)
       : ras.meter >= 1 ? (Math.sin(run.t * 7) > 0 ? P.accent : P.canopy) : P.canopy);
@@ -941,40 +1130,16 @@ export function drawHUD(h) {
     ctx.fillText(rTxt, W - MARGEN - 3, RELOJ_Y + 7);
   }
 
-  // LA CHANCHA (tecla 5): la barra del hermano caro, JUSTO ENCIMA del MOMENTUM. Mismo lenguaje
-  // visual y otro color a proposito — son dos poderes de la misma familia y hay que poder
-  // distinguirlos de un vistazo sin leer el rotulo.
-  //
-  // Con COMBUSTIBLE: NO el poder no existe, y entonces la barra tampoco: una barra que nunca se
-  // va a poder usar es ruido ocupando el unico lugar libre del HUD.
-  const chSnapshot = chSnap();
-  if (cfg.fuelOn && pide(chMeter() >= 1 || chGastada() || !!chSnapshot)) {
-    const cv2 = chMeter();
-    const ch = chSnapshot;
-    bar(ADI.cx + 14 + AIRE + 2, R3, 44, chGastada() ? 0 : cv2,
-      chGastada() ? P.dim : cv2 >= 1 ? (Math.sin(run.t * 7) > 0 ? P.foam : P.crest) : P.crest, T('bar_chancha'));
-    // EL ESTADO DE LA CITA, en el mismo renglon: la cuenta regresiva mientras viene, y el reloj
-    // de la ventana cuando esta arriba (parpadea enganchado). Sin esto, la ventana se vence sin
-    // que el jugador sepa nunca que habia una.
-    if (ch) {
-      ctx.textAlign = 'left'; ctx.font = F_ROT;
-      ctx.fillStyle = ch.conn ? P.accent : ch.fase === 'cita' && ch.win < 8 ? P.warn : P.foam;
-      ctx.fillText(ch.fase === 'eta' ? T('ch_eta', { s: Math.ceil(ch.eta) })
-        : ch.conn ? '>>> ' + Math.round(run.fuel) + '%'
-          : Math.ceil(Math.max(0, ch.win)) + 's', 86, R3 + 3);
-    }
-  }
-
   // municion de misiles: cada pip es el MISIL en miniatura (cuerpo blanco, ojiva gris, llama),
   // el mismo que se ve volar — no un rectangulo generico. Vacio = solo el contorno.
   // MISIL usa la MISMA convencion que bar(): placa en y-9, rotulo en y-4 y el contenido en y. Es
   // lo que lo deja caer exactamente en la fila R1, alineado con el combustible del otro lado.
   if (pide(run.msl < MSL_MAX)) {
-    plate(252, R1 - 9, 64, INSTR);
+    plate(223, R1 - 9, 64, INSTR);
     ctx.textAlign = 'left'; ctx.font = F_ROT; ctx.fillStyle = P.dim;
-    ctx.fillText('MISIL', 254, R1 - 4);
+    ctx.fillText('MISIL', 225, R1 - 4);
     for (let i = 0; i < MSL_MAX; i++) {
-      const on = i < run.msl, bx = 254 + i * 9, by = R1;
+      const on = i < run.msl, bx = 225 + i * 9, by = R1;
       if (on) {
         px(bx + 1, by, 5, 2, '#e9edf0');                      // cuerpo blanco
         px(bx + 6, by, 1, 2, '#9aa3ab');                      // ojiva gris

@@ -22,14 +22,16 @@
 // y quien lo dispara, el orquestador.
 
 import { wrapChars } from './util.js';
+import { VOZ_COLS } from '../data/tuning.js';
 
 // segundos que dura una linea: un piso para las cortas, y despues por largo de texto. 15 cps es
 // mas lento que leer comodo a proposito — el jugador esta volando, no leyendo.
 const T_MIN = 2.6, T_POR_CHAR = 1 / 15, T_MAX = 9;
-// EL TOAST ES ANGOSTO Y DE DOS RENGLONES (ver drawRadioVN): 38 caracteres por renglon a cuerpo 6
-// entran en los 226 px de la banda libre. No es el ancho del modo historia a proposito — alla la
-// caja ocupa la pantalla entera porque no hay nada mas que mirar; aca hay un avion que volar.
-const ANCHO = 38;
+// EL TOAST ES ANGOSTO Y DE DOS RENGLONES (ver drawRadioVN). El numero vive en data/tuning.js
+// (`VOZ_COLS`) porque el HUD lo usa para darle ancho a la cinta de la que cuelga el toast: los dos
+// lados tienen que leer el mismo, o el renglon se sale de la caja. No es el ancho del modo historia
+// a proposito — alla la caja ocupa la pantalla entera; aca hay un avion que volar.
+const ANCHO = VOZ_COLS;
 
 /** ESTADO DE IDENTIDAD ESTABLE (state.js §1): se MUTA, nunca se reasigna. */
 export const radio = {
