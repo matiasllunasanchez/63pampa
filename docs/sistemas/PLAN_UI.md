@@ -573,6 +573,18 @@ juego (`Gomarice`, rol `aviso` en `render/ctx.js`): roja y titilando mientras te
 baja. En el centro, arriba de los relojes, queda sólo el "¡SUBÍ!" del roce. `radar` quedó sin uso en
 `data/strings.js` (divergencia 19b).
 
+## 1u. Las alarmas entran y salen como el radar _(aplicada)_
+
+Pedido del 11/9 a la noche: que las balizas del nivel de alerta aparezcan de la misma manera que la
+placa del RADAR y que, apagadas, se escondan y dejen sólo el radar gris.
+
+El panel se partió en dos placas: **el radar solo** (15 × 15, quieto) y **la sección de las
+balizas**, que **sale de atrás del radar** hacia la derecha con la primera alarma —misma entrada de
+0,22 s, frenando al llegar— y **vuelve a esconderse detrás de él** cuando se apagan todas. El reloj
+del escondite viaja con las balizas, que es de quien es. A nivel cero queda el radar gris girando:
+sigue enseñando que el sistema existe (el motivo del pedido anterior), sin cuatro balizas apagadas
+ocupando la columna.
+
 
 ## 2. Divergencias
 

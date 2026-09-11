@@ -783,7 +783,8 @@ export function drawSquadPips(x, y) {
  *  SIN UNA PALABRA (playtest 11/9): un RADAR y cuatro BALIZAS. Los numeros de antes pedian leer un
  *  rotulo para saber que contaban; una baliza encendida dice "alarma" antes de que el ojo llegue a
  *  pensarlo. Y se portan como las estrellas de GTA, que es la analogia de la que nacio el item:
- *    · las que no tenes estan APAGADAS pero a la vista: se ve cuantas pueden venir todavia;
+ *    · las que no tenes estan APAGADAS pero a la vista: se ve cuantas pueden venir todavia (con
+ *      alguna encendida; con todas apagadas se esconden detras del radar, ver drawAlerta);
  *    · la que acabas de ganar DESTELLA un rato, con rayos: el flanco se ve, no solo se oye;
  *    · mientras estas ESCONDIDO parpadea la de arriba —la que el reloj esta descontando y se va a
  *      apagar—, cada vez mas rapido al final; las de abajo quedan quietas, siguen ganadas;
@@ -845,6 +846,7 @@ const TITILA_HZ = [4, 12];    // ese parpadeo: al empezar el ultimo cuarto, y ju
 const CUARTO_S = 5;           // lo que dura ese cuarto con EST_PERDER_S = 20 (ver drawAlerta)
 // lo minimo que entra: margen, radar, aire, las cuatro con un pixel entre cada una, margen
 const ALERTA_MIN_W = 3 + 9 + 3 + BAL_W + (EST_MAX - 1) * (BAL_W + 1) + 3;
+const RADAR_W = 3 + 9 + 3;   // la placa del radar solo: margen, radar, margen
 
 function baliza(x, y, modo) {
   const off = modo === 'off';
@@ -869,6 +871,7 @@ function baliza(x, y, modo) {
 // de pantalla, no un dato del vuelo — y se mira CADA cuadro, no solo cuando el panel se dibuja: con
 // el nivel en cero el panel no esta, y si el flanco se mirara adentro, el 0→1 no se veria nunca.
 let alertaN = 0, alertaDe = 0, alertaT = -9;
+let alertaK = 0, alertaKT = -1;   // la entrada de las balizas (0 escondidas .. 1 afuera) y su reloj
 
 function vigilaAlerta(n) {
   if (run.t < alertaT) alertaT = -9;                    // corrida nueva: el reloj del vuelo volvio a 0
@@ -877,17 +880,37 @@ function vigilaAlerta(n) {
 }
 
 export function drawAlerta(x, y, w, n, prog) {
-  plate(x, y, w, ALERTA_H);
+  // LAS ALARMAS ENTRAN Y SALEN (pedido del autor, 11/9 a la noche), como la placa del RADAR: a
+  // nivel cero queda SOLO EL RADAR, gris, y las balizas salen de atras de el con la primera alarma
+  // y se vuelven a esconder cuando se apagan todas. Cuatro balizas apagadas eran un tablero de nada
+  // ocupando la columna; el radar solo alcanza para decir que el sistema esta ahi.
+  const dt = alertaKT < 0 || run.t < alertaKT ? 0 : Math.min(0.1, run.t - alertaKT);
+  alertaKT = run.t;
+  alertaK = n > 0 ? Math.min(1, alertaK + dt / RADAR_ENTRA) : Math.max(0, alertaK - dt / RADAR_ENTRA);
   // EL RELOJ EN CERO ES QUE TE VEN: el escondite solo corre bajo el techo, y asomarse mas que la
   // gracia lo vuelve a cero. Es el mismo dato que ya llegaba; no hizo falta pedirle otro al sistema.
   // DURANTE LA GRACIA (hasta EST_GRACIA_S asomado) el panel sigue diciendo "te buscan" aunque el
   // aviso de radar ya este cargando, y es a proposito: un bob no te delata, y el panel cuenta el
   // mismo reloj que decide eso. Lo que te esta viendo AHORA lo dice la barra del radar, abajo.
   const visto = !(prog > 0);
+  if (alertaK > 0) {
+    // entra rapido y frena al llegar, recortada al canto del radar: sale DE ATRAS de el
+    const e = 1 - Math.pow(1 - alertaK, 3), dx = Math.round(-(1 - e) * (w - RADAR_W + 1));
+    ctx.save(); ctx.beginPath(); ctx.rect(x + RADAR_W - 1, y - 3, W, ALERTA_H + 6); ctx.clip();
+    balizasAlerta(x, y, w, n, prog, dx, visto);
+    ctx.restore();
+  }
+  // EL RADAR, ENCIMA y quieto: es lo unico que queda cuando no suena nada
+  plate(x, y, RADAR_W, ALERTA_H);
   radarAlerta(x + 3, y + 3, visto, n > 0);
+}
+
+/** La seccion de las BALIZAS del panel, corrida `dx` por la entrada (ver drawAlerta). */
+function balizasAlerta(x, y, w, n, prog, dx, visto) {
+  plate(x + RADAR_W - 1 + dx, y, w - RADAR_W + 1, ALERTA_H);
   // las cuatro, repartidas en lo que deja el radar y centradas ahi: la placa mide lo que mide el
   // escuadron, que depende del nombre del piloto, asi que el paso se acomoda y no la placa
-  const x0 = x + 15, libre = x + w - 3 - x0;
+  const x0 = x + 15 + dx, libre = w - 18;
   const paso = Math.max(BAL_W + 1, Math.min(BAL_W + 4, Math.floor((libre - BAL_W) / (EST_MAX - 1))));
   const bx0 = x0 + Math.max(0, Math.floor((libre - BAL_W - paso * (EST_MAX - 1)) / 2));
   // EL PARPADEO DEL FINAL, UNO SOLO PARA LA BARRA Y LAS BALIZAS. En el ultimo cuarto del reloj del
@@ -920,12 +943,12 @@ export function drawAlerta(x, y, w, n, prog) {
   // El surco detras es lo que ya se desconto, en el gris de la baliza apagada: sin el, una raya
   // corta no dice de cuanto.
   if (n > 0) {
-    const bw = w - 2, by = y + ALERTA_H - 2;
-    px(x + 1, by, bw, 1, BAL_APAGADA);
+    const bw = w - RADAR_W - 1, by = y + ALERTA_H - 2;   // debajo de las balizas: es de ellas
+    px(x + RADAR_W + dx, by, bw, 1, BAL_APAGADA);
     // CUANDO QUEDA POCO, PARPADEA (el `titila` de arriba, el mismo de las balizas): el ultimo cuarto
     // es cuando aguantar un poco mas paga, y un parpadeo se ve de reojo, sin mirar la esquina.
     // Parpadea apagandose, no cambiando de rojo: lo que titila es lo que le queda a la alarma.
-    if (!titila) px(x + 1, by, Math.max(1, Math.round(bw * resta)), 1, P.warn);
+    if (!titila) px(x + RADAR_W + dx, by, Math.max(1, Math.round(bw * resta)), 1, P.warn);
   }
 }
 
@@ -981,10 +1004,10 @@ export function drawHUD(h) {
   let ty = 3;
   // vidas del escuadron. Con 1 avion no se dibuja: seria un tablero de nada
   if (run.squad > 1) { drawSquadPips(MARGEN, ty); ty += SQUAD_H + AIRE; }
-  // …Y JUSTO DEBAJO, EL NIVEL DE ALERTA. A NIVEL CERO TAMBIEN, por pedido del autor (11/9): las
-  // cuatro apagadas y el radar girando en verde opaco. Que el instrumento este ahi antes de que
-  // pase nada es lo que le enseña al jugador que existe —y que se puede encender—; aparecer recien
-  // con la primera baliza era enterarse del sistema en el mismo instante en que ya te castiga.
+  // …Y JUSTO DEBAJO, EL NIVEL DE ALERTA. A NIVEL CERO TAMBIEN, por pedido del autor (11/9): que el
+  // instrumento este ahi antes de que pase nada es lo que le enseña al jugador que existe —y que se
+  // puede encender—. Primero eran las cuatro balizas apagadas y el radar; desde la noche del 11/9
+  // es SOLO EL RADAR, gris, y las balizas entran con la primera alarma (ver drawAlerta).
   // PERO SOLO DONDE PUEDE SUBIR (`h.busqueda`, ver game.js). En una mision sin el sistema seria un
   // tablero de nada, y el HUD de este juego no muestra instrumentos que nunca van a contar algo
   // (misma regla que la Chancha sin combustible).
