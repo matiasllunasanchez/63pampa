@@ -160,13 +160,33 @@ PUMA:   NO TE HAGAS EL VIVO. SEGUI ABAJO.
 ## 7 · EL HUD
 
 Las estrellas **tienen que verse**, o la mecánica no se puede jugar: sin el número, bajar a
-esconderse es fe. Van **donde ya está el aviso de radar** (`hud.js`, la barra de carga bajo el
-`! RADAR !`), porque es el mismo dato contado en otra escala: la barra es "te están viendo AHORA",
-las estrellas son "cuántos te buscan".
+esconderse es fe.
 
-- Marcas discretas, no estrellitas literales — el juego no tiene ese registro visual.
-- **El reloj de escondite se muestra mientras corre**: si bajar veinte segundos baja una estrella,
-  el jugador tiene que ver esos veinte segundos correr. Si no, no es una decisión, es un rezo.
+**Dónde:** debajo de la placa del escuadrón y con su mismo ancho (pedido del autor, 10/9). La
+esquina de arriba a la izquierda es *quién vuela*; cuántos te buscan es la otra mitad de la misma
+pregunta. `anchoSquad()` es el ancho de la COLUMNA: nunca menos de lo que piden el radar y las
+cuatro balizas, así las dos placas miden siempre lo mismo.
+
+**Qué:** sin una palabra (pedido del autor, 11/9). Un **radar** —pantalla redonda, todo en verde
+de fósforo: el aro, el barrido que gira con su estela, las onditas que salen del centro y tu
+contacto parpadeando— y **cuatro balizas** giratorias. Se portan como las estrellas de GTA, que es
+de donde salió el item:
+
+| estado | balizas | contacto en el radar |
+|---|---|---|
+| nivel no alcanzado | apagadas, pero a la vista: se ve cuántas pueden venir | — |
+| **te ven** (el reloj de escondite en cero) | encendidas y quietas, con el brillo que gira | parpadeo rápido y encendido |
+| **te buscan** (escondido, el reloj corre) | parpadean todas, rojo ↔ rojo apagado | parpadeo lento y apagado: el eco viejo |
+| **recién ganada** (1,6 s) | destella en blanco, con rayos | — |
+
+- **El reloj de escondite se muestra mientras corre**, como una rayita al pie de la placa: si
+  bajar veinte segundos baja una estrella, el jugador tiene que ver esos veinte segundos correr.
+  El parpadeo dice *qué* está pasando; el reloj, *cuánto* falta.
+- "Te ven" no le pide un dato nuevo al sistema: es `progreso() === 0`. El escondite sólo corre bajo
+  el techo, y asomarse más que la gracia lo vuelve a cero. Durante la gracia el panel sigue
+  diciendo "te buscan" aunque el aviso de radar ya cargue: un bob no te delata, y es el mismo reloj.
+- El flanco del destello se mira en el dibujo, cada cuadro — incluso con el nivel en cero, cuando el
+  panel no se dibuja: si no, el 0→1 no destellaría nunca.
 
 ---
 
@@ -228,3 +248,8 @@ estrellas se comporta EXACTAMENTE como hoy. `npm run feel` byte a byte.
 ---
 
 ## 12 · DIVERGENCIAS *(completar durante la implementación)*
+
+- **§7, dos veces.** El plan decía "marcas discretas, no estrellitas literales" y "junto al aviso de
+  radar". Primero el autor lo bajó debajo del escuadrón con el rótulo NIVEL DE ALERTA y cifras 1-4
+  (10/9); después pidió sacar el texto y volver a la analogía de GTA con iconos —un radar y
+  balizas— (11/9). §7 describe lo que quedó.

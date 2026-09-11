@@ -51,7 +51,6 @@ export const STRINGS = {
     // de tierra: el unico que puede saber cuantos te estan buscando.
     // Y NO SE AFIRMA QUE TE CREAN MUERTO — "los perdimos" es lo que la historia sostiene, y es
     // mejor tension: si solo te perdieron, te pueden volver a encontrar.
-    est_rotulo: 'NIVEL DE ALERTA',
     est_sube1: 'CONDOR: TE PINTARON. YA SABEN QUE ESTAS ACA.',
     est_sube2: 'CONDOR: TE ESTAN SIGUIENDO. NO LEVANTES.',
     est_sube3: 'CONDOR: MANDARON CAZAS A BUSCARTE. OJO.',
@@ -1106,7 +1105,6 @@ export const STRINGS = {
     fase_casa: 'PUMA: COAST IN SIGHT. BRING IT HOME IN ONE PIECE.',
     fase_chancha_ida: 'CONDOR: THE TANKER IS ORBITING ABOVE. IF YOU ARE TAKING FUEL, NOW.',
     fase_chancha_vuelta: 'CONDOR: THE TANKER IS HOLDING FOR YOU. IF YOU ARE SHORT, CLIMB.',
-    est_rotulo: 'ALERT LEVEL',
     est_sube1: 'CONDOR: THEY HAVE YOU. THEY KNOW YOU ARE HERE.',
     est_sube2: 'CONDOR: THEY ARE TRACKING YOU. DO NOT CLIMB.',
     est_sube3: 'CONDOR: THEY SENT FIGHTERS AFTER YOU. WATCH IT.',

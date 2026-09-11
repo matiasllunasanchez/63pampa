@@ -509,14 +509,18 @@ export const SQUAD_H = 17;   // alto de la placa: dos renglones (ver abajo)
  *  ya se comio dos veces. El ancho depende del texto, asi que hay que medirlo, no adivinarlo.
  *
  *  Vale aunque no haya placa (`run.squad <= 1`): el panel de alerta igual necesita un ancho, y que
- *  sea el que la placa TENDRIA es lo que mantiene la columna alineada cuando el escuadron aparece. */
+ *  sea el que la placa TENDRIA es lo que mantiene la columna alineada cuando el escuadron aparece.
+ *
+ *  Y ES EL ANCHO DE LA COLUMNA, no solo del escuadron: nunca menos de lo que necesitan el radar y
+ *  las cuatro balizas. Con dos aviones y un indicativo corto ("PUMA") la placa sola mide 40, y las
+ *  balizas se salian por el costado. Crece la columna entera, y las dos placas siguen iguales. */
 export function anchoSquad() {
   const nombre = pilotName(pilotIdx(run.squad, run.lives));
   ctx.font = F_ROT;
   const wRot = ctx.measureText(T('hud_squad')).width;
   ctx.font = F_VAL;
   const wFila = Math.max(2, run.squad) * 8 + 2 + ctx.measureText(nombre).width;
-  return Math.round(Math.max(wRot, wFila)) + 8;
+  return Math.max(ALERTA_MIN_W, Math.round(Math.max(wRot, wFila)) + 8);
 }
 
 export function drawSquadPips(x, y) {
@@ -550,24 +554,113 @@ export function drawSquadPips(x, y) {
  *  la esquina de arriba a la izquierda es QUIEN VUELA — cuantos quedan y quien manda. Cuantos te
  *  buscan es la otra mitad de la misma pregunta, y leerlas juntas es leer la corrida.
  *
- *  NUMEROS Y NO ESTRELLAS. El contador de GTA fue la analogia de la que nacio el item, no lo que
- *  el juego muestra: un icono de arcade moderno desentonaria con todo lo demas del tablero. Cuatro
- *  cifras, la actual encendida y las pasadas tambien — se lee como un nivel, que es lo que es.
+ *  SIN UNA PALABRA (playtest 11/9): un RADAR y cuatro BALIZAS. Los numeros de antes pedian leer un
+ *  rotulo para saber que contaban; una baliza encendida dice "alarma" antes de que el ojo llegue a
+ *  pensarlo. Y se portan como las estrellas de GTA, que es la analogia de la que nacio el item:
+ *    · las que no tenes estan APAGADAS pero a la vista: se ve cuantas pueden venir todavia;
+ *    · la que acabas de ganar DESTELLA un rato, con rayos: el flanco se ve, no solo se oye;
+ *    · mientras estas ESCONDIDO parpadean todas —te perdieron y te buscan—, y quietas quiere decir
+ *      que te estan viendo.
+ *  El radar dice lo mismo desde el otro lado: con tu contacto parpadeando rapido y encendido, te
+ *  tienen; con el eco lento y apagado, te buscan donde estabas.
  *
  *  Y DEBAJO CORRE EL RELOJ DEL ESCONDITE, que es lo que vuelve la mecanica jugable: si sostener el
- *  rasante veinte segundos baja un nivel, el jugador tiene que VER esos veinte segundos correr.
- *  Sin el, esconderse no es una decision — es fe. */
+ *  rasante veinte segundos baja un nivel, el jugador tiene que VER esos veinte segundos correr. El
+ *  parpadeo dice QUE esta pasando; el reloj, CUANTO falta. Sin el, esconderse es fe. */
 export const ALERTA_H = 15;
+
+// EL RADAR: una pantalla redonda de 9x9 con su barrido. El aro va por tramos de fila,
+// [fila, desde, hasta], porque a este tamaño un circulo calculado sale chanfleado y se lee cuadrado.
+const RADAR_ARO = [[0, 3, 5], [1, 1, 2], [1, 6, 7], [2, 1, 1], [2, 7, 7], [3, 0, 0], [3, 8, 8],
+  [4, 0, 0], [4, 8, 8], [5, 0, 0], [5, 8, 8], [6, 1, 1], [6, 7, 7], [7, 1, 2], [7, 6, 7], [8, 3, 5]];
+const RADAR_GIRO = 4.2;   // rad/s del barrido: una vuelta cada segundo y medio
+// TODO VERDE, por pedido del autor (11/9): el verde de fosforo de una pantalla de radar es lo que
+// lo hace radar antes que la forma. Cinco tonos de la misma tinta, del aro apagado a la punta.
+const RADAR_VERDE = { aro: '#3a9448', onda: '#2c6e37', lejos: '#1f5c2a', cerca: '#3fae52', punta: '#8dff9a', eje: '#5fd06e' };
+// LAS ONDITAS: el pulso que sale del centro, en tres radios, por tramos de fila como el aro. El
+// cuarto paso del ciclo no dibuja nada — la onda llega al aro y se pierde en el.
+const RADAR_ONDAS = [
+  [[3, 3, 5], [4, 3, 3], [4, 5, 5], [5, 3, 5]],
+  [[2, 3, 5], [3, 2, 2], [3, 6, 6], [4, 2, 2], [4, 6, 6], [5, 2, 2], [5, 6, 6], [6, 3, 5]],
+  [[1, 3, 5], [2, 2, 2], [2, 6, 6], [3, 1, 1], [3, 7, 7], [4, 1, 1], [4, 7, 7], [5, 1, 1], [5, 7, 7], [6, 2, 2], [6, 6, 6], [7, 3, 5]],
+];
+
+function radarAlerta(x, y, visto) {
+  const V = RADAR_VERDE;
+  for (const [f, a, b] of RADAR_ARO) px(x + a, y + f, b - a + 1, 1, V.aro);
+  const onda = RADAR_ONDAS[Math.floor(run.t * 3.2) % (RADAR_ONDAS.length + 1)];
+  if (onda) for (const [f, a, b] of onda) px(x + a, y + f, b - a + 1, 1, V.onda);
+  const cx = x + 4, cy = y + 4, ang = run.t * RADAR_GIRO;
+  const rayo = (d, r0, col) => {
+    for (let r = r0; r <= 3; r++) px(cx + Math.round(Math.cos(ang + d) * r), cy + Math.round(Math.sin(ang + d) * r), 1, 1, col);
+  };
+  // la estela primero y la punta despues: donde caen en el mismo pixel, gana la punta
+  rayo(-0.9, 2, V.lejos); rayo(-0.45, 2, V.cerca); rayo(0, 1, V.punta);
+  px(cx, cy, 1, 1, V.eje);
+  // EL CONTACTO SOS VOS, y parpadea siempre — pero no igual. Mientras te ven, rapido y encendido:
+  // te tienen. Escondido, lento y apagado: es el eco viejo de donde te vieron por ultima vez.
+  const on = visto ? Math.floor(run.t * 8) % 2 === 0 : Math.floor(run.t * 2.5) % 2 === 0;
+  if (on) px(x + 6, y + 2, 1, 1, visto ? '#d8ffdc' : V.cerca);
+}
+
+// LA BALIZA: 7x7, una cupula de cinco filas sobre su pie de dos. Tan alta como ancha a proposito:
+// con cuatro filas salia un bombin, y lo que la hace BALIZA es la cupula parada. El brillo que la
+// cruza es lo que la vuelve GIRATORIA y no un foco: una luz fija es una luz, una que gira es alarma.
+const BAL_W = 7;
+const ALERTA_NUEVA_S = 1.6;   // cuanto destella la baliza que se acaba de ganar
+// lo minimo que entra: margen, radar, aire, las cuatro con un pixel entre cada una, margen
+const ALERTA_MIN_W = 3 + 9 + 3 + BAL_W + (EST_MAX - 1) * (BAL_W + 1) + 3;
+
+function baliza(x, y, modo) {
+  const off = modo === 'off';
+  const flash = modo === 'nueva' && Math.floor(run.t * 12) % 2 === 0;
+  const cup = off ? '#3a4750' : flash ? '#fff1e8' : modo === 'baja' ? '#7d2f1e' : P.warn;
+  px(x + 2, y, 3, 1, cup);
+  px(x + 1, y + 1, 5, 4, cup);
+  px(x, y + 5, BAL_W, 1, off ? '#2e3c45' : P.dim);
+  px(x + 1, y + 6, 5, 1, off ? '#232e35' : '#55676f');
+  if (modo === 'on' || modo === 'nueva') {
+    const g = Math.floor(run.t * 10) % 4;               // 3 pasos de brillo y uno escondido detras
+    if (g < 3 && !flash) px(x + 2 + g, y + 1, 1, 3, '#ff9a7a');
+  }
+  if (flash) {                                          // los rayos: la alarma que se acaba de encender
+    const r = '#ff8a66';
+    px(x + 3, y - 2, 1, 1, r); px(x, y - 1, 1, 1, r); px(x + 6, y - 1, 1, 1, r);
+    px(x - 1, y + 2, 1, 1, r); px(x + BAL_W, y + 2, 1, 1, r);
+  }
+}
+
+// EL FLANCO DE SUBIDA, para el destello. Se mira en el dibujo y no en el sistema porque es un efecto
+// de pantalla, no un dato del vuelo — y se mira CADA cuadro, no solo cuando el panel se dibuja: con
+// el nivel en cero el panel no esta, y si el flanco se mirara adentro, el 0→1 no se veria nunca.
+let alertaN = 0, alertaDe = 0, alertaT = -9;
+
+function vigilaAlerta(n) {
+  if (run.t < alertaT) alertaT = -9;                    // corrida nueva: el reloj del vuelo volvio a 0
+  if (n > alertaN) { alertaDe = alertaN; alertaT = run.t; }
+  alertaN = n;
+}
 
 export function drawAlerta(x, y, w, n, prog) {
   plate(x, y, w, ALERTA_H);
-  ctx.textAlign = 'left'; ctx.font = F_ROT;
-  ctx.fillStyle = n > 0 ? P.warn : P.dim;
-  ctx.fillText(T('est_rotulo'), x + 4, y + 7);
-  ctx.font = F_VAL;
+  // EL RELOJ EN CERO ES QUE TE VEN: el escondite solo corre bajo el techo, y asomarse mas que la
+  // gracia lo vuelve a cero. Es el mismo dato que ya llegaba; no hizo falta pedirle otro al sistema.
+  // DURANTE LA GRACIA (hasta EST_GRACIA_S asomado) el panel sigue diciendo "te buscan" aunque el
+  // aviso de radar ya este cargando, y es a proposito: un bob no te delata, y el panel cuenta el
+  // mismo reloj que decide eso. Lo que te esta viendo AHORA lo dice la barra del radar, abajo.
+  const visto = !(prog > 0);
+  radarAlerta(x + 3, y + 3, visto);
+  // las cuatro, repartidas en lo que deja el radar y centradas ahi: la placa mide lo que mide el
+  // escuadron, que depende del nombre del piloto, asi que el paso se acomoda y no la placa
+  const x0 = x + 15, libre = x + w - 3 - x0;
+  const paso = Math.max(BAL_W + 1, Math.min(BAL_W + 4, Math.floor((libre - BAL_W) / (EST_MAX - 1))));
+  const bx0 = x0 + Math.max(0, Math.floor((libre - BAL_W - paso * (EST_MAX - 1)) / 2));
+  const parpadeo = Math.floor(run.t * 4) % 2 === 1;
   for (let i = 1; i <= EST_MAX; i++) {
-    ctx.fillStyle = i <= n ? P.warn : '#3a4750';
-    ctx.fillText(String(i), x + 4 + (i - 1) * 7, y + 14);
+    const modo = i > n ? 'off'
+      : i > alertaDe && run.t - alertaT < ALERTA_NUEVA_S ? 'nueva'
+        : !visto && parpadeo ? 'baja' : 'on';
+    baliza(bx0 + (i - 1) * paso, y + 5, modo);
   }
   // el reloj, al ras del canto de abajo: la misma convencion que la barrita de la caja de radio
   if (prog > 0) px(x + 1, y + ALERTA_H - 2, Math.max(1, Math.round((w - 2) * prog)), 1, P.foam);
@@ -595,6 +688,7 @@ export function drawHUD(h) {
   // …Y JUSTO DEBAJO, EL NIVEL DE ALERTA. Solo cuando hay algo que decir: a nivel cero el panel
   // seria una fila vacia ocupando la esquina, y el HUD de este juego no muestra instrumentos que
   // no tienen nada que contar (misma regla que la barra de la Chancha sin combustible).
+  vigilaAlerta(h.estrellas | 0);
   if (h.estrellas > 0) { drawAlerta(MARGEN, ty, anchoSquad(), h.estrellas, h.escondite); ty += ALERTA_H + AIRE; }
   // PERSECUCION no tiene objetivo NI record: la cinta no tiene contra que medir, asi que el
   // kilometraje se queda aca como contador abierto — la forma que le toca cuando no hay meta.
