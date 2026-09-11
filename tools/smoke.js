@@ -16,6 +16,7 @@
 // da falsos negativos por timeout.
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 const ROOT = path.join(__dirname, '..');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -107,7 +108,15 @@ app.whenReady().then(async () => {
   // AUDIO: isCurrentlyAudible() mira la salida real del renderer. Es la unica forma de saber que
   // el juego suena — los chequeos de canvas y de consola son ciegos a un subsistema de audio roto.
   console.log('\naudio:');
-  if (win.webContents.isCurrentlyAudible()) pass('el juego esta emitiendo sonido');
+  // …SALVO CON EL SONIDO BLOQUEADO (src/data/sonido.js, pedido del autor 11/9: "bloquea todo hasta
+  // que te diga"). Ahi se exige lo contrario —que no salga nada— y no por cortesia: es la unica
+  // prueba de que el bloqueo tapa TODOS los caminos. Al volver la perilla a false, este chequeo
+  // vuelve solo a exigir que suene; no hay nada que acordarse de descomentar.
+  const bloqueado = /AUDIO_BLOQUEADO\s*=\s*true/.test(fs.readFileSync(path.join(ROOT, 'src', 'data', 'sonido.js'), 'utf8'));
+  if (bloqueado) {
+    if (!win.webContents.isCurrentlyAudible()) pass('sonido BLOQUEADO (data/sonido.js): el juego esta mudo');
+    else fail('el sonido esta bloqueado en data/sonido.js y aun asi el juego suena');
+  } else if (win.webContents.isCurrentlyAudible()) pass('el juego esta emitiendo sonido');
   else fail('silencio total — musica y efectos no estan sonando');
 
   // ARENA: la fase del asalto al buque (vuelo 3D libre, three.js + zonas + cabina) es un

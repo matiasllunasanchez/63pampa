@@ -7,6 +7,7 @@
 // entra por parametro. Asi el modulo no depende del closure de game.js y se puede probar solo.
 import { SFXB, SFX_DEF } from '../data/sfx.js';
 import { RAS_MUS, RAS_AGUA } from '../data/tuning.js';
+import { AUDIO_BLOQUEADO } from '../data/sonido.js';
 
 let lastState = 'modeselect';   // ultimo estado conocido, para las llamadas que no lo reciben
 
@@ -73,6 +74,9 @@ let rasOn = false;
 /** ¿El poder RASANTE esta puesto? Lo dice el orquestador una vez por cuadro. */
 export function setRasante(v) { rasOn = !!v; }
 try { muted = localStorage.getItem('rasante_muted') === '1'; } catch (e) { }
+// EL BLOQUEO (data/sonido.js) gana sobre la preferencia guardada: todo lo que suena en este modulo
+// ya pregunta por `muted`, asi que alcanza con que arranque en true y que nadie lo baje.
+if (AUDIO_BLOQUEADO) muted = true;
 
 
 const SFX_MASTER = 0.3;   // volumen maestro de TODOS los samples (no tapan la musica de fondo)
@@ -256,8 +260,10 @@ function startMusicOnce(state) { if (musicStarted || muted) return; musicStarted
   else window.addEventListener('load', tryStart, { once: true });
 })();
 export function setMuted(v) {
-  muted = v;
-  try { localStorage.setItem('rasante_muted', muted ? '1' : '0'); } catch (e) { }
+  // con el bloqueo puesto el boton no destraba nada, pero lo que se GUARDA es lo que el jugador
+  // eligio: al levantar el bloqueo, cada uno vuelve a como lo tenia
+  muted = AUDIO_BLOQUEADO || v;
+  try { localStorage.setItem('rasante_muted', v ? '1' : '0'); } catch (e) { }
   const b = document.getElementById('snd'); if (b) b.classList.toggle('muted', muted);
   if (muted) { musLobby.pause(); musStory.pause(); PLAYLIST.forEach(m => m.pause()); if (eng) eng.g.gain.value = 0; }
   else { startMusicOnce(); updateMusic(lastState); }
@@ -324,7 +330,9 @@ export function engineRumble(momT) {
 export function engineFly(spd, boost, gain) {
   if (!eng) return;
   eng.o.frequency.value = 46 + spd * 0.55 + (boost ? 28 : 0);
-  eng.g.gain.value = sfxSrc('engN') ? 0 : gain;
+  // `muted` tambien aca: era el unico camino que no lo miraba, y cada cuadro le volvia a subir la
+  // ganancia al oscilador que updateMusic acababa de apagar (en el build web, sin samples, sonaba)
+  eng.g.gain.value = muted || sfxSrc('engN') ? 0 : gain;
 }
 
 /** ¿Esta silenciado? Lo consultan el tipeo del guion y el rumble. */
