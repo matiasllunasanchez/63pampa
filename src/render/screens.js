@@ -1183,9 +1183,9 @@ export function cajaVN(o) {
 // LA CHARLA se queda en la banda de abajo, sola (ver `drawCharla`): sus renglones son el doble de
 // largos y no entran en el ancho de la cinta.
 //
-// EL PISO DE LA BANDA DE ABAJO no se copia: sale del tablero. `HUD_TECHO` es el canto de las
-// placas de la fila mas alta del HUD de vuelo, calculado en render/hud.js con las mismas
-// constantes con que se apilan. Estuvo COPIADO y en 110, y la copia se pudrio (PLAN_UI §1c).
+// EL PISO DE LA BANDA DE ABAJO no se copia: sale del tablero. `HUD_TECHO` es el canto de los
+// cuadrados del HUD de vuelo, calculado en render/hud.js con las mismas constantes con que se
+// ubican. Estuvo COPIADO y en 110, y la copia se pudrio (PLAN_UI §1c).
 const HUD_TINTA = HUD_TECHO;                             // lo mas alto que pinta el HUD de vuelo
 
 /** DONDE CUELGA LA VOZ ESTE CUADRO: debajo de la cinta, a un AIRE, con SU ancho y centrada con

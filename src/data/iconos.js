@@ -115,13 +115,19 @@ export const ICONOS = {
     '#####+.',
     '####...',
   ] },
-  vida: { letra: '+', png: null, pix: [                         // la cruz (BLANCA: ver hud.js, drawVida)
+  vida: { letra: '+', png: null, pix: [                         // la cruz (BLANCA: ver hud.js, relojSalud)
     '..##..',
     '..##..',
     '######',
     '######',
     '..##..',
     '..##..',
+  ] },
+  // LA OLA: la escala de abajo del reloj de SALUD, el agua. UNA sola linea y no dos: con dos, la de
+  // arriba chocaba con la marca de 135 del reloj y la de abajo tocaba el borde de la placa.
+  ola: { letra: '~', png: null, pix: [
+    '.#..#.',
+    '#.##.#',
   ] },
   rasante: { letra: 'R', png: null, pix: [                      // un avion rozando las olas
     '..#...',

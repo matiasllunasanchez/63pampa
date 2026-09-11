@@ -469,6 +469,27 @@ del instrumento entero (cinta + cuadro).
 Convenios de Ginebra, y a más de un juego le pidieron sacarla. De paso la placa de VIDA volvió a
 alinear con la de MISIL (estaba 9 px corrida desde que la cruz reemplazó a la palabra).
 
+## 1p. SALUD pasa a reloj de dos agujas _(aplicada)_
+
+Pedido del 11/9: SALUD como un cuadrado hermano del cañón, pero **compuesto, como un reloj de horas
+y minutos**: una aguja arriba para la chapa y otra abajo para el agua. Va en el cuadrado de al lado
+del cañón, así la fila de abajo queda en espejo: cuatro cuadrados a la izquierda, dos a la derecha.
+
+| Escala | Aguja | Qué mide | Vuelve |
+| --- | --- | --- | --- |
+| **arriba**, con la cruz | **blanca**, corta y gruesa (las horas) | la chapa: los golpes que te dan | **no**. Marcas largas en 25/50/75 = escalones de avería; lo rojo es "sin piruetas" |
+| **abajo**, con las olas | **amarilla**, larga y fina (el minutero) | el agua: cuánto más podés rozar antes de estrellarte | **sí**, sola, al salir |
+
+Las dos escalas van vacías a la izquierda y llenas a la derecha, como los otros relojes. Con el avión
+sano **las dos agujas se juntan en las tres**, y lo que se abre es la tijera: la blanca sube cuando
+te pegan, la amarilla baja cuando rozás. Cada escala tiene su ícono en su esquina (cruz arriba, olas
+abajo, del color de su aguja); `ola` es un ícono nuevo y ya está en `assets/hud/LEEME.md`.
+
+**MISIL se corrió a la izquierda de SALUD** y quedó apoyado en el mismo piso que los cuadrados
+(antes vivía debajo de la placa de SALUD, que ya no existe). Con eso no queda ninguna placa arriba de
+la fila: `R1`/`R2` se fueron y `HUD_TECHO` pasó de 146 al canto de los cuadrados, 150. La banda de la
+charla baja 4 px.
+
 
 ## 2. Divergencias
 
@@ -555,6 +576,14 @@ alinear con la de MISIL (estaba 9 px corrida desde que la cruz reemplazó a la p
     aguja marca cuánto le queda antes de trabarse, y el número al pie lo dice exacto.
 20. **La fila izquierda se apoya en el margen de abajo**, así que el horizonte bajó de `y 134` a
     `y 150` y su placa pasó de 28 a 26 de ancho, para que los cuatro cuadrados sean idénticos.
+21. **El reloj de SALUD no tiene número**, a diferencia de nafta, chancha y cañón. Las dos escalas se
+    comen el cuadrado y no queda esquina donde entre un `100%` sin pisar una marca. La chapa se lee
+    por escalón (las marcas largas), que es lo que decide qué podés hacer; el porcentaje exacto no.
+22. **"Que las blancas bajen cada vez que se vacía una amarilla" NO se aplicó.** Fue una pregunta del
+    pedido, y cambia una regla, no la UI: hoy la amarilla vacía es **estrellarte** ("el mar MATA", en
+    los tres modos de avería — `core/damage.js`). Hacer que vaciarla cueste un tramo de chapa en vez
+    de matar convierte el mar en cuatro vidas más. Puede ser una perilla de dificultad (sólo en
+    INTEGRIDAD), pero es decisión de diseño, no de tablero.
 
 ## 3. Lo que sigue pendiente _(de la auditoría, sin decidir)_
 

@@ -267,7 +267,7 @@ export function drawTakeoff(toT) {
   }
 }
 
-// EL MARGEN DE ROCE — la parte TEMPORAL de la SALUD (ver drawVida).
+// EL MARGEN DE ROCE — la escala de abajo de la SALUD, el agua (ver relojSalud).
 //
 // Tocar el agua no mata al instante: hay un reloj de gracia (`scrapeLimit`: 0,85 s lento, 0,18 s a
 // fondo, y con turbo poco mas de la mitad). Rozando se llena; afuera se vacia despacio, a un tercio
@@ -276,55 +276,75 @@ export function drawTakeoff(toT) {
 //
 // Era una de las tres partes de ESTADO (el peor de cañon, nafta y roce), el unico de los tres que no
 // estaba en otro instrumento. ESTADO se fue (playtest 10/9): el cañon y la nafta tienen sus barras,
-// y el roce paso a ser la barra temporal de SALUD.
+// y el roce paso a ser la barra temporal de SALUD, y despues su aguja amarilla (11/9).
 function margenRoce() {
   const lim = scrapeLimit(run.spd, run.boost);
   return lim > 0 ? 1 - Math.max(0, Math.min(1, run.scrapeT / lim)) : 1;
 }
 
-/** LA SALUD DEL AVION: DOS BARRAS en un instrumento (playtest 10/9, idea de Matias).
+/** EL RELOJ DE LA SALUD: un reloj de DOS agujas, como uno de horas y minutos (playtest 11/9, idea de
+ *  Matias). Es el cuadrado hermano del cañon, a su izquierda, y reemplaza a las dos barras.
  *
- *  Hay dos relojes que te bajan, y uno vuelve y el otro no:
- *    TOTAL     los GOLPES (la integridad). No se recupera. Sus muescas en 25/50/75 son los ESCALONES
- *              de averia (core/damage.js): bajo la del medio te quedas sin turbo, bajo la primera
- *              sin piruetas. El % es de esta, que es "cuanto le queda a mi avion".
- *    TEMPORAL  el ROCE (`margenRoce`). Se vacia rozando y se RECUPERA sola al salir.
+ *  Hay dos cosas que te bajan del cielo, y una vuelve y la otra no:
+ *    ARRIBA, LA CHAPA (aguja BLANCA, corta y gruesa: la de las horas). Los GOLPES que te dan: la
+ *              integridad. Baja de a saltos y NO VUELVE. Las marcas largas en 25/50/75 son los
+ *              ESCALONES de averia (core/damage.js): bajo la del medio te quedas sin turbo, bajo la
+ *              primera —donde empieza lo rojo— sin piruetas.
+ *    ABAJO, EL AGUA (aguja AMARILLA, larga y fina: el minutero). El ROCE (`margenRoce`): cuanto mas
+ *              podes tocar el agua antes de estrellarte. Se va rapido rozando y VUELVE sola al salir.
  *
- *  Reemplaza a ESTADO y a AVION, que decian casi lo mismo desde dos lados: ESTADO mezclaba cañon,
- *  nafta y roce en un solo numero y no se sabia cual de los tres era; AVION contaba golpes en otro
- *  rincon. La nafta y el cañon NO entran: tienen sus barras, y la nafta dejaba la vida naranja el
- *  resto de la mision.
+ *  LAS DOS ESCALAS VAN AL REVES UNA DE LA OTRA pero con la misma regla que todos los relojes: vacia a
+ *  la izquierda, llena a la derecha. Asi, con el avion sano, las dos agujas se juntan en las tres —
+ *  una sola raya— y lo que se abre es la tijera: la blanca sube cuando te pegan, la amarilla baja
+ *  cuando rozas. Cada escala lleva su icono en su esquina: la cruz arriba, las olas abajo.
  *
- *  EN ESCUADRON NO HAY TOTAL: un golpe te baja (la vida es el escuadron, arriba a la izquierda). Ahi
- *  SALUD lleva solo la temporal, en el renglon grueso — un total siempre lleno seria una mentira. */
-function drawVida(x0, y, w0) {
-  const x = x0, w = w0;   // la cruz va en el renglon del rotulo: no le quita ancho a las barras
+ *  SIN NUMERO, a diferencia de sus hermanos: las dos escalas se comen el cuadrado entero y no queda
+ *  esquina donde quepa un «100%» sin pisar una marca. La chapa se lee por escalon (las marcas
+ *  largas), que es lo que decide; el porcentaje exacto no cambia nada que hacer.
+ *
+ *  EN ESCUADRON NO HAY CHAPA: un golpe te baja (la vida es el escuadron, arriba a la izquierda). Ahi
+ *  el reloj lleva solo la escala de abajo — una aguja de chapa siempre entera seria una mentira. */
+function relojSalud(x, y) {
+  plate(x, y, CUADRO, CUADRO);
+  const cx = x + 13, cy = y + 13, r = 10;
   const total = dmgShown() ? Math.max(0, Math.min(1, run.integ / 100)) : null;
   const temp = margenRoce();
-  plate(x - 2, y - 9, w + 4, INSTR);
+  const rozando = run.scrapeVib > 0.6;
+  const arriba = f => Math.PI + Math.PI * f;              // 180 → 360, por arriba
+  const abajo = f => Math.PI - Math.PI * f;               // 180 → 0, por abajo
+  const marca = (a, rr, col) => px(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr, 1, 1, col);
+  if (total !== null) {
+    for (let i = 0; i <= 12; i++) {
+      const f = i / 12, escalon = i === 3 || i === 6 || i === 9;
+      const col = f <= 0.25 ? P.warn : escalon ? P.dim : '#55676f';
+      marca(arriba(f), r, col);
+      if (escalon) marca(arriba(f), r - 1, col);          // los escalones, con marca larga
+    }
+  }
+  // el rojo del agua es el mismo umbral en que la aguja empieza a parpadear
+  for (let i = 0; i <= 12; i++) marca(abajo(i / 12), r, i / 12 <= 0.35 ? P.warn : '#55676f');
+  // EL MINUTERO: amarillo siempre —es su nombre—, rojo y parpadeando cuando queda poco o mientras se
+  // esta rozando, que es cuando hay que mirarlo
+  const aT = abajo(temp);
+  pxLinea(cx, cy, cx + Math.cos(aT) * (r - 2), cy + Math.sin(aT) * (r - 2),
+    temp < 0.35 || rozando ? (Math.sin(run.t * 16) > 0 ? P.warn : '#7d2f1e') : P.accent);
+  // LA DE LAS HORAS, encima: con el avion sano tapa la base del minutero y le deja la punta afuera.
+  // Gruesa con una segunda raya al costado de afuera de su mitad.
+  if (total !== null) {
+    const aC = arriba(total), l = r - 4;
+    const col = total <= 0.25 ? (Math.sin(run.t * 10) > 0 ? '#ff5340' : P.warn) : P.foam;
+    const ox = Math.round(Math.sin(aC)), oy = Math.round(-Math.cos(aC));
+    pxLinea(cx + ox, cy + oy, cx + ox + Math.cos(aC) * l, cy + oy + Math.sin(aC) * l, col);
+    pxLinea(cx, cy, cx + Math.cos(aC) * l, cy + Math.sin(aC) * l, col);
+  }
+  px(cx - 1, cy - 1, 2, 2, P.ink);                        // el eje
   // LA CRUZ en vez de la palabra: es salud, y una cruz lo dice en cualquier idioma y en menos lugar.
   // BLANCA Y NO ROJA: la cruz roja sobre fondo claro es un emblema protegido (Convenios de Ginebra)
   // y a mas de un juego le pidieron sacarla. Una cruz clara dice «salud» igual.
-  icono(x, y - 9, 7, 'vida', P.foam);
-  const rozando = run.scrapeVib > 0.6;
-  if (total !== null) {
-    const col = total <= 0.25 ? (Math.sin(run.t * 10) > 0 ? '#ff5340' : P.warn) : total <= 0.5 ? P.warn : P.foam;
-    px(x, y - 2, w, 3, '#2e3c45');
-    const fw = Math.round(w * total);
-    if (fw > 0) px(x, y - 2, fw, 3, col);
-    if (fw > 1) { ctx.globalAlpha = 0.4; px(x, y - 2, fw, 1, '#f2f7fb'); ctx.globalAlpha = 1; }   // bisel
-    ctx.fillStyle = '#0a0e11';                                  // las muescas: los escalones
-    for (let i = 1; i < 4; i++) ctx.fillRect(x + Math.round(w * i / 4), y - 2, 1, 3);
-    ctx.textAlign = 'right'; ctx.fillStyle = total <= 0.25 ? P.warn : P.dim;
-    ctx.fillText(Math.round(total * 100) + '%', x + w, y - 4);
-  }
-  // la temporal: calma (cresta) llena, ambar gastandose, roja y parpadeando cuando queda poco o
-  // mientras se esta rozando — ahi es cuando el jugador tiene que mirarla
-  const ty = total !== null ? y + 2 : y - 2, th = total !== null ? 2 : 3;
-  const tcol = temp < 0.35 || rozando ? (Math.sin(run.t * 16) > 0 ? P.warn : '#7d2f1e') : temp < 1 ? P.accent : P.crest;
-  px(x, ty, w, th, '#2e3c45');
-  const tw = Math.round(w * Math.max(0, Math.min(1, temp)));
-  if (tw > 0) px(x, ty, tw, th, tcol);
+  // Las dos esquinas de la izquierda entran justas: la marca de 225 cae en el pixel de la esquina de
+  // adentro de la cruz, que esta vacio, y la ola va dos filas abajo de la de 135.
+  iconoEn(x + 3.5, y + 3.5, 'vida', total !== null ? P.foam : P.dim);
+  iconoEn(x + 3.5, y + 22.5, 'ola', P.accent);
 }
 
 // ---------- KIT DE PIXEL ART DEL HUD ----------
@@ -373,13 +393,14 @@ function drawOdo(x, y) {
 }
 
 // EL RITMO DEL TABLERO. Un instrumento mide INSTR de alto (rotulo + barra, ver bar()) y entre uno y
-// otro va AIRE. Los 17 resultantes son el UNICO paso con que se apila cualquier cosa del HUD.
+// otro va AIRE. Fueron el paso de las FILAS de placas de abajo hasta que las barras pasaron a
+// relojes (10 y 11/9); AIRE sigue siendo el hueco entre cuadrados.
 //
 // Estuvo en 14 —o sea sin aire— porque 14 era justo lo que teselaba, y teselar era exactamente el
 // problema: las placas se TOCABAN y cada columna se leia como un bloque oscuro partido en franjas
 // en vez de como tres instrumentos separados (playtest 29/8, «estado y cañón están muy cerca»).
 // Tres pixeles alcanzan: a esta escala un pixel es un pixel, y la placa ya trae su propio borde.
-const AIRE = 3, INSTR = 14, FILA = INSTR + AIRE;
+const AIRE = 3, INSTR = 14;
 // …y el MARGEN contra el borde del cuadro, que es el mismo para las cuatro esquinas. Estaba en 3
 // arriba a la izquierda, 4 abajo, 6 arriba a la derecha y 2 en el gas: cuatro numeros distintos
 // para la misma decision. Como `bar()` dibuja su placa en x-2, una barra que empieza en
@@ -425,24 +446,22 @@ export const cintaCaja = () => cajaCinta;
 const RELOJ_Y = 15;                  // la placa del reloj del rasante: 15..25
 const GAS_TOP = 42, GAS_BOT = 118;   // la corredera del gas
 
-// LAS TRES FILAS del tablero de abajo, medidas desde el borde y con el mismo paso en las dos
-// columnas: lo que hace que el HUD se lea como un tablero y no como cosas puestas donde entraban.
-const R1 = H - 8, R2 = R1 - FILA;
-// LOS CUATRO CUADRADOS DE ABAJO (playtest 10/9): horizonte, piloto, nafta y chancha, todos del
-// MISMO lado y apoyados en el margen de abajo, como una fila de instrumentos de tablero de verdad.
-// A la derecha, el quinto: el cañon. La barra de COMB y los puntitos de la chancha se fueron adentro
-// de sus relojes — un instrumento por cosa, y todos con la misma forma.
+// LOS CUADRADOS DE ABAJO (playtest 10/9): horizonte, piloto, nafta y chancha, todos del MISMO lado
+// y apoyados en el margen de abajo, como una fila de instrumentos de tablero de verdad. A la
+// derecha, en espejo, el cañon en la esquina y SALUD a su lado (11/9). La barra de COMB, los
+// puntitos de la chancha y las dos barras de SALUD se fueron adentro de sus relojes — un instrumento
+// por cosa, y todos con la misma forma. Las filas de placas (R1/R2) se fueron con la ultima barra.
 const CUADRO = 26, CUADROS_Y = H - MARGEN - CUADRO;
 
-/** LO MAS ALTO QUE PINTA EL TABLERO DE VUELO: el canto de las placas de la fila 3 (`bar()` dibuja
- *  su placa nueve pixeles arriba de la barra).
+/** LO MAS ALTO QUE PINTA EL TABLERO DE VUELO: el canto de los cuadrados. Fue el de la fila de placas
+ *  de SALUD, cuatro pixeles mas arriba, hasta que SALUD paso a ser un cuadrado.
  *
  *  Se EXPORTA para que la banda de la voz (render/screens.js) no tenga que copiar el numero. Lo
  *  copiaba, y la copia se pudrio: decia 110 porque la escribio la epoca en que RASANTE y MOMENTUM
  *  eran la cuarta y la quinta barra de la pila de la izquierda. Desde entonces se mudaron dos
  *  veces y el toast siguio esquivando un instrumento que ya no estaba ahi. Con esto, el dia que
  *  las filas se muevan otra vez, la banda se mueve con ellas. */
-export const HUD_TECHO = Math.min(CUADROS_Y, R2 - 9);
+export const HUD_TECHO = CUADROS_Y;
 
 /** Barra con marco, bisel y muescas cada 25%. El relleno pierde el ultimo pixel del marco.
  *
@@ -513,7 +532,7 @@ function riel(x, val, col) {
 // Va abajo a la IZQUIERDA, en espejo del panel de estado: las dos esquinas de abajo quedan siendo
 // instrumentos y el centro de la pantalla, que es donde se juega, sigue limpio.
 // …y CUADRADO CON EL RESTO: su placa (28x26 centrada en cx,cy) apoya a la izquierda en MARGEN y
-// deja AIRE contra la barra de combustible, que es la fila R1. No es simetria por simetria — un
+// deja AIRE contra el cuadro del piloto, que sigue en la fila. No es simetria por simetria — un
 // tablero donde cada instrumento arranca en una columna distinta se lee como cosas apiladas.
 const ADI = { cx: MARGEN + 13, cy: CUADROS_Y + 13, r: 10 };
 const ADI_SKY = '#3c6c8e', ADI_GND = '#6b4a2a', ADI_LINE = '#f2f7fb';
@@ -1050,11 +1069,11 @@ export function drawHUD(h) {
   // horizonte artificial, en la esquina de abajo a la izquierda
   drawADI();
 
-  // LAS TRES FILAS del tablero de abajo (ver R1/R2/R3 arriba, junto al techo que salen de ellas).
+  // LA FILA de cuadrados de abajo (ver CUADRO / CUADROS_Y arriba, junto al techo que sale de ella).
 
   // ---- COLUMNA IZQUIERDA: EL AVION (lo que se gasta volando) -----------------------------------
-  // LA CARA DEL PILOTO al lado del horizonte, y al lado de la cara la CHANCHA en puntitos (ver
-  // drawPiloto / drawPuntos). Los golpes del avion estan en la barra TOTAL de SALUD.
+  // LA CARA DEL PILOTO al lado del horizonte (ver drawPiloto). Los golpes del avion estan en la
+  // aguja blanca de SALUD, del otro lado.
   drawPiloto();
   // NAFTA y CHANCHA, los dos relojes de la fila. La chancha solo con COMBUSTIBLE: SI — un reloj que
   // nunca se va a poder usar es ruido ocupando un cuadrado.
@@ -1083,9 +1102,11 @@ export function drawHUD(h) {
   // SALUD arriba (como viene el avion), CAÑON en el medio y MISILES abajo, DEBAJO del canon y no
   // al lado de la nafta: los misiles son armamento, no consumo de vuelo, y tenerlos en la esquina
   // opuesta a su barra obligaba a cruzar la pantalla para leer "con que puedo tirar".
-  // SALUD (ver drawVida): la total si no esta entera, o la temporal si bajo. El umbral de la temporal
-  // es 0,97 y no 1 por el mismo motivo que el 0,05 del cañon: sube y baja sola volando rasante.
-  if (pide((dmgShown() && run.integ < 100) || margenRoce() < 0.97)) drawVida(225, R2, 60);
+  // SALUD (ver relojSalud), en el cuadrado de al lado del cañon: se pide si la chapa no esta entera o
+  // si el agua bajo. El umbral del agua es 0,97 y no 1 por el mismo motivo que el 0,05 del cañon: sube
+  // y baja sola volando rasante.
+  const xSalud = W - MARGEN - CUADRO - (CUADRO + AIRE);
+  if (pide((dmgShown() && run.integ < 100) || margenRoce() < 0.97)) relojSalud(xSalud, CUADROS_Y);
   if (pide(run.heat > 0.05 || run.overheat))
     // EL CAÑON, en la esquina de la derecha: el espejo del horizonte. No tiene municion que contar
     // —dispara hasta recalentarse y se traba hasta enfriar—, asi que el reloj marca TEMPERATURA, con
@@ -1132,14 +1153,16 @@ export function drawHUD(h) {
 
   // municion de misiles: cada pip es el MISIL en miniatura (cuerpo blanco, ojiva gris, llama),
   // el mismo que se ve volar — no un rectangulo generico. Vacio = solo el contorno.
-  // MISIL usa la MISMA convencion que bar(): placa en y-9, rotulo en y-4 y el contenido en y. Es
-  // lo que lo deja caer exactamente en la fila R1, alineado con el combustible del otro lado.
+  // MISIL usa la MISMA convencion que bar(): placa en y-9, rotulo en y-4 y el contenido en y.
+  // Va a la izquierda de SALUD, con AIRE, y APOYADA EN EL MISMO PISO que los cuadrados: arriba de
+  // SALUD vivia antes, cuando SALUD era una placa baja; ahora SALUD es un cuadrado y ocupa esa columna.
+  const xMsl = xSalud - AIRE - 64, yMsl = CUADROS_Y + CUADRO - INSTR + 9;
   if (pide(run.msl < MSL_MAX)) {
-    plate(223, R1 - 9, 64, INSTR);
+    plate(xMsl, yMsl - 9, 64, INSTR);
     ctx.textAlign = 'left'; ctx.font = F_ROT; ctx.fillStyle = P.dim;
-    ctx.fillText('MISIL', 225, R1 - 4);
+    ctx.fillText('MISIL', xMsl + 2, yMsl - 4);
     for (let i = 0; i < MSL_MAX; i++) {
-      const on = i < run.msl, bx = 225 + i * 9, by = R1;
+      const on = i < run.msl, bx = xMsl + 2 + i * 9, by = yMsl;
       if (on) {
         px(bx + 1, by, 5, 2, '#e9edf0');                      // cuerpo blanco
         px(bx + 6, by, 1, 2, '#9aa3ab');                      // ojiva gris

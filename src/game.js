@@ -3995,7 +3995,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       window.__czmodo = m => { cfg.dmgMode = m; run.integ = 100; return cfg.dmgMode; };
       window.__czinteg = () => run.integ;
       // __golpe: UN impacto de fuego enemigo sobre mi avion, por la misma puerta que usan los sistemas
-      // (`damage.takeHit`). Existe para ver la barra TOTAL de SALUD bajar sin tener que ir a buscar un
+      // (`damage.takeHit`). Existe para ver la aguja blanca de SALUD bajar sin tener que ir a buscar un
       // antiaereo — `__chocar` no sirve, una colision mata siempre. Solo informa si el avion cae; no
       // dispara el relevo. QUITAR con el resto.
       window.__golpe = causa => { const cae = damage.takeHit(causa || 'death_gunfire'); return JSON.stringify({ cae, integ: run.integ }); };

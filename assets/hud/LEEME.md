@@ -28,7 +28,8 @@ exacto o ×3** entra sin medio píxel; cualquier otro se escala y pierde el filo
 | `chancha` | el reloj de la Chancha | 7 × 4 | 21 × 12 | avión tanque (Hercules KC-130) **de costado** — de arriba se confunde con la cruz |
 | `emergencia` | la marca del final del reloj de la Chancha | 5 × 7 | 15 × 21 | gota de combustible con signo de admiración |
 | `canon` | el reloj del cañón | 7 × 5 | 21 × 15 | proyectil o cañón |
-| `vida` | la barra de salud | 6 × 6 | 18 × 18 | cruz **blanca** (la roja es un emblema protegido) |
+| `vida` | el reloj de salud, escala de arriba (la chapa) | 6 × 6 | 18 × 18 | cruz **blanca** (la roja es un emblema protegido) |
+| `ola` | el reloj de salud, escala de abajo (el agua) | 6 × 2 | 18 × 6 | una línea de ola, bien chata (arriba y abajo hay marcas del reloj y el borde) |
 | `rasante` | el riel del borde izquierdo | 6 × 6 | 18 × 18 | avión rozando olas |
 | `momentum` | el riel del borde derecho | 5 × 6 | 15 × 18 | reloj de arena |
 
@@ -47,13 +48,13 @@ buque_t42     buque_t21     buque_log     buque_carga   puerto    avion     band
                                                         #.#.#.#             #...
                                                                             #...
 
-nafta     chancha   emergencia  canon     vida     rasante  momentum
-.###...   #......   ..#..       ####...   ..##..   ..#...   #####
-.#+#.#.   ##.###.   .###.       #####+.   ..##..   ######   .###.
-.###.#.   #######   .#+#.       ######+   ######   ..#...   ..#..
-.###.#.   .######   ##+##       #####+.   ######   ......   ..#..
-.###.#.             #####       ####...   ..##..   #.#.#.   .###.
-.###.#.             ##+##                 ..##..   .#.#.#   #####
+nafta     chancha   emergencia  canon     vida     ola      rasante  momentum
+.###...   #......   ..#..       ####...   ..##..   .#..#.   ..#...   #####
+.#+#.#.   ##.###.   .###.       #####+.   ..##..   #.##.#   ######   .###.
+.###.#.   #######   .#+#.       ######+   ######            ..#...   ..#..
+.###.#.   .######   ##+##       #####+.   ######            ......   ..#..
+.###.#.             #####       ####...   ..##..            #.#.#.   .###.
+.###.#.             ##+##                 ..##..            .#.#.#   #####
 #####..             .###.
 ```
 
