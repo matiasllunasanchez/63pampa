@@ -25,6 +25,10 @@ export const run = {
   // INTEGRIDAD del avion (0..100) — ver core/damage.js. En el modo 'squad' (el de siempre) no se
   // usa: cualquier impacto cae directo. La escribe UN SOLO sistema, systems/damage.js.
   integ: 100,
+  // EL ESCUDO delante de la chapa (0..1, ver ESCUDO en core/damage.js): la aguja amarilla de SALUD
+  // en los modos con chapa. `escudoT` es lo que falta para que empiece a llenarse. Mismo dueño.
+  escudo: 1,
+  escudoT: 0,
   hurtT: 0,        // fogonazo rojo al aguantar un impacto (lo lee el HUD)
   fuel: 100,       // COMBUSTIBLE: el reloj real del run
   heat: 0,         // calor del canon (0..1)
@@ -56,7 +60,7 @@ export const run = {
   afterT: 0, afterTier: 0, afterGrace: 0,
 
   // --- roce con la superficie (ver SCRAPE_* en core/physics.js) ---
-  scrapeT: 0,      // reloj de gracia rozando: si llega al limite, muerte
+  scrapeT: 0,      // reloj de gracia rozando: si llega al limite, muerte (con chapa: ver ESCUDO)
   scrapeVib: 0,    // 1 mientras roza: hace VIBRAR el sprite; decae al salir
 
   // --- viento ---
@@ -128,7 +132,7 @@ export const run = {
 export function resetRun() {
   Object.assign(run, {
     t: 0, dist: 0, spd: 6, fuelDist: 0,
-    integ: 100, hurtT: 0,
+    integ: 100, escudo: 1, escudoT: 0, hurtT: 0,
     fuel: 100, heat: 0, overheat: false, detection: 0, radarWave: 0, radarSeen: false, estrellas: 0, climaxHecho: 0, boost: false, throttle: 0,
     score: 0, mult: 1, multShow: 1, streak: 0, rasLevel: 0, graceT: 0,
     afterT: 0, afterTier: 0, afterGrace: 0,

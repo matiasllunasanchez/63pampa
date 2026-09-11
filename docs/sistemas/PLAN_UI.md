@@ -490,6 +490,38 @@ abajo, del color de su aguja); `ola` es un ícono nuevo y ya está en `assets/hu
 la fila: `R1`/`R2` se fueron y `HUD_TECHO` pasó de 146 al canto de los cuadrados, 150. La banda de la
 charla baja 4 px.
 
+## 1q. La amarilla pasa a ser un escudo _(aplicada)_
+
+Pedido del 11/9, en varios mensajes seguidos: que la amarilla sea **un escudo recuperable antes del
+daño permanente**, que el daño permanente sea **la blanca**, que funcione **para todo** el daño y que
+**el agua pegue más rápido que una bala**.
+
+- **Todo lo que te tiran pasa primero por el escudo**: trazadora, antiaéreo, misil, bomba. El escudo
+  para 30 puntos (una trazadora entera y un poco más) y lo que sobra va a la chapa.
+- **Rozar el agua o el suelo también**, y agotar el margen ya no mata: el escudo se vacía en el mismo
+  tiempo que antes separaba el roce de la muerte (0,85 s lento, 0,18 s a fondo) y después sigue la
+  chapa **al mismo ritmo**. Son 35 puntos por segundo lento y ~170 a fondo: un segundo de panza cuesta
+  más que una trazadora a cualquier velocidad, y lo custodia un test.
+- **El escudo vuelve solo**: a los 1,2 s sin daño empieza a llenarse, y de vacío a lleno tarda 3 s.
+  La chapa no vuelve.
+- **Chocar sigue matando**: un mástil, una barranca, la cara de una ola, el mar de frente en el arena.
+- **Sólo con chapa** (INTEGRIDAD y VISUAL). En ESCUADRÓN una bala te baja, el mar mata como siempre y
+  la amarilla sigue siendo el margen de roce. Por eso el ícono de abajo cambia: **escudo** con chapa,
+  **ola** sin ella.
+- El arena y la pasada, que dibujan la chapa como barra, llevan el escudo debajo, en amarillo.
+- La cara del piloto se sobresalta también con una bala que el escudo para entera.
+
+**La chapa en horas, el escudo en segundos** (mismo día). Las marcas de arriba eran puntos iguales a
+los de abajo y había que buscar la aguja para saber cuánta chapa quedaba. Ahora la escala de arriba
+son **cuatro bloques gruesos**, uno por escalón de avería, prendidos hasta donde llega la chapa (el
+primero en rojo), y la de abajo es una escala **fina y apretada**, de 25 marcas. Se las distingue por
+el trazo antes que por el color. Se descartó partirlo en dos relojes: no hay lugar para un cuadrado
+más en la fila sin achicar MISIL, y juntar las dos cosas en un solo instrumento fue el pedido del 10/9.
+
+Vive en `core/damage.js` (`ESCUDO`, `absorber`, `dmgRoce`, `recargar`: puros y con tests) y en
+`systems/damage.js` (`roce`, `tickEscudo`). El vuelo y las crestas llaman a `roce` sólo con chapa; en
+ESCUADRÓN corre la cuenta de siempre, así que `npm run feel` no se mueve.
+
 
 ## 2. Divergencias
 
@@ -579,11 +611,13 @@ charla baja 4 px.
 21. **El reloj de SALUD no tiene número**, a diferencia de nafta, chancha y cañón. Las dos escalas se
     comen el cuadrado y no queda esquina donde entre un `100%` sin pisar una marca. La chapa se lee
     por escalón (las marcas largas), que es lo que decide qué podés hacer; el porcentaje exacto no.
-22. **"Que las blancas bajen cada vez que se vacía una amarilla" NO se aplicó.** Fue una pregunta del
-    pedido, y cambia una regla, no la UI: hoy la amarilla vacía es **estrellarte** ("el mar MATA", en
-    los tres modos de avería — `core/damage.js`). Hacer que vaciarla cueste un tramo de chapa en vez
-    de matar convierte el mar en cuatro vidas más. Puede ser una perilla de dificultad (sólo en
-    INTEGRIDAD), pero es decisión de diseño, no de tablero.
+22. **El escudo cambia una regla, no sólo el tablero** (§1q). Hasta el 11/9 la amarilla vacía era
+    estrellarte, en los tres modos ("el mar MATA"). Se lo planteó así al autor y lo decidió igual: con
+    chapa, rozar gasta escudo y después chapa. En ESCUADRÓN el mar sigue matando.
+23. **El escudo no pasó a ESCUADRÓN.** El pedido dice "que funcione para todo", y se leyó como todo
+    el *daño* (balas y agua), no todos los *modos*: en ESCUADRÓN no hay chapa adonde pase el resto, y
+    darle escudo ahí ablanda el modo por defecto — un avión dejaría de caer a la primera trazadora.
+    Si se lo quiere, es una línea en `systems/damage.js` (`takeHit`) y en el vuelo.
 
 ## 3. Lo que sigue pendiente _(de la auditoría, sin decidir)_
 

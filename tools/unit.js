@@ -479,7 +479,10 @@ test('mejoras: acepta un Set ademas de un array (owned viaja de las dos formas)'
 // ---------- INTEGRIDAD / MODELOS DE SALUD (src/core/damage.js) ----------
 // La regla que sostiene todo el sistema: te DISPARAN → daño; CHOCAS algo → muerte, en los tres
 // modos. Si esto se afloja, el rasante deja de tener consecuencias y el juego cambia de genero.
-import { applyHit, effects, tierOf, isFatal, DMG_MODES, DMG } from '../src/core/damage.js';
+// (El ROCE con el agua ya no entra en "chocar": desde el 11/9, con chapa, pasa por el ESCUDO —
+// ver los tests de escudo, abajo. La cara de una ola, un mastil o una barranca siguen matando.)
+import { applyHit, effects, tierOf, isFatal, DMG_MODES, DMG, absorber, dmgRoce, recargar, ESCUDO } from '../src/core/damage.js';
+import { scrapeLimit as limRoce } from '../src/core/physics.js';
 
 test('averias: en el modo ESCUADRON cualquier impacto cae, como siempre', () => {
   for (const c of Object.keys(DMG)) {
@@ -516,6 +519,33 @@ test('averias: el modo VISUAL cuenta el daño igual pero NO toca el desempeño',
   assert.equal(effects(30, 'visual').turbo, true);
   assert.equal(effects(30, 'visual').spd, 1);
   assert.equal(effects(30, 'integ').turbo, false, 'en integ, a 30% ya no hay turbo');
+});
+
+// EL ESCUDO (11/9): la amarilla para todo el daño antes de la chapa, y vuelve sola; la blanca no.
+test('escudo: para primero, y a la chapa pasa solo lo que sobra', () => {
+  const a = absorber(1, 100, DMG.death_gunfire);
+  assert.equal(a.integ, 100, 'una trazadora con el escudo lleno no toca la chapa');
+  assert.ok(a.escudo > 0 && a.escudo < 1);
+  const b = absorber(a.escudo, a.integ, DMG.death_aa);
+  assert.ok(Math.abs(b.aChapa - (DMG.death_aa - (ESCUDO.pts - DMG.death_gunfire))) < 1e-9,
+    'lo que no cabe en el escudo va a la chapa: ' + b.aChapa);
+  assert.equal(b.escudo, 0);
+  assert.equal(absorber(0, 10, DMG.death_missile).down, true, 'sin escudo y con poca chapa, un misil te baja');
+});
+
+test('escudo: el agua pega mas que una bala, a cualquier velocidad', () => {
+  for (let spd = 60; spd <= 340; spd += 20) for (const boost of [false, true]) {
+    const lim = limRoce(spd, boost);
+    assert.ok(dmgRoce(1, lim) > DMG.death_gunfire, `un segundo de roce a ${spd} tiene que costar mas que una trazadora`);
+    assert.ok(Math.abs(dmgRoce(lim, lim) - ESCUDO.pts) < 1e-9, 'el escudo entero dura justo el margen de roce de siempre');
+  }
+});
+
+test('escudo: vuelve solo despues de la demora', () => {
+  let e = 0, q = ESCUDO.demora, t = 0;
+  while (e < 1 && t < 20) { const r = recargar(e, q, 0.05); e = r.escudo; q = r.quieto; t += 0.05; }
+  assert.equal(e, 1);
+  assert.ok(Math.abs(t - (ESCUDO.demora + ESCUDO.llenar)) < 0.15, 'demora + llenado: ' + t.toFixed(2) + ' s');
 });
 
 test('averias: los escalones degradan en orden y el ultimo deja SOLO LO BASICO', () => {

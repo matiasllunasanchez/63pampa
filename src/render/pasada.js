@@ -522,6 +522,9 @@ export function drawPasada(w) {
     const iv = Math.max(0, Math.min(1, run.integ / 100));
     px(6, 5, 44, 3, '#2e3c45');
     px(6, 5, 44 * iv, 3, iv <= 0.25 ? (Math.sin(A.t * 10) > 0 ? '#ff5340' : P.warn) : iv <= 0.5 ? P.warn : P.foam);
+    // EL ESCUDO (core/damage.js), debajo y en amarillo, como la aguja de SALUD del pasillo
+    px(6, 9, 44, 2, '#2e3c45');
+    px(6, 9, 44 * Math.max(0, Math.min(1, run.escudo)), 2, P.accent);
   }
 
   // ---- LA NAFTA, EL RELOJ DE TU CORRIDA (RF-10 + RF-15) ----

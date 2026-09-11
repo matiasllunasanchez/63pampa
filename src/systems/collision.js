@@ -186,8 +186,15 @@ export function collisionSystem(dt) {
           if (plane.y < hAqui + 1.2) {
             // CRESTA: cepillarla cuesta margen de roce — el sistema que ya existe (core/physics),
             // no uno nuevo. Si el margen ya estaba gastado, esta te cobra la cuenta.
-            run.scrapeT += scrapeLimit(run.spd, run.boost) * OLA_SCRAPE_FRAC;
-            if (run.scrapeT >= scrapeLimit(run.spd, run.boost)) return { death: 'death_sea' };
+            // Con chapa, lo que cobra es ESCUDO (y lo que falte, chapa), como el roce del vuelo.
+            const limO = scrapeLimit(run.spd, run.boost);
+            if (dmg.shown()) {
+              run.scrapeT = Math.min(limO, run.scrapeT + limO * OLA_SCRAPE_FRAC);
+              if (dmg.roce(limO * OLA_SCRAPE_FRAC, limO)) return { death: 'death_sea' };
+            } else {
+              run.scrapeT += limO * OLA_SCRAPE_FRAC;
+              if (run.scrapeT >= limO) return { death: 'death_sea' };
+            }
             run.shake = Math.min(7, run.shake + 2.2);
             const sp = proj(plane.x, plane.y, PZ);
             for (let i = 0; i < 14; i++) parts.push({

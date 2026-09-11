@@ -2729,6 +2729,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // NIEBLA: los bancos se arman y se consumen con run.dist. Los avisos salen de un pulso de un
       // cuadro, no de mirar el estado — asi no hay forma de que el cartel salga dos veces.
       stepFog();
+      // EL ESCUDO se llena solo (ESCUDO en core/damage.js). Arriba de los early-return, como la
+      // lluvia: el pasillo y los tres climax cortan el cuadro con `return`, y el escudo es de todos.
+      damage.tickEscudo(dt);
       if (S.state === 'play') {
         if (tookEntry() && !fogWarned) { fogWarned = true; popup(W / 2, 46, T('fogIn'), P.warn); popup(W / 2, 56, T('fogIn2'), P.accent); sfxOne('waveFly'); }
         if (takeExit()) { fogWarned = false; popup(W / 2, 46, T('fogOut'), P.foam); }
@@ -3998,7 +4001,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // (`damage.takeHit`). Existe para ver la aguja blanca de SALUD bajar sin tener que ir a buscar un
       // antiaereo — `__chocar` no sirve, una colision mata siempre. Solo informa si el avion cae; no
       // dispara el relevo. QUITAR con el resto.
-      window.__golpe = causa => { const cae = damage.takeHit(causa || 'death_gunfire'); return JSON.stringify({ cae, integ: run.integ }); };
+      window.__golpe = causa => { const cae = damage.takeHit(causa || 'death_gunfire'); return JSON.stringify({ cae, integ: +run.integ.toFixed(1), escudo: +run.escudo.toFixed(2) }); };
+      // __salud: la chapa y el escudo, sin tocar nada (para mirar el escudo volver). QUITAR con el resto.
+      window.__salud = () => JSON.stringify({ integ: +run.integ.toFixed(1), escudo: +run.escudo.toFixed(2) });
       window.__czfinal = f => caza.setFinal(String(f));
       window.__czasoma = () => caza.asomando();
       window.__czpegar = n => caza.pegar(+n);

@@ -416,7 +416,14 @@ export function flightSystem(dt, deps) {
     // exactamente la de siempre, que es lo que `npm run feel` custodia.
     const lim = scrapeLimit(run.spd, run.boost) * fsVal('agua', 1);
     run.scrapeT += dt;
-    if (run.scrapeT >= lim) return { death: deathMsg };                 // se agoto el margen
+    // CON CHAPA (INTEGRIDAD / VISUAL, desde el 11/9) agotar el margen ya no mata: el roce gasta el
+    // ESCUDO y despues la chapa (systems/damage.js, `roce`), y se cae recien sin chapa. El reloj se
+    // topa en el margen y queda para lo otro que hace: la histeresis de la banda, dos lineas arriba.
+    // En ESCUADRON, la cuenta de siempre, que es la que custodia `npm run feel`.
+    if (dmg.shown()) {
+      run.scrapeT = Math.min(run.scrapeT, lim);
+      if (dmg.roce(dt, lim)) return { death: deathMsg };
+    } else if (run.scrapeT >= lim) return { death: deathMsg };          // se agoto el margen
     // PISO, no altura fija: no se hunde, no salta solo, pero SI podes trepar dando gas.
     // (con "plane.y = scrapeY" quedaba clavado: vy acumulaba empuje sin mover el avion y
     //  salias catapultado un segundo despues, o te morias antes de lograrlo)

@@ -357,6 +357,10 @@ export function drawArena(w) {
     const iv = Math.max(0, Math.min(1, run.integ / 100));
     px(6, 10, 44, 3, '#2e3c45');
     px(6, 10, 44 * iv, 3, iv <= 0.25 ? (Math.sin(A.t * 10) > 0 ? '#ff5340' : P.warn) : iv <= 0.5 ? P.warn : P.foam);
+    // EL ESCUDO (core/damage.js), debajo y en amarillo, como la aguja de SALUD del pasillo: se
+    // gasta primero y vuelve solo
+    px(6, 14, 44, 2, '#2e3c45');
+    px(6, 14, 44 * Math.max(0, Math.min(1, run.escudo)), 2, P.accent);
   }
   // SWEET SPOT (S3): la velocidad se pinta en el acento cuando el avion esta en la banda donde el
   // giro aprieta. Es la forma mas barata de enseñar la mecanica — el numero que ya estabas

@@ -18,6 +18,11 @@ Lo que sí puede perdonarse es lo que te **tiran**: antiaéreo, metralla, misil,
 una bomba. En `core/damage.js` eso es literal — una causa tiene daño asignado o es fatal, y
 `isFatal()` es simplemente "no está en la tabla".
 
+> **11/9/2026 — el roce pasa por el escudo.** Con chapa (INTEGRIDAD y VISUAL), **rozar** el agua o el
+> suelo ya no mata al agotarse el margen: le pega a un **escudo recuperable** y después a la chapa
+> (§3b). Lo que sigue matando es **chocar**. En ESCUADRÓN no cambió nada. Decisión del autor
+> (PLAN_UI §1q).
+
 ## 2. Los tres modelos (fila `DAÑO DEL AVION` en OPCIONES → PARTIDA)
 
 | id | en pantalla | qué hace |
@@ -42,6 +47,16 @@ jugador— y separarlas obligaba a leerlas dos veces. Persiste en `localStorage`
 Tres antiaéreos bajan un avión entero. **Medido en batalla real**, la escalera completa con armas
 mezcladas: `100→78 (ok) · 78→56 (hit) · 56→11 (crit)` y al siguiente impacto, abajo.
 
+## 3b. El escudo (11/9)
+
+Delante de la chapa hay un **escudo recuperable** de 30 puntos (`ESCUDO` en `core/damage.js`). Todo
+el daño de §3 le pega primero y lo que sobra va a la chapa. El roce también: `30 / scrapeLimit`
+puntos por segundo (35 lento, ~170 a fondo), primero del escudo y después de la chapa, al mismo
+ritmo. Vuelve solo: 1,2 s sin daño y 3 s de vacío a lleno.
+
+Con el escudo, cuatro antiaéreos seguidos —sin tiempo a que vuelva— hacen `100 → 96 → 62 → 28` y
+abajo: uno más que antes. Con tiempo entre golpe y golpe, una trazadora sola no toca nunca la chapa.
+
 ## 4. Los escalones de avería (solo en `integ`)
 
 | escalón | integridad | punta | respuesta | turbo | piruetas |
@@ -63,8 +78,8 @@ Cómo se aplican, sin que el modelo de vuelo sepa que existe el daño:
 
 | archivo | qué |
 |---|---|
-| `core/damage.js` | **puro**: los tres modos, la tabla de daño, `isFatal`, los escalones, `applyHit`. Lo testea `tools/unit.js` (5 tests) |
-| `systems/damage.js` | el **único dueño** de `run.integ`. `takeHit(cause)`, `fx()`, `tier()`, `shown()`, `resetDamage()` |
+| `core/damage.js` | **puro**: los tres modos, la tabla de daño, `isFatal`, los escalones, `applyHit`, y el escudo (`ESCUDO`, `absorber`, `dmgRoce`, `recargar`). Lo testea `tools/unit.js` (8 tests) |
+| `systems/damage.js` | el **único dueño** de `run.integ` y del escudo. `takeHit(cause)`, `roce(dt, lim)`, `tickEscudo(dt)`, `fx()`, `tier()`, `shown()`, `resetDamage()` |
 
 El patrón de uso en los sistemas es una sola línea, y es lo que hace que esto no se haya
 desparramado por todo el código:

@@ -282,6 +282,9 @@ function margenRoce() {
   return lim > 0 ? 1 - Math.max(0, Math.min(1, run.scrapeT / lim)) : 1;
 }
 
+/** LA AGUJA AMARILLA de SALUD: el ESCUDO con chapa, el margen de roce sin ella (ver relojSalud). */
+const amarilla = () => dmgShown() ? Math.max(0, Math.min(1, run.escudo)) : margenRoce();
+
 /** EL RELOJ DE LA SALUD: un reloj de DOS agujas, como uno de horas y minutos (playtest 11/9, idea de
  *  Matias). Es el cuadrado hermano del cañon, a su izquierda, y reemplaza a las dos barras.
  *
@@ -290,13 +293,16 @@ function margenRoce() {
  *              integridad. Baja de a saltos y NO VUELVE. Las marcas largas en 25/50/75 son los
  *              ESCALONES de averia (core/damage.js): bajo la del medio te quedas sin turbo, bajo la
  *              primera —donde empieza lo rojo— sin piruetas.
- *    ABAJO, EL AGUA (aguja AMARILLA, larga y fina: el minutero). El ROCE (`margenRoce`): cuanto mas
- *              podes tocar el agua antes de estrellarte. Se va rapido rozando y VUELVE sola al salir.
+ *    ABAJO, EL ESCUDO (aguja AMARILLA, larga y fina: el minutero). El escudo recuperable
+ *              (core/damage.js, ESCUDO): TODO el daño —balas y roce— le pega primero, y lo que no
+ *              para pasa a la chapa. Se va rapido y VUELVE solo. En ESCUADRON, sin chapa detras, es
+ *              el margen de roce de siempre (`margenRoce`): vacio, te estrellas.
  *
  *  LAS DOS ESCALAS VAN AL REVES UNA DE LA OTRA pero con la misma regla que todos los relojes: vacia a
  *  la izquierda, llena a la derecha. Asi, con el avion sano, las dos agujas se juntan en las tres —
  *  una sola raya— y lo que se abre es la tijera: la blanca sube cuando te pegan, la amarilla baja
- *  cuando rozas. Cada escala lleva su icono en su esquina: la cruz arriba, las olas abajo.
+ *  cuando rozas. Cada escala lleva su icono en su esquina: la cruz arriba, y abajo el escudo — o la
+ *  ola en ESCUADRON, donde la amarilla es solo el agua.
  *
  *  SIN NUMERO, a diferencia de sus hermanos: las dos escalas se comen el cuadrado entero y no queda
  *  esquina donde quepa un «100%» sin pisar una marca. La chapa se lee por escalon (las marcas
@@ -308,21 +314,39 @@ function relojSalud(x, y) {
   plate(x, y, CUADRO, CUADRO);
   const cx = x + 13, cy = y + 13, r = 10;
   const total = dmgShown() ? Math.max(0, Math.min(1, run.integ / 100)) : null;
-  const temp = margenRoce();
+  const temp = amarilla();
   const rozando = run.scrapeVib > 0.6;
   const arriba = f => Math.PI + Math.PI * f;              // 180 → 360, por arriba
   const abajo = f => Math.PI - Math.PI * f;               // 180 → 0, por abajo
-  const marca = (a, rr, col) => px(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr, 1, 1, col);
+  // LAS DOS ESQUINAS DE LA IZQUIERDA SON DE LOS ICONOS: ni la escala ni sus bloques entran ahi, con
+  // un pixel de aire. Sin esto la cruz se pegaba al segundo bloque y el escudo a las marcas rojas.
+  const libre = (qx, qy) => !(qx - x <= 7 && (qy - y <= 7 || qy - y >= 19));
+  const marca = (a, rr, col) => {
+    const qx = Math.round(cx + Math.cos(a) * rr), qy = Math.round(cy + Math.sin(a) * rr);
+    if (libre(qx, qy)) px(qx, qy, 1, 1, col);
+  };
+  // LA CHAPA SE MARCA EN HORAS Y EL ESCUDO EN SEGUNDOS (playtest 11/9). Arriba, CUATRO BLOQUES
+  // gruesos, uno por escalon de averia, PRENDIDOS hasta donde llega la chapa: "cuantos tramos me
+  // quedan" se lee sin buscar la aguja, que queda para el detalle. El primero es rojo —ahi ya no hay
+  // piruetas— y el hueco entre bloques es el escalon. Abajo, una escala FINA y apretada, como la de
+  // los segundos: es la que se mueve rapido y va y vuelve. La diferencia de trazo es lo que separa
+  // las dos escalas de un vistazo, antes que el color.
   if (total !== null) {
-    for (let i = 0; i <= 12; i++) {
-      const f = i / 12, escalon = i === 3 || i === 6 || i === 9;
-      const col = f <= 0.25 ? P.warn : escalon ? P.dim : '#55676f';
-      marca(arriba(f), r, col);
-      if (escalon) marca(arriba(f), r - 1, col);          // los escalones, con marca larga
+    const hechos = new Set();
+    for (let k = 0; k <= 120; k++) {
+      const f = k / 120;
+      if (Math.abs(f - 0.25) < 0.03 || Math.abs(f - 0.5) < 0.03 || Math.abs(f - 0.75) < 0.03) continue;
+      const col = f > total + 1e-6 ? '#2e3c45' : f < 0.25 ? P.warn : P.foam;
+      for (const rr of [r, r - 1]) {
+        const qx = Math.round(cx + Math.cos(arriba(f)) * rr), qy = Math.round(cy + Math.sin(arriba(f)) * rr);
+        if (!libre(qx, qy) || hechos.has(qx * 1000 + qy)) continue;   // el primero que llega lo pinta
+        hechos.add(qx * 1000 + qy);
+        px(qx, qy, 1, 1, col);
+      }
     }
   }
-  // el rojo del agua es el mismo umbral en que la aguja empieza a parpadear
-  for (let i = 0; i <= 12; i++) marca(abajo(i / 12), r, i / 12 <= 0.35 ? P.warn : '#55676f');
+  // el rojo del escudo es el mismo umbral en que la aguja empieza a parpadear
+  for (let i = 0; i <= 24; i++) marca(abajo(i / 24), r, i / 24 <= 0.35 ? P.warn : '#55676f');
   // EL MINUTERO: amarillo siempre —es su nombre—, rojo y parpadeando cuando queda poco o mientras se
   // esta rozando, que es cuando hay que mirarlo
   const aT = abajo(temp);
@@ -341,10 +365,10 @@ function relojSalud(x, y) {
   // LA CRUZ en vez de la palabra: es salud, y una cruz lo dice en cualquier idioma y en menos lugar.
   // BLANCA Y NO ROJA: la cruz roja sobre fondo claro es un emblema protegido (Convenios de Ginebra)
   // y a mas de un juego le pidieron sacarla. Una cruz clara dice «salud» igual.
-  // Las dos esquinas de la izquierda entran justas: la marca de 225 cae en el pixel de la esquina de
-  // adentro de la cruz, que esta vacio, y la ola va dos filas abajo de la de 135.
+  // Van en las dos esquinas de la izquierda, que las escalas les dejan libres (ver `libre`).
   iconoEn(x + 3.5, y + 3.5, 'vida', total !== null ? P.foam : P.dim);
-  iconoEn(x + 3.5, y + 22.5, 'ola', P.accent);
+  if (total !== null) iconoEn(x + 3, y + 22, 'escudo', P.accent);
+  else iconoEn(x + 3.5, y + 22.5, 'ola', P.accent);
 }
 
 // ---------- KIT DE PIXEL ART DEL HUD ----------
@@ -616,7 +640,7 @@ let gesto = 'neutro', gestoT = 0, ultPts = 0, sonrisaT = 0, ultT = -1, precargad
 // la cara roja y preocupada el resto de la mision despues del primer impacto (se vio en captura).
 // El golpe se detecta aca, cuando la chapa BAJA de un cuadro al otro.
 const GOLPE_T = 0.6;
-let golpeT = 0, ultInteg = 100;
+let golpeT = 0, ultInteg = 100, ultEscudo = 1;
 let cajaPiloto = null;
 /** El cuadro del piloto ESTE cuadro (o null si no hay cara que mostrar). Lo lee el toast. */
 export const pilotoCaja = () => cajaPiloto;
@@ -633,7 +657,7 @@ function gestoDeseado() {
   // la nafta por debajo de la mitad queda naranja el resto de la mision: mirando ESTADO, la cara se
   // quedaba preocupada para siempre (la sonda lo mostro: seguia preocupada 2,5 s despues de soltar el
   // turbo). La nafta ya tiene su propio umbral, abajo, en 25 %.
-  if (golpeT > 0 || run.scrapeVib > 0.6 || run.detection > 0.3 || margenRoce() < 0.5
+  if (golpeT > 0 || run.scrapeVib > 0.6 || run.detection > 0.3 || amarilla() < 0.5
       || (cfg.fuelOn && run.fuel < 25)) return 'preocupado';
   if (sonrisaT > 0) return 'sonrisa';
   if (run.boost || run.overheat || run.heat > 0.5 || run.rasLevel > 0) return 'ceno';
@@ -650,10 +674,12 @@ function drawPiloto() {
   // vuelve para atras) arranca la cara de cero en vez de heredar la sonrisa de la anterior
   const nueva = ultT < 0 || run.t < ultT;
   const dt = nueva ? 0 : Math.min(0.1, run.t - ultT);
-  if (nueva) { gesto = 'neutro'; gestoT = 0; sonrisaT = 0; ultPts = run.score; golpeT = 0; ultInteg = run.integ; }
+  if (nueva) { gesto = 'neutro'; gestoT = 0; sonrisaT = 0; ultPts = run.score; golpeT = 0; ultInteg = run.integ; ultEscudo = run.escudo; }
   // un golpe es la chapa que BAJA; que suba (avion nuevo del relevo, o una sonda) no es golpe
-  if (run.integ < ultInteg) golpeT = GOLPE_T;
-  ultInteg = run.integ;
+  // …o cuando el ESCUDO pega un salto: una bala que para entera no toca la chapa, pero es un golpe.
+  // El roce lo gasta de a poco (a fondo y con turbo, ~0,17 por cuadro) y no cuenta como golpe.
+  if (run.integ < ultInteg || run.escudo < ultEscudo - 0.3) golpeT = GOLPE_T;
+  ultInteg = run.integ; ultEscudo = run.escudo;
   golpeT = Math.max(0, golpeT - dt);
   ultT = run.t;
   if (run.score - ultPts >= SONRISA_PTS) sonrisaT = SONRISA_T;
@@ -1106,7 +1132,7 @@ export function drawHUD(h) {
   // si el agua bajo. El umbral del agua es 0,97 y no 1 por el mismo motivo que el 0,05 del cañon: sube
   // y baja sola volando rasante.
   const xSalud = W - MARGEN - CUADRO - (CUADRO + AIRE);
-  if (pide((dmgShown() && run.integ < 100) || margenRoce() < 0.97)) relojSalud(xSalud, CUADROS_Y);
+  if (pide((dmgShown() && run.integ < 100) || amarilla() < 0.97)) relojSalud(xSalud, CUADROS_Y);
   if (pide(run.heat > 0.05 || run.overheat))
     // EL CAÑON, en la esquina de la derecha: el espejo del horizonte. No tiene municion que contar
     // —dispara hasta recalentarse y se traba hasta enfriar—, asi que el reloj marca TEMPERATURA, con

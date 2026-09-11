@@ -129,6 +129,16 @@ export const ICONOS = {
     '.#..#.',
     '#.##.#',
   ] },
+  // EL ESCUDO: la misma escala de abajo en los modos con chapa, donde deja de ser solo el agua y
+  // para TODO el daño (core/damage.js, ESCUDO). La esquina de arriba a la derecha va vacia: al lado
+  // cae la marca de 135 del reloj.
+  escudo: { letra: 'E', png: null, pix: [
+    '####.',
+    '#####',
+    '#####',
+    '.###.',
+    '..#..',
+  ] },
   rasante: { letra: 'R', png: null, pix: [                      // un avion rozando las olas
     '..#...',
     '######',
