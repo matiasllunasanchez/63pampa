@@ -384,7 +384,9 @@ export function collisionSystem(dt) {
         if (dmg.takeHit(c)) return { death: c };
         continue;
       }
-      run.score += 75; stats.dodges++; const s = proj(m.x, m.y, PZ); popup(s.x, s.y - 8, T('dodgeMissile'), P.foam); boom(0.06, true);
+      // SIN CARTEL (12/9): el misil que pasa de largo ya se ve y se escucha pasar; la palabra
+      // ESQUIVADO encima tapaba justo la zona por donde venia. Los 75 puntos siguen estando.
+      run.score += 75; stats.dodges++; boom(0.06, true);
     }
     if (Math.random() < 0.6) {
       const s = proj(m.x, m.y, m.z + 2);

@@ -767,6 +767,33 @@ cresta). Un parpadeo apaga y prende todo a la vez, y además es el idioma de la 
 - **La marca de Mach 1 se fue de la velocidad**: el Mach tiene su propio reloj, con la suya.
 
 
+## 2c. Tres textos que sobraban sobre el juego, y el multiplicador se vuelve una palabra _(aplicada)_
+
+Pedido del 12/9, todo sobre la **pantalla de juego** (las de fin no se tocan):
+
+**La causa de la muerte se va de la cinemática del relevo.** Estaba debajo del titular —«Impactaste
+el mar», «Te comiste la ladera»— desde el playtest del 2/8, cuando el jugador moría sin saber por
+qué. Con el relevo ya armado sobra: el jugador acaba de **ver** cómo se cayó, y mientras entra el
+compañero es una línea más que leer. La pantalla de derribado (`drawDead`) la sigue nombrando, que
+es donde hay tiempo para leerla.
+
+**La palabra ESQUIVADO se va del misil que pasa de largo.** Aparecía justo encima del misil, o sea
+**tapando la zona por la que venía el disparo**, en el único momento en que hay que mirar ahí. Los
+75 puntos, el `stats.dodges` y el golpe de cámara siguen igual: lo que se fue es el cartel.
+
+**El multiplicador deja de ser un número.** El `x5 / x10 / x15 / x25` que crecía de tamaño al lado
+del avión era el dato que nadie leía —está pegado al avión, que es lo que hay que mirar— y encima
+competía con él por el mismo rincón de pantalla. Queda **una sola palabra, `PERFECTO`**, y sólo
+cuando la altura es la buena (`run.mult === 10`, o sea a 4,5 o menos): chica, en el naranja de
+siempre, y **del ancho exacto de la barra** que carga el próximo nivel de racha, con el mismo fondo
+oscuro pegado a ella — palabra y carga se leen como **un solo cartelito** en vez de dos cosas
+apiladas. Las letras se dibujan una por una con **paso fraccionario redondeado en cada letra**, así
+la última cierra justo en el borde sea cual sea el largo de la palabra (en inglés es una menos).
+
+Y los dos avisos de racha pierden su `x{n}` (`RASANTE x15!`, `TURBINA x2!` → `RASANTE!`,
+`TURBINA!`): era el mismo número que se acaba de ir del HUD, dicho dos veces.
+
+
 ## 2. Divergencias
 
 1. **`ESTADO` sigue duplicando dos de sus tres datos.** El porcentaje es el mínimo de cañón,
@@ -868,6 +895,18 @@ cresta). Un parpadeo apaga y prende todo a la vez, y además es el idioma de la 
 25. **Mach va en su propio reloj**, aunque el A-4 real lo combina con la velocidad en uno solo. A 26 px,
     dos escalas en un mismo reloj no se leen; separado, además, suma perillas, que es la sensación que
     se buscaba (§1s).
+
+26. **El nivel de racha ya no se dice en ninguna parte.** El número era el único lugar donde se
+    leía si ibas en x15, x20 o x25; `PERFECTO` dice "estás a ras" y la barra dice cuánto falta para
+    el próximo escalón, pero en cuál estás no lo dice nadie. El borde encendido de la pantalla sube
+    de intensidad con el escalón, que es la única pista que queda. Fue el precio aceptado de sacar
+    el número.
+27. **La causa de la muerte queda sólo en la pantalla de derribado.** En campaña, si el relevo
+    encadena, podés perder tres aviones sin que ninguna pantalla te diga por qué se cayó cada uno:
+    la única que lo nombra es la de fin de misión, y ahí sólo figura el último.
+28. **`dodgeMissile` quedó sin uso** en `data/strings.js`, igual que `ch_ready`, `sq_yours` y
+    `freeControl`: no se borró por la misma razón que la divergencia 19b (otra sesión edita ese
+    archivo, y si el cartel vuelve, la clave ya está).
 
 ## 3. Lo que sigue pendiente _(de la auditoría, sin decidir)_
 

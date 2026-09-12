@@ -135,7 +135,7 @@ export function flightSystem(dt, deps) {
   run.afterTier = Math.min(AFTER_MAX, Math.floor(run.afterT / AFTER_STEP));
   if (run.afterTier > prevTier) {                   // subió de escalón: feedback
     const s = proj(plane.x, plane.y, PZ);
-    popup(s.x, s.y - 22, T('afterburner', { n: run.afterTier }), P.warn);
+    popup(s.x, s.y - 22, T('afterburner'), P.warn);
     beep(360 + run.afterTier * 130, 0.16, 'sawtooth', 0.06, 220 + run.afterTier * 90);
     run.shake = Math.min(6, run.shake + 1.1);
     for (let i = 0; i < 10 + run.afterTier * 3; i++) {
@@ -325,7 +325,7 @@ export function flightSystem(dt, deps) {
     stats.bestRas = Math.max(stats.bestRas, run.rasLevel);   // mejor nivel de racha alcanzado
     // el aviso de racha es informacion de HUD, no una etiqueta del avion: nace arriba del
     // velocimetro (centro abajo) y sube desde ahi, en vez de seguir al avion por la pantalla
-    popup(W / 2, H - 30, T('rasante', { n: 10 + run.rasLevel * 5 }), P.accent);
+    popup(W / 2, H - 30, T('rasante'), P.accent);
     beep(500 + run.rasLevel * 180, 0.14, 'square', 0.06, 750 + run.rasLevel * 180);
     run.shake = Math.min(6, run.shake + 1.4);
     // oleada de líneas de velocidad al subir de nivel

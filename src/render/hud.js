@@ -594,6 +594,7 @@ const PODER_H = 7, PODER_W = CUADRO - 2;   // el relleno, adentro de la placa de
 // lee para donde va: hacia adelante.
 const ONDA_W = 8, ONDA_S = 1.5;      // ancho de la cresta y segundos que tarda en cruzar
 const GLIFO = 3;                     // lo que mide una letra del rotulo (5 px monospace)
+const RACHA_W = 24;                  // los px utiles de la barra de racha: lo que mide PERFECTO
 function barraPoder(px0, py0, val, col, claro, oscuro, on, lista, rot) {
   const c = on ? (Math.sin(run.t * 14) > 0 ? claro : col) : col;
   plate(px0, py0, CUADRO, PODER_H + 2);
@@ -1284,28 +1285,33 @@ export function drawHUD(h) {
     ctx.fillText(T('windWarn'), W / 2, topBase);
   }
 
-  // multiplicador junto al avión — crece con la racha rasante
-  if (run.multShow > 1) {
+  // LA RACHA junto al avión. Ya no se escriben multiplicadores (12/9): el x5 / x10 / x25 que
+  // crecia de tamaño al lado del avion era un numero que nadie leia mientras volaba a ras del
+  // agua, y competia con el avion justo cuando hay que mirarlo. Queda UNA palabra —PERFECTO—
+  // cuando la altura es la buena, chica y del ancho exacto de la barra que carga el proximo
+  // nivel de racha, asi las dos cosas se leen como un solo cartelito. El puntaje sigue
+  // multiplicando igual (run.multShow, en flight.js): lo que se fue es el numero, no la cuenta.
+  if (run.mult === 10) {
     // proj() devuelve coordenadas de MUNDO (grilla 480x270) y el HUD razona en la de DISEÑO
     // (320x180): hay que dividir por U. Es el unico punto del HUD anclado al mundo.
     const pw = proj(plane.x, plane.y, PZ);
-    const s = { x: pw.x / U, y: pw.y / U, k: pw.k / U };
-    ctx.textAlign = 'left';
-    const size = run.multShow >= 15 ? 12 + run.rasLevel : run.multShow >= 10 ? 11 : run.multShow >= 5 ? 10 : 9;
-    ctx.font = 'bold ' + size + 'px monospace';
-    ctx.fillStyle = run.multShow >= 25 ? (Math.sin(run.t * 16) > 0 ? P.warn : P.accent)
-      : run.multShow >= 15 ? P.accent
-        : run.multShow >= 10 ? P.accent
-          : run.multShow >= 5 ? '#d9b06a' : P.dim;
-    const jx = run.rasLevel > 0 ? (Math.random() - 0.5) * run.rasLevel : 0;
-    const jy = run.rasLevel > 0 ? (Math.random() - 0.5) * run.rasLevel : 0;
-    if (run.multShow < 10 || Math.sin(run.t * 10) > -0.6)
-      ctx.fillText('x' + run.multShow + (run.boost ? ' x2' : ''), s.x + 24 + jx, s.y - 6 + jy);
+    const s = { x: pw.x / U, y: pw.y / U };
+    // LETRA POR LETRA para ocupar los 24 px utiles de la barra de abajo, sea cual sea el largo
+    // de la palabra (en ingles es una letra menos): el paso es fraccionario y se redondea en cada
+    // letra, asi la ultima cierra justo en el borde. Mismo criterio que los rotulos de barraPoder.
+    const pal = T('mult_perfect');
+    const paso = (RACHA_W - GLIFO) / Math.max(1, pal.length - 1);
+    // el mismo fondo oscuro que la barra, pegado a ella: palabra y carga son UN cartelito, y a
+    // 5 px una letra naranja sobre el mar no se lee sin algo detras.
+    ctx.fillStyle = '#0a0e11bb'; ctx.fillRect(s.x + 24, s.y - 10, RACHA_W + 2, 7);
+    ctx.textAlign = 'left'; ctx.font = F_ROT; ctx.fillStyle = P.accent;
+    for (let i = 0; i < pal.length; i++)
+      ctx.fillText(pal[i], s.x + 25 + Math.round(i * paso), s.y - 5);
     // barra de progreso hacia el próximo nivel de racha
-    if (run.mult === 10 && run.rasLevel < 4) {
+    if (run.rasLevel < 4) {
       const prog = (run.streak % 2) / 2;
-      ctx.fillStyle = '#0a0e11bb'; ctx.fillRect(s.x + 24, s.y - 3, 26, 3);
-      px(s.x + 25, s.y - 2, Math.round(24 * prog), 1, P.accent);
+      ctx.fillStyle = '#0a0e11bb'; ctx.fillRect(s.x + 24, s.y - 3, RACHA_W + 2, 3);
+      px(s.x + 25, s.y - 2, Math.round(RACHA_W * prog), 1, P.accent);
     }
   }
   // borde encendido según la racha

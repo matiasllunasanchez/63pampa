@@ -131,10 +131,9 @@ export function drawRelevo(rv) {
   // TRES titulares, no dos: derribado (arcade), averiado (campaña) y — desde RF-15 — SALE DE LA
   // CORRIDA, que es lo que pasa cuando gastaste tu pasada sin que nadie te tocara.
   ctx.fillText(T(rv.spent ? 'sq_spent' : rosterActive() ? 'sq_dmg' : 'sq_down', { c: pilotName(rv.fallen) }), DW / 2, 10);
-  // LA CAUSA. Siempre estuvo en rv.cause y nunca se mostraba: el jugador moria sin saber por
-  // que (playtest 2/8). Es la unica pantalla que puede contestarle en el momento.
-  ctx.font = '7px monospace'; ctx.fillStyle = P.foam;
-  ctx.fillText(T(rv.cause), DW / 2, 26);
+  // LA CAUSA NO SE DICE ACA (12/9). Estaba en rv.cause y se imprimia debajo del titular, pero
+  // sobre el juego en marcha es una linea de texto mas que leer mientras el companero entra: el
+  // jugador acaba de VER como se cayo. La pantalla de derribado sigue nombrandola (drawDead).
   if (rv.t > RELEVO_WRECK) {
     ctx.font = '7px monospace'; ctx.fillStyle = P.accent;
     ctx.fillText(T('sq_take', { c: pilotName(rv.next) }), DW / 2, DH - 10);

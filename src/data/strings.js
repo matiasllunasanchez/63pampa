@@ -94,10 +94,13 @@ export const STRINGS = {
     purs_tiron: '{c} abre turbo. ¡Seguime!',
     purs_pegado: 'Asi se vuela de numeral.',
     purs_caido: 'Cayo el lider',
-    freeControl: 'CONTROL LIBRE!', rasante: 'RASANTE x{n}!', afterburner: 'TURBINA x{n}!',
+    // SIN NUMERO (12/9): los dos avisaban con el multiplicador pegado —RASANTE x15!— y era el
+    // mismo numero que se fue del HUD. El aviso queda: lo que subio de nivel se siente igual.
+    freeControl: 'CONTROL LIBRE!', rasante: 'RASANTE!', afterburner: 'TURBINA!',
     aimFixed: 'MIRA FIJA', aimFree: 'MIRA LIBRE',
     thrDown: 'PALANCA: ↓ SUBE', thrUp: 'PALANCA: ↑ SUBE',
     scrape: '! PELIGRO !',
+    // dodgeMissile: sin uso desde el 12/9 — el misil que pasa de largo ya no pone cartel.
     pickFuel: '+COMB', dodgeMissile: 'ESQUIVADO',
     takeoffTitle: 'DESPEGUE · PUERTO ARGENTINO · BAM MALVINAS',
     takeoffHeading: 'rumbo al estrecho de San Carlos',
@@ -118,6 +121,9 @@ export const STRINGS = {
     // la escena del guion sin reproducirla — esa es del modo historia.
     bar_chancha: 'CHANCHA', ch_ready: '! CHANCHA LISTA — [5] !',
     bar_rasante: 'RASANTE',
+    // LA RACHA A RAS: la unica palabra que queda del multiplicador (ver render/hud.js). Se dibuja
+    // letra por letra para ocupar el ancho de la barra, asi que conviene que sea CORTA.
+    mult_perfect: 'PERFECTO',
     // EL INTERSTICIAL DE CAMPAÑA (G-09): el corte entre una mision y la que sigue.
     inter_dia: 'DÍA SIGUIENTE',
     ch_call: 'CHANCHA, CHANCHA, ACA PATRIA — VENGO SECO',
@@ -1143,7 +1149,7 @@ export const STRINGS = {
     purs_tiron: '{c} going burner. Stay with me!',
     purs_pegado: 'That is how you fly wing.',
     purs_caido: 'The leader went down',
-    freeControl: 'FREE CONTROL!', rasante: 'LOW PASS x{n}!', afterburner: 'AFTERBURNER x{n}!',
+    freeControl: 'FREE CONTROL!', rasante: 'LOW PASS!', afterburner: 'AFTERBURNER!',
     aimFixed: 'AIM LOCKED', aimFree: 'AIM FREE',
     thrDown: 'PITCH: ↓ CLIMB', thrUp: 'PITCH: ↑ CLIMB',
     scrape: '! DANGER !',
@@ -1165,6 +1171,7 @@ export const STRINGS = {
     bar_tempo: 'MOMENTUM', tempoOn: 'MOMENTUM', tempoOff: 'REAL TIME', tempoReady: '! MOMENTUM READY — [4] !',
     bar_chancha: 'TANKER', ch_ready: '! TANKER READY — [5] !',
     bar_rasante: 'RASANTE',
+    mult_perfect: 'PERFECT',
     inter_dia: 'THE NEXT DAY',
     ch_call: 'TANKER, TANKER, PATRIA HERE — RUNNING DRY',
     ch_ack: 'CONDOR COPIES. SENDING HER.',
