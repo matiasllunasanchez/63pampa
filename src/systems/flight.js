@@ -45,6 +45,8 @@ import { avance as chAvance } from '../systems/chancha.js';
 // esa velocidad se ANOTA en el odometro.
 import { avance as cvAvance } from '../systems/charla.js';
 import * as rasante from '../systems/rasante.js';
+import * as agu from './aguante.js';
+import { AGU } from '../core/aguante.js';
 // BOOST_LIFT y CAM_PAN se mudaron a systems/vuelo.js con la camara que los usa.
 import { multOf } from '../core/util.js';
 import { movesSystem, mvAllowsFire, mvAllowsTurbo, mvLegado } from './moves.js';
@@ -233,7 +235,11 @@ export function flightSystem(dt, deps) {
     run.bankA = Math.max(-BANK_MAX, Math.min(BANK_MAX, run.bankA));
     plane.vx = bankVx(run.bankA);
     const G = 22, TH = 55, DIVE = 30;
+    // EL ORDEN: el poder manda sobre el aguante. Los dos clavan la altura, pero el poder es una
+    // decision explicita del jugador (tecla 6) y ademas le deja el gas para trepar; el aguante,
+    // mientras dure, usa el gas de metronomo (ver systems/aguante.js, vertClavado).
     if (rasante.active()) vertRasante(dt, inp, G, TH, DIVE);
+    else if (agu.activo()) agu.vertClavado(dt);
     else {
       plane.vy += (((inp.u && run.fuel > 0) ? TH : 0) - G - (inp.d ? DIVE : 0)) * dt;
       plane.vy = Math.max(-20, Math.min(18, plane.vy));
@@ -244,7 +250,11 @@ export function flightSystem(dt, deps) {
     plane.vx = Math.max(-30, Math.min(30, plane.vx));
     // gas: mantener ARRIBA empuja hacia arriba; al soltar, la gravedad gana y el avión cae
     const G = 22, TH = 55, DIVE = 30;
+    // EL ORDEN: el poder manda sobre el aguante. Los dos clavan la altura, pero el poder es una
+    // decision explicita del jugador (tecla 6) y ademas le deja el gas para trepar; el aguante,
+    // mientras dure, usa el gas de metronomo (ver systems/aguante.js, vertClavado).
     if (rasante.active()) vertRasante(dt, inp, G, TH, DIVE);
+    else if (agu.activo()) agu.vertClavado(dt);
     else {
       plane.vy += (((inp.u && run.fuel > 0) ? TH : 0) - G - (inp.d ? DIVE : 0)) * dt;
       plane.vy = Math.max(-20, Math.min(18, plane.vy));
@@ -313,28 +323,39 @@ export function flightSystem(dt, deps) {
     limX: (paredCfg() ? paredCfg().x : 0) || undefined,
   });
 
-  // puntaje por altitud + racha rasante
+  // PUNTAJE POR ALTITUD Y EL AGUANTE (12/9). La escalera de cuatro escalones que subia sola —un
+  // x5 mas cada dos segundos, sin hacer nada mas que no trepar— se fue: ahora `run.streak` es la
+  // CARGA de PERFECTO y al llenarse abre el estado RASANTE, que hay que sostener a pulso de gas
+  // (core/aguante.js). El escalon que ve la fisica sale de los aciertos, asi que `speedTarget`
+  // sigue recibiendo un 0..4 y su curva no se toca.
   const alt = plane.y;
   run.mult = multOf(alt);
-  if (alt <= 4.5) { run.streak += dt; run.graceT = 0.45; }
+  const enBanda = alt <= 4.5;
+  if (enBanda) { run.streak = Math.min(AGU.CARGA, run.streak + dt); run.graceT = 0.45; }
   else if (run.graceT > 0) run.graceT -= dt;
   else { run.streak = 0; run.rasLevel = 0; }
-  const newLevel = Math.min(4, Math.floor(run.streak / 2));
-  if (newLevel > run.rasLevel) {
-    run.rasLevel = newLevel;
-    stats.bestRas = Math.max(stats.bestRas, run.rasLevel);   // mejor nivel de racha alcanzado
-    // el aviso de racha es informacion de HUD, no una etiqueta del avion: nace arriba del
-    // velocimetro (centro abajo) y sube desde ahi, en vez de seguir al avion por la pantalla
-    popup(W / 2, H - 30, T('rasante'), P.accent);
+  const sigAgu = agu.tickAguante(dt, enBanda);
+  if (sigAgu === 'entra' || sigAgu === 'acierta') {
+    run.rasLevel = agu.nivelAguante();
+    stats.bestRas = Math.max(stats.bestRas, run.rasLevel);   // mejor escalon alcanzado
+    // EL SONIDO SUBE CON EL ESCALON, como antes; el cartel del centro no vuelve — la palabra
+    // RASANTE al lado del avion ES el anuncio, y el playtest ya saco tres carteles de ahi.
     beep(500 + run.rasLevel * 180, 0.14, 'square', 0.06, 750 + run.rasLevel * 180);
-    run.shake = Math.min(6, run.shake + 1.4);
-    // oleada de líneas de velocidad al subir de nivel
-    for (let i = 0; i < 14; i++) {
+    run.shake = Math.min(6, run.shake + (sigAgu === 'entra' ? 1.4 : 0.5));
+    // oleada de lineas de velocidad: entera al entrar, un soplo en cada acierto
+    for (let i = 0, n = sigAgu === 'entra' ? 14 : 5; i < n; i++) {
       const a = Math.random() * 6.283;
       streaks.push({ a, r: 24 + Math.random() * 16, v: 280 + Math.random() * 180, life: 0.5 });
     }
+  } else if (sigAgu === 'falla') {
+    run.rasLevel = 0;
+    beep(240, 0.16, 'square', 0.05, 90);                     // grave y hacia abajo: se cayo
+    run.shake = Math.min(6, run.shake + 1.1);
+  } else if (sigAgu === 'sale') {
+    run.rasLevel = 0;
+    beep(420, 0.09, 'square', 0.04, 300);
   }
-  run.multShow = run.mult === 10 ? 10 + run.rasLevel * 5 : run.mult;
+  run.multShow = agu.activo() ? agu.multAguante() : run.mult;
   run.score += (run.boost ? 2 : 1) * 12 * run.multShow * dt;
   // superficie LETAL: tocar el suelo (o el agua) = explotar. Sobre tierra hay que volar en la banda
   // baja y arriesgada (arriba del suelo, pero bajo para clipear/matar soldados con el pase rasante).
@@ -435,6 +456,7 @@ export function flightSystem(dt, deps) {
     run.spd = Math.max(34, run.spd - run.spd * 1.1 * dt);                          // el roce FRENA
     run.shake = Math.min(7, run.shake + 26 * dt);
     run.streak = 0; run.rasLevel = 0; run.afterT = 0; run.afterTier = 0;               // se corta la racha
+    agu.resetAguante();                                                                // …y el aguante: rozar es fallar
     // chispas / rocio del roce
     const sp = proj(plane.x, groundY, PZ);
     for (let i = 0; i < 3; i++) parts.push({

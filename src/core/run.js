@@ -55,6 +55,16 @@ export const run = {
   streak: 0,       // segundos acumulados volando a ras
   rasLevel: 0,     // nivel de racha rasante (0..4)
   graceT: 0,       // gracia al despegarse: un bob corto no corta la racha
+  // --- EL AGUANTE: el estado RASANTE (core/aguante.js + systems/aguante.js) -------------------
+  // `streak` de arriba es la CARGA (4 s de PERFECTO) y estos siete son el estado ya puesto.
+  aguante: 0,      // 1 = el estado RASANTE esta corriendo
+  aguN: 0,         // aciertos acumulados: de aca salen dificultad, multiplicador y escalon
+  aguSec: 0,       // donde arranca el sector azul (0..1 de la barra); se sortea en cada acierto
+  aguF: 0,         // fase del indicador, en vueltas (una vuelta = ida y vuelta)
+  aguHold: 0,      // s con el gas apretado, para la salida a proposito
+  aguY: 0,         // la altura a la que quedo clavado el avion
+  aguGolpe: -9,    // `run.t` del ultimo acierto: el HUD lo usa para el destello
+  aguVen: 0,       // SEGUNDOS que le quedan a la ventana. Se vacia sola; acertar la rellena.
 
   // --- afterburner sostenido (ver AFTER_* en core/physics.js) ---
   afterT: 0, afterTier: 0, afterGrace: 0,
@@ -135,6 +145,7 @@ export function resetRun() {
     integ: 100, escudo: 1, escudoT: 0, hurtT: 0,
     fuel: 100, heat: 0, overheat: false, detection: 0, radarWave: 0, radarSeen: false, estrellas: 0, climaxHecho: 0, boost: false, throttle: 0,
     score: 0, mult: 1, multShow: 1, streak: 0, rasLevel: 0, graceT: 0,
+    aguante: 0, aguN: 0, aguSec: 0, aguF: 0, aguHold: 0, aguY: 0, aguGolpe: -9, aguVen: 0,
     afterT: 0, afterTier: 0, afterGrace: 0,
     scrapeT: 0, scrapeVib: 0,
     squad: 1, lives: 1,

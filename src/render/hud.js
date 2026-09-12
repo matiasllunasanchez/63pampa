@@ -16,6 +16,7 @@ import { proj } from '../core/fx.js';
 import { scrapeLimit, speedTarget } from '../core/physics.js';
 import { effects } from '../core/damage.js';
 import { T } from '../core/i18n.js';
+import { AGU, ancho as anchoSector, pos as posInd, ventana as ventanaAgu } from '../core/aguante.js';
 import { P, RADAR_VERDE, RADAR_OPACO } from '../data/palette.js';
 import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP } from '../data/tuning.js';
 import { machNow } from '../core/mach.js';
@@ -1246,7 +1247,6 @@ function misilChico(x, y, on) {
   iconoEn(x + (MSL_ICO_W - 1) / 2, y, 'misil', vivo ? '#e9edf0' : '#2e3c45', vivo ? P.accent : '#2e3c45');
 }
 
-
 export function drawHUD(h) {
   cajaCinta = null;   // ver cintaCaja: una caja de otro cuadro no cuenta
   cajaPiloto = null;  // idem: la cara de la que sale mi voz es la de ESTE cuadro
@@ -1356,29 +1356,72 @@ export function drawHUD(h) {
     ctx.fillText(T('windWarn'), W / 2, topBase);
   }
 
-  // LA RACHA junto al avión. Ya no se escriben multiplicadores (12/9): el x5 / x10 / x25 que
-  // crecia de tamaño al lado del avion era un numero que nadie leia mientras volaba a ras del
-  // agua, y competia con el avion justo cuando hay que mirarlo. Queda UNA palabra —PERFECTO—
-  // cuando la altura es la buena, chica y del ancho exacto de la barra que carga el proximo
-  // nivel de racha, asi las dos cosas se leen como un solo cartelito. El puntaje sigue
-  // multiplicando igual (run.multShow, en flight.js): lo que se fue es el numero, no la cuenta.
-  if (run.mult === 10) {
+  // LA RACHA junto al avión, en DOS TIEMPOS (12/9). Ya no se escriben multiplicadores: el x5 /
+  // x10 / x25 que crecia de tamaño al lado del avion era un numero que nadie leia volando a ras
+  // del agua, y competia con el avion justo cuando hay que mirarlo. Queda una PALABRA y una
+  // BARRA, del mismo ancho, que se leen como un solo cartelito, y que dicen dos cosas distintas
+  // segun en cual de los dos tiempos estes (ver core/aguante.js):
+  //
+  //   PERFECTO, en naranja  — la altura es la buena y la barra CARGA. Cuatro segundos.
+  //   RASANTE, en azul      — el estado ya esta puesto y la barra es el PULSO: sector azul,
+  //                           indicador que va y viene, y un toque de gas adentro por pasada.
+  //
+  // El puntaje sigue multiplicando en flight.js (`run.multShow`): lo que se fue es el numero.
+  if (run.aguante || run.mult === 10) {
     // proj() devuelve coordenadas de MUNDO (grilla 480x270) y el HUD razona en la de DISEÑO
     // (320x180): hay que dividir por U. Es el unico punto del HUD anclado al mundo.
     const pw = proj(plane.x, plane.y, PZ);
     const s = { x: pw.x / U, y: pw.y / U };
-    // LETRA POR LETRA para ocupar los 24 px utiles de la barra de abajo, sea cual sea el largo
-    // de la palabra (en ingles es una letra menos): el paso es fraccionario y se redondea en cada
-    // letra, asi la ultima cierra justo en el borde. Mismo criterio que los rotulos de barraPoder.
-    const pal = T('mult_perfect');
-    const paso = (RACHA_W - GLIFO) / Math.max(1, pal.length - 1);
-    // SIN FONDO (12/9): el recuadro oscuro detras de la palabra y de la barra era una mancha
-    // pegada al avion. La palabra va en NEGRITA, que es lo que la sostiene sobre el mar a 5 px.
-    ctx.textAlign = 'left'; ctx.font = 'bold 5px monospace'; ctx.fillStyle = P.accent;
+    // TRES RENGLONES, de arriba a abajo: la palabra, la barra del pulso y —solo en RASANTE— el
+    // temporizador de la ventana. Todo el cartelito subio 2 px para hacerle lugar al tercero.
+    const bx = s.x + 25, by = s.y - 7;
+    const ras = run.aguante === 1;
+    // EL DESTELLO DEL ACIERTO: la palabra y el sector se van al claro por un pestañeo. Es el
+    // unico "si" que da el estado, y tiene que caber en el tiempo que queda hasta el proximo.
+    const golpe = ras && run.t - run.aguGolpe < 0.12;
+    // LETRA POR LETRA sobre el ancho de la barra, con PASO ENTERO y el bloque centrado — el mismo
+    // criterio que los rotulos de barraPoder, y por la misma razon: con paso fraccionario el
+    // redondeo de cada letra cae distinto y RASANTE (7 letras en 24 px) salia "R AS AN TE".
+    // Se pierde medio pixel de ancho a cada lado y se gana que el espaciado sea siempre igual.
+    const pal = T(ras ? 'mult_rasante' : 'mult_perfect');
+    const paso = Math.max(3, Math.floor((RACHA_W - GLIFO) / Math.max(1, pal.length - 1)));
+    const rx = bx + Math.floor((RACHA_W - (GLIFO + paso * (pal.length - 1))) / 2);
+    // SIN FONDO: el recuadro oscuro detras de la palabra era una mancha pegada al avion. La
+    // palabra va en NEGRITA, que es lo que la sostiene sobre el mar a 5 px.
+    ctx.textAlign = 'left'; ctx.font = 'bold 5px monospace';
+    ctx.fillStyle = ras ? (golpe ? '#ffffff' : RAS_COL) : P.accent;
     for (let i = 0; i < pal.length; i++)
-      ctx.fillText(pal[i], s.x + 25 + Math.round(i * paso), s.y - 5);
-    // barra de progreso hacia el próximo nivel de racha: sin carril, solo lo cargado
-    if (run.rasLevel < 4) px(s.x + 25, s.y - 2, Math.round(RACHA_W * ((run.streak % 2) / 2)), 1, P.accent);
+      ctx.fillText(pal[i], rx + i * paso, s.y - 9);
+    if (!ras) {
+      // LA CARGA: sin carril, solo lo cargado — 4 s de PERFECTO y se abre el estado.
+      px(bx, by + 1, Math.round(RACHA_W * Math.min(1, run.streak / AGU.CARGA)), 1, P.accent);
+    } else {
+      // EL PULSO. Barra BLANCA con un solo sector AZUL, y un indicador de 1 px que va de punta a
+      // punta. Hay que darle un toque de gas mientras pasa por el azul; el sector se corre en
+      // cada acierto y se va cerrando, y el indicador acelera. La barra dice las tres cosas que
+      // el jugador necesita —donde, cuando y cuanto margen— sin un solo numero.
+      const w = anchoSector(run.aguN);
+      px(bx, by, RACHA_W, 3, '#e9edf0');
+      px(bx + Math.round(RACHA_W * run.aguSec), by, Math.max(1, Math.round(RACHA_W * w)), 3,
+        golpe ? '#ffffff' : RAS_COL);
+      // el indicador sobresale 1 px arriba y abajo: sobre el blanco y sobre el azul se ve igual,
+      // y asomando se lee como una aguja que cruza y no como un pedazo de la barra.
+      px(bx + Math.min(RACHA_W - 1, Math.round(posInd(run.aguF) * (RACHA_W - 1))), by - 1, 1, 5, '#0a1015');
+      // EL TEMPORIZADOR DE LA VENTANA, debajo del pulso. Es lo que el estado se sostiene SOLO —el
+      // avion va clavado como un crucero mientras le quede— y acertar el azul lo vuelve a llenar.
+      // Se VACIA en vez de crecer, que es el mismo idioma que el reloj del escondite: lo que se
+      // vacia se lee como "lo que te queda", y lo que crece se leeria como algo cargandose.
+      // El surco detras es lo gastado: sin el, una raya corta no dice de cuanto era.
+      // VA EN NARANJA Y DE 1 PX: naranja porque es un RELOJ y en este tablero los relojes son del
+      // acento (la carga de PERFECTO, la Chancha, el cañon), y azul ya lo dice todo lo que es el
+      // rasante — con las dos barras azules el ojo las leia como una sola cosa partida. Fina para
+      // que sea el renglon MAS liviano de los tres: el pulso es lo que hay que mirar.
+      const vy = by + 5, fr = Math.max(0, Math.min(1, run.aguVen / ventanaAgu(run.aguN)));
+      px(bx, vy, RACHA_W, 1, '#2e3c45');
+      // CUANDO QUEDA POCO, PARPADEA APAGANDOSE (el mismo criterio que las balizas): un cambio de
+      // color seria un dato nuevo que aprender; el titileo se ve de reojo, sin mirar el cartel.
+      if (fr > 0.28 || Math.sin(run.t * 9) > 0) px(bx, vy, Math.max(1, Math.round(RACHA_W * fr)), 1, P.accent);
+    }
   }
   // borde encendido según la racha
   if (run.rasLevel > 0) {

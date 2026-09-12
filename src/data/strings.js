@@ -96,7 +96,7 @@ export const STRINGS = {
     purs_caido: 'Cayo el lider',
     // SIN NUMERO (12/9): los dos avisaban con el multiplicador pegado —RASANTE x15!— y era el
     // mismo numero que se fue del HUD. El aviso queda: lo que subio de nivel se siente igual.
-    freeControl: 'CONTROL LIBRE!', rasante: 'RASANTE!', afterburner: 'TURBINA!',
+    freeControl: 'CONTROL LIBRE!', rasante: 'RASANTE!', afterburner: 'TURBINA!',   // rasante: sin uso desde el 12/9 (lo dice la palabra al lado del avion)
     aimFixed: 'MIRA FIJA', aimFree: 'MIRA LIBRE',
     thrDown: 'PALANCA: ↓ SUBE', thrUp: 'PALANCA: ↑ SUBE',
     scrape: '! PELIGRO !',
@@ -124,6 +124,9 @@ export const STRINGS = {
     // LA RACHA A RAS: la unica palabra que queda del multiplicador (ver render/hud.js). Se dibuja
     // letra por letra para ocupar el ancho de la barra, asi que conviene que sea CORTA.
     mult_perfect: 'PERFECTO',
+    // …y el segundo tiempo, cuando el estado ya esta puesto (core/aguante.js). Corta igual: se
+    // dibuja letra por letra para ocupar los 24 px de la barra.
+    mult_rasante: 'RASANTE',
     // LA LENGUETA DE LOS PODERES: sale de atras de su barra 3 s (ver render/hud.js, tabListo).
     // Corta, que el cartel mide 21 px.
     poder_listo: 'LISTO',
@@ -1177,6 +1180,7 @@ export const STRINGS = {
     bar_chancha: 'TANKER', ch_ready: '! TANKER READY — [5] !',
     bar_rasante: 'RASANTE',
     mult_perfect: 'PERFECT',
+    mult_rasante: 'LOW PASS',
     poder_listo: 'READY',
     inter_dia: 'THE NEXT DAY',
     ch_call: 'TANKER, TANKER, PATRIA HERE — RUNNING DRY',

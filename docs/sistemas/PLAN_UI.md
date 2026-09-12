@@ -866,6 +866,48 @@ X y el pip se leía como un damero; y separadas del cuerpo por el vástago se le
 píxeles de punta: con uno, el cuerpo arrancaba de golpe con sus tres de espesor y el morro se leía
 romo, o sea como una bomba.
 
+## 2g. La palabra y la barra, en dos tiempos _(aplicada)_
+
+Pedido del 12/9: cambiar la mecánica del rasante —el puntaje y el efecto, no el poder—. El cartelito
+de al lado del avión pasa a tener **dos estados**, y la barra cambia de oficio entre uno y otro:
+
+- **PERFECTO**, en naranja: la altura es la buena y la barra **carga** (4 s, el doble de antes).
+- **RASANTE**, en azul: el estado está puesto y hay **dos** barras — el **pulso** (blanca con un
+  sector azul y un indicador que va y viene) y, debajo, el **temporizador de la ventana**, que es lo
+  que sostiene el crucero y que cada acierto vuelve a llenar.
+
+La mecánica entera está en [SPEC_AGUANTE.md](SPEC_AGUANTE.md); acá va sólo lo de dibujo:
+
+**La palabra cambia de color, no de lugar.** Misma posición, mismo ancho, misma negrita de 5 px: lo
+único que cambia es el naranja por el azul del rasante, que es el color que ya tiene su poder y su
+barrita arriba del avatar. Un jugador que aprendió a mirar ese rincón no tiene que aprender otro.
+
+**El espaciado volvió a paso entero con el bloque centrado.** `PERFECTO` son 8 letras y caían justo
+en los 24 px con paso 3; `RASANTE` son 7, el paso fraccionario daba 3,5 y el redondeo de cada letra
+la escribía **`R AS AN TE`**. Se pierde medio píxel de ancho a cada lado y se gana que el espaciado
+sea siempre igual, que es lo que se pidió para los rótulos de las barras (§2b).
+
+**El indicador sobresale 1 px arriba y abajo** de la barra. Adentro se veía igual sobre el blanco
+que sobre el azul, pero se leía como un pedazo de la barra; asomando se lee como una aguja que
+cruza. Va en el casi negro del tablero, que es el único tono que contrasta con los dos.
+
+**El acierto destella**: la palabra y el sector se van al blanco por 0,12 s. Es el único «sí» que da
+el estado, y tiene que caber en el tiempo que queda hasta el próximo toque.
+
+**El temporizador va en naranja y de 1 px** (12/9): naranja porque en este tablero los relojes son
+del acento —la carga de PERFECTO, la Chancha, el cañón— y porque con las dos barras azules el ojo
+las leía como una sola cosa partida en dos; y fino para que sea el renglón **más liviano** de los
+tres, que el que hay que mirar es el pulso.
+
+**El temporizador se vacía en vez de crecer**, con el surco oscuro detrás mostrando lo gastado. Es el
+mismo idioma que el reloj del escondite (§1v): lo que se vacía se lee como «lo que te queda», y lo
+que crece se leería como algo cargándose — o sea al revés. **En el último cuarto parpadea
+apagándose**, como las balizas: un cambio de color sería un dato nuevo que aprender, y el titileo se
+ve de reojo sin mirar el cartel.
+
+**Los tres renglones subieron 2 px** para hacerle lugar al tercero. La palabra, el pulso y la ventana
+ocupan ahora `y-11` a `y-1` respecto del avión.
+
 ## 2. Divergencias
 
 1. **`ESTADO` sigue duplicando dos de sus tres datos.** El porcentaje es el mínimo de cañón,
@@ -968,7 +1010,8 @@ romo, o sea como una bomba.
     dos escalas en un mismo reloj no se leen; separado, además, suma perillas, que es la sensación que
     se buscaba (§1s).
 
-26. **El nivel de racha ya no se dice en ninguna parte.** El número era el único lugar donde se
+26. **El nivel de racha ya no se dice en ninguna parte.** _(sigue vigente, y con techo más alto
+    desde §2g: el tope pasó de x25 a x40.)_ El número era el único lugar donde se
     leía si ibas en x15, x20 o x25; `PERFECTO` dice "estás a ras" y la barra dice cuánto falta para
     el próximo escalón, pero en cuál estás no lo dice nadie. El borde encendido de la pantalla sube
     de intensidad con el escalón, que es la única pista que queda. Fue el precio aceptado de sacar

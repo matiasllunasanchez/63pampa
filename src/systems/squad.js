@@ -19,6 +19,7 @@ import { proj } from '../core/fx.js';
 import { FLY_TOP } from '../data/tuning.js';
 import { PZ } from '../render/ctx.js';
 import { beep, sfxOne, duck } from './audio.js';
+import { resetAguante } from './aguante.js';
 import { RELEVO_WRECK, RELEVO_GRACE, RELEVO_DUR, pilotIdx, relevoPhase, callsign } from '../core/squad.js';
 
 // --- estado privado del subsistema ---
@@ -78,6 +79,7 @@ export function startRelevo(cause, spent) {
   // pierde: racha, multiplicador y afterburner — el avion nuevo entra frio.
   run.scrapeT = 0; run.scrapeVib = 0;
   run.streak = 0; run.rasLevel = 0; run.mult = 1; run.multShow = 1; run.graceT = 0;
+  resetAguante();                                      // el estado RASANTE no se hereda
   run.afterT = 0; run.afterTier = 0; run.afterGrace = 0;
   run.boost = false; run.throttle = 0;
   run.heat = 0; run.overheat = false;                   // canon propio, frio

@@ -10,6 +10,8 @@ import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision } from
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { multOf } from './core/util.js';
+import { pos as aguPos, ancho as aguAncho, margen as aguMargen, ventana as aguVentana } from './core/aguante.js';
+import { armadoDbg as aguArmado } from './systems/aguante.js';
 import * as dialogue from './core/dialogue.js';
 import { dlg, seqFromScreens } from './core/dialogue.js';
 import { SCENES, SECUENCIAS } from './data/story.js';
@@ -4079,6 +4081,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EL PRECIO (RF-05): arriba te ve el radar. No es un sistema nuevo —es el de siempre, que
       // mide altura— y justamente por eso hay que poder comprobar que la cita lo paga.
       window.__charadar = () => JSON.stringify({ det: +run.detection.toFixed(2), seen: !!run.radarSeen, mult: run.multShow });
+      // ---------- SONDAS DEL AGUANTE (el estado RASANTE) — QUITAR al cerrar el item ----------
+      // Sin esto, medir la ventana de acierto exige mirar la barra en una captura y adivinar.
+      // `pos` y `w` son lo que el HUD dibuja; `ven` son los segundos de margen que quedan.
+      window.__agudbg = () => JSON.stringify({
+        on: run.aguante, n: run.aguN, mult: run.multShow, nivel: run.rasLevel,
+        carga: +run.streak.toFixed(2), sec: +run.aguSec.toFixed(3), w: +aguAncho(run.aguN).toFixed(3),
+        pos: +aguPos(run.aguF).toFixed(3), margen: +aguMargen(run.aguN).toFixed(3),
+        hold: +run.aguHold.toFixed(2), y: +plane.y.toFixed(2), clavo: +run.aguY.toFixed(2),
+        ven: +run.aguVen.toFixed(2), venMax: +aguVentana(run.aguN).toFixed(2),
+        armado: aguArmado(),
+      });
       window.__chanafta = () => +run.fuel.toFixed(2);   // el tanque, que es lo que el poder viene a llenar
       window.__chagolpe = () => { run.shake = 6; return run.shake; };
       // CALMA para poder MIRAR la cita: la cita se vuela ARRIBA, y arriba el radar te ve y te

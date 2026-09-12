@@ -2171,3 +2171,83 @@ test('chancha: el render usa las anclas y no fracciones a ojo', () => {
   // y el alabeo sale de la MISMA formula que la deriva de systems/chancha.js, no de un seno nuevo
   assert.ok(r.includes('CH_DERIVA_V'), 'el alabeo de la Chancha dejo de atarse a su deriva');
 });
+
+// ---- EL AGUANTE: el estado RASANTE (core/aguante.js) -----------------------------------------
+// Lo que se prueba no son las constantes —esas se tunean— sino las tres propiedades que hacen que
+// la mecanica sea jugable: que la dificultad SUBA siempre, que el margen para acertar nunca se
+// vuelva imposible, y que el sector nuevo de verdad se corra del anterior.
+
+test('aguante: la dificultad sube con cada acierto y no se pasa de los topes', async () => {
+  const { AGU, ancho, vel, mult, nivel, margen } = await import('../src/core/aguante.js');
+  for (let n = 0; n < 40; n++) {
+    assert.ok(ancho(n + 1) <= ancho(n), `el sector crecio entre ${n} y ${n + 1}`);
+    assert.ok(vel(n + 1) >= vel(n), `el indicador se frenó entre ${n} y ${n + 1}`);
+    assert.ok(mult(n + 1) >= mult(n), `el multiplicador bajo entre ${n} y ${n + 1}`);
+    assert.ok(ancho(n) >= AGU.SEC_MIN - 1e-9, `el sector se fue abajo del piso en ${n}`);
+    assert.ok(vel(n) <= AGU.VEL_MAX + 1e-9, `el indicador se paso del tope en ${n}`);
+    assert.ok(mult(n) <= AGU.MULT_TOPE + 1e-9, `el multiplicador se paso del tope en ${n}`);
+    assert.ok(nivel(n) <= AGU.NIVEL_TOPE, `el escalon se paso de 4 en ${n}`);
+  }
+  assert.equal(mult(0), AGU.MULT, 'recien entrado tiene que pagar el x10 de la banda');
+  assert.equal(nivel(0), 0, 'recien entrado el escalon de la fisica es cero');
+  // EL MARGEN para acertar es la dificultad de verdad, y tiene que bajar pero no desaparecer: dos
+  // cuadros a 60 fps son 33 ms, y abajo de eso el juego pasa a ser de suerte.
+  assert.ok(margen(0) > margen(20), 'el margen no se cerro con los aciertos');
+  assert.ok(margen(999) > 0.05, `el margen quedo imposible: ${margen(999)} s`);
+});
+
+test('aguante: la ventana se cierra, pero siempre deja saltear al menos una pasada', async () => {
+  const { AGU, ventana, pasadasSalteables } = await import('../src/core/aguante.js');
+  for (let n = 0; n < 40; n++) {
+    assert.ok(ventana(n + 1) <= ventana(n), `la ventana crecio entre ${n} y ${n + 1}`);
+    assert.ok(ventana(n) >= AGU.VEN_MIN - 1e-9, `la ventana se fue abajo del piso en ${n}`);
+  }
+  assert.equal(ventana(0), AGU.VEN0, 'recien entrado la ventana tiene que estar entera');
+  // LA ESCALADA SE MIDE EN PASADAS SALTEABLES y no en segundos: al acelerar el indicador las
+  // pasadas llegan mas seguido, asi que una ventana fija dejaria saltear cada vez MAS. Esto es lo
+  // que se rompe si alguien toca VEN_K sin mirar VEL_K, y es justo el error que no se ve jugando.
+  assert.ok(pasadasSalteables(0) > pasadasSalteables(20),
+    'la ventana dejo de apretar: con los aciertos se pueden saltear MAS pasadas que al principio');
+  // …y nunca tan poco como tener que acertar todas: eso seria volver al machaque que se saco.
+  for (let n = 0; n < 40; n++)
+    assert.ok(pasadasSalteables(n) > 1, `en ${n} aciertos hay que acertar todas las pasadas`);
+});
+
+test('aguante: el indicador va y vuelve sin saltos, y a velocidad constante', async () => {
+  const { pos } = await import('../src/core/aguante.js');
+  assert.ok(Math.abs(pos(0) - 0) < 1e-9, 'la fase 0 tiene que arrancar en una punta');
+  assert.ok(Math.abs(pos(1) - 1) < 1e-9, 'media vuelta tiene que llegar a la otra punta');
+  assert.ok(Math.abs(pos(2) - 0) < 1e-9, 'la vuelta entera tiene que volver al arranque');
+  assert.ok(Math.abs(pos(-0.25) - 0.25) < 1e-9, 'una fase negativa tiene que seguir dando 0..1');
+  // TRIANGULAR y no seno: pasos iguales de fase = pasos iguales de posicion. Es lo que hace que
+  // la ventana dure lo mismo en cualquier sector, y por eso el sector se puede sortear.
+  const d = [];
+  for (let i = 0; i < 10; i++) d.push(pos((i + 1) * 0.1) - pos(i * 0.1));
+  for (const x of d) assert.ok(Math.abs(x - d[0]) < 1e-9, 'el indicador dejo de ir a velocidad constante');
+  for (let f = 0; f < 6; f += 0.013) {
+    const p = pos(f);
+    assert.ok(p >= 0 && p <= 1, `el indicador se salio de la barra en la fase ${f}: ${p}`);
+  }
+});
+
+test('aguante: el sector nuevo se corre del anterior y nunca se sale de la barra', async () => {
+  const { AGU, ancho, sector, dentro } = await import('../src/core/aguante.js');
+  for (let n = 0; n < 20; n++) {
+    const w = ancho(n);
+    let prev = -1;
+    for (let k = 0; k < 200; k++) {
+      const s = sector(w, (k * 0.0137 + n * 0.031) % 1, prev);
+      assert.ok(s >= 0 && s + w <= 1 + 1e-9, `el sector se salio de la barra: ${s}+${w}`);
+      if (prev >= 0) {
+        const sep = Math.min(AGU.SEP, (1 - w) / 2);
+        assert.ok(Math.abs(s - prev) >= sep - 1e-9,
+          `el sector nuevo quedo encima del anterior (n=${n}): ${prev} -> ${s}`);
+      }
+      prev = s;
+    }
+  }
+  // y `dentro` es el mismo criterio que usa el sistema para armar y para acertar
+  assert.ok(dentro(0.5, 0.4, 0.2), 'el medio del sector tiene que contar como adentro');
+  assert.ok(!dentro(0.39, 0.4, 0.2), 'justo antes del sector no puede contar');
+  assert.ok(!dentro(0.61, 0.4, 0.2), 'justo despues del sector no puede contar');
+});
