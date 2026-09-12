@@ -816,6 +816,56 @@ momentum, celeste el rasante—, así dice **de quién** es sin decirlo.
 El cartel se va también si el poder se **gasta** antes de los 3 s: lo que anuncia es "lo tenés", y
 en cuanto deja de ser cierto no tiene nada que decir. Los dos beeps quedan como estaban.
 
+## 2e. El final de la escala del radar dice QUÉ sale _(aplicada)_
+
+Pedido del 12/9: al final de la barra del RADAR va **un ícono de misil**. La barra decía cuánto le
+falta al radar enemigo para fijarte, pero no **qué pasa cuando llega**: ahora el fondo de la escala
+lo dice con el dibujo de la cosa que sale. Es el mismo criterio que la marca de emergencia al final
+del reloj de la Chancha —el fondo de una escala es un hecho, no un número— y es el **mismo misil en
+miniatura del estante**, 7×3, pero con la **ojiva a la izquierda**: éste viene hacia vos.
+
+**Apagado es sólo el contorno** (el pip vacío de siempre) y **encendido titila 1,2 s**, porque
+encendido significa que ya salió. Titila entre lleno y contorno, no entre lleno y nada: apagándose
+del todo dejaba un agujero en el final de la escala la mitad de los cuadros, y el hueco se lee como
+que la marca no está.
+
+**Cómo sabe el HUD que llegó al final**: no se lo puede preguntar a la barra. `run.detection >= 1`
+dispara la oleada y **en el mismo cuadro la baja al residual** (`systems/flight.js`), así que el
+cuadro que se dibuja ya la tiene abajo — la barra nunca se ve llena. Lo que sí queda es la **cuenta
+de oleadas** (`run.radarWave`): cuando cambia, el radar acabó de llegar al final. El dibujo se
+acuerda del número anterior y prende el misil, con su propio reloj sobre `run.t`, igual que la
+lengüeta LISTO (§2d).
+
+La barra se acortó 9 px para hacerle lugar, que es lo único que se le sacó.
+
+## 2f. Las dos siluetas, con foto: una BOMBA y un misil común _(aplicada)_
+
+Pedido del 12/9, con dos fotos del autor —una maqueta de bomba en la mano y un misil de catálogo—:
+que las dos siluetas **tengan forma de lo que son**. La que había medía 7×5 y era una rayita blanca
+con un píxel de ojiva: a ese tamaño no era nada.
+
+Las dos pasan a **10×5 y a la tabla de íconos** (`data/iconos.js`), que es donde vive todo lo
+reemplazable por PNG, y quedan anotadas en `assets/hud/LEEME.md` con su tamaño exacto.
+
+**`bomba`** —el estante del avión— sale de la primera foto: cuerpo gordo, **punta pintada** (el `+`
+del dibujo, amarillo) y las **aletas de cola** como ensanche del cuerpo, apuntando a la derecha,
+que es para donde vuela el avión. Cargada va blanca; vacía, **la misma silueta en el gris de la
+placa**, así el hueco dice que falta *eso* y no que ahí no hay nada.
+
+Y **se llama BOMBA, no MISIL**: lo que el avión lleva colgado y suelta es una bomba. `MISIL` quedó
+para lo que te tiran a vos. Cambian el rótulo del control (`ctrlMsl`), la línea de la PASADA, el
+`+1` del arena y la leyenda de teclas de la página.
+
+**`misil`** —el final de la escala del radar— sale de la segunda: cuerpo fino y largo, **ojiva en
+punta de dos píxeles**, los aletines chicos a un cuarto del morro, el bloque de cola atrás y la
+llama saliendo. Apunta a la **izquierda**: éste viene hacia vos.
+
+Dos cosas que costaron su intento: las aletas dibujadas como **cuatro paletas sueltas** formaban una
+X y el pip se leía como un damero; y separadas del cuerpo por el vástago se leían como **dos objetos**
+—una barrita y un rectángulo—. Pegadas al cuerpo, es una sola cosa. Y la ojiva del misil son **dos**
+píxeles de punta: con uno, el cuerpo arrancaba de golpe con sus tres de espesor y el morro se leía
+romo, o sea como una bomba.
+
 ## 2. Divergencias
 
 1. **`ESTADO` sigue duplicando dos de sus tres datos.** El porcentaje es el mínimo de cañón,

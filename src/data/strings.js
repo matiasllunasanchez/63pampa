@@ -10,7 +10,7 @@ export const STRINGS = {
   es: {
     langName: 'Español',
     pageHeader: '■ <b>RASANTE</b> · Atlántico Sur, 1982 · Batalla por Malvinas',
-    pageFooter: '<kbd>W</kbd>: gas — si soltás, el avión cae &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: esquivar &nbsp;·&nbsp; <kbd>S</kbd>: picada &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: rolar &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: mirar arriba/abajo &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>ESPACIO</kbd>: cañón &nbsp;·&nbsp; <kbd>Z</kbd>: misil (y las bombas de la pasada) &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: turbo &nbsp;·&nbsp; <kbd>5</kbd>: llamar a la Chancha (reabastecer) &nbsp;·&nbsp; <kbd>T</kbd>: tren (al aterrizar) &nbsp;·&nbsp; <kbd>F</kbd>: freno &nbsp;·&nbsp; <kbd>ESC</kbd>: pausa &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: mira libre (click: cañón · click der: misil)<br>Joystick (PlayStation o Xbox): stick izq vuela · stick der rola y mira · R1/RB cañón · L1/LB misil · R2/RT turbo · L2/LT freno · START pausa<br>Táctil: arrastrá a la izquierda para volar · derecha arriba: fuego · derecha abajo: turbo<br>Volar bajo multiplica. Rozar obstáculos da bonus. El turbo duplica puntos y quema combustible.',
+    pageFooter: '<kbd>W</kbd>: gas — si soltás, el avión cae &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: esquivar &nbsp;·&nbsp; <kbd>S</kbd>: picada &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: rolar &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: mirar arriba/abajo &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>ESPACIO</kbd>: cañón &nbsp;·&nbsp; <kbd>Z</kbd>: bomba &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: turbo &nbsp;·&nbsp; <kbd>5</kbd>: llamar a la Chancha (reabastecer) &nbsp;·&nbsp; <kbd>T</kbd>: tren (al aterrizar) &nbsp;·&nbsp; <kbd>F</kbd>: freno &nbsp;·&nbsp; <kbd>ESC</kbd>: pausa &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: mira libre (click: cañón · click der: bomba)<br>Joystick (PlayStation o Xbox): stick izq vuela · stick der rola y mira · R1/RB cañón · L1/LB bomba · R2/RT turbo · L2/LT freno · START pausa<br>Táctil: arrastrá a la izquierda para volar · derecha arriba: fuego · derecha abajo: turbo<br>Volar bajo multiplica. Rozar obstáculos da bonus. El turbo duplica puntos y quema combustible.',
     aria: 'Juego Rasante: WASD para volar, flechas para rolar y mirar, X dispara, Shift turbo',
     death_land: 'Chocaste el terreno', death_sea: 'Impactaste el mar',
     death_pared: 'Te comiste la ladera',
@@ -325,7 +325,9 @@ export const STRINGS = {
     ctrlGas: 'GAS (subir)',     ctrlGasK: 'W',                  ctrlGasP: 'stick izq arriba',
     ctrlDive: 'PICADA',         ctrlDiveK: 'S',                 ctrlDiveP: 'stick izq abajo',
     ctrlGun: 'CAÑON',           ctrlGunK: 'X · ESPACIO · K',    ctrlGunP: 'R1   ·   ✕',
-    ctrlMsl: 'MISIL',           ctrlMslK: 'Z   ·   TAB',        ctrlMslP: 'L1   ·   □',
+    // BOMBA y no MISIL (12/9): lo que el avion lleva colgado y lo que suelta es una bomba —el
+    // estante del tablero la dibuja—. MISIL quedo para lo que te tiran a vos.
+    ctrlMsl: 'BOMBA',           ctrlMslK: 'Z   ·   TAB',        ctrlMslP: 'L1   ·   □',
     ctrlBoost: 'TURBO',         ctrlBoostK: 'SHIFT   ·   C',    ctrlBoostP: 'gatillo',
     ctrlBrake: 'FRENO',         ctrlBrakeK: 'F',                ctrlBrakeP: 'L2',
     ctrlTurn: 'VIRAJE DE COMBATE', ctrlTurnK: 'R',              ctrlTurnP: '◯',
@@ -335,9 +337,9 @@ export const STRINGS = {
     ctrlMoves: 'PIRUETAS',      ctrlMovesK: 'secuencias de toques', ctrlMovesP: 'los dos sticks',
     ctrlHands: 'zigzag: mano izq · rolidos: mano der', ctrlHandsK: '', ctrlHandsP: '',
     ctrlWasd: 'con MIRA MOVIL, las flechas vuelven a volar', ctrlWasdK: '', ctrlWasdP: '',
-    // en la PASADA no hay controles nuevos: el boton del MISIL suelta la ristra de bombas
+    // en la PASADA no hay controles nuevos: el mismo boton suelta la ristra entera
     ctrlArena: 'FRENO, VIRAJE y ENERGIA: solo en el climax', ctrlArenaK: '', ctrlArenaP: '',
-    ctrlBombs: 'en la PASADA, el MISIL suelta las bombas', ctrlBombsK: '', ctrlBombsP: '',
+    ctrlBombs: 'en la PASADA, la BOMBA suelta la ristra', ctrlBombsK: '', ctrlBombsP: '',
     ctrlSame: 'esta tabla vale IGUAL en los cuatro modos', ctrlSameK: '', ctrlSameP: '',
     ctrlBoth: 'todo se juega con teclado O con joystick, sin excepcion', ctrlBothK: '', ctrlBothP: '',
     ctrlAim: 'MIRA fija/movil', ctrlAimK: 'CAPS LOCK · mouse',  ctrlAimP: 'siempre fija',
@@ -406,7 +408,7 @@ export const STRINGS = {
     mom_pass: 'PASADA {n}/{m}', mom_clear: 'PASADA COMPLETA!', mom_next: 'PROXIMA PASADA >>',
     // ARENA: el asalto volado en 3D (climax con three.js; sin 3D rige el momentum clasico)
     arena_hint: 'MORRO [W]/[S] · ROLA Y VIRA [Q]/[E] · FRENO [F] · MEDIA VUELTA [R] · ENERGIA [G] · [X] FUEGO · [Z] PINTA Y SOLTA',
-    arena_uturn: 'MEDIA VUELTA', arena_sweet: 'GIRO CORTO', arena_reload: 'PASADA LIMPIA  ·  +1 MISIL',
+    arena_uturn: 'MEDIA VUELTA', arena_sweet: 'GIRO CORTO', arena_reload: 'PASADA LIMPIA  ·  +1 BOMBA',
     // reparto de energia (S1): los nombres son cortos porque comparten renglon con el tablero
     arena_pip_eq: 'EQUILIBRADO', arena_pip_mot: 'MOTOR', arena_pip_arm: 'ARMAS',
     // el latido (E6): la ventana de castigo y el aviso de defensa cercana
@@ -1315,7 +1317,7 @@ export const STRINGS = {
     ctrlGas: 'THROTTLE (climb)', ctrlGasK: 'W',                 ctrlGasP: 'left stick up',
     ctrlDive: 'DIVE',           ctrlDiveK: 'S',                 ctrlDiveP: 'left stick down',
     ctrlGun: 'CANNON',          ctrlGunK: 'X · SPACE · K',      ctrlGunP: 'R1   ·   ✕',
-    ctrlMsl: 'MISSILE',         ctrlMslK: 'Z   ·   TAB',        ctrlMslP: 'L1   ·   □',
+    ctrlMsl: 'BOMB',            ctrlMslK: 'Z   ·   TAB',        ctrlMslP: 'L1   ·   □',
     ctrlBoost: 'BOOST',         ctrlBoostK: 'SHIFT   ·   C',    ctrlBoostP: 'trigger',
     ctrlBrake: 'AIRBRAKE',      ctrlBrakeK: 'F',                ctrlBrakeP: 'L2',
     ctrlTurn: 'COMBAT TURN',    ctrlTurnK: 'R',                 ctrlTurnP: '◯',
@@ -1326,7 +1328,7 @@ export const STRINGS = {
     ctrlHands: 'zigzags: left hand · rolls: right hand', ctrlHandsK: '', ctrlHandsP: '',
     ctrlWasd: 'with FREE SIGHT, the arrows fly again', ctrlWasdK: '', ctrlWasdP: '',
     ctrlArena: 'AIRBRAKE, TURN and PIPS: climax only', ctrlArenaK: '', ctrlArenaP: '',
-    ctrlBombs: 'in the PASS, the MISSILE drops the bombs', ctrlBombsK: '', ctrlBombsP: '',
+    ctrlBombs: 'in the PASS, the BOMB drops the stick', ctrlBombsK: '', ctrlBombsP: '',
     ctrlSame: 'this table is the SAME in all four modes', ctrlSameK: '', ctrlSameP: '',
     ctrlBoth: 'everything is playable on keyboard OR gamepad, no exceptions', ctrlBothK: '', ctrlBothP: '',
     ctrlAim: 'SIGHT fixed/free', ctrlAimK: 'CAPS LOCK · mouse', ctrlAimP: 'always fixed',
@@ -1381,7 +1383,7 @@ export const STRINGS = {
     mom_pass: 'PASS {n}/{m}', mom_clear: 'PASS COMPLETE!', mom_next: 'NEXT PASS >>',
     // ARENA: the flown 3D assault (three.js climax; without 3D the classic momentum runs)
     arena_hint: 'NOSE [W]/[S] · ROLL & TURN [Q]/[E] · BRAKE [F] · U-TURN [R] · POWER [G] · [X] FIRE · [Z] PAINT & RELEASE',
-    arena_uturn: 'U-TURN', arena_sweet: 'TIGHT TURN', arena_reload: 'CLEAN PASS  ·  +1 MISSILE',
+    arena_uturn: 'U-TURN', arena_sweet: 'TIGHT TURN', arena_reload: 'CLEAN PASS  ·  +1 BOMB',
     arena_pip_eq: 'BALANCED', arena_pip_mot: 'ENGINE', arena_pip_arm: 'WEAPONS',
     arena_open: '! EXPOSED !', arena_bubble: 'CLOSE-IN DEFENCE',
     arena_msl: '! MISSILE !',

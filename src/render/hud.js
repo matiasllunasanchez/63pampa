@@ -494,6 +494,7 @@ const VEL_TOPE = 1400;              // km/h: pasa Mach 1 (1200) con aire; la pos
 // aguja pasaba media mision clavada en cero, que en un tablero se lee como un instrumento roto.
 const MACH_DE = 0.2, MACH_A = 1.4;
 const RACK_W = 12;
+const BOMBA_W = 10;          // la bomba del estante: 10x5, y la placa mide 12 (1 px de aire a cada lado)
 // LOS DOS MAXIMOS DEL AVION, en km/h: sin turbo y con turbo, con la racha y el tiempo de vuelo al
 // tope y sin viento en contra. Son las dos marcas de la escala de velocidad (ver drawHUD). Salen de
 // `speedTarget`, la misma cuenta con la que vuela: si algun dia cambia la fisica, las marcas la
@@ -1200,12 +1201,51 @@ function drawRadar(x, y, w, visto) {
   ctx.font = avisoFont(9); ctx.textAlign = 'left';
   ctx.fillStyle = visto ? (Math.sin(run.t * 14) > 0 ? P.warn : '#7d2f1e') : P.dim;
   ctx.fillText('RADAR', x0 + 3, y + 9);                   // la misma palabra en los dos idiomas
-  const bx = x0 + 3 + Math.ceil(ctx.measureText('RADAR').width) + 4, bw = x0 + w - 3 - bx;
+  // EL MISIL AL FINAL DE LA BARRA (12/9). La barra decia cuanto le falta al radar para fijarte,
+  // pero no QUE pasa cuando llega: ahora el final de la escala lo dice con el dibujo de la cosa
+  // que sale. Es el mismo criterio que la marca de emergencia al final del reloj de la Chancha —
+  // el fondo de la escala es un hecho, no un numero— y el mismo misil en miniatura del estante,
+  // pero con la ojiva a la IZQUIERDA: este viene hacia vos.
+  const mx = x0 + w - 3 - MSL_ICO_W;
+  // el piso de 10 es por la placa angosta: con un solo avion en el escuadron la columna mide el
+  // minimo, y ahi la palabra y el misil se comen casi todo el renglon. Antes que una barra de 1 px,
+  // que el misil se le monte un poco encima: sigue siendo el final de la escala.
+  const bx = x0 + 3 + Math.ceil(ctx.measureText('RADAR').width) + 4, bw = Math.max(10, mx - 2 - bx);
   px(bx, y + 4, bw, 3, BAL_APAGADA);
   px(bx, y + 4, Math.round(bw * Math.max(0, Math.min(1, run.detection))), 3, P.warn);
   if (run.radarWave > 0) px(bx + Math.round(bw * Math.min(0.55, 0.35 + run.radarWave * 0.03)), y + 3, 1, 5, P.accent);
+  misilChico(mx, y + 5, salioMisil());   // centrado en la fila de la barra
   return y + RADAR_H + AIRE;
 }
+
+/** ¿ACABA DE SALIR UNA OLEADA? La barra NUNCA se ve llena: `run.detection >= 1` dispara la tanda y
+ *  en el mismo cuadro la baja al residual (systems/flight.js), asi que preguntarle a la barra si
+ *  llego al final no sirve — el cuadro que se dibuja ya la tiene abajo. Lo que si queda es la
+ *  CUENTA de oleadas: cuando cambia, el radar acaba de llegar al final. El HUD se acuerda del
+ *  numero anterior y prende el misil 1,2 s, igual que la lengueta LISTO lleva su propio reloj. */
+const MSL_ON_S = 1.2;
+let mslOn = 0, mslWave = -1, mslT = -1;
+function salioMisil() {
+  const dt = mslT < 0 || run.t < mslT ? 0 : Math.min(0.1, run.t - mslT);
+  mslT = run.t;
+  if (mslWave < 0) mslWave = run.radarWave;               // primer cuadro: adoptar, no anunciar
+  if (run.radarWave !== mslWave) { mslWave = run.radarWave; if (run.radarWave > 0) mslOn = MSL_ON_S; }
+  mslOn = Math.max(0, mslOn - dt);
+  return mslOn > 0;
+}
+
+/** EL MISIL QUE VIENE, 10x5, de la tabla de iconos (`misil`): ojiva a la izquierda, o sea hacia
+ *  vos. Apagado es la misma silueta en el gris de la placa —el pip vacio de siempre— y encendido
+ *  titila en blanco con la llama en acento, porque encendido significa que ya salio.
+ *
+ *  TITILA ENTRE LLENO Y APAGADO, no entre lleno y nada: borrandolo del todo dejaba un agujero en
+ *  el final de la escala la mitad de los cuadros, y el hueco se lee como que la marca no esta. */
+const MSL_ICO_W = 10;
+function misilChico(x, y, on) {
+  const vivo = on && Math.sin(run.t * 14) > 0;
+  iconoEn(x + (MSL_ICO_W - 1) / 2, y, 'misil', vivo ? '#e9edf0' : '#2e3c45', vivo ? P.accent : '#2e3c45');
+}
+
 
 export function drawHUD(h) {
   cajaCinta = null;   // ver cintaCaja: una caja de otro cuadro no cuenta
@@ -1497,18 +1537,14 @@ export function drawHUD(h) {
   // vacia, y los cuatro relojes del vuelo necesitaban ese lugar.
   if (pide(run.msl < MSL_MAX)) {
     plate(xRack, CUADROS_Y, RACK_W, CUADRO);
+    // CADA PIP ES LA BOMBA, 10x5 y de la tabla de iconos (12/9, con foto de la maqueta del autor):
+    // cuerpo gordo, punta pintada y aletas de cola cuadradas. La anterior media 7x3 —una rayita con
+    // un pixel de ojiva— y a ese tamaño no era nada. Cargada va blanca con la punta amarilla;
+    // vacia, la MISMA silueta en el gris de la placa: el hueco dice que falta ESO.
     for (let i = 0; i < MSL_MAX; i++) {
-      const on = i < run.msl, bx = xRack + 3, by = CUADROS_Y + 5 + i * 7;
-      if (on) {
-        px(bx + 1, by, 5, 2, '#e9edf0');                      // cuerpo blanco
-        px(bx + 6, by, 1, 2, '#9aa3ab');                      // ojiva gris
-        px(bx + 1, by, 5, 1, '#ffffff');                      // brillo del canto
-        px(bx, by + 2, 2, 1, '#c9d0d6');                      // aleta
-        px(bx - 1, by, 1, 2, P.accent);                       // llama
-      } else {
-        ctx.fillStyle = '#2e3c45';
-        ctx.fillRect(bx, by, 7, 1); ctx.fillRect(bx, by + 1, 1, 1); ctx.fillRect(bx + 6, by + 1, 1, 1);
-      }
+      const on = i < run.msl;
+      iconoEn(xRack + 1 + (BOMBA_W - 1) / 2, CUADROS_Y + 5 + i * 8, 'bomba',
+        on ? '#e9edf0' : '#2e3c45', on ? undefined : '#2e3c45');
     }
   }
 

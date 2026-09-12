@@ -34,6 +34,8 @@ exacto o ×3** entra sin medio píxel; cualquier otro se escala y pierde el filo
 | `alt` | el reloj de altitud | 7 × 7 | 21 × 21 | flecha que sube desde una línea (el agua) |
 | `gas` | el reloj de gas (RPM) | 5 × 7 | 15 × 21 | palanca de gas |
 | `vida` | el reloj de salud, escala de arriba (la chapa) | 6 × 6 | 18 × 18 | cruz **blanca** (la roja es un emblema protegido) |
+| `bomba` | cada lugar del estante de bombas del avión | 10 × 5 | 30 × 15 | bomba de costado, **proa a la derecha**: cuerpo gordo, punta pintada, aletas de cola |
+| `misil` | el final de la escala del radar: lo que te tiran | 10 × 5 | 30 × 15 | misil de costado, **ojiva a la izquierda** (viene hacia el jugador), con llama atrás |
 | `ola` | el reloj de salud, escala de abajo en ESCUADRÓN (el agua) | 6 × 2 | 18 × 6 | una línea de ola, bien chata (arriba y abajo hay marcas del reloj y el borde) |
 | `escudo` | el reloj de salud, escala de abajo con chapa (el escudo) | 5 × 5 | 15 × 15 | escudo; **la esquina de arriba a la derecha vacía** (al lado cae una marca del reloj) |
 | `rasante` | (sin uso desde el 12/9: el poder es una barrita celeste arriba del avatar) | 6 × 6 | 18 × 18 | avión rozando olas |
@@ -63,12 +65,12 @@ nafta     chancha   emergencia  canon     vida     ola      rasante  momentum
 .###.#.             ##+##                 ..##..            .#.#.#   #####
 #####..             .###.
 
-escudo
-####.
-#####
-#####
-.###.
-..#..
+escudo   bomba         misil
+####.    ##........    ...#...##.
+#####    #########.    ..#######.
+#####    #########+    #########+
+.###.    #########.    ..#######.
+..#..    ##........    ...#...##.
 
 vel       turbo     mach    alt       gas
 #...#..   ##.##..   #...#   ...#...   .###.

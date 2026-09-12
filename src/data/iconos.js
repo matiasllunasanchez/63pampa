@@ -182,6 +182,34 @@ export const ICONOS = {
     '.###.',
     '..#..',
   ] },
+  // LA BOMBA del estante del avion (12/9, con foto de una maqueta en la mano del autor): cuerpo
+  // gordo y redondo, ojiva ROMA con la punta pintada —el '+' es el amarillo de la punta— y las
+  // ALETAS DE COLA grandes y cuadradas, separadas del cuerpo por el vastago. La panza es lo unico
+  // que no se ve en la foto y se dibuja igual que el lomo: a 5 px de alto no hay sombra posible.
+  // Las aletas son el ENSANCHE del cuerpo en la cola, sin hueco en el medio: dibujadas como
+  // cuatro paletas sueltas formaban una X (un damero), y separadas del cuerpo por el vastago se
+  // leian como dos cosas distintas —una barrita y un rectangulo—. Pegadas, es un solo objeto.
+  // Apunta a la DERECHA, que es para donde vuela el avion.
+  bomba: { letra: 'B', png: null, col2: '#f2cf4a', pix: [
+    '##........',
+    '#########.',
+    '#########+',
+    '#########.',
+    '##........',
+  ] },
+  // EL MISIL QUE VIENE, al final de la escala del radar (ver hud.js, drawRadar). Un misil COMUN
+  // (segunda foto del autor) y al reves que la bomba: apunta a la IZQUIERDA, hacia vos. Cuerpo
+  // fino y largo, ojiva en punta, los aletines chicos cerca de la punta —a un cuarto del morro,
+  // como en la foto—, el bloque de aletas de cola grande atras, y la llama —el '+'— saliendo.
+  // La ojiva son DOS pixeles de punta y no uno: con uno, el cuerpo arrancaba de golpe con sus
+  // tres pixeles de espesor y el morro se leia romo, o sea como una bomba.
+  misil: { letra: 'M', png: null, col2: '#e8a33d', pix: [
+    '...#...##.',
+    '..#######.',
+    '#########+',
+    '..#######.',
+    '...#...##.',
+  ] },
   rasante: { letra: 'R', png: null, pix: [                      // un avion rozando las olas
     '..#...',
     '######',
