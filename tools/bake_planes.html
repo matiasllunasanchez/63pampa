@@ -77,7 +77,22 @@
     // Se corrige levantandole la nariz al MODELO hasta que su eje quede horizontal DENTRO del
     // frame. El numero no se eligio a ojo: se horneo un barrido y se midio el angulo del eje
     // sobre el alfa (la punta mas a la derecha contra el centroide del naranja del escape).
-    const RAS_PITCH = 6;
+    //
+    // EL NUMERO SUBIO DE 6 A 20, Y NO POR LA CUENTA: POR EL OJO. Con 6 el eje quedaba en -2° —
+    // recto, medido— y Matias igual lo veia "mirando hacia abajo como queriendose estrellar en el
+    // agua". Tenia razon, y la explicacion es que RECTO NO ES LO MISMO QUE BIEN: un avion volando
+    // a ras a 900 km/h va con la trompa ARRIBA, sosteniendose con angulo de ataque, no clavado en
+    // la horizontal. Un sprite perfectamente horizontal sobre un mar que corre se lee cayendo.
+    //
+    // El valor salio de la pantalla y no de un barrido: la pose que Matias aprobo ("asi estoy
+    // manteniendo hacia arriba y QUEDA BIEN") era LA FILA 0 de la horneada anterior, o sea
+    // 14 + 6 = 20. Se adopta ese numero como base y las tres filas se corren con el:
+    //     fila 0 (trepa) = 34   ·   fila 1 (nivel) = 20   ·   fila 2 (pica) = 6
+    // La fila de arriba queda MAS en punta —que es lo que pidio para "el que es arriba de
+    // verdad"— y la de abajo queda donde estaba la base, que es un cabeceo suave y no una picada:
+    // durante el poder el resorte te tiene contra el agua y una trompa clavada abajo ahi seria
+    // mentira.
+    const RAS_PITCH = 20;
     // Y LA COMPENSACION DE ALABEO, que aparecio despues y por el mismo camino: Matias vio el
     // avion "como tocando el agua con un ala, como si estuviese doblando". Tambien es cierto, y
     // tambien es la proyeccion — en un tres cuartos REAL las alas NO quedan horizontales en
