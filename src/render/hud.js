@@ -633,6 +633,12 @@ function drawADI() {
 // parpadea se ve DE REOJO, que es como se mira un tablero mientras se vuela. Todos titilan EN FASE
 // (el mismo reloj): dos alarmas a la vez se leen como una alarma, no como un arbolito.
 const CRIT_HZ = 3;
+// EL VERDE DE "LISTA" (playtest 12/9): cuando la Chancha llega al 100% deja el ambar y se pone
+// VERDE —aguja, numero, icono y borde—, y en vez de TITILAR (que es el idioma del peligro, ver
+// bordeCritico) PARPADEA LENTO: dos tonos del mismo verde, ciclo de casi tres segundos, que es lo
+// que hace una luz de "listo" en un tablero de verdad.
+const LISTO_HZ = 2.2, LISTO = ['#7fe08d', '#3b7d47'];
+const verdeListo = () => LISTO[Math.sin(run.t * LISTO_HZ) > 0 ? 0 : 1];
 
 // EL VIDRIO ROTO (playtest 11/9): un reloj que ya no puede decir lo que decia se dibuja RAJADO. Hoy
 // lo usa la velocidad cuando la averia le saco el turbo para siempre — la marca naranja del tope con
@@ -889,9 +895,11 @@ export function drawSquadPips(x, y) {
   plate(x, y, anchoSquad(), SQUAD_H);
   for (let i = 0; i < run.squad; i++) {
     const ax = x + 3 + i * SQ_PASO, down = i < fallen;
-    // el que vuela, en acento; los que esperan, claros; los caidos, oscuros y tachados en rojo
+    // el que vuela, en acento; los que esperan, claros; los caidos, SOLO en gris oscuro. El tachado
+    // rojo encima se comia el avion y gritaba mas que el escuadron entero (pedido del autor, 12/9):
+    // que la silueta siga ahi, apagada, ya dice que ese no vuelve — y es lo que se pidio desde el
+    // principio (un compañero menos, no un numero menos), sin el subrayado.
     iconoEn(ax + 3, y + 5, 'avion', down ? '#3a4750' : i === fallen ? P.accent : P.foam);
-    if (down) pxLinea(ax, y + 7, ax + 6, y + 3, P.warn);
   }
   // EL NOMBRE DEL QUE VUELA, EN ACENTO. Estaba en `dim` —el gris de los rotulos— y ahi el piloto
   // era una etiqueta mas. Es la unica persona que hay en el HUD: va del color del que manda.
@@ -1271,15 +1279,22 @@ export function drawHUD(h) {
     // pedir. Con una cita en curso el numero cuenta lo que importa — cuanto falta para que llegue,
     // cuanto dura la ventana, o cuanto tanque va entrando.
     const enCita = !!ch && (ch.fase === 'eta' || ch.conn || ch.win > 0);
+    // LISTA: cargada al tope, sin gastar y sin cita en curso. Todo el reloj se pone verde (ver
+    // verdeListo): es la unica luz del tablero que dice "esto ya lo podes usar".
+    const lista = cv >= 1 && !gastada && !enCita, verde = verdeListo();
     reloj(xCha, CUADROS_Y, {
       val: gastada ? 0 : cv, ico: 'chancha', fin: 'emergencia',
       critico: !!ch && ch.fase === 'cita' && ch.win < 8,     // la ventana de la cita se esta cerrando
-      finCol: cv >= 1 && !gastada ? (Math.sin(run.t * 7) > 0 ? P.accent : P.foam) : P.warn,
-      col: gastada ? P.dim : cv >= 1 ? (Math.sin(run.t * 7) > 0 ? P.foam : P.crest) : P.crest,
+      icoCol: lista ? verde : P.dim,
+      borde: lista ? verde : null,
+      finCol: lista ? verde : P.warn,
+      // LA AGUJA SE QUEDA BLANCA (pedido del autor, 12/9): el verde lo dicen el borde, el icono y el
+      // numero. Teñirla tambien era pintar de verde el unico trazo que se lee como MEDIDA.
+      col: gastada ? P.dim : lista ? P.foam : P.crest,
       txt: enCita ? (ch.fase === 'eta' ? Math.ceil(ch.eta) + 's'
         : ch.conn ? Math.round(run.fuel) + '%' : Math.ceil(Math.max(0, ch.win)) + 's')
         : Math.round(cv * 100) + '%',
-      txtCol: ch && ch.conn ? P.accent : ch && ch.fase === 'cita' && ch.win < 8 ? P.warn : P.dim });
+      txtCol: lista ? verde : ch && ch.conn ? P.accent : ch && ch.fase === 'cita' && ch.win < 8 ? P.warn : P.dim });
   }
 
   // ---- SALUD (izquierda, bajo la cara) y el CAÑON (derecha, con lo que se carga) ----------------

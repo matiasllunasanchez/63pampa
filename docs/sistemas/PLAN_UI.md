@@ -711,6 +711,20 @@ está puesto **sale el texto de atrás de él**, hacia la izquierda (el 45 % del
 retrato y el resto del texto, 0,34 s en total). Al irse pasa al revés: el texto se guarda detrás del
 retrato y después el retrato se va. Es el gesto de alguien que aparece y después habla, y de paso el
 ojo llega a la cara antes que a la letra.
+
+## 2a. La Chancha lista se pone verde, y los caídos pierden el tachado _(aplicada)_
+
+Dos pedidos del 12/9:
+
+- **La Chancha al 100 % deja el ámbar y se pone verde**: número, ícono, la marca de emergencia del
+  final de la escala y el borde del cuadro. **La aguja se queda blanca** (pedido del autor): teñirla
+  también era pintar de verde el único trazo que se lee como *medida*. Y en vez de **titilar** —que es el idioma del peligro
+  (§1w)— **parpadea lento**: dos tonos del mismo verde, ciclo de casi tres segundos, que es lo que
+  hace una luz de "listo" en un tablero de verdad. Es la única luz verde del HUD, y dice una sola
+  cosa: esto ya lo podés usar.
+- **Los aviones caídos del escuadrón pierden el tachado rojo** y quedan sólo en gris oscuro. El
+  tachado se comía la silueta y gritaba más que el escuadrón entero; la silueta apagada ya dice que
+  ése no vuelve, que era la idea desde el principio (un compañero menos, no un número menos).
 - **La marca de Mach 1 se fue de la velocidad**: el Mach tiene su propio reloj, con la suya.
 
 
