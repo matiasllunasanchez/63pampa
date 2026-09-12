@@ -17,17 +17,18 @@
 // puede dejar pasar una o dos pasadas para mirar el mundo. Dejar pasar el azul ya NO es falla: solo
 // deja de reponer, y lo que mata es que el reloj llegue a cero.
 //
-// TOCAR AFUERA DEL AZUL SI ES FALLA, y es lo unico que queda de castigo inmediato. Tiene que serlo:
-// si tocar afuera no costara nada, machacar el gas rellenaria la ventana de casualidad y toda la
-// mecanica se caeria. Tocar adentro de una pasada ya cobrada no paga NI castiga — castigarlo seria
-// desmentir el dibujo, que muestra el indicador adentro del azul.
+// TOCAR AFUERA DEL AZUL QUEMA RELOJ. Tiene que costar algo —si no, machacar el gas rellenaria la
+// ventana de casualidad y toda la mecanica se caeria— pero no tiene por que matar: se cobra en la
+// misma moneda que todo lo demas, y tres errores seguidos la vacian igual. Tocar adentro de una
+// pasada ya cobrada no paga NI castiga: castigarlo seria desmentir el dibujo, que muestra el
+// indicador adentro del azul.
 //
 // LAS DOS SALIDAS LIMPIAS —picar, o aguantar el gas apretado un segundo— no castigan: el jugador
 // esta diciendo "me llevo lo que gane".
 import { run } from '../core/run.js';
 import { plane } from '../core/state.js';
 import { inp } from '../core/input.js';
-import { AGU, ancho, vel, mult, nivel, pos, dentro, sector, ventana } from '../core/aguante.js';
+import { AGU, ancho, vel, mult, nivel, pos, dentro, sector, ventana, castigo } from '../core/aguante.js';
 import { RAS_ALT } from '../data/tuning.js';
 
 const BANDA = 4.5;          // el techo de la banda del x10, el mismo de siempre (core/util.js)
@@ -35,6 +36,11 @@ const CLAVO = 12;           // rate del resorte que clava la altura: duro, que d
 
 let prevU = false;          // el gas del cuadro anterior, para el flanco
 let armado = false;         // el indicador entro al sector y todavia nadie lo toco
+// EL DEDO QUE YA VENIA. Al estado se entra casi siempre CON EL GAS APRETADO —es como te mantenias
+// a ras—, asi que hasta que el jugador lo suelte no cuenta nada: ni el flanco (seria un toque que
+// no dio) ni el reloj de la salida (lo sacaria solo al segundo de haber entrado). Se limpia en
+// cuanto suelta, que es el momento en que el gas pasa a ser suyo otra vez.
+let esperandoSoltar = false;
 
 export const activo = () => run.aguante === 1;
 /** ¿El sector esta ARMADO —el indicador entro y nadie lo toco—? Solo para la sonda `__agudbg`
@@ -47,13 +53,15 @@ export const alturaClavada = () => run.aguY;
 
 export function resetAguante() {
   run.aguante = 0; run.aguN = 0; run.aguSec = 0; run.aguF = 0; run.aguHold = 0;
-  run.aguY = 0; run.aguGolpe = -9; run.aguVen = 0;
-  prevU = false; armado = false;
+  run.aguY = 0; run.aguGolpe = -9; run.aguVen = 0; run.aguGra = 0;
+  prevU = false; armado = false; esperandoSoltar = false;
 }
 
 function entrar() {
   run.aguante = 1; run.aguN = 0; run.aguF = 0; run.aguHold = 0; run.aguGolpe = -9;
   run.aguVen = ventana(0);                    // la ventana arranca LLENA: entras con crucero puesto
+  run.aguGra = AGU.GRACIA;                    // …y con la gracia puesta, por el dedo que ya venia
+  esperandoSoltar = !!inp.u;
   // EL SECTOR ARRANCA SORTEADO, sin anterior del que escapar (el -1 dice "no habia").
   const w = ancho(0);
   run.aguSec = sector(w, Math.random(), -1);
@@ -69,7 +77,7 @@ function entrar() {
 }
 
 function salir() {
-  run.aguante = 0; run.aguHold = 0; armado = false;
+  run.aguante = 0; run.aguHold = 0; run.aguGra = 0; armado = false; esperandoSoltar = false;
 }
 
 /** Un acierto: premio, sector nuevo (lejos del que habia) y la dificultad un paso arriba. */
@@ -98,11 +106,14 @@ export function tickAguante(dt, enBanda) {
     return null;
   }
 
+  if (!u) esperandoSoltar = false;            // solto: el gas vuelve a ser suyo
+  run.aguGra = Math.max(0, run.aguGra - dt);
+
   // SALIRSE A PROPOSITO. Picar es inequivoco y sale ya. Aguantar el gas apretado un segundo es la
-  // otra puerta: el flanco de ese mismo gas ya se conto arriba como toque, asi que si el toque fue
-  // bueno te vas con el premio puesto, y si fue malo la falla te saco antes de llegar al segundo.
+  // otra puerta — pero SOLO si la apretada empezo despues de entrar: si contara la que ya venia,
+  // entrar con el gas puesto te sacaria solo un segundo despues, sin que el jugador pida nada.
   if (inp.d) { salir(); return 'sale'; }
-  run.aguHold = u ? run.aguHold + dt : 0;
+  run.aguHold = u && !esperandoSoltar ? run.aguHold + dt : 0;
   if (run.aguHold >= AGU.SALIR_S) { salir(); return 'sale'; }
 
   // PERDER LA ALTURA TAMBIEN TERMINA EL ESTADO, y no es falla: puede pasarte por una ola, por una
@@ -119,10 +130,15 @@ export function tickAguante(dt, enBanda) {
   // pasada se cobre UNA vez. Se arma al entrar al sector y se desarma con el toque.
   if (!estabaDentro && estaDentro) armado = true;
 
-  if (flanco) {
+  if (flanco && !esperandoSoltar && run.aguGra <= 0) {
     if (estaDentro && armado) { acertar(); return 'acierta'; }
     if (estaDentro) return null;                           // pasada ya cobrada: ni paga ni castiga
-    salir(); run.streak = 0; return 'falla';                // tocar afuera del azul
+    // TOCAR AFUERA DEL AZUL QUEMA RELOJ, no mata. La ventana es la unica moneda del estado, asi
+    // que el error se cobra ahi: si lo que quedaba no alcanza para pagarlo, se cierra y ES la
+    // falla — pero es la MISMA falla de siempre, y el jugador la vio venir en la barra.
+    run.aguVen = Math.max(0, run.aguVen - castigo(run.aguN));
+    if (run.aguVen <= 0) { salir(); run.streak = 0; return 'falla'; }
+    return 'castigo';
   }
 
   // EL RELOJ DE LA VENTANA. Se vacia con el dt del mundo, como todo lo que se cuenta en segundos

@@ -2213,6 +2213,23 @@ test('aguante: la ventana se cierra, pero siempre deja saltear al menos una pasa
     assert.ok(pasadasSalteables(n) > 1, `en ${n} aciertos hay que acertar todas las pasadas`);
 });
 
+test('aguante: errar quema reloj, y tres errores seguidos vacian la ventana', async () => {
+  const { AGU, ventana, castigo, toquesMalos } = await import('../src/core/aguante.js');
+  for (let n = 0; n < 40; n++) {
+    assert.ok(castigo(n) > 0, `en ${n} aciertos errar no cuesta nada`);
+    assert.ok(castigo(n) < ventana(n), `en ${n} aciertos un solo error vacia la ventana entera`);
+    // EL MACHAQUE TIENE QUE MORIR: si errar sale casi gratis, apretar el gas sin parar acierta de
+    // casualidad cada tanto y el estado se sostiene solo. Tres errores seguidos = afuera.
+    assert.ok(toquesMalos(n) <= 3, `en ${n} aciertos hacen falta ${toquesMalos(n)} errores: machacar sale gratis`);
+    // …y tampoco puede matar de uno: el pedido era justamente que un toque nervioso no borre todo.
+    assert.ok(toquesMalos(n) >= 2, `en ${n} aciertos un solo error mata`);
+  }
+  // el castigo es FRACCION de la ventana, asi que pesa lo mismo al entrar que en la meseta
+  const p0 = castigo(0) / ventana(0), p9 = castigo(30) / ventana(30);
+  assert.ok(Math.abs(p0 - p9) < 1e-9, 'el castigo dejo de ser proporcional a la ventana');
+  assert.ok(AGU.GRACIA > 0.2, 'la gracia de la entrada tiene que alcanzar para un reflejo (>200 ms)');
+});
+
 test('aguante: el indicador va y vuelve sin saltos, y a velocidad constante', async () => {
   const { pos } = await import('../src/core/aguante.js');
   assert.ok(Math.abs(pos(0) - 0) < 1e-9, 'la fase 0 tiene que arrancar en una punta');

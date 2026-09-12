@@ -2,7 +2,7 @@
 
 > Archivos: `src/core/aguante.js` (puro), `src/systems/aguante.js` (el estado),
 > `src/systems/flight.js` (el enganche), `src/render/hud.js` (la palabra y las dos barras),
-> `tools/unit.js` (cuatro tests).
+> `tools/unit.js` (cinco tests).
 
 ## 1. Qué problema resuelve
 
@@ -53,6 +53,7 @@ Medido jugando (cifras de la sonda `__agudbg`):
 | ancho del sector | 0,36 de la barra | 0,235 | 0,16 (piso) | 0,16 | 0,16 |
 | **margen para acertar** | **0,36 s** | 0,168 s | 0,098 s | 0,089 s | **0,076 s** |
 | **ventana** | **3,00 s** | 2,20 s | 1,72 s | 1,40 s | **0,90 s** (piso) |
+| lo que cuesta errar | 1,05 s | 0,77 s | 0,60 s | 0,49 s | 0,32 s |
 | pasadas salteables | 3,0 | 2,4 | 2,8 | 2,4 | 1,9 |
 | multiplicador | x10 | x25 | x34 | **x40** (tope) | x40 |
 | escalón de la física | 0 | **4** (tope) | 4 | 4 | 4 |
@@ -90,20 +91,53 @@ parejo, en la punta son dos pasadas juntas y un hueco— y decidió dejarlo salt
 
 ## 5. Cómo se pierde y cómo se sale
 
+Hay **una sola** forma de perder: que la ventana llegue a cero.
+
 | | qué pasa |
 |---|---|
 | **la ventana llega a cero** | **falla**: se corta el crucero y la carga vuelve a cero |
-| **tocar afuera del azul** | **falla**, ídem — y es inmediato |
+| tocar afuera del azul | **quema 35% de la ventana** — y si no alcanza, ésa es la falla |
 | dejar pasar el azul sin tocar | **nada**: sólo deja de reponer la ventana |
 | tocar adentro de una pasada ya cobrada | **nada**: no paga ni castiga |
+| tocar en el primer medio segundo | **nada**: es la gracia de la entrada (ver abajo) |
 | rozar el agua o el suelo | **falla** (`flight.js`, el bloque del roce) |
 | picar (`S`) | **salida limpia**: se corta, sin castigo |
 | aguantar el gas 1 s | **salida limpia**: «me llevo lo que gané» |
 | perder la altura | se corta, sin castigo — puede pasarte por una ola o una pirueta |
 | relevo del escuadrón | el estado no se hereda (`systems/squad.js`) |
 
-**Tocar afuera del azul tiene que ser falla**, y es el único castigo inmediato que queda. Si no
-costara nada, machacar el gas rellenaría la ventana de casualidad y toda la mecánica se caería.
+**Errar tiene que costar algo, pero no tiene por qué matar.** Si tocar afuera saliera gratis,
+machacar el gas rellenaría la ventana de casualidad y la mecánica se caería; si mata de un toque,
+un nervio borra veinte segundos de vuelo. El castigo es **fracción de la ventana entera** y no un
+número fijo: con un fijo, el mismo error costaba un tercio al entrar y casi todo en la meseta — el
+castigo crecía solo justo cuando ya es difícil. Medido jugando: cada error se come ~0,95 s de una
+ventana de 2,7, y el estado sigue. Hay test que exige que **dos** errores no alcancen para matar y
+que **tres** sí, en cualquier punto de la curva.
+
+## 5b. La gracia de la entrada, y el dedo que ya venía
+
+Dos versiones del mismo problema, las dos encontradas por el autor jugando:
+
+**El reflejo.** Venís bombeando el gas para no rebotar contra el agua. El estado se abre, el avión
+se clava —o sea que el gas ya no hace falta— pero **tu dedo ya salió**: ese toque cae afuera del
+azul. Sin arreglo, el reflejo que te mantuvo vivo los cuatro segundos anteriores es el que te
+castiga en el instante en que entrás. Los primeros **0,5 s** del estado ignoran los flancos del
+gas: no cuentan ni bien ni mal.
+
+**El dedo apretado.** Al estado se entra casi siempre **con el gas ya apretado**, y el reloj de la
+salida a propósito («aguantar el gas 1 s») ya estaría corriendo: un segundo después te sacaría solo,
+sin que el jugador pida nada. Así que **nada cuenta hasta que suelte**: ni el flanco ni el reloj de
+la salida. Se limpia en cuanto suelta, que es el momento en que el gas vuelve a ser suyo.
+
+Medido: entrando con el gas apretado y sin soltarlo, a los 1,7 s el estado sigue puesto y el reloj
+de salida marca 0.
+
+**Se descartó mudar el toque a otro botón** (hay libres: ○ y △ en el mando). Dos razones: la
+identidad de la mecánica es que **el gas es el metrónomo** —el premio por acertar es que el avión
+deja de rebotar, o sea que el gas cambia de oficio mientras estás adentro— y con el toque en otro
+botón el control del avión queda en punto muerto, que es justo lo que el spec del poder rasante se
+prohíbe («no es autopiloto»). Y porque mudar el botón no atacaba la causa: el problema era la
+transición, no el botón. Queda como plan B si en el playtest con manos humanas sigue molestando.
 
 **Tocar adentro de una pasada ya cobrada no hace nada.** Castigarlo sería castigar por tocar donde la
 barra **muestra** el indicador adentro del azul, o sea desmentir el dibujo.

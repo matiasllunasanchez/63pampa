@@ -347,6 +347,11 @@ export function flightSystem(dt, deps) {
       const a = Math.random() * 6.283;
       streaks.push({ a, r: 24 + Math.random() * 16, v: 280 + Math.random() * 180, life: 0.5 });
     }
+  } else if (sigAgu === 'castigo') {
+    // TOCO AFUERA DEL AZUL: no se cae, pero se le quemo reloj. Un chasquido corto y seco, bien
+    // distinto del grave de la falla: tiene que decir "erraste" sin sonar a final.
+    beep(190, 0.06, 'square', 0.05, 150);
+    run.shake = Math.min(6, run.shake + 0.35);
   } else if (sigAgu === 'falla') {
     run.rasLevel = 0;
     beep(240, 0.16, 'square', 0.05, 90);                     // grave y hacia abajo: se cayo

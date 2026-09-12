@@ -7,7 +7,9 @@
 // la altura (crucero: se va el rebote del pulso de gas) mientras le quede VENTANA. La ventana se
 // vacia sola, y acertar el sector azul con un toque de gas la vuelve a llenar y sube el
 // multiplicador. No hay que tocar cada pasada —eso era machacar—: hay que tocar antes de que la
-// ventana se cierre. Se pierde por dos cosas: que la ventana se vacie, o tocar afuera del azul.
+// ventana se cierre. Y se pierde por UNA sola cosa: que la ventana se vacie. Tocar afuera del azul
+// no mata, quema reloj — tres errores seguidos la vacian igual, asi que machacar sigue siendo
+// suicidio, pero un toque nervioso no te borra veinte segundos de vuelo.
 //
 // POR QUE ES PURO, Y ENTERO. Dificultad, ventana y premio son funciones de UN numero —los aciertos
 // acumulados— y nada mas. Eso es lo que deja probar la curva sin abrir el juego (tools/unit.js) y
@@ -45,6 +47,15 @@ export const AGU = {
   // y esa curva no se toca (la mide tools/unit.js). Lo que cambio es COMO se sube, no el efecto.
   NIVEL_TOPE: 4,
   SALIR_S: 1,      // s con el gas apretado para salirse a proposito, sin castigo
+  // LA GRACIA DE LA ENTRADA. Venis bombeando el gas para no rebotar contra el agua; el estado se
+  // abre, el avion se clava —o sea que el gas ya no hace falta— pero tu dedo YA SALIO. Sin esto,
+  // ese toque cae afuera del azul y te saca en el mismo instante en que entraste: el reflejo que
+  // te mantuvo vivo los cuatro segundos anteriores se vuelve el que te mata.
+  GRACIA: 0.5,
+  // EL CASTIGO por tocar afuera, en fraccion de la ventana entera. Un toque errado ya no mata: te
+  // quema reloj. Asi queda UNA sola forma de perder —que la ventana llegue a cero— y el que
+  // machaca muere igual, porque tres toques malos se la comen (ver `castigo` y su test).
+  CASTIGO: 0.35,
 };
 
 /** El ancho del sector azul con `n` aciertos encima. */
@@ -69,6 +80,14 @@ export const margen = n => ancho(n) / (2 * vel(n));
  *  ventana fija dejaria saltear cada vez MAS pasadas. Medido en pasadas salteables, la curva va de
  *  "podes saltear 2 de cada 3" a "podes saltear 1 de cada 2". */
 export const ventana = n => Math.max(AGU.VEN_MIN, AGU.VEN0 - n * AGU.VEN_K);
+
+/** LO QUE CUESTA un toque afuera del azul, en segundos de ventana. Es fraccion de la ventana
+ *  ENTERA y no un numero fijo: con un fijo, el mismo error costaba un tercio al entrar y casi todo
+ *  en la meseta, o sea que el castigo crecia solo justo cuando ya es dificil. */
+export const castigo = n => ventana(n) * AGU.CASTIGO;
+
+/** Cuantos toques afuera del azul hacen falta para vaciar una ventana llena. */
+export const toquesMalos = n => Math.ceil(ventana(n) / castigo(n));
 
 /** Cuantas pasadas del indicador entran en la ventana: la forma legible de leer la dificultad. */
 export const pasadasSalteables = n => ventana(n) * 2 * vel(n);
