@@ -7,7 +7,7 @@
 // Recibe `selPlane` (que avion eligio el jugador — estado de menu, vive en game.js) y `viewMouse`
 // (resuelve la mira segun la camara — la camara sigue en game.js). El resto lo lee de los stores.
 
-import { ctx, px, PZ, U } from './ctx.js';
+import { ctx, px, PZ, U, W, HOR } from './ctx.js';
 import { plane, cfg, S } from '../core/state.js';
 import { run } from '../core/run.js';
 import { inp } from '../core/input.js';
@@ -17,7 +17,7 @@ import { P } from '../data/palette.js';
 import { drawCono, drawVaporAla, drawCruce } from './mach.js';
 import { drawMira } from './miras.js';
 import { anchorSpray, drawSpray } from './rain.js';
-import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H } from '../data/planes.js';
+import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H, SHEET3_FW, SHEET3_FH } from '../data/planes.js';
 import { skinOf } from '../data/skins.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName, rosterActive } from '../systems/squad.js';
@@ -491,7 +491,10 @@ export function drawShadow(wx, wy, z, f) {
   ctx.globalAlpha = 1;
 }
 
-export function drawPlane(selPlane, viewMouse, camScale) {
+/** `ras` = el PODER RASANTE esta puesto. Entra por PARAMETRO y no por import a proposito: es la
+ *  convencion 4 de ARQUITECTURA (el que dibuja lee lo que el orquestador le pasa) y ademas evita
+ *  sumarle a plane.js una dependencia de systems/ que el trinquete de `lint:layers` mira. */
+export function drawPlane(selPlane, viewMouse, camScale, ras) {
   const s = proj(plane.x, plane.y, PZ);
   // EL CRUCE (PLAN_TRANSONICO V3): las rayas van en coordenadas de MUNDO y SIN la rotacion del
   // alabeo — rayan la pantalla, no el avion. Por eso se dibujan aca arriba, antes del save() que
@@ -603,6 +606,12 @@ export function drawPlane(selPlane, viewMouse, camScale) {
   // camara que rola con el. hz vale justo lo que hay que restar. Con FIJO vale 0 y todo esto se
   // comporta igual que siempre. Ver core/horizon.js.
   const hz = hzSprite();
+  // ¿SE VA A DIBUJAR CON LA HOJA DEL PODER? Se resuelve aca arriba —y no adentro de la rama— por
+  // el mismo motivo que la pose: el giro del sprite lo consume tambien la estela, que se dibuja
+  // despues del restore(). La pirueta empinada gana (ver la rama de dibujo), asi que no cuenta.
+  const skRas = ras && rosterActive() ? skinOf(pilotName(pilotIdx(run.squad, run.lives))) : null;
+  const rasTilt = !!(ras && useSheet && !run.mvSteep
+    && (skRas ? skRas.sheet3Img : pl.sheet3Ok));
   // EL GIRO TOTAL DEL SPRITE, resuelto en UN SOLO LUGAR.
   //
   // Antes cada rama llamaba a `ctx.rotate` por su cuenta y el angulo se perdia ahi adentro. La
@@ -618,10 +627,29 @@ export function drawPlane(selPlane, viewMouse, camScale) {
   const pcPose = Math.max(-1, Math.min(1, plane.pitch));
   const rowPose = pcPose > 0.33 ? 0 : pcPose < -0.33 ? 2 : 1;
   const prRoll = rolling ? Math.min(1, run.mvT / MOVES.tonel.dur) : 0;   // 0→1 durante el tonel
-  const spinTot = rolling ? run.mvRoll + hz
+  // EL SPRITE DEL PODER SE ALINEA CON EL CARRIL, no con la horizontal de la pantalla.
+  //
+  // Lo pidio Matias con el mejor criterio posible: "usa como referencia la linea roja del
+  // objetivo, tiene que quedar paralela con la trompa del avion". Y tiene razon — no es gusto,
+  // es la proyeccion. Toda recta paralela al eje +z (las lineas del carril, la estela, el
+  // fuselaje del avion) converge en el MISMO punto de fuga, que en esta proyeccion es
+  // (W/2, HOR). Durante el poder la camara se corre 10 unidades al costado, asi que el avion
+  // queda ~96 px a la izquierda de ese punto: su eje YA NO es horizontal en pantalla, apunta al
+  // punto de fuga. La hoja esta horneada con el eje recto dentro del frame, asi que lo unico que
+  // falta es girarla ese angulo.
+  //
+  // SE CALCULA, NO SE TABULA: sale de la posicion proyectada del avion, asi que acompaña solo
+  // cuando el jugador se corre por el carril (el angulo va de 12° a 26° de punta a punta). Sin el
+  // poder vale 0 y no se toca nada.
+  //
+  // No degenera: el poder garantiza `lat` = 10, o sea al menos 45 px de corrimiento — el caso
+  // patologico (avion justo sobre el eje optico, donde la direccion de fuga es vertical) no puede
+  // ocurrir mientras esta hoja se dibuja.
+  const carril = rasTilt ? Math.atan2(HOR - s.y, W / 2 - s.x) : 0;
+  const spinTot = (rolling ? run.mvRoll + hz
     : run.mvRoll ? run.mvRoll + hz + wob
     : useSheet ? wob
-    : bank * 0.42 + wob;
+    : bank * 0.42 + wob) + carril;
   ctx.rotate(spinTot);
   if (rolling) ctx.scale(0.94 + 0.06 * Math.cos(prRoll * Math.PI * 2), 1);   // leve pulso: vende el giro
   else if (!run.mvRoll && !useSheet) ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
@@ -657,15 +685,32 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     const sk = rosterActive() ? skinOf(pilotName(pilotIdx(run.squad, run.lives))) : null;
     let img = sk ? sk.sheetImg : pl.sheetImg;
     const hoja2 = sk ? sk.sheet2Img : (pl.sheet2Ok ? pl.sheet2Img : null);
+    // LA HOJA DEL PODER RASANTE. Durante el poder la camara se corre 10 unidades al costado y el
+    // avion sigue clavado en z = 14: lo mira desde 35,5° de tres cuartos, y la hoja base esta
+    // horneada de cola pura. Ahi nace el "se ve plano" — no es falta de detalle, es que el sprite
+    // le da la ESPALDA a una camara que lo ve de costado. La hoja 3 esta horneada desde ese
+    // angulo (y 10° por debajo, para que se vea la panza como en la referencia).
+    //
+    // FALLBACK REAL, no decorativo: si la hoja no cargo se sigue usando la de siempre, que es
+    // exactamente lo que se venia dibujando hasta hoy. Nada se rompe, se pierde el angulo.
+    const hoja3 = ras ? (sk ? sk.sheet3Img : (pl.sheet3Ok ? pl.sheet3Img : null)) : null;
+    // LA POSE EMPINADA GANA. Si se lanza una pirueta durante el poder, `run.mvSteep` pide la hoja
+    // 2 (cabeceos de ±32°) y el poder pide la 3: son dos hojas y un solo sprite. Gana la pirueta,
+    // porque el cabeceo es un EVENTO que el jugador acaba de teclear y el angulo de camara es un
+    // estado de fondo — perder la pose de una maniobra que estas haciendo se nota mucho mas que
+    // perder el escorzo por segundo y medio.
+    let F3 = 0;                                   // != 0 cuando se esta dibujando con la hoja 3
     if (run.mvSteep && hoja2) { img = hoja2; row = run.mvSteep > 0 ? 0 : 1; }
     else if (run.mvSteep) row = run.mvSteep > 0 ? 0 : 2;
-    const sx4 = col * SHEET_FW, sy4 = row * SHEET_FH;
+    else if (hoja3) { img = hoja3; F3 = SHEET3_FW; }
+    const FW4 = F3 || SHEET_FW, FH4 = F3 ? SHEET3_FH : SHEET_FH;
+    const sx4 = col * FW4, sy4 = row * FH4;
     // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas
     if (rolling) for (let gi = 2; gi >= 1; gi--) {
       ctx.save();
       ctx.rotate(-run.rollDir * gi * 0.55);
       ctx.globalAlpha = 0.14;
-      ctx.drawImage(img, sx4, sy4, SHEET_FW, SHEET_FH, -spW / 2, -spH / 2, spW, spH);
+      ctx.drawImage(img, sx4, sy4, FW4, FH4, -spW / 2, -spH / 2, spW, spH);
       ctx.restore();
     }
     // POSTQUEMADOR pegado a la TOBERA. Antes salia de spH/2 (el borde del frame) y al pasar el
@@ -675,7 +720,7 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     // La LLAMA del turbo va ENCIMA: sale de la tobera, que apunta a la camara.
     if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
     drawGear(run.gear, 1);   // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma
-    ctx.drawImage(img, sx4, sy4, SHEET_FW, SHEET_FH, -spW / 2, -spH / 2, spW, spH);
+    ctx.drawImage(img, sx4, sy4, FW4, FH4, -spW / 2, -spH / 2, spW, spH);
     // LA CHAPERIA, ENCIMA DE LA CHAPA. Va aca —despues del frame y antes de la tobera— porque es
     // pintura sobre el avion, no un efecto en el aire: tiene que taparse con el humo del escape y
     // con el vapor del ala, igual que se taparia la pintura de verdad.
@@ -683,8 +728,21 @@ export function drawPlane(selPlane, viewMouse, camScale) {
     // Solo en esta rama, que es la del sprite horneado: la pose y la tabla TIPS de la que salen las
     // posiciones existen unicamente aca. Las otras dos ramas son emergencias (la hoja no cargo) y un
     // avion de emergencia sin parches es mejor que parches cayendo al lado del avion.
-    parches(spW, spH, TIPS[rowPose][colPose], nivel());
-    tobera(0, TOBERA_F * spH, ff, spW / 84 * 2.4);
+    // LOS PARCHES Y LA TOBERA SE APAGAN CON LA HOJA 3, y no es pereza: las dos son TABLAS MEDIDAS
+    // SOBRE LA HOJA VIEJA. Los parches llevan doce alturas `v` contadas contra el perfil de una
+    // vista trasera (el timon arriba, el ala abajo); desde tres cuartos ese perfil se reordena
+    // entero y las doce apuntan a chapa que no existe. La tobera se ancla 7/84 debajo del centro
+    // porque ahi esta el DISCO del escape visto de frente — desde el costado el caño ya no mira a
+    // la camara y el resplandor queda flotando al lado del avion.
+    //
+    // Se prefiere APAGARLOS a moverlos a ojo: un remiendo mal puesto se lee como un error de
+    // dibujo, y el poder dura 12 s. Re-medirlos para la hoja 3 es trabajo propio — y la salida
+    // buena no es volver a contarlos a mano sino que los mida el horno, como ya hace con las
+    // anclas de la Chancha (`puntos` en cajas.js). Queda anotado.
+    if (!F3) {
+      parches(spW, spH, TIPS[rowPose][colPose], nivel());
+      tobera(0, TOBERA_F * spH, ff, spW / 84 * 2.4);
+    }
   } else if (pl.ready) {
     const PW = 54, PH = Math.round(PW * pl.h / pl.w);
     // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas (estela cinematica)
@@ -714,7 +772,10 @@ export function drawPlane(selPlane, viewMouse, camScale) {
   // esta entre el ala y la camara. Es el efecto VERIDICO del A-4 — un Skyhawk virando fuerte en el
   // aire humedo del Atlantico lo hacia. La G se aproxima con el alabeo (virar es cargar) mas un
   // empujon fijo durante las piruetas, que son el otro momento en que el avion se carga de verdad.
-  if (alive) {
+  // Con la hoja del poder NO se dibuja: el vapor se levanta del EXTRADOS del ala y esa cara, desde
+  // una camara que mira al avion por debajo, esta del otro lado. Es el mismo criterio que ya usa la
+  // tobera con su gate `cara` — si no lo ves, no hay nada que brille.
+  if (alive && !ras) {
     const gLoad = Math.min(1, Math.abs(bank) * 1.15 + (run.mv ? 0.45 : 0) + (rolling ? 0.3 : 0));
     drawVaporAla(spW, spH, run.spd, gLoad, run.t);
   }

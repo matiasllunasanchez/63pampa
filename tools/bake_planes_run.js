@@ -30,7 +30,9 @@ app.whenReady().then(async () => {
       const slug = SLUG[key];
       const dir = typeof slug === 'string' ? slug : slug.dir;
       const base = typeof slug === 'string' ? 'sheet' : slug.base;
-      for (const [name, data] of [[base + '.png', sheets[key].sheet], [base + '2.png', sheets[key].sheet2]]) {
+      // 3.png = LA HOJA DEL PODER RASANTE (otro punto de vista, frame al doble) — ver bake_planes.html
+      for (const [name, data] of [[base + '.png', sheets[key].sheet], [base + '2.png', sheets[key].sheet2],
+                                  [base + '3.png', sheets[key].sheet3]]) {
         const b64 = data.split('base64,')[1];
         fs.writeFileSync(path.join(ROOT, 'assets', 'planes', dir, name), Buffer.from(b64, 'base64'));
         console.log(`OK ${dir}/${name} (${(b64.length * 3 / 4 / 1024).toFixed(1)} KB)`);

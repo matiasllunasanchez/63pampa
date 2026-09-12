@@ -3675,7 +3675,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // naranja es de lo que lastima, y esto no puede lastimar a nadie (ver render/teatro.js).
       drawTiros(teatro.state());
       if (!rasante.enCabina()
-        && (chase || (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom());
+        && (chase || (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active());
       // LA COLA, segunda pasada: lo que quedo MAS CERCA que el avion — el sobrepaso enorme
       // cruzandote y las trazadoras que te estan pasando ahora. Va DESPUES del sprite porque
       // efectivamente esta entre vos y la camara: dibujarlo antes lo dejaria por detras del ala.

@@ -90,6 +90,12 @@ def main():
     # ruta para que `new Image()` no pida un archivo inexistente.
     for key, d in PLANE_DIRS.items():
         js, _ = sub_path(js, f'../assets/planes/{d}/sheet2.png', '')
+    # HOJA 3 (el punto de vista del PODER RASANTE): TAMPOCO entra — son ~550 KB entre las 6,
+    # porque van a 168 px de frame contra los 84 de la base. En la web el poder se juega igual y
+    # el avion se dibuja con la hoja de siempre, que es lo que se venia viendo hasta hoy: el
+    # fallback de render/plane.js existe justamente para esto. Se VACIA la ruta igual que la 2.
+    for key, d in PLANE_DIRS.items():
+        js, _ = sub_path(js, f'../assets/planes/{d}/sheet3.png', '')
     # CABINA (primera persona): una sola para todo el juego, suelta en assets/planes/.
     #
     # EL NOMBRE SE LEE DEL BUNDLE, no se escribe a mano. Estaba fijo en 'cockpitv2.png' y el dia

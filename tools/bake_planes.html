@@ -40,6 +40,47 @@
     // las filas normales — la pirueta se sigue jugando igual, solo pierde pose.
     const STEEP = [32, -32];
 
+    // ============================ HOJA 3 (sheet3.png) — LA DEL PODER RASANTE ============================
+    // MISMA GRILLA que la hoja base (9 alabeos x 3 cabeceos) para que el render no necesite ni una
+    // linea de logica nueva: `colPose` y `rowPose` de render/plane.js sirven igual, y si la hoja no
+    // cargo se cae a la de siempre sin pensar. Lo unico que cambia es DESDE DONDE se mira.
+    //
+    // POR QUE EXISTE. Durante el poder la camara se corre `lat` = 10 unidades a la derecha mientras
+    // el avion sigue clavado a z = 14, o sea que lo mira desde 35,5° AL COSTADO — y el sprite esta
+    // horneado de cola pura. El avion queda de espaldas a una camara que lo ve de tres cuartos, y
+    // eso es lo que se lee como "plano". No es una impresion: son 35,54° que faltan, medidos
+    // (atan(10/14)), y es la divergencia 16 de SPEC_PODER_RASANTE escrita con numeros.
+    //
+    // LA ELEVACION ES OTRA HISTORIA, Y ES UNA MENTIRA DELIBERADA. La camara del poder esta 3.0
+    // unidades ARRIBA del avion (`lift`), o sea +9,9° — casi exactamente los +10,2° con los que ya
+    // se hornea la hoja base. Por geometria no habria que tocarla. Pero desde arriba no se ve la
+    // PANZA, y la panza celeste es la mitad de la silueta de un A-4 contra el cielo; la referencia
+    // que eligio el autor (Rasant) mira la nave desde abajo y de eso vive su encuadre. Asi que esta
+    // hoja se hornea desde ABAJO y la camara del juego baja lo que el motor le permite para que el
+    // mundo no la contradiga (ver RAS_CAMS en data/tuning.js).
+    // Es el mismo precedente que la Chancha, al reves: alla la geometria pedia 31° y se horneo a 12
+    // porque 31 se leia como una picada; aca la geometria pide +10 y se hornea en -10 porque +10 se
+    // lee como una calcomania. EL ANGULO QUE MANDA ES EL QUE SE LEE, y las dos veces se eligio
+    // mirando un barrido, no razonando.
+    const FW3 = 168, FH3 = 168;          // el DOBLE de la hoja base: durante el poder el sprite se
+                                         // dibuja a 142,8 px de mundo, o sea 3,4 px de pantalla por
+                                         // pixel horneado. Con 168 vuelve a 1,7 — la misma nitidez
+                                         // que tiene el avion en el pasillo, al doble de tamaño.
+    const RAS_YAW = 35.5;                // grados de camara hacia +x (se ve el flanco DERECHO, que
+                                         // es el lado desde el que mira: `lat` positivo)
+    const RAS_ELEV = -10;                // grados de elevacion. NEGATIVO = camara por DEBAJO
+    // LA COMPENSACION DE CABECEO, y es la contracara exacta de mirar desde abajo. Con la camara
+    // por debajo, la TROMPA —que esta mas lejos— se proyecta hacia ABAJO, y un avion nivelado se
+    // dibuja bajando. Lo marco Matias en la primera horneada: "esta muy inclinado de base como si
+    // estuviese bajando". Es el mismo efecto que ya habia aparecido en la Chancha.
+    //
+    // Se corrige levantandole la nariz al MODELO hasta que su eje quede horizontal DENTRO del
+    // frame. El numero no se eligio a ojo: se horneo un barrido 0/3/5/7/10 y se midio el angulo
+    // del eje sobre el alfa (la punta mas a la derecha contra el centroide del naranja del
+    // escape). Da -9.72° sin compensar, -2.83° con +5 y **-0.21° con +7**, que es recto.
+    // Si se toca RAS_ELEV hay que volver a medirlo: la compensacion es del orden de 0,7 * elev.
+    const RAS_PITCH = 7;
+
     // EL HORNO ES COMPARTIDO (tools/bake_common.js): luz, camara y primitivas salen de ahi para
     // los cuatro horneadores. Aca solo quedan los parametros de ESTA familia de hojas.
     //
@@ -54,6 +95,23 @@
     const makeRenderer = () => BAKE.renderer(THREE, FW, FH);
     const makeScene = () => BAKE.escena(THREE);
     const makeCam = () => BAKE.camara(THREE, FW, FH, CAM);
+
+    /** LA CAMARA DE LA HOJA 3, en POLARES alrededor del mismo punto de mira. `BAKE.camara` no
+     *  sirve tal cual porque toma una posicion cartesiana y aca lo que se quiere es GIRAR el rig
+     *  conservando distancia — que es la misma idea que la perilla `elev` de bake_enemies.html,
+     *  con un eje mas. El recalculo de `ref` se repite igual: el frame es cuadrado y el fov es
+     *  vertical, asi que sin eso el campo HORIZONTAL cambiaria y el avion se saldria de la celda. */
+    const DIST3 = Math.hypot(CAM.pos[1] - CAM.lookY, CAM.pos[2]);   // la distancia de la hoja base
+    function makeCam3() {
+      const e = RAS_ELEV * Math.PI / 180, a = RAS_YAW * Math.PI / 180;
+      const y = DIST3 * Math.sin(e), h = DIST3 * Math.cos(e);
+      const asp = FW3 / FH3;
+      const halfH = Math.tan(CAM.fov * Math.PI / 360) * CAM.ref / asp;
+      const c = new THREE.PerspectiveCamera(2 * Math.atan(halfH) * 180 / Math.PI, asp, 1, 100);
+      c.position.set(h * Math.sin(a), CAM.lookY + y, h * Math.cos(a));
+      c.lookAt(0, CAM.lookY, 0);
+      return c;
+    }
 
     // LOS MODELOS VIVEN EN tools/models/planes.js (PLAN_HORNEADO B0): un horneador es un
     // ENCUADRE (que camara, que poses, que grilla) y un modelo es una SILUETA. Este archivo se
@@ -72,6 +130,8 @@
 
     function __bake() {
       const R = makeRenderer(), cam = makeCam();
+      // un SEGUNDO renderer: el de arriba esta atado al frame de 84 y la hoja del poder va a 168
+      const R3 = BAKE.renderer(THREE, FW3, FH3), cam3 = makeCam3();
       const outEl = document.getElementById('out');
       const result = {};
       for (const key in MODELS) {
@@ -100,6 +160,24 @@
             x22.drawImage(R.domElement, i * FW, row * FH);
           });
         });
+        // LA HOJA DEL PODER: misma grilla, otro punto de vista, y frame al doble.
+        const sheet3 = document.createElement('canvas');
+        sheet3.width = FW3 * ANGLES.length; sheet3.height = FH3 * PITCHES.length;
+        const x23 = sheet3.getContext('2d');
+        PITCHES.forEach((pa, row) => {
+          model.rotation.x = (pa + RAS_PITCH) * Math.PI / 180;   // + la compensacion (ver RAS_PITCH)
+          ANGLES.forEach((a, i) => {
+            model.rotation.z = a * Math.PI / 180;
+            R3.render(sc, cam3);
+            x23.drawImage(R3.domElement, i * FW3, row * FH3);
+          });
+        });
+        // ESTA NO SE SIMETRIZA, y es la unica del horno que no. `simetrizaCentro` espeja la mitad
+        // derecha sobre la izquierda en la columna nivelada para corregir el medio pixel que deja
+        // el rasterizado — y eso SOLO vale si la pose es simetrica en pantalla. Desde 35° al
+        // costado el avion no lo es: espejarlo le pegaria el flanco derecho de los dos lados y le
+        // borraria el escorzo, que es justo lo que esta hoja viene a comprar.
+
         // SIMETRIZAR EL FRAME NIVELADO, dentro del horneo y no como parche despues.
         //
         // POR QUE HACE FALTA: el modelo es simetrico y la camara esta en el eje (cam.position.x = 0),
@@ -113,7 +191,8 @@
         // Las banqueadas no se tocan: ahi la asimetria es la pose, no un defecto.
         simetriza(x2, sheet);
         simetriza(x22, sheet2);
-        result[key] = { sheet: sheet.toDataURL('image/png'), sheet2: sheet2.toDataURL('image/png') };
+        result[key] = { sheet: sheet.toDataURL('image/png'), sheet2: sheet2.toDataURL('image/png'),
+                        sheet3: sheet3.toDataURL('image/png') };
         if (outEl) {   // vista previa (modo browser)
           const h = document.createElement('h2'); h.textContent = key + ' — ' + ANGLES.length + 'x' + PITCHES.length + ' frames de ' + FW + 'x' + FH + ' (filas: trepa/nivel/pica)';
           const big = document.createElement('canvas'); big.className = 'sheet';
@@ -128,6 +207,21 @@
       return result;
     }
     window.__bake = __bake;
+
+    /** EL MARGEN DE LA HOJA 3, medido sobre el alfa. El horno de aviones nunca midio nada —las
+     *  hojas base llevan siete años de encuadre validado a ojo— pero la hoja del poder gira el
+     *  avion 35° al costado y eso proyecta media eslora que antes no ocupaba ancho. Los dos deltas
+     *  (dagger y mirage) son los que menos aire tienen. Si se cortan, se ve aca antes que en el
+     *  juego. Es la regla 5 del plan (2 px de aire) aplicada por fin a esta familia. */
+    window.__margen3 = async () => {
+      const out = {};
+      const r = __bake();
+      for (const k in r) {
+        const m = await BAKE.medir(r[k].sheet3, FW3, FH3);
+        out[k] = { margen: m.margen, box: m.box };
+      }
+      return out;
+    };
     if (!navigator.userAgent.includes('Electron')) __bake();   // en browser: hornear y mostrar
   </script>
 </body>

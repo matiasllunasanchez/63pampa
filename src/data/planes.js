@@ -9,22 +9,22 @@
 // uno marca su propio flag (ready/sheetOk) al cargar, asi el render nunca dibuja una imagen
 // a medio cargar.
 export const PLANES = [
-  { key: 'sky', name: 'A-4 SKYHAWK', src: '../assets/planes/a4-skyhawk/preview.webp', sheet: '../assets/planes/a4-skyhawk/sheet.png', sheet2: '../assets/planes/a4-skyhawk/sheet2.png', desc: { es: 'Equilibrado - protagonista de la campaña', en: 'Balanced - the campaign workhorse' } },
-  { key: 'dagger', name: 'IAI DAGGER', src: '../assets/planes/iai-dagger/preview.webp', sheet: '../assets/planes/iai-dagger/sheet.png', sheet2: '../assets/planes/iai-dagger/sheet2.png', desc: { es: 'Mas rapido y con mas fuego - dificil de controlar', en: 'Faster, harder-hitting - tricky to control' } },
-  { key: 'supere', name: 'SUPER ETENDARD', src: '../assets/planes/super-etendard/preview.webp', sheet: '../assets/planes/super-etendard/sheet.png', sheet2: '../assets/planes/super-etendard/sheet2.png', desc: { es: 'Misiones especiales - misiles Exocet', en: 'Special missions - Exocet missiles' } },
-  { key: 'a4q', name: 'A-4Q', src: '../assets/planes/a4q/preview.webp', sheet: '../assets/planes/a4q/sheet.png', sheet2: '../assets/planes/a4q/sheet2.png', desc: { es: 'Variante naval - similar al A-4B/C', en: 'Naval variant - similar to the A-4B/C' } },
+  { key: 'sky', name: 'A-4 SKYHAWK', src: '../assets/planes/a4-skyhawk/preview.webp', sheet: '../assets/planes/a4-skyhawk/sheet.png', sheet2: '../assets/planes/a4-skyhawk/sheet2.png', sheet3: '../assets/planes/a4-skyhawk/sheet3.png', desc: { es: 'Equilibrado - protagonista de la campaña', en: 'Balanced - the campaign workhorse' } },
+  { key: 'dagger', name: 'IAI DAGGER', src: '../assets/planes/iai-dagger/preview.webp', sheet: '../assets/planes/iai-dagger/sheet.png', sheet2: '../assets/planes/iai-dagger/sheet2.png', sheet3: '../assets/planes/iai-dagger/sheet3.png', desc: { es: 'Mas rapido y con mas fuego - dificil de controlar', en: 'Faster, harder-hitting - tricky to control' } },
+  { key: 'supere', name: 'SUPER ETENDARD', src: '../assets/planes/super-etendard/preview.webp', sheet: '../assets/planes/super-etendard/sheet.png', sheet2: '../assets/planes/super-etendard/sheet2.png', sheet3: '../assets/planes/super-etendard/sheet3.png', desc: { es: 'Misiones especiales - misiles Exocet', en: 'Special missions - Exocet missiles' } },
+  { key: 'a4q', name: 'A-4Q', src: '../assets/planes/a4q/preview.webp', sheet: '../assets/planes/a4q/sheet.png', sheet2: '../assets/planes/a4q/sheet2.png', sheet3: '../assets/planes/a4q/sheet3.png', desc: { es: 'Variante naval - similar al A-4B/C', en: 'Naval variant - similar to the A-4B/C' } },
   // PAMPA 63 — FUERA DE SELECCION POR AHORA (no borrar: los assets estan horneados y el
   // modelo vive en tools/bake_planes.html).
   // El FMA IA-63 Pampa volo por primera vez en OCTUBRE DE 1984, dos años despues de la
   // guerra: es el unico anacronismo del roster. Vuelve como DESBLOQUEABLE, con la misma
   // placa honesta que usa el Mirage 5P en M10 — nombrar el hecho y despues ofrecer el
   // juego, sin fingir que una cosa es la otra. Ver docs/historia/AVIONES_CATALOGO.md.
-  // { key: 'pampa', name: 'PAMPA 63', src: '../assets/planes/pampa-63/preview.webp', sheet: '../assets/planes/pampa-63/sheet.png', sheet2: '../assets/planes/pampa-63/sheet2.png', desc: { es: 'Entrenador biplaza IA-63', en: 'IA-63 two-seat trainer' } },
+  // { key: 'pampa', name: 'PAMPA 63', src: '../assets/planes/pampa-63/preview.webp', sheet: '../assets/planes/pampa-63/sheet.png', sheet2: '../assets/planes/pampa-63/sheet2.png', sheet3: '../assets/planes/pampa-63/sheet3.png', desc: { es: 'Entrenador biplaza IA-63', en: 'IA-63 two-seat trainer' } },
   // MIRAGE 5P «MARA»: los diez que mando el PERU. Llegaron a Tandil el 5/6/1982 con la
   // escarapela argentina ya pintada y NUNCA entraron en combate (GUION_3 M10, verificado).
   // Por eso su lugar en el juego es el desbloqueo de M10, con la placa que lo dice de frente:
   // "Nunca llegaron a combatir. Aca, si." Ver docs/historia/AVIONES_CATALOGO.md.
-  { key: 'mirage', name: 'MIRAGE 5P MARA', src: '../assets/planes/mirage-5p/preview.png', sheet: '../assets/planes/mirage-5p/sheet.png', sheet2: '../assets/planes/mirage-5p/sheet2.png', desc: { es: 'El regalo del Peru - rapido, con poca autonomia', en: 'Peru\'s gift - fast, short legs' } },
+  { key: 'mirage', name: 'MIRAGE 5P MARA', src: '../assets/planes/mirage-5p/preview.png', sheet: '../assets/planes/mirage-5p/sheet.png', sheet2: '../assets/planes/mirage-5p/sheet2.png', sheet3: '../assets/planes/mirage-5p/sheet3.png', desc: { es: 'El regalo del Peru - rapido, con poca autonomia', en: 'Peru\'s gift - fast, short legs' } },
 ];
 // 84x48 por cuadro (antes 56x32): se re-hornearon a 1.5x al subir la grilla del juego a 480x270.
 // Con el buffer 2x del juego, el sprite cae a 2x EXACTO en pantalla — pixel art nitido.
@@ -33,6 +33,11 @@ export const PLANES = [
 // puntas de ala quedaban cortadas. El avion NO cambio de tamaño — lo que se agrego es aire
 // transparente arriba y abajo, y el sprite se dibuja centrado.
 export const SHEET_FW = 84, SHEET_FH = 84, SHEET_NF = 9, SHEET_ROWS = 3;
+// LA HOJA DEL PODER va al DOBLE de resolucion de fuente y NO cambia nada en pantalla: durante el
+// poder el sprite se dibuja a 142,8 px de mundo, o sea 3,4 px de pantalla por pixel horneado con
+// la hoja de 84. Con 168 vuelve a 1,7 — exactamente la nitidez que el avion tiene en el pasillo.
+// Lo unico que cambia en el render es el RECTANGULO DE ORIGEN del recorte; el tamaño dibujado no.
+export const SHEET3_FW = 168, SHEET3_FH = 168;
 // ALTO DEL AVION dentro del frame. El frame es cuadrado (84) pero el avion sigue ocupando los
 // mismos 48 px de siempre: el resto es aire transparente, arriba y abajo, para que quepa girado.
 // Todo lo que se dibuje PEGADO al avion (llama de la turbina, fogonazos) tiene que medirse contra
@@ -57,6 +62,17 @@ PLANES.forEach(pl => {
       pl.sheet2Img = new Image();
       pl.sheet2Img.onload = () => { pl.sheet2Ok = true; };
       pl.sheet2Img.src = pl.sheet2;
+    }
+    // HOJA 3 (el PODER RASANTE): la misma grilla de 9x3 pero vista desde 35,5° AL COSTADO y 10°
+    // por DEBAJO — que es de donde la mira la camara del poder, y no de donde la mira la del
+    // pasillo. Frame al doble (168) porque durante el poder el sprite se dibuja al doble de
+    // tamaño. Tambien es OPCIONAL con fallback real: si no cargo se sigue usando la hoja base,
+    // que es lo que se venia usando hasta ahora.
+    pl.sheet3Ok = false;
+    if (pl.sheet3) {
+      pl.sheet3Img = new Image();
+      pl.sheet3Img.onload = () => { pl.sheet3Ok = true; };
+      pl.sheet3Img.src = pl.sheet3;
     }
   }
 });

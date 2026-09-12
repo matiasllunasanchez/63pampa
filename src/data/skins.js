@@ -29,9 +29,13 @@ const ARCHIVO = {
 
 const cache = {};
 for (const nombre in ARCHIVO) {
-  const s = { img: new Image(), img2: new Image() };
+  const s = { img: new Image(), img2: new Image(), img3: new Image() };
   s.img.src = DIR + ARCHIVO[nombre] + '.png';
   s.img2.src = DIR + ARCHIVO[nombre] + '2.png';
+  // la 3 es la del PODER RASANTE (otro punto de vista). La skin del piloto tiene que existir
+  // tambien ahi: la marca del ala es la unica señal de que ya no estas volando tu avion, y
+  // perderla justo durante los 12 s del poder seria perderla cuando mas se ve el avion.
+  s.img3.src = DIR + ARCHIVO[nombre] + '3.png';
   cache[nombre] = s;
 }
 
@@ -44,5 +48,6 @@ const lista = im => im.complete && im.naturalWidth > 0;
 export function skinOf(nombre) {
   const s = cache[nombre];
   if (!s || !lista(s.img)) return null;
-  return { sheetImg: s.img, sheet2Img: lista(s.img2) ? s.img2 : null };
+  return { sheetImg: s.img, sheet2Img: lista(s.img2) ? s.img2 : null,
+           sheet3Img: lista(s.img3) ? s.img3 : null };
 }
