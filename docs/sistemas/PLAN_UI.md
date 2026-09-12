@@ -610,6 +610,25 @@ cara y **sube arriba de mi caja** si hablamos a la vez. Los avisos de altura se 
 más alto que ocupe la voz en la banda (`techoBanda` en `render/screens.js`, que mira el cuadro
 anterior porque el HUD se dibuja antes que la voz).
 
+## 1w. El borde titila en valor crítico _(aplicada)_
+
+Pedido del 11/9: cuando una aguja está en un valor crítico, que se marque el borde de su cuadro y
+titile, para llamar la atención. La aguja ya se ponía roja, pero una aguja de ocho píxeles se ve si la
+estás mirando; un borde entero que parpadea se ve **de reojo**. Todos titilan **en fase** (3 Hz, el
+mismo reloj): dos alarmas a la vez se leen como una sola alarma.
+
+| Reloj | Crítico cuando… |
+| --- | --- |
+| NAFTA | queda menos del 25 % |
+| CAÑÓN | pasa el 75 % o se trabó |
+| ALTITUD | te ve el radar (arriba del techo de la fase) o estás rozando |
+| SALUD | la chapa está en el último escalón, el escudo en su rojo (bajo 35 %) o estás rozando |
+| CHANCHA | la ventana de la cita se está cerrando (menos de 8 s) |
+
+Son los mismos umbrales que ya pintaban las zonas rojas de cada reloj. **GAS no tiene borde**, por
+pedido del autor: se opera, no avisa (sin nafta avisa la nafta). VELOCIDAD y MACH tampoco: no tienen
+un valor que sea peligro por sí solo.
+
 
 ## 2. Divergencias
 

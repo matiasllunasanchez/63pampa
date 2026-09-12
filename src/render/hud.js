@@ -370,6 +370,8 @@ function relojSalud(x, y) {
   iconoEn(x + 3.5, y + 3.5, 'vida', total !== null ? P.foam : P.dim);
   if (total !== null) iconoEn(x + 3, y + 22, 'escudo', P.accent);
   else iconoEn(x + 3.5, y + 22.5, 'ola', P.accent);
+  // CRITICO: la chapa en el ultimo escalon, el escudo en su rojo, o rozando ahora mismo
+  if ((total !== null && total <= 0.25) || temp < 0.35 || rozando) bordeCritico(x, y, CUADRO, CUADRO);
 }
 
 // ---------- KIT DE PIXEL ART DEL HUD ----------
@@ -614,6 +616,19 @@ function drawADI() {
 //
 // El arco barre media vuelta, de 180 a 360 grados: vacio a la izquierda, lleno a la derecha, y el
 // medio arriba. La mitad de abajo queda libre a proposito — ahi viven el icono y el numero.
+// EL BORDE QUE TITILA (playtest 11/9): cuando la aguja de un reloj entra en su valor CRITICO —el
+// mismo que ya marcaba su zona roja—, el borde de la placa se prende en rojo y titila. La aguja ya
+// se ponia roja, pero una aguja de ocho pixeles se ve si la estas mirando; un borde entero que
+// parpadea se ve DE REOJO, que es como se mira un tablero mientras se vuela. Todos titilan EN FASE
+// (el mismo reloj): dos alarmas a la vez se leen como una alarma, no como un arbolito.
+const CRIT_HZ = 3;
+function bordeCritico(x, y, w, h) {
+  if (Math.floor(run.t * CRIT_HZ * 2) % 2) return;
+  ctx.fillStyle = P.warn;
+  ctx.fillRect(x, y, w, 1); ctx.fillRect(x, y + h - 1, w, 1);
+  ctx.fillRect(x, y, 1, h); ctx.fillRect(x + w - 1, y, 1, h);
+}
+
 function pxLinea(x0, y0, x1, y1, col) {
   const n = Math.max(1, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
   for (let i = 0; i <= n; i++) px(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, 1, 1, col);
@@ -621,7 +636,8 @@ function pxLinea(x0, y0, x1, y1, col) {
 
 /** `o` = { val 0..1, col, ico, icoCol, zona: [desde, hasta] en rojo, zonas: [[desde, hasta, col]]
  *  (varias y de cualquier color; manda sobre `zona`), marcas: [[f, col]] marcas LARGAS, fin: icono
- *  al final de la escala (o null), txt: el numero al pie, txtCol } */
+ *  al final de la escala (o null), txt: el numero al pie, txtCol, critico: el borde titila en rojo
+ *  (ver bordeCritico) } */
 function reloj(x, y, o) {
   plate(x, y, CUADRO, CUADRO);
   const cx = x + 13, cy = y + 16, r = 10;
@@ -649,6 +665,7 @@ function reloj(x, y, o) {
     ctx.fillText(o.txt, x + CUADRO - 3, y + CUADRO - 4);
     ctx.textAlign = 'left';
   }
+  if (o.critico) bordeCritico(x, y, CUADRO, CUADRO);
 }
 
 // ---------- EL CUADRO DEL PILOTO (playtest 10/9) ----------
@@ -1150,7 +1167,7 @@ export function drawHUD(h) {
   // reloj que nunca se va a poder usar es ruido ocupando un cuadrado.
   const xNafta = X_MOTOR + (CUADRO + AIRE), xCha = X_MOTOR + 2 * (CUADRO + AIRE);
   if (pide(run.fuel < 60)) reloj(xNafta, CUADROS_Y, {
-    val: run.fuel / 100, ico: 'nafta', zona: [0, 0.25],
+    val: run.fuel / 100, ico: 'nafta', zona: [0, 0.25], critico: run.fuel < 25,
     col: run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam,
     txt: Math.round(run.fuel) + '%', txtCol: run.fuel < 25 ? P.warn : P.dim });
   const ch = chSnap(), cv = chMeter(), gastada = chGastada();
@@ -1161,6 +1178,7 @@ export function drawHUD(h) {
     const enCita = !!ch && (ch.fase === 'eta' || ch.conn || ch.win > 0);
     reloj(xCha, CUADROS_Y, {
       val: gastada ? 0 : cv, ico: 'chancha', fin: 'emergencia',
+      critico: !!ch && ch.fase === 'cita' && ch.win < 8,     // la ventana de la cita se esta cerrando
       finCol: cv >= 1 && !gastada ? (Math.sin(run.t * 7) > 0 ? P.accent : P.foam) : P.warn,
       col: gastada ? P.dim : cv >= 1 ? (Math.sin(run.t * 7) > 0 ? P.foam : P.crest) : P.crest,
       txt: enCita ? (ch.fase === 'eta' ? Math.ceil(ch.eta) + 's'
@@ -1180,7 +1198,7 @@ export function drawHUD(h) {
     // EL CAÑON no tiene municion que contar —dispara hasta recalentarse y se traba hasta enfriar—,
     // asi que el reloj marca TEMPERATURA, con la zona roja donde se traba.
     reloj(X_CANON, CUADROS_Y, {
-      val: run.heat, ico: 'canon', zona: [0.75, 1],
+      val: run.heat, ico: 'canon', zona: [0.75, 1], critico: run.overheat || run.heat > 0.75,
       col: run.overheat ? (Math.sin(run.t * 12) > 0 ? P.warn : '#7d2f1e') : run.heat > 0.75 ? P.warn : P.accent,
       txt: Math.round(run.heat * 100) + '%', txtCol: run.overheat ? P.warn : P.dim });
 
@@ -1213,12 +1231,13 @@ export function drawHUD(h) {
   const fA = a => Math.sqrt(Math.max(0, Math.min(1, a / FLY_TOP)));
   const techo = h.radarAlt === undefined ? RADAR_ALT : h.radarAlt;
   const rozando = run.scrapeVib > 0.6, visto = plane.y > techo || rozando;
-  reloj(xVuelo(3), CUADROS_Y, { val: fA(plane.y), ico: 'alt',
+  reloj(xVuelo(3), CUADROS_Y, { val: fA(plane.y), ico: 'alt', critico: visto,
     col: visto ? (Math.sin(run.t * (rozando ? 30 : 14)) > 0 ? P.warn : '#7d2f1e') : plane.y <= 4.5 ? P.accent : P.foam,
     zonas: [[0, fA(1.2), P.warn], [fA(1.2) + 0.01, fA(4.5), P.accent]], marcas: [[fA(techo), P.warn]],
     txt: Math.round(plane.y) + 'm', txtCol: visto ? P.warn : P.dim });
   // GAS: la palanca, leida como las RPM de un tablero de verdad. Era la corredera vertical del borde
   // derecho; sin nafta, la aguja parpadea (el reloj de nafta, a la izquierda, dice por que).
+  // (SIN BORDE CRITICO, por pedido del autor: el gas se opera, no avisa. Sin nafta avisa la nafta.)
   reloj(X_MOTOR, CUADROS_Y, { val: run.throttle, ico: 'gas',
     col: run.fuel <= 0 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim)
       : run.throttle > 0.66 ? P.foam : run.throttle > 0.15 ? P.accent : P.bodyDark,
