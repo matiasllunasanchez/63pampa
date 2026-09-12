@@ -18,6 +18,7 @@ import { drawCono, drawVaporAla, drawCruce } from './mach.js';
 import { drawMira } from './miras.js';
 import { anchorSpray, drawSpray } from './rain.js';
 import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H, SHEET3_FW, SHEET3_FH } from '../data/planes.js';
+import { ANCLAS } from '../data/anclas.js';
 import { skinOf } from '../data/skins.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName, rosterActive } from '../systems/squad.js';
@@ -81,6 +82,9 @@ const WOBBLE = 0.026;  // amplitud de la micro-oscilacion de alabeo (rad, ~1.5°
  *  esto era el bug de "la llama se ve despegada del avion": estaba anclada a `bodyH2 - 6`, que a
  *  escala normal cae 8,5 px MAS ABAJO que la tobera real — un hueco del ancho de medio fuselaje
  *  entre el avion y su propia llama. */
+// SOLO LA USA EL RESPALDO (la rama del sprite viejo, cuando la hoja horneada no cargo). La rama
+// de la hoja la reemplazo por el ancla MEDIDA por pose (src/data/anclas.js) — que ademas arregla
+// que la llama se quedaba en el mismo lugar mientras el caño se movia con el cabeceo.
 const TOBERA_F = 7 / 84;
 
 /** LA BOCA AL ROJO, vista de frente. Va DENTRO del contexto del avion (rota con el alabeo, porque
@@ -194,11 +198,18 @@ const tips = [];
 // sin despegarse de la linea del ala.
 export const TIP_OUT = 1.30;
 
-const TIPS = [
-  [[-0.214,-0.125,0.19,0.196],[-0.274,-0.06,0.202,0.155],[-0.298,0,0.238,0.244],[-0.321,0.071,0.286,0.19],[-0.31,0.131,0.31,0.131],[-0.286,0.19,0.321,0.071],[-0.238,0.22,0.298,0],[-0.202,0.155,0.274,-0.06],[-0.19,0.196,0.214,-0.125]],
-  [[-0.202,-0.19,0.202,0.131],[-0.262,-0.137,0.214,0.083],[-0.298,-0.065,0.262,0.226],[-0.321,0.012,0.298,0.161],[-0.321,0.083,0.321,0.083],[-0.298,0.161,0.321,0.012],[-0.262,0.226,0.298,-0.065],[-0.214,0.083,0.262,-0.137],[-0.202,0.131,0.202,-0.19]],
-  [[-0.19,-0.238,0.202,0.048],[-0.262,-0.19,0.214,0],[-0.286,-0.119,0.262,0.185],[-0.321,-0.042,0.298,0.107],[-0.321,0.036,0.321,0.036],[-0.298,0.107,0.321,-0.042],[-0.262,0.171,0.286,-0.119],[-0.214,0.101,0.262,-0.19],[-0.202,0.048,0.19,-0.238]],
-];
+// LA TABLA YA NO VIVE ACA: LA MIDE EL HORNO (src/data/anclas.js, generado por
+// tools/bake_planes_run.js). El metodo es EXACTAMENTE el que describe el comentario de arriba —
+// el pixel opaco mas a la izquierda y el mas a la derecha de cada frame, y la Y media de esa
+// columna— y la prueba de que es el mismo criterio y no uno nuevo es que las 27 celdas generadas
+// salieron IDENTICAS, digito por digito, a las que estaban escritas a mano.
+//
+// POR QUE HUBO QUE MOVERLA. La nota de arriba decia "si se re-hornea la hoja con otra geometria de
+// ala, hay que volver a medir esta tabla". Eso se podia sostener con UNA hoja. Con la hoja del
+// PODER RASANTE —otro punto de vista— hacen falta DOS tablas, y la segunda no se puede pedir que
+// alguien la cuente a mano cada vez que se toca un angulo del horneado.
+const TIPS = ANCLAS.base.tips;
+
 
 /** VORTICES DE PUNTA DE ALA. `f` es la FUERZA (0 = nada): con un booleano no se podia pedir
  *  "fuerte en la pirueta y suave con turbo", que es exactamente para lo que existe. */
@@ -357,13 +368,10 @@ const PIEL = {
  *  golpe al cruzar su umbral y el avion daria un salto entre dos misiones. */
 const RAMPA = 0.14;
 
-/** Donde cae la PUNTA DEL ALA en el frame nivelado (TIPS[1][4]). Es el cero contra el que estan
- *  medidas las `v` de la tabla: asi cada `v` se lee directo del perfil de arriba. */
-const V_PUNTA = 0.083;
-
-/** Media envergadura NIVELADA (TIPS[1][4]): la vara contra la que se mide cuanto se acorto el ala
- *  en esta pose, o sea cuanto hay que angostar una chapa pegada a ella. */
-const V_ALA_NIVEL = 0.321;
+// LAS VARAS DE LOS PARCHES (donde cae la punta del ala en la pose nivelada, y la semi-envergadura
+// nivelada) ESTABAN ACA COMO CONSTANTES, copiadas de TIPS[1][4] con la nota de que salian de ahi.
+// Ahora se leen de la tabla de anclas de la hoja que se este dibujando — porque hay dos hojas y
+// cada una tiene su propia punta de ala. Ver `parches()`.
 
 // LA CHAPERIA, EN ORDEN DE APARICION. Cada entrada es una reparacion concreta y esta puesta a mano
 // sobre chapa que existe — no son manchas decorativas sorteadas sobre el frame.
@@ -399,8 +407,20 @@ const PARCHES = [
  *                horizontales mientras el ala se para, que es cuando mas se los mira.
  *  @param n      `nivel()` de core/desgaste.js — a 0 esta funcion no dibuja NADA
  */
-function parches(mw, mh, T, n) {
+function parches(mw, mh, T, n, AN, BX) {
   if (!(n > 0.001)) return;                       // celula recien salida de fabrica: no hay overlay
+  // LAS TRES VARAS SALEN DE LA HOJA QUE SE ESTA DIBUJANDO, no de constantes.
+  //   punta  donde cae la punta del ala en la pose nivelada: el cero contra el que estan medidas
+  //          las `v` de la tabla
+  //   ala    la semi-envergadura nivelada: la vara del escorzo
+  //   kv     cuanto hay que reescalar las ALTURAS al pasar de una hoja a la otra. Las doce `v`
+  //          estan escritas contra el perfil de la hoja base; en otra hoja el avion ocupa otra
+  //          fraccion del frame, asi que se estiran por la relacion de alturas en vez de
+  //          re-inventarse. No es exacto —desde tres cuartos el perfil ademas se REORDENA— y por
+  //          eso los dos parches que no estan sobre el ala (el lomo y el estabilizador) son los
+  //          que peor caen. Los diez del ala, que son los que se ven, quedan donde van.
+  const punta = AN.tips[1][4][1], ala = AN.tips[1][4][2];
+  const kv = AN.alto / ANCLAS.base.alto;
   // EL FUSELAJE ESTA ENTRE LAS DOS PUNTAS. Sacarlo de la tabla en vez de fijarlo en 0 es lo que hace
   // que la fila de parches se incline CON el ala: la linea que las une es la linea del ala.
   const mx = (T[0] + T[2]) / 2, my = (T[1] + T[3]) / 2;
@@ -413,11 +433,19 @@ function parches(mw, mh, T, n) {
     const lx = (p.u > 0 ? T[2] : T[0]) - mx, ly = (p.u > 0 ? T[3] : T[1]) - my;
     const x = (mx + su * lx) * mw;
     // la `v` de la tabla esta medida en el frame NIVELADO; lo que la pose agrega es la INCLINACION
-    // de la linea del ala, que es exactamente `(my + su*ly) - V_PUNTA`.
-    const y = (my + su * ly - V_PUNTA + p.v) * mh;
+    // de la linea del ala, que es exactamente `(my + su*ly) - punta`.
+    // EL TOPE. La altura sale de una tabla escrita contra el perfil de la hoja base, y desde otro
+    // punto de vista ese perfil se REORDENA —el timon deja de asomar arriba, el estabilizador tapa
+    // el fuselaje— asi que una `v` puede terminar apuntando al cielo. Se recorta contra la caja
+    // MEDIDA de esta pose, con medio parche de margen para que no asome por el borde. No arregla
+    // que el parche caiga en la chapa exacta que decia la tabla; arregla que se vea como chatarra
+    // flotando al lado del avion, que es lo unico imperdonable.
+    let vy = my + su * ly - punta + p.v * kv;
+    if (BX) vy = Math.max(BX[0] + p.h / 2, Math.min(BX[1] - p.h / 2, vy));
+    const y = vy * mh;
     // ESCORZO: banqueado, el ala se ve casi de canto y una chapa pegada a ella se angosta igual que
     // la chapa de verdad. Se nota mas cuanto mas afuera esta, de ahi que se mezcle con `su`.
-    const esc = Math.min(1, Math.abs(lx) / V_ALA_NIVEL);
+    const esc = Math.min(1, Math.abs(lx) / ala);
     const w = Math.max(1, Math.round(p.w * mw * (1 - su * (1 - esc) * 0.85)));
     const h = Math.max(1, Math.round(p.h * mw));
     const x0 = Math.round(x - w / 2), y0 = Math.round(y - h / 2);
@@ -606,6 +634,14 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
   // camara que rola con el. hz vale justo lo que hay que restar. Con FIJO vale 0 y todo esto se
   // comporta igual que siempre. Ver core/horizon.js.
   const hz = hzSprite();
+  // ¿SE VA A DIBUJAR CON LA HOJA DEL PODER? Se resuelve aca arriba y no adentro de la rama de
+  // dibujo porque de eso dependen TRES cosas que viven en tres lugares distintos: el sprite, los
+  // parches (adentro del contexto del avion) y la estela de punta de ala (despues del restore, en
+  // pixeles de mundo). Las tres tienen que leer LA MISMA tabla de anclas o se separan.
+  // La pirueta empinada gana sobre el poder (ver la rama de dibujo), asi que no cuenta.
+  const skRas = ras && rosterActive() ? skinOf(pilotName(pilotIdx(run.squad, run.lives))) : null;
+  const rasHoja = !!(ras && useSheet && !run.mvSteep && (skRas ? skRas.sheet3Img : pl.sheet3Ok));
+  const AN = rasHoja ? ANCLAS.ras : ANCLAS.base;
   // EL GIRO TOTAL DEL SPRITE, resuelto en UN SOLO LUGAR.
   //
   // Antes cada rama llamaba a `ctx.rotate` por su cuenta y el angulo se perdia ahi adentro. La
@@ -710,21 +746,21 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
     // Solo en esta rama, que es la del sprite horneado: la pose y la tabla TIPS de la que salen las
     // posiciones existen unicamente aca. Las otras dos ramas son emergencias (la hoja no cargo) y un
     // avion de emergencia sin parches es mejor que parches cayendo al lado del avion.
-    // LOS PARCHES Y LA TOBERA SE APAGAN CON LA HOJA 3, y no es pereza: las dos son TABLAS MEDIDAS
-    // SOBRE LA HOJA VIEJA. Los parches llevan doce alturas `v` contadas contra el perfil de una
-    // vista trasera (el timon arriba, el ala abajo); desde tres cuartos ese perfil se reordena
-    // entero y las doce apuntan a chapa que no existe. La tobera se ancla 7/84 debajo del centro
-    // porque ahi esta el DISCO del escape visto de frente — desde el costado el caño ya no mira a
-    // la camara y el resplandor queda flotando al lado del avion.
+    // LOS PARCHES Y LA TOBERA, con las anclas de LA HOJA QUE SE ESTA DIBUJANDO.
     //
-    // Se prefiere APAGARLOS a moverlos a ojo: un remiendo mal puesto se lee como un error de
-    // dibujo, y el poder dura 12 s. Re-medirlos para la hoja 3 es trabajo propio — y la salida
-    // buena no es volver a contarlos a mano sino que los mida el horno, como ya hace con las
-    // anclas de la Chancha (`puntos` en cajas.js). Queda anotado.
-    if (!F3) {
-      parches(spW, spH, TIPS[rowPose][colPose], nivel());
-      tobera(0, TOBERA_F * spH, ff, spW / 84 * 2.4);
-    }
+    // Un rato estuvieron APAGADOS con la hoja del poder, porque las dos eran tablas medidas contra
+    // la hoja vieja: los parches llevan doce alturas contadas sobre el perfil de una vista trasera
+    // y la tobera se anclaba en un 7/84 fijo. Desde tres cuartos ese perfil se reordena y las doce
+    // apuntan a chapa que no existe. Ahora las dos anclas las MIDE EL HORNO, hoja por hoja y pose
+    // por pose, asi que vuelven a encenderse sin contar nada a mano.
+    //
+    // EL ESCAPE AHORA SE MUEVE CON EL CABECEO, y eso arregla de paso algo que estaba mal en la hoja
+    // BASE desde siempre: el ancla era UNA sola para las tres filas, asi que trepando —con el caño
+    // a 0.179 del centro— la llama seguia saliendo de 0.083, o sea doce pixeles adelante del caño.
+    // Con la tabla medida por pose el fuego sale de donde esta el fuego.
+    parches(spW, spH, AN.tips[rowPose][colPose], nivel(), AN, AN.box[rowPose][colPose]);
+    const tb = AN.tob[rowPose][colPose];
+    if (tb) tobera(tb[0] * spW, tb[1] * spH, ff, spW / 84 * 2.4);
   } else if (pl.ready) {
     const PW = 54, PH = Math.round(PW * pl.h / pl.w);
     // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas (estela cinematica)
@@ -757,7 +793,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
   // Con la hoja del poder NO se dibuja: el vapor se levanta del EXTRADOS del ala y esa cara, desde
   // una camara que mira al avion por debajo, esta del otro lado. Es el mismo criterio que ya usa la
   // tobera con su gate `cara` — si no lo ves, no hay nada que brille.
-  if (alive && !ras) {
+  if (alive && !rasHoja) {
     const gLoad = Math.min(1, Math.abs(bank) * 1.15 + (run.mv ? 0.45 : 0) + (rolling ? 0.3 : 0));
     drawVaporAla(spW, spH, run.spd, gLoad, run.t);
   }
@@ -806,7 +842,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
     //
     // OJO CON EL ESPACIO: esto corre DESPUES del `restore()`, o sea en pixeles de MUNDO, y el
     // sprite se dibujo con `spW`/`spH`. Las fracciones van contra ESO y nada mas.
-    const T = TIPS[rowPose][colPose];
+    const T = AN.tips[rowPose][colPose];
     const cs = Math.cos(spinTot), sn = Math.sin(spinTot);
     const gx = (fx, fy) => cx + fx * spW * cs - fy * spH * sn;
     const gy = (fx, fy) => cy + fx * spW * sn + fy * spH * cs;

@@ -157,12 +157,87 @@
     const CENTRO = (ANGLES.length - 1) / 2;
     const simetriza = (x2, cv) => BAKE.simetrizaCentro(x2, cv, FW, FH, CENTRO);
 
+    // ============================ LAS ANCLAS, MEDIDAS SOBRE LA HOJA ============================
+    // Dos cosas que el juego dibuja POR CODIGO encima del sprite y que tienen que caer en un lugar
+    // preciso del avion: los VORTICES DE PUNTA DE ALA (y los parches, que cuelgan de la misma
+    // linea) y el DISCO DE LA TOBERA. Las dos vivian como tablas a mano en render/plane.js, con la
+    // nota "si se re-hornea la hoja con otra geometria de ala, hay que volver a medir esta tabla".
+    // Con una sola hoja eso se podia sostener; con dos puntos de vista distintos, no.
+    //
+    // Se miden con EL MISMO METODO con el que se midio la tabla vieja —el pixel opaco mas a la
+    // izquierda y el mas a la derecha de cada frame, y la Y media de esa columna— asi que no es un
+    // criterio nuevo: es el mismo, hecho por la maquina. La tobera sale del centroide del naranja
+    // emisivo del escape, que es el unico pixel de ese color en todo el frame.
+    //
+    // Es la misma idea que `puntos` en el horno de enemigos (las helices de la Chancha): el horno
+    // mide hechos, y donde quedo dibujada un ala es un hecho.
+    function anclasDe(canvas, fw, fh, cols, rows) {
+      const g = canvas.getContext('2d');
+      const d = g.getImageData(0, 0, canvas.width, canvas.height).data;
+      const A = (x, y) => d[(y * canvas.width + x) * 4 + 3];
+      const tips = [], tob = [], box = [];
+      for (let row = 0; row < rows; row++) {
+        const ft = [], fo = [], fb = [];
+        for (let col = 0; col < cols; col++) {
+          const x0 = col * fw, y0 = row * fh;
+          let li = -1, ri = -1, lsum = 0, ln = 0, rsum = 0, rn = 0;
+          for (let x = 0; x < fw && li < 0; x++) {
+            let sum = 0, n = 0;
+            for (let y = 0; y < fh; y++) if (A(x0 + x, y0 + y) > 8) { sum += y; n++; }
+            if (n) { li = x; lsum = sum; ln = n; }
+          }
+          for (let x = fw - 1; x >= 0 && ri < 0; x--) {
+            let sum = 0, n = 0;
+            for (let y = 0; y < fh; y++) if (A(x0 + x, y0 + y) > 8) { sum += y; n++; }
+            if (n) { ri = x; rsum = sum; rn = n; }
+          }
+          const f = v => +(v).toFixed(3);
+          // en FRACCION del frame y desde su CENTRO, que es como esta escrita la tabla vieja
+          // el borde DERECHO se toma en el borde EXTERNO del pixel (ri + 1) y el izquierdo en el
+          // interno: no es un capricho, es la convencion con la que estaba medida a mano la tabla
+          // vieja. Con ella, las 27 celdas de la hoja base salen IDENTICAS a las de render/plane.js
+          // — que es lo que permitio reemplazarla sin cambiar un pixel de lo que ya se veia.
+          ft.push(li < 0 ? [0, 0, 0, 0] : [f((li - fw / 2) / fw), f((lsum / ln - fh / 2) / fh),
+                                           f((ri + 1 - fw / 2) / fw), f((rsum / rn - fh / 2) / fh)]);
+          // EL ESCAPE: centroide del naranja emisivo (BAKE.PAL.fuegoMedio y sus vecinos)
+          let ox = 0, oy = 0, on = 0;
+          for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) {
+            const i = ((y0 + y) * canvas.width + x0 + x) * 4;
+            if (d[i + 3] > 8 && d[i] > 190 && d[i + 1] > 90 && d[i + 1] < 190 && d[i + 2] < 90) {
+              ox += x; oy += y; on++;
+            }
+          }
+          fo.push(on ? [f((ox / on - fw / 2) / fw), f((oy / on - fh / 2) / fh)] : null);
+          // LA CAJA VERTICAL de esta pose: hasta donde llega el avion arriba y abajo. La usan los
+          // parches como TOPE — una chapa no puede quedar flotando en el cielo, y desde otro punto
+          // de vista el perfil se reordena lo suficiente como para que eso pase.
+          let by0 = 1e9, by1 = -1;
+          for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++)
+            if (A(x0 + x, y0 + y) > 8) { if (y < by0) by0 = y; if (y > by1) by1 = y; }
+          fb.push(by1 < 0 ? [0, 0] : [f((by0 - fh / 2) / fh), f((by1 - fh / 2) / fh)]);
+        }
+        tips.push(ft); tob.push(fo); box.push(fb);
+      }
+      // EL PERFIL DE LA POSE NIVELADA: cuanto ocupa el avion adentro del frame. Lo necesitan los
+      // PARCHES, cuyas alturas estan escritas como fraccion del frame contra el perfil de la hoja
+      // base (el timon arriba, el ala abajo). En otra hoja ese perfil ocupa otra fraccion, asi que
+      // las doce alturas se reescalan por la relacion — no se re-inventan.
+      const cx = Math.floor(4 * fw), cy = Math.floor(1 * fh);
+      let y0 = 1e9, y1 = -1;
+      for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++)
+        if (A(cx + x, cy + y) > 8) { if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      const alto = y1 < 0 ? 0 : +((y1 - y0 + 1) / fh).toFixed(4);
+      return { tips, tob, box, alto };
+    }
+
+    let ANCLAS = {};
     function __bake() {
       const R = makeRenderer(), cam = makeCam();
       // un SEGUNDO renderer: el de arriba esta atado al frame de 84 y la hoja del poder va a 168
       const R3 = BAKE.renderer(THREE, FW3, FH3), cam3 = makeCam3();
       const outEl = document.getElementById('out');
       const result = {};
+      ANCLAS = {};
       for (const key in MODELS) {
         const sc = makeScene();
         const model = MODELS[key]();
@@ -222,6 +297,12 @@
         simetriza(x22, sheet2);
         result[key] = { sheet: sheet.toDataURL('image/png'), sheet2: sheet2.toDataURL('image/png'),
                         sheet3: sheet3.toDataURL('image/png') };
+        // las anclas de las dos hojas que el juego dibuja encima (la 2 no las necesita: durante
+        // una pirueta empinada no hay parches ni estela de punta que valgan)
+        ANCLAS[key] = {
+          base: anclasDe(sheet, FW, FH, ANGLES.length, PITCHES.length),
+          ras: anclasDe(sheet3, FW3, FH3, ANGLES.length, PITCHES.length),
+        };
         if (outEl) {   // vista previa (modo browser)
           const h = document.createElement('h2'); h.textContent = key + ' — ' + ANGLES.length + 'x' + PITCHES.length + ' frames de ' + FW + 'x' + FH + ' (filas: trepa/nivel/pica)';
           const big = document.createElement('canvas'); big.className = 'sheet';
@@ -236,6 +317,8 @@
       return result;
     }
     window.__bake = __bake;
+    /** Las anclas de la ultima horneada. El runner las escribe en src/data/anclas.js. */
+    window.__anclas = () => { if (!Object.keys(ANCLAS).length) __bake(); return ANCLAS; };
 
     /** EL MARGEN DE LA HOJA 3, medido sobre el alfa. El horno de aviones nunca midio nada —las
      *  hojas base llevan siete años de encuadre validado a ojo— pero la hoja del poder gira el

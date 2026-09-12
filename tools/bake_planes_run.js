@@ -38,6 +38,45 @@ app.whenReady().then(async () => {
         console.log(`OK ${dir}/${name} (${(b64.length * 3 / 4 / 1024).toFixed(1)} KB)`);
       }
     }
+    // LAS ANCLAS, medidas sobre las hojas recien horneadas (ver bake_planes.html). Se escriben
+    // como modulo ES porque es lo que el juego puede importar — mismo criterio que src/data/cajas.js
+    // con las hojas de enemigos. Se mide sobre el A-4 (`sky`), que es de donde salio la tabla a mano
+    // que esto reemplaza: TODO el roster comparte una sola tabla, y esa aproximacion ya estaba
+    // tomada — lo que cambia es quien la mide.
+    const anclas = await win.webContents.executeJavaScript('__anclas()');
+    const A = anclas.sky;
+    const fila = t => '[' + t.map(c => '[' + c.join(',') + ']').join(', ') + ']';
+    const tabla = t => '[\n' + t.map(f => '  ' + fila(f)).join(',\n') + ',\n]';
+    const tobT = t => '[\n' + t.map(f => '  [' + f.map(c => c ? '[' + c.join(',') + ']' : 'null').join(', ') + ']').join(',\n') + ',\n]';
+    const ANCLAS_JS = `// ANCLAS DE LAS HOJAS DE AVIONES — GENERADO, NO EDITAR A MANO.
+// Lo escribe \`npx electron tools/bake_planes_run.js\` midiendo el alfa de las hojas recien
+// horneadas. Reemplaza a la tabla TIPS y a la constante TOBERA_F que vivian a mano en
+// render/plane.js con la nota "si se re-hornea la hoja con otra geometria de ala, hay que volver a
+// medir esta tabla". Con UNA hoja eso se sostenia; con dos puntos de vista distintos, no.
+//
+// SE MIDE CON EL MISMO METODO con el que se midieron a mano: el pixel opaco mas a la izquierda y
+// el mas a la derecha de cada frame, y la Y media de esa columna. La prueba de que es el mismo
+// criterio y no uno nuevo esta en que las 27 celdas de \`tips\` de la hoja BASE salen identicas a
+// las que estaban escritas a mano, y \`tob\` de la pose nivelada da 0.083 — que es el 7/84 que
+// estaba puesto como TOBERA_F.
+//
+//   tips[fila][columna] = [ix, iy, dx, dy]   las dos puntas de ala, en fraccion del frame y desde
+//                                            su centro. Las consumen la estela y los parches.
+//   tob[fila][columna]  = [x, y] | null      el centroide del naranja del escape: donde nace la
+//                                            llama del turbo. \`null\` = en esta pose no se ve.
+//   box[fila][columna]  = [arriba, abajo]    hasta donde llega el avion en vertical en esa pose.
+//                                            Es el TOPE de los parches: una chapa no puede quedar
+//                                            flotando en el cielo.
+//   alto                                     cuanto ocupa el avion en vertical dentro del frame
+//                                            nivelado. Lo usan los parches para reescalar sus
+//                                            alturas de una hoja a la otra.
+export const ANCLAS = {
+  base: { tips: ${tabla(A.base.tips)}, tob: ${tobT(A.base.tob)}, box: ${tabla(A.base.box)}, alto: ${A.base.alto} },
+  ras:  { tips: ${tabla(A.ras.tips)}, tob: ${tobT(A.ras.tob)}, box: ${tabla(A.ras.box)}, alto: ${A.ras.alto} },
+};
+`;
+    fs.writeFileSync(path.join(ROOT, 'src', 'data', 'anclas.js'), ANCLAS_JS);
+    console.log(`\nANCLAS MEDIDAS -> src/data/anclas.js  (base alto ${A.base.alto} · ras alto ${A.ras.alto})`);
     console.log('Horneado completo.');
   } catch (e) {
     console.error('ERROR al hornear:', e.message);

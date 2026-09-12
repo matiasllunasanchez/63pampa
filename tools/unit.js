@@ -2268,3 +2268,48 @@ test('aguante: el sector nuevo se corre del anterior y nunca se sale de la barra
   assert.ok(!dentro(0.39, 0.4, 0.2), 'justo antes del sector no puede contar');
   assert.ok(!dentro(0.61, 0.4, 0.2), 'justo despues del sector no puede contar');
 });
+
+// ================= LAS ANCLAS DE LAS HOJAS DE AVIONES =================
+// Las puntas de ala y la boca del escape dejaron de ser tablas a mano en render/plane.js y pasan a
+// medirse en el horneado (src/data/anclas.js). Lo que sigue cuida el contrato: la forma del dato,
+// que las dos hojas lo tengan, y que nadie vuelva a pegar una tabla a mano al lado.
+
+test('anclas: las dos hojas traen la grilla entera medida', async () => {
+  const { ANCLAS } = await import('../src/data/anclas.js');
+  for (const hoja of ['base', 'ras']) {
+    const A = ANCLAS[hoja];
+    assert.ok(A, `falta la hoja '${hoja}'`);
+    for (const campo of ['tips', 'tob', 'box']) {
+      assert.equal(A[campo].length, 3, `'${hoja}.${campo}' tiene que tener 3 filas de cabeceo`);
+      for (const fila of A[campo]) assert.equal(fila.length, 9, `'${hoja}.${campo}' tiene que tener 9 alabeos`);
+    }
+    assert.ok(A.alto > 0.05 && A.alto < 0.95, `'${hoja}.alto' fuera de rango: ${A.alto}`);
+    // la caja tiene que estar ordenada: arriba antes que abajo, o el tope de los parches se da vuelta
+    for (const fila of A.box) for (const b of fila) assert.ok(b[0] < b[1], `caja al reves en '${hoja}': ${b}`);
+  }
+});
+
+test('anclas: la punta de ala esta DONDE TERMINA EL ALA, no en el borde del frame', () => {
+  // Una tabla de puntas que diera el borde del frame no seria una medicion: seria un rectangulo.
+  // El aire que el frame deja alrededor es justamente lo que permite alabear sin cortarse.
+  return import('../src/data/anclas.js').then(({ ANCLAS }) => {
+    for (const hoja of ['base', 'ras']) {
+      for (const fila of ANCLAS[hoja].tips) for (const t of fila) {
+        assert.ok(t[0] > -0.5 && t[2] < 0.5, `punta fuera del frame en '${hoja}': ${t}`);
+        assert.ok(t[2] - t[0] > 0.2, `envergadura absurda en '${hoja}': ${t}`);
+      }
+    }
+  });
+});
+
+test('anclas: el render las USA y no volvio a una tabla a mano', () => {
+  // ESTA PRUEBA EXISTE POR LA NOTA QUE TENIA LA TABLA VIEJA: "si se re-hornea la hoja con otra
+  // geometria de ala, hay que volver a medir esta tabla". Esa nota describe un dato que se pudre
+  // solo. Si alguien vuelve a pegar los numeros aca, esto lo dice.
+  const src = readFileSync(new URL('../src/render/plane.js', import.meta.url), 'utf8');
+  assert.ok(src.includes("import { ANCLAS } from '../data/anclas.js'"), 'plane.js dejo de leer las anclas medidas');
+  assert.ok(src.includes('const TIPS = ANCLAS.base.tips'), 'volvio a haber una tabla de puntas a mano');
+  assert.ok(/AN\.tob\[rowPose\]\[colPose\]/.test(src), 'la tobera volvio a un ancla fija');
+  // y el TOPE de los parches, que es lo que impide que una chapa quede flotando en el cielo
+  assert.ok(/BX\[0\] \+ p\.h \/ 2/.test(src), 'los parches perdieron su tope contra la caja de la pose');
+});
