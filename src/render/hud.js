@@ -578,17 +578,59 @@ function pide(algo) { return cfg.hudAuto !== 'auto' || algo; }
 // la Chancha verde) y encendida parpadea RAPIDO (se esta gastando).
 // Cada poder va con DOS TONOS SUYOS, y el parpadeo alterna entre ellos. Con blanco los dos
 // terminaban blancos cuando estaban llenos, que es justo cuando mas importa saber CUAL se lleno.
-const RAS_COL = '#57b6e0', RAS_CLARO = '#bfe8fb';   // celeste de mar: volar pegado al agua
-const MOM_CLARO = '#ffd9a0';                        // el naranja del acento, aclarado
-const PODER_W = CUADRO, PODER_H = 3;
-function barraPoder(x, y, val, col, claro, on, lista) {
-  const c = on ? (Math.sin(run.t * 14) > 0 ? claro : col)
-    : lista ? (Math.sin(run.t * LISTO_HZ) > 0 ? claro : col) : col;
-  px(x - 1, y - 1, PODER_W + 2, PODER_H + 2, '#0a0e11bb');    // el fondo, para que se lea sobre el cielo
+// Cada poder con TRES tonos suyos: el de la barra, el claro de la ola y el OSCURO del borde cuando
+// esta llena (12/9). El borde propio es lo que hace que "cargado" se vea de reojo sin mirar adentro.
+const RAS_COL = '#57b6e0', RAS_CLARO = '#bfe8fb', RAS_OSCURO = '#2d6f8f';   // celeste de mar
+const MOM_CLARO = '#ffd9a0', MOM_OSCURO = '#8a5f1f';                        // el acento, aclarado y oscurecido
+// EL NOMBRE VA ADENTRO (pedido del autor, 12/9): la barra mide 7 de alto para que entre el rotulo de
+// 5, y el rotulo se dibuja DOS VECES con recorte — oscuro sobre lo lleno y claro sobre lo vacio—,
+// que es como se lee una barra con texto adentro sin que el texto pelee con el relleno.
+// La barra vive ADENTRO DE UNA PLACA, la misma de todo el tablero (`plate`): mismo borde y mismas
+// esquinas que el cuadro del piloto, que es con quien comparte la esquina (pedido del autor, 12/9).
+const PODER_H = 7, PODER_W = CUADRO - 2;   // el relleno, adentro de la placa de 26
+// LISTO ES UNA OLA, NO UN PARPADEO (pedido del autor, 12/9): una cresta clara que cruza la barra de
+// izquierda a derecha y va PRENDIENDO LAS LETRAS a su paso. Un parpadeo apaga y prende todo a la
+// vez —y encima es el idioma de la alarma—; la ola dice "cargado y en marcha" sin gritar, y de paso
+// lee para donde va: hacia adelante.
+const ONDA_W = 8, ONDA_S = 1.5;      // ancho de la cresta y segundos que tarda en cruzar
+const GLIFO = 3;                     // lo que mide una letra del rotulo (5 px monospace)
+function barraPoder(px0, py0, val, col, claro, oscuro, on, lista, rot) {
+  const c = on ? (Math.sin(run.t * 14) > 0 ? claro : col) : col;
+  plate(px0, py0, CUADRO, PODER_H + 2);
+  const x = px0 + 1, y = py0 + 1;
   px(x, y, PODER_W, PODER_H, '#2e3c45');
   const fw = Math.round(PODER_W * Math.max(0, Math.min(1, val)));
   if (fw > 0) px(x, y, fw, PODER_H, c);
   if (fw > 1) { ctx.globalAlpha = 0.4; px(x, y, fw, 1, '#f2f7fb'); ctx.globalAlpha = 1; }   // bisel
+  // LA OLA, solo cuando esta lista y todavia no se uso: cruza el relleno de punta a punta
+  const onda = lista && !on ? x - ONDA_W + ((run.t % ONDA_S) / ONDA_S) * (PODER_W + ONDA_W * 2) : null;
+  if (onda !== null) {
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, fw, PODER_H); ctx.clip();
+    px(onda, y, ONDA_W, PODER_H, claro);
+    ctx.restore();
+  }
+  // EL ROTULO, en tres pasadas con recorte: oscuro sobre lo lleno, claro sobre lo vacio, y BLANCO
+  // adentro de la ola — que es lo que hace que las letras se prendan cuando la cresta les pasa.
+  // LAS LETRAS, UNA POR UNA Y CON PASO ENTERO (pedido del autor): el espacio entre letras es
+  // SIEMPRE EL MISMO. Repartirlas en celdas de ancho fraccionario daba huecos de 1 px desparejos
+  // —el redondeo de cada letra caia distinto—, que es justo lo que se ve feo a esta escala. El paso
+  // es el mas grande que entra en la barra, y el bloque va centrado.
+  ctx.font = F_ROT; ctx.textAlign = 'left';
+  const ty = y + PODER_H - 2, n = rot.length;
+  const paso = Math.max(3, Math.min(4, Math.floor((PODER_W - 2 - GLIFO) / Math.max(1, n - 1))));
+  const anchoRot = GLIFO + paso * (n - 1), rx = x + Math.floor((PODER_W - anchoRot) / 2);
+  const pasada = (x0, w0, col2) => {
+    if (w0 <= 0) return;
+    ctx.save(); ctx.beginPath(); ctx.rect(x0, y, w0, PODER_H); ctx.clip();
+    ctx.fillStyle = col2;
+    for (let i = 0; i < n; i++) ctx.fillText(rot[i], rx + i * paso, ty);
+    ctx.restore();
+  };
+  pasada(x, fw, '#0a1015');
+  pasada(x + fw, PODER_W - fw, '#8a9ba1');
+  if (onda !== null) pasada(Math.max(x, onda), Math.min(x + fw, onda + ONDA_W) - Math.max(x, onda), '#ffffff');
+  // LLENA: el borde de la placa se pone del color del poder, oscurecido
+  if (lista) bordePlaca(px0, py0, CUADRO, PODER_H + 2, oscuro);
 }
 
 // ---------- HORIZONTE ARTIFICIAL (ADI) ----------
@@ -1396,9 +1438,10 @@ export function drawHUD(h) {
   // ---- LOS DOS PODERES DEL JUGADOR, arriba de su cara (ver barraPoder) --------------------------
   // MOMENTUM arriba y RASANTE abajo, pegado a la cara: el de abajo es el que se usa volando bajo.
   const tv = tempoMeter();
-  const yPod = CUADROS_Y - AIRE - PILOTO.lado - 2 - PODER_H;
-  barraPoder(MARGEN, yPod - 2 - PODER_H, tv, P.accent, MOM_CLARO, tempoActive(), tv >= 1);
-  barraPoder(MARGEN, yPod, ras.on ? ras.resta / ras.dur : ras.meter, RAS_COL, RAS_CLARO, ras.on, ras.meter >= 1);
+  const altoPod = PODER_H + 2;                                   // la placa de cada barra
+  const yPod = CUADROS_Y - AIRE - PILOTO.lado - AIRE - altoPod;   // pegada a la cara, con el mismo aire
+  barraPoder(MARGEN, yPod - AIRE - altoPod, tv, P.accent, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
+  barraPoder(MARGEN, yPod, ras.on ? ras.resta / ras.dur : ras.meter, RAS_COL, RAS_CLARO, RAS_OSCURO, ras.on, ras.meter >= 1, T('bar_rasante'));
   // EL RELOJ DEL RASANTE, y SOLO mientras esta encendido. Es el unico numero que los rieles no
   // pueden dar —cuantos segundos quedan, no que fraccion— y es el unico momento en que hace falta:
   // con el poder apagado la pregunta es otra ("¿cuanto falta para tenerlo?") y esa la contesta el

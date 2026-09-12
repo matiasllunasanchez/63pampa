@@ -742,11 +742,28 @@ rieles de los bordes —donde en el playtest del 10/9 hubo que preguntar dos vec
 **dos barritas apiladas arriba de su cara**, del ancho del cuadro: **MOMENTUM arriba, en naranja**, y
 **RASANTE abajo, en celeste de mar** (el de abajo es el que se usa volando bajo).
 
-Cada uno lleva **dos tonos suyos** y el parpadeo alterna entre ellos: con blanco, los dos terminaban
+Cada uno lleva **dos tonos suyos** y el resalte alterna entre ellos: con blanco, los dos terminaban
 blancos justo cuando más importa saber cuál se llenó. Apagada la barra dice **cuánto falta** para
-tenerlo; llena **parpadea lento** (el mismo idioma que la Chancha verde: "ya lo podés usar"); y
-encendida muestra **cuánto queda**, parpadeando rápido. El reloj del rasante, arriba a la derecha,
-se queda: es el único que da segundos.
+tenerlo; encendida, **cuánto queda** (ahí sí parpadea rápido: se está gastando). El reloj del
+rasante, arriba a la derecha, se queda: es el único que da segundos.
+
+**El nombre va adentro de la barra** (12/9): la barra mide 7 de alto para que entre el rótulo de 5, y
+el rótulo se dibuja en pasadas con recorte — **oscuro sobre lo lleno y claro sobre lo vacío**, que es
+como se lee una barra con texto adentro sin que el texto pelee con el relleno. Las letras se dibujan
+**una por una, con paso entero y el bloque centrado**: el espacio entre letras es siempre el mismo.
+Repartirlas en celdas de ancho fraccionario (el primer intento) daba huecos de 1 px desparejos,
+porque el redondeo de cada letra caía distinto — que es justo lo que se ve mal a esta escala.
+
+**Cada barra va adentro de una placa** (12/9), la misma de todo el tablero: mismo borde y mismas
+esquinas que el cuadro del piloto, con el que comparte la esquina. Entre las dos placas y contra la
+cara va el mismo `AIRE` que separa todo lo demás. **Llena, el borde se pinta con su propio color,
+oscurecido** — naranja quemado el momentum, azul de mar el rasante—: así "cargado" se ve de reojo sin
+mirar adentro.
+
+**Y lista no parpadea: hace una OLA** (12/9). Una cresta clara cruza la barra de izquierda a derecha
+cada 1,5 s y va **prendiendo las letras en blanco** a su paso (una tercera pasada, recortada a la
+cresta). Un parpadeo apaga y prende todo a la vez, y además es el idioma de la alarma; la ola dice
+"cargado y en marcha" sin gritar, y de paso se lee para dónde va: hacia adelante.
 - **La marca de Mach 1 se fue de la velocidad**: el Mach tiene su propio reloj, con la suya.
 
 
