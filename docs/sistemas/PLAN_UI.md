@@ -794,6 +794,28 @@ Y los dos avisos de racha pierden su `x{n}` (`RASANTE x15!`, `TURBINA x2!` → `
 `TURBINA!`): era el mismo número que se acaba de ir del HUD, dicho dos veces.
 
 
+**Sin caja y en negrita** (12/9, revisión): el recuadro oscuro detrás de `PERFECTO` y el carril de
+la barra se fueron —eran una mancha pegada al avión, que es lo que hay que mirar—. La palabra va en
+**negrita**, que es lo que la sostiene sobre el mar a 5 px, y de la barra queda **sólo lo cargado**:
+una línea naranja que crece, sin carril que la encuadre.
+
+## 2d. «LISTO» sale de atrás de su propia barra _(aplicada)_
+
+Pedido del 12/9: los dos avisos de poder cargado —`! MOMENTUM LISTO — [4] !` y
+`! RASANTE LISTO — [6] !`, popups en el centro de la pantalla— se van. Avisaban **lejos de la cosa
+de la que hablaban** y tapaban el mar justo arriba del avión, que es donde se vuela.
+
+En su lugar, **una lengüeta**: la palabra `LISTO` sale de **atrás de la barra que se cargó** hacia la
+derecha, se queda **3 segundos** y se vuelve a meter por donde salió. Es la misma entrada que la
+palabra `RADAR` (§1v) —recorte en el borde de la placa y salida con frenada— y por eso el cartel
+entra **sin su columna izquierda**: se lee como una lengüeta de la barra y no como una caja aparte.
+Cada poder lleva su propio reloj, porque los dos cartelitos se dibujan en el mismo cuadro y un
+reloj compartido le daría `dt` 0 al segundo. Va en el tono claro de su barra —naranja pálido el
+momentum, celeste el rasante—, así dice **de quién** es sin decirlo.
+
+El cartel se va también si el poder se **gasta** antes de los 3 s: lo que anuncia es "lo tenés", y
+en cuanto deja de ser cierto no tiene nada que decir. Los dos beeps quedan como estaban.
+
 ## 2. Divergencias
 
 1. **`ESTADO` sigue duplicando dos de sus tres datos.** El porcentaje es el mínimo de cañón,
@@ -904,9 +926,11 @@ Y los dos avisos de racha pierden su `x{n}` (`RASANTE x15!`, `TURBINA x2!` → `
 27. **La causa de la muerte queda sólo en la pantalla de derribado.** En campaña, si el relevo
     encadena, podés perder tres aviones sin que ninguna pantalla te diga por qué se cayó cada uno:
     la única que lo nombra es la de fin de misión, y ahí sólo figura el último.
-28. **`dodgeMissile` quedó sin uso** en `data/strings.js`, igual que `ch_ready`, `sq_yours` y
-    `freeControl`: no se borró por la misma razón que la divergencia 19b (otra sesión edita ese
-    archivo, y si el cartel vuelve, la clave ya está).
+28. **Tres claves más quedaron sin uso** en `data/strings.js` —`dodgeMissile`, `tempoReady` y
+    `rasReady`—, igual que `ch_ready`, `sq_yours` y `freeControl`: no se borraron por la misma
+    razón que la divergencia 19b (otra sesión edita ese archivo, y si el cartel vuelve, la clave ya
+    está). `tempoReady` y `rasReady` además decían la TECLA del poder (`[4]`, `[6]`), que la
+    lengüeta no dice: la leyenda de teclas de abajo sí, y el poder ya estaba en el tablero.
 
 ## 3. Lo que sigue pendiente _(de la auditoría, sin decidir)_
 

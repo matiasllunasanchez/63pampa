@@ -116,7 +116,7 @@ export const STRINGS = {
     sq_spent: '{c} SALE DE LA CORRIDA',
     dead_out: 'FUERA DE COMBATE',
     bar_fuel: 'COMB', bar_cannon: 'CANON 20MM', bar_overheat: 'RECALENTADO',
-    bar_tempo: 'MOMENTUM', tempoOn: 'MOMENTUM', tempoOff: 'TIEMPO REAL', tempoReady: '! MOMENTUM LISTO — [4] !',
+    bar_tempo: 'MOMENTUM', tempoOn: 'MOMENTUM', tempoOff: 'TIEMPO REAL', tempoReady: '! MOMENTUM LISTO — [4] !',   // sin uso desde el 12/9: ahora es la lengueta LISTO
     // LA CHANCHA (tecla 5): el ritual de radio del reabastecimiento. Las lineas citan el TONO de
     // la escena del guion sin reproducirla — esa es del modo historia.
     bar_chancha: 'CHANCHA', ch_ready: '! CHANCHA LISTA — [5] !',
@@ -124,6 +124,9 @@ export const STRINGS = {
     // LA RACHA A RAS: la unica palabra que queda del multiplicador (ver render/hud.js). Se dibuja
     // letra por letra para ocupar el ancho de la barra, asi que conviene que sea CORTA.
     mult_perfect: 'PERFECTO',
+    // LA LENGUETA DE LOS PODERES: sale de atras de su barra 3 s (ver render/hud.js, tabListo).
+    // Corta, que el cartel mide 21 px.
+    poder_listo: 'LISTO',
     // EL INTERSTICIAL DE CAMPAÑA (G-09): el corte entre una mision y la que sigue.
     inter_dia: 'DÍA SIGUIENTE',
     ch_call: 'CHANCHA, CHANCHA, ACA PATRIA — VENGO SECO',
@@ -473,7 +476,7 @@ export const STRINGS = {
     // ---------- EL PODER RASANTE (SPEC_PODER_RASANTE, tecla 6) ----------
     // LA RADIO ROTA (RF-05): la doctrina gritada. No es decoracion — es UNO de los cinco
     // elementos de identidad del §7, y el que dice de QUE escuadron es este poder.
-    rasOn: 'RASANTE', rasOff: 'RASANTE — FIN', rasReady: '! RASANTE LISTO — [6] !',
+    rasOn: 'RASANTE', rasOff: 'RASANTE — FIN', rasReady: '! RASANTE LISTO — [6] !',   // sin uso desde el 12/9: ahora es la lengueta LISTO
     rasante_call_1: 'Pegado al agua el radar de ellos no te ve.',
     rasante_call_2: '¡Abajo, {n}, abajo!',
     rasante_call_3: 'Ahi va. Como el Pichon lo dibujo.',
@@ -1172,6 +1175,7 @@ export const STRINGS = {
     bar_chancha: 'TANKER', ch_ready: '! TANKER READY — [5] !',
     bar_rasante: 'RASANTE',
     mult_perfect: 'PERFECT',
+    poder_listo: 'READY',
     inter_dia: 'THE NEXT DAY',
     ch_call: 'TANKER, TANKER, PATRIA HERE — RUNNING DRY',
     ch_ack: 'CONDOR COPIES. SENDING HER.',

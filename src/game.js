@@ -4743,10 +4743,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // reloj de pared, achicar el dt frena spawns, flak, particulas y lluvia en sincronia
       // perfecta sin tocar ningun sistema. tick() ademas corta el poder al salir del pasillo
       // (muerte, relevo, climax, devcam) y avisa 'ready' UNA vez cuando la barra se llena.
-      if (tempo.tick(raw, S.state === 'play' && !cfg.devcam, run.score) === 'ready') {
-        beep(660, 0.1, 'square', 0.05, 140);
-        popup(W / 2, 58, T('tempoReady'), P.accent);
-      }
+      // el aviso de que se cargo YA NO ES UN CARTEL EN EL CENTRO (12/9): lo dice la lengueta
+      // LISTO que sale de atras de su propia barra (render/hud.js, tabListo). El beep queda.
+      if (tempo.tick(raw, S.state === 'play' && !cfg.devcam, run.score) === 'ready') beep(660, 0.1, 'square', 0.05, 140);
       if (S.state !== veilPrev) {
         if (S.state === 'arena' || S.state === 'momentum') veilOut = VEIL_OUT;
         veilPrev = S.state;
@@ -4800,7 +4799,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           && gameMode !== 'arena' && gameMode !== 'pasadas',
         enBanda: plane.y <= 4.5,
       });
-      if (rs.sig === 'ready') { beep(700, 0.1, 'square', 0.05, 160); popup(W / 2, 58, T('rasReady'), P.accent); }
+      if (rs.sig === 'ready') beep(700, 0.1, 'square', 0.05, 160);   // idem: lo dice la lengueta LISTO
       if (rs.sig === 'end') { beep(300, 0.12, 'square', 0.05, 90); popup(W / 2, 58, T('rasOff'), P.dim); }
       // EL LATIDO (RF-05): grave, corto y por debajo de todo. El modulo dice CUANDO —lleva el
       // reloj del poder— y el orquestador pone el sonido, como con cualquier otra señal.

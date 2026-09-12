@@ -595,6 +595,37 @@ const PODER_H = 7, PODER_W = CUADRO - 2;   // el relleno, adentro de la placa de
 const ONDA_W = 8, ONDA_S = 1.5;      // ancho de la cresta y segundos que tarda en cruzar
 const GLIFO = 3;                     // lo que mide una letra del rotulo (5 px monospace)
 const RACHA_W = 24;                  // los px utiles de la barra de racha: lo que mide PERFECTO
+// EL CARTELITO DE «LISTO» (12/9). Cuando un poder termina de cargarse, la palabra sale de ATRAS
+// de su barra hacia la derecha, se queda 3 segundos y se vuelve a meter por donde salio. Antes era
+// un popup en el centro de la pantalla —«! MOMENTUM LISTO — [4] !»—: avisaba lejos de la cosa de la
+// que hablaba, y tapaba el mar justo arriba del avion. Es la misma entrada que la palabra RADAR.
+//
+// El reloj sale de `run.t` (el HUD no recibe dt) y cada poder lleva el suyo, porque los dos
+// cartelitos se dibujan en el mismo cuadro y un reloj compartido le daria dt 0 al segundo.
+const LISTO_W = 21, LISTO_S = 3, LISTO_ENTRA = 0.22;
+const listos = [{ k: 0, q: 0, lleno: false, t: -1 }, { k: 0, q: 0, lleno: false, t: -1 }];
+function tabListo(i, y, h, lleno, col) {
+  const L = listos[i];
+  const dt = L.t < 0 || run.t < L.t ? 0 : Math.min(0.1, run.t - L.t);
+  L.t = run.t;
+  if (lleno && !L.lleno) L.q = LISTO_S;      // EL FLANCO: se acaba de llenar, y solo entonces
+  if (!lleno) L.q = 0;                       // se gasto: el cartel se va con el poder
+  L.lleno = lleno;
+  L.q = Math.max(0, L.q - dt);
+  L.k = L.q > 0 ? Math.min(1, L.k + dt / LISTO_ENTRA) : Math.max(0, L.k - dt / LISTO_ENTRA);
+  if (L.k <= 0) return;
+  const e = 1 - Math.pow(1 - L.k, 3);        // sale rapido y frena al llegar, como el radar
+  const dx = Math.round(-(1 - e) * LISTO_W);
+  const xt = MARGEN + CUADRO;                // el borde derecho de la barra: de ahi sale
+  // el recorte empieza EN el borde de la barra, asi que la placa del cartel entra sin su columna
+  // izquierda: se lee como una lengueta de la barra y no como una caja aparte.
+  ctx.save(); ctx.beginPath(); ctx.rect(xt, y - 2, LISTO_W + 2, h + 4); ctx.clip();
+  plate(xt - 1 + dx, y, LISTO_W + 1, h);
+  ctx.font = 'bold 5px monospace'; ctx.textAlign = 'left'; ctx.fillStyle = col;
+  ctx.fillText(T('poder_listo'), xt + 2 + dx, y + h - 3);
+  ctx.restore();
+}
+
 function barraPoder(px0, py0, val, col, claro, oscuro, on, lista, rot) {
   const c = on ? (Math.sin(run.t * 14) > 0 ? claro : col) : col;
   plate(px0, py0, CUADRO, PODER_H + 2);
@@ -1301,18 +1332,13 @@ export function drawHUD(h) {
     // letra, asi la ultima cierra justo en el borde. Mismo criterio que los rotulos de barraPoder.
     const pal = T('mult_perfect');
     const paso = (RACHA_W - GLIFO) / Math.max(1, pal.length - 1);
-    // el mismo fondo oscuro que la barra, pegado a ella: palabra y carga son UN cartelito, y a
-    // 5 px una letra naranja sobre el mar no se lee sin algo detras.
-    ctx.fillStyle = '#0a0e11bb'; ctx.fillRect(s.x + 24, s.y - 10, RACHA_W + 2, 7);
-    ctx.textAlign = 'left'; ctx.font = F_ROT; ctx.fillStyle = P.accent;
+    // SIN FONDO (12/9): el recuadro oscuro detras de la palabra y de la barra era una mancha
+    // pegada al avion. La palabra va en NEGRITA, que es lo que la sostiene sobre el mar a 5 px.
+    ctx.textAlign = 'left'; ctx.font = 'bold 5px monospace'; ctx.fillStyle = P.accent;
     for (let i = 0; i < pal.length; i++)
       ctx.fillText(pal[i], s.x + 25 + Math.round(i * paso), s.y - 5);
-    // barra de progreso hacia el próximo nivel de racha
-    if (run.rasLevel < 4) {
-      const prog = (run.streak % 2) / 2;
-      ctx.fillStyle = '#0a0e11bb'; ctx.fillRect(s.x + 24, s.y - 3, RACHA_W + 2, 3);
-      px(s.x + 25, s.y - 2, Math.round(RACHA_W * prog), 1, P.accent);
-    }
+    // barra de progreso hacia el próximo nivel de racha: sin carril, solo lo cargado
+    if (run.rasLevel < 4) px(s.x + 25, s.y - 2, Math.round(RACHA_W * ((run.streak % 2) / 2)), 1, P.accent);
   }
   // borde encendido según la racha
   if (run.rasLevel > 0) {
@@ -1448,6 +1474,9 @@ export function drawHUD(h) {
   const yPod = CUADROS_Y - AIRE - PILOTO.lado - AIRE - altoPod;   // pegada a la cara, con el mismo aire
   barraPoder(MARGEN, yPod - AIRE - altoPod, tv, P.accent, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
   barraPoder(MARGEN, yPod, ras.on ? ras.resta / ras.dur : ras.meter, RAS_COL, RAS_CLARO, RAS_OSCURO, ras.on, ras.meter >= 1, T('bar_rasante'));
+  // …y el cartelito que avisa que se cargo, saliendo de atras de la barra que le corresponde
+  tabListo(0, yPod - AIRE - altoPod, altoPod, tv >= 1, MOM_CLARO);
+  tabListo(1, yPod, altoPod, ras.meter >= 1, RAS_CLARO);
   // EL RELOJ DEL RASANTE, y SOLO mientras esta encendido. Es el unico numero que los rieles no
   // pueden dar —cuantos segundos quedan, no que fraccion— y es el unico momento en que hace falta:
   // con el poder apagado la pregunta es otra ("¿cuanto falta para tenerlo?") y esa la contesta el
