@@ -800,7 +800,7 @@ function gestoDeseado() {
 }
 
 /** Dibuja la cara y devuelve el x donde sigue el tablero (sin cara: el mismo x, no queda hueco). */
-function drawPiloto() {
+function drawPiloto(charlaVoz) {
   // APARTE DEL TABLERO (11/9): arriba de la esquina izquierda, y no en la fila. La cara no es un
   // instrumento, y a su derecha tiene que quedar lugar para lo que dice (drawVozPropia, en screens).
   const x = MARGEN, y = CUADROS_Y - AIRE - PILOTO.lado;
@@ -839,7 +839,10 @@ function drawPiloto() {
   // el impacto: el mismo fogonazo rojo que ya usa el HUD, sobre la cara
   if (golpeT > 0) { ctx.globalAlpha = Math.min(0.45, golpeT * 0.75); px(x + 2, y + 2, PILOTO.cara, PILOTO.cara, '#ff3a24'); ctx.globalAlpha = 1; }
   // CUANDO HABLA, el marco se prende: la linea sale de aca y el ojo tiene que saber de donde
-  const habla = radioVisible() && radio.personaje && sinTilde(radio.personaje) === sinTilde(nombre);
+  // …POR CUALQUIERA DE LAS DOS VOCES: la radio y la charla. Antes miraba solo la radio, asi que en
+  // mis lineas de charla la cara quedaba apagada mientras mi propia caja hablaba al lado (11/9).
+  const habla = (radioVisible() && radio.personaje && sinTilde(radio.personaje) === sinTilde(nombre))
+    || (charlaVoz && sinTilde(charlaVoz) === sinTilde(nombre));
   if (habla) { ctx.strokeStyle = P.accent; ctx.strokeRect(x + 0.5, y + 0.5, PILOTO.lado - 1, PILOTO.lado - 1); }
   // `cara` es la que se esta viendo AHORA (con su gesto): si mi linea tiene que ir arriba porque
   // abajo hay una charla, el toast usa ESTA y no el retrato de radio — ver drawRadioVN
@@ -1252,7 +1255,7 @@ export function drawHUD(h) {
   // LA FILA de cuadrados de abajo, en los tres grupos de la cabina (ver CUADRO / X_* arriba).
 
   // LA CARA DEL PILOTO, aparte: arriba de la esquina izquierda (ver drawPiloto).
-  drawPiloto();
+  drawPiloto(h.charlaVoz);
 
   // ---- LA NAFTA (izquierda, al lado de SALUD) y LA CHANCHA (derecha, con lo que se carga) ------
   // La chancha solo con COMBUSTIBLE: SI — un reloj que nunca se va a poder usar es ruido ocupando

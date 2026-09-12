@@ -675,6 +675,26 @@ el avión se rompe lo suficiente para no volver a encenderlo, el reloj **se vea 
 - **La unidad va impresa en la cara**: `km/h` en cuerpo 4 —la mitad del número—, apagado, arriba del
   número y **dibujado antes que la aguja**, así la aguja le pasa por encima, como en un reloj de
   verdad. Al lado del número no entra: a cuatro dígitos el número se come el ancho útil del cuadrado.
+
+## 1z. La voz del otro entra por la derecha, y mi cara se prende también en charla _(aplicada)_
+
+Pedido del 12/9. Dos cosas:
+
+- **El marco de mi cara se prende con las dos voces**, no sólo con la radio. Miraba únicamente
+  `radio.personaje`, así que en mis líneas de charla la cara quedaba apagada mientras mi propia caja
+  hablaba al lado. Ahora `game.js` pasa **quién habla en la charla** (`charlaVoz`) y el tablero
+  compara con el nombre del que vuela. Verificado forzando un relevo (vuela PUMA, que sí tiene línea
+  en `M04_NARWAL_A`): la línea sale en mi caja y la cara se enciende.
+- **La caja del otro es el espejo de la mía**: estaba centrada en la banda de abajo (262 × 38) y pasa
+  a la **derecha, a la misma altura que mi cara**, con su retrato contra el borde y el texto a su
+  izquierda. **Entra desde la derecha** (0,22 s, frenando al llegar) y **se vuelve a ir por donde
+  vino** al terminar la línea; para eso `drawCharla` se llama SIEMPRE, con `dlg` en null cuando no hay
+  charla, y guarda la última línea para poder dibujar la salida. Si mi voz de radio está en esa
+  banda, la del otro sube arriba de la mía.
+
+Con esto, el eje izquierda/derecha dice **quién habla**: yo a la izquierda, saliendo de mi cara; el
+otro a la derecha, entrando de afuera. Y la mitad de abajo del centro de la pantalla, que era de la
+caja de charla, queda limpia.
 - **La marca de Mach 1 se fue de la velocidad**: el Mach tiene su propio reloj, con la suya.
 
 

@@ -3733,12 +3733,20 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // LA CINTA DE FORMACION va ADENTRO del ctx.scale(U): es HUD, o sea grilla de DISEÑO (320x180),
       // no de mundo. Ojo con esto — `drawPersec` (el avion del lider) se dibuja arriba, FUERA del
       // scale, porque eso si es mundo. Los dos espacios de coordenadas del repo, en un solo archivo.
+      // QUIEN HABLA EN LA CHARLA: la misma cuenta que hace el dibujo (la linea de la escena actual)
+      const charlaQuien = () => {
+        if (!charla.hablando() || !dlg.seq) return null;
+        const sc = dlg.seq[dlg.si], ln = sc && sc.lineas ? sc.lineas[dlg.li] : null;
+        return ln ? ln.personaje : null;
+      };
       if (S.state === 'play') {
         ctx.save(); ctx.scale(U, U); hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip, goalKind: objectiveKind,
         radarAlt: fases.techoRadar(RADAR_ALT),
-        // lo mas alto que ocupa la voz en la banda de abajo (mi caja o la de charla): los avisos de
+        // lo mas alto que ocupa la voz en la banda de abajo (mi caja o la del otro): los avisos de
         // altura se apoyan arriba de eso
         charlaTecho: screens.techoBanda(),
+        // QUIEN HABLA EN LA CHARLA este cuadro: el tablero prende el marco de su cara si soy yo
+        charlaVoz: charlaQuien(),
         // el contador y su reloj de escondite, por snapshot (convencion 4: el render no importa
         // de systems — lo vigila `npm run lint:layers`)
         estrellas: run.estrellas, escondite: estrellas.progreso(),
@@ -3759,7 +3767,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (cfg.radioUI === 'panel') screens.drawRadioPanel(); else screens.drawRadioVN({ charla: charla.hablando() });
         // LA CHARLA EN VUELO, en su propia caja y un escalon arriba del toast. Va DESPUES de la
         // radio para que, si las dos coinciden, la conversacion quede encima del aviso.
-        if (charla.hablando()) screens.drawCharla({ dlg });
+        // SIEMPRE, con `dlg` en null cuando no hay charla: la caja del otro se va sola y para eso
+        // hay que seguir dibujandola un ratito despues de la ultima linea.
+        screens.drawCharla({ dlg: charla.hablando() ? dlg : null });
         ctx.restore();
       }
       if (S.state === 'momentum' && momentum.active()) momRender.drawMomentum({

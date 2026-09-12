@@ -9,6 +9,7 @@ import { T, L } from '../core/i18n.js';
 import { wrapChars } from '../core/util.js';
 import { clamp01 } from '../core/physics.js';
 import { radio, restante, visible, log } from '../core/radioVN.js';
+import { run } from '../core/run.js';
 import { sinceReady, txtOf } from '../core/dialogue.js';
 import { PLACA_DE_CUADRO } from '../data/placas.js';
 import { HUD_TECHO, cintaCaja, vozMin, VOZ, pilotoCaja, sinTilde } from './hud.js';
@@ -1306,7 +1307,8 @@ export function drawRadioVN() {
   ctx.globalAlpha = 1;
 }
 
-/** LA CHARLA EN VUELO (SPEC_CHARLAS_VUELO): la caja que le faltaba.
+/** LA CHARLA EN VUELO (SPEC_CHARLAS_VUELO): la caja que le faltaba. HOY ES LA DE LA DERECHA — ver
+ *  dibujarOtro, mas abajo; este comentario queda por lo que explica de por que existe.
  *
  *  POR QUE NO ALCANZABA `drawStory`. Aquella es la tarjeta de HISTORIA y arranca con un
  *  `fillRect(0,0,W,H)`: tapa el mundo entero, que es correcto en 'story' y absurdo volando. El
@@ -1321,74 +1323,81 @@ export function drawRadioVN() {
  *  mismo ancho; la charla NO PUDO ir con ella: sus renglones son de `WRAP_BODY` = 68 caracteres, y
  *  en el ancho de la cinta (~145 px) eso son seis renglones colgando sobre el horizonte. Se quedo
  *  abajo, sola, en el piso que era del toast. Si algun dia sube, sube RE-PARTIDA, no achicada. */
-const CHV_W = 262, CHV_H = 38, CHV_CARA = 26;
+const CHV_CARA = 26;   // el retrato del otro: el mismo cuadrado que mi cara
 
-export function drawCharla(w) {
-  const d = w.dlg;
-  const sc = d.seq[d.si];
-  const ln = sc && sc.lineas ? sc.lineas[d.li] : null;
-  if (!ln) return;
-  // SI LA LINEA ES MIA, sale de mi cara como mi radio (ver drawVozPropia), tipeandose igual
-  const yo = pilotoCaja();
-  if (hablaYo(yo, ln.personaje)) {
-    drawVozPropia(yo, { filas: d.wrap.slice(0, 3), font: '6px monospace', paso: 7, typed: d.typed,
-      ease: Math.max(0, Math.min(1, d.sceneT / 0.3)) });
-    return;
-  }
-  const bw = CHV_W, bh = CHV_H;
-  // la caja de los otros no pisa mi cara: si hace falta, arranca despues de ella
-  const bx = Math.max(Math.round((W - bw) / 2), yo ? yo.x + yo.lado + VOZ.aire : 0);
-  // y si mi voz de radio esta en la banda, sube arriba de ella
-  const piso = propiaRadio && yo ? yo.y - 2 : HUD_TINTA - 2;
-  // entra subiendo desde el piso de la banda de abajo, que ahora es SOLO suya: la radio subio a
-  // colgar de la cinta del objetivo (ver `vozCaja`).
-  //
-  // SEIS PIXELES DE BARRIDO, no el alto de la caja. El barrido era de `bh + 10` = 48 px hacia
-  // abajo: cuando la caja vivia mas arriba caia sobre el cielo, pero en este piso cruzaba la cara del
-  // piloto, los puntitos y el combustible (se vio en captura, a media entrada). Una caja de dialogo
-  // que pasa por encima de los instrumentos, aunque sea medio segundo, es lo que el §0b prohibe.
-  const ease = Math.max(0, Math.min(1, d.sceneT / 0.3));
-  const by = Math.round(piso - bh + (1 - ease) * 6);
-  subeTecho(by);
-  ctx.globalAlpha = 0.94 * (0.4 + 0.6 * ease);
-  ctx.fillStyle = '#070b0f'; ctx.fillRect(bx, by, bw, bh);
-  ctx.globalAlpha = ease;
-  ctx.strokeStyle = '#3a4c58'; ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+// LA VOZ DEL OTRO, ESPEJO DE LA MIA (playtest 11/9 a la noche). Mi linea sale de mi cara, abajo a
+// la izquierda; la del otro ENTRA DESDE LA DERECHA a la misma altura, con su retrato contra el borde
+// y el texto a su izquierda — y al terminar SE VUELVE A IR por donde vino. El canal tiene entrada y
+// salida, como la placa del radar y como las balizas: mientras no habla nadie, la pantalla queda
+// limpia, y de un vistazo se sabe quien transmite (izquierda, yo) y quien habla (derecha, el otro).
+//
+// La caja de 262x38 centrada en la banda de abajo se fue con esto: era la unica cosa del vuelo que
+// se paraba en el medio de la pantalla.
+const OTRO_PAD = 4, OTRO_FILA = 6, OTRO_ENTRA = 0.22;
+let otroK = 0, otroT = -1, otroUlt = null;
 
-  let tx = bx + 6;
-  if (ln.cara) {
-    const ps = CHV_CARA, py0 = by + (bh - ps) / 2;
-    ctx.fillStyle = '#0d1319'; ctx.fillRect(tx, py0, ps, ps);
-    const im = portraitImg(ln.cara);
-    if (im) ctx.drawImage(im, tx, py0, ps, ps);
-    else {                                            // la misma silueta de respaldo que el toast
-      const u = ps / 36;
-      ctx.fillStyle = '#22303b';
-      ctx.fillRect(tx + 13 * u, py0 + 6 * u, 10 * u, 11 * u);
-      ctx.fillRect(tx + 6 * u, py0 + 20 * u, 24 * u, 16 * u);
-    }
-    ctx.globalAlpha = 0.7 * ease; ctx.strokeStyle = P.accent;
-    ctx.strokeRect(tx + 0.5, py0 + 0.5, ps - 1, ps - 1); ctx.globalAlpha = ease;
-    tx += ps + 5;
-  }
+function dibujarOtro(v, k, yo) {
+  ctx.font = '5px monospace';
+  let ancho = 40;
+  for (const f of v.wrap) ancho = Math.max(ancho, ctx.measureText(f).width);
+  ctx.font = 'bold 5px monospace';
+  ancho = Math.max(ancho, ctx.measureText(v.personaje || '').width);
+  const alto = CHV_CARA, tw = Math.min(W - 2 * VOZ.margen - CHV_CARA - VOZ.aire, Math.ceil(ancho) + OTRO_PAD * 2);
+  const total = tw + VOZ.aire + CHV_CARA;
+  const e = 1 - Math.pow(1 - k, 3);
+  const bx = Math.round(W - VOZ.margen - total + (1 - e) * (total + VOZ.margen));
+  // a la altura de mi cara; y si mi voz de radio esta en esa banda, esta sube arriba de la mia
+  const base = yo ? yo.y : HUD_TINTA - VOZ.aire - alto;
+  const y = propiaRadio && yo ? base - 2 - alto : base;
+  subeTecho(y);
+  ctx.globalAlpha = 0.94; ctx.fillStyle = '#070b0f'; ctx.fillRect(bx, y, tw, alto);
+  ctx.globalAlpha = 1; ctx.strokeStyle = '#3a4c58'; ctx.strokeRect(bx + 0.5, y + 0.5, tw - 1, alto - 1);
   ctx.textAlign = 'left';
-  let ty = by + 10;
-  if (ln.personaje) {
+  if (v.personaje) {
     ctx.font = 'bold 5px monospace'; ctx.fillStyle = P.accent;
-    ctx.fillText(ln.personaje, tx, ty);
-    ty += 7;
+    ctx.fillText(v.personaje, bx + OTRO_PAD, y + 6);
   }
-  // EL TIPEO ES DEL MOTOR: `d.typed` cuenta sobre el texto ENTERO, asi que se va gastando renglon
-  // por renglon. Es la misma cuenta que hace `drawStory` — el efecto tiene que ser el mismo aunque
-  // la caja sea otra.
-  ctx.font = '6px monospace'; ctx.fillStyle = P.ink;
-  let left = d.typed;
-  for (let i = 0; i < Math.min(3, d.wrap.length); i++) {
-    if (left <= 0) break;
-    ctx.fillText(d.wrap[i].slice(0, left), tx, ty + i * 7);
-    left -= d.wrap[i].length + 1;                     // +1: el espacio que se comio el wrap
+  // EL TIPEO ES DEL MOTOR: `typed` cuenta sobre el texto ENTERO y se va gastando renglon por renglon
+  ctx.font = '5px monospace'; ctx.fillStyle = P.ink;
+  let left = v.typed;
+  for (let i = 0; i < v.wrap.length && left > 0; i++) {
+    ctx.fillText(v.wrap[i].slice(0, left), bx + OTRO_PAD, y + 12 + i * OTRO_FILA);
+    left -= v.wrap[i].length + 1;                       // +1: el espacio que se comio el wrap
   }
+  // EL RETRATO, contra el borde: es de donde viene la voz, igual que mi cara del otro lado
+  const px0 = bx + tw + VOZ.aire;
+  ctx.fillStyle = '#0d1319'; ctx.fillRect(px0, y, CHV_CARA, CHV_CARA);
+  const im = v.cara ? portraitImg(v.cara) : null;
+  if (im) ctx.drawImage(im, px0, y, CHV_CARA, CHV_CARA);
+  else {                                                // la misma silueta de respaldo que el toast
+    const u = CHV_CARA / 36;
+    ctx.fillStyle = '#22303b';
+    ctx.fillRect(px0 + 13 * u, y + 6 * u, 10 * u, 11 * u);
+    ctx.fillRect(px0 + 6 * u, y + 20 * u, 24 * u, 16 * u);
+  }
+  ctx.globalAlpha = 0.7; ctx.strokeStyle = P.accent;
+  ctx.strokeRect(px0 + 0.5, y + 0.5, CHV_CARA - 1, CHV_CARA - 1);
   ctx.globalAlpha = 1;
+}
+
+/** La charla en vuelo. Se la llama SIEMPRE (con `dlg` en null cuando no hay ninguna): la caja del
+ *  otro tiene que poder irse sola, y para eso hay que seguir dibujandola un ratito despues. */
+export function drawCharla(w) {
+  const d = w && w.dlg;
+  const sc = d && d.seq ? d.seq[d.si] : null;
+  const ln = sc && sc.lineas ? sc.lineas[d.li] : null;
+  const yo = pilotoCaja();
+  // SI LA LINEA ES MIA, sale de mi cara como mi radio (ver drawVozPropia), tipeandose igual
+  const mia = !!ln && hablaYo(yo, ln.personaje);
+  if (mia) drawVozPropia(yo, { filas: d.wrap.slice(0, 3), font: '6px monospace', paso: 7, typed: d.typed,
+    ease: Math.max(0, Math.min(1, d.sceneT / 0.3)) });
+  const activa = !!ln && !mia;
+  if (activa) otroUlt = { personaje: ln.personaje, cara: ln.cara, wrap: d.wrap.slice(0, 3), typed: d.typed };
+  const dt = otroT < 0 || run.t < otroT ? 0 : Math.min(0.1, run.t - otroT);
+  otroT = run.t;
+  otroK = activa ? Math.min(1, otroK + dt / OTRO_ENTRA) : Math.max(0, otroK - dt / OTRO_ENTRA);
+  if (otroK <= 0) { otroUlt = null; return; }
+  if (otroUlt) dibujarOtro(otroUlt, otroK, yo);
 }
 
 // ---------- EL PANEL: la radio de la escuadrilla ----------
@@ -1444,7 +1453,7 @@ export const toastBanda = () => {
   return { x: v.x, w: v.w, y1: v.y, y2: v.y + TOAST_H, cinta: cintaCaja(), vozMin: vozMin(),
     // el cuadro del piloto con la cara que muestra AHORA: el gesto se afirma con un dato, no a ojo
     piloto: pilotoCaja(),
-    charla: { y2: HUD_TINTA - 2, h: CHV_H }, hudTinta: HUD_TINTA };
+    charla: { k: +otroK.toFixed(2), cara: CHV_CARA }, hudTinta: HUD_TINTA };
 };
 
 function drawVNBox(w, d, ln, last, narra) {
