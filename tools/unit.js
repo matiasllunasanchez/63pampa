@@ -1742,6 +1742,50 @@ test('ganchos: desgaste acumula, escala 0..1 y se resetea MUTANDO', async () => 
   assert.equal(m.desgaste, ref, 'resetDesgaste REASIGNO el store en vez de mutarlo');
 });
 
+test('saves: la cicatriz viaja con la partida, y las DOS mitades siguen ahi (G-04)', async () => {
+  // POR QUE ESTE TEST EXISTE. Si el desgaste no se guarda, el avion SE CURA SOLO al cargar una
+  // partida — y no rompe nada: no hay error, no hay warning, simplemente la campaña vuelve a
+  // empezar con la chapa sana. Es de los fallos que no se descubren jugando porque no se ven; se
+  // descubren meses despues, cuando ya nadie se acuerda de que el avion tenia que acumular.
+  //
+  // Y SON DOS MITADES EN PUNTAS OPUESTAS DEL ARCHIVO: `doSave` mete la cicatriz en el payload y
+  // `loadSave` la vuelve a poner en el store. Cualquiera de las dos se puede tocar sin la otra
+  // —son 400 lineas de distancia— y el sintoma de que una se fue es el mismo silencio. Por eso se
+  // revisan LAS DOS, y contra el game.js que corre, no contra una copia de lo que decia.
+
+  // 1. EL ALMACEN: un registro con `desg` sobrevive el viaje de ida y vuelta por localStorage.
+  const mem = new Map();
+  globalThis.localStorage = {
+    getItem: k => (mem.has(k) ? mem.get(k) : null),
+    setItem: (k, v) => mem.set(k, String(v)),
+  };
+  const saves = await import('../src/systems/saves.js');
+  const rec = saves.saveGame({ camp: 0, level: 3, score: 120, lives: 2, ups: [], desg: { i: 7, m: 2 } });
+  const leido = saves.listSaves().find(r => r.id === rec.id);
+  assert.deepEqual(leido.desg, { i: 7, m: 2 }, 'la cicatriz no sobrevivio el guardado');
+  const tras = saves.overwriteSave(rec.id, { camp: 0, level: 4, score: 200, lives: 1, ups: [], desg: { i: 9, m: 3 } });
+  assert.deepEqual(tras.desg, { i: 9, m: 3 }, 'sobrescribir un slot perdio la cicatriz');
+  delete globalThis.localStorage;
+
+  // 2. LAS DOS MITADES, en el game.js que corre.
+  const src = readFileSync(new URL('../src/game.js', import.meta.url), 'utf8');
+  const cuerpo = (nombre) => {
+    const i = src.indexOf('function ' + nombre + '(');
+    assert.ok(i > 0, `no existe ${nombre}() — si se renombro, hay que actualizar este test`);
+    return src.slice(i, i + 1200);
+  };
+  const guarda = cuerpo('doSave');
+  assert.ok(/desg\s*:/.test(guarda), 'doSave() dejo de meter `desg` en el payload: el avion se cura al cargar');
+  assert.ok(/desgaste\.impactos/.test(guarda) && /desgaste\.misiones/.test(guarda),
+    'doSave() guarda un `desg` que ya no sale del store de desgaste');
+  const carga = cuerpo('loadSave');
+  assert.ok(/rec\.desg/.test(carga), 'loadSave() dejo de leer `desg`: lo guardado no vuelve al avion');
+  assert.ok(/desgaste\.impactos\s*=/.test(carga) && /desgaste\.misiones\s*=/.test(carga),
+    'loadSave() lee `desg` pero ya no lo escribe en el store');
+  assert.ok(/resetDesgaste\(\)/.test(carga),
+    'loadSave() tiene que RESETEAR antes de aplicar: una partida vieja sin `desg` heredaria la chapa de la anterior');
+});
+
 test('ganchos: los barks respetan la curva del tono', async () => {
   const { BARKS, barkDe, barksVivos } = await import('../src/data/barks.js');
   assert.ok(BARKS.length >= 1, 'tiene que existir al menos HEAVY MACHINE GUN');
