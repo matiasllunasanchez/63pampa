@@ -68,7 +68,9 @@ export const STRINGS = {
     death_tower: 'Chocaste una torre de comunicaciones', death_wire: 'Te enganchaste en los cables',
     death_flag: 'Chocaste un mastil', death_depot: 'Te estrellaste contra un deposito',
     death_cliff: 'Te estrellaste contra un acantilado',
-    hitBirds: '! DAÑO LEVE !', hitBlast: '! ONDA EXPANSIVA !', hitSmall: '! IMPACTO !',
+    // EL GOLPE NO LETAL SE DICE EN NUMEROS (12/9): `- HP` en el rojo del tablero dice lo mismo
+    // que '! DAÑO LEVE !' con cuatro caracteres y sin gritar, y encima no tapa el mundo.
+    hitBirds: '- HP', hitBlast: '! ONDA EXPANSIVA !', hitSmall: '! IMPACTO !',
     death_aa: 'La defensa de la barcaza te derribo',
     death_fuel: 'Te quedaste sin combustible sobre el blanco',
     // RF-15: la derrota de la PASADA. No te derribaron — se acabo la escuadrilla y el buque
@@ -1137,7 +1139,7 @@ export const STRINGS = {
     death_tower: 'You hit a comms tower', death_wire: 'You snagged the power lines',
     death_flag: 'You hit a flagpole', death_depot: 'You crashed into a depot',
     death_cliff: 'You flew into a cliff',
-    hitBirds: '! MINOR DAMAGE !', hitBlast: '! BLAST WAVE !',
+    hitBirds: '- HP', hitBlast: '! BLAST WAVE !',
     death_aa: 'The barge defenses shot you down',
     death_fuel: 'You ran out of fuel over the target',
     death_pasada: 'The squadron was spent and the ship sailed on',

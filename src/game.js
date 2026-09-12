@@ -4656,7 +4656,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // el avion a ras lo mataba contra el suelo ANTES de llegar al blanco, y el choque que se
       // queria medir no llegaba a pasar
       const alto = h || Math.max(7, plane.y * 2 + 3);
-      obstacles.push({ type: tipo, x: plane.x, y: 0, h: alto, z: PZ + 8, xa: plane.x });
+      // `bvx` y `ph` van SI O NO: la bandada deriva con `o.x += o.bvx * dt` (collision.js) y sin
+      // el campo la x se volvia NaN en el primer cuadro, asi que el choque con 'birds' no podia
+      // pasar NUNCA y la sonda mentia en silencio. `ph` es la fase del aleteo, que dibuja el render.
+      obstacles.push({ type: tipo, x: plane.x, y: 0, h: alto, z: PZ + 8, xa: plane.x, bvx: 0, ph: 0 });
       return JSON.stringify({ ok: true, tipo, h: alto, z: PZ + 8, spd: run.spd | 0 });
     };
 
