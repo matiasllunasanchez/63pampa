@@ -123,6 +123,16 @@ export const ICONOS = {
     '.#...#.',
     '#...#..',
   ] },
+  // CON TURBO, la velocidad cambia de icono: las mismas dos flechas pero GRUESAS, y en acento (ver
+  // drawHUD). Es el mismo gesto que la aguja, del mismo color: "esto que ves es turbo". Gruesas y no
+  // tres finas: con tres de un pixel, a 7x5 el icono se lee como un damero y no como flechas.
+  turbo: { letra: 'T', png: null, pix: [
+    '##.##..',
+    '.##.##.',
+    '..##.##',
+    '.##.##.',
+    '##.##..',
+  ] },
   mach: { letra: 'M', png: null, pix: [                         // la M del Machmetro
     '#...#',
     '##.##',

@@ -13,7 +13,8 @@ import { plane, cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { shown as dmgShown } from '../systems/damage.js';
 import { proj } from '../core/fx.js';
-import { scrapeLimit } from '../core/physics.js';
+import { scrapeLimit, speedTarget } from '../core/physics.js';
+import { effects } from '../core/damage.js';
 import { T } from '../core/i18n.js';
 import { P, RADAR_VERDE, RADAR_OPACO } from '../data/palette.js';
 import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP } from '../data/tuning.js';
@@ -493,6 +494,11 @@ const VEL_TOPE = 1400;              // km/h: pasa Mach 1 (1200) con aire; la pos
 // aguja pasaba media mision clavada en cero, que en un tablero se lee como un instrumento roto.
 const MACH_DE = 0.2, MACH_A = 1.4;
 const RACK_W = 12;
+// LOS DOS MAXIMOS DEL AVION, en km/h: sin turbo y con turbo, con la racha y el tiempo de vuelo al
+// tope y sin viento en contra. Son las dos marcas de la escala de velocidad (ver drawHUD). Salen de
+// `speedTarget`, la misma cuenta con la que vuela: si algun dia cambia la fisica, las marcas la
+// siguen solas. La postcombustion pasa el segundo tope — por eso la escala llega mas lejos que el.
+const TOPE = [false, true].map(b => speedTarget({ t: 1e5, rasLevel: 4, mult: 10, windF: 1, boost: b, afterTier: 0 }) * KMH_U);
 // DONDE VA CADA UNO (ver el orden de los grupos arriba). El grupo del vuelo se centra en el hueco
 // entre los otros dos: aire igual a los dos lados, que se ve mejor que el horizonte clavado en el
 // medio exacto de la pantalla (queda a siete pixeles).
@@ -627,11 +633,45 @@ function drawADI() {
 // parpadea se ve DE REOJO, que es como se mira un tablero mientras se vuela. Todos titilan EN FASE
 // (el mismo reloj): dos alarmas a la vez se leen como una alarma, no como un arbolito.
 const CRIT_HZ = 3;
-function bordeCritico(x, y, w, h) {
-  if (Math.floor(run.t * CRIT_HZ * 2) % 2) return;
-  ctx.fillStyle = P.warn;
+
+// EL VIDRIO ROTO (playtest 11/9): un reloj que ya no puede decir lo que decia se dibuja RAJADO. Hoy
+// lo usa la velocidad cuando la averia le saco el turbo para siempre — la marca naranja del tope con
+// turbo desaparece, y el vidrio partido dice por que.
+//
+// ES UN IMPACTO, NO UNA RAYA. La primera version eran lineas largas y derechas que cruzaban el
+// centro, y a 26 px se leian como OTRA AGUJA. Ahora hay un punto de impacto arriba a la izquierda
+// —arriba a la izquierda, lejos del eje y del numero, y sin llegar al recorrido de la aguja— con
+// astillas cortas y quebradas alrededor, mas dos esquirlas que las cierran en triangulo, que es como
+// se rompe un vidrio de verdad. Van en un gris APAGADO: mas claras competian con la aguja. Son
+// SIEMPRE LAS MISMAS (un vidrio roto no titila) y llevan su sombra, para leerse sobre la escala.
+const IMPACTO = [7, 7];
+const RAJAS = [
+  [[7, 7], [6, 4], [8, 2]],
+  [[7, 7], [4, 8], [2, 7]],
+  [[7, 7], [7, 10], [9, 12]],
+  [[7, 7], [11, 6], [15, 7]],
+  [[11, 6], [10, 10], [7, 10]],
+  [[6, 4], [10, 4], [11, 6]],
+];
+function vidrioRoto(x, y) {
+  for (const raja of RAJAS) {
+    for (let i = 1; i < raja.length; i++) {
+      const [ax, ay] = raja[i - 1], [bx, by] = raja[i];
+      pxLinea(x + ax, y + ay + 1, x + bx, y + by + 1, '#0a0e11');
+      pxLinea(x + ax, y + ay, x + bx, y + by, '#53656e');
+    }
+  }
+  px(x + IMPACTO[0] - 1, y + IMPACTO[1] - 1, 2, 2, '#0a0e11');   // el agujero
+  px(x + IMPACTO[0], y + IMPACTO[1] - 1, 1, 1, '#8fa3ac');
+}
+function bordePlaca(x, y, w, h, col) {
+  ctx.fillStyle = col;
   ctx.fillRect(x, y, w, 1); ctx.fillRect(x, y + h - 1, w, 1);
   ctx.fillRect(x, y, 1, h); ctx.fillRect(x + w - 1, y, 1, h);
+}
+function bordeCritico(x, y, w, h) {
+  if (Math.floor(run.t * CRIT_HZ * 2) % 2) return;
+  bordePlaca(x, y, w, h, P.warn);
 }
 
 function pxLinea(x0, y0, x1, y1, col) {
@@ -642,7 +682,8 @@ function pxLinea(x0, y0, x1, y1, col) {
 /** `o` = { val 0..1, col, ico, icoCol, zona: [desde, hasta] en rojo, zonas: [[desde, hasta, col]]
  *  (varias y de cualquier color; manda sobre `zona`), marcas: [[f, col]] marcas LARGAS, fin: icono
  *  al final de la escala (o null), txt: el numero al pie, txtCol, critico: el borde titila en rojo
- *  (ver bordeCritico) } */
+ *  (ver bordeCritico), borde: color del borde de la placa, fijo y sin titilar (hoy: el turbo),
+ *  roto: el vidrio va rajado (ver vidrioRoto) } */
 function reloj(x, y, o) {
   plate(x, y, CUADRO, CUADRO);
   const cx = x + 13, cy = y + 16, r = 10;
@@ -670,6 +711,8 @@ function reloj(x, y, o) {
     ctx.fillText(o.txt, x + CUADRO - 3, y + CUADRO - 4);
     ctx.textAlign = 'left';
   }
+  if (o.roto) vidrioRoto(x, y);
+  if (o.borde) bordePlaca(x, y, CUADRO, CUADRO, o.borde);   // el fijo primero: el critico manda
   if (o.critico) bordeCritico(x, y, CUADRO, CUADRO);
 }
 
@@ -1219,11 +1262,33 @@ export function drawHUD(h) {
   const xRack = X_RACK;
   // VELOCIDAD, en km/h. La aguja toma el color de lo que la esta empujando —turbo o racha en acento,
   // postcombustion en rojo, viento en contra en cresta—, que eran las etiquetas del numero de antes.
-  // La marca larga es Mach 1.
+  //
+  // DOS TOPES EN LA ESCALA (11/9): EL MAXIMO DEL AVION sin turbo (marca BLANCA) y con turbo (marca
+  // NARANJA, bastante mas a la derecha). No son "hasta donde llego ahora" —eso ya lo dice la aguja—
+  // sino hasta donde puede llegar: son dos numeros fijos (ver TOPE), la misma cuenta con la que vuela
+  // el avion llevada al limite. Lo unico que los mueve es la AVERIA, que baja los dos a la vez.
+  // La marca de Mach 1 se fue de aca: el Mach tiene su propio reloj, con la suya.
+  //
+  // Y CON TURBO CAMBIAN LA AGUJA Y EL ICONO, los dos juntos: la aguja es BLANCA y se pone naranja
+  // solo con turbo (antes tambien se teñia con la racha y con el viento, y entonces el naranja no
+  // queria decir nada), y el icono pasa de dos flechas finas en gris a las mismas dos GRUESAS en
+  // acento. Y EL BORDE DE LA PLACA se prende en acento, FIJO: sin titilar, porque el turbo no es una
+  // alarma — el titileo es el idioma del peligro (ver bordeCritico) y prestarselo lo gastaria.
   const kmh = run.spd * KMH_U, mach = machNow(run.spd);
-  const colVel = run.afterTier > 0 ? P.warn : run.boost || run.rasLevel > 0 ? P.accent : run.windF < 0.97 ? P.crest : P.foam;
-  reloj(xVuelo(0), CUADROS_Y, { val: kmh / VEL_TOPE, ico: 'vel', col: colVel, marcas: [[A_MAR / VEL_TOPE, P.foam]],
-    txt: String(Math.round(kmh)), txtCol: colVel === P.foam ? P.dim : colVel });
+  const colVel = run.boost ? P.accent : P.foam;
+  const ef = effects(run.integ, cfg.dmgMode);
+  const tope = b => TOPE[b ? 1 : 0] * ef.spd / VEL_TOPE;
+  const marcasVel = [[tope(false), P.foam]];
+  if (ef.turbo) marcasVel.push([tope(true), P.accent]);
+  // …Y LA FRANJA DE ENTREMEDIO EN ACENTO, como la del cono en el Machmetro: ese tramo de la escala
+  // es el que SOLO se alcanza con turbo. La zona dice "esto te lo da el turbo" sin una palabra.
+  const zonasVel = ef.turbo ? [[tope(false), tope(true), P.accent]] : [];
+  // SIN TURBO PARA SIEMPRE (la averia paso el escalon del medio): el vidrio se raja y la marca
+  // naranja no esta. El avion no vuelve a llegar ahi en toda la corrida.
+  reloj(xVuelo(0), CUADROS_Y, { val: kmh / VEL_TOPE, ico: run.boost ? 'turbo' : 'vel',
+    icoCol: run.boost ? P.accent : P.dim, col: colVel, marcas: marcasVel, zonas: zonasVel,
+    roto: dmgShown() && !ef.turbo, borde: run.boost ? P.accent : null,
+    txt: String(Math.round(kmh)), txtCol: run.boost ? P.accent : P.dim });
   // MACH, aparte, como en el A-4. Lo que esta en acento es el regimen del cono (core/mach.js) y la
   // marca larga, otra vez, Mach 1.
   const fM = m => (m - MACH_DE) / (MACH_A - MACH_DE);

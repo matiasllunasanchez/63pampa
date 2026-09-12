@@ -645,6 +645,31 @@ gas, que se mueve con cada toque de la W. Los dos grupos de los costados se dier
 (pedido del autor): el que se carga pasó a la derecha y el lento a la izquierda, que es donde está la
 cara del piloto — con SALUD pegada a ella. El horizonte sigue en el centro, segundo de cuatro.
 
+## 1y. La velocidad dice cuándo hay turbo, y cuándo ya no lo vas a tener _(aplicada)_
+
+Pedido del 11/9: que con turbo el ícono de la velocidad cambie —naranja como la aguja, y con más
+peso—, que la escala tenga **dos topes** (uno blanco sin turbo y uno naranja con turbo), y que cuando
+el avión se rompe lo suficiente para no volver a encenderlo, el reloj **se vea roto**.
+
+- **Con turbo cambian tres cosas a la vez**: la aguja, el ícono y el borde. La **aguja es blanca** y
+  se pone naranja **sólo con turbo** (antes también se teñía con la racha y con el viento, y entonces
+  el naranja no quería decir nada). El **ícono** pasa de dos flechas finas en gris a las mismas **dos
+  gruesas en acento** (tres flechas de un píxel se leían como un damero a 7 × 5). Y el **borde de la
+  placa** se prende en acento, **fijo, sin titilar**: el titileo es el idioma del peligro (§1w) y
+  prestárselo al turbo lo gastaría.
+- **Los dos topes son los MÁXIMOS del avión**, no el de este instante: 995 km/h sin turbo y 1176 con
+  turbo —bastante más a la derecha—, sacados de `speedTarget` llevado al límite (racha y tiempo de
+  vuelo al tope, sin viento). Lo único que los mueve es la avería, que baja los dos a la vez. Entre
+  los dos, **la franja va en acento**, como la del cono en el Machmetro: ese tramo de la escala es el
+  que sólo se alcanza con turbo. La postcombustión pasa el segundo tope, y por eso la escala llega
+  más lejos que él.
+- **Roto**: cuando la avería pasa el escalón del medio y el turbo se pierde para siempre, la marca
+  naranja y su franja desaparecen y **el vidrio del reloj se dibuja rajado** (`vidrioRoto`). Es un
+  **impacto con astillas** arriba a la izquierda —lejos del eje y del número, y sin llegar al recorrido
+  de la aguja—, en gris apagado: la primera versión eran rayas largas y derechas por el centro y se
+  leían como una segunda aguja. Las rajaduras son fijas: un vidrio roto no titila.
+- **La marca de Mach 1 se fue de la velocidad**: el Mach tiene su propio reloj, con la suya.
+
 
 ## 2. Divergencias
 
