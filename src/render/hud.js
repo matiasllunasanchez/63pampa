@@ -470,12 +470,16 @@ export const cintaCaja = () => cajaCinta;
 const RELOJ_Y = 15;                  // la placa del reloj del rasante: 15..25
 
 // LOS CUADRADOS DE ABAJO, ORDENADOS COMO LA CABINA DEL A-4 (playtest 11/9). Tres grupos, como en
-// un tablero de verdad, con mas aire entre grupos que adentro de cada uno:
-//   IZQUIERDA  el combate: SALUD, CAÑON y el estante de MISILES
-//   CENTRO     el vuelo, en la "T" de toda cabina: el horizonte en el medio, la velocidad a su
-//              izquierda (y el Mach al lado, como en el reloj KNOTS/MACH del A-4) y la altitud a su
-//              derecha
-//   DERECHA    el motor: GAS (las RPM), NAFTA y la CHANCHA
+// un tablero de verdad, con mas aire entre grupos que adentro de cada uno. Y el criterio no es por
+// tema sino POR CUANTO SE MUEVE CADA AGUJA (pedido del autor), que es lo que decide cada cuanto hay
+// que mirarlo:
+//   IZQUIERDA  EL AVION Y EL QUE LO VUELA: SALUD, NAFTA y MACH, debajo de la cara del piloto. Son
+//              los que casi no se mueven —se miran cada tanto, o cuando su borde titila— y SALUD va
+//              en la esquina, pegada a la cara: ese rincon entero dice "yo y mi avion".
+//   CENTRO     LO QUE VARIA RAPIDO: VELOCIDAD, el horizonte, ALTITUD y GAS. Es lo que se vigila
+//              todo el tiempo, y por eso va adelante, en la "T" de toda cabina.
+//   DERECHA    LO QUE SE CARGA: la CHANCHA, el CAÑON y el estante de MISILES. Se gastan y se
+//              recuperan solos — se miran cuando los vas a usar.
 // LA CARA DEL PILOTO no es un instrumento y ya no esta en la fila: va arriba de la esquina izquierda
 // y de ahi sale su voz (ver drawPiloto y, en render/screens.js, drawVozPropia).
 const CUADRO = 26, CUADROS_Y = H - MARGEN - CUADRO;
@@ -492,10 +496,11 @@ const RACK_W = 12;
 // DONDE VA CADA UNO (ver el orden de los grupos arriba). El grupo del vuelo se centra en el hueco
 // entre los otros dos: aire igual a los dos lados, que se ve mejor que el horizonte clavado en el
 // medio exacto de la pantalla (queda a siete pixeles).
-const X_SALUD = COL(0), X_CANON = COL(1), X_RACK = COL(2);
-const X_MOTOR = W - MARGEN - 3 * CUADRO - 2 * AIRE;            // GAS, NAFTA y CHANCHA, contra el borde
-const X_VUELO = Math.round((X_RACK + RACK_W + X_MOTOR - (4 * CUADRO + 3 * AIRE)) / 2);
-const xVuelo = i => X_VUELO + i * (CUADRO + AIRE);              // MACH, VELOCIDAD, horizonte, ALTITUD
+const X_SALUD = COL(0), X_NAFTA = COL(1), X_MACH = COL(2);      // el grupo lento, bajo la cara
+const X_CARGA = W - MARGEN - (2 * CUADRO + RACK_W + 2 * AIRE);  // el grupo que se carga, al borde
+const X_CHANCHA = X_CARGA, X_CANON = X_CARGA + (CUADRO + AIRE), X_RACK = X_CANON + (CUADRO + AIRE);
+const X_VUELO = Math.round((COL(2) + CUADRO + X_CARGA - (4 * CUADRO + 3 * AIRE)) / 2);
+const xVuelo = i => X_VUELO + i * (CUADRO + AIRE);              // VELOCIDAD, horizonte, ALTITUD, GAS
 
 /** LO MAS ALTO QUE PINTA EL TABLERO DE VUELO: el canto de los cuadrados. Fue el de la fila de placas
  *  de SALUD, cuatro pixeles mas arriba, hasta que SALUD paso a ser un cuadrado.
@@ -578,7 +583,7 @@ function riel(x, val, col) {
 // que existe, cuando los instrumentos se juntaban en las esquinas para dejar limpio el centro; desde
 // que el tablero es una fila entera, el centro de la fila es el lugar del instrumento principal.
 // CUADRADO CON EL RESTO: su placa es la misma de 26 de todos los relojes.
-const ADI = { cx: xVuelo(2) + 13, cy: CUADROS_Y + 13, r: 10 };
+const ADI = { cx: xVuelo(1) + 13, cy: CUADROS_Y + 13, r: 10 };
 const ADI_SKY = '#3c6c8e', ADI_GND = '#6b4a2a', ADI_LINE = '#f2f7fb';
 
 function drawADI() {
@@ -1162,10 +1167,10 @@ export function drawHUD(h) {
   // LA CARA DEL PILOTO, aparte: arriba de la esquina izquierda (ver drawPiloto).
   drawPiloto();
 
-  // ---- DERECHA: EL MOTOR -----------------------------------------------------------------------
-  // GAS (mas abajo, con los del vuelo), NAFTA y CHANCHA. La chancha solo con COMBUSTIBLE: SI — un
-  // reloj que nunca se va a poder usar es ruido ocupando un cuadrado.
-  const xNafta = X_MOTOR + (CUADRO + AIRE), xCha = X_MOTOR + 2 * (CUADRO + AIRE);
+  // ---- LA NAFTA (izquierda, al lado de SALUD) y LA CHANCHA (derecha, con lo que se carga) ------
+  // La chancha solo con COMBUSTIBLE: SI — un reloj que nunca se va a poder usar es ruido ocupando
+  // un cuadrado. La nafta queda al lado de SALUD: son los dos que dicen si volves o no.
+  const xNafta = X_NAFTA, xCha = X_CHANCHA;
   if (pide(run.fuel < 60)) reloj(xNafta, CUADROS_Y, {
     val: run.fuel / 100, ico: 'nafta', zona: [0, 0.25], critico: run.fuel < 25,
     col: run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam,
@@ -1187,9 +1192,9 @@ export function drawHUD(h) {
       txtCol: ch && ch.conn ? P.accent : ch && ch.fase === 'cita' && ch.win < 8 ? P.warn : P.dim });
   }
 
-  // ---- IZQUIERDA: EL COMBATE -------------------------------------------------------------------
-  // SALUD en la esquina, el CAÑON a su lado y el estante de MISILES despues: todo lo que dice "con
-  // que puedo pelear, y cuanto aguanto", junto.
+  // ---- SALUD (izquierda, bajo la cara) y el CAÑON (derecha, con lo que se carga) ----------------
+  // SALUD en la esquina, pegada a la cara del piloto (pedido del autor). El cañon no se gasta: se
+  // RECARGA solo enfriandose, asi que es de los que se cargan.
   // SALUD (ver relojSalud): se pide si la chapa no esta entera o si la amarilla bajo. El umbral es
   // 0,97 y no 1 por el mismo motivo que el 0,05 del cañon: sube y baja sola volando rasante.
   const xSalud = X_SALUD;
@@ -1208,20 +1213,21 @@ export function drawHUD(h) {
   // y sienta lo mismo que nuestros pilotos — un tablero lleno de agujas. El numero sigue al pie de
   // cada uno: la aguja dice "mas o menos cuanto" de reojo, y el numero "cuanto" cuando hay tiempo.
   //
-  // Arman la "T" con el horizonte (ver ADI y xVuelo): MACH, VELOCIDAD, horizonte y ALTITUD. El GAS
-  // es del motor y abre el grupo de la derecha.
+  // Arman la "T" con el horizonte (ver ADI y xVuelo): VELOCIDAD, horizonte, ALTITUD y GAS — las
+  // cuatro agujas que no paran de moverse. El MACH se fue a la derecha: sale de la misma velocidad y
+  // cambia despacio, asi que no necesita estar adelante.
   const xRack = X_RACK;
   // VELOCIDAD, en km/h. La aguja toma el color de lo que la esta empujando —turbo o racha en acento,
   // postcombustion en rojo, viento en contra en cresta—, que eran las etiquetas del numero de antes.
   // La marca larga es Mach 1.
   const kmh = run.spd * KMH_U, mach = machNow(run.spd);
   const colVel = run.afterTier > 0 ? P.warn : run.boost || run.rasLevel > 0 ? P.accent : run.windF < 0.97 ? P.crest : P.foam;
-  reloj(xVuelo(1), CUADROS_Y, { val: kmh / VEL_TOPE, ico: 'vel', col: colVel, marcas: [[A_MAR / VEL_TOPE, P.foam]],
+  reloj(xVuelo(0), CUADROS_Y, { val: kmh / VEL_TOPE, ico: 'vel', col: colVel, marcas: [[A_MAR / VEL_TOPE, P.foam]],
     txt: String(Math.round(kmh)), txtCol: colVel === P.foam ? P.dim : colVel });
   // MACH, aparte, como en el A-4. Lo que esta en acento es el regimen del cono (core/mach.js) y la
   // marca larga, otra vez, Mach 1.
   const fM = m => (m - MACH_DE) / (MACH_A - MACH_DE);
-  reloj(xVuelo(0), CUADROS_Y, { val: fM(mach), ico: 'mach', col: mach >= M_CONO ? P.accent : P.foam,
+  reloj(X_MACH, CUADROS_Y, { val: fM(mach), ico: 'mach', col: mach >= M_CONO ? P.accent : P.foam,
     zonas: [[fM(M_CONO), 1, P.accent]], marcas: [[fM(1), P.foam]],
     txt: mach.toFixed(2), txtCol: mach >= M_CONO ? P.accent : P.dim });
   // ALTITUD, en metros y con la escala ESTIRADA ABAJO (raiz cuadrada): el juego entero pasa en los
@@ -1231,14 +1237,14 @@ export function drawHUD(h) {
   const fA = a => Math.sqrt(Math.max(0, Math.min(1, a / FLY_TOP)));
   const techo = h.radarAlt === undefined ? RADAR_ALT : h.radarAlt;
   const rozando = run.scrapeVib > 0.6, visto = plane.y > techo || rozando;
-  reloj(xVuelo(3), CUADROS_Y, { val: fA(plane.y), ico: 'alt', critico: visto,
+  reloj(xVuelo(2), CUADROS_Y, { val: fA(plane.y), ico: 'alt', critico: visto,
     col: visto ? (Math.sin(run.t * (rozando ? 30 : 14)) > 0 ? P.warn : '#7d2f1e') : plane.y <= 4.5 ? P.accent : P.foam,
     zonas: [[0, fA(1.2), P.warn], [fA(1.2) + 0.01, fA(4.5), P.accent]], marcas: [[fA(techo), P.warn]],
     txt: Math.round(plane.y) + 'm', txtCol: visto ? P.warn : P.dim });
   // GAS: la palanca, leida como las RPM de un tablero de verdad. Era la corredera vertical del borde
   // derecho; sin nafta, la aguja parpadea (el reloj de nafta, a la izquierda, dice por que).
   // (SIN BORDE CRITICO, por pedido del autor: el gas se opera, no avisa. Sin nafta avisa la nafta.)
-  reloj(X_MOTOR, CUADROS_Y, { val: run.throttle, ico: 'gas',
+  reloj(xVuelo(3), CUADROS_Y, { val: run.throttle, ico: 'gas',
     col: run.fuel <= 0 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim)
       : run.throttle > 0.66 ? P.foam : run.throttle > 0.15 ? P.accent : P.bodyDark,
     txt: Math.round(Math.max(0, Math.min(1, run.throttle)) * 100) + '%', txtCol: run.fuel <= 0 ? P.warn : P.dim });

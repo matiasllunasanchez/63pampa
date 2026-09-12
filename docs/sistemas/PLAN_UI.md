@@ -629,6 +629,22 @@ Son los mismos umbrales que ya pintaban las zonas rojas de cada reloj. **GAS no 
 pedido del autor: se opera, no avisa (sin nafta avisa la nafta). VELOCIDAD y MACH tampoco: no tienen
 un valor que sea peligro por sí solo.
 
+## 1x. Los tres grupos, por cuánto se mueve cada aguja _(aplicada)_
+
+Pedido del 11/9, y **reemplaza el reparto de §1v**: el criterio deja de ser el tema (combate / vuelo
+/ motor) y pasa a ser **cada cuánto hay que mirar el instrumento**.
+
+| Grupo | Relojes | Criterio |
+| --- | --- | --- |
+| izquierda | SALUD, NAFTA, MACH | **lo que casi no se mueve**, debajo de la cara del piloto; SALUD en la esquina, pegada a la cara: ese rincón dice "yo y mi avión" |
+| centro | VELOCIDAD, **horizonte**, ALTITUD, GAS | **lo que varía rápido**: se vigila todo el tiempo, y por eso va adelante |
+| derecha | CHANCHA, CAÑÓN, MISILES | **lo que se carga**: se gasta y se recupera solo; se mira cuando lo vas a usar |
+
+El Mach salió del centro porque sale de la misma velocidad y cambia despacio, y en su lugar entró el
+gas, que se mueve con cada toque de la W. Los dos grupos de los costados se dieron vuelta enteros
+(pedido del autor): el que se carga pasó a la derecha y el lento a la izquierda, que es donde está la
+cara del piloto — con SALUD pegada a ella. El horizonte sigue en el centro, segundo de cuatro.
+
 
 ## 2. Divergencias
 
