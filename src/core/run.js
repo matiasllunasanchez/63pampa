@@ -55,6 +55,11 @@ export const run = {
   streak: 0,       // segundos acumulados volando a ras
   rasLevel: 0,     // nivel de racha rasante (0..4)
   graceT: 0,       // gracia al despegarse: un bob corto no corta la racha
+  // CUANDO se rechazo el PODER RASANTE por altura (segundos de `run.t`; -9 = nunca). Lo escribe
+  // game.js al negar el lanzamiento y lo lee el HUD para sacar la lengueta del aviso. Es un
+  // INSTANTE y no una bandera: asi el cartel se apaga solo y nadie tiene que acordarse de bajarla.
+  rasAlto: -9,
+
   // --- EL AGUANTE: el estado RASANTE (core/aguante.js + systems/aguante.js) -------------------
   // `streak` de arriba es la CARGA (4 s de PERFECTO) y estos siete son el estado ya puesto.
   aguante: 0,      // 1 = el estado RASANTE esta corriendo
@@ -144,7 +149,7 @@ export function resetRun() {
     t: 0, dist: 0, spd: 6, fuelDist: 0,
     integ: 100, escudo: 1, escudoT: 0, hurtT: 0,
     fuel: 100, heat: 0, overheat: false, detection: 0, radarWave: 0, radarSeen: false, estrellas: 0, climaxHecho: 0, boost: false, throttle: 0,
-    score: 0, mult: 1, multShow: 1, streak: 0, rasLevel: 0, graceT: 0,
+    score: 0, mult: 1, multShow: 1, streak: 0, rasLevel: 0, graceT: 0, rasAlto: -9,
     aguante: 0, aguN: 0, aguSec: 0, aguF: 0, aguHold: 0, aguY: 0, aguGolpe: -9, aguVen: 0,
     afterT: 0, afterTier: 0, afterGrace: 0,
     scrapeT: 0, scrapeVib: 0,

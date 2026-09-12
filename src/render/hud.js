@@ -604,27 +604,46 @@ const RACHA_W = 24;                  // los px utiles de la barra de racha: lo q
 //
 // El reloj sale de `run.t` (el HUD no recibe dt) y cada poder lleva el suyo, porque los dos
 // cartelitos se dibujan en el mismo cuadro y un reloj compartido le daria dt 0 al segundo.
-const LISTO_W = 21, LISTO_S = 3, LISTO_ENTRA = 0.22;
+const LISTO_S = 3, LISTO_ENTRA = 0.22;
+// EL AVISO usa la MISMA lengueta que LISTO, con otra palabra y otro color. Es deliberado: el
+// jugador ya aprendio que de atras de esa barra sale lo que esa barra tiene para decir, y un
+// cartel nuevo en otro lado seria una segunda cosa que aprender para el mismo poder.
+const AVISO_S = 1.6;
 const listos = [{ k: 0, q: 0, lleno: false, t: -1 }, { k: 0, q: 0, lleno: false, t: -1 }];
-function tabListo(i, y, h, lleno, col) {
+/** `aviso` (opcional) = { t0, txt, col }: mientras dura, PISA al LISTO — misma entrada, otra
+ *  palabra, otro color. `t0` es un instante de `run.t`; negativo = nunca paso. */
+function tabListo(i, y, h, lleno, col, aviso) {
   const L = listos[i];
   const dt = L.t < 0 || run.t < L.t ? 0 : Math.min(0.1, run.t - L.t);
   L.t = run.t;
-  if (lleno && !L.lleno) L.q = LISTO_S;      // EL FLANCO: se acaba de llenar, y solo entonces
-  if (!lleno) L.q = 0;                       // se gasto: el cartel se va con el poder
+  // EL AVISO MANDA mientras esta vivo, y por eso se resuelve ANTES que el flanco de `lleno`: si
+  // no, la rama de abajo le apagaria la cola justo cuando el poder se gasta.
+  const resta = aviso && aviso.t0 >= 0 ? AVISO_S - (run.t - aviso.t0) : -1;
+  const avisando = resta > 0;
+  if (avisando) L.q = Math.max(L.q, resta);
+  else {
+    if (lleno && !L.lleno) L.q = LISTO_S;    // EL FLANCO: se acaba de llenar, y solo entonces
+    if (!lleno) L.q = 0;                     // se gasto: el cartel se va con el poder
+  }
   L.lleno = lleno;
   L.q = Math.max(0, L.q - dt);
   L.k = L.q > 0 ? Math.min(1, L.k + dt / LISTO_ENTRA) : Math.max(0, L.k - dt / LISTO_ENTRA);
   if (L.k <= 0) return;
+  const txt = avisando ? aviso.txt : T('poder_listo');
+  ctx.font = 'bold 5px monospace'; ctx.textAlign = 'left';
+  // EL ANCHO SALE DEL TEXTO y no de una constante: el aviso es mas largo que LISTO, y con el ancho
+  // fijo la palabra salia cortada por el propio recorte de la lengueta.
+  const tw = Math.round(ctx.measureText(txt).width) + 4;
   const e = 1 - Math.pow(1 - L.k, 3);        // sale rapido y frena al llegar, como el radar
-  const dx = Math.round(-(1 - e) * LISTO_W);
+  const dx = Math.round(-(1 - e) * tw);
   const xt = MARGEN + CUADRO;                // el borde derecho de la barra: de ahi sale
   // el recorte empieza EN el borde de la barra, asi que la placa del cartel entra sin su columna
   // izquierda: se lee como una lengueta de la barra y no como una caja aparte.
-  ctx.save(); ctx.beginPath(); ctx.rect(xt, y - 2, LISTO_W + 2, h + 4); ctx.clip();
-  plate(xt - 1 + dx, y, LISTO_W + 1, h);
-  ctx.font = 'bold 5px monospace'; ctx.textAlign = 'left'; ctx.fillStyle = col;
-  ctx.fillText(T('poder_listo'), xt + 2 + dx, y + h - 3);
+  ctx.save(); ctx.beginPath(); ctx.rect(xt, y - 2, tw + 2, h + 4); ctx.clip();
+  plate(xt - 1 + dx, y, tw + 1, h);
+  ctx.font = 'bold 5px monospace'; ctx.textAlign = 'left';
+  ctx.fillStyle = avisando ? aviso.col : col;
+  ctx.fillText(txt, xt + 2 + dx, y + h - 3);
   ctx.restore();
 }
 
@@ -1558,8 +1577,11 @@ export function drawHUD(h) {
   barraPoder(MARGEN, yPod - AIRE - altoPod, tv, P.accent, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
   barraPoder(MARGEN, yPod, ras.on ? ras.resta / ras.dur : ras.meter, RAS_COL, RAS_CLARO, RAS_OSCURO, ras.on, ras.meter >= 1, T('bar_rasante'));
   // …y el cartelito que avisa que se cargo, saliendo de atras de la barra que le corresponde
-  tabListo(0, yPod - AIRE - altoPod, altoPod, tv >= 1, MOM_CLARO);
-  tabListo(1, yPod, altoPod, ras.meter >= 1, RAS_CLARO);
+  // MOMENTUM en NARANJA (el acento, que es ademas el color de SU barra) y RASANTE en su celeste:
+  // asi cada lengueta se lee como parte de la barra de la que sale y no como un cartel generico.
+  tabListo(0, yPod - AIRE - altoPod, altoPod, tv >= 1, P.accent);
+  tabListo(1, yPod, altoPod, ras.meter >= 1, RAS_CLARO,
+    { t0: run.rasAlto, txt: T('ras_alto'), col: RAS_COL });
   // EL RELOJ DEL RASANTE, y SOLO mientras esta encendido. Es el unico numero que los rieles no
   // pueden dar —cuantos segundos quedan, no que fraccion— y es el unico momento en que hace falta:
   // con el poder apagado la pregunta es otra ("¿cuanto falta para tenerlo?") y esa la contesta el

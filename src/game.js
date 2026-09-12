@@ -401,6 +401,21 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // permitia lanzarlo A MITAD DE LA CITA y tirar al avion al agua con la manguera enganchada.
       // Anotado en §8: es alcance que el spec no pide y que la mecanica sí.
       if (chancha.activa()) { beep(150, 0.09, 'square', 0.05); radioCh('ras_no_cita'); return; }
+      // MUY ALTO: el poder no arranca donde no podria haberte sostenido. El limite es su propio
+      // techo (`RAS_CEIL`) y no la banda del x10: adentro del techo el resorte te asienta en menos
+      // de un segundo y lanzar ahi es legitimo; arriba, el poder ni siquiera alcanza.
+      //
+      // Y NO CONSUME LA CARGA — misma regla que `chancha.pedir`: si no sale, no se paga. Sin esto
+      // apretar [6] a cuarenta metros quemaba los 25 segundos de banda volados a mano para comprar
+      // un poder que se iba la mitad en bajar, sin una sola señal que lo explicara.
+      //
+      // Solo cuando NO esta puesto: con el poder activo [6] lo CORTA, y cortar tiene que andar a
+      // cualquier altura (es la salida de emergencia).
+      if (!rasante.active() && rasante.meterVal() >= 1 && plane.y > rasante.ceil()) {
+        beep(150, 0.09, 'square', 0.05);
+        run.rasAlto = run.t;                     // el HUD saca la lengueta; se apaga sola
+        return;
+      }
       const r = rasante.toggle();
       if (r === 'empty') { beep(140, 0.09, 'square', 0.05); return; }
       // EL SUSURRO: el beep de entrada va GRAVE y hacia abajo (-90), al reves de todos los demas

@@ -130,6 +130,8 @@ export const STRINGS = {
     // LA LENGUETA DE LOS PODERES: sale de atras de su barra 3 s (ver render/hud.js, tabListo).
     // Corta, que el cartel mide 21 px.
     poder_listo: 'LISTO',
+    // el rechazo por altura: sale por la MISMA lengueta que LISTO, en la barra del RASANTE
+    ras_alto: 'MUY ALTO',
     // EL INTERSTICIAL DE CAMPAÑA (G-09): el corte entre una mision y la que sigue.
     inter_dia: 'DÍA SIGUIENTE',
     ch_call: 'CHANCHA, CHANCHA, ACA PATRIA — VENGO SECO',
@@ -1182,6 +1184,7 @@ export const STRINGS = {
     mult_perfect: 'PERFECT',
     mult_rasante: 'LOW PASS',
     poder_listo: 'READY',
+    ras_alto: 'TOO HIGH',
     inter_dia: 'THE NEXT DAY',
     ch_call: 'TANKER, TANKER, PATRIA HERE — RUNNING DRY',
     ch_ack: 'CONDOR COPIES. SENDING HER.',
