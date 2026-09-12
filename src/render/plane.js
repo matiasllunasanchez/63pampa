@@ -7,7 +7,7 @@
 // Recibe `selPlane` (que avion eligio el jugador — estado de menu, vive en game.js) y `viewMouse`
 // (resuelve la mira segun la camara — la camara sigue en game.js). El resto lo lee de los stores.
 
-import { ctx, px, PZ, U, W, HOR } from './ctx.js';
+import { ctx, px, PZ, U } from './ctx.js';
 import { plane, cfg, S } from '../core/state.js';
 import { run } from '../core/run.js';
 import { inp } from '../core/input.js';
@@ -606,12 +606,6 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
   // camara que rola con el. hz vale justo lo que hay que restar. Con FIJO vale 0 y todo esto se
   // comporta igual que siempre. Ver core/horizon.js.
   const hz = hzSprite();
-  // ¿SE VA A DIBUJAR CON LA HOJA DEL PODER? Se resuelve aca arriba —y no adentro de la rama— por
-  // el mismo motivo que la pose: el giro del sprite lo consume tambien la estela, que se dibuja
-  // despues del restore(). La pirueta empinada gana (ver la rama de dibujo), asi que no cuenta.
-  const skRas = ras && rosterActive() ? skinOf(pilotName(pilotIdx(run.squad, run.lives))) : null;
-  const rasTilt = !!(ras && useSheet && !run.mvSteep
-    && (skRas ? skRas.sheet3Img : pl.sheet3Ok));
   // EL GIRO TOTAL DEL SPRITE, resuelto en UN SOLO LUGAR.
   //
   // Antes cada rama llamaba a `ctx.rotate` por su cuenta y el angulo se perdia ahi adentro. La
@@ -627,29 +621,17 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
   const pcPose = Math.max(-1, Math.min(1, plane.pitch));
   const rowPose = pcPose > 0.33 ? 0 : pcPose < -0.33 ? 2 : 1;
   const prRoll = rolling ? Math.min(1, run.mvT / MOVES.tonel.dur) : 0;   // 0→1 durante el tonel
-  // EL SPRITE DEL PODER SE ALINEA CON EL CARRIL, no con la horizontal de la pantalla.
-  //
-  // Lo pidio Matias con el mejor criterio posible: "usa como referencia la linea roja del
-  // objetivo, tiene que quedar paralela con la trompa del avion". Y tiene razon — no es gusto,
-  // es la proyeccion. Toda recta paralela al eje +z (las lineas del carril, la estela, el
-  // fuselaje del avion) converge en el MISMO punto de fuga, que en esta proyeccion es
-  // (W/2, HOR). Durante el poder la camara se corre 10 unidades al costado, asi que el avion
-  // queda ~96 px a la izquierda de ese punto: su eje YA NO es horizontal en pantalla, apunta al
-  // punto de fuga. La hoja esta horneada con el eje recto dentro del frame, asi que lo unico que
-  // falta es girarla ese angulo.
-  //
-  // SE CALCULA, NO SE TABULA: sale de la posicion proyectada del avion, asi que acompaña solo
-  // cuando el jugador se corre por el carril (el angulo va de 12° a 26° de punta a punta). Sin el
-  // poder vale 0 y no se toca nada.
-  //
-  // No degenera: el poder garantiza `lat` = 10, o sea al menos 45 px de corrimiento — el caso
-  // patologico (avion justo sobre el eje optico, donde la direccion de fuga es vertical) no puede
-  // ocurrir mientras esta hoja se dibuja.
-  const carril = rasTilt ? Math.atan2(HOR - s.y, W / 2 - s.x) : 0;
-  const spinTot = (rolling ? run.mvRoll + hz
+  // EL SPRITE DEL PODER NO SE GIRA, Y SE PROBO AL REVES. Un rato existio aca una rotacion que
+  // alineaba el avion con el punto de fuga del carril — geometricamente impecable: toda recta
+  // paralela al eje de vuelo converge ahi, y durante el poder el avion queda 96 px al costado,
+  // asi que su eje en pantalla NO es horizontal. El problema es que un sprite es plano: rotarlo
+  // 16° no le cabecea la trompa, le ROLA las alas, y el avion pasaba a leerse virando con una
+  // punta en el agua. Lo corrige la HOJA (cabeceo y alabeo compensados en el horneado), que es el
+  // unico lugar donde se puede inclinar una cosa sin inclinar la otra.
+  const spinTot = rolling ? run.mvRoll + hz
     : run.mvRoll ? run.mvRoll + hz + wob
     : useSheet ? wob
-    : bank * 0.42 + wob) + carril;
+    : bank * 0.42 + wob;
   ctx.rotate(spinTot);
   if (rolling) ctx.scale(0.94 + 0.06 * Math.cos(prRoll * Math.PI * 2), 1);   // leve pulso: vende el giro
   else if (!run.mvRoll && !useSheet) ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);

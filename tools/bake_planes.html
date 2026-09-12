@@ -75,11 +75,25 @@
     // estuviese bajando". Es el mismo efecto que ya habia aparecido en la Chancha.
     //
     // Se corrige levantandole la nariz al MODELO hasta que su eje quede horizontal DENTRO del
-    // frame. El numero no se eligio a ojo: se horneo un barrido 0/3/5/7/10 y se midio el angulo
-    // del eje sobre el alfa (la punta mas a la derecha contra el centroide del naranja del
-    // escape). Da -9.72° sin compensar, -2.83° con +5 y **-0.21° con +7**, que es recto.
-    // Si se toca RAS_ELEV hay que volver a medirlo: la compensacion es del orden de 0,7 * elev.
-    const RAS_PITCH = 7;
+    // frame. El numero no se eligio a ojo: se horneo un barrido y se midio el angulo del eje
+    // sobre el alfa (la punta mas a la derecha contra el centroide del naranja del escape).
+    const RAS_PITCH = 6;
+    // Y LA COMPENSACION DE ALABEO, que aparecio despues y por el mismo camino: Matias vio el
+    // avion "como tocando el agua con un ala, como si estuviese doblando". Tambien es cierto, y
+    // tambien es la proyeccion — en un tres cuartos REAL las alas NO quedan horizontales en
+    // pantalla: la hoja base tiene su linea de alas en 0,00° exactos y esta, sin compensar, en
+    // -6,05°. O sea que un 3/4 fotografico se lee como un viraje, y en un juego donde el alabeo
+    // ES una mecanica eso no es un detalle: es informacion equivocada.
+    //
+    // Se corrige rolando el modelo hasta que la linea de alas vuelva a cero. Se midio un barrido
+    // de yaw x alabeo con las dos magnitudes a la vez (linea de alas Y eje del fuselaje), porque
+    // estan ACOPLADAS: sobre un modelo ya girado en yaw, cabecear tambien inclina las alas.
+    // El ganador es este: alas -0,86° y eje -1,98°, las dos paralelas al agua.
+    //
+    // LO QUE CUESTA, dicho en voz alta: la columna del medio deja de ser "alabeo 0 del mundo" y
+    // pasa a ser "alabeo 0 EN PANTALLA". Es la misma clase de mentira que la elevacion, y se paga
+    // por el mismo motivo — un recorte 2D se juzga por lo que se lee, no por lo que mide.
+    const RAS_ROLL = -8;
 
     // EL HORNO ES COMPARTIDO (tools/bake_common.js): luz, camara y primitivas salen de ahi para
     // los cuatro horneadores. Aca solo quedan los parametros de ESTA familia de hojas.
@@ -167,7 +181,7 @@
         PITCHES.forEach((pa, row) => {
           model.rotation.x = (pa + RAS_PITCH) * Math.PI / 180;   // + la compensacion (ver RAS_PITCH)
           ANGLES.forEach((a, i) => {
-            model.rotation.z = a * Math.PI / 180;
+            model.rotation.z = (a + RAS_ROLL) * Math.PI / 180;   // + la compensacion (ver RAS_ROLL)
             R3.render(sc, cam3);
             x23.drawImage(R3.domElement, i * FW3, row * FH3);
           });
