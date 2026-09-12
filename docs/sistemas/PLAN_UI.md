@@ -695,6 +695,22 @@ Pedido del 12/9. Dos cosas:
 Con esto, el eje izquierda/derecha dice **quién habla**: yo a la izquierda, saliendo de mi cara; el
 otro a la derecha, entrando de afuera. Y la mitad de abajo del centro de la pantalla, que era de la
 caja de charla, queda limpia.
+
+**Y la radio de los otros va a la misma caja** (12/9, después de probar IDA Y VUELTA). Esa misión de
+prueba **no tiene charlas a propósito**: lo que habla ahí son las líneas de **radio** de cada fase, y
+seguían colgando de la cinta arriba al centro — o sea que el autor no las encontraba donde las había
+pedido. Ahora la caja de la derecha muestra **la charla si hay una, y si no la línea de radio del
+otro**, con su retrato y con la barrita de tiempo al pie (la charla no la lleva: dura lo que dura la
+conversación). El canal ya no decide el lugar; el lugar dice quién habla.
+
+El **modo PANEL** de la radio no cambia: sigue colgando de la cinta, porque es un registro de lo que
+se dijo y no una voz que pasa.
+
+**La entrada va en dos tiempos** (12/9): primero entra **el retrato** desde el borde, y recién cuando
+está puesto **sale el texto de atrás de él**, hacia la izquierda (el 45 % del recorrido es del
+retrato y el resto del texto, 0,34 s en total). Al irse pasa al revés: el texto se guarda detrás del
+retrato y después el retrato se va. Es el gesto de alguien que aparece y después habla, y de paso el
+ojo llega a la cara antes que a la letra.
 - **La marca de Mach 1 se fue de la velocidad**: el Mach tiene su propio reloj, con la suya.
 
 
