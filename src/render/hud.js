@@ -645,6 +645,34 @@ const CRIT_HZ = 3;
 // se rompe un vidrio de verdad. Van en un gris APAGADO: mas claras competian con la aguja. Son
 // SIEMPRE LAS MISMAS (un vidrio roto no titila) y llevan su sombra, para leerse sobre la escala.
 const IMPACTO = [7, 7];
+// LAS PUNTAS SALTADAS (pedido del autor): con el vidrio roto la placa deja de ser un cuadrado. No
+// alcanza con comerle pixeles al borde —la silueta seguia siendo un rectangulo perfecto—, asi que
+// el reloj roto se dibuja con OTRA placa: la de arriba a la izquierda (la del impacto) y la de
+// abajo a la derecha entran en diagonal, como dos esquirlas que se cayeron.
+// Los escalones van DESPAREJOS a proposito: en diagonal perfecta la punta se lee como un bisel de
+// fabrica y no como algo que se rompio.
+const PUNTA_IZQ = [5, 3, 3, 1, 1];      // filas de arriba: cuanto se come desde la izquierda
+const PUNTA_DER = [1, 2, 2, 4, 5];      // filas de abajo: cuanto se come desde la derecha
+function plateRota(x, y, w, h) {
+  const izq = j => (j < PUNTA_IZQ.length ? PUNTA_IZQ[j] : 0);
+  const der = j => (j >= h - PUNTA_DER.length ? w - 1 - PUNTA_DER[j - (h - PUNTA_DER.length)] : w - 1);
+  ctx.fillStyle = '#0a0e11bb';
+  for (let j = 0; j < h; j++) ctx.fillRect(x + izq(j), y + j, der(j) - izq(j) + 1, 1);
+  ctx.fillStyle = '#2e3c45';
+  for (let j = 0; j < h; j++) {
+    ctx.fillRect(x + izq(j), y + j, 1, 1);
+    ctx.fillRect(x + der(j), y + j, 1, 1);
+    // el escalon de cada diagonal, para que el contorno no quede con agujeros
+    if (j > 0 && izq(j) !== izq(j - 1)) ctx.fillRect(x + izq(j), y + j, izq(j - 1) - izq(j) + 1, 1);
+    if (j > 0 && der(j) !== der(j - 1)) ctx.fillRect(x + der(j), y + j, der(j - 1) - der(j) + 1, 1);
+  }
+  ctx.fillRect(x + izq(0), y, der(0) - izq(0) + 1, 1);
+  ctx.fillRect(x + izq(h - 1), y + h - 1, der(h - 1) - izq(h - 1) + 1, 1);
+  ctx.fillStyle = '#55676f';                                  // las dos esquinas que quedaron sanas
+  ctx.fillRect(x + w - 2, y, 2, 1); ctx.fillRect(x + w - 1, y, 1, 2);
+  ctx.fillRect(x, y + h - 2, 1, 2); ctx.fillRect(x, y + h - 1, 2, 1);
+}
+const MELLAS = [[7, 0, 3, 1], [0, 8, 1, 4], [13, 0, 2, 1], [0, 15, 1, 2]];
 const RAJAS = [
   [[7, 7], [6, 4], [8, 2]],
   [[7, 7], [4, 8], [2, 7]],
@@ -663,6 +691,11 @@ function vidrioRoto(x, y) {
   }
   px(x + IMPACTO[0] - 1, y + IMPACTO[1] - 1, 2, 2, '#0a0e11');   // el agujero
   px(x + IMPACTO[0], y + IMPACTO[1] - 1, 1, 1, '#8fa3ac');
+  // …Y EL MARCO SE ROMPE CON EL (pedido del autor): del lado del impacto le faltan pedazos y la
+  // esquina esta saltada. Un vidrio partido adentro de un marco intacto se lee como una calcomania;
+  // asi el que se rompio es el instrumento. Las mellas se pintan del oscuro de la placa, o sea que
+  // no tapan nada: se COMEN el borde.
+  for (const [dx, dy, w, h] of MELLAS) px(x + dx, y + dy, w, h, '#0a0e11');
 }
 function bordePlaca(x, y, w, h, col) {
   ctx.fillStyle = col;
@@ -681,11 +714,12 @@ function pxLinea(x0, y0, x1, y1, col) {
 
 /** `o` = { val 0..1, col, ico, icoCol, zona: [desde, hasta] en rojo, zonas: [[desde, hasta, col]]
  *  (varias y de cualquier color; manda sobre `zona`), marcas: [[f, col]] marcas LARGAS, fin: icono
- *  al final de la escala (o null), txt: el numero al pie, txtCol, critico: el borde titila en rojo
+ *  al final de la escala (o null), txt: el numero al pie, txtCol, uni: la unidad, chica y apagada,
+ *  en el renglon de ARRIBA del numero, critico: el borde titila en rojo
  *  (ver bordeCritico), borde: color del borde de la placa, fijo y sin titilar (hoy: el turbo),
  *  roto: el vidrio va rajado (ver vidrioRoto) } */
 function reloj(x, y, o) {
-  plate(x, y, CUADRO, CUADRO);
+  if (o.roto) plateRota(x, y, CUADRO, CUADRO); else plate(x, y, CUADRO, CUADRO);
   const cx = x + 13, cy = y + 16, r = 10;
   const ang = f => Math.PI + Math.PI * Math.max(0, Math.min(1, f));
   // LA ESCALA: trece marcas. Las de la zona van en rojo — el peligro es parte del dial, no un aviso
@@ -700,6 +734,16 @@ function reloj(x, y, o) {
   for (const [f, col] of o.marcas || []) {
     const a = ang(f), c = Math.cos(a), s = Math.sin(a);
     pxLinea(cx + c * (r - 2), cy + s * (r - 2), cx + c * (r + 1), cy + s * (r + 1), col);
+  }
+  // LA UNIDAD VA IMPRESA EN LA CARA, como en un reloj de verdad: chica, apagada, arriba del numero
+  // y ANTES que la aguja, asi la aguja le pasa por encima. Al lado del numero no entra —a cuatro
+  // digitos el numero se come el ancho util del cuadrado.
+  if (o.uni) {
+    // en CUERPO 4, la mitad del numero: es una etiqueta impresa, no un dato. A cuerpo 5 competia
+    // con los digitos y el ojo la leia dos veces.
+    ctx.font = '4px monospace'; ctx.textAlign = 'right'; ctx.fillStyle = '#55676f';
+    ctx.fillText(o.uni, x + CUADRO - 3, y + CUADRO - 10);
+    ctx.textAlign = 'left';
   }
   const a = ang(o.val);
   pxLinea(cx, cy, cx + Math.cos(a) * (r - 2), cy + Math.sin(a) * (r - 2), o.col);
@@ -1288,7 +1332,7 @@ export function drawHUD(h) {
   reloj(xVuelo(0), CUADROS_Y, { val: kmh / VEL_TOPE, ico: run.boost ? 'turbo' : 'vel',
     icoCol: run.boost ? P.accent : P.dim, col: colVel, marcas: marcasVel, zonas: zonasVel,
     roto: dmgShown() && !ef.turbo, borde: run.boost ? P.accent : null,
-    txt: String(Math.round(kmh)), txtCol: run.boost ? P.accent : P.dim });
+    txt: String(Math.round(kmh)), uni: 'km/h', txtCol: run.boost ? P.accent : P.dim });
   // MACH, aparte, como en el A-4. Lo que esta en acento es el regimen del cono (core/mach.js) y la
   // marca larga, otra vez, Mach 1.
   const fM = m => (m - MACH_DE) / (MACH_A - MACH_DE);

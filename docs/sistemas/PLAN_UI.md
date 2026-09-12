@@ -667,7 +667,14 @@ el avión se rompe lo suficiente para no volver a encenderlo, el reloj **se vea 
   naranja y su franja desaparecen y **el vidrio del reloj se dibuja rajado** (`vidrioRoto`). Es un
   **impacto con astillas** arriba a la izquierda —lejos del eje y del número, y sin llegar al recorrido
   de la aguja—, en gris apagado: la primera versión eran rayas largas y derechas por el centro y se
-  leían como una segunda aguja. Las rajaduras son fijas: un vidrio roto no titila.
+  leían como una segunda aguja. **La placa se rompe con él, en la forma**: el reloj roto se dibuja con
+  otra placa (`plateRota`) a la que le faltan **las dos puntas** —arriba a la izquierda, la del
+  impacto, y abajo a la derecha—, con los escalones desparejos, porque en diagonal perfecta se lee
+  como un bisel de fábrica; y al borde le faltan pedazos del lado del impacto. Un vidrio partido
+  dentro de un marco intacto se lee como una calcomanía. Todo es fijo: un vidrio roto no titila.
+- **La unidad va impresa en la cara**: `km/h` en cuerpo 4 —la mitad del número—, apagado, arriba del
+  número y **dibujado antes que la aguja**, así la aguja le pasa por encima, como en un reloj de
+  verdad. Al lado del número no entra: a cuatro dígitos el número se come el ancho útil del cuadrado.
 - **La marca de Mach 1 se fue de la velocidad**: el Mach tiene su propio reloj, con la suya.
 
 
