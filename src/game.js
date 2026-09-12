@@ -488,7 +488,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
 
     function chanchaRadio(sig) {
-      if (sig === 'ready') { beep(660, 0.1, 'square', 0.05, 140); popup(W / 2, 58, T('ch_ready'), P.accent); return; }
+      // SIN CARTEL (pedido del autor, 12/9): el reloj de la Chancha se pone VERDE y parpadea lento
+      // cuando esta lista (ver hud.js, verdeListo). Queda el beep, que es el aviso para el que no
+      // estaba mirando el tablero.
+      if (sig === 'ready') { beep(660, 0.1, 'square', 0.05, 140); return; }
       if (sig === 'ack') { beep(480, 0.05, 'square', 0.04); radioCh('ch_ack'); return; }
       if (sig === 'come') { beep(430, 0.06, 'square', 0.04); radioCh('ch_come'); return; }
       if (sig === 'llega') { beep(300, 0.18, 'sawtooth', 0.05, 60); radioCh('ch_arriba'); return; }
@@ -2762,7 +2765,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (cn !== toCount && cn >= 0) { toCount = cn; beep(cn > 0 ? 520 : 980, 0.14, 'square', 0.06); }
         engineFly(run.spd, false, 0.017 * Math.min(1, toT));
         if (toT >= 3) {
-          setState('play'); popup(W / 2, 54, T('freeControl'), P.accent); run.shake = Math.min(6, run.shake + 1);
+          // SIN CARTEL (pedido del autor, 12/9): que aparezca el HUD ya dice que el avion es tuyo.
+          setState('play'); run.shake = Math.min(6, run.shake + 1);
           squad.beginExit();   // la formacion sale de plano detras de la camara (render/squad.js)
         }
         parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
@@ -2973,31 +2977,29 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             // de golpe. Lo agarro el fixture de la PASADA midiendo el fundido con la sonda.
             if (runClimax() === 'pulso' && pulso.available() && objectiveDist > 0 && run.dist >= objectiveDist) {
               pulso.enter(false); fadeT = 0.55;
-              popup(W / 2, 54, T('sq_yours'), P.accent);
-              if (run.lives === 1) popup(W / 2, 64, T('sq_last'), P.warn);
+              if (run.lives === 1) popup(W / 2, 54, T('sq_last'), P.warn);
               beep(980, 0.14, 'square', 0.06);
               flags.startReq = false; flags.anyPress = false;
               return;
             }
             if (runClimax() === 'pasada' && pasada.available() && objectiveDist > 0 && run.dist >= objectiveDist) {
               pasada.enter(false); fadeT = 0.55;
-              popup(W / 2, 54, T('sq_yours'), P.accent);
-              if (run.lives === 1) popup(W / 2, 64, T('sq_last'), P.warn);
+              if (run.lives === 1) popup(W / 2, 54, T('sq_last'), P.warn);
               beep(980, 0.14, 'square', 0.06);
               flags.startReq = false; flags.anyPress = false;
               return;
             }
             if (arena.available() && objectiveDist > 0 && run.dist >= objectiveDist) {
               arena.enter(); fadeT = 0.55;
-              popup(W / 2, 54, T('sq_yours'), P.accent);
-              if (run.lives === 1) popup(W / 2, 64, T('sq_last'), P.warn);
+              if (run.lives === 1) popup(W / 2, 54, T('sq_last'), P.warn);
               beep(980, 0.14, 'square', 0.06);
               flags.startReq = false; flags.anyPress = false;
               return;
             }
             setState('play');
-            popup(W / 2, 54, T('sq_yours'), P.accent);
-            if (run.lives === 1) popup(W / 2, 64, T('sq_last'), P.warn);
+            // SIN «TENES EL MANDO» (12/9): el HUD que vuelve ya lo dice. El ULTIMO AVION se queda:
+            // eso no es obvio, y sube al renglon que dejo libre el otro.
+            if (run.lives === 1) popup(W / 2, 54, T('sq_last'), P.warn);
             beep(980, 0.14, 'square', 0.06);
             run.shake = Math.min(6, run.shake + 1);
           }

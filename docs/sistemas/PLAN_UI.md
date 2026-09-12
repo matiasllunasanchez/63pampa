@@ -725,6 +725,28 @@ Dos pedidos del 12/9:
 - **Los aviones caídos del escuadrón pierden el tachado rojo** y quedan sólo en gris oscuro. El
   tachado se comía la silueta y gritaba más que el escuadrón entero; la silueta apagada ya dice que
   ése no vuelve, que era la idea desde el principio (un compañero menos, no un número menos).
+- **Se van dos carteles: `CONTROL LIBRE` y `TENÉS EL MANDO`** (uno al terminar el despegue, el otro
+  en cada relevo). Los dos decían lo que el HUD ya dice al aparecer: si estás viendo el tablero, el
+  avión es tuyo. **`ÚLTIMO AVIÓN` se queda** —eso no es obvio— y sube al renglón que dejó libre el
+  otro. `sq_yours` y `freeControl` quedaron sin uso en `data/strings.js` (misma razón que 19b).
+- **Y un tercero: `! CHANCHA LISTA — [5] !`**. Lo dice el reloj, que se pone verde y parpadea lento.
+  Queda el **beep**, que es el aviso para el que no estaba mirando el tablero. `ch_ready` sin uso.
+- **Dos carteles cambian de texto**: la bandada pasa de `! BANDADA !` a **`! DAÑO LEVE !`** —lo que
+  importa no es el pájaro, es que te dejó un golpe— y el esquive de misil pasa de `LO ESQUIVASTE +75`
+  a **`ESQUIVADO`**: los puntos ya los canta el puntaje.
+
+## 2b. Los dos poderes se van de los bordes y suben arriba del avatar _(aplicada)_
+
+Pedido del 12/9: RASANTE y MOMENTUM son **habilidades del jugador**, no del avión, así que dejan los
+rieles de los bordes —donde en el playtest del 10/9 hubo que preguntar dos veces qué eran— y pasan a
+**dos barritas apiladas arriba de su cara**, del ancho del cuadro: **MOMENTUM arriba, en naranja**, y
+**RASANTE abajo, en celeste de mar** (el de abajo es el que se usa volando bajo).
+
+Cada uno lleva **dos tonos suyos** y el parpadeo alterna entre ellos: con blanco, los dos terminaban
+blancos justo cuando más importa saber cuál se llenó. Apagada la barra dice **cuánto falta** para
+tenerlo; llena **parpadea lento** (el mismo idioma que la Chancha verde: "ya lo podés usar"); y
+encendida muestra **cuánto queda**, parpadeando rápido. El reloj del rasante, arriba a la derecha,
+se queda: es el único que da segundos.
 - **La marca de Mach 1 se fue de la velocidad**: el Mach tiene su propio reloj, con la suya.
 
 

@@ -567,11 +567,28 @@ function pide(algo) { return cfg.hudAuto !== 'auto' || algo; }
  *  A cambio, el recorrido pasa de 44 px a la ALTURA ENTERA de la pantalla. La misma cantidad de
  *  informacion, ocho veces mas larga y en el unico lugar donde no compite con nada: el margen del
  *  HUD es 4, asi que de x 0 a 3 (y de 316 a 319) no se dibuja nada mas en todo el juego. */
-function riel(x, val, col) {
-  px(x, 0, 2, H, '#0a0e11aa');                                // la corredera, apenas insinuada
-  const fh = Math.round(H * Math.max(0, Math.min(1, val)));
-  px(x, H - fh, 2, fh, col);
-  if (fh > 1) { ctx.globalAlpha = 0.45; px(x, H - fh, 2, 1, '#f2f7fb'); ctx.globalAlpha = 1; }   // el canto de arriba
+// LOS DOS PODERES, ARRIBA DE LA CARA (playtest 12/9). RASANTE y MOMENTUM son las dos cosas que el
+// JUGADOR puede hacer —no del avion: del que lo vuela—, asi que viven pegados a su cara y no en los
+// bordes de la pantalla, que es donde estuvieron desde el 10/9 y donde hubo que preguntar dos veces
+// que eran. Cada uno tiene SU COLOR y con eso alcanza: NARANJA el momentum, CELESTE DE MAR el
+// rasante (pedido del autor), que es de lo que trata cada poder.
+//
+// Lo que dice la barra cambia con el estado, como cuando eran rieles: apagada es CUANTO FALTA para
+// tenerlo, encendida es CUANTO QUEDA. Llena parpadea LENTO ("ya lo podes usar", el mismo idioma que
+// la Chancha verde) y encendida parpadea RAPIDO (se esta gastando).
+// Cada poder va con DOS TONOS SUYOS, y el parpadeo alterna entre ellos. Con blanco los dos
+// terminaban blancos cuando estaban llenos, que es justo cuando mas importa saber CUAL se lleno.
+const RAS_COL = '#57b6e0', RAS_CLARO = '#bfe8fb';   // celeste de mar: volar pegado al agua
+const MOM_CLARO = '#ffd9a0';                        // el naranja del acento, aclarado
+const PODER_W = CUADRO, PODER_H = 3;
+function barraPoder(x, y, val, col, claro, on, lista) {
+  const c = on ? (Math.sin(run.t * 14) > 0 ? claro : col)
+    : lista ? (Math.sin(run.t * LISTO_HZ) > 0 ? claro : col) : col;
+  px(x - 1, y - 1, PODER_W + 2, PODER_H + 2, '#0a0e11bb');    // el fondo, para que se lea sobre el cielo
+  px(x, y, PODER_W, PODER_H, '#2e3c45');
+  const fw = Math.round(PODER_W * Math.max(0, Math.min(1, val)));
+  if (fw > 0) px(x, y, fw, PODER_H, c);
+  if (fw > 1) { ctx.globalAlpha = 0.4; px(x, y, fw, 1, '#f2f7fb'); ctx.globalAlpha = 1; }   // bisel
 }
 
 // ---------- HORIZONTE ARTIFICIAL (ADI) ----------
@@ -1376,28 +1393,12 @@ export function drawHUD(h) {
       : run.throttle > 0.66 ? P.foam : run.throttle > 0.15 ? P.accent : P.bodyDark,
     txt: Math.round(Math.max(0, Math.min(1, run.throttle)) * 100) + '%', txtCol: run.fuel <= 0 ? P.warn : P.dim });
 
-  // ---- LOS BORDES: LOS PODERES DE RACHA ---------------------------------------------------------
-  // RASANTE y MOMENTUM dejan de ser barras con rotulo y pasan a ser dos RIELES en los bordes
-  // laterales: izquierda rasante, derecha momentum, siempre. Los dos se GANAN volando —no se
-  // gastan como la nafta— asi que nunca fueron del bloque del avion; y ninguno de los dos se lee
-  // de verdad: se vigilan de reojo mientras se mira el centro, que es un trabajo distinto y que un
-  // rotulo de 5 px no hace. En el borde el recorrido pasa de 44 px a 180 (ver `riel`).
-  //
-  // ACTIVO MUESTRA LO QUE QUEDA, igual que cuando eran barras: mientras dura, el unico dato es
-  // cuanto falta para que se apague. Vacio vuelve a ser "cuanto falta para tenerlo".
-  // …Y CON SU LETRA. En el playtest del 10/9 hubo que preguntar dos veces que eran estos dos rieles:
-  // sin marca, un riel solo funciona si ya sabes que es. La marca va a media altura, que es el unico
-  // tramo del borde donde no hay nada mas.
-  icono(0, H / 2 - 3, 6, 'rasante', P.canopy);
-  icono(W - 6, H / 2 - 3, 6, 'momentum', P.crest);
-  riel(1, ras.on ? ras.resta / ras.dur : ras.meter,
-    ras.on ? (Math.sin(run.t * 10) > 0 ? P.accent : P.canopy)
-      : ras.meter >= 1 ? (Math.sin(run.t * 7) > 0 ? P.accent : P.canopy) : P.canopy);
-  // MOMENTUM (tecla 4): se carga con puntos; LLENO parpadea despacio (esta listo para lanzar) y
-  // LANZADO parpadea rapido (se gasta).
+  // ---- LOS DOS PODERES DEL JUGADOR, arriba de su cara (ver barraPoder) --------------------------
+  // MOMENTUM arriba y RASANTE abajo, pegado a la cara: el de abajo es el que se usa volando bajo.
   const tv = tempoMeter();
-  riel(W - 3, tv, tempoActive() ? (Math.sin(run.t * 14) > 0 ? P.accent : P.foam)
-    : tv >= 1 ? (Math.sin(run.t * 7) > 0 ? P.accent : P.crest) : P.crest);
+  const yPod = CUADROS_Y - AIRE - PILOTO.lado - 2 - PODER_H;
+  barraPoder(MARGEN, yPod - 2 - PODER_H, tv, P.accent, MOM_CLARO, tempoActive(), tv >= 1);
+  barraPoder(MARGEN, yPod, ras.on ? ras.resta / ras.dur : ras.meter, RAS_COL, RAS_CLARO, ras.on, ras.meter >= 1);
   // EL RELOJ DEL RASANTE, y SOLO mientras esta encendido. Es el unico numero que los rieles no
   // pueden dar —cuantos segundos quedan, no que fraccion— y es el unico momento en que hace falta:
   // con el poder apagado la pregunta es otra ("¿cuanto falta para tenerlo?") y esa la contesta el

@@ -29,14 +29,15 @@ exacto o ×3** entra sin medio píxel; cualquier otro se escala y pierde el filo
 | `emergencia` | la marca del final del reloj de la Chancha | 5 × 7 | 15 × 21 | gota de combustible con signo de admiración |
 | `canon` | el reloj del cañón | 7 × 5 | 21 × 15 | proyectil o cañón |
 | `vel` | el reloj de velocidad | 7 × 5 | 21 × 15 | cheurones o flecha de velocidad |
+| `turbo` | el mismo reloj, **con turbo puesto** | 7 × 5 | 21 × 15 | las mismas flechas que `vel`, pero gruesas |
 | `mach` | el reloj de Mach | 5 × 5 | 15 × 15 | una M, como la del Machmetro |
 | `alt` | el reloj de altitud | 7 × 7 | 21 × 21 | flecha que sube desde una línea (el agua) |
 | `gas` | el reloj de gas (RPM) | 5 × 7 | 15 × 21 | palanca de gas |
 | `vida` | el reloj de salud, escala de arriba (la chapa) | 6 × 6 | 18 × 18 | cruz **blanca** (la roja es un emblema protegido) |
 | `ola` | el reloj de salud, escala de abajo en ESCUADRÓN (el agua) | 6 × 2 | 18 × 6 | una línea de ola, bien chata (arriba y abajo hay marcas del reloj y el borde) |
 | `escudo` | el reloj de salud, escala de abajo con chapa (el escudo) | 5 × 5 | 15 × 15 | escudo; **la esquina de arriba a la derecha vacía** (al lado cae una marca del reloj) |
-| `rasante` | el riel del borde izquierdo | 6 × 6 | 18 × 18 | avión rozando olas |
-| `momentum` | el riel del borde derecho | 5 × 6 | 15 × 18 | reloj de arena |
+| `rasante` | (sin uso desde el 12/9: el poder es una barrita celeste arriba del avatar) | 6 × 6 | 18 × 18 | avión rozando olas |
+| `momentum` | (sin uso desde el 12/9: el poder es una barrita naranja arriba del avatar) | 5 × 6 | 15 × 18 | reloj de arena |
 
 ## Las siluetas provisorias
 
@@ -69,14 +70,14 @@ escudo
 .###.
 ..#..
 
-vel       mach    alt       gas
-#...#..   #...#   ...#...   .###.
-.#...#.   ##.##   ..###..   .###.
-..#...#   #.#.#   .#.#.#.   ..#..
-.#...#.   #...#   ...#...   ..#..
-#...#..   #...#   ...#...   ..#..
-                  .......   #####
-                  #######   #...#
+vel       turbo     mach    alt       gas
+#...#..   ##.##..   #...#   ...#...   .###.
+.#...#.   .##.##.   ##.##   ..###..   .###.
+..#...#   ..##.##   #.#.#   .#.#.#.   ..#..
+.#...#.   .##.##.   #...#   ...#...   ..#..
+#...#..   ##.##..   #...#   ...#...   ..#..
+                            .......   #####
+                            #######   #...#
 ```
 
 `#` es el color principal y `+` el secundario (en la gota y el surtidor, el `+` es un calado).
