@@ -1,66 +1,76 @@
 # RASANTE — Estado del proyecto
 
-_Documento de continuidad. Última actualización: 25 de julio de 2026._
+_Documento de continuidad. **Encabezado al día: 12 de septiembre de 2026.** El cuerpo
+(§1 en adelante) es de julio y **está viejo en varias partes**: se conserva porque el relato de
+cómo se llegó hasta acá sigue sirviendo, pero donde contradiga a este encabezado, **manda el
+encabezado**. Lo que quedó desactualizado está listado abajo, en "§0.4 Qué leer con pinzas"._
 
-> ## 🧭 DIRECCIÓN (18/8/2026, Matías) — el nivel completo es PASILLO → BARRA → PULSO
->
-> **Decisión:** ARENA y PASADA **no generan buenas sensaciones al jugar** y quedan
-> **PENDIENTES en cuarentena** (fuera del menú y los flujos, sin borrar, con fixtures):
-> se revisan a fondo en otro momento y, si se puede, se incorporan como módulos de
-> alguna misión. El clímax del nivel es **EL PULSO** (la
-> secuencia de teclas tipo *fatality*), y si se pasa bien se muestra **una de las
-> cinemáticas en producción** (`systems/cine.js` · PLAN_DIRECTOR_CINEMATICAS).
->
-> **El nivel más completo que se imagina hoy:**
-> `PASILLO` (el vuelo de siempre) → **una MECÁNICA NUEVA similar a la barra de
-> PERSECUCIÓN** (mantener la banda — tensión de precisión dentro del pasillo) →
-> **EL PULSO** → cinemática → fin del nivel. **PERSECUCIÓN** sigue existiendo, pero como
-> variante de pasillo que dura algunas misiones, no como modo aparte.
->
-> **Consecuencias para los planes abiertos:**
-> - `PLAN_REFACTOR.md` → **STANDBY** (se sigue desarrollando; el refactor espera).
-> - `PASADA_ADRENALINA.md` (rescate R0–R6) → **en pausa**; el gate R6 se da por
->   resuelto hacia el plan C: PULSO como clímax.
-> - `SPEC_MODO_PASADA.md`, `PLAN_MINUTOS_SAGRADOS.md`, `PROMPT_ARENA_VUELO_LIBRE.md` →
->   **PENDIENTES (cuarentena, no archivo)**; los modos rápidos MINUTOS SAGRADOS y PASADAS
->   MORTALES, ocultos del menú por perilla.
-> - `PLAN_VISUAL_FASES.md` **T7 (buque 3D) y T8 (mar 3D)** → condicionadas: solo si
->   ARENA/PASADA sobreviven. El resto del plan visual (luz, aire, agua 2D, armas,
->   enemigos, avión) sigue vigente porque es del PASILLO.
-> - Lo que **sí se pule**: PASILLO, sus poderes (MOMENTUM, CHANCHA), LA COLA, las olas,
->   la destrucción, el modo historia y las cinemáticas.
->
-> **El plan de gameplay de este nivel, por fases chicas: [PLAN_NIVEL_COMPLETO.md](PLAN_NIVEL_COMPLETO.md).**
->
-> **Cómo se enchufa el espinazo nuevo:** `missions.js` ya tiene `climax` por misión — el
-> PULSO entra con `climax: 'pulso'` (una palabra por misión); la mecánica de BARRA es lo
-> único nuevo a especificar (hoy solo existe como modo PERSECUCIÓN).
+---
 
-> **ARTE (25/7/2026):** la frase "falta reemplazar arte placeholder" de abajo quedó vieja en
-> buena parte. Hoy los 6 aviones jugables y casi todos los enemigos/props vuelan con **hojas de
-> sprites horneadas** desde modelos low-poly (`tools/bake_planes.html` y `tools/bake_enemies.html`,
-> con runners Electron), los FX del avión (trazadoras de dos bocas, tren de aterrizaje, fogonazos,
-> turbina, derribo con inercia) están rehechos en pixel art, los enemigos tienen **movimiento
-> propio configurable** (menú [M] → ENEMIGOS), y los soldados y explosiones usan hojas medidas
-> sobre el alfa. El inventario vivo de qué tiene arte y qué falta es
-> **[`PENDIENTES_DE_REDISENO.md`](PENDIENTES_DE_REDISENO.md)** — ese documento manda sobre
-> cualquier mención de arte de este archivo.
+## 0. Lo que hay que saber antes de leer el resto
 
-Resumen de todo lo construido, cómo está armado y por dónde seguir. Pensado para
-retomar el proyecto sin tener que releer todo el código.
+### 0.1 La dirección *(18/8/2026, Matías — sigue vigente)*
 
-> ⚠️ **ESTRUCTURA (19/7/2026, rama `feature/electron`):** el juego dejó de ser un
-> **Estructura del código:** `game.js` dejó de ser un monolito — hoy es un ensamblador de ~800
-> líneas más 29 módulos en `src/core`, `src/systems`, `src/render` y `src/data`. El mapa completo
-> (qué vive dónde y por qué) está en **[`ARQUITECTURA.md`](ARQUITECTURA.md)**. Las referencias
-> de abajo a "`src/game.js`" pueden apuntar hoy a alguno de esos módulos.
->
-> `index.html` autocontenido. Ahora vive en **`src/`** (`index.html` + `styles.css` +
-> `game.js` + los módulos) con los **assets sueltos en `assets/img` y `assets/audio`**. El
-> bundle web autocontenido para el Artifact lo genera **`tools/build_web.py`** →
-> `dist-web/index.html`. Esto es la **Fase 1** de la migración a Electron/Steam: ver
-> **`PLAN_ELECTRON_STEAM.md`** (documento de ejecución con bloque "RETOMAR ACÁ"). Las
-> referencias a `index.html` de más abajo aplican hoy a `src/game.js`.
+**ARENA y PASADA no generan buenas sensaciones al jugar** y quedan **en cuarentena**: fuera del
+menú y de todo flujo, **sin borrarse**, con sus fixtures corriendo (`src/data/cuarentena.js` es la
+única perilla). El clímax vigente del nivel es **EL PULSO** — la secuencia de teclas tipo
+*fatality*— y si se pasa bien se muestra una cinemática (`systems/cine.js`).
+
+El nivel más completo que se imagina:
+`PASILLO` → **mecánica de BARRA** (mantener la banda, tensión de precisión dentro del pasillo) →
+**EL PULSO** → cinemática → fin del nivel. **PERSECUCIÓN** sigue existiendo, pero como variante de
+pasillo que dura algunas misiones, no como modo aparte.
+Plan por fases chicas: **[PLAN_NIVEL_COMPLETO.md](PLAN_NIVEL_COMPLETO.md)**.
+
+Consecuencias: `PLAN_REFACTOR.md` en **STANDBY** · `PASADA_ADRENALINA.md` **en pausa** ·
+`SPEC_MODO_PASADA.md`, `PLAN_MINUTOS_SAGRADOS.md` y `PROMPT_ARENA_VUELO_LIBRE.md` **pendientes en
+cuarentena, no archivados** · del plan visual, **T7 (buque 3D) y T8 (mar 3D)** quedan condicionadas
+a que ARENA/PASADA sobrevivan; el resto sigue vigente porque es del PASILLO.
+
+### 0.2 Cómo está armado hoy *(la estructura cambió dos veces desde §3 y §6)*
+
+- **No hay un `index.html` autocontenido.** El juego vive en **`src/`** y se **bundlea con
+  esbuild** (`npm run build:game`). Corre en **Electron** (`electron/main.js`) y se empaqueta con
+  electron-builder (`npm run dist`). Plan: **[../publicacion/PLAN_ELECTRON_STEAM.md](../publicacion/PLAN_ELECTRON_STEAM.md)**.
+- **`game.js` sigue siendo el ensamblador, pero ya no es chico:** ~4900 líneas, más **129 módulos**
+  repartidos en `src/core` (26), `src/systems` (35), `src/render` (34), `src/data` (31) y
+  `src/legacy` (3). El mapa de qué vive dónde y por qué es
+  **[../ARQUITECTURA.md](../ARQUITECTURA.md)**, y **manda sobre cualquier descripción de código de
+  este documento**.
+- **El build web sigue existiendo** (`npm run build:web` → `dist-web/index.html`, una sola página
+  con todo embebido) y está **dentro del gate**, así que un asset nuevo que no esté listado en
+  `tools/build_web.py` rompe `npm run check`. Pero **el web ya no es el target**: el target es
+  Electron/Steam.
+- **Los docs se reorganizaron por contexto** (`historia/`, `sistemas/`, `proyecto/`, `produccion/`,
+  `publicacion/`, `_archivo/`). Entrada: **[../README.md](../README.md)**.
+
+### 0.3 Cómo se prueba hoy
+
+- **`npm run check` es el gate**: sintaxis, `lint:state`, `lint:layers`, build, unitarias,
+  `npm run feel`, smoke y los fixtures de cine y maniobras, más el build web y su smoke.
+- **`npm run feel` tiene que quedar idéntico.** Es la vara de que el gamefeel no se movió: si
+  cambia, o se rompió algo o el cambio es de diseño y hay que decirlo.
+- Hay **fixtures de aceptación por sistema** que corren el juego de verdad en Electron
+  (`npm run chancha`, `tierra`, `agua`, `pulso`, `cine`, `caza`, `persec`, `romper`, `fases`,
+  `misiones`, `zigzag`, `charlas`…). **Varios no están en `check`**, así que pueden podrirse sin
+  que nadie lo vea — conviene correr el del sistema que se toca.
+- **El sonido está BLOQUEADO** (`AUDIO_BLOQUEADO = true` en `src/data/sonido.js`) por pedido del
+  autor: mientras esté en `true`, el smoke exige silencio. No destrabarlo por iniciativa propia.
+
+### 0.4 Qué leer con pinzas, de §1 en adelante
+
+| lo que dice el cuerpo | lo que pasa hoy |
+|---|---|
+| "un único archivo HTML autocontenido, sin dependencias ni build" (§1) | `src/` modular + esbuild + Electron (ver §0.2) |
+| "abrir `index.html` en el navegador" / servidor en el puerto 8471 (§2) | **`npm start`** (arma el bundle y abre Electron). `npm run serve` sigue existiendo para mirarlo en el browser, pero hoy es el puerto **8475** |
+| el **Artifact** y su flujo de republicación (§2, §9) | **muerto**: era el workaround del límite de 16 MB, que Electron eliminó |
+| la tabla de archivos (§3) y el "mapa del código (`index.html`, todo en un IIFE)" (§6) | reemplazados por **[../ARQUITECTURA.md](../ARQUITECTURA.md)** |
+| "falta reemplazar arte placeholder" (§1) | en buena parte ya está: hay un **horno de sprites** (modelos low-poly de three.js en `tools/models/*.js` → hojas PNG) — ver **[../sistemas/PLAN_HORNEADO.md](../sistemas/PLAN_HORNEADO.md)**. El inventario vivo de qué tiene arte y qué falta es **[PENDIENTES_DE_REDISENO.md](PENDIENTES_DE_REDISENO.md)**, y **ese documento manda** sobre cualquier mención de arte de acá |
+| "bugs conocidos" (§4) y "próximos pasos" (§9) | son de julio; el backlog vivo es **[ROADMAP.md](ROADMAP.md)** |
+
+Lo que **sí sigue valiendo** del cuerpo: la idea rectora y el diseño (§1), el game loop y las
+mecánicas (§4), los controles (§5) y el tuning (§7) — que es justamente lo que un documento de
+continuidad tiene que conservar.
 
 ---
 
