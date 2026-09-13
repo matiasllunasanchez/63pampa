@@ -31,14 +31,33 @@ export const AGU = {
   // EL SECTOR AZUL, en fraccion de la barra. Arranca en poco mas de un tercio —se acierta sin
   // mirar— y se va cerrando hasta SEC_MIN, que es el piso: mas abajo el sector deja de verse a
   // 24 px de barra y el juego pasa a ser de suerte.
-  SEC0: 0.36, SEC_MIN: 0.16, SEC_K: 0.025,
-  // LA VELOCIDAD del indicador, en VUELTAS por segundo (una vuelta = ida y vuelta). Cada vuelta
-  // cruza el sector DOS veces, o sea que 0,5 vueltas/s pide un toque por segundo.
-  VEL0: 0.5, VEL_MAX: 1.05, VEL_K: 0.04,
+  // SEC_MIN subio de 0,16 a 0,24 y NO es una decision suelta: es lo que paga la velocidad de
+  // abajo. El margen es ancho/2·vel, asi que acelerar el indicador sin ensanchar el piso del
+  // sector lo dejaba en 38 ms —menos de dos cuadros y medio— o sea una moneda.
+  SEC0: 0.36, SEC_MIN: 0.24, SEC_K: 0.025,
+  // LA VELOCIDAD del indicador —la barrita negra—, en VUELTAS por segundo (una vuelta = ida y
+  // vuelta). Cada vuelta cruza el sector DOS veces, o sea que 1,5 vueltas/s pone una pasada cada
+  // ~0,33 s.
+  //
+  // LA BASE SUBIO EN TRES PASADAS DE PLAYTEST (0,5 → 0,65 → 0,9 → 1,5; el tope, 1,05 → 2,1), y la
+  // ultima no fue por gusto: ARREGLA UN TECHO QUE NO ERA DE HABILIDAD. Medido con una simulacion
+  // del tick (400 corridas por celda), un jugador con 15 ms de precision y atencion total moria a
+  // los 15 s con CERO toques fallados. No era su culpa: cada acierto MUEVE el sector, el indicador
+  // tiene que viajar hasta el nuevo, y a 1,3 vueltas/s ese viaje tardaba hasta 1,20 s contra una
+  // ventana de 0,90. Perdia una carrera que no dependia de el.
+  //
+  // Acelerar el indicador acorta ESE viaje (max 1,20 → 0,72 s) y por eso la velocidad es la perilla
+  // correcta y no la ventana: a 1,5 el experto sostiene la fase entera de t15 (116 s) el 100% de
+  // las veces, y con la atencion dividida —esquivando, disparando— se cae a los ~19 s. Que es
+  // exactamente el reparto que pide el diseno: el techo lo pone la ATENCION, no la aritmetica.
+  //
+  // MAS RAPIDO NO ES MEJOR: a 1,8/2,5 el experto baja a 92%, porque ahi el margen se vuelve el
+  // cuello de botella. 1,5/2,1 es el punto donde las dos curvas se cruzan.
+  VEL0: 1.5, VEL_MAX: 2.1, VEL_K: 0.04,
   SEP: 0.22,       // lo que como MINIMO se corre el sector nuevo respecto del que habia
-  // LA VENTANA, en segundos. Arranca en tres —dos pasadas salteables— y se cierra hasta menos de
-  // uno. Es la perilla del "cuanto te podes distraer", que es lo que decide si el estado se siente
-  // como un crucero o como un machaque.
+  // LA VENTANA, en segundos. Arranca en tres —casi seis pasadas, o sea cerca de TRES idas y
+  // vueltas enteras— y se cierra hasta menos de uno. Es la perilla del "cuanto te podes distraer", que es
+  // lo que decide si el estado se siente como un crucero o como un machaque.
   VEN0: 3, VEN_MIN: 0.9, VEN_K: 0.16,
   // EL PREMIO. Arranca en el x10 de la banda (el mismo de siempre) y sube de a poco: el tope es
   // x40 y antes eran x25, o sea que el techo subio, pero ahora hay que ganarselo golpe a golpe.
@@ -78,7 +97,7 @@ export const margen = n => ancho(n) / (2 * vel(n));
  *  nada. Se achica MAS RAPIDO de lo que se achica el intervalo entre pasadas, porque si no la
  *  escalada iria para atras: al acelerar el indicador las pasadas llegan mas seguido, asi que una
  *  ventana fija dejaria saltear cada vez MAS pasadas. Medido en pasadas salteables, la curva va de
- *  "podes saltear 2 de cada 3" a "podes saltear 1 de cada 2". */
+ *  "podes saltear 5 de cada 6" a "podes saltear 1 de cada 2". */
 export const ventana = n => Math.max(AGU.VEN_MIN, AGU.VEN0 - n * AGU.VEN_K);
 
 /** LO QUE CUESTA un toque afuera del azul, en segundos de ventana. Es fraccion de la ventana
