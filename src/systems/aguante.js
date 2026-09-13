@@ -53,12 +53,12 @@ export const alturaClavada = () => run.aguY;
 
 export function resetAguante() {
   run.aguante = 0; run.aguN = 0; run.aguSec = 0; run.aguF = 0; run.aguHold = 0;
-  run.aguY = 0; run.aguGolpe = -9; run.aguVen = 0; run.aguGra = 0;
+  run.aguY = 0; run.aguGolpe = -9; run.aguErr = -9; run.aguVen = 0; run.aguGra = 0;
   prevU = false; armado = false; esperandoSoltar = false;
 }
 
 function entrar() {
-  run.aguante = 1; run.aguN = 0; run.aguF = 0; run.aguHold = 0; run.aguGolpe = -9;
+  run.aguante = 1; run.aguN = 0; run.aguF = 0; run.aguHold = 0; run.aguGolpe = -9; run.aguErr = -9;
   run.aguVen = ventana(0);                    // la ventana arranca LLENA: entras con crucero puesto
   run.aguGra = AGU.GRACIA;                    // …y con la gracia puesta, por el dedo que ya venia
   esperandoSoltar = !!inp.u;
@@ -136,6 +136,10 @@ export function tickAguante(dt, enBanda) {
     // TOCAR AFUERA DEL AZUL QUEMA RELOJ, no mata. La ventana es la unica moneda del estado, asi
     // que el error se cobra ahi: si lo que quedaba no alcanza para pagarlo, se cierra y ES la
     // falla — pero es la MISMA falla de siempre, y el jugador la vio venir en la barra.
+    // LA MARCA DEL ERROR, igual que `aguGolpe` marca el acierto: el HUD la lee para titilar el
+    // indicador. Se estampa ANTES del corte para que un toque que ademas vacia la ventana quede
+    // registrado — no se ve (el estado ya se cerro) pero la sonda y el recuento no mienten.
+    run.aguErr = run.t;
     run.aguVen = Math.max(0, run.aguVen - castigo(run.aguN));
     if (run.aguVen <= 0) { salir(); run.streak = 0; return 'falla'; }
     return 'castigo';

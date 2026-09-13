@@ -597,6 +597,11 @@ const PODER_H = 7, PODER_W = CUADRO - 2;   // el relleno, adentro de la placa de
 const ONDA_W = 8, ONDA_S = 1.5;      // ancho de la cresta y segundos que tarda en cruzar
 const GLIFO = 3;                     // lo que mide una letra del rotulo (5 px monospace)
 const RACHA_W = 24;                  // los px utiles de la barra de racha: lo que mide PERFECTO
+// EL TITILEO DEL TOQUE ERRADO: cuanto dura y a que ritmo. 0,4 s a ~9,5 Hz son unos cuatro
+// parpadeos —se ve sin dudas— y termina antes del cruce siguiente, que a la velocidad de la meseta
+// llega a los 0,24 s… asi que a veces se pisan: es a proposito, el que erro tiene que ver que la
+// aguja sigue viniendo mientras todavia le parpadea el error.
+const AGU_ERR_T = 0.4, AGU_ERR_HZ = 60;
 // EL CARTELITO DE «LISTO» (12/9). Cuando un poder termina de cargarse, la palabra sale de ATRAS
 // de su barra hacia la derecha, se queda 3 segundos y se vuelve a meter por donde salio. Antes era
 // un popup en el centro de la pantalla —«! MOMENTUM LISTO — [4] !»—: avisaba lejos de la cosa de la
@@ -1398,6 +1403,13 @@ export function drawHUD(h) {
     // EL DESTELLO DEL ACIERTO: la palabra y el sector se van al claro por un pestañeo. Es el
     // unico "si" que da el estado, y tiene que caber en el tiempo que queda hasta el proximo.
     const golpe = ras && run.t - run.aguGolpe < 0.12;
+    // EL TOQUE ERRADO TITILA EL INDICADOR EN NARANJA. Va en el INDICADOR y no en el sector porque
+    // el error fue donde estaba LA AGUJA, no donde estaba el azul: el cartel tiene que aparecer
+    // en la cosa que el jugador miro mal. Y naranja y no rojo porque lo que se quemo es el reloj
+    // de abajo, que es naranja — el color dice QUE se perdio, no solo que algo salio mal.
+    // Titila (no se queda prendido) por la misma razon que el destello del acierto es un
+    // pestaneo: el proximo cruce llega en ~0,33 s y un aviso sostenido taparia el siguiente.
+    const errado = ras && run.t - run.aguErr < AGU_ERR_T && Math.sin(run.t * AGU_ERR_HZ) > 0;
     // LETRA POR LETRA sobre el ancho de la barra, con PASO ENTERO y el bloque centrado — el mismo
     // criterio que los rotulos de barraPoder, y por la misma razon: con paso fraccionario el
     // redondeo de cada letra cae distinto y RASANTE (7 letras en 24 px) salia "R AS AN TE".
@@ -1425,7 +1437,8 @@ export function drawHUD(h) {
         golpe ? '#ffffff' : RAS_COL);
       // el indicador sobresale 1 px arriba y abajo: sobre el blanco y sobre el azul se ve igual,
       // y asomando se lee como una aguja que cruza y no como un pedazo de la barra.
-      px(bx + Math.min(RACHA_W - 1, Math.round(posInd(run.aguF) * (RACHA_W - 1))), by - 1, 1, 5, '#0a1015');
+      px(bx + Math.min(RACHA_W - 1, Math.round(posInd(run.aguF) * (RACHA_W - 1))), by - 1, 1, 5,
+        errado ? P.accent : '#0a1015');
       // EL TEMPORIZADOR DE LA VENTANA, debajo del pulso. Es lo que el estado se sostiene SOLO —el
       // avion va clavado como un crucero mientras le quede— y acertar el azul lo vuelve a llenar.
       // Se VACIA en vez de crecer, que es el mismo idioma que el reloj del escondite: lo que se
