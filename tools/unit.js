@@ -2296,8 +2296,13 @@ test('anclas: la punta de ala esta DONDE TERMINA EL ALA, no en el borde del fram
     for (const hoja of ['base', 'ras']) {
       for (const fila of ANCLAS[hoja].tips) for (const t of fila) {
         assert.ok(t[0] > -0.5 && t[2] < 0.5, `punta fuera del frame en '${hoja}': ${t}`);
-        assert.ok(t[2] - t[0] > 0.2, `envergadura absurda en '${hoja}': ${t}`);
       }
+      // LA ENVERGADURA SOLO SE EXIGE EN LA POSE NIVELADA, y la primera version de esta prueba se
+      // equivoco pidiendola en las 27. Alabeado 60° el ala se ve DE CANTO —y en la hoja del poder,
+      // ademas, escorzada por el yaw— asi que su ancho proyectado se cae a 0.13 con todo derecho.
+      // Exigir 0.2 en todas era pedirle a la medicion que mintiera justo donde el ala se para.
+      const N = ANCLAS[hoja].tips[1][4];
+      assert.ok(N[2] - N[0] > 0.2, `el ala nivelada de '${hoja}' salio demasiado angosta: ${N}`);
     }
   });
 });
@@ -2310,6 +2315,37 @@ test('anclas: el render las USA y no volvio a una tabla a mano', () => {
   assert.ok(src.includes("import { ANCLAS } from '../data/anclas.js'"), 'plane.js dejo de leer las anclas medidas');
   assert.ok(src.includes('const TIPS = ANCLAS.base.tips'), 'volvio a haber una tabla de puntas a mano');
   assert.ok(/AN\.tob\[rowPose\]\[colPose\]/.test(src), 'la tobera volvio a un ancla fija');
-  // y el TOPE de los parches, que es lo que impide que una chapa quede flotando en el cielo
-  assert.ok(/BX\[0\] \+ p\.h \/ 2/.test(src), 'los parches perdieron su tope contra la caja de la pose');
+  // y el TOPE de los parches, que es lo que impide que una chapa quede flotando en el cielo.
+  // Se recorta contra la SILUETA (`perfil`) y no contra la caja: adentro de un rectangulo todavia
+  // hay cielo, y ahi fue donde quedaron flotando tres de los doce en la primera version.
+  assert.ok(/AN\.perfil\[/.test(src), 'los parches perdieron su tope contra la silueta');
+});
+
+test('anclas: la perilla de AJUSTES a mano PISA lo que midio el horno', async () => {
+  // El horno mide bien, pero no todo lo que se mide se ve bien — este proyecto ya lo aprendio tres
+  // veces con la hoja del poder. Por eso la medicion es la base y no la ultima palabra, y Matias
+  // pidio explicitamente "dame opcion de elegir manualmente y los ajusto yo en el inclinado a 45".
+  // Esta prueba cuida que esa puerta siga abierta: si alguien "simplifica" el merge, el ajuste a
+  // mano se pierde en silencio en la proxima horneada y nadie se entera hasta mirar una captura.
+  const mano = readFileSync(new URL('../src/data/anclas.js', import.meta.url), 'utf8');
+  assert.ok(mano.includes("import { HORNO } from './anclas_horno.js'"), 'anclas.js dejo de leer lo medido');
+  assert.ok(/export const AJUSTES/.test(mano), 'se perdio la tabla de ajustes a mano');
+  assert.ok(/AJUSTES\[`\$\{hoja\}\/\$\{r\}\/\$\{c\}`\]/.test(mano), 'los ajustes ya no se aplican por celda');
+  // y el generado NO puede traer ajustes adentro: se reescribe entero en cada horneada
+  const horno = readFileSync(new URL('../src/data/anclas_horno.js', import.meta.url), 'utf8');
+  assert.ok(!horno.includes('AJUSTES'), 'el archivo generado se contamino con ajustes a mano');
+  assert.ok(horno.includes('GENERADO, NO EDITAR A MANO'), 'el generado perdio su cartel');
+});
+
+test('anclas: el perfil de la silueta cubre el ancho y esta ordenado', async () => {
+  // Es el tope de los parches. Si una franja viniera al reves (abajo antes que arriba) el recorte
+  // se daria vuelta y el parche saldria disparado al borde opuesto.
+  const { ANCLAS } = await import('../src/data/anclas.js');
+  for (const hoja of ['base', 'ras']) {
+    const P = ANCLAS[hoja].perfil;
+    assert.ok(P.length >= 9, `'${hoja}' tiene muy pocas franjas de perfil (${P.length})`);
+    let conAvion = 0;
+    for (const f of P) { if (f[1] > f[0]) conAvion++; }
+    assert.ok(conAvion >= P.length * 0.5, `'${hoja}': el avion ocupa muy pocas franjas (${conAvion}/${P.length})`);
+  }
 });

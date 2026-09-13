@@ -407,7 +407,7 @@ const PARCHES = [
  *                horizontales mientras el ala se para, que es cuando mas se los mira.
  *  @param n      `nivel()` de core/desgaste.js — a 0 esta funcion no dibuja NADA
  */
-function parches(mw, mh, T, n, AN, BX) {
+function parches(mw, mh, T, n, AN) {
   if (!(n > 0.001)) return;                       // celula recien salida de fabrica: no hay overlay
   // LAS TRES VARAS SALEN DE LA HOJA QUE SE ESTA DIBUJANDO, no de constantes.
   //   punta  donde cae la punta del ala en la pose nivelada: el cero contra el que estan medidas
@@ -434,14 +434,20 @@ function parches(mw, mh, T, n, AN, BX) {
     const x = (mx + su * lx) * mw;
     // la `v` de la tabla esta medida en el frame NIVELADO; lo que la pose agrega es la INCLINACION
     // de la linea del ala, que es exactamente `(my + su*ly) - punta`.
-    // EL TOPE. La altura sale de una tabla escrita contra el perfil de la hoja base, y desde otro
-    // punto de vista ese perfil se REORDENA —el timon deja de asomar arriba, el estabilizador tapa
-    // el fuselaje— asi que una `v` puede terminar apuntando al cielo. Se recorta contra la caja
-    // MEDIDA de esta pose, con medio parche de margen para que no asome por el borde. No arregla
-    // que el parche caiga en la chapa exacta que decia la tabla; arregla que se vea como chatarra
-    // flotando al lado del avion, que es lo unico imperdonable.
+    // EL TOPE, CONTRA LA SILUETA Y NO CONTRA LA CAJA. Las alturas estan escritas sobre el perfil
+    // de la hoja base y desde otro punto de vista ese perfil se REORDENA —el timon deja de asomar
+    // arriba, el estabilizador tapa el fuselaje— asi que una `v` puede terminar apuntando al
+    // cielo. La primera version lo recortaba contra la CAJA de la pose y no alcanzo: adentro de un
+    // rectangulo todavia hay cielo, y ahi seguian flotando tres de los doce. Lo marco Matias
+    // mirando la lamina.
+    //
+    // Ahora se recorta contra `perfil`, que es la silueta opaca medida en 13 franjas a lo ancho:
+    // "a esta altura del ala, el avion va de aca hasta aca". Un parche no puede quedar afuera del
+    // avion ni aunque la tabla lo pida.
     let vy = my + su * ly - punta + p.v * kv;
-    if (BX) vy = Math.max(BX[0] + p.h / 2, Math.min(BX[1] - p.h / 2, vy));
+    const fr = AN.perfil[Math.max(0, Math.min(AN.perfil.length - 1,
+      Math.floor((x / mw + 0.5) * AN.perfil.length)))];
+    if (fr && fr[1] > fr[0]) vy = Math.max(fr[0] + p.h / 2, Math.min(fr[1] - p.h / 2, vy));
     const y = vy * mh;
     // ESCORZO: banqueado, el ala se ve casi de canto y una chapa pegada a ella se angosta igual que
     // la chapa de verdad. Se nota mas cuanto mas afuera esta, de ahi que se mezcle con `su`.
@@ -758,7 +764,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
     // BASE desde siempre: el ancla era UNA sola para las tres filas, asi que trepando —con el caño
     // a 0.179 del centro— la llama seguia saliendo de 0.083, o sea doce pixeles adelante del caño.
     // Con la tabla medida por pose el fuego sale de donde esta el fuego.
-    parches(spW, spH, AN.tips[rowPose][colPose], nivel(), AN, AN.box[rowPose][colPose]);
+    parches(spW, spH, AN.tips[rowPose][colPose], nivel(), AN);
     const tb = AN.tob[rowPose][colPose];
     if (tb) tobera(tb[0] * spW, tb[1] * spH, ff, spW / 84 * 2.4);
   } else if (pl.ready) {

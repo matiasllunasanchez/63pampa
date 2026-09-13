@@ -49,6 +49,8 @@ app.whenReady().then(async () => {
     const tabla = t => '[\n' + t.map(f => '  ' + fila(f)).join(',\n') + ',\n]';
     const tobT = t => '[\n' + t.map(f => '  [' + f.map(c => c ? '[' + c.join(',') + ']' : 'null').join(', ') + ']').join(',\n') + ',\n]';
     const ANCLAS_JS = `// ANCLAS DE LAS HOJAS DE AVIONES — GENERADO, NO EDITAR A MANO.
+// Para retocar un valor a mano NO se toca este archivo: se pone el ajuste en src/data/anclas.js,
+// que es el que el juego importa y el unico que sobrevive a la proxima horneada.
 // Lo escribe \`npx electron tools/bake_planes_run.js\` midiendo el alfa de las hojas recien
 // horneadas. Reemplaza a la tabla TIPS y a la constante TOBERA_F que vivian a mano en
 // render/plane.js con la nota "si se re-hornea la hoja con otra geometria de ala, hay que volver a
@@ -62,6 +64,13 @@ app.whenReady().then(async () => {
 //
 //   tips[fila][columna] = [ix, iy, dx, dy]   las dos puntas de ala, en fraccion del frame y desde
 //                                            su centro. Las consumen la estela y los parches.
+//                                            SALEN DE LA GEOMETRIA (el vertice de |x| maximo del
+//                                            modelo, proyectado), no del alfa: mirando de costado
+//                                            lo mas ancho del dibujo es el fuselaje, no el ala.
+//   perfil[13]          = [arriba, abajo]    la silueta opaca de la pose nivelada en 13 franjas a
+//                                            lo ancho. Es el tope real de los parches — la caja
+//                                            sola no alcanza, porque adentro de un rectangulo
+//                                            todavia hay cielo.
 //   tob[fila][columna]  = [x, y] | null      el centroide del naranja del escape: donde nace la
 //                                            llama del turbo. \`null\` = en esta pose no se ve.
 //   box[fila][columna]  = [arriba, abajo]    hasta donde llega el avion en vertical en esa pose.
@@ -70,13 +79,13 @@ app.whenReady().then(async () => {
 //   alto                                     cuanto ocupa el avion en vertical dentro del frame
 //                                            nivelado. Lo usan los parches para reescalar sus
 //                                            alturas de una hoja a la otra.
-export const ANCLAS = {
-  base: { tips: ${tabla(A.base.tips)}, tob: ${tobT(A.base.tob)}, box: ${tabla(A.base.box)}, alto: ${A.base.alto} },
-  ras:  { tips: ${tabla(A.ras.tips)}, tob: ${tobT(A.ras.tob)}, box: ${tabla(A.ras.box)}, alto: ${A.ras.alto} },
+export const HORNO = {
+  base: { tips: ${tabla(A.base.tips)}, tob: ${tobT(A.base.tob)}, box: ${tabla(A.base.box)}, perfil: ${fila(A.base.perfil.map(p => p || [0, 0]))}, alto: ${A.base.alto} },
+  ras:  { tips: ${tabla(A.ras.tips)}, tob: ${tobT(A.ras.tob)}, box: ${tabla(A.ras.box)}, perfil: ${fila(A.ras.perfil.map(p => p || [0, 0]))}, alto: ${A.ras.alto} },
 };
 `;
-    fs.writeFileSync(path.join(ROOT, 'src', 'data', 'anclas.js'), ANCLAS_JS);
-    console.log(`\nANCLAS MEDIDAS -> src/data/anclas.js  (base alto ${A.base.alto} · ras alto ${A.ras.alto})`);
+    fs.writeFileSync(path.join(ROOT, 'src', 'data', 'anclas_horno.js'), ANCLAS_JS);
+    console.log(`\nANCLAS MEDIDAS -> src/data/anclas_horno.js  (base alto ${A.base.alto} · ras alto ${A.ras.alto})`);
     console.log('Horneado completo.');
   } catch (e) {
     console.error('ERROR al hornear:', e.message);

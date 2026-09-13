@@ -171,7 +171,43 @@
     //
     // Es la misma idea que `puntos` en el horno de enemigos (las helices de la Chancha): el horno
     // mide hechos, y donde quedo dibujada un ala es un hecho.
-    function anclasDe(canvas, fw, fh, cols, rows) {
+    /** LAS DOS PUNTAS DE ALA DEL MODELO, en coordenadas del propio modelo. Son los vertices de
+     *  |x| maximo de toda la geometria — que en un avion es, siempre, la punta del ala: ninguna
+     *  otra parte se aleja tanto del eje.
+     *
+     *  POR QUE NO SE MIDEN SOBRE EL ALFA, que es como se hacia. Mirando el avion DE COLA el pixel
+     *  opaco mas a la izquierda ES la punta del ala, asi que el atajo funcionaba y por eso la
+     *  tabla a mano era correcta. Pero la hoja del PODER mira desde 35° al costado, y ahi lo mas
+     *  ancho del dibujo ya no es el ala: es el FUSELAJE. Las "puntas" medidas por alfa caian en la
+     *  trompa y en la cola — o sea que la estela de punta de ala salia del morro. Lo vio Matias en
+     *  la lamina de verificacion.
+     *
+     *  Con el vertice, la punta es la punta desde cualquier camara. Es la misma leccion que la
+     *  Chancha: un punto del MODELO proyectado por el horno no se puede equivocar de pieza; un
+     *  atajo sobre la imagen depende de que la camara no cambie. */
+    function puntasDe(model) {
+      model.updateMatrixWorld(true);
+      const v = new THREE.Vector3();
+      let minX = 1e9, maxX = -1e9, L = null, R = null;
+      model.traverse(o => {
+        if (!o.isMesh || !o.geometry || !o.geometry.attributes.position) return;
+        const pos = o.geometry.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+          if (v.x < minX) { minX = v.x; L = v.clone(); }
+          if (v.x > maxX) { maxX = v.x; R = v.clone(); }
+        }
+      });
+      return [L, R];
+    }
+
+    /** Donde cae un punto del modelo dentro del frame, en fraccion y desde el centro. */
+    function alFrame(p, model, cam) {
+      const v = p.clone().applyMatrix4(model.matrixWorld).project(cam);
+      return [+((v.x * 0.5) ).toFixed(3), +((-v.y * 0.5)).toFixed(3)];
+    }
+
+    function anclasDe(canvas, fw, fh, cols, rows, puntas) {
       const g = canvas.getContext('2d');
       const d = g.getImageData(0, 0, canvas.width, canvas.height).data;
       const A = (x, y) => d[(y * canvas.width + x) * 4 + 3];
@@ -192,13 +228,11 @@
             if (n) { ri = x; rsum = sum; rn = n; }
           }
           const f = v => +(v).toFixed(3);
-          // en FRACCION del frame y desde su CENTRO, que es como esta escrita la tabla vieja
-          // el borde DERECHO se toma en el borde EXTERNO del pixel (ri + 1) y el izquierdo en el
-          // interno: no es un capricho, es la convencion con la que estaba medida a mano la tabla
-          // vieja. Con ella, las 27 celdas de la hoja base salen IDENTICAS a las de render/plane.js
-          // — que es lo que permitio reemplazarla sin cambiar un pixel de lo que ya se veia.
-          ft.push(li < 0 ? [0, 0, 0, 0] : [f((li - fw / 2) / fw), f((lsum / ln - fh / 2) / fh),
-                                           f((ri + 1 - fw / 2) / fw), f((rsum / rn - fh / 2) / fh)]);
+          // LAS PUNTAS VIENEN PROYECTADAS DEL MODELO (ver puntasDe): es la punta del ala mire la
+          // camara desde donde mire. El alfa se sigue leyendo para el resto (la caja, el perfil).
+          const P = puntas[row][col];
+          ft.push(P ? [P[0][0], P[0][1], P[1][0], P[1][1]] : [0, 0, 0, 0]);
+          void li; void ri; void lsum; void ln; void rsum; void rn;
           // EL ESCAPE: centroide del naranja emisivo (BAKE.PAL.fuegoMedio y sus vecinos)
           let ox = 0, oy = 0, on = 0;
           for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) {
@@ -227,7 +261,19 @@
       for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++)
         if (A(cx + x, cy + y) > 8) { if (y < y0) y0 = y; if (y > y1) y1 = y; }
       const alto = y1 < 0 ? 0 : +((y1 - y0 + 1) / fh).toFixed(4);
-      return { tips, tob, box, alto };
+      // EL PERFIL DE LA SILUETA, en 13 muestras a lo ancho del frame: arriba y abajo de lo OPACO
+      // en cada franja. Es el tope real de los parches. La caja sola no alcanza —adentro de un
+      // rectangulo todavia hay cielo, y ahi es donde quedaban flotando tres de los doce— y esto
+      // es lo mas barato que responde "a esta altura del ala, hasta donde llega el avion".
+      const MUESTRAS = 13, perfil = [];
+      for (let m = 0; m < MUESTRAS; m++) {
+        const xa = Math.floor(m * fw / MUESTRAS), xb = Math.floor((m + 1) * fw / MUESTRAS);
+        let a = 1e9, b = -1;
+        for (let x = xa; x < xb; x++) for (let y = 0; y < fh; y++)
+          if (A(cx + x, cy + y) > 8) { if (y < a) a = y; if (y > b) b = y; }
+        perfil.push(b < 0 ? null : [+((a - fh / 2) / fh).toFixed(3), +((b - fh / 2) / fh).toFixed(3)]);
+      }
+      return { tips, tob, box, alto, perfil };
     }
 
     let ANCLAS = {};
@@ -245,13 +291,19 @@
         const sheet = document.createElement('canvas');
         sheet.width = FW * ANGLES.length; sheet.height = FH * PITCHES.length;
         const x2 = sheet.getContext('2d');
+        const pt0 = puntasDe(model);            // las dos puntas, en el modelo sin posar
+        const PU_BASE = [], PU_RAS = [];
         PITCHES.forEach((pa, row) => {
           model.rotation.x = pa * Math.PI / 180;
+          const fb = [];
           ANGLES.forEach((a, i) => {
             model.rotation.z = a * Math.PI / 180;
             R.render(sc, cam);
             x2.drawImage(R.domElement, i * FW, row * FH);
+            model.updateMatrixWorld(true);
+            fb.push([alFrame(pt0[0], model, cam), alFrame(pt0[1], model, cam)]);
           });
+          PU_BASE.push(fb);
         });
         const sheet2 = document.createElement('canvas');
         sheet2.width = FW * ANGLES.length; sheet2.height = FH * STEEP.length;
@@ -270,11 +322,15 @@
         const x23 = sheet3.getContext('2d');
         PITCHES.forEach((pa, row) => {
           model.rotation.x = (pa + RAS_PITCH) * Math.PI / 180;   // + la compensacion (ver RAS_PITCH)
+          const fr = [];
           ANGLES.forEach((a, i) => {
             model.rotation.z = (a + RAS_ROLL) * Math.PI / 180;   // + la compensacion (ver RAS_ROLL)
             R3.render(sc, cam3);
             x23.drawImage(R3.domElement, i * FW3, row * FH3);
+            model.updateMatrixWorld(true);
+            fr.push([alFrame(pt0[0], model, cam3), alFrame(pt0[1], model, cam3)]);
           });
+          PU_RAS.push(fr);
         });
         // ESTA NO SE SIMETRIZA, y es la unica del horno que no. `simetrizaCentro` espeja la mitad
         // derecha sobre la izquierda en la columna nivelada para corregir el medio pixel que deja
@@ -300,8 +356,8 @@
         // las anclas de las dos hojas que el juego dibuja encima (la 2 no las necesita: durante
         // una pirueta empinada no hay parches ni estela de punta que valgan)
         ANCLAS[key] = {
-          base: anclasDe(sheet, FW, FH, ANGLES.length, PITCHES.length),
-          ras: anclasDe(sheet3, FW3, FH3, ANGLES.length, PITCHES.length),
+          base: anclasDe(sheet, FW, FH, ANGLES.length, PITCHES.length, PU_BASE),
+          ras: anclasDe(sheet3, FW3, FH3, ANGLES.length, PITCHES.length, PU_RAS),
         };
         if (outEl) {   // vista previa (modo browser)
           const h = document.createElement('h2'); h.textContent = key + ' — ' + ANGLES.length + 'x' + PITCHES.length + ' frames de ' + FW + 'x' + FH + ' (filas: trepa/nivel/pica)';
