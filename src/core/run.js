@@ -73,6 +73,23 @@ export const run = {
   aguVen: 0,       // SEGUNDOS que le quedan a la ventana. Se vacia sola; acertar la rellena.
   aguGra: 0,       // s de gracia al entrar: el toque reflejo del gas no cuenta ni bien ni mal
 
+  // DONDE QUEDARON LAS PUNTAS DE ALA en la pantalla, en pixeles de MUNDO, este cuadro.
+  //
+  // LO ESCRIBE EL RENDER (render/plane.js) y no un sistema, que es al reves de lo normal — y es la
+  // unica forma: la punta sale de la tabla medida para ESTA pose (data/anclas.js) mas el centro,
+  // el tamaño y el giro con los que se acaba de dibujar el sprite, y eso solo lo sabe quien lo
+  // dibujo. Reconstruirlo afuera seria copiar la transformacion entera y que se separen.
+  //
+  // LO LEE EL ROCIO (systems/vuelo.js) para que el agua nazca EN la punta y no a un ancho fijo del
+  // centro: con el avion banqueado y la camara del poder al costado, el ancho fijo dejaba la punta
+  // izquierda a 25 px de donde nacia el agua.
+  //
+  // VA UN CUADRO ATRASADO a proposito: los sistemas corren antes que el dibujo, asi que lo que se
+  // lee es lo del cuadro anterior. A 60 fps son 16 ms y no se ve; reordenar el bucle por esto
+  // costaria mucho mas de lo que arregla. `alaT` dice CUANDO se escribio: si el avion no se dibujo
+  // (cinematica, pausa, otro modo) el dato esta viejo y quien lo lee tiene que caer a su plan B.
+  alaLx: 0, alaLy: 0, alaRx: 0, alaRy: 0, alaT: -9,
+
   // --- afterburner sostenido (ver AFTER_* en core/physics.js) ---
   afterT: 0, afterTier: 0, afterGrace: 0,
 
@@ -153,6 +170,7 @@ export function resetRun() {
     fuel: 100, heat: 0, overheat: false, detection: 0, radarWave: 0, radarSeen: false, estrellas: 0, climaxHecho: 0, boost: false, throttle: 0,
     score: 0, mult: 1, multShow: 1, streak: 0, rasLevel: 0, graceT: 0, rasAlto: -9,
     aguante: 0, aguN: 0, aguSec: 0, aguF: 0, aguHold: 0, aguY: 0, aguGolpe: -9, aguErr: -9, aguVen: 0, aguGra: 0,
+    alaLx: 0, alaLy: 0, alaRx: 0, alaRy: 0, alaT: -9,
     afterT: 0, afterTier: 0, afterGrace: 0,
     scrapeT: 0, scrapeVib: 0,
     squad: 1, lives: 1,

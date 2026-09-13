@@ -7,18 +7,19 @@
 // Recibe `selPlane` (que avion eligio el jugador — estado de menu, vive en game.js) y `viewMouse`
 // (resuelve la mira segun la camara — la camara sigue en game.js). El resto lo lee de los stores.
 
-import { ctx, px, PZ, U } from './ctx.js';
+import { ctx, px, PZ, U, W, H, HOR } from './ctx.js';
 import { plane, cfg, S } from '../core/state.js';
 import { run } from '../core/run.js';
 import { inp } from '../core/input.js';
 import { proj } from '../core/fx.js';
-import { hzSprite } from '../core/horizon.js';
+import { hzSprite, hzWorld } from '../core/horizon.js';
 import { P } from '../data/palette.js';
 import { drawCono, drawVaporAla, drawCruce } from './mach.js';
 import { drawMira } from './miras.js';
 import { anchorSpray, drawSpray } from './rain.js';
 import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H, SHEET3_FW, SHEET3_FH } from '../data/planes.js';
 import { ANCLAS } from '../data/anclas.js';
+import { ALA_PX } from '../data/tuning.js';
 import { skinOf } from '../data/skins.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName, rosterActive } from '../systems/squad.js';
@@ -154,7 +155,7 @@ function stepFlame() {
 // CORTINAS DE PUNTA DE ALA (F3.1): donde estan las puntas respecto de la sombra, y hasta que
 // altura hay agua que arrancar. RAS_ALT es el techo de la banda del x10 — una sola banda, y
 // ahora tambien un solo efecto que la anuncia.
-const TIP_X = 15, RAS_ALT = 4.5;
+const TIP_X = ALA_PX, RAS_ALT = 4.5;   // ALA_PX vive en data/tuning: el rocio de vuelo.js usa el mismo
 
 // EL LARGO DE LA ESTELA. `TIP_CAIDA` es cuanto CAE la muestra mas vieja, en pixeles de mundo, y
 // es lo unico que la alarga de verdad: el avion vive clavado en la pantalla, asi que el hilo no se
@@ -240,14 +241,38 @@ function tipTrail(lx, ly, rx, ry, f) {
     // La V se abre POCO comparado con lo que cae: un vortice visto desde atras y desde arriba
     // sobre todo SE HUNDE. La apertura acompaña al largo pero muy amortiguada — a la par, el hilo
     // se iria a los costados y volveria a leerse como dos rayas sueltas al lado del fuselaje.
-    const dy = viejo * TIP_CAIDA, dx = viejo * 3.4 * (1 + (TIP_CAIDA / 9 - 1) * 0.35);
+    // HACIA DONDE SE VA EL HILO (13/9). Antes caia DERECHO —`dy = viejo * TIP_CAIDA`— y se abria
+    // apenas. Mirando para adelante en el pasillo eso pasaba por un vortice que se hunde, pero en
+    // la vista del PODER, que mira desde 35° al costado, se leia como dos piolas colgando del ala.
+    //
+    // Ahora se va POR LA PERSPECTIVA: alejandose del PUNTO DE FUGA, (W/2, HOR), que es adonde
+    // converge todo lo que pasa de largo. Es la misma direccion en la que se van el mar, los
+    // obstaculos y el rocio (systems/vuelo.js), asi que el hilo queda EN LINEA con el vuelo mire
+    // la camara desde donde mire, en vez de tener una direccion propia que solo cierra de frente.
+    // La apertura extra (`dx`) se queda: es lo que separa los dos hilos entre si.
+    const dx = viejo * 3.4 * (1 + (TIP_CAIDA / 9 - 1) * 0.35);
+    // el MISMO rayo que el barrido del desenfoque y que el rocio: radial puro desde el punto de
+    // fuga, sin achatar (el barrido smerea escalando el cuadro, asi que cada pixel se estira sobre
+    // su propio rayo).
+    // …y con el GIRO DEL MUNDO descontado, por lo mismo que el rocio (systems/vuelo.js): el hilo se
+    // dibuja adentro de la rotacion y el barrido se hace despues, sobre el cuadro ya rotado.
+    const hz = hzWorld(), hc = Math.cos(hz), hs = Math.sin(hz);
+    const fuga = (tx, ty) => {
+      const rx0 = tx - W / 2, ry0 = ty - H / 2;
+      const fx2 = W / 2 + rx0 * hc - ry0 * hs, fy2 = H / 2 + rx0 * hs + ry0 * hc;
+      const ex = fx2 - W / 2, ey = fy2 - HOR;
+      const d = Math.max(1, Math.hypot(ex, ey));
+      const ux = (ex / d) * hc + (ey / d) * hs, uy = -(ex / d) * hs + (ey / d) * hc;
+      return [ux * viejo * TIP_CAIDA, uy * viejo * TIP_CAIDA];
+    };
+    const [flx, fly] = fuga(p.lx, p.ly), [frx, fry] = fuga(p.rx, p.ry);
     const w = 1 + viejo * 1.1 * (0.55 + f * 0.45);   // fino: a 3.4 px eran bloques, no un hilo
     // el apagado por edad se AFLOJO junto con el largo (0.85 -> 0.72): con la caida al triple, la
     // cola del hilo quedaba tan tenue que la mitad de lo que se gano en largo no se veia.
     ctx.globalAlpha = (1 - viejo * 0.72) * 0.5 * (0.35 + f * 0.65);
     const c = viejo < 0.45 ? P.foam : P.crest;
-    px(p.lx - dx - w / 2, p.ly + dy - w / 2, w, w, c);
-    px(p.rx + dx - w / 2, p.ry + dy - w / 2, w, w, c);
+    px(p.lx + flx - dx - w / 2, p.ly + fly - w / 2, w, w, c);
+    px(p.rx + frx + dx - w / 2, p.ry + fry - w / 2, w, w, c);
   }
   ctx.globalAlpha = 1;
 }
@@ -852,8 +877,14 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
     const cs = Math.cos(spinTot), sn = Math.sin(spinTot);
     const gx = (fx, fy) => cx + fx * spW * cs - fy * spH * sn;
     const gy = (fx, fy) => cy + fx * spW * sn + fy * spH * cs;
-    tipTrail(gx(T[0] * TIP_OUT, T[1]), gy(T[0] * TIP_OUT, T[1]),
-             gx(T[2] * TIP_OUT, T[3]), gy(T[2] * TIP_OUT, T[3]), fuerzaTip);
+    const alaLx = gx(T[0] * TIP_OUT, T[1]), alaLy = gy(T[0] * TIP_OUT, T[1]);
+    const alaRx = gx(T[2] * TIP_OUT, T[3]), alaRy = gy(T[2] * TIP_OUT, T[3]);
+    // SE PUBLICAN EN EL STORE (ver run.js, alaLx): el rocio de systems/vuelo.js nace EN la punta y
+    // no a un ancho fijo del centro. Es el render escribiendo un store —al reves de lo normal—
+    // porque la punta sale de la pose, el tamaño del sprite y el giro, y eso lo sabe solo el que
+    // acaba de dibujarlo.
+    run.alaLx = alaLx; run.alaLy = alaLy; run.alaRx = alaRx; run.alaRy = alaRy; run.alaT = run.t;
+    tipTrail(alaLx, alaLy, alaRx, alaRy, fuerzaTip);
   }
 
   // mira: en el MOUSE (PC, punteria libre) o adelante del avion (tactil/legacy)

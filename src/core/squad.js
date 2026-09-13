@@ -49,3 +49,23 @@ export function formationSlots(n) {
   }
   return slots;
 }
+
+/** DONDE ESTA EL COMPAÑERO `i` DE LA FORMACION, resuelto: x, y y el dz respecto del plano de
+ *  camara (quien llama le suma su PZ — este archivo es `core` y no sabe de render).
+ *
+ *  Vive ACA y no en el render porque lo necesitan DOS: el dibujo de la formacion y el polvo que
+ *  levantan al carretear (game.js). Con la cuenta copiada en los dos lados, el dia que la
+ *  formacion se mueva el polvo se queda donde estaba y aparece saliendo de la nada.
+ *
+ *  `rank` es la fila: los de atras siguen al lider CON RETRASO —rotan mas tarde— que es la
+ *  escalera de ascenso que se ve en cualquier despegue en formacion. El seno es el bob de "vuelo
+ *  vivo", distinto por puesto para que no respiren todos juntos. */
+export function puestoFormacion(slots, i, px, py, t) {
+  const sl = slots[i], rank = Math.ceil((i + 1) / 2);
+  return {
+    x: px + sl.dx,
+    y: Math.max(0.8, py - rank * 1.7) + Math.sin(t * 2.6 + i * 1.9) * 0.25,
+    dz: sl.dz,
+    rank,
+  };
+}

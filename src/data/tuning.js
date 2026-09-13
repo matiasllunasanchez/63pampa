@@ -405,6 +405,23 @@ export const TEMPO_CHARGE = 650;    // puntos que llenan la barra (subido de 500
 // Sigue MUY adentro de la banda del x10 (4.5). El mar plano promedia 1.1 y pica en 1.9, asi que a
 // 2.4 el avion pasa a ras de la cresta: eso es exactamente lo que el COLCHON (RF-02) existe para
 // perdonar, y es la razon por la que las dos perillas se mueven juntas.
+// EL ACHATADO DE LAS LINEAS DE VELOCIDAD. Salen del punto de fuga pero NO en radial pura: la
+// vertical va comprimida a esto, y por eso se ven acostadas y no como un sol de rayos.
+//
+// OJO, Y ESTO COSTO UNA VUELTA ENTERA: es de las LINEAS DE VELOCIDAD Y DE NADIE MAS. El BARRIDO del
+// desenfoque —las rayas largas que se ven con el poder puesto— es RADIAL PURO, porque smerea
+// escalando el cuadro entero desde el punto de fuga (render/desenfoque.js): cada pixel se estira
+// sobre su propio rayo, sin achatar. El rocio del agua y los hilos de punta de ala se alinean con
+// ESE, asi que van radiales; alinearlos con este achatado fue el error.
+export const FUGA_Y = 0.62;
+
+// DONDE ESTAN LAS PUNTAS DE ALA en la pantalla, medidas desde la sombra del avion y en pixeles
+// de MUNDO. Vive aca —y no en el render— porque la usan DOS cosas que tienen que coincidir o se
+// leen como dos efectos pegados: las cortinas de punta de ala (render/plane.js, F3.1) y el
+// rocio de particulas (systems/vuelo.js). El agua que arranca un avion a ras sale de las
+// PUNTAS —son los vortices de punta de ala tocando la superficie— y no del morro.
+export const ALA_PX = 15;
+
 export const RAS_ALT = 2.4;
 export const RAS_SPRING = 6;     // rate del lerp de vuelta al ras. Si en el playtest se siente
                                  // "riel", se ABLANDA ESTE NUMERO — no se agrega asistencia (§6.1)

@@ -105,7 +105,7 @@ import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFact
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
 import { LAND_APPROACH_M, LAND_ALT0, LAND_SPD_MIN, LAND_SPD_MAX, LAND_SPD_OK,
          LAND_VY_SUAVE, LAND_VY_DURO, LAND_PITCH_OK, LAND_GEAR_DRAG, LAND_GEAR_MIN_T,
-         LAND_COSTO_CHAPA, LAND_PTS } from './data/tuning.js';
+         LAND_COSTO_CHAPA, LAND_PTS, FUGA_Y } from './data/tuning.js';
 import { MSL_MAX, GEAR_T, RADAR_ALT, FLY_TOP, FLY_X, VEIL_IN, VEIL_FULL, VEIL_OUT,
   RAS_DUR, RAS_LAT_HZ, ZZ_FONDO_K } from './data/tuning.js';
 // ¿"cerca" del techo del radar? Es la ventana donde '↑ arriba + ↑↑' deja de ofrecerte llegar al
@@ -137,7 +137,7 @@ import * as wingmv from './systems/wingmv.js';
 import { drawActores } from './render/wingmv.js';
 import * as teatro from './systems/teatro.js';
 import { drawTiros } from './render/teatro.js';
-import { canRelevo, pilotIdx } from './core/squad.js';
+import { canRelevo, pilotIdx, formationSlots, puestoFormacion } from './core/squad.js';
 import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
   (() => {
@@ -2776,10 +2776,26 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         cam.x += (plane.x * 0.86 - cam.x) * Math.min(1, dt * 7);
         cam.y += (plane.y + 2.6 - cam.y) * Math.min(1, dt * 7);
         if (cam.y < 3.4) cam.y = 3.4;
-        // polvo del carreteo
-        if (plane.y < 2.5 && Math.random() < 0.6) {
-          const s = proj(plane.x + (Math.random() - 0.5) * 3, 0, PZ - Math.random() * 1.5);
+        // POLVO DEL CARRETEO, Y NO SOLO EL TUYO (13/9). Lo levantaba unicamente el lider, asi que
+        // despegaban cinco aviones y cuatro pasaban por arriba de la pista sin tocarla. Los puestos
+        // salen de `puestoFormacion` —el MISMO que dibuja render/squad.js— para que el polvo caiga
+        // donde esta el avion y no donde estaba antes de la ultima vez que se movio la formacion.
+        //
+        // Cada uno levanta MENOS que el lider (0.45): estan mas lejos, y cinco columnas al mismo
+        // volumen tapaban la pista entera. Y cada uno deja de levantar cuando SU rueda se despega,
+        // no cuando se despega la tuya — los de atras rotan mas tarde, que es media escalera.
+        const polvo = (px2, z2, prob) => {
+          if (Math.random() >= prob) return;
+          const s = proj(px2 + (Math.random() - 0.5) * 3, 0, z2 - Math.random() * 1.5);
           parts.push({ x: s.x, y: s.y - 1, vx: (Math.random() - 0.5) * 30, vy: -(15 + Math.random() * 25), life: 0.4, c: '#6b6f62', r: 1.2 });
+        };
+        if (plane.y < 2.5) polvo(plane.x, PZ, 0.6);
+        if (run.squad > 1) {
+          const slots = formationSlots(run.squad);
+          for (let i = 0; i < slots.length; i++) {
+            const pu = puestoFormacion(slots, i, plane.x, plane.y, run.t);
+            if (pu.y < 2.5) polvo(pu.x, PZ + pu.dz, 0.45);
+          }
         }
         const cn = 3 - Math.floor(toT);
         if (cn !== toCount && cn >= 0) { toCount = cn; beep(cn > 0 ? 520 : 980, 0.14, 'square', 0.06); }
@@ -3703,8 +3719,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // donde apunta el morro, bastante mas abajo del horizonte, y con las lineas naciendo
         // arriba parecian venir de atras del riel del canopy en vez de barrerte el vidrio.
         const cy = HOR - 4 + (s.dy || 0);
-        const x1 = W / 2 + Math.cos(s.a) * s.r, y1 = cy + Math.sin(s.a) * s.r * 0.62;
-        const x2 = W / 2 + Math.cos(s.a) * (s.r + L), y2 = cy + Math.sin(s.a) * (s.r + L) * 0.62;
+        const x1 = W / 2 + Math.cos(s.a) * s.r, y1 = cy + Math.sin(s.a) * s.r * FUGA_Y;
+        const x2 = W / 2 + Math.cos(s.a) * (s.r + L), y2 = cy + Math.sin(s.a) * (s.r + L) * FUGA_Y;
         ctx.strokeStyle = P.foam;
         ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
       }

@@ -15,7 +15,7 @@ import { P } from '../data/palette.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
 import { PLANE_SCALE, drawGear, drawShadow } from './plane.js';
 import { drawSquadPips } from './hud.js';
-import { formationSlots, pilotIdx, RELEVO_WRECK, RELEVO_DUR } from '../core/squad.js';
+import { formationSlots, pilotIdx, RELEVO_WRECK, RELEVO_DUR, puestoFormacion } from '../core/squad.js';
 import { pilotName, rosterActive, fallenPos } from '../systems/squad.js';
 import { skinOf } from '../data/skins.js';
 
@@ -41,16 +41,16 @@ export function drawFormation({ selPlane, exit }) {
   ctx.imageSmoothingEnabled = false;
   // los puestos vienen ordenados de mas lejano (rank 1, z mayor) a mas cercano: pintor correcto
   for (let i = 0; i < slots.length; i++) {
-    const sl = slots[i], rank = Math.ceil((i + 1) / 2);
-    let z = PZ + sl.dz;
-    let x = plane.x + sl.dx;
-    // siguen al lider con RETRASO: los de atras rotan mas tarde — la escalera de ascenso que
-    // se ve en cualquier despegue en formacion. El seno es el bob de "vuelo vivo" de cada uno.
-    let y = Math.max(0.8, plane.y - rank * 1.7) + Math.sin(run.t * 2.6 + i * 1.9) * 0.25;
+    // el puesto sale de core/squad.js: el polvo del carreteo (game.js) usa el MISMO, o el dibujo
+    // y lo que levanta se separan el dia que alguien mueva la formacion.
+    const pu = puestoFormacion(slots, i, plane.x, plane.y, run.t);
+    let z = PZ + pu.dz;
+    let x = pu.x;
+    let y = pu.y;
     if (exit !== null && exit !== undefined) {
       z -= exit * exit * 11;               // se vienen encima (crecen): pasan el plano de camara
       y += exit * 2.4;                     // levantan un poco al pasar
-      x += Math.sign(sl.dx || 1) * exit * 5;   // se abren: nadie atraviesa al jugador
+      x += Math.sign(slots[i].dx || 1) * exit * 5;   // se abren: nadie atraviesa al jugador
       if (z < 3.8) continue;               // ya quedo detras de la camara
     }
     const s = proj(x, y, z);
