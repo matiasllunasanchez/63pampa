@@ -20,10 +20,10 @@ import { run } from '../core/run.js';
 import { wake, parts, prune } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
-import { PZ, W, H, HOR } from '../render/ctx.js';
-import { FLY_X, FLY_TOP, ALA_PX } from '../data/tuning.js';
+import { PZ, W } from '../render/ctx.js';
+import { FLY_X, FLY_TOP, ALA_PX, ROCIO_ABRE, ROCIO_BAJA,
+         ROCIO_RAS_ABRE, ROCIO_RAS_BAJA, ROCIO_RAS_GRADOS } from '../data/tuning.js';
 import { PITCH_LERP } from '../core/physics.js';
-import { hzWorld } from '../core/horizon.js';
 
 // cuanto sube la camara con turbo (unidades de mundo): el efecto de 'alejarse'
 export const BOOST_LIFT = 2.2;
@@ -138,10 +138,6 @@ const BARRIDO = 2.8;   // x la velocidad del avion: a spd 80 son ~224 px/s de mu
 // propia que no coincidia con ninguna raya de la pantalla. Lo vertical lo hacen las particulas de
 // COLUMNA, que son otras y para eso estan; estas van EN LINEA y nada mas.
 const SALTO = 0;
-// LA APERTURA DE LA V, y no es un numero libre: es el MISMO con el que se abren los brazos de
-// la estela en render/world.js (`spread = (0.6 + trail * 0.34) * s.k`). Si los dos no abren
-// igual, el rocio y el agua batida se leen como dos efectos distintos pegados.
-const ABRE_V = 0.34;
 // CUANTAS gotas nacen en las PUNTAS (el resto va bajo el fuselaje: el agua que el avion empuja
 // con su propia presion). Y de las de punta, cuantas son COLUMNA — la lineita vertical que sube
 // antes de que el aire se la lleve. Las dos son fracciones: 1 = todas.
@@ -191,35 +187,30 @@ export function estelaVuelo(dt, o) {
   for (let i = 0; i < nSpray; i++) {
     const nace = (Math.random() - 0.5) * ancho;                  // de que lado del eje nacio
     const s = proj(plane.x + nace, 0, PZ - Math.random() * cerca);
-    // TIERRA ES TODO LO QUE NO ES AGUA, y eso incluye la PISTA. Los dos datos existen porque
-    // dicen cosas distintas —`tierra` es "hay relieve abajo" y `pista` es "estoy sobre la
-    // cabecera"— pero para lo que salta son lo mismo: polvo, no espuma. Mirando solo `tierra`,
-    // rasar la pista de salida levantaba agua de mar sobre el asfalto.
+    // TIERRA ES TODO LO QUE NO ES AGUA, y eso incluye la PISTA. Los dos datos existen porque dicen
+    // cosas distintas —`tierra` es "hay relieve abajo" y `pista` es "estoy sobre la cabecera"— pero
+    // para lo que salta son lo mismo: polvo, no espuma. Mirando solo `tierra`, rasar la pista de
+    // salida levantaba agua de mar sobre el asfalto.
     const onLand = o.tierra || o.pista;
     const fuera = abre ? (s.x - W / 2) * abre : 0;
-    // NACE EN LAS PUNTAS DE ALA, no en el morro. Es lo que pasa de verdad: lo que arranca el agua
-    // son los VORTICES DE PUNTA DE ALA tocando la superficie, y por eso el agua sale en DOS LINEAS
-    // y no en un chorro central. Cerca de la superficie esos vortices dejan de bajar y se separan
-    // muy despacio —dos o tres nudos contra doscientos de avance—, o sea que la V es CORTA: dos
-    // lineas casi paralelas que se abren de a poco, no un abanico.
+    // NACE EN LAS PUNTAS, a la misma distancia que las CORTINAS de punta de ala de render/plane.js
+    // (F3.1). El agua que arranca un avion a ras sale de las puntas —son los vortices tocando la
+    // superficie— y por eso son dos lineas y no un chorro central.
     //   fuente: https://pilotinstitute.com/wingtip-vortices/
-    // Se usa el MISMO `ALA_PX` que las cortinas de punta de ala de render/plane.js (F3.1), que ya
-    // nacian ahi: sin compartir el numero, el rocio y las cortinas se leen como dos efectos
-    // distintos pegados uno al lado del otro.
+    //
+    // SE MIDE DESDE LA SOMBRA y no desde la punta dibujada, aunque la punta dibujada exista y este
+    // medida (run.alaLx). Se probo con ella y fue un error: TODO el efecto de agua —la lengua, los
+    // brazos en V, las cortinas— cuelga de la SOMBRA con geometria fija, y el sprite del PODER
+    // muestra al avion desde 45°, corrido y girado respecto de esa sombra. Colgando el rocio del
+    // sprite y las barras de la sombra, los dos se separaban justo al activar el poder.
     const punta = Math.random() < PUNTA;
     const lado = punta || nace === 0 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(nace);
-    // LA PUNTA, MEDIDA. `run.alaLx/alaRx` los publica el render con la tabla de anclas de ESTA
-    // pose (data/anclas.js): sigue el alabeo, el cabeceo y el punto de vista de la hoja del poder.
-    // El ancho fijo de abajo es el plan B para cuando el dato esta viejo —el avion no se dibujo
-    // este cuadro: cinematica, pausa, otro modo— y para eso esta `alaT`.
-    const fresco = run.t - run.alaT < 0.2;
-    const tipX = lado < 0 ? run.alaLx : run.alaRx;
-    const bx = punta ? (fresco ? tipX : s.x + lado * ALA_PX) : s.x;
+    const bx = s.x + (punta ? lado * ALA_PX : 0);
     // LA COLUMNA: la primera mitad del gesto. El vortice levanta el agua DERECHO —una lineita
-    // vertical de dos o tres pixeles en la punta del ala— y recien despues el viento relativo se
-    // la lleva. Va como particulas APARTE y no como una curva porque el paso de particulas es
-    // lineal (x += vx*dt, con gravedad fija y chica): una sola gota con envion arriba y barrido
-    // atras dibuja una DIAGONAL, no "primero vertical y despues abierta". Con dos poblaciones si.
+    // vertical de dos o tres pixeles— y recien despues el aire se la lleva. Va como particulas
+    // APARTE y no como una curva porque el paso de particulas es lineal (x += vx*dt, con gravedad
+    // fija y chica): una sola gota con envion arriba y barrido atras dibuja una DIAGONAL, no
+    // "primero vertical y despues abierta". Con dos poblaciones si.
     if (punta && Math.random() < COLUMNA) {
       parts.push({
         x: bx, y: s.y - 1, vx: (Math.random() - 0.5) * 8, vy: -(150 + Math.random() * 90),
@@ -228,56 +219,40 @@ export function estelaVuelo(dt, o) {
       });
       continue;
     }
-    // EL AIRE SE LA LLEVA (13/9). Una gota arrancada del agua a 300 km/h sube un palmo y el viento
-    // relativo la tira PARA ATRAS: no es una fuente, es algo que el avion atropella. Subia derecho
-    // —vy negativo y nada mas— y por eso se leia como agua hirviendo debajo del avion.
+    // Y SE VAN POR EL ANGULO DE LAS BARRAS. El agua batida ya dibuja su V —los brazos de la
+    // rociada, en render/plane.js— y ESA es la referencia: si el rocio sale por otro angulo, se
+    // leen como dos efectos distintos superpuestos, que es lo que pasaba.
     //
-    // "Atras" EN ESTA CAMARA es alejarse del PUNTO DE FUGA, (W/2, HOR): ahi converge todo lo que
-    // pasa de largo, porque en proj() la k tiende a 0 cuando la z tiende a infinito. Asi que al
-    // rocio se le suma una velocidad RADIAL desde ese punto, que es la misma direccion en la que
-    // se van el mar y los obstaculos — la gota vuela con el mundo y no contra el.
+    // Los brazos abren 4 de costado por cada 1,3 que bajan, o sea una V bien acostada, y el
+    // el rocio vuela sobre esa misma pendiente. Se probo con el rayo del punto de fuga y con la
+    // perpendicular a la linea del ala, y las dos eran mas empinadas que las barras.
     //
-    // Y ES PROPORCIONAL A LA VELOCIDAD porque de eso se trata: a 200 km/h las gotas se despegan y
-    // se van, a 700 pasan como rayas. El mismo numero que mueve el mundo mueve el rocio.
-    // EL ANGULO ES EL DEL BARRIDO, y el barrido es RADIAL PURO. Comprobado por eliminacion: sin el
-    // poder no hay rayas largas en pantalla, o sea que las rayas son el desenfoque — y el
-    // desenfoque smearea ESCALANDO el cuadro entero desde el punto de fuga (render/desenfoque.js),
-    // asi que cada pixel se estira sobre su propio rayo, sin achatar nada. Se probo con el achatado
-    // de las lineas de velocidad (FUGA_Y) y era la referencia equivocada.
-    // …Y EL GIRO DEL MUNDO, que es lo que faltaba. El mundo se dibuja ADENTRO de una rotacion
-    // alrededor del CENTRO de la pantalla (game.js, hzW) y el barrido se hace DESPUES, sobre el
-    // cuadro ya rotado. Asi que una direccion calculada aca —antes de rotar— aparece en pantalla
-    // girada `hzW` respecto de las rayas. Con el avion nivelado hzW es 0 y no se nota; en la camara
-    // del PODER, que compensa el rolido, no es cero, y ahi es donde se veia torcido.
-    //
-    // Se resuelve en tres pasos: llevar el nacimiento al espacio FINAL (rotarlo), sacar AHI la
-    // direccion radial, y traerla de vuelta girando al reves — asi, al dibujarse rotada, cae
-    // exactamente sobre el rayo. Girar solo el resultado no alcanza: el punto tambien se mueve.
-    const hz = hzWorld(), hc = Math.cos(hz), hs = Math.sin(hz);
-    const rx0 = bx - W / 2, ry0 = s.y - H / 2;
-    const fx2 = W / 2 + rx0 * hc - ry0 * hs, fy2 = H / 2 + rx0 * hs + ry0 * hc;
-    const ex = fx2 - W / 2, ey = fy2 - HOR;
-    const en = Math.max(1, Math.hypot(ex, ey));
-    const dx = (ex / en) * hc + (ey / en) * hs, dy = -(ex / en) * hs + (ey / en) * hc;
-    const d = 1;                                   // dx,dy ya vienen normalizados
+    // Como todas las gotas salen del mismo lugar con velocidad CONSTANTE, su rastro es una V que
+    // arranca en punta y se abre sola: no hay que programar "primero junto y despues abierto".
+    // LAS DOS PERILLAS DEL ANGULO: data/tuning.js, ROCIO_ABRE / ROCIO_BAJA.
+    // ROCIO_ABRE = 0 saca la V y manda todo RECTO para atras.
+    // CADA VISTA TIENE SU PAR: en el pasillo una V corta, y con el poder puesto la que haga falta
+    // para acompanar la figura del agua de esa hoja. Son dos pares y no uno con excepciones porque
+    // tunear uno no tiene que mover el otro — que fue justo lo que costo encontrar.
+    const rAbre = o.ras ? ROCIO_RAS_ABRE : ROCIO_ABRE;
+    const rBaja = o.ras ? ROCIO_RAS_BAJA : ROCIO_BAJA;
+    const rn = Math.hypot(rAbre, rBaja) || 1;
+    // …Y CON EL PODER PUESTO, EL EJE SE INCLINA. El mundo no cambia, pero el avion se dibuja con la
+    // hoja del poder, que lo muestra desde unos 45° al costado: la figura del agua se acuesta y el
+    // rocio tiene que acompanarla. Es un giro del eje ENTERO, asi que vale igual con la V abierta o
+    // con ROCIO_ABRE en 0 (donde, sin esto, el chorro caia derecho mientras todo se iba en diagonal).
+    const g = (o.ras ? ROCIO_RAS_GRADOS : 0) * Math.PI / 180;
+    const cg = Math.cos(g), sg = Math.sin(g);
+    const ex0 = lado * (rAbre / rn), ey0 = rBaja / rn;
+    const exr = ex0 * cg - ey0 * sg, eyr = ex0 * sg + ey0 * cg;
     const barrido = run.spd * BARRIDO;
-    // LA V, Y POR QUE SALE SOLA. El agua batida ya dibuja una (drawWake: los brazos se abren
-    // ABRE_V por metro de estela) y el rocio tiene que ser LA MISMA o se leen como dos efectos
-    // distintos pegados uno al otro. Como las gotas nacen casi en el eje y se van con velocidad
-    // lateral CONSTANTE, su rastro ARRANCA EN PUNTA Y SE ABRE — una divergencia constante desde
-    // un mismo origen ES una V—: primero vertical, despues abierta, sin programar ninguna de las
-    // dos cosas. Lo que habia era velocidad lateral AL AZAR, y eso con el mismo origen da nube.
-    //
-    // El lado lo decide donde nacio; la que nace justo en el eje se la juega a cara o ceca.
     parts.push({
       x: bx, y: s.y - 1,
-      // `s.k` mete la perspectiva: la V del agua se abre en METROS, asi que a la misma distancia
-      // tiene que abrirse los mismos pixeles que la estela, no un ancho fijo de pantalla.
-      vx: (Math.random() - 0.5) * 14 + fuera + lado * ABRE_V * run.spd * s.k,
-      // el salto hacia arriba se achica: lo que hace el gesto ahora es el barrido, y con el salto
-      // entero la gota subia mas de lo que se iba, que es justo lo que se venia a arreglar.
-      vy: -(50 + Math.random() * 110) * (0.5 + lowI) * SALTO + (dy / d) * barrido,
-      life: 0.25 + Math.random() * 0.3, c: onLand ? (Math.random() < 0.6 ? '#6b6250' : '#4a4636') : (Math.random() < 0.7 ? P.foam : P.crest), r: 1 + Math.random() * 1.3
+      vx: (Math.random() - 0.5) * 14 + fuera + exr * barrido,
+      vy: -(50 + Math.random() * 110) * (0.5 + lowI) * SALTO + eyr * barrido,
+      life: 0.25 + Math.random() * 0.3,
+      c: onLand ? (Math.random() < 0.6 ? '#6b6250' : '#4a4636') : (Math.random() < 0.7 ? P.foam : P.crest),
+      r: 1 + Math.random() * 1.3,
     });
   }
   if (alt < 4.5) run.shake = Math.max(run.shake, (4.5 - alt) * 0.3);

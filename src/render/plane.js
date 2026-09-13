@@ -19,7 +19,7 @@ import { drawMira } from './miras.js';
 import { anchorSpray, drawSpray } from './rain.js';
 import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H, SHEET3_FW, SHEET3_FH } from '../data/planes.js';
 import { ANCLAS } from '../data/anclas.js';
-import { ALA_PX } from '../data/tuning.js';
+import { ALA_PX, ROC_ABRE, ROC_BAJA } from '../data/tuning.js';
 import { skinOf } from '../data/skins.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName, rosterActive } from '../systems/squad.js';
@@ -574,7 +574,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
     px(sh.x - 4, sh.y - 1, 8, 2, P.foam);
     // BRAZOS en V: se abren y se apagan hacia atras, con el borde de arriba mas claro
     for (let i = 1; i <= 5; i++) {
-      const w = (2 + i) * pulse, o = 4 + i * 4, yy = sh.y + i * 1.3;
+      const w = (2 + i) * pulse, o = ROC_ABRE + i * ROC_ABRE, yy = sh.y + i * ROC_BAJA;
       ctx.globalAlpha = churn * (0.6 - i * 0.09);
       px(sh.x - o - w, yy, w, 1, P.foam);
       px(sh.x + o, yy, w, 1, P.foam);

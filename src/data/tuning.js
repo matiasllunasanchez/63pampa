@@ -415,6 +415,46 @@ export const TEMPO_CHARGE = 650;    // puntos que llenan la barra (subido de 500
 // ESE, asi que van radiales; alinearlos con este achatado fue el error.
 export const FUGA_Y = 0.62;
 
+// LA PENDIENTE DE LOS BRAZOS EN V de la rociada: abren ROC_ABRE de costado por cada ROC_BAJA que
+// bajan (render/plane.js). Una V bien acostada, unos 18° bajo la horizontal.
+//
+export const ROC_ABRE = 4, ROC_BAJA = 1.3;
+
+// LA MISMA PENDIENTE, PERO PARA EL ROCIO DE PARTICULAS (systems/vuelo.js). Arranca con los mismos
+// numeros que las barras —que es lo que hace que se lean como UN efecto y no dos superpuestos—
+// pero es un par APARTE para poder tocarlo sin mover las barras, que ya estan bien.
+//
+// COMO SE TOCA. La direccion es (ROCIO_ABRE de costado, ROCIO_BAJA hacia atras), asi que lo que
+// manda es la RELACION entre los dos:
+//
+//   angulo bajo la horizontal = atan(ROCIO_BAJA / ROCIO_ABRE)      hoy: atan(1,3/4) = 18°
+//
+//   ROCIO_ABRE = 0   →  RECTAS DETRAS DEL AVION, sin V: todas por el mismo eje
+//
+// SON DOS PARES: `ROCIO_*` manda en el pasillo y `ROCIO_RAS_*` con el PODER puesto. Se separaron
+// porque con el poder el avion se dibuja desde el costado y la figura del agua no es la misma.
+//   ROCIO_ABRE mas chico  →  V mas cerrada (mas parecida a una linea)
+//   ROCIO_ABRE mas grande →  V mas abierta (mas abanico)
+//   ROCIO_BAJA mas grande →  la V cae mas rapido hacia la camara (mas empinada)
+//   ROCIO_BAJA mas chico  →  mas acostada, se va mas a los costados que hacia atras
+//
+// Referencias: 4 / 1,3 = 18° (el de las barras) · 8 / 1,3 = 9° (bien abierta) · 2 / 1,3 = 33°
+// (cerrada y empinada) · 0 / 1 = recta.
+// SIN EL PODER (el pasillo de siempre): una V corta.
+export const ROCIO_ABRE = 2, ROCIO_BAJA = 1.3;
+// CON EL PODER PUESTO: otro par, porque ahi la figura del agua es otra. Con ABRE en 0 el chorro
+// sale RECTO por el eje —sin V— y lo que lo acuesta es ROCIO_RAS_GRADOS, aca abajo.
+export const ROCIO_RAS_ABRE = 5.5, ROCIO_RAS_BAJA = 50;
+
+// …Y CUANTO SE INCLINA EL EJE CON EL PODER RASANTE PUESTO, en GRADOS. Hace falta porque con el
+// poder el avion se dibuja con otra hoja, que lo muestra desde unos 45° al costado: el mundo no
+// cambia, pero la FIGURA DEL AGUA si, y el rocio tiene que acompanarla o sale cayendo derecho
+// mientras todo lo demas se va en diagonal.
+//
+// 0 = igual que en el pasillo · 45 = el eje se acuesta hacia la IZQUIERDA · -45 = hacia la derecha.
+// Es un giro del eje entero, asi que funciona lo mismo con la V abierta o con ROCIO_ABRE en 0.
+export const ROCIO_RAS_GRADOS = 45;
+
 // DONDE ESTAN LAS PUNTAS DE ALA en la pantalla, medidas desde la sombra del avion y en pixeles
 // de MUNDO. Vive aca —y no en el render— porque la usan DOS cosas que tienen que coincidir o se
 // leen como dos efectos pegados: las cortinas de punta de ala (render/plane.js, F3.1) y el

@@ -483,7 +483,9 @@ export function flightSystem(dt, deps) {
   // EL AGUA QUE LEVANTAS (estela + rocio): vive en la cama de vuelo desde que una cinematica
   // necesito lo mismo — volar rasante sin agua que reaccione no se lee como rasante. Es el MISMO
   // codigo en el MISMO lugar del cuadro; lo custodia `npm run feel`.
-  estelaVuelo(dt, { alt, pista: overRunway, tierra: onDirt });
+  // `ras` para que el rocio sepa inclinar el eje: con el poder puesto el avion se dibuja con otra
+  // hoja, que lo muestra desde el costado, y el agua tiene que acompanar esa figura.
+  estelaVuelo(dt, { alt, pista: overRunway, tierra: onDirt, ras: rasante.active() });
 
   // radar
   // EL TECHO LO PONE LA FASE (EL FILO, §11.1), y sin fases es RADAR_ALT como siempre. Esta linea
