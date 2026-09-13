@@ -100,9 +100,13 @@ const FUERZA = 0.95;
  *
  *  Agregar un estado es agregar una fila aca y pasar su intensidad por parametro. */
 const MODOS = {
-  turbo:    { estirado: 1.45, a: 0.58, dentro: 90, fuera: 240 },
-  momentum: { estirado: 1.20, a: 0.90, dentro: 38, fuera: 170 },
-  rasante:  { estirado: 1.45, a: 0.74, dentro: 62, fuera: 205 },
+  // `col` es el COLOR del tunel, en componentes sueltas para poder meterle el alfa. Vive en la
+  // tabla y no en el degrade porque es caracter del modo, como el estirado y la alfa: el momentum
+  // y el turbo oscurecen (es tension, encierro), y el rasante ACLARA — a ras del agua el borde no
+  // es sombra, es rocio y resolana.
+  turbo:    { estirado: 1.45, a: 0.58, dentro: 90, fuera: 240, col: '4,7,12' },
+  momentum: { estirado: 1.20, a: 0.90, dentro: 38, fuera: 170, col: '4,7,12' },
+  rasante:  { estirado: 1.45, a: 0.42, dentro: 62, fuera: 205, col: '207,227,223' },
 };
 
 /** CUANTO SE ESTIRA EL OVALO A LO ALTO. Es la diferencia entre un tunel y una molestia: con un
@@ -240,9 +244,10 @@ export function drawDesenfoque(turbo, momento, ras) {
   // degrade porque createRadialGradient solo sabe de circulos.
   ctx.translate(s.x, s.y); ctx.scale(1, TUNEL_ALTO); ctx.translate(-s.x, -s.y);
   const tg = ctx.createRadialGradient(s.x, s.y, tDentro, s.x, s.y, tFuera);
-  tg.addColorStop(0, 'rgba(4,7,12,0)');
-  tg.addColorStop(0.55, `rgba(4,7,12,${(tf * 0.28).toFixed(3)})`);   // la curva: sin esta parada
-  tg.addColorStop(1, `rgba(4,7,12,${tf.toFixed(3)})`);               // el borde del ovalo se LEE
+  const tc = MOD.col;
+  tg.addColorStop(0, `rgba(${tc},0)`);
+  tg.addColorStop(0.55, `rgba(${tc},${(tf * 0.28).toFixed(3)})`);    // la curva: sin esta parada
+  tg.addColorStop(1, `rgba(${tc},${tf.toFixed(3)})`);                // el borde del ovalo se LEE
   ctx.fillStyle = tg;
   // el rectangulo tambien vive en el espacio estirado: hay que cubrir la pantalla ENTERA de vuelta
   ctx.fillRect(-W, s.y - (s.y + H) / TUNEL_ALTO - H, W * 3, (H * 3) / TUNEL_ALTO + H * 2);
