@@ -141,7 +141,16 @@ export const FOG_SPREAD = 0.18;
 // radar de punta a punta, y esa es justamente su lectura — el estorbo que te empuja a decidir si
 // pasas por abajo (seguro) o por arriba (te pinta).
 export const SPAWN_Y = {
-  birds: [5, 10],
+  // LAS AVES NACEN EN TODA LA COLUMNA DE AIRE, no en una franja. Estaban en [5, 10] —cinco metros
+  // de banda— y por eso todas las bandadas parecian la misma a la misma altura. Ahora van de 5 a
+  // 26: por arriba pasan el techo del radar (20), asi que hay bandadas que solo se cruzan cuando
+  // subiste, y por abajo NO bajan de 5 A PROPOSITO.
+  //
+  // ESE PISO ES DISEÑO Y NO UN NUMERO SUELTO: la banda del x10 termina en 4.5, y es el corazon del
+  // juego —volar pegado al agua es de donde sale el puntaje y de donde se carga el poder RASANTE—.
+  // Meter aves ahi seria castigar justo lo que el juego pide que hagas. Las aves pueblan el aire
+  // que hoy esta vacio, no el que ya cuesta.
+  birds: [5, 26],
   helo: [10, 15],
   jet: [15, 25],
   balloon: [6, 30],
@@ -149,6 +158,40 @@ export const SPAWN_Y = {
 };
 /** Altura de nacimiento sorteada para el tipo `t` (ver SPAWN_Y). */
 export const spawnY = t => SPAWN_Y[t][0] + Math.random() * (SPAWN_Y[t][1] - SPAWN_Y[t][0]);
+
+// ---------------- EL RUMBO DE LAS BANDADAS ----------------
+// Una bandada tenia UN solo movimiento posible —una deriva lateral— y ademas nunca podia estar
+// quieta: `bvx` se sorteaba en (-3, 3) y el cero no salia nunca. O sea que todas las aves del
+// juego hacian lo mismo, en el mismo eje, para siempre.
+//
+// Ahora cada bandada sortea un RUMBO en los tres ejes. La proporcion de quietas es una perilla y
+// no una casualidad: el pedido fue "algunos si estaticos pero no todos y no siempre", que es
+// exactamente una probabilidad.
+export const AVES_QUIETAS = 0.28;  // fraccion de bandadas que planean sin trasladarse. No es cero:
+                                   // un cielo donde TODO se mueve cansa igual que uno donde nada
+                                   // se mueve — lo que da vida es que convivan las dos cosas.
+export const AVES_VX = 7;          // u/s de deriva lateral (antes 3, y siempre distinta de cero)
+export const AVES_VY = 2.2;        // u/s de subida o bajada. Corto a proposito: un ave que sube
+                                   // rapido se lee como un misil, no como un bicho
+export const AVES_VZ = 9;          // u/s de acercarse o alejarse. Es una FRACCION de la velocidad
+                                   // del mundo (~90): la bandada que viene hacia vos llega un poco
+                                   // antes y la que se va te deja pasar — no cambia el pasillo
+export const AVES_PISO = 5;        // no bajan de aca: es el techo de la banda del x10 (ver SPAWN_Y)
+export const AVES_TECHO = 34;      // ni suben mas que esto: arriba solo queda cielo vacio
+
+/** El rumbo de una bandada, sorteado al nacer. Devuelve las tres velocidades.
+ *
+ *  LOS EJES SE SORTEAN POR SEPARADO y por eso salen DIAGONALES solas: una bandada que tiene vx y
+ *  vy cruza en diagonal sin que haya que escribir el caso "diagonal" en ningun lado. Es la misma
+ *  idea que el movimiento propio de los enemigos — la personalidad se sortea una vez y despues
+ *  solo se aplica. */
+export function rumboAve() {
+  if (Math.random() < AVES_QUIETAS) return { bvx: 0, bvy: 0, bvz: 0 };
+  // el eje lateral casi siempre participa (es el que mas se lee de frente); los otros dos entran
+  // la mitad de las veces, asi que hay bandadas de un solo eje, de dos y de tres
+  const eje = (p, v) => (Math.random() < p ? (Math.random() * 2 - 1) * v : 0);
+  return { bvx: eje(0.85, AVES_VX), bvy: eje(0.5, AVES_VY), bvz: eje(0.45, AVES_VZ) };
+}
 
 // FRAGATA del mar abierto (obstaculo `mast`). ALTO TOTAL en unidades de mundo, de la linea de
 // flotacion al techo de la superestructura — donde va la luz roja.

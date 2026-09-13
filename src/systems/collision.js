@@ -21,7 +21,7 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { PZ } from '../render/ctx.js';
 import { topeCarril } from '../core/zigzag.js';
-import { ZZ_PARED_TALUD, ZZ_LADERA_RAFAGA, ZZ_LADERA_RAF_CD } from '../data/tuning.js';
+import { ZZ_PARED_TALUD, ZZ_LADERA_RAFAGA, ZZ_LADERA_RAF_CD, AVES_PISO, AVES_TECHO } from '../data/tuning.js';
 import { AA_Z0, AA_Z1, AA_CD, shoreAt, SAND_W, SPAWN_X,
   OLA_SPD, OLA_FACE_KILL, OLA_SCRAPE_FRAC, OLA_ROMP_Z } from '../data/tuning.js';
 // LAS OLAS USAN EL ROCE QUE YA EXISTE, no uno nuevo (SPEC_AGUA_OLAS §6.1): `scrapeLimit` es la
@@ -123,7 +123,26 @@ export function collisionSystem(dt) {
       if (o.roarT <= 0) { o.roarT = 0.42; boom(0.05 + 0.09 * (1 - o.z / OLA_ROMP_Z)); }
     }
     if (o.type === 'boom' || o.type === 'airboom') o.boomT += dt;   // el hongo / la bola crecen y se disipan
-    if (o.type === 'birds') { o.x += o.bvx * dt; o.x = topeCarril(o.x, run.dist + o.z, ZZ_PARED_TALUD); }   // la bandada deriva
+    // LA BANDADA VUELA EN LOS TRES EJES. Antes solo derivaba de costado, asi que todas las aves del
+    // juego hacian lo mismo en el mismo eje. El rumbo se sortea al nacer (`rumboAve` en
+    // data/tuning.js) y aca solo se APLICA — mismo reparto que el movimiento propio de los
+    // enemigos. Las que sortearon quietas tienen los tres en cero y no entran en ninguna cuenta.
+    if (o.type === 'birds') {
+      o.x += o.bvx * dt;
+      o.x = topeCarril(o.x, run.dist + o.z, ZZ_PARED_TALUD);
+      if (o.bvy) {
+        o.y += o.bvy * dt;
+        // REBOTAN contra el piso y el techo en vez de clavarse ahi: una bandada que llega al borde
+        // y se queda pegada se lee peor que una que nunca se movio. El piso NO es el mar: es el
+        // techo de la banda del x10 (ver SPAWN_Y.birds) — las aves no bajan a donde el juego te
+        // pide que vueles.
+        if (o.y < AVES_PISO) { o.y = AVES_PISO; o.bvy = -o.bvy; }
+        else if (o.y > AVES_TECHO) { o.y = AVES_TECHO; o.bvy = -o.bvy; }
+      }
+      // el eje de PROFUNDIDAD es una fraccion de la velocidad del mundo: la bandada que viene hacia
+      // vos llega un poco antes y la que se va te deja pasar. No se toca el avance del pasillo.
+      if (o.bvz) o.z += o.bvz * dt;
+    }
     // MOVIMIENTO PROPIO (cfg.enemyMove): la personalidad se sortea en spawn.js (sway / drive /
     // home) y aca solo se APLICA — con la llave del menu apagada quedan plantados donde nacieron.
     if (cfg.enemyMove) {

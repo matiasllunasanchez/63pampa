@@ -54,7 +54,7 @@ import { olaBump, climaDe } from '../core/sea.js';
 import { proj, popup } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
-import { SPAWN_X, SPAWN_DENS, SPAWN_Z, SHORE_X, shoreAt, SAND_W, AA_CD, ENEMY_HP, spawnY, SHIP_H,
+import { SPAWN_X, SPAWN_DENS, SPAWN_Z, SHORE_X, shoreAt, SAND_W, AA_CD, ENEMY_HP, spawnY, rumboAve, SHIP_H,
          CLIFF_H0, CLIFF_H1, CLIFF_HW0, CLIFF_HW1, CLIFF_COAST_BAND, VEIL_STOP } from '../data/tuning.js';
 // EL RELIEVE (T3): donde queda plantado cada cosa que se siembra. La misma funcion que dibuja
 // la loma y que decide el choque contra el suelo.
@@ -347,7 +347,7 @@ function spawn() {
     else if (r < 0.64) obstacles.push(enLadera('aatruck') || { type: 'aatruck', x: landLane(), h: 4.6, y: 1.9, z: SPAWN_Z, ...hpOf('aatruck'), ...mov('aatruck'), cd: 1.3 + Math.random() * AA_CD, done: false, ph });
     // trinchera ARGENTINA (decorado, bien a la izquierda): tira contra los britanicos
     else if (r < 0.70) obstacles.push({ type: 'trench', x: -SPAWN_X + Math.random() * 8, z: SPAWN_Z, decor: true, cd: 0.8 + Math.random(), done: false, ph });
-    else if (r < 0.76) obstacles.push({ type: 'birds', x: lane, y: spawnY('birds'), z: SPAWN_Z, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
+    else if (r < 0.76) obstacles.push({ type: 'birds', x: lane, y: spawnY('birds'), z: SPAWN_Z, ...rumboAve(), white: Math.random() < 0.5, done: false, ph });
     else if (r < 0.85) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
     else if (r < 0.93) obstacles.push({ type: 'helo', x: lane, y: spawnY('helo'), z: SPAWN_Z, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
     else if (r < 0.97) obstacles.push({ type: 'jet', x: lane, y: spawnY('jet'), z: SPAWN_Z, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
@@ -372,7 +372,7 @@ function spawn() {
         squad(lane - 3, SPAWN_Z + 2, 2, false);
       } else obstacles.push(enLadera('aa') || { type: 'aa', x: lane, h: 4.4, y: 1.8, z: SPAWN_Z, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
     }
-    else if (r < 0.66) obstacles.push({ type: 'birds', x: lane, y: spawnY('birds'), z: SPAWN_Z, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
+    else if (r < 0.66) obstacles.push({ type: 'birds', x: lane, y: spawnY('birds'), z: SPAWN_Z, ...rumboAve(), white: Math.random() < 0.5, done: false, ph });
     else if (r < 0.75) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
     else if (r < 0.84) obstacles.push({ type: 'helo', x: lane, y: spawnY('helo'), z: SPAWN_Z, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
     else if (r < 0.92) obstacles.push({ type: 'jet', x: lane, y: spawnY('jet'), z: SPAWN_Z, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
@@ -407,7 +407,7 @@ function spawn() {
   // (helo 10→13, jet 8→11): la amenaza del mar se muda del palo al cielo, que es donde ahora
   // estan las capas (ver SPAWN_Y en data/tuning.js).
   if (r < 0.28) obstacles.push({ type: 'mast', x: lane, h: SHIP_H, z: SPAWN_Z, ...mov('mast'), done: false, ph });
-  else if (r < 0.42) obstacles.push({ type: 'birds', x: lane, y: spawnY('birds'), z: SPAWN_Z, bvx: (Math.random() - 0.5) * 6, white: Math.random() < 0.5, done: false, ph });
+  else if (r < 0.42) obstacles.push({ type: 'birds', x: lane, y: spawnY('birds'), z: SPAWN_Z, ...rumboAve(), white: Math.random() < 0.5, done: false, ph });
   else if (r < 0.54) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
   else if (r < 0.67) obstacles.push({ type: 'helo', x: lane, y: spawnY('helo'), z: SPAWN_Z, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
   else if (r < 0.78) obstacles.push({ type: 'jet', x: lane, y: spawnY('jet'), z: SPAWN_Z, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });

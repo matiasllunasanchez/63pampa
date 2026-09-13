@@ -2321,6 +2321,57 @@ test('anclas: el render las USA y no volvio a una tabla a mano', () => {
   assert.ok(/AN\.perfil\[/.test(src), 'los parches perdieron su tope contra la silueta');
 });
 
+// ================= EL RUMBO DE LAS BANDADAS =================
+test('aves: hay bandadas quietas, pero no todas', async () => {
+  // El pedido fue literal: "algunos si estaticos pero no todos y no siempre". Eso es una
+  // PROPORCION, no un booleano, y lo que hay que cuidar es que no se vaya a ninguno de los dos
+  // extremos: un cielo donde todo se mueve cansa igual que uno donde nada se mueve.
+  const { rumboAve, AVES_QUIETAS } = await import('../src/data/tuning.js');
+  let quietas = 0;
+  const N = 4000;
+  for (let i = 0; i < N; i++) {
+    const r = rumboAve();
+    if (!r.bvx && !r.bvy && !r.bvz) quietas++;
+  }
+  const p = quietas / N;
+  assert.ok(p > 0.05, `casi ninguna bandada queda quieta (${(p * 100).toFixed(1)}%)`);
+  assert.ok(p < 0.6, `demasiadas bandadas quietas (${(p * 100).toFixed(1)}%)`);
+  assert.ok(Math.abs(p - AVES_QUIETAS) < 0.06, `la proporcion no sigue a AVES_QUIETAS (${p.toFixed(3)} vs ${AVES_QUIETAS})`);
+});
+
+test('aves: vuelan en los TRES ejes, y en diagonal', async () => {
+  // La version anterior solo tenia deriva lateral, asi que todas las aves del juego hacian lo
+  // mismo en el mismo eje. Lo que esta prueba cuida no es un numero: es que los tres ejes existan
+  // y que se COMBINEN — una bandada con dos ejes cruza en diagonal sin que nadie escriba el caso.
+  const { rumboAve, AVES_VX, AVES_VY, AVES_VZ } = await import('../src/data/tuning.js');
+  let ejes = { x: 0, y: 0, z: 0 }, diagonales = 0, tresEjes = 0;
+  for (let i = 0; i < 4000; i++) {
+    const r = rumboAve();
+    if (r.bvx) ejes.x++; if (r.bvy) ejes.y++; if (r.bvz) ejes.z++;
+    const n = (r.bvx ? 1 : 0) + (r.bvy ? 1 : 0) + (r.bvz ? 1 : 0);
+    if (n >= 2) diagonales++;
+    if (n === 3) tresEjes++;
+    assert.ok(Math.abs(r.bvx) <= AVES_VX && Math.abs(r.bvy) <= AVES_VY && Math.abs(r.bvz) <= AVES_VZ,
+      `una bandada salio mas rapida que su tope: ${JSON.stringify(r)}`);
+  }
+  for (const e of ['x', 'y', 'z']) assert.ok(ejes[e] > 400, `el eje ${e} casi no se usa (${ejes[e]}/4000)`);
+  assert.ok(diagonales > 800, `casi no hay bandadas en diagonal (${diagonales}/4000)`);
+  assert.ok(tresEjes > 100, `nunca se combinan los tres ejes (${tresEjes}/4000)`);
+});
+
+test('aves: no bajan a la banda del x10 — eso es diseño, no un numero suelto', async () => {
+  // El piso de las aves es el techo de la racha rasante. Volar pegado al agua es de donde sale el
+  // puntaje Y la carga del poder RASANTE: poblar esa banda de obstaculos seria castigar
+  // exactamente lo que el juego pide que hagas. Si alguien baja el piso, esto lo dice.
+  const { SPAWN_Y, AVES_PISO, AVES_TECHO, CAZA_RAS_ALT } = await import('../src/data/tuning.js');
+  assert.ok(SPAWN_Y.birds[0] >= CAZA_RAS_ALT, `las aves nacen dentro de la banda del x10 (${SPAWN_Y.birds[0]} < ${CAZA_RAS_ALT})`);
+  assert.ok(AVES_PISO >= CAZA_RAS_ALT, `el piso de las aves entro en la banda del x10 (${AVES_PISO})`);
+  // y la banda de nacimiento tiene que ser ANCHA: el problema original era que todas aparecian a
+  // la misma altura porque nacian en cinco metros de franja
+  assert.ok(SPAWN_Y.birds[1] - SPAWN_Y.birds[0] > 12, 'las aves volvieron a nacer todas a la misma altura');
+  assert.ok(AVES_TECHO >= SPAWN_Y.birds[1], 'el techo de vuelo de las aves es mas bajo que su altura de nacimiento');
+});
+
 test('anclas: la perilla de AJUSTES a mano PISA lo que midio el horno', async () => {
   // El horno mide bien, pero no todo lo que se mide se ve bien — este proyecto ya lo aprendio tres
   // veces con la hoja del poder. Por eso la medicion es la base y no la ultima palabra, y Matias
