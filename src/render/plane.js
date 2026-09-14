@@ -21,7 +21,9 @@ import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H, SHEET3_FW, SHEET3_F
 import { ANCLAS } from '../data/anclas.js';
 import { ALA_PX, ROCIADA_ABRE, ROCIADA_BAJA, ROCIADA_RAS_ABRE, ROCIADA_ALT,
          CORTINA_ABRE, CORTINA_ANCHO, CORTINA_BAJA, CORTINA_RAS_ABRE, CORTINA_N, CORTINA_ALT,
-         ROCIADA_TURBO, CORTINA_TURBO } from '../data/tuning.js';
+         ROCIADA_TURBO, CORTINA_TURBO,
+         ROCIADA_VERTICE, ROCIADA_FILAS, ROCIADA_REVUELTO, ROCIADA_REVUELTO_V,
+         ROCIADA_RAS_CORTE } from '../data/tuning.js';
 import { skinOf } from '../data/skins.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName, rosterActive } from '../systems/squad.js';
@@ -572,24 +574,67 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
     // el turbo engorda el chorro: entra por el `pulse`, que ya multiplica el ancho de los brazos
     // y de la lengua, asi que el gesto entero crece sin tocar la geometria de la V.
     const pulse = (0.8 + 0.2 * Math.sin(run.t * 22)) * (run.boost ? ROCIADA_TURBO : 1);
-    // LENGUA central: el agua que el avion levanta justo debajo, con cresta blanca arriba
-    ctx.globalAlpha = churn * 0.9;
+    // LA ESTELA DEL CASCO (rediseñada el 13/9 contra una foto aerea de una lancha).
+    //
+    // LO QUE ENSEÑO LA FOTO, y que aca no estaba: la espuma NO sale de un vertice en el eje, sale
+    // de los COSTADOS del casco y se abre desde ahi. Y no son rayitas sueltas: son dos BANDAS
+    // MACIZAS que arrancan gruesas y se deshilachan, con el agua revuelta en el medio.
+    //
+    // EL VERTICE ARRANCA A MEDIA ALA y no en la punta. Se probaron las dos: con el vertice en el
+    // ala entera la V nace tan abierta que pierde el gesto de "sale de un punto y se abre", que es
+    // justo lo que se ve en la foto — ahi el casco es angosto respecto de la estela y el nuestro no.
     const lenW = run.boost ? ROCIADA_TURBO : 1;
+    // LA LENGUA: el agua que el casco empuja justo debajo. En la foto tambien esta.
+    ctx.globalAlpha = churn * 0.9;
     px(sh.x - 5 * lenW, sh.y - 2, 10 * lenW, 1, P.crest);
     px(sh.x - 4 * lenW, sh.y - 1, 8 * lenW, 2, P.foam);
-    // BRAZOS en V: se abren y se apagan hacia atras, con el borde de arriba mas claro
-    for (let i = 1; i <= 5; i++) {
-      // con el PODER la V abre lo suyo: la figura del avion es otra (ver data/tuning.js)
-      const abreBrazo = ras ? ROCIADA_RAS_ABRE : ROCIADA_ABRE;
-      const w = (2 + i) * pulse, o = abreBrazo + i * abreBrazo, yy = sh.y + i * ROCIADA_BAJA;
-      ctx.globalAlpha = churn * (0.6 - i * 0.09);
-      px(sh.x - o - w, yy, w, 1, P.foam);
-      px(sh.x + o, yy, w, 1, P.foam);
-      if (i <= 2) {                                           // cresta iluminada del brazo
-        ctx.globalAlpha = churn * 0.5;
-        px(sh.x - o - w, yy - 1, w * 0.6, 1, P.crest);
-        px(sh.x + o + w * 0.4, yy - 1, w * 0.6, 1, P.crest);
+    const abreBrazo = (ras ? ROCIADA_RAS_ABRE : ROCIADA_ABRE) * lenW;
+    // EL PLANO SE ACUESTA con el poder: un corte en y proporcional a la distancia al eje. Sin
+    // esto la V queda simetrica y horizontal mientras la hoja del poder muestra al avion desde
+    // 45° al costado, y se lee recta. Ver data/tuning.js, ROCIADA_RAS_CORTE.
+    const corte = ras ? ROCIADA_RAS_CORTE : 0;
+    const paso = ROCIADA_BAJA * 5 / ROCIADA_FILAS;   // el largo total no cambia: mas filas, mas finas
+    // EL AGUA REVUELTA entre las dos bandas. Va PRIMERO, que las bandas la tapan en los bordes.
+    //
+    // LA MOTA NO SE SORTEA POR CUADRO: la posicion sale de un hash de (fila + distancia recorrida),
+    // asi que el patron BAJA con el mundo en vez de hervir en el lugar. Con Math.random() por
+    // cuadro el agua se veia burbujeando debajo de un avion quieto, que es exactamente al reves de
+    // lo que pasa: el agua esta quieta y el que se mueve es el avion. Es la misma idea que el
+    // `wp.seed` de las motas de la estela (render/world.js), con la distancia haciendo de reloj.
+    for (let i = 1; i <= ROCIADA_FILAS; i++) {
+      const o = ROCIADA_VERTICE + i * abreBrazo * 0.5, yy = sh.y + i * paso;
+      ctx.globalAlpha = churn * Math.max(0, ROCIADA_REVUELTO - i * 0.03);
+      // con el corte la franja deja de ser una barra: son dos mitades a distinta altura
+      px(sh.x - o, yy - o * corte, o, 1, P.crest);
+      px(sh.x, yy + o * corte, o, 1, P.crest);
+      const fila = i + Math.floor(run.dist * ROCIADA_REVUELTO_V);
+      for (let k = 0; k < 2; k++) {
+        const h = Math.sin(fila * 12.9898 + k * 78.233) * 43758.5453;
+        const f = h - Math.floor(h);
+        if (f > 0.35) {
+          ctx.globalAlpha = churn * 0.75;
+          const mx = (f * 2 - 1) * o * 1.8;
+          px(sh.x + mx, yy + mx * corte, f > 0.8 ? 2 : 1, 1, P.foam);
+        }
       }
+    }
+    // LAS DOS BANDAS. Cada fila tapa el hueco que dejo la anterior —de ahi `largo`— y por eso son
+    // once filas finas y no cinco gruesas: con cinco quedaban escalones, que es lo que se veia.
+    let oPrev = ROCIADA_VERTICE;
+    for (let i = 1; i <= ROCIADA_FILAS; i++) {
+      const o = ROCIADA_VERTICE + i * abreBrazo, yy = sh.y + i * paso;
+      const w = (2 + i * 0.6) * pulse;
+      ctx.globalAlpha = churn * (0.62 - i * (0.42 / ROCIADA_FILAS));
+      const largo = Math.max(w, o - oPrev + w);
+      const cIzq = -o * corte, cDer = o * corte;     // cada brazo a su altura: el plano inclinado
+      px(sh.x - o - w, yy + cIzq, largo, 1, P.foam);
+      px(sh.x + oPrev, yy + cDer, largo, 1, P.foam);
+      if (i <= Math.ceil(ROCIADA_FILAS / 2)) {       // la cresta iluminada del borde de afuera
+        ctx.globalAlpha = churn * 0.5;
+        px(sh.x - o - w, yy - 1 + cIzq, w * 0.7, 1, P.crest);
+        px(sh.x + o + w * 0.3, yy - 1 + cDer, w * 0.7, 1, P.crest);
+      }
+      oPrev = o;
     }
     // GOTAS: dos tamaños y dos tonos — sin esto la rociada se lee como una mancha uniforme
     for (let i = 0; i < 7; i++) {

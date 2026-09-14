@@ -497,6 +497,25 @@ export const ROCIO_RAS_COLUMNA = 0.45;   // probar en 0 si con el poder la colum
 export const ROCIADA_ABRE = 4, ROCIADA_BAJA = 1.3;
 export const ROCIADA_RAS_ABRE = 4;       // con el poder. Probar en 0 para que la V se cierre.
 export const ROCIADA_ALT = 7;            // altura de mundo hasta la que hay rociada
+// DONDE NACE LA V, en px de mundo desde el eje. Es media ala (ALA_PX / 2), y no la punta: probado
+// contra una foto aerea de una lancha, con el vertice en el ala entera la V arranca tan abierta que
+// pierde el gesto de "sale de un punto y se abre". En la foto el casco es angosto respecto de la
+// estela; nuestra ala no, asi que hay que compensar.
+export const ROCIADA_VERTICE = 7.5;
+// CUANTAS FILAS tiene cada banda. Con cinco quedaban escalones —cada fila dejaba un hueco— y por eso
+// la estela se leia como rayitas y no como agua. Once tapan el hueco sin alargar el gesto: el paso
+// se reparte, asi que el largo total no cambia.
+export const ROCIADA_FILAS = 11;
+// EL AGUA REVUELTA entre las dos bandas: alfa de la primera fila (va bajando 0,03 por fila) y a que
+// velocidad BAJA el patron de motas con el mundo. Empezo en 0,20 y no se veia absolutamente nada
+// sobre agua oscura — el autor no podia distinguir la variante con revuelto de la que no lo tenia.
+export const ROCIADA_REVUELTO = 0.48, ROCIADA_REVUELTO_V = 3;
+// CUANTO SE ACUESTA EL PLANO DE LA V con el poder puesto. No es una rotacion: es un CORTE, un
+// desplazamiento en y proporcional a lo lejos del eje que esta cada punto. Rotar la V la mandaria
+// mitad para arriba —y el agua no sube—; el corte la deja apoyada en un plano inclinado, que es lo
+// que se ve cuando mirás una V plana desde 45°: un brazo cae y el otro se acuesta.
+// 0 = la V se apoya horizontal, como en el pasillo. Negativo la acuesta para el otro lado.
+export const ROCIADA_RAS_CORTE = 0.35;
 
 // ---- LAS CORTINAS DE PUNTA DE ALA (render/plane.js, SPEC_AGUA_OLAS F3.1) ------------------------
 //
