@@ -20,7 +20,8 @@ import { anchorSpray, drawSpray } from './rain.js';
 import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H, SHEET3_FW, SHEET3_FH } from '../data/planes.js';
 import { ANCLAS } from '../data/anclas.js';
 import { ALA_PX, ROCIADA_ABRE, ROCIADA_BAJA, ROCIADA_RAS_ABRE, ROCIADA_ALT,
-         CORTINA_ABRE, CORTINA_ANCHO, CORTINA_BAJA, CORTINA_RAS_ABRE, CORTINA_N, CORTINA_ALT } from '../data/tuning.js';
+         CORTINA_ABRE, CORTINA_ANCHO, CORTINA_BAJA, CORTINA_RAS_ABRE, CORTINA_N, CORTINA_ALT,
+         ROCIADA_TURBO, CORTINA_TURBO } from '../data/tuning.js';
 import { skinOf } from '../data/skins.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName, rosterActive } from '../systems/squad.js';
@@ -568,11 +569,14 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
   // atras y gotas sueltas — que es como se lee el agua batida en pixel art.
   const churn = Math.max(0, 1 - plane.y / ROCIADA_ALT);
   if (churn > 0 && S.state === 'play' && cfg.terrain !== 'land') {
-    const pulse = 0.8 + 0.2 * Math.sin(run.t * 22);           // el chorro late, no es una calca
+    // el turbo engorda el chorro: entra por el `pulse`, que ya multiplica el ancho de los brazos
+    // y de la lengua, asi que el gesto entero crece sin tocar la geometria de la V.
+    const pulse = (0.8 + 0.2 * Math.sin(run.t * 22)) * (run.boost ? ROCIADA_TURBO : 1);
     // LENGUA central: el agua que el avion levanta justo debajo, con cresta blanca arriba
     ctx.globalAlpha = churn * 0.9;
-    px(sh.x - 5, sh.y - 2, 10, 1, P.crest);
-    px(sh.x - 4, sh.y - 1, 8, 2, P.foam);
+    const lenW = run.boost ? ROCIADA_TURBO : 1;
+    px(sh.x - 5 * lenW, sh.y - 2, 10 * lenW, 1, P.crest);
+    px(sh.x - 4 * lenW, sh.y - 1, 8 * lenW, 2, P.foam);
     // BRAZOS en V: se abren y se apagan hacia atras, con el borde de arriba mas claro
     for (let i = 1; i <= 5; i++) {
       // con el PODER la V abre lo suyo: la figura del avion es otra (ver data/tuning.js)
@@ -609,7 +613,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
     // preguntarlo. Renombrarlo es lo que deja que la rociada y las cortinas tengan variante.
     const mojado = Math.max(0, 1 - plane.y / CORTINA_ALT);
     if (mojado > 0) {
-      const gordo = run.boost ? 1.7 : 1;                    // con turbo arranca mas agua
+      const gordo = run.boost ? CORTINA_TURBO : 1;           // con turbo arranca mas agua
       for (const sg of [-1, 1]) {
         const bx = sh.x + sg * TIP_X;
         const abreCortina = ras ? CORTINA_RAS_ABRE : CORTINA_ABRE;

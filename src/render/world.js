@@ -24,7 +24,7 @@ import { P, LAND, CLAND, SKY_ASTRO, RADAR_VERDE } from '../data/palette.js';
 import { CHUNK_LIFE, ONDA_T, ONDA_R } from '../data/despiece.js';
 import { drawParte, yawDe, colorDe } from './partes.js';
 import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
-  ALAMBRE_CADA, ALAMBRE_POSTE, ALAMBRE_H, MOJADO_A, CHARCO_P, CHARCO_H, PASTO_LEAN, PASTO_ONDA, PASTO_V, PASTO_KX, PASTO_KZ, PASTO_ACOSTAR, RACHA_N, RACHA_T, RACHA_A, ESTELA_ABRE, ESTELA_EDAD } from '../data/tuning.js';
+  ALAMBRE_CADA, ALAMBRE_POSTE, ALAMBRE_H, MOJADO_A, CHARCO_P, CHARCO_H, PASTO_LEAN, PASTO_ONDA, PASTO_V, PASTO_KX, PASTO_KZ, PASTO_ACOSTAR, RACHA_N, RACHA_T, RACHA_A, ESTELA_ABRE, ESTELA_EDAD, ESTELA_TURBO, ESTELA_TURBO_A } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { SHIP_CLASS } from '../data/ships.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
@@ -986,8 +986,7 @@ export function drawWake() {
   // CON TURBO LA ESTELA ES OTRA (F3.4): mas ancha y mas blanca. El turbo ya se oye y ya quema
   // nafta; esto es lo que lo hace VERSE desde afuera del avion — el agua atras tuyo cambia.
   // Es un multiplicador y no un dibujo aparte a proposito: la estela sigue siendo una sola.
-  const tur = run.boost ? 1 : 0;
-  const wAnch = 1 + tur * 0.45, wAlfa = 1 + tur * 0.3;
+  const wAnch = run.boost ? ESTELA_TURBO : 1, wAlfa = run.boost ? ESTELA_TURBO_A : 1;
   for (const wp of wake) {
     const trail = PZ - wp.z;                       // metros que quedaron atrás
     const s = proj(wp.x, 0, wp.z);

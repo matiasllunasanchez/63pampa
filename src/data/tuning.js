@@ -446,6 +446,25 @@ export const FUGA_Y = 0.62;
 // Gira el eje ENTERO, asi que vale igual con la V abierta o cerrada.
 export const AGUA_RAS_GRADOS = 45;
 
+// ---- EL TURBO MULTIPLICA EL AGUA ---------------------------------------------------------------
+//
+// Con turbo el avion arranca mas agua, y eso es lo que hace que el turbo SE VEA desde afuera — ya
+// se oye y ya quema nafta, pero sin esto el mar de abajo no se entera. Hasta el 13/9 solo lo hacian
+// DOS de los cuatro efectos, con los numeros escritos a mano adentro del dibujo; ahora lo hacen los
+// cuatro y cada uno dice cuanto.
+//
+// Son MULTIPLICADORES: 1 = el turbo no cambia nada en ese efecto.
+// ⚠ EL ROCIO NO MULTIPLICA LA CANTIDAD, MULTIPLICA EL TAMANO, y no es un capricho: el presupuesto
+// de particulas es PARTS_MAX = 260 (data/despiece.js) y volando a ras el agua sola ya se come unas
+// 144 —medido: 238 vivas sin turbo, o sea a un pelo del tope—. Subiendo la CANTIDAD no aparece ni
+// una gota mas: `capParts()` corta por el frente, asi que lo unico que se consigue es desalojar
+// chispas, sangre y escombros de otros sistemas. El tamano es gratis.
+export const ROCIO_TURBO = 1.35;     // gotas mas gordas (no mas: ver arriba)
+export const ROCIADA_TURBO = 1.4;    // brazos y lengua mas gordos
+export const CORTINA_TURBO = 1.7;    // lo que ya hacia: cortinas mas gordas
+export const ESTELA_TURBO = 1.45;    // lo que ya hacia: estela mas ancha
+export const ESTELA_TURBO_A = 1.3;   // …y mas blanca
+
 // ---- EL ROCIO (systems/vuelo.js) ----------------------------------------------------------------
 //
 // La direccion de cada gota es (ABRE de costado, BAJA hacia atras) y lo que manda es la RELACION:

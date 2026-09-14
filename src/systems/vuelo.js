@@ -23,7 +23,7 @@ import { P } from '../data/palette.js';
 import { PZ, W } from '../render/ctx.js';
 import { FLY_X, FLY_TOP, ALA_PX, ROCIO_ABRE, ROCIO_BAJA, ROCIO_RAS_ABRE, ROCIO_RAS_BAJA,
          ROCIO_BARRIDO, ROCIO_PUNTA, ROCIO_COLUMNA, ROCIO_RAS_COLUMNA,
-         AGUA_RAS_GRADOS, ESTELA_ALT } from '../data/tuning.js';
+         AGUA_RAS_GRADOS, ESTELA_ALT, ROCIO_TURBO } from '../data/tuning.js';
 import { PITCH_LERP } from '../core/physics.js';
 
 // cuanto sube la camara con turbo (unidades de mundo): el efecto de 'alejarse'
@@ -218,7 +218,8 @@ export function estelaVuelo(dt, o) {
       parts.push({
         x: bx, y: s.y - 1, vx: (Math.random() - 0.5) * 8, vy: -(150 + Math.random() * 90),
         life: 0.09 + Math.random() * 0.07,
-        c: onLand ? '#6b6250' : (Math.random() < 0.5 ? P.foam : '#f2f7fb'), r: 1,
+        c: onLand ? '#6b6250' : (Math.random() < 0.5 ? P.foam : '#f2f7fb'),
+        r: run.boost ? ROCIO_TURBO : 1,
       });
       continue;
     }
@@ -251,7 +252,8 @@ export function estelaVuelo(dt, o) {
       vy: -(50 + Math.random() * 110) * (0.5 + lowI) * SALTO + eyr * barrido,
       life: 0.25 + Math.random() * 0.3,
       c: onLand ? (Math.random() < 0.6 ? '#6b6250' : '#4a4636') : (Math.random() < 0.7 ? P.foam : P.crest),
-      r: 1 + Math.random() * 1.3,
+      // el TURBO engorda la gota en vez de agregar gotas: el presupuesto ya esta lleno (tuning)
+      r: (1 + Math.random() * 1.3) * (run.boost ? ROCIO_TURBO : 1),
     });
   }
   if (alt < 4.5) run.shake = Math.max(run.shake, (4.5 - alt) * 0.3);
