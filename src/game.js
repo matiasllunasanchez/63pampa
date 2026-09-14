@@ -96,6 +96,7 @@ import { decir as decirRadio, apuntar as apuntarRadio, callar as callarRadio, ti
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
 import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
 import { drawDesenfoque, BLUR_DBG } from './render/desenfoque.js';   // BLUR_DBG: QUITAR con __blurdbg
+import { drawAureola, AURA_NORMAL, AURA_DBG } from './render/aureola.js';   // AURA_DBG: QUITAR con __auradbg
 import * as menus from './render/menus.js';
 import { stepRain, stepSpray, drawRain, RAIN_N } from './render/rain.js';
 import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit } from './systems/fog.js';
@@ -2282,18 +2283,36 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     //   2. hor - 0.28 <= el sol / la luna → el astro entra en cuadro.
     // Los numeros de abajo salieron de medir cada archivo, no de tantear.
     const TBACK = '../assets/world/terrain_back/';
+    //
+    // `sol` ES DONDE ESTA EL ASTRO dentro de la imagen (fraccion x/y) y `col` su color. Lo usa la
+    // AUREOLA del poder rasante (render/aureola.js): el destello tiene que NACER del sol, y como el
+    // sol viene dibujado adentro de la foto, cada cielo lo tiene en otro lado.
+    //
+    // COMO SE MIDIERON, para poder repetirlo al agregar un fondo: se rasteriza SOLO la franja
+    // visible [hor-0.28, hor] y se busca el pico de luminancia x CALIDEZ (R-B). La calidez es lo
+    // que hace falta — con luminancia sola, las nubes blancas de `day_sun` se llevaban el centroide
+    // y la marca caia AL LADO del sol. Despues, centroide de lo que pasa el 55% del pico y solo en
+    // un radio del 12% alrededor de el, para que un segundo foco no arrastre el promedio.
+    //
+    // TRES CIELOS NO TIENEN `sol`, Y ES A PROPOSITO: el nublado lo tiene tapado, la noche muestra
+    // auroras y la tormenta, relampagos. El mismo pico los delata solo (0.04-0.10 contra 0.39-0.61
+    // de los que si tienen astro). Un destello sin astro del cual salir es una mancha en el vidrio.
     const TBACK_MAP = {
-      dusk:    { f: 'sunrise.png',      hor: 0.72 },   // amanecer sobre el desierto
-      night:   { f: 'night.png',        hor: 0.72 },
-      storm:   { f: 'night_storm.png',  hor: 0.72 },
-      clear:   { f: 'day_argentday.png', hor: 0.72 },
-      cloudy:  { f: 'day_cloudy.png',   hor: 0.72 },   // dia nublado (desembarco)
+      dusk:    { f: 'sunrise.png',      hor: 0.72, sol: { x: 0.485, y: 0.518 }, col: '255,178,96' },
+      night:   { f: 'night.png',        hor: 0.72 },   // auroras, sin luna en cuadro
+      storm:   { f: 'night_storm.png',  hor: 0.72 },   // relampagos, sin astro
+      clear:   { f: 'day_argentday.png', hor: 0.72, sol: { x: 0.498, y: 0.484 }, col: '255,236,180' },
+      cloudy:  { f: 'day_cloudy.png',   hor: 0.72 },   // dia nublado (desembarco): el sol esta tapado
       // --- los tres marinos nuevos: otra proporcion (menos altos) y el astro mas arriba ---
-      sun:     { f: 'day_sun.png',      hor: 0.37 },   // sol alto: hor bajo o se va de cuadro
-      moon:    { f: 'night_2.jpeg',     hor: 0.62 },   // no tiene linea de agua: se encuadra la luna
-      dawn:    { f: 'sunrise_2.jpeg',   hor: 0.46 },   // el sol posado sobre el agua
+      sun:     { f: 'day_sun.png',      hor: 0.37, sol: { x: 0.499, y: 0.145 }, col: '255,232,168' },
+      moon:    { f: 'night_2.jpeg',     hor: 0.62, sol: { x: 0.504, y: 0.505 }, col: '188,214,255' },
+      dawn:    { f: 'sunrise_2.jpeg',   hor: 0.46, sol: { x: 0.488, y: 0.389 }, col: '255,166,92' },
     };
     const tbackImgs = {};
+    // EL SOL EN PANTALLA, recalculado cada cuadro donde se ancla el telon y leido mas abajo por la
+    // AUREOLA. Vive ACA —al nivel del telon y no adentro del dibujo— porque el que lo calcula y el
+    // que lo usa estan en bloques distintos del cuadro, y ademas lo lee la sonda __auradbg.
+    let solPant = null;
     /** La entrada del cielo actual, o null. La usan tbackImg() y el anclado del dibujo. */
     function tbackEntry() { return TBACK ? TBACK_MAP[cfg.sky] || null : null; }
     function tbackImg() {
@@ -3419,6 +3438,21 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // horizonte se queda mirando para el mismo lado — que es la costura que delata el truco
       // del riel curvo. Vale 0 con el pasillo recto.
       const zfx = zigzag.headingZigzag() * ZZ_FONDO_K;
+      // EL SOL, EN PANTALLA. Se resuelve ACA porque aca es donde se sabe anclar el telon, y con la
+      // MISMA cuenta con la que se lo dibuja — si se copiara la formula, el destello se despegaria
+      // del sol el dia que alguien toque el parallax. Se calcula aunque el telon lo pinte three
+      // (mar 3D): la imagen es la misma y el astro esta donde esta. Va por parametro al render
+      // (convencion 4) porque el render no puede salir a buscar esto.
+      const zfxT = Math.max(-60, Math.min(60, zfx));
+      solPant = null;
+      {
+        const e = tbackEntry(), imS = tbackImg();
+        if (e && e.sol && imS) {
+          const dwS = W + 140, dhS = dwS * imS.naturalHeight / imS.naturalWidth;
+          solPant = { x: (-70 - cam.x * 0.8 - zfxT) + e.sol.x * dwS,
+                      y: (HOR - e.hor * dhS) + e.sol.y * dhS, col: e.col };
+        }
+      }
       const tbA = tbackImg();                  // imagen de fondo del clima (si esta cargada)
       const tb2 = world3D.isSea() ? null : tbA;      // en mar-3D la pinta el telon de three
       if (!world3D.isSea()) {
@@ -3435,7 +3469,6 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // tambien en alto y cambiaria el encuadre del cielo en TODAS las misiones, con zigzag o
         // sin el. El costo es que en una curva sostenida y larga el telon deja de acompañar —
         // es lo mas lejano que hay en pantalla, y es lo que menos se nota.
-        const zfxT = Math.max(-60, Math.min(60, zfx));
         ctx.drawImage(tb2, -70 - cam.x * 0.8 - zfxT, HOR - tbackHor() * dh, dw, dh);
       } else {
       const g = ctx.createLinearGradient(0, 0, 0, HOR);
@@ -3754,6 +3787,18 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       drawDesenfoque(S.state === 'play' && run.boost && run.fuel > 0 ? 1 : 0,
                      S.state === 'play' && tempo.active() ? 1 : 0,
                      S.state === 'play' && rasante.active() ? 1 : 0);
+      // LA AUREOLA DEL SOL, encima del barrido: el destello vive en la LENTE, o sea despues de
+      // todo lo que la lente esta mirando.
+      //
+      // SIEMPRE PUESTA (pedido de Matias, 13/9/2026). Nacio atada al poder rasante y quedo suelta:
+      // una lente no deja de tener sol porque vos no estes usando un poder. Y no hace falta ningun
+      // candado de estado para eso — `solPant` vale null en cualquier cuadro donde el telon no se
+      // haya anclado, asi que el destello existe exactamente cuando el cielo esta en pantalla y en
+      // ningun otro momento. El candado es el dato, no un `if` que haya que mantener al dia.
+      // A MEDIA LUZ EN VUELO NORMAL Y ENTERA CON EL PODER: los dos niveles los define el render
+      // (AURA_NORMAL); aca solo se dice cual de los dos corresponde. La rampa del modulo hace que
+      // el salto entre uno y otro se VEA crecer.
+      drawAureola(solPant, rasante.active() ? 1 : AURA_NORMAL);
       // MOMENTUM: tinte frio + viñeta mientras el tiempo esta partido. Va sobre el MUNDO y bajo
       // el HUD: la cabina sigue nitida — es el aire el que cambia, no los instrumentos.
       if (S.state === 'play' && tempo.active()) {
@@ -4635,6 +4680,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     };
 
     // QUITAR — la estela de punta de ala: con que fuerza sale y cuantas muestras vivas tiene.
+    if (typeof window !== 'undefined') window.__auradbg = () =>
+      JSON.stringify({ ...AURA_DBG, cielo: cfg.sky, ras: rasante.active() });
     if (typeof window !== 'undefined') window.__blurdbg = () =>
       JSON.stringify({ ...BLUR_DBG, on: cfg.desenfoque, boost: !!run.boost, mom: tempo.active(), ras: rasante.active() });
     if (typeof window !== 'undefined') window.__tipdbg = () =>
