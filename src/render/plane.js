@@ -588,12 +588,18 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
     ctx.globalAlpha = churn * 0.9;
     px(sh.x - 5 * lenW, sh.y - 2, 10 * lenW, 1, P.crest);
     px(sh.x - 4 * lenW, sh.y - 1, 8 * lenW, 2, P.foam);
-    const abreBrazo = (ras ? ROCIADA_RAS_ABRE : ROCIADA_ABRE) * lenW;
+    // EL PASO REPARTE, NO ENSANCHA. `ROCIADA_FILAS` controla lo FINA que es la banda y nada mas:
+    // tanto el avance en y como la apertura se dividen por el mismo factor, asi que la PENDIENTE de
+    // la V no cambia con el numero de filas. Sin esto —el bug que hubo al pasar de 5 filas a 11— la
+    // apertura por fila se quedaba igual y la V se abria al doble: 24 px de semiancho pasaron a
+    // 51,5 y la rociada se comia a la estela, que es el efecto que tiene que continuar.
+    const reparto = 5 / ROCIADA_FILAS;
+    const abreBrazo = (ras ? ROCIADA_RAS_ABRE : ROCIADA_ABRE) * lenW * reparto;
     // EL PLANO SE ACUESTA con el poder: un corte en y proporcional a la distancia al eje. Sin
     // esto la V queda simetrica y horizontal mientras la hoja del poder muestra al avion desde
     // 45° al costado, y se lee recta. Ver data/tuning.js, ROCIADA_RAS_CORTE.
     const corte = ras ? ROCIADA_RAS_CORTE : 0;
-    const paso = ROCIADA_BAJA * 5 / ROCIADA_FILAS;   // el largo total no cambia: mas filas, mas finas
+    const paso = ROCIADA_BAJA * reparto;             // el largo total no cambia: mas filas, mas finas
     // EL AGUA REVUELTA entre las dos bandas. Va PRIMERO, que las bandas la tapan en los bordes.
     //
     // LA MOTA NO SE SORTEA POR CUADRO: la posicion sale de un hash de (fila + distancia recorrida),
