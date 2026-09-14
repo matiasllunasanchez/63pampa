@@ -97,7 +97,8 @@ tres. Si cambiás uno solo, el juego queda inconsistente según el mapa.
    y decilo en el reporte.** Si hay que aflojar, la perilla menos invasiva es la densidad
    (`cfg.obstacles` / `run.nextSpawn` en `spawn.js:180`), no las alturas recién acordadas.
 
-3. **Los escalones del multiplicador no se mueven** (`core/util.js:18`: x10 ≤4.5 · x5 ≤9 · x2 ≤16
+3. **Los escalones del multiplicador no se mueven** (`multOf`, en `core/util.js`: x10 ≤`BANDA_ALT`
+   (4,5, en `data/tuning.js`) · x5 ≤9 · x2 ≤16
    · x1 arriba). Con el radar en 20 y los cazas en 15-25, la franja x1 pasa a ser tierra de nadie
    — que está bien (arriba no debe pagar), pero conviene saberlo antes de tunear.
 

@@ -6,7 +6,7 @@
 // justo donde suelen romperse las cosas.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import {
   pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor, clamp, clamp01,
   PITCH_DELAY, PITCH_RAMP, ENERGY_MAX, SPD_MIN, SCRAPE_BASE, SCRAPE_MIN,
@@ -2363,13 +2363,54 @@ test('aves: no bajan a la banda del x10 — eso es diseño, no un numero suelto'
   // El piso de las aves es el techo de la racha rasante. Volar pegado al agua es de donde sale el
   // puntaje Y la carga del poder RASANTE: poblar esa banda de obstaculos seria castigar
   // exactamente lo que el juego pide que hagas. Si alguien baja el piso, esto lo dice.
-  const { SPAWN_Y, AVES_PISO, AVES_TECHO, CAZA_RAS_ALT } = await import('../src/data/tuning.js');
-  assert.ok(SPAWN_Y.birds[0] >= CAZA_RAS_ALT, `las aves nacen dentro de la banda del x10 (${SPAWN_Y.birds[0]} < ${CAZA_RAS_ALT})`);
-  assert.ok(AVES_PISO >= CAZA_RAS_ALT, `el piso de las aves entro en la banda del x10 (${AVES_PISO})`);
+  // Medía contra CAZA_RAS_ALT, que da 4,5 de casualidad: la banda de verdad es BANDA_ALT.
+  const { SPAWN_Y, AVES_PISO, AVES_TECHO, BANDA_ALT } = await import('../src/data/tuning.js');
+  assert.ok(SPAWN_Y.birds[0] >= BANDA_ALT, `las aves nacen dentro de la banda del x10 (${SPAWN_Y.birds[0]} < ${BANDA_ALT})`);
+  assert.ok(AVES_PISO >= BANDA_ALT, `el piso de las aves entro en la banda del x10 (${AVES_PISO})`);
   // y la banda de nacimiento tiene que ser ANCHA: el problema original era que todas aparecian a
   // la misma altura porque nacian en cinco metros de franja
   assert.ok(SPAWN_Y.birds[1] - SPAWN_Y.birds[0] > 12, 'las aves volvieron a nacer todas a la misma altura');
   assert.ok(AVES_TECHO >= SPAWN_Y.birds[1], 'el techo de vuelo de las aves es mas bajo que su altura de nacimiento');
+});
+
+test('la banda del x10 es UN solo numero', async () => {
+  // El techo de la banda estuvo escrito a mano en nueve lugares —puntaje, carga del poder, estado
+  // del aguante, cortinas, rocio, sonido y HUD— y coincidian de memoria, no por construccion.
+  const { BANDA_ALT, CORTINA_ALT, CAZA_RAS_ALT, RAS_ALT } = await import('../src/data/tuning.js');
+  const { multOf } = await import('../src/core/util.js');
+  assert.equal(multOf(BANDA_ALT), 10, 'el techo de la banda no paga x10');
+  assert.equal(multOf(BANDA_ALT + 0.01), 5, 'un centimetro arriba del techo sigue pagando x10');
+  assert.equal(CORTINA_ALT, BANDA_ALT, 'las cortinas dejaron de marcar la banda: son su instrumento');
+  // "una sola banda, dos premios": a ras te paga el x10 Y el Harrier pierde la punteria. Si alguien
+  // los separa que sea a proposito —escribiendo un numero en CAZA_RAS_ALT— y no por descuido.
+  assert.equal(CAZA_RAS_ALT, BANDA_ALT, 'el santuario del Harrier se separo de la banda del x10');
+  // Y EL CASO HISTORICO, al reves: RAS_ALT (la altura a la que el PODER asienta el avion) tiene que
+  // quedar ADENTRO de la banda. Si sube por encima, el poder te saca del x10 mientras lo usas.
+  assert.ok(RAS_ALT < BANDA_ALT, `el asiento del poder quedo FUERA de la banda (${RAS_ALT} >= ${BANDA_ALT})`);
+});
+
+test('nadie vuelve a escribir la banda a mano', () => {
+  // EL CENTINELA. Lo de arriba prueba que los numeros de hoy concuerdan; esto impide que mañana
+  // aparezca un decimo sitio. Solo mira COMPARACIONES DE ALTURA (`plane.y <= 4.5`, `alt < 4.5`),
+  // que es lo que lo vuelve inmune a los ~55 hermanos del 4,5 que hay en el repo y NO son la banda:
+  // el calibre del canon de 4,5" de los Tipo 42, el arrastre lateral (`1 - 4.5 * dt`), CAZA_WINDOW
+  // en segundos, el alto de un galpon, velocidades verticales negativas.
+  const re = /(plane\.y|\.y|\balt)\s*<=?\s*4\.5(?![0-9])/;
+  const raiz = new URL('../src/', import.meta.url);
+  const malas = [];
+  (function ver(dir, rel) {
+    for (const e of readdirSync(new URL(dir, raiz), { withFileTypes: true })) {
+      if (e.isDirectory()) { if (e.name !== 'vendor') ver(`${dir}${e.name}/`, `${rel}${e.name}/`); continue; }
+      if (!e.name.endsWith('.js') || e.name === 'game.bundle.js') continue;
+      readFileSync(new URL(`${dir}${e.name}`, raiz), 'utf8').split('\n').forEach((l, i) => {
+        // se saltean los comentarios (una prueba que falla por prosa se termina desactivando) y las
+        // lineas marcadas a mano: hoy solo el sacudon del rocio, que es cercania al agua y no plata
+        if (re.test(l) && !l.trimStart().startsWith('//') && !l.includes('no es la banda'))
+          malas.push(`${rel}${e.name}:${i + 1}`);
+      });
+    }
+  })('', '');
+  assert.deepEqual(malas, [], `la banda escrita a mano — importa BANDA_ALT de data/tuning.js en: ${malas.join(', ')}`);
 });
 
 test('anclas: la perilla de AJUSTES a mano PISA lo que midio el horno', async () => {

@@ -25,9 +25,9 @@
 import { RAS_ALT, RAS_SPRING, RAS_CEIL, RAS_DUR, RAS_CHARGE_S, RAS_CAM, RAS_CAMS,
   RAS_LATIDO, RAS_LAT_T } from '../data/tuning.js';
 
-// LA BANDA DEL x10 termina en 4.5 y ese numero NO vive aca: es el mismo `alt <= 4.5` de
-// flight.js, que es quien mide la altura. El orquestador pasa `enBanda` ya resuelto — si este
-// modulo lo recalculara, el dia que la banda se mueva habria dos verdades.
+// LA BANDA DEL x10 termina en `BANDA_ALT` (data/tuning.js) y ese numero NO vive aca: lo mide
+// flight.js y el orquestador pasa `enBanda` ya resuelto. Si este modulo lo recalculara habria dos
+// verdades — que es justo el problema que la constante vino a cerrar.
 let on = false;        // ¿el poder esta lanzado AHORA?
 let t = 0;             // reloj del lanzamiento, en segundos de MUNDO
 // LA BARRA NO SE GUARDA: se DERIVA de los segundos de banda. Estuvo guardada aparte media hora y
@@ -62,7 +62,7 @@ export function toggle() {
  * mismo criterio que el ETA de la Chancha.
  *
  * `e` = { inPlay, enBanda } — el orquestador resuelve las dos: `inPlay` es el pasillo jugable
- * (estado 'play', sin devcam y sin climax) y `enBanda` es la altura del x10 (`alt <= 4.5`).
+ * (estado 'play', sin devcam y sin climax) y `enBanda` es la altura del x10 (`alt <= BANDA_ALT`).
  *
  * Devuelve SIEMPRE un objeto: { sig } — 'ready' UNA vez cuando la barra se llena, 'end' UNA vez
  * cuando el lanzamiento se agota solo. El corte a mano no sale por aca: sale de `toggle()`.

@@ -18,7 +18,7 @@ import { effects } from '../core/damage.js';
 import { T } from '../core/i18n.js';
 import { AGU, ancho as anchoSector, pos as posInd, ventana as ventanaAgu } from '../core/aguante.js';
 import { P, RADAR_VERDE, RADAR_OPACO } from '../data/palette.js';
-import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP } from '../data/tuning.js';
+import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP, BANDA_ALT } from '../data/tuning.js';
 import { machNow } from '../core/mach.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName } from '../systems/squad.js';
@@ -1571,8 +1571,8 @@ export function drawHUD(h) {
   const techo = h.radarAlt === undefined ? RADAR_ALT : h.radarAlt;
   const rozando = run.scrapeVib > 0.6, visto = plane.y > techo || rozando;
   reloj(xVuelo(2), CUADROS_Y, { val: fA(plane.y), ico: 'alt', critico: visto,
-    col: visto ? (Math.sin(run.t * (rozando ? 30 : 14)) > 0 ? P.warn : '#7d2f1e') : plane.y <= 4.5 ? P.accent : P.foam,
-    zonas: [[0, fA(1.2), P.warn], [fA(1.2) + 0.01, fA(4.5), P.accent]], marcas: [[fA(techo), P.warn]],
+    col: visto ? (Math.sin(run.t * (rozando ? 30 : 14)) > 0 ? P.warn : '#7d2f1e') : plane.y <= BANDA_ALT ? P.accent : P.foam,
+    zonas: [[0, fA(1.2), P.warn], [fA(1.2) + 0.01, fA(BANDA_ALT), P.accent]], marcas: [[fA(techo), P.warn]],
     txt: Math.round(plane.y) + 'm', txtCol: visto ? P.warn : P.dim });
   // GAS: la palanca, leida como las RPM de un tablero de verdad. Era la corredera vertical del borde
   // derecho; sin nafta, la aguja parpadea (el reloj de nafta, a la izquierda, dice por que).

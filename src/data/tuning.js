@@ -21,6 +21,23 @@
 // pared seguiria siendo la jugada barata. Sembrando un poco mas afuera, el borde ve la misma
 // cantidad de obstaculos que el medio y la esquina deja de ser refugio.
 export const FLY_X = 38, FLY_TOP = 68;
+
+// EL TECHO DE LA BANDA DEL x10 — el numero mas replicado del juego, y ahora el unico.
+//
+// Volar por debajo de esta altura paga x10 (core/util.js, multOf), carga el poder RASANTE (game.js),
+// abre el estado del aguante (systems/flight.js) y lo clava ahi (systems/aguante.js). Y ademas
+// AVISA por los tres sentidos, que es lo que la vuelve legible sin leer el HUD: las cortinas de agua
+// (CORTINA_ALT), el escalon de gotas del rocio (systems/vuelo.js), la capa de agua cerca
+// (systems/audio.js) y la franja del altimetro (render/hud.js).
+//
+// ESTABA ESCRITO A MANO EN NUEVE LUGARES. Hoy coincidian; el dia que alguien moviera uno, el juego
+// le mentia al jugador en silencio —ver las cortinas y cobrar x5— sin romper ninguna prueba.
+//
+// ⚠ NO ES `RAS_ALT` (2,4), que es la altura a la que el PODER asienta el avion: esa vive ADENTRO de
+// esta banda. Los dos ya convivieron con el mismo nombre en archivos distintos y el import
+// "natural" de uno rompia al otro. tools/unit.js vigila las dos cosas: que la banda sea una sola, y
+// que RAS_ALT siga quedando abajo.
+export const BANDA_ALT = 4.5;
 export const SPAWN_EDGE = 6;              // ~el alcance de un obstaculo aereo (3 + 2,1 del avion)
 export const SPAWN_X = FLY_X + SPAWN_EDGE;
 // EL CARRIL SE ENSANCHO, ASI QUE LA CADENCIA SE COMPENSA. El caudal de obstaculos se mide por
@@ -528,15 +545,14 @@ export const CORTINA_ANCHO = 5;          // cuanto crece el ancho de la barra co
 export const CORTINA_BAJA = 4;           // cuanto cae la mas vieja respecto de la primera
 export const CORTINA_RAS_ABRE = 5;       // con el poder. Bajarla cierra la cortina (sin adelgazarla).
 export const CORTINA_N = 4;              // cuantas muestras tiene cada cortina
-// ⚠ ESTE 4,5 NO ES `RAS_ALT`. Es el techo de la banda del x10: cuando ves las cortinas, estas
-// cobrando. `RAS_ALT` (2,4) es OTRA cosa — la altura a la que el poder asienta el avion. Vivian las
-// dos con el mismo nombre en archivos distintos, y el import "natural" de una rompia la otra.
+// LAS CORTINAS SON EL INSTRUMENTO DE LA BANDA: cuando las ves, estas cobrando x10. Por eso esto
+// DERIVA de `BANDA_ALT` y ya no se puede desincronizar del multiplicador, que es lo que les da
+// sentido. Antes era un 4,5 a mano y el aviso que habia aca —"si hay que mover la banda, se mueven
+// los cinco"— se quedaba corto: los sitios eran nueve.
 //
-// Y OJO: mover esto NO mueve la banda. El mismo 4,5 esta escrito a mano en core/util.js (multOf),
-// en systems/flight.js (rasNow), en systems/aguante.js (BANDA) y en la escalera de gotas de
-// systems/vuelo.js. Cambiar solo esta constante desincroniza las cortinas del multiplicador, que es
-// justo lo que les da sentido. Si hay que mover la banda, se mueven los cinco.
-export const CORTINA_ALT = 4.5;
+// ⚠ SIGUE SIN SER `RAS_ALT` (2,4), la altura a la que el poder asienta el avion. Las dos vivieron
+// con el mismo nombre en archivos distintos y el import "natural" de una rompia la otra.
+export const CORTINA_ALT = BANDA_ALT;
 
 // ---- LA ESTELA (render/world.js, drawWake) ------------------------------------------------------
 //
@@ -758,8 +774,11 @@ export const SUN_GLINT_HALF = 26;   // semiancho del cono de destellos (unidades
 // perdidas aire-aire fueron todas en un sentido. Pero los A-4 escapaban ABAJO — a ras del mar la
 // solucion de tiro y el ambiente degradaban al cazador. O sea que el evento mas peligroso del
 // PASILLO se sobrevive volando donde el juego ya te paga por volar: la banda del x10.
-// Por eso CAZA_RAS_ALT es 4.5 y no otro numero — es EXACTAMENTE el techo de la racha rasante
-// (`rasNow` en systems/flight.js y el multiplicador de core/util.js). Una sola banda, dos premios.
+// Por eso CAZA_RAS_ALT no es un numero propio sino `BANDA_ALT` — el techo del x10, el mismo que
+// miden el multiplicador, las cortinas y el estado rasante. Una sola banda, dos premios.
+// Conserva nombre y export a proposito: si algun dia el duelo tiene que ser MAS exigente que el
+// puntaje, se escribe un numero aca y los dos se separan. Pero eso es una decision de balance, no
+// un descuido — que es lo que era mientras los dos 4,5 vivian sueltos.
 
 // --- las perillas del §3 (defaults del plan, sin tocar) ---
 export const CAZA_SOL_T = 3.5;      // s de rumbo predecible que le lleva MADURAR la solucion de tiro
@@ -771,7 +790,7 @@ export const CAZA_WINDOW = 4.5;     // s que dura la ventana, cuando queda adela
 // AHUYENTARLO es lo normal; DERRIBARLO es la hazaña. Ningun Harrier cayo en combate aire-aire
 // (§2), asi que el derribo sale tres veces mas caro que romperle el ataque.
 export const CAZA_HP = { ahuyenta: 6, derribo: 18 };
-export const CAZA_RAS_ALT = 4.5;    // debajo de esta altura su punteria casi no progresa
+export const CAZA_RAS_ALT = BANDA_ALT;  // debajo de esta altura su punteria casi no progresa
 export const CAZA_KILLABLE = true;  // el derribo EXISTE (raro y carisimo); false lo vuelve solo ahuyentable
 
 // --- lo que el §3 NO da y el ciclo necesita (anotado como divergencia en §9 del plan) ---
@@ -1435,7 +1454,7 @@ export const ZZ_LADERA_RAFAGA = 3, ZZ_LADERA_RAF_CD = 0.16;
 // lo pinta en 1.4 s y un piso que lo mata en medio segundo — y lo que lo mataba era el PISO, que
 // es justo el fracaso aburrido. Textual del playtest: "es dificil tedioso y largo".
 // 9 deja una banda volable que sigue estando muy por debajo de RADAR_ALT (20) y sigue premiando la
-// racha rasante (CAZA_RAS_ALT 4.5) al que quiera apretar mas de lo necesario.
+// racha rasante (CAZA_RAS_ALT, que es BANDA_ALT) al que quiera apretar mas de lo necesario.
 export const FILO_RADAR = 9;
 
 // LA RAMPA DEL TECHO, en metros. El techo NO cae de golpe de 20 a 9 al entrar al filo: baja a lo

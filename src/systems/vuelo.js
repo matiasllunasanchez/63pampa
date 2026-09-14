@@ -23,7 +23,7 @@ import { P } from '../data/palette.js';
 import { PZ, W } from '../render/ctx.js';
 import { FLY_X, FLY_TOP, ALA_PX, ROCIO_ABRE, ROCIO_BAJA, ROCIO_RAS_ABRE, ROCIO_RAS_BAJA,
          ROCIO_BARRIDO, ROCIO_PUNTA, ROCIO_COLUMNA, ROCIO_RAS_COLUMNA,
-         AGUA_RAS_GRADOS, ESTELA_ALT, ROCIO_TURBO } from '../data/tuning.js';
+         AGUA_RAS_GRADOS, ESTELA_ALT, ROCIO_TURBO, BANDA_ALT } from '../data/tuning.js';
 import { PITCH_LERP } from '../core/physics.js';
 
 // cuanto sube la camara con turbo (unidades de mundo): el efecto de 'alejarse'
@@ -165,12 +165,12 @@ export function estelaVuelo(dt, o) {
   // `mas` multiplica el rocio y por omision es 1: el PASILLO no cambia. Lo levanta una CINEMATICA,
   // y por una razon honesta — el pasillo es juego y el rocio no puede taparte lo que tenes que
   // esquivar; un plano rasante es una TOMA, y ahi el agua saltando ES el tema.
-  // ⚠ LOS TRES NUMEROS DE ESTA ESCALERA TIENEN HERMANOS EN OTRO ARCHIVO y no estan atados: el 4,5
-  // es el techo de la banda del x10 (el mismo de CORTINA_ALT, core/util.js y systems/aguante.js) y
-  // el 7 es el de la rociada (ROCIADA_ALT). Se dejaron literales a proposito —la densidad del
-  // rocio no tiene por que seguir a la altura de otro efecto— pero si alguien mueve la banda,
-  // este 4,5 se mueve con ella o el rocio deja de marcar donde empezas a cobrar.
-  const nSpray = Math.round((alt < 2.8 ? 6 : alt < 4.5 ? 3 : alt < 7 ? 1 : 0) * (o.mas || 1));
+  // EL ESCALON DEL MEDIO ES LA BANDA, y por eso sale de `BANDA_ALT`: el salto de 1 a 3 gotas es una
+  // de las formas en que el rocio te avisa que empezaste a cobrar x10, junto con las cortinas.
+  // Queda con `<` estricto —a la altura justa ya estas en el escalon de arriba—; los otros dos
+  // numeros son sueltos a proposito: el 2,8 es densidad pura y el 7 tiene hermano en ROCIADA_ALT
+  // pero no esta atado, porque la densidad del rocio no tiene por que seguir a otro efecto.
+  const nSpray = Math.round((alt < 2.8 ? 6 : alt < BANDA_ALT ? 3 : alt < 7 ? 1 : 0) * (o.mas || 1));
   // DE DONDE SALE Y HACIA DONDE VA. Por omision es lo del PASILLO: una manchita angosta delante del
   // morro, que es donde uno la ve desde afuera del avion.
   //
@@ -256,5 +256,9 @@ export function estelaVuelo(dt, o) {
       r: (1 + Math.random() * 1.3) * (run.boost ? ROCIO_TURBO : 1),
     });
   }
-  if (alt < 4.5) run.shake = Math.max(run.shake, (4.5 - alt) * 0.3);
+  // ESTE 4,5 NO ES LA BANDA aunque hoy valga lo mismo: es proximidad FISICA al agua —la marejada
+  // promedia 1,1 y pica en 1,9—, no rentabilidad, y aparece dos veces porque es umbral Y rampa
+  // (atarlo cambiaria la PENDIENTE del temblor, no solo donde arranca). Se puede querer el aviso
+  // en 6 o solo en 3 sin mover el x10.
+  if (alt < 4.5) run.shake = Math.max(run.shake, (4.5 - alt) * 0.3);   // no es la banda
 }

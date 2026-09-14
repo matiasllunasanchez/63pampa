@@ -29,9 +29,8 @@ import { run } from '../core/run.js';
 import { plane } from '../core/state.js';
 import { inp } from '../core/input.js';
 import { AGU, ancho, vel, mult, nivel, pos, dentro, sector, ventana, castigo } from '../core/aguante.js';
-import { RAS_ALT } from '../data/tuning.js';
+import { RAS_ALT, BANDA_ALT } from '../data/tuning.js';
 
-const BANDA = 4.5;          // el techo de la banda del x10, el mismo de siempre (core/util.js)
 const CLAVO = 12;           // rate del resorte que clava la altura: duro, que de eso se trata
 
 let prevU = false;          // el gas del cuadro anterior, para el flanco
@@ -73,7 +72,7 @@ function entrar() {
   armado = false;
   // LA ALTURA SE CLAVA DONDE ESTAS, pero no mas abajo que el ras del poder: la marejada llega a
   // 1,9 y clavarse debajo de eso es rozar para siempre. Arriba, el techo de la banda.
-  run.aguY = Math.max(RAS_ALT, Math.min(BANDA, plane.y));
+  run.aguY = Math.max(RAS_ALT, Math.min(BANDA_ALT, plane.y));
 }
 
 function salir() {

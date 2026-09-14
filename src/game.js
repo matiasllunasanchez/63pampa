@@ -108,7 +108,7 @@ import { LAND_APPROACH_M, LAND_ALT0, LAND_SPD_MIN, LAND_SPD_MAX, LAND_SPD_OK,
          LAND_VY_SUAVE, LAND_VY_DURO, LAND_PITCH_OK, LAND_GEAR_DRAG, LAND_GEAR_MIN_T,
          LAND_COSTO_CHAPA, LAND_PTS, FUGA_Y } from './data/tuning.js';
 import { MSL_MAX, GEAR_T, RADAR_ALT, FLY_TOP, FLY_X, VEIL_IN, VEIL_FULL, VEIL_OUT,
-  RAS_DUR, RAS_LAT_HZ, ZZ_FONDO_K } from './data/tuning.js';
+  RAS_DUR, RAS_LAT_HZ, ZZ_FONDO_K, BANDA_ALT } from './data/tuning.js';
 // ¿"cerca" del techo del radar? Es la ventana donde '↑ arriba + ↑↑' deja de ofrecerte llegar al
 // borde y pasa a ofrecerte cruzarlo. 4 unidades: lo justo para que salga del ASCENSO anterior y
 // repetir el combo, sin que se dispare desde una altura donde todavia tenias margen.
@@ -4894,7 +4894,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const rs = rasante.tick(dt, {
         inPlay: S.state === 'play' && !cfg.devcam
           && gameMode !== 'arena' && gameMode !== 'pasadas',
-        enBanda: plane.y <= 4.5,
+        enBanda: plane.y <= BANDA_ALT,
       });
       if (rs.sig === 'ready') beep(700, 0.1, 'square', 0.05, 160);   // idem: lo dice la lengueta LISTO
       if (rs.sig === 'end') { beep(300, 0.12, 'square', 0.05, 90); popup(W / 2, 58, T('rasOff'), P.dim); }

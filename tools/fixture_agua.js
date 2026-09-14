@@ -253,10 +253,15 @@ app.whenReady().then(async () => {
     }
     hs.sort((a, b) => a - b);
     const min = hs[0], max = hs[hs.length - 1], med = hs[hs.length >> 1];
-    const grandes = hs.filter(h => h >= 4.5).length;
+    // LA BANDA SALE DE LA CONSTANTE, no de un 4,5 a mano: escrito a mano, este fixture sobrevivia
+    // a que la banda se moviera sin enterarse —seguiria imprimiendo "(4.5)"— y ademas `npm run
+    // agua` no corre dentro de `npm run check`, asi que nadie lo iba a notar. Es CommonJS: la
+    // constante llega por import dinamico, igual que en tools/unit.js.
+    const { BANDA_ALT } = await import('../src/data/tuning.js');
+    const grandes = hs.filter(h => h >= BANDA_ALT).length;
     if (max - min > 1.5) ok(`varian de verdad: ${min} a ${max} (mediana ${med})`);
     else bad(`las alturas casi no varian (${min} a ${max})`);
-    // la banda del x10 termina en 4.5: una ola por encima te obliga a salir de ella. Que existan
+    // la banda del x10 termina en BANDA_ALT: una ola por encima te obliga a salir de ella. Que existan
     // es el pedido; que sean MINORIA es lo que las hace un evento y no el estado normal del mar.
     // LA BANDA ES ANCHA A PROPOSITO. El sesgo da ~22% esperado, y en 60 tiradas eso se mueve unos
     // 5 puntos por puro azar: una prueba de 10-35% se pone roja sola cada tantas corridas, y una
@@ -264,8 +269,8 @@ app.whenReady().then(async () => {
     // "existen y no son la mayoria", que es cierto en todo este rango.
     const pc = grandes / hs.length;
     if (pc >= 0.05 && pc <= 0.45)
-      ok(`las grandes existen y son excepcion: ${grandes} de ${hs.length} (${(pc * 100) | 0}%) pasan la banda del x10 (4.5)`);
-    else bad(`el reparto de grandes quedo mal: ${grandes} de ${hs.length} por encima de 4.5`);
+      ok(`las grandes existen y son excepcion: ${grandes} de ${hs.length} (${(pc * 100) | 0}%) pasan la banda del x10 (${BANDA_ALT})`);
+    else bad(`el reparto de grandes quedo mal: ${grandes} de ${hs.length} por encima de ${BANDA_ALT}`);
     // el sesgo se mide contra el medio del rango TEORICO (2.4..5.85), no contra el de la muestra:
     // con la muestra, un sorteo desafortunado en los extremos mueve la vara y la prueba se vuelve
     // sobre si misma

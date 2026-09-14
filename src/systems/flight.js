@@ -25,7 +25,7 @@ import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
 import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE,
          GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
-         FUEL_RATE, FUEL_BOOST } from '../data/tuning.js';
+         FUEL_RATE, FUEL_BOOST, BANDA_ALT } from '../data/tuning.js';
 // LAS FASES (PLAN_MISION_CINCO_FASES §11). Se LEEN, nunca se escriben, igual que los tramos en el
 // sembrador: `fsVal` contesta lo que rige a esta altura del vuelo y cae al valor de siempre cuando
 // la mision no declara fases — que es como se cumple la regla suprema (sin fases, este archivo se
@@ -129,7 +129,7 @@ export function flightSystem(dt, deps) {
   // AFTERBURNER SOSTENIDO: aguantar BOOST + RASANTE acumula tiempo; cada AFTER_STEP s sube un
   // escalón (hasta AFTER_MAX). Cada escalón multiplica la velocidad (AFTER_GAIN) y levanta el
   // techo (AFTER_CAP) para que el aumento se SIENTA. Soltar turbo o trepar lo corta (con gracia).
-  const rasNow = plane.y <= 4.5;
+  const rasNow = plane.y <= BANDA_ALT;
   if (run.boost && rasNow) { run.afterT += dt; run.afterGrace = 0.4; }
   else if (run.afterGrace > 0) run.afterGrace -= dt;   // bob corto no rompe la racha
   else run.afterT = 0;
@@ -330,7 +330,7 @@ export function flightSystem(dt, deps) {
   // sigue recibiendo un 0..4 y su curva no se toca.
   const alt = plane.y;
   run.mult = multOf(alt);
-  const enBanda = alt <= 4.5;
+  const enBanda = alt <= BANDA_ALT;
   if (enBanda) { run.streak = Math.min(AGU.CARGA, run.streak + dt); run.graceT = 0.45; }
   else if (run.graceT > 0) run.graceT -= dt;
   else { run.streak = 0; run.rasLevel = 0; }
