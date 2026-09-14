@@ -146,6 +146,19 @@ export function initInput(cv, a) {
   addEventListener('keydown', e => {
     audio();
     readCaps(e);                                                          // CAPS LOCK gobierna la mira
+    // PAUSA DE DIALOGO: CUALQUIER TECLA FRESCA ACEPTA. Es el idioma que el juego ya habla en el
+    // modo DIALOGOS del selector, y sobre todo no existe la tecla equivocada — o sea que no hay
+    // forma de quedar trabado buscando cual era. Elegir una sola obligaria a ENTER (Space, X y K
+    // son tambien el gatillo) y eso es una tecla nueva que habria que enseñar.
+    //
+    // `e.repeat` afuera: se entra a la congelada con el gatillo SOSTENIDO, y sus repeticiones no
+    // pueden aceptar una linea que todavia no se leyo. La gracia de 0,6 s la pone game.js.
+    // Va antes de la pausa y del ESC a proposito: con un dialogo abierto, ninguna tecla tiene que
+    // poder abrir el menu encima.
+    if (a.isDlgPausa && a.isDlgPausa()) {
+      if (!e.repeat) a.dlgAceptar();
+      e.preventDefault(); return;
+    }
     // PAUSA: mientras esta abierta se come TODO el teclado (navegar/confirmar/volver) — asi las
     // flechas no alimentan el vuelo ni el detector de combos con el juego congelado.
     if (a.isPaused()) {
@@ -475,6 +488,15 @@ export function initInput(cv, a) {
     // PAUSA con el mando: Start (9) la abre en juego; abierta, la cruceta/stick navegan,
     // ✕ confirma, ◯ vuelve y Start reanuda. El vuelo se SUELTA (setPad 0) para que al reanudar
     // no quede un eje clavado del frame anterior.
+    // PAUSA DE DIALOGO con el mando: ✕ / ◯ / Start aceptan, y el vuelo se SUELTA igual que en la
+    // pausa — si no, al reanudar queda un eje clavado del cuadro en que se congelo.
+    if (inGame && a.isDlgPausa && a.isDlgPausa()) {
+      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx']) setPad(f, 0);
+      if (hit(0) || hit(1) || hit(9)) a.dlgAceptar();
+      btnPrev = pressed;
+      requestAnimationFrame(pollGamepad);
+      return;
+    }
     if (inGame && a.isPaused()) {
       for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx']) setPad(f, 0);
       const nu = down(12) || ax(1) < -0.5, nd = down(13) || ax(1) > 0.5;

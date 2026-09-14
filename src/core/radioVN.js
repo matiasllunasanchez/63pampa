@@ -108,14 +108,28 @@ export function callar() {
   radio.cara = null;
 }
 
-export function tickRadio(dt) {
+/** Un cuadro de la caja. `congelada` es la PAUSA DE DIALOGO: la caja entra y se QUEDA.
+ *
+ *  POR QUE EL `ease` SIGUE SUBIENDO Y EL RELOJ NO. Son dos cosas distintas que este modulo tenia
+ *  pegadas: `ease` es la caja ENTRANDO (0,25 s de subida) y `t` es la linea VENCIENDOSE. Con el
+ *  mundo quieto hay que dejar la primera viva y frenar la segunda — si se frenan las dos, el fondo
+ *  se pinta con alfa fijo pero el texto y el borde van con `globalAlpha = ease`, o sea un
+ *  rectangulo negro sin una letra clavado a media pantalla. Ese bug ya paso y esta contado en
+ *  game.js:3163; la pausa de dialogo cae justo en el peor cuadro posible, el del nacimiento.
+ *
+ *  Sin el parametro, el comportamiento es exactamente el de siempre. */
+export function tickRadio(dt, congelada) {
   tickLog(dt);                     // el historial envejece SIEMPRE, hable alguien o no
   if (!radio.activa) {
     if (radio.ease > 0) radio.ease = Math.max(0, radio.ease - dt / SALIDA);
     return;
   }
-  radio.t += dt;
   radio.ease = Math.min(1, radio.ease + dt / 0.25);
+  // CONGELADA: la linea no se vence, espera. Es literalmente "no continua hasta finalizar la
+  // lectura", y de paso deja la barrita llena y quieta — que es honesto, porque la barrita
+  // significa "esto se va a ir solo" y aca eso deja de ser cierto.
+  if (congelada) return;
+  radio.t += dt;
   if (radio.t >= radio.dur) radio.activa = false;
 }
 

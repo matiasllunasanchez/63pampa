@@ -128,7 +128,7 @@ export function stepFases() {
   if (i === ultima) return null;
   ultima = i;
   if (!f) return null;
-  return { idx: i, tipo: f.tipo, radio: f.val('radio', null) };
+  return { idx: i, tipo: f.tipo, radio: f.val('radio', null), pausa: !!f.val('pausa', false) };
 }
 
 /** Foto del estado para la sonda `__fsdbg`. Los valores son los RESUELTOS: lo que los lectores van

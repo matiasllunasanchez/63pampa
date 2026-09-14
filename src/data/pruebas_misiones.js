@@ -133,7 +133,12 @@ const t15 = {
     //
     // Y SIN BIDONES en ninguna fase: tambores flotando en el Atlantico no significan nada. El
     // combustible tiene una sola fuente y es el Hercules (ver las zonas mas abajo).
-    { tipo: 'transito', hasta: 0.05, radio: 'fase_salida', solo: IDA_MAR, bombs: 0, bidones: false },
+    // `pausa: true` (ensayo 13/9): esta linea CONGELA el juego hasta que el jugador la acepte, en
+    // vez de pasar sola mientras volas. Es para ver como se siente marcar las etapas con paradas —
+    // la nota de arriba ya dice que la intencion es "que se marquen las etapas del mapa con
+    // dialogos, seguramente sera asi todo". Esta solo en la PRIMERA fase: agregarle la palabra a
+    // las otras once las pausa igual, y borrarla de aca apaga el ensayo sin tocar codigo.
+    { tipo: 'transito', hasta: 0.05, radio: 'fase_salida', pausa: true, solo: IDA_MAR, bombs: 0, bidones: false },
     { tipo: 'filo', hasta: 0.10, radio: 'fase_filo', bombs: 0, bidones: false },
     { tipo: 'transito', hasta: 0.16, radio: 'fase_chancha_ida', solo: IDA_MAR, bombs: 0, bidones: false, chancha: true },
     { tipo: 'descenso', hasta: 0.20, radio: 'fase_descenso', solo: IDA_MAR, bombs: 0, bidones: false },

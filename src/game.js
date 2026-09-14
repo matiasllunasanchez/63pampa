@@ -261,6 +261,36 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     let pauseT = 0;                  // reloj propio (run.t esta congelado): parpadeos del overlay
     let pauseMsgT = -9;              // cuando se guardo por ultima vez (flash "PARTIDA GUARDADA")
 
+    // ---------- PAUSA DE DIALOGO (ensayo 13/9) ----------
+    // HERMANA de `paused`, por la misma licencia del comentario de arriba: una BANDERA ortogonal y
+    // no un estado de S — S.state sigue siendo 'play', que es justamente lo que mantiene viva la
+    // caja de radio en draw(). Lo que la separa de `paused` son tres cosas, y ninguna es de gusto:
+    //   · NO DIBUJA MENU. `drawPause` arranca con un velo a pantalla completa que taparia
+    //     exactamente la caja que este ensayo existe para mirar.
+    //   · TICKEA LA RADIO CON EL RELOJ DE PARED. El unico `tickRadio` del vuelo vive adentro de
+    //     update(), asi que una congelada al estilo `paused` la dejaria sin entrar (ease en 0) y
+    //     sin vencerse nunca: fondo negro sin una letra, para siempre. Ver la rama en frame().
+    //   · Y NO DEPENDE de PAUSABLE() ni de cfg.devcam: no la abre el jugador, la abre la DATA.
+    let dlgPausa = false;
+    let dlgT = 0;                    // reloj propio de PARED (run.t y pauseT estan congelados)
+    const DLG_GRACIA = 0.6;          // no se acepta antes: se entra con el gatillo ya apretado
+    const DLG_TOPE = 14;             // SALIDA DE EMERGENCIA: nadie se puede quedar colgado
+
+    /** Congela el mundo y dice la linea, en ese orden y en el mismo cuadro: el pedido es que la
+     *  pausa enganche ANTES de que el dialogo arranque, no a mitad. */
+    function dlgFreeze(key) {
+      radioTramo(key);
+      dlgPausa = true; dlgT = 0;
+      engineOff();                   // igual que pauseToggle: el motor no ruge con el mundo quieto
+    }
+    /** El jugador leyo y sigue. La linea NO se calla: termina su reloj en vuelo y se funde sola,
+     *  como cualquier radio del pasillo. */
+    function dlgAceptar() {
+      if (!dlgPausa || dlgT < DLG_GRACIA) return;
+      dlgPausa = false;
+      beep(620, 0.06, 'square', 0.05, 80);
+    }
+
     // ---------- MENU DE HISTORIA (campañas + partidas guardadas) ----------
     let curCampaign = 0;             // indice en CAMPAIGNS (rotula las partidas guardadas)
     let campSel = 0;                 // cursor del submenu de historia
@@ -1112,7 +1142,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     const pauseSaveRows = () => (saves.canSaveNew() ? [{ id: null }] : []).concat(saves.listSaves());
     const PAUSABLE = () => S.state === 'play' || S.state === 'takeoff' || S.state === 'landing' || S.state === 'momentum' || S.state === 'arena' || S.state === 'pasada' || S.state === 'pulso';
     function pauseToggle() {
-      if (!paused && (!PAUSABLE() || cfg.devcam)) return;
+      if (!paused && (!PAUSABLE() || cfg.devcam || dlgPausa)) return;   // ni encima de un dialogo
       paused = !paused;
       if (paused) {
         pauseSel = 0; pauseView = 'menu'; pauseMsgT = -9;
@@ -1907,6 +1937,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     let fogWarned = false;   // el aviso de entrada al banco sale UNA vez por banco
     function reset() {
       callarRadio();   // una linea de radio a medio decir no puede sobrevivir a la corrida
+      dlgPausa = false;   // …ni su congelada: morir o salir durante el dialogo dejaria el mundo
+                          // quieto sin nadie que lo suelte, y eso no se arregla desde adentro
       resetRun();       // toda la corrida (velocidad, nafta, rachas, armas, spawn…) a su estado inicial
       resetPlane();     // el avion a la posicion de arranque
       resetStats();     // los contadores del recuento final
@@ -2074,6 +2106,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // PAUSA (la logica vive arriba; el input solo enruta). isPaused es el predicado que
       // core/input.js usa para desviar el teclado/el mando al menu en vez de al vuelo.
       isPaused: () => paused,
+      // PAUSA DE DIALOGO: la tecla se lee en input.js y no por `flags.anyPress`, porque durante la
+      // congelada update() no corre — o sea que anyPress no se prende ni se limpia nunca.
+      isDlgPausa: () => dlgPausa,
+      dlgAceptar: () => dlgAceptar(),
       pauseToggle: () => pauseToggle(),
       pauseNav: dir => pauseNav(dir),
       pauseConfirm: () => pauseConfirm(),
@@ -3200,7 +3236,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // de misiles, que es aprender de la peor forma. Lo dice un Fiel, no Condor — el que va
       // adelante ve la costa antes que vos, y esa es la razon de que haya alguien mas volando.
       const fss = fases.stepFases();
-      if (fss && fss.radio) radioTramo(fss.radio);
+      // …Y UNA FASE PUEDE PEDIR QUE SU LINEA PARE EL JUEGO (`pausa`, ensayo 13/9). Lo decide la
+      // DATA, no la mision: aca no hay un solo id escrito, y ningun sistema sabe que existen las
+      // pausas. Es el flanco exacto que pide el pedido —congelar antes de que el dialogo arranque—
+      // y el cuadro en curso termina de correr, que son 16 ms invisibles.
+      if (fss && fss.radio) { if (fss.pausa) dlgFreeze(fss.radio); else radioTramo(fss.radio); }
       // LAS ESTRELLAS DE BUSQUEDA (PLAN_ESTRELLAS_BUSQUEDA §3). Dos mitades:
       //   · el RELOJ DEL ESCONDITE, contra el techo de la FASE y no contra la constante —
       //     esconderse en un FILO es mucho mas dificil que en mar abierto, y eso es correcto:
@@ -3847,7 +3887,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         ctx.save(); ctx.scale(U, U);
         // `charla`: si hay una conversacion en la banda de abajo, la voz de mi avion no puede salir de
         // mi cara (el globo quedaria debajo de la caja de charla) y va arriba con las demas.
-        if (cfg.radioUI === 'panel') screens.drawRadioPanel(); else screens.drawRadioVN({ charla: charla.hablando() });
+        // …SALVO CON EL DIALOGO CONGELADO: ahi la linea se dice en la caja grande de las pantallas
+        // (abajo, con el velo), y dejar tambien el toast seria el mismo texto dos veces.
+        if (!dlgPausa) { if (cfg.radioUI === 'panel') screens.drawRadioPanel(); else screens.drawRadioVN({ charla: charla.hablando() }); }
         // LA CHARLA EN VUELO, en su propia caja y un escalon arriba del toast. Va DESPUES de la
         // radio para que, si las dos coinciden, la conversacion quede encima del aviso.
         // SIEMPRE, con `dlg` en null cuando no hay charla: la caja del otro se va sola y para eso
@@ -3933,6 +3975,23 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         view: pauseView, sel: pauseSel, saveSel, rows: pauseRows(),
         saveRows: pauseSaveRows(), t: pauseT, msg: pauseT - pauseMsgT,
       });
+      // PAUSA DE DIALOGO: velo y CAJA DE LAS PANTALLAS, sin una sola fila de menu. El mundo queda
+      // abajo como contexto —igual que en la pausa— y lo unico que se lee es quien habla: busto,
+      // nombre en acento y lo dicho, que es como el juego presenta un dialogo en todas partes.
+      //
+      // EL CURSOR PARPADEANTE ES EL QUE DICE "TE ESTOY ESPERANDO", y es el mismo de las pantallas
+      // de guion: un mundo congelado sin nada que lo explique se lee como un cuelgue. Sale recien
+      // pasada la gracia, o sea cuando aceptar YA funciona — no puede ofrecer algo que no anda.
+      // Parpadea con `dlgT` porque es el unico reloj vivo: `run.t` esta congelado.
+      if (dlgPausa && radioVis()) {
+        ctx.fillStyle = '#070a0dd2'; ctx.fillRect(0, 0, W, H);
+        ctx.save(); ctx.scale(U, U);
+        screens.cajaVN({
+          personaje: radioBox.personaje, cara: radioBox.cara, wrap: radioBox.wrap,
+          ease: radioBox.ease, cursor: dlgT > DLG_GRACIA, parpadeo: dlgT, barra: null,
+        });
+        ctx.restore();
+      }
       // NOMBRES DE LOS BOTONES SEGUN EL MANDO. El juego se escribio con nomenclatura PlayStation
       // (✕ ◯ □ △, L1/R1, gatillo) y los bindings NO cambian: en el mapeo estandar de la Gamepad API
       // el boton 0 es ✕ en PlayStation y A en Xbox, y estan en el MISMO lugar. Lo unico que cambia
@@ -4184,7 +4243,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       };
     }
     if (typeof window !== 'undefined') window.__pausedbg = () => JSON.stringify({
-      paused, view: pauseView, sel: pauseSel, saveSel, state: S.state,
+      paused, dlg: dlgPausa, dlgT: +dlgT.toFixed(2), view: pauseView, sel: pauseSel, saveSel, state: S.state,
       // EL CURSOR DE LOS MENUS, para que el smoke deje de navegar a ciegas. Agregar una fila al
       // selector principal corria los indices que tools/smoke.js apretaba de memoria y la prueba
       // entraba a OTRA pantalla, fallando mas abajo con un mensaje que no hablaba de menus. Paso
@@ -4830,6 +4889,21 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // menu encima. pauseT es el unico reloj vivo (parpadeos del overlay).
       if (paused) {
         pauseT += raw;
+        draw(); updateMusic(S.state);
+        if (playerEl) playerEl.classList.toggle('on', canPickMusic());
+        requestAnimationFrame(frame);
+        return;
+      }
+      // PAUSA DE DIALOGO: igual que la pausa —saltea update() entero y sigue dibujando— salvo por
+      // UN RENGLON, que es el que hace que esto funcione: `tickRadio(raw, true)`. El unico
+      // tickRadio del vuelo vive adentro de update(), asi que sin esto la caja se quedaria con
+      // ease en 0 (fondo negro sin letras, el bug de tres sintomas de 3163) y ademas no se
+      // vencerian nunca. `raw` y no `dt`: es reloj de PARED, igual que pauseT, porque el del mundo
+      // vale cero aca.
+      if (dlgPausa) {
+        dlgT += raw;
+        tickRadio(raw, true);
+        if (dlgT > DLG_TOPE) dlgAceptar();   // salida de emergencia: sin foco, sin teclado, sin nada
         draw(); updateMusic(S.state);
         if (playerEl) playerEl.classList.toggle('on', canPickMusic());
         requestAnimationFrame(frame);
