@@ -468,9 +468,14 @@ Ventana subida a **45 s** (~5.000 m, ~90 sorteos): el esperado sube a 7,2 y el f
 funciona, todavía no convence". **No se reactivó.**
 
 Las cortinas de F3.1 son otra cosa y tienen otro disparador: son **agua**, sólo sobre agua, y sólo
-por debajo de `RAS_ALT = 4.5` — que es exactamente el techo de la banda del ×10 (`rasNow` en
+por debajo de `CORTINA_ALT = 4.5` — que es exactamente el techo de la banda del ×10 (`rasNow` en
 `systems/flight.js`). O sea que son el **instrumento de la banda**: cuando las ves, estás cobrando.
 Con turbo arrancan más agua (`gordo = 1.7`).
+
+> **El nombre cambio el 13/9.** Se llamaba `RAS_ALT` y era una const local de `render/plane.js`,
+> mientras `data/tuning.js` exportaba OTRO `RAS_ALT` que vale 2,4 y significa otra cosa (la altura
+> a la que el poder asienta el avion). Importar "el" RAS_ALT rompia las cortinas en silencio.
+> Hoy el 4,5 se llama `CORTINA_ALT` y vive en `data/tuning.js` con el resto de las perillas del agua.
 
 Si tampoco convencen se apagan igual de barato: es un solo bloque en `render/plane.js`.
 

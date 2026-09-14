@@ -24,7 +24,7 @@ import { P, LAND, CLAND, SKY_ASTRO, RADAR_VERDE } from '../data/palette.js';
 import { CHUNK_LIFE, ONDA_T, ONDA_R } from '../data/despiece.js';
 import { drawParte, yawDe, colorDe } from './partes.js';
 import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
-  ALAMBRE_CADA, ALAMBRE_POSTE, ALAMBRE_H, MOJADO_A, CHARCO_P, CHARCO_H, PASTO_LEAN, PASTO_ONDA, PASTO_V, PASTO_KX, PASTO_KZ, PASTO_ACOSTAR, RACHA_N, RACHA_T, RACHA_A } from '../data/tuning.js';
+  ALAMBRE_CADA, ALAMBRE_POSTE, ALAMBRE_H, MOJADO_A, CHARCO_P, CHARCO_H, PASTO_LEAN, PASTO_ONDA, PASTO_V, PASTO_KX, PASTO_KZ, PASTO_ACOSTAR, RACHA_N, RACHA_T, RACHA_A, ESTELA_ABRE, ESTELA_EDAD } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { SHIP_CLASS } from '../data/ships.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
@@ -991,8 +991,8 @@ export function drawWake() {
   for (const wp of wake) {
     const trail = PZ - wp.z;                       // metros que quedaron atrás
     const s = proj(wp.x, 0, wp.z);
-    const spread = (0.6 + trail * 0.34) * s.k * wAnch;   // apertura de la V (se abre con el turbo)
-    const age = Math.min(1, trail / 11);           // 0 = recien batida · 1 = por disolverse
+    const spread = (0.6 + trail * ESTELA_ABRE) * s.k * wAnch;   // apertura de la V (crece con el turbo)
+    const age = Math.min(1, trail / ESTELA_EDAD);  // 0 = recien batida · 1 = por disolverse
     const a = Math.min(0.95, wp.i * (0.3 + trail * 0.055) * wAlfa) * (1 - age * 0.45);
     if (a <= 0.02) continue;
     // CENTRO batido: solo mientras es fresco — lengua de espuma con cresta blanca encima

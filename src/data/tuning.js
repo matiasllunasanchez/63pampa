@@ -415,45 +415,101 @@ export const TEMPO_CHARGE = 650;    // puntos que llenan la barra (subido de 500
 // ESE, asi que van radiales; alinearlos con este achatado fue el error.
 export const FUGA_Y = 0.62;
 
-// LA PENDIENTE DE LOS BRAZOS EN V de la rociada: abren ROC_ABRE de costado por cada ROC_BAJA que
-// bajan (render/plane.js). Una V bien acostada, unos 18° bajo la horizontal.
+// =================================================================================================
+// EL AGUA QUE LEVANTA EL AVION — las perillas de los CUATRO efectos
+// =================================================================================================
 //
-export const ROC_ABRE = 4, ROC_BAJA = 1.3;
+// Son CUATRO cosas distintas y conviene saberlo antes de tocar nada, porque llamarlas a todas "las
+// particulas" costo una tarde entera:
+//
+//   ROCIO    las gotas sueltas que saltan al lado del avion          systems/vuelo.js, estelaVuelo
+//   ROCIADA  la lengua y los brazos en V pegados a la sombra         render/plane.js, drawPlane
+//   CORTINAS las barras que nacen en las puntas de ala               render/plane.js, drawPlane
+//   ESTELA   las lineas gruesas y las motas que quedan atras         render/world.js, drawWake
+//
+// LAS DOS PRESENTACIONES. En el pasillo la camara mira para adelante y el avion se dibuja visto
+// desde atras. Con el PODER RASANTE el mundo NO cambia —misma proyeccion, mismo punto de fuga— pero
+// el avion se dibuja con otra hoja, que lo muestra desde unos 45° al costado. O sea que cambia la
+// figura del AVION y no la del mundo, y todo lo que cuelgue de la sombra con angulos fijos sigue
+// dibujando un avion visto de atras mientras se ve uno de costado. Por eso hay perillas `_RAS_`.
+//
+// LOS VALORES `_RAS_` ARRANCAN IGUALES A LOS DEL PASILLO a proposito: la perilla existe y no cambia
+// nada hasta que alguien decida moverla. Lo unico que hoy SI cambia con el poder es el rocio, que
+// es lo que el autor pidio.
 
-// LA MISMA PENDIENTE, PERO PARA EL ROCIO DE PARTICULAS (systems/vuelo.js). Arranca con los mismos
-// numeros que las barras —que es lo que hace que se lean como UN efecto y no dos superpuestos—
-// pero es un par APARTE para poder tocarlo sin mover las barras, que ya estan bien.
+// ---- EL EJE COMUN ------------------------------------------------------------------------------
+
+// CUANTO SE ACUESTA EL EJE DEL AGUA con el poder puesto, en GRADOS.
+// HOY LO LEE UNO SOLO: el rocio. Se llama AGUA_ y no ROCIO_ a proposito — el dia que la rociada o
+// las cortinas tambien se acuesten tienen que acostarse LO MISMO, y para eso el numero ya esta.
+//   0 = igual que en el pasillo · 45 = hacia la IZQUIERDA · -45 = hacia la derecha.
+// Gira el eje ENTERO, asi que vale igual con la V abierta o cerrada.
+export const AGUA_RAS_GRADOS = 45;
+
+// ---- EL ROCIO (systems/vuelo.js) ----------------------------------------------------------------
 //
-// COMO SE TOCA. La direccion es (ROCIO_ABRE de costado, ROCIO_BAJA hacia atras), asi que lo que
-// manda es la RELACION entre los dos:
-//
-//   angulo bajo la horizontal = atan(ROCIO_BAJA / ROCIO_ABRE)      hoy: atan(1,3/4) = 18°
-//
-//   ROCIO_ABRE = 0   →  RECTAS DETRAS DEL AVION, sin V: todas por el mismo eje
-//
-// SON DOS PARES: `ROCIO_*` manda en el pasillo y `ROCIO_RAS_*` con el PODER puesto. Se separaron
-// porque con el poder el avion se dibuja desde el costado y la figura del agua no es la misma.
-//   ROCIO_ABRE mas chico  →  V mas cerrada (mas parecida a una linea)
-//   ROCIO_ABRE mas grande →  V mas abierta (mas abanico)
-//   ROCIO_BAJA mas grande →  la V cae mas rapido hacia la camara (mas empinada)
-//   ROCIO_BAJA mas chico  →  mas acostada, se va mas a los costados que hacia atras
-//
-// Referencias: 4 / 1,3 = 18° (el de las barras) · 8 / 1,3 = 9° (bien abierta) · 2 / 1,3 = 33°
-// (cerrada y empinada) · 0 / 1 = recta.
-// SIN EL PODER (el pasillo de siempre): una V corta.
+// La direccion de cada gota es (ABRE de costado, BAJA hacia atras) y lo que manda es la RELACION:
+//     angulo bajo la horizontal = atan(BAJA / ABRE)
+//   ABRE = 0        →  RECTAS detras del avion, sin V
+//   ABRE mas chico  →  V mas cerrada · ABRE mas grande → V mas abierta
+//   BAJA mas grande →  cae mas rapido hacia la camara · mas chico → mas acostada
 export const ROCIO_ABRE = 2, ROCIO_BAJA = 1.3;
-// CON EL PODER PUESTO: otro par, porque ahi la figura del agua es otra. Con ABRE en 0 el chorro
-// sale RECTO por el eje —sin V— y lo que lo acuesta es ROCIO_RAS_GRADOS, aca abajo.
+// Con el PODER puesto, otro par: ahi la figura del agua es otra.
 export const ROCIO_RAS_ABRE = 5.5, ROCIO_RAS_BAJA = 50;
 
-// …Y CUANTO SE INCLINA EL EJE CON EL PODER RASANTE PUESTO, en GRADOS. Hace falta porque con el
-// poder el avion se dibuja con otra hoja, que lo muestra desde unos 45° al costado: el mundo no
-// cambia, pero la FIGURA DEL AGUA si, y el rocio tiene que acompanarla o sale cayendo derecho
-// mientras todo lo demas se va en diagonal.
+// CUANTO SE LA LLEVA EL AIRE: multiplica `run.spd` para dar la velocidad de la gota, asi que el
+// rocio se acelera con el avion. A spd 62 son ~174 px/s de mundo.
+export const ROCIO_BARRIDO = 2.8;
+
+// EL REPARTO DE LA POBLACION, en fracciones (1 = todas):
+//   PUNTA    cuantas nacen en las PUNTAS de ala (±ALA_PX); el resto, bajo el fuselaje. Es lo que
+//            decide si el efecto se lee como DOS cortinas o como un chorro central.
+//   COLUMNA  de las de punta, cuantas son la lineita VERTICAL que sube antes de que el aire se la
+//            lleve. Esas salen antes del giro del eje, asi que con el poder van derecho mientras
+//            las barridas van a 45: bajarla (o ponerla en 0) es como se apaga esa discrepancia.
+export const ROCIO_PUNTA = 0.7, ROCIO_COLUMNA = 0.45;
+export const ROCIO_RAS_COLUMNA = 0.45;   // probar en 0 si con el poder la columna desentona
+
+// ---- LA ROCIADA (render/plane.js) ---------------------------------------------------------------
 //
-// 0 = igual que en el pasillo · 45 = el eje se acuesta hacia la IZQUIERDA · -45 = hacia la derecha.
-// Es un giro del eje entero, asi que funciona lo mismo con la V abierta o con ROCIO_ABRE en 0.
-export const ROCIO_RAS_GRADOS = 45;
+// Los brazos en V abren ROCIADA_ABRE de costado por cada ROCIADA_BAJA que bajan: hoy 4/1,3, o sea
+// unos 18° bajo la horizontal. SE LLAMABAN ROC_*, a dos letras de ROCIO_*, y eso ya causo una
+// confusion cara: son efectos distintos y ahora los nombres lo dicen.
+export const ROCIADA_ABRE = 4, ROCIADA_BAJA = 1.3;
+export const ROCIADA_RAS_ABRE = 4;       // con el poder. Probar en 0 para que la V se cierre.
+export const ROCIADA_ALT = 7;            // altura de mundo hasta la que hay rociada
+
+// ---- LAS CORTINAS DE PUNTA DE ALA (render/plane.js, SPEC_AGUA_OLAS F3.1) ------------------------
+//
+// Cuatro muestras por lado que se abren hacia AFUERA y caen hacia ATRAS a medida que envejecen.
+// ⚠ SON DOS COSAS DISTINTAS QUE VALIAN LO MISMO. En el dibujo habia dos 5: uno era cuanto se corre
+// la barra hacia AFUERA y el otro cuanto MIDE de ancho. Escritos iguales, parecian el mismo numero;
+// juntarlos en una perilla hacia que cerrar la cortina la adelgazara de paso.
+export const CORTINA_ABRE = 5;           // cuanto se corre hacia afuera la muestra mas vieja
+export const CORTINA_ANCHO = 5;          // cuanto crece el ancho de la barra con la edad
+export const CORTINA_BAJA = 4;           // cuanto cae la mas vieja respecto de la primera
+export const CORTINA_RAS_ABRE = 5;       // con el poder. Bajarla cierra la cortina (sin adelgazarla).
+export const CORTINA_N = 4;              // cuantas muestras tiene cada cortina
+// ⚠ ESTE 4,5 NO ES `RAS_ALT`. Es el techo de la banda del x10: cuando ves las cortinas, estas
+// cobrando. `RAS_ALT` (2,4) es OTRA cosa — la altura a la que el poder asienta el avion. Vivian las
+// dos con el mismo nombre en archivos distintos, y el import "natural" de una rompia la otra.
+//
+// Y OJO: mover esto NO mueve la banda. El mismo 4,5 esta escrito a mano en core/util.js (multOf),
+// en systems/flight.js (rasNow), en systems/aguante.js (BANDA) y en la escalera de gotas de
+// systems/vuelo.js. Cambiar solo esta constante desincroniza las cortinas del multiplicador, que es
+// justo lo que les da sentido. Si hay que mover la banda, se mueven los cinco.
+export const CORTINA_ALT = 4.5;
+
+// ---- LA ESTELA (render/world.js, drawWake) ------------------------------------------------------
+//
+// ABRE es el ANGULO: cuanto se abre cada brazo de la V por cada metro que el punto queda atras.
+// En 0 la estela sale recta, en dos lineas paralelas.
+export const ESTELA_ABRE = 0.34;
+// EDAD son los metros en que la estela pasa de recien batida a disuelta. La poda del wake corta a
+// 11,6 m (systems/vuelo.js), asi que dejarlo un poco abajo hace que se deshilache ANTES de que la
+// poda la corte de golpe — que es lo que se quiere.
+export const ESTELA_EDAD = 11;
+export const ESTELA_ALT = 9;             // altura de mundo hasta la que se siembra estela
 
 // DONDE ESTAN LAS PUNTAS DE ALA en la pantalla, medidas desde la sombra del avion y en pixeles
 // de MUNDO. Vive aca —y no en el render— porque la usan DOS cosas que tienen que coincidir o se

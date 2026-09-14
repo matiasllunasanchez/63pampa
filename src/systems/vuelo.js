@@ -21,8 +21,9 @@ import { wake, parts, prune } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
 import { PZ, W } from '../render/ctx.js';
-import { FLY_X, FLY_TOP, ALA_PX, ROCIO_ABRE, ROCIO_BAJA,
-         ROCIO_RAS_ABRE, ROCIO_RAS_BAJA, ROCIO_RAS_GRADOS } from '../data/tuning.js';
+import { FLY_X, FLY_TOP, ALA_PX, ROCIO_ABRE, ROCIO_BAJA, ROCIO_RAS_ABRE, ROCIO_RAS_BAJA,
+         ROCIO_BARRIDO, ROCIO_PUNTA, ROCIO_COLUMNA, ROCIO_RAS_COLUMNA,
+         AGUA_RAS_GRADOS, ESTELA_ALT } from '../data/tuning.js';
 import { PITCH_LERP } from '../core/physics.js';
 
 // cuanto sube la camara con turbo (unidades de mundo): el efecto de 'alejarse'
@@ -130,18 +131,13 @@ export function stepVuelo(dt, o) {
 }
 
 
-// CUANTO SE LA LLEVA EL AIRE, y cuanto queda del salto original. Las dos son del rocio y viven
-// juntas porque se reparten el mismo gesto: subir y volar para atras (ver estelaVuelo).
-const BARRIDO = 2.8;   // x la velocidad del avion: a spd 80 son ~224 px/s de mundo
 // EL ENVION HACIA ARRIBA de la gota barrida: CERO. Es lo unico que la sacaba del rayo del
 // barrido — con 0.55 la gota subia mientras el mundo se iba, y el resultado era una direccion
 // propia que no coincidia con ninguna raya de la pantalla. Lo vertical lo hacen las particulas de
 // COLUMNA, que son otras y para eso estan; estas van EN LINEA y nada mas.
 const SALTO = 0;
-// CUANTAS gotas nacen en las PUNTAS (el resto va bajo el fuselaje: el agua que el avion empuja
-// con su propia presion). Y de las de punta, cuantas son COLUMNA — la lineita vertical que sube
-// antes de que el aire se la lleve. Las dos son fracciones: 1 = todas.
-const PUNTA = 0.7, COLUMNA = 0.45;
+// (El reparto de la poblacion —PUNTA y COLUMNA— y la velocidad del barrido viven en data/tuning.js
+//  junto con el resto de las perillas del agua.)
 
 /** EL AGUA QUE LEVANTAS al volar a ras: la estela sobre el mar y el rocio que salta.
  *
@@ -156,7 +152,7 @@ export function estelaVuelo(dt, o) {
   o = o || {};
   const alt = o.alt === undefined ? plane.y : o.alt;
   // estela sobre el agua
-  const lowI = Math.max(0, 1 - alt / 9);
+  const lowI = Math.max(0, 1 - alt / ESTELA_ALT);
   if (lowI > 0 && !o.pista && !o.tierra) {
     wake.push({ x: plane.x, z: PZ, i: lowI, seed: Math.random() * 100 });   // seed: motas estables
     if (wake.length > 150) wake.shift();
@@ -169,6 +165,11 @@ export function estelaVuelo(dt, o) {
   // `mas` multiplica el rocio y por omision es 1: el PASILLO no cambia. Lo levanta una CINEMATICA,
   // y por una razon honesta — el pasillo es juego y el rocio no puede taparte lo que tenes que
   // esquivar; un plano rasante es una TOMA, y ahi el agua saltando ES el tema.
+  // ⚠ LOS TRES NUMEROS DE ESTA ESCALERA TIENEN HERMANOS EN OTRO ARCHIVO y no estan atados: el 4,5
+  // es el techo de la banda del x10 (el mismo de CORTINA_ALT, core/util.js y systems/aguante.js) y
+  // el 7 es el de la rociada (ROCIADA_ALT). Se dejaron literales a proposito —la densidad del
+  // rocio no tiene por que seguir a la altura de otro efecto— pero si alguien mueve la banda,
+  // este 4,5 se mueve con ella o el rocio deja de marcar donde empezas a cobrar.
   const nSpray = Math.round((alt < 2.8 ? 6 : alt < 4.5 ? 3 : alt < 7 ? 1 : 0) * (o.mas || 1));
   // DE DONDE SALE Y HACIA DONDE VA. Por omision es lo del PASILLO: una manchita angosta delante del
   // morro, que es donde uno la ve desde afuera del avion.
@@ -203,7 +204,7 @@ export function estelaVuelo(dt, o) {
     // brazos en V, las cortinas— cuelga de la SOMBRA con geometria fija, y el sprite del PODER
     // muestra al avion desde 45°, corrido y girado respecto de esa sombra. Colgando el rocio del
     // sprite y las barras de la sombra, los dos se separaban justo al activar el poder.
-    const punta = Math.random() < PUNTA;
+    const punta = Math.random() < ROCIO_PUNTA;
     const lado = punta || nace === 0 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(nace);
     const bx = s.x + (punta ? lado * ALA_PX : 0);
     // LA COLUMNA: la primera mitad del gesto. El vortice levanta el agua DERECHO —una lineita
@@ -211,7 +212,9 @@ export function estelaVuelo(dt, o) {
     // APARTE y no como una curva porque el paso de particulas es lineal (x += vx*dt, con gravedad
     // fija y chica): una sola gota con envion arriba y barrido atras dibuja una DIAGONAL, no
     // "primero vertical y despues abierta". Con dos poblaciones si.
-    if (punta && Math.random() < COLUMNA) {
+    // con el PODER la columna tiene su propia fraccion: sale ANTES del giro del eje, asi que si
+    // desentona con las barridas se la baja ahi sin tocar el pasillo.
+    if (punta && Math.random() < (o.ras ? ROCIO_RAS_COLUMNA : ROCIO_COLUMNA)) {
       parts.push({
         x: bx, y: s.y - 1, vx: (Math.random() - 0.5) * 8, vy: -(150 + Math.random() * 90),
         life: 0.09 + Math.random() * 0.07,
@@ -219,18 +222,14 @@ export function estelaVuelo(dt, o) {
       });
       continue;
     }
-    // Y SE VAN POR EL ANGULO DE LAS BARRAS. El agua batida ya dibuja su V —los brazos de la
-    // rociada, en render/plane.js— y ESA es la referencia: si el rocio sale por otro angulo, se
-    // leen como dos efectos distintos superpuestos, que es lo que pasaba.
-    //
-    // Los brazos abren 4 de costado por cada 1,3 que bajan, o sea una V bien acostada, y el
-    // el rocio vuela sobre esa misma pendiente. Se probo con el rayo del punto de fuga y con la
-    // perpendicular a la linea del ala, y las dos eran mas empinadas que las barras.
+    // EL ANGULO SALE DE PERILLA (data/tuning.js, ROCIO_ABRE / ROCIO_BAJA). Arranco copiando la
+    // pendiente de los brazos de la rociada —para que el rocio y las barras se leyeran como UN
+    // efecto y no dos superpuestos— pero el autor lo tuneo aparte y hoy son distintas: la rociada
+    // abre 4/1,3 (unos 18°) y el rocio 2/1,3 (unos 33°). Que sean dos perillas es justamente lo
+    // que permite eso.
     //
     // Como todas las gotas salen del mismo lugar con velocidad CONSTANTE, su rastro es una V que
     // arranca en punta y se abre sola: no hay que programar "primero junto y despues abierto".
-    // LAS DOS PERILLAS DEL ANGULO: data/tuning.js, ROCIO_ABRE / ROCIO_BAJA.
-    // ROCIO_ABRE = 0 saca la V y manda todo RECTO para atras.
     // CADA VISTA TIENE SU PAR: en el pasillo una V corta, y con el poder puesto la que haga falta
     // para acompanar la figura del agua de esa hoja. Son dos pares y no uno con excepciones porque
     // tunear uno no tiene que mover el otro — que fue justo lo que costo encontrar.
@@ -241,11 +240,11 @@ export function estelaVuelo(dt, o) {
     // hoja del poder, que lo muestra desde unos 45° al costado: la figura del agua se acuesta y el
     // rocio tiene que acompanarla. Es un giro del eje ENTERO, asi que vale igual con la V abierta o
     // con ROCIO_ABRE en 0 (donde, sin esto, el chorro caia derecho mientras todo se iba en diagonal).
-    const g = (o.ras ? ROCIO_RAS_GRADOS : 0) * Math.PI / 180;
+    const g = (o.ras ? AGUA_RAS_GRADOS : 0) * Math.PI / 180;
     const cg = Math.cos(g), sg = Math.sin(g);
     const ex0 = lado * (rAbre / rn), ey0 = rBaja / rn;
     const exr = ex0 * cg - ey0 * sg, eyr = ex0 * sg + ey0 * cg;
-    const barrido = run.spd * BARRIDO;
+    const barrido = run.spd * ROCIO_BARRIDO;
     parts.push({
       x: bx, y: s.y - 1,
       vx: (Math.random() - 0.5) * 14 + fuera + exr * barrido,

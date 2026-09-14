@@ -19,7 +19,8 @@ import { drawMira } from './miras.js';
 import { anchorSpray, drawSpray } from './rain.js';
 import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H, SHEET3_FW, SHEET3_FH } from '../data/planes.js';
 import { ANCLAS } from '../data/anclas.js';
-import { ALA_PX, ROC_ABRE, ROC_BAJA } from '../data/tuning.js';
+import { ALA_PX, ROCIADA_ABRE, ROCIADA_BAJA, ROCIADA_RAS_ABRE, ROCIADA_ALT,
+         CORTINA_ABRE, CORTINA_ANCHO, CORTINA_BAJA, CORTINA_RAS_ABRE, CORTINA_N, CORTINA_ALT } from '../data/tuning.js';
 import { skinOf } from '../data/skins.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName, rosterActive } from '../systems/squad.js';
@@ -153,9 +154,9 @@ function stepFlame() {
 // Al soltar el turbo no se agregan muestras y la cola se va comiendo el hilo de atras para
 // adelante, que es como se disipa de verdad — no un corte.
 // CORTINAS DE PUNTA DE ALA (F3.1): donde estan las puntas respecto de la sombra, y hasta que
-// altura hay agua que arrancar. RAS_ALT es el techo de la banda del x10 — una sola banda, y
+// altura hay agua que arrancar. CORTINA_ALT (data/tuning.js) es el techo de la banda del x10, y
 // ahora tambien un solo efecto que la anuncia.
-const TIP_X = ALA_PX, RAS_ALT = 4.5;   // ALA_PX vive en data/tuning: el rocio de vuelo.js usa el mismo
+const TIP_X = ALA_PX;   // ALA_PX vive en data/tuning: el rocio de vuelo.js usa el mismo
 
 // EL LARGO DE LA ESTELA. `TIP_CAIDA` es cuanto CAE la muestra mas vieja, en pixeles de mundo, y
 // es lo unico que la alarga de verdad: el avion vive clavado en la pantalla, asi que el hilo no se
@@ -565,7 +566,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
   // ROCIADA: el avion levanta agua al pasar rasante. Antes eran DOS BARRAS planas cruzando la
   // pantalla; ahora es una lengua de agua bajo el fuselaje, dos brazos en V que se abren hacia
   // atras y gotas sueltas — que es como se lee el agua batida en pixel art.
-  const churn = Math.max(0, 1 - plane.y / 7);
+  const churn = Math.max(0, 1 - plane.y / ROCIADA_ALT);
   if (churn > 0 && S.state === 'play' && cfg.terrain !== 'land') {
     const pulse = 0.8 + 0.2 * Math.sin(run.t * 22);           // el chorro late, no es una calca
     // LENGUA central: el agua que el avion levanta justo debajo, con cresta blanca arriba
@@ -574,7 +575,9 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
     px(sh.x - 4, sh.y - 1, 8, 2, P.foam);
     // BRAZOS en V: se abren y se apagan hacia atras, con el borde de arriba mas claro
     for (let i = 1; i <= 5; i++) {
-      const w = (2 + i) * pulse, o = ROC_ABRE + i * ROC_ABRE, yy = sh.y + i * ROC_BAJA;
+      // con el PODER la V abre lo suyo: la figura del avion es otra (ver data/tuning.js)
+      const abreBrazo = ras ? ROCIADA_RAS_ABRE : ROCIADA_ABRE;
+      const w = (2 + i) * pulse, o = abreBrazo + i * abreBrazo, yy = sh.y + i * ROCIADA_BAJA;
       ctx.globalAlpha = churn * (0.6 - i * 0.09);
       px(sh.x - o - w, yy, w, 1, P.foam);
       px(sh.x + o, yy, w, 1, P.foam);
@@ -591,7 +594,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
       px(sh.x + dx, sh.y + dy, Math.random() < 0.3 ? 2 : 1, 1, Math.random() < 0.45 ? P.crest : P.foam);
     }
     // CORTINAS DE PUNTA DE ALA (SPEC_AGUA_OLAS F3.1). El agua que las puntas arrancan de la
-    // superficie cuando vas DE VERDAD a ras. Empieza en RAS_ALT y no en el 7 de la rociada, y
+    // superficie cuando vas DE VERDAD a ras. Empieza en CORTINA_ALT y no en ROCIADA_ALT, y
     // ese numero no es decorativo: 4.5 es el techo de la banda del x10 (el mismo de `rasNow` en
     // systems/flight.js). O sea que las cortinas son el INSTRUMENTO de la banda — cuando las
     // ves, estas cobrando; cuando se apagan, saliste. El HUD te lo dice con un numero; esto te
@@ -601,22 +604,28 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
     // (commit e8ccbd1). Aquellos son condensacion con turbo, a cualquier altura y en cualquier
     // terreno; estos son AGUA, solo sobre agua y solo a ras. Si tampoco convencen, se apagan
     // igual: es este bloque y nada mas.
-    const ras = Math.max(0, 1 - plane.y / RAS_ALT);
-    if (ras > 0) {
+    // `mojado` y no `ras`: asi se llamaba, y TAPABA el parametro `ras` de drawPlane —que dice si
+    // el poder esta puesto— con lo cual adentro de todo el bloque de agua era imposible
+    // preguntarlo. Renombrarlo es lo que deja que la rociada y las cortinas tengan variante.
+    const mojado = Math.max(0, 1 - plane.y / CORTINA_ALT);
+    if (mojado > 0) {
       const gordo = run.boost ? 1.7 : 1;                    // con turbo arranca mas agua
       for (const sg of [-1, 1]) {
         const bx = sh.x + sg * TIP_X;
-        for (let i = 0; i < 4; i++) {
+        const abreCortina = ras ? CORTINA_RAS_ABRE : CORTINA_ABRE;
+        for (let i = 0; i < CORTINA_N; i++) {
           // la cortina se abre HACIA AFUERA y HACIA ATRAS, y se apaga con la edad: es una
           // cortina, no un chorro — el agua se despega de la punta y queda atras
-          const f = i / 3;
-          ctx.globalAlpha = ras * gordo * (0.55 - f * 0.32);
-          const w = (2 + f * 5) * gordo;
-          px(bx + sg * f * 5, sh.y - 2 + f * 4, w, 1, f < 0.4 ? P.crest : P.foam);
+          const f = i / (CORTINA_N - 1);            // el divisor sale de CORTINA_N, no a mano
+          ctx.globalAlpha = mojado * gordo * (0.55 - f * 0.32);
+          // el ANCHO y la APERTURA son dos numeros distintos aunque valgan lo mismo: cerrar la
+          // cortina no tiene por que adelgazarla (ver data/tuning.js, CORTINA_ANCHO)
+          const w = (2 + f * CORTINA_ANCHO) * gordo;
+          px(bx + sg * f * abreCortina, sh.y - 2 + f * CORTINA_BAJA, w, 1, f < 0.4 ? P.crest : P.foam);
         }
         // gotas sueltas arrancadas de la punta
         if (Math.random() < 0.6 * gordo) {
-          ctx.globalAlpha = ras * 0.7;
+          ctx.globalAlpha = mojado * 0.7;
           px(bx + sg * (2 + Math.random() * 9), sh.y - 3 + Math.random() * 7, 1, 1, P.crest);
         }
       }
