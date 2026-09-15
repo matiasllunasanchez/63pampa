@@ -1077,3 +1077,53 @@ radio que lo narre ("parece que los perdimos").
 
 > Nada de esto bloquea la mecanica: el bucle detectar → perseguir → esconderse → perder contacto
 > se sostiene con lo de arriba. Lo que se confirme afina los NUMEROS y la linea de radio.
+
+## ¿EL BARCO TE VEÍA VENIR? — la llegada rasante (pregunta del autor, 14/9/2026)
+
+Pregunta: *«al estar llegando, el barco lo atacaba porque lo veía, o aunque venga rasante no se
+veía hasta llegar?»* Importa para `docs/sistemas/MECANICAS_LLEGADA.md`: decide cuánto aviso tiene
+el buque y por lo tanto cuánto fuego hay ANTES de la suelta y cuánto DESPUÉS.
+
+**La respuesta es "depende de dónde", y son dos situaciones distintas:**
+
+**1 · Mar abierto (Sheffield, Coventry/Broadsword, Glamorgan).** Volar a 15–30 m no te hacía
+invisible: te bajaba el alcance. El horizonte de radar desde un mástil de ~25 m contra un avión a
+15 m es de unos **35 km** en teoría; en la práctica el eco del mar (*clutter*) y las limitaciones
+de los radares de la época (el Type 965 de vigilancia era malo a baja cota; el 992 servía) daban
+detecciones típicas de **20–30 km**, y a veces bastante menos. A 900 km/h eso son **1,5 a 2
+minutos** de aviso. Con ese tiempo el buque tiraba lo de largo alcance: **Sea Dart** (el Coventry
+derribó dos A-4C así la mañana del 25/5, antes de hundirse) y **Sea Wolf** a corto alcance. Y
+además el aviso llegaba por radio de los piquetes o de la CAP. **Conclusión de mar abierto: el
+barco sabía que venías y te tiraba antes de que lo vieras bien.**
+
+**2 · Bahías (San Carlos, Bahía Agradable, Fitzroy).** Las lomas tapaban el radar. Los aviones
+entraban por sobre la costa y **aparecían de golpe a 2–5 km**: **segundos** de aviso, no minutos.
+Ahí el fuego era de todo lo que apuntaba a ojo — Bofors, Oerlikon, GPMG, Rapier y Blowpipe desde
+tierra, Sea Cat guiado a mano — y buena parte disparaba **mientras pasabas y después**, en la
+salida. Los relatos británicos de San Carlos son de "los vimos cuando ya estaban encima".
+**Conclusión de bahía: la sorpresa era mutua; el peligro grande estaba en la SALIDA.**
+
+**Lo visual, en los dos casos:** un A-4 de frente y pegado al agua es una silueta chiquita contra
+la bruma. Los vigías lo veían a **5–8 km**: 20–30 segundos. El Sea Cat y los cañones necesitaban
+verte; por eso el fuego "de a ojo" arrancaba tarde y seguía en la salida.
+
+**Lo que ya se dio por bueno (no hace falta confirmarlo para diseñar):**
+- Rasante = menos alcance de radar, no invisibilidad. El FILO del juego traduce eso bien.
+- En mar abierto había aviso y misil de largo alcance; en bahía, segundos y fuego de a ojo.
+- La salida era más letal que la entrada: muchos derribos de A-4 fueron egresando (fuego del
+  buque ya alertado + Harriers esperando). **Confirma "la vuelta es la guerra".**
+
+**Para RASANTE (traducción a diseño, no bloquea nada):**
+- **Misión en mar abierto** → el buque te ve 1–2 minutos antes: la llegada tiene **flak de lejos
+  y UN misil lento visible** antes de la suelta (opciones "callar la AA" y "Sea Cat visible"),
+  y el FILO estrangulado es lo que acorta ese aviso.
+- **Misión en bahía (m5, m9)** → nadie ve a nadie hasta el cruce: la llegada es **altura y carril
+  al pasar**, y el fuego explota **después**, en tu cola, arrancando la vuelta.
+- El radar "que te busca" (sección de arriba) y la escalera de ruido del TEASER 2 ya son esto.
+
+**Lo que hay que confirmar antes de escribir NÚMEROS:**
+1. Distancia real de primera detección radar de los A-4 el 25/5 (Coventry/Broadsword) y el 21/5.
+2. A qué altura iban en el tramo final (los relatos hablan de 50–100 pies; el pop-up para soltar
+   subía a 150–300 pies): fija la banda de suelta del juego.
+3. Cuántos derribos de A-4 fueron en la entrada vs en la salida (para el reparto de peligro
+   ida/vuelta).

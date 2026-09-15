@@ -8,7 +8,14 @@
 > Este documento es autocontenido: todos los prompts van completos, sin tokens, listos para
 > pegar. No hace falta abrir ningún otro archivo para rodar el teaser.
 >
-> **Novedad verificada en la cuenta:** 3.0 Turbo ahora SÍ acepta frame A + frame B + prompt.
+> 🔴 **CORRECCIÓN (14/9/2026, verificado en pantalla): `End Frame` NO está soportado en 3.0
+> Turbo.** La afirmación de abajo quedó desactualizada y con ella toda la estrategia de
+> cuadro A + cuadro B. **En Turbo se rueda con cuadro A solamente** y el movimiento lo lleva
+> entero el prompt. Además: **un video 1080p de 5 s cuesta 50 créditos**, y **editar una
+> generación vieja cuesta los mismos 50** — o sea que nunca conviene editar, siempre
+> regenerar con el prompt corregido. Ver `PLAN_660_CREDITOS.md`.
+>
+> ~~**Novedad verificada en la cuenta:** 3.0 Turbo ahora SÍ acepta frame A + frame B + prompt.~~
 > Eso cambia la estrategia: **se rueda todo en Turbo**, y 3.0 completo queda como rescate
 > solo si Turbo licúa el estilo o rompe un movimiento.
 

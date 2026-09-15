@@ -21,6 +21,10 @@ El nivel más completo que se imagina:
 **EL PULSO** → cinemática → fin del nivel. **PERSECUCIÓN** sigue existiendo, pero como variante de
 pasillo que dura algunas misiones, no como modo aparte.
 Plan por fases chicas: **[PLAN_NIVEL_COMPLETO.md](PLAN_NIVEL_COMPLETO.md)**.
+**Matiz del 14/9/2026:** todas las misiones pasan a ser **IDA y VUELTA** (ida fantasma, vuelta
+guerra, salvo la final). EL PULSO **se mantiene provisoriamente** como ataque al buque, pero
+alimentado por las dos situaciones de llegada (te vieron / no te vieron); el listado de
+alternativas y el gate están en **[../sistemas/MECANICAS_LLEGADA.md](../sistemas/MECANICAS_LLEGADA.md)** §0.
 
 Consecuencias: `PLAN_REFACTOR.md` en **STANDBY** · `PASADA_ADRENALINA.md` **en pausa** ·
 `SPEC_MODO_PASADA.md`, `PLAN_MINUTOS_SAGRADOS.md` y `PROMPT_ARENA_VUELO_LIBRE.md` **pendientes en
