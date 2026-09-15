@@ -8,6 +8,7 @@ import { cam, cfg, plane, stats } from './state.js';
 import { run } from './run.js';
 import { parts, popups, obstacles } from './world.js';
 import { P } from '../data/palette.js';
+import { POLVO_ABRE, POLVO_BAJA, POLVO_BARRIDO } from '../data/tuning.js';
 import { recetaDe, CHUNKS_MAX, CHUNK_LIFE, SEC_N, SEC_T,
   ONDA_T, ONDA_R, ONDA_PUSH, CERCA, FLASH_T,
   CHAIN_R, CHAIN_DEPTH, CHAIN_DELAY, DESPIECE, PARTS_MAX,
@@ -66,6 +67,40 @@ export function popup(x, y, txt, c, big) {
 
 /** Explosion: reventon de particulas en (x,y,z) + sacudon de camara. `big` la agranda y agacha
  *  la musica un instante (ducking). */
+/** EL POLVO QUE LEVANTA UNA RUEDA — carreteo, despegue y el pasaje bajo antes de tocar.
+ *
+ *  LO LEVANTAN TODOS LOS AVIONES, no solo el tuyo, asi que esto se llama una vez por avion y por
+ *  cuadro. Vivia COPIADO en dos lugares de game.js con la misma linea literal —y el segundo hasta
+ *  lo decia: "el mismo del carreteo"—; dos copias de un efecto es un efecto que se va a
+ *  desincronizar el dia que alguien toque una.
+ *
+ *  VA PARA ATRAS EN V CORTA (pedido de Matias, 15/9/2026), igual que el rocio de systems/vuelo.js.
+ *  Antes el `vx` era al azar simetrico: una nubecita que se quedaba donde nacio mientras el avion se
+ *  le iba, y a cualquier velocidad se leia como humo quieto. Ahora cada mota sale con la direccion
+ *  (POLVO_ABRE de costado, POLVO_BAJA hacia atras) multiplicada por la velocidad, asi que la nube se
+ *  abre sola en V y se estira cuanto mas rapido vas — sin programar ninguna etapa.
+ *
+ *  @param x,z   donde esta el avion, en coordenadas de MUNDO
+ *  @param prob  cuanto levanta este avion por cuadro (el lider mas que los de la formacion)
+ */
+export function polvoSuelo(x, z, prob) {
+  if (Math.random() >= prob) return;
+  const s = proj(x + (Math.random() - 0.5) * 3, 0, z - Math.random() * 1.5);
+  // el lado de la V lo decide DONDE nacio la mota respecto del eje, no una moneda: asi las de la
+  // izquierda se van a la izquierda y la nube tiene dos brazos en vez de un abanico al azar.
+  const lado = Math.random() < 0.5 ? -1 : 1;
+  const n = Math.hypot(POLVO_ABRE, POLVO_BAJA) || 1;
+  const barrido = run.spd * POLVO_BARRIDO;
+  parts.push({
+    x: s.x, y: s.y - 1,
+    vx: (Math.random() - 0.5) * 10 + lado * (POLVO_ABRE / n) * barrido,
+    // el envion hacia arriba se queda (la rueda patea la tierra para arriba); lo que se le suma es
+    // el arrastre hacia atras, que en pantalla es HACIA ABAJO — el mundo viene hacia la camara.
+    vy: -(15 + Math.random() * 25) + (POLVO_BAJA / n) * barrido,
+    life: 0.4, c: '#6b6f62', r: 1.2,
+  });
+}
+
 export function explodeAt(x, y, z, big, noBall, noShake) {
   const s = proj(x, y, z);
   for (let i = 0, n = big ? 24 : 12; i < n; i++) {

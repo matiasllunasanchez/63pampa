@@ -530,6 +530,25 @@ export const ROCIO_BARRIDO = 2.8;
 export const ROCIO_PUNTA = 0.7, ROCIO_COLUMNA = 0.45;
 export const ROCIO_RAS_COLUMNA = 0.45;   // probar en 0 si con el poder la columna desentona
 
+// ---------------------------------------------------------------------------------------------
+// EL POLVO DEL SUELO — el gemelo en tierra del rocio de arriba (carreteo, despegue y el pasaje
+// bajo antes de tocar). Mismas dos perillas y la misma relacion: (ABRE de costado, BAJA hacia
+// atras), y lo que manda es el angulo que forman.
+//
+// VA MAS CERRADO QUE EL ROCIO a proposito (1,4 / 1,6 contra 2 / 1,3, o sea ~49 grados contra ~33):
+// pedido de Matias, «una V corta». El agua que arranca un avion a ras SALTA hacia los costados; el
+// polvo de una rueda no salta, LO ARRASTRA el aire — asi que se va mas para atras que para afuera.
+//
+// ANTES DE ESTO el polvo no tenia barrido NINGUNO: era `vx` al azar entre -15 y +15, o sea una
+// nubecita simetrica que se quedaba donde nacio mientras el avion se le iba. A cualquier velocidad
+// se leia como humo quieto, no como algo que el avion esta levantando.
+export const POLVO_ABRE = 1.4, POLVO_BAJA = 1.6;
+
+// Multiplica `run.spd` igual que ROCIO_BARRIDO, pero MAS BAJO: la gota de mar sale disparada del
+// impacto y el polvo solo flota en la corriente. Ademas el polvo vive casi el doble (0,4 s), asi
+// que con el mismo numero se iria de pantalla.
+export const POLVO_BARRIDO = 1.5;
+
 // ---- LA ROCIADA (render/plane.js) ---------------------------------------------------------------
 //
 // Los brazos en V abren ROCIADA_ABRE de costado por cada ROCIADA_BAJA que bajan: hoy 4/1,3, o sea

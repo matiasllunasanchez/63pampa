@@ -20,7 +20,7 @@ import { hzWorld, stepHorizon } from './core/horizon.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts,
          prune, clearWorld } from './core/world.js';
 import { run, resetRun } from './core/run.js';
-import { proj, popup, explodeAt, bloodBurst, despiece, morir, actaDe, stepDestruccion, capParts, MUERTES } from './core/fx.js';
+import { proj, popup, explodeAt, polvoSuelo, bloodBurst, despiece, morir, actaDe, stepDestruccion, capParts, MUERTES } from './core/fx.js';
 import { ULTIMA_VARIANTE } from './core/fx.js';   // QUITAR con las sondas de v2
 import { CHUNK_LIFE, CHUNKS_MAX, ONDA_T, FLASH_T,
   forzarVariante, variantesDe, recetaDe, MORIBUNDO_MAX, DESPIECE } from './data/despiece.js';
@@ -2850,11 +2850,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // Cada uno levanta MENOS que el lider (0.45): estan mas lejos, y cinco columnas al mismo
         // volumen tapaban la pista entera. Y cada uno deja de levantar cuando SU rueda se despega,
         // no cuando se despega la tuya — los de atras rotan mas tarde, que es media escalera.
-        const polvo = (px2, z2, prob) => {
-          if (Math.random() >= prob) return;
-          const s = proj(px2 + (Math.random() - 0.5) * 3, 0, z2 - Math.random() * 1.5);
-          parts.push({ x: s.x, y: s.y - 1, vx: (Math.random() - 0.5) * 30, vy: -(15 + Math.random() * 25), life: 0.4, c: '#6b6f62', r: 1.2 });
-        };
+        const polvo = polvoSuelo;   // el emisor vive en core/fx.js, con sus hermanos
         if (plane.y < 2.5) polvo(plane.x, PZ, 0.6);
         if (run.squad > 1) {
           const slots = formationSlots(run.squad);
@@ -2915,11 +2911,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         cam.y += (plane.y + 2.6 - cam.y) * Math.min(1, dt * 7);
         if (cam.y < 3.4) cam.y = 3.4;
         engineFly(run.spd, false, 0.017);
-        // polvo al pasar bajito, el mismo del carreteo
-        if (plane.y < 2.5 && Math.random() < 0.6) {
-          const s = proj(plane.x + (Math.random() - 0.5) * 3, 0, PZ - Math.random() * 1.5);
-          parts.push({ x: s.x, y: s.y - 1, vx: (Math.random() - 0.5) * 30, vy: -(15 + Math.random() * 25), life: 0.4, c: '#6b6f62', r: 1.2 });
-        }
+        // polvo al pasar bajito: EL MISMO del carreteo, y ahora de verdad el mismo — antes era una
+        // copia literal de la linea de alla, con todo lo que eso invita a que se separen.
+        if (plane.y < 2.5) polvoSuelo(plane.x, PZ, 0.6);
         // TOCASTE. No hay forma de fallar el aterrizaje "del todo": tarde o temprano el avion baja,
         // y cuando baja se califica lo que hiciste. Es la regla del §4 escrita en el control de
         // flujo — no hay ninguna rama de este bloque que lleve a `die()`.
