@@ -1594,8 +1594,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EJE Y — UNA SOLA FILA PARA TODO. Antes eran dos (una del arena, una del joystick) y podian
       // contradecirse: con la del arena en SI, la pasada volaba invertida y el pasillo no. Ahora
       // es un solo eje, teclado y stick a la vez, en los cuatro modos. △ la alterna en vivo.
+      // …Y NO SE GUARDA (15/9, pedido del autor). Es la UNICA fila de esta pantalla sin `save`, y
+      // el motivo es que su accidente es de otra categoria: cualquier otra preferencia mal puesta
+      // se nota y se corrige, pero el eje dado vuelta te rompe el vuelo entero y —persistido— te
+      // rompe tambien la partida siguiente, cuando ya no te acordas de haberlo tocado. Arrancar
+      // siempre en el default cuesta volver a ponerlo a quien de verdad lo quiere invertido, y le
+      // ahorra una corrida arruinada a quien lo rozo sin querer.
       { label: () => T('optInvY'), opts: [0, 1], names: () => [T('optInvYNo'), T('optInvYYes')],
-        get: () => cfg.invY, set: v => cfg.invY = v, save: 'rasante_eje_y',
+        get: () => cfg.invY, set: v => cfg.invY = v,
         card: () => prefCard('InvY', () => T('optInvY')) },
       // ENERGIA: altura y velocidad se intercambian. Estaba en PARTIDA, pero es DESEMPEÑO del
       // avión — lo mismo que todo lo demás de esta pantalla.
@@ -1713,7 +1719,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // SÍ volaba la pasada invertida y el pasillo no. No se migran: no hay forma correcta de
       // fusionar dos valores que se pisan, y quien los tenía puestos tenía justamente el problema.
       // Se BORRAN para que no queden claves muertas ocupando el almacenamiento.
-      try { localStorage.removeItem('rasante_arena_inv'); localStorage.removeItem('rasante_pad_y'); } catch (e) { }
+      // `rasante_eje_y` se suma a la lista (15/9): el eje Y dejo de guardarse, asi que quien lo
+      // tenga puesto de antes tiene que arrancar limpio — si no, el arreglo no lo alcanza nunca.
+      try {
+        localStorage.removeItem('rasante_arena_inv'); localStorage.removeItem('rasante_pad_y');
+        localStorage.removeItem('rasante_eje_y');
+      } catch (e) { }
       // Las de MEJORAS DEL PICHON entran acá aunque vivan en otra pantalla: lo que decide si una
       // fila se relee es que tenga `save`, no dónde se dibuja.
       for (const r of [...OPT_ROWS, MEJ_MASTER, ...MEJ_PREFS]) {

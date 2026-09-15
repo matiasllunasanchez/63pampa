@@ -537,7 +537,10 @@ export function initInput(cv, a) {
       // Con el stick centrado NO hay gas → el avion cae (mecanica central del juego).
       // cfg.invY lo da vuelta para quien lo prefiera (o para un mando que reporte al reves) — y da
       // vuelta el teclado CON EL, porque es un solo eje: △ lo alterna en vivo y la fila EJE Y lo guarda.
-      if (hit(3)) a.throttleInvert();                          // △ = invertir el eje Y (y lo GUARDA)
+      // △ NO INVIERTE NADA: `throttleInvert` es una funcion vacia en game.js. El comentario que
+      // habia aca decia que invertia el eje "y lo GUARDA", y era falso — dos cosas falsas, porque
+      // ademas el eje ya no se guarda. Se deja la llamada por si el gancho vuelve a usarse.
+      if (hit(3)) a.throttleInvert();
       if (hit(1)) a.combatTurn();                              // ◯ = viraje de combate (solo lo lee el ARENA)
       // CRUCETA ARRIBA = EL PODER DEL RECURSO DEL MODO: reparto de energia en el arena, LA CHANCHA
       // en el pasillo. Quien decide cual es game.js (`modePower`) — aca no se sabe de modos.
