@@ -37,25 +37,19 @@ const tap = t => js(`window.__qtap(${JSON.stringify(t)})`);
  *  el "error" podia ser un acierto y la seccion medir cualquier cosa. */
 const otroQue = e => ['l', 'r', 'u', 'd', 'Z'].find(k => k !== e);
 
-/** Teclea la secuencia ENTERA leyendo lo esperado de la sonda. `zona` elige carril al empezar.
- *  `err` inyecta UN token equivocado DESPUES de elegir blanco.
+/** Teclea la secuencia ENTERA leyendo lo esperado de la sonda.
+ *  `err` inyecta UN token equivocado antes del primer acierto.
  *
- *  DESPUES Y NO ANTES (14/9): mientras se elige, una tecla que no corresponde a ninguna zona se
- *  IGNORA — no es un error, porque la prueba todavia no empezo. Inyectandolo antes, como hacia
- *  este harness, el error se perdia y la secuencia salia limpia. */
-async function tocar({ zona, err } = {}) {
-  let d = await Q();
-  if (d && d.zi < 0 && zona) {
-    // elegir carril = teclear su primer token. Se busca cual de los carriles es la zona pedida.
-    const i = d.carriles.findIndex(c => c.startsWith(zona + ':'));
-    if (i >= 0) await tap(d.esperado[i]);
-  }
+ *  YA NO ELIGE ZONA (15/9): la zona se fue del juego y la prueba arranca con la secuencia puesta.
+ *  Este harness tenia un parametro `zona` que buscaba el carril y tecleaba su primera tecla. */
+async function tocar({ err } = {}) {
+  let d;
   for (let k = 0; k < 30; k++) {
     d = await Q();
     if (!d || d.fase !== 'prueba') return d;
-    const e = d.zi < 0 ? d.esperado[0] : d.esperado;
+    const e = d.esperado;
     if (!e) return d;
-    if (err && d.zi >= 0) { await tap(otroQue(e)); err = false; continue; }
+    if (err) { await tap(otroQue(e)); err = false; continue; }
     await tap(e);
   }
   return await Q();
@@ -75,11 +69,10 @@ app.whenReady().then(async () => {
   if (!d || !d.on) { console.error('   ✗ no entro a la prueba con ?pulso=3'); app.exit(1); return; }
   d = await cfg({});   // reloj de cero: los segundos del arranque ya se habrian comido el margen
   ok(`entro a la prueba · fase ${d.fase} · nivel t01=${d.t01} · margen ${d.beatMax}s`);
-  // SIN ELECCION DE BLANCO (14/9): la combinacion arranca sola. Antes esta seccion medía que las
-  // tres zonas se ofrecieran y que cada una arrancara con una tecla distinta; esa pantalla ya no
-  // existe — «es matarlo o no matarlo».
-  if (d.zi < 0) bad('la prueba tendria que arrancar con la secuencia ya corriendo, sin elegir blanco');
-  else ok(`arranca directo en la secuencia · zona ${d.zona} · ${d.carriles[d.zi]}`);
+  // SIN ZONA (15/9): la combinacion arranca sola. Esta seccion medía que las tres zonas se
+  // ofrecieran y que cada una arrancara con una tecla distinta; esa pantalla se borro — «esos
+  // buques fueron dañados donde fueron dañados, y si lo destruis, ese es el tema».
+  ok(`arranca directo en la secuencia: ${d.seq}`);
   if (typeof d.esperado === 'string' && d.esperado.length === 1)
     ok(`y pide UNA tecla, la del centro de la cinta: ${d.esperado} (${d.glifo})`);
   else bad(`lo esperado no es una sola tecla: ${d.esperado}`);
@@ -108,7 +101,7 @@ app.whenReady().then(async () => {
   // segundos que tardo la seccion 1 en leer las sondas ya se lo habrian comido (que es, dicho sea
   // de paso, la prueba de que el reloj corre en tiempo de pared aunque el mundo este detenido)
   await cfg({});
-  // se elige el POLVORIN a mano (la zona brava: la secuencia mas larga) y se saca la foto con la
+  // la foto de la cinta con una tecla ya acertada — que es la imagen del modo. Antes acá se
   // autopista ya elegida y el cursor a medio camino — que es la imagen del modo
   // la foto de LA CINTA, con una tecla ya acertada y el cursor a medio camino: es la imagen del modo
   {
@@ -119,7 +112,7 @@ app.whenReady().then(async () => {
   // la prueba salida desemboca DIRECTO en la cinematica del premio (Q3): no hay pantalla de
   // "bien hecho" en el medio — se gana volando la pirueta que se tecleo
   if (!d || d.fase !== 'cine') { bad(`tecleando limpio la fase quedo en ${d && d.fase}`); }
-  else ok(`secuencia limpia → premio · zona ${d.premio.zona} · ${d.premio.pts} puntos · sin errores (${d.errs})`);
+  else ok(`secuencia limpia → premio · ${d.premio.pts} puntos · sin errores (${d.errs})`);
   await shot('q2_exito');
   // la espera es GENEROSA: el premio corre en camara lenta (`ritmo`), asi que sus ~6 s de pelicula
   // son ~9 de reloj de pared. Con el margen justo, bajar el ritmo tumbaba esta seccion sola.
@@ -136,7 +129,7 @@ app.whenReady().then(async () => {
   await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pulso=3');
   await sleep(2500);
   d = await cfg({ t01: 0 });
-  d = await tocar({ zona: 'bridge', err: true });
+  d = await tocar({ err: true });
   await shot('q2_error');
   if (d && d.fase === 'rojo') ok('un error deja la tecla en ROJO y corta la secuencia, hasta en el primer nivel');
   else bad(`tras errar una tecla la fase quedo en ${d && d.fase}`);
@@ -147,7 +140,7 @@ app.whenReady().then(async () => {
   else bad(`tras el rojo el juego quedo en ${fin3}, no en la derrota`);
 
   // cuantos compases tiene la secuencia de un carril, leyendo la sonda ('bridge:lrl-dll-Z' → 3)
-  const largo = c => c.split(':')[1].split('-').length;
+  const largo = seq => seq.split('-').length;
 
   // ---------- 4. LA ESCALADA ----------
   console.log('\n4. la escalada de la prueba:');
@@ -155,7 +148,7 @@ app.whenReady().then(async () => {
   await sleep(2500);
   const bajo = await cfg({ t01: 0 });
   const alto = await cfg({ t01: 1 });
-  const nb = largo(bajo.carriles[1]), na = largo(alto.carriles[1]);
+  const nb = largo(bajo.seq), na = largo(alto.seq);
   if (alto.beatMax < bajo.beatMax && na > nb)
     ok(`de la primera a la ultima: ${nb}→${na} compases y ${bajo.beatMax}→${alto.beatMax}s de margen`);
   else bad(`la prueba no escala (${nb}→${na} compases, ${bajo.beatMax}→${alto.beatMax}s)`);
@@ -171,9 +164,6 @@ app.whenReady().then(async () => {
   await cfg({ t01: 1 });
   // se elige blanco y se acierta UNA tecla: el margen tiene que volver a llenarse con el acierto
   {
-    const dd = await Q();
-    const i = dd.carriles.findIndex(c => c.startsWith('bridge:'));
-    await tap(dd.esperado[i]);
     const d1 = await Q();
     await tap(d1.esperado);
     const d2 = await Q();
@@ -185,20 +175,21 @@ app.whenReady().then(async () => {
   if (d && d.fase === 'rojo') ok('agotar el margen de una tecla la pone en rojo igual que errarla');
   else bad(`el margen no se agota solo: la fase quedo en ${d && d.fase}`);
 
-  // ---------- 6. EL PREMIO: DOS ZONAS, DOS CINEMATICAS (Q3) ----------
-  // El criterio de cierre de Q3, literal: «dos zonas distintas producen dos cinematicas distintas».
+  // ---------- 6. EL PREMIO: LA CINEMATICA QUE SE COMPONE (Q3) ----------
+  // El criterio de cierre de Q3 era «dos zonas distintas producen dos cinematicas distintas». La
+  // zona se fue del juego el 15/9, asi que lo que queda por medir es lo OTRO que la cinematica
+  // compone y que nadie mas mide: que el director la corra desde data, que el avion vuele la
+  // pirueta que se tecleo, que entre a ras y salga trepando, y que el buque no deje de acercarse
+  // mientras se muere. La variedad por clase de buque sigue probada arriba, en `npm run unit`.
   console.log('\n6. el premio: la cinematica que se compone (Q3):');
   await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pulso=3');
   await sleep(2500);
 
-  /** Juega una zona limpia y FILMA la cinematica: devuelve el premio y el rastro de compases. */
-  async function filmar(zona, nombre) {
+  /** Juega la prueba limpia y FILMA la cinematica: devuelve el premio y el rastro de compases. */
+  async function filmar(nombre) {
     await cfg({ t01: 0.5 });
-    // LA ZONA SE FIJA POR SONDA: desde el 14/9 no se elige jugando («es matarlo o no matarlo»),
-    // pero cada zona sigue teniendo SU cinematica y eso es lo que esta seccion mide.
-    await js(`String(window.__qzona(${JSON.stringify(zona)}))`);
     let d = await tocar({});
-    if (!d || d.fase !== 'cine') { bad(`${zona}: la secuencia limpia no llego al premio (${d && d.fase})`); return null; }
+    if (!d || d.fase !== 'cine') { bad(`la secuencia limpia no llego al premio (${d && d.fase})`); return null; }
     const beats = [], fx = [];
     let pico = 0, mvVisto = null, secVisto = false, capt = false, dir = null;
     // el tamaño del buque EN EL PRIMER CUADRO DE LA AGONIA: contra el se mide que el acercamiento
@@ -238,10 +229,10 @@ app.whenReady().then(async () => {
              growM0, altM0, altUlt, ras, aguaMax, largoM0, largoUlt, quietoMax };
   }
 
-  const A = await filmar('radar', 'radar');
-  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pulso=3');
-  await sleep(2500);
-  const B = await filmar('deposit', 'polvorin');
+  // UNA SOLA FILMACION desde el 15/9: eran dos, una por zona, para compararlas. Sin zonas no hay
+  // dos peliculas que comparar — hay UNA, y lo que se mide es que este entera.
+  const A = await filmar('premio');
+  const B = A;
 
   if (A && B) {
     // LA CINEMATICA NO ESTA EN CODIGO (PLAN_DIRECTOR_CINEMATICAS C0): la corre el director leyendo
@@ -277,17 +268,18 @@ app.whenReady().then(async () => {
     if (A.ult.grow > 1.5) ok(`el buque DOMINA el cuadro en el premio (crece ${A.ult.grow}×)`);
     else bad(`el buque no crecio en el premio (${A.ult.grow}×)`);
     // …y las dos zonas no pueden dar la misma pelicula
-    if (B.sec && !A.sec) ok('solo el polvorin vuela por segunda vez (la santabarbara)');
-    else bad(`el segundo estallido no distingue las zonas (radar ${A.sec} · polvorin ${B.sec})`);
+    // EL SEGUNDO ESTALLIDO era exclusivo de la zona brava (el polvorin). Sin zonas, la santabarbara
+    // pasa a ser dato de la mision — la ranura MUERTE del catalogo de remates— y esta prueba se
+    // queda con lo que si depende del Pulso.
     // EL BUQUE YA NO SE HUNDE (pedido de Matias, 8/2026): muere reventando por dentro. Esta prueba
     // exigia lo contrario —que cada zona lo hundiera distinto— y por eso se puso en rojo al apagar
     // `PULSO_CINE.HUNDIMIENTO`. No se borra: se DA VUELTA, y ahora guarda las dos mitades del
     // pedido, que son las que se pueden romper sin querer.
     //
-    // 1. que HOY no se hunda ni escore, en ninguna zona.
-    if (A.ult.sink === 0 && A.ult.tilt === 0 && B.ult.sink === 0 && B.ult.tilt === 0)
+    // 1. que HOY no se hunda ni escore.
+    if (A.ult.sink === 0 && A.ult.tilt === 0)
       ok('el buque NO se hunde ni escora: muere reventando por dentro (escora/hundimiento en 0)');
-    else bad(`quedo hundimiento vivo: radar ${A.ult.tilt}/${A.ult.sink} · polvorin ${B.ult.tilt}/${B.ult.sink}`);
+    else bad(`quedo hundimiento vivo: ${A.ult.tilt}/${A.ult.sink}`);
     // 2. …y que la animacion SIGA ENTERA detras de la perilla. Es la mitad que se pierde sola: el
     // dia que alguien limpie "codigo muerto", esto se va sin que nada falle — y era una opcion de
     // destruccion que se pidio conservar, no borrar.
@@ -295,10 +287,11 @@ app.whenReady().then(async () => {
     if (H.on === false && H.curvaSink > 0 && H.curvaTilt > 0)
       ok(`y la animacion sigue ENTERA detras de la perilla (apagada, pero la curva da ${H.curvaTilt} / ${H.curvaSink})`);
     else bad(`el hundimiento quedo mal: perilla=${H.on}, curva ${H.curvaTilt}/${H.curvaSink}`);
-    if (B.premio.pts > A.premio.pts * 2) ok(`y paga distinto: radar ${A.premio.pts} · polvorin ${B.premio.pts} puntos`);
-    else bad(`la zona brava no paga lo que cuesta (${A.premio.pts} vs ${B.premio.pts})`);
-    if (B.premio.sellos.bravo && !A.premio.sellos.bravo) ok('el sello de ZONA BRAVA solo lo da la zona brava');
-    else bad('el sello de zona brava no distingue la zona');
+    // LA PAGA: una base y los sellos que se hayan ganado. Eran tres zonas con tres pagas distintas
+    // y un sello por elegir la brava; sin eleccion, el premio mide LA MANO y nada mas.
+    if (A.premio.pts > 0 && A.premio.n >= 1)
+      ok(`el premio paga por la mano: ${A.premio.pts} puntos con ${A.premio.n} sello(s)`);
+    else bad(`el premio no pago (${A.premio.pts} puntos, ${A.premio.n} sellos)`);
     ok(`la clase del buque pone la linea de la muerte: ${A.clase}`);
   }
   // y el premio cierra la mision por el embudo de siempre, con su fila en el recuento

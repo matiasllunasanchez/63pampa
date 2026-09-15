@@ -26,8 +26,8 @@ import { T } from '../core/i18n.js';
 import { MOVES } from '../data/moves.js';
 import { SHIP_CLASS } from '../data/ships.js';
 import { horizonRoll, spriteRoll } from '../core/horizon.js';
-import { PULSO, PULSO_CINE, PULSO_CINTA, PULSO_TEATRO, COMPASES, REMATE, PULSO_ZONAS, PULSO_CLASE, CLASE_DEF, TOK_GLIFO } from '../data/pulso.js';
-import { beatFor, barsFor, errFor, poolFor, armarZonas, parSecsFor, sellosDe, puntosDe, sellosN } from '../core/pulso.js';
+import { PULSO, PULSO_CINE, PULSO_CINTA, PULSO_TEATRO, COMPASES, REMATE, PULSO_IMPACTO, PULSO_CLASE, CLASE_DEF, TOK_GLIFO } from '../data/pulso.js';
+import { beatFor, barsFor, errFor, poolFor, armar, parSecsFor, sellosDe, puntosDe, sellosN } from '../core/pulso.js';
 import * as cine from './cine.js';
 import { PULSO_D_MUERTE, CINE_VUELO } from '../data/cines.js';
 import { beep, engineOff, duck } from './audio.js';
@@ -40,11 +40,6 @@ let Q = null;
 // acerco NO se perdonan: si se reiniciaran, perder un avion seria la forma barata de limpiar la
 // cuenta. Lo unico que borra esto es resetPulso() — o sea, empezar la mision de nuevo.
 let carry = null;
-// LA ZONA FORZADA (solo sondas/fixture). La zona dejo de elegirse el 14/9 y pasó a ser dato, pero
-// el criterio de cierre de Q3 —«dos zonas distintas producen dos cinematicas distintas»— sigue
-// siendo verdad y sigue habiendo que medirlo. Sin esto, el fixture solo podria filmar la zona que
-// `PULSO.ZONA` diga, y la unica prueba de que las otras dos existen seria mirarlas a ojo.
-let zonaFija = null;
 
 /** ¿Puede jugarse? SIEMPRE: EL PULSO es 2D puro — no necesita three.js ni WebGL. Es la unica
  *  fase del juego sin deuda 3D, y por eso tambien sirve de fallback donde el 3D no esta. */
@@ -59,7 +54,7 @@ export function readyToEnter(dist, objectiveDist) {
 export const state = () => Q;
 export const active = () => !!Q;
 
-export function resetPulso() { Q = null; carry = null; zonaFija = null; cine.stop(); }
+export function resetPulso() { Q = null; carry = null; cine.stop(); }
 
 /** La CONFIGURACION de la prueba para esta corrida. La pone game.js al armar el run, porque este
  *  sistema no puede mirar la campaña ni la libreta del Pichon (convencion 2: nadie llama hacia
@@ -117,8 +112,6 @@ export function enter(desdePasillo, conf) {
     fase: 'prueba',                       // 'prueba' | 'exito' | 'fallo'
     faseT: 0,
     t01: carry.t01,                       // avance de campaña 0..1: la perilla de dificultad real
-    carriles: [],                         // las zonas del buque, cada una con SU secuencia
-    zi: -1,                               // carril elegido (-1 = todavia se esta eligiendo)
     bars: [],                             // la secuencia en curso (la del carril elegido)
     bi: 0,                                // compas en curso
     ti: 0,                                // token en curso DENTRO del compas
@@ -129,9 +122,8 @@ export function enter(desdePasillo, conf) {
     flak: carry.flak,                     // grados que se acerco el flak (cada fallo lo acerca)
     beatT: 0,                             // cuanto lleva abierto el compas actual
     beatMax: beatFor(carry.t01, carry.flak),
-    pts: 0,                               // puntos de la zona elegida (base del premio)
     tSel: 0,                              // instante en que se eligio blanco (el reloj del sello)
-    premio: null,                         // { zona, secs, par, sellos, pts } — lo arma exito()
+    premio: null,                         // { secs, par, sellos, pts } — lo arma exito()
     clase: claseDe(carry.ship),           // COMO se muere este buque
     ci: 0,                                // cursor ANIMADO de la cinta (indice global, con decimales)
     okIdx: -1, okT: 9,                    // que tecla se acaba de acertar y cuanto hace (para el destello)
@@ -140,7 +132,7 @@ export function enter(desdePasillo, conf) {
     shake: 0,
     desdePasillo: !!desdePasillo,
   };
-  armarCarriles();
+  armarSecuencia();
   // LA PRUEBA TAMBIEN ARRANCA CON LA PANTALLA LIMPIA (mismo motivo que el premio): los popups del
   // pasillo envejecen con el dt del mundo, que aca corre al 8%, asi que un "CONTROL LIBRE" del
   // ultimo tramo se quedaba trece segundos escrito encima de la eleccion de blanco.
@@ -148,51 +140,18 @@ export function enter(desdePasillo, conf) {
   beep(880, 0.12, 'square', 0.05, 220);
 }
 
-/** Sortea las secuencias de las zonas. Se llama al entrar Y en cada re-encare: volver con la
- *  MISMA secuencia convertiria el fallo en memorizar en vez de volar (plan §3). */
-function armarCarriles() {
+/** Sortea LA secuencia de la prueba. Se llama al entrar (y en cada re-encare, cuando la economia
+ *  vieja esta prendida): volver con la MISMA secuencia convertiria el fallo en memorizar en vez de
+ *  volar (plan §3).
+ *
+ *  ERAN TRES SECUENCIAS, una por zona del buque, y elegir entre ellas era parte de la prueba. La
+ *  zona se fue entera el 15/9 (PLAN_PULSO_CABINA_VIDEO §0): esos buques fueron dañados donde
+ *  fueron dañados, y si lo destruis, ese es el tema. Queda UNA secuencia y una sola pregunta:
+ *  ¿te salio la mano o no? */
+function armarSecuencia() {
   const pool = poolFor(carry);
-  Q.carriles = armarZonas(PULSO_ZONAS, pool, Q.t01).map(x => ({
-    zona: x.zona, bars: x.seqs.map(compas),
-  }));
-  Q.zi = -1; Q.bars = []; Q.bi = 0; Q.ti = 0;
-  // si por lo que sea no hay carriles (pool y zonas vacios), la prueba se degrada al remate solo:
-  // el modo tiene que poder correr siempre — nada bloquea (P2 del juego)
-  if (!Q.carriles.length) Q.carriles = [{ zona: PULSO_ZONAS[1], bars: [compas(REMATE.seq)] }];
-  // …Y NUNCA TRES CARRILES QUE NO SE PUEDAN DISTINGUIR. Elegir blanco ES teclear: si dos zonas
-  // arrancan con la misma tecla, el primer toque no elige — se queda con la primera que coincide y
-  // el jugador termina en una zona que no pidio. `armarZonas` reparte primeras teclas distintas
-  // mientras el pool alcance, pero con la libreta flaca (m1, m3: cero compases) las tres quedan en
-  // `Z` y la eleccion es un decorado. Ahi es mas honesto ofrecer UN blanco que tres que mienten.
-  const heads = new Set(Q.carriles.map(c => c.bars[0] && c.bars[0].toks[0]));
-  if (heads.size < Q.carriles.length) Q.carriles = [Q.carriles[1] || Q.carriles[0]];
-  // …Y SE ELIGE SOLO (pedido del autor, 14/9/2026: «no tiene sentido elegir la zona, es matarlo o
-  // no matarlo»). La eleccion de blanco era del diseño viejo, donde la zona era una apuesta: mas
-  // riesgo, mas puntos, otra cinematica. Con la prueba convertida en un remate de vida o muerte,
-  // elegir entre tres formas de matarlo es una pantalla de menu antes del unico momento que
-  // importa — y encima obligaba a leer tres secuencias contra reloj.
-  //
-  // La ZONA no se borro: sigue decidiendo donde pega la bomba y como muere el buque (PULSO_ZONAS,
-  // la cinematica de Q3). Lo que se fue es la PREGUNTA. Cambiar `PULSO.ZONA` cambia la muerte, y el
-  // dia que una mision quiera declarar la suya, es un campo mas.
-  const zi = Math.max(0, Q.carriles.findIndex(c => c.zona.id === (zonaFija || PULSO.ZONA)));
-  elegirCarril(zi);
-}
-
-/** Elige carril: el primero cuyo PRIMER token coincide con la tecla. Elegir es empezar a teclear
- *  (plan §3) — no hay un menu previo, la decision se toma con las manos ya adentro de la prueba. */
-/** Planta un carril como EL de esta prueba. Lo llama `armarCarriles` (la zona sale de data desde
- *  el 14/9) y lo llamaba la eleccion por tecla, que ya no existe. */
-function elegirCarril(i) {
-  Q.zi = i;
-  // el cronometro del SELLO DE VELOCIDAD arranca al ELEGIR, no al entrar: lo que se mide es
-  // teclear sin dudar, y el tiempo que uno se tomo para decidir el blanco no es titubeo — es la
-  // decision, que es justamente lo que el modo pide que tomes.
-  Q.tSel = Q.t;
-  Q.bars = Q.carriles[i].bars;
-  Q.pts = Q.carriles[i].zona.pts;
-  Q.bi = 0; Q.ti = 0;
-  return true;
+  Q.bars = armar(pool, barsFor(Q.t01, 0)).map(compas);
+  Q.bi = 0; Q.ti = 0; Q.ci = 0;
 }
 
 /** LA SECUENCIA COMO CINTA: todos los tokens en fila, sin los compases de por medio.
@@ -200,7 +159,7 @@ function elegirCarril(i) {
  *  La agrupacion en compases sigue siendo la verdad del modelo (de ahi salen los rotulos de las
  *  piruetas, regla 2), pero lo que el jugador ve desde el 14/9 es UNA fila de teclas corriendo.
  *  Se deriva, no se guarda: guardarla seria una segunda copia de la secuencia esperando a
- *  desincronizarse del primer `armarCarriles()`. */
+ *  desincronizarse del primer `armarSecuencia()`. */
 export function cinta() {
   if (!Q || !Q.bars.length) return [];
   const out = [];
@@ -241,11 +200,6 @@ const barNow = () => (Q && Q.fase === 'prueba' ? Q.bars[Q.bi] || null : null);
  *  Devuelve true si el toque se consumio (para que el orquestador sepa que hubo lectura). */
 export function tap(tok) {
   if (!Q || Q.fase !== 'prueba') return false;
-  // SIN CARRIL NO SE TECLEA NADA. Hasta el 14/9 este era el camino de la ELECCION DE BLANCO: el
-  // primer toque elegia zona. Ya no se elige (la pone `PULSO.ZONA` y `armarCarriles` la planta al
-  // entrar), asi que llegar aca significa que algo entro antes de que la prueba estuviera armada:
-  // se ignora en vez de contarlo como error.
-  if (Q.zi < 0) return false;
   const b = barNow();
   if (!b) return false;
   const esperado = b.toks[Q.ti];
@@ -305,15 +259,14 @@ function cerrarCompas() {
  *
  *  LA CINEMATICA NO VIVE ACA: es una timeline en data/cines.js que corre EL DIRECTOR
  *  (systems/cine.js). Este sistema solo la arranca y le pasa lo que solo se sabe jugando —cual
- *  pirueta se tecleo, que tan grande es el estallido de la zona elegida, cuanto tarda en hundirse
+ *  pirueta se tecleo, que tan grande es el estallido, cuanto tarda en hundirse
  *  este buque— como LIGADURAS. Antes esto era una maquina de estados de sesenta lineas aca adentro;
  *  hoy el que quiera cambiar el premio no necesita abrir un sistema.  */
 function exito() {
-  const zona = (Q.carriles[Q.zi] && Q.carriles[Q.zi].zona) || PULSO_ZONAS[1];
   const secs = Q.t - Q.tSel;
   const par = parSecsFor(Q.bars.length, Q.beatMax);
-  const sellos = sellosDe({ errs: Q.errs, secs, par, zona });
-  Q.premio = { zona, secs, par, sellos, n: sellosN(sellos), pts: puntosDe(zona, sellos) };
+  const sellos = sellosDe({ errs: Q.errs, secs, par });
+  Q.premio = { secs, par, sellos, n: sellosN(sellos), pts: puntosDe(PULSO_IMPACTO.pts, sellos) };
   Q.fase = 'cine'; Q.faseT = 0;
   // LA PIRUETA QUE SE TECLEO: el ULTIMO compas que fue una pirueta (el remate no lo es). Regla 1
   // del plan del PULSO cerrando el circulo — el examen pedia la maniobra, y la recompensa es verla
@@ -329,13 +282,14 @@ function exito() {
     piruetaDir: b ? b.dir : 1,
     tPir: CINE_VUELO.RAS_T + CINE_VUELO.POSE_T + durMv,
     tSinPirueta: b ? undefined : 0,
-    // el estallido del impacto: lo que propone la zona, escalado por la clase del buque
-    boom: 0.34 * zona.blast * Q.clase.blast,
-    shake: 6 * zona.blast,
-    // el SEGUNDO estallido (la santabarbara) existe solo en la zona brava: si `sec` es 0 la
-    // ligadura queda sin atar y el beat directamente no se agenda
-    secOff: zona.sec || undefined,
-    boomSec: 0.5 * zona.blast * Q.clase.blast,
+    // el estallido del impacto, escalado por la clase del buque. El tamaño lo proponia LA ZONA
+    // elegida; desde el 15/9 es uno solo (PULSO_IMPACTO) porque no hay zona que elegir.
+    boom: 0.34 * PULSO_IMPACTO.blast * Q.clase.blast,
+    shake: 6 * PULSO_IMPACTO.blast,
+    // EL SEGUNDO ESTALLIDO (la santabarbara) era exclusivo de la zona brava. Sin zonas, que el
+    // buque vuele por dentro pasa a ser dato de la MISION —la ranura MUERTE del catalogo de
+    // remates— asi que aca no se agenda: la ligadura queda sin atar y el beat no existe.
+    boomSec: 0.5 * PULSO_IMPACTO.blast * Q.clase.blast,
     // cuanto dura la agonia: la clase del buque estira el ultimo tramo
     muerteDur: PULSO_CINE.MUERTE * Q.clase.sink,
   });
@@ -407,11 +361,6 @@ export function update(dtReal, dtMundo) {
   Q.okT += dtReal;
 
   if (Q.fase === 'prueba') {
-    // ELEGIR BLANCO NO TIENE RELOJ (desde el 14/9). Lo tuvo mientras el fallo costaba una pasada
-    // —«dudar cuesta»— pero con un error que pierde la mision, dos segundos para leer tres zonas
-    // con sus secuencias no es presion: es una trampa. El cronometro arranca cuando arranca la
-    // secuencia, que es cuando hay algo que ejecutar.
-    if (Q.zi < 0) return null;
     // EL MARGEN: cada TECLA tiene su ventana, y es la que corre en la barra naranja de abajo.
     // Agotarla es errar igual que apretar la equivocada — el pulso es tanto precision como
     // decision rapida.
@@ -478,7 +427,7 @@ export function reencarar() {
   if (carry) carry.flak = Q.flak;
   Q.beatMax = beatFor(Q.t01, Q.flak);
   Q.perdon = errFor(Q.t01);
-  armarCarriles();
+  armarSecuencia();
   beep(700, 0.1, 'square', 0.05, 180);
 }
 
@@ -516,7 +465,6 @@ export function shipFx(vb) {
   // y sin esta guarda el buque volvia a 1× y sin escora justo ahi: un parpadeo del blanco a tamaño
   // de horizonte. Que hoy no se vea porque el recuento ya tapo la escena no lo hace correcto.
   if (!Q || Q.fase !== 'cine' || !cine.active()) return null;
-  const z = Q.premio.zona;
   // EL ACERCAMIENTO ES UNA SOLA CURVA, de punta a punta del premio. Estuvo partido en dos —el zoom
   // de la caida hasta la agonia, y el del sobrevuelo durante la agonia— y las DOS arrancaban con
   // pendiente cero (van al cuadrado): en la costura, que caia justo en el impacto, el buque dejaba
@@ -547,7 +495,7 @@ export function shipFx(vb) {
   // MUERTE: escora y se va. La CURVA es de quien es dueño del buque, no del director — igual que
   // la curva de una pirueta es de moves.js. La timeline solo dice cuando empieza y cuanto dura, y
   // eso llega como el avance 0..1 del tramo.
-  const k = z.sink * Q.clase.sink;
+  const k = PULSO_IMPACTO.sink * Q.clase.sink;
   // …y SE QUEDA ATRAS. Mientras el buque se hunde, vos estas trepando y alejandote: cae en el
   // cuadro. En una camara 2D —que mira siempre para adelante— esto es lo unico que puede decir
   // "te lo dejaste abajo", y sin eso la escena se lee como el avion estacionado mirando el humo.
@@ -587,12 +535,11 @@ if (typeof window !== 'undefined') window.__qdbg = () => {
     state: S.state, on: true, fase: Q.fase, dist: Math.round(run.dist),
     t: +Q.t.toFixed(2), bar: Q.bi, bars: Q.bars.length,
     label: b ? b.label : null,
-    esperado: Q.zi < 0 ? Q.carriles.map(c => c.bars[0].toks[0]).join('') : (b ? b.toks[Q.ti] : null),
+    esperado: b ? b.toks[Q.ti] : null,
     glifo: b ? TOK_GLIFO[b.toks[Q.ti]] || b.toks[Q.ti] : null,
-    zi: Q.zi, zona: Q.zi < 0 ? null : Q.carriles[Q.zi].zona.id,
-    carriles: Q.carriles.map(c => c.zona.id + ':' + c.bars.map(b2 => b2.seq).join('-')),
+    seq: Q.bars.map(b2 => b2.seq).join('-'),
     beat: Q.fase === 'cine' ? cine.parte() : null,
-    premio: Q.premio ? { zona: Q.premio.zona.id, pts: Q.premio.pts, n: Q.premio.n,
+    premio: Q.premio ? { pts: Q.premio.pts, n: Q.premio.n,
       secs: +Q.premio.secs.toFixed(2), par: +Q.premio.par.toFixed(2), sellos: Q.premio.sellos } : null,
     mv: run.mv || null, roll: +(camRoll()).toFixed(2), tScale: +timeScale().toFixed(2),
     fx: (f => f && { grow: +f.grow.toFixed(2), tilt: +f.tilt.toFixed(3), sink: +f.sink.toFixed(3) })(shipFx()),
@@ -624,13 +571,11 @@ if (typeof window !== 'undefined') window.__qhold = () => { if (Q) Q.beatMax = 1
 // __qlives: fuerza el escuadron, para poder ver el COSTO del 2º fallo (un avion) sin depender de
 // cuantos aviones traiga la mision de la sonda.
 if (typeof window !== 'undefined') window.__qlives = n => { run.squad = run.lives = n; return n; };
-// __qgana(zona): GANA la prueba ya mismo, con la zona pedida ('radar'|'bridge'|'deposit'). Es la
-// unica forma de mirar el premio sin depender de que el que mira acierte una secuencia de decimas
-// de segundo — la usa el menu CINEMATICAS y sirve igual desde la consola.
-if (typeof window !== 'undefined') window.__qgana = z => {
+// __qgana(): GANA la prueba ya mismo. Es la unica forma de mirar el premio sin depender de que el
+// que mira acierte una secuencia de decimas de segundo — la usa el menu CINEMATICAS y sirve igual
+// desde la consola. Tomaba una zona hasta el 15/9; ya no hay zonas que pedir.
+if (typeof window !== 'undefined') window.__qgana = () => {
   if (!Q || Q.fase !== 'prueba') return false;
-  const i = Math.max(0, Q.carriles.findIndex(c => c.zona.id === z));
-  Q.zi = i; Q.bars = Q.carriles[i].bars; Q.pts = Q.carriles[i].zona.pts;
   Q.bi = Q.bars.length; Q.ti = 0; Q.errs = 0;
   Q.tSel = Q.t;                            // se gana en cero: el premio sale con todos sus sellos
   exito();
@@ -648,11 +593,6 @@ if (typeof window !== 'undefined') window.__qfalla = () => {
   Q.fase = 'perdido'; Q.faseT = 0;
   cine.start('pulso_fallo');
   return window.__qdbg();
-};
-// __qzona: fuerza la zona del ataque y vuelve a entrar (QUITAR con el resto de las sondas). Es lo
-// que deja medir que cada zona da SU cinematica ahora que la zona no se elige jugando.
-if (typeof window !== 'undefined') window.__qzona = id => {
-  zonaFija = id || null; enter(false); return window.__qdbg();
 };
 // __qcfg: re-entra con otra configuracion. Es la unica forma de ver la ESCALADA sin jugar la
 // campaña entera: `__qcfg({t01:1})` da la prueba de la ultima mision en la primera.

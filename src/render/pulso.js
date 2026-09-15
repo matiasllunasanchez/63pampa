@@ -15,7 +15,7 @@ import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
 import { T } from '../core/i18n.js';
 import { run } from '../core/run.js';
-import { PULSO, TOK_GLIFO, PULSO_CINE, PULSO_CINTA, PULSO_TEATRO } from '../data/pulso.js';
+import { PULSO, TOK_GLIFO, PULSO_CINE, PULSO_CINTA, PULSO_IMPACTO, PULSO_TEATRO } from '../data/pulso.js';
 import { padInfo } from '../core/input.js';
 import { bargeGeom } from './world.js';
 import * as momRender from '../legacy/momentum_render.js';
@@ -85,7 +85,7 @@ if (typeof window !== 'undefined') window.__cabdbg = () => {
 /** DONDE PEGO, en pantalla. Sale de la geometria que publico el que dibujo el buque
  *  (render/world.js) y no de una copia de la cuenta: si el buque escora o se hunde, el fuego
  *  escora y se hunde con el. Devuelve null si el buque no esta dibujado (no deberia pasar). */
-function puntoImpacto(z) {
+function puntoImpacto(z) {   // `z` = PULSO_IMPACTO (era la zona elegida, hasta el 15/9)
   const g = bargeGeom(); if (!g) return null;
   const x = g.bx + (g.len / 2) * (z.hitU || 0);
   const y = g.by + g.uh * (z.hitV || 0);
@@ -139,7 +139,9 @@ const limpiarRegs = () => { REGS.length = 0; };
 /** LO QUE PASA AFUERA DEL VIDRIO durante el premio: la ristra, el estallido y el buque ardiendo.
  *  Se dibuja ANTES de la cabina — es mundo, y el canopy tiene que poder taparlo. */
 function drawCineMundo(Q, c, t, cab) {
-  const z = Q.premio.zona;
+  // EL PUNTO DE IMPACTO ES UNO SOLO desde el 15/9: la zona se fue del juego (no se elige NI se
+  // guarda). Lo que la cinematica necesita saber es donde poner el fuego, y eso es dato fijo.
+  const z = PULSO_IMPACTO;
   const im = puntoImpacto(z); if (!im) return;
   const uh = Math.max(2, im.uh);
 
@@ -318,12 +320,9 @@ function drawCineMundo(Q, c, t, cab) {
 function drawCinePremio(Q, c) {
   const pr = Q.premio;
   ctx.textAlign = 'center';
-  // LA ZONA que se eligio, desde el estallido: es la respuesta a la unica decision del modo
-  if (c.parte === 'impacto' || c.parte === 'muerte') {
-    ctx.globalAlpha = Math.min(1, (c.parte === 'impacto' ? c.tParte : 1) / 0.2);
-    ctx.font = 'bold 9px monospace'; ctx.fillStyle = P.warn;
-    ctx.fillText(T(pr.zona.str), W / 2, 11);
-  }
+  // EL ROTULO DE LA ZONA se fue con la zona (15/9): decia cual de los tres blancos habias elegido,
+  // y ya no hay tres blancos ni eleccion. Lo que queda escrito es la linea de la CLASE del buque,
+  // que es lo unico que el jugador recuerda textualmente de la cinematica.
   if (c.parte !== 'muerte') { ctx.globalAlpha = 1; return; }
   // LA LINEA DE LA CLASE: lo unico de la cinematica que el jugador va a recordar textualmente
   ctx.globalAlpha = Math.min(1, c.tParte / 0.5);
@@ -687,39 +686,11 @@ export function drawPulso(w) {
   ctx.fillStyle = PULSO_CINTA.VELO;
   ctx.fillRect(0, 0, W, H);
 
-  if (Q.fase === 'prueba' && Q.zi < 0) {
-    // ELEGIR BLANCO (plan §3): las zonas del buque, cada una con SU secuencia. No hay cursor de
-    // menu — elegir ES empezar a teclear, asi que las tres estan vivas a la vez y el primer toque
-    // decide. La brava pide una secuencia mas larga y paga el doble.
-    ctx.textAlign = 'left';
-    ctx.font = '7px monospace'; ctx.fillStyle = P.dim;
-    ctx.fillText(T('pulso_elegi'), 26, 12);
-    for (let i = 0; i < Q.carriles.length; i++) {
-      const c = Q.carriles[i], ly = 24 + i * 13;
-      ctx.textAlign = 'left';
-      ctx.font = 'bold 7px monospace'; ctx.fillStyle = P.ink;
-      ctx.fillText(T(c.zona.str), 26, ly + 3);
-      ctx.font = '6px monospace'; ctx.fillStyle = P.dim;
-      ctx.fillText(c.zona.pts + '', 84, ly + 3);
-      // la secuencia de la zona, sin cursor: todavia no se esta tecleando ninguna. La PRIMERA
-      // tecla va en acento — es la que elige este carril, y es lo unico que hay que decidir.
-      ctx.textAlign = 'center';
-      let gx = 118, first = true;
-      for (const b of c.bars) {
-        for (const k of b.toks) {
-          ctx.font = first ? 'bold 10px monospace' : '9px monospace';
-          ctx.fillStyle = first ? P.accent : P.ink;
-          ctx.fillText(glifo(k), gx, ly + 3);
-          gx += 12; first = false;
-        }
-        gx += 6;
-      }
-    }
-    // el margen tambien corre mientras se elige: dudar cuesta
-    const fr = Math.max(0, 1 - Q.beatT / Q.beatMax);
-    px(26, SKY_BOT, 120, 2, '#22303a');
-    px(26, SKY_BOT, 120 * fr, 2, fr < 0.3 ? P.warn : P.accent);
-  } else if (Q.fase === 'prueba' || Q.fase === 'rojo') {
+  // LA PANTALLA `ELEGI BLANCO` SE BORRO (15/9, PLAN_PULSO_CABINA_VIDEO §0). Mostraba las tres
+  // zonas del buque con su secuencia y su paga, y el primer toque elegia. No se saco porque
+  // estorbara: se saco porque la pregunta no existe — esos buques fueron dañados donde fueron
+  // dañados, y si lo destruis, ese es el tema.
+  if (Q.fase === 'prueba' || Q.fase === 'rojo') {
     drawCinta(Q, w.toks || [], t);
   } else {
     // FALLO: se dice QUE paso y que se vuelve — el fallo es drama, no una pantalla de derrota

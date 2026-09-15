@@ -650,9 +650,9 @@ test('carril: ensancharlo NO cambia la dificultad del medio', () => {
 // ---------------- EL PULSO: la escalada de la prueba (core/pulso.js) ----------------
 // Es la unica perilla de dificultad del climax, y si se rompe no da error: simplemente la prueba
 // queda regalada o imposible, y eso solo se descubre jugando la campaña entera.
-import { beatFor, barsFor, errFor, poolFor, armar, armarZonas,
+import { beatFor, barsFor, errFor, poolFor, armar,
   parSecsFor, sellosDe, puntosDe, sellosN } from '../src/core/pulso.js';
-import { PULSO, PULSO_PREMIO, PULSO_CLASE, COMPASES, PULSO_ZONAS, POOL_BASICO } from '../src/data/pulso.js';
+import { PULSO, PULSO_PREMIO, PULSO_CLASE, COMPASES, PULSO_IMPACTO, POOL_BASICO } from '../src/data/pulso.js';
 
 test('pulso: el margen se achica con el nivel y con el flak', () => {
   assert.ok(beatFor(0, 0) > beatFor(1, 0), 'la ultima mision tiene que apretar mas que la primera');
@@ -708,14 +708,9 @@ test('pulso: la secuencia no repite maniobra seguida y termina soltando', () => 
   }
 });
 
-test('pulso: las zonas arrancan con teclas distintas (elegir es teclear)', () => {
-  // El primer toque ELIGE el carril: si dos zonas empezaran igual, la eleccion seria ambigua y el
-  // jugador terminaria en una zona que no queria.
-  const z = armarZonas(PULSO_ZONAS, poolFor({ campaign: false }), 0.5);
-  assert.equal(z.length, PULSO_ZONAS.length);
-  const firsts = z.map(o => o.seqs[0][0]);
-  assert.equal(new Set(firsts).size, firsts.length, `las zonas arrancan igual: ${firsts.join('')}`);
-});
+// EL TEST DE LAS TRES ZONAS SE BORRO (15/9). Medía que cada zona arrancara con una tecla distinta
+// —porque el primer toque elegia el carril— y la zona se fue del juego entera: no hay carriles ni
+// eleccion. La secuencia es una sola y la arma `armar`, que sigue probado arriba.
 
 // ---------------- EL PULSO: el premio (Q3) ----------------
 // Mismo motivo que la escalada: un premio desbalanceado no da error, solo paga de mas o de menos,
@@ -730,48 +725,43 @@ test('pulso: el par de velocidad sale del margen vigente, no de un numero fijo',
   assert.ok(parSecsFor(-2, -2) >= 0, 'no puede haber un par negativo');
 });
 
-test('pulso: los tres sellos miden tres cosas distintas', () => {
-  const brava = PULSO_ZONAS.find(z => z.bars > 0), facil = PULSO_ZONAS.find(z => z.bars < 0);
-  const s = sellosDe({ errs: 0, secs: 1, par: 3, zona: brava });
-  assert.deepEqual(s, { limpio: true, rapido: true, bravo: true });
-  assert.equal(sellosN(s), 3);
-  // un error se lleva SOLO el sello limpio: los otros dos se ganaron y no se pierden
-  const conErr = sellosDe({ errs: 1, secs: 1, par: 3, zona: brava });
-  assert.deepEqual(conErr, { limpio: false, rapido: true, bravo: true });
+test('pulso: los dos sellos miden dos cosas distintas', () => {
+  // ERAN TRES: el tercero premiaba haber elegido la zona brava, y se fue con la zona (15/9) — no
+  // se puede premiar una decision que el jugador ya no toma. Quedan los dos que miden LA MANO.
+  const s = sellosDe({ errs: 0, secs: 1, par: 3 });
+  assert.deepEqual(s, { limpio: true, rapido: true });
+  assert.equal(sellosN(s), 2);
+  // un error se lleva SOLO el sello limpio: el otro se gano y no se pierde
+  assert.deepEqual(sellosDe({ errs: 1, secs: 1, par: 3 }), { limpio: false, rapido: true });
   // llegar justo en el par cuenta como rapido; pasarse, no
-  assert.equal(sellosDe({ errs: 0, secs: 3, par: 3, zona: facil }).rapido, true);
-  assert.equal(sellosDe({ errs: 0, secs: 3.01, par: 3, zona: facil }).rapido, false);
-  assert.equal(sellosDe({ errs: 0, secs: 1, par: 3, zona: facil }).bravo, false, 'la zona facil no da sello de brava');
+  assert.equal(sellosDe({ errs: 0, secs: 3, par: 3 }).rapido, true);
+  assert.equal(sellosDe({ errs: 0, secs: 3.01, par: 3 }).rapido, false);
   // sin datos no puede inventar sellos que no se ganaron (salvo `limpio`, que es no haber errado)
-  assert.deepEqual(sellosDe({}), { limpio: true, rapido: false, bravo: false });
+  assert.deepEqual(sellosDe({}), { limpio: true, rapido: false });
 });
 
-test('pulso: el premio paga la zona y la suman los sellos', () => {
-  const brava = PULSO_ZONAS.find(z => z.bars > 0), facil = PULSO_ZONAS.find(z => z.bars < 0);
-  const nada = { limpio: false, rapido: false, bravo: false };
-  assert.equal(puntosDe(brava, nada), brava.pts, 'sin sellos se paga la base de la zona y nada mas');
-  assert.ok(puntosDe(brava, nada) > puntosDe(facil, nada) * 2, 'la zona brava tiene que pagar el doble largo');
-  const todo = { limpio: true, rapido: true, bravo: true };
-  assert.ok(puntosDe(facil, todo) < puntosDe(brava, nada),
-    'una perfecta en la zona facil no puede pagar mas que una sucia en la brava: elegir es el riesgo');
-  near(puntosDe(brava, todo) / brava.pts, 1 + PULSO_PREMIO.LIMPIO + PULSO_PREMIO.RAPIDO + PULSO_PREMIO.BRAVO);
-  assert.equal(puntosDe(null, todo), 0, 'sin zona no hay premio (y no puede reventar)');
+test('pulso: el premio paga una base y la suman los sellos', () => {
+  const base = PULSO_IMPACTO.pts;
+  const nada = { limpio: false, rapido: false };
+  assert.equal(puntosDe(base, nada), base, 'sin sellos se paga la base y nada mas');
+  const todo = { limpio: true, rapido: true };
+  near(puntosDe(base, todo) / base, 1 + PULSO_PREMIO.LIMPIO + PULSO_PREMIO.RAPIDO);
+  assert.ok(puntosDe(base, todo) > puntosDe(base, nada), 'los sellos tienen que pagar');
+  assert.equal(puntosDe(0, todo), 0, 'sin base no hay premio (y no puede reventar)');
+  assert.equal(puntosDe(null, todo), 0);
 });
 
 test('pulso: cada clase de buque se muere distinto', () => {
-  // el criterio de cierre de Q3 pide que dos cinematicas no se confundan: si dos clases (o dos
-  // zonas) tuvieran los mismos numeros, seria la misma cinematica con otro nombre
+  // El criterio de cierre de Q3 pide que dos cinematicas no se confundan. Media tambien que las
+  // TRES ZONAS dieran tres muertes distintas; la zona se fue el 15/9 y la variedad se mudo a la
+  // ranura MUERTE del catalogo de remates. Lo que queda aca es la clase del buque, que sigue
+  // decidiendo cuanto arde, cuanto tarda y con que frase se muere.
   const cl = Object.values(PULSO_CLASE);
   assert.equal(new Set(cl.map(c => c.sink + '/' + c.humo)).size, cl.length);
   assert.equal(new Set(cl.map(c => c.str)).size, cl.length, 'cada clase tiene su propia linea');
-  const zs = PULSO_ZONAS;
-  assert.equal(new Set(zs.map(z => z.hitV + '/' + z.humo + '/' + z.sink)).size, zs.length,
-    'dos zonas con la misma cinematica: elegir blanco dejaria de significar algo');
-  assert.equal(new Set(zs.map(z => z.muerte)).size, zs.length);
-  // el polvorin es la UNICA con segundo estallido: es lo que lo hace la zona brava
-  assert.deepEqual(zs.filter(z => z.sec).map(z => z.id), ['deposit']);
-  // y el impacto de cada zona esta a distinta altura: arriba el mastil, abajo la flotacion
-  assert.ok(zs[0].hitV < zs[1].hitV && zs[1].hitV < zs[2].hitV);
+  // …y el impacto es UNO SOLO, con sus numeros puestos: si alguno se fuera a cero, la cinematica
+  // se quedaria sin fuego y sin estallido sin dar un solo error.
+  assert.ok(PULSO_IMPACTO.blast > 0 && PULSO_IMPACTO.humo > 0 && PULSO_IMPACTO.pts > 0);
 });
 
 // ---------- EL CATALOGO DEL MODO PRUEBAS (COMO_PROBAR §4, PR0) ----------
@@ -2387,6 +2377,17 @@ test('la banda del x10 es UN solo numero', async () => {
   // Y EL CASO HISTORICO, al reves: RAS_ALT (la altura a la que el PODER asienta el avion) tiene que
   // quedar ADENTRO de la banda. Si sube por encima, el poder te saca del x10 mientras lo usas.
   assert.ok(RAS_ALT < BANDA_ALT, `el asiento del poder quedo FUERA de la banda (${RAS_ALT} >= ${BANDA_ALT})`);
+});
+
+test('PERFECTO carga por ENCIMA de la banda, no por debajo', async () => {
+  // Los dos techos se separaron el 15/9: el x10 termina en BANDA_ALT y PERFECTO llega a PERF_ALT,
+  // mas arriba, para que entrar al estado no dependa de que no pase una ola. Son numeros distintos
+  // A PROPOSITO — lo que esta prueba impide es que alguien invierta la relacion, que dejaria una
+  // franja de la banda del x10 donde el estado NO se puede cargar: cobrarias el maximo sin poder
+  // empezar la unica mecanica que vive ahi.
+  const { BANDA_ALT, PERF_ALT, RAS_ALT } = await import('../src/data/tuning.js');
+  assert.ok(PERF_ALT >= BANDA_ALT, `PERFECTO no llega al techo del x10 (${PERF_ALT} < ${BANDA_ALT})`);
+  assert.ok(RAS_ALT < PERF_ALT, 'el asiento del poder quedo fuera de donde PERFECTO carga');
 });
 
 test('nadie vuelve a escribir la banda a mano', () => {

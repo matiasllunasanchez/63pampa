@@ -51,11 +51,6 @@ export const PULSO = {
   // si jugandolo resulta demasiado seco se vuelve poniendo esto en false. Lo unico que cambia es
   // cual de los dos desenlaces toma el error.
   UN_ERROR_PIERDE: true,
-  // CONTRA QUE ZONA es la prueba. Era una ELECCION del jugador (tres blancos, tres secuencias) y
-  // desde el 14/9 es dato: «es matarlo o no matarlo». La zona sigue decidiendo donde pega la bomba
-  // y como muere el buque —la cinematica de Q3 es la misma— pero ya no se pregunta.
-  // 'radar' (corta, se queda ciego) · 'bridge' (el puente arde) · 'deposit' (vuela la santabarbara).
-  ZONA: 'bridge',
 };
 
 // ---------------- LA CINTA: como se PRESENTA la prueba (pedido del 14/9/2026) ----------------
@@ -251,26 +246,29 @@ export const REMATE = { seq: 'Z', remate: true };
 // no hay "aprendidas" que respetar). Son los compases mas cortos y mas usados del pasillo.
 export const POOL_BASICO = ['dll', 'drr', 'lrl', 'rlr', 'dud'];
 
-// ---------------- LAS ZONAS (blanco → secuencia → cinematica) ----------------
-// Elegir blanco ES parte de la prueba (plan §3): la zona facil pide una secuencia corta y paga
-// poco; la brava pide la larga y paga el doble. `label` sale de strings, no de aca.
+// ---------------- EL IMPACTO ----------------
+// LA ZONA SE FUE ENTERA (decision de autor, 15/9/2026 — PLAN_PULSO_CABINA_VIDEO §0). No es que el
+// jugador deje de elegirla: DESAPARECE. Primero porque esos buques fueron dañados donde fueron
+// dañados —la historia ya decidio— y despues por la pregunta que cierra el tema: **¿a quien le
+// importa donde pego? Si lo destruis, ese es el tema.**
 //
-// LA CINEMATICA POR ZONA (Q3). `hitV`/`hitU` son DONDE pega, en unidades del buque dibujado
-// (`uh` de alto, mitad de eslora de ancho, con la cubierta en v=0 y creciendo hacia abajo): el
-// radar esta arriba del mastil, el puente a media torre y el polvorin bajo la linea de flotacion.
-// El resto es COMO muere: `blast` el tamaño del estallido, `sec` el segundo (la carga que vuela
-// despues, solo el polvorin), `sink` cuanto se hunde y `humo` cuanto arde.
+// Quedan tres hechos, y ninguno lo elige el jugador:
+//   ¿le pegaste?        ← del PULSO, o sea de la mano
+//   ¿exploto?           ← dato de la mision
+//   ¿se hundio o ardio? ← dato de la mision (la ranura MUERTE del catalogo de remates)
 //
-// Es lo que hace que dos zonas den dos cinematicas distintas (criterio de cierre de Q3) sin
-// escribir dos cinematicas: una sola, parametrizada por donde elegiste pegar.
-export const PULSO_ZONAS = [
-  { id: 'radar', str: 'pulso_z_radar', bars: -1, pts: 600, cine: 'alto',       // -1 = un compas MENOS
-    hitV: -3.9, hitU: 0.03, blast: 0.85, sec: 0, sink: 0.5, humo: 0.55, muerte: 'pulso_m_ciego' },
-  { id: 'bridge', str: 'pulso_z_bridge', bars: 0, pts: 1000, cine: 'medio',    //  0 = los del nivel
-    hitV: -1.9, hitU: -0.07, blast: 1.15, sec: 0, sink: 0.85, humo: 1, muerte: 'pulso_m_puente' },
-  { id: 'deposit', str: 'pulso_z_deposit', bars: 1, pts: 2200, cine: 'bajo',   // +1 = uno mas: la brava
-    hitV: 0.7, hitU: 0.12, blast: 1.5, sec: 0.55, sink: 1.3, humo: 1.45, muerte: 'pulso_m_polvorin' },
-];
+// Y NO SE PIERDE VARIEDAD: la variedad vive en esa ranura —una fragata revienta, un carguero arde
+// y se parte despacio— que es mas diferencia visual que tres rotulos distintos sobre la misma
+// explosion. Lo que queda aca es UN punto de impacto, que es lo que la cinematica necesita para
+// saber donde poner el fuego: a media torre, que es donde le pega una bomba tirada de frente.
+export const PULSO_IMPACTO = {
+  hitV: -1.9,   // altura del impacto en unidades de `uh` sobre la cubierta (negativo = arriba)
+  hitU: -0.07,  // corrimiento a lo largo de la eslora (fraccion de la media eslora)
+  blast: 1.15,  // tamaño del estallido
+  humo: 1,      // cuanto arde
+  sink: 0.85,   // cuanto escora y se hunde (hoy apagado por PULSO_CINE.HUNDIMIENTO)
+  pts: 1000,    // lo que paga el climax antes de los sellos
+};
 
 // LA MUERTE POR CLASE (plan §3: "la muerte del buque por clase"). La clase sale de SHIP_CLASS
 // (data/ships.js) — el mismo dato que ya elige el layout de zonas del climax 2D, asi que un buque

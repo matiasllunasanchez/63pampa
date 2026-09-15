@@ -21,7 +21,9 @@ export function beatFor(t01, flak) {
   return base * k;
 }
 
-/** Cuantas PIRUETAS pide la secuencia (sin contar el remate), ya con el ajuste de la zona. */
+/** Cuantas PIRUETAS pide la secuencia (sin contar el remate). `dz` era el ajuste de la zona
+ *  (la brava pedia una mas); la zona se fue el 15/9 y el parametro queda porque el largo por
+ *  MISION —que es lo que va a venir de la historia— entra por la misma puerta. */
 export function barsFor(t01, dz) {
   const n = Math.round(lerp(PULSO.BARS[0], PULSO.BARS[1], clamp01(t01))) + (dz | 0);
   return Math.max(0, n);
@@ -57,29 +59,6 @@ export function armar(pool, n, rnd = Math.random) {
   return seqs;
 }
 
-/** Las 2-3 zonas del buque, cada una con SU secuencia (plan §3: elegir blanco ES la prueba).
- *
- *  Se intenta que ARRANQUEN CON TOKENS DISTINTOS, porque la eleccion se hace tecleando: el primer
- *  toque elige el carril. Si el pool es tan chico que no alcanza, se acepta la colision y el
- *  desempate lo hace el sistema quedandose con el primer carril que coincide.
- */
-export function armarZonas(zonas, pool, t01, rnd = Math.random) {
-  const usados = new Set();
-  return zonas.map(z => {
-    const n = barsFor(t01, z.bars);
-    if (!n || !pool.length) return { zona: z, seqs: armar(pool, n, rnd) };
-    // el PRIMER compas se elige a proposito, no se sortea y se reza: de los que arrancan con una
-    // tecla todavia libre. Si el pool es tan chico que no queda ninguna, se acepta la colision y
-    // el desempate lo hace el sistema (se queda con el primer carril que coincide).
-    const libres = pool.filter(c => !usados.has(c.seq[0]));
-    const from = libres.length ? libres : pool;
-    const head = from[Math.min(from.length - 1, Math.floor(rnd() * from.length))];
-    usados.add(head.seq[0]);
-    const resto = armar(pool.filter(c => c.move !== head.move), n - 1, rnd);
-    return { zona: z, seqs: [head.seq, ...resto] };
-  });
-}
-
 // ---------------- EL PREMIO (Q3) ----------------
 // Tambien es cuenta pura, y por la misma razon que la escalada: si el premio se desbalancea no da
 // error ni se ve — el climax simplemente pasa a pagar de mas o de menos, y eso solo se descubre
@@ -90,27 +69,29 @@ export function armarZonas(zonas, pool, t01, rnd = Math.random) {
  *  que el sello de velocidad es igual de alcanzable en la primera mision que en la ultima. */
 export const parSecsFor = (n, beatMax) => Math.max(0, n) * Math.max(0, beatMax) * PULSO_PREMIO.PAR;
 
-/** Los tres SELLOS del premio (plan §3). `secs` es el tiempo REAL desde que se eligio blanco. */
-export function sellosDe({ errs, secs, par, zona } = {}) {
+/** Los SELLOS del premio (plan §3). `secs` es el tiempo REAL desde que arranco la secuencia.
+ *
+ *  ERAN TRES. El tercero —ZONA BRAVA— premiaba haber elegido el blanco dificil, y se fue con la
+ *  zona (15/9): no se puede premiar una decision que el jugador ya no toma. Quedan los dos que
+ *  miden la MANO, que es lo unico que el Pulso pregunta. */
+export function sellosDe({ errs, secs, par } = {}) {
   return {
     limpio: !(errs > 0),
     rapido: secs > 0 && par > 0 && secs <= par,
-    // la zona brava es la que PIDE MAS compases que el nivel (bars > 0), no la que mas paga: si
-    // algun dia se repesan los puntos, el sello sigue significando lo mismo.
-    bravo: !!(zona && zona.bars > 0),
   };
 }
 
-/** Puntos del climax: la base de la zona por lo que sumaron los sellos. Entra al recuento de la
- *  mision como una fila mas (game.js), no como una moneda aparte. */
-export function puntosDe(zona, s) {
-  const base = (zona && zona.pts) || 0;
+/** Puntos del climax: la base por lo que sumaron los sellos. Entra al recuento de la mision como
+ *  una fila mas (game.js), no como una moneda aparte. `base` era la paga de la zona elegida; hoy
+ *  es una sola (PULSO_IMPACTO.pts) porque no hay nada que elegir. */
+export function puntosDe(base, s) {
+  base = base || 0;
   const k = 1
     + (s && s.limpio ? PULSO_PREMIO.LIMPIO : 0)
     + (s && s.rapido ? PULSO_PREMIO.RAPIDO : 0)
-    + (s && s.bravo ? PULSO_PREMIO.BRAVO : 0);
+    ;
   return Math.round(base * k);
 }
 
 /** Cuantos sellos se llevo (0..3): el numero que se muestra en el recuento. */
-export const sellosN = s => (s ? (s.limpio ? 1 : 0) + (s.rapido ? 1 : 0) + (s.bravo ? 1 : 0) : 0);
+export const sellosN = s => (s ? (s.limpio ? 1 : 0) + (s.rapido ? 1 : 0) : 0);
