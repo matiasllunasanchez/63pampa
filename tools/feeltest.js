@@ -15,7 +15,7 @@ import {
 import * as aero from '../src/core/aero.js';
 import { AR } from '../src/data/arena.js';
 import * as tempo from '../src/systems/tempo.js';
-import { TEMPO_SCALE, TEMPO_TOPE } from '../src/data/tuning.js';
+import { TEMPO_SCALE, TEMPO_DUR, TEMPO_CHARGE } from '../src/data/tuning.js';
 
 const G = 22, TH = 55, DIVE = 30;   // gravedad, empuje y picada (game.js)
 const DT = 1 / 60;
@@ -243,22 +243,22 @@ console.log('\nmomentum — el especial del pasillo (tecla 4, se carga con punto
   if (tempo.toggle() === 'empty' && tempo.scale() === 1)
     console.log(`  ✓ ${'arranca vacio: sin puntos no hay poder'.padEnd(42)}`);
   else { bad++; console.log('  ✗ se lanzo con la barra vacia'); }
-  // carga por DELTA de esquives (15/9, antes eran puntos): TEMPO_ESQUIVES llenan la barra
+  // carga por DELTA de score: TEMPO_CHARGE puntos llenan la barra y avisan 'ready' UNA vez
   let readies = 0, score = 0;
   for (let i = 0; i < 10; i++) {
-    score += TEMPO_TOPE / 8;
+    score += TEMPO_CHARGE / 8;
     if (tempo.tick(DT, true, score) === 'ready') readies++;
   }
-  check(`barra llena con ${TEMPO_TOPE} esquives (meter)`, tempo.meterVal(), 1, 0.001);
+  check(`barra llena con ${TEMPO_CHARGE} pts (meter)`, tempo.meterVal(), 1, 0.001);
   check(`aviso 'ready' UNA sola vez`, readies, 1, 0);
   if (tempo.toggle() === 'on' && tempo.scale() === TEMPO_SCALE)
     console.log(`  ✓ ${'llena se LANZA'.padEnd(42)} escala ${TEMPO_SCALE}`);
   else { bad++; console.log('  ✗ la barra llena no lanza'); }
-  // el lanzamiento dura LOS SEGUNDOS JUNTADOS y se corta solo; los esquives ganados
+  // el lanzamiento dura TEMPO_DUR segundos REALES y se corta solo; los puntos ganados
   // durante el poder NO recargan la barra que se esta gastando
   let t = 0;
   while (tempo.active() && t < 10) { score += 30; tempo.tick(DT, true, score); t += DT; }
-  check('el lanzamiento dura los segundos juntados', t, TEMPO_TOPE, 0.05);
+  check('el lanzamiento dura (s reales)', t, TEMPO_DUR, 0.05);
   if (tempo.scale() === 1 && tempo.meterVal() === 0)
     console.log(`  ✓ ${'agotado: mundo a 1× y barra a cero'.padEnd(42)}`);
   else { bad++; console.log(`  ✗ agotado quedo raro (escala ${tempo.scale()}, barra ${tempo.meterVal()})`); }
@@ -267,7 +267,7 @@ console.log('\nmomentum — el especial del pasillo (tecla 4, se carga con punto
   check('sin puntos NO recarga (5 s quieto)', tempo.meterVal(), 0, 0.001);
   // salir del pasillo (muerte, relevo, climax, devcam) corta lo lanzado, pero la CARGA
   // de una barra no lanzada sobrevive al relevo (es de la corrida, como el score)
-  score += TEMPO_TOPE; tempo.tick(DT, true, score);
+  score += TEMPO_CHARGE; tempo.tick(DT, true, score);
   tempo.tick(DT, false, score);
   if (!tempo.active() && tempo.meterVal() >= 1)
     console.log(`  ✓ ${'la carga sobrevive al relevo'.padEnd(42)}`);

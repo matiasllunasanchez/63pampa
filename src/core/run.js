@@ -69,9 +69,6 @@ export const run = {
   aguHold: 0,      // s con el gas apretado, para la salida a proposito
   aguY: 0,         // la altura a la que quedo clavado el avion
   aguGolpe: -9,    // `run.t` del ultimo acierto: el HUD lo usa para el destello
-  esqT: -9,        // `run.t` del ultimo ESQUIVE: el HUD saca el "+1s" al lado de la barra del
-                   // MOMENTUM. Va en el store y no en el sistema porque quien lo dibuja es el
-                   // tablero, que no puede importar de systems (lo vigila lint:layers).
   aguErr: -9,      // …y el del ultimo toque AFUERA del azul: el HUD titila el indicador con el
   aguVen: 0,       // SEGUNDOS que le quedan a la ventana. Se vacia sola; acertar la rellena.
   aguGra: 0,       // s de gracia al entrar: el toque reflejo del gas no cuenta ni bien ni mal
@@ -172,7 +169,7 @@ export function resetRun() {
     integ: 100, escudo: 1, escudoT: 0, hurtT: 0,
     fuel: 100, heat: 0, overheat: false, detection: 0, radarWave: 0, radarSeen: false, estrellas: 0, climaxHecho: 0, boost: false, throttle: 0,
     score: 0, mult: 1, multShow: 1, streak: 0, rasLevel: 0, graceT: 0, rasAlto: -9,
-    aguante: 0, aguN: 0, aguSec: 0, aguF: 0, aguHold: 0, aguY: 0, aguGolpe: -9, aguErr: -9, aguVen: 0, aguGra: 0, esqT: -9,
+    aguante: 0, aguN: 0, aguSec: 0, aguF: 0, aguHold: 0, aguY: 0, aguGolpe: -9, aguErr: -9, aguVen: 0, aguGra: 0,
     alaLx: 0, alaLy: 0, alaRx: 0, alaRy: 0, alaT: -9,
     afterT: 0, afterTier: 0, afterGrace: 0,
     scrapeT: 0, scrapeVib: 0,

@@ -385,14 +385,13 @@ export const REATTACK_MAX = 6;      // intentos maximos sobre un mismo blanco
 // esperar — y llena se LANZA con la tecla 4: rafaga corta e intensa, como un super de arcade.
 // La punteria con mouse queda en tiempo real (es por frame, no por dt): blancos lentos + mira
 // rapida = el poder. Estos dos son la BASE de las mejoras a futuro (niveles / avance de
-// campaña): subir TEMPO_TOPE o abaratar el esquive es todo el arbol de upgrades.
+// campaña): extender TEMPO_DUR y abaratar TEMPO_CHARGE es todo el arbol de upgrades.
 // ---------- LA CHANCHA: EL KC-130 REABASTECEDOR (SPEC_PODER_CHANCHA) ----------
 // El hermano CARO del MOMENTUM: misma familia (barra que se carga jugando, una tecla) pero una
 // sola vez por corrida y recien pasado un rato largo de juego. Lo que compra no es poder: es
 // NAFTA, o sea tiempo — y se paga volando alto, lento y visible, que es lo contrario de todo lo
 // que el juego premia. Esa es la mecanica entera.
-export const CH_CHARGE = 2000;   // PUNTOS que llenan la barra. La Chancha sigue cobrandose en
-                                 // puntaje: es el unico poder que no se gana esquivando.
+export const CH_CHARGE = 2000;   // puntos que llenan la barra (~3x TEMPO_CHARGE: cara a proposito)
 export const CH_MIN_T = 240;     // s de mision antes de poder pedirla
 export const CH_ETA = 18;        // s entre el pedido confirmado y la aparicion
 export const CH_ALT = 48;        // altura de la cita (sobre RADAR_ALT=20, bajo FLY_TOP=68)
@@ -421,22 +420,16 @@ export const CH_DERIVA_V = 0.22; // velocidad de la deriva (rad/s): lenta, se si
 export const CH_SALIDA = 2.6;    // s que tarda en irse por arriba una vez que termino
 
 export const TEMPO_SCALE = 0.35;    // el mundo a ~1/3: se nota de verdad, no un slow-mo timido
-// TEMPO_DUR SE FUE (15/9): el lanzamiento ya no tiene duracion propia — dura los segundos que
-// juntaste esquivando, con `TEMPO_TOPE` de techo. Una duracion fija desmentiria al "+1 seg" que
-// la pantalla muestra en cada esquive.
-// LA BARRA SE CARGA CON ESQUIVES Y YA NO CON PUNTOS (15/9, pedido del autor).
+export const TEMPO_DUR = 3;         // s reales que dura el lanzamiento con la barra llena
+// AL TRIPLE (15/9, medido a ojo del autor sobre el juego andando). Venia de 500 → 650 y seguia
+// cargando muchisimo rapido: volar y nada mas paga 12 x multiplicador por segundo, asi que en la
+// banda la barra se llenaba sola en 5,4 s, en 2,7 con turbo y en 1,4 adentro del estado rasante.
+// A 1950 eso pasa a 16 s, 8 y 4 — el especial vuelve a ser especial.
 //
-// Cargaba con el delta de puntaje, y eso la volvia —sin que nadie lo decidiera— un premio a la
-// ALTURA y no al riesgo: volar y nada mas paga 12 x multiplicador por segundo, o sea 5,4 segundos
-// de estar en la banda para llenarla, 1,4 adentro del estado rasante. Un esquive vale 75 puntos:
-// medio segundo de simplemente estar abajo. El gesto que la barra decia premiar no se notaba.
-//
-// Ahora cuenta ESQUIVES: pasar a menos de 3 de un obstaculo y los misiles que pasan de largo. Seis
-// llenan la barra. Y de paso se vuelve legible — con puntos era imposible saber cuanto faltaba,
-// porque dependia de a que altura venias volando.
-// UN ESQUIVE, UN SEGUNDO, igual que un acierto de la racha compra un segundo de flow: son la misma
-// idea dos veces —concentracion que se convierte en instinto— y por eso se miden igual.
-export const TEMPO_TOPE = 6;        // SEGUNDOS de camara lenta que la barra puede guardar
+// ⚠ ESTO DESACOPLA LA CHANCHA: `CH_CHARGE` son 2000 y su comentario dice "~3x TEMPO_CHARGE, cara a
+// proposito". Ahora los dos poderes cuestan casi lo mismo. Si esa proporcion importaba, la Chancha
+// tiene que subir con esto; se deja como esta porque es decision de balance del autor, no arrastre.
+export const TEMPO_CHARGE = 1950;   // puntos que llenan la barra
 
 // ---------- EL PODER RASANTE (SPEC_PODER_RASANTE, tecla 6) ----------
 // EL CUARTO PODER DEL PASILLO, y el que cierra los cuatro ejes: turbo = velocidad · MOMENTUM =

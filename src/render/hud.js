@@ -653,6 +653,26 @@ function tabListo(i, y, h, lleno, col, aviso) {
   ctx.restore();
 }
 
+/** LA PUNTA QUE SE QUEMA. Unas chispas en el borde del relleno, mientras el poder se GASTA: es lo
+ *  que convierte una barra que baja en algo que se consume. Dos colores —uno blanco y el del poder—
+ *  porque con uno solo se lee como un borde mal dibujado y no como fuego.
+ *
+ *  SIN ESTADO A PROPOSITO. La posicion de cada chispa sale de `run.t` y de un hash de su indice, no
+ *  de una lista que haya que crear, avanzar y limpiar. A esta escala —cinco pixeles que viven un
+ *  tercio de segundo— un sistema de particulas de verdad seria toda la maquinaria para nada, y
+ *  ademas habria que acordarse de vaciarlo en cada reset. */
+function chispas(x, y, h, c1, c2) {
+  for (let i = 0; i < 5; i++) {
+    const s = run.t * 3.4 + i * 0.41;
+    const vida = s - Math.floor(s);                       // 0..1: nace en el borde y se apaga
+    const n = Math.sin((i * 12.9898 + Math.floor(s) * 78.233) * 437.585);
+    const r = n - Math.floor(n);
+    ctx.globalAlpha = Math.max(0, 1 - vida) * 0.9;
+    px(Math.round(x + vida * 3 - 1), Math.round(y + r * h - vida * 2), 1, 1, i % 2 ? c1 : c2);
+  }
+  ctx.globalAlpha = 1;
+}
+
 /** LA BARRA DE CONCENTRACION, al lado del avion. Es `barraPoder` en chico: el rotulo va ADENTRO y
  *  se dibuja en DOS PASADAS con recorte —oscuro sobre lo lleno, apagado sobre lo vacio— asi las
  *  letras se van prendiendo a medida que el relleno las alcanza. Eso es lo que hace que una barra
@@ -691,6 +711,9 @@ function barraPoder(px0, py0, val, col, claro, oscuro, on, lista, rot) {
   const fw = Math.round(PODER_W * Math.max(0, Math.min(1, val)));
   if (fw > 0) px(x, y, fw, PODER_H, c);
   if (fw > 1) { ctx.globalAlpha = 0.4; px(x, y, fw, 1, '#f2f7fb'); ctx.globalAlpha = 1; }   // bisel
+  // LA PUNTA SE QUEMA MIENTRAS SE GASTA, igual que la del rasante y por el mismo motivo: una barra
+  // que baja sola se lee como que se descarga, una que se quema se lee como que la estas usando.
+  if (on && fw > 0) chispas(x + fw, y, PODER_H, '#ffffff', P.accent);
   // LA OLA, solo cuando esta lista y todavia no se uso: cruza el relleno de punta a punta
   const onda = lista && !on ? x - ONDA_W + ((run.t % ONDA_S) / ONDA_S) * (PODER_W + ONDA_W * 2) : null;
   if (onda !== null) {
@@ -1472,7 +1495,17 @@ export function drawHUD(h) {
       // que con 6 el glifo ocupa de y0 a y0+4 y queda 1 px de aire abajo. Bajar a 5 le come la
       // panza a las letras. El ANCHO se queda en RACHA_W para seguir alineada con el pulso: es lo
       // que las hace leerse como un solo cartelito y no como dos cosas apiladas.
-      barraConc(bx, by + 6, RACHA_W, 6, fr, enFlow ? RAS_CLARO : RAS_COL, T('mult_rasante'));
+      if (enFlow) {
+        // GASTANDOSE: sin palabra y MAS FINITA. Lo que queda es una raya azul bajando con la punta
+        // quemandose — el cartel se vacia igual que se te vacia la cabeza, y esa simplificacion ES
+        // el aviso de que estas en flow.
+        px(bx, by, RACHA_W, 3, '#2e3c45');
+        const fw = Math.max(1, Math.round(RACHA_W * fr));
+        px(bx, by, fw, 3, RAS_COL);
+        chispas(bx + fw, by, 3, '#ffffff', RAS_COL);
+      } else {
+        barraConc(bx, by - 8, RACHA_W, 6, fr, RAS_COL, T('mult_rasante'));
+      }
     } else {
       const pal = T(enEstado ? 'mult_rasante' : 'mult_perfect');
       const paso = Math.max(3, Math.floor((RACHA_W - GLIFO) / Math.max(1, pal.length - 1)));
@@ -1481,7 +1514,7 @@ export function drawHUD(h) {
       // palabra va en NEGRITA, que es lo que la sostiene sobre el mar a 5 px.
       ctx.textAlign = 'left'; ctx.font = 'bold 5px monospace';
       ctx.fillStyle = enEstado ? (golpe ? '#ffffff' : RAS_COL) : P.accent;
-      for (let i = 0; i < pal.length; i++) ctx.fillText(pal[i], rx + i * paso, by + 11);
+      for (let i = 0; i < pal.length; i++) ctx.fillText(pal[i], rx + i * paso, s.y - 9);
     }
     if (enFlow) {
       // EN EL FLOW NO HAY NADA MAS QUE LA BARRA: ni pulso, ni ventana, ni carga. La racha se
@@ -1489,7 +1522,7 @@ export function drawHUD(h) {
       // cabeza. Ese vaciarse del cartelito ES el aviso de en que estado estas.
     } else if (!enEstado) {
       // LA CARGA: sin carril, solo lo cargado — 4 s de PERFECTO y se abre el estado.
-      px(bx, by - 3, Math.round(RACHA_W * Math.min(1, run.streak / AGU.CARGA)), 1, P.accent);
+      px(bx, by + 1, Math.round(RACHA_W * Math.min(1, run.streak / AGU.CARGA)), 1, P.accent);
     } else {
       // EL PULSO. Barra BLANCA con un solo sector AZUL, y un indicador de 1 px que va de punta a
       // punta. Hay que darle un toque de gas mientras pasa por el azul; el sector se corre en
@@ -1512,9 +1545,9 @@ export function drawHUD(h) {
       // acento (la carga de PERFECTO, la Chancha, el cañon), y azul ya lo dice todo lo que es el
       // rasante — con las dos barras azules el ojo las leia como una sola cosa partida. Fina para
       // que sea el renglon MAS liviano de los tres: el pulso es lo que hay que mirar.
-      // LA VENTANA SE MUDO ARRIBA (15/9, pedido del autor): el cartelito quedo invertido — el reloj
-      // primero, el pulso en el medio y la concentracion abajo.
-      const vy = by - 3, fr = Math.max(0, Math.min(1, run.aguVen / ventanaAgu(run.aguN)));
+      // EL RELOJ VA ABAJO DE TODO. Lo tuve arriba media hora por un malentendido mio y se leia
+      // mal: la ventana es lo que se te ESTA ACABANDO, y lo que se acaba se mira al pie.
+      const vy = by + 5, fr = Math.max(0, Math.min(1, run.aguVen / ventanaAgu(run.aguN)));
       px(bx, vy, RACHA_W, 1, '#2e3c45');
       // CUANDO QUEDA POCO, PARPADEA APAGANDOSE (el mismo criterio que las balizas): un cambio de
       // color seria un dato nuevo que aprender; el titileo se ve de reojo, sin mirar el cartel.
@@ -1662,19 +1695,6 @@ export function drawHUD(h) {
   const altoPod = PODER_H + 2;                                   // la placa de la barra
   const yPod = CUADROS_Y - AIRE - PILOTO.lado - AIRE - altoPod;   // pegada a la cara, con el mismo aire
   barraPoder(MARGEN, yPod, tv, P.accent, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
-  // "+1 SEG" AL LADO DE SU BARRA. El mismo aviso sale tambien en el avion (systems/collision.js):
-  // uno dice DE DONDE salio y el otro PARA QUE sirvio. Sin el de aca, el jugador ve un numero
-  // volando y no tiene forma de atarlo a la barra que se acaba de mover un sexto — que a 24 px es
-  // un movimiento invisible. Dura lo que un pestañeo y se va con un fundido.
-  const esq = run.t - run.esqT;
-  if (esq >= 0 && esq < 0.7) {
-    ctx.save();
-    ctx.globalAlpha = Math.min(1, (0.7 - esq) / 0.25);
-    ctx.font = 'bold ' + F_ROT; ctx.textAlign = 'left';
-    ctx.fillStyle = P.accent;
-    ctx.fillText('+1 SEG', MARGEN + CUADRO + 3, yPod + PODER_H - Math.round(esq * 6));
-    ctx.restore();
-  }
   tabListo(0, yPod, altoPod, tv >= 1, P.accent);
 
   // municion de misiles: cada pip es el MISIL en miniatura (cuerpo blanco, ojiva gris, llama),

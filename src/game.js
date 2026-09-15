@@ -4930,12 +4930,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // (muerte, relevo, climax, devcam) y avisa 'ready' UNA vez cuando la barra se llena.
       // el aviso de que se cargo YA NO ES UN CARTEL EN EL CENTRO (12/9): lo dice la lengueta
       // LISTO que sale de atras de su propia barra (render/hud.js, tabListo). El beep queda.
-      // LOS DOS ESQUIVES QUE CUENTAN: rozar un obstaculo (collision.js, `stats.grazes`) y el misil
-      // que pasa de largo (`stats.dodges`). Los dos son lo mismo — pasaste MUY cerca de algo que te
-      // mataba — y por eso van sumados. Se pasan como UN numero para que el modulo siga cargando
-      // por delta y no tenga que enterarse de quien los produjo.
-      if (tempo.tick(raw, S.state === 'play' && !cfg.devcam, stats.grazes + stats.dodges) === 'ready')
-        beep(660, 0.1, 'square', 0.05, 140);
+      if (tempo.tick(raw, S.state === 'play' && !cfg.devcam, run.score) === 'ready') beep(660, 0.1, 'square', 0.05, 140);
       if (S.state !== veilPrev) {
         if (S.state === 'arena' || S.state === 'momentum') veilOut = VEIL_OUT;
         veilPrev = S.state;
