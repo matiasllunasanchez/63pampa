@@ -28,7 +28,7 @@
 import { run } from '../core/run.js';
 import { plane } from '../core/state.js';
 import { inp } from '../core/input.js';
-import { AGU, ancho, vel, mult, nivel, pos, dentro, sector, ventana, castigo } from '../core/aguante.js';
+import { AGU, ancho, vel, mult, nivel, pos, dentro, sector, ventana, castigo, concentracion, hayFlow } from '../core/aguante.js';
 import { RAS_ALT, BANDA_ALT } from '../data/tuning.js';
 
 const CLAVO = 12;           // rate del resorte que clava la altura: duro, que de eso se trata
@@ -40,6 +40,10 @@ let armado = false;         // el indicador entro al sector y todavia nadie lo t
 // no dio) ni el reloj de la salida (lo sacaria solo al segundo de haber entrado). Se limpia en
 // cuanto suelta, que es el momento en que el gas pasa a ser suyo otra vez.
 let esperandoSoltar = false;
+// LA CONCENTRACION QUE QUEDO SERVIDA. Al flow no se entra por decision —te agarra—, asi que cuando
+// la racha se termina el estado deja los segundos juntados en esta bandeja y el vuelo los levanta
+// para lanzar el poder. Es el mismo trato de siempre: el sistema avisa, el de arriba actua.
+let flowSeg = 0;
 
 export const activo = () => run.aguante === 1;
 /** ¿El sector esta ARMADO —el indicador entro y nadie lo toco—? Solo para la sonda `__agudbg`
@@ -53,7 +57,7 @@ export const alturaClavada = () => run.aguY;
 export function resetAguante() {
   run.aguante = 0; run.aguN = 0; run.aguSec = 0; run.aguF = 0; run.aguHold = 0;
   run.aguY = 0; run.aguGolpe = -9; run.aguErr = -9; run.aguVen = 0; run.aguGra = 0;
-  prevU = false; armado = false; esperandoSoltar = false;
+  prevU = false; armado = false; esperandoSoltar = false; flowSeg = 0;
 }
 
 function entrar() {
@@ -76,8 +80,22 @@ function entrar() {
 }
 
 function salir() {
+  // LO JUNTADO SE SIRVE ANTES DE LIMPIAR. Vale igual si te caiste, si te fuiste a proposito o si se
+  // te lleno: en los tres casos estuviste concentrado, y eso es lo que el poder cobra. Por debajo
+  // del piso no se sirve nada — dos segundos de camara a 45 grados son un parpadeo, no una rafaga.
+  flowSeg = hayFlow(run.aguN) ? concentracion(run.aguN) : 0;
+  // …Y LA CARGA DE PERFECTO VUELVE A CERO, SIEMPRE. Sin esto el estado se reabria AL CUADRO
+  // SIGUIENTE: `run.streak` se queda clavado en su tope mientras estes en la banda, asi que salir
+  // no costaba nada —la pifiabas y volvias a entrar en el acto— y ademas el cartel parpadeaba entre
+  // PERFECTO y RASANTE una vez por toque. Perder el estado tiene que costar los cuatro segundos de
+  // volver a ganarlo, que es lo unico que hace que sostenerlo signifique algo.
+  run.streak = 0;
   run.aguante = 0; run.aguHold = 0; run.aguGra = 0; armado = false; esperandoSoltar = false;
 }
+
+/** LOS SEGUNDOS DE FLOW que la racha dejo servidos, y los BORRA: es de un solo uso, como un flanco.
+ *  Lo levanta el vuelo en el mismo cuadro en que el estado se cerro. */
+export function tomarFlow() { const s = flowSeg; flowSeg = 0; return s; }
 
 /** Un acierto: premio, sector nuevo (lejos del que habia) y la dificultad un paso arriba. */
 function acertar() {
@@ -130,7 +148,14 @@ export function tickAguante(dt, enBanda) {
   if (!estabaDentro && estaDentro) armado = true;
 
   if (flanco && !esperandoSoltar && run.aguGra <= 0) {
-    if (estaDentro && armado) { acertar(); return 'acierta'; }
+    if (estaDentro && armado) {
+      acertar();
+      // EL TOPE TERMINA LA RACHA Y DISPARA EL FLOW. Pasado `CONC_TOPE` un acierto ya no compra
+      // nada —la concentracion no sube— asi que seguir seria pedirle al jugador que toque gratis.
+      // Y encaja con lo que el estado es: te concentraste tanto que el instinto te agarra.
+      if (concentracion(run.aguN) >= AGU.CONC_TOPE) { salir(); return 'lleno'; }
+      return 'acierta';
+    }
     if (estaDentro) return null;                           // pasada ya cobrada: ni paga ni castiga
     // TOCAR AFUERA DEL AZUL QUEMA RELOJ, no mata. La ventana es la unica moneda del estado, asi
     // que el error se cobra ahi: si lo que quedaba no alcanza para pagarlo, se cierra y ES la
@@ -140,7 +165,7 @@ export function tickAguante(dt, enBanda) {
     // registrado — no se ve (el estado ya se cerro) pero la sonda y el recuento no mienten.
     run.aguErr = run.t;
     run.aguVen = Math.max(0, run.aguVen - castigo(run.aguN));
-    if (run.aguVen <= 0) { salir(); run.streak = 0; return 'falla'; }
+    if (run.aguVen <= 0) { salir(); return 'falla'; }
     return 'castigo';
   }
 
@@ -148,7 +173,7 @@ export function tickAguante(dt, enBanda) {
   // de juego, y al llegar a cero el crucero se corta: es la MISMA falla que tocar afuera, con la
   // diferencia de que esta se veia venir. El jugador tuvo la barra de abajo avisandole.
   run.aguVen = Math.max(0, run.aguVen - dt);
-  if (run.aguVen <= 0) { salir(); run.streak = 0; return 'falla'; }
+  if (run.aguVen <= 0) { salir(); return 'falla'; }
   return null;
 }
 

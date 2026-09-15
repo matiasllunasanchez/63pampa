@@ -442,11 +442,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       //
       // Solo cuando NO esta puesto: con el poder activo [6] lo CORTA, y cortar tiene que andar a
       // cualquier altura (es la salida de emergencia).
-      if (!rasante.active() && rasante.meterVal() >= 1 && plane.y > rasante.ceil()) {
-        beep(150, 0.09, 'square', 0.05);
-        run.rasAlto = run.t;                     // el HUD saca la lengueta; se apaga sola
-        return;
-      }
+      // [6] YA NO LANZA (13/9): el flow lo dispara la RACHA, no el jugador. Lo que queda es la
+      // salida de emergencia — cortarlo a mano, que tiene que andar a cualquier altura. Por eso
+      // tambien se fue el gate de "estas demasiado alto": no hay lanzamiento que gatear, y el modo
+      // de falla dejo de ser la altura para pasar a ser "todavia no juntaste concentracion", que
+      // lo dicen las letras apagadas de la palabra.
       const r = rasante.toggle();
       if (r === 'empty') { beep(140, 0.09, 'square', 0.05); return; }
       // EL SUSURRO: el beep de entrada va GRAVE y hacia abajo (-90), al reves de todos los demas
@@ -4968,9 +4968,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const rs = rasante.tick(dt, {
         inPlay: S.state === 'play' && !cfg.devcam
           && gameMode !== 'arena' && gameMode !== 'pasadas',
-        enBanda: plane.y <= BANDA_ALT,
       });
-      if (rs.sig === 'ready') beep(700, 0.1, 'square', 0.05, 160);   // idem: lo dice la lengueta LISTO
       if (rs.sig === 'end') { beep(300, 0.12, 'square', 0.05, 90); popup(W / 2, 58, T('rasOff'), P.dim); }
       // EL LATIDO (RF-05): grave, corto y por debajo de todo. El modulo dice CUANDO —lleva el
       // reloj del poder— y el orquestador pone el sonido, como con cualquier otra señal.

@@ -38,6 +38,22 @@ export const FLY_X = 38, FLY_TOP = 68;
 // "natural" de uno rompia al otro. tools/unit.js vigila las dos cosas: que la banda sea una sola, y
 // que RAS_ALT siga quedando abajo.
 export const BANDA_ALT = 4.5;
+
+// EL TECHO DE PERFECTO — mas alto que la banda, y a proposito (15/9).
+//
+// Hasta hoy el estado RASANTE se cargaba y se sostenia en la MISMA franja que paga el x10, y eso
+// lo volvia finisimo: el clavado te deja sin eje vertical, asi que una ola que pasara de 4,5 te
+// sacaba del estado sin que pudieras hacer nada. Con metro y medio de aire, entrar deja de ser un
+// pulso de precision y pasa a ser una decision.
+//
+// ⚠ NO ES LA BANDA, y es justamente el tipo de 4,5 que el dia que se unifico la banda se dejo
+// documentado como "podrian separarse algun dia". Este es ese dia: el x10 sigue terminando en
+// BANDA_ALT y lo que se movio es OTRA cosa. Si alguien los vuelve a igualar, que sea a proposito.
+//
+// Consecuencia que hay que conocer: adentro del estado el multiplicador lo da el aguante y no la
+// altura, asi que entre 4,5 y 6 se puede cobrar por encima del x10 estando fuera de la banda. Lo
+// compensa el clavado, que te asienta de vuelta adentro (`run.aguY` topea en BANDA_ALT).
+export const PERF_ALT = 6;
 export const SPAWN_EDGE = 6;              // ~el alcance de un obstaculo aereo (3 + 2,1 del avion)
 export const SPAWN_X = FLY_X + SPAWN_EDGE;
 // EL CARRIL SE ENSANCHO, ASI QUE LA CADENCIA SE COMPENSA. El caudal de obstaculos se mide por

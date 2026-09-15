@@ -22,7 +22,7 @@
 // `flight.js` preguntando `active()`), no vuelve invulnerable (las olas de cara, los obstaculos y
 // el fuego matan igual) y no asiste: ↑ responde siempre, con la fuerza de siempre.
 
-import { RAS_ALT, RAS_SPRING, RAS_CEIL, RAS_DUR, RAS_CHARGE_S, RAS_CAM, RAS_CAMS,
+import { RAS_ALT, RAS_SPRING, RAS_CEIL, RAS_DUR, RAS_CAM, RAS_CAMS,
   RAS_LATIDO, RAS_LAT_T } from '../data/tuning.js';
 
 // LA BANDA DEL x10 termina en `BANDA_ALT` (data/tuning.js) y ese numero NO vive aca: lo mide
@@ -30,18 +30,17 @@ import { RAS_ALT, RAS_SPRING, RAS_CEIL, RAS_DUR, RAS_CHARGE_S, RAS_CAM, RAS_CAMS
 // verdades — que es justo el problema que la constante vino a cerrar.
 let on = false;        // ¿el poder esta lanzado AHORA?
 let t = 0;             // reloj del lanzamiento, en segundos de MUNDO
-// LA BARRA NO SE GUARDA: se DERIVA de los segundos de banda. Estuvo guardada aparte media hora y
-// se desincronizo en el primer fixture — cortar a mano ponia la barra en cero pero dejaba los
-// segundos, y el tick de ese mismo cuadro la volvia a llenar sola con los segundos viejos: un
-// poder infinito. Con una sola verdad eso no se puede escribir.
-let banda = 0;         // segundos acumulados en la banda, a mano — la UNICA fuente de la barra
+// YA NO HAY BARRA QUE GUARDAR. La que habia se derivaba de los segundos de banda, y esa carga
+// desaparecio entera: los segundos los trae la racha. Queda la leccion que costo media hora en su
+// momento y que sigue valiendo — UNA sola verdad: `dur` y `t`, y todo lo demas se deriva.
+// LA DURACION YA NO ES FIJA NI SE ACUMULA ACA (13/9). El poder dejo de cargarse con TIEMPO en la
+// banda: eso se llenaba por ESTAR y no por hacer, y ademas el estado RASANTE se lo cargaba gratis
+// —medido: la barra subia de 0,259 a 0,499 en seis segundos mientras el aguante clavaba el avion,
+// que es el "darse cuerda a si mismo" que este archivo ya prohibia para el poder puesto—.
+// Ahora los segundos los trae la RACHA: un acierto, un segundo, y el flow dura lo que juntaste.
+let dur = 0;           // los segundos de ESTE lanzamiento; 0 si no hay ninguno
 let usos = 0;          // cuantas veces se lanzo en esta corrida (para la leccion de primera vez)
 let latT = 0;          // reloj del latido
-
-/** GASTAR la carga: es una sola linea y por eso mismo tiene nombre — los dos caminos de consumo
- *  (agotarse solo y cortar a mano) tienen que hacer exactamente lo mismo, y cuando eran dos
- *  asignaciones sueltas uno de los dos se olvidaba de la mitad. */
-function gastar() { banda = 0; }
 
 /**
  * TECLA 6. Devuelve la señal para el feedback (game.js pone el beep, la radio y el popup):
@@ -51,9 +50,21 @@ function gastar() { banda = 0; }
  * NUNCA consume la barra si no se lanza, que es la misma regla que `chancha.pedir`.
  */
 export function toggle() {
-  if (on) { on = false; t = 0; latT = 0; gastar(); return 'off'; }
-  if (meterVal() < 1) return 'empty';
-  on = true; t = 0; latT = 0; usos++; return 'on';
+  if (on) { on = false; t = 0; dur = 0; latT = 0; return 'off'; }
+  return 'empty';                      // ya no se lanza a mano: el flow lo dispara la racha
+}
+
+/** EL FLOW SE DISPARA, con los segundos que la racha junto. Lo llama el orquestador cuando el
+ *  aguante avisa que se lleno o que se termino — no el jugador. Al flow no se entra por decision:
+ *  te agarra. (La habilidad de piloto que lo vuelve manual va a entrar por aca tambien.)
+ *
+ *  Devuelve 'on' si arranco, o null si los segundos no alcanzan: por debajo del piso el cambio de
+ *  camara y de lamina es un parpadeo, no una rafaga. */
+export function lanzar(segundos) {
+  const s = Math.max(0, +segundos || 0);
+  if (on || s <= 0) return null;
+  on = true; t = 0; dur = s; latT = 0; usos++;
+  return 'on';
 }
 
 /**
@@ -61,8 +72,8 @@ export function toggle() {
  * juego aunque se lo lance en camara lenta, que es como convive con el MOMENTUM (RF-06) — el
  * mismo criterio que el ETA de la Chancha.
  *
- * `e` = { inPlay, enBanda } — el orquestador resuelve las dos: `inPlay` es el pasillo jugable
- * (estado 'play', sin devcam y sin climax) y `enBanda` es la altura del x10 (`alt <= BANDA_ALT`).
+ * `e` = { inPlay } — el pasillo jugable (estado 'play', sin devcam y sin climax). La altura ya no
+ * entra: el poder dejo de cargarse solo, asi que no tiene nada que preguntarle a la banda.
  *
  * Devuelve SIEMPRE un objeto: { sig } — 'ready' UNA vez cuando la barra se llena, 'end' UNA vez
  * cuando el lanzamiento se agota solo. El corte a mano no sale por aca: sale de `toggle()`.
@@ -76,13 +87,6 @@ export function tick(dt, e) {
     if (on) { on = false; t = 0; latT = 0; }
     return out;
   }
-  // LA CARGA: solo A MANO. `!on` no es una optimizacion — es la mecanica: con el poder activo el
-  // avion vuela al ras SOLO, asi que dejarlo cargar seria darse cuerda a si mismo. Se gana la
-  // proxima rafaga volando bajo con las manos, que es de lo que se trata.
-  if (!on && e.enBanda && meterVal() < 1) {
-    banda += dt;
-    if (meterVal() >= 1) out.sig = 'ready';
-  }
   if (on) {
     t += dt;
     // EL LATIDO (RF-05). Va aca y no en el audio por el mismo motivo que las señales: este modulo
@@ -94,16 +98,18 @@ export function tick(dt, e) {
       latT += dt;
       if (latT >= ritmo) { latT -= ritmo; out.latido = true; }
     }
-    if (t >= RAS_DUR) { on = false; t = 0; latT = 0; gastar(); out.sig = 'end'; }
+    if (t >= dur) { on = false; t = 0; dur = 0; latT = 0; out.sig = 'end'; }
   }
   return out;
 }
 
 /** ¿El resorte y el colchon estan puestos? Lo pregunta `flight.js` (RF-01, RF-02). */
 export const active = () => on;
-export const meterVal = () => Math.min(1, banda / RAS_CHARGE_S);
-/** Lo que queda del lanzamiento, en segundos — lo dibuja el HUD. */
-export const restante = () => (on ? Math.max(0, RAS_DUR - t) : 0);
+/** Lo que queda del lanzamiento, en segundos — lo dibuja la PALABRA, que se va apagando. */
+export const restante = () => (on ? Math.max(0, dur - t) : 0);
+/** Los segundos con los que arranco este lanzamiento: la palabra necesita los dos para saber que
+ *  fraccion tiene que dibujar encendida. */
+export const duracion = () => dur;
 /** ¿Es la PRIMERA activacion de esta corrida? La leccion del sapito se muestra una vez (RF-05). */
 export const primeraVez = () => usos === 1;
 
@@ -131,24 +137,24 @@ export const ceil = () => RAS_CEIL;
 export const spring = () => RAS_SPRING;
 
 /** Llena la barra a mano. Es la mitad util de la sonda `?rasante` y de `__rscharge`: sin esto,
- *  probar el resorte cuesta RAS_CHARGE_S segundos pegado al agua EN CADA corrida del fixture — y
- *  pegado al agua a mano, que es justo lo que un fixture no puede hacer bien. QUITAR. */
+ *  probar el resorte cuesta juntar una racha entera a mano EN CADA corrida del fixture, que es
+ *  justo lo que un fixture no puede hacer bien. Ahora LANZA en vez de cargar. QUITAR. */
 export function cargar(seg) {
-  banda = seg === undefined ? RAS_CHARGE_S : +seg;
-  return meterVal();
+  return lanzar(seg === undefined ? RAS_DUR : +seg) === 'on' ? dur : 0;
 }
 
 /** Arranque de PARTIDA (no de vida): barra vacia, poder apagado, banda a cero. Lo llama el reset
  *  del run, igual que resetTempo/resetChancha. */
-export function resetRasante() { on = false; t = 0; latT = 0; banda = 0; usos = 0; camNombre = RAS_CAM; }
+export function resetRasante() { on = false; t = 0; dur = 0; latT = 0; usos = 0; camNombre = RAS_CAM; }
 
 // ---------- SONDAS (QUITAR al cerrar el plan) ----------
-// `__rsdbg()` es la foto entera del poder y `__rscharge()` llena la barra: sin la segunda, probar
-// el resorte costaria volar RAS_CHARGE_S segundos pegado al agua en cada corrida del fixture.
+// `__rsdbg()` es la foto entera del poder y `__rscharge(seg)` lo LANZA con los segundos que le
+// pidas: sin la segunda, probar el resorte costaria juntar una racha entera a mano en cada corrida
+// del fixture — y una racha a mano es justo lo que un fixture no puede hacer bien.
 if (typeof window !== 'undefined') {
   window.__rsdbg = () => JSON.stringify({
-    on, meter: +meterVal().toFixed(3), t: +t.toFixed(2), banda: +banda.toFixed(2), usos,
-    resta: +restante().toFixed(2), alt: RAS_ALT, ceil: RAS_CEIL, spring: RAS_SPRING, dur: RAS_DUR,
+    on, t: +t.toFixed(2), usos,
+    resta: +restante().toFixed(2), alt: RAS_ALT, ceil: RAS_CEIL, spring: RAS_SPRING, dur: +dur.toFixed(2),
     cam: camNombre, lift: (RAS_CAMS[camNombre] || {}).lift, piso: (RAS_CAMS[camNombre] || {}).piso,
     lat: (RAS_CAMS[camNombre] || {}).lat || 0,
   });

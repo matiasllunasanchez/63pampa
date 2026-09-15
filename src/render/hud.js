@@ -16,9 +16,10 @@ import { proj } from '../core/fx.js';
 import { scrapeLimit, speedTarget } from '../core/physics.js';
 import { effects } from '../core/damage.js';
 import { T } from '../core/i18n.js';
-import { AGU, ancho as anchoSector, pos as posInd, ventana as ventanaAgu } from '../core/aguante.js';
+import { AGU, ancho as anchoSector, pos as posInd, ventana as ventanaAgu,
+  concentracion as concSeg } from '../core/aguante.js';
 import { P, RADAR_VERDE, RADAR_OPACO } from '../data/palette.js';
-import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP, BANDA_ALT } from '../data/tuning.js';
+import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP, BANDA_ALT, PERF_ALT } from '../data/tuning.js';
 import { machNow } from '../core/mach.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName } from '../systems/squad.js';
@@ -650,6 +651,36 @@ function tabListo(i, y, h, lleno, col, aviso) {
   ctx.fillStyle = avisando ? aviso.col : col;
   ctx.fillText(txt, xt + 2 + dx, y + h - 3);
   ctx.restore();
+}
+
+/** LA BARRA DE CONCENTRACION, al lado del avion. Es `barraPoder` en chico: el rotulo va ADENTRO y
+ *  se dibuja en DOS PASADAS con recorte —oscuro sobre lo lleno, apagado sobre lo vacio— asi las
+ *  letras se van prendiendo a medida que el relleno las alcanza. Eso es lo que hace que una barra
+ *  con una palabra adentro se lea sin leerla: lo que importa es hasta donde llego el color.
+ *
+ *  Sin placa ni borde: pegada al avion, una placa seria una mancha (la misma razon por la que la
+ *  palabra PERFECTO perdio su recuadro). */
+function barraConc(x0, y0, w, h, frac, col, rot) {
+  px(x0, y0, w, h, '#2e3c45');
+  const fw = Math.round(w * Math.max(0, Math.min(1, frac)));
+  if (fw > 0) px(x0, y0, fw, h, col);
+  if (fw > 1) { ctx.globalAlpha = 0.4; px(x0, y0, fw, 1, '#f2f7fb'); ctx.globalAlpha = 1; }
+  // EN NEGRITA, igual que la palabra suelta: pegada al avion y a 5 px, la normal se deshilacha
+  // sobre el mar. Las de `barraPoder` siguen finas — esas viven sobre una placa que las sostiene.
+  // El monospace no cambia de avance al engrosar, asi que el paso y el centrado no se mueven.
+  ctx.font = 'bold ' + F_ROT; ctx.textAlign = 'left';
+  const ty = y0 + h - 2, n = rot.length;
+  const paso = Math.max(3, Math.min(4, Math.floor((w - 2 - GLIFO) / Math.max(1, n - 1))));
+  const rx = x0 + Math.floor((w - (GLIFO + paso * (n - 1))) / 2);
+  const pasada = (cx, cw, color) => {
+    if (cw <= 0) return;
+    ctx.save(); ctx.beginPath(); ctx.rect(cx, y0, cw, h); ctx.clip();
+    ctx.fillStyle = color;
+    for (let i = 0; i < n; i++) ctx.fillText(rot[i], rx + i * paso, ty);
+    ctx.restore();
+  };
+  pasada(x0, fw, '#0a1015');
+  pasada(x0 + fw, w - fw, '#8a9ba1');
 }
 
 function barraPoder(px0, py0, val, col, claro, oscuro, on, lista, rot) {
@@ -1391,7 +1422,9 @@ export function drawHUD(h) {
   //                           indicador que va y viene, y un toque de gas adentro por pasada.
   //
   // El puntaje sigue multiplicando en flight.js (`run.multShow`): lo que se fue es el numero.
-  if (run.aguante || run.mult === 10) {
+  // SALE DONDE PERFECTO CARGA (PERF_ALT), y no donde paga el x10: desde que los dos techos se
+  // separaron, `run.mult === 10` dejaba a la franja de 4,5 a 6 cargando en secreto.
+  if (run.aguante || plane.y <= PERF_ALT || ras.on) {
     // proj() devuelve coordenadas de MUNDO (grilla 480x270) y el HUD razona en la de DISEÑO
     // (320x180): hay que dividir por U. Es el unico punto del HUD anclado al mundo.
     const pw = proj(plane.x, plane.y, PZ);
@@ -1399,33 +1432,64 @@ export function drawHUD(h) {
     // TRES RENGLONES, de arriba a abajo: la palabra, la barra del pulso y —solo en RASANTE— el
     // temporizador de la ventana. Todo el cartelito subio 2 px para hacerle lugar al tercero.
     const bx = s.x + 25, by = s.y - 7;
-    const ras = run.aguante === 1;
+    const enEstado = run.aguante === 1;
     // EL DESTELLO DEL ACIERTO: la palabra y el sector se van al claro por un pestañeo. Es el
     // unico "si" que da el estado, y tiene que caber en el tiempo que queda hasta el proximo.
-    const golpe = ras && run.t - run.aguGolpe < 0.12;
+    const golpe = enEstado && run.t - run.aguGolpe < 0.12;
     // EL TOQUE ERRADO TITILA EL INDICADOR EN NARANJA. Va en el INDICADOR y no en el sector porque
     // el error fue donde estaba LA AGUJA, no donde estaba el azul: el cartel tiene que aparecer
     // en la cosa que el jugador miro mal. Y naranja y no rojo porque lo que se quemo es el reloj
     // de abajo, que es naranja — el color dice QUE se perdio, no solo que algo salio mal.
     // Titila (no se queda prendido) por la misma razon que el destello del acierto es un
     // pestaneo: el proximo cruce llega en ~0,33 s y un aviso sostenido taparia el siguiente.
-    const errado = ras && run.t - run.aguErr < AGU_ERR_T && Math.sin(run.t * AGU_ERR_HZ) > 0;
+    const errado = enEstado && run.t - run.aguErr < AGU_ERR_T && Math.sin(run.t * AGU_ERR_HZ) > 0;
     // LETRA POR LETRA sobre el ancho de la barra, con PASO ENTERO y el bloque centrado — el mismo
     // criterio que los rotulos de barraPoder, y por la misma razon: con paso fraccionario el
     // redondeo de cada letra cae distinto y RASANTE (7 letras en 24 px) salia "R AS AN TE".
     // Se pierde medio pixel de ancho a cada lado y se gana que el espaciado sea siempre igual.
-    const pal = T(ras ? 'mult_rasante' : 'mult_perfect');
-    const paso = Math.max(3, Math.floor((RACHA_W - GLIFO) / Math.max(1, pal.length - 1)));
-    const rx = bx + Math.floor((RACHA_W - (GLIFO + paso * (pal.length - 1))) / 2);
-    // SIN FONDO: el recuadro oscuro detras de la palabra era una mancha pegada al avion. La
-    // palabra va en NEGRITA, que es lo que la sostiene sobre el mar a 5 px.
-    ctx.textAlign = 'left'; ctx.font = 'bold 5px monospace';
-    ctx.fillStyle = ras ? (golpe ? '#ffffff' : RAS_COL) : P.accent;
-    for (let i = 0; i < pal.length; i++)
-      ctx.fillText(pal[i], rx + i * paso, s.y - 9);
-    if (!ras) {
+    // EL RENGLON DE ARRIBA CUENTA (13/9). Antes decia siempre RASANTE; ahora, apenas empezas a
+    // acertar, pasa a ser el contador — x1, x2, x3… — porque el nombre del estado ya lo dijo el
+    // cuadro en que entraste y lo que importa desde ahi es cuanto llevas. La palabra RASANTE se
+    // mudo ABAJO, donde es el tanque de concentracion.
+    // TRES MODOS, Y SE EXCLUYEN (15/9):
+    //   · cargando PERFECTO  → la palabra suelta y su barrita de carga
+    //   · en la racha        → hasta el 4to acierto la palabra suelta; del 4to en adelante se
+    //                          convierte en BARRA y empieza a llenarse, vacia, igual que la que
+    //                          estaba abajo de MOMENTUM
+    //   · en el flow         → la misma barra, vaciandose
+    // Lo que NO puede pasar es lo que se veia antes: decir PERFECTO con el poder puesto, y dibujar
+    // la barrita naranja de carga encima. Son estados distintos y ahora el `else if` lo garantiza.
+    const enFlow = ras.on;
+    const conBarra = enFlow || (enEstado && run.aguN >= AGU.CONC_GATE);
+    if (conBarra) {
+      // EL RELLENO CUENTA DESDE EL UMBRAL: al 4to acierto la barra sale VACIA y se llena hasta el
+      // tope. Los primeros cuatro segundos existen igual —el flow dura `concentracion(n)`— pero no
+      // se dibujan: son el peaje de entrada, y mostrarlos haria que la barra naciera a un tercio.
+      const fr = enFlow
+        ? (ras.dur > 0 ? ras.resta / ras.dur : 0)
+        : (concSeg(run.aguN) - AGU.CONC_GATE) / (AGU.CONC_TOPE - AGU.CONC_GATE);
+      // ALTO 6 Y NO 7: es el piso para un cuerpo de 5 px. La linea base va en `y0 + h - 2`, o sea
+      // que con 6 el glifo ocupa de y0 a y0+4 y queda 1 px de aire abajo. Bajar a 5 le come la
+      // panza a las letras. El ANCHO se queda en RACHA_W para seguir alineada con el pulso: es lo
+      // que las hace leerse como un solo cartelito y no como dos cosas apiladas.
+      barraConc(bx, by + 6, RACHA_W, 6, fr, enFlow ? RAS_CLARO : RAS_COL, T('mult_rasante'));
+    } else {
+      const pal = T(enEstado ? 'mult_rasante' : 'mult_perfect');
+      const paso = Math.max(3, Math.floor((RACHA_W - GLIFO) / Math.max(1, pal.length - 1)));
+      const rx = bx + Math.floor((RACHA_W - (GLIFO + paso * (pal.length - 1))) / 2);
+      // SIN FONDO: el recuadro oscuro detras de la palabra era una mancha pegada al avion. La
+      // palabra va en NEGRITA, que es lo que la sostiene sobre el mar a 5 px.
+      ctx.textAlign = 'left'; ctx.font = 'bold 5px monospace';
+      ctx.fillStyle = enEstado ? (golpe ? '#ffffff' : RAS_COL) : P.accent;
+      for (let i = 0; i < pal.length; i++) ctx.fillText(pal[i], rx + i * paso, by + 11);
+    }
+    if (enFlow) {
+      // EN EL FLOW NO HAY NADA MAS QUE LA BARRA: ni pulso, ni ventana, ni carga. La racha se
+      // termino —o es barra o es poder— y el cartel se simplifica igual que se te simplifica la
+      // cabeza. Ese vaciarse del cartelito ES el aviso de en que estado estas.
+    } else if (!enEstado) {
       // LA CARGA: sin carril, solo lo cargado — 4 s de PERFECTO y se abre el estado.
-      px(bx, by + 1, Math.round(RACHA_W * Math.min(1, run.streak / AGU.CARGA)), 1, P.accent);
+      px(bx, by - 3, Math.round(RACHA_W * Math.min(1, run.streak / AGU.CARGA)), 1, P.accent);
     } else {
       // EL PULSO. Barra BLANCA con un solo sector AZUL, y un indicador de 1 px que va de punta a
       // punta. Hay que darle un toque de gas mientras pasa por el azul; el sector se corre en
@@ -1448,7 +1512,9 @@ export function drawHUD(h) {
       // acento (la carga de PERFECTO, la Chancha, el cañon), y azul ya lo dice todo lo que es el
       // rasante — con las dos barras azules el ojo las leia como una sola cosa partida. Fina para
       // que sea el renglon MAS liviano de los tres: el pulso es lo que hay que mirar.
-      const vy = by + 5, fr = Math.max(0, Math.min(1, run.aguVen / ventanaAgu(run.aguN)));
+      // LA VENTANA SE MUDO ARRIBA (15/9, pedido del autor): el cartelito quedo invertido — el reloj
+      // primero, el pulso en el medio y la concentracion abajo.
+      const vy = by - 3, fr = Math.max(0, Math.min(1, run.aguVen / ventanaAgu(run.aguN)));
       px(bx, vy, RACHA_W, 1, '#2e3c45');
       // CUANDO QUEDA POCO, PARPADEA APAGANDOSE (el mismo criterio que las balizas): un cambio de
       // color seria un dato nuevo que aprender; el titileo se ve de reojo, sin mirar el cartel.
@@ -1582,31 +1648,21 @@ export function drawHUD(h) {
       : run.throttle > 0.66 ? P.foam : run.throttle > 0.15 ? P.accent : P.bodyDark,
     txt: Math.round(Math.max(0, Math.min(1, run.throttle)) * 100) + '%', txtCol: run.fuel <= 0 ? P.warn : P.dim });
 
-  // ---- LOS DOS PODERES DEL JUGADOR, arriba de su cara (ver barraPoder) --------------------------
-  // MOMENTUM arriba y RASANTE abajo, pegado a la cara: el de abajo es el que se usa volando bajo.
+  // ---- EL PODER DEL JUGADOR, arriba de su cara (ver barraPoder) ---------------------------------
+  // QUEDO UNO SOLO (13/9). La barra del RASANTE se fue entera, y con ella su lengueta LISTO y su
+  // reloj de la esquina. No es orden: es que no tenian nada que mostrar. El poder dejo de cargarse
+  // con tiempo en la banda —afuera de la racha marcaria cero siempre— y sus segundos ahora los
+  // cuenta la PALABRA que sale al lado del avion, que se llena con los aciertos y se vacia al
+  // usarse. El reloj de la esquina decia lo mismo, pero lejos de donde estas mirando.
+  //
+  // LO QUE SE PIERDE, y es a proposito: la barra tambien hacia de propaganda. Estaba siempre en
+  // pantalla y le enseñaba al que volaba alto que abajo habia algo esperandolo. Ahora eso solo se
+  // descubre bajando — que es el juego.
   const tv = tempoMeter();
-  const altoPod = PODER_H + 2;                                   // la placa de cada barra
+  const altoPod = PODER_H + 2;                                   // la placa de la barra
   const yPod = CUADROS_Y - AIRE - PILOTO.lado - AIRE - altoPod;   // pegada a la cara, con el mismo aire
-  barraPoder(MARGEN, yPod - AIRE - altoPod, tv, P.accent, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
-  barraPoder(MARGEN, yPod, ras.on ? ras.resta / ras.dur : ras.meter, RAS_COL, RAS_CLARO, RAS_OSCURO, ras.on, ras.meter >= 1, T('bar_rasante'));
-  // …y el cartelito que avisa que se cargo, saliendo de atras de la barra que le corresponde
-  // MOMENTUM en NARANJA (el acento, que es ademas el color de SU barra) y RASANTE en su celeste:
-  // asi cada lengueta se lee como parte de la barra de la que sale y no como un cartel generico.
-  tabListo(0, yPod - AIRE - altoPod, altoPod, tv >= 1, P.accent);
-  tabListo(1, yPod, altoPod, ras.meter >= 1, RAS_CLARO,
-    { t0: run.rasAlto, txt: T('ras_alto'), col: RAS_COL });
-  // EL RELOJ DEL RASANTE, y SOLO mientras esta encendido. Es el unico numero que los rieles no
-  // pueden dar —cuantos segundos quedan, no que fraccion— y es el unico momento en que hace falta:
-  // con el poder apagado la pregunta es otra ("¿cuanto falta para tenerlo?") y esa la contesta el
-  // largo del riel. Vive en la esquina que las barras dejaron libre, asi que no ocupa lugar nuevo.
-  if (ras.on) {
-    ctx.font = F_ROT; ctx.textAlign = 'right';
-    const rTxt = T('bar_rasante') + ' ' + Math.ceil(ras.resta) + 's';
-    const rW = Math.round(ctx.measureText(rTxt).width) + 6;
-    plate(W - MARGEN - rW, RELOJ_Y, rW, 11);
-    ctx.fillStyle = P.accent;
-    ctx.fillText(rTxt, W - MARGEN - 3, RELOJ_Y + 7);
-  }
+  barraPoder(MARGEN, yPod, tv, P.accent, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
+  tabListo(0, yPod, altoPod, tv >= 1, P.accent);
 
   // municion de misiles: cada pip es el MISIL en miniatura (cuerpo blanco, ojiva gris, llama),
   // el mismo que se ve volar — no un rectangulo generico. Vacio = solo el contorno.

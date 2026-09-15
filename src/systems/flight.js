@@ -25,7 +25,7 @@ import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
 import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE,
          GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
-         FUEL_RATE, FUEL_BOOST, BANDA_ALT } from '../data/tuning.js';
+         FUEL_RATE, FUEL_BOOST, BANDA_ALT, PERF_ALT } from '../data/tuning.js';
 // LAS FASES (PLAN_MISION_CINCO_FASES §11). Se LEEN, nunca se escriben, igual que los tramos en el
 // sembrador: `fsVal` contesta lo que rige a esta altura del vuelo y cae al valor de siempre cuando
 // la mision no declara fases — que es como se cumple la regla suprema (sin fases, este archivo se
@@ -330,20 +330,42 @@ export function flightSystem(dt, deps) {
   // sigue recibiendo un 0..4 y su curva no se toca.
   const alt = plane.y;
   run.mult = multOf(alt);
-  const enBanda = alt <= BANDA_ALT;
-  if (enBanda) { run.streak = Math.min(AGU.CARGA, run.streak + dt); run.graceT = 0.45; }
-  else if (run.graceT > 0) run.graceT -= dt;
+  // EL X10 TERMINA EN `BANDA_ALT` PERO PERFECTO LLEGA MAS ARRIBA (15/9, pedido del autor): son dos
+  // techos distintos y esta es la primera vez que no coinciden. `run.mult` ya salio de la banda,
+  // arriba; lo que sigue —la carga y el sosten del estado— usa el suyo.
+  const enPerfecto = alt <= PERF_ALT;
+  // …PERO LA BANDA SOLO CUENTA SI LA ESTAS VOLANDO VOS (13/9). Con el flow puesto el avion se
+  // queda al ras SOLO —el resorte lo asienta en 2,4—, asi que `enBanda` seria verdadero gratis:
+  // medido, el PERFECTO se cargaba entero y el estado se abria a los seis segundos CON EL PODER
+  // TODAVIA CORRIENDO. O sea las dos cosas a la vez, que es justo lo que no puede pasar, y encima
+  // pagando una racha que el jugador no volo. Es el mismo "darse cuerda a si mismo" que el poder ya
+  // tenia prohibido para si mismo, en otro lugar.
+  const bandaAMano = enPerfecto && !rasante.active();
+  if (bandaAMano) { run.streak = Math.min(AGU.CARGA, run.streak + dt); run.graceT = 0.45; }
+  else if (run.graceT > 0 && enPerfecto) run.graceT -= dt;
   else { run.streak = 0; run.rasLevel = 0; }
-  const sigAgu = agu.tickAguante(dt, enBanda);
+  const sigAgu = agu.tickAguante(dt, bandaAMano);
   if (sigAgu === 'entra' || sigAgu === 'acierta') {
     run.rasLevel = agu.nivelAguante();
     stats.bestRas = Math.max(stats.bestRas, run.rasLevel);   // mejor escalon alcanzado
     // EL SONIDO SUBE CON EL ESCALON, como antes; el cartel del centro no vuelve — la palabra
     // RASANTE al lado del avion ES el anuncio, y el playtest ya saco tres carteles de ahi.
     beep(500 + run.rasLevel * 180, 0.14, 'square', 0.06, 750 + run.rasLevel * 180);
-    run.shake = Math.min(6, run.shake + (sigAgu === 'entra' ? 1.4 : 0.5));
-    // oleada de lineas de velocidad: entera al entrar, un soplo en cada acierto
-    for (let i = 0, n = sigAgu === 'entra' ? 14 : 5; i < n; i++) {
+    // UN ACIERTO NO ES UN EVENTO: son tres o cuatro por segundo. El festejo de antes —sacudon de
+    // 0,5 y cinco lineas de velocidad— estaba calibrado para un escalon cada DOS segundos, y
+    // repetido a este ritmo el juego convulsiona. Queda un roce, y la oleada se reserva para la
+    // ENTRADA, que sigue pasando una sola vez.
+    run.shake = Math.min(6, run.shake + (sigAgu === 'entra' ? 1.4 : 0.12));
+    // "+1s": EL ACIERTO DICE QUE COMPRO. La barra de concentracion se llena de a poco y a 24 px no
+    // se ve avanzar un doceavo; el numero, en cambio, dice exactamente lo que acabas de ganar. Va
+    // pegado al cartelito —25 px de diseño a la derecha del avion, o sea 25·U en mundo— porque el
+    // premio tiene que estar donde esta la cosa que crecio, no en el tablero. Mismo criterio que el
+    // "+75" del esquive, que sale donde casi te toca.
+    if (sigAgu === 'acierta') {
+      const pp = proj(plane.x, plane.y, PZ);
+      popup(pp.x + 25 * 1.5, pp.y - 26, '+1s', P.foam);
+    }
+    if (sigAgu === 'entra') for (let i = 0; i < 14; i++) {
       const a = Math.random() * 6.283;
       streaks.push({ a, r: 24 + Math.random() * 16, v: 280 + Math.random() * 180, life: 0.5 });
     }
@@ -351,15 +373,21 @@ export function flightSystem(dt, deps) {
     // TOCO AFUERA DEL AZUL: no se cae, pero se le quemo reloj. Un chasquido corto y seco, bien
     // distinto del grave de la falla: tiene que decir "erraste" sin sonar a final.
     beep(190, 0.06, 'square', 0.05, 150);
-    run.shake = Math.min(6, run.shake + 0.35);
+    run.shake = Math.min(6, run.shake + 0.12);
   } else if (sigAgu === 'falla') {
     run.rasLevel = 0;
     beep(240, 0.16, 'square', 0.05, 90);                     // grave y hacia abajo: se cayo
     run.shake = Math.min(6, run.shake + 1.1);
-  } else if (sigAgu === 'sale') {
+  } else if (sigAgu === 'sale' || sigAgu === 'lleno') {
     run.rasLevel = 0;
     beep(420, 0.09, 'square', 0.04, 300);
   }
+  // EL FLOW SE DISPARA SOLO, con los segundos que la racha junto. Al flow no se entra por decision:
+  // te concentras lo suficiente y te agarra. Por eso esto no mira ninguna tecla — mira la bandeja
+  // que el estado dejo servida al cerrarse, y la bandeja se llena igual si te caiste, si te fuiste
+  // o si llegaste al tope. Perder la precision deja de ser solo castigo: es tambien la puerta.
+  const flowSeg = agu.tomarFlow();
+  if (flowSeg > 0) rasante.lanzar(flowSeg);
   run.multShow = agu.activo() ? agu.multAguante() : run.mult;
   run.score += (run.boost ? 2 : 1) * 12 * run.multShow * dt;
   // superficie LETAL: tocar el suelo (o el agua) = explotar. Sobre tierra hay que volar en la banda
