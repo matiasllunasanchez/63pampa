@@ -239,6 +239,50 @@ export const CINES = {
   // BANDAS NEGRAS (que dicen "esto no lo estas jugando") y el MUNDO EN CAMARA LENTA (`tempo`). El
   // avion lo sigue volando flight.js: el director no prende su cama de vuelo (`vuelo`) porque en el
   // PASILLO el dueño del avion es el vuelo, y encenderla seria un segundo piloto.
+  // ---------------------------------------------------------------------------------------------
+  // LA CINEMATICA DE LA PERDIDA (pedido del autor, 14/9/2026). Es la hermana de `pulso_premio` y
+  // dura menos de la mitad: perder tiene que doler, no aburrir.
+  //
+  // LO QUE CUENTA: te pasaste de largo. No hay suelta, no hay impacto — el buque queda ENTERO
+  // debajo tuyo y vos trepas para salir, con el flak estallando alrededor. Esa es toda la
+  // diferencia con el premio, y es la que hay que ver: el premio termina con el buque ardiendo y
+  // esto termina con el buque intacto.
+  //
+  // POR QUE TREPA IGUAL QUE EL PREMIO: porque es lo que hace un avion que paso por encima de un
+  // buque, salga la bomba o no. Lo que cambia no es la maniobra, es que no pasa nada abajo.
+  pulso_fallo: {
+    id: 'pulso_fallo',
+    titulo: 'EL PULSO, FALLADO',
+    desc: 'Te pasaste de largo: el buque entero y el flak encima  ·  HMS SHEFFIELD',
+    ver: a => { a.pulso('m9'); a.sonda('qfalla'); },
+    beats: [
+      // el mundo VUELVE a correr: la concentracion se rompio con la tecla, no con la bomba
+      { t: 0, parte: 'pasada', limpiar: 'popups', control: 'ninguno', ritmo: RITMO },
+      { t: 0, vuelo: true },
+      { t: 0, tempo: { a: RITMO, ramp: 0.45, ease: 'suave' } },
+      { t: 0, cam: { modo: 'cabina', off: PULSO_CINE.CABINA, ramp: 0.9, ease: 'sale' } },
+      // el golpe de la rotura ya sono en la prueba; aca entra el motor a fondo y la sacudida de
+      // pasar sobre el buque
+      { t: 0, fx: { shake: 7 }, beep: [90, 0.5, 'sawtooth', 0.07, -40] },
+      { t: 0.25, rotulo: { key: 'pulso_pasaste', c: 'warn', big: true, y: 34 } },
+      // LA TREPADA DE SALIDA: pasas por encima y te vas. Sin suelta y sin estallido — el silencio
+      // de abajo es el que cuenta que no pego nada.
+      { t: 0.3, pose: { alt: CINE_VUELO.POSE_ALT, ramp: CINE_VUELO.POSE_T } },
+      // EL FLAK que no pudiste evitar: dos estallidos cerca, con su sacudon. Es lo unico que suena
+      // en toda la cinematica, y por eso se escucha.
+      { t: 0.9, fx: { boom: 0.3, shake: 5 } },
+      { t: 1.7, fx: { boom: 0.22, shake: 4 } },
+      { t: 2.0, rotulo: { key: 'pulso_fallo_fin', c: 'warn', y: 46 } },
+      // …y el fundido a NEGRO (no a blanco: blanco es reventar, y aca no revento nada).
+      // EL `fin` VA EN SU PROPIO BEAT, y no como el `then` del fundido: la duracion de la timeline
+      // sale del `t` del ULTIMO beat, asi que un `then` agendado despues de ese ultimo `t` se queda
+      // sin timeline que lo dispare — el director ya se apago. Medido: la cinematica corria entera
+      // (t 0 → 2.39) y la mision no se perdia nunca, porque la señal `done` no llegaba.
+      { t: 2.4, fade: { a: 1, dur: 0.8 } },
+      { t: 3.25, fin: true },
+    ],
+  },
+
   maniobra: {
     id: 'maniobra',
     beats: [

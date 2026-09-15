@@ -15,7 +15,7 @@ import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
 import { T } from '../core/i18n.js';
 import { run } from '../core/run.js';
-import { TOK_GLIFO, PULSO_CINE, PULSO_TEATRO } from '../data/pulso.js';
+import { PULSO, TOK_GLIFO, PULSO_CINE, PULSO_CINTA, PULSO_TEATRO } from '../data/pulso.js';
 import { padInfo } from '../core/input.js';
 import { bargeGeom } from './world.js';
 import * as momRender from '../legacy/momentum_render.js';
@@ -45,40 +45,12 @@ function glifo(k) {
   if (k !== 'Z' || !padInfo.id) return TOK_GLIFO[k] || k;
   return padInfo.kind === 'xbox' ? 'LB' : 'L1';
 }
-// La autopista de compases va EN EL CIELO, arriba del buque. Probado a media altura (74) se leia
-// bien pero quedaba ESCRITA ENCIMA del blanco: la secuencia y el buque son las dos cosas que hay
-// que mirar, y no pueden pelearse el mismo pixel. El cielo esta vacio y es lo que sobra.
-const LANE_Y = 34;
-// el buque arranca alrededor de y=56 en el mundo: todo lo de la prueba vive por encima de eso
+// LA AUTOPISTA SE FUE (14/9/2026). La secuencia entera quieta con un cursor encima se reemplazo
+// por LA CINTA (abajo): las teclas vienen de la derecha y se frenan en el centro. `drawCompas` y
+// su LANE_Y se borraron con ella — el rotulo de la maniobra sobrevive sobre la primera tecla de
+// cada compas, que es lo unico que aquella pantalla decia y esta no.
+// el buque arranca alrededor de y=56 en el mundo: la eleccion de blanco vive por encima de eso
 const SKY_BOT = 60;
-
-/** Un compas: su rotulo diegetico (regla 2) y sus tokens como glifos. `st` 0=hecho 1=activo 2=por venir */
-function drawCompas(cx, y, bar, st, ti, t) {
-  const on = st === 1;
-  ctx.textAlign = 'center';
-  // ROTULO: el nombre de la maniobra. Es lo que convierte "abajo-izquierda-izquierda" en volar.
-  ctx.font = on ? 'bold 8px monospace' : '7px monospace';
-  ctx.fillStyle = st === 0 ? '#4a5b61' : on ? P.accent : P.dim;
-  ctx.fillText(bar.label, cx, y - 10);
-  // TOKENS
-  const gs = bar.toks.map(glifo);
-  const step = 15;
-  const x0 = cx - (gs.length - 1) * step / 2;
-  for (let i = 0; i < gs.length; i++) {
-    const hecho = st === 0 || (on && i < ti);
-    const activo = on && i === ti;
-    const gx = x0 + i * step;
-    if (activo) {   // el cursor: caja que late — donde estan los ojos
-      const pulse = 0.5 + Math.sin(t * 9) * 0.5;
-      ctx.globalAlpha = 0.25 + pulse * 0.35;
-      px(gx - 7, y - 8, 14, 14, P.accent);
-      ctx.globalAlpha = 1;
-    }
-    ctx.font = activo ? 'bold 11px monospace' : '10px monospace';
-    ctx.fillStyle = hecho ? '#5f7a72' : activo ? '#0a0e11' : st === 2 ? P.dim : P.ink;
-    ctx.fillText(gs[i], gx, y + 4);
-  }
-}
 
 /** LOS PARAMETROS DE LA CABINA de este cuadro. Una sola vez, en un solo lado: los pide el dibujo
  *  y los pide `ventana()` (que corre ANTES, cuando todavia no se dibujo nada). Escritos dos veces
@@ -459,6 +431,158 @@ function drawAguaVidrio(y0, y1, alt, t) {
   ctx.globalAlpha = 1;
 }
 
+
+// ---------------- LA CINTA (pedido del 14/9/2026) ----------------
+// Las teclas entran desde la derecha, se frenan en el CENTRO dibujadas como la tecla que hay que
+// apretar, y al acertarlas se acumulan a la izquierda bajo PULSO DE ATAQUE. Debajo de la del
+// centro corre la barra del tiempo que queda.
+//
+// Todo esto se dibuja SOBRE EL VELO, asi que no pelea con el buque ni con la cabina: durante la
+// prueba el mundo es fondo. Es el MISMO velo del dialogo en vuelo, a proposito — el jugador ya
+// aprendio que cuando la pantalla se oscurece asi, lo que importa esta escrito encima.
+const CINTA_Y = 118;              // altura de la cinta: el centro util, arriba del tablero
+const ACUM_X = 22, ACUM_Y = 44;   // esquina del acumulador de la izquierda
+
+/** UNA TECLA dibujada como tecla: marco, cuerpo y el glifo adentro.
+ *
+ *  `est`: 'viene' | 'ahora' | 'ok' | 'mal'.  `k` (0..1) es el avance de SU animacion:
+ *    · en 'ahora' es el LATIDO — y no es un seno suelto: viene del corazon (Q.hb), asi que la
+ *      tecla late al mismo ritmo que el pulso del piloto, que acelera con el margen que se va.
+ *      Que la cosa que hay que apretar lata con el que la aprieta es todo el modo en un detalle.
+ *    · en 'ok' es el destello del acierto (verde, con golpe de tamaño)
+ *    · en 'mal' es la ROTURA: el filamento que parpadea y se apaga. */
+function tecla(cx, cy, lado, g, est, k) {
+  const ahora = est === 'ahora', mal = est === 'mal', ok = est === 'ok';
+  const C = PULSO_CINTA;
+
+  // ---- EL ERROR: LA LUZ QUE SE ROMPE. Tres tramos, y cada uno dice una cosa distinta:
+  //   0.00-0.15  el fogonazo: rojo pleno, la tecla salta de tamaño y tiembla fuerte
+  //   0.15-0.55  el filamento fallando: parpadeo ERRATICO (no un seno — un seno es una pulsacion
+  //              sana), cada vez mas apagado y con el temblor decayendo
+  //   0.55-1.00  se apaga: del rojo al gris muerto, quieta
+  // Sin los tres tramos era un fundido rojo, que se lee como "se puso roja" y no como "se rompio".
+  let tx = 0, ty = 0, alfa = 1, escala = 1;
+  if (mal) {
+    const tiembla = Math.max(0, 1 - k / 0.55) * C.ROJO_TIEMBLA;
+    // temblor ERRATICO: dos senos de frecuencias sin relacion armonica, que es lo que hace que no
+    // se lea como una vibracion prolija sino como algo que se sacude roto
+    tx = (Math.sin(k * 97) + Math.sin(k * 53.7)) * 0.5 * tiembla;
+    ty = (Math.sin(k * 71.3) + Math.sin(k * 41.1)) * 0.5 * tiembla * 0.7;
+    if (k < 0.15) escala = 1 + (1 - k / 0.15) * 0.3;
+    else if (k < 0.55) {
+      // el parpadeo: encendida/apagada en tramos desiguales. `k*31` sin redondear da tramos de
+      // largo variable — un filamento no parpadea a compas.
+      const f = (k * 31) % 1;
+      alfa = f > 0.45 ? 1 : 0.25;
+    }
+  } else if (ok) {
+    // el golpe del acierto: la tecla se agranda de un saque y se desinfla
+    escala = 1 + (1 - k) * (1 - k) * C.OK_POP;
+  }
+
+  const r = lado * escala / 2;
+  const x = cx + tx, y = cy + ty;
+  // muerto = el gris al que se apaga la rota; el rojo se mezcla hacia el en el ultimo tramo
+  const apagado = mal && k > 0.55 ? Math.min(1, (k - 0.55) / 0.45) : 0;
+  const mezcla = (a, b, f) => {
+    const A = parseInt(a.slice(1), 16), B = parseInt(b.slice(1), 16);
+    const ch = sh => Math.round(((A >> sh) & 255) + (((B >> sh) & 255) - ((A >> sh) & 255)) * f);
+    return '#' + (((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16)).slice(1);
+  };
+  const cuerpo = mal ? mezcla('#7a1d1d', '#161c21', apagado)
+    : ok ? mezcla('#1f5c3a', '#243a34', k)
+      : ahora ? '#e8e3d6' : '#1b242b';
+  const borde = mal ? mezcla('#ff4d4d', '#2e3a42', apagado)
+    : ok ? mezcla('#5fe0a0', '#5f7a72', k)
+      : ahora ? P.accent : '#3a4954';
+
+  // ---- EL HALO. En la activa es el LATIDO (viene del corazon); en el acierto, la onda verde que
+  // sale disparada; en el error, el fogonazo rojo del primer cuadro.
+  if (ahora || (ok && k < 1) || (mal && k < 0.35)) {
+    const col = mal ? '#ff4d4d' : ok ? '#5fe0a0' : P.accent;
+    const a = mal ? (1 - k / 0.35) * 0.5 : ok ? (1 - k) * 0.45 : 0.14 + k * 0.24;
+    const crece = ok ? (1 - (1 - k) * (1 - k)) * lado * 0.9 : mal ? (k / 0.35) * lado * 0.5 : 3;
+    ctx.globalAlpha = Math.max(0, a);
+    px(x - r - 3 - crece, y - r - 3 - crece, lado * escala + 6 + crece * 2, lado * escala + 6 + crece * 2, col);
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.globalAlpha = (est === 'viene' ? 0.72 : 1) * alfa;
+  px(x - r, y - r, lado * escala, lado * escala, borde);
+  px(x - r + 1, y - r + 1, lado * escala - 2, lado * escala - 2, cuerpo);
+  const fs = Math.max(6, Math.round(lado * (g.length > 1 ? 0.38 : 0.58)));
+  ctx.textAlign = 'center';
+  ctx.font = 'bold ' + fs + 'px monospace';
+  ctx.fillStyle = mal ? mezcla('#ffd9d9', '#3a4954', apagado)
+    : ok ? '#dfffe9' : ahora ? '#0a0e11' : P.dim;
+  ctx.fillText(g, x, y + fs * 0.36);
+  ctx.globalAlpha = 1;
+
+  // ---- LAS ESQUIRLAS del filamento, solo en el primer tramo de la rotura: lo que salta cuando
+  // algo se parte. Reparto fijo (sin azar): el mismo cuadro dibuja siempre lo mismo.
+  if (mal && k < 0.5) {
+    ctx.globalAlpha = Math.max(0, 1 - k / 0.5) * 0.9;
+    for (let i = 0; i < C.ROJO_CHISPAS; i++) {
+      const an = i * 2.399, d = lado * (0.55 + (i % 3) * 0.22) * (0.4 + k * 2.4);
+      px(x + Math.cos(an) * d, y + Math.sin(an) * d, 2, 2, i % 2 ? '#ff8a8a' : '#ffd479');
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** La prueba entera: acumulador, cinta, tecla del centro y barra de tiempo. */
+function drawCinta(Q, toks, t) {
+  if (!toks.length) return;
+  const C = PULSO_CINTA;
+
+  // ---- PULSO DE ATAQUE: lo ya acertado, acumulandose a la izquierda. Es el unico registro de
+  // cuanto llevas hecho, y por eso crece hacia la derecha y no se borra nunca.
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 7px monospace'; ctx.fillStyle = P.dim;
+  ctx.fillText(T('pulso_ataque'), ACUM_X, ACUM_Y - 10);
+  const hechos = Math.min(toks.length, Math.floor(Q.ci + 0.001));
+  for (let i = 0; i < hechos; i++) {
+    // la ULTIMA acertada sigue destellando mientras dure su golpe; las viejas van apagadas (k=1)
+    const k = i === Q.okIdx ? Math.min(1, Q.okT / C.OK_T) : 1;
+    tecla(ACUM_X + C.ACUM / 2 + i * C.ACUM_PASO, ACUM_Y, C.ACUM, glifo(toks[i].tok), 'ok', k);
+  }
+
+  // ---- LA CINTA: lo que viene, entrando por la derecha. La posicion sale del cursor ANIMADO, asi
+  // que al acertar la fila entera CORRE un lugar en vez de saltar.
+  for (let i = hechos; i < toks.length; i++) {
+    const d = i - Q.ci;
+    const cx = W / 2 + d * C.PASO;
+    if (cx > W + 30) break;                       // todavia no entro al cuadro
+    const errada = Q.errIdx === i;
+    const est = errada ? 'mal' : d < 0.5 ? 'ahora' : 'viene';
+    const lado = est === 'viene' ? C.CHICA : C.TECLA;
+    // EL LATIDO DE LA ACTIVA SALE DEL CORAZON, no de un seno propio: `Q.hb` es el reloj del
+    // pulso del piloto y `Q.hbPer` su periodo, asi que la tecla late mas rapido a medida que el
+    // margen se va. La cosa que hay que apretar late con el que la aprieta.
+    const k = errada ? Math.min(1, Q.errT / C.ROJO_T)
+      : est === 'ahora' ? Math.max(0, 1 - Q.hb / Math.max(0.05, Q.hbPer || 0.95)) : 0;
+    tecla(cx, CINTA_Y, lado, glifo(toks[i].tok), est, k);
+    // el NOMBRE DE LA MANIOBRA sobre la primera tecla de cada compas: es lo que convierte tres
+    // flechas en volar un BREAK TURN (regla 2 del plan), y se perderia si la cinta fuera solo teclas.
+    if (toks[i].primero && d < 2.5) {
+      ctx.textAlign = 'center';
+      ctx.font = '6px monospace';
+      ctx.fillStyle = est === 'ahora' ? P.accent : P.dim;
+      ctx.globalAlpha = est === 'viene' ? 0.6 : 1;
+      ctx.fillText(toks[i].label, cx, CINTA_Y - lado / 2 - 6);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ---- LA BARRA DE TIEMPO, debajo de la tecla del centro. Naranja mientras haya aire y roja
+  // cuando queda poco: es presion, no un dato — por eso no lleva numeros.
+  const fr = Q.fase === 'prueba' ? Math.max(0, 1 - Q.beatT / Q.beatMax) : 0;
+  const bw = C.BARRA_W, bx = W / 2 - bw / 2, by = CINTA_Y + C.TECLA / 2 + 8;
+  px(bx - 1, by - 1, bw + 2, 5, '#0d1418');
+  px(bx, by, bw, 3, '#22303a');
+  if (fr > 0) px(bx, by, bw * fr, 3, fr < 0.3 ? P.warn : P.accent);
+}
+
 /** `w` = snapshot: { Q, cine, t }.
  *  `Q` es la foto del sistema (systems/pulso.js) y `cine` la del DIRECTOR (systems/cine.js): el
  *  premio ya no tiene reloj propio, lo lleva la timeline. Los dos llegan por parametro y no por
@@ -467,6 +591,10 @@ export function drawPulso(w) {
   const Q = w.Q; if (!Q) return;
   const t = w.t;
   const cine = Q.fase === 'cine' ? w.cine : null;
+  // LA CINEMATICA DE LA PERDIDA es cinematica igual que el premio: sin velo, sin cinta y sin nada
+  // que leer. Se trata aparte porque NO tiene premio que mostrar (`drawCinePremio` lee `Q.premio`,
+  // que en una derrota es null), asi que comparte la salida temprana y nada mas.
+  const cineFallo = Q.fase === 'perdido';
 
   // VIÑETA: el tunel de vision del que esta concentrado. Ademas apaga los bordes para que la
   // secuencia y el buque sean lo unico que compite por la mirada.
@@ -545,8 +673,19 @@ export function drawPulso(w) {
 
   if (cine) {
     drawCinePremio(Q, cine);
-    return;   // en el premio no hay autopista ni intentos que mostrar: no queda nada que decidir
+    return;   // en el premio no hay cinta ni intentos que mostrar: no queda nada que decidir
   }
+  if (cineFallo) return;   // …y en la perdida, menos todavia: el buque entero es todo el mensaje
+
+  // EL VELO (pedido del 14/9/2026): el MISMO de la pausa de dialogo en vuelo (game.js, `dlgPausa`).
+  // Va aca —despues del mundo y de la cabina, antes de todo lo que hay que leer— porque la prueba
+  // no pasa en el mundo: pasa en la cabeza del que esta apuntando. Con el velo puesto, el buque y
+  // la cabina quedan de fondo y lo unico que compite por la mirada es la tecla.
+  //
+  // Y no es un velo nuevo: es EL velo que el juego ya usa para decir "esto hay que leerlo". El
+  // jugador no tiene que aprender una convencion mas.
+  ctx.fillStyle = PULSO_CINTA.VELO;
+  ctx.fillRect(0, 0, W, H);
 
   if (Q.fase === 'prueba' && Q.zi < 0) {
     // ELEGIR BLANCO (plan §3): las zonas del buque, cada una con SU secuencia. No hay cursor de
@@ -580,27 +719,8 @@ export function drawPulso(w) {
     const fr = Math.max(0, 1 - Q.beatT / Q.beatMax);
     px(26, SKY_BOT, 120, 2, '#22303a');
     px(26, SKY_BOT, 120 * fr, 2, fr < 0.3 ? P.warn : P.accent);
-  } else if (Q.fase === 'prueba') {
-    // LA AUTOPISTA (regla 3): la secuencia ENTERA visible, el cursor avanzando sobre ella.
-    ctx.textAlign = 'left';
-    ctx.font = '7px monospace'; ctx.fillStyle = P.dim;
-    ctx.fillText(T(Q.carriles[Q.zi].zona.str), 26, 12);
-    const n = Q.bars.length;
-    const cw = Math.min(150, (W - 60) / n);
-    const x0 = W / 2 - (n - 1) * cw / 2;
-    for (let i = 0; i < n; i++)
-      drawCompas(x0 + i * cw, LANE_Y, Q.bars[i], i < Q.bi ? 0 : i === Q.bi ? 1 : 2, Q.ti, t);
-
-    // EL MARGEN del compas: barra fina que se consume. No lleva numeros — es presion, no un dato.
-    const b = Q.bars[Q.bi];
-    if (b) {
-      const fr = Math.max(0, 1 - Q.beatT / Q.beatMax);
-      const bw = 120;
-      // pegada a la autopista y no al borde del cielo: con un solo carril hay lugar, y asi no se
-      // le monta al nombre del buque
-      px(W / 2 - bw / 2, LANE_Y + 14, bw, 2, '#22303a');
-      px(W / 2 - bw / 2, LANE_Y + 14, bw * fr, 2, fr < 0.3 ? P.warn : P.accent);
-    }
+  } else if (Q.fase === 'prueba' || Q.fase === 'rojo') {
+    drawCinta(Q, w.toks || [], t);
   } else {
     // FALLO: se dice QUE paso y que se vuelve — el fallo es drama, no una pantalla de derrota
     ctx.textAlign = 'center';
@@ -612,7 +732,11 @@ export function drawPulso(w) {
     }
   }
 
-  // INTENTOS: pips en la esquina — cuantas vueltas te quedan (plan §3: el fallo CUESTA)
+  // INTENTOS Y PERDON: los dos instrumentos de la economia de fallos de Q2. Con UN_ERROR_PIERDE
+  // puesto no existe ninguna de las dos cosas —no hay vueltas que contar ni errores que perdonar—
+  // y dejarlos dibujados seria un tablero que miente: tres luces encendidas para algo que ya no
+  // pasa. Se apagan con la misma perilla que apaga la regla.
+  if (PULSO.UN_ERROR_PIERDE) { ctx.textAlign = 'center'; return; }
   for (let i = 0; i < 3; i++)
     px(10 + i * 7, H - 12, 5, 5, i < 3 - Q.tries ? P.accent : '#2e3c45');
   ctx.textAlign = 'left';

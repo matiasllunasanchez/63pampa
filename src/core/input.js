@@ -83,7 +83,12 @@ const ARROW_STICK = { ArrowLeft: 'rollL', ArrowRight: 'rollR', ArrowUp: 'camU', 
 // acuerda de invertirlo": el pasillo, el arena, la pasada y la barcaza leen todos `inp.u`, asi que
 // por construccion no pueden decir cosas distintas. Antes el arena y la pasada se lo invertian
 // solas con `cfg.arenaInv` y el pasillo no — y eso era exactamente el bug.
-const vyField = f => cfg.invY && (f === 'u' || f === 'd') ? (f === 'u' ? 'd' : 'u') : f;
+// …PERO NO EN EL PULSO. Ahi no se vuela: se TECLEA lo que la cinta muestra, y lo que muestra es
+// una flecha absoluta. Con el eje invertido, el glifo ↑ pasaba a pedir la tecla de abajo — o sea
+// que la prueba mostraba una cosa y aceptaba otra, y como un error pierde la mision, invertir el
+// eje volvia el climax injugable. Una preferencia de VUELO no puede cambiar que tecla dice una
+// pantalla que te esta pidiendo esa tecla.
+const vyField = f => cfg.invY && S.state !== 'pulso' && (f === 'u' || f === 'd') ? (f === 'u' ? 'd' : 'u') : f;
 const keyField = c => vyField(KEYMAP[c] !== undefined ? KEYMAP[c] : (cfg.aim ? ARROW_FLY : ARROW_STICK)[c]);
 
 // TOKENS DEL DETECTOR DE COMBOS. Minusculas = stick IZQUIERDO (volar), mayusculas = stick DERECHO.

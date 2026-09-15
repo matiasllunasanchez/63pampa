@@ -26,7 +26,7 @@ import { T } from '../core/i18n.js';
 import { MOVES } from '../data/moves.js';
 import { SHIP_CLASS } from '../data/ships.js';
 import { horizonRoll, spriteRoll } from '../core/horizon.js';
-import { PULSO, PULSO_CINE, PULSO_TEATRO, COMPASES, REMATE, PULSO_ZONAS, PULSO_CLASE, CLASE_DEF, TOK_GLIFO } from '../data/pulso.js';
+import { PULSO, PULSO_CINE, PULSO_CINTA, PULSO_TEATRO, COMPASES, REMATE, PULSO_ZONAS, PULSO_CLASE, CLASE_DEF, TOK_GLIFO } from '../data/pulso.js';
 import { beatFor, barsFor, errFor, poolFor, armarZonas, parSecsFor, sellosDe, puntosDe, sellosN } from '../core/pulso.js';
 import * as cine from './cine.js';
 import { PULSO_D_MUERTE, CINE_VUELO } from '../data/cines.js';
@@ -40,6 +40,11 @@ let Q = null;
 // acerco NO se perdonan: si se reiniciaran, perder un avion seria la forma barata de limpiar la
 // cuenta. Lo unico que borra esto es resetPulso() — o sea, empezar la mision de nuevo.
 let carry = null;
+// LA ZONA FORZADA (solo sondas/fixture). La zona dejo de elegirse el 14/9 y pasó a ser dato, pero
+// el criterio de cierre de Q3 —«dos zonas distintas producen dos cinematicas distintas»— sigue
+// siendo verdad y sigue habiendo que medirlo. Sin esto, el fixture solo podria filmar la zona que
+// `PULSO.ZONA` diga, y la unica prueba de que las otras dos existen seria mirarlas a ojo.
+let zonaFija = null;
 
 /** ¿Puede jugarse? SIEMPRE: EL PULSO es 2D puro — no necesita three.js ni WebGL. Es la unica
  *  fase del juego sin deuda 3D, y por eso tambien sirve de fallback donde el 3D no esta. */
@@ -54,7 +59,7 @@ export function readyToEnter(dist, objectiveDist) {
 export const state = () => Q;
 export const active = () => !!Q;
 
-export function resetPulso() { Q = null; carry = null; cine.stop(); }
+export function resetPulso() { Q = null; carry = null; zonaFija = null; cine.stop(); }
 
 /** La CONFIGURACION de la prueba para esta corrida. La pone game.js al armar el run, porque este
  *  sistema no puede mirar la campaña ni la libreta del Pichon (convencion 2: nadie llama hacia
@@ -128,7 +133,10 @@ export function enter(desdePasillo, conf) {
     tSel: 0,                              // instante en que se eligio blanco (el reloj del sello)
     premio: null,                         // { zona, secs, par, sellos, pts } — lo arma exito()
     clase: claseDe(carry.ship),           // COMO se muere este buque
-    hb: 0, hbDub: -1, hbT: 0,             // EL LATIDO (Q5): reloj, segundo golpe pendiente, fase 0..1
+    ci: 0,                                // cursor ANIMADO de la cinta (indice global, con decimales)
+    okIdx: -1, okT: 9,                    // que tecla se acaba de acertar y cuanto hace (para el destello)
+    errIdx: -1, errT: 0,                  // que tecla se erro y cuanto lleva en rojo
+    hb: 0, hbDub: -1, hbT: 0, hbPer: PULSO_TEATRO.HB[0],             // EL LATIDO (Q5): reloj, segundo golpe pendiente, fase 0..1
     shake: 0,
     desdePasillo: !!desdePasillo,
   };
@@ -151,13 +159,31 @@ function armarCarriles() {
   // si por lo que sea no hay carriles (pool y zonas vacios), la prueba se degrada al remate solo:
   // el modo tiene que poder correr siempre — nada bloquea (P2 del juego)
   if (!Q.carriles.length) Q.carriles = [{ zona: PULSO_ZONAS[1], bars: [compas(REMATE.seq)] }];
+  // …Y NUNCA TRES CARRILES QUE NO SE PUEDAN DISTINGUIR. Elegir blanco ES teclear: si dos zonas
+  // arrancan con la misma tecla, el primer toque no elige — se queda con la primera que coincide y
+  // el jugador termina en una zona que no pidio. `armarZonas` reparte primeras teclas distintas
+  // mientras el pool alcance, pero con la libreta flaca (m1, m3: cero compases) las tres quedan en
+  // `Z` y la eleccion es un decorado. Ahi es mas honesto ofrecer UN blanco que tres que mienten.
+  const heads = new Set(Q.carriles.map(c => c.bars[0] && c.bars[0].toks[0]));
+  if (heads.size < Q.carriles.length) Q.carriles = [Q.carriles[1] || Q.carriles[0]];
+  // …Y SE ELIGE SOLO (pedido del autor, 14/9/2026: «no tiene sentido elegir la zona, es matarlo o
+  // no matarlo»). La eleccion de blanco era del diseño viejo, donde la zona era una apuesta: mas
+  // riesgo, mas puntos, otra cinematica. Con la prueba convertida en un remate de vida o muerte,
+  // elegir entre tres formas de matarlo es una pantalla de menu antes del unico momento que
+  // importa — y encima obligaba a leer tres secuencias contra reloj.
+  //
+  // La ZONA no se borro: sigue decidiendo donde pega la bomba y como muere el buque (PULSO_ZONAS,
+  // la cinematica de Q3). Lo que se fue es la PREGUNTA. Cambiar `PULSO.ZONA` cambia la muerte, y el
+  // dia que una mision quiera declarar la suya, es un campo mas.
+  const zi = Math.max(0, Q.carriles.findIndex(c => c.zona.id === (zonaFija || PULSO.ZONA)));
+  elegirCarril(zi);
 }
 
 /** Elige carril: el primero cuyo PRIMER token coincide con la tecla. Elegir es empezar a teclear
  *  (plan §3) — no hay un menu previo, la decision se toma con las manos ya adentro de la prueba. */
-function elegir(tok) {
-  const i = Q.carriles.findIndex(c => c.bars[0] && c.bars[0].toks[0] === tok);
-  if (i < 0) return false;
+/** Planta un carril como EL de esta prueba. Lo llama `armarCarriles` (la zona sale de data desde
+ *  el 14/9) y lo llamaba la eleccion por tecla, que ya no existe. */
+function elegirCarril(i) {
   Q.zi = i;
   // el cronometro del SELLO DE VELOCIDAD arranca al ELEGIR, no al entrar: lo que se mide es
   // teclear sin dudar, y el tiempo que uno se tomo para decidir el blanco no es titubeo — es la
@@ -169,6 +195,42 @@ function elegir(tok) {
   return true;
 }
 
+/** LA SECUENCIA COMO CINTA: todos los tokens en fila, sin los compases de por medio.
+ *
+ *  La agrupacion en compases sigue siendo la verdad del modelo (de ahi salen los rotulos de las
+ *  piruetas, regla 2), pero lo que el jugador ve desde el 14/9 es UNA fila de teclas corriendo.
+ *  Se deriva, no se guarda: guardarla seria una segunda copia de la secuencia esperando a
+ *  desincronizarse del primer `armarCarriles()`. */
+export function cinta() {
+  if (!Q || !Q.bars.length) return [];
+  const out = [];
+  for (let b = 0; b < Q.bars.length; b++)
+    for (let k = 0; k < Q.bars[b].toks.length; k++)
+      out.push({ tok: Q.bars[b].toks[k], label: Q.bars[b].label, bar: b, primero: k === 0 });
+  return out;
+}
+
+/** En que token de la cinta estamos parados (indice global). */
+export function idxCinta() {
+  if (!Q) return 0;
+  let n = 0;
+  for (let b = 0; b < Q.bi && b < Q.bars.length; b++) n += Q.bars[b].toks.length;
+  return n + Q.ti;
+}
+
+// LA MISMA DIRECCION CON LA OTRA MANO. Los tokens distinguen stick izquierdo (minusculas: volar)
+// de derecho (mayusculas: rolar y mirar), y esa distincion es la que le da sentido a las piruetas
+// — `dLL` es "pica y rola", no "pica y dobla". Pero en LA PRUEBA el jugador no esta volando: esta
+// tecleando lo que ve, y lo que ve es una FLECHA. Con la mira en su modo normal las flechas del
+// teclado son el stick DERECHO (← → rolan, ↑ ↓ miran), asi que apretar ↑ mandaba 'U' cuando la
+// prueba esperaba 'u' y contaba como error — con un error que ahora pierde la mision.
+//
+// La equivalencia es EN UN SOLO SENTIDO: si la prueba pide la direccion de volar, la del otro
+// stick tambien vale. Al reves NO — si pide rolar (`L`/`R`, el tirabuzon), hay que rolar de
+// verdad, o esos compases dejarian de existir.
+const MISMA_MANO = { U: 'u', D: 'd', L: 'l', R: 'r' };
+const coincide = (tok, esp) => tok === esp || MISMA_MANO[tok] === esp;
+
 /** El compas que se esta tecleando ahora (o null si la secuencia ya se completo). */
 const barNow = () => (Q && Q.fase === 'prueba' ? Q.bars[Q.bi] || null : null);
 
@@ -179,20 +241,23 @@ const barNow = () => (Q && Q.fase === 'prueba' ? Q.bars[Q.bi] || null : null);
  *  Devuelve true si el toque se consumio (para que el orquestador sepa que hubo lectura). */
 export function tap(tok) {
   if (!Q || Q.fase !== 'prueba') return false;
-  // TODAVIA SIN CARRIL: este toque no es un acierto, es una DECISION. Si no coincide con ninguna
-  // zona cuenta como error igual — apretar cualquier cosa no es elegir.
-  if (Q.zi < 0) {
-    if (!elegir(tok)) return errar();
-    Q.ti = 1; Q.beatT = 0;
-    beep(700, 0.05, 'square', 0.05);
-    if (Q.ti >= Q.bars[0].toks.length) cerrarCompas();
-    return true;
-  }
+  // SIN CARRIL NO SE TECLEA NADA. Hasta el 14/9 este era el camino de la ELECCION DE BLANCO: el
+  // primer toque elegia zona. Ya no se elige (la pone `PULSO.ZONA` y `armarCarriles` la planta al
+  // entrar), asi que llegar aca significa que algo entro antes de que la prueba estuviera armada:
+  // se ignora en vez de contarlo como error.
+  if (Q.zi < 0) return false;
   const b = barNow();
   if (!b) return false;
   const esperado = b.toks[Q.ti];
-  if (tok === esperado) {
+  if (coincide(tok, esperado)) {
+    // QUE TECLA SE ACERTO, para que el render le ponga el destello verde. Se anota ANTES de
+    // avanzar: despues, `idxCinta()` ya apunta a la siguiente.
+    Q.okIdx = idxCinta(); Q.okT = 0;
     Q.ti++;
+    // EL MARGEN AHORA ES POR TECLA y no por compas: la barra naranja corre debajo de LA tecla del
+    // centro, asi que tiene que volver a llenarse con cada acierto. Con el margen por compas la
+    // barra se vaciaba a lo largo de tres teclas y no decia nada de la que estabas por apretar.
+    Q.beatT = 0;
     // TIC de acierto: sube de tono con el avance dentro del compas — el oido va midiendo cuanto
     // falta sin tener que mirar
     beep(620 + Q.ti * 90, 0.04, 'square', 0.045);
@@ -207,9 +272,21 @@ export function tap(tok) {
  *  (El plan ataba el perdon a la dificultad; como no existe esa perilla, escala por nivel.) */
 function errar() {
   Q.errs++;
-  Q.ti = 0; Q.beatT = 0;
   Q.shake = Math.min(5, Q.shake + 2);
   beep(150, 0.14, 'sawtooth', 0.06, -60);
+  // LA TECLA ERRADA SE PONE ROJA, y queda ahi: es lo ultimo que se ve de la prueba. No se reinicia
+  // el compas ni se sigue — el rojo ES el final, y el reloj de ROJO_T es nada mas el tiempo de
+  // que se lea antes de que arranque lo que viene.
+  Q.errIdx = idxCinta(); Q.errT = 0;
+  // LA CINTA SE CLAVA donde se rompio. Sin esto el cursor animado seguia deslizandose hacia la
+  // tecla siguiente mientras la errada se rompia, asi que la rota se dibujaba CORRIDA del centro
+  // y la anterior quedaba un cuadro mas encendida: dos teclas grandes a la vez y ninguna en su
+  // lugar. Se rompio ahi: ahi se queda.
+  Q.ci = Q.errIdx;
+  if (PULSO.UN_ERROR_PIERDE) { Q.fase = 'rojo'; return true; }
+  // …y con la perilla en false vuelve la economia de Q2: se rehace el compas entero y el perdon
+  // de los primeros niveles absorbe el primero.
+  Q.ti = 0; Q.beatT = 0;
   if (Q.errs > Q.perdon) fallar('pulso_fallo_err');
   return true;
 }
@@ -287,6 +364,10 @@ function latido(dt) {
   const u = urgencia();
   Q.hbT = u;
   const per = PULSO_TEATRO.HB[0] + (PULSO_TEATRO.HB[1] - PULSO_TEATRO.HB[0]) * u;
+  // el PERIODO se publica en el store: lo lee el render para que la TECLA lata con el corazon y
+  // no con un seno suelto. Antes solo existia adentro de la sonda, o sea que el dibujo no podia
+  // enterarse de a que ritmo esta latiendo el que juega.
+  Q.hbPer = per;
   Q.hb += dt;
   if (Q.hb >= per) {
     Q.hb = 0; Q.hbDub = PULSO_TEATRO.DUB;
@@ -318,12 +399,45 @@ export function update(dtReal, dtMundo) {
   run.shake = Math.max(run.shake, Q.shake);
   latido(dtReal);
 
+  // LA CINTA corre hacia la tecla que toca. Es un seguimiento exponencial y no un salto: lo que
+  // hace que se lea como una cinta es justamente que la tecla siguiente VIAJE hasta el centro.
+  // Vive en el sistema y no en el render porque es estado —tiene memoria entre cuadros— y el que
+  // dibuja no guarda nada (convencion 4).
+  if (Q.fase === 'prueba') Q.ci += (idxCinta() - Q.ci) * Math.min(1, dtReal * PULSO_CINTA.EASE);
+  Q.okT += dtReal;
+
   if (Q.fase === 'prueba') {
-    // EL MARGEN: cada compas tiene su ventana. Agotarla es fallar igual que equivocarse — el
-    // pulso es tanto precision como decision rapida.
+    // ELEGIR BLANCO NO TIENE RELOJ (desde el 14/9). Lo tuvo mientras el fallo costaba una pasada
+    // —«dudar cuesta»— pero con un error que pierde la mision, dos segundos para leer tres zonas
+    // con sus secuencias no es presion: es una trampa. El cronometro arranca cuando arranca la
+    // secuencia, que es cuando hay algo que ejecutar.
+    if (Q.zi < 0) return null;
+    // EL MARGEN: cada TECLA tiene su ventana, y es la que corre en la barra naranja de abajo.
+    // Agotarla es errar igual que apretar la equivocada — el pulso es tanto precision como
+    // decision rapida.
     Q.beatT += dtReal;
-    if (Q.beatT >= Q.beatMax) fallar('pulso_fallo_t');
+    if (Q.beatT >= Q.beatMax) {
+      if (PULSO.UN_ERROR_PIERDE) { Q.errIdx = idxCinta(); Q.errT = 0; Q.ci = Q.errIdx; Q.fase = 'rojo';
+        Q.motivo = 'pulso_fallo_t'; beep(150, 0.16, 'sawtooth', 0.06, -60); return null; }
+      fallar('pulso_fallo_t');
+    }
     return null;
+  }
+
+  // ROJO: la tecla errada se queda encendida lo que dura ROJO_T, y despues se acaba. Es el unico
+  // lugar del modo donde el jugador ya no puede hacer nada y todavia no paso nada — existe para
+  // que el error SE VEA antes de que arranque lo que venga.
+  if (Q.fase === 'rojo') {
+    Q.errT += dtReal;
+    if (Q.errT >= PULSO_CINTA.ROJO_T) { Q.fase = 'perdido'; Q.faseT = 0; cine.start('pulso_fallo'); }
+    return null;
+  }
+  // PERDIDO: la CINEMATICA DE LA PERDIDA (`pulso_fallo` en data/cines.js), hermana de la del
+  // premio y por el mismo camino — la corre el director, no este modulo. Cuando termina, recien
+  // ahi la mision se cae por el embudo de derrota de siempre.
+  if (Q.fase === 'perdido') {
+    const s = cine.update(dtReal);
+    return s && s.done ? { death: 'death_pulso' } : null;
   }
 
   Q.faseT += dtReal;
@@ -521,6 +635,24 @@ if (typeof window !== 'undefined') window.__qgana = z => {
   Q.tSel = Q.t;                            // se gana en cero: el premio sale con todos sus sellos
   exito();
   return true;
+};
+// __qfalla: rompe la prueba ya mismo (QUITAR). La usa el catalogo de CINEMATICAS para poder
+// mirar la cinematica de la perdida sin tener que errar una tecla a mano contra el reloj.
+if (typeof window !== 'undefined') window.__qfalla = () => {
+  if (!Q) return 'null';
+  Q.errIdx = idxCinta(); Q.errT = PULSO_CINTA.ROJO_T; Q.ci = Q.errIdx;
+  Q.motivo = 'pulso_fallo_err';
+  // DERECHO A LA CINEMATICA, sin pasar por el rojo: el catalogo de CINEMATICAS traza desde el
+  // instante cero y se corta si el director todavia no arranco — y la rotura de la tecla dura casi
+  // un segundo. La rotura se mira jugando, que es donde significa algo.
+  Q.fase = 'perdido'; Q.faseT = 0;
+  cine.start('pulso_fallo');
+  return window.__qdbg();
+};
+// __qzona: fuerza la zona del ataque y vuelve a entrar (QUITAR con el resto de las sondas). Es lo
+// que deja medir que cada zona da SU cinematica ahora que la zona no se elige jugando.
+if (typeof window !== 'undefined') window.__qzona = id => {
+  zonaFija = id || null; enter(false); return window.__qdbg();
 };
 // __qcfg: re-entra con otra configuracion. Es la unica forma de ver la ESCALADA sin jugar la
 // campaña entera: `__qcfg({t01:1})` da la prueba de la ultima mision en la primera.

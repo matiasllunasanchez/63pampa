@@ -32,21 +32,30 @@ async function shot(n) {
 const cfg = o => js(`String(window.__qcfg(${JSON.stringify(o)}))`).then(s => JSON.parse(s));
 const tap = t => js(`window.__qtap(${JSON.stringify(t)})`);
 
+/** UN TOKEN GARANTIZADO DISTINTO del que la prueba espera. Antes se usaba 'R' fijo, apostando a
+ *  que nunca fuera el esperado — y 'R' SI aparece en la secuencia (el tirabuzon, `dRR`), asi que
+ *  el "error" podia ser un acierto y la seccion medir cualquier cosa. */
+const otroQue = e => ['l', 'r', 'u', 'd', 'Z'].find(k => k !== e);
+
 /** Teclea la secuencia ENTERA leyendo lo esperado de la sonda. `zona` elige carril al empezar.
- *  `err` inyecta UN token equivocado antes del primer acierto (para probar el perdon). */
+ *  `err` inyecta UN token equivocado DESPUES de elegir blanco.
+ *
+ *  DESPUES Y NO ANTES (14/9): mientras se elige, una tecla que no corresponde a ninguna zona se
+ *  IGNORA — no es un error, porque la prueba todavia no empezo. Inyectandolo antes, como hacia
+ *  este harness, el error se perdia y la secuencia salia limpia. */
 async function tocar({ zona, err } = {}) {
   let d = await Q();
   if (d && d.zi < 0 && zona) {
     // elegir carril = teclear su primer token. Se busca cual de los carriles es la zona pedida.
     const i = d.carriles.findIndex(c => c.startsWith(zona + ':'));
-    if (i >= 0) { if (err) { await tap('R'); err = false; } await tap(d.esperado[i]); }
+    if (i >= 0) await tap(d.esperado[i]);
   }
   for (let k = 0; k < 30; k++) {
     d = await Q();
     if (!d || d.fase !== 'prueba') return d;
-    if (err) { await tap('R'); err = false; continue; }   // 'R' (rolar der) no arranca ninguna
     const e = d.zi < 0 ? d.esperado[0] : d.esperado;
     if (!e) return d;
+    if (err && d.zi >= 0) { await tap(otroQue(e)); err = false; continue; }
     await tap(e);
   }
   return await Q();
@@ -66,23 +75,32 @@ app.whenReady().then(async () => {
   if (!d || !d.on) { console.error('   ✗ no entro a la prueba con ?pulso=3'); app.exit(1); return; }
   d = await cfg({});   // reloj de cero: los segundos del arranque ya se habrian comido el margen
   ok(`entro a la prueba · fase ${d.fase} · nivel t01=${d.t01} · margen ${d.beatMax}s`);
-  if (d.zi >= 0) bad('la prueba tendria que arrancar SIN carril elegido (elegir es parte de la prueba)');
-  else ok(`tres blancos ofrecidos: ${d.carriles.join(' | ')}`);
-  if (new Set(d.esperado.split('')).size !== d.esperado.length)
-    bad(`dos blancos arrancan con la misma tecla (${d.esperado}): la eleccion seria ambigua`);
-  else ok(`cada blanco arranca con una tecla distinta: ${d.esperado}`);
+  // SIN ELECCION DE BLANCO (14/9): la combinacion arranca sola. Antes esta seccion medía que las
+  // tres zonas se ofrecieran y que cada una arrancara con una tecla distinta; esa pantalla ya no
+  // existe — «es matarlo o no matarlo».
+  if (d.zi < 0) bad('la prueba tendria que arrancar con la secuencia ya corriendo, sin elegir blanco');
+  else ok(`arranca directo en la secuencia · zona ${d.zona} · ${d.carriles[d.zi]}`);
+  if (typeof d.esperado === 'string' && d.esperado.length === 1)
+    ok(`y pide UNA tecla, la del centro de la cinta: ${d.esperado} (${d.glifo})`);
+  else bad(`lo esperado no es una sola tecla: ${d.esperado}`);
   // LAS CAPTURAS, en dos pasos: primero se CUELGA el margen (sacar la foto tarda mas que la
   // ventana de la prueba) y despues se espera medio segundo — en una ventana oculta el compositor
   // devuelve el ultimo cuadro que pinto, y sin esa espera la foto sale con el cuadro anterior.
   await js('__qhold()'); await sleep(500); await shot('q2_blancos');
 
-  // la zona brava pide MAS compases y paga MAS que la facil
-  const largo = s => s.split(':')[1].split('-').length;
-  const radar = d.carriles.find(c => c.startsWith('radar:'));
-  const polv = d.carriles.find(c => c.startsWith('deposit:'));
-  if (radar && polv && largo(polv) > largo(radar))
-    ok(`elegir cuesta: radar ${largo(radar)} compases · polvorin ${largo(polv)}`);
-  else bad(`las zonas no se diferencian en largo (${radar} vs ${polv})`);
+  // LA EQUIVALENCIA DE LA FLECHA (14/9). Con la mira en su modo normal las flechas del teclado son
+  // el stick DERECHO, asi que ↑ manda 'U' donde la secuencia pide 'u'. Antes eso era un error —y
+  // con UN_ERROR_PIERDE, la mision. Es EL bug que hizo que el modo no se pudiera probar.
+  {
+    const esp = d.esperado, otro = { u: 'U', d: 'D', l: 'L', r: 'R' }[esp];
+    if (!otro) ok(`(la primera tecla es ${esp}: no tiene equivalente de flecha que probar)`);
+    else {
+      await tap(otro);
+      const dd = await Q();
+      if (dd.fase === 'prueba' && dd.ti !== d.ti) ok(`la flecha vale por la tecla: se pidio "${esp}" y "${otro}" la tomo`);
+      else bad(`la flecha "${otro}" no vale por "${esp}": la fase quedo en ${dd.fase}`);
+    }
+  }
 
   // ---------- 2. LA PERFECTA GANA ----------
   console.log('\n2. la secuencia perfecta gana la mision:');
@@ -92,10 +110,10 @@ app.whenReady().then(async () => {
   await cfg({});
   // se elige el POLVORIN a mano (la zona brava: la secuencia mas larga) y se saca la foto con la
   // autopista ya elegida y el cursor a medio camino — que es la imagen del modo
+  // la foto de LA CINTA, con una tecla ya acertada y el cursor a medio camino: es la imagen del modo
   {
     const dd = await Q();
-    const i = dd.carriles.findIndex(c => c.startsWith('deposit:'));
-    await tap(dd.esperado[i]); await js('__qhold()'); await sleep(500); await shot('q2_autopista');
+    await tap(dd.esperado); await js('__qhold()'); await sleep(500); await shot('q2_cinta');
   }
   d = await tocar({});
   // la prueba salida desemboca DIRECTO en la cinematica del premio (Q3): no hay pantalla de
@@ -110,26 +128,26 @@ app.whenReady().then(async () => {
   if (JSON.parse(st).state !== 'results') bad(`tras el exito el juego quedo en ${JSON.parse(st).state}, no en results`);
   else ok('el exito cierra la mision por el embudo de siempre (results)');
 
-  // ---------- 3. EL PERDON ESCALA POR NIVEL ----------
-  console.log('\n3. el perdon de los primeros niveles:');
+  // ---------- 3. UN ERROR Y SE ACABO (pedido del 14/9/2026) ----------
+  // Reemplaza a la vieja seccion del PERDON. Desde `PULSO.UN_ERROR_PIERDE` la prueba no perdona
+  // nada en ningun nivel: la tecla errada se pone ROJA, la secuencia termina ahi y la mision se
+  // pierde. El perdon por nivel y los tres intentos siguen escritos detras de la perilla.
+  console.log('\n3. un error y se acabo:');
   await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pulso=3');
   await sleep(2500);
   d = await cfg({ t01: 0 });
-  if (d.perdon !== 1) bad(`en el primer nivel tendria que perdonarse un error (perdon=${d.perdon})`);
-  else ok(`nivel 1: se perdona ${d.perdon} error · margen ${d.beatMax}s`);
   d = await tocar({ zona: 'bridge', err: true });
-  await shot('q2_perdon');
-  if (d && d.fase === 'cine') ok('un error en el primer nivel NO tumba la pasada: se perdona y se gana');
-  else bad(`con un error perdonado la fase quedo en ${d && d.fase} (tries ${d && d.tries})`);
+  await shot('q2_error');
+  if (d && d.fase === 'rojo') ok('un error deja la tecla en ROJO y corta la secuencia, hasta en el primer nivel');
+  else bad(`tras errar una tecla la fase quedo en ${d && d.fase}`);
+  // …y de ahi se cae a la derrota, sin re-encare
+  let fin3 = null;
+  for (let k = 0; k < 60; k++) { fin3 = JSON.parse(await js('String(window.__qdbg())')).state; if (fin3 !== 'pulso') break; await sleep(150); }
+  if (fin3 === 'dead') ok('y la mision se pierde por el embudo de siempre (dead), sin re-encare');
+  else bad(`tras el rojo el juego quedo en ${fin3}, no en la derrota`);
 
-  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pulso=3');
-  await sleep(2500);
-  d = await cfg({ t01: 1 });
-  if (d.perdon !== 0) bad(`en la ultima mision no tendria que perdonarse nada (perdon=${d.perdon})`);
-  else ok(`ultima mision: ${d.perdon} perdones · margen ${d.beatMax}s · ${d.carriles[1].split(':')[1]}`);
-  d = await tocar({ zona: 'bridge', err: true });
-  if (d && d.fase === 'fallo') ok('el mismo error al final de la campaña SI tumba la pasada');
-  else bad(`sin perdon, un error dejo la fase en ${d && d.fase}`);
+  // cuantos compases tiene la secuencia de un carril, leyendo la sonda ('bridge:lrl-dll-Z' → 3)
+  const largo = c => c.split(':')[1].split('-').length;
 
   // ---------- 4. LA ESCALADA ----------
   console.log('\n4. la escalada de la prueba:');
@@ -142,46 +160,30 @@ app.whenReady().then(async () => {
     ok(`de la primera a la ultima: ${nb}→${na} compases y ${bajo.beatMax}→${alto.beatMax}s de margen`);
   else bad(`la prueba no escala (${nb}→${na} compases, ${bajo.beatMax}→${alto.beatMax}s)`);
 
-  // ---------- 5. LOS TRES FALLOS Y SUS COSTOS ----------
-  // El plan §3: 1º te pasas de largo y el flak se acerca · 2º cuesta un avion · 3º se pierde.
-  console.log('\n5. los tres fallos y lo que cuesta cada uno:');
+  // ---------- 5. EL MARGEN, Y QUE SE AGOTE TAMBIEN PIERDE ----------
+  // Antes esta seccion medía los TRES fallos y sus costos (re-encare con flak, un avion del
+  // escuadron, derrota). Esa economia esta apagada por `UN_ERROR_PIERDE` y su codigo sigue
+  // entero detras de la perilla; lo que rige hoy es mas corto y es lo que se mide: el margen es
+  // POR TECLA, y agotarlo pierde igual que apretar la equivocada.
+  console.log('\n5. el margen por tecla:');
   await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?pulso=3');
   await sleep(2500);
-  await js('window.__qlives(3)');            // escuadron, para poder ver el costo del 2º fallo
-  await cfg({ t01: 1 });                     // sin perdones: el fallo es limpio de medir
-  // 1er fallo: no tocar nada y dejar que se agote el margen
-  for (let k = 0; k < 40; k++) { d = await Q(); if (d && d.fase === 'fallo') break; await sleep(150); }
-  if (!d || d.fase !== 'fallo') bad('el margen no se agota solo: el reloj de la prueba no corre');
-  else ok(`1er fallo por tiempo (${d.motivo || 'timeout'}) · intentos gastados ${d.tries}`);
-  await shot('q2_fallo');
-  // el re-encare devuelve a la prueba, con el flak un grado mas cerca y OTRA secuencia
-  const antes = d.carriles.join('|');
-  for (let k = 0; k < 60; k++) { d = await Q(); if (d && d.fase === 'prueba') break; await sleep(150); }
-  if (!d || d.fase !== 'prueba') bad('el re-encare no devuelve a la prueba');
-  else {
-    ok(`re-encare → fase ${d.fase} · flak grado ${d.flak} · margen ${d.beatMax}s (se achico)`);
-    if (d.carriles.join('|') === antes) bad('el re-encare trae la MISMA secuencia: seria memorizar, no volar');
-    else ok('el re-encare sortea una secuencia nueva');
+  await cfg({ t01: 1 });
+  // se elige blanco y se acierta UNA tecla: el margen tiene que volver a llenarse con el acierto
+  {
+    const dd = await Q();
+    const i = dd.carriles.findIndex(c => c.startsWith('bridge:'));
+    await tap(dd.esperado[i]);
+    const d1 = await Q();
+    await tap(d1.esperado);
+    const d2 = await Q();
+    if (d2.beatLeft > d1.beatLeft * 0.9) ok(`el margen se renueva con cada tecla (quedaban ${d1.beatLeft}s, tras acertar ${d2.beatLeft}s)`);
+    else bad(`el margen no se renovo al acertar (${d1.beatLeft}s → ${d2.beatLeft}s)`);
   }
-  await shot('q2_reencare');
-  // 2º fallo: tiene que costar un avion del escuadron (relevo)
-  const lv0 = 3;
-  for (let k = 0; k < 40; k++) { d = await Q(); if (d && d.fase === 'fallo') break; await sleep(150); }
-  for (let k = 0; k < 60; k++) { const s = JSON.parse(await js('String(window.__qdbg())')); if (s.state === 'relevo') { d = s; break; } await sleep(150); }
-  const enRelevo = JSON.parse(await js('String(window.__qdbg())')).state === 'relevo';
-  if (enRelevo) ok(`2º fallo: cuesta un avion del escuadron (entro en relevo, de ${lv0} aviones)`);
-  else bad('el 2º fallo no cobro el avion del escuadron');
-  // vuelve a la prueba con la cuenta INTACTA (perder un avion no limpia la pizarra)
-  for (let k = 0; k < 90; k++) { d = await Q(); if (d && d.fase === 'prueba') break; await sleep(200); }
-  if (d && d.tries === 2) ok(`el companero vuelve A LA PRUEBA con los intentos gastados (${d.tries}) y el flak encima (${d.flak})`);
-  else bad(`tras el relevo la prueba quedo en tries=${d && d.tries} (tendria que ser 2)`);
-  // 3er fallo: la mision se pierde por el embudo de siempre
-  for (let k = 0; k < 60; k++) { d = await Q(); if (d && d.fase === 'fallo') break; await sleep(150); }
-  let fin = null;
-  for (let k = 0; k < 60; k++) { fin = JSON.parse(await js('String(window.__qdbg())')).state; if (fin !== 'pulso') break; await sleep(200); }
-  // los intentos son de la MISION, no del avion: el 3er fallo la pierde aunque queden aviones
-  if (fin !== 'dead') bad(`el 3er fallo dejo el juego en ${fin}, no en la derrota de siempre`);
-  else ok('3er fallo → la mision se pierde por el embudo de siempre (dead), con aviones de sobra');
+  // y si no se toca nada, se agota y se pierde
+  for (let k = 0; k < 60; k++) { d = await Q(); if (d && d.fase !== 'prueba') break; await sleep(150); }
+  if (d && d.fase === 'rojo') ok('agotar el margen de una tecla la pone en rojo igual que errarla');
+  else bad(`el margen no se agota solo: la fase quedo en ${d && d.fase}`);
 
   // ---------- 6. EL PREMIO: DOS ZONAS, DOS CINEMATICAS (Q3) ----------
   // El criterio de cierre de Q3, literal: «dos zonas distintas producen dos cinematicas distintas».
@@ -192,7 +194,10 @@ app.whenReady().then(async () => {
   /** Juega una zona limpia y FILMA la cinematica: devuelve el premio y el rastro de compases. */
   async function filmar(zona, nombre) {
     await cfg({ t01: 0.5 });
-    let d = await tocar({ zona });
+    // LA ZONA SE FIJA POR SONDA: desde el 14/9 no se elige jugando («es matarlo o no matarlo»),
+    // pero cada zona sigue teniendo SU cinematica y eso es lo que esta seccion mide.
+    await js(`String(window.__qzona(${JSON.stringify(zona)}))`);
+    let d = await tocar({});
     if (!d || d.fase !== 'cine') { bad(`${zona}: la secuencia limpia no llego al premio (${d && d.fase})`); return null; }
     const beats = [], fx = [];
     let pico = 0, mvVisto = null, secVisto = false, capt = false, dir = null;
@@ -344,10 +349,9 @@ app.whenReady().then(async () => {
   if (hb1 < hb0) ok(`el corazon acelera con el margen que se va (${hb0}s → ${hb1}s entre latidos)`);
   else bad(`el latido no acelera (${hb0}s → ${hb1}s)`);
   // …y tras el fallo, el re-encare no devuelve la calma
-  for (let k = 0; k < 40; k++) { d = await Q(); if (d && d.fase === 'prueba' && d.tries > 0) break; await sleep(200); }
-  if (d && d.tries > 0 && d.hbPer < hb0)
-    ok(`y no se calma entre pasadas: con ${d.tries} fallo(s) encima arranca en ${d.hbPer}s`);
-  else bad(`tras el fallo el corazon volvio a la calma (${d && d.hbPer}s contra ${hb0}s del arranque)`);
+  // (la parte de "no se calma entre pasadas" se fue con los tres intentos: sin re-encare no hay
+  // pasada siguiente en la que el corazon pudiera arrancar acelerado. El codigo del acelerado por
+  // intentos sigue en `urgencia()`, detras de la misma perilla.)
   await js('__qhold()'); await sleep(500); await shot('q5_teatro');
 
   console.log('\nconsola: ' + (errors.length ? errors.length + ' error(es)' : 'sin errores'));

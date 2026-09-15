@@ -433,6 +433,8 @@ export const STRINGS = {
     optMach: 'TRANSONICO', optMach_off: 'no', optMach_vapor: 'solo vapor', optMach_todo: 'vapor + cono',
     pulso_pasadas: 'PASADAS',
     pulso_elegi: 'ELEGI BLANCO',
+    pulso_ataque: 'PULSO DE ATAQUE',
+    pulso_fallo_fin: 'EL BUQUE SIGUE AHI',
     pulso_z_radar: 'RADAR', pulso_z_bridge: 'PUENTE', pulso_z_deposit: 'POLVORIN',
     pulso_why: 'Se te fue la pasada',
     // EL PREMIO (Q3): los sellos, como muere cada zona y como muere cada clase de buque
@@ -1406,6 +1408,8 @@ export const STRINGS = {
     optMach: 'TRANSONIC', optMach_off: 'no', optMach_vapor: 'vapor only', optMach_todo: 'vapor + cone',
     pulso_pasadas: 'PASSES',
     pulso_elegi: 'PICK YOUR TARGET',
+    pulso_ataque: 'ATTACK PULSE',
+    pulso_fallo_fin: 'THE SHIP IS STILL THERE',
     pulso_z_radar: 'RADAR', pulso_z_bridge: 'BRIDGE', pulso_z_deposit: 'MAGAZINE',
     pulso_why: 'Your pass got away',
     pulso_s_limpio: 'NOT ONE MISTAKE', pulso_s_rapido: 'LIGHTNING HANDS', pulso_s_bravo: 'THE HARD ONE',

@@ -42,6 +42,53 @@ export const PULSO = {
   BARS: [2, 4],
   // duracion de la cinematica de re-encare tras fallar (plan §3: el fallo es drama, no reset)
   REENCARE_T: 3.4,
+  // UN ERROR Y SE ACABO (pedido del autor, 14/9/2026). Apaga la economia de fallos de Q2 —tres
+  // intentos, perdon de un error en los primeros niveles, re-encare con el flak mas cerca, y un
+  // avion del escuadron al segundo fallo— y la reemplaza por lo que pide el modo nuevo: errar una
+  // tecla TERMINA la prueba y se pierde la mision.
+  //
+  // Es una PERILLA y no un borrado a proposito: todo aquel camino sigue escrito y probado, asi que
+  // si jugandolo resulta demasiado seco se vuelve poniendo esto en false. Lo unico que cambia es
+  // cual de los dos desenlaces toma el error.
+  UN_ERROR_PIERDE: true,
+  // CONTRA QUE ZONA es la prueba. Era una ELECCION del jugador (tres blancos, tres secuencias) y
+  // desde el 14/9 es dato: «es matarlo o no matarlo». La zona sigue decidiendo donde pega la bomba
+  // y como muere el buque —la cinematica de Q3 es la misma— pero ya no se pregunta.
+  // 'radar' (corta, se queda ciego) · 'bridge' (el puente arde) · 'deposit' (vuela la santabarbara).
+  ZONA: 'bridge',
+};
+
+// ---------------- LA CINTA: como se PRESENTA la prueba (pedido del 14/9/2026) ----------------
+// La secuencia dejo de ser una autopista estatica con un cursor y paso a ser una CINTA: las teclas
+// entran desde la derecha, se frenan en el centro de la pantalla dibujadas como la tecla (o el
+// boton del mando) que hay que apretar, y al acertarlas se acumulan a la izquierda bajo el rotulo
+// PULSO DE ATAQUE. Debajo de la del centro corre la barra del tiempo que queda para apretarla.
+//
+// SIGUE CUMPLIENDO LA REGLA 3 del plan («lo que viene se VE venir»), y de hecho la cumple mejor:
+// antes la secuencia entera estaba quieta y se movia el cursor; ahora lo que se acerca es la tecla,
+// que es exactamente la autopista de notas de la que salio la regla.
+export const PULSO_CINTA = {
+  PASO: 44,        // separacion entre teclas de la cinta, en pixeles de mundo
+  TECLA: 24,       // lado de la tecla del CENTRO (la que hay que apretar ahora)
+  CHICA: 18,       // lado de las que todavia vienen
+  ACUM: 11,        // lado de las ya acertadas, en el acumulador de la izquierda
+  ACUM_PASO: 13,   // separacion del acumulador
+  EASE: 14,        // cuan rapido la cinta corre hasta la tecla siguiente (1/s)
+  BARRA_W: 60,     // ancho de la barra de tiempo, debajo de la tecla del centro
+  // EL ACIERTO: cuanto dura el destello verde con el que la tecla se va al acumulador. Corto a
+  // proposito — es un golpe de confirmacion, no una animacion que haya que esperar.
+  OK_T: 0.22,
+  OK_POP: 0.35,    // cuanto se agranda la tecla en el golpe (fraccion de su lado)
+  // EL ERROR: la tecla se rompe como una luz. No es un fundido — es un filamento que parpadea
+  // errático y se apaga. Dura casi un segundo porque es lo ultimo que se ve de la prueba y hay
+  // que entender QUE paso; con 0,45 s se leia como un parpadeo y no como una rotura.
+  ROJO_T: 0.95,
+  ROJO_TIEMBLA: 3,    // amplitud del temblor de la tecla rota, en pixeles
+  ROJO_CHISPAS: 8,    // esquirlas del filamento al romperse
+  // EL VELO, el mismo del dialogo en vuelo (game.js, `dlgPausa`): la prueba no pasa en el mundo,
+  // pasa en la cabeza del que esta apuntando. Con el velo puesto el buque y la cabina quedan de
+  // fondo y lo unico que compite por la mirada es la tecla.
+  VELO: '#070a0dd2',
 };
 
 // ---------------- LA RECOMPENSA (plan §3, fase Q3) ----------------

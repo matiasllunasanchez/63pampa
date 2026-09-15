@@ -2287,15 +2287,15 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (S.state === 'play' || S.state === 'momentum') popup(W / 2, 58, free ? T('aimFree') : T('aimFixed'), P.accent);
         try { localStorage.setItem('rasante_mira_modo', cfg.aim); } catch (e) { }
       },
-      // △ del mando: da vuelta EL eje Y —uno solo, teclado y stick, todos los modos— y lo GUARDA.
-      // Escribe la misma fila de OPCIONES y la misma clave, asi que las dos vias no se pisan.
-      throttleInvert: () => {
-        cfg.invY = cfg.invY ? 0 : 1;
-        try { localStorage.setItem('rasante_eje_y', JSON.stringify(cfg.invY)); } catch (e) { }
-        beep(cfg.invY ? 440 : 660, 0.05, 'square', 0.05);
-        if (S.state === 'play' || S.state === 'momentum' || S.state === 'arena' || S.state === 'pasada')
-          popup(W / 2, 58, cfg.invY ? T('thrDown') : T('thrUp'), P.accent);
-      },
+      // △ del mando: DESACTIVADO (pedido del autor, 14/9/2026). Daba vuelta el eje Y de TODO el
+      // juego —teclado y stick, los cuatro modos— con un solo boton y sin confirmacion, asi que un
+      // dedo perdido dejaba el avion invertido para siempre sin que nadie supiera por que. Es
+      // exactamente como se rompio EL PULSO: el eje quedo dado vuelta desde el mando y la prueba
+      // pasaba a pedir la tecla contraria a la flecha que mostraba.
+      //
+      // La perilla NO se borro: sigue en OPCIONES (fila `optInvY`), que es donde se elige a
+      // proposito. Lo que se fue es el atajo que la cambiaba sin querer.
+      throttleInvert: () => { },
     });
 
 
@@ -3879,7 +3879,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         busqueda: fases.hayFases(),
           // EL PODER RASANTE va por snapshot (convencion 4): el lint de capas prohibe que el
           // render importe de systems, y la lista de excepciones solo puede achicarse.
-          ras: { on: rasante.active(), meter: rasante.meterVal(), resta: rasante.restante(), dur: RAS_DUR } }); drawCinta(); ctx.restore();
+          ras: { on: rasante.active(), resta: rasante.restante(), dur: rasante.duracion() } }); drawCinta(); ctx.restore();
         // LA RADIO EN VUELO va en el espacio de DISEÑO (320x180) y se dibuja al final: es lo
         // ultimo que entra, arriba de todo. QUE FORMA tiene la elige el jugador en OPCIONES —
         // TOAST (una linea que pasa) o PANEL (las ultimas cuatro, como un chat). Las dos respetan
@@ -3912,7 +3912,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // mar, el horizonte y el buque son los del pasillo (no hay escena nueva que dibujar).
       // EL DIRECTOR entra por parametro (convencion 4): el premio del PULSO es una timeline de
       // data/cines.js y su reloj vive alla, no adentro del modo.
-      if (S.state === 'pulso' && pulso.active()) pulsoRender.drawPulso({ Q: pulso.state(), cine: cine.state(), t: run.t });
+      if (S.state === 'pulso' && pulso.active()) pulsoRender.drawPulso({ Q: pulso.state(), cine: cine.state(), toks: pulso.cinta(), t: run.t });
       ctx.restore();
       // ...y el telon ABRIENDOSE del otro lado: entraste al climax cruzando el banco
       if (veilOut > 0 && (S.state === 'arena' || S.state === 'momentum')) world.drawVeil(veilOut / VEIL_OUT);

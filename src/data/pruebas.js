@@ -62,7 +62,12 @@ export const PRUEBAS = [
   },
   {
     id: 'pulso', titulo: 'EL PULSO', desc: 'El QTE de destreza y su cinematica',
-    setup: a => a.pulso('m3'),
+    // M9 Y NO M3, y no es un capricho: EL PULSO arma su examen con las piruetas APRENDIDAS, y la
+    // libreta de m3 tiene una sola —TERRAIN MASKING, que no es un compas— asi que la prueba salia
+    // con un unico `Z` y las tres zonas identicas. O sea: el momento existia para mostrar el modo
+    // y mostraba una pantalla donde no hay nada que jugar. En m9 la libreta trae 8 compases.
+    // Medido: m1 y m3 → 0 compases · m6 → 4 · m9 → 8 · m12 → 12.
+    setup: a => a.pulso('m9'),
   },
   {
     id: 'momentumViejo', titulo: 'EL MOMENTUM VIEJO', desc: 'El climax en riel 2D (recarga sin 3D)',
