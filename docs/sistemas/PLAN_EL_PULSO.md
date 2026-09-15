@@ -1,9 +1,22 @@
 # PLAN — «EL PULSO»: el clímax como prueba de destreza *(plan C del boss + el momento del misil de m14)*
 
-> **Estado (16/8/2026): IMPLEMENTADO ENTERO — Q0 a Q5 cerradas y verificadas** (`npm run pulso`,
-> ocho secciones). El modo se juega hoy por sonda (`?pulso=<n>[&pasillo]`) y **ninguna misión de la
-> campaña lo pide todavía**, que es exactamente lo que manda el §6.5: se enchufa escribiendo
-> `climax: 'pulso'` en el renglón de una misión, y esa palabra es todo el trabajo que falta.
+> 🔴 **DECISIÓN DE AUTOR (15/9/2026) — SE ELIMINA LA ZONA, ENTERA.** No es que el jugador
+> deje de elegirla: **desaparece del juego.** Se borran la pantalla de elección, los tres
+> rótulos de zona y los tres de muerte por zona. El Pulso se queda con **una sola pregunta:
+> ¿te salió la mano o no?** Lo que importa —si explotó, y si se hundió o solo ardió— es dato
+> de la misión y se ve en la ranura MUERTE del catálogo de remates.
+> Ver `PLAN_PULSO_CABINA_VIDEO.md` §0 y `CINEMATICAS_FIN_DE_NIVEL.md` §5.
+
+> **Estado (15/9/2026): IMPLEMENTADO ENTERO, y REHECHO por fuera.** Q0 a Q5 siguen cerradas y
+> verificadas (`npm run pulso`, ocho secciones), pero entre el 14 y el 15/9 el modo cambió de
+> presentación y de reglas por pedido del autor — **la CINTA, un error que pierde, sin zona, y sus
+> dos desenlaces**. Todo eso está en las divergencias **34 a 43**, y donde contradigan al cuerpo de
+> este plan, **mandan ellas**: §3 todavía describe la elección de blanco y los tres intentos, que
+> ya no existen.
+>
+> El modo se juega por sonda (`?pulso=<n>[&pasillo]`) y desde el menú PRUEBAS, y **ninguna misión
+> de la campaña lo pide todavía** — se enchufa escribiendo `climax: 'pulso'` en el renglón de una
+> misión, y esa palabra sigue siendo todo el trabajo que falta.
 >
 > **Cuándo entra:** es el **plan C del
 > clímax** — si el rescate de la PASADA falla su gate (PASADA_ADRENALINA §R6), el boss se
@@ -263,3 +276,61 @@ cerrar Q1 (diff vacío contra el baseline guardado).
 33. **La sal del canopy tiene posiciones FIJAS** (reparto determinista por primos, no `Math.random`).
     Sorteada por cuadro se leía como nieve; la sal está seca y quieta, y es una marca del avión
     —volaste dos mil metros a ras del Atlántico— no un efecto de partículas.
+
+### Divergencias del rediseño de septiembre *(14 y 15/9/2026 — pedidos del autor)*
+
+> **Estas mandan sobre el §3.** El cuerpo del plan describe la elección de blanco, los tres
+> intentos y el perdón por nivel: nada de eso se juega hoy.
+
+34. **LA CINTA reemplaza a la autopista.** La secuencia entera quieta con un cursor encima se
+    cambió por teclas que **entran desde la derecha, se frenan en el centro** dibujadas como la
+    tecla (o el botón del mando) que hay que apretar, y al acertarlas **se acumulan a la izquierda
+    bajo PULSO DE ATAQUE**. La regla 3 del §2 se sigue cumpliendo, y mejor: lo que se acerca es la
+    tecla, que es literalmente la autopista de notas de la que salió la regla.
+35. **Todo pasa detrás del VELO negro del diálogo en vuelo** (el mismo `#070a0dd2` de `dlgPausa`,
+    en `game.js`). No es un velo nuevo a propósito: el jugador ya aprendió que cuando la pantalla
+    se oscurece así, lo que importa está escrito encima. El buque y la cabina quedan de fondo.
+36. **El margen pasó a ser POR TECLA.** Era por compás, y la barra naranja se vaciaba a lo largo de
+    tres teclas sin decir nada de la que estabas por apretar. El rótulo de la maniobra sobrevive
+    sobre la primera tecla de cada compás — era lo único que la autopista decía y la cinta no.
+37. **La tecla activa late CON EL CORAZÓN**, no con un seno propio: usa el reloj del latido
+    (divergencia 31), que acelera con el margen. La cosa que hay que apretar late con el que la
+    aprieta, y cuando el tiempo se acaba ya se lo está viendo latir más rápido sin leer un número.
+38. **UN ERROR PIERDE LA MISIÓN** (`PULSO.UN_ERROR_PIERDE`). Reemplaza la economía entera de Q2 —los
+    tres intentos, el perdón por nivel, el re-encare con el flak más cerca, el avión del escuadrón
+    al segundo fallo—, que **no se borró**: sigue escrita y probada detrás de la perilla. Contradice
+    el §6.2 ("no instakill por tecla") a sabiendas: es decisión de autor, y el drama del §4 lo pone
+    ahora la rotura de la tecla y la cinemática de pérdida, no el re-encare.
+39. **El error es una LUZ QUE SE ROMPE**, en tres tramos: fogonazo con esquirlas · filamento
+    parpadeando errático · apagón a gris. El parpadeo **no es un seno** a propósito — un seno se lee
+    como una pulsación sana. Y la cinta **se clava** donde se rompió: mientras seguía deslizándose,
+    la tecla rota se dibujaba corrida del centro y quedaban dos teclas grandes a la vez.
+40. **La cinemática de pérdida** (`pulso_fallo` en `data/cines.js`), hermana de la del premio y la
+    mitad de larga: trepás por encima del buque, el flak estalla al lado, y abajo **no pasa nada**.
+    El buque queda entero — ese silencio es todo el mensaje. Cierra en la pantalla **HAS PERDIDO**,
+    que reinicia la misión ENTERA con cualquier tecla (eso la pantalla de derrota ya lo hacía).
+41. **Bug del director encontrado escribiéndola:** la duración de una timeline sale del `t` del
+    ÚLTIMO beat, así que un `fin` agendado como `then` de un fundido **queda fuera de la timeline y
+    nunca dispara**. La cinemática corría entera y la misión no se perdía nunca. El `fin` va en su
+    propio beat. Hay otra timeline en el archivo con la misma forma.
+42. **SE ELIMINA LA ZONA, ENTERA** (ver el encabezado de este documento). No es que el jugador deje
+    de elegirla: desaparece. Se fueron la pantalla `ELEGI BLANCO`, `PULSO_ZONAS`, `armarZonas()`,
+    los seis strings de zona y muerte, el sello ZONA BRAVA —no se puede premiar una decisión que ya
+    no se toma— y el segundo estallido, que era exclusivo de la zona brava y pasa a ser dato de la
+    misión. Queda `PULSO_IMPACTO`: un punto fijo a media torre, que es lo único que la cinemática
+    necesita para saber dónde poner el fuego.
+43. **Tres bugs que hacían el modo injugable, los tres medidos y ninguno visible en el build:**
+    · **La flecha.** Con la mira en su modo normal las flechas son el stick DERECHO (tokens
+    `U D L R`) y la secuencia pide el izquierdo (`u d l r`, o sea WASD): apretabas ↑ y contaba como
+    error. Ahora la dirección del otro stick vale, **en un solo sentido** — si la prueba pide rolar,
+    hay que rolar, o los compases de tirabuzón dejarían de existir.
+    · **El eje invertido.** `cfg.invY` lo daba vuelta el △ del mando, sin confirmación, para todo el
+    juego: el glifo ↑ pasaba a pedir la tecla de abajo. La prueba es **inmune** al eje invertido (se
+    teclea lo que se ve) y el atajo del mando quedó desactivado.
+    · **Elegir blanco mataba.** El reloj corría durante la elección y cualquier tecla que no eligiera
+    carril contaba como error: se entraba y se perdía en dos segundos. (Lo resolvió, y de raíz, la
+    divergencia 42.)
+    Y el momento de PRUEBAS apuntaba a **m3**, donde la libreta del Pichón tiene una sola pirueta
+    que no es compás: la prueba salía con un único `Z`. Apunta a m9. Medido: m1 y m3 → 0 compases ·
+    m6 → 4 · m9 → 8 · m12 → 12. **Con EL PULSO como clímax de todas las misiones, eso es una
+    decisión abierta**: las primeras cinco de campaña tendrían un clímax de una sola tecla.
