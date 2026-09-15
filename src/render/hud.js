@@ -584,7 +584,11 @@ function pide(algo) { return cfg.hudAuto !== 'auto' || algo; }
 // Cada poder con TRES tonos suyos: el de la barra, el claro de la ola y el OSCURO del borde cuando
 // esta llena (12/9). El borde propio es lo que hace que "cargado" se vea de reojo sin mirar adentro.
 const RAS_COL = '#57b6e0', RAS_CLARO = '#bfe8fb', RAS_OSCURO = '#2d6f8f';   // celeste de mar
-const MOM_CLARO = '#ffd9a0', MOM_OSCURO = '#8a5f1f';                        // el acento, aclarado y oscurecido
+// EL MOMENTUM ES AMARILLO (15/9). Era el naranja del acento, y el acento se usa en todo el
+// tablero para cosas que NO son poderes —el reloj de la ventana, el del escondite, la nafta, los
+// avisos—. Con los dos poderes teniendo color propio (el rasante azul, este amarillo), el naranja
+// queda libre para significar una sola cosa: tiempo y avisos. Un color por idea.
+const MOM_COL = '#e8cf3d', MOM_CLARO = '#fff0a0', MOM_OSCURO = '#8a7a1f';
 // EL NOMBRE VA ADENTRO (pedido del autor, 12/9): la barra mide 7 de alto para que entre el rotulo de
 // 5, y el rotulo se dibuja DOS VECES con recorte — oscuro sobre lo lleno y claro sobre lo vacio—,
 // que es como se lee una barra con texto adentro sin que el texto pelee con el relleno.
@@ -689,7 +693,7 @@ function barraConc(x0, y0, w, h, frac, col, rot) {
   // sobre el mar. Las de `barraPoder` siguen finas — esas viven sobre una placa que las sostiene.
   // El monospace no cambia de avance al engrosar, asi que el paso y el centrado no se mueven.
   ctx.font = 'bold ' + F_ROT; ctx.textAlign = 'left';
-  const ty = y0 + h - 2, n = rot.length;
+  const ty = y0 + h - 1, n = rot.length;
   const paso = Math.max(3, Math.min(4, Math.floor((w - 2 - GLIFO) / Math.max(1, n - 1))));
   const rx = x0 + Math.floor((w - (GLIFO + paso * (n - 1))) / 2);
   const pasada = (cx, cw, color) => {
@@ -713,7 +717,7 @@ function barraPoder(px0, py0, val, col, claro, oscuro, on, lista, rot) {
   if (fw > 1) { ctx.globalAlpha = 0.4; px(x, y, fw, 1, '#f2f7fb'); ctx.globalAlpha = 1; }   // bisel
   // LA PUNTA SE QUEMA MIENTRAS SE GASTA, igual que la del rasante y por el mismo motivo: una barra
   // que baja sola se lee como que se descarga, una que se quema se lee como que la estas usando.
-  if (on && fw > 0) chispas(x + fw, y, PODER_H, '#ffffff', P.accent);
+  if (on && fw > 0) chispas(x + fw, y, PODER_H, '#ffffff', MOM_COL);
   // LA OLA, solo cuando esta lista y todavia no se uso: cruza el relleno de punta a punta
   const onda = lista && !on ? x - ONDA_W + ((run.t % ONDA_S) / ONDA_S) * (PODER_W + ONDA_W * 2) : null;
   if (onda !== null) {
@@ -1504,7 +1508,11 @@ export function drawHUD(h) {
         px(bx, by, fw, 3, RAS_COL);
         chispas(bx + fw, by, 3, '#ffffff', RAS_COL);
       } else {
-        barraConc(bx, by - 8, RACHA_W, 6, fr, RAS_COL, T('mult_rasante'));
+        // ALTO 5 Y NO 6. Medido: la palabra sube 3,71 px sobre la linea base y baja 0,07 — 3,78 de
+        // alto real. En una caja de 6 con la base en +4 quedaba 0,3 de aire arriba y 1,9 abajo, o
+        // sea pegada al techo. Con 5 y la base en +4 queda 0,3 arriba y 0,9 abajo. El ANCHO no se
+        // toca: son los 24 de PERFECTO y alinean con el pulso de abajo.
+        barraConc(bx, by - 7, RACHA_W, 5, fr, RAS_COL, T('mult_rasante'));
       }
     } else {
       const pal = T(enEstado ? 'mult_rasante' : 'mult_perfect');
@@ -1529,13 +1537,18 @@ export function drawHUD(h) {
       // cada acierto y se va cerrando, y el indicador acelera. La barra dice las tres cosas que
       // el jugador necesita —donde, cuando y cuanto margen— sin un solo numero.
       const w = anchoSector(run.aguN);
-      px(bx, by, RACHA_W, 3, '#e9edf0');
+      // SURCO OSCURO Y SECTOR AZUL. El carril era BLANCO y el sector azul encima, y con la barra de
+      // concentracion —tambien azul— justo arriba, el cartelito se leia al reves: lo encendido
+      // parecia ser el carril y lo apagado el sector. Ahora el azul es SIEMPRE el poder y lo que
+      // hay que acertar, el gris es lo vacio, y lo unico que se sale de esa regla es el reloj de
+      // abajo, que es naranja porque mide TIEMPO y no poder.
+      px(bx, by, RACHA_W, 3, '#2e3c45');
       px(bx + Math.round(RACHA_W * run.aguSec), by, Math.max(1, Math.round(RACHA_W * w)), 3,
         golpe ? '#ffffff' : RAS_COL);
-      // el indicador sobresale 1 px arriba y abajo: sobre el blanco y sobre el azul se ve igual,
-      // y asomando se lee como una aguja que cruza y no como un pedazo de la barra.
+      // el indicador pasa a CLARO: sobre el surco oscuro, el negro de antes desaparecia. Sobresale
+      // 1 px arriba y abajo para leerse como una aguja que cruza y no como un pedazo de la barra.
       px(bx + Math.min(RACHA_W - 1, Math.round(posInd(run.aguF) * (RACHA_W - 1))), by - 1, 1, 5,
-        errado ? P.accent : '#0a1015');
+        errado ? P.accent : '#e9edf0');
       // EL TEMPORIZADOR DE LA VENTANA, debajo del pulso. Es lo que el estado se sostiene SOLO —el
       // avion va clavado como un crucero mientras le quede— y acertar el azul lo vuelve a llenar.
       // Se VACIA en vez de crecer, que es el mismo idioma que el reloj del escondite: lo que se
@@ -1694,8 +1707,8 @@ export function drawHUD(h) {
   const tv = tempoMeter();
   const altoPod = PODER_H + 2;                                   // la placa de la barra
   const yPod = CUADROS_Y - AIRE - PILOTO.lado - AIRE - altoPod;   // pegada a la cara, con el mismo aire
-  barraPoder(MARGEN, yPod, tv, P.accent, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
-  tabListo(0, yPod, altoPod, tv >= 1, P.accent);
+  barraPoder(MARGEN, yPod, tv, MOM_COL, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
+  tabListo(0, yPod, altoPod, tv >= 1, MOM_CLARO);
 
   // municion de misiles: cada pip es el MISIL en miniatura (cuerpo blanco, ojiva gris, llama),
   // el mismo que se ve volar — no un rectangulo generico. Vacio = solo el contorno.
