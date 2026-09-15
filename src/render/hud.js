@@ -1662,6 +1662,19 @@ export function drawHUD(h) {
   const altoPod = PODER_H + 2;                                   // la placa de la barra
   const yPod = CUADROS_Y - AIRE - PILOTO.lado - AIRE - altoPod;   // pegada a la cara, con el mismo aire
   barraPoder(MARGEN, yPod, tv, P.accent, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
+  // "+1 SEG" AL LADO DE SU BARRA. El mismo aviso sale tambien en el avion (systems/collision.js):
+  // uno dice DE DONDE salio y el otro PARA QUE sirvio. Sin el de aca, el jugador ve un numero
+  // volando y no tiene forma de atarlo a la barra que se acaba de mover un sexto — que a 24 px es
+  // un movimiento invisible. Dura lo que un pestañeo y se va con un fundido.
+  const esq = run.t - run.esqT;
+  if (esq >= 0 && esq < 0.7) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, (0.7 - esq) / 0.25);
+    ctx.font = 'bold ' + F_ROT; ctx.textAlign = 'left';
+    ctx.fillStyle = P.accent;
+    ctx.fillText('+1 SEG', MARGEN + CUADRO + 3, yPod + PODER_H - Math.round(esq * 6));
+    ctx.restore();
+  }
   tabListo(0, yPod, altoPod, tv >= 1, P.accent);
 
   // municion de misiles: cada pip es el MISIL en miniatura (cuerpo blanco, ojiva gris, llama),

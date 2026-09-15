@@ -10,7 +10,7 @@ export const STRINGS = {
   es: {
     langName: 'Español',
     pageHeader: '■ <b>RASANTE</b> · Atlántico Sur, 1982 · Batalla por Malvinas',
-    pageFooter: '<kbd>W</kbd>: gas — si soltás, el avión cae &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: esquivar &nbsp;·&nbsp; <kbd>S</kbd>: picada &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: rolar &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: mirar arriba/abajo &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>ESPACIO</kbd>: cañón &nbsp;·&nbsp; <kbd>Z</kbd>: bomba &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: turbo &nbsp;·&nbsp; <kbd>5</kbd>: llamar a la Chancha (reabastecer) &nbsp;·&nbsp; <kbd>T</kbd>: tren (al aterrizar) &nbsp;·&nbsp; <kbd>F</kbd>: freno &nbsp;·&nbsp; <kbd>ESC</kbd>: pausa &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: mira libre (click: cañón · click der: bomba)<br>Joystick (PlayStation o Xbox): stick izq vuela · stick der rola y mira · R1/RB cañón · L1/LB bomba · R2/RT turbo · L2/LT freno · START pausa<br>Táctil: arrastrá a la izquierda para volar · derecha arriba: fuego · derecha abajo: turbo<br>Volar bajo multiplica. Rozar obstáculos da bonus. El turbo duplica puntos y quema combustible.',
+    pageFooter: '<kbd>W</kbd>: gas — si soltás, el avión cae &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: esquivar &nbsp;·&nbsp; <kbd>S</kbd>: picada &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: rolar &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: mirar arriba/abajo &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>ESPACIO</kbd>: cañón &nbsp;·&nbsp; <kbd>Z</kbd>: bomba &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: turbo &nbsp;·&nbsp; <kbd>5</kbd>: llamar a la Chancha (reabastecer) &nbsp;·&nbsp; <kbd>T</kbd>: tren (al aterrizar) &nbsp;·&nbsp; <kbd>F</kbd>: freno &nbsp;·&nbsp; <kbd>ESC</kbd>: pausa &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: mira libre (click: cañón · click der: bomba)<br>Joystick (PlayStation o Xbox): stick izq vuela · stick der rola y mira · R1/RB cañón · L1/LB bomba · R2/RT turbo · L2/LT freno · START pausa<br>Táctil: arrastrá a la izquierda para volar · derecha arriba: fuego · derecha abajo: turbo<br>Volar bajo multiplica. ESQUIVAR al ras da bonus y carga el MOMENTUM. El turbo duplica puntos y quema combustible.',
     aria: 'Juego Rasante: WASD para volar, flechas para rolar y mirar, X dispara, Shift turbo',
     death_land: 'Chocaste el terreno', death_sea: 'Impactaste el mar',
     death_pared: 'Te comiste la ladera',
@@ -211,7 +211,7 @@ export const STRINGS = {
     hud_squad: 'ESCUADRON',
     obj_m: ' m',
     title: 'R A S A N T E', subtitle: 'Batalla por Malvinas · Atlantico Sur · 1982',
-    tip1: 'Mas bajo = mas puntos. Rozar obstaculos da bonus.',
+    tip1: 'Mas bajo = mas puntos. Esquivar al ras carga el MOMENTUM.',
     tip2: 'El turbo duplica el puntaje y quema combustible.',
     tip3: 'Muy alto = te detecta el radar.',
     startPrompt: 'DESPEGAR',

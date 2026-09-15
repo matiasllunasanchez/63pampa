@@ -31,6 +31,20 @@ import { scrapeLimit } from '../core/physics.js';
 // y la ALTURA se evalua contra el mismo bulto que dibuja el mar: una sola fuente de verdad
 import { olaBump } from '../core/sea.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER, isSoftStruct } from '../core/hitbox.js';
+
+/** UN ESQUIVE: pasaste MUY cerca de algo que te mataba y eso carga el MOMENTUM, que no es otra cosa
+ *  que concentracion de esquive — cuanto mas esquivas, mas concentrado, hasta el punto de ver todo
+ *  lento y poder esquivar cualquier cosa por unos segundos.
+ *
+ *  UN SEGUNDO, Y SE DICE DOS VECES: en el avion, porque ahi es donde acaba de pasar la cosa, y al
+ *  lado de la barra del MOMENTUM (via `run.esqT`, que lo lee el tablero), porque ahi es donde se
+ *  acumula. El premio tiene que verse donde ocurrio Y donde se guarda: con uno solo de los dos, o
+ *  no sabes de donde salio o no sabes para que sirvio. */
+function esquivado() {
+  run.esqT = run.t;
+  const s = proj(plane.x, plane.y, PZ);
+  popup(s.x, s.y - 30, '+1 SEG', P.accent);
+}
 import { mvTight } from '../data/moves.js';
 
 /** Golpe NO letal (nube de explosion, bandada): sacude, frena y quema combustible — castiga sin
@@ -317,6 +331,7 @@ export function collisionSystem(dt) {
         const pir = mvTight(run.mv);    // rozar EN PIRUETA: bonus grande (estilo)
         const pts = pir ? 250 : 75;
         run.score += pts; stats.grazes++; run.shake = Math.min(6, run.shake + 1.5);
+        esquivado();
         sfxOne('graze');                                 // roza1/roza2: el premio sonoro del roce
         // SOLO EL NUMERO, en grande: el texto ("ROZASTE") ocupaba el ancho de media pantalla y
         // tapaba justo lo que venia detras del obstaculo que acabas de rozar.
@@ -405,7 +420,7 @@ export function collisionSystem(dt) {
       }
       // SIN CARTEL (12/9): el misil que pasa de largo ya se ve y se escucha pasar; la palabra
       // ESQUIVADO encima tapaba justo la zona por donde venia. Los 75 puntos siguen estando.
-      run.score += 75; stats.dodges++; boom(0.06, true);
+      run.score += 75; stats.dodges++; boom(0.06, true); esquivado();
     }
     if (Math.random() < 0.6) {
       const s = proj(m.x, m.y, m.z + 2);

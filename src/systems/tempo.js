@@ -9,30 +9,34 @@
 // nada usa reloj de pared, ralentizar el mundo es este multiplicador y nada mas: spawns, flak,
 // particulas y lluvia se frenan en sincronia perfecta sin tocar ningun sistema.
 //
-// LA BARRA se carga CON PUNTOS (decision 3/8): jugar bien es lo que compra el poder. tick()
-// recibe el score de la corrida y carga con el DELTA — asi ningun punto del juego necesita
-// avisarle a este modulo, y cualquier fuente futura de puntos carga sola. Llena, se LANZA:
-// dura TEMPO_DUR segundos REALES (el drenaje usa el dt CRUDO, no el escalado) y se descarga
+// LA BARRA se carga CON ESQUIVES (15/9; antes eran puntos): lo que compra el poder es el RIESGO
+// bien jugado, no jugar bien en general. tick() recibe el recuento de esquives de la corrida y
+// carga con el DELTA — el mismo truco de antes, asi que ninguna fuente de esquives necesita
+// avisarle a este modulo y cualquiera que se agregue carga sola. Llena, se LANZA:
+// dura LOS SEGUNDOS QUE JUNTASTE (el drenaje usa el dt CRUDO, no el escalado) y se descarga
 // ENTERA — cortar antes con la tecla descarta el resto, como un super de arcade.
 //
-// SUBSISTEMA con estado propio (on/meter), privado del modulo, leido por accesores — el mismo
+// SUBSISTEMA con estado propio (on/seg), privado del modulo, leido por accesores — el mismo
 // patron que momentum/arena. Sin imports de stores: tick() recibe "inPlay" y "score" ya
 // resueltos por el orquestador (game.js sabe de S.state, cfg.devcam y run), y gracias a eso
 // tools/feeltest.js lo corre tal cual, como a core/aero.js.
 
-import { TEMPO_SCALE, TEMPO_DUR, TEMPO_CHARGE } from '../data/tuning.js';
+import { TEMPO_SCALE, TEMPO_TOPE } from '../data/tuning.js';
 
 let on = false;        // ¿el tiempo esta partido AHORA?
-let meter = 0;         // 0..1, la barra del especial (arranca VACIA: se gana jugando)
-let lastScore = -1;    // ultimo score visto, para cargar por delta (-1 = re-sincronizar)
+let seg = 0;           // SEGUNDOS de camara lenta guardados (arranca en 0: se ganan esquivando)
+let lastEsq = -1;      // ultimo recuento de esquives visto, para cargar por delta (-1 = re-sincronizar)
 
 /**
  * Tecla 4. Devuelve la señal para el feedback (game.js pone el beep y el popup):
  * 'on' (lanzado) | 'off' (cortado a mano: descarta el resto) | 'empty' (la barra no esta llena).
  */
 export function toggle() {
-  if (on) { on = false; meter = 0; return 'off'; }
-  if (meter < 1) return 'empty';
+  if (on) { on = false; seg = 0; return 'off'; }
+  // SE PUEDE LANZAR A MEDIO LLENAR, y es el punto: el poder existe para usarse CUANDO HACE FALTA,
+  // no cuando la barra lo permite. Con tres segundos guardados, dura tres. El unico piso es que
+  // haya al menos uno — medio segundo de camara lenta no es un poder, es un tropiezo.
+  if (seg < 1) return 'empty';
   on = true; return 'on';
 }
 
@@ -43,22 +47,25 @@ export function toggle() {
  * Salir del pasillo — muerte, relevo, climax, devcam — corta el poder solo; la CARGA sobrevive
  * al relevo (es de la corrida, como el score), pero lo lanzado se pierde con el avion.
  */
-export function tick(dt, inPlay, score) {
+export function tick(dt, inPlay, esquives) {
   if (!inPlay) {
-    if (on) { on = false; meter = 0; }
-    lastScore = -1;                             // al volver, cargar desde el score de ese momento
+    if (on) { on = false; seg = 0; }
+    lastEsq = -1;                               // al volver, cargar desde el recuento de ese momento
     return null;
   }
-  if (lastScore < 0) lastScore = score;
+  if (lastEsq < 0) lastEsq = esquives;
   let ready = null;
-  if (!on && score > lastScore && meter < 1) {  // lanzado no recarga: primero se gasta el super
-    meter = Math.min(1, meter + (score - lastScore) / TEMPO_CHARGE);
-    if (meter >= 1) ready = 'ready';
+  if (!on && esquives > lastEsq && seg < TEMPO_TOPE) {   // lanzado no recarga: primero se gasta
+    const antes = seg;
+    seg = Math.min(TEMPO_TOPE, seg + (esquives - lastEsq));
+    if (antes < TEMPO_TOPE && seg >= TEMPO_TOPE) ready = 'ready';
   }
-  lastScore = score;
+  lastEsq = esquives;
   if (on) {
-    meter -= dt / TEMPO_DUR;
-    if (meter <= 0) { meter = 0; on = false; }  // se agoto: el mundo vuelve de golpe
+    // SE GASTA EN SEGUNDOS REALES y dura LO QUE JUNTASTE: seis esquives son seis segundos de
+    // instinto, dos son dos. No hay duracion fija que desmienta al "+1 seg" de la pantalla.
+    seg -= dt;
+    if (seg <= 0) { seg = 0; on = false; }      // se agoto: el mundo vuelve de golpe
   }
   return ready;
 }
@@ -67,13 +74,15 @@ export function tick(dt, inPlay, score) {
 export const scale = () => (on ? TEMPO_SCALE : 1);
 
 export const active = () => on;
-export const meterVal = () => meter;
+export const meterVal = () => seg / TEMPO_TOPE;
+/** Los segundos guardados, para quien tenga que decir un numero. */
+export const segVal = () => seg;
 
 /** arranque de partida: barra vacia, poder apagado. */
-export function resetTempo() { on = false; meter = 0; lastScore = -1; }
+export function resetTempo() { on = false; seg = 0; lastEsq = -1; }
 
 // sondas para las pruebas headless (mismo patron que __adbg/__aset del arena)
 if (typeof window !== 'undefined') {
-  window.__tdbg = () => JSON.stringify({ on, meter: +meter.toFixed(3), scale: scale() });
-  window.__tcharge = p => { meter = Math.min(1, meter + p / TEMPO_CHARGE); return meter; };
+  window.__tdbg = () => JSON.stringify({ on, seg: +seg.toFixed(2), meter: +meterVal().toFixed(3), scale: scale() });
+  window.__tcharge = n => { seg = Math.min(TEMPO_TOPE, seg + n); return meterVal(); };
 }
