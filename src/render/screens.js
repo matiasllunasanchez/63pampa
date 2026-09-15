@@ -299,7 +299,11 @@ export function drawDead(w) {
   // logotipo: es la misma voz que "RASANTE", el remate de la partida.
   ctx.fillStyle = P.warn; ctx.font = titleFont(22);
   // campaña: nadie murio — la escuadrilla entera quedo averiada y la mision no salio
-  ctx.fillText(T(w.out ? 'dead_out' : 'dead'), W / 2, 26);
+  // EL TITULAR. Tres, y cada uno dice algo distinto: DERRIBADO (te bajaron), FUERA DE COMBATE
+  // (campaña: nadie murio, la escuadrilla quedo averiada) y HAS PERDIDO — el del PULSO, donde no
+  // te bajo nadie: erraste la mano y el buque sigue flotando. Decirle "derribado" a eso seria
+  // mentirle al jugador sobre lo que acaba de pasar.
+  ctx.fillText(T(w.perdido ? 'dead_pulso' : w.out ? 'dead_out' : 'dead'), W / 2, 26);
   ctx.fillStyle = P.dim; ctx.font = descFont(11);
   ctx.fillText(T(w.deathCause), W / 2, 40);
 
@@ -328,7 +332,10 @@ export function drawDead(w) {
   // PIE: reintentar centrado, volver al menu a la derecha (es la salida, no la accion principal)
   if (w.deathT > 0.7 && Math.sin(w.t * 4) > -0.3) {
     ctx.fillStyle = P.accent; ctx.font = descFont(11);
-    ctx.fillText(T('retryPrompt'), W / 2, H - 12);
+    // …y el pie lo dice literal: la mision se REINICIA entera, no se continua. Es la unica salida
+    // hasta que se pase — por eso no dice "reintentar", que suena a otra oportunidad dentro de lo
+    // mismo, sino REINICIAR.
+    ctx.fillText(T(w.perdido ? 'retryPulso' : 'retryPrompt'), W / 2, H - 12);
   }
   if (w.deathT > 0.7) {
     ctx.textAlign = 'right'; ctx.fillStyle = P.dim; ctx.font = labelFont(6);

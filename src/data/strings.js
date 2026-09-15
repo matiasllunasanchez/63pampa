@@ -440,7 +440,9 @@ export const STRINGS = {
     pulso_c_t42: 'EL DESTRUCTOR SE VA DE POPA', pulso_c_t21: 'LA FRAGATA ESCORA A BABOR',
     pulso_c_log: 'LA CARGA ARDE DE PROA A POPA',
     res_pulso: 'EL PULSO',
-    death_pulso: 'Se acabaron las pasadas',
+    // la causa de la derrota del PULSO. Decia «Se acabaron las pasadas» — de cuando el fallo
+    // costaba una pasada y habia tres intentos. Con un error que pierde, lo que paso es otra cosa.
+    death_pulso: 'Erraste la mano, y el buque sigue flotando',
     arena_out: '! FUERA DE LA ZONA DE COMBATE !', arena_auto: 'REENCARANDO AL BLANCO',
     // PASADA: el otro climax — a ras, saltar, soltar y salir (docs/sistemas/SPEC_MODO_PASADA.md).
     // El cartel de controles es el del arena MENOS lo que la pasada no tiene (media vuelta y
@@ -1069,14 +1071,14 @@ export const STRINGS = {
     briefM12: 'Misma tarde, segunda salida sobre Fitzroy. El segundo buque de desembarco espera su turno.',
     briefM13: 'De noche las fragatas martillan los montes alrededor de Puerto Argentino. Hay que callar a la escolta que da fuego naval.',
     briefM14: 'Mision denegada por el comando. Sin indicativo, sin reabastecedor, sin margen. El buque bombardea el monte. Se vuela igual.',
-
     // (los EPILOGOS historicos viven ahora ADENTRO de cada epiM* — la placa es la ultima
     // pantalla de la secuencia. Cifras reales; dudas en docs/PREGUNTAS_HISTORICAS.md)
 
     homage: 'En homenaje a los veteranos y caidos de Malvinas',
-    dead: 'D E R R I B A D O', scoreLabel: 'PUNTAJE  {n}',
+    dead: 'D E R R I B A D O', dead_pulso: 'H A S   P E R D I D O', scoreLabel: 'PUNTAJE  {n}',
     newRecord: '★ NUEVO RECORD ★', bestDead: 'MEJOR  {n}',
     retryPrompt: 'Apreta cualquier cosa para reintentarlo',
+    retryPulso: 'PRESIONA CUALQUIER TECLA PARA REINICIAR',
     menuPrompt: '[ESC] Volver al menu',
     anyKeyMenu: 'CUALQUIER TECLA  para el menu',
     // CIERRE de la campaña. Va SIN TILDES como el resto del texto de canvas (ver `facts`): las
@@ -1411,7 +1413,7 @@ export const STRINGS = {
     pulso_c_t42: 'THE DESTROYER GOES DOWN BY THE STERN', pulso_c_t21: 'THE FRIGATE LISTS TO PORT',
     pulso_c_log: 'THE CARGO BURNS BOW TO STERN',
     res_pulso: 'THE PULSE',
-    death_pulso: 'Out of passes',
+    death_pulso: 'Your hand slipped, and the ship is still afloat',
     arena_out: '! OUTSIDE THE COMBAT ZONE !', arena_auto: 'TURNING BACK TO TARGET',
     pasada_title: 'T H E   R U N',
     pasada_hint: 'NOSE [W]/[S] · ROLL & TURN [Q]/[E] · BRAKE [F] · [Z] RELEASE',
@@ -1460,9 +1462,10 @@ export const STRINGS = {
     brief_title: 'MISSION ORDER', brief_goal: 'OBJECTIVE:', brief_go: 'ANY KEY  to take off',
 
     homage: 'In tribute to the veterans and fallen of the Malvinas',
-    dead: 'S H O T   D O W N', scoreLabel: 'SCORE  {n}',
+    dead: 'S H O T   D O W N', dead_pulso: 'Y O U   L O S T', scoreLabel: 'SCORE  {n}',
     newRecord: '★ NEW RECORD ★', bestDead: 'BEST  {n}',
     retryPrompt: 'Press anything to try again',
+    retryPulso: 'PRESS ANY KEY TO RESTART',
     menuPrompt: '[ESC] Back to menu',
     anyKeyMenu: 'ANY KEY  for the menu',
     // La cita va TRADUCIDA en ingles, no en español con subtitulo: es el cierre del juego y tiene

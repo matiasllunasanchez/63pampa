@@ -3953,7 +3953,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // es de este modo llega apagado y el render no tiene que saber en que modo esta.
         screens.drawDead({ score: run.score, best: gameMode === 'survival' ? best : 0, deathCause, deathT, factIdx, t: run.t,
           reveal: Math.min(1, (deathT - DEATH_REVEAL) / 0.35), stars: deadStars, awardT: deathT - DEATH_REVEAL - 0.2, bg: deadBg,
-          out: squad.rosterActive() });   // campaña: la escuadrilla quedo fuera de combate, no "derribado"
+          out: squad.rosterActive(),   // campaña: la escuadrilla quedo fuera de combate, no "derribado"
+          // …y el PULSO tiene su propio titular: no te derribaron, erraste la mano. La mision se
+          // reinicia entera con cualquier tecla, que es lo que ya hacia esta pantalla.
+          perdido: deathCause === 'death_pulso' });
       if (S.state === 'results') screens.drawResults({ lastRun, resRow, resT, t: run.t, bg: winBg });
       if (S.state === 'brief') screens.drawBrief({ mission: curMission(), goalLabel: goalOf(curMission()).label(curMission().goal), briefT, t: run.t });
       if (S.state === 'victory') screens.drawVictory({ score: run.score, levelT, t: run.t });
