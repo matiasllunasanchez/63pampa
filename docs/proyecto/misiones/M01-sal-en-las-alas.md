@@ -1,7 +1,7 @@
-# M01 — SAL EN LAS ALAS *(código: `m1`)*
+# M01 — CON SAL EN LAS ALAS *(código: `m1`)*
 
 > Documento de RELEVAMIENTO de playtest. Lo llena Matías jugando por el selector
-> (MISIONES → SAL EN LAS ALAS); las sesiones de ajuste leen SOLO este archivo + el bloque de
+> (MISIONES → CON SAL EN LAS ALAS); las sesiones de ajuste leen SOLO este archivo + el bloque de
 > esta misión en [PLAN_MISIONES_FASES.md](../PLAN_MISIONES_FASES.md) §4. El porqué de
 > cada número: [DISENO_MISIONES.md](../DISENO_MISIONES.md) §4.
 

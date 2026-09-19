@@ -171,7 +171,7 @@ combustible, antes del «no me da», que diga **«Turco… el Confiable me cagó
 
 ---
 
-# MISIÓN 7 — 25 de Mayo (muere el Vasco)
+# MISIÓN 7 — Pastelitos (muere el Vasco)
 
 ## M7-02 · el Vasco habla · `M6_2`
 
@@ -212,7 +212,7 @@ con la lengua afuera, y ahora ve el tarrito abierto y nadie pintando.
 
 ---
 
-# MISIÓN 8 — El batir de alas
+# MISIÓN 8 — El batir de las alas
 
 ## M8-01 · LA FRASE DE LA TESIS · escena nueva, después de `M7_SOBREVUELO`
 
@@ -297,7 +297,7 @@ necesidad de inventar un tipo de pantalla nuevo.
 
 ---
 
-# MISIÓN 12 — El ángel Correntino
+# MISIÓN 12 — Ángel de Corrientes
 
 ## M12-01 · los jazmines · `M10_TIERRA`
 

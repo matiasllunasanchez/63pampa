@@ -123,3 +123,100 @@ sistema y viven en el HUD.
 - **M1 · reescritas** las líneas de Puma, Gitano, Pichón y Vasco; se cayeron los chismes del
   Pichón y el remate de Puma.
 - **M1 · tarjeta**: *"Mar abierto · Objetivo: dominar el vuelo rasante"*.
+
+---
+
+## 🟥 PENDIENTE DE PEGAR EN `story.js` *(15/9/2026)*
+
+Escrito y listo en [`historia/PLACAS_HISTORICAS.md`](../historia/PLACAS_HISTORICAS.md). **Son
+datos, no código**: se pegan tal cual y se enganchan en la secuencia de su misión.
+
+| Bloque | Dónde va |
+|---|---|
+| `C1_ANTES` | 🔴 **el primer beat de la campaña**, antes de `P1_2` (el arroyo) |
+| `M01_HIST` | después de la carta de M01 |
+| `M02_HIST` | después de `M02_8` |
+| `M03_HIST` | después de `M03_CUADERNO` |
+| `M09_HIST` | después de `M09_CARTA` |
+| `M10_HIST` | después de `M10_CUADERNO` |
+| `M13_HIST` | después de la carta de M13 |
+
+Las ocho placas restantes (M04, M05, M06, M07, M08, M11, M12, M14) **ya existen**.
+Todas usan `placa: 'radio'`: **no hace falta generar arte nuevo.**
+
+### ⚠ Bloqueantes antes de publicar
+
+- **Muertos del Glamorgan: 13 o 14.** `M14_HIST` dice 14, `MEJORAS_PICHON.md` §7 dice 13.
+  `C1_ANTES` promete *«los contamos bien»*, así que esto pasa de detalle a bloqueante.
+- **M02_HIST** dice *«varios no volvieron»* — cambiar por la cifra exacta cuando se verifique.
+- **M09_HIST** no lleva número de aviones perdidos a propósito: las cifras que circulan no
+  coinciden.
+
+### 🟩 Nombres de misión sincronizados *(hecho)*
+
+`story.js` había cambiado seis títulos y la documentación estaba atrás. Replicado en 24
+archivos: **CON SAL EN LAS ALAS · EL BAUTISMO DE FUEGO · PASTELITOS (ex «25 de Mayo») · EL
+BATIR DE LAS ALAS · ÁNGEL DE CORRIENTES · LA CENA (ex «La última mesa»)**.
+
+✅ **`src/data/missions.js` actualizado** con los seis nombres nuevos.
+
+---
+
+## 🟩 AUDITORÍA DE LOS CONFLICTOS ABIERTOS *(15/9/2026 — verificado contra `story.js`)*
+
+Se revisaron los seis puntos que estaban marcados como abiertos. **Cuatro ya están
+resueltos en el código** y no hacía falta hacer nada; **dos siguen abiertos.**
+
+| # | Conflicto | Estado | Evidencia en `story.js` |
+|---|---|---|---|
+| 1 | **EL TERITO (M1)** | ✅ **RESUELTO** | Existe `M01_TERITO` («SU PÁJARO»), con un comentario que dice que es la raíz de tres sistemas y que no se puede caer |
+| 2 | **El ritual de Cóndor** | ⚠️ **ABIERTO** | El código usa una autorización **distinta por misión** — *«Autorizada adaptación sobre mar abierto…»* en M1, *«Cruce de costa autorizado»* en M2. El guion quería una fórmula fija que se cobra en M14 |
+| 3 | **El nombre del escuadrón** | ✅ **RESUELTO, con otro nombre** | No es «los Fieles de Plata»: en el juego es **PLATA FIEL**, y aparece tres veces — la llamada de Cóndor, *«Plata Fiel… a casa»* y *«Plata Fiel completa, entonces»* en M13 |
+| 4 | **El ritual de los cinco (M1)** | ✅ **RESUELTO** | Existe `M01_CINCO` («EL RITUAL DE LOS CINCO») |
+| 5 | **El chiste de los gansos** | ✅ **RESUELTO** | Existe `M01_GANSOS`: *«¿Viste? Para el comando somos gansos.»* |
+| 6 | **P.1 · «Esteban joven DE UNIFORME»** | ⚠️ **ABIERTO** | `P1_2_010` dice solo *«Esteban joven revolea una piedra chata»*. **Es una palabra.** Importa porque planta que el padre es piloto militar antes de que nadie lo diga |
+
+### Los dos que quedan
+
+**El ritual de Cóndor** es una decisión de autor, no un olvido: si cada misión tiene su propia
+autorización, **se pierde el corte de M14** —la misión que Cóndor no autoriza— porque no hay
+una fórmula que se pueda negar. Hay que elegir: fórmula fija y el corte funciona, o variedad
+por misión y el corte se resuelve de otra manera.
+
+**«De uniforme»** es un renglón: `P1_2_010`, cambiar *«Esteban joven revolea»* por
+*«Esteban joven, de uniforme, revolea»*.
+
+### 🟩 Nombres de misión — cerrado en los dos lados
+
+`src/data/missions.js` quedó actualizado con los seis nombres nuevos: `CON SAL EN LAS ALAS` ·
+`EL BAUTISMO DE FUEGO` · `PASTELITOS` · `EL BATIR DE LAS ALAS` · `ANGEL DE CORRIENTES` ·
+`LA CENA`. **Ya no hay nombres viejos en ningún lado.**
+
+---
+
+## ✅ CERRADO POR DECISIÓN DEL AUTOR *(15/9/2026)*
+
+| Punto | Decisión | Estado |
+|---|---|---|
+| **El ritual de Cóndor** | **La última frase es siempre la misma: «Buen vuelo.»** El cuerpo del briefing cambia por misión; el cierre no | ✅ aplicado en `story.js`: las **13** líneas de cierre de Cóndor (M01–M13) terminan con la fórmula. **M14 no la tiene** — la misión está denegada, y eso es lo que se rompe |
+| **El nombre del escuadrón** | *«Bienvenido a **Los Fieles**, Tero.»* | ✅ aplicado en `story.js`. Convive con **PLATA FIEL**, que es el indicativo de radio |
+| **El ritual de los cinco** | *(el autor no lo reconoce como propio)* | ⏸ existe en el código como `M01_CINCO`. **No se toca hasta que se decida.** |
+| **El chiste de los gansos** | *(ídem)* | ⏸ existe como `M01_GANSOS`. **No se toca.** |
+| **P.1 «de uniforme»** | **Se quita del guion** | ✅ `GUION_3.md` ahora dice solo *«Esteban joven»*, igual que el código |
+| **El terito en el avión** | ver abajo | 🟡 **no es un bug** |
+
+### 🟡 Por qué el terito no está en el avión que vuela
+
+**No es un olvido: está medido y documentado en `src/data/skins.js`.** La cámara del sprite
+mira desde atrás y unos 10° arriba. A ese ángulo **la deriva se ve de canto (2 px) y el ala se
+aplasta al 18%**, y —esto es lo que importa— **el FLANCO del fuselaje, que es donde va el
+terito, no aparece en ningún alabeo.** Por eso las skins de los cinco pilotos usan marcas *a lo
+largo del ala*, que es lo único que sobrevive a esa cámara.
+
+**El terito sigue siendo canon y sigue estando pintado** — en las placas, en las cinemáticas y
+en todo plano cercano. Lo que no puede es vivir en el sprite de 84 px.
+
+> ⚠️ **Y eso deja un pendiente real: M8.** El momento en que Mateo ve el terito desde la turba
+> es un plano **desde abajo**, y desde abajo el flanco **sí** se ve. Ese plano **no lo puede
+> resolver el sprite normal**: necesita arte propio o un ángulo especial. Es el único lugar del
+> juego donde la regla del sprite y la regla del guion se cruzan.

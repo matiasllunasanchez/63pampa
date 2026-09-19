@@ -206,19 +206,19 @@ las dos aves "humanas" secretas.
 
 | Misión | Título                    | Indicativo             | Nota                                 |
 | ------ | ------------------------- | ---------------------- | ------------------------------------ |
-| M1     | Sal en las alas           | **CAUQUÉN**            | 🟨 ahora tutorial puro               |
-| M2     | Bautismo de fuego         | **CHIMANGO**           |                                      |
+| M1     | Con sal en las alas       | **CAUQUÉN**            | 🟨 ahora tutorial puro               |
+| M2     | El bautismo de fuego      | **CHIMANGO**           |                                      |
 | 🟥 M3  | El invento                | **BENTEVEO**           | nueva — el que se mete en todo       |
 | M4     | El día que sangró el mar  | **ALBATROS**           | ex M3                                |
 | M5     | El callejón de las bombas | **AGUILUCHO**          | ex M4                                |
 | M6     | La bomba que no despertó  | **CARANCHO**           | ex M5 · 🟨 acá se rompe la Chancha   |
-| M7     | 25 de Mayo                | **ZORZAL**             | ex M6 · muere el Vasco               |
-| M8     | El batir de alas          | **HORNERO**            | ex M7 · el sobrevuelo                |
+| M7     | Pastelitos                | **ZORZAL**             | ex M6 · muere el Vasco               |
+| M8     | El batir de las alas      | **HORNERO**            | ex M7 · el sobrevuelo                |
 | M9     | El pibe                   | **GOLONDRINA**         | ex M8 · muere el Pichón              |
 | 🟥 M10 | Los primos                | **CHINGOLO**           | nueva — la primera con tres · Tandil |
 | M11    | Lo que no se dice         | **CALANDRIA**          | ex M9 · el respiro                   |
-| M12    | El ángel Correntino       | **CHAJÁ**              | ex M10 · muere Correa                |
-| M13    | La última mesa            | **CABURÉ**             | ex M11 · el asado                    |
+| M12    | Ángel de Corrientes       | **CHAJÁ**              | ex M10 · muere Correa                |
+| M13    | La cena                   | **CABURÉ**             | ex M11 · el asado                    |
 | M14    | El tero                   | **— (sin indicativo)** | misión denegada: **Plata Fiel**      |
 
 ---
@@ -312,7 +312,7 @@ La única vez que el orden se rompe es M12, que corta a tierra en pleno vuelo.
 
 ### 🟨 Viñeta P.1 — El arroyo _(años antes; el primer dibujo del cuaderno)_
 
-**Imagen:** un campo en la provincia. Un Rastrojero oxidado. Esteban joven de uniforme
+**Imagen:** un campo en la provincia. Un Rastrojero oxidado. Esteban joven
 revolea una piedra chata: pica una, dos, tres veces. **Mateo, ocho años, está sentado en la
 orilla con un cuaderno en las rodillas, dibujando el arroyo, el Rastrojero, el avión que
 cruza el cielo.** Dibuja como respira: sin darse cuenta.
@@ -437,7 +437,7 @@ _Cartel:_ Esa misma semana, empezaba la guerra.
 
 # MOVIMIENTO I — EL NIDO
 
-## 🟨 MISIÓN 1 — "Sal en las alas"
+## 🟨 MISIÓN 1 — "Con sal en las alas"
 
 \*Mar abierto. **TUTORIAL PURO: sin jefe, sin enemigos, sin un solo disparo enemigo.\***
 _(Es la misión de conocer a la familia.)_
@@ -505,7 +505,7 @@ que hay radar. Autorizados pista dos. Buen vuelo, muchachos.
 
 ### 🟩 Tarjeta de misión _(código: `STORYM1_TARJETA`)_
 
-> **MISIÓN 1 — SAL EN LAS ALAS**
+> **MISIÓN 1 — CON SAL EN LAS ALAS**
 > _Mar abierto · Objetivo: dominar el vuelo rasante_
 
 ### ⚠ EL TERITO — está en el guion y **NO** está todavía en el código
@@ -618,7 +618,7 @@ _(El jugador entiende lo que Mateo sospecha: sí, lo mandó. Es lo único que pu
 
 ---
 
-## MISIÓN 2 — "Bautismo de fuego" _(sin cambios de estructura)_
+## MISIÓN 2 — "El bautismo de fuego"
 
 _1 de mayo. Costa. Boss: radar británico. La primera de verdad._
 
@@ -1240,7 +1240,7 @@ Chancha no hay nafta de vuelta". **El Gitano lo sabe mejor que nadie: se rompió
 
 ---
 
-## MISIÓN 7 — "25 de Mayo" _(ex M6 — MUERTE DE VASCO.)_
+## MISIÓN 7 — "Pastelitos" _(MUERTE DE VASCO. Se llamaba «25 de Mayo».)_
 
 _25 de mayo. Boss: destructor HMS Coventry._
 
@@ -1348,7 +1348,7 @@ yo hasta que volvamos _(a la foto, bajito)_ Señora: su hijo fue el mejor de tod
 
 ---
 
-## 🟨 MISIÓN 8 — "El batir de alas" _(ex M7 — EL SOBREVUELO. Cambió: la ambigüedad.)_
+## 🟨 MISIÓN 8 — "El batir de las alas" _(EL SOBREVUELO. Cambió: la ambigüedad.)_
 
 _25 de mayo, segunda salida. Boss: Atlantic Conveyor._
 
@@ -1770,7 +1770,7 @@ _(Ningún presagio explícito. El Colorado planeando un asado es todo lo que hac
 
 ---
 
-## MISIÓN 12 — "El ángel Correntino" (MUERE CORREA)
+## MISIÓN 12 — "Ángel de Corrientes" (MUERE CORREA)
 
 _8 de junio, segunda salida. Boss: RFA Sir Tristram._
 
@@ -1846,7 +1846,7 @@ sabe lo que pasó en ese monte. Esa asimetría es el juego entero en una pantall
 
 ---
 
-## MISIÓN 13 — "La última mesa" (el asado.)
+## MISIÓN 13 — "La cena" (el asado. Se llamaba «La cena».)
 
 _11 de junio. Apoyo a los montes._
 
@@ -1894,6 +1894,76 @@ cómo.
 _(Antes de sentarse, el Turco pasa por la línea de vuelo. Los tres aviones están cargados y
 quietos bajo la luna. Les pasa la mano por el ala, de uno en uno, y a cada uno le dice algo
 bajito. Después se va al fuego y no lo cuenta.)_ Gitano canta bajito una zamba, desafinando con dignidad.
+
+### 🟥 La avivada — *(NUEVO: la ITB. Se cuenta en la mesa, se cobra en M14.)*
+
+**GITANO:** _(masticando)_ Che, Turco. ¿Escuchaste lo de los de la Armada, allá en el
+pueblo?
+
+**PUMA:** No arranqués con bolazos, Gitano.
+
+**GITANO:** No es bolazo. Me lo contó el de la radio. Dice que le **bajaron un misil a un
+barco** —un Exocet, de los buenos— y que lo pusieron **arriba de un carro**.
+
+**PUMA:** _(sin levantar la vista)_ Un misil de barco no anda en tierra. No tiene con qué
+apuntar.
+
+**GITANO:** Bueno, ahí está lo lindo. Le engancharon el generador de un **reflector viejo**,
+de esos de la antiaérea, y armaron el resto con **válvulas**. Válvulas, Puma. Como la radio
+de mi vieja.
+
+**PUMA:** Eso no puede funcionar.
+
+_(El Turco, que hasta ahora no había dicho una palabra, deja el cuchillo en el tambor.)_
+
+**EL TURCO:** Sí puede.
+
+**PUMA:** ¿Cómo va a poder?
+
+**EL TURCO:** _(sin apuro, como quien explica algo obvio)_ Porque no tenés que programar
+nada, m'hijo. Tenés que **convertir**. El radar te da un número, vos lo pasás a voltaje con
+un potenciómetro y se lo metés al misil. Es una cuenta. Lo difícil no es eso. _(pausa)_ Lo
+difícil es adivinar para dónde va a estar el barco cuando el misil llegue. Eso lo tiene que
+hacer alguien, a ojo, mientras hace la cuenta.
+
+**GITANO:** ¿Y vos cómo sabés todo eso?
+
+**EL TURCO:** _(vuelve al fuego)_ …Porque es lo que hubiera hecho el Pichón.
+
+_(Silencio. Nadie mira a nadie.)_
+
+**GITANO:** _(bajito, para romperlo)_ ¿Y cómo le pusieron al aparato?
+
+**EL TURCO:** Berreta.
+
+**GITANO:** ¿Cómo berreta?
+
+**EL TURCO:** Le pusieron así ellos. **Instalación de Tiro Berreta.** _(se le escapa media
+sonrisa)_ Le pusieron el nombre antes de saber si andaba.
+
+**PUMA:** _(después de un rato largo, al fuego)_ …Un carro, un reflector roto y unas
+válvulas.
+
+**EL TURCO:** Un solo tiro tienen. _(ceba)_ Ojalá les salga.
+
+> 🟥 **Nota de tratamiento.** La escena **no explica que esto es verdad** y no dice ningún
+> nombre propio: los nombres van en la placa histórica del final. Lo que hace acá es dos
+> cosas. Una: **el Turco vuelve a estar vivo profesionalmente** por primera vez desde que
+> murió el Pichón — se entusiasma con un fierro ajeno, y es lo más parecido a un duelo
+> resuelto que va a tener. Dos: **planta el disparo** para que en M14, cuando el Glamorgan
+> salte, el jugador sepa qué fue sin que nadie se lo diga.
+>
+> Y hay una coincidencia que no hace falta subrayar porque el jugador la arma solo: **el
+> Glamorgan es el buque que está martillando el monte de Mateo.** Tero sale a callar esos
+> cañones desde el aire. Los de la ITB los callan desde tierra. **La misma noche, el mismo
+> barco, sin saber uno del otro.**
+>
+> *Base histórica verificada:* `MEJORAS_PICHON.md` §7 y `PREGUNTAS_HISTORICAS`. El sistema
+> existió, se llamó así, y lo armaron el capitán **Julio Marcelo Pérez** con los técnicos
+> **Luis Torelli** y **Antonio Shugt**. ⚠ Las fuentes discrepan entre **13 y 14 muertos**
+> a bordo: la placa `M14_HIST` dice 14 y `MEJORAS_PICHON` dice 13 — **hay que cerrar el
+> número antes de publicar.**
+
 
 **GITANO:** Che, ¿saben que pasado mañana debuta Argentina en el Mundial? En España.
 Contra Bélgica.

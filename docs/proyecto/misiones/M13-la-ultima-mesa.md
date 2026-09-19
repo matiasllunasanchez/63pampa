@@ -1,7 +1,7 @@
-# M13 — LA ÚLTIMA MESA *(código: `m11`)*
+# M13 — LA CENA *(código: `m11`)*
 
 > Documento de RELEVAMIENTO de playtest. Lo llena Matías jugando por el selector
-> (MISIONES → LA ÚLTIMA MESA); las sesiones de ajuste leen SOLO este archivo + el bloque de
+> (MISIONES → LA CENA); las sesiones de ajuste leen SOLO este archivo + el bloque de
 > esta misión en [PLAN_MISIONES_FASES.md](../PLAN_MISIONES_FASES.md) §4. El porqué de
 > cada número: [DISENO_MISIONES.md](../DISENO_MISIONES.md) §4.
 

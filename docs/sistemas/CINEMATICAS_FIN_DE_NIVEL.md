@@ -173,7 +173,7 @@ muerte_ninguna: [
 ],
 ```
 
-### 5f · 🔴 `muerte_alas` — EL BATIR DE ALAS *(M8, una sola vez en todo el juego)*
+### 5f · 🔴 `muerte_alas` — EL BATIR DE LAS ALAS *(M8, una sola vez en todo el juego)*
 El remate que no es una explosión. Después de tocar al Conveyor, el avión pasa sobre el monte
 y **mueve las alas**. Abajo hay cascos que saludan. Uno de ellos es el hijo.
 
@@ -234,19 +234,19 @@ fallo_relevo: [
 
 | # | Misión | Blanco | MUERTE | Nota |
 |---|---|---|---|---|
-| M1 | Sal en las alas | — | `muerte_ninguna` | tutorial |
-| M2 | Bautismo de fuego | — | `muerte_ninguna` | |
+| M1 | Con sal en las alas | — | `muerte_ninguna` | tutorial |
+| M2 | El bautismo de fuego | — | `muerte_ninguna` | |
 | M3 | El invento | — | `muerte_ninguna` | |
 | M4 | El día que sangró el mar | HMS Sheffield | `muerte_buque` | el primero de verdad |
 | M5 | El callejón de las bombas | HMS Ardent | `muerte_buque` | climax `arena` |
 | M6 | La bomba que no despertó | HMS Antelope | 🔴 `muerte_sorda` | **es el título del nivel** |
-| M7 | 25 de Mayo | HMS Coventry | `muerte_buque` | sin gesto: muere el Vasco |
-| M8 | El batir de alas | Atlantic Conveyor | `muerte_carguero` → 🔴 `muerte_alas` | las dos, encadenadas |
+| M7 | Pastelitos | HMS Coventry | `muerte_buque` | sin gesto: muere el Vasco |
+| M8 | El batir de las alas | Atlantic Conveyor | `muerte_carguero` → 🔴 `muerte_alas` | las dos, encadenadas |
 | M9 | El pibe | — | `muerte_ninguna` | sin gesto: muere el Pichón |
 | M10 | Los primos | — | `muerte_ninguna` | |
 | M11 | Lo que no se dice | RFA Sir Galahad | `muerte_carguero` | buque de desembarco |
 | M12 | El ángel correntino | RFA Sir Tristram | `muerte_carguero` | sin gesto |
-| M13 | La última mesa | HMS Broadsword | `muerte_buque` | sin gesto |
+| M13 | La cena | HMS Broadsword | `muerte_buque` | sin gesto |
 | M14 | El Tero | HMS Glamorgan | `muerte_buque` + cierre propio | climax `arena` |
 
 **Cobertura: seis timelines de MUERTE cubren las catorce misiones**, y dos de ellas

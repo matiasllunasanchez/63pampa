@@ -1,7 +1,7 @@
-# M08 — EL BATIR DE ALAS *(código: `m7`)*
+# M08 — EL BATIR DE LAS ALAS *(código: `m7`)*
 
 > Documento de RELEVAMIENTO de playtest. Lo llena Matías jugando por el selector
-> (MISIONES → EL BATIR DE ALAS); las sesiones de ajuste leen SOLO este archivo + el bloque de
+> (MISIONES → EL BATIR DE LAS ALAS); las sesiones de ajuste leen SOLO este archivo + el bloque de
 > esta misión en [PLAN_MISIONES_FASES.md](../PLAN_MISIONES_FASES.md) §4. El porqué de
 > cada número: [DISENO_MISIONES.md](../DISENO_MISIONES.md) §4.
 

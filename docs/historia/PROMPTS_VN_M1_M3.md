@@ -151,7 +151,7 @@ asimetría es exactamente lo que hace que el cuaderno se lea como un cuaderno.
 
 ---
 
-# MISIÓN 1 — "Sal en las alas"
+# MISIÓN 1 — "Con sal en las alas"
 
 ## M1.a — LA LÍNEA DE VUELO, DE MADRUGADA *(briefing · AIRE · 16:9)*
 
@@ -514,7 +514,7 @@ figure, small and slightly crooked: "el Colorado"
 
 ---
 
-# MISIÓN 2 — "Bautismo de fuego"
+# MISIÓN 2 — "El bautismo de fuego"
 
 ## M2.a — LA LÍNEA ANTES DE LA PRIMERA DE VERDAD *(briefing · AIRE · 16:9)*
 

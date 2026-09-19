@@ -205,7 +205,7 @@ signature.
 
 ## A10 · `fogon` — el fogón detrás del hangar
 
-**Dónde:** M13, el asado. La última mesa.
+**Dónde:** M13, el asado. La cena.
 
 ```
 [AIRE] Behind a corrugated-metal hangar at night, 1982: an oil drum cut in half
@@ -563,19 +563,19 @@ esté, las cartas de Mateo usan `p1c_cuaderno`.
 |---|---|---|---|
 | **P.1** | *(placas propias del prólogo)* | — | el arroyo, el sapito, el cuaderno |
 | **P.2–P.4** | `cocina_calida` → `cocina_gris` | — | el teléfono, los papeles, la puerta |
-| **M1** Sal en las alas | `linea_amanecer` | `linea_atardecer` | el terito fresco ⏳ |
-| **M2** Bautismo de fuego | `linea_amanecer` | `hangar_noche` | — |
+| **M1** Con sal en las alas | `linea_amanecer` | `linea_atardecer` | el terito fresco ⏳ |
+| **M2** El bautismo de fuego | `linea_amanecer` | `hangar_noche` | — |
 | **M3** El invento | `hangar_dia` | `hangar_dia` | — |
 | **M4** El día que sangró el mar | `linea_amanecer` | `linea_atardecer` | `m7_foto_frente` *(2ª vez)* |
 | **M5** El callejón | `linea_amanecer` | `linea_atardecer` | — |
 | **M6** La bomba que no despertó | `linea_amanecer` | `linea_noche` | la Chancha ⏳ |
-| **M7** 25 de Mayo | `linea_amanecer` | `vestuario` | `m7_foto_frente` · `m7_foto_dorso` |
-| **M8** El batir de alas | `linea_amanecer` | `linea_atardecer` | el sobrevuelo ⏳ |
+| **M7** Pastelitos | `linea_amanecer` | `vestuario` | `m7_foto_frente` · `m7_foto_dorso` |
+| **M8** El batir de las alas | `linea_amanecer` | `linea_atardecer` | el sobrevuelo ⏳ |
 | **M9** El pibe | `linea_amanecer` | `hangar_noche` | `m9_libreta` |
 | **M10** Los primos | `pista_lluvia` | `hangar_dia` | `tandil` · `m10_mirage_fila` |
 | **M11** Lo que no se dice | `linea_amanecer` | `linea_atardecer` | — |
-| **M12** El ángel Correntino | `linea_amanecer` | `linea_atardecer` | `m12_tallado` · el pozo ⏳ |
-| **M13** La última mesa | `radio` | `fogon` | `m13_carta_locker` |
+| **M12** Ángel de Corrientes | `linea_amanecer` | `linea_atardecer` | `m12_tallado` · el pozo ⏳ |
+| **M13** La cena | `radio` | `fogon` | `m13_carta_locker` |
 | **M14** El tero | `radio` | `linea_noche` · `cabina_noche` | `final_monte` |
 | **Final A** | — | `cocina_gris` | `mesa_dos_papeles` |
 | **Final B** | — | `cocina_calida` · `jazminero` | — |

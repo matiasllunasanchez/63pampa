@@ -1,7 +1,7 @@
-# M12 — EL ÁNGEL CORRENTINO *(código: `m10`)*
+# M12 — ÁNGEL DE CORRIENTES *(código: `m10`)*
 
 > Documento de RELEVAMIENTO de playtest. Lo llena Matías jugando por el selector
-> (MISIONES → EL ÁNGEL CORRENTINO); las sesiones de ajuste leen SOLO este archivo + el bloque de
+> (MISIONES → ÁNGEL DE CORRIENTES); las sesiones de ajuste leen SOLO este archivo + el bloque de
 > esta misión en [PLAN_MISIONES_FASES.md](../PLAN_MISIONES_FASES.md) §4. El porqué de
 > cada número: [DISENO_MISIONES.md](../DISENO_MISIONES.md) §4.
 

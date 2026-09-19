@@ -190,7 +190,7 @@ dictan las notas.
 > por sonda) · **CIERRE** = el criterio que aprueba la misión. El detalle de diseño (por
 > qué cada número) vive en DISENO_MISIONES §4 — no repetirlo acá: consultarlo.
 
-### M1 — SAL EN LAS ALAS *(m1)* — tutorial puro
+### M1 — CON SAL EN LAS ALAS *(m1)* — tutorial puro
 - **(a)** tramos: `[{hasta:.3, obstacles:.5, favor:['mast','birds']}, {hasta:.7, obstacles:.7}, {hasta:1, obstacles:.9}]`;
   `persec:1` ✅ ya está; bombs/caza 0 ✅.
 - **(b)** 🔴 **el tambor flotante**: prop destructible inofensivo (HP mínimo, +150, no
@@ -202,7 +202,7 @@ dictan las notas.
 - **CIERRE:** un espectador ve un tutorial — nadie te dispara nunca, y aprendiste el ras,
   el cañón y el multiplicador sin un cartel.
 
-### M2 — BAUTISMO DE FUEGO *(m2)* — el fuego enemigo y LA COLA
+### M2 — EL BAUTISMO DE FUEGO *(m2)* — el fuego enemigo y LA COLA
 - **(a)** `terrain: 'coast'` 🟡 (hoy mar); tramos: 0–0.4 suave (obst 1.0) · 0.4–1
   desembarco (1.4) con `favor: ['radar','aatruck','aa']` en el último cuarto (el "boss
   radar" del canon como cordón, propuesta A de DISENO).
@@ -248,7 +248,7 @@ dictan las notas.
 - **(c)** fixture: suelta a <20 m → popup + línea, una sola vez por campaña.
 - **CIERRE:** el jugador que no leyó nada entiende el título de la misión al vivirla.
 
-### M7 — 25 DE MAYO *(m6)* — v1
+### M7 — PASTELITOS *(m6)* — v1
 - **(a)** `caza: 2` (la salida es de ellos); `chancha: true` (C1 — primera misión con el
   poder).
 - **(b)** v1: nada — la muerte del Vasco ya está en las pantallas del epílogo ✅. (v2 con
@@ -257,7 +257,7 @@ dictan las notas.
 - **CIERRE:** el poder se estrena la misión siguiente a conocerla — el arco de §6 del
   DISENO, en juego.
 
-### M8 — EL BATIR DE ALAS *(m7)* — v1
+### M8 — EL BATIR DE LAS ALAS *(m7)* — v1
 - **(a)** ✅ como está (rain 1, squad 4). **(b)** v1: nada (el sobrevuelo en pantallas ✅).
 - **(c)** selector limpio + `npm run misiones`.
 - **CIERRE:** v1 aprobada = pasa limpia; el sobrevuelo jugable queda como el ítem más
@@ -292,7 +292,7 @@ dictan las notas.
 - **CIERRE:** cero eventos, cero strings nuevos, cero commits de contenido. Si alguien le
   agrega algo, se equivocó de misión.
 
-### M12 — EL ÁNGEL CORRENTINO *(m10)* — el corte a tierra
+### M12 — ÁNGEL DE CORRIENTES *(m10)* — el corte a tierra
 - **(a)** ✅ como está (dusk, bombs 2, rain 1, PASADA).
 - **(b)** el corte a tierra al ~50% por evento (E) — la escena ya está escrita; v1 sin E:
   queda en el epílogo como hoy ✅.
@@ -301,7 +301,7 @@ dictan las notas.
 - **CIERRE:** "hay cosas que no pueden esperar al final del nivel" — la regla de montaje
   del guion, rota exactamente una vez en juego (la otra es Tandil).
 
-### M13 — LA ÚLTIMA MESA *(m11)* — la noche y el sapito real
+### M13 — LA CENA *(m11)* — la noche y el sapito real
 - **(a)** ✅ tierra + luna; `nafta: 'justa'` (C2).
 - **(b)** 🟡 soldados AMIGOS decor bajo el vuelo (no puntúan, no sangran, no se pisan —
   el flag decor del sistema existente) + 🟡 el guiño del sapito contra el Broadsword (una

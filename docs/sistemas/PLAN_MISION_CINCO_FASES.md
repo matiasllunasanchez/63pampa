@@ -202,19 +202,19 @@ campaña enseñe de a una.
 
 | # | Misión | Fase que manda | Qué enseña / qué cambia |
 |---|---|---|---|
-| M1 | Sal en las alas | **1 y 5, sin peligro** | El tutorial es **ida y vuelta con el mar lindo**. Se enseña volar, bajar, subir y **aterrizar**. Sin enemigos, como hoy |
-| M2 | Bautismo de fuego | **3** | Primera vez que el mundo está armado. Primera vez que se apaga la radio |
+| M1 | Con sal en las alas | **1 y 5, sin peligro** | El tutorial es **ida y vuelta con el mar lindo**. Se enseña volar, bajar, subir y **aterrizar**. Sin enemigos, como hoy |
+| M2 | El bautismo de fuego | **3** | Primera vez que el mundo está armado. Primera vez que se apaga la radio |
 | M3 | El invento | **1** | La más liviana a propósito: acá se siente la mejora en las manos. Tránsito largo, blanco chico |
 | M4 | El día que sangró el mar | **4** | Primer buque de verdad. Primera suelta que importa |
 | M5 | El callejón de las bombas | **3 en arena** | San Carlos: el pasillo *es* una arena. Obstáculos por todos lados |
 | M6 | La bomba que no despertó | **4 · la espoleta** | La misión donde la bomba **no explota**. Es el título del nivel |
-| M7 | 25 de Mayo | **5** | Muere el Vasco. **Primera vez que la vuelta mata.** El pase de lista sin cartel |
-| M8 | El batir de alas | **2 y 3** | El sobrevuelo del monte. El batir de alas como **idioma** de la radio muda |
+| M7 | Pastelitos | **5** | Muere el Vasco. **Primera vez que la vuelta mata.** El pase de lista sin cartel |
+| M8 | El batir de las alas | **2 y 3** | El sobrevuelo del monte. El batir de las alas como **idioma** de la radio muda |
 | M9 | El pibe | **5** | Muere el Pichón. Se acaban las mejoras nuevas |
 | M10 | Los primos | **1** | Llega el Mirage. Tránsito con avión nuevo: se siente distinto en las manos |
 | M11 | Lo que no se dice | **1 y 2** | El respiro tenso. Poca amenaza, mucha radio |
 | M12 | El ángel correntino | **3** | Tierra adentro, pedreros, blanco terrestre |
-| M13 | La última mesa | **5** | Vuelta larga, escuadrón corto, nafta al límite |
+| M13 | La cena | **5** | Vuelta larga, escuadrón corto, nafta al límite |
 | M14 | El Tero | **todas** | La final. Arena, y **el aterrizaje decide el final** |
 
 > **El mar se va poniendo en contra a medida que avanza la guerra.** En M1 está lindo y calmo;

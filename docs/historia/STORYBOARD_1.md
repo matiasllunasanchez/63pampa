@@ -423,7 +423,7 @@ shaky handwriting under the plane): "papá". No watermark.
 
 ---
 
-# MISIÓN 1 — "Sal en las alas"
+# MISIÓN 1 — "Con sal en las alas"
 
 ## Briefing *(AIRE)*
 
@@ -617,7 +617,7 @@ figure): "el Colorado". No watermark.
 
 ---
 
-# MISIÓN 2 — "Bautismo de fuego"
+# MISIÓN 2 — "El bautismo de fuego"
 
 ## Briefing *(AIRE)*
 

@@ -457,7 +457,7 @@ something too late. Instrumental only - no vocals, no lyrics. Completely
 original music.
 ```
 
-### 19 · `sobrevuelo.mp3` — "El batir de alas" (M8, el sobrevuelo + el terito)
+### 19 · `sobrevuelo.mp3` — "El batir de las alas" (M8, el sobrevuelo + el terito)
 **Referencia real:** *Hans Zimmer — "Cornfield Chase" (Interstellar)* — padre e hijo,
 velocidad y asombro, lágrimas y orgullo en el mismo compás.
 
@@ -517,7 +517,7 @@ original music.
 > música de la misión suena a dos mil kilómetros de ahí. Si alguna vez se compone algo para
 > ese vuelo, que sea un drone de una sola nota.
 
-### 22 · `correa.mp3` — "El ángel Correntino" (M12, muerte de Correa)
+### 22 · `correa.mp3` — "Ángel de Corrientes" (M12, muerte de Correa)
 **Referencia real:** *Transito Cocomarola — "Kilómetro 11"* — EL chamamé. La ternura
 litoraleña exacta del Colorado: río ancho, pena dulce, dignidad de hombre bueno.
 **La voz:** hombre de unos 30, **acento correntino/litoraleño**, voz media y cálida, sin
@@ -553,7 +553,7 @@ aunque salga en la sombra de vos.
 (tarareo de cierre, sin palabras, hasta que solo queda el acordeón)
 ```
 
-### 23 · `asado.mp3` — "La última mesa" (M13, el asado)
+### 23 · `asado.mp3` — "La cena" (M13, el asado)
 **Referencia real:** *Jorge Cafrune — "Zamba de mi esperanza"* — la zamba de fogón con voz
 gastada y querible.
 **La voz:** el Gitano. Hombre de 33, **acento cordobés** (tonada estirada, vocales
@@ -1109,13 +1109,13 @@ is wordless throughout. Completely original music.
 | 🟩 M6 — la Chancha aguanta conectada | 16 La Chancha no abandona |
 | M7 — muerte del Vasco | 17 La foto era de mi vieja |
 | 🟩 M7 — el reverso de la foto (locker) | 18 El reverso *(sting, antes de la 17)* |
-| M8 — sobrevuelo + el terito | 19 El batir de alas |
+| M8 — sobrevuelo + el terito | 19 El batir de las alas |
 | M9 — muerte del Pichón + la libreta | 20 Era un pibe |
 | M10 — la misión (frente cerrado) | **sin música** *(ver la ausencia documentada)* |
 | M10 — el intercalado de Tandil | 21 Los primos |
 | 🟩 M10 — placa "MIRAGE 5P DESBLOQUEADO" | 10 Mara |
-| M12 — muerte de Correa + el tallado | 22 El ángel Correntino |
-| M13 — el asado | 23 La última mesa |
+| M12 — muerte de Correa + el tallado | 22 Ángel de Corrientes |
+| M13 — el asado | 23 La cena |
 | 🟩 M13 — la carta, esa noche | 24 Por las dudas |
 | M14 — pista nocturna, antes de despegar | 25 Los teros |
 | M14 — contrarreloj y sacrificios | 26 Plata Fiel |

@@ -7,8 +7,8 @@
 >
 > | acá dice | hoy es |
 > |---|---|
-> | M1 SAL EN LAS ALAS | **m1** ✓ sigue igual |
-> | M2 BAUTISMO DE FUEGO | **m2** ✓ sigue igual |
+> | M1 CON SAL EN LAS ALAS | **m1** ✓ sigue igual |
+> | M2 EL BAUTISMO DE FUEGO | **m2** ✓ sigue igual |
 > | — | **m3 EL INVENTO** ← nueva, no está documentada acá |
 > | M3 EL DÍA QUE SANGRÓ EL MAR | **m4** |
 > | M4 EL CALLEJÓN DE LAS BOMBAS | **m5** |
@@ -110,7 +110,7 @@ columnas porque el mismo nivel dura cosas muy distintas según cómo se vuele:
 
 ## Las cuatro de un vistazo
 
-| | **M1** SAL EN LAS ALAS | **M2** BAUTISMO DE FUEGO | **M3** EL DÍA QUE SANGRÓ EL MAR | **M4** EL CALLEJÓN DE LAS BOMBAS |
+| | **M1** CON SAL EN LAS ALAS | **M2** EL BAUTISMO DE FUEGO | **M3** EL DÍA QUE SANGRÓ EL MAR | **M4** EL CALLEJÓN DE LAS BOMBAS |
 |---|---|---|---|---|
 | fecha | fines de abril 1982 | 1 de mayo 1982 | 4 de mayo 1982 | 21 de mayo 1982 |
 | objetivo | distancia 2200 m | distancia 2600 m | **buque** HMS SHEFFIELD · 2600 m | **buque** HMS ARDENT · 2600 m |
@@ -134,7 +134,7 @@ a MUCHOS, y ahí recién empieza a doler.
 
 ---
 
-# MISIÓN 1 — SAL EN LAS ALAS
+# MISIÓN 1 — CON SAL EN LAS ALAS
 
 *fines de abril de 1982 · mar abierto*
 
@@ -255,7 +255,7 @@ Rostros: `puma_neutro` · `gitano_neutro` · `vasco_neutro`.
 Rostros: `gitano_sonrisa` · `pichon_sonrisa` · *(sin cara)* · `condor_radio`.
 
 **Pantalla 7 — la tarjeta de nivel** *(sin imagen)*
-`MISIÓN 1 — SAL EN LAS ALAS` · *Objetivo: dominar el vuelo rasante · Mar abierto*
+`MISIÓN 1 — CON SAL EN LAS ALAS` · *Objetivo: dominar el vuelo rasante · Mar abierto*
 
 ### Salida — `epiM1`
 
@@ -354,7 +354,7 @@ someone who cannot draw. Shakier line, flatter face, wrong proportions.`
 
 ---
 
-# MISIÓN 2 — BAUTISMO DE FUEGO
+# MISIÓN 2 — EL BAUTISMO DE FUEGO
 
 *1 de mayo de 1982 · costa*
 
@@ -461,7 +461,7 @@ La más corta de la campaña: **una sola pantalla de entrada**.
 
 Rostros: *(sin cara)* · `puma_neutro` · `tero_preocupado` · `puma_ceno`.
 
-**Pantalla 2 — tarjeta de nivel:** `MISIÓN 2 — BAUTISMO DE FUEGO` · *1 de mayo de 1982 · Costa*
+**Pantalla 2 — tarjeta de nivel:** `MISIÓN 2 — EL BAUTISMO DE FUEGO` · *1 de mayo de 1982 · Costa*
 
 > ⚠ **Inconsistencia detectada.** La tarjeta dice **«Costa»** pero `cfg.terrain` es `sea`. O la
 > tarjeta miente o falta `terrain: 'coast'` en la config. Hay que decidir cuál — ver *Pendientes*.

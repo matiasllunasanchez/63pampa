@@ -1,4 +1,4 @@
-# M07 — 25 DE MAYO *(código: `m6`)*
+# M07 — PASTELITOS *(código: `m6`)*
 
 > Documento de RELEVAMIENTO de playtest. Lo llena Matías jugando por el selector
 > (MISIONES → 25 DE MAYO); las sesiones de ajuste leen SOLO este archivo + el bloque de

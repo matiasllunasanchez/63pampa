@@ -1,7 +1,7 @@
-# M02 — BAUTISMO DE FUEGO *(código: `m2`)*
+# M02 — EL BAUTISMO DE FUEGO *(código: `m2`)*
 
 > Documento de RELEVAMIENTO de playtest. Lo llena Matías jugando por el selector
-> (MISIONES → BAUTISMO DE FUEGO); las sesiones de ajuste leen SOLO este archivo + el bloque de
+> (MISIONES → EL BAUTISMO DE FUEGO); las sesiones de ajuste leen SOLO este archivo + el bloque de
 > esta misión en [PLAN_MISIONES_FASES.md](../PLAN_MISIONES_FASES.md) §4. El porqué de
 > cada número: [DISENO_MISIONES.md](../DISENO_MISIONES.md) §4.
 

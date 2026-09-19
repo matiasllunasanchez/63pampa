@@ -50,7 +50,7 @@ girar el papel y ve aparecer las fechas al mismo tiempo que los personajes.
 Además es **barato de generar y difícil de arruinar**: plano cerrado, dos manos, un objeto,
 cámara fija, nada de piernas ni caras.
 
-### 3. El batir de alas *(la cadena M7 → M11 → M12)*
+### 3. El batir de las alas *(la cadena M7 → M11 → M12)*
 Un avión que mueve las alas para saludar. **Esto no existe en una imagen fija.** Es el gesto
 recurrente del juego y su despedida final; si lo contás con una lámina y un cartel que diga
 "batió las alas", lo perdés. Es de los pocos casos donde el movimiento *es* el diálogo.
@@ -86,7 +86,7 @@ fijas y se pierde poco.**
 | Concepto | Generaciones |
 |---|---|
 | El giro de la foto (M6) | 2–3 *(incluye reintentos)* |
-| El batir de alas | 2–3 |
+| El batir de las alas | 2–3 |
 | El sapito | 1–2 |
 | Reserva para rescates y para el eco del epílogo | 2–3 |
 | **Total** | **~10** |

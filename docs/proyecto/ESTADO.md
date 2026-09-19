@@ -337,7 +337,7 @@ te frena (viento), te expone (radar) y te sacude (turbulencia). No hay refugio g
   cada Cinemática de NIVELES.md es UNA pantalla `{title, paras}` y la de NIVEL es `{level, obj}`
   (centrada verticalmente, prompt "despegar"; las intermedias muestran "continuar"). Guiones en
   STRINGS como arrays: `storyIntro` (4 pantallas: Malvinas 1982 / Argentina marzo / Operación
-  Rosario / NIVEL 0) y `storyL1` (La Flota / NIVEL 1 — Bautismo de fuego), es+en. `LEVELS[n].story`
+  Rosario / NIVEL 0) y `storyL1` (La Flota / NIVEL 1 — El bautismo de fuego), es+en. `LEVELS[n].story`
   nombra el guion; `startCampaign` y el path de `levelclear` lo lanzan (`initStory(key)` →
   `initStoryScreen()` por pantalla; avance con tecla: completar → siguiente → última = despegue
   con fade). **Puntitos de progreso** abajo. Tipeo MÁS LENTO: CPS 19, pausas 0.15/0.85.

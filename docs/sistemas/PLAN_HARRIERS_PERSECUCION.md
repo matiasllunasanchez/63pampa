@@ -529,7 +529,7 @@ al agua le seguís el tren cómodo y volando alto te descolgás**. Nadie tuvo qu
   esa misión en particular es el otro.
 - **N3.3 · Lo que SÍ se construyó es el mecanismo, y la opción que el propio §4 ofrece.**
   `persec: 0|1` es dato de misión, igual que `caza` — cualquier misión puede volarse de numeral
-  cambiando un número. Y se aplicó a **m1 «SAL EN LAS ALAS» siguiendo a PUMA**, que es la
+  cambiando un número. Y se aplicó a **m1 «CON SAL EN LAS ALAS» siguiendo a PUMA**, que es la
   alternativa que el §4 lista como opcional y la única de las 12 que encaja: es tutorial, es de
   distancia (sin clímax de buque que romper) y su lección literal es volar pegado al agua detrás de
   alguien que ya sabe. Cuando el remapeo a 14 traiga LOS PRIMOS, la misión sólo tiene que poner
@@ -612,7 +612,7 @@ al agua le seguís el tren cómodo y volando alto te descolgás**. Nadie tuvo qu
 | `?caza` en la URL | un duelo apenas arranca el pasillo. `?caza=mudo` sin aviso por radio; `?caza=manso` sin las ráfagas que matan (el pase fantasma de H1, para mirar la coreografía) |
 | cualquier misión de campaña salvo m1 | el duelo aparece solo, según `caza` de `data/missions.js` |
 | JUEGO RÁPIDO → **PERSECUCIÓN** | el modo infinito de volar de numeral, con la banda apretándose |
-| campaña **m1 «SAL EN LAS ALAS»** | se vuela de numeral detrás de PUMA (`persec: 1`) |
+| campaña **m1 «CON SAL EN LAS ALAS»** | se vuela de numeral detrás de PUMA (`persec: 1`) |
 | `npm run caza` · `npm run persec` | los dos fixtures, con `CAZA_SHOTS=<dir>` / `PURS_SHOTS=<dir>` para dejar capturas |
 
 > **Ojo con las sondas de URL:** `?caza` y `?persec` **no funcionan con `npm start`** — `electron/main.js`

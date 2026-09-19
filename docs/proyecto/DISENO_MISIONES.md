@@ -120,7 +120,7 @@ real (EL PULSO es su vía de entrada garantizada — PLAN_EL_PULSO §Q4).
 
 ## 4. Misión por misión
 
-### M1 — SAL EN LAS ALAS *(m1 · tutorial puro: cero fuego enemigo)* — armable HOY al 90%
+### M1 — CON SAL EN LAS ALAS *(m1 · tutorial puro: cero fuego enemigo)* — armable HOY al 90%
 - **Guion:** conocer a la familia; esquivar mástiles de flotilla pesquera, seguir a Puma
   entre las olas, tirar a tambores flotantes. "Los huevos se enseñan como mecánica."
 - **Armado (tramos):** 0–30% mástiles y aves solamente, PERSECUCIÓN activa ✅ (seguir a
@@ -131,7 +131,7 @@ real (EL PULSO es su vía de entrada garantizada — PLAN_EL_PULSO §Q4).
 - **Falta:** 🔴 tambores (chico) · el "puente de chapa" del guion: opcional, o un arco de
   dos mástiles juntos (🟡 gratis).
 
-### M2 — BAUTISMO DE FUEGO *(m2 · la primera de verdad)* — armable HOY
+### M2 — EL BAUTISMO DE FUEGO *(m2 · la primera de verdad)* — armable HOY
 - **Guion:** costa, 1 de mayo; el jugador SIENTE la brecha (Harriers, misiles).
 - **Armado:** terreno **COSTA** ✅ (hoy está en mar — el desembarco británico ya existe y
   es ESTA misión): AA, carpas, radar móvil. `caza: 1` — acá se presenta **LA COLA** ✅.
@@ -182,7 +182,7 @@ real (EL PULSO es su vía de entrada garantizada — PLAN_EL_PULSO §Q4).
   arme, tenés que soltarla más alto"). La mecánica ya está construida; acá se ENSEÑA.
 - **Epílogo** = pantallas ✅ + **desbloquea el poder LA CHANCHA para M7** (ver §6).
 
-### M7 — 25 DE MAYO *(m6 · Coventry — muere el Vasco EN LA SALIDA)*
+### M7 — PASTELITOS *(m6 · Coventry — muere el Vasco EN LA SALIDA)*
 - **Guion:** fiesta patria; el Vasco ala con ala TODA la misión; a la salida un Sea
   Harrier lo engancha; el jugador al lado, sin poder hacer nada.
 - **Armado:** mar claro, obst 1.7, **caza 2** (la salida es de ellos) · clímax PASADA ·
@@ -194,7 +194,7 @@ real (EL PULSO es su vía de entrada garantizada — PLAN_EL_PULSO §Q4).
   y vale oro: es la primera muerte.
 - **Falta:** v1 nada; v2 el numeral + el evento.
 
-### M8 — EL BATIR DE ALAS *(m7 · Conveyor — el sobrevuelo)*
+### M8 — EL BATIR DE LAS ALAS *(m7 · Conveyor — el sobrevuelo)*
 - **Guion:** la misión por el Vasco; y los treinta segundos: bajar sobre el monte, batir
   las alas, la multitud de casquitos.
 - **Armado:** mar, dusk, rain 1, squad 4 ✅ · clímax PASADA · v1 (HOY): el sobrevuelo en
@@ -239,7 +239,7 @@ real (EL PULSO es su vía de entrada garantizada — PLAN_EL_PULSO §Q4).
   **Cero eventos, cero sorpresas: el diseño es que no pase nada** — la tensión la trae el
   jugador. La misión más barata del juego, a propósito.
 
-### M12 — EL ÁNGEL CORRENTINO *(m10 · Tristram — muere Correa)*
+### M12 — ÁNGEL DE CORRIENTES *(m10 · Tristram — muere Correa)*
 - **Guion:** a mitad del vuelo el juego corta a tierra: Correa cubre a Mateo con el cuerpo.
 - **Armado:** mar, dusk, bombs 2, rain 1 ✅ · clímax PASADA ✅ (decisión del autor ya en
   `missions.js`) · **EL CORTE A TIERRA** 🔴: escena por evento al 50% del vuelo (hook F4 —
@@ -247,7 +247,7 @@ real (EL PULSO es su vía de entrada garantizada — PLAN_EL_PULSO §Q4).
   LA misión que justifica construir F4 — el guion dice "hay cosas que no pueden esperar
   al final del nivel".
 
-### M13 — LA ÚLTIMA MESA *(m11 · Broadsword — la noche, el asado, LA CARTA)*
+### M13 — LA CENA *(m11 · Broadsword — la noche, el asado, LA CARTA)*
 - **Guion:** apoyo a los montes; abajo pozos y casquitos PROPIOS; "hoy la nafta se cuida".
 - **Armado:** **TIERRA + luna** ✅ (ya en código), fog 1, bombs 2, caza 2 · abajo,
   soldados como DECOR amigo 🟡 (no puntúan, no se pisan — variante chica del sistema de

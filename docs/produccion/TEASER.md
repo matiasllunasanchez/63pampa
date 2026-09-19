@@ -47,7 +47,7 @@ Creativity/CFG **0.3–0.4** · frame A + frame B cargados · prompt de movimien
 | 2 | La transformación | **0 — ✅ ya hecho** | 0 |
 | 5 | El campo vacío | 2 (1 toma + 1 retoma) | 120 |
 | 1 | El sapito | 2 | 120 |
-| 4 | El batir de alas | 2 | 120 |
+| 4 | El batir de las alas | 2 | 120 |
 | 3 | Mateo dibujando | 3 (el único con persona: más margen) | 180 |
 | — | **Reserva de emergencia** | 1 | 60 |
 | | **Total** | **10** | **600 / 620** |
@@ -199,7 +199,7 @@ una parábola alta? Rasante o nada.
 
 ---
 
-# PLANO 4 — El batir de alas *(un clip, tres usos en el juego: M7 → M11 → M12)*
+# PLANO 4 — El batir de las alas *(un clip, tres usos en el juego: M7 → M11 → M12)*
 
 *El saludo. No existe en imagen fija. Se reusa dentro del juego cambiando el color del
 cielo en post.*
