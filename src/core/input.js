@@ -43,7 +43,8 @@ export const flags = { anyPress: false, startReq: false, backReq: false };
 //   'xbox'  Xbox / XInput / cualquier cosa que Steam presente como mando de Xbox
 //   'ps'    PlayStation y el resto (default: es la nomenclatura con la que se escribio el juego)
 // Se muta, no se reasigna (regla de los stores del repo).
-export const padInfo = { kind: 'ps', id: '' };
+// `conectado`: si hay un mando ahora. Lo leen las LECCIONES para mostrar el boton y no la tecla.
+export const padInfo = { kind: 'ps', id: '', conectado: false };
 const XBOX_RE = /xbox|xinput|x-?box|045e|microsoft/i;
 function readPadKind(gp) {
   const id = (gp && gp.id) || '';
@@ -463,6 +464,7 @@ export function initInput(cv, a) {
     // y el jugador lo va a notar enseguida.
     const conectados = pads.filter(g => g && g.connected);
     const gp = conectados.find(g => g.mapping === 'standard') || conectados[0];
+    padInfo.conectado = !!gp;
     if (!gp) { btnPrev = []; padLast = performance.now(); requestAnimationFrame(pollGamepad); return; }
     readPadKind(gp);
     const now = performance.now();

@@ -62,6 +62,11 @@ export const hayVuelta = () => hayFases() && lista[lista.length - 1].hasta > 1;
  *  ahi el final lo sigue decidiendo el objetivo, como siempre. */
 export const llegaste = () => hayVuelta() && run.dist > objetivo * lista[lista.length - 1].hasta;
 
+/** EN QUE METRO SE TERMINA EL VUELO (0 si la mision no tiene vuelta). Lo pide el HUD para poder
+ *  contar el regreso: sin este numero, la barra de objetivo sigue sumando pasada la meta y termina
+ *  diciendo «2.8 / 2.2 km», que no es una ruta sino un error de lectura. */
+export const finVuelta = () => (hayVuelta() ? objetivo * lista[lista.length - 1].hasta : 0);
+
 /** El TIPO vigente, o null. Es lo que preguntan los que solo quieren saber "¿esto es un filo?"
  *  sin pedir un valor — el HUD y las sondas, no los sistemas de juego. */
 export const tipo = () => { const f = vigente(); return f ? f.tipo : null; };

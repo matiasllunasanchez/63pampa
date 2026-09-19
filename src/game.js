@@ -3,7 +3,7 @@
 import { STRINGS } from './data/strings.js';
 import { P, SKY_PRESETS } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
-import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf } from './data/missions.js';
+import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf, CFG_SIN_MISION, PREFS_QUE_PISA_UNA_MISION } from './data/missions.js';
 import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
 import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision } from './data/upgrades.js';
@@ -75,7 +75,7 @@ import { collisionSystem } from './systems/collision.js';
 import * as caza from './systems/caza.js';
 import * as persec from './systems/persec.js';
 import { drawCaza } from './render/caza.js';
-import { drawPersec, drawCinta } from './render/persec.js';
+import { drawPersec, drawCinta, cintaRect } from './render/persec.js';
 import { drawChancha } from './render/chancha.js';
 import { inp, mouse, pointer, flags, padInfo, initInput } from './core/input.js';
 import { flightSystem } from './systems/flight.js';
@@ -90,7 +90,7 @@ import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, update
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack,
          setRasante } from './systems/audio.js';
 import * as world3D from './legacy/three-world.js';
-import { cv, ctx, W, H, HOR, F, PZ, SC, px, panel, U } from './render/ctx.js';
+import { cv, ctx, W, H, DH, HOR, F, PZ, SC, px, panel, U } from './render/ctx.js';
 import * as screens from './render/screens.js';
 import { decir as decirRadio, apuntar as apuntarRadio, callar as callarRadio, tickRadio, radio as radioBox, restante as radioRest, visible as radioVis, log as radioLog } from './core/radioVN.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
@@ -273,6 +273,21 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     //   · Y NO DEPENDE de PAUSABLE() ni de cfg.devcam: no la abre el jugador, la abre la DATA.
     let dlgPausa = false;
     let dlgT = 0;                    // reloj propio de PARED (run.t y pauseT estan congelados)
+    // LA LECCION EN CURSO (M1_CAMBIOS 8): que zonas enfoca la pausa y que teclas muestra. null en
+    // cualquier otra pausa de dialogo, que se sigue viendo exactamente como antes.
+    let lecFoco = null;
+    let lecIdx = 0;                  // la proxima leccion de la lista de la mision
+
+    /** Los nombres de botones de la tabla de CONTROLES estan en nomenclatura PlayStation; con un
+     *  mando de Xbox se traducen al vuelo. Ver la nota de NOMBRES DE LOS BOTONES en draw(). */
+    function padTexto(t) {
+      return padInfo.kind !== 'xbox' ? t : t
+        .replace(/✕/g, 'A').replace(/◯/g, 'B').replace(/□/g, 'X').replace(/△/g, 'Y')
+        .replace(/\bL1\b/g, 'LB').replace(/\bR1\b/g, 'RB').replace(/\bL2\b/g, 'LT')
+        .replace(/gatillo|trigger/gi, 'RT');
+    }
+    /** Una zona de foco por nombre. Casi todas son del HUD; la cinta de SEGUIR es de la persecucion. */
+    const zonaLeccion = id => id === 'seguir' ? cintaRect() : hud.zonaHud(id);
     const DLG_GRACIA = 0.6;          // no se acepta antes: se entra con el gatillo ya apretado
     const DLG_TOPE = 14;             // SALIDA DE EMERGENCIA: nadie se puede quedar colgado
 
@@ -288,6 +303,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function dlgAceptar() {
       if (!dlgPausa || dlgT < DLG_GRACIA) return;
       dlgPausa = false;
+      // UNA LECCION SE CALLA AL SOLTARLA: ya se leyo con el mundo quieto, y si siguiera sonando en
+      // vuelo la proxima de la cadena tendria que esperarla — el corte de Condor, lo de Puma y el
+      // final de SEGUIR estan escritos en el mismo punto del camino para salir uno detras del otro.
+      if (lecFoco) callarRadio();
+      lecFoco = null;
       beep(620, 0.06, 'square', 0.05, 80);
     }
 
@@ -367,8 +387,20 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function loadLevel(i, keepCfg) {
       curLevel = Math.max(0, Math.min(NIVELES.length - 1, i));
       if (keepCfg) return;
-      Object.assign(cfg, NIVELES[curLevel].cfg); applyCfg();
+      devolverPrefs();
+      // LA MISION PISA OPCIONES DEL JUGADOR (M1 prende el COMBUSTIBLE): se guarda lo que habia, y se
+      // devuelve al cargar otra o al salir a un modo sin mision. Sin esto la opcion quedaba cambiada
+      // para siempre despues de jugar el tutorial una vez.
+      const mc = NIVELES[curLevel].cfg || {};
+      const pisa = PREFS_QUE_PISA_UNA_MISION.filter(k => k in mc);
+      if (pisa.length) prefsPisadas = Object.fromEntries(pisa.map(k => [k, cfg[k]]));
+      Object.assign(cfg, mc); applyCfg();
     }
+    let prefsPisadas = null;
+    function devolverPrefs() { if (prefsPisadas) { Object.assign(cfg, prefsPisadas); prefsPisadas = null; } }
+    /** Un modo que NO juega una mision arranca sin nada de la ultima: opciones devueltas, y el radar y
+     *  los poderes como son fuera de campaña. */
+    function soltarMision() { devolverPrefs(); Object.assign(cfg, CFG_SIN_MISION); }
     function curMission() { return NIVELES[curLevel]; }
     /** Indice de una mision por su id ('m4') o por su numero. -1 si no existe: quien llama decide
      *  que hacer con eso (la sonda contesta null; el selector no puede llegar con un id invalido). */
@@ -426,7 +458,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EL PASILLO DE VERDAD, y por MODO ademas de por estado: es el mismo agujero que la Chancha
       // documenta — PASADAS MORTALES arranca con setState('play') y ahi el poder quedaria
       // disponible adentro de un climax.
-      if (S.state !== 'play' || cfg.devcam || gameMode === 'arena' || gameMode === 'pasadas') return;
+      if (S.state !== 'play' || cfg.devcam || gameMode === 'arena' || gameMode === 'pasadas' || cfg.poderes === false) return;
       // LA OTRA MITAD DE LA REGLA (RF-06): con la CHANCHA en el aire el poder no arranca. El spec
       // solo pide el sentido contrario —que el 5 avise con RASANTE puesto— pero dejar este abierto
       // permitia lanzarlo A MITAD DE LA CITA y tirar al avion al agua con la manguera enganchada.
@@ -823,7 +855,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // La regla vive en data/upgrades.js (una sola fuente, ver loadoutAt).
       pichon = loadoutAt(i);
       loadLevel(i);
-      if (o.aire || o.cfg) { Object.assign(cfg, o.aire ? { start: 'air' } : {}, o.cfg || {}); applyCfg(); }
+      if (o.aire || o.cfg) { if (o.cfg) prefsPisadas = null; Object.assign(cfg, o.aire ? { start: 'air' } : {}, o.cfg || {}); applyCfg(); }
       // el recorrido de charlas se hace DENTRO del modo camara: mundo quieto, avion inmortal, y
       // la caja de radio ya tickea sola ahi (ver el bloque de cfg.devcam en update)
       cfg.devcam = testRadio;
@@ -1115,7 +1147,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           if (typeof f !== 'function') { console.warn('[pruebas] no existe la sonda __' + n); return null; }
           return f(...args);
         },
-        cfg: over => { Object.assign(cfg, over); applyCfg(); },
+        // una escritura DELIBERADA del cfg manda sobre lo que la ultima mision guardo para devolver
+        cfg: over => { prefsPisadas = null; Object.assign(cfg, over); applyCfg(); },
       };
     }
 
@@ -1947,9 +1980,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
     let fogWarned = false;   // el aviso de entrada al banco sale UNA vez por banco
     function reset() {
+      if (gameMode !== 'campaign' && gameMode !== 'cycle') soltarMision();
       callarRadio();   // una linea de radio a medio decir no puede sobrevivir a la corrida
       dlgPausa = false;   // …ni su congelada: morir o salir durante el dialogo dejaria el mundo
                           // quieto sin nadie que lo suelte, y eso no se arregla desde adentro
+      lecFoco = null; lecIdx = 0;   // las lecciones de la mision vuelven a empezar con la corrida
       resetRun();       // toda la corrida (velocidad, nafta, rachas, armas, spawn…) a su estado inicial
       resetPlane();     // el avion a la posicion de arranque
       resetStats();     // los contadores del recuento final
@@ -1977,8 +2012,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // PERSECUCION: se arma por MODO (N2, infinito) o por DATO DE MISION (N3, `persec` en
       // data/missions.js). Es el mismo criterio que `caza`: la aparicion es dato del nivel y no una
       // regla escondida en el sistema.
-      if (gameMode === 'persec') persec.startPersec({ infinito: true });
-      else if (cfg.persec) persec.startPersec();
+      // (el ARRANQUE va despues de `squad.setRoster`, mas abajo: el lider toma su nombre del roster)
       // EL PULSO se CONFIGURA acá: el sistema no puede mirar la campaña ni la libreta del Pichón
       // (nadie llama hacia arriba), y quien dispara la entrada es flight.js, que tampoco las
       // conoce. `t01` = avance de campaña normalizado — la única perilla de dificultad que hay.
@@ -1996,6 +2030,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // de "la mision suelta se juega como en campaña" (PLAN_MISIONES_FASES S0): sin el roster, el
       // relevo cambia de tono y probar la mision dejaria de parecerse a jugarla.
       squad.setRoster(gameMode === 'campaign' || S.test ? (curMission().roster || FIELES) : null);
+      // EL LIDER, RECIEN AHORA: `startPersec` bautiza al lider con `pilotName(1)`, que lee el roster.
+      // Armado antes de `setRoster` (como estaba), el tutorial le decia «PATRIA 2» a Puma — el
+      // indicativo del arcade — hasta que algo lo rearmaba.
+      if (gameMode === 'persec') persec.startPersec({ infinito: true });
+      else if (cfg.persec) persec.startPersec();
       resetFog(); fogWarned = false;   // los bancos de niebla se re-sortean en cada corrida
       // el ESCUADRON de la corrida: cfg.squad aviones y vos de lider. Vive en `run` (no en el
       // sistema) porque lo leen HUD + relevo + este archivo.
@@ -2256,7 +2295,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // el sistema devuelve la señal y el orquestador pone beep + popup — barra incompleta,
       // un beep grave y nada mas.
       tempoToggle: () => {
-        if (S.state !== 'play' || cfg.devcam) return;
+        if (S.state !== 'play' || cfg.devcam || cfg.poderes === false) return;
         const r = tempo.toggle();
         if (r === 'empty') { beep(140, 0.09, 'square', 0.05); return; }
         beep(r === 'on' ? 330 : 520, 0.09, 'square', 0.05, r === 'on' ? -160 : 160);   // slide abajo = el tiempo cae
@@ -2487,12 +2526,22 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // el premio del climax se cobra IGUAL — se gano, aunque la mision siga. Sin esto los puntos
       // del Pulso se perdian por el camino y el recuento del final mentia.
       cobrarPulso();
-      setState('play'); fadeT = 0.55;
+      // EL CORTE A NEGRO (pedido del autor, 17/9): la pantalla se va a negro, se queda ~0,8 s y
+      // vuelve con el avion YA volando para el otro lado. `fadeT` es un fundido DESDE negro con
+      // alfa `fadeT / 1.4`: todo lo que pase de 1.4 es el rato en negro pleno.
+      setState('play'); fadeT = 2.2;
       // el mundo lo vacio el `enter()` del climax; se vuelve al pasillo con el contador de siembra
       // recien puesto para que la vuelta no herede el ultimo intervalo de la aproximacion.
       run.nextSpawn = 320; run.nextBomb = 260; run.nextSoldier = 60;
       squad.beginExit();
       beep(560, 0.12, 'square', 0.05);
+      // …Y LA VOZ, del otro lado del negro. Va con el retraso del fundido para que la linea empiece
+      // cuando hay algo que ver: dicha en el negro, el jugador la lee sin saber donde esta.
+      const av = curMission() && curMission().avisos;
+      if (av && av.vuelta) setTimeout(() => avisar(av, 'vuelta'), 1200);
+      // …y unos segundos despues, la Chancha NOMBRADA: no se puede pedir en esta mision, pero esta
+      // es la parte del vuelo donde algun dia va a hacer falta, y es donde la frase significa algo.
+      if (av && av.chancha) setTimeout(() => avisar(av, 'chancha'), 7200);
     }
     // EL PULSO: pasa el premio del climax a las estadisticas de la corrida, para que freezeRun lo
     // encuentre. Va aca y no adentro del sistema porque `stats` es del recuento de la MISION.
@@ -2504,8 +2553,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
     // arma lastRun: el desglose de puntos, las estrellas y la calificacion de la mision
     function freezeRun() {
-      winBg = (Math.random() * screens.WIN_BG_N) | 0;
       const m = curMission();
+      // el fondo lo puede fijar la mision (`fondoRecuento`); si no, sorteo
+      const fijo = m && m.fondoRecuento ? screens.winBgDe(m.fondoRecuento) : -1;
+      winBg = fijo >= 0 ? fijo : (Math.random() * screens.WIN_BG_N) | 0;
       const flight = Math.floor(run.score);
       const kills = stats.air + stats.soldiers + stats.zones;
       const acc = stats.shots ? stats.hits / stats.shots : 0;
@@ -2522,6 +2573,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const starN = starsFor(total, par);
       lastRun = {
         mission: m, flight, kills, acc, bKills, bAcc, bRas, total, par, stars: starN,
+        // la perilla de la mision (data/missions.js): el recuento se muestra sin numeros
+        puntos: m.puntos !== false,
         rank: RANKS[Math.min(RANKS.length - 1, starN - 1)],
         rows: [
           { k: 'res_flight', v: flight },
@@ -2694,12 +2747,119 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // Tener el embudo unico es lo que hace confiable la ventana de gracia: durante 'relevo' ni
     // flight ni collision corren, asi que no existe camino que pueda matar dos veces seguidas.
     function onDeath(cause) {
+      // LA MISION QUE NO DEJA CAER EL AVION (`sinMuerte` de data/missions.js, hoy el tutorial). Solo
+      // donde se juega LA mision —campaña o selector—, nunca en POR LA PATRIA ni en los modos sueltos.
+      const sm = (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? curMission().sinMuerte : null;
+      if (sm) {
+        // PUMA NO SE VA. La persecucion se deshace del lider cuando lo perdes o lo chocas —en el
+        // resto de la campaña eso es un derribo y el lider se va con la corrida—, y aca la corrida
+        // sigue: sin rearmarlo, M1 se quedaba sin Puma y sin la barra de SEGUIR hasta el final.
+        // Perderlo no es un golpe: no te pego nada. Chocarlo si.
+        if (cause === 'purs_perdido' || cause === 'purs_choque') persec.startPersec();
+        if (cause !== 'purs_perdido') aguantarGolpe(sm, cause);
+        return;
+      }
       if (canRelevo(run.lives)) {
         // en campaña el lider NO revienta: queda averiado y vuelve (norma 3/8, GUION_2)
         if (relevoRompe()) dmgFX(); else crashFX();
         squad.startRelevo(cause);      // la mision sigue: descuenta y prepara al companero
         setState('relevo');
       } else die(cause);
+    }
+
+    /** El golpe que no mata: chispas y sacudon (el mismo `dmgFX` del avion que vuelve averiado),
+     *  chapa que baja hasta el piso, y el margen del roce devuelto para que el agua no vuelva a
+     *  cobrar en el cuadro siguiente. Durante la gracia no pasa nada: ni daño ni efecto. */
+    let graciaGolpeT = -1;
+    function aguantarGolpe(sm, cause) {
+      run.scrapeT = 0;
+      // un reloj de OTRA corrida (run.t vuelve a cero al reintentar) no puede dejar al avion intocable
+      if (graciaGolpeT > run.t + sm.gracia) graciaGolpeT = -1;
+      if (run.t < graciaGolpeT) return;
+      graciaGolpeT = run.t + sm.gracia;
+      dmgFX();
+      const antes = run.integ;
+      run.integ = Math.max(sm.piso, run.integ - sm.golpe);
+      run.hurtT = 0.6;
+      if (run.integ < antes) popup(W / 2, 50, '-' + Math.round(antes - run.integ) + '%', P.warn);
+      const av = curMission().avisos;
+      if (!av) return;
+      const tipo = antes > sm.piso && run.integ <= sm.piso ? 'piso'
+        : cause === 'death_sea' || cause === 'death_land' ? 'agua' : 'choque';
+      avisar(av, tipo);
+    }
+
+    /** UN AVISO DE UN BANCO (`tipo: 'AVISO'` de data/story.js): una linea al azar, sin repetir la
+     *  anterior, por la caja de radio. `piso` salta siempre (pasa una vez por corrida); los otros
+     *  respetan `av.cada`. Con una CHARLA en pantalla no se dice: la charla tapa la caja de radio. */
+    const avisoUlt = {};
+    let avisoT = -1;
+    const esCondor = ln => ln.personaje === 'CÓNDOR' || ln.personaje === 'CONDOR';
+    /** ¿Estamos lo bastante cerca de la base como para que entre la radio de Condor? Sin la perilla,
+     *  llega siempre — que es como se comporto la campaña hasta hoy. */
+    function condorLlega() {
+      const ca = curMission() && curMission().condorAlcance;
+      if (!ca || !(objectiveDist > 0)) return true;
+      // EN LA IDA llega solo al principio: el final de la ida es el punto MAS LEJOS de casa. EN LA
+      // VUELTA, desde la fraccion `desde` del regreso en adelante — el tramo que se acerca a la base.
+      const f = run.dist / objectiveDist;
+      if (f <= 1) return f <= ca.hasta;
+      const fin = fases.finVuelta() / objectiveDist;
+      return fin > 1 && (f - 1) / (fin - 1) >= ca.desde;
+    }
+
+    /** LAS LECCIONES DE LA MISION (M1_CAMBIOS 8, campo `lecciones` de data/missions.js). Una por vez
+     *  y en orden: cada una espera a que el camino llegue a su `en` Y a que no haya nadie hablando
+     *  —ni una charla ni una radio—. Asi el corte de Condor, la explicacion de Puma y el final de lo
+     *  de SEGUIR salen encadenados aunque esten escritos en el mismo punto.
+     *
+     *  Con `foco` o `teclas` se congela el juego (la PAUSA DE DIALOGO de siempre, que ya espera
+     *  cualquier tecla); sin ninguna de las dos es una linea de radio mas. Las lecciones NO pasan por
+     *  `condorAlcance`: estan puestas a mano en su lugar, y el corte de Condor esta afuera a proposito. */
+    function stepLecciones() {
+      const m = curMission(), L = m && m.lecciones;
+      if (!L || lecIdx >= L.length || dlgPausa || charla.hablando()) return;
+      const lec = L[lecIdx];
+      const pausa = !!(lec.pausa || lec.foco || lec.teclas);
+      // la que pausa INTERRUMPE a un aviso de radio; la que no, espera a que se calle. La de la
+      // APROXIMACION tambien interrumpe: el tramo dura unos segundos, y lo que venga sonando de la
+      // vuelta (la Chancha nombrada, que dura nueve) ya no importa con la pista adelante.
+      if (!pausa && lec.en !== 'aterrizaje' && radioVis()) return;
+      const llego = lec.en === 'aterrizaje' ? S.state === 'landing'
+        : S.state === 'play' && objectiveDist > 0 && run.dist / objectiveDist >= lec.en;
+      if (!llego) return;
+      lecIdx++;
+      const sc = SCENES[lec.dice];
+      if (!sc || !sc.lineas.length) return;
+      const ln = sc.lineas[0];
+      beep(430, 0.06, 'square', 0.04);
+      decirRadio(ln.personaje + ': ' + dialogue.txtOf(ln), () => ln.cara);
+      if (pausa) {
+        lecFoco = { foco: lec.foco || [], teclas: lec.teclas || [] };
+        dlgPausa = true; dlgT = 0;
+        engineOff();
+      }
+    }
+    /** Los que pueden repetirse mientras volas, y por eso respetan `cada`. Los otros —el giro, la
+     *  chapa en el piso, la Chancha nombrada— pasan UNA vez por corrida y no hacen cola. */
+    const ESPACIADOS = ['agua', 'choque', 'radar'];
+    function avisar(av, tipo) {
+      const sc = SCENES[av[tipo]];
+      // los diferidos llegan por reloj de pared: si el vuelo ya termino, la linea no tiene donde caer
+      if (!sc || !sc.lineas.length || charla.hablando() || S.state !== 'play') return;
+      if (avisoT > run.t + av.cada) avisoT = -1;          // reloj de otra corrida
+      if (ESPACIADOS.includes(tipo) && run.t < avisoT) return;
+      avisoT = run.t + av.cada;
+      // HASTA DONDE LLEGA CONDOR (`condorAlcance`): lejos de la base sus lineas salen del banco. Si
+      // el banco entero fuera suyo no se dice nada — la radio no llega, y eso es lo que significa.
+      const bolsa = sc.lineas.filter(l => !esCondor(l) || condorLlega());
+      if (!bolsa.length) return;
+      let i = (Math.random() * bolsa.length) | 0;
+      if (bolsa.length > 1 && bolsa[i].id === avisoUlt[sc.id]) i = (i + 1) % bolsa.length;
+      avisoUlt[sc.id] = bolsa[i].id;
+      const ln = bolsa[i];
+      beep(430, 0.06, 'square', 0.04);
+      decirRadio(ln.personaje + ': ' + dialogue.txtOf(ln), () => ln.cara);
     }
 
     // RF-15 — LA PASADA GASTADA. El otro camino por el que se pierde un avion, y el que define el
@@ -2882,6 +3042,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // regresiva, y esto lo volas vos.
       if (S.state === 'landing') {
         landT += dt;
+        stepLecciones();   // la de la aproximacion final (`en: 'aterrizaje'`)
         // GAS Y CABECEO, con la misma cama del pasillo pero simplificada: aca no hay enemigos, no
         // hay racha y no hay viento. Lo unico que existe son las cuatro medidas.
         const gas = inp.u ? 1 : (inp.d ? -1 : 0);
@@ -3270,6 +3431,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         fadeT = 0.55;
         return;
       }
+      // EL RADAR POR VOZ (M1_CAMBIOS 6): el vuelo anota si te verian, el orquestador lo dice. Mientras
+      // sigas arriba te vuelven a hablar — quien espacia los avisos es `cada`, no un gate aparte.
+      if (run.radarVisto && curMission() && curMission().avisos) avisar(curMission().avisos, 'radar');
+      stepLecciones();
       if (fs === 'objective') { finishObjective(); return; }
       if (fs && fs.death) { onDeath(fs.death); return; }
       // LLEGASTE A CASA (PLAN_MISION_CINCO_FASES §11): la VUELTA se termino. En una mision sin
@@ -3607,7 +3772,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // dice a que altura te ven— y en la cinematica del premio no hay nada que decidir con eso.
       // Aparecio sola cuando la salida paso a trepar de verdad (la trepada cruza RADAR_ALT) y lo
       // que se ve es una reja roja tapando el buque que se hunde.
-      if (cfg.radarNet && S.state !== 'pulso') world.drawRadarNet(fases.techoRadar(RADAR_ALT));
+      if (cfg.radarNet && cfg.radar !== 'voz' && S.state !== 'pulso') world.drawRadarNet(fases.techoRadar(RADAR_ALT));
       if (cfg.hitboxes) world.drawHitboxes();   // depuracion: cajas de colision en verde fluor
       if (cfg.devcam && S.state === 'play') world.drawFlightLane(testRadio);   // modo camara: el carril del avion
 
@@ -3855,7 +4020,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // LA VISION DEL RADAR: la escena en verde mientras te ven (ver world.drawRadarTinte). Mismo
       // escalon que el tinte del momentum —sobre el mundo, bajo el HUD— y colgada de la misma opcion
       // que la red: quien apago RED DE RADAR no quiere que el radar le pinte la pantalla.
-      if (cfg.radarNet) world.drawRadarTinte(fases.techoRadar(RADAR_ALT));
+      if (cfg.radarNet && cfg.radar !== 'voz') world.drawRadarTinte(fases.techoRadar(RADAR_ALT));
       // HUD en GRILLA DE DISEÑO (320x180): se dibuja con ctx.scale(U). Ver la nota de DW/DH en
       // render/ctx.js — U x SC da 3 exacto, asi que no hay medio pixel ni borroneo.
       // LA CINTA DE FORMACION va ADENTRO del ctx.scale(U): es HUD, o sea grilla de DISEÑO (320x180),
@@ -3870,6 +4035,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (S.state === 'play') {
         ctx.save(); ctx.scale(U, U); hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip, goalKind: objectiveKind,
         radarAlt: fases.techoRadar(RADAR_ALT),
+        // lo que una leccion esta explicando: el HUD dibuja esos relojes aunque esten escondidos
+        foco: lecFoco ? lecFoco.foco : null,
+        // una mision donde no se puede morir tiene UNA vida, aunque despegue el escuadron entero
+        unaVida: !!((gameMode === 'campaign' || gameMode === 'cycle') && curMission() && curMission().sinMuerte),
+        // ¿la Chancha existe en esta mision? La misma regla que el gate de `pedir` (ver `viva`)
+        chanchaViva: !((gameMode === 'campaign' || S.test) && curMission() && curMission().chancha === false),
+        // LA VUELTA, para la barra de objetivo: cuanto llevas hecho del regreso y cuanto mide. Va
+        // por snapshot, como el resto — el HUD no pregunta, recibe.
+        vuelta: fases.hayVuelta() && run.dist > objectiveDist
+          ? { hecho: run.dist - objectiveDist, total: Math.max(1, fases.finVuelta() - objectiveDist) }
+          : null,
         // lo mas alto que ocupa la voz en la banda de abajo (mi caja o la del otro): los avisos de
         // altura se apoyan arriba de eso
         charlaTecho: screens.techoBanda(),
@@ -3925,7 +4101,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // MENUS Y PANTALLAS: tambien en grilla de diseño (320x180), escaladas por U
       ctx.save(); ctx.scale(U, U);
       if (inLobby()) screens.drawPpalBg(ppalPrev, ppalIdx, ppalFade);   // portada / lobby
-      if (S.state === 'takeoff') hud.drawTakeoff(toT);
+      if (S.state === 'takeoff') hud.drawTakeoff(toT, (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? curMission().despegue || null : null);
       // LA CORTA FINAL: las ventanas se resuelven ACA y no en el HUD, con las mismas constantes que
       // despues CALIFICAN la toma. Si el dibujo tuviera su propia idea de "velocidad correcta", el
       // instrumento y el juez podrian discrepar — y no hay nada peor que un HUD en verde y un
@@ -3992,12 +4168,40 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // pasada la gracia, o sea cuando aceptar YA funciona — no puede ofrecer algo que no anda.
       // Parpadea con `dlgT` porque es el unico reloj vivo: `run.t` esta congelado.
       if (dlgPausa && radioVis()) {
-        ctx.fillStyle = '#070a0dd2'; ctx.fillRect(0, 0, W, H);
+        // EL FOCO DE UNA LECCION (M1_CAMBIOS 8): el velo de siempre, con un AGUJERO sobre cada zona
+        // que se esta explicando. Las zonas vienen en la grilla de DISEÑO y el velo va en la de
+        // MUNDO, de ahi el `* U`. Se agujerea con la regla par-impar: el rectangulo de la pantalla
+        // y los de las zonas en el mismo trazo, y lo que queda adentro de dos se ve.
+        const zonas = lecFoco ? lecFoco.foco.map(zonaLeccion).filter(Boolean) : [];
+        const PADZ = 2;
+        ctx.fillStyle = '#070a0dd2';
+        ctx.beginPath(); ctx.rect(0, 0, W, H);
+        for (const z of zonas) ctx.rect((z.x - PADZ) * U, (z.y - PADZ) * U, (z.w + 2 * PADZ) * U, (z.h + 2 * PADZ) * U);
+        ctx.fill('evenodd');
+        // …y un marco que respira alrededor de cada una: el ojo tiene que llegar ahi antes que al texto
+        if (zonas.length) {
+          ctx.save();
+          ctx.globalAlpha = 0.55 + 0.45 * Math.sin(dlgT * 5);
+          ctx.strokeStyle = P.accent; ctx.lineWidth = U;
+          for (const z of zonas) ctx.strokeRect((z.x - PADZ) * U, (z.y - PADZ) * U, (z.w + 2 * PADZ) * U, (z.h + 2 * PADZ) * U);
+          ctx.restore();
+        }
+        // LA CAJA NO PUEDE TAPAR LO QUE SE EXPLICA: si alguna zona esta en la mitad de abajo —la fila
+        // de relojes—, la caja sube al techo.
+        const arriba = zonas.some(z => z.y > DH / 2);
         ctx.save(); ctx.scale(U, U);
-        screens.cajaVN({
+        const caja = screens.cajaVN({
           personaje: radioBox.personaje, cara: radioBox.cara, wrap: radioBox.wrap,
-          ease: radioBox.ease, cursor: dlgT > DLG_GRACIA, parpadeo: dlgT, barra: null,
+          ease: radioBox.ease, cursor: dlgT > DLG_GRACIA, parpadeo: dlgT, barra: null, arriba,
         });
+        // LAS TECLAS: las pone el juego, no el personaje. Salen de la tabla de CONTROLES (la misma de
+        // OPCIONES → CONTROLES) en su version de teclado o de mando, segun haya uno conectado.
+        if (lecFoco && lecFoco.teclas.length && caja) {
+          const pad = padInfo.conectado;
+          const items = lecFoco.teclas.map(id => ({
+            rot: T('ctrl' + id), tecla: pad ? padTexto(T('ctrl' + id + 'P')) : T('ctrl' + id + 'K') }));
+          screens.teclasLeccion(items, arriba ? caja.by + caja.bh + 4 : caja.by - 15);
+        }
         ctx.restore();
       }
       // NOMBRES DE LOS BOTONES SEGUN EL MANDO. El juego se escribio con nomenclatura PlayStation
@@ -4006,10 +4210,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // es el cartel — leer "◯" con un mando que dice "B" es la diferencia entre que se entienda o no.
       // Es una sustitucion sobre el texto ya traducido para no duplicar la tabla `ctrl*` entera en
       // los dos idiomas por cada familia de mando.
-      const padTxt = t => padInfo.kind !== 'xbox' ? t : t
-        .replace(/✕/g, 'A').replace(/◯/g, 'B').replace(/□/g, 'X').replace(/△/g, 'Y')
-        .replace(/\bL1\b/g, 'LB').replace(/\bR1\b/g, 'RB').replace(/\bL2\b/g, 'LT')
-        .replace(/gatillo|trigger/gi, 'RT');   // 'cruceta' se deja: vale para las dos familias
+      // (la sustitucion vive en `padTexto`, arriba: la comparten esta pantalla y las lecciones.
+      // 'cruceta' se deja: vale para las dos familias)
+      const padTxt = padTexto;
       if (S.state === 'options') menus.drawOptions({
         t: run.t, sel: optRow,
         rows: OPT_ROWS.map(r => {
@@ -4435,7 +4638,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // copia de las misiones: agregar una la mete en la red de regresion sola. Es la misma idea
     // que `__prb()` sin argumentos con el catalogo de PRUEBAS.
     if (typeof window !== 'undefined') window.__misiones = () => JSON.stringify(
-      MISSIONS.map(m => ({ id: m.id, name: m.name, climax: climaxOf(m) })));
+      MISSIONS.map(m => ({ id: m.id, name: m.name, climax: climaxOf(m),
+        // hasta donde llega la VUELTA (0 = no tiene): el fixture la vuela entera antes del recuento
+        vuelta: m.fases && m.fases[m.fases.length - 1].hasta > 1 ? m.fases[m.fases.length - 1].hasta : 0 })));
     // MODO PRUEBAS (COMO_PROBAR §4): elegir un momento POR ID, que es como lo va a recorrer el
     // guardian del catalogo (PR4). Es la misma puerta que aprieta el jugador —prbConfirm—, no un
     // atajo: si el menu se rompe, la sonda se rompe con el.
@@ -4551,7 +4756,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     if (typeof window !== 'undefined') window.__fade = () => +fadeT.toFixed(3);
     if (typeof window !== 'undefined') window.__wjump = (p, dev) => {
       if (dev !== undefined) cfg.devcam = !!dev;
-      if (p !== undefined && objectiveDist > 0) run.dist = Math.max(0, p * objectiveDist);
+      if (p !== undefined && objectiveDist > 0) {
+        run.dist = Math.max(0, p * objectiveDist);
+        // SALTAR ES SALTEAR: las lecciones que quedaron atras del salto no se dicen. Sin esto, saltar
+        // al final de M1 disparaba nueve pausas seguidas esperando una tecla que la sonda no aprieta.
+        const L = curMission() && curMission().lecciones;
+        if (L) while (lecIdx < L.length && typeof L[lecIdx].en === 'number' && L[lecIdx].en <= p) lecIdx++;
+      }
       return JSON.stringify({
         p: objectiveDist ? +(run.dist / objectiveDist).toFixed(3) : 0,
         dist: Math.round(run.dist), obj: Math.round(objectiveDist),
@@ -4924,7 +5135,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // (muerte, relevo, climax, devcam) y avisa 'ready' UNA vez cuando la barra se llena.
       // el aviso de que se cargo YA NO ES UN CARTEL EN EL CENTRO (12/9): lo dice la lengueta
       // LISTO que sale de atras de su propia barra (render/hud.js, tabListo). El beep queda.
-      if (tempo.tick(raw, S.state === 'play' && !cfg.devcam, run.score) === 'ready') beep(660, 0.1, 'square', 0.05, 140);
+      if (tempo.tick(raw, S.state === 'play' && !cfg.devcam && cfg.poderes !== false, run.score) === 'ready') beep(660, 0.1, 'square', 0.05, 140);
       if (S.state !== veilPrev) {
         if (S.state === 'arena' || S.state === 'momentum') veilOut = VEIL_OUT;
         veilPrev = S.state;

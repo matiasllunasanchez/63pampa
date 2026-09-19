@@ -1011,13 +1011,26 @@ test('fases: el validador rechaza lo que no avisaria solo', () => {
   assert.deepEqual(validarFases([{ tipo: 'blanco', hasta: 1 }, { tipo: 'vuelta', hasta: 1.9 }]), []);
 });
 
-test('fases: TODAS las misiones de la campaña siguen SIN fases, y eso es el criterio de exito', () => {
-  // La red de la regla suprema. Mientras esto sea cierto, la campaña no puede haber cambiado: sin
-  // lista, `faseAt` devuelve null y cada lector cae a su fallback de siempre por el mismo camino.
+// LA LISTA DE LAS QUE SI. Era «ninguna mision de campaña declara fases», y funciono como red
+// mientras el sistema se construia contra el banco de pruebas. Desde M1_CAMBIOS 5 el tutorial tiene
+// IDA Y VUELTA, o sea que la regla no puede ser «ninguna» — pero tampoco «las que sea»: se escribe
+// CUALES, y cualquier otra que aparezca sin pasar por aca falla. La red sigue siendo la misma.
+const CON_FASES = ['m1'];
+
+test('fases: solo las misiones declaradas las tienen, y todas las listas son validas', () => {
   for (const m of MISSIONS) {
-    assert.equal(m.fases, undefined, `${m.id} no deberia declarar fases todavia`);
+    const declara = m.fases !== undefined;
+    assert.equal(declara, CON_FASES.includes(m.id), `${m.id}: fases inesperadas (o faltantes)`);
     const e = validarFases(m.fases);
     assert.deepEqual(e, [], `${m.id}: ${e.join(' · ')}`);
+  }
+});
+
+test('fases: la mision que las declara tiene VUELTA — si no, no hacia falta la lista', () => {
+  for (const id of CON_FASES) {
+    const m = MISSIONS.find(x => x.id === id);
+    assert.ok(m, `${id} no existe`);
+    assert.ok(m.fases[m.fases.length - 1].hasta > 1, `${id}: la ultima fase tiene que pasar de 1`);
   }
 });
 

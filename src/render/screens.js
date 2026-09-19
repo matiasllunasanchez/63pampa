@@ -80,6 +80,8 @@ const PPAL_SRC = [
 const load = src => { const i = new Image(); if (src) i.src = src; return i; };
 const WIN_BG = WIN_SRC.map(load), LOSE_BG = LOSE_SRC.map(load), PPAL_BG = PPAL_SRC.map(load);
 export const WIN_BG_N = WIN_BG.length, LOSE_BG_N = LOSE_BG.length, PPAL_BG_N = PPAL_BG.length;
+/** El indice de un fondo de victoria por su nombre de archivo ('win3'), o -1 si no existe. */
+export const winBgDe = nombre => WIN_SRC.findIndex(s => s.endsWith('/' + nombre + '.jpg'));
 
 // CUANTO DURA CADA FONDO, por indice de PPAL_SRC. Las que no estan aca duran lo de siempre.
 //
@@ -216,12 +218,22 @@ export function drawResults(w) {
   // "DERRIBADO": es el remate de la partida. Debajo, la mision y recien despues los numeros.
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(20);
-  ctx.fillText(T('res_title'), W / 2, 22);
+  ctx.fillText(T(R.puntos === false ? 'res_fin' : 'res_title'), W / 2, 22);
   ctx.fillStyle = P.ink; ctx.font = descFont(11);
   ctx.fillText(R.mission.name, W / 2, 36);
 
   const done = w.resRow >= R.rows.length;
   const stT = w.resT - (R.rows.length * 0.45 + 0.15);
+
+  // SIN NUMEROS (`puntos: false` de la mision, hoy el tutorial): ni premio, ni total, ni desglose.
+  // Queda el titular —MISION FINALIZADA, arriba— y el pie, con el mismo reloj del recuento completo.
+  if (R.puntos === false) {
+    if (done && stT > 1.1 && Math.sin(w.t * 4) > -0.3) {
+      ctx.fillStyle = P.accent; ctx.font = descFont(10);
+      ctx.fillText(T('continuePrompt'), W / 2, H - 7);
+    }
+    return;
+  }
 
   if (done) {
     // GALARDON: 3 estrellas + las MALVINAS como 4ª (rango "S"). Igual que el remate de la remera.
@@ -1044,7 +1056,9 @@ export function cajaVN(o) {
   const bx = 6, bw = W - 12;
   const accN = o.accion ? wrapChars(o.accion, 70).length : 0;
   const bh = Math.max(conCara ? PAD_R * 2 + PS + ALTO_NOMBRE : 30, 12 + rows * FILA + accN * 7);
-  const by = (H - bh - 6) + (1 - ease) * (bh + 16);
+  // `arriba`: la caja cuelga del techo en vez de apoyarse en el piso. La pide la pausa de una LECCION
+  // cuando lo que se esta enfocando es la fila de relojes de abajo — la caja la taparia entera.
+  const by = o.arriba ? 6 - (1 - ease) * (bh + 16) : (H - bh - 6) + (1 - ease) * (bh + 16);
   // panel oscuro con doble borde, el estilo de expediente del juego
   ctx.globalAlpha = 0.94; ctx.fillStyle = '#070b0f'; ctx.fillRect(bx, by, bw, bh);
   ctx.globalAlpha = 1;
@@ -1259,6 +1273,32 @@ function drawVozPropia(yo, o) {
   if (o.barra > 0) px(bx + 1, y + h - 2, (w - 2) * o.barra, 1, P.accent);
   ctx.restore();
   subeTecho(y);
+}
+
+/** LAS TECLAS DE UNA LECCION (M1_CAMBIOS 8): una fila de plaquitas centradas, «ROTULO  tecla», que
+ *  cuelga de la caja de dialogo de la pausa. `items` = [{ rot, tecla }], ya traducidos y en la
+ *  version del aparato que se esta usando — esto solo dibuja. `y` es el techo de la fila. */
+export function teclasLeccion(items, y) {
+  const ALTO = 11, PAD = 4, GAP = 6, SEP = 4;
+  const medir = it => {
+    ctx.font = '5px monospace'; const a = ctx.measureText(it.rot).width;
+    ctx.font = 'bold 6px monospace'; const b = ctx.measureText(it.tecla).width;
+    return { a, b, w: Math.ceil(PAD + a + SEP + b + PAD) };
+  };
+  const ms = items.map(medir);
+  const total = ms.reduce((t, m) => t + m.w, 0) + GAP * (items.length - 1);
+  let x = Math.round(W / 2 - total / 2);
+  ctx.save();
+  ctx.textAlign = 'left';
+  items.forEach((it, i) => {
+    const m = ms[i];
+    ctx.globalAlpha = 0.94; ctx.fillStyle = '#070b0f'; ctx.fillRect(x, y, m.w, ALTO);
+    ctx.globalAlpha = 1; ctx.strokeStyle = P.accent; ctx.strokeRect(x + 0.5, y + 0.5, m.w - 1, ALTO - 1);
+    ctx.font = '5px monospace'; ctx.fillStyle = P.dim; ctx.fillText(it.rot, x + PAD, y + 7);
+    ctx.font = 'bold 6px monospace'; ctx.fillStyle = P.ink; ctx.fillText(it.tecla, x + PAD + m.a + SEP, y + 8);
+    x += m.w + GAP;
+  });
+  ctx.restore();
 }
 
 export function drawRadioVN() {

@@ -10,7 +10,7 @@ export const STRINGS = {
   es: {
     langName: 'Español',
     pageHeader: '■ <b>RASANTE</b> · Atlántico Sur, 1982 · Batalla por Malvinas',
-    pageFooter: '<kbd>W</kbd>: gas — si soltás, el avión cae &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: esquivar &nbsp;·&nbsp; <kbd>S</kbd>: picada &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: rolar &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: mirar arriba/abajo &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>ESPACIO</kbd>: cañón &nbsp;·&nbsp; <kbd>Z</kbd>: bomba &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: turbo &nbsp;·&nbsp; <kbd>5</kbd>: llamar a la Chancha (reabastecer) &nbsp;·&nbsp; <kbd>T</kbd>: tren (al aterrizar) &nbsp;·&nbsp; <kbd>F</kbd>: freno &nbsp;·&nbsp; <kbd>ESC</kbd>: pausa &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: mira libre (click: cañón · click der: bomba)<br>Joystick (PlayStation o Xbox): stick izq vuela · stick der rola y mira · R1/RB cañón · L1/LB bomba · R2/RT turbo · L2/LT freno · START pausa<br>Táctil: arrastrá a la izquierda para volar · derecha arriba: fuego · derecha abajo: turbo<br>Volar bajo multiplica. ESQUIVAR al ras da bonus. El turbo duplica puntos y quema combustible.',
+    pageFooter: '<kbd>W</kbd>: gas — si soltás, el avión cae &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: esquivar &nbsp;·&nbsp; <kbd>S</kbd>: picada &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: rolar &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: mirar arriba/abajo &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>ESPACIO</kbd>: cañón &nbsp;·&nbsp; <kbd>Z</kbd>: bomba &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: turbo &nbsp;·&nbsp; <kbd>5</kbd>: llamar a la Chancha (reabastecer) &nbsp;·&nbsp; <kbd>T</kbd>: tren (al aterrizar) &nbsp;·&nbsp; <kbd>F</kbd>: freno &nbsp;·&nbsp; <kbd>ESC</kbd>: pausa &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: mira libre (click: cañón · click der: bomba)<br>Joystick (PlayStation o Xbox): stick izq vuela · stick der rola y mira · R1/RB cañón · L1/LB bomba · R2/RT turbo · L2/LT freno · START pausa<br>Táctil: arrastrá a la izquierda para volar · derecha arriba: fuego · derecha abajo: turbo<br>El turbo quema combustible.',
     aria: 'Juego Rasante: WASD para volar, flechas para rolar y mirar, X dispara, Shift turbo',
     death_land: 'Chocaste el terreno', death_sea: 'Impactaste el mar',
     death_pared: 'Te comiste la ladera',
@@ -104,7 +104,7 @@ export const STRINGS = {
     scrape: '! PELIGRO !',
     // dodgeMissile: sin uso desde el 12/9 — el misil que pasa de largo ya no pone cartel.
     pickFuel: '+COMB', dodgeMissile: 'ESQUIVADO',
-    takeoffTitle: 'DESPEGUE · PUERTO ARGENTINO · BAM MALVINAS',
+    takeoffTitle: 'DESPEGUE · PUERTO ARGENTINO · BAM MALVINAS', takeoffWord: 'DESPEGUE',
     takeoffHeading: 'rumbo al estrecho de San Carlos',
     hud_best: 'MEJOR {n}', kmh: ' KM/H', turboTag: ' TURBO', alt: ' M',
     windWarn: '~ VIENTO EN CONTRA ~', radar: '! RADAR !',
@@ -342,6 +342,7 @@ export const STRINGS = {
     ctrlRoll: 'ROLAR / GIRO 360°', ctrlRollK: '← →  ·  Q E',    ctrlRollP: 'stick der ← →',
     ctrlPan: 'MIRAR ARR / ABAJO', ctrlPanK: '↑ ↓  ·  R F',      ctrlPanP: 'stick der ↑ ↓',
     ctrlMoves: 'PIRUETAS',      ctrlMovesK: 'secuencias de toques', ctrlMovesP: 'los dos sticks',
+    ctrlTonel: 'TONEL',         ctrlTonelK: '← ← ←  ·  Q Q Q',  ctrlTonelP: 'stick der: 3 toques',
     ctrlHands: 'zigzag: mano izq · rolidos: mano der', ctrlHandsK: '', ctrlHandsP: '',
     ctrlWasd: 'con MIRA MOVIL, las flechas vuelven a volar', ctrlWasdK: '', ctrlWasdP: '',
     // en la PASADA no hay controles nuevos: el mismo boton suelta la ristra entera
@@ -1049,8 +1050,8 @@ export const STRINGS = {
 
     // ---------- RECUENTO DE FIN DE MISION ----------
     mom_turn: '! VIRAJE 180 !', mom_pass_n: 'INTENTO {n}',
-    hud_mission: 'MISION {n}/{m}',
-    res_title: 'MISION CUMPLIDA', res_total: 'TOTAL', res_rank: 'CALIFICACION:',
+    hud_mission: 'MISION {n}/{m}', hud_home: 'A CASA',
+    res_title: 'MISION CUMPLIDA', res_fin: 'MISION FINALIZADA', res_total: 'TOTAL', res_rank: 'CALIFICACION:',
     res_flight: 'PUNTAJE DE VUELO', res_kills: 'BLANCOS', res_acc: 'PRECISION', res_ras: 'RACHA RASANTE',
     rank_cadete: 'CADETE', rank_piloto: 'PILOTO', rank_as: 'AS', rank_halcon: 'HALCON DEL ATLANTICO',
     // ---------- BRIEFING CORTO ----------
@@ -1099,7 +1100,7 @@ export const STRINGS = {
   en: {
     langName: 'English',
     pageHeader: '■ <b>RASANTE</b> · frontal view · South Atlantic, 1982',
-    pageFooter: '<kbd>W</kbd>: throttle — release and you fall &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: dodge &nbsp;·&nbsp; <kbd>S</kbd>: dive &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: roll &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: look up/down &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>SPACE</kbd>: cannon &nbsp;·&nbsp; <kbd>Z</kbd>: missile (and the pass bombs) &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: boost &nbsp;·&nbsp; <kbd>5</kbd>: call the tanker (refuel) &nbsp;·&nbsp; <kbd>T</kbd>: gear (on landing) &nbsp;·&nbsp; <kbd>F</kbd>: airbrake &nbsp;·&nbsp; <kbd>ESC</kbd>: pause &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: free aim (click: cannon · right click: missile)<br>Gamepad (PlayStation or Xbox): left stick flies · right stick rolls and looks · R1/RB cannon · L1/LB missile · R2/RT boost · L2/LT airbrake · START pause<br>Touch: drag on the left to fly · top-right: fire · bottom-right: boost<br>Flying low multiplies. Grazing obstacles gives a bonus. Boost doubles points and burns fuel.',
+    pageFooter: '<kbd>W</kbd>: throttle — release and you fall &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: dodge &nbsp;·&nbsp; <kbd>S</kbd>: dive &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: roll &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: look up/down &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>SPACE</kbd>: cannon &nbsp;·&nbsp; <kbd>Z</kbd>: missile (and the pass bombs) &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: boost &nbsp;·&nbsp; <kbd>5</kbd>: call the tanker (refuel) &nbsp;·&nbsp; <kbd>T</kbd>: gear (on landing) &nbsp;·&nbsp; <kbd>F</kbd>: airbrake &nbsp;·&nbsp; <kbd>ESC</kbd>: pause &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: free aim (click: cannon · right click: missile)<br>Gamepad (PlayStation or Xbox): left stick flies · right stick rolls and looks · R1/RB cannon · L1/LB missile · R2/RT boost · L2/LT airbrake · START pause<br>Touch: drag on the left to fly · top-right: fire · bottom-right: boost<br>Boost burns fuel.',
     aria: 'Rasante game: arrows to maneuver, X to fire, Shift to boost',
     death_land: 'You hit the ground', death_sea: 'You hit the sea',
     death_pared: 'You flew into the hillside',
@@ -1167,8 +1168,9 @@ export const STRINGS = {
     thrDown: 'PITCH: ↓ CLIMB', thrUp: 'PITCH: ↑ CLIMB',
     scrape: '! DANGER !',
     pickFuel: '+FUEL', dodgeMissile: 'DODGED',
-    takeoffTitle: 'TAKEOFF · PUERTO ARGENTINO · BAM MALVINAS',
+    takeoffTitle: 'TAKEOFF · PUERTO ARGENTINO · BAM MALVINAS', takeoffWord: 'TAKEOFF',
     takeoffHeading: 'heading for San Carlos Strait',
+    hud_home: 'HOME',
     hud_best: 'BEST {n}', kmh: ' KM/H', turboTag: ' BOOST', alt: ' M',
     windWarn: '~ HEADWIND ~', radar: '! RADAR !',
     fogIn: '! FOG BANK !', fogIn2: 'CLIMB OR FLY BLIND', fogOut: 'FOG CLEARED',
@@ -1335,6 +1337,7 @@ export const STRINGS = {
     ctrlRoll: 'ROLL / 360° ROLL', ctrlRollK: '← →  ·  Q E',     ctrlRollP: 'right stick ← →',
     ctrlPan: 'LOOK UP / DOWN',  ctrlPanK: '↑ ↓  ·  R F',        ctrlPanP: 'right stick ↑ ↓',
     ctrlMoves: 'MANEUVERS',     ctrlMovesK: 'tap sequences',    ctrlMovesP: 'both sticks',
+    ctrlTonel: 'BARREL ROLL',   ctrlTonelK: '← ← ←  ·  Q Q Q',  ctrlTonelP: 'right stick: 3 taps',
     ctrlHands: 'zigzags: left hand · rolls: right hand', ctrlHandsK: '', ctrlHandsP: '',
     ctrlWasd: 'with FREE SIGHT, the arrows fly again', ctrlWasdK: '', ctrlWasdP: '',
     ctrlArena: 'AIRBRAKE, TURN and PIPS: climax only', ctrlArenaK: '', ctrlArenaP: '',
@@ -1456,7 +1459,7 @@ export const STRINGS = {
     // todavia: T() cae solo al español, asi que el juego funciona igual (campaña es-only por ahora).
     mom_turn: '! 180 TURN !', mom_pass_n: 'ATTEMPT {n}',
     hud_mission: 'MISSION {n}/{m}',
-    res_title: 'MISSION COMPLETE', res_total: 'TOTAL', res_rank: 'RATING:',
+    res_title: 'MISSION COMPLETE', res_fin: 'MISSION FINISHED', res_total: 'TOTAL', res_rank: 'RATING:',
     res_flight: 'FLIGHT SCORE', res_kills: 'TARGETS', res_acc: 'ACCURACY', res_ras: 'LOW-PASS STREAK',
     rank_cadete: 'CADET', rank_piloto: 'PILOT', rank_as: 'ACE', rank_halcon: 'HAWK OF THE ATLANTIC',
     brief_title: 'MISSION ORDER', brief_goal: 'OBJECTIVE:', brief_go: 'ANY KEY  to take off',

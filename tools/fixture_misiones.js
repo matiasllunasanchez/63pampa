@@ -130,7 +130,15 @@ async function volar(m, i) {
   // en rojo por una razon que no tiene nada que ver con lo que guarda.
   await js('__chacalma()');
   await js('__wjump(0.97)');
-  const fin = await esperar(esperado ? [esperado, 'results', 'dead'] : ['results', 'dead'], 25000);
+  // (con vuelta se espera menos: pasado el objetivo se queda en 'play' a proposito)
+  let fin = await esperar(esperado ? [esperado, 'results', 'dead'] : ['results', 'dead'], m.vuelta > 1 ? 6000 : 25000);
+  // UNA MISION CON VUELTA no cierra en el objetivo: da media vuelta y sigue en el pasillo. Se salta
+  // al final del regreso y se espera lo que falta — la aproximacion y el recuento.
+  if (!esperado && m.vuelta > 1 && fin === 'play') {
+    ok('en el objetivo da la vuelta y sigue volando');
+    await js(`__wjump(${m.vuelta - 0.01})`);
+    fin = await esperar(['results', 'dead'], 30000);
+  }
   if (esperado && fin === esperado) ok(`llega al climax que declara: ${esperado.toUpperCase()}`);
   else if (!esperado && fin === 'results') ok('cierra en el recuento (no tiene climax que jugar)');
   else { bad(`termino en '${fin}' y esperaba '${esperado || 'results'}'`); bien = false; }
@@ -186,7 +194,11 @@ app.whenReady().then(async () => {
   win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'w' });
   await js('__czalto(9); __czspd(74); __chacalma()');
   await js('__wjump(0.999)');
-  await esperar(['results', 'dead'], 20000);
+  // la primera de la lista es M1, que tiene VUELTA: si sigue en vuelo, se salta al final del regreso
+  if ((await esperar(['results', 'dead'], 20000)) === 'play') {
+    const v = JSON.parse(await js('__misiones()'))[0].vuelta;
+    if (v > 1) { await js(`__wjump(${v - 0.01})`); await esperar(['results', 'dead'], 30000); }
+  }
   await js('__czalto(null); __czspd(null)');
   let salida = '';
   for (let i = 0; i < 30; i++) {

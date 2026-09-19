@@ -14,7 +14,7 @@
 // horizonte y cerca te tapa el cuadro, que es exactamente la informacion que el jugador necesita
 // para dosificar el gas sin mirar ningun numero.
 
-import { ctx, px, PZ } from './ctx.js';
+import { ctx, px, PZ, DW } from './ctx.js';
 import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
@@ -101,7 +101,19 @@ export function drawPersec(selPlane) {
 // Medido contra la captura: con y 74 / h 62 el pie de la cinta —justo la zona de ESTELA, la que
 // avisa que te le vas encima— caia encima del panel de instrumentos de abajo y se perdia. Sube y
 // se acorta para terminar despegada del panel.
-const CINTA = { x: 12, y: 68, w: 7, h: 56 };
+//
+// Y SE MUDO AL BORDE DERECHO (pedido del autor, 17/9): a la izquierda le pasaba por encima al
+// tablero del escuadron, al panel de alerta y a la cara del piloto, que es la columna donde el HUD
+// apila TODO lo que entra y sale. El costado derecho a esta altura es cielo en cualquier mision.
+// Arranca en y 34 y no pegada al techo por dos cosas que ocupan ese borde: el rotulo con el nombre
+// del lider, que la cinta dibuja 10 px MAS ARRIBA de su propia caja, y el reproductor de musica,
+// que se dibuja FUERA del canvas (src/index.html) y por eso no aparece en ninguna cuenta de este
+// archivo.
+const CINTA = { x: DW - 24, y: 34, w: 7, h: 56 };
+
+/** Donde esta la cinta, con el rotulo del lider que va 10 px por encima (grilla de DISEÑO). Lo
+ *  pide el FOCO de las lecciones: si la cinta se muda otra vez, el foco se muda con ella. */
+export const cintaRect = () => ({ x: CINTA.x - 12, y: CINTA.y - 11, w: CINTA.w + 24, h: CINTA.h + 12 });
 
 /** La cinta de formacion. OJO CON EL ESPACIO DE COORDENADAS: esto va en la grilla de DISEÑO
  *  (320x180), adentro del `ctx.scale(U)` del HUD — mientras que `drawPersec`, arriba en este mismo

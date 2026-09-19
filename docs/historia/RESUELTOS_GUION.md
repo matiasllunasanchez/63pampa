@@ -46,7 +46,7 @@ No se toca `story.js`.
 ### ✅ P-06 · Carta 1 — **aplicado**
 `P4_1_020` termina ahora en «Mientras tanto te sigo contando, como si estuvieras acá.»
 
-## MISIÓN 1 — Sal en las alas
+## MISIÓN 1 — Con sal en las alas
 
 ### ✅ M1-01 · **EL TERITO** — **aplicado**: escena nueva `M1_TERITO`
 Seis líneas, entre `M1_5B` y el ritual. Entra el terito pintado, entra que el Turco bautiza los
@@ -79,7 +79,7 @@ Los tres siguen en `story.js`.
 - Juego: «Le decimos "La Casada". No sabemos quién es, pero es seguro que ese minón tiene dueño.»
 - [X] DEJAR COMO ESTÁ · [ ] REEMPLAZAR POR EL GUION · [ ] DEBATIR
 
-### M1-06 · `M1_3` — la radio de Cóndor
+### M1-06 · `M1_3` — la radio de Cóndor — ⚠ **REEMPLAZADA** por M1-09 (tanda del 17/9)
 - Guion (corta, de piloto): «…Mantenerse pegaditos al agua todo el trayecto que hay radar. Autorizados pista dos. Buen vuelo, muchachos.»
 - Juego (larga, de manual): «…Recomendamos mantenerse rasantes al agua durante todo el trayecto y prestar especial atención al radar. Pista dos autorizada. Buen vuelo.»
 - [X] DEJAR COMO ESTÁ · [ ] REEMPLAZAR POR EL GUION · [ ] DEBATIR
@@ -97,7 +97,39 @@ lana»; es el objeto que vuelve en M12 tapando a Mateo hasta el final), el ponch
 pozo y el viento, la hermana en Corrientes, el rótulo «el Colorado» debajo del dibujo, y el
 párrafo del apodo — que cierra con `P2_3_080`, donde Norma se lo cuenta a Mateo en la cocina.
 
-## MISIÓN 2 — Bautismo de fuego
+### M1 · la tanda del 17/9 (`misiones/M1_CAMBIOS.md`) — **aplicada el 18/9**
+
+El detalle de cada pedido, con archivos, está en `M1_CAMBIOS.md`. Acá, lo que queda cerrado:
+
+- ✅ **M1-09 · Cóndor cierra siempre antes de jugar.** Regla de las catorce misiones. En M1: la radio
+  larga se partió en dos. En el vestuario corta el chiste con estática — «Vuelo de adaptación
+  autorizado. Favor de despegar en 15 minutos.» — y después del ritual, escena nueva `M01_PISTA`:
+  «Autorizada pista dos. Mantenerse rasante. Buen vuelo, muchachos.» Las otras trece, sin revisar.
+- ✅ **M1-10 · Tero y el Turco ya se conocen.** Entra en `M01_3`, no en el prólogo: el Turco lo recibe
+  («Tero querido, ¿cómo estás? Tanto tiempo…») y después Puma se presenta.
+- ✅ **M1-11 · «Buen vuelo» se repite en todas las misiones**, tal cual. No es un descuido.
+- ✅ **M1-12 · La foto de La Casada se ve en M1 y no vuelve hasta la muerte del Vasco.** `M04_FOTO`
+  choca con esto y se resuelve con M4.
+- ✅ **M1-13 · M1 es ida y vuelta**, con un corte a negro en el giro y Puma diciendo «Hasta acá
+  llegamos, Tero. Media vuelta y a casa.» Sin Pulso.
+- ✅ **M1-14 · La Chancha se nombra en M1 y debuta en M2.** En M2 la barra se va a cargar con los
+  puntos de la ida y un poco de la vuelta (propuesta de perilla: `chanchaCarga`, derivada del `par`).
+- ✅ **M1-15 · El radar de M1 no se ve**: avisos de voz de Cóndor y Puma.
+- ✅ **M1-16 · En M1 no se muere y siempre vuela Tero.** El golpe baja la chapa hasta un piso y Puma
+  lo dice.
+- ✅ **M1-17 · Los personajes enseñan y NINGUNO NOMBRA UNA TECLA.** Las teclas las pone el juego en la
+  pausa, con foco sobre el instrumento. Cóndor explica, se le corta la radio, y Puma la termina.
+- ✅ **M1-18 · Los puntos no se muestran ni se explican en M1.** El recuento dice MISIÓN FINALIZADA.
+- ✅ **M1-19 · Los poderes se enseñan en M2** (opción B). M1 es la UI y volar a mano: `poderes: false`.
+- ✅ **M1-20 · El paneo general es un DOCUMENTO para el autor, no una pantalla.** Cada misión lleva al
+  principio de su `M*_LECTURA.md` una sección PANEO GENERAL: secuencia, qué se enseña, mecánicas y
+  pendientes. M1 es el molde.
+- ✅ **M1-21 · Despega el escuadrón entero; la única vida es la de Tero.** Sin modo SEGUIR en M1: se
+  fueron la lección de la barra del líder y el «Vení atrás mío» de Puma. M1 tiene viento.
+- ✅ **M1-22 · Cada misión tiene su cartel de despegue.** Base: BAM Río Gallegos en las catorce (A-4B,
+  Grupo 5). Rumbo: el de la línea de Cóndor de cada `M0x_OBJETIVO`. M14, sin rumbo.
+
+## MISIÓN 2 — El bautismo de fuego
 
 ### 🔴 M2-01 · La reverencia del Gitano — dos gestos distintos
 - Guion: levanta los dos brazos doblados a la altura de la cabeza, **tres pasitos en el lugar**, una reverencia ridícula entera, y dice «THANK YOU».
@@ -273,7 +305,7 @@ De acá salen `chancha: false` en m7 y m8 (que ya estaba en `missions.js` sin ca
 
 ### ✅ M6-06 · Carta 7, la revista y el viento — **queda como está**
 
-## MISIÓN 7 — 25 de Mayo (muere el Vasco)
+## MISIÓN 7 — Pastelitos (muere el Vasco)
 
 ### ✅ M7-01 · El beso a la cruz — **aplicado (la propuesta)**
 `M6_2_050`, última línea del briefing, `tipo: 'CUADRO'` — plano cerrado, sin busto, igual que el
@@ -316,7 +348,7 @@ contestar») e inmediatamente `M6_PADRE` («Hijo: me preguntaste cómo se hace�
 
 - [X] VER G-01
 
-## MISIÓN 8 — El batir de alas
+## MISIÓN 8 — El batir de las alas
 
 ### ✅ M8-02 · El gesto de Puma — **aplicado**
 `M7_2_040`: «Y Puma, que no dijo una palabra más, da la vuelta a su avión y toca las tres cosas de
@@ -377,7 +409,7 @@ comedia, y es todo el duelo del Gitano en una acotación.
 
 ### ✅ M11-03 · Carta 12 — **queda como está**, con el párrafo que el guion no tiene. Hay que actualizar GUION_3.
 
-## MISIÓN 12 — El ángel Correntino (muere Correa)
+## MISIÓN 12 — Ángel de Corrientes (muere Correa)
 
 ### ✅ M12-02 · «¡Abajo, Mateo!» y el grito — **aplicado**
 Correa lo llama por el nombre, no «correntino». Y entró el grito entero: «¡Colorado! ¡No, no, no!
@@ -417,7 +449,7 @@ más. Estoy solo. Me quiero ir a casa, pa. Me quiero ir a casa.»
 El choque que había marcado —que `M10_PADRE` contestaba a un pedido que ya no existía— **desapareció
 solo**: `M10_PADRE` se fue con G-01.
 
-## MISIÓN 13 — La última mesa
+## MISIÓN 13 — La cena
 
 ### ⚠ M13-01 · El briefing dejó de telegrafiar — **aplicado**, pero M13-04 lo desarma
 Puma quedó como el guion: «Esa flota tiene encima toda la defensa antiaérea que les queda. Y la

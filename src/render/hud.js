@@ -124,7 +124,18 @@ function cinta(o) {
       for (let i = 1; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(pm - 2 - i * 3, y); ctx.lineTo(pm - i * 3, y); ctx.stroke(); }
       ctx.globalAlpha = 1;
     }
-    iconoEn(pm, y, 'avion', P.ink);
+    // LA MEDIA VUELTA (pedido del autor, 17/9): la ruta es LA MISMA —el puerto de donde saliste
+    // sigue a la izquierda y el punto donde diste la vuelta a la derecha—, y lo unico que cambia es
+    // que ahora la caminas al reves. Asi que gira el AVION y nada mas, sobre su propio eje.
+    // `o.flip` va de 0 a 1 mientras dura el giro; el piso de 0.02 existe porque una matriz con
+    // escala exactamente 0 no se puede invertir y el canvas descarta el dibujo.
+    if (o.flip > 0) {
+      const sx = 1 - 2 * o.flip;
+      ctx.save();
+      ctx.translate(pm, 0); ctx.scale(Math.abs(sx) < 0.02 ? 0.02 : sx, 1); ctx.translate(-pm, 0);
+      iconoEn(pm, y, 'avion', P.ink);
+      ctx.restore();
+    } else iconoEn(pm, y, 'avion', P.ink);
     kx = x1 + 8;   // el buque mide 11: medio casco a la derecha del final de la linea
   }
   ctx.textAlign = 'left'; ctx.font = F_VAL;
@@ -144,7 +155,34 @@ function cinta(o) {
  *  EL NOMBRE, SOLO SI ES UN NOMBRE: un objetivo de DISTANCIA se rotulaba «2400 m», que es el mismo
  *  dato que ya dice el total tres pixeles a la derecha. Con un buque el rotulo si aporta — es lo
  *  unico en pantalla que dice CONTRA QUE estas volando. */
-export function drawObjectiveBar(objectiveDist, objectiveShip, kind) {
+// EL GIRO DE LA RUTA, animado. `volK` es 0 en la ida y 1 en la vuelta, y tarda `VOL_GIRO` segundos
+// en pasar de uno a otro. Vive aca —y no en el store— porque es presentacion pura: si la partida se
+// carga a mitad de la vuelta, la barra nace ya dada vuelta y no gira sola en la cara del jugador.
+const VOL_GIRO = 0.7;
+let volK = 0, volT = -1;
+function giroVuelta(vuelve) {
+  const dt = volT < 0 || run.t < volT ? 0 : Math.min(0.1, run.t - volT);
+  volT = run.t;
+  volK = vuelve ? Math.min(1, volK + dt / VOL_GIRO) : Math.max(0, volK - dt / VOL_GIRO);
+  return volK;
+}
+
+export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta) {
+  const flip = giroVuelta(!!vuelta);
+  // LA VUELTA CUENTA LO SUYO: cuanto llevas hecho del regreso contra cuanto mide. Pasada la meta, el
+  // odometro de la ida ya no es una ruta — «2.8 / 2.2 km» es un numero que se paso, no un lugar.
+  if (vuelta) {
+    // EL MARCADOR VUELVE SOBRE SUS PASOS: arranca en la bandera (donde diste la vuelta) y camina
+    // hacia el puerto. Y el numero es LO QUE FALTA para casa, que es la pregunta del regreso.
+    const falta = Math.max(0, vuelta.total - vuelta.hecho);
+    cinta({
+      rot: T('hud_home'), prog: Math.max(0, Math.min(1, falta / vuelta.total)),
+      meta: 'distancia', flip,
+      a: (falta / 1000).toFixed(1), b: '/ ' + (vuelta.total / 1000).toFixed(1),
+      uni: 'km', uniCol: P.warn, boost: run.boost,
+    });
+    return;
+  }
   const km = Math.max(0, run.dist) / 1000;
   const esBuque = kind !== 'distance';
   cinta({
@@ -152,7 +190,7 @@ export function drawObjectiveBar(objectiveDist, objectiveShip, kind) {
     prog: Math.max(0, Math.min(1, run.dist / objectiveDist)),
     meta: esBuque ? 'buque' : 'distancia',
     buque: esBuque ? (ICONO_BUQUE_NOMBRE[objectiveShip] || ICONO_BUQUE[SHIP_CLASS[objectiveShip]] || 'buque_t42') : null,
-    a: km.toFixed(1), b: '/ ' + (objectiveDist / 1000).toFixed(1),
+    a: km.toFixed(1), b: '/ ' + (objectiveDist / 1000).toFixed(1), flip,
     // 'km' en MINUSCULA y del color del total: mas chica sin bajar de cuerpo, y es ademas el simbolo
     // correcto del kilometro (el SI no lo escribe en mayuscula)
     uni: 'km', uniCol: P.warn,
@@ -237,15 +275,21 @@ export function drawLanding(d) {
   ctx.fillStyle = P.crest; ctx.fillRect(hx - 2, hy + hh - f01 * hh, 6, Math.max(1, f01 * hh));
 }
 
-export function drawTakeoff(toT) {
+/** `dsp` = el `despegue` de la mision ({ desde, rumbo }), o null fuera de una mision — ahi queda el
+ *  cartel generico de siempre. Un rumbo vacio no se escribe: la placa se achica a un renglon. */
+export function drawTakeoff(toT, dsp) {
   ctx.textAlign = 'center';
+  const titulo = dsp ? T('takeoffWord') + ' · ' + dsp.desde : T('takeoffTitle');
+  const rumbo = dsp ? dsp.rumbo : T('takeoffHeading');
   // placa oscura detras del encabezado: cae sobre el amanecer y sin esto no se lee
-  ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(0, 17, W, 23);
+  ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(0, 17, W, rumbo ? 23 : 13);
   ctx.fillStyle = P.ink; ctx.font = '7px monospace';
-  ctx.fillText(T('takeoffTitle'), W / 2, 26);
+  ctx.fillText(titulo, W / 2, 26);
   // el rumbo va pegado al titulo: antes estaba en y=80, encima del avion en la pista
-  ctx.fillStyle = '#8a9ba1'; ctx.font = '6px monospace';
-  ctx.fillText(T('takeoffHeading'), W / 2, 36);
+  if (rumbo) {
+    ctx.fillStyle = '#8a9ba1'; ctx.font = '6px monospace';
+    ctx.fillText(rumbo, W / 2, 36);
+  }
 
   const cn = 3 - Math.floor(toT);
   if (cn >= 1) {
@@ -521,6 +565,19 @@ const xVuelo = i => X_VUELO + i * (CUADRO + AIRE);              // VELOCIDAD, ho
  *  las filas se muevan otra vez, la banda se mueve con ellas. */
 export const HUD_TECHO = CUADROS_Y;
 
+/** LAS ZONAS DEL HUD, POR NOMBRE, en la grilla de DISEÑO. Es lo que el FOCO de las lecciones deja
+ *  sin velo (M1_CAMBIOS 8), y sale de las MISMAS constantes con que se dibuja cada instrumento: si
+ *  un reloj se muda, su foco se muda con el. `ruta` depende del cuadro (el ancho de la cinta sale
+ *  de su contenido), asi que vale la del ultimo `drawHUD`. Devuelve null si el nombre no existe. */
+const Z_RELOJ = { salud: X_SALUD, nafta: X_NAFTA, mach: X_MACH, vel: xVuelo(0), horizonte: xVuelo(1),
+  alt: xVuelo(2), gas: xVuelo(3), chancha: X_CHANCHA, canon: X_CANON };
+export function zonaHud(id) {
+  if (id in Z_RELOJ) return { x: Z_RELOJ[id], y: CUADROS_Y, w: CUADRO, h: CUADRO };
+  if (id === 'rack') return { x: X_RACK, y: CUADROS_Y, w: RACK_W, h: CUADRO };
+  if (id === 'ruta') return cajaCinta ? { x: cajaCinta.x, y: MARGEN, w: cajaCinta.w, h: 11 } : null;
+  return null;
+}
+
 /** Barra con marco, bisel y muescas cada 25%. El relleno pierde el ultimo pixel del marco.
  *
  *  LA PLACA INCLUYE EL ROTULO. Antes cubria solo la barra y el nombre quedaba escrito directo
@@ -558,7 +615,11 @@ function bar(x, y, w, val, c, label) {
  *  solo bajan, y el medidor de la chancha solo sube, asi que cada umbral se cruza UNA vez. El unico
  *  que va y viene es el calor del cañon, y por eso su umbral esta en 0,05 y no en 0 — abajo de ahi
  *  la barra ya no muestra nada y el instrumento se apaga una sola vez, al final del enfriado. */
-function pide(algo) { return cfg.hudAuto !== 'auto' || algo; }
+function pide(algo, id) { return cfg.hudAuto !== 'auto' || algo || (!!id && focoIds.includes(id)); }
+// LO QUE UNA LECCION ESTA ENFOCANDO (llega por snapshot en `h.foco`). Un reloj que el HUD automatico
+// esconde —el cañon frio, la nafta llena— se dibuja igual si lo estan explicando: enfocar un hueco
+// vacio seria mostrarle al jugador donde NO hay nada.
+let focoIds = [];
 
 /** UN RIEL: la barra de un poder de racha, pegada a un borde y creciendo de abajo hacia arriba.
  *
@@ -1045,6 +1106,11 @@ function drawPiloto(charlaVoz) {
 // avion mas con letras (que era el motivo de los dos renglones, playtest 29/8).
 export const SQUAD_H = 11;
 const SQ_PASO = 9;           // el avion mide 7, y entre uno y otro van 2
+// UNA SOLA VIDA, AUNQUE DESPEGUE EL ESCUADRON ENTERO (pedido del autor, 18/9). En una mision donde no
+// se puede morir (`sinMuerte`, hoy el tutorial) los otros cuatro vuelan, pero no son vidas: no hay
+// relevo que los ponga a los mandos. El tablero muestra a Tero solo. Llega por snapshot (`h.unaVida`).
+let soloTero = false;
+const avionesEnPlaca = () => (soloTero ? 1 : run.squad);
 
 /** EL ANCHO DE LA PLACA DEL ESCUADRON. Sale aparte porque el panel de NIVEL DE ALERTA se dibuja
  *  justo debajo y tiene que medir LO MISMO — y dos copias de esta cuenta es el bug que este repo
@@ -1059,7 +1125,7 @@ const SQ_PASO = 9;           // el avion mide 7, y entre uno y otro van 2
 export function anchoSquad() {
   const nombre = pilotName(pilotIdx(run.squad, run.lives));
   ctx.font = F_VAL;
-  const wFila = Math.max(2, run.squad) * SQ_PASO + 3 + ctx.measureText(nombre).width;
+  const wFila = Math.max(2, avionesEnPlaca()) * SQ_PASO + 3 + ctx.measureText(nombre).width;
   return Math.max(ALERTA_MIN_W, Math.round(wFila) + 6);
 }
 
@@ -1068,7 +1134,7 @@ export function drawSquadPips(x, y) {
   const nombre = pilotName(fallen);
   ctx.textAlign = 'left';
   plate(x, y, anchoSquad(), SQUAD_H);
-  for (let i = 0; i < run.squad; i++) {
+  for (let i = 0; i < avionesEnPlaca(); i++) {
     const ax = x + 3 + i * SQ_PASO, down = i < fallen;
     // el que vuela, en acento; los que esperan, claros; los caidos, SOLO en gris oscuro. El tachado
     // rojo encima se comia el avion y gritaba mas que el escuadron entero (pedido del autor, 12/9):
@@ -1079,7 +1145,7 @@ export function drawSquadPips(x, y) {
   // EL NOMBRE DEL QUE VUELA, EN ACENTO. Estaba en `dim` —el gris de los rotulos— y ahi el piloto
   // era una etiqueta mas. Es la unica persona que hay en el HUD: va del color del que manda.
   ctx.fillStyle = P.accent; ctx.font = F_VAL;
-  ctx.fillText(nombre, x + 5 + run.squad * SQ_PASO, y + 8);
+  ctx.fillText(nombre, x + 5 + avionesEnPlaca() * SQ_PASO, y + 8);
 }
 
 /** NIVEL DE ALERTA — cuantos te estan buscando (PLAN_ESTRELLAS_BUSQUEDA §7).
@@ -1330,6 +1396,8 @@ function misilChico(x, y, on) {
 }
 
 export function drawHUD(h) {
+  focoIds = h.foco || [];
+  soloTero = !!h.unaVida;
   cajaCinta = null;   // ver cintaCaja: una caja de otro cuadro no cuenta
   cajaPiloto = null;  // idem: la cara de la que sale mi voz es la de ESTE cuadro
       const { best, gameMode, objectiveDist, objectiveShip } = h;
@@ -1372,7 +1440,7 @@ export function drawHUD(h) {
   // comparable — termina cuando llegas al buque, no cuando te matan, o sea que el puntaje lo decide
   // la distancia y no como volaste. POR LA PATRIA es el unico donde una corrida es una corrida:
   // infinita, sin objetivo, y se acaba cuando te caes.
-  if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind);
+  if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind, h.vuelta);
   else if (gameMode === 'survival') drawCorridaBar(best);
 
   // EL CONTADOR DE MISION SE FUE (playtest 29/8). «MISION 3/14» arriba del todo era lo unico del
@@ -1451,7 +1519,7 @@ export function drawHUD(h) {
   // El puntaje sigue multiplicando en flight.js (`run.multShow`): lo que se fue es el numero.
   // SALE DONDE PERFECTO CARGA (PERF_ALT), y no donde paga el x10: desde que los dos techos se
   // separaron, `run.mult === 10` dejaba a la franja de 4,5 a 6 cargando en secreto.
-  if (run.aguante || plane.y <= PERF_ALT || ras.on) {
+  if (cfg.poderes !== false && (run.aguante || plane.y <= PERF_ALT || ras.on)) {   // sin poderes, ni el cartel
     // proj() devuelve coordenadas de MUNDO (grilla 480x270) y el HUD razona en la de DISEÑO
     // (320x180): hay que dividir por U. Es el unico punto del HUD anclado al mundo.
     const pw = proj(plane.x, plane.y, PZ);
@@ -1587,12 +1655,14 @@ export function drawHUD(h) {
   // La chancha solo con COMBUSTIBLE: SI — un reloj que nunca se va a poder usar es ruido ocupando
   // un cuadrado. La nafta queda al lado de SALUD: son los dos que dicen si volves o no.
   const xNafta = X_NAFTA, xCha = X_CHANCHA;
-  if (pide(run.fuel < 60)) reloj(xNafta, CUADROS_Y, {
+  if (pide(run.fuel < 60, 'nafta')) reloj(xNafta, CUADROS_Y, {
     val: run.fuel / 100, ico: 'nafta', zona: [0, 0.25], critico: run.fuel < 25,
     col: run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam,
     txt: Math.round(run.fuel) + '%', txtCol: run.fuel < 25 ? P.warn : P.dim });
   const ch = chSnap(), cv = chMeter(), gastada = chGastada();
-  if (cfg.fuelOn && pide(cv >= 1 || gastada || !!ch)) {
+  // …y solo si la mision la TIENE (`h.chanchaViva`, por snapshot): una mision con `chancha: false`
+  // no puede pedirla, y un reloj lleno y en verde ahi es un boton que miente.
+  if (cfg.fuelOn && h.chanchaViva !== false && pide(cv >= 1 || gastada || !!ch)) {
     // EL FINAL DE LA ESCALA ES LA EMERGENCIA: cuando la aguja llega al icono, la Chancha se puede
     // pedir. Con una cita en curso el numero cuenta lo que importa — cuanto falta para que llegue,
     // cuanto dura la ventana, o cuanto tanque va entrando.
@@ -1621,8 +1691,8 @@ export function drawHUD(h) {
   // SALUD (ver relojSalud): se pide si la chapa no esta entera o si la amarilla bajo. El umbral es
   // 0,97 y no 1 por el mismo motivo que el 0,05 del cañon: sube y baja sola volando rasante.
   const xSalud = X_SALUD;
-  if (pide((dmgShown() && run.integ < 100) || amarilla() < 0.97)) relojSalud(xSalud, CUADROS_Y);
-  if (pide(run.heat > 0.05 || run.overheat))
+  if (pide((dmgShown() && run.integ < 100) || amarilla() < 0.97, 'salud')) relojSalud(xSalud, CUADROS_Y);
+  if (pide(run.heat > 0.05 || run.overheat, 'canon'))
     // EL CAÑON no tiene municion que contar —dispara hasta recalentarse y se traba hasta enfriar—,
     // asi que el reloj marca TEMPERATURA, con la zona roja donde se traba.
     reloj(X_CANON, CUADROS_Y, {
@@ -1707,8 +1777,11 @@ export function drawHUD(h) {
   const tv = tempoMeter();
   const altoPod = PODER_H + 2;                                   // la placa de la barra
   const yPod = CUADROS_Y - AIRE - PILOTO.lado - AIRE - altoPod;   // pegada a la cara, con el mismo aire
-  barraPoder(MARGEN, yPod, tv, MOM_COL, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
-  tabListo(0, yPod, altoPod, tv >= 1, MOM_CLARO);
+  // …y en una mision SIN PODERES no esta: una barra que no se puede usar es un boton que miente
+  if (cfg.poderes !== false) {
+    barraPoder(MARGEN, yPod, tv, MOM_COL, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
+    tabListo(0, yPod, altoPod, tv >= 1, MOM_CLARO);
+  }
 
   // municion de misiles: cada pip es el MISIL en miniatura (cuerpo blanco, ojiva gris, llama),
   // el mismo que se ve volar — no un rectangulo generico. Vacio = solo el contorno.

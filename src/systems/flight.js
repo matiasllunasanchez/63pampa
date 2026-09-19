@@ -25,7 +25,7 @@ import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
 import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE,
          GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
-         FUEL_RATE, FUEL_BOOST, BANDA_ALT, PERF_ALT } from '../data/tuning.js';
+         FUEL_RATE, FUEL_BOOST, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE } from '../data/tuning.js';
 // LAS FASES (PLAN_MISION_CINCO_FASES §11). Se LEEN, nunca se escriben, igual que los tramos en el
 // sembrador: `fsVal` contesta lo que rige a esta altura del vuelo y cae al valor de siempre cuando
 // la mision no declara fases — que es como se cumple la regla suprema (sin fases, este archivo se
@@ -283,7 +283,13 @@ export function flightSystem(dt, deps) {
   // dificultad — es una unidad que no escala. La escala corre el RELOJ, no la dramaturgia: los
   // multiplicadores de fase siguen diciendo lo mismo (el rasante cuesta el doble que el crucero),
   // solo que medidos contra un vuelo que dura diez veces mas.
-  if (cfg.fuelOn) run.fuel -= (FUEL_RATE * fsVal('nafta', 1) + (run.boost ? FUEL_BOOST : 0)) * (cfg.fuelScale || 1) * dt;
+  //
+  // …Y LA CHARLA LA CONGELA (`CHV_FUEL_FREEZE`, SPEC_CHARLAS_VUELO). La perilla estaba declarada y
+  // no la leia nadie — el mismo cable cortado que tuvieron los odometros de arriba. Medido en M1
+  // con COMBUSTIBLE: SI: las tres charlas del arranque duran ~45 s y el tanque son 31, asi que el
+  // avion se secaba a los 265 m sin haber volado nada.
+  if (cfg.fuelOn) run.fuel -= (FUEL_RATE * fsVal('nafta', 1) + (run.boost ? FUEL_BOOST : 0)) * (cfg.fuelScale || 1) * dt
+    * (CHV_FUEL_FREEZE ? cvAvance() : 1);
   if (run.fuel <= 0) { run.fuel = 0; plane.vy = Math.min(plane.vy, -5); }
   // ---- LA CAMA DE VUELO (systems/vuelo.js): integrar, topes, camara y actitudes con peso. Estas
   // lineas VIVIAN ACA; se mudaron enteras para poder correrlas tambien en una cinematica, donde el
@@ -340,7 +346,9 @@ export function flightSystem(dt, deps) {
   // TODAVIA CORRIENDO. O sea las dos cosas a la vez, que es justo lo que no puede pasar, y encima
   // pagando una racha que el jugador no volo. Es el mismo "darse cuerda a si mismo" que el poder ya
   // tenia prohibido para si mismo, en otro lugar.
-  const bandaAMano = enPerfecto && !rasante.active();
+  // SIN PODERES (`cfg.poderes === false`, hoy el tutorial) la racha no se carga nunca: sin carga no
+  // hay estado RASANTE, sin estado no hay flow. Se corta en el origen y todo lo de abajo cae solo.
+  const bandaAMano = cfg.poderes !== false && enPerfecto && !rasante.active();
   if (bandaAMano) { run.streak = Math.min(AGU.CARGA, run.streak + dt); run.graceT = 0.45; }
   else if (run.graceT > 0 && enPerfecto) run.graceT -= dt;
   else { run.streak = 0; run.rasLevel = 0; }
@@ -521,8 +529,16 @@ export function flightSystem(dt, deps) {
   // acerca al agua. Entre el mar —que ya cobra con SCRAPE_*— y este techo queda una banda que hay
   // que SOSTENER con el bob, el viento y el oleaje encima. Es la RENDIJA que tuning.js viene
   // describiendo desde la niebla, con la perilla que le faltaba (ROADMAP #27).
-  if (alt > techoRadar(RADAR_ALT)) run.detection += dt / 1.4; else run.detection -= dt / 0.9;
-  run.detection = Math.max(0, Math.min(1, run.detection));
+  //
+  // EL RADAR POR VOZ (`cfg.radar === 'voz'`, hoy el tutorial): no carga la barra y no dispara nada.
+  // Lo unico que hace es ANOTAR si el avion esta donde lo verian; quien habla es el orquestador,
+  // que es el que sabe de personajes (los sistemas no llaman hacia arriba).
+  run.radarVisto = alt > techoRadar(RADAR_ALT);
+  if (cfg.radar === 'voz') run.detection = 0;
+  else {
+    if (run.radarVisto) run.detection += dt / 1.4; else run.detection -= dt / 0.9;
+    run.detection = Math.max(0, Math.min(1, run.detection));
+  }
   // TE PINTARON (§11.3). Solo puede pasar en una mision con fases: sin ellas `pinta` no existe y
   // nada de esto corre — el radar sigue siendo la oleada de misiles de siempre y nada mas.
   //

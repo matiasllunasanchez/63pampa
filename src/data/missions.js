@@ -21,9 +21,25 @@ const F3 = ['TERO', 'PUMA', 'GITANO'];
 // config por mision: TODAS las perillas que la campaña pisa, siempre explicitas — si una
 // clave faltara, quedaria pegado el valor de la mision anterior (Object.assign sobre cfg).
 // La rampa arranca suave (m1 sin bombas ni viento) y termina con todo prendido (m14).
+// LO QUE SOLO UNA MISION PUEDE CAMBIAR, y como queda cuando no hay mision. Se exporta porque los
+// modos que no juegan una mision (POR LA PATRIA, PERSECUCION) no cargan ningun cfg: sin esto, lo que
+// dejo puesto la ultima mision jugada les quedaba pegado — un POR LA PATRIA sin radar ni poderes.
+//   radar    'normal' es el de siempre (barra que carga, red, oleadas de misiles). 'voz' lo saca de
+//            la pantalla entera y lo reemplaza por avisos hablados — ver el aviso `radar`
+//   poderes  MOMENTUM y el RASANTE de la racha. En false no se cargan, no se dibujan y sus teclas
+//            no hacen nada: el tutorial se vuela a mano y los poderes debutan en M2 (M1_CAMBIOS 10)
+export const CFG_SIN_MISION = { radar: 'normal', poderes: true };
+
+// OPCIONES DEL JUGADOR QUE UNA MISION PUEDE PISAR (COMBUSTIBLE: SI/NO y su escala). No van en los
+// defaults de `C` —eso le pisaria la opcion al jugador en TODAS las misiones—: la mision que las
+// declara las pisa, y al irse se devuelven (ver `loadLevel` en game.js).
+export const PREFS_QUE_PISA_UNA_MISION = ['fuelOn', 'fuelScale'];
+
 const C = over => ({
   sky: 'dusk', water: 'sea', terrain: 'sea', wind: true, obstacles: 1, coast: 230,
-  bombs: 1, rain: 0, fog: 0, fogLen: 1, squad: 5, caza: 1, persec: 0, ...over,
+  bombs: 1, rain: 0, fog: 0, fogLen: 1, squad: 5, caza: 1, persec: 0,
+  ...CFG_SIN_MISION,
+  ...over,
 });
 
 // config legada (la usan pruebas y el modo camara); misma forma que antes
@@ -49,11 +65,31 @@ export const CAMPAIGN_CFG = C({});
 //   story  → secuencia larga de historia (SOLO campaña)
 //   brief  → tarjeta corta de 2-3 lineas (ciclo de muerte)
 //   epi    → desenlace (epilogo de aire + carta + placa historica)
+// `despegue` → el cartel de la carrera de despegue: de donde salen y hacia que. La BASE es la misma
+//            en toda la campaña —el escuadron vuela el A-4B, el del Grupo 5, que opero desde Rio
+//            Gallegos toda la guerra— y el RUMBO sale de la linea de Condor que da el objetivo en el
+//            primer tramo (`M0x_OBJETIVO` de data/story.js): el cartel no inventa geografia que el
+//            guion no dijo. Antes era un texto unico para las catorce («PUERTO ARGENTINO · BAM
+//            MALVINAS — rumbo al estrecho de San Carlos»), que solo era cierto para una.
 export const MISSIONS = [
   {
-    id: 'm1', name: 'SAL EN LAS ALAS', date: 'fines de abril de 1982',
+    id: 'm1', name: 'CON SAL EN LAS ALAS', date: 'fines de abril de 1982',
+    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'rumbo sudeste · mar abierto' },
     goal: { kind: 'distance', meters: 2200 },
-    cfg: C({ sky: 'dawn', wind: false, obstacles: 0.5, bombs: 0, caza: 0, persec: 1 }),
+    // COMBUSTIBLE PRENDIDO, PERO SIN CHANCHA. El tanque se ve y baja —es la mitad de lo que hace
+    // falta para que el poder signifique algo cuando llegue— y en M1 solo se lo NOMBRA.
+    //
+    // POR QUE NO SE USA ACA, y no es por la nafta: es por el reloj. La Chancha tarda CH_ETA = 18 s
+    // en aparecer desde que se la pide, mas ~11 conectado para llenar. La vuelta de esta mision dura
+    // entre 5 y 10 segundos, asi que el Hercules llegaria despues del aterrizaje. Hacerla jugable
+    // pedia alargar la vuelta al doble de la mision entera. Debuta en M2.
+    cfg: C({ sky: 'dawn', obstacles: 0.5, bombs: 0, caza: 0, persec: 0, radar: 'voz', fuelOn: true, fuelScale: 0.4, poderes: false }),
+    // EL RELOJ, A LA ESCALA DE ESTA MISION. El tanque son 100 unidades a 3.2 %/s: TREINTA Y UN
+    // SEGUNDOS, un numero calibrado contra pasillos de medio minuto. Con las fases puestas el
+    // rasante gasta el doble, asi que M1 volada despacio se secaba a los 1.740 m de los 2.970 que
+    // mide ida mas vuelta — y en una mision donde no se puede morir, quedarse sin nafta no es una
+    // muerte: es un avion que no vuela y no se hunde. Con 0.4 el peor caso llega con ~30% de tanque
+    // (medido volando lo mas lento posible y pegado al agua todo el trayecto).
     // G-05: las dos charlas en vuelo del tutorial. El ritual de Condor se dice EN VUELO y no en
     // tierra — la voz entra por la radio con el mar pasando abajo, que es como se escuchaba de
     // verdad — y los gansos son el respiro. `obstacles: 0` porque una charla pide cero enemigos en
@@ -72,10 +108,85 @@ export const MISSIONS = [
       { hasta: 0.30, obstacles: 0, caza: 0, bombs: 0, charla: 'M01_GANSOS' },
       { hasta: 1 },
     ],
+    // SIN NUMEROS EN EL RECUENTO (M1_CAMBIOS 9): en el tutorial los puntos no se muestran ni se
+    // explican. El recuento sigue existiendo —avisa que la mision termino— pero sin puntaje,
+    // estrellas ni calificacion. Lo lee `drawResults`; ausente es `true`.
+    puntos: false,
+    // …Y EL FONDO DEL RECUENTO, FIJO: el sorteo de siempre puede sacar un destructor en llamas, y en
+    // esta mision no hay un solo buque. `win3` es la formacion sobre el mar (assets/photos/win/).
+    fondoRecuento: 'win3',
+    // EN M1 EL AVION NO SE ROMPE (M1_CAMBIOS 7). Ningun choque —agua, ola, mastil, Puma— tira el
+    // avion ni gasta un piloto: el golpe se cobra en CHAPA (`golpe` puntos) y la chapa no baja de
+    // `piso`. Siempre vuela Tero. `gracia` son los segundos despues de un golpe en que otro no cuenta:
+    // sin eso, un panzazo contra el agua cobraria un golpe por cuadro. Lo lee `onDeath` en game.js,
+    // que es la unica puerta de todas las muertes.
+    sinMuerte: { golpe: 25, piso: 25, gracia: 1.2 },
+    // …Y EL GOLPE LO DICE PUMA. Bancos `AVISO` de data/story.js: `agua` es el golpe contra el mar o
+    // el suelo, `choque` contra cualquier otra cosa, `piso` la primera vez que la chapa llega al piso
+    // (y gana sobre los otros dos). `cada` son los segundos minimos entre dos avisos.
+    avisos: { agua: 'AV_M1_AGUA', choque: 'AV_M1_CHOQUE', piso: 'AV_M1_PISO', radar: 'AV_M1_RADAR',
+      vuelta: 'AV_M1_VUELTA', chancha: 'AV_M1_CHANCHA', cada: 6 },
+    // HASTA DONDE LLEGA LA RADIO DE CONDOR (M1_CAMBIOS 8): sus lineas de un banco solo se eligen en
+    // el primer 15% y el ultimo 15% del camino. En el medio habla la escuadrilla y nadie mas.
+    // `hasta` es de la IDA (el despegue) y `desde` de la VUELTA: la fraccion del regreso a partir de
+    // la cual la radio vuelve a entrar. El ritual de Condor (12%-21%) cae adentro, y justo despues
+    // la leccion de SEGUIR se corta en el borde: ese corte es la escena, no un accidente.
+    condorAlcance: { hasta: 0.2, desde: 0.5 },
+    // LAS LECCIONES (M1_CAMBIOS 8): que se explica, donde, quien y con que foco. Las lineas estan en
+    // data/story.js (`tipo: 'LECCION'`).
+    //   en      fraccion del camino. Pasa de 1 en la vuelta, igual que las fases
+    //   dice    la escena de una linea
+    //   foco    zonas del HUD que quedan sin velo (ver `zonaHud` en render/hud.js)
+    //   teclas  filas de la tabla de CONTROLES (`ctrl<Nombre>` de data/strings.js): el juego muestra
+    //           la version de teclado o la de joystick segun lo que este conectado
+    //   pausa   congela sin foco ni teclas (el corte de Condor y la explicacion de Puma)
+    // Con `pausa`, `foco` o `teclas` la leccion CONGELA el juego hasta que se aprieta cualquier
+    // tecla, y al soltarla la linea se calla para que la siguiente entre enseguida. Sin ninguna de
+    // las tres es solo radio, y espera a que nadie este hablando.
+    //
+    // TODAS LAS DE LA IDA PAUSAN, y no es gusto: medido, cada linea de radio dura de 5 a 9 s y la
+    // ida volada rapido dura menos que eso por leccion. Diciendolas en vuelo la cola se atrasaba y
+    // la vuelta llegaba con cinco lecciones sin decir.
+    //
+    // `en: 'aterrizaje'` = al entrar a la aproximacion final, que es donde se habla de la pista.
+    lecciones: [
+      { en: 0.08, dice: 'LEC_M1_GAS', foco: ['gas', 'alt'], teclas: ['Gas', 'Dive'] },
+      { en: 0.15, dice: 'LEC_M1_RUTA', foco: ['ruta'] },
+      // SIN MODO SEGUIR (pedido del autor, 18/9): se fue la leccion de la barra del lider, y el corte
+      // de Condor paso a cortarse explicando el techo del radar — foco en la altitud, donde vive.
+      { en: 0.19, dice: 'LEC_M1_CORTE', pausa: true, foco: ['alt'] },
+      { en: 0.19, dice: 'LEC_M1_INTERFERENCIA', pausa: true },
+      { en: 0.45, dice: 'LEC_M1_TABLERO', foco: ['vel', 'horizonte', 'alt', 'gas'] },
+      { en: 0.55, dice: 'LEC_M1_TURBO', foco: ['vel'], teclas: ['Boost'] },
+      { en: 0.65, dice: 'LEC_M1_ARMAS', foco: ['canon', 'rack'], teclas: ['Gun', 'Msl'] },
+      { en: 0.80, dice: 'LEC_M1_TONEL', teclas: ['Tonel'] },
+      { en: 'aterrizaje', dice: 'LEC_M1_PISTA' },
+    ],
+    // IDA Y VUELTA (M1_CAMBIOS 5). La mision deja de ser un pasillo parejo: hay una ida rasante y
+    // sin nada que dispare, el punto donde se da la vuelta (la fraccion 1, el objetivo), y un
+    // regreso corto. Es DATO: el motor de fases ya existe y esto es su tabla (data/fases.js).
+    //
+    // LA VUELTA PISA SUS DEFAULTS. El tipo `vuelta` sube la siembra por su cuenta (obstacles 1.6,
+    // caza 2) porque en el resto de la campaña volver es la parte dificil; en el tutorial no te
+    // busca nadie, asi que se le escriben los tres ceros. Lo unico que cambia de verdad es la voz,
+    // la nafta (venis liviano) y que es el unico tramo donde se puede llamar a LA CHANCHA.
+    fases: [
+      { tipo: 'transito', hasta: 0.12, bombs: 0, bidones: false },
+      { tipo: 'descenso', hasta: 0.30, bombs: 0, bidones: false },
+      { tipo: 'rasante', hasta: 0.70, bombs: 0, bidones: false },
+      { tipo: 'rasante', hasta: 1, bombs: 0, bidones: false },
+      // 1.6 y no 1.35: la vuelta tiene que durar lo que dura lo que se dice en ella. Con 1.35 son
+      // 770 m — menos de cinco segundos volando rapido — y la linea de Puma sola ya dura 5,8.
+      { tipo: 'vuelta', hasta: 1.6, obstacles: 0.5, caza: 0, bombs: 0, bidones: false },
+    ],
+    // SIN CHANCHA (se nombra en la vuelta y debuta en M2). Sin esto el reloj aparecia en verde, LISTA,
+    // porque la barra se carga con puntos: un poder a la vista que no se puede usar.
+    chancha: false,
     roster: F5, par: 5000, story: 'storyM1', brief: 'briefM1', epi: 'epiM1',
   },
   {
-    id: 'm2', name: 'BAUTISMO DE FUEGO', date: '1 de mayo de 1982',
+    id: 'm2', name: 'EL BAUTISMO DE FUEGO', date: '1 de mayo de 1982',
+    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'cruce de costa' },
     goal: { kind: 'distance', meters: 2600 },
     cfg: C({ bombs: 0.5 }),
     // G-08: el objetivo por radio, en el primer tramo. `obstacles: 0` no es cosmetico — una charla
@@ -88,6 +199,7 @@ export const MISSIONS = [
   },
   {
     id: 'm3', name: 'EL INVENTO', date: 'primeros dias de mayo de 1982',
+    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'patrulla de reconocimiento costero' },
     goal: { kind: 'distance', meters: 2400 },
     // LA MISION MAS LIVIANA DE LA CAMPAÑA, Y ES A PROPOSITO (GUION_3 M3): es donde el juego
     // ENSEÑA el sistema de mejoras. El Pichon le toca el avion a Esteban y el jugador tiene que
@@ -107,6 +219,7 @@ export const MISSIONS = [
   },
   {
     id: 'm4', name: 'EL DIA QUE SANGRO EL MAR', date: '4 de mayo de 1982',
+    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'blanco: destructor clase 42' },
     goal: { kind: 'ship', ship: 'HMS SHEFFIELD', dist: 2600 },
     cfg: C({ bombs: 0.5 }),
     // EL TRANSITO DEL NARWAL (GUION_3, "de donde salen las posiciones"), y la primera mision con
@@ -148,6 +261,7 @@ export const MISSIONS = [
   },
   {
     id: 'm5', name: 'EL CALLEJON DE LAS BOMBAS', date: '21 de mayo de 1982',
+    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'entrada al estrecho de San Carlos' },
     goal: { kind: 'ship', ship: 'HMS ARDENT', dist: 2600 },
     climax: 'arena',   // ver la nota de arriba
     // EL SILENCIO DEL NARWAL (GUION_3 M5, §3.9). Es el MISMO tramo de transito de m4 —misma
@@ -200,6 +314,7 @@ export const MISSIONS = [
   },
   {
     id: 'm6', name: 'LA BOMBA QUE NO DESPERTO', date: '23 de mayo de 1982',
+    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'fragata al noroeste del estrecho' },
     goal: { kind: 'ship', ship: 'HMS ANTELOPE', dist: 2800 },
     cfg: C({ sky: 'sun', obstacles: 1.7, fog: 1, fogLen: 0 }),
     // G-08: el objetivo por radio, en el primer tramo. `obstacles: 0` no es cosmetico — una charla
@@ -211,7 +326,8 @@ export const MISSIONS = [
     roster: F5, par: 9000, story: 'storyM6', brief: 'briefM6', epi: 'epiM6',
   },
   {
-    id: 'm7', name: '25 DE MAYO', date: '25 de mayo de 1982',
+    id: 'm7', name: 'PASTELITOS', date: '25 de mayo de 1982',
+    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'destructor en el estrecho' },
     goal: { kind: 'ship', ship: 'HMS COVENTRY', dist: 2800 },
     cfg: C({ sky: 'clear', obstacles: 1.7 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
@@ -224,7 +340,8 @@ export const MISSIONS = [
     roster: F5, par: 9500, story: 'storyM7', brief: 'briefM7', epi: 'epiM7',
   },
   {
-    id: 'm8', name: 'EL BATIR DE ALAS', date: '25 de mayo de 1982 · segunda salida',
+    id: 'm8', name: 'EL BATIR DE LAS ALAS', date: '25 de mayo de 1982 · segunda salida',
+    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'blanco: carguero grande' },
     goal: { kind: 'ship', ship: 'ATLANTIC CONVEYOR', dist: 3000 },
     cfg: C({ obstacles: 1.7, rain: 1, squad: 4 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
@@ -238,6 +355,7 @@ export const MISSIONS = [
   },
   {
     id: 'm9', name: 'EL PIBE', date: '27 de mayo de 1982',
+    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'centro logístico en San Carlos' },
     goal: { kind: 'distance', meters: 3200 },
     cfg: C({ sky: 'storm', obstacles: 1.7, bombs: 2, rain: 2, fog: 1, squad: 4 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
@@ -251,6 +369,7 @@ export const MISSIONS = [
   },
   {
     id: 'm10', name: 'LOS PRIMOS', date: '5 de junio de 1982',
+    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'reconocimiento armado sobre las islas' },
     goal: { kind: 'distance', meters: 3600 },
     // LA MAS LARGA DEL JUEGO Y LA UNICA DONDE EL NIVEL ES EL CLIMA (GUION_3 M10). No tiene buque
     // ni blancos: el enemigo es el frente cerrado, la niebla y la nafta. Por eso `obstacles` baja
@@ -274,6 +393,7 @@ export const MISSIONS = [
   },
   {
     id: 'm11', name: 'LO QUE NO SE DICE', date: '8 de junio de 1982',
+    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'apoyo sobre Fitzroy' },
     goal: { kind: 'ship', ship: 'RFA SIR GALAHAD', dist: 3000 },
     cfg: C({ sky: 'cloudy', obstacles: 1.7, squad: 3, caza: 2 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
@@ -286,7 +406,8 @@ export const MISSIONS = [
     roster: F3, par: 11500, story: 'storyM11', brief: 'briefM11', epi: 'epiM11',
   },
   {
-    id: 'm12', name: 'EL ANGEL DE CORRIENTES', date: '8 de junio de 1982 · segunda salida',
+    id: 'm12', name: 'ANGEL DE CORRIENTES', date: '8 de junio de 1982 · segunda salida',
+    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'segunda salida sobre Fitzroy' },
     goal: { kind: 'ship', ship: 'RFA SIR TRISTRAM', dist: 3000 },
     cfg: C({ obstacles: 1.7, bombs: 2, rain: 1, squad: 3 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
@@ -299,7 +420,8 @@ export const MISSIONS = [
     roster: F3, par: 12000, story: 'storyM12', brief: 'briefM12', epi: 'epiM12',
   },
   {
-    id: 'm13', name: 'LA ULTIMA MESA', date: '11 de junio de 1982',
+    id: 'm13', name: 'LA CENA', date: '11 de junio de 1982',
+    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'apoyo a las posiciones de los montes' },
     goal: { kind: 'ship', ship: 'HMS BROADSWORD', dist: 3200 },
     cfg: C({ sky: 'moon', terrain: 'land', obstacles: 1.7, bombs: 2, fog: 1, squad: 3, caza: 2 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
@@ -313,6 +435,9 @@ export const MISSIONS = [
   },
   {
     id: 'm14', name: 'EL TERO', date: 'madrugada del 12 de junio de 1982',
+    // SIN RUMBO, a proposito: M14 es la unica mision sin orden. Esa noche no hay pajaro asignado
+    // ni nadie que los mande (ver RESUELTOS_GUION, G-08), y el cartel no puede decir lo contrario.
+    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: '' },
     goal: { kind: 'ship', ship: 'HMS GLAMORGAN', dist: 3400 },
     climax: 'arena',   // ver la nota de arriba
     cfg: C({ sky: 'night', obstacles: 1.7, bombs: 2, fog: 1, fogLen: 2, squad: 3, caza: 2 }),

@@ -26,6 +26,14 @@
 // jugador: corre en auto. Por eso vale una regla propia — TIENE QUE ENTRAR EN `CHV_MAX_S`
 // segundos, y la cuenta es `max(1.6, caracteres/12) + hold` por linea. La escena que no entra no
 // se recorta: se parte en dos, y se cuelga de dos tramos seguidos.
+//
+// 'LECCION' es UNA linea que la mision dice en un punto del camino (campo `lecciones`), con pausa y
+// foco sobre el instrumento si la lista lo pide. Nunca nombra una tecla: las pone el juego.
+//
+// 'AVISO' es un BANCO, no una escena: sus lineas no se leen en orden. Cada vez que pasa lo que el
+// aviso escucha (un golpe contra el agua, la chapa en el piso…) se dice UNA al azar, sin repetir la
+// anterior, por la caja de radio — no frena nada. Una mision los engancha con su campo `avisos` en
+// data/missions.js.
 
 export const SCENES = {
   M05_ESCUCHA: {
@@ -497,8 +505,15 @@ export const SCENES = {
     lineas: [
       { id: 'M01_3_010', personaje: null, cara: null, hold: 3.0, tipo: 'NARRADOR',
         es: 'Esteban llega al nuevo escuadrón al que fue asignado. Uno de los pilotos, de pelo rizado, ceba mates para el resto de la ronda. Uno de ellos, con bigote, se acerca a recibirlo.', en: '' },
+      // TERO Y EL TURCO YA SE CONOCEN (M1_CAMBIOS 4). El apodo tiene de donde venir, Esteban no llega
+      // sin conocer a nadie, y el que lo recibe es el mismo que lo acompaña en el final donde vive.
+      { id: 'M01_3_012', personaje: 'EL TURCO', cara: 'turco_sonrisa', hold: 0.6,
+        es: 'Tero querido, ¿cómo estás? Tanto tiempo. Vení que te presento a la banda.', en: '' },
+      { id: 'M01_3_016', personaje: 'PUMA', cara: 'puma_neutro', hold: 0.4,
+        es: 'Hola, Esteban. Mucho gusto, me dicen Puma. Oí que a vos te dicen Tero. Bienvenido a los Fieles de Plata.', en: '' },
+      // el saludo se mudo a la linea de arriba; aca quedan las reglas
       { id: 'M01_3_020', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
-        es: 'Bienvenido al escuadrón, Tero. Primera regla: siempre pegado al agua, el radar de ellos no te ve. Hay que volar tan bajo que tenés que volver con sal en las alas. Segunda regla: no hay. Con la primera alcanza.', en: '' },
+        es: 'Primera regla: siempre pegado al agua, el radar de ellos no te ve. Hay que volar tan bajo que tenés que volver con sal en las alas. Segunda regla: no hay. Con la primera alcanza.', en: '' },
       { id: 'M01_3_030', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0,
         es: 'Tercera regla: el mate lo cebo yo. Y si no volvés... te lo cebo igual. Pero solo. Cebar solo es tristísimo, así que volvé.', en: '' },
       { id: 'M01_3_040', personaje: 'PICHÓN', cara: 'pichon_neutro', hold: 0.6,
@@ -546,7 +561,10 @@ export const SCENES = {
         es: 'A mí me dijeron que ustedes dos hablan mucho.', en: '' },
       { id: 'M01_5B_140', personaje: 'CÓNDOR', cara: 'condor_reposo', hold: 0, 
         accion: 'Shhh, crrr... zkk',
-        es: 'Escuadrilla CAUQUÉN, aquí Cóndor. Autorizada adaptación sobre mar abierto, rumbo sudeste. Recomendamos mantenerse rasantes al agua durante todo el trayecto y prestar especial atención al radar. Pista dos autorizada. Buen vuelo.', en: '' },
+        // M1_CAMBIOS 2 y 3: CORTA EL CHISTE y no autoriza la pista. La autorizacion se mudo a
+        // `M01_PISTA`, despues del ritual — antes Condor daba pista aca y todavia venian el terito
+        // y los cinco subiendo.
+        es: 'Vuelo de adaptación autorizado. Favor de despegar en 15 minutos.', en: '' },
     ],
   },
   // EL TERITO (GUION_3, M1). Es la raiz de tres sistemas y por eso no se puede caer: el gesto de
@@ -602,6 +620,15 @@ export const SCENES = {
         es: 'Tero se para un segundo delante del suyo. Estira dos dedos y toca el terito recién pintado. No dice nada.', en: '' },
       { id: 'M01_CINCO_070', personaje: null, cara: null, hold: 3.0, tipo: 'NARRADOR',
         es: 'El Turco los mira subir a los cinco desde atrás, con el trapo en el hombro. Cuando el último cierra la cúpula, le dice al avión más cercano algo que no se escucha.', en: '' },
+    ],
+  },
+  // CONDOR CIERRA SIEMPRE (M1_CAMBIOS 3, regla de las catorce): la ultima voz antes de que el
+  // jugador tome el control es la suya. Es la segunda mitad de la radio que antes cerraba `M01_5B`.
+  M01_PISTA: {
+    id: 'M01_PISTA', tipo: 'VN', titulo: 'PISTA DOS', placa: 'linea_amanecer',
+    lineas: [
+      { id: 'M01_PISTA_010', personaje: 'CÓNDOR', cara: 'condor_reposo', hold: 0,
+        es: 'Autorizada pista dos. Mantenerse rasante. Buen vuelo, muchachos.', en: '' },
     ],
   },
   M01_TARJETA: {
@@ -2071,9 +2098,8 @@ export const SCENES = {
       { id: 'M01_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
         es: 'Escuadrilla Cauquén, aquí Cóndor. Adaptación sobre mar abierto, rumbo sudeste.', en: '' },
       { id: 'M01_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.8,
-        es: 'No hay nada que atacar hoy. Hay que aprender a volar abajo: cuanto más pegado al agua, mejor.', en: '' },
-      { id: 'M01_OBJETIVO_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.2,
-        es: 'Copiado. Vení atrás mío, Tero, y no me pierdas la cola.', en: '' },
+        es: 'No hay nada que atacar hoy. Hay que aprender a volar abajo: cuanto más pegado al agua, mejor. Buen vuelo.', en: '' },
+      // (M01_OBJETIVO_030, Puma «Vení atrás mío…», salio el 18/9: era la entrada al modo SEGUIR)
     ],
   },
   M02_OBJETIVO: {
@@ -2082,7 +2108,7 @@ export const SCENES = {
       { id: 'M02_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
         es: 'Escuadrilla Chimango, aquí Cóndor. Cruce de costa autorizado.', en: '' },
       { id: 'M02_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.0,
-        es: 'Radar activo en toda la aproximación. Entran, cruzan y vuelven. Nada más.', en: '' },
+        es: 'Radar activo en toda la aproximación. Entran, cruzan y vuelven. Nada más. Buen vuelo.', en: '' },
       { id: 'M02_OBJETIVO_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.2,
         es: 'Chimango copia. Pegaditos.', en: '' },
     ],
@@ -2093,7 +2119,7 @@ export const SCENES = {
       { id: 'M03_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
         es: 'Escuadrilla Benteveo, aquí Cóndor. Patrulla de reconocimiento costero.', en: '' },
       { id: 'M03_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.0,
-        es: 'Blancos de oportunidad nada más: boyas, un radar portátil si aparece. Sin presión.', en: '' },
+        es: 'Blancos de oportunidad nada más: boyas, un radar portátil si aparece. Sin presión. Buen vuelo.', en: '' },
       { id: 'M03_OBJETIVO_030', personaje: 'EL TURCO', cara: 'turco_neutro', hold: 1.5,
         es: 'Y me lo prueban despacio al invento del changuito, ¿eh? Despacio.', en: '' },
     ],
@@ -2104,7 +2130,7 @@ export const SCENES = {
       { id: 'M04_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
         es: 'Escuadrilla Albatros, aquí Cóndor. Blanco: destructor, clase 42.', en: '' },
       { id: 'M04_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
-        es: 'Es el que le da cobertura al resto de la flota. Si cae ése, el resto queda mirando.', en: '' },
+        es: 'Es el que le da cobertura al resto de la flota. Si cae ése, el resto queda mirando. Buen vuelo.', en: '' },
     ],
   },
   M05_OBJETIVO: {
@@ -2113,7 +2139,7 @@ export const SCENES = {
       { id: 'M05_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
         es: 'Escuadrilla Aguilucho, aquí Cóndor. Entrada al estrecho de San Carlos.', en: '' },
       { id: 'M05_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.0,
-        es: 'Blanco: fragata en el fondeadero. Entran, sueltan y salen por el norte.', en: '' },
+        es: 'Blanco: fragata en el fondeadero. Entran, sueltan y salen por el norte. Buen vuelo.', en: '' },
       { id: 'M05_OBJETIVO_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.5,
         es: 'Nadie se hace el héroe ahí adentro. Entramos, soltamos, salimos.', en: '' },
     ],
@@ -2124,7 +2150,7 @@ export const SCENES = {
       { id: 'M06_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
         es: 'Escuadrilla Carancho, aquí Cóndor. Fragata al noroeste del estrecho.', en: '' },
       { id: 'M06_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
-        es: 'Aviso de armamento: a esta altura la espoleta puede no armarse. Lo saben.', en: '' },
+        es: 'Aviso de armamento: a esta altura la espoleta puede no armarse. Lo saben. Buen vuelo.', en: '' },
       { id: 'M06_OBJETIVO_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.5,
         es: 'Le pegamos igual. Que la bomba haga lo que pueda.', en: '' },
     ],
@@ -2135,7 +2161,7 @@ export const SCENES = {
       { id: 'M07_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
         es: 'Escuadrilla Zorzal, aquí Cóndor. Destructor en el estrecho.', en: '' },
       { id: 'M07_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
-        es: 'Feliz veinticinco, muchachos. A ver si me lo bajan.', en: '' },
+        es: 'Feliz veinticinco, muchachos. A ver si me lo bajan. Buen vuelo.', en: '' },
     ],
   },
   M08_OBJETIVO: {
@@ -2144,7 +2170,7 @@ export const SCENES = {
       { id: 'M08_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
         es: 'Escuadrilla Hornero, aquí Cóndor. Blanco: carguero grande, mucho porte.', en: '' },
       { id: 'M08_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
-        es: 'Trae los helicópteros pesados. Si no llega, la infantería cruza la isla a pie.', en: '' },
+        es: 'Trae los helicópteros pesados. Si no llega, la infantería cruza la isla a pie. Buen vuelo.', en: '' },
     ],
   },
   M09_OBJETIVO: {
@@ -2153,7 +2179,7 @@ export const SCENES = {
       { id: 'M09_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
         es: 'Escuadrilla Golondrina, aquí Cóndor. Centro logístico en San Carlos.', en: '' },
       { id: 'M09_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
-        es: 'Es lo más defendido que hay sobre las islas. No tengo mejores noticias.', en: '' },
+        es: 'Es lo más defendido que hay sobre las islas. No tengo mejores noticias. Buen vuelo.', en: '' },
       { id: 'M09_OBJETIVO_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.5,
         es: 'Pichón, vos pegado a mí. No te separás ni para respirar.', en: '' },
     ],
@@ -2164,7 +2190,7 @@ export const SCENES = {
       { id: 'M10_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
         es: 'Escuadrilla Chingolo, aquí Cóndor. Reconocimiento armado sobre las islas.', en: '' },
       { id: 'M10_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
-        es: 'Salen, miran, si hay algo lo tocan, y vuelven. El clima está peor que el enemigo.', en: '' },
+        es: 'Salen, miran, si hay algo lo tocan, y vuelven. El clima está peor que el enemigo. Buen vuelo.', en: '' },
       { id: 'M10_OBJETIVO_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.5,
         es: 'Y hoy la nafta se cuida. Lo que llevamos es lo que hay.', en: '' },
     ],
@@ -2175,7 +2201,7 @@ export const SCENES = {
       { id: 'M11_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
         es: 'Escuadrilla Calandria, aquí Cóndor. Apoyo sobre Fitzroy.', en: '' },
       { id: 'M11_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
-        es: 'Buque de desembarco fondeado, con tropa a bordo. Está descargando.', en: '' },
+        es: 'Buque de desembarco fondeado, con tropa a bordo. Está descargando. Buen vuelo.', en: '' },
     ],
   },
   M12_OBJETIVO: {
@@ -2184,7 +2210,7 @@ export const SCENES = {
       { id: 'M12_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
         es: 'Escuadrilla Chajá, aquí Cóndor. Segunda salida sobre Fitzroy.', en: '' },
       { id: 'M12_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
-        es: 'El otro buque sigue ahí. Mismo fondeadero, misma entrada.', en: '' },
+        es: 'El otro buque sigue ahí. Mismo fondeadero, misma entrada. Buen vuelo.', en: '' },
       { id: 'M12_OBJETIVO_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.5,
         es: 'Otra vez. Ahora.', en: '' },
     ],
@@ -2195,7 +2221,7 @@ export const SCENES = {
       { id: 'M13_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
         es: 'Escuadrilla Caburé, aquí Cóndor. Apoyo a las posiciones de los montes.', en: '' },
       { id: 'M13_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
-        es: 'Hay fragatas dando fuego naval sobre nuestra gente. Hay que espantarlas de la costa.', en: '' },
+        es: 'Hay fragatas dando fuego naval sobre nuestra gente. Hay que espantarlas de la costa. Buen vuelo.', en: '' },
       { id: 'M13_OBJETIVO_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.5,
         es: 'Esta noche volamos sobre las cabezas de los nuestros. Ojo con lo que sueltan.', en: '' },
     ],
@@ -2344,6 +2370,141 @@ export const SCENES = {
         es: 'Formación cerrada. Entramos.', en: '' },
     ],
   },
+  // LOS AVISOS DE PUMA EN M1 (M1_CAMBIOS 7). En el tutorial el avion no se rompe: el golpe baja la
+  // chapa y el que lo dice es Puma. Seco y corto, de jefe que cuida sin decirlo.
+  AV_M1_AGUA: {
+    id: 'AV_M1_AGUA', tipo: 'AVISO', titulo: 'PUMA · CONTRA EL AGUA',
+    lineas: [
+      { id: 'AV_M1_AGUA_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Tero, eso fue el mar. Pegado, sí. Adentro, no.', en: '' },
+      { id: 'AV_M1_AGUA_020', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Sal en las alas, Tero. No en la cabina.', en: '' },
+      { id: 'AV_M1_AGUA_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Un palmo más arriba. Un palmo nomás.', en: '' },
+    ],
+  },
+  AV_M1_CHOQUE: {
+    id: 'AV_M1_CHOQUE', tipo: 'AVISO', titulo: 'PUMA · CONTRA ALGO',
+    lineas: [
+      { id: 'AV_M1_CHOQUE_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Te lo llevaste puesto. Mirá adelante, no el agua.', en: '' },
+      { id: 'AV_M1_CHOQUE_020', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: '¿Entero? Seguí. Y abrí los ojos.', en: '' },
+      { id: 'AV_M1_CHOQUE_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Esa chapa te la va a cobrar el Turco.', en: '' },
+    ],
+  },
+  // EL RADAR QUE NO SE VE (M1_CAMBIOS 6): en M1 no hay barra ni misiles — cuando el avion sube por
+  // encima del techo, le hablan. Condor solo se elige cerca de la base (`condorAlcance` de la
+  // mision): mas lejos, la radio no llega y el banco queda en las dos de Puma.
+  AV_M1_RADAR: {
+    id: 'AV_M1_RADAR', tipo: 'AVISO', titulo: 'EL RADAR, POR RADIO',
+    lineas: [
+      { id: 'AV_M1_RADAR_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0,
+        es: 'Numeral de Cauquén, altura excesiva. Descienda.', en: '' },
+      { id: 'AV_M1_RADAR_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0,
+        es: 'Esa altura es peligrosa, visible por el radar. Descienda.', en: '' },
+      { id: 'AV_M1_RADAR_030', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Primera regla, Tero. Pegado al agua.', en: '' },
+      { id: 'AV_M1_RADAR_040', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Ahí te ve el radar. Hoy es gratis; mañana no.', en: '' },
+    ],
+  },
+  // LA MEDIA VUELTA (M1_CAMBIOS 5): lo que se dice cuando la pantalla vuelve del negro y el avion ya
+  // esta volando para el otro lado. Una sola linea: el corte ya conto lo que paso.
+  AV_M1_VUELTA: {
+    id: 'AV_M1_VUELTA', tipo: 'AVISO', titulo: 'PUMA · A CASA',
+    lineas: [
+      { id: 'AV_M1_VUELTA_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Hasta acá llegamos, Tero. Media vuelta y a casa.', en: '' },
+    ],
+  },
+  // LA CHANCHA, NOMBRADA (M1_CAMBIOS 5). En M1 no se puede pedir —la vuelta dura menos que su cita—
+  // asi que lo unico que se hace es decir que existe, en el tramo donde algun dia va a hacer falta.
+  AV_M1_CHANCHA: {
+    id: 'AV_M1_CHANCHA', tipo: 'AVISO', titulo: 'PUMA · LA CHANCHA',
+    lineas: [
+      { id: 'AV_M1_CHANCHA_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Si algún día no te alcanza para volver, se pide la Chancha. Te da de tomar en el aire. Hoy alcanza.', en: '' },
+    ],
+  },
+  AV_M1_PISO: {
+    id: 'AV_M1_PISO', tipo: 'AVISO', titulo: 'PUMA · LA CHAPA EN EL PISO',
+    lineas: [
+      { id: 'AV_M1_PISO_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Ese avión no aguanta otro así, Tero. Suave, detrás mío, y a casa.', en: '' },
+    ],
+  },
+  // LAS LECCIONES DE M1 (M1_CAMBIOS 8). Cada personaje explica un instrumento o un control a su
+  // manera, y NINGUNO NOMBRA UNA TECLA: las teclas las pone el juego en la pausa, sacadas de la
+  // tabla de CONTROLES y segun se juegue con teclado o con joystick. Cuando y con que foco se dice
+  // cada una lo decide la lista `lecciones` de la mision (data/missions.js).
+  //
+  // EL ORDEN ES LA ESCENA: Condor arranca el tutorial, se le corta la radio en medio de una
+  // explicacion, y Puma dice por que pasa y la termina. La interferencia esta ESCRITA en el texto.
+  LEC_M1_GAS: {
+    id: 'LEC_M1_GAS', tipo: 'LECCION', titulo: 'CÓNDOR · GAS Y ALTURA',
+    lineas: [
+      { id: 'LEC_M1_GAS_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0,
+        es: 'Cauquén, recuerde: sin empuje, el avión cae. Vigile el gas y la altitud.', en: '' },
+    ],
+  },
+  LEC_M1_RUTA: {
+    id: 'LEC_M1_RUTA', tipo: 'LECCION', titulo: 'CÓNDOR · LA RUTA',
+    lineas: [
+      { id: 'LEC_M1_RUTA_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0,
+        es: 'Arriba podrá observar la ruta con el objetivo y la distancia recorrida y final.', en: '' },
+    ],
+  },
+  LEC_M1_CORTE: {
+    id: 'LEC_M1_CORTE', tipo: 'LECCION', titulo: 'CÓNDOR · SE CORTA',
+    lineas: [
+      { id: 'LEC_M1_CORTE_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0,
+        es: 'Recuerde: por debajo de la altura del radar, no lo detectan. Manténgase pegado al ag… zzk… crrr…', en: '' },
+    ],
+  },
+  LEC_M1_INTERFERENCIA: {
+    id: 'LEC_M1_INTERFERENCIA', tipo: 'LECCION', titulo: 'PUMA · LA RADIO NO LLEGA',
+    lineas: [
+      { id: 'LEC_M1_INTERFERENCIA_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'A veces pasa. Nuestra tecnología es limitada. No tenemos radar a bordo. Cóndor es nuestra única forma de ver a los enemigos más allá de nuestros ojos.', en: '' },
+    ],
+  },
+  LEC_M1_TABLERO: {
+    id: 'LEC_M1_TABLERO', tipo: 'LECCION', titulo: 'PICHÓN · EL TABLERO',
+    lineas: [
+      { id: 'LEC_M1_TABLERO_010', personaje: 'PICHÓN', cara: 'pichon_neutro', hold: 0,
+        es: 'Como en el A-4, Tero: en el medio va lo que cambia rápido. Velocidad, horizonte, altura, gas. Lo demás se mira de reojo.', en: '' },
+    ],
+  },
+  LEC_M1_TURBO: {
+    id: 'LEC_M1_TURBO', tipo: 'LECCION', titulo: 'GITANO · EL TURBO',
+    lineas: [
+      { id: 'LEC_M1_TURBO_010', personaje: 'GITANO', cara: 'gitano_sonrisa', hold: 0,
+        es: '¿Más velocidad? Le metimos turbo. Pero ojo, que chupa más que el Vasco en un asado. Así que... de a poquito.', en: '' },
+    ],
+  },
+  LEC_M1_ARMAS: {
+    id: 'LEC_M1_ARMAS', tipo: 'LECCION', titulo: 'VASCO · LAS ARMAS',
+    lineas: [
+      { id: 'LEC_M1_ARMAS_010', personaje: 'VASCO', cara: 'vasco_neutro', hold: 0,
+        es: 'Armas. Cañón para lo que se mueve. Bombas para lo que no. Ninguna al agua.', en: '' },
+    ],
+  },
+  LEC_M1_TONEL: {
+    id: 'LEC_M1_TONEL', tipo: 'LECCION', titulo: 'PICHÓN · EL TONEL',
+    lineas: [
+      { id: 'LEC_M1_TONEL_010', personaje: 'PICHÓN', cara: 'pichon_neutro', hold: 0,
+        es: 'Hay algunas maniobras que salen fácil con la configuración de estos modelos. Animate a probarlas. Hay una que se llama tonel. La deduje leyendo el manual.', en: '' },
+    ],
+  },
+  LEC_M1_PISTA: {
+    id: 'LEC_M1_PISTA', tipo: 'LECCION', titulo: 'CÓNDOR · LA RADIO VUELVE',
+    lineas: [
+      { id: 'LEC_M1_PISTA_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0,
+        es: 'Cauquén, aquí Cóndor. Los tengo de nuevo. Pista dos libre. No se olvide el tren antes de tocar.', en: '' },
+    ],
+  },
   M01_GANSOS: {
     id: 'M01_GANSOS', tipo: 'VUELO', titulo: 'LOS GANSOS',
     lineas: [
@@ -2362,7 +2523,8 @@ export const SCENES = {
  *  campaña —o intercalar una escena nueva— moviendo un id de lista en vez de cortar y pegar texto.
  */
 export const SECUENCIAS = {
-  storyM1: ['P1_2', 'P2_3', 'P3_4', 'P4_1', 'M01_3', 'M01_5B', 'M01_TERITO', 'M01_CINCO', 'M01_TARJETA'],
+  // LA ULTIMA VOZ ANTES DE JUGAR ES CONDOR (M1_CAMBIOS 3). La tarjeta no habla: no rompe la regla.
+  storyM1: ['P1_2', 'P2_3', 'P3_4', 'P4_1', 'M01_3', 'M01_5B', 'M01_TERITO', 'M01_CINCO', 'M01_PISTA', 'M01_TARJETA'],
   epiM1: ['M01_7', 'M01_9'],
   storyM2: ['M02_1', 'M02_MATE', 'M02_TARJETA'],
   epiM2: ['M02_5', 'M02_8'],
