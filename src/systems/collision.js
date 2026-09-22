@@ -14,6 +14,7 @@ import { run } from '../core/run.js';
 // de vida elegido en OPCIONES. Chocar algo sigue matando siempre — ver core/damage.js.
 import * as dmg from './damage.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, prune } from '../core/world.js';
+import { BOMBA_G, BOMBA_REL_MAX, SPAWN_Z } from '../data/tuning.js';
 import { proj, popup, explodeAt, bloodBurst, morir, stepDestruccion } from '../core/fx.js';
 import { CHUNK_LIFE, ONDA_T } from '../data/despiece.js';
 import { sfxOne, beep, boom } from '../systems/audio.js';
@@ -479,9 +480,14 @@ export function collisionSystem(dt) {
   // IMPORTANTE: nunca se chequean contra el hitbox del avión (no pueden causar la muerte del jugador).
   for (const pm of pmissiles) {
     const z0 = pm.z;
-    pm.z += 360 * dt;
-    pm.vy -= 26 * dt; pm.y += pm.vy * dt;                                     // caída/arco
-    if (pm.tx !== undefined) pm.x += (pm.tx - pm.x) * Math.min(1, dt * 6);   // guiado leve al blanco
+    // TIRO OBLICUO. `pm.vz` es la velocidad de la bomba EN EL MUNDO; el mundo viene hacia la camara
+    // a `run.spd`, asi que lo que avanza en pantalla es la DIFERENCIA. Sostener la velocidad la deja
+    // cayendo debajo tuyo (lo que hace una bomba de verdad); frenar la dispara para adelante.
+    // El techo existe porque frenar de 490 a 62 la mandaria mas alla de donde nace el mundo.
+    const rel = Math.min(BOMBA_REL_MAX, pm.vz - run.spd);
+    pm.z += rel * dt;
+    pm.vy -= BOMBA_G * dt; pm.y += pm.vy * dt;                                // la caida
+    pm.x += (pm.vx || 0) * dt;                                                // la deriva heredada
     if (Math.random() < 0.7) { const s = proj(pm.x, pm.y, pm.z - 3); parts.push({ x: s.x, y: s.y, vx: 0, vy: 0, life: 0.3, c: P.accent, r: Math.max(1, s.k * 0.35) }); }
     // impacto con obstáculos aéreos (hitbox amplio, one-shot)
     for (const o of obstacles) {
@@ -508,12 +514,21 @@ export function collisionSystem(dt) {
       }
     }
     if (pm.z >= 9999) continue;
-    // sobre TIERRA: explota contra el suelo o cerca de soldados, con splash
-    if (cfg.terrain === 'land' || cfg.terrain === 'coast') {
-      let detonate = pm.y <= 0.3;
+    // CONTRA LA SUPERFICIE, sea la que sea. Antes esto estaba gateado a tierra y la bomba soltada
+    // sobre el mar simplemente se hundia sin pasar nada: el `prune` de abajo se la comia en y < -3.
+    // Con el tiro oblicuo eso se volvio inaceptable — la suelta es AHORA el gesto central del arma,
+    // y un gesto sin respuesta no se puede aprender. Sobre agua no hay a quien matar (la siembra
+    // de mar no pone nada con `hp` a ras: el mastil va sin `hpOf`, y los soldados solo nacen en
+    // tierra), asi que el agua no paga puntos: da la columna, y con eso alcanza para leer si te
+    // pasaste o te quedaste corto.
+    {
+      // el agua dibujada promedia ~1.1 de altura; la tierra, 0.3. Detonar contra el numero de cada
+      // una es lo que evita que la bomba reviente un palmo abajo de la superficie que se ve.
+      const enTierra = cfg.terrain === 'land' || cfg.terrain === 'coast';
+      let detonate = pm.y <= (enTierra ? 0.3 : 1.0);
       if (!detonate) for (const sd of soldiers) { if (!sd.dead && Math.abs(sd.z - pm.z) < 6 && Math.abs(sd.x - pm.x) < 4) { detonate = true; break; } }
       if (detonate) {
-        explodeAt(pm.x, 0, pm.z, true); run.shake = Math.min(6, run.shake + 1.6);
+        explodeAt(pm.x, enTierra ? 0 : 1, pm.z, true); run.shake = Math.min(6, run.shake + 1.6);
         let hit = 0;
         for (const sd of soldiers) {
           if (!sd.dead && Math.abs(sd.z - pm.z) < 11 && Math.abs(sd.x - pm.x) < 10) {
@@ -526,7 +541,9 @@ export function collisionSystem(dt) {
       }
     }
   }
-  prune(pmissiles, pm => pm.z < 240 && pm.y > -3);
+  // el corte sube de 240 a SPAWN_Z: con el tiro oblicuo la bomba puede adelantarse de verdad, y
+  // 240 la borraba en pleno vuelo. Mas alla de donde nace el mundo no tiene sentido seguirla.
+  prune(pmissiles, pm => pm.z < SPAWN_Z && pm.y > -3);
 
   return false;
 }

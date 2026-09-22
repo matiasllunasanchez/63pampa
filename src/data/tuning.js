@@ -81,6 +81,41 @@ export const SPAWN_DENS = SPAWN_X0 / SPAWN_X;   // 0.75: se siembra 1,33x mas se
 // a atacarte antes. Mas aviso, la misma agresividad.
 export const SPAWN_Z = 320;
 
+// ---------------------------------------------------------------------------------------------
+// LA BOMBA DEL AVION — tiro oblicuo (pedido de Matias, 20/9/2026)
+//
+// Dejo de ser un cohete. Antes salia a 360 fijos, se guiaba sola hacia el blanco enganchado, y ni
+// la velocidad ni la trepada del avion entraban en la cuenta: era un boton que acertaba. Ahora se
+// SUELTA — nace con el vector del avion y desde ahi solo la toca la gravedad.
+//
+// EL MARCO DE REFERENCIA ES TODO, y es lo unico dificil de este item. El mundo viene hacia la
+// camara a `run.spd`, asi que una bomba que conserva TU velocidad se queda quieta debajo tuyo —
+// que es exactamente lo que hace una bomba de verdad—. Lo que la manda adelante es la DIFERENCIA:
+//   · el EYECTOR, que la empuja un poco siempre (si no, no se despegaria nunca del morro)
+//   · y sobre todo, que VOS FRENES. Soltas el turbo, tiras del morro, y la bomba se va con el
+//     envion mientras el avion se queda. Esa es la maniobra que el item viene a premiar.
+// Trepar alarga el vuelo (mas tiempo en el aire = mas adelanto). Venir rapido da mas para frenar.
+// Las tres cosas del pedido son la MISMA cuenta; no hay un `if` de juego adentro de la fisica.
+
+/** La gravedad de la bomba. Es el 26 que ya estaba, pero escrito a mano adentro de collision.js —
+ *  ahora vive donde vive el tuneo. Subirla acorta todos los arcos por igual. */
+export const BOMBA_G = 26;
+
+/** EL EYECTOR: lo unico que separa la bomba del avion cuando NO frenas. Es un envion fijo y no un
+ *  factor de la velocidad a proposito — con un factor, a 490 (el techo real de `run.spd` con
+ *  afterburner: `280 + afterTier*AFTER_CAP`) la bomba se iba 550 unidades adelante, o sea mas
+ *  alla de SPAWN_Z, a caer donde todavia no nacio nada. */
+export const BOMBA_EYECTOR = 20;
+
+/** TECHO DE LA SEPARACION respecto del mundo, en unidades/s. Frenar de 490 a 62 daria una
+ *  diferencia de 428 y la bomba aterrizaria mas alla de la linea de siembra — el jugador
+ *  aprenderia a tirarle a la nada. Con este techo el alcance queda adentro del mundo que existe. */
+export const BOMBA_REL_MAX = 200;
+
+/** Cuanto de la deriva lateral del avion se lleva la bomba. No es guiado: es la inercia de que
+ *  venias cruzado. Con 1 la bomba se va de carril en un segundo; con 0 cae en la vertical exacta. */
+export const BOMBA_DERIVA = 0.5;
+
 // ALTURA DE DETECCION del radar enemigo: por encima de esto la barra CARGA y por debajo se
 // descarga (systems/flight.js). Es el techo del "corredor seguro" — abajo aprietan los
 // obstaculos y el roce, arriba aprieta el radar. Vive aca y no suelto en flight.js porque lo
@@ -1092,13 +1127,23 @@ export const M_CONO_FULL = 1.05;
 export const CONO_HZ = 1.9;
 
 // ---------------- LAS CHARLAS EN VUELO (SPEC_CHARLAS_VUELO §2) ----------------
-// Dialogo DURANTE la mision jugable: "una pausa sin pausa". El mundo sigue moviendose —fisica,
-// gas, laterales, roce: intactos— pero el kilometraje deja de acreditar hacia el objetivo. La
-// burbuja congela ACREDITACION, jamas fisica ni relojes (§6.1).
+// Dialogo DURANTE la mision jugable. NACIO como "una pausa sin pausa" —el mundo seguia corriendo y
+// lo unico congelado era la acreditacion del kilometraje— y el 21/9/2026 el autor lo dio vuelta
+// despues de jugar la M1: mientras SE HABLA el mundo se PARA entero, con velo negro, como la pausa.
+// La burbuja de la acreditacion sigue existiendo para las otras dos fases (armada y saliendo).
 //
 // DRENAJE: al armarse la charla el sembrador se apaga y se espera a que lo YA sembrado pase de
 // largo. Es un TOPE, no una espera fija: si la pantalla queda limpia antes, arranca antes.
-export const CHV_DRAIN_S = 2.5;
+//
+// POR QUE SON 5 Y NO 2,5: el 2,5 venia de cuando el mundo seguia corriendo debajo de la charla —
+// se arrancaba a hablar con residuo en pantalla (la divergencia 1 del §7 del spec) y ese residuo
+// se drenaba solo mientras se hablaba, asi que no molestaba a nadie. Con el mundo PARADO eso ya no
+// pasa: lo que quede sembrado se queda CLAVADO en pantalla toda la conversacion y te cae encima el
+// cuadro en que la caja se va. Un corredor de SPAWN_Z = 320 m tarda ~4,3 s en vaciarse a velocidad
+// de crucero — medido por `npm run charlas`—, asi que el tope pasa a 5 y el RF-01 ("cero enemigos
+// en pantalla durante la charla") se cumple de verdad por primera vez. El costo es medio segundo
+// mas de espera antes de la primera linea, y se paga con el mundo quieto: no hay nada que perderse.
+export const CHV_DRAIN_S = 5;
 // La nafta no drena mientras se escucha: seria injusto cobrar combustible por una escena que el
 // jugador no pidio y no puede saltear.
 export const CHV_FUEL_FREEZE = true;

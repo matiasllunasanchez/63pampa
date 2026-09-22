@@ -247,29 +247,35 @@ app.whenReady().then(async () => {
     else bad(`tras armar con el corredor lleno quedo en ${JSON.stringify(arm && { f: arm.fase, s: arm.sembrar })}`);
     // EL CORREDOR SE VACIA SOLO: se muestrea la poblacion mientras drena. Lo que importa no es un
     // numero final sino que BAJE — nadie borro nada, pasaron de largo.
+    // SE MUESTREA SOLO LA FASE 'armada', Y AHORA ES OBLIGATORIO: desde el 21/9/2026 la charla que
+    // HABLA congela el mundo entero (velo negro, update() salteado), asi que en cuanto pasa a
+    // 'activa' la poblacion se queda clavada por definicion. Seguir muestreando despues no medía
+    // el drenaje: medía la congelada, y daba una serie plana que parecia un corredor que no drena.
     const serie = [];
     const tD = Date.now();
     let c = arm, alHablar = null;
-    while (Date.now() - tD < 9000) {
+    while (Date.now() - tD < 12000) {
       serie.push(c ? c.sold : -1);
-      // LA FOTO DEL INSTANTE EN QUE EMPIEZA A HABLAR, y no la de despues: el residuo hay que
-      // medirlo AHI. Preguntarlo al final del muestreo daria siempre cero —para entonces el
-      // corredor ya termino de drenar solo— y el numero que el §7 necesita quedaria escondido.
-      if (c && c.fase !== 'armada' && !alHablar) alHablar = c;
-      if (c && c.sold === 0 && alHablar) { serie.push(0); break; }
+      // LA FOTO DEL INSTANTE EN QUE EMPIEZA A HABLAR: el residuo hay que medirlo AHI, que es el
+      // numero del §7 — y ahora ademas es el residuo que se va a quedar QUIETO en pantalla toda
+      // la conversacion, porque el mundo esta parado.
+      if (c && c.fase !== 'armada') { alHablar = c; break; }
       await sleep(250);
       c = await CV();
     }
     console.log(`   soldados en el corredor durante el drenaje: ${serie.join(' → ')}`);
     if (serie.length > 2 && serie[serie.length - 1] < serie[0]) ok('el corredor se vacia solo: lo sembrado pasa de largo, no se borra');
     else bad(`la poblacion no bajo durante el drenaje: ${serie.join(' → ')}`);
-    // …Y CUANTO QUEDABA AL EMPEZAR A HABLAR. Es la medicion que el spec no tenia: `CHV_DRAIN_S`
-    // es un TOPE ("lo que llegue primero", RF-01) y a velocidad de crucero un corredor de
-    // SPAWN_Z = 320 m tarda ~4,3 s en vaciarse — mas que los 2,5 del default. Ver la divergencia
-    // 1 del §7 del spec: el numero es del autor, este renglon nada mas lo hace visible.
+    // …Y CUANTO QUEDABA AL EMPEZAR A HABLAR. Es la medicion que le puso numero a la divergencia 1
+    // del §7: `CHV_DRAIN_S` es un TOPE ("lo que llegue primero", RF-01) y un corredor de
+    // SPAWN_Z = 320 m tarda ~4,3 s en vaciarse a velocidad de crucero — mas que los 2,5 que tenia
+    // el default. Con la congelada del 21/9 ese residuo dejo de ser cosmetico (se queda quieto en
+    // pantalla toda la charla y te cae encima al descongelar), asi que el tope subio a 5 y ESTE
+    // renglon paso de "ojo con esto" a una condicion que se exige.
     const hab = alHablar || await hasta(x => x.fase !== 'armada', 8000, 120);
     if (hab && hab.fase === 'activa') {
-      ok(`arranco a hablar con ${hab.sold} soldado(s) todavia en pantalla (drenaje ${hab.dren.toFixed(2)} s de un tope de ${hab.drenMax})`);
+      if (hab.sold === 0) ok(`arranco a hablar con el corredor VACIO (drenaje ${hab.dren.toFixed(2)} s de un tope de ${hab.drenMax}): el RF-01 se cumple`);
+      else bad(`arranco a hablar con ${hab.sold} soldado(s) en pantalla (drenaje ${hab.dren.toFixed(2)} s de un tope de ${hab.drenMax}) — y con el mundo congelado se quedan ahi toda la charla`);
       if (hab.sold > 0) console.log('   ↑ OJO: el RF-01 pide CERO enemigos en pantalla. Ver §7 divergencia 1.');
     } else bad(`no llego a hablar: ${JSON.stringify(hab && hab.fase)}`);
     await js('__cvcut()');

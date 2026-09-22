@@ -104,6 +104,7 @@ import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './legacy/momentum_render.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
+import { BOMBA_EYECTOR, BOMBA_DERIVA, SPAWN_Z as BOMBA_Z_TOPE } from './data/tuning.js';
 import { LAND_APPROACH_M, LAND_ALT0, LAND_SPD_MIN, LAND_SPD_MAX, LAND_SPD_OK,
          LAND_VY_SUAVE, LAND_VY_DURO, LAND_PITCH_OK, LAND_GEAR_DRAG, LAND_GEAR_MIN_T,
          LAND_COSTO_CHAPA, LAND_PTS, FUGA_Y } from './data/tuning.js';
@@ -273,6 +274,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     //   · Y NO DEPENDE de PAUSABLE() ni de cfg.devcam: no la abre el jugador, la abre la DATA.
     let dlgPausa = false;
     let dlgT = 0;                    // reloj propio de PARED (run.t y pauseT estan congelados)
+    // El de la CHARLA EN VUELO congelada. No reemplaza a `run.t`: lo EXTIENDE. Las cajas de voz
+    // (render/screens.js) miden su entrada con un reloj que tiene que seguir corriendo con el mundo
+    // quieto, o la caja se queda en ease 0 y no se dibuja nunca. Nunca se reinicia —es monotono— y
+    // por eso `run.t + chvT` sirve de reloj de UI en cualquier momento del vuelo.
+    let chvT = 0;
     // LA LECCION EN CURSO (M1_CAMBIOS 8): que zonas enfoca la pausa y que teclas muestra. null en
     // cualquier otra pausa de dialogo, que se sigue viendo exactamente como antes.
     let lecFoco = null;
@@ -288,6 +294,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
     /** Una zona de foco por nombre. Casi todas son del HUD; la cinta de SEGUIR es de la persecucion. */
     const zonaLeccion = id => id === 'seguir' ? cintaRect() : hud.zonaHud(id);
+    // EL NEGRO DE UN DIALOGO QUE PARA EL MUNDO. Lo usan los DOS: la pausa de dialogo (que ademas le
+    // hace agujeros para el foco de una leccion) y la charla en vuelo. Un solo numero: el dia que
+    // el velo cambie, cambia en los dos o se ven distintos el mismo negro.
+    const VELO_DLG = '#070a0dd2';
     const DLG_GRACIA = 0.6;          // no se acepta antes: se entra con el gatillo ya apretado
     const DLG_TOPE = 14;             // SALIDA DE EMERGENCIA: nadie se puede quedar colgado
 
@@ -699,6 +709,36 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const liAntes = dlg.li, siAntes = dlg.si;
       if (dialogue.stepDialogue(dt) === 'auto' && dialogue.advance() === 'end') charlaFin = true;
       if (dlg.li !== liAntes || dlg.si !== siAntes) anotarCharla();
+    }
+
+    /** UN CUADRO DE LA CHARLA EN VUELO: el motor de dialogo y la maquina de fases, en ese orden.
+     *  Salio de frame() a una funcion porque ahora lo llaman DOS caminos —el vuelo normal, con el
+     *  dt del MUNDO, y la CONGELADA de abajo, con el reloj de PARED— y dos copias de esta lista de
+     *  condiciones era pedir que el dia de mañana se separen.
+     *
+     *  Va en TODOS los estados y no solo en 'play': correrla solo ahi la dejaria colgada en
+     *  'activa' al morir, y es justamente el `inPlay` en false lo que la corta (RF-06). */
+    function pasoCharla(cdt) {
+      stepCharla(cdt);
+      const cv = charla.tick(cdt, {
+        inPlay: S.state === 'play' && !cfg.devcam,
+        // EL CORREDOR VACIO: lo que decide el drenaje. Se mira lo que HAY, no lo que se sembro —
+        // la charla no borra nada, espera a que pase (RF-01).
+        limpia: obstacles.length === 0 && soldiers.length === 0 && missiles.length === 0,
+        // LO QUE LA CHARLA ESPERA (§6.3). No es lo mismo que "queda algo sembrado": un Harrier en
+        // la cola, una ola viva o la niebla ciega no se drenan con el tiempo, asi que estas tres
+        // no tienen tope — la charla espera lo que haga falta. Hablar mientras algo de eso pasa no
+        // es una escena, es una distraccion.
+        amenaza: caza.active() || inBank() || obstacles.some(o => o.type === 'ola'),
+        dlgFin: charlaFin,
+      });
+      if (cv.sig === 'arranca') {
+        // EL MOTOR DE SIEMPRE, con la escena que pidio el tramo. `startSeq` deja `dlg` listo; el
+        // auto-avance lo prende `stepCharla` en el cuadro siguiente.
+        charlaFin = false;
+        dialogue.startSeq([SCENES[charla.escena()]], getLang());
+      }
+      if (cv.sig === 'fin') charlaFin = false;
     }
 
     /** Anota en el HISTORIAL de la radio la linea de charla que esta sonando. Es el mismo log que
@@ -2625,16 +2665,22 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // flanco lo detecta su propio update (systems/pasada.js) — este embudo es del pasillo.
       if (S.state === 'pasada') return;
       if (S.state !== 'play' || run.msl <= 0 || run.mslCd > 0) return;
-      let tx = plane.x, td = 42;                                  // engancha el blanco aereo mas cercano adelante
-      const vm = viewMouse();
-      if (vm.on) {
-        tx = Math.max(-40, Math.min(40, (vm.x - W / 2) / (F / 110) + cam.x));   // mira con mouse: carril apuntado
-      } else for (const o of obstacles) {
-        if (o.hp === undefined || o.z <= PZ + 4 || o.z > 220) continue;
-        const d = Math.abs(o.x - plane.x);
-        if (d < td) { td = d; tx = o.x; }
-      }
-      pmissiles.push({ x: plane.x, y: plane.y, z: PZ + 4, tx, vy: 0 });   // vy: cae con el vuelo (arco) para lobbear soldados
+      // LA SUELTA (20/9/2026). Ya no se APUNTA: se tira. La bomba nace con el vector del avion y a
+      // partir de ahi no la toca nadie mas que la gravedad — ver el bloque BOMBA_* de data/tuning.js.
+      //
+      // SE FUE EL ENGANCHE, y es el punto del item: antes esto barria los obstaculos aereos (o leia
+      // la mira del mouse) para elegir un carril `tx`, y despues el proyectil se guiaba solo hasta
+      // ahi. Un boton que acertaba. Ahora la punteria es COMO VENIS VOLANDO: la altura, la trepada
+      // y la velocidad con la que soltas son todo lo que decide donde cae.
+      pmissiles.push({
+        x: plane.x, y: plane.y, z: PZ + 4,
+        // hacia adelante: TU velocidad mas el eyector. En el marco de la camara esto casi no
+        // avanza —el mundo viene a `run.spd`, la bomba se queda debajo tuyo, como en la realidad—
+        // y lo que la despega es que vos frenes despues de soltarla.
+        vz: run.spd + BOMBA_EYECTOR,
+        vy: plane.vy,                                    // trepando sale para arriba: vuela mas y llega mas lejos
+        vx: plane.vx * BOMBA_DERIVA,                     // la inercia de venir cruzado, no un guiado
+      });
       run.msl--; run.mslCd = 0.5;
       sfxOne('msl');   // lanzamiento real (misil.mp3 / misil2.wav al azar)
       beep(200, 0.2, 'sawtooth', 0.05, 80); boom(0.05, true);
@@ -3848,7 +3894,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       }
       // misiles del jugador (más gruesos, con estela)
       for (const pm of pmissiles) {
-        if (pm.z >= 240 || pm.z <= 3) continue;
+        if (pm.z >= BOMBA_Z_TOPE || pm.z <= 3) continue;   // mismo corte que el prune: el tiro largo se sigue viendo
         const s = proj(pm.x, pm.y, pm.z), k = s.k;
         // MISIL estilo Exocet: cuerpo BLANCO LARGO con ojiva gris, aletas en cruz y llama corta.
         // Antes eran dos cuadraditos y una linea naranja — no se leia como un misil.
@@ -4065,6 +4111,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // ultimo que entra, arriba de todo. QUE FORMA tiene la elige el jugador en OPCIONES —
         // TOAST (una linea que pasa) o PANEL (las ultimas cuatro, como un chat). Las dos respetan
         // la misma banda y ninguna toca la UI (SPEC_CHARLAS_VUELO §0b).
+        // EL VELO DE LA CHARLA: el mismo negro de la pausa de dialogo, y en el mismo orden — encima
+        // del mundo Y del HUD, debajo de las cajas de voz. Va junto con la congelada de frame(): el
+        // mundo quieto sin nada que lo explique se lee como un cuelgue, y el velo es lo que dice
+        // "esto es una escena, no se te colgo el juego".
+        if (charla.hablando()) { ctx.fillStyle = VELO_DLG; ctx.fillRect(0, 0, W, H); }
         ctx.save(); ctx.scale(U, U);
         // `charla`: si hay una conversacion en la banda de abajo, la voz de mi avion no puede salir de
         // mi cara (el globo quedaria debajo de la caja de charla) y va arriba con las demas.
@@ -4075,7 +4126,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // radio para que, si las dos coinciden, la conversacion quede encima del aviso.
         // SIEMPRE, con `dlg` en null cuando no hay charla: la caja del otro se va sola y para eso
         // hay que seguir dibujandola un ratito despues de la ultima linea.
-        screens.drawCharla({ dlg: charla.hablando() ? dlg : null });
+        // `t`: el reloj de la ENTRADA de la caja. Es `run.t` EXTENDIDO con la congelada (ver chvT):
+        // con el mundo parado `run.t` no corre, y una caja que mide su entrada con el se queda en
+        // ease 0 — o sea, no se dibuja. El render no pregunta la hora, la recibe (convencion 4).
+        screens.drawCharla({ dlg: charla.hablando() ? dlg : null, t: run.t + chvT });
         ctx.restore();
       }
       if (S.state === 'momentum' && momentum.active()) momRender.drawMomentum({
@@ -4174,7 +4228,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // y los de las zonas en el mismo trazo, y lo que queda adentro de dos se ve.
         const zonas = lecFoco ? lecFoco.foco.map(zonaLeccion).filter(Boolean) : [];
         const PADZ = 2;
-        ctx.fillStyle = '#070a0dd2';
+        ctx.fillStyle = VELO_DLG;
         ctx.beginPath(); ctx.rect(0, 0, W, H);
         for (const z of zonas) ctx.rect((z.x - PADZ) * U, (z.y - PADZ) * U, (z.w + 2 * PADZ) * U, (z.h + 2 * PADZ) * U);
         ctx.fill('evenodd');
@@ -5128,6 +5182,31 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         requestAnimationFrame(frame);
         return;
       }
+      // CHARLA EN VUELO: EL MUNDO SE PARA. Pedido del autor (21/9) despues de jugar la M1: "el avion
+      // esta en pausa flotando, debe estar con el velo negro, TODO pausado, clima, agua". Hasta hoy
+      // la charla era "una pausa sin pausa" —solo se congelaba el odometro (`cvAvance`), y el mar,
+      // la lluvia y el avion seguian corriendo detras de la caja—, y eso es exactamente lo que se
+      // lee como un cuelgue: un avion que no avanza en un mundo que si. Ahora es LA MISMA PAUSA DEL
+      // DIALOGO: update() entero salteado, velo negro, y lo unico vivo es la conversacion.
+      //
+      // SOLO MIENTRAS SE HABLA ('activa'), y las otras dos fases quedan como estaban a proposito:
+      //   armada    el DRENAJE necesita que el mundo corra — se espera a que lo ya sembrado pase de
+      //             largo, y con el mundo quieto no pasa nunca (se colgaria hasta CHV_DRAIN_S).
+      //   saliendo  el fundido del letterbox es presentacion; devolver el mundo ahi es lo que hace
+      //             que el vuelo se reanude con la caja todavia yendose, y no de un salto.
+      //
+      // RELOJ DE PARED, como la pausa de dialogo y por el mismo motivo: `run.t` esta congelado, asi
+      // que el tipeo, el auto-avance y el tope duro de la charla tienen que correr con `raw`.
+      if (charla.hablando()) {
+        chvT += raw;
+        engineOff();            // igual que la pausa: el motor no ruge con el mundo quieto
+        tickRadio(raw, true);   // ver la nota de arriba: el unico tickRadio del vuelo vive en update()
+        pasoCharla(raw);
+        draw(); updateMusic(S.state);
+        if (playerEl) playerEl.classList.toggle('on', canPickMusic());
+        requestAnimationFrame(frame);
+        return;
+      }
       // MOMENTUM: la barra se carga con el score y el drenaje corre con el dt CRUDO (tiempo
       // real); el mundo recibe el escalado. Este multiplicador es TODO el poder: como nada usa
       // reloj de pared, achicar el dt frena spawns, flak, particulas y lluvia en sincronia
@@ -5156,29 +5235,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // un golpe corta la transferencia: la manguera no aguanta un avion sacudido
         golpe: run.scrapeVib > 0.1 || run.shake > 3,
       });
-      // LA CHARLA EN VUELO va al lado de la CHANCHA y por lo mismo: con el dt del MUNDO y en TODOS
-      // los estados. Correrla solo en 'play' la dejaria colgada en 'activa' al morir — y es
-      // justamente el `inPlay` en false lo que la corta (RF-06).
-      stepCharla(dt);
-      const cv = charla.tick(dt, {
-        inPlay: S.state === 'play' && !cfg.devcam,
-        // EL CORREDOR VACIO: lo que decide el drenaje. Se mira lo que HAY, no lo que se sembro —
-        // la charla no borra nada, espera a que pase (RF-01).
-        limpia: obstacles.length === 0 && soldiers.length === 0 && missiles.length === 0,
-        // LO QUE LA CHARLA ESPERA (§6.3). No es lo mismo que "queda algo sembrado": un Harrier en
-        // la cola, una ola viva o la niebla ciega no se drenan con el tiempo, asi que estas tres
-        // no tienen tope — la charla espera lo que haga falta. Hablar mientras algo de eso pasa no
-        // es una escena, es una distraccion.
-        amenaza: caza.active() || inBank() || obstacles.some(o => o.type === 'ola'),
-        dlgFin: charlaFin,
-      });
-      if (cv.sig === 'arranca') {
-        // EL MOTOR DE SIEMPRE, con la escena que pidio el tramo. `startSeq` deja `dlg` listo; el
-        // auto-avance lo prende `stepCharla` en el cuadro siguiente.
-        charlaFin = false;
-        dialogue.startSeq([SCENES[charla.escena()]], getLang());
-      }
-      if (cv.sig === 'fin') charlaFin = false;
+      // LA CHARLA EN VUELO va al lado de la CHANCHA y por lo mismo: con el dt del MUNDO. Mientras
+      // SE HABLA no llega aca — la atiende la CONGELADA de arriba, con el reloj de pared.
+      pasoCharla(dt);
       // EL PODER RASANTE (SPEC_PODER_RASANTE) va al lado de sus dos hermanos y con el dt del
       // MUNDO por el mismo motivo que el ETA de la Chancha: lanzado en camara lenta tiene que
       // durar lo mismo en tiempo de juego. La BANDA la resuelve aca el orquestador —es la misma

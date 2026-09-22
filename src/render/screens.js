@@ -1426,8 +1426,13 @@ export function drawCharla(w) {
     : radioOtro;
   const activa = !!v;
   if (activa) otroUlt = v;
-  const dt = otroT < 0 || run.t < otroT ? 0 : Math.min(0.1, run.t - otroT);
-  otroT = run.t;
+  // EL RELOJ LO TRAE EL SNAPSHOT (`w.t`) y ya no se lee `run.t` de aca: con la charla en vuelo
+  // congelando el mundo, `run.t` no corre mientras se habla y la caja se quedaria en ease 0 —
+  // invisible, justo cuando es lo unico que hay en pantalla. game.js manda `run.t` EXTENDIDO con
+  // el reloj de pared de la congelada.
+  const ahora = w && typeof w.t === 'number' ? w.t : run.t;
+  const dt = otroT < 0 || ahora < otroT ? 0 : Math.min(0.1, ahora - otroT);
+  otroT = ahora;
   otroK = activa ? Math.min(1, otroK + dt / OTRO_ENTRA) : Math.max(0, otroK - dt / OTRO_ENTRA);
   if (otroK <= 0) { otroUlt = null; return; }
   if (otroUlt) dibujarOtro(otroUlt, otroK, yo);
