@@ -99,18 +99,33 @@ export const SPAWN_Z = 320;
 
 /** La gravedad de la bomba. Es el 26 que ya estaba, pero escrito a mano adentro de collision.js —
  *  ahora vive donde vive el tuneo. Subirla acorta todos los arcos por igual. */
-export const BOMBA_G = 26;
+export const BOMBA_G = 18;
+
+/** EL PLANEO (23/9: "tiene que ir horizontal, no hacia abajo apenas puede"). Los primeros
+ *  BOMBA_PLANEO segundos la gravedad entra de a poco, de 0 a BOMBA_G: la bomba sale DERECHO como
+ *  salia el misil y recien despues empieza a doblar hacia abajo. Es lo que la hace un tiro
+ *  oblicuo y no un ladrillo. */
+export const BOMBA_PLANEO = 0.4;
 
 /** EL EYECTOR: lo unico que separa la bomba del avion cuando NO frenas. Es un envion fijo y no un
  *  factor de la velocidad a proposito — con un factor, a 490 (el techo real de `run.spd` con
  *  afterburner: `280 + afterTier*AFTER_CAP`) la bomba se iba 550 unidades adelante, o sea mas
  *  alla de SPAWN_Z, a caer donde todavia no nacio nada. */
-export const BOMBA_EYECTOR = 20;
+export const BOMBA_EYECTOR = 100;   // 23/9: de 20 a 100 — sale disparada hacia adelante, como el misil
+
+/** EL ENVION DE LA VELOCIDAD (23/9): la fraccion de `run.spd` que la bomba se lleva DE MAS al
+ *  soltarse. Sin esto, al ras y plano daba igual venir a 280 o a 490 — y el pedido era "si voy en
+ *  velocidad, mejor". Es chico a proposito: 0.15 a 490 son 73 extra, lejos del techo de abajo. */
+export const BOMBA_ENVION = 0.15;
 
 /** TECHO DE LA SEPARACION respecto del mundo, en unidades/s. Frenar de 490 a 62 daria una
  *  diferencia de 428 y la bomba aterrizaria mas alla de la linea de siembra — el jugador
  *  aprenderia a tirarle a la nada. Con este techo el alcance queda adentro del mundo que existe. */
-export const BOMBA_REL_MAX = 200;
+export const BOMBA_REL_MAX = 210;
+
+/** DE DONDE CUELGA: cuanto por debajo del centro del avion nace la bomba. En el centro exacto,
+ *  la perspectiva la subia hacia el horizonte y se la veia salir por ARRIBA del avion. */
+export const BOMBA_PANZA = 1.2;
 
 /** Cuanto de la deriva lateral del avion se lleva la bomba. No es guiado: es la inercia de que
  *  venias cruzado. Con 1 la bomba se va de carril en un segundo; con 0 cae en la vertical exacta. */

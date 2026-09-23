@@ -124,6 +124,23 @@ export function explodeAt(x, y, z, big, noBall, noShake) {
   if (big) duck(0.55);                      // explosion grande → ducking de la musica
 }
 
+/** LA COLUMNA DE LA BOMBA. Lo que hace que el impacto se lea como una bomba y no como un misil
+ *  que revienta: un chorro ANGOSTO y ALTO que sube derecho y se desploma — espuma sobre el agua,
+ *  tierra sobre el suelo. La bola de fuego de `explodeAt` va aparte; esto es lo que levanta. */
+export function columnaBomba(x, y, z, agua) {
+  const s = proj(x, y, z), e = Math.min(1.3, s.k / 3 + 0.4);
+  for (let i = 0; i < 26; i++) {
+    const claro = Math.random() < 0.6;
+    parts.push({
+      x: s.x + (Math.random() - 0.5) * 5 * e, y: s.y,
+      vx: (Math.random() - 0.5) * 26 * e, vy: -(55 + Math.random() * 60) * e,
+      life: 0.7 + Math.random() * 0.5,
+      c: agua ? (claro ? '#e6efec' : '#8fb0ad') : (claro ? '#5c4b36' : '#342b20'),
+      r: Math.max(1, s.k * (0.35 + Math.random() * 0.35)),
+    });
+  }
+}
+
 // ---------------- EL DESPIECE (PLAN_DESTRUCCION D0) ----------------
 //
 // El derribo del jugador ya tenia el sistema bueno — pedazos con inercia que caen, rebotan y

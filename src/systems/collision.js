@@ -14,8 +14,8 @@ import { run } from '../core/run.js';
 // de vida elegido en OPCIONES. Chocar algo sigue matando siempre — ver core/damage.js.
 import * as dmg from './damage.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, prune } from '../core/world.js';
-import { BOMBA_G, BOMBA_REL_MAX, SPAWN_Z } from '../data/tuning.js';
-import { proj, popup, explodeAt, bloodBurst, morir, stepDestruccion } from '../core/fx.js';
+import { BOMBA_G, BOMBA_PLANEO, BOMBA_REL_MAX, SPAWN_Z } from '../data/tuning.js';
+import { proj, popup, explodeAt, bloodBurst, columnaBomba, morir, stepDestruccion } from '../core/fx.js';
 import { CHUNK_LIFE, ONDA_T } from '../data/despiece.js';
 import { sfxOne, beep, boom } from '../systems/audio.js';
 import { T } from '../core/i18n.js';
@@ -486,9 +486,9 @@ export function collisionSystem(dt) {
     // El techo existe porque frenar de 490 a 62 la mandaria mas alla de donde nace el mundo.
     const rel = Math.min(BOMBA_REL_MAX, pm.vz - run.spd);
     pm.z += rel * dt;
-    pm.vy -= BOMBA_G * dt; pm.y += pm.vy * dt;                                // la caida
+    pm.t = (pm.t || 0) + dt;                                                  // el planeo: la gravedad entra de a poco
+    pm.vy -= BOMBA_G * Math.min(1, pm.t / BOMBA_PLANEO) * dt; pm.y += pm.vy * dt;                                // la caida
     pm.x += (pm.vx || 0) * dt;                                                // la deriva heredada
-    if (Math.random() < 0.7) { const s = proj(pm.x, pm.y, pm.z - 3); parts.push({ x: s.x, y: s.y, vx: 0, vy: 0, life: 0.3, c: P.accent, r: Math.max(1, s.k * 0.35) }); }
     // impacto con obstáculos aéreos (hitbox amplio, one-shot)
     for (const o of obstacles) {
       if (o.hp === undefined || o.z < z0 - 4 || o.z > pm.z + 4) continue;
@@ -529,6 +529,7 @@ export function collisionSystem(dt) {
       if (!detonate) for (const sd of soldiers) { if (!sd.dead && Math.abs(sd.z - pm.z) < 6 && Math.abs(sd.x - pm.x) < 4) { detonate = true; break; } }
       if (detonate) {
         explodeAt(pm.x, enTierra ? 0 : 1, pm.z, true); run.shake = Math.min(6, run.shake + 1.6);
+        columnaBomba(pm.x, enTierra ? 0 : 1, pm.z, !enTierra);   // lo que levanta: agua o tierra
         let hit = 0;
         for (const sd of soldiers) {
           if (!sd.dead && Math.abs(sd.z - pm.z) < 11 && Math.abs(sd.x - pm.x) < 10) {

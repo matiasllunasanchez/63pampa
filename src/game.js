@@ -62,13 +62,7 @@ import * as pulsoRender from './render/pulso.js';
 import * as machRender from './render/mach.js';
 import * as cine from './systems/cine.js';
 import { drawCine } from './render/cine.js';
-import { nuevoReguero, humear, MISIL } from './render/reguero.js';
 import * as muni from './render/municion.js';
-// EL HUMO DE CADA MISIL, guardado APARTE del misil. Va en un WeakMap y no en un campo del objeto
-// porque `pmissiles` es un store del mundo y el render no le escribe encima (convencion 4); cuando
-// el misil muere, su reguero se va con el sin que nadie lo tenga que barrer.
-const REG_MISIL = new WeakMap();
-const regMisil = m => { let r = REG_MISIL.get(m); if (!r) REG_MISIL.set(m, r = nuevoReguero()); return r; };
 import { PULSO } from './data/pulso.js';
 import { spawnSystem } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
@@ -104,7 +98,7 @@ import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './legacy/momentum_render.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
-import { BOMBA_EYECTOR, BOMBA_DERIVA, SPAWN_Z as BOMBA_Z_TOPE } from './data/tuning.js';
+import { BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_PANZA, BOMBA_DERIVA, SPAWN_Z as BOMBA_Z_TOPE } from './data/tuning.js';
 import { LAND_APPROACH_M, LAND_ALT0, LAND_SPD_MIN, LAND_SPD_MAX, LAND_SPD_OK,
          LAND_VY_SUAVE, LAND_VY_DURO, LAND_PITCH_OK, LAND_GEAR_DRAG, LAND_GEAR_MIN_T,
          LAND_COSTO_CHAPA, LAND_PTS, FUGA_Y } from './data/tuning.js';
@@ -2673,17 +2667,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // ahi. Un boton que acertaba. Ahora la punteria es COMO VENIS VOLANDO: la altura, la trepada
       // y la velocidad con la que soltas son todo lo que decide donde cae.
       pmissiles.push({
-        x: plane.x, y: plane.y, z: PZ + 4,
-        // hacia adelante: TU velocidad mas el eyector. En el marco de la camara esto casi no
-        // avanza —el mundo viene a `run.spd`, la bomba se queda debajo tuyo, como en la realidad—
-        // y lo que la despega es que vos frenes despues de soltarla.
-        vz: run.spd + BOMBA_EYECTOR,
+        x: plane.x, y: plane.y - BOMBA_PANZA, z: PZ + 4,   // colgada de la panza, no del centro del sprite
+        // hacia adelante: TU velocidad, un poco mas por venir rapido, y el eyector, que la manda
+        // derecho como salia el misil. Frenar despues de soltarla la estira todavia mas.
+        vz: run.spd * (1 + BOMBA_ENVION) + BOMBA_EYECTOR,
         vy: plane.vy,                                    // trepando sale para arriba: vuela mas y llega mas lejos
         vx: plane.vx * BOMBA_DERIVA,                     // la inercia de venir cruzado, no un guiado
       });
       run.msl--; run.mslCd = 0.5;
-      sfxOne('msl');   // lanzamiento real (misil.mp3 / misil2.wav al azar)
-      beep(200, 0.2, 'sawtooth', 0.05, 80); boom(0.05, true);
+      // EL CLUNK del gancho que se abre: una bomba no despega con un silbido de cohete, se CAE.
+      beep(90, 0.12, 'square', 0.05, 55); boom(0.04, true);
     }
 
     // EL ESPECTACULO DEL DERRIBO: bola de fuego pixel, pedazos con inercia, chispas y sonido.
@@ -3892,42 +3885,42 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (b.z >= 240) continue;
         drawBullet(b);
       }
-      // misiles del jugador (más gruesos, con estela)
+      // LA BOMBA DEL JUGADOR (23/9: "que sea mas bomba"). Hasta aca se dibujaba como un Exocet
+      // —cuerpo blanco, llama de cohete, reguero de humo— y por mas que cayera en arco se leia
+      // como un misil. Una bomba no tiene motor: es un tubo verde oliva que se CAE. Lo que la
+      // cuenta es el sprite de la fila BOMBA (que ya estaba horneado y nadie usaba), que se va
+      // tumbando nariz abajo a medida que cae, y su SOMBRA sobre la superficie, que es lo que deja
+      // leer a ojo cuanto le falta para tocar.
+      // VA EN EL PASE DEL MUNDO, ANTES DEL AVION: nace detras de la panza (z = PZ + 4) y de ahi
+      // solo se aleja, asi que siempre esta MAS LEJOS que vos. Pintarla despues del avion (23/9)
+      // la ponia ENCIMA del sprite justo en la suelta — se veia salir de arriba del avion.
       for (const pm of pmissiles) {
         if (pm.z >= BOMBA_Z_TOPE || pm.z <= 3) continue;   // mismo corte que el prune: el tiro largo se sigue viendo
         const s = proj(pm.x, pm.y, pm.z), k = s.k;
-        // MISIL estilo Exocet: cuerpo BLANCO LARGO con ojiva gris, aletas en cruz y llama corta.
-        // Antes eran dos cuadraditos y una linea naranja — no se leia como un misil.
-        const w = Math.max(1, k * 0.5);              // ancho del cuerpo
-        const L = Math.max(3, k * 3.2);              // largo: se ve como un tubo, no como un punto
-        const x0 = s.x - w / 2, yTip = s.y - L / 2;
-        // EL MISIL, del sprite horneado (tools/bake_ammo.html). Va DE COLA PURA (vista 0): se
-        // aleja derecho por el eje de tiro, asi que no hay nada que verle de costado.
-        //
-        // SI LA HOJA NO CARGO, la receta de rectangulos de siempre — cuerpo blanco, ojiva gris,
-        // banda y aletas. Misma regla que la cabina: un asset que falta no deja un agujero.
-        if (!muni.dibujar(muni.MISIL, 0, s.x, s.y, L * 1.5)) {
-          px(x0, yTip + L * 0.18, w, L * 0.82, '#e9edf0');                      // cuerpo blanco
-          px(x0, yTip + L * 0.18, Math.max(1, w * 0.4), L * 0.82, '#ffffff');   // brillo del canto
-          px(x0, yTip, w, L * 0.2, '#9aa3ab');                                  // OJIVA gris
-          px(x0, yTip + L * 0.42, w, Math.max(1, L * 0.06), '#3d444a');         // banda oscura
-          const fw = Math.max(1, k * 0.45);                                     // ALETAS traseras
-          px(x0 - fw, yTip + L * 0.72, fw, Math.max(1, L * 0.2), '#c9d0d6');
-          px(x0 + w, yTip + L * 0.72, fw, Math.max(1, L * 0.2), '#c9d0d6');
-        }
-        // LLAMA del cohete: nucleo claro que se afina, con parpadeo
-        const fl = L * (0.3 + Math.random() * 0.25);
-        px(x0, yTip + L, w, fl, '#ffd479');
-        px(x0 + w * 0.25, yTip + L, Math.max(1, w * 0.5), fl * 0.6, '#fff3cf');
-        px(x0 + w * 0.25, yTip + L + fl, Math.max(1, w * 0.5), fl * 0.5, '#e8842a');
-        // ESTELA DE HUMO: EL REGUERO (render/reguero.js), la misma mecanica que el humo de tobera
-        // y los vortices de punta del avion, en su version de misil — mas grande y blanca.
-        //
-        // Antes eran cuatro puntos muestreados hacia atras en z: una recta calculada desde donde
-        // el misil esta AHORA, o sea que se movia rigida con el. El reguero deja el humo DONDE EL
-        // MISIL PASO y ahi se queda abriendose, que es lo que hace que se lea de donde salio.
-        humear(regMisil(pm), s.x, s.y, Object.assign({ t: run.t, f: 1, on: true, corta: true }, MISIL));
+        const suelo = cfg.terrain === 'land' || cfg.terrain === 'coast' ? 0 : 1;   // el mismo numero con el que detona
+        const sh = proj(pm.x, suelo, pm.z);
+        // LA SOMBRA: se achica y se oscurece a medida que la bomba baja hacia ella.
+        const alto = Math.max(0, pm.y - suelo);
+        const sw = Math.max(1, k * (1.4 + alto * 0.06));
+        ctx.globalAlpha = Math.max(0.12, 0.5 - alto * 0.025);
+        px(sh.x - sw / 2, sh.y - sw * 0.2, sw, Math.max(1, sw * 0.35), '#0b0f10');
         ctx.globalAlpha = 1;
+        // LA VISTA sale de la trayectoria: alejandose derecho se la ve de cola; cayendo, de costado.
+        const rel = Math.max(5, pm.vz - run.spd);
+        const v = Math.atan2(Math.abs(pm.vy), rel * 0.12) / (Math.PI / 2);
+        const caja = Math.max(6, k * 3.6);   // chica de cerca (es un tercio del avion), legible de lejos
+        const bx = Math.round(s.x), by = Math.round(s.y);
+        // la hoja la tiene nariz ARRIBA; cayendo de costado va nariz ABAJO
+        const vuelta = pm.vy < 0 && v > 0.45;
+        ctx.save(); ctx.translate(bx, by); if (vuelta) ctx.scale(1, -1);
+        if (!muni.dibujar(muni.BOMBA, v, 0, 0, caja)) {
+          // SI LA HOJA NO CARGO: la receta de rectangulos — cuerpo oliva, espoleta, aletas.
+          const w = Math.max(1, k * 0.8), L = Math.max(2, caja * 0.55);
+          px(-w / 2, -L / 2, w, L, '#4d5236');
+          px(-w / 2, -L / 2, w, Math.max(1, L * 0.12), '#b08a2a');
+          px(-w, L / 2 - Math.max(1, L * 0.2), w * 2, Math.max(1, L * 0.2), '#2b2e1f');
+        }
+        ctx.restore();
       }
       // NIEBLA: al final del mundo y ADENTRO del giro. Va acá y no antes porque tiene que tapar
       // los obstáculos — que es lo único que la vuelve una mecánica y no un filtro de color.
