@@ -203,6 +203,9 @@ export const cfg = {
   // cada derribo lo releva un companero (systems/squad.js) hasta agotar la formacion. Con 1
   // el juego se comporta exactamente como antes de existir la opcion: morir es morir.
   squad: 4,
+  // LA CARGA de los aviones (data/cargas.js): que cuelga del par de pilones de ala y del central.
+  // Arranca en la base que definio el autor: dos tanques y una bomba.
+  carga: 'tanques_bomba',
   // ESQUEMA DE CONTROL de ←/→ (lo ejecuta systems/flight.js con bankStep/bankVx de core/physics.js).
   //   0 DIRECTO (default) = el de siempre: las flechas empujan al avion de costado y el alabeo del
   //     sprite es una animacion que acompaña.

@@ -1,4 +1,5 @@
 // AVIONES jugables: datos y precarga de sus imagenes.
+import { CAPAS_CARGA } from './cargas.js';
 //
 // Cada avion tiene DOS imagenes: `src` es la ilustracion grande del menu de seleccion, y
 // `sheet` el sprite sheet que se usa en vuelo (9 columnas de alabeo x 3 filas de cabeceo,
@@ -73,6 +74,14 @@ PLANES.forEach(pl => {
       pl.sheet3Img = new Image();
       pl.sheet3Img.onload = () => { pl.sheet3Ok = true; };
       pl.sheet3Img.src = pl.sheet3;
+    }
+    // LAS CAPAS DE CARGA (tanques y bombas), una por pieza y por vista — ver data/cargas.js. Viven
+    // en la misma carpeta que las hojas y llevan el mismo sufijo: '' / '2' / '3'. Si una capa no
+    // cargo, simplemente no se pinta: el avion vuela limpio, que es el fallback natural.
+    const dir = pl.sheet.slice(0, pl.sheet.lastIndexOf('/') + 1);
+    pl.capas = {};
+    for (const nom of CAPAS_CARGA) {
+      pl.capas[nom] = ['', '2', '3'].map(suf => { const im = new Image(); im.src = dir + nom + suf + '.png'; return im; });
     }
   }
 });

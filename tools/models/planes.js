@@ -102,8 +102,7 @@ BAKE.modelos('planes', (THREE, K) => {
     CYL(g, 0.075, 0.065, 0.4, camoA, 0.5, 0.08, -2.25, 6);            // la base, gruesa
     CYL(g, 0.05, 0.042, 2.1, camoB, 0.5, 0.08, -3.3, 6);              // el tubo
     CONE(g, 0.075, 0.26, '#2b2f28', 0.5, 0.08, -4.45, false, 6);      // la boquilla
-    tank(g, 0.17, 1.5, belly, -1.45, -0.42, 0.5);
-    tank(g, 0.17, 1.5, belly, 1.45, -0.42, 0.5);
+    // (los tanques subalares ya no van aca: son CARGA, ver CARGA mas abajo)
     nozzle(g, 0.34, 2.75, camoB, '#25291f');
     if (marcas) marcas(g);
     return g;
@@ -158,8 +157,7 @@ BAKE.modelos('planes', (THREE, K) => {
     CYL(g, 0.27, 0.29, 1.5, lite, 0.60, 0.12, -0.5, 8);
     CYL(g, 0.19, 0.19, 0.3, '#1a2026', -0.64, 0.12, -1.22, 8);
     CYL(g, 0.19, 0.19, 0.3, '#1a2026', 0.64, 0.12, -1.22, 8);
-    tank(g, 0.18, 1.6, blu2, -1.5, -0.30, 0.5);                 // el Exocet / tanque bajo el ala
-    tank(g, 0.18, 1.6, blu2, 1.5, -0.30, 0.5);
+    // (los tanques subalares ya no van aca: son CARGA, ver CARGA mas abajo)
     nozzle(g, 0.34, 2.75, lite, '#1e252b');
     return g;
   }
@@ -224,8 +222,7 @@ BAKE.modelos('planes', (THREE, K) => {
     CYL(g, 0.26, 0.28, 1.7, dgry, 0.56, 0.12, -0.65, 8);
     CYL(g, 0.18, 0.18, 0.3, '#2b3236', -0.60, 0.12, -1.47, 8);
     CYL(g, 0.18, 0.18, 0.3, '#2b3236', 0.60, 0.12, -1.47, 8);
-    tank(g, 0.17, 1.5, dgry, -1.5, -0.36, 0.6);
-    tank(g, 0.17, 1.5, dgry, 1.5, -0.36, 0.6);
+    // (los tanques subalares ya no van aca: son CARGA, ver CARGA mas abajo)
     nozzle(g, 0.33, 3.05, dgry, '#20261f');
     return g;
   }
@@ -274,6 +271,59 @@ BAKE.modelos('planes', (THREE, K) => {
   // el mismo esquema DESGASTADO por el sol y la sal (el avion mas viejo de la escuadrilla)
   const CAMO_LAVADO = ['#7d6449', '#616d51', '#96795a', '#bed0de'];
 
+  // ============================ LA CARGA ============================
+  // Tanques y bombas DEJARON DE SER PARTE DEL AVION. El A-4, el Super Etendard y el Mirage traian
+  // dos tanques horneados adentro del modelo, asi que "sin nada" no existia. Ahora cada modelo
+  // declara sus PUNTOS DE CARGA —el par de pilones de ala y el pilon central— y lo que cuelga de
+  // ahi se hornea en CAPAS aparte (ver bake_planes.html), con la misma camara y las mismas poses
+  // que el avion. En el juego se elige la carga y se pintan las capas encima del avion.
+  //
+  // LA BOMBA NO VA EN VERDE OLIVA REAL: se aclara, por la misma leccion que ya dejo la bomba del
+  // PULSO y el humo gris casco — a este tamaño lo veridico se funde con el avion y desaparece.
+  const BOMBA = '#9a9c6c', BOMBA_ANILLO = '#d8c25a', BOMBA_COLA = '#6f7250';
+  function bomb(g, r, len, x, y, z) {
+    CYL(g, r, r, len, BOMBA, x, y, z, 8);
+    CONE(g, r, r * 2.2, BOMBA, x, y, z - len / 2 - r * 1.1, false, 8);    // ojiva adelante
+    CYL(g, r * 1.02, r * 1.02, r * 0.5, BOMBA_ANILLO, x, y, z - len * 0.3, 8);   // el anillo de espoleta
+    CONE(g, r, r * 1.4, BOMBA_COLA, x, y, z + len / 2 + r * 0.7, true, 8);    // la cola que se afina
+    // las aletas en X: lo que hace que una bomba no se lea como un tanque chico
+    for (const a of [Math.PI / 4, -Math.PI / 4]) {
+      const f = B(g, r * 3.2, 0.03, r * 1.6, BOMBA_COLA, x, y, z + len / 2 + r * 1.1);
+      f.rotation.z = a;
+    }
+  }
+  /** El pilon: la pieza que cuelga la carga del ala o del fuselaje. Va CON la carga y no con el
+   *  avion — un avion limpio en 1982 volaba sin pilones, y un tanque sin pilon flota. */
+  function pilon(g, x, y0, y1, z, c) {
+    B(g, 0.07, Math.max(0.02, y0 - y1), 0.7, c, x, (y0 + y1) / 2, z);
+  }
+
+  /** LOS PUNTOS DE CARGA DE CADA CELULA.
+   *    ala     [x, y, z] del pilon derecho (el izquierdo es el espejo) y la y del ALA de la que cuelga
+   *    centro  [y, z] del pilon central, bajo el fuselaje, y la y de la panza
+   *    tanque  el color de los tanques (el de la panza de cada avion, que es como volaban)
+   *  Las posiciones de ala del A-4, el Super Etendard y el Mirage son EXACTAMENTE las de los
+   *  tanques que tenian horneados: la carga base se ve donde el avion ya se veia. */
+  const PUNTOS = {
+    a4:     { ala: [1.45, -0.42, 0.5], alaY: -0.20, centro: [-0.66, 0.2], panza: -0.40 },
+    dagger: { ala: [1.50, -0.36, 0.7], alaY: -0.16, centro: [-0.60, 0.3], panza: -0.34 },
+    supere: { ala: [1.50, -0.30, 0.5], alaY: -0.02, centro: [-0.64, 0.2], panza: -0.38 },
+    pampa:  { ala: [1.40,  0.08, 0.3], alaY:  0.26, centro: [-0.62, 0.2], panza: -0.35 },
+    mirage: { ala: [1.50, -0.36, 0.6], alaY: -0.16, centro: [-0.60, 0.3], panza: -0.34 },
+  };
+  /** Cuelga UNA pieza de carga en un grupo que ya tiene al avion adentro. `tipo` es 'tanque' o
+   *  'bomba'; `punto` es 'ala' (el PAR, siempre simetrico) o 'centro'. */
+  function colgar(g, celula, tipo, punto, colorTanque) {
+    const P = PUNTOS[celula];
+    const cuelga = (x, y, z, techo) => {
+      pilon(g, x, techo, y + (tipo === 'tanque' ? 0.17 : 0.15), z, '#3a3f38');
+      if (tipo === 'tanque') tank(g, 0.17, 1.5, colorTanque, x, y, z);
+      else bomb(g, 0.15, 1.1, x, y, z);
+    };
+    if (punto === 'ala') for (const sg of [-1, 1]) cuelga(sg * P.ala[0], P.ala[1], P.ala[2], P.alaY);
+    else cuelga(0, P.centro[0], P.centro[1], P.panza);
+  }
+
   const MODELS = {
     sky: () => modelA4(...CAMO_FAA),                                  // FAA: camo MARRON + VERDE, panza celeste
     dagger: modelDagger,
@@ -288,6 +338,16 @@ BAKE.modelos('planes', (THREE, K) => {
     skin_pichon: () => modelA4(...CAMO_FAA, MARCAS.PICHON),
     skin_vasco:  () => modelA4(...CAMO_LAVADO),
   };
+
+  // la CELULA de cada clave (de donde cuelgan las cargas) y el color de sus tanques
+  const CELULA = {
+    sky:    ['a4', CAMO_FAA[3]],     a4q: ['a4', '#dfe3e6'],
+    dagger: ['dagger', '#a9b8c0'],   supere: ['supere', '#3e4b56'],
+    pampa:  ['pampa', '#b8bec2'],    mirage: ['mirage', '#8e979d'],
+  };
+  // NO ENUMERABLE a proposito: el horneador recorre `for (const key in MODELS)` y hornea cada
+  // clave como un avion. Esto no es un avion, es el taller.
+  Object.defineProperty(MODELS, '__carga', { value: { colgar, CELULA, PUNTOS }, enumerable: false });
 
   return MODELS;
 });

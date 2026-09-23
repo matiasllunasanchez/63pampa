@@ -96,6 +96,10 @@ def main():
     # fallback de render/plane.js existe justamente para esto. Se VACIA la ruta igual que la 2.
     for key, d in PLANE_DIRS.items():
         js, _ = sub_path(js, f'../assets/planes/{d}/sheet3.png', '')
+    # CAPAS DE CARGA (tanques y bombas): NO se re-embeben. Su ruta se ARMA en data/planes.js
+    # (carpeta de la hoja + nombre de la capa + sufijo), asi que no aparece literal en el bundle y
+    # esta pasada no la puede ver. En la web el avion vuela limpio — el fallback de siempre — y el
+    # target es Electron, donde las capas son archivos sueltos.
     # CABINA (primera persona): una sola para todo el juego, suelta en assets/planes/.
     #
     # EL NOMBRE SE LEE DEL BUNDLE, no se escribe a mano. Estaba fijo en 'cockpitv2.png' y el dia

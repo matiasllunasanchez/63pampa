@@ -31,8 +31,15 @@ app.whenReady().then(async () => {
       const dir = typeof slug === 'string' ? slug : slug.dir;
       const base = typeof slug === 'string' ? 'sheet' : slug.base;
       // 3.png = LA HOJA DEL PODER RASANTE (otro punto de vista, frame al doble) — ver bake_planes.html
+      // LAS CAPAS DE CARGA (tanques y bombas), una por pieza y por vista: <capa>.png, <capa>2.png,
+      // <capa>3.png — el mismo sufijo que las hojas del avion a las que calzan. Ver bake_planes.html.
+      const capas = [];
+      for (const nom in (sheets[key].capas || {})) {
+        const c = sheets[key].capas[nom];
+        capas.push([nom + '.png', c.s1], [nom + '2.png', c.s2], [nom + '3.png', c.s3]);
+      }
       for (const [name, data] of [[base + '.png', sheets[key].sheet], [base + '2.png', sheets[key].sheet2],
-                                  [base + '3.png', sheets[key].sheet3]]) {
+                                  [base + '3.png', sheets[key].sheet3], ...capas]) {
         const b64 = data.split('base64,')[1];
         fs.writeFileSync(path.join(ROOT, 'assets', 'planes', dir, name), Buffer.from(b64, 'base64'));
         console.log(`OK ${dir}/${name} (${(b64.length * 3 / 4 / 1024).toFixed(1)} KB)`);

@@ -276,6 +276,67 @@
       return { tips, tob, box, alto, perfil };
     }
 
+    // ============================ LAS CAPAS DE CARGA ============================
+    // Tanques y bombas no se hornean pegados al avion ni se dibujan a mano encima: se hornean en
+    // CAPAS, una por pieza y por punto de carga, con LA MISMA camara y LAS MISMAS poses que cada
+    // una de las tres hojas del avion. Asi calzan al pixel en los 27 frames y en las tres vistas.
+    //
+    // EL TRUCO QUE LO HACE POSIBLE ES EL OCLUSOR. En cada pasada el avion esta en la escena, pero
+    // con `colorWrite = false`: escribe PROFUNDIDAD y no pinta nada. El pedazo de tanque que el ala
+    // tapa desde esa camara se descarta en la GPU, asi que la capa sale ya recortada. En el juego
+    // se pinta el avion y encima las capas que se eligieron — y ninguna tapa al ala que la tapa a
+    // ella, desde ninguna de las tres camaras.
+    //
+    // POR QUE CAPAS Y NO UNA HOJA POR COMBINACION: con dos puntos de carga y tres opciones por
+    // punto salen nueve combinaciones, por seis celulas y tres vistas, o sea 162 hojas — y cada
+    // arma nueva multiplicaria todo otra vez. Con capas son cuatro por celula y las nueve
+    // combinaciones se ARMAN.
+    const CARGA = MODELS.__carga;
+    const CAPAS = [
+      ['carga_tanques_ala', 'tanque', 'ala'], ['carga_bombas_ala', 'bomba', 'ala'],
+      ['carga_tanque_centro', 'tanque', 'centro'], ['carga_bomba_centro', 'bomba', 'centro'],
+    ];
+    function hornearCapas(key, R, cam, R3, cam3) {
+      const [celula, colorT] = CARGA.CELULA[key];
+      const out = {};
+      for (const [nombre, tipo, punto] of CAPAS) {
+        const sc = makeScene();
+        const model = MODELS[key]();
+        // el avion pasa a ser OCLUSOR: profundidad si, color no, y se dibuja PRIMERO (si la carga
+        // se pintara antes, el oclusor llegaria tarde y no podria borrar lo que ya estaba)
+        model.traverse(o => {
+          if (!o.isMesh) return;
+          o.material = o.material.clone();
+          o.material.colorWrite = false;
+          o.renderOrder = -1;
+        });
+        CARGA.colgar(model, celula, tipo, punto, colorT);
+        sc.add(model);
+        const hoja = (Rr, cm, fw, fh, filas, dPitch, dRoll) => {
+          const cv = document.createElement('canvas');
+          cv.width = fw * ANGLES.length; cv.height = fh * filas.length;
+          const g = cv.getContext('2d');
+          filas.forEach((pa, row) => {
+            model.rotation.x = (pa + dPitch) * Math.PI / 180;
+            ANGLES.forEach((a, i) => {
+              model.rotation.z = (a + dRoll) * Math.PI / 180;
+              Rr.render(sc, cm);
+              g.drawImage(Rr.domElement, i * fw, row * fh);
+            });
+          });
+          return [cv, g];
+        };
+        const [c1, g1] = hoja(R, cam, FW, FH, PITCHES, 0, 0);
+        const [c2, g2] = hoja(R, cam, FW, FH, STEEP, 0, 0);
+        const [c3] = hoja(R3, cam3, FW3, FH3, PITCHES, RAS_PITCH, RAS_ROLL);
+        // la misma simetrizacion que el avion en sus dos hojas de cola, o la capa del frame
+        // nivelado quedaria medio pixel corrida respecto del ala que la sostiene
+        simetriza(g1, c1); simetriza(g2, c2);
+        out[nombre] = { s1: c1.toDataURL('image/png'), s2: c2.toDataURL('image/png'), s3: c3.toDataURL('image/png') };
+      }
+      return out;
+    }
+
     let ANCLAS = {};
     function __bake() {
       const R = makeRenderer(), cam = makeCam();
@@ -359,6 +420,8 @@
           base: anclasDe(sheet, FW, FH, ANGLES.length, PITCHES.length, PU_BASE),
           ras: anclasDe(sheet3, FW3, FH3, ANGLES.length, PITCHES.length, PU_RAS),
         };
+        // LAS CAPAS DE CARGA (solo las celulas del roster; las skins comparten las del A-4)
+        if (CARGA.CELULA[key]) result[key].capas = hornearCapas(key, R, cam, R3, cam3);
         if (outEl) {   // vista previa (modo browser)
           const h = document.createElement('h2'); h.textContent = key + ' — ' + ANGLES.length + 'x' + PITCHES.length + ' frames de ' + FW + 'x' + FH + ' (filas: trepa/nivel/pica)';
           const big = document.createElement('canvas'); big.className = 'sheet';

@@ -19,6 +19,7 @@ import { drawMira } from './miras.js';
 import { anchorSpray, drawSpray } from './rain.js';
 import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H, SHEET3_FW, SHEET3_FH } from '../data/planes.js';
 import { ANCLAS } from '../data/anclas.js';
+import { capasDe } from '../data/cargas.js';
 import { ALA_PX, ROCIADA_ABRE, ROCIADA_BAJA, ROCIADA_RAS_ABRE, ROCIADA_ALT,
          CORTINA_ABRE, CORTINA_ANCHO, CORTINA_BAJA, CORTINA_RAS_ABRE, CORTINA_N, CORTINA_ALT,
          ROCIADA_TURBO, CORTINA_TURBO,
@@ -834,6 +835,15 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
     if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
     drawGear(run.gear, 1);   // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma
     ctx.drawImage(img, sx4, sy4, FW4, FH4, -spW / 2, -spH / 2, spW, spH);
+    // LA CARGA, encima del avion y en el MISMO recorte: cada capa esta horneada con la camara y la
+    // pose de la hoja que se esta dibujando, y el avion ya le recorto de fabrica lo que el ala le
+    // tapa (ver hornearCapas en tools/bake_planes.html). Por eso no hay ancla ni offset: si el
+    // frame es el mismo, calza.
+    const vista = F3 ? 2 : img === hoja2 ? 1 : 0;
+    for (const nom of capasDe(cfg.carga)) {
+      const im = pl.capas && pl.capas[nom] && pl.capas[nom][vista];
+      if (im && im.complete && im.naturalWidth) ctx.drawImage(im, sx4, sy4, FW4, FH4, -spW / 2, -spH / 2, spW, spH);
+    }
     // LA CHAPERIA, ENCIMA DE LA CHAPA. Va aca —despues del frame y antes de la tobera— porque es
     // pintura sobre el avion, no un efecto en el aire: tiene que taparse con el humo del escape y
     // con el vapor del ala, igual que se taparia la pintura de verdad.
