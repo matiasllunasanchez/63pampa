@@ -45,3 +45,14 @@ export function capasDe(id) {
 export const bombasDe = id => { const c = cargaDe(id); return (c.ala === 'bomba' ? 2 : 0) + (c.centro === 'bomba' ? 1 : 0); };
 /** Cuantos tanques lleva la carga `id`. */
 export const tanquesDe = id => { const c = cargaDe(id); return (c.ala === 'tanque' ? 2 : 0) + (c.centro === 'tanque' ? 1 : 0); };
+
+/** LA BOMBA DEL BUQUE (LA SUELTA, pedido del autor 23/9): en las misiones contra un buque TODO avion
+ *  del escuadron lleva la bomba del CENTRO, "porque todos tienen que poder tirar la bomba que
+ *  derrota al barco". El ala se respeta (tanques, bombas o nada); el centro se fuerza a bomba.
+ *  Devuelve el id de la carga que resulta. */
+export function conBombaCentral(id) {
+  const c = cargaDe(id);
+  if (c.centro === 'bomba') return c.id;
+  const x = CARGAS.find(k => k.ala === c.ala && k.centro === 'bomba');
+  return x ? x.id : CARGA_BASE;
+}

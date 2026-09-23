@@ -7,6 +7,8 @@
 // Recibe `selPlane` (que avion eligio el jugador — estado de menu, vive en game.js) y `viewMouse`
 // (resuelve la mira segun la camara — la camara sigue en game.js). El resto lo lee de los stores.
 
+import { blanco } from '../core/blanco.js';
+import { BL as BL_BLANCO } from '../data/blanco.js';
 import { ctx, px, PZ, U, W, H, HOR } from './ctx.js';
 import { plane, cfg, S } from '../core/state.js';
 import { run } from '../core/run.js';
@@ -842,7 +844,19 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
     const vista = F3 ? 2 : img === hoja2 ? 1 : 0;
     for (const nom of capasDe(cfg.carga)) {
       const im = pl.capas && pl.capas[nom] && pl.capas[nom][vista];
-      if (im && im.complete && im.naturalWidth) ctx.drawImage(im, sx4, sy4, FW4, FH4, -spW / 2, -spH / 2, spW, spH);
+      if (!(im && im.complete && im.naturalWidth)) continue;
+      // LO QUE YA SE SOLTO NO CUELGA (LA SUELTA, pedido del autor 23/9). El estante de systems/blanco.js
+      // lleva la cuenta pilon por pilon: la del centro se apaga entera, y el PAR de ala —que es una
+      // sola capa horneada para las dos alas— se recorta a la mitad: la primera que sale es la de la
+      // izquierda. El recorte va en coordenadas del sprite, asi que gira y rola con el avion.
+      let mitad = 0;
+      if (blanco.on) {
+        if (nom === 'carga_bomba_centro' && blanco.centroN <= 0) continue;
+        if (nom === 'carga_bombas_ala') { if (blanco.alaN <= 0) continue; if (blanco.alaN === 1) mitad = 1; }
+      }
+      if (mitad) { ctx.save(); ctx.beginPath(); ctx.rect(0, -spH / 2, spW / 2, spH); ctx.clip(); }
+      ctx.drawImage(im, sx4, sy4, FW4, FH4, -spW / 2, -spH / 2, spW, spH);
+      if (mitad) ctx.restore();
     }
     // LA CHAPERIA, ENCIMA DE LA CHAPA. Va aca —despues del frame y antes de la tobera— porque es
     // pintura sobre el avion, no un efecto en el aire: tiene que taparse con el humo del escape y
@@ -962,7 +976,11 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
   }
 
   // mira: en el MOUSE (PC, punteria libre) o adelante del avion (tactil/legacy)
-  if (S.state === 'play') {
+  // …SALVO CON EL BUQUE DE LA SUELTA A LA VISTA (data/blanco.js): la mira apunta a donde vas, y
+  // donde vas es el buque — el reticulo le caia justo encima y lo tapaba entero hasta los ultimos
+  // cientos de metros (playtest 23/9). Ahi la mira es la marca de BLANCO, y la del cañon se guarda.
+  const miraBuque = blanco.on && blanco.z > 0 && blanco.z < BL_BLANCO.VISIBLE_Z;   // tambien ardiendo: el final no lleva mira
+  if (S.state === 'play' && !miraBuque) {
     const vm = viewMouse();
     // MIRA FIJA: acompaña al CABECEO — si la trompa sube, el punto de mira sube; si pica, baja.
     // Se corre el punto en coordenadas de MUNDO (no en pantalla) para que la perspectiva lo

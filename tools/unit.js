@@ -1044,9 +1044,10 @@ test('t15: la mision del banco es valida y NO se coló en la campaña', () => {
   // el juego y es el pool del CICLO DE MUERTE. Si t15 entrara ahi, aparecería sorteada a mitad de
   // una partida de verdad y corrreria el final un renglon.
   assert.equal(MISSIONS.findIndex(m => m.id === 't15'), -1, 't15 no puede estar en la campaña');
-  assert.equal(MISIONES_PRUEBA.length, 1);
-  const t15 = MISIONES_PRUEBA[0];
-  assert.equal(t15.id, 't15');
+  // …y lo mismo para TODO el banco (t16 · LA SUELTA se sumo el 23/9): ninguna de laboratorio en la campaña.
+  for (const m of MISIONES_PRUEBA) assert.equal(MISSIONS.findIndex(c => c.id === m.id), -1, m.id + ' no puede estar en la campaña');
+  const t15 = MISIONES_PRUEBA.find(m => m.id === 't15');
+  assert.ok(t15, 't15 tiene que seguir en el banco');
   const e = validarFases(t15.fases);
   assert.deepEqual(e, [], `t15: ${e.join(' · ')}`);
   // el buque tiene que ser uno de la lista: `useShip` saca de ahi el layout de zonas del climax
@@ -2453,5 +2454,41 @@ test('anclas: el perfil de la silueta cubre el ancho y esta ordenado', async () 
     let conAvion = 0;
     for (const f of P) { if (f[1] > f[0]) conAvion++; }
     assert.ok(conAvion >= P.length * 0.5, `'${hoja}': el avion ocupa muy pocas franjas (${conAvion}/${P.length})`);
+  }
+});
+
+// LA SUELTA SOBRE EL BUQUE (data/blanco.js, 23/9). La luz de SOLTA simula la bomba con la misma
+// integracion que collision.js: si esto se rompe, el HUD miente sobre donde cae.
+test('suelta: la altura decide — al ras no arma, a 11 m y a tiro pega en maquinas', async () => {
+  const { blanco, resetBlanco, predecir, altoEn, zonaEn } = await import('../src/core/blanco.js');
+  const { BL } = await import('../src/data/blanco.js');
+  resetBlanco(true, 'HMS ARDENT', 't21');
+  assert.equal(altoEn(BL.X + BL.LEN), -1, 'fuera de la eslora no hay casco');
+  assert.ok(altoEn(BL.X) > 10, 'el centro de la t21 tiene superestructura');
+  assert.equal(zonaEn(BL.X), 'centro');
+  assert.equal(zonaEn(BL.X + BL.LEN * 0.4), 'extremo');
+  // a crucero (60) y al ras: la bomba no vuela lo suficiente para armarse, en ninguna distancia
+  const alRas = [60, 90, 120, 150, 200].map(d => predecir(0, 2.5, 0, 0, 60, 14 + d));
+  assert.ok(!alRas.includes('centro') && !alRas.includes('extremo'), 'al ras nunca pega armada: ' + alRas);
+  // a 11 m hay UNA ventana: muy cerca llega dormida, muy lejos cae corta, en el medio pega
+  const a11 = d => predecir(0, 11, 0, 0, 60, 14 + d);
+  assert.equal(a11(60), 'dormida');
+  assert.equal(a11(160), 'centro');
+  assert.equal(a11(400), 'corta');
+  // corrida al costado: fuera de la eslora
+  assert.equal(predecir(BL.LEN, 11, 0, 0, 60, 14 + 160), 'costado');
+  blanco.on = false;
+});
+
+// LA BOMBA DEL BUQUE (data/cargas.js, 23/9): en las misiones contra un buque todo avion lleva la del
+// centro. El ala se respeta; el centro se fuerza a bomba.
+test('suelta: la carga siempre trae la bomba del centro, y el ala se respeta', async () => {
+  const { conBombaCentral, cargaDe } = await import('../src/data/cargas.js');
+  for (const [de, a] of [['tanques', 'tanques_bomba'], ['tres_tanques', 'tanques_bomba'], ['nada', 'bomba'],
+    ['tanque', 'bomba'], ['dos_bombas', 'tres_bombas'], ['bombas_tanque', 'tres_bombas'],
+    ['tanques_bomba', 'tanques_bomba'], ['tres_bombas', 'tres_bombas']]) {
+    assert.equal(conBombaCentral(de), a, de + ' deberia quedar ' + a);
+    assert.equal(cargaDe(conBombaCentral(de)).centro, 'bomba');
+    assert.equal(cargaDe(conBombaCentral(de)).ala, cargaDe(de).ala, de + ': el ala no se toca');
   }
 });

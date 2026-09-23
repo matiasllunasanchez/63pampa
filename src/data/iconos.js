@@ -197,6 +197,17 @@ export const ICONOS = {
     '#########.',
     '##........',
   ] },
+  // EL TANQUE DE ALA (LA SUELTA, 23/9): el estante muestra la CARGA, y un pilon con tanque no es un
+  // hueco de bomba. Mismo tamaño que la bomba (10x5) y la silueta opuesta: un huso redondo en las
+  // dos puntas, sin las aletas cuadradas de la cola — se distinguen por la forma antes que por el
+  // color. El '+' es el tapon de carga, arriba.
+  tanque: { letra: 'T', png: null, col2: '#c9d0d6', pix: [
+    '..#####...',
+    '.#######+.',
+    '##########',
+    '.########.',
+    '..#####...',
+  ] },
   // EL MISIL QUE VIENE, al final de la escala del radar (ver hud.js, drawRadar). Un misil COMUN
   // (segunda foto del autor) y al reves que la bomba: apunta a la IZQUIERDA, hacia vos. Cuerpo
   // fino y largo, ojiva en punta, los aletines chicos cerca de la punta —a un cuarto del morro,

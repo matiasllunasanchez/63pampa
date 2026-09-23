@@ -14,6 +14,7 @@ import { run } from '../core/run.js';
 // de vida elegido en OPCIONES. Chocar algo sigue matando siempre — ver core/damage.js.
 import * as dmg from './damage.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, prune } from '../core/world.js';
+import * as blancoSys from './blanco.js';
 import { BOMBA_G, BOMBA_PLANEO, BOMBA_REL_MAX, SPAWN_Z } from '../data/tuning.js';
 import { proj, popup, explodeAt, bloodBurst, columnaBomba, morir, stepDestruccion } from '../core/fx.js';
 import { CHUNK_LIFE, ONDA_T } from '../data/despiece.js';
@@ -514,6 +515,9 @@ export function collisionSystem(dt) {
       }
     }
     if (pm.z >= 9999) continue;
+    // EL BUQUE DE LA SUELTA (systems/blanco.js): si la bomba cruzo el casco este cuadro, el sistema
+    // la juzga —armada, dormida, larga— y la da por terminada. Sin buque en el pasillo no hace nada.
+    if (blancoSys.golpe(pm, z0)) { pm.z = 9999; continue; }
     // CONTRA LA SUPERFICIE, sea la que sea. Antes esto estaba gateado a tierra y la bomba soltada
     // sobre el mar simplemente se hundia sin pasar nada: el `prune` de abajo se la comia en y < -3.
     // Con el tiro oblicuo eso se volvio inaceptable — la suelta es AHORA el gesto central del arma,
@@ -528,6 +532,7 @@ export function collisionSystem(dt) {
       let detonate = pm.y <= (enTierra ? 0.3 : 1.0);
       if (!detonate) for (const sd of soldiers) { if (!sd.dead && Math.abs(sd.z - pm.z) < 6 && Math.abs(sd.x - pm.x) < 4) { detonate = true; break; } }
       if (detonate) {
+        blancoSys.corta(pm);   // si habia buque adelante: se quedo corta
         explodeAt(pm.x, enTierra ? 0 : 1, pm.z, true); run.shake = Math.min(6, run.shake + 1.6);
         columnaBomba(pm.x, enTierra ? 0 : 1, pm.z, !enTierra);   // lo que levanta: agua o tierra
         let hit = 0;

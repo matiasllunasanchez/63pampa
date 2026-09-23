@@ -63,6 +63,11 @@ import * as machRender from './render/mach.js';
 import * as cine from './systems/cine.js';
 import { drawCine } from './render/cine.js';
 import * as muni from './render/municion.js';
+import * as blancoSys from './systems/blanco.js';
+import { BL as BL_BLANCO } from './data/blanco.js';
+import { conBombaCentral } from './data/cargas.js';
+const BL_ALT_IDEAL = BL_BLANCO.ALT_IDEAL;
+import { drawBlanco, drawBlancoHud } from './render/blanco.js';
 import { PULSO } from './data/pulso.js';
 import { spawnSystem } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
@@ -1396,6 +1401,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EL PULSO necesita saber CONTRA QUE buque es la prueba: de su clase sale como se muere en
       // la cinematica del premio. Va aca y no en reset() porque el objetivo se define despues.
       pulso.setShip(objectiveShip);
+      // LA SUELTA: el buque del pasillo, prendido solo si la mision lo declara como climax.
+      // …y con LA BOMBA DEL BUQUE colgada: en estas misiones todo avion lleva la del centro, sea cual
+      // sea la carga elegida (data/cargas.js, conBombaCentral). Se ve en el avion y en el estante.
+      const hayBlanco = runClimax() === 'suelta' && objectiveDist > 0;
+      if (hayBlanco) cfg.carga = conBombaCentral(cfg.carga);
+      blancoSys.preparar(hayBlanco, objectiveShip, objectiveDist, { PZ, W }, cfg.carga);
       // MUSICA: campaña usa game.mp3; ciclo y supervivencia mantienen la pista elegida en el
       // reproductor (no la re-sortean). Arranca de cero al empezar el mapa, SALVO al reintentar
       // tras morir: ahi continua donde venia, sin corte.
@@ -2658,7 +2669,15 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // la PASADA tambien maneja [Z] sola: alli no es un misil sino LA SUELTA de la ristra, y el
       // flanco lo detecta su propio update (systems/pasada.js) — este embudo es del pasillo.
       if (S.state === 'pasada') return;
-      if (S.state !== 'play' || run.msl <= 0 || run.mslCd > 0) return;
+      if (S.state !== 'play' || run.mslCd > 0) return;
+      // LA SUELTA: las bombas salen del ESTANTE (systems/blanco.js) — la del centro es la del buque y
+      // no sale lejos de el. Si lo unico que queda es esa, la tecla no suelta y se dice por que.
+      if (runClimax() === 'suelta') {
+        if (!blancoSys.tomarBomba()) {
+          if (blancoSys.bloqueada()) { popup(W / 2, 60, T('bl_bloqueada'), P.warn); beep(180, 0.08, 'square', 0.04); run.mslCd = 0.5; }
+          return;
+        }
+      } else if (run.msl <= 0) return;
       // LA SUELTA (20/9/2026). Ya no se APUNTA: se tira. La bomba nace con el vector del avion y a
       // partir de ahi no la toca nadie mas que la gravedad — ver el bloque BOMBA_* de data/tuning.js.
       //
@@ -2674,7 +2693,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         vy: plane.vy,                                    // trepando sale para arriba: vuela mas y llega mas lejos
         vx: plane.vx * BOMBA_DERIVA,                     // la inercia de venir cruzado, no un guiado
       });
-      run.msl--; run.mslCd = 0.5;
+      if (runClimax() !== 'suelta') run.msl--;   // en la suelta ya lo descontó el estante
+      run.mslCd = 0.5;
       // EL CLUNK del gancho que se abre: una bomba no despega con un silbido de cohete, se CAE.
       beep(90, 0.12, 'square', 0.05, 55); boom(0.04, true);
     }
@@ -2997,7 +3017,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // FOGONAZO (D3): se apaga solo, rapido. Va acá y no en un sistema porque tiene que correr en
       // TODOS los estados — la explosión que te mató sigue destellando mientras caés.
       run.flash = Math.max(0, run.flash - dt / FLASH_T);
-      updateSfx(dt, { state: S.state, cfg, plane, boost: run.boost, firing: inp.fire, overheat: run.overheat, soldiers });   // loops con fade
+      updateSfx(dt, { state: S.state, cfg, plane, boost: run.boost, firing: inp.fire, overheat: run.overheat, soldiers, alarmaBuque: blancoSys.alarma() });   // loops con fade
       // camara CERCA: interpola hacia el objetivo; fuera de vuelo (o al morir) vuelve sola a 1
       // para que cada entrada a play arranque con zoom-in suave y sin saltos entre estados
       const camZt = 1;   // ver CAM_ZOOMS: el zoom por raster quedo desactivado
@@ -3484,7 +3504,26 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // "sin corte": no hay obstáculos que desaparezcan de golpe al abrirse el mundo.
       // En PASADAS MORTALES no hay spawns EN NINGUN momento: el modo entero ES ese último tramo,
       // y meterle obstáculos lo volvería otra vez el PASILLO con un barco al final.
-      if (gameMode !== 'pasadas' && !(runClimax() === 'pasada' && pasada.spawnsCut(run.dist, objectiveDist)))
+      // LA SUELTA (systems/blanco.js): el buque se mueve y juzga ANTES de las colisiones — las bombas
+      // se miden contra el casco de este mismo cuadro.
+      if (runClimax() === 'suelta') {
+        const b = blancoSys.step(dt);
+        // LAS SEÑAS, a la radio: lo que Puma canta de la aproximacion. La de OTRA PASADA espera al
+        // otro lado del negro, igual que la linea de la vuelta en volverDelBlanco().
+        const av = curMission() && curMission().avisos;
+        if (av) for (const c of blancoSys.cues()) {
+          if (!av['bl_' + c]) continue;
+          avisar(av, 'bl_' + c);
+        } else blancoSys.cues();
+        // EL CRUCE es el fin del ataque: se le pasa por encima al buque y corta a negro. Hundido,
+        // cierra por el embudo de siempre (la vuelta si la mision la tiene, si no el recuento).
+        // (el negro lo pinta el propio sistema —blancoSys.negro()— debajo de la radio: aca solo se
+        // cierra lo que el negro ya tapo)
+        if (b === 'hundido') { finishObjective(); return; }
+        if (b && b.fallo) { die(b.fallo); return; }
+      }
+      if (gameMode !== 'pasadas' && !(runClimax() === 'pasada' && pasada.spawnsCut(run.dist, objectiveDist))
+        && !(runClimax() === 'suelta' && blancoSys.spawnsCut(run.dist)))
         spawnSystem(dt, objectiveDist);  // aparicion de obstaculos y soldados (nunca corta el frame)
       const hit = collisionSystem(dt);   // impactos → devuelve { death } si un choque fue fatal
       if (hit) { onDeath(hit.death); return; }
@@ -3791,7 +3830,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // buque se encuadra contra el hueco que la cabina deja ver, no contra la pantalla. Lo sabe el
       // render de la cabina, lo decide el sistema, y los junta aca — que es el trabajo de este
       // archivo. Se pide ANTES de dibujar porque el buque va primero: es mundo.
-      world.drawApproachBarge(objectiveDist, objectiveShip,
+      // LA SUELTA: el buque es MUNDO (render/blanco.js) y reemplaza al de la aproximacion pintada.
+      if (runClimax() === 'suelta') drawBlanco();
+      else world.drawApproachBarge(objectiveDist, objectiveShip,
         S.state === 'pulso' ? pulso.shipFx(pulsoRender.ventana(cine.state(), run.t)) : null,
         runClimax() === 'pasada' && S.state !== 'pulso');
       // LAS PAREDES DEL CALLEJON (zigzag Z3) van DESPUES del buque de aproximacion, y esto es
@@ -3977,6 +4018,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       drawTiros(teatro.state());
       if (!rasante.enCabina()
         && (chase || (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active());
+      // EL HUD DE LA SUELTA: cabina, nivelado, sobre el avion (la foto la arma el sistema).
+      if (S.state === 'play' && runClimax() === 'suelta') drawBlancoHud(blancoSys.hud());
       // LA COLA, segunda pasada: lo que quedo MAS CERCA que el avion — el sobrepaso enorme
       // cruzandote y las trazadoras que te estan pasando ahora. Va DESPUES del sprite porque
       // efectivamente esta entre vos y la camara: dibujarlo antes lo dejaria por detras del ala.
@@ -4034,7 +4077,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // ANTES del tinte frio y la viñeta de aca abajo, que siguen intactos: aquello es el color del
       // tiempo partido, esto es el encierro. Se ven los dos.
       drawDesenfoque(S.state === 'play' && run.boost && run.fuel > 0 ? 1 : 0,
-                     S.state === 'play' && tempo.active() ? 1 : 0,
+                     S.state === 'play' && (tempo.active() || blancoSys.lento()) ? 1 : 0,   // + el MOMENTUM OBLIGADO de la suelta
                      S.state === 'play' && rasante.active() ? 1 : 0);
       // LA AUREOLA DEL SOL, encima del barrido: el destello vive en la LENTE, o sea despues de
       // todo lo que la lente esta mirando.
@@ -4072,8 +4115,15 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         return ln ? ln.personaje : null;
       };
       if (S.state === 'play') {
+        const sueltaHud = runClimax() === 'suelta' ? blancoSys.hud() : null;
         ctx.save(); ctx.scale(U, U); hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip, goalKind: objectiveKind,
         radarAlt: fases.techoRadar(RADAR_ALT),
+        // LA SUELTA: la banda de altura de soltar, para el altimetro (solo mientras hay buque vivo)
+        sueltaAlt: S.state === 'play' && sueltaHud && sueltaHud.enAtaque ? BL_ALT_IDEAL : null,
+        // …el MOMENTO de soltar (titila en verde: la cinta, su avion, el altimetro y el estante) y
+        // el estante con la carga pilon por pilon
+        sueltaYa: S.state === 'play' && !!sueltaHud && sueltaHud.listo,
+        rack: S.state === 'play' && sueltaHud ? sueltaHud.rack : null,
         // lo que una leccion esta explicando: el HUD dibuja esos relojes aunque esten escondidos
         foco: lecFoco ? lecFoco.foco : null,
         // una mision donde no se puede morir tiene UNA vida, aunque despegue el escuadron entero
@@ -4109,6 +4159,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // mundo quieto sin nada que lo explique se lee como un cuelgue, y el velo es lo que dice
         // "esto es una escena, no se te colgo el juego".
         if (charla.hablando()) { ctx.fillStyle = VELO_DLG; ctx.fillRect(0, 0, W, H); }
+        // EL NEGRO DEL FIN DEL ATAQUE (LA SUELTA): en el mismo escalon que el velo de la charla —
+        // encima del mundo y del HUD, DEBAJO de la radio—, que es lo que deja leer a Puma sobre el
+        // negro. El fundido de mision de siempre (`fadeT`) va al final de todo y taparia la voz.
+        { const ng = S.state === 'play' ? blancoSys.negro() : 0;
+          if (ng > 0) { ctx.globalAlpha = ng; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; } }
         ctx.save(); ctx.scale(U, U);
         // `charla`: si hay una conversacion en la banda de abajo, la voz de mi avion no puede salir de
         // mi cara (el globo quedaria debajo de la caja de charla) y va arriba con las demas.
@@ -4347,6 +4402,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // lo quiere: ahi el mundo se abre y ya, sin telon. Es la diferencia entera entre los dos
       // climax dicha en una linea.
       if (runClimax() === 'pasada') return 0;
+      // …y LA SUELTA tampoco: el buque es un objeto del mundo y hay que verlo venir desde lejos. Con
+      // el telon puesto, la pared de bruma lo tapaba hasta los ultimos 300 m (playtest 23/9:
+      // "aparece cuando ya estas demasiado cerca").
+      if (runClimax() === 'suelta') return 0;
       if (S.state !== 'play' && S.state !== 'dead' && S.state !== 'relevo') return 0;
       const t = Math.max(0, Math.min(1, (run.dist / objectiveDist - VEIL_IN) / (VEIL_FULL - VEIL_IN)));
       // CUADRATICA: acompaña la disipacion de la niebla desde media aproximacion sin molestar
@@ -4465,6 +4524,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         return window.__chadbg();
       };
       window.__chacall = () => { pedirChancha(); return window.__chadbg(); };
+      // LA SUELTA (systems/blanco.js): el HUD calculado + el veredicto y el daño del buque.
+      window.__suelta = () => JSON.stringify(Object.assign({ st: S.state, msl: run.msl, spd: Math.round(run.spd) }, blancoSys.hud() || {}, { res: blancoSys.estado().res, dano: blancoSys.estado().dano, hundido: blancoSys.estado().hundido, z: Math.round(blancoSys.estado().z), d: blancoSys.estado().z - PZ, pred: blancoSys.estado().pred, alt: plane.y }));
       window.__chaput = (x, y) => { plane.x = +x; plane.y = +y; plane.vy = 0; return JSON.stringify({ x: plane.x, y: plane.y }); };
       // los otros dos gates, puestos desde afuera: el COMBUSTIBLE apagado (donde el poder no
       // existe) y la MISION posterior a la rotura del guion. Se escriben las CAUSAS —cfg.fuelOn y
@@ -5216,7 +5277,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // RF-12: el ralenti de la ventana de suelta MULTIPLICA al del MOMENTUM, no lo reemplaza —
       // los dos son escalas del mismo dt, asi que componerlos es multiplicar y nada mas. Como
       // nada en el juego usa reloj de pared, esto frena bombas, particulas y defensa en sincronia.
-      const dt = raw * tempo.scale() * (S.state === 'pasada' ? pasada.slow() : 1);
+      // …y LA SUELTA: el MOMENTUM OBLIGADO desde que la bomba revienta en el casco hasta el cruce
+      // (BL.LENTO, systems/blanco.js). Tambien compone multiplicando.
+      const dt = raw * tempo.scale() * (S.state === 'pasada' ? pasada.slow() : 1) * (S.state === 'play' ? blancoSys.slow() : 1);
       // LA CHANCHA (SPEC_PODER_CHANCHA) va ACA y no adentro de update(): con el dt del MUNDO —el
       // ETA es tiempo de mision, asi que pedirla en camara lenta tiene que tardar lo mismo en
       // tiempo de juego— y en TODOS los estados, que es lo que le permite despedirse sola cuando

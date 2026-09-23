@@ -172,6 +172,35 @@ const t15 = {
   // viene a mostrar.
 };
 
+// ---------------------------------------------------------------------------------------------
+// t16 · LA SUELTA — el banco del climax en el pasillo (data/blanco.js, pedido del autor 23/9/2026).
+//
+// "Un nivel de prueba solo para revisar esta mecanica." Por eso es CORTO y VACIO: 4 km de mar
+// abierto sin nada que esquivar, y el buque a la vista desde los 3,5 km — casi toda la corrida es
+// verlo venir, elegir la altura y soltar. Todo lo que pasa en el
+// vuelo es aproximarse, elegir la altura y soltar. Si la mecanica funciona, despues se la pone al
+// final de una mision de verdad con una palabra (`climax: 'suelta'`).
+//
+// HMS ARDENT porque es clase `t21`: el mastil mas alto de las tres siluetas, o sea el buque que
+// mas obliga a pensar por donde salir despues de soltar.
+const t16 = {
+  id: 't16', name: 'LA SUELTA',
+  goal: { kind: 'ship', ship: 'HMS ARDENT', dist: 4000 },
+  climax: 'suelta',
+  cfg: P({ sky: 'clear', obstacles: 0, bombs: 0, caza: 0, fuelOn: false }),
+  // PUMA CANTA LA SUELTA: cada seña de systems/blanco.js (`bl_<seña>`) con su banco de data/story.js.
+  // Es el formato que la mision 2 heredaria tal cual si queda bien. `cada: 0` porque las señas ya
+  // salen una vez por pasada: no hay nada que espaciar.
+  avisos: {
+    bl_asoma: 'AV_T16_ASOMA', bl_alinea: 'AV_T16_ALINEA', bl_sube: 'AV_T16_SUBE', bl_baja: 'AV_T16_BAJA',
+    bl_espera: 'AV_T16_ESPERA', bl_solta: 'AV_T16_SOLTA', bl_sali: 'AV_T16_SALI',
+    bl_corta: 'AV_T16_CORTA', bl_larga: 'AV_T16_LARGA', bl_dormida: 'AV_T16_DORMIDA',
+    bl_averiado: 'AV_T16_AVERIADO', bl_hundido: 'AV_T16_HUNDIDO', bl_reencare: 'AV_T16_REENCARE',
+    cada: 0,
+  },
+  par: 3000,
+};
+
 /** Las misiones que NO son la campaña. `game.js` las concatena a `MISSIONS` para resolver una
  *  mision por id o por indice; nada que recorra la campaña las mira. */
-export const MISIONES_PRUEBA = [t15];
+export const MISIONES_PRUEBA = [t15, t16];

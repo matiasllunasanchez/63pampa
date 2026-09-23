@@ -1127,3 +1127,46 @@ verte; por eso el fuego "de a ojo" arrancaba tarde y seguía en la salida.
    subía a 150–300 pies): fija la banda de suelta del juego.
 3. Cuántos derribos de A-4 fueron en la entrada vs en la salida (para el reparto de peligro
    ida/vuelta).
+
+---
+
+## ¿SE LE PASABA POR ENCIMA AL BUQUE? — la salida de la suelta (pregunta del autor, 23/9/2026)
+
+Surgió armando LA SUELTA (`data/blanco.js`, prueba `t16`). El prototipo derribaba al que le
+pasaba por encima al buque y obligaba a rodearlo por proa o popa. El autor preguntó si así pasaba.
+
+**Lo que se sabe (de memoria, a confirmar con fuente):** no. La táctica de A-4 y Dagger era llegar
+al ras, soltar muy cerca y **pasar por encima**, rozando los mástiles, y quebrar del otro lado.
+Hubo aviones que tocaron antenas o mástiles al cruzar (se recuerda al menos un A-4 perdido contra el
+mástil de una fragata en San Carlos). El peligro de la salida era el fuego del buque ya alertado y
+los Harrier, no el sobrevuelo en sí — coincide con "la salida era más letal que la entrada" de la
+sección anterior.
+
+**Decisión de diseño (23/9), no bloquea nada:** en LA SUELTA el avión pasa A TRAVÉS del buque y
+el juego corta a negro: fin del ataque, y después la vuelta (o el recuento si la misión no tiene).
+
+**A confirmar:**
+1. El caso del A-4 contra el mástil: quién, qué buque, qué día.
+2. A qué altura se cruzaba el buque después de soltar (por encima de los mástiles o entre ellos).
+
+---
+
+## LA NAFTA COMO ALCANCE (docs/sistemas/PLAN_NAFTA_ALCANCE.md, 23/9/2026)
+
+Datos que trajo el autor y que quedaron como **provisorios** en el plan (van a `data/tuning.js` y a
+la `ruta:` de cada misión, así que corregirlos es editar números):
+
+1. **Alcance del A-4B/C sin tanques: 1.600–1.860 km** (860–1.000 NM). En el juego: 1.700 km. ¿Es
+   alcance de ferry (ida sola, alto) o radio de combate? ¿Con qué carga?
+2. **Cada tanque externo suma ~450 km** (240 NM). ¿Tanques de 300 galones? ¿Se soltaban vacíos o
+   en el blanco?
+3. **Al ras del mar el consumo era ×2 a ×3** el de crucero a 35.000 ft. En el juego: ×3 en la banda
+   rasante.
+4. **Perfil de la ida:** descenso a 180–150 km del blanco, nivelados a 110–130 km, a 5–10 m de las
+   olas a ~670 km/h, y potencia máxima (780–900 km/h) en los últimos 50 km.
+5. **KC-130 en la IDA:** cita a 370–450 km del blanco, a 12.000–20.000 ft, en silencio de radio y
+   por encuentro visual. **En la VUELTA:** a 350–400 km del blanco.
+6. **Subir en la vuelta** los hacía aparecer en radar y podía traer Sea Harrier. ¿Hay casos
+   documentados de Harrier que alcanzaran A-4 en el ascenso?
+7. **Las Chanchas que "arrastraban" A-4 perforados** hacia el continente: ¿qué día, qué tripulación?
+   (candidato a ficha histórica).

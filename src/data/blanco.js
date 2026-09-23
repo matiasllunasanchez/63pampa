@@ -1,0 +1,94 @@
+// LA SUELTA SOBRE EL BUQUE — el climax que se juega DENTRO del pasillo (pedido del autor, 23/9/2026).
+//
+// "Armemos un modo cortito de pasada que llegue al final del objetivo y permita lanzar la bomba y
+// embocarla en algun lado." Y enseguida la condicion que lo separa de la PASADA: "la idea es
+// hacerlo DIRECTAMENTE EN PASILLO" — sin 3D, sin cambiar de mapa, sin corte de camara.
+//
+// Es la opcion A1 + B1 + B3 de docs/sistemas/MECANICAS_LLEGADA.md (la banda de suelta, el carril
+// de la eslora, la sombra de la bomba), que estaba bloqueada por una sola pieza: "el pasillo no
+// tiene bomba". Desde el 20/9 la tiene — el tiro oblicuo de data/tuning.js (BOMBA_*) — asi que
+// esto es lo que faltaba: un buque que exista EN EL MUNDO, con un casco contra el que la bomba
+// pueda pegar.
+//
+// LA REGLA QUE ORDENA TODO: el buque es un objeto del mundo como cualquier otro. Viene hacia la
+// camara a `run.spd` y la bomba lo alcanza a SU velocidad de mundo. Cuando llega a tu altura el
+// ataque termina: se le pasa por encima, como en Malvinas, y el juego corta a negro. Ningun numero
+// de aca mueve la camara ni congela el tiempo.
+//
+// Los numeros son unidades de mundo (las de `run.spd` y `proj`), no metros de la PASADA.
+
+export const BL = {
+  /** ESLORA, en unidades de mundo. 80 cruza el pasillo entero (±38, `FLY_X`): no hay por donde
+   *  esquivarlo, y no hace falta — se le pasa por encima y el cruce es el fin del ataque. Fue 60 un
+   *  rato (23/9), cuando pasarle por encima te derribaba y habia que dejar paso por proa y popa.
+   *  El perfil de alturas de abajo se escala con esto. */
+  LEN: 80,
+  /** Centro lateral del buque. 0 es el eje del pasillo: el buque atraviesa el carril entero. */
+  X: 0,
+  /** Desde que profundidad se lo dibuja: el MARGEN DE TIEMPO. Una unidad son 1,17 m (`KMH_U`) y
+   *  `run.spd` anda entre 60 (250 km/h) y 150 (630 km/h), asi que 3500 —4 km— son entre 25 y 60 s
+   *  de verlo venir. Tan lejos, en perspectiva real, mediria un pixel: por eso se lo dibuja con la
+   *  VISTA COMPRIMIDA de `zVista` (core/blanco.js), que lo agranda de lejos y lo deja exacto de cerca.
+   *  (23/9, playtest: "aparece cuando ya estas demasiado cerca".) */
+  VISIBLE_Z: 3500,
+
+  /** LA ESPOLETA: segundos de vuelo que la bomba necesita para armarse. Es lo que hace que la
+   *  ALTURA importe sin ningun cartel: soltada al ras (0,6 s de caida) llega dormida — "la bomba
+   *  que no desperto" de M6, que es historica —, y hace falta soltar de mas arriba (o tirando del
+   *  morro) para que el vuelo dure lo suficiente. Con 0.8, a 10 m y a crucero, la ventana de suelta
+   *  queda entre ~135 y ~190 m del buque: casi un segundo. Mas arriba se abre, al ras no existe. */
+  ARMA_T: 0.8,
+
+  /** LA ZONA DE MAQUINAS: media anchura de la franja central, como fraccion de la eslora. Es EL
+   *  blanco claro que marca el HUD. Una bomba armada ahi lo hunde sola; en cualquier otro lado del
+   *  casco lo deja averiado, y hacen falta dos. */
+  CENTRO: 0.17,
+  DANO_CENTRO: 100,
+  DANO_EXTREMO: 55,
+
+  /** Cuantas pasadas antes de que la mision se pierda. Cada pasada es el avion siguiente del
+   *  escuadron, con SU carga entera: la bomba del centro (la del buque, que todos llevan) y lo que
+   *  cuelgue del ala — dos bombas mas, o dos tanques (data/cargas.js, `conBombaCentral`). */
+  PASADAS: 3,
+  /** Cuanto atras vuelve a quedar el buque en el RE-ENCARE: lo suficiente para verlo asomar de
+   *  nuevo en el horizonte y rearmar la aproximacion, no tanto como para aburrir. */
+  REENCARE_M: 1800,
+
+  /** LA ALTURA IDEAL, marcada en verde en el ALTIMETRO del tablero (render/hud.js): la aguja se
+   *  pone verde adentro. Por debajo la bomba no alcanza a armarse; por encima de 18 el radar enemigo
+   *  te empieza a ver (RADAR_ALT = 20). Es una ayuda de lectura: lo que decide de verdad es la
+   *  espoleta y el cruce, no esta banda. */
+  ALT_IDEAL: [8, 18],
+  /** La luz de SOLTA: el HUD simula la bomba desde el estado actual del avion y prende verde
+   *  cuando soltar AHORA pega armada en el casco. Es la "punteria" del modo de prueba; apagarla es
+   *  cambiar este `true` y el modo pasa a jugarse a puro ojo. */
+  AYUDA: true,
+
+  /** EL FINAL DEL ATAQUE, filmado (pedido del autor, 23/9: "un MOMENTUM OBLIGADO x3, super camara
+   *  lenta mientras explota y se ve el texto de Puma, y sube el avion para darle mas aire a la
+   *  pantalla negra, y mas tiempo de fade para alcanzar a leer").
+   *    LENTO     el mundo a 1/3 desde que una bomba ARMADA revienta en el casco hasta el cruce
+   *    TREPA     lo que el avion sube solo en ese rato (unidades/s de mundo): se va del cuadro
+   *    FUNDIDO_T segundos DE MUNDO del fundido a negro antes del cruce (en camara lenta rinden x3)
+   *    NEGRO_T   segundos de negro pleno despues del cruce, con Puma encima — el rato de leer
+   *    SALIDA_T  segundos del fundido desde negro cuando hay otra pasada */
+  LENTO: 1 / 3,
+  TREPA: 16,
+  FUNDIDO_T: 0.45,
+  NEGRO_T: 2.4,
+  SALIDA_T: 1.2,
+
+  PTS_HUNDIDO: 3000,
+  PTS_AVERIA: 600,
+};
+
+// EL PERFIL DEL CASCO, medido de las hojas horneadas (assets/world/enemies/buque_*.png, frame 0):
+// la altura de la silueta en 20 franjas de proa a popa, como fraccion de la eslora. Es lo que hace
+// que la bomba pegue DONDE SE VE casco (por debajo = pega; por encima = pasa LARGA).
+// Si se re-hornea un buque, se re-mide esto: alfa > 40 por columna, del borde de abajo al pixel
+// mas alto, en el frame 0 de la hoja.
+export const PERFIL = {
+  t21: [0.081, 0.094, 0.121, 0.101, 0.154, 0.174, 0.336, 0.174, 0.174, 0.168, 0.168, 0.101, 0.107, 0.101, 0.067, 0.060, 0.060, 0.060, 0.054, 0.054],
+  t42: [0.089, 0.089, 0.104, 0.115, 0.083, 0.099, 0.141, 0.313, 0.313, 0.266, 0.099, 0.141, 0.141, 0.104, 0.099, 0.099, 0.099, 0.057, 0.057, 0.052],
+  log: [0.126, 0.126, 0.230, 0.225, 0.209, 0.209, 0.162, 0.162, 0.220, 0.204, 0.199, 0.152, 0.152, 0.152, 0.204, 0.215, 0.304, 0.257, 0.094, 0.089],
+};

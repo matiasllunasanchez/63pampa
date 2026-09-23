@@ -204,7 +204,10 @@ export function flightSystem(dt, deps) {
       // Igual que el arena, la PASADA necesita three.js: sin 3D queda el momentum de siempre.
       // EL PULSO: el climax de menor costo y el unico SIN 3D — no hay escena que cargar ni
       // transicion que empalmar, porque la prueba pasa delante del buque que ya venias viendo.
-      if (deps.climax === 'pulso' && pulso.available()) {
+      // LA SUELTA (systems/blanco.js): el climax se juega ADENTRO del pasillo — no hay a donde
+      // entrar. El buque es un objeto del mundo y quien cierra la mision es su propio sistema.
+      if (deps.climax === 'suelta') { /* nada: ver systems/blanco.js */ }
+      else if (deps.climax === 'pulso' && pulso.available()) {
         if (pulso.readyToEnter(run.dist, deps.objectiveDist)) { pulso.enter(true); return 'pulso'; }
       } else if (deps.climax === 'pasada' && pasada.available()) {
         if (pasada.readyToEnter(run.dist, deps.objectiveDist)) { pasada.enter(true); return 'pasada'; }
@@ -637,7 +640,9 @@ export function flightSystem(dt, deps) {
 
   // misiles del jugador: cooldown, recarga lenta y lanzamiento (tecla Z / botón táctil)
   run.mslCd -= dt;
-  if (run.msl < MSL_MAX) { run.mslRegen += dt; if (run.mslRegen >= 7) { run.mslRegen = 0; run.msl++; } }
+  // …salvo en LA SUELTA: ahi las bombas son POR PASADA (data/blanco.js) y las repone el re-encare.
+  // Con la recarga de siempre aparecia una tercera bomba a mitad de la aproximacion.
+  if (run.msl < MSL_MAX && deps.climax !== 'suelta') { run.mslRegen += dt; if (run.mslRegen >= 7) { run.mslRegen = 0; run.msl++; } }
   if (inp.msl) deps.launchMissile();
 
   return false;

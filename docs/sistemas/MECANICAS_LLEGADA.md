@@ -418,3 +418,42 @@ costado, y el PULSO que cambia según te vieron o no (§0.3). Son las dos piezas
 
 Por sonda (dev): `?pulso=<n>[&pasillo]`, `?pasada=<n>[&pasillo]`, `?arena`, `?caza`,
 `?mision=t15`. Fixtures: `npm run pulso`, `npm run pasada`, `npm run fases`, `npm run misiones`.
+
+---
+
+## 8 · LA SUELTA — el prototipo de A1 + B1 + B3 en el pasillo *(23/9/2026)*
+
+> Pedido del autor: *"armemos un modo cortito de pasada que llegue al final del objetivo y permita
+> lanzar la bomba y embocarla"* — **directamente en el pasillo**, sin 3D ni cambio de mapa. Si la
+> mecánica funciona, puede reemplazar al PULSO. Se prueba desde **PRUEBAS → LA SUELTA** (misión `t16`).
+
+**Lo que destrabó la pieza que §5 marcaba como "la que destraba todo":** desde el 20/9 el pasillo
+tiene bomba (tiro oblicuo, `BOMBA_*` en `data/tuning.js`). Faltaba el buque como objeto del mundo.
+
+| pieza | qué hace | dónde |
+|---|---|---|
+| **El buque en el mundo** | viene a `run.spd` como cualquier obstáculo, dibujado con la misma hoja horneada que la aproximación. Asoma a **3,5 km** (25–60 s de margen) con la vista comprimida (`zVista`: de lejos más grande que la perspectiva real, exacta en los últimos 200) y perspectiva aérea (más claro de lejos). Sin el telón de bruma del final del pasillo, que lo tapaba | `core/blanco.js`, `render/blanco.js` |
+| **El perfil del casco** | alturas medidas de la hoja (20 franjas): la bomba pega donde se ve casco. Eslora 60 sobre un pasillo de ±38: deja ~8 de paso por proa y por popa | `data/blanco.js` `PERFIL`, `BL.LEN` |
+| **La espoleta** (A1 sin bandas) | la bomba arma a los `ARMA_T 0.8 s` de vuelo. Al ras no llega nunca → **NO DESPERTÓ**; a 10 m hay ~1 s de ventana; más arriba se abre, pero el radar está en 20 | `BL.ARMA_T` |
+| **El veredicto** | cada bomba dice qué pasó: CORTA · LARGA · NO DESPERTÓ · AVERIADO · ¡HUNDIDO! | `systems/blanco.js` `golpe()`/`corta()` |
+| **El blanco claro** (B1) | "▼ BLANCO" sobre el buque desde que asoma, y corchetes sobre la zona de máquinas (±17 % de la eslora) en los últimos 700 m. La mira del cañón se apaga mientras el buque está a la vista: caía justo encima y lo tapaba. Armada en máquinas lo hunde sola; en los extremos hacen falta dos | `BL.CENTRO`, `DANO_*` |
+| **La salida** | se le pasa **por encima** al buque, como en Malvinas (ver `PREGUNTAS_HISTORICAS.md`): no hay choque, y el cruce **corta a negro** — fin del ataque. Hundido → la vuelta (o el recuento si la misión no tiene). Sin hundir → otra pasada detrás del negro | `step()` |
+| **El HUD** | sin textos propios (23/9: se fue la línea de distancia/bombas/pasada y la luz SOLTÁ). Queda la marca ▼ BLANCO y los corchetes; la altura de soltar va en verde en el altímetro (borde verde fijo adentro de la banda). **Cuando es el momento de soltar, TITILA EN VERDE con un solo latido:** el borde de la cinta de objetivo y su avioncito, el borde del altímetro y las bombas del estante | `render/blanco.js`, `render/hud.js` |
+| **La bomba del buque** | en estas misiones todo avión lleva la bomba del **centro** (`conBombaCentral`, `data/cargas.js`): el ala se respeta —2 bombas, 2 tanques o nada— y el centro se fuerza. La del centro está **bloqueada** hasta que el buque está a tiro; ahí sale primero. El estante la muestra aparte (marco rojo, gris si bloqueada) y el ala con su ícono (bomba o **tanque**, ícono nuevo). Cada re-encare es el avión siguiente, con su carga entera. PRUEBAS tiene las dos: LA SUELTA (2 tanques) y LA SUELTA · 3 BOMBAS | `systems/blanco.js` `tomarBomba()` |
+| **Ganar / perder** | hundido → recuento. Pasar de largo → re-encare (2 bombas nuevas, el daño queda). A la 3.ª pasada fallida se pierde | `BL.PASADAS`, `REENCARE_M` |
+| **Puma canta la suelta** | por radio, una seña por momento: asoma el blanco · alineate · subí · esperá · ¡SOLTÁ! · ¡por encima de los palos! · y el veredicto (corta, larga, no despertó, tocado, ¡le diste!). Bancos `AV_T16_*` de `data/story.js`, enchufados por `avisos` de la misión — la M2 los heredaría tal cual | `señas()` en `systems/blanco.js` |
+| **El final filmado** | una bomba ARMADA que revienta en el casco dispara el **MOMENTUM OBLIGADO**: el mundo a 1/3 (con el marco del MOMENTUM) hasta el cruce, el avión trepa solo, el cuadro se funde a negro y el negro se **sostiene 2,4 s con Puma encima** (la radio va sobre el negro). Recién después: recuento, vuelta u otra pasada. Durante todo eso el avión tiene piso: no se puede ir al agua sin ver | `BL.LENTO`, `TREPA`, `FUNDIDO_T`, `NEGRO_T`, `SALIDA_T` |
+
+**Cómo se lo enchufa a una misión real:** `climax: 'suelta'` en su renglón. El climax sigue siendo dato.
+
+**Lo que el primer vuelo mostró y queda abierto:**
+1. **Tu avión tapa el blanco.** Para embocarla hay que estar alineado, y alineado es "detrás de tu
+   sprite". Se resolvió con la marca en la capa de cabina, sin la mira del cañón encima, y con el
+   casco aclarado de lejos. Sigue siendo una lonja fina en el horizonte hasta los ~500 m.
+2. ~~**El remate es chico.**~~ Resuelto con el final filmado (cámara lenta x3 + trepada + negro
+   con Puma). **El buque NO se hunde en cuadro** (decisión del autor, 23/9): empieza a prenderse
+   fuego —los focos se propagan por la cubierta—, corren marineros y suena la alarma (`alarm` de
+   `data/sfx.js`, desde el primer impacto armado).
+3. **La luz SOLTÁ es una ayuda de prueba.** Con ella el modo es "esperar el verde"; sin ella es
+   calcular a ojo. Decidir cuál es el juego (o que el verde solo exista en las primeras misiones).
+4. **Sin defensa.** El buque no dispara: faltan la AA y la escalera de §0.1 para que acercarse cueste.

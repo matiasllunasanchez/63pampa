@@ -94,6 +94,9 @@ function cinta(o) {
   const bx0 = Math.round(W / 2 - total / 2);
   const py = MARGEN, y = py + 5;                     // la fila, al medio de una placa de 11
   plate(bx0, py, ancho, 11);
+  // LA SUELTA: es el momento de soltar → el borde de la cinta titila en verde (y el avion, abajo)
+  const verde = !!o.solta && titilaSuelta();
+  if (verde) bordePlaca(bx0, py, ancho, 11, SUELTA_COL);
   if (o.nombre) {
     // comparte el canto con la cinta: se lee como una pestaña del mismo instrumento, no como otro
     plate(bx0 + ancho - 1, py, nomW, 11);
@@ -135,7 +138,7 @@ function cinta(o) {
       ctx.translate(pm, 0); ctx.scale(Math.abs(sx) < 0.02 ? 0.02 : sx, 1); ctx.translate(-pm, 0);
       iconoEn(pm, y, 'avion', P.ink);
       ctx.restore();
-    } else iconoEn(pm, y, 'avion', P.ink);
+    } else iconoEn(pm, y, 'avion', verde ? SUELTA_COL : P.ink);
     kx = x1 + 8;   // el buque mide 11: medio casco a la derecha del final de la linea
   }
   ctx.textAlign = 'left'; ctx.font = F_VAL;
@@ -167,7 +170,7 @@ function giroVuelta(vuelve) {
   return volK;
 }
 
-export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta) {
+export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta, solta) {
   const flip = giroVuelta(!!vuelta);
   // LA VUELTA CUENTA LO SUYO: cuanto llevas hecho del regreso contra cuanto mide. Pasada la meta, el
   // odometro de la ida ya no es una ruta — «2.8 / 2.2 km» es un numero que se paso, no un lugar.
@@ -194,7 +197,7 @@ export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta) {
     // 'km' en MINUSCULA y del color del total: mas chica sin bajar de cuerpo, y es ademas el simbolo
     // correcto del kilometro (el SI no lo escribe en mayuscula)
     uni: 'km', uniCol: P.warn,
-    boost: run.boost,
+    boost: run.boost, solta,
   });
 }
 
@@ -535,6 +538,10 @@ const CUADRO = 26, CUADROS_Y = H - MARGEN - CUADRO;
 const COL = i => MARGEN + i * (CUADRO + AIRE);
 // LOS RELOJES DEL VUELO (ver drawHUD): hasta donde llega cada escala, y el ancho del estante de
 // misiles que les hizo lugar.
+const SUELTA_COL = '#7fe07a';        // LA SUELTA: el verde de "es el momento de soltar"
+/** El titileo de "SOLTA AHORA": todo lo que se prende en verde lo hace con este mismo reloj, asi
+ *  la cinta, el altimetro y el estante laten juntos y se leen como UNA señal. */
+const titilaSuelta = () => Math.floor(performance.now() / 160) % 2 === 0;   // reloj de pared: late igual en camara lenta
 const VEL_TOPE = 1400;              // km/h: pasa Mach 1 (1200) con aire; la postcombustion la clava
 // El Mach arranca en 0,2 y no en 0,4: el crucero anda por 0,26 a 0,5, y con la escala en 0,4 la
 // aguja pasaba media mision clavada en cero, que en un tablero se lee como un instrumento roto.
@@ -1440,7 +1447,7 @@ export function drawHUD(h) {
   // comparable — termina cuando llegas al buque, no cuando te matan, o sea que el puntaje lo decide
   // la distancia y no como volaste. POR LA PATRIA es el unico donde una corrida es una corrida:
   // infinita, sin objetivo, y se acaba cuando te caes.
-  if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind, h.vuelta);
+  if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind, h.vuelta, h.sueltaYa);
   else if (gameMode === 'survival') drawCorridaBar(best);
 
   // EL CONTADOR DE MISION SE FUE (playtest 29/8). «MISION 3/14» arriba del todo era lo unico del
@@ -1752,9 +1759,18 @@ export function drawHUD(h) {
   const fA = a => Math.sqrt(Math.max(0, Math.min(1, a / FLY_TOP)));
   const techo = h.radarAlt === undefined ? RADAR_ALT : h.radarAlt;
   const rozando = run.scrapeVib > 0.6, visto = plane.y > techo || rozando;
+  // …Y EN LA SUELTA (data/blanco.js), LA ALTURA DE SOLTAR en verde: la franja del dial, la marca
+  // larga donde la bomba empieza a armarse, y la aguja verde mientras estes adentro. Era una regla
+  // aparte a la derecha de la pantalla y no se entendia (playtest 23/9): la altura ya tiene reloj.
+  const sa = h.sueltaAlt, enSuelta = !!sa && plane.y >= sa[0] && plane.y <= sa[1];
   reloj(xVuelo(2), CUADROS_Y, { val: fA(plane.y), ico: 'alt', critico: visto,
-    col: visto ? (Math.sin(run.t * (rozando ? 30 : 14)) > 0 ? P.warn : '#7d2f1e') : plane.y <= BANDA_ALT ? P.accent : P.foam,
-    zonas: [[0, fA(1.2), P.warn], [fA(1.2) + 0.01, fA(BANDA_ALT), P.accent]], marcas: [[fA(techo), P.warn]],
+    col: visto ? (Math.sin(run.t * (rozando ? 30 : 14)) > 0 ? P.warn : '#7d2f1e') : enSuelta ? SUELTA_COL : plane.y <= BANDA_ALT ? P.accent : P.foam,
+    zonas: [[0, fA(1.2), P.warn], [fA(1.2) + 0.01, fA(BANDA_ALT), P.accent]].concat(sa ? [[fA(sa[0]), fA(sa[1]), SUELTA_COL]] : []),
+    marcas: [[fA(techo), P.warn]].concat(sa ? [[fA(sa[0]), SUELTA_COL]] : []),
+    // …y EL BORDE DE LA PLACA en verde, FIJO mientras estes en altura de soltar (se lee de reojo sin
+    // buscar la aguja, como el borde del turbo en el velocimetro) y TITILANDO cuando ademas es el
+    // momento de soltar: el mismo latido que la cinta y el estante.
+    borde: h.sueltaYa ? (titilaSuelta() ? SUELTA_COL : null) : enSuelta ? SUELTA_COL : null,
     txt: Math.round(plane.y) + 'm', txtCol: visto ? P.warn : P.dim });
   // GAS: la palanca, leida como las RPM de un tablero de verdad. Era la corredera vertical del borde
   // derecho; sin nafta, la aguja parpadea (el reloj de nafta, a la izquierda, dice por que).
@@ -1788,7 +1804,28 @@ export function drawHUD(h) {
   // LOS MISILES, EN UN ESTANTE ANGOSTO (playtest 11/9): del alto de los cuadrados, al lado de SALUD,
   // uno arriba del otro y sin rotulo —cada pip ES un misil—. La placa de 64 que tenian estaba casi
   // vacia, y los cuatro relojes del vuelo necesitaban ese lugar.
-  if (pide(run.msl < MSL_MAX)) {
+  // LA SUELTA: el estante muestra LA CARGA, pilon por pilon (arriba y abajo el par de ala, al medio
+  // el centro). La del centro es LA DEL BUQUE: va enmarcada en rojo —el color del blanco— y, lejos
+  // del buque, apagada (bloqueada). Las de ala pueden ser bombas o tanques. Cuando es el momento de
+  // soltar, lo que se puede soltar titila en verde con el mismo latido que la cinta y el altimetro.
+  if (h.rack) {
+    const r = h.rack, verde = h.sueltaYa && titilaSuelta();
+    plate(xRack, CUADROS_Y, RACK_W, CUADRO);
+    const cx = xRack + 1 + (BOMBA_W - 1) / 2;
+    const ala = i => {
+      const yy = CUADROS_Y + 5 + i * 8;
+      if (r.ala === 'tanque') iconoEn(cx, yy, 'tanque', '#8d9a78');
+      else if (r.ala === 'bomba') {
+        const on = (i === 0 ? r.alaN >= 2 : r.alaN >= 1);
+        iconoEn(cx, yy, 'bomba', on ? (verde ? SUELTA_COL : '#e9edf0') : '#2e3c45', on ? undefined : '#2e3c45');
+      }
+    };
+    ala(0); ala(2);
+    const yc = CUADROS_Y + 13, on = r.centroN > 0;
+    bordePlaca(xRack, yc - 4, RACK_W, 9, on && !r.bloqueada && verde ? SUELTA_COL : P.warn);
+    iconoEn(cx, yc, 'bomba', !on ? '#2e3c45' : verde ? SUELTA_COL : r.bloqueada ? '#6b7680' : '#e9edf0',
+      !on ? '#2e3c45' : r.bloqueada ? '#6b7680' : undefined);
+  } else if (pide(run.msl < MSL_MAX)) {
     plate(xRack, CUADROS_Y, RACK_W, CUADRO);
     // CADA PIP ES LA BOMBA, 10x5 y de la tabla de iconos (12/9, con foto de la maqueta del autor):
     // cuerpo gordo, punta pintada y aletas de cola cuadradas. La anterior media 7x3 —una rayita con

@@ -2428,6 +2428,113 @@ export const SCENES = {
         es: 'Si algún día no te alcanza para volver, se pide la Chancha. Te da de tomar en el aire. Hoy alcanza.', en: '' },
     ],
   },
+  // LA SUELTA, CANTADA POR PUMA (data/blanco.js, prueba t16 — pedido del autor 23/9: "que lo cante
+  // Puma por radio, y seguro lo usemos en la mision 2"). Una seña por momento de la aproximacion, en
+  // el orden en que se piden; systems/blanco.js decide CUANDO y la mision enchufa QUIEN por `avisos`.
+  // Ninguna nombra una tecla: soltar es "soltá", como lo diria un jefe de escuadrilla.
+  AV_T16_ASOMA: {
+    id: 'AV_T16_ASOMA', tipo: 'AVISO', titulo: 'PUMA · EL BLANCO',
+    lineas: [
+      { id: 'AV_T16_ASOMA_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Ahí está, Tero. Sobre el horizonte. No le saques los ojos de encima.', en: '' },
+      { id: 'AV_T16_ASOMA_020', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Blanco a la vista. Pegado al agua hasta que te diga.', en: '' },
+    ],
+  },
+  AV_T16_ALINEA: {
+    id: 'AV_T16_ALINEA', tipo: 'AVISO', titulo: 'PUMA · ALINEARSE',
+    lineas: [
+      { id: 'AV_T16_ALINEA_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Ponelo en la nariz. Derechito al medio.', en: '' },
+      { id: 'AV_T16_ALINEA_020', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Corregí. El blanco al centro, justo adelante.', en: '' },
+    ],
+  },
+  AV_T16_SUBE: {
+    id: 'AV_T16_SUBE', tipo: 'AVISO', titulo: 'PUMA · SUBIR A SOLTAR',
+    lineas: [
+      { id: 'AV_T16_SUBE_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Ahora subí. Diez metros, no más.', en: '' },
+      { id: 'AV_T16_SUBE_020', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Un poco arriba, que desde el agua la bomba no despierta.', en: '' },
+    ],
+  },
+  AV_T16_BAJA: {
+    id: 'AV_T16_BAJA', tipo: 'AVISO', titulo: 'PUMA · MUY ALTO',
+    lineas: [
+      { id: 'AV_T16_BAJA_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Muy alto, Tero. Te van a ver. Bajá un poco.', en: '' },
+    ],
+  },
+  AV_T16_ESPERA: {
+    id: 'AV_T16_ESPERA', tipo: 'AVISO', titulo: 'PUMA · ESPERAR',
+    lineas: [
+      { id: 'AV_T16_ESPERA_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Esperá… esperá…', en: '' },
+      { id: 'AV_T16_ESPERA_020', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Todavía no. Aguantá.', en: '' },
+    ],
+  },
+  AV_T16_SOLTA: {
+    id: 'AV_T16_SOLTA', tipo: 'AVISO', titulo: 'PUMA · ¡AHORA!',
+    lineas: [
+      { id: 'AV_T16_SOLTA_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: '¡Ahora! ¡Soltá!', en: '' },
+      { id: 'AV_T16_SOLTA_020', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: '¡Soltá, soltá!', en: '' },
+    ],
+  },
+  AV_T16_SALI: {
+    id: 'AV_T16_SALI', tipo: 'AVISO', titulo: 'PUMA · LA SALIDA',
+    lineas: [
+      { id: 'AV_T16_SALI_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: '¡Arriba, por encima de los palos!', en: '' },
+      { id: 'AV_T16_SALI_020', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: '¡Pasale por arriba y quebrá!', en: '' },
+    ],
+  },
+  AV_T16_CORTA: {
+    id: 'AV_T16_CORTA', tipo: 'AVISO', titulo: 'PUMA · CORTA',
+    lineas: [
+      { id: 'AV_T16_CORTA_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Corta. Soltaste temprano.', en: '' },
+    ],
+  },
+  AV_T16_LARGA: {
+    id: 'AV_T16_LARGA', tipo: 'AVISO', titulo: 'PUMA · LARGA',
+    lineas: [
+      { id: 'AV_T16_LARGA_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Larga. Soltaste muy alto o muy tarde.', en: '' },
+    ],
+  },
+  AV_T16_DORMIDA: {
+    id: 'AV_T16_DORMIDA', tipo: 'AVISO', titulo: 'PUMA · NO DESPERTÓ',
+    lineas: [
+      { id: 'AV_T16_DORMIDA_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Pegó y no despertó. Más alto la próxima.', en: '' },
+    ],
+  },
+  AV_T16_AVERIADO: {
+    id: 'AV_T16_AVERIADO', tipo: 'AVISO', titulo: 'PUMA · TOCADO',
+    lineas: [
+      { id: 'AV_T16_AVERIADO_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Tocado. Con eso no alcanza.', en: '' },
+    ],
+  },
+  AV_T16_HUNDIDO: {
+    id: 'AV_T16_HUNDIDO', tipo: 'AVISO', titulo: 'PUMA · ¡LE DISTE!',
+    lineas: [
+      { id: 'AV_T16_HUNDIDO_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: '¡Le diste, Tero! ¡Le diste en el medio!', en: '' },
+    ],
+  },
+  AV_T16_REENCARE: {
+    id: 'AV_T16_REENCARE', tipo: 'AVISO', titulo: 'PUMA · OTRA PASADA',
+    lineas: [
+      { id: 'AV_T16_REENCARE_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Sigue a flote. Damos la vuelta y otra pasada.', en: '' },
+    ],
+  },
   AV_M1_PISO: {
     id: 'AV_M1_PISO', tipo: 'AVISO', titulo: 'PUMA · LA CHAPA EN EL PISO',
     lineas: [

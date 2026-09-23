@@ -181,6 +181,8 @@ export function updateSfx(dt, w) {
       }
     }
     if (w.state === 'momentum') sfxTgt.alarm = SFX_DEF.alarm.v;           // alarma durante el momentum
+    // …y la del buque de LA SUELTA, desde que la bomba revienta en el casco (systems/blanco.js)
+    if (w.state === 'play' && w.alarmaBuque) sfxTgt.alarm = SFX_DEF.alarm.v;
   }
   for (const k of SFX_LOOP_KEYS) {
     const a = sfxLoop(k); if (!a) continue;

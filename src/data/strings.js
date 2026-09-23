@@ -444,6 +444,11 @@ export const STRINGS = {
     // la causa de la derrota del PULSO. Decia «Se acabaron las pasadas» — de cuando el fallo
     // costaba una pasada y habia tres intentos. Con un error que pierde, lo que paso es otra cosa.
     death_pulso: 'Erraste la mano, y el buque sigue flotando',
+    // LA SUELTA SOBRE EL BUQUE (data/blanco.js): el veredicto de cada bomba y el HUD de la pasada
+    death_suelta: 'Se acabaron las pasadas y el buque sigue a flote',
+    bl_hundido: '¡HUNDIDO!', bl_averiado: 'AVERIADO', bl_dormida: 'NO DESPERTÓ',
+    bl_corta: 'CORTA', bl_larga: 'LARGA', bl_reencare: 'SIGUE A FLOTE · OTRA PASADA',
+    bl_blanco: 'BLANCO', bl_bloqueada: 'LA DEL CENTRO ES PARA EL BUQUE',
     arena_out: '! FUERA DE LA ZONA DE COMBATE !', arena_auto: 'REENCARANDO AL BLANCO',
     // PASADA: el otro climax — a ras, saltar, soltar y salir (docs/sistemas/SPEC_MODO_PASADA.md).
     // El cartel de controles es el del arena MENOS lo que la pasada no tiene (media vuelta y
@@ -1417,6 +1422,10 @@ export const STRINGS = {
     pulso_c_log: 'THE CARGO BURNS BOW TO STERN',
     res_pulso: 'THE PULSE',
     death_pulso: 'Your hand slipped, and the ship is still afloat',
+    death_suelta: 'Out of passes, and the ship is still afloat',
+    bl_hundido: 'SUNK!', bl_averiado: 'DAMAGED', bl_dormida: 'DIDN\'T ARM',
+    bl_corta: 'SHORT', bl_larga: 'LONG', bl_reencare: 'STILL AFLOAT · GO AROUND',
+    bl_blanco: 'TARGET', bl_bloqueada: 'THE CENTER ONE IS FOR THE SHIP',
     arena_out: '! OUTSIDE THE COMBAT ZONE !', arena_auto: 'TURNING BACK TO TARGET',
     pasada_title: 'T H E   R U N',
     pasada_hint: 'NOSE [W]/[S] · ROLL & TURN [Q]/[E] · BRAKE [F] · [Z] RELEASE',

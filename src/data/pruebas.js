@@ -45,6 +45,17 @@ export const PRUEBAS = [
 
   { head: 'prSecClimax' },
   {
+    id: 'suelta', titulo: 'LA SUELTA', desc: 'El buque al final del pasillo: altura, soltar y embocarla',
+    // EN EL PASILLO, sin corte: la mision t16 entera (3 km de mar vacio y el buque). Arranca en el
+    // aire como todos los momentos; lo que se mide empieza a los ~5 s, cuando asoma el casco.
+    setup: a => a.mision('t16'),
+  },
+  {
+    id: 'suelta3', titulo: 'LA SUELTA · 3 BOMBAS', desc: 'La misma, con bombas en el ala en vez de tanques',
+    // la carga de ala es lo unico que cambia: la del centro (la del buque) la llevan todos
+    setup: a => a.mision('t16', { carga: 'tres_bombas' }),
+  },
+  {
     id: 'pasada', titulo: 'LA PASADA', desc: 'A ras, saltar, soltar y salir · HMS SHEFFIELD',
     setup: a => a.pasada('m3'),
   },

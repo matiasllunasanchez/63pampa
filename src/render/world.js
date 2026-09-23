@@ -2259,9 +2259,11 @@ function hojaBuque(nombre, n) {
  *  EL AGUA SIGUE SIENDO CODIGO. El bigote de proa y la flotacion picoteada NO se hornean (regla
  *  §4 del plan: la materia en movimiento es codigo) — se pintan encima del sprite, que ademas es
  *  lo que hace que el buque se vea NAVEGANDO y no fondeado. */
-function drawCascoDelBuque(nombre, cx, len, deckY, uh, hullH, haze, fx) {
+export function drawCascoDelBuque(nombre, cx, len, deckY, uh, hullH, haze, fx) {
   const hundiendo = fx && fx.sink > 0.12 ? (fx.tilt >= 0 ? 1 : 2) : 0;
-  const hoja = len >= CASCO_MIN ? hojaBuque(nombre, hundiendo) : null;
+  // `fx.hoja` fuerza el sprite a cualquier tamaño: el buque de LA SUELTA (render/blanco.js) es un
+  // objeto del mundo y de lejos tiene que seguir siendo EL MISMO buque, no el casco procedural.
+  const hoja = len >= CASCO_MIN || (fx && fx.hoja) ? hojaBuque(nombre, hundiendo) : null;
   if (!hoja) {
     momRender.drawBargeHull(cx, len, deckY, uh, run.t, haze, theme.sky.horizon);
     return;
