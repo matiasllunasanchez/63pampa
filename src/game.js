@@ -3521,6 +3521,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // cierra lo que el negro ya tapo)
         if (b === 'hundido') { finishObjective(); return; }
         if (b && b.fallo) { die(b.fallo); return; }
+        // EL SALTO CORTO: cruzaste por debajo de la silueta y te llevaste los palos. Es un golpe de
+        // chapa (DMG.death_palos): si el avion ya venia roto, se cae — y entra el relevo de siempre.
+        if (b && b.roce && damage.takeHit(b.roce)) { onDeath(b.roce); return; }
       }
       if (gameMode !== 'pasadas' && !(runClimax() === 'pasada' && pasada.spawnsCut(run.dist, objectiveDist))
         && !(runClimax() === 'suelta' && blancoSys.spawnsCut(run.dist)))
@@ -4124,6 +4127,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // el estante con la carga pilon por pilon
         sueltaYa: S.state === 'play' && !!sueltaHud && sueltaHud.listo,
         rack: S.state === 'play' && sueltaHud ? sueltaHud.rack : null,
+        saltoAlt: S.state === 'play' && sueltaHud ? sueltaHud.salto : null,
         // lo que una leccion esta explicando: el HUD dibuja esos relojes aunque esten escondidos
         foco: lecFoco ? lecFoco.foco : null,
         // una mision donde no se puede morir tiene UNA vida, aunque despegue el escuadron entero

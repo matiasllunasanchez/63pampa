@@ -538,6 +538,7 @@ const CUADRO = 26, CUADROS_Y = H - MARGEN - CUADRO;
 const COL = i => MARGEN + i * (CUADRO + AIRE);
 // LOS RELOJES DEL VUELO (ver drawHUD): hasta donde llega cada escala, y el ancho del estante de
 // misiles que les hizo lugar.
+const SALTO_COL = '#ffd479';        // LA SUELTA: la altura que hay que saltar para pasar el buque
 const SUELTA_COL = '#7fe07a';        // LA SUELTA: el verde de "es el momento de soltar"
 /** El titileo de "SOLTA AHORA": todo lo que se prende en verde lo hace con este mismo reloj, asi
  *  la cinta, el altimetro y el estante laten juntos y se leen como UNA señal. */
@@ -1766,7 +1767,9 @@ export function drawHUD(h) {
   reloj(xVuelo(2), CUADROS_Y, { val: fA(plane.y), ico: 'alt', critico: visto,
     col: visto ? (Math.sin(run.t * (rozando ? 30 : 14)) > 0 ? P.warn : '#7d2f1e') : enSuelta ? SUELTA_COL : plane.y <= BANDA_ALT ? P.accent : P.foam,
     zonas: [[0, fA(1.2), P.warn], [fA(1.2) + 0.01, fA(BANDA_ALT), P.accent]].concat(sa ? [[fA(sa[0]), fA(sa[1]), SUELTA_COL]] : []),
-    marcas: [[fA(techo), P.warn]].concat(sa ? [[fA(sa[0]), SUELTA_COL]] : []),
+    marcas: [[fA(techo), P.warn]].concat(sa ? [[fA(sa[0]), SUELTA_COL]] : [])
+      // EL SALTO: la altura del buque debajo de tu linea, en amarillo, desde que soltas hasta el cruce
+      .concat(h.saltoAlt != null ? [[fA(h.saltoAlt), SALTO_COL]] : []),
     // …y EL BORDE DE LA PLACA en verde, FIJO mientras estes en altura de soltar (se lee de reojo sin
     // buscar la aguja, como el borde del turbo en el velocimetro) y TITILANDO cuando ademas es el
     // momento de soltar: el mismo latido que la cinta y el estante.

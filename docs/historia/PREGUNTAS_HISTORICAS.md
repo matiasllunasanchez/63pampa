@@ -1142,6 +1142,15 @@ mástil de una fragata en San Carlos). El peligro de la salida era el fuego del 
 los Harrier, no el sobrevuelo en sí — coincide con "la salida era más letal que la entrada" de la
 sección anterior.
 
+**✅ CONFIRMADO (23/9)** — captura compartida por el autor (resumen con fuentes: LA NACION,
+Canal Encuentro, Instagram): los aviones **pasaban por encima del barco** justo después de soltar.
+El perfil: aproximación a **10–15 m** del agua; lanzamiento a **~900 km/h**, apuntando al cuerpo
+de la nave y soltando **muy cerca**, con la bomba en trayectoria **casi horizontal** al salir; y la
+escapada, **"el salto"**: un palancazo violento para saltar por encima de la estructura y las
+antenas, y volver a pegarse al agua del otro lado. Cierra con el juego: banda de soltar 8–18 m,
+bomba que sale derecha (`BOMBA_PLANEO`), trepada sola en la cámara lenta. Lo que NO calza es la
+velocidad: el juego vuela a ~440 km/h (630 con turbo).
+
 **Decisión de diseño (23/9), no bloquea nada:** en LA SUELTA el avión pasa A TRAVÉS del buque y
 el juego corta a negro: fin del ataque, y después la vuelta (o el recuento si la misión no tiene).
 

@@ -195,7 +195,7 @@ const t16 = {
     bl_asoma: 'AV_T16_ASOMA', bl_alinea: 'AV_T16_ALINEA', bl_sube: 'AV_T16_SUBE', bl_baja: 'AV_T16_BAJA',
     bl_espera: 'AV_T16_ESPERA', bl_solta: 'AV_T16_SOLTA', bl_sali: 'AV_T16_SALI',
     bl_corta: 'AV_T16_CORTA', bl_larga: 'AV_T16_LARGA', bl_dormida: 'AV_T16_DORMIDA',
-    bl_averiado: 'AV_T16_AVERIADO', bl_hundido: 'AV_T16_HUNDIDO', bl_reencare: 'AV_T16_REENCARE',
+    bl_averiado: 'AV_T16_AVERIADO', bl_roce: 'AV_T16_ROCE', bl_hundido: 'AV_T16_HUNDIDO', bl_reencare: 'AV_T16_REENCARE',
     cada: 0,
   },
   par: 3000,

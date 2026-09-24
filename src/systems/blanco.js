@@ -9,12 +9,12 @@
 // las bombas: aca solo se juzga lo que la bomba hizo.
 import { plane } from '../core/state.js';
 import { run } from '../core/run.js';
-import { pmissiles } from '../core/world.js';
+import { pmissiles, missiles } from '../core/world.js';
 import { popup, explodeAt, columnaBomba, proj } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { BL } from '../data/blanco.js';
-import { BOMBA_PANZA, BOMBA_DERIVA, FLY_TOP } from '../data/tuning.js';
+import { BOMBA_PANZA, BOMBA_DERIVA } from '../data/tuning.js';
 import { blanco, resetBlanco, altoEn, zonaEn, predecir, AGUA } from '../core/blanco.js';
 import { SHIP_CLASS } from '../data/ships.js';
 import { cargaDe } from '../data/cargas.js';
@@ -103,7 +103,6 @@ export function golpe(pm, z0) {
   explodeAt(pm.x, pm.y, blanco.z, true);
   columnaBomba(pm.x, AGUA, blanco.z, true);
   blanco.lento = true;   // MOMENTUM OBLIGADO: de aca al cruce, el mundo a BL.LENTO
-  if (blanco.altPiso < 0) blanco.altPiso = plane.y;
   blanco.marcas.push({ x: pm.x, y: Math.max(AGUA + 1, pm.y), t: run.t });
   blanco.dano += zn === 'centro' ? BL.DANO_CENTRO : BL.DANO_EXTREMO;
   if (blanco.dano >= 100) {
@@ -135,13 +134,14 @@ export function step(dt) {
   blanco.zPrev = blanco.z;
   blanco.z -= run.spd * dt;
   if (blanco.hundido) blanco.sinkT += dt;
-  // MIENTRAS DURA LA CAMARA LENTA, el avion sube solo: se va del cuadro y le deja aire al negro.
-  // Es un PISO que sube, no un empujon: el vuelo de cada cuadro puede reescribir la altura (la mira
-  // del mouse lo tira hacia donde apunta), y lo que tiene que ser seguro es que no baje.
-  if (blanco.lento) blanco.altPiso = Math.min(FLY_TOP - 2, blanco.altPiso + BL.TREPA * dt);
+  // EL NEGRO ES TREGUA: lo que no se ve no puede matarte. Saltar el buque puede dejarte arriba del
+  // techo del radar, y un misil lanzado ahi pegaba en pleno negro (medido: derribo sin ver nada).
+  // Mientras dura el negro —y su apertura— no hay misiles en vuelo y el radar no carga.
+  if (blanco.negroT >= 0 || blanco.salidaT >= 0) { missiles.length = 0; run.detection = 0; }
+  // EN EL NEGRO, UN PISO: sin ver nada nadie maneja, y sin piso el avion se iba solo al agua en pleno
+  // negro (medido). Va ANTES del negro sostenido, que sale temprano. Fuera del negro no hay piso: el
+  // salto es del jugador.
   if (blanco.altPiso >= 0) plane.y = Math.max(plane.y, blanco.altPiso);
-  // Va ANTES del negro sostenido, que sale temprano: en el negro, sin nadie que maneje, es donde
-  // mas hace falta (medido: sin piso el avion se iba solo al agua en pleno negro).
   // EL FUNDIDO DE SALIDA de una pasada nueva: corre solo, el juego ya sigue.
   if (blanco.salidaT >= 0) { blanco.salidaT += dt; if (blanco.salidaT >= BL.SALIDA_T) blanco.salidaT = -1; }
   // EL NEGRO SOSTENIDO: el cruce ya paso; se espera NEGRO_T con Puma encima y recien ahi se resuelve.
@@ -160,14 +160,18 @@ export function step(dt) {
   if (blanco.zPrev >= PZ && blanco.z < PZ) {
     blanco.lento = false;
     blanco.negroT = 0;
-    // EN EL NEGRO NADIE MANEJA: el piso se queda donde llego (o a 6, si no hubo impacto y venias al
-    // ras). Sin esto el avion se iba solo al agua y se moria sin que se viera nada — medido.
-    blanco.altPiso = Math.max(blanco.altPiso, plane.y, 6);
     if (blanco.hundido) blanco.pendiente = 'hundido';
     else {
       blanco.pasada++;
       blanco.pendiente = blanco.pasada >= BL.PASADAS ? { fallo: 'death_suelta' } : 'reencare';
     }
+    // EL SALTO (lo hace el jugador, 23/9): por debajo de la silueta del buque te llevas los palos.
+    // No mata en el acto —es el roce de las antenas, no chocar el casco—: es un golpe de chapa, y
+    // game.js decide si el avion aguanta o se cae. Por encima, o por la proa o la popa, limpio.
+    const h = altoEn(plane.x), roce = h >= 0 && plane.y < AGUA + h
+    // …y el piso del negro: donde quedaste, y si rozaste, del otro lado de los palos
+    blanco.altPiso = Math.max(plane.y, 6, roce ? AGUA + h + 1 : 0);
+    if (roce) { seña('roce'); return { roce: 'death_palos' }; }
     return null;
   }
   // LA PREDICCION, una vez por cuadro: la leen las señas de Puma y el HUD (lo que titila en verde).
@@ -246,5 +250,9 @@ export function hud() {
     listo: vivo && blanco.listo,
     enAtaque: vivo && aTiro(),
     rack: { ala: blanco.ala, alaN: blanco.alaN, centroN: blanco.centroN, bloqueada: !aTiro() },
+    // LA ALTURA DEL SALTO: desde que soltaste hasta el cruce, cuanto mide el buque justo debajo de
+    // tu linea — por encima de eso pasas limpio. La marca amarilla del altimetro.
+    salto: blanco.negroT < 0 && blanco.z > PZ && (blanco.dicho.sali || blanco.lento)
+      ? AGUA + Math.max(0, altoEn(plane.x)) : null,
   };
 }

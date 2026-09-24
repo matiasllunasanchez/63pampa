@@ -2493,6 +2493,13 @@ export const SCENES = {
         es: '¡Pasale por arriba y quebrá!', en: '' },
     ],
   },
+  AV_T16_ROCE: {
+    id: 'AV_T16_ROCE', tipo: 'AVISO', titulo: 'PUMA · LOS PALOS',
+    lineas: [
+      { id: 'AV_T16_ROCE_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: '¡Te llevaste una antena puesta! Más arriba el salto, Tero.', en: '' },
+    ],
+  },
   AV_T16_CORTA: {
     id: 'AV_T16_CORTA', tipo: 'AVISO', titulo: 'PUMA · CORTA',
     lineas: [

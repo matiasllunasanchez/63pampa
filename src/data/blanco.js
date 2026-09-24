@@ -65,15 +65,14 @@ export const BL = {
   AYUDA: true,
 
   /** EL FINAL DEL ATAQUE, filmado (pedido del autor, 23/9: "un MOMENTUM OBLIGADO x3, super camara
-   *  lenta mientras explota y se ve el texto de Puma, y sube el avion para darle mas aire a la
-   *  pantalla negra, y mas tiempo de fade para alcanzar a leer").
-   *    LENTO     el mundo a 1/3 desde que una bomba ARMADA revienta en el casco hasta el cruce
-   *    TREPA     lo que el avion sube solo en ese rato (unidades/s de mundo): se va del cuadro
+   *  lenta mientras explota y se ve el texto de Puma […] y mas tiempo de fade para alcanzar a leer").
+   *    LENTO     el mundo a 1/3 desde que una bomba ARMADA revienta en el casco hasta el cruce. EL
+   *              SALTO LO HACE EL JUGADOR (23/9): la camara lenta le da el tiempo de tirar del morro
+   *              —antes el avion trepaba solo—; si cruza por debajo de la silueta, se lleva los palos
    *    FUNDIDO_T segundos DE MUNDO del fundido a negro antes del cruce (en camara lenta rinden x3)
    *    NEGRO_T   segundos de negro pleno despues del cruce, con Puma encima — el rato de leer
    *    SALIDA_T  segundos del fundido desde negro cuando hay otra pasada */
   LENTO: 1 / 3,
-  TREPA: 16,
   FUNDIDO_T: 0.45,
   NEGRO_T: 2.4,
   SALIDA_T: 1.2,

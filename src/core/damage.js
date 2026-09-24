@@ -31,6 +31,10 @@ export const DMG = {
   // artilleria de caza a quemarropa, y mas barato que un misil enganchado (45) porque es una
   // rafaga y no una ojiva. Tres impactos y estas en el piso.
   death_caza: 34,
+  // LA SUELTA: cruzar el buque por debajo de su silueta — "el salto" corto. Se pasaba por encima,
+  // rozando antenas y palos (PREGUNTAS_HISTORICAS, "¿SE LE PASABA POR ENCIMA AL BUQUE?"): no es
+  // chocar una pared, es llevarse los palos puestos. Como un misil enganchado: dos y listo.
+  death_palos: 45,
 };
 
 /** ¿Esta causa mata SIEMPRE, sin importar el modo? (todo lo que no sea "te dispararon") */

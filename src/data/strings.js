@@ -446,6 +446,7 @@ export const STRINGS = {
     death_pulso: 'Erraste la mano, y el buque sigue flotando',
     // LA SUELTA SOBRE EL BUQUE (data/blanco.js): el veredicto de cada bomba y el HUD de la pasada
     death_suelta: 'Se acabaron las pasadas y el buque sigue a flote',
+    death_palos: 'Te llevaste los palos del buque',
     bl_hundido: '¡HUNDIDO!', bl_averiado: 'AVERIADO', bl_dormida: 'NO DESPERTÓ',
     bl_corta: 'CORTA', bl_larga: 'LARGA', bl_reencare: 'SIGUE A FLOTE · OTRA PASADA',
     bl_blanco: 'BLANCO', bl_bloqueada: 'LA DEL CENTRO ES PARA EL BUQUE',
@@ -1423,6 +1424,7 @@ export const STRINGS = {
     res_pulso: 'THE PULSE',
     death_pulso: 'Your hand slipped, and the ship is still afloat',
     death_suelta: 'Out of passes, and the ship is still afloat',
+    death_palos: 'You clipped the ship\'s masts',
     bl_hundido: 'SUNK!', bl_averiado: 'DAMAGED', bl_dormida: 'DIDN\'T ARM',
     bl_corta: 'SHORT', bl_larga: 'LONG', bl_reencare: 'STILL AFLOAT · GO AROUND',
     bl_blanco: 'TARGET', bl_bloqueada: 'THE CENTER ONE IS FOR THE SHIP',
