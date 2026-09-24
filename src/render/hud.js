@@ -19,7 +19,7 @@ import { T } from '../core/i18n.js';
 import { AGU, ancho as anchoSector, pos as posInd, ventana as ventanaAgu,
   concentracion as concSeg } from '../core/aguante.js';
 import { P, RADAR_VERDE, RADAR_OPACO } from '../data/palette.js';
-import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP, BANDA_ALT, PERF_ALT } from '../data/tuning.js';
+import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP, BANDA_ALT, PERF_ALT, ZONAS_GASTO } from '../data/tuning.js';
 import { machNow } from '../core/mach.js';
 import { pilotIdx } from '../core/squad.js';
 import { pilotName } from '../systems/squad.js';
@@ -497,6 +497,9 @@ const MARGEN = 4;
 // solo a lo que cambia. En la grilla de diseño 5 px caen en 15 reales (U 1.5 x SC 2 = 3 exacto),
 // asi que no hay medio pixel: el tipo sigue siendo duro.
 const F_ROT = '5px monospace', F_VAL = '6px monospace';
+// LOS COLORES DE LAS ZONAS DE GASTO (PLAN_NAFTA_ALCANCE §3.6): ambar el que mas quema —el acento del
+// juego, abajo, donde vive el rasante—, gris el medio, y frio el crucero alto, que es el barato.
+const GASTO_COL = { mayor: '#e8a33d', medio: '#8a9ba1', menor: '#6fabd8' };
 
 // LA VOZ CUELGA DE LA CINTA (playtest 10/9). El toast de radio y el panel ya no viven abajo, sobre
 // el tablero: van DEBAJO DEL OBJETIVO y con SU MISMO ANCHO, porque lo que dice la radio es casi
@@ -991,6 +994,15 @@ function reloj(x, y, o) {
   for (const [f, col] of o.marcas || []) {
     const a = ang(f), c = Math.cos(a), s = Math.sin(a);
     pxLinea(cx + c * (r - 2), cy + s * (r - 2), cx + c * (r + 1), cy + s * (r + 1), col);
+  }
+  // LAS FRANJAS: un arco fino POR DENTRO de la escala, para zonas que no son peligro sino regimen
+  // (las tres zonas de gasto del altimetro). Van adentro para no pisar las marcas de la escala, que
+  // en el altimetro ya dicen agua y banda del x10.
+  for (let k = 0; k <= 36; k++) {
+    const f = k / 36, z = (o.franjas || []).find(([d, h]) => f >= d && f <= h);
+    if (!z) continue;
+    const a = ang(f);
+    px(cx + Math.cos(a) * (r - 3), cy + Math.sin(a) * (r - 3), 1, 1, z[2]);
   }
   // LA UNIDAD VA IMPRESA EN LA CARA, como en un reloj de verdad: chica, apagada, arriba del numero
   // y ANTES que la aguja, asi la aguja le pasa por encima. Al lado del numero no entra —a cuatro
@@ -1685,10 +1697,23 @@ export function drawHUD(h) {
   // La chancha solo con COMBUSTIBLE: SI — un reloj que nunca se va a poder usar es ruido ocupando
   // un cuadrado. La nafta queda al lado de SALUD: son los dos que dicen si volves o no.
   const xNafta = X_NAFTA, xCha = X_CHANCHA;
-  if (pide(run.fuel < 60, 'nafta')) reloj(xNafta, CUADROS_Y, {
-    val: run.fuel / 100, ico: 'nafta', zona: [0, 0.25], critico: run.fuel < 25,
-    col: run.fuel < 25 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : P.foam,
-    txt: Math.round(run.fuel) + '%', txtCol: run.fuel < 25 ? P.warn : P.dim });
+  // CON RUTA (PLAN_NAFTA_ALCANCE N3) el reloj cuenta KM y no %, la aguja toma el color de la zona de
+  // gasto en la que volas, y la marca larga es el BINGO: cuando la aguja la cruza hacia abajo, lo que
+  // queda ya no alcanza para terminar la mision ni volando perfecto. Ese es el critico, no el 25%.
+  const nf = h.nafta;
+  const bajo = nf ? nf.km < nf.bingo : run.fuel < 25;
+  // …y arriba del reloj, EL NOMBRE DE LA ZONA DE GASTO en su color: lo que la aguja esta cobrando.
+  if (nf && h.zonaGasto) {
+    ctx.font = F_ROT; ctx.textAlign = 'center'; ctx.fillStyle = GASTO_COL[h.zonaGasto];
+    ctx.fillText(T('gasto_' + h.zonaGasto), xNafta + CUADRO / 2, CUADROS_Y - 2);
+    ctx.textAlign = 'left';
+  }
+  if (pide(run.fuel < 60 || (nf && nf.km < nf.bingo * 1.3), 'nafta')) reloj(xNafta, CUADROS_Y, {
+    val: run.fuel / 100, ico: 'nafta', zona: [0, 0.25], critico: bajo,
+    marcas: nf ? [[Math.min(1, nf.bingo / nf.cap), P.warn]] : undefined,
+    col: bajo ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : nf && h.zonaGasto ? GASTO_COL[h.zonaGasto] : P.foam,
+    uni: nf ? 'km' : undefined,
+    txt: nf ? String(Math.round(nf.km)) : Math.round(run.fuel) + '%', txtCol: bajo ? P.warn : P.dim });
   const ch = chSnap(), cv = chMeter(), gastada = chGastada();
   // …y solo si la mision la TIENE (`h.chanchaViva`, por snapshot): una mision con `chancha: false`
   // no puede pedirla, y un reloj lleno y en verde ahi es un boton que miente.
@@ -1786,7 +1811,12 @@ export function drawHUD(h) {
   // larga donde la bomba empieza a armarse, y la aguja verde mientras estes adentro. Era una regla
   // aparte a la derecha de la pantalla y no se entendia (playtest 23/9): la altura ya tiene reloj.
   const sa = h.sueltaAlt, enSuelta = !!sa && plane.y >= sa[0] && plane.y <= sa[1];
-  reloj(xVuelo(2), CUADROS_Y, { val: fA(plane.y), ico: 'alt', critico: visto,
+  // LAS TRES ZONAS DE GASTO (PLAN_NAFTA_ALCANCE §3.6, solo con ruta): la franja interior del dial,
+  // en su color. Mayor gasto abajo, menor arriba de todo. El NOMBRE de la zona va arriba del reloj
+  // de nafta (ver ahi): arriba de este cuadro lo tapa la caja de la radio.
+  const zg = h.zonaGasto;
+  const franjas = zg ? ZONAS_GASTO.map((z, i) => [fA(Math.max(0, z.desde)), i ? fA(ZONAS_GASTO[i - 1].desde) : 1, GASTO_COL[z.id]]) : null;
+  reloj(xVuelo(2), CUADROS_Y, { val: fA(plane.y), ico: 'alt', critico: visto, franjas,
     col: visto ? (Math.sin(run.t * (rozando ? 30 : 14)) > 0 ? P.warn : '#7d2f1e') : enSuelta ? SUELTA_COL : plane.y <= BANDA_ALT ? P.accent : P.foam,
     zonas: [[0, fA(1.2), P.warn], [fA(1.2) + 0.01, fA(BANDA_ALT), P.accent]].concat(sa ? [[fA(sa[0]), fA(sa[1]), SUELTA_COL]] : []),
     // sin marca de techo FUERA DE RADAR: no hay techo (PLAN_NAFTA_ALCANCE N2)

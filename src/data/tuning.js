@@ -1584,9 +1584,9 @@ export const FASE_MAX_HASTA = 4;
 // CONSUMO BASE del pasillo, en % de tanque por segundo. Estaba escrito a mano adentro de
 // systems/flight.js —el unico numero de combustible del juego sin constante propia— y sale aca
 // para que la fase pueda multiplicarlo (PLAN_MISION_CINCO_FASES §3). Los valores son EXACTAMENTE
-// los que estaban: crucero 3.2, y el turbo suma 4.2 encima.
+// los que estaban: crucero 3.2. El turbo sumaba FUEL_BOOST = 4.2 fijo; desde el 23/9 cuesta en
+// proporcion a lo que acelera (core/nafta.js `extraTurboPorSeg`, PLAN_NAFTA_ALCANCE §6.6).
 export const FUEL_RATE = 3.2;
-export const FUEL_BOOST = 4.2;
 
 // EL PICO POR PIRUETA (§3 del plan: "si no cuestan, el jugador vuela haciendo toneles"). Es un
 // cobro FIJO al arrancar la maniobra, no una tasa: lo que se paga es la decision, no el rato que

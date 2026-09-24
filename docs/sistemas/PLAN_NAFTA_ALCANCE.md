@@ -353,11 +353,21 @@ Cada una deja el juego jugable; tras cada una `npm run check` y `npm run feel` i
      complicar a veces la conexión con el Hércules.
   3. `npm run fases` ya tenía 6 fallas en N1 (medido en un árbol aparte): el paso 5 y el
      aterrizaje, la siembra de la vuelta y la tasa de nafta. No son de este plan.
-- **N3 — el gasto nuevo.** `flight.js:294` rama `ruta`: gasto por km con los tres factores;
-  capacidad por carga, con tanques externos que se vacían primero (`run.tanques` + `run.interno`);
-  ALCANCE en el HUD + marca de **bingo**; quedarse en cero = `death_fuel` (§3.8). **Las tres
-  zonas de gasto en el altímetro y el indicador** (§3.6). **El turbo proporcional entra acá para
-  todas las misiones** (§6.6) y se recalibra M1.
+- ✅ **N3 — el gasto nuevo** *(hecho 23/9)*. `systems/nafta.js`: el tanque de la corrida en km
+  (`run.tanque`, `run.naftaCap`), lleno según la carga ya resuelta. **El tanque en km es la verdad y
+  `run.fuel` su reflejo en %**: lo que otro sistema le cambie al % (Chancha, piruetas, golpes) se
+  traslada al tanque en el cuadro siguiente (`run.fuelSync`), así ninguno tuvo que aprender km.
+  El gasto: km del odómetro × `kmPorM` de la ruta × zona × arrastre × turbo. **Seco = `death_seco`,
+  sin relevo** (el compañero heredaría el cero). **El turbo proporcional entró en TODAS las
+  misiones** (`FUEL_BOOST` se fue): por segundo cuesta `base × (r³ − 1)`. **M1 recalibrada**
+  (`fuelScale` 0.4 → 0.25): con 0.4 el turbo de punta a punta se secaba (−7%); con 0.25 llega con
+  ~33% y lento con ~62%. HUD con ruta: el reloj de nafta en **km**, aguja del color de la zona,
+  **marca de bingo** (lo que falta para terminar la misión volando alto; crítico por debajo), el
+  nombre de la zona arriba del reloj (MAYOR GASTO / GASTO MEDIO / GASTO MENOR) y **la franja de las
+  tres zonas por dentro del altímetro**. Sonda `__nafta(pct)`. 2 tests nuevos. Medido en t15:
+  al ras el turbo cuesta ×3,4 por segundo (r³); +10% externo = +260 km; seco → `death_seco`.
+  **Pendiente:** el fixture de fases mide la tasa de t15 en %/s, y con ruta la nafta es otra cuenta
+  (ya fallaba antes por otro motivo).
 - **N4 — la Chancha en dos mitades.** IDA: zona fija, sin pedido ni barra, se la encuentra.
   VUELTA: la barra de puntos de hoy decide **hasta dónde se acerca**. Calibrar la regla de
   §3.5 (un km de racha x10+ llena barra por 1,5–2× la nafta extra que quemó). Sin `ruta`, el poder

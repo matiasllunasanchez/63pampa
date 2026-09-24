@@ -2699,3 +2699,37 @@ test('viento: tramos y fases lo declaran con un booleano, y sin la clave no sopl
   const { TIPOS } = await import('../src/data/fases.js');
   for (const t of Object.keys(TIPOS)) assert.equal(TIPOS[t].viento, undefined, `el tipo ${t} no puede traer viento de fabrica`);
 });
+
+// ---------- EL TANQUE DE LA CORRIDA (systems/nafta.js, PLAN_NAFTA_ALCANCE N3) ----------
+test('nafta: cargar llena primero el interno, despues los externos colgados, y no se estira', async () => {
+  const { cargar, kmQuedan } = await import('../src/core/nafta.js');
+  const t = cargar({ tanques: [100, 100], interno: 1500 }, 300);
+  assert.equal(t.interno, 1700);
+  near(t.tanques[0], 150); near(t.tanques[1], 150);
+  const lleno = cargar({ tanques: [440, 440], interno: 1700 }, 9999);
+  assert.equal(kmQuedan(lleno), 2600, 'lo que no entra se pierde');
+  assert.equal(cargar({ tanques: [], interno: 1000 }, 900).interno, 1700, 'sin externos, tope en el interno');
+});
+
+test('nafta: el % que otro sistema toca se traslada al tanque, y seco avisa', async () => {
+  const nafta = await import('../src/systems/nafta.js');
+  const { run } = await import('../src/core/run.js');
+  nafta.preparar('tanques_bomba');
+  assert.equal(run.naftaCap, 2600); assert.equal(run.fuel, 100);
+  // la Chancha (o quien sea) no puede cargar arriba de lleno; una pirueta descuenta 10%
+  run.fuel -= 10;
+  nafta.step(0, 60, { bombas: 1, tanques: 2 }, 1);
+  near(nafta.kmRestan(), 2340, 1e-6);
+  near(run.fuel, 90, 1e-9);
+  // 100 km en la zona menor con dos tanques y una bomba cuestan 100 × 1 × 1.15
+  nafta.step(100, 60, { bombas: 1, tanques: 2 }, 1);
+  near(nafta.kmRestan(), 2340 - 115, 1e-6);
+  // la carga externa entra al tanque
+  run.fuel += 5;
+  nafta.step(0, 60, { bombas: 1, tanques: 2 }, 1);
+  near(nafta.kmRestan(), 2225 + 130, 1e-6);
+  assert.equal(nafta.step(1e6, 0, { bombas: 1, tanques: 2 }, 1), 'seco');
+  assert.equal(run.fuel, 0);
+  nafta.preparar(null);
+  assert.equal(nafta.activo(), false, 'sin ruta el tanque se apaga');
+});

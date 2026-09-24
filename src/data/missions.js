@@ -83,13 +83,19 @@ export const MISSIONS = [
     // en aparecer desde que se la pide, mas ~11 conectado para llenar. La vuelta de esta mision dura
     // entre 5 y 10 segundos, asi que el Hercules llegaria despues del aterrizaje. Hacerla jugable
     // pedia alargar la vuelta al doble de la mision entera. Debuta en M2.
-    cfg: C({ sky: 'dawn', obstacles: 0.5, bombs: 0, caza: 0, persec: 0, radar: 'voz', fuelOn: true, fuelScale: 0.4, poderes: false }),
+    cfg: C({ sky: 'dawn', obstacles: 0.5, bombs: 0, caza: 0, persec: 0, radar: 'voz', fuelOn: true, fuelScale: 0.25, poderes: false }),
     // EL RELOJ, A LA ESCALA DE ESTA MISION. El tanque son 100 unidades a 3.2 %/s: TREINTA Y UN
     // SEGUNDOS, un numero calibrado contra pasillos de medio minuto. Con las fases puestas el
     // rasante gasta el doble, asi que M1 volada despacio se secaba a los 1.740 m de los 2.970 que
     // mide ida mas vuelta — y en una mision donde no se puede morir, quedarse sin nafta no es una
     // muerte: es un avion que no vuela y no se hunde. Con 0.4 el peor caso llega con ~30% de tanque
     // (medido volando lo mas lento posible y pegado al agua todo el trayecto).
+    //
+    // 0.4 → 0.25 (23/9) POR EL TURBO NUEVO: desde PLAN_NAFTA_ALCANCE §6.6 el turbo cuesta en
+    // proporcion a lo que acelera (r³ sobre el consumo de la fase, ~+7.6 %/s donde antes era +4.2
+    // fijo), y el peor caso paso a ser TURBO DE PUNTA A PUNTA: con 0.4 se secaba antes de aterrizar
+    // (−7%). Con 0.25, simulado con las formulas reales: turbo todo el tiempo llega con ~33%, y lento
+    // sin turbo con ~62%. El criterio de arriba (el peor caso llega con ~30%) se mantiene.
     // G-05: las dos charlas en vuelo del tutorial. El ritual de Condor se dice EN VUELO y no en
     // tierra — la voz entra por la radio con el mar pasando abajo, que es como se escuchaba de
     // verdad — y los gansos son el respiro. `obstacles: 0` porque una charla pide cero enemigos en

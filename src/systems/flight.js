@@ -25,13 +25,17 @@ import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
 import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE,
          GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
-         FUEL_RATE, FUEL_BOOST, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE } from '../data/tuning.js';
+         FUEL_RATE, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE } from '../data/tuning.js';
 // LAS FASES (PLAN_MISION_CINCO_FASES §11). Se LEEN, nunca se escriben, igual que los tramos en el
 // sembrador: `fsVal` contesta lo que rige a esta altura del vuelo y cae al valor de siempre cuando
 // la mision no declara fases — que es como se cumple la regla suprema (sin fases, este archivo se
 // comporta exactamente igual que ayer, y lo custodia `npm run feel`).
 import { val as fsVal, techoRadar } from './fases.js';
 import { val as trVal } from './tramos.js';
+import * as naftaSys from './nafta.js';
+import { kmPorM } from './ruta.js';
+import { extraTurboPorSeg } from '../core/nafta.js';
+import { bombasDe } from '../data/cargas.js';
 import * as est from './estrellas.js';
 import { PORT_H } from '../data/runways.js';
 // EL SUELO TIENE ALTURA (T3): la misma funcion que levanta el pasto y las estructuras es la que
@@ -153,6 +157,12 @@ export function flightSystem(dt, deps) {
     }
   }
   const spdTarget = speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: run.boost, afterTier: run.afterTier }) * av.spd;
+  // CUANTO ACELERA EL TURBO (PLAN_NAFTA_ALCANCE §3.2): la velocidad con turbo contra la misma sin
+  // turbo ni after. Es lo que la nafta cobra — 1.5 el turbo de siempre, mas con el after apilado —
+  // y solo eso: la velocidad que sube sola con la racha no se paga.
+  const turboR = run.boost
+    ? spdTarget / Math.max(1e-6, speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: false, afterTier: 0 }) * av.spd)
+    : 1;
   // INTERCAMBIO DE ENERGIA (cfg.energy): la ALTURA es energia almacenada — picar la convierte
   // en velocidad, trepar la gasta. Es lo que arma el pendulo (bajar rapido → rasar → trepar).
   // El arrastre hacia spdTarget se AFLOJA (3 → ENERGY_DRAG) porque con el lerp rapido de antes
@@ -284,9 +294,10 @@ export function flightSystem(dt, deps) {
   // la vuelta x0.85 — venis liviano, soltaste las bombas, y el regreso sale mas barato que la ida.
   // Sin fases devuelve 1 y la cuenta es LA MISMA de siempre, hasta el ultimo decimal.
   //
-  // EL TURBO NO SE MULTIPLICA, y es deliberado: el posquemador quema lo que quema por su cuenta —
-  // no es mas caro por volar bajo. Multiplicar el total haria que el turbo costara el doble en
-  // rasante, que es donde mas se usa, y eso es una regla de dificultad que nadie pidio.
+  // EL TURBO AHORA SI SIGUE A LA FASE (23/9): su extra es proporcional al consumo base, asi que en
+  // rasante cuesta el doble que en crucero. Antes era un numero fijo "porque el posquemador quema
+  // lo suyo"; con el turbo proporcional que pidio el autor, lo que se paga es la resistencia, y
+  // abajo el aire es mas denso.
   // …Y LA ESCALA DE LA MISION (`cfg.fuelScale`, 1 = la de siempre). El modelo de nafta esta
   // calibrado contra pasillos de MEDIO MINUTO: 100 de tanque a 3.2 %/s son 31 segundos de vuelo.
   // Una mision de cinco minutos (las cinco fases) se queda seca en el primer tramo, y eso no es
@@ -298,8 +309,27 @@ export function flightSystem(dt, deps) {
   // no la leia nadie — el mismo cable cortado que tuvieron los odometros de arriba. Medido en M1
   // con COMBUSTIBLE: SI: las tres charlas del arranque duran ~45 s y el tanque son 31, asi que el
   // avion se secaba a los 265 m sin haber volado nada.
-  if (cfg.fuelOn) run.fuel -= (FUEL_RATE * fsVal('nafta', 1) + (run.boost ? FUEL_BOOST : 0)) * (cfg.fuelScale || 1) * dt
-    * (CHV_FUEL_FREEZE ? cvAvance() : 1);
+  //
+  // EL TURBO CUESTA LO QUE ACELERA (PLAN_NAFTA_ALCANCE §6.6, en TODAS las misiones). Era un +4.2 %/s
+  // fijo, diera lo que diera; ahora el extra es el consumo de la fase por (r³ − 1): r² porque cada
+  // km sale mas caro, y otra r porque se recorren mas km por segundo. Con el turbo de siempre
+  // (r 1.5) son ~+7.6 %/s en crucero, y mas con el after apilado — porque da mas.
+  //
+  // CON `ruta` LA NAFTA ES OTRA CUENTA (systems/nafta.js): km de tanque segun la carga, gastados por
+  // km recorrido segun la zona de altura, lo que cuelga y el turbo. Los km de este cuadro son los
+  // metros del odometro por lo que vale un metro aca (el crucero comprimido vale mucho mas). Y
+  // quedarse seco es PERDER (`death_seco`): el avion no planea hasta el agua.
+  if (naftaSys.activo()) {
+    if (cfg.fuelOn) {
+      const km = run.spd * dt * chAvance() * cvAvance() * kmPorM();
+      const colgado = { bombas: deps.climax === 'suelta' ? run.msl : bombasDe(cfg.carga), tanques: run.tanque.tanques.length };
+      if (naftaSys.step(km, plane.y, colgado, turboR) === 'seco') return { death: 'death_seco' };
+    }
+  } else if (cfg.fuelOn) {
+    const base = FUEL_RATE * fsVal('nafta', 1);
+    run.fuel -= (base + (run.boost ? extraTurboPorSeg(base, turboR) : 0)) * (cfg.fuelScale || 1) * dt
+      * (CHV_FUEL_FREEZE ? cvAvance() : 1);
+  }
   if (run.fuel <= 0) { run.fuel = 0; plane.vy = Math.min(plane.vy, -5); }
   // ---- LA CAMA DE VUELO (systems/vuelo.js): integrar, topes, camara y actitudes con peso. Estas
   // lineas VIVIAN ACA; se mudaron enteras para poder correrlas tambien en una cinematica, donde el

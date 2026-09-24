@@ -74,6 +74,9 @@ export const STRINGS = {
     hitBirds: '- HP', hitBlast: '! ONDA EXPANSIVA !', hitSmall: '! IMPACTO !',
     death_aa: 'La defensa de la barcaza te derribo',
     death_fuel: 'Te quedaste sin combustible sobre el blanco',
+    death_seco: 'Te quedaste sin combustible',
+    // LAS ZONAS DE GASTO, arriba del altimetro (PLAN_NAFTA_ALCANCE §3.6)
+    gasto_mayor: 'MAYOR GASTO', gasto_medio: 'GASTO MEDIO', gasto_menor: 'GASTO MENOR',
     // RF-15: la derrota de la PASADA. No te derribaron — se acabo la escuadrilla y el buque
     // seguia ahi. Que la pantalla de fin diga ESO y no "chocaste" es media leccion del modo.
     death_pasada: 'Se acabo la escuadrilla y el buque siguio navegando',
@@ -1057,8 +1060,8 @@ export const STRINGS = {
 
     // ---------- RECUENTO DE FIN DE MISION ----------
     mom_turn: '! VIRAJE 180 !', mom_pass_n: 'INTENTO {n}',
-    hud_mission: 'MISION {n}/{m}', hud_home: 'A CASA',
     res_title: 'MISION CUMPLIDA', res_fin: 'MISION FINALIZADA', res_total: 'TOTAL', res_rank: 'CALIFICACION:',
+    hud_mission: 'MISION {n}/{m}', hud_home: 'A CASA',
     // EL RADAR CON ALCANCE (PLAN_NAFTA_ALCANCE N2): la placa fuera de alcance y los dos cruces
     hud_fuera_radar: 'FUERA DE RADAR', radarEntra: 'ENTRANDO EN RADAR — AL AGUA', radarSale: 'FUERA DE RADAR — A SUBIR',
     res_flight: 'PUNTAJE DE VUELO', res_kills: 'BLANCOS', res_acc: 'PRECISION', res_ras: 'RACHA RASANTE',
@@ -1123,8 +1126,8 @@ export const STRINGS = {
     land_gear_hint: '[T] LOWER GEAR',
     fase_salida: 'PUMA: PLATA FLIGHT, ON ROUTE. NOTHING BUT SEA AHEAD.',
     fase_filo: 'PUMA: RADAR AHEAD. STAY ON THE DECK.',
-    fase_libre: 'PUMA: WE ARE CLEAR. CLIMB AND BREATHE.',
     fase_crucero: 'PUMA: HIGH AND OUT OF RADAR. SHE BURNS LESS UP HERE: MIND THE FUEL.',
+    fase_libre: 'PUMA: WE ARE CLEAR. CLIMB AND BREATHE.',
     fase_descenso: 'PUMA: GOING DOWN. NOBODY TALKS FROM HERE.',
     fase_rasante: 'CONDOR: PLATA FLIGHT, I HAVE YOU. DO NOT ANSWER.',
     fase_filo2: 'CONDOR: ANOTHER PICKET AHEAD. DOWN, AND HOLD YOUR BREATH.',
@@ -1154,6 +1157,8 @@ export const STRINGS = {
     hitBirds: '- HP', hitBlast: '! BLAST WAVE !',
     death_aa: 'The barge defenses shot you down',
     death_fuel: 'You ran out of fuel over the target',
+    death_seco: 'You ran out of fuel',
+    gasto_mayor: 'HIGH BURN', gasto_medio: 'MID BURN', gasto_menor: 'LOW BURN',
     death_pasada: 'The squadron was spent and the ship sailed on',
     death_caza: 'A Sea Harrier got on your tail',
     caza_warn: 'BREAK, {c}! ON YOUR SIX!',
@@ -1180,8 +1185,8 @@ export const STRINGS = {
     pickFuel: '+FUEL', dodgeMissile: 'DODGED',
     takeoffTitle: 'TAKEOFF · PUERTO ARGENTINO · BAM MALVINAS', takeoffWord: 'TAKEOFF',
     takeoffHeading: 'heading for San Carlos Strait',
-    hud_home: 'HOME',
     hud_best: 'BEST {n}', kmh: ' KM/H', turboTag: ' BOOST', alt: ' M',
+    hud_home: 'HOME',
     hud_fuera_radar: 'OUT OF RADAR', radarEntra: 'ENTERING RADAR — GET DOWN', radarSale: 'OUT OF RADAR — CLIMB',
     windWarn: '~ HEADWIND ~', radar: '! RADAR !',
     fogIn: '! FOG BANK !', fogIn2: 'CLIMB OR FLY BLIND', fogOut: 'FOG CLEARED',

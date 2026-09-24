@@ -65,7 +65,8 @@ import { drawCine } from './render/cine.js';
 import * as muni from './render/municion.js';
 import * as blancoSys from './systems/blanco.js';
 import { BL as BL_BLANCO } from './data/blanco.js';
-import { conBombaCentral } from './data/cargas.js';
+import { conBombaCentral, bombasDe } from './data/cargas.js';
+import { bingoKm } from './core/nafta.js';
 const BL_ALT_IDEAL = BL_BLANCO.ALT_IDEAL;
 import { drawBlanco, drawBlancoHud } from './render/blanco.js';
 import { PULSO } from './data/pulso.js';
@@ -121,6 +122,7 @@ import * as squad from './systems/squad.js';
 import * as tramos from './systems/tramos.js';
 import * as fases from './systems/fases.js';
 import * as rutaSys from './systems/ruta.js';
+import * as naftaSys from './systems/nafta.js';
 import * as estrellas from './systems/estrellas.js';
 import { piso as pisoEstrella } from './core/estrellas.js';
 import { EST_MAX } from './data/tuning.js';
@@ -348,8 +350,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     //   · al entrar al ARENA se ABRE con reloj propio, que es lo que hace que el climax se lea
     //     como "saliste del banco" y no como un corte de camara.
     let veilOut = 0, veilPrev = '';
-    let objectiveDist = 0;           // distancia meta puerto→barcaza (0 = sin objetivo / infinito)
     let alcanceAntes = null;         // el horizonte de radar en el cuadro anterior (null = sin adoptar)
+    let objectiveDist = 0;           // distancia meta puerto→barcaza (0 = sin objetivo / infinito)
     let objectiveShip = '';          // nombre de la barcaza objetivo del run
     // …y de QUE TIPO es ese objetivo ('ship' | 'distance'). El HUD lo necesita para decidir si el
     // rotulo de la ruta es un NOMBRE (un buque, que hay que decir) o una DISTANCIA (que ya la dicen
@@ -1404,8 +1406,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // a las fases porque se ancla a ellas; sin `ruta` (todas las de hoy) queda apagada.
       rutaSys.setRuta(objectiveDist > 0 && curMission() ? curMission().ruta : null,
         curMission() ? curMission().fases : null, objectiveDist);
-      // EL PULSO necesita saber CONTRA QUE buque es la prueba: de su clase sale como se muere en
       alcanceAntes = null;
+      // EL PULSO necesita saber CONTRA QUE buque es la prueba: de su clase sale como se muere en
       // la cinematica del premio. Va aca y no en reset() porque el objetivo se define despues.
       pulso.setShip(objectiveShip);
       // LA SUELTA: el buque del pasillo, prendido solo si la mision lo declara como climax.
@@ -1414,6 +1416,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const hayBlanco = runClimax() === 'suelta' && objectiveDist > 0;
       if (hayBlanco) cfg.carga = conBombaCentral(cfg.carga);
       blancoSys.preparar(hayBlanco, objectiveShip, objectiveDist, { PZ, W }, cfg.carga);
+      // LA NAFTA COMO ALCANCE (PLAN_NAFTA_ALCANCE N3): con ruta, el tanque se llena en km segun la
+      // carga YA RESUELTA (la bomba del buque incluida). Va despues de la suelta por eso mismo.
+      naftaSys.preparar(rutaSys.hay() ? cfg.carga : null);
       // MUSICA: campaña usa game.mp3; ciclo y supervivencia mantienen la pista elegida en el
       // reproductor (no la re-sortean). Arranca de cero al empezar el mapa, SALVO al reintentar
       // tras morir: ahi continua donde venia, sin corte.
@@ -2825,6 +2830,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (cause !== 'purs_perdido') aguantarGolpe(sm, cause);
         return;
       }
+      // SECO ES PERDER (PLAN_NAFTA_ALCANCE §3.8, decision del autor): sin relevo, porque el tanque es
+      // de la corrida y el compañero heredaria el mismo cero — caerian uno detras del otro.
+      if (cause === 'death_seco') { die(cause); return; }
       if (canRelevo(run.lives)) {
         // en campaña el lider NO revienta: queda averiado y vuelve (norma 3/8, GUION_2)
         if (relevoRompe()) dmgFX(); else crashFX();
@@ -3483,8 +3491,6 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const estBaja = estrellas.step(dt, plane.y <= fases.techoRadar(RADAR_ALT));
       if (estBaja) radioTramo(run.estrellas === 0 ? 'est_limpio' : 'est_baja');
       else if (run.estrellas > estAntes) radioTramo(estrellaLinea(run.estrellas));
-
-      // needsMomentum: si el objetivo del run culmina en el climax (barco) o con solo llegar (distancia)
       // EL HORIZONTE DE RADAR (PLAN_NAFTA_ALCANCE N2): cruzar la linea se ANUNCIA, en los dos
       // sentidos. Es un cartel y no una radio a proposito: en la ida vas en silencio. El primer
       // cuadro solo adopta el estado (despegar ya fuera de alcance no es "salir" de nada), y un
@@ -3495,6 +3501,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           popup(W / 2, 46, T(alc ? 'radarEntra' : 'radarSale'), alc ? P.warn : P.accent);
         alcanceAntes = alc;
       }
+
+      // needsMomentum: si el objetivo del run culmina en el climax (barco) o con solo llegar (distancia)
       const needsMomentum = (gameMode === 'campaign' || gameMode === 'cycle') ? goalOf(curMission()).needsMomentum : true;
       const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist, needsMomentum, climax: runClimax() });
       if (fs === 'momentum' || fs === 'arena' || fs === 'pasada') {
@@ -4160,13 +4168,23 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // …Y LOS KM REALES, si la mision declara `ruta` (PLAN_NAFTA_ALCANCE N1): la barra cuenta
         // 520 / 700 km en vez de los metros del pasillo. null = la barra de siempre.
         ruta: rutaSys.hay() ? { pos: rutaSys.pos(), blanco: rutaSys.dato().blancoKm } : null,
+        // fuera del horizonte de radar: la placa FUERA DE RADAR y sin marca de techo en el altimetro
+        fueraRadar: S.state === 'play' && !rutaSys.enAlcance(),
+        // LA NAFTA EN KM (PLAN_NAFTA_ALCANCE N3), solo con ruta: lo que queda, la capacidad, y el
+        // BINGO — lo que hace falta para terminar la mision desde aca volando alto y sin turbo. En la
+        // ida incluye llegar al blanco y volver: es lo que dice si vas a necesitar a la Chancha.
+        nafta: naftaSys.activo() ? {
+          km: naftaSys.kmRestan(), cap: run.naftaCap,
+          bingo: bingoKm(rutaSys.aCasa(), { bombas: runClimax() === 'suelta' ? run.msl : bombasDe(cfg.carga), tanques: run.tanque.tanques.length }),
+        } : null,
+        // la zona de gasto a esta altura, para el altimetro (solo con ruta: sin ella la nafta no mira
+        // la altura y marcar zonas seria mentir)
+        zonaGasto: naftaSys.activo() ? naftaSys.zona(plane.y) : null,
         // lo mas alto que ocupa la voz en la banda de abajo (mi caja o la del otro): los avisos de
         // altura se apoyan arriba de eso
         charlaTecho: screens.techoBanda(),
         // QUIEN HABLA EN LA CHARLA este cuadro: el tablero prende el marco de su cara si soy yo
         charlaVoz: charlaQuien(),
-        // fuera del horizonte de radar: la placa FUERA DE RADAR y sin marca de techo en el altimetro
-        fueraRadar: S.state === 'play' && !rutaSys.enAlcance(),
         // el contador y su reloj de escondite, por snapshot (convencion 4: el render no importa
         // de systems — lo vigila `npm run lint:layers`)
         estrellas: run.estrellas, escondite: estrellas.progreso(),
@@ -4577,6 +4595,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         armado: aguArmado(),
       });
       window.__chanafta = () => +run.fuel.toFixed(2);   // el tanque, que es lo que el poder viene a llenar
+      // LA NAFTA COMO ALCANCE (PLAN_NAFTA_ALCANCE N3): el tanque en km, y `pct` lo PONE como lo haria
+      // cualquier otro sistema — escribiendo el % —, asi que tambien prueba el traslado al tanque.
+      window.__nafta = pct => {
+        if (pct !== undefined) run.fuel = +pct;
+        return JSON.stringify({ activo: naftaSys.activo(), fuel: +run.fuel.toFixed(3), km: +naftaSys.kmRestan().toFixed(2), cap: run.naftaCap,
+          tanque: run.tanque, zona: naftaSys.activo() ? naftaSys.zona(plane.y) : null, st: S.state, muerte: deathCause || null, kmPorM: +rutaSys.kmPorM().toFixed(4) });
+      };
       window.__chagolpe = () => { run.shake = 6; return run.shake; };
       // CALMA para poder MIRAR la cita: la cita se vuela ARRIBA, y arriba el radar te ve y te
       // tiran. Es el mismo criterio que `__czcalma` en el duelo — la seccion que mide una cosa

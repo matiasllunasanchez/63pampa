@@ -31,6 +31,12 @@ export const run = {
   escudoT: 0,
   hurtT: 0,        // fogonazo rojo al aguantar un impacto (lo lee el HUD)
   fuel: 100,       // COMBUSTIBLE: el reloj real del run
+  // LA NAFTA COMO ALCANCE (systems/nafta.js, solo con `ruta`): el tanque en km —{ tanques, interno }—
+  // y su capacidad. `fuel` pasa a ser su reflejo en %, y `fuelSync` el % que escribio la nafta el
+  // cuadro anterior: lo que otro le cambie al % (Chancha, piruetas, golpes) se traslada al tanque.
+  tanque: null,
+  naftaCap: 0,
+  fuelSync: 100,
   heat: 0,         // calor del canon (0..1)
   overheat: false, // canon bloqueado hasta enfriar a 0.3
   detection: 0,    // carga del radar enemigo (0..1); al llegar a 1 dispara una OLEADA de misiles
@@ -168,7 +174,7 @@ export function resetRun() {
   Object.assign(run, {
     t: 0, dist: 0, spd: 6, fuelDist: 0,
     integ: 100, escudo: 1, escudoT: 0, hurtT: 0,
-    fuel: 100, heat: 0, overheat: false, detection: 0, radarVisto: false, radarWave: 0, radarSeen: false, estrellas: 0, climaxHecho: 0, boost: false, throttle: 0,
+    fuel: 100, tanque: null, naftaCap: 0, fuelSync: 100, heat: 0, overheat: false, detection: 0, radarVisto: false, radarWave: 0, radarSeen: false, estrellas: 0, climaxHecho: 0, boost: false, throttle: 0,
     score: 0, mult: 1, multShow: 1, streak: 0, rasLevel: 0, graceT: 0, rasAlto: -9,
     aguante: 0, aguN: 0, aguSec: 0, aguF: 0, aguHold: 0, aguY: 0, aguGolpe: -9, aguErr: -9, aguVen: 0, aguGra: 0,
     alaLx: 0, alaLy: 0, alaRx: 0, alaRy: 0, alaT: -9,

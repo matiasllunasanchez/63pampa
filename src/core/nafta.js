@@ -60,6 +60,28 @@ export function gastar(t, km) {
   return { tanques, interno: Math.max(0, t.interno - resta) };
 }
 
+/** Carga `km` en el tanque y devuelve el tanque NUEVO: la Chancha, o cualquier cosa que sume.
+ *
+ *  PRIMERO EL INTERNO, al reves de como se gasta: el interno es el que no se puede soltar, asi que
+ *  es el que hay que asegurar. Despues los externos que SIGAN COLGADOS, parejos. Lo que no entra, se
+ *  pierde — un tanque lleno no se estira. */
+export function cargar(t, km) {
+  let resta = Math.max(0, km);
+  const interno = Math.min(TANQUE_INTERNO_KM, t.interno + resta);
+  resta -= interno - t.interno;
+  const tanques = t.tanques.slice();
+  while (resta > 1e-9) {
+    const huecos = tanques.map((k, i) => (k < TANQUE_EXTRA_KM ? i : -1)).filter(i => i >= 0);
+    if (!huecos.length) break;
+    const parte = resta / huecos.length;
+    for (const i of huecos) {
+      const mete = Math.min(TANQUE_EXTRA_KM - tanques[i], parte);
+      tanques[i] += mete; resta -= mete;
+    }
+  }
+  return { tanques, interno };
+}
+
 /** Si un tanque externo con `km` adentro cuenta como LLENO al soltarlo (pega grave y explota) o
  *  como VACIO (pega medio). */
 export const tanqueLleno = km => km >= TANQUE_EXTRA_KM * TANQUE_LLENO_FRAC;
