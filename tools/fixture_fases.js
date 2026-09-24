@@ -94,7 +94,7 @@ app.whenReady().then(async () => {
     // ---------- 3. LAS FASES GOBIERNAN ----------
     console.log('\n3. cada fraccion contesta su fase, con los valores resueltos:');
     const esperado = [
-      [0.03, 'transito'], [0.08, 'filo'], [0.13, 'transito'],
+      [0.03, 'transito'], [0.08, 'transito'], [0.13, 'transito'],
       [0.18, 'descenso'], [0.50, 'rasante'], [0.84, 'filo'], [0.95, 'blanco'],
     ];
     for (const [p, tipo] of esperado) {
@@ -102,14 +102,13 @@ app.whenReady().then(async () => {
       if (f && f.tipo === tipo) ok(`p=${p} → ${tipo} (radar ${f.radar}, voces ${f.voces}, nafta x${f.nafta})`);
       else bad(`p=${p} deberia ser '${tipo}' y es '${f && f.tipo}'`);
     }
-    // EL FILO ESTRANGULA DE VERDAD, y el segundo mas que el primero: el primero enseña la banda,
-    // el segundo la cobra. Sin esa diferencia son dos veces la misma prueba.
-    const f1 = await fasePorFraccion(0.08), f2 = await fasePorFraccion(0.84);
+    // EL FILO ESTRANGULA DE VERDAD. Se compara contra el RASANTE y no contra el transito: desde la
+    // ruta (PLAN_NAFTA_ALCANCE N2) el transito esta fuera de radar y no tiene techo, y el primer
+    // filo —el que caia ahi— se fue el 23/9. Queda el de la llegada, adentro del alcance.
+    const f1 = await fasePorFraccion(0.84), rasante = await fasePorFraccion(0.50);
     const transito = await fasePorFraccion(0.03);
-    if (f1.radar < transito.radar) ok(`el filo baja el techo de ${transito.radar} a ${f1.radar}`);
-    else bad(`el filo no estrangula: techo ${f1.radar} contra ${transito.radar} del transito`);
-    if (f2.radar < f1.radar) ok(`y el segundo filo aprieta mas que el primero (${f2.radar} < ${f1.radar})`);
-    else bad(`el segundo filo no aprieta mas: ${f2.radar} contra ${f1.radar}`);
+    if (f1.radar < rasante.radar) ok(`el filo baja el techo de ${rasante.radar} a ${f1.radar}`);
+    else bad(`el filo no estrangula: techo ${f1.radar} contra ${rasante.radar} del rasante`);
     // EL SILENCIO Y LA NAFTA, que son las otras dos mitades de la fase
     if (transito.voces === true && f1.voces === false) ok('el transito habla y el filo esta mudo');
     else bad(`voces transito=${transito.voces} filo=${f1.voces}`);
@@ -188,13 +187,14 @@ app.whenReady().then(async () => {
       while (Date.now() - t0 < ms) { await sleep(250); await js(`__wjump(${p})`); d = JSON.parse(await js('String(__charadar())')).det; }
       return d;
     };
-    const altPrueba = 13;  // debajo de RADAR_ALT=20 (seguro en transito) y encima de FILO_RADAR=9
-    const dTransito = await detEn(0.03, altPrueba, 1500);
-    const dFilo = await detEn(0.084, altPrueba, 1500);
-    if (dTransito === 0) ok(`a ${altPrueba} de altura el transito no te ve (deteccion ${dTransito})`);
-    else bad(`el transito detecto a ${altPrueba} de altura: ${dTransito}`);
+    // contra el RASANTE (techo 20) y no el transito, que desde la ruta esta fuera de radar
+    const altPrueba = 13;  // debajo de RADAR_ALT=20 (seguro en el rasante) y encima del filo (6)
+    const dTransito = await detEn(0.50, altPrueba, 1500);
+    const dFilo = await detEn(0.84, altPrueba, 1500);
+    if (dTransito === 0) ok(`a ${altPrueba} de altura el rasante no te ve (deteccion ${dTransito})`);
+    else bad(`el rasante detecto a ${altPrueba} de altura: ${dTransito}`);
     if (dFilo > 0) ok(`…y a LA MISMA altura el filo si te pinta (deteccion ${dFilo}): el techo es de la fase`);
-    else bad(`el filo no detecto a ${altPrueba} de altura teniendo el techo en 9`);
+    else bad(`el filo no detecto a ${altPrueba} de altura teniendo el techo en 6`);
 
     // EL TANQUE. La misma ventana de vuelo en dos fases con multiplicador distinto tiene que
     // gastar distinto. Se compara transito (x1) contra filo (x2).
@@ -219,7 +219,7 @@ app.whenReady().then(async () => {
       const st = JSON.parse(await js('__pausedbg()')).state;
       return { tasa: (f0 - +(await js('__chanafta()'))) / (ms / 1000), st };
     };
-    const gT = await gasto(0.03), gF = await gasto(0.084);
+    const gT = await gasto(0.03), gF = await gasto(0.84);
     // LA REFERENCIA LLEVA LA ESCALA DE LA MISION. t15 declara `fuelScale: 0.08` porque el modelo
     // de nafta esta calibrado contra pasillos de medio minuto (100 de tanque a 3.2 %/s son 31 s de
     // vuelo) y esta mision dura cinco minutos. Asi que lo esperado no es FUEL_RATE pelado sino

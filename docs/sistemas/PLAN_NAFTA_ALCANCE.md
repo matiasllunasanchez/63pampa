@@ -343,11 +343,14 @@ Cada una deja el juego jugable; tras cada una `npm run check` y `npm run feel` i
   cruzar la línea en los dos sentidos. 2 tests `radar:` en `unit.js`. Medido en t15: crucero a 60 m
   techo 68 y detección 0; rampa 59,7; adentro 20 y detecta; vuelta pasados 180 km, techo 68.
   **Consecuencias abiertas:**
-  1. **El primer filo de t15 (0,05–0,10) ya no muerde**: cae a 260 km del blanco, fuera de radar.
-     Su radio ("el radar está cerca, mantenete rasante") sigue sonando. `npm run fases` lo marca
-     (2 fallas nuevas). Decidir: sacarlo, o moverlo adentro del alcance.
-  2. **El viento en contra por altura** (arriba de 16 m) sigue frenando en el crucero alto, que
-     ahora es el régimen barato.
+  1. ✅ *(resuelto 23/9, decisión del autor)* **El primer filo de t15 se fue**: pasó a tránsito
+     (radio nueva `fase_crucero`, "arriba y fuera de radar, acá el avión gasta menos"), sin mover
+     la zona de la Chancha. `unit` y `fases` actualizados.
+  2. ✅ *(resuelto 23/9, decisión del autor)* **El viento en contra ya no sopla en todo el cielo**:
+     solo donde un tramo o una fase lo declara (`viento: true`, clave nueva en los dos
+     validadores). `cfg.wind` (VIENTO: NO) sigue apagándolo todo; el viento visual del pasto y el mar
+     no se tocó. **Idea del autor para N4:** un tramo con viento sobre la zona de la Chancha puede
+     complicar a veces la conexión con el Hércules.
   3. `npm run fases` ya tenía 6 fallas en N1 (medido en un árbol aparte): el paso 5 y el
      aterrizaje, la siembra de la vuelta y la tasa de nafta. No son de este plan.
 - **N3 — el gasto nuevo.** `flight.js:294` rama `ruta`: gasto por km con los tres factores;

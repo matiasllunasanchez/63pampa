@@ -33,6 +33,7 @@ export const STRINGS = {
     // y en la vuelta PUMA vuelve. El jugador no tiene que entender la regla: la escucha.
     fase_salida: 'PUMA: PLATA FIEL, EN RUTA. NOS QUEDA MAR POR DELANTE.',
     fase_filo: 'PUMA: EL RADAR ESTA CERCA. MANTENTE RASANTE.',
+    fase_crucero: 'PUMA: ARRIBA Y FUERA DE RADAR. ACA EL AVION GASTA MENOS: A CUIDAR LA NAFTA.',
     fase_libre: 'PUMA: ESTAMOS LIMPIOS. PODES SUBIR A RESPIRAR.',
     fase_descenso: 'PUMA: BAJAMOS. DE ACA EN ADELANTE NO SE HABLA.',
     fase_rasante: 'CONDOR: PLATA FIEL, TE SIGO YO. NO CONTESTES.',
@@ -1123,6 +1124,7 @@ export const STRINGS = {
     fase_salida: 'PUMA: PLATA FLIGHT, ON ROUTE. NOTHING BUT SEA AHEAD.',
     fase_filo: 'PUMA: RADAR AHEAD. STAY ON THE DECK.',
     fase_libre: 'PUMA: WE ARE CLEAR. CLIMB AND BREATHE.',
+    fase_crucero: 'PUMA: HIGH AND OUT OF RADAR. SHE BURNS LESS UP HERE: MIND THE FUEL.',
     fase_descenso: 'PUMA: GOING DOWN. NOBODY TALKS FROM HERE.',
     fase_rasante: 'CONDOR: PLATA FLIGHT, I HAVE YOU. DO NOT ANSWER.',
     fase_filo2: 'CONDOR: ANOTHER PICKET AHEAD. DOWN, AND HOLD YOUR BREATH.',

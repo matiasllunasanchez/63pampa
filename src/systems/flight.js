@@ -31,6 +31,7 @@ import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE,
 // la mision no declara fases — que es como se cumple la regla suprema (sin fases, este archivo se
 // comporta exactamente igual que ayer, y lo custodia `npm run feel`).
 import { val as fsVal, techoRadar } from './fases.js';
+import { val as trVal } from './tramos.js';
 import * as est from './estrellas.js';
 import { PORT_H } from '../data/runways.js';
 // EL SUELO TIENE ALTURA (T3): la misma funcion que levanta el pasto y las estructuras es la que
@@ -123,9 +124,15 @@ export function flightSystem(dt, deps) {
   const av = dmg.fx();
   run.boost = inp.turbo && run.fuel > 0 && mvAllowsTurbo() && av.turbo;
   // viento en contra: cuanto más tiempo arriba, más resistencia (hasta -35%)
-  if (cfg.wind && plane.y > 16) run.windT = Math.min(6, run.windT + dt);
+  // SOLO DONDE UN TRAMO O UNA FASE LO DECLARA (`viento: true`, pedido del autor 23/9). Soplaba en
+  // todo el cielo, y con la nafta como alcance (PLAN_NAFTA_ALCANCE) el crucero ALTO pasa a ser el
+  // regimen barato: un viento que castiga toda altura castigaba justo lo que conviene hacer. Ahora
+  // es un accidente del mapa, no una regla del cielo. `cfg.wind` (VIENTO: NO del menu) sigue
+  // apagandolo todo; el viento que peina el pasto y el mar es otra cosa y no se toca.
+  const vientoAca = cfg.wind && trVal('viento', fsVal('viento', false));
+  if (vientoAca && plane.y > 16) run.windT = Math.min(6, run.windT + dt);
   else run.windT = Math.max(0, run.windT - dt * 2);
-  run.windF = windFactor(run.windT, cfg.wind);
+  run.windF = windFactor(run.windT, vientoAca);
   // AFTERBURNER SOSTENIDO: aguantar BOOST + RASANTE acumula tiempo; cada AFTER_STEP s sube un
   // escalón (hasta AFTER_MAX). Cada escalón multiplica la velocidad (AFTER_GAIN) y levanta el
   // techo (AFTER_CAP) para que el aumento se SIENTA. Soltar turbo o trepar lo corta (con gracia).

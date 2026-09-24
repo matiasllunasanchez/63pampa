@@ -150,7 +150,11 @@ const t15 = {
     // dialogos, seguramente sera asi todo". Esta solo en la PRIMERA fase: agregarle la palabra a
     // las otras once las pausa igual, y borrarla de aca apaga el ensayo sin tocar codigo.
     { tipo: 'transito', hasta: 0.05, radio: 'fase_salida', pausa: true, solo: IDA_MAR, bombs: 0, bidones: false },
-    { tipo: 'filo', hasta: 0.10, radio: 'fase_filo', bombs: 0, bidones: false },
+    // EL PRIMER FILO SE FUE (pedido del autor, 23/9). Con la ruta (PLAN_NAFTA_ALCANCE N2) este
+    // tramo cae a ~260 km del blanco, fuera del horizonte de radar: el techo no mordia y la radio
+    // decia "el radar esta cerca" en mitad del crucero. Queda como transito para no correr la zona
+    // de la Chancha, que empieza donde terminaba el filo.
+    { tipo: 'transito', hasta: 0.10, radio: 'fase_crucero', solo: IDA_MAR, bombs: 0, bidones: false },
     { tipo: 'transito', hasta: 0.16, radio: 'fase_chancha_ida', solo: IDA_MAR, bombs: 0, bidones: false, chancha: true },
     { tipo: 'descenso', hasta: 0.20, radio: 'fase_descenso', solo: IDA_MAR, bombs: 0, bidones: false },
     { tipo: 'rasante', hasta: 0.50, radio: 'fase_rasante', solo: IDA_MAR, bombs: 0, bidones: false },

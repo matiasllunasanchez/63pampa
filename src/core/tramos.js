@@ -21,7 +21,7 @@
 /** Las claves que un tramo puede traer. Cualquier otra es error de DATOS y el validador la
  *  rechaza: una clave mal escrita (`obstaculos` por `obstacles`) no hace nada y no avisa —
  *  el tramo simplemente se comporta como si no la trajera, que es la peor forma de fallar. */
-export const CLAVES = ['hasta', 'obstacles', 'caza', 'bombs', 'bidones', 'favor', 'radio', 'marcas', 'charla'];
+export const CLAVES = ['hasta', 'obstacles', 'caza', 'bombs', 'bidones', 'favor', 'radio', 'marcas', 'charla', 'viento'];
 
 /** Como se valida cada clave. `hasta` va aparte (es la unica obligatoria y la que ordena). */
 const TIPOS = {
@@ -36,6 +36,8 @@ const TIPOS = {
   // como texto y nada mas — que la escena EXISTA no se puede comprobar aca sin importar el
   // guion, y core/ no importa contenido. Lo comprueba el unit test, que si puede ver los dos.
   charla: v => typeof v === 'string' && !!v,
+  // VIENTO EN CONTRA en este tramo (arriba de 16 m frena hasta -35%). Sin la clave no sopla.
+  viento: v => typeof v === 'boolean',
 };
 
 /** Revisa una lista de tramos y devuelve los ERRORES en texto (lista vacia = data sana).

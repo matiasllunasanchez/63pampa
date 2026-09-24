@@ -24,7 +24,7 @@ import { FASE_MAX_HASTA } from '../data/tuning.js';
 /** Las claves que una fase puede traer. Cualquier otra es error de DATOS y el validador la
  *  rechaza: una clave mal escrita (`radares` por `radar`) no hace nada y no avisa — la fase
  *  simplemente se comporta como si no la trajera, que es la peor forma de fallar. */
-export const CLAVES = ['tipo', 'hasta', 'obstacles', 'caza', 'bombs', 'bidones', 'solo', 'chancha', 'radar', 'agua', 'voces', 'nafta', 'pinta', 'radio', 'pausa'];
+export const CLAVES = ['tipo', 'hasta', 'obstacles', 'caza', 'bombs', 'bidones', 'solo', 'chancha', 'radar', 'agua', 'voces', 'nafta', 'pinta', 'radio', 'pausa', 'viento'];
 
 /** Como se valida cada clave. `tipo` y `hasta` van aparte: son las dos obligatorias. */
 const TIPOS_DE_CLAVE = {
@@ -54,6 +54,9 @@ const TIPOS_DE_CLAVE = {
   // suelta hasta que el jugador la acepta. Booleano, mismo molde que `voces`. Sin `radio` no hace
   // nada: lo que se pausa es la linea, no la fase.
   pausa: v => typeof v === 'boolean',
+  // VIENTO EN CONTRA en esta fase (pedido del autor 23/9: ya no sopla en todo el cielo). Mismo
+  // significado que en los tramos; el tramo gana si declara los dos.
+  viento: v => typeof v === 'boolean',
 };
 
 /** Revisa una lista de fases y devuelve los ERRORES en texto (lista vacia = data sana).

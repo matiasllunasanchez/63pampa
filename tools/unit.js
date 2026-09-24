@@ -1061,7 +1061,8 @@ test('t15: declara las cinco fases del plan, en orden, y la vuelta pasa del buqu
   // fases del mismo tipo para que Condor tenga donde hablar (una fase suena una sola vez), asi
   // que lo que se afirma es la SECUENCIA DE ETAPAS, colapsando consecutivas iguales.
   const etapas = tipos.filter((t, i) => t !== tipos[i - 1]);
-  assert.deepEqual(etapas, ['transito', 'filo', 'transito', 'descenso', 'rasante', 'filo', 'blanco', 'vuelta']);
+  // (el primer filo se fue el 23/9: con la ruta caia fuera del horizonte de radar)
+  assert.deepEqual(etapas, ['transito', 'descenso', 'rasante', 'filo', 'blanco', 'vuelta']);
   // CADA ETAPA MARCADA POR UN DIALOGO. Es la regla que fijo el autor mirando el mapa —"que se
   // marquen las etapas del mapa con dialogos, seguramente sera asi todo"—, y sin esta red una
   // fase nueva se cuela muda y el jugador la cruza sin enterarse de que cambio algo.
@@ -1086,11 +1087,12 @@ test('t15: declara las cinco fases del plan, en orden, y la vuelta pasa del buqu
   const vuelta = t15.fases[t15.fases.length - 1];
   assert.equal(vuelta.hasta, 2, 'la vuelta tiene que medir lo mismo que la ida (hasta 2.0)');
   assert.ok(t15.fases[t15.fases.length - 1].hasta > 1, 'la vuelta tiene que vivir pasado el objetivo');
-  // EL SEGUNDO FILO APRIETA MAS QUE EL PRIMERO: el primero enseña la banda, el segundo la cobra.
-  // Sin esta diferencia son dos veces la misma prueba y el tramo no tiene curva.
+  // EL FILO QUE QUEDA APRIETA MAS QUE EL TIPO: el primero (que enseñaba la banda) se fue el 23/9
+  // —con la ruta caia fuera de radar—, y el de la llegada tiene que seguir siendo el mas angosto.
   const filos = t15.fases.filter(f => f.tipo === 'filo');
   const techo = f => faseAt(0, 1, [{ ...f, hasta: 1 }]).val('radar', RADAR_ALT_U);
-  assert.ok(techo(filos[1]) < techo(filos[0]), 'el segundo filo tiene que ser mas angosto');
+  assert.equal(filos.length, 1, 'queda un solo filo, pegado al blanco');
+  assert.ok(techo(filos[0]) < techo({ tipo: 'filo' }), 'el filo de la llegada tiene que ser mas angosto que el del tipo');
 });
 
 test('t15: es una herramienta — sin guion, sin cartas y sin roster de campaña', () => {
@@ -2683,4 +2685,17 @@ test('radar: fuera de alcance no hay techo; entrando baja con rampa; saliendo su
   assert.equal(t(12500), ARRIBA, 'saliendo en la vuelta, el cielo vuelve de una');
   // el techo de un filo adentro del alcance se respeta
   assert.equal(techoAlcance(9, 5000, OBJ, L, ARRIBA, RAMPA), 9);
+});
+
+// EL VIENTO EN CONTRA, POR TRAMO (pedido del autor 23/9): ya no sopla en todo el cielo
+test('viento: tramos y fases lo declaran con un booleano, y sin la clave no sopla', async () => {
+  const { tramoAt } = await import('../src/core/tramos.js');
+  assert.deepEqual(validarTramos([{ hasta: 1, viento: true }]), []);
+  assert.ok(validarTramos([{ hasta: 1, viento: 'si' }]).length, 'viento es booleano');
+  assert.deepEqual(validarFases([{ tipo: 'transito', hasta: 1, viento: true }]), []);
+  assert.ok(validarFases([{ tipo: 'transito', hasta: 1, viento: 1 }]).length, 'viento es booleano');
+  assert.equal(tramoAt(10, 100, [{ hasta: 1 }]).val('viento', false), false, 'sin la clave no sopla');
+  assert.equal(tramoAt(10, 100, [{ hasta: 1, viento: true }]).val('viento', false), true);
+  const { TIPOS } = await import('../src/data/fases.js');
+  for (const t of Object.keys(TIPOS)) assert.equal(TIPOS[t].viento, undefined, `el tipo ${t} no puede traer viento de fabrica`);
 });
