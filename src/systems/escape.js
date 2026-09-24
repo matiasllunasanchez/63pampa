@@ -116,3 +116,15 @@ export function step(dt) {
   xAnt = plane.x;
   return hit ? 'hit' : entra ? 'vibora' : null;
 }
+
+// ---------- LA FUGA (V4) ----------
+// Vive APARTE del escape: el tanque perforado sigue perdiendo toda la vuelta, despues del viraje.
+// La corta un avion nuevo (el relevo) o una corrida nueva.
+let fuga = false;
+export const fugaOn = () => fuga;
+export function resetFuga() { fuga = false; }
+/** Un tiro que el avion aguanto: ¿le perforo un tanque? */
+export function perforar() {
+  if (!fuga && Math.random() < (escape.panza ? ESC.FUGA_P_PANZA : ESC.FUGA_P)) fuga = true;
+  return fuga;
+}

@@ -213,6 +213,23 @@ export const ICONOS = {
     '.########.',
     '..#####...',
   ] },
+  // LAS SEÑAS (PLAN_VUELTA_REAL V4, "mirame la panza"): lo que el compañero te dice con la mano.
+  // 9x9, en el color que les pase quien dibuja; '+' es el segundo color.
+  sena_ok: { letra: 'OK', png: null, pix: [       // el pulgar arriba: estas sano
+    '....##...', '...###...', '...##....', '.######..', '#######..', '#######..', '#######..', '######...', '.####....',
+  ] },
+  sena_dano: { letra: 'D', png: null, col2: '#e8842a', pix: [   // la chapa rota: una grieta
+    '#########', '#...+...#', '#..++...#', '#...+...#', '#...++..#', '#....+..#', '#...++..#', '#...+...#', '#########',
+  ] },
+  sena_fuga: { letra: 'F', png: null, col2: '#e8842a', pix: [   // la gota que se escapa del tanque
+    '....#....', '...###...', '..#####..', '.#######.', '.###+###.', '.##+++##.', '.#######.', '..#####..', '...###...',
+  ] },
+  sena_casa: { letra: 'C', png: null, pix: [       // a casa: la flecha para atras, al continente
+    '...#.....', '..##.....', '.#######.', '########.', '.#######.', '..##...#.', '...#...#.', '.......#.', '.#######.',
+  ] },
+  sena_chancha: { letra: 'H', png: null, col2: '#e8842a', pix: [   // a la Chancha: la manguera con su canasta
+    '#........', '.#.......', '..#......', '...#.....', '....#....', '.....#...', '.....+++.', '....+...+', '.....+++.',
+  ] },
   // EL MISIL QUE VIENE, al final de la escala del radar (ver hud.js, drawRadar). Un misil COMUN
   // (segunda foto del autor) y al reves que la bomba: apunta a la IZQUIERDA, hacia vos. Cuerpo
   // fino y largo, ojiva en punta, los aletines chicos cerca de la punta —a un cuarto del morro,

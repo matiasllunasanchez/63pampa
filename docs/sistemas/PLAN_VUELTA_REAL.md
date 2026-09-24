@@ -374,8 +374,18 @@ en `t15` (IDA Y VUELTA) y con una fila de PRUEBAS por tramo (patrón de `t16`).
   cuenta como "mostrar la panza" (en el control directo todo movimiento lateral inclina el sprite
   casi a tope, y viborear era mostrar la panza); y la velocidad lateral sale de cuánto se movió el
   avión, no de `plane.vx`, para que valga con mouse, alabeo o teclado.
-- **V4 — las señas y la fuga.** "Mirame la panza" con el daño real; la fuga como término de gasto;
-  el jefe decide "a casa / a la Chancha".
+- ✅ **V4 — las señas y la fuga** *(hecho 24/9)*.
+  - **La fuga:** un tiro de popa que el avión aguanta perfora un tanque la mitad de las veces (8 de
+    cada 10 mostrando la panza). El tanque pierde 0,18 %/s toda la vuelta, vueles como vueles —
+    por `run.fuel`, que la nafta de la ruta ya sabe sincronizar. La corta un avión nuevo (relevo).
+    En ESCUADRÓN no aparece: ahí cualquier golpe baja el avión.
+  - **"Mirame la panza":** al volver del viraje, si queda un compañero vivo, se pone a tu derecha
+    y abajo y te hace dos o tres señas en un globo con pictograma: QUÉ TENÉS (SANO · AVERIADO ·
+    PERDÉS NAFTA) y A DÓNDE (A CASA · A LA CHANCHA, si con lo que queda —y lo que vas a perder—
+    no llegás y la misión tiene Chancha). Sin radio. `SENAS` en `data/blanco.js`, dibujo en
+    `render/squad.js` `drawSenas`, pictogramas `sena_*` en `data/iconos.js`.
+  - **Mientras te revisa no se siembra nada:** la reunión era fuera del fuego, y con la vuelta
+    sembrando desde el primer metro, en la prueba el avión se chocaba en plena seña.
 - **V5 — el otro sector y la Chancha a upa.** Otra luz y otra siembra en la vuelta, la CAP, la
   palabra clave y el remolque.
 - **V6 — planeo y eyección.**

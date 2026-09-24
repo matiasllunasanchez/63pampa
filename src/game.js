@@ -66,7 +66,7 @@ import * as muni from './render/municion.js';
 import * as blancoSys from './systems/blanco.js';
 import * as escapeSys from './systems/escape.js';
 import { drawTirosPopa } from './render/escape.js';
-import { BL as BL_BLANCO, FASE_ESCAPE } from './data/blanco.js';
+import { BL as BL_BLANCO, FASE_ESCAPE, SENAS } from './data/blanco.js';
 import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE } from './data/cargas.js';
 import { AUDIO_BLOQUEADO } from './data/sonido.js';
 import { bingoKm, capacidadKm, colgadoDe, velRelativa, estadoTanque } from './core/nafta.js';
@@ -1432,6 +1432,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // vuelta: con vuelta, pegarle abre EL ESCAPE en vez del negro (PLAN_VUELTA_REAL V0).
       vir = null;   // una secuencia de viraje a medias no sobrevive a una corrida nueva
       escapeSys.terminar();
+      escapeSys.resetFuga(); senas = null;
       blancoSys.preparar(hayBlanco, objectiveShip, objectiveDist, { PZ, W }, cfg.carga,
         { pasadas: curMission() && curMission().pasadas, vuelta: fases.hayVuelta() });
       // LA NAFTA COMO ALCANCE (PLAN_NAFTA_ALCANCE N3): con ruta, el tanque se llena en km segun la
@@ -2724,6 +2725,32 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // sin esto se iba al agua antes de que el jugador lo viera (medido)
       plane.y = Math.max(plane.y, 10); plane.vy = 0;
       volverDelBlanco();
+      armarSenas();
+    }
+    /** "MIRAME LA PANZA" (V4): el compañero que te revisa al volver del viraje. Solo si queda alguien
+     *  del escuadron vivo — el que vuelve solo no tiene quien le mire la panza. Las señas se deciden
+     *  aca, con el daño y la nafta de este momento: primero QUE TENES, despues A DONDE. */
+    let senas = null;
+    const senasActivas = () => !!senas && senas.t < SENAS.ENTRA + SENAS.CADA * senas.senas.length + SENAS.SALE;
+    function armarSenas() {
+      senas = null;
+      if (!canRelevo(run.lives)) return;
+      const que = [];
+      if (escapeSys.fugaOn()) que.push('sena_fuga');
+      if (run.integ < 99) que.push('sena_dano');
+      if (!que.length) que.push('sena_ok');
+      // ¿llega a casa? Con ruta, contra el bingo en km; sin ruta, con el % del tanque. La fuga
+      // cuenta como lo que va a perder de aca a casa. Si la mision no tiene Chancha, a casa igual.
+      let llega = true;
+      if (cfg.fuelOn) {
+        if (naftaSys.activo()) {
+          const bingo = bingoKm(rutaSys.aCasa(), { bombas: 0, tanques: run.tanque.tanques.length });
+          llega = naftaSys.kmRestan() * (escapeSys.fugaOn() ? 0.6 : 1) >= bingo;
+        } else llega = run.fuel * (escapeSys.fugaOn() ? 0.6 : 1) >= 40;
+      }
+      const hayChancha = !(curMission() && curMission().chancha === false);
+      que.push(!llega && hayChancha ? 'sena_chancha' : 'sena_casa');
+      senas = { t: -SENAS.DESDE, idx: pilotIdx(run.squad, run.lives) + 1, senas: que.slice(0, 3) };
     }
     function volverDelBlanco() {
       run.climaxHecho = 1;
@@ -3451,6 +3478,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             // EL COMPAÑERO ENTRA CON EL AVION SANO. Es lo que mantiene al escuadron como vidas
             // aunque el modelo sea por integridad: cada avion trae su propia chapa.
             damage.resetDamage();
+            escapeSys.resetFuga();          // el avion nuevo no trae el tanque perforado del otro
             // si el companero releva DENTRO del asalto, vuelve AL ASALTO — con el daño ya hecho
             // al buque (las zonas viven en el subsistema, no en la instancia). Pasar por 'play'
             // funcionaba de rebote (flight re-detectaba el objetivo), pero metia un frame del
@@ -3739,10 +3767,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (es === 'hit') {
           escapeSys.limpiar();
           if (damage.takeHit('death_popa')) { onDeath('death_popa'); return; }
+          escapeSys.perforar();          // aguantaste el tiro: ¿te perforo un tanque? (V4)
         }
         // LA VIBORA (V3): el unico aviso es un cartel y no una radio — rige el silencio. Dice QUE
         // hacer, una vez; como se juega lo cuentan los piques que se van cerrando.
         if (es === 'vibora') popup(W / 2, 60, T('esc_vibora'), P.warn);
+        // LA FUGA (V4): el tanque perforado pierde por segundo, vueles como vueles
+        if (escapeSys.fugaOn() && cfg.fuelOn) run.fuel = Math.max(0, run.fuel - BL_BLANCO.FUGA_PCT_S * dt);
+        if (senas) senas.t += dt;
         if (vir) {
           vir.t += dt;
           if (vir.fase === 'perdimos' && vir.t >= BL_BLANCO.VIR_LEER) { vir = { fase: 'rumbo', t: 0 }; radioTramo('vir_casa'); }
@@ -3755,7 +3787,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         }
       }
       if (gameMode !== 'pasadas' && !(runClimax() === 'pasada' && pasada.spawnsCut(run.dist, objectiveDist))
-        && !(runClimax() === 'suelta' && blancoSys.spawnsCut(run.dist)))
+        && !(runClimax() === 'suelta' && blancoSys.spawnsCut(run.dist))
+        // …y MIENTRAS EL COMPAÑERO TE MIRA LA PANZA (V4): la reunion era fuera del fuego — con la
+        // vuelta sembrando desde el primer metro, en la prueba te chocabas en plena seña (medido)
+        && !senasActivas())
         spawnSystem(dt, objectiveDist);  // aparicion de obstaculos y soldados (nunca corta el frame)
       const hit = collisionSystem(dt);   // impactos → devuelve { death } si un choque fue fatal
       if (hit) { onDeath(hit.death); return; }
@@ -4260,6 +4295,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // correcto los pone atras. Van adentro del giro del horizonte por la misma razon que el
       // resto del mundo — si el mundo se inclina, ellos se inclinan con el.
       drawActores(selPlane, wingmv.state());
+      // "MIRAME LA PANZA" (V4): el compañero va mas lejos que vos (apenas adelante): antes del avion
+      if (S.state === 'play' && senas) squadRender.drawSenas(senas, selPlane);
       // …y sus tiros, en el mismo plano y con el mismo criterio de pintor. Se dibujan FRIOS: el
       // naranja es de lo que lastima, y esto no puede lastimar a nadie (ver render/teatro.js).
       drawTiros(teatro.state());

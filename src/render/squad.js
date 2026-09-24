@@ -18,6 +18,8 @@ import { drawSquadPips } from './hud.js';
 import { formationSlots, pilotIdx, RELEVO_WRECK, RELEVO_DUR, puestoFormacion } from '../core/squad.js';
 import { pilotName, rosterActive, fallenPos } from '../systems/squad.js';
 import { skinOf } from '../data/skins.js';
+import { iconoEn } from './iconos.js';
+import { SENAS } from '../data/blanco.js';
 
 /** La formacion detras del lider. `exit` = null durante el despegue; 0..1 durante la salida de
  *  plano (al CONTROL LIBRE: aceleran, crecen y pasan al costado de la camara — "te siguen ahi
@@ -144,4 +146,46 @@ export function drawRelevo(rv) {
   }
   // el tablero del escuadron, con el caido recien tachado: el costo se ve en el momento
   drawSquadPips(3, 3);
+}
+
+/** "MIRAME LA PANZA" (PLAN_VUELTA_REAL V4): un compañero se pone a tu costado y abajo y te hace dos
+ *  señas —que tenes y a donde—. `sn` es la foto que arma game.js: { t, idx, senas: [id, id] }.
+ *  Dibuja EN EL MUNDO (va con drawPlane). Entra desde abajo a la derecha, se queda, y se va. */
+export function drawSenas(sn, selPlane) {
+  if (!sn || sn.t < 0) return;
+  const total = SENAS.ENTRA + SENAS.CADA * sn.senas.length + SENAS.SALE;
+  if (sn.t > total) return;
+  const entra = Math.min(1, sn.t / SENAS.ENTRA), sale = Math.max(0, (sn.t - (total - SENAS.SALE)) / SENAS.SALE);
+  const e = 1 - (1 - entra) * (1 - entra);
+  // la posicion: arranca abajo y atras (fuera de cuadro), se acomoda en su puesto, y se va abajo
+  const x = plane.x + SENAS.DX * (0.4 + 0.6 * e) + sale * 6;
+  const y = plane.y + SENAS.DY - (1 - e) * 6 - sale * 4;
+  const z = PZ + SENAS.DZ - (1 - e) * 6 + sale * 3;
+  const s = proj(x, y, z), f = s.k / proj(0, 0, PZ).k;
+  const pl = PLANES[selPlane], hoja = hojaDe(pl, sn.idx);
+  const smooth = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
+  if (hoja) {
+    const col = (SHEET_NF - 1) / 2, w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
+    ctx.drawImage(hoja, col * SHEET_FW, SHEET_FH, SHEET_FW, SHEET_FH, s.x - w / 2, s.y - h / 2, w, h);
+  }
+  ctx.imageSmoothingEnabled = smooth;
+  // LA SEÑA: un globo al costado de su cabina con el pictograma y, abajo, lo que quiere decir
+  const dentro = sn.t - SENAS.ENTRA;
+  if (dentro < 0 || sale > 0) return;
+  const i = Math.min(sn.senas.length - 1, Math.floor(dentro / SENAS.CADA));
+  const id = sn.senas[i], bx = Math.round(s.x + 22 * f), by = Math.round(s.y - 20 * f);
+  const pop = Math.max(0, 1 - (dentro - i * SENAS.CADA) / 0.15);   // un golpecito al cambiar de seña
+  const L = Math.round(15 + pop * 3);
+  ctx.fillStyle = '#0d1216d8'; ctx.fillRect(bx - L / 2, by - L / 2, L, L);
+  ctx.fillStyle = '#e9edf0';
+  ctx.fillRect(bx - L / 2, by - L / 2, L, 1); ctx.fillRect(bx - L / 2, by + L / 2 - 1, L, 1);
+  ctx.fillRect(bx - L / 2, by - L / 2, 1, L); ctx.fillRect(bx + L / 2 - 1, by - L / 2, 1, L);
+  // la colita del globo, hacia el avion
+  px(bx - L / 2 - 2, by + 2, 2, 1, '#e9edf0'); px(bx - L / 2 - 4, by + 3, 2, 1, '#e9edf0');
+  const alerta = id === 'sena_fuga' || id === 'sena_dano' || id === 'sena_chancha';
+  iconoEn(bx, by, id, alerta ? '#ffd479' : '#7fe07a');
+  ctx.font = 'bold 6px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = alerta ? '#ffd479' : '#7fe07a';
+  ctx.fillText(T(id), bx, by + L / 2 + 7);
+  ctx.textAlign = 'left';
 }

@@ -157,5 +157,23 @@ export const ESC = {
   VX_MIN: 5,
   HUMO_T: 0.4,
   HUMO_X: 4,
+
+  // LA FUGA (V4). Un tiro de popa que el avion AGUANTA puede perforarle un tanque: la mitad de las
+  // veces yendo derecho, casi siempre mostrando la panza. La fuga saca nafta por segundo, vueles
+  // como vueles — "el tanque pierde aunque no vueles". En % del tanque por segundo.
+  FUGA_P: 0.5, FUGA_P_PANZA: 0.8,
+  FUGA_PCT_S: 0.18,
+};
+
+/** "MIRAME LA PANZA" (V4). *"Un avion se colocaba debajo o al costado del otro, a pocos metros, y
+ *  por señas le indicaba los daños."* Al volver del viraje, un compañero vivo se te pone al costado
+ *  y abajo y te hace dos señas: QUE TENES (sano, averiado, perdiendo nafta) y A DONDE (a casa, o a
+ *  la Chancha si con lo que queda no llegas). Sin radio: rige el silencio. Segundos. */
+export const SENAS = {
+  DESDE: 2.6,    // despues del viraje: lo que dura el fundido desde negro
+  ENTRA: 1.2,    // lo que tarda en ponerse en posicion
+  CADA: 2.8,     // cuanto dura cada seña
+  SALE: 1.2,
+  DX: 7, DY: -2.4, DZ: 3,   // donde se pone: a tu derecha, abajo y apenas adelante
 };
 
