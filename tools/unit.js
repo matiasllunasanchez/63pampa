@@ -2652,3 +2652,35 @@ test('ruta: toda mision que la declara la tiene sana (campaña y banco de prueba
   }
   assert.ok(MP.find(m => m.id === 't15').ruta, 't15 es el banco de la ruta');
 });
+
+// ---------- EL RADAR CON ALCANCE (src/core/ruta.js, PLAN_NAFTA_ALCANCE N2) ----------
+test('radar: la linea de alcance cae donde la ruta dice, en la ida y en la vuelta', async () => {
+  const { anclas, lineasRadar, fraccionDeKm, posKm } = await import('../src/core/ruta.js');
+  const a = anclas(RUTA_T, FASES_T);
+  const l = lineasRadar(RUTA_T, a);
+  near(l.entra, 0.2);                        // el descenso: 180 km al blanco
+  near(posKm(l.sale, a), 700 + 180);         // la vuelta: 180 km pasado el blanco
+  for (const km of [100, 520, 650, 1000]) near(posKm(fraccionDeKm(km, a), a), km, 1e-9);
+  assert.equal(fraccionDeKm(5000, a), null, 'mas alla de casa no hay fraccion');
+  // sin vuelta, el radar sigue hasta el final
+  const sinV = [{ tipo: 'descenso', hasta: 0.5 }, { tipo: 'blanco', hasta: 1 }];
+  assert.equal(lineasRadar({ blancoKm: 700, radarKm: 180 }, anclas({ blancoKm: 700, radarKm: 180 }, sinV)).sale, null);
+  // sin radarKm, el radar existe desde la base como siempre
+  assert.deepEqual(lineasRadar({ blancoKm: 700 }, anclas({ blancoKm: 700 }, FASES_T)), { entra: 0, sale: null });
+});
+
+test('radar: fuera de alcance no hay techo; entrando baja con rampa; saliendo sube de una', async () => {
+  const { techoAlcance } = await import('../src/core/ruta.js');
+  const L = { entra: 0.2, sale: 1.25 }, OBJ = 10000, ARRIBA = 68, RAMPA = 900;
+  const t = d => techoAlcance(20, d, OBJ, L, ARRIBA, RAMPA);
+  assert.equal(t(0), ARRIBA, 'el despegue esta fuera de radar');
+  assert.equal(t(1999), ARRIBA);
+  assert.equal(t(2000), ARRIBA, 'en la linea misma todavia no muerde');
+  near(t(2450), 44);                          // a mitad de la rampa
+  assert.equal(t(2900), 20);
+  assert.equal(t(9000), 20, 'adentro rige el techo de la fase');
+  assert.equal(t(12499), 20);
+  assert.equal(t(12500), ARRIBA, 'saliendo en la vuelta, el cielo vuelve de una');
+  // el techo de un filo adentro del alcance se respeta
+  assert.equal(techoAlcance(9, 5000, OBJ, L, ARRIBA, RAMPA), 9);
+});

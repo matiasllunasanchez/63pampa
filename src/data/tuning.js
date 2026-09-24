@@ -1633,6 +1633,13 @@ export const ARRASTRE_LIMPIO = 0.85;
 export const ARRASTRE_BOMBA = 0.1;
 export const ARRASTRE_TANQUE = 0.1;
 
+// LA RAMPA DEL HORIZONTE DE RADAR, en metros de pasillo (PLAN_NAFTA_ALCANCE §3.4, N2). Con `ruta`,
+// el radar no existe hasta `radarKm` del blanco; al cruzar esa linea el techo baja desde FLY_TOP
+// hasta el de la fase a lo largo de estos metros. Es la rampa del filo y por el mismo motivo: un
+// techo que aparece de golpe obliga a una picada de panico. Al SALIR del alcance (la vuelta) no hay
+// rampa: recuperar el cielo no se prepara.
+export const RUTA_RADAR_RAMPA_M = FILO_RAMPA_M;
+
 // ---------------- EL ATERRIZAJE (PLAN_MISION_CINCO_FASES §4) ----------------
 //
 // Lo unico enteramente nuevo del plan: existe el despegue y el aterrizaje habia que escribirlo.

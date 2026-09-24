@@ -113,3 +113,41 @@ export function kmPorMetro(p, a, objetivo) {
     if (p < a[i].p || (i === a.length - 1 && p <= a[i].p)) return (a[i].km - a[i - 1].km) / ((a[i].p - a[i - 1].p) * objetivo);
   return 0;   // pasado casa: no se recorre nada mas
 }
+
+/** La fraccion del objetivo donde la ruta vale `km` (la inversa de `posKm`), o null si la ruta no
+ *  llega a esos km. Es lo que ubica en el pasillo una linea que la mision dice en km. */
+export function fraccionDeKm(km, a) {
+  if (!(km > 0)) return 0;
+  for (let i = 1; i < a.length; i++) {
+    if (km <= a[i].km) {
+      const x = a[i - 1], y = a[i];
+      return x.p + (y.p - x.p) * (km - x.km) / (y.km - x.km);
+    }
+  }
+  return null;
+}
+
+/** EL HORIZONTE DE RADAR en el pasillo (PLAN §3.4): `{ entra, sale }` en fracciones del objetivo.
+ *  `entra` es donde la ida cruza `radarKm` del blanco; `sale`, donde la vuelta se aleja `radarKm`
+ *  del blanco (null si la mision no tiene vuelta: el radar sigue hasta el final). Sin `radarKm` el
+ *  radar existe desde la base, como siempre: `entra` 0. */
+export function lineasRadar(ruta, a) {
+  if (!ruta.radarKm) return { entra: 0, sale: null };
+  return {
+    entra: fraccionDeKm(ruta.blancoKm - ruta.radarKm, a),
+    sale: fraccionDeKm(ruta.blancoKm + ruta.radarKm, a),
+  };
+}
+
+/** EL TECHO DEL RADAR SEGUN EL ALCANCE, puro. `techo` es el que dice la fase; `dist` y `objetivo`
+ *  en metros de pasillo; `lineas` de `lineasRadar`. Fuera de alcance devuelve `arriba` (FLY_TOP:
+ *  el avion no puede pasarlo, asi que nada lo detecta, y sigue siendo un numero que se puede
+ *  dibujar). Entrando, baja a lo largo de `rampaM`; saliendo en la vuelta, sube de una. */
+export function techoAlcance(techo, dist, objetivo, lineas, arriba, rampaM) {
+  const p = Math.max(0, dist) / objetivo;
+  if (lineas.sale !== null && p >= lineas.sale) return arriba;
+  const d0 = lineas.entra * objetivo;
+  if (dist < d0) return arriba;
+  const t = rampaM > 0 ? Math.min(1, (dist - d0) / rampaM) : 1;
+  return arriba + (techo - arriba) * t;
+}

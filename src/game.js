@@ -349,6 +349,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     //     como "saliste del banco" y no como un corte de camara.
     let veilOut = 0, veilPrev = '';
     let objectiveDist = 0;           // distancia meta puerto→barcaza (0 = sin objetivo / infinito)
+    let alcanceAntes = null;         // el horizonte de radar en el cuadro anterior (null = sin adoptar)
     let objectiveShip = '';          // nombre de la barcaza objetivo del run
     // …y de QUE TIPO es ese objetivo ('ship' | 'distance'). El HUD lo necesita para decidir si el
     // rotulo de la ruta es un NOMBRE (un buque, que hay que decir) o una DISTANCIA (que ya la dicen
@@ -1404,6 +1405,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       rutaSys.setRuta(objectiveDist > 0 && curMission() ? curMission().ruta : null,
         curMission() ? curMission().fases : null, objectiveDist);
       // EL PULSO necesita saber CONTRA QUE buque es la prueba: de su clase sale como se muere en
+      alcanceAntes = null;
       // la cinematica del premio. Va aca y no en reset() porque el objetivo se define despues.
       pulso.setShip(objectiveShip);
       // LA SUELTA: el buque del pasillo, prendido solo si la mision lo declara como climax.
@@ -3483,6 +3485,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       else if (run.estrellas > estAntes) radioTramo(estrellaLinea(run.estrellas));
 
       // needsMomentum: si el objetivo del run culmina en el climax (barco) o con solo llegar (distancia)
+      // EL HORIZONTE DE RADAR (PLAN_NAFTA_ALCANCE N2): cruzar la linea se ANUNCIA, en los dos
+      // sentidos. Es un cartel y no una radio a proposito: en la ida vas en silencio. El primer
+      // cuadro solo adopta el estado (despegar ya fuera de alcance no es "salir" de nada), y un
+      // salto de sonda cuenta como cruce — es lo que el jugador veria.
+      if (rutaSys.hay()) {
+        const alc = rutaSys.enAlcance();
+        if (alcanceAntes !== null && alc !== alcanceAntes)
+          popup(W / 2, 46, T(alc ? 'radarEntra' : 'radarSale'), alc ? P.warn : P.accent);
+        alcanceAntes = alc;
+      }
       const needsMomentum = (gameMode === 'campaign' || gameMode === 'cycle') ? goalOf(curMission()).needsMomentum : true;
       const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist, needsMomentum, climax: runClimax() });
       if (fs === 'momentum' || fs === 'arena' || fs === 'pasada') {
@@ -3860,7 +3872,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // dice a que altura te ven— y en la cinematica del premio no hay nada que decidir con eso.
       // Aparecio sola cuando la salida paso a trepar de verdad (la trepada cruza RADAR_ALT) y lo
       // que se ve es una reja roja tapando el buque que se hunde.
-      if (cfg.radarNet && cfg.radar !== 'voz' && S.state !== 'pulso') world.drawRadarNet(fases.techoRadar(RADAR_ALT));
+      // …y FUERA DE ALCANCE no hay red (PLAN_NAFTA_ALCANCE N2): no hay radar que dibujar.
+      if (cfg.radarNet && cfg.radar !== 'voz' && S.state !== 'pulso' && rutaSys.enAlcance()) world.drawRadarNet(fases.techoRadar(RADAR_ALT));
       if (cfg.hitboxes) world.drawHitboxes();   // depuracion: cajas de colision en verde fluor
       if (cfg.devcam && S.state === 'play') world.drawFlightLane(testRadio);   // modo camara: el carril del avion
 
@@ -4110,7 +4123,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // LA VISION DEL RADAR: la escena en verde mientras te ven (ver world.drawRadarTinte). Mismo
       // escalon que el tinte del momentum —sobre el mundo, bajo el HUD— y colgada de la misma opcion
       // que la red: quien apago RED DE RADAR no quiere que el radar le pinte la pantalla.
-      if (cfg.radarNet && cfg.radar !== 'voz') world.drawRadarTinte(fases.techoRadar(RADAR_ALT));
+      if (cfg.radarNet && cfg.radar !== 'voz' && rutaSys.enAlcance()) world.drawRadarTinte(fases.techoRadar(RADAR_ALT));
       // HUD en GRILLA DE DISEÑO (320x180): se dibuja con ctx.scale(U). Ver la nota de DW/DH en
       // render/ctx.js — U x SC da 3 exacto, asi que no hay medio pixel ni borroneo.
       // LA CINTA DE FORMACION va ADENTRO del ctx.scale(U): es HUD, o sea grilla de DISEÑO (320x180),
@@ -4152,6 +4165,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         charlaTecho: screens.techoBanda(),
         // QUIEN HABLA EN LA CHARLA este cuadro: el tablero prende el marco de su cara si soy yo
         charlaVoz: charlaQuien(),
+        // fuera del horizonte de radar: la placa FUERA DE RADAR y sin marca de techo en el altimetro
+        fueraRadar: S.state === 'play' && !rutaSys.enAlcance(),
         // el contador y su reloj de escondite, por snapshot (convencion 4: el render no importa
         // de systems — lo vigila `npm run lint:layers`)
         estrellas: run.estrellas, escondite: estrellas.progreso(),

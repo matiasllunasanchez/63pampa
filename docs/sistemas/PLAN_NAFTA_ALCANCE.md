@@ -333,9 +333,23 @@ Cada una deja el juego jugable; tras cada una `npm run check` y `npm run feel` i
      la ruta la pide a 450–370). Se unifica en N4, cuando la Chancha lea la ruta.
   3. **El velocímetro no se tocó.** Con compresión por tramo, un km/h "real" no existe: un metro de
      crucero vale 30 veces uno de rasante. El velocímetro sigue diciendo la sensación de velocidad.
-- **N2 — el radar con alcance.** `techoRadar()` devuelve "sin techo" fuera de `radarKm`; red,
-  tinte y barra de detección obedecen; cartel FUERA DE RADAR; rampa al cruzar la línea; en la
-  vuelta, subir adentro del alcance pinta.
+- ✅ **N2 — el radar con alcance** *(hecho 23/9)*. `core/ruta.js` suma `fraccionDeKm`,
+  `lineasRadar` y `techoAlcance`; `systems/ruta.js` corrige el techo y `techoRadar()` de
+  systems/fases.js lo aplica — sigue siendo la puerta única del techo (detector, estrellas, red,
+  tinte, HUD). Fuera de alcance el techo es `FLY_TOP`: nada detecta y todo se sigue pudiendo
+  dibujar. Entrando baja en `RUTA_RADAR_RAMPA_M` (= la rampa del filo); en la vuelta, pasados
+  `radarKm` del blanco, sube de una. Red y tinte apagados fuera de alcance; placa **FUERA DE
+  RADAR** (centrada) en el renglón de la barra; el altímetro pierde la marca de techo; carteles al
+  cruzar la línea en los dos sentidos. 2 tests `radar:` en `unit.js`. Medido en t15: crucero a 60 m
+  techo 68 y detección 0; rampa 59,7; adentro 20 y detecta; vuelta pasados 180 km, techo 68.
+  **Consecuencias abiertas:**
+  1. **El primer filo de t15 (0,05–0,10) ya no muerde**: cae a 260 km del blanco, fuera de radar.
+     Su radio ("el radar está cerca, mantenete rasante") sigue sonando. `npm run fases` lo marca
+     (2 fallas nuevas). Decidir: sacarlo, o moverlo adentro del alcance.
+  2. **El viento en contra por altura** (arriba de 16 m) sigue frenando en el crucero alto, que
+     ahora es el régimen barato.
+  3. `npm run fases` ya tenía 6 fallas en N1 (medido en un árbol aparte): el paso 5 y el
+     aterrizaje, la siembra de la vuelta y la tasa de nafta. No son de este plan.
 - **N3 — el gasto nuevo.** `flight.js:294` rama `ruta`: gasto por km con los tres factores;
   capacidad por carga, con tanques externos que se vacían primero (`run.tanques` + `run.interno`);
   ALCANCE en el HUD + marca de **bingo**; quedarse en cero = `death_fuel` (§3.8). **Las tres

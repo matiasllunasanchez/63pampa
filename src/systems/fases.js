@@ -16,6 +16,7 @@
 import { faseAt, validarFases } from '../core/fases.js';
 import { run } from '../core/run.js';
 import { FILO_RAMPA_M } from '../data/tuning.js';
+import * as ruta from './ruta.js';
 
 let lista = null;        // las fases de la mision en curso (null = mision sin fases: todas las de hoy)
 let objetivo = 0;        // la distancia meta contra la que se miden las fracciones
@@ -86,6 +87,13 @@ export const tipo = () => { const f = vigente(); return f ? f.tipo : null; };
  *  Sin fases devuelve `base` y no hay rampa que valga — la campaña entra y sale por el mismo
  *  camino de siempre. */
 export function techoRadar(base) {
+  // …Y ENCIMA, EL ALCANCE (PLAN_NAFTA_ALCANCE N2): con `ruta`, fuera del horizonte de radar no hay
+  // techo que valga. Se aplica sobre el techo de la fase para que esta siga siendo la puerta UNICA
+  // del techo — detector, red, tinte, estrellas y HUD leen todos de aca. Sin ruta, no toca nada.
+  return ruta.techo(techoFase(base));
+}
+
+function techoFase(base) {
   const f = vigente();
   if (!f) return base;
   const techo = f.val('radar', base);

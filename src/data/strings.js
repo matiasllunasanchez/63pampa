@@ -1058,6 +1058,8 @@ export const STRINGS = {
     mom_turn: '! VIRAJE 180 !', mom_pass_n: 'INTENTO {n}',
     hud_mission: 'MISION {n}/{m}', hud_home: 'A CASA',
     res_title: 'MISION CUMPLIDA', res_fin: 'MISION FINALIZADA', res_total: 'TOTAL', res_rank: 'CALIFICACION:',
+    // EL RADAR CON ALCANCE (PLAN_NAFTA_ALCANCE N2): la placa fuera de alcance y los dos cruces
+    hud_fuera_radar: 'FUERA DE RADAR', radarEntra: 'ENTRANDO EN RADAR — AL AGUA', radarSale: 'FUERA DE RADAR — A SUBIR',
     res_flight: 'PUNTAJE DE VUELO', res_kills: 'BLANCOS', res_acc: 'PRECISION', res_ras: 'RACHA RASANTE',
     rank_cadete: 'CADETE', rank_piloto: 'PILOTO', rank_as: 'AS', rank_halcon: 'HALCON DEL ATLANTICO',
     // ---------- BRIEFING CORTO ----------
@@ -1178,6 +1180,7 @@ export const STRINGS = {
     takeoffHeading: 'heading for San Carlos Strait',
     hud_home: 'HOME',
     hud_best: 'BEST {n}', kmh: ' KM/H', turboTag: ' BOOST', alt: ' M',
+    hud_fuera_radar: 'OUT OF RADAR', radarEntra: 'ENTERING RADAR — GET DOWN', radarSale: 'OUT OF RADAR — CLIMB',
     windWarn: '~ HEADWIND ~', radar: '! RADAR !',
     fogIn: '! FOG BANK !', fogIn2: 'CLIMB OR FLY BLIND', fogOut: 'FOG CLEARED',
     fogHud: 'FOG',

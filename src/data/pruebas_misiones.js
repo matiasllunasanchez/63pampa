@@ -64,9 +64,11 @@ const t15 = {
   // mayoria de las misiones; y es el buque que la fila de LA PASADA ya usa en este mismo
   // catalogo, o sea que la convencion de "buque generico de prueba" ya estaba tomada.
   goal: { kind: 'ship', ship: 'HMS SHEFFIELD', dist: 29000 },
-  // SIN `climax`: cae en el default de la campaña ('pasada'), que hoy esta en cuarentena y juega
-  // EL PULSO de suplente. Es exactamente lo que pide el plan ("el climax que ya existe"), y se
-  // consigue no escribiendo nada — que es la prueba de que el climax sigue siendo DATO.
+  // LA SUELTA Y NO EL PULSO (pedido del autor, 23/9): "vamos a armar esta mecanica de lanzar la
+  // bomba sin pasar por pulso, IDA + FINAL + PLACA + VUELTA". El buque sale en el mismo pasillo, se
+  // suelta, corta a negro, y sigue la vuelta — sin cambiar de escena. Antes no declaraba nada y caia
+  // en el default de la campaña ('pasada', en cuarentena), que juega EL PULSO de suplente.
+  climax: 'suelta',
   cfg: P({
     // EL COMBUSTIBLE PRENDIDO es la unica perilla que esta mision REALMENTE necesita: el §5 pide
     // la nafta "mostrada todo el tiempo", y sin esto el poder de la Chancha ni siquiera existe

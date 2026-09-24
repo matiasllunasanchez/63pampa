@@ -1382,6 +1382,18 @@ function drawRadar(x, y, w, visto) {
   return y + RADAR_H + AIRE;
 }
 
+/** LA PLACA FUERA DE RADAR: el mismo renglon que la barra, en tono tranquilo. Es informacion, no
+ *  alarma — dice que el techo no existe y que subir aca es gratis (y barato de nafta). */
+function drawFueraRadar(x, y, w) {
+  plate(x, y, w, RADAR_H);
+  // CENTRADA en la placa (pedido del autor): alineada a la izquierda dejaba media placa vacia y se
+  // leia como una barra a la que le falta algo.
+  ctx.font = avisoFont(9); ctx.textAlign = 'center';
+  ctx.fillStyle = P.foam;
+  ctx.fillText(T('hud_fuera_radar'), x + Math.round(w / 2), y + 9);
+  ctx.textAlign = 'left';
+}
+
 /** ¿ACABA DE SALIR UNA OLEADA? La barra NUNCA se ve llena: `run.detection >= 1` dispara la tanda y
  *  en el mismo cuadro la baja al residual (systems/flight.js), asi que preguntarle a la barra si
  *  llego al final no sirve — el cuadro que se dibuja ya la tiene abajo. Lo que si queda es la
@@ -1444,6 +1456,9 @@ export function drawHUD(h) {
   if (h.estrellas > 0 || h.busqueda) { drawAlerta(MARGEN, ty, anchoSquad(), h.estrellas | 0, h.escondite); ty += ALERTA_H + AIRE; }
   // …Y DEBAJO, LA CARGA DEL RADAR, que entra y sale sola (ver drawRadar).
   ty = drawRadar(MARGEN, ty, anchoSquad(), plane.y > (h.radarAlt === undefined ? RADAR_ALT : h.radarAlt));
+  // …Y FUERA DEL HORIZONTE DE RADAR (PLAN_NAFTA_ALCANCE N2), en el mismo renglon: la placa dice que
+  // aca arriba nadie te ve. Solo con la barra ya vacia — si todavia queda carga de antes, manda ella.
+  if (h.fueraRadar && run.detection <= 0.001) { drawFueraRadar(MARGEN, ty, anchoSquad()); ty += RADAR_H + AIRE; }
   // PERSECUCION no tiene objetivo NI record: la cinta no tiene contra que medir, asi que el
   // kilometraje se queda aca como contador abierto — la forma que le toca cuando no hay meta.
   if (objectiveDist <= 0 && gameMode !== 'survival') { drawOdo(MARGEN, ty); ty += 12 + AIRE; }
@@ -1774,7 +1789,8 @@ export function drawHUD(h) {
   reloj(xVuelo(2), CUADROS_Y, { val: fA(plane.y), ico: 'alt', critico: visto,
     col: visto ? (Math.sin(run.t * (rozando ? 30 : 14)) > 0 ? P.warn : '#7d2f1e') : enSuelta ? SUELTA_COL : plane.y <= BANDA_ALT ? P.accent : P.foam,
     zonas: [[0, fA(1.2), P.warn], [fA(1.2) + 0.01, fA(BANDA_ALT), P.accent]].concat(sa ? [[fA(sa[0]), fA(sa[1]), SUELTA_COL]] : []),
-    marcas: [[fA(techo), P.warn]].concat(sa ? [[fA(sa[0]), SUELTA_COL]] : [])
+    // sin marca de techo FUERA DE RADAR: no hay techo (PLAN_NAFTA_ALCANCE N2)
+    marcas: (h.fueraRadar ? [] : [[fA(techo), P.warn]]).concat(sa ? [[fA(sa[0]), SUELTA_COL]] : [])
       // EL SALTO: la altura del buque debajo de tu linea, en amarillo, desde que soltas hasta el cruce
       .concat(h.saltoAlt != null ? [[fA(h.saltoAlt), SALTO_COL]] : []),
     // …y EL BORDE DE LA PLACA en verde, FIJO mientras estes en altura de soltar (se lee de reojo sin
