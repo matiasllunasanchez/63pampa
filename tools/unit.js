@@ -2492,3 +2492,102 @@ test('suelta: la carga siempre trae la bomba del centro, y el ala se respeta', a
     assert.equal(cargaDe(conBombaCentral(de)).ala, cargaDe(de).ala, de + ': el ala no se toca');
   }
 });
+
+// ---------- LA NAFTA COMO ALCANCE (src/core/nafta.js, PLAN_NAFTA_ALCANCE N0) ----------
+test('nafta: la capacidad sale de los tanques de la carga', async () => {
+  const { capacidadKm, tanqueInicial, kmQuedan } = await import('../src/core/nafta.js');
+  const { TANQUE_INTERNO_KM, TANQUE_EXTRA_KM } = await import('../src/data/tuning.js');
+  assert.equal(capacidadKm('tres_bombas'), TANQUE_INTERNO_KM);
+  assert.equal(capacidadKm('bomba'), TANQUE_INTERNO_KM);
+  assert.equal(capacidadKm('tanques_bomba'), TANQUE_INTERNO_KM + 2 * TANQUE_EXTRA_KM);
+  for (const id of ['tres_bombas', 'bomba', 'tanques_bomba', 'tres_tanques'])
+    assert.equal(kmQuedan(tanqueInicial(id)), capacidadKm(id), id + ': el tanque lleno es la capacidad');
+});
+
+test('nafta: se quema primero lo de afuera, parejo, y despues el interno', async () => {
+  const { tanqueInicial, gastar, kmQuedan } = await import('../src/core/nafta.js');
+  const t0 = tanqueInicial('tanques_bomba');
+  const t1 = gastar(t0, 300);
+  near(t1.tanques[0], t1.tanques[1]);                 // los dos de ala chupan juntos
+  near(t1.interno, t0.interno);                       // el interno ni se toco
+  near(kmQuedan(t1), kmQuedan(t0) - 300);
+  assert.equal(t0.tanques[0], 450, 'gastar no muta el tanque que recibe');
+  const t2 = gastar(t1, 700);                         // vacia los externos y entra al interno
+  assert.deepEqual(t2.tanques, [0, 0]);
+  near(t2.interno, t0.interno - 100);
+  const seco = gastar(t2, 1e6);                       // nunca por debajo de cero
+  assert.equal(kmQuedan(seco), 0);
+  // un externo que se seco antes (soltado y vuelto a sumar, o lo que sea) pasa su parte al otro
+  const t3 = gastar({ tanques: [50, 400], interno: 1700 }, 200);
+  near(t3.tanques[0], 0); near(t3.tanques[1], 250); near(t3.interno, 1700);
+});
+
+test('nafta: lleno y vacio se leen por lo que le queda al tanque', async () => {
+  const { tanqueLleno } = await import('../src/core/nafta.js');
+  const { TANQUE_EXTRA_KM, TANQUE_LLENO_FRAC } = await import('../src/data/tuning.js');
+  assert.ok(tanqueLleno(TANQUE_EXTRA_KM));
+  assert.ok(tanqueLleno(TANQUE_EXTRA_KM * TANQUE_LLENO_FRAC));
+  assert.ok(!tanqueLleno(TANQUE_EXTRA_KM * TANQUE_LLENO_FRAC - 1));
+  assert.ok(!tanqueLleno(0));
+});
+
+test('nafta: tres zonas de gasto — MAYOR abajo, MEDIO, MENOR arriba de todo', async () => {
+  const { zonaGasto, fAltura } = await import('../src/core/nafta.js');
+  const { RADAR_ALT, CH_ALT, FLY_TOP, BANDA_ALT } = await import('../src/data/tuning.js');
+  assert.equal(zonaGasto(0).id, 'mayor');
+  assert.equal(zonaGasto(BANDA_ALT).id, 'mayor');
+  assert.equal(zonaGasto(RADAR_ALT - 0.01).id, 'mayor', 'debajo del radar es la zona cara');
+  assert.equal(zonaGasto(RADAR_ALT).id, 'medio');
+  assert.equal(zonaGasto(CH_ALT).id, 'menor', 'la cita con la Chancha cae en la zona barata');
+  assert.equal(zonaGasto(FLY_TOP).id, 'menor');
+  assert.ok(fAltura(0) > fAltura(RADAR_ALT) && fAltura(RADAR_ALT) > fAltura(FLY_TOP));
+  assert.equal(fAltura(FLY_TOP), 1, 'el crucero alto es la referencia: un km cuesta un km');
+  assert.equal(zonaGasto(-5).id, 'mayor', 'por debajo del agua (roce) sigue siendo la cara');
+});
+
+test('nafta: el arrastre baja al soltar, y el avion limpio vuela liviano', async () => {
+  const { fCarga, colgadoDe } = await import('../src/core/nafta.js');
+  const tres = fCarga(colgadoDe('tres_bombas')), base = fCarga(colgadoDe('tanques_bomba'));
+  const una = fCarga(colgadoDe('bomba')), limpio = fCarga(colgadoDe('nada'));
+  assert.ok(tres > una && una > limpio);
+  assert.ok(limpio < 1, 'sin nada colgando la vuelta sale mas barata que el crucero cargado');
+  near(fCarga({ bombas: 1, tanques: 0 }), una, 1e-12);   // la base, soltados los dos tanques
+  assert.ok(fCarga({ bombas: 1, tanques: 0 }) < base, 'soltar los tanques baja el arrastre');
+});
+
+test('nafta: el turbo cuesta en proporcion a lo que acelera', async () => {
+  const { fVelocidad, gastoKm, extraTurboPorSeg } = await import('../src/core/nafta.js');
+  near(fVelocidad(1), 1);
+  near(fVelocidad(1.5), 2.25);                       // el turbo de siempre: x2.25 por km
+  assert.ok(fVelocidad(1.8) > fVelocidad(1.5), 'con el after apilado cuesta mas, porque da mas');
+  near(fVelocidad(0.7), 1);                          // frenar no abarata
+  const c = { bombas: 1, tanques: 2 };
+  near(gastoKm(10, 60, c, 1.5), gastoKm(10, 60, c) * 2.25);
+  // por SEGUNDO es r³: r² por km, y r veces mas km por segundo
+  near(extraTurboPorSeg(3.2, 1), 0);
+  near(extraTurboPorSeg(3.2, 1.5), 3.2 * (3.375 - 1));
+  near(extraTurboPorSeg(6.4, 1.5), 2 * extraTurboPorSeg(3.2, 1.5), 1e-9);  // sigue a la fase
+});
+
+test('nafta: el bingo es el piso optimista — alto, sin turbo, con lo que cuelga', async () => {
+  const { bingoKm, gastoKm } = await import('../src/core/nafta.js');
+  const { FLY_TOP } = await import('../src/data/tuning.js');
+  const c = { bombas: 0, tanques: 2 };
+  near(bingoKm(500, c), gastoKm(500, FLY_TOP, c));
+  assert.ok(bingoKm(500, c) < gastoKm(500, 0, c), 'volver al ras cuesta mas que el bingo');
+});
+
+test('nafta: el trueque de la carga sale solo de los numeros (PLAN §4)', async () => {
+  const { perfilMision } = await import('./nafta_perfil.js');
+  // dos tanques + bomba: autonomia — vuelve sola, aun con turbo en la corrida final
+  assert.ok(perfilMision('tanques_bomba').vuelve > 0);
+  assert.ok(perfilMision('tanques_bomba', { turbo: true }).vuelve > 0);
+  // tres bombas: llega, pero no vuelve sin la Chancha
+  assert.ok(perfilMision('tres_bombas').llega > 0);
+  assert.ok(perfilMision('tres_bombas').vuelve < 0);
+  // el turbo se paga
+  assert.ok(perfilMision('tanques_bomba', { turbo: true }).llega < perfilMision('tanques_bomba').llega);
+  // soltar los tanques con nafta adentro la tira: se llega con menos
+  assert.ok(perfilMision('tanques_bomba', { turbo: true, sueltaTanques: true }).llega
+    < perfilMision('tanques_bomba', { turbo: true }).llega);
+});

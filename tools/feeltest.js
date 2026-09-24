@@ -279,5 +279,21 @@ console.log('\nmomentum — el especial del pasillo (tecla 4, se carga con punto
   tempo.resetTempo();
 }
 
+// ---------- LA NAFTA COMO ALCANCE (src/core/nafta.js, PLAN_NAFTA_ALCANCE §4) ----------
+// SOLO INFORMA: sin ✓ ni ✗, para que la comparacion de siempre (`grep -E "✓|✗|FEEL:"`) siga
+// identica. Las afirmaciones viven en tools/unit.js; esto es el numero para calibrar.
+console.log('\nnafta como alcance — blanco a 700 km, vuelo de manual (km que quedan):');
+{
+  const { perfilMision } = await import('./nafta_perfil.js');
+  const fmt = n => String(Math.round(n)).padStart(6);
+  console.log('  carga            turbo  suelta  llega al blanco  vuelve a casa');
+  for (const carga of ['tanques_bomba', 'tres_bombas', 'bomba'])
+    for (const [turbo, suelta] of [[false, false], [true, false], [true, true]]) {
+      if (suelta && carga !== 'tanques_bomba') continue;
+      const p = perfilMision(carga, { turbo, sueltaTanques: suelta });
+      console.log(`  ${carga.padEnd(16)} ${turbo ? ' si ' : ' no '}   ${suelta ? ' si ' : ' no '}   ${fmt(p.llega)}           ${fmt(p.vuelve)}${p.vuelve < 0 ? '  (no vuelve sin Chancha)' : ''}`);
+    }
+}
+
 console.log(bad ? `\nFEEL: ${bad} fallo(s)\n` : '\nFEEL: OK\n');
 process.exit(bad ? 1 : 0);

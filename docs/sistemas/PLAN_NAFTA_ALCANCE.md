@@ -88,9 +88,9 @@ kmGastados = kmRecorridos × fAltura(y) × fCarga × fVelocidad
   23/9 — ver §3.6), no una curva: **MAYOR GASTO** abajo `×3`, **GASTO MEDIO** en el medio `×1.8`,
   **GASTO MENOR** arriba de todo `×1`. Es **la altura real del avión**, no la fase: si en el
   tránsito te tirás al agua, pagás rasante; si en el rasante te subís, pagás menos pero te ven.
-- **`fCarga`** — el ropero. `×1.15` con tres bombas, `×1.1` con tanques llenos, `×1` con una bomba
-  sola, **`×0.85` sin nada colgando** (lo que la fase `vuelta` ya hacía, ahora con causa física:
-  soltaste). Soltar los tanques (§3.7) saca el ×1.1.
+- **`fCarga`** — el ropero, lineal por pieza: **`×0.85` sin nada colgando** (lo que la fase
+  `vuelta` ya hacía, ahora con causa física) y **+0.1 por cada bomba o tanque**. Tres bombas y dos
+  tanques + bomba dan `×1.15`, una bomba sola `×0.95`. Soltar cualquier cosa (§3.7) lo baja en el acto.
 - **`fVelocidad`** — **el turbo proporcional, pedido del autor, en TODAS las misiones** (§6.6). `(v / vSinTurbo)²`, donde
   `vSinTurbo` es `speedTarget(...)` con `boost:false`. La resistencia crece con el cuadrado de la
   velocidad: el turbo ×1.5 cuesta **×2.25 por km**, y como además recorrés más km por segundo,
@@ -260,6 +260,24 @@ problema y tener opciones:
 
 ## 4 · El perfil de una misión, con los números
 
+> **Medido en N0 (23/9)** — la tabla de abajo es la cuenta a mano de la propuesta. La cuenta REAL
+> sale de `core/nafta.js` y la imprime `npm run feel` (perfil en `tools/nafta_perfil.js`):
+>
+> | carga | turbo | suelta tanques en el radar | llega al blanco | vuelve a casa |
+> |---|---|---|---|---|
+> | `tanques_bomba` | no | no | 1.464 | **426** |
+> | `tanques_bomba` | sí | no | 1.248 | **211** |
+> | `tanques_bomba` | sí | sí | 1.077 | **237** |
+> | `tres_bombas` | no | — | 564 | **−276** (Chancha) |
+> | `tres_bombas` | sí | — | 348 | **−492** (Chancha) |
+> | `bomba` | no | — | 761 | **−78** (Chancha) |
+>
+> Diferencias con la cuenta a mano: el arrastre quedó **lineal por pieza** (limpio ×0.85, +0.1 por
+> bomba o tanque: tres bombas y dos tanques + bomba dan ×1.15, una bomba ×0.95), y en la vuelta los
+> tanques que siguen colgados **siguen pesando**. De ahí sale una decisión que la tabla a mano no
+> tenía: **soltarlos en el radar tira la nafta que les quedaba (se llega con menos) pero la vuelta
+> sale más barata** — conviene soltarlos cuando se vaciaron, que es lo que hacían.
+
 Misión tipo, blanco a **700 km**, `tanques_bomba` (2.600 km), vuelo "de manual":
 
 | tramo | km reales | régimen | factor | km gastados | queda |
@@ -284,7 +302,7 @@ La vuelta entera cuesta **840 km**. Con las otras cargas (medido con la misma cu
 
 O sea: **tres bombas = dos citas con la Chancha, sí o sí.** Tanques = autonomía y una bomba.
 **Los números reales, sin tunear, ya producen el trueque de `PLAN_CARGA_Y_CHANCHA`** — esa es la
-señal de que el modelo es el bueno. (Los factores exactos se calibran en N6; la forma del trueque
+señal de que el modelo es el bueno. (Los factores exactos se calibran en N8; la forma del trueque
 es lo que importa.)
 
 Y las tres formas de perderlo: **bajar temprano** (×3 durante km de más), **subir tarde** en la
@@ -296,7 +314,7 @@ vuelta (lo mismo), **turbo largo** (×2.25 sobre ×3).
 
 Cada una deja el juego jugable; tras cada una `npm run check` y `npm run feel` idénticos.
 
-- **N0 — el cálculo puro.** `core/nafta.js`: `capacidadKm(carga)`, `fAltura(y)`, `fCarga(...)`,
+- ✅ **N0 — el cálculo puro** *(hecho 23/9: `core/nafta.js`, constantes en `tuning.js` bajo "LA NAFTA COMO ALCANCE", 8 tests `nafta:` en `unit.js`, reporte en `feel`)*. `core/nafta.js`: `capacidadKm(carga)`, `fAltura(y)`, `fCarga(...)`,
   `fVelocidad(v, vSinTurbo)`, `gastoKm(...)`. Constantes a `data/tuning.js`. Unit tests (el turbo
   ×1.5 cuesta ×2.25/km; una misión sin `ruta` y **sin turbo** da exactamente el gasto de hoy; con turbo, el extra sale de `((v/vSinTurbo)³ − 1)`). Reporte en
   `tools/feeltest.js` con la tabla del §4 para las tres cargas. **Cero cambio visible.**

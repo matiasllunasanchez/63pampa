@@ -1595,6 +1595,44 @@ export const FUEL_BOOST = 4.2;
 // Solo cobra con COMBUSTIBLE: SI; sin el, las piruetas siguen siendo gratis como siempre.
 export const FUEL_PIRUETA = 1.5;
 
+// ---------------- LA NAFTA COMO ALCANCE (docs/sistemas/PLAN_NAFTA_ALCANCE.md) ----------------
+//
+// El tanque medido en KM DE CRUCERO ALTO y el gasto cobrado por km recorrido. Solo lo usan las
+// misiones que declaran `ruta:`; el resto sigue en % por segundo (FUEL_RATE). La cuenta vive en
+// core/nafta.js. Los km son PROVISORIOS (van al historiador, PREGUNTAS_HISTORICAS "LA NAFTA COMO
+// ALCANCE"): corregirlos es cambiar estos numeros, no la logica.
+
+// El tanque interno del A-4B/C: 1.600-1.860 km segun la fuente. Uno en el medio.
+export const TANQUE_INTERNO_KM = 1700;
+// Lo que suma CADA tanque externo. Con dos tanques de ala son 2.600 km: la carga base vuelve sola.
+export const TANQUE_EXTRA_KM = 450;
+// Cuando un tanque cuenta como LLENO (fraccion de su capacidad). Decide cuanto pega soltado
+// (grave y explota si lleno, medio si vacio — PLAN §3.7). Mitad: un tanque a medio usar todavia
+// es mas nafta que aire.
+export const TANQUE_LLENO_FRAC = 0.5;
+
+// LAS TRES ZONAS DE GASTO, de arriba hacia abajo (PLAN §3.6, pedido del autor: "MAYOR GASTO bien
+// abajo, GASTO MEDIO en medio y gasto menor ARRIBA DE TODO"). Escalonadas y no una curva, para
+// que el altimetro pueda decir en que zona estas con una palabra. `desde` es la altura de mundo
+// donde empieza la zona; `f` multiplica los km.
+//   · la frontera de abajo es RADAR_ALT (20) A PROPOSITO: la zona donde no te ven es la que mas
+//     quema, y una sola linea del altimetro dice las dos cosas.
+//   · la de arriba es CH_ALT (48): la cita con la Chancha cae en la zona barata.
+// Si se mueven, mover tambien los carteles del HUD (N3), que se pintan con estas mismas alturas.
+export const ZONAS_GASTO = [
+  { id: 'menor', desde: CH_ALT, f: 1 },
+  { id: 'medio', desde: RADAR_ALT, f: 1.8 },
+  { id: 'mayor', desde: -Infinity, f: 3 },
+];
+
+// EL ROPERO: cuanto suma al arrastre cada cosa colgada. El avion limpio vuela a x0.85 (lo que la
+// fase `vuelta` ya cobraba por "venis liviano"); cada bomba y cada tanque le suman lo suyo. Con
+// esto tres bombas y dos tanques + bomba dan x1.15, una bomba sola x0.95. Soltar algo baja el
+// numero en el acto — es la mitad de por que se sueltan los tanques (PLAN §3.7).
+export const ARRASTRE_LIMPIO = 0.85;
+export const ARRASTRE_BOMBA = 0.1;
+export const ARRASTRE_TANQUE = 0.1;
+
 // ---------------- EL ATERRIZAJE (PLAN_MISION_CINCO_FASES §4) ----------------
 //
 // Lo unico enteramente nuevo del plan: existe el despegue y el aterrizaje habia que escribirlo.
