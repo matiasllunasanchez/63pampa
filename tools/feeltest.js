@@ -294,6 +294,19 @@ console.log('\nnafta como alcance — blanco a 700 km, vuelo de manual (km que q
       console.log(`  ${carga.padEnd(16)} ${turbo ? ' si ' : ' no '}   ${suelta ? ' si ' : ' no '}   ${fmt(p.llega)}           ${fmt(p.vuelve)}${p.vuelve < 0 ? '  (no vuelve sin Chancha)' : ''}`);
     }
 }
+// …Y LA MISION DE VERDAD (N8): t15 volada a la velocidad del juego. Es la vara de calibracion.
+console.log('\nnafta como alcance — t15 volada a la velocidad del juego (km en el buque / en casa):');
+{
+  const { vueloRuta } = await import('./nafta_perfil.js');
+  const { MISIONES_PRUEBA } = await import('../src/data/pruebas_misiones.js');
+  const t15 = MISIONES_PRUEBA.find(m => m.id === 't15');
+  const fila = r => (r.seco !== null ? `seco en el km ${r.seco}` : `${r.llega} / ${r.casa}`).padEnd(20);
+  console.log('  carga            sola                chancha ida         chancha vuelta      las dos');
+  for (const c of ['tanques_bomba', 'tres_bombas', 'bomba'])
+    console.log(`  ${c.padEnd(16)} ${[{}, { chIda: true }, { chVuelta: true }, { chIda: true, chVuelta: true }].map(o => fila(vueloRuta(t15, c, o))).join('')}`);
+  const r = vueloRuta(t15, 'tanques_bomba');
+  console.log(`  duracion ${r.t} s · por fase ${JSON.stringify(r.seg)} · dentro de la zona de la Chancha ${JSON.stringify(r.enZona)} s`);
+}
 
 console.log(bad ? `\nFEEL: ${bad} fallo(s)\n` : '\nFEEL: OK\n');
 process.exit(bad ? 1 : 0);

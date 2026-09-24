@@ -2851,3 +2851,27 @@ test('tanques-arma: lleno mata y enciende lo explosivo; vacio voltea lo que vuel
   assert.equal(estadoTanque(TANQUE_EXTRA_KM), 'lleno');
   assert.equal(estadoTanque(0), 'vacio');
 });
+
+// ---------- LA CALIBRACION (PLAN_NAFTA_ALCANCE N8): t15 volada a la velocidad del juego ----------
+// La vara: si alguien mueve un numero de la nafta, de la ruta o de la Chancha y el trueque de la
+// carga se rompe en la mision de verdad, esto lo dice. Los numeros exactos los imprime `npm run feel`.
+test('calibracion: en t15 el trueque de la carga se sostiene a la velocidad del juego', async () => {
+  const { vueloRuta } = await import('./nafta_perfil.js');
+  const { MISIONES_PRUEBA: MP } = await import('../src/data/pruebas_misiones.js');
+  const t15 = MP.find(m => m.id === 't15');
+  // dos tanques + bomba: vuelve sola, aun con turbo en la corrida final
+  assert.equal(vueloRuta(t15, 'tanques_bomba').seco, null);
+  assert.equal(vueloRuta(t15, 'tanques_bomba', { turboFinal: true }).seco, null);
+  // tres bombas: sola se seca; sin la de la ida no llega viva a la zona de la vuelta; con la de la
+  // ida vuelve, pero justa
+  assert.notEqual(vueloRuta(t15, 'tres_bombas').seco, null);
+  assert.notEqual(vueloRuta(t15, 'tres_bombas', { chVuelta: true }).seco, null);
+  const ida = vueloRuta(t15, 'tres_bombas', { chIda: true });
+  assert.equal(ida.seco, null); assert.ok(ida.casa < 300, 'vuelve, pero justa: ' + ida.casa);
+  // una bomba: sola no vuelve; con cualquiera de las dos Chanchas, si
+  assert.notEqual(vueloRuta(t15, 'bomba').seco, null);
+  assert.equal(vueloRuta(t15, 'bomba', { chIda: true }).seco, null);
+  assert.equal(vueloRuta(t15, 'bomba', { chVuelta: true }).seco, null);
+  // la zona de la Chancha de la ida dura segundos, no un instante
+  assert.ok(vueloRuta(t15, 'tanques_bomba').enZona.ida >= 3, 'la zona de la ida se cruza demasiado rapido');
+});

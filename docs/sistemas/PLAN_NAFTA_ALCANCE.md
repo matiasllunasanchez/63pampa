@@ -423,9 +423,35 @@ Cada una deja el juego jugable; tras cada una `npm run check` y `npm run feel` i
   **Sin hacer:** la elección **no se guarda** en la partida ni entre sesiones (cada arranque del
   juego vuelve a la base; en una misma partida se recuerda). Y el avión todavía no se ve en el hangar
   con lo que cuelga: son tarjetas de texto.
-- **N8 — calibración y adopción.** Playtest de t15 con las tres cargas; recién después, llevar
-  `ruta` a la campaña (M2–M6 con Chancha, M7+ sin) — cuando las 14 misiones estén resueltas, como
-  dijo el autor en `PLAN_CARGA_Y_CHANCHA`.
+- 🟡 **N8 — calibración y adopción** *(calibración hecha 24/9; adopción bloqueada por el diseño de las misiones)*.
+  **Calibración.** `vueloRuta` (tools/nafta_perfil.js) vuela una misión con ruta a la velocidad del
+  juego —`speedTarget` con la racha, `kmPorMetro` de la ruta, zonas de gasto, la cita con la Chancha
+  en su zona— con un piloto "de manual" (alto fuera del radar, medio en el descenso, al ras adentro).
+  `npm run feel` imprime la tabla y `npm run unit` afirma el trueque. **t15, sin tocar un número:**
+  | carga | sola | Chancha ida | Chancha vuelta | las dos |
+  |---|---|---|---|---|
+  | 2 tanques + bomba | 1464 / **351** | 1820 / 707 | 1464 / 2275 | 1820 / 2269 |
+  | 3 bombas | seco km 1003 | 937 / **36** | seco km 1003 | 937 / 1444 |
+  | 1 bomba | seco km 1235 | 1066 / 165 | 761 / 1449 | 1066 / 1441 |
+  (km al llegar al buque / al llegar a casa; km de ruta donde se seca.) Lectura: la base vuelve sola
+  (y con turbo final también); **tres bombas se seca en la vuelta 50 km antes de la zona de la
+  Chancha** — la barra, que la trae apenas se sale del radar (km 880), es lo que la salva, que es la
+  mecánica de N4 funcionando —; con la de la ida vuelve con 36 km, al filo. Una bomba necesita una
+  de las dos. La misión dura 313 s (40 de crucero, 110 de llegada, 167 de vuelta). **Lo único a
+  vigilar:** la zona de la Chancha de la IDA se cruza en **5,3 s** (el crucero está comprimido); la
+  cita en sí dura 30 s porque ella acompaña, pero hay que cruzar esos 5 s alto. Si en el playtest
+  se la pierde seguido, se ensancha `chanchaIda` o se baja la compresión del tramo.
+  **Adopción en la campaña — pendiente del autor.** Una `ruta` se ancla a `fases`, y en la campaña
+  solo M1 las tiene (M1 no lleva nafta por ruta: es el tutorial). Llevarla a M2–M14 es, por misión:
+  1. declarar sus fases (la forma ida / objetivo / vuelta de `FORMA_DE_CADA_MISION.md`, que hoy
+     tiene M1–M3 trabajadas y M4–M14 pendientes);
+  2. declarar su `ruta` con el `blancoKm` de esa salida (base → blanco; **dato para el
+     historiador**, provisorio 700 km en todas) y las zonas de la Chancha solo en M2–M6 (desde M7
+     `chancha: false`, la rotura del guion);
+  3. `fuelOn: true`, y sacarle el `fuelScale` a mano.
+  Es data pura (cero código) y la valida el unit test que ya recorre toda misión con ruta. Se hace
+  cuando cada misión tenga su forma cerrada, como pidió el autor el 18/9.
+
 
 Lo que **se retira** con `ruta` (solo en esas misiones): `cfg.fuelScale`, el `nafta:` por tipo de
 fase (queda como override opcional), los bidones y `CH_MIN_T`.
