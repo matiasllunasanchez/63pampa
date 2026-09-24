@@ -1,6 +1,6 @@
 # PLAN — LA NAFTA COMO ALCANCE *(altura, carga, radar y la Chancha, en km)*
 
-> **Estado:** 📝 propuesta para aprobar (23/9/2026) · pedido del autor: *"analizar una propuesta
+> **Estado:** 📝 propuesta, con las decisiones del autor del 23/9/2026 incorporadas (§6) · pedido del autor: *"analizar una propuesta
 > nueva de mecánica de gasto de combustible y recarga con distancia límite de alcance de radar.
 > El mismo no puede arrancar apenas arranca el juego y despegan"*, más *"el turbo debería gastar
 > combustible proporcional a la velocidad que otorga"*.
@@ -84,14 +84,14 @@ entiende sin explicación, y convierte cada decisión de altura en km ganados o 
 kmGastados = kmRecorridos × fAltura(y) × fCarga × fVelocidad
 ```
 
-- **`fAltura(y)`** — la perilla del jugador. `×3` en la banda rasante (`y ≤ BANDA_ALT`), baja
-  lineal hasta **`×1` en `CRUCERO_Y`** y se queda ahí. Es **la altura real del avión**, no la
-  fase: si en el tránsito te tirás al agua, pagás rasante; si en el rasante te subís, pagás menos
-  pero te ven.
+- **`fAltura(y)`** — la perilla del jugador. **Tres zonas escalonadas** (decisión del autor,
+  23/9 — ver §3.6), no una curva: **MAYOR GASTO** abajo `×3`, **GASTO MEDIO** en el medio `×1.8`,
+  **GASTO MENOR** arriba de todo `×1`. Es **la altura real del avión**, no la fase: si en el
+  tránsito te tirás al agua, pagás rasante; si en el rasante te subís, pagás menos pero te ven.
 - **`fCarga`** — el ropero. `×1.15` con tres bombas, `×1.1` con tanques llenos, `×1` con una bomba
   sola, **`×0.85` sin nada colgando** (lo que la fase `vuelta` ya hacía, ahora con causa física:
-  soltaste). Si los tanques se sueltan vacíos (pregunta abierta §6), se va el ×1.1.
-- **`fVelocidad`** — **el turbo proporcional, pedido del autor.** `(v / vSinTurbo)²`, donde
+  soltaste). Soltar los tanques (§3.7) saca el ×1.1.
+- **`fVelocidad`** — **el turbo proporcional, pedido del autor, en TODAS las misiones** (§6.6). `(v / vSinTurbo)²`, donde
   `vSinTurbo` es `speedTarget(...)` con `boost:false`. La resistencia crece con el cuadrado de la
   velocidad: el turbo ×1.5 cuesta **×2.25 por km**, y como además recorrés más km por segundo,
   **×3.4 por segundo**. Con el `after` apilado cuesta más, porque da más. **Desaparece
@@ -145,31 +145,116 @@ radarActivo = kmAlBlanco ≤ ruta.radarKm   (en la ida)
 - Entre `radarKm` y `niveladoKm` va la fase `descenso` (diagonal, `fAltura` intermedio) y el filo
   puede estrangular el techo como hoy.
 
-### 3.5 · La Chancha, por zona y en emisión cero
+### 3.5 · La Chancha: en la IDA se la encuentra, en la VUELTA se la gana
 
-Con `ruta`, la Chancha **deja de ser un poder de barra**:
+**Decisión del autor (23/9):** a la vuelta tiene que haber formas de recuperar nafta con la
+Chancha **jugando** — matando con el cañón, esquivando, sosteniendo el rasante — aunque el rasante
+gaste más. Eso parte la Chancha en dos, y cada mitad tiene su motivo:
 
-- **Está en su zona** (`chanchaIda` / `chanchaVuelta`), orbitando alto, en silencio. No se pide:
-  **se la encuentra** — asoma a lo lejos al entrar a la zona. Esto resuelve la duda abierta de
+**IDA — emisión cero, zona fija.**
+- **Está en su zona** (`chanchaIda`), orbitando alto, en silencio. No se pide: **se la
+  encuentra** — asoma a lo lejos al entrar a la zona. Resuelve la duda abierta de
   `PLAN_CARGA_Y_CHANCHA` ("cómo se pide en la ida sin romper el silencio de radio").
-- Sin barra de puntos, sin `CH_MIN_T`, sin tecla 5 (la tecla queda para las misiones sin `ruta`).
-- La zona es **fuera de radar** por construcción (370–450 km > 180): la cita alta no te pinta.
-- **Si te pasás de la zona, te la perdiste.** Con tres bombas, eso es no volver.
-- `chancha: false` (M7 en adelante, la rotura del guion) sigue mandando: no hay Hércules en la
-  zona, y el briefing de M10 *"la Chancha no baja más al sur"* se cobra sola.
+- Sin barra, sin `CH_MIN_T`, sin tecla. Fuera de radar por construcción (370–450 km > 180).
+- **Si te pasás de la zona, te la perdiste.**
+
+**VUELTA — ya te vieron: la radio se abre y la barra de puntos vuelve.**
+- Es el poder de hoy (barra que se llena con puntos, tecla 5), con un cambio que sale de la
+  historia: **la barra no decide SI viene, decide HASTA DÓNDE se acerca.** La zona segura está a
+  350–400 km; con la barra llena la Chancha **rompe el protocolo y baja a buscarte** más cerca del
+  blanco — lo que hicieron de verdad las tripulaciones que se metieron en zona de peligro para
+  arrastrar A-4 perforados. Barra vacía = te espera en la zona segura, y llegás o no llegás.
+- Así el que viene corto tiene una salida **jugando**: cañón, near-miss, racha rasante.
+
+**¿Farmear rasante tiene que rendir más de lo que cuesta?** Sí, con una condición. El rasante
+gasta ×3 *ahora*, y los puntos se cobran *después*, en la cita. Regla de calibración:
+
+> **un km de racha rasante (x10 o más) tiene que llenar barra por ~1,5–2 veces la nafta extra que
+> quemó** — pero esa nafta solo vuelve si llegás a la Chancha. Es una apuesta, no una canilla.
+
+Topes para que no sea infinito: la barra tiene techo (una sola llamada por vuelta), el acercamiento
+tiene un máximo (no entra a radar pleno), y el tanque no pasa de su capacidad. Farmear sirve para
+**traer a la Chancha más cerca**, no para volar para siempre.
+
+- `chancha: false` (M7 en adelante, la rotura del guion) sigue mandando en las dos mitades: el
+  briefing de M10 *"la Chancha no baja más al sur"* se cobra sola.
 - La cita en sí (`CH_ALT`, caja, `CH_RATE`, deriva) **no se toca**.
 
-### 3.6 · El crucero alto — la pieza nueva de vuelo
+### 3.6 · El crucero alto — tres zonas de gasto, siempre a gas
 
-Hoy "volar alto" es sostener ARRIBA contra la gravedad: 500 km así es un calambre. Propuesta:
-**trim de crucero** — con `ruta`, fuera de radar y por encima de `CRUCERO_Y`, soltar el gas
-**mantiene** la altura en vez de caer (el espejo del poder RASANTE, que asienta abajo). Bajar
-sigue siendo `inp.d`. Adentro del radar el trim se apaga y vuelve el vuelo a gas de siempre.
-Solo existe con `ruta`, así que `feel` no se entera.
+**Decisiones del autor (23/9):** el crucero **se comprime** (los 500 km altos duran poco en
+pantalla) y **no hay trim**: el vuelo a gas no cambia — para estar arriba hay que sostener ARRIBA,
+siempre. Lo que se agrega es **leer** dónde conviene estar.
 
-El altímetro, **por encima de `RADAR_ALT` y fuera de radar, pasa a mostrar nivel de vuelo**
-(`FL350` en `CRUCERO_Y`): el mundo sigue siendo de 68 m, pero el número dice lo que el avión
-está haciendo. Por debajo sigue en metros/pies como hoy.
+**Las tres zonas** (fronteras provisorias en `tuning.js`, alineadas con lo que ya existe):
+
+| zona | altura de mundo | gasto | qué coincide |
+|---|---|---|---|
+| **GASTO MENOR** — arriba de todo | `CRUCERO_Y 48` → `FLY_TOP 68` | `×1` | la altura de la cita con la Chancha (`CH_ALT 48`) |
+| **GASTO MEDIO** — en el medio | `RADAR_ALT 20` → `48` | `×1.8` | el descenso y la subida |
+| **MAYOR GASTO** — bien abajo | `0` → `RADAR_ALT 20` | `×3` | debajo del radar: esconderse es caro |
+
+La frontera de abajo es el techo de radar **a propósito**: la zona donde no te ven es la zona que
+más quema. Una sola línea en el altímetro dice las dos cosas.
+
+**Cómo se marca:**
+- **En el altímetro del HUD**, tres franjas de color al costado de la escala (acento ámbar
+  `#e8a33d` para el mayor gasto, neutro para el medio, frío para el menor), con la aguja pasando
+  por encima. El nombre de la zona actual al lado: `GASTO MENOR` / `GASTO MEDIO` / `MAYOR GASTO`.
+- **En el indicador de nafta**, la misma franja de color que la zona en la que estás, y la
+  flecha de consumo que se acelera al bajar — el jugador ve el tanque bajar más rápido sin leer
+  números.
+- **Al cruzar una frontera**, un tic corto (sin assets nuevos; el sonido sigue bloqueado).
+- El altímetro, fuera de radar y en GASTO MENOR, muestra **nivel de vuelo** (`FL350`): el mundo
+  sigue siendo de 68 m, pero el número dice lo que el avión está haciendo.
+
+`FLY_TOP` sigue siendo el techo duro: por encima de la zona menor no se puede ir, así que "el
+límite recomendado" es el techo mismo, y quedarse ahí cuesta sostener ARRIBA.
+
+### 3.7 · Soltar la carga — y los tanques como arma
+
+**Decisión del autor (23/9):** los tanques se sueltan, llenos o vacíos, y **pegan**.
+
+**Cómo se gasta la nafta con tanques.** Se consume **primero lo de los tanques externos** (como
+hacían los pilotos) y después el interno. Cada tanque lleva su propia cuenta:
+`run.tanques = [{ km }, { km }]` + `run.interno`. El HUD muestra el total; el avión dibuja los
+tanques que siguen colgados.
+
+**Soltar** (tecla propia, o la del arma con el selector en TANQUES):
+- Los tanques de ala salen **de a par**, como las bombas de ala. El del centro, solo.
+- Soltar **quita el arrastre** (`fCarga` baja) y el avión va **más rápido** — la regla de
+  `PLAN_CARGA_Y_CHANCHA` "sin bombas, el avión va más rápido", ahora para todo lo que cuelga.
+- Soltar un tanque **lleno** tira la nafta que tenía adentro. Es la decisión de emergencia:
+  agilidad ahora contra alcance después.
+- Soltar **bombas** sin blanco también alivia (menos peso, `fCarga` baja): es la última carta para
+  estirar la nafta en la vuelta — llegás a casa sin haber cumplido.
+
+**Los tanques como proyectil.** Misma mecánica que la bomba de LA SUELTA (sale disparada, planea,
+cae — `systems/blanco.js` + `collision.js`, trabajo de la otra sesión), con otro dibujo:
+
+| lo que cae | daño | explota | derriba |
+|---|---|---|---|
+| **bomba** | letal | sí | todo; el buque es la bomba |
+| **tanque lleno** | grave | **sí, si pega en un buque o algo explosivo** (depósito, camión AA, barcaza) | avión, helicóptero, blancos de tierra |
+| **tanque vacío** | medio | no | avión o helicóptero con **uno** |
+| **par de tanques vacíos juntos** | = un tanque lleno, sin explosión | no | un **buque** con los **dos** |
+
+"Lleno" y "vacío" salen de la cuenta de cada tanque (umbral en `tuning.js`, provisorio: lleno si
+le queda más de la mitad). Así la decisión tiene tres filos: **cuándo soltarlos** (tarde = más
+nafta usada, más arrastre cargado), **cómo** (llenos pegan fuerte y cuestan alcance) y **contra
+qué** (un helicóptero en la vuelta, o el buque si la bomba no despertó).
+
+### 3.8 · Sin nafta, perdés — pero antes el juego te da cartas
+
+**Decisión del autor (23/9):** quedarse en cero es **misión perdida** (muerte con causa propia,
+`death_fuel` en el pasillo, con su ficha). Antes de llegar ahí el jugador tiene que ver venir el
+problema y tener opciones:
+
+1. **Aviso de bingo**: el HUD marca cuándo la nafta que queda es la justa para volver a casa (o a
+   la Chancha) volando alto. Cruzarlo es el momento de decidir, no de enterarse.
+2. **Subir antes** (más barato, te pintan).
+3. **Soltar tanques vacíos o bombas** (menos arrastre, estirás km).
+4. **Farmear barra** en la vuelta para que la Chancha baje a buscarte (§3.5).
 
 ---
 
@@ -213,7 +298,7 @@ Cada una deja el juego jugable; tras cada una `npm run check` y `npm run feel` i
 
 - **N0 — el cálculo puro.** `core/nafta.js`: `capacidadKm(carga)`, `fAltura(y)`, `fCarga(...)`,
   `fVelocidad(v, vSinTurbo)`, `gastoKm(...)`. Constantes a `data/tuning.js`. Unit tests (el turbo
-  ×1.5 cuesta ×2.25/km; una misión sin `ruta` da exactamente el gasto de hoy). Reporte en
+  ×1.5 cuesta ×2.25/km; una misión sin `ruta` y **sin turbo** da exactamente el gasto de hoy; con turbo, el extra sale de `((v/vSinTurbo)³ − 1)`). Reporte en
   `tools/feeltest.js` con la tabla del §4 para las tres cargas. **Cero cambio visible.**
 - **N1 — la ruta y los km.** Campo `ruta:` validado como las fases; derivación de las fronteras
   de fase y la escala por tramo; HUD en km reales. Se prueba sobre **t15** (ya tiene la forma
@@ -222,36 +307,49 @@ Cada una deja el juego jugable; tras cada una `npm run check` y `npm run feel` i
   tinte y barra de detección obedecen; cartel FUERA DE RADAR; rampa al cruzar la línea; en la
   vuelta, subir adentro del alcance pinta.
 - **N3 — el gasto nuevo.** `flight.js:294` rama `ruta`: gasto por km con los tres factores;
-  capacidad por carga; ALCANCE en el HUD + marca de **bingo** (lo que hace falta para volver
-  desde donde estás, al régimen de crucero). Turbo proporcional también en misiones sin `ruta`
-  **solo si el autor lo pide** (tocaría `feel`).
-- **N4 — la Chancha por zona.** Con `ruta`: aparece en su zona sin pedido ni barra; se la
-  encuentra visualmente; perderse la zona es perderla. Sin `ruta`, el poder de hoy intacto.
-- **N5 — el crucero alto.** Trim de crucero fuera de radar + altímetro en nivel de vuelo.
-- **N6 — calibración y adopción.** Playtest de t15 con las tres cargas; recién después, llevar
-  `ruta` a la campaña (M2–M6 con Chancha, M7+ sin) — que coincide con lo que el autor ya dijo
-  en `PLAN_CARGA_Y_CHANCHA`: se aplica cuando las 14 misiones estén resueltas.
+  capacidad por carga, con tanques externos que se vacían primero (`run.tanques` + `run.interno`);
+  ALCANCE en el HUD + marca de **bingo**; quedarse en cero = `death_fuel` (§3.8). **Las tres
+  zonas de gasto en el altímetro y el indicador** (§3.6). **El turbo proporcional entra acá para
+  todas las misiones** (§6.6) y se recalibra M1.
+- **N4 — la Chancha en dos mitades.** IDA: zona fija, sin pedido ni barra, se la encuentra.
+  VUELTA: la barra de puntos de hoy decide **hasta dónde se acerca**. Calibrar la regla de
+  §3.5 (un km de racha x10+ llena barra por 1,5–2× la nafta extra que quemó). Sin `ruta`, el poder
+  de hoy intacto.
+- **N5 — soltar la carga.** Tecla de suelta de tanques (de a par el ala, solo el centro) y de
+  bombas sin blanco; `fCarga` y velocidad se recalculan con lo que queda colgado; las capas
+  horneadas dejan de dibujar lo soltado.
+- **N6 — los tanques como arma.** **Depende de LA SUELTA** (`systems/blanco.js`, de la otra
+  sesión): se espera a que esté comiteada y se reusa su balística con el dibujo del tanque. Tabla
+  de daño del §3.7.
+- **N7 — la elección de carga en campaña.** Pantalla de carga **desde M3/M4, antes de la pantalla
+  de mejoras del Pichón** (el banco de `data/upgrades.js`). M1–M2 fijan la carga base.
+- **N8 — calibración y adopción.** Playtest de t15 con las tres cargas; recién después, llevar
+  `ruta` a la campaña (M2–M6 con Chancha, M7+ sin) — cuando las 14 misiones estén resueltas, como
+  dijo el autor en `PLAN_CARGA_Y_CHANCHA`.
 
 Lo que **se retira** con `ruta` (solo en esas misiones): `cfg.fuelScale`, el `nafta:` por tipo de
-fase (queda como override opcional), los bidones, `CH_MIN_T` y la barra de la Chancha.
+fase (queda como override opcional), los bidones y `CH_MIN_T`.
 
 ---
 
-## 6 · Lo que tiene que decidir el autor
+## 6 · Decisiones
 
-1. **¿El crucero se comprime?** (§3.3) La alternativa es que el tránsito alto dure proporcional
-   a los km y ahí vivan todas las charlas — más largo, más fiel.
-2. **¿Trim de crucero?** (§3.6) Sin él, 500 km de sostener ARRIBA; con él, el vuelo a gas se
-   suspende arriba. Es la única pieza que cambia el tacto del avión.
-3. **¿Qué pasa con 0 de nafta en la vuelta?** Hoy el avión cae al mar (`death_sea`). Opciones:
-   eyección (escena), muerte con causa propia, o "misión cumplida, avión perdido" — varios
-   pilotos cayeron así de verdad.
-4. **¿Se sueltan los tanques?** Vacíos o en el blanco, para ganar velocidad y el `×0.85`.
-5. **¿Desde qué misión se elige carga?** (queda abierto de `PLAN_CARGA_Y_CHANCHA`; candidato M3–M4.)
-6. **¿El turbo proporcional también fuera de `ruta`?** Es más justo, pero mueve `feel` y la
-   calibración de M1.
+**Tomadas por el autor (23/9/2026):**
 
----
+1. **El crucero se comprime.** ✅
+2. **Sin trim: siempre a gas**, con **tres zonas de gasto** marcadas en el altímetro y en el
+   indicador de nafta (MAYOR abajo, MEDIO en el medio, MENOR arriba). → §3.6.
+3. **Sin nafta, perdés** — pero el juego da opciones antes: soltar tanques o bombas para estirar,
+   y recuperar con la Chancha en la vuelta jugando (cañón, esquives, rasante). → §3.5, §3.8.
+4. **Los tanques se sueltan, llenos o vacíos, y sirven de arma.** → §3.7.
+5. **La carga se elige desde M3 o M4, antes de la mejora del Pichón.** → N7.
+
+6. **El turbo proporcional va en TODAS las misiones**, con y sin `ruta`. En las misiones sin
+   `ruta` (que gastan por segundo) el extra pasa de `+4.2/s` fijo a
+   `FUEL_RATE × nafta(fase) × ((v/vSinTurbo)³ − 1)`: con turbo ×1.5 son ~+7.6/s en crucero, y más
+   con el `after` apilado. **Consecuencia:** M1 (única misión de campaña con nafta hoy) hay que
+   recalibrarla — su `fuelScale 0.4` está medido con el turbo viejo — y hay que mirar que
+   `npm run feel` siga idéntico (el feel mide el vuelo, no el tanque, pero se verifica).
 
 ## 7 · Datos provisorios anotados para el historiador
 
