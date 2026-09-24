@@ -73,6 +73,9 @@ export const cues = () => blanco.cues.splice(0);
 const veredicto = (clave, x, y, z, col) => {
   blanco.res = clave; blanco.resT = run.t;
   seña(clave);
+  // ¡HUNDIDO! NO SE ESCRIBE (pedido del autor, 23/9: "el texto hundido quitalo"): lo cuentan la
+  // explosion, la camara lenta y Puma. Los demas veredictos si, porque dicen para donde corregir.
+  if (clave === 'hundido') return;
   const s = proj(x, y, z);
   popup(Math.max(40, Math.min(W - 40, s.x)), s.y - 14, T('bl_' + clave), col);
 };

@@ -17,8 +17,12 @@ function img(png) {
 }
 
 /** Dibuja el icono `nombre` CENTRADO en (cx, cy) y a su tamaño natural: el PNG si lo hay, si no su
- *  dibujo en pixeles (`pix`), y si no la letra. `col` pinta los '#' y `col2` los '+'. */
-export function iconoEn(cx, cy, nombre, col, col2) {
+ *  dibujo en pixeles (`pix`), y si no la letra. `col` pinta los '#' y `col2` los '+'.
+ *
+ *  LOS ICONOS CON PALETA (`pal`: letra → color) se pintan con sus colores propios, salvo con `mono`:
+ *  ahi TODO pixel que no sea '.' va en `col` — es como se apaga (vacio, bloqueado) o se prende de un
+ *  color de señal (el verde de SOLTA) sin dibujar el icono dos veces. */
+export function iconoEn(cx, cy, nombre, col, col2, mono) {
   const d = ICONOS[nombre];
   if (!d) return;
   const w = d.pix ? d.pix[0].length : 7, h = d.pix ? d.pix.length : 7;
@@ -26,6 +30,15 @@ export function iconoEn(cx, cy, nombre, col, col2) {
   const im = d.png ? img(d.png) : null;
   if (im) { ctx.drawImage(im, x0, y0, w, h); return; }
   if (!d.pix) { icono(x0, y0, 7, nombre, col); return; }
+  if (d.pal) {
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const c = d.pix[j][i];
+      if (c === '.') continue;
+      ctx.fillStyle = mono ? col : (d.pal[c] || col);
+      ctx.fillRect(x0 + i, y0 + j, 1, 1);
+    }
+    return;
+  }
   for (let j = 0; j < h; j++) {
     for (let i = 0; i < w; i++) {
       const c = d.pix[j][i];

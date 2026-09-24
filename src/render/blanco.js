@@ -4,7 +4,7 @@
 // y la MISMA hoja horneada que el buque de la aproximacion), y el HUD de la suelta, que es cabina
 // (va nivelado, sobre el avion). Ninguna de las dos decide nada: el HUD recibe su foto ya
 // calculada por systems/blanco.js (convencion 4 — el render no importa sistemas).
-import { ctx, px, W, PZ, uiFont } from './ctx.js';
+import { ctx, px, W, PZ } from './ctx.js';
 import { proj } from '../core/fx.js';
 import { run } from '../core/run.js';
 import { blanco, altoEn, AGUA, zVista } from '../core/blanco.js';
@@ -12,6 +12,7 @@ import { BL } from '../data/blanco.js';
 import { P } from '../data/palette.js';
 import { T } from '../core/i18n.js';
 import { drawCascoDelBuque } from './world.js';
+import { flechaIn } from './rotulo.js';
 import * as enemyArt from './enemies.js';
 
 /** El buque, en el mundo. Va ANTES de los obstaculos del pasillo: casi siempre es lo mas lejano. */
@@ -105,7 +106,7 @@ function llama(f, u, semilla) {
  *  el casco entero. Es una mira de bombardeo, no un pedazo del buque: se pinta arriba de todo. */
 const CORCHETES_Z = 700;
 
-function corchetes() {
+function corchetes(listo) {
   if (blanco.z > BL.VISIBLE_Z || blanco.z < PZ) return;
   const z = zVista(blanco.z);
   const s = proj(BL.X, AGUA, z), k = s.k;
@@ -116,20 +117,31 @@ function corchetes() {
   const xl = cx - mw, xr = cx + mw;
   const bot = s.y + 1, top = Math.min(bot - 8, proj(BL.X, AGUA + altoEn(BL.X) * 0.55, z).y);
   const t = Math.max(1, Math.round(k * 0.35)), a = Math.max(3, (xr - xl) * 0.2);
-  ctx.globalAlpha = 0.55 + 0.45 * Math.abs(Math.sin(run.t * 4));
+  // EN DISTANCIA DE SOLTAR, todo verde y titilando con el latido del tablero (render/hud.js):
+  // corchetes y flecha dicen "ahora" junto con la cinta, el altimetro y el estante.
+  const verde = !!listo && Math.floor(performance.now() / 160) % 2 === 0;
+  const COL = listo ? (verde ? '#7fe07a' : '#2e8f3a') : P.warn;
+  ctx.globalAlpha = listo ? 1 : 0.55 + 0.45 * Math.abs(Math.sin(run.t * 4));
   // DE LEJOS, SOLO LA FLECHA: el buque es una mota en el horizonte, justo donde cae la mira, y los
   // corchetes encima lo tapaban entero (playtest 23/9: "aparece cuando ya estas demasiado cerca").
   // Los corchetes entran cuando ya hay casco que abrazar.
   if (blanco.z < CORCHETES_Z) for (const [x, d] of [[xl, 1], [xr, -1]]) {
-    px(x - (d < 0 ? t : 0), top, t, bot - top, P.warn);
-    px(d > 0 ? x : x - a, top, a, t, P.warn);
-    px(d > 0 ? x : x - a, bot - t, a, t, P.warn);
+    px(x - (d < 0 ? t : 0), top, t, bot - top, COL);
+    px(d > 0 ? x : x - a, top, a, t, COL);
+    px(d > 0 ? x : x - a, bot - t, a, t, COL);
   }
-  // …y la flecha con el rotulo, arriba: lo que dice que esos corchetes son EL blanco y no la mira.
-  const fy = (blanco.z < CORCHETES_Z ? top : proj(BL.X, AGUA + BL.LEN * 0.4, z).y) - 4;
-  px(cx - 3, fy - 3, 7, 1, P.warn); px(cx - 2, fy - 2, 5, 1, P.warn); px(cx - 1, fy - 1, 3, 1, P.warn); px(cx, fy, 1, 1, P.warn);
-  ctx.font = uiFont(null, 7); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillStyle = P.warn;
-  ctx.fillText(T('bl_blanco'), cx, fy - 4);
+  ctx.globalAlpha = 1;
+  // …Y ARRIBA, LA MARCA, solo de cerca —cuando entran los corchetes—: la flecha de arcade (referencia del autor, 23/9: el "IN ▼"), en
+  // colores fuego y latiendo hacia el casco. SIN PALABRA: "la palabra blanco quitar" — la flecha
+  // sola ya dice "ahi".
+  const cerca = blanco.z < CORCHETES_Z;
+  const punta = top - 3;
+  // DE LEJOS, NADA (23/9: "hay muchas flechas, quitemos las rojas que aparecen lejos"). El buque
+  // se ve venir solo; la flecha entra con los corchetes.
+  if (!cerca) return;
+  const late = Math.round(Math.abs(Math.sin(run.t * 5)));
+  if (listo && !verde) ctx.globalAlpha = 0.45;   // el latido: verde siempre, prendido y a media luz
+  flechaIn(cx, punta - late, 1, !!listo);   // pixel simple: a la mitad (23/9), era de pixel doble
   ctx.globalAlpha = 1;
 }
 
@@ -140,5 +152,5 @@ function corchetes() {
  *  yo, quitalo"). La distancia, las bombas y la luz de SOLTA se fueron: el momento de soltar lo
  *  dicen Puma por radio y el tablero titilando en verde (render/hud.js), y la altura el altimetro. */
 export function drawBlancoHud(h) {
-  if (h && h.enAtaque) corchetes();
+  if (h && h.enAtaque) corchetes(h.listo);
 }

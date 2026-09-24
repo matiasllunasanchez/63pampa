@@ -69,6 +69,7 @@ import { conBombaCentral, bombasDe } from './data/cargas.js';
 import { bingoKm } from './core/nafta.js';
 const BL_ALT_IDEAL = BL_BLANCO.ALT_IDEAL;
 import { drawBlanco, drawBlancoHud } from './render/blanco.js';
+import { drawRotuloVuelo, ROTULO_T } from './render/rotulo.js';
 import { PULSO } from './data/pulso.js';
 import { spawnSystem } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
@@ -2032,6 +2033,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     let machHold = null;   // sonda de LO TRANSONICO (QUITAR): fija velocidad/alabeo cuadro a cuadro
     let altHold = null;    // sonda de LOS RESTOS (QUITAR): fija la altura cuadro a cuadro
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
+    let rotuloT0 = -1, rasPrev = false;   // el rotulo RASANTE: cuando arranco (performance.now) y el flanco
     let toT = 0, toCount = 4;
     // EL ATERRIZAJE (§4). Viven con la maquina de estados y no en `run` por la misma regla que los
     // relojes de las pantallas: son de ESTE momento, no del vuelo. `landDown` es el tren MANDADO
@@ -3544,6 +3546,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // needsMomentum: si el objetivo del run culmina en el climax (barco) o con solo llegar (distancia)
       const needsMomentum = (gameMode === 'campaign' || gameMode === 'cycle') ? goalOf(curMission()).needsMomentum : true;
       const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist, needsMomentum, climax: runClimax() });
+      // EL ROTULO QUE PASA VOLANDO (render/rotulo.js): en el cuadro en que el poder RASANTE se
+      // prende —y con el, cambia la camara—, la palabra cruza la pantalla. Reloj de pared.
+      { const ra = rasante.active(); if (ra && !rasPrev) rotuloT0 = performance.now(); rasPrev = ra; }
       if (fs === 'momentum' || fs === 'arena' || fs === 'pasada') {
         // FUNDIDO CORTO AL CRUZAR AL CLIMAX (playtest 16/8). RF-01 pedia CERO corte, y la fase se
         // construyo y se midio asi — pero jugandolo, el autor pidio lo contrario y tiene razon: la
@@ -3913,7 +3918,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // no se puede tapar, y los obstaculos viven adentro del carril, mas cerca que las paredes.
       drawParedes();
       drawBarreras();   // cruza el pasillo entero: va DESPUES de las laderas y antes de lo que vuela
-      world.drawObjectiveMarker(objectiveDist);                // cuña roja en el horizonte: hacia donde vamos
+      // cuña roja en el horizonte: hacia donde vamos. En LA SUELTA no: el buque ya esta en el mundo y
+      // lleva su propia flecha de cerca — dos marcas para lo mismo eran "muchas flechas" (23/9).
+      if (runClimax() !== 'suelta') world.drawObjectiveMarker(objectiveDist);
       world.drawWake();
       // malla del techo de deteccion del radar. NO en EL PULSO: es un instrumento del PASILLO —
       // dice a que altura te ven— y en la cinematica del premio no hay nada que decidir con eso.
@@ -4446,6 +4453,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // de mision porque son dos cosas distintas —uno es de la escena, el otro del cambio de
       // pantalla— y el de mision tiene que poder tapar al de la escena.
       drawCine(cine.state());
+
+      // EL ROTULO QUE PASA VOLANDO, arriba de todo menos del fundido de mision
+      if (rotuloT0 >= 0) {
+        const tr = (performance.now() - rotuloT0) / 1000;
+        if (tr > ROTULO_T || (S.state !== 'play' && S.state !== 'relevo')) rotuloT0 = -1;
+        else drawRotuloVuelo(T('rot_rasante'), tr);
+      }
 
       // fundido desde negro (al salir de la historia hacia el despegue) — SIEMPRE al final
       if (fadeT > 0) {

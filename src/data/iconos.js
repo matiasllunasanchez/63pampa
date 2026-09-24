@@ -190,13 +190,18 @@ export const ICONOS = {
   // cuatro paletas sueltas formaban una X (un damero), y separadas del cuerpo por el vastago se
   // leian como dos cosas distintas —una barrita y un rectangulo—. Pegadas, es un solo objeto.
   // Apunta a la DERECHA, que es para donde vuela el avion.
+  //
+  // …Y CON COLOR PROPIO (23/9, referencia del autor: la bomba de un arcade de los noventa — cuerpo
+  // crema, bandas rojas, cola dorada). La silueta es la misma de arriba; lo que cambia es que ahora
+  // se PINTA: la cola en oro, el cuerpo crema con luz arriba y sombra abajo, dos bandas rojas y la
+  // espoleta amarilla. Apagada o en señal se sigue pintando de un solo color (`mono`).
   bomba: { letra: 'B', png: null, col2: '#f2cf4a', pix: [
-    '##........',
-    '#########.',
-    '#########+',
-    '#########.',
-    '##........',
-  ] },
+    'gg........',
+    'ggWWRRWWR.',
+    'ggwwrrwwro',
+    'ggbbRRbbR.',
+    'gg........',
+  ], pal: { g: '#e0a92e', W: '#fffaf0', w: '#efe3c6', b: '#c4b28e', r: '#d93a22', R: '#9e2414', o: '#f2cf4a' } },
   // EL TANQUE DE ALA (LA SUELTA, 23/9): el estante muestra la CARGA, y un pilon con tanque no es un
   // hueco de bomba. Mismo tamaño que la bomba (10x5) y la silueta opuesta: un huso redondo en las
   // dos puntas, sin las aletas cuadradas de la cola — se distinguen por la forma antes que por el

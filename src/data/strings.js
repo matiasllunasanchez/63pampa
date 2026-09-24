@@ -464,7 +464,8 @@ export const STRINGS = {
     death_palos: 'Te llevaste los palos del buque',
     bl_hundido: '¡HUNDIDO!', bl_averiado: 'AVERIADO', bl_dormida: 'NO DESPERTÓ',
     bl_corta: 'CORTA', bl_larga: 'LARGA', bl_reencare: 'SIGUE A FLOTE · OTRA PASADA',
-    bl_blanco: 'BLANCO', bl_bloqueada: 'LA DEL CENTRO ES PARA EL BUQUE',
+    rot_rasante: 'RASANTE',
+    bl_bloqueada: 'LA DEL CENTRO ES PARA EL BUQUE',
     arena_out: '! FUERA DE LA ZONA DE COMBATE !', arena_auto: 'REENCARANDO AL BLANCO',
     // PASADA: el otro climax — a ras, saltar, soltar y salir (docs/sistemas/SPEC_MODO_PASADA.md).
     // El cartel de controles es el del arena MENOS lo que la pasada no tiene (media vuelta y
@@ -1071,10 +1072,10 @@ export const STRINGS = {
 
     // ---------- RECUENTO DE FIN DE MISION ----------
     mom_turn: '! VIRAJE 180 !', mom_pass_n: 'INTENTO {n}',
-    res_title: 'MISION CUMPLIDA', res_fin: 'MISION FINALIZADA', res_total: 'TOTAL', res_rank: 'CALIFICACION:',
     hud_mission: 'MISION {n}/{m}', hud_home: 'A CASA',
     // EL RADAR CON ALCANCE (PLAN_NAFTA_ALCANCE N2): la placa fuera de alcance y los dos cruces
     hud_fuera_radar: 'FUERA DE RADAR', radarEntra: 'ENTRANDO EN RADAR — AL AGUA', radarSale: 'FUERA DE RADAR — A SUBIR',
+    res_title: 'MISION CUMPLIDA', res_fin: 'MISION FINALIZADA', res_total: 'TOTAL', res_rank: 'CALIFICACION:',
     res_flight: 'PUNTAJE DE VUELO', res_kills: 'BLANCOS', res_acc: 'PRECISION', res_ras: 'RACHA RASANTE',
     rank_cadete: 'CADETE', rank_piloto: 'PILOTO', rank_as: 'AS', rank_halcon: 'HALCON DEL ATLANTICO',
     // ---------- BRIEFING CORTO ----------
@@ -1198,9 +1199,9 @@ export const STRINGS = {
     pickFuel: '+FUEL', dodgeMissile: 'DODGED',
     takeoffTitle: 'TAKEOFF · PUERTO ARGENTINO · BAM MALVINAS', takeoffWord: 'TAKEOFF',
     takeoffHeading: 'heading for San Carlos Strait',
-    hud_best: 'BEST {n}', kmh: ' KM/H', turboTag: ' BOOST', alt: ' M',
     hud_home: 'HOME',
     hud_fuera_radar: 'OUT OF RADAR', radarEntra: 'ENTERING RADAR — GET DOWN', radarSale: 'OUT OF RADAR — CLIMB',
+    hud_best: 'BEST {n}', kmh: ' KM/H', turboTag: ' BOOST', alt: ' M',
     windWarn: '~ HEADWIND ~', radar: '! RADAR !',
     fogIn: '! FOG BANK !', fogIn2: 'CLIMB OR FLY BLIND', fogOut: 'FOG CLEARED',
     fogHud: 'FOG',
@@ -1456,7 +1457,8 @@ export const STRINGS = {
     death_palos: 'You clipped the ship\'s masts',
     bl_hundido: 'SUNK!', bl_averiado: 'DAMAGED', bl_dormida: 'DIDN\'T ARM',
     bl_corta: 'SHORT', bl_larga: 'LONG', bl_reencare: 'STILL AFLOAT · GO AROUND',
-    bl_blanco: 'TARGET', bl_bloqueada: 'THE CENTER ONE IS FOR THE SHIP',
+    rot_rasante: 'RASANTE',
+    bl_bloqueada: 'THE CENTER ONE IS FOR THE SHIP',
     arena_out: '! OUTSIDE THE COMBAT ZONE !', arena_auto: 'TURNING BACK TO TARGET',
     pasada_title: 'T H E   R U N',
     pasada_hint: 'NOSE [W]/[S] · ROLL & TURN [Q]/[E] · BRAKE [F] · [Z] RELEASE',

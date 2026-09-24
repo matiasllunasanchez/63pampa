@@ -1597,33 +1597,11 @@ export function drawHUD(h) {
     // Lo que NO puede pasar es lo que se veia antes: decir PERFECTO con el poder puesto, y dibujar
     // la barrita naranja de carga encima. Son estados distintos y ahora el `else if` lo garantiza.
     const enFlow = ras.on;
-    const conBarra = enFlow || (enEstado && run.aguN >= AGU.CONC_GATE);
-    if (conBarra) {
-      // EL RELLENO CUENTA DESDE EL UMBRAL: al 4to acierto la barra sale VACIA y se llena hasta el
-      // tope. Los primeros cuatro segundos existen igual —el flow dura `concentracion(n)`— pero no
-      // se dibujan: son el peaje de entrada, y mostrarlos haria que la barra naciera a un tercio.
-      const fr = enFlow
-        ? (ras.dur > 0 ? ras.resta / ras.dur : 0)
-        : (concSeg(run.aguN) - AGU.CONC_GATE) / (AGU.CONC_TOPE - AGU.CONC_GATE);
-      // ALTO 6 Y NO 7: es el piso para un cuerpo de 5 px. La linea base va en `y0 + h - 2`, o sea
-      // que con 6 el glifo ocupa de y0 a y0+4 y queda 1 px de aire abajo. Bajar a 5 le come la
-      // panza a las letras. El ANCHO se queda en RACHA_W para seguir alineada con el pulso: es lo
-      // que las hace leerse como un solo cartelito y no como dos cosas apiladas.
-      if (enFlow) {
-        // GASTANDOSE: sin palabra y MAS FINITA. Lo que queda es una raya azul bajando con la punta
-        // quemandose — el cartel se vacia igual que se te vacia la cabeza, y esa simplificacion ES
-        // el aviso de que estas en flow.
-        px(bx, by, RACHA_W, 3, '#2e3c45');
-        const fw = Math.max(1, Math.round(RACHA_W * fr));
-        px(bx, by, fw, 3, RAS_COL);
-        chispas(bx + fw, by, 3, '#ffffff', RAS_COL);
-      } else {
-        // ALTO 5 Y NO 6. Medido: la palabra sube 3,71 px sobre la linea base y baja 0,07 — 3,78 de
-        // alto real. En una caja de 6 con la base en +4 quedaba 0,3 de aire arriba y 1,9 abajo, o
-        // sea pegada al techo. Con 5 y la base en +4 queda 0,3 arriba y 0,9 abajo. El ANCHO no se
-        // toca: son los 24 de PERFECTO y alinean con el pulso de abajo.
-        barraConc(bx, by - 7, RACHA_W, 5, fr, RAS_COL, T('mult_rasante'));
-      }
+    // LA BARRA SE MUDO ARRIBA DE MOMENTUM (pedido del autor, 23/9: "que deje de estar al lado del
+    // avion"). Aca quedan la PALABRA y el PULSO; lo que se llena y se gasta —la concentracion y el
+    // flow— va en su barra del tablero, con la forma que tenia antes del 13/9 (ver barraPoder mas
+    // abajo). En el flow el cartelito de aca no dibuja nada.
+    if (enFlow) { /* la barra esta arriba de MOMENTUM */
     } else {
       const pal = T(enEstado ? 'mult_rasante' : 'mult_perfect');
       const paso = Math.max(3, Math.floor((RACHA_W - GLIFO) / Math.max(1, pal.length - 1)));
@@ -1853,6 +1831,17 @@ export function drawHUD(h) {
   if (cfg.poderes !== false) {
     barraPoder(MARGEN, yPod, tv, MOM_COL, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
     tabListo(0, yPod, altoPod, tv >= 1, MOM_CLARO);
+    // …Y ARRIBA, LA DEL RASANTE (volvio, 23/9). La MISMA forma que tenia antes del 13/9 —la placa,
+    // el nombre adentro, el celeste de mar— y la FUNCION de ahora: aparece recien cuando la racha
+    // empieza a juntar concentracion (4to acierto) y se llena; con el flow puesto se va GASTANDO; y
+    // cuando se termina, DESAPARECE. No hay lengueta LISTO: el flow no se lanza, te agarra.
+    const llenando = run.aguante === 1 && run.aguN >= AGU.CONC_GATE;
+    if (ras.on || llenando) {
+      const fr = ras.on
+        ? (ras.dur > 0 ? ras.resta / ras.dur : 0)
+        : Math.max(0, Math.min(1, (concSeg(run.aguN) - AGU.CONC_GATE) / (AGU.CONC_TOPE - AGU.CONC_GATE)));
+      barraPoder(MARGEN, yPod - AIRE - altoPod, fr, RAS_COL, RAS_CLARO, RAS_OSCURO, ras.on, false, T('bar_rasante'));
+    }
   }
 
   // municion de misiles: cada pip es el MISIL en miniatura (cuerpo blanco, ojiva gris, llama),
@@ -1873,14 +1862,14 @@ export function drawHUD(h) {
       if (r.ala === 'tanque') iconoEn(cx, yy, 'tanque', '#8d9a78');
       else if (r.ala === 'bomba') {
         const on = (i === 0 ? r.alaN >= 2 : r.alaN >= 1);
-        iconoEn(cx, yy, 'bomba', on ? (verde ? SUELTA_COL : '#e9edf0') : '#2e3c45', on ? undefined : '#2e3c45');
+        iconoEn(cx, yy, 'bomba', on ? (verde ? SUELTA_COL : null) : '#2e3c45', undefined, !on || verde);
       }
     };
     ala(0); ala(2);
     const yc = CUADROS_Y + 13, on = r.centroN > 0;
     bordePlaca(xRack, yc - 4, RACK_W, 9, on && !r.bloqueada && verde ? SUELTA_COL : P.warn);
-    iconoEn(cx, yc, 'bomba', !on ? '#2e3c45' : verde ? SUELTA_COL : r.bloqueada ? '#6b7680' : '#e9edf0',
-      !on ? '#2e3c45' : r.bloqueada ? '#6b7680' : undefined);
+    iconoEn(cx, yc, 'bomba', !on ? '#2e3c45' : verde ? SUELTA_COL : r.bloqueada ? '#6b7680' : null,
+      undefined, !on || verde || r.bloqueada);
   } else if (pide(run.msl < MSL_MAX)) {
     plate(xRack, CUADROS_Y, RACK_W, CUADRO);
     // CADA PIP ES LA BOMBA, 10x5 y de la tabla de iconos (12/9, con foto de la maqueta del autor):
@@ -1889,8 +1878,7 @@ export function drawHUD(h) {
     // vacia, la MISMA silueta en el gris de la placa: el hueco dice que falta ESO.
     for (let i = 0; i < MSL_MAX; i++) {
       const on = i < run.msl;
-      iconoEn(xRack + 1 + (BOMBA_W - 1) / 2, CUADROS_Y + 5 + i * 8, 'bomba',
-        on ? '#e9edf0' : '#2e3c45', on ? undefined : '#2e3c45');
+      iconoEn(xRack + 1 + (BOMBA_W - 1) / 2, CUADROS_Y + 5 + i * 8, 'bomba', on ? null : '#2e3c45', undefined, !on);
     }
   }
 
