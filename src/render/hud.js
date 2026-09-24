@@ -1680,6 +1680,9 @@ export function drawHUD(h) {
   // queda ya no alcanza para terminar la mision ni volando perfecto. Ese es el critico, no el 25%.
   const nf = h.nafta;
   const bajo = nf ? nf.km < nf.bingo : run.fuel < 25;
+  // …Y MIENTRAS LA CHANCHA PASA NAFTA (pedido del autor 24/9): borde y aguja en verde. Es el mismo
+  // verde de la caja de conexion, asi que los dos lugares dicen lo mismo a la vez.
+  const chS = chSnap(), cargando = !!chS && !!chS.cargando;
   // …y arriba del reloj, EL NOMBRE DE LA ZONA DE GASTO en su color: lo que la aguja esta cobrando.
   if (nf && h.zonaGasto) {
     ctx.font = F_ROT; ctx.textAlign = 'center'; ctx.fillStyle = GASTO_COL[h.zonaGasto];
@@ -1687,9 +1690,10 @@ export function drawHUD(h) {
     ctx.textAlign = 'left';
   }
   if (pide(run.fuel < 60 || (nf && nf.km < nf.bingo * 1.3), 'nafta')) reloj(xNafta, CUADROS_Y, {
-    val: run.fuel / 100, ico: 'nafta', zona: [0, 0.25], critico: bajo,
+    val: run.fuel / 100, ico: 'nafta', zona: [0, 0.25], critico: bajo && !cargando,
     marcas: nf ? [[Math.min(1, nf.bingo / nf.cap), P.warn]] : undefined,
-    col: bajo ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : nf && h.zonaGasto ? GASTO_COL[h.zonaGasto] : P.foam,
+    borde: cargando ? SUELTA_COL : null,
+    col: cargando ? SUELTA_COL : bajo ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : nf && h.zonaGasto ? GASTO_COL[h.zonaGasto] : P.foam,
     uni: nf ? 'km' : undefined,
     txt: nf ? String(Math.round(nf.km)) : Math.round(run.fuel) + '%', txtCol: bajo ? P.warn : P.dim });
   const ch = chSnap(), cv = chMeter(), gastada = chGastada();
@@ -1703,8 +1707,12 @@ export function drawHUD(h) {
     // LISTA: cargada al tope, sin gastar y sin cita en curso. Todo el reloj se pone verde (ver
     // verdeListo): es la unica luz del tablero que dice "esto ya lo podes usar".
     const lista = cv >= 1 && !gastada && !enCita, verde = verdeListo();
+    // ENGANCHADO, EL RELOJ ES DE ELLA (pedido del autor 24/9): la aguja y el numero pasan a ser su
+    // RESERVA, que baja mientras te pasa nafta. Antes mostraba TU tanque, y un numero de la Chancha
+    // que subia no se entendia.
+    const suReserva = !!ch && ch.conn;
     reloj(xCha, CUADROS_Y, {
-      val: gastada ? 0 : cv, ico: 'chancha', fin: 'emergencia',
+      val: suReserva ? ch.reserva : gastada ? 0 : cv, ico: 'chancha', fin: 'emergencia',
       critico: !!ch && ch.fase === 'cita' && ch.win < 8,     // la ventana de la cita se esta cerrando
       icoCol: lista ? verde : P.dim,
       borde: lista ? verde : null,
@@ -1713,7 +1721,7 @@ export function drawHUD(h) {
       // numero. Teñirla tambien era pintar de verde el unico trazo que se lee como MEDIDA.
       col: gastada ? P.dim : lista ? P.foam : P.crest,
       txt: enCita ? (ch.fase === 'eta' ? Math.ceil(ch.eta) + 's'
-        : ch.conn ? Math.round(run.fuel) + '%' : Math.ceil(Math.max(0, ch.win)) + 's')
+        : ch.conn ? Math.round(ch.reserva * 100) + '%' : Math.ceil(Math.max(0, ch.win)) + 's')
         : Math.round(cv * 100) + '%',
       txtCol: lista ? verde : ch && ch.conn ? P.accent : ch && ch.fase === 'cita' && ch.win < 8 ? P.warn : P.dim });
   }

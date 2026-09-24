@@ -11,7 +11,7 @@ import { FLY_TOP, RADAR_ALT, CH_ALT } from '../src/data/tuning.js';
 import { speedTarget } from '../src/core/physics.js';
 import { anclas, kmPorMetro, lineasRadar, zonasChancha, posKm } from '../src/core/ruta.js';
 import { cargar, velRelativa, capacidadDe } from '../src/core/nafta.js';
-import { CH_RATE, CH_ETA_ZONA } from '../src/data/tuning.js';
+import { CH_RATE, CH_ETA_RUTA, CH_ENGANCHE } from '../src/data/tuning.js';
 
 const ALTO = FLY_TOP, MEDIO = (RADAR_ALT + CH_ALT) / 2, RAS = 2;
 const TURBO_R = 1.5;   // el turbo de siempre (physics.js: boost ×1.5), sin el after apilado
@@ -48,9 +48,11 @@ export function perfilMision(id, { blancoKm = 700, radarKm = 180, niveladoKm = 1
 // ---------- LA MISION DE VERDAD: t15 volada a la velocidad del juego (PLAN_NAFTA_ALCANCE N8) ----------
 // El perfil de arriba es la cuenta de manual en km. Este vuela UNA MISION CON RUTA con las formulas
 // del juego: la velocidad de `speedTarget` (con la racha al ras y lo que acelera soltar), los km que
-// vale cada metro segun la ruta, las zonas de gasto por altura y la cita con la Chancha en su zona
-// (asoma a CH_ETA_ZONA y llena a CH_RATE % de la capacidad por segundo). El piloto es "de manual":
-// alto fuera del radar, a media altura en el descenso, al ras adentro. Es la vara de calibracion.
+// vale cada metro segun la ruta, las zonas de gasto por altura y la cita con la Chancha. El piloto es
+// "de manual": alto fuera del radar, a media altura en el descenso, al ras adentro, y LLAMA a la
+// Chancha al entrar a la zona de la ruta (`chanchaIda`/`chanchaVuelta`, que desde el 24/9 son solo
+// eso: donde el piloto de manual la pide). Ella llega a los CH_ETA_RUTA, se engancha en CH_ENGANCHE y
+// llena a CH_RATE % de la capacidad por segundo. Es la vara de calibracion.
 
 /** Vuela la mision `m` (con `ruta` y `fases`) con la carga `id`. Opciones: `chIda` / `chVuelta`
  *  (se carga en esa zona), `turboFinal` (turbo en la fase blanco). Devuelve `{ llega, casa, seco,
@@ -74,7 +76,7 @@ export function vueloRuta(m, id, { chIda = false, chVuelta = false, turboFinal =
     tq = gastar(tq, gastoKm(v * dt * kmPorMetro(p, a, obj), y, col, v / v0));
     let zk = null;
     for (const k of ['ida', 'vuelta']) if (Z[k] && p >= Z[k][0] && p <= Z[k][1]) { enZona[k] += dt; zk = k; }
-    if (!cita && zk && quiere[zk]) { cita = { k: zk, t: -CH_ETA_ZONA }; quiere[zk] = false; }
+    if (!cita && zk && quiere[zk]) { cita = { k: zk, t: -(CH_ETA_RUTA + CH_ENGANCHE) }; quiere[zk] = false; }
     if (cita) {
       cita.t += dt;
       if (cita.t > 0) tq = cargar(tq, CH_RATE / 100 * capacidadDe(tq) * dt);

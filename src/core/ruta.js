@@ -22,8 +22,9 @@
 // vecinos: la ruta no obliga a ninguna forma de mision.
 //
 // LAS ZONAS DE LA CHANCHA NO SON ANCLAS a proposito: su borde no tiene por que caer en un borde de
-// fase (en t15 la zona de la ida termina donde empieza el descenso, y eso haria valer 370 y 180 km
-// al mismo punto). Son dato en km que lee quien las necesite (N4).
+// fase. Desde el 24/9 (pedido del autor) la Chancha viene cuando la LLAMAS, no por zona: estos km
+// quedan como el dato historico de donde orbitaba, y como el lugar donde la llama el piloto de
+// manual de la calibracion (tools/nafta_perfil.js).
 //
 // POSICION EN UN SOLO EJE: `pos` son los km recorridos desde la base, de 0 a 2 × blancoKm. De ahi
 // salen las dos preguntas que se hacen: cuanto falta al blanco (ida) y cuanto a casa (vuelta).

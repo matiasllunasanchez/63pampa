@@ -1179,3 +1179,21 @@ la `ruta:` de cada misión, así que corregirlos es editar números):
    documentados de Harrier que alcanzaran A-4 en el ascenso?
 7. **Las Chanchas que "arrastraban" A-4 perforados** hacia el continente: ¿qué día, qué tripulación?
    (candidato a ficha histórica).
+
+---
+
+## EL ESCAPE Y LA VUELTA (docs/sistemas/PLAN_VUELTA_REAL.md, 24/9/2026)
+
+Texto que trajo el autor (resumen con fuentes de video): después de soltar, el salto por encima y
+el escape en línea recta pegados al agua ("abrirse por los laterales era una sentencia de muerte");
+la "viborita" para romper la puntería del artillero de popa; la reunión en silencio de radio a
+20–30 millas con el jefe meciendo las alas; "mirame la panza" (inspección de daños por señas); la
+Chancha que "los trajo a upa" con tanques perforados; y la eyección en el Atlántico Sur como última
+opción. No bloquea nada — el plan usa números de partida.
+
+**A confirmar:**
+1. Alcance real de la artillería de popa (Bofors, Oerlikon) y del Sea Cat durante el escape.
+2. A qué distancia del blanco se reagrupaba la escuadrilla (el texto: 20–30 millas).
+3. Los casos de remolque con tanques perforados: se nombran a Benito Rotolo y Rubén Zini —
+   confirmar nombres, grados, fechas y misiones.
+4. Pilotos eyectados en el mar en 1982: cuántos, dónde, y cuántos fueron rescatados.

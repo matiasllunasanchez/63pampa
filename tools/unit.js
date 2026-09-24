@@ -2743,28 +2743,49 @@ test('chancha: las zonas de la ruta caen donde dicen los km, en la ida y en la v
   assert.equal(zonasChancha({ blancoKm: 700 }, a).ida, null, 'sin zona declarada no hay zona');
 });
 
-test('chancha: con ruta vive dos veces — una por mitad — y la de la zona no gasta barra', async () => {
+test('chancha: con ruta se la llama por tramo, hasta lo que diga la mision, y siempre con barra', async () => {
   const ch = await import('../src/systems/chancha.js');
+  const g = m => ({ fuelOn: true, enPasillo: true, viva: true, t: 0, minT: 0, mitad: m.mitad, max: m.max });
   ch.resetChancha();
-  assert.equal(ch.llegar('ida'), 'ok');
-  assert.equal(ch.llegar('ida'), 'used', 'la de la ida es una sola');
-  assert.equal(ch.llegar('vuelta'), 'busy', 'mientras esta la de la ida, no hay otra');
-  ch.resetChancha();
-  ch.llegar('ida');
-  ch.tick(10, { inPlay: false });               // se fue (fin de la cita, o salir del pasillo)
-  ch.cargar();                                  // barra llena
-  const g = { fuelOn: true, enPasillo: true, viva: true, t: 0, minT: 0, mitad: 'vuelta' };
-  assert.equal(ch.pedir(g), 'ok', 'la de la vuelta se llama con la barra, aunque la ida ya se uso');
-  assert.equal(ch.meterVal(), 0, 'y esa si cuesta la barra');
-  ch.tick(10, { inPlay: false });
-  assert.equal(ch.llegar('vuelta'), 'used', 'llamada antes, ya no espera en la zona');
-  assert.equal(ch.gastada(), true);
+  assert.equal(ch.pedir(g({ mitad: 'ida', max: 1 })), 'empty', 'sin barra no viene: nunca sola');
+  ch.cargar();
+  assert.equal(ch.pedir(g({ mitad: 'ida', max: 1 })), 'ok');
+  ch.tick(10, { inPlay: false });               // se fue
+  ch.cargar();
+  assert.equal(ch.pedir(g({ mitad: 'ida', max: 1 })), 'used', 'la ida permite una');
+  assert.equal(ch.pedir(g({ mitad: 'vuelta', max: 2 })), 'ok', 'la vuelta tiene las suyas');
+  ch.tick(10, { inPlay: false }); ch.cargar();
+  assert.equal(ch.pedir(g({ mitad: 'vuelta', max: 2 })), 'ok', 'y en la vuelta, dos');
+  ch.tick(10, { inPlay: false }); ch.cargar();
+  assert.equal(ch.pedir(g({ mitad: 'vuelta', max: 2 })), 'used');
+  assert.equal(ch.pedir(g({ mitad: 'vuelta', max: 0 })), 'used', 'una mision puede no permitir ninguna');
   ch.resetChancha();
   // sin mitad, el poder clasico de siempre: una vez por corrida
   ch.cargar();
   assert.equal(ch.pedir({ fuelOn: true, enPasillo: true, viva: true, t: 999 }), 'ok');
   ch.tick(10, { inPlay: false }); ch.cargar();
   assert.equal(ch.pedir({ fuelOn: true, enPasillo: true, viva: true, t: 999 }), 'used');
+  ch.resetChancha();
+});
+
+test('chancha: hay que SOSTENERSE en la caja antes de cargar, y su reserva baja mientras da', async () => {
+  const ch = await import('../src/systems/chancha.js');
+  const { CH_ENGANCHE, CH_ETA } = await import('../src/data/tuning.js');
+  ch.resetChancha(); ch.cargar();
+  ch.pedir({ fuelOn: true, enPasillo: true, viva: true, t: 0, minT: 0, mitad: 'ida', max: 1 });
+  const e = s => ({ inPlay: true, score: 0, planeX: s.bx, planeY: s.by, fuel: 10 });
+  ch.tick(CH_ETA + 0.01, { inPlay: true, score: 0, planeX: 0, planeY: 0, fuel: 10 });   // llega
+  let s = ch.snapshot(); assert.equal(s.fase, 'cita');
+  let o = ch.tick(0.1, e(s)); s = ch.snapshot();
+  assert.equal(s.conn, true); assert.equal(s.cargando, false, 'recien entra: naranja');
+  assert.equal(o.carga, 0, 'enganchando no pasa nafta');
+  o = ch.tick(CH_ENGANCHE, e(s)); s = ch.snapshot();
+  assert.equal(s.cargando, true, 'sostenido: verde');
+  o = ch.tick(0.5, e(s)); s = ch.snapshot();
+  assert.ok(o.carga > 0, 'y ahora si pasa nafta');
+  assert.ok(s.reserva < 1, 'y su reserva baja');
+  ch.tick(0.1, { inPlay: true, score: 0, planeX: s.bx + 99, planeY: s.by, fuel: 10 }); s = ch.snapshot();
+  assert.equal(s.cargando, false, 'salirse corta el enganche');
   ch.resetChancha();
 });
 
@@ -2867,7 +2888,8 @@ test('calibracion: en t15 el trueque de la carga se sostiene a la velocidad del 
   assert.notEqual(vueloRuta(t15, 'tres_bombas').seco, null);
   assert.notEqual(vueloRuta(t15, 'tres_bombas', { chVuelta: true }).seco, null);
   const ida = vueloRuta(t15, 'tres_bombas', { chIda: true });
-  assert.equal(ida.seco, null); assert.ok(ida.casa < 300, 'vuelve, pero justa: ' + ida.casa);
+  assert.equal(ida.seco, null, 'con la de la ida, tres bombas vuelve');
+  assert.ok(ida.casa < vueloRuta(t15, 'tanques_bomba', { chIda: true }).casa, 'pero con menos que la base');
   // una bomba: sola no vuelve; con cualquiera de las dos Chanchas, si
   assert.notEqual(vueloRuta(t15, 'bomba').seco, null);
   assert.equal(vueloRuta(t15, 'bomba', { chIda: true }).seco, null);

@@ -96,6 +96,10 @@ const t15 = {
   // LA ESPERA POR TIEMPO SE AFLOJA porque ahora manda la ZONA: la primera zona cae a los ~50 s
   // de vuelo y no tendria sentido llegar a ella con el poder todavia bloqueado por reloj.
   chanchaMinT: 40,
+  // CUANTAS VECES SE PUEDE LLAMAR A LA CHANCHA, por tramo (pedido del autor 24/9: "hasta 2 o 3 veces
+  // segun la complejidad o largo del pasillo"). Siempre con la barra llena y fuera del radar. t15 es
+  // larga: una en la ida y dos en la vuelta, que es la mitad dificil. Sin esto, una por tramo.
+  chanchaVeces: { ida: 1, vuelta: 2 },
   // LA RUTA EN KM REALES (PLAN_NAFTA_ALCANCE N1). Se ancla a las fases de abajo: el descenso (0.16)
   // es el horizonte de radar, el primer rasante (0.20) el nivelado, el blanco (0.87) la corrida
   // final, y la vuelta (2.0) es casa. Queda asi: 520 km de crucero alto en el 16% del pasillo, y

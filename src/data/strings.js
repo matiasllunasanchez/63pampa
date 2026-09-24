@@ -155,11 +155,7 @@ export const STRINGS = {
     ch_bye: 'ME VUELVO, PATRIA. SUERTE.',
     ch_early: 'TODAVIA NO, PATRIA. AGUANTA.',
     ch_used: 'YA TE CARGUE HOY. NO HAY MAS.',
-    // LA CHANCHA EN SU ZONA (PLAN_NAFTA_ALCANCE N4): la de la ida no se llama —emision cero—, se la
-    // encuentra; la de la vuelta espera en su zona segura, y con la barra llena baja a buscarte
-    ch_zona_ida: 'LA CHANCHA, ARRIBA — A LA CANASTA',
-    ch_silencio: 'EMISION CERO: A LA CHANCHA SE LA BUSCA, NO SE LA LLAMA',
-    ch_zona_vuelta: 'ACA ESTOY, PATRIA. ARRIMATE Y CARGA.',
+    // LA CHANCHA CON RUTA (PLAN_NAFTA_ALCANCE N4): viene cuando la llamas, fuera del radar
     ch_radar: 'ADENTRO DEL RADAR NO ENTRO. SALI Y TE VOY A BUSCAR.',
     ch_viene: 'VOY PARA ALLA. AGUANTA ARRIBA.',
     ch_broken: 'LA CHANCHA NO BAJA MAS AL SUR.',
@@ -1241,9 +1237,6 @@ export const STRINGS = {
     ch_bye: 'HEADING HOME, PATRIA. GOOD LUCK.',
     ch_early: 'NOT YET, PATRIA. HANG ON.',
     ch_used: 'I FILLED YOU ONCE TODAY. THAT IS ALL.',
-    ch_zona_ida: 'THE TANKER, UP HIGH — GO FOR THE BASKET',
-    ch_silencio: 'RADIO SILENCE: YOU FIND THE TANKER, YOU DO NOT CALL IT',
-    ch_zona_vuelta: 'HERE I AM, PATRIA. COME ALONGSIDE AND FILL UP.',
     ch_radar: 'I DO NOT GO INSIDE THE RADAR. GET OUT AND I WILL COME FOR YOU.',
     ch_viene: 'ON MY WAY. STAY HIGH.',
     ch_broken: 'THE OLD SOW DOES NOT COME SOUTH ANYMORE.',

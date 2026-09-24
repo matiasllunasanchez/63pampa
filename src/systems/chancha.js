@@ -15,16 +15,21 @@
 // jamas — no muere, no aborta, no colisiona. El eslabon debil de la cita sos vos.
 
 import { CH_CHARGE, CH_MIN_T, CH_ETA, CH_ALT, CH_BOX, CH_RATE, CH_WINDOW, CH_SPD_F,
-  CH_Z, CH_HOSE_X, CH_HOSE_Y, CH_HOSE_Z, CH_DERIVA, CH_DERIVA_V, CH_SALIDA, CH_ETA_ZONA } from '../data/tuning.js';
+  CH_Z, CH_HOSE_X, CH_HOSE_Y, CH_HOSE_Z, CH_DERIVA, CH_DERIVA_V, CH_SALIDA, CH_ENGANCHE } from '../data/tuning.js';
 
 // FASES: 'idle' (no pasa nada) · 'eta' (pedida, viniendo) · 'cita' (esta arriba) · 'yendo' (se va).
 // No hay estado de JUEGO nuevo: todo esto ocurre adentro de 'play' (RF-06).
 let fase = 'idle';
 let meter = 0;         // 0..1, la barra del poder (arranca vacia: se gana jugando)
 let usada = false;     // una sola vez por CORRIDA — sobrevive al relevo, no al run nuevo
-// …Y CON RUTA (PLAN_NAFTA_ALCANCE N4) la Chancha vive DOS veces: una en la ida y otra en la vuelta.
-// Cada mitad se gasta por separado; `usada` sigue siendo la del poder clasico (misiones sin ruta).
-const mitades = new Set();
+// …Y CON RUTA (PLAN_NAFTA_ALCANCE N4, rehecho 24/9) se la puede llamar VARIAS veces: cuantas, lo dice
+// la mision por tramo (`chanchaVeces: { ida, vuelta }`). Aca se cuenta cuantas van en cada uno;
+// `usada` sigue siendo la del poder clasico (misiones sin ruta: una sola vez).
+const usos = { ida: 0, vuelta: 0 };
+// LA RESERVA DE ELLA en esta cita (1 = llena). Baja a medida que te pasa nafta, y es lo que marca su
+// reloj mientras estas enganchado: lo que ella todavia tiene para darte. Alcanza para un tanque
+// entero tuyo por cita; seca, se va.
+let reserva = 1;
 let lastScore = -1;
 let etaT = 0, winT = 0, salT = 0, pedidoT = 0;
 let conn = false, connT = 0;
@@ -51,13 +56,14 @@ function alturaHoy() {
  * informativa: "aca no" antes que "todavia no", y "todavia no" antes que "falta barra".
  *
  * `g` = { fuelOn, enPasillo, viva, t } — el orquestador resuelve el mundo, este modulo decide.
+ * Con ruta ademas `mitad`, `max` (cuantas veces en ese tramo) y `eta` (cuanto tarda en llegar).
  * NUNCA consume la barra si algun gate falla (RF-01).
  */
 export function pedir(g) {
   if (!g.fuelOn) return 'nofuel';        // sin combustible el poder no existe: tecla muda
   if (!g.enPasillo) return 'nozone';     // ARENA / PASADA / MINUTOS: ahi la nafta ES el reloj
   if (!g.viva) return 'broken';          // la mision es posterior a la rotura del guion
-  if (g.mitad ? mitades.has(g.mitad) : usada) return 'used';
+  if (g.mitad ? usos[g.mitad] >= (g.max || 1) : usada) return 'used';
   // la espera la puede correr la mision (`g.minT`); sin decir nada, CH_MIN_T de siempre
   if (g.t < (g.minT === undefined ? CH_MIN_T : g.minT)) return 'early';
   // FUERA DE LA ZONA DE ESPERA. Solo aplica si la mision declara zonas: sin ellas el poder es el
@@ -65,21 +71,9 @@ export function pedir(g) {
   if (g.conZona && !g.enZona) return 'nozona';
   if (fase !== 'idle') return 'used';    // ya viene (o ya esta): no se pide encima
   if (meter < 1) return 'empty';
-  if (g.mitad) mitades.add(g.mitad); else usada = true;
+  if (g.mitad) usos[g.mitad]++; else usada = true;
   meter = 0;
-  fase = 'eta'; etaT = CH_ETA; pedidoT = 0;
-  return 'ok';
-}
-
-/** LA CHANCHA QUE YA ESTABA AHI (PLAN_NAFTA_ALCANCE §3.5, N4): con ruta, en su zona, orbitando. No
- *  se pide ni cuesta barra — se la ENCUENTRA. Asoma enseguida (`CH_ETA_ZONA`) y sin el ritual de
- *  radio del pedido: en la ida vas en emision cero, y en la vuelta ya estaba esperando. Una vez por
- *  mitad. Devuelve 'ok' o por que no. */
-export function llegar(mitad) {
-  if (mitades.has(mitad)) return 'used';
-  if (fase !== 'idle') return 'busy';
-  mitades.add(mitad);
-  fase = 'eta'; etaT = CH_ETA_ZONA; pedidoT = 99;   // 99: el ritual de radio ya paso
+  fase = 'eta'; etaT = g.eta || CH_ETA; pedidoT = 0;
   return 'ok';
 }
 
@@ -103,7 +97,9 @@ export function tick(dt, e) {
     return out;
   }
   if (lastScore < 0) lastScore = e.score;
-  if (!usada && !mitades.has('vuelta') && meter < 1 && e.score > lastScore) {
+  // la barra se carga con puntos mientras ella NO esta en el aire: lo que se gana durante la cita
+  // no adelanta la proxima (con ruta se la puede volver a llamar, y se cobraria sola)
+  if (!usada && fase === 'idle' && meter < 1 && e.score > lastScore) {
     meter = Math.min(1, meter + (e.score - lastScore) / CH_CHARGE);
     if (meter >= 1) out.sig = 'ready';
   }
@@ -117,7 +113,7 @@ export function tick(dt, e) {
     if (antes < 0.9 && pedidoT >= 0.9) out.sig = 'ack';
     else if (antes < 2.1 && pedidoT >= 2.1) out.sig = 'come';
     etaT -= dt;
-    if (etaT <= 0) { fase = 'cita'; winT = CH_WINDOW; citaT = 0; x = 0; conn = false; out.sig = 'llega'; }
+    if (etaT <= 0) { fase = 'cita'; winT = CH_WINDOW; citaT = 0; x = 0; conn = false; reserva = 1; out.sig = 'llega'; }
     return out;
   }
   if (fase === 'yendo') {
@@ -143,10 +139,16 @@ export function tick(dt, e) {
   if (dentro && !golpe) {
     if (!conn) { conn = true; connT = 0; out.sig = 'conecta'; }
     connT += dt;
-    out.carga = Math.min(CH_RATE * dt, 100 - e.fuel);
+    // EL ENGANCHE (pedido del autor 24/9): meterse en la caja no alcanza — hay que SOSTENERSE ahi
+    // CH_ENGANCHE segundos antes de que empiece a pasar nafta. Es lo que el HUD pinta en naranja
+    // (enganchando) y despues en verde (cargando). Salirse antes vuelve a cero.
+    if (connT < CH_ENGANCHE) return out;
+    out.carga = Math.min(CH_RATE * dt, 100 - e.fuel, reserva * 100);
+    reserva = Math.max(0, reserva - out.carga / 100);
     bombaT -= dt;
     if (bombaT <= 0) { bombaT = 0.34; out.bomba = true; }        // la bomba de transferencia
     if (e.fuel + out.carga >= 99.99) { out.sig = 'lleno'; irse(); return out; }
+    if (reserva <= 0) { out.sig = 'lleno'; irse(); return out; }   // ella se seco: se va igual
   } else if (conn) {
     conn = false;
     out.sig = golpe ? 'golpe' : 'corta';
@@ -168,9 +170,9 @@ export const avance = () => (conn ? CH_SPD_F : 1);
 export const activa = () => fase === 'cita' || fase === 'yendo';
 export const conectado = () => conn;
 export const meterVal = () => meter;
-export const gastada = () => usada || mitades.has('vuelta');
-/** ¿Ya se gasto esta mitad? (con ruta) */
-export const mitadGastada = m => mitades.has(m);
+export const gastada = () => usada;
+/** Cuantas veces se la llamo en el tramo `m` (con ruta). */
+export const usosDe = m => usos[m];
 
 /** LO QUE VE EL RENDER (convencion 4: el dibujo lee, no manda). */
 export function snapshot() {
@@ -180,6 +182,8 @@ export function snapshot() {
     fase, x, y: alturaHoy(), z: CH_Z,
     bx: c.x, by: c.y, bz: c.z,
     conn, eta: etaT, win: winT, t: citaT,
+    // enganchado y ya pasando nafta (verde) o todavia sosteniendose (naranja), y lo que le queda a ella
+    cargando: conn && connT >= CH_ENGANCHE, enganche: conn ? Math.min(1, connT / CH_ENGANCHE) : 0, reserva,
   };
 }
 
@@ -191,7 +195,7 @@ export function cargar(p) { meter = Math.min(1, meter + (p === undefined ? CH_CH
 /** Arranque de PARTIDA (no de vida): barra vacia y el poder sin usar. Lo llama el reset del run,
  *  igual que resetTempo — por eso el "una vez por corrida" sobrevive al relevo. */
 export function resetChancha() {
-  fase = 'idle'; meter = 0; usada = false; mitades.clear(); lastScore = -1;
+  fase = 'idle'; meter = 0; usada = false; usos.ida = 0; usos.vuelta = 0; reserva = 1; lastScore = -1;
   etaT = 0; winT = 0; salT = 0; pedidoT = 0; conn = false; connT = 0; x = 0; citaT = 0;
   rumT = 0; bombaT = 0;
 }
@@ -199,7 +203,7 @@ export function resetChancha() {
 // ---------- SONDAS (QUITAR al cerrar el plan) ----------
 if (typeof window !== 'undefined') {
   window.__chadbg = () => JSON.stringify({
-    fase, meter: +meter.toFixed(3), usada, mitades: [...mitades], conn,
+    fase, meter: +meter.toFixed(3), usada, usos: { ...usos }, conn, reserva: +reserva.toFixed(3),
     eta: +etaT.toFixed(1), win: +winT.toFixed(1), connT: +connT.toFixed(1),
     x: +x.toFixed(1), bx: +canasta().x.toFixed(1), by: +canasta().y.toFixed(1), caja: CH_BOX,
   });

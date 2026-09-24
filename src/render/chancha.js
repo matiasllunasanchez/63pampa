@@ -10,6 +10,8 @@ import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
 import { run } from '../core/run.js';
 import { CH_BOX, CH_DERIVA_V } from '../data/tuning.js';
+// el verde de "esta entrando nafta": el mismo de la suelta, que en este juego quiere decir "ahora si"
+const CAJA_VERDE = '#7fe07a';
 import { snapshot } from '../systems/chancha.js';
 import * as enemyArt from './enemies.js';
 
@@ -103,17 +105,29 @@ export function drawChancha() {
   px(b.x - bw / 2, b.y - bw / 2, Math.max(1, bw * 0.22), bw, c.conn ? P.accent : P.foam);
   px(b.x + bw / 2, b.y - bw / 2, Math.max(1, bw * 0.22), bw, c.conn ? P.accent : P.foam);
 
-  // LA CAJA, dibujada solo mientras NO estas conectado: es la ayuda de punteria, y una vez
-  // adentro estorba. Se ve donde hay que meterse, que es la mitad de poder meterse.
-  if (!c.conn && c.fase === 'cita') {
+  // LA CAJA — donde hay que meterse y SOSTENERSE (pedido del autor 24/9). Tres estados, y el color es
+  // todo el mensaje:
+  //   afuera        las cuatro esquinas en cresta, tenues: la ayuda de punteria de siempre;
+  //   NARANJA       adentro pero todavia sin pasar nafta: titila rapido mientras dura el enganche
+  //                 (CH_ENGANCHE) — "aguanta ahi";
+  //   VERDE         enganchado y cargando: el recuadro entero LATE, lento, mientras entra la nafta.
+  if (c.fase === 'cita') {
     const c0 = proj(c.bx - CH_BOX, c.by + CH_BOX, c.bz), c1 = proj(c.bx + CH_BOX, c.by - CH_BOX, c.bz);
-    ctx.globalAlpha = 0.35 + 0.2 * Math.sin(run.t * 5);
-    const bw2 = c1.x - c0.x, bh2 = c1.y - c0.y, esq = Math.max(2, bw2 * 0.22);
-    for (const [ex, ey] of [[c0.x, c0.y], [c1.x - esq, c0.y], [c0.x, c1.y - 1], [c1.x - esq, c1.y - 1]]) {
-      px(ex, ey, esq, 1, P.crest);
-    }
-    for (const [ex, ey] of [[c0.x, c0.y], [c1.x - 1, c0.y], [c0.x, c1.y - esq], [c1.x - 1, c1.y - esq]]) {
-      px(ex, ey, 1, esq, P.crest);
+    const bw2 = c1.x - c0.x, bh2 = c1.y - c0.y;
+    if (!c.conn) {
+      ctx.globalAlpha = 0.35 + 0.2 * Math.sin(run.t * 5);
+      const esq = Math.max(2, bw2 * 0.22);
+      for (const [ex, ey] of [[c0.x, c0.y], [c1.x - esq, c0.y], [c0.x, c1.y - 1], [c1.x - esq, c1.y - 1]]) px(ex, ey, esq, 1, P.crest);
+      for (const [ex, ey] of [[c0.x, c0.y], [c1.x - 1, c0.y], [c0.x, c1.y - esq], [c1.x - 1, c1.y - esq]]) px(ex, ey, 1, esq, P.crest);
+    } else {
+      const col = c.cargando ? CAJA_VERDE : P.accent;
+      ctx.globalAlpha = c.cargando ? 0.55 + 0.35 * Math.sin(run.t * 4) : (Math.sin(run.t * 18) > 0 ? 0.95 : 0.25);
+      const g = c.cargando ? 2 : 1;
+      px(c0.x, c0.y, bw2, g, col); px(c0.x, c1.y - g, bw2, g, col);
+      px(c0.x, c0.y, g, bh2, col); px(c1.x - g, c0.y, g, bh2, col);
+      // enganchando: una barrita adentro, abajo, que se llena con el tiempo que falta
+      if (!c.cargando) px(c0.x + 2, c1.y - 4, Math.max(1, (bw2 - 4) * c.enganche), 1, col);
+      else { ctx.globalAlpha *= 0.18; px(c0.x, c0.y, bw2, bh2, col); }
     }
     ctx.globalAlpha = 1;
   }

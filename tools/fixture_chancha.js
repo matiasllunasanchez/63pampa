@@ -127,7 +127,9 @@ app.whenReady().then(async () => {
   // Y EN LA CANASTA SI. Se vuela a la caja (la canasta deriva, asi que se relee cada vez).
   let c2 = await CH();
   const fa = await js('__chanafta()');
-  for (let i = 0; i < 14; i++) {
+  // 30 × 110 ms ≈ 3,3 s: el ENGANCHE (CH_ENGANCHE 1,5 s sostenido en la caja, pedido del autor 24/9)
+  // y despues carga. Con los 14 de antes (1,5 s) se quedaba justo en el naranja.
+  for (let i = 0; i < 30; i++) {
     c2 = await CH();
     await js(`__seaclear(); __chacalma(); __chaput(${c2.bx}, ${c2.by})`);
     await sleep(110);
@@ -148,7 +150,8 @@ app.whenReady().then(async () => {
   if (!fuera.conn) ok('un drift sostenido corta la transferencia');
   else bad('salirse de la caja no desengancho');
   const fc = await js('__chanafta()');
-  for (let i = 0; i < 10; i++) { const c3 = await CH(); await js(`__seaclear(); __chacalma(); __chaput(${c3.bx}, ${c3.by})`); await sleep(110); }
+  // volver tambien pasa por el enganche: salirse lo reinicia
+  for (let i = 0; i < 26; i++) { const c3 = await CH(); await js(`__seaclear(); __chacalma(); __chaput(${c3.bx}, ${c3.by})`); await sleep(110); }
   const fd = await js('__chanafta()');
   if ((await CH()).conn && fd > fc) ok(`y volver RETOMA: ${fc.toFixed(1)} → ${fd.toFixed(1)}%`);
   else bad(`reconectar no retomo la carga (${fc.toFixed(1)} → ${fd.toFixed(1)})`);
