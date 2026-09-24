@@ -141,6 +141,20 @@ export function columnaBomba(x, y, z, agua) {
   }
 }
 
+/** UN PIQUE: la columna chica de una trazadora que cae al agua (el escape, PLAN_VUELTA_REAL V2).
+ *  La hermana menor de `columnaBomba`: pocas gotas, baja, y se va rapido. */
+export function piqueAgua(x, y, z) {
+  const s = proj(x, y, z), e = Math.min(1.1, s.k / 3 + 0.35);
+  for (let i = 0; i < 7; i++) {
+    parts.push({
+      x: s.x + (Math.random() - 0.5) * 2 * e, y: s.y,
+      vx: (Math.random() - 0.5) * 10 * e, vy: -(25 + Math.random() * 30) * e,
+      life: 0.35 + Math.random() * 0.25, c: Math.random() < 0.6 ? '#e6efec' : '#8fb0ad',
+      r: Math.max(1, s.k * 0.3),
+    });
+  }
+}
+
 // ---------------- EL DESPIECE (PLAN_DESTRUCCION D0) ----------------
 //
 // El derribo del jugador ya tenia el sistema bueno — pedazos con inercia que caen, rebotan y

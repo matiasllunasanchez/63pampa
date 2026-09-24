@@ -2940,3 +2940,16 @@ test('vuelta real: las estrellas se llenan de golpe y bajan con el reloj que se 
   assert.equal(bajo, null, 'sin reloj propio manda el general (' + EST_PERDER_S + ' s)');
   est.resetEstrellas();
 });
+
+// LA LINEA RECTA (PLAN_VUELTA_REAL V2): la trazadora de popa viene casi paralela al vuelo y cae al
+// agua adelante; con el origen cerca se iba al cielo, que es lo que esta regla cuida.
+test('vuelta real: la trazadora de popa pasa por la mira y pica adelante', async () => {
+  const { tiroEn } = await import('../src/core/escape.js');
+  const { ESC } = await import('../src/data/blanco.js');
+  const tr = { ox: 0, oy: 2.5, ax: 1, ay: 5 };
+  const enAvion = tiroEn(tr, 14, ESC.DIST, 14, ESC.G);
+  assert.deepEqual([enAvion.x, enAvion.y], [1, 5], 'a la profundidad del avion pasa por la mira');
+  const lejos = tiroEn(tr, 250, ESC.DIST, 14, ESC.G);
+  assert.ok(lejos.y < 1, 'pasado el avion cae al agua antes de Z_MAX (y=' + lejos.y.toFixed(2) + ')');
+  assert.ok(Math.abs(lejos.x - 1) < 2, 'y no se abre de costado');
+});

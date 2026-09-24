@@ -116,4 +116,31 @@ export const PERFIL = {
  *  `fases.val()` como a cualquier otra. SIN RADIO: el silencio arranca con el impacto, y el ultimo
  *  grito es el de Puma ("¡por encima de los palos!"). Sin siembra propia: lo que te cae encima lo
  *  decide la tabla de las estrellas, que en el cruce quedan al tope. */
-export const FASE_ESCAPE = { tipo: 'vuelta', radio: null, bidones: false };
+export const FASE_ESCAPE = { tipo: 'vuelta', radio: null, bidones: false, radar: 6 };
+// …Y EL TECHO A 6 (V2): "bajaban la nariz de inmediato para volver a pegarse a las olas". Arriba de
+// 6 el radar carga y las estrellas no bajan: el escape se juega al ras.
+
+/** LA LINEA RECTA (PLAN_VUELTA_REAL §2.B, V2). *"Virar o abrirse por los laterales al lado del
+ *  barco era una sentencia de muerte: exponer la panza le daba a la tripulacion una silueta
+ *  perfecta."* La artilleria de popa tira rafagas DESDE ATRAS durante `RECTA_T` segundos. Yendo
+ *  derecho por el carril sos un blanco de frente —una rayita— y los tiros se abren (`SIGMA_RECTA`);
+ *  saliendote del carril (`CARRIL`) o alabeando (`BANK_PANZA`) mostras la panza y se cierran
+ *  (`SIGMA_PANZA`). No hay multiplicador de daño: el castigo es la PUNTERIA que les regalas, que es
+ *  literal lo que dice la fuente. Unidades de mundo. */
+export const ESC = {
+  RECTA_T: 12,        // segundos de fuego de popa desde el cruce
+  GRACIA: 2.2,        // segundos sin que el radar complete la barra: el salto te deja alto un rato
+  CARRIL: 8,          // media anchura del carril alrededor de donde cruzaste
+  BANK_PANZA: 0.45,   // alabeo (rad) desde el que se te ve la panza
+  RAFAGA_CADA: 0.9,
+  POR_RAFAGA: 2,
+  SIGMA_RECTA: 12,    // dispersion yendo derecho: medido, ~1 golpe de escudo en los 12 s
+  SIGMA_PANZA: 1.8,   // …y mostrando la panza (pega seguido)
+  HIT_X: 1.7, HIT_Y: 1.2,
+  TIRO_V: 170,        // cuanto se adelanta una trazadora respecto de la camara, unidades/s (~1,5 s en cuadro)
+  Z0: 7,              // donde entra en cuadro: atras del avion, entre el y la camara
+  DIST: 400,          // a cuanto quedo la popa: fija la pendiente del tiro (lejos = casi paralelo)
+  G: 1.1,             // caida pasado el avion (con 1.1 un tiro a 5 m pica a ~200 adelante)
+  Z_MAX: 260,
+};
+

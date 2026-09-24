@@ -463,6 +463,7 @@ export const STRINGS = {
     // LA SUELTA SOBRE EL BUQUE (data/blanco.js): el veredicto de cada bomba y el HUD de la pasada
     death_suelta: 'Se acabaron las pasadas y el buque sigue a flote',
     death_fallo_blanco: 'Erraste la suelta, y el buque sigue a flote',
+    death_popa: 'Te alcanzó la artillería de popa: mostraste la panza',
     death_palos: 'Te llevaste los palos del buque',
     bl_hundido: '¡HUNDIDO!', bl_averiado: 'AVERIADO', bl_dormida: 'NO DESPERTÓ',
     bl_corta: 'CORTA', bl_larga: 'LARGA', bl_reencare: 'SIGUE A FLOTE · OTRA PASADA',
@@ -1464,6 +1465,7 @@ export const STRINGS = {
     death_pulso: 'Your hand slipped, and the ship is still afloat',
     death_suelta: 'Out of passes, and the ship is still afloat',
     death_fallo_blanco: 'You missed the drop, and the ship is still afloat',
+    death_popa: 'The stern guns got you: you showed them your belly',
     death_palos: 'You clipped the ship\'s masts',
     bl_hundido: 'SUNK!', bl_averiado: 'DAMAGED', bl_dormida: 'DIDN\'T ARM',
     bl_corta: 'SHORT', bl_larga: 'LONG', bl_reencare: 'STILL AFLOAT · GO AROUND',

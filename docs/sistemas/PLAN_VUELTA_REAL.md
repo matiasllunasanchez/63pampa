@@ -353,7 +353,17 @@ en `t15` (IDA Y VUELTA) y con una fila de PRUEBAS por tramo (patrón de `t16`).
     no carga los 13 MB del video (`tools/build_web.py` lo apaga).
 - **V1 — la cinemática del viraje.** La timeline de EL DIRECTOR: Puma meciendo alas, los vivos
   acoplándose, el giro contra el cielo. Reemplaza al fundido suplente de V0.
-- **V2 — la línea recta.** Carril de escape, "mostrar la panza", trazadoras desde atrás y columnas.
+- ✅ **V2 — la línea recta** *(hecho 24/9)*. En el cruce se fija el **carril** (±8 alrededor de
+  donde pasaste) y la **artillería de popa** tira ráfagas desde atrás durante 12 s (`ESC` en
+  `data/blanco.js`, `systems/escape.js`, trazadoras en `render/escape.js`, piques en `piqueAgua`).
+  Techo de radar a **6** en todo el escape. **Desvío del plan:** no hay multiplicador ×2,5 de daño;
+  el castigo es la **puntería** — yendo derecho la campana de tiro se abre (σ 12) y mostrando la
+  panza (fuera del carril, alabeado o en pirueta) se cierra (σ 1,8), que es literal lo que dice la
+  fuente. Medido en modo INTEGRIDAD: derecho, 0–1 golpes (lo absorbe el escudo); con la panza, el
+  avión cae en ~3 s. Un golpe es `death_popa` (34, "mostraste la panza"). Los 2,2 s después del
+  cruce el radar no completa la barra: el salto te deja alto y la oleada pegaba antes de bajar.
+  Ajustes medidos: las trazadoras vienen casi paralelas (popa a 400) y su cola es proporcional a la
+  profundidad — con otro modelo se iban al cielo o duraban un décimo de segundo en cuadro.
 - **V3 — la víbora.** El artillero de popa con solución de tiro; viborear dentro del carril la
   rompe; el humo la congela.
 - **V4 — las señas y la fuga.** "Mirame la panza" con el daño real; la fuga como término de gasto;

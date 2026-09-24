@@ -64,6 +64,8 @@ import * as cine from './systems/cine.js';
 import { drawCine } from './render/cine.js';
 import * as muni from './render/municion.js';
 import * as blancoSys from './systems/blanco.js';
+import * as escapeSys from './systems/escape.js';
+import { drawTirosPopa } from './render/escape.js';
 import { BL as BL_BLANCO, FASE_ESCAPE } from './data/blanco.js';
 import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE } from './data/cargas.js';
 import { AUDIO_BLOQUEADO } from './data/sonido.js';
@@ -1429,6 +1431,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // …y la mision dice cuantas pasadas da (una, salvo que pida mas) y si despues del buque hay
       // vuelta: con vuelta, pegarle abre EL ESCAPE en vez del negro (PLAN_VUELTA_REAL V0).
       vir = null;   // una secuencia de viraje a medias no sobrevive a una corrida nueva
+      escapeSys.terminar();
       blancoSys.preparar(hayBlanco, objectiveShip, objectiveDist, { PZ, W }, cfg.carga,
         { pasadas: curMission() && curMission().pasadas, vuelta: fases.hayVuelta() });
       // LA NAFTA COMO ALCANCE (PLAN_NAFTA_ALCANCE N3): con ruta, el tanque se llena en km segun la
@@ -2690,6 +2693,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // despues del cruce. La presion la ponen las cuatro estrellas, con su siembra de siempre; la
       // barra llena dice "te vieron" y se vacia sola cuando bajas al agua.
       run.detection = 0.99;
+      escapeSys.empezar(PZ);           // la linea recta: el carril y la artilleria de popa (V2)
     }
     /** EL VIRAJE (PLAN_VUELTA_REAL §2.C): perdiste las estrellas, Puma lo dijo, el cuadro se fue a
      *  negro. La media vuelta la cuenta UN VIDEO —el pasillo nunca rota—: la silueta del avion
@@ -2712,6 +2716,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function finViraje() {
       if (virVid) { try { virVid.el.pause(); virVid.el.removeAttribute('src'); virVid.el.load(); } catch (e) { } }
       virVid = null;
+      escapeSys.terminar();
       fases.tapar(null);
       blancoSys.terminarEscape();
       run.dist = objectiveDist + 1;    // la vuelta cuenta desde el buque: lo escapado no es camino a casa
@@ -3728,6 +3733,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // …Y EL VIRAJE: sin estrellas, escapaste. Es la bisagra entre las dos mitades, y el pasillo
         // no la puede mostrar —no rota—, asi que la cuenta un video (ver `viraje`).
         if (blancoSys.escapando() && run.estrellas <= 0 && !vir) { vir = { fase: 'perdimos', t: 0 }; radioTramo('vir_perdimos'); missiles.length = 0; }
+        // LA LINEA RECTA (V2): la artilleria de popa tira mientras escapas. Un tiro que pega es un
+        // golpe de chapa; si el avion no aguanta, entra el siguiente — y el escape sigue.
+        if (blancoSys.escapando() && !vir && escapeSys.step(dt) === 'hit') {
+          escapeSys.limpiar();
+          if (damage.takeHit('death_popa')) { onDeath('death_popa'); return; }
+        }
         if (vir) {
           vir.t += dt;
           if (vir.fase === 'perdimos' && vir.t >= BL_BLANCO.VIR_LEER) { vir = { fase: 'rumbo', t: 0 }; radioTramo('vir_casa'); }
@@ -4250,6 +4261,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       drawTiros(teatro.state());
       if (!rasante.enCabina()
         && (chase || (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active());
+      // LAS TRAZADORAS DE POPA (el escape, V2): vienen de atras, o sea MAS CERCA que el avion, y
+      // por eso van despues del sprite. Adentro del giro del horizonte, como el resto del mundo.
+      if (S.state === 'play' && blancoSys.escapando()) {
+        if (hzW) { ctx.save(); const hcx = W / 2 + cm.x, hcy = H / 2 + cm.y; ctx.translate(hcx, hcy); ctx.rotate(hzW); ctx.translate(-hcx, -hcy); }
+        drawTirosPopa(PZ);
+        if (hzW) ctx.restore();
+      }
       // EL HUD DE LA SUELTA: cabina, nivelado, sobre el avion (la foto la arma el sistema).
       if (S.state === 'play' && runClimax() === 'suelta') drawBlancoHud(blancoSys.hud());
       // LA COLA, segunda pasada: lo que quedo MAS CERCA que el avion — el sobrepaso enorme

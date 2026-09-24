@@ -35,6 +35,9 @@ export const DMG = {
   // rozando antenas y palos (PREGUNTAS_HISTORICAS, "¿SE LE PASABA POR ENCIMA AL BUQUE?"): no es
   // chocar una pared, es llevarse los palos puestos. Como un misil enganchado: dos y listo.
   death_palos: 45,
+  // EL ESCAPE: la artilleria de popa del buque que dejaste atras (PLAN_VUELTA_REAL V2). Como el
+  // antiaereo: tres y estas en el piso.
+  death_popa: 34,
 };
 
 /** ¿Esta causa mata SIEMPRE, sin importar el modo? (todo lo que no sea "te dispararon") */
