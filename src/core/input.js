@@ -486,8 +486,10 @@ export function initInput(cv, a) {
     // con teclado/mouse/tactil → sin esto, jugando SOLO con joystick no sonaba la metralla ni la musica)
     if (pressed.some((p, i) => p && !btnPrev[i])) { audio(); flags.anyPress = true; }
 
-    // musica (en cualquier pantalla)
-    if (hit(10)) a.trackPrev();
+    // musica (en cualquier pantalla)… salvo L3 EN VUELO, que es SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5,
+    // ver abajo): el mando no tiene un boton libre, y en pleno vuelo soltar es la decision que
+    // importa. Afuera del vuelo L3 sigue siendo la pista anterior; R3, la siguiente, siempre.
+    if (hit(10) && S.state !== 'play') a.trackPrev();
     if (hit(11)) a.trackNext();
 
     // QUE ESTADOS SON "JUGAR". Cada climax nuevo tiene que entrar aca o el mando deja de volar al
@@ -563,9 +565,10 @@ export function initInput(cv, a) {
       // en juego, y hacia falta: en el ARENA y en la PASADA esa tecla conmuta CABINA ↔ TERCERA
       // PERSONA en vivo, y con el mando no habia forma de cambiar de vista.
       if (hit(13)) a.cycleCamera();
-      // L3 (CLIC DEL STICK IZQUIERDO) = SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5). Era uno de los tres
-      // botones libres del mando, y es la mano que vuela: soltar es una decision de vuelo.
-      if (hit(10)) a.soltarTanques();
+      // L3 (CLIC DEL STICK IZQUIERDO) = SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5), solo en vuelo. L3 era
+      // la pista anterior en todas las pantallas (arriba): en 'play' cede, porque el mando no tiene
+      // otro boton libre y es la mano que vuela — soltar es una decision de vuelo.
+      if (hit(10) && S.state === 'play') a.soltarTanques();
       setPad('u', du);                                         // potencia (gas / subir) — default: ARRIBA SUBE
       setPad('d', dd);                                         // picada (bajar)
       setPad('fire', down(5) || down(0));                      // R1 = metralleta (✕ tambien)

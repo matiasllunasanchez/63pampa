@@ -1,5 +1,11 @@
 # PLAN — LA NAFTA COMO ALCANCE *(altura, carga, radar y la Chancha, en km)*
 
+> 📌 **Para saber qué hace el juego HOY, leer [`SPEC_NAFTA_ALCANCE.md`](SPEC_NAFTA_ALCANCE.md).** Este
+> plan es la HISTORIA: la propuesta, las decisiones del autor en el orden en que llegaron y lo que se
+> midió en cada fase. Varias secciones de §3 quedaron superadas por decisiones posteriores — en
+> particular **§3.5 (la Chancha por zona, que se encuentra sola): se rehízo el 24/9**, ahora viene
+> cuando la llamás (ver N4 rehecho en §5). Ante cualquier duda, manda el SPEC.
+
 > **Estado:** ✅ **N0–N7 implementadas y N8 calibrada** (24/9/2026), sobre t15. Falta la adopción en la campaña, que espera las fases de cada misión (§5, N8). Decisiones del autor en §6 · pedido del autor: *"analizar una propuesta
 > nueva de mecánica de gasto de combustible y recarga con distancia límite de alcance de radar.
 > El mismo no puede arrancar apenas arranca el juego y despegan"*, más *"el turbo debería gastar

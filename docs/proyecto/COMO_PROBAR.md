@@ -90,6 +90,8 @@ llegar a verlo)*
 | **EL CUADERNO DE MATEO** (registro TIERRA: hoja izquierda, letra manuscrita, tinta de birome) | `?scene=P4_1` la primera página · `?scene=M4_CARTA` la carta más larga (289 caracteres) · `?scene=M11_CARTA` la única sin carilla dibujada (hoja pintada a mano) · `npm run cuaderno` recorre las quince | 15 s |
 | Acentos y eñes de una tipografía nueva | `node tools/glifos.js` — lee el `cmap` y avisa cuál no puede escribir en castellano | 2 s |
 | Guion de campaña completo / banco del Pichón | CAMPAÑA con `?qa` — el epílogo + banco entre misiones · `__udbg` | 2 min |
+| **LA NAFTA COMO ALCANCE** (ruta en km, radar con alcance, tanque en km, Chancha por tramo, soltar tanques) | PRUEBAS → **IDA Y VUELTA** (`t15`, ~5 min) · con otra carga: `__mision('t15', { cfg: { carga: 'tres_bombas' } })` · sondas `__nafta()` / `__chadbg()` / `__chaset()` · `npm run feel` imprime la calibración · ver [SPEC_NAFTA_ALCANCE §11](../sistemas/SPEC_NAFTA_ALCANCE.md) | 5 min |
+| **EL HANGAR** (elegir la carga) | CAMPAÑA desde M3, después del briefing · `__campana(2)` | 30 s |
 | **UNA misión cualquiera, suelta** (su clima, su clímax, su escuadrón) | MENÚ → **MISIONES** · `?mision=m9` · `__mision('m9')` · `npm run misiones` las recorre todas | 15 s |
 | Saves / pausa / récords / música / idioma | ESC en vuelo (pausa+save) · reproductor teclas 1/2 · **L** idioma | 30 s |
 
