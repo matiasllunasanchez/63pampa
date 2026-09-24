@@ -331,6 +331,7 @@ export function initInput(cv, a) {
     if (!e.repeat && (e.code === 'Digit2' || e.code === 'Numpad2')) a.trackNext();
     if (!e.repeat && (e.code === 'Digit4' || e.code === 'Numpad4')) a.tempoToggle();   // MOMENTUM: camara lenta (pasillo)
     if (!e.repeat && (e.code === 'Digit5' || e.code === 'Numpad5')) a.chanchaCall();   // LA CHANCHA: el reabastecedor (pasillo)
+    if (!e.repeat && (e.code === 'Digit3' || e.code === 'Numpad3')) a.soltarTanques();  // SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5)
     if (!e.repeat && (e.code === 'Digit6' || e.code === 'Numpad6')) a.rasanteToggle();  // RASANTE: el resorte al ras (pasillo)
   });
   addEventListener('keyup', e => {
@@ -556,6 +557,9 @@ export function initInput(cv, a) {
       // en juego, y hacia falta: en el ARENA y en la PASADA esa tecla conmuta CABINA ↔ TERCERA
       // PERSONA en vivo, y con el mando no habia forma de cambiar de vista.
       if (hit(13)) a.cycleCamera();
+      // L3 (CLIC DEL STICK IZQUIERDO) = SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5). Era uno de los tres
+      // botones libres del mando, y es la mano que vuela: soltar es una decision de vuelo.
+      if (hit(10)) a.soltarTanques();
       setPad('u', du);                                         // potencia (gas / subir) — default: ARRIBA SUBE
       setPad('d', dd);                                         // picada (bajar)
       setPad('fire', down(5) || down(0));                      // R1 = metralleta (✕ tambien)

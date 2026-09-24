@@ -2767,3 +2767,42 @@ test('chancha: con ruta vive dos veces — una por mitad — y la de la zona no 
   assert.equal(ch.pedir({ fuelOn: true, enPasillo: true, viva: true, t: 999 }), 'used');
   ch.resetChancha();
 });
+
+// ---------- SOLTAR LOS TANQUES (PLAN_NAFTA_ALCANCE N5) ----------
+test('tanques: cada externo sabe su pilon, y se sueltan el par de ala primero y el centro despues', async () => {
+  const { tanqueInicial, soltar, proximoPilon, capacidadDe, kmQuedan } = await import('../src/core/nafta.js');
+  const t = tanqueInicial('tres_tanques');
+  assert.deepEqual(t.pilones, ['ala', 'ala', 'centro']);
+  assert.equal(proximoPilon(t), 'ala');
+  const a = soltar(t, 'ala');
+  assert.deepEqual(a.soltados, [450, 450], 'se van con lo que tenian adentro');
+  assert.deepEqual(a.tanque.pilones, ['centro']);
+  assert.equal(capacidadDe(a.tanque), 1700 + 450, 'la capacidad baja con ellos');
+  assert.equal(proximoPilon(a.tanque), 'centro');
+  const b = soltar(a.tanque, 'centro');
+  assert.equal(proximoPilon(b.tanque), null);
+  assert.equal(kmQuedan(b.tanque), 1700);
+  assert.deepEqual(soltar(b.tanque, 'ala').soltados, [], 'no se suelta lo que no cuelga');
+  assert.deepEqual(tanqueInicial('tres_bombas').pilones, [], 'tres bombas no tiene tanques');
+  assert.deepEqual(tanqueInicial('bombas_tanque').pilones, ['centro']);
+});
+
+test('tanques: soltarlos en la corrida baja la capacidad, conserva lo de adentro y acelera', async () => {
+  const nafta = await import('../src/systems/nafta.js');
+  const { run } = await import('../src/core/run.js');
+  nafta.preparar('tanques_bomba');
+  nafta.step(1000, 60, { bombas: 1, tanques: 2 }, 1);           // 1150 km: vacia los externos y 250 del interno
+  const quedaban = nafta.kmRestan();
+  const r = nafta.soltarTanques();
+  assert.equal(r.pilon, 'ala');
+  near(r.soltados[0] + r.soltados[1], 0, 1e-6, 'vacios: no se tiro nada');
+  near(nafta.kmRestan(), quedaban, 1e-6);
+  assert.equal(run.naftaCap, 1700);
+  near(run.fuel, quedaban / 1700 * 100, 1e-9);
+  assert.equal(nafta.soltarTanques(), null, 'no queda nada que soltar');
+  assert.equal(nafta.velCarga({ bombas: 1, tanques: 2 }), 1, 'la carga base es la referencia');
+  assert.ok(nafta.velCarga({ bombas: 1, tanques: 0 }) > 1, 'sin tanques va mas rapido');
+  assert.ok(nafta.velCarga({ bombas: 0, tanques: 0 }) > nafta.velCarga({ bombas: 1, tanques: 0 }), 'limpio, mas');
+  nafta.preparar(null);
+  assert.equal(nafta.velCarga({ bombas: 0, tanques: 0 }), 1, 'sin ruta la velocidad no cambia');
+});

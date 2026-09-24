@@ -564,6 +564,21 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         : r === 'broken' ? 'ch_broken' : 'ch_nozone');
     }
 
+    /** SOLTAR LOS TANQUES (tecla 3 / L3, PLAN_NAFTA_ALCANCE N5). Solo en el pasillo y con ruta, que
+     *  es donde el tanque tiene pilones. Sale el par de ala si sigue colgado, si no el del centro.
+     *  Si alguno iba con nafta se avisa cuanta se fue al mar: soltar lleno es una decision cara, y
+     *  el jugador tiene que enterarse en el momento. */
+    function soltarTanquesAccion() {
+      if (S.state !== 'play' || !naftaSys.activo()) return;
+      const r = naftaSys.soltarTanques();
+      if (!r) { beep(150, 0.09, 'square', 0.05); popup(W / 2, 46, T('tanques_nada'), P.dim); return; }
+      const tirados = r.soltados.reduce((s, k) => s + k, 0);
+      beep(240, 0.12, 'square', 0.06, 90);
+      run.shake = Math.max(run.shake, 1.5);
+      popup(W / 2, 46, T(r.pilon === 'ala' ? 'tanques_fuera' : 'tanque_fuera'), P.accent);
+      if (tirados >= 1) popup(W / 2, 56, T('tanques_nafta', { km: Math.round(tirados) }), P.warn);
+    }
+
     /** Las señales de LA CHANCHA vueltas cosas que se ven y se oyen. Vive en el orquestador —y no
      *  en el sistema— por la misma regla que el MOMENTUM: el sistema decide, el juego lo cuenta. */
     // LA RADIO DEL PODER RASANTE (RF-05). Una linea al activar, ROTANDO — es la doctrina del
@@ -1478,7 +1493,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // control se leian como si fueran configurables — el cursor se paraba encima y daban ganas
       // de apretarles izquierda/derecha a ver que cambiaba.
       { note: 'ctrlHands' }, { note: 'ctrlWasd' }, { note: 'ctrlArena' }, { note: 'ctrlBombs' }, { note: 'ctrlSame' }, { note: 'ctrlBoth' },
-      ...[['Aim'], ['Cam'], ['Tempo'], ['Chancha'], ['Inv'], ['Music'], ['Pause'], ['Menu']]
+      ...[['Aim'], ['Cam'], ['Tempo'], ['Chancha'], ['Tanques'], ['Inv'], ['Music'], ['Pause'], ['Menu']]
         .map(([k]) => ({ ctrl: 'ctrl' + k, kb: 'ctrl' + k + 'K', pad: 'ctrl' + k + 'P' })),
 
       { head: 'optSecPartida' },
@@ -2373,6 +2388,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         popup(W / 2, 58, r === 'on' ? T('tempoOn') : T('tempoOff'), P.accent);
       },
       chanchaCall: () => pedirChancha(),
+      soltarTanques: () => soltarTanquesAccion(),
       /** EL PODER RASANTE (tecla 6). Funcion con nombre y no cuerpo de la accion, por el mismo
        *  motivo que `pedirChancha`: la sonda del fixture tiene que apretar EXACTAMENTE lo que
        *  aprieta el jugador. Si llamara a `rasante.toggle()` por su cuenta se saltearia los gates

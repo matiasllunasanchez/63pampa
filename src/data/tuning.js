@@ -1635,6 +1635,11 @@ export const ZONAS_GASTO = [
 export const ARRASTRE_LIMPIO = 0.85;
 export const ARRASTRE_BOMBA = 0.1;
 export const ARRASTRE_TANQUE = 0.1;
+// …Y LA VELOCIDAD QUE DA SOLTAR (N5). El avion va a (arrastre de la carga base / arrastre actual)
+// elevado a esto: con 0.5, limpio va ~16% mas rapido que con dos tanques y una bomba, y soltar solo
+// el par de tanques ~10%. Es la mitad de por que se sueltan; la otra es la nafta que se ahorra.
+// Solo con `ruta` (sin ella el vuelo es el de siempre). En 0 soltar no acelera nada.
+export const VEL_ARRASTRE_EXP = 0.5;
 
 // LA RAMPA DEL HORIZONTE DE RADAR, en metros de pasillo (PLAN_NAFTA_ALCANCE §3.4, N2). Con `ruta`,
 // el radar no existe hasta `radarKm` del blanco; al cruzar esa linea el techo baja desde FLY_TOP

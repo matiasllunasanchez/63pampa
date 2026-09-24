@@ -381,9 +381,21 @@ Cada una deja el juego jugable; tras cada una `npm run check` y `npm run feel` i
   barra → viene y cobra la barra; sin tecla → espera en su zona. 2 tests nuevos.
   **Pendiente de N4:** el viento sobre la zona de la Chancha (idea del autor) no se hizo: la clave
   `viento` ya existe por tramo/fase, falta decidir si complica la canasta (más deriva) o solo frena.
-- **N5 — soltar la carga.** Tecla de suelta de tanques (de a par el ala, solo el centro) y de
-  bombas sin blanco; `fCarga` y velocidad se recalculan con lo que queda colgado; las capas
-  horneadas dejan de dibujar lo soltado.
+- ✅ **N5 — soltar los tanques** *(hecho 24/9)*. Tecla **3** (mando: **L3**, clic del stick
+  izquierdo): el primer toque suelta el PAR de ala, el segundo el central. Cada externo sabe su pilón
+  (`pilones` en el tanque) y se va con lo que tenía adentro: la capacidad baja y, si iba con nafta,
+  un cartel dice cuántos km se fueron al mar. El avión deja de dibujar la capa soltada (lee
+  `run.tanque.pilones`). **Soltar acelera**: `(arrastre base / actual) ^ VEL_ARRASTRE_EXP` (0.5) →
+  sin el par de tanques ~10% más rápido, limpio ~16%; solo con ruta. Fila nueva en la tabla de
+  controles y en la ayuda. Medido en t15: capacidad 2600 → 1700, cartel "iban con nafta: 757 km al
+  mar", la velocidad sube más del doble de rápido tras soltar. 2 tests nuevos.
+  **Sin hacer / a revisar:**
+  - **Las bombas sin blanco**: en las misiones con LA SUELTA ya se sueltan con Z y alivian solas
+    (el arrastre cuenta `run.msl`). En una misión con ruta y sin suelta no hay tecla de bomba en el
+    pasillo, así que ahí no se pueden tirar para estirar la nafta.
+  - **Que la capa desaparezca no pude verlo en captura**: en tercera persona y a esa escala no se
+    distinguen los tanques. La lógica está; mirarlo jugando.
+  - **El tanque cae sin dibujo propio** (solo el cartel): el tanque que cae y pega es N6.
 - **N6 — los tanques como arma.** **Depende de LA SUELTA** (`systems/blanco.js`, de la otra
   sesión): se espera a que esté comiteada y se reusa su balística con el dibujo del tanque. Tabla
   de daño del §3.7.

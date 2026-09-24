@@ -849,6 +849,10 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
       // lleva la cuenta pilon por pilon: la del centro se apaga entera, y el PAR de ala —que es una
       // sola capa horneada para las dos alas— se recorta a la mitad: la primera que sale es la de la
       // izquierda. El recorte va en coordenadas del sprite, asi que gira y rola con el avion.
+      // …Y LOS TANQUES SOLTADOS TAMPOCO (PLAN_NAFTA_ALCANCE N5): el tanque de la corrida anota de que
+      // pilon cuelga cada externo, y lo que ya no esta en la lista cayo al mar.
+      if (run.tanque && nom === 'carga_tanques_ala' && !run.tanque.pilones.includes('ala')) continue;
+      if (run.tanque && nom === 'carga_tanque_centro' && !run.tanque.pilones.includes('centro')) continue;
       let mitad = 0;
       if (blanco.on) {
         if (nom === 'carga_bomba_centro' && blanco.centroN <= 0) continue;

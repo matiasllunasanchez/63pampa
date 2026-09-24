@@ -156,12 +156,17 @@ export function flightSystem(dt, deps) {
       streaks.push({ a, r: 20 + Math.random() * 18, v: 320 + Math.random() * 220, life: 0.5 });
     }
   }
-  const spdTarget = speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: run.boost, afterTier: run.afterTier }) * av.spd;
+  // LO QUE CUELGA DE LOS PILONES (solo con ruta, PLAN_NAFTA_ALCANCE): pesa en la nafta y, desde N5,
+  // en la velocidad — soltar tanques o bombas deja el avion mas rapido. Sin ruta, null y x1.
+  const colgado = naftaSys.activo()
+    ? { bombas: deps.climax === 'suelta' ? run.msl : bombasDe(cfg.carga), tanques: run.tanque.tanques.length } : null;
+  const velC = colgado ? naftaSys.velCarga(colgado) : 1;
+  const spdTarget = speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: run.boost, afterTier: run.afterTier }) * av.spd * velC;
   // CUANTO ACELERA EL TURBO (PLAN_NAFTA_ALCANCE §3.2): la velocidad con turbo contra la misma sin
   // turbo ni after. Es lo que la nafta cobra — 1.5 el turbo de siempre, mas con el after apilado —
   // y solo eso: la velocidad que sube sola con la racha no se paga.
   const turboR = run.boost
-    ? spdTarget / Math.max(1e-6, speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: false, afterTier: 0 }) * av.spd)
+    ? spdTarget / Math.max(1e-6, speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: false, afterTier: 0 }) * av.spd * velC)
     : 1;
   // INTERCAMBIO DE ENERGIA (cfg.energy): la ALTURA es energia almacenada — picar la convierte
   // en velocidad, trepar la gasta. Es lo que arma el pendulo (bajar rapido → rasar → trepar).
@@ -322,7 +327,6 @@ export function flightSystem(dt, deps) {
   if (naftaSys.activo()) {
     if (cfg.fuelOn) {
       const km = run.spd * dt * chAvance() * cvAvance() * kmPorM();
-      const colgado = { bombas: deps.climax === 'suelta' ? run.msl : bombasDe(cfg.carga), tanques: run.tanque.tanques.length };
       if (naftaSys.step(km, plane.y, colgado, turboR) === 'seco') return { death: 'death_seco' };
     }
   } else if (cfg.fuelOn) {

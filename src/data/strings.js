@@ -10,7 +10,7 @@ export const STRINGS = {
   es: {
     langName: 'Español',
     pageHeader: '■ <b>RASANTE</b> · Atlántico Sur, 1982 · Batalla por Malvinas',
-    pageFooter: '<kbd>W</kbd>: gas — si soltás, el avión cae &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: esquivar &nbsp;·&nbsp; <kbd>S</kbd>: picada &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: rolar &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: mirar arriba/abajo &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>ESPACIO</kbd>: cañón &nbsp;·&nbsp; <kbd>Z</kbd>: bomba &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: turbo &nbsp;·&nbsp; <kbd>5</kbd>: llamar a la Chancha (reabastecer) &nbsp;·&nbsp; <kbd>T</kbd>: tren (al aterrizar) &nbsp;·&nbsp; <kbd>F</kbd>: freno &nbsp;·&nbsp; <kbd>ESC</kbd>: pausa &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: mira libre (click: cañón · click der: bomba)<br>Joystick (PlayStation o Xbox): stick izq vuela · stick der rola y mira · R1/RB cañón · L1/LB bomba · R2/RT turbo · L2/LT freno · START pausa<br>Táctil: arrastrá a la izquierda para volar · derecha arriba: fuego · derecha abajo: turbo<br>El turbo quema combustible.',
+    pageFooter: '<kbd>W</kbd>: gas — si soltás, el avión cae &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: esquivar &nbsp;·&nbsp; <kbd>S</kbd>: picada &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: rolar &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: mirar arriba/abajo &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>ESPACIO</kbd>: cañón &nbsp;·&nbsp; <kbd>Z</kbd>: bomba &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: turbo &nbsp;·&nbsp; <kbd>5</kbd>: llamar a la Chancha (reabastecer) &nbsp;·&nbsp; <kbd>3</kbd>: soltar tanques &nbsp;·&nbsp; <kbd>T</kbd>: tren (al aterrizar) &nbsp;·&nbsp; <kbd>F</kbd>: freno &nbsp;·&nbsp; <kbd>ESC</kbd>: pausa &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: mira libre (click: cañón · click der: bomba)<br>Joystick (PlayStation o Xbox): stick izq vuela · stick der rola y mira · R1/RB cañón · L1/LB bomba · R2/RT turbo · L2/LT freno · START pausa<br>Táctil: arrastrá a la izquierda para volar · derecha arriba: fuego · derecha abajo: turbo<br>El turbo quema combustible.',
     aria: 'Juego Rasante: WASD para volar, flechas para rolar y mirar, X dispara, Shift turbo',
     death_land: 'Chocaste el terreno', death_sea: 'Impactaste el mar',
     death_pared: 'Te comiste la ladera',
@@ -75,6 +75,9 @@ export const STRINGS = {
     death_aa: 'La defensa de la barcaza te derribo',
     death_fuel: 'Te quedaste sin combustible sobre el blanco',
     death_seco: 'Te quedaste sin combustible',
+    // SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5)
+    tanques_fuera: 'TANQUES FUERA', tanque_fuera: 'TANQUE CENTRAL FUERA', tanques_nada: 'NO QUEDAN TANQUES',
+    tanques_nafta: 'IBAN CON NAFTA: {km} KM AL MAR',
     // LAS ZONAS DE GASTO, arriba del altimetro (PLAN_NAFTA_ALCANCE §3.6)
     gasto_mayor: 'MAYOR GASTO', gasto_medio: 'GASTO MEDIO', gasto_menor: 'GASTO MENOR',
     // RF-15: la derrota de la PASADA. No te derribaron — se acabo la escuadrilla y el buque
@@ -365,6 +368,7 @@ export const STRINGS = {
     ctrlCam: 'CAMARA (climax)', ctrlCamK: 'V',                  ctrlCamP: 'cruceta ABAJO',
     ctrlTempo: 'MOMENTUM (camara lenta)', ctrlTempoK: '4',      ctrlTempoP: 'SELECT',
     ctrlChancha: 'LA CHANCHA (reabastecer)', ctrlChanchaK: '5', ctrlChanchaP: 'cruceta ARRIBA',
+    ctrlTanques: 'SOLTAR TANQUES', ctrlTanquesK: '3', ctrlTanquesP: 'L3 (clic stick izq)',
     ctrlInv: 'INVERTIR EL EJE Y', ctrlInvK: 'OPCIONES: EJE Y',  ctrlInvP: '△',
     ctrlMusic: 'PISTA MUSICAL', ctrlMusicK: '1   ·   2',        ctrlMusicP: 'L3 · R3',
     ctrlPause: 'PAUSA',         ctrlPauseK: 'ESC',              ctrlPauseP: 'START',
@@ -1119,7 +1123,7 @@ export const STRINGS = {
   en: {
     langName: 'English',
     pageHeader: '■ <b>RASANTE</b> · frontal view · South Atlantic, 1982',
-    pageFooter: '<kbd>W</kbd>: throttle — release and you fall &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: dodge &nbsp;·&nbsp; <kbd>S</kbd>: dive &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: roll &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: look up/down &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>SPACE</kbd>: cannon &nbsp;·&nbsp; <kbd>Z</kbd>: missile (and the pass bombs) &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: boost &nbsp;·&nbsp; <kbd>5</kbd>: call the tanker (refuel) &nbsp;·&nbsp; <kbd>T</kbd>: gear (on landing) &nbsp;·&nbsp; <kbd>F</kbd>: airbrake &nbsp;·&nbsp; <kbd>ESC</kbd>: pause &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: free aim (click: cannon · right click: missile)<br>Gamepad (PlayStation or Xbox): left stick flies · right stick rolls and looks · R1/RB cannon · L1/LB missile · R2/RT boost · L2/LT airbrake · START pause<br>Touch: drag on the left to fly · top-right: fire · bottom-right: boost<br>Boost burns fuel.',
+    pageFooter: '<kbd>W</kbd>: throttle — release and you fall &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: dodge &nbsp;·&nbsp; <kbd>S</kbd>: dive &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: roll &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: look up/down &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>SPACE</kbd>: cannon &nbsp;·&nbsp; <kbd>Z</kbd>: missile (and the pass bombs) &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: boost &nbsp;·&nbsp; <kbd>5</kbd>: call the tanker (refuel) &nbsp;·&nbsp; <kbd>3</kbd>: drop tanks &nbsp;·&nbsp; <kbd>T</kbd>: gear (on landing) &nbsp;·&nbsp; <kbd>F</kbd>: airbrake &nbsp;·&nbsp; <kbd>ESC</kbd>: pause &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: free aim (click: cannon · right click: missile)<br>Gamepad (PlayStation or Xbox): left stick flies · right stick rolls and looks · R1/RB cannon · L1/LB missile · R2/RT boost · L2/LT airbrake · START pause<br>Touch: drag on the left to fly · top-right: fire · bottom-right: boost<br>Boost burns fuel.',
     aria: 'Rasante game: arrows to maneuver, X to fire, Shift to boost',
     death_land: 'You hit the ground', death_sea: 'You hit the sea',
     death_pared: 'You flew into the hillside',
@@ -1165,6 +1169,8 @@ export const STRINGS = {
     death_aa: 'The barge defenses shot you down',
     death_fuel: 'You ran out of fuel over the target',
     death_seco: 'You ran out of fuel',
+    tanques_fuera: 'TANKS AWAY', tanque_fuera: 'CENTER TANK AWAY', tanques_nada: 'NO TANKS LEFT',
+    tanques_nafta: 'THEY HAD FUEL: {km} KM INTO THE SEA',
     gasto_mayor: 'HIGH BURN', gasto_medio: 'MID BURN', gasto_menor: 'LOW BURN',
     death_pasada: 'The squadron was spent and the ship sailed on',
     death_caza: 'A Sea Harrier got on your tail',
@@ -1376,6 +1382,7 @@ export const STRINGS = {
     ctrlCam: 'CAMERA (climax)', ctrlCamK: 'V',                  ctrlCamP: 'd-pad DOWN',
     ctrlTempo: 'MOMENTUM (slow motion)', ctrlTempoK: '4',       ctrlTempoP: 'SELECT',
     ctrlChancha: 'THE TANKER (refuel)', ctrlChanchaK: '5',      ctrlChanchaP: 'd-pad UP',
+    ctrlTanques: 'DROP TANKS', ctrlTanquesK: '3', ctrlTanquesP: 'L3 (left stick click)',
     ctrlInv: 'INVERT Y AXIS',   ctrlInvK: 'OPTIONS: Y AXIS',    ctrlInvP: '△',
     ctrlMusic: 'MUSIC TRACK',   ctrlMusicK: '1   ·   2',        ctrlMusicP: 'L3 · R3',
     ctrlPause: 'PAUSE',         ctrlPauseK: 'ESC',              ctrlPauseP: 'START',

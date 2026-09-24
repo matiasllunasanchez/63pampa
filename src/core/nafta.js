@@ -20,7 +20,7 @@ import {
   TANQUE_INTERNO_KM, TANQUE_EXTRA_KM, TANQUE_LLENO_FRAC, ZONAS_GASTO,
   ARRASTRE_LIMPIO, ARRASTRE_BOMBA, ARRASTRE_TANQUE,
 } from '../data/tuning.js';
-import { tanquesDe, bombasDe } from '../data/cargas.js';
+import { tanquesDe, bombasDe, cargaDe } from '../data/cargas.js';
 
 // ---------- EL TANQUE ----------
 
@@ -31,8 +31,33 @@ export const capacidadKm = id => TANQUE_INTERNO_KM + tanquesDe(id) * TANQUE_EXTR
  *  quedan a cada uno); `interno` el del fuselaje. Por separado porque cada tanque se suelta solo y
  *  pega segun lo que tenga adentro (PLAN §3.7). */
 export function tanqueInicial(id) {
-  return { tanques: Array.from({ length: tanquesDe(id) }, () => TANQUE_EXTRA_KM), interno: TANQUE_INTERNO_KM };
+  // `pilones` dice de donde cuelga cada externo, en el mismo orden que `tanques`: el PAR de ala
+  // primero, el del centro despues. Es lo que decide que se suelta junto (N5: el par de ala sale
+  // de a dos, el del centro solo) y que capa deja de dibujarse.
+  const c = cargaDe(id);
+  const pilones = [].concat(c.ala === 'tanque' ? ['ala', 'ala'] : [], c.centro === 'tanque' ? ['centro'] : []);
+  return { tanques: pilones.map(() => TANQUE_EXTRA_KM), pilones, interno: TANQUE_INTERNO_KM };
 }
+
+/** La capacidad de un tanque YA ARMADO: el interno mas los externos que siguen colgados. Baja al
+ *  soltar — un tanque que se fue no se vuelve a llenar. */
+export const capacidadDe = t => TANQUE_INTERNO_KM + t.tanques.length * TANQUE_EXTRA_KM;
+
+/** SUELTA los externos del pilon `pilon` ('ala' = el par, 'centro' = el solo) y devuelve
+ *  `{ tanque, soltados }`: el tanque NUEVO y los km que tenia cada uno de los que cayeron (que se
+ *  van con ellos: soltar un tanque lleno es tirar nafta, PLAN §3.7). Si no cuelga nada ahi,
+ *  `soltados` sale vacio y el tanque queda igual. */
+export function soltar(t, pilon) {
+  const pil = t.pilones || [];
+  const soltados = t.tanques.filter((k, i) => pil[i] === pilon);
+  const tanques = t.tanques.filter((k, i) => pil[i] !== pilon);
+  const pilones = pil.filter(p => p !== pilon);
+  return { tanque: { ...t, tanques, pilones }, soltados };
+}
+
+/** Que se suelta con la proxima pulsada: el par de ala si sigue colgado, si no el del centro, si no
+ *  nada (null). El ala primero porque es lo que mas arrastra y lo que primero se vacia parejo. */
+export const proximoPilon = t => ((t.pilones || []).includes('ala') ? 'ala' : (t.pilones || []).includes('centro') ? 'centro' : null);
 
 /** Todo lo que queda, externos mas interno, en km de crucero. */
 export const kmQuedan = t => t.tanques.reduce((s, k) => s + k, 0) + t.interno;
@@ -57,7 +82,7 @@ export function gastar(t, km) {
       tanques[i] -= saca; resta -= saca;
     }
   }
-  return { tanques, interno: Math.max(0, t.interno - resta) };
+  return { ...t, tanques, interno: Math.max(0, t.interno - resta) };
 }
 
 /** Carga `km` en el tanque y devuelve el tanque NUEVO: la Chancha, o cualquier cosa que sume.
@@ -79,7 +104,7 @@ export function cargar(t, km) {
       tanques[i] += mete; resta -= mete;
     }
   }
-  return { tanques, interno };
+  return { ...t, tanques, interno };
 }
 
 /** Si un tanque externo con `km` adentro cuenta como LLENO al soltarlo (pega grave y explota) o
