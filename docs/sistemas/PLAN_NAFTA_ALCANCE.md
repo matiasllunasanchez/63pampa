@@ -318,9 +318,21 @@ Cada una deja el juego jugable; tras cada una `npm run check` y `npm run feel` i
   `fVelocidad(v, vSinTurbo)`, `gastoKm(...)`. Constantes a `data/tuning.js`. Unit tests (el turbo
   ×1.5 cuesta ×2.25/km; una misión sin `ruta` y **sin turbo** da exactamente el gasto de hoy; con turbo, el extra sale de `((v/vSinTurbo)³ − 1)`). Reporte en
   `tools/feeltest.js` con la tabla del §4 para las tres cargas. **Cero cambio visible.**
-- **N1 — la ruta y los km.** Campo `ruta:` validado como las fases; derivación de las fronteras
-  de fase y la escala por tramo; HUD en km reales. Se prueba sobre **t15** (ya tiene la forma
-  ida/Chancha/descenso/rasante/blanco/vuelta/Chancha/casa).
+- ✅ **N1 — la ruta y los km** *(hecho 23/9)*. `core/ruta.js` (validador, anclas, `posKm`,
+  `kmPorMetro`) + `systems/ruta.js` (el estado de la corrida, armado en `setRunObjective` al lado de
+  las fases). La barra de objetivo cuenta km reales —número y marcador— en la ida («611 / 700 km»)
+  y en la vuelta («A CASA 350 / 700 km»). t15 declara la ruta. 5 tests `ruta:` en `unit.js`,
+  incluida la validación de toda misión que la declare. Verificado en el juego con capturas.
+  **Divergencias con lo escrito arriba:**
+  1. **Las fases no se derivan de la ruta: la ruta se ANCLA a las fases** (el descenso es el
+     horizonte de radar, el primer rasante el nivelado, el blanco la potencia final, el último
+     `hasta` de la vuelta es casa). Las fases ya son la dramaturgia de cada misión, con sus radios y
+     pausas; regenerarlas desde km las pisaría. Entre anclas, lineal: eso ES la compresión por tramo.
+  2. **Las zonas de la Chancha no son anclas**, son dato en km: su borde no tiene por qué caer en
+     un borde de fase. En t15 hoy **no coinciden** (la fase `chancha` de la ida cae a 375–180 km;
+     la ruta la pide a 450–370). Se unifica en N4, cuando la Chancha lea la ruta.
+  3. **El velocímetro no se tocó.** Con compresión por tramo, un km/h "real" no existe: un metro de
+     crucero vale 30 veces uno de rasante. El velocímetro sigue diciendo la sensación de velocidad.
 - **N2 — el radar con alcance.** `techoRadar()` devuelve "sin techo" fuera de `radarKm`; red,
   tinte y barra de detección obedecen; cartel FUERA DE RADAR; rampa al cruzar la línea; en la
   vuelta, subir adentro del alcance pinta.

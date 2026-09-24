@@ -170,7 +170,11 @@ function giroVuelta(vuelve) {
   return volK;
 }
 
-export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta, solta) {
+// LOS KM DE LA RUTA (PLAN_NAFTA_ALCANCE N1). Con `ruta` la barra dice km REALES —«520 / 700»— y
+// sin decimales: a esa escala el decimal es ruido. Sin ruta, los metros del pasillo de siempre.
+const kmTxt = km => (km >= 100 ? Math.round(km).toString() : km.toFixed(1));
+
+export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta, solta, ruta) {
   const flip = giroVuelta(!!vuelta);
   // LA VUELTA CUENTA LO SUYO: cuanto llevas hecho del regreso contra cuanto mide. Pasada la meta, el
   // odometro de la ida ya no es una ruta — «2.8 / 2.2 km» es un numero que se paso, no un lugar.
@@ -178,10 +182,12 @@ export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta, sol
     // EL MARCADOR VUELVE SOBRE SUS PASOS: arranca en la bandera (donde diste la vuelta) y camina
     // hacia el puerto. Y el numero es LO QUE FALTA para casa, que es la pregunta del regreso.
     const falta = Math.max(0, vuelta.total - vuelta.hecho);
+    // con ruta, lo que falta para casa en km reales: la base esta a blanco km del buque
+    const fR = ruta ? Math.max(0, 2 * ruta.blanco - ruta.pos) : 0;
     cinta({
-      rot: T('hud_home'), prog: Math.max(0, Math.min(1, falta / vuelta.total)),
+      rot: T('hud_home'), prog: Math.max(0, Math.min(1, ruta ? fR / ruta.blanco : falta / vuelta.total)),
       meta: 'distancia', flip,
-      a: (falta / 1000).toFixed(1), b: '/ ' + (vuelta.total / 1000).toFixed(1),
+      a: ruta ? kmTxt(fR) : (falta / 1000).toFixed(1), b: '/ ' + (ruta ? kmTxt(ruta.blanco) : (vuelta.total / 1000).toFixed(1)),
       uni: 'km', uniCol: P.warn, boost: run.boost,
     });
     return;
@@ -190,10 +196,11 @@ export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta, sol
   const esBuque = kind !== 'distance';
   cinta({
     nombre: esBuque ? objectiveShip : null,
-    prog: Math.max(0, Math.min(1, run.dist / objectiveDist)),
+    prog: Math.max(0, Math.min(1, ruta ? ruta.pos / ruta.blanco : run.dist / objectiveDist)),
     meta: esBuque ? 'buque' : 'distancia',
     buque: esBuque ? (ICONO_BUQUE_NOMBRE[objectiveShip] || ICONO_BUQUE[SHIP_CLASS[objectiveShip]] || 'buque_t42') : null,
-    a: km.toFixed(1), b: '/ ' + (objectiveDist / 1000).toFixed(1), flip,
+    a: ruta ? kmTxt(Math.min(ruta.pos, ruta.blanco)) : km.toFixed(1),
+    b: '/ ' + (ruta ? kmTxt(ruta.blanco) : (objectiveDist / 1000).toFixed(1)), flip,
     // 'km' en MINUSCULA y del color del total: mas chica sin bajar de cuerpo, y es ademas el simbolo
     // correcto del kilometro (el SI no lo escribe en mayuscula)
     uni: 'km', uniCol: P.warn,
@@ -1448,7 +1455,7 @@ export function drawHUD(h) {
   // comparable — termina cuando llegas al buque, no cuando te matan, o sea que el puntaje lo decide
   // la distancia y no como volaste. POR LA PATRIA es el unico donde una corrida es una corrida:
   // infinita, sin objetivo, y se acaba cuando te caes.
-  if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind, h.vuelta, h.sueltaYa);
+  if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind, h.vuelta, h.sueltaYa, h.ruta);
   else if (gameMode === 'survival') drawCorridaBar(best);
 
   // EL CONTADOR DE MISION SE FUE (playtest 29/8). «MISION 3/14» arriba del todo era lo unico del

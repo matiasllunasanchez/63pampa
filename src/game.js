@@ -120,6 +120,7 @@ import * as squad from './systems/squad.js';
 // la lista al empezar la corrida y despacha su radio; el sembrador y LA COLA la leen.
 import * as tramos from './systems/tramos.js';
 import * as fases from './systems/fases.js';
+import * as rutaSys from './systems/ruta.js';
 import * as estrellas from './systems/estrellas.js';
 import { piso as pisoEstrella } from './core/estrellas.js';
 import { EST_MAX } from './data/tuning.js';
@@ -1398,6 +1399,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // tramos es el ALCANCE — las fases pasan de 1, porque la VUELTA ocurre despues del buque.
       // Una mision sin `fases` (o sea: todas las de hoy) entra como null y nadie lee nada.
       fases.setFases(objectiveDist > 0 && curMission() ? curMission().fases : null, objectiveDist);
+      // LA RUTA (PLAN_NAFTA_ALCANCE N1): los km REALES de la mision, anclados a sus fases. Va pegada
+      // a las fases porque se ancla a ellas; sin `ruta` (todas las de hoy) queda apagada.
+      rutaSys.setRuta(objectiveDist > 0 && curMission() ? curMission().ruta : null,
+        curMission() ? curMission().fases : null, objectiveDist);
       // EL PULSO necesita saber CONTRA QUE buque es la prueba: de su clase sale como se muere en
       // la cinematica del premio. Va aca y no en reset() porque el objetivo se define despues.
       pulso.setShip(objectiveShip);
@@ -4139,6 +4144,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         vuelta: fases.hayVuelta() && run.dist > objectiveDist
           ? { hecho: run.dist - objectiveDist, total: Math.max(1, fases.finVuelta() - objectiveDist) }
           : null,
+        // …Y LOS KM REALES, si la mision declara `ruta` (PLAN_NAFTA_ALCANCE N1): la barra cuenta
+        // 520 / 700 km en vez de los metros del pasillo. null = la barra de siempre.
+        ruta: rutaSys.hay() ? { pos: rutaSys.pos(), blanco: rutaSys.dato().blancoKm } : null,
         // lo mas alto que ocupa la voz en la banda de abajo (mi caja o la del otro): los avisos de
         // altura se apoyan arriba de eso
         charlaTecho: screens.techoBanda(),

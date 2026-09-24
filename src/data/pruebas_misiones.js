@@ -94,6 +94,15 @@ const t15 = {
   // LA ESPERA POR TIEMPO SE AFLOJA porque ahora manda la ZONA: la primera zona cae a los ~50 s
   // de vuelo y no tendria sentido llegar a ella con el poder todavia bloqueado por reloj.
   chanchaMinT: 40,
+  // LA RUTA EN KM REALES (PLAN_NAFTA_ALCANCE N1). Se ancla a las fases de abajo: el descenso (0.16)
+  // es el horizonte de radar, el primer rasante (0.20) el nivelado, el blanco (0.87) la corrida
+  // final, y la vuelta (2.0) es casa. Queda asi: 520 km de crucero alto en el 16% del pasillo, y
+  // 180 km de llegada en el 84% restante — el crucero comprimido que pidio el autor.
+  //
+  // ⚠ LAS ZONAS DE LA CHANCHA TODAVIA NO COINCIDEN con las fases `chancha: true`: la de la ida
+  // (0.10–0.16) cae hoy entre 375 y 180 km del blanco, y la ruta la pide a 450–370. Las zonas en km
+  // mandan desde N4, cuando la Chancha pase a leerlas; hasta entonces rigen las fases, como siempre.
+  ruta: { blancoKm: 700, radarKm: 180, niveladoKm: 120, potenciaKm: 50, chanchaIda: [450, 370], chanchaVuelta: [350, 400] },
   // PAR PROVISORIO. Los pares de campaña van de 5.000 a 14.000 sobre misiones de 3 km; esta mide
   // diez veces mas y ademas cobra la vuelta entera, asi que el puntaje va a ser otro orden. 20.000
   // es una apuesta para que las estrellas no salgan las cuatro de arriba en el primer vuelo: es

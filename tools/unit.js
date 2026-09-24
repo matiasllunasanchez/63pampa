@@ -2591,3 +2591,64 @@ test('nafta: el trueque de la carga sale solo de los numeros (PLAN §4)', async 
   assert.ok(perfilMision('tanques_bomba', { turbo: true, sueltaTanques: true }).llega
     < perfilMision('tanques_bomba', { turbo: true }).llega);
 });
+
+// ---------- LA RUTA EN KM REALES (src/core/ruta.js, PLAN_NAFTA_ALCANCE N1) ----------
+const RUTA_T = { blancoKm: 700, radarKm: 180, niveladoKm: 120, potenciaKm: 50, chanchaIda: [450, 370], chanchaVuelta: [350, 400] };
+const FASES_T = [
+  { tipo: 'transito', hasta: 0.2 }, { tipo: 'descenso', hasta: 0.3 }, { tipo: 'rasante', hasta: 0.9 },
+  { tipo: 'blanco', hasta: 1 }, { tipo: 'vuelta', hasta: 2 },
+];
+
+test('ruta: las anclas caen en los bordes de fase, y entre ellas es lineal', async () => {
+  const { anclas, posKm } = await import('../src/core/ruta.js');
+  const a = anclas(RUTA_T, FASES_T);
+  assert.deepEqual(a, [{ p: 0, km: 0 }, { p: 0.2, km: 520 }, { p: 0.3, km: 580 }, { p: 0.9, km: 650 }, { p: 1, km: 700 }, { p: 2, km: 1400 }]);
+  near(posKm(0, a), 0);
+  near(posKm(0.1, a), 260);                // la mitad del crucero comprimido
+  near(posKm(0.2, a), 520);                // el horizonte de radar: 180 km al blanco
+  near(posKm(1, a), 700);
+  near(posKm(1.5, a), 1050);               // la mitad de la vuelta
+  near(posKm(9, a), 1400);                 // pasado casa, el odometro no sigue
+});
+
+test('ruta: el crucero se comprime y el rasante no', async () => {
+  const { anclas, kmPorMetro } = await import('../src/core/ruta.js');
+  const a = anclas(RUTA_T, FASES_T), obj = 10000;
+  const crucero = kmPorMetro(0.1, a, obj), rasante = kmPorMetro(0.5, a, obj);
+  assert.ok(crucero > 10 * rasante, `un metro de crucero (${crucero}) tiene que valer mucho mas que uno de rasante (${rasante})`);
+  near(crucero * 0.2 * obj, 520, 1e-6);    // el tramo entero suma lo que dice la ruta
+  assert.equal(kmPorMetro(3, a, obj), 0, 'pasado casa no se recorre nada');
+});
+
+test('ruta: sin descenso no hay ancla de radar, y el tramo se estira entre sus vecinos', async () => {
+  const { anclas } = await import('../src/core/ruta.js');
+  const a = anclas(RUTA_T, [{ tipo: 'rasante', hasta: 1 }]);
+  assert.deepEqual(a.map(x => x.km), [0, 700]);
+});
+
+test('ruta: el validador ataja lo que haria km inventados', async () => {
+  const { validarRuta } = await import('../src/core/ruta.js');
+  assert.deepEqual(validarRuta(undefined, FASES_T), [], 'una mision sin ruta es valida');
+  assert.deepEqual(validarRuta(RUTA_T, FASES_T), []);
+  assert.ok(validarRuta({ ...RUTA_T, blancoKn: 3 }, FASES_T).length, 'clave desconocida');
+  assert.ok(validarRuta({ radarKm: 180 }, FASES_T).length, 'sin blancoKm no hay ruta');
+  assert.ok(validarRuta({ ...RUTA_T, niveladoKm: 200 }, FASES_T).length, 'nivelado antes que el radar');
+  assert.ok(validarRuta({ ...RUTA_T, chanchaIda: [450, 150] }, FASES_T).length, 'la Chancha adentro del radar');
+  assert.ok(validarRuta({ ...RUTA_T, chanchaIda: [800, 400] }, FASES_T).length, 'la Chancha detras de la base');
+  assert.ok(validarRuta({ ...RUTA_T, chanchaIda: 400 }, FASES_T).length, 'la zona es [km, km]');
+  assert.ok(validarRuta(RUTA_T, undefined).length, 'sin fases no hay a que anclarse');
+  assert.ok(validarRuta(RUTA_T, [{ tipo: 'rasante', hasta: 1 }]).length, 'chanchaVuelta sin vuelta');
+  // un descenso DESPUES del rasante: la fraccion avanza y los km retroceden
+  assert.ok(validarRuta({ blancoKm: 700, radarKm: 180, niveladoKm: 120 },
+    [{ tipo: 'transito', hasta: 0.2 }, { tipo: 'rasante', hasta: 0.5 }, { tipo: 'descenso', hasta: 0.7 }, { tipo: 'blanco', hasta: 1 }]).length);
+});
+
+test('ruta: toda mision que la declara la tiene sana (campaña y banco de pruebas)', async () => {
+  const { validarRuta } = await import('../src/core/ruta.js');
+  const { MISIONES_PRUEBA: MP } = await import('../src/data/pruebas_misiones.js');
+  for (const m of [...MISSIONS, ...MP]) {
+    const e = validarRuta(m.ruta, m.fases);
+    assert.deepEqual(e, [], `${m.id}: ${e.join(' · ')}`);
+  }
+  assert.ok(MP.find(m => m.id === 't15').ruta, 't15 es el banco de la ruta');
+});
