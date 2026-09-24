@@ -2760,6 +2760,12 @@ test('chancha: con ruta se la llama por tramo, hasta lo que diga la mision, y si
   assert.equal(ch.pedir(g({ mitad: 'vuelta', max: 2 })), 'used');
   assert.equal(ch.pedir(g({ mitad: 'vuelta', max: 0 })), 'used', 'una mision puede no permitir ninguna');
   ch.resetChancha();
+  // LA DE LA IDA ESTABA PLANIFICADA: viene sin barra, y la barra que tengas queda para la vuelta
+  assert.equal(ch.pedir({ ...g({ mitad: 'ida', max: 1 }), sinBarra: true }), 'ok', 'la de la ida no pide barra');
+  ch.tick(10, { inPlay: false }); ch.cargar();
+  assert.equal(ch.pedir({ ...g({ mitad: 'ida', max: 1 }), sinBarra: true }), 'used');
+  assert.equal(ch.meterVal(), 1, 'y no se lleva la barra ganada');
+  ch.resetChancha();
   // sin mitad, el poder clasico de siempre: una vez por corrida
   ch.cargar();
   assert.equal(ch.pedir({ fuelOn: true, enPasillo: true, viva: true, t: 999 }), 'ok');

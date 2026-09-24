@@ -157,6 +157,7 @@ export const STRINGS = {
     ch_used: 'YA TE CARGUE HOY. NO HAY MAS.',
     // LA CHANCHA CON RUTA (PLAN_NAFTA_ALCANCE N4): viene cuando la llamas, fuera del radar
     ch_radar: 'ADENTRO DEL RADAR NO ENTRO. SALI Y TE VOY A BUSCAR.',
+    ch_lista: 'LISTA',
     ch_viene: 'VOY PARA ALLA. AGUANTA ARRIBA.',
     ch_broken: 'LA CHANCHA NO BAJA MAS AL SUR.',
     // LA RADIO DEL TRANSITO DEL NARWAL (M4 / m3) — SPEC_TRAMOS T4. Son cuatro claves porque el
@@ -1238,6 +1239,7 @@ export const STRINGS = {
     ch_early: 'NOT YET, PATRIA. HANG ON.',
     ch_used: 'I FILLED YOU ONCE TODAY. THAT IS ALL.',
     ch_radar: 'I DO NOT GO INSIDE THE RADAR. GET OUT AND I WILL COME FOR YOU.',
+    ch_lista: 'READY',
     ch_viene: 'ON MY WAY. STAY HIGH.',
     ch_broken: 'THE OLD SOW DOES NOT COME SOUTH ANYMORE.',
     m5_boca: 'PUMA: THERE IT IS. THE WOLF\'S MOUTH. WE GO IN, WE DROP, WE GET OUT.',

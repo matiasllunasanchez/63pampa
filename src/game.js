@@ -545,6 +545,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         mitad: conRuta ? mitad : undefined,
         max: conRuta && curMission() && curMission().chanchaVeces ? curMission().chanchaVeces[mitad] || 0 : 1,
         eta: conRuta ? CH_ETA_RUTA : undefined,
+        // la de la IDA estaba en el plan de vuelo: no pide barra (la de la vuelta si)
+        sinBarra: conRuta && mitad === 'ida',
         // LA ZONA DE ESPERA (PLAN_MISION_CINCO_FASES §11). Si la mision declara alguna fase con
         // `chancha: true`, el pedido SOLO vale adentro de esas fases: el Hercules orbita en un
         // punto de la ruta, no te sigue. Es historico y ademas convierte el poder en una decision
@@ -4286,6 +4288,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         ruta: rutaSys.hay() ? { pos: rutaSys.pos(), blanco: rutaSys.dato().blancoKm } : null,
         // fuera del horizonte de radar: la placa FUERA DE RADAR y sin marca de techo en el altimetro
         fueraRadar: S.state === 'play' && !rutaSys.enAlcance(),
+        // LA CITA DE IDA DISPONIBLE (planificada, sin barra): el reloj de la Chancha se pone en LISTA
+        // en la ida, fuera del radar, mientras quede alguna de las que permite la mision
+        chIdaLista: rutaSys.hay() && cfg.fuelOn && S.state === 'play' && run.dist <= objectiveDist && !rutaSys.enAlcance()
+          && !chancha.snapshot() && chancha.usosDe('ida') < ((curMission() && curMission().chanchaVeces) ? curMission().chanchaVeces.ida || 0 : 1),
         // LA NAFTA EN KM (PLAN_NAFTA_ALCANCE N3), solo con ruta: lo que queda, la capacidad, y el
         // BINGO — lo que hace falta para terminar la mision desde aca volando alto y sin turbo. En la
         // ida incluye llegar al blanco y volver: es lo que dice si vas a necesitar a la Chancha.

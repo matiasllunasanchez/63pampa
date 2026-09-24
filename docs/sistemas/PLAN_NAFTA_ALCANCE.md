@@ -380,6 +380,10 @@ Cada una deja el juego jugable; tras cada una `npm run check` y `npm run feel` i
   por cita; seca, se va). El enganche vale también para las misiones sin ruta (fixture actualizado).
   `chanchaIda`/`chanchaVuelta` de la ruta quedan como dato de dónde orbitaba y como el lugar donde la
   llama el piloto de manual de la calibración.
+  **La de la IDA no pide barra** (decisión del autor 24/9, "lo más real"): la cita de ida estaba en el
+  plan de vuelo, no se ganaba — se la llama sin barra, fuera del radar, y el reloj dice LISTA. **La de
+  la VUELTA sí**: ahí la Chancha rompe el protocolo para ir a buscarte, y eso se gana con puntos (al
+  ras en x10 son ~120 pts/s: la barra de 2000 se llena en ~17 s de rasante sostenido).
 - ✅ **N4 — la Chancha en dos mitades** *(hecho 23/9)*. Con ruta, las zonas salen de `chanchaIda` /
   `chanchaVuelta` en km (`zonasChancha` en core/ruta.js) y no de las fases `chancha: true`, que t15
   dejó de declarar. **IDA:** la Chancha asoma sola al entrar a la zona (`chancha.llegar`,

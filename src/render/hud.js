@@ -1699,20 +1699,21 @@ export function drawHUD(h) {
   const ch = chSnap(), cv = chMeter(), gastada = chGastada();
   // …y solo si la mision la TIENE (`h.chanchaViva`, por snapshot): una mision con `chancha: false`
   // no puede pedirla, y un reloj lleno y en verde ahi es un boton que miente.
-  if (cfg.fuelOn && h.chanchaViva !== false && pide(cv >= 1 || gastada || !!ch)) {
+  if (cfg.fuelOn && h.chanchaViva !== false && pide(cv >= 1 || gastada || !!ch || !!h.chIdaLista)) {
     // EL FINAL DE LA ESCALA ES LA EMERGENCIA: cuando la aguja llega al icono, la Chancha se puede
     // pedir. Con una cita en curso el numero cuenta lo que importa — cuanto falta para que llegue,
     // cuanto dura la ventana, o cuanto tanque va entrando.
     const enCita = !!ch && (ch.fase === 'eta' || ch.conn || ch.win > 0);
     // LISTA: cargada al tope, sin gastar y sin cita en curso. Todo el reloj se pone verde (ver
     // verdeListo): es la unica luz del tablero que dice "esto ya lo podes usar".
-    const lista = cv >= 1 && !gastada && !enCita, verde = verdeListo();
+    const lista = (cv >= 1 || !!h.chIdaLista) && !gastada && !enCita, verde = verdeListo();
     // ENGANCHADO, EL RELOJ ES DE ELLA (pedido del autor 24/9): la aguja y el numero pasan a ser su
     // RESERVA, que baja mientras te pasa nafta. Antes mostraba TU tanque, y un numero de la Chancha
     // que subia no se entendia.
     const suReserva = !!ch && ch.conn;
     reloj(xCha, CUADROS_Y, {
-      val: suReserva ? ch.reserva : gastada ? 0 : cv, ico: 'chancha', fin: 'emergencia',
+      // la de la IDA planificada no depende de la barra: aguja al tope y LISTA, aunque la barra este baja
+      val: suReserva ? ch.reserva : gastada ? 0 : h.chIdaLista ? 1 : cv, ico: 'chancha', fin: 'emergencia',
       critico: !!ch && ch.fase === 'cita' && ch.win < 8,     // la ventana de la cita se esta cerrando
       icoCol: lista ? verde : P.dim,
       borde: lista ? verde : null,
@@ -1722,7 +1723,7 @@ export function drawHUD(h) {
       col: gastada ? P.dim : lista ? P.foam : P.crest,
       txt: enCita ? (ch.fase === 'eta' ? Math.ceil(ch.eta) + 's'
         : ch.conn ? Math.round(ch.reserva * 100) + '%' : Math.ceil(Math.max(0, ch.win)) + 's')
-        : Math.round(cv * 100) + '%',
+        : h.chIdaLista ? T('ch_lista') : Math.round(cv * 100) + '%',
       txtCol: lista ? verde : ch && ch.conn ? P.accent : ch && ch.fase === 'cita' && ch.win < 8 ? P.warn : P.dim });
   }
 

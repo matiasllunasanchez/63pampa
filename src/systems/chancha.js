@@ -56,7 +56,8 @@ function alturaHoy() {
  * informativa: "aca no" antes que "todavia no", y "todavia no" antes que "falta barra".
  *
  * `g` = { fuelOn, enPasillo, viva, t } — el orquestador resuelve el mundo, este modulo decide.
- * Con ruta ademas `mitad`, `max` (cuantas veces en ese tramo) y `eta` (cuanto tarda en llegar).
+ * Con ruta ademas `mitad`, `max` (cuantas veces en ese tramo), `eta` (cuanto tarda en llegar) y
+ * `sinBarra` (la de la ida, que estaba planificada: no cuesta barra).
  * NUNCA consume la barra si algun gate falla (RF-01).
  */
 export function pedir(g) {
@@ -70,9 +71,12 @@ export function pedir(g) {
   // de siempre y este renglon no existe.
   if (g.conZona && !g.enZona) return 'nozona';
   if (fase !== 'idle') return 'used';    // ya viene (o ya esta): no se pide encima
-  if (meter < 1) return 'empty';
+  // LA DE LA IDA NO SE GANA (`sinBarra`, decision del autor 24/9: "lo mas real"): la cita de ida con
+  // el Hercules estaba en el plan de vuelo antes de despegar. La de la vuelta si — ahi la Chancha
+  // rompe el protocolo para ir a buscarte, y eso se paga con la barra.
+  if (!g.sinBarra && meter < 1) return 'empty';
   if (g.mitad) usos[g.mitad]++; else usada = true;
-  meter = 0;
+  if (!g.sinBarra) meter = 0;
   fase = 'eta'; etaT = g.eta || CH_ETA; pedidoT = 0;
   return 'ok';
 }
