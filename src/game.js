@@ -64,8 +64,9 @@ import * as cine from './systems/cine.js';
 import { drawCine } from './render/cine.js';
 import * as muni from './render/municion.js';
 import * as blancoSys from './systems/blanco.js';
-import { BL as BL_BLANCO } from './data/blanco.js';
+import { BL as BL_BLANCO, FASE_ESCAPE } from './data/blanco.js';
 import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE } from './data/cargas.js';
+import { AUDIO_BLOQUEADO } from './data/sonido.js';
 import { bingoKm, capacidadKm, colgadoDe, velRelativa, estadoTanque } from './core/nafta.js';
 const BL_ALT_IDEAL = BL_BLANCO.ALT_IDEAL;
 import { drawBlanco, drawBlancoHud } from './render/blanco.js';
@@ -1425,7 +1426,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function prepararCarga() {
       const hayBlanco = runClimax() === 'suelta' && objectiveDist > 0;
       if (hayBlanco) cfg.carga = conBombaCentral(cfg.carga);
-      blancoSys.preparar(hayBlanco, objectiveShip, objectiveDist, { PZ, W }, cfg.carga);
+      // …y la mision dice cuantas pasadas da (una, salvo que pida mas) y si despues del buque hay
+      // vuelta: con vuelta, pegarle abre EL ESCAPE en vez del negro (PLAN_VUELTA_REAL V0).
+      vir = null;   // una secuencia de viraje a medias no sobrevive a una corrida nueva
+      blancoSys.preparar(hayBlanco, objectiveShip, objectiveDist, { PZ, W }, cfg.carga,
+        { pasadas: curMission() && curMission().pasadas, vuelta: fases.hayVuelta() });
       // LA NAFTA COMO ALCANCE (PLAN_NAFTA_ALCANCE N3): con ruta, el tanque se llena en km segun la
       // carga YA RESUELTA (la bomba del buque incluida). Va despues de la suelta por eso mismo.
       naftaSys.preparar(rutaSys.hay() ? cfg.carga : null);
@@ -2676,6 +2681,45 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  en las manos y en el sonido —vuelven las voces, vuelve la siembra— y no que lo anuncie un
      *  rotulo. Lo unico que se ve es el mismo fundido corto de 0.55 s que ya usa el cruce de ida,
      *  porque tambien aca cambia la camara (el climax mira de frente, el pasillo de costado). */
+    /** EL ESCAPE ARRANCA (PLAN_VUELTA_REAL §2.B): el cruce con el buque hundido. */
+    function empezarEscape() {
+      fases.tapar(FASE_ESCAPE);
+      estrellas.llenar(EST_MAX);
+      // EL RADAR ENTERO EN ROJO, pero en 0,99 y no en 1: el 1 dispara la oleada de misiles EN EL
+      // ACTO, y el avion todavia esta arriba por el salto — medido, un misil lo bajaba medio segundo
+      // despues del cruce. La presion la ponen las cuatro estrellas, con su siembra de siempre; la
+      // barra llena dice "te vieron" y se vacia sola cuando bajas al agua.
+      run.detection = 0.99;
+    }
+    /** EL VIRAJE (PLAN_VUELTA_REAL §2.C): perdiste las estrellas, Puma lo dijo, el cuadro se fue a
+     *  negro. La media vuelta la cuenta UN VIDEO —el pasillo nunca rota—: la silueta del avion
+     *  cruzando el mar, de dia o de noche segun el cielo de la mision (assets/vuelta_*.mp4). */
+    let vir = null;              // la secuencia antes del video: { fase: 'perdimos' | 'rumbo', t }
+    let virVid = null;           // el video en curso: { el, t }
+    const NOCHE = ['night', 'storm', 'moon'];
+    const VIRAJE_VID = '../assets/vuelta_';   // el build web la apaga (tools/build_web.py)
+    function viraje() {
+      vir = null;
+      const el = document.createElement('video');
+      el.src = VIRAJE_VID + (NOCHE.includes(cfg.sky) ? 'noche' : 'dia') + '.mp4';
+      el.muted = AUDIO_BLOQUEADO || isMuted();   // el sonido del video respeta el bloqueo del juego
+      el.playsInline = true;
+      el.play().catch(() => { });
+      virVid = { el, t: 0 };
+      setState('viraje');
+    }
+    /** Termina el video (o se saltea): del otro lado, la vuelta de siempre, desde el buque. */
+    function finViraje() {
+      if (virVid) { try { virVid.el.pause(); virVid.el.removeAttribute('src'); virVid.el.load(); } catch (e) { } }
+      virVid = null;
+      fases.tapar(null);
+      blancoSys.terminarEscape();
+      run.dist = objectiveDist + 1;    // la vuelta cuenta desde el buque: lo escapado no es camino a casa
+      // del otro lado del negro el avion vuelve con aire abajo: el fundido tapa el primer segundo, y
+      // sin esto se iba al agua antes de que el jugador lo viera (medido)
+      plane.y = Math.max(plane.y, 10); plane.vy = 0;
+      volverDelBlanco();
+    }
     function volverDelBlanco() {
       run.climaxHecho = 1;
       // el premio del climax se cobra IGUAL — se gano, aunque la mision siga. Sin esto los puntos
@@ -3212,6 +3256,18 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // El espejo del despegue, y por eso vive al lado: es el otro momento en que el avion y la
       // pista se tocan. La diferencia es quien manda — el despegue es una animacion con cuenta
       // regresiva, y esto lo volas vos.
+      // EL VIRAJE: corre el video y nada mas. Se saltea con cualquier tecla pasado el primer segundo,
+      // y si el video no arranca (el build web no lo trae, un archivo que falta) se sigue solo: un
+      // asset que falta nunca deja al jugador mirando negro.
+      if (S.state === 'viraje') {
+        if (virVid) {
+          virVid.t += dtReal;
+          const el = virVid.el;
+          if (el.ended || (virVid.t > 1 && flags.anyPress) || (virVid.t > 2.5 && el.readyState < 2) || virVid.t > 40) finViraje();
+        } else finViraje();
+        flags.anyPress = false; flags.backReq = false;
+        return;
+      }
       if (S.state === 'landing') {
         landT += dt;
         stepLecciones();   // la de la aproximacion final (`en: 'aterrizaje'`)
@@ -3589,8 +3645,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       //   · y el FLANCO, que se mira sobre `run.estrellas` en vez de pedirle una señal nueva al
       //     contrato de `flightSystem`. Quien habla es el orquestador, como con todo lo demas.
       const estAntes = run.estrellas;
-      const estBaja = estrellas.step(dt, plane.y <= fases.techoRadar(RADAR_ALT));
-      if (estBaja) radioTramo(run.estrellas === 0 ? 'est_limpio' : 'est_baja');
+      // EN EL ESCAPE (PLAN_VUELTA_REAL V0) las estrellas bajan con su propio reloj —mas corto que el
+      // general: es un escape, no un tramo— y NO SE NARRAN: desde el impacto rige el silencio de
+      // radio. Lo que dice que vas perdiendolas es el panel de la busqueda.
+      const escapando = blancoSys.escapando();
+      const estBaja = estrellas.step(dt, plane.y <= fases.techoRadar(RADAR_ALT), escapando ? BL_BLANCO.ESCAPE_EST_S : 0);
+      if (escapando) { /* silencio */ }
+      else if (estBaja) radioTramo(run.estrellas === 0 ? 'est_limpio' : 'est_baja');
       else if (run.estrellas > estAntes) radioTramo(estrellaLinea(run.estrellas));
       // EL HORIZONTE DE RADAR (PLAN_NAFTA_ALCANCE N2): cruzar la linea se ANUNCIA, en los dos
       // sentidos. Es un cartel y no una radio a proposito: en la ida vas en silencio. El primer
@@ -3650,9 +3711,33 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // cierra lo que el negro ya tapo)
         if (b === 'hundido') { finishObjective(); return; }
         if (b && b.fallo) { die(b.fallo); return; }
+        // ERRASTE, EN UNA MISION: el ataque era de la escuadrilla EN FILA. Si queda un avion vivo y
+        // sano —y todos llevan la bomba del centro—, el de atras toma la pasada; si no, derrota.
+        if (b === 'errado') {
+          if (canRelevo(run.lives)) { blancoSys.enFila(); onPassSpent({ spent: 'suelta', why: 'death_fallo_blanco' }); }
+          else die('death_fallo_blanco');
+          return;
+        }
+        // EL ESCAPE (PLAN_VUELTA_REAL V0): lo hundiste en una mision con vuelta y lo pasaste por
+        // encima. No hay negro: en ese cuadro te ven todos —todas las estrellas, el radar en rojo, la
+        // alarma que ya sonaba— y el pasillo sigue. La fase del escape tapa a las de la vuelta.
+        if (b === 'escape' || (b && b.escape)) empezarEscape();
         // EL SALTO CORTO: cruzaste por debajo de la silueta y te llevaste los palos. Es un golpe de
         // chapa (DMG.death_palos): si el avion ya venia roto, se cae — y entra el relevo de siempre.
         if (b && b.roce && damage.takeHit(b.roce)) { onDeath(b.roce); return; }
+        // …Y EL VIRAJE: sin estrellas, escapaste. Es la bisagra entre las dos mitades, y el pasillo
+        // no la puede mostrar —no rota—, asi que la cuenta un video (ver `viraje`).
+        if (blancoSys.escapando() && run.estrellas <= 0 && !vir) { vir = { fase: 'perdimos', t: 0 }; radioTramo('vir_perdimos'); missiles.length = 0; }
+        if (vir) {
+          vir.t += dt;
+          if (vir.fase === 'perdimos' && vir.t >= BL_BLANCO.VIR_LEER) { vir = { fase: 'rumbo', t: 0 }; radioTramo('vir_casa'); }
+          else if (vir.fase === 'rumbo') {
+            // bajo el negro nadie maneja: nada puede pegarte ni podes irte al agua sin verlo
+            for (const o of obstacles) o.done = true;
+            missiles.length = 0; plane.y = Math.max(plane.y, 5);
+            if (vir.t >= BL_BLANCO.VIR_NEGRO) { viraje(); return; }
+          }
+        }
       }
       if (gameMode !== 'pasadas' && !(runClimax() === 'pasada' && pasada.spawnsCut(run.dist, objectiveDist))
         && !(runClimax() === 'suelta' && blancoSys.spawnsCut(run.dist)))
@@ -4280,12 +4365,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         chanchaViva: !((gameMode === 'campaign' || S.test) && curMission() && curMission().chancha === false),
         // LA VUELTA, para la barra de objetivo: cuanto llevas hecho del regreso y cuanto mide. Va
         // por snapshot, como el resto — el HUD no pregunta, recibe.
-        vuelta: fases.hayVuelta() && run.dist > objectiveDist
+        // (EN EL ESCAPE todavia no: la cinta se queda sobre el buque hasta el viraje)
+        vuelta: fases.hayVuelta() && run.dist > objectiveDist && !blancoSys.escapando()
           ? { hecho: run.dist - objectiveDist, total: Math.max(1, fases.finVuelta() - objectiveDist) }
           : null,
         // …Y LOS KM REALES, si la mision declara `ruta` (PLAN_NAFTA_ALCANCE N1): la barra cuenta
         // 520 / 700 km en vez de los metros del pasillo. null = la barra de siempre.
-        ruta: rutaSys.hay() ? { pos: rutaSys.pos(), blanco: rutaSys.dato().blancoKm } : null,
+        ruta: rutaSys.hay() ? { pos: blancoSys.escapando() ? rutaSys.dato().blancoKm : rutaSys.pos(), blanco: rutaSys.dato().blancoKm } : null,
         // fuera del horizonte de radar: la placa FUERA DE RADAR y sin marca de techo en el altimetro
         fueraRadar: S.state === 'play' && !rutaSys.enAlcance(),
         // LA CITA DE IDA DISPONIBLE (planificada, sin barra): el reloj de la Chancha se pone en LISTA
@@ -4329,7 +4415,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // EL NEGRO DEL FIN DEL ATAQUE (LA SUELTA): en el mismo escalon que el velo de la charla —
         // encima del mundo y del HUD, DEBAJO de la radio—, que es lo que deja leer a Puma sobre el
         // negro. El fundido de mision de siempre (`fadeT`) va al final de todo y taparia la voz.
-        { const ng = S.state === 'play' ? blancoSys.negro() : 0;
+        // …y el del VIRAJE: "comencemos la vuelta a casa" se lee sobre el negro que se cierra
+        { const ng = S.state === 'play' ? Math.max(blancoSys.negro(), vir && vir.fase === 'rumbo' ? Math.min(1, vir.t / BL_BLANCO.VIR_FUNDE) : 0) : 0;
           if (ng > 0) { ctx.globalAlpha = ng; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; } }
         ctx.save(); ctx.scale(U, U);
         // `charla`: si hay una conversacion en la banda de abajo, la voz de mi avion no puede salir de
@@ -4538,6 +4625,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         else drawRotuloVuelo(T('rot_rasante'), tr);
       }
 
+      // EL VIDEO DEL VIRAJE, a pantalla completa y con bandas si el formato no calza
+      if (S.state === 'viraje') {
+        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+        const el = virVid && virVid.el;
+        if (el && el.readyState >= 2 && el.videoWidth) {
+          const k = Math.min(W / el.videoWidth, H / el.videoHeight), vw = el.videoWidth * k, vh = el.videoHeight * k;
+          ctx.drawImage(el, (W - vw) / 2, (H - vh) / 2, vw, vh);
+        }
+      }
+
       // fundido desde negro (al salir de la historia hacia el despegue) — SIEMPRE al final
       if (fadeT > 0) {
         ctx.globalAlpha = Math.min(1, fadeT / 1.4);
@@ -4700,7 +4797,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       };
       window.__chacall = () => { pedirChancha(); return window.__chadbg(); };
       // LA SUELTA (systems/blanco.js): el HUD calculado + el veredicto y el daño del buque.
-      window.__suelta = () => JSON.stringify(Object.assign({ st: S.state, msl: run.msl, spd: Math.round(run.spd) }, blancoSys.hud() || {}, { res: blancoSys.estado().res, dano: blancoSys.estado().dano, hundido: blancoSys.estado().hundido, z: Math.round(blancoSys.estado().z), d: blancoSys.estado().z - PZ, pred: blancoSys.estado().pred, alt: plane.y }));
+      window.__suelta = () => JSON.stringify(Object.assign({ st: S.state, msl: run.msl, spd: Math.round(run.spd) }, blancoSys.hud() || {}, { res: blancoSys.estado().res, dano: blancoSys.estado().dano, hundido: blancoSys.estado().hundido, z: Math.round(blancoSys.estado().z), d: blancoSys.estado().z - PZ, pred: blancoSys.estado().pred, alt: plane.y, esc: blancoSys.escapando(), est: run.estrellas }));
       window.__chaput = (x, y) => { plane.x = +x; plane.y = +y; plane.vy = 0; return JSON.stringify({ x: plane.x, y: plane.y }); };
       // los otros dos gates, puestos desde afuera: el COMBUSTIBLE apagado (donde el poder no
       // existe) y la MISION posterior a la rotura del guion. Se escriben las CAUSAS —cfg.fuelOn y

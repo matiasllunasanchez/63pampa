@@ -27,6 +27,7 @@ let ultima = -1;         // el indice de la fase vigente en el cuadro anterior (
  *  fracciones no significan nada sin su objetivo. Atarlo ahi garantiza que la fraccion y su
  *  objetivo son SIEMPRE del mismo run. */
 export function setFases(f, obj) {
+  tapa = null;
   lista = Array.isArray(f) && f.length ? f : null;
   objetivo = obj > 0 ? obj : 0;
   ultima = -1;
@@ -36,8 +37,17 @@ export function setFases(f, obj) {
 /** Sin fases: el estado normal de TODAS las misiones de hoy y de todos los modos infinitos. */
 export const hayFases = () => !!lista && objetivo > 0;
 
+// LA FASE PUESTA A MANO (PLAN_VUELTA_REAL, el escape): mientras exista, ES la vigente y tapa a
+// las de la data. El escape avanza el odometro por el tramo de la vuelta, y sin esto las fases de
+// la vuelta —con sus radios y su siembra— correrian antes del viraje. `stepFases` no la anuncia:
+// no es una entrada a una fase de la mision, y al quitarla la vuelta se anuncia sola.
+let tapa = null;
+/** Pone (o saca, con null) una fase que manda sobre la data. */
+export function tapar(f) { tapa = f ? { idx: -2, tipo: f.tipo || 'vuelta', hasta: Infinity, val: (k, fb) => (Object.prototype.hasOwnProperty.call(f, k) ? f[k] : fb) } : null; }
+export const tapada = () => !!tapa;
+
 /** La fase vigente ahora mismo, o null (= manda el cfg plano). */
-export const vigente = () => faseAt(run.dist, objetivo, lista);
+export const vigente = () => tapa || faseAt(run.dist, objetivo, lista);
 
 /** ¿ESTA MISION SIGUE DESPUES DEL BUQUE? Es la pregunta que decide si el climax cierra la mision
  *  o si todavia falta volver, y por eso vive aca y no en game.js: la contesta la DATA.
@@ -96,6 +106,7 @@ export function techoRadar(base) {
 function techoFase(base) {
   const f = vigente();
   if (!f) return base;
+  if (f === tapa) return f.val('radar', base);   // la tapa no tiene fase anterior contra que rampear
   const techo = f.val('radar', base);
   const anterior = f.idx > 0 ? faseAt(objetivo * (lista[f.idx - 1].hasta - 1e-9), objetivo, lista) : null;
   const techoAnt = anterior ? anterior.val('radar', base) : base;
@@ -136,6 +147,7 @@ export function resetFases() { setFases(null, 0); }
  *  A DIFERENCIA DE LA RADIO DE TRAMO, no lleva lista de dichas: una fase no puede repetirse en una
  *  corrida (las fracciones son estrictamente crecientes), asi que el flanco alcanza. */
 export function stepFases() {
+  if (tapa) return null;              // la tapa no se anuncia (ver `tapar`)
   const f = vigente();
   const i = f ? f.idx : -1;
   if (i === ultima) return null;

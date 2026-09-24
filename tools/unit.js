@@ -2903,3 +2903,40 @@ test('calibracion: en t15 el trueque de la carga se sostiene a la velocidad del 
   // la zona de la Chancha de la ida dura segundos, no un instante
   assert.ok(vueloRuta(t15, 'tanques_bomba').enZona.ida >= 3, 'la zona de la ida se cruza demasiado rapido');
 });
+
+// LA VUELTA REAL V0 (docs/sistemas/PLAN_VUELTA_REAL.md): el escape se apoya en dos piezas chicas —
+// una fase puesta a mano que tapa a las de la data, y las estrellas con un reloj propio.
+test('vuelta real: la fase del escape tapa a la vuelta y no se anuncia', async () => {
+  const fases = await import('../src/systems/fases.js');
+  const lista = [{ tipo: 'rasante', hasta: 1, radio: 'r1' }, { tipo: 'vuelta', hasta: 2, radio: 'r2', obstacles: 3 }];
+  fases.setFases(lista, 1000);
+  run.dist = 1200;                                         // ya en la vuelta
+  assert.equal(fases.val('radio', null), 'r2');
+  fases.stepFases();                                       // adopta la vigente
+  fases.tapar({ tipo: 'vuelta', radio: null });
+  assert.equal(fases.tapada(), true);
+  assert.equal(fases.val('radio', 'x'), null, 'la tapa manda: sin radio');
+  assert.equal(fases.val('obstacles', 7), 7, 'lo que la tapa no dice cae al fallback, no a la fase de abajo');
+  assert.equal(fases.stepFases(), null, 'la tapa no se anuncia');
+  fases.tapar(null);
+  assert.equal(fases.val('radio', null), 'r2');
+  fases.setFases(null, 0); run.dist = 0;
+});
+
+test('vuelta real: las estrellas se llenan de golpe y bajan con el reloj que se pida', async () => {
+  const est = await import('../src/systems/estrellas.js');
+  const { EST_MAX, EST_PERDER_S } = await import('../src/data/tuning.js');
+  est.resetEstrellas();
+  est.llenar(EST_MAX);
+  assert.equal(run.estrellas, EST_MAX);
+  let bajo = null;
+  for (let t = 0; t < 9.05 && !bajo; t += 0.05) bajo = est.step(0.05, true, 9);
+  assert.ok(bajo, 'con 9 s por estrella, a los 9 s baja una');
+  assert.equal(run.estrellas, EST_MAX - 1);
+  est.resetEstrellas();
+  est.llenar(1);
+  bajo = null;
+  for (let t = 0; t < 9.05 && !bajo; t += 0.05) bajo = est.step(0.05, true);
+  assert.equal(bajo, null, 'sin reloj propio manda el general (' + EST_PERDER_S + ' s)');
+  est.resetEstrellas();
+});

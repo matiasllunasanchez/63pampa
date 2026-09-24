@@ -208,6 +208,9 @@ const t16 = {
   id: 't16', name: 'LA SUELTA',
   goal: { kind: 'ship', ship: 'HMS ARDENT', dist: 4000 },
   climax: 'suelta',
+  // TRES PASADAS, solo aca: es el banco para practicar la suelta, y errar tiene que dejar volver a
+  // probar. En una mision de verdad es una sola (data/blanco.js, PASADAS).
+  pasadas: 3,
   cfg: P({ sky: 'clear', obstacles: 0, bombs: 0, caza: 0, fuelOn: false }),
   // PUMA CANTA LA SUELTA: cada seña de systems/blanco.js (`bl_<seña>`) con su banco de data/story.js.
   // Es el formato que la mision 2 heredaria tal cual si queda bien. `cada: 0` porque las señas ya

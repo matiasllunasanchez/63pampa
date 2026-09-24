@@ -28,8 +28,11 @@ let mslAntes = 0;   // para notar la suelta: la bomba que falta desde el cuadro 
 let PZ = 14, W = 480;
 
 /** Prepara (o apaga) el buque para esta corrida. Lo llama game.js donde se define el objetivo. */
-export function preparar(on, nombre, objectiveDist, geo, carga) {
+export function preparar(on, nombre, objectiveDist, geo, carga, opts) {
   resetBlanco(on, nombre, SHIP_CLASS[nombre]);
+  const o = opts || {};
+  blanco.pasadas = o.pasadas > 0 ? o.pasadas : BL.PASADAS;
+  blanco.conVuelta = !!o.vuelta;
   if (geo) { PZ = geo.PZ; W = geo.W; }
   objetivo = objectiveDist;
   cargaId = carga;
@@ -63,7 +66,8 @@ export function tomarBomba() {
 export const bloqueada = () => blanco.on && blanco.alaN === 0 && blanco.centroN > 0 && !aTiro();
 
 /** RF-01 de la PASADA, reusado: el ultimo tramo se vacia y lo unico adelante es el blanco. */
-export const spawnsCut = dist => blanco.on && dist >= objetivo - BL.VISIBLE_Z * 0.6;
+export const spawnsCut = dist => blanco.on && !blanco.escapando && dist >= objetivo - BL.VISIBLE_Z * 0.6;
+// (…y NO en el escape: ahi lo que siembran las estrellas es justamente lo que hay que esquivar)
 
 /** Una seña para Puma, una sola vez por pasada. */
 const seña = c => { if (!blanco.dicho[c]) { blanco.dicho[c] = 1; blanco.cues.push(c); } };
@@ -138,7 +142,11 @@ export function corta(pm) {
  *  del negro sostenido: el cruce no resuelve nada en el acto, primero se deja leer a Puma. */
 export function step(dt) {
   if (!blanco.on) return null;
-  if (blanco.z === 0 && blanco.zPrev === 0) blanco.z = blanco.zPrev = PZ + objetivo - run.dist;
+  // DONDE DEBERIA ESTAR segun el odometro. El buque se mueve como el mundo (a `run.spd`), pero si
+  // el odometro SALTA —una sonda, un relevo— se resincroniza: sin esto, un salto al final de la
+  // mision dejaba el buque a veintinueve kilometros.
+  const segunOdo = PZ + objetivo - run.dist;
+  if ((blanco.z === 0 && blanco.zPrev === 0) || Math.abs(blanco.z - segunOdo) > 60) blanco.z = blanco.zPrev = segunOdo;
   blanco.zPrev = blanco.z;
   blanco.z -= run.spd * dt;
   if (blanco.hundido) blanco.sinkT += dt;
@@ -167,20 +175,33 @@ export function step(dt) {
   // POR ENCIMA AL BUQUE?" en docs/historia/PREGUNTAS_HISTORICAS.md). El negro tapa el cruce.
   if (blanco.zPrev >= PZ && blanco.z < PZ) {
     blanco.lento = false;
-    blanco.negroT = 0;
-    if (blanco.hundido) blanco.pendiente = 'hundido';
+    // …SALVO QUE LO HAYAS HUNDIDO EN UNA MISION CON VUELTA (PLAN_VUELTA_REAL V0): ahi no hay negro.
+    // Pasaste a traves y el pasillo sigue: arranca EL ESCAPE. game.js te pone en todas las
+    // estrellas y el viraje llega cuando las pierdas. El salto se sigue cobrando igual (abajo).
+    const escape = blanco.hundido && blanco.conVuelta;
+    if (escape) blanco.escapando = true;
     else {
-      blanco.pasada++;
-      blanco.pendiente = blanco.pasada >= BL.PASADAS ? { fallo: 'death_suelta' } : 'reencare';
+      blanco.negroT = 0;
+      if (blanco.hundido) blanco.pendiente = 'hundido';
+      else {
+        blanco.pasada++;
+        // EN UNA MISION (una pasada por avion): errar no decide aca —decide game.js si queda un
+        // avion en la fila (`enFila`) o si es la derrota. Con varias pasadas (la prueba t16), la de
+        // siempre: el re-encare, hasta que se acaben.
+        blanco.pendiente = blanco.pasadas === 1 ? 'errado'
+          : blanco.pasada >= blanco.pasadas ? { fallo: 'death_suelta' } : 'reencare';
+      }
     }
     // EL SALTO (lo hace el jugador, 23/9): por debajo de la silueta del buque te llevas los palos.
     // No mata en el acto —es el roce de las antenas, no chocar el casco—: es un golpe de chapa, y
     // game.js decide si el avion aguanta o se cae. Por encima, o por la proa o la popa, limpio.
     const h = altoEn(plane.x), roce = h >= 0 && plane.y < AGUA + h
-    // …y el piso del negro: donde quedaste, y si rozaste, del otro lado de los palos
-    blanco.altPiso = Math.max(plane.y, 6, roce ? AGUA + h + 1 : 0);
-    if (roce) { seña('roce'); return { roce: 'death_palos' }; }
-    return null;
+    // …y el piso del negro: donde quedaste, y si rozaste, del otro lado de los palos (en el escape
+    // no hay negro ni piso: el avion es tuyo desde el primer cuadro)
+    if (!escape) blanco.altPiso = Math.max(plane.y, 6, roce ? AGUA + h + 1 : 0);
+    else if (roce) plane.y = Math.max(plane.y, AGUA + h + 1);
+    if (roce) { seña('roce'); return { roce: 'death_palos', escape }; }
+    return escape ? 'escape' : null;
   }
   // LA PREDICCION, una vez por cuadro: la leen las señas de Puma y el HUD (lo que titila en verde).
   blanco.pred = aTiro() && !blanco.lento && run.msl > 0
@@ -188,6 +209,18 @@ export function step(dt) {
   blanco.listo = blanco.pred === 'centro' || blanco.pred === 'extremo';
   if (!blanco.hundido && !blanco.lento) señas();
   return null;
+}
+
+/** EL SIGUIENTE EN LA FILA toma la pasada: el buque queda a `BL.FILA_M` —el de atras venia a
+ *  segundos— y el avion trae su carga entera. El relevo (game.js) cuenta el cambio de mando. */
+export function enFila() {
+  run.dist = objetivo - BL.FILA_M;
+  blanco.z = blanco.zPrev = PZ + BL.FILA_M;
+  armar();
+  pmissiles.length = 0;
+  for (const k in blanco.dicho) delete blanco.dicho[k];
+  blanco.dicho.asoma = 1;   // el buque ya esta encima: no hay "ahi esta"
+  blanco.res = '';
 }
 
 /** OTRA PASADA, armada detras del negro: el buque vuelve al horizonte con su daño encima. */
@@ -201,6 +234,14 @@ function otraPasada() {
   blanco.cues.push('reencare');
   blanco.salidaT = 0;
 }
+
+/** Estamos en EL ESCAPE (PLAN_VUELTA_REAL V0): el buque quedo atras hundido, y el pasillo sigue
+ *  hasta que pierdas las estrellas. */
+export const escapando = () => blanco.on && blanco.escapando;
+
+/** EL VIRAJE: se termino el escape. El buque sale de escena del todo —ni dibujo, ni alarma, ni
+ *  HUD—: lo que sigue es la vuelta. */
+export function terminarEscape() { blanco.escapando = false; blanco.on = false; }
 
 /** El factor del reloj del mundo: BL.LENTO desde el impacto armado hasta el cruce, 1 si no. */
 export const slow = () => blanco.on && blanco.lento ? BL.LENTO : 1;

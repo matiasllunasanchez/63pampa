@@ -58,7 +58,10 @@ export const STRINGS = {
     est_sube4: 'CONDOR: SON DEMASIADOS. BAJA Y NO SUBAS MAS.',
     est_baja: 'CONDOR: PARECE QUE LOS PERDIMOS.',
     est_limpio: 'CONDOR: TE PERDIERON DE VISTA. SEGUI ASI.',
-    fase_vuelta: 'PUMA: YA SABEN DONDE ESTAMOS. AHORA NOS BUSCAN.',
+    // (24/9) venia despues de "los perdimos" y lo contradecia: ahora dice que el peligro sigue, no que te encontraron
+    fase_vuelta: 'PUMA: PEGADOS AL AGUA HASTA CASA. TODAVÍA NOS PUEDEN ENCONTRAR.',
+    // EL VIRAJE (PLAN_VUELTA_REAL): el escape termino — se rompe el silencio para esto y nada mas
+    vir_perdimos: 'PUMA: LOS PERDIMOS. NADIE ATRÁS.', vir_casa: 'PUMA: COMENCEMOS LA VUELTA A CASA.',
     death_mast: 'Chocaste una fragata', death_tree: 'Chocaste un arbol', death_helo: 'Colision con helicoptero',
     death_jet: 'Choque con avion enemigo', death_balloon: 'Globo de barrera',
     death_missile: 'Te alcanzo un misil',
@@ -459,6 +462,7 @@ export const STRINGS = {
     death_pulso: 'Erraste la mano, y el buque sigue flotando',
     // LA SUELTA SOBRE EL BUQUE (data/blanco.js): el veredicto de cada bomba y el HUD de la pasada
     death_suelta: 'Se acabaron las pasadas y el buque sigue a flote',
+    death_fallo_blanco: 'Erraste la suelta, y el buque sigue a flote',
     death_palos: 'Te llevaste los palos del buque',
     bl_hundido: '¡HUNDIDO!', bl_averiado: 'AVERIADO', bl_dormida: 'NO DESPERTÓ',
     bl_corta: 'CORTA', bl_larga: 'LARGA', bl_reencare: 'SIGUE A FLOTE · OTRA PASADA',
@@ -1160,7 +1164,8 @@ export const STRINGS = {
     est_sube4: 'CONDOR: TOO MANY. GET DOWN AND STAY DOWN.',
     est_baja: 'CONDOR: LOOKS LIKE WE LOST THEM.',
     est_limpio: 'CONDOR: THEY LOST SIGHT OF YOU. KEEP IT THAT WAY.',
-    fase_vuelta: 'PUMA: THEY KNOW WHERE WE ARE NOW. THEY ARE COMING.',
+    fase_vuelta: 'PUMA: STAY ON THE WATER ALL THE WAY HOME. THEY CAN STILL FIND US.',
+    vir_perdimos: 'PUMA: WE LOST THEM. NOBODY BEHIND.', vir_casa: 'PUMA: LET\'S START THE WAY HOME.',
     death_mast: 'You hit a frigate', death_tree: 'You hit a tree', death_helo: 'Collided with a helicopter',
     death_jet: 'Hit an enemy plane', death_balloon: 'Barrage balloon',
     death_missile: 'A missile hit you',
@@ -1458,6 +1463,7 @@ export const STRINGS = {
     res_pulso: 'THE PULSE',
     death_pulso: 'Your hand slipped, and the ship is still afloat',
     death_suelta: 'Out of passes, and the ship is still afloat',
+    death_fallo_blanco: 'You missed the drop, and the ship is still afloat',
     death_palos: 'You clipped the ship\'s masts',
     bl_hundido: 'SUNK!', bl_averiado: 'DAMAGED', bl_dormida: 'DIDN\'T ARM',
     bl_corta: 'SHORT', bl_larga: 'LONG', bl_reencare: 'STILL AFLOAT · GO AROUND',

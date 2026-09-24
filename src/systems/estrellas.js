@@ -12,8 +12,15 @@ import { acotar, pasoEscondite } from '../core/estrellas.js';
 import { EST_PERDER_S, EST_GRACIA_S } from '../data/tuning.js';
 
 let esc = { reloj: 0, fuera: 0 };   // el reloj del escondite (ver core: continuo, con gracia)
+// cuanto hay que aguantar escondido por estrella AHORA: el general, salvo que quien llama pida otro
+// (el ESCAPE de la suelta, que tiene el suyo — data/blanco.js ESCAPE_EST_S)
+let perder = EST_PERDER_S;
 
-export function resetEstrellas() { esc = { reloj: 0, fuera: 0 }; run.estrellas = 0; }
+export function resetEstrellas() { esc = { reloj: 0, fuera: 0 }; run.estrellas = 0; perder = EST_PERDER_S; }
+
+/** TODAS DE GOLPE: el cruce del buque en una mision con vuelta (PLAN_VUELTA_REAL, el escape). Te
+ *  acaban de ver pasar por encima de la cubierta: no hay escondite que valga, el reloj arranca. */
+export function llenar(n) { run.estrellas = acotar(n); esc = { reloj: 0, fuera: 0 }; }
 
 /** Cuantas te buscan ahora. */
 export const nivel = () => acotar(run.estrellas);
@@ -35,9 +42,10 @@ export function sumar() {
  *
  *  Devuelve `{ bajo }` con el nivel NUEVO en el cuadro en que se completa un ciclo, o null. Quien
  *  lo anuncia es el orquestador: un sistema no llama hacia arriba. */
-export function step(dt, bajoTecho) {
+export function step(dt, bajoTecho, perderS) {
+  perder = perderS > 0 ? perderS : EST_PERDER_S;
   if (nivel() <= 0) { esc = { reloj: 0, fuera: 0 }; return null; }
-  const st = pasoEscondite(dt, esc, !!bajoTecho, EST_PERDER_S, EST_GRACIA_S);
+  const st = pasoEscondite(dt, esc, !!bajoTecho, perder, EST_GRACIA_S);
   esc = { reloj: st.reloj, fuera: st.fuera };
   if (!st.baja) return null;
   run.estrellas = acotar(nivel() - 1);
@@ -47,10 +55,10 @@ export function step(dt, bajoTecho) {
 /** CUANTO FALTA para bajar la proxima, 0..1. Lo dibuja el HUD, y no es un adorno: si esconderse
  *  veinte segundos baja una estrella, el jugador tiene que VER esos veinte segundos correr. Sin
  *  el reloj a la vista, bajar no es una decision — es fe. */
-export const progreso = () => (nivel() > 0 ? Math.max(0, Math.min(1, esc.reloj / EST_PERDER_S)) : 0);
+export const progreso = () => (nivel() > 0 ? Math.max(0, Math.min(1, esc.reloj / perder)) : 0);
 
 /** Foto para la sonda `__estdbg`. */
 export const dbg = () => JSON.stringify({
   n: nivel(), reloj: +esc.reloj.toFixed(2), fuera: +esc.fuera.toFixed(2),
-  progreso: +progreso().toFixed(3), perderS: EST_PERDER_S, graciaS: EST_GRACIA_S,
+  progreso: +progreso().toFixed(3), perderS: perder, graciaS: EST_GRACIA_S,
 });

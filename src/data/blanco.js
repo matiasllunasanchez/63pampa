@@ -46,10 +46,17 @@ export const BL = {
   DANO_CENTRO: 100,
   DANO_EXTREMO: 55,
 
-  /** Cuantas pasadas antes de que la mision se pierda. Cada pasada es el avion siguiente del
-   *  escuadron, con SU carga entera: la bomba del centro (la del buque, que todos llevan) y lo que
-   *  cuelgue del ala — dos bombas mas, o dos tanques (data/cargas.js, `conBombaCentral`). */
-  PASADAS: 3,
+  /** Cuantas pasadas antes de que la mision se pierda. UNA, como era (PLAN_VUELTA_REAL V0, 24/9):
+   *  "si no le pegamos, pantalla negra y derrota". La mision puede pedir mas con `pasadas:` en su
+   *  renglon — la prueba t16 pide tres, y cada una es el avion siguiente del escuadron con SU carga
+   *  entera (data/cargas.js, `conBombaCentral`). */
+  PASADAS: 1,
+  /** EL SIGUIENTE EN LA FILA (24/9, corrige al PLAN_VUELTA_REAL): la escuadrilla atacaba EN FILA,
+   *  cada avion en la misma pasada y separados por segundos. Errar no terminaba el ataque: venia el
+   *  de atras. Asi que en una mision, errar pasa el mando al siguiente avion del escuadron —vivo,
+   *  sano y con la bomba del centro, que la llevan todos— ya en la aproximacion, a esta distancia
+   *  del buque. Sin nadie que siga: derrota. */
+  FILA_M: 900,
   /** Cuanto atras vuelve a quedar el buque en el RE-ENCARE: lo suficiente para verlo asomar de
    *  nuevo en el horizonte y rearmar la aproximacion, no tanto como para aburrir. */
   REENCARE_M: 1800,
@@ -77,6 +84,18 @@ export const BL = {
   NEGRO_T: 2.4,
   SALIDA_T: 1.2,
 
+  /** EL ESCAPE (PLAN_VUELTA_REAL §2.B, V0). En una mision CON VUELTA, pegarle no corta: en el cruce
+   *  te ponen en todas las estrellas y el pasillo sigue hasta que las pierdas; recien ahi, el
+   *  viraje. `EST_S` es cuanto hay que aguantar escondido por estrella — el general
+   *  (EST_PERDER_S, 20 s) daria 80 s al ras, que es un tramo y no un escape. */
+  ESCAPE_EST_S: 9,
+  /** EL VIRAJE (pedido del autor, 24/9): sin estrellas, Puma dice "los perdimos" y se deja LEER
+   *  (`VIR_LEER`); despues "comencemos la vuelta a casa" mientras el cuadro se funde a negro
+   *  (`VIR_NEGRO`, el fundido dura `VIR_FUNDE`); y ahi el video del viraje, de dia o de noche. */
+  VIR_LEER: 3.5,
+  VIR_NEGRO: 3.0,
+  VIR_FUNDE: 1.2,
+
   PTS_HUNDIDO: 3000,
   PTS_AVERIA: 600,
 };
@@ -91,3 +110,10 @@ export const PERFIL = {
   t42: [0.089, 0.089, 0.104, 0.115, 0.083, 0.099, 0.141, 0.313, 0.313, 0.266, 0.099, 0.141, 0.141, 0.104, 0.099, 0.099, 0.099, 0.057, 0.057, 0.052],
   log: [0.126, 0.126, 0.230, 0.225, 0.209, 0.209, 0.162, 0.162, 0.220, 0.204, 0.199, 0.152, 0.152, 0.152, 0.204, 0.215, 0.304, 0.257, 0.094, 0.089],
 };
+
+/** LA FASE DEL ESCAPE: lo que rige mientras escapas, tapando a las fases de la vuelta (que recien
+ *  corren despues del viraje). Mismo formato que una fase de data/missions.js — lo lee
+ *  `fases.val()` como a cualquier otra. SIN RADIO: el silencio arranca con el impacto, y el ultimo
+ *  grito es el de Puma ("¡por encima de los palos!"). Sin siembra propia: lo que te cae encima lo
+ *  decide la tabla de las estrellas, que en el cruce quedan al tope. */
+export const FASE_ESCAPE = { tipo: 'vuelta', radio: null, bidones: false };

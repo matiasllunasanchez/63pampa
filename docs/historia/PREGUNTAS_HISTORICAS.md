@@ -1197,3 +1197,18 @@ opción. No bloquea nada — el plan usa números de partida.
 3. Los casos de remolque con tanques perforados: se nombran a Benito Rotolo y Rubén Zini —
    confirmar nombres, grados, fechas y misiones.
 4. Pilotos eyectados en el mar en 1982: cuántos, dónde, y cuántos fueron rescatados.
+
+---
+
+## ¿ATACABA UN SOLO AVIÓN? — la pasada de la escuadrilla (pregunta del autor, 24/9/2026)
+
+Corrige un supuesto del PLAN_VUELTA_REAL (decisión 1: "el ataque era uno solo"). **No atacaba un
+solo avión.** La escuadrilla (dos o cuatro aviones, de memoria) atacaba **junta y en fila**, cada
+uno soltando en la **misma pasada**, separados por segundos. Lo que era único era la **pasada por
+avión**: no se daba la vuelta para un segundo intento. Si el primero erraba, el que venía detrás
+todavía podía pegar. Caso que se recuerda (a confirmar): el 25/5 dos parejas de A-4B atacaron al
+Broadsword y al Coventry; las bombas de la primera pareja no hundieron nada, las de la segunda
+hundieron al Coventry.
+
+**A confirmar:** composición típica de las escuadrillas de A-4B en los ataques a buques, separación
+entre aviones en la pasada, y el detalle del ataque del 25/5.

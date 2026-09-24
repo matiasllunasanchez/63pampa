@@ -206,6 +206,12 @@ def main():
     if not ok:
         raise SystemExit('ERROR: no encontre la base ../assets/hud/ en el bundle (cambio render/iconos.js?)')
 
+    # EL VIDEO DEL VIRAJE (PLAN_VUELTA_REAL, assets/vuelta_*.mp4): 13 MB que la web no carga. El
+    # juego ya se banca que falte —si el video no arranca, sigue solo a la vuelta—, asi que se
+    # apaga como las placas y los retratos.
+    js, ok = sub_path(js, '../assets/vuelta_', 'data:,video-web-off/')
+    if not ok:
+        raise SystemExit('ERROR: no encontre la ruta del video del viraje en el bundle (cambio game.js?)')
     if '../assets/' in js:
         raise SystemExit('ERROR: quedaron rutas ../assets/ sin re-embeber en game.js')
 

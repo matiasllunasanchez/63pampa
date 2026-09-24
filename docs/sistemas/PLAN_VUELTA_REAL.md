@@ -322,10 +322,35 @@ gradients, 3D render, photorealistic`
 Cada una deja el juego jugable; `npm run check` y `npm run feel` idénticos tras cada una. Se prueba
 en `t15` (IDA Y VUELTA) y con una fila de PRUEBAS por tramo (patrón de `t16`).
 
-- **V0 — la bisagra.** Pegarle = el pasillo sigue (sin negro, sin `volverDelBlanco` en el buque);
-  errarle = negro y `death_fallo_blanco`; una pasada en misión. En el cruce: 4 estrellas, alarma,
-  radar rojo. Estrellas en 0 → EL VIRAJE (al principio, el fundido de `volverDelBlanco` como
-  suplente) → la vuelta. **Con esto la forma entera ya se juega.**
+- ✅ **V0 — la bisagra** *(hecho 24/9)*. Pegarle = el pasillo sigue (sin negro, sin
+  `volverDelBlanco` en el buque); errarle = negro y `death_fallo_blanco`; una pasada en misión
+  (`BL.PASADAS = 1`; `t16` pide 3 con `pasadas:`). En el cruce: 4 estrellas, alarma, radar rojo.
+  Estrellas en 0 → EL VIRAJE (hoy, el fundido de `volverDelBlanco` como suplente) → la vuelta desde
+  el buque. Verificado volando t15 entero con capturas; 2 tests `vuelta real:` en `unit.js`.
+  **Cómo quedó, y lo que se desvió de lo escrito:**
+  1. **El escape es una FASE PUESTA A MANO** (`fases.tapar(FASE_ESCAPE)`, `data/blanco.js`): el
+     odómetro sigue avanzando —el mar, la nafta y la siembra dependen de él— y la tapa evita que
+     corran antes de tiempo las fases de la vuelta, con sus radios. En el viraje el odómetro
+     **vuelve al punto del buque**: lo escapado gastó nafta pero no es camino a casa.
+  2. **El radar va a 0,99, no a 1.** El 1 dispara la oleada de misiles en el acto y el avión
+     todavía está arriba por el salto: medido, un misil lo bajaba medio segundo después del cruce.
+  3. **Las estrellas bajan con su reloj propio** (`BL.ESCAPE_EST_S` = 9 s por estrella, 36 s en
+     total; el general es 20) y **no se narran**: el silencio de radio arranca con el impacto.
+  4. **La siembra vuelve en el escape** (`spawnsCut` se apagaba desde que asomaba el buque y nunca
+     se volvía a prender): lo que sueltan las 4 estrellas es lo que hay que esquivar.
+  5. **El buque se resincroniza con el odómetro** si este salta (sondas, relevos).
+- ✅ **V0.1 — la fila y el viraje con video** *(hecho 24/9, pedido del autor)*.
+  - **La escuadrilla ataca EN FILA** (corrige la decisión 1, ver `PREGUNTAS_HISTORICAS.md` «¿ATACABA
+    UN SOLO AVIÓN?»): errar pasa el mando al **siguiente avión** —vivo, sano y con la bomba del
+    centro, que la llevan todos— ya en la aproximación, a `BL.FILA_M` (900 m) del buque, con el
+    relevo de siempre ("VASCO SALE DE LA CORRIDA · TURNO DE PICHÓN"). Los intentos son los aviones:
+    sin nadie más, `death_fallo_blanco`. Verificado: cinco pasadas erradas, la quinta es la derrota.
+  - **El viraje:** estrellas en 0 → Puma *"Los perdimos. Nadie atrás."* (3,5 s para leer) → *"Comencemos
+    la vuelta a casa."* mientras el cuadro se funde a negro por debajo de la radio → el **video**
+    (`assets/vuelta_dia.mp4` o `vuelta_noche.mp4` según el cielo: `night`, `storm` y `moon` son
+    noche), a pantalla completa, salteable con una tecla después del primer segundo → la vuelta de
+    siempre desde el buque. Estado nuevo `viraje`; si el video no carga, se sigue solo. El build web
+    no carga los 13 MB del video (`tools/build_web.py` lo apaga).
 - **V1 — la cinemática del viraje.** La timeline de EL DIRECTOR: Puma meciendo alas, los vivos
   acoplándose, el giro contra el cielo. Reemplaza al fundido suplente de V0.
 - **V2 — la línea recta.** Carril de escape, "mostrar la panza", trazadoras desde atrás y columnas.
@@ -345,8 +370,8 @@ ataque"). V4–V6 después, cada una con su playtest.
 
 ## 5 · Decisiones abiertas *(para el autor)*
 
-1. **¿En ESCUADRÓN, errarle al buque es derrota aunque queden pilotos?** Propuesta: **sí** — el
-   ataque era uno solo; los que quedan son los que vuelven, no los que reintentan.
+1. ~~¿Errarle al buque es derrota aunque queden pilotos?~~ **No** (24/9): la escuadrilla atacaba en
+   fila; el siguiente avión toma la pasada (V0.1).
 2. **¿Cuánto dura el escape?** Con `EST_PERDER_S` (20 s por estrella) serían 80 s al ras.
    Propuesta: un valor propio del escape, ~8–10 s por estrella (30–40 s en total).
 3. **"Mostrar la panza": ¿mata o multiplica daño?** Propuesta: multiplica (×2,5).

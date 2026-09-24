@@ -29,6 +29,10 @@ export const blanco = {
   salidaT: -1,
   pendiente: null,    // lo que se resuelve al terminar el negro: 'hundido' | 'reencare' | { fallo }
   altPiso: -1,        // el piso del avion durante el final filmado (-1 = libre)
+  // LA VUELTA REAL (PLAN_VUELTA_REAL V0): cuantas pasadas da la mision, si despues del buque hay
+  // vuelta, y si estamos en EL ESCAPE — pegarle con vuelta no corta: se escapa hasta perder las
+  // estrellas, y recien ahi el viraje.
+  pasadas: 1, conVuelta: false, escapando: false,
   // EL ESTANTE (data/cargas.js): que cuelga del par de ala ('bomba' | 'tanque' | null), cuantas
   // bombas de ala quedan, y la del CENTRO — la del buque, bloqueada hasta que el buque esta a tiro.
   ala: null, alaN: 0, centroN: 0,
@@ -43,6 +47,7 @@ export function resetBlanco(on, nombre, clase) {
   blanco.cues.length = 0; for (const k in blanco.dicho) delete blanco.dicho[k];
   blanco.lento = false; blanco.negroT = -1; blanco.salidaT = -1; blanco.pendiente = null; blanco.altPiso = -1;
   blanco.ala = null; blanco.alaN = 0; blanco.centroN = 0; blanco.pred = null; blanco.listo = false;
+  blanco.escapando = false;
 }
 
 /** Altura del casco (unidades de mundo, sobre la flotacion) en la coordenada lateral `x`, o -1 si
