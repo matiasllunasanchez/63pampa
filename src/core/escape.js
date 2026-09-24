@@ -9,11 +9,16 @@ export const escape = {
   rafT: 0,         // reloj de la proxima rafaga de popa
   panza: false,    // este cuadro estas mostrando la panza (fuera del carril o alabeado)
   tiros: [],       // las trazadoras de popa: { ox, oy, ax, ay, z, zPrev, t }
+  // LA VIBORA (V3): la solucion de tiro del artillero (0..1), el ultimo lado hacia el que te moviste,
+  // cuanto le queda congelada por el humo, y los piques recientes (se mueven con el mundo)
+  sol: 0, lado: 0, congela: 0, vibora: false,
+  piques: [],      // { x, z }
 };
 
 export function resetEscape() {
   escape.on = false; escape.t = 0; escape.carrilX = 0; escape.rafT = 0; escape.panza = false;
   escape.tiros.length = 0;
+  escape.sol = 0; escape.lado = 0; escape.congela = 0; escape.vibora = false; escape.piques.length = 0;
 }
 
 /** Donde esta una trazadora a la profundidad `z`. El buque quedo MUY atras (`dist` unidades), asi

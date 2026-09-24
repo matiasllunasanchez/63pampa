@@ -124,14 +124,13 @@ export const FASE_ESCAPE = { tipo: 'vuelta', radio: null, bidones: false, radar:
  *  barco era una sentencia de muerte: exponer la panza le daba a la tripulacion una silueta
  *  perfecta."* La artilleria de popa tira rafagas DESDE ATRAS durante `RECTA_T` segundos. Yendo
  *  derecho por el carril sos un blanco de frente —una rayita— y los tiros se abren (`SIGMA_RECTA`);
- *  saliendote del carril (`CARRIL`) o alabeando (`BANK_PANZA`) mostras la panza y se cierran
+ *  saliendote del carril (`CARRIL`) o rolando en una pirueta mostras la panza y se cierran
  *  (`SIGMA_PANZA`). No hay multiplicador de daño: el castigo es la PUNTERIA que les regalas, que es
  *  literal lo que dice la fuente. Unidades de mundo. */
 export const ESC = {
   RECTA_T: 12,        // segundos de fuego de popa desde el cruce
   GRACIA: 2.2,        // segundos sin que el radar complete la barra: el salto te deja alto un rato
   CARRIL: 8,          // media anchura del carril alrededor de donde cruzaste
-  BANK_PANZA: 0.45,   // alabeo (rad) desde el que se te ve la panza
   RAFAGA_CADA: 0.9,
   POR_RAFAGA: 2,
   SIGMA_RECTA: 12,    // dispersion yendo derecho: medido, ~1 golpe de escudo en los 12 s
@@ -142,5 +141,21 @@ export const ESC = {
   DIST: 400,          // a cuanto quedo la popa: fija la pendiente del tiro (lejos = casi paralelo)
   G: 1.1,             // caida pasado el avion (con 1.1 un tiro a 5 m pica a ~200 adelante)
   Z_MAX: 260,
+
+  // LA VIBORA (V3). *"Movimientos laterales erraticos y bruscos, la viborita: no se apartaban de la
+  // ruta, balanceaban el avion de lado a lado. Asi el artillero de popa no podia calcular el tiro."*
+  // Pasada la linea recta, el artillero ARMA UNA SOLUCION mientras volas predecible: se completa en
+  // `SOL_T` y ahi tira una rafaga precisa con plomo (adonde vas a estar en `PLOMO` s). Cada vez que
+  // invertis el movimiento lateral (mas de `VX_MIN` hacia el otro lado) la solucion vuelve a cero.
+  // Mientras se arma, los tiros comunes se van cerrando (de SIGMA_RECTA a SIGMA_SOL): los piques
+  // que se acercan son el aviso. Pasar por un pique reciente CONGELA la solucion (`HUMO_T`).
+  VIBORA_HASTA: 28,   // segundos desde el cruce: ahi sales del alcance de popa y se calla
+  SOL_T: 1.3,
+  SIGMA_SOL: 1.4,
+  POR_SOLUCION: 3,
+  PLOMO: 0.35,
+  VX_MIN: 5,
+  HUMO_T: 0.4,
+  HUMO_X: 4,
 };
 

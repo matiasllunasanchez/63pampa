@@ -364,8 +364,16 @@ en `t15` (IDA Y VUELTA) y con una fila de PRUEBAS por tramo (patrón de `t16`).
   cruce el radar no completa la barra: el salto te deja alto y la oleada pegaba antes de bajar.
   Ajustes medidos: las trazadoras vienen casi paralelas (popa a 400) y su cola es proporcional a la
   profundidad — con otro modelo se iban al cielo o duraban un décimo de segundo en cuadro.
-- **V3 — la víbora.** El artillero de popa con solución de tiro; viborear dentro del carril la
-  rompe; el humo la congela.
+- ✅ **V3 — la víbora** *(hecho 24/9)*. De los 12 a los 28 s del escape el artillero de popa **arma
+  una solución** (1,3 s volando predecible) y tira una ráfaga precisa con plomo; **cada inversión
+  del movimiento lateral la tira a cero**. Mientras se arma, los tiros comunes se cierran (σ 12 →
+  1,4): los piques que se acercan son el aviso. Pasar por un pique reciente la **congela** 0,4 s.
+  Un cartel —no una radio: rige el silencio— avisa una vez: **VIBOREÁ · NO LES DES LÍNEA**.
+  Medido en INTEGRIDAD: derecho te bajan en 6–8 s; viboreando (±5, inversión cada 0,6 s) un golpe
+  que absorbe el escudo. **Dos correcciones que salieron de medir:** el alabeo del esquive ya no
+  cuenta como "mostrar la panza" (en el control directo todo movimiento lateral inclina el sprite
+  casi a tope, y viborear era mostrar la panza); y la velocidad lateral sale de cuánto se movió el
+  avión, no de `plane.vx`, para que valga con mouse, alabeo o teclado.
 - **V4 — las señas y la fuga.** "Mirame la panza" con el daño real; la fuga como término de gasto;
   el jefe decide "a casa / a la Chancha".
 - **V5 — el otro sector y la Chancha a upa.** Otra luz y otra siembra en la vuelta, la CAP, la

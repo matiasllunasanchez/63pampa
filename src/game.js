@@ -3735,10 +3735,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (blancoSys.escapando() && run.estrellas <= 0 && !vir) { vir = { fase: 'perdimos', t: 0 }; radioTramo('vir_perdimos'); missiles.length = 0; }
         // LA LINEA RECTA (V2): la artilleria de popa tira mientras escapas. Un tiro que pega es un
         // golpe de chapa; si el avion no aguanta, entra el siguiente — y el escape sigue.
-        if (blancoSys.escapando() && !vir && escapeSys.step(dt) === 'hit') {
+        const es = blancoSys.escapando() && !vir ? escapeSys.step(dt) : null;
+        if (es === 'hit') {
           escapeSys.limpiar();
           if (damage.takeHit('death_popa')) { onDeath('death_popa'); return; }
         }
+        // LA VIBORA (V3): el unico aviso es un cartel y no una radio — rige el silencio. Dice QUE
+        // hacer, una vez; como se juega lo cuentan los piques que se van cerrando.
+        if (es === 'vibora') popup(W / 2, 60, T('esc_vibora'), P.warn);
         if (vir) {
           vir.t += dt;
           if (vir.fase === 'perdimos' && vir.t >= BL_BLANCO.VIR_LEER) { vir = { fase: 'rumbo', t: 0 }; radioTramo('vir_casa'); }
@@ -4815,7 +4819,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       };
       window.__chacall = () => { pedirChancha(); return window.__chadbg(); };
       // LA SUELTA (systems/blanco.js): el HUD calculado + el veredicto y el daño del buque.
-      window.__suelta = () => JSON.stringify(Object.assign({ st: S.state, msl: run.msl, spd: Math.round(run.spd) }, blancoSys.hud() || {}, { res: blancoSys.estado().res, dano: blancoSys.estado().dano, hundido: blancoSys.estado().hundido, z: Math.round(blancoSys.estado().z), d: blancoSys.estado().z - PZ, pred: blancoSys.estado().pred, alt: plane.y, esc: blancoSys.escapando(), est: run.estrellas }));
+      window.__suelta = () => JSON.stringify(Object.assign({ st: S.state, msl: run.msl, spd: Math.round(run.spd) }, blancoSys.hud() || {}, { res: blancoSys.estado().res, dano: blancoSys.estado().dano, hundido: blancoSys.estado().hundido, z: Math.round(blancoSys.estado().z), d: blancoSys.estado().z - PZ, pred: blancoSys.estado().pred, alt: plane.y, x: plane.x, vx: plane.vx, esc: blancoSys.escapando(), est: run.estrellas }));
       window.__chaput = (x, y) => { plane.x = +x; plane.y = +y; plane.vy = 0; return JSON.stringify({ x: plane.x, y: plane.y }); };
       // los otros dos gates, puestos desde afuera: el COMBUSTIBLE apagado (donde el poder no
       // existe) y la MISION posterior a la rotura del guion. Se escriben las CAUSAS —cfg.fuelOn y
