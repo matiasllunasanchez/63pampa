@@ -162,6 +162,9 @@ export const STRINGS = {
     ch_radar: 'ADENTRO DEL RADAR NO ENTRO. SALI Y TE VOY A BUSCAR.',
     ch_lista: 'LISTA',
     ch_viene: 'VOY PARA ALLA. AGUANTA ARRIBA.',
+    // PLAN_VUELTA_REAL V5: la palabra clave adentro del radar te delata, y el remolque con fuga
+    ch_triangulan: 'TE TRIANGULARON LA RADIO',
+    ch_upa: 'NO TE SUELTES. TE LLEVAMOS A UPA.',
     ch_broken: 'LA CHANCHA NO BAJA MAS AL SUR.',
     // LA RADIO DEL TRANSITO DEL NARWAL (M4 / m3) — SPEC_TRAMOS T4. Son cuatro claves porque el
     // transito son cuatro tramos: la conversacion entera de GUION_3 no entra en un popup, y lo
@@ -465,6 +468,7 @@ export const STRINGS = {
     death_fallo_blanco: 'Erraste la suelta, y el buque sigue a flote',
     death_popa: 'Te alcanzó la artillería de popa: mostraste la panza',
     esc_vibora: 'VIBOREÁ · NO LES DES LÍNEA',
+    cap_aviso: 'PUMA: PATRULLA ADELANTE. ABAJO, QUE NO NOS VEAN.', cap_vio: 'PUMA: NOS VIERON. HARRIER EN LA COLA.',
     sena_ok: 'SANO', sena_dano: 'AVERIADO', sena_fuga: 'PERDÉS NAFTA', sena_casa: 'A CASA', sena_chancha: 'A LA CHANCHA',
     death_palos: 'Te llevaste los palos del buque',
     bl_hundido: '¡HUNDIDO!', bl_averiado: 'AVERIADO', bl_dormida: 'NO DESPERTÓ',
@@ -1249,6 +1253,8 @@ export const STRINGS = {
     ch_radar: 'I DO NOT GO INSIDE THE RADAR. GET OUT AND I WILL COME FOR YOU.',
     ch_lista: 'READY',
     ch_viene: 'ON MY WAY. STAY HIGH.',
+    ch_triangulan: 'THEY TRIANGULATED YOUR RADIO',
+    ch_upa: 'DON\'T LET GO. WE\'LL CARRY YOU HOME.',
     ch_broken: 'THE OLD SOW DOES NOT COME SOUTH ANYMORE.',
     m5_boca: 'PUMA: THERE IT IS. THE WOLF\'S MOUTH. WE GO IN, WE DROP, WE GET OUT.',
     m5_salida: 'PUMA: IT OPENS UP. OPEN SEA AHEAD — AND THE ARDENT WAITING.',
@@ -1469,6 +1475,7 @@ export const STRINGS = {
     death_fallo_blanco: 'You missed the drop, and the ship is still afloat',
     death_popa: 'The stern guns got you: you showed them your belly',
     esc_vibora: 'WEAVE · DON\'T GIVE THEM A LINE',
+    cap_aviso: 'PUMA: PATROL AHEAD. STAY LOW, DON\'T LET THEM SEE US.', cap_vio: 'PUMA: THEY SAW US. HARRIER ON OUR TAIL.',
     sena_ok: 'OK', sena_dano: 'DAMAGED', sena_fuga: 'LEAKING FUEL', sena_casa: 'HOME', sena_chancha: 'TO THE TANKER',
     death_palos: 'You clipped the ship\'s masts',
     bl_hundido: 'SUNK!', bl_averiado: 'DAMAGED', bl_dormida: 'DIDN\'T ARM',

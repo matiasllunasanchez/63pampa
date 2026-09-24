@@ -4,7 +4,9 @@
 import { ctx } from './ctx.js';
 import { proj } from '../core/fx.js';
 import { escape, tiroEn } from '../core/escape.js';
-import { ESC } from '../data/blanco.js';
+import { ESC, CAP } from '../data/blanco.js';
+import * as enemyArt from './enemies.js';
+import { plane } from '../core/state.js';
 
 export function drawTirosPopa(pz) {
   if (!escape.on || !escape.tiros.length) return;
@@ -24,3 +26,15 @@ export function drawTirosPopa(pz) {
   ctx.lineCap = 'butt';
 }
 const xy = p => [p.x, p.y];
+
+/** LA CAP (V5): dos Sea Harrier cruzando el pasillo de lado a lado, lejos y adelante. Chicos a
+ *  proposito: es una patrulla que pasa, no un duelo — el duelo es LA COLA, si te ven. */
+export function drawCap(c) {
+  const f = c.t / CAP.T;
+  for (let i = 0; i < 2; i++) {
+    const x = -c.lado * CAP.ANCHO * (1 - 2 * f) + plane.x - c.lado * i * 6;
+    const s = proj(x, CAP.Y + i * 1.5, CAP.Z + i * 8);
+    if (enemyArt.ready('harrier')) enemyArt.drawFrame(ctx, 'harrier', 0, 0, s.x, { centerY: s.y }, s.k, c.lado > 0, false, 0.25);
+    else { ctx.fillStyle = '#2b2f33'; ctx.fillRect(s.x - 2, s.y - 1, 4, 2); }
+  }
+}

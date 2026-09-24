@@ -2953,3 +2953,26 @@ test('vuelta real: la trazadora de popa pasa por la mira y pica adelante', async
   assert.ok(lejos.y < 1, 'pasado el avion cae al agua antes de Z_MAX (y=' + lejos.y.toFixed(2) + ')');
   assert.ok(Math.abs(lejos.x - 1) < 2, 'y no se abre de costado');
 });
+
+// "LA TRAJO A UPA" (PLAN_VUELTA_REAL V5): con el tanque perforado, llenarlo no termina la cita.
+test('vuelta real: con fuga la Chancha no se va al llenar — te lleva a upa', async () => {
+  const ch = await import('../src/systems/chancha.js');
+  const { CH_ALT, CH_HOSE_X, CH_HOSE_Y, CH_ENGANCHE } = await import('../src/data/tuning.js');
+  const vuelo = fuga => {
+    ch.resetChancha();
+    assert.equal(ch.pedir({ fuelOn: true, enPasillo: true, viva: true, t: 999, minT: 0, mitad: 'vuelta', max: 1, eta: 0.1, sinBarra: true }), 'ok');
+    const sigs = [];
+    const e = { inPlay: true, score: 0, planeX: CH_HOSE_X, planeY: CH_ALT - CH_HOSE_Y, fuel: 90, golpe: false, fuga };
+    for (let i = 0; i < 600; i++) {
+      const o = ch.tick(0.05, e);
+      if (o.sig) sigs.push(o.sig);
+      e.fuel = Math.min(100, e.fuel + o.carga);
+      if (i > 20 + CH_ENGANCHE * 20 && ch.activa() === false) break;
+    }
+    return sigs;
+  };
+  const sinFuga = vuelo(false), conFuga = vuelo(true);
+  assert.ok(sinFuga.includes('lleno'), 'sin fuga: llena y se va (' + sinFuga + ')');
+  assert.ok(!conFuga.includes('lleno') && conFuga.includes('upa'), 'con fuga: avisa que te lleva y no se va al llenar (' + conFuga + ')');
+  ch.resetChancha();
+});

@@ -65,8 +65,8 @@ import { drawCine } from './render/cine.js';
 import * as muni from './render/municion.js';
 import * as blancoSys from './systems/blanco.js';
 import * as escapeSys from './systems/escape.js';
-import { drawTirosPopa } from './render/escape.js';
-import { BL as BL_BLANCO, FASE_ESCAPE, SENAS } from './data/blanco.js';
+import { drawTirosPopa, drawCap } from './render/escape.js';
+import { BL as BL_BLANCO, FASE_ESCAPE, SENAS, CIELO_VUELTA, CAP } from './data/blanco.js';
 import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE } from './data/cargas.js';
 import { AUDIO_BLOQUEADO } from './data/sonido.js';
 import { bingoKm, capacidadKm, colgadoDe, velRelativa, estadoTanque } from './core/nafta.js';
@@ -402,8 +402,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     const NIVELES = MISSIONS.concat(MISIONES_PRUEBA);
     /** Carga la mision `i`. `keepCfg` NO pisa la config de mapa: lo usa MINUTOS SAGRADOS al
      *  cambiar de buque, para no perder el FONDO/AGUA que elegiste para mirarlo. */
+    let cieloIda = null;   // el cielo de la ida, mientras la vuelta vuela con otro (V5)
+    let capHechas = 0, capPaso = null;   // la CAP: cuantas patrullas cruzaron, y la que cruza ahora
     function loadLevel(i, keepCfg) {
       curLevel = Math.max(0, Math.min(NIVELES.length - 1, i));
+      cieloIda = null;
       if (keepCfg) return;
       devolverPrefs();
       // LA MISION PISA OPCIONES DEL JUGADOR (M1 prende el COMBUSTIBLE): se guarda lo que habia, y se
@@ -520,7 +523,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // entra. La barra se llena con puntos, y el rasante sostenido es lo que mas rinde.
       const conRuta = rutaSys.hay();
       const mitad = run.dist > objectiveDist ? 'vuelta' : 'ida';
-      if (conRuta && cfg.fuelOn && rutaSys.enAlcance()) { beep(150, 0.09, 'square', 0.05); radioCh('ch_radar'); return; }
+      // …Y ROMPER EL SILENCIO ADENTRO DEL RADAR TE DELATA (PLAN_VUELTA_REAL V5): "rompian el silencio
+      // solo con una palabra clave". Dicha donde el enemigo escucha, te triangulan: una estrella.
+      if (conRuta && cfg.fuelOn && rutaSys.enAlcance()) {
+        beep(150, 0.09, 'square', 0.05); radioCh('ch_radar');
+        if (mitad === 'vuelta' && estrellas.sumar() !== null) popup(W / 2, 70, T('ch_triangulan'), P.warn);
+        return;
+      }
       const r = chancha.pedir({
         fuelOn: cfg.fuelOn,
         // EL PASILLO DE VERDAD, y por MODO ademas de por estado (RF-07). Mirar solo `S.state`
@@ -641,6 +650,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         return;
       }
       if (sig === 'lleno') { beep(880, 0.14, 'square', 0.05, 180); radioCh('ch_full'); return; }
+      if (sig === 'upa') { beep(620, 0.12, 'square', 0.05, 90); radioCh('ch_upa'); return; }
       if (sig === 'adios') { beep(260, 0.14, 'square', 0.04, -80); radioCh('ch_bye'); }
     }
     // transiciones desde la pantalla inicial de modo
@@ -1430,6 +1440,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (hayBlanco) cfg.carga = conBombaCentral(cfg.carga);
       // …y la mision dice cuantas pasadas da (una, salvo que pida mas) y si despues del buque hay
       // vuelta: con vuelta, pegarle abre EL ESCAPE en vez del negro (PLAN_VUELTA_REAL V0).
+      // el cielo de la vuelta no sobrevive a un reintento: se devuelve el de la ida (loadLevel lo
+      // olvida si en cambio se cargo otra mision, que trae el suyo)
+      if (cieloIda !== null) { cfg.sky = cieloIda; cieloIda = null; applyCfg(); }
+      capHechas = 0; capPaso = null;
       vir = null;   // una secuencia de viraje a medias no sobrevive a una corrida nueva
       escapeSys.terminar();
       escapeSys.resetFuga(); senas = null;
@@ -2724,12 +2738,38 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // del otro lado del negro el avion vuelve con aire abajo: el fundido tapa el primer segundo, y
       // sin esto se iba al agua antes de que el jugador lo viera (medido)
       plane.y = Math.max(plane.y, 10); plane.vy = 0;
+      // EL OTRO SECTOR (V5): del otro lado del viraje el cielo es otro — paso la hora y el mar no es
+      // el de la ida. Se guarda el de la ida para devolverlo si se reintenta la mision.
+      const cv = CIELO_VUELTA[cfg.sky];
+      if (cv && cv !== cfg.sky) { if (cieloIda === null) cieloIda = cfg.sky; cfg.sky = cv; applyCfg(); }
       volverDelBlanco();
       armarSenas();
     }
     /** "MIRAME LA PANZA" (V4): el compañero que te revisa al volver del viraje. Solo si queda alguien
      *  del escuadron vivo — el que vuelve solo no tiene quien le mire la panza. Las señas se deciden
      *  aca, con el daño y la nafta de este momento: primero QUE TENES, despues A DONDE. */
+    /** LA CAP (PLAN_VUELTA_REAL V5): una patrulla de Sea Harrier cruza el pasillo lejos, adelante.
+     *  Arriba del techo del radar mientras cruza, te ven: una estrella y LA COLA. Abajo, nada. */
+    function stepCap(dt) {
+      const lista = curMission() && curMission().cap;
+      if (!lista || blancoSys.escapando() || run.dist <= objectiveDist) return;
+      if (!capPaso && capHechas < lista.length) {
+        const avisa = objectiveDist * lista[capHechas] - run.spd * CAP.AVISO;
+        if (run.dist >= avisa && !capAvisada) { capAvisada = true; radioTramo('cap_aviso'); }
+        if (run.dist >= objectiveDist * lista[capHechas]) { capPaso = { t: 0, lado: Math.random() < 0.5 ? -1 : 1, vio: false }; capHechas++; capAvisada = false; }
+      }
+      if (!capPaso) return;
+      capPaso.t += dt;
+      // la patrulla mira con SUS ojos y su radar: fuera del alcance del radar de la flota el techo
+      // que vale es el de siempre (RADAR_ALT), no el cielo libre de la ruta
+      const techoCap = rutaSys.enAlcance() ? fases.techoRadar(RADAR_ALT) : RADAR_ALT;
+      if (!capPaso.vio && plane.y > techoCap) {
+        capPaso.vio = true;
+        estrellas.sumar(); caza.start({}); radioTramo('cap_vio');
+      }
+      if (capPaso.t >= CAP.T) capPaso = null;
+    }
+    let capAvisada = false;
     let senas = null;
     const senasActivas = () => !!senas && senas.t < SENAS.ENTRA + SENAS.CADA * senas.senas.length + SENAS.SALE;
     function armarSenas() {
@@ -3775,6 +3815,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // LA FUGA (V4): el tanque perforado pierde por segundo, vueles como vueles
         if (escapeSys.fugaOn() && cfg.fuelOn) run.fuel = Math.max(0, run.fuel - BL_BLANCO.FUGA_PCT_S * dt);
         if (senas) senas.t += dt;
+        stepCap(dt);
         if (vir) {
           vir.t += dt;
           if (vir.fase === 'perdimos' && vir.t >= BL_BLANCO.VIR_LEER) { vir = { fase: 'rumbo', t: 0 }; radioTramo('vir_casa'); }
@@ -4297,6 +4338,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       drawActores(selPlane, wingmv.state());
       // "MIRAME LA PANZA" (V4): el compañero va mas lejos que vos (apenas adelante): antes del avion
       if (S.state === 'play' && senas) squadRender.drawSenas(senas, selPlane);
+      // LA CAP (V5): la patrulla cruzando a lo lejos
+      if (S.state === 'play' && capPaso) drawCap(capPaso);
       // …y sus tiros, en el mismo plano y con el mismo criterio de pintor. Se dibujan FRIOS: el
       // naranja es de lo que lastima, y esto no puede lastimar a nadie (ver render/teatro.js).
       drawTiros(teatro.state());
@@ -5628,6 +5671,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         score: run.score, planeX: plane.x, planeY: plane.y, fuel: run.fuel,
         // un golpe corta la transferencia: la manguera no aguanta un avion sacudido
         golpe: run.scrapeVib > 0.1 || run.shake > 3,
+        fuga: escapeSys.fugaOn(),   // con el tanque perforado la cita se vuelve remolque (V5)
       });
       // LA CHARLA EN VUELO va al lado de la CHANCHA y por lo mismo: con el dt del MUNDO. Mientras
       // SE HABLA no llega aca — la atiende la CONGELADA de arriba, con el reloj de pared.

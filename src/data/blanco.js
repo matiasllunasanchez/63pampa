@@ -177,3 +177,17 @@ export const SENAS = {
   DX: 7, DY: -2.4, DZ: 3,   // donde se pone: a tu derecha, abajo y apenas adelante
 };
 
+
+/** EL OTRO SECTOR (PLAN_VUELTA_REAL §2.E, V5). *"No regresaban por el mismo camino: las rutas se
+ *  planificaban por sectores distintos."* Despues del viraje el cielo es otro — la hora avanzo y
+ *  el mar no es el de la ida. Cielo de la ida → cielo de la vuelta. */
+export const CIELO_VUELTA = {
+  sun: 'clear', clear: 'dusk', cloudy: 'dusk', dawn: 'clear',
+  dusk: 'night', night: 'moon', moon: 'night', storm: 'storm',
+};
+
+/** LA CAP (V5): las patrullas de Sea Harrier que salian a cazar a los que volvian. La mision dice
+ *  DONDE cruzan (`cap: [fracciones de la vuelta]`); cada una cruza el pasillo de lado a lado, lejos
+ *  y adelante, en `T` segundos. Si en ese rato estas POR ENCIMA DEL TECHO DEL RADAR, te ven: una
+ *  estrella y LA COLA se te pone atras. Abajo, pasan de largo. Puma avisa `AVISO` s antes. */
+export const CAP = { T: 5, Z: 130, Y: 14, ANCHO: 70, AVISO: 3 };

@@ -100,6 +100,9 @@ const t15 = {
   // segun la complejidad o largo del pasillo"). Siempre con la barra llena y fuera del radar. t15 es
   // larga: una en la ida y dos en la vuelta, que es la mitad dificil. Sin esto, una por tramo.
   chanchaVeces: { ida: 1, vuelta: 2 },
+  // LA CAP (PLAN_VUELTA_REAL V5): dos patrullas cruzan el pasillo en la vuelta. Abajo del radar
+  // pasan de largo; arriba te ven y se te ponen en la cola.
+  cap: [1.22, 1.52],
   // LA RUTA EN KM REALES (PLAN_NAFTA_ALCANCE N1). Se ancla a las fases de abajo: el descenso (0.16)
   // es el horizonte de radar, el primer rasante (0.20) el nivelado, el blanco (0.87) la corrida
   // final, y la vuelta (2.0) es casa. Queda asi: 520 km de crucero alto en el 16% del pasillo, y

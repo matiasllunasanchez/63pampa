@@ -33,6 +33,7 @@ let reserva = 1;
 let lastScore = -1;
 let etaT = 0, winT = 0, salT = 0, pedidoT = 0;
 let conn = false, connT = 0;
+let upa = false;   // ya aviso que te lleva a upa (una vez por cita)
 // `citaT` es el reloj DE LA CITA, y arranca en cero cuando ella llega. Con un reloj global la
 // deriva valia sin(t*V) para el t que hubiera: la canasta aparecia corrida a un costado al azar y
 // el jugador subia a buscar un blanco que ya se habia ido de donde nacio.
@@ -117,7 +118,7 @@ export function tick(dt, e) {
     if (antes < 0.9 && pedidoT >= 0.9) out.sig = 'ack';
     else if (antes < 2.1 && pedidoT >= 2.1) out.sig = 'come';
     etaT -= dt;
-    if (etaT <= 0) { fase = 'cita'; winT = CH_WINDOW; citaT = 0; x = 0; conn = false; reserva = 1; out.sig = 'llega'; }
+    if (etaT <= 0) { fase = 'cita'; winT = CH_WINDOW; citaT = 0; x = 0; conn = false; reserva = 1; upa = false; out.sig = 'llega'; }
     return out;
   }
   if (fase === 'yendo') {
@@ -151,7 +152,13 @@ export function tick(dt, e) {
     reserva = Math.max(0, reserva - out.carga / 100);
     bombaT -= dt;
     if (bombaT <= 0) { bombaT = 0.34; out.bomba = true; }        // la bomba de transferencia
-    if (e.fuel + out.carga >= 99.99) { out.sig = 'lleno'; irse(); return out; }
+    // "LA TRAJO A UPA" (PLAN_VUELTA_REAL V5): con un tanque perforado (`e.fuga`) llenarlo no termina
+    // la cita — la nafta se escapa mientras entra, y ella te sigue pasando hasta que se le acabe la
+    // reserva o la ventana. Soltarse antes es volver a perder.
+    if (e.fuel + out.carga >= 99.99) {
+      if (!e.fuga) { out.sig = 'lleno'; irse(); return out; }
+      if (!upa) { upa = true; out.sig = 'upa'; }
+    }
     if (reserva <= 0) { out.sig = 'lleno'; irse(); return out; }   // ella se seco: se va igual
   } else if (conn) {
     conn = false;

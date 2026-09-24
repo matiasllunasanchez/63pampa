@@ -386,8 +386,21 @@ en `t15` (IDA Y VUELTA) y con una fila de PRUEBAS por tramo (patrón de `t16`).
     `render/squad.js` `drawSenas`, pictogramas `sena_*` en `data/iconos.js`.
   - **Mientras te revisa no se siembra nada:** la reunión era fuera del fuego, y con la vuelta
     sembrando desde el primer metro, en la prueba el avión se chocaba en plena seña.
-- **V5 — el otro sector y la Chancha a upa.** Otra luz y otra siembra en la vuelta, la CAP, la
-  palabra clave y el remolque.
+- ✅ **V5 — el otro sector y la Chancha a upa** *(hecho 24/9)*.
+  - **El otro sector:** del otro lado del viraje el cielo cambia (`CIELO_VUELTA`: el atardecer se
+    hace noche, el día se hace atardecer…). Se devuelve el de la ida si se reintenta la misión.
+  - **La CAP:** la misión dice dónde cruzan las patrullas (`cap: [1.22, 1.52]` en t15). Puma avisa
+    3 s antes (*"Patrulla adelante. Abajo, que no nos vean."*); dos Sea Harrier cruzan el pasillo
+    lejos y adelante durante 5 s. Arriba del techo del radar te ven: una estrella y LA COLA
+    (*"Nos vieron. Harrier en la cola."*). Fuera del alcance de la flota el techo que usan es
+    `RADAR_ALT` —la patrulla mira con sus ojos—. Verificado: a 5 m pasa de largo, a 30 m te ven.
+  - **La palabra clave:** pedir la Chancha en la vuelta **adentro del radar** (donde ya no entra)
+    te delata: *"TE TRIANGULARON LA RADIO"*, una estrella.
+  - **"A upa":** con el tanque perforado la cita no termina al llenarse — ella te sigue pasando
+    mientras la nafta se escapa, hasta que se le acaba la reserva o la ventana (*"No te sueltes.
+    Te llevamos a upa."*). Test en `unit.js`; en vuelo no se probó (pide ruta, fuga y barra
+    juntas). Lo de "comandos más duros" quedó afuera.
+  - **La siembra distinta** de la vuelta no se tocó: ya la da la data de las fases de t15.
 - **V6 — planeo y eyección.**
 
 **Orden sugerido:** V0 y V1 primero — son la forma que pidió el autor y ya la hacen jugable de
