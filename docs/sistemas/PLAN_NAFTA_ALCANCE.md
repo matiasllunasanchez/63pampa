@@ -396,9 +396,20 @@ Cada una deja el juego jugable; tras cada una `npm run check` y `npm run feel` i
   - **Que la capa desaparezca no pude verlo en captura**: en tercera persona y a esa escala no se
     distinguen los tanques. La lógica está; mirarlo jugando.
   - **El tanque cae sin dibujo propio** (solo el cartel): el tanque que cae y pega es N6.
-- **N6 — los tanques como arma.** **Depende de LA SUELTA** (`systems/blanco.js`, de la otra
-  sesión): se espera a que esté comiteada y se reusa su balística con el dibujo del tanque. Tabla
-  de daño del §3.7.
+- ✅ **N6 — los tanques como arma** *(hecho 24/9)*. Al soltar (N5), cada tanque cae como proyectil
+  desde su pilón (el par de ala a ±`TQ_ALA_X`, el central en el eje), con la balística de la bomba
+  pero **sin eyector**: se desprende, no se dispara, así que cae casi debajo del avión (hay que
+  soltarlo cerca). Lleno o vacío sale de los km que tenía (`estadoTanque`). La regla es pura
+  (`golpeTanque` / `buqueTanque` en core/nafta.js), con los números en `tuning.js` (bloque `TQ_*`):
+  | cae | contra enemigos | contra el buque |
+  |---|---|---|
+  | **lleno** | mata lo que toca; contra algo explosivo (depósito, camión AA, barcaza, antiaérea, torre) la nafta encendida mata a los vecinos (`TQ_ONDA_X/Z`) | vale **una bomba** y revienta |
+  | **vacío** | voltea un **avión o helicóptero** de un golpe; a lo demás le saca `TQ_DANO_VACIO` (2) y dice TOCADO | vale **media bomba**, sin explosión: **el par al centro lo hunde** |
+  Los tanques no tienen espoleta (no hay "no despertó"). Contra el agua: el lleno revienta como la
+  bomba (columna, soldados), el vacío solo salpica. Dibujo: una cápsula gris con nariz y aleta (no
+  hay hoja horneada del tanque suelto). **Medido en t15:** el par vacío soltado a ~90 m del buque
+  pega en el centro y lo hunde (daño 100). Contra aviones y helicópteros solo está probado por la
+  regla (unit), no en vuelo. 1 test nuevo.
 - ✅ **N7 — el hangar** *(hecho 24/9)*. Decisiones del autor: **después del briefing y antes de
   despegar, desde M3**. Estado nuevo `'carga'` (EL HANGAR): tres tarjetas con las cargas reales del
   autor (`CARGAS_ELEGIBLES`: 2 tanques + bomba, 3 bombas, 1 bomba), cada una con alcance en km,

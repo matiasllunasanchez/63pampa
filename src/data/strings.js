@@ -78,6 +78,7 @@ export const STRINGS = {
     // SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5)
     tanques_fuera: 'TANQUES FUERA', tanque_fuera: 'TANQUE CENTRAL FUERA', tanques_nada: 'NO QUEDAN TANQUES',
     tanques_nafta: 'IBAN CON NAFTA: {km} KM AL MAR',
+    tq_tocado: 'TOCADO',
     // LAS ZONAS DE GASTO, arriba del altimetro (PLAN_NAFTA_ALCANCE §3.6)
     gasto_mayor: 'MAYOR GASTO', gasto_medio: 'GASTO MEDIO', gasto_menor: 'GASTO MENOR',
     // RF-15: la derrota de la PASADA. No te derribaron — se acabo la escuadrilla y el buque
@@ -1179,6 +1180,7 @@ export const STRINGS = {
     death_seco: 'You ran out of fuel',
     tanques_fuera: 'TANKS AWAY', tanque_fuera: 'CENTER TANK AWAY', tanques_nada: 'NO TANKS LEFT',
     tanques_nafta: 'THEY HAD FUEL: {km} KM INTO THE SEA',
+    tq_tocado: 'HIT',
     gasto_mayor: 'HIGH BURN', gasto_medio: 'MID BURN', gasto_menor: 'LOW BURN',
     death_pasada: 'The squadron was spent and the ship sailed on',
     death_caza: 'A Sea Harrier got on your tail',

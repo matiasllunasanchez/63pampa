@@ -1641,6 +1641,28 @@ export const ARRASTRE_TANQUE = 0.1;
 // Solo con `ruta` (sin ella el vuelo es el de siempre). En 0 soltar no acelera nada.
 export const VEL_ARRASTRE_EXP = 0.5;
 
+// ---- LOS TANQUES COMO ARMA (PLAN_NAFTA_ALCANCE §3.7, N6) ----
+// Pedido del autor: "la bomba tiene daño letal, el tanque lleno daño grave y [explota] si es algun
+// barco o algo explosivo, y un tanque vacio daño medio. Dos tanques vacios podrian dañar como un
+// tanque lleno sin una explosion, derrotar un avion o un helicoptero con uno solo y un barco con 2".
+// Caen con la balistica de la bomba (collision.js), sin eyector: se desprenden, no se disparan.
+//
+// CONTRA EL BUQUE, en fraccion del daño de una bomba: lleno = una bomba, vacio = media. Asi el
+// PAR vacio al centro lo hunde, y uno solo lo deja averiado.
+export const TQ_BUQUE = { lleno: 1, vacio: 0.5 };
+// CONTRA LO DEMAS: el lleno mata lo que toca; el vacio saca estos puntos de vida (medio: un
+// antiaereo de 3 queda a 1) — salvo lo que VUELA, que cae con uno solo.
+export const TQ_DANO_VACIO = 2;
+export const TQ_AIRE = ['jet', 'helo'];
+// LO QUE EXPLOTA cuando le pega un tanque LLENO: la nafta encendida alcanza a lo que este cerca
+// (TQ_ONDA_X / TQ_ONDA_Z, en unidades de mundo). El vacio no enciende nada.
+export const TQ_EXPLOSIVOS = ['depot', 'aatruck', 'lcu', 'aa', 'tower'];
+export const TQ_ONDA_X = 12;
+export const TQ_ONDA_Z = 16;
+// DE DONDE CAE CADA UNO: los de ala a esta distancia del eje (el ancho de los pilones visto desde
+// atras), el del centro en el eje.
+export const TQ_ALA_X = 3;
+
 // LA RAMPA DEL HORIZONTE DE RADAR, en metros de pasillo (PLAN_NAFTA_ALCANCE §3.4, N2). Con `ruta`,
 // el radar no existe hasta `radarKm` del blanco; al cruzar esa linea el techo baja desde FLY_TOP
 // hasta el de la fase a lo largo de estos metros. Es la rampa del filo y por el mismo motivo: un

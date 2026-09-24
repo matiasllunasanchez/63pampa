@@ -18,6 +18,7 @@ import { BOMBA_PANZA, BOMBA_DERIVA } from '../data/tuning.js';
 import { blanco, resetBlanco, altoEn, zonaEn, predecir, AGUA } from '../core/blanco.js';
 import { SHIP_CLASS } from '../data/ships.js';
 import { cargaDe } from '../data/cargas.js';
+import { buqueTanque } from '../core/nafta.js';
 import { beep, boom } from './audio.js';
 
 let objetivo = 0;   // objectiveDist de la corrida: el buque pasa por el avion cuando dist llega ahi
@@ -95,7 +96,11 @@ export function golpe(pm, z0) {
     return false;
   }
   const zn = zonaEn(pm.x);
-  if ((pm.t || 0) < BL.ARMA_T) {
+  // UN TANQUE SOLTADO (PLAN_NAFTA_ALCANCE N6) no tiene espoleta que despertar: pega por lo que pesa y
+  // por lo que lleva. Lleno vale una bomba y revienta; vacio vale media y no enciende nada — el PAR
+  // vacio al centro es lo que lo hunde.
+  const f = pm.tanque ? buqueTanque(pm.tanque) : 1;
+  if (!pm.tanque && (pm.t || 0) < BL.ARMA_T) {
     // LA BOMBA QUE NO DESPERTO: pega, rebota en la chapa y no pasa nada. Chispas y un golpe seco —
     // el sonido de haber hecho todo bien menos la altura.
     veredicto('dormida', pm.x, pm.y, blanco.z, P.warn);
@@ -103,11 +108,11 @@ export function golpe(pm, z0) {
     beep(1400, 0.05, 'square', 0.05, -600);
     return true;
   }
-  explodeAt(pm.x, pm.y, blanco.z, true);
-  columnaBomba(pm.x, AGUA, blanco.z, true);
+  if (pm.tanque === 'vacio') explodeAt(pm.x, pm.y, blanco.z, false, true, true);   // chapa contra chapa
+  else { explodeAt(pm.x, pm.y, blanco.z, true); columnaBomba(pm.x, AGUA, blanco.z, true); }
   blanco.lento = true;   // MOMENTUM OBLIGADO: de aca al cruce, el mundo a BL.LENTO
   blanco.marcas.push({ x: pm.x, y: Math.max(AGUA + 1, pm.y), t: run.t });
-  blanco.dano += zn === 'centro' ? BL.DANO_CENTRO : BL.DANO_EXTREMO;
+  blanco.dano += (zn === 'centro' ? BL.DANO_CENTRO : BL.DANO_EXTREMO) * f;
   if (blanco.dano >= 100) {
     blanco.hundido = true; blanco.sinkT = 0;
     run.score += BL.PTS_HUNDIDO;

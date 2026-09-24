@@ -15,7 +15,8 @@ import { run } from '../core/run.js';
 import * as dmg from './damage.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, prune } from '../core/world.js';
 import * as blancoSys from './blanco.js';
-import { BOMBA_G, BOMBA_PLANEO, BOMBA_REL_MAX, SPAWN_Z } from '../data/tuning.js';
+import { BOMBA_G, BOMBA_PLANEO, BOMBA_REL_MAX, SPAWN_Z, TQ_ONDA_X, TQ_ONDA_Z } from '../data/tuning.js';
+import { golpeTanque } from '../core/nafta.js';
 import { proj, popup, explodeAt, bloodBurst, columnaBomba, morir, stepDestruccion } from '../core/fx.js';
 import { CHUNK_LIFE, ONDA_T } from '../data/despiece.js';
 import { sfxOne, beep, boom } from '../systems/audio.js';
@@ -494,6 +495,9 @@ export function collisionSystem(dt) {
     for (const o of obstacles) {
       if (o.hp === undefined || o.z < z0 - 4 || o.z > pm.z + 4) continue;
       if (Math.abs(pm.x - o.x) < 8 && Math.abs(pm.y - o.y) < 5) {
+        // UN TANQUE SOLTADO (PLAN_NAFTA_ALCANCE N6) no es una bomba: lleno mata y, contra algo
+        // explosivo, enciende a los vecinos; vacio voltea lo que vuela y a lo demas lo deja tocado.
+        if (pm.tanque) { pegaTanque(pm, o); pm.z = 9999; break; }
         const pts = (o.type === 'helo' ? 300 : o.type === 'jet' ? 250 : 150) + 100;   // +bonus por misil
         run.score += pts; stats.air++;
         const s = proj(o.x, o.y, o.z); popup(s.x, s.y - 8, '+' + pts, P.accent);
@@ -531,6 +535,13 @@ export function collisionSystem(dt) {
       const enTierra = cfg.terrain === 'land' || cfg.terrain === 'coast';
       let detonate = pm.y <= (enTierra ? 0.3 : 1.0);
       if (!detonate) for (const sd of soldiers) { if (!sd.dead && Math.abs(sd.z - pm.z) < 6 && Math.abs(sd.x - pm.x) < 4) { detonate = true; break; } }
+      // EL TANQUE VACIO CONTRA LA SUPERFICIE no revienta: salpica y se hunde. El lleno si — es nafta
+      // encendida — y hace lo de la bomba de abajo (columna, soldados), que es lo que se ve.
+      if (detonate && pm.tanque === 'vacio') {
+        columnaBomba(pm.x, enTierra ? 0 : 1, pm.z, !enTierra);
+        beep(160, 0.08, 'square', 0.04, 60);
+        pm.z = 9999; continue;
+      }
       if (detonate) {
         blancoSys.corta(pm);   // si habia buque adelante: se quedo corta
         explodeAt(pm.x, enTierra ? 0 : 1, pm.z, true); run.shake = Math.min(6, run.shake + 1.6);
@@ -547,9 +558,42 @@ export function collisionSystem(dt) {
       }
     }
   }
+  // (ver pegaTanque, abajo)
   // el corte sube de 240 a SPAWN_Z: con el tiro oblicuo la bomba puede adelantarse de verdad, y
   // 240 la borraba en pleno vuelo. Mas alla de donde nace el mundo no tiene sentido seguirla.
   prune(pmissiles, pm => pm.z < SPAWN_Z && pm.y > -3);
 
   return false;
+}
+
+/** UN TANQUE SOLTADO LE PEGA AL ENEMIGO `o` (PLAN_NAFTA_ALCANCE N6). La regla de cuanto hace vive
+ *  en core/nafta.js (`golpeTanque`); aca se aplica: puntos, muerte o daño, y la onda de la nafta
+ *  encendida sobre los vecinos si el lleno le pego a algo explosivo. */
+function pegaTanque(pm, o) {
+  const g = golpeTanque(pm.tanque, o.type, o.hp);
+  const s = proj(o.x, o.y, o.z);
+  if (g.mata) {
+    const pts = (o.type === 'helo' ? 300 : o.type === 'jet' ? 250 : 150) + 100;
+    run.score += pts; stats.air++;
+    popup(s.x, s.y - 8, '+' + pts, P.accent);
+    morir(o, { vz: 60, vy: 6 }, 0, 'misil');
+    o.z = -99; o.done = true; o.hp = 0;
+  } else {
+    o.hp -= g.dano;
+    explodeAt(o.x, o.y, o.z, false, true, true);           // el golpe seco: chispas, sin bola
+    popup(s.x, s.y - 8, T('tq_tocado'), P.dim);
+    beep(300, 0.06, 'square', 0.05, -120);
+  }
+  if (pm.tanque === 'lleno') { explodeAt(o.x, o.y, o.z, true); run.shake = Math.min(6, run.shake + 1.6); }
+  if (!g.explota) return;
+  // LA ONDA: la nafta encendida alcanza a lo que este cerca, y a eso lo mata sin mas.
+  boom(0.12);
+  for (const v of obstacles) {
+    if (v === o || v.done || v.hp === undefined) continue;
+    if (Math.abs(v.x - o.x) > TQ_ONDA_X || Math.abs(v.z - o.z) > TQ_ONDA_Z) continue;
+    const sv = proj(v.x, v.y, v.z);
+    run.score += 150; popup(sv.x, sv.y - 8, '+150', P.warn);
+    morir(v, { vz: 40, vy: 8 }, 1, 'misil');
+    v.z = -99; v.done = true; v.hp = 0;
+  }
 }

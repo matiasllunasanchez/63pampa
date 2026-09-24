@@ -18,7 +18,7 @@
 // use (N3) lo va a llamar con los mismos numeros que las pruebas.
 import {
   TANQUE_INTERNO_KM, TANQUE_EXTRA_KM, TANQUE_LLENO_FRAC, ZONAS_GASTO,
-  ARRASTRE_LIMPIO, ARRASTRE_BOMBA, ARRASTRE_TANQUE, VEL_ARRASTRE_EXP,
+  ARRASTRE_LIMPIO, ARRASTRE_BOMBA, ARRASTRE_TANQUE, VEL_ARRASTRE_EXP, TQ_BUQUE, TQ_DANO_VACIO, TQ_AIRE, TQ_EXPLOSIVOS,
 } from '../data/tuning.js';
 import { tanquesDe, bombasDe, cargaDe, CARGA_BASE } from '../data/cargas.js';
 
@@ -152,3 +152,20 @@ export const extraTurboPorSeg = (base, r) => base * (Math.max(1, r) ** 3 - 1);
  *  sigue colgado. Es la linea del HUD (PLAN §3.8): cuando `kmQuedan` la cruza, se decide. Es el
  *  piso optimista a proposito — si ni volando perfecto alcanza, el aviso tiene que llegar YA. */
 export const bingoKm = (kmACasa, colgado) => gastoKm(kmACasa, Infinity, colgado);
+
+// ---------- LOS TANQUES COMO ARMA (PLAN §3.7, N6) ----------
+
+/** QUE LE HACE un tanque soltado (`tanque` = 'lleno' | 'vacio') a un enemigo de tipo `tipo` con
+ *  `hp` de vida. Devuelve `{ mata, dano, explota }`: si lo liquida, cuanto le saca, y si la nafta
+ *  encendida se lleva a los vecinos (solo lleno contra algo explosivo). */
+export function golpeTanque(tanque, tipo, hp) {
+  if (tanque === 'lleno') return { mata: true, dano: hp, explota: TQ_EXPLOSIVOS.includes(tipo) };
+  if (TQ_AIRE.includes(tipo)) return { mata: true, dano: hp, explota: false };
+  return { mata: hp <= TQ_DANO_VACIO, dano: TQ_DANO_VACIO, explota: false };
+}
+
+/** Cuanto vale el tanque contra el BUQUE, en fraccion del daño de una bomba (1 = una bomba). */
+export const buqueTanque = tanque => TQ_BUQUE[tanque] || 0;
+
+/** Si un tanque externo cuenta como lleno o vacio al caer (lo que decide todo lo de arriba). */
+export const estadoTanque = km => (tanqueLleno(km) ? 'lleno' : 'vacio');

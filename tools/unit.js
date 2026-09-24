@@ -2829,3 +2829,25 @@ test('hangar: la velocidad relativa es 1 en la base, y mas rapida con menos colg
   near(velRelativa(colgadoDe('tres_bombas')), 1, 1e-9);     // mismo arrastre: tres piezas
   assert.ok(velRelativa(colgadoDe('bomba')) > 1.05);
 });
+
+// ---------- LOS TANQUES COMO ARMA (PLAN_NAFTA_ALCANCE N6) ----------
+test('tanques-arma: lleno mata y enciende lo explosivo; vacio voltea lo que vuela y toca lo demas', async () => {
+  const { golpeTanque, buqueTanque, estadoTanque } = await import('../src/core/nafta.js');
+  const { ENEMY_HP, TANQUE_EXTRA_KM } = await import('../src/data/tuning.js');
+  // lleno: letal contra todo, y explota contra lo explosivo
+  for (const t of ['jet', 'helo', 'aa', 'depot', 'bldg']) assert.equal(golpeTanque('lleno', t, ENEMY_HP[t]).mata, true, 'lleno contra ' + t);
+  assert.equal(golpeTanque('lleno', 'depot', 3).explota, true);
+  assert.equal(golpeTanque('lleno', 'jet', 3).explota, false, 'un avion no es un deposito');
+  // vacio: un avion o un helicoptero con uno solo…
+  assert.equal(golpeTanque('vacio', 'jet', ENEMY_HP.jet).mata, true);
+  assert.equal(golpeTanque('vacio', 'helo', ENEMY_HP.helo).mata, true);
+  // …a lo demas, daño medio, y nunca enciende nada
+  const aa = golpeTanque('vacio', 'aa', ENEMY_HP.aa);
+  assert.equal(aa.mata, false); assert.ok(aa.dano > 0 && aa.dano < ENEMY_HP.aa);
+  assert.equal(golpeTanque('vacio', 'depot', 3).explota, false);
+  // el buque: lleno = una bomba, vacio = media → el PAR vacio vale lo que un lleno
+  assert.equal(buqueTanque('lleno'), 1);
+  assert.equal(buqueTanque('vacio') * 2, buqueTanque('lleno'));
+  assert.equal(estadoTanque(TANQUE_EXTRA_KM), 'lleno');
+  assert.equal(estadoTanque(0), 'vacio');
+});

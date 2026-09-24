@@ -66,7 +66,7 @@ import * as muni from './render/municion.js';
 import * as blancoSys from './systems/blanco.js';
 import { BL as BL_BLANCO } from './data/blanco.js';
 import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE } from './data/cargas.js';
-import { bingoKm, capacidadKm, colgadoDe, velRelativa } from './core/nafta.js';
+import { bingoKm, capacidadKm, colgadoDe, velRelativa, estadoTanque } from './core/nafta.js';
 const BL_ALT_IDEAL = BL_BLANCO.ALT_IDEAL;
 import { drawBlanco, drawBlancoHud } from './render/blanco.js';
 import { drawRotuloVuelo, ROTULO_T } from './render/rotulo.js';
@@ -105,7 +105,7 @@ import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './legacy/momentum_render.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
-import { BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_PANZA, BOMBA_DERIVA, SPAWN_Z as BOMBA_Z_TOPE } from './data/tuning.js';
+import { BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_PANZA, BOMBA_DERIVA, SPAWN_Z as BOMBA_Z_TOPE, TQ_ALA_X } from './data/tuning.js';
 import { LAND_APPROACH_M, LAND_ALT0, LAND_SPD_MIN, LAND_SPD_MAX, LAND_SPD_OK,
          LAND_VY_SUAVE, LAND_VY_DURO, LAND_PITCH_OK, LAND_GEAR_DRAG, LAND_GEAR_MIN_T,
          LAND_COSTO_CHAPA, LAND_PTS, FUGA_Y } from './data/tuning.js';
@@ -575,6 +575,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const r = naftaSys.soltarTanques();
       if (!r) { beep(150, 0.09, 'square', 0.05); popup(W / 2, 46, T('tanques_nada'), P.dim); return; }
       const tirados = r.soltados.reduce((s, k) => s + k, 0);
+      // …Y CAEN (N6): cada uno es un proyectil con la balistica de la bomba, desde su pilon — el par
+      // de ala a los dos costados, el del centro en el eje. Sin eyector: se desprenden, no se tiran.
+      // Lleno o vacio lo decide lo que tenia adentro, y eso decide cuanto pega (core/nafta.js).
+      r.soltados.forEach((km, i) => {
+        const dx = r.pilon === 'ala' ? (i === 0 ? -TQ_ALA_X : TQ_ALA_X) : 0;
+        pmissiles.push({
+          x: plane.x + dx, y: plane.y - BOMBA_PANZA, z: PZ + 4,
+          vz: run.spd * (1 + BOMBA_ENVION), vy: plane.vy, vx: plane.vx * BOMBA_DERIVA,
+          tanque: estadoTanque(km),
+        });
+      });
       beep(240, 0.12, 'square', 0.06, 90);
       run.shake = Math.max(run.shake, 1.5);
       popup(W / 2, 46, T(r.pilon === 'ala' ? 'tanques_fuera' : 'tanque_fuera'), P.accent);
@@ -4080,6 +4091,18 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         ctx.globalAlpha = Math.max(0.12, 0.5 - alto * 0.025);
         px(sh.x - sw / 2, sh.y - sw * 0.2, sw, Math.max(1, sw * 0.35), '#0b0f10');
         ctx.globalAlpha = 1;
+        // UN TANQUE SOLTADO (N6) no tiene hoja propia: una capsula gris con la nariz oscura y la
+        // aleta, que se va tumbando igual que la bomba. Lleno o vacio se ven igual — como de verdad.
+        if (pm.tanque) {
+          const L = Math.max(3, k * 2.6), tw = Math.max(1, k * 0.9);
+          const ang = Math.atan2(-pm.vy, Math.max(5, pm.vz - run.spd) * 0.12);
+          ctx.save(); ctx.translate(Math.round(s.x), Math.round(s.y)); ctx.rotate(Math.max(0, ang));
+          px(-tw / 2, -L / 2, tw, L, '#8a8f82');
+          px(-tw / 2, -L / 2, tw, Math.max(1, L * 0.18), '#4a4f45');
+          px(-tw, L / 2 - Math.max(1, L * 0.15), tw * 2, Math.max(1, L * 0.15), '#5d6258');
+          ctx.restore();
+          continue;
+        }
         // LA VISTA sale de la trayectoria: alejandose derecho se la ve de cola; cayendo, de costado.
         const rel = Math.max(5, pm.vz - run.spd);
         const v = Math.atan2(Math.abs(pm.vy), rel * 0.12) / (Math.PI / 2);
