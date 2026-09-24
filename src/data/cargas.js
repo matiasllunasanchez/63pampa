@@ -27,6 +27,15 @@ export const CARGAS = [
  *  configuracion mas basica es 2 tanques y una bomba". */
 export const CARGA_BASE = 'tanques_bomba';
 
+/** LAS QUE SE ELIGEN EN EL HANGAR (PLAN_NAFTA_ALCANCE N7), en el orden de la pantalla. Son las tres
+ *  configuraciones reales que trajo el autor: "3 bombas, o solo una bomba sin tanques, o solo una
+ *  bomba con 2 tanques". Las tres llevan la bomba del centro, asi que la del buque nunca falta. */
+export const CARGAS_ELEGIBLES = ['tanques_bomba', 'tres_bombas', 'bomba'];
+
+/** DESDE QUE MISION DE CAMPAÑA se elige (indice: 2 = M3, decision del autor 24/9). Antes sale la
+ *  BASE: en M1 no hay bombas propias y en M2 el objetivo se revienta a cañon. */
+export const CARGA_ELEGIBLE_DESDE = 2;
+
 /** Las cuatro capas horneadas, en el orden en que se pintan (primero lo del ala, despues lo del
  *  centro: el pilon central cuelga del fuselaje y queda por delante de las alas). */
 export const CAPAS_CARGA = ['carga_tanques_ala', 'carga_bombas_ala', 'carga_tanque_centro', 'carga_bomba_centro'];

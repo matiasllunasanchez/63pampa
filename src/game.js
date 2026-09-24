@@ -65,8 +65,8 @@ import { drawCine } from './render/cine.js';
 import * as muni from './render/municion.js';
 import * as blancoSys from './systems/blanco.js';
 import { BL as BL_BLANCO } from './data/blanco.js';
-import { conBombaCentral, bombasDe } from './data/cargas.js';
-import { bingoKm } from './core/nafta.js';
+import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE } from './data/cargas.js';
+import { bingoKm, capacidadKm, colgadoDe, velRelativa } from './core/nafta.js';
 const BL_ALT_IDEAL = BL_BLANCO.ALT_IDEAL;
 import { drawBlanco, drawBlancoHud } from './render/blanco.js';
 import { drawRotuloVuelo, ROTULO_T } from './render/rotulo.js';
@@ -345,6 +345,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  juegan con todas las piruetas — gatearlos seria probar otro juego que el que van a probar. */
     const conLibreta = () => gameMode === 'campaign' || (S.test && gameMode === 'cycle');
     let upgOffer = [];               // la oferta de la pantalla actual (2 tarjetas)
+    let cargaSel = 0, cargaT = 0;    // EL HANGAR (PLAN_NAFTA_ALCANCE N7): la tarjeta marcada y su reloj
     let upgSel = 0, upgT = 0;        // cursor y reloj propio de la pantalla
     // CORDON DE BRUMA (ver VEIL_* en data/tuning.js). Dos densidades, una sola pared:
     //   · en el PASILLO cierra con la distancia al objetivo — se cruza a ciegas;
@@ -1408,6 +1409,60 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
     // define el objetivo del run según el modo (campaña/ciclo: el goal de la mision; supervivencia: infinito)
     // `keepMusic` solo lo pasa el REINTENTO tras un derribo: ahi la musica sigue sonando.
+    /** TODO LO QUE DEPENDE DE LA CARGA, junto: la bomba del buque, el estante de la suelta y el
+     *  tanque en km. Sale de `setRunObjective` porque el HANGAR (N7) elige la carga DESPUES del
+     *  briefing, y ahi hay que volver a armarlo con la carga nueva. */
+    function prepararCarga() {
+      const hayBlanco = runClimax() === 'suelta' && objectiveDist > 0;
+      if (hayBlanco) cfg.carga = conBombaCentral(cfg.carga);
+      blancoSys.preparar(hayBlanco, objectiveShip, objectiveDist, { PZ, W }, cfg.carga);
+      // LA NAFTA COMO ALCANCE (PLAN_NAFTA_ALCANCE N3): con ruta, el tanque se llena en km segun la
+      // carga YA RESUELTA (la bomba del buque incluida). Va despues de la suelta por eso mismo.
+      naftaSys.preparar(rutaSys.hay() ? cfg.carga : null);
+    }
+
+    // ---------- EL HANGAR (estado 'carga', PLAN_NAFTA_ALCANCE N7) ----------
+    // Despues del briefing y antes de despegar, desde M3 (decision del autor 24/9): se lee el blanco
+    // y la distancia, se elige que colgar, y recien ahi se despega. Solo en CAMPAÑA — las
+    // herramientas y los modos sueltos siguen saliendo con la carga que traen.
+    const pideCarga = () => gameMode === 'campaign' && !S.test && curLevel >= CARGA_ELEGIBLE_DESDE;
+    /** Lo que sigue al briefing: el hangar si toca, o el despegue de siempre. */
+    function trasBrief(fade) {
+      if (pideCarga()) {
+        const i = CARGAS_ELEGIBLES.indexOf(cfg.carga);
+        cargaSel = i < 0 ? 0 : i; cargaT = 0;
+        setState('carga'); beep(600, 0.08, 'square', 0.05);
+        return;
+      }
+      run.t = 0; fadeT = fade; setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05);
+    }
+    function cargaNav(dir) {
+      cargaSel = (cargaSel + dir + CARGAS_ELEGIBLES.length) % CARGAS_ELEGIBLES.length;
+      beep(520, 0.05, 'square', 0.04);
+    }
+    function cargaConfirm() {
+      if (cargaT < 0.4) return;          // gracia: la tecla que cerro el briefing no elige sola
+      cfg.carga = CARGAS_ELEGIBLES[cargaSel];
+      prepararCarga();
+      beep(880, 0.12, 'square', 0.06);
+      run.t = 0; fadeT = 1.0; setState(afterBrief()); sfxOne('lv1');
+    }
+    /** Las tarjetas del hangar, con los numeros ya hechos: el dibujo no sabe de nafta. */
+    function filasCarga() {
+      const sinChancha = !!(curMission() && curMission().chancha === false);
+      return CARGAS_ELEGIBLES.map(id => {
+        const c = cargaDe(id), b = colgadoDe(id).bombas, v = Math.round((velRelativa(colgadoDe(id)) - 1) * 100);
+        return {
+          nombre: getLang() === 'en' ? c.en : c.es,
+          datos: [T('cargaKm', { km: capacidadKm(id) }), b === 1 ? T('cargaBomba1') : T('cargaBombas', { n: b }),
+            T('cargaVel', { v: (v > 0 ? '+' : '') + v + '%' })].join('  ·  '),
+          desc: T('cargaDesc_' + id),
+          // las que dependen de la Chancha (menos tanque que la base) avisan si en esta mision no viene
+          aviso: sinChancha && capacidadKm(id) < capacidadKm(CARGA_BASE) ? T('cargaSinChancha') : null,
+        };
+      });
+    }
+
     function setRunObjective(keepMusic) {
       if (gameMode === 'campaign' || gameMode === 'cycle' || gameMode === 'arena' || gameMode === 'pasadas') {
         const m = curMission(), g = goalOf(m);
@@ -1443,12 +1498,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // LA SUELTA: el buque del pasillo, prendido solo si la mision lo declara como climax.
       // …y con LA BOMBA DEL BUQUE colgada: en estas misiones todo avion lleva la del centro, sea cual
       // sea la carga elegida (data/cargas.js, conBombaCentral). Se ve en el avion y en el estante.
-      const hayBlanco = runClimax() === 'suelta' && objectiveDist > 0;
-      if (hayBlanco) cfg.carga = conBombaCentral(cfg.carga);
-      blancoSys.preparar(hayBlanco, objectiveShip, objectiveDist, { PZ, W }, cfg.carga);
-      // LA NAFTA COMO ALCANCE (PLAN_NAFTA_ALCANCE N3): con ruta, el tanque se llena en km segun la
-      // carga YA RESUELTA (la bomba del buque incluida). Va despues de la suelta por eso mismo.
-      naftaSys.preparar(rutaSys.hay() ? cfg.carga : null);
+      //
+      // M1 Y M2 SALEN CON LA CARGA BASE (PLAN_NAFTA_ALCANCE N7): el hangar abre en M3, y lo elegido
+      // en otra partida no puede colarse en el tutorial.
+      if (gameMode === 'campaign' && !S.test && curLevel < CARGA_ELEGIBLE_DESDE) cfg.carga = CARGA_BASE;
+      prepararCarga();
       // MUSICA: campaña usa game.mp3; ciclo y supervivencia mantienen la pista elegida en el
       // reproductor (no la re-sortean). Arranca de cero al empezar el mapa, SALVO al reintentar
       // tras morir: ahi continua donde venia, sin corte.
@@ -2267,6 +2321,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EL BANCO DEL PICHON (estado 'upgrade'): elegir la mejora entre misiones
       upgNav: dir => upgNav(dir),
       upgConfirm: () => upgConfirm(),
+      cargaNav: dir => cargaNav(dir),
+      cargaConfirm: () => cargaConfirm(),
       // OPCIONES: por ahora una sola fila (idioma), asi que izquierda/derecha rotan el idioma
       optNav: dir => { optNav(dir); beep(500, 0.04, 'square', 0.03); },
       optChange: dir => { optChange(dir); beep(560, 0.05, 'square', 0.04); },
@@ -3275,12 +3331,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             // puntas del guion seguidas es justamente lo que hay que poder leer de una sentada — y
             // el epilogo ya sabe volver al catalogo (ver su rama, `S.test`).
             else if (testCine) { verEpilogo(); }
-            else { run.t = 0; fadeT = 1.4; setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+            else trasBrief(1.4);
           }
         } else if (S.state === 'brief') {
           // tarjeta corta de mision (ciclo de muerte, y campaña sin guion): una tecla despega
           briefT += dt;
-          if (briefT > 0.6 && flags.anyPress) { run.t = 0; fadeT = 1.0; setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+          if (briefT > 0.6 && flags.anyPress) trasBrief(1.0);
         } else if (S.state === 'menu') {
           // el menú lo comparten SUPERVIVENCIA y CICLO DE MUERTE
           if (flags.startReq) {
@@ -3414,6 +3470,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           // EL BANCO DEL PICHON: reloj propio (run.t queda quieto entre misiones). La eleccion
           // entra por input.js (upgNav/upgConfirm), no por anyPress: hay que ELEGIR, no saltear.
           upgT += dt;
+        } else if (S.state === 'carga') {
+          // EL HANGAR: mismo trato que el banco — se elige por input.js, no con cualquier tecla
+          cargaT += dt;
         } else if (S.state === 'victory') {
           if (levelT > 0.8 && flags.anyPress) { setState('modeselect'); }
         }
@@ -4346,6 +4405,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EL BANCO DEL PICHON: pantalla de mejora entre misiones. Desde M8 (muerto el Pichon,
       // indice 7) las mejoras salen de su libreta y la pantalla cambia de nombre.
       if (S.state === 'upgrade') menus.drawUpgrade({ offer: upgOffer, sel: upgSel, t: upgT, libreta: curLevel >= 7 });
+      if (S.state === 'carga') menus.drawCarga({ rows: filasCarga(), sel: cargaSel, t: cargaT });
       // PAUSA: overlay en nativas, encima de todo lo del mundo (el fade de historia va despues,
       // pero con el juego pausado nunca conviven)
       if (paused) menus.drawPause({

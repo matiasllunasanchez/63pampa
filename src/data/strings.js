@@ -502,6 +502,13 @@ export const STRINGS = {
     zone_engine: 'MOTOR', zone_deposit: 'DEPOSITO',
     // ---------- EL BANCO DEL PICHON (pantalla de mejora entre misiones) ----------
     upgTitle: 'EL BANCO DEL PICHON', upgTitleLib: 'LA LIBRETA DEL PICHON',
+    // EL HANGAR: la carga antes de despegar (PLAN_NAFTA_ALCANCE N7)
+    cargaTitle: 'EL HANGAR', cargaSub: 'QUE COLGAMOS HOY',
+    cargaKm: '{km} KM DE ALCANCE', cargaBomba1: '1 BOMBA', cargaBombas: '{n} BOMBAS', cargaVel: 'VELOCIDAD {v}',
+    cargaDesc_tanques_bomba: 'Llegas y volves por tu cuenta. Una sola chance sobre el blanco.',
+    cargaDesc_tres_bombas: 'Tres tiros al blanco. Sin la Chancha, no volves.',
+    cargaDesc_bomba: 'Liviano y rapido. La nafta no alcanza para blancos lejos.',
+    cargaSinChancha: 'EN ESTA MISION LA CHANCHA NO BAJA',
     upgRitual: '"ESO NO SE PUEDE."  ...  "A VER. MOSTRAME."',
     upgRitualLib: '"...A VER, PIBE. MOSTRAME."',
     upgSub: 'ELEGI UNA MEJORA', upgSub1: 'TU PRIMERA MEJORA', upgCombo: 'COMBO:',
@@ -1484,6 +1491,12 @@ export const STRINGS = {
     zone_engine: 'ENGINE', zone_deposit: 'CARGO HOLD',
     // EL BANCO DEL PICHON (la pantalla si esta traducida; las tarjetas de mejora, no aun)
     upgTitle: "PICHON'S WORKBENCH", upgTitleLib: "PICHON'S NOTEBOOK",
+    cargaTitle: 'THE HANGAR', cargaSub: 'WHAT DO WE HANG TODAY',
+    cargaKm: '{km} KM OF RANGE', cargaBomba1: '1 BOMB', cargaBombas: '{n} BOMBS', cargaVel: 'SPEED {v}',
+    cargaDesc_tanques_bomba: 'You get there and back on your own. One single shot at the target.',
+    cargaDesc_tres_bombas: 'Three shots at the target. Without the tanker, you do not come back.',
+    cargaDesc_bomba: 'Light and fast. Not enough fuel for distant targets.',
+    cargaSinChancha: 'THE TANKER DOES NOT COME SOUTH ON THIS ONE',
     upgRitual: '"THAT CANNOT BE DONE."  ...  "SHOW ME."',
     upgRitualLib: '"...ALL RIGHT, KID. SHOW ME."',
     upgSub: 'CHOOSE ONE UPGRADE', upgSub1: 'YOUR FIRST UPGRADE', upgCombo: 'COMBO:',

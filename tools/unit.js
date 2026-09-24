@@ -2806,3 +2806,26 @@ test('tanques: soltarlos en la corrida baja la capacidad, conserva lo de adentro
   nafta.preparar(null);
   assert.equal(nafta.velCarga({ bombas: 0, tanques: 0 }), 1, 'sin ruta la velocidad no cambia');
 });
+
+// ---------- EL HANGAR (PLAN_NAFTA_ALCANCE N7) ----------
+test('hangar: las cargas elegibles existen, llevan la bomba del buque y tienen sus textos', async () => {
+  const { CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE, cargaDe, CARGAS } = await import('../src/data/cargas.js');
+  const { STRINGS } = await import('../src/data/strings.js');
+  assert.deepEqual(CARGAS_ELEGIBLES, ['tanques_bomba', 'tres_bombas', 'bomba'], 'las tres del autor');
+  assert.equal(CARGAS_ELEGIBLES[0], CARGA_BASE, 'la base primero: es donde arranca el cursor');
+  assert.equal(CARGA_ELEGIBLE_DESDE, 2, 'desde M3');
+  for (const id of CARGAS_ELEGIBLES) {
+    assert.ok(CARGAS.some(c => c.id === id), id + ' no existe');
+    assert.equal(cargaDe(id).centro, 'bomba', id + ': la del buque nunca falta');
+    for (const l of ['es', 'en']) assert.ok(STRINGS[l]['cargaDesc_' + id], `${l}: falta cargaDesc_${id}`);
+  }
+  for (const k of ['cargaTitle', 'cargaSub', 'cargaKm', 'cargaBomba1', 'cargaBombas', 'cargaVel', 'cargaSinChancha'])
+    for (const l of ['es', 'en']) assert.ok(STRINGS[l][k], `${l}: falta ${k}`);
+});
+
+test('hangar: la velocidad relativa es 1 en la base, y mas rapida con menos colgado', async () => {
+  const { velRelativa, colgadoDe } = await import('../src/core/nafta.js');
+  near(velRelativa(colgadoDe('tanques_bomba')), 1);
+  near(velRelativa(colgadoDe('tres_bombas')), 1, 1e-9);     // mismo arrastre: tres piezas
+  assert.ok(velRelativa(colgadoDe('bomba')) > 1.05);
+});

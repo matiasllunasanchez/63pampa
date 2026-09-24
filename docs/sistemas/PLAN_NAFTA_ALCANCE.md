@@ -399,8 +399,19 @@ Cada una deja el juego jugable; tras cada una `npm run check` y `npm run feel` i
 - **N6 — los tanques como arma.** **Depende de LA SUELTA** (`systems/blanco.js`, de la otra
   sesión): se espera a que esté comiteada y se reusa su balística con el dibujo del tanque. Tabla
   de daño del §3.7.
-- **N7 — la elección de carga en campaña.** Pantalla de carga **desde M3/M4, antes de la pantalla
-  de mejoras del Pichón** (el banco de `data/upgrades.js`). M1–M2 fijan la carga base.
+- ✅ **N7 — el hangar** *(hecho 24/9)*. Decisiones del autor: **después del briefing y antes de
+  despegar, desde M3**. Estado nuevo `'carga'` (EL HANGAR): tres tarjetas con las cargas reales del
+  autor (`CARGAS_ELEGIBLES`: 2 tanques + bomba, 3 bombas, 1 bomba), cada una con alcance en km,
+  bombas, velocidad relativa (`velRelativa`, pura en core/nafta.js) y una línea del trueque. En una
+  misión con `chancha: false` las cargas que dependen de ella avisan en rojo "en esta misión la
+  Chancha no baja". Todo lo que depende de la carga (bomba del buque, estante de la suelta, tanque en
+  km) salió a `prepararCarga()` y se vuelve a armar al confirmar. M1–M2 salen siempre con la base; el
+  reintento tras morir no vuelve a pasar por el hangar. Teclado y mando como el banco del Pichón.
+  Medido en el juego: M3 → hangar → 3 bombas → despega con `tres_bombas`; M2 → directo al despegue
+  con la base. 2 tests nuevos.
+  **Sin hacer:** la elección **no se guarda** en la partida ni entre sesiones (cada arranque del
+  juego vuelve a la base; en una misma partida se recuerda). Y el avión todavía no se ve en el hangar
+  con lo que cuelga: son tarjetas de texto.
 - **N8 — calibración y adopción.** Playtest de t15 con las tres cargas; recién después, llevar
   `ruta` a la campaña (M2–M6 con Chancha, M7+ sin) — cuando las 14 misiones estén resueltas, como
   dijo el autor en `PLAN_CARGA_Y_CHANCHA`.

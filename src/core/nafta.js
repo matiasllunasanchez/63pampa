@@ -18,9 +18,9 @@
 // use (N3) lo va a llamar con los mismos numeros que las pruebas.
 import {
   TANQUE_INTERNO_KM, TANQUE_EXTRA_KM, TANQUE_LLENO_FRAC, ZONAS_GASTO,
-  ARRASTRE_LIMPIO, ARRASTRE_BOMBA, ARRASTRE_TANQUE,
+  ARRASTRE_LIMPIO, ARRASTRE_BOMBA, ARRASTRE_TANQUE, VEL_ARRASTRE_EXP,
 } from '../data/tuning.js';
-import { tanquesDe, bombasDe, cargaDe } from '../data/cargas.js';
+import { tanquesDe, bombasDe, cargaDe, CARGA_BASE } from '../data/cargas.js';
 
 // ---------- EL TANQUE ----------
 
@@ -126,6 +126,10 @@ export const fCarga = ({ bombas = 0, tanques = 0 } = {}) =>
 
 /** Lo que cuelga de la carga `id` recien despegado. */
 export const colgadoDe = id => ({ bombas: bombasDe(id), tanques: tanquesDe(id) });
+
+/** CUANTO MAS RAPIDO VA con `colgado` puesto, relativo a la carga BASE (2 tanques + bomba = 1):
+ *  (arrastre base / arrastre actual) ^ VEL_ARRASTRE_EXP. Lo usan el vuelo (con ruta) y el hangar. */
+export const velRelativa = colgado => (fCarga(colgadoDe(CARGA_BASE)) / fCarga(colgado)) ** VEL_ARRASTRE_EXP;
 
 /** El TURBO, por km. `r` = velocidad con turbo / velocidad sin turbo (1 sin turbo, 1.5 con el de
  *  siempre, mas con el `after` apilado). La resistencia crece con el cuadrado de la velocidad.

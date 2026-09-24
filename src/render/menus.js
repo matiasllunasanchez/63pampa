@@ -792,6 +792,40 @@ export function drawUpgrade(w) {
   }
 }
 
+// EL HANGAR (estado 'carga', PLAN_NAFTA_ALCANCE N7): despues del briefing y antes de despegar, desde
+// M3. Tres tarjetas, una por carga elegible. Los numeros los arma game.js (`w.rows`) — el dibujo no
+// sabe de nafta: lee lo que le pasan. `sinChancha` marca las cargas que dependen de ella cuando la
+// mision no la tiene: es la frase del briefing de M10 convertida en un renglon rojo.
+export function drawCarga(w) {
+  panel();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = P.accent; ctx.font = titleFont(24);
+  ctx.fillText(T('cargaTitle'), NW / 2, 40);
+  ctx.fillStyle = P.body; ctx.font = labelFont(12);
+  ctx.fillText(T('cargaSub'), NW / 2, 62);
+  const x = 52, wCard = NW - 104, hCard = 50, y0 = 76;
+  for (let i = 0; i < w.rows.length; i++) {
+    const r = w.rows[i], y = y0 + i * (hCard + 8), on = i === w.sel;
+    ctx.globalAlpha = on ? 0.16 : 0.06; ctx.fillStyle = on ? P.accent : P.body;
+    ctx.fillRect(x, y, wCard, hCard); ctx.globalAlpha = 1;
+    ctx.strokeStyle = on ? P.accent : '#3a464c'; ctx.strokeRect(x + 0.5, y + 0.5, wCard, hCard);
+    ctx.textAlign = 'left';
+    if (on) { ctx.fillStyle = P.accent; ctx.font = 'bold 12px monospace'; ctx.fillText('>', x - 16, y + 22); }
+    ctx.fillStyle = on ? P.accent : P.body; ctx.font = menuFont(12);
+    ctx.fillText(r.nombre, x + 12, y + 17);
+    ctx.textAlign = 'right'; ctx.fillStyle = P.dim; ctx.font = labelFont(9);
+    ctx.fillText(r.datos, x + wCard - 10, y + 17);
+    ctx.textAlign = 'left'; ctx.fillStyle = P.body; ctx.font = descFont(10);
+    ctx.fillText(r.desc, x + 12, y + 32);
+    if (r.aviso) { ctx.fillStyle = P.warn; ctx.font = labelFont(9); ctx.fillText(r.aviso, x + 12, y + 45); }
+  }
+  if (Math.sin(w.t * 4) > -0.3) {
+    ctx.fillStyle = P.dim; ctx.font = descFont(11); ctx.textAlign = 'center';
+    ctx.fillText(T('modeHint'), NW / 2, NH - 14);
+  }
+  ctx.textAlign = 'left';
+}
+
 export function drawPause(w) {
   ctx.fillStyle = '#070a0dd2';           // velo: mas cerrado que panel() — el juego es contexto, no fondo
   ctx.fillRect(0, 0, NW, NH);

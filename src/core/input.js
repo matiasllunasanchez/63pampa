@@ -287,6 +287,12 @@ export function initInput(cv, a) {
       if (isBack(e.code)) { a.savesBack(); e.preventDefault(); return; }
       return;
     }
+    if (S.state === 'carga') {                                           // EL HANGAR: elegir la carga (N7)
+      if (isUp(e.code) || isLeft(e.code)) { a.cargaNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code) || isRight(e.code)) { a.cargaNav(1); e.preventDefault(); return; }
+      if (isConfirm(e.code)) { a.cargaConfirm(); e.preventDefault(); return; }
+      return;
+    }
     if (S.state === 'upgrade') {                                         // EL BANCO DEL PICHON: elegir UNA mejora
       if (isUp(e.code) || isLeft(e.code)) { a.upgNav(-1); e.preventDefault(); return; }
       if (isDown(e.code) || isRight(e.code)) { a.upgNav(1); e.preventDefault(); return; }
@@ -643,6 +649,10 @@ export function initInput(cv, a) {
         if (nd && !nav.d) a.savesNav(1);
         if (confirm) a.savesConfirm();
         if (hit(1)) a.savesBack();
+      } else if (S.state === 'carga') {
+        if ((nu && !nav.u) || (nl && !nav.l)) a.cargaNav(-1);
+        if ((nd && !nav.d) || (nr && !nav.r)) a.cargaNav(1);
+        if (confirm) a.cargaConfirm();
       } else if (S.state === 'upgrade') {
         if ((nu && !nav.u) || (nl && !nav.l)) a.upgNav(-1);
         if ((nd && !nav.d) || (nr && !nav.r)) a.upgNav(1);

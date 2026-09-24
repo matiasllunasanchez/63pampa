@@ -13,9 +13,7 @@
 // El estado va en el STORE de la corrida (`run.tanque`, `run.naftaCap`) y no suelto aca porque lo
 // leen varios: el HUD (alcance, bingo), la suelta de tanques (N5) y las sondas.
 import { run } from '../core/run.js';
-import { tanqueInicial, capacidadKm, capacidadDe, kmQuedan, gastar, cargar, gastoKm, zonaGasto, soltar, proximoPilon, fCarga, colgadoDe } from '../core/nafta.js';
-import { CARGA_BASE } from '../data/cargas.js';
-import { VEL_ARRASTRE_EXP } from '../data/tuning.js';
+import { tanqueInicial, capacidadKm, capacidadDe, kmQuedan, gastar, cargar, gastoKm, zonaGasto, soltar, proximoPilon, velRelativa } from '../core/nafta.js';
 
 /** Llena el tanque para la carga `id` al empezar la corrida (o lo apaga con `id` null). Lo llama
  *  `setRunObjective()`, donde ya se sabe si la mision tiene ruta y con que carga despega. */
@@ -71,8 +69,6 @@ export function soltarTanques() {
 export const quedaParaSoltar = () => !!run.tanque && !!proximoPilon(run.tanque);
 
 /** CUANTO MAS RAPIDO VA SEGUN LO QUE CUELGA (PLAN_NAFTA_ALCANCE §3.7: "sin bombas, el avion va mas
- *  rapido", y ahora tambien sin tanques). Relativo a la carga BASE (2 tanques + bomba = x1): con
- *  menos arrastre, mas velocidad — (base / actual) ^ VEL_ARRASTRE_EXP. Solo con ruta; sin ella 1, y
- *  el vuelo de siempre no cambia ni un decimal. */
-const ARRASTRE_BASE = fCarga(colgadoDe(CARGA_BASE));
-export const velCarga = colgado => (run.tanque ? (ARRASTRE_BASE / fCarga(colgado)) ** VEL_ARRASTRE_EXP : 1);
+ *  rapido", y ahora tambien sin tanques). La cuenta es `velRelativa` (core/nafta.js). Solo con ruta;
+ *  sin ella 1, y el vuelo de siempre no cambia ni un decimal. */
+export const velCarga = colgado => (run.tanque ? velRelativa(colgado) : 1);
