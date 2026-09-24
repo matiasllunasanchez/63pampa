@@ -368,6 +368,18 @@ Cada una deja el juego jugable; tras cada una `npm run check` y `npm run feel` i
   al ras el turbo cuesta ×3,4 por segundo (r³); +10% externo = +260 km; seco → `death_seco`.
   **Pendiente:** el fixture de fases mide la tasa de t15 en %/s, y con ruta la nafta es otra cuenta
   (ya fallaba antes por otro motivo).
+- 🔁 **N4 rehecho (24/9, playtest del autor): la Chancha viene cuando la LLAMÁS, con la barra
+  llena — nunca sola.** Se fue la aparición automática por zona. Con ruta se la llama en la ida y en
+  la vuelta, **fuera del radar** (adentro contesta "adentro del radar no entro"), tantas veces por
+  tramo como diga la misión (`chanchaVeces: { ida, vuelta }`; t15: 1 y 2; sin el campo, 1). Llega en
+  `CH_ETA_RUTA` (6 s: los 18 de siempre, medidos contra el crucero comprimido). La barra se vuelve
+  a cargar con puntos después de cada cita. **La conexión se sostiene:** adentro de la caja hay que
+  aguantar `CH_ENGANCHE` (1,5 s) antes de que pase nafta — la caja titila en **naranja** con una
+  barrita que se llena; cargando, **late en verde**, el reloj de nafta toma borde y aguja verdes, y
+  el reloj de la Chancha pasa a mostrar **su reserva** bajando (alcanza para un tanque entero tuyo
+  por cita; seca, se va). El enganche vale también para las misiones sin ruta (fixture actualizado).
+  `chanchaIda`/`chanchaVuelta` de la ruta quedan como dato de dónde orbitaba y como el lugar donde la
+  llama el piloto de manual de la calibración.
 - ✅ **N4 — la Chancha en dos mitades** *(hecho 23/9)*. Con ruta, las zonas salen de `chanchaIda` /
   `chanchaVuelta` en km (`zonasChancha` en core/ruta.js) y no de las fases `chancha: true`, que t15
   dejó de declarar. **IDA:** la Chancha asoma sola al entrar a la zona (`chancha.llegar`,
