@@ -444,6 +444,9 @@ export const REATTACK_MAX = 6;      // intentos maximos sobre un mismo blanco
 export const CH_CHARGE = 2000;   // puntos que llenan la barra (~3x TEMPO_CHARGE: cara a proposito)
 export const CH_MIN_T = 240;     // s de mision antes de poder pedirla
 export const CH_ETA = 18;        // s entre el pedido confirmado y la aparicion
+// …y cuando ya estaba en su zona (con ruta, PLAN_NAFTA_ALCANCE N4): no viene de ningun lado, asoma.
+// Lo justo para que se la vea llegar desde lejos y no aparezca pegada al avion.
+export const CH_ETA_ZONA = 2.5;
 export const CH_ALT = 48;        // altura de la cita (sobre RADAR_ALT=20, bajo FLY_TOP=68)
 export const CH_BOX = 6;         // radio de la caja de conexion detras de la canasta
 export const CH_RATE = 9;        // % de tanque por segundo conectado (lleno en ~11 s limpios)

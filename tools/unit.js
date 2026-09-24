@@ -2733,3 +2733,37 @@ test('nafta: el % que otro sistema toca se traslada al tanque, y seco avisa', as
   nafta.preparar(null);
   assert.equal(nafta.activo(), false, 'sin ruta el tanque se apaga');
 });
+
+// ---------- LA CHANCHA EN DOS MITADES (PLAN_NAFTA_ALCANCE N4) ----------
+test('chancha: las zonas de la ruta caen donde dicen los km, en la ida y en la vuelta', async () => {
+  const { anclas, zonasChancha, posKm } = await import('../src/core/ruta.js');
+  const a = anclas(RUTA_T, FASES_T), z = zonasChancha(RUTA_T, a);
+  near(posKm(z.ida[0], a), 700 - 450); near(posKm(z.ida[1], a), 700 - 370);
+  near(posKm(z.vuelta[0], a), 700 + 350); near(posKm(z.vuelta[1], a), 700 + 400);
+  assert.equal(zonasChancha({ blancoKm: 700 }, a).ida, null, 'sin zona declarada no hay zona');
+});
+
+test('chancha: con ruta vive dos veces — una por mitad — y la de la zona no gasta barra', async () => {
+  const ch = await import('../src/systems/chancha.js');
+  ch.resetChancha();
+  assert.equal(ch.llegar('ida'), 'ok');
+  assert.equal(ch.llegar('ida'), 'used', 'la de la ida es una sola');
+  assert.equal(ch.llegar('vuelta'), 'busy', 'mientras esta la de la ida, no hay otra');
+  ch.resetChancha();
+  ch.llegar('ida');
+  ch.tick(10, { inPlay: false });               // se fue (fin de la cita, o salir del pasillo)
+  ch.cargar();                                  // barra llena
+  const g = { fuelOn: true, enPasillo: true, viva: true, t: 0, minT: 0, mitad: 'vuelta' };
+  assert.equal(ch.pedir(g), 'ok', 'la de la vuelta se llama con la barra, aunque la ida ya se uso');
+  assert.equal(ch.meterVal(), 0, 'y esa si cuesta la barra');
+  ch.tick(10, { inPlay: false });
+  assert.equal(ch.llegar('vuelta'), 'used', 'llamada antes, ya no espera en la zona');
+  assert.equal(ch.gastada(), true);
+  ch.resetChancha();
+  // sin mitad, el poder clasico de siempre: una vez por corrida
+  ch.cargar();
+  assert.equal(ch.pedir({ fuelOn: true, enPasillo: true, viva: true, t: 999 }), 'ok');
+  ch.tick(10, { inPlay: false }); ch.cargar();
+  assert.equal(ch.pedir({ fuelOn: true, enPasillo: true, viva: true, t: 999 }), 'used');
+  ch.resetChancha();
+});

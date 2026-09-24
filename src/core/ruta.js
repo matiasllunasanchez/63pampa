@@ -151,3 +151,14 @@ export function techoAlcance(techo, dist, objetivo, lineas, arriba, rampaM) {
   const t = rampaM > 0 ? Math.min(1, (dist - d0) / rampaM) : 1;
   return arriba + (techo - arriba) * t;
 }
+
+/** LAS ZONAS DE LA CHANCHA en el pasillo (PLAN §3.5): `{ ida, vuelta }`, cada una `[desde, hasta]`
+ *  en fracciones del objetivo, o null si la ruta no la declara. La de la ida se cuenta en km AL
+ *  blanco (450 → 370: se entra por el mas lejano); la de la vuelta en km DESDE el blanco. */
+export function zonasChancha(ruta, a) {
+  const par = (k0, k1) => { const p0 = fraccionDeKm(k0, a), p1 = fraccionDeKm(k1, a); return p0 === null || p1 === null ? null : [Math.min(p0, p1), Math.max(p0, p1)]; };
+  return {
+    ida: ruta.chanchaIda ? par(ruta.blancoKm - ruta.chanchaIda[0], ruta.blancoKm - ruta.chanchaIda[1]) : null,
+    vuelta: ruta.chanchaVuelta ? par(ruta.blancoKm + ruta.chanchaVuelta[0], ruta.blancoKm + ruta.chanchaVuelta[1]) : null,
+  };
+}

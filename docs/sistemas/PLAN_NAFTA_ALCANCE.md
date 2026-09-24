@@ -368,10 +368,19 @@ Cada una deja el juego jugable; tras cada una `npm run check` y `npm run feel` i
   al ras el turbo cuesta ×3,4 por segundo (r³); +10% externo = +260 km; seco → `death_seco`.
   **Pendiente:** el fixture de fases mide la tasa de t15 en %/s, y con ruta la nafta es otra cuenta
   (ya fallaba antes por otro motivo).
-- **N4 — la Chancha en dos mitades.** IDA: zona fija, sin pedido ni barra, se la encuentra.
-  VUELTA: la barra de puntos de hoy decide **hasta dónde se acerca**. Calibrar la regla de
-  §3.5 (un km de racha x10+ llena barra por 1,5–2× la nafta extra que quemó). Sin `ruta`, el poder
-  de hoy intacto.
+- ✅ **N4 — la Chancha en dos mitades** *(hecho 23/9)*. Con ruta, las zonas salen de `chanchaIda` /
+  `chanchaVuelta` en km (`zonasChancha` en core/ruta.js) y no de las fases `chancha: true`, que t15
+  dejó de declarar. **IDA:** la Chancha asoma sola al entrar a la zona (`chancha.llegar`,
+  `CH_ETA_ZONA` 2,5 s, sin ritual de radio ni barra) **solo si la cruzás alto** (por encima de
+  `RADAR_ALT`): al ras, te la perdiste. La tecla 5 en la ida contesta "emisión cero". **VUELTA:**
+  espera sola en su zona segura (a cualquier altura); con la **barra llena y ya fuera del radar**, la
+  tecla 5 la trae ANTES, desde donde estés ("voy para allá"). Adentro del radar no entra. El uso
+  pasa a contarse **por mitad** (`mitades` en chancha.js); sin ruta, el poder clásico igual que antes
+  (`npm run chancha` OK). t15 corrió sus bordes de fase para que Cóndor anuncie cada zona justo antes.
+  Medido en el juego: zona al ras → no aparece; alto → cita; vuelta adentro del radar → no; fuera con
+  barra → viene y cobra la barra; sin tecla → espera en su zona. 2 tests nuevos.
+  **Pendiente de N4:** el viento sobre la zona de la Chancha (idea del autor) no se hizo: la clave
+  `viento` ya existe por tramo/fase, falta decidir si complica la canasta (más deriva) o solo frena.
 - **N5 — soltar la carga.** Tecla de suelta de tanques (de a par el ala, solo el centro) y de
   bombas sin blanco; `fCarga` y velocidad se recalculan con lo que queda colgado; las capas
   horneadas dejan de dibujar lo soltado.

@@ -509,6 +509,18 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // NO SE CORTA EL PODER EN SILENCIO NI SE COBRA LA BARRA DE LA CHANCHA: se avisa y listo. Es
       // la misma disciplina que los gates de `chancha.pedir` — la tecla contesta, no castiga.
       if (rasante.active()) { beep(150, 0.09, 'square', 0.05); radioCh('ras_no_chancha'); return; }
+      // CON RUTA (PLAN_NAFTA_ALCANCE N4) la tecla solo sirve en la VUELTA y fuera del radar: la de la
+      // ida no se llama —emision cero, se la encuentra en su zona— y adentro del radar no entra.
+      // Pedirla ahi la trae ANTES de su zona segura, desde donde estes: eso es lo que compra la barra.
+      if (rutaSys.hay() && cfg.fuelOn) {
+        if (!rutaSys.vueltaFueraDeRadar()) {
+          beep(150, 0.09, 'square', 0.05);
+          radioCh(run.dist > objectiveDist ? 'ch_radar' : 'ch_silencio');
+          return;
+        }
+        if (!rutaSys.antesDeZonaVuelta()) { beep(150, 0.09, 'square', 0.05); radioCh('ch_used'); return; }
+      }
+      const conRuta = rutaSys.hay();
       const r = chancha.pedir({
         fuelOn: cfg.fuelOn,
         // EL PASILLO DE VERDAD, y por MODO ademas de por estado (RF-07). Mirar solo `S.state`
@@ -531,18 +543,20 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // ese mismo numero deja el poder afuera justo del tramo donde el plan lo pone — el
         // transito, que es su lugar natural y donde decide si llegas con una bomba o con tres.
         // La mision lo puede correr; el default no se toca.
-        minT: curMission() && curMission().chanchaMinT !== undefined ? curMission().chanchaMinT : undefined,
+        minT: conRuta ? 0 : curMission() && curMission().chanchaMinT !== undefined ? curMission().chanchaMinT : undefined,
+        // con ruta, la de la tecla es la de la VUELTA: se gasta esa mitad, y la zona ya la miro arriba
+        mitad: conRuta ? 'vuelta' : undefined,
         // LA ZONA DE ESPERA (PLAN_MISION_CINCO_FASES §11). Si la mision declara alguna fase con
         // `chancha: true`, el pedido SOLO vale adentro de esas fases: el Hercules orbita en un
         // punto de la ruta, no te sigue. Es historico y ademas convierte el poder en una decision
         // de RUTA — pasarte de la zona es perderla — en vez de un boton que se aprieta cuando el
         // tanque baja. Una mision que no declara ninguna zona se comporta como siempre.
-        conZona: fases.hayZonaChancha(),
+        conZona: !conRuta && fases.hayZonaChancha(),
         enZona: fases.val('chancha', false) === true,
       });
       if (r === 'nofuel') return;                                    // sin combustible el poder no existe
       if (r === 'nozone' && chancha.meterVal() < 1) return;          // ni siquiera la tenia lista
-      if (r === 'ok') { beep(520, 0.07, 'square', 0.05, 120); radioCh('ch_call'); return; }
+      if (r === 'ok') { beep(520, 0.07, 'square', 0.05, 120); radioCh(conRuta ? 'ch_viene' : 'ch_call'); return; }
       // las otras dos lineas del ritual (Condor y la Chancha) las dispara el sistema por dt:
       // ver el bloque 'ack'/'come' de chancha.tick — aca solo suena el pedido.
       beep(150, 0.09, 'square', 0.05);
@@ -3500,6 +3514,15 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (alcanceAntes !== null && alc !== alcanceAntes)
           popup(W / 2, 46, T(alc ? 'radarEntra' : 'radarSale'), alc ? P.warn : P.accent);
         alcanceAntes = alc;
+        // LA CHANCHA EN SU ZONA (PLAN_NAFTA_ALCANCE N4). En la IDA se la encuentra: esta orbitando
+        // arriba, y solo la ve el que cruza la zona ALTO (fuera de la zona de mayor gasto) — el que
+        // pasa al ras, se la perdio. En la VUELTA espera en su zona segura, a cualquier altura.
+        // Una vez por mitad (chancha.llegar), y nunca con el RASANTE puesto (los dos no conviven).
+        const zc = cfg.fuelOn && !rasante.active() && !((gameMode === 'campaign' || S.test) && curMission() && curMission().chancha === false)
+          ? rutaSys.zonaChancha() : null;
+        if (zc === 'ida' && plane.y >= RADAR_ALT && chancha.llegar('ida') === 'ok') {
+          popup(W / 2, 46, T('ch_zona_ida'), P.crest); beep(520, 0.07, 'square', 0.04, 120);
+        } else if (zc === 'vuelta' && chancha.llegar('vuelta') === 'ok') radioCh('ch_zona_vuelta');
       }
 
       // needsMomentum: si el objetivo del run culmina en el climax (barco) o con solo llegar (distancia)

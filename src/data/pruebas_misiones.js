@@ -101,9 +101,8 @@ const t15 = {
   // final, y la vuelta (2.0) es casa. Queda asi: 520 km de crucero alto en el 16% del pasillo, y
   // 180 km de llegada en el 84% restante — el crucero comprimido que pidio el autor.
   //
-  // ⚠ LAS ZONAS DE LA CHANCHA TODAVIA NO COINCIDEN con las fases `chancha: true`: la de la ida
-  // (0.10–0.16) cae hoy entre 375 y 180 km del blanco, y la ruta la pide a 450–370. Las zonas en km
-  // mandan desde N4, cuando la Chancha pase a leerlas; hasta entonces rigen las fases, como siempre.
+  // LAS ZONAS DE LA CHANCHA SON ESTAS (N4): con ruta la Chancha lee `chanchaIda`/`chanchaVuelta`
+  // y no las fases `chancha: true`, que esta mision ya no declara.
   ruta: { blancoKm: 700, radarKm: 180, niveladoKm: 120, potenciaKm: 50, chanchaIda: [450, 370], chanchaVuelta: [350, 400] },
   // PAR PROVISORIO. Los pares de campaña van de 5.000 a 14.000 sobre misiones de 3 km; esta mide
   // diez veces mas y ademas cobra la vuelta entera, asi que el puntaje va a ser otro orden. 20.000
@@ -154,8 +153,11 @@ const t15 = {
     // tramo cae a ~260 km del blanco, fuera del horizonte de radar: el techo no mordia y la radio
     // decia "el radar esta cerca" en mitad del crucero. Queda como transito para no correr la zona
     // de la Chancha, que empieza donde terminaba el filo.
-    { tipo: 'transito', hasta: 0.10, radio: 'fase_crucero', solo: IDA_MAR, bombs: 0, bidones: false },
-    { tipo: 'transito', hasta: 0.16, radio: 'fase_chancha_ida', solo: IDA_MAR, bombs: 0, bidones: false, chancha: true },
+    // LAS ZONAS DE LA CHANCHA LAS PONE LA RUTA (N4), no las fases: la de la ida cae en 0.077–0.102
+    // (450–370 km del blanco) y la de la vuelta en 1.50–1.57 (350–400 km). Los bordes de abajo se
+    // corrieron para que Condor la ANUNCIE un poco antes de cada zona, y ella asoma al entrar.
+    { tipo: 'transito', hasta: 0.07, radio: 'fase_crucero', solo: IDA_MAR, bombs: 0, bidones: false },
+    { tipo: 'transito', hasta: 0.16, radio: 'fase_chancha_ida', solo: IDA_MAR, bombs: 0, bidones: false },
     { tipo: 'descenso', hasta: 0.20, radio: 'fase_descenso', solo: IDA_MAR, bombs: 0, bidones: false },
     { tipo: 'rasante', hasta: 0.50, radio: 'fase_rasante', solo: IDA_MAR, bombs: 0, bidones: false },
     // LA MITAD: de aca en adelante el mundo esta DEFENDIDO. Es el primer globo del vuelo, y su
@@ -167,8 +169,8 @@ const t15 = {
     // Sin `solo` y sin `bombs: 0`: aca nace todo lo que el pasillo sabe hacer —helicopteros,
     // barcazas, aviones— y ahora SI te bombardean, porque ahora si te vieron.
     { tipo: 'vuelta', hasta: 1.30, radio: 'fase_vuelta', bidones: false },
-    { tipo: 'vuelta', hasta: 1.60, radio: 'fase_cazas', bidones: false },
-    { tipo: 'vuelta', hasta: 1.85, radio: 'fase_chancha_vuelta', bidones: false, chancha: true },
+    { tipo: 'vuelta', hasta: 1.45, radio: 'fase_cazas', bidones: false },
+    { tipo: 'vuelta', hasta: 1.60, radio: 'fase_chancha_vuelta', bidones: false },
     { tipo: 'vuelta', hasta: 2.0, radio: 'fase_casa', bidones: false },
   ],
   // NO HAY `charla:` ACA, Y ES A PROPOSITO. Se probo una (M01_GANSOS) para tener a la vista el
