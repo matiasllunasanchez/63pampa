@@ -1,6 +1,6 @@
 # PLAN — LA NAFTA COMO ALCANCE *(altura, carga, radar y la Chancha, en km)*
 
-> **Estado:** 📝 propuesta, con las decisiones del autor del 23/9/2026 incorporadas (§6) · pedido del autor: *"analizar una propuesta
+> **Estado:** ✅ **N0–N7 implementadas y N8 calibrada** (24/9/2026), sobre t15. Falta la adopción en la campaña, que espera las fases de cada misión (§5, N8). Decisiones del autor en §6 · pedido del autor: *"analizar una propuesta
 > nueva de mecánica de gasto de combustible y recarga con distancia límite de alcance de radar.
 > El mismo no puede arrancar apenas arranca el juego y despegan"*, más *"el turbo debería gastar
 > combustible proporcional a la velocidad que otorga"*.
