@@ -401,7 +401,16 @@ en `t15` (IDA Y VUELTA) y con una fila de PRUEBAS por tramo (patrón de `t16`).
     Te llevamos a upa."*). Test en `unit.js`; en vuelo no se probó (pide ruta, fuga y barra
     juntas). Lo de "comandos más duros" quedó afuera.
   - **La siembra distinta** de la vuelta no se tocó: ya la da la data de las fases de t15.
-- **V6 — planeo y eyección.**
+- ✅ **V6 — planeo y eyección** *(hecho 24/9)*. Quedarse seco ya no mata en el acto (con ruta era
+  `death_seco`): **el motor se para y el avión planea** (`PLANEO_*` en `tuning.js`). Suelto baja
+  3,2 m/s y va perdiendo velocidad; **tirar del morro cambia velocidad por altura** (sube 2 m/s
+  mientras frena); **picar** recupera velocidad; tirar sin velocidad es la **pérdida** (-7 m/s).
+  Medido desde 40 m: suelto 12 s, tirando bien (4 s) 19 s, tirando de más 12 s. Puma y un cartel
+  lo avisan. **La tecla de la bomba es la manija de eyección:** la misión se pierde igual, pero la
+  causa dice si el piloto vuelve — rescatado a ≤150 km de la costa propia o ≤60 de la Gran Malvina
+  (`EYEC_KM_*`), perdido en el mar más lejos. Verificado: a 1,9 de la vuelta, rescatado; a 1,4,
+  perdido. Tocar el agua sin eyectar es `death_sea`. En M1 (`sinMuerte`) sigue su puerta de
+  siempre y no se eyecta. *(Qué hace el guion con un Fiel rescatado sigue abierto: decisión 5.)*
 
 **Orden sugerido:** V0 y V1 primero — son la forma que pidió el autor y ya la hacen jugable de
 punta a punta. V2 y V3 son el corazón del escape ("la tensión del escape era aún mayor que la del

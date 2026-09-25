@@ -78,6 +78,11 @@ export const STRINGS = {
     death_aa: 'La defensa de la barcaza te derribo',
     death_fuel: 'Te quedaste sin combustible sobre el blanco',
     death_seco: 'Te quedaste sin combustible',
+    // LA EYECCION (PLAN_VUELTA_REAL V6): la mision se pierde igual; el piloto, depende de donde cayo
+    death_eyecto_rescate: 'Te eyectaste cerca de la costa. Te sacaron del agua',
+    death_eyecto_mar: 'Te eyectaste en mar abierto. El Atlantico Sur no perdona',
+    planeo_aviso: 'SIN MOTOR · PLANEÁ HACIA LA COSTA · BOMBA = EYECTARSE',
+    planeo_radio: 'PUMA: TE PLANTASTE. ESTIRALO HACIA LA COSTA. SI NO LLEGÁS, AFUERA.',
     // SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5)
     tanques_fuera: 'TANQUES FUERA', tanque_fuera: 'TANQUE CENTRAL FUERA', tanques_nada: 'NO QUEDAN TANQUES',
     tanques_nafta: 'IBAN CON NAFTA: {km} KM AL MAR',
@@ -1187,6 +1192,10 @@ export const STRINGS = {
     death_aa: 'The barge defenses shot you down',
     death_fuel: 'You ran out of fuel over the target',
     death_seco: 'You ran out of fuel',
+    death_eyecto_rescate: 'You ejected near the coast. They pulled you out of the water',
+    death_eyecto_mar: 'You ejected over open sea. The South Atlantic does not forgive',
+    planeo_aviso: 'ENGINE OUT · GLIDE TO THE COAST · BOMB = EJECT',
+    planeo_radio: 'PUMA: YOUR ENGINE QUIT. STRETCH IT TO THE COAST. IF YOU CAN\'T, GET OUT.',
     tanques_fuera: 'TANKS AWAY', tanque_fuera: 'CENTER TANK AWAY', tanques_nada: 'NO TANKS LEFT',
     tanques_nafta: 'THEY HAD FUEL: {km} KM INTO THE SEA',
     tq_tocado: 'HIT',
