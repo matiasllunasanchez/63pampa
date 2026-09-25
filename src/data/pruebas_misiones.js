@@ -228,6 +228,28 @@ const t16 = {
   par: 3000,
 };
 
+// ---------------------------------------------------------------------------------------------
+// t17 · IDA Y VUELTA SMALL — la t15 entera, a distancia de prueba (pedido del autor 25/9: "que
+// tenga todo el flow completo de una mision real y todo lo que sucede, pero con distancias cortas").
+//
+// ES t15 Y NO UNA COPIA: mismas fases, radio, ruta, Chancha, CAP y suelta; lo unico que cambia son
+// los METROS del pasillo — 6 km de ida en vez de 29 (~1:40 en vez de ~3:24), y otros 6 de vuelta.
+// Si t15 cambia, esta cambia con ella.
+//
+// LA NAFTA SIGUE SIENDO LA REAL, y es a proposito: con `ruta` el tanque se gasta en KM de la ruta
+// (700 km al buque), no en metros de pasillo, asi que la ida sigue comiendose el mismo pedazo de
+// tanque — solo que en menos tiempo. La cita con la Chancha (se llena en ~11 s) pesa lo mismo.
+//
+// LO QUE SE COMPRIME DE MAS: los tramos cortos quedan MUY cortos (el descenso son ~240 m, 4 s), y
+// las lineas de radio de fases vecinas se pisan. Es un banco para recorrer el flujo, no para medir
+// tiempos — para eso esta t15.
+const t17 = {
+  ...t15,
+  id: 't17', name: 'IDA Y VUELTA SMALL',
+  goal: { ...t15.goal, dist: 6000 },
+  par: 4000,   // t15 x 6/29, redondeado
+};
+
 /** Las misiones que NO son la campaña. `game.js` las concatena a `MISSIONS` para resolver una
  *  mision por id o por indice; nada que recorra la campaña las mira. */
-export const MISIONES_PRUEBA = [t15, t16];
+export const MISIONES_PRUEBA = [t15, t16, t17];

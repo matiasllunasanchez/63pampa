@@ -42,6 +42,12 @@ export const PRUEBAS = [
     // empezar con las ruedas.
     setup: a => a.mision('t15', { start: 'runway' }),
   },
+  {
+    id: 'idayvueltaSmall', titulo: 'IDA Y VUELTA SMALL', desc: 'La misma mision entera, a distancia corta · ~4 min',
+    // t17: todo el flujo de t15 —despegue, ida, Chancha, suelta, escape, viraje, vuelta, CAP y
+    // aterrizaje— con 6 km por tramo en vez de 29. Arranca en la pista por lo mismo que la otra.
+    setup: a => a.mision('t17', { start: 'runway' }),
+  },
 
   { head: 'prSecClimax' },
   {
