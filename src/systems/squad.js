@@ -20,7 +20,7 @@ import { FLY_TOP } from '../data/tuning.js';
 import { PZ } from '../render/ctx.js';
 import { beep, sfxOne, duck } from './audio.js';
 import { resetAguante } from './aguante.js';
-import { RELEVO_WRECK, RELEVO_GRACE, RELEVO_DUR, pilotIdx, relevoPhase, callsign } from '../core/squad.js';
+import { RELEVO_WRECK, RELEVO_GRACE, RELEVO_DUR, pilotIdx, relevoPhase, callsign, naftaCompanero } from '../core/squad.js';
 
 // --- estado privado del subsistema ---
 let rv = null;      // el relevo en curso (null fuera de la cinematica)
@@ -74,9 +74,11 @@ export function startRelevo(cause, spent) {
   };
 
   // RESET PARCIAL — nunca reset(): la mision es LA MISMA. Se conserva puntaje, distancia,
-  // stats, objetivo, y se HEREDA combustible y municion (el companero venia volando la misma
-  // ruta; reponerlo al 100% convertiria morir en la forma barata de repostar). Lo que si se
-  // pierde: racha, multiplicador y afterburner — el avion nuevo entra frio.
+  // stats, objetivo, y se HEREDA la municion. El combustible NO se hereda tal cual: el compañero
+  // venia atras ahorrando (naftaCompanero) — entra con mas que el lider, nunca lleno: reponerlo
+  // al 100% convertiria morir en la forma barata de repostar. Lo que si se pierde: racha,
+  // multiplicador y afterburner — el avion nuevo entra frio.
+  run.fuel = naftaCompanero(run.fuel);
   run.scrapeT = 0; run.scrapeVib = 0;
   run.streak = 0; run.rasLevel = 0; run.mult = 1; run.multShow = 1; run.graceT = 0;
   resetAguante();                                      // el estado RASANTE no se hereda

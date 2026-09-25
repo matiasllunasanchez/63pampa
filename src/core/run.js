@@ -37,7 +37,6 @@ export const run = {
   tanque: null,
   naftaCap: 0,
   fuelSync: 100,
-  planeoSpd: 0,    // PLAN_VUELTA_REAL V6: la velocidad que le queda al planeo sin motor (0 = con motor)
   heat: 0,         // calor del canon (0..1)
   overheat: false, // canon bloqueado hasta enfriar a 0.3
   detection: 0,    // carga del radar enemigo (0..1); al llegar a 1 dispara una OLEADA de misiles
@@ -175,7 +174,7 @@ export function resetRun() {
   Object.assign(run, {
     t: 0, dist: 0, spd: 6, fuelDist: 0,
     integ: 100, escudo: 1, escudoT: 0, hurtT: 0,
-    fuel: 100, tanque: null, naftaCap: 0, fuelSync: 100, planeoSpd: 0, heat: 0, overheat: false, detection: 0, radarVisto: false, radarWave: 0, radarSeen: false, estrellas: 0, climaxHecho: 0, boost: false, throttle: 0,
+    fuel: 100, tanque: null, naftaCap: 0, fuelSync: 100, heat: 0, overheat: false, detection: 0, radarVisto: false, radarWave: 0, radarSeen: false, estrellas: 0, climaxHecho: 0, boost: false, throttle: 0,
     score: 0, mult: 1, multShow: 1, streak: 0, rasLevel: 0, graceT: 0, rasAlto: -9,
     aguante: 0, aguN: 0, aguSec: 0, aguF: 0, aguHold: 0, aguY: 0, aguGolpe: -9, aguErr: -9, aguVen: 0, aguGra: 0,
     alaLx: 0, alaLy: 0, alaRx: 0, alaRy: 0, alaT: -9,

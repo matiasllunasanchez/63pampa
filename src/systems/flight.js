@@ -25,8 +25,7 @@ import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
 import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE,
          GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
-         FUEL_RATE, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE,
-         PLANEO_VY, PLANEO_VY_TIRA, PLANEO_VY_PERDIDA, PLANEO_FRENA, PLANEO_ROCE, PLANEO_SPD_MIN } from '../data/tuning.js';
+         FUEL_RATE, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE } from '../data/tuning.js';
 // LAS FASES (PLAN_MISION_CINCO_FASES §11). Se LEEN, nunca se escriben, igual que los tramos en el
 // sembrador: `fsVal` contesta lo que rige a esta altura del vuelo y cae al valor de siempre cuando
 // la mision no declara fases — que es como se cumple la regla suprema (sin fases, este archivo se
@@ -323,12 +322,11 @@ export function flightSystem(dt, deps) {
   //
   // CON `ruta` LA NAFTA ES OTRA CUENTA (systems/nafta.js): km de tanque segun la carga, gastados por
   // km recorrido segun la zona de altura, lo que cuelga y el turbo. Los km de este cuadro son los
-  // metros del odometro por lo que vale un metro aca (el crucero comprimido vale mucho mas). Y
-  // quedarse seco ya no es morir en el acto (PLAN_VUELTA_REAL V6): el avion planea, ver abajo.
+  // metros del odometro por lo que vale un metro aca (el crucero comprimido vale mucho mas). Que
+  // pasa cuando se seca lo decide game.js (`sinCombustible`): relevo o eyeccion.
   if (naftaSys.activo()) {
     if (cfg.fuelOn) {
       const km = run.spd * dt * chAvance() * cvAvance() * kmPorM();
-      // SECO YA NO ES MORIR (PLAN_VUELTA_REAL V6): el motor se para y el avion planea (abajo).
       naftaSys.step(km, plane.y, colgado, turboR);
     }
   } else if (cfg.fuelOn) {
@@ -336,26 +334,7 @@ export function flightSystem(dt, deps) {
     run.fuel -= (base + (run.boost ? extraTurboPorSeg(base, turboR) : 0)) * (cfg.fuelScale || 1) * dt
       * (CHV_FUEL_FREEZE ? cvAvance() : 1);
   }
-  // SIN NAFTA, EL PLANEO (PLAN_VUELTA_REAL V6): el motor se para. Baja solo; tirando del morro
-  // baja menos pero se come la velocidad, y sin velocidad entra en perdida. Se estira el vuelo
-  // hacia la costa, y la bomba es la manija de eyeccion (game.js).
-  // PICANDO se recupera velocidad (se cambia altura por velocidad, lo inverso de tirar): es lo que
-  // deja estirar el planeo a tirones en vez de una sola tirada hasta la perdida.
-  // La velocidad vertical se FIJA y no se acota: con un tope solo hacia arriba, la gravedad la
-  // seguia hundiendo y tirar del morro no cambiaba nada (medido: 16,1 s contra 16,2 s).
-  if (run.fuel <= 0) {
-    run.fuel = 0;
-    const tira = !!inp.u, pica = !!inp.d;
-    const d = tira ? -PLANEO_FRENA : pica ? PLANEO_FRENA * 1.4 : -PLANEO_ROCE;
-    run.planeoSpd = Math.max(PLANEO_SPD_MIN, Math.min(160, (run.planeoSpd || run.spd) + d * dt));
-    run.spd = Math.min(run.spd, run.planeoSpd);
-    // LA PERDIDA es tirar SIN velocidad: la trepada se cae. Planear suelto a la velocidad minima no
-    // entra en perdida — se hunde a su ritmo. Asi tirar es cambiar velocidad por altura (sube un
-    // poco mientras frena), y el que tira de mas se queda sin nada.
-    const perdida = tira && run.planeoSpd <= PLANEO_SPD_MIN + 0.01;
-    const vy = perdida ? PLANEO_VY_PERDIDA : pica ? PLANEO_VY * 2.2 : tira ? PLANEO_VY_TIRA : PLANEO_VY;
-    plane.vy = vy;
-  } else run.planeoSpd = 0;
+  if (run.fuel <= 0) run.fuel = 0;
   // ---- LA CAMA DE VUELO (systems/vuelo.js): integrar, topes, camara y actitudes con peso. Estas
   // lineas VIVIAN ACA; se mudaron enteras para poder correrlas tambien en una cinematica, donde el
   // avion se quedaba quieto y la camara clavada (PLAN_CINE_PESO §0). El pasillo no cambia: es la

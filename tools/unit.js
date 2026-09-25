@@ -102,7 +102,13 @@ test('clamp: casos de borde', () => {
 // La cinematica y el autopiloto no se prueban aca (tocan stores y canvas); esto cubre la
 // logica que decide VIDAS y TIEMPOS — donde un off-by-one significa morir gratis.
 import { canRelevo, pilotIdx, callsign, relevoPhase, formationSlots,
-  RELEVO_WRECK, RELEVO_GRACE, RELEVO_DUR } from '../src/core/squad.js';
+  RELEVO_WRECK, RELEVO_GRACE, RELEVO_DUR, naftaCompanero } from '../src/core/squad.js';
+
+test('relevo: el compañero venia ahorrando — entra con MAS que el lider, nunca lleno', () => {
+  assert.equal(naftaCompanero(0), 40, 'el que se seco deja un compañero con 40 %');
+  assert.equal(naftaCompanero(100), 100);
+  for (const f of [0, 10, 50, 90]) assert.ok(naftaCompanero(f) > f && naftaCompanero(f) < 100);
+});
 
 test('escuadron: con un solo avion NO hay relevo — morir es morir, como siempre', () => {
   assert.equal(canRelevo(1), false);

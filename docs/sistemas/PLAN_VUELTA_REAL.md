@@ -44,7 +44,7 @@ IDA (pasillo) ──► LA SUELTA ──► EL ESCAPE (pasillo) ──► EL VIR
 | sin pegarle → otra pasada (hasta 3) | sin pegarle → **negro y derrota**. Las pasadas quedan solo en la prueba `t16` |
 | la media vuelta es un corte a negro en el buque | la media vuelta es **una cinemática** cuando perdés las estrellas: EL VIRAJE |
 | la vuelta = 4 fases `vuelta` con distinto radio | la vuelta = tramos con mecánica propia (§2.D–F), anclados a la ruta en km |
-| quedarse sin nafta = `death_fuel` | antes del cero, **planear y eyectarse** (§2.F) — la misión se pierde igual, el piloto puede salvarse |
+| quedarse sin nafta = `death_fuel` | el seco **vuelve** y releva un compañero; el último **se eyecta** (§2.F) — la misión se pierde, el piloto puede salvarse |
 
 **Lo que NO cambia:** la ida, la ruta y la nafta de `PLAN_NAFTA_ALCANCE`, LA SUELTA hasta el
 impacto, las estrellas (se usan tal cual), el aterrizaje.
@@ -282,14 +282,14 @@ gradients, 3D render, photorealistic`
     vuelve **sostenida**: quedarse en la canasta un tramo largo, con los comandos más duros (la
     agilidad de la avería ya existe en `effects()`), mientras la Chancha te arrastra hacia la costa.
     Soltarte antes de tiempo es quedarte corto.
-- **Planear y eyectarse** (en vez de morir en el cero):
-  - Con el tanque en cero **el motor se para** y el avión **planea**: baja solo, y cabeceando se
-    estira el planeo (a costa de velocidad). Sin gas, sin turbo, sin poderes.
-  - **Una tecla eyecta.** El resultado depende de **qué tan cerca de la costa** caíste (km de la
-    ruta a la Gran Malvina o al continente): cerca → **rescatado**; lejos → **perdido en el mar**
-    (el frío del Atlántico Sur: 15–20 minutos). Tocar el agua sin eyectar = `death_sea`.
-  - **La misión se pierde igual** (NAFTA §3.8 se respeta), pero el piloto puede volver — y eso
-    importa en campaña, donde los Fieles son personajes.
+- **Sin combustible, el que se seca sale** (rehecho 25/9 — el autor: *"si te quedás sin nafta
+  eyectás y perdés la misión"*; el jugador no hace nada):
+  - **Queda escuadrón:** por radio, *"PATRIA n: ME ESTOY QUEDANDO SIN COMBUSTIBLE. ESTOY CON LA RESERVA, VUELVO."* (vuelve con la reserva: por eso no se cae) — relevo
+    con el titular `sq_seco`. El compañero venía atrás ahorrando —el líder es el que gasta y hace
+    piruetas—: entra con `naftaCompanero` (core/squad.js), el 60 % de lo que gastó el líder
+    descontado de un tanque lleno. Seco → 40 %. Vale para **todo** relevo, no solo el de nafta.
+  - **Era el último:** eyección automática, con paracaídas. La misión se pierde; la causa dice si
+    el piloto vuelve — cerca de la costa → **rescatado**; lejos → **perdido en el mar**.
 
 ---
 
@@ -313,7 +313,7 @@ gradients, 3D render, photorealistic`
 | **el artillero de popa** | ❌ nuevo | sistema chico, patrón de `caza.js` |
 | **EL VIRAJE** (la timeline) | ❌ nuevo | una entrada en `data/cines.js` + el disparo en estrellas = 0 |
 | **las señas** | ❌ nuevo | pictogramas en la cabina del compañero |
-| **la fuga, el remolque, planeo y eyección** | ❌ nuevo | nafta, chancha, un estado de planeo |
+| **la fuga, el remolque y la eyección** | ❌ nuevo | nafta, chancha, un estado de planeo |
 
 ---
 
@@ -401,16 +401,14 @@ en `t15` (IDA Y VUELTA) y con una fila de PRUEBAS por tramo (patrón de `t16`).
     Te llevamos a upa."*). Test en `unit.js`; en vuelo no se probó (pide ruta, fuga y barra
     juntas). Lo de "comandos más duros" quedó afuera.
   - **La siembra distinta** de la vuelta no se tocó: ya la da la data de las fases de t15.
-- ✅ **V6 — planeo y eyección** *(hecho 24/9)*. Quedarse seco ya no mata en el acto (con ruta era
-  `death_seco`): **el motor se para y el avión planea** (`PLANEO_*` en `tuning.js`). Suelto baja
-  3,2 m/s y va perdiendo velocidad; **tirar del morro cambia velocidad por altura** (sube 2 m/s
-  mientras frena); **picar** recupera velocidad; tirar sin velocidad es la **pérdida** (-7 m/s).
-  Medido desde 40 m: suelto 12 s, tirando bien (4 s) 19 s, tirando de más 12 s. Puma y un cartel
-  lo avisan. **La tecla de la bomba es la manija de eyección:** la misión se pierde igual, pero la
-  causa dice si el piloto vuelve — rescatado a ≤150 km de la costa propia o ≤60 de la Gran Malvina
-  (`EYEC_KM_*`), perdido en el mar más lejos. Verificado: a 1,9 de la vuelta, rescatado; a 1,4,
-  perdido. Tocar el agua sin eyectar es `death_sea`. En M1 (`sinMuerte`) sigue su puerta de
-  siempre y no se eyecta. *(Qué hace el guion con un Fiel rescatado sigue abierto: decisión 5.)*
+- ✅ **V6 — sin combustible y eyección** *(hecho 24/9, rehecho 25/9)*. La primera versión tenía
+  planeo sin motor y la eyección en la tecla de la bomba; el autor la sacó: *"que el avión quede
+  dañado, que no tenga que hacer nada"*. Ahora el cero se resuelve solo (`sinCombustible` en
+  game.js): con escuadrón, el seco dice por radio que vuelve y hay relevo
+  (`naftaCompanero`: el de atrás ahorró, entra con más que el líder); si era el último, **eyección automática** con paracaídas y la misión se
+  pierde. La causa dice si el piloto vuelve: rescatado a ≤150 km de la costa propia o ≤60 de la
+  Gran Malvina (`EYEC_KM_*`), perdido en el mar más lejos. En M1 (`sinMuerte`) es un golpe y
+  devuelve tanque. *(Qué hace el guion con un Fiel rescatado sigue abierto: decisión 5.)*
 
 **Orden sugerido:** V0 y V1 primero — son la forma que pidió el autor y ya la hacen jugable de
 punta a punta. V2 y V3 son el corazón del escape ("la tensión del escape era aún mayor que la del

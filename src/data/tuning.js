@@ -1745,14 +1745,10 @@ export const EST_GRACIA_S = 1.2;
 export const CAZA_SOBRE_TERRENO = 2.5;
 
 // ---------------------------------------------------------------------------------------------
-// EL PLANEO Y LA EYECCION (PLAN_VUELTA_REAL V6). *"Si el combustible se agotaba antes de llegar a la
-// costa, el piloto no tenia mas opcion que la manija de eyeccion sobre el oceano abierto. Por eso
-// estiraban el vuelo lo mas posible, planeando hasta estar cerca de la Gran Malvina o de la costa."*
-// Sin nafta el motor se para y el avion PLANEA: baja solo (`PLANEO_VY`); tirando del morro baja
-// —cambia velocidad por altura (`PLANEO_VY_TIRA`, `PLANEO_FRENA`)—, y tirar sin velocidad es la
-// perdida (`PLANEO_VY_PERDIDA`). Picando se recupera velocidad. La eyeccion es la tecla de la bomba. Tocar el agua sin eyectar es morir.
-export const PLANEO_VY = -3.2, PLANEO_VY_TIRA = 2, PLANEO_VY_PERDIDA = -7;   // tirar SUBE (cambia velocidad por altura)
-export const PLANEO_FRENA = 9, PLANEO_ROCE = 2.5, PLANEO_SPD_MIN = 34;
+// SIN COMBUSTIBLE (PLAN_VUELTA_REAL V6, rehecho 25/9). El que se seca SALE: si queda escuadron,
+// vuelve con la reserva ("me estoy quedando sin combustible…") y el compañero asume; si era el ultimo, se eyecta y
+// la mision se pierde. Sin planeo ni tecla — el jugador no hace nada.
+// Con cuanto entra el compañero: `naftaCompanero` en core/squad.js.
 /** Rescate: a cuantos km de la costa propia (el continente) o de la Gran Malvina (el blanco) un
  *  piloto eyectado todavia llega a que lo saquen del agua. Mas lejos, el frio del Atlantico Sur. */
 export const EYEC_KM_CASA = 150, EYEC_KM_ISLA = 60;

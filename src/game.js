@@ -146,7 +146,7 @@ import * as wingmv from './systems/wingmv.js';
 import { drawActores } from './render/wingmv.js';
 import * as teatro from './systems/teatro.js';
 import { drawTiros } from './render/teatro.js';
-import { canRelevo, pilotIdx, formationSlots, puestoFormacion } from './core/squad.js';
+import { canRelevo, pilotIdx, formationSlots, puestoFormacion, naftaCompanero } from './core/squad.js';
 import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
   (() => {
@@ -2700,8 +2700,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  en las manos y en el sonido —vuelven las voces, vuelve la siembra— y no que lo anuncie un
      *  rotulo. Lo unico que se ve es el mismo fundido corto de 0.55 s que ya usa el cruce de ida,
      *  porque tambien aca cambia la camara (el climax mira de frente, el pasillo de costado). */
-    /** LA EYECCION (PLAN_VUELTA_REAL V6). La mision se pierde igual —el avion se va al mar—, pero el
-     *  piloto puede volver: lo deciden los km a la costa propia o a la Gran Malvina. Mas lejos, el
+    /** LA EYECCION (PLAN_VUELTA_REAL V6): el ultimo avion se quedo sin combustible. Automatica —el
+     *  jugador no hace nada (25/9)—: sale el paracaidas y la mision se pierde. Lo que cambia es si
+     *  el piloto vuelve: lo deciden los km a la costa propia o a la Gran Malvina. Mas lejos, el
      *  agua del Atlantico Sur a 2-5 °C. Sin ruta se mide contra la fraccion del camino a casa. */
     const sinMuerteAhora = () => (gameMode === 'campaign' || gameMode === 'cycle') && !!curMission() && !!curMission().sinMuerte;
     function eyectar() {
@@ -2716,7 +2717,32 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         rescate = fin > 0 && (run.dist / fin > 0.85 || run.dist / fin < 0.15);
       }
       beep(900, 0.08, 'square', 0.05, -300); boom(0.06, true);
+      // EL PARACAIDAS: la misma pieza que usan los pilotos enemigos que alcanzan a salir (core/fx.js)
+      obstacles.push({
+        type: 'chunk', done: true, chunkT: 0, paraca: true,
+        // sale PARA ARRIBA pero poco (vy 6, no los 15 del enemigo): el tuyo esta a la altura de la
+        // camara, y con 15 se iba del cuadro antes de abrirse
+        x: plane.x, y: plane.y + 0.5, z: PZ + 4,
+        vx: 0, vy: 6, vz: 5, spin: 0, vspin: 0, size: 0.95, hot: false,
+        c: '#d8d2c4', c2: '#8f959b', grav: 0.1, vida: 6, ph: 0, parte: null,
+      });
       die(rescate ? 'death_eyecto_rescate' : 'death_eyecto_mar');
+    }
+    /** SIN COMBUSTIBLE (25/9: "si alguno del escuadron queda sin nafta dice 'debo volver, me quede
+     *  sin nafta'; si es el ultimo, eyecta"). El que se seca no sigue: si queda escuadron vuelve
+     *  a casa con la reserva y el compañero asume con lo que ahorro atras (naftaCompanero); si
+     *  era el ultimo, eyeccion. No hay decision del jugador. */
+    function sinCombustible() {
+      // la mision que no deja caer el avion (M1) lo cobra como un golpe y le devuelve tanque: si no,
+      // el cero se cobraria cuadro tras cuadro
+      if (sinMuerteAhora()) { run.fuel = naftaCompanero(0); onDeath('death_seco'); return; }
+      if (canRelevo(run.lives)) {
+        const seco = pilotIdx(run.squad, run.lives);   // el que vuela ahora
+        beep(430, 0.06, 'square', 0.04);
+        decirRadio(T('seco_radio', { c: squad.pilotName(seco) }), n => CARA_DE_RADIO[n] || null);
+        squad.startRelevo('death_seco', 'seco');
+        setState('relevo');
+      } else eyectar();
     }
     /** EL ESCAPE ARRANCA (PLAN_VUELTA_REAL §2.B): el cruce con el buque hundido. */
     function empezarEscape() {
@@ -2789,7 +2815,6 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (capPaso.t >= CAP.T) capPaso = null;
     }
     let capAvisada = false;
-    let planeoDicho = false;
     let senas = null;
     const senasActivas = () => !!senas && senas.t < SENAS.ENTRA + SENAS.CADA * senas.senas.length + SENAS.SALE;
     function armarSenas() {
@@ -2915,8 +2940,6 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // la PASADA tambien maneja [Z] sola: alli no es un misil sino LA SUELTA de la ristra, y el
       // flanco lo detecta su propio update (systems/pasada.js) — este embudo es del pasillo.
       if (S.state === 'pasada') return;
-      // SIN MOTOR, LA TECLA DE LA BOMBA ES LA MANIJA DE EYECCION (PLAN_VUELTA_REAL V6)
-      if (S.state === 'play' && cfg.fuelOn && run.fuel <= 0) { if (!sinMuerteAhora()) eyectar(); return; }
       if (S.state !== 'play' || run.mslCd > 0) return;
       // LA SUELTA: las bombas salen del ESTANTE (systems/blanco.js) — la del centro es la del buque y
       // no sale lejos de el. Si lo unico que queda es esa, la tecla no suelta y se dice por que.
@@ -3068,7 +3091,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       }
       // SECO ES PERDER (PLAN_NAFTA_ALCANCE §3.8, decision del autor): sin relevo, porque el tanque es
       // de la corrida y el compañero heredaria el mismo cero — caerian uno detras del otro.
-      if (cause === 'death_seco') { die(cause); return; }
+      if (cause === 'death_seco') { sinCombustible(); return; }
       if (canRelevo(run.lives)) {
         // en campaña el lider NO revienta: queda averiado y vuelve (norma 3/8, GUION_2)
         if (relevoRompe()) dmgFX(); else crashFX();
@@ -3781,14 +3804,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       stepLecciones();
       if (fs === 'objective') { finishObjective(); return; }
       if (fs && fs.death) { onDeath(fs.death); return; }
-      // EL PLANEO (V6): se anuncia una vez, y el agua sin eyectar es el final — sin motor no hay
-      // roce que valga ni relevo que traiga nafta.
-      if (cfg.fuelOn && run.fuel <= 0) {
-        // el cartel va SOBRE EL MAR (y no arriba, contra el sol, donde no se leia) y Puma lo dice
-        if (!planeoDicho) { planeoDicho = true; popup(W / 2, H * 0.6, T('planeo_aviso'), P.warn, true); radioTramo('planeo_radio'); beep(180, 0.3, 'sawtooth', 0.05, -60); }
-        // (la mision que no deja caer el avion —M1— lo sigue resolviendo por su puerta de siempre)
-        if (plane.y <= 1.4) { if (sinMuerteAhora()) onDeath('death_sea'); else die('death_sea'); return; }
-      } else planeoDicho = false;
+      // SECO (V6, rehecho 25/9): relevo con "me quede sin combustible", o eyeccion si era el ultimo
+      if (cfg.fuelOn && run.fuel <= 0) { sinCombustible(); return; }
       // LLEGASTE A CASA (PLAN_MISION_CINCO_FASES §11): la VUELTA se termino. En una mision sin
       // fases esto es siempre falso y el pasillo cierra donde cerro siempre — en el objetivo.
       if (fases.llegaste()) { iniciarAterrizaje(); return; }
@@ -4910,6 +4927,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // PLAN_VUELTA_REAL V6: secar el tanque a mano (con ruta la nafta lo sincroniza al km) y leer
       // de que se murio la corrida — el rescate de la eyeccion se decide en la causa.
       window.__fuelset = v => { run.fuel = Math.max(0, Math.min(100, +v)); return run.fuel; };
+      window.__vidas = v => { if (v !== undefined) run.lives = +v; return run.lives; };   // el ultimo avion: __vidas(1)
       window.__deathdbg = () => deathCause;
       window.__pscaer = m => persec.caerLider(m || undefined);
       window.__psscore = () => Math.floor(run.score);

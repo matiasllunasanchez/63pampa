@@ -17,6 +17,14 @@ export const RELEVO_DUR = RELEVO_WRECK + RELEVO_GRACE;
 
 export const SQUAD_MIN = 1, SQUAD_MAX = 8;
 
+/** LA NAFTA DEL COMPAÑERO (25/9: "todos estan volando, pero los de atras estan ahorrando
+ *  combustible y el principal es el que gasta mas y hace piruetas"). El que asume venia en la
+ *  formacion a crucero economico: gasto solo RELEVO_AHORRO de lo que gasto el lider. Asi entra
+ *  siempre con MAS que el que se fue —el seco (0 %) deja un compañero con 40 %—, pero nunca lleno:
+ *  morir no es repostar. `fuel` es el % del lider al caer. */
+export const RELEVO_AHORRO = 0.6;
+export const naftaCompanero = fuel => 100 - (100 - Math.max(0, Math.min(100, fuel))) * RELEVO_AHORRO;
+
 /** ¿Queda escuadron para relevar? Con 1 avion NO: morir es morir, igual que siempre. */
 export const canRelevo = lives => lives > 1;
 
