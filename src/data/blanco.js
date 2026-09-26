@@ -31,6 +31,22 @@ export const BL = {
    *  VISTA COMPRIMIDA de `zVista` (core/blanco.js), que lo agranda de lejos y lo deja exacto de cerca.
    *  (23/9, playtest: "aparece cuando ya estas demasiado cerca".) */
   VISIBLE_Z: 3500,
+  /** HASTA DONDE DURA EL APARECER (pedido del autor, 26/9): "el barco no se ve en el horizonte; se
+   *  empieza a ver con fade in, y quiza niebla que va desapareciendo mientras aparece a lo lejos".
+   *  Entre VISIBLE_Z y esto el buque se funde de la nada con la bruma encima, y la bruma se va
+   *  levantando. De aca para adentro ya esta ENTERO — y es tambien donde entran los corchetes y la
+   *  flecha: "una vez que aparece bien, se marca con rojo". Un solo numero para las dos cosas, o el
+   *  dia que uno cambie se marcaria un buque que todavia no termino de aparecer. */
+  APARECE_Z: 2200,
+  /** EL MOMENTO PERDIDO (pedido del autor, 26/9): si la ventana verde se pierde porque te acercaste
+   *  demasiado sin soltar, "se mete FADE, se quita la UI, queda solo el avion volando, y el avion
+   *  vuela solo hacia arriba controlado por la maquina".
+   *    PERDIDA_T     segundos del fundido a negro, con el avion en piloto automatico. Es un FUNDIDO
+   *                  y no un corte: el corte seco de la primera version era "un pantallazo negro".
+   *    PERDIDA_SUBE  unidades/s que el piloto automatico sube. Se ve irse, que es la idea: el que
+   *                  erro la pasada abre y deja el lugar. */
+  PERDIDA_T: 1.6,
+  PERDIDA_SUBE: 9,
 
   /** LA ESPOLETA: segundos de vuelo que la bomba necesita para armarse. Es lo que hace que la
    *  ALTURA importe sin ningun cartel: soltada al ras (0,6 s de caida) llega dormida — "la bomba
@@ -56,7 +72,12 @@ export const BL = {
    *  de atras. Asi que en una mision, errar pasa el mando al siguiente avion del escuadron —vivo,
    *  sano y con la bomba del centro, que la llevan todos— ya en la aproximacion, a esta distancia
    *  del buque. Sin nadie que siga: derrota. */
-  FILA_M: 900,
+  /*  2200 Y NO 900 (pedido del autor, 26/9): "si hay otro en el escuadron vuelve en fade, BASTANTE
+   *  MAS LEJOS, y reintenta con otro avion". Con 900 el siguiente arrancaba casi adentro de la ventana
+   *  —doce segundos de encare— y no llegaba a ver el buque aparecer ni a acomodar la altura con la
+   *  flecha. 2200 deja el encare entero: el buque ya asomado (APARECE_Z), los corchetes rojos, la
+   *  flecha, y recien despues la ventana. */
+  FILA_M: 2200,
   /** Cuanto atras vuelve a quedar el buque en el RE-ENCARE: lo suficiente para verlo asomar de
    *  nuevo en el horizonte y rearmar la aproximacion, no tanto como para aburrir. */
   REENCARE_M: 1800,
@@ -66,6 +87,61 @@ export const BL = {
    *  te empieza a ver (RADAR_ALT = 20). Es una ayuda de lectura: lo que decide de verdad es la
    *  espoleta y el cruce, no esta banda. */
   ALT_IDEAL: [8, 18],
+  /** LA CUENTA ATRAS DE LA SUELTA (pedido del autor, 26/9/2026): "un contador que me de una ventana
+   *  de N segundos con letra verde encima del barco, que haga 3 2 1 para poder tirar la bomba".
+   *
+   *  LO QUE ESTO NO ES: no ensancha la ventana. La regla del autor sigue intacta — "no tirar lejos
+   *  ni cerca, justo en cierta distancia"— y la fisica no se toca. Medido con la propia `predecir`,
+   *  la ventana dura entre 0,53 s (al ras y rapido) y 2,11 s (a 18 m y lento): la altura la abre o
+   *  la cierra, que es el diseño de `ARMA_T` y se queda como esta.
+   *
+   *  LO QUE ES: el AVISO. La queja fue "no aparezca verde UN SEGUNDO nomas, estirar eso un poco mas
+   *  en la cercania" — o sea, saber CUANDO llega esa distancia con tiempo de prepararse. El
+   *  contador arranca N segundos antes de que la ventana se abra y cuenta 3, 2, 1; cuando se abre,
+   *  dice YA y todo el tablero se pone verde como siempre.
+   *
+   *  LA DIFICULTAD LA PONE LA MISION y no el jugador (decision del autor, 26/9): el campo
+   *  `dificultad:` de su renglon en data/missions.js — 'facil' | 'normal' | 'dificil' | 'experto',
+   *  y sin campo, NORMAL. No esta en OPCIONES a proposito: una mision sabe si es la primera del
+   *  juego o la ultima, y cuanto aviso da es parte de como esta escrita, igual que sus fases o sus
+   *  lecciones. Lo unico que cambia entre facil y experto es CUANTO AVISO tenes, nunca cuanto dura
+   *  la ventana: la regla de "ni lejos ni cerca, justo en cierta distancia" es la misma en los cuatro.
+   *  El ralenti NO entra aca por pedido del autor: "el jugador tiene MOMENTUM, que la use si
+   *  quiere" — estirar el reloj es una decision suya, no un regalo del modo. */
+  /** LA VENTANA DE SUELTA, EN SEGUNDOS — lo que se QUIERE que dure, por dificultad. Es el numero
+   *  del autor (26/9/2026) y vive aca para poder contrastarlo: el que manda de verdad es HOLGURA,
+   *  de abajo, y estos son los segundos que esa holgura da a crucero sin turbo.
+   *    facil 5 · normal 3 · dificil 2 · experto 1 (balistica pura, sin una sola ayuda) */
+  VENTANA: { facil: 5, normal: 3, dificil: 2, experto: 1 },
+
+  /** EL PRESUPUESTO DE ENVION de la holgura, en unidades/s (ver `holgura` en core/blanco.js).
+   *
+   *  EL PROBLEMA QUE RESUELVE, con el numero que lo dijo: la ventana puramente balistica dura ~1 s
+   *  — "es literal UN PARPADEO para que el jugador pueda tirar la bomba en tiempo, forma y altura".
+   *  El pedido fue "que el juego te permita lanzar la bomba un poco antes y la trayectoria se
+   *  acomode a esa ventana, que no sea exactamente por fisica segun velocidad altura y demas".
+   *
+   *  MEDIDO simulando el encare entero con el integrador REAL de systems/collision.js (no con la
+   *  prediccion: la pregunta es si lo que la cuenta promete se cumple), promediando tres perfiles
+   *  de vuelo — 10 m a 76, 14 m a 100 y 8 m a 62:
+   *     presupuesto:  0     75    100    135    160    200    280    340
+   *     ventana (s): 0,85  1,94  2,31  2,82  3,19  3,77  4,94  5,82
+   *  De ahi salen los cuatro numeros, elegidos por la medicion y no a ojo. EXPERTO es CERO a
+   *  proposito: no es una holgura chica, es NO TENER NINGUNA — la balistica cruda del 20/9, con la
+   *  ventana de un parpadeo (0,85 s), que es exactamente el "1 s" que pidio el autor.
+   *
+   *  Y SE VERIFICO LO QUE IMPORTA, no solo el largo: con cada presupuesto se tira al PRINCIPIO, a
+   *  la MITAD y al FINAL de la ventana, en los tres perfiles y tambien acelerando, y las doce
+   *  sueltas pegan en el centro. "Al principio, al medio o al final, no importa — siempre que sea
+   *  dentro de la ventana".
+   *
+   *  LA ALTURA Y EL TURBO SIGUEN CONTANDO, que era la condicion: el presupuesto son metros de
+   *  envion, no segundos, asi que los mismos metros cubren MENOS TIEMPO cuanto mas rapido venis
+   *  (a 140 el normal da 2,1 s en vez de 3) y mas tiempo cuanto mas alto soltas. La ayuda no
+   *  aplana el modo: le pone un piso. */
+  HOLGURA: { facil: 280, normal: 135, dificil: 75, experto: 0 },
+
+
   /** La luz de SOLTA: el HUD simula la bomba desde el estado actual del avion y prende verde
    *  cuando soltar AHORA pega armada en el casco. Es la "punteria" del modo de prueba; apagarla es
    *  cambiar este `true` y el modo pasa a jugarse a puro ojo. */

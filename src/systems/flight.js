@@ -25,7 +25,7 @@ import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
 import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE,
          GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
-         FUEL_RATE, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE } from '../data/tuning.js';
+         FUEL_RATE, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE, RAS_GASTO_F } from '../data/tuning.js';
 // LAS FASES (PLAN_MISION_CINCO_FASES §11). Se LEEN, nunca se escriben, igual que los tramos en el
 // sembrador: `fsVal` contesta lo que rige a esta altura del vuelo y cae al valor de siempre cuando
 // la mision no declara fases — que es como se cumple la regla suprema (sin fases, este archivo se
@@ -324,13 +324,18 @@ export function flightSystem(dt, deps) {
   // km recorrido segun la zona de altura, lo que cuelga y el turbo. Los km de este cuadro son los
   // metros del odometro por lo que vale un metro aca (el crucero comprimido vale mucho mas). Que
   // pasa cuando se seca lo decide game.js (`sinCombustible`): relevo o eyeccion.
+  //
+  // …Y SOSTENER EL RASANTE TE COBRA EL VUELO NORMAL (RAS_GASTO_F, 26/9): el estado o su poder. En
+  // las dos cuentas: con ruta baja el factor de altura, sin ruta baja el multiplicador de la fase.
+  const ras = run.aguante === 1 || rasante.active();
   if (naftaSys.activo()) {
     if (cfg.fuelOn) {
       const km = run.spd * dt * chAvance() * cvAvance() * kmPorM();
-      naftaSys.step(km, plane.y, colgado, turboR);
+      naftaSys.step(km, plane.y, colgado, turboR, ras);
     }
   } else if (cfg.fuelOn) {
-    const base = FUEL_RATE * fsVal('nafta', 1);
+    const fase = fsVal('nafta', 1);
+    const base = FUEL_RATE * (ras ? Math.min(fase, RAS_GASTO_F) : fase);
     run.fuel -= (base + (run.boost ? extraTurboPorSeg(base, turboR) : 0)) * (cfg.fuelScale || 1) * dt
       * (CHV_FUEL_FREEZE ? cvAvance() : 1);
   }

@@ -663,6 +663,12 @@ let focoIds = [];
 // Cada poder con TRES tonos suyos: el de la barra, el claro de la ola y el OSCURO del borde cuando
 // esta llena (12/9). El borde propio es lo que hace que "cargado" se vea de reojo sin mirar adentro.
 const RAS_COL = '#57b6e0', RAS_CLARO = '#bfe8fb', RAS_OSCURO = '#2d6f8f';   // celeste de mar
+// …Y EL CUARTO ROTULO DE LA NAFTA, que no es una zona sino un premio: volar bajo SOSTENIENDO el
+// rasante te cobra el vuelo normal (RAS_GASTO_F). Va en el AZUL del rasante —un color por idea:
+// azul es el rasante (pedido del autor, 15/9)— porque lo que se lee es "esto te lo esta dando el
+// rasante". Se asigna ACA y no con los otros tres de GASTO_COL, mas arriba: RAS_COL es un const
+// que todavia no existe en esa linea, y leerlo ahi tira el modulo entero al cargar.
+GASTO_COL.rasante = RAS_COL;
 // EL MOMENTUM ES AMARILLO (15/9). Era el naranja del acento, y el acento se usa en todo el
 // tablero para cosas que NO son poderes —el reloj de la ventana, el del escondite, la nafta, los
 // avisos—. Con los dos poderes teniendo color propio (el rasante azul, este amarillo), el naranja
@@ -995,15 +1001,22 @@ function reloj(x, y, o) {
     const a = ang(f), c = Math.cos(a), s = Math.sin(a);
     pxLinea(cx + c * (r - 2), cy + s * (r - 2), cx + c * (r + 1), cy + s * (r + 1), col);
   }
-  // LAS FRANJAS: un arco fino POR DENTRO de la escala, para zonas que no son peligro sino regimen
-  // (las tres zonas de gasto del altimetro). Van adentro para no pisar las marcas de la escala, que
-  // en el altimetro ya dicen agua y banda del x10.
-  for (let k = 0; k <= 36; k++) {
-    const f = k / 36, z = (o.franjas || []).find(([d, h]) => f >= d && f <= h);
+  // LAS FRANJAS: un arco POR DENTRO de la escala, para zonas que no son peligro sino regimen (las
+  // tres zonas de gasto del altimetro). Van adentro para no pisar las marcas de la escala, que en el
+  // altimetro ya dicen agua y banda del x10.
+  // ERAN 37 PUNTITOS DE UN PIXEL y no se leian (26/9, el autor: "no se si ya se marca, pero deberia
+  // quedar claro"). Ahora es una banda CONTINUA de dos pixeles, y la zona en la que estas va
+  // prendida y las otras a media luz (el 4to elemento, `on`: false la apaga; sin el, prendida):
+  // lo que el ojo tiene que encontrar de reojo es DONDE ESTOY, no el mapa entero.
+  for (let k = 0; k <= 72; k++) {
+    const f = k / 72, z = (o.franjas || []).find(([d, h]) => f >= d && f <= h);
     if (!z) continue;
-    const a = ang(f);
-    px(cx + Math.cos(a) * (r - 3), cy + Math.sin(a) * (r - 3), 1, 1, z[2]);
+    const a = ang(f), c = Math.cos(a), sn = Math.sin(a);
+    ctx.globalAlpha = z[3] === false ? 0.35 : 1;
+    px(cx + c * (r - 3), cy + sn * (r - 3), 1, 1, z[2]);
+    px(cx + c * (r - 4), cy + sn * (r - 4), 1, 1, z[2]);
   }
+  ctx.globalAlpha = 1;
   // LA UNIDAD VA IMPRESA EN LA CARA, como en un reloj de verdad: chica, apagada, arriba del numero
   // y ANTES que la aguja, asi la aguja le pasa por encima. Al lado del numero no entra —a cuatro
   // digitos el numero se come el ancho util del cuadrado.
@@ -1858,12 +1871,24 @@ export function drawHUD(h) {
   // en su color. Mayor gasto abajo, menor arriba de todo. El NOMBRE de la zona va arriba del reloj
   // de nafta (ver ahi): arriba de este cuadro lo tapa la caja de la radio.
   const zg = h.zonaGasto;
-  const franjas = zg ? ZONAS_GASTO.map((z, i) => [fA(Math.max(0, z.desde)), i ? fA(ZONAS_GASTO[i - 1].desde) : 1, GASTO_COL[z.id]]) : null;
+  // la zona por ALTURA, no la del rotulo: con el rasante el rotulo dice AHORRO RASANTE, pero la franja
+  // que se prende es la de donde estas parado
+  const zAqui = ZONAS_GASTO.find(z => plane.y >= z.desde).id;
+  const franjas = zg ? ZONAS_GASTO.map((z, i) =>
+    [fA(Math.max(0, z.desde)), i ? fA(ZONAS_GASTO[i - 1].desde) : 1, GASTO_COL[z.id], z.id === zAqui]) : null;
+  // LOS DIVISORES DE LA NAFTA (26/9, el autor: "quiza con el divisor verde de pegarle al barco se
+  // entiende"). La marca larga es lo que el ojo ya aprendio a leer como "aca empieza algo": la usan
+  // el techo del radar y la altura de soltar. Dos, en los dos bordes que cambian la plata:
+  //   · donde EMPIEZA EL AHORRO (gasto menor, la cita con la Chancha), en su azul
+  //   · donde TERMINA EL GASTO MAYOR, en su naranja
+  // Van ANTES que la del radar en la lista: si coinciden (el borde de abajo es RADAR_ALT a
+  // proposito) manda el rojo del radar, que es el que te mata.
+  const divNafta = zg ? [[fA(ZONAS_GASTO[0].desde), GASTO_COL.menor], [fA(ZONAS_GASTO[1].desde), GASTO_COL.mayor]] : [];
   reloj(xVuelo(2), CUADROS_Y, { val: fA(plane.y), ico: 'alt', critico: visto, franjas,
     col: visto ? (Math.sin(run.t * (rozando ? 30 : 14)) > 0 ? P.warn : '#7d2f1e') : enSuelta ? SUELTA_COL : plane.y <= BANDA_ALT ? P.accent : P.foam,
     zonas: [[0, fA(1.2), P.warn], [fA(1.2) + 0.01, fA(BANDA_ALT), P.accent]].concat(sa ? [[fA(sa[0]), fA(sa[1]), SUELTA_COL]] : []),
     // sin marca de techo FUERA DE RADAR: no hay techo (PLAN_NAFTA_ALCANCE N2)
-    marcas: (h.fueraRadar ? [] : [[fA(techo), P.warn]]).concat(sa ? [[fA(sa[0]), SUELTA_COL]] : [])
+    marcas: divNafta.concat(h.fueraRadar ? [] : [[fA(techo), P.warn]]).concat(sa ? [[fA(sa[0]), SUELTA_COL]] : [])
       // EL SALTO: la altura del buque debajo de tu linea, en amarillo, desde que soltas hasta el cruce
       .concat(h.saltoAlt != null ? [[fA(h.saltoAlt), SALTO_COL]] : []),
     // …y EL BORDE DE LA PLACA en verde, FIJO mientras estes en altura de soltar (se lee de reojo sin

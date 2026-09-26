@@ -341,6 +341,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // los combos no aprendidos no disparan (ver mvOk en el dispatcher); los demas modos no
     // cambian. Viaja en la partida guardada (`ups`).
     let pichon = [];                 // ids aprendidos (orden de eleccion)
+    /** EL NIVEL DEL MOMENTUM (pedido del autor, 26/9: "mejorar con cada mejora"): una fila de
+     *  TEMPO_NIVELES por cada mejora que llevas elegida en el banco del Pichon. Es la unica moneda
+     *  de mejoras que tiene el juego — una por mision, elegida entre dos—, asi que cada eleccion ya
+     *  pagaba una pirueta y ahora ademas afila el especial. Fuera de campaña `pichon` no crece y el
+     *  MOMENTUM queda en el nivel base, que es el mismo juego de siempre. */
+    const nivelMomentum = () => pichon.length;
     /** ¿Rige LA LIBRETA — o sea, solo salen las piruetas aprendidas? En campaña siempre, y en las
      *  HERRAMIENTAS (S.test: el SELECTOR DE MISIONES y PRUEBAS) tambien, porque ahi la mision se
      *  juega COMO EN CAMPAÑA (mismo criterio que el roster y la Chancha — ver reset() y
@@ -1452,7 +1458,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       escapeSys.terminar();
       escapeSys.resetFuga(); senas = null;
       blancoSys.preparar(hayBlanco, objectiveShip, objectiveDist, { PZ, W }, cfg.carga,
-        { pasadas: curMission() && curMission().pasadas, vuelta: fases.hayVuelta() });
+        { pasadas: curMission() && curMission().pasadas, vuelta: fases.hayVuelta(),
+          dificultad: curMission() && curMission().dificultad });
       // LA NAFTA COMO ALCANCE (PLAN_NAFTA_ALCANCE N3): con ruta, el tanque se llena en km segun la
       // carga YA RESUELTA (la bomba del buque incluida). Va despues de la suelta por eso mismo.
       naftaSys.preparar(rutaSys.hay() ? cfg.carga : null);
@@ -2477,7 +2484,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // un beep grave y nada mas.
       tempoToggle: () => {
         if (S.state !== 'play' || cfg.devcam || cfg.poderes === false) return;
-        const r = tempo.toggle();
+        const r = tempo.toggle(nivelMomentum());
         if (r === 'empty') { beep(140, 0.09, 'square', 0.05); return; }
         beep(r === 'on' ? 330 : 520, 0.09, 'square', 0.05, r === 'on' ? -160 : 160);   // slide abajo = el tiempo cae
         popup(W / 2, 58, r === 'on' ? T('tempoOn') : T('tempoOff'), P.accent);
@@ -2993,11 +3000,19 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // la mira del mouse) para elegir un carril `tx`, y despues el proyectil se guiaba solo hasta
       // ahi. Un boton que acertaba. Ahora la punteria es COMO VENIS VOLANDO: la altura, la trepada
       // y la velocidad con la que soltas son todo lo que decide donde cae.
+      // LA HOLGURA DE LA SUELTA (26/9/2026): en el climax del buque la bomba puede salir con un
+      // envion de mas para que soltarla un poco antes siga pegando — ver `holgura` en
+      // core/blanco.js, que es donde esta explicado por que y cuanto. Fuera de la suelta es 0 y el
+      // tiro oblicuo del 20/9 queda intacto, bit a bit.
+      const envion = runClimax() === 'suelta' ? blancoSys.envion() : 0;
       pmissiles.push({
         x: plane.x, y: plane.y - BOMBA_PANZA, z: PZ + 4,   // colgada de la panza, no del centro del sprite
         // hacia adelante: TU velocidad, un poco mas por venir rapido, y el eyector, que la manda
         // derecho como salia el misil. Frenar despues de soltarla la estira todavia mas.
-        vz: run.spd * (1 + BOMBA_ENVION) + BOMBA_EYECTOR,
+        vz: run.spd * (1 + BOMBA_ENVION) + BOMBA_EYECTOR + envion,
+        // …y su envion viaja CON ella: el techo de `BOMBA_REL_MAX` se corre con el, o el integrador
+        // le recortaria justo lo que la holgura le dio (ver la nota en core/blanco.js).
+        extra: envion,
         vy: plane.vy,                                    // trepando sale para arriba: vuela mas y llega mas lejos
         vx: plane.vx * BOMBA_DERIVA,                     // la inercia de venir cruzado, no un guiado
       });
@@ -4560,7 +4575,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       };
       if (S.state === 'play') {
         const sueltaHud = runClimax() === 'suelta' ? blancoSys.hud() : null;
-        ctx.save(); ctx.scale(U, U); hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip, goalKind: objectiveKind,
+        // EL MOMENTO PERDIDO SE LLEVA LA UI ENTERA (pedido del autor, 26/9: "se mete FADE, se quita la
+        // UI, y queda solo el avion volando"). No solo el marcador del buque: los relojes y la cinta
+        // tambien. SE APAGAN ESTAS DOS LLAMADAS Y NADA MAS: en este mismo bloque viven el NEGRO del
+        // fundido y la RADIO, y la primera version apagaba el bloque entero — medido, el avion se
+        // quedaba volando a pleno color sin un solo cuadro de fundido.
+        const perdidaUI = blancoSys.perdida();
+        ctx.save(); ctx.scale(U, U); if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip, goalKind: objectiveKind,
         radarAlt: fases.techoRadar(RADAR_ALT),
         // LA SUELTA: la banda de altura de soltar, para el altimetro (solo mientras hay buque vivo)
         sueltaAlt: S.state === 'play' && sueltaHud && sueltaHud.enAtaque ? BL_ALT_IDEAL : null,
@@ -4599,7 +4620,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         } : null,
         // la zona de gasto a esta altura, para el altimetro (solo con ruta: sin ella la nafta no mira
         // la altura y marcar zonas seria mentir)
-        zonaGasto: naftaSys.activo() ? naftaSys.zona(plane.y) : null,
+        // con el rasante sostenido y abajo dice AHORRO RASANTE (ver `zona` en systems/nafta.js)
+        zonaGasto: naftaSys.activo() ? naftaSys.zona(plane.y, run.aguante === 1 || rasante.active()) : null,
         // lo mas alto que ocupa la voz en la banda de abajo (mi caja o la del otro): los avisos de
         // altura se apoyan arriba de eso
         charlaTecho: screens.techoBanda(),
@@ -4614,7 +4636,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         busqueda: fases.hayFases(),
           // EL PODER RASANTE va por snapshot (convencion 4): el lint de capas prohibe que el
           // render importe de systems, y la lista de excepciones solo puede achicarse.
-          ras: { on: rasante.active(), resta: rasante.restante(), dur: rasante.duracion() } }); drawCinta(); ctx.restore();
+          ras: { on: rasante.active(), resta: rasante.restante(), dur: rasante.duracion() } }); if (!perdidaUI) drawCinta(); ctx.restore();
         // LA RADIO EN VUELO va en el espacio de DISEÑO (320x180) y se dibuja al final: es lo
         // ultimo que entra, arriba de todo. QUE FORMA tiene la elige el jugador en OPCIONES —
         // TOAST (una linea que pasa) o PANEL (las ultimas cuatro, como un chat). Las dos respetan
@@ -5016,7 +5038,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       };
       window.__chacall = () => { pedirChancha(); return window.__chadbg(); };
       // LA SUELTA (systems/blanco.js): el HUD calculado + el veredicto y el daño del buque.
-      window.__suelta = () => JSON.stringify(Object.assign({ st: S.state, msl: run.msl, spd: Math.round(run.spd) }, blancoSys.hud() || {}, { res: blancoSys.estado().res, dano: blancoSys.estado().dano, hundido: blancoSys.estado().hundido, z: Math.round(blancoSys.estado().z), d: blancoSys.estado().z - PZ, pred: blancoSys.estado().pred, alt: plane.y, x: plane.x, vx: plane.vx, esc: blancoSys.escapando(), est: run.estrellas }));
+      window.__suelta = () => JSON.stringify(Object.assign({ st: S.state, msl: run.msl, spd: Math.round(run.spd) }, blancoSys.hud() || {}, { res: blancoSys.estado().res, dano: blancoSys.estado().dano, extra: blancoSys.estado().extra, envion: blancoSys.envion(), hundido: blancoSys.estado().hundido, z: Math.round(blancoSys.estado().z), d: blancoSys.estado().z - PZ, pred: blancoSys.estado().pred, alt: plane.y, x: plane.x, vx: plane.vx, esc: blancoSys.escapando(), est: run.estrellas }));
       window.__chaput = (x, y) => { plane.x = +x; plane.y = +y; plane.vy = 0; return JSON.stringify({ x: plane.x, y: plane.y }); };
       // los otros dos gates, puestos desde afuera: el COMBUSTIBLE apagado (donde el poder no
       // existe) y la MISION posterior a la rotura del guion. Se escriben las CAUSAS —cfg.fuelOn y
@@ -5759,14 +5781,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         requestAnimationFrame(frame);
         return;
       }
-      // MOMENTUM: la barra se carga con el score y el drenaje corre con el dt CRUDO (tiempo
-      // real); el mundo recibe el escalado. Este multiplicador es TODO el poder: como nada usa
+      // MOMENTUM: la barra se carga con TIEMPO DE CASTEO (26/9; antes con el score) y el drenaje
+      // corre con el dt CRUDO (tiempo real); el mundo recibe el escalado. Este multiplicador es TODO el poder: como nada usa
       // reloj de pared, achicar el dt frena spawns, flak, particulas y lluvia en sincronia
       // perfecta sin tocar ningun sistema. tick() ademas corta el poder al salir del pasillo
       // (muerte, relevo, climax, devcam) y avisa 'ready' UNA vez cuando la barra se llena.
       // el aviso de que se cargo YA NO ES UN CARTEL EN EL CENTRO (12/9): lo dice la lengueta
       // LISTO que sale de atras de su propia barra (render/hud.js, tabListo). El beep queda.
-      if (tempo.tick(raw, S.state === 'play' && !cfg.devcam && cfg.poderes !== false, run.score) === 'ready') beep(660, 0.1, 'square', 0.05, 140);
+      if (tempo.tick(raw, S.state === 'play' && !cfg.devcam && cfg.poderes !== false, nivelMomentum()) === 'ready') beep(660, 0.1, 'square', 0.05, 140);
       if (S.state !== veilPrev) {
         if (S.state === 'arena' || S.state === 'momentum') veilOut = VEIL_OUT;
         veilPrev = S.state;

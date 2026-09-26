@@ -15,7 +15,7 @@ import {
 import * as aero from '../src/core/aero.js';
 import { AR } from '../src/data/arena.js';
 import * as tempo from '../src/systems/tempo.js';
-import { TEMPO_SCALE, TEMPO_DUR, TEMPO_CHARGE } from '../src/data/tuning.js';
+import { TEMPO_SCALE, TEMPO_NIVELES, tempoNivel } from '../src/data/tuning.js';
 
 const G = 22, TH = 55, DIVE = 30;   // gravedad, empuje y picada (game.js)
 const DT = 1 / 60;
@@ -237,42 +237,51 @@ check('freno sostenido (m/s)', brk.spd, AR.SPD_CRUISE * AR.SPD_BRAKE, 3);
 
 // ---------- MOMENTUM: el especial de camara lenta del pasillo (src/systems/tempo.js) ----------
 // El modulo es un singleton con estado (on/meter/lastScore): se resetea como entre partidas.
-console.log('\nmomentum — el especial del pasillo (tecla 4, se carga con puntos):');
+console.log('\nmomentum — el especial del pasillo (tecla 4, se carga con TIEMPO DE CASTEO):');
 {
+  const N0 = tempoNivel(0);
   tempo.resetTempo();
-  if (tempo.toggle() === 'empty' && tempo.scale() === 1)
-    console.log(`  ✓ ${'arranca vacio: sin puntos no hay poder'.padEnd(42)}`);
+  if (tempo.toggle(0) === 'empty' && tempo.scale() === 1)
+    console.log(`  ✓ ${'arranca vacio: el primero tambien se espera'.padEnd(42)}`);
   else { bad++; console.log('  ✗ se lanzo con la barra vacia'); }
-  // carga por DELTA de score: TEMPO_CHARGE puntos llenan la barra y avisan 'ready' UNA vez
-  let readies = 0, score = 0;
-  for (let i = 0; i < 10; i++) {
-    score += TEMPO_CHARGE / 8;
-    if (tempo.tick(DT, true, score) === 'ready') readies++;
-  }
-  check(`barra llena con ${TEMPO_CHARGE} pts (meter)`, tempo.meterVal(), 1, 0.001);
+  // CARGA CON TIEMPO (26/9): `cast` segundos de vuelo la llenan y avisan 'ready' UNA vez
+  let readies = 0, t = 0;
+  while (tempo.meterVal() < 1 && t < 60) { if (tempo.tick(DT, true, 0) === 'ready') readies++; t += DT; }
+  check(`se carga en ${N0.cast} s (nivel 0)`, t, N0.cast, 0.05);
   check(`aviso 'ready' UNA sola vez`, readies, 1, 0);
-  if (tempo.toggle() === 'on' && tempo.scale() === TEMPO_SCALE)
+  if (tempo.toggle(0) === 'on' && tempo.scale() === TEMPO_SCALE)
     console.log(`  ✓ ${'llena se LANZA'.padEnd(42)} escala ${TEMPO_SCALE}`);
   else { bad++; console.log('  ✗ la barra llena no lanza'); }
-  // el lanzamiento dura TEMPO_DUR segundos REALES y se corta solo; los puntos ganados
-  // durante el poder NO recargan la barra que se esta gastando
-  let t = 0;
-  while (tempo.active() && t < 10) { score += 30; tempo.tick(DT, true, score); t += DT; }
-  check('el lanzamiento dura (s reales)', t, TEMPO_DUR, 0.05);
+  // el lanzamiento dura `dur` segundos REALES y se corta solo; el tiempo que pasa lanzado NO
+  // recarga la barra que se esta gastando
+  t = 0;
+  while (tempo.active() && t < 10) { tempo.tick(DT, true, 0); t += DT; }
+  check(`el lanzamiento dura ${N0.dur} s (nivel 0)`, t, N0.dur, 0.05);
   if (tempo.scale() === 1 && tempo.meterVal() === 0)
     console.log(`  ✓ ${'agotado: mundo a 1× y barra a cero'.padEnd(42)}`);
   else { bad++; console.log(`  ✗ agotado quedo raro (escala ${tempo.scale()}, barra ${tempo.meterVal()})`); }
-  // sin puntos no hay recarga pasiva
-  for (let i = 0; i < 300; i++) tempo.tick(DT, true, score);
-  check('sin puntos NO recarga (5 s quieto)', tempo.meterVal(), 0, 0.001);
-  // salir del pasillo (muerte, relevo, climax, devcam) corta lo lanzado, pero la CARGA
-  // de una barra no lanzada sobrevive al relevo (es de la corrida, como el score)
-  score += TEMPO_CHARGE; tempo.tick(DT, true, score);
-  tempo.tick(DT, false, score);
+  // FUERA DEL PASILLO NO CARGA: si no, esperar quieto en la pausa o en una charla lo regalaria
+  for (let i = 0; i < 600; i++) tempo.tick(DT, false, 0);
+  check('fuera del pasillo NO carga (10 s)', tempo.meterVal(), 0, 0.001);
+  // CADA MEJORA LO AFILA: con la ultima fila tarda lo suyo en cargar y dura lo suyo lanzado
+  const NM = TEMPO_NIVELES.length - 1, Nx = tempoNivel(NM);
+  tempo.resetTempo(); t = 0;
+  while (tempo.meterVal() < 1 && t < 60) { tempo.tick(DT, true, NM); t += DT; }
+  check(`con ${NM} mejoras carga en ${Nx.cast} s`, t, Nx.cast, 0.05);
+  tempo.toggle(NM); t = 0;
+  while (tempo.active() && t < 10) { tempo.tick(DT, true, NM); t += DT; }
+  check(`…y dura ${Nx.dur} s`, t, Nx.dur, 0.05);
+  // …y mas mejoras que filas no rompe nada: se queda en la ultima
+  check('mejoras de mas: se queda en la ultima fila', tempoNivel(NM + 7).cast, Nx.cast, 0);
+  // salir del pasillo (muerte, relevo, climax, devcam) corta lo lanzado, pero la CARGA de una
+  // barra no lanzada sobrevive al relevo (es de la corrida)
+  tempo.resetTempo(); t = 0;
+  while (tempo.meterVal() < 1 && t < 60) { tempo.tick(DT, true, 0); t += DT; }
+  tempo.tick(DT, false, 0);
   if (!tempo.active() && tempo.meterVal() >= 1)
     console.log(`  ✓ ${'la carga sobrevive al relevo'.padEnd(42)}`);
   else { bad++; console.log(`  ✗ el relevo borro la carga (barra ${tempo.meterVal()})`); }
-  tempo.toggle(); tempo.tick(DT, false, score);
+  tempo.toggle(0); tempo.tick(DT, false, 0);
   if (!tempo.active() && tempo.meterVal() === 0)
     console.log(`  ✓ ${'morir con el poder lanzado lo pierde'.padEnd(42)}`);
   else { bad++; console.log('  ✗ el poder lanzado sobrevivio a la muerte'); }

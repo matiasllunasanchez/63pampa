@@ -13,7 +13,8 @@
 // El estado va en el STORE de la corrida (`run.tanque`, `run.naftaCap`) y no suelto aca porque lo
 // leen varios: el HUD (alcance, bingo), la suelta de tanques (N5) y las sondas.
 import { run } from '../core/run.js';
-import { tanqueInicial, capacidadKm, capacidadDe, kmQuedan, gastar, cargar, gastoKm, zonaGasto, soltar, proximoPilon, velRelativa } from '../core/nafta.js';
+import { tanqueInicial, capacidadKm, capacidadDe, kmQuedan, gastar, cargar, gastoKm, zonaGasto, fAltura, soltar, proximoPilon, velRelativa } from '../core/nafta.js';
+import { RAS_GASTO_F } from '../data/tuning.js';
 
 /** Llena el tanque para la carga `id` al empezar la corrida (o lo apaga con `id` null). Lo llama
  *  `setRunObjective()`, donde ya se sabe si la mision tiene ruta y con que carga despega. */
@@ -29,15 +30,16 @@ export const activo = () => !!run.tanque;
 /** Los km de crucero que quedan en el tanque. */
 export const kmRestan = () => (run.tanque ? kmQuedan(run.tanque) : 0);
 
-/** UN CUADRO. `km` recorridos (reales), a la altura `y`, con `colgado` puesto y el turbo a `r`.
+/** UN CUADRO. `km` recorridos (reales), a la altura `y`, con `colgado` puesto, el turbo a `r`, y
+ *  `ras` si venis sosteniendo el rasante (que te cobra el vuelo normal, ver RAS_GASTO_F).
  *  Devuelve 'seco' el cuadro en que el tanque llega a cero — quien decide que pasa es game.js. */
-export function step(km, y, colgado, r) {
+export function step(km, y, colgado, r, ras) {
   if (!run.tanque) return null;
   // lo que OTROS le hicieron al % desde el cuadro anterior (Chancha, piruetas, golpes), a km
   const d = run.fuel - run.fuelSync;
   if (d > 1e-9) run.tanque = cargar(run.tanque, d / 100 * run.naftaCap);
   else if (d < -1e-9) run.tanque = gastar(run.tanque, -d / 100 * run.naftaCap);
-  run.tanque = gastar(run.tanque, gastoKm(km, y, colgado, r));
+  run.tanque = gastar(run.tanque, gastoKm(km, y, colgado, r, ras));
   const quedan = kmQuedan(run.tanque);
   run.fuel = run.naftaCap > 0 ? Math.max(0, Math.min(100, quedan / run.naftaCap * 100)) : 0;
   run.fuelSync = run.fuel;
@@ -45,7 +47,10 @@ export function step(km, y, colgado, r) {
 }
 
 /** La zona de gasto en la que vuela el avion ahora (para el HUD). */
-export const zona = y => zonaGasto(y).id;
+/** La zona que se muestra. Con el rasante sostenido y abajo —donde de verdad se ahorra— dice
+ *  'rasante': el rotulo AHORRO RASANTE es lo que le enseña al jugador que el estado tambien paga en
+ *  nafta. Arriba, donde ya se vuela a tarifa base, sigue diciendo su zona: no hay ahorro que contar. */
+export const zona = (y, ras) => (ras && fAltura(y) > RAS_GASTO_F ? 'rasante' : zonaGasto(y).id);
 
 // ---------- SOLTAR LOS TANQUES (PLAN_NAFTA_ALCANCE §3.7, N5) ----------
 

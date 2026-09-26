@@ -431,17 +431,16 @@ export const REATTACK_FUEL = 12;    // combustible que cuesta cada vuelta
 export const REATTACK_MAX = 6;      // intentos maximos sobre un mismo blanco
 
 // MOMENTUM (ROADMAP #13): el ESPECIAL de camara lenta del PASILLO (systems/tempo.js). La barra
-// se carga CON PUNTOS — jugar bien (rasante, derribos, roces) es lo que compra el poder, no
-// esperar — y llena se LANZA con la tecla 4: rafaga corta e intensa, como un super de arcade.
+// se carga CON TIEMPO (desde el 26/9; antes era con puntos, ver TEMPO_NIVELES) y llena se LANZA con
+// la tecla 4: rafaga corta e intensa, como un super de arcade.
 // La punteria con mouse queda en tiempo real (es por frame, no por dt): blancos lentos + mira
-// rapida = el poder. Estos dos son la BASE de las mejoras a futuro (niveles / avance de
-// campaña): extender TEMPO_DUR y abaratar TEMPO_CHARGE es todo el arbol de upgrades.
+// rapida = el poder. DESDE EL 26/9 CARGA CON TIEMPO y mejora con cada mejora: ver TEMPO_NIVELES.
 // ---------- LA CHANCHA: EL KC-130 REABASTECEDOR (SPEC_PODER_CHANCHA) ----------
 // El hermano CARO del MOMENTUM: misma familia (barra que se carga jugando, una tecla) pero una
 // sola vez por corrida y recien pasado un rato largo de juego. Lo que compra no es poder: es
 // NAFTA, o sea tiempo — y se paga volando alto, lento y visible, que es lo contrario de todo lo
 // que el juego premia. Esa es la mecanica entera.
-export const CH_CHARGE = 2000;   // puntos que llenan la barra (~3x TEMPO_CHARGE: cara a proposito)
+export const CH_CHARGE = 2000;   // puntos que llenan la barra (el MOMENTUM ya no es su vara: carga con tiempo)
 export const CH_MIN_T = 240;     // s de mision antes de poder pedirla
 export const CH_ETA = 18;        // s entre el pedido confirmado y la aparicion
 // …y con RUTA (PLAN_NAFTA_ALCANCE, 24/9): el crucero esta comprimido — 520 km en ~40 s — y 18 s de
@@ -476,16 +475,42 @@ export const CH_DERIVA_V = 0.22; // velocidad de la deriva (rad/s): lenta, se si
 export const CH_SALIDA = 2.6;    // s que tarda en irse por arriba una vez que termino
 
 export const TEMPO_SCALE = 0.35;    // el mundo a ~1/3: se nota de verdad, no un slow-mo timido
-export const TEMPO_DUR = 3;         // s reales que dura el lanzamiento con la barra llena
-// AL TRIPLE (15/9, medido a ojo del autor sobre el juego andando). Venia de 500 → 650 y seguia
-// cargando muchisimo rapido: volar y nada mas paga 12 x multiplicador por segundo, asi que en la
-// banda la barra se llenaba sola en 5,4 s, en 2,7 con turbo y en 1,4 adentro del estado rasante.
-// A 1950 eso pasa a 16 s, 8 y 4 — el especial vuelve a ser especial.
+// MOMENTUM SE CARGA CON TIEMPO, NO CON PUNTOS (pedido del autor, 26/9/2026): "tiene que ser por
+// tiempo de casteo, y mejorar con cada mejora — tiene que tener un tiempo de casteo, no por puntos".
 //
-// ⚠ ESTO DESACOPLA LA CHANCHA: `CH_CHARGE` son 2000 y su comentario dice "~3x TEMPO_CHARGE, cara a
-// proposito". Ahora los dos poderes cuestan casi lo mismo. Si esa proporcion importaba, la Chancha
-// tiene que subir con esto; se deja como esta porque es decision de balance del autor, no arrastre.
-export const TEMPO_CHARGE = 1950;   // puntos que llenan la barra
+// POR QUE SE FUE LA CARGA POR PUNTOS: los puntos salen, sobre todo, de VOLAR BAJO (12 x multiplicador
+// por segundo en la banda), asi que la barra se llenaba sola haciendo lo que el juego ya pide — y
+// cada vez que alguien la tuneaba se movia sola otra cosa. Ya van tres ajustes (500 -> 650 -> 1950)
+// y el ultimo desacoplo a la Chancha. Con tiempo el especial tiene un ritmo que se puede APRENDER:
+// "la tengo cada veinte segundos" se juega; "la tengo cuando junte 1950 puntos" no.
+//
+// LAS MEJORAS: una fila por mejora. `cast` son los segundos REALES que tarda en recargarse del
+// todo despues de usarla (y en cargar la primera vez); `dur`, los segundos reales que dura lanzada.
+// El nivel es la cantidad de mejoras que llevas (ver `nivelMomentum` en game.js). Mas alla de la
+// ultima fila se queda en la ultima.
+//   Arranca en 20 s de recarga y 3 de efecto — el ritmo que tenia en la banda a precio de 1950
+//   (16 s), un poco mas lento porque ahora carga TAMBIEN volando alto, donde antes no cargaba nada.
+//   Cada mejora le saca un segundo a la recarga y le suma dos decimas de efecto: a diez mejoras,
+//   cada 10 s y 5 de efecto. Es el techo a proposito: mas corto que 10 y el especial deja de ser
+//   especial — pasa a ser el modo en que se juega.
+export const TEMPO_NIVELES = [
+  { cast: 20, dur: 3.0 },
+  { cast: 19, dur: 3.2 },
+  { cast: 18, dur: 3.4 },
+  { cast: 17, dur: 3.6 },
+  { cast: 16, dur: 3.8 },
+  { cast: 15, dur: 4.0 },
+  { cast: 14, dur: 4.2 },
+  { cast: 13, dur: 4.4 },
+  { cast: 12, dur: 4.6 },
+  { cast: 11, dur: 4.8 },
+  { cast: 10, dur: 5.0 },
+];
+/** El renglon del nivel `n`, con piso en 0 y techo en la ultima fila. */
+export const tempoNivel = n => TEMPO_NIVELES[Math.max(0, Math.min(TEMPO_NIVELES.length - 1, n | 0))];
+// ⚠ LA CHANCHA SIGUE POR PUNTOS: `CH_CHARGE` son 2000 y su comentario hablaba de "~3x TEMPO_CHARGE".
+// Esa proporcion ya no existe — un poder carga con tiempo y el otro con puntos—, asi que su precio
+// se lee solo, sin hermano contra el que medirse.
 
 // ---------- EL PODER RASANTE (SPEC_PODER_RASANTE, tecla 6) ----------
 // EL CUARTO PODER DEL PASILLO, y el que cierra los cuatro ejes: turbo = velocidad · MOMENTUM =
@@ -1630,6 +1655,21 @@ export const ZONAS_GASTO = [
   { id: 'medio', desde: RADAR_ALT, f: 1.8 },
   { id: 'mayor', desde: -Infinity, f: 3 },
 ];
+
+// SOSTENER EL RASANTE TE DEVUELVE EL VUELO NORMAL (pedido del autor, 26/9/2026): "mantener el efecto
+// rasante debe reducir el gasto de nafta a un vuelo normal". Abajo del radar se quema x3 (arriba):
+// el aire es denso y el motor empuja. Mientras sostenes el ESTADO rasante —o su poder—, se paga
+// esto en su lugar.
+//
+// "VUELO NORMAL" ES LA TARIFA BASE, y cae en el mismo lugar en las dos cuentas de nafta: con ruta es
+// el km de crucero alto (la zona `menor`, f 1, que es la unidad en que se mide el tanque), y sin
+// ruta es el crucero (x1), contra el x2 de las fases rasante y filo. Por eso es UN numero para las
+// dos. Si el premio resulta demasiado, 1.8 lo deja en "gasto medio".
+//
+// Es la otra mitad de por que vale la pena el estado rasante: ya te protegia del agua y te cargaba
+// el poder; ahora ademas es la unica forma de volar bajo sin pagarlo. Lo mas dificil del juego
+// deja de ser lo mas caro.
+export const RAS_GASTO_F = 1;
 
 // EL ROPERO: cuanto suma al arrastre cada cosa colgada. El avion limpio vuela a x0.85 (lo que la
 // fase `vuelta` ya cobraba por "venis liviano"); cada bomba y cada tanque le suman lo suyo. Con

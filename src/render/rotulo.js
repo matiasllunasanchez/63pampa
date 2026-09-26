@@ -116,17 +116,25 @@ export function drawRotuloVuelo(txt, t) {
 /** LA FLECHA DEL "IN ▼", apuntando abajo a (cx, puntaY). Forma de la referencia —ancha arriba, en
  *  punta abajo, con contorno— y color del estilo `fuego`: contorno casi negro y el relleno en el
  *  degrade amarillo → rojo, fila por fila. `u` es el tamaño del pixel (en pixeles de mundo). */
-export function flechaIn(cx, puntaY, u, verde) {
-  const k = u || 1;
+export function flechaIn(cx, puntaY, u, verde, dir) {
+  const k = u || 1, d = dir < 0 ? -1 : 1;
   const F = ['KKKKKKKKKKK', 'K111111111K', 'K222222222K', '.K3333333K.', '..K44444K..', '...K555K...', '....K5K....', '.....K.....'];
   // `verde`: EL MOMENTO DE SOLTAR (LA SUELTA). La misma flecha en el verde de la señal, con su
   // degrade de claro a oscuro, para que lata junto con el tablero.
   const COL = verde
     ? { K: '#0b2410', 1: '#e6ffd8', 2: '#b6f5a4', 3: '#7fe07a', 4: '#4fbf52', 5: '#2e8f3a' }
     : { K: '#1c0804', 1: '#fff6a8', 2: '#ffd02c', 3: '#f7a020', 4: '#f27a18', 5: '#c8300f' };
-  const w = F[0].length, x0 = Math.round(cx - (w * k) / 2), y0 = Math.round(puntaY - F.length * k + k);
-  for (let j = 0; j < F.length; j++) for (let i = 0; i < w; i++) {
-    const ch = F[j][i];
-    if (ch !== '.') px(x0 + i * k, y0 + j * k, k, k, COL[ch]);
+  // `dir`: 1 (default) la de siempre — ancha arriba, punta abajo, o sea APUNTANDO HACIA ABAJO.
+  // -1 la misma dada vuelta fila por fila: punta arriba, cuerpo abajo. El dibujo es UNO solo y se
+  // lee al reves; tener dos matrices era garantizar que el dia que una cambie, la otra no.
+  // En los dos casos `puntaY` es la PUNTA, que es lo que se quiere alinear con algo.
+  const w = F[0].length, x0 = Math.round(cx - (w * k) / 2);
+  const y0 = d > 0 ? Math.round(puntaY - F.length * k + k) : Math.round(puntaY);
+  for (let j = 0; j < F.length; j++) {
+    const fila = F[d > 0 ? j : F.length - 1 - j];
+    for (let i = 0; i < w; i++) {
+      const ch = fila[i];
+      if (ch !== '.') px(x0 + i * k, y0 + j * k, k, k, COL[ch]);
+    }
   }
 }

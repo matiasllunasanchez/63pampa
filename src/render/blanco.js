@@ -7,13 +7,16 @@
 import { ctx, px, W, PZ } from './ctx.js';
 import { proj } from '../core/fx.js';
 import { run } from '../core/run.js';
+import { cfg } from '../core/state.js';
 import { blanco, altoEn, AGUA, zVista } from '../core/blanco.js';
 import { BL } from '../data/blanco.js';
 import { P } from '../data/palette.js';
-import { T } from '../core/i18n.js';
 import { drawCascoDelBuque } from './world.js';
 import { flechaIn } from './rotulo.js';
 import * as enemyArt from './enemies.js';
+import { drawMira } from './miras.js';
+// EL VERDE DE LA SUELTA, el mismo que titila en el tablero (SUELTA_COL de render/hud.js).
+const VERDE_SUELTA = '#7fe07a';
 
 /** El buque, en el mundo. Va ANTES de los obstaculos del pasillo: casi siempre es lo mas lejano. */
 export function drawBlanco() {
@@ -25,9 +28,19 @@ export function drawBlanco() {
   const uh = Math.max(0.5, BL.LEN * 0.03 * k), hullH = uh * 1.5;
   // NO SE HUNDE EN CUADRO (pedido del autor, 23/9: "no tiene que verse hundirse, tiene que empezar a
   // prenderse fuego nomas"). El negro llega antes; lo que se ve es el buque herido, a flote.
+  // EL APARECER (pedido del autor, 26/9): "el barco no se ve en el horizonte; se empieza a ver con
+  // fade in, y quiza niebla que va desapareciendo mientras aparece a lo lejos". Antes estaba o no
+  // estaba: cruzaba VISIBLE_Z y aparecia entero de un cuadro al otro. Ahora `ap` va de 0 a 1 entre
+  // VISIBLE_Z y APARECE_Z, y hace DOS cosas a la vez, que es lo que lo vuelve niebla y no un
+  // fundido de pantalla: el alfa sube, y la bruma que lo cubre se levanta.
+  const ap = Math.max(0, Math.min(1, (BL.VISIBLE_Z - blanco.z) / (BL.VISIBLE_Z - BL.APARECE_Z)));
+  if (ap <= 0) return;
+  const apE = ap * ap * (3 - 2 * ap);   // entra suave y termina suave: sin escalon en ninguna punta
   // LA BRUMA de lejos, con el mismo mecanismo que la aproximacion: oscurece conservando la forma.
-  const haze = Math.max(0, Math.min(0.35, (blanco.z - 600) / BL.VISIBLE_Z));
+  // Mientras aparece es MUCHO mas espesa — la niebla del pedido— y cae hasta la de siempre.
+  const haze = Math.max(Math.max(0, Math.min(0.35, (blanco.z - 600) / BL.VISIBLE_Z)), 0.8 * (1 - apE));
   ctx.save();
+  ctx.globalAlpha = apE;
   ctx.beginPath(); ctx.rect(-80, -200, W + 160, s.y + 1 + 200); ctx.clip();
   drawCascoDelBuque(blanco.nombre, s.x, len, s.y - hullH, uh, hullH, haze, { hoja: true });
   // LA PERSPECTIVA AEREA: de lejos un buque se ve MAS CLARO, tirado al color del cielo — no mas
@@ -37,7 +50,7 @@ export function drawBlanco() {
   const claro = Math.max(0, Math.min(0.55, (blanco.z - 350) / 1600));
   const hoja = 'buque_' + blanco.clase;
   if (claro > 0.01 && enemyArt.ready(hoja)) {
-    ctx.globalAlpha = claro;
+    ctx.globalAlpha = claro * apE;
     enemyArt.drawFrame(ctx, hoja, 0, 0, s.x, { bottomY: s.y }, len, false, true);
     ctx.globalAlpha = 1;
   }
@@ -104,9 +117,17 @@ function llama(f, u, semilla) {
  *  estar ALINEADO con el buque, y alineado quiere decir que el buque queda exactamente detras de tu
  *  propio avion en pantalla: medido en la primera prueba, a la distancia de suelta el sprite tapaba
  *  el casco entero. Es una mira de bombardeo, no un pedazo del buque: se pinta arriba de todo. */
-const CORCHETES_Z = 700;
+// LOS CORCHETES Y LA FLECHA ENTRAN APENAS EL BUQUE ASOMA (pedido del autor, 26/9: "apenas aparece
+// el barco en pantalla debe mostrar los indicadores de altura y de objetivo, para entender que
+// tengo que ajustar la altura"). Primero los habia puesto al TERMINAR de aparecer, y era tarde:
+// todo el aparecer —quince segundos a crucero— era tiempo perdido para acomodar la altura, que es
+// justo lo que la flecha viene a pedir. Era 700 al principio, peor todavia.
+// Entran CON el buque y no antes: siguen el mismo fundido pero tres veces mas rapido (ver
+// `corchetes`), asi que ya estan enteros cuando el buque todavia es niebla — dicen "ahi" sin
+// marcar un pedazo de cielo vacio.
+const CORCHETES_Z = BL.VISIBLE_Z;
 
-function corchetes(listo) {
+function corchetes(listo, alt) {
   if (blanco.z > BL.VISIBLE_Z || blanco.z < PZ) return;
   const z = zVista(blanco.z);
   const s = proj(BL.X, AGUA, z), k = s.k;
@@ -116,34 +137,43 @@ function corchetes(listo) {
   const cx = s.x, mw = Math.max(10, (proj(BL.X + BL.LEN * BL.CENTRO, AGUA, z).x - cx));
   const xl = cx - mw, xr = cx + mw;
   const bot = s.y + 1, top = Math.min(bot - 8, proj(BL.X, AGUA + altoEn(BL.X) * 0.55, z).y);
-  const t = Math.max(1, Math.round(k * 0.35)), a = Math.max(3, (xr - xl) * 0.2);
-  // EN DISTANCIA DE SOLTAR, todo verde y titilando con el latido del tablero (render/hud.js):
-  // corchetes y flecha dicen "ahora" junto con la cinta, el altimetro y el estante.
+  // MAS GRUESOS (pedido del autor, 26/9). Eran k*0.35 con piso de 1 px, o sea una linea de un
+  // pixel casi siempre: al lado de la mira verde no se leian como un marco sino como ruido.
+  const t = Math.max(2, Math.round(k * 0.7)), a = Math.max(4, (xr - xl) * 0.25);
+  // EN DISTANCIA DE SOLTAR, verde y titilando con el latido del tablero (render/hud.js):
+  // corchetes y mira dicen "ahora" junto con la cinta, el altimetro y el estante.
   const verde = !!listo && Math.floor(performance.now() / 160) % 2 === 0;
   const COL = listo ? (verde ? '#7fe07a' : '#2e8f3a') : P.warn;
-  ctx.globalAlpha = listo ? 1 : 0.55 + 0.45 * Math.abs(Math.sin(run.t * 4));
+  // EL MISMO APARECER DEL BUQUE (drawBlanco), tres veces mas rapido: enteros al primer tercio
+  const apM = Math.min(1, 3 * Math.max(0, (BL.VISIBLE_Z - blanco.z) / (BL.VISIBLE_Z - BL.APARECE_Z)));
+  if (apM <= 0) return;
+  ctx.globalAlpha = apM * (listo ? 1 : 0.55 + 0.45 * Math.abs(Math.sin(run.t * 4)));
   // DE LEJOS, SOLO LA FLECHA: el buque es una mota en el horizonte, justo donde cae la mira, y los
   // corchetes encima lo tapaban entero (playtest 23/9: "aparece cuando ya estas demasiado cerca").
   // Los corchetes entran cuando ya hay casco que abrazar.
-  if (blanco.z < CORCHETES_Z) for (const [x, d] of [[xl, 1], [xr, -1]]) {
+  const cerca = blanco.z < CORCHETES_Z;
+  if (cerca) for (const [x, d] of [[xl, 1], [xr, -1]]) {
     px(x - (d < 0 ? t : 0), top, t, bot - top, COL);
     px(d > 0 ? x : x - a, top, a, t, COL);
     px(d > 0 ? x : x - a, bot - t, a, t, COL);
   }
   ctx.globalAlpha = 1;
-  // …Y ARRIBA, LA MARCA, solo de cerca —cuando entran los corchetes—: la flecha de arcade (referencia del autor, 23/9: el "IN ▼"), en
-  // colores fuego y latiendo hacia el casco. SIN PALABRA: "la palabra blanco quitar" — la flecha
-  // sola ya dice "ahi".
-  const cerca = blanco.z < CORCHETES_Z;
-  const punta = top - 3;
-  // DE LEJOS, NADA (23/9: "hay muchas flechas, quitemos las rojas que aparecen lejos"). El buque
-  // se ve venir solo; la flecha entra con los corchetes.
-  if (!cerca) return;
+  // …Y LA FLECHA, QUE CAMBIO DE OFICIO (pedido del autor, 26/9). Era un "IN ▼" clavado arriba del
+  // buque que decia "ahi esta" — algo que el buque ya dice solo— y ahora dice lo UNICO que el
+  // jugador no puede deducir mirando: que le falta para poder soltar.
+  //   viene DE ARRIBA, apuntando abajo  ->  estas alto, BAJA
+  //   viene DE ABAJO, apuntando arriba  ->  estas bajo, SUBI
+  // Y se van las dos cuando la ventana se abre: ahi ya no hay nada que corregir, y lo que queda
+  // es el corchete en verde y la mira. Que desaparezcan ES la señal.
+  if (!cerca || listo || !alt) return;
+  // late HACIA donde hay que ir: la flecha de bajar cabecea para abajo y la de subir para arriba.
   const late = Math.round(Math.abs(Math.sin(run.t * 5)));
-  if (listo && !verde) ctx.globalAlpha = 0.45;   // el latido: verde siempre, prendido y a media luz
-  flechaIn(cx, punta - late, 1, !!listo);   // pixel simple: a la mitad (23/9), era de pixel doble
+  ctx.globalAlpha = apM;
+  if (alt < 0) flechaIn(cx, top - 3 + late, 1, false, 1);     // arriba del buque, apuntando abajo
+  else flechaIn(cx, bot + 3 - late, 1, false, -1);            // debajo del buque, apuntando arriba
   ctx.globalAlpha = 1;
 }
+
 
 /** EL HUD DE LA SUELTA. `h` es la foto de systems/blanco.js `hud()`, o null. Coordenadas de mundo
  *  (480x270), sin el giro del horizonte.
@@ -152,5 +182,80 @@ function corchetes(listo) {
  *  yo, quitalo"). La distancia, las bombas y la luz de SOLTA se fueron: el momento de soltar lo
  *  dicen Puma por radio y el tablero titilando en verde (render/hud.js), y la altura el altimetro. */
 export function drawBlancoHud(h) {
-  if (h && h.enAtaque) corchetes(h.listo);
+  if (!h || !h.enAtaque) return;
+  corchetes(h.listo, h.alt);
+  // LA MIRA SOLO EN VERDE: en la ventana de distancia Y a buena altura. Antes adentro de los
+  // corchetes iba tambien una cuenta atras en numeros; el autor los saco el 26/9 ("quitemos los
+  // numeros dentro"), asi que lo que queda es binario y se lee de un golpe: o hay mira, o no hay.
+  if (h.listo) mira();
 }
+
+/** LA MIRA SOBRE EL BUQUE: la MISMA que usa el avion — la que cada uno eligio en OPCIONES
+ *  (`cfg.mira`)— un poco mas grande y en verde. Decirlo con la mira y no con una palabra es
+ *  decirlo en el idioma que el jugador viene leyendo todo el vuelo: la mira encima de algo
+ *  significa "esto es el blanco, ahora". */
+function mira() {
+  if (blanco.z > BL.VISIBLE_Z || blanco.z < PZ) return;
+  const z = zVista(blanco.z);
+  const s = proj(BL.X, AGUA, z);
+  // la MISMA caja que `corchetes` — misma proyeccion, mismo top, mismo bot— en vez de a ojo: el
+  // dia que los corchetes se muevan, la mira se muda con ellos.
+  const bot = s.y + 1, top = Math.min(bot - 8, proj(BL.X, AGUA + altoEn(BL.X) * 0.55, z).y);
+  // EL LATIDO DEL TABLERO, el mismo reloj que los corchetes, el altimetro y el estante: o el
+  // rincon se lee como tres avisos distintos. Va en el ALFA y no en el color porque la mira es un
+  // dibujo tenido de un solo tono: apagarla a medias late igual y no la despinta.
+  const late = Math.floor(performance.now() / 160) % 2 === 0;
+  // MIRA_SIZE del avion es 17: 22 es "un poco mas grande" sin taparle el casco que hay que ver.
+  drawMira(cfg.mira, s.x, Math.round((top + bot) / 2), 22, late ? 1 : 0.55, VERDE_SUELTA);
+}
+
+
+/** LA CUENTA ATRAS, ENCIMA DEL BUQUE (pedido del autor, 26/9/2026). `c` son los segundos que faltan
+ *  para que la ventana se abra, y 0 es que YA esta abierta. Ver BL.VENTANA en data/blanco.js para
+ *  que es y, sobre todo, para que NO es: la ventana no se agranda, lo que se estira es el aviso.
+ *
+ *  VA DONDE MIRAS Y NO EN UN RINCON. El momento de soltar se decide mirando el buque —no el
+ *  tablero—, asi que el numero se dibuja pegado a la flecha que ya apunta ahi. Es la misma razon
+ *  por la que los corchetes abrazan el casco en vez de vivir en la cabina.
+ *
+ *  3, 2, 1 — y despues YA. Se redondea HACIA ARRIBA para que el ultimo numero visible sea el 1 y
+ *  no un 0 que se lee como "ya fue": mientras veas un numero, todavia es temprano. */
+function cuentaAtras(c) {
+  if (blanco.z > BL.VISIBLE_Z || blanco.z < PZ) return;
+  const z = zVista(blanco.z);
+  const s = proj(BL.X, AGUA, z);
+  // ADENTRO DE LOS CORCHETES (pedido del autor, 26/9), y por eso la caja se calcula IGUAL que en
+  // `corchetes` — misma proyeccion, mismo `top`, mismo `bot`— en vez de a ojo: el dia que los
+  // corchetes se muevan, el numero se muda con ellos.
+  const bot = s.y + 1, top = Math.min(bot - 8, proj(BL.X, AGUA + altoEn(BL.X) * 0.55, z).y);
+  const y = Math.round((top + bot) / 2);
+  // EL LATIDO DEL TABLERO, el mismo reloj: la cuenta, los corchetes, el altimetro y el estante
+  // titilan JUNTOS o el rincon se lee como cuatro avisos distintos (ver `corchetes`).
+  const late = Math.floor(performance.now() / 160) % 2 === 0;
+  // LA MIRA, TODO EL CONTEO (pedido del autor, 26/9): "el conteo permite disparar, asi que durante
+  // el conteo la mira debe estar; cuando termina el conteo ya paso". Es la MISMA que usa el avion
+  // —la que cada uno eligio en OPCIONES, `cfg.mira`— un poco mas grande y en verde. Decirlo con la
+  // mira y no con una palabra es decirlo en el idioma que el jugador viene leyendo todo el vuelo:
+  // la mira encima de algo significa "esto es el blanco, ahora".
+  // MIRA_SIZE del avion es 17: 22 es "un poco mas grande" sin taparle el casco que hay que ver. El
+  // latido va en el ALFA y no en el color porque la mira es un dibujo tenido de un solo tono:
+  // apagarla a medias late igual y no la despinta.
+  drawMira(cfg.mira, s.x, y, 22, late ? 1 : 0.55, VERDE_SUELTA);
+  // …Y EL NUMERO ADENTRO. El cuerpo sale de la caja, asi que crece con el buque igual que los
+  // corchetes que lo contienen: piso de 7 para que de lejos se siga leyendo —ahi la caja mide 8 px
+  // de alto— y techo de 13 para no tapar el casco.
+  const cuerpo = Math.max(7, Math.min(13, Math.round((bot - top) * 0.9)));
+  ctx.font = 'bold ' + cuerpo + 'px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const txt = String(Math.max(1, Math.ceil(c)));
+  // sombra dura de un pixel: el numero cae sobre el casco, que es gris acero, y sin esto se pierde
+  // justo cuando mas se lo mira
+  ctx.fillStyle = '#0a0e11';
+  ctx.fillText(txt, s.x + 1, y + 1);
+  ctx.fillStyle = late ? '#b6ffb0' : VERDE_SUELTA;
+  ctx.fillText(txt, s.x, y);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+

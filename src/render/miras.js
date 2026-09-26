@@ -20,28 +20,44 @@ const BOX = [
 export const MIRA_COUNT = BOX.length;
 export const MIRA_IDS = BOX.map((_, i) => i + 1);   // 1..9 — lo que se guarda en cfg.mira
 
-const SHEET = { img: new Image(), ready: false, tint: null };
+// EL TEÑIDO, UNA VEZ POR COLOR. Era uno solo (el acento) hasta que la SUELTA pidio la misma mira
+// en verde encima del buque (26/9/2026): ahora la hoja cruda se guarda y cada color se hornea la
+// primera vez que se pide, no en cada cuadro. Son dos o tres canvas de 626 px en toda la partida.
+const SHEET = { img: new Image(), ready: false, crudo: null, tintes: {} };
 SHEET.img.onload = () => {
   const c = document.createElement('canvas');
   c.width = SHEET.img.naturalWidth; c.height = SHEET.img.naturalHeight;
-  const x = c.getContext('2d');
-  x.drawImage(SHEET.img, 0, 0);
-  x.globalCompositeOperation = 'source-in';
-  x.fillStyle = P.accent; x.fillRect(0, 0, c.width, c.height);
-  SHEET.tint = c; SHEET.ready = true;
+  c.getContext('2d').drawImage(SHEET.img, 0, 0);
+  SHEET.crudo = c; SHEET.ready = true;
 };
 SHEET.img.src = '../assets/ui/miras.webp';
 
-/** Dibuja la mira `id` (1..9) centrada en (cx, cy) con `size` de lado. Devuelve false si la hoja
- *  todavia no cargo, para que quien llama pueda pintar su propio fallback. */
-export function drawMira(id, cx, cy, size, alpha) {
-  if (!SHEET.ready || !SHEET.tint) return false;
+/** La hoja teñida de `col`, horneada la primera vez. `source-in` conserva el alfa del dibujo y le
+ *  cambia el color, asi que el verde del asset no manda. */
+function hoja(col) {
+  if (SHEET.tintes[col]) return SHEET.tintes[col];
+  const o = SHEET.crudo, c = document.createElement('canvas');
+  c.width = o.width; c.height = o.height;
+  const x = c.getContext('2d');
+  x.drawImage(o, 0, 0);
+  x.globalCompositeOperation = 'source-in';
+  x.fillStyle = col; x.fillRect(0, 0, c.width, c.height);
+  SHEET.tintes[col] = c;
+  return c;
+}
+
+/** Dibuja la mira `id` (1..9) centrada en (cx, cy) con `size` de lado. `col` la tiñe de otro color
+ *  (por defecto, el acento del juego). Devuelve false si la hoja todavia no cargo, para que quien
+ *  llama pueda pintar su propio fallback. */
+export function drawMira(id, cx, cy, size, alpha, col) {
+  if (!SHEET.ready || !SHEET.crudo) return false;
+  const tint = hoja(col || P.accent);
   const b = BOX[Math.max(0, Math.min(BOX.length - 1, (id | 0) - 1))];
   const h = size * b.sh / b.sw;
   const sm = ctx.imageSmoothingEnabled;
   ctx.globalAlpha = alpha == null ? 1 : alpha;
   ctx.imageSmoothingEnabled = true;   // se baja de ~150px a ~17: el suavizado lee mucho mejor
-  ctx.drawImage(SHEET.tint, b.sx, b.sy, b.sw, b.sh, cx - size / 2, cy - h / 2, size, h);
+  ctx.drawImage(tint, b.sx, b.sy, b.sw, b.sh, cx - size / 2, cy - h / 2, size, h);
   ctx.globalAlpha = 1;
   ctx.imageSmoothingEnabled = sm;
   return true;

@@ -17,7 +17,7 @@
 // eso lo importa `npm run unit` y el reporte de `npm run feel`, y por eso el dia que el vuelo lo
 // use (N3) lo va a llamar con los mismos numeros que las pruebas.
 import {
-  TANQUE_INTERNO_KM, TANQUE_EXTRA_KM, TANQUE_LLENO_FRAC, ZONAS_GASTO,
+  TANQUE_INTERNO_KM, TANQUE_EXTRA_KM, TANQUE_LLENO_FRAC, ZONAS_GASTO, RAS_GASTO_F,
   ARRASTRE_LIMPIO, ARRASTRE_BOMBA, ARRASTRE_TANQUE, VEL_ARRASTRE_EXP, TQ_BUQUE, TQ_DANO_VACIO, TQ_AIRE, TQ_EXPLOSIVOS,
 } from '../data/tuning.js';
 import { tanquesDe, bombasDe, cargaDe, CARGA_BASE } from '../data/cargas.js';
@@ -138,7 +138,12 @@ export const velRelativa = colgado => (fCarga(colgadoDe(CARGA_BASE)) / fCarga(co
 export const fVelocidad = r => Math.max(1, r) ** 2;
 
 /** LOS KM QUE CUESTA recorrer `km` a la altura `y`, con `colgado` puesto y el turbo a `r`. */
-export const gastoKm = (km, y, colgado, r = 1) => km * fAltura(y) * fCarga(colgado) * fVelocidad(r);
+/** El factor de altura que se COBRA: el de la zona, o el del vuelo normal si venis sosteniendo el
+ *  rasante (`ras`, ver RAS_GASTO_F). Nunca MAS caro: volando alto con el rasante puesto no se paga
+ *  de mas por eso. */
+export const fCobrado = (y, ras) => (ras ? Math.min(fAltura(y), RAS_GASTO_F) : fAltura(y));
+
+export const gastoKm = (km, y, colgado, r = 1, ras = false) => km * fCobrado(y, ras) * fCarga(colgado) * fVelocidad(r);
 
 /** EL TURBO EN LAS MISIONES SIN `ruta`, que siguen gastando % por SEGUNDO (PLAN §6.6: el turbo
  *  proporcional va en todas). Por segundo el turbo cuesta r³ y no r²: cada km sale r² mas caro y

@@ -38,6 +38,11 @@ export const blanco = {
   ala: null, alaN: 0, centroN: 0,
   pred: null,         // lo que haria la bomba soltada AHORA (predecir), o null
   listo: false,       // ES EL MOMENTO: soltar ahora pega armada en el casco
+  extra: 0,           // el envion de la holgura que necesita una suelta AHORA (ver `holgura`)
+  enDist: false,      // el buque esta en la VENTANA DE DISTANCIA (independiente de tu altura)
+  buenaAlt: false,    // estas en la banda de BL.ALT_IDEAL
+  tuvoVentana: false, // la ventana de esta pasada llego a abrirse (para saber si se PASO)
+  perdidaT: -1,       // reloj del MOMENTO PERDIDO (fundido + piloto automatico), -1 = no
 };
 
 export function resetBlanco(on, nombre, clase) {
@@ -47,6 +52,7 @@ export function resetBlanco(on, nombre, clase) {
   blanco.cues.length = 0; for (const k in blanco.dicho) delete blanco.dicho[k];
   blanco.lento = false; blanco.negroT = -1; blanco.salidaT = -1; blanco.pendiente = null; blanco.altPiso = -1;
   blanco.ala = null; blanco.alaN = 0; blanco.centroN = 0; blanco.pred = null; blanco.listo = false;
+  blanco.extra = 0; blanco.enDist = false; blanco.buenaAlt = false; blanco.tuvoVentana = false; blanco.perdidaT = -1;
   blanco.escapando = false;
 }
 
@@ -79,15 +85,72 @@ export const AGUA = 1;
  *
  *  Es la luz de SOLTA del HUD. No es un guiado: la bomba real no sabe nada de esto, y si el avion
  *  se mueve despues de soltar, la bomba no se entera. Es leer adelante lo que la fisica ya decide. */
-export function predecir(px, py, vy, vx, spd, zBuque) {
-  const vz = spd * (1 + BOMBA_ENVION) + BOMBA_EYECTOR;
-  let x = px, y = py, z = 18, v = vy, t = 0, zs = zBuque;   // 18 = PZ + 4, donde nace la bomba
+export function predecir(px, py, vy, vx, spd, zBuque, acc) {
+  return simular(px, py, vy, vx, spd, zBuque, 0, acc);
+}
+
+/** LA HOLGURA DE LA SUELTA (pedido del autor, 26/9/2026): "quiero que el juego te permita lanzar la
+ *  bomba un poco antes y la trayectoria se acomode a esa ventana, que no sea exactamente por fisica
+ *  segun velocidad altura y demas, que haya cierto juego para que dure aprox 3 segundos sin turbo".
+ *
+ *  POR QUE HACIA FALTA, medido con esta misma funcion: la ventana puramente balistica dura entre
+ *  0,53 s (al ras y rapido) y 2,11 s (a 18 m y lento), y tipicamente ~1 s. "Es literal UN PARPADEO
+ *  para que el jugador pueda tirar la bomba en tiempo, forma y altura."
+ *
+ *  QUE ES: un PRESUPUESTO DE ENVION, en unidades/s, que la bomba puede llevar de mas al salir.
+ *  Soltada antes de tiempo se queda corta —cae al agua delante del buque—, y lo que la hace llegar
+ *  es salir empujada. Esta funcion busca el envion MAS CHICO que alcanza para pegar: devuelve ese
+ *  numero, o null si ni con todo el presupuesto llega (o sea, soltaste demasiado antes).
+ *
+ *  Y ES UNA SOLA CORRECCION, AL SOLTAR, NO UN GUIADO. La bomba sale con ese vz y desde ahi no la
+ *  toca nadie mas que la gravedad: sigue siendo el tiro oblicuo del 20/9. Lo que se acomoda es el
+ *  gancho, no la bomba en el aire — y por eso una suelta muy temprana sigue siendo un error.
+ *
+ *  EL PRESUPUESTO ES FIJO Y POR ESO EL TURBO SIGUE COSTANDO: los mismos metros de envion cubren
+ *  menos TIEMPO cuanto mas rapido venis, asi que la ventana se acorta sola al acelerar. Es la
+ *  propiedad que el autor pidio con "aprox 3 segundos sin turbo". */
+export function holgura(px, py, vy, vx, spd, zBuque, tope, acc) {
+  if (!(tope > 0)) return null;
+  // De menos a mas: el primero que pega es el mas barato, y salir con el envion justo es lo que
+  // hace que la bomba caiga donde se ve que va a caer.
+  const PASOS = 14;
+  for (let i = 0; i <= PASOS; i++) {
+    const extra = tope * i / PASOS;
+    const r = simular(px, py, vy, vx, spd, zBuque, extra, acc);
+    if (r === 'centro' || r === 'extremo') return extra;
+  }
+  return null;
+}
+
+/** El vuelo de la bomba, cuadro a cuadro y con el buque viniendo: el MISMO integrador que
+ *  systems/collision.js mueve de verdad. `extra` es el envion de la holgura (0 = balistica pura). */
+function simular(px, py, vy, vx, spd, zBuque, extra, acc) {
+  const vz = spd * (1 + BOMBA_ENVION) + BOMBA_EYECTOR + extra;
+  let x = px, y = py, z = 18, v = vy, t = 0, zs = zBuque, s = spd;   // 18 = PZ + 4, donde nace la bomba
   const dt = 1 / 60;
+  // LA ACELERACION ENTRA EN LA CUENTA (26/9/2026). Medido: soltando al principio de la ventana con
+  // el avion todavia acelerando (108 -> 139 durante el vuelo de la bomba) la bomba se quedaba
+  // CUARENTA unidades corta y erraba, aunque la cuenta verde dijera que si. El motivo es el
+  // corazon del tiro oblicuo: la bomba avanza `vz - run.spd`, asi que cada unidad que el avion
+  // gana DESPUES de soltar es una unidad que la bomba pierde. (Es la cara B de "frenar la estira",
+  // que es la misma regla del otro lado.)
+  //
+  // Suponer velocidad constante convertia eso en una MENTIRA de la luz verde. Ahora la prediccion
+  // arrastra el ritmo al que venis acelerando: si mantenes el gas, la cuenta dice la verdad; si lo
+  // cambias a mitad de la ventana, se recalcula sola al cuadro siguiente — y ver el numero caer de
+  // 3 a 1 al meter turbo es el juego diciendote lo que el turbo cuesta.
+  const a = acc || 0;
   for (let i = 0; i < 240; i++) {
     const zAntes = z, zsAntes = zs;
     t += dt;
-    z += Math.min(BOMBA_REL_MAX, vz - spd) * dt;
-    zs -= spd * dt;
+    // EL TECHO SE MUEVE CON LA HOLGURA. `BOMBA_REL_MAX` existe para que una bomba tirada frenando
+    // a fondo no aterrice mas alla de la linea de siembra, donde todavia no nacio nada (ver el
+    // bloque BOMBA_* de data/tuning.js). En la SUELTA no protege de nada —el buque esta ahi, a una
+    // distancia conocida— y en cambio era lo que hacia que el presupuesto de envion saturara:
+    // medido, de 120 para arriba la ventana no crecia un milisegundo mas.
+    s += a * dt;
+    z += Math.min(BOMBA_REL_MAX + extra, vz - s) * dt;
+    zs -= s * dt;
     v -= BOMBA_G * Math.min(1, t / BOMBA_PLANEO) * dt; y += v * dt;
     x += vx * dt;
     if (zAntes < zsAntes && z >= zs) {

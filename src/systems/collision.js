@@ -486,7 +486,10 @@ export function collisionSystem(dt) {
     // a `run.spd`, asi que lo que avanza en pantalla es la DIFERENCIA. Sostener la velocidad la deja
     // cayendo debajo tuyo (lo que hace una bomba de verdad); frenar la dispara para adelante.
     // El techo existe porque frenar de 490 a 62 la mandaria mas alla de donde nace el mundo.
-    const rel = Math.min(BOMBA_REL_MAX, pm.vz - run.spd);
+    // EL TECHO SE MUEVE CON EL ENVION DE LA HOLGURA (`pm.extra`, solo en la suelta sobre el buque).
+    // Sin esto el integrador le recorta justo lo que la holgura le dio y la bomba se queda corta —
+    // y la luz verde, que se calcula con el mismo techo corrido en core/blanco.js, mentiria.
+    const rel = Math.min(BOMBA_REL_MAX + (pm.extra || 0), pm.vz - run.spd);
     pm.z += rel * dt;
     pm.t = (pm.t || 0) + dt;                                                  // el planeo: la gravedad entra de a poco
     pm.vy -= BOMBA_G * Math.min(1, pm.t / BOMBA_PLANEO) * dt; pm.y += pm.vy * dt;                                // la caida

@@ -214,6 +214,11 @@ const t16 = {
   // TRES PASADAS, solo aca: es el banco para practicar la suelta, y errar tiene que dejar volver a
   // probar. En una mision de verdad es una sola (data/blanco.js, PASADAS).
   pasadas: 3,
+  // Y LA CUENTA ATRAS MAS LARGA QUE HAY (5 s, ver BL.VENTANA en data/blanco.js): esta prueba es
+  // para aprender la suelta, asi que da todo el aviso posible. La dificultad NO cambia la ventana
+  // — sigue siendo "ni lejos ni cerca, justo en cierta distancia"—, solo cuanto antes te avisan
+  // que la distancia llega. Sin este campo una mision cuenta 3 (NORMAL).
+  dificultad: 'facil',
   cfg: P({ sky: 'clear', obstacles: 0, bombs: 0, caza: 0, fuelOn: false }),
   // PUMA CANTA LA SUELTA: cada seña de systems/blanco.js (`bl_<seña>`) con su banco de data/story.js.
   // Es el formato que la mision 2 heredaria tal cual si queda bien. `cada: 0` porque las señas ya

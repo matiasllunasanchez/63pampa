@@ -15,7 +15,7 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { BL } from '../data/blanco.js';
 import { BOMBA_PANZA, BOMBA_DERIVA } from '../data/tuning.js';
-import { blanco, resetBlanco, altoEn, zonaEn, predecir, AGUA } from '../core/blanco.js';
+import { blanco, resetBlanco, altoEn, zonaEn, predecir, holgura, AGUA } from '../core/blanco.js';
 import { SHIP_CLASS } from '../data/ships.js';
 import { cargaDe } from '../data/cargas.js';
 import { buqueTanque } from '../core/nafta.js';
@@ -32,6 +32,12 @@ export function preparar(on, nombre, objectiveDist, geo, carga, opts) {
   resetBlanco(on, nombre, SHIP_CLASS[nombre]);
   const o = opts || {};
   blanco.pasadas = o.pasadas > 0 ? o.pasadas : BL.PASADAS;
+  // LA DIFICULTAD LA PONE LA MISION, no el jugador (decision del autor, 26/9): el campo
+  // `dificultad:` de su renglon en data/missions.js. Una mision sabe si es la primera del juego o
+  // la ultima, y el aviso de la suelta es parte de como esta escrita — no una preferencia que se
+  // elige en OPCIONES. Sin campo, NORMAL.
+  holguraMax = BL.HOLGURA[o.dificultad] === undefined ? BL.HOLGURA.normal : BL.HOLGURA[o.dificultad];
+  spdPrev = -1; spdRate = 0;   // corrida nueva: el acelerador de la anterior no cuenta
   blanco.conVuelta = !!o.vuelta;
   if (geo) { PZ = geo.PZ; W = geo.W; }
   objetivo = objectiveDist;
@@ -40,17 +46,29 @@ export function preparar(on, nombre, objectiveDist, geo, carga, opts) {
 }
 
 let cargaId = null;
+// EL PRESUPUESTO DE ENVION de esta mision (ver BL.HOLGURA). Se resuelve UNA vez al preparar y no
+// cada cuadro: el nombre de la dificultad no cambia a mitad de un vuelo.
+let holguraMax = BL.HOLGURA.normal;
+// A QUE RITMO VIENE CAMBIANDO LA VELOCIDAD (unidades/s²), suavizado. Lo lee la prediccion: sin
+// esto la luz verde suponia velocidad constante y mentia cuando el jugador venia acelerando (ver
+// la nota de la aceleracion en core/blanco.js). Suavizado porque `run.spd` se mueve a saltos de un
+// cuadro y una derivada cruda haria parpadear la ventana sin que pase nada.
+let spdPrev = -1, spdRate = 0;
+const SPD_SUAVE = 0.12;   // segundos de la media movil: corto, para que meter turbo se note ya
 /** Cuelga la carga entera: la del centro (siempre, es la del buque) y la del ala. `run.msl` sigue
  *  siendo el total, que es lo que el resto del juego sabe leer. */
 function armar() {
   const c = cargaDe(cargaId);
   blanco.ala = c.ala; blanco.alaN = c.ala === 'bomba' ? 2 : 0; blanco.centroN = 1;
+  blanco.tuvoVentana = false;   // pasada nueva: la ventana de la anterior no cuenta
+  blanco.perdidaT = -1;
   run.msl = mslAntes = blanco.alaN + blanco.centroN;
 }
 
 /** El buque esta a tiro: a la vista, entero o no, y el ataque todavia no termino. Es lo que
  *  DESBLOQUEA la bomba del centro. */
-const aTiro = () => blanco.on && blanco.z > PZ && blanco.z < BL.VISIBLE_Z && blanco.negroT < 0 && !blanco.hundido;
+const aTiro = () => blanco.on && blanco.z > PZ && blanco.z < BL.VISIBLE_Z && blanco.negroT < 0
+  && blanco.perdidaT < 0 && !blanco.hundido;
 
 /** LA SUELTA pide una bomba (tecla de soltar). Con el buque a tiro sale la del CENTRO primero —la
  *  del buque—; si no, una del ala. La del centro NUNCA sale lejos del buque: esta bloqueada para
@@ -153,10 +171,24 @@ export function step(dt) {
   // EL NEGRO ES TREGUA: lo que no se ve no puede matarte. Saltar el buque puede dejarte arriba del
   // techo del radar, y un misil lanzado ahi pegaba en pleno negro (medido: derribo sin ver nada).
   // Mientras dura el negro —y su apertura— no hay misiles en vuelo y el radar no carga.
-  if (blanco.negroT >= 0 || blanco.salidaT >= 0) { missiles.length = 0; run.detection = 0; }
+  if (blanco.negroT >= 0 || blanco.salidaT >= 0 || blanco.perdidaT >= 0) { missiles.length = 0; run.detection = 0; }
   // EN EL NEGRO, UN PISO: sin ver nada nadie maneja, y sin piso el avion se iba solo al agua en pleno
   // negro (medido). Va ANTES del negro sostenido, que sale temprano. Fuera del negro no hay piso: el
   // salto es del jugador.
+  // EL MOMENTO PERDIDO: fundido a negro con el avion en piloto automatico, subiendo solo. El
+  // piloto automatico ES el piso de siempre, que en vez de quedarse quieto sube: el avion no puede
+  // estar por debajo, asi que se lo lleva para arriba sin tocar flight.js. Y no se evalua nada mas
+  // —ni cruce, ni prediccion, ni señas—: la pasada ya se decidio, esto es solo su salida.
+  if (blanco.perdidaT >= 0) {
+    blanco.perdidaT += dt;
+    blanco.altPiso = Math.max(blanco.altPiso, plane.y) + BL.PERDIDA_SUBE * dt;
+    plane.y = Math.max(plane.y, blanco.altPiso);
+    plane.vy = Math.max(plane.vy, BL.PERDIDA_SUBE);   // que el sprite cabecee para arriba, no solo que suba
+    // …y cuando el fundido llega a negro, sigue el negro sostenido de siempre, con su `pendiente`
+    // ya armado: game.js decide el relevo o la derrota como con cualquier pasada errada.
+    if (blanco.perdidaT >= BL.PERDIDA_T) { blanco.perdidaT = -1; blanco.negroT = 0; }
+    return null;
+  }
   if (blanco.altPiso >= 0) plane.y = Math.max(plane.y, blanco.altPiso);
   // EL FUNDIDO DE SALIDA de una pasada nueva: corre solo, el juego ya sigue.
   if (blanco.salidaT >= 0) { blanco.salidaT += dt; if (blanco.salidaT >= BL.SALIDA_T) blanco.salidaT = -1; }
@@ -204,12 +236,72 @@ export function step(dt) {
     return escape ? 'escape' : null;
   }
   // LA PREDICCION, una vez por cuadro: la leen las señas de Puma y el HUD (lo que titila en verde).
-  blanco.pred = aTiro() && !blanco.lento && run.msl > 0
-    ? predecir(plane.x, plane.y - BOMBA_PANZA, plane.vy, plane.vx * BOMBA_DERIVA, run.spd, blanco.z) : null;
-  blanco.listo = blanco.pred === 'centro' || blanco.pred === 'extremo';
+  // el ritmo del acelerador, antes de cualquier prediccion de este cuadro
+  if (spdPrev < 0 || dt <= 0) { spdPrev = run.spd; spdRate = 0; }
+  else {
+    const k = Math.min(1, dt / SPD_SUAVE);
+    spdRate += ((run.spd - spdPrev) / dt - spdRate) * k;
+    spdPrev = run.spd;
+  }
+  const puede = aTiro() && !blanco.lento && run.msl > 0;
+  const hit = r => r === 'centro' || r === 'extremo';
+  const vxB = plane.vx * BOMBA_DERIVA;
+  // LA VENTANA ES DE DISTANCIA, NO DE TU ALTURA (26/9/2026). La primera version la definia con la
+  // prediccion REAL —tu altura y tu trepada de este cuadro—, y el autor la jugo asi: "volando sin
+  // turbo aparecio UN SEGUNDO la mira y al toque me tiro pantallazo negro". Entraste medio fuera
+  // de altura, la ventana abrio un instante, cerro, y eso ya contaba como "se te paso".
+  //
+  // Ahora se pregunta con una REFERENCIA ESTABLE: tu altura llevada a la banda ideal, y sin
+  // trepada. Asi la ventana depende de DONDE ESTA EL BUQUE y de tu velocidad — lo que el autor
+  // llama "la ventana de distancia ideal"— y no parpadea por un tiron del morro. Tu altura queda
+  // para lo suyo: decidir si esa ventana esta VERDE o sigue ROJA con la flecha.
+  const yRef = Math.max(BL.ALT_IDEAL[0], Math.min(BL.ALT_IDEAL[1], plane.y)) - BOMBA_PANZA;
+  const pRef = puede ? predecir(plane.x, yRef, 0, vxB, run.spd, blanco.z, spdRate) : null;
+  blanco.enDist = puede && (hit(pRef) || holgura(plane.x, yRef, 0, vxB, run.spd, blanco.z, holguraMax, spdRate) !== null);
+  blanco.buenaAlt = plane.y >= BL.ALT_IDEAL[0] && plane.y <= BL.ALT_IDEAL[1];
+  // LO REAL, con tu altura y tu trepada: es lo que decide el envion que se le cuelga a la bomba, y
+  // lo que leen las señas de Puma. Verde exige que TAMBIEN esto pegue — si no, la mira prometeria
+  // una bomba que despues se queda corta.
+  blanco.pred = puede
+    ? predecir(plane.x, plane.y - BOMBA_PANZA, plane.vy, vxB, run.spd, blanco.z, spdRate) : null;
+  blanco.extra = puede && !hit(blanco.pred)
+    ? holgura(plane.x, plane.y - BOMBA_PANZA, plane.vy, vxB, run.spd, blanco.z, holguraMax, spdRate)
+    : 0;
+  // VERDE = en la ventana de distancia, a buena altura, y una suelta ahora pega de verdad
+  blanco.listo = blanco.enDist && blanco.buenaAlt && blanco.extra !== null;
+  if (blanco.enDist) blanco.tuvoVentana = true;
+  // TE ACERCASTE DEMASIADO (pedido del autor, 26/9): "si la ventana verde se pierde porque me
+  // acerque demasiado, se mete FADE, se quita la UI y queda solo el avion volando". Es la unica
+  // forma de perder la pasada sin soltar, y se mide con la MISMA referencia estable: la ventana de
+  // distancia se cerro, y del lado CERCANO — soltar ahi a la altura ideal ya pasaria por arriba del
+  // casco ('larga') o llegaria sin armar ('dormida'). Del lado lejano (todavia 'corta') no pasa nada:
+  // eso es que la ventana no llego, no que se fue.
+  //
+  // Y la bomba del centro SIGUE COLGADA: si la soltaste, el desenlace lo decide ella, aunque
+  // termine en el agua.
+  const cerca = puede && !blanco.enDist && (pRef === 'larga' || pRef === 'dormida');
+  if (blanco.tuvoVentana && cerca && blanco.centroN > 0) {
+    blanco.perdidaT = 0;
+    blanco.altPiso = plane.y;
+    blanco.pasada++;
+    // EL MISMO `pendiente` que el cruce: game.js no se entera de que el desenlace llego antes
+    blanco.pendiente = blanco.pasadas === 1 ? 'errado'
+      : blanco.pasada >= blanco.pasadas ? { fallo: 'death_suelta' } : 'reencare';
+    return null;
+  }
   if (!blanco.hundido && !blanco.lento) señas();
   return null;
 }
+
+/** EL ENVION que le corresponde a una bomba soltada en ESTE cuadro (ver `holgura`). game.js se lo
+ *  suma al `vz` de la bomba al descolgarla, y de ahi en mas no la toca nadie: es una correccion en
+ *  el gancho, no un guiado en el aire. 0 cuando la balistica pura ya pegaba o cuando no hay suelta. */
+// SOLO CON VERDE: en rojo la bomba sale como siempre, balistica pura. Si no, una suelta en rojo
+// podia pegar gracias a la holgura, y el color del corchete dejaria de significar algo.
+export const envion = () => (blanco.on && blanco.listo && blanco.extra > 0 ? blanco.extra : 0);
+
+/** El MOMENTO PERDIDO esta corriendo: fundido y piloto automatico (game.js apaga el HUD entero). */
+export const perdida = () => blanco.on && blanco.perdidaT >= 0;
 
 /** EL SIGUIENTE EN LA FILA toma la pasada: el buque queda a `BL.FILA_M` —el de atras venia a
  *  segundos— y el avion trae su carga entera. El relevo (game.js) cuenta el cambio de mando. */
@@ -256,6 +348,8 @@ export const lento = () => blanco.on && blanco.lento;
  *  el cruce, se sostiene despues, y se abre al volver a una pasada nueva. */
 export function negro() {
   if (!blanco.on) return 0;
+  // el momento perdido se FUNDE, no se corta: fue la queja ("pantallazo negro")
+  if (blanco.perdidaT >= 0) return Math.min(1, blanco.perdidaT / BL.PERDIDA_T);
   if (blanco.negroT >= 0) return 1;
   if (blanco.salidaT >= 0) return 1 - blanco.salidaT / BL.SALIDA_T;
   const d = blanco.z - PZ;
@@ -294,9 +388,16 @@ export const estado = () => blanco;
  *  de soltar (todo lo que titila en verde) y el ESTANTE — que hay en cada pilon. */
 export function hud() {
   if (!blanco.on) return null;
-  const vivo = !blanco.hundido && !blanco.lento && blanco.negroT < 0;
+  const vivo = !blanco.hundido && !blanco.lento && blanco.negroT < 0 && blanco.perdidaT < 0;
   return {
     listo: vivo && blanco.listo,
+    // QUE CORREGIR DE LA ALTURA: -1 hay que BAJAR, 1 hay que SUBIR, 0 estas en la banda.
+    // La flecha del buque cambio de oficio (pedido del autor, 26/9): era un "ahi esta" que no
+    // decia nada que el buque no dijera solo, y ahora es la unica pista de COMO llegar a poder
+    // soltar. Sale de BL.ALT_IDEAL, que es la banda que el altimetro ya pinta de verde: por
+    // debajo la bomba no alcanza a armarse (la espoleta), por encima el radar te ve.
+    alt: vivo && aTiro()
+      ? (plane.y > BL.ALT_IDEAL[1] ? -1 : plane.y < BL.ALT_IDEAL[0] ? 1 : 0) : 0,
     enAtaque: vivo && aTiro(),
     rack: { ala: blanco.ala, alaN: blanco.alaN, centroN: blanco.centroN, bloqueada: !aTiro() },
     // LA ALTURA DEL SALTO: desde que soltaste hasta el cruce, cuanto mide el buque justo debajo de
