@@ -31,3 +31,32 @@ export const SENAL_GLOBO_T = 0.9;
 
 /** Cuanto espera una seña con `lado` a que toques la direccion (s). */
 export const SENAL_ARMADA_T = 0.8;
+
+/** Cuanto dura cada GESTO (s), sea tuyo o de un compañero. Sale de la tabla de arriba. */
+export const GESTO_T = SENALES.reduce((m, x) => { m[x.gesto] = x.t; return m; }, {});
+
+// ---------------------------------------------------------------------------------------------
+// LAS SEÑAS DE LOS COMPAÑEROS (pedido del autor 25/9): "cuando otros personajes del escuadron
+// aparezcan en pantalla, que puedan comunicarse con el jugador asi, sin hablar. Y al finalizar,
+// que se alejen hacia el costado, hacia abajo, o bajen la velocidad y vuelvan atras."
+//
+// Un compañero entra a tu costado, hace su GESTO y muestra su globo (la misma pieza de tus señas y
+// de las de la vuelta), y se va. Cada entrada es una seña que un compañero te puede hacer:
+//   icono / texto   el globo (data/iconos.js) y la clave de su texto (data/strings.js)
+//   gesto           el gesto del avion (core/senales.js), o null
+//   sale            como se va: 'costado' | 'abajo' | 'atras' (frena y queda atras, pasandote)
+//   alerta          el globo en amarillo
+export const SENAS_COMP = {
+  // al CRUZAR EL HORIZONTE DE RADAR, en la ida: abajo y callados
+  radar:     { icono: 'senal_abajo', texto: 'senal_abajo', gesto: 'cabeceo', sale: 'abajo' },
+  entendido: { icono: 'sena_recibido', texto: 'senal_entendido', gesto: 'balanceo', sale: 'costado' },
+  alerta:    { icono: 'senal_alerta', texto: 'senal_alerta', gesto: 'tonel', sale: 'atras', alerta: true },
+  panza:     { icono: 'senal_panza', texto: 'senal_panza', gesto: 'panza', sale: 'abajo' },
+};
+
+/** Las tres salidas: cuanto se corre en cada eje (unidades de mundo) al irse. */
+export const SALIDA = {
+  costado: { x: 30, y: 0, z: 4 },
+  abajo:   { x: 3, y: -10, z: 2 },
+  atras:   { x: 6, y: -3, z: -13 },   // z negativo: viene hacia la camara y te pasa por al lado
+};

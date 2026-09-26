@@ -20,6 +20,8 @@ import { pilotName, rosterActive, fallenPos } from '../systems/squad.js';
 import { skinOf } from '../data/skins.js';
 import { iconoEn } from './iconos.js';
 import { SENAS } from '../data/blanco.js';
+import { SALIDA, GESTO_T } from '../data/senales.js';
+import { pose } from '../core/senales.js';
 
 /** La formacion detras del lider. `exit` = null durante el despegue; 0..1 durante la salida de
  *  plano (al CONTROL LIBRE: aceleran, crecen y pasan al costado de la camara — "te siguen ahi
@@ -148,35 +150,56 @@ export function drawRelevo(rv) {
   drawSquadPips(3, 3);
 }
 
-/** "MIRAME LA PANZA" (PLAN_VUELTA_REAL V4): un compañero se pone a tu costado y abajo y te hace dos
- *  señas —que tenes y a donde—. `sn` es la foto que arma game.js: { t, idx, senas: [id, id] }.
- *  Dibuja EN EL MUNDO (va con drawPlane). Entra desde abajo a la derecha, se queda, y se va. */
+/** UN COMPAÑERO TE HACE SEÑAS. Nacio con "MIRAME LA PANZA" (PLAN_VUELTA_REAL V4) y ahora es la
+ *  pieza de todas las señas de compañero (data/senales.js SENAS_COMP). `sn` es la foto que arma
+ *  game.js: { t, idx, items: [{ icono, texto, gesto, alerta }], sale, lado }.
+ *  Dibuja EN EL MUNDO (va con drawPlane). Entra desde abajo y atras a su puesto, a tu `lado`; por
+ *  cada item hace su GESTO y muestra su globo; y se va segun `sale` (SALIDA). */
 export function drawSenas(sn, selPlane) {
   if (!sn || sn.t < 0) return;
-  const total = SENAS.ENTRA + SENAS.CADA * sn.senas.length + SENAS.SALE;
+  const total = SENAS.ENTRA + SENAS.CADA * sn.items.length + SENAS.SALE;
   if (sn.t > total) return;
   const entra = Math.min(1, sn.t / SENAS.ENTRA), sale = Math.max(0, (sn.t - (total - SENAS.SALE)) / SENAS.SALE);
-  const e = 1 - (1 - entra) * (1 - entra);
-  // la posicion: arranca abajo y atras (fuera de cuadro), se acomoda en su puesto, y se va abajo
-  const x = plane.x + SENAS.DX * (0.4 + 0.6 * e) + sale * 6;
-  const y = plane.y + SENAS.DY - (1 - e) * 6 - sale * 4;
-  const z = PZ + SENAS.DZ - (1 - e) * 6 + sale * 3;
+  const e = 1 - (1 - entra) * (1 - entra), e2 = sale * sale;
+  const lado = sn.lado || 1, sal = SALIDA[sn.sale] || SALIDA.abajo;
+  // la posicion: arranca abajo y atras (fuera de cuadro), se acomoda en su puesto, y se va
+  const x = plane.x + lado * (SENAS.DX * (0.4 + 0.6 * e) + sal.x * e2);
+  const y = plane.y + SENAS.DY - (1 - e) * 6 + sal.y * e2;
+  const z = PZ + SENAS.DZ - (1 - e) * 6 + sal.z * e2;
+  if (z < 4) return;   // ya te paso: esta detras de la camara
   const s = proj(x, y, z), f = s.k / proj(0, 0, PZ).k;
+  // LA POSE: el gesto del item en curso, y al irse la de la salida (se inclina hacia el costado,
+  // pica hacia abajo, o se abre apenas al quedarse atras)
+  const dentro = sn.t - SENAS.ENTRA;
+  const i = Math.max(0, Math.min(sn.items.length - 1, Math.floor(dentro / SENAS.CADA)));
+  const it = sn.items[i];
+  let p = { bank: 0, pitch: 0, rot: 0 };
+  if (sale > 0) {
+    const m = Math.min(1, sale * 3);
+    if (sn.sale === 'costado') p.bank = lado * 0.8 * m;
+    else if (sn.sale === 'atras') p.bank = lado * 0.4 * m;
+    else p.pitch = -m;
+  } else if (dentro >= 0 && it.gesto && GESTO_T[it.gesto]) {
+    const u = (dentro - i * SENAS.CADA) / GESTO_T[it.gesto];
+    if (u < 1) p = pose(it.gesto, u, lado);
+  }
   const pl = PLANES[selPlane], hoja = hojaDe(pl, sn.idx);
   const smooth = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = false;
   if (hoja) {
-    const col = (SHEET_NF - 1) / 2, w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
-    ctx.drawImage(hoja, col * SHEET_FW, SHEET_FH, SHEET_FW, SHEET_FH, s.x - w / 2, s.y - h / 2, w, h);
+    const col = Math.round((1 - Math.max(-1, Math.min(1, p.bank))) / 2 * (SHEET_NF - 1));
+    const row = p.pitch > 0.33 ? 0 : p.pitch < -0.33 ? 2 : 1;
+    const w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
+    ctx.save(); ctx.translate(s.x, s.y); if (p.rot) ctx.rotate(p.rot);
+    ctx.drawImage(hoja, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH, -w / 2, -h / 2, w, h);
+    ctx.restore();
   }
   ctx.imageSmoothingEnabled = smooth;
   // LA SEÑA: un globo al costado de su cabina con el pictograma y, abajo, lo que quiere decir
-  const dentro = sn.t - SENAS.ENTRA;
   if (dentro < 0 || sale > 0) return;
-  const i = Math.min(sn.senas.length - 1, Math.floor(dentro / SENAS.CADA));
-  const id = sn.senas[i], bx = Math.round(s.x + 22 * f), by = Math.round(s.y - 20 * f);
+  const bx = Math.round(s.x + 22 * f), by = Math.round(s.y - 20 * f);
   const pop = Math.max(0, 1 - (dentro - i * SENAS.CADA) / 0.15);   // un golpecito al cambiar de seña
-  globo(bx, by, id, T(id), id === 'sena_fuga' || id === 'sena_dano' || id === 'sena_chancha', pop);
+  globo(bx, by, it.icono, T(it.texto), !!it.alerta, pop);
 }
 
 /** EL GLOBO DE UNA SEÑA: cuadro con el pictograma, la colita hacia el avion y, abajo, lo que

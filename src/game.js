@@ -131,7 +131,7 @@ import * as naftaSys from './systems/nafta.js';
 import * as estrellas from './systems/estrellas.js';
 import { piso as pisoEstrella } from './core/estrellas.js';
 import { EST_MAX } from './data/tuning.js';
-import { SENALES, SENAL_GLOBO_T, SENAL_ARMADA_T } from './data/senales.js';
+import { SENALES, SENAL_GLOBO_T, SENAL_ARMADA_T, SENAS_COMP } from './data/senales.js';
 import { pose as poseSenal } from './core/senales.js';
 import * as zigzag from './systems/zigzag.js';
 import * as zigzagCore from './core/zigzag.js';
@@ -2831,7 +2831,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
     let capAvisada = false;
     let senas = null;
-    const senasActivas = () => !!senas && senas.t < SENAS.ENTRA + SENAS.CADA * senas.senas.length + SENAS.SALE;
+    // (solo las que FRENAN la siembra: las de la vuelta, que son largas; las de paso no)
+    const senasActivas = () => !!senas && senas.frena && senas.t < SENAS.ENTRA + SENAS.CADA * senas.items.length + SENAS.SALE;
+    /** UN COMPAÑERO TE HACE UNA SEÑA (data/senales.js SENAS_COMP): entra, hace su gesto, muestra el
+     *  globo y se va. Hace falta un compañero vivo, y no pisa a otro que ya este haciendo señas. */
+    function senaCompanero(id, lado) {
+      const c = SENAS_COMP[id];
+      if (!c || !canRelevo(run.lives)) return false;
+      if (senas && senas.t < SENAS.ENTRA + SENAS.CADA * senas.items.length + SENAS.SALE) return false;
+      senas = { t: 0, idx: pilotIdx(run.squad, run.lives) + 1, items: [c], sale: c.sale, lado: lado || 1 };
+      return true;
+    }
     // EL GLOBO DE TU SEÑA (data/senales.js): { sn, t, dir }, o null. Vive mientras dura el gesto y
     // SENAL_GLOBO_T mas; lo dibuja render/squad.js sobre tu avion.
     let senalGlobo = null;
@@ -2860,7 +2870,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       }
       const hayChancha = !(curMission() && curMission().chancha === false);
       que.push(!llega && hayChancha ? 'sena_chancha' : 'sena_casa');
-      senas = { t: -SENAS.DESDE, idx: pilotIdx(run.squad, run.lives) + 1, senas: que.slice(0, 3) };
+      const alerta = { sena_fuga: 1, sena_dano: 1, sena_chancha: 1 };
+      senas = { t: -SENAS.DESDE, idx: pilotIdx(run.squad, run.lives) + 1, frena: true, sale: 'abajo', lado: 1,
+        items: que.slice(0, 3).map(id => ({ icono: id, texto: id, alerta: !!alerta[id], gesto: null })) };
     }
     function volverDelBlanco() {
       run.climaxHecho = 1;
@@ -3345,6 +3357,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         run.senalBank = p.bank; run.senalPitch = p.pitch; run.senalRot = p.rot;
         if (run.senalT <= 0) run.senal = null;
       } else { run.senalT = 0; run.senal = null; run.senalBank = 0; run.senalPitch = 0; run.senalRot = 0; }
+      if (senas && S.state === 'play') senas.t += dt;   // el compañero que te hace señas
       if (senalGlobo && S.state === 'play') { senalGlobo.t += dt; if (senalGlobo.t > senalGlobo.sn.t + SENAL_GLOBO_T) senalGlobo = null; }
       else senalGlobo = null;
       stepRain(dt);   // igual que el horizonte: arriba de los early-return, o se congela en el relevo
@@ -3823,8 +3836,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // salto de sonda cuenta como cruce — es lo que el jugador veria.
       if (rutaSys.hay()) {
         const alc = rutaSys.enAlcance();
-        if (alcanceAntes !== null && alc !== alcanceAntes)
+        if (alcanceAntes !== null && alc !== alcanceAntes) {
           popup(W / 2, 46, T(alc ? 'radarEntra' : 'radarSale'), alc ? P.warn : P.accent);
+          // …y en la IDA un compañero te lo marca con el avion: abajo, y sin radio (SENAS_COMP.radar)
+          if (alc && run.dist < objectiveDist) senaCompanero('radar', 1);
+        }
         alcanceAntes = alc;
       }
 
@@ -3907,7 +3923,6 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (es === 'vibora') popup(W / 2, 60, T('esc_vibora'), P.warn);
         // LA FUGA (V4): el tanque perforado pierde por segundo, vueles como vueles
         if (escapeSys.fugaOn() && cfg.fuelOn) run.fuel = Math.max(0, run.fuel - BL_BLANCO.FUGA_PCT_S * dt);
-        if (senas) senas.t += dt;
         stepCap(dt);
         if (vir) {
           vir.t += dt;
@@ -4976,6 +4991,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // de que se murio la corrida — el rescate de la eyeccion se decide en la causa.
       window.__fuelset = v => { run.fuel = Math.max(0, Math.min(100, +v)); return run.fuel; };
       window.__vidas = v => { if (v !== undefined) run.lives = +v; return run.lives; };   // el ultimo avion: __vidas(1)
+      // UN COMPAÑERO TE HACE SEÑAS (data/senales.js SENAS_COMP): __senacomp('alerta', 'costado', -1)
+      window.__senacomp = (id, sale, lado) => { const ok = senaCompanero(id, lado); if (ok && sale) senas.sale = sale; return ok; };
       window.__deathdbg = () => deathCause;
       window.__pscaer = m => persec.caerLider(m || undefined);
       window.__psscore = () => Math.floor(run.score);
