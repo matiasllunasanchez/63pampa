@@ -89,7 +89,7 @@ app.whenReady().then(async () => {
   console.log('\n2. la tecla 6:');
   // con la barra a medias NO lanza, y NO se la come: es la misma regla que los gates de la Chancha
   const medias = await RS();
-  await tap('6'); await sleep(150);
+  await tap('5'); await sleep(150);
   const trasVacio = await RS();
   if (!trasVacio.on) ok('con la barra a medias NO lanza');
   else bad('lanzo con la barra incompleta');
@@ -101,7 +101,7 @@ app.whenReady().then(async () => {
   if (llena.meter >= 1) ok('la sonda llena la barra');
   else bad(`__rscharge no lleno la barra: ${llena.meter}`);
 
-  await tap('6'); await sleep(150);
+  await tap('5'); await sleep(150);
   const on = await RS();
   if (on.on) ok(`la tecla 6 LANZA (quedan ${on.resta.toFixed(1)} s de ${on.dur})`);
   else bad('la tecla 6 no lanzo con la barra llena');
@@ -122,7 +122,7 @@ app.whenReady().then(async () => {
   // a proposito: abajo el avion vuelve a cargar en el mismo cuadro —que es lo correcto— y la
   // medicion no podria distinguir "descartó" de "descartó y ya empezó de nuevo".
   await poner(0, 30); await sleep(120);
-  await tap('6'); await sleep(150);
+  await tap('5'); await sleep(150);
   const cortado = await RS();
   // OJO CON ESTA: el primer intento tenia la barra guardada aparte de los segundos de banda, y
   // cortar a mano ponia la barra en cero SIN tocar los segundos — el tick del mismo cuadro la
@@ -133,7 +133,7 @@ app.whenReady().then(async () => {
 
   // y se agota solo a los RAS_DUR
   await js('__rscharge()');
-  await tap('6'); await sleep(150);
+  await tap('5'); await sleep(150);
   const t0 = Date.now();
   let vivo = true;
   while (Date.now() - t0 < 16000 && vivo) {
@@ -168,7 +168,7 @@ app.whenReady().then(async () => {
   console.log('\n5. el resorte (RF-01):');
   await js('__rscharge()');
   await poner(0, 3); await sleep(150);
-  if (!(await RS()).on) await tap('6');
+  if (!(await RS()).on) await tap('5');
   await sleep(150);
   if (!(await RS()).on) { bad('no se pudo lanzar para probar el resorte'); }
 
@@ -227,7 +227,7 @@ app.whenReady().then(async () => {
   // no verifica su propia precondicion mide otra cosa.
   const asegurarOn = async () => {
     if ((await RS()).on) return true;
-    await js('__rscharge()'); await tap('6'); await sleep(120);
+    await js('__rscharge()'); await tap('5'); await sleep(120);
     return (await RS()).on;
   };
   await poner(0, 3); await sleep(150);
@@ -303,7 +303,7 @@ app.whenReady().then(async () => {
   await asegurarOn();
   await js('__seaclear()');
   await js('__chaset(9999, 300)');
-  await tap('5'); await sleep(250);
+  await tap('3'); await sleep(250);
   const trasCh = JSON.parse(await js('String(__chadbg())'));
   const rasTrasCh = await RS();
   if (trasCh.fase === 'idle') ok('con RASANTE puesto la CHANCHA no se pide');
@@ -325,7 +325,7 @@ app.whenReady().then(async () => {
   await asegurarOn();
   await js('__seaclear(); __chacalma(); __chaput(0, 3)'); await sleep(250);
   const conP = await roce();
-  await tap('6'); await sleep(200);                                   // cortar
+  await tap('5'); await sleep(200);                                   // cortar
   await js('__seaclear(); __chacalma(); __chaput(0, 3)'); await sleep(250);
   const sinP = await roce();
   if (conP.multRaw === sinP.multRaw) ok(`el multiplicador sale de la ALTURA: x${conP.multRaw} con poder y x${sinP.multRaw} sin`);
@@ -341,7 +341,7 @@ app.whenReady().then(async () => {
   for (let i = 0; i < 18; i++) { await js('__seaclear(); __chacalma(); __chaput(0, 3)'); await sleep(100); }
   const r1 = await roce();
   console.log(`   · con poder:  +${r1.score - s0} pts en ~1,8 s  (racha ${r1.racha}s, nivel ${r1.ras}, x${r1.mult})`);
-  await tap('6'); await sleep(150);
+  await tap('5'); await sleep(150);
   const s1 = (await roce()).score;
   for (let i = 0; i < 18; i++) { await js('__seaclear(); __chacalma(); __chaput(0, 3)'); await sleep(100); }
   const r2 = await roce();

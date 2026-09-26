@@ -720,7 +720,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
   // cabeceo: el morro sube al trepar / baja al caer (desplazamiento vertical del sprite)
   ctx.translate(0, -plane.pitch * 1.8);
   // alabeo: rotación 2D + micro-wobble; el foreshortening en X finge la inclinación 3D del ala
-  const bank = Math.max(-1, Math.min(1, plane.bank));
+  // …salvo durante una SEÑA del pack (data/senales.js): la pose la manda el gesto
+  const bank = run.senalT > 0 ? run.senalBank : Math.max(-1, Math.min(1, plane.bank));
   const pl = PLANES[selPlane];
   const useSheet = pl.sheetOk;   // sprite HORNEADO: el alabeo lo traen los frames
   // EL TONEL, ahora una entrada del catalogo como cualquier otra (data/moves.js). Se lo sigue
@@ -752,7 +753,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
   // LA POSE, resuelta aca arriba por el mismo motivo: la estela lee TIPS[fila][columna] y tiene
   // que ser LA MISMA pose que el sprite dibuja, no una copia de la formula que pueda quedar vieja.
   const colPose = rolling ? (SHEET_NF - 1) / 2 : Math.round((1 - bank) / 2 * (SHEET_NF - 1));
-  const pcPose = Math.max(-1, Math.min(1, plane.pitch));
+  const pcPose = run.senalT > 0 && run.senalPitch ? run.senalPitch : Math.max(-1, Math.min(1, plane.pitch));
   const rowPose = pcPose > 0.33 ? 0 : pcPose < -0.33 ? 2 : 1;
   const prRoll = rolling ? Math.min(1, run.mvT / MOVES.tonel.dur) : 0;   // 0→1 durante el tonel
   // EL SPRITE DEL PODER NO SE GIRA, Y SE PROBO AL REVES. Un rato existio aca una rotacion que
@@ -766,7 +767,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
     : run.mvRoll ? run.mvRoll + hz + wob
     : useSheet ? wob
     : bank * 0.42 + wob;
-  ctx.rotate(spinTot);
+  ctx.rotate(spinTot + (run.senalT > 0 ? run.senalRot : 0));   // + lo que la SEÑA pide mas alla de la hoja (la panza)
   if (rolling) ctx.scale(0.94 + 0.06 * Math.cos(prRoll * Math.PI * 2), 1);   // leve pulso: vende el giro
   else if (!run.mvRoll && !useSheet) ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
   // Todo este bloque esta authorado para la grilla de 320x180 (fogonazos, fallback de rects,

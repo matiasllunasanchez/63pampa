@@ -336,9 +336,13 @@ export function initInput(cv, a) {
     if (!e.repeat && (e.code === 'Digit1' || e.code === 'Numpad1')) a.trackPrev();
     if (!e.repeat && (e.code === 'Digit2' || e.code === 'Numpad2')) a.trackNext();
     if (!e.repeat && (e.code === 'Digit4' || e.code === 'Numpad4')) a.tempoToggle();   // MOMENTUM: camara lenta (pasillo)
-    if (!e.repeat && (e.code === 'Digit5' || e.code === 'Numpad5')) a.chanchaCall();   // LA CHANCHA: el reabastecedor (pasillo)
-    if (!e.repeat && (e.code === 'Digit3' || e.code === 'Numpad3')) a.soltarTanques();  // SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5)
-    if (!e.repeat && (e.code === 'Digit6' || e.code === 'Numpad6')) a.rasanteToggle();  // RASANTE: el resorte al ras (pasillo)
+    // 25/9: el 6 al 0 pasaron a ser el PACK DE SEÑALES, y los poderes se corrieron un lugar —
+    // RASANTE del 6 al 5, la CHANCHA del 5 al 3, y SOLTAR TANQUES del 3 a la [B].
+    if (!e.repeat && (e.code === 'Digit3' || e.code === 'Numpad3')) a.chanchaCall();   // LA CHANCHA: el reabastecedor (pasillo)
+    if (!e.repeat && e.code === 'KeyB') a.soltarTanques();                              // SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5)
+    if (!e.repeat && (e.code === 'Digit5' || e.code === 'Numpad5')) a.rasanteToggle();  // RASANTE: el resorte al ras (pasillo)
+    // EL PACK DE SEÑALES (data/senales.js): 6, 7, 8, 9 y 0
+    if (!e.repeat) { const m = /^(?:Digit|Numpad)([06789])$/.exec(e.code); if (m) a.senal(m[1]); }
   });
   addEventListener('keyup', e => {
     readCaps(e);

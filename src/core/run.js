@@ -145,6 +145,12 @@ export const run = {
   bankA: 0,
   freeRoll: 0,
   freeRollV: 0,    // velocidad angular, con peso: el giro entra y sale, no es un interruptor
+  // LA SEÑA EN CURSO (data/senales.js): cual, cuanto le queda, para que lado, y la pose que
+  // manda dibujar mientras dura (core/senales.js). Es solo dibujo: el avion vuela igual.
+  senal: null,     // la entrada de SENALES, o null
+  senalT: 0,       // segundos que le quedan al gesto (0 = ninguno)
+  senalDir: 0,
+  senalBank: 0, senalPitch: 0, senalRot: 0,
   pitchHold: 0,    // segundos manteniendo ↑/↓: filtra los toques rapidos de gas
 
   // --- spawn ---
@@ -189,7 +195,7 @@ export function resetRun() {
     // alabeo VIVO del control por ALABEO (cfg.control = 1), en radianes. Es el estado del avion:
   // plane.vx sale de aca, no al reves. Ver core/physics.js.
   bankA: 0,
-  freeRoll: 0, freeRollV: 0,
+  freeRoll: 0, freeRollV: 0, senal: null, senalT: 0, senalDir: 0, senalBank: 0, senalPitch: 0, senalRot: 0,
     jets: 0,
     nextSpawn: 320, nextSoldier: 60, nextBomb: 260,
     shake: 0, flash: 0, dtReal: 0.016, bloodSplat: 0,

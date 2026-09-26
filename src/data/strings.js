@@ -137,7 +137,7 @@ export const STRINGS = {
     bar_tempo: 'MOMENTUM', tempoOn: 'MOMENTUM', tempoOff: 'TIEMPO REAL', tempoReady: '! MOMENTUM LISTO — [4] !',   // sin uso desde el 12/9: ahora es la lengueta LISTO
     // LA CHANCHA (tecla 5): el ritual de radio del reabastecimiento. Las lineas citan el TONO de
     // la escena del guion sin reproducirla — esa es del modo historia.
-    bar_chancha: 'CHANCHA', ch_ready: '! CHANCHA LISTA — [5] !',
+    bar_chancha: 'CHANCHA', ch_ready: '! CHANCHA LISTA — [3] !',
     bar_rasante: 'RASANTE',
     // LA RACHA A RAS: la unica palabra que queda del multiplicador (ver render/hud.js). Se dibuja
     // letra por letra para ocupar el ancho de la barra, asi que conviene que sea CORTA.
@@ -164,11 +164,10 @@ export const STRINGS = {
     ch_early: 'TODAVIA NO, PATRIA. AGUANTA.',
     ch_used: 'YA TE CARGUE HOY. NO HAY MAS.',
     // LA CHANCHA CON RUTA (PLAN_NAFTA_ALCANCE N4): viene cuando la llamas, fuera del radar
-    ch_radar: 'ADENTRO DEL RADAR NO ENTRO. SALI Y TE VOY A BUSCAR.',
+    ch_radar: 'LA CHANCHA NO ENTRA AL RADAR',
     ch_lista: 'LISTA',
     ch_viene: 'VOY PARA ALLA. AGUANTA ARRIBA.',
     // PLAN_VUELTA_REAL V5: la palabra clave adentro del radar te delata, y el remolque con fuga
-    ch_triangulan: 'TE TRIANGULARON LA RADIO',
     ch_upa: 'NO TE SUELTES. TE LLEVAMOS A UPA.',
     ch_broken: 'LA CHANCHA NO BAJA MAS AL SUR.',
     // LA RADIO DEL TRANSITO DEL NARWAL (M4 / m3) — SPEC_TRAMOS T4. Son cuatro claves porque el
@@ -376,8 +375,8 @@ export const STRINGS = {
     ctrlAim: 'MIRA fija/movil', ctrlAimK: 'CAPS LOCK · mouse',  ctrlAimP: 'siempre fija',
     ctrlCam: 'CAMARA (climax)', ctrlCamK: 'V',                  ctrlCamP: 'cruceta ABAJO',
     ctrlTempo: 'MOMENTUM (camara lenta)', ctrlTempoK: '4',      ctrlTempoP: 'SELECT',
-    ctrlChancha: 'LA CHANCHA (reabastecer)', ctrlChanchaK: '5', ctrlChanchaP: 'cruceta ARRIBA',
-    ctrlTanques: 'SOLTAR TANQUES', ctrlTanquesK: '3', ctrlTanquesP: 'L3 (en vuelo)',
+    ctrlChancha: 'LA CHANCHA (reabastecer)', ctrlChanchaK: '3', ctrlChanchaP: 'cruceta ARRIBA',
+    ctrlTanques: 'SOLTAR TANQUES', ctrlTanquesK: 'B', ctrlTanquesP: 'L3 (en vuelo)',
     ctrlInv: 'INVERTIR EL EJE Y', ctrlInvK: 'OPCIONES: EJE Y',  ctrlInvP: '△',
     ctrlMusic: 'PISTA MUSICAL', ctrlMusicK: '1   ·   2',        ctrlMusicP: 'L3 · R3',
     ctrlPause: 'PAUSA',         ctrlPauseK: 'ESC',              ctrlPauseP: 'START',
@@ -475,6 +474,8 @@ export const STRINGS = {
     esc_vibora: 'VIBOREÁ · NO LES DES LÍNEA',
     cap_aviso: 'PUMA: PATRULLA ADELANTE. ABAJO, QUE NO NOS VEAN.', cap_vio: 'PUMA: NOS VIERON. HARRIER EN LA COLA.',
     sena_ok: 'SANO', sena_dano: 'AVERIADO', sena_fuga: 'PERDÉS NAFTA', sena_casa: 'A CASA', sena_chancha: 'A LA CHANCHA',
+    // EL PACK DE SEÑALES (data/senales.js): lo que dice cada gesto tuyo
+    senal_entendido: 'ENTENDIDO', senal_panza: 'MIRAME LA PANZA', senal_abajo: 'MÁS ABAJO', senal_rompo: 'ROMPO POR ACÁ', senal_alerta: '¡ALERTA!',
     death_palos: 'Te llevaste los palos del buque',
     bl_hundido: '¡HUNDIDO!', bl_averiado: 'AVERIADO', bl_dormida: 'NO DESPERTÓ',
     bl_corta: 'CORTA', bl_larga: 'LARGA', bl_reencare: 'SIGUE A FLOTE · OTRA PASADA',
@@ -530,7 +531,7 @@ export const STRINGS = {
     // ---------- EL PODER RASANTE (SPEC_PODER_RASANTE, tecla 6) ----------
     // LA RADIO ROTA (RF-05): la doctrina gritada. No es decoracion — es UNO de los cinco
     // elementos de identidad del §7, y el que dice de QUE escuadron es este poder.
-    rasOn: 'RASANTE', rasOff: 'RASANTE — FIN', rasReady: '! RASANTE LISTO — [6] !',   // sin uso desde el 12/9: ahora es la lengueta LISTO
+    rasOn: 'RASANTE', rasOff: 'RASANTE — FIN', rasReady: '! RASANTE LISTO — [5] !',   // sin uso desde el 12/9: ahora es la lengueta LISTO
     rasante_call_1: 'Pegado al agua el radar de ellos no te ve.',
     rasante_call_2: '¡Abajo, {n}, abajo!',
     rasante_call_3: 'Ahi va. Como el Pichon lo dibujo.',
@@ -1241,7 +1242,7 @@ export const STRINGS = {
     dead_out: 'OUT OF ACTION',
     bar_fuel: 'FUEL', bar_cannon: 'CANNON 20MM', bar_overheat: 'OVERHEAT',
     bar_tempo: 'MOMENTUM', tempoOn: 'MOMENTUM', tempoOff: 'REAL TIME', tempoReady: '! MOMENTUM READY — [4] !',
-    bar_chancha: 'TANKER', ch_ready: '! TANKER READY — [5] !',
+    bar_chancha: 'TANKER', ch_ready: '! TANKER READY — [3] !',
     bar_rasante: 'RASANTE',
     mult_perfect: 'PERFECT',
     mult_rasante: 'LOW PASS',
@@ -1259,10 +1260,9 @@ export const STRINGS = {
     ch_bye: 'HEADING HOME, PATRIA. GOOD LUCK.',
     ch_early: 'NOT YET, PATRIA. HANG ON.',
     ch_used: 'I FILLED YOU ONCE TODAY. THAT IS ALL.',
-    ch_radar: 'I DO NOT GO INSIDE THE RADAR. GET OUT AND I WILL COME FOR YOU.',
+    ch_radar: 'THE TANKER DOES NOT ENTER RADAR COVER',
     ch_lista: 'READY',
     ch_viene: 'ON MY WAY. STAY HIGH.',
-    ch_triangulan: 'THEY TRIANGULATED YOUR RADIO',
     ch_upa: 'DON\'T LET GO. WE\'LL CARRY YOU HOME.',
     ch_broken: 'THE OLD SOW DOES NOT COME SOUTH ANYMORE.',
     m5_boca: 'PUMA: THERE IT IS. THE WOLF\'S MOUTH. WE GO IN, WE DROP, WE GET OUT.',
@@ -1409,8 +1409,8 @@ export const STRINGS = {
     ctrlAim: 'SIGHT fixed/free', ctrlAimK: 'CAPS LOCK · mouse', ctrlAimP: 'always fixed',
     ctrlCam: 'CAMERA (climax)', ctrlCamK: 'V',                  ctrlCamP: 'd-pad DOWN',
     ctrlTempo: 'MOMENTUM (slow motion)', ctrlTempoK: '4',       ctrlTempoP: 'SELECT',
-    ctrlChancha: 'THE TANKER (refuel)', ctrlChanchaK: '5',      ctrlChanchaP: 'd-pad UP',
-    ctrlTanques: 'DROP TANKS', ctrlTanquesK: '3', ctrlTanquesP: 'L3 (in flight)',
+    ctrlChancha: 'THE TANKER (refuel)', ctrlChanchaK: '3',      ctrlChanchaP: 'd-pad UP',
+    ctrlTanques: 'DROP TANKS', ctrlTanquesK: 'B', ctrlTanquesP: 'L3 (in flight)',
     ctrlInv: 'INVERT Y AXIS',   ctrlInvK: 'OPTIONS: Y AXIS',    ctrlInvP: '△',
     ctrlMusic: 'MUSIC TRACK',   ctrlMusicK: '1   ·   2',        ctrlMusicP: 'L3 · R3',
     ctrlPause: 'PAUSE',         ctrlPauseK: 'ESC',              ctrlPauseP: 'START',
@@ -1486,6 +1486,7 @@ export const STRINGS = {
     esc_vibora: 'WEAVE · DON\'T GIVE THEM A LINE',
     cap_aviso: 'PUMA: PATROL AHEAD. STAY LOW, DON\'T LET THEM SEE US.', cap_vio: 'PUMA: THEY SAW US. HARRIER ON OUR TAIL.',
     sena_ok: 'OK', sena_dano: 'DAMAGED', sena_fuga: 'LEAKING FUEL', sena_casa: 'HOME', sena_chancha: 'TO THE TANKER',
+    senal_entendido: 'UNDERSTOOD', senal_panza: 'CHECK MY BELLY', senal_abajo: 'GO LOWER', senal_rompo: 'BREAKING THIS WAY', senal_alerta: 'ALERT!',
     death_palos: 'You clipped the ship\'s masts',
     bl_hundido: 'SUNK!', bl_averiado: 'DAMAGED', bl_dormida: 'DIDN\'T ARM',
     bl_corta: 'SHORT', bl_larga: 'LONG', bl_reencare: 'STILL AFLOAT · GO AROUND',
@@ -1527,7 +1528,7 @@ export const STRINGS = {
     upgSub: 'CHOOSE ONE UPGRADE', upgSub1: 'YOUR FIRST UPGRADE', upgCombo: 'COMBO:',
 
     // EL PODER RASANTE (tecla 6)
-    rasOn: 'RASANTE', rasOff: 'RASANTE — OVER', rasReady: '! RASANTE READY — [6] !',
+    rasOn: 'RASANTE', rasOff: 'RASANTE — OVER', rasReady: '! RASANTE READY — [5] !',
     rasante_call_1: 'Down on the water their radar cannot see you.',
     rasante_call_2: 'Get down, {n}, get down!',
     rasante_call_3: 'There he goes. Just as Pichon drew it.',

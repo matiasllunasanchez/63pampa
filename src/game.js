@@ -131,6 +131,8 @@ import * as naftaSys from './systems/nafta.js';
 import * as estrellas from './systems/estrellas.js';
 import { piso as pisoEstrella } from './core/estrellas.js';
 import { EST_MAX } from './data/tuning.js';
+import { SENALES, SENAL_GLOBO_T, SENAL_ARMADA_T } from './data/senales.js';
+import { pose as poseSenal } from './core/senales.js';
 import * as zigzag from './systems/zigzag.js';
 import * as zigzagCore from './core/zigzag.js';
 import { drawParedes, drawBarreras, techoLadera } from './render/paredes.js';
@@ -524,11 +526,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // entra. La barra se llena con puntos, y el rasante sostenido es lo que mas rinde.
       const conRuta = rutaSys.hay();
       const mitad = run.dist > objectiveDist ? 'vuelta' : 'ida';
-      // …Y ROMPER EL SILENCIO ADENTRO DEL RADAR TE DELATA (PLAN_VUELTA_REAL V5): "rompian el silencio
-      // solo con una palabra clave". Dicha donde el enemigo escucha, te triangulan: una estrella.
+      // ADENTRO DEL RADAR LA CHANCHA NO EXISTE (25/9: "no tiene sentido, el misil del barco
+      // destrozaria a la Chancha y al avion"). No es una jugada cara, es una que no hay: la tecla
+      // solo lo dice, con un cartel y no por radio — adentro rige el silencio. Antes se la podia
+      // "pedir" y te cobraba una estrella por triangularte la radio (V5).
       if (conRuta && cfg.fuelOn && rutaSys.enAlcance()) {
-        beep(150, 0.09, 'square', 0.05); radioCh('ch_radar');
-        if (mitad === 'vuelta' && estrellas.sumar() !== null) popup(W / 2, 70, T('ch_triangulan'), P.warn);
+        beep(150, 0.09, 'square', 0.05); popup(W / 2, 70, T('ch_radar'), P.warn);
         return;
       }
       const r = chancha.pedir({
@@ -2486,6 +2489,18 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
        *  aprieta el jugador. Si llamara a `rasante.toggle()` por su cuenta se saltearia los gates
        *  que viven aca —el estado del juego y el modo— y probaria media mecanica. */
       rasanteToggle: () => lanzarRasante(),
+      // EL PACK DE SEÑALES [6..0] (data/senales.js): el gesto arranca para el lado al que estas
+      // doblando (A/D; derecho, a la derecha) y lo mueve el paso de update(), al lado del horizonte.
+      // Una a la vez: la que esta en curso termina antes de que entre otra.
+      senal: tecla => {
+        const sn = SENALES.find(x => x.tecla === tecla);
+        if (!sn || S.state !== 'play' || cfg.devcam || run.senalT > 0) return;
+        const lado = inp.l && !inp.r ? -1 : inp.r && !inp.l ? 1 : 0;
+        // LA SEÑA CON SENTIDO (`lado` en data/senales.js) es tecla + direccion: si ya venis
+        // doblando sale para ese lado; si no, queda ARMADA hasta que toques A/D (update()).
+        if (sn.lado && !lado) { senalArmada = { sn, t: 0 }; return; }
+        lanzarSenal(sn, lado || 1);
+      },
       // EL PODER DEL RECURSO, uno por mundo: en el ARENA reparte energia, en el PASILLO llama a LA
       // CHANCHA. Comparten UN boton del mando (cruceta ARRIBA) porque son la misma pregunta
       // —administrar lo que te queda— y no coexisten nunca. El teclado los tiene separados ([G] y
@@ -2817,6 +2832,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     let capAvisada = false;
     let senas = null;
     const senasActivas = () => !!senas && senas.t < SENAS.ENTRA + SENAS.CADA * senas.senas.length + SENAS.SALE;
+    // EL GLOBO DE TU SEÑA (data/senales.js): { sn, t, dir }, o null. Vive mientras dura el gesto y
+    // SENAL_GLOBO_T mas; lo dibuja render/squad.js sobre tu avion.
+    let senalGlobo = null;
+    // LA SEÑA ARMADA: una con sentido esperando la direccion. { sn, t } o null.
+    let senalArmada = null;
+    function lanzarSenal(sn, dir) {
+      senalArmada = null;
+      run.senal = sn; run.senalT = sn.t; run.senalDir = dir;
+      senalGlobo = { sn, t: 0, dir };   // el globo sobre tu avion (render/squad.js)
+    }
     function armarSenas() {
       senas = null;
       if (!canRelevo(run.lives)) return;
@@ -3306,6 +3331,22 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // el mando manda un eje ANALOGICO (stick derecho) y el teclado un ±1: gana el que este
       // pidiendo algo, asi los dos conviven sin que el que esta quieto pise al otro.
       stepHorizon(dt, inp.rollAx || (inp.rollR ? 1 : 0) - (inp.rollL ? 1 : 0));
+      // LA SEÑA ARMADA espera su direccion SENAL_ARMADA_T; sin ella, no sale nada.
+      if (senalArmada && S.state === 'play') {
+        senalArmada.t += dt;
+        const lado = inp.l && !inp.r ? -1 : inp.r && !inp.l ? 1 : 0;
+        if (lado && run.senalT <= 0) lanzarSenal(senalArmada.sn, lado);
+        else if (senalArmada.t > SENAL_ARMADA_T) senalArmada = null;
+      } else senalArmada = null;
+      // LA SEÑA EN CURSO: la pose del gesto.
+      if (run.senalT > 0 && S.state === 'play') {
+        run.senalT = Math.max(0, run.senalT - dt);
+        const p = poseSenal(run.senal.gesto, 1 - run.senalT / run.senal.t, run.senalDir);
+        run.senalBank = p.bank; run.senalPitch = p.pitch; run.senalRot = p.rot;
+        if (run.senalT <= 0) run.senal = null;
+      } else { run.senalT = 0; run.senal = null; run.senalBank = 0; run.senalPitch = 0; run.senalRot = 0; }
+      if (senalGlobo && S.state === 'play') { senalGlobo.t += dt; if (senalGlobo.t > senalGlobo.sn.t + SENAL_GLOBO_T) senalGlobo = null; }
+      else senalGlobo = null;
       stepRain(dt);   // igual que el horizonte: arriba de los early-return, o se congela en el relevo
       // stepSpray(dt);  — desactivado: el rebote de gotas no convencia visualmente
       // NIEBLA: los bancos se arman y se consumen con run.dist. Los avisos salen de un pulso de un
@@ -3578,21 +3619,26 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             // y sin el parpadeo se lee como un error, que es justo lo que el fundido vino a
             // evitar (ver el bloque gemelo del update). Estaba solo en un lado: el relevo entraba
             // de golpe. Lo agarro el fixture de la PASADA midiendo el fundido con la sonda.
-            if (runClimax() === 'pulso' && pulso.available() && objectiveDist > 0 && run.dist >= objectiveDist) {
+            // …PERO SOLO SI HAY CLIMAX QUE RETOMAR. Con LA SUELTA el climax se juega en el pasillo (no
+            // hay escena a la que volver), y con la VUELTA (`climaxHecho`) pasado el buque es la
+            // mitad de regreso, no el climax: el relevo que cruzaba el objetivo abria el ARENA viejo
+            // (o el MOMENTUM en primera persona sin 3D) en medio de una mision de suelta (25/9).
+            const retomaClimax = runClimax() !== 'suelta' && !run.climaxHecho && objectiveDist > 0 && run.dist >= objectiveDist;
+            if (retomaClimax && runClimax() === 'pulso' && pulso.available()) {
               pulso.enter(false); fadeT = 0.55;
               if (run.lives === 1) popup(W / 2, 54, T('sq_last'), P.warn);
               beep(980, 0.14, 'square', 0.06);
               flags.startReq = false; flags.anyPress = false;
               return;
             }
-            if (runClimax() === 'pasada' && pasada.available() && objectiveDist > 0 && run.dist >= objectiveDist) {
+            if (retomaClimax && runClimax() === 'pasada' && pasada.available()) {
               pasada.enter(false); fadeT = 0.55;
               if (run.lives === 1) popup(W / 2, 54, T('sq_last'), P.warn);
               beep(980, 0.14, 'square', 0.06);
               flags.startReq = false; flags.anyPress = false;
               return;
             }
-            if (arena.available() && objectiveDist > 0 && run.dist >= objectiveDist) {
+            if (retomaClimax && arena.available()) {
               arena.enter(); fadeT = 0.55;
               if (run.lives === 1) popup(W / 2, 54, T('sq_last'), P.warn);
               beep(980, 0.14, 'square', 0.06);
@@ -4401,6 +4447,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       }
       // EL HUD DE LA SUELTA: cabina, nivelado, sobre el avion (la foto la arma el sistema).
       if (S.state === 'play' && runClimax() === 'suelta') drawBlancoHud(blancoSys.hud());
+      // EL GLOBO DE TU SEÑA (data/senales.js), encima del avion: el ala de canto tapaba el texto
+      if (S.state === 'play' && senalGlobo) squadRender.drawSenalPropia(senalGlobo);
       // LA COLA, segunda pasada: lo que quedo MAS CERCA que el avion — el sobrepaso enorme
       // cruzandote y las trazadoras que te estan pasando ahora. Va DESPUES del sprite porque
       // efectivamente esta entre vos y la camara: dibujarlo antes lo dejaria por detras del ala.

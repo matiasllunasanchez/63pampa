@@ -278,6 +278,8 @@ gradients, 3D render, photorealistic`
   Dos agregados de este plan:
   - **Romper el silencio con una palabra:** pedirla es **una sola tecla = la palabra clave**, y si
     la pedís **adentro del alcance de radar** te triangulan (+1 estrella). Afuera, gratis.
+    *(Corregido 25/9: adentro del radar la Chancha **no existe** — "el misil del barco destrozaría
+    a la Chancha y al avión". La tecla solo muestra el cartel `ch_radar`; ya no cobra estrella.)*
   - **"La trajo a upa" — el remolque:** con **fuga**, la nafta se escapa mientras entra. La cita se
     vuelve **sostenida**: quedarse en la canasta un tramo largo, con los comandos más duros (la
     agilidad de la avería ya existe en `effects()`), mientras la Chancha te arrastra hacia la costa.

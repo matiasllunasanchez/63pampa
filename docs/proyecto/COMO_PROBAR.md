@@ -70,7 +70,7 @@ llegar a verlo)*
 |---|---|---|
 | Cañón / misil | X·ESPACIO / Z en vuelo | 10 s |
 | **LA COLA** (el Harrier: presión → sobrepaso → ventana; arte propio: Sea Harrier FRS.1 (`harrier`/`harrier_rear`/`harrier_turn`)) | `?caza` lo fuerza · en PATRIA aparece tras cruzar jets frontales (el gate) · `__cz*` (`__czstart`) · `npm run caza` | 10 s con sonda |
-| **EL PODER RASANTE** (tecla 6: el resorte al ras) | `?rasante` arranca con la barra llena · **6** lo lanza (12 s) · `__rscam('cola'\|'cabina')` cambia la cámara en vivo · `__rslift(lift, piso, lat, zoom)` mueve el encuadre sin recompilar · `__rsdbg()` la foto entera · `npm run rasante` | 30 s con sonda |
+| **EL PODER RASANTE** (tecla 5: el resorte al ras) | `?rasante` arranca con la barra llena · **5** lo lanza (12 s) · `__rscam('cola'\|'cabina')` cambia la cámara en vivo · `__rslift(lift, piso, lat, zoom)` mueve el encuadre sin recompilar · `__rsdbg()` la foto entera · `npm run rasante` | 30 s con sonda |
 | Enemigos (jet, helo, globo, AA, radar, fragata, lcu, aves) | POR LA PATRIA, aparecen por spawn; movilidad en OPCIONES → ENEMIGOS | 1–3 min |
 | **LA DESTRUCCIÓN** (despiece por tipo, choque mutuo, cadenas, onda) | `__romper(tipo)` · `__cadena()` · `__chocar()` · `npm run romper` | 10 s con sonda |
 | **LAS OLAS** (marejada/rompiente/rebelde) | `__ola('rebelde')` etc. · con clima: m9 (tormenta) · `npm run agua` | 10 s con sonda |

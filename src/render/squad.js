@@ -176,16 +176,33 @@ export function drawSenas(sn, selPlane) {
   const i = Math.min(sn.senas.length - 1, Math.floor(dentro / SENAS.CADA));
   const id = sn.senas[i], bx = Math.round(s.x + 22 * f), by = Math.round(s.y - 20 * f);
   const pop = Math.max(0, 1 - (dentro - i * SENAS.CADA) / 0.15);   // un golpecito al cambiar de seña
-  const L = Math.round(15 + pop * 3);
+  globo(bx, by, id, T(id), id === 'sena_fuga' || id === 'sena_dano' || id === 'sena_chancha', pop);
+}
+
+/** EL GLOBO DE UNA SEÑA: cuadro con el pictograma, la colita hacia el avion y, abajo, lo que
+ *  quiere decir. `pop` (0..1) lo agranda un poco: el golpecito de cuando aparece o cambia. Lo usan
+ *  las señas de los compañeros y las tuyas. */
+function globo(bx, by, icono, texto, alerta, pop) {
+  const L = Math.round(15 + (pop || 0) * 3);
   ctx.fillStyle = '#0d1216d8'; ctx.fillRect(bx - L / 2, by - L / 2, L, L);
   ctx.fillStyle = '#e9edf0';
   ctx.fillRect(bx - L / 2, by - L / 2, L, 1); ctx.fillRect(bx - L / 2, by + L / 2 - 1, L, 1);
   ctx.fillRect(bx - L / 2, by - L / 2, 1, L); ctx.fillRect(bx + L / 2 - 1, by - L / 2, 1, L);
   // la colita del globo, hacia el avion
   px(bx - L / 2 - 2, by + 2, 2, 1, '#e9edf0'); px(bx - L / 2 - 4, by + 3, 2, 1, '#e9edf0');
-  const alerta = id === 'sena_fuga' || id === 'sena_dano' || id === 'sena_chancha';
-  iconoEn(bx, by, id, alerta ? '#ffd479' : '#7fe07a');
-  ctx.font = 'bold 6px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = alerta ? '#ffd479' : '#7fe07a';
-  ctx.fillText(T(id), bx, by + L / 2 + 7);
+  const col = alerta ? '#ffd479' : '#7fe07a';
+  iconoEn(bx, by, icono, col);
+  ctx.font = 'bold 6px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = col;
+  ctx.fillText(texto, bx, by + L / 2 + 7);
   ctx.textAlign = 'left';
+}
+
+/** TU SEÑA (data/senales.js): el globo sobre TU avion, con el pictograma y lo que dijiste. `g` es
+ *  { sn, t, dir } — la seña, los segundos desde la tecla y el lado del gesto. */
+export function drawSenalPropia(g) {
+  if (!g) return;
+  const s = proj(plane.x, plane.y, PZ);
+  const bx = Math.round(s.x + 22), by = Math.round(s.y - 20);
+  const icono = g.sn.icono === 'senal_rompo' ? (g.dir < 0 ? 'senal_rompo_i' : 'senal_rompo_d') : g.sn.icono;
+  globo(bx, by, icono, T('senal_' + g.sn.id), !!g.sn.alerta, Math.max(0, 1 - g.t / 0.15));
 }
