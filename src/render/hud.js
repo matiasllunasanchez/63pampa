@@ -18,7 +18,7 @@ import { effects } from '../core/damage.js';
 import { T } from '../core/i18n.js';
 import { AGU, ancho as anchoSector, pos as posInd, ventana as ventanaAgu,
   concentracion as concSeg } from '../core/aguante.js';
-import { P, RADAR_VERDE, RADAR_OPACO } from '../data/palette.js';
+import { P, RADAR_VERDE, RADAR_OPACO, RADAR_GRIS } from '../data/palette.js';
 import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP, BANDA_ALT, PERF_ALT, ZONAS_GASTO } from '../data/tuning.js';
 import { machNow } from '../core/mach.js';
 import { pilotIdx } from '../core/squad.js';
@@ -1203,34 +1203,55 @@ export const ALERTA_H = 15;
 const RADAR_ARO = [[0, 3, 5], [1, 1, 2], [1, 6, 7], [2, 1, 1], [2, 7, 7], [3, 0, 0], [3, 8, 8],
   [4, 0, 0], [4, 8, 8], [5, 0, 0], [5, 8, 8], [6, 1, 1], [6, 7, 7], [7, 1, 2], [7, 6, 7], [8, 3, 5]];
 const RADAR_GIRO = 4.2;   // rad/s del barrido: una vuelta cada segundo y medio
-// TODO VERDE, por pedido del autor (11/9): RADAR_VERDE cuando te buscan y RADAR_OPACO a nivel
-// cero —gira igual, pero sin contacto y sin la punta encendida: encenderse es la noticia—. Los
-// tonos viven en data/palette.js, compartidos con la red de radar en el aire (render/world.js).
+// EL BARRIDO ES EL ESTADO, NO UN ADORNO (pedido del autor, 25/9/2026). Antes giraba SIEMPRE, y una
+// antena dando vueltas donde no hay antena no significa nada. Ahora el icono dice de una sola
+// mirada si hay sistema o no, y lo dice de las dos maneras a la vez —color y movimiento—:
+//   FUERA del horizonte     gris (RADAR_GRIS) y QUIETO: no hay radar. Una pantalla apagada.
+//   DENTRO de la zona       verde apagado (OPACO) y GIRANDO: esta activo, buscando — todavia no a vos.
+//   TE ESTAN BUSCANDO       verde vivo (VERDE) y girando, con tu contacto encendido.
+// Los tonos viven en data/palette.js, compartidos con la red de radar en el aire (render/world.js).
 // LAS ONDITAS: el pulso que sale del centro, en tres radios, por tramos de fila como el aro. El
-// cuarto paso del ciclo no dibuja nada — la onda llega al aro y se pierde en el.
+// cuarto paso del ciclo no dibuja nada — la onda llega al aro y se pierde en el. Se van con el
+// barrido cuando el radar no existe: son la misma idea contada dos veces.
 const RADAR_ONDAS = [
   [[3, 3, 5], [4, 3, 3], [4, 5, 5], [5, 3, 5]],
   [[2, 3, 5], [3, 2, 2], [3, 6, 6], [4, 2, 2], [4, 6, 6], [5, 2, 2], [5, 6, 6], [6, 3, 5]],
   [[1, 3, 5], [2, 2, 2], [2, 6, 6], [3, 1, 1], [3, 7, 7], [4, 1, 1], [4, 7, 7], [5, 1, 1], [5, 7, 7], [6, 2, 2], [6, 6, 6], [7, 3, 5]],
 ];
 
-function radarAlerta(x, y, visto, activo) {
-  const V = activo ? RADAR_VERDE : RADAR_OPACO;
+function radarAlerta(x, y, visto, activo, fuera, fuerte) {
+  // `fuerte` es el medio latido encendido del anuncio de entrada (ver drawAlerta): la pantalla
+  // pega el mismo salto a verde vivo que el rotulo, en fase con el. Se pasa el BOOLEANO y no el
+  // reloj para que el latido sea UNO solo — dos senos calculados por separado se despegan.
+  const V = fuera ? RADAR_GRIS : activo || fuerte ? RADAR_VERDE : RADAR_OPACO;
+  const cx = x + 4, cy = y + 4;
   for (const [f, a, b] of RADAR_ARO) px(x + a, y + f, b - a + 1, 1, V.aro);
-  const onda = RADAR_ONDAS[Math.floor(run.t * 3.2) % (RADAR_ONDAS.length + 1)];
-  if (onda) for (const [f, a, b] of onda) px(x + a, y + f, b - a + 1, 1, V.onda);
-  const cx = x + 4, cy = y + 4, ang = run.t * RADAR_GIRO;
-  const rayo = (d, r0, col) => {
-    for (let r = r0; r <= 3; r++) px(cx + Math.round(Math.cos(ang + d) * r), cy + Math.round(Math.sin(ang + d) * r), 1, 1, col);
-  };
-  // la estela primero y la punta despues: donde caen en el mismo pixel, gana la punta
-  rayo(-0.9, 2, V.lejos); rayo(-0.45, 2, V.cerca); rayo(0, 1, V.punta);
+  if (fuera) {
+    // LA PANTALLA APAGADA: una cruz quieta en lugar del barrido. Sin esto el aro solo se lee como
+    // un circulito, y lo que tiene que leerse es "esto es un radar, y no esta prendido".
+    px(x + 1, cy, 7, 1, V.lejos); px(cx, y + 1, 1, 7, V.lejos);
+  } else {
+    const onda = RADAR_ONDAS[Math.floor(run.t * 3.2) % (RADAR_ONDAS.length + 1)];
+    if (onda) for (const [f, a, b] of onda) px(x + a, y + f, b - a + 1, 1, V.onda);
+    const ang = run.t * RADAR_GIRO;
+    const rayo = (d, r0, col) => {
+      for (let r = r0; r <= 3; r++) px(cx + Math.round(Math.cos(ang + d) * r), cy + Math.round(Math.sin(ang + d) * r), 1, 1, col);
+    };
+    // la estela primero y la punta despues: donde caen en el mismo pixel, gana la punta
+    rayo(-0.9, 2, V.lejos); rayo(-0.45, 2, V.cerca); rayo(0, 1, V.punta);
+  }
   px(cx, cy, 1, 1, V.eje);
-  // EL CONTACTO SOS VOS, y parpadea siempre — pero no igual. Mientras te ven, rapido y encendido:
-  // te tienen. Escondido, lento y apagado: es el eco viejo de donde te vieron por ultima vez.
-  // A nivel cero no hay contacto: nadie te busca, no hay eco que marcar.
+  // EL CONTACTO SOS VOS, y es ROJO (pedido del autor, 26/9/2026): "cuando tiene alarma meter un
+  // puntito rojo parpadeante dentro del radar mientras el radar se mantiene en verde girando". Era
+  // verde blanquecino, o sea del color de la pantalla, y se leia como parte del barrido en vez de
+  // como lo que es — una cosa ajena adentro del radar. Rojo sobre verde es la unica combinacion de
+  // este HUD que no se puede confundir con nada, y es el mismo rojo de la barra de abajo.
+  //
+  // PARPADEA SIEMPRE, pero no igual. Mientras te ven, rapido y encendido: te tienen. Escondido,
+  // lento y apagado: es el eco viejo de donde te vieron por ultima vez. A nivel cero no hay
+  // contacto — nadie te busca, no hay eco que marcar— y la pantalla queda verde girando sola.
   const on = visto ? Math.floor(run.t * 8) % 2 === 0 : Math.floor(run.t * 2.5) % 2 === 0;
-  if (activo && on) px(x + 6, y + 2, 1, 1, visto ? '#d8ffdc' : V.cerca);
+  if (activo && on) px(x + 6, y + 2, 1, 1, visto ? P.warn : '#7d2f1e');
 }
 
 // LA BALIZA: 7x7, una cupula de cinco filas sobre su pie de dos. Tan alta como ancha a proposito:
@@ -1280,7 +1301,7 @@ function vigilaAlerta(n) {
   alertaN = n;
 }
 
-export function drawAlerta(x, y, w, n, prog) {
+export function drawAlerta(x, y, w, n, prog, fuera) {
   // LAS ALARMAS ENTRAN Y SALEN (pedido del autor, 11/9 a la noche), como la placa del RADAR: a
   // nivel cero queda SOLO EL RADAR, gris, y las balizas salen de atras de el con la primera alarma
   // y se vuelven a esconder cuando se apagan todas. Cuatro balizas apagadas eran un tablero de nada
@@ -1294,6 +1315,51 @@ export function drawAlerta(x, y, w, n, prog) {
   // aviso de radar ya este cargando, y es a proposito: un bob no te delata, y el panel cuenta el
   // mismo reloj que decide eso. Lo que te esta viendo AHORA lo dice la barra del radar, abajo.
   const visto = !(prog > 0);
+  // DETECTANDO NO ES UN RELOJ, ES UN ESTADO (pedido del autor, 26/9/2026). Primero lo puse como un
+  // anuncio de 3,5 s al cruzar el horizonte, y estaba mal: un cartel con temporizador dice "paso
+  // algo hace un rato" y lo que hace falta es que diga QUE ESTA PASANDO AHORA. Ahora sale mientras
+  // el radar TIENE CARGA SOBRE VOS — o sea, desde que asomas la nariz arriba del techo y hasta que
+  // la carga se drena sola al volver abajo—, que es exactamente lo que mide la barra de abajo.
+  // Leen el MISMO numero (`run.detection`), asi que el cartel y la barra no se pueden contradecir.
+  //
+  // Y SE ACABA SOLO CON LA PRIMERA ALARMA, sin una linea que lo diga: cuando la barra se llena
+  // salta la oleada, se enciende una baliza, y las balizas entran por arriba del rotulo (`alertaK`).
+  // De ahi en mas el panel cuenta la alarma, que es la noticia mas grande.
+  const detectando = !fuera && run.detection > 0.001;
+  const latido = Math.sin(run.t * 14) > 0;
+  // DONDE ESTAS PARADO, AL LADO DEL ICONO (pedido del autor, 25/9/2026): "el cartel de fuera de
+  // radar debe estar dentro del box del radar". Antes era una placa propia un renglon mas abajo, y
+  // se leia como otro instrumento; es la MISMA noticia que el color del icono, asi que va en el
+  // mismo renglon y se lee de una sola pasada: icono gris + FUERA DE RADAR, icono verde apagado +
+  // ZONA RADAR.
+  //
+  // Y COMPARTE LUGAR CON LAS BALIZAS a proposito. Es el espacio que las alarmas usan cuando hay
+  // alarma: una vez que te estan buscando, en que parte del mapa esta el horizonte de radar dejo
+  // de ser la pregunta. Por eso se va con la misma cortina con la que ellas entran (`alertaK`) y
+  // no hay un cuadro en que se pisen.
+  if (alertaK < 1) {
+    plate(x + RADAR_W - 1, y, w - RADAR_W + 1, ALERTA_H);
+    // TRES COSAS QUE PUEDE DECIR, y las tres son el mismo dato en tres momentos:
+    //   FUERA DE RADAR   gris tranquilo: no hay sistema. Es informacion, no alarma.
+    //   DETECTANDO...    asomado sobre el techo, con la barra cargando: verde fuerte y
+    //                    parpadeando, icono incluido. Te estan barriendo AHORA.
+    //   ZONA RADAR       blanco, quieto: el estado de fondo. EL VERDE OPACO ES DEL ICONO, NO DE LA
+    //                    LETRA (pedido del autor, 25/9) — escrito en #26502e no se leia sobre la
+    //                    placa. El instrumento pinta, el rotulo se lee.
+    ctx.save();
+    ctx.globalAlpha = 1 - alertaK;
+    ctx.font = avisoFont(9); ctx.textAlign = 'center';
+    // el parpadeo es de BRILLO y no de apagado: un rotulo que desaparece medio cuadro se lee como
+    // un error de dibujo. Es el mismo latido de la palabra RADAR de la barra de abajo — y EL
+    // MISMO que el del icono, que late con el (pedido del autor, 26/9): el cartel y la pantalla
+    // son una sola noticia, y contarla en dos tiempos la parte en dos.
+    ctx.fillStyle = detectando ? (latido ? RADAR_VERDE.punta : RADAR_VERDE.cerca)
+      : fuera ? P.foam : '#e9edf0';
+    ctx.fillText(T(detectando ? 'hud_detectando' : fuera ? 'hud_fuera_radar' : 'hud_zona_radar'),
+      x + RADAR_W - 1 + Math.round((w - RADAR_W + 1) / 2), y + 11);
+    ctx.restore();
+    ctx.textAlign = 'left';
+  }
   if (alertaK > 0) {
     // entra rapido y frena al llegar, recortada al canto del radar: sale DE ATRAS de el
     const e = 1 - Math.pow(1 - alertaK, 3), dx = Math.round(-(1 - e) * (w - RADAR_W + 1));
@@ -1303,7 +1369,7 @@ export function drawAlerta(x, y, w, n, prog) {
   }
   // EL RADAR, ENCIMA y quieto: es lo unico que queda cuando no suena nada
   plate(x, y, RADAR_W, ALERTA_H);
-  radarAlerta(x + 3, y + 3, visto, n > 0);
+  radarAlerta(x + 3, y + 3, visto, n > 0, fuera, detectando && latido);
 }
 
 /** La seccion de las BALIZAS del panel, corrida `dx` por la entrada (ver drawAlerta). */
@@ -1394,18 +1460,6 @@ function drawRadar(x, y, w, visto) {
   return y + RADAR_H + AIRE;
 }
 
-/** LA PLACA FUERA DE RADAR: el mismo renglon que la barra, en tono tranquilo. Es informacion, no
- *  alarma — dice que el techo no existe y que subir aca es gratis (y barato de nafta). */
-function drawFueraRadar(x, y, w) {
-  plate(x, y, w, RADAR_H);
-  // CENTRADA en la placa (pedido del autor): alineada a la izquierda dejaba media placa vacia y se
-  // leia como una barra a la que le falta algo.
-  ctx.font = avisoFont(9); ctx.textAlign = 'center';
-  ctx.fillStyle = P.foam;
-  ctx.fillText(T('hud_fuera_radar'), x + Math.round(w / 2), y + 9);
-  ctx.textAlign = 'left';
-}
-
 /** ¿ACABA DE SALIR UNA OLEADA? La barra NUNCA se ve llena: `run.detection >= 1` dispara la tanda y
  *  en el mismo cuadro la baja al residual (systems/flight.js), asi que preguntarle a la barra si
  *  llego al final no sirve — el cuadro que se dibuja ya la tiene abajo. Lo que si queda es la
@@ -1465,12 +1519,14 @@ export function drawHUD(h) {
   // tablero de nada, y el HUD de este juego no muestra instrumentos que nunca van a contar algo
   // (misma regla que la Chancha sin combustible).
   vigilaAlerta(h.estrellas | 0);
-  if (h.estrellas > 0 || h.busqueda) { drawAlerta(MARGEN, ty, anchoSquad(), h.estrellas | 0, h.escondite); ty += ALERTA_H + AIRE; }
+  // …O SI ESTAS FUERA DEL HORIZONTE DE RADAR (PLAN_NAFTA_ALCANCE N2): el panel es el que lo dice
+  // desde el 25/9, asi que en una mision con ruta tiene que estar aunque no haya sistema de busqueda.
+  if (h.estrellas > 0 || h.busqueda || h.fueraRadar) {
+    drawAlerta(MARGEN, ty, anchoSquad(), h.estrellas | 0, h.escondite, !!h.fueraRadar);
+    ty += ALERTA_H + AIRE;
+  }
   // …Y DEBAJO, LA CARGA DEL RADAR, que entra y sale sola (ver drawRadar).
   ty = drawRadar(MARGEN, ty, anchoSquad(), plane.y > (h.radarAlt === undefined ? RADAR_ALT : h.radarAlt));
-  // …Y FUERA DEL HORIZONTE DE RADAR (PLAN_NAFTA_ALCANCE N2), en el mismo renglon: la placa dice que
-  // aca arriba nadie te ve. Solo con la barra ya vacia — si todavia queda carga de antes, manda ella.
-  if (h.fueraRadar && run.detection <= 0.001) { drawFueraRadar(MARGEN, ty, anchoSquad()); ty += RADAR_H + AIRE; }
   // PERSECUCION no tiene objetivo NI record: la cinta no tiene contra que medir, asi que el
   // kilometraje se queda aca como contador abierto — la forma que le toca cuando no hay meta.
   if (objectiveDist <= 0 && gameMode !== 'survival') { drawOdo(MARGEN, ty); ty += 12 + AIRE; }

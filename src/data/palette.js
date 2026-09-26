@@ -16,6 +16,12 @@ export const P = {
 // color el jugador no los une.
 export const RADAR_VERDE = { aro: '#3a9448', onda: '#2c6e37', lejos: '#1f5c2a', cerca: '#3fae52', punta: '#8dff9a', eje: '#5fd06e' };
 export const RADAR_OPACO = { aro: '#26502e', onda: '#1d3d23', lejos: '#183a1f', cerca: '#23532b', punta: '#35703f', eje: '#2e5e36' };
+// …Y EL GRIS DE FUERA DEL ALCANCE (pedido del autor, 25/9/2026). El radar verde significa "el
+// sistema esta vivo y te puede ver"; fuera del horizonte de radar no hay sistema ninguno, y decir
+// eso en verde apagado era decirlo en el mismo idioma que "te estan buscando bajito". El gris es
+// el mismo de la baliza apagada (BAL_APAGADA, render/hud.js) y de cualquier otra cosa del HUD que
+// existe pero no esta contando nada: una sola idea, un solo color.
+export const RADAR_GRIS = { aro: '#3a4750', onda: '#2b353c', lejos: '#2b353c', cerca: '#333f47', punta: '#46545e', eje: '#46545e' };
 // EL AGUA (SPEC_AGUA_OLAS F5). Cada estilo son SIETE tonos y siempre los mismos siete, porque el
 // render del mar los usa por NOMBRE: base0/1/2 son las tres bandas del raster por distancia, deep
 // el valle y la cara de la ola, mid el cuerpo, crest la cresta y spark el destello y la espuma.
