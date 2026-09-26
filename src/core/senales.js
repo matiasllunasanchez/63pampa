@@ -9,13 +9,31 @@
 const S = Math.sin, PI = Math.PI;
 /** Sube rapido, se sostiene y baja: 0 en las puntas, 1 en el medio. */
 const meseta = (u, k) => Math.min(1, k * S(PI * u));
+/** Interpola una lista de [u, valor] con arranque y frenada suaves entre cada par. */
+function tramo(kf, u) {
+  for (let i = 1; i < kf.length; i++) {
+    if (u <= kf[i][0]) {
+      const [u0, v0] = kf[i - 1], [u1, v1] = kf[i], f = (u - u0) / (u1 - u0);
+      return v0 + (v1 - v0) * f * f * (3 - 2 * f);
+    }
+  }
+  return kf[kf.length - 1][1];
+}
+// el ROMPO: contra, a favor, contra (creciendo), y el golpe entero a favor — 1.5 = de canto (90°)
+const ROMPO_KF = [[0, 0], [0.12, -0.45], [0.26, 0.55], [0.4, -0.7], [0.58, 1.5], [0.8, 1.5], [1, 0]];
 
 export function pose(gesto, u, dir) {
   const d = dir || 1;
   if (gesto === 'balanceo') return { bank: d * 0.8 * S(u * PI * 2 * 2), pitch: 0, rot: 0 };   // dos idas y vueltas
   if (gesto === 'panza') { const m = meseta(u, 3); return { bank: d * m, pitch: 0, rot: d * m * PI / 6 }; }   // 90°: la panza al compañero
   if (gesto === 'cabeceo') return { bank: 0, pitch: -Math.max(0, S(u * PI * 2 * 2)), rot: 0 };   // morro abajo, dos veces
-  if (gesto === 'rompo') return { bank: d * meseta(u, 2.5), pitch: 0, rot: 0 };   // una inclinacion hacia el lado
+  if (gesto === 'rompo') {
+    // COMO UN RESORTE (25/9: "hacia la derecha: balanceo a la izquierda, a la derecha, a la
+    // izquierda, y completo a la derecha"): tres amagues que van creciendo, del lado CONTRARIO
+    // primero, y el golpe entero hacia `d` — de canto, pasado de los 60° de la hoja — antes de volver.
+    const k = tramo(ROMPO_KF, u);
+    return { bank: d * Math.max(-1, Math.min(1, k)), pitch: 0, rot: d * Math.max(0, k - 1) * PI / 3 };
+  }
   if (gesto === 'alerta') return { bank: 0.6 * S(u * PI * 2 * 4), pitch: 0, rot: 0 };   // cuatro rapidas (ya no se usa)
   if (gesto === 'tonel') {
     // UNA VUELTA ENTERA sobre el eje, con arranque y frenada suaves. Los primeros y ultimos 60° los

@@ -22,7 +22,7 @@ export const SENALES = [
   { tecla: '6', id: 'entendido', gesto: 'balanceo', t: 1.3, icono: 'sena_recibido' },
   { tecla: '7', id: 'panza',     gesto: 'panza',    t: 1.6, icono: 'senal_panza' },
   { tecla: '8', id: 'abajo',     gesto: 'cabeceo',  t: 1.2, icono: 'senal_abajo' },
-  { tecla: '9', id: 'rompo',     gesto: 'rompo',    t: 1.0, icono: 'senal_rompo', lado: true },
+  { tecla: '9', id: 'rompo',     gesto: 'rompo',    t: 1.5, icono: 'senal_rompo', lado: true },
   { tecla: '0', id: 'alerta',    gesto: 'tonel',    t: 1.1, icono: 'senal_alerta', alerta: true },
 ];
 
