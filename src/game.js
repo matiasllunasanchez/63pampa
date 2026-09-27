@@ -70,7 +70,10 @@ import { BL as BL_BLANCO, FASE_ESCAPE, SENAS, CIELO_VUELTA, CAP } from './data/b
 import { EYEC_KM_CASA, EYEC_KM_ISLA } from './data/tuning.js';
 import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE } from './data/cargas.js';
 import { AUDIO_BLOQUEADO } from './data/sonido.js';
-import { bingoKm, capacidadKm, colgadoDe, velRelativa, estadoTanque } from './core/nafta.js';
+import { bingoKm, capacidadKm, colgadoDe, velRelativa, estadoTanque, proximoPilon } from './core/nafta.js';
+import { trayectoria } from './core/balistica.js';
+import { blanco } from './core/blanco.js';
+import { drawTrayectoria } from './render/trayectoria.js';
 const BL_ALT_IDEAL = BL_BLANCO.ALT_IDEAL;
 import { drawBlanco, drawBlancoHud } from './render/blanco.js';
 import { drawRotuloVuelo, ROTULO_T } from './render/rotulo.js';
@@ -109,6 +112,7 @@ import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './legacy/momentum_render.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
+import { BOMBA_CARGA_T, BOMBA_CARGA_VZ } from './data/tuning.js';
 import { BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_PANZA, BOMBA_DERIVA, SPAWN_Z as BOMBA_Z_TOPE, TQ_ALA_X, CH_ETA_RUTA } from './data/tuning.js';
 import { LAND_APPROACH_M, LAND_ALT0, LAND_SPD_MIN, LAND_SPD_MAX, LAND_SPD_OK,
          LAND_VY_SUAVE, LAND_VY_DURO, LAND_PITCH_OK, LAND_GEAR_DRAG, LAND_GEAR_MIN_T,
@@ -596,18 +600,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (S.state !== 'play' || !naftaSys.activo()) return;
       const r = naftaSys.soltarTanques();
       if (!r) { beep(150, 0.09, 'square', 0.05); popup(W / 2, 46, T('tanques_nada'), P.dim); return; }
+      // (la carga se usa aca abajo, en tanquesSalen; despues vuelve a cero para el proximo par)
       const tirados = r.soltados.reduce((s, k) => s + k, 0);
       // …Y CAEN (N6): cada uno es un proyectil con la balistica de la bomba, desde su pilon — el par
       // de ala a los dos costados, el del centro en el eje. Sin eyector: se desprenden, no se tiran.
       // Lleno o vacio lo decide lo que tenia adentro, y eso decide cuanto pega (core/nafta.js).
-      r.soltados.forEach((km, i) => {
-        const dx = r.pilon === 'ala' ? (i === 0 ? -TQ_ALA_X : TQ_ALA_X) : 0;
-        pmissiles.push({
-          x: plane.x + dx, y: plane.y - BOMBA_PANZA, z: PZ + 4,
-          vz: run.spd * (1 + BOMBA_ENVION), vy: plane.vy, vx: plane.vx * BOMBA_DERIVA,
-          tanque: estadoTanque(km),
-        });
-      });
+      const salen = tanquesSalen(r.pilon, r.soltados.length);
+      r.soltados.forEach((km, i) => pmissiles.push(Object.assign(salen[i], { tanque: estadoTanque(km) })));
+      run.cargaTanque = 0;
       beep(240, 0.12, 'square', 0.06, 90);
       run.shake = Math.max(run.shake, 1.5);
       popup(W / 2, 46, T(r.pilon === 'ala' ? 'tanques_fuera' : 'tanque_fuera'), P.accent);
@@ -3011,6 +3011,38 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
 
     // lanza un misil del jugador (arma secundaria: limitada, one-shot, con leve guiado)
+    /** COMO SALE LA BOMBA si se suelta AHORA. Una sola funcion para el tiro y para la mira
+     *  (core/balistica.js): si fueran dos, la mira dibujaria otra bomba que la que cae. */
+    function bombaSale() {
+      // + LA CARGA de la granada (BOMBA_CARGA_*): lo que la mantuviste apretada, empuje de mas
+      const envion = (runClimax() === 'suelta' ? blancoSys.envion() : 0) + run.cargaBomba * BOMBA_CARGA_VZ;
+      return {
+        x: plane.x, y: plane.y - BOMBA_PANZA, z: PZ + 4,   // colgada de la panza, no del centro del sprite
+        // hacia adelante: TU velocidad, un poco mas por venir rapido, y el eyector, que la manda
+        // derecho como salia el misil. Frenar despues de soltarla la estira todavia mas.
+        vz: run.spd * (1 + BOMBA_ENVION) + BOMBA_EYECTOR + envion,
+        // …y su envion viaja CON ella: el techo de `BOMBA_REL_MAX` se corre con el, o el integrador
+        // le recortaria justo lo que la holgura le dio (ver la nota en core/blanco.js).
+        extra: envion,
+        vy: plane.vy,                                    // trepando sale para arriba: vuela mas y llega mas lejos
+        vx: plane.vx * BOMBA_DERIVA,                     // la inercia de venir cruzado, no un guiado
+      };
+    }
+    /** ¿Saldria una bomba si se soltara ahora? Decide la LUZ de la mira: entera si sale, media si no
+     *  (y al soltar, tryLaunchMissile dice por que no salio). */
+    function hayBomba() {
+      if (S.state !== 'play' || run.mslCd > 0) return false;
+      if (runClimax() === 'suelta') return (blanco.ala === 'bomba' && blanco.alaN > 0) || (blanco.centroN > 0 && !blancoSys.bloqueada());
+      return run.msl > 0;
+    }
+    /** COMO SALEN LOS TANQUES del pilon `pilon` (`n` tanques): cada uno desde su pilon, sin eyector. */
+    function tanquesSalen(pilon, n) {
+      const carga = run.cargaTanque * BOMBA_CARGA_VZ;   // la granada tambien: mantener los estira
+      return Array.from({ length: n }, (_, i) => ({
+        x: plane.x + (pilon === 'ala' ? (i === 0 ? -TQ_ALA_X : TQ_ALA_X) : 0), y: plane.y - BOMBA_PANZA, z: PZ + 4,
+        vz: run.spd * (1 + BOMBA_ENVION) + carga, extra: carga, vy: plane.vy, vx: plane.vx * BOMBA_DERIVA,
+      }));
+    }
     function tryLaunchMissile() {
       if (S.state === 'momentum') return momentum.launchMissile(mouse);   // primera persona: misil del momentum
       // el ARENA maneja su misil SOLO (E5): se PINTA manteniendo el boton y la salva sale al
@@ -3039,20 +3071,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // envion de mas para que soltarla un poco antes siga pegando — ver `holgura` en
       // core/blanco.js, que es donde esta explicado por que y cuanto. Fuera de la suelta es 0 y el
       // tiro oblicuo del 20/9 queda intacto, bit a bit.
-      const envion = runClimax() === 'suelta' ? blancoSys.envion() : 0;
-      pmissiles.push({
-        x: plane.x, y: plane.y - BOMBA_PANZA, z: PZ + 4,   // colgada de la panza, no del centro del sprite
-        // hacia adelante: TU velocidad, un poco mas por venir rapido, y el eyector, que la manda
-        // derecho como salia el misil. Frenar despues de soltarla la estira todavia mas.
-        vz: run.spd * (1 + BOMBA_ENVION) + BOMBA_EYECTOR + envion,
-        // …y su envion viaja CON ella: el techo de `BOMBA_REL_MAX` se corre con el, o el integrador
-        // le recortaria justo lo que la holgura le dio (ver la nota en core/blanco.js).
-        extra: envion,
-        vy: plane.vy,                                    // trepando sale para arriba: vuela mas y llega mas lejos
-        vx: plane.vx * BOMBA_DERIVA,                     // la inercia de venir cruzado, no un guiado
-      });
+      pmissiles.push(bombaSale());
       if (runClimax() !== 'suelta') run.msl--;   // en la suelta ya lo descontó el estante
       run.mslCd = 0.5;
+      run.cargaBomba = 0;   // la proxima, con la mira todavia puesta, se carga de nuevo
       // EL CLUNK del gancho que se abre: una bomba no despega con un silbido de cohete, se CAE.
       beep(90, 0.12, 'square', 0.05, 55); boom(0.04, true);
     }
@@ -3417,6 +3439,25 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         run.senalBank = p.bank; run.senalPitch = p.pitch; run.senalRot = p.rot;
         if (run.senalT <= 0) run.senal = null;
       } else { run.senalT = 0; run.senal = null; run.senalBank = 0; run.senalPitch = 0; run.senalRot = 0; }
+      // LA MIRA DE LOS TANQUES, como la de la bomba (27/9): con la MIRA puesta ([F] / clic derecho)
+      // se ven tambien sus caidas y [B] los TIRA al apretarla — el gatillo de los tanques, como
+      // ESPACIO es el de la bomba. Sin la mira, [B] sola sigue siendo mantener-apunta, soltar-tira.
+      // Un [B] que ya tiro con la mira no vuelve a tirar al levantarse. La de la bomba vive en
+      // flight.js. Fuera del pasillo no se apunta nada, y el que vuelve con la tecla ya levantada
+      // no tira solo.
+      if (S.state === 'play') {
+        const b = !!inp.tanq;
+        if (inp.apunta) { if (b && !run.tanqAntes) { soltarTanquesAccion(); run.tanqHecho = true; } }
+        else if (!b && run.tanqAntes && !run.tanqHecho) soltarTanquesAccion();
+        if (!b) run.tanqHecho = false;
+        run.tanqAntes = b;
+        run.apuntaTanque = b || !!inp.apunta;
+      } else { run.apuntaTanque = false; run.apuntaBomba = false; run.tanqAntes = false; run.tanqHecho = false; }
+      // LA CARGA DE LA GRANADA: sube mientras se apunta y vuelve a cero cuando no (el tiro del cuadro
+      // en que se solto la tecla ya la uso: flight.js y el bloque de arriba corren antes que esto
+      // vuelva a mirarla, en el cuadro siguiente)
+      run.cargaBomba = run.apuntaBomba ? Math.min(1, run.cargaBomba + dt / BOMBA_CARGA_T) : 0;
+      run.cargaTanque = run.apuntaTanque ? Math.min(1, run.cargaTanque + dt / BOMBA_CARGA_T) : 0;
       if (senas && S.state === 'play') senas.t += dt;   // el compañero que te hace señas
       if (senalGlobo && S.state === 'play') { senalGlobo.t += dt; if (senalGlobo.t > senalGlobo.sn.t + SENAL_GLOBO_T) senalGlobo = null; }
       else senalGlobo = null;
@@ -4552,6 +4593,22 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         drawTirosPopa(PZ);
         if (hzW) ctx.restore();
       }
+      // LA MIRA DE BOMBARDEO (27/9): con la tecla de la bomba o la de los tanques apretada, el camino
+      // hasta donde cae (core/balistica.js). Adentro del giro del horizonte: es mundo.
+      if (S.state === 'play' && (run.apuntaBomba || run.apuntaTanque)) {
+        const suelo = cfg.terrain === 'land' || cfg.terrain === 'coast' ? 0.3 : 1.0;
+        if (hzW) { ctx.save(); const hcx = W / 2 + cm.x, hcy = H / 2 + cm.y; ctx.translate(hcx, hcy); ctx.rotate(hzW); ctx.translate(-hcx, -hcy); }
+        // SIEMPRE que se mantiene la tecla, haya o no bomba para soltar (27/9: "mantener la tecla de
+        // bomba debe dibujar la caida"): sirve para calibrar antes de tenerla. A media luz si ahora no
+        // saldria —la del buque bloqueada, o sin bombas—; al soltar, tryLaunchMissile dice por que.
+        if (run.apuntaBomba) drawTrayectoria(trayectoria(bombaSale(), run.spd, suelo), hayBomba());
+        if (run.apuntaTanque && naftaSys.activo() && run.tanque) {
+          const pil = proximoPilon(run.tanque);
+          if (pil) for (const b of tanquesSalen(pil, run.tanque.pilones.filter(p => p === pil).length))
+            drawTrayectoria(trayectoria(b, run.spd, suelo), true);
+        }
+        if (hzW) ctx.restore();
+      }
       // EL HUD DE LA SUELTA: cabina, nivelado, sobre el avion (la foto la arma el sistema).
       if (S.state === 'play' && runClimax() === 'suelta') drawBlancoHud(blancoSys.hud());
       // EL GLOBO DE TU SEÑA (data/senales.js), encima del avion: el ala de canto tapaba el texto
@@ -4701,7 +4758,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         } : null,
         // la zona de gasto a esta altura, para el altimetro (solo con ruta: sin ella la nafta no mira
         // la altura y marcar zonas seria mentir)
-        // con el rasante sostenido y abajo dice AHORRO RASANTE (ver `zona` en systems/nafta.js)
+        // con el rasante sostenido y abajo es 'rasante', un ahorro (ver `zona` en systems/nafta.js)
         zonaGasto: naftaSys.activo() ? naftaSys.zona(plane.y, run.aguante === 1 || rasante.active()) : null,
         // lo mas alto que ocupa la voz en la banda de abajo (mi caja o la del otro): los avisos de
         // altura se apoyan arriba de eso

@@ -363,7 +363,7 @@ export function flightSystem(dt, deps) {
   }
   stepVuelo(dt, {
     bank: bankTgt, pitch: pitchTgt, boost: run.boost,
-    pan: inp.camAx || (inp.camD + inp.rise) - (inp.camU + inp.sink),
+    pan: inp.camAx || (inp.camD + inp.rise) - (inp.camU + (inp.apunta ? 0 : inp.sink)),   // [F] apuntando no mueve la camara
     // LA CAMARA DEL PODER RASANTE (RF-04). `cam()` devuelve null cuando el poder no esta puesto,
     // y ahi la cama de vuelo usa el encuadre de siempre — que es lo que hace que `feel` de
     // identico con el poder apagado.
@@ -646,10 +646,12 @@ export function flightSystem(dt, deps) {
 
   // cañón
   run.fireT -= dt;
-  run.heat -= dt * (inp.fire ? GUN_COOL_FIRE : GUN_COOL_IDLE);
+  // CON LA MIRA DE LA BOMBA PUESTA el gatillo es de la bomba, no del cañon (ver abajo)
+  const gatillo = inp.fire && !inp.apunta;
+  run.heat -= dt * (gatillo ? GUN_COOL_FIRE : GUN_COOL_IDLE);
   if (run.heat < 0) run.heat = 0;
   if (run.overheat && run.heat < GUN_RESET) run.overheat = false;
-  if (inp.fire && !run.overheat && run.fireT <= 0 && mvAllowsFire()) {
+  if (gatillo && !run.overheat && run.fireT <= 0 && mvAllowsFire()) {
     run.fireT = 1 / 9; stats.shots++;   // denominador de la PRECISION del recuento
     const vm = deps.viewMouse();
     // DOS CAÑONES, uno por lado, TURNANDOSE. Antes salia todo de un punto en el centro del avion.
@@ -689,7 +691,21 @@ export function flightSystem(dt, deps) {
   // …salvo en LA SUELTA: ahi las bombas son POR PASADA (data/blanco.js) y las repone el re-encare.
   // Con la recarga de siempre aparecia una tercera bomba a mitad de la aproximacion.
   if (run.msl < MSL_MAX && deps.climax !== 'suelta') { run.mslRegen += dt; if (run.mslRegen >= 7) { run.mslRegen = 0; run.msl++; } }
-  if (inp.msl) deps.launchMissile();
+  // MANTENER APUNTA, SOLTAR TIRA (27/9): con la tecla apretada se ve la trayectoria (la mira de
+  // render/trayectoria.js) y la bomba sale al LEVANTARLA. Antes salia al apretar, y mantenida
+  // repetia cada medio segundo.
+  //
+  // …Y LA MIRA CON GATILLO (27/9, el autor: "se lanza con el espacio, manteniendo el click derecho
+  // o la F"): con [F] o el clic derecho mantenido se ve la caida, y la bomba sale al APRETAR el
+  // gatillo (ESPACIO). Soltar la mira sin apretar no tira nada. [Z] sigue siendo
+  // mantener-y-soltar, y el mando (L1) tambien.
+  const mira = !!inp.apunta;
+  if (mira) {
+    run.apuntaBomba = true;
+    if (inp.fire && !run.fuegoAntes) deps.launchMissile();
+  } else if (inp.msl) run.apuntaBomba = true;
+  else if (run.apuntaBomba) { run.apuntaBomba = false; if (!run.miraAntes) deps.launchMissile(); }
+  run.miraAntes = mira; run.fuegoAntes = !!inp.fire;
 
   return false;
 }

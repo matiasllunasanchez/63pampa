@@ -1,9 +1,69 @@
 # RASANTE — Estado del proyecto
 
-_Documento de continuidad. **Encabezado al día: 12 de septiembre de 2026.** El cuerpo
-(§1 en adelante) es de julio y **está viejo en varias partes**: se conserva porque el relato de
-cómo se llegó hasta acá sigue sirviendo, pero donde contradiga a este encabezado, **manda el
-encabezado**. Lo que quedó desactualizado está listado abajo, en "§0.4 Qué leer con pinzas"._
+_Documento de continuidad. **Encabezado al día: 27 de septiembre de 2026** (§00 es lo nuevo; §0 es
+del 12/9). El cuerpo (§1 en adelante) es de julio y **está viejo en varias partes**: se conserva
+porque el relato de cómo se llegó hasta acá sigue sirviendo, pero donde contradiga a este
+encabezado, **manda el encabezado**. Lo que quedó desactualizado está listado abajo, en "§0.4 Qué
+leer con pinzas"._
+
+---
+
+## 00. Al día 27/9/2026 — lo que cambió desde el 12/9
+
+### 00.1 La forma de la misión: IDA Y VUELTA, con LA SUELTA
+
+- **El clímax vigente es LA SUELTA** (`climax: 'suelta'`): el ataque al buque se juega **adentro
+  del pasillo**, sin cambio de escena — bomba del centro reservada para el buque, ventana de
+  distancia, Puma la canta, cámara lenta obligada al impactar, fundido a negro y el "salto" sobre
+  el buque. EL PULSO sigue existiendo pero ya no es el camino principal. Docs:
+  **[../sistemas/MECANICAS_LLEGADA.md](../sistemas/MECANICAS_LLEGADA.md)** §8 y `src/data/blanco.js`.
+- **La vuelta real** (**[../sistemas/PLAN_VUELTA_REAL.md](../sistemas/PLAN_VUELTA_REAL.md)**, V0–V6
+  hechas): después del buque hay ESCAPE (estrellas llenas, línea recta con artillería de popa, la
+  víbora, la fuga de nafta), y recién al perder las estrellas, **el viraje es un video**
+  (`assets/vuelta_dia.mp4` / `vuelta_noche.mp4`): **el pasillo nunca rota**. Después, la vuelta
+  con la CAP, la Chancha de la vuelta y el aterrizaje.
+- **Errar la bomba**: si queda alguien en la fila, el de atrás toma la pasada; si no, se pierde.
+- **Sin combustible**: el que se seca dice por radio que vuelve con la reserva y releva un
+  compañero; si era el último, **eyección automática** (paracaídas) y misión perdida. El compañero
+  que entra trae lo que ahorró atrás (`naftaCompanero`: gastó el 60 % que el líder).
+- **Bancos de prueba** (menú PRUEBAS): `t15` IDA Y VUELTA (29 km por tramo), **`t17` IDA Y VUELTA
+  SMALL** (la misma, a 6 km: el flujo entero en ~4 min) y `t16` LA SUELTA.
+- **Escuadrón** (otra sesión): cambio de piloto a demanda con **[P]**, con cinemática; cada avión
+  lleva su nafta, chapa y bombas.
+
+### 00.2 Controles que se movieron (25/9)
+
+**6 al 0 = PACK DE SEÑALES** · RASANTE **[5]** (era 6) · Chancha **[3]** (era 5) · soltar tanques
+**[B]** (era 3) · MOMENTUM sigue en [4] · cambio de piloto [P].
+
+### 00.3 Señas sin radio (25/9, `src/data/senales.js`)
+
+Adentro del radar la radio delata, así que los aviones se hablan con el avión:
+- **Tus señas** (6 ENTENDIDO · 7 MIRAME LA PANZA · 8 MÁS ABAJO · 9 ROMPO POR ACÁ, tecla + A/D, como
+  resorte · 0 ¡ALERTA!, tonel): un gesto del avión y un globo con ícono sobre tu avión. Solo dibujo.
+- **Señas de compañeros** (`SENAS_COMP`): entra a tu costado, hace su gesto, muestra el globo y se
+  va — de costado, hacia abajo o frenando y quedando atrás. Caso real hoy: **al entrar al radar en
+  la ida** (MÁS ABAJO). El resto, por sonda `__senacomp(id, sale, lado)`.
+- La **Chancha no existe adentro del radar** (la tecla solo muestra el cartel).
+
+### 00.4 Decisiones abiertas (propuestas en conversación, SIN implementar)
+
+- **La nafta, más arcade** (el autor: *"demasiado difícil"*). Propuesta: afuera del radar, alto
+  ahorra pero bajo no mata (p. ej. ×1,3 / ×2); **adentro del radar, gasto parejo sin importar la
+  altura** (el sigilo no se castiga dos veces); la Chancha como "última cita antes del radar"; y el
+  tanque calibrado para que el tramo del radar (entrar, atacar, salir) cierre así: con tanques y
+  lleno → sale con ~40 %; con tanques sin recargar → sale justo; sin tanques y lleno → sale en rojo.
+  Más una marca de **SALIDA** en el indicador. *(La otra sesión ya hizo una parte: sostener el
+  rasante cobra ×1 y no ×3.)* Falta decidir: si piruetas/turbo gastan adentro, si se simplifica la
+  cita con la Chancha, y si se prueba primero en `t17`.
+- **Silencio de radio**: adentro del radar los pilotos no transmiten (Condor sí: es tierra). Hoy
+  lo rompen Puma cantando la suelta, la voz del relevo, los gritos del RASANTE y la línea "estoy con
+  la reserva". Propuesta para la suelta: Puma rompe el silencio a propósito cuando el buque ya los
+  vio. Excepciones del autor: misión final y muertes.
+- **Cuándo aparecen las señas de compañeros** más allá del radar (¡ALERTA! con un caza, MIRAME LA
+  PANZA con humo, respuestas a tus señas) y **si las señas cambian algo del juego**.
+- `npm run rasante` (fixture del poder RASANTE, fuera del gate) **ya estaba roto**: no encuentra
+  las sondas del poder.
 
 ---
 

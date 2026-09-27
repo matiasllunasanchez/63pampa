@@ -113,6 +113,14 @@ export const BOMBA_PLANEO = 0.4;
  *  alla de SPAWN_Z, a caer donde todavia no nacio nada. */
 export const BOMBA_EYECTOR = 100;   // 23/9: de 20 a 100 — sale disparada hacia adelante, como el misil
 
+/** LA CARGA, COMO UNA GRANADA (27/9: "cuanto mas tiempo mantengo, mas lejos se extiende"). Con la
+ *  tecla apretada la carga sube de 0 a 1 en BOMBA_CARGA_T segundos, y al soltar la bomba (o el
+ *  tanque) sale con `carga * BOMBA_CARGA_VZ` de empuje hacia adelante DE MAS — que tambien corre el
+ *  techo relativo (`extra`), o el integrador se lo recortaria. Un toque seco es la suelta de siempre.
+ *  La mira (render/trayectoria.js) crece mientras cargas. */
+export const BOMBA_CARGA_T = 1.2;
+export const BOMBA_CARGA_VZ = 150;
+
 /** EL ENVION DE LA VELOCIDAD (23/9): la fraccion de `run.spd` que la bomba se lleva DE MAS al
  *  soltarse. Sin esto, al ras y plano daba igual venir a 280 o a 490 — y el pedido era "si voy en
  *  velocidad, mejor". Es chico a proposito: 0.15 a 490 son 73 extra, lejos del techo de abajo. */

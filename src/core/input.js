@@ -21,7 +21,10 @@ import { audio } from '../systems/audio.js';
 
 // `brake` es el FRENO del ARENA (L2 en el mando; el teclado frena con [F], que llega por `sink`).
 // Campo propio y no `sink` a secas para que L2 no mueva el paneo de camara del PASILLO.
-export const inp = { l: 0, r: 0, u: 0, d: 0, rise: 0, sink: 0, brake: 0, fire: false, turbo: false, msl: false,
+export const inp = { l: 0, r: 0, u: 0, d: 0, rise: 0, sink: 0, brake: 0, fire: false, turbo: false, msl: false, tanq: false,
+  // LA MIRA DE LA BOMBA (27/9): mantener [F] o el clic derecho apunta; con ella puesta, ESPACIO
+  // (el cañon) tira la bomba en vez de disparar. Ver flight.js.
+  apunta: false,
   // GIRO LIBRE del horizonte (eje X del stick DERECHO). Teclado: rollL/rollR (0 o 1). Joystick:
   // rollAx, analogico -1..1 → el mando rola mas rapido cuanto mas lo empujas.
   rollL: 0, rollR: 0, rollAx: 0,
@@ -340,7 +343,8 @@ export function initInput(cv, a) {
     // 25/9: el 6 al 0 pasaron a ser el PACK DE SEÑALES, y los poderes se corrieron un lugar —
     // RASANTE del 6 al 5, la CHANCHA del 5 al 3, y SOLTAR TANQUES del 3 a la [B].
     if (!e.repeat && (e.code === 'Digit3' || e.code === 'Numpad3')) a.chanchaCall();   // LA CHANCHA: el reabastecedor (pasillo)
-    if (!e.repeat && e.code === 'KeyB') a.soltarTanques();                              // SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5)
+    if (e.code === 'KeyF') inp.apunta = true;   // LA MIRA DE LA BOMBA (y sigue siendo `sink` para la camara libre)
+    if (e.code === 'KeyB') inp.tanq = true;   // SOLTAR TANQUES: mantener apunta, soltar tira (game.js, 27/9)
     if (!e.repeat && (e.code === 'Digit5' || e.code === 'Numpad5')) a.rasanteToggle();  // RASANTE: el resorte al ras (pasillo)
     // EL PACK DE SEÑALES (data/senales.js): 6, 7, 8, 9 y 0
     if (!e.repeat) { const m = /^(?:Digit|Numpad)([06789])$/.exec(e.code); if (m) a.senal(m[1]); }
@@ -357,6 +361,8 @@ export function initInput(cv, a) {
     if (isFire(e.code)) inp.fire = false;
     if (isTurbo(e.code)) inp.turbo = false;
     if (e.code === 'KeyZ' || e.code === 'Tab') inp.msl = false;
+    if (e.code === 'KeyB') inp.tanq = false;
+    if (e.code === 'KeyF') inp.apunta = false;
   });
 
   // tactil: arrastre a la izquierda = volar; derecha arriba = fuego; derecha abajo = turbo
@@ -374,7 +380,11 @@ export function initInput(cv, a) {
     }
     // PC (mouse): click izq = canon sostenido, click der = misil — en juego y momentum
     if (e.pointerType === 'mouse' && (S.state === 'play' || S.state === 'momentum' || S.state === 'arena')) {
-      if (e.button === 2) a.launchMissile();
+      // …y en el PASILLO el derecho es LA MIRA, como [F]: mantenido apunta, y la bomba la tira
+      // ESPACIO mientras apuntas (27/9). Se anota como zona de puntero, asi el pointerup (ptrEnd) lo
+      // levanta solo. (El click izquierdo con el derecho apretado no llega: el navegador no manda
+      // pointerdown para el segundo boton de un mouse.)
+      if (e.button === 2) { if (S.state === 'play') { zonePtr.set(e.pointerId, 'apunta'); inp.apunta = true; } else a.launchMissile(); }
       else { zonePtr.set(e.pointerId, 'fire'); inp.fire = true; }
       return;
     }

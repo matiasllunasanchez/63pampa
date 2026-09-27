@@ -992,7 +992,9 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // donde vas es el buque — el reticulo le caia justo encima y lo tapaba entero hasta los ultimos
   // cientos de metros (playtest 23/9). Ahi la mira es la marca de BLANCO, y la del cañon se guarda.
   const miraBuque = blanco.on && blanco.z > 0 && blanco.z < BL_BLANCO.VISIBLE_Z;   // tambien ardiendo: el final no lleva mira
-  if (S.state === 'play' && !miraBuque) {
+  // …ni mientras se apunta la bomba o los tanques (27/9): la marca de donde caen cae justo ahi
+  // adelante y la mira del cañon la tapaba entera
+  if (S.state === 'play' && !miraBuque && !run.apuntaBomba && !run.apuntaTanque) {
     const vm = viewMouse();
     // MIRA FIJA: acompaña al CABECEO — si la trompa sube, el punto de mira sube; si pica, baja.
     // Se corre el punto en coordenadas de MUNDO (no en pantalla) para que la perspectiva lo

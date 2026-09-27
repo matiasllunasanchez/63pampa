@@ -154,6 +154,11 @@ export const run = {
   // LA SEÑA EN CURSO (data/senales.js): cual, cuanto le queda, para que lado, y la pose que
   // manda dibujar mientras dura (core/senales.js). Es solo dibujo: el avion vuela igual.
   senal: null,     // la entrada de SENALES, o null
+  // LA MIRA DE BOMBARDEO (27/9): la tecla de la bomba / de los tanques APRETADA — se apunta
+  // mientras se mantiene y se suelta al soltarla (flight.js la bomba, game.js los tanques)
+  apuntaBomba: false, apuntaTanque: false,
+  miraAntes: false, fuegoAntes: false, tanqAntes: false, tanqHecho: false,   // el cuadro anterior de la mira y del gatillo (flancos)
+  cargaBomba: 0, cargaTanque: 0,   // la CARGA de la granada (0..1): cuanto mas se mantiene, mas lejos
   senalT: 0,       // segundos que le quedan al gesto (0 = ninguno)
   senalDir: 0,
   senalBank: 0, senalPitch: 0, senalRot: 0,
@@ -202,7 +207,7 @@ export function resetRun() {
     // alabeo VIVO del control por ALABEO (cfg.control = 1), en radianes. Es el estado del avion:
   // plane.vx sale de aca, no al reves. Ver core/physics.js.
   bankA: 0,
-  freeRoll: 0, freeRollV: 0, senal: null, senalT: 0, senalDir: 0, senalBank: 0, senalPitch: 0, senalRot: 0,
+  freeRoll: 0, freeRollV: 0, apuntaBomba: false, apuntaTanque: false, cargaBomba: 0, cargaTanque: 0, miraAntes: false, fuegoAntes: false, tanqAntes: false, tanqHecho: false, senal: null, senalT: 0, senalDir: 0, senalBank: 0, senalPitch: 0, senalRot: 0,
     jets: 0,
     nextSpawn: 320, nextSoldier: 60, nextBomb: 260,
     shake: 0, flash: 0, dtReal: 0.016, bloodSplat: 0,

@@ -499,7 +499,22 @@ const MARGEN = 4;
 const F_ROT = '5px monospace', F_VAL = '6px monospace';
 // LOS COLORES DE LAS ZONAS DE GASTO (PLAN_NAFTA_ALCANCE §3.6): ambar el que mas quema —el acento del
 // juego, abajo, donde vive el rasante—, gris el medio, y frio el crucero alto, que es el barato.
-const GASTO_COL = { mayor: '#e8a33d', medio: '#8a9ba1', menor: '#6fabd8' };
+// `rasante` es el AHORRO RASANTE (systems/nafta.js zona): no tenia color y la aguja salia sin uno
+const GASTO_COL = { mayor: '#e8a33d', medio: '#8a9ba1', menor: '#6fabd8', rasante: '#7fe07a' };
+
+/** LA ZONA DE GASTO EN EL CUADRADO DE LA NAFTA (27/9): dos flechas rojas para arriba si gasta de
+ *  mas, un guion si gasta normal, dos verdes para abajo si ahorra (gasto menor o el ahorro del
+ *  rasante). CHIQUITAS (27/9: "mucho mas chico"): cada flecha es 3 x 2 pixeles y las dos, con un
+ *  pixel de aire, ocupan 3 x 5. `x, y` es la esquina de arriba a la izquierda. */
+function flechasGasto(x, y, zona) {
+  if (zona === 'medio') { px(x, y + 2, 3, 1, '#8a9ba1'); return; }   // el guion, a media altura
+  const sube = zona === 'mayor', col = sube ? '#e2493a' : '#7fe07a';
+  for (const dy of [0, 3]) {   // un pixel de aire entre las dos: pegadas se leian como una X
+    // la punta (1 pixel) y la base (los dos costados): ^ para arriba, v para abajo
+    px(x + 1, y + dy + (sube ? 0 : 1), 1, 1, col);
+    px(x, y + dy + (sube ? 1 : 0), 1, 1, col); px(x + 2, y + dy + (sube ? 1 : 0), 1, 1, col);
+  }
+}
 
 // LA VOZ CUELGA DE LA CINTA (playtest 10/9). El toast de radio y el panel ya no viven abajo, sobre
 // el tablero: van DEBAJO DEL OBJETIVO y con SU MISMO ANCHO, porque lo que dice la radio es casi
@@ -1769,13 +1784,10 @@ export function drawHUD(h) {
   // …Y MIENTRAS LA CHANCHA PASA NAFTA (pedido del autor 24/9): borde y aguja en verde. Es el mismo
   // verde de la caja de conexion, asi que los dos lugares dicen lo mismo a la vez.
   const chS = chSnap(), cargando = !!chS && !!chS.cargando;
-  // …y arriba del reloj, EL NOMBRE DE LA ZONA DE GASTO en su color: lo que la aguja esta cobrando.
-  if (nf && h.zonaGasto) {
-    ctx.font = F_ROT; ctx.textAlign = 'center'; ctx.fillStyle = GASTO_COL[h.zonaGasto];
-    ctx.fillText(T('gasto_' + h.zonaGasto), xNafta + CUADRO / 2, CUADROS_Y - 2);
-    ctx.textAlign = 'left';
-  }
-  if (pide(run.fuel < 60 || (nf && nf.km < nf.bingo * 1.3), 'nafta')) reloj(xNafta, CUADROS_Y, {
+  // LA ZONA DE GASTO va ADENTRO del cuadrado, como flechas (27/9, el autor): dos rojas para arriba
+  // = mayor gasto, un guion = normal, dos verdes para abajo = ahorro. Antes era el NOMBRE de la zona
+  // escrito arriba del reloj ("GASTO MEDIO"): una palabra mas que leer en el tablero.
+  if (pide(run.fuel < 60 || (nf && nf.km < nf.bingo * 1.3), 'nafta')) { reloj(xNafta, CUADROS_Y, {
     val: run.fuel / 100, ico: 'nafta', zona: [0, 0.25], critico: bajo && !cargando,
     marcas: nf ? [[Math.min(1, nf.bingo / nf.cap), P.warn]] : undefined,
     borde: cargando ? SUELTA_COL : null,
@@ -1794,6 +1806,8 @@ export function drawHUD(h) {
     // verdeListo): es la unica luz del tablero que dice "esto ya lo podes usar".
     const lista = (cv >= 1 || !!h.chIdaLista) && !gastada && !enCita, verde = verdeListo();
     // ENGANCHADO, EL RELOJ ES DE ELLA (pedido del autor 24/9): la aguja y el numero pasan a ser su
+    if (nf && h.zonaGasto) flechasGasto(xNafta + CUADRO - 6, CUADROS_Y + 3, h.zonaGasto);
+  }
     // RESERVA, que baja mientras te pasa nafta. Antes mostraba TU tanque, y un numero de la Chancha
     // que subia no se entendia.
     const suReserva = !!ch && ch.conn;
@@ -1885,11 +1899,11 @@ export function drawHUD(h) {
   // aparte a la derecha de la pantalla y no se entendia (playtest 23/9): la altura ya tiene reloj.
   const sa = h.sueltaAlt, enSuelta = !!sa && plane.y >= sa[0] && plane.y <= sa[1];
   // LAS TRES ZONAS DE GASTO (PLAN_NAFTA_ALCANCE §3.6, solo con ruta): la franja interior del dial,
-  // en su color. Mayor gasto abajo, menor arriba de todo. El NOMBRE de la zona va arriba del reloj
-  // de nafta (ver ahi): arriba de este cuadro lo tapa la caja de la radio.
+  // en su color. Mayor gasto abajo, menor arriba de todo. En el reloj de nafta la zona son flechas
+  // (flechasGasto), sin texto.
   const zg = h.zonaGasto;
-  // la zona por ALTURA, no la del rotulo: con el rasante el rotulo dice AHORRO RASANTE, pero la franja
-  // que se prende es la de donde estas parado
+  // la zona por ALTURA, no la de la nafta: con el rasante la nafta ahorra (flechas verdes), pero la
+  // franja que se prende es la de donde estas parado
   const zAqui = ZONAS_GASTO.find(z => plane.y >= z.desde).id;
   const franjas = zg ? ZONAS_GASTO.map((z, i) =>
     [fA(Math.max(0, z.desde)), i ? fA(ZONAS_GASTO[i - 1].desde) : 1, GASTO_COL[z.id], z.id === zAqui]) : null;
