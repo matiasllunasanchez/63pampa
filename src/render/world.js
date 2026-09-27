@@ -2658,7 +2658,7 @@ let netVis = 0, netLastT = 0;
  *  render: no puede importar `systems/` para preguntarlo. Sin esto la malla se dibujaba catorce
  *  unidades por encima del peligro real y, con la opcion en su default (`radarNet: 1`, "solo al
  *  entrar"), directamente NO APARECIA: volabas pintado y el instrumento no decia nada. */
-export function drawRadarNet(techo) {
+export function drawRadarNet(techo, forzar) {
   // EL PULSO dibuja el MISMO buque que venia creciendo en el pasillo: la prueba pasa delante de
   // el, sin cambiar de escena. Si este estado no estuviera, el climax se quedaria sin blanco.
   if (S.state !== 'play' && S.state !== 'takeoff' && S.state !== 'pulso') return;
@@ -2666,8 +2666,9 @@ export function drawRadarNet(techo) {
   // DENTRO de la zona: la malla se enciende y late. Es el mismo dato que la barra del HUD, pero
   // puesto donde el jugador esta mirando (el avion), no en un rincon.
   const inside = plane.y > A;
-  // MODO 1 (AL ENTRAR, default): solo se ve estando dentro. MODO 2: siempre.
-  const want = cfg.radarNet === 2 || inside ? 1 : 0;
+  // MODO 1 (AL ENTRAR, default): solo se ve estando dentro. MODO 2: siempre. …Y `forzar` (0..1), la
+  // respiracion del ESCANEO al entrar a la zona de radar: se ve aunque no estes arriba (ver ESC_*).
+  const want = Math.max(cfg.radarNet === 2 || inside ? 1 : 0, forzar || 0);
   // dt propio a partir del reloj del run: draw() no recibe dt, y usar un paso fijo ataria el
   // fundido a los fps. Se acota por si el run se reinicio (run.t vuelve a 0).
   const dt = Math.max(0, Math.min(0.05, run.t - netLastT)); netLastT = run.t;
@@ -2759,6 +2760,64 @@ export function drawRadarNet(techo) {
 // No llega a monocromo pleno a proposito: el rojo de un misil tiene que seguir asomando.
 const TINTE_BASE = 0.35, TINTE_CARGA = 0.25;   // mezcla al entrar, y lo que le suma la barra llena
 let tinteVis = 0, tinteLastT = 0;
+
+// ---------- EL ESCANEO: ENTRAR AL RADAR SE VE ----------
+// Pedido del autor (26/9/2026): "cuando se activa el radar quiero que pase una linea vertical en
+// toda la pantalla que vaya coloreando la pantalla de izquierda a derecha con el velo verde que tiene
+// el radar, como dandonos a entender que nos esta escaneando. Primero eso, y luego mostramos el
+// radar 1 o 2 segundos aunque no estemos por encima, haciendolo respirar. Y luego desaparece."
+//
+// Hasta hoy cruzar el horizonte de radar era un cartel y nada mas, y el techo que desde ese momento
+// existe solo se veia al pisarlo. Es el momento en que el vuelo se parte en dos — de aca en mas
+// asomarse cuesta—, y se lo cuenta el mismo instrumento que despues te va a cazar:
+//   BARRE   la linea cruza la pantalla y deja detras EL VELO de la vision del radar (el mismo
+//           verde de fosforo y las mismas lineas de tubo que `drawRadarTinte`): te acaban de mirar.
+//   VELO    el velo se retira. No se queda: nadie te esta viendo todavia, solo te barrieron.
+//   RED     la red del horizonte aparece donde esta el techo, respira UNA vez y se va. Es la
+//           leccion: "esto que acaba de pasar vive ahi arriba".
+// El reloj lo lleva game.js (el render no tiene dt) y llega como `t`, segundos desde el cruce.
+export const ESC_BARRE = 1.1, ESC_VELO = 0.5, ESC_RED = 1.8;
+export const ESC_TOTAL = ESC_BARRE + ESC_RED;
+
+/** Cuanto hay que FORZAR la red del horizonte a los `t` segundos del escaneo (0..1): una sola
+ *  respiracion, que sube y baja. Va aparte de `drawRadarEscaneo` porque la red se dibuja ANTES,
+ *  en el pase del mundo, y el barrido despues, en el escalon del velo. */
+export function escaneoRed(t) {
+  if (!(t >= ESC_BARRE) || t > ESC_TOTAL) return 0;
+  return Math.sin(Math.PI * (t - ESC_BARRE) / ESC_RED);
+}
+
+/** EL BARRIDO, en el mismo escalon que el velo del radar: encima de la escena y debajo del HUD
+ *  —los instrumentos conservan sus colores, que son informacion. */
+export function drawRadarEscaneo(t) {
+  if (!(t >= 0) || t > ESC_BARRE + ESC_VELO) return;
+  const xL = Math.round(W * Math.min(1, t / ESC_BARRE));
+  // EL VELO detras de la linea, y cuando la linea termina, se retira entero
+  const a = TINTE_BASE * (t > ESC_BARRE ? 1 - (t - ESC_BARRE) / ESC_VELO : 1);
+  if (xL > 0 && a > 0.01) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'color';
+    ctx.globalAlpha = a;
+    ctx.fillStyle = RADAR_VERDE.cerca;
+    ctx.fillRect(0, 0, xL, H);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = a * 0.12;
+    ctx.fillStyle = '#000';
+    for (let y = 0; y < H; y += 2) ctx.fillRect(0, y, xL, 1);
+    ctx.restore();
+  }
+  // LA LINEA, mientras barre: el frente encendido y una estela corta que se apaga hacia atras,
+  // como el haz de una pantalla de radar
+  if (t < ESC_BARRE) {
+    ctx.save();
+    for (let i = 5; i >= 0; i--) {
+      ctx.globalAlpha = 0.95 * (1 - i / 6);
+      ctx.fillStyle = i ? RADAR_VERDE.cerca : RADAR_VERDE.punta;
+      ctx.fillRect(xL - 2 - i * 3, 0, i ? 3 : 2, H);
+    }
+    ctx.restore();
+  }
+}
 
 export function drawRadarTinte(techo) {
   const A = techo === undefined ? RADAR_ALT : techo;

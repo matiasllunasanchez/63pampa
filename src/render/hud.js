@@ -1366,8 +1366,10 @@ export function drawAlerta(x, y, w, n, prog, fuera) {
     // un error de dibujo. Es el mismo latido de la palabra RADAR de la barra de abajo — y EL
     // MISMO que el del icono, que late con el (pedido del autor, 26/9): el cartel y la pantalla
     // son una sola noticia, y contarla en dos tiempos la parte en dos.
+    // ZONA RADAR EN VERDE BRILLANTE, el del radar (pedido del autor, 26/9). Era blanco para que se
+    // leyera; ahora se lee Y dice de que instrumento es. Fijo, sin latir: el que late es DETECTANDO.
     ctx.fillStyle = detectando ? (latido ? RADAR_VERDE.punta : RADAR_VERDE.cerca)
-      : fuera ? P.foam : '#e9edf0';
+      : fuera ? P.foam : RADAR_VERDE.eje;
     ctx.fillText(T(detectando ? 'hud_detectando' : fuera ? 'hud_fuera_radar' : 'hud_zona_radar'),
       x + RADAR_W - 1 + Math.round((w - RADAR_W + 1) / 2), y + 11);
     ctx.restore();
@@ -1383,6 +1385,17 @@ export function drawAlerta(x, y, w, n, prog, fuera) {
   // EL RADAR, ENCIMA y quieto: es lo unico que queda cuando no suena nada
   plate(x, y, RADAR_W, ALERTA_H);
   radarAlerta(x + 3, y + 3, visto, n > 0, fuera, detectando && latido);
+  // …Y EL BORDE DE LA CAJA EN VERDE mientras estas en la zona (pedido del autor, 26/9: "y los bordes
+  // de la caja"), el mismo verde del rotulo: la caja entera dice "aca el radar existe". Se va con
+  // el rotulo cuando entran las balizas —con alarma, el marco verde alrededor del rojo se leeria
+  // como "todo en orden".
+  // Y PARPADEA CON DETECTANDO (26/9), al MISMO latido que el rotulo: prendido en el brillo alto,
+  // apagado en el bajo. En la zona a secas queda fijo — lo que parpadea es lo que esta pasando.
+  if (!fuera && alertaK < 1 && (!detectando || latido)) {
+    ctx.save(); ctx.globalAlpha = 1 - alertaK;
+    bordePlaca(x, y, w, ALERTA_H, detectando ? RADAR_VERDE.punta : RADAR_VERDE.eje);
+    ctx.restore();
+  }
 }
 
 /** La seccion de las BALIZAS del panel, corrida `dx` por la entrada (ver drawAlerta). */

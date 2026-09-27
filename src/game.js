@@ -365,6 +365,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     //     como "saliste del banco" y no como un corte de camara.
     let veilOut = 0, veilPrev = '';
     let alcanceAntes = null;         // el horizonte de radar en el cuadro anterior (null = sin adoptar)
+    let radarScanT = -1;             // run.t del ultimo cruce HACIA ADENTRO del radar (el escaneo), -1 = ninguno
     let objectiveDist = 0;           // distancia meta puerto→barcaza (0 = sin objetivo / infinito)
     let objectiveShip = '';          // nombre de la barcaza objetivo del run
     // …y de QUE TIPO es ese objetivo ('ship' | 'distance'). El HUD lo necesita para decidir si el
@@ -1536,6 +1537,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       rutaSys.setRuta(objectiveDist > 0 && curMission() ? curMission().ruta : null,
         curMission() ? curMission().fases : null, objectiveDist);
       alcanceAntes = null;
+      radarScanT = -1;   // corrida nueva: run.t vuelve a 0 y un reloj viejo se volveria a disparar
       // EL PULSO necesita saber CONTRA QUE buque es la prueba: de su clase sale como se muere en
       // la cinematica del premio. Va aca y no en reset() porque el objetivo se define despues.
       pulso.setShip(objectiveShip);
@@ -3855,6 +3857,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           popup(W / 2, 46, T(alc ? 'radarEntra' : 'radarSale'), alc ? P.warn : P.accent);
           // …y en la IDA un compañero te lo marca con el avion: abajo, y sin radio (SENAS_COMP.radar)
           if (alc && run.dist < objectiveDist) senaCompanero('radar', 1);
+          // …y EL ESCANEO: la linea que barre la pantalla y la red que respira (world.ESC_*)
+          if (alc) radarScanT = run.t;
         }
         alcanceAntes = alc;
       }
@@ -4286,7 +4290,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // Aparecio sola cuando la salida paso a trepar de verdad (la trepada cruza RADAR_ALT) y lo
       // que se ve es una reja roja tapando el buque que se hunde.
       // …y FUERA DE ALCANCE no hay red (PLAN_NAFTA_ALCANCE N2): no hay radar que dibujar.
-      if (cfg.radarNet && cfg.radar !== 'voz' && S.state !== 'pulso' && rutaSys.enAlcance()) world.drawRadarNet(fases.techoRadar(RADAR_ALT));
+      if (cfg.radarNet && cfg.radar !== 'voz' && S.state !== 'pulso' && rutaSys.enAlcance())
+        world.drawRadarNet(fases.techoRadar(RADAR_ALT), world.escaneoRed(radarScanT >= 0 ? run.t - radarScanT : -1));
       if (cfg.hitboxes) world.drawHitboxes();   // depuracion: cajas de colision en verde fluor
       if (cfg.devcam && S.state === 'play') world.drawFlightLane(testRadio);   // modo camara: el carril del avion
 
@@ -4561,7 +4566,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // LA VISION DEL RADAR: la escena en verde mientras te ven (ver world.drawRadarTinte). Mismo
       // escalon que el tinte del momentum —sobre el mundo, bajo el HUD— y colgada de la misma opcion
       // que la red: quien apago RED DE RADAR no quiere que el radar le pinte la pantalla.
-      if (cfg.radarNet && cfg.radar !== 'voz' && rutaSys.enAlcance()) world.drawRadarTinte(fases.techoRadar(RADAR_ALT));
+      if (cfg.radarNet && cfg.radar !== 'voz' && rutaSys.enAlcance()) {
+        world.drawRadarTinte(fases.techoRadar(RADAR_ALT));
+        // EL ESCANEO al entrar a la zona: la linea que barre y el velo que deja (world.ESC_*)
+        if (radarScanT >= 0) world.drawRadarEscaneo(run.t - radarScanT);
+      }
       // HUD en GRILLA DE DISEÑO (320x180): se dibuja con ctx.scale(U). Ver la nota de DW/DH en
       // render/ctx.js — U x SC da 3 exacto, asi que no hay medio pixel ni borroneo.
       // LA CINTA DE FORMACION va ADENTRO del ctx.scale(U): es HUD, o sea grilla de DISEÑO (320x180),
