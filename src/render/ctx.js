@@ -60,7 +60,7 @@ export function panel() { ctx.fillStyle = '#0d1216cc'; ctx.fillRect(0, 0, W, H);
 //   SIMPLES (assets/fonts/simple/) — de lectura: para el texto que hay que LEER, no mirar.
 // Se cargan todas, se usen o no: tenerlas listas es lo que permite comparar una contra otra en
 // pantalla sin tocar el CSS ni el empaquetado.
-export const FONT_BRAND = ['Kirana', 'OtflagSans', 'Gomarice', 'MalvinasSans'];
+export const FONT_BRAND = ['Kirana', 'OtflagSans', 'Gomarice', 'MalvinasSans', 'AirborneGP'];
 export const FONT_SIMPLE = ['Opencare', 'Vegabond', 'Cochocib', 'Kabur', 'Mayorice'];
 // assets/fonts/simple/others/ — la tanda en prueba (ver DESC_TRY en render/menus.js)
 export const FONT_OTHERS = ['EmbolismSpark', 'GlimpRThin', 'GlimpRThinItalic', 'SmoothElegant'];
@@ -101,7 +101,13 @@ const FONTS = {
   // DISPLAY y no el monospace de los rotulos: es una alarma, y tiene que verse distinta a todo lo
   // que se lee tranquilo.
   aviso: 'Gomarice',
+  // EL ROTULO QUE PASA VOLANDO (27/9): "RASANTE" y el nombre del avion que entra en el relevo.
+  // Airborne GP —letra de carrera, inclinada y ancha— pedida por el autor para esos dos. Las otras
+  // letras de arcade (la flecha IN, los carteles de fuego) siguen con la de los menus.
+  rotulo: 'AirborneGP',
 };
+/** Fuente del rotulo que pasa volando (render/rotulo.js). Sin negrita: la display ya es gruesa. */
+export const rotuloFont = size => uiFont(FONTS.rotulo, size, '');
 /** Fuente de los avisos de vuelo (la placa del RADAR), sin negrita: la display ya es gruesa. */
 export const avisoFont = size => uiFont(FONTS.aviso, size, '');
 /** Fuente del logotipo al tamaño pedido, con el monospace de siempre como respaldo. */

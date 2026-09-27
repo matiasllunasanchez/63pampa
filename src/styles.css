@@ -29,6 +29,15 @@
     font-display: block;
   }
 
+  /* EL ROTULO QUE PASA VOLANDO (RASANTE y el nombre del avion que entra), pedido del autor 27/9.
+     Airborne GP, de Gustavo Paz. PIDE ATRIBUCION en los creditos: la descarga trae CC BY-SA 4.0
+     (assets/fonts/airborne/LICENSE.txt) y el propio .ttf dice CC BY-ND 3.0 en su tabla de nombres. */
+  @font-face {
+    font-family: 'AirborneGP';
+    src: url('../assets/fonts/airborne/AirborneGP.ttf') format('truetype');
+    font-display: block;
+  }
+
   /* assets/fonts/simple/ — las candidatas para el texto corrido del menu (ver DESC_COMPARE en
      render/menus.js). Van aparte de las de marca porque cumplen otro papel: no titulan, se leen. */
   @font-face {

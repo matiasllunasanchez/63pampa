@@ -10,7 +10,7 @@
 // SE HORNEA UNA VEZ por palabra, estilo y tamaño en un canvas aparte, a la resolucion del MUNDO
 // (480x270) y no a la del buffer: al pintarlo con el suavizado apagado el buffer 2x lo agranda en
 // pixeles gordos, que es lo que hace que se lea como arcade y no como una tipografia de sistema.
-import { ctx, px, W, H, menuFont } from './ctx.js';
+import { ctx, px, W, H, menuFont, rotuloFont } from './ctx.js';
 
 const ESTILOS = {
   fuego: {
@@ -30,9 +30,10 @@ const CACHE = new Map();
  *
  *  OTFLAG SANS EN NEGRITA (23/9, "algo mas BOLD"): la del logo (Kirana) es la version LIGHT y el
  *  rotulo se leia fino al lado de la referencia. De las del banco es la sans mas pesada y ancha;
- *  Gomarice tambien es gruesa pero angosta, y a este tamaño las letras se pegaban. */
-function hornear(txt, estilo, tam) {
-  const font = menuFont(tam);
+ *  Gomarice tambien es gruesa pero angosta, y a este tamaño las letras se pegaban.
+ *  (Desde el 27/9 el rotulo que VUELA va en Airborne GP —`fuente`—; OtflagSans queda para el resto.) */
+function hornear(txt, estilo, tam, fuente) {
+  const font = (fuente || menuFont)(tam);
   const key = txt + '|' + estilo + '|' + font;
   let c = CACHE.get(key);
   if (c) return c;
@@ -80,7 +81,8 @@ const ROTULO_TAM = 30;
  *  lo estira). Fuera de [0, ROTULO_T] no dibuja nada. */
 export function drawRotuloVuelo(txt, t) {
   if (!(t >= 0 && t <= ROTULO_T)) return;
-  const c = hornear(txt, 'hielo', ROTULO_TAM), w = c.width, h = c.height;
+  // en AIRBORNE GP (27/9, pedido del autor): la letra de carrera es la del rotulo que vuela
+  const c = hornear(txt, 'hielo', ROTULO_TAM, rotuloFont), w = c.width, h = c.height;
   const { ENTRA, QUEDA, SALE } = ROTULO;
   let x, v, pop = 1;
   if (t < ENTRA) {                                  // entra frenando (ease-out)
