@@ -78,6 +78,10 @@ export const BL = {
    *  flecha. 2200 deja el encare entero: el buque ya asomado (APARECE_Z), los corchetes rojos, la
    *  flecha, y recien despues la ventana. */
   FILA_M: 2200,
+  /** EL REBOBINADO (pedido del autor, 27/9): al errar, "la camara va hacia atras" hasta el de la fila
+   *  —que viene a FILA_M, no pegado—. Arranca con el buque a REBOBINA_Z (delante, donde lo dejaste)
+   *  y el pasillo corre de reversa hasta los FILA_M. Es solo camara: la cuenta ya la hizo `enFila`. */
+  REBOBINA_Z: 300,
   /** Cuanto atras vuelve a quedar el buque en el RE-ENCARE: lo suficiente para verlo asomar de
    *  nuevo en el horizonte y rearmar la aproximacion, no tanto como para aburrir. */
   REENCARE_M: 1800,

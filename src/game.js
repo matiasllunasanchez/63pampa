@@ -148,7 +148,7 @@ import * as wingmv from './systems/wingmv.js';
 import { drawActores } from './render/wingmv.js';
 import * as teatro from './systems/teatro.js';
 import { drawTiros } from './render/teatro.js';
-import { canRelevo, pilotIdx, formationSlots, puestoFormacion, naftaCompanero, alMando, detras } from './core/squad.js';
+import { canRelevo, pilotIdx, formationSlots, puestoFormacion, naftaCompanero, alMando, detras, RELEVO_WRECK } from './core/squad.js';
 import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
   (() => {
@@ -3138,8 +3138,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       beep(140, 0.6, 'sawtooth', 0.05, -30);   // el motor tosiendo, no la explosion
     }
 
+    // ERRAR LA SUELTA NO ES UN DERRIBO (pedido del autor, 27/9): "no hay que asumir que errar la bomba
+    // es eliminar al avion, es perder la partida siempre que no te queden chances". El avion que erro
+    // esta sano — si queda otro en la fila toma la pasada (relevo `solo`); si no, se pierde la mision
+    // y se reinicia, sin chapa rota, sin explosion y sin DERRIBADO.
+    const erroSuelta = c => c === 'death_fallo_blanco' || c === 'death_suelta';
+
     function die(cause) {
       setState('dead'); deathCause = cause; deathT = 0;
+      // …la pantalla ya esta en negro (el de la pasada errada): sube directo, sin "show del destrozo"
+      if (erroSuelta(cause)) deathT = DEATH_REVEAL;
       // POR LA PATRIA: el derribado ES el fin del "nivel" → estrellas por puntaje. En campaña/ciclo
       // morir es fracaso (no se cumplio el objetivo): sin estrellas.
       deadStars = gameMode === 'survival' ? starsFor(Math.floor(run.score), SURVIVAL_PAR) : 0;
@@ -3147,7 +3155,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       factIdx = (factIdx + 1) % L().facts.length;
       // campaña: el ultimo avion tampoco explota — la escuadrilla entera quedo averiada y la
       // mision se pierde (la pantalla de fin lo dice); en arcade, el derribo clasico
-      if (relevoRompe()) dmgFX(); else crashFX();
+      if (erroSuelta(cause)) { /* sano: nada que romper */ }
+      else if (relevoRompe()) dmgFX(); else crashFX();
       // EL RECORD (S2): en las herramientas no se toca ni en memoria — si solo se salteara el
       // localStorage, el HUD mostraria un record que se evapora al cerrar el juego.
       //
@@ -3297,7 +3306,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // el numeral que asume: startRelevo descuenta y despues calcula, asi que acá se mira una
         // vida mas adelante para poder NOMBRARLO antes de que empiece la cinematica
         const next = detras(run);
-        popup(W / 2, 62, T('pasada_turn', { c: squad.pilotName(next) }), P.accent);
+        // (tras errar la suelta lo dice el titular de la cinematica: ver drawRelevo)
+        if (sig.spent !== 'suelta') popup(W / 2, 62, T('pasada_turn', { c: squad.pilotName(next) }), P.accent);
         squad.startRelevo(sig.spent === 'seca' ? 'death_fuel' : (sig.why || 'pasada_why'), sig.spent);
         setState('relevo');
       } else die(sig.spent === 'seca' ? 'death_fuel' : (sig.dieWhy || 'death_pasada'));
@@ -3660,6 +3670,18 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           prune(popups, p => p.life > 0);
           run.shake = Math.max(0, run.shake - dt * 8);
           engineFly(run.spd * 0.9, false, 0.015);   // el motor del companero: la escena no queda muda
+          // EL REBOBINADO (tras errar la suelta, pedido del autor 27/9): "la camara deberia ir hacia
+          // atras" — el de la fila viene lejos. Durante el primer tiempo el odometro se corre de
+          // reversa desde REBOBINA_Z hasta donde `enFila` lo dejo: el agua, la costa y el buque
+          // corren para atras, el buque se achica en el horizonte, y recien ahi entra el siguiente.
+          // Arranca y termina suave (smoothstep): la camara despega, vuela para atras y se asienta.
+          const rr = squad.relevo();
+          if (rr && rr.solo && rr.reb) {
+            const u = Math.max(0, Math.min(1, (rr.t - rr.t0) / (RELEVO_WRECK - rr.t0)));
+            const off = rr.reb * (1 - u * u * (3 - 2 * u));
+            run.dist += off - rr.off; rr.off = off;
+            blancoSys.alOdometro();
+          }
           if (squad.updateRelevo(dt) === 'done') {
             // lo que cruzo el plano del avion DURANTE la cinematica ya paso de largo: sin esto,
             // collision lo veria "sin resolver" en el primer frame y podria matar en el handoff
@@ -3956,7 +3978,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // ERRASTE, EN UNA MISION: el ataque era de la escuadrilla EN FILA. Si queda un avion vivo y
         // sano —y todos llevan la bomba del centro—, el de atras toma la pasada; si no, derrota.
         if (b === 'errado') {
-          if (canRelevo(run.lives)) { blancoSys.enFila(); onPassSpent({ spent: 'suelta', why: 'death_fallo_blanco' }); }
+          if (canRelevo(run.lives)) {
+            blancoSys.enFila(); onPassSpent({ spent: 'suelta', why: 'death_fallo_blanco' });
+            // EL REBOBINADO: `enFila` ya dejo el buque a FILA_M; la cinematica arranca con el pasillo
+            // corrido hasta REBOBINA_Z y lo devuelve (ver el bloque del relevo)
+            const rr = squad.relevo();
+            if (rr && rr.solo) { rr.reb = BL_BLANCO.FILA_M - BL_BLANCO.REBOBINA_Z; rr.off = 0; }
+          }
           else die('death_fallo_blanco');
           return;
         }
@@ -4485,7 +4513,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // Va antes que drawPlane: esta mas lejos — pintor correcto respecto del que entra.
       // …y EN UN CAMBIO DE PILOTO SIEMPRE, con o sin roster: ahi el que se va no es un averiado sino tu
       // avion cediendo el puesto, y verlo irse es la mitad de la escena.
-      if (S.state === 'relevo' && squad.relevo() && (squad.rosterActive() || squad.relevo().cambio))
+      // (salvo tras errar la suelta —`solo`—: el tuyo ya se fue en el fundido, no se lo vuelve a ver)
+      if (S.state === 'relevo' && squad.relevo() && !squad.relevo().solo && (squad.rosterActive() || squad.relevo().cambio))
         squadRender.drawFallen({ selPlane, rv: squad.relevo() });
       // EL LIDER de la PERSECUCION: siempre esta mas lejos que vos (es la definicion del modo), asi
       // que va antes del avion y no necesita el reparto en dos pasadas que si necesita LA COLA.
@@ -4702,7 +4731,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // encima del mundo y del HUD, DEBAJO de la radio—, que es lo que deja leer a Puma sobre el
         // negro. El fundido de mision de siempre (`fadeT`) va al final de todo y taparia la voz.
         // …y el del VIRAJE: "comencemos la vuelta a casa" se lee sobre el negro que se cierra
-        { const ng = S.state === 'play' ? Math.max(blancoSys.negro(), vir && vir.fase === 'rumbo' ? Math.min(1, vir.t / BL_BLANCO.VIR_FUNDE) : 0) : 0;
+        // …y el del REBOBINADO, que se abre del negro de la pasada errada en vez de cortar a pleno
+        const rrn = S.state === 'relevo' && squad.relevo() && squad.relevo().solo ? squad.relevo() : null;
+        { const ng = S.state === 'play' ? Math.max(blancoSys.negro(), vir && vir.fase === 'rumbo' ? Math.min(1, vir.t / BL_BLANCO.VIR_FUNDE) : 0)
+            : rrn ? Math.max(0, 1 - (rrn.t - rrn.t0) / 0.2)
+            // la derrota por errar sigue en el negro de la pasada: el mundo no vuelve a asomar sin avion
+            : S.state === 'dead' && erroSuelta(deathCause) ? 1 : 0;
           if (ng > 0) { ctx.globalAlpha = ng; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; } }
         ctx.save(); ctx.scale(U, U);
         // `charla`: si hay una conversacion en la banda de abajo, la voz de mi avion no puede salir de
@@ -4768,7 +4802,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           out: squad.rosterActive(),   // campaña: la escuadrilla quedo fuera de combate, no "derribado"
           // …y el PULSO tiene su propio titular: no te derribaron, erraste la mano. La mision se
           // reinicia entera con cualquier tecla, que es lo que ya hacia esta pantalla.
-          perdido: deathCause === 'death_pulso' });
+          // …y ERRAR LA SUELTA tambien: perdiste la mision, a nadie lo bajaron
+          perdido: deathCause === 'death_pulso' || erroSuelta(deathCause) });
       if (S.state === 'results') screens.drawResults({ lastRun, resRow, resT, t: run.t, bg: winBg });
       if (S.state === 'brief') screens.drawBrief({ mission: curMission(), goalLabel: goalOf(curMission()).label(curMission().goal), briefT, t: run.t });
       if (S.state === 'victory') screens.drawVictory({ score: run.score, levelT, t: run.t });

@@ -71,6 +71,10 @@ export const CAMBIO_CD = 3;
 //   CAMBIO_DZ     cuanto mas cerca de la camara arranca (PZ 14 - 12 = 2: detras de ella)
 //   CAMBIO_LLEGA  segundos que tarda en llegar, contados desde que termina el primer tiempo
 export const CAMBIO_DZ = 12, CAMBIO_LLEGA = 1.4;
+/** Cuanto dura el primer tiempo tras errar la suelta: ahi no se ve irse a nadie, se rebobina el
+ *  pasillo hasta el de la fila (data/blanco.js, REBOBINA_Z). El reloj arranca en RELEVO_WRECK - esto.
+ *  0.9 y no 1.8 (autor, 27/9: "mas rapido"): es un salto de camara, no una escena para mirar. */
+export const REBOBINA_T = 0.9;
 /** El `dz` del que entra a los `t` segundos de la cinematica (reloj del relevo): -CAMBIO_DZ durante
  *  el primer tiempo —escondido, mientras se ve irse al tuyo— y despues hasta 0, frenando al llegar. */
 export function cambioEntraDz(t) {

@@ -315,6 +315,9 @@ export function enFila() {
   blanco.res = '';
 }
 
+/** El buque, donde el odometro dice (lo usa el REBOBINADO del relevo, que mueve `run.dist` a mano). */
+export function alOdometro() { blanco.z = blanco.zPrev = PZ + objetivo - run.dist; }
+
 /** OTRA PASADA, armada detras del negro: el buque vuelve al horizonte con su daño encima. */
 function otraPasada() {
   run.dist = objetivo - BL.REENCARE_M;

@@ -20,7 +20,7 @@ import { FLY_TOP, MSL_MAX } from '../data/tuning.js';
 import { PZ } from '../render/ctx.js';
 import { beep, sfxOne, duck } from './audio.js';
 import { resetAguante } from './aguante.js';
-import { RELEVO_WRECK, RELEVO_GRACE, RELEVO_DUR, RELEVO_AHORRO, pilotIdx, relevoPhase, callsign, naftaCompanero,
+import { RELEVO_WRECK, REBOBINA_T, RELEVO_GRACE, RELEVO_DUR, RELEVO_AHORRO, pilotIdx, relevoPhase, callsign, naftaCompanero,
   filaOk, filaDeVidas, CAMBIO_CD, cambioEntraDz } from '../core/squad.js';
 
 // --- estado privado del subsistema ---
@@ -171,16 +171,23 @@ export function startRelevo(cause, spent) {
   // el companero entra por el lado con mas aire, desde ALTO y fuera de pantalla: la lectura es
   // "venia ahi atras, cubriendote" — no un respawn que aparece de la nada
   const side = wx > 0 ? -1 : 1;
+  // ERRAR LA BOMBA NO ES UN DAÑO (pedido del autor, 27/9): el que fallo la suelta no esta roto, y
+  // ademas YA PASO — se fue trepando en el fundido de la pasada perdida. "No tengo que volver a ver
+  // el mio": no hay avion que se va (`solo`). El primer tiempo, estirado, es EL REBOBINADO —la
+  // camara vuelve por el pasillo hasta el de la fila, que viene lejos (game.js)— y despues el
+  // siguiente entra desde atras como en el cambio de piloto. La cuenta es la del relevo.
+  const sano = spent === 'suelta';
+  const t0 = sano ? RELEVO_WRECK - REBOBINA_T : 0;
   rv = {
-    t: 0, cause,
+    t: t0, t0, cambio: sano, solo: sano, cause,
     // RF-15: `spent` = la pasada se gasto (soltaste o secaste el tanque), NO te derribaron. Cambia
     // el titular de la cinematica y nada mas — la cuenta es la misma. Sin esto la pantalla decia
     // "DERRIBADO" sobre un avion al que nadie toco, que es la clase de mentira que rompe un juego.
     spent: spent || null,
     fallen, next,
     wx, wy, side,                                       // donde cayo el lider (la camara arranca aca)
-    x0: wx + side * 30, y0: Math.min(FLY_TOP - 10, wy + 13),
-    x2: wx * 0.5, y2: Math.max(6, Math.min(11, wy)),    // punto de asentado (carril + altura sana)
+    x0: sano ? wx : wx + side * 30, y0: sano ? wy : Math.min(FLY_TOP - 10, wy + 13),
+    x2: sano ? wx : wx * 0.5, y2: Math.max(6, Math.min(11, wy)),   // punto de asentado (carril + altura sana)
     said: false,
   };
 
