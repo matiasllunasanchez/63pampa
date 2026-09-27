@@ -76,7 +76,7 @@ import { blanco } from './core/blanco.js';
 import { drawTrayectoria } from './render/trayectoria.js';
 const BL_ALT_IDEAL = BL_BLANCO.ALT_IDEAL;
 import { drawBlanco, drawBlancoHud } from './render/blanco.js';
-import { drawRotuloVuelo, ROTULO_T } from './render/rotulo.js';
+import { drawRotuloVuelo, ROTULO_T, ROTULO_NOMBRE } from './render/rotulo.js';
 import { PULSO } from './data/pulso.js';
 import { spawnSystem } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
@@ -5001,6 +5001,18 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         const tr = (performance.now() - rotuloT0) / 1000;
         if (tr > ROTULO_T || (S.state !== 'play' && S.state !== 'relevo')) rotuloT0 = -1;
         else drawRotuloVuelo(T('rot_rasante'), tr);
+      }
+      // EL NOMBRE DEL AVION QUE ENTRA (27/9): en campaña, cuando el compañero asume, el nombre
+      // pintado de su avion cruza la pantalla como RASANTE, en letras de fuego. Arranca con el
+      // segundo tiempo del relevo (el que entra), que dura mas que el rotulo. Reloj del relevo.
+      if (S.state === 'relevo' && squad.relevo()) {
+        const rv = squad.relevo(), nom = squad.planeName(rv.next);
+        // EL NOMBRE DEL AVION grande y el PILOTO abajo, centrado y pegado (autor, 27/9) — siempre, no
+        // solo bajo la X del Vasco (sola y en fuego parecia una marca de error). El piloto va en
+        // minuscula con inicial: es una persona, no una chapa. "Toma el mando" arriba estuvo y el
+        // autor lo oculto: el string (rot_toma) y el parametro `sobre` quedan por si vuelve.
+        const pil = squad.pilotName(rv.next), piloto = pil.charAt(0) + pil.slice(1).toLowerCase();
+        if (nom) drawRotuloVuelo(nom, rv.t - RELEVO_WRECK, 'fuego', piloto, null, ROTULO_NOMBRE);
       }
 
       // EL VIDEO DEL VIRAJE, a pantalla completa y con bandas si el formato no calza

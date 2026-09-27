@@ -1252,7 +1252,7 @@ const hablaYo = (yo, nombre) => !!(yo && nombre && sinTilde(nombre) === sinTilde
 
 /** Mi caja, al lado de mi cara. `o` = { filas, font, paso, typed (o null: todo), ease 0..1, barra }. */
 function drawVozPropia(yo, o) {
-  const x0 = yo.x + yo.lado + VOZ.aire, y = yo.y, h = yo.lado;
+  const x0 = yo.x + yo.lado + VOZ.aire, y = yo.y, h = yo.alto || yo.lado;
   ctx.font = o.font;
   let anchoTxt = 20;
   for (const f of o.filas) anchoTxt = Math.max(anchoTxt, ctx.measureText(f).width);

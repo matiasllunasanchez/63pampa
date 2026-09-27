@@ -496,6 +496,7 @@ export const STRINGS = {
     // buque, y cada una tiene que decirse distinto — fallar, rozar y quedarse seco no son lo mismo.
     pasada_miss: 'FALLASTE', pasada_hit: 'TOCADO, NO ALCANZO', pasada_dry: 'SIN NAFTA',
     pasada_turn: 'TURNO DE {c}',
+    rot_toma: 'Toma el mando',   // arriba del nombre del avion que entra (render/rotulo.js)
     optCambio: 'CAMBIO DE PILOTO',
     pasada_tries: 'INTENTOS', pasada_fuel: 'NAFTA',
     pasada_why: 'Soltaste la ristra: una pasada, un avion',
@@ -1503,6 +1504,7 @@ export const STRINGS = {
     pasada_rearm: 'NEW STICK',
     pasada_miss: 'YOU MISSED', pasada_hit: 'HIT, NOT ENOUGH', pasada_dry: 'OUT OF FUEL',
     pasada_turn: '{c} IS UP',
+    rot_toma: 'Takes command',
     optCambio: 'PILOT SWAP',
     pasada_tries: 'TRIES', pasada_fuel: 'FUEL',
     pasada_why: 'You dropped: one run, one aircraft',

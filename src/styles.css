@@ -38,6 +38,15 @@
     font-display: block;
   }
 
+  /* LAS LINEAS CHICAS DEL NOMBRE DEL AVION ("Toma el mando" arriba, el piloto abajo), autor 27/9.
+     Josefin Sans Bold, licencia OFL (assets/fonts/JosefinSans-OFL.txt). Se declara UNA cara sola
+     y sin peso: se pide sin negrita y el canvas no le sintetiza una encima. */
+  @font-face {
+    font-family: 'JosefinSans';
+    src: url('../assets/fonts/JosefinSans-Bold.ttf') format('truetype');
+    font-display: block;
+  }
+
   /* assets/fonts/simple/ — las candidatas para el texto corrido del menu (ver DESC_COMPARE en
      render/menus.js). Van aparte de las de marca porque cumplen otro papel: no titulan, se leen. */
   @font-face {

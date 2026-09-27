@@ -16,7 +16,7 @@ import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
 import { PLANE_SCALE, drawGear, drawShadow } from './plane.js';
 import { drawSquadPips } from './hud.js';
 import { formationSlots, detras, RELEVO_WRECK, RELEVO_DUR, puestoFormacion } from '../core/squad.js';
-import { pilotName, rosterActive, fallenPos } from '../systems/squad.js';
+import { pilotName, planeName, rosterActive, fallenPos } from '../systems/squad.js';
 import { skinOf } from '../data/skins.js';
 import { iconoEn } from './iconos.js';
 import { SENAS } from '../data/blanco.js';
@@ -142,14 +142,20 @@ export function drawRelevo(rv) {
   // TRES titulares, no dos: derribado (arcade), averiado (campaña) y — desde RF-15 — SALE DE LA
   // CORRIDA, que es lo que pasa cuando gastaste tu pasada sin que nadie te tocara.
   // TRAS ERRAR LA SUELTA (`solo`) el tuyo ya no esta en escena: el titular es del que toma la pasada
+  // EN CAMPAÑA EL CARTEL NOMBRA AL AVION, NO AL PILOTO (pedido del autor 27/9): arriba, chico, el
+  // que sale ("GAMBETA PASA ATRAS"); el que ENTRA no va aca abajo sino como ROTULO que cruza la
+  // pantalla en letras de fuego, igual que RASANTE (lo dibuja game.js en coordenadas de mundo).
+  // Sin comillas (autor: "sacale los piquitos"). Fuera de campaña no hay chapa con nombre y
+  // queda el indicativo de siempre, abajo, como antes.
+  const nom = i => planeName(i) || pilotName(i);
   if (rv.solo) ctx.fillText(T('pasada_turn', { c: pilotName(rv.next) }), DW / 2, 10);
-  else ctx.fillText(T(rv.cambio ? 'sq_atras' : rv.spent === 'seco' ? 'sq_seco' : rv.spent ? 'sq_spent' : rosterActive() ? 'sq_dmg' : 'sq_down', { c: pilotName(rv.fallen) }), DW / 2, 10);
+  else ctx.fillText(T(rv.cambio ? 'sq_atras' : rv.spent === 'seco' ? 'sq_seco' : rv.spent ? 'sq_spent' : rosterActive() ? 'sq_dmg' : 'sq_down', { c: nom(rv.fallen) }), DW / 2, 10);
   // LA CAUSA NO SE DICE ACA (12/9). Estaba en rv.cause y se imprimia debajo del titular, pero
   // sobre el juego en marcha es una linea de texto mas que leer mientras el companero entra: el
   // jugador acaba de VER como se cayo. La pantalla de derribado sigue nombrandola (drawDead).
   if (rv.t > RELEVO_WRECK && !rv.solo) {
     ctx.font = '7px monospace'; ctx.fillStyle = P.accent;
-    ctx.fillText(T('sq_take', { c: pilotName(rv.next) }), DW / 2, DH - 10);
+    if (!planeName(rv.next)) ctx.fillText(T('sq_take', { c: pilotName(rv.next) }), DW / 2, DH - 10);
     // cuenta hasta devolver el control: la barra se VACIA — mismo lenguaje que el conteo del
     // despegue (algo termina), no que una carga (algo se acumula)
     const rem = Math.max(0, 1 - (rv.t - RELEVO_WRECK) / (RELEVO_DUR - RELEVO_WRECK));

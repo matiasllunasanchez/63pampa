@@ -22,7 +22,7 @@ import { P, RADAR_VERDE, RADAR_OPACO, RADAR_GRIS } from '../data/palette.js';
 import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP, BANDA_ALT, PERF_ALT, ZONAS_GASTO } from '../data/tuning.js';
 import { machNow } from '../core/mach.js';
 import { alMando, filaOk, filaDeVidas } from '../core/squad.js';
-import { pilotName } from '../systems/squad.js';
+import { pilotName, planeName } from '../systems/squad.js';
 import { active as tempoActive, meterVal as tempoMeter } from '../systems/tempo.js';
 import { meterVal as chMeter, gastada as chGastada, snapshot as chSnap } from '../systems/chancha.js';
 import { attitude } from '../core/horizon.js';
@@ -1065,7 +1065,9 @@ function reloj(x, y, o) {
 // Y ES DE DONDE SALE LA VOZ DE MI AVION. Si la linea de radio la dice el piloto que vuela, el
 // toast no baja de la cinta: sube de esta cara (ver drawRadioVN). Arriba habla la radio de los
 // otros; aca abajo, pegado a mis instrumentos, hablo yo.
-const PILOTO = { lado: 26, cara: 22 };
+// `alto` (27/9, autor): la caja crece hacia abajo para llevar el NOMBRE DEL PILOTO bajo la cara —
+// arriba, en la placa del escuadron, va el nombre pintado del avion—. El ancho sigue siendo `lado`.
+const PILOTO = { lado: 26, cara: 22, alto: 32 };
 let gesto = 'neutro', gestoT = 0, ultPts = 0, sonrisaT = 0, ultT = -1, precargada = null;
 // EL GOLPE, con reloj PROPIO. `run.hurtT` parecia servir ("fogonazo rojo en el HUD") pero nada en el
 // juego lo baja ni lo lee: damage.js lo pone en 0,6 y queda ahi para siempre. Apoyarse en el dejaba
@@ -1100,7 +1102,7 @@ function gestoDeseado() {
 function drawPiloto(charlaVoz) {
   // APARTE DEL TABLERO (11/9): arriba de la esquina izquierda, y no en la fila. La cara no es un
   // instrumento, y a su derecha tiene que quedar lugar para lo que dice (drawVozPropia, en screens).
-  const x = MARGEN, y = CUADROS_Y - AIRE - PILOTO.lado;
+  const x = MARGEN, y = CUADROS_Y - AIRE - PILOTO.alto;
   const nombre = pilotName(alMando(run));
   const base = CARA_PILOTO[sinTilde(nombre)];
   if (!base) return x;
@@ -1126,7 +1128,7 @@ function drawPiloto(charlaVoz) {
   // una tardaria un cuadro en cargar y se veria la neutra en el momento justo del susto
   if (precargada !== base) { precargada = base; for (const g of GESTOS) retrato(base + '_' + g); }
 
-  plate(x, y, PILOTO.lado, PILOTO.lado);
+  plate(x, y, PILOTO.lado, PILOTO.alto);
   // el sacudon tambien lo sufre el piloto: un pixel, nada mas
   const j = run.shake > 2 ? Math.round((Math.random() - 0.5) * 2) : 0;
   const cara = retrato(base + '_' + gesto) ? base + '_' + gesto : base + '_neutro';
@@ -1140,10 +1142,15 @@ function drawPiloto(charlaVoz) {
   // mis lineas de charla la cara quedaba apagada mientras mi propia caja hablaba al lado (11/9).
   const habla = (radioVisible() && radio.personaje && sinTilde(radio.personaje) === sinTilde(nombre))
     || (charlaVoz && sinTilde(charlaVoz) === sinTilde(nombre));
-  if (habla) { ctx.strokeStyle = P.accent; ctx.strokeRect(x + 0.5, y + 0.5, PILOTO.lado - 1, PILOTO.lado - 1); }
+  // EL NOMBRE DEL PILOTO, bajo la cara y adentro de la caja: es una persona, y la placa de arriba
+  // ahora nombra al avion. Si el nombre no entra en el ancho, se aprieta (no se corta).
+  ctx.font = F_ROT; ctx.textAlign = 'center'; ctx.fillStyle = P.foam;
+  ctx.fillText(nombre, x + PILOTO.lado / 2, y + PILOTO.alto - 2, PILOTO.lado - 2);
+  ctx.textAlign = 'left';
+  if (habla) { ctx.strokeStyle = P.accent; ctx.strokeRect(x + 0.5, y + 0.5, PILOTO.lado - 1, PILOTO.alto - 1); }
   // `cara` es la que se esta viendo AHORA (con su gesto): si mi linea tiene que ir arriba porque
   // abajo hay una charla, el toast usa ESTA y no el retrato de radio — ver drawRadioVN
-  cajaPiloto = { x, y, lado: PILOTO.lado, nombre, cara, gesto };
+  cajaPiloto = { x, y, lado: PILOTO.lado, alto: PILOTO.alto, nombre, cara, gesto };
   return x + PILOTO.lado + AIRE;
 }
 
@@ -1177,8 +1184,13 @@ const avionesEnPlaca = () => (soloTero ? 1 : run.squad);
  *  Y ES EL ANCHO DE LA COLUMNA, no solo del escuadron: nunca menos de lo que necesitan el radar y
  *  las cuatro balizas. Con dos aviones y un indicativo corto ("PUMA") la placa sola mide 40, y las
  *  balizas se salian por el costado. Crece la columna entera, y las dos placas siguen iguales. */
+/** LO QUE DICE LA PLACA DEL ESCUADRON (autor, 27/9): el NOMBRE PINTADO del avion que vuela
+ *  (GAMBETA, ESPOLA…); el piloto va en su caja, bajo la cara. Fuera de campaña no hay chapa con
+ *  nombre y queda el indicativo de siempre. */
+const nombrePlaca = i => planeName(i) || pilotName(i);
+
 export function anchoSquad() {
-  const nombre = pilotName(alMando(run));
+  const nombre = nombrePlaca(alMando(run));
   ctx.font = F_VAL;
   const wFila = Math.max(2, avionesEnPlaca()) * SQ_PASO + 3 + ctx.measureText(nombre).width;
   return Math.max(ALERTA_MIN_W, Math.round(wFila) + 6);
@@ -1189,7 +1201,7 @@ export function drawSquadPips(x, y) {
   // CAMBIO DE PILOTO puede volar PATRIA 3 con PATRIA 2 vivo esperando atras. Caido es el que ya no
   // esta en la fila. Con la mecanica apagada da lo mismo que antes — los caidos son los de abajo.
   const manda = alMando(run);
-  const nombre = pilotName(manda);
+  const nombre = nombrePlaca(manda);
   const vivos = filaOk(run) ? run.orden : filaDeVidas(run.squad, run.lives);
   ctx.textAlign = 'left';
   plate(x, y, anchoSquad(), SQUAD_H);
@@ -1794,6 +1806,8 @@ export function drawHUD(h) {
     col: cargando ? SUELTA_COL : bajo ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : nf && h.zonaGasto ? GASTO_COL[h.zonaGasto] : P.foam,
     uni: nf ? 'km' : undefined,
     txt: nf ? String(Math.round(nf.km)) : Math.round(run.fuel) + '%', txtCol: bajo ? P.warn : P.dim });
+    if (nf && h.zonaGasto) flechasGasto(xNafta + CUADRO - 6, CUADROS_Y + 3, h.zonaGasto);
+  }
   const ch = chSnap(), cv = chMeter(), gastada = chGastada();
   // …y solo si la mision la TIENE (`h.chanchaViva`, por snapshot): una mision con `chancha: false`
   // no puede pedirla, y un reloj lleno y en verde ahi es un boton que miente.
@@ -1806,8 +1820,6 @@ export function drawHUD(h) {
     // verdeListo): es la unica luz del tablero que dice "esto ya lo podes usar".
     const lista = (cv >= 1 || !!h.chIdaLista) && !gastada && !enCita, verde = verdeListo();
     // ENGANCHADO, EL RELOJ ES DE ELLA (pedido del autor 24/9): la aguja y el numero pasan a ser su
-    if (nf && h.zonaGasto) flechasGasto(xNafta + CUADRO - 6, CUADROS_Y + 3, h.zonaGasto);
-  }
     // RESERVA, que baja mientras te pasa nafta. Antes mostraba TU tanque, y un numero de la Chancha
     // que subia no se entendia.
     const suReserva = !!ch && ch.conn;
@@ -1947,7 +1959,7 @@ export function drawHUD(h) {
   // descubre bajando — que es el juego.
   const tv = tempoMeter();
   const altoPod = PODER_H + 2;                                   // la placa de la barra
-  const yPod = CUADROS_Y - AIRE - PILOTO.lado - AIRE - altoPod;   // pegada a la cara, con el mismo aire
+  const yPod = CUADROS_Y - AIRE - PILOTO.alto - AIRE - altoPod;   // pegada a la cara, con el mismo aire
   // …y en una mision SIN PODERES no esta: una barra que no se puede usar es un boton que miente
   if (cfg.poderes !== false) {
     barraPoder(MARGEN, yPod, tv, MOM_COL, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));

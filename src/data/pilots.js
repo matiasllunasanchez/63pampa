@@ -7,3 +7,10 @@
 // unicamente cuando el guion lo dice. Por eso esta lista puede tener nombres con historia:
 // el juego nunca los va a matar por un flak.
 export const FIELES = ['TERO', 'PUMA', 'GITANO', 'VASCO', 'PICHON'];
+
+// EL NOMBRE PINTADO DE CADA AVION (docs/historia/AVIONES_ESCUADRON.md, "Los nombres pintados",
+// decision del autor 27/9/2026). Va bajo la cabina y no cambia en toda la guerra. El del Vasco es
+// una X que se pinto el mismo: es un beso para su madre, y no lo dice nadie — tampoco este codigo
+// en pantalla. No se traducen: son nombres propios, como los de arriba.
+// Es un nombre de CHAPA, no el "nombre del dia" del Gitano (ese es de palabra y nunca se escribe).
+export const AVION = { TERO: 'ESPOLA', PUMA: 'MONTE', GITANO: 'GAMBETA', VASCO: 'X', PICHON: 'OHM' };

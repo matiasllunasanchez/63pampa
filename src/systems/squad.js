@@ -13,6 +13,7 @@
 // tools/unit.js la pruebe sin canvas. Aca queda solo lo que toca stores.
 
 import { cfg, cam, plane } from '../core/state.js';
+import { AVION } from '../data/pilots.js';
 import { run } from '../core/run.js';
 import { obstacles, missiles, parts } from '../core/world.js';
 import { proj } from '../core/fx.js';
@@ -36,6 +37,9 @@ export const rosterActive = () => !!roster;
 /** Nombre en radio del numeral `idx`: Fiel con nombre en campaña, PATRIA n en arcade.
  *  Mas alla de la lista (escuadron agrandado en pruebas), numerales CAUQUEN del guion. */
 export const pilotName = idx => roster ? (roster[idx] || 'CAUQUEN ' + (idx + 1)) : callsign(idx);
+/** El nombre PINTADO del avion del numeral `idx` (data/pilots.js AVION), o null: fuera de campaña
+ *  no hay Fieles, y un CAUQUEN de pruebas no tiene chapa con nombre. */
+export const planeName = idx => roster ? (AVION[roster[idx]] || null) : null;
 
 /** Cuanto dura la salida de plano tras el despegue (la formacion pasa detras de la camara). */
 export const EXIT_T = 0.9;
