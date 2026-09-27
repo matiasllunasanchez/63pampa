@@ -110,10 +110,14 @@ export function drawFallen({ selPlane, rv }) {
   if (hoja) {
     // TAMBALEA: el alabeo oscila alrededor del banqueo de salida y el sprite tirita 1 px —
     // el avion esta ROTO y tiene que verse (playtest 4/8: "mostrar que esta roto")
+    // …SALVO EN UN CAMBIO DE PILOTO (rv.cambio): ahi el avion esta sano, y va NIVELADO con un banqueo
+    // quieto hacia donde se abre — sin tambaleo ni temblor. Es la diferencia entre "se cae" y "cede
+    // el puesto", y es justo lo que el autor no queria ver en cada cambio.
     const mid = (SHEET_NF - 1) / 2;
-    const wob = Math.round(Math.sin(rv.t * 10) * Math.min(1.9, 0.6 + rv.t));
-    const col = Math.max(0, Math.min(SHEET_NF - 1, mid - rv.side * 2 + wob));
-    const jx = Math.sin(rv.t * 31) * f * 0.7, jy = Math.cos(rv.t * 27) * f * 0.6;
+    const wob = rv.cambio ? 0 : Math.round(Math.sin(rv.t * 10) * Math.min(1.9, 0.6 + rv.t));
+    // en el CAMBIO va NIVELADO: frena y queda atras, no vira (un banqueo se leia como un viraje)
+    const col = rv.cambio ? mid : Math.max(0, Math.min(SHEET_NF - 1, mid - rv.side * 2 + wob));
+    const jx = rv.cambio ? 0 : Math.sin(rv.t * 31) * f * 0.7, jy = rv.cambio ? 0 : Math.cos(rv.t * 27) * f * 0.6;
     const w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
     ctx.drawImage(hoja, col * SHEET_FW, SHEET_FH, SHEET_FW, SHEET_FH, s.x - w / 2 + jx, s.y - h / 2 + jy, w, h);
   } else if (pl.ready) {
@@ -132,11 +136,12 @@ export function drawRelevo(rv) {
   ctx.fillRect(0, 0, DW, 16); ctx.fillRect(0, DH - 16, DW, 16);
   ctx.textAlign = 'center';
   ctx.font = 'bold 8px monospace';
-  ctx.fillStyle = Math.sin(rv.t * 12) > 0 ? P.warn : '#7d2f1e';
+  // en un CAMBIO no hay alarma: el titular va quieto y en acento, no titilando en rojo
+  ctx.fillStyle = rv.cambio ? P.accent : Math.sin(rv.t * 12) > 0 ? P.warn : '#7d2f1e';
   // campaña (roster): nadie muere — el avion queda AVERIADO y vuelve a la base (norma 3/8)
   // TRES titulares, no dos: derribado (arcade), averiado (campaña) y — desde RF-15 — SALE DE LA
   // CORRIDA, que es lo que pasa cuando gastaste tu pasada sin que nadie te tocara.
-  ctx.fillText(T(rv.spent === 'seco' ? 'sq_seco' : rv.spent ? 'sq_spent' : rosterActive() ? 'sq_dmg' : 'sq_down', { c: pilotName(rv.fallen) }), DW / 2, 10);
+  ctx.fillText(T(rv.cambio ? 'sq_atras' : rv.spent === 'seco' ? 'sq_seco' : rv.spent ? 'sq_spent' : rosterActive() ? 'sq_dmg' : 'sq_down', { c: pilotName(rv.fallen) }), DW / 2, 10);
   // LA CAUSA NO SE DICE ACA (12/9). Estaba en rv.cause y se imprimia debajo del titular, pero
   // sobre el juego en marcha es una linea de texto mas que leer mientras el companero entra: el
   // jugador acaba de VER como se cayo. La pantalla de derribado sigue nombrandola (drawDead).

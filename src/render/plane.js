@@ -560,15 +560,22 @@ export function drawShadow(wx, wy, z, f) {
 /** `ras` = el PODER RASANTE esta puesto. Entra por PARAMETRO y no por import a proposito: es la
  *  convencion 4 de ARQUITECTURA (el que dibuja lee lo que el orquestador le pasa) y ademas evita
  *  sumarle a plane.js una dependencia de systems/ que el trinquete de `lint:layers` mira. */
-export function drawPlane(selPlane, viewMouse, camScale, ras) {
-  const s = proj(plane.x, plane.y, PZ);
+export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
+  // `dz` (solo DIBUJO, la fisica no se entera): en el CAMBIO DE PILOTO el que entra viene DESDE ATRAS
+  // —mas cerca de la camara, o sea mas grande y mas abajo— hasta su puesto (core/squad.js,
+  // cambioEntraDz). Detras del plano de la camara no se dibuja: todavia no llego.
+  const zP = PZ + (dz || 0);
+  if (zP < 3.8) return;
+  const s = proj(plane.x, plane.y, zP);
+  const kDz = dz ? s.k / proj(plane.x, plane.y, PZ).k : 1;
+  if (dz) camScale *= kDz;
   // EL CRUCE (PLAN_TRANSONICO V3): las rayas van en coordenadas de MUNDO y SIN la rotacion del
   // alabeo — rayan la pantalla, no el avion. Por eso se dibujan aca arriba, antes del save() que
   // traslada y rota. Su reloj es propio y corre con el dt real: el cruce no se dilata con el
   // MOMENTUM porque es una cosa que le pasa a la camara, no al mundo.
   drawCruce(s.x, s.y, Math.min(0.05, run.dtReal || 0.016));
-  drawShadow(plane.x, plane.y, PZ, 1);
-  const sh = proj(plane.x, 0, PZ);   // la rociada y las cortinas se miden contra la misma sombra
+  drawShadow(plane.x, plane.y, zP, kDz);
+  const sh = proj(plane.x, 0, zP);   // la rociada y las cortinas se miden contra la misma sombra
   // ROCIADA: el avion levanta agua al pasar rasante. Antes eran DOS BARRAS planas cruzando la
   // pantalla; ahora es una lengua de agua bajo el fuselaje, dos brazos en V que se abren hacia
   // atras y gotas sueltas — que es como se lee el agua batida en pixel art.

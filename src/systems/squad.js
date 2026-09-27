@@ -21,7 +21,7 @@ import { PZ } from '../render/ctx.js';
 import { beep, sfxOne, duck } from './audio.js';
 import { resetAguante } from './aguante.js';
 import { RELEVO_WRECK, RELEVO_GRACE, RELEVO_DUR, RELEVO_AHORRO, pilotIdx, relevoPhase, callsign, naftaCompanero,
-  filaOk, filaDeVidas, CAMBIO_CD } from '../core/squad.js';
+  filaOk, filaDeVidas, CAMBIO_CD, cambioEntraDz } from '../core/squad.js';
 
 // --- estado privado del subsistema ---
 let rv = null;      // el relevo en curso (null fuera de la cinematica)
@@ -120,6 +120,38 @@ export function cambiar() {
   return { sale, entra };
 }
 
+/** LA CINEMATICA DEL CAMBIO (pedido del autor, 27/9: "tiene que haber una cinematica entre cambio y
+ *  cambio" — lo que no queria era "la cinematica del avion DAÑADO"). Monta sobre la del relevo, que
+ *  ya tiene todo lo que hace falta: barras negras, piloto automatico con esquive, camara, la voz del
+ *  que entra y el texto de quien asume. Lo que cambia con `rv.cambio`:
+ *    · NO HAY RESTOS: el primer tiempo (la camara clavada en el caido) dura la mitad — lo justo para
+ *      ver al tuyo abrirse y quedarse atras— y enseguida entra el siguiente.
+ *    · EL QUE SE VA ESTA SANO: nivelado, sin tambaleo, sin humo (fallenPos, drawFallen).
+ *    · NO SE DESCUENTA NADA: la fila rota y las fichas se cambian (`cambiar`), nadie cae.
+ *  Devuelve { sale, entra } o null. Quien llama pone el estado 'relevo'. */
+export function startCambio() {
+  const c = cambiar();
+  if (!c) return null;
+  const wx = plane.x, wy = Math.max(2, plane.y), side = wx > 0 ? -1 : 1;
+  const t0 = RELEVO_WRECK * 0.5;
+  rv = {
+    t: t0, t0, cambio: true, cause: null, spent: null,
+    fallen: c.sale, next: c.entra,
+    wx, wy, side,
+    // entra por su carril, apenas corrido hacia el lado con mas aire (el tuyo se corre al otro), a
+    // tu misma altura: viene de atras, no de arriba
+    x0: wx + side * 4, y0: wy,
+    x2: wx + side * 2, y2: Math.max(6, Math.min(11, wy)),
+    said: false,
+  };
+  plane.x = rv.x0; plane.y = rv.y0;
+  plane.vx = 0; plane.vy = 0; plane.bank = 0; plane.pitch = 0;
+  return c;
+}
+
+/** El corrimiento de profundidad con que se DIBUJA al que entra en un cambio (0 fuera de uno). */
+export const cambioDz = () => (rv && rv.cambio ? cambioEntraDz(rv.t) : 0);
+
 /** Un cuadro de la espera entre cambios. */
 export function tickFila(dt) { if (run.cambioCd > 0) run.cambioCd = Math.max(0, run.cambioCd - dt); }
 
@@ -201,11 +233,19 @@ const PILOT_DUCK = 3.0;
  *  t² anterior era un codazo, playtest 4/8) y encima lleva el TAMBALEO del avion roto: bamboleo
  *  vertical y lateral que crece con el tiempo. La comparte el render y la estela de humo. */
 export function fallenPos(r) {
-  const t = r.t, sd = -r.side;
+  // EN EL CAMBIO el reloj arranca en `t0` (ver startCambio), el avion va SANO y "BAJA LA VELOCIDAD Y
+  // PASA ATRAS" (pedido del autor, 27/9): cae derecho hacia la camara hasta pasarla, apenas corrido
+  // hacia su lado para no cruzarse con el que entra, sin abrirse ni subir. El roto, en cambio, se
+  // abre, trepa un poco y tambalea: esa es la salida de un avion que vuelve a la base.
+  if (r.cambio) {
+    const t = r.t - r.t0, ease = (1 - Math.cos(Math.min(t, 1.2) * Math.PI / 1.2)) / 2;
+    return { x: r.wx - r.side * 5 * ease, y: Math.max(2.5, r.wy), z: PZ - t * t * 5 };
+  }
+  const t = r.t - (r.t0 || 0), sd = -r.side, w = r.cambio ? 0 : 1;
   const ease = (1 - Math.cos(Math.min(t, 1.6) * Math.PI / 1.6)) / 2;   // 0→1 suave, asienta en 1.6 s
   return {
-    x: r.wx + sd * 12 * ease + Math.sin(t * 13) * 0.4 * t,
-    y: Math.max(2.5, r.wy) + t * 1.2 + Math.sin(t * 9) * 0.45 * t,
+    x: r.wx + sd * 12 * ease + Math.sin(t * 13) * 0.4 * t * w,
+    y: Math.max(2.5, r.wy) + t * 1.2 + Math.sin(t * 9) * 0.45 * t * w,
     z: PZ - t * t * 3.4,
   };
 }
@@ -217,7 +257,7 @@ export function updateRelevo(dt) {
 
   // CAMPAÑA: el averiado deja ESTELA DE HUMO mientras queda atras — la prueba visible, junto
   // con el sprite que dibuja el render, de que no exploto (norma 3/8: nadie muere por gameplay)
-  if (roster && Math.random() < 0.7 && fallenPos(rv).z > 3.8) {
+  if (roster && !rv.cambio && Math.random() < 0.7 && fallenPos(rv).z > 3.8) {
     const p0 = fallenPos(rv), s = proj(p0.x, p0.y, p0.z);
     parts.push({
       x: s.x, y: s.y - 1, vx: rv.side * (4 + Math.random() * 5), vy: -6 - Math.random() * 9,
@@ -264,10 +304,12 @@ export function updateRelevo(dt) {
     // el relevo se lea como "lo vio caer y siguio", no como un teletransporte.
     const u = Math.min(1, (rv.t - RELEVO_WRECK) / RELEVO_GRACE);
     const e = u * u * (3 - 2 * u), a = 1 - e;
-    const bx = a * a * rv.x0 + 2 * a * e * rv.wx + e * e * rv.x2;
-    const by = a * a * rv.y0 + 2 * a * e * (rv.wy + 0.5) + e * e * rv.y2;
+    // en el CAMBIO no hay restos por los que pasar: la curva va derecho de la entrada al puesto
+    const mx = rv.cambio ? (rv.x0 + rv.x2) / 2 : rv.wx, my = rv.cambio ? (rv.y0 + rv.y2) / 2 : rv.wy + 0.5;
+    const bx = a * a * rv.x0 + 2 * a * e * mx + e * e * rv.x2;
+    const by = a * a * rv.y0 + 2 * a * e * my + e * e * rv.y2;
     // el zigzag del esquive va ENCIMA de la curva y se apaga al asentarse
-    const nx = bx + Math.sin(u * Math.PI * 3) * 2.2 * (1 - e);
+    const nx = bx + (rv.cambio ? 0 : Math.sin(u * Math.PI * 3) * 2.2 * (1 - e));   // el que viene de atras no zigzaguea
     const ny = Math.max(2.2, by);
     const pvx = (nx - plane.x) / Math.max(dt, 1 / 240);
     const pvy = (ny - plane.y) / Math.max(dt, 1 / 240);

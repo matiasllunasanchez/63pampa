@@ -1613,8 +1613,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         get: () => cfg.dmgMode, set: v => cfg.dmgMode = v, save: 'rasante_averias' },
       // CAMBIO DE PILOTO (26/9): va con las del escuadron porque contesta la misma pregunta — quien
       // vuela y que pasa con los demas. Apagado, el escuadron es el de siempre.
-      { label: () => T('optCambio'), opts: [false, true], names: yesNo,
-        get: () => cfg.cambioPiloto, set: v => cfg.cambioPiloto = v, save: 'rasante_cambio_piloto' },
+      // [true, false] y no al reves: `yesNo` empareja por POSICION (SI, NO). Con [false, true] la fila
+      // decia SI estando apagada — paso: el autor la prendio y la P no hacia nada.
+      { label: () => T('optCambio'), opts: [true, false], names: yesNo,
+        // LA CLAVE ES OTRA QUE LA PRIMERA ('rasante_cambio_piloto', 26/9) A PROPOSITO: lo que quedo
+        // guardado ahi se eligio con la etiqueta invertida, y un "SI" grabado como false no dice lo
+        // que el jugador quiso. Con clave nueva, todos arrancan en el default nuevo (prendido).
+        get: () => cfg.cambioPiloto, set: v => cfg.cambioPiloto = v, save: 'rasante_cambio_piloto2' },
       // QUE LE PASA AL RELEVADO (RF-15.5). Va pegada a las dos de arriba porque completa la misma
       // pregunta: cuántos aviones tenés, cuánto aguanta cada uno, y qué se ve cuando perdés uno.
       { label: () => T('optRelevo'), opts: ['auto', 'dmg', 'kill'],
@@ -2330,8 +2335,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         || (sh && sh.enAtaque) || blancoSys.negro() > 0 || blancoSys.perdida()
         || charla.hablando() || dlgPausa;
       if (trabado) { beep(140, 0.09, 'square', 0.05); return; }
-      const c = squad.cambiar();
-      if (c) popup(W / 2, 58, T('cambio_piloto', { c: squad.pilotName(c.entra) }), P.accent);
+      // LA CINEMATICA DEL CAMBIO (systems/squad.js, startCambio): la del relevo, con el que se va sano
+      // y sin descontar nada. El titular y quien asume los dice su propia sobreimpresion.
+      if (squad.startCambio()) setState('relevo');
     }
 
     initInput(cv, {
@@ -4477,7 +4483,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
       // CAMPAÑA: durante el relevo, el averiado se ve YENDOSE (banqueado, chico, con humo).
       // Va antes que drawPlane: esta mas lejos — pintor correcto respecto del que entra.
-      if (S.state === 'relevo' && squad.rosterActive() && squad.relevo())
+      // …y EN UN CAMBIO DE PILOTO SIEMPRE, con o sin roster: ahi el que se va no es un averiado sino tu
+      // avion cediendo el puesto, y verlo irse es la mitad de la escena.
+      if (S.state === 'relevo' && squad.relevo() && (squad.rosterActive() || squad.relevo().cambio))
         squadRender.drawFallen({ selPlane, rv: squad.relevo() });
       // EL LIDER de la PERSECUCION: siempre esta mas lejos que vos (es la definicion del modo), asi
       // que va antes del avion y no necesita el reparto en dos pasadas que si necesita LA COLA.
@@ -4507,7 +4515,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // naranja es de lo que lastima, y esto no puede lastimar a nadie (ver render/teatro.js).
       drawTiros(teatro.state());
       if (!rasante.enCabina()
-        && (chase || (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active());
+        && (chase || (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active(), squad.cambioDz());
       // LAS TRAZADORAS DE POPA (el escape, V2): vienen de atras, o sea MAS CERCA que el avion, y
       // por eso van despues del sprite. Adentro del giro del horizonte, como el resto del mundo.
       if (S.state === 'play' && blancoSys.escapando()) {

@@ -168,9 +168,9 @@ export const cfg = {
   dmgMode: 'squad',
   // CAMBIO DE PILOTO A DEMANDA (pedido del autor, 26/9/2026): una tecla manda al que vuela al fondo
   // de la fila y trae al siguiente. Cada avion es un avion — se lleva su nafta, su daño y sus
-  // bombas—, y los de atras vuelan a crucero economico. APAGADO de fabrica: con esto en false el
-  // escuadron es, cuadro por cuadro, el de siempre.
-  cambioPiloto: false,
+  // bombas—, y los de atras vuelan a crucero economico. PRENDIDO de fabrica desde el 27/9 (pedido
+  // del autor). En false el escuadron es, cuadro por cuadro, el de antes de que existiera.
+  cambioPiloto: true,
   // QUE LE PASA AL RELEVADO (SPEC_MODO_PASADA RF-15.5). Es TONO, no cuenta: el avion sale de la
   // partida en los tres casos, y lo unico que cambia es lo que ves y lo que dice la radio.
   //   'auto'  como venia: campaña = averiado que vuelve a la base (norma 3/8 del guion, donde los

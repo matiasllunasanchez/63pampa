@@ -64,6 +64,21 @@ export const detras = (r, k = 1) => (filaOk(r) && r.orden.length > k ? r.orden[k
 //              ficha cada cuadro.
 export const CAMBIO_CD = 3;
 
+// EL QUE ENTRA VIENE DESDE ATRAS (pedido del autor, 27/9: "que aparezca desde atras, no de arriba").
+// Atras, con esta camara, es MAS CERCA de la camara: arranca detras de ella —sin verse—, asoma
+// grande y abajo, y avanza frenando hasta su puesto. Es un corrimiento de profundidad SOLO DE DIBUJO
+// (render/plane.js, `dz`): la fisica del avion sigue en su plano.
+//   CAMBIO_DZ     cuanto mas cerca de la camara arranca (PZ 14 - 12 = 2: detras de ella)
+//   CAMBIO_LLEGA  segundos que tarda en llegar, contados desde que termina el primer tiempo
+export const CAMBIO_DZ = 12, CAMBIO_LLEGA = 1.4;
+/** El `dz` del que entra a los `t` segundos de la cinematica (reloj del relevo): -CAMBIO_DZ durante
+ *  el primer tiempo —escondido, mientras se ve irse al tuyo— y despues hasta 0, frenando al llegar. */
+export function cambioEntraDz(t) {
+  const u = Math.max(0, Math.min(1, (t - RELEVO_WRECK) / CAMBIO_LLEGA));
+  const e = 1 - (1 - u) * (1 - u);
+  return u >= 1 ? 0 : -CAMBIO_DZ * (1 - e);
+}
+
 /** Indicativo radial del numeral `idx`. Es nombre propio (escuadron argentino): no se traduce. */
 export const callsign = idx => 'PATRIA ' + (idx + 1);
 
