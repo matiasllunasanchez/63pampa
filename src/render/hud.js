@@ -21,7 +21,7 @@ import { AGU, ancho as anchoSector, pos as posInd, ventana as ventanaAgu,
 import { P, RADAR_VERDE, RADAR_OPACO, RADAR_GRIS } from '../data/palette.js';
 import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP, BANDA_ALT, PERF_ALT, ZONAS_GASTO } from '../data/tuning.js';
 import { machNow } from '../core/mach.js';
-import { pilotIdx } from '../core/squad.js';
+import { alMando, filaOk, filaDeVidas } from '../core/squad.js';
 import { pilotName } from '../systems/squad.js';
 import { active as tempoActive, meterVal as tempoMeter } from '../systems/tempo.js';
 import { meterVal as chMeter, gastada as chGastada, snapshot as chSnap } from '../systems/chancha.js';
@@ -1086,7 +1086,7 @@ function drawPiloto(charlaVoz) {
   // APARTE DEL TABLERO (11/9): arriba de la esquina izquierda, y no en la fila. La cara no es un
   // instrumento, y a su derecha tiene que quedar lugar para lo que dice (drawVozPropia, en screens).
   const x = MARGEN, y = CUADROS_Y - AIRE - PILOTO.lado;
-  const nombre = pilotName(pilotIdx(run.squad, run.lives));
+  const nombre = pilotName(alMando(run));
   const base = CARA_PILOTO[sinTilde(nombre)];
   if (!base) return x;
   // el reloj del cuadro sale de `run.t`: el HUD no recibe dt, y una corrida nueva (run.t que
@@ -1163,24 +1163,28 @@ const avionesEnPlaca = () => (soloTero ? 1 : run.squad);
  *  las cuatro balizas. Con dos aviones y un indicativo corto ("PUMA") la placa sola mide 40, y las
  *  balizas se salian por el costado. Crece la columna entera, y las dos placas siguen iguales. */
 export function anchoSquad() {
-  const nombre = pilotName(pilotIdx(run.squad, run.lives));
+  const nombre = pilotName(alMando(run));
   ctx.font = F_VAL;
   const wFila = Math.max(2, avionesEnPlaca()) * SQ_PASO + 3 + ctx.measureText(nombre).width;
   return Math.max(ALERTA_MIN_W, Math.round(wFila) + 6);
 }
 
 export function drawSquadPips(x, y) {
-  const fallen = pilotIdx(run.squad, run.lives);
-  const nombre = pilotName(fallen);
+  // QUIEN VUELA Y QUIEN CAYO SALEN DE LA FILA (core/squad.js), no de la cuenta de vidas: con el
+  // CAMBIO DE PILOTO puede volar PATRIA 3 con PATRIA 2 vivo esperando atras. Caido es el que ya no
+  // esta en la fila. Con la mecanica apagada da lo mismo que antes — los caidos son los de abajo.
+  const manda = alMando(run);
+  const nombre = pilotName(manda);
+  const vivos = filaOk(run) ? run.orden : filaDeVidas(run.squad, run.lives);
   ctx.textAlign = 'left';
   plate(x, y, anchoSquad(), SQUAD_H);
   for (let i = 0; i < avionesEnPlaca(); i++) {
-    const ax = x + 3 + i * SQ_PASO, down = i < fallen;
+    const ax = x + 3 + i * SQ_PASO, down = !vivos.includes(i);
     // el que vuela, en acento; los que esperan, claros; los caidos, SOLO en gris oscuro. El tachado
     // rojo encima se comia el avion y gritaba mas que el escuadron entero (pedido del autor, 12/9):
     // que la silueta siga ahi, apagada, ya dice que ese no vuelve — y es lo que se pidio desde el
     // principio (un compañero menos, no un numero menos), sin el subrayado.
-    iconoEn(ax + 3, y + 5, 'avion', down ? '#3a4750' : i === fallen ? P.accent : P.foam);
+    iconoEn(ax + 3, y + 5, 'avion', down ? '#3a4750' : i === manda ? P.accent : P.foam);
   }
   // EL NOMBRE DEL QUE VUELA, EN ACENTO. Estaba en `dim` —el gris de los rotulos— y ahi el piloto
   // era una etiqueta mas. Es la unica persona que hay en el HUD: va del color del que manda.

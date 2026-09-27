@@ -32,6 +32,38 @@ export const canRelevo = lives => lives > 1;
  *  cae uno (3 vidas) y asume PATRIA 2. */
 export const pilotIdx = (squad, lives) => Math.max(0, squad - lives);
 
+// ---------- LA FILA: QUIEN VUELA, CON CAMBIO DE PILOTO (pedido del autor, 26/9/2026) ----------
+// "Necesito una mecanica que me permita cambiar de piloto a demanda, ir switcheando al siguiente,
+// encendible o apagable. Viene un avion desde atras y cambia lugar con el del jugador, que pasa
+// atras." Hasta hoy el que vuela SALIA de las vidas — `pilotIdx`: los caidos son los numerales de
+// abajo y manda el primero vivo—, y eso no admite que PATRIA 3 vuele mientras PATRIA 2 espera.
+//
+// `r.orden` es la FILA: los numerales vivos en el orden en que van, y el PRIMERO vuela. Cambiar es
+// mandar al primero al fondo; caer es sacarlo. CON LA MECANICA APAGADA la fila nunca se reordena, y
+// quedar siempre en orden ascendente con los caidos sacados de adelante es EXACTAMENTE `pilotIdx`
+// — las dos funciones de abajo devuelven los mismos numeros que antes, hasta el ultimo cuadro.
+// Sin fila (un `run` viejo, una sonda) caen a la cuenta de siempre.
+
+/** ¿La fila dice la verdad? Tiene que tener un numeral por avion vivo. Las sondas escriben
+ *  `run.lives` a mano (`__vidas`, `__qlives`…) y una fila que no se entero de eso contaria pilotos
+ *  que no existen; con esto, la fila desincronizada simplemente no se usa. */
+export const filaOk = r => !!(r.orden && r.orden.length && r.orden.length === r.lives);
+/** La fila que corresponde a la cuenta de vidas de siempre: los vivos, en orden. */
+export const filaDeVidas = (squad, lives) => Array.from({ length: Math.max(0, lives) }, (_, i) => pilotIdx(squad, lives) + i);
+
+/** El numeral que vuela ahora. */
+export const alMando = r => (filaOk(r) ? r.orden[0] : pilotIdx(r.squad, r.lives));
+/** El que va `k` puestos detras en la fila (1 = el que entraria si cambias o si caes). */
+export const detras = (r, k = 1) => (filaOk(r) && r.orden.length > k ? r.orden[k] : pilotIdx(r.squad, r.lives) + k);
+
+// EL CAMBIO ES INSTANTANEO (pedido del autor, 26/9: "en cada cambio no quiero que se vea la
+// cinematica del avion dañado, sino que simplemente cambia"). La primera version tenia una maniobra
+// —el que se iba caia hacia la camara banqueando y el nuevo entraba desde atras— y se leia como el
+// relevo de un avion roto. Ahora cambian la cara, el nombre y la ficha en el mismo cuadro.
+//   CAMBIO_CD  la espera entre cambios. Sin ella la tecla se volveria un boton de refrescar la
+//              ficha cada cuadro.
+export const CAMBIO_CD = 3;
+
 /** Indicativo radial del numeral `idx`. Es nombre propio (escuadron argentino): no se traduce. */
 export const callsign = idx => 'PATRIA ' + (idx + 1);
 

@@ -148,7 +148,7 @@ import * as wingmv from './systems/wingmv.js';
 import { drawActores } from './render/wingmv.js';
 import * as teatro from './systems/teatro.js';
 import { drawTiros } from './render/teatro.js';
-import { canRelevo, pilotIdx, formationSlots, puestoFormacion, naftaCompanero } from './core/squad.js';
+import { canRelevo, pilotIdx, formationSlots, puestoFormacion, naftaCompanero, alMando, detras } from './core/squad.js';
 import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
   (() => {
@@ -634,7 +634,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       rasCall++;
       // EL INDICATIVO DEL QUE VUELA AHORA: el grito del numeral te nombra a VOS, y con el relevo
       // eso cambia. Sale del mismo lugar que lo usa la PASADA — squad es quien sabe quien va.
-      radioCh(k, { n: squad.pilotName(pilotIdx(run.squad, run.lives)) });
+      radioCh(k, { n: squad.pilotName(alMando(run)) });
       let vista = false;
       try { vista = localStorage.getItem(RAS_LECCION_KEY) === '1'; } catch (e) { }
       if (!vista) {
@@ -1386,6 +1386,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       reset();
       run.score = rec.score || 0;
       if (rec.lives) run.lives = Math.min(run.squad, rec.lives);
+      squad.resetFila();   // la partida guardada puede arrancar con aviones caidos: la fila sale de ahi
       setRunObjective(); setState(enterMission());
       beep(700, 0.08, 'square', 0.05);
     }
@@ -1594,7 +1595,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // control se leian como si fueran configurables — el cursor se paraba encima y daban ganas
       // de apretarles izquierda/derecha a ver que cambiaba.
       { note: 'ctrlHands' }, { note: 'ctrlWasd' }, { note: 'ctrlArena' }, { note: 'ctrlBombs' }, { note: 'ctrlSame' }, { note: 'ctrlBoth' },
-      ...[['Aim'], ['Cam'], ['Tempo'], ['Chancha'], ['Tanques'], ['Inv'], ['Music'], ['Pause'], ['Menu']]
+      ...[['Aim'], ['Cam'], ['Tempo'], ['Chancha'], ['Tanques'], ['Cambio'], ['Inv'], ['Music'], ['Pause'], ['Menu']]
         .map(([k]) => ({ ctrl: 'ctrl' + k, kb: 'ctrl' + k + 'K', pad: 'ctrl' + k + 'P' })),
 
       { head: 'optSecPartida' },
@@ -1610,6 +1611,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       { label: () => T('optDmg'), opts: DMG_MODES,
         names: () => DMG_MODES.map(m => T('optDmg_' + m)),
         get: () => cfg.dmgMode, set: v => cfg.dmgMode = v, save: 'rasante_averias' },
+      // CAMBIO DE PILOTO (26/9): va con las del escuadron porque contesta la misma pregunta — quien
+      // vuela y que pasa con los demas. Apagado, el escuadron es el de siempre.
+      { label: () => T('optCambio'), opts: [false, true], names: yesNo,
+        get: () => cfg.cambioPiloto, set: v => cfg.cambioPiloto = v, save: 'rasante_cambio_piloto' },
       // QUE LE PASA AL RELEVADO (RF-15.5). Va pegada a las dos de arriba porque completa la misma
       // pregunta: cuántos aviones tenés, cuánto aguanta cada uno, y qué se ve cuando perdés uno.
       { label: () => T('optRelevo'), opts: ['auto', 'dmg', 'kill'],
@@ -2227,6 +2232,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // el ESCUADRON de la corrida: cfg.squad aviones y vos de lider. Vive en `run` (no en el
       // sistema) porque lo leen HUD + relevo + este archivo.
       run.squad = run.lives = cfg.squad;
+      squad.resetFila();   // la fila de pilotos, en orden (core/squad.js)
       squad.resetSquad();
       toT = 0; toCount = 4;
       // LA CAMARA ARRANCA DONDE ESTA EL AVION, no en una constante. Con ACANTILADO el avion nace
@@ -2308,6 +2314,26 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // las ACCIONES semanticas (navegar menu, confirmar, tonel, misil, camara) vuelven aca como
     // callbacks — el estado de menu/camara (modeSel, selPlane, optRow, camMode) vive aca,
     // no en el modulo de input.
+    // CAMBIO DE PILOTO (tecla P / R3 en vuelo, pedido del autor 26/9): el que vuela pasa al fondo de
+    // la fila y sube el siguiente, cada uno con su ficha (systems/squad.js). Solo con la mecanica
+    // prendida (OPCIONES) y solo en el PASILLO, y NO cuando:
+    //   · no paso la espera (CAMBIO_CD)
+    //   · hay una bomba o un misil tuyo en el aire: es de este avion, y el desenlace es suyo
+    //   · el buque de LA SUELTA ya asomo, o su negro esta corriendo: el ataque es de UN avion
+    //   · el mundo esta quieto (charla hablando, dialogo congelado)
+    // Negado: el beep grave de "no se puede", el mismo del MOMENTUM sin cargar. Es una funcion y no
+    // una flecha adentro de initInput porque la llaman DOS: la tecla y la sonda `__cambiar`.
+    function pedirCambio() {
+      if (!cfg.cambioPiloto || S.state !== 'play' || cfg.devcam) return;
+      const sh = runClimax() === 'suelta' ? blancoSys.hud() : null;
+      const trabado = !squad.puedeCambiar() || pmissiles.length > 0
+        || (sh && sh.enAtaque) || blancoSys.negro() > 0 || blancoSys.perdida()
+        || charla.hablando() || dlgPausa;
+      if (trabado) { beep(140, 0.09, 'square', 0.05); return; }
+      const c = squad.cambiar();
+      if (c) popup(W / 2, 58, T('cambio_piloto', { c: squad.pilotName(c.entra) }), P.accent);
+    }
+
     initInput(cv, {
       modeNav: dir => { modeSel = (modeSel + dir + MODES.length) % MODES.length; beep(520, 0.05, 'square', 0.04); },
       confirm: () => confirmMode(),
@@ -2484,6 +2510,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // jugable. El feedback va aca (no en systems/tempo.js) por la misma regla que aimChanged:
       // el sistema devuelve la señal y el orquestador pone beep + popup — barra incompleta,
       // un beep grave y nada mas.
+      cambioPiloto: () => pedirCambio(),
       tempoToggle: () => {
         if (S.state !== 'play' || cfg.devcam || cfg.poderes === false) return;
         const r = tempo.toggle(nivelMomentum());
@@ -2761,7 +2788,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // el cero se cobraria cuadro tras cuadro
       if (sinMuerteAhora()) { run.fuel = naftaCompanero(0); onDeath('death_seco'); return; }
       if (canRelevo(run.lives)) {
-        const seco = pilotIdx(run.squad, run.lives);   // el que vuela ahora
+        const seco = alMando(run);   // el que vuela ahora
         beep(430, 0.06, 'square', 0.04);
         decirRadio(T('seco_radio', { c: squad.pilotName(seco) }), n => CARA_DE_RADIO[n] || null);
         squad.startRelevo('death_seco', 'seco');
@@ -2848,7 +2875,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const c = SENAS_COMP[id];
       if (!c || !canRelevo(run.lives)) return false;
       if (senas && senas.t < SENAS.ENTRA + SENAS.CADA * senas.items.length + SENAS.SALE) return false;
-      senas = { t: 0, idx: pilotIdx(run.squad, run.lives) + 1, items: [c], sale: c.sale, lado: lado || 1 };
+      senas = { t: 0, idx: detras(run), items: [c], sale: c.sale, lado: lado || 1 };
       return true;
     }
     // EL GLOBO DE TU SEÑA (data/senales.js): { sn, t, dir }, o null. Vive mientras dura el gesto y
@@ -2880,7 +2907,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const hayChancha = !(curMission() && curMission().chancha === false);
       que.push(!llega && hayChancha ? 'sena_chancha' : 'sena_casa');
       const alerta = { sena_fuga: 1, sena_dano: 1, sena_chancha: 1 };
-      senas = { t: -SENAS.DESDE, idx: pilotIdx(run.squad, run.lives) + 1, frena: true, sale: 'abajo', lado: 1,
+      senas = { t: -SENAS.DESDE, idx: detras(run), frena: true, sale: 'abajo', lado: 1,
         items: que.slice(0, 3).map(id => ({ icono: id, texto: id, alerta: !!alerta[id], gesto: null })) };
     }
     function volverDelBlanco() {
@@ -3263,7 +3290,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (canRelevo(run.lives)) {
         // el numeral que asume: startRelevo descuenta y despues calcula, asi que acá se mira una
         // vida mas adelante para poder NOMBRARLO antes de que empiece la cinematica
-        const next = pilotIdx(run.squad, run.lives - 1);
+        const next = detras(run);
         popup(W / 2, 62, T('pasada_turn', { c: squad.pilotName(next) }), P.accent);
         squad.startRelevo(sig.spent === 'seca' ? 'death_fuel' : (sig.why || 'pasada_why'), sig.spent);
         setState('relevo');
@@ -3633,7 +3660,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             for (const o of obstacles) if (o.z <= PZ + 1.5) o.done = true;
             // EL COMPAÑERO ENTRA CON EL AVION SANO. Es lo que mantiene al escuadron como vidas
             // aunque el modelo sea por integridad: cada avion trae su propia chapa.
-            damage.resetDamage();
+            // …SALVO CON CAMBIO DE PILOTO: ahi cada avion es un avion, y el que entra ya subio con SU
+            // chapa (systems/squad.js, `fichaDe`) — sana si nunca volo, tocada si lo mandaste atras
+            // roto. Repararlo aca borraria justo eso.
+            if (!cfg.cambioPiloto) damage.resetDamage();
             escapeSys.resetFuga();          // el avion nuevo no trae el tanque perforado del otro
             // si el companero releva DENTRO del asalto, vuelve AL ASALTO — con el daño ya hecho
             // al buque (las zonas viven en el subsistema, no en la instancia). Pasar por 'play'
@@ -3865,7 +3895,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
       // needsMomentum: si el objetivo del run culmina en el climax (barco) o con solo llegar (distancia)
       const needsMomentum = (gameMode === 'campaign' || gameMode === 'cycle') ? goalOf(curMission()).needsMomentum : true;
+      // LA FILA: la espera entre cambios, y lo que gasta el que manda — los de atras gastan una
+      // fraccion de eso (systems/squad.js). Se mide alrededor del vuelo porque ahi se cobra la nafta.
+      squad.tickFila(dt);
+      const fuelAntes = run.fuel;
       const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist, needsMomentum, climax: runClimax() });
+      squad.gastoLider(fuelAntes - run.fuel);
       // EL ROTULO QUE PASA VOLANDO (render/rotulo.js): en el cuadro en que el poder RASANTE se
       // prende —y con el, cambia la camara—, la palabra cruza la pantalla. Reloj de pared.
       { const ra = rasante.active(); if (ra && !rasPrev) rotuloT0 = performance.now(); rasPrev = ra; }
@@ -5306,6 +5341,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // de resolverla (render/theme.js). Sin esto, __cfgset('sky','storm') dejaba el cielo del menu
     // pisado pero el mundo pintado con la paleta anterior — media comparacion.
     if (typeof window !== 'undefined') window.__cfgset = (k, v) => { cfg[k] = v; applyCfg(); return String(cfg[k]); };
+    // LA FILA DE PILOTOS (sonda del CAMBIO DE PILOTO, 26/9): quien vuela, el orden, las fichas de los
+    // que esperan atras y el reloj del cambio. `__cambiar()` aprieta la tecla sin pasar por el teclado
+    // (la sonda no puede sostener un keydown en el mismo cuadro que lo lee).
+    if (typeof window !== 'undefined') window.__fila = () => JSON.stringify({
+      manda: alMando(run), orden: run.orden, lives: run.lives,
+      cd: +run.cambioCd.toFixed(2), fuel: +run.fuel.toFixed(1), integ: run.integ, msl: run.msl,
+      gastoLider: +run.gastoLider.toFixed(1),
+      flota: run.flota.map((f, i) => f ? { i, fuel: +f.fuel.toFixed(1), integ: f.integ, msl: f.msl } : null).filter(Boolean),
+    });
+    if (typeof window !== 'undefined') window.__cambiar = () => { pedirCambio(); return window.__fila(); };
     if (typeof window !== 'undefined') window.__cfgget = k => String(cfg[k]);
     // __logdbg: el HISTORIAL de la radio (lo que dibuja el PANEL), de lo mas viejo a lo mas nuevo.
     if (typeof window !== 'undefined') window.__logdbg = () => JSON.stringify(

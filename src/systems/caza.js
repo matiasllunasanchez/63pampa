@@ -81,7 +81,7 @@ import { pilotName } from './squad.js';
 // tuviera su propia idea de donde esta la roca habria dos verdades (ver `pisoTerreno`).
 import { enPared, paredH } from '../core/zigzag.js';
 import { tierraH, hayRelieve } from '../core/tierra.js';
-import { pilotIdx } from '../core/squad.js';
+import { alMando } from '../core/squad.js';
 
 // ---- estado privado ----
 // FLOTA DE HARRIERS. Cada elemento es un Harrier independiente que cicla hasta eliminarse.
@@ -100,7 +100,7 @@ const entre = ([lo, hi]) => lo + Math.random() * (hi - lo);
 // numero se toca a mano y a proposito.
 const CAZA_SEMI = 4.6;
 
-const miIndicativo = () => pilotName(pilotIdx(run.squad, run.lives));
+const miIndicativo = () => pilotName(alMando(run));
 
 /** ¿Hay al menos un Harrier corriendo? */
 export function active() { return fleet.length > 0; }

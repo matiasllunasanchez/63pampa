@@ -16,11 +16,12 @@ import { cfg, cam, plane } from '../core/state.js';
 import { run } from '../core/run.js';
 import { obstacles, missiles, parts } from '../core/world.js';
 import { proj } from '../core/fx.js';
-import { FLY_TOP } from '../data/tuning.js';
+import { FLY_TOP, MSL_MAX } from '../data/tuning.js';
 import { PZ } from '../render/ctx.js';
 import { beep, sfxOne, duck } from './audio.js';
 import { resetAguante } from './aguante.js';
-import { RELEVO_WRECK, RELEVO_GRACE, RELEVO_DUR, pilotIdx, relevoPhase, callsign, naftaCompanero } from '../core/squad.js';
+import { RELEVO_WRECK, RELEVO_GRACE, RELEVO_DUR, RELEVO_AHORRO, pilotIdx, relevoPhase, callsign, naftaCompanero,
+  filaOk, filaDeVidas, CAMBIO_CD } from '../core/squad.js';
 
 // --- estado privado del subsistema ---
 let rv = null;      // el relevo en curso (null fuera de la cinematica)
@@ -51,11 +52,89 @@ export function resetSquad() { rv = null; exitT = -1; }
 export function beginExit() { if (run.squad > 1 && cfg.start !== 'air') exitT = 0; }
 export function tickExit(dt) { if (exitT >= 0) { exitT += dt; if (exitT > EXIT_T) exitT = -1; } }
 
+// ---------- LA FILA Y EL CAMBIO DE PILOTO (core/squad.js, pedido del autor 26/9/2026) ----------
+
+/** Corrida nueva: la fila en orden, nadie con ficha propia, ningun cambio en curso. Va DESPUES de
+ *  que game.js fija `squad` y `lives` — una partida guardada puede arrancar con aviones caidos. */
+export function resetFila() {
+  run.orden = filaDeVidas(run.squad, run.lives);
+  run.flota = []; run.gastoLider = 0;
+  run.cambioCd = 0;
+}
+
+/** LA FICHA del avion que vuela: lo que se lleva cuando pasa atras. `gastoRef` fotografia cuanto
+ *  llevaba gastado el que manda, para cobrarle despues solo lo que gasto el mientras esperaba. */
+function ficha() {
+  return { fuel: run.fuel, fuelSync: run.fuelSync, tanque: run.tanque, naftaCap: run.naftaCap,
+    integ: run.integ, escudo: run.escudo, escudoT: run.escudoT, msl: run.msl, gastoRef: run.gastoLider };
+}
+
+/** La ficha del numeral `i` AHORA. Los de atras vuelan a crucero economico: gastan RELEVO_AHORRO de
+ *  lo que gasta el que manda (la misma regla que ya usaba el relevo, ver naftaCompanero). Se lleva
+ *  como UN acumulador de lo que gasto el lider y no como un tanque por avion descontado cuadro a
+ *  cuadro: la cuenta es la misma y cuesta una resta.
+ *
+ *  UN AVION QUE TODAVIA NO VOLO no tiene ficha: arranco lleno, sano y con su carga, y desde el
+ *  despegue viene gastando a crucero economico. Su tanque (con ruta) es el del que manda — la
+ *  estructura de la carga es la misma— y la diferencia de % la pasa a km la sincronizacion de
+ *  systems/nafta.js, que es la puerta de siempre para lo que le pasa a la nafta desde afuera. */
+function fichaDe(i) {
+  const f = run.flota[i];
+  const gasto = RELEVO_AHORRO * (run.gastoLider - (f ? f.gastoRef : 0));
+  if (!f) return { fuel: Math.max(0, 100 - gasto), tanque: null, integ: 100, escudo: 1, escudoT: 0, msl: MSL_MAX };
+  return { ...f, fuel: Math.max(0, f.fuel - gasto) };
+}
+
+/** Sube al avion `f` a los mandos. `conMunicion` en false deja las bombas como estan. */
+function ponerFicha(f, conMunicion) {
+  if (f.tanque) { run.tanque = f.tanque; run.naftaCap = f.naftaCap; run.fuelSync = f.fuelSync; }
+  run.fuel = f.fuel;
+  run.integ = f.integ; run.escudo = f.escudo; run.escudoT = f.escudoT;
+  if (conMunicion) run.msl = f.msl;
+}
+
+/** Lo que gasto el que manda este cuadro (solo lo que BAJO: la Chancha no le carga a los de atras). */
+export function gastoLider(d) { if (d > 0) run.gastoLider += d; }
+
+/** CAMBIO DE PILOTO: el que vuela pasa al fondo de la fila con su ficha, y sube el siguiente con la
+ *  suya. Devuelve { sale, entra } o null si no hay a quien pasarle. Lo que es DEL PILOTO en vuelo —
+ *  la racha, el estado rasante, el posquemador prendido, la pirueta a medias— no cambia de manos:
+ *  se corta, como en el relevo. Lo que es DEL AVION se va con el avion. */
+export function cambiar() {
+  if (!filaOk(run)) run.orden = filaDeVidas(run.squad, run.lives);
+  if (run.orden.length < 2) return null;
+  const sale = run.orden.shift();
+  run.flota[sale] = ficha();
+  run.orden.push(sale);
+  const entra = run.orden[0];
+  ponerFicha(fichaDe(entra), true);
+  delete run.flota[entra];   // mientras vuela, su ficha es `run`
+  run.streak = 0; run.rasLevel = 0; run.graceT = 0;
+  resetAguante();
+  run.afterT = 0; run.afterTier = 0; run.afterGrace = 0; run.boost = false;
+  run.heat = 0; run.overheat = false; run.rollCd = 0;
+  run.mv = null; run.mvT = 0; run.mvRoll = 0; run.mvSteep = 0;
+  run.scrapeT = 0; run.scrapeVib = 0;
+  run.cambioCd = CAMBIO_CD;
+  beep(520, 0.06, 'square', 0.04, 160);
+  return { sale, entra };
+}
+
+/** Un cuadro de la espera entre cambios. */
+export function tickFila(dt) { if (run.cambioCd > 0) run.cambioCd = Math.max(0, run.cambioCd - dt); }
+
+/** Se puede pedir otro: hay a quien pasarle y paso la espera. */
+export const puedeCambiar = () => (filaOk(run) ? run.orden.length : run.lives) > 1 && run.cambioCd <= 0;
+
 /** Arranca el relevo: descuenta la vida, congela el punto de la caida y prepara al companero.
  *  game.js ya disparo crashFX() — los restos del lider estan volando cuando esto corre. */
 export function startRelevo(cause, spent) {
+  // LA FILA: cae el primero y vuela el que seguia. Con la mecanica apagada la fila esta en orden y
+  // esto da el mismo `next` que `pilotIdx` daba antes; si una sonda la desincronizo, se rehace.
+  if (!filaOk(run)) run.orden = filaDeVidas(run.squad, run.lives);
+  const fallen = run.orden.shift();
   run.lives--;
-  const next = pilotIdx(run.squad, run.lives);
+  const next = run.orden.length ? run.orden[0] : pilotIdx(run.squad, run.lives);
   const wx = plane.x, wy = Math.max(2, plane.y);
   // el companero entra por el lado con mas aire, desde ALTO y fuera de pantalla: la lectura es
   // "venia ahi atras, cubriendote" — no un respawn que aparece de la nada
@@ -66,7 +145,7 @@ export function startRelevo(cause, spent) {
     // el titular de la cinematica y nada mas — la cuenta es la misma. Sin esto la pantalla decia
     // "DERRIBADO" sobre un avion al que nadie toco, que es la clase de mentira que rompe un juego.
     spent: spent || null,
-    fallen: next - 1, next,
+    fallen, next,
     wx, wy, side,                                       // donde cayo el lider (la camara arranca aca)
     x0: wx + side * 30, y0: Math.min(FLY_TOP - 10, wy + 13),
     x2: wx * 0.5, y2: Math.max(6, Math.min(11, wy)),    // punto de asentado (carril + altura sana)
@@ -78,7 +157,12 @@ export function startRelevo(cause, spent) {
   // venia atras ahorrando (naftaCompanero) — entra con mas que el lider, nunca lleno: reponerlo
   // al 100% convertiria morir en la forma barata de repostar. Lo que si se pierde: racha,
   // multiplicador y afterburner — el avion nuevo entra frio.
-  run.fuel = naftaCompanero(run.fuel);
+  // CON CAMBIO DE PILOTO, EL QUE ENTRA TRAE LO SUYO (ver `fichaDe`): la nafta que gasto volando
+  // atras, su chapa y sus bombas — cada avion es un avion. Menos las bombas si la pasada se gasto en
+  // LA SUELTA: ahi el estante del que sigue ya lo colgo systems/blanco.js (`enFila`), y es el suyo.
+  // Sin la mecanica, la cuenta de siempre: entra con naftaCompanero y la chapa sana (game.js).
+  if (cfg.cambioPiloto) { ponerFicha(fichaDe(next), spent !== 'suelta'); delete run.flota[next]; }
+  else run.fuel = naftaCompanero(run.fuel);
   run.scrapeT = 0; run.scrapeVib = 0;
   run.streak = 0; run.rasLevel = 0; run.mult = 1; run.multShow = 1; run.graceT = 0;
   resetAguante();                                      // el estado RASANTE no se hereda

@@ -336,6 +336,7 @@ export function initInput(cv, a) {
     if (!e.repeat && (e.code === 'Digit1' || e.code === 'Numpad1')) a.trackPrev();
     if (!e.repeat && (e.code === 'Digit2' || e.code === 'Numpad2')) a.trackNext();
     if (!e.repeat && (e.code === 'Digit4' || e.code === 'Numpad4')) a.tempoToggle();   // MOMENTUM: camara lenta (pasillo)
+    if (!e.repeat && e.code === 'KeyP') a.cambioPiloto();   // CAMBIO DE PILOTO (solo con la mecanica prendida: lo decide game.js)
     // 25/9: el 6 al 0 pasaron a ser el PACK DE SEÑALES, y los poderes se corrieron un lugar —
     // RASANTE del 6 al 5, la CHANCHA del 5 al 3, y SOLTAR TANQUES del 3 a la [B].
     if (!e.repeat && (e.code === 'Digit3' || e.code === 'Numpad3')) a.chanchaCall();   // LA CHANCHA: el reabastecedor (pasillo)
@@ -492,9 +493,12 @@ export function initInput(cv, a) {
 
     // musica (en cualquier pantalla)… salvo L3 EN VUELO, que es SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5,
     // ver abajo): el mando no tiene un boton libre, y en pleno vuelo soltar es la decision que
-    // importa. Afuera del vuelo L3 sigue siendo la pista anterior; R3, la siguiente, siempre.
+    // importa. Afuera del vuelo L3 sigue siendo la pista anterior.
+    // R3 HACE LO MISMO CON EL CAMBIO DE PILOTO (26/9): en vuelo y con la mecanica prendida, cambia de
+    // piloto —el mando sigue sin botones libres, y es la misma familia: el clic del stick en vuelo es
+    // una decision de vuelo—; afuera, o con la mecanica apagada, la pista siguiente como siempre.
     if (hit(10) && S.state !== 'play') a.trackPrev();
-    if (hit(11)) a.trackNext();
+    if (hit(11)) { if (S.state === 'play' && cfg.cambioPiloto) a.cambioPiloto(); else a.trackNext(); }
 
     // QUE ESTADOS SON "JUGAR". Cada climax nuevo tiene que entrar aca o el mando deja de volar al
     // llegar: el `else` de abajo SUELTA todos los ejes (es la rama de menus). La PASADA se agrego

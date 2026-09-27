@@ -46,7 +46,7 @@ import * as dmg from './damage.js';
 // LA RADIO DEL SEA CAT la grita un compañero, asi que hace falta su nombre. No es import circular:
 // squad.js no sabe de la pasada — el que sabe de los dos es game.js, como manda la arquitectura.
 import { pilotName } from './squad.js';
-import { pilotIdx } from '../core/squad.js';
+import { alMando } from '../core/squad.js';
 
 // El mar MATA: es la regla del juego entero y la pasada, que se juega A RAS, es donde mas pesa.
 // Los tres numeros son LOS DEL ARENA a proposito (systems/arena.js): es el mismo mar y el mismo
@@ -542,7 +542,7 @@ function fireDart() {
   });
   // EL GRITO POR RADIO, con nombre: es un compañero el que lo ve salir, no un sensor del avion.
   popup(W / 2, 44, T('pasada_dart'), P.warn, true);
-  if (run.lives > 1) popup(W / 2, 56, T('pasada_dart_radio', { c: pilotName(pilotIdx(run.squad, run.lives)) }), P.warn);
+  if (run.lives > 1) popup(W / 2, 56, T('pasada_dart_radio', { c: pilotName(alMando(run)) }), P.warn);
   boom(0.16, true);
   if (!sfxOne('mslFar')) beep(200, 0.5, 'sawtooth', 0.06, 700);
 }
@@ -560,7 +560,7 @@ function fireCat() {
   // el aviso lo da un COMPAÑERO, asi que si no queda escuadron no hay aviso. No es una omision:
   // es la regla del modo — sin radar propio, los ojos son los otros.
   if (run.lives > 1) {
-    popup(W / 2, 44, T('pasada_break', { c: pilotName(pilotIdx(run.squad, run.lives)) }), P.warn, true);
+    popup(W / 2, 44, T('pasada_break', { c: pilotName(alMando(run)) }), P.warn, true);
     if (!sfxOne('waveFly')) beep(900, 0.16, 'square', 0.06, 500);
   }
 }

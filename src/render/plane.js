@@ -28,7 +28,7 @@ import { ALA_PX, ROCIADA_ABRE, ROCIADA_BAJA, ROCIADA_RAS_ABRE, ROCIADA_ALT,
          ROCIADA_VERTICE, ROCIADA_FILAS, ROCIADA_REVUELTO, ROCIADA_REVUELTO_V,
          ROCIADA_RAS_CORTE } from '../data/tuning.js';
 import { skinOf } from '../data/skins.js';
-import { pilotIdx } from '../core/squad.js';
+import { alMando } from '../core/squad.js';
 import { pilotName, rosterActive } from '../systems/squad.js';
 import { nivel } from '../core/desgaste.js';   // el avion remendado — GUION_3 §9d, ley 4
 import { MOVES } from '../data/moves.js';
@@ -738,7 +738,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
   // parches (adentro del contexto del avion) y la estela de punta de ala (despues del restore, en
   // pixeles de mundo). Las tres tienen que leer LA MISMA tabla de anclas o se separan.
   // La pirueta empinada gana sobre el poder (ver la rama de dibujo), asi que no cuenta.
-  const skRas = ras && rosterActive() ? skinOf(pilotName(pilotIdx(run.squad, run.lives))) : null;
+  const skRas = ras && rosterActive() ? skinOf(pilotName(alMando(run))) : null;
   const rasHoja = !!(ras && useSheet && !run.mvSteep && (skRas ? skRas.sheet3Img : pl.sheet3Ok));
   const AN = rasHoja ? ANCLAS.ras : ANCLAS.base;
   // EL GIRO TOTAL DEL SPRITE, resuelto en UN SOLO LUGAR.
@@ -799,7 +799,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras) {
     // relevo te sube al avion del que sigue: el numeral avanza y la marca del ala CAMBIA sola.
     // Es la unica señal en pantalla de que ya no estas volando tu avion. Fuera de campaña no
     // hay roster y `sk` es null, asi que se usa la hoja generica de siempre.
-    const sk = rosterActive() ? skinOf(pilotName(pilotIdx(run.squad, run.lives))) : null;
+    const sk = rosterActive() ? skinOf(pilotName(alMando(run))) : null;
     let img = sk ? sk.sheetImg : pl.sheetImg;
     const hoja2 = sk ? sk.sheet2Img : (pl.sheet2Ok ? pl.sheet2Img : null);
     // LA HOJA DEL PODER RASANTE. Durante el poder la camara se corre 10 unidades al costado y el

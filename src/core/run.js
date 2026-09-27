@@ -117,6 +117,12 @@ export const run = {
   // --- escuadron (vidas) — ver systems/squad.js ---
   squad: 1,        // tamaño de la formacion de esta corrida (reset() lo copia de cfg.squad)
   lives: 1,        // aviones que quedan, INCLUIDO el que volas; cada relevo descuenta uno
+  // LA FILA Y EL CAMBIO DE PILOTO (core/squad.js, `alMando`). `orden`: los numerales vivos, el
+  // primero vuela. `flota[i]`: la FICHA del avion `i` mientras NO vuela — su nafta, su daño y sus
+  // bombas; la del que vuela vive en los campos de siempre de `run`. `cambioCd`: la espera hasta el
+  // proximo cambio.
+  orden: [], flota: [], cambioCd: 0,
+  gastoLider: 0,   // % de nafta que gasto el que manda desde el despegue (los de atras gastan una fraccion)
 
   // --- tren de aterrizaje ---
   gear: 1,         // 1 = bajado (en pista) · 0 = recogido. Lo anima el despegue; ver render/plane.js
@@ -187,6 +193,7 @@ export function resetRun() {
     afterT: 0, afterTier: 0, afterGrace: 0,
     scrapeT: 0, scrapeVib: 0,
     squad: 1, lives: 1,
+    orden: [], flota: [], cambioCd: 0, gastoLider: 0,
     gear: 1,
     windT: 0, windF: 1,
     fireT: 0, msl: MSL_MAX, mslCd: 0, mslRegen: 0,

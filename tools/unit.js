@@ -102,7 +102,8 @@ test('clamp: casos de borde', () => {
 // La cinematica y el autopiloto no se prueban aca (tocan stores y canvas); esto cubre la
 // logica que decide VIDAS y TIEMPOS — donde un off-by-one significa morir gratis.
 import { canRelevo, pilotIdx, callsign, relevoPhase, formationSlots,
-  RELEVO_WRECK, RELEVO_GRACE, RELEVO_DUR, naftaCompanero } from '../src/core/squad.js';
+  RELEVO_WRECK, RELEVO_GRACE, RELEVO_DUR, naftaCompanero,
+  alMando, detras, filaOk, filaDeVidas } from '../src/core/squad.js';
 
 test('relevo: el compañero venia ahorrando — entra con MAS que el lider, nunca lleno', () => {
   assert.equal(naftaCompanero(0), 40, 'el que se seco deja un compañero con 40 %');
@@ -2982,3 +2983,40 @@ test('vuelta real: con fuga la Chancha no se va al llenar — te lleva a upa', a
   assert.ok(!conFuga.includes('lleno') && conFuga.includes('upa'), 'con fuga: avisa que te lleva y no se va al llenar (' + conFuga + ')');
   ch.resetChancha();
 });
+
+// ---------- LA FILA Y EL CAMBIO DE PILOTO (core/squad.js, 26/9/2026) ----------
+// LA GARANTIA DE FONDO: con la mecanica APAGADA la fila nunca se reordena, y entonces tiene que dar
+// EXACTAMENTE los mismos pilotos que la cuenta de vidas de siempre. Diecisiete lugares del juego
+// dejaron de preguntarle a `pilotIdx` y le preguntan a la fila; si esto se rompe, se rompen todos.
+test('fila: apagada, da los mismos pilotos que la cuenta de vidas', () => {
+  for (let squad = 1; squad <= 8; squad++) {
+    for (let lives = 1; lives <= squad; lives++) {
+      const r = { squad, lives, orden: filaDeVidas(squad, lives) };
+      assert.equal(alMando(r), pilotIdx(squad, lives), `manda, ${lives}/${squad}`);
+      if (lives > 1) assert.equal(detras(r), pilotIdx(squad, lives) + 1, `el de atras, ${lives}/${squad}`);
+    }
+  }
+});
+
+test('fila: caer es sacar al primero, y da lo mismo que descontar una vida', () => {
+  const r = { squad: 4, lives: 4, orden: filaDeVidas(4, 4) };
+  r.orden.shift(); r.lives--;
+  assert.equal(alMando(r), pilotIdx(4, 3));
+});
+
+test('fila: cambiar manda al que vuela al fondo y sube el siguiente', () => {
+  const r = { squad: 4, lives: 4, orden: [0, 1, 2, 3] };
+  r.orden.push(r.orden.shift());
+  assert.equal(alMando(r), 1);
+  assert.deepEqual(r.orden, [1, 2, 3, 0]);
+  // …y dando la vuelta completa vuelve el primero
+  for (let i = 0; i < 3; i++) r.orden.push(r.orden.shift());
+  assert.equal(alMando(r), 0);
+});
+
+test('fila: desincronizada (una sonda toco las vidas), cae a la cuenta de siempre', () => {
+  const r = { squad: 4, lives: 2, orden: [0, 1, 2, 3] };
+  assert.equal(filaOk(r), false);
+  assert.equal(alMando(r), pilotIdx(4, 2));
+});
+

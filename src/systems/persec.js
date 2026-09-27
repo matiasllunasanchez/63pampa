@@ -59,7 +59,7 @@ import { beep, duck } from './audio.js';
 import { multOf } from '../core/util.js';
 import { speedTarget } from '../core/physics.js';
 import { pilotName } from './squad.js';
-import { pilotIdx } from '../core/squad.js';
+import { alMando } from '../core/squad.js';
 import { FLY_X, FLY_TOP } from '../data/tuning.js';
 import {
   PURS_D, PURS_D0, PURS_V_F, PURS_V_AMP, PURS_V_T,
@@ -267,7 +267,7 @@ function infinito() {
     const f = Math.pow(PURS_TIGHT_F, paso);
     L.lo = Math.max(PURS_TIGHT_MIN[0], PURS_D[0] * f);
     L.hi = Math.max(PURS_TIGHT_MIN[1], PURS_D[1] * f);
-    popup(W / 2, 54, T('purs_aprieta', { c: pilotName(pilotIdx(run.squad, run.lives)) }), P.accent);
+    popup(W / 2, 54, T('purs_aprieta', { c: pilotName(alMando(run)) }), P.accent);
     beep(700, 0.09, 'square', 0.045, 520);
   }
   // relevo del lider

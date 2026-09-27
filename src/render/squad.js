@@ -15,7 +15,7 @@ import { P } from '../data/palette.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
 import { PLANE_SCALE, drawGear, drawShadow } from './plane.js';
 import { drawSquadPips } from './hud.js';
-import { formationSlots, pilotIdx, RELEVO_WRECK, RELEVO_DUR, puestoFormacion } from '../core/squad.js';
+import { formationSlots, detras, RELEVO_WRECK, RELEVO_DUR, puestoFormacion } from '../core/squad.js';
 import { pilotName, rosterActive, fallenPos } from '../systems/squad.js';
 import { skinOf } from '../data/skins.js';
 import { iconoEn } from './iconos.js';
@@ -39,7 +39,8 @@ function hojaDe(pl, idx) {
 export function drawFormation({ selPlane, exit }) {
   const pl = PLANES[selPlane];
   const slots = formationSlots(run.squad);
-  const lider = pilotIdx(run.squad, run.lives);   // los puestos son los numerales que siguen
+  // los puestos son los que SIGUEN EN LA FILA (core/squad.js): con cambio de piloto no tienen por
+  // que ser los numerales de al lado del que vuela
   const kRef = proj(0, 0, PZ).k;
   const smooth = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = false;
@@ -77,7 +78,7 @@ export function drawFormation({ selPlane, exit }) {
     ctx.translate(s.x, s.y);
     drawGear(run.gear, U * f);
     ctx.restore();
-    const hoja = hojaDe(pl, lider + 1 + i);
+    const hoja = hojaDe(pl, detras(run, 1 + i));
     if (hoja) {
       const col = (SHEET_NF - 1) / 2;                    // nivelados: la formacion no banquea
       const row = plane.pitch > 0.33 ? 0 : 1;            // pero acompañan el cabeceo del lider
@@ -103,8 +104,9 @@ export function drawFallen({ selPlane, rv }) {
   const f = s.k / proj(0, 0, PZ).k;
   const smooth = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = false;
-  // el que se va es el numeral ANTERIOR al lider actual: a este ya lo relevaron
-  const hoja = hojaDe(pl, Math.max(0, pilotIdx(run.squad, run.lives) - 1));
+  // el que se va es EL QUE CAYO, que el relevo anota (con cambio de piloto no tiene por que ser el
+  // numeral anterior al que vuela ahora)
+  const hoja = hojaDe(pl, rv.fallen);
   if (hoja) {
     // TAMBALEA: el alabeo oscila alrededor del banqueo de salida y el sprite tirita 1 px —
     // el avion esta ROTO y tiene que verse (playtest 4/8: "mostrar que esta roto")
