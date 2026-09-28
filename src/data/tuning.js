@@ -480,6 +480,14 @@ export const CH_HOSE_Y = 6;      // cuanto cuelga la canasta por debajo del avio
 export const CH_HOSE_Z = 10;
 export const CH_DERIVA = 7;      // amplitud de la deriva lateral (m)
 export const CH_DERIVA_V = 0.22; // velocidad de la deriva (rad/s): lenta, se sigue con el timon
+// LA LLEGADA, DE ARRIBA HACIA ABAJO (28/9, el autor): aparece CH_BAJADA_H por encima de su altura y
+// baja a la cita en CH_BAJADA_T segundos, frenando al final. Antes aparecia de golpe en su lugar.
+export const CH_BAJADA_T = 2.4, CH_BAJADA_H = 45;
+// …Y LA QUE ESPERA NO BAJA HASTA QUE SUBAS (28/9, el autor: "primero el piloto avisa, y si el
+// jugador sube en el margen disponible aparece desde arriba"): la cita de la ida se queda en el
+// aviso hasta que el avion pasa esta altura (de mundo). 30 es la zona de gasto medio bien entrada,
+// a una trepada corta de la canasta (CH_ALT - CH_HOSE_Y = 42).
+export const CH_APARECE_Y = 30;
 export const CH_SALIDA = 2.6;    // s que tarda en irse por arriba una vez que termino
 
 export const TEMPO_SCALE = 0.35;    // el mundo a ~1/3: se nota de verdad, no un slow-mo timido

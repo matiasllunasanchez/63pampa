@@ -662,6 +662,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (sig === 'ack') { beep(480, 0.05, 'square', 0.04); chanchaDice('ch_ack'); return; }
       if (sig === 'come') { beep(430, 0.06, 'square', 0.04); chanchaDice('ch_come'); return; }
       if (sig === 'llega') { beep(300, 0.18, 'sawtooth', 0.05, 60); chanchaDice('ch_arriba'); return; }
+      // la que espera, cuando subiste: aparece de arriba (el aviso ya lo dio al pedirse)
+      if (sig === 'baja') { beep(300, 0.18, 'sawtooth', 0.05, 60); chanchaDice('ch_aca'); return; }
       if (sig === 'conecta') { beep(720, 0.08, 'square', 0.05, 220); chanchaDice('ch_connect'); return; }
       if (sig === 'corta' || sig === 'golpe') {
         // el CHISPAZO: se ve donde estaba la punta de la sonda, no en el medio de la pantalla
@@ -3983,7 +3985,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             const r = chancha.pedir({ fuelOn: true, enPasillo: !cfg.devcam, t: run.t, minT: 0,
               viva: !((gameMode === 'campaign' || S.test) && curMission() && curMission().chancha === false),
               auto: true, espera: true, eta: CH_ETA_RUTA });
-            if (r === 'ok') { beep(520, 0.07, 'square', 0.05, 120); chanchaDice('ch_espera'); }
+            if (r === 'ok') { beep(520, 0.07, 'square', 0.05, 120); chanchaDice('ch_arriba'); }   // primero el aviso: "suba, soldado"
           }
         }
       }

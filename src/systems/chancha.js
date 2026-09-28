@@ -15,7 +15,7 @@
 // jamas — no muere, no aborta, no colisiona. El eslabon debil de la cita sos vos.
 
 import { CH_CHARGE, CH_MIN_T, CH_ETA, CH_ALT, CH_BOX, CH_RATE, CH_WINDOW, CH_SPD_F,
-  CH_Z, CH_HOSE_X, CH_HOSE_Y, CH_HOSE_Z, CH_DERIVA, CH_DERIVA_V, CH_SALIDA, CH_ENGANCHE } from '../data/tuning.js';
+  CH_Z, CH_HOSE_X, CH_HOSE_Y, CH_HOSE_Z, CH_DERIVA, CH_DERIVA_V, CH_SALIDA, CH_ENGANCHE, CH_BAJADA_T, CH_BAJADA_H, CH_APARECE_Y } from '../data/tuning.js';
 
 // FASES: 'idle' (no pasa nada) · 'eta' (pedida, viniendo) · 'cita' (esta arriba) · 'yendo' (se va).
 // No hay estado de JUEGO nuevo: todo esto ocurre adentro de 'play' (RF-06).
@@ -50,8 +50,10 @@ function canasta() {
   return { x: x + CH_HOSE_X, y: alturaHoy() - CH_HOSE_Y, z: CH_Z - CH_HOSE_Z };
 }
 
-/** La altura del Hercules AHORA. En la salida se va por arriba, que es lo unico que se mueve. */
+/** La altura del Hercules AHORA. LLEGA DE ARRIBA (baja a su altura en los primeros CH_BAJADA_T
+ *  segundos de la cita, frenando) y en la salida se va por arriba. */
 function alturaHoy() {
+  if (fase === 'cita' && citaT < CH_BAJADA_T) { const u = 1 - citaT / CH_BAJADA_T; return CH_ALT + CH_BAJADA_H * u * u; }
   return CH_ALT + (fase === 'yendo' ? (CH_SALIDA - salT) * 14 : 0);
 }
 
@@ -116,6 +118,13 @@ export function tick(dt, e) {
   }
   lastScore = e.score;
 
+  // LA QUE ESPERA NO VIENE POR RELOJ SINO CUANDO SUBIS (CH_APARECE_Y): su piloto ya aviso al
+  // pedirse (game.js), y ella se queda fuera de cuadro hasta que el avion trepa. Sin ritual de
+  // radio: no la pediste vos.
+  if (fase === 'eta' && espera) {
+    if (e.planeY >= CH_APARECE_Y) { fase = 'cita'; winT = Infinity; citaT = 0; x = 0; conn = false; reserva = 1; upa = false; out.sig = 'baja'; }
+    return out;
+  }
   if (fase === 'eta') {
     // EL RITUAL DE RADIO corre por `dt` y no por setTimeout (§8.6): asi pedirla en camara lenta
     // no descoloca las respuestas, y una pausa no deja a Condor contestando solo.

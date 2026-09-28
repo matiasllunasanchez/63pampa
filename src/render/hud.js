@@ -1833,7 +1833,7 @@ export function drawHUD(h) {
       // LA AGUJA SE QUEDA BLANCA (pedido del autor, 12/9): el verde lo dicen el borde, el icono y el
       // numero. Teñirla tambien era pintar de verde el unico trazo que se lee como MEDIDA.
       col: gastada ? P.dim : lista ? P.foam : P.crest,
-      txt: enCita ? (ch.fase === 'eta' ? Math.ceil(ch.eta) + 's'
+      txt: enCita ? (ch.fase === 'eta' ? (ch.espera ? '--' : Math.ceil(ch.eta) + 's')
         : ch.conn ? Math.round(ch.reserva * 100) + '%' : ch.espera ? '--' : Math.ceil(Math.max(0, ch.win)) + 's')
         : h.chIdaLista ? T('ch_lista') : Math.round(cv * 100) + '%',
       txtCol: lista ? verde : ch && ch.conn ? P.accent : ch && ch.fase === 'cita' && ch.win < 8 ? P.warn : P.dim });

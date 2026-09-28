@@ -2783,11 +2783,13 @@ test('chancha: con ruta se la llama por tramo, hasta lo que diga la mision, y si
 
 test('chancha: hay que SOSTENERSE en la caja antes de cargar, y su reserva baja mientras da', async () => {
   const ch = await import('../src/systems/chancha.js');
-  const { CH_ENGANCHE, CH_ETA } = await import('../src/data/tuning.js');
+  const { CH_ENGANCHE, CH_ETA, CH_BAJADA_T } = await import('../src/data/tuning.js');
   ch.resetChancha(); ch.cargar();
   ch.pedir({ fuelOn: true, enPasillo: true, viva: true, t: 0, minT: 0, mitad: 'ida', max: 1 });
   const e = s => ({ inPlay: true, score: 0, planeX: s.bx, planeY: s.by, fuel: 10 });
-  ch.tick(CH_ETA + 0.01, { inPlay: true, score: 0, planeX: 0, planeY: 0, fuel: 10 });   // llega
+  const lejos = { inPlay: true, score: 0, planeX: 99, planeY: 0, fuel: 10 };
+  ch.tick(CH_ETA + 0.01, lejos);   // llega…
+  ch.tick(CH_BAJADA_T + 0.01, lejos);   // …y baja de arriba hasta su altura (la canasta se mueve mientras)
   let s = ch.snapshot(); assert.equal(s.fase, 'cita');
   let o = ch.tick(0.1, e(s)); s = ch.snapshot();
   assert.equal(s.conn, true); assert.equal(s.cargando, false, 'recien entra: naranja');
