@@ -4,6 +4,97 @@
 
 ---
 
+## PANEO GENERAL
+
+*Todo lo que tiene la misión en una página. El detalle, abajo.*
+
+> **Estado al 27/9:** esto es **cómo está hoy en el código**. Lo que hay que cambiar está al
+> final de este paneo, en *Lo que falta*.
+
+### La secuencia completa
+
+| # | momento | escena | tipo | quién habla | qué pasa |
+|---|---|---|---|---|---|
+| 1 | antes | `M03_INVENTO` · El invento | pantalla | Turco, Pichón, Gitano, Puma | el pibe le toca el avión y el Turco decide escucharlo |
+| 2 | antes | `M03_TARJETA` | tarjeta | — | título y objetivo |
+| — | antes | **falta `M03_PISTA`** | — | Cóndor | **la regla de campaña dice que Cóndor cierra, y acá no cierra** |
+| 3 | ida | `M03_OBJETIVO` | radio en vuelo | Cóndor, el Turco | la patrulla, y *"despacio al invento del changuito"* |
+| 4 | ida | — | — | **nadie** | silencio hasta el final |
+| 5 | vuelta | — | — | — | **hoy no existe: la misión es una sola tirada de 2.400 m** |
+| 6 | llegada | aterrizaje | jugable | — | el de siempre |
+| 7 | después | recuento | pantalla | — | con puntos y estrellas |
+| — | después | **falta la elección de mejora** | — | — | **G-09 la manda acá, y no está enganchada** |
+| 8 | después | `M03_ARANDELA` · El primer fracaso glorioso | pantalla | Turco, Pichón, Gitano | el invento explota y le vuela el gorro al Turco |
+| 9 | después | `M03_BURRADA` · La burrada del Gitano | pantalla | Gitano, Turco, Pichón, Vasco, Puma | la maniobra imposible |
+| 10 | después | `M03_CUADERNO` | carta | Mateo | la navaja del Colorado |
+| 11 | después | `M03_BELGRANO` · 2 de mayo | pantalla | Pichón, Gitano, Puma | la risa se corta a la mitad |
+| — | después | **falta `M03_HIST`** | — | — | **puede que no haga falta: el hecho ya está adentro de la escena** |
+
+### Qué se enseña, y quién
+
+| qué | quién | cómo |
+|---|---|---|
+| que una mejora se siente en las manos | nadie, y está bien | el avión sale distinto del rasante; es lo único que la misión pide entender |
+| que de acá en adelante se elige mejora | — | **la pantalla de elección no está enganchada** |
+| repaso de cañón, rasante, radar | — | sin castigo, porque no hay con qué castigarte |
+| que después de atacar te buscan | — | **hoy no pasa: no hay vuelta y no hay cazas en ningún momento** |
+| el sistema de mejoras como sistema | — | **no lo explica nadie** |
+
+> **M3 es la misión más liviana de la campaña a propósito, y ese es su riesgo.** Está bajada para
+> que se note una sola cosa. Si esa cosa no se nota —porque la mejora no está enganchada, porque
+> nadie la nombra—, la misión queda sin motivo.
+
+### Mecánicas: qué está prendido y qué no
+
+*Al lado, M2, que es de dónde viene el jugador.*
+
+| | M2 | M3 |
+|---|---|---|
+| cielo | atardecer | **amanecer** (`sky: 'dawn'`) |
+| terreno | mar abierto | **costa** (`terrain: 'coast'`) |
+| enemigos (cazas) | sí | **no, ninguno** (`caza: 0`) |
+| bombas enemigas | sí, a media cadencia | **no** (`bombs: 0`) |
+| obstáculos | cadencia normal | **la mitad** (`obstacles: 0.5`) |
+| radar | normal | **normal, sigue costando igual** |
+| persecución | no | no |
+| poderes | sí | sí |
+| clima | viento | viento; ni lluvia ni niebla |
+| morir / cambiar de piloto | cinco pilotos | **cinco pilotos** (`roster: F5`) |
+| combustible | lo que tenga puesto el jugador | **igual: M3 tampoco lo declara** |
+| ida y vuelta | no | **no**: `goal: distance 2.400 m`, sin `fases` |
+| objetivo real | no | **no**: llegar a los 2.400 m *es* el objetivo |
+| puntos en pantalla | sí (par 6.500) | **sí** (par 7.000) |
+| mejora al terminar | servida sin elegir | **se elige entre dos — pero falta engancharlo** |
+
+### Lo que falta
+
+- **Los blancos reales.** Las boyas y el radar portátil no existen: hoy son obstáculos genéricos
+  sembrados a la mitad de cadencia.
+- **La forma ida / objetivo / vuelta corta.** M3 no declara `fases`. M1 sí — es el molde a copiar.
+- **La pantalla de elección de mejora, y dónde entra exactamente.** `G-09` dice *inmediatamente
+  después de la misión, antes de la carta*. Pero la carta es la **tercera** escena del epílogo:
+  primero la arandela, después la burrada, y recién ahí el cuaderno. **Hay que decidir si la
+  elección va antes de la arandela o justo antes del cuaderno.**
+- **El cierre de Cóndor** antes de jugar (`M03_PISTA`). No existe. Hoy la última voz antes de
+  jugar es la de Puma apostando dos cajas de puchos.
+- **`brief: 'briefM3'` apunta a una secuencia que no existe.** No hay `briefM3` en `story.js`, y
+  en `src/data/` no hay nadie que lea `.brief`. **Es el mismo caso que M2** — o se escribe, o se
+  saca la declaración.
+- **`M03_HIST` no existe.** Puede que esté bien así: el dato histórico de esta misión es el
+  Belgrano, y ya está adentro de `M03_BELGRANO` como línea de narrador — eso se decidió en M3-14.
+  **Decidir si además lleva placa o no.**
+- **El comentario del código de `M03_BURRADA` quedó viejo.** Todavía enumera la coreografía con
+  *"tirar el caño"*, que M3-06 sacó. Las líneas están bien; el comentario miente.
+- **Las caras.** `gestos.js` dice que los cinco Fieles tienen cinco gestos —neutro, ceño,
+  preocupado, sonrisa, roto— y eso es el cuadro **en vuelo**. Las escenas usan más de setenta
+  caras distintas, y varias de M3 son de actuación pura: `turco_pensante`, `gitano_imaginando`,
+  `gitano_delirante`, `vasco_rezo`, `vasco_espalda`, `puma_enojado`, `condor_radio`. **Hay que
+  confirmar cuáles existen como retrato de escena.** En la pasada anterior ya salió una que no
+  existía: `turco_ternura`, en `M02_5`.
+- La charla en vuelo de Cóndor **no se dibuja** (bug de toda la campaña, ver M1).
+
+---
+
 ## Antes de empezar
 
 **La misión de la comedia.** Se ríen del principio al final — y al final entra el Pichón con una
@@ -41,9 +132,26 @@ Puma)* Una caja de puchos a que el Turco lo manda a cagar antes del mediodía.
 
 ---
 
+**Aparece la tarjeta:** *EL INVENTO — Primeros días de mayo de 1982 · Patrulla costera.*
+*OBJETIVO · Patrulla de reconocimiento costero. Probar el invento del Pichón.*
+
+---
+
 ## ▓ SE JUEGA LA MISIÓN
 
-### Cómo está armada, en criollo
+### Cómo está armada hoy, en criollo
+
+**Se despega al amanecer y se vuela 2.400 metros sobre la costa. Llegar es ganar.** No hay blanco,
+no hay giro y no hay vuelta.
+
+Y no hay nada que te ataque: **ni un caza, ni una bomba, en toda la misión.** Lo único que hay son
+obstáculos, a la mitad de la cadencia normal, y el radar, que sigue costando igual que en la
+misión dos pero no tiene con qué cobrártelo.
+
+Es, tal cual, la misión más liviana de la campaña. **Está bien que lo sea** — el problema es que
+lo único que justifica esa calma, que es sentir la mejora puesta, todavía no está enganchado.
+
+### Cómo tiene que quedar
 
 **Patrulla de reconocimiento sobre la costa. Vuelo libre, cero presión.**
 
@@ -81,11 +189,6 @@ para que lo notes.
 |---|---|---|
 | Al entrar al pasillo | Cóndor da la patrulla, y el Turco se cuelga de la radio | **No frena** |
 | El resto | Nadie | — |
-
----
-
-**Aparece la tarjeta:** *EL INVENTO — Primeros días de mayo de 1982 · Patrulla costera. OBJETIVO ·
-Patrulla de reconocimiento costero. Probar el invento del Pichón.*
 
 **En la ida, por radio:**
 
@@ -255,6 +358,16 @@ guerra. En una sola tarde...*
 
 ---
 
+## Y al terminar, la primera elección
+
+De acá en adelante **se ofrecen dos mejoras y se elige una**, y así hasta el final. Hay doce
+mejoras y diez oportunidades, o sea que **dos quedan sin aprender por partida**. A partir de la
+misión ocho, muerto el Pichón, la pantalla cambia de nombre: las construye el Turco solo.
+
+**Hoy esa pantalla no está enganchada, y falta decidir dónde entra.** Ver *Lo que falta*.
+
+---
+
 *Y de acá, a la misión cuatro.*
 
 ---
@@ -264,34 +377,43 @@ guerra. En una sola tarde...*
 
 *Para el código. Si estás leyendo la historia, terminó arriba.*
 
+**La configuración de hoy, tal cual está en `missions.js`:**
+
+```
+id: 'm3', name: 'EL INVENTO', date: 'primeros dias de mayo de 1982',
+despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'patrulla de reconocimiento costero' },
+goal: { kind: 'distance', meters: 2400 },
+cfg: C({ sky: 'dawn', terrain: 'coast', obstacles: 0.5, bombs: 0, caza: 0 }),
+tramos: [
+  { hasta: 0.1, obstacles: 0, caza: 0, bombs: 0, charla: 'M03_OBJETIVO' },
+  { hasta: 1 },
+],
+roster: F5, par: 7000, story: 'storyM3', brief: 'briefM3', epi: 'epiM3',
+```
+
+**En castellano:** 2.400 m de una sola tirada, al amanecer y sobre la costa · el primer 10% va
+vacío para que entre la radio de Cóndor · el resto con la mitad de obstáculos y nada más · cinco
+pilotos, cinco vidas · 7.000 puntos de referencia.
+
 **Qué se enseña:** el sistema de mejoras, y qué se siente tener una puesta. Todo lo demás es
 repaso sin costo.
 
 **Qué NO hay:** enemigos, bombas, Pulso. **Nada persigue a nadie en toda la misión.**
 
-**Vidas:** cinco.
-
-**Qué se gana al terminar:** a partir de acá, **se ofrecen dos mejoras y se elige una**, y así
-hasta el final. Hay doce mejoras y diez oportunidades, o sea que **dos quedan sin aprender por
-partida**. A partir de la misión ocho, muerto el Pichón, la pantalla cambia de nombre: las
-construye el Turco solo.
-
 **Cinemática:** ninguna. El final emocional de esta misión no está en el aire, está en el hangar.
 
-**Lo que falta hacer:**
-- Las boyas y el radar portátil como blancos reales.
-- Declarar la forma, con vuelta corta y sin cazas.
-- Enganchar la pantalla de elección de mejora **inmediatamente después de la misión, antes de la
-  carta** (decidido en `PENDIENTES_GUION.md`, G-09).
+**Escenas en el código:** `M03_INVENTO`, `M03_TARJETA` *(storyM3)* · `M03_OBJETIVO` *(en vuelo)* ·
+`M03_ARANDELA`, `M03_BURRADA`, `M03_CUADERNO`, `M03_BELGRANO` *(epiM3)*. Falta `M03_HIST`, y
+`briefM3` está declarado pero no existe.
 
-**Bugs:** la conversación en vuelo de Cóndor no se dibuja.
+**Decisiones ya cerradas** *(en `../RESUELTOS_GUION.md`, no se reabren)*: "Va a hace cagada" queda,
+el Turco se queda sin su comodín *aca* en toda la campaña (M3-01) · el paracaídas de la burrada
+queda y el cobro de la misión nueve ya fue reformulado para que funcione con él (M3-05) · la
+coreografía de la burrada queda como está, con el reingreso y sin tirar el caño (M3-06) · "no
+tenés visión, Turco" no entra (M3-08) · el Vasco dice "Diosito" y se va (M3-09) · la cifra del
+Belgrano va como línea de narrador y no como placa seca (M3-14).
 
-**Decisiones ya cerradas** *(en `RESUELTOS_GUION.md`, no se reabren)*: "Va a hace cagada" queda, el
-Turco se queda sin su comodín *aca* en toda la campaña (M3-01) · el paracaídas de la burrada queda
-y el cobro de la misión nueve ya fue reformulado para que funcione con él (M3-05) · la coreografía
-de la burrada queda como está, con el reingreso y sin tirar el caño (M3-06) · "no tenés visión,
-Turco" no entra (M3-08) · el Vasco dice "Diosito" y se va (M3-09) · la cifra del Belgrano va como
-línea de narrador y no como placa seca (M3-14).
-
-**Escenas en el código:** `M03_INVENTO`, `M03_TARJETA`, `M03_OBJETIVO`, `M03_ARANDELA`,
-`M03_BURRADA`, `M03_CUADERNO`, `M03_BELGRANO`. Falta `M03_HIST`.
+**Lo que M1 dejó firme y cae sobre M3** *(de `M1_CAMBIOS.md`, ya implementado)*: Cóndor cierra
+siempre antes de jugar · cada misión tiene su cartel de despegue con su rumbo · cada misión abre
+con su indicativo de ave por radio (acá, **Benteveo**) · el recuento y los puntos existen salvo
+que la misión los apague · **ningún personaje nombra una tecla.**

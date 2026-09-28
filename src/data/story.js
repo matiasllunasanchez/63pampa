@@ -576,7 +576,7 @@ export const SCENES = {
     id: 'M01_TERITO', tipo: 'VN', titulo: 'SU PÁJARO', placa: 'linea_amanecer',
     lineas: [
       { id: 'M01_TERITO_010', personaje: null, cara: null, hold: 2.5, tipo: 'NARRADOR',
-        es: 'En el fuselaje del avión de Esteban, bajo la cabina, hay pintura fresca: un terito chiquito recortado en blanco, de perfil, quieto y alerta. Cuello finito, pecho compacto, y la cresta larga barriendo hacia atrás desde la nuca.', en: '' },
+        es: 'En el fuselaje del avión de Esteban, bajo la cabina, hay pintura fresca: un terito chiquito recortado en blanco, de perfil, quieto y alerta. Cuello finito, pecho compacto, y la cresta larga barriendo hacia atrás desde la nuca. Al lado, en letras chicas, todavía húmedas: ESPOLA.', en: '' },
       { id: 'M01_TERITO_020', personaje: 'ESTEBAN', cara: 'tero_neutro', hold: 1.0,
         accion: 'Toca la pintura fresca con un dedo.',
         es: '…¿Y esto?', en: '' },
@@ -588,9 +588,18 @@ export const SCENES = {
         es: '…¿Y el resto tienen estrellas?', en: '' },
       { id: 'M01_TERITO_050', personaje: 'EL TURCO', cara: 'turco_sonrisa', hold: 0.8,
         es: 'Sí. Tengo la costumbre de pintarles una estrella a cada uno por cada vuelta.', en: '' },
+      // EL NOMBRE DEL VASCO (27/9): su avion se llama X, y la X la pinto EL, nadie mas. Se planta
+      // aca, dicho en voz alta, para que el dorso de la foto de M7 ("Perdoname. X") se reconozca.
+      // El Turco dice el hecho y no el porque: que la X es un beso no lo dice nadie, nunca (§9d).
+      // "Fuera de las estrellas" no es relleno: la estrellita del C-214 que no se pinta en M7.
+      { id: 'M01_TERITO_060', personaje: 'ESTEBAN', cara: 'tero_neutro', hold: 1.0,
+        accion: 'Señala el avión de al lado, el más gastado de la fila.',
+        es: '¿Y ése? ¿Una X?', en: '' },
+      { id: 'M01_TERITO_070', personaje: 'EL TURCO', cara: 'turco_neutro', hold: 2.0,
+        es: 'El Vasco nunca me dejó pintarle nada, fuera de las estrellas. La X se la pintó él solo. Y le puso así.', en: '' },
       // el gesto del Turco: le habla al avion como a un caballo, y la ultima frase no es sobre el
       // avion. Nadie lo comenta, aca ni despues (§9d, la regla que hace que no sea cursi).
-      { id: 'M01_TERITO_060', personaje: 'EL TURCO', cara: 'turco_orgullo', hold: 3.0,
+      { id: 'M01_TERITO_080', personaje: 'EL TURCO', cara: 'turco_orgullo', hold: 3.0,
         accion: 'Golpea el fuselaje como a un caballo.',
         es: 'Traémela entera, Tero, eh. Y traete vos adentro, que la estrellita la pinto por vos, no por ella.', en: '' },
     ],
@@ -1076,7 +1085,7 @@ export const SCENES = {
     titulo: 'EL DORSO', placa: 'm7_foto_dorso', img: 'M07_LOCKER2',
     lineas: [
       { id: 'M07_LOCKER2_010', personaje: null, cara: null, hold: 0,
-        es: 'Rosa Elena Arrieta. 1926 – 1961. "Te amo, mamá. Perdoname."', en: '' },
+        es: 'Rosa Elena Arrieta. 1926 – 1961. "Te amo, mamá. Perdoname. X"', en: '' },
       // EL DORSO DE LA FOTO: la imagen ES el contenido, asi que esta linea sola cambia de registro
       // a CUADRO sin cortar la escena. Venia de M07_LOCKER, el fixture de aceptacion.
       { id: 'M07_LOCKER2_020', personaje: null, cara: null, hold: 2.5,

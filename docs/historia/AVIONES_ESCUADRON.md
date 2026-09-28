@@ -102,6 +102,37 @@ text"): se tipografía en el motor, así además se puede corregir sin regenerar
 
 ---
 
+## 🟩 Los nombres pintados *(Matías, 27/9/2026)*
+
+**Están pintados siempre.** Cuando empieza el juego, los aviones de la escuadrilla **ya tienen su
+nombre** en la chapa, desde antes. Cada nombre va **chiquito, bajo la cabina**, y es **fijo**: no
+cambia en toda la guerra.
+
+**El único que se pinta en pantalla es el de Tero, cuando llega** (M1, `M01_TERITO`): la pintura
+fresca de esa escena es el terito **y ESPOLA**. Por eso la línea del Turco funciona como
+bienvenida: *"Su pájaro, Teniente. Acá los aviones van con nombre."* — los otros cuatro ya lo
+tienen, y ahora él también.
+
+| avión | piloto | nombre pintado | estado |
+|---|---|---|---|
+| C-222 | TERO | **ESPOLA** | ✅ decidido |
+| C-207 | PUMA | **MONTE** | ✅ decidido (27/9; se descartó GARRA) · en letra de plantilla (§2) |
+| C-239 | GITANO | **GAMBETA** | ✅ decidido |
+| C-214 | VASCO | **X** | ✅ 27/9 · **el único que no pintó el Turco**: se la pintó el Vasco y le puso así. Es un beso para su madre, y no lo dice nadie (§4) |
+| C-231 | PICHÓN | **OHM** | 🟩 elegido (27/9; la otra candidata era RESISTENCIA) |
+
+**No se confunde con el nombre del día del Gitano.** Ese es **de palabra**, lo dice al subir y
+nunca se pinta (GUION_3 §9d). El C-239 lleva GAMBETA en la chapa y además, cada misión, el
+nombre que el Gitano le grita al Turco.
+
+**Cuatro palabras y una X.** En la línea de vuelo hay cuatro nombres pintados por el Turco y una
+X pintada por su dueño. Todos saben que el avión del Vasco se llama X; nadie sabe por qué
+(§9d, ley 1). Se sabe en M7, en el dorso de la foto.
+
+**Se tipografían en el motor**, igual que los números: las hojas modelo solo dejan el lugar.
+
+---
+
 # Las cinco fichas
 
 ## 1 · El avión de TERO *(Esteban — el que volás)* — "C-222"
@@ -123,6 +154,10 @@ como *Plata Fiel* a secas.
   derribe más: porque **vuelve más**. La cuenta visible de un tipo que promete volver.
 - Un **sapito**: una piedrita chata, real, alojada en el borde del parabrisas, del lado de
   adentro. Nadie sabe desde cuándo está. Él sí.
+- 🟩 El nombre **ESPOLA** bajo la cabina, chiquito, junto al terito *(27/9; se tipografía en el
+  motor, no se genera)*. **Se lo pintan cuando llega**, la primera mañana, junto con el terito:
+  es la pintura fresca de `M01_TERITO`. El terito sigue siendo la marca: el nombre se lee de cerca, el pájaro
+  de lejos.
 - Camuflaje gastado prolijo: limpio pero no lustrado. Un avión usado por un profesional.
 
 **Marca de sprite (20 px):** 🟩 **el terito.** *(22/8: antes era la fila de estrellitas. Con el
@@ -148,8 +183,9 @@ SOUTHERN LAPWING bird (tero) painted as a SOLID WHITE SILHOUETTE — a filled
 white shape with no detail inside it, long legs, proud chest, wings half raised
 as if crying out, naive folk-art shape, standing out sharply against the dark
 camouflage — and next to it the LONGEST row of small
-hand-painted plain white stars in the squadron, slightly uneven. A tiny flat
-grey pebble resting inside the windscreen frame, barely visible. No shark mouth,
+hand-painted plain white stars in the squadron, slightly uneven. Clear space
+under the cockpit sill, beside the bird, where a small name will be added later.
+A tiny flat grey pebble resting inside the windscreen frame, barely visible. No shark mouth,
 no other nose art, no pin-ups, no flags.
 
 PERIOD LOCK — Argentina 1982: no modern weapons, no modern avionics, no NATO or
@@ -175,6 +211,12 @@ sabe y se lo respeta: a este avión no se le agrega nada que no esté en el manu
 - Sus estrellitas: en fila perfecta, equidistantes. (Las de los demás están apenas
   torcidas. Las de Puma no, porque el Turco sabe que él las mira.)
 
+- 🟩 **El nombre pintado: MONTE** *(27/9; se descartó GARRA, que era el registro futbolero del
+  Gitano)*. Y la forma resuelve el
+  choque con "nada personal": es el **único nombre de la escuadrilla en letra de plantilla**,
+  estarcido, parejo, como una matrícula. Los otros están a pincel; a este se lo
+  pinta por el manual, porque sabe que Puma lo mira. Puma nunca lo dice en voz alta.
+
 **Marca de sprite (20 px):** las dos franjas **blancas** en la cola.
 
 **Hoja modelo:**
@@ -189,7 +231,8 @@ patches over brown, with a pale blue-grey belly. The CLEANEST and most immaculat
 aircraft of the squadron: the camouflage pattern is sharp and evenly applied, no
 streaks, no stains, regulation finish. TWO neat WHITE command stripes painted
 across the tail fin, masked and crisp, standing out hard against the camouflage. Below the cockpit, a short row of small white stars painted in
-a PERFECTLY straight, evenly spaced line. Nothing personal anywhere else, strictly
+a PERFECTLY straight, evenly spaced line. Clear space under the cockpit sill where
+a small stencilled name will be added later. Nothing personal anywhere else, strictly
 by the book. No nose art, no flags.
 
 On the tail fin near the top, the ARGENTINE FLAG in three horizontal bands -
@@ -205,11 +248,19 @@ US markings, no invented unit patches.
 
 ## 3 · El avión del GITANO — "C-239"
 
-**La historia:** el único avión de la escuadrilla con nombre propio, y el único con el
-acento rojo de la paleta. El Gitano habla en el potrero: *"cuando el rival tiene botines y
+**La historia:** el avión con más nombres de la escuadrilla —el pintado y el del día— y el
+único con el acento rojo de la paleta. *(27/9: decía "el único con nombre propio"; ahora el
+todos tienen nombre pintado menos el Vasco, ver "Los nombres pintados".)* El Gitano habla en el potrero: *"cuando el rival tiene botines y
 vos estás descalzo, gambeteás más pegado"*. El Turco le pintó el nombre una noche, sin
 avisarle: **GAMBETA**, chiquito, bajo la cabina. El Gitano lo vio a la mañana y no dijo
 nada, pero ese día voló mejor.
+
+> **🟩 DECIDIDO (Matías, 27/9/2026) — dos nombres que no se pisan.** **GAMBETA queda pintado
+> fijo**: es el nombre que le puso el Turco, está en la chapa y no cambia nunca. **El nombre del
+> día es de palabra**: es el gesto del Gitano (GUION_3 §9d), lo dice al subir («Turco, a ésta
+> hoy le decimos "el Colectivo". Anotá») y no se pinta en ningún lado. Uno es del Turco y
+> permanece; el otro es del Gitano y dura una salida. Por eso en M14, cuando el Gitano no le pone
+> nombre, el avión sale igual con GAMBETA en la chapa: lo que falta es la voz, no la pintura.
 
 **Las marcas:**
 - **La punta de la nariz pintada de rojo** — un anillo angosto, a pincel. El único rojo de
@@ -251,22 +302,37 @@ US markings, no invented unit patches.
 
 ## 4 · El avión del VASCO — "C-214"
 
-**La historia:** el avión sin nada. Ni nombre, ni marca, ni adorno — igual que el dueño,
+**La historia:** el avión sin nada que le haya puesto otro. Ni nombre del Turco, ni marca, ni
+adorno — igual que el dueño,
 que tiene el locker cerrado y la foto adentro. **Su personalización es la ausencia**, y en
 formación se lo reconoce por eso: es el limpio de marcas y el más oscuro de tono, con los
 paneles más curtidos.
 
-Pero hay una cosa, una sola, y no la hizo el Turco: **una crucecita blanca, chiquita,
-pintada a mano detrás del riel de la cabina**, donde solo la ve el que sube. Se la pintó él
-mismo, con el pincel del Turco, sin pedir permiso. El Turco la encontró un día y no dijo
-nada. *(Después de M6, el Turco la repasa con pincel finito cada vez que le toca pintar
-estrellitas en los otros aviones. Tampoco se lo cuenta a nadie.)*
+Pero hay una cosa, una sola, y no la hizo el Turco: **una X blanca, chiquita, pintada a mano
+bajo la cabina, en el lugar donde los otros llevan el nombre.** Se la pintó él mismo, con el
+pincel del Turco, sin pedir permiso. **Y el avión se llama así: X** *(27/9)*. El Turco se lo
+cuenta a Tero el primer día (`M01_TERITO_070`): *"El Vasco nunca me dejó pintarle nada, fuera
+de las estrellas. La X se la pintó él solo. Y le puso así."* 🟩 **La X es un beso, y es para su madre** *(Matías,
+27/9/2026)*: es la misma X con la que el Vasco firma el dorso de la foto del locker
+(*"Te amo, mamá. Perdoname. X"*). Durante la guerra todos saben **que** se llama X y nadie sabe
+**por qué**; fuera de la pregunta de Tero el primer día, nadie pregunta (GUION_3 §9d, ley 1). **Cobra sentido en M7, cuando el
+Turco da vuelta la foto**: el jugador reconoce la X y entiende que el avión siempre fue de ella.
+El Turco la encontró un día y no dijo
+nada.
+
+> 🟩 **LA REGLA DEL VASCO (Matías, 27/9/2026):** **nadie le toca la pintura ni la cruz** — ni el
+> Turco, ni nadie. **La X la mantiene y la repinta él solo.** Lo único que el Turco le agrega al
+> C-214 son **las estrellitas**, como a todos. **La mecánica sí es del Turco:** lo arregla como a
+> los otros cuatro; el Vasco no es mecánico. *(Antes decía que el Turco le repasaba la marca
+> después de M6; se sacó.)*
 
 **Las marcas:**
 - **Ninguna visible.** Célula más vieja, metal más oscuro y apagado que el resto.
-- La crucecita blanca tras el riel de cabina — invisible a distancia de sprite, presente en
-  toda cinemática que muestre a alguien subiendo.
-- Sus estrellitas: las pinta el Turco igual que a todos. Es lo único que el Vasco acepta.
+- La X blanca bajo la cabina, en el lugar del nombre — invisible a distancia de sprite, presente
+  en toda cinemática que muestre el avión de cerca. El plantado fuerte es **de palabra** (M1);
+  verla en una imagen antes del dorso lo refuerza (lo natural: el cuadro `M7_CRUZ`, con la cruz
+  del cuello apoyada en el fuselaje y la X al lado).
+- Sus estrellitas: las pinta el Turco igual que a todos. **Es lo único que el Turco le agrega, y lo único que el Vasco acepta.**
 
 **Marca de sprite (20 px):** ser el único SIN marca — el gris más oscuro de la formación.
 
@@ -332,6 +398,13 @@ abierta, paneles en el piso, el número todavía pintado en la trompa.
 - Sus estrellitas: pocas — es nuevo. La primera se la pintó el Turco tras M2: *"Esa no es
   del avión. Es tuya."*
 
+- 🟩 **El nombre pintado: OHM** *(27/9, elegido por el autor; la otra candidata era
+  RESISTENCIA)*. La unidad de la resistencia eléctrica: lo que mide el tester, lo que anota un
+  pibe que arma y desarma aparatos. Tres letras chicas bajo la cabina, a pincel como los demás.
+  Criterio que lo eligió: tecnología que un pibe tuviera a mano en 1982 (por eso se descartaron
+  GALENA, de los años 20, y las demás de la lista: TESTER, UNIVERSAL, ALAMBRE, CEREBRO,
+  VÁLVULA, MECANO).
+
 **Marca de sprite (20 px):** el panel verde en el ala.
 
 **Hoja modelo:**
@@ -349,7 +422,8 @@ patches, never camouflaged over - they stand out hard against the pattern. Faint
 marks and little formulas sketched on some panels. A few small non-standard
 hand-made aerodynamic fairings, subtle and neat, unique to this aircraft. Below
 the cockpit, a very SHORT row of small white stars, just two or three. It looks
-like the worst aircraft of the squadron and is secretly the finest. No nose art,
+like the worst aircraft of the squadron and is secretly the finest. Clear space
+under the cockpit sill where a small name will be added later. No nose art,
 no flags.
 
 On the tail fin near the top, the ARGENTINE FLAG in three horizontal bands -
@@ -481,8 +555,8 @@ Se pega en lugar de `[MARCAS]`. Es lo único que cambia entre las cinco hojas.
   oscuros. Lo que lo separa ahora es la SATURACIÓN: el suyo está lavado.)
 - Absolutely NO personal markings anywhere - this aircraft is deliberately bare.
 - A short row of small white stars.
-- One tiny white hand-painted cross behind the cockpit rail, small enough to
-  miss.
+- One tiny white hand-painted X below the cockpit sill, where the other aircraft
+  carry a name - two short crossed brush strokes, small and plain.
 ```
 
 **PICHÓN — C-231**
@@ -556,7 +630,7 @@ del 82 personalizaban poco y a mano; nada de calcos brillantes.
 | **Tero** | el terito + estrellitas + piedrita | Casco blanco **sin nada** — el hombre más marcado de la escuadrilla lleva el casco más pelado. Su marca vuela en el fuselaje, no en la cabeza. |
 | **Puma** | doble franja en la deriva | **Dos franjas finas pintadas en el casco**, espejo de las de su cola — reglamentarias, perfectas, enmascaradas con cinta. Y el pañuelo de vuelo siempre anudado igual, milimétrico. |
 | **Gitano** | nariz roja + GAMBETA + matecito | **Una franja roja torcida en el casco** — se la pintó él mismo, a pulso, mal a propósito ("derechita la pintan los ingleses"). Y el mate atado con alambre al arnés, asomando. |
-| **Vasco** | sin marcas, el gris más oscuro | Casco **sin marca**, como el de Tero — pero con el barbijo del rosario asomando por el borde del cuello. La crucecita del riel es su única pintura, y no está a la vista. |
+| **Vasco** | sin marcas, el gris más oscuro | Casco **sin marca**, como el de Tero — pero con el barbijo del rosario asomando por el borde del cuello. La X bajo la cabina es su única pintura, y la puso él. |
 | **Pichón** | panel verde + trazos de lápiz | **El lápiz de carpintero cruzado bajo la cinta del casco**, siempre, como un albañil. Y fórmulas a medio borrar en el DORSO de la mano izquierda — se anota ahí cuando no llega a la libreta. |
 | **El Turco** | *(no vuela)* | La gorra de paño con una **estrellita blanca pintada** — la única estrellita que no está en un fuselaje: se la pintó la noche que volvieron todos por primera vez. |
 
@@ -577,7 +651,7 @@ lejanos; en cuadros donde se sepa de quién es el avión, usar el específico:
 | `{SKYHAWK_TERO}` | A-4B Skyhawk, argentine flag on the tail fin, argentine air force green-and-brown camouflage, worn, argentine roundel, a small SOLID WHITE SILHOUETTE of a southern lapwing bird (tero) below the cockpit next to the longest row of small white stars, a tiny flat pebble inside the windscreen frame |
 | `{SKYHAWK_PUMA}` | A-4B Skyhawk, argentine flag on the tail fin, immaculate regulation green-and-brown camouflage sharply applied, two crisp WHITE command stripes on the tail fin, a perfectly straight short row of small white stars |
 | `{SKYHAWK_GITANO}` | A-4B Skyhawk, argentine flag on the tail fin, cheerfully scruffy green-and-brown camouflage with oil streaks, a narrow hand-brushed red ring on the nose tip, a tiny painted green mate gourd by the boarding step, crooked row of white stars |
-| `{SKYHAWK_VASCO}` | A-4B Skyhawk, argentine flag on the tail fin, the oldest airframe, its camouflage sun-bleached and chalky with the pattern washed out, no personal markings at all, faded roundel, a short row of white stars, a tiny white hand-painted cross behind the cockpit rail |
+| `{SKYHAWK_VASCO}` | A-4B Skyhawk, argentine flag on the tail fin, the oldest airframe, its camouflage sun-bleached and chalky with the pattern washed out, no personal markings at all, faded roundel, a short row of white stars, a tiny white hand-painted X below the cockpit sill |
 | `{SKYHAWK_PICHON}` | A-4B Skyhawk, argentine flag on the tail fin, rebuilt patchwork airframe with mismatched camouflage panels that do not line up, one wing panel in flat grey primer and two bare metal patches never painted over, faint pencil marks on panels, small non-standard fairings, only two or three white stars |
 
 ---
@@ -593,7 +667,7 @@ lejanos; en cuadros donde se sepa de quién es el avión, usar el específico:
   personalidades estacionadas. No hace falta diálogo.
 - **Idea opcional para M12** *(decisión de Matías, no canon todavía)*: el Turco prepara el
   avión de Esteban para la última misión con **repuestos de los otros** — un panel del
-  C-231 con un cálculo a lápiz del Pichón, un carenado, la crucecita repasada en el riel.
+  C-231 con un cálculo a lápiz del Pichón, un carenado. *(27/9: se sacó "la crucecita repasada": la X del Vasco no la pinta nadie más que él.)*
   *Plata Fiel* vuela con un pedazo de cada uno. Si se adopta, se anota en el guion; si no,
   se descarta y listo.
 
@@ -605,8 +679,9 @@ lejanos; en cuadros donde se sepa de quién es el avión, usar el específico:
    costo de video). **Los cinco prompts son autocontenidos: se copia el bloque entero y
    va, sin nada que reemplazar.** Aprobarlas contra la checklist: ¿marca de sprite
    legible? ¿nada moderno? ¿sin texto?
-2. Los **números C-2xx y el nombre GAMBETA se tipografían en el motor** — nunca en la
-   generación.
+2. Los **números C-2xx y los nombres pintados** (ESPOLA, MONTE, GAMBETA y OHM)
+   **se tipografían en el motor** — nunca en la generación. El de Puma en letra de
+   plantilla; los demás a pincel.
 3. Verificar los números contra la lista real de pérdidas (→ PREGUNTAS_HISTORICAS.md).
 4. Usar cada hoja como *image reference* en todo cuadro donde aparezca ese avión.
 
@@ -617,7 +692,7 @@ lejanos; en cuadros donde se sepa de quién es el avión, usar el específico:
 | Tero | **El terito pintado, legible** + fila de estrellitas LARGA + piedrita en el parabrisas | Estrellas gigantes tipo USAF; bandera; que el tero parezca un logo moderno — es pincel, no calcomanía |
 | Puma | Dos franjas nítidas en la deriva; el más limpio de los cinco | Cualquier marca personal extra |
 | Gitano | Anillo rojo SOLO en la punta de la nariz; matecito chico junto al estribo | Boca de tiburón; rojo en otra parte; nose-art grande |
-| Vasco | Camuflaje DESTEÑIDO y calcáreo, el patrón lavado, contra el de todos los demás que está nítido; NADA visible salvo estrellitas; crucecita mínima tras el riel | Cualquier adorno; la cruz grande o llamativa |
+| Vasco | Camuflaje DESTEÑIDO y calcáreo, el patrón lavado, contra el de todos los demás que está nítido; NADA visible salvo estrellitas; X mínima bajo la cabina, en el lugar del nombre | Cualquier adorno; una X grande o prolija, que se lea como diseño |
 | Pichón | Panel de ala VERDE imprimación; parches de tonos desparejos; 2-3 estrellitas apenas | Un avión prolijo; el panel verde enorme o fosforescente |
 
 Y para los cinco: roundel argentino (celeste-blanco), nada moderno, sin texto ni números —

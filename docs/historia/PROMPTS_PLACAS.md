@@ -380,7 +380,9 @@ no watermark, no signature.
 ## C2 · `m7_foto_dorso` — el dorso *(ya declarado en `data/story.js` como `M7_FOTO_DORSO`)*
 
 **⚠ Este lleva texto escrito a mano y es la excepción a la regla de "no text"** — pero **el
-texto lo pone el motor**, no el generador: se genera el dorso en blanco.
+texto lo pone el motor**, no el generador: se genera el dorso en blanco. *(27/9: el texto
+termina en una **X** — un beso, la misma X que el Vasco se pintó en el avión. También la pone
+el motor.)*
 
 ```
 [AIRE] Extreme close-up of the BACK of a small worn late-1950s photograph, held

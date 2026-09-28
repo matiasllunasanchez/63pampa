@@ -232,7 +232,8 @@ cola larga en punta, y **la cresta larga y fina barriendo hacia atrás desde la 
 lo que lo hace tero. Una silueta elegante y flaca, sin detalle adentro, que salta contra el
 camuflaje. 🟩 _(Descriptor canónico `{TERITO}` en STORYBOARD_1 §0 y en PROMPTS_VN_M1_M3.)_ El Turco lo pintó anoche, sin que nadie
 se lo pidiera, porque un piloto le contó el apodo y un avión sin su pájaro trae mala
-suerte.)_
+suerte. **Al lado, en letras chicas, todavía húmedas: ESPOLA.** 🟩 _(27/9: el nombre pintado del
+C-222, ver AVIONES_ESCUADRON "Los nombres pintados".)_)_
 
 **ESTEBAN:** _(lo ve; toca la pintura fresca con un dedo)_ …¿Y esto?
 
@@ -242,7 +243,18 @@ los aviones van con nombre.
 **ESTEBAN:** _(mira los otros aviones)_ …¿Y el resto tienen estrellas?
 
 **EL TURCO:** _(sigue revisando el fuselaje)_ Sí, tengo la costumbre de pintarles una
-estrella a cada uno por cada vuelta. _(golpeando el fuselaje como a un caballo)_ Traémela
+estrella a cada uno por cada vuelta.
+
+**ESTEBAN:** _(señala el avión de al lado, el más gastado de la fila)_ ¿Y ése? ¿Una X?
+
+**EL TURCO:** El Vasco nunca me dejó pintarle nada, fuera de las estrellas. La X se la pintó él
+solo. Y le puso así.
+
+> 🟩 _(27/9: el nombre del C-214 es **X**, y lo pintó el Vasco. El Turco dice el hecho, no el
+> porqué: que la X es un beso para su madre no lo dice nadie; se entiende en M7, cuando el
+> dorso de la foto termina en «Perdoname. X».)_
+
+**EL TURCO:** _(golpeando el fuselaje como a un caballo)_ Traémela
 entera Tero, eh. Y traete vos adentro, que la estrellita la pinto por vos, no por ella.
 
 > ** ESTO NO ESTÁ EN `story.js`.** Se conserva acá porque **es la raíz de tres sistemas del
@@ -950,7 +962,10 @@ Atrás, con la letra dura de un tipo que no escribe nunca:)_
 > **Rosa Elena Arrieta**
 > **1926 – 1961**
 >
-> **"Te amo, mamá. Perdoname."**
+> **"Te amo, mamá. Perdoname. X"**
+>
+> _(🟩 27/9: la X es un beso. Es la misma X blanca que el Vasco se pintó en el avión, detrás del
+> riel de la cabina. Nadie la señala: el jugador que la vio, la reconoce.)_
 
 **PUMA:** _(bajo, casi para sí)_ Sesenta y uno.
 

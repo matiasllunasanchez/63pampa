@@ -22,7 +22,7 @@ De esos, los que no son opcionales porque **la imagen ES la escena**:
 
 | cuadro | escena | por qué es bloqueante |
 | --- | --- | --- |
-| `M7_CRUZ` | M6_2 | va como `tipo: 'CUADRO'`: sin imagen, el beso a la cruz del Vasco se lee como texto en vez de verse |
+| `M7_CRUZ` | M6_2 | va como `tipo: 'CUADRO'`: sin imagen, el beso a la cruz del Vasco se lee como texto en vez de verse. 🟩 **Y es el plantado de la X** *(27/9)*: la cruz del cuello apoyada en el fuselaje, **al lado de la X blanca chiquita que el Vasco se pintó bajo la cabina**. Es la X que firma el dorso de la foto. El plantado fuerte ya es de palabra (`M01_TERITO_070`); verla acá lo refuerza |
 | `M7_FOTO_DORSO` | M07_LOCKER | el dorso de la foto **es** el reveal |
 | `P1_2B` | P1_2 | el sapito picando en el agua: la imagen que el juego entero recoge después |
 | `M8_TERITO` | M7_SOBREVUELO | **el más importante de los cuatro.** Desde el pozo: el Skyhawk pasando enorme y, un segundo apenas, el terito pintado bajo la cabina. Es la única vez que el jugador lo ve, y sin él la carta de Mateo («le vi EL TERITO, TU pájaro») afirma algo que nadie vio |

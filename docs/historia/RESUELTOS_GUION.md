@@ -761,6 +761,11 @@ Salieron de `strings.js`. Las reemplazaron las ocho escenas `VUELO`.
 Queda «el Colectivo» de M1 y la ausencia de M14, que es donde el gesto se cobra. No se inventan
 catorce. La decisión de M6-01 ya lo había achicado.
 
+**Y no choca con GAMBETA (27/9/2026).** GAMBETA queda **pintado fijo** en el C-239 (lo pintó el
+Turco, `AVIONES_ESCUADRON.md` §3); el nombre del día es **de palabra**, nunca se pinta. Así se
+cierra la contradicción entre la ficha de arte ("el único avión con nombre propio") y el gesto
+del Gitano ("le cambia el nombre en cada misión").
+
 ## ✅ T-03 · `M01_RITUAL` y `M01_GANSOS` — **resuelto por G-05**
 Colgadas de los dos primeros tramos de `m1`. Estaban escritas hace semanas y no las veía nadie.
 

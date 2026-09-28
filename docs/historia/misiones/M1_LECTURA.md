@@ -172,7 +172,7 @@ tiene un hermano preso.
 
 *En el fuselaje del avión de Esteban, bajo la cabina, hay pintura fresca: un terito chiquito
 recortado en blanco, de perfil, quieto y alerta. Cuello finito, pecho compacto, y la cresta larga
-barriendo hacia atrás desde la nuca.*
+barriendo hacia atrás desde la nuca. Al lado, en letras chicas, todavía húmedas: ESPOLA.*
 
 **ESTEBAN:** *(toca la pintura fresca con un dedo)* …¿Y esto?
 
@@ -182,6 +182,11 @@ aviones van con nombre.
 **ESTEBAN:** *(mira los otros aviones)* …¿Y el resto tienen estrellas?
 
 **EL TURCO:** Sí. Tengo la costumbre de pintarles una estrella a cada uno por cada vuelta.
+
+**ESTEBAN:** *(señala el avión de al lado, el más gastado de la fila)* ¿Y ése? ¿Una X?
+
+**EL TURCO:** El Vasco nunca me dejó pintarle nada, fuera de las estrellas. La X se la pintó él
+solo. Y le puso así.
 
 **EL TURCO:** *(golpea el fuselaje como a un caballo)* Traémela entera, Tero, eh. Y traete vos
 adentro, que la estrellita la pinto por vos, no por ella.

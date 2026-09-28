@@ -516,7 +516,8 @@ cola larga en punta, y **la cresta larga y fina barriendo hacia atrás desde la 
 lo que lo hace tero. Una silueta elegante y flaca, sin detalle adentro, que salta contra el
 camuflaje. 🟩 _(Descriptor canónico `{TERITO}` en STORYBOARD*1 §0 y en PROMPTS_VN_M1_M3.)* El Turco lo pintó anoche, sin que nadie
 se lo pidiera, porque un piloto le contó el apodo y un avión sin su pájaro trae mala
-suerte.)\_
+suerte. **Al lado, en letras chicas, todavía húmedas: ESPOLA.** 🟩 _(27/9: el nombre pintado del
+C-222, ver AVIONES_ESCUADRON "Los nombres pintados".)_)\_
 
 **ESTEBAN:** _(lo ve; toca la pintura fresca con un dedo)_ …¿Y esto?
 
@@ -526,7 +527,18 @@ los aviones van con nombre.
 **ESTEBAN:** _(mira los otros aviones)_ …¿Y el resto tienen estrellas?
 
 **EL TURCO:** _(sigue revisando el fuselaje)_ Sí, tengo la costumbre de pintarles una
-estrella a cada uno por cada vuelta. _(golpeando el fuselaje como a un caballo)_ Traémela
+estrella a cada uno por cada vuelta.
+
+**ESTEBAN:** _(señala el avión de al lado, el más gastado de la fila)_ ¿Y ése? ¿Una X?
+
+**EL TURCO:** El Vasco nunca me dejó pintarle nada, fuera de las estrellas. La X se la pintó él
+solo. Y le puso así.
+
+> 🟩 _(27/9: el nombre del C-214 es **X**, y lo pintó el Vasco. El Turco dice el hecho, no el
+> porqué: que la X es un beso para su madre no lo dice nadie; se entiende en M7, cuando el
+> dorso de la foto termina en «Perdoname. X».)_
+
+**EL TURCO:** _(golpeando el fuselaje como a un caballo)_ Traémela
 entera Tero, eh. Y traete vos adentro, que la estrellita la pinto por vos, no por ella.
 
 > **⚠ ESTO NO ESTÁ EN `story.js`.** Se conserva acá porque **es la raíz de tres sistemas del
@@ -1295,7 +1307,10 @@ Atrás, con la letra dura de un tipo que no escribe nunca:)_
 > **Rosa Elena Arrieta**
 > **1926 – 1961**
 >
-> **"Te amo, mamá. Perdoname."**
+> **"Te amo, mamá. Perdoname. X"**
+>
+> _(🟩 27/9: la X es un beso. Es la misma X blanca que el Vasco se pintó en el avión, detrás del
+> riel de la cabina. Nadie la señala: el jugador que la vio, la reconoce.)_
 
 **PUMA:** _(bajo, casi para sí)_ Sesenta y uno.
 
@@ -2595,6 +2610,21 @@ personaje repetido cinco veces.
 | **VASCO**    | **una iglesia**                                                | **La bendice sin una palabra:** apoya la cruz en el fuselaje, dos segundos, y sube. Es lo único que hace                                                                                    |
 | **PICHÓN**   | **un paciente.** No la quiere: la **entiende**                 | **La escucha.** Apoya la oreja o la mano en la chapa con el motor girando, y diagnostica: _"le duele acá"_                                                                                  |
 | **EL TURCO** | **hijos, todos.** El padre de la flota entera                  | Les habla bajito. Y **las reconoce por el ruido antes de verlas** — sabe quién vuelve antes de que aparezca el punto en el cielo                                                            |
+
+> **🟩 El nombre del Gitano es DE PALABRA (Matías, 27/9/2026).** El avión del Gitano lleva
+> **GAMBETA pintado fijo** bajo la cabina: se lo pintó el Turco una noche y no cambia nunca
+> (`AVIONES_ESCUADRON.md` §3). El nombre del día **no se pinta**: se dice al subir y el Turco lo
+> anota. Los dos conviven: la chapa es del Turco, la voz es del Gitano. En M14 falta la voz, no
+> la pintura.
+>
+> **Y todos los aviones tienen nombre pintado, siempre (27/9/2026)** — el del Vasco es **X**, y
+> es el único que se pintó el dueño (lo cuenta el Turco en M1; es un beso, y no lo dice nadie).
+> **Nadie le toca la pintura ni la cruz al Vasco, ni el Turco:** la X la mantiene y la repinta
+> él solo, y el Turco solo le agrega las estrellitas. La mecánica sí la hace el Turco, como a
+> todos. Ya
+> están cuando empieza el juego; **a Tero se lo pintan cuando llega** (M1, con el terito). Tero **ESPOLA**, Gitano
+> **GAMBETA**, Puma **MONTE** (en letra de plantilla, porque es Puma), Pichón **OHM**. Tabla y opciones en `AVIONES_ESCUADRON.md` "Los nombres pintados". Nadie los
+> dice en voz alta, y la ley 1 de abajo vale igual.
 
 ### Las cuatro leyes
 

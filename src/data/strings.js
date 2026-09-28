@@ -800,7 +800,7 @@ export const STRINGS = {
       },
       {
         img: 'M6_LOCKER2', title: 'EL DORSO', paras: [
-          'Rosa Elena Arrieta. 1926 – 1961. "Te amo, mamá. Perdoname."',
+          'Rosa Elena Arrieta. 1926 – 1961. "Te amo, mamá. Perdoname. X"',
           'PUMA: (bajo, casi para sí) Sesenta y uno.',
           'ESTEBAN: El Vasco tenía quince años.',
           'GITANO: (la voz rota) Toda la guerra lo cargamos con la casada. Y estaba muerta. Y el tipo nunca dijo nada. Nos dejó reír. Nos regaló el chiste para que tuviéramos de qué reírnos.',

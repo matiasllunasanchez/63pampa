@@ -4,6 +4,12 @@
 
 > **Esto manda sobre todo lo demás:** sobre el código, sobre `GUION_3.md` y sobre cualquier otra
 > documentación. Si acá dice una cosa y el juego dice otra, gana lo que está acá.
+>
+> **Este documento NO se ejecuta en esta sesión.** Lo aplica otra sesión con acceso directo al
+> código. Acá sólo se transcribe lo que pidió el autor y se marca qué toca cada cosa.
+
+**Abierto el:** 27/9/2026, después de poner `M3_LECTURA.md` en el formato de M1 y M2.
+**Estado general:** ⬜ esperando tus comentarios.
 
 ---
 
@@ -82,6 +88,18 @@ Cada pedido lleva un estado, y lo actualizo yo:
 
 ---
 ---
+
+## Y lo que ya sabemos que hay que tocar igual
+
+*Esto no son pedidos tuyos: es lo que falta en el código y en el guion, detallado en
+`M3_LECTURA.md`, en «Lo que falta».*
+
+Los blancos reales —boyas y radar portátil, que hoy son obstáculos genéricos— · la forma
+ida/objetivo/vuelta con `fases` · la pantalla de elección de mejora, que no está enganchada y
+además hay que decidir en qué punto del epílogo entra · `M03_PISTA`, para que Cóndor cierre antes
+de jugar · `briefM3`, que está declarado y no existe · `M03_HIST`, y si hace falta · el comentario
+viejo de `M03_BURRADA` que todavía nombra el caño · y confirmar qué caras de escena existen de
+verdad.
 
 ## Dónde está lo que ya decidiste
 

@@ -1,0 +1,558 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Paleta de Rasante</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=Bitter:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root{
+    color-scheme: dark;
+
+    /* --- el mundo --- */
+    --cielo-cenit:#1B2438;
+    --cielo-alto:#2E3B55;
+    --cielo-medio:#52597A;
+    --cielo-bajo:#8E7C8A;
+    --horizonte:#C87B4A;
+    --nube:#6E7286;
+
+    --mar-hondo:#16242B;
+    --mar:#27424B;
+    --mar-luz:#3E6570;
+    --cresta:#86A8A6;
+
+    --turba:#3C3729;
+    --pasto:#6E6A48;
+    --roca:#4A4B4E;
+    --piedra:#8C8A80;
+
+    --camo-verde:#47543A;
+    --camo-marron:#6A5438;
+    --panza:#9FA6AA;
+    --sombra:#1E2124;
+
+    --fuego:#E2872F;
+    --alarma:#B33A2B;
+    --trazadora:#F3DE9C;
+
+    --celeste:#7FB6DC;
+    --hueso:#E6E9EA;
+
+    /* --- el cuaderno --- */
+    --papel:#E7DEC6;
+    --papel-sombra:#CFC3A4;
+    --grafito:#3A3934;
+    --birome:#26356F;
+    --rojo-lapiz:#A33328;
+
+    /* --- tokens de esta página --- */
+    --fondo:#121A26;
+    --fondo-2:#18222F;
+    --linea:#2A3644;
+    --texto:#DFE4E8;
+    --texto-2:#93A1AE;
+
+    --display:"Saira Condensed", "Arial Narrow", sans-serif;
+    --cuerpo:"Bitter", Georgia, serif;
+    --mono:"IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  body{
+    background:var(--fondo);
+    color:var(--texto);
+    font-family:var(--cuerpo);
+    font-size:15px;
+    line-height:1.65;
+    margin:0;
+  }
+  .wrap{
+    max-width:1060px;
+    margin:0 auto;
+    padding-left:20px;
+    padding-right:20px;
+    padding-block:48px 72px;
+  }
+  h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;}
+  h1{
+    font-size:clamp(38px,8vw,64px);
+    font-weight:700;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    line-height:1;
+  }
+  .kicker{
+    font-family:var(--display);
+    font-size:13px;
+    letter-spacing:.24em;
+    text-transform:uppercase;
+    color:var(--horizonte);
+    font-weight:600;
+    margin:0 0 14px;
+  }
+  .lead{
+    max-width:60ch;
+    color:var(--texto);
+    margin:22px 0 0;
+  }
+  .lead strong{color:var(--hueso);font-weight:500;}
+  .muted{color:var(--texto-2);}
+
+  section{margin-top:56px;}
+  h2{
+    font-size:26px;
+    font-weight:600;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+  }
+  .sec-head{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:baseline;
+    gap:8px 16px;
+    border-bottom:1px solid var(--linea);
+    padding-bottom:10px;
+  }
+  .sec-head p{margin:0;color:var(--texto-2);font-size:14px;max-width:52ch;}
+
+  .grupo{margin-top:30px;}
+  .grupo-tit{
+    font-family:var(--display);
+    font-size:13px;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    color:var(--texto-2);
+    margin:0 0 12px;
+  }
+  .grupo-tit span{color:var(--texto-2);opacity:.6;letter-spacing:0;font-family:var(--cuerpo);text-transform:none;font-size:13px;}
+
+  .swatches{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(108px,1fr));
+    gap:12px;
+  }
+  .sw{
+    border:0;
+    padding:0;
+    background:none;
+    text-align:left;
+    font:inherit;
+    color:inherit;
+    cursor:pointer;
+    display:block;
+  }
+  .sw .chip{
+    height:76px;
+    border:1px solid rgba(255,255,255,.09);
+    display:block;
+  }
+  .sw.nucleo .chip{box-shadow:inset 0 0 0 2px var(--fondo), inset 0 0 0 3px var(--horizonte);}
+  .sw .nom{
+    display:block;
+    font-family:var(--display);
+    font-size:12px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    margin-top:8px;
+    color:var(--texto);
+  }
+  .sw .hex{
+    display:block;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--texto-2);
+    letter-spacing:.02em;
+  }
+  .sw:focus-visible .chip{outline:2px solid var(--celeste);outline-offset:2px;}
+  .sw:hover .hex{color:var(--horizonte);}
+
+  .escena{margin-top:26px;border:1px solid var(--linea);}
+  .escena svg{display:block;width:100%;height:auto;}
+  .cap{
+    font-size:13px;
+    color:var(--texto-2);
+    margin:10px 0 0;
+    max-width:60ch;
+  }
+
+  /* panel cuaderno: se pinta con su propia paleta */
+  .cuaderno{
+    background:var(--papel);
+    color:var(--grafito);
+    padding:28px 24px 32px;
+    margin-top:30px;
+    background-image:repeating-linear-gradient(to bottom,transparent 0 27px,var(--papel-sombra) 27px 28px);
+  }
+  .cuaderno h3{
+    font-size:22px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--birome);
+    margin-bottom:6px;
+  }
+  .cuaderno p{max-width:58ch;margin:0 0 18px;}
+  .cuaderno .swatches .nom{color:var(--grafito);}
+  .cuaderno .swatches .hex{color:#6B6859;}
+  .cuaderno .sw .chip{border:1px solid rgba(0,0,0,.18);}
+  .cuaderno .sw:hover .hex{color:var(--rojo-lapiz);}
+  .tachado{color:var(--rojo-lapiz);}
+
+  .reglas{
+    margin-top:30px;
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:1px;
+    background:var(--linea);
+    border:1px solid var(--linea);
+  }
+  .regla{background:var(--fondo-2);padding:20px 20px 22px;}
+  .regla .n{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--horizonte);
+    letter-spacing:.1em;
+  }
+  .regla h3{font-size:17px;letter-spacing:.06em;margin:6px 0 8px;text-transform:uppercase;}
+  .regla p{margin:0;font-size:14px;color:var(--texto-2);}
+  .regla p code{
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--texto);
+    background:rgba(255,255,255,.06);
+    padding:1px 5px;
+  }
+
+  .hud{
+    margin-top:26px;
+    background:var(--mar-hondo);
+    border:1px solid var(--linea);
+    padding:18px 20px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 12px;
+    align-items:center;
+  }
+  .pill{
+    font-family:var(--display);
+    font-size:13px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    padding:5px 12px;
+    border:1px solid currentColor;
+  }
+  .p-celeste{color:var(--celeste);}
+  .p-alarma{color:var(--alarma);background:rgba(179,58,43,.14);}
+  .p-fuego{color:var(--fuego);}
+  .p-hueso{color:var(--hueso);border-color:rgba(230,233,234,.35);}
+  .hud .nota{font-size:13px;color:var(--texto-2);margin-left:auto;}
+
+  .cierre{
+    margin-top:56px;
+    border-top:1px solid var(--linea);
+    padding-top:22px;
+    font-size:14px;
+    color:var(--texto-2);
+    max-width:64ch;
+  }
+
+  .toast{
+    position:fixed;
+    left:50%;
+    transform:translateX(-50%);
+    bottom:calc(20px + env(safe-area-inset-bottom,0px));
+    background:var(--hueso);
+    color:var(--sombra);
+    font-family:var(--mono);
+    font-size:13px;
+    padding:8px 14px;
+    transition:opacity .18s ease;
+    opacity:0;
+    pointer-events:none;
+  }
+  .toast.on{opacity:1;}
+
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important;animation:none !important;}
+  }
+</style>
+
+<div class="wrap">
+
+  <p class="kicker">Rasante · dirección de color</p>
+  <h1>Paleta</h1>
+  <p class="lead">
+    Dos paletas que <strong>nunca se mezclan</strong>. El mundo del Atlántico Sur es frío, sucio y bajo en saturación:
+    ahí el único color fuerte es el fuego, y por eso el fuego se ve. El cuaderno de Mateo es papel, grafito y birome,
+    y vive fuera de la zona de juego. Que sean materiales distintos es lo que hace que el marco se lea como marco.
+  </p>
+  <p class="lead muted">
+    Clic en cualquier muestra para copiar el hex. Las que tienen borde naranja son el núcleo: doce colores que pintan
+    el noventa por ciento de la pantalla.
+  </p>
+
+  <section>
+    <div class="sec-head">
+      <h2>El mundo</h2>
+      <p>Atardecer sobre el mar, mayo del 82. Nada acá pasa de saturación media salvo fuego y alarma.</p>
+    </div>
+
+    <div class="grupo">
+      <p class="grupo-tit">Cielo <span>— del cenit al horizonte, en bandas</span></p>
+      <div class="swatches" data-swatches='[
+        ["cielo-cenit","#1B2438",1],
+        ["cielo-alto","#2E3B55",1],
+        ["cielo-medio","#52597A",1],
+        ["cielo-bajo","#8E7C8A",0],
+        ["horizonte","#C87B4A",1],
+        ["nube","#6E7286",0]
+      ]'></div>
+    </div>
+
+    <div class="grupo">
+      <p class="grupo-tit">Mar <span>— el suelo de casi toda la campaña</span></p>
+      <div class="swatches" data-swatches='[
+        ["mar-hondo","#16242B",1],
+        ["mar","#27424B",1],
+        ["mar-luz","#3E6570",1],
+        ["cresta","#86A8A6",1]
+      ]'></div>
+    </div>
+
+    <div class="grupo">
+      <p class="grupo-tit">Tierra <span>— turba, pasto quemado y roca; las islas no son verdes</span></p>
+      <div class="swatches" data-swatches='[
+        ["turba","#3C3729",1],
+        ["pasto","#6E6A48",0],
+        ["roca","#4A4B4E",0],
+        ["piedra","#8C8A80",0]
+      ]'></div>
+    </div>
+
+    <div class="grupo">
+      <p class="grupo-tit">Avión <span>— camuflaje A-4 argentino, panza clara</span></p>
+      <div class="swatches" data-swatches='[
+        ["camo-verde","#47543A",1],
+        ["camo-marron","#6A5438",0],
+        ["panza","#9FA6AA",1],
+        ["sombra","#1E2124",1]
+      ]'></div>
+    </div>
+
+    <div class="grupo">
+      <p class="grupo-tit">Fuego y alarma <span>— lo único saturado; si aparece, significa algo</span></p>
+      <div class="swatches" data-swatches='[
+        ["fuego","#E2872F",1],
+        ["alarma","#B33A2B",1],
+        ["trazadora","#F3DE9C",0]
+      ]'></div>
+    </div>
+
+    <div class="grupo">
+      <p class="grupo-tit">Identidad <span>— reservado: vos y tu escuadrilla</span></p>
+      <div class="swatches" data-swatches='[
+        ["celeste","#7FB6DC",1],
+        ["hueso","#E6E9EA",0]
+      ]'></div>
+    </div>
+
+    <div class="escena">
+      <svg viewBox="0 0 640 260" role="img" aria-label="Escena de ejemplo: cielo en bandas, costa y mar, con un A-4 en rasante y una alarma de radar.">
+        <rect x="0" y="0" width="640" height="34" fill="#1B2438"/>
+        <rect x="0" y="34" width="640" height="34" fill="#2E3B55"/>
+        <rect x="0" y="68" width="640" height="32" fill="#52597A"/>
+        <rect x="0" y="100" width="640" height="26" fill="#8E7C8A"/>
+        <rect x="0" y="126" width="640" height="12" fill="#C87B4A"/>
+
+        <rect x="96" y="52" width="72" height="8" fill="#6E7286"/>
+        <rect x="112" y="44" width="40" height="8" fill="#6E7286"/>
+        <rect x="430" y="80" width="96" height="8" fill="#6E7286"/>
+
+        <rect x="0" y="138" width="640" height="18" fill="#3C3729"/>
+        <rect x="378" y="126" width="118" height="12" fill="#3C3729"/>
+        <rect x="402" y="118" width="58" height="8" fill="#4A4B4E"/>
+        <rect x="414" y="112" width="24" height="6" fill="#8C8A80"/>
+
+        <rect x="0" y="156" width="640" height="30" fill="#3E6570"/>
+        <rect x="0" y="186" width="640" height="34" fill="#27424B"/>
+        <rect x="0" y="220" width="640" height="40" fill="#16242B"/>
+        <rect x="64" y="170" width="46" height="4" fill="#86A8A6"/>
+        <rect x="286" y="196" width="62" height="4" fill="#86A8A6"/>
+        <rect x="470" y="176" width="38" height="4" fill="#86A8A6"/>
+        <rect x="150" y="232" width="54" height="4" fill="#3E6570"/>
+
+        <!-- A-4 en rasante -->
+        <g>
+          <rect x="196" y="162" width="96" height="10" fill="#47543A"/>
+          <rect x="292" y="164" width="16" height="6" fill="#47543A"/>
+          <rect x="196" y="172" width="86" height="4" fill="#9FA6AA"/>
+          <rect x="222" y="172" width="44" height="12" fill="#47543A"/>
+          <rect x="236" y="184" width="20" height="4" fill="#6A5438"/>
+          <rect x="214" y="150" width="26" height="12" fill="#6A5438"/>
+          <rect x="278" y="156" width="8" height="6" fill="#1E2124"/>
+          <rect x="196" y="160" width="10" height="4" fill="#1E2124"/>
+          <rect x="228" y="188" width="12" height="4" fill="#1E2124"/>
+          <rect x="248" y="188" width="12" height="4" fill="#1E2124"/>
+        </g>
+
+        <!-- estela / calor -->
+        <rect x="172" y="164" width="22" height="6" fill="#E2872F"/>
+        <rect x="156" y="165" width="14" height="4" fill="#F3DE9C"/>
+
+        <!-- hud -->
+        <rect x="20" y="20" width="10" height="10" fill="#7FB6DC"/>
+        <rect x="36" y="22" width="44" height="6" fill="#7FB6DC"/>
+        <rect x="560" y="20" width="60" height="12" fill="#B33A2B"/>
+      </svg>
+    </div>
+    <p class="cap">
+      Los mismos veintitrés colores compuestos: bandas de cielo, costa de turba y roca, tres tonos de mar,
+      el avión en camo verde con la panza clara contra el agua oscura. El celeste arriba a la izquierda sos vos;
+      el rojo a la derecha es el radar.
+    </p>
+
+    <div class="hud">
+      <span class="pill p-celeste">Escuadrilla</span>
+      <span class="pill p-hueso">Combustible 40%</span>
+      <span class="pill p-fuego">Impacto</span>
+      <span class="pill p-alarma">Radar</span>
+      <span class="nota">Sobre <code style="font-family:var(--mono);font-size:12px">mar-hondo</code>, que es el fondo más común del HUD.</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>El cuaderno</h2>
+      <p>Menús, carteles, recuento, títulos de misión. Papel y tinta: otro material, no otra versión del mismo.</p>
+    </div>
+
+    <div class="cuaderno">
+      <h3>El cuaderno de Mateo</h3>
+      <p>
+        Cinco colores alcanzan. El azul de birome es el color de la voz de Mateo; el rojo es solo para lo tachado,
+        lo corregido y lo que <span class="tachado">no volvió</span>. Si el rojo aparece por decoración, deja de significar.
+      </p>
+      <div class="swatches" data-swatches='[
+        ["papel","#E7DEC6",1],
+        ["papel-sombra","#CFC3A4",0],
+        ["grafito","#3A3934",1],
+        ["birome","#26356F",1],
+        ["rojo-lapiz","#A33328",0]
+      ]'></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Reglas</h2>
+      <p>Menos para elegir después: cinco decisiones que resuelven casi todas las dudas de color que van a aparecer.</p>
+    </div>
+
+    <div class="reglas">
+      <div class="regla">
+        <span class="n">01</span>
+        <h3>El celeste es tuyo</h3>
+        <p>Jugador, escuadrilla y nada más. Nunca cielo, nunca agua, nunca un botón. Si el celeste aparece en pantalla, el ojo tiene que poder asumir que es alguien de los tuyos.</p>
+      </div>
+      <div class="regla">
+        <span class="n">02</span>
+        <h3>Un solo color caliente</h3>
+        <p><code>fuego</code>, <code>alarma</code> y <code>trazadora</code> son la única familia saturada del mundo. Todo lo demás se queda por debajo. Así el peligro se ve sin subir el volumen de nada.</p>
+      </div>
+      <div class="regla">
+        <span class="n">03</span>
+        <h3>Contraste por valor, no por tono</h3>
+        <p>El avión se separa del mar porque su panza es clara y el agua oscura, no porque sea de otro color. En pixel art chico el valor es lo que se lee; el tono es decoración.</p>
+      </div>
+      <div class="regla">
+        <span class="n">04</span>
+        <h3>Las islas no son verdes</h3>
+        <p>Turba, pasto quemado y roca. Un verde brillante en tierra convierte Malvinas en un nivel de plataformas. El único verde de la paleta es el del camuflaje.</p>
+      </div>
+      <div class="regla">
+        <span class="n">05</span>
+        <h3>Papel adentro no entra</h3>
+        <p>Los cinco del cuaderno no aparecen dentro de la zona de vuelo, y los del mundo no aparecen en el cuaderno. La única excepción posible es el celeste, si alguna vez Mateo dibuja un avión.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Variantes por clima</h2>
+      <p>No hace falta una paleta nueva por misión. Con la misma lista y tres operaciones alcanza.</p>
+    </div>
+    <p class="lead">
+      Para <strong>amanecer</strong>, corré la banda de <code style="font-family:var(--mono);font-size:13px">horizonte</code> hacia
+      un rosa frío y bajale la altura: el sol está más bajo y menos tiempo. Para <strong>lluvia</strong>, acercá todos los tonos del cielo
+      y del mar a <code style="font-family:var(--mono);font-size:13px">roca</code> en un veinte o treinta por ciento, dejando fuego y alarma
+      intactos. Para <strong>niebla</strong>, mezclá cada color con <code style="font-family:var(--mono);font-size:13px">nube</code> en
+      proporción a la distancia, y frená esa mezcla en el avión del jugador, que tiene que seguir legible aunque el resto desaparezca.
+    </p>
+    <p class="lead muted">
+      Tres funciones sobre una paleta, en vez de cuatro paletas que después hay que mantener en paralelo.
+    </p>
+  </section>
+
+  <p class="cierre">
+    Esto es una propuesta, no un relevamiento: no llegué a leer los colores que ya tiene el código, así que lo primero
+    es comparar esta lista contra lo que hoy se ve en pantalla y quedarte con lo que ya funciona.
+  </p>
+
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+  (function () {
+    var toast = document.getElementById('toast');
+    var t;
+    function say(msg) {
+      toast.textContent = msg;
+      toast.classList.add('on');
+      clearTimeout(t);
+      t = setTimeout(function () { toast.classList.remove('on'); }, 1400);
+    }
+
+    document.querySelectorAll('[data-swatches]').forEach(function (grid) {
+      var list;
+      try { list = JSON.parse(grid.getAttribute('data-swatches')); }
+      catch (e) { return; }
+      list.forEach(function (row) {
+        var name = row[0], hex = row[1], nucleo = row[2];
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'sw' + (nucleo ? ' nucleo' : '');
+        b.setAttribute('aria-label', 'Copiar ' + hex + ', ' + name);
+        b.innerHTML =
+          '<span class="chip" style="background:' + hex + '"></span>' +
+          '<span class="nom"></span><span class="hex"></span>';
+        b.querySelector('.nom').textContent = name;
+        b.querySelector('.hex').textContent = hex;
+        b.addEventListener('click', function () {
+          var done = function () { say(hex + ' copiado'); };
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(hex).then(done, function () { select(b); });
+            } else { select(b); }
+          } catch (e) { select(b); }
+        });
+        grid.appendChild(b);
+      });
+    });
+
+    function select(btn) {
+      var el = btn.querySelector('.hex');
+      try {
+        var r = document.createRange();
+        r.selectNodeContents(el);
+        var s = window.getSelection();
+        s.removeAllRanges();
+        s.addRange(r);
+        say('Seleccionado — copiá con Ctrl/Cmd+C');
+      } catch (e) {
+        say('Copiá el hex a mano');
+      }
+    }
+  })();
+</script>
+
+</body></html>
