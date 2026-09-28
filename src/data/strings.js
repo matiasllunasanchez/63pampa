@@ -46,8 +46,8 @@ export const STRINGS = {
     fase_casa: 'PUMA: YA SE VE LA COSTA. TRAELO ENTERO.',
     // LAS DOS ZONAS DE LA CHANCHA. El Hercules ORBITA en un punto de la ruta y no te sigue, asi
     // que la radio tiene que decir donde esta — si no, el poder se vuelve un boton sin lugar.
-    fase_chancha_ida: 'CONDOR: LA CHANCHA ORBITA ACA ARRIBA. SI VAS A CARGAR, ES AHORA.',
-    fase_chancha_vuelta: 'CONDOR: LA CHANCHA TE ESPERA. SI TE QUEDASTE CORTO, SUBI.',
+    fase_chancha_ida: 'CHANCHA: ORBITO ACA ARRIBA. SI VAS A CARGAR, ES AHORA.',
+    fase_chancha_vuelta: 'CHANCHA: TE ESPERO ARRIBA. SI TE QUEDASTE CORTO, SUBI.',
     // LAS ESTRELLAS DE BUSQUEDA (PLAN_ESTRELLAS_BUSQUEDA §6). Lo narra CONDOR porque es el radar
     // de tierra: el unico que puede saber cuantos te estan buscando.
     // Y NO SE AFIRMA QUE TE CREAN MUERTO — "los perdimos" es lo que la historia sostiene, y es
@@ -151,7 +151,7 @@ export const STRINGS = {
     // EL INTERSTICIAL DE CAMPAÑA (G-09): el corte entre una mision y la que sigue.
     inter_dia: 'DÍA SIGUIENTE',
     ch_call: 'CHANCHA, CHANCHA, ACA PATRIA — VENGO SECO',
-    ch_ack: 'CONDOR COPIA. TE LA MANDO.',
+    ch_ack: 'ACA CHANCHA. TE COPIO, PATRIA.',
     ch_come: 'LA CHANCHA NO ABANDONA. VOY.',
     ch_eta: 'CHANCHA EN {s}',
     ch_arriba: 'CHANCHA ARRIBA — SUBI A LA CANASTA',
@@ -165,6 +165,7 @@ export const STRINGS = {
     ch_radar: 'LA CHANCHA NO ENTRA AL RADAR',
     ch_lista: 'LISTA',
     ch_viene: 'VOY PARA ALLA. AGUANTA ARRIBA.',
+    ch_espera: 'TE ESPERO ARRIBA, ANTES DEL RADAR. SUBI A CARGAR.',
     // PLAN_VUELTA_REAL V5: la palabra clave adentro del radar te delata, y el remolque con fuga
     ch_upa: 'NO TE SUELTES. TE LLEVAMOS A UPA.',
     ch_broken: 'LA CHANCHA NO BAJA MAS AL SUR.',
@@ -1171,8 +1172,8 @@ export const STRINGS = {
     fase_trafico: 'CONDOR: PLATA FLIGHT, TRIPLE-A AHEAD. WATCH IT.',
     fase_cazas: 'CONDOR: FIGHTERS INBOUND FROM THE NORTH. WATCH IT.',
     fase_casa: 'PUMA: COAST IN SIGHT. BRING IT HOME IN ONE PIECE.',
-    fase_chancha_ida: 'CONDOR: THE TANKER IS ORBITING ABOVE. IF YOU ARE TAKING FUEL, NOW.',
-    fase_chancha_vuelta: 'CONDOR: THE TANKER IS HOLDING FOR YOU. IF YOU ARE SHORT, CLIMB.',
+    fase_chancha_ida: 'CHANCHA: ORBITING UP HERE. IF YOU ARE TAKING FUEL, NOW.',
+    fase_chancha_vuelta: 'CHANCHA: HOLDING UP HIGH FOR YOU. IF YOU ARE SHORT, CLIMB.',
     est_sube1: 'CONDOR: THEY HAVE YOU. THEY KNOW YOU ARE HERE.',
     est_sube2: 'CONDOR: THEY ARE TRACKING YOU. DO NOT CLIMB.',
     est_sube3: 'CONDOR: THEY SENT FIGHTERS AFTER YOU. WATCH IT.',
@@ -1252,7 +1253,7 @@ export const STRINGS = {
     ras_alto: 'TOO HIGH',
     inter_dia: 'THE NEXT DAY',
     ch_call: 'TANKER, TANKER, PATRIA HERE — RUNNING DRY',
-    ch_ack: 'CONDOR COPIES. SENDING HER.',
+    ch_ack: 'TANKER HERE. COPY, PATRIA.',
     ch_come: 'THE OLD SOW NEVER QUITS. ON MY WAY.',
     ch_eta: 'TANKER IN {s}',
     ch_arriba: 'TANKER OVERHEAD — CLIMB TO THE BASKET',
@@ -1265,6 +1266,7 @@ export const STRINGS = {
     ch_radar: 'THE TANKER DOES NOT ENTER RADAR COVER',
     ch_lista: 'READY',
     ch_viene: 'ON MY WAY. STAY HIGH.',
+    ch_espera: 'WAITING FOR YOU UP HIGH, BEFORE THE RADAR. CLIMB AND TAKE FUEL.',
     ch_upa: 'DON\'T LET GO. WE\'LL CARRY YOU HOME.',
     ch_broken: 'THE OLD SOW DOES NOT COME SOUTH ANYMORE.',
     m5_boca: 'PUMA: THERE IT IS. THE WOLF\'S MOUTH. WE GO IN, WE DROP, WE GET OUT.',

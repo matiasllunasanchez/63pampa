@@ -453,6 +453,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  avion enganchado cae cerca de y=49. La franja de arriba, entre la placa del escuadron y el
      *  reproductor, es la unica que esta libre durante la cita. */
     function radioCh(key, args) { popup(W / 2, 38, T(key, args), P.crest, true); }
+    /** LA VOZ DE LA CHANCHA (27/9, el autor: "la Chancha no es manejada por Condor, es otro que no
+     *  conocemos"). Habla su piloto, por la caja de radio y con el INDICATIVO del avion: no tiene
+     *  nombre ni cara, porque no es de los nuestros. Lo que no es de ella —tu pedido, el cartel del
+     *  radar, la negativa del guion— sigue en el popup de radioCh. */
+    const CHANCHA_VOZ = 'CHANCHA';
+    function chanchaDice(key, args) { decirRadio(CHANCHA_VOZ + ': ' + T(key, args), () => null); }
 
     /** LA RADIO DE UN TRAMO (SPEC_TRAMOS RF-03). Mismo tono que la radio de la Chancha —centrada,
      *  color de cresta, en negrita— porque es la MISMA voz: Condor hablandole al vuelo.
@@ -572,8 +578,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         mitad: conRuta ? mitad : undefined,
         max: conRuta && curMission() && curMission().chanchaVeces ? curMission().chanchaVeces[mitad] || 0 : 1,
         eta: conRuta ? CH_ETA_RUTA : undefined,
-        // la de la IDA estaba en el plan de vuelo: no pide barra (la de la vuelta si)
+        // la de la IDA estaba en el plan de vuelo: no pide barra (la de la vuelta si), y ESPERA
+        // hasta la linea del radar en vez de irse a los CH_WINDOW segundos
         sinBarra: conRuta && mitad === 'ida',
+        espera: conRuta && mitad === 'ida',
         // LA ZONA DE ESPERA (PLAN_MISION_CINCO_FASES §11). Si la mision declara alguna fase con
         // `chancha: true`, el pedido SOLO vale adentro de esas fases: el Hercules orbita en un
         // punto de la ruta, no te sigue. Es historico y ademas convierte el poder en una decision
@@ -584,12 +592,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       });
       if (r === 'nofuel') return;                                    // sin combustible el poder no existe
       if (r === 'nozone' && chancha.meterVal() < 1) return;          // ni siquiera la tenia lista
-      if (r === 'ok') { beep(520, 0.07, 'square', 0.05, 120); radioCh(conRuta ? 'ch_viene' : 'ch_call'); return; }
+      if (r === 'ok') { beep(520, 0.07, 'square', 0.05, 120); if (conRuta) chanchaDice('ch_viene'); else radioCh('ch_call'); return; }
       // las otras dos lineas del ritual (Condor y la Chancha) las dispara el sistema por dt:
       // ver el bloque 'ack'/'come' de chancha.tick — aca solo suena el pedido.
       beep(150, 0.09, 'square', 0.05);
-      radioCh(r === 'early' ? 'ch_early' : r === 'used' ? 'ch_used'
-        : r === 'broken' ? 'ch_broken' : 'ch_nozone');
+      if (r === 'broken') radioCh('ch_broken');   // la negativa del guion no la dice ella
+      else chanchaDice(r === 'early' ? 'ch_early' : r === 'used' ? 'ch_used' : 'ch_nozone');
     }
 
     /** SOLTAR LOS TANQUES (tecla 3 / L3, PLAN_NAFTA_ALCANCE N5). Solo en el pasillo y con ruta, que
@@ -644,25 +652,27 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       }
     }
 
+    // LA CHANCHA DE LA IDA ya te lleno (la que viene sola y espera, ver el bloque del radar en update)
+    let chIdaLlena = false;
     function chanchaRadio(sig) {
       // SIN CARTEL (pedido del autor, 12/9): el reloj de la Chancha se pone VERDE y parpadea lento
       // cuando esta lista (ver hud.js, verdeListo). Queda el beep, que es el aviso para el que no
       // estaba mirando el tablero.
       if (sig === 'ready') { beep(660, 0.1, 'square', 0.05, 140); return; }
-      if (sig === 'ack') { beep(480, 0.05, 'square', 0.04); radioCh('ch_ack'); return; }
-      if (sig === 'come') { beep(430, 0.06, 'square', 0.04); radioCh('ch_come'); return; }
-      if (sig === 'llega') { beep(300, 0.18, 'sawtooth', 0.05, 60); radioCh('ch_arriba'); return; }
-      if (sig === 'conecta') { beep(720, 0.08, 'square', 0.05, 220); radioCh('ch_connect'); return; }
+      if (sig === 'ack') { beep(480, 0.05, 'square', 0.04); chanchaDice('ch_ack'); return; }
+      if (sig === 'come') { beep(430, 0.06, 'square', 0.04); chanchaDice('ch_come'); return; }
+      if (sig === 'llega') { beep(300, 0.18, 'sawtooth', 0.05, 60); chanchaDice('ch_arriba'); return; }
+      if (sig === 'conecta') { beep(720, 0.08, 'square', 0.05, 220); chanchaDice('ch_connect'); return; }
       if (sig === 'corta' || sig === 'golpe') {
         // el CHISPAZO: se ve donde estaba la punta de la sonda, no en el medio de la pantalla
         beep(110, 0.12, 'sawtooth', 0.06, -60);
         explodeAt(plane.x, plane.y, PZ, false, true, true);
-        radioCh('ch_drop');
+        chanchaDice('ch_drop');
         return;
       }
-      if (sig === 'lleno') { beep(880, 0.14, 'square', 0.05, 180); radioCh('ch_full'); return; }
-      if (sig === 'upa') { beep(620, 0.12, 'square', 0.05, 90); radioCh('ch_upa'); return; }
-      if (sig === 'adios') { beep(260, 0.14, 'square', 0.04, -80); radioCh('ch_bye'); }
+      if (sig === 'lleno') { beep(880, 0.14, 'square', 0.05, 180); chanchaDice('ch_full'); return; }
+      if (sig === 'upa') { beep(620, 0.12, 'square', 0.05, 90); chanchaDice('ch_upa'); return; }
+      if (sig === 'adios') { beep(260, 0.14, 'square', 0.04, -80); chanchaDice('ch_bye'); }
     }
     // transiciones desde la pantalla inicial de modo
     function goSurvival() { gameMode = 'survival'; setState('menu'); beep(600, 0.08, 'square', 0.05); }
@@ -2192,6 +2202,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       momentum.resetMomentum();
       tempo.resetTempo();
       chancha.resetChancha();   // el poder es de la CORRIDA: se pide una vez y sobrevive al relevo
+      chIdaLlena = false;       // la de la ida (la que viene sola) todavia no te lleno
       rasante.resetRasante();   // la barra del RASANTE es de la corrida: se gana volando bajo
       // …y lo mismo, sin parametro, en IDA Y VUELTA: es el banco de pruebas del pasillo largo
       // (pruebas_misiones.js t15) y el poder es una de las cosas que se van a probar ahi. Pedido
@@ -3960,6 +3971,21 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           if (alc) radarScanT = run.t;
         }
         alcanceAntes = alc;
+        // LA CHANCHA DE LA IDA VIENE SOLA Y ESPERA (27/9, el autor: "SIEMPRE debe aparecer a la ida y
+        // esperarnos antes de entrar a la zona de radar"). Al entrar a su zona (`chanchaIda` de la
+        // ruta, el borde mas lejano) se pide sola —sin tecla, sin barra— y orbita sin reloj hasta que
+        // cruzas la linea del radar, donde se despide (adentro no entra). Si se fue sin llenarte
+        // (un relevo la despide), vuelve mientras sigas afuera. Llenarte es lo unico que la da por hecha.
+        const rd = rutaSys.dato();
+        if (cfg.fuelOn && run.dist < objectiveDist && rd.chanchaIda) {
+          if (alc) { if (chancha.despedir()) chanchaRadio('adios'); }
+          else if (!chIdaLlena && !chancha.snapshot() && rutaSys.alBlanco() <= rd.chanchaIda[0]) {
+            const r = chancha.pedir({ fuelOn: true, enPasillo: !cfg.devcam, t: run.t, minT: 0,
+              viva: !((gameMode === 'campaign' || S.test) && curMission() && curMission().chancha === false),
+              auto: true, espera: true, eta: CH_ETA_RUTA });
+            if (r === 'ok') { beep(520, 0.07, 'square', 0.05, 120); chanchaDice('ch_espera'); }
+          }
+        }
       }
 
       // needsMomentum: si el objetivo del run culmina en el climax (barco) o con solo llegar (distancia)
@@ -6002,6 +6028,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (ch.rum) beep(58, 0.3, 'sawtooth', 0.028);                    // los motores del Hercules
       if (ch.bomba) beep(190, 0.05, 'square', 0.03, 40);               // la bomba de transferencia
       if (ch.sig) chanchaRadio(ch.sig);
+      if (ch.sig === 'lleno' && run.dist < objectiveDist) chIdaLlena = true;   // la de la ida ya cumplio
       update(dt);
       // SONDA DE LO TRANSONICO (QUITAR): va ENTRE update y draw a proposito. Puesta antes, la
       // fisica se la lleva por delante en el mismo cuadro (speedTarget devuelve la velocidad

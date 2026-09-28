@@ -25,7 +25,8 @@ const estado = () => js('JSON.parse(__pausedbg()).state');
 // LO QUE DIJO LA RADIO desde la ultima consulta. `__seapop` devuelve las lineas EN PANTALLA
 // unidas por ' | ' y se vacia al leer, asi que cada paso mira su propia ventana — que es
 // exactamente lo que hace falta para no confundir la respuesta de un pedido con la del anterior.
-const radio = async () => JSON.parse(await js('__seapop()'));
+// lo que dijo la radio: los popups Y la caja de radio (las lineas de la Chancha van por la caja, 27/9)
+const radio = async () => JSON.parse(await js('__seapop()')) + ' | ' + JSON.parse(await js('__logdbg()')).map(e => e.txt).join(' | ');
 async function shot(n) {
   if (!OUT) return;
   fs.writeFileSync(path.join(OUT, n + '.png'), (await win.webContents.capturePage()).toPNG());
@@ -192,10 +193,12 @@ app.whenReady().then(async () => {
   if (!await volar()) bad('no se pudo re-entrar (combustible)');
   else {
     await js('__chafuel(0); __chaset(9999, 300); __seapop()');
+    const logAntes = await js('__logdbg()');
     await js('__chacall()');
     await sleep(250);
     const sinN = await CH();
-    const dijo = (await radio()).length;
+    // muda de verdad: ni popup ni una linea nueva en la caja de radio
+    const dijo = JSON.parse(await js('__seapop()')).length + (await js('__logdbg()') !== logAntes ? 1 : 0);
     if (sinN.fase === 'idle' && !sinN.usada) ok('la tecla es muda: no arma cita ni gasta nada');
     else bad(`con el combustible apagado igual paso algo (${JSON.stringify(sinN)})`);
     if (!dijo) ok('y no dice nada: el poder no existe, no es que "no se puede ahora"');

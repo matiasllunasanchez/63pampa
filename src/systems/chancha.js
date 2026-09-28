@@ -34,6 +34,10 @@ let lastScore = -1;
 let etaT = 0, winT = 0, salT = 0, pedidoT = 0;
 let conn = false, connT = 0;
 let upa = false;   // ya aviso que te lleva a upa (una vez por cita)
+// LA QUE ESPERA (27/9, el autor: "la Chancha SIEMPRE debe aparecer a la ida y esperarnos antes de
+// entrar a la zona de radar"): una cita sin reloj. No se va sola por tiempo: se va cuando la
+// despide el orquestador (al cruzar la linea del radar), cuando te lleno o cuando se seco.
+let espera = false;
 // `citaT` es el reloj DE LA CITA, y arranca en cero cuando ella llega. Con un reloj global la
 // deriva valia sin(t*V) para el t que hubiera: la canasta aparecia corrida a un costado al azar y
 // el jugador subia a buscar un blanco que ya se habia ido de donde nacio.
@@ -65,7 +69,9 @@ export function pedir(g) {
   if (!g.fuelOn) return 'nofuel';        // sin combustible el poder no existe: tecla muda
   if (!g.enPasillo) return 'nozone';     // ARENA / PASADA / MINUTOS: ahi la nafta ES el reloj
   if (!g.viva) return 'broken';          // la mision es posterior a la rotura del guion
-  if (g.mitad ? usos[g.mitad] >= (g.max || 1) : usada) return 'used';
+  // `auto` es la cita de la IDA que viene sola (game.js): no la gatilla una tecla, asi que no cuenta
+  // usos ni pide barra — y si se fue sin llenarte (un relevo la despidio), vuelve.
+  if (!g.auto && (g.mitad ? usos[g.mitad] >= (g.max || 1) : usada)) return 'used';
   // la espera la puede correr la mision (`g.minT`); sin decir nada, CH_MIN_T de siempre
   if (g.t < (g.minT === undefined ? CH_MIN_T : g.minT)) return 'early';
   // FUERA DE LA ZONA DE ESPERA. Solo aplica si la mision declara zonas: sin ellas el poder es el
@@ -75,10 +81,10 @@ export function pedir(g) {
   // LA DE LA IDA NO SE GANA (`sinBarra`, decision del autor 24/9: "lo mas real"): la cita de ida con
   // el Hercules estaba en el plan de vuelo antes de despegar. La de la vuelta si — ahi la Chancha
   // rompe el protocolo para ir a buscarte, y eso se paga con la barra.
-  if (!g.sinBarra && meter < 1) return 'empty';
-  if (g.mitad) usos[g.mitad]++; else usada = true;
-  if (!g.sinBarra) meter = 0;
-  fase = 'eta'; etaT = g.eta || CH_ETA; pedidoT = 0;
+  if (!g.auto && !g.sinBarra && meter < 1) return 'empty';
+  if (!g.auto) { if (g.mitad) usos[g.mitad]++; else usada = true; }
+  if (!g.auto && !g.sinBarra) meter = 0;
+  fase = 'eta'; etaT = g.eta || CH_ETA; pedidoT = 0; espera = !!g.espera;
   return 'ok';
 }
 
@@ -97,7 +103,7 @@ export function tick(dt, e) {
     // Salir del pasillo —muerte, relevo, climax, devcam— la DESPIDE. El poder queda gastado: se
     // pidio, vino, y el que no estaba fue el avion. La barra vuelve a cargar desde el score del
     // momento en que se vuelve, como en tempo.js.
-    if (fase !== 'idle') { fase = 'idle'; conn = false; }
+    if (fase !== 'idle') { fase = 'idle'; conn = false; espera = false; }
     lastScore = -1;
     return out;
   }
@@ -118,7 +124,7 @@ export function tick(dt, e) {
     if (antes < 0.9 && pedidoT >= 0.9) out.sig = 'ack';
     else if (antes < 2.1 && pedidoT >= 2.1) out.sig = 'come';
     etaT -= dt;
-    if (etaT <= 0) { fase = 'cita'; winT = CH_WINDOW; citaT = 0; x = 0; conn = false; reserva = 1; upa = false; out.sig = 'llega'; }
+    if (etaT <= 0) { fase = 'cita'; winT = espera ? Infinity : CH_WINDOW; citaT = 0; x = 0; conn = false; reserva = 1; upa = false; out.sig = 'llega'; }
     return out;
   }
   if (fase === 'yendo') {
@@ -171,7 +177,15 @@ export function tick(dt, e) {
 }
 
 /** Se va por arriba. Lo no cargado se perdio: no hay segunda cita (§8.5). */
-function irse() { fase = 'yendo'; salT = CH_SALIDA; conn = false; }
+function irse() { fase = 'yendo'; salT = CH_SALIDA; conn = false; espera = false; }
+
+/** LA DESPEDIDA de la que espera: el orquestador la llama al cruzar la linea del radar (adentro no
+ *  entra). Devuelve true si estaba (viniendo o en la cita) y se fue. */
+export function despedir() {
+  if (fase !== 'eta' && fase !== 'cita') return false;
+  irse();
+  return true;
+}
 
 /** Factor del AVANCE DEL MUNDO. Conectado se vuela en formacion: menos distancia y menos puntos,
  *  que es la otra mitad del precio. No toca `run.spd` a proposito — la velocidad del avion es
@@ -192,7 +206,7 @@ export function snapshot() {
   return {
     fase, x, y: alturaHoy(), z: CH_Z,
     bx: c.x, by: c.y, bz: c.z,
-    conn, eta: etaT, win: winT, t: citaT,
+    conn, eta: etaT, win: winT, t: citaT, espera,
     // enganchado y ya pasando nafta (verde) o todavia sosteniendose (naranja), y lo que le queda a ella
     cargando: conn && connT >= CH_ENGANCHE, enganche: conn ? Math.min(1, connT / CH_ENGANCHE) : 0, reserva,
   };
@@ -206,7 +220,7 @@ export function cargar(p) { meter = Math.min(1, meter + (p === undefined ? CH_CH
 /** Arranque de PARTIDA (no de vida): barra vacia y el poder sin usar. Lo llama el reset del run,
  *  igual que resetTempo — por eso el "una vez por corrida" sobrevive al relevo. */
 export function resetChancha() {
-  fase = 'idle'; meter = 0; usada = false; usos.ida = 0; usos.vuelta = 0; reserva = 1; lastScore = -1;
+  fase = 'idle'; meter = 0; usada = false; usos.ida = 0; usos.vuelta = 0; reserva = 1; lastScore = -1; espera = false;
   etaT = 0; winT = 0; salT = 0; pedidoT = 0; conn = false; connT = 0; x = 0; citaT = 0;
   rumT = 0; bombaT = 0;
 }
