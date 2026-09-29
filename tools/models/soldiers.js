@@ -158,5 +158,58 @@ BAKE.modelos('soldiers', (THREE, K) => {
     return g;
   }
 
-  return { soldado, ALTO };
+  /** RODILLA EN TIERRA — el que NO huye: la infanteria antiaerea (pedido del autor 28/9, con la
+   *  foto del equipo de dos en el pozo). `o.arma`:
+   *    'tubo'         el lanzador al hombro (Blowpipe), apuntando alto hacia adelante: un tubo largo
+   *                   y oscuro con la caja de puntería gorda al frente. ES LA FIRMA — a 15 px lo que
+   *                   separa a este soldado de los demás es la raya diagonal que le cruza la cabeza.
+   *    'prismaticos'  el que marca: los dos brazos a la cara
+   *  Mira hacia -x como los demás. Una rodilla al piso y la otra levantada: agachado pero firme,
+   *  el que se queda a pelear. */
+  function rodilla(o) {
+    o = o || {};
+    const g = new THREE.Group();
+    const YC = 0.62;                                      // la cadera, baja: esta arrodillado
+    const tronco = new THREE.Group(); tronco.position.set(0, YC, 0); tronco.rotation.z = 0.05; g.add(tronco);
+    const yc = Y_HOMBRO - Y_CADERA;
+    B(tronco, 0.30, yc + 0.16, ANCHO, C.U, 0, yc / 2 - 0.04, 0);
+    B(tronco, 0.32, 0.09, ANCHO + 0.02, C.GEAR, 0, yc - 0.30, 0);
+    B(tronco, 0.16, 0.30, ANCHO * 0.72, C.GEAR, 0.20, yc - 0.16, 0);           // mochila chica
+    B(tronco, 0.11, 0.10, 0.14, C.SKIN, -0.01, yc + 0.09, 0);
+    DOME(tronco, 0.115, C.SKIN, -0.02, yc + 0.23, 0, 1, 1.05, 0.92);
+    casco(tronco, yc + 0.30);
+    if (o.arma === 'tubo') {
+      // el tubo: sobre el hombro de ALLA (el de la camara lo sostiene de la empuñadura), 20° arriba
+      const t = new THREE.Group(); t.position.set(0.02, yc + 0.08, ANCHO * 0.34); t.rotation.z = -0.6; tronco.add(t);
+      POST(t, 0.085, 0.085, 1.45, '#23271c', 0, 0, 0, 8).rotation.z = Math.PI / 2;
+      POST(t, 0.11, 0.09, 0.12, '#1a1d15', 0.74, 0, 0, 8).rotation.z = Math.PI / 2;   // la boca de atras
+      B(t, 0.34, 0.24, 0.2, '#3a3f30', -0.42, -0.14, 0);                              // caja de punteria
+      B(t, 0.06, 0.2, 0.06, C.GUN, -0.36, -0.3, 0);                                   // la empuñadura
+      // los brazos: los dos adelante, a la empuñadura y al tubo
+      // (el hueso cuelga hacia -y y el angulo NEGATIVO lo lleva hacia adelante, -x: ver `soldado`)
+      for (const [lado, a1, a2] of [[-1, -0.9, -1.1], [1, -1.1, -0.8]]) {
+        const tono = lado < 0 ? C.UL : C.U;
+        const br = hueso(tronco, 0, yc - 0.02, lado * ANCHO * 0.42, LARGO_BRAZO, 0.058, tono, a1);
+        hueso(br, 0, -LARGO_BRAZO, 0, LARGO_ANTEBRAZO, 0.05, tono, a2);
+      }
+    } else {
+      // prismaticos: codos arriba, manos a la cara
+      for (const lado of [-1, 1]) {
+        const tono = lado < 0 ? C.UL : C.U;
+        const br = hueso(tronco, 0, yc - 0.02, lado * ANCHO * 0.42, LARGO_BRAZO, 0.058, tono, -1.9);
+        hueso(br, 0, -LARGO_BRAZO, 0, LARGO_ANTEBRAZO, 0.05, tono, -1.55);
+      }
+      B(tronco, 0.14, 0.09, 0.22, C.GUN, -0.2, yc + 0.22, 0);
+    }
+    // piernas: la de aca con la rodilla al piso, la de alla con el pie adelante
+    const pi1 = hueso(g, 0, YC, -ANCHO * 0.24, LARGO_MUSLO, 0.075, C.UD, 0.35);
+    const pa1 = hueso(pi1, 0, -LARGO_MUSLO, 0, LARGO_PIERNA, 0.062, C.UD, 1.25);
+    B(pa1, 0.19, 0.10, 0.13, C.BOOT, 0.02, -LARGO_PIERNA - 0.02, 0).rotation.z = -1.2;
+    const pi2 = hueso(g, 0, YC, ANCHO * 0.24, LARGO_MUSLO, 0.075, C.UD, -1.35);
+    const pa2 = hueso(pi2, 0, -LARGO_MUSLO, 0, LARGO_PIERNA, 0.062, C.UD, 1.4);
+    B(pa2, 0.19, 0.10, 0.13, C.BOOT, -0.03, -LARGO_PIERNA - 0.03, 0);
+    return g;
+  }
+
+  return { soldado, rodilla, ALTO };
 });

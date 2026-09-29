@@ -241,8 +241,53 @@ BAKE.modelos('enemies', (THREE, K) => {
     return g;
   }
 
-  // CAMION ANTIAEREO: chasis con torreta de dos caños atras. `ang` = yaw de la torreta
-  // (3 poses = la torreta BARRE el cielo buscandote).
+  // EL LANZADOR RAPIER (pedido del autor 28/9, con fotos de San Carlos): es EL antiaereo de tierra
+  // britanico de Malvinas, y el que se ve en todas las fotos de las lomas. Lo que lo hace leerse:
+  //   · el TAMBOR: un cilindro alto y gris verdoso, con el radar de vigilancia arriba (otro cilindro
+  //     mas chico con tapa, que gira)
+  //   · los CUATRO MISILES, dos por lado en brazos que salen del tambor, apuntando al cielo: largos,
+  //     verde oliva, punta blanca y dos anillos amarillos (los de las fotos)
+  //   · el PLATO de seguimiento, colgado a un costado
+  // Los misiles estan MAS GRUESOS y un poco mas largos que los de verdad: a 48 px un misil real es
+  // un hilo de un pixel y los cuatro se funden en una mancha. Mentira de arte a favor de la lectura.
+  //
+  // `rapier(g, c, elev)` lo arma adentro de `g` (con la base en y=0 y los misiles hacia -z) y lo usan
+  // el nido, el camion y sus dos restos. `c` son los colores — los restos los pasan quemados.
+  const RAPIER_C = { tambor: '#5b6253', tambor2: '#6d7464', tapa: '#4b5145', misil: '#5d6a45', punta: '#e4e2d6',
+    anillo: '#d9b93a', brazo: '#3d423b', plato: '#7c847a' };
+  function rapier(g, c, elev, sinTapa) {
+    c = c || RAPIER_C;
+    POST(g, 0.78, 0.84, 1.7, c.tambor, 0, 0.85, 0, 14);                 // el tambor
+    POST(g, 0.86, 0.86, 0.12, c.tambor2, 0, 1.3, 0, 14);                // el aro de la mitad
+    if (!sinTapa) {
+      POST(g, 0.58, 0.62, 0.75, c.tambor2, 0, 2.08, 0.05, 12);          // el radar de vigilancia
+      POST(g, 0.64, 0.64, 0.1, c.tapa, 0, 2.5, 0.05, 12);               // …y su tapa
+    }
+    B(g, 1.1, 0.55, 0.9, c.tapa, 0, 1.0, -0.55);                        // la caja del frente (el afuste)
+    // los brazos y los misiles: dos por lado, uno encima del otro, apuntando alto hacia -z
+    for (const sg of [-1, 1]) {
+      B(g, 0.5, 0.18, 0.3, c.brazo, sg * 0.95, 1.15, -0.2);
+      for (const [dy, dx] of [[0, 0], [0.42, 0.12]]) {
+        const m = new THREE.Group(); m.position.set(sg * (1.12 + dx), 1.0 + dy, -0.2);
+        m.rotation.x = elev; g.add(m);
+        CYL(m, 0.17, 0.17, 2.5, c.misil, 0, 0, -0.55, 8);               // el cuerpo
+        CONE(m, 0.17, 0.5, c.punta, 0, 0, -2.02, false, 8);            // la punta blanca
+        CYL(m, 0.185, 0.185, 0.12, c.anillo, 0, 0, -1.35, 8);            // los anillos amarillos
+        CYL(m, 0.185, 0.185, 0.12, c.anillo, 0, 0, -1.08, 8);
+        B(m, 0.5, 0.04, 0.26, c.misil, 0, 0, 0.55);                     // aletas de cola en cruz
+        B(m, 0.04, 0.5, 0.26, c.misil, 0, 0, 0.55);
+        B(m, 0.1, 0.1, 1.9, c.brazo, 0, -0.18, -0.35);                  // el riel de abajo
+      }
+    }
+    // el plato de seguimiento, a un costado y un poco atras (en la foto, a la izquierda)
+    B(g, 0.12, 0.7, 0.12, c.brazo, -0.95, 1.55, 0.45);
+    const pl = add(g, new THREE.CylinderGeometry(0.55, 0.2, 0.2, 12), c.plato, -1.15, 1.95, 0.35);
+    pl.rotation.z = Math.PI / 2 - 0.35; pl.rotation.x = -0.3;
+    return g;
+  }
+
+  // CAMION ANTIAEREO: el mismo chasis, con un lanzador Rapier en la caja. `ang` = yaw del lanzador
+  // (3 poses = barre el cielo buscandote).
   function modelAATruck(ang) {
     const g = new THREE.Group();
     const grn = '#575b48', grn2 = '#696d58', cab = '#43473a';
@@ -253,12 +298,8 @@ BAKE.modelos('enemies', (THREE, K) => {
     WHEEL(g, 0.52, 0.35, -1.1, 0, -1.8); WHEEL(g, 0.52, 0.35, 1.1, 0, -1.8);
     WHEEL(g, 0.52, 0.35, -1.1, 0, 1.2); WHEEL(g, 0.52, 0.35, 1.1, 0, 1.2);
     WHEEL(g, 0.52, 0.35, -1.1, 0, 2.2); WHEEL(g, 0.52, 0.35, 1.1, 0, 2.2);
-    const tur = new THREE.Group(); tur.position.set(0, 1.35, 1.1); tur.rotation.y = ang; g.add(tur);
-    B(tur, 1.3, 0.7, 1.3, cab, 0, 0.2, 0);                             // cuna de la torreta
-    for (const sg of [-1, 1]) {                                        // dos caños apuntando alto
-      const c = CYL(tur, 0.09, 0.11, 2.2, '#2b3338', sg * 0.3, 0.85, -0.7, 6);
-      c.rotation.x = Math.PI / 2 - 0.85;                               // ~49° al cielo
-    }
+    const tur = new THREE.Group(); tur.position.set(0, 1.02, 1.0); tur.rotation.y = ang; tur.scale.setScalar(0.8); g.add(tur);
+    rapier(tur, null, 0.8);
     return g;
   }
 
@@ -295,24 +336,54 @@ BAKE.modelos('enemies', (THREE, K) => {
     return g;
   }
 
-  // NIDO ANTIAEREO: anillo de bolsas de arena, pedestal y caños gemelos al cielo.
-  // `ang` = yaw de los caños (2 poses: la pieza corrige el apunte).
+  // EL RAPIER EN LA LOMA: el lanzador (ver `rapier`) sobre sus cuatro patas niveladoras, con un
+  // parapeto BAJO de bolsas atras — lo que se ve en las fotos de San Carlos. `ang` = yaw del
+  // lanzador (2 poses: corrige el apunte).
   function modelAA(ang) {
     const g = new THREE.Group();
     const sand = '#8a7c58', sand2 = '#a4956e', metal = '#3d423b';
-    for (let i = 0; i < 8; i++) {                                      // anillo de bolsas
-      const a = i * Math.PI / 4;
-      const b = B(g, 1.3, 0.62, 0.62, i % 2 ? sand : sand2, Math.cos(a) * 1.55, 0.3, Math.sin(a) * 1.55);
-      b.rotation.y = -a + Math.PI / 2;
-      B(g, 1.0, 0.5, 0.55, i % 2 ? sand2 : sand, Math.cos(a) * 1.5, 0.75, Math.sin(a) * 1.5).rotation.y = -a + Math.PI / 2;
+    for (let i = 0; i < 5; i++) {                                      // parapeto: media luna atras
+      const a = Math.PI * (0.15 + i * 0.175);
+      B(g, 1.1, 0.45, 0.55, i % 2 ? sand : sand2, Math.cos(a) * 2.1, 0.22, Math.sin(a) * 2.1).rotation.y = -a + Math.PI / 2;
     }
-    const tur = new THREE.Group(); tur.position.set(0, 0.6, 0); tur.rotation.y = ang; g.add(tur);
-    B(tur, 0.8, 0.9, 0.8, metal, 0, 0.4, 0);                           // pedestal
-    B(tur, 1.1, 0.3, 0.6, '#4a5045', 0, 0.95, 0);                      // cuna
-    for (const sg of [-1, 1]) {                                        // caños gemelos a ~50°
-      const c = CYL(tur, 0.08, 0.10, 2.4, '#2b3338', sg * 0.22, 1.7, -0.75, 6);
-      c.rotation.x = Math.PI / 2 - 0.9;
+    const tur = new THREE.Group(); tur.position.set(0, 0.25, 0); tur.rotation.y = ang; g.add(tur);
+    for (let i = 0; i < 4; i++) {                                      // las patas niveladoras
+      const a = Math.PI / 4 + i * Math.PI / 2;
+      B(tur, 1.3, 0.12, 0.16, metal, Math.cos(a) * 0.95, -0.12, Math.sin(a) * 0.95).rotation.y = -a;
     }
+    rapier(tur, null, 0.9);
+    // LOS SERVIDORES: el del visor al costado del lanzador y uno de guardia atras, con prismaticos
+    tropa(g, 'prismaticos', -1.55, 0.9, -Math.PI / 2 - 0.5);
+    tropa(g, 'prismaticos', 1.7, -0.9, -Math.PI / 2 + 0.6);
+    return g;
+  }
+
+  // LOS SOLDADOS de los antiaereos salen del rig de la infanteria (tools/models/soldiers.js), el
+  // mismo de los que corren: mismo uniforme, mismo casco, misma luz. Se piden recien al armar el
+  // modelo porque el catalogo de soldados se carga despues que este.
+  // El rig mira hacia -x; el nido mira hacia -z (la camara). `ry` = -PI/2 lo pone de frente.
+  function tropa(g, arma, x, z, ry) {
+    const s = BAKE.familia('soldiers').rodilla({ arma });
+    s.position.set(x, 0, z); s.rotation.y = ry; g.add(s);
+    return s;
+  }
+
+  // EQUIPO DE MISIL AL HOMBRO (Blowpipe; pedido del autor 28/9, con la foto de los dos en el pozo):
+  // el tirador con el tubo apuntando alto y el que marca con prismaticos al lado, metidos en un pozo
+  // con la red de camuflaje alrededor. Es infanteria, no un fierro: del tamaño de un soldado, cae con
+  // un tiro y se le pasa por encima. `ang` = hacia donde apuntan (2 poses: siguen al avion).
+  function modelManpad(ang) {
+    const g = new THREE.Group();
+    const red = ['#5b5e3e', '#4a4d33', '#6a6c48', '#3f4230'];
+    for (let i = 0; i < 9; i++) {                                      // el borde del pozo con la red
+      const a = i * Math.PI * 2 / 9 + 0.3;
+      const b = B(g, 0.95, 0.22 + (i % 3) * 0.05, 0.5, red[i % 4], Math.cos(a) * 1.25, 0.11, Math.sin(a) * 1.2);
+      b.rotation.y = -a + Math.PI / 2; b.rotation.z = (i % 2 ? 0.12 : -0.1);
+    }
+    B(g, 2.0, 0.04, 2.0, '#3a3527', 0, 0.02, 0);                       // el fondo del pozo
+    const eq = new THREE.Group(); eq.rotation.y = ang; eq.position.y = -0.1; g.add(eq);
+    tropa(eq, 'tubo', 0.25, -0.1, -Math.PI / 2 + 0.25);
+    tropa(eq, 'prismaticos', -0.55, 0.45, -Math.PI / 2 - 0.2);
     return g;
   }
 
@@ -387,5 +458,5 @@ BAKE.modelos('enemies', (THREE, K) => {
     return g;
   }
 
-  return { modelHelo, modelHercules, CH_MOT, CH_SPAN, modelJet, modelRadar, modelAATruck, modelLcu, modelBalloon, modelAA, modelTent, modelDepot, modelBldg, modelFragata };
+  return { modelHelo, modelHercules, CH_MOT, CH_SPAN, modelJet, modelRadar, modelAATruck, modelLcu, modelBalloon, modelAA, modelTent, modelDepot, modelBldg, modelFragata, modelManpad, rapier, RAPIER_C };
 });

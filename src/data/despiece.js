@@ -133,6 +133,10 @@ export const DESPIECE = {
   // RADAR: el plato sale entero, girando. Es la pieza mas reconocible del juego.
   radar: { masa: 'medio', n: 6, size: [0.5, 1.2], c: METAL, hot: 0.5, up: 16, spread: 14, pieza: 'plato',
     bola: 'chica', chispa: 'metal', humo: 2, resto: 'resto_radar' },
+  // EL POZO DEL MISIL AL HOMBRO: infanteria, no un fierro — la red y la tierra vuelan, sin bola de
+  // fuego. Sin pieza firma, como la carpa: cada tipo tiene la suya y el tubo seria otra.
+  manpad: { masa: 'liviano', n: 5, size: [0.4, 1.0], c: LONA, hot: 0.2, up: 20, spread: 18, pieza: null,
+    bola: null, chispa: 'polvo', humo: 0, grav: 0.6, resto: 'resto_manpad' },
   // CARPA: lona y polvo. Liviana: vuela lejos y alto, y casi no arde (D2 le saca la bola de fuego)
   tent: { masa: 'liviano', n: 6, size: [0.5, 1.4], c: LONA, hot: 0.1, up: 24, spread: 22, pieza: null,
     bola: null, chispa: 'polvo', humo: 0, grav: 0.5, resto: 'resto_tent' },

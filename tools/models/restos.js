@@ -93,35 +93,51 @@ BAKE.modelos('restos', (THREE, K) => {
     }
   }
 
-  // ---------------- NIDO AA VOLCADO ----------------
-  // El anillo de bolsas reventado por un lado y el afuste tumbado adentro, con los caños gemelos
-  // clavados en la tierra. Los caños son lo que identifica al nido de lejos, asi que NO se sacan:
-  // se dan vuelta. Un nido AA sin caños seria un pozo con bolsas.
+  // ---------------- RAPIER VOLCADO ----------------
+  // El lanzador tumbado sobre su costado, con el parapeto reventado y dos misiles caidos al lado.
+  // Los misiles (punta blanca, anillos) son lo que lo identifica de lejos, asi que NO se sacan: se
+  // dan vuelta. Mismo `rapier` que el vivo (tools/models/enemies.js), con los colores quemados.
+  const rapierQuemado = () => {
+    const C = BAKE.familia('enemies').RAPIER_C, q = {};
+    for (const k in C) q[k] = quemar(C[k], k === 'punta' || k === 'anillo' ? 0.35 : 0.25);
+    return q;
+  };
   function restoAA() {
     const g = new THREE.Group();
-    const sand = quemar('#8a7c58', 0.2), sand2 = quemar('#a4956e', 0.14), metal = quemar('#3d423b', 0.25);
-    for (let i = 0; i < 8; i++) {
-      const a = i * Math.PI / 4;
-      // EL BOQUETE: dos bolsas del frente reventadas (desparramadas y bajas), el resto en pie
-      const roto = i === 0 || i === 7;
-      const rr = roto ? 2.15 : 1.55, hh = roto ? 0.12 : 0.3;
-      const b = B(g, 1.3, roto ? 0.3 : 0.62, 0.62, i % 2 ? sand : sand2,
-        Math.cos(a) * rr, hh, Math.sin(a) * rr);
+    const sand = quemar('#8a7c58', 0.2), sand2 = quemar('#a4956e', 0.14);
+    for (let i = 0; i < 5; i++) {
+      const a = Math.PI * (0.15 + i * 0.175), roto = i === 1 || i === 2;
+      const rr = roto ? 2.6 : 2.1;
+      const b = B(g, 1.1, roto ? 0.25 : 0.45, 0.55, i % 2 ? sand : sand2, Math.cos(a) * rr, roto ? 0.1 : 0.22, Math.sin(a) * rr);
       b.rotation.y = -a + Math.PI / 2; if (roto) b.rotation.z = 0.5 + i * 0.2;
-      if (!roto) B(g, 1.0, 0.5, 0.55, i % 2 ? sand2 : sand,
-        Math.cos(a) * 1.5, 0.75, Math.sin(a) * 1.5).rotation.y = -a + Math.PI / 2;
     }
-    tizne(g, 5, 2.4, 2.4, 0, 1.03, 0);                                 // el fogonazo sobre las bolsas
-    // el afuste TUMBADO: mismo pedestal y misma cuna, girados 74° sobre el eje del pasillo
-    const tur = new THREE.Group(); tur.position.set(-0.35, 0.35, 0.2);
-    tur.rotation.z = 1.29; tur.rotation.y = 0.4; g.add(tur);
-    B(tur, 0.8, 0.9, 0.8, metal, 0, 0.4, 0);
-    B(tur, 1.1, 0.3, 0.6, quemar('#4a5045', 0.25), 0, 0.95, 0);
-    for (const sg of [-1, 1]) {
-      const c = CYL(tur, 0.08, 0.10, 2.4, '#4c5450', sg * 0.22, 1.7, -0.75, 6);
-      c.rotation.x = Math.PI / 2 - 0.9;
+    tizne(g, 5, 2.6, 2.6, 0, 0.03, 0);
+    const tur = new THREE.Group(); tur.position.set(-0.3, 0.85, 0.2);
+    tur.rotation.z = 1.35; tur.rotation.y = 0.5; g.add(tur);          // tumbado de costado
+    BAKE.familia('enemies').rapier(tur, rapierQuemado(), 0.4);
+    chapas(g, 5, 1.0, quemar('#3d423b', 0.25), 0.6, 0.1, -0.5);
+    return g;
+  }
+
+  // ---------------- EL POZO DEL MISIL AL HOMBRO ----------------
+  // La red revuelta y medio volada, el tubo tirado cruzado sobre el borde y los dos soldados en el
+  // piso (el cuerpo a tierra del rig). Sin bola de fuego ni chatarra: era infanteria.
+  function restoManpad() {
+    const g = new THREE.Group();
+    const red = ['#5b5e3e', '#4a4d33', '#6a6c48', '#3f4230'].map(c => quemar(c, 0.2));
+    for (let i = 0; i < 9; i++) {
+      const a = i * Math.PI * 2 / 9 + 0.3, roto = i === 2 || i === 3 || i === 7;
+      const rr = roto ? 1.7 : 1.2;
+      const b = B(g, 0.95, roto ? 0.14 : 0.3, 0.5, red[i % 4], Math.cos(a) * rr, roto ? 0.07 : 0.15, Math.sin(a) * rr);
+      b.rotation.y = -a + Math.PI / 2 + (roto ? 0.7 : 0);
     }
-    chapas(g, 5, 0.9, metal, 0.6, 0.1, -0.4);
+    tizne(g, 4, 2.0, 2.0, 0, 0.03, 0);
+    const t = POST(g, 0.085, 0.085, 1.45, quemar('#23271c', 0.2), 0.3, 0.3, 0.2, 8);
+    t.rotation.z = Math.PI / 2 - 0.15; t.rotation.y = 0.8;
+    const S = BAKE.familia('soldiers');
+    for (const [x, z, ry] of [[-0.4, -0.2, 0.4], [0.6, 0.6, 2.6]]) {
+      const s = S.soldado({ tierra: true }); s.position.set(x, 0, z); s.rotation.y = ry; g.add(s);
+    }
     return g;
   }
 
@@ -145,12 +161,8 @@ BAKE.modelos('restos', (THREE, K) => {
     RUEDA(v, 0.52, 0.35, -1.1, 0, -1.8); RUEDA(v, 0.52, 0.35, 1.1, 0, -1.8);
     RUEDA(v, 0.52, 0.35, -1.1, 0, 1.2); RUEDA(v, 0.52, 0.35, 1.1, 0, 1.2);
     RUEDA(v, 0.52, 0.35, -1.1, 0, 2.2); RUEDA(v, 0.52, 0.35, 1.1, 0, 2.2);
-    const tur = new THREE.Group(); tur.position.set(0, 1.35, 1.1); tur.rotation.y = 0.6; v.add(tur);
-    B(tur, 1.3, 0.7, 1.3, cab, 0, 0.2, 0);
-    for (const sg of [-1, 1]) {
-      const c = CYL(tur, 0.09, 0.11, 2.2, '#4c5450', sg * 0.3, 0.85, -0.7, 6);
-      c.rotation.x = Math.PI / 2 - 0.85;
-    }
+    const tur = new THREE.Group(); tur.position.set(0, 1.02, 1.0); tur.rotation.y = 0.6; tur.scale.setScalar(0.72); v.add(tur);
+    BAKE.familia('enemies').rapier(tur, rapierQuemado(), 0.5);
     chapas(g, 4, 1.1, grn2, -1.6, 0.1, 1.4);
     return g;
   }
@@ -414,6 +426,6 @@ BAKE.modelos('restos', (THREE, K) => {
     return g;
   }
 
-  return { restoAA, restoAATruck, restoRadar, restoDepot, restoBldg, restoTent,
+  return { restoAA, restoManpad, restoAATruck, restoRadar, restoDepot, restoBldg, restoTent,
     restoHelo, restoJet, restoLcu, restoBalloon };
 });

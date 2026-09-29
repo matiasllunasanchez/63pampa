@@ -20,8 +20,8 @@ const TALL_HW = { tree: 1.4, tower: 1.6, flag: 0.8, poles: 6.5 };
 // 'mast' es la FRAGATA del mar abierto. Su semi-ancho es el del CASTILLO (la superestructura),
 // que es lo unico que sobresale arriba; el casco, que es mucho mas ancho, lo cubre el barrido de
 // hullReach por debajo de HULL_Y. Modelarlo con un solo ancho daria un barco con forma de caja.
-const STRUCT = ['tent', 'aa', 'bldg', 'lcu', 'radar', 'aatruck', 'depot', 'mast'];
-const STRUCT_HW = { tent: 2.4, aa: 1.7, bldg: 3.0, lcu: 3.6, radar: 2.4, aatruck: 2.6, depot: 3.4, mast: 2.0 };
+const STRUCT = ['tent', 'aa', 'bldg', 'lcu', 'radar', 'aatruck', 'depot', 'mast', 'manpad'];
+const STRUCT_HW = { tent: 2.4, aa: 1.7, bldg: 3.0, lcu: 3.6, radar: 2.4, aatruck: 2.6, depot: 3.4, mast: 2.0, manpad: 1.6 };
 
 const AIR = ['helo', 'jet'];
 

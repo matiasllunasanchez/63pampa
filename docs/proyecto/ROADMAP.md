@@ -209,6 +209,16 @@ Aérea Italiana.
 ataque en solitario del Teniente Owen Crippa a la fragata HMS Argonaut. Sigue en servicio hoy
 en varias fuerzas aéreas (entre ellas la de Perú).
 
+**PENDIENTE (pedido del autor 29/9/2026): el avión concreto es el MB-339A matrícula 4-A-115.**
+No un MB-339 genérico: se modela y se hornea ESE ejemplar, con su matrícula pintada, igual que
+el nombre pintado de los aviones del escuadrón. Falta:
+- modelo procedural en `tools/models/planes.js` y sus tres hojas (base, cabeceos y poder RASANTE),
+  más sus capas de carga (`CELULA` / `PUNTOS` de `colgar`), para que entre al sistema de cargas;
+- la pintura y los números del 4-A-115 (relevar fotos del ejemplar: esquema de la Aviación Naval
+  y dónde van la matrícula y las escarapelas);
+- la entrada en `data/planes.js` y su ficha histórica. Antes de escribirla, confirmar quién lo
+  voló y en qué misión, y anotarlo en `docs/historia/PREGUNTAS_HISTORICAS.md` si no se puede confirmar.
+
 > Relacionado con #10 y #18 (asimetría).
 > Dónde tocar → `data/planes.js` (definición), `tools/bake_planes.html` (hornear la hoja del
 > sprite si no hay modelo 3D/2D ya listo).

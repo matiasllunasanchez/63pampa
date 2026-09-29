@@ -28,6 +28,7 @@ const FILES = {
   lcu: '../assets/world/enemies/lcu.png',
   balloon: '../assets/world/enemies/balloon.png',
   aa: '../assets/world/enemies/aa.png',
+  manpad: '../assets/world/enemies/manpad.png',
   tent: '../assets/world/enemies/tent.png',
   depot: '../assets/world/enemies/depot.png',
   bldg: '../assets/world/enemies/bldg.png',
@@ -35,6 +36,7 @@ const FILES = {
   chancha: '../assets/world/enemies/chancha.png',
   // LOS RESTOS (B1): el estado roto de cada cosa. Mismas rutas literales, mismo motivo.
   resto_aa: '../assets/world/enemies/resto_aa.png',
+  resto_manpad: '../assets/world/enemies/resto_manpad.png',
   resto_aatruck: '../assets/world/enemies/resto_aatruck.png',
   resto_radar: '../assets/world/enemies/resto_radar.png',
   resto_depot: '../assets/world/enemies/resto_depot.png',
@@ -106,6 +108,9 @@ const ARTE = {
   lcu: { wu: 8.6 },
   balloon: { wu: 5.6 },
   aa: { wu: 5.2 },
+  // el equipo de misil al hombro: dos soldados en un pozo — mas chico que el Rapier, del ancho
+  // de un par de soldados con la red alrededor
+  manpad: { wu: 3.6 },
   tent: { wu: 5.4 },
   // depot y bldg se escalan por ALTURA al dibujar (o.h varia por spawn): wu es el ancho a la
   // altura de referencia y drawFrame recibe el k ya multiplicado por (o.h / href)
@@ -123,6 +128,7 @@ const ARTE = {
   // Los unicos que se apartan son los que de verdad cambian de tamaño al romperse: el globo, que
   // desinflado ocupa mas piso del que ocupaba en el aire, y la carpa, que caida se desparrama.
   resto_aa: { wu: 5.2 },
+  resto_manpad: { wu: 3.6 },
   resto_aatruck: { wu: 6.6 },
   resto_radar: { wu: 6.2 },
   resto_depot: { wu: 8.2, href: 5.5 },

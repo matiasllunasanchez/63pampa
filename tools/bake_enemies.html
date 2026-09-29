@@ -33,6 +33,7 @@
   <script src="../src/vendor/three.global.js"></script>
   <script src="bake_common.js"></script>
   <script src="models/enemies.js"></script>
+  <script src="models/soldiers.js"></script>
   <script src="models/restos.js"></script>
   <script src="models/buques.js"></script>
   <script src="models/harrier.js"></script>
@@ -83,7 +84,7 @@
 
     // LOS MODELOS VIVEN EN tools/models/enemies.js (PLAN_HORNEADO B0): un horneador es un
     // ENCUADRE (que camara, que poses, que grilla) y un modelo es una SILUETA.
-    const { modelHelo, modelHercules, CH_MOT, modelJet, modelRadar, modelAATruck, modelLcu, modelBalloon, modelAA, modelTent, modelDepot, modelBldg, modelFragata } = BAKE.familia('enemies');
+    const { modelHelo, modelHercules, CH_MOT, modelJet, modelRadar, modelAATruck, modelLcu, modelBalloon, modelAA, modelTent, modelDepot, modelBldg, modelFragata, modelManpad } = BAKE.familia('enemies');
     // LOS RESTOS (PLAN_HORNEADO B1): el estado ROTO de cada cosa, en tools/models/restos.js. Van
     // en ESTE horneador y no en uno propio porque son el MISMO encuadre — la camara que ve venir
     // al enemigo es la que despues lo ve tirado. Dos hornos serian dos luces.
@@ -220,10 +221,16 @@
         fw: 48, fh: 48, dist: 11, lookY: 0, quarter: 0.4,
         frames: [-0.12, 0, 0.12].map(a => ({ model: modelBalloon, roll: a })), cols: 3,
       },
-      // nido AA: 2 poses de apunte de los caños
+      // el RAPIER: 2 poses de apunte, las dos en 3/4 hacia el mismo lado — de frente los misiles
+      // apuntan a la camara y se leen como palitos; de 3/4 se ve el perfil de la foto de San Carlos
       aa: {
         fw: 48, fh: 48, dist: 14, lookY: 1.2, quarter: 0.45,
-        frames: [-0.35, 0.35].map(a => ({ model: () => modelAA(a) })), cols: 2,
+        frames: [0.55, 0.8].map(a => ({ model: () => modelAA(a) })), cols: 2,
+      },
+      // EQUIPO DE MISIL AL HOMBRO: 2 poses de apunte (sigue al avion), en 3/4 como el Rapier
+      manpad: {
+        fw: 48, fh: 48, dist: 9, lookY: 0.7, quarter: 0.45,
+        frames: [0.7, 1.0].map(a => ({ model: () => modelManpad(a) })), cols: 2,
       },
       // carpa: frame unico, frente 3/4 con la entrada a la vista
       tent: {
@@ -252,8 +259,13 @@
       // la misma escala, o el cambio se lee como un salto. Lo unico que puede diferir es `lookY`
       // cuando el resto es mas bajo que el vivo (que es casi siempre: se derrumbo).
       resto_aa: {
-        fw: 48, fh: 48, dist: 14, lookY: 0.8, quarter: 0.45,
+        fw: 48, fh: 48, dist: 16, lookY: 0.8, quarter: 0.45,
         frames: [{ model: R.restoAA }], cols: 1,
+      },
+      // el pozo abandonado: la red revuelta, el tubo tirado y los dos soldados caidos
+      resto_manpad: {
+        fw: 48, fh: 48, dist: 9, lookY: 0.4, quarter: 0.45,
+        frames: [{ model: R.restoManpad }], cols: 1,
       },
       resto_aatruck: {
         fw: 56, fh: 48, dist: 16, lookY: 0.9, quarter: 0.5,

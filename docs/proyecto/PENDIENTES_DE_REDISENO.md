@@ -58,7 +58,7 @@ brusca. La usa el render solo durante las maniobras (`run.mvSteep`).
 | 5 | **PAMPA 63** — entrenador biplaza IA-63 | ✅ | ✅ | ✅ | ❌ |
 | 6 | **MIRAGE IIIEA** — interceptor de altura | ✅ | ✅ | ✅ | ❌ |
 | 7 | **IA-58 PUCARÁ** — turbohélice bimotor, apoyo terrestre (ROADMAP #10.1) | ⬜ | ⬜ | ⬜ | ⬜ |
-| 8 | **AERMACCHI MB-339** — jet liviano de ataque (ROADMAP #10.2) | ⬜ | ⬜ | ⬜ | ⬜ |
+| 8 | **AERMACCHI MB-339A 4-A-115** — jet liviano de ataque; ese ejemplar, con su matrícula (ROADMAP #10.2) | ⬜ | ⬜ | ⬜ | ⬜ |
 | 9 | **MIRAGE 5 peruano** — refuerzo desbloqueable a mitad de campaña (ROADMAP #20) | ⬜ | ⬜ | ⬜ | ⬜ |
 
 > ⚠️ La hoja 2 es **opcional con fallback real**: `tools/build_web.py` la **descarta** en el bundle
