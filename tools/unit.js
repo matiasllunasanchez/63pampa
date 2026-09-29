@@ -3077,14 +3077,13 @@ test('geografia · el validador acepta lo que funciona y rechaza lo que no exist
   assert.equal(validarGeografia([{ hasta: 1, suelo: 'mar' }, { hasta: 2.5, suelo: 'mar' }]).length, 1, 'hasta > 2');
   assert.equal(validarGeografia([{ hasta: 0.5, suelo: 'mar' }, { hasta: 0.4, suelo: 'mar' }]).length, 1, 'no creciente');
   assert.equal(validarGeografia([{ hasta: 1, suelo: 'lava' }]).length, 1, 'suelo que no existe');
-  // LAS CLAVES DEL PLAN QUE TODAVIA NO HACEN NADA se rechazan: una clave aceptada que no hace nada
-  // es la peor forma de fallar. Cuando su fase exista, esta linea cambia (G3 saco `paredes` y
-  // `barrera`: ahora existen y tienen su propio test).
-  for (const k of ['alto', 'ancho', 'borde']) {
-    assert.equal(GEO_CLAVES.indexOf(k), -1, `'${k}' todavia no existe`);
+  // UNA CLAVE QUE NO HACE NADA se rechaza: una clave aceptada que no hace nada es la peor forma de
+  // fallar. (Hasta G4 esta lista tenia las claves del plan que todavia no existian — `paredes`,
+  // `barrera`, la isla —; ahora existen todas y cada una tiene su test.)
+  for (const k of ['forma', 'altura', 'canal']) {
+    assert.equal(GEO_CLAVES.indexOf(k), -1, `'${k}' no existe`);
     assert.ok(validarGeografia([{ hasta: 1, suelo: 'mar', [k]: 1 }]).length > 0, `rechaza '${k}'`);
   }
-  assert.ok(validarGeografia([{ hasta: 1, suelo: 'isla' }]).length > 0, 'la isla llega en G4');
   assert.ok(validarGeografia([{ hasta: 1, suelo: 'mar', lado: 'der' }]).length > 0, 'lado fuera de una costa');
   assert.ok(validarGeografia([{ hasta: 0.5, suelo: 'costa', lado: 'izq' }, { hasta: 1, suelo: 'costa', lado: 'der' }]).length > 0,
     'dos costas pegadas de distinto lado');
@@ -3390,4 +3389,122 @@ test('geografia G3 · la forma CLASICA del zigzag no cambio (m5 y los presets)',
     assert.equal(zzG3.pared().puestas, false);
     assert.equal(zzG3.pared().puestos, true, 'los antiaereos de San Carlos siguen en las lomas');
   } finally { zzG3.reset(); }
+});
+
+// ---------------------------------------------------------------------------------------------
+// G4 · LA ISLA
+// ---------------------------------------------------------------------------------------------
+import { islaAltura, islaEn } from '../src/core/geografia.js';
+import { GEO_ISLA_ALTO as ISLA_ALTO_U, GEO_ISLA_PENDIENTE as ISLA_P_U, GEO_ISLA_IMPACTO as ISLA_IMP_U,
+  FLY_X as FLY_X_U } from '../src/data/tuning.js';
+
+// una isla de lado a lado, una parcial con canal a la derecha y una con farallon, separadas por mar
+const G4_LISTA = [
+  { hasta: 0.20, suelo: 'mar' },
+  { hasta: 0.30, suelo: 'isla' },
+  { hasta: 0.40, suelo: 'mar' },
+  { hasta: 0.48, suelo: 'isla', alto: 12, ancho: 0.6, x: -18 },
+  { hasta: 0.60, suelo: 'mar' },
+  { hasta: 0.66, suelo: 'isla', alto: 16, borde: 'acantilado' },
+  { hasta: 2.00, suelo: 'mar' },
+];
+const G4_OBJ = 6000;
+
+test('geografia G4 · el validador: la isla, sus claves y el techo del radar', () => {
+  assert.deepEqual(validarGeografia(G4_LISTA), []);
+  const e = l => validarGeografia(l).length;
+  assert.ok(e([{ hasta: 1, suelo: 'mar', alto: 10 }]) > 0, "'alto' fuera de una isla");
+  assert.ok(e([{ hasta: 1, suelo: 'isla', alto: 30 }]) > 0, 'una isla por encima del radar, sin decirlo');
+  assert.equal(e([{ hasta: 1, suelo: 'isla', alto: 30, expone: true }]), 0, '...salvo que la data lo diga (decision 1)');
+  assert.ok(e([{ hasta: 1, suelo: 'isla', ancho: 1.4 }]) > 0, 'ancho > 1');
+  assert.ok(e([{ hasta: 1, suelo: 'isla', x: 10 }]) > 0, "'x' sin isla parcial");
+  assert.ok(e([{ hasta: 1, suelo: 'isla', ancho: 0.5, x: 60 }]) > 0, "'x' fuera del carril");
+  assert.ok(e([{ hasta: 1, suelo: 'isla', borde: 'muro' }]) > 0, 'borde que no existe');
+  assert.ok(e([{ hasta: 1, suelo: 'isla', paredes: 'ambos' }]) > 0, 'la isla ES la barrera');
+  assert.ok(e([{ hasta: 0.5, suelo: 'tierra' }, { hasta: 1, suelo: 'isla' }]) > 0, 'pegada a tierra no es isla');
+  assert.ok(e([{ hasta: 0.5, suelo: 'isla' }, { hasta: 1, suelo: 'costa' }]) > 0, 'y despues tampoco');
+});
+
+test('geografia G4 · la isla es mar de base y tierra encima: el suelo, la tierra y el relieve', () => {
+  setGeografia(G4_LISTA, G4_OBJ);
+  try {
+    const c = 0.25 * G4_OBJ;
+    assert.equal(sueloEn(c), 'sea', 'el raster y la siembra la ven como mar (la rodean de agua)');
+    assert.equal(esTierraEn(0, c), true, 'pero el vuelo sabe que hay tierra');
+    assert.equal(esTierraEn(0, 0.1 * G4_OBJ), false);
+    const h = alturaSuelo(0, c);
+    assert.ok(h > ISLA_ALTO_U * 0.75 && h <= ISLA_ALTO_U * 1.01, `la cumbre de la isla por defecto (${h.toFixed(1)} m)`);
+    assert.equal(alturaSuelo(0, 0.2 * G4_OBJ - 1), 0, 'antes de la isla, el agua');
+    assert.ok(islaEn(c) && !islaEn(0.35 * G4_OBJ), 'islaEn');
+    assert.ok(islaEn(0.2 * G4_OBJ - 30, 40), 'islaEn con margen: la siembra no planta pegado');
+    // de lado a lado de verdad: la misma altura a los dos bordes del carril
+    assert.ok(alturaSuelo(-FLY_X_U, c) > ISLA_ALTO_U * 0.75 && alturaSuelo(FLY_X_U, c) > ISLA_ALTO_U * 0.75);
+  } finally { setGeografia(null, 0); }
+});
+
+test('geografia G4 · la parcial deja un canal: por ahi se pasa sin subir', () => {
+  setGeografia(G4_LISTA, G4_OBJ);
+  try {
+    const c = 0.44 * G4_OBJ;
+    // tapa de -18-22.8 a -18+22.8: el canal va de ~5 a 38
+    assert.ok(alturaSuelo(-25, c) > 8, 'sobre la isla hay cerro');
+    for (const x of [8, 20, 30, FLY_X_U]) {
+      assert.equal(alturaSuelo(x, c), 0, `en el canal (x ${x}) es agua`);
+      assert.equal(esTierraEn(x, c), false);
+    }
+  } finally { setGeografia(null, 0); }
+});
+
+test('geografia G4 · la entrada por playa se sigue con el gas; el farallon se choca (medido en Node)', () => {
+  setGeografia(G4_LISTA, G4_OBJ);
+  try {
+    const d0 = 0.20 * G4_OBJ;
+    // LA PENDIENTE NUNCA PASA LA DE LA DATA, tampoco en el hombro donde la subida entra a la cumbre
+    let pmax = 0;
+    for (let z = d0 - 5; z < d0 + 400; z += 0.5) {
+      pmax = Math.max(pmax, (alturaSuelo(0, z + 0.5) - alturaSuelo(0, z)) / 0.5);
+    }
+    assert.ok(pmax <= ISLA_P_U * 1.02, `pendiente maxima de la entrada ${pmax.toFixed(3)} (data ${ISLA_P_U})`);
+    // Y SE SIGUE: el avion a ras (2,4 m) que da gas al llegar a la arena no toca el suelo. La misma
+    // cuenta vertical del pasillo (flight.js: TH 55, G 22, tope 18 m/s). A crucero, dando gas SOBRE
+    // la arena; con turbo, 30 m antes (medido: alcanza con 20, una decima de segundo — la cumbre se
+    // ve desde 1400 m) y a fondo con los escalones del turbo sostenido (280), 60 m antes.
+    for (const [spd, antes] of [[150, 0], [225, 30], [280, 60]]) {
+      const dt = 1 / 60;
+      let y = 2.4, vy = 0, z = d0 - antes, roza = 0;
+      while (z < d0 + 450) {
+        vy = Math.min(18, vy + (55 - 22) * dt);
+        y += vy * dt; z += spd * dt;
+        if (y < alturaSuelo(0, z) + 0.5) roza++;
+        if (y > ISLA_ALTO_U + 3) { vy = 0; y = ISLA_ALTO_U + 3; }   // arriba, se nivela
+      }
+      assert.equal(roza, 0, `a ${spd} m/s dando gas ${antes} m antes de la arena, cuadros rozando: ${roza}`);
+    }
+    // CUANTO SUBE EL SUELO EN UN CUADRO (a 30 cuadros por segundo, el peor caso): en la playa nunca
+    // llega al choque; contra el farallon si
+    const salto = (x, z0, z1, dz) => {
+      let m = 0;
+      for (let z = z0; z < z1; z += 0.5) m = Math.max(m, alturaSuelo(x, z + dz) - alturaSuelo(x, z));
+      return m;
+    };
+    const dz = 225 / 30;
+    assert.ok(salto(0, d0 - 5, d0 + 300, dz) < ISLA_IMP_U, 'la playa se roza, no se choca');
+    const a0 = 0.60 * G4_OBJ;
+    assert.ok(salto(0, a0 - 5, a0 + 60, 150 / 30) > ISLA_IMP_U, 'el farallon se choca aun a crucero');
+    // el FLANCO de la parcial, de costado (30 m/s de palanca): se roza, no se choca de un cuadro
+    const c = 0.44 * G4_OBJ;
+    let mx = 0;
+    for (let x = 10; x > -18; x -= 0.25) mx = Math.max(mx, alturaSuelo(x - 1, c) - alturaSuelo(x, c));
+    assert.ok(mx < ISLA_IMP_U, `el flanco sube ${mx.toFixed(2)} m por cuadro de costado`);
+  } finally { setGeografia(null, 0); }
+});
+
+test('geografia G4 · sobrevive a ?qa (la mision comprimida al 6%)', () => {
+  setGeografia(G4_LISTA, G4_OBJ * 0.06);
+  try {
+    const c = 0.25 * G4_OBJ * 0.06;
+    assert.equal(esTierraEn(0, c), true, 'la isla sigue estando');
+    const h = alturaSuelo(0, c);
+    assert.ok(h >= 0 && h < ISLA_ALTO_U, `y comprimida es mas baja, nunca mas empinada (${h.toFixed(2)} m)`);
+  } finally { setGeografia(null, 0); }
 });

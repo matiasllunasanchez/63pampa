@@ -1,10 +1,10 @@
 # PLAN — La GEOGRAFÍA del pasillo *(mar, costa, acantilado, isla y niebla en una misma misión)*
 
-> **ESTADO (29/9/2026): G0, G1, G2 y G3 HECHAS.** El suelo por tramos anda —mar, costa (de
-> cualquiera de los dos lados) y tierra con lomas en una misma misión, con sus costuras—, los bancos
-> de niebla se ponen donde dice la data, y los acantilados (izquierda, derecha o los dos) y las
-> barreras también. Se prueba con `?mision=t17&geo=demo` y con `npm run geografia`.
-> Faltan G4 (la isla) → G6.
+> **ESTADO (29/9/2026): G0 a G4 HECHAS.** El suelo por tramos anda —mar, costa (de cualquiera de
+> los dos lados) y tierra con lomas en una misma misión, con sus costuras—, los bancos de niebla se
+> ponen donde dice la data, los acantilados (izquierda, derecha o los dos) y las barreras también, y
+> hay ISLAS que se sobrevuelan (de lado a lado o parciales, con playa o farallón). Se prueba con
+> `?mision=t17&geo=demo` y con `npm run geografia`. Faltan G5 (t15 la usa) y G6 (docs).
 
 > **Audiencia: una IA implementadora en sesión nueva, sin el chat donde se decidió esto.** Define
 > cómo un mismo pasillo —en particular los de IDA Y VUELTA (`t15`, `t17`)— pasa a tener **etapas
@@ -466,6 +466,72 @@ siempre) y funde la lejanía con el color del suelo del tramo que está en el ho
 
 El callejón de San Carlos no se reescribe desde la geografía (§7.6). Una misión con `zigzag:` y
 tramos con `paredes:` vuela su `zigzag:`; el unit test exige que ninguna misión declare las dos.
+
+### 21. La isla es MAR de base con un relieve encima *(G4)*
+
+`sueloEn` contesta `'sea'` sobre una isla (`SUELOS.isla = 'sea'`): el raster pinta agua alrededor,
+las costuras de los vecinos la ven como mar, y ningún lector de `sueloEn` necesitó una rama nueva.
+Lo que la hace isla es `islaAltura(x, wz, r)` —la leen `alturaSuelo` (el piso del vuelo) y
+`esTierraEn` (dentro de su huella)— y el dibujo por rebanadas de `render/islas.js`. No se extendió
+la barrera de roca del zigzag como decía §4.1: la barrera es de otro sistema (el del callejón, con
+su ventana y su sorteo) y la isla es suelo; lo que se reusó de ella es la IDEA —rebanadas de lejos
+a cerca, una sola función para dibujo y choque— y las paletas de la ladera (`caraLadera`,
+`tierraArriba`, `mez`, ahora exportadas de `render/paredes.js`).
+
+### 22. El perfil, y por qué la pendiente se cumple de verdad *(G4)*
+
+Arena al pie (`GEO_ISLA_PLAYA`, 10 m; 4 con farallón), subida (`GEO_ISLA_PENDIENTE` 0,07 con playa,
+`GEO_ISLA_CARA` 2,6 con acantilado), y la cumbre con el relieve de la turba encima (±10 % de
+`alto`). La subida entra en la cumbre con una curva cuya derivada nunca pasa la de la subida: el
+unit test barre la entrada y la pendiente máxima es la de la data. La rampita de la arena era lo
+más empinado de toda la entrada (0,083) hasta que se estiró a 4 m. Los costados de una isla
+parcial suben con `GEO_ISLA_FLANCO` (1,4): son la pared del canal.
+
+### 23. "Se sigue con el gas": medido, y con turbo hay que anticipar 20 m *(G4)*
+
+Con la cuenta vertical del pasillo (TH 55, G 22, tope 18 m/s) en Node: a crucero (150 m/s) dando
+gas sobre la arena no se roza nunca; con turbo (225) hacen falta 20 m de anticipo —una décima de
+segundo— y a fondo con el turbo sostenido (280), 50. El test pide 0 / 30 / 60 m.
+
+### 24. La cara de una isla se CHOCA, no se roza *(G4)*
+
+El roce levanta al avión al piso cada cuadro: contra una loma que sube despacio es lo justo, y
+contra un farallón haría que el avión trepe catorce metros en un cuadro y siga rozando arriba.
+`flight.js`: sobre una isla, si el suelo quedó más de `GEO_ISLA_IMPACTO` (2 m) POR ENCIMA del
+avión, es `death_land`. Solo sobre islas (ninguna loma de la turba sube eso en un cuadro) y sin
+geografía ni se pregunta. El unit test mide cuánto sube el suelo en un cuadro a 30 fps: la playa
+nunca llega al choque, el farallón sí aun a crucero, y el flanco del canal de costado tampoco.
+
+### 25. Sobre la isla, y pegado a ella, no nace nada *(G4 — decisión 3)*
+
+`spawn.js` saltea el sorteo si hay una isla a menos de 40 m de donde nace (`islaEn(wz, 40)`): la
+isla es mar de base y la pregunta de G1 (`sueloEn !== 'sea'`) la dejaba pasar. El canal de una
+parcial queda vacío por ahora — terreno primero.
+
+### 26. Lo que queda detrás de una isla se RECORTA en su filo *(G4)*
+
+Los obstáculos se dibujan después del mundo, así que un antiaéreo pasando la isla se pintaba
+encima de la tierra que tiene delante. `drawObstacle` ya recortaba a los de la ladera con
+`techoLadera`; ahora también a cualquiera con una isla en el medio (`techoIsla`, las mismas
+rebanadas y la misma `islaAltura`).
+
+### 27. "La cumbre se ve desde SPAWN_Z": sí, y son pocos píxeles *(G4 — para el playtest)*
+
+Es la escala del juego: con el ojo a ~5,6 m y F = 135 sobre 270 px de alto, una cumbre de 14 m a
+550 m queda 2 px por encima del horizonte, y la playa a 320 m, 2 px por debajo. La isla a SPAWN_Z
+es una franja de 3-4 px (la misma escala que las barreras de roca del zigzag, que ya se jugaron) y
+se lee de verdad desde unos 200 m. La niebla de distancia de la isla es propia y nunca la borra del
+todo (`GEO_ISLA_NIEBLA_MAX` 0,82): la de las laderas satura a 210 m y la dejaría invisible. **Si en
+el playtest la isla llega tarde**, las perillas son la niebla (`GEO_ISLA_NIEBLA_*`) y el contraste
+de la cara; exagerar la altura del dibujo sin la del choque rompería "lo que ves es lo que te mata".
+
+### 28. Qué pasos admite cada isla, por dato *(G4 — decisión 2)*
+
+Por encima siempre (y a la altura que diga `alto`: el validador rechaza más de
+`GEO_ISLA_ALTO_MAX` = 20, el techo del radar, salvo `expone: true` — decisión 1). Por un canal si
+`ancho` < 1. **Por abajo no**: un arco natural sería una barrera (el arco de roca del zigzag se sacó
+en Z8) y un puente ya existe como barrera de un tramo con paredes. Una isla no lleva `paredes` ni
+`barrera` — la isla ES la barrera — y tiene que tener mar antes y después.
 
 ## 10. Coordinación *(29/9/2026)*
 

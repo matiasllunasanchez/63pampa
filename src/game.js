@@ -147,6 +147,7 @@ import { pose as poseSenal } from './core/senales.js';
 import * as zigzag from './systems/zigzag.js';
 import * as zigzagCore from './core/zigzag.js';
 import { drawParedes, drawBarreras, techoLadera } from './render/paredes.js';
+import { drawIslas } from './render/islas.js';   // PLAN_GEOGRAFIA G4: la tierra que cruza el carril y se levanta
 // LAS CHARLAS EN VUELO (docs/sistemas/SPEC_CHARLAS_VUELO.md): dialogo durante la mision jugable.
 // El sistema es dueño de la FASE y nada mas; el que arranca el motor de lineas, el que apaga el
 // HUD y el que corta en la muerte es este archivo — el sistema devuelve señales.
@@ -4513,6 +4514,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       //
       // Siguen ANTES del marcador de objetivo y de los obstaculos: el marcador es informacion que
       // no se puede tapar, y los obstaculos viven adentro del carril, mas cerca que las paredes.
+      // LAS ISLAS (PLAN_GEOGRAFIA G4), por la misma razon: estan mas cerca que el buque y lo tapan
+      drawIslas();
       drawParedes();
       drawBarreras();   // cruza el pasillo entero: va DESPUES de las laderas y antes de lo que vuela
       // cuña roja en el horizonte: hacia donde vamos. En LA SUELTA no: el buque ya esta en el mundo y

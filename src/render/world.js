@@ -14,6 +14,7 @@ import { proj } from '../core/fx.js';
 import { hzWorld, tiltFade } from '../core/horizon.js';
 import { bendW, paredH } from '../core/zigzag.js';
 import { techoLadera } from './paredes.js';
+import { techoIsla } from './islas.js';
 // EL MAR VIVE EN core/sea.js — puro, sin canvas ni stores — porque la colision de las olas tiene
 // que evaluar la MISMA superficie que se dibuja, y un sistema no puede importar del render.
 import { seaH as seaBase, olaBump, climaDe, resaca } from '../core/sea.js';
@@ -1190,8 +1191,12 @@ function hitFlash(sx, sy, k, o, w, h) {
  *  columnas por cuadro; esto es un recorrido grueso por antiaereo de ladera, y ninguno para el
  *  resto del mundo. */
 export function drawObstacle(o) {
-  if (!o.enLadera) return dibujarObstaculo(o);
-  const corte = techoLadera(o.x, o.z);
+  // UNA ISLA EN EL MEDIO (PLAN_GEOGRAFIA G4) tambien corta: lo que esta pasando la isla asoma por
+  // encima de su lomo, no se pinta encima de la tierra que tiene delante
+  const trasIsla = o.z > 8 && hayIslaAntes(o.z);
+  if (!o.enLadera && !trasIsla) return dibujarObstaculo(o);
+  const cl = o.enLadera ? techoLadera(o.x, o.z) : null, ci = trasIsla ? techoIsla(o.x, o.z) : null;
+  const corte = cl === null ? ci : ci === null ? cl : Math.min(cl, ci);
   if (corte === null) return dibujarObstaculo(o);
   const kk = F / o.z, base = HOR + (cam.y - (o.gy || 0)) * kk;
   if (corte >= base) return dibujarObstaculo(o);              // el filo le queda por debajo: entero
@@ -1205,6 +1210,12 @@ export function drawObstacle(o) {
   dibujarObstaculo(o);
   ctx.restore();
   ctx.beginPath();
+}
+
+/** ¿Hay una isla entre la camara y `camZ`? La pregunta barata antes de la cara (`techoIsla`). */
+function hayIslaAntes(camZ) {
+  for (const r of geo.islas) if (r.d0 < run.dist + camZ && r.d1 > run.dist + 4) return true;
+  return false;
 }
 
 /** EL SEA SLUG en picada (28/9): un misil GRANDE y claro — cuerpo largo blanco con la franja

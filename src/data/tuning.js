@@ -869,6 +869,23 @@ export const GEO_PLAYA = 14;          // m de arena de la playa que CRUZA el car
 export const GEO_PLAYA_ONDA = 7;      // m que se despeina esa playa: una recta de lado a lado es una regla, no una costa
 export const GEO_ORILLA_ENTRA = 220;  // m que tarda la orilla de una costa en correrse a su lugar
 export const GEO_ORILLA_LEJOS = 420;  // de donde viene (m del eje): fuera de pantalla aun de cerca
+// LA ISLA (G4): tierra CORTA que cruza el carril y SE LEVANTA — la barrera de roca alargada, con
+// campo arriba. Se sobrevuela, o se la rodea por un canal si no tapa el carril entero (`ancho`).
+export const GEO_ISLA_ALTO = 14;       // m de la cumbre por defecto: la banda que las barreras de roca ya midieron
+// EL TECHO: una isla mas alta que el radar no pide una trepada, pide comerse una oleada (volando a 40 m
+// el avion se muere en tres segundos). El validador la rechaza salvo que la data diga `expone: true`
+// — una isla real que lo supera, puesta a proposito para obligar a exponerse (decision 1 del autor).
+export const GEO_ISLA_ALTO_MAX = 20;   // = RADAR_ALT
+export const GEO_ISLA_PENDIENTE = 0.07; // pendiente de una isla con `borde: 'playa'`: se sigue con el gas (unit test)
+export const GEO_ISLA_CARA = 2.6;      // pendiente del farallon de `borde: 'acantilado'`: no se trepa, se choca
+export const GEO_ISLA_FLANCO = 1.4;    // pendiente de los COSTADOS de una isla parcial (la pared del canal)
+export const GEO_ISLA_PLAYA = 10;      // m de arena al pie, antes de que el terreno suba (4 con acantilado)
+export const GEO_ISLA_IMPACTO = 2;     // m por DEBAJO del suelo que ya no son roce sino choque: la cara de la isla
+// Hasta donde se DIBUJA, y como se funde con la distancia. No es la niebla de las laderas (que a 210 m
+// ya las borra): la cumbre TIENE que verse desde donde nace lo que viene (SPAWN_Z = 320), o la isla es
+// una trampa — lo unico que este repo no se permite.
+export const GEO_ISLA_Z = 1400;
+export const GEO_ISLA_NIEBLA_Z0 = 260, GEO_ISLA_NIEBLA_FULL = 1400, GEO_ISLA_NIEBLA_MAX = 0.82;
 
 // ---------- LA COSTA ROMPE (PLAN_TIERRA_COSTA T4) ----------
 // LA RESACA. La franja de espuma era una banda de ancho fijo pegada a la orilla: siempre igual,

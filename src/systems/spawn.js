@@ -59,7 +59,7 @@ import { SPAWN_X, SPAWN_DENS, SPAWN_Z, SHORE_X, shoreAt, SAND_W, AA_CD, MANPAD_P
 // EL RELIEVE (T3): donde queda plantado cada cosa que se siembra. La misma funcion que dibuja
 // la loma y que decide el choque contra el suelo.
 import { tierraH, hayRelieve } from '../core/tierra.js';
-import { geoActiva, sueloEn, alturaSuelo, geo } from '../core/geografia.js';
+import { geoActiva, sueloEn, alturaSuelo, geo, islaEn } from '../core/geografia.js';
 // EL TERRENO DE LA SIEMBRA. Sin geografia, el de la mision. Con geografia, siempre MAR: sobre tierra
 // no se siembra nada (decision del autor, 29/9: "por ahora unidades no pongamos nada, concentremonos
 // en terreno"), asi que lo unico que nace es lo del mar, y nace donde hay mar.
@@ -282,6 +282,11 @@ function spawn() {
   // esta el avion: lo que nace a SPAWN_Z es lo que va a estar ahi cuando llegues. Volver sin
   // sembrar deja el sorteo vacio, y `favor`/`solo` ya saben que hacer con un sorteo vacio.
   if (geoActiva() && sueloEn(run.dist + SPAWN_Z) !== 'sea') { geo.sinSiembra++; return; }
+  // ...Y SOBRE UNA ISLA TAMPOCO (G4), ni pegado a ella: la isla es mar de base (el raster la rodea
+  // de agua), asi que la pregunta de arriba la deja pasar. El margen es lo que mide una fragata:
+  // nacida en el agua al pie, la proa le quedaria clavada en la playa. El canal de una isla parcial
+  // queda vacio por ahora — terreno primero (decision 3 del autor).
+  if (geoActiva() && islaEn(run.dist + SPAWN_Z, 40)) { geo.sinSiembra++; return; }
   // EL CARRIL RESERVADO DEL LIDER (PLAN_HARRIERS_PERSECUCION §4, N0). En PERSECUCION el sembrador
   // CONOCE la linea del lider y no siembra encima: es la mitad de la garantia de que el lider nunca
   // choca (la otra mitad es que esquiva, en systems/persec.js). Sin persecucion corriendo,

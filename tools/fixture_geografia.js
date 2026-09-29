@@ -14,6 +14,8 @@
 //   · G2: el banco de niebla PUESTO existe en su tramo, entra y sale con fundido.
 //   · G3: los acantilados POR TRAMO — contra la pared de un lado se muere y por el otro se pasa, y
 //         la barrera PUESTA se pasa por donde deja (un puente por abajo) y mata por donde no.
+//   · G4: la ISLA se ve venir (la cumbre asoma sobre el horizonte desde donde nace lo que viene),
+//         por encima se pasa, la parcial deja pasar por el canal, y a ras contra ella se choca.
 //
 // El avion se sostiene con sondas (`__seaput`) y se lo mueve por el camino con `__wjump`: lo que se
 // mide es el terreno, no el pilotaje.
@@ -64,7 +66,7 @@ async function en(p, y, x, ms) {
 }
 
 app.whenReady().then(async () => {
-  console.log('\nFIXTURE — LA GEOGRAFIA DEL PASILLO (G0-G3)\n');
+  console.log('\nFIXTURE — LA GEOGRAFIA DEL PASILLO (G0-G4)\n');
   win = new BrowserWindow({ width: 1280, height: 760, show: false, webPreferences: { backgroundThrottling: false } });
   win.webContents.on('console-message', (e, l, m) => { if (l >= 3 && !m.includes('Security Warning')) errors.push(m.slice(0, 300)); });
   win.webContents.on('render-process-gone', (e, d) => errors.push('EL RENDERER MURIO: ' + JSON.stringify(d)));
@@ -88,7 +90,7 @@ app.whenReady().then(async () => {
   console.log('\nG1. el suelo por tramos (?geo=demo):');
   if (!await volar('&geo=demo')) { console.error('   ✗ no se pudo entrar a volar t17 con la demo'); app.exit(1); return; }
   const g1 = await G();
-  if (g1.activa && g1.tramos && g1.tramos.length === 17) ok(`la demo esta cargada: ${g1.tramos.length} tramos sobre ${g1.obj} m de ida`);
+  if (g1.activa && g1.tramos && g1.tramos.length === 23) ok(`la demo esta cargada: ${g1.tramos.length} tramos sobre ${g1.obj} m de ida`);
   else { bad(`la demo no se cargo (${JSON.stringify(g1).slice(0, 120)})`); app.exit(1); return; }
   const OBJ = g1.obj;
   let peorMar = 0;
@@ -192,6 +194,41 @@ app.whenReady().then(async () => {
     await shot('geo_6_playa_entra');
   }
 
+  // ---------- G4. LA ISLA (vuelta: 1.50-1.58 entera, 1.64-1.70 parcial, 1.76-1.80 farallon) ----------
+  console.log('\nG4. la isla:');
+  const isl = await J('__islas()');
+  if (isl.n === 3) ok(`tres islas cargadas: ${isl.islas.map(i => `${i.borde} ${i.alto} m (${i.m === 'todo' ? 'de lado a lado' : 'parcial'})`).join(' · ')}`);
+  else bad(`se esperaban 3 islas y hay ${isl.n}`);
+  // SE VE VENIR: con la isla naciendo a SPAWN_Z (320 m) la cumbre ya esta arriba del horizonte, y a
+  // un kilometro ya se dibuja
+  await en(1.50 - 1000 / OBJ, 3, 0, 150);
+  const lejos = await J('__islas()');
+  if (lejos.rebanadas > 0) ok(`a un kilometro la isla ya se dibuja (${lejos.rebanadas} rebanadas, la mas lejana a ${lejos.lejos} m)`);
+  else bad('a un kilometro la isla no se dibuja');
+  await en(1.50 - 330 / OBJ, 3, 0, 100);
+  const viene = await J('__islas()');
+  // (el criterio del plan: que se PROYECTE por encima. Son pocos pixeles y es la escala del juego —
+  // 14 m a 500 m con el ojo a 5,6 m y F = 135 dan 2 px—, la misma de las barreras de roca)
+  if (viene.cumbreY !== null && viene.cumbreY < viene.hor) ok(`desde SPAWN_Z la cumbre ASOMA sobre el horizonte (${viene.hor - viene.cumbreY} px por encima): no es una trampa`);
+  else bad(`desde SPAWN_Z la cumbre no asoma (cumbreY ${viene.cumbreY}, horizonte ${viene.hor})`);
+  if (OUT) await shot('geo_11_isla_viene');
+  // POR ENCIMA SE PASA
+  const cima = +(await J('__geoen(1.54, 0)')).altura;
+  await en(1.535, cima + 5, 0, 900);
+  const ge = await G(), eE = await estado();
+  if (eE === 'play' && ge.tierraBajo && ge.altura > 6) ok(`por encima se pasa: abajo hay isla (${ge.altura} m de tierra) y el avion sigue volando`);
+  else bad(`sobre la isla: estado ${eE}, tierra ${ge.tierraBajo}, altura ${ge.altura}`);
+  if (OUT) { await en(1.52, cima + 4, 0, 120); await shot('geo_12_isla_encima'); }
+  // LA PARCIAL: por el canal de la derecha se pasa a ras, sin subir
+  await en(1.662, 2.4, 26, 1000);
+  const gc = await G(), eC = await estado();
+  if (eC === 'play' && !gc.tierraBajo) ok('la parcial: por el canal de la derecha, a ras (2,4 m), se pasa sin subir');
+  else bad(`por el canal: estado ${eC}, tierra abajo ${gc.tierraBajo}`);
+  const gi = await J('__geoen(1.67, -25)');
+  if (gi.tierra && gi.altura > 6) ok(`...y a la izquierda del canal esta la isla (${gi.altura} m)`);
+  else bad(`la parcial no tapa la izquierda (${JSON.stringify(gi)})`);
+  if (OUT) { await en(1.64 - 150 / OBJ, 3, 20, 120); await shot('geo_13_isla_canal'); await en(1.76 - 220 / OBJ, 4, 0, 120); await shot('geo_14_farallon'); }
+
   // ---------- G3. ACANTILADOS Y BARRERAS POR TRAMO (0.70 → 0.90, y 1.10 → 1.44) ----------
   // Va AL FINAL porque termina en una muerte a proposito (contra la roca), y despues de morir la
   // corrida ya no es la misma.
@@ -258,6 +295,25 @@ app.whenReady().then(async () => {
     const causa = murio ? JSON.parse(await js('__seawolf()')).causa : null;
     if (murio && causa === 'death_pared') ok(`contra la roca de la izquierda (punta a ${((punta - W(0.70)) | 0)} m del tramo) se muere: ${causa}`);
     else bad(`contra la punta de la izquierda: murio ${murio}, causa ${causa}`);
+  }
+
+  // G4 · A RAS CONTRA EL FARALLON SE CHOCA. Despues de la muerte de G3 viene el siguiente de la fila
+  // (IDA Y VUELTA vuela en escuadron); se espera a volver a volar y se lo planta a ras frente a la cara.
+  console.log('\nG4. contra la isla:');
+  let vuelve = false;
+  for (let i = 0; i < 60 && !vuelve; i++) { vuelve = (await estado()) === 'play'; if (!vuelve) { await tap('Return'); await sleep(200); } }
+  if (!vuelve) bad('despues de la muerte de G3 no volvio a volar el siguiente de la fila');
+  else {
+    await js(`__wjump(${(W(1.76) - PZ - 40) / OBJ})`);
+    let choco = false;
+    for (let i = 0; i < 30 && !choco; i++) {
+      await js('__seaclear(); __seaput(2.4, 0)');
+      await sleep(40);
+      choco = (await estado()) !== 'play';
+    }
+    const causa = choco ? JSON.parse(await js('__seawolf()')).causa : null;
+    if (choco && causa === 'death_land') ok(`a ras contra el farallon se choca: ${causa}`);
+    else bad(`contra el farallon: choco ${choco}, causa ${causa}`);
   }
 
   console.log('\nconsola: ' + (errors.length ? errors.length + ' error(es)' : 'sin errores'));

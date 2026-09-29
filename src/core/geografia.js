@@ -19,19 +19,30 @@
 
 import { cfg } from './state.js';
 import { tierraH, hayRelieve } from './tierra.js';
-import { shoreAt, TIERRA_AMP, GEO_COSTURA, GEO_PLAYA, GEO_PLAYA_ONDA, GEO_ORILLA_ENTRA, GEO_ORILLA_LEJOS } from '../data/tuning.js';
+import { shoreAt, TIERRA_AMP, GEO_COSTURA, GEO_PLAYA, GEO_PLAYA_ONDA, GEO_ORILLA_ENTRA, GEO_ORILLA_LEJOS,
+  GEO_ISLA_ALTO, GEO_ISLA_ALTO_MAX, GEO_ISLA_PENDIENTE, GEO_ISLA_CARA, GEO_ISLA_FLANCO, GEO_ISLA_PLAYA,
+  FLY_X } from '../data/tuning.js';
 
 /** Los suelos de la data (en castellano, que es como se escribe una mision) y el codigo interno
  *  con el que el juego ya los conocia (`cfg.terrain`). Traducir aca y no en cada lector es lo que
  *  deja intactas las ramas de siempre: el raster sigue preguntando `=== 'land'`. */
-export const SUELOS = { mar: 'sea', costa: 'coast', tierra: 'land' };
+export const SUELOS = { mar: 'sea', costa: 'coast', tierra: 'land', isla: 'sea' };
+// LA ISLA ES MAR DE BASE (G4): el raster pinta agua alrededor, la siembra la trata como agua, y lo
+// que la hace isla es su RELIEVE — `islaAltura`, que leen el vuelo (`alturaSuelo`), la pregunta de
+// "hay tierra aca" (`esTierraEn`) y el dibujo por rebanadas de render/islas.js. Traducirla a 'sea'
+// deja a todos los lectores de `sueloEn` en su rama de siempre sin tocarlos.
 export const LADOS = ['izq', 'der'];
 
 /** LAS CLAVES QUE HOY HACEN ALGO. Las del plan que todavia no existen (la `isla` y las suyas) NO
  *  estan, y a proposito: una clave aceptada que no hace nada es la peor forma de fallar — el mapa
  *  se escribe, se valida, y no pasa nada. Cada fase agrega las suyas (G2: `niebla`; G3: `paredes`
  *  y `barrera`). */
-export const CLAVES = ['hasta', 'suelo', 'lado', 'lomas', 'niebla', 'paredes', 'barrera'];
+export const CLAVES = ['hasta', 'suelo', 'lado', 'lomas', 'niebla', 'paredes', 'barrera',
+  'alto', 'ancho', 'x', 'borde', 'expone'];
+/** Las claves que solo tienen sentido en una isla (G4). */
+export const CLAVES_ISLA = ['alto', 'ancho', 'x', 'borde', 'expone'];
+/** Como se entra a la isla: una loma que sube (se sigue con el gas) o un farallon (se choca). */
+export const BORDES = ['playa', 'acantilado'];
 /** De que lado hay ACANTILADO (G3). Es otra pregunta que el `lado` de una costa — la costa dice
  *  donde queda la tierra baja; las paredes, donde hay roca que mata. */
 export const PAREDES = ['izq', 'der', 'ambos'];
@@ -76,6 +87,33 @@ export function validarGeografia(lista) {
       e.push(`tramo ${i}: 'barrera' tiene que ser ${BARRERAS.join(' | ')} y es ${JSON.stringify(t.barrera)}`);
     if (t.barrera !== undefined && t.paredes !== 'ambos')
       e.push(`tramo ${i}: una 'barrera' necesita paredes: 'ambos' en el mismo tramo — con un lado abierto se la rodea`);
+    // LA ISLA (G4)
+    for (const k of CLAVES_ISLA) if (t[k] !== undefined && t.suelo !== 'isla')
+      e.push(`tramo ${i}: '${k}' solo tiene sentido en una isla`);
+    if (t.suelo === 'isla') {
+      const alto = t.alto === undefined ? GEO_ISLA_ALTO : t.alto;
+      if (!(typeof alto === 'number' && alto > 0 && alto <= 120))
+        e.push(`tramo ${i}: 'alto' son los metros de la cumbre, entre 0 y 120`);
+      else if (alto > GEO_ISLA_ALTO_MAX && t.expone !== true)
+        e.push(`tramo ${i}: una isla de ${alto} m pasa el techo del radar (${GEO_ISLA_ALTO_MAX}) — cruzarla es comerse una oleada. Si es a proposito, 'expone: true'`);
+      if (t.expone !== undefined && typeof t.expone !== 'boolean') e.push(`tramo ${i}: 'expone' es true o false`);
+      if (t.ancho !== undefined && !(typeof t.ancho === 'number' && t.ancho > 0 && t.ancho <= 1))
+        e.push(`tramo ${i}: 'ancho' es la fraccion del carril que tapa, en (0, 1]`);
+      if (t.x !== undefined && !(typeof t.x === 'number' && Math.abs(t.x) <= FLY_X))
+        e.push(`tramo ${i}: 'x' es donde esta centrada, dentro del carril (±${FLY_X})`);
+      if (t.x !== undefined && (t.ancho === undefined || t.ancho >= 1))
+        e.push(`tramo ${i}: 'x' solo sirve en una isla parcial ('ancho' < 1)`);
+      if (t.borde !== undefined && BORDES.indexOf(t.borde) < 0)
+        e.push(`tramo ${i}: 'borde' tiene que ser ${BORDES.join(' | ')}`);
+      if (t.paredes !== undefined || t.barrera !== undefined)
+        e.push(`tramo ${i}: una isla no lleva paredes ni barrera — la isla ES la barrera`);
+    }
+    // UNA ISLA ES TIERRA RODEADA DE AGUA: pegada a una costa o a una tierra no es una isla, es un
+    // cerro de esa tierra, y la costura entre las dos no existe
+    if (t.suelo === 'isla' && sueloPrev !== null && sueloPrev !== 'mar')
+      e.push(`tramo ${i}: antes de una isla tiene que haber mar (hay ${sueloPrev})`);
+    if (sueloPrev === 'isla' && t.suelo !== 'mar')
+      e.push(`tramo ${i}: despues de una isla tiene que haber mar (hay ${t.suelo})`);
     // DOS COSTAS SEGUIDAS DE DISTINTO LADO: la orilla tendria que cruzar el carril en diagonal
     // para pasar de un lado al otro, que no es una costura sino un mapa ilegible. Con un tramo de
     // mar o de tierra en el medio, cada costa entra y sale por su costado como corresponde.
@@ -92,7 +130,7 @@ export function validarGeografia(lista) {
 /** La geografia de la corrida en curso. `tramos` es la lista ARMADA (en metros, con vecinos),
  *  que es lo que leen todos; `lista` es la data tal como vino. `sinSiembra` cuenta los sorteos
  *  que no se hicieron por caer sobre tierra (lo lee el fixture). */
-export const geo = { lista: null, obj: 0, tramos: null, nieblas: null, zigzag: null, sinSiembra: 0 };
+export const geo = { lista: null, obj: 0, tramos: null, nieblas: null, zigzag: null, islas: [], sinSiembra: 0 };
 
 /** Carga la geografia de la corrida. La llama systems/geografia.js (`cargar`), que es quien sabe
  *  si hay una sonda pisando la data; el orquestador llama a ESE, al lado de `setFases`, porque es
@@ -103,6 +141,7 @@ export function setGeografia(lista, obj) {
   geo.tramos = geo.lista && geo.obj > 0 ? armar(geo.lista, geo.obj) : null;
   geo.nieblas = geo.tramos ? juntarNieblas(geo.tramos) : null;
   geo.zigzag = geo.tramos ? zigzagDe(geo.lista) : null;
+  geo.islas = geo.tramos ? geo.tramos.filter(r => r.isla) : [];
   geo.sinSiembra = 0;
   cur = 0;
   return geo.tramos;
@@ -121,6 +160,14 @@ function armar(lista, obj) {
       s: e.lado === 'der' ? -1 : 1,                     // de que lado queda la tierra en una costa
       lomas: typeof e.lomas === 'number' ? e.lomas : TIERRA_AMP,
       prev: null, next: null,
+      // LA ISLA (G4), ya resuelta con sus defaults. `m` es el medio ancho en metros (Infinity: tapa
+      // el carril entero), `cx` el centro.
+      isla: e.suelo === 'isla' ? {
+        alto: typeof e.alto === 'number' ? e.alto : GEO_ISLA_ALTO,
+        m: typeof e.ancho === 'number' && e.ancho < 1 ? e.ancho * FLY_X : Infinity,
+        cx: typeof e.x === 'number' ? e.x : 0,
+        borde: e.borde === 'acantilado' ? 'acantilado' : 'playa',
+      } : null,
     });
     d0 = d1;
   }
@@ -280,6 +327,7 @@ export function playaClase(x, wz, pl) {
 export function esTierraEn(x, wz) {
   if (geo.tramos === null) return cfg.terrain === 'land' || (cfg.terrain === 'coast' && x < shoreAt(wz));
   const r = tramoEn(wz);
+  if (r && r.isla) return islaBorde(x, wz, r) >= 0;
   const suelo = r ? r.suelo : cfg.terrain;
   if (suelo === 'coast') return (r ? r.s : 1) * x < orillaS(wz);
   // LA PLAYA ONDULADA puede meter tierra un poco adentro del tramo de mar vecino (o agua adentro
@@ -297,7 +345,61 @@ export function esTierraEn(x, wz) {
  *  `lomas`. La tierra de una costa sigue plana, como siempre fue. */
 export function alturaSuelo(x, wz) {
   if (geo.tramos === null) return hayRelieve(cfg) ? tierraH(x, wz) : 0;
+  const r = tramoEn(wz);
+  if (r && r.isla) return islaAltura(x, wz, r);
   return escalaRelieve(wz) > 0 && esTierraEn(x, wz) ? tierraH(x, wz) * escalaRelieve(wz) : 0;
+}
+
+// ---------------------------------------------------------------- LA ISLA (G4)
+//
+// LA BARRERA DE ROCA ALARGADA (§4.1 del plan), con campo arriba. Es un RELIEVE, no un objeto: una
+// funcion pura de la posicion que contesta cuantos metros de tierra hay ahi. La leen el vuelo (el
+// piso bajo el avion), la siembra y el dibujo — lo que ves es lo que te mata.
+//
+// EL PERFIL, del agua hacia adentro: arena al pie (`GEO_ISLA_PLAYA`), despues la subida (la
+// pendiente de `borde`), y arriba el lomo, que no es una meseta de tiralineas: la cumbre sube y baja
+// con el relieve de la turba (`tierraH`). La subida entra en la cumbre SIN QUIEBRE y sin pasarse
+// nunca de su pendiente — la promesa de `borde: 'playa'` es que se puede seguir con el gas, y un
+// hombro mas empinado que la ladera la romperia justo arriba.
+
+/** Cuantos metros hay desde el punto hasta el borde de la isla (el agua), el menor entre el borde de
+ *  adelante/atras y —en una isla parcial— el de los costados. Negativo: afuera, en el agua. Los dos
+ *  van por separado porque suben distinto: la entrada es la pendiente de `borde`, el costado que da
+ *  al canal es un flanco empinado. */
+function islaBorde(x, wz, r) {
+  return Math.min(Math.min(wz - r.d0, r.d1 - wz), r.isla.m - Math.abs(x - r.isla.cx));
+}
+
+/** La altura de la tierra de una isla en (x, wz). 0 afuera. */
+export function islaAltura(x, wz, r) {
+  const I = r.isla;
+  const sz = Math.min(wz - r.d0, r.d1 - wz);
+  const sx = I.m - Math.abs(x - I.cx);
+  if (sz < 0 || sx < 0) return 0;
+  const cara = I.borde === 'acantilado';
+  const pie = cara ? GEO_ISLA_PLAYA * 0.4 : GEO_ISLA_PLAYA;
+  // la arena: apenas sobre el agua (el roce ahi es roce de playa, no de agua)
+  // (en 4 m: con 3, la rampita de la arena era lo mas empinado de toda la entrada — 0,083)
+  const arena = 0.25 * Math.min(1, Math.min(sz, sx) / 4);
+  const subeZ = Math.max(0, sz - pie) * (cara ? GEO_ISLA_CARA : GEO_ISLA_PENDIENTE);
+  const subeX = Math.max(0, sx - pie * 0.5) * GEO_ISLA_FLANCO;
+  const sube = Math.min(subeZ, subeX);
+  // LA CUMBRE: el lomo con el relieve de la turba encima (entre 0.8 y 1 de `alto`)
+  const tn = TIERRA_AMP > 0 ? tierraH(x, wz) / TIERRA_AMP : 0;   // aprox. -1..1
+  const C = I.alto * (0.9 + 0.1 * Math.max(-1, Math.min(1, tn)));
+  if (!(C > 0)) return arena;
+  // subida lineal hasta el 70% de la cumbre y despues se acuesta (derivada continua, nunca mayor)
+  const t = sube / C;
+  const f = t < 0.7 ? t : 0.7 + 0.3 * (1 - Math.exp(-(t - 0.7) / 0.3));
+  return Math.max(arena, C * f);
+}
+
+/** La ISLA que esta a `wz` (o a menos de `margen` metros), o null. La usan la siembra (no plantar
+ *  nada encima ni pegado) y el recorte de lo que queda detras. */
+export function islaEn(wz, margen) {
+  const m = margen || 0;
+  for (const r of geo.islas) if (wz >= r.d0 - m && wz < r.d1 + m) return r;
+  return null;
 }
 
 /** Cuanto de la loma de T3 hay a `wz`, de 0 a lomas/TIERRA_AMP. La usa tambien el sombreado del

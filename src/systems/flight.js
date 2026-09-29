@@ -24,7 +24,7 @@ import { proj, popup } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
-import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE,
+import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE, GEO_ISLA_IMPACTO,
          GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
          FUEL_RATE, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE, RAS_GASTO_F } from '../data/tuning.js';
 // LAS FASES (PLAN_MISION_CINCO_FASES §11). Se LEEN, nunca se escriben, igual que los tramos en el
@@ -44,7 +44,7 @@ import { PORT_H } from '../data/runways.js';
 import { tierraH, hayRelieve } from '../core/tierra.js';
 // LA GEOGRAFIA (G1): que hay BAJO EL AVION, tramo por tramo. Sin ella, esTierraEn y alturaSuelo
 // reproducen exactamente la formula de antes (lo cuida el unit test de la regla suprema).
-import { esTierraEn, alturaSuelo, geoActiva } from '../core/geografia.js';
+import { esTierraEn, alturaSuelo, geoActiva, islaEn } from '../core/geografia.js';
 // LA CHANCHA: conectado a la canasta se vuela EN FORMACION, o sea que el mundo avanza menos.
 // Se toca el AVANCE y no `run.spd` a proposito: la velocidad del avion es fisica.
 import { avance as chAvance } from '../systems/chancha.js';
@@ -495,6 +495,12 @@ export function flightSystem(dt, deps) {
   // eso se trata. Va ANTES de la ladera porque es mas fuerte: adentro de una barrera no importa
   // donde estes de costado, ya chocaste.
   if (enBarrera(plane.x, plane.y, run.dist + PZ)) return { death: 'death_barrera' };
+  // LA CARA DE UNA ISLA (PLAN_GEOGRAFIA G4). El roce de abajo LEVANTA al avion al piso y lo deja
+  // rozando — que es lo justo contra una loma que sube despacio, y absurdo contra un farallon: el
+  // avion treparia la pared de catorce metros en un cuadro y seguiria rozando arriba. Si el suelo
+  // quedo mas de GEO_ISLA_IMPACTO por ENCIMA del avion, no es un roce: se choco la roca. Solo sobre
+  // una isla — ninguna loma de la turba sube eso en un cuadro, y sin geografia ni se pregunta.
+  if (onDirt && geoActiva() && plane.y < groundY - GEO_ISLA_IMPACTO && islaEn(run.dist + PZ)) return { death: 'death_land' };
   const golpePared = enPared(plane.x, plane.y, run.dist + PZ, ZZ_PARED_TALUD, ZZ_PARED_LIBRE);
   if (golpePared) {
     const p = paredCfg();

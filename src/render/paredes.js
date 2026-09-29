@@ -45,7 +45,7 @@ const SOLAPE = 0.9;
  *  base de `rock`, que ya es el tono mas terroso de la paleta. Sigue respondiendo al clima —de
  *  noche se apaga, con lluvia se oscurece— pero nunca se vuelve verde. El verde queda donde
  *  corresponde: la CORONA del filo y la meseta de arriba, que son pasto de verdad. */
-function caraLadera() {
+export function caraLadera() {
   const t = theme.land;
   return {
     cuerpo: tierra(t.rock, 1.0),      // el grueso del talud: tierra
@@ -78,7 +78,7 @@ function tierra(hex, k) {
  *  turba, pasto y matas. La arenisca de `cland` es la PLAYA — tiene sentido al nivel del agua y
  *  ninguno en una meseta a treinta metros. Es una decision del autor y va escrita porque el codigo
  *  de al lado (la corona, la roca) si mira el terreno, y la proxima persona va a querer "unificar".*/
-function tierraArriba() {
+export function tierraArriba() {
   const t = theme.land;
   return { cerca: t.near, lejos: t.far, borde: t.tuft, corona: t.mid, mata: t.tuft, furrow: t.furrow };
 }
@@ -738,7 +738,7 @@ function quad(c, ax, ay, bx, by, cx, cy, dx, dy) {
  *  ladera se veia bien (ese no anida) y los otros dos negros. Parecia un problema de niebla o de
  *  paleta; los colores se calculaban perfectos y el que estaba roto era el formato. Se encontro
  *  midiendo pixeles del canvas, no mirando la pantalla. */
-function mez(a, b, k) {
+export function mez(a, b, k) {
   k = Math.max(0, Math.min(1, k)) || 0;
   const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
   const r = (((pa >> 16) & 255) + (((pb >> 16) & 255) - ((pa >> 16) & 255)) * k) | 0;
