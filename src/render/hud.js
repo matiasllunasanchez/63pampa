@@ -33,11 +33,6 @@ import { ICONO_BUQUE, ICONO_BUQUE_NOMBRE } from '../data/iconos.js';
 import { SHIP_CLASS } from '../data/ships.js';
 import { CARA_PILOTO, GESTOS, GESTO_SOSTEN, SONRISA_PTS, SONRISA_T } from '../data/gestos.js';
 import { radio, visible as radioVisible } from '../core/radioVN.js';
-import { inBank, bankLeft, fogTop } from '../systems/fog.js';
-
-// largo del banco tal como se vio al entrar: la barra necesita un TOTAL contra el que vaciarse, y
-// el sistema solo sabe cuanto FALTA (el largo se sortea por banco).
-let fogSeen = 0;
 
 // LAS SILUETAS DE LA RUTA (puerto, buque, avion, bandera) viven en la tabla de iconos
 // (data/iconos.js), dibujadas en pixeles; un PNG las reemplaza igual que a cualquier otro icono.
@@ -1694,20 +1689,9 @@ export function drawHUD(h) {
     ctx.fillText(T('scrape'), W / 2, warnY);
   }
 
-  // NIEBLA: CUANTO FALTA PARA SALIR. Sin esto el banco no es tension sino aguantar a ciegas sin
-  // saber hasta cuando, y el jugador se rinde en vez de apretar los dientes. La barra se VACIA:
-  // se lee de un vistazo que esto se termina.
-  //
-  // El HUD SI atraviesa la niebla y el mundo no. Es la regla: el HUD es instrumento, no vista —
-  // un altimetro no deja de andar porque haya bruma.
-  if (inBank()) {
-    const left = bankLeft(), tot = Math.max(left, fogSeen = Math.max(fogSeen, left));
-    ctx.textAlign = 'center'; ctx.font = 'bold 7px monospace';
-    ctx.fillStyle = plane.y >= fogTop() ? P.foam : P.warn;
-    ctx.fillText(T('fogHud'), W / 2, warnY - 9);
-    plate(W / 2 - 22, warnY - 7, 44, 3);
-    px(W / 2 - 20, warnY - 6.5, Math.max(1, Math.round(40 * left / tot)), 2, plane.y >= fogTop() ? P.foam : P.warn);
-  } else fogSeen = 0;
+  // (NIEBLA: aca iba una barra que se vaciaba — cuanto faltaba para salir del banco. Se fue el
+  // 29/9 por pedido del autor: no hace falta mostrar cuanto tarda en irse, el jugador se da cuenta
+  // cuando se va. Del banco avisa el cartel BANCO DE NIEBLA al entrar, y la vista que se corta.)
 
   // (VELOCIDAD y ALTURA eran texto aca, abajo al centro, hasta el 11/9: ahora son relojes — ver
   // EL CENTRO, mas abajo. Sus colores de aviso se fueron con ellos, a las agujas.)

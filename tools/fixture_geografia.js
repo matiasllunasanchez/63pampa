@@ -61,7 +61,7 @@ async function en(p, y, x, ms) {
 }
 
 app.whenReady().then(async () => {
-  console.log('\nFIXTURE — LA GEOGRAFIA DEL PASILLO (G0-G1)\n');
+  console.log('\nFIXTURE — LA GEOGRAFIA DEL PASILLO (G0-G2)\n');
   win = new BrowserWindow({ width: 1280, height: 760, show: false, webPreferences: { backgroundThrottling: false } });
   win.webContents.on('console-message', (e, l, m) => { if (l >= 3 && !m.includes('Security Warning')) errors.push(m.slice(0, 300)); });
   win.webContents.on('render-process-gone', (e, d) => errors.push('EL RENDERER MURIO: ' + JSON.stringify(d)));
@@ -76,16 +76,42 @@ app.whenReady().then(async () => {
   const f0 = await J('__geofilas()');
   if (!f0.tierra && !f0.costa && !f0.playa && f0.mar > 0) ok(`en el mismo punto donde la demo pone tierra, sin ella es todo mar (${f0.mar} filas)`);
   else bad(`sin geografia aparecio suelo: ${JSON.stringify(f0)}`);
+  await en(0.12, 9, 0, 300);
+  const n0 = await J('__fog()');
+  if (!n0.dentro && !n0.dens) ok('y donde la demo pone niebla, sin ella no hay ningun banco');
+  else bad(`sin geografia aparecio niebla (${JSON.stringify(n0)})`);
 
   // ---------- G1. LA DEMO ----------
   console.log('\nG1. el suelo por tramos (?geo=demo):');
   if (!await volar('&geo=demo')) { console.error('   ✗ no se pudo entrar a volar t17 con la demo'); app.exit(1); return; }
   const g1 = await G();
-  if (g1.activa && g1.tramos && g1.tramos.length === 9) ok(`la demo esta cargada: ${g1.tramos.length} tramos sobre ${g1.obj} m de ida`);
+  if (g1.activa && g1.tramos && g1.tramos.length === 11) ok(`la demo esta cargada: ${g1.tramos.length} tramos sobre ${g1.obj} m de ida`);
   else { bad(`la demo no se cargo (${JSON.stringify(g1).slice(0, 120)})`); app.exit(1); return; }
   const OBJ = g1.obj;
   let peorMar = 0;
   const vigilar = async () => { const g = await G(); peorMar = Math.max(peorMar, g.marSobreTierra); return g; };
+
+  // ---------- G2. LA NIEBLA PUESTA (0.08 → 0.16) ----------
+  // Se entra, se cruza y se sale del banco que la demo PUSO, y se mira el sistema de niebla por su
+  // sonda: donde esta, cuanto fundido hay, de donde sale (la data, no el sorteo). Los tiempos son
+  // cortos a proposito: a ~130 m/s, cada decima que se sostiene el avion son trece metros.
+  const nLejos = (await en(0.08 - 400 / OBJ, 9, 0, 100), await J('__fog()'));
+  if (!nLejos.dentro && nLejos.fade === 0) ok('lejos del banco puesto no hay bruma');
+  else bad(`lejos del banco ya hay niebla (${JSON.stringify(nLejos)})`);
+  const nViene = (await en(0.08 - 110 / OBJ, 9, 0, 60), await J('__fog()'));
+  if (!nViene.dentro && nViene.fade > 0 && nViene.fade < 1) ok(`la niebla SE VE VENIR: a unos 100 m del banco ya hay ${Math.round(nViene.fade * 100)}% de bruma`);
+  else bad(`al acercarse al banco no hay fundido (${JSON.stringify(nViene)})`);
+  const nDentro = (await en(0.12, 9, 0, 300), await J('__fog()'));
+  if (nDentro.dentro && nDentro.fade === 1 && nDentro.origen === 'geo' && nDentro.dens === 1 && nDentro.vis)
+    ok(`adentro, el banco es el de la DATA: densidad ${nDentro.dens}, la vista se corta a ${nDentro.vis} m`);
+  else bad(`adentro del tramo con niebla el banco no es el de la data (${JSON.stringify(nDentro)})`);
+  await shot('geo_7_niebla_dentro');
+  const nSale = (await en(0.16 + 60 / OBJ, 9, 0, 60), await J('__fog()'));
+  if (!nSale.dentro && nSale.fade > 0 && nSale.fade < 1) ok(`al salir se va con fundido (${Math.round(nSale.fade * 100)}% de bruma quedando)`);
+  else bad(`al salir del banco la niebla no se desvanece (${JSON.stringify(nSale)})`);
+  const nDespues = (await en(0.25, 9, 0, 200), await J('__fog()'));
+  if (!nDespues.dentro && nDespues.fade === 0) ok('y pasado el banco no aparece ninguno mas: el sorteo no suma bancos a la data');
+  else bad(`despues del banco puesto aparecio otra niebla (${JSON.stringify(nDespues)})`);
 
   // LA TIERRA SE VE VENIR: la playa de 0.36 a 150 m adelante, el avion todavia sobre el mar.
   await en(0.36 - 150 / OBJ, 9, 0, 600);

@@ -27,10 +27,10 @@ import { shoreAt, TIERRA_AMP, GEO_COSTURA, GEO_PLAYA, GEO_PLAYA_ONDA, GEO_ORILLA
 export const SUELOS = { mar: 'sea', costa: 'coast', tierra: 'land' };
 export const LADOS = ['izq', 'der'];
 
-/** LAS CLAVES QUE HOY HACEN ALGO. Las del plan que todavia no existen (`paredes`, `niebla`,
- *  `barrera`, la `isla`) NO estan, y a proposito: una clave aceptada que no hace nada es la peor
- *  forma de fallar — el mapa se escribe, se valida, y no pasa nada. Cada fase agrega las suyas. */
-export const CLAVES = ['hasta', 'suelo', 'lado', 'lomas'];
+/** LAS CLAVES QUE HOY HACEN ALGO. Las del plan que todavia no existen (`paredes`, `barrera`, la
+ *  `isla`) NO estan, y a proposito: una clave aceptada que no hace nada es la peor forma de fallar
+ *  — el mapa se escribe, se valida, y no pasa nada. Cada fase agrega las suyas (G2: `niebla`). */
+export const CLAVES = ['hasta', 'suelo', 'lado', 'lomas', 'niebla'];
 
 /** Revisa una lista y devuelve los ERRORES en texto (vacia = sana). `undefined` es valido: una
  *  mision sin geografia es casi todas las misiones. */
@@ -57,6 +57,10 @@ export function validarGeografia(lista) {
     if (t.lomas !== undefined && !(typeof t.lomas === 'number' && t.lomas >= 0 && t.lomas <= 12))
       e.push(`tramo ${i}: 'lomas' son metros de relieve, entre 0 y 12`);
     if (t.lomas !== undefined && t.suelo !== 'tierra') e.push(`tramo ${i}: 'lomas' solo tiene sentido en tierra`);
+    // NIEBLA (G2): la densidad de las dos que el juego ya conoce (la fila NIEBLA de OPCIONES):
+    // 1 = VISIBLE, 2 = CASI NULA. Vale sobre cualquier suelo — la bruma no pregunta que hay abajo.
+    if (t.niebla !== undefined && t.niebla !== 1 && t.niebla !== 2)
+      e.push(`tramo ${i}: 'niebla' es 1 (se ve algo) o 2 (casi nada) y es ${JSON.stringify(t.niebla)}`);
     // DOS COSTAS SEGUIDAS DE DISTINTO LADO: la orilla tendria que cruzar el carril en diagonal
     // para pasar de un lado al otro, que no es una costura sino un mapa ilegible. Con un tramo de
     // mar o de tierra en el medio, cada costa entra y sale por su costado como corresponde.
@@ -73,7 +77,7 @@ export function validarGeografia(lista) {
 /** La geografia de la corrida en curso. `tramos` es la lista ARMADA (en metros, con vecinos),
  *  que es lo que leen todos; `lista` es la data tal como vino. `sinSiembra` cuenta los sorteos
  *  que no se hicieron por caer sobre tierra (lo lee el fixture). */
-export const geo = { lista: null, obj: 0, tramos: null, sinSiembra: 0 };
+export const geo = { lista: null, obj: 0, tramos: null, nieblas: null, sinSiembra: 0 };
 
 /** Carga la geografia de la corrida. La llama systems/geografia.js (`cargar`), que es quien sabe
  *  si hay una sonda pisando la data; el orquestador llama a ESE, al lado de `setFases`, porque es
@@ -82,6 +86,7 @@ export function setGeografia(lista, obj) {
   geo.obj = obj > 0 ? obj : 0;
   geo.lista = Array.isArray(lista) && lista.length ? lista : null;
   geo.tramos = geo.lista && geo.obj > 0 ? armar(geo.lista, geo.obj) : null;
+  geo.nieblas = geo.tramos ? juntarNieblas(geo.tramos) : null;
   geo.sinSiembra = 0;
   cur = 0;
   return geo.tramos;
@@ -104,7 +109,33 @@ function armar(lista, obj) {
     d0 = d1;
   }
   for (let i = 0; i < t.length; i++) { t[i].prev = t[i - 1] || null; t[i].next = t[i + 1] || null; }
+  lista.forEach((e, i) => { t[i].niebla = e.niebla || 0; });
   return t;
+}
+
+/** LOS BANCOS DE NIEBLA que declara la geografia (G2), en metros y ya JUNTADOS: dos tramos seguidos
+ *  con niebla son UN banco, no dos. Si fueran dos, el fundido bajaria a cero en la juntura y
+ *  volveria a subir — un pozo de claridad en medio de la bruma que nadie escribio. La densidad del
+ *  banco juntado es la mas cerrada de las dos. Null si la geografia no declara ninguna. */
+function juntarNieblas(t) {
+  const b = [];
+  for (const r of t) {
+    if (!r.niebla) continue;
+    const ult = b[b.length - 1];
+    if (ult && ult.z1 === r.d0) { ult.z1 = r.d1; ult.dens = Math.max(ult.dens, r.niebla); }
+    else b.push({ z0: r.d0, z1: r.d1, dens: r.niebla });
+  }
+  return b.length ? b : null;
+}
+
+/** El banco de niebla de la geografia que RIGE a `d` metros: el que estas cruzando, o el proximo
+ *  (o el que se esta desvaneciendo detras: `margen` son los metros de fundido a cada lado). Null
+ *  si ya no queda ninguno por delante. */
+export function bancoNiebla(d, margen) {
+  const b = geo.nieblas;
+  if (!b) return null;
+  for (const n of b) if (d < n.z1 + (margen || 0)) return n;
+  return null;
 }
 
 // El ultimo tramo encontrado. Las preguntas llegan casi siempre en orden (las filas del raster van

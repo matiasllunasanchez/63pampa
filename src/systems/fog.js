@@ -25,14 +25,24 @@
 import { run } from '../core/run.js';
 import { cfg } from '../core/state.js';
 import { FOG_TOP, FOG_FRAC, FOG_FLOOR, FOG_LEN, FOG_GAP, FOG_SPREAD, FOG_FADE, SPAWN_Z } from '../data/tuning.js';
+// LA NIEBLA PUESTA (PLAN_GEOGRAFIA G2): si la geografia de la mision declara bancos, esos bancos
+// SON la niebla de la mision — donde dice la data y con la densidad que dice. Si no declara
+// ninguno, todo sigue como siempre: bancos sorteados por `cfg.fog`.
+import { bancoNiebla } from '../core/geografia.js';
 
 // Banco activo o el proximo: [z0, z1) en coordenadas de DISTANCIA RECORRIDA (run.dist).
 const bank = { z0: 0, z1: 0, armed: false };
 // `entered` sirve para avisar UNA sola vez al entrar; lo consume game.js.
 let entered = false, exited = false;
+// LA DENSIDAD QUE RIGE (0 = no hay niebla, 1 = VISIBLE, 2 = CASI NULA). Antes todos preguntaban
+// `cfg.fog` directo; ahora preguntan esto, que vale `cfg.fog` con los bancos sorteados o la
+// densidad del banco de la geografia con los puestos. Lo escribe `stepFog` y nadie mas.
+let dens = 0;
+// De donde sale el banco actual: 'sorteo' (cfg.fog, lo de siempre) o 'geo' (la data de la mision).
+let origen = 'sorteo';
 
 /** Reinicia los bancos (lo llama el arranque de cada corrida). */
-export function resetFog() { bank.z0 = 0; bank.z1 = 0; bank.armed = false; entered = false; exited = false; }
+export function resetFog() { bank.z0 = 0; bank.z1 = 0; bank.armed = false; entered = false; exited = false; dens = 0; origen = 'sorteo'; }
 
 // El largo se sortea DENTRO de una banda alrededor del elegido: si todos los bancos midieran
 // exactamente lo mismo, el tramo se volveria un metronomo y se aprenderia de memoria en vez de
@@ -49,20 +59,31 @@ function schedule(from) {
 
 /** Un cuadro. Va en update(), arriba de los early-return. */
 export function stepFog() {
-  if (!cfg.fog) { bank.armed = false; return; }
-  if (!bank.armed) { schedule(run.dist); return; }
+  // G2: LA DATA MANDA. Si la geografia declara bancos, el banco de este momento es el de la data
+  // (el que estas cruzando o el proximo) y el sorteo no corre: una mision que dice donde hay niebla
+  // no puede sumar bancos al azar encima — el mapa escrito dejaria de ser el mapa que se juega.
+  const gb = bancoNiebla(run.dist, FOG_FADE);
+  if (gb || origen === 'geo') {
+    origen = 'geo';
+    if (!gb) { bank.armed = false; dens = 0; return; }   // ya se pasaron todos los de la data
+    bank.z0 = gb.z0; bank.z1 = gb.z1; bank.armed = true; dens = gb.dens;
+  } else {
+    dens = cfg.fog || 0;
+    if (!cfg.fog) { bank.armed = false; return; }
+    if (!bank.armed) { schedule(run.dist); return; }
+  }
   const inside = run.dist >= bank.z0 && run.dist < bank.z1;
   if (inside && !entered) { entered = true; exited = false; }
   if (!inside && entered) { entered = false; exited = true; }
-  if (run.dist >= bank.z1) schedule(bank.z1);
+  if (origen === 'sorteo' && run.dist >= bank.z1) schedule(bank.z1);
 }
 
 /** ¿El avion esta DENTRO del tramo de niebla? (posicion en el mapa, no altura) */
-export const inBank = () => !!cfg.fog && bank.armed && run.dist >= bank.z0 && run.dist < bank.z1;
+export const inBank = () => dens > 0 && bank.armed && run.dist >= bank.z0 && run.dist < bank.z1;
 /** Metros que faltan para salir del banco (0 si no estas adentro). */
 export const bankLeft = () => inBank() ? bank.z1 - run.dist : 0;
 /** Metros que faltan para ENTRAR (0 si ya estas adentro o no hay banco armado). */
-export const bankAhead = () => (!cfg.fog || !bank.armed || run.dist >= bank.z0) ? 0 : bank.z0 - run.dist;
+export const bankAhead = () => (!dens || !bank.armed || run.dist >= bank.z0) ? 0 : bank.z0 - run.dist;
 /** Pulso de un cuadro: acaba de entrar / acaba de salir. Los consume game.js para el aviso. */
 export function tookEntry() { if (!entered || exited) return false; return true; }
 export function takeExit() { if (!exited) return false; exited = false; return true; }
@@ -106,7 +127,7 @@ export function alfaCielo(u, t, cn) {
  *  HUD, cuando el Harrier queda ciego— siguen colgadas de `inBank()`: el borde del efecto es
  *  nitido aunque el de la imagen no lo sea. */
 export function fogFade() {
-  if (!cfg.fog || !bank.armed) return 0;
+  if (!dens || !bank.armed) return 0;
   const d = run.dist;
   const sube = (d - (bank.z0 - FOG_FADE)) / FOG_FADE;
   const baja = ((bank.z1 + FOG_FADE) - d) / FOG_FADE;
@@ -124,9 +145,9 @@ export const fogTop = () => FOG_TOP;
  *    · un PISO EN SEGUNDOS — por rapido que vayas nunca te deja sin margen de maniobra.
  *  A crucero manda la fraccion (aprieta); a fondo manda el piso (protege). */
 export function fogVis() {
-  const frac = FOG_FRAC[cfg.fog] || 0;
+  const frac = FOG_FRAC[dens] || 0;
   if (!frac) return 1e9;
-  return Math.max(28, SPAWN_Z * frac, run.spd * FOG_FLOOR[cfg.fog]);
+  return Math.max(28, SPAWN_Z * frac, run.spd * FOG_FLOOR[dens]);
 }
 /** Segundos de aviso que da la niebla a la velocidad actual. Lo usa el probe y sirve para calibrar. */
 export const fogWarnSec = () => run.spd > 1 ? fogVis() / run.spd : 0;
@@ -141,5 +162,7 @@ if (typeof window !== 'undefined') window.__fog = (n, ya) => {
   return JSON.stringify({
     fog: cfg.fog, dist: run.dist | 0, z0: bank.z0 | 0, z1: bank.z1 | 0,
     dentro: inBank(), falta: bankAhead() | 0, queda: bankLeft() | 0, top: fogTop(),
+    // G2: que densidad rige, de donde sale el banco (la data o el sorteo) y cuanto fundido hay
+    dens, origen, fade: +fogFade().toFixed(3), vis: fogVis() > 1e8 ? null : Math.round(fogVis()),
   });
 };

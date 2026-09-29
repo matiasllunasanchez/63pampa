@@ -3045,6 +3045,7 @@ import { validarGeografia, setGeografia, geo, sueloEn, esTierraEn, alturaSuelo, 
   orillaS, ladoEn, playaCerca, playaClase, CLAVES as GEO_CLAVES } from '../src/core/geografia.js';
 import { GEOGRAFIAS } from '../src/data/geografias.js';
 import { cfg as cfgGeo } from '../src/core/state.js';
+import { run as runGeo } from '../src/core/run.js';
 import { shoreAt as shoreAtGeo, GEO_PLAYA as GEO_PLAYA_U } from '../src/data/tuning.js';
 import { tierraH as tierraHGeo, hayRelieve as hayRelieveGeo } from '../src/core/tierra.js';
 
@@ -3078,7 +3079,7 @@ test('geografia · el validador acepta lo que funciona y rechaza lo que no exist
   assert.equal(validarGeografia([{ hasta: 1, suelo: 'lava' }]).length, 1, 'suelo que no existe');
   // LAS CLAVES DEL PLAN QUE TODAVIA NO HACEN NADA se rechazan: una clave aceptada que no hace nada
   // es la peor forma de fallar. Cuando su fase exista, esta linea cambia.
-  for (const k of ['paredes', 'niebla', 'barrera', 'alto']) {
+  for (const k of ['paredes', 'barrera', 'alto']) {
     assert.equal(GEO_CLAVES.indexOf(k), -1, `'${k}' todavia no existe`);
     assert.ok(validarGeografia([{ hasta: 1, suelo: 'mar', [k]: 1 }]).length > 0, `rechaza '${k}'`);
   }
@@ -3168,4 +3169,56 @@ test('geografia · una costa que se cierra en tierra (y una tierra que se abre e
     // costa <-> tierra no lleva playa cruzada: la costura es la orilla que se corre
     assert.equal(playaCerca(300 + 2), null);
   } finally { setGeografia(null, 0); cfgGeo.terrain = terr0; }
+});
+
+// ---------------------------------------------------------------------------------------------
+// G2 · LA NIEBLA PUESTA
+// ---------------------------------------------------------------------------------------------
+import { bancoNiebla, geo as geoN } from '../src/core/geografia.js';
+import { stepFog, inBank, fogFade, fogVis, resetFog } from '../src/systems/fog.js';
+import { FOG_FADE as FOG_FADE_U } from '../src/data/tuning.js';
+
+test('geografia G2 · la clave niebla: 1 o 2, sobre cualquier suelo', () => {
+  assert.deepEqual(validarGeografia([{ hasta: 1, suelo: 'mar', niebla: 1 }]), []);
+  assert.deepEqual(validarGeografia([{ hasta: 1, suelo: 'tierra', niebla: 2 }]), []);
+  assert.ok(validarGeografia([{ hasta: 1, suelo: 'mar', niebla: 3 }]).length > 0, 'niebla 3 no existe');
+  assert.ok(validarGeografia([{ hasta: 1, suelo: 'mar', niebla: true }]).length > 0, 'niebla es un numero');
+});
+
+test('geografia G2 · dos tramos seguidos con niebla son UN banco (el fundido no hace pozo)', () => {
+  setGeografia([{ hasta: 0.2, suelo: 'mar' }, { hasta: 0.3, suelo: 'mar', niebla: 1 },
+    { hasta: 0.4, suelo: 'costa', niebla: 2 }, { hasta: 0.6, suelo: 'mar' }, { hasta: 0.7, suelo: 'mar', niebla: 1 }], 1000);
+  try {
+    assert.equal(geoN.nieblas.length, 2, 'dos bancos: 0.2-0.4 (juntado) y 0.6-0.7');
+    assert.deepEqual(geoN.nieblas[0], { z0: 200, z1: 400, dens: 2 }, 'el juntado toma la densidad mas cerrada');
+    assert.equal(bancoNiebla(100).z0, 200, 'antes del primero, rige el proximo');
+    assert.equal(bancoNiebla(500).z0, 600, 'entre los dos, rige el segundo');
+    assert.equal(bancoNiebla(900), null, 'pasado el ultimo, ninguno');
+    setGeografia([{ hasta: 1, suelo: 'mar' }], 1000);
+    assert.equal(geoN.nieblas, null, 'una geografia sin niebla no declara bancos');
+  } finally { setGeografia(null, 0); }
+});
+
+test('geografia G2 · el SISTEMA de niebla obedece a la data: donde, cuanto, y con fundido', () => {
+  // Se prueba systems/fog.js entero —no solo la lista— moviendo el odometro, que es lo unico que el
+  // sistema lee. cfg.fog en 0: sin la data no habria ni un banco, asi que todo lo que aparezca es
+  // de la geografia. Y despues en 2: la data sigue mandando, el sorteo no suma bancos encima.
+  const d0 = runGeo.dist, fog0 = cfgGeo.fog;
+  try {
+    for (const fogCfg of [0, 2]) {
+      cfgGeo.fog = fogCfg;
+      setGeografia([{ hasta: 0.3, suelo: 'mar' }, { hasta: 0.5, suelo: 'mar', niebla: 1 }, { hasta: 1, suelo: 'mar' }], 3000);
+      resetFog();
+      const en = d => { runGeo.dist = d; stepFog(); return { dentro: inBank(), fade: fogFade(), vis: fogVis() }; };
+      assert.deepEqual([en(400).dentro, en(400).fade], [false, 0], `lejos del banco: nada (cfg.fog ${fogCfg})`);
+      const antes = en(900 - FOG_FADE_U / 2);
+      assert.ok(!antes.dentro && antes.fade > 0 && antes.fade < 1, `la bruma se ve VENIR antes del borde (fade ${antes.fade})`);
+      const adentro = en(1200);
+      assert.ok(adentro.dentro && adentro.fade === 1, 'adentro del banco: niebla entera');
+      assert.ok(adentro.vis < 1e8, 'y recorta la vista (densidad 1 de la data)');
+      const despues = en(1500 + FOG_FADE_U / 2);
+      assert.ok(!despues.dentro && despues.fade > 0 && despues.fade < 1, 'y se va con fundido');
+      for (const d of [2000, 2500, 2990]) assert.equal(en(d).dentro, false, `pasado el banco no aparece ninguno mas (a ${d} m, cfg.fog ${fogCfg})`);
+    }
+  } finally { runGeo.dist = d0; cfgGeo.fog = fog0; setGeografia(null, 0); resetFog(); }
 });

@@ -13,7 +13,6 @@
     "render/chancha.js -> systems/chancha.js",
     "render/hud.js -> systems/chancha.js",
     "render/hud.js -> systems/damage.js",
-    "render/hud.js -> systems/fog.js",
     "render/hud.js -> systems/squad.js",
     "render/hud.js -> systems/tempo.js",
     "render/menus.js -> systems/saves.js",

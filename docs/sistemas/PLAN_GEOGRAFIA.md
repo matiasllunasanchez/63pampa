@@ -1,8 +1,9 @@
 # PLAN — La GEOGRAFÍA del pasillo *(mar, costa, acantilado, isla y niebla en una misma misión)*
 
-> **ESTADO (29/9/2026): G0 y G1 HECHAS.** El suelo por tramos anda: mar, costa (de cualquiera de
-> los dos lados) y tierra con lomas en una misma misión, con sus costuras. Se prueba con
-> `?mision=t17&geo=demo` y con `npm run geografia`. Faltan G2 (niebla puesta) → G6.
+> **ESTADO (29/9/2026): G0, G1 y G2 HECHAS.** El suelo por tramos anda —mar, costa (de cualquiera
+> de los dos lados) y tierra con lomas en una misma misión, con sus costuras— y los bancos de niebla
+> se ponen donde dice la data. Se prueba con `?mision=t17&geo=demo` y con `npm run geografia`.
+> Faltan G3 (acantilados y barreras por tramo) → G6.
 
 > **Audiencia: una IA implementadora en sesión nueva, sin el chat donde se decidió esto.** Define
 > cómo un mismo pasillo —en particular los de IDA Y VUELTA (`t15`, `t17`)— pasa a tener **etapas
@@ -377,6 +378,35 @@ entera con la demo encima. Es mejor que un banco nuevo para probar, porque es la
   carril entero, mar incluido; sin geografía eso se dejó como estaba.
 
 ---
+
+### 10. Con bancos puestos, el sorteo no corre *(G2)*
+
+El plan decía que el sorteo de `fog.js` "se aparta mientras dure" el banco puesto. Se hizo más
+simple y más fuerte: **si la geografía declara aunque sea un banco, esos bancos SON la niebla de la
+misión** y el sorteo no corre en toda la corrida. Una misión que escribe dónde hay niebla no puede
+sumar bancos al azar encima: el mapa escrito dejaría de ser el mapa que se juega. Si la geografía no
+declara ninguno, todo sigue como siempre (`cfg.fog`, la fila NIEBLA de OPCIONES).
+
+### 11. El sistema de niebla pasó a preguntar una DENSIDAD, no `cfg.fog` *(G2)*
+
+`inBank`, `fogVis`, `fogFade` y `bankAhead` preguntaban `cfg.fog` directo. Ahora preguntan `dens`,
+que escribe solo `stepFog`: vale `cfg.fog` con los bancos sorteados y la densidad del banco con los
+puestos. Todo lo que ya colgaba de la niebla —el cartel BANCO DE NIEBLA, la vista
+que se corta, las olas que no nacen adentro, el Harrier que queda ciego— funciona con los bancos
+puestos **sin haberlo tocado**.
+
+### 12. Dos tramos seguidos con niebla son UN banco *(G2)*
+
+Si fueran dos, el fundido bajaría a cero en la juntura y volvería a subir: un pozo de claridad en
+medio de la bruma que nadie escribió. `juntarNieblas` los une al armar la geografía, con la
+densidad más cerrada de los dos.
+
+### 13. El unit test prueba el SISTEMA, no solo la data *(G2)*
+
+`systems/fog.js` corre en Node (lee el odómetro y nada más), así que el test mueve `run.dist` y
+mira lo que el sistema contesta: lejos no hay nada, la bruma se ve venir antes del borde, adentro
+recorta la vista, se va con fundido, y pasado el banco no aparece ninguno más — con `cfg.fog` en 0
+**y en 2**, que es la prueba de que el sorteo no se suma.
 
 ## 10. Coordinación *(29/9/2026)*
 

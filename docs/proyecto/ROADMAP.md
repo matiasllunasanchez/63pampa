@@ -1093,7 +1093,8 @@ Se pierde rigor; se gana que el tramo se juegue.
   parejo y claro (probado con `#a3b3bb`).
 - **El HUD sí atraviesa la niebla y el mundo no**, como decía el diseño. Y la barra de NIEBLA se
   **vacía**: se lee de un vistazo que esto se termina. Cambia de rojo a blanco cuando estás por
-  encima del techo.
+  encima del techo. *(La barra se fue el 29/9/2026, a pedido del autor: no hace falta
+  mostrar cuánto tarda en irse, el jugador se da cuenta cuando se va.)*
 
 ### Falta
 
