@@ -236,6 +236,7 @@ export const VIDA_LARGA = 7;      // segundos: el techo de vida del pedazo que s
                                   // (moribundo, tirabuzon, paracaidas). §6.2: la muerte se alarga, pero no sin tope
 export const MORIBUNDO_MAX = 2;   // cuantos "se van muriendo" pueden vivir a la vez (§6.2: sin esto la muerte no tiene tope)
 export const EYECT_P = 0.35;      // probabilidad de que el piloto alcance a eyectarse
+export const EYEC_ASIENTO_T = 0.6;  // s en el asiento: ahi se abre la cupula y el asiento vacio cae aparte
 export const SANTABARBARA_P = 0.12;  // la explosion rara del barco: el evento que se comenta
 export let VAR_SEED = null;       // fuerza una variante por id (solo pruebas; null = sortea)
 

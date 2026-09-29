@@ -21,7 +21,7 @@ import { seaH as seaBase, olaBump, climaDe, resaca } from '../core/sea.js';
 // mismo que decide el choque contra el suelo en systems/flight.js.
 import { tierraH, tierraPend, hayRelieve, pedreroAt, turbalAt } from '../core/tierra.js';
 import { P, LAND, CLAND, SKY_ASTRO, RADAR_VERDE } from '../data/palette.js';
-import { CHUNK_LIFE, ONDA_T, ONDA_R } from '../data/despiece.js';
+import { CHUNK_LIFE, ONDA_T, ONDA_R, EYEC_ASIENTO_T } from '../data/despiece.js';
 import { drawParte, yawDe, colorDe } from './partes.js';
 import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
   ALAMBRE_CADA, ALAMBRE_POSTE, ALAMBRE_H, MOJADO_A, CHARCO_P, CHARCO_H, PASTO_LEAN, PASTO_ONDA, PASTO_V, PASTO_KX, PASTO_KZ, PASTO_ACOSTAR, RACHA_N, RACHA_T, RACHA_A, ESTELA_ABRE, ESTELA_EDAD, ESTELA_TURBO, ESTELA_TURBO_A } from '../data/tuning.js';
@@ -1763,6 +1763,13 @@ function dibujarObstaculo(o) {
     // rectangulo rotado nunca fue escombro de avion, era un cuadrado.
     if (o.parte && drawParte(ctx, o.parte, yawDe(o), r, colorDe(o))) {
       // dibujada
+    } else if (o.asientoSolo && enemyArt.ready('eyectado')) {
+      // EL ASIENTO VACIO que se separo al abrirse la cupula (core/fx.js): fila 2 de la hoja, con
+      // los tumbos por cuadro como el asiento con piloto — la rotacion la trae la hoja, no el ctx.
+      ctx.rotate(-o.spin);
+      const kk = Math.min(k, 80 / 5.8), col = Math.floor(o.spin / (Math.PI / 2)) % 4;
+      const a = enemyArt.anclaje('eyectado', 0, 0, { centerY: 0 }, kk);
+      enemyArt.drawFrame(ctx, 'eyectado', (col + 4) % 4, 2, a ? -a.x : 0, { centerY: a ? -a.y : 0 }, kk, false);
     } else if (o.paraca) {
       // EL PARACAIDAS (v2 §3): cupula, cuerdas y el asiento colgando. NO gira — el `spin` va en 0
       // a proposito. Lo que se lee es que algo baja DESPACIO mientras todo lo demas cae, y esa
@@ -1774,7 +1781,7 @@ function dibujarObstaculo(o) {
       // el mismo de la cupula dibujada (~40 px de radio): de cerca no tapa la pantalla.
       if (enemyArt.ready('eyectado')) {
         const kk = Math.min(k, 80 / 5.8), fila = o.arg ? 0 : 1;
-        const t = o.chunkT || 0, ASI = 0.6;
+        const t = o.chunkT || 0, ASI = EYEC_ASIENTO_T;
         let col, esc = kk;
         if (t < ASI) col = Math.floor(t * 14) % 4;                 // el asiento: un cuarto de vuelta por cuadro
         else {

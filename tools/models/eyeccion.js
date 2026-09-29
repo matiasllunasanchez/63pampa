@@ -71,9 +71,11 @@ BAKE.modelos('eyeccion', (THREE, K) => {
     } else {
       for (const sx of [-1, 1]) {
         // piernas colgando, apenas flexionadas y abiertas: el peso muerto de alguien que bajo
-        const mu = miembro(g, sx * 0.12, -0.02, 0, 0.46, 0.075, c.traje2, 0.25, sx * 0.08);
-        const pi = miembro(mu, 0, -0.46, 0, 0.44, 0.065, c.traje2, -0.4);
-        B(pi, 0.12, 0.1, 0.2, c.bota, 0, -0.46, -0.05);
+        // (29/9, el autor: "¿por que las patas tan largas?") — rectas y finas, a 40 px se leian
+        // como zancos. Mas cortas, mas gruesas y con la rodilla doblada: sentado en el arnes.
+        const mu = miembro(g, sx * 0.12, -0.02, 0, 0.36, 0.09, c.traje2, 0.55, sx * 0.1);
+        const pi = miembro(mu, 0, -0.36, 0, 0.33, 0.08, c.traje2, -0.85);
+        B(pi, 0.14, 0.11, 0.22, c.bota, 0, -0.35, -0.05);
         // brazos ARRIBA, a los elevadores: es la pose que dice "colgado", no "parado"
         const br = miembro(g, sx * 0.27, 0.54, 0, 0.3, 0.06, c.traje, Math.PI - 0.15, -sx * 0.35);
         miembro(br, 0, -0.3, 0, 0.28, 0.055, c.traje, 0.2);
@@ -91,6 +93,24 @@ BAKE.modelos('eyeccion', (THREE, K) => {
     const c = PIEL[bando] || PIEL.arg;
     const g = new THREE.Group(); g.scale.setScalar(ESC);
     piloto(g, c, true);
+    silla(g);
+    return g;
+  }
+
+  /** EL ASIENTO VACIO, que cae aparte cuando se abre la cupula (29/9): la separacion es lo que pasa
+   *  de verdad —el Martin-Baker suelta al piloto y se va solo— y verla caer es lo que explica por
+   *  que el piloto ya no esta sentado. Misma escala y mismo origen que el asiento con piloto. */
+  function asientoSolo() {
+    const g = new THREE.Group(); g.scale.setScalar(ESC);
+    silla(g);
+    // el cojin y las cinchas sueltas, que es lo que se ve en la cubeta vacia
+    B(g, 0.5, 0.08, 0.46, '#4a4f3a', 0, -0.01, -0.05);
+    B(g, 0.06, 0.5, 0.05, '#2a2c26', -0.14, 0.3, 0.14);
+    B(g, 0.06, 0.5, 0.05, '#2a2c26', 0.14, 0.3, 0.14);
+    return g;
+  }
+
+  function silla(g) {
     B(g, 0.6, 1.2, 0.12, ASIENTO, 0, 0.5, 0.22);                   // el respaldo
     B(g, 0.56, 0.4, 0.3, ASIENTO2, 0, 1.18, 0.14);                  // el cabezal (el paracaidas va adentro)
     B(g, 0.62, 0.12, 0.6, ASIENTO, 0, -0.1, -0.05);                 // la cubeta
@@ -98,7 +118,6 @@ BAKE.modelos('eyeccion', (THREE, K) => {
     B(g, 0.3, 0.07, 0.07, MANIJA, 0, 1.42, 0.02);                   // la manija de la cortina
     B(g, 0.08, 0.07, 0.075, '#141414', -0.08, 1.42, 0.02);
     B(g, 0.08, 0.07, 0.075, '#141414', 0.08, 1.42, 0.02);
-    return g;
   }
 
   /** ACTO 2: bajo la cupula. Gajos alternados, abierta abajo, con las cuerdas al arnes. */
@@ -124,10 +143,17 @@ BAKE.modelos('eyeccion', (THREE, K) => {
       pts.push(new THREE.Vector3(Math.cos(a) * rb, yb, Math.sin(a) * rb));
       pts.push(new THREE.Vector3((Math.cos(a) > 0 ? 1 : -1) * 0.22 * ESC, 0.62 * ESC, 0));
     }
+    // EL EQUIPO DE SUPERVIVENCIA (29/9): el paquete de la cubeta del asiento, con el bote inflable
+    // adentro, colgando de su cuerda unos dos metros debajo de las botas. Es lo que tenia el piloto
+    // que caia al Atlantico Sur — el borde amarillo es el bote asomando.
+    const YK = -2.5;
+    B(g, 0.5, 0.3, 0.36, '#4f5638', 0, YK, 0);
+    B(g, 0.52, 0.08, 0.38, '#d8b62a', 0, YK + 0.12, 0);
+    pts.push(new THREE.Vector3(0.1 * ESC, -0.02 * ESC, 0), new THREE.Vector3(0, YK + 0.15, 0));
     g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts),
       new THREE.LineBasicMaterial({ color: CUERDA })));
     return g;
   }
 
-  return { asiento, cupula };
+  return { asiento, asientoSolo, cupula };
 });

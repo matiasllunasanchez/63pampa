@@ -239,11 +239,15 @@
       // arnes) y 4-6 bajo la cupula, hamacandose. El punto 0 es EL ARNES: el juego ancla los dos
       // actos ahi (render/world.js), y por eso el cambio de asiento a cupula no salta.
       eyectado: {
-        fw: 48, fh: 64, dist: 19, lookY: 1.8, quarter: 0.3,
-        frames: ['arg', 'brit'].flatMap(b => [
-          ...[0, 1, 2, 3].map(n => ({ model: () => EY.asiento(b), roll: n * Math.PI / 2 })),
-          ...[-0.1, 0, 0.1].map(a => ({ model: () => EY.cupula(b), roll: a })),
-        ]),
+        fw: 48, fh: 76, dist: 22, lookY: 1.5, quarter: 0.3,
+        frames: [
+          ...['arg', 'brit'].flatMap(b => [
+            ...[0, 1, 2, 3].map(n => ({ model: () => EY.asiento(b), roll: n * Math.PI / 2 })),
+            ...[-0.1, 0, 0.1].map(a => ({ model: () => EY.cupula(b), roll: a })),
+          ]),
+          // fila 2: el ASIENTO VACIO dando tumbos, que se separa al abrirse la cupula
+          ...[0, 1, 2, 3].map(n => ({ model: EY.asientoSolo, roll: n * Math.PI / 2 })),
+        ],
         cols: 7,
         puntos: [[0, 0, 0]],
       },

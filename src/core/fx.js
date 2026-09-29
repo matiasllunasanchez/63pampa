@@ -12,7 +12,7 @@ import { POLVO_ABRE, POLVO_BAJA, POLVO_BARRIDO } from '../data/tuning.js';
 import { recetaDe, CHUNKS_MAX, CHUNK_LIFE, SEC_N, SEC_T,
   ONDA_T, ONDA_R, ONDA_PUSH, CERCA, FLASH_T,
   CHAIN_R, CHAIN_DEPTH, CHAIN_DELAY, DESPIECE, PARTS_MAX,
-  dadoDe, elegirVariante, MORIBUNDO_MAX, EYECT_P, VIDA_LARGA, piezaHorneada } from '../data/despiece.js';
+  dadoDe, elegirVariante, MORIBUNDO_MAX, EYECT_P, EYEC_ASIENTO_T, VIDA_LARGA, piezaHorneada } from '../data/despiece.js';
 
 import { W, HOR, F, PZ } from '../render/ctx.js';
 import { bendW } from './zigzag.js';
@@ -527,6 +527,15 @@ export function stepChunk(o, dt) {
   }
   // EL PARACAIDAS baja despacio y NO tumba: uno que girara seria un pedazo mas de escombro.
   if (o.paraca) { o.vy = Math.max(o.vy, -4.5); o.spin = 0; }
+  // …Y AL ABRIRSE, EL ASIENTO SE VA SOLO (29/9): el Martin-Baker suelta al piloto y cae aparte,
+  // dando tumbos y mas rapido que la cupula. Nace UNA vez, en el cuadro en que se abre, con la
+  // inercia que traia el piloto. Es escombro comun: no mata ni puntua.
+  if (o.paraca && !o.soltoAsiento && o.chunkT >= EYEC_ASIENTO_T) {
+    o.soltoAsiento = true;
+    obstacles.push({ type: 'chunk', done: true, chunkT: 0, asientoSolo: true,
+      x: o.x + 0.4, y: o.y - 0.3, z: o.z, vx: (o.vx || 0) + 1.5, vy: Math.min(o.vy, 2), vz: o.vz,
+      spin: 0, vspin: 7, size: 0.95, hot: false, grav: 0.7, vida: 3.5, ph: 0, parte: null });
+  }
   o.z += o.vz * dt; o.x += o.vx * dt; o.y += o.vy * dt;
   o.vy -= 30 * (o.grav || 1) * dt; o.vz *= Math.max(0, 1 - dt * 0.75);
   o.spin += (o.vspin + (o.vspin2 || 0)) * dt;

@@ -25,7 +25,7 @@ export const CAJAS = {
   buque_t42: { fw: 240, fh: 72, cols: 3, rows: 1, box: { x0: 24, y0: 10, x1: 216, y1: 69 }, margen: 2 },
   chancha: { fw: 160, fh: 112, cols: 3, rows: 1, box: { x0: 6, y0: 23, x1: 153, y1: 88 }, margen: 6, puntos: [[44.7, 71.84], [62.65, 71.84], [97.35, 71.84], [115.3, 71.84], [100.47, 70.85]] },
   depot: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 11, y0: 14, x1: 55, y1: 34 }, margen: 8 },
-  eyectado: { fw: 48, fh: 64, cols: 7, rows: 2, box: { x0: 3, y0: 3, x1: 44, y1: 61 }, margen: 2, puntos: [[24, 46.25]] },
+  eyectado: { fw: 48, fh: 76, cols: 7, rows: 3, box: { x0: 2, y0: 6, x1: 45, y1: 71 }, margen: 2, puntos: [[24, 50.16]] },
   fragata: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 14, y0: 13, x1: 52, y1: 35 }, margen: 11 },
   harrier: { fw: 128, fh: 96, cols: 5, rows: 1, box: { x0: 32, y0: 26, x1: 95, y1: 67 }, margen: 26 },
   harrier_rear: { fw: 128, fh: 96, cols: 5, rows: 1, box: { x0: 28, y0: 28, x1: 99, y1: 75 }, margen: 20 },
