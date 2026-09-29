@@ -67,8 +67,10 @@ function armar() {
 
 /** El buque esta a tiro: a la vista, entero o no, y el ataque todavia no termino. Es lo que
  *  DESBLOQUEA la bomba del centro. */
+// (HUNDIDO TAMBIEN, 29/9: si el que lo hundio se estrello en el cruce, el siguiente de la fila
+// vuelve a encarar el mismo buque —ardiendo— y cada bomba que le pega suma puntos)
 const aTiro = () => blanco.on && blanco.z > PZ && blanco.z < BL.VISIBLE_Z && blanco.negroT < 0
-  && blanco.perdidaT < 0 && !blanco.hundido;
+  && blanco.perdidaT < 0 && !blanco.escapando;
 
 /** LA SUELTA pide una bomba (tecla de soltar). Con el buque a tiro sale la del CENTRO primero —la
  *  del buque—; si no, una del ala. La del centro NUNCA sale lejos del buque: esta bloqueada para
@@ -106,7 +108,7 @@ const veredicto = (clave, x, y, z, col) => {
 /** La bomba `pm` se movio este cuadro desde `z0`. Si cruzo el casco, la juzga y devuelve true
  *  (collision.js la da por terminada). */
 export function golpe(pm, z0) {
-  if (!blanco.on || blanco.hundido) return false;
+  if (!blanco.on || blanco.escapando) return false;
   // EL CRUCE se mide contra el buque de cada cuadro: la bomba venia MAS CERCA que el casco y
   // termino MAS LEJOS. Con la bomba a ~420/s de cierre y una manga de 8, medir "esta adentro"
   // se la saltaria entera en un cuadro.
@@ -134,6 +136,12 @@ export function golpe(pm, z0) {
   else { explodeAt(pm.x, pm.y, blanco.z, true); columnaBomba(pm.x, AGUA, blanco.z, true); }
   blanco.lento = true;   // MOMENTUM OBLIGADO: de aca al cruce, el mundo a BL.LENTO
   blanco.marcas.push({ x: pm.x, y: Math.max(AGUA + 1, pm.y), t: run.t });
+  // YA HUNDIDO (lo pego otro de la fila antes): el impacto suma puntos y fuego, nada mas
+  if (blanco.hundido) {
+    run.score += BL.PTS_AVERIA;
+    boom(0.12); run.shake = Math.min(8, run.shake + 2);
+    return true;
+  }
   blanco.dano += (zn === 'centro' ? BL.DANO_CENTRO : BL.DANO_EXTREMO) * f;
   if (blanco.dano >= 100) {
     blanco.hundido = true; blanco.sinkT = 0;
@@ -150,7 +158,7 @@ export function golpe(pm, z0) {
 /** La bomba `pm` toco el agua. Si fue ANTES del buque, se lo dice: "corta" es la mitad de la
  *  lectura — sin esto errar por corto y errar por largo se ven igual. */
 export function corta(pm) {
-  if (!blanco.on || blanco.hundido || pm.larga || pm.z >= blanco.z) return;
+  if (!blanco.on || blanco.escapando || pm.larga || pm.z >= blanco.z) return;
   if (Math.abs(pm.x - BL.X) > BL.LEN / 2 + 12) return;
   veredicto('corta', pm.x, AGUA, pm.z, P.dim);
 }
@@ -224,9 +232,11 @@ export function step(dt) {
           : blanco.pasada >= blanco.pasadas ? { fallo: 'death_suelta' } : 'reencare';
       }
     }
-    // EL SALTO (lo hace el jugador, 23/9): por debajo de la silueta del buque te llevas los palos.
-    // No mata en el acto —es el roce de las antenas, no chocar el casco—: es un golpe de chapa, y
-    // game.js decide si el avion aguanta o se cae. Por encima, o por la proa o la popa, limpio.
+    // EL SALTO (lo hace el jugador, 23/9): por debajo de la silueta del buque chocas con el buque.
+    // DESDE EL 29/9 MATA (el autor: "si me choco, que explote el avion"): se pasa A TRAVES del humo y
+    // del fuego, pero no de las COSAS FISICAS — la silueta medida de la hoja (`altoEn`), de proa a
+    // popa: por encima de lo que hay en esa franja, o por la proa o la popa, limpio. game.js lo
+    // resuelve (explota; el siguiente de la fila vuelve a encarar, o se pierde).
     const h = altoEn(plane.x), roce = h >= 0 && plane.y < AGUA + h
     // …y el piso del negro: donde quedaste, y si rozaste, del otro lado de los palos (en el escape
     // no hay negro ni piso: el avion es tuyo desde el primer cuadro)
@@ -280,7 +290,9 @@ export function step(dt) {
   // Y la bomba del centro SIGUE COLGADA: si la soltaste, el desenlace lo decide ella, aunque
   // termine en el agua.
   const cerca = puede && !blanco.enDist && (pRef === 'larga' || pRef === 'dormida');
-  if (blanco.tuvoVentana && cerca && blanco.centroN > 0) {
+  // (con el buque ya hundido no hay pasada que perder: la mision ya esta cumplida, y este avion solo
+  // suma si le pega)
+  if (blanco.tuvoVentana && cerca && blanco.centroN > 0 && !blanco.hundido) {
     blanco.perdidaT = 0;
     blanco.altPiso = plane.y;
     blanco.pasada++;
@@ -289,7 +301,7 @@ export function step(dt) {
       : blanco.pasada >= blanco.pasadas ? { fallo: 'death_suelta' } : 'reencare';
     return null;
   }
-  if (!blanco.hundido && !blanco.lento) señas();
+  if (!blanco.lento) señas();
   return null;
 }
 
@@ -306,6 +318,10 @@ export const perdida = () => blanco.on && blanco.perdidaT >= 0;
 /** EL SIGUIENTE EN LA FILA toma la pasada: el buque queda a `BL.FILA_M` —el de atras venia a
  *  segundos— y el avion trae su carga entera. El relevo (game.js) cuenta el cambio de mando. */
 export function enFila() {
+  // (tambien despues de un choque en el cruce: el escape y el negro que ese cruce habia armado se
+  // desarman — el que viene encara de nuevo)
+  blanco.escapando = false; blanco.lento = false; blanco.negroT = -1; blanco.salidaT = -1;
+  blanco.pendiente = null; blanco.altPiso = -1;
   run.dist = objetivo - BL.FILA_M;
   blanco.z = blanco.zPrev = PZ + BL.FILA_M;
   armar();
@@ -353,11 +369,13 @@ export function negro() {
   if (!blanco.on) return 0;
   // el momento perdido se FUNDE, no se corta: fue la queja ("pantallazo negro")
   if (blanco.perdidaT >= 0) return Math.min(1, blanco.perdidaT / BL.PERDIDA_T);
-  if (blanco.negroT >= 0) return 1;
+  // EL NEGRO DEL CRUCE ENTRA DESPUES DE PASAR (29/9, el autor: "la pantalla negra aparece mucho
+  // antes de llegar al limite del barco; deberia dejarme pasar por encima y despues meter el negro").
+  // Antes se fundia a negro ANTES del cruce —y con la camara lenta, bastante antes—, asi que el salto
+  // sobre el buque se jugaba a ciegas. Ahora el cruce se ve entero y el fundido arranca del otro lado.
+  if (blanco.negroT >= 0) return Math.min(1, blanco.negroT / BL.FUNDIDO_T);
   if (blanco.salidaT >= 0) return 1 - blanco.salidaT / BL.SALIDA_T;
-  const d = blanco.z - PZ;
-  if (d <= 0) return 0;
-  return Math.max(0, Math.min(1, 1 - d / (run.spd * BL.FUNDIDO_T)));
+  return 0;
 }
 
 /** LO QUE CANTA PUMA (pedido del autor, 23/9: "que lo cante Puma por radio"). Cada seña sale UNA

@@ -156,7 +156,8 @@ export const BL = {
    *    LENTO     el mundo a 1/3 desde que una bomba ARMADA revienta en el casco hasta el cruce. EL
    *              SALTO LO HACE EL JUGADOR (23/9): la camara lenta le da el tiempo de tirar del morro
    *              —antes el avion trepaba solo—; si cruza por debajo de la silueta, se lleva los palos
-   *    FUNDIDO_T segundos DE MUNDO del fundido a negro antes del cruce (en camara lenta rinden x3)
+   *    FUNDIDO_T segundos DE MUNDO del fundido a negro DESPUES del cruce (29/9: antes era antes, y el
+   *              salto se jugaba a ciegas)
    *    NEGRO_T   segundos de negro pleno despues del cruce, con Puma encima — el rato de leer
    *    SALIDA_T  segundos del fundido desde negro cuando hay otra pasada */
   LENTO: 1 / 3,

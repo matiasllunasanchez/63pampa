@@ -651,6 +651,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
     // LA CHANCHA DE LA IDA ya te lleno (la que viene sola y espera, ver el bloque del radar en update)
     let chIdaLlena = false;
+    // el relevo en curso viene de un CHOQUE CON EL BUQUE en el cruce: al terminar, re-encare
+    let reencareTrasChoque = false;
     function chanchaRadio(sig) {
       // SIN CARTEL (pedido del autor, 12/9): el reloj de la Chancha se pone VERDE y parpadea lento
       // cuando esta lista (ver hud.js, verdeListo). Queda el beep, que es el aviso para el que no
@@ -2212,6 +2214,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       chIdaLlena = false;       // la de la ida (la que viene sola) todavia no te lleno
       rasante.resetRasante();   // la barra del RASANTE es de la corrida: se gana volando bajo
       seawolfSys.reset();
+      reencareTrasChoque = false;
       limpiarCarteles();
       // …y lo mismo, sin parametro, en IDA Y VUELTA: es el banco de pruebas del pasillo largo
       // (pruebas_misiones.js t15) y el poder es una de las cosas que se van a probar ahi. Pedido
@@ -3805,6 +3808,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             for (let i = missiles.length - 1; i >= 0; i--) if (missiles[i].senuelo && missiles[i].z <= 2) missiles.splice(i, 1);
           }
           if (squad.updateRelevo(dt) === 'done') {
+            // …el que viene tras un CHOQUE EN EL CRUCE encara de nuevo el mismo buque (ver arriba)
+            if (reencareTrasChoque) { reencareTrasChoque = false; blancoSys.enFila(); fadeT = 0.55; }
             // lo que cruzo el plano del avion DURANTE la cinematica ya paso de largo: sin esto,
             // collision lo veria "sin resolver" en el primer frame y podria matar en el handoff
             for (const o of obstacles) if (o.z <= PZ + 1.5) o.done = true;
@@ -4125,13 +4130,25 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           else die('death_fallo_blanco');
           return;
         }
+        // CHOCASTE CON EL BUQUE EN EL CRUCE (29/9): el avion se pierde. Va ANTES del escape, que ese
+        // mismo cruce habia abierto: si queda escuadron, el siguiente de la fila vuelve a encarar el
+        // mismo buque —con su fuego y su daño— y puede pegarle de nuevo (suma puntos); si no queda
+        // nadie, la mision se pierde, aunque lo hayas hundido.
+        // EN CAMPAÑA NO MUERE NADIE POR GAMEPLAY (norma 3/8; el autor, 29/9: "solo perdemos aviones
+        // segun el guion"): ahi el avion queda AVERIADO y vuelve a la base — `relevoRompe`, el mismo
+        // criterio de todo relevo. Fuera de la campaña, explota.
+        if (b && b.roce) {
+          if (relevoRompe()) dmgFX(); else crashFX();
+          if (canRelevo(run.lives)) {
+            squad.startRelevo(b.roce); setState('relevo');
+            reencareTrasChoque = true;   // al terminar la cinematica, el buque vuelve a la fila (abajo)
+          } else die(b.roce);
+          return;
+        }
         // EL ESCAPE (PLAN_VUELTA_REAL V0): lo hundiste en una mision con vuelta y lo pasaste por
         // encima. No hay negro: en ese cuadro te ven todos —todas las estrellas, el radar en rojo, la
         // alarma que ya sonaba— y el pasillo sigue. La fase del escape tapa a las de la vuelta.
         if (b === 'escape' || (b && b.escape)) empezarEscape();
-        // EL SALTO CORTO: cruzaste por debajo de la silueta y te llevaste los palos. Es un golpe de
-        // chapa (DMG.death_palos): si el avion ya venia roto, se cae — y entra el relevo de siempre.
-        if (b && b.roce && damage.takeHit(b.roce)) { onDeath(b.roce); return; }
         // …Y EL VIRAJE: sin estrellas, escapaste. Es la bisagra entre las dos mitades, y el pasillo
         // no la puede mostrar —no rota—, asi que la cuenta un video (ver `viraje`).
         if (blancoSys.escapando() && run.estrellas <= 0 && !vir) { vir = { fase: 'perdimos', t: 0 }; radioTramo('vir_perdimos'); missiles.length = 0; }
