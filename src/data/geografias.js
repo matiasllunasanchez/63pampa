@@ -9,6 +9,28 @@
 // quedar SOBRE EL MAR — la suelta es contra un barco —, asi que alrededor de 1 siempre hay agua.
 
 export const GEOGRAFIAS = {
+  // EN KILOMETROS (G5): la forma de escribir UNA mision — se parte el camino en tramos de tantos km,
+  // antes y despues del blanco. Hecha para t17 (6 km de ida): `?mision=t17&geo=km`. El ultimo tramo
+  // de cada lista no dice `km` — es lo que falte hasta el blanco, o hasta casa.
+  km: {
+    ida: [
+      { km: 1.2, suelo: 'mar' },
+      { km: 0.6, suelo: 'mar', niebla: 1 },
+      { km: 0.6, suelo: 'mar' },
+      { km: 0.5, suelo: 'isla', alto: 10 },
+      { km: 0.8, suelo: 'mar' },
+      { km: 0.6, suelo: 'mar', paredes: 'izq' },
+      { suelo: 'mar' },
+    ],
+    vuelta: [
+      { km: 0.6, suelo: 'mar' },
+      { km: 0.8, suelo: 'tierra', lomas: 3 },
+      { km: 0.5, suelo: 'mar' },
+      { km: 0.4, suelo: 'isla', alto: 10, ancho: 0.5, x: -18 },
+      { suelo: 'mar' },
+    ],
+  },
+
   // LA DEMO: todo lo que la geografia sabe hacer, en una sola pasada. En la ida: un banco de niebla
   // puesto en mar abierto (G2); una costa que ENTRA por la
   // izquierda y SALE al mar; una tierra con lomas a la que se entra y se sale por PLAYA que cruza

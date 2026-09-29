@@ -884,6 +884,10 @@ export const GEO_ISLA_IMPACTO = 2;     // m por DEBAJO del suelo que ya no son r
 // Hasta donde se DIBUJA, y como se funde con la distancia. No es la niebla de las laderas (que a 210 m
 // ya las borra): la cumbre TIENE que verse desde donde nace lo que viene (SPAWN_Z = 320), o la isla es
 // una trampa — lo unico que este repo no se permite.
+// LA EXPLANADA DEL BLANCO (G5): si el objetivo esta en tierra —una base, un edificio sobre una isla o
+// un pedazo de tierra—, el suelo se APLANA alrededor de el, para que la estructura se apoye en un
+// piso y no quede colgando de una loma. Medio largo en z, y el fundido hasta el relieve de al lado.
+export const GEO_EXPLANADA = 70, GEO_EXPLANADA_BORDE = 45;
 export const GEO_ISLA_Z = 1400;
 export const GEO_ISLA_NIEBLA_Z0 = 260, GEO_ISLA_NIEBLA_FULL = 1400, GEO_ISLA_NIEBLA_MAX = 0.82;
 

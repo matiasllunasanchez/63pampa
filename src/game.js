@@ -1552,7 +1552,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // tramos es el ALCANCE — las fases pasan de 1, porque la VUELTA ocurre despues del buque.
       // Una mision sin `fases` (o sea: todas las de hoy) entra como null y nadie lee nada.
       fases.setFases(objectiveDist > 0 && curMission() ? curMission().fases : null, objectiveDist);
-      geografia.cargar(objectiveDist > 0 && curMission() ? curMission().geografia : null, objectiveDist);
+      // `base`: los metros DECLARADOS de la ida (sin `?qa`), contra los que se traduce una geografia
+      // escrita en kilometros (PLAN_GEOGRAFIA G5)
+      geografia.cargar(objectiveDist > 0 && curMission() ? curMission().geografia : null, objectiveDist,
+        objectiveDist > 0 && curMission() ? goalOf(curMission()).dist(curMission().goal) : 0);
       // LA RUTA (PLAN_NAFTA_ALCANCE N1): los km REALES de la mision, anclados a sus fases. Va pegada
       // a las fases porque se ancla a ellas; sin `ruta` (todas las de hoy) queda apagada.
       rutaSys.setRuta(objectiveDist > 0 && curMission() ? curMission().ruta : null,

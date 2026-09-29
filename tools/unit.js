@@ -3093,7 +3093,8 @@ test('geografia · las misiones que la declaran estan sanas', async () => {
   const { MISIONES_PRUEBA: MP } = await import('../src/data/pruebas_misiones.js');
   for (const m of [...MISSIONS, ...Object.values(MP || {})]) {
     if (!m || m.geografia === undefined) continue;
-    assert.deepEqual(validarGeografia(m.geografia), [], `${m.id}`);
+    // con la distancia de la mision: la forma en km se revisa contra ella (que no se desborde)
+    assert.deepEqual(validarGeografia(m.geografia, m.goal.dist || m.goal.meters, m.goal.kind), [], `${m.id}`);
   }
 });
 
@@ -3227,7 +3228,7 @@ test('geografia G2 · el SISTEMA de niebla obedece a la data: donde, cuanto, y c
 // ---------------------------------------------------------------------------------------------
 // G3 · ACANTILADOS Y BARRERAS POR TRAMO
 // ---------------------------------------------------------------------------------------------
-import { zigzagDe } from '../src/core/geografia.js';
+import { zigzagDe, aFracciones } from '../src/core/geografia.js';
 import * as zzG3 from '../src/core/zigzag.js';
 
 // Una geografia con los tres lados y una barrera, montada sobre el nucleo del zigzag tal como la
@@ -3367,7 +3368,7 @@ test('geografia G3 · ninguna mision declara un zigzag: Y acantilados en la geog
   const { MISIONES_PRUEBA: MP } = await import('../src/data/pruebas_misiones.js');
   for (const m of [...MISSIONS, ...Object.values(MP || {})]) {
     if (!m || !m.zigzag) continue;
-    assert.equal(zigzagDe(m.geografia), null, `${m.id}: zigzag y paredes en la geografia`);
+    assert.equal(zigzagDe(aFracciones(m.geografia, m.goal.dist || m.goal.meters)), null, `${m.id}: zigzag y paredes en la geografia`);
   }
 });
 
@@ -3506,5 +3507,99 @@ test('geografia G4 · sobrevive a ?qa (la mision comprimida al 6%)', () => {
     assert.equal(esTierraEn(0, c), true, 'la isla sigue estando');
     const h = alturaSuelo(0, c);
     assert.ok(h >= 0 && h < ISLA_ALTO_U, `y comprimida es mas baja, nunca mas empinada (${h.toFixed(2)} m)`);
+  } finally { setGeografia(null, 0); }
+});
+
+
+// ---------------------------------------------------------------------------------------------
+// G5 · EN KILOMETROS, ANTES Y DESPUES DEL BLANCO
+// ---------------------------------------------------------------------------------------------
+test('geografia G5 · la forma en km se traduce a fracciones: tramos, resto, y la vuelta desde el blanco', () => {
+  const g = {
+    ida: [{ km: 2, suelo: 'mar' }, { km: 1, suelo: 'isla' }, { suelo: 'mar' }],
+    vuelta: [{ km: 1.5, suelo: 'tierra' }, { suelo: 'mar' }],
+  };
+  assert.deepEqual(aFracciones(g, 6000).map(t => [t.suelo, +t.hasta.toFixed(4)]),
+    [['mar', 0.3333], ['isla', 0.5], ['mar', 1], ['tierra', 1.25], ['mar', 2]]);
+  assert.ok(aFracciones(g, 6000).every(t => t.km === undefined), 'el km no queda en la lista traducida');
+  assert.equal(g.ida[0].km, 2, 'la data de la mision no se toca');
+  // una ida que no llega al blanco, con vuelta: lo que falta se completa con mar
+  const corta = aFracciones({ ida: [{ km: 1, suelo: 'tierra' }], vuelta: [{ suelo: 'costa' }] }, 4000);
+  assert.deepEqual(corta.map(t => [t.suelo, t.hasta]), [['tierra', 0.25], ['mar', 1], ['costa', 2]]);
+  // la de fracciones pasa tal cual
+  assert.equal(aFracciones(GEOGRAFIAS.demo, 6000), GEOGRAFIAS.demo);
+});
+
+test('geografia G5 · el validador de la forma en km', () => {
+  const ok = { ida: [{ km: 2, suelo: 'mar' }, { suelo: 'mar' }] };
+  assert.deepEqual(validarGeografia(ok, 6000), []);
+  assert.deepEqual(validarGeografia(ok), [], 'sin distancia se revisa igual (todo menos el desborde)');
+  assert.ok(validarGeografia({ ida: [{ km: 5, suelo: 'mar' }, { km: 2, suelo: 'mar' }] }, 6000).length > 0, 'se desborda');
+  assert.ok(validarGeografia({ ida: [{ suelo: 'mar' }, { km: 2, suelo: 'mar' }] }, 6000).length > 0, 'solo el ultimo va sin km');
+  assert.ok(validarGeografia({ ida: [{ km: 1, hasta: 0.5, suelo: 'mar' }] }, 6000).length > 0, "'hasta' no va en km");
+  assert.ok(validarGeografia({ ida: [{ km: -1, suelo: 'mar' }] }, 6000).length > 0, 'km negativo');
+  assert.ok(validarGeografia({ idas: [] }, 6000).length > 0, 'clave desconocida');
+  assert.ok(validarGeografia({ ida: [{ km: 1, suelo: 'lava' }] }, 6000).length > 0, 'las claves de cada tramo se revisan igual');
+  assert.ok(validarGeografia({ ida: [{ km: 1, suelo: 'tierra' }, { suelo: 'isla' }] }, 6000).length > 0,
+    'y las reglas entre tramos tambien (isla pegada a tierra)');
+  assert.deepEqual(validarGeografia(GEOGRAFIAS.km, 6000), [], 'la geografia con nombre `km`, en t17');
+});
+
+test('geografia G5 · se carga contra la distancia DECLARADA: sobrevive a ?qa', () => {
+  const g = { ida: [{ km: 3, suelo: 'mar' }, { km: 1, suelo: 'tierra' }, { suelo: 'mar' }] };
+  // la mision declara 6 km; con ?qa el run mide el 6%
+  setGeografia(g, 6000 * 0.06, 6000);
+  try {
+    const obj = 6000 * 0.06;
+    assert.equal(sueloEn(0.58 * obj), 'land', 'la tierra de 3 a 4 km cae en 0.5-0.67 tambien comprimida');
+    assert.equal(sueloEn(0.3 * obj), 'sea');
+  } finally { setGeografia(null, 0); }
+});
+
+test('geografia G5 · el tramo del BLANCO: centrado en el objetivo, y la ida y la vuelta a sus lados', () => {
+  const g = {
+    ida: [{ km: 2, suelo: 'mar' }, { suelo: 'mar' }],
+    blanco: { km: 1, suelo: 'isla', alto: 8 },
+    vuelta: [{ km: 1, suelo: 'mar' }, { suelo: 'mar' }],
+  };
+  assert.deepEqual(validarGeografia(g, 6000), []);
+  const L = aFracciones(g, 6000);
+  const isla = L.find(t => t.suelo === 'isla');
+  assert.ok(Math.abs(isla.hasta - (1 + 500 / 6000)) < 1e-9, 'termina medio km pasado el objetivo');
+  assert.ok(Math.abs(L[L.indexOf(isla) - 1].hasta - (1 - 500 / 6000)) < 1e-9, 'y empieza medio km antes');
+  assert.ok(Math.abs(L[L.indexOf(isla) + 1].hasta - (1 + 1500 / 6000)) < 1e-9, 'la vuelta cuenta desde donde termina');
+  assert.equal(L[L.length - 1].hasta, 2);
+  // la ida ya no tiene 6 km: tiene 5,5
+  assert.ok(validarGeografia({ ida: [{ km: 5.8, suelo: 'mar' }], blanco: { km: 1, suelo: 'tierra' } }, 6000).length > 0,
+    'la ida se desborda contra el tramo del blanco');
+});
+
+test('geografia G5 · lo que hay debajo del blanco: el buque en el agua, la estructura en tierra', () => {
+  const conIsla = { ida: [{ suelo: 'mar' }], blanco: { km: 0.8, suelo: 'isla', alto: 8 }, vuelta: [{ suelo: 'mar' }] };
+  assert.deepEqual(validarGeografia(conIsla, 6000, 'estructura'), []);
+  assert.ok(validarGeografia(conIsla, 6000, 'ship').length > 0, 'un buque sobre una isla');
+  assert.ok(validarGeografia({ ida: [{ suelo: 'mar' }] }, 6000, 'estructura').length > 0, 'una estructura en el agua');
+  assert.deepEqual(validarGeografia(GEOGRAFIAS.demo, 6000, 'ship'), [], 'la demo deja el buque en el mar');
+  assert.deepEqual(validarGeografia(GEOGRAFIAS.km, 6000, 'ship'), []);
+  assert.deepEqual(validarGeografia({ ida: [{ suelo: 'mar' }], blanco: { km: 0.6, suelo: 'tierra', lomas: 4 } }, 6000, 'estructura'), []);
+});
+
+test('geografia G5 · la EXPLANADA: bajo el blanco el suelo es un piso, y alturaBlanco lo dice', async () => {
+  const { alturaBlanco, sueloBlanco } = await import('../src/core/geografia.js');
+  const { GEO_EXPLANADA } = await import('../src/data/tuning.js');
+  const g = { ida: [{ suelo: 'mar' }], blanco: { km: 1, suelo: 'isla', alto: 10 }, vuelta: [{ suelo: 'mar' }] };
+  setGeografia(g, 6000, 6000);
+  try {
+    assert.equal(sueloBlanco(), 'isla');
+    const h = alturaBlanco();
+    assert.ok(h > 6, `el piso esta arriba de la isla (${h.toFixed(1)} m)`);
+    for (let dz = -GEO_EXPLANADA; dz <= GEO_EXPLANADA; dz += 10) for (const x of [-30, 0, 30]) {
+      assert.ok(Math.abs(alturaSuelo(x, 6000 + dz) - h) < 1e-9, `plano en (${x}, ${dz})`);
+    }
+    setGeografia({ ida: [{ suelo: 'mar' }] }, 6000, 6000);
+    assert.equal(alturaBlanco(), 0, 'en el agua el piso es el agua');
+    assert.equal(sueloBlanco(), 'mar');
+    setGeografia(null, 6000);
+    assert.equal(sueloBlanco(), null);
   } finally { setGeografia(null, 0); }
 });

@@ -14,6 +14,7 @@
 //   · G2: el banco de niebla PUESTO existe en su tramo, entra y sale con fundido.
 //   · G3: los acantilados POR TRAMO — contra la pared de un lado se muere y por el otro se pasa, y
 //         la barrera PUESTA se pasa por donde deja (un puente por abajo) y mata por donde no.
+//   · G5: la geografia escrita EN KILOMETROS (ida y vuelta por separado) cae donde dice.
 //   · G4: la ISLA se ve venir (la cumbre asoma sobre el horizonte desde donde nace lo que viene),
 //         por encima se pasa, la parcial deja pasar por el canal, y a ras contra ella se choca.
 //
@@ -66,7 +67,7 @@ async function en(p, y, x, ms) {
 }
 
 app.whenReady().then(async () => {
-  console.log('\nFIXTURE — LA GEOGRAFIA DEL PASILLO (G0-G4)\n');
+  console.log('\nFIXTURE — LA GEOGRAFIA DEL PASILLO (G0-G5)\n');
   win = new BrowserWindow({ width: 1280, height: 760, show: false, webPreferences: { backgroundThrottling: false } });
   win.webContents.on('console-message', (e, l, m) => { if (l >= 3 && !m.includes('Security Warning')) errors.push(m.slice(0, 300)); });
   win.webContents.on('render-process-gone', (e, d) => errors.push('EL RENDERER MURIO: ' + JSON.stringify(d)));
@@ -314,6 +315,32 @@ app.whenReady().then(async () => {
     const causa = choco ? JSON.parse(await js('__seawolf()')).causa : null;
     if (choco && causa === 'death_land') ok(`a ras contra el farallon se choca: ${causa}`);
     else bad(`contra el farallon: choco ${choco}, causa ${causa}`);
+  }
+
+  // ---------- G5. EN KILOMETROS (?geo=km, data/geografias.js) ----------
+  // Se recarga t17 con la geografia escrita en km y se pregunta al terreno en los km que dice la
+  // data: la isla de la ida va de 2,4 a 2,9 km; la tierra de la vuelta, de 0,6 a 1,4 km pasado el
+  // buque. Y `?geo=ninguna` apaga la geografia de la mision.
+  console.log('\nG5. la geografia en kilometros:');
+  if (!await volar('&geo=km')) bad('no se pudo volar t17 con ?geo=km');
+  else {
+    const gk = await G();
+    const KM = gk.obj / 1000;
+    const frac = km => km / KM;
+    const isla = await J(`__geoen(${frac(2.65)}, 0)`), antes = await J(`__geoen(${frac(2.3)}, 0)`);
+    const tierra = await J(`__geoen(${1 + frac(1.0)}, 0)`), mar = await J(`__geoen(${1 + frac(0.3)}, 0)`);
+    if (gk.activa && gk.tramos.length === 12) ok(`cargada: ${gk.tramos.length} tramos (7 de ida y 5 de vuelta) sobre ${KM} km`);
+    else bad(`la geografia en km no cargo bien (${JSON.stringify(gk).slice(0, 140)})`);
+    if (isla.tierra && isla.altura > 3 && !antes.tierra) ok(`la isla de la ida esta a los 2,65 km (${isla.altura} m) y a los 2,3 todavia es mar`);
+    else bad(`la isla de la ida no esta donde dice (2,65: ${JSON.stringify(isla)} · 2,3: ${JSON.stringify(antes)})`);
+    if (tierra.suelo === 'land' && mar.suelo === 'sea') ok('en la vuelta, a 1 km del buque hay tierra y a 0,3 km mar: los km se cuentan desde el blanco');
+    else bad(`la vuelta no cae donde dice (1 km: ${tierra.suelo} · 0,3 km: ${mar.suelo})`);
+  }
+  if (!await volar('&geo=ninguna')) bad('no se pudo volar t17 con ?geo=ninguna');
+  else {
+    const gn = await G();
+    if (!gn.activa) ok('?geo=ninguna: la mision sin geografia');
+    else bad('?geo=ninguna dejo una geografia cargada');
   }
 
   console.log('\nconsola: ' + (errors.length ? errors.length + ' error(es)' : 'sin errores'));

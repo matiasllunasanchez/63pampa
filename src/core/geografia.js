@@ -20,7 +20,7 @@
 import { cfg } from './state.js';
 import { tierraH, hayRelieve } from './tierra.js';
 import { shoreAt, TIERRA_AMP, GEO_COSTURA, GEO_PLAYA, GEO_PLAYA_ONDA, GEO_ORILLA_ENTRA, GEO_ORILLA_LEJOS,
-  GEO_ISLA_ALTO, GEO_ISLA_ALTO_MAX, GEO_ISLA_PENDIENTE, GEO_ISLA_CARA, GEO_ISLA_FLANCO, GEO_ISLA_PLAYA,
+  GEO_EXPLANADA, GEO_EXPLANADA_BORDE, GEO_ISLA_ALTO, GEO_ISLA_ALTO_MAX, GEO_ISLA_PENDIENTE, GEO_ISLA_CARA, GEO_ISLA_FLANCO, GEO_ISLA_PLAYA,
   FLY_X } from '../data/tuning.js';
 
 /** Los suelos de la data (en castellano, que es como se escribe una mision) y el codigo interno
@@ -49,12 +49,132 @@ export const PAREDES = ['izq', 'der', 'ambos'];
 /** Las barreras que un tramo puede PONER (G3): las cuatro pieles del zigzag (Z8). */
 export const BARRERAS = ['roca', 'puente', 'madera', 'cables'];
 
-/** Revisa una lista y devuelve los ERRORES en texto (vacia = sana). `undefined` es valido: una
- *  mision sin geografia es casi todas las misiones. */
-export function validarGeografia(lista) {
+// ---------------------------------------------------------------- EN KILOMETROS (G5)
+//
+// LAS DOS FORMAS DE ESCRIBIR UNA GEOGRAFIA. La de fracciones (`[{ hasta: 0.3, ... }]`, de 0 a 2) es
+// la de las fases, y sirve para las geografias con nombre de data/geografias.js, que se ponen
+// encima de CUALQUIER mision (`?geo=`). La de kilometros es la de escribir UNA mision: se parte la
+// distancia recorrible en tramos de tantos km, ANTES y DESPUES del blanco, en dos listas —
+//
+//     geografia: {
+//       ida:    [{ km: 4, suelo: 'mar' }, { km: 0.8, suelo: 'isla' }, { km: 2, suelo: 'mar', niebla: 1 },
+//                { suelo: 'mar' }],                  // sin `km`: lo que falte hasta el blanco
+//       blanco: { km: 0.6, suelo: 'isla', alto: 8 },   // opcional: lo que hay DEBAJO del blanco,
+//                                                        // centrado en el (la mitad antes, la mitad despues)
+//       vuelta: [{ km: 3, suelo: 'costa', lado: 'der' }, { suelo: 'mar' }],   // desde el blanco a casa
+//     }
+//
+// EL TRAMO DEL BLANCO existe para los objetivos que NO son buques (una base, un edificio): la
+// estructura tiene que estar sobre tierra, y partir esa tierra entre el final de la ida y el
+// principio de la vuelta dejaria dos islas pegadas. Con `blanco`, la ida termina donde empieza su
+// tramo y la vuelta arranca donde termina; los km de cada lista se cuentan desde ahi.
+//
+// — y se TRADUCE a fracciones al cargar, contra la distancia de la mision. La traduccion usa la
+// distancia DECLARADA (`base`), no la del run: `?qa` comprime la mision al 6% y los tramos se
+// comprimen con ella en vez de desbordarla. El resto del codigo no se entera de que hubo km.
+
+/** Las claves de la forma en kilometros (el objeto de arriba). */
+export const LISTAS_KM = ['ida', 'vuelta'];
+export const CLAVES_KM = ['ida', 'blanco', 'vuelta'];
+
+/** ¿Esta geografia esta escrita en kilometros? */
+export const enKm = g => !!g && typeof g === 'object' && !Array.isArray(g);
+
+/** La traduce a la lista de fracciones (0..2) que lee todo lo demas. La de fracciones pasa tal
+ *  cual. `base` son los metros de la IDA (la distancia declarada de la mision). Los tramos son
+ *  copias: la data de la mision no se toca. Si la ida no llega al blanco y hay vuelta, lo que falta
+ *  se completa con MAR (el blanco tiene que tener algo abajo). */
+export function aFracciones(g, base) {
+  if (!enKm(g)) return g;
+  const B = base > 0 ? base : 1;
+  const out = [];
+  // el tramo del blanco se come la mitad de su largo a cada lado del objetivo
+  const bl = g.blanco && typeof g.blanco === 'object' && g.blanco.km > 0 ? g.blanco : null;
+  const medio = bl ? Math.min(B * 0.9, bl.km * 1000) / 2 : 0;
+  const largo = B - medio;                       // lo que mide cada tramo de ida y de vuelta
+  const pasar = (lista, f0) => {
+    let m = 0;
+    for (let i = 0; i < lista.length; i++) {
+      const { km, ...resto } = lista[i];
+      const ultimo = i === lista.length - 1;
+      m = typeof km === 'number' ? m + km * 1000 : (ultimo ? largo : m);
+      out.push({ ...resto, hasta: f0 + Math.min(largo, m) / B });
+    }
+  };
+  const hueco = f => { if (!out.length || out[out.length - 1].hasta < f - 1e-9) out.push({ suelo: 'mar', hasta: f }); };
+  const ida = Array.isArray(g.ida) ? g.ida : [];
+  const vuelta = Array.isArray(g.vuelta) ? g.vuelta : [];
+  if (ida.length) pasar(ida, 0);
+  if (bl) {
+    hueco(largo / B);
+    const { km, ...resto } = bl;
+    out.push({ ...resto, hasta: 1 + medio / B });
+  }
+  if (vuelta.length) {
+    hueco(1 + medio / B);
+    pasar(vuelta, 1 + medio / B);
+  }
+  return out;
+}
+
+/** Los errores propios de la forma en km (la forma, `km`, que no desborde la distancia). Las claves
+ *  de cada tramo las revisa despues el validador de siempre, sobre la lista traducida. */
+function validarKm(g, base) {
   const e = [];
-  if (lista === undefined || lista === null) return e;
-  if (!Array.isArray(lista)) return ['`geografia` tiene que ser una lista'];
+  for (const k of Object.keys(g)) if (CLAVES_KM.indexOf(k) < 0)
+    e.push(`geografia en km: clave desconocida '${k}' (van 'ida', 'blanco' y 'vuelta')`);
+  if (g.ida === undefined && g.vuelta === undefined && g.blanco === undefined) e.push("geografia en km: falta 'ida', 'blanco' y/o 'vuelta'");
+  let medio = 0;
+  if (g.blanco !== undefined) {
+    const b = g.blanco;
+    if (!b || typeof b !== 'object' || Array.isArray(b)) e.push("geografia en km: 'blanco' es UN tramo ({ km, suelo, ... })");
+    else {
+      if (!(typeof b.km === 'number' && b.km > 0)) e.push("blanco: 'km' tiene que ser un numero > 0 (cuanto mide el tramo, centrado en el objetivo)");
+      else medio = b.km * 500;
+      if (b.hasta !== undefined) e.push("blanco: en kilometros no va 'hasta'");
+    }
+  }
+  for (const k of LISTAS_KM) {
+    const l = g[k];
+    if (l === undefined) continue;
+    if (!Array.isArray(l) || !l.length) { e.push(`geografia en km: '${k}' tiene que ser una lista no vacia`); continue; }
+    let suma = 0;
+    l.forEach((t, i) => {
+      if (!t || typeof t !== 'object') return;
+      if (t.hasta !== undefined) e.push(`${k} ${i}: en kilometros no va 'hasta' — cada tramo dice cuantos 'km' mide`);
+      const ultimo = i === l.length - 1;
+      if (t.km === undefined && !ultimo) e.push(`${k} ${i}: falta 'km' (solo el ULTIMO puede no tenerlo: es lo que quede)`);
+      else if (t.km !== undefined && !(typeof t.km === 'number' && t.km > 0)) e.push(`${k} ${i}: 'km' tiene que ser un numero > 0`);
+      else if (typeof t.km === 'number') suma += t.km;
+    });
+    // SE DESBORDA: los tramos piden mas km de los que tiene el camino. El sobrante no existiria —
+    // quedaria despues del blanco (o de casa) — y en silencio.
+    if (base > 0 && suma * 1000 > base - medio + 0.5)
+      e.push(`geografia en km: '${k}' suma ${+suma.toFixed(3)} km y el camino mide ${+((base - medio) / 1000).toFixed(3)}`
+        + (medio ? ' (sin la mitad del tramo del blanco)' : ''));
+  }
+  return e;
+}
+
+/** Revisa una geografia y devuelve los ERRORES en texto (vacia = sana). `undefined` es valido: una
+ *  mision sin geografia es casi todas las misiones. Acepta las dos formas; `base` (los metros de la
+ *  ida) hace falta para revisar que la de km no se desborde — sin ella se revisa todo lo demas.
+ *  `kind` (el `goal.kind` de la mision: 'ship' | 'estructura') revisa que haya el suelo que
+ *  corresponde debajo del blanco. */
+export function validarGeografia(g, base, kind) {
+  if (g === undefined || g === null) return [];
+  if (enKm(g)) {
+    const ek = validarKm(g, base);
+    if (ek.length) return ek;
+    // sin base se traduce contra lo que suman los tramos: alcanza para revisar las claves y las
+    // costuras, que no dependen de la escala
+    const suma = Math.max(...LISTAS_KM.map(k => (g[k] || []).reduce((a, t) => a + (t.km || 0), 0)), 0.001)
+      + (g.blanco && g.blanco.km > 0 ? g.blanco.km : 0);
+    return validarGeografia(aFracciones(g, base > 0 ? base : suma * 1000 * 1.5), undefined, kind);
+  }
+  const lista = g;
+  const e = [];
+  if (!Array.isArray(lista)) return ['`geografia` tiene que ser una lista (fracciones) o { ida, vuelta } (kilometros)'];
   if (!lista.length) return ['`geografia` no puede ser una lista vacia (sacala y listo)'];
   let prev = 0, sueloPrev = null, ladoPrev = null;
   lista.forEach((t, i) => {
@@ -122,6 +242,19 @@ export function validarGeografia(lista) {
       e.push(`tramo ${i}: costa del otro lado pegada a una costa — poné un tramo de mar o de tierra en el medio`);
     sueloPrev = t.suelo; ladoPrev = lado;
   });
+  // QUE HAY DEBAJO DEL BLANCO, segun que blanco es (`kind` del `goal` de la mision). Un buque va en
+  // el agua: ni tierra ni isla en los dos lados del objetivo. Una estructura va en tierra: el tramo
+  // que contiene al objetivo tiene que ser tierra o isla (con la forma en km, el tramo `blanco`).
+  if (!e.length && (kind === 'ship' || kind === 'estructura')) {
+    const en = f => lista.find(t => t.hasta > f);
+    const antes = en(1 - 1e-4), justo = en(1);
+    const desc = t => (t ? t.suelo : 'nada (manda el cfg)');
+    if (kind === 'ship') {
+      for (const t of [antes, justo]) if (t && t.suelo !== 'mar')
+        e.push(`el blanco es un BUQUE y abajo hay ${desc(t)}: alrededor del objetivo tiene que haber mar`);
+    } else if (!justo || (justo.suelo !== 'tierra' && justo.suelo !== 'isla'))
+      e.push(`el blanco es una ESTRUCTURA y abajo hay ${desc(justo)}: tiene que haber tierra o isla (en km: 'blanco: { km, suelo: 'isla' }')`);
+  }
   return e;
 }
 
@@ -130,20 +263,28 @@ export function validarGeografia(lista) {
 /** La geografia de la corrida en curso. `tramos` es la lista ARMADA (en metros, con vecinos),
  *  que es lo que leen todos; `lista` es la data tal como vino. `sinSiembra` cuenta los sorteos
  *  que no se hicieron por caer sobre tierra (lo lee el fixture). */
-export const geo = { lista: null, obj: 0, tramos: null, nieblas: null, zigzag: null, islas: [], sinSiembra: 0 };
+export const geo = { lista: null, obj: 0, base: 0, pad: null, tramos: null, nieblas: null, zigzag: null, islas: [], sinSiembra: 0 };
 
 /** Carga la geografia de la corrida. La llama systems/geografia.js (`cargar`), que es quien sabe
  *  si hay una sonda pisando la data; el orquestador llama a ESE, al lado de `setFases`, porque es
  *  donde ya se sabe `objectiveDist` y las fracciones sin su objetivo no son nada. */
-export function setGeografia(lista, obj) {
+export function setGeografia(lista, obj, base) {
   geo.obj = obj > 0 ? obj : 0;
-  geo.lista = Array.isArray(lista) && lista.length ? lista : null;
+  // `base`: los metros DECLARADOS de la ida, contra los que se traduce la forma en km (ver
+  // `aFracciones`). Sin ella, los del run.
+  geo.base = base > 0 ? base : geo.obj;
+  const L = aFracciones(lista, geo.base);
+  geo.lista = Array.isArray(L) && L.length ? L : null;
   geo.tramos = geo.lista && geo.obj > 0 ? armar(geo.lista, geo.obj) : null;
   geo.nieblas = geo.tramos ? juntarNieblas(geo.tramos) : null;
   geo.zigzag = geo.tramos ? zigzagDe(geo.lista) : null;
   geo.islas = geo.tramos ? geo.tramos.filter(r => r.isla) : [];
   geo.sinSiembra = 0;
   cur = 0;
+  // LA EXPLANADA: si abajo del objetivo hay tierra, el suelo se aplana alrededor. Se mide la altura
+  // del centro SIN explanada (por eso primero se apaga) y esa queda de piso.
+  geo.pad = null;
+  if (geo.tramos && esTierraEn(0, geo.obj)) geo.pad = { z: geo.obj, h: alturaSuelo(0, geo.obj) };
   return geo.tramos;
 }
 
@@ -347,7 +488,31 @@ export function alturaSuelo(x, wz) {
   if (geo.tramos === null) return hayRelieve(cfg) ? tierraH(x, wz) : 0;
   const r = tramoEn(wz);
   if (r && r.isla) return islaAltura(x, wz, r);
-  return escalaRelieve(wz) > 0 && esTierraEn(x, wz) ? tierraH(x, wz) * escalaRelieve(wz) : 0;
+  return escalaRelieve(wz) > 0 && esTierraEn(x, wz) ? explanada(tierraH(x, wz) * escalaRelieve(wz), wz) : 0;
+}
+
+/** Aplana `h` hacia el piso de la explanada del blanco, si `wz` cae en ella (con fundido: la loma
+ *  baja o sube hasta el piso, no se corta). Solo se llama con tierra abajo. */
+function explanada(h, wz) {
+  const p = geo.pad;
+  if (!p) return h;
+  const d = Math.abs(wz - p.z);
+  if (d >= GEO_EXPLANADA + GEO_EXPLANADA_BORDE) return h;
+  const w = d <= GEO_EXPLANADA ? 1 : 1 - suave((d - GEO_EXPLANADA) / GEO_EXPLANADA_BORDE);
+  return h + (p.h - h) * w;
+}
+
+/** A QUE ALTURA ESTA EL PISO DEL BLANCO: 0 en el agua (el buque), el de la explanada en tierra. Es
+ *  la pregunta que la suelta le va a hacer al terreno cuando el objetivo sea una estructura. */
+export const alturaBlanco = () => (geo.pad ? geo.pad.h : 0);
+
+/** QUE HAY DEBAJO DEL BLANCO: 'mar' | 'tierra' | 'isla' | 'costa', o null sin geografia. */
+export function sueloBlanco() {
+  if (geo.tramos === null) return null;
+  // si la ida termina JUSTO en el objetivo y no hay vuelta, lo de abajo es el final de la ida
+  const r = tramoEn(geo.obj) || tramoEn(geo.obj - 0.01);
+  if (!r) return null;
+  return r.isla ? 'isla' : r.suelo === 'land' ? 'tierra' : r.suelo === 'coast' ? 'costa' : 'mar';
 }
 
 // ---------------------------------------------------------------- LA ISLA (G4)
@@ -391,7 +556,7 @@ export function islaAltura(x, wz, r) {
   // subida lineal hasta el 70% de la cumbre y despues se acuesta (derivada continua, nunca mayor)
   const t = sube / C;
   const f = t < 0.7 ? t : 0.7 + 0.3 * (1 - Math.exp(-(t - 0.7) / 0.3));
-  return Math.max(arena, C * f);
+  return Math.max(arena, explanada(C * f, wz));
 }
 
 /** La ISLA que esta a `wz` (o a menos de `margen` metros), o null. La usan la siembra (no plantar

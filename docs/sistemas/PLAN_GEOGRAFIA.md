@@ -1,10 +1,13 @@
 # PLAN — La GEOGRAFÍA del pasillo *(mar, costa, acantilado, isla y niebla en una misma misión)*
 
-> **ESTADO (29/9/2026): G0 a G4 HECHAS.** El suelo por tramos anda —mar, costa (de cualquiera de
+> **ESTADO (29/9/2026): G0 a G5 HECHAS.** El suelo por tramos anda —mar, costa (de cualquiera de
 > los dos lados) y tierra con lomas en una misma misión, con sus costuras—, los bancos de niebla se
-> ponen donde dice la data, los acantilados (izquierda, derecha o los dos) y las barreras también, y
-> hay ISLAS que se sobrevuelan (de lado a lado o parciales, con playa o farallón). Se prueba con
-> `?mision=t17&geo=demo` y con `npm run geografia`. Faltan G5 (t15 la usa) y G6 (docs).
+> ponen donde dice la data, los acantilados (izquierda, derecha o los dos) y las barreras también,
+> hay ISLAS que se sobrevuelan (de lado a lado o parciales, con playa o farallón), y la geografía de
+> una misión se escribe **en kilómetros, antes y después del blanco** — con un tramo propio DEBAJO
+> del blanco para cuando el objetivo sea una estructura en tierra. Se prueba con
+> `?mision=t17&geo=demo`, `?mision=t17&geo=km` y `npm run geografia`. Falta G6 (la guía corta) y,
+> fuera de este plan, **el blanco ESTRUCTURA** (§11).
 
 > **Audiencia: una IA implementadora en sesión nueva, sin el chat donde se decidió esto.** Define
 > cómo un mismo pasillo —en particular los de IDA Y VUELTA (`t15`, `t17`)— pasa a tener **etapas
@@ -182,7 +185,7 @@ profundidad que le corresponde**:
 | **G2** · la niebla puesta | `niebla:` en un tramo pone el banco AHÍ (el sorteo de `fog.js` se aparta mientras dure), con `fogFade` | el banco existe dentro del tramo, entra y sale con fundido, y no aparece fuera |
 | **G3** · acantilados y barreras por tramo | `paredes: izq \| der \| ambos` por tramo: el zigzag pasa de UNA ventana a una **lista** de ventanas (con `amp: 0`: rectas); y `barrera:` pone una barrera de las cuatro pieles donde dice la data, en vez de sortearla. El `zigzag:` de m5 queda como está | chocar la pared mata del lado que la tiene y el otro lado queda libre; `npm run zigzag` sigue verde |
 | **G4** · la isla | `suelo: 'isla'` con `alto`, `ancho`, `x`, `borde`: **la barrera de roca alargada** (ver abajo) con tierra arriba; colisión por `alturaSuelo`; lo que nace en la isla queda plantado (`gy`) | a ras contra la isla se roza y se muere; por encima se pasa; la parcial deja pasar por el canal; **la cumbre se ve desde `SPAWN_Z`** (sin esto la isla es una trampa) |
-| **G5** · IDA Y VUELTA la usa | `geografia:` en `t15` — y `t17` la hereda sola, porque es la t15 a escala y las fracciones sobreviven a la compresión. El trazado lo revisa el autor | el fixture corre sobre `t17` (4 min) punta a punta |
+| **G5** · en kilómetros, antes y después del blanco *(redefinida por el autor, 29/9 — ver §9.29)* | `geografia: { ida: [{ km, suelo, ... }], blanco: { km, suelo }, vuelta: [...] }`: se parte la distancia recorrible en tramos de tantos km; el último de cada lista sin `km` es "lo que quede". Se traduce a fracciones al cargar, contra la distancia DECLARADA (sobrevive a `?qa`). El tramo `blanco` va centrado en el objetivo, con EXPLANADA (el suelo se aplana) y `alturaBlanco()` | el fixture carga `?geo=km` en t17 y el terreno está en los km que dice la data; un buque exige mar debajo y una estructura, tierra |
 | **G6** · docs | fila en ARQUITECTURA, README, y **una guía corta para escribir la geografía de una misión** (qué suelos hay, cómo se combinan, qué no hacer) | alguien que no leyó este plan puede armar el mapa de una misión nueva |
 
 ### 4.1 G4 en detalle: la isla es una barrera de roca ALARGADA
@@ -533,6 +536,30 @@ Por encima siempre (y a la altura que diga `alto`: el validador rechaza más de
 en Z8) y un puente ya existe como barrera de un tramo con paredes. Una isla no lleva `paredes` ni
 `barrera` — la isla ES la barrera — y tiene que tener mar antes y después.
 
+### 29. G5 dejó de ser "t15 la usa" *(G5 — pedido del autor, 29/9)*
+
+*"No importa mucho eso, después definiré bien yo cada misión, más o menos la distancia total y en
+qué zona poner qué cosa; por ahora tenemos que tener la versatilidad de poder dividir una cantidad de
+kilómetros recorribles con diferentes obstáculos, pre y post buque."* Así que G5 no escribió el
+trazado de t15: hizo la **forma en kilómetros**. Las dos formas conviven — la de fracciones queda
+para las geografías con nombre, que se ponen encima de cualquier misión (`?geo=`) — y la de km es la
+de escribir UNA misión. `aFracciones(g, base)` la traduce; el resto del código no se entera. El
+validador revisa también que la suma no desborde el camino (con la distancia de la misión: en el
+unit test y otra vez al cargar, porque una geografía con nombre puede caer sobre una misión más
+corta). `?geo=ninguna` apaga la geografía de una misión (para comparar).
+
+### 30. El tramo del BLANCO, la explanada, y qué hay debajo del objetivo *(G5 — pedido del autor)*
+
+*"A futuro quizá haya otros objetivos que no sean buques, sino bases o edificios… podemos reutilizar
+la isla o un pedazo de tierra. El objetivo es el mismo, una estructura a la cual se le tira una
+bomba."* Del lado del TERRENO quedó listo: `blanco: { km, suelo, ... }` es un tramo centrado en el
+objetivo (la ida termina donde empieza, la vuelta arranca donde termina), y si abajo hay tierra el
+suelo se APLANA en `GEO_EXPLANADA` (70 m a cada lado, fundido de 45) a la altura del centro —la
+estructura se apoya en un piso y no cuelga de una loma—. `alturaBlanco()` contesta a qué altura está
+ese piso (0 en el agua) y `sueloBlanco()` qué hay. `validarGeografia(g, base, kind)` exige mar
+alrededor de un buque y tierra o isla debajo de una `'estructura'`. Lo que falta es el blanco en sí:
+§11.
+
 ## 10. Coordinación *(29/9/2026)*
 
 Hay otra sesión editando el mismo árbol en paralelo — al escribir este plan tenía cambios *staged*
@@ -540,3 +567,30 @@ en `game.js`, `render/hud.js`, `render/menus.js`, `systems/blanco.js` y `data/pr
 G1 toca `render/world.js`, `systems/spawn.js`, `systems/flight.js` y `setRunObjective()` en
 `game.js`; G5 toca `pruebas_misiones.js`. **Antes de cada fase: `git status`, releer el archivo
 justo antes de editarlo, y commitear lo propio por nombre, en commits chicos.**
+
+## 11. EL BLANCO ESTRUCTURA — lo que falta, y por qué no se hizo acá *(29/9/2026)*
+
+El objetivo hoy es SIEMPRE un buque, y el agua está supuesta en todos lados: la suelta mide contra
+`AGUA = 1` (`core/blanco.js`), el casco sale de `PERFIL[clase]` por `SHIP_CLASS[nombre]`, el sprite es
+la hoja `buque_<clase>` con su espuma y su `hundido_`, y `climaxDeclarado` (`data/missions.js`) solo
+deja llegar a la suelta a `goal.kind === 'ship'`. **No se tocó** porque `core/blanco.js`,
+`systems/blanco.js`, `strings.js`, `hud.js` y `game.js` están en la tanda sin commitear de la otra
+sesión (bombas nuevas): meterse ahí era pisar trabajo a medio hacer. La costura, relevada:
+
+1. **`data/estructuras.js`** (nuevo): una tabla como la de las clases de buque — `{ hoja, perfil[20],
+   len, centro, defensa, textos }` por estructura (base, depósito, pista, radar…).
+2. **`game.js`**: `GOALS.estructura = { needsMomentum: true, dist: g => g.dist, label: g => g.nombre,
+   setup: () => {} }` (fuera de `useShip`), y pasar el tipo a `blancoSys.preparar`.
+3. **`data/missions.js`**: `climaxDeclarado` y `SHIP_MISSIONS` — la estructura va siempre a la suelta
+   (`drawApproachBarge`, la pasada, la arena y el pulso quedan afuera: no hace falta tocarlos).
+4. **`core/blanco.js`**: `AGUA` pasa a ser `base()` — `AGUA` para un buque, **`alturaBlanco()` + el
+   margen de siempre** para una estructura—; `altoEn` lee el perfil de la tabla que corresponda.
+5. **`systems/blanco.js`**: la misma sustitución (`columnaBomba`, el humo, la salpicadura → polvo), y
+   el veredicto 'hundido' con su texto de estructura ('destruido').
+6. **`render/blanco.js`**: proyectar en `base()` y un `drawEstructura` sin espuma ni `hundido_`.
+7. **`core/balistica.js:33`**, `systems/collision.js` (la bomba que pega en el suelo), y la altura de
+   lanzamiento de las defensas (`SW_ALTO` en seawolf).
+8. **`strings.js`** (los veredictos de estructura) y **`hud.js`** (cómo se rotula el objetivo).
+
+La data de una misión con estructura ya se puede escribir y validar:
+`goal: { kind: 'estructura', nombre: '...', dist }` + `geografia: { ..., blanco: { km: 0.8, suelo: 'isla', alto: 8 } }`.
