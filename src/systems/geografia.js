@@ -35,7 +35,7 @@ export function cargar(lista, obj, base) {
   return setGeografia(g, obj, base);
 }
 
-// ---------- SONDAS (QUITAR al cerrar el plan) ----------
+// ---------- SONDAS (se QUEDAN: las usan `npm run geografia` y GUIA_GEOGRAFIA.md §9) ----------
 if (typeof window !== 'undefined') {
   // __geoset(lista): pisa la geografia de la corrida en curso, con el mismo objetivo. Devuelve los
   // errores del validador si la lista esta mal — no la carga a medias.

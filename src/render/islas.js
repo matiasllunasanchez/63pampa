@@ -161,7 +161,7 @@ export function techoIsla(wx, camZ) {
   return techo;
 }
 
-// ---------- SONDA (QUITAR al cerrar el plan) ----------
+// ---------- SONDA (se QUEDA: la usan `npm run geografia` y GUIA_GEOGRAFIA.md §9) ----------
 if (typeof window !== 'undefined') {
   // __islas(): lo que dibujo el ultimo cuadro — cuantas rebanadas, hasta que distancia, y el pixel
   // mas alto de la silueta contra la linea del horizonte (cumbreY < hor: asoma por encima)

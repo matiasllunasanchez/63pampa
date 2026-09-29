@@ -1,13 +1,14 @@
 # PLAN — La GEOGRAFÍA del pasillo *(mar, costa, acantilado, isla y niebla en una misma misión)*
 
-> **ESTADO (29/9/2026): G0 a G5 HECHAS.** El suelo por tramos anda —mar, costa (de cualquiera de
+> **ESTADO (29/9/2026): G0 a G6 HECHAS — el plan está cerrado.** El suelo por tramos anda —mar, costa (de cualquiera de
 > los dos lados) y tierra con lomas en una misma misión, con sus costuras—, los bancos de niebla se
 > ponen donde dice la data, los acantilados (izquierda, derecha o los dos) y las barreras también,
 > hay ISLAS que se sobrevuelan (de lado a lado o parciales, con playa o farallón), y la geografía de
 > una misión se escribe **en kilómetros, antes y después del blanco** — con un tramo propio DEBAJO
 > del blanco para cuando el objetivo sea una estructura en tierra. Se prueba con
-> `?mision=t17&geo=demo`, `?mision=t17&geo=km` y `npm run geografia`. Falta G6 (la guía corta) y,
-> fuera de este plan, **el blanco ESTRUCTURA** (§11).
+> `?mision=t17&geo=demo`, `?mision=t17&geo=km` y `npm run geografia`. **G6 también**: la guía
+> para escribir la geografía de una misión es [GUIA_GEOGRAFIA.md](GUIA_GEOGRAFIA.md). Lo único que
+> falta es, fuera de este plan, **el blanco ESTRUCTURA** (§11), que es de la suelta.
 
 > **Audiencia: una IA implementadora en sesión nueva, sin el chat donde se decidió esto.** Define
 > cómo un mismo pasillo —en particular los de IDA Y VUELTA (`t15`, `t17`)— pasa a tener **etapas
@@ -186,7 +187,7 @@ profundidad que le corresponde**:
 | **G3** · acantilados y barreras por tramo | `paredes: izq \| der \| ambos` por tramo: el zigzag pasa de UNA ventana a una **lista** de ventanas (con `amp: 0`: rectas); y `barrera:` pone una barrera de las cuatro pieles donde dice la data, en vez de sortearla. El `zigzag:` de m5 queda como está | chocar la pared mata del lado que la tiene y el otro lado queda libre; `npm run zigzag` sigue verde |
 | **G4** · la isla | `suelo: 'isla'` con `alto`, `ancho`, `x`, `borde`: **la barrera de roca alargada** (ver abajo) con tierra arriba; colisión por `alturaSuelo`; lo que nace en la isla queda plantado (`gy`) | a ras contra la isla se roza y se muere; por encima se pasa; la parcial deja pasar por el canal; **la cumbre se ve desde `SPAWN_Z`** (sin esto la isla es una trampa) |
 | **G5** · en kilómetros, antes y después del blanco *(redefinida por el autor, 29/9 — ver §9.29)* | `geografia: { ida: [{ km, suelo, ... }], blanco: { km, suelo }, vuelta: [...] }`: se parte la distancia recorrible en tramos de tantos km; el último de cada lista sin `km` es "lo que quede". Se traduce a fracciones al cargar, contra la distancia DECLARADA (sobrevive a `?qa`). El tramo `blanco` va centrado en el objetivo, con EXPLANADA (el suelo se aplana) y `alturaBlanco()` | el fixture carga `?geo=km` en t17 y el terreno está en los km que dice la data; un buque exige mar debajo y una estructura, tierra |
-| **G6** · docs | fila en ARQUITECTURA, README, y **una guía corta para escribir la geografía de una misión** (qué suelos hay, cómo se combinan, qué no hacer) | alguien que no leyó este plan puede armar el mapa de una misión nueva |
+| **G6** · docs ✅ | fila en ARQUITECTURA, README, y **una guía corta para escribir la geografía de una misión** (qué suelos hay, cómo se combinan, qué no hacer) → [GUIA_GEOGRAFIA.md](GUIA_GEOGRAFIA.md) | alguien que no leyó este plan puede armar el mapa de una misión nueva |
 
 ### 4.1 G4 en detalle: la isla es una barrera de roca ALARGADA
 
