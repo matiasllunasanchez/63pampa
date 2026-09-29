@@ -1767,6 +1767,26 @@ function dibujarObstaculo(o) {
       // EL PARACAIDAS (v2 §3): cupula, cuerdas y el asiento colgando. NO gira — el `spin` va en 0
       // a proposito. Lo que se lee es que algo baja DESPACIO mientras todo lo demas cae, y esa
       // lectura la da la cupula quieta; un paracaidas tumbando seria un pedazo mas de escombro.
+      // LA EYECCION HORNEADA (29/9): dos actos anclados en el ARNES del piloto (el punto 0 de la
+      // hoja), asi el cambio de uno a otro no salta. Primero el asiento dando tumbos —la silueta
+      // que dice "se eyecto"— y a los EYEC_ASIENTO_T se abre la cupula, inflandose, y se hamaca.
+      // Fila 0 el piloto argentino (el tuyo, `o.arg`), fila 1 el britanico. El tope de tamaño es
+      // el mismo de la cupula dibujada (~40 px de radio): de cerca no tapa la pantalla.
+      if (enemyArt.ready('eyectado')) {
+        const kk = Math.min(k, 80 / 5.8), fila = o.arg ? 0 : 1;
+        const t = o.chunkT || 0, ASI = 0.6;
+        let col, esc = kk;
+        if (t < ASI) col = Math.floor(t * 14) % 4;                 // el asiento: un cuarto de vuelta por cuadro
+        else {
+          const sw = Math.sin(run.t * 1.6 + (o.ph || 0) + o.x);
+          col = 4 + (sw > 0.45 ? 2 : sw < -0.45 ? 0 : 1);           // hamacandose
+          esc = kk * (0.55 + 0.45 * Math.min(1, (t - ASI) / 0.35));  // se infla
+        }
+        const a = enemyArt.anclaje('eyectado', 0, 0, { centerY: 0 }, esc);
+        enemyArt.drawFrame(ctx, 'eyectado', col, fila, a ? -a.x : 0, { centerY: a ? -a.y : 0 }, esc, false);
+        ctx.restore(); ctx.globalAlpha = 1;
+        return;
+      }
       const R = Math.max(2, r * 1.5);
       ctx.beginPath();
       ctx.ellipse(0, -R * 0.45, R, R * 0.6, 0, Math.PI, 6.2832);

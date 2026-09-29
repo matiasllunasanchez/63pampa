@@ -2844,6 +2844,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         x: plane.x, y: plane.y + 0.5, z: PZ + 4,
         vx: 0, vy: 6, vz: 5, spin: 0, vspin: 0, size: 0.95, hot: false,
         c: '#d8d2c4', c2: '#8f959b', grav: 0.1, vida: 6, ph: 0, parte: null,
+        arg: true,   // el piloto ARGENTINO: la fila 0 de la hoja de la eyeccion (render/world.js)
       });
       die(rescate ? 'death_eyecto_rescate' : 'death_eyecto_mar');
     }

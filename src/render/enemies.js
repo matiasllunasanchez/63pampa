@@ -30,6 +30,7 @@ const FILES = {
   aa: '../assets/world/enemies/aa.png',
   manpad: '../assets/world/enemies/manpad.png',
   tent: '../assets/world/enemies/tent.png',
+  eyectado: '../assets/world/enemies/eyectado.png',
   depot: '../assets/world/enemies/depot.png',
   bldg: '../assets/world/enemies/bldg.png',
   fragata: '../assets/world/enemies/fragata.png',
@@ -112,6 +113,9 @@ const ARTE = {
   // de un par de soldados con la red alrededor
   manpad: { wu: 3.6 },
   tent: { wu: 5.4 },
+  // LA EYECCION: `wu` es el ancho de la CUPULA abierta (la caja une las dos poses y la cupula es lo
+  // mas ancho), el mismo que tenia la media elipse dibujada a mano que reemplaza
+  eyectado: { wu: 5.8 },
   // depot y bldg se escalan por ALTURA al dibujar (o.h varia por spawn): wu es el ancho a la
   // altura de referencia y drawFrame recibe el k ya multiplicado por (o.h / href)
   depot: { wu: 8.2, href: 5.5 },

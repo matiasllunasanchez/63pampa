@@ -34,6 +34,7 @@
   <script src="bake_common.js"></script>
   <script src="models/enemies.js"></script>
   <script src="models/soldiers.js"></script>
+  <script src="models/eyeccion.js"></script>
   <script src="models/restos.js"></script>
   <script src="models/buques.js"></script>
   <script src="models/harrier.js"></script>
@@ -89,6 +90,7 @@
     // en ESTE horneador y no en uno propio porque son el MISMO encuadre — la camara que ve venir
     // al enemigo es la que despues lo ve tirado. Dos hornos serian dos luces.
     const R = BAKE.familia('restos');
+    const EY = BAKE.familia('eyeccion');
     // LOS BUQUES (B2): las tres clases del juego, en tools/models/buques.js.
     const BQ = BAKE.familia('buques');
     // EL SEA HARRIER (B3): el perseguidor de LA COLA, en tools/models/harrier.js. Va aparte de los
@@ -231,6 +233,19 @@
       manpad: {
         fw: 48, fh: 48, dist: 9, lookY: 0.7, quarter: 0.45,
         frames: [0.7, 1.0].map(a => ({ model: () => modelManpad(a) })), cols: 2,
+      },
+      // LA EYECCION (29/9): dos filas (0 = el piloto argentino, 1 = el britanico) y siete columnas
+      // por fila — 0-3 el asiento dando tumbos (un cuarto de vuelta por columna, alrededor del
+      // arnes) y 4-6 bajo la cupula, hamacandose. El punto 0 es EL ARNES: el juego ancla los dos
+      // actos ahi (render/world.js), y por eso el cambio de asiento a cupula no salta.
+      eyectado: {
+        fw: 48, fh: 64, dist: 19, lookY: 1.8, quarter: 0.3,
+        frames: ['arg', 'brit'].flatMap(b => [
+          ...[0, 1, 2, 3].map(n => ({ model: () => EY.asiento(b), roll: n * Math.PI / 2 })),
+          ...[-0.1, 0, 0.1].map(a => ({ model: () => EY.cupula(b), roll: a })),
+        ]),
+        cols: 7,
+        puntos: [[0, 0, 0]],
       },
       // carpa: frame unico, frente 3/4 con la entrada a la vista
       tent: {
