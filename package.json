@@ -38,6 +38,7 @@
     "agua": "electron tools/fixture_agua.js",
     "tierra": "electron tools/fixture_tierra.js",
     "chancha": "electron tools/fixture_chancha.js",
+    "geografia": "electron tools/fixture_geografia.js",
     "rasante": "electron tools/fixture_rasante.js",
     "misiones": "electron tools/fixture_misiones.js",
     "tramos": "electron tools/fixture_tramos.js",

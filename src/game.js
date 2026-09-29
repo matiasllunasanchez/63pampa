@@ -132,6 +132,7 @@ import * as squad from './systems/squad.js';
 // la lista al empezar la corrida y despacha su radio; el sembrador y LA COLA la leen.
 import * as tramos from './systems/tramos.js';
 import * as fases from './systems/fases.js';
+import * as geografia from './systems/geografia.js';   // PLAN_GEOGRAFIA: el terreno por tramos
 import * as rutaSys from './systems/ruta.js';
 import * as naftaSys from './systems/nafta.js';
 import * as estrellas from './systems/estrellas.js';
@@ -1550,6 +1551,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // tramos es el ALCANCE — las fases pasan de 1, porque la VUELTA ocurre despues del buque.
       // Una mision sin `fases` (o sea: todas las de hoy) entra como null y nadie lee nada.
       fases.setFases(objectiveDist > 0 && curMission() ? curMission().fases : null, objectiveDist);
+      geografia.cargar(objectiveDist > 0 && curMission() ? curMission().geografia : null, objectiveDist);
       // LA RUTA (PLAN_NAFTA_ALCANCE N1): los km REALES de la mision, anclados a sus fases. Va pegada
       // a las fases porque se ancla a ellas; sin `ruta` (todas las de hoy) queda apagada.
       rutaSys.setRuta(objectiveDist > 0 && curMission() ? curMission().ruta : null,

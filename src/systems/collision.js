@@ -10,6 +10,7 @@
 
 import { plane, cfg, stats } from '../core/state.js';
 import { run } from '../core/run.js';
+import { geoActiva, esTierraEn } from '../core/geografia.js';   // G1: agua o tierra, por punto
 // AVERIAS: los impactos por DISPARO (bomba, misil, trazadora) pueden no matar, segun el modelo
 // de vida elegido en OPCIONES. Chocar algo sigue matando siempre — ver core/damage.js.
 import * as dmg from './damage.js';
@@ -579,7 +580,7 @@ export function collisionSystem(dt) {
     {
       // el agua dibujada promedia ~1.1 de altura; la tierra, 0.3. Detonar contra el numero de cada
       // una es lo que evita que la bomba reviente un palmo abajo de la superficie que se ve.
-      const enTierra = cfg.terrain === 'land' || cfg.terrain === 'coast';
+      const enTierra = geoActiva() ? esTierraEn(pm.x, run.dist + pm.z) : (cfg.terrain === 'land' || cfg.terrain === 'coast');
       let detonate = pm.y <= (enTierra ? 0.3 : 1.0);
       if (!detonate) for (const sd of soldiers) { if (!sd.dead && Math.abs(sd.z - pm.z) < 6 && Math.abs(sd.x - pm.x) < 4) { detonate = true; break; } }
       // EL TANQUE VACIO CONTRA LA SUPERFICIE no revienta: salpica y se hunde. El lleno si — es nafta

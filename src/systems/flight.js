@@ -42,6 +42,9 @@ import { PORT_H } from '../data/runways.js';
 // EL SUELO TIENE ALTURA (T3): la misma funcion que levanta el pasto y las estructuras es la que
 // decide donde te matas. Si fueran dos, una loma se veria en un lado y mataria en el otro.
 import { tierraH, hayRelieve } from '../core/tierra.js';
+// LA GEOGRAFIA (G1): que hay BAJO EL AVION, tramo por tramo. Sin ella, esTierraEn y alturaSuelo
+// reproducen exactamente la formula de antes (lo cuida el unit test de la regla suprema).
+import { esTierraEn, alturaSuelo, geoActiva } from '../core/geografia.js';
 // LA CHANCHA: conectado a la canasta se vuela EN FORMACION, o sea que el mundo avanza menos.
 // Se toca el AVANCE y no `run.spd` a proposito: la velocidad del avion es fisica.
 import { avance as chAvance } from '../systems/chancha.js';
@@ -453,11 +456,11 @@ export function flightSystem(dt, deps) {
   const overRunway = cfg.start !== 'air' && run.dist + PZ < cfg.coast;
   let groundY, deathMsg;
   // en COSTA el suelo depende del LADO: tierra a la izquierda de SHORE_X, mar a la derecha
-  const onDirt = cfg.terrain === 'land' || (cfg.terrain === 'coast' && plane.x < shoreAt(run.dist + PZ));
+  const onDirt = esTierraEn(plane.x, run.dist + PZ);
   // 0.5 sigue siendo el margen de siempre sobre la superficie; lo que cambio es que la superficie
   // ya no es una constante. Se muestrea BAJO EL AVION (su x, su profundidad de juego) — no bajo la
   // camara: la loma tiene lados, y de eso se trata.
-  if (onDirt) { groundY = (hayRelieve(cfg) ? tierraH(plane.x, run.dist + PZ) : 0) + 0.5; deathMsg = 'death_land'; }
+  if (onDirt) { groundY = alturaSuelo(plane.x, run.dist + PZ) + 0.5; deathMsg = 'death_land'; }
   else if (overRunway) { groundY = (cfg.cliff ? PORT_H : 0) + 0.9; deathMsg = 'death_land'; }
   else { groundY = waveNow(); deathMsg = 'death_sea'; }
   // TOCAR LA SUPERFICIE: ya no es muerte instantanea. El avion ROZA y tambalea (perdes control:
@@ -553,7 +556,7 @@ export function flightSystem(dt, deps) {
     for (let i = 0; i < 3; i++) parts.push({
       x: sp.x + (Math.random() - 0.5) * 14, y: sp.y, vx: (Math.random() - 0.5) * 90,
       vy: -30 - Math.random() * 70, life: 0.35,
-      c: cfg.terrain === 'land' ? P.accent : P.crest, r: 1.4
+      c: (geoActiva() ? onDirt : cfg.terrain === 'land') ? P.accent : P.crest, r: 1.4
     });
     if (!sfxOne('waveFly')) beep(90 + Math.random() * 60, 0.05, 'sawtooth', 0.05);
     // (el aviso "! SUBI !" lo dibuja el HUD mientras run.scrapeVib este alto: es un estado

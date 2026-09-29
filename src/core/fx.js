@@ -6,6 +6,7 @@
 
 import { cam, cfg, plane, stats } from './state.js';
 import { run } from './run.js';
+import { geoActiva, esTierraEn } from './geografia.js';   // G1: agua o tierra, por punto
 import { parts, popups, obstacles } from './world.js';
 import { P } from '../data/palette.js';
 import { POLVO_ABRE, POLVO_BAJA, POLVO_BARRIDO } from '../data/tuning.js';
@@ -204,7 +205,7 @@ export function actaDe(o, imp, killer) {
     imp: { vx, vy, vz },
     mag: Math.hypot(vx, vy, vz),
     lado,
-    alt: enAire ? 'aire' : (cfg.terrain === 'sea' ? 'agua' : 'suelo'),
+    alt: enAire ? 'aire' : ((geoActiva() ? !esTierraEn(o.x, run.dist + o.z) : cfg.terrain === 'sea') ? 'agua' : 'suelo'),
     masa: recetaDe(o.type).masa || 'medio',
     dado: dadoDe(o),
   };
@@ -545,7 +546,7 @@ export function stepChunk(o, dt) {
     o.y = 0; o.vy = -o.vy * 0.32; o.vz *= 0.6; o.vx *= 0.6; o.vspin *= 0.5;
     // salpicon/polvo del rebote, proyectado donde toco
     const bs = proj(o.x, 0, o.z);
-    for (let i = 0; i < 3; i++) parts.push({ x: bs.x + (Math.random() - 0.5) * 4, y: bs.y, vx: (Math.random() - 0.5) * 26, vy: -20 - Math.random() * 26, life: 0.4, c: cfg.terrain === 'sea' ? P.foam : '#6b6f62', r: 1.2 });
+    for (let i = 0; i < 3; i++) parts.push({ x: bs.x + (Math.random() - 0.5) * 4, y: bs.y, vx: (Math.random() - 0.5) * 26, vy: -20 - Math.random() * 26, life: 0.4, c: (geoActiva() ? !esTierraEn(o.x, run.dist + o.z) : cfg.terrain === 'sea') ? P.foam : '#6b6f62', r: 1.2 });
   }
   // HUMO: los pedazos calientes van dejando un hilito que sube
   if (o.hot && Math.random() < 0.5) {

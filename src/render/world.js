@@ -20,6 +20,10 @@ import { seaH as seaBase, olaBump, climaDe, resaca } from '../core/sea.js';
 // EL RELIEVE (T3): hermano de core/sea.js. Lo que levanta el pasto y las estructuras aca es lo
 // mismo que decide el choque contra el suelo en systems/flight.js.
 import { tierraH, tierraPend, hayRelieve, pedreroAt, turbalAt } from '../core/tierra.js';
+// LA GEOGRAFIA (PLAN_GEOGRAFIA G1): el suelo por tramos. Sin geografia, cada pregunta de ahi
+// contesta lo que contestaba cfg.terrain — y aca, ademas, ni se hace: ver `geoOn` en drawSea.
+import { geoActiva, sueloEn, orillaS, ladoEn, playaCerca, playaClase, alturaSuelo, escalaRelieve,
+  esTierraEn, geo } from '../core/geografia.js';
 import { P, LAND, CLAND, SKY_ASTRO, RADAR_VERDE } from '../data/palette.js';
 import { CHUNK_LIFE, ONDA_T, ONDA_R, EYEC_ASIENTO_T } from '../data/despiece.js';
 import { drawParte, yawDe, colorDe } from './partes.js';
@@ -54,13 +58,13 @@ function groundCol(st, f) {
 }
 /** MOTEADO: manchas claras/oscuras ancladas al MUNDO (banda de 6 unidades en wz + posicion x por
  *  hash) → parches irregulares que scrollean con el terreno, no ruido que titila. */
-function groundMottle(y, wz, k, xEnd) {
+function groundMottle(y, wz, k, xEnd, cx = cam.x) {
   const band = Math.floor(wz / 6);
   for (let i = 0; i < 5; i++) {
     const h1 = hash2(band, i * 131);
     if (h1 < 0.45) continue;
     const wxP = (hash2(band, i * 131 + 7) * 2 - 1) * 330;
-    const sxP = W / 2 + (wxP - cam.x) * k + ZB, wP = (6 + h1 * 14) * k;
+    const sxP = W / 2 + (wxP - cx) * k + ZB, wP = (6 + h1 * 14) * k;
     if (sxP + wP < -70 || sxP > xEnd) continue;
     ctx.globalAlpha = 0.10 + h1 * 0.06;
     px(sxP, y, Math.min(wP, xEnd - sxP), 1, h1 > 0.72 ? '#0a0c08' : '#f4eede');
@@ -377,6 +381,12 @@ export function drawSea() {
   const relieveOn = hayRelieve(cfg);
   const mojado = MOJADO_A[cfg.rain | 0] || 0;   // T6: cuanto oscurece la lluvia el suelo
   const coastMode = cfg.terrain === 'coast';
+  // LA GEOGRAFIA (G1). Con ella el suelo deja de ser uno por cuadro y pasa a ser uno POR FILA:
+  // cada fila ya sabe a que distancia esta, asi que la tierra que viene se pinta en las filas de
+  // arriba mientras las de abajo siguen siendo mar — se la ve venir desde el horizonte. Sin ella,
+  // `suelo` vale cfg.terrain en todas las filas y el raster es el de siempre, rama por rama.
+  const geoOn = geoActiva();
+  let nMar = 0, nTierra = 0, nCosta = 0, nPlaya = 0;
   const dv = run.dist + momentum.drift();   // distancia VISUAL (drift del momentum incluido)
   // sin base de despegue (misiones de REGRESO) no hay tierra al principio del mapa
   const landVisible = cfg.start !== 'air' && dv < cfg.coast + 80;
@@ -439,7 +449,15 @@ export function drawSea() {
       flush(W + 70);
       continue;
     }
-    if (landMode) {                                                      // TIERRA: gradiente continuo
+    const suelo = geoOn ? sueloEn(wz) : cfg.terrain;
+    // LA PLAYA QUE CRUZA EL CARRIL (mar <-> tierra): esa fila se pinta por COLUMNAS, porque el
+    // filo esta despeinado y a la misma profundidad hay agua, espuma, arena y turba.
+    if (geoOn) {
+      const pl = playaCerca(wz);
+      if (pl) { playaRow(y, z, wz, fRow, pl); nPlaya++; continue; }
+    }
+    if (suelo === 'land') {                                              // TIERRA: gradiente continuo
+      nTierra++;
       const f = fRow;   // ya viene clampeado en 1 (ver fRow)
       const k = F / z;
       ZB = bendW(z) * k;
@@ -447,8 +465,10 @@ export function drawSea() {
       // VOLUMEN DE LA LOMA (T3). La cara que SUBE alejandose es la que nos da el frente: se
       // aclara; el lomo de atras se oscurece. Es lo unico que hace visible una loma ANTES de
       // estar encima — y una loma que no se ve venir no es terreno, es una trampa.
-      if (relieveOn) {
-        const sh = tierraPend(cam.x, wz) * TIERRA_LUZ * 34;
+      // con geografia la loma escala con el tramo (`lomas`) y arranca plana en la costura
+      const esc = geoOn ? escalaRelieve(wz) : (relieveOn ? 1 : 0);
+      if (esc > 0) {
+        const sh = tierraPend(cam.x, wz) * TIERRA_LUZ * 34 * esc;
         if (sh > 0.012 || sh < -0.012) {
           ctx.globalAlpha = Math.min(0.3, Math.abs(sh));
           px(-70, y, W + 140, rowH, sh > 0 ? '#f6f0dc' : '#0b0f09');
@@ -467,20 +487,29 @@ export function drawSea() {
       groundHaze(y, f, W + 140);
       continue;
     }
-    if (coastMode) {
+    if (suelo === 'coast') {
       // COSTA: cada fila se parte en la LINEA DE COSTA — que SERPENTEA (shoreAt(wz), senos en
       // coordenadas de mundo): tierra arenosa a la izquierda, playa ancha, rompiente, y mar.
+      nCosta++;
       const k = F / z;
       ZB = bendW(z) * k;
-      const shoreW = shoreAt(wz);
-      const sandSx = W / 2 + (shoreW - SAND_W - cam.x) * k + ZB;
-      const shoreSx = W / 2 + (shoreW - cam.x) * k + ZB;
+      // CON GEOGRAFIA la orilla ENTRA y SALE corriendose desde el costado (orillaS), y la tierra
+      // puede estar a la DERECHA: esa costa es la de la izquierda en ESPEJO. Se dibuja la de
+      // siempre con la camara reflejada y un reflejo del canvas encima — asi el moteado, el kelp,
+      // la resaca y la bruma salen gratis, sin una segunda version de cada uno.
+      const shoreW = geoOn ? orillaS(wz) : shoreAt(wz);
+      const espejo = geoOn && ladoEn(wz) < 0;
+      const camX = espejo ? -cam.x : cam.x;
+      if (espejo) { ctx.save(); ctx.translate(W, 0); ctx.scale(-1, 1); ZB = -ZB; }
+      try {
+      const sandSx = W / 2 + (shoreW - SAND_W - camX) * k + ZB;
+      const shoreSx = W / 2 + (shoreW - camX) * k + ZB;
       const f = fRow;   // ya viene clampeado en 1 (ver fRow)
       px(-70, y, Math.max(0, sandSx + 70), rowH, groundCol(CLAND_ST, f));
       if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) {
         ctx.globalAlpha = 0.4; px(-70, y, Math.max(0, sandSx + 70), 1, theme.cland.furrow); ctx.globalAlpha = 1;
       }
-      groundMottle(y, wz, k, sandSx);
+      groundMottle(y, wz, k, sandSx, camX);
       // playa: arena mojada cerca del agua, seca contra la tierra
       const sandW2 = Math.max(1, shoreSx - sandSx);
       px(sandSx, y, sandW2, 1, f < 0.4 ? '#7d7154' : '#8f8163');
@@ -497,18 +526,28 @@ export function drawSea() {
       px(swashSx, y, Math.max(0, W + 70 - swashSx), 1, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
       // KELP (T4.3): el alga del bajo. Malvinas es kelp puro, y ademas le da textura al agua
       // somera, que sin esto es una banda lisa de color.
-      kelpRow(y, wz, k, shoreW);
+      kelpRow(y, wz, k, shoreW, camX);
       // LA LENGUA: la espuma va en el BORDE del agua, que ahora se mueve. Mas brillante cuanto
       // mas alto llego (la lengua que mas sube es la que mas rompe).
       ctx.globalAlpha = 0.3 + 0.6 * (swash / RESACA_MAX);
       px(swashSx - 1, y, 2.5, 1, P.foam);
       ctx.globalAlpha = 1;
       groundHaze(y, f, W + 140);   // la bruma cruza tierra, playa y agua: unifica la escena
+      } finally { if (espejo) { ctx.restore(); ZB = -ZB; } }
       continue;
     }
+    nMar++;
     // base oscura del mar (degradado por profundidad) para que los puntos resalten
     const f = fRow;   // ya viene clampeado en 1 (ver fRow)
     px(-70, y, W + 140, rowH, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
+  }
+  geoFilas.mar = nMar; geoFilas.tierra = nTierra; geoFilas.costa = nCosta; geoFilas.playa = nPlaya;
+  if (geoOn) {
+    // CON GEOGRAFIA cada pasada recorre SU suelo banda por banda: las matas donde hay tierra, los
+    // puntos del oleaje donde hay agua. Se saltean enteras si en pantalla no hay nada de lo suyo.
+    if (nTierra || nCosta || nPlaya) drawLand(false, true);
+    if (nMar || nCosta || nPlaya) drawSeaDots(landVisible, false, true);
+    return;
   }
   if (landMode) drawLand();
   else if (coastMode) {
@@ -516,6 +555,31 @@ export function drawSea() {
     drawSeaDots(landVisible, true);    // oleaje solo del lado del agua (limite por fila)
     drawFleet();                       // la flota de desembarco en el horizonte
   } else drawSeaDots(landVisible);
+}
+
+/** Cuantas filas de cada suelo pinto el ultimo cuadro. La lee la sonda `__geofilas`: es la
+ *  prueba de que la tierra SE VE VENIR — con el avion sobre el mar, el cuadro ya tiene filas de
+ *  tierra arriba. */
+const geoFilas = { mar: 0, tierra: 0, costa: 0, playa: 0 };
+
+/** UNA FILA DE PLAYA que cruza el carril (G1). A esta profundidad el filo despeinado deja agua,
+ *  espuma, arena y turba segun la columna, asi que se recorre en pasos y se pintan TRAMOS — el
+ *  mismo metodo que la franja de orilla del puerto. La clase de cada columna sale de
+ *  `playaClase`, la misma que usa el vuelo para decidir si rozas agua o suelo. */
+function playaRow(y, z, wz, f, pl) {
+  const k = F / z;
+  ZB = bendW(z) * k;
+  px(-70, y, W + 140, rowH, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
+  const arena = f < 0.4 ? '#7d7154' : '#8f8163', turba = groundCol(LAND_ST, f);
+  const PASO = 3;
+  let clase = -1, x0 = -70;
+  for (let sx = -70; sx <= W + 70 + PASO; sx += PASO) {
+    const c = sx > W + 70 ? -1 : playaClase((sx - W / 2 - ZB) / k + cam.x, wz, pl);
+    if (c === clase) continue;
+    if (clase > 0) px(x0, y, sx - x0, rowH, clase === 1 ? P.foam : clase === 2 ? arena : turba);
+    clase = c; x0 = sx;
+  }
+  groundHaze(y, f, W + 140);
 }
 
 // FLOTA BRITANICA en el horizonte (decorado del mapa COSTA): siluetas fondeadas mar adentro,
@@ -621,13 +685,13 @@ function turbalRow(y, wz, k) {
 /** KELP (T4.3): manchas oscuras de alga en el bajo, mar adentro de la orilla. Deterministas por
  *  banda de mundo —como el moteado del suelo— asi el alga esta SIEMPRE en el mismo lugar del mar
  *  y no titila; el kelp de verdad tampoco se muda. */
-function kelpRow(y, wz, k, shoreW) {
+function kelpRow(y, wz, k, shoreW, cx = cam.x) {
   const band = Math.floor(wz / 5);
   for (let i = 0; i < 3; i++) {
     const h1 = hash2(band, i * 977 + 31);
     if (h1 < 0.55) continue;
     const off = 2 + hash2(band, i * 977 + 53) * KELP_W;
-    const sx = W / 2 + (shoreW + off - cam.x) * k + ZB, w = (3 + h1 * 7) * k;
+    const sx = W / 2 + (shoreW + off - cx) * k + ZB, w = (3 + h1 * 7) * k;
     if (sx + w < -70 || sx > W + 70) continue;
     ctx.globalAlpha = KELP_A * (0.6 + h1 * 0.4);
     px(sx, y, w, 1, '#0f1a14');
@@ -639,7 +703,7 @@ function kelpRow(y, wz, k, shoreW) {
 // no la perilla— o estaria probando que una constante vale lo que vale.
 let charcosN = 0, charcosUlt = 0;
 
-function drawLand(coastMode) {
+function drawLand(coastMode, geoOn) {
   // pasos DIVIDIDOS por U al subir la resolucion: sin esto se dibujaria la misma cantidad de
   // matas pero 1.5x mas grandes (misma imagen agrandada). Bajarlos es lo que convierte los
   // pixeles nuevos en densidad real.
@@ -655,6 +719,16 @@ function drawLand(coastMode) {
   const startZ = Math.max(cfg.coast + 2, Math.ceil((dv + 4) / SPZ) * SPZ);
   for (let wz = startZ; wz < dv + farZ; wz += SPZ) {
     const iz = Math.round(wz / SPZ);
+    // GEOGRAFIA (G1): el suelo de ESTA banda. Sin geografia, el de la mision entera, como siempre.
+    let secas = coastMode, relB = relieve, S = 0, sL = 1, playa = null;
+    if (geoOn) {
+      const suelo = sueloEn(wz);
+      playa = playaCerca(wz);
+      if (suelo === 'sea' && !playa) continue;
+      secas = suelo === 'coast';
+      relB = suelo === 'land' && escalaRelieve(wz) > 0;
+      if (secas) { S = orillaS(wz); sL = ladoEn(wz); }
+    }
     // ANCHO por profundidad: en coordenadas de mundo, cuánto hay que barrer para tapar TODO el
     // ancho de pantalla a esta fila (antes era fijo ±74 → dejaba huecos en los bordes lejanos).
     // +20px de margen; tope de 340 para no iterar de más en la banda del horizonte.
@@ -663,18 +737,26 @@ function drawLand(coastMode) {
     // doblan, pero la ventana de cuales se recorren tiene que acompañar o el campo se corta.
     const cxL = cam.x - bendW(wz - dv);
     // costa: el limite es LA ORILLA de esta fila (serpentea) menos el ancho de playa
-    const wxEnd = coastMode ? Math.min(cxL + halfW, shoreAt(wz) - SAND_W - 0.5) : cxL + halfW;
-    for (let wx = Math.ceil((cxL - halfW) / SPX) * SPX; wx < wxEnd; wx += SPX) {
+    // (G1: la tierra de la costa puede estar a la DERECHA — entonces lo que se recorta es el inicio)
+    let wxIni = cxL - halfW, wxEnd = cxL + halfW;
+    if (!geoOn) { if (coastMode) wxEnd = Math.min(wxEnd, shoreAt(wz) - SAND_W - 0.5); }
+    else if (secas) {
+      if (sL > 0) wxEnd = Math.min(wxEnd, S - SAND_W - 0.5);
+      else wxIni = Math.max(wxIni, -(S - SAND_W - 0.5));
+    }
+    for (let wx = Math.ceil(wxIni / SPX) * SPX; wx < wxEnd; wx += SPX) {
       const ix = Math.round(wx / SPX);
       const h1 = hash2(ix, iz);
       // EL PEDRERO (T5) se consulta ANTES de la densidad: adentro del rio de piedra el suelo esta
       // lleno, y el sorteo disperso del pasto lo dejaria ralo — un pedrero con claros no es un
       // pedrero, es pasto gris.
-      const ped = coastMode ? 0 : pedreroAt(wx, wz);
+      const ped = secas ? 0 : pedreroAt(wx, wz);
       if (h1 < 0.5 && ped < 0.3) continue;                               // densidad dispersa
       const h2 = hash2(ix + 1013, iz - 271), h3 = hash2(ix - 577, iz + 977);
       // JITTER: se corre la mata dentro de su celda → rompe la grilla (esto mata el look de patrón)
       const jx = wx + (h2 - 0.5) * SPX * 1.7, jz = wz + (h3 - 0.5) * SPZ * 1.7;
+      // en la banda de la PLAYA que cruza, pasto solo donde ya es turba (ni en la arena ni en el agua)
+      if (playa && playaClase(jx, jz, playa) < 3) continue;
       const camZ = jz - dv;
       if (camZ < 2) continue;
       const k = F / camZ;
@@ -682,14 +764,14 @@ function drawLand(coastMode) {
       if (fade <= 0.03) continue;
       // EL PASTO SE LEVANTA CON LA LOMA (T3). Es la mitad visible de la fase: el raster de color
       // no se mueve (ver divergencia 10 del plan), asi que lo que dibuja el terreno es esto.
-      const gyT = relieve ? tierraH(jx, jz) : 0;
+      const gyT = geoOn ? (relB ? alturaSuelo(jx, jz) : 0) : (relieve ? tierraH(jx, jz) : 0);
       const s = proj(jx, gyT, camZ);
       if (s.x < -4 || s.x > W + 4 || s.y < HOR) continue;
       ctx.globalAlpha = fade * 0.85;
       // CHARCO (T6): el agua se junta en los BAJOS, que es donde se junta de verdad. Por eso esta
       // fase depende de T3 — sin relieve no hay bajo, y los charcos quedarian salpicados al azar
       // por una loma que no existe, que es la clase de detalle que se nota que es falso.
-      if (mojado > 0 && relieve && gyT < TIERRA_AMP * CHARCO_H && h2 < CHARCO_P) {
+      if (mojado > 0 && relB && gyT < TIERRA_AMP * CHARCO_H && h2 < CHARCO_P) {
         charcosN++;
         const pw = Math.max(1, k * (1.1 + h3 * 1.4)), phh = Math.max(1, k * 0.3);
         ctx.globalAlpha = fade * (0.4 + mojado * 1.6);
@@ -717,7 +799,7 @@ function drawLand(coastMode) {
         px(rx, ry, w, Math.max(1, hh * 0.4), '#6b6552');                 // cara iluminada (arriba)
         px(rx, s.y - Math.max(1, hh * 0.28), w, Math.max(1, hh * 0.28), '#3a3529');   // sombra (base)
       } else {                                                          // matojo de pasto
-        const TF = coastMode ? TUFTS_DRY : TUFTS, TT = coastMode ? TUFT_TIP_DRY : TUFT_TIP;
+        const TF = secas ? TUFTS_DRY : TUFTS, TT = secas ? TUFT_TIP_DRY : TUFT_TIP;
         const ci = (h3 * TF.length) | 0;
         const w = Math.max(1, k * 0.55);
         // LA ONDA: fase determinista por posicion de MUNDO — el matojo no guarda estado, y dos
@@ -744,7 +826,7 @@ function drawLand(coastMode) {
   }
   ctx.globalAlpha = 1;
   charcosUlt = charcosN;   // T6: lo que se PINTO este cuadro, para que la sonda no mida una constante
-  drawAlambre(dv, relieve);
+  drawAlambre(dv, relieve, geoOn);
   if (climaP === 'storm') drawRachas(dv, coastMode);
 }
 
@@ -753,18 +835,20 @@ function drawLand(coastMode) {
  *  Son la unica cosa de TAMAÑO CONOCIDO del paisaje. Sin algo asi la turba no tiene escala —
  *  podria medir cualquier cosa— y ademas, al cruzarlos, marcan la velocidad, que es lo que un
  *  campo vacio se come. Van a la altura del terreno, como todo lo que se apoya (T3). */
-function drawAlambre(dv, relieve) {
+function drawAlambre(dv, relieve, geoOn) {
   const primera = Math.ceil((dv + 3) / ALAMBRE_CADA);
   for (let n = primera; n < (dv + 170) / ALAMBRE_CADA; n++) {
     const wz = n * ALAMBRE_CADA, camZ = wz - dv;
     if (camZ < 3) continue;
+    // G1: un alambrado cruza TIERRA, no el mar ni la playa. (Sin geografia se deja como estaba.)
+    if (geoOn && (sueloEn(wz) !== 'land' || playaCerca(wz))) continue;
     const k = F / camZ;
     const fade = Math.min(1, (camZ - 3) / 10) * (1 - Math.min(1, camZ / 170) * 0.75);
     if (fade <= 0.04) continue;
     ctx.globalAlpha = fade * 0.9;
     let prev = null;
     for (let wx = -72; wx <= 72; wx += ALAMBRE_POSTE) {
-      const gy = relieve ? tierraH(wx, wz) : 0;
+      const gy = geoOn ? alturaSuelo(wx, wz) : (relieve ? tierraH(wx, wz) : 0);
       const b = proj(wx, gy, camZ), t = proj(wx, gy + ALAMBRE_H, camZ);
       if (b.x < -30 || b.x > W + 30) { prev = null; continue; }
       px(b.x, t.y, Math.max(1, k * 0.12), Math.max(1, b.y - t.y), '#3b3529');   // el poste
@@ -841,7 +925,7 @@ function juntarOlas(dv) {
  *  ventana coincida con el mar dibujado es de JUSTICIA, ver el comentario de arriba. */
 export function olasDelCuadro() { return juntarOlas(); }
 
-function drawSeaDots(landVisible, coastMode) {
+function drawSeaDots(landVisible, coastMode, geoOn) {
   const SPX = 0.93, SPZ = 1.0, farZ = SEA_FAR_Z;  // densidad x4, y ademas /U al subir la resolucion
   const dv = run.dist + momentum.drift();
   const olas = juntarOlas(dv);
@@ -869,6 +953,16 @@ function drawSeaDots(landVisible, coastMode) {
     // esta profundidad puede haber columnas de agua y columnas de tierra: solo se descarta la fila
     // entera cuando esta toda del lado de tierra; el resto se decide adentro, por columna.
     if (landVisible && wz < cfg.coast - PORT_AMP) continue;
+    // GEOGRAFIA (G1): sin puntos sobre tierra; en la costa, solo del lado del agua (que puede ser
+    // la izquierda); en la playa que cruza, se decide por punto contra el filo despeinado.
+    let costa = coastMode, S = 0, sL = 1, playa = null;
+    if (geoOn) {
+      const suelo = sueloEn(wz);
+      playa = playaCerca(wz);
+      if (suelo === 'land' && !playa) continue;
+      costa = suelo === 'coast';
+      if (costa) { S = orillaS(wz); sL = ladoEn(wz); }
+    }
     const k = F / camZ;
     const fade = Math.min(1, (camZ - 3) / 9) * (1 - (camZ / farZ) * 0.8);
     if (fade <= 0.03) continue;
@@ -881,12 +975,15 @@ function drawSeaDots(landVisible, coastMode) {
     // cam.x el mar se terminaria antes de tiempo del lado de adentro de la curva y sobraria del
     // otro. Con el zigzag apagado, bendW es 0 y `cx` ES cam.x.
     const cx = cam.x - bendW(camZ);
-    const xL = coastMode ? Math.max(cx - half, shoreAt(wz) + 1) : cx - half, xR = cx + half;   // costa: solo lado agua
+    let xL = cx - half, xR = cx + half;                                   // costa: solo lado agua
+    if (!geoOn) { if (coastMode) xL = Math.max(xL, shoreAt(wz) + 1); }
+    else if (costa) { if (sL > 0) xL = Math.max(xL, S + 1); else xR = Math.min(xR, -S - 1); }
     const sx3 = Math.max(SPX, camZ * 0.011);                   // paso x adaptativo (~1px)
     const x0 = Math.ceil(xL / sx3) * sx3;
     const portRow2 = landVisible && wz < cfg.coast + PORT_AMP + PORT_FOAM;
     for (let wx = x0; wx < xR; wx += sx3) {
       if (portRow2 && wz < cfg.coast + portJut(wx) + PORT_FOAM) continue;
+      if (playa && playaClase(wx, wz, playa) >= 1) continue;
       // LA OLA NO ES UN SPRITE: los puntos del mar SE LEVANTAN solos donde pasa el bulto, con la
       // misma funcion contra la que resuelve la colision. Sin olas vivas esto es el mar de siempre.
       const hBase = seaBase(wx, wz, run.t, clima);
@@ -2263,6 +2360,22 @@ if (typeof window !== 'undefined') {
   window.__plantado = () => JSON.stringify(obstacles
     .filter(o => o.z > 0 && o.z < 400)
     .map(o => ({ t: o.type, gy: +(o.gy || 0).toFixed(2) })));
+}
+// SONDAS DE LA GEOGRAFIA (PLAN_GEOGRAFIA, QUITAR). `__geofilas` cuenta las filas de cada suelo que
+// pinto el ultimo cuadro — la prueba de que la tierra se ve venir. `__geo` es la foto de lo que hay
+// BAJO EL AVION, que vive aca porque es donde esta PZ.
+if (typeof window !== 'undefined') {
+  window.__geofilas = () => JSON.stringify(geoFilas);
+  window.__geo = () => JSON.stringify({
+    activa: geoActiva(), obj: geo.obj | 0, dist: run.dist | 0, frac: geo.obj ? +(run.dist / geo.obj).toFixed(3) : 0,
+    bajo: sueloEn(run.dist + PZ), tierraBajo: esTierraEn(plane.x, run.dist + PZ),
+    altura: +alturaSuelo(plane.x, run.dist + PZ).toFixed(2), sinSiembra: geo.sinSiembra,
+    // LO DEL MAR QUE QUEDO SOBRE TIERRA: tiene que ser siempre cero. Una ola o una fragata sobre
+    // la turba es la prueba de que alguien sembro sin preguntar por el suelo.
+    marSobreTierra: obstacles.filter(o => (o.type === 'ola' || o.type === 'mast' || o.type === 'lcu')
+      && o.z > 3 && esTierraEn(o.x, run.dist + o.z)).length,
+    tramos: geo.tramos ? geo.tramos.map(t => ({ d0: t.d0 | 0, d1: t.d1 | 0, suelo: t.suelo, s: t.s })) : null,
+  });
 }
 if (typeof window !== 'undefined') window.__pbarge = () => JSON.stringify(LAST_BOW && {
   bx: +LAST_BOW.bx.toFixed(1), bw: +LAST_BOW.bw.toFixed(2),

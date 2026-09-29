@@ -12,6 +12,7 @@ import { BL as BL_BLANCO } from '../data/blanco.js';
 import { ctx, px, PZ, U, W, H, HOR } from './ctx.js';
 import { plane, cfg, S } from '../core/state.js';
 import { run } from '../core/run.js';
+import { geoActiva, esTierraEn } from '../core/geografia.js';   // G1: agua o tierra, por punto
 import { inp } from '../core/input.js';
 import { proj } from '../core/fx.js';
 import { hzSprite, hzWorld } from '../core/horizon.js';
@@ -580,7 +581,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // pantalla; ahora es una lengua de agua bajo el fuselaje, dos brazos en V que se abren hacia
   // atras y gotas sueltas — que es como se lee el agua batida en pixel art.
   const churn = Math.max(0, 1 - plane.y / ROCIADA_ALT);
-  if (churn > 0 && S.state === 'play' && cfg.terrain !== 'land') {
+  // el rocio es de AGUA: con geografia, se pregunta que hay bajo el avion (G1)
+  if (churn > 0 && S.state === 'play' && (geoActiva() ? !esTierraEn(plane.x, run.dist + PZ) : cfg.terrain !== 'land')) {
     // el turbo engorda el chorro: entra por el `pulse`, que ya multiplica el ancho de los brazos
     // y de la lengua, asi que el gesto entero crece sin tocar la geometria de la V.
     const pulse = (0.8 + 0.2 * Math.sin(run.t * 22)) * (run.boost ? ROCIADA_TURBO : 1);

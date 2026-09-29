@@ -11,6 +11,7 @@
 
 import { plane, cfg, S } from '../core/state.js';
 import { run } from '../core/run.js';
+import { geoActiva, esTierraEn } from '../core/geografia.js';   // G1: agua o tierra, por punto
 import { parts } from '../core/world.js';
 import { proj, popup } from '../core/fx.js';
 import { sfxOne, beep } from './audio.js';
@@ -243,7 +244,7 @@ export function movesSystem(dt, inp, act) {
     case 'mask': {
       // clavado al terreno: baja rapido a la banda rasante y se QUEDA ahi. Congela el reloj
       // del roce (es la maniobra "pro" de volar pegado) y DESCARGA el radar enemigo.
-      const tgt = cfg.terrain === 'sea' ? 2.4 : 1.7;
+      const tgt = (geoActiva() ? !esTierraEn(plane.x, run.dist + PZ) : cfg.terrain === 'sea') ? 2.4 : 1.7;
       B.vy = (tgt - B.y) * 6;
       B.vx = sx * 1.6;                                       // lateral CASI pleno: esquivas a ras
       B.bank = B.vx / 40; B.pitch = B.y > tgt + 2 ? -0.6 : 0;

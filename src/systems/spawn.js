@@ -59,6 +59,11 @@ import { SPAWN_X, SPAWN_DENS, SPAWN_Z, SHORE_X, shoreAt, SAND_W, AA_CD, MANPAD_P
 // EL RELIEVE (T3): donde queda plantado cada cosa que se siembra. La misma funcion que dibuja
 // la loma y que decide el choque contra el suelo.
 import { tierraH, hayRelieve } from '../core/tierra.js';
+import { geoActiva, sueloEn, alturaSuelo, geo } from '../core/geografia.js';
+// EL TERRENO DE LA SIEMBRA. Sin geografia, el de la mision. Con geografia, siempre MAR: sobre tierra
+// no se siembra nada (decision del autor, 29/9: "por ahora unidades no pongamos nada, concentremonos
+// en terreno"), asi que lo unico que nace es lo del mar, y nace donde hay mar.
+const terrSiembra = () => (geoActiva() ? 'sea' : cfg.terrain);
 
 /** Vida inicial de un enemigo. `hpMax` queda fijo para que la barra pueda dibujar la fraccion
  *  (hp/hpMax); sin el, un enemigo tocado no se distingue de uno que nace con menos vida. */
@@ -111,12 +116,11 @@ function mov(type, x) {
 /** Grupo de soldados corriendo. En COSTA son britanicos desembarcando: TODOS corren de derecha
  *  (la playa) a izquierda (tierra adentro), y un poco mas rapido. */
 function squad(x, z, n, coast) {
-  const rel = hayRelieve(cfg);
   for (let i = 0; i < n; i++) soldiers.push({
     x: x + (Math.random() * 10 - 5), z: z + Math.random() * 22, ph: Math.random() * 6,
     // el suelo donde CORREN (T3). Se fija al nacer: corren en x unos metros durante su vida y la
     // loma cambia centimetros en esa distancia — recalcularlo por cuadro seria pagar por nada.
-    gy: rel ? tierraH(x, run.dist + z) : 0,
+    gy: alturaSuelo(x, run.dist + z),
     // SIEMPRE hacia la IZQUIERDA: huyen del avion, que viene de frente. Con direccion al azar
     // algunos corrian hacia la camara y se leia como si cargaran contra el avion.
     dir: -1, v: coast ? 9 : 6,
@@ -273,6 +277,11 @@ function cliff(x) {
 /** Un obstaculo nuevo en el horizonte. El sorteo mezcla amenazas y bidones; sin combustible
  *  activo, los bidones se fuerzan menos (serian pickups inutiles) y su slot cae en globo. */
 function spawn() {
+  // LA GEOGRAFIA (G1): sobre tierra NO NACE NADA — ni olas (no hay agua), ni fragatas, ni por
+  // ahora unidades de tierra (decision del autor). Se pregunta por el suelo DONDE NACE, no donde
+  // esta el avion: lo que nace a SPAWN_Z es lo que va a estar ahi cuando llegues. Volver sin
+  // sembrar deja el sorteo vacio, y `favor`/`solo` ya saben que hacer con un sorteo vacio.
+  if (geoActiva() && sueloEn(run.dist + SPAWN_Z) !== 'sea') { geo.sinSiembra++; return; }
   // EL CARRIL RESERVADO DEL LIDER (PLAN_HARRIERS_PERSECUCION §4, N0). En PERSECUCION el sembrador
   // CONOCE la linea del lider y no siembra encima: es la mitad de la garantia de que el lider nunca
   // choca (la otra mitad es que esquiva, en systems/persec.js). Sin persecucion corriendo,
@@ -318,8 +327,9 @@ function spawn() {
   if (bidones && run.fuelDist > 700) { obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false }); run.fuelDist = 0; return; }
   const r = Math.random();
   const ph = Math.random() * 6;
+  const terr = terrSiembra();
 
-  if (cfg.terrain === 'coast') {
+  if (terr === 'coast') {
     // LA COSTA ROMPE (T4.2). La ROMPIENTE —la ola parcial, la que se esquiva de costado— tambien
     // nace aca, y donde el mar de verdad rompe: pegada a la orilla, unos metros mar adentro. Es
     // la ola que la costa pedia y la unica que tiene sentido con la playa al lado: una marejada
@@ -364,7 +374,7 @@ function spawn() {
     return;
   }
 
-  if (cfg.terrain === 'land') {
+  if (terr === 'land') {
     // TIERRA: infraestructura britanica ocupando la isla. La mezcla vive aca (y la de COSTA en su
     // propio bloque) para que sea facil configurar QUE aparece en cada terreno.
     // el relieve de la isla: roca aleatoria, indestructible, de altura y ancho variables
@@ -439,11 +449,11 @@ const EN_EL_AIRE = ['helo', 'jet', 'balloon', 'birds', 'fuel', 'bomb', 'boom', '
  *  la misma toda su vida. Y en un solo lugar —aca— en vez de en los veinte `obstacles.push` del
  *  sorteo, que es donde se olvidaria alguno. */
 function plantar(desde) {
-  if (!hayRelieve(cfg)) return;
+  if (!geoActiva() && !hayRelieve(cfg)) return;
   for (let i = desde; i < obstacles.length; i++) {
     const o = obstacles[i];
     if (EN_EL_AIRE.indexOf(o.type) >= 0) continue;
-    o.gy = tierraH(o.x, run.dist + o.z);
+    o.gy = alturaSuelo(o.x, run.dist + o.z);
   }
 }
 
@@ -543,7 +553,7 @@ export function spawnSystem(dt, objectiveDist) {
       const t = obstacles[i].type;
       censo.n++; censo.tipos[t] = (censo.tipos[t] || 0) + 1;
     }
-    const dens = cfg.terrain === 'coast' ? 0.65 : 1;
+    const dens = terrSiembra() === 'coast' ? 0.65 : 1;
     run.nextSpawn = Math.max(34, (52 + Math.random() * 42) - run.t * 0.8) * dens * SPAWN_DENS / obst;
   }
 
@@ -565,8 +575,8 @@ export function spawnSystem(dt, objectiveDist) {
   }
 
   // spawn de soldados (terrenos con tierra) — en grupos que corren
-  if (cfg.terrain === 'land' || cfg.terrain === 'coast') {
-    const coast = cfg.terrain === 'coast';
+  if (terrSiembra() === 'land' || terrSiembra() === 'coast') {
+    const coast = terrSiembra() === 'coast';
     run.nextSoldier -= run.spd * dt;
     if (run.nextSoldier <= 0) {
       // en COSTA nacen cerca de la playa y corren hacia la izquierda (tierra adentro)

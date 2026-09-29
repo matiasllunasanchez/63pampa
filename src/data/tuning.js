@@ -860,6 +860,16 @@ export const TIERRA_LZ2 = 17;       // ondulado corto (~107 m)
 export const TIERRA_LX = 29;        // termino en X: la loma no es un tubo, cruzarla tiene lados
 export const TIERRA_LUZ = 0.16;     // cuanto ilumina/oscurece la pendiente al raster (0 = plano visual)
 
+// ---------- LA GEOGRAFIA DEL PASILLO (PLAN_GEOGRAFIA) ----------
+// Una misma mision con etapas de terreno: mar, costa, tierra. Las perillas son de LAS COSTURAS,
+// porque es lo unico nuevo: cada suelo ya tiene las suyas (agua, T1-T6). La regla que las ordena
+// es la que costo el arreglo de la niebla: NADA APARECE DE GOLPE.
+export const GEO_COSTURA = 160;       // m en los que la loma de un tramo de tierra arranca plana
+export const GEO_PLAYA = 14;          // m de arena de la playa que CRUZA el carril (mar <-> tierra)
+export const GEO_PLAYA_ONDA = 7;      // m que se despeina esa playa: una recta de lado a lado es una regla, no una costa
+export const GEO_ORILLA_ENTRA = 220;  // m que tarda la orilla de una costa en correrse a su lugar
+export const GEO_ORILLA_LEJOS = 420;  // de donde viene (m del eje): fuera de pantalla aun de cerca
+
 // ---------- LA COSTA ROMPE (PLAN_TIERRA_COSTA T4) ----------
 // LA RESACA. La franja de espuma era una banda de ancho fijo pegada a la orilla: siempre igual,
 // siempre en el mismo lado, y el mar de la costa quedaba muerto justo donde mas vivo esta.

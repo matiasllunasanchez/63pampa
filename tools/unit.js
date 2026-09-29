@@ -3037,3 +3037,135 @@ test('derrotas: la bomba errada se explica por su veredicto, y toda clave existe
   for (const v of ['dormida', 'corta', 'larga', 'costado', 'averiado', 'nada']) claves.add('que_bomba_' + v);
   for (const k of claves) for (const l of ['es', 'en']) assert.ok(STRINGS[l][k], `falta ${k} en ${l}`);
 });
+
+// ---------------------------------------------------------------------------------------------
+// LA GEOGRAFIA DEL PASILLO (docs/sistemas/PLAN_GEOGRAFIA.md, G0)
+// ---------------------------------------------------------------------------------------------
+import { validarGeografia, setGeografia, geo, sueloEn, esTierraEn, alturaSuelo, escalaRelieve,
+  orillaS, ladoEn, playaCerca, playaClase, CLAVES as GEO_CLAVES } from '../src/core/geografia.js';
+import { GEOGRAFIAS } from '../src/data/geografias.js';
+import { cfg as cfgGeo } from '../src/core/state.js';
+import { shoreAt as shoreAtGeo, GEO_PLAYA as GEO_PLAYA_U } from '../src/data/tuning.js';
+import { tierraH as tierraHGeo, hayRelieve as hayRelieveGeo } from '../src/core/tierra.js';
+
+test('geografia · LA REGLA SUPREMA: sin dato, todo contesta lo mismo que cfg.terrain', () => {
+  // Es la unica prueba que de verdad protege al juego de hoy: cada lector que paso de preguntar
+  // `cfg.terrain` a preguntar aca tiene que recibir EXACTAMENTE lo que recibia. Se recorre el
+  // camino en los tres mapas, en el eje y a los costados (la costa depende de la x).
+  const terr0 = cfgGeo.terrain;
+  setGeografia(null, 3000);
+  try {
+    for (const t of ['sea', 'coast', 'land']) {
+      cfgGeo.terrain = t;
+      for (let i = 0; i < 200; i++) {
+        const wz = i * 37.3, x = ((i * 7) % 60) - 30;
+        assert.equal(sueloEn(wz), t, `${t} a ${wz} m`);
+        assert.equal(esTierraEn(x, wz), t === 'land' || (t === 'coast' && x < shoreAtGeo(wz)), `${t} tierra en ${x},${wz}`);
+        assert.equal(alturaSuelo(x, wz), hayRelieveGeo(cfgGeo) ? tierraHGeo(x, wz) : 0, `${t} altura en ${x},${wz}`);
+        assert.equal(orillaS(wz), shoreAtGeo(wz));
+        assert.equal(ladoEn(wz), 1);
+        assert.equal(playaCerca(wz), null);
+      }
+    }
+  } finally { cfgGeo.terrain = terr0; }
+});
+
+test('geografia · el validador acepta lo que funciona y rechaza lo que no existe todavia', () => {
+  assert.deepEqual(validarGeografia(undefined), [], 'una mision sin geografia es valida');
+  for (const [n, g] of Object.entries(GEOGRAFIAS)) assert.deepEqual(validarGeografia(g), [], `la geografia '${n}'`);
+  assert.equal(validarGeografia([{ hasta: 1, suelo: 'mar' }, { hasta: 2.5, suelo: 'mar' }]).length, 1, 'hasta > 2');
+  assert.equal(validarGeografia([{ hasta: 0.5, suelo: 'mar' }, { hasta: 0.4, suelo: 'mar' }]).length, 1, 'no creciente');
+  assert.equal(validarGeografia([{ hasta: 1, suelo: 'lava' }]).length, 1, 'suelo que no existe');
+  // LAS CLAVES DEL PLAN QUE TODAVIA NO HACEN NADA se rechazan: una clave aceptada que no hace nada
+  // es la peor forma de fallar. Cuando su fase exista, esta linea cambia.
+  for (const k of ['paredes', 'niebla', 'barrera', 'alto']) {
+    assert.equal(GEO_CLAVES.indexOf(k), -1, `'${k}' todavia no existe`);
+    assert.ok(validarGeografia([{ hasta: 1, suelo: 'mar', [k]: 1 }]).length > 0, `rechaza '${k}'`);
+  }
+  assert.ok(validarGeografia([{ hasta: 1, suelo: 'isla' }]).length > 0, 'la isla llega en G4');
+  assert.ok(validarGeografia([{ hasta: 1, suelo: 'mar', lado: 'der' }]).length > 0, 'lado fuera de una costa');
+  assert.ok(validarGeografia([{ hasta: 0.5, suelo: 'costa', lado: 'izq' }, { hasta: 1, suelo: 'costa', lado: 'der' }]).length > 0,
+    'dos costas pegadas de distinto lado');
+});
+
+test('geografia · las misiones que la declaran estan sanas', async () => {
+  const { MISIONES_PRUEBA: MP } = await import('../src/data/pruebas_misiones.js');
+  for (const m of [...MISSIONS, ...Object.values(MP || {})]) {
+    if (!m || m.geografia === undefined) continue;
+    assert.deepEqual(validarGeografia(m.geografia), [], `${m.id}`);
+  }
+});
+
+test('geografia · el suelo cambia donde dice la data, tambien en la vuelta', () => {
+  const terr0 = cfgGeo.terrain;
+  cfgGeo.terrain = 'sea';
+  setGeografia(GEOGRAFIAS.demo, 1000);
+  try {
+    // el centro de cada tramo tiene su suelo (los bordes son costuras y se prueban aparte)
+    const esperado = [[0.10, 'sea'], [0.25, 'coast'], [0.33, 'sea'], [0.41, 'land'], [0.50, 'sea'],
+      [0.60, 'coast'], [1.00, 'sea'], [1.18, 'land'], [1.60, 'sea']];
+    for (const [f, s] of esperado) assert.equal(sueloEn(f * 1000), s, `a ${f}`);
+    // LA COSTA DE LA DERECHA es la de la izquierda en espejo: tierra del lado positivo
+    assert.equal(ladoEn(600), -1);
+    assert.equal(esTierraEn(60, 600), true, 'costa der: tierra a la derecha');
+    assert.equal(esTierraEn(-60, 600), false, 'costa der: agua a la izquierda');
+    assert.equal(esTierraEn(-60, 250), true, 'costa izq: tierra a la izquierda');
+    // PASADO EL ULTIMO TRAMO manda el cfg plano (deliberado, como en las fases)
+    assert.equal(sueloEn(2500), 'sea');
+    // sin tierra no hay relieve, y el mar no tiene loma
+    assert.equal(alturaSuelo(0, 500), 0);
+  } finally { setGeografia(null, 0); cfgGeo.terrain = terr0; }
+});
+
+test('geografia · nada aparece de golpe: las costuras', () => {
+  const terr0 = cfgGeo.terrain;
+  cfgGeo.terrain = 'sea';
+  setGeografia(GEOGRAFIAS.demo, 1000);
+  try {
+    // LA PLAYA QUE CRUZA (mar → tierra en 0.36): alrededor del borde hay arena, espuma y agua segun
+    // la columna — el filo esta despeinado, no es una recta. (mar → costa, en 0.54, NO lleva playa
+    // cruzada: la costa entra por el costado.)
+    const pl = playaCerca(360 + 2);
+    assert.ok(pl, 'hay playa cerca del borde mar→tierra de 0.36');
+    assert.equal(playaCerca(540 + 2), null, 'mar → costa no lleva playa cruzada');
+    const clases = new Set();
+    for (let x = -40; x <= 40; x += 2) clases.add(playaClase(x, 360 + 2, pl));
+    assert.ok(clases.size >= 2, `el filo de la playa varia con la x (${[...clases]})`);
+    // LA ORILLA ENTRA desde el costado: al principio de la costa (viniendo del mar) esta lejos, del
+    // lado de la tierra — o sea todo agua —, y a mitad del tramo esta en su lugar.
+    assert.ok(orillaS(201) < -300, `la orilla arranca afuera (${orillaS(201)})`);
+    assert.ok(Math.abs(orillaS(250) - shoreAtGeo(250)) < 1, 'a mitad de la costa la orilla esta en su lugar');
+    // y al salir al mar (0.30) la orilla vuelve a irse del lado de la tierra: todo agua de nuevo
+    assert.ok(orillaS(299) < -300, `la costa sale al mar (${orillaS(299)})`);
+    // LA LOMA ARRANCA PLANA en la playa y crece tierra adentro
+    assert.equal(escalaRelieve(360 + GEO_PLAYA_U * 0.5), 0, 'en la playa no hay loma');
+    assert.ok(escalaRelieve(410) > 0.9, 'a mitad del tramo la loma esta entera');
+  } finally { setGeografia(null, 0); cfgGeo.terrain = terr0; }
+});
+
+test('geografia · sobrevive a ?qa (la mision comprimida al 6%)', () => {
+  // Una costura de 220 m en un tramo de 6 m haria que la rampa no llegara nunca a 1: la costa no
+  // existiria. El tope contra el largo del tramo es lo que la comprime junto con la mision.
+  const terr0 = cfgGeo.terrain;
+  cfgGeo.terrain = 'sea';
+  setGeografia(GEOGRAFIAS.demo, 1000 * 0.06);
+  try {
+    const mitadCosta = 0.25 * 60;
+    assert.equal(sueloEn(mitadCosta), 'coast');
+    assert.ok(Math.abs(orillaS(mitadCosta) - shoreAtGeo(mitadCosta)) < 1, 'comprimida, la orilla igual llega a su lugar');
+  } finally { setGeografia(null, 0); cfgGeo.terrain = terr0; }
+});
+
+test('geografia · una costa que se cierra en tierra (y una tierra que se abre en costa)', () => {
+  const terr0 = cfgGeo.terrain;
+  cfgGeo.terrain = 'sea';
+  setGeografia([{ hasta: 0.3, suelo: 'costa' }, { hasta: 0.6, suelo: 'tierra' }, { hasta: 1, suelo: 'costa', lado: 'der' }], 1000);
+  try {
+    // viniendo de tierra la orilla se va del lado del AGUA (todo tierra) y viniendo de tierra se abre
+    assert.ok(orillaS(299) > 300, `la costa se cierra en tierra (${orillaS(299)})`);
+    assert.ok(orillaS(601) > 300, `la costa de la derecha arranca toda tierra (${orillaS(601)})`);
+    assert.equal(esTierraEn(0, 601), true, 'al salir de la tierra, el carril sigue siendo tierra');
+    // costa <-> tierra no lleva playa cruzada: la costura es la orilla que se corre
+    assert.equal(playaCerca(300 + 2), null);
+  } finally { setGeografia(null, 0); cfgGeo.terrain = terr0; }
+});
