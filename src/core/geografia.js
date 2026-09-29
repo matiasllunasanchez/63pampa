@@ -27,10 +27,16 @@ import { shoreAt, TIERRA_AMP, GEO_COSTURA, GEO_PLAYA, GEO_PLAYA_ONDA, GEO_ORILLA
 export const SUELOS = { mar: 'sea', costa: 'coast', tierra: 'land' };
 export const LADOS = ['izq', 'der'];
 
-/** LAS CLAVES QUE HOY HACEN ALGO. Las del plan que todavia no existen (`paredes`, `barrera`, la
- *  `isla`) NO estan, y a proposito: una clave aceptada que no hace nada es la peor forma de fallar
- *  — el mapa se escribe, se valida, y no pasa nada. Cada fase agrega las suyas (G2: `niebla`). */
-export const CLAVES = ['hasta', 'suelo', 'lado', 'lomas', 'niebla'];
+/** LAS CLAVES QUE HOY HACEN ALGO. Las del plan que todavia no existen (la `isla` y las suyas) NO
+ *  estan, y a proposito: una clave aceptada que no hace nada es la peor forma de fallar — el mapa
+ *  se escribe, se valida, y no pasa nada. Cada fase agrega las suyas (G2: `niebla`; G3: `paredes`
+ *  y `barrera`). */
+export const CLAVES = ['hasta', 'suelo', 'lado', 'lomas', 'niebla', 'paredes', 'barrera'];
+/** De que lado hay ACANTILADO (G3). Es otra pregunta que el `lado` de una costa — la costa dice
+ *  donde queda la tierra baja; las paredes, donde hay roca que mata. */
+export const PAREDES = ['izq', 'der', 'ambos'];
+/** Las barreras que un tramo puede PONER (G3): las cuatro pieles del zigzag (Z8). */
+export const BARRERAS = ['roca', 'puente', 'madera', 'cables'];
 
 /** Revisa una lista y devuelve los ERRORES en texto (vacia = sana). `undefined` es valido: una
  *  mision sin geografia es casi todas las misiones. */
@@ -61,6 +67,15 @@ export function validarGeografia(lista) {
     // 1 = VISIBLE, 2 = CASI NULA. Vale sobre cualquier suelo — la bruma no pregunta que hay abajo.
     if (t.niebla !== undefined && t.niebla !== 1 && t.niebla !== 2)
       e.push(`tramo ${i}: 'niebla' es 1 (se ve algo) o 2 (casi nada) y es ${JSON.stringify(t.niebla)}`);
+    // PAREDES Y BARRERA (G3): acantilados a los costados del tramo, y una barrera de lado a lado al
+    // principio. Valen sobre cualquier suelo. La barrera exige los dos lados: con un costado
+    // abierto cerraria un pasillo que no existe (la misma regla que el zigzag, ver `barreraDe`).
+    if (t.paredes !== undefined && PAREDES.indexOf(t.paredes) < 0)
+      e.push(`tramo ${i}: 'paredes' tiene que ser ${PAREDES.join(' | ')} y es ${JSON.stringify(t.paredes)}`);
+    if (t.barrera !== undefined && BARRERAS.indexOf(t.barrera) < 0)
+      e.push(`tramo ${i}: 'barrera' tiene que ser ${BARRERAS.join(' | ')} y es ${JSON.stringify(t.barrera)}`);
+    if (t.barrera !== undefined && t.paredes !== 'ambos')
+      e.push(`tramo ${i}: una 'barrera' necesita paredes: 'ambos' en el mismo tramo — con un lado abierto se la rodea`);
     // DOS COSTAS SEGUIDAS DE DISTINTO LADO: la orilla tendria que cruzar el carril en diagonal
     // para pasar de un lado al otro, que no es una costura sino un mapa ilegible. Con un tramo de
     // mar o de tierra en el medio, cada costa entra y sale por su costado como corresponde.
@@ -77,7 +92,7 @@ export function validarGeografia(lista) {
 /** La geografia de la corrida en curso. `tramos` es la lista ARMADA (en metros, con vecinos),
  *  que es lo que leen todos; `lista` es la data tal como vino. `sinSiembra` cuenta los sorteos
  *  que no se hicieron por caer sobre tierra (lo lee el fixture). */
-export const geo = { lista: null, obj: 0, tramos: null, nieblas: null, sinSiembra: 0 };
+export const geo = { lista: null, obj: 0, tramos: null, nieblas: null, zigzag: null, sinSiembra: 0 };
 
 /** Carga la geografia de la corrida. La llama systems/geografia.js (`cargar`), que es quien sabe
  *  si hay una sonda pisando la data; el orquestador llama a ESE, al lado de `setFases`, porque es
@@ -87,6 +102,7 @@ export function setGeografia(lista, obj) {
   geo.lista = Array.isArray(lista) && lista.length ? lista : null;
   geo.tramos = geo.lista && geo.obj > 0 ? armar(geo.lista, geo.obj) : null;
   geo.nieblas = geo.tramos ? juntarNieblas(geo.tramos) : null;
+  geo.zigzag = geo.tramos ? zigzagDe(geo.lista) : null;
   geo.sinSiembra = 0;
   cur = 0;
   return geo.tramos;
@@ -136,6 +152,30 @@ export function bancoNiebla(d, margen) {
   if (!b) return null;
   for (const n of b) if (d < n.z1 + (margen || 0)) return n;
   return null;
+}
+
+/** LOS ACANTILADOS Y LAS BARRERAS de la geografia (G3), escritos como un `zigzag:` — un tramo con
+ *  `paredes:` es una VENTANA del callejon. No hay un sistema de paredes nuevo: es el del zigzag,
+ *  que ya dibuja, choca, siembra alrededor y recorta, medido en dieciocho playtests. Lo que la
+ *  geografia le agrega es decir DONDE, por tramo.
+ *
+ *  `amp: 0` (el carril no dobla: el pasillo sigue siendo pasillo), `barreras: 'no'` (sin sorteo:
+ *  las barreras las pone la data) y `puestos: false` (sin antiaereos en las lomas — decision 3 del
+ *  autor, 29/9: terreno primero, unidades despues). Null si ningun tramo declara paredes. */
+export function zigzagDe(lista) {
+  if (!Array.isArray(lista)) return null;
+  const ventanas = [];
+  let d0 = 0;
+  for (const t of lista) {
+    if (t.paredes) {
+      const v = { desde: d0, hasta: t.hasta, lado: t.paredes };
+      if (t.barrera) v.barrera = t.barrera;
+      ventanas.push(v);
+    }
+    d0 = t.hasta;
+  }
+  if (!ventanas.length) return null;
+  return { amp: 0, paredes: { mata: true, barreras: 'no', puestos: false }, ventanas };
 }
 
 // El ultimo tramo encontrado. Las preguntas llegan casi siempre en orden (las filas del raster van

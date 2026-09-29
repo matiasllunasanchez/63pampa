@@ -11,6 +11,9 @@
 //   · G1: la tierra SE VE VENIR (con el avion sobre el mar, el cuadro ya tiene filas de tierra),
 //         el vuelo LEE el suelo del tramo (sobre tierra se roza tierra y la loma cuenta), sobre
 //         tierra NO NACE NADA, y la costa puede estar de cualquiera de los dos lados.
+//   · G2: el banco de niebla PUESTO existe en su tramo, entra y sale con fundido.
+//   · G3: los acantilados POR TRAMO — contra la pared de un lado se muere y por el otro se pasa, y
+//         la barrera PUESTA se pasa por donde deja (un puente por abajo) y mata por donde no.
 //
 // El avion se sostiene con sondas (`__seaput`) y se lo mueve por el camino con `__wjump`: lo que se
 // mide es el terreno, no el pilotaje.
@@ -61,7 +64,7 @@ async function en(p, y, x, ms) {
 }
 
 app.whenReady().then(async () => {
-  console.log('\nFIXTURE — LA GEOGRAFIA DEL PASILLO (G0-G2)\n');
+  console.log('\nFIXTURE — LA GEOGRAFIA DEL PASILLO (G0-G3)\n');
   win = new BrowserWindow({ width: 1280, height: 760, show: false, webPreferences: { backgroundThrottling: false } });
   win.webContents.on('console-message', (e, l, m) => { if (l >= 3 && !m.includes('Security Warning')) errors.push(m.slice(0, 300)); });
   win.webContents.on('render-process-gone', (e, d) => errors.push('EL RENDERER MURIO: ' + JSON.stringify(d)));
@@ -85,7 +88,7 @@ app.whenReady().then(async () => {
   console.log('\nG1. el suelo por tramos (?geo=demo):');
   if (!await volar('&geo=demo')) { console.error('   ✗ no se pudo entrar a volar t17 con la demo'); app.exit(1); return; }
   const g1 = await G();
-  if (g1.activa && g1.tramos && g1.tramos.length === 11) ok(`la demo esta cargada: ${g1.tramos.length} tramos sobre ${g1.obj} m de ida`);
+  if (g1.activa && g1.tramos && g1.tramos.length === 17) ok(`la demo esta cargada: ${g1.tramos.length} tramos sobre ${g1.obj} m de ida`);
   else { bad(`la demo no se cargo (${JSON.stringify(g1).slice(0, 120)})`); app.exit(1); return; }
   const OBJ = g1.obj;
   let peorMar = 0;
@@ -187,6 +190,74 @@ app.whenReady().then(async () => {
     await shot('geo_5_playa_sale');
     await en(0.36 - 170 / OBJ, 9, 0, 120);
     await shot('geo_6_playa_entra');
+  }
+
+  // ---------- G3. ACANTILADOS Y BARRERAS POR TRAMO (0.70 → 0.90, y 1.10 → 1.44) ----------
+  // Va AL FINAL porque termina en una muerte a proposito (contra la roca), y despues de morir la
+  // corrida ya no es la misma.
+  console.log('\nG3. acantilados y barreras por tramo:');
+  const PZ = 14;
+  const W = f => f * OBJ;
+  const zzAlto = async (wz, lado) => +(await js(`__zzalto(${wz}, ${lado})`));
+  await en(0.73, 9, 0, 200);
+  const zd = await J('__zzdbg()');
+  if (zd.on && zd.fuente === 'geografia' && zd.ventanas && zd.ventanas.length === 5)
+    ok(`el zigzag lo pone la geografia: ${zd.ventanas.length} ventanas (${zd.ventanas.map(v => v.lado).join(', ')}), carril recto (curv ${zd.curv})`);
+  else bad(`el zigzag no tomo la geografia (${JSON.stringify(zd).slice(0, 160)})`);
+  const lados = async f => [await zzAlto(W(f), -1) > 0, await zzAlto(W(f), 1) > 0];
+  const [i1, d1] = await lados(0.73), [i2, d2] = await lados(0.80), [i3, d3] = await lados(0.87), [i4, d4] = await lados(0.60);
+  if (i1 && !d1) ok('0.73: roca a la izquierda, mar abierto a la derecha'); else bad(`0.73: izq ${i1} der ${d1}`);
+  if (i2 && d2) ok('0.80: el estrecho, roca de los dos lados'); else bad(`0.80: izq ${i2} der ${d2}`);
+  if (!i3 && d3) ok('0.87: la izquierda se abrio, roca a la derecha'); else bad(`0.87: izq ${i3} der ${d3}`);
+  if (!i4 && !d4) ok('0.60 (costa, sin paredes): nada'); else bad(`0.60: izq ${i4} der ${d4}`);
+  // LA JUNTURA izq -> ambos no hunde la pared izquierda: se barre de a 6 m alrededor del 0.76
+  let hundida = 99;
+  for (let wz = W(0.76) - 60; wz <= W(0.76) + 60; wz += 6) hundida = Math.min(hundida, await zzAlto(wz, -1));
+  if (hundida > 6) ok(`la pared izquierda sigue de largo en la juntura (minimo ${hundida.toFixed(1)} m)`);
+  else bad(`la pared izquierda se hunde en la juntura: ${hundida.toFixed(1)} m`);
+  if (OUT) { await en(0.72, 9, 0, 120); await shot('geo_8_acantilado_izq'); }
+
+  // EL PUENTE: donde esta, y se pasa por abajo
+  let pz = null;
+  for (let wz = W(0.76); wz < W(0.84); wz += 4) if (await js(`__zzbarrAt(${wz})`)) { pz = wz; break; }
+  const pb = pz ? JSON.parse(await js(`__zzbarrAt(${pz})`)) : null;
+  if (pb && pb.tipo === 'puente') ok(`el puente esta PUESTO a ${((pz - W(0.76)) | 0)} m de la entrada al estrecho (panza a ${pb.y0} m)`);
+  else bad(`no hay puente en el estrecho (${JSON.stringify(pb)})`);
+  if (pb) {
+    if (OUT) { await en((pz - 160 - PZ) / OBJ, 4, 0, 100); await shot('geo_9_puente'); }
+    await en((pz - 90 - PZ) / OBJ, Math.max(3, pb.y0 - 5), 0, 1300);
+    const e1 = await estado();
+    if (e1 === 'play') ok(`por debajo del puente (a ${Math.max(3, pb.y0 - 5).toFixed(1)} m) se pasa`);
+    else bad(`pasando por abajo del puente el estado quedo en '${e1}'`);
+  }
+  if (OUT) { await en(1.14, 9, 0, 120); await shot('geo_10_acantilado_tierra'); }
+
+  // DEL LADO ABIERTO SE PASA, PEGADO AL BORDE: 0.73 con el avion a +37 (FLY_X 38) y a ras
+  await en(0.72, 2, 37, 900);
+  const e2 = await estado();
+  if (e2 === 'play') ok('0.72, a ras contra el borde derecho (el lado abierto): se pasa');
+  else bad(`del lado abierto el estado quedo en '${e2}'`);
+
+  // Y CONTRA LA PARED SE MUERE. Se busca una punta que se meta hasta donde llega el avion (la cara a
+  // 1,5 m, adentro de x = -34) y se lo planta ahi, a ras. Es la ultima prueba: despues de esto la
+  // corrida ya perdio un avion.
+  let punta = null;
+  for (let wz = W(0.71); wz < W(0.755); wz += 5) {
+    if (+(await js(`__zzcara(${wz}, -1, 1.5)`)) < 30) { punta = wz; break; }
+  }
+  if (punta === null) bad('no hay ninguna punta en el acantilado izquierdo que llegue al carril del avion');
+  else {
+    await js(`__wjump(${(punta - PZ - 30) / OBJ})`);
+    let murio = false;
+    for (let i = 0; i < 25 && !murio; i++) {
+      await js(`__seaclear(); __seaput(1.5, -36)`);
+      await sleep(40);
+      murio = (await estado()) !== 'play';
+    }
+    // y de QUE se murio: la ladera, no el agua ni otra cosa (la sonda de las causas de derrota)
+    const causa = murio ? JSON.parse(await js('__seawolf()')).causa : null;
+    if (murio && causa === 'death_pared') ok(`contra la roca de la izquierda (punta a ${((punta - W(0.70)) | 0)} m del tramo) se muere: ${causa}`);
+    else bad(`contra la punta de la izquierda: murio ${murio}, causa ${causa}`);
   }
 
   console.log('\nconsola: ' + (errors.length ? errors.length + ' error(es)' : 'sin errores'));

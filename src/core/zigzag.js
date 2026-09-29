@@ -35,15 +35,18 @@ import { ZZ_CURV_MAX, ZZ_LARGO_MIN, ZZ_EMPALME, ZZ_BEND_Z, ZZ_BEND_PASO,
 /** Las claves que un `zigzag:` puede traer. Cualquier otra es error de DATOS y el validador la
  *  rechaza, por la misma razon que en los tramos: una clave mal escrita no hace nada y no avisa,
  *  que es la peor forma de fallar. */
-export const CLAVES = ['amp', 'largo', 'seed', 'trazado', 'paredes', 'desde', 'hasta'];
-export const CLAVES_PARED = ['alto', 'x', 'mata', 'lado', 'barreras'];
+export const CLAVES = ['amp', 'largo', 'seed', 'trazado', 'paredes', 'desde', 'hasta', 'ventanas'];
+export const CLAVES_PARED = ['alto', 'x', 'mata', 'lado', 'barreras', 'puestos'];
+// LAS CLAVES DE CADA VENTANA de la lista `ventanas` (PLAN_GEOGRAFIA G3). Ver `validarZigzag`.
+export const CLAVES_VENTANA = ['desde', 'hasta', 'lado', 'barrera'];
 // DE QUE LADO hay tierra. 'ambos' es el callejon (el default y lo que habia siempre); 'izq' y
 // 'der' dejan el otro costado ABIERTO al mar — una costa, o un acantilado de un solo lado.
 export const LADOS = ['ambos', 'izq', 'der'];
 // QUE FORMA tienen las barreras que cierran el callejon (zigzag Z8). 'no' es el default.
 export const BARRERAS = ['no', 'roca', 'puente', 'madera', 'cables', 'mezcla'];
 // las que el sorteo de 'mezcla' puede sacar. Es la lista de PIELES, y el orden no importa.
-const BARR_MEZCLA = ['roca', 'puente', 'madera', 'cables'];
+// Es tambien la lista de las que una ventana puede PONER (`barrera:` de la geografia, G3).
+export const BARR_MEZCLA = ['roca', 'puente', 'madera', 'cables'];
 
 /** hash entero → [0,1). La misma copia de bolsillo que usan core/tierra.js y render/world.js:
  *  este modulo es puro y no puede importar del render. */
@@ -111,6 +114,37 @@ export function validarZigzag(z) {
   if (typeof z.desde === 'number' && typeof z.hasta === 'number' && z.desde >= z.hasta)
     e.push(`'desde' (${z.desde}) tiene que ser menor que 'hasta' (${z.hasta})`);
 
+  // LAS VENTANAS (PLAN_GEOGRAFIA G3): en vez de UNA ventana desde/hasta, una LISTA — cada una con
+  // su lado de tierra y, si quiere, una barrera PUESTA al principio. Las escribe la geografia (un
+  // tramo con `paredes:` es una ventana), pero son data del zigzag y se validan aca. Las fracciones
+  // llegan hasta 2 porque la geografia cubre la VUELTA de IDA Y VUELTA.
+  if (z.ventanas !== undefined) {
+    if (z.desde !== undefined || z.hasta !== undefined)
+      e.push('`ventanas` y `desde`/`hasta` son excluyentes: una ventana o la lista');
+    if (!Array.isArray(z.ventanas) || !z.ventanas.length) e.push('`ventanas` tiene que ser una lista no vacia');
+    else z.ventanas.forEach((v, i) => {
+      if (!v || typeof v !== 'object' || Array.isArray(v)) { e.push(`ventana ${i}: no es un objeto`); return; }
+      for (const k of Object.keys(v)) if (CLAVES_VENTANA.indexOf(k) < 0)
+        e.push(`ventana ${i}: clave desconocida '${k}' (las validas: ${CLAVES_VENTANA.join(', ')})`);
+      for (const k of ['desde', 'hasta']) {
+        if (!(typeof v[k] === 'number' && v[k] >= 0 && v[k] <= 2))
+          e.push(`ventana ${i}: '${k}' tiene que ser una fraccion en [0,2] y es ${JSON.stringify(v[k])}`);
+      }
+      if (typeof v.desde === 'number' && typeof v.hasta === 'number' && v.desde >= v.hasta)
+        e.push(`ventana ${i}: 'desde' (${v.desde}) tiene que ser menor que 'hasta' (${v.hasta})`);
+      if (LADOS.indexOf(v.lado) < 0)
+        e.push(`ventana ${i}: 'lado' tiene que ser uno de ${LADOS.join(', ')} y es ${JSON.stringify(v.lado)}`);
+      if (v.barrera !== undefined && BARR_MEZCLA.indexOf(v.barrera) < 0)
+        e.push(`ventana ${i}: 'barrera' tiene que ser una de ${BARR_MEZCLA.join(', ')} y es ${JSON.stringify(v.barrera)}`);
+      // la misma razon que en `barreraDe`: con una costa sola el otro lado es mar abierto, y una
+      // barrera ahi cerraria un pasillo que no existe
+      if (v.barrera !== undefined && v.lado !== 'ambos')
+        e.push(`ventana ${i}: una barrera necesita paredes de los DOS lados ('ambos') y esta es '${v.lado}'`);
+      if (v.barrera !== undefined && z.paredes && z.paredes.mata === false)
+        e.push(`ventana ${i}: una barrera con 'mata: false' no cierra nada`);
+    });
+  }
+
   if (z.paredes !== undefined) {
     const p = z.paredes;
     if (typeof p !== 'object' || Array.isArray(p) || p === null) e.push('`paredes` tiene que ser un objeto');
@@ -130,6 +164,10 @@ export function validarZigzag(z) {
         e.push(`paredes: 'barreras' tiene que ser uno de ${BARRERAS.join(', ')} y es ${JSON.stringify(p.barreras)}`);
       if (p.barreras !== undefined && p.barreras !== 'no' && p.mata === false)
         e.push("paredes: no se pueden pedir 'barreras' con 'mata: false' — una barrera que no mata no cierra nada");
+      if (p.puestos !== undefined && typeof p.puestos !== 'boolean')
+        e.push(`paredes: 'puestos' tiene que ser booleano y es ${JSON.stringify(p.puestos)}`);
+      if (z.ventanas !== undefined && p.lado !== undefined)
+        e.push("paredes: con `ventanas` el lado lo dice cada ventana, no 'paredes.lado'");
     }
   }
   return e;
@@ -149,6 +187,9 @@ export function validarZigzag(z) {
  *  de una distancia que no termina nunca. */
 export function ventana(d, z, objetivo) {
   if (!z) return 0;
+  // CON LISTA DE VENTANAS rige donde rija cualquiera de los dos lados: es lo que mira la curva
+  // (que no tiene lado). Las paredes preguntan POR LADO, con `ventanaLado`.
+  if (z.ventanas) return Math.max(ventanaLado(d, -1, z, objetivo), ventanaLado(d, 1, z, objetivo));
   // EL ARRANQUE: antes de esto no hay callejon, haya o no `desde` declarado. Un callejon que ya
   // esta ahi al soltar el freno no es un lugar al que se ENTRA — es el mapa —, y encima le tapa
   // la salida al despegue. Lo pone el sistema (sabe donde termina la base); aca solo se respeta.
@@ -165,6 +206,86 @@ export function ventana(d, z, objetivo) {
   // comprime junto con la mision en vez de desaparecer.
   const emp = Math.max(1, Math.min(ZZ_EMPALME, (d1 - d0) * 0.35));
   return arr * suave((d - d0) / emp) * suave((d1 - d) / emp);
+}
+
+// ---------------------------------------------------------------------------------------------
+// LA LISTA DE VENTANAS (PLAN_GEOGRAFIA G3)
+// ---------------------------------------------------------------------------------------------
+//
+// Una geografia pone acantilados POR TRAMO: a la izquierda en uno, de los dos lados en otro, nada
+// en el siguiente. Eso es una lista de ventanas, y cada LADO tiene la suya: la pared izquierda de
+// un tramo 'izq' seguido de uno 'ambos' es UNA sola pared que sigue de largo, mientras la derecha
+// recien entra. Por eso se arman intervalos POR LADO y se JUNTAN los que se tocan — la misma
+// leccion que los bancos de niebla de G2: dos ventanas pegadas medidas por separado bajarian a
+// cero en la juntura y la pared se hundiria hasta el agua en medio del acantilado.
+
+// cache de la ultima lista armada: la leen los bucles de dibujo miles de veces por cuadro
+let vCache = { z: null, obj: -1, izq: null, der: null, puestas: null };
+
+function armarVentanas(z, objetivo) {
+  if (vCache.z === z && vCache.obj === objetivo) return vCache;
+  const obj = objetivo > 0 ? objetivo : 0;
+  const lista = (z.ventanas || []).map(v => ({ d0: v.desde * obj, d1: v.hasta * obj, lado: v.lado, barrera: v.barrera }))
+    .sort((a, b) => a.d0 - b.d0);
+  const juntar = pide => {
+    const r = [];
+    for (const v of lista) {
+      if (!pide(v.lado)) continue;
+      const u = r[r.length - 1];
+      if (u && v.d0 <= u.d1 + 0.5) u.d1 = Math.max(u.d1, v.d1);
+      else r.push({ d0: v.d0, d1: v.d1 });
+    }
+    return r;
+  };
+  vCache = {
+    z, obj: objetivo,
+    izq: juntar(l => l !== 'der'),
+    der: juntar(l => l !== 'izq'),
+    puestas: lista.filter(v => v.barrera),
+  };
+  return vCache;
+}
+
+/** El intervalo (juntado) de ese lado que contiene a `d`, o null. */
+function intervaloLado(d, lado, z, objetivo) {
+  const c = armarVentanas(z, objetivo);
+  for (const iv of (lado < 0 ? c.izq : c.der)) if (d >= iv.d0 && d < iv.d1) return iv;
+  return null;
+}
+
+/** La ventana de UN LADO a `d` metros, en [0,1]. Con la forma clasica (`desde`/`hasta`) es la de
+ *  siempre para los lados que tienen tierra; con `ventanas`, el fundido del intervalo de ese lado —
+ *  con el mismo empalme, el mismo tope contra `?qa` y el mismo arranque que la ventana unica. */
+export function ventanaLado(d, lado, z, objetivo) {
+  if (!z) return 0;
+  if (!z.ventanas) return ventana(d, z, objetivo);
+  const arr = zz.arranque > 0 ? suave((d - zz.arranque) / ZZ_EMPALME) : 1;
+  if (arr <= 0) return 0;
+  const iv = intervaloLado(d, lado, z, objetivo);
+  if (!iv) return 0;
+  const emp = Math.max(1, Math.min(ZZ_EMPALME, (iv.d1 - iv.d0) * 0.35));
+  return arr * suave((d - iv.d0) / emp) * suave((iv.d1 - d) / emp);
+}
+
+/** DE QUE LADO hay tierra a `wz`: 'ambos' | 'izq' | 'der', o null si ahi no hay paredes. Con la
+ *  forma clasica es `paredes.lado` en todo el camino (lo que habia siempre). */
+export function ladoEn(wz) {
+  const p = pared();
+  if (!p) return null;
+  if (!zz.spec.ventanas) return p.lado;
+  const i = ventanaLado(wz, -1, zz.spec, zz.obj) > 0, d = ventanaLado(wz, 1, zz.spec, zz.obj) > 0;
+  return i && d ? 'ambos' : i ? 'izq' : d ? 'der' : null;
+}
+
+/** CUANTO TAPAN LAS PAREDES a `wz`, en [0,1]: lo lee el marco lateral, que se apaga donde la
+ *  ladera ya dice donde termina el carril. Con la forma clasica es 1 en toda la corrida (como fue
+ *  siempre: el marco se apagaba con solo declarar paredes); con `ventanas`, solo donde las hay, y
+ *  con el mismo fundido — el velo no puede aparecer de golpe al salir del acantilado. */
+export function paredesTapan(wz) {
+  const p = pared();
+  if (!p) return 0;
+  if (!zz.spec.ventanas) return 1;
+  return Math.max(ventanaLado(wz, -1, zz.spec, zz.obj), ventanaLado(wz, 1, zz.spec, zz.obj));
 }
 
 /** La curvatura NORMALIZADA en [-1,1] a `d` metros, sin la ventana y sin ZZ_CURV_MAX.
@@ -380,6 +501,12 @@ export function pared() {
     // medio, que se ve peor que no tenerla. El validador lo rechaza en la data; aca se apaga sola
     // por si alguien construye la config a mano.
     barreras: p.mata !== false && BARRERAS.indexOf(p.barreras) > 0 ? p.barreras : 'no',
+    // ¿HAY BARRERAS PUESTAS por las ventanas (G3)? Van aparte de `barreras`, que es el SORTEO: una
+    // geografia pone las suyas donde dice la data y apaga el sorteo.
+    puestas: p.mata !== false && !!(zz.spec.ventanas && zz.spec.ventanas.some(v => v.barrera)),
+    // ¿Se plantan antiaereos en las lomas? La geografia los apaga (decision 3 del autor, 29/9:
+    // "por ahora unidades no pongamos nada, terreno primero").
+    puestos: p.puestos !== false,
   };
 }
 
@@ -390,9 +517,15 @@ export function pared() {
  *  necesita un camino nuevo en ningun lado — necesita que la altura de ese costado sea CERO, que
  *  es lo mismo que ya pasa fuera de la ventana del trazado. La colision, la siembra, el recorte
  *  de los antiaereos y la niebla del canon se enteran solos. */
-export function ladoActivo(lado) {
+export function ladoActivo(lado, wz) {
   const p = pared();
   if (!p) return false;
+  // CON VENTANAS el lado depende de DONDE: un costado sin ventana ahi es mar abierto, igual que el
+  // lado apagado de una costa. Sin `wz` contesta si ese lado tiene tierra en ALGUN lado.
+  if (zz.spec.ventanas) {
+    if (wz === undefined) { const c = armarVentanas(zz.spec, zz.obj); return (lado < 0 ? c.izq : c.der).length > 0; }
+    return ventanaLado(wz, lado, zz.spec, zz.obj) > 0;
+  }
   return p.lado === 'ambos' || (p.lado === 'izq' ? lado < 0 : lado > 0);
 }
 
@@ -409,8 +542,8 @@ export function ladoActivo(lado) {
  *  esta abierto; entra con el mismo fundido con el que entra la curva. */
 export function paredH(wz, lado) {
   const p = pared();
-  if (!p || !ladoActivo(lado)) return 0;      // costa de un solo lado: el otro es mar abierto
-  const v = ventana(wz, zz.spec, zz.obj);
+  if (!p || !ladoActivo(lado, wz)) return 0;  // costa de un solo lado: el otro es mar abierto
+  const v = ventanaLado(wz, lado, zz.spec, zz.obj);
   if (v <= 0) return 0;
   const sd = lado > 0 ? 7717 : 1259;
   // TRES ESCALAS, y la mas larga es la que cambia todo. Con solo las dos cortas los cerros
@@ -449,12 +582,15 @@ export function paredH(wz, lado) {
  *  metro, corrida tras corrida. */
 export function barreraDe(wz) {
   const p = pared();
-  if (!p || p.barreras === 'no') return null;
+  if (!p) return null;
+  // LAS PUESTAS PRIMERO (G3): una ventana con `barrera:` la pone donde dice la data.
+  if (p.puestas) { const b = barreraPuesta(wz); if (b) return b; }
+  if (p.barreras === 'no') return null;
   // SOLO CON LAS DOS LADERAS. Una barrera es "el pasillo cerrado de lado a lado", y con una costa
   // sola el otro lado es mar abierto: cerraria un pasillo que no existe, y el jugador la rodearia
   // por afuera sin enterarse de que era una barrera. Es la misma razon por la que el marco lateral
   // se apaga cuando hay paredes — un efecto que promete algo tiene que poder cumplirlo.
-  if (p.lado !== 'ambos') return null;
+  if (ladoEn(wz) !== 'ambos') return null;
   const P = ZZ_BARR_P[zz.barr] || 0;
   if (P <= 0) return null;
   const idx = Math.floor(wz / ZZ_BARR_CADA);
@@ -469,15 +605,22 @@ export function barreraDe(wz) {
   if (wz < z0 || wz >= z1) return null;
   // el callejon tiene que estar HECHO: se pregunta por el centro de la franja, no por `wz`, asi
   // la barrera entra o no entra ENTERA — media barrera es un muro cortado al medio.
-  if (ventana((z0 + z1) / 2, zz.spec, zz.obj) < 0.9) return null;
+  const cen = (z0 + z1) / 2;
+  if (Math.min(ventanaLado(cen, -1, zz.spec, zz.obj), ventanaLado(cen, 1, zz.spec, zz.obj)) < 0.9) return null;
   const tipo = p.barreras === 'mezcla'
     ? BARR_MEZCLA[Math.min(BARR_MEZCLA.length - 1, (hash1(idx * 577 + 3) * BARR_MEZCLA.length) | 0)]
     : p.barreras;
-  const r = hash1(idx * 3313 + 7);
-  const entre = ([a, b]) => a + r * (b - a);
   // LAS CUATRO PIELES SALEN DEL MISMO OBJETO: una franja maciza entre dos alturas, y lo unico que
   // cambia es como se dibujan. Hubo una quinta —un ARCO DE ROCA, con hueco curvo— y se saco: ver
   // el comentario de ZZ_BARR_MADERA en data/tuning.js.
+  return formaBarrera(tipo, z0, z1, hash1(idx * 3313 + 7), idx);
+}
+
+/** LA FORMA de una barrera: la franja entre dos alturas que corresponde a su piel. `r` en [0,1)
+ *  elige dentro del rango de cada una. La comparten el sorteo y las puestas: una barrera puesta
+ *  por la geografia es exactamente la misma pieza, medida igual, que una sorteada. */
+function formaBarrera(tipo, z0, z1, r, idx) {
+  const entre = ([a, b]) => a + r * (b - a);
   if (tipo === 'puente') {
     const bajo = entre(ZZ_BARR_PUENTE);
     return { z0, z1, tipo, y0: bajo, y1: bajo + ZZ_BARR_GROSOR, w: 0, idx };
@@ -491,6 +634,37 @@ export function barreraDe(wz) {
     return { z0, z1, tipo, y0: tablero, y1: tablero + ZZ_BARR_MADERA_CANTO, w: 0, idx };
   }
   return { z0, z1, tipo: 'roca', y0: 0, y1: entre(ZZ_BARR_ROCA), w: 0, idx };
+}
+
+/** DONDE CAE LA BARRERA PUESTA de una ventana: al PRINCIPIO del tramo, pero donde las dos laderas
+ *  ya estan hechas (ventana >= 0,95 de los dos lados). Si el tramo viene pegado a otro con paredes,
+ *  el acantilado ya esta arriba y la barrera cae apenas entrado; si el tramo abre el acantilado, cae
+ *  pasada la boca. Una barrera en la boca seria un muro en mar abierto — ver `barreraDe`.
+ *  Si no hay ningun metro con las dos plenas (un tramo cortisimo, o `?qa`), cae en el medio. */
+function lugarPuesta(v) {
+  const s = zz.spec, o = zz.obj;
+  const fin = (v.d0 + v.d1) / 2;
+  for (let c = v.d0 + ZZ_BARR_LARGO; c <= fin; c += 4) {
+    if (ventanaLado(c - ZZ_BARR_LARGO / 2, -1, s, o) >= 0.95 && ventanaLado(c - ZZ_BARR_LARGO / 2, 1, s, o) >= 0.95
+      && ventanaLado(c + ZZ_BARR_LARGO / 2, -1, s, o) >= 0.95 && ventanaLado(c + ZZ_BARR_LARGO / 2, 1, s, o) >= 0.95) return c;
+  }
+  return fin;
+}
+
+// las barreras puestas ya resueltas (z0, z1, forma), por lista de ventanas: se buscan una vez
+let pCache = { z: null, obj: -1, arr: -1, lista: [] };
+
+/** LA BARRERA PUESTA a `wz`, o null. */
+function barreraPuesta(wz) {
+  if (pCache.z !== zz.spec || pCache.obj !== zz.obj || pCache.arr !== zz.arranque) {
+    const c = armarVentanas(zz.spec, zz.obj);
+    pCache = { z: zz.spec, obj: zz.obj, arr: zz.arranque, lista: c.puestas.map((v, i) => {
+      const cen = lugarPuesta(v);
+      return formaBarrera(v.barrera, cen - ZZ_BARR_LARGO / 2, cen + ZZ_BARR_LARGO / 2, hash1(i * 3313 + 907), 10000 + i);
+    }) };
+  }
+  for (const b of pCache.lista) if (wz >= b.z0 && wz < b.z1) return b;
+  return null;
 }
 
 /** ¿Este punto esta adentro de una barrera? La `x` no entra en la cuenta: la barrera cruza el
@@ -518,7 +692,8 @@ export function enBarrera(x, y, wz) {
 /** LA PROXIMA BARRERA a partir de `wz` y dentro de `alcance` metros, o null. La usan el sembrador
  *  (para no plantar nada adentro) y el dibujo (para no recorrer mil metros buscandola). */
 export function barreraCerca(wz, alcance) {
-  if (!pared() || pared().barreras === 'no') return null;
+  const p = pared();
+  if (!p || (p.barreras === 'no' && !p.puestas)) return null;
   // basta con mirar la banda de aca y la siguiente: una barrera mide 22 m y las bandas 900
   for (let d = wz; d <= wz + alcance; d += ZZ_BARR_LARGO / 2) {
     const b = barreraDe(d);
@@ -565,7 +740,10 @@ export function enPared(x, y, wz, talud, libre) {
 export function carrilSeguro(d0, alcance, talud) {
   const p = pared();
   if (!p) return null;
-  let lo = -p.x, hi = p.x;
+  // CON VENTANAS el carril arranca ABIERTO: fuera de los acantilados no hay pared que lo recorte, y
+  // arrancar en ±p.x le pondria un muro invisible a toda la corrida. La forma clasica conserva el
+  // ±p.x de siempre (el callejon de m5 siembra exactamente igual).
+  let lo = zz.spec.ventanas ? -Infinity : -p.x, hi = zz.spec.ventanas ? Infinity : p.x;
   // 12 m de paso: las puntas miden ZZ_PUNTA_LARGO (70), asi que ninguna se escapa entre muestras
   for (let d = d0; d <= d0 + alcance; d += 12) {
     const bordeIzq = -paredXAt(d, -1);          // la cara interna de la pared izquierda, en x
@@ -596,9 +774,8 @@ export function paredEntra(wz, lado) {
   // punta en el lado que no existe y el promontorio se perderia: el ritmo del callejon se partiria
   // al medio sin que nada lo diga. Lo que se conserva es UNA PUNTA POR BANDA, que es la garantia
   // de paso — no de que caiga cara o cruz.
-  const p2 = pared();
-  const uno = p2.lado !== 'ambos';
-  if (!ladoActivo(lado)) return 0;
+  const uno = ladoEn(wz) !== 'ambos';
+  if (!ladoActivo(lado, wz)) return 0;
   const suLado = uno ? lado : (hash1(b * 4241 + 77) < 0.5 ? -1 : 1);
   if (suLado !== lado) return 0;
   // DONDE arranca dentro de su banda, y cuanto se mete (no todas llegan al maximo)
@@ -617,9 +794,11 @@ export function paredEntra(wz, lado) {
   // LA ESCALADA. El callejon se pone mas dificil a medida que se avanza: arranca al 55% y llega a
   // pleno en ZZ_PUNTA_RAMPA metros. Se mide desde donde EMPIEZA el callejon (la fraccion `desde`
   // de la mision) y no desde el despegue, asi la rampa es la del callejon y no la del vuelo.
-  const d0 = zz.spec && typeof zz.spec.desde === 'number' && zz.obj > 0 ? zz.spec.desde * zz.obj : 0;
+  // Con `ventanas`, desde donde empieza el acantilado de ESE lado.
+  let d0 = zz.spec && typeof zz.spec.desde === 'number' && zz.obj > 0 ? zz.spec.desde * zz.obj : 0;
+  if (zz.spec.ventanas) { const iv = intervaloLado(wz, lado, zz.spec, zz.obj); d0 = iv ? iv.d0 : wz; }
   const esc = Math.min(1, 0.55 + Math.max(0, wz - d0) / ZZ_PUNTA_RAMPA * 0.45);
-  return ZZ_PUNTA_MAX * p.alto * hondo * esc * perfil * perfil * ventana(wz, zz.spec, zz.obj);
+  return ZZ_PUNTA_MAX * p.alto * hondo * esc * perfil * perfil * ventanaLado(wz, lado, zz.spec, zz.obj);
 }
 
 /** UN PUESTO EN LA LADERA: donde plantar un antiaereo ARRIBA del cerro, del lado `lado`.
@@ -633,7 +812,7 @@ export function paredEntra(wz, lado) {
  *  el callejon queda como decorado y el fuego sigue viniendo de donde venia en mar abierto. */
 export function puestoLadera(wz, lado) {
   const p = pared();
-  if (!p) return null;
+  if (!p || !p.puestos) return null;
   const h = paredH(wz, lado);
   if (h < 6) return null;                       // en un saldo bajo no hay donde poner nada
   return { x: lado * (paredCara(wz, lado, h) + 4 + Math.random() * 10), gy: h };
@@ -664,7 +843,7 @@ export function paredXAt(wz, lado) {
   // EL LADO ABIERTO NO ES UNA PARED LEJOS: NO ES UNA PARED. Devolver `p.x` ahi dejaria al carril
   // seguro y al tope de los que se mueven creyendo que hay roca a 46 —justo al filo de donde nace
   // todo— y el mar abierto quedaria recortado por un muro invisible. Se manda afuera de todo.
-  if (!ladoActivo(lado)) return p.x + 200;
+  if (!ladoActivo(lado, wz)) return p.x + 200;
   // LA ONDULACION DEL PIE. Sin esto la base de la ladera es una recta de tiralineas a lo largo de
   // cientos de metros — la mitad de por que el cerro se veia plano no era la textura, era que su
   // borde inferior era perfecto. Dos senos incommensurables, el idioma del repo (shoreAt son tres).

@@ -23,7 +23,8 @@
 import { ctx, W, H, HOR, F } from './ctx.js';
 import { cam, cfg } from '../core/state.js';
 import { MARCO_X, MARCO_REACH, MARCO_A, MARCO_COL, MARCO_SKY } from '../data/tuning.js';
-import { bendW, pared } from '../core/zigzag.js';
+import { bendW, paredesTapan } from '../core/zigzag.js';
+import { run } from '../core/run.js';
 
 // margen de dibujo hacia afuera de la pantalla: con el HORIZONTE GIRATORIO el mundo rota y las
 // esquinas dejan de estar tapadas por el borde. Mismo motivo que el -70/W+140 del cielo.
@@ -37,14 +38,19 @@ function hexA(c, k) {
 
 /** ¿Esta activo el marco? Unico lugar del codigo que sabe que 'off' es el valor apagado. */
 // ...y se apaga solo cuando hay PAREDES (zigzag Z3): la ladera ya dice donde termina el carril,
-// y un velo encima de una montaña es una montaña borrosa.
-const marcoOn = () => (cfg.marco === 'bruma' || cfg.marco === 'focus') && !pared();
+// y un velo encima de una montaña es una montaña borrosa. Con los acantilados POR TRAMO de la
+// geografia (G3) se apaga solo donde estan, y con su mismo fundido (`paredesTapan`, 0..1).
+// A que distancia se mira si hay acantilado: un poco adelante, asi el velo ya se esta yendo
+// cuando la ladera entra en cuadro.
+const MARCO_PAREDES_Z = 80;
+const tapa = () => paredesTapan(run.dist + MARCO_PAREDES_Z);
+const marcoOn = () => (cfg.marco === 'bruma' || cfg.marco === 'focus') && tapa() < 1;
 
 /** El velo lateral. Se dibuja DENTRO del giro del horizonte (es aire del mundo, rola con el) y
  *  ANTES del avion, la lluvia y los popups: el marco esta afuera, nunca sobre tu propio avion. */
 export function drawMarco() {
   if (!marcoOn()) return;
-  const col = MARCO_COL[cfg.marco], aMax = MARCO_A[cfg.marco];
+  const col = MARCO_COL[cfg.marco], aMax = MARCO_A[cfg.marco] * (1 - tapa());
   const reachMax = W * MARCO_REACH;
 
   if (cam.y <= 0.1) return;   // camara al ras: la fila no tiene profundidad y la cuenta se dispara

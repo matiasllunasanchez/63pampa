@@ -18,11 +18,11 @@
 // que ya suma `bendW(z)`. Por eso las laderas doblan solas con el camino: no saben que existe el
 // zigzag, igual que no lo sabe el resto del mundo.
 import { ctx, px, W, H, HOR, F } from './ctx.js';
-import { cam, cfg } from '../core/state.js';
+import { cam } from '../core/state.js';
 import { run } from '../core/run.js';
 import { proj } from '../core/fx.js';
 import { pared, paredH, paredXAt, paredCara, bendW, barreraCerca } from '../core/zigzag.js';
-import { tierraH, hayRelieve } from '../core/tierra.js';
+import { alturaSuelo, sueloEn } from '../core/geografia.js';
 import { theme } from './theme.js';
 import { ZZ_PARED_Z, ZZ_PARED_PASO, ZZ_MESETA_W, ZZ_NIEBLA_Z0, ZZ_NIEBLA_FULL,
   ZZ_PARED_X } from '../data/tuning.js';
@@ -141,7 +141,8 @@ function hash2(a, b) {
  *  Es la misma fuente que dibuja esa fila (`theme.water.base0` / `theme.land.far`), asi que si
  *  algun dia cambia la paleta, cambian los dos juntos. */
 function nieblaCol() {
-  return cfg.terrain === 'land' ? theme.land.far : theme.water.base0;
+  // con geografia, el suelo de la fila mas lejana es el del tramo que esta en el horizonte
+  return sueloEn(run.dist + ZZ_PARED_Z) === 'land' ? theme.land.far : theme.water.base0;
 }
 
 /** EL FILO QUE LE PASA POR DELANTE a un punto del callejon: la `y` de PANTALLA del borde de roca
@@ -168,7 +169,6 @@ export function techoLadera(wx, camZ, ex, ey, dv) {
   const lado = wx >= 0 ? 1 : -1;
   const d = dv === undefined ? run.dist : dv;
   const oX = px2(wx, camZ, ex);
-  const relieve = hayRelieve(cfg);
   let techo = null;
   // el paso es mas grueso que el del dibujo a proposito: aca no se pinta nada, se busca un borde,
   // y un error de medio metro de profundidad en el filo no se ve. Lo que si se veria es el costo.
@@ -180,7 +180,7 @@ export function techoLadera(wx, camZ, ex, ey, dv) {
     const cre = lado * paredCara(wz, lado, h);
     const a = px2(pie, z, ex), b = px2(cre, z, ex);
     if (oX < Math.min(a, b) || oX > Math.max(a, b)) continue;   // la roca no llega a esta columna
-    const gy = relieve ? tierraH(pie, wz) : 0;
+    const gy = alturaSuelo(pie, wz);
     const y = py2(gy + h, z, ey);
     if (techo === null || y < techo) techo = y;
   }
@@ -207,8 +207,6 @@ export function drawParedes() {
   const p = pared();
   if (!p) return;
   const dv = run.dist;
-  const relieve = hayRelieve(cfg);
-  const costa = cfg.terrain === 'coast';
   const T = tierraArriba();
   const L = caraLadera();
 
@@ -234,8 +232,10 @@ export function drawParedes() {
       // como pared. Y no es dibujo: `paredCara` es la misma funcion contra la que resuelve la
       // colision, asi que el talud que ves es el talud que te mata.
       const wxc = lado * paredCara(wz, lado, h);
-      // la ladera se APOYA en el terreno, como todo lo que se apoya (PLAN_TIERRA_COSTA T3)
-      const gy = relieve ? tierraH(wx, wz) : 0;
+      // la ladera se APOYA en el terreno, como todo lo que se apoya (PLAN_TIERRA_COSTA T3). Con la
+      // MISMA pregunta que el vuelo y la siembra: sin geografia es `hayRelieve ? tierraH : 0`, lo de
+      // siempre; con geografia, el relieve del tramo donde cae el pie (PLAN_GEOGRAFIA G3)
+      const gy = alturaSuelo(wx, wz);
       const base = proj(wx, gy, camZ);
       const top = proj(wxc, gy + h, camZ);
       if (prev) {
@@ -444,7 +444,7 @@ export function drawParedes() {
  *  juntura de la meseta, en otro lugar. */
 export function drawBarreras() {
   const p = pared();
-  if (!p || p.barreras === 'no') return;
+  if (!p || (p.barreras === 'no' && !p.puestas)) return;   // ni sorteadas ni puestas (G3)
   const dv = run.dist;
   const b = barreraCerca(dv + 4, ZZ_PARED_Z);
   if (!b) return;

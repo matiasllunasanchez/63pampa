@@ -12,8 +12,10 @@ export const GEOGRAFIAS = {
   // LA DEMO: todo lo que la geografia sabe hacer, en una sola pasada. En la ida: un banco de niebla
   // puesto en mar abierto (G2); una costa que ENTRA por la
   // izquierda y SALE al mar; una tierra con lomas a la que se entra y se sale por PLAYA que cruza
-  // el carril; y una costa del otro lado. En la vuelta, un tramo de tierra mas movido. El buque
-  // (fraccion 1) queda en mar abierto.
+  // el carril; una costa del otro lado; y (G3) un estrecho de ACANTILADOS — primero a la izquierda,
+  // despues de los dos lados con un PUENTE que lo cruza, despues a la derecha. En la vuelta, un
+  // tramo de tierra mas movido con acantilado a la izquierda, y una ROCA que cierra un callejon.
+  // El buque (fraccion 1) queda en mar abierto.
   demo: [
     { hasta: 0.08, suelo: 'mar' },
     { hasta: 0.16, suelo: 'mar', niebla: 1 },   // G2: un banco PUESTO, no sorteado
@@ -23,8 +25,14 @@ export const GEOGRAFIAS = {
     { hasta: 0.46, suelo: 'tierra', lomas: 3 },
     { hasta: 0.54, suelo: 'mar' },
     { hasta: 0.66, suelo: 'costa', lado: 'der' },
+    { hasta: 0.70, suelo: 'mar' },
+    { hasta: 0.76, suelo: 'mar', paredes: 'izq' },                        // G3: acantilado a la izquierda
+    { hasta: 0.84, suelo: 'mar', paredes: 'ambos', barrera: 'puente' },   // el estrecho, con un puente
+    { hasta: 0.90, suelo: 'mar', paredes: 'der' },                        // y la izquierda se abre
     { hasta: 1.10, suelo: 'mar' },
-    { hasta: 1.26, suelo: 'tierra', lomas: 5 },
+    { hasta: 1.26, suelo: 'tierra', lomas: 5, paredes: 'izq' },          // acantilado sobre la turba
+    { hasta: 1.34, suelo: 'mar' },
+    { hasta: 1.44, suelo: 'mar', paredes: 'ambos', barrera: 'roca' },    // el callejon cerrado: por arriba
     { hasta: 2.00, suelo: 'mar' },
   ],
 };

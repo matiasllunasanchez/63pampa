@@ -1,9 +1,10 @@
 # PLAN — La GEOGRAFÍA del pasillo *(mar, costa, acantilado, isla y niebla en una misma misión)*
 
-> **ESTADO (29/9/2026): G0, G1 y G2 HECHAS.** El suelo por tramos anda —mar, costa (de cualquiera
-> de los dos lados) y tierra con lomas en una misma misión, con sus costuras— y los bancos de niebla
-> se ponen donde dice la data. Se prueba con `?mision=t17&geo=demo` y con `npm run geografia`.
-> Faltan G3 (acantilados y barreras por tramo) → G6.
+> **ESTADO (29/9/2026): G0, G1, G2 y G3 HECHAS.** El suelo por tramos anda —mar, costa (de
+> cualquiera de los dos lados) y tierra con lomas en una misma misión, con sus costuras—, los bancos
+> de niebla se ponen donde dice la data, y los acantilados (izquierda, derecha o los dos) y las
+> barreras también. Se prueba con `?mision=t17&geo=demo` y con `npm run geografia`.
+> Faltan G4 (la isla) → G6.
 
 > **Audiencia: una IA implementadora en sesión nueva, sin el chat donde se decidió esto.** Define
 > cómo un mismo pasillo —en particular los de IDA Y VUELTA (`t15`, `t17`)— pasa a tener **etapas
@@ -407,6 +408,64 @@ densidad más cerrada de los dos.
 mira lo que el sistema contesta: lejos no hay nada, la bruma se ve venir antes del borde, adentro
 recorta la vista, se va con fundido, y pasado el banco no aparece ninguno más — con `cfg.fog` en 0
 **y en 2**, que es la prueba de que el sorteo no se suma.
+
+### 14. Los acantilados de la geografía SON el zigzag, con una lista de ventanas *(G3)*
+
+No hay un sistema de paredes nuevo. `zigzagDe(lista)` (en `core/geografia.js`) escribe los tramos
+con `paredes:` como un `zigzag:` — `{ amp: 0, paredes: {...}, ventanas: [{ desde, hasta, lado,
+barrera? }] }` — y `systems/zigzag.js` lo toma cuando la misión no trae su propio `zigzag:`
+(orden: sonda → misión → geografía → preset del menú). Todo lo que el callejón ya sabía hacer
+—dibujar, chocar, sembrar alrededor, recortar lo que tapa, la niebla del cañón— sirve sin tocarlo.
+`ventanas` es data del zigzag y la valida `validarZigzag`: excluyente con `desde`/`hasta`,
+fracciones hasta 2 (la vuelta), y una barrera solo con `lado: 'ambos'`.
+
+### 15. Cada LADO tiene su ventana, y las pegadas se juntan *(G3)*
+
+La pregunta dejó de ser "¿rige el callejón acá?" y pasó a ser "¿hay roca de ESTE lado acá?"
+(`ventanaLado`, `ladoEn(wz)`, `ladoActivo(lado, wz)`). Un tramo `izq` seguido de uno `ambos` es UNA
+pared izquierda que sigue de largo y una derecha que recién entra — la misma lección que los bancos
+de niebla (§12): medidas por separado, la pared se hundiría hasta el agua en la juntura. Con la
+forma clásica (`desde`/`hasta`, la de m5) todas estas contestan exactamente lo de antes; hay un
+unit test que lo recorre.
+
+### 16. Las puntas siguen estando *(G3)*
+
+El plan decía "acantilados rectos". Rectos quedaron (`amp: 0`, el carril no dobla), pero con sus
+promontorios: son la única forma de que la pared **llegue al avión** — el carril del avión termina
+en `FLY_X` = 38 y la pared está en `ZZ_PARED_X` = 46, así que sin puntas "contra la pared se muere"
+no pasaría nunca. Con un solo lado, todas las puntas van ahí (como los presets COSTA IZQ/DER).
+
+### 17. Fuera de los acantilados, el carril está ABIERTO *(G3)*
+
+Con la forma clásica, `carrilSeguro` arranca en `±ZZ_PARED_X` y `paredXAt` del lado apagado
+devuelve un borde lejano: en m5 la siembra queda recortada a ±44 en toda la corrida. Con ventanas
+eso habría puesto un muro invisible en todo el mapa, así que el carril arranca abierto y cada lado
+solo recorta donde tiene roca. Lo mismo el marco lateral (la niebla de guerra): la forma clásica lo
+apaga en toda la corrida como siempre; con ventanas se apaga **solo donde hay acantilado y con el
+mismo fundido** (`paredesTapan`), mirando 80 m adelante para que el velo ya se esté yendo cuando la
+ladera entra en cuadro.
+
+### 18. La barrera puesta cae donde las dos laderas ya están arriba *(G3)*
+
+"Al principio del tramo" literal era un muro en mar abierto cuando el tramo abre el acantilado (la
+boca todavía está subiendo). `lugarPuesta` la corre hasta el primer metro con las dos ventanas
+≥ 0,95 en sus dos bordes; si el tramo viene pegado a otro con paredes, eso es apenas entrado. En
+`?qa` (sin ningún metro así) cae en el medio del tramo. Es la **misma pieza** que la sorteada
+(`formaBarrera`): una barrera puesta mide y se dibuja igual. Con la geografía el sorteo está
+apagado (`barreras: 'no'`), también con BARRERAS en MUCHAS en OPCIONES: el mapa escrito es el que se
+juega (la misma regla que la niebla, §10).
+
+### 19. Sin antiaéreos en las lomas, y la ladera se apoya en el suelo del tramo *(G3)*
+
+La clave nueva `paredes.puestos` (default `true`, la de m5) la pone la geografía en `false`:
+decisión 3 del autor, terreno primero. Y `render/paredes.js` —el que la divergencia 7 dejó para
+G3— apoya el pie de la ladera en `alturaSuelo` (sin geografía es el `hayRelieve ? tierraH : 0` de
+siempre) y funde la lejanía con el color del suelo del tramo que está en el horizonte.
+
+### 20. Si la misión trae su `zigzag:`, gana ese *(G3)*
+
+El callejón de San Carlos no se reescribe desde la geografía (§7.6). Una misión con `zigzag:` y
+tramos con `paredes:` vuela su `zigzag:`; el unit test exige que ninguna misión declare las dos.
 
 ## 10. Coordinación *(29/9/2026)*
 

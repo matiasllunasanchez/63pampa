@@ -3078,8 +3078,9 @@ test('geografia · el validador acepta lo que funciona y rechaza lo que no exist
   assert.equal(validarGeografia([{ hasta: 0.5, suelo: 'mar' }, { hasta: 0.4, suelo: 'mar' }]).length, 1, 'no creciente');
   assert.equal(validarGeografia([{ hasta: 1, suelo: 'lava' }]).length, 1, 'suelo que no existe');
   // LAS CLAVES DEL PLAN QUE TODAVIA NO HACEN NADA se rechazan: una clave aceptada que no hace nada
-  // es la peor forma de fallar. Cuando su fase exista, esta linea cambia.
-  for (const k of ['paredes', 'barrera', 'alto']) {
+  // es la peor forma de fallar. Cuando su fase exista, esta linea cambia (G3 saco `paredes` y
+  // `barrera`: ahora existen y tienen su propio test).
+  for (const k of ['alto', 'ancho', 'borde']) {
     assert.equal(GEO_CLAVES.indexOf(k), -1, `'${k}' todavia no existe`);
     assert.ok(validarGeografia([{ hasta: 1, suelo: 'mar', [k]: 1 }]).length > 0, `rechaza '${k}'`);
   }
@@ -3221,4 +3222,172 @@ test('geografia G2 · el SISTEMA de niebla obedece a la data: donde, cuanto, y c
       for (const d of [2000, 2500, 2990]) assert.equal(en(d).dentro, false, `pasado el banco no aparece ninguno mas (a ${d} m, cfg.fog ${fogCfg})`);
     }
   } finally { runGeo.dist = d0; cfgGeo.fog = fog0; setGeografia(null, 0); resetFog(); }
+});
+
+
+// ---------------------------------------------------------------------------------------------
+// G3 · ACANTILADOS Y BARRERAS POR TRAMO
+// ---------------------------------------------------------------------------------------------
+import { zigzagDe } from '../src/core/geografia.js';
+import * as zzG3 from '../src/core/zigzag.js';
+
+// Una geografia con los tres lados y una barrera, montada sobre el nucleo del zigzag tal como la
+// monta el sistema: `rebuild` con la spec que sale de `zigzagDe`. Sin arranque (0) para que la
+// cuenta no dependa de la pista.
+const G3_LISTA = [
+  { hasta: 0.20, suelo: 'mar' },
+  { hasta: 0.40, suelo: 'mar', paredes: 'izq' },
+  { hasta: 0.60, suelo: 'mar', paredes: 'ambos', barrera: 'roca' },
+  { hasta: 0.80, suelo: 'tierra', paredes: 'der' },
+  { hasta: 2.00, suelo: 'mar' },
+];
+function montarG3(lista, obj) {
+  const spec = zigzagDe(lista);
+  zzG3.reset();
+  zzG3.rebuild(0, spec, obj, 0, 0);
+  return spec;
+}
+// ¿se muere a ras (y 1,5) bien metido en la roca de ese lado? x a 25 m pasado el pie de la pared
+const muereDe = (lado, wz) => zzG3.enPared(lado * (zzG3.paredXAt(wz, lado) + 25), 1.5, wz, 0, 1) === lado;
+
+test('geografia G3 · paredes y barrera: el validador y la spec que sale de la data', () => {
+  assert.deepEqual(validarGeografia(G3_LISTA), []);
+  assert.ok(validarGeografia([{ hasta: 1, suelo: 'mar', paredes: 'arriba' }]).length > 0, 'paredes que no existen');
+  assert.ok(validarGeografia([{ hasta: 1, suelo: 'mar', barrera: 'roca' }]).length > 0, 'barrera sin paredes');
+  assert.ok(validarGeografia([{ hasta: 1, suelo: 'mar', paredes: 'izq', barrera: 'roca' }]).length > 0,
+    'barrera con un lado abierto: se la rodea');
+  assert.ok(validarGeografia([{ hasta: 1, suelo: 'mar', paredes: 'ambos', barrera: 'arco' }]).length > 0, 'piel que no existe');
+  const spec = zigzagDe(G3_LISTA);
+  assert.deepEqual(zzG3.validarZigzag(spec), [], 'la spec que arma la geografia la acepta el zigzag');
+  assert.equal(spec.amp, 0, 'el carril no dobla: el pasillo sigue siendo pasillo');
+  assert.deepEqual(spec.ventanas.map(v => [v.desde, v.hasta, v.lado]), [[0.2, 0.4, 'izq'], [0.4, 0.6, 'ambos'], [0.6, 0.8, 'der']]);
+  assert.equal(zigzagDe([{ hasta: 2, suelo: 'mar' }]), null, 'sin paredes no hay zigzag: todo queda como antes');
+  for (const [n, g] of Object.entries(GEOGRAFIAS)) {
+    const z = zigzagDe(g);
+    if (z) assert.deepEqual(zzG3.validarZigzag(z), [], `la geografia '${n}'`);
+  }
+  // el zigzag rechaza ventanas mal escritas, igual que el resto de su data
+  assert.ok(zzG3.validarZigzag({ amp: 0, ventanas: [{ desde: 0.5, hasta: 0.4, lado: 'izq' }] }).length > 0);
+  assert.ok(zzG3.validarZigzag({ amp: 0, desde: 0.1, ventanas: [{ desde: 0.2, hasta: 0.4, lado: 'izq' }] }).length > 0,
+    'ventanas y desde/hasta son excluyentes');
+  assert.ok(zzG3.validarZigzag({ amp: 0, ventanas: [{ desde: 0.2, hasta: 0.4, lado: 'der', barrera: 'roca' }] }).length > 0);
+});
+
+test('geografia G3 · contra la pared de un lado se muere y del otro se pasa; ambos cierra los dos', () => {
+  const obj = 5000;
+  montarG3(G3_LISTA, obj);
+  try {
+    const izq = 0.30 * obj, amb = 0.52 * obj, der = 0.70 * obj, mar = 0.10 * obj, vuelta = 1.5 * obj;
+    assert.ok(muereDe(-1, izq), 'tramo izq: la pared izquierda mata');
+    assert.equal(zzG3.paredH(izq, 1), 0, 'tramo izq: a la derecha no hay roca');
+    assert.equal(zzG3.enPared(60, 1.5, izq, 0, 1), 0, 'tramo izq: por la derecha se pasa, bien afuera');
+    assert.ok(muereDe(-1, amb) && muereDe(1, amb), 'tramo ambos: matan los dos lados');
+    assert.ok(muereDe(1, der), 'tramo der: la pared derecha mata');
+    assert.equal(zzG3.paredH(der, -1), 0, 'tramo der: a la izquierda no hay roca');
+    assert.equal(zzG3.enPared(-60, 1.5, der, 0, 1), 0, 'tramo der: por la izquierda se pasa');
+    for (const d of [mar, vuelta]) {
+      assert.equal(zzG3.paredH(d, -1) + zzG3.paredH(d, 1), 0, `sin paredes a ${d} m`);
+      assert.equal(zzG3.ladoEn(d), null);
+      assert.equal(zzG3.paredesTapan(d), 0, 'el marco vuelve donde no hay acantilado');
+    }
+    assert.deepEqual([zzG3.ladoEn(izq), zzG3.ladoEn(amb), zzG3.ladoEn(der)], ['izq', 'ambos', 'der']);
+    // FUERA DE LOS ACANTILADOS EL CARRIL ESTA ABIERTO: ni muro invisible para la siembra ni tope
+    const seg = zzG3.carrilSeguro(mar, 100, 0);
+    assert.ok(seg.lo < -100 && seg.hi > 100, `carril abierto en mar libre (${seg.lo}, ${seg.hi})`);
+    assert.equal(zzG3.topeCarril(40, mar, 0), 40, 'sin paredes cerca, nadie topa a los que se mueven');
+    // sin antiaereos en las lomas (decision 3 del autor)
+    for (let d = izq; d < der; d += 37) assert.equal(zzG3.puestoLadera(d, -1), null);
+  } finally { zzG3.reset(); }
+});
+
+test('geografia G3 · nada aparece de golpe: las paredes entran con fundido y no se hunden en las junturas', () => {
+  const obj = 5000;
+  montarG3(G3_LISTA, obj);
+  try {
+    // LA JUNTURA izq -> ambos (0.40): la pared izquierda sigue de largo, a pleno
+    for (let d = 0.37 * obj; d <= 0.43 * obj; d += 5) {
+      assert.equal(zzG3.ventanaLado(d, -1, zzG3.zz.spec, obj), 1, `la pared izquierda no se hunde en la juntura (${d})`);
+    }
+    // y la ventana de cada lado sube y baja sin escalones: paso maximo por metro
+    for (const lado of [-1, 1]) {
+      let prev = 0, salto = 0;
+      for (let d = 0; d < obj; d += 1) {
+        const v = zzG3.ventanaLado(d, lado, zzG3.zz.spec, obj);
+        salto = Math.max(salto, Math.abs(v - prev)); prev = v;
+      }
+      assert.ok(salto < 0.02, `lado ${lado}: la ventana salta ${salto.toFixed(3)} en un metro`);
+    }
+  } finally { zzG3.reset(); }
+});
+
+test('geografia G3 · la barrera PUESTA: donde dice la data, con las dos laderas arriba, y mata', () => {
+  const obj = 5000;
+  montarG3(G3_LISTA, obj);
+  try {
+    const b = zzG3.barreraCerca(0, obj);
+    assert.ok(b, 'hay una barrera');
+    assert.equal(b.tipo, 'roca');
+    assert.ok(b.z0 >= 0.40 * obj && b.z1 <= 0.50 * obj, `cae al principio del tramo (${b.z0 | 0}-${b.z1 | 0})`);
+    for (const d of [b.z0, b.z1]) for (const lado of [-1, 1]) {
+      assert.ok(zzG3.ventanaLado(d, lado, zzG3.zz.spec, obj) >= 0.95, 'las dos laderas ya estan hechas');
+    }
+    const c = (b.z0 + b.z1) / 2;
+    assert.ok(zzG3.enBarrera(0, 2, c), 'a ras contra la roca se muere');
+    assert.equal(zzG3.enBarrera(0, b.y1 + 3, c), null, 'por encima se pasa');
+    // UNA sola: el sorteo esta apagado (las pone la data), tambien con la perilla de OPCIONES en MUCHAS
+    zzG3.rebuild(0, zzG3.zz.spec, obj, 0, 2);
+    let n = 0;
+    for (let d = 0; d < 2 * obj; d += 11) if (zzG3.barreraDe(d) && zzG3.barreraDe(d).z0 > (d - 11)) n++;
+    assert.equal(n, 1, 'una barrera puesta y ninguna sorteada');
+    // cada piel sale igual que la sorteada: la misma pieza
+    for (const piel of ['puente', 'madera', 'cables']) {
+      montarG3([{ hasta: 0.3, suelo: 'mar' }, { hasta: 0.6, suelo: 'mar', paredes: 'ambos', barrera: piel }, { hasta: 2, suelo: 'mar' }], obj);
+      const bp = zzG3.barreraCerca(0, obj);
+      assert.equal(bp && bp.tipo, piel);
+      assert.ok(bp.y0 > 0, `${piel}: se pasa por abajo`);
+    }
+  } finally { zzG3.reset(); }
+});
+
+test('geografia G3 · sobrevive a ?qa (la mision comprimida al 6%)', () => {
+  const obj = 5000 * 0.06;
+  montarG3(G3_LISTA, obj);
+  try {
+    const amb = 0.5 * obj;
+    assert.ok(zzG3.paredH(amb, -1) > 0 && zzG3.paredH(amb, 1) > 0, 'el acantilado existe comprimido');
+    // la izquierda es UN acantilado de 0.2 a 0.6 (izq + ambos juntados): su centro llega a pleno
+    assert.equal(zzG3.ventanaLado(0.4 * obj, -1, zzG3.zz.spec, obj), 1, 'y llega a pleno');
+    const b = zzG3.barreraCerca(0, obj);
+    assert.ok(b && b.z0 >= 0.4 * obj && b.z1 <= 0.6 * obj, 'la barrera sigue adentro de su tramo');
+  } finally { zzG3.reset(); }
+});
+
+test('geografia G3 · ninguna mision declara un zigzag: Y acantilados en la geografia', async () => {
+  // si las dos estuvieran, gana el `zigzag:` y los acantilados de la geografia no se verian nunca —
+  // un mapa escrito que no se juega (PLAN_GEOGRAFIA §20)
+  const { MISIONES_PRUEBA: MP } = await import('../src/data/pruebas_misiones.js');
+  for (const m of [...MISSIONS, ...Object.values(MP || {})]) {
+    if (!m || !m.zigzag) continue;
+    assert.equal(zigzagDe(m.geografia), null, `${m.id}: zigzag y paredes en la geografia`);
+  }
+});
+
+test('geografia G3 · la forma CLASICA del zigzag no cambio (m5 y los presets)', async () => {
+  // las funciones que ganaron un parametro `wz` o una rama por lado contestan lo mismo que antes
+  // con la spec de siempre: `ventanaLado` es `ventana`, `ladoEn` es `paredes.lado`, y el marco se
+  // apaga en toda la corrida como siempre
+  const { MISSIONS: MS } = await import('../src/data/missions.js');
+  const m5 = MS.find(m => m.zigzag);
+  assert.ok(m5, 'hay una mision con callejon');
+  zzG3.reset();
+  zzG3.rebuild(0, m5.zigzag, 2600, 700, 1);
+  try {
+    for (let d = 0; d < 2600; d += 13) for (const lado of [-1, 1]) {
+      assert.equal(zzG3.ventanaLado(d, lado, m5.zigzag, 2600), zzG3.ventana(d, m5.zigzag, 2600));
+    }
+    assert.equal(zzG3.ladoEn(1500), zzG3.pared().lado);
+    assert.equal(zzG3.paredesTapan(10), 1);
+    assert.equal(zzG3.pared().puestas, false);
+    assert.equal(zzG3.pared().puestos, true, 'los antiaereos de San Carlos siguen en las lomas');
+  } finally { zzG3.reset(); }
 });

@@ -19,6 +19,7 @@ import { rebuild, apagar, reset as resetCore, avanzar, deriva as derivaCore,
 import { S, cfg } from '../core/state.js';
 import { ZZ_ARRANQUE, ZZ_ARRANQUE_BASE } from '../data/tuning.js';
 import { run } from '../core/run.js';
+import { geo } from '../core/geografia.js';
 
 let spec = null;         // el trazado de la mision en curso (null = mision recta, el caso normal)
 let objetivo = 0;        // la distancia meta contra la que se miden desde/hasta
@@ -78,13 +79,16 @@ const ESTADOS = ['play', 'takeoff', 'dead', 'relevo'];
  *
  *  · EL ESTADO (ver ESTADOS): el PASILLO, incluida la muerte y el relevo. El despegue entra en la
  *    lista pero no lo va a ver nunca: el arranque del callejon deja la pista atras.
- *  · QUE HAYA TRAZADO. La mision, el preset del menu o la sonda.
+ *  · QUE HAYA TRAZADO. La sonda, la mision, los acantilados de la GEOGRAFIA (PLAN_GEOGRAFIA G3:
+ *    un tramo con `paredes:` es una ventana) o el preset del menu — en ese orden. Si la mision trae
+ *    su propio `zigzag:` gana ese: el callejon de m5 no se reescribe desde la geografia.
  *  · LA CAMARA LIBRE (`cfg.devcam`) lo apaga: es la herramienta para mirar el mundo derecho. */
 function activo() {
   if (ESTADOS.indexOf(S.state) < 0) return null;
   if (cfg.devcam) return null;
   if (probe) return probe;
   if (spec) return spec;
+  if (geo.zigzag) return geo.zigzag;
   const p = PRESETS[cfg.zigzag | 0];
   return p || null;
 }
@@ -173,7 +177,7 @@ export function dbg() {
   const z = activo();
   return {
     on: zz.on,
-    fuente: probe ? 'sonda' : spec ? 'mision' : z ? 'preset' : null,
+    fuente: probe ? 'sonda' : spec ? 'mision' : z && z === geo.zigzag ? 'geografia' : z ? 'preset' : null,
     estado: S.state,
     curv: +zz.curv.toFixed(6),
     curvN: +zz.curvN.toFixed(3),
@@ -189,5 +193,6 @@ export function dbg() {
     // que estar mostrando, y con el que el fixture compara el dibujo contra el nucleo
     bend320: +(zz.on ? zz.bend[Math.min(zz.n - 1, 80)] : 0).toFixed(2),
     paredes: z && z.paredes ? z.paredes : null,
+    ventanas: z && z.ventanas ? z.ventanas : null,
   };
 }
