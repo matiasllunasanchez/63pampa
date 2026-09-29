@@ -54,7 +54,7 @@ import { olaBump, climaDe } from '../core/sea.js';
 import { proj, popup } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
-import { SPAWN_X, SPAWN_DENS, SPAWN_Z, SHORE_X, shoreAt, SAND_W, AA_CD, ENEMY_HP, spawnY, rumboAve, SHIP_H,
+import { SPAWN_X, SPAWN_DENS, SPAWN_Z, SHORE_X, shoreAt, SAND_W, AA_CD, MANPAD_P, ENEMY_HP, spawnY, rumboAve, SHIP_H,
          CLIFF_H0, CLIFF_H1, CLIFF_HW0, CLIFF_HW1, CLIFF_COAST_BAND, VEIL_STOP } from '../data/tuning.js';
 // EL RELIEVE (T3): donde queda plantado cada cosa que se siembra. La misma funcion que dibuja
 // la loma y que decide el choque contra el suelo.
@@ -243,10 +243,18 @@ export function spawnOla(kind, hFijo) {
 function enLadera(tipo) {
   const pu = Math.random() < ZZ_LADERA_P ? puestoLadera(run.dist + SPAWN_Z, Math.random() < 0.5 ? -1 : 1) : null;
   if (!pu) return null;
-  const base = tipo === 'aa'
-    ? { type: 'aa', h: 4.4, y: 1.8, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD }
+  const base = tipo === 'aa' ? nidoAA()
     : { type: 'aatruck', h: 4.6, y: 1.9, ...hpOf('aatruck'), cd: 1.3 + Math.random() * AA_CD };
   return { ...base, x: pu.x, gy: pu.gy, z: SPAWN_Z, enLadera: true, done: false, ph: Math.random() * 6 };
+}
+
+/** EL ANTIAEREO FIJO: el lanzador Rapier, o (MANPAD_P de las veces) un equipo de misil al hombro
+ *  en un pozo — la infanteria antiaerea que tambien estaba en las lomas (pedido del autor 28/9).
+ *  Devuelve solo lo propio del tipo; el que llama le pone donde y cuando. */
+function nidoAA() {
+  return Math.random() < MANPAD_P
+    ? { type: 'manpad', h: 2.2, y: 0.9, ...hpOf('manpad'), cd: 0.6 + Math.random() * 1.5 }
+    : { type: 'aa', h: 4.4, y: 1.8, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD };
 }
 
 const waterLane = () => { const sh = spawnShore(); return sh + 3 + Math.random() * Math.max(4, SPAWN_X - sh - 3); };
@@ -331,7 +339,7 @@ function spawn() {
       obstacles.push({ type: 'tent', x, h: 3.4, y: 1.4, z: SPAWN_Z, ...hpOf('tent'), done: false, ph });
       squad(x - 3, SPAWN_Z + 2, 2 + (Math.random() * 2 | 0), true);          // la carpa pare su patrulla
     }
-    else if (r < 0.30) obstacles.push(enLadera('aa') || { type: 'aa', x: landLane(), h: 4.4, y: 1.8, z: SPAWN_Z, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
+    else if (r < 0.30) obstacles.push(enLadera('aa') || { ...nidoAA(), x: landLane(), z: SPAWN_Z, done: false, ph });
     else if (r < 0.40) {
       const h = 7.5 + Math.random() * 4;
       // armed: tiene soldados adentro tirando al avion (rafaga corta, hay que esquivar)
@@ -370,7 +378,7 @@ function spawn() {
       if (Math.random() < 0.5) {
         obstacles.push({ type: 'tent', x: lane, h: 3.4, y: 1.4, z: SPAWN_Z, ...hpOf('tent'), done: false, ph });
         squad(lane - 3, SPAWN_Z + 2, 2, false);
-      } else obstacles.push(enLadera('aa') || { type: 'aa', x: lane, h: 4.4, y: 1.8, z: SPAWN_Z, ...hpOf('aa'), cd: 1.1 + Math.random() * AA_CD, done: false, ph });
+      } else obstacles.push(enLadera('aa') || { ...nidoAA(), x: lane, z: SPAWN_Z, done: false, ph });
     }
     else if (r < 0.66) obstacles.push({ type: 'birds', x: lane, y: spawnY('birds'), z: SPAWN_Z, ...rumboAve(), white: Math.random() < 0.5, done: false, ph });
     else if (r < 0.75) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
@@ -438,6 +446,17 @@ function plantar(desde) {
     o.gy = tierraH(o.x, run.dist + o.z);
   }
 }
+
+/** UN SEA SLUG que va a pegar en (`xFin`, `z`): nace alto y de costado, y pica hasta ahi. */
+export function tirarSlug(xFin, z) {
+  const lado = Math.random() < 0.5 ? -1 : 1, vx = lado * (9 + Math.random() * 7), T = 2.2;
+  obstacles.push({
+    type: 'bomb', slug: true, x: xFin - vx * T, gx: xFin, y: 55 + Math.random() * 20, vx,
+    z, vy: 12 + Math.random() * 4, done: false, ph: Math.random() * 6, tr: [],
+  });
+}
+// la sonda: un Sea Slug adelante del avion, para mirarlo (QUITAR con el resto)
+if (typeof window !== 'undefined') window.__slug = (x, z) => { tirarSlug(x === undefined ? 0 : +x, z === undefined ? 170 : +z); return true; };
 
 export function spawnSystem(dt, objectiveDist) {
   // CHARLA EN VUELO: el corredor se vacia SOLO. No se borra nada de lo que ya esta (eso seria
@@ -535,10 +554,12 @@ export function spawnSystem(dt, objectiveDist) {
   if (bombs > 0) {
     run.nextBomb -= run.spd * dt;
     if (run.nextBomb <= 0) {
-      obstacles.push({
-        type: 'bomb', x: Math.random() * SPAWN_X * 2 - SPAWN_X, y: 55 + Math.random() * 20,
-        z: 130 + Math.random() * 90, vy: 24 + Math.random() * 9, done: false, ph: Math.random() * 6,
-      });
+      // EL SEA SLUG (28/9, el autor): lo que cae del cielo es el misil de los destructores
+      // britanicos usado contra tierra. No cae a plomo como una bomba: viene de un buque lejano en
+      // una PICADA — entra en diagonal desde un costado, con poca velocidad vertical, y acelera al
+      // bajar. Se sortea DONDE pega (`x` final) y se lo hace venir de lado, asi que la sombra en el
+      // suelo sigue diciendo donde cae. Tarda lo mismo que la bomba de antes (~2,2 s).
+      tirarSlug(Math.random() * SPAWN_X * 2 - SPAWN_X, 130 + Math.random() * 90);
       run.nextBomb = (180 + Math.random() * 150) / bombs;
     }
   }

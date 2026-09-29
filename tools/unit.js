@@ -3022,3 +3022,18 @@ test('fila: desincronizada (una sonda toco las vidas), cae a la cuenta de siempr
   assert.equal(alMando(r), pilotIdx(4, 2));
 });
 
+
+// ---------- POR QUE PERDISTE (data/derrotas.js) ----------
+test('derrotas: la bomba errada se explica por su veredicto, y toda clave existe en los dos idiomas', async () => {
+  const { derrota, DERROTAS } = await import('../src/data/derrotas.js');
+  const { STRINGS } = await import('../src/data/strings.js');
+  assert.equal(derrota('death_fallo_blanco', 'dormida').que, 'que_bomba_dormida');
+  assert.equal(derrota('death_fallo_blanco', 'dormida').hist, 'hist_bomba_dormida');
+  assert.equal(derrota('death_suelta', 'corta').que, 'que_bomba_corta');
+  assert.equal(derrota('death_fallo_blanco', '').que, 'que_bomba_nada');
+  assert.deepEqual(derrota('death_inventada'), { que: null, hist: null });
+  const claves = new Set();
+  for (const d of Object.values(DERROTAS)) { if (d.que) claves.add(d.que); if (d.hist) claves.add(d.hist); }
+  for (const v of ['dormida', 'corta', 'larga', 'costado', 'averiado', 'nada']) claves.add('que_bomba_' + v);
+  for (const k of claves) for (const l of ['es', 'en']) assert.ok(STRINGS[l][k], `falta ${k} en ${l}`);
+});

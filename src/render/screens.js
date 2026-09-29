@@ -318,14 +318,22 @@ export function drawDead(w) {
   ctx.fillText(T(w.perdido ? 'dead_pulso' : w.out ? 'dead_out' : 'dead'), W / 2, 26);
   ctx.fillStyle = P.dim; ctx.font = descFont(11);
   ctx.fillText(T(w.deathCause), W / 2, 40);
+  // POR QUE PASO (data/derrotas.js, 28/9): una o dos lineas debajo de la causa. Empuja todo lo de
+  // abajo lo que ocupe, para que no se pise con el puntaje.
+  const pq = w.porque || {};
+  let baja = 0;
+  if (pq.que) {
+    ctx.fillStyle = P.foam; ctx.font = descFont(9);
+    baja = wrapText(T(pq.que), W / 2, 54, 300, 11) - 54;
+  }
 
   const hasAward = w.stars > 0 && w.awardT >= 0;
   // POR LA PATRIA: la corrida ENTERA fue el "nivel" → se premia con estrellas segun el puntaje.
   // w.stars viene de game.js (0 en los demas modos, donde el derribado es fracaso y no se premian).
-  if (hasAward) drawAward(W / 2, 66, w.stars, w.awardT, w.t, 1.5);
+  if (hasAward) drawAward(W / 2, 66 + baja, w.stars, w.awardT, w.t, 1.5);
 
   // PUNTAJE — el número grande
-  const yScore = hasAward ? 100 : 74;
+  const yScore = (hasAward ? 100 : 74) + baja;
   ctx.fillStyle = P.ink; ctx.font = menuFont(14);
   ctx.fillText(T('scoreLabel', { n: Math.floor(w.score) }), W / 2, yScore);
   // EL RECORD, SOLO SI HAY UNO. `best` llega en CERO fuera de POR LA PATRIA —el unico modo que lo
@@ -339,8 +347,9 @@ export function drawDead(w) {
     ctx.fillText(supera ? T('newRecord') : T('bestDead', { n: w.best }), W / 2, yScore + 13);
   }
 
+  // EL DATO DE LA GUERRA: el de ESTE caso si lo hay (data/derrotas.js); si no, uno al azar
   ctx.fillStyle = '#8a9ba1'; ctx.font = descFont(9);
-  wrapText('» ' + L().facts[w.factIdx], W / 2, yScore + 32, 260, 11);
+  wrapText('» ' + (pq.hist ? T(pq.hist) : L().facts[w.factIdx]), W / 2, yScore + 32, 300, 11);
   // PIE: reintentar centrado, volver al menu a la derecha (es la salida, no la accion principal)
   if (w.deathT > 0.7 && Math.sin(w.t * 4) > -0.3) {
     ctx.fillStyle = P.accent; ctx.font = descFont(11);

@@ -56,6 +56,7 @@
 
 import { plane, cfg, stats } from '../core/state.js';
 import { run } from '../core/run.js';
+import { hablar } from '../core/voz.js';
 import { bullets } from '../core/world.js';
 import { popup, proj, chispazo, explodeAt } from '../core/fx.js';
 import { T } from '../core/i18n.js';
@@ -147,7 +148,7 @@ export function start(opts = {}) {
     muerto: false,
   };
   fleet.push(h);
-  if (!h.mudo) popup(W / 2, 46, T('caza_warn', { c: miIndicativo() }), P.warn);
+  if (!h.mudo) hablar('PUMA', T('caza_warn', { c: miIndicativo() }));   // lo grita Puma (28/9)
   return true;
 }
 
@@ -196,7 +197,7 @@ function stepSolucion(dt) {
   if (C.fase !== 'presion' && C.fase !== 'aviso') return;
   if (C.sol >= CAZA_SOL_AVISO && !C.grito) {
     C.grito = true;
-    if (!C.mudo) popup(W / 2, 46, T('caza_break', { c: miIndicativo() }), P.warn, true);
+    if (!C.mudo) hablar('PUMA', T('caza_break', { c: miIndicativo() }));
   }
   if (C.sol >= 1) { C.sol = CAZA_SOL_POST; C.grito = false; }
 }
@@ -337,7 +338,7 @@ function ahuyentar() {
   run.score += CAZA_PTS.ahuyenta;
   const s = proj(C.x, C.y, C.z);
   popup(s.x, s.y - 10, '+' + CAZA_PTS.ahuyenta, P.foam);
-  popup(W / 2, 46, T('caza_hit'), P.foam);
+  hablar('PUMA', T('caza_hit'));
   sfxOne('exSmall');
 }
 
@@ -352,7 +353,7 @@ function derribar() {
   run.score += CAZA_PTS.derribo;
   const s = proj(C.x, C.y, C.z);
   popup(s.x, s.y - 10, '+' + CAZA_PTS.derribo, P.warn, true);
-  popup(W / 2, 46, T('caza_kill'), P.warn);
+  hablar('PUMA', T('caza_kill'));
   stats.air++;
   if (C.final === 'bola') {
     // REVIENTA EN EL AIRE, ahi mismo. No queda nada que seguir: se termina en este cuadro.

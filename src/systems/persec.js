@@ -50,6 +50,7 @@
 
 import { plane } from '../core/state.js';
 import { run } from '../core/run.js';
+import { hablar } from '../core/voz.js';
 import { obstacles } from '../core/world.js';
 import { popup } from '../core/fx.js';
 import { T } from '../core/i18n.js';
@@ -156,7 +157,7 @@ function stepTiron(dt) {
   if (L.tirF === 0) {
     if (L.tirT > 0) return;
     L.tirF = 1; L.tirT = PURS_TIRON_AVISO;
-    popup(W / 2, 38, T('purs_tiron', { c: L.nombre }), P.accent, true);
+    hablar('PUMA', T('purs_tiron'));   // dialogos de Puma, no carteles (28/9)
     beep(760, 0.1, 'square', 0.05, 900);
     duck(0.25);
     return;
@@ -174,7 +175,7 @@ function stepTiron(dt) {
   L.tirF = 0; L.tirT = rnd(PURS_TIRON_T);
   if (L.tirOk) {
     run.score += PURS_TIRON_PTS * multOf(plane.y);
-    popup(W / 2, 38, T('purs_pegado'), P.foam);
+    hablar('PUMA', T('purs_pegado'));
     beep(880, 0.12, 'square', 0.05, 1180);
   }
 }
@@ -267,7 +268,7 @@ function infinito() {
     const f = Math.pow(PURS_TIGHT_F, paso);
     L.lo = Math.max(PURS_TIGHT_MIN[0], PURS_D[0] * f);
     L.hi = Math.max(PURS_TIGHT_MIN[1], PURS_D[1] * f);
-    popup(W / 2, 54, T('purs_aprieta', { c: pilotName(alMando(run)) }), P.accent);
+    hablar('PUMA', T('purs_aprieta', { c: pilotName(alMando(run)) }));
     beep(700, 0.09, 'square', 0.045, 520);
   }
   // relevo del lider
@@ -277,7 +278,7 @@ function infinito() {
     const antes = L.nombre;
     L.lidIdx++;
     L.nombre = pilotName(L.lidIdx);
-    popup(W / 2, 46, T('purs_releva', { a: antes, b: L.nombre }), P.foam);
+    hablar('PUMA', T('purs_releva', { a: antes, b: L.nombre }));
     beep(520, 0.12, 'square', 0.05, 620);
     duck(0.3);
   }
@@ -333,7 +334,7 @@ function banda(dt) {
   if (!dentro && (L.enBanda || L.avisoT <= 0)) {
     L.avisoT = PURS_AVISO_T;
     const lejos = L.d > L.hi;
-    popup(W / 2, 46, lejos ? T('purs_lejos', { c: L.nombre }) : T('purs_cerca'), P.warn);
+    hablar('PUMA', lejos ? T('purs_lejos', { c: pilotName(alMando(run)) }) : T('purs_cerca'));
     beep(lejos ? 520 : 380, 0.1, 'square', 0.045, lejos ? 620 : 300);
     if (L.enBanda) duck(0.25);
   }

@@ -17,6 +17,7 @@
 
 import { plane, cfg, cam, stats, CTRL_BANK } from '../core/state.js';
 import { run } from '../core/run.js';
+import { cartel } from '../core/cartel.js';
 import { inp, mouse, pointer } from '../core/input.js';
 import { obstacles, bullets, missiles, wake, gusts, streaks, parts, prune } from '../core/world.js';
 import { proj, popup } from '../core/fx.js';
@@ -631,15 +632,15 @@ export function flightSystem(dt, deps) {
     for (let i = 0; i < Math.min(n, room); i++) {
       // se abren en abanico: con varios misiles a la vez, salir del carril no alcanza
       const spread = n === 1 ? (Math.random() * 24 - 12) : (i / (n - 1) - 0.5) * (18 + n * 7);
-      missiles.push({ x: plane.x + spread, y: plane.y + 4, z: 230 + i * 6, done: false });
+      // el del RADAR es el SEA DART (28/9): el de largo alcance, el que castiga subir
+      missiles.push({ tipo: 'dart', x: plane.x + spread, y: plane.y + 4, z: 230 + i * 6, done: false });
     }
     // AVISO. La primera vez, el mensaje completo — el jugador tiene que entender POR QUE lo
     // atacan. De ahi en mas, solo el tamaño de la oleada, que es el dato que cambia.
     if (!run.radarSeen) {
       run.radarSeen = true;
-      popup(W / 2, 46, T('radarLock'), P.warn);
-      popup(W / 2, 56, T('radarLock2'), P.accent);
-    } else if (n > 1) popup(W / 2, 46, T('radarWave', { n }), P.warn);
+      cartel(T('radarLock'), P.warn, T('radarLock2'));
+    } else if (n > 1) cartel(T('radarWave', { n }), P.warn);
     run.shake = Math.min(7, run.shake + 1 + n * 0.5);
     beep(880, 0.12, 'square', 0.06); setTimeout(() => beep(880, 0.12, 'square', 0.06), 160);
   }

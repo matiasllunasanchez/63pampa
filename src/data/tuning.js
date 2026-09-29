@@ -391,7 +391,7 @@ export const GUN_RESET = 0.3;
 // SALUD DE LOS ENEMIGOS. El globo cae de un tiro (es un globo); las aeronaves aguantan una rafaga
 // corta, para que valga la pena sostener el disparo y apuntar. Los que tienen mas de 1 muestran
 // barra de vida (ver drawHpBar en render/world.js).
-export const ENEMY_HP = { balloon: 1, helo: 4, jet: 3, aa: 3, bldg: 4, lcu: 2, tent: 1, radar: 2, aatruck: 3, tower: 3, depot: 3, flag: 1 };
+export const ENEMY_HP = { balloon: 1, helo: 4, jet: 3, aa: 3, bldg: 4, lcu: 2, tent: 1, radar: 2, aatruck: 3, tower: 3, depot: 3, flag: 1, manpad: 1 };
 
 // TERRENO COSTA: desembarco britanico. Tierra a la IZQUIERDA, mar a la DERECHA; la linea de costa
 // esta en SHORE_X (coordenada x de mundo). Los soldados corren de derecha a izquierda (bajan de
@@ -417,6 +417,12 @@ export const PORT_AMP = 13;
 export const PORT_FOAM = 7;   // ancho de la rompiente, mar adentro de la orilla
 // ANTIAEREO: banda de profundidad donde dispara y cadencia entre misiles
 export const AA_Z0 = 80, AA_Z1 = 215, AA_CD = 2.6;
+// EL MISIL AL HOMBRO (Blowpipe; pedido del autor 28/9): infanteria en un pozo con un tubo. Tira UNO
+// y recarga largo — un tubo es un tiro —, y dispara mas cerca que el Rapier: la banda arranca mas
+// adentro porque el tirador tiene que VER el avion. Cae con un tiro y se le pasa por encima.
+export const MANPAD_Z0 = 70, MANPAD_Z1 = 180, MANPAD_CD = 4.2;
+// cuantos de los antiaereos que siembra el mapa son un equipo de misil al hombro en vez del Rapier
+export const MANPAD_P = 0.4;
 
 // ACANTILADOS / IRREGULARIDADES DEL TERRENO — solo en TIERRA y COSTA (en mar abierto no hay
 // donde apoyarlos). Son ROCA: NO llevan `hp`, asi que las balas los ignoran y no se destruyen.
@@ -1808,3 +1814,23 @@ export const CAZA_SOBRE_TERRENO = 2.5;
 /** Rescate: a cuantos km de la costa propia (el continente) o de la Gran Malvina (el blanco) un
  *  piloto eyectado todavia llega a que lo saquen del agua. Mas lejos, el frio del Atlantico Sur. */
 export const EYEC_KM_CASA = 150, EYEC_KM_ISLA = 60;
+
+// ---------------- EL SEA WOLF (pedido del autor 28/9) ----------------
+// El misil de defensa CERCANA de las fragatas: corto alcance, muy rapido, guiado desde el buque y
+// hecho para blancos bajos — volar pegado al agua NO lo evita (eso sirve contra el Sea Dart, el del
+// radar). Se esquiva de otras tres formas: un QUIEBRE LATERAL en el ultimo instante (en su tramo
+// ciego ya no corrige), la VENTANA DE RECARGA despues de cada salva, o CAMBIANDO DE PILOTO con misiles
+// en el aire: persiguen al que se retira, y el los esquiva. Vive alrededor del buque de la suelta
+// (systems/seawolf.js), con su propia zona dibujada (render/seawolf.js).
+export const SW_ALCANCE = 600;    // la zona: a cuanto del buque (unidades de profundidad) empieza
+export const SW_FIJA_T = 1.0;     // el aviso: segundos que el buque tarda en engancharte antes de tirar
+// TIRO CONTINUO (28/9: "mas cantidad, con un pequeño delay para esquivarlos, sin cadencia entre
+// disparos, porque la rapidez con la que me acerco es grande"): despues del enganche sale uno cada
+// SW_SALVA_DT hasta que salis de la zona. Se esquiva ZIGZAGUEANDO: un quiebre por misil.
+export const SW_SALVA = 99;       // misiles por salva (99 = no para mientras estes adentro)
+export const SW_SALVA_DT = 0.6;   // …con esta separacion: el pequeño respiro para quebrar entre uno y otro
+export const SW_RECARGA = 2.0;    // la ventana despues de cada salva (con tiro continuo no llega a usarse)
+export const SW_VEL = 230;        // lo que se le suma a la velocidad del mundo: es MUY rapido
+export const SW_CIEGO = 95;       // a cuanto del avion deja de corregir: el tramo donde el quiebre sirve
+export const SW_LAT = 70;         // tope de su velocidad lateral y vertical mientras corrige
+export const SW_ALTO = 9;         // de que altura sale (la cubierta del buque)

@@ -25,7 +25,8 @@ import { P } from '../data/palette.js';
 import { PZ } from '../render/ctx.js';
 import { topeCarril } from '../core/zigzag.js';
 import { ZZ_PARED_TALUD, ZZ_LADERA_RAFAGA, ZZ_LADERA_RAF_CD, AVES_PISO, AVES_TECHO } from '../data/tuning.js';
-import { AA_Z0, AA_Z1, AA_CD, shoreAt, SAND_W, SPAWN_X,
+import { DEFENSAS } from '../data/defensas.js';
+import { AA_Z0, AA_Z1, AA_CD, MANPAD_Z0, MANPAD_Z1, MANPAD_CD, shoreAt, SAND_W, SPAWN_X,
   OLA_SPD, OLA_FACE_KILL, OLA_SCRAPE_FRAC, OLA_ROMP_Z } from '../data/tuning.js';
 // LAS OLAS USAN EL ROCE QUE YA EXISTE, no uno nuevo (SPEC_AGUA_OLAS §6.1): `scrapeLimit` es la
 // misma funcion que mide el margen contra el agua en el vuelo normal, y por eso `npm run feel`
@@ -96,6 +97,13 @@ export function collisionSystem(dt) {
     if (stepDestruccion(o, dt)) continue;   // escombro, secundarias y humo: FX puro, no colisiona
     // BOMBA cayendo: baja hasta el suelo y ahi se convierte en HONGO (obstaculo de nube)
     if (o.type === 'bomb' && o.y > 0) {
+      // EL SEA SLUG pica: acelera al bajar y cruza de costado. Deja su estela (el camino, en el marco
+      // del mundo) para que el render la dibuje entera.
+      if (o.slug) {
+        o.vy += 13 * dt; o.x += (o.vx || 0) * dt;
+        o.trT = (o.trT || 0) - dt;
+        if (o.trT <= 0) { o.trT = 0.035; o.tr.push({ x: o.x, y: o.y, dz: 0 }); if (o.tr.length > 60) o.tr.shift(); }
+      }
       o.y -= o.vy * dt;
       if (o.y <= 0.4) {
         o.y = 0; o.type = 'boom'; o.boomT = 0;
@@ -345,6 +353,16 @@ export function collisionSystem(dt) {
         beep(760, 0.1, 'square', 0.05);
       }
     }
+    // MISIL AL HOMBRO: uno por vez, con recarga larga, y solo dentro de su banda (mas corta que la
+    // del Rapier: el tirador tiene que ver el avion)
+    if (o.type === 'manpad' && !o.done && o.hp > 0 && o.z > MANPAD_Z0 && o.z < MANPAD_Z1) {
+      o.cd -= dt;
+      if (o.cd <= 0) {
+        o.cd = MANPAD_CD; o.fireT = run.t;
+        missiles.push({ x: o.x, y: (o.gy || 0) + 1.6, z: o.z, done: false });
+        beep(520, 0.12, 'sawtooth', 0.04, 900);
+      }
+    }
     // TRINCHERA argentina (decorado): tira rafagas y cada tanto ABATE un britanico cercano.
     // No colisiona ni recibe balas — es el otro lado del desembarco, contando la batalla.
     if (o.type === 'trench' && o.z > 25 && o.z < 215) {
@@ -391,18 +409,44 @@ export function collisionSystem(dt) {
 
   // misiles
   for (const m of missiles) {
+    if (m.tipo === 'wolf') {
+      // EL SEA WOLF (systems/seawolf.js): mucho mas rapido, y guiado de verdad — copia TU velocidad
+      // lateral y vertical y corrige hacia donde estas, asi que moverse parejo o volar bajo no lo
+      // saca. Pero en su TRAMO CIEGO (los ultimos SW_CIEGO) ya no corrige: sigue con lo que traia.
+      // Un quiebre ahi —cambiar de lado de golpe— lo hace pasar de largo; uno antes, lo corrige.
+      // …y el SEA CAT (data/defensas.js) es el mismo misil con otros numeros: lento, corrige perezoso
+      // y no lee tu velocidad (lo guia un operador a mano), asi que un quiebre temprano ya lo saca.
+      const D = DEFENSAS[m.def] || DEFENSAS.wolf;
+      m.z -= (run.spd + D.vel) * dt;
+      if (m.senuelo) {
+        // SEÑUELO (cambio de piloto): ya se fue detras del que se retiro (game.js, en la cinematica);
+        // sigue de largo con lo que traia y no te puede pegar
+        m.done = true;
+      } else if (m.z - PZ > D.ciego) {
+        m.vx = Math.max(-D.lat, Math.min(D.lat, (D.copia ? plane.vx : 0) + (plane.x - m.x) * D.gana));
+        m.vy = Math.max(-D.lat, Math.min(D.lat, (D.copia ? plane.vy || 0 : 0) + (plane.y - m.y) * D.gana));
+      }
+      m.x += (m.vx || 0) * dt; m.y += (m.vy || 0) * dt;
+      // SU ESTELA (28/9: "los trayectos tienen que ser visibles"): el camino recorrido, punto a punto
+      // en el marco del mundo (la profundidad corre con el mundo), para que el render dibuje la raya
+      // entera desde el buque
+      m.trT = (m.trT || 0) - dt;
+      if (m.trT <= 0) { m.trT = 0.04; (m.tr || (m.tr = [])).push({ x: m.x, y: m.y, z: m.z }); if (m.tr.length > 60) m.tr.shift(); }
+      for (const p of m.tr || []) p.z -= run.spd * dt;
+    } else {
     // trazadora (fuego de tierra): mas rapida y casi recta — se esquiva moviendose, no girando
     const trk = m.tracer ? 0.7 : 1;
     m.z -= (run.spd + (m.tracer ? 150 : 85)) * dt;
     m.x += Math.max(-20, Math.min(20, (plane.x - m.x) * 2.4 * trk)) * dt;
     m.y += Math.max(-14, Math.min(14, (plane.y - m.y) * 2.0 * trk)) * dt;
+    }
     if (!m.done && m.z <= PZ + 1.2) {
       m.done = true;
       if (Math.abs(plane.x - m.x) < (mvTight(run.mv) ? 1.6 : 3) && Math.abs(plane.y - m.y) < (mvTight(run.mv) ? 1.2 : 2.2)) {
         // TE PEGO. Con el modelo de vida por integridad puede que lo aguantes — pero aguantarlo
         // NO es esquivarlo: el `continue` es lo que impide que el impacto te pague los 75 puntos
         // y el cartel de ESQUIVASTE, que estaban abajo porque antes no habia forma de sobrevivir.
-        const c = m.tracer ? 'death_gunfire' : 'death_missile';
+        const c = m.tracer ? 'death_gunfire' : m.tipo === 'wolf' ? (m.def === 'cat' ? 'death_seacat' : 'death_seawolf') : m.tipo === 'dart' ? 'death_seadart' : 'death_missile';
         if (dmg.takeHit(c)) return { death: c };
         continue;
       }
@@ -436,7 +480,7 @@ export function collisionSystem(dt) {
         o.hp--; o.hitT = run.t; b.z = 999; stats.hits++;   // hitT: lo lee el fogonazo del render
         if (o.hp <= 0) {
           const pts = o.type === 'helo' ? 300 : o.type === 'jet' ? 250
-            : o.type === 'aa' || o.type === 'aatruck' ? 350 : o.type === 'radar' ? 300
+            : o.type === 'aa' || o.type === 'aatruck' ? 350 : o.type === 'manpad' ? 220 : o.type === 'radar' ? 300
             : o.type === 'tower' ? 300 : o.type === 'depot' ? 280 : o.type === 'flag' ? 120
             : o.type === 'bldg' ? 300 : o.type === 'lcu' ? 250 : 150;   // el AA es el blanco prioritario
           run.score += pts; stats.air++;

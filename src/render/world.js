@@ -1110,6 +1110,59 @@ export function drawObstacle(o) {
   ctx.beginPath();
 }
 
+/** EL SEA SLUG en picada (28/9): un misil GRANDE y claro — cuerpo largo blanco con la franja
+ *  oscura, alas en cruz a media altura, aletas de cola — orientado segun hacia donde va, con el
+ *  motor encendido atras y una estela larga de humo que cuenta de donde vino. La sombra en el suelo
+ *  (donde va a pegar) crece a medida que baja: es el aviso. */
+function drawSeaSlug(o, k) {
+  const sh = proj(o.gx != null ? o.gx : o.x, 0, o.z);
+  const cerca = Math.max(0, 1 - o.y / 70);
+  ctx.globalAlpha = 0.18 + cerca * 0.35;
+  px(sh.x - (1.8 + cerca * 2) * k, sh.y - 0.3 * k, (3.6 + cerca * 4) * k, Math.max(1, 0.6 * k), '#0d100a');
+  ctx.globalAlpha = 1;
+  // LA ESTELA: el camino recorrido, humo gris que se abre y se apaga hacia atras
+  // (una LINEA continua hasta el misil y, encima, los copos que se van abriendo: de a puntos sueltos
+  // se leia como una rafaga, no como el rastro de una sola cosa)
+  const tr = o.tr || [];
+  if (tr.length) {
+    const pts = tr.map(p => proj(p.x, p.y, o.z)).concat([proj(o.x, o.y, o.z)]);
+    ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#c9c6bc';
+    for (let i = 1; i < pts.length; i++) {
+      const u = i / pts.length;
+      ctx.globalAlpha = 0.1 + u * 0.45; ctx.lineWidth = Math.max(1, k * (0.35 + (1 - u) * 1.2));
+      ctx.beginPath(); ctx.moveTo(pts[i - 1].x, pts[i - 1].y); ctx.lineTo(pts[i].x, pts[i].y); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  for (let i = 0; i < tr.length; i += 2) {
+    const p = tr[i], u = i / Math.max(1, tr.length), q = proj(p.x, p.y, o.z);
+    const r = Math.max(1.5, k * (0.6 + (1 - u) * 1.8));
+    ctx.globalAlpha = 0.08 + u * 0.22;
+    px(q.x - r / 2, q.y - r / 2, r, r, '#8d918c');
+  }
+  ctx.globalAlpha = 1;
+  // EL CUERPO, orientado con su velocidad EN PANTALLA: de la cola (atras-arriba) a la nariz
+  const n = proj(o.x, o.y, o.z), c = proj(o.x - (o.vx || 0) * 0.14, o.y + o.vy * 0.14, o.z);
+  let dx = n.x - c.x, dy = n.y - c.y; const L0 = Math.hypot(dx, dy) || 1;
+  const L = Math.max(4.5 * k, 6); dx = dx / L0 * L; dy = dy / L0 * L;
+  const tx = n.x - dx, ty = n.y - dy, nx = -dy / L, ny = dx / L;      // cola y normal
+  const grosor = Math.max(2, 0.75 * k);
+  ctx.save(); ctx.lineCap = 'butt';
+  const linea = (x0, y0, x1, y1, w, col) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); };
+  // el motor: fuego y halo detras de la cola
+  const fl = 0.7 + Math.sin(run.t * 40 + o.ph) * 0.3;
+  ctx.globalAlpha = 0.55; px(tx - dx * 0.12 - grosor * fl, ty - dy * 0.12 - grosor * fl, grosor * 2 * fl, grosor * 2 * fl, '#f07c22');
+  ctx.globalAlpha = 1; px(tx - grosor * 0.5, ty - grosor * 0.5, grosor, grosor, '#fff2c8');
+  // las alas en cruz, a media altura, y las aletas de cola (se ven como dos rayas de canto)
+  const ala = (f, a) => { const mx = tx + dx * f, my = ty + dy * f; linea(mx - nx * a, my - ny * a, mx + nx * a, my + ny * a, Math.max(1, 0.35 * k), '#9aa3a6'); };
+  ala(0.5, grosor * 2.2); ala(0.08, grosor * 1.6);
+  // el cuerpo: blanco, con una franja oscura y la nariz mas oscura
+  linea(tx, ty, n.x, n.y, grosor, '#e6e8e4');
+  linea(tx + dx * 0.3, ty + dy * 0.3, tx + dx * 0.38, ty + dy * 0.38, grosor, '#3b4146');
+  linea(n.x - dx * 0.14, n.y - dy * 0.14, n.x, n.y, grosor * 0.8, '#5a6166');
+  ctx.restore();
+}
+
 function dibujarObstaculo(o) {
   const k = F / o.z;
   if (o.type === 'mast') {
@@ -1381,6 +1434,25 @@ function dibujarObstaculo(o) {
       px(base.x + 2.1 * k, base.y - 3.9 * k, 0.8 * k, 0.7 * k, '#fff2c8');
     }
     drawHpBar(base.x, base.y - 5.4 * k, k, o);
+  } else if (o.type === 'manpad') {
+    // EQUIPO DE MISIL AL HOMBRO: dos soldados en un pozo con red, el tubo apuntando alto. Siguen al
+    // avion (2 poses). El fogonazo sale de la BOCA DE ATRAS del tubo: el contrafuego del lanzamiento.
+    const base = proj(o.x, o.gy || 0, o.z);
+    if (enemyArt.ready('manpad')) {
+      const col = ((run.t * 0.9 + o.ph) | 0) % 2;
+      const fl = !!(o.hitT && run.t - o.hitT < 0.09);
+      enemyArt.drawFrame(ctx, 'manpad', col, 0, base.x, { bottomY: base.y }, k, false, fl);
+    } else {
+      px(base.x - 1.8 * k, base.y - 0.5 * k, 3.6 * k, 0.5 * k, '#4a4d33');           // la red
+      px(base.x - 0.4 * k, base.y - 1.5 * k, 0.8 * k, 1.0 * k, '#6d6f48');           // el tirador
+      px(base.x - 0.3 * k, base.y - 1.8 * k, 0.6 * k, 0.35 * k, '#7f8256');          // casco
+      px(base.x - 0.9 * k, base.y - 1.7 * k, 1.8 * k, Math.max(1, 0.25 * k), '#23271c');  // el tubo
+    }
+    if (o.fireT && run.t - o.fireT < 0.15) {
+      px(base.x + 0.6 * k, base.y - 1.9 * k, 1.2 * k, 0.9 * k, '#d8d2bd');           // el contrafuego
+      px(base.x - 1.1 * k, base.y - 2.6 * k, 0.9 * k, 0.8 * k, P.accent);            // la salida del misil
+    }
+    drawHpBar(base.x, base.y - 3.2 * k, k, o);
   } else if (o.type === 'bldg') {
     // PUESTO britanico: paredes chapa, techo, puerta y ventanas. Los armados tienen un soldado
     // asomado que tira rafagas (fogonazo en la ventana con o.fireT).
@@ -1557,6 +1629,8 @@ function dibujarObstaculo(o) {
       px(base.x + 1.9 * k, base.y - 4.0 * k, 0.7 * k, 0.6 * k, '#fff2c8');
     }
     drawHpBar(base.x, base.y - 5.6 * k, k, o);
+  } else if (o.type === 'bomb' && o.slug) {
+    drawSeaSlug(o, k);
   } else if (o.type === 'bomb') {
     // BOMBA cayendo: sombra que crece en el suelo (aviso) + cuerpo con aletas oscilando
     const sh2 = proj(o.x, o.gy || 0, o.z);

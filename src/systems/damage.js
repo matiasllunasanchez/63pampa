@@ -11,6 +11,7 @@
 // Si devuelve false el avion sigue volando, mas averiado. Los sistemas no saben en que modo esta
 // el juego ni cuanto aguanta: eso lo decide este modulo con cfg.dmgMode.
 import { run } from '../core/run.js';
+import { cartel } from '../core/cartel.js';
 import { cfg, stats } from '../core/state.js';
 import { popup } from '../core/fx.js';
 import { T } from '../core/i18n.js';
@@ -73,7 +74,7 @@ export function takeHit(cause) {
   const t = tierOf(run.integ), t0 = tierOf(before);
   // el popup grande sale SOLO al bajar de escalon: un numero cada vez que te rozan es ruido,
   // pero "te quedaste sin turbo" es una noticia y tiene que leerse
-  if (t.id !== t0.id) popup(W / 2, 50, T('dmg_' + t.id), P.warn, true);
+  if (t.id !== t0.id) cartel(T('dmg_' + t.id), P.warn);
   else popup(W / 2, 50, '-' + r.dmg + '%', P.warn);
   return false;
 }
@@ -99,7 +100,7 @@ export function roce(dt, lim) {
     const n = Math.floor(before / 20) - Math.floor(a.integ / 20);
     if (n > 0) tickDesgaste(n);
     const t = tierOf(a.integ), t0 = tierOf(before);
-    if (t.id !== t0.id) popup(W / 2, 50, T('dmg_' + t.id), P.warn, true);
+    if (t.id !== t0.id) cartel(T('dmg_' + t.id), P.warn);
   }
   return false;
 }

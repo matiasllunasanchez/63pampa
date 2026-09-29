@@ -1212,3 +1212,36 @@ hundieron al Coventry.
 
 **A confirmar:** composición típica de las escuadrillas de A-4B en los ataques a buques, separación
 entre aviones en la pasada, y el detalle del ataque del 25/5.
+
+---
+
+## La pantalla de derrota: los datos por causa (28/9/2026)
+
+La pantalla de "perdiste" cuenta un dato de la guerra que tiene que ver con la causa
+(`src/data/derrotas.js`, textos `hist_*` en `src/data/strings.js`). Están escritos genéricos a
+propósito — sin fechas, nombres ni cifras exactas — pero conviene que un historiador los confirme:
+
+1. **Bombas sin explotar / sin impacto directo:** "muchas bombas no explotaban o no daban directo en
+   el blanco: los aviones no tenían sistemas modernos de puntería y todo dependía de la habilidad del
+   piloto" (texto del autor). ¿Es justo para A-4 y Dagger/Mirage? ¿Qué mira usaban?
+2. **Espoleta sin armar** al soltar tan bajo: ¿correcto como causa principal de las bombas que no
+   estallaron?
+3. **"Menos de 15 metros sobre el mar"** y **"más de 800 km por hora"** en vuelo rasante.
+4. **Defensas:** el Sea Dart (largo alcance, flojo contra aviones pegados al agua) como el misil
+   que obligaba a volar bajo; el Sea Wolf y el Sea Cat como defensa cercana (el Sea Wolf, bueno
+   contra blancos bajos). Misiles portátiles y cañones de los buques; ¿los pilotos zigzagueaban al
+   escapar de la artillería de popa?
+5. **Sea Harrier con Sidewinder "de última generación"** (AIM-9L) como mayor amenaza.
+6. **Bases a unos 700 km** y KC-130 reabasteciendo para que los aviones pudieran volver.
+7. **Supervivencia en el agua** del Atlántico Sur: "minutos" para ser rescatado.
+8. **El Sea Wolf** (28/9, mecánica nueva en la suelta): corto alcance, guiado desde la fragata,
+   bueno contra blancos bajos; se dispara en salvas de dos. Su punto débil en el juego es la
+   saturación — el 25/5 el sistema de la *Broadsword* no resolvió a dos A-4 que se cruzaban y no
+   disparó —. ¿Correcto? ¿Qué buques lo llevaban (solo Type 22: *Broadsword*, *Brilliant*)? El
+   juego lo pone en todo buque objetivo de la suelta, que no es fiel.
+9. **El Sea Slug** (28/9): el autor lo imagina como el arma de las "bombas que caen en vertical"
+   del pasillo (hoy genéricas: `death_bomb`, "Te alcanzó una bomba en el aire"). Lo que sabemos:
+   misil antiaéreo de largo alcance de los destructores clase County (*Glamorgan*, *Antrim*), poco
+   útil contra aviones rasantes; en Malvinas se usó en modo superficie contra tierra (el *Glamorgan*
+   contra el aeropuerto de Puerto Argentino). El fuego naval contra tierra fue sobre todo de cañones
+   de 4,5". ¿Qué representa mejor esas bombas: cañoneo naval o Sea Slug?

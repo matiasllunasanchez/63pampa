@@ -9,6 +9,7 @@
 // otras pantallas (render/screens.js, render/menus.js).
 
 import { ctx, px, DW as W, DH as H, PZ, U, avisoFont } from './ctx.js';
+import { cartelAhora } from '../core/cartel.js';
 import { plane, cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { shown as dmgShown } from '../systems/damage.js';
@@ -18,7 +19,7 @@ import { effects } from '../core/damage.js';
 import { T } from '../core/i18n.js';
 import { AGU, ancho as anchoSector, pos as posInd, ventana as ventanaAgu,
   concentracion as concSeg } from '../core/aguante.js';
-import { P, RADAR_VERDE, RADAR_OPACO, RADAR_GRIS } from '../data/palette.js';
+import { P, RADAR_VERDE, RADAR_OPACO, RADAR_GRIS, colDefensa } from '../data/palette.js';
 import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP, BANDA_ALT, PERF_ALT, ZONAS_GASTO } from '../data/tuning.js';
 import { machNow } from '../core/mach.js';
 import { alMando, filaOk, filaDeVidas } from '../core/squad.js';
@@ -978,6 +979,34 @@ function vidrioRoto(x, y) {
   // no tapan nada: se COMEN el borde.
   for (const [dx, dy, w, h] of MELLAS) px(x + dx, y + dy, w, h, '#0a0e11');
 }
+/** EL CARTEL DEL PASILLO (core/cartel.js, 28/9): los avisos —ENTRANDO EN RADAR, TANQUES FUERA…— en
+ *  una caja con el estilo de la cinta del objetivo, centrada debajo de ella. Baja desde ATRAS de la
+ *  cinta (se dibuja antes, asi que la cinta la tapa mientras entra y sale), se queda y vuelve. El
+ *  borde va en el color del aviso: rojo es peligro, ambar es informacion. */
+const CARTEL_Y = 13;   // cuanto baja: justo debajo de la cinta (11 de alto) con aire
+function drawCartel() {
+  const a = cartelAhora(performance.now() / 1000);
+  if (!a || a.k <= 0) return;
+  // la letra de los avisos no tiene raya (—): quedaba un hueco en «EN RADAR — AL AGUA»
+  // …y SIN SIGNOS (28/9, el autor): la caja ya dice que es un aviso — los "! … !" y "¡…!" y los
+  // "~ … ~" de cuando eran textos sueltos sobraban adentro.
+  const limpio = t => t && String(t).replace(/[!¡~]/g, '').replace(/\s*—\s*/g, ' - ').replace(/\s+/g, ' ').trim();
+  const { k } = a, c = { ...a.c, txt: limpio(a.c.txt), sub: limpio(a.c.sub) }, col = c.col || P.ink;
+  ctx.font = avisoFont(8);
+  const w1 = ctx.measureText(c.txt).width;
+  ctx.font = F_VAL;
+  const w2 = c.sub ? ctx.measureText(c.sub).width : 0;
+  const w = Math.round(Math.max(w1, w2) + 12), h = c.sub ? 20 : 12;
+  const x = Math.round(W / 2 - w / 2), y = Math.round(MARGEN + CARTEL_Y * k - (1 - k) * h);
+  plate(x, y, w, h);
+  bordePlaca(x, y, w, h, col);
+  ctx.textAlign = 'center';
+  ctx.font = avisoFont(8); ctx.fillStyle = col;
+  ctx.fillText(c.txt, W / 2, y + 9);
+  if (c.sub) { ctx.font = F_VAL; ctx.fillStyle = P.foam; ctx.fillText(c.sub, W / 2, y + 17); }
+  ctx.textAlign = 'left';
+}
+
 function bordePlaca(x, y, w, h, col) {
   ctx.fillStyle = col;
   ctx.fillRect(x, y, w, 1); ctx.fillRect(x, y + h - 1, w, 1);
@@ -1499,7 +1528,11 @@ function drawRadar(x, y, w, visto) {
   plate(x0, y, w, RADAR_H);
   ctx.font = avisoFont(9); ctx.textAlign = 'left';
   ctx.fillStyle = visto ? (Math.sin(run.t * 14) > 0 ? P.warn : '#7d2f1e') : P.dim;
-  ctx.fillText('RADAR', x0 + 3, y + 9);                   // la misma palabra en los dos idiomas
+  // …Y CUANDO DISPARA, DICE QUE (28/9): el misil del radar es el SEA DART. Mientras el misil del
+  // final de la escala esta prendido, la placa lo nombra en vez de decir RADAR.
+  const dispara = salioMisil();
+  const lbl = dispara ? 'SEA DART' : 'RADAR';             // las mismas palabras en los dos idiomas
+  ctx.fillText(lbl, x0 + 3, y + 9);
   // EL MISIL AL FINAL DE LA BARRA (12/9). La barra decia cuanto le falta al radar para fijarte,
   // pero no QUE pasa cuando llega: ahora el final de la escala lo dice con el dibujo de la cosa
   // que sale. Es el mismo criterio que la marca de emergencia al final del reloj de la Chancha —
@@ -1509,11 +1542,40 @@ function drawRadar(x, y, w, visto) {
   // el piso de 10 es por la placa angosta: con un solo avion en el escuadron la columna mide el
   // minimo, y ahi la palabra y el misil se comen casi todo el renglon. Antes que una barra de 1 px,
   // que el misil se le monte un poco encima: sigue siendo el final de la escala.
-  const bx = x0 + 3 + Math.ceil(ctx.measureText('RADAR').width) + 4, bw = Math.max(10, mx - 2 - bx);
+  const bx = x0 + 3 + Math.ceil(ctx.measureText(lbl).width) + 4, bw = Math.max(10, mx - 2 - bx);
   px(bx, y + 4, bw, 3, BAL_APAGADA);
   px(bx, y + 4, Math.round(bw * Math.max(0, Math.min(1, run.detection))), 3, P.warn);
   if (run.radarWave > 0) px(bx + Math.round(bw * Math.min(0.55, 0.35 + run.radarWave * 0.03)), y + 3, 1, 5, P.accent);
-  misilChico(mx, y + 5, salioMisil());   // centrado en la fila de la barra
+  misilChico(mx, y + 5, dispara);   // centrado en la fila de la barra
+  return y + RADAR_H + AIRE;
+}
+
+/** LA PLACA DEL SEA WOLF (28/9), debajo de la del radar y con su mismo lenguaje, pero celeste: entra
+ *  cuando el avion esta adentro de la zona del buque y se va al salir. La barra es su CICLO —se llena
+ *  mientras te engancha (titilando: ya viene) y se vacia en la recarga (la ventana para entrar)— y el
+ *  misil del final se prende con la salva. `sw` es la foto de systems/seawolf.js, por el snapshot. */
+let swK = 0, swT = -1;
+function drawSeaWolf(x, y, w, sw) {
+  const dt = swT < 0 || run.t < swT ? 0 : Math.min(0.1, run.t - swT);
+  swT = run.t;
+  swK = sw && sw.dentro ? Math.min(1, swK + dt / RADAR_ENTRA) : Math.max(0, swK - dt / RADAR_ENTRA);
+  if (swK <= 0) return y;
+  const e = 1 - Math.pow(1 - swK, 3);
+  const x0 = Math.round(x - (x + w + 2) * (1 - e));
+  plate(x0, y, w, RADAR_H);
+  const fase = sw ? sw.fase : 'fuera', fija = fase === 'fija', salva = fase === 'salva';
+  // el nombre y el color de ESTA defensa (Sea Cat naranja, Sea Wolf celeste)
+  const SEAWOLF_COL = colDefensa(sw && sw.tipo), nombre = (sw && sw.nombre) || 'SEA WOLF';
+  ctx.font = avisoFont(9); ctx.textAlign = 'left';
+  ctx.fillStyle = fija || salva ? (Math.sin(run.t * 18) > 0 ? SEAWOLF_COL.punta : SEAWOLF_COL.lejos) : SEAWOLF_COL.cerca;
+  ctx.fillText(nombre, x0 + 3, y + 9);
+  const mx = x0 + w - 3 - MSL_ICO_W;
+  const bx = x0 + 3 + Math.ceil(ctx.measureText(nombre).width) + 4, bw = Math.max(10, mx - 2 - bx);
+  const lleno = fija ? sw.u : salva ? 1 : fase === 'recarga' ? 1 - sw.u : 0;
+  px(bx, y + 4, bw, 3, BAL_APAGADA);
+  px(bx, y + 4, Math.round(bw * lleno), 3, fija || salva ? SEAWOLF_COL.punta : SEAWOLF_COL.lejos);
+  const vivo = salva && Math.sin(run.t * 14) > 0;
+  iconoEn(mx + (MSL_ICO_W - 1) / 2, y + 5, 'misil', vivo ? '#ffffff' : '#2e3c45', vivo ? SEAWOLF_COL.escape : '#2e3c45');
   return y + RADAR_H + AIRE;
 }
 
@@ -1584,6 +1646,8 @@ export function drawHUD(h) {
   }
   // …Y DEBAJO, LA CARGA DEL RADAR, que entra y sale sola (ver drawRadar).
   ty = drawRadar(MARGEN, ty, anchoSquad(), plane.y > (h.radarAlt === undefined ? RADAR_ALT : h.radarAlt));
+  // …Y LA DEL SEA WOLF, cuando estas adentro de la zona del buque
+  ty = drawSeaWolf(MARGEN, ty, anchoSquad(), h.seawolf);
   // PERSECUCION no tiene objetivo NI record: la cinta no tiene contra que medir, asi que el
   // kilometraje se queda aca como contador abierto — la forma que le toca cuando no hay meta.
   if (objectiveDist <= 0 && gameMode !== 'survival') { drawOdo(MARGEN, ty); ty += 12 + AIRE; }
@@ -1595,6 +1659,8 @@ export function drawHUD(h) {
   // comparable — termina cuando llegas al buque, no cuando te matan, o sea que el puntaje lo decide
   // la distancia y no como volaste. POR LA PATRIA es el unico donde una corrida es una corrida:
   // infinita, sin objetivo, y se acaba cuando te caes.
+  // EL CARTEL (core/cartel.js) va ANTES de la cinta: baja desde atras de ella y vuelve a esconderse ahi
+  drawCartel();
   if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind, h.vuelta, h.sueltaYa, h.ruta);
   else if (gameMode === 'survival') drawCorridaBar(best);
 

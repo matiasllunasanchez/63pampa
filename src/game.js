@@ -64,6 +64,8 @@ import * as cine from './systems/cine.js';
 import { drawCine } from './render/cine.js';
 import * as muni from './render/municion.js';
 import * as blancoSys from './systems/blanco.js';
+import * as seawolfSys from './systems/seawolf.js';
+import { drawZonaSW, drawEngancheSW, drawMisilSW, drawHumoSW } from './render/seawolf.js';
 import * as escapeSys from './systems/escape.js';
 import { drawTirosPopa, drawCap } from './render/escape.js';
 import { BL as BL_BLANCO, FASE_ESCAPE, SENAS, CIELO_VUELTA, CAP } from './data/blanco.js';
@@ -136,6 +138,10 @@ import * as estrellas from './systems/estrellas.js';
 import { piso as pisoEstrella } from './core/estrellas.js';
 import { EST_MAX } from './data/tuning.js';
 import { SENALES, SENAL_GLOBO_T, SENAL_ARMADA_T, SENAS_COMP } from './data/senales.js';
+import { cartel, tickCarteles, limpiarCarteles } from './core/cartel.js';
+import { CARA_DE_RADIO } from './core/voz.js';
+import { derrota } from './data/derrotas.js';
+import { defensaDe } from './data/defensas.js';
 import { pose as poseSenal } from './core/senales.js';
 import * as zigzag from './systems/zigzag.js';
 import * as zigzagCore from './core/zigzag.js';
@@ -480,13 +486,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *
      *  Vive aca y no en core/radioVN.js a proposito: ese modulo no tiene por que saber quien es
      *  Condor. Los ids validos los lista `python3 tools/hacer_prompts_retratos.py --ids`. */
-    const CARA_DE_RADIO = {
-      CONDOR: 'condor_radio', 'CÓNDOR': 'condor_radio',
-      PUMA: 'puma_neutro', GITANO: 'gitano_neutro', VASCO: 'vasco_neutro',
-      PICHON: 'pichon_neutro', 'PICHÓN': 'pichon_neutro',
-      TERO: 'tero_casco', ESTEBAN: 'tero_casco',   // en vuelo van con el casco puesto
-      'EL TURCO': 'turco_neutro', TURCO: 'turco_neutro',
-    };
+    // (la tabla de caras vive en core/voz.js: la comparten los sistemas que hablan por radio)
 
     /** EL PEDIDO (tecla 5). Es una funcion con nombre —y no el cuerpo de la accion— para que la
      *  sonda del fixture apriete EXACTAMENTE lo mismo que aprieta el jugador: si la sonda
@@ -526,7 +526,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // poderes del juego, que suben. Es la version en un sonido de lo que el §7 pide — este no
       // grita, y se tiene que notar antes de que el jugador entienda por que.
       if (r === 'on') { beep(220, 0.14, 'square', 0.05, -90); rasanteRadio(); return; }
-      beep(520, 0.09, 'square', 0.05, 160); popup(W / 2, 58, T('rasOff'), P.dim);
+      beep(520, 0.09, 'square', 0.05, 160); cartel(T('rasOff'), P.dim);
     }
 
     function pedirChancha() {
@@ -548,7 +548,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // solo lo dice, con un cartel y no por radio — adentro rige el silencio. Antes se la podia
       // "pedir" y te cobraba una estrella por triangularte la radio (V5).
       if (conRuta && cfg.fuelOn && rutaSys.enAlcance()) {
-        beep(150, 0.09, 'square', 0.05); popup(W / 2, 70, T('ch_radar'), P.warn);
+        beep(150, 0.09, 'square', 0.05); cartel(T('ch_radar'), P.warn);
         return;
       }
       const r = chancha.pedir({
@@ -607,7 +607,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function soltarTanquesAccion() {
       if (S.state !== 'play' || !naftaSys.activo()) return;
       const r = naftaSys.soltarTanques();
-      if (!r) { beep(150, 0.09, 'square', 0.05); popup(W / 2, 46, T('tanques_nada'), P.dim); return; }
+      if (!r) { beep(150, 0.09, 'square', 0.05); cartel(T('tanques_nada'), P.dim); return; }
       // (la carga se usa aca abajo, en tanquesSalen; despues vuelve a cero para el proximo par)
       const tirados = r.soltados.reduce((s, k) => s + k, 0);
       // …Y CAEN (N6): cada uno es un proyectil con la balistica de la bomba, desde su pilon — el par
@@ -618,8 +618,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       run.cargaTanque = 0;
       beep(240, 0.12, 'square', 0.06, 90);
       run.shake = Math.max(run.shake, 1.5);
-      popup(W / 2, 46, T(r.pilon === 'ala' ? 'tanques_fuera' : 'tanque_fuera'), P.accent);
-      if (tirados >= 1) popup(W / 2, 56, T('tanques_nafta', { km: Math.round(tirados) }), P.warn);
+      cartel(T(r.pilon === 'ala' ? 'tanques_fuera' : 'tanque_fuera'), P.accent, tirados >= 1 ? T('tanques_nafta', { km: Math.round(tirados) }) : null);
     }
 
     /** Las señales de LA CHANCHA vueltas cosas que se ven y se oyen. Vive en el orquestador —y no
@@ -645,11 +644,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       radioCh(k, { n: squad.pilotName(alMando(run)) });
       let vista = false;
       try { vista = localStorage.getItem(RAS_LECCION_KEY) === '1'; } catch (e) { }
-      if (!vista) {
-        try { localStorage.setItem(RAS_LECCION_KEY, '1'); } catch (e) { }
-        // un renglon MAS ABAJO que la radio: son dos voces distintas y en la misma fila se pisan.
-        popup(W / 2, 58, T('rasLeccion'), P.accent, true);
-      }
+      // (LA LECCION se fue del cartel, 28/9: "la leccion de rasante no va ahi". Queda la marca de
+      // vista por si vuelve en otra forma.)
+      if (!vista) { try { localStorage.setItem(RAS_LECCION_KEY, '1'); } catch (e) { } }
     }
 
     // LA CHANCHA DE LA IDA ya te lleno (la que viene sola y espera, ver el bloque del radar en update)
@@ -1461,6 +1458,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  briefing, y ahi hay que volver a armarlo con la carga nueva. */
     function prepararCarga() {
       const hayBlanco = runClimax() === 'suelta' && objectiveDist > 0;
+      // LA DEFENSA CERCANA DEL BUQUE (data/defensas.js): Sea Cat en las primeras misiones de la
+      // campaña, Sea Wolf en las ultimas; la mision lo puede decir. `?defensa=cat|wolf` la pisa.
+      {
+        let q = null; try { q = new URLSearchParams(location.search).get('defensa'); } catch (e) { }
+        seawolfSys.poner(!hayBlanco ? null : q || defensaDe(curMission(), MISSIONS.indexOf(curMission())));
+      }
       if (hayBlanco) cfg.carga = conBombaCentral(cfg.carga);
       // …y la mision dice cuantas pasadas da (una, salvo que pida mas) y si despues del buque hay
       // vuelta: con vuelta, pegarle abre EL ESCAPE en vez del negro (PLAN_VUELTA_REAL V0).
@@ -2002,6 +2005,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // estrellas del derribado se miden contra esto. Es una estimacion — perilla para calibrar jugando.
     const SURVIVAL_PAR = 6000;
     let deathCause, deathT, deadStars = 0, factIdx = 0, best = 0;
+    let deathPorque = { que: null, hist: null };
+    let ultimaCausa = null;   // POR QUE PERDISTE (data/derrotas.js): claves de strings
     // ilustracion de fin sorteada al terminar (no por cuadro: si no, parpadearia)
     let deadBg = 0, winBg = 0;
     // FONDO GENERAL del lobby/seleccion: arranca SIEMPRE en ppal01.jpg (indice 0) y a los
@@ -2206,6 +2211,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       chancha.resetChancha();   // el poder es de la CORRIDA: se pide una vez y sobrevive al relevo
       chIdaLlena = false;       // la de la ida (la que viene sola) todavia no te lleno
       rasante.resetRasante();   // la barra del RASANTE es de la corrida: se gana volando bajo
+      seawolfSys.reset();
+      limpiarCarteles();
       // …y lo mismo, sin parametro, en IDA Y VUELTA: es el banco de pruebas del pasillo largo
       // (pruebas_misiones.js t15) y el poder es una de las cosas que se van a probar ahi. Pedido
       // del autor, 12/9. PROVISORIO — se saca junto con `rasanteProbe` al cerrar el plan.
@@ -2344,13 +2351,20 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function pedirCambio() {
       if (!cfg.cambioPiloto || S.state !== 'play' || cfg.devcam) return;
       const sh = runClimax() === 'suelta' ? blancoSys.hud() : null;
+      // …SALVO CON MISILES SEA WOLF EN EL AIRE (28/9): ahi cambiar de piloto ES la jugada — los
+      // misiles se van detras del que se retira y el los esquiva (ver el relevo, abajo)
+      const senuelo = seawolfSys.enElAire();
       const trabado = !squad.puedeCambiar() || pmissiles.length > 0
-        || (sh && sh.enAtaque) || blancoSys.negro() > 0 || blancoSys.perdida()
+        || (sh && sh.enAtaque && !senuelo) || blancoSys.negro() > 0 || blancoSys.perdida()
         || charla.hablando() || dlgPausa;
       if (trabado) { beep(140, 0.09, 'square', 0.05); return; }
       // LA CINEMATICA DEL CAMBIO (systems/squad.js, startCambio): la del relevo, con el que se va sano
       // y sin descontar nada. El titular y quien asume los dice su propia sobreimpresion.
-      if (squad.startCambio()) setState('relevo');
+      if (squad.startCambio()) {
+        // EL SEÑUELO: todo lo guiado que venia hacia vos pasa a perseguir al que se retira
+        for (const m of missiles) if (!m.tracer && !m.done) m.senuelo = true;
+        setState('relevo');
+      }
     }
 
     initInput(cv, {
@@ -2519,7 +2533,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (S.state === 'pasada') { pasada.toggleView(); return; }
         camMode = (camMode + 1) % CAM_ZOOMS.length;
         beep(440 + camMode * 120, 0.05, 'square', 0.04);
-        if (S.state === 'play' || S.state === 'takeoff') popup(W / 2, 58, camMode ? 'CAM ' + CAM_ZOOMS[camMode] + '×' : 'CAM 1×', P.accent);
+        if (S.state === 'play' || S.state === 'takeoff') cartel(camMode ? 'CAM ' + CAM_ZOOMS[camMode] + '×' : 'CAM 1×', P.accent);
       },
       // música: tecla 1 / L3 = anterior, tecla 2 / R3 = siguiente. Solo en los modos donde el
       // reproductor está activo — el motor ignora el cambio en historia/lobby.
@@ -2535,7 +2549,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         const r = tempo.toggle(nivelMomentum());
         if (r === 'empty') { beep(140, 0.09, 'square', 0.05); return; }
         beep(r === 'on' ? 330 : 520, 0.09, 'square', 0.05, r === 'on' ? -160 : 160);   // slide abajo = el tiempo cae
-        popup(W / 2, 58, r === 'on' ? T('tempoOn') : T('tempoOff'), P.accent);
+        cartel(r === 'on' ? T('tempoOn') : T('tempoOff'), P.accent);
       },
       chanchaCall: () => pedirChancha(),
       soltarTanques: () => soltarTanquesAccion(),
@@ -2577,13 +2591,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         landDown = !landDown;
         if (landDown && landGearT < 0) landGearT = landT;
         beep(landDown ? 330 : 260, 0.1, 'square', 0.05);
-        popup(W / 2, 64, T(landDown ? 'land_gear_down' : 'land_gear_up'), P.dim);
+        cartel(T(landDown ? 'land_gear_down' : 'land_gear_up'), P.dim);
       },
       // MIRA fija/movil: la alterna CAPS LOCK (teclado) y tambien la fila de OPCIONES. El aviso
       // en pantalla es el mismo por las dos vias — si no, tocar la tecla no daba ninguna señal.
       aimChanged: free => {
         beep(free ? 440 : 660, 0.05, 'square', 0.05);
-        if (S.state === 'play' || S.state === 'momentum') popup(W / 2, 58, free ? T('aimFree') : T('aimFixed'), P.accent);
+        if (S.state === 'play' || S.state === 'momentum') cartel(free ? T('aimFree') : T('aimFixed'), P.accent);
         try { localStorage.setItem('rasante_mira_modo', cfg.aim); } catch (e) { }
       },
       // △ del mando: DESACTIVADO (pedido del autor, 14/9/2026). Daba vuelta el eje Y de TODO el
@@ -2598,7 +2612,42 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     });
 
 
-    const clouds = Array.from({ length: 6 }, () => ({ x: Math.random() * W, y: 8 + Math.random() * 34, w: 24 + Math.random() * 40 }));
+    // LAS NUBES DEL CIELO (28/9: "mejorar las nubes con la misma tecnica" que el humo del Sea Wolf):
+    // cada nube es un racimo de COPOS superpuestos —una base chata y copetes que suben—, en dos tonos:
+    // la panza en sombra y el lomo tomando la luz del horizonte. Antes eran dos rectangulos grises.
+    // La forma se sortea UNA vez por nube (`copos`) y se conserva: la nube deriva, no cambia.
+    const clouds = Array.from({ length: 6 }, () => {
+      const w = 28 + Math.random() * 44;
+      const n = 5 + ((Math.random() * 4) | 0);
+      return { x: Math.random() * W, y: 10 + Math.random() * 32, w, alfa: 0.55 + Math.random() * 0.3,
+        copos: Array.from({ length: n }, (_, i) => {
+          const u = n === 1 ? 0.5 : i / (n - 1), alto = Math.sin(u * Math.PI);   // mas alto en el medio
+          return { dx: (u - 0.5) * w * 0.85 + (Math.random() - 0.5) * 4, r: 3 + alto * (3 + Math.random() * 4), dy: -alto * (2 + Math.random() * 3) };
+        }) };
+    });
+    /** Una nube del cielo en `cx`: primero la SOMBRA (todos los copos corridos abajo, en el tono
+     *  oscuro), despues el CUERPO y encima el LOMO en la luz del horizonte. Pixelada: circulos
+     *  rellenos redondeados a la grilla. */
+    function drawNube(cx, c) {
+      // LOS TONOS SALEN DEL CIELO DE AHORA, aclarados: una nube es vapor iluminado, no humo. Con el
+      // gris fijo de antes, sobre un atardecer pintado de nubes blancas se leian como manchas sucias.
+      const sk = theme.sky, sombra = mixNube(sk.skyMid || P.cloud, '#b8bcc0', 0.45);
+      const luz = mixNube(sk.horizon || P.cloud, '#ffffff', 0.55);
+      const circ = (x, y, r) => { ctx.beginPath(); ctx.arc(Math.round(x), Math.round(y), Math.max(1, Math.round(r)), 0, Math.PI * 2); ctx.fill(); };
+      ctx.save();
+      ctx.globalAlpha = c.alfa * 0.8; ctx.fillStyle = sombra;
+      for (const k of c.copos) circ(cx + k.dx, c.y + k.dy + 1.5, k.r);
+      px(cx - c.w * 0.45, c.y, c.w * 0.9, 3, sombra);                     // la base chata, en sombra
+      ctx.globalAlpha = c.alfa; ctx.fillStyle = mixNube(sombra, luz, 0.5);
+      for (const k of c.copos) circ(cx + k.dx, c.y + k.dy, k.r * 0.9);
+      ctx.globalAlpha = c.alfa * 0.7; ctx.fillStyle = luz;
+      for (const k of c.copos) circ(cx + k.dx - k.r * 0.2, c.y + k.dy - k.r * 0.35, k.r * 0.5);   // el lomo que toma la luz
+      ctx.restore();
+    }
+    const mixNube = (a, b, t) => {
+      const h = s => [1, 3, 5].map(i => parseInt(s.slice(i, i + 2), 16)), A = h(a), B = h(b);
+      return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
+    };
     const isles = Array.from({ length: 4 }, (_, i) => ({ x: i * 90 + Math.random() * 50, w: 40 + Math.random() * 70, h: 5 + Math.random() * 10, seed: (Math.random() * 9999) | 0 }));
 
     // ---------- FONDOS por clima (assets/world/terrain_back) ----------
@@ -2757,7 +2806,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       run.shake = Math.min(8, run.shake + 1 + exceso.vy * 6);
       if (n === 4) { sfxOne('lv1'); beep(880, 0.16, 'square', 0.06, 1200); }
       else { boom(0.05 + exceso.vy * 0.1, false); beep(220, 0.18, 'sawtooth', 0.05, 110); }
-      popup(W / 2, 54, T(n === 4 ? 'land_perfecto' : n >= 2 ? 'land_ok' : 'land_mal'), n >= 2 ? P.accent : P.warn);
+      cartel(T(n === 4 ? 'land_perfecto' : n >= 2 ? 'land_ok' : 'land_mal'), n >= 2 ? P.accent : P.warn);
       engineOff();
       // …y recien ahora el recuento. La pantalla de resultado aparece DESPUES de aterrizar, que es
       // el pedido literal del §8: sin esto la mision se sentia ganada en el buque y la vuelta
@@ -3048,12 +3097,15 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (runClimax() === 'suelta') return (blanco.ala === 'bomba' && blanco.alaN > 0) || (blanco.centroN > 0 && !blancoSys.bloqueada());
       return run.msl > 0;
     }
-    /** COMO SALEN LOS TANQUES del pilon `pilon` (`n` tanques): cada uno desde su pilon, sin eyector. */
+    /** COMO SALEN LOS TANQUES del pilon `pilon` (`n` tanques): cada uno desde su pilon, CON LA MISMA
+     *  BALISTICA DE LA BOMBA (28/9, el autor: "tiene que haber una sola trayectoria que se reutiliza
+     *  para la bomba o para los tanques"). Antes se desprendian sin eyector y caian mas cerca: la mira
+     *  dibujaba tres curvas. Ahora caen donde cae la bomba, a TQ_ALA_X de cada lado — adentro del aro. */
     function tanquesSalen(pilon, n) {
       const carga = run.cargaTanque * BOMBA_CARGA_VZ;   // la granada tambien: mantener los estira
       return Array.from({ length: n }, (_, i) => ({
         x: plane.x + (pilon === 'ala' ? (i === 0 ? -TQ_ALA_X : TQ_ALA_X) : 0), y: plane.y - BOMBA_PANZA, z: PZ + 4,
-        vz: run.spd * (1 + BOMBA_ENVION) + carga, extra: carga, vy: plane.vy, vx: plane.vx * BOMBA_DERIVA,
+        vz: run.spd * (1 + BOMBA_ENVION) + BOMBA_EYECTOR + carga, extra: carga, vy: plane.vy, vx: plane.vx * BOMBA_DERIVA,
       }));
     }
     function tryLaunchMissile() {
@@ -3069,7 +3121,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // no sale lejos de el. Si lo unico que queda es esa, la tecla no suelta y se dice por que.
       if (runClimax() === 'suelta') {
         if (!blancoSys.tomarBomba()) {
-          if (blancoSys.bloqueada()) { popup(W / 2, 60, T('bl_bloqueada'), P.warn); beep(180, 0.08, 'square', 0.04); run.mslCd = 0.5; }
+          if (blancoSys.bloqueada()) { cartel(T('bl_bloqueada'), P.warn); beep(180, 0.08, 'square', 0.04); run.mslCd = 0.5; }
           return;
         }
       } else if (run.msl <= 0) return;
@@ -3181,6 +3233,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
     function die(cause) {
       setState('dead'); deathCause = cause; deathT = 0;
+      // …y POR QUE: la bomba errada se explica por su ultimo veredicto sobre el buque
+      deathPorque = derrota(cause, blancoSys.estado().res);
       // …la pantalla ya esta en negro (el de la pasada errada): sube directo, sin "show del destrozo"
       if (erroSuelta(cause)) deathT = DEATH_REVEAL;
       // POR LA PATRIA: el derribado ES el fin del "nivel" → estrellas por puntaje. En campaña/ciclo
@@ -3208,6 +3262,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // Tener el embudo unico es lo que hace confiable la ventana de gracia: durante 'relevo' ni
     // flight ni collision corren, asi que no existe camino que pueda matar dos veces seguidas.
     function onDeath(cause) {
+      ultimaCausa = cause;   // la sonda __seawolf la muestra (un relevo no pasa por die)
       // LA MISION QUE NO DEJA CAER EL AVION (`sinMuerte` de data/missions.js, hoy el tutorial). Solo
       // donde se juega LA mision —campaña o selector—, nunca en POR LA PATRIA ni en los modos sueltos.
       const sm = (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? curMission().sinMuerte : null;
@@ -3342,7 +3397,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // vida mas adelante para poder NOMBRARLO antes de que empiece la cinematica
         const next = detras(run);
         // (tras errar la suelta lo dice el titular de la cinematica: ver drawRelevo)
-        if (sig.spent !== 'suelta') popup(W / 2, 62, T('pasada_turn', { c: squad.pilotName(next) }), P.accent);
+        if (sig.spent !== 'suelta') cartel(T('pasada_turn', { c: squad.pilotName(next) }), P.accent);
         squad.startRelevo(sig.spent === 'seca' ? 'death_fuel' : (sig.why || 'pasada_why'), sig.spent);
         setState('relevo');
       } else die(sig.spent === 'seca' ? 'death_fuel' : (sig.dieWhy || 'death_pasada'));
@@ -3483,8 +3538,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // lluvia: el pasillo y los tres climax cortan el cuadro con `return`, y el escudo es de todos.
       damage.tickEscudo(dt);
       if (S.state === 'play') {
-        if (tookEntry() && !fogWarned) { fogWarned = true; popup(W / 2, 46, T('fogIn'), P.warn); popup(W / 2, 56, T('fogIn2'), P.accent); sfxOne('waveFly'); }
-        if (takeExit()) { fogWarned = false; popup(W / 2, 46, T('fogOut'), P.foam); }
+        if (tookEntry() && !fogWarned) { fogWarned = true; cartel(T('fogIn'), P.warn); sfxOne('waveFly'); }
+        // (la salida no se anuncia: el jugador ve que la niebla se fue — 28/9)
+        if (takeExit()) fogWarned = false;
       }
 
       // despegue automático desde Puerto Argentino: el control llega a los 3 s
@@ -3736,6 +3792,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             run.dist += off - rr.off; rr.off = off;
             blancoSys.alOdometro();
           }
+          // EL SEÑUELO DEL CAMBIO DE PILOTO (28/9): los misiles que venian hacia vos persiguen al que
+          // se retira y pasan de largo — el los esquiva. Collision no corre en la cinematica, asi que
+          // se mueven aca.
+          if (rr && rr.cambio) {
+            const fp = squad.fallenPos(rr);
+            for (const m of missiles) if (m.senuelo) {
+              m.z -= (run.spd * 0.4 + 160) * dt;
+              m.x += (fp.x - m.x) * Math.min(1, dt * 4); m.y += (fp.y - m.y) * Math.min(1, dt * 4);
+            }
+            for (let i = missiles.length - 1; i >= 0; i--) if (missiles[i].senuelo && missiles[i].z <= 2) missiles.splice(i, 1);
+          }
           if (squad.updateRelevo(dt) === 'done') {
             // lo que cruzo el plano del avion DURANTE la cinematica ya paso de largo: sin esto,
             // collision lo veria "sin resolver" en el primer frame y podria matar en el handoff
@@ -3768,21 +3835,21 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             const retomaClimax = runClimax() !== 'suelta' && !run.climaxHecho && objectiveDist > 0 && run.dist >= objectiveDist;
             if (retomaClimax && runClimax() === 'pulso' && pulso.available()) {
               pulso.enter(false); fadeT = 0.55;
-              if (run.lives === 1) popup(W / 2, 54, T('sq_last'), P.warn);
+              if (run.lives === 1) cartel(T('sq_last'), P.warn);
               beep(980, 0.14, 'square', 0.06);
               flags.startReq = false; flags.anyPress = false;
               return;
             }
             if (retomaClimax && runClimax() === 'pasada' && pasada.available()) {
               pasada.enter(false); fadeT = 0.55;
-              if (run.lives === 1) popup(W / 2, 54, T('sq_last'), P.warn);
+              if (run.lives === 1) cartel(T('sq_last'), P.warn);
               beep(980, 0.14, 'square', 0.06);
               flags.startReq = false; flags.anyPress = false;
               return;
             }
             if (retomaClimax && arena.available()) {
               arena.enter(); fadeT = 0.55;
-              if (run.lives === 1) popup(W / 2, 54, T('sq_last'), P.warn);
+              if (run.lives === 1) cartel(T('sq_last'), P.warn);
               beep(980, 0.14, 'square', 0.06);
               flags.startReq = false; flags.anyPress = false;
               return;
@@ -3790,7 +3857,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             setState('play');
             // SIN «TENES EL MANDO» (12/9): el HUD que vuelve ya lo dice. El ULTIMO AVION se queda:
             // eso no es obvio, y sube al renglon que dejo libre el otro.
-            if (run.lives === 1) popup(W / 2, 54, T('sq_last'), P.warn);
+            if (run.lives === 1) cartel(T('sq_last'), P.warn);
             beep(980, 0.14, 'square', 0.06);
             run.shake = Math.min(6, run.shake + 1);
           }
@@ -3966,7 +4033,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (rutaSys.hay()) {
         const alc = rutaSys.enAlcance();
         if (alcanceAntes !== null && alc !== alcanceAntes) {
-          popup(W / 2, 46, T(alc ? 'radarEntra' : 'radarSale'), alc ? P.warn : P.accent);
+          cartel(T(alc ? 'radarEntra' : 'radarSale'), alc ? P.warn : P.accent);
           // …y en la IDA un compañero te lo marca con el avion: abajo, y sin radio (SENAS_COMP.radar)
           if (alc && run.dist < objectiveDist) senaCompanero('radar', 1);
           // …y EL ESCANEO: la linea que barre la pantalla y la red que respira (world.ESC_*)
@@ -4077,7 +4144,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         }
         // LA VIBORA (V3): el unico aviso es un cartel y no una radio — rige el silencio. Dice QUE
         // hacer, una vez; como se juega lo cuentan los piques que se van cerrando.
-        if (es === 'vibora') popup(W / 2, 60, T('esc_vibora'), P.warn);
+        if (es === 'vibora') cartel(T('esc_vibora'), P.warn);
         // LA FUGA (V4): el tanque perforado pierde por segundo, vueles como vueles
         if (escapeSys.fugaOn() && cfg.fuelOn) run.fuel = Math.max(0, run.fuel - BL_BLANCO.FUGA_PCT_S * dt);
         stepCap(dt);
@@ -4098,6 +4165,15 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // vuelta sembrando desde el primer metro, en la prueba te chocabas en plena seña (medido)
         && !senasActivas())
         spawnSystem(dt, objectiveDist);  // aparicion de obstaculos y soldados (nunca corta el frame)
+      // EL SEA WOLF (systems/seawolf.js): la defensa cercana del buque de la suelta. Fija, tira su
+      // salva y recarga mientras estes adentro de su zona. No tira con el negro ni la camara lenta del
+      // final, ni en el escape (ahi te busca la artilleria de popa).
+      {
+        const sws = seawolfSys.step(dt, { pz: PZ, plane,
+          activo: runClimax() === 'suelta' && !cfg.devcam && blancoSys.negro() <= 0 && blancoSys.slow() === 1 && !blancoSys.escapando() });
+        if (sws === 'fija') { beep(1400, 0.05, 'square', 0.04); setTimeout(() => beep(1400, 0.05, 'square', 0.04), 110); }
+        if (sws === 'tira') { beep(980, 0.09, 'sawtooth', 0.05, -300); run.shake = Math.min(6, run.shake + 1); }
+      }
       const hit = collisionSystem(dt);   // impactos → devuelve { death } si un choque fue fatal
       if (hit) { onDeath(hit.death); return; }
       // LA COLA (PLAN_HARRIERS_PERSECUCION, PLAN A). Corre SOLO acá, en el PASILLO: el §6.6 pide
@@ -4159,7 +4235,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EL GUION SE LLEVO AL LIDER (LA REGLA DEL AMIGO, systems/persec.js). No es tu muerte: es la
       // de el, y el pasillo sigue. Se anuncia y nada mas — si el guion quiere que ademas te cueste
       // algo, es el guion el que lo escribe.
-      if (ps && ps.guion) { popup(W / 2, 46, T(ps.guion), P.warn, true); duck(0.5); }
+      if (ps && ps.guion) { cartel(T(ps.guion), P.warn); duck(0.5); }
       // SONDAS DE LA COLA (QUITAR). Las dos son inertes con el juego normal: `czAlto` en null no
       // toca una linea del vuelo y `czMv` en null deja `run.mv` como estaba. La pirueta se inyecta
       // POR UN CUADRO y se restaura enseguida, para que probar el combo que fuerza el sobrepaso no
@@ -4344,8 +4420,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       }
       // nubes
       for (const c of clouds) {
-        const cx = ((c.x - cam.x * 2.2 - run.t * 2 - zfx) % (W + 80) + W + 80) % (W + 80) - 40;
-        px(cx, c.y, c.w, 3, P.cloud); px(cx + 5, c.y - 2, c.w * 0.5, 2, P.cloud);
+        const cx = ((c.x - cam.x * 2.2 - run.t * 2 - zfx) % (W + 120) + W + 120) % (W + 120) - 60;
+        drawNube(cx, c);
       }
       // COLINAS en el horizonte: SIEMPRE (el parallax de estas montañas es la vida del fondo;
       // la imagen de clima queda detras como relleno). Cresta QUEBRADA sorteada por seed y en
@@ -4404,7 +4480,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // render de la cabina, lo decide el sistema, y los junta aca — que es el trabajo de este
       // archivo. Se pide ANTES de dibujar porque el buque va primero: es mundo.
       // LA SUELTA: el buque es MUNDO (render/blanco.js) y reemplaza al de la aproximacion pintada.
-      if (runClimax() === 'suelta') drawBlanco();
+      if (runClimax() === 'suelta') { drawBlanco(); const sws = seawolfSys.snapshot(PZ); drawHumoSW(sws); drawZonaSW(sws, PZ); }
       else world.drawApproachBarge(objectiveDist, objectiveShip,
         S.state === 'pulso' ? pulso.shipFx(pulsoRender.ventana(cine.state(), run.t)) : null,
         runClimax() === 'pasada' && S.state !== 'pulso');
@@ -4470,6 +4546,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // misiles (y trazadoras del fuego de tierra: mas chicas, amarillas y con cola corta)
       for (const m of missiles) {
         if (m.z <= 3) continue;
+        if (m.tipo === 'wolf') { drawMisilSW(m); continue; }   // el Sea Wolf, blanco y celeste (render/seawolf.js)
         const s = proj(m.x, m.y, m.z), k = s.k;
         if (m.tracer) {
           const s2 = proj(m.x, m.y, m.z + 5);
@@ -4498,6 +4575,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           px(s.x - 0.3 * k, s.y - 0.3 * k, Math.max(1, 0.6 * k), Math.max(1, 0.6 * k), '#fff6d8');  // escape
         }
       }
+      // EL ENGANCHE DEL SEA WOLF: la linea del buque a tu avion mientras te fija (render/seawolf.js)
+      if (S.state === 'play' && runClimax() === 'suelta') drawEngancheSW(seawolfSys.snapshot(PZ), plane, PZ);
       // balas (trazadoras hacia el horizonte) — ver render/ammo.js
       for (const b of bullets) {
         if (b.z >= 240) continue;
@@ -4629,12 +4708,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // SIEMPRE que se mantiene la tecla, haya o no bomba para soltar (27/9: "mantener la tecla de
         // bomba debe dibujar la caida"): sirve para calibrar antes de tenerla. A media luz si ahora no
         // saldria —la del buque bloqueada, o sin bombas—; al soltar, tryLaunchMissile dice por que.
-        if (run.apuntaBomba) drawTrayectoria(trayectoria(bombaSale(), run.spd, suelo), hayBomba());
-        if (run.apuntaTanque && naftaSys.activo() && run.tanque) {
-          const pil = proximoPilon(run.tanque);
-          if (pil) for (const b of tanquesSalen(pil, run.tanque.pilones.filter(p => p === pil).length))
-            drawTrayectoria(trayectoria(b, run.spd, suelo), true);
-        }
+        // UNA SOLA CURVA (28/9): la bomba y los tanques caen con la misma balistica, asi que la misma
+        // trayectoria sirve para los dos. Con la mira puesta es la de la bomba; con [B] sola, la de
+        // los tanques (desde el centro). Entera si algo de eso saldria; a media luz si no.
+        const hayTanque = naftaSys.activo() && !!run.tanque && !!proximoPilon(run.tanque);
+        if (run.apuntaBomba) drawTrayectoria(trayectoria(bombaSale(), run.spd, suelo), hayBomba() || (run.apuntaTanque && hayTanque));
+        else if (run.apuntaTanque) drawTrayectoria(trayectoria(Object.assign(tanquesSalen('centro', 1)[0], { x: plane.x }), run.spd, suelo), hayTanque);
         if (hzW) ctx.restore();
       }
       // EL HUD DE LA SUELTA: cabina, nivelado, sobre el avion (la foto la arma el sistema).
@@ -4775,6 +4854,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         fueraRadar: S.state === 'play' && !rutaSys.enAlcance(),
         // LA CITA DE IDA DISPONIBLE (planificada, sin barra): el reloj de la Chancha se pone en LISTA
         // en la ida, fuera del radar, mientras quede alguna de las que permite la mision
+        // EL SEA WOLF: su placa, debajo de la del radar (solo en la suelta)
+        seawolf: runClimax() === 'suelta' && S.state === 'play' ? seawolfSys.snapshot(PZ) : null,
         chIdaLista: rutaSys.hay() && cfg.fuelOn && S.state === 'play' && run.dist <= objectiveDist && !rutaSys.enAlcance()
           && !chancha.snapshot() && chancha.usosDe('ida') < ((curMission() && curMission().chanchaVeces) ? curMission().chanchaVeces.ida || 0 : 1),
         // LA NAFTA EN KM (PLAN_NAFTA_ALCANCE N3), solo con ruta: lo que queda, la capacidad, y el
@@ -4882,7 +4963,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (S.state === 'dead' && deathT > DEATH_REVEAL)
         // `best` en CERO fuera de POR LA PATRIA: es el mismo criterio que ya usa `stars` —lo que no
         // es de este modo llega apagado y el render no tiene que saber en que modo esta.
-        screens.drawDead({ score: run.score, best: gameMode === 'survival' ? best : 0, deathCause, deathT, factIdx, t: run.t,
+        screens.drawDead({ score: run.score, best: gameMode === 'survival' ? best : 0, deathCause, deathT, factIdx, t: run.t, porque: deathPorque,
           reveal: Math.min(1, (deathT - DEATH_REVEAL) / 0.35), stars: deadStars, awardT: deathT - DEATH_REVEAL - 0.2, bg: deadBg,
           out: squad.rosterActive(),   // campaña: la escuadrilla quedo fuera de combate, no "derribado"
           // …y el PULSO tiene su propio titular: no te derribaron, erraste la mano. La mision se
@@ -5197,6 +5278,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // de que se murio la corrida — el rescate de la eyeccion se decide en la causa.
       window.__fuelset = v => { run.fuel = Math.max(0, Math.min(100, +v)); return run.fuel; };
       window.__vidas = v => { if (v !== undefined) run.lives = +v; return run.lives; };   // el ultimo avion: __vidas(1)
+      // EL SEA WOLF: la foto del ciclo y los misiles en el aire (x, y, z, si ya son señuelo)
+      window.__seawolf = () => JSON.stringify(Object.assign(seawolfSys.snapshot(PZ), { causa: ultimaCausa, misiles: missiles.filter(m => m.tipo === 'wolf').map(m => ({ id: m.id, x: +m.x.toFixed(1), y: +m.y.toFixed(1), z: Math.round(m.z), s: !!m.senuelo })) }));
       // UN COMPAÑERO TE HACE SEÑAS (data/senales.js SENAS_COMP): __senacomp('alerta', 'costado', -1)
       window.__senacomp = (id, sale, lado) => { const ok = senaCompanero(id, lado); if (ok && sale) senas.sale = sale; return ok; };
       window.__deathdbg = () => deathCause;
@@ -5925,6 +6008,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // como es adentro del rAF, se lleva puesto el loop entero. Nadie lo veia porque en la portada
       // no suena el motor; aparecio al entrar DERECHO al pasillo con la sonda de la PASADA.
       const raw = Math.max(0, Math.min(0.033, (now - last) / 1000)); last = now;
+      tickCarteles(now / 1000);   // los carteles del pasillo (core/cartel.js): reloj de pared
       // PAUSA: se saltea update() ENTERO (y el reloj del momentum, y el del telon) — el mundo
       // queda clavado tal cual se ve. draw() sigue corriendo: dibuja el frame congelado y el
       // menu encima. pauseT es el unico reloj vivo (parpadeos del overlay).
@@ -6018,7 +6102,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         inPlay: S.state === 'play' && !cfg.devcam
           && gameMode !== 'arena' && gameMode !== 'pasadas',
       });
-      if (rs.sig === 'end') { beep(300, 0.12, 'square', 0.05, 90); popup(W / 2, 58, T('rasOff'), P.dim); }
+      if (rs.sig === 'end') { beep(300, 0.12, 'square', 0.05, 90); cartel(T('rasOff'), P.dim); }
       // EL LATIDO (RF-05): grave, corto y por debajo de todo. El modulo dice CUANDO —lleva el
       // reloj del poder— y el orquestador pone el sonido, como con cualquier otra señal.
       if (rs.latido) beep(RAS_LAT_HZ, 0.09, 'sine', 0.075, -14);

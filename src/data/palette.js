@@ -15,6 +15,14 @@ export const P = {
 // de alerta (render/hud.js) y la red de radar en el aire (render/world.js)— y si no comparten el
 // color el jugador no los une.
 export const RADAR_VERDE = { aro: '#3a9448', onda: '#2c6e37', lejos: '#1f5c2a', cerca: '#3fae52', punta: '#8dff9a', eje: '#5fd06e' };
+// EL SEA WOLF (28/9): su zona, su placa y su misil van en un CELESTE HIELO — otro instrumento que el
+// verde del radar (el Sea Dart). Mismo lenguaje (malla, barrido, latido), distinto color: se leen
+// como dos amenazas distintas de un vistazo.
+export const SEAWOLF_COL = { lejos: '#2f6f8c', cerca: '#5fc8ef', punta: '#bff0ff', escape: '#8fe3ff' };
+// …y el SEA CAT (28/9) en NARANJA OXIDO: el viejo, el de la primera generacion.
+export const SEACAT_COL = { lejos: '#7a3f1e', cerca: '#e0783a', punta: '#ffc48f', escape: '#ffae5c' };
+/** El color de la defensa `tipo` ('cat' | 'wolf'). */
+export const colDefensa = tipo => (tipo === 'cat' ? SEACAT_COL : SEAWOLF_COL);
 export const RADAR_OPACO = { aro: '#26502e', onda: '#1d3d23', lejos: '#183a1f', cerca: '#23532b', punta: '#35703f', eje: '#2e5e36' };
 // …Y EL GRIS DE FUERA DEL ALCANCE (pedido del autor, 25/9/2026). El radar verde significa "el
 // sistema esta vivo y te puede ver"; fuera del horizonte de radar no hay sistema ninguno, y decir
