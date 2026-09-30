@@ -190,6 +190,11 @@ export const PERFIL = {
   t21: [0.081, 0.094, 0.121, 0.101, 0.154, 0.174, 0.336, 0.174, 0.174, 0.168, 0.168, 0.101, 0.107, 0.101, 0.067, 0.060, 0.060, 0.060, 0.054, 0.054],
   t42: [0.089, 0.089, 0.104, 0.115, 0.083, 0.099, 0.141, 0.313, 0.313, 0.266, 0.099, 0.141, 0.141, 0.104, 0.099, 0.099, 0.099, 0.057, 0.057, 0.052],
   log: [0.126, 0.126, 0.230, 0.225, 0.209, 0.209, 0.162, 0.162, 0.220, 0.204, 0.199, 0.152, 0.152, 0.152, 0.204, 0.215, 0.304, 0.257, 0.094, 0.089],
+  // LAS ESTRUCTURAS EN TIERRA (data/estructuras.js). No salen de una hoja horneada sino al reves: el
+  // dibujo se hace DESDE este perfil, columna por columna, asi que la bomba pega donde se ve edificio
+  // por construccion. Las alturas son sobre el piso de la explanada, no sobre el agua.
+  // base: cerco · tanques · barracas · deposito · HANGAR y TORRE al centro · barracas · antena · tanque
+  base: [0.05, 0.10, 0.10, 0.05, 0.07, 0.07, 0.11, 0.15, 0.16, 0.16, 0.30, 0.30, 0.15, 0.11, 0.07, 0.07, 0.26, 0.05, 0.10, 0.05],
 };
 
 /** LA FASE DEL ESCAPE: lo que rige mientras escapas, tapando a las fases de la vuelta (que recien

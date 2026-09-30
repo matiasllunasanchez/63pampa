@@ -48,6 +48,12 @@ export const PRUEBAS = [
     // aterrizaje— con 6 km por tramo en vez de 29. Arranca en la pista por lo mismo que la otra.
     setup: a => a.mision('t17', { start: 'runway' }),
   },
+  {
+    id: 'idayvueltaSmall2', titulo: 'IDA Y VUELTA SMALL 2', desc: 'Una BASE en tierra de blanco, y toda la geografia · ~4 min',
+    // t18: la t17 con una estructura de blanco (la BASE COSTERA, en su explanada) y la geografia
+    // escrita en km — niebla, costa, isla, acantilados con puente, y en la vuelta canal y farallon.
+    setup: a => a.mision('t18', { start: 'runway' }),
+  },
 
   { head: 'prSecClimax' },
   {

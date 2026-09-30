@@ -132,7 +132,8 @@ import * as squad from './systems/squad.js';
 // la lista al empezar la corrida y despacha su radio; el sembrador y LA COLA la leen.
 import * as tramos from './systems/tramos.js';
 import * as fases from './systems/fases.js';
-import * as geografia from './systems/geografia.js';   // PLAN_GEOGRAFIA: el terreno por tramos
+import * as geografia from './systems/geografia.js';
+import { alturaBlanco } from './core/geografia.js';   // el piso de una estructura (PLAN_GEOGRAFIA G5)   // PLAN_GEOGRAFIA: el terreno por tramos
 import * as rutaSys from './systems/ruta.js';
 import * as naftaSys from './systems/nafta.js';
 import * as estrellas from './systems/estrellas.js';
@@ -407,6 +408,15 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         needsMomentum: false,
         dist: g => g.meters,
         label: g => g.meters + ' m',
+        setup: () => { },
+      },
+      // UNA ESTRUCTURA EN TIERRA (data/estructuras.js, pedido del autor 29/9): una base, un edificio.
+      // Se juega con LA SUELTA, igual que un buque; no hay layout de zonas que fijar (`useShip` es de
+      // los buques y de los climax viejos, que una estructura no usa).
+      estructura: {
+        needsMomentum: true,
+        dist: g => g.dist,
+        label: g => g.nombre,
         setup: () => { },
       },
     };
@@ -1467,7 +1477,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // campaña, Sea Wolf en las ultimas; la mision lo puede decir. `?defensa=cat|wolf` la pisa.
       {
         let q = null; try { q = new URLSearchParams(location.search).get('defensa'); } catch (e) { }
-        seawolfSys.poner(!hayBlanco ? null : q || defensaDe(curMission(), MISSIONS.indexOf(curMission())));
+        // (una ESTRUCTURA no trae Sea Cat ni Sea Wolf: son misiles de buque. Si la mision quiere una
+        // defensa, la declara con `defensa:`)
+        const est = objectiveKind === 'estructura';
+        seawolfSys.poner(!hayBlanco ? null : q || (est && curMission().defensa === undefined ? null
+          : defensaDe(curMission(), MISSIONS.indexOf(curMission()))));
       }
       if (hayBlanco) cfg.carga = conBombaCentral(cfg.carga);
       // …y la mision dice cuantas pasadas da (una, salvo que pida mas) y si despues del buque hay
@@ -1481,7 +1495,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       escapeSys.resetFuga(); senas = null;
       blancoSys.preparar(hayBlanco, objectiveShip, objectiveDist, { PZ, W }, cfg.carga,
         { pasadas: curMission() && curMission().pasadas, vuelta: fases.hayVuelta(),
-          dificultad: curMission() && curMission().dificultad, bomba: bombaDeLaMision() });
+          dificultad: curMission() && curMission().dificultad, bomba: bombaDeLaMision(),
+          // el piso de una ESTRUCTURA: la explanada que la geografia le aplana debajo (0 sin geografia)
+          piso: alturaBlanco() });
       // LA NAFTA COMO ALCANCE (PLAN_NAFTA_ALCANCE N3): con ruta, el tanque se llena en km segun la
       // carga YA RESUELTA (la bomba del buque incluida). Va despues de la suelta por eso mismo.
       naftaSys.preparar(rutaSys.hay() ? cfg.carga : null);
@@ -2237,7 +2253,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // …y lo mismo, sin parametro, en IDA Y VUELTA: es el banco de pruebas del pasillo largo
       // (pruebas_misiones.js t15) y el poder es una de las cosas que se van a probar ahi. Pedido
       // del autor, 12/9. PROVISORIO — se saca junto con `rasanteProbe` al cerrar el plan.
-      if (rasanteProbe || curMission().id === 't15' || curMission().id === 't17') rasante.cargar();   // arranca con la barra llena
+      if (rasanteProbe || curMission().id === 't15' || curMission().id === 't17' || curMission().id === 't18') rasante.cargar();   // arranca con la barra llena
       veilOut = 0; veilPrev = '';   // el telon del cordon, cerrado y sin reloj
       arena.resetArena();
       pasada.resetPasada();

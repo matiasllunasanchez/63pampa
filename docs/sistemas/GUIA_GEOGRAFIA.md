@@ -10,7 +10,8 @@
 > (el callejón de m5).
 >
 > **Estado (29/9/2026):** todo lo de esta guía funciona y está probado (`npm run unit`,
-> `npm run geografia`). Lo único que falta es el objetivo ESTRUCTURA (§6).
+> `npm run geografia`), incluido el objetivo ESTRUCTURA (§6) — la misión de ejemplo es **t18 ·
+> IDA Y VUELTA SMALL 2**.
 
 ---
 
@@ -124,12 +125,26 @@ estructura se apoye en un piso y no cuelgue de una loma.
 
 ---
 
-## 6 · El objetivo ESTRUCTURA — todavía no
+## 6 · El objetivo ESTRUCTURA — una base, un edificio
 
-La data ya se puede escribir y validar (`goal: { kind: 'estructura', nombre, dist }` + el tramo
-`blanco` sobre tierra o isla), pero **la suelta todavía no sabe tirarle a una estructura**: hoy
-supone un buque en el agua. Lo que falta, y dónde, está en
-[PLAN_GEOGRAFIA.md §11](PLAN_GEOGRAFIA.md).
+```js
+goal: { kind: 'estructura', nombre: 'BASE COSTERA', dist: 6000 },
+geografia: { ida: [...], blanco: { km: 0.8, suelo: 'tierra', lomas: 2 }, vuelta: [...] },
+```
+
+- Se juega con **la misma suelta** que el buque: encarar, altura, soltar en verde, pasarle por
+  encima. Siempre es `climax: 'suelta'` (la pasada, la arena y el pulso son de buques).
+- `nombre` es un renglón de `data/estructuras.js` (hoy: `BASE COSTERA`) y es el rótulo del
+  objetivo en la barra. Una estructura nueva es un renglón ahí: su `clase` (un perfil de 20
+  alturas en `PERFIL`, `data/blanco.js`) y sus `piezas` (qué se dibuja en cada tramo del perfil:
+  cerco, tanque, barraca, depósito, hangar, torre, antena). **El dibujo sale del perfil**: la bomba
+  pega donde se ve edificio.
+- Tiene que estar en **tierra o isla** (el tramo `blanco`): se apoya en la explanada, y la banda de
+  soltar del altímetro se corre con la altura de ese piso.
+- **Sin Sea Cat ni Sea Wolf** (son de buque). Si la misión quiere una defensa, `defensa:`.
+- La cuenta de la luz verde ve las lomas de delante: lo que promete no se lo come una loma.
+
+Ejemplo completo: **t18** en `data/pruebas_misiones.js` (PRUEBAS → IDA Y VUELTA SMALL 2).
 
 ---
 
@@ -159,7 +174,9 @@ supone un buque en el agua. Lo que falta, y dónde, está en
 - `?mision=<id>` vuela la misión con su geografía; `?mision=<id>&geo=ninguna`, sin ella (para comparar).
 - `?mision=t17&geo=demo` — todo lo que la geografía sabe hacer, en fracciones.
 - `?mision=t17&geo=km` — un ejemplo en kilómetros, hecho para los 6 km de t17.
+- `?mision=t18` — IDA Y VUELTA SMALL 2: una base de blanco y un poco de todo.
 - `npm run unit` valida la geografía de todas las misiones contra su distancia y su objetivo.
 - `npm run geografia` — el fixture: vuela t17 y comprueba cada cosa en el juego de verdad.
 - En consola: `__geoen(frac, x)` (qué hay en ese punto), `__geoset(lista)` (probar otra geografía en
-  vivo), `__islas()`, `__zzdbg()` (los acantilados).
+  vivo), `__islas()`, `__zzdbg()` (los acantilados), `__suelta()` y `__bombas()` (la suelta y
+  las bombas en vuelo).

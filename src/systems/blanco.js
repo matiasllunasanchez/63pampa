@@ -15,8 +15,9 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { BL } from '../data/blanco.js';
 import { BOMBA_PANZA, BOMBA_DERIVA } from '../data/tuning.js';
-import { blanco, resetBlanco, altoEn, zonaEn, predecir, holgura, AGUA } from '../core/blanco.js';
+import { blanco, resetBlanco, altoEn, zonaEn, predecir, holgura, AGUA, TIERRA } from '../core/blanco.js';
 import { SHIP_CLASS } from '../data/ships.js';
+import { estructura } from '../data/estructuras.js';
 import { cargaDe } from '../data/cargas.js';
 import { bombaInfo } from '../data/bombas.js';
 import { buqueTanque } from '../core/nafta.js';
@@ -28,10 +29,14 @@ let mslAntes = 0;   // para notar la suelta: la bomba que falta desde el cuadro 
 // porque vive en render/ctx.js y un sistema nuevo no puede importar render (`npm run lint:layers`).
 let PZ = 14, W = 480;
 
-/** Prepara (o apaga) el buque para esta corrida. Lo llama game.js donde se define el objetivo. */
+/** Prepara (o apaga) el buque para esta corrida. Lo llama game.js donde se define el objetivo.
+ *  `opts.piso` es la altura del suelo debajo del blanco (`alturaBlanco()` de la geografia): solo la
+ *  usa una ESTRUCTURA (data/estructuras.js) — un buque flota, y su piso es siempre el agua. */
 export function preparar(on, nombre, objectiveDist, geo, carga, opts) {
-  resetBlanco(on, nombre, SHIP_CLASS[nombre]);
   const o = opts || {};
+  const est = estructura(nombre);
+  if (est) resetBlanco(on, nombre, est.clase, 'estructura', (o.piso || 0) + TIERRA);
+  else resetBlanco(on, nombre, SHIP_CLASS[nombre]);
   blanco.pasadas = o.pasadas > 0 ? o.pasadas : BL.PASADAS;
   // LA DIFICULTAD LA PONE LA MISION, no el jugador (decision del autor, 26/9): el campo
   // `dificultad:` de su renglon en data/missions.js. Una mision sabe si es la primera del juego o
@@ -122,7 +127,7 @@ export function golpe(pm, z0) {
   if (!(z0 < blanco.zPrev && pm.z >= blanco.z)) return false;
   const h = altoEn(pm.x);
   if (h < 0) return false;                                   // cruzo por fuera de la eslora
-  if (pm.y > AGUA + h) {                                     // por encima: se la lleva el mar de atras
+  if (pm.y > blanco.base + h) {                              // por encima: se la lleva el mar de atras
     if (!pm.larga) { pm.larga = true; veredicto('larga', pm.x, pm.y, blanco.z, P.dim); }
     return false;
   }
@@ -154,7 +159,7 @@ export function golpe(pm, z0) {
       if (r === 'tarde') {
         const [a, b] = bi.tardeT;
         blanco.tardeT = a + Math.random() * (b - a);
-        blanco.tardeX = pm.x; blanco.tardeY = Math.max(AGUA + 1, pm.y);
+        blanco.tardeX = pm.x; blanco.tardeY = Math.max(blanco.base + 1, pm.y);
       }
       veredicto('falla', pm.x, pm.y, blanco.z, P.warn);
       return true;
@@ -164,7 +169,7 @@ export function golpe(pm, z0) {
   else estalla(pm.x, pm.y, !pm.tanque && bi.grande);
   blanco.lento = true;   // MOMENTUM OBLIGADO: de aca al cruce, el mundo a BL.LENTO
   blanco.cumplido = true;
-  blanco.marcas.push({ x: pm.x, y: Math.max(AGUA + 1, pm.y), t: run.t });
+  blanco.marcas.push({ x: pm.x, y: Math.max(blanco.base + 1, pm.y), t: run.t });
   // YA HUNDIDO (lo pego otro de la fila antes): el impacto suma puntos y fuego, nada mas
   if (blanco.hundido) {
     run.score += BL.PTS_AVERIA;
@@ -198,18 +203,20 @@ function sorteo() {
  *  VISIBLE en el barco, con sonido explosivo y todo"): la bola, la onda y una cadena de secundarias
  *  que viajan con el buque — las mismas del derribo (core/fx.js), que ya saben ir con el mundo. */
 function estalla(x, y, grande) {
-  explodeAt(x, y, blanco.z, true); columnaBomba(x, AGUA, blanco.z, true);
+  // (la columna es de AGUA contra un buque y de TIERRA contra una estructura: el ultimo parametro)
+  const B = blanco.base, agua = blanco.tipo !== 'estructura';
+  explodeAt(x, y, blanco.z, true); columnaBomba(x, B, blanco.z, agua);
   if (!grande) return;
-  onda(x, Math.max(AGUA + 1, y), blanco.z);
+  onda(x, Math.max(B + 1, y), blanco.z);
   // LA BOLA GRANDE, bien por encima de la de siempre: a 130 de distancia la comun es un punto
-  obstacles.push({ type: 'airboom', x, y: Math.max(AGUA + 3, y + 4), z: blanco.z, boomT: 0, scale: 2.4, done: true });
+  obstacles.push({ type: 'airboom', x, y: Math.max(B + 3, y + 4), z: blanco.z, boomT: 0, scale: 2.4, done: true });
   // …y las secundarias corriendo por la eslora, cada vez mas lejos del impacto
   for (let i = 0; i < 7; i++) obstacles.push({
     type: 'sec', done: true,
-    x: x + (i % 2 ? 1 : -1) * (4 + i * 4 + Math.random() * 4), y: AGUA + 2 + Math.random() * 10, z: blanco.z,
+    x: x + (i % 2 ? 1 : -1) * (4 + i * 4 + Math.random() * 4), y: B + 2 + Math.random() * 10, z: blanco.z,
     t: 0.1 + i * 0.13 + Math.random() * 0.08, grande: i < 4,
   });
-  obstacles.push({ type: 'humo', done: true, x, y: 0, z: blanco.z, humoT: 0, humoMax: 8 });
+  obstacles.push({ type: 'humo', done: true, x, y: B - AGUA, z: blanco.z, humoT: 0, humoMax: 8 });
   boom(0.28); run.shake = Math.min(9, run.shake + 5);
 }
 
@@ -236,7 +243,7 @@ function tarde(dt) {
 export function corta(pm) {
   if (!blanco.on || blanco.escapando || pm.larga || pm.z >= blanco.z) return;
   if (Math.abs(pm.x - BL.X) > BL.LEN / 2 + 12) return;
-  veredicto('corta', pm.x, AGUA, pm.z, P.dim);
+  veredicto('corta', pm.x, blanco.base, pm.z, P.dim);
 }
 
 /** Un cuadro. Devuelve 'hundido' (el ataque termino y lo hundiste), 'reencare' (termino sin
@@ -315,11 +322,11 @@ export function step(dt) {
     // del fuego, pero no de las COSAS FISICAS — la silueta medida de la hoja (`altoEn`), de proa a
     // popa: por encima de lo que hay en esa franja, o por la proa o la popa, limpio. game.js lo
     // resuelve (explota; el siguiente de la fila vuelve a encarar, o se pierde).
-    const h = altoEn(plane.x), roce = h >= 0 && plane.y < AGUA + h
+    const h = altoEn(plane.x), roce = h >= 0 && plane.y < blanco.base + h
     // …y el piso del negro: donde quedaste, y si rozaste, del otro lado de los palos (en el escape
     // no hay negro ni piso: el avion es tuyo desde el primer cuadro)
-    if (!escape) blanco.altPiso = Math.max(plane.y, 6, roce ? AGUA + h + 1 : 0);
-    else if (roce) plane.y = Math.max(plane.y, AGUA + h + 1);
+    if (!escape) blanco.altPiso = Math.max(plane.y, 6 + blanco.base - AGUA, roce ? blanco.base + h + 1 : 0);
+    else if (roce) plane.y = Math.max(plane.y, blanco.base + h + 1);
     if (roce) { seña('roce'); return { roce: 'death_palos', escape }; }
     return escape ? 'escape' : null;
   }
@@ -343,10 +350,11 @@ export function step(dt) {
   // trepada. Asi la ventana depende de DONDE ESTA EL BUQUE y de tu velocidad — lo que el autor
   // llama "la ventana de distancia ideal"— y no parpadea por un tiron del morro. Tu altura queda
   // para lo suyo: decidir si esa ventana esta VERDE o sigue ROJA con la flecha.
-  const yRef = Math.max(BL.ALT_IDEAL[0], Math.min(BL.ALT_IDEAL[1], plane.y)) - BOMBA_PANZA;
+  const [a0, a1] = altIdeal();
+  const yRef = Math.max(a0, Math.min(a1, plane.y)) - BOMBA_PANZA;
   const pRef = puede ? predecir(plane.x, yRef, 0, vxB, run.spd, blanco.z, spdRate) : null;
   blanco.enDist = puede && (hit(pRef) || holgura(plane.x, yRef, 0, vxB, run.spd, blanco.z, holguraMax, spdRate) !== null);
-  blanco.buenaAlt = plane.y >= BL.ALT_IDEAL[0] && plane.y <= BL.ALT_IDEAL[1];
+  blanco.buenaAlt = plane.y >= a0 && plane.y <= a1;
   // LO REAL, con tu altura y tu trepada: es lo que decide el envion que se le cuelga a la bomba, y
   // lo que leen las señas de Puma. Verde exige que TAMBIEN esto pegue — si no, la mira prometeria
   // una bomba que despues se queda corta.
@@ -470,18 +478,26 @@ function señas() {
   if (blanco.dicho.sali) return;
   if (d < BL.VISIBLE_Z * 0.85) seña('asoma');
   if (d < 1500 && Math.abs(plane.x - BL.X) > BL.LEN * BL.CENTRO) seña('alinea');
+  const [a0, a1] = altIdeal();
   if (d < 900) {
-    if (plane.y < BL.ALT_IDEAL[0]) seña('sube');
-    else if (plane.y > BL.ALT_IDEAL[1]) seña('baja');
+    if (plane.y < a0) seña('sube');
+    else if (plane.y > a1) seña('baja');
   }
   if (d < 700) {
     if (blanco.listo) seña('solta');
-    else if (blanco.pred === 'corta' && plane.y >= BL.ALT_IDEAL[0]) seña('espera');
+    else if (blanco.pred === 'corta' && plane.y >= a0) seña('espera');
   }
 }
 
 /** El estado crudo, para la sonda `__suelta` (solo lectura). */
 export const estado = () => blanco;
+
+// SONDA `__bombas()`: las bombas en vuelo —donde estan respecto del blanco y del suelo—. Sin esto,
+// "solte en verde y no paso nada" no se puede seguir: la bomba se va de cuadro y no deja rastro.
+if (typeof window !== 'undefined') window.__bombas = () => JSON.stringify(pmissiles.map(p => ({
+  x: +p.x.toFixed(1), y: +p.y.toFixed(1), z: Math.round(p.z), t: +(p.t || 0).toFixed(2),
+  alBlanco: Math.round(blanco.z - p.z), larga: !!p.larga,
+})));
 
 /** Lo que el HUD necesita, ya calculado (el render no puede llamar a este modulo): si es el momento
  *  de soltar (todo lo que titila en verde) y el ESTANTE — que hay en cada pilon. */
@@ -496,12 +512,20 @@ export function hud() {
     // soltar. Sale de BL.ALT_IDEAL, que es la banda que el altimetro ya pinta de verde: por
     // debajo la bomba no alcanza a armarse (la espoleta), por encima el radar te ve.
     alt: vivo && aTiro()
-      ? (plane.y > BL.ALT_IDEAL[1] ? -1 : plane.y < BL.ALT_IDEAL[0] ? 1 : 0) : 0,
+      ? (plane.y > altIdeal()[1] ? -1 : plane.y < altIdeal()[0] ? 1 : 0) : 0,
     enAtaque: vivo && aTiro(),
     rack: { ala: blanco.ala, alaN: blanco.alaN, centroN: blanco.centroN, bloqueada: !aTiro(), bomba: blanco.bomba },
     // LA ALTURA DEL SALTO: desde que soltaste hasta el cruce, cuanto mide el buque justo debajo de
     // tu linea — por encima de eso pasas limpio. La marca amarilla del altimetro.
     salto: blanco.negroT < 0 && blanco.z > PZ && (blanco.dicho.sali || blanco.lento)
-      ? AGUA + Math.max(0, altoEn(plane.x)) : null,
+      ? blanco.base + Math.max(0, altoEn(plane.x)) : null,
+    // la banda de soltar, en ALTURA DE AVION (el altimetro la pinta de verde): contra una estructura
+    // en alto se corre con el piso
+    altIdeal: altIdeal(),
   };
 }
+
+/** LA BANDA DE SOLTAR contra ESTE blanco. BL.ALT_IDEAL esta medida sobre el agua; una estructura
+ *  en una explanada a cuatro metros la corre cuatro metros para arriba — lo que importa es cuanto
+ *  cae la bomba hasta el blanco (la espoleta), no la altura sobre el mar. */
+export const altIdeal = () => [BL.ALT_IDEAL[0] + blanco.base - AGUA, BL.ALT_IDEAL[1] + blanco.base - AGUA];

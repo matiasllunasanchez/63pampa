@@ -10,7 +10,7 @@
 
 import { plane, cfg, stats } from '../core/state.js';
 import { run } from '../core/run.js';
-import { geoActiva, esTierraEn } from '../core/geografia.js';   // G1: agua o tierra, por punto
+import { geoActiva, esTierraEn, alturaSuelo } from '../core/geografia.js';   // G1: agua o tierra, por punto
 // AVERIAS: los impactos por DISPARO (bomba, misil, trazadora) pueden no matar, segun el modelo
 // de vida elegido en OPCIONES. Chocar algo sigue matando siempre — ver core/damage.js.
 import * as dmg from './damage.js';
@@ -581,19 +581,23 @@ export function collisionSystem(dt) {
       // el agua dibujada promedia ~1.1 de altura; la tierra, 0.3. Detonar contra el numero de cada
       // una es lo que evita que la bomba reviente un palmo abajo de la superficie que se ve.
       const enTierra = geoActiva() ? esTierraEn(pm.x, run.dist + pm.z) : (cfg.terrain === 'land' || cfg.terrain === 'coast');
-      let detonate = pm.y <= (enTierra ? 0.3 : 1.0);
+      // CON GEOGRAFIA EL SUELO TIENE ALTURA (PLAN_GEOGRAFIA G4/G5): una isla, las lomas de un tramo,
+      // la explanada de una estructura. Sin esto la bomba atravesaba la isla y detonaba a 0,3 del
+      // mar, adentro de la tierra. Sin geografia, el 0 de siempre (lo que `feel` custodia).
+      const gy = enTierra && geoActiva() ? alturaSuelo(pm.x, run.dist + pm.z) : 0;
+      let detonate = pm.y <= (enTierra ? gy + 0.3 : 1.0);
       if (!detonate) for (const sd of soldiers) { if (!sd.dead && Math.abs(sd.z - pm.z) < 6 && Math.abs(sd.x - pm.x) < 4) { detonate = true; break; } }
       // EL TANQUE VACIO CONTRA LA SUPERFICIE no revienta: salpica y se hunde. El lleno si — es nafta
       // encendida — y hace lo de la bomba de abajo (columna, soldados), que es lo que se ve.
       if (detonate && pm.tanque === 'vacio') {
-        columnaBomba(pm.x, enTierra ? 0 : 1, pm.z, !enTierra);
+        columnaBomba(pm.x, enTierra ? gy : 1, pm.z, !enTierra);
         beep(160, 0.08, 'square', 0.04, 60);
         pm.z = 9999; continue;
       }
       if (detonate) {
         blancoSys.corta(pm);   // si habia buque adelante: se quedo corta
-        explodeAt(pm.x, enTierra ? 0 : 1, pm.z, true); run.shake = Math.min(6, run.shake + 1.6);
-        columnaBomba(pm.x, enTierra ? 0 : 1, pm.z, !enTierra);   // lo que levanta: agua o tierra
+        explodeAt(pm.x, enTierra ? gy : 1, pm.z, true); run.shake = Math.min(6, run.shake + 1.6);
+        columnaBomba(pm.x, enTierra ? gy : 1, pm.z, !enTierra);   // lo que levanta: agua o tierra
         let hit = 0;
         for (const sd of soldiers) {
           if (!sd.dead && Math.abs(sd.z - pm.z) < 11 && Math.abs(sd.x - pm.x) < 10) {

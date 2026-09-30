@@ -8,10 +8,13 @@ import { ctx, px, W, PZ } from './ctx.js';
 import { proj } from '../core/fx.js';
 import { run } from '../core/run.js';
 import { cfg } from '../core/state.js';
-import { blanco, altoEn, AGUA, zVista } from '../core/blanco.js';
+import { blanco, altoEn, zVista } from '../core/blanco.js';
 import { BL } from '../data/blanco.js';
 import { P } from '../data/palette.js';
 import { drawCascoDelBuque } from './world.js';
+import { estructura } from '../data/estructuras.js';
+import { PERFIL } from '../data/blanco.js';
+import { mez } from './paredes.js';
 import { flechaIn } from './rotulo.js';
 import * as enemyArt from './enemies.js';
 import { drawMira } from './miras.js';
@@ -23,7 +26,7 @@ export function drawBlanco() {
   if (!blanco.on) return;
   if (blanco.z > BL.VISIBLE_Z || blanco.z < PZ * 0.5) return;
   const z = zVista(blanco.z);   // se DIBUJA a la profundidad comprimida (ver zVista)
-  const s = proj(BL.X, AGUA, z), k = s.k;
+  const s = proj(BL.X, blanco.base, z), k = s.k;
   const len = BL.LEN * k;
   const uh = Math.max(0.5, BL.LEN * 0.03 * k), hullH = uh * 1.5;
   // NO SE HUNDE EN CUADRO (pedido del autor, 23/9: "no tiene que verse hundirse, tiene que empezar a
@@ -42,14 +45,23 @@ export function drawBlanco() {
   ctx.save();
   ctx.globalAlpha = apE;
   ctx.beginPath(); ctx.rect(-80, -200, W + 160, s.y + 1 + 200); ctx.clip();
-  drawCascoDelBuque(blanco.nombre, s.x, len, s.y - hullH, uh, hullH, haze, { hoja: true });
+  // UNA ESTRUCTURA (data/estructuras.js) se pinta desde su PERFIL: lo que se ve es lo que la bomba
+  // encuentra, columna por columna. Un buque, con su hoja horneada de siempre.
+  const est = blanco.tipo === 'estructura' ? estructura(blanco.nombre) : null;
+  // (HORNEADA si la estructura trae `hoja` y la hoja esta cargada — como los buques; si no, desde el
+  // perfil. El dia que se hornee, el perfil se re-mide de la hoja: ver data/estructuras.js)
+  if (est && est.hoja && enemyArt.ready(est.hoja)) {
+    enemyArt.drawFrame(ctx, est.hoja, 0, 0, s.x, { bottomY: s.y }, len, false, false);
+    if (haze > 0.01) { ctx.globalAlpha = apE * haze; enemyArt.drawFrame(ctx, est.hoja, 0, 0, s.x, { bottomY: s.y }, len, false, true); ctx.globalAlpha = apE; }
+  } else if (est) drawEstructura(est, s.x, len, s.y, k, haze);
+  else drawCascoDelBuque(blanco.nombre, s.x, len, s.y - hullH, uh, hullH, haze, { hoja: true });
   // LA PERSPECTIVA AEREA: de lejos un buque se ve MAS CLARO, tirado al color del cielo — no mas
   // oscuro. La hoja es gris acero y el mar del pasillo es casi negro, asi que a 1 km el casco era
   // una mancha oscura sobre oscuro y solo se leia la espuma de proa. La misma silueta en blanco,
   // encima y con un alfa que se apaga al acercarse, es lo que lo separa del agua.
   const claro = Math.max(0, Math.min(0.55, (blanco.z - 350) / 1600));
   const hoja = 'buque_' + blanco.clase;
-  if (claro > 0.01 && enemyArt.ready(hoja)) {
+  if (!est && claro > 0.01 && enemyArt.ready(hoja)) {
     ctx.globalAlpha = claro * apE;
     enemyArt.drawFrame(ctx, hoja, 0, 0, s.x, { bottomY: s.y }, len, false, true);
     ctx.globalAlpha = 1;
@@ -70,7 +82,7 @@ export function drawBlanco() {
       const fxw = m.x + lado * BL.LEN * 0.045;
       const h = altoEn(fxw);
       if (h < 0) continue;
-      const fy = j === 0 ? m.y : AGUA + Math.min(h, BL.LEN * 0.09);
+      const fy = j === 0 ? m.y : blanco.base + Math.min(h, BL.LEN * 0.09);
       llama(proj(fxw, fy, z), u * (j === 0 ? 1 : 0.8), i * 7 + j);
     }
   }
@@ -84,13 +96,91 @@ export function drawBlanco() {
       const xw = BL.X + Math.max(-0.47, Math.min(0.47, base + corre)) * BL.LEN;
       const h = altoEn(xw);
       if (h < 0) continue;
-      const pie = proj(xw, AGUA + Math.min(h, BL.LEN * 0.07), z);
+      const pie = proj(xw, blanco.base + Math.min(h, BL.LEN * 0.07), z);
       const alto = Math.max(2, k * 1.8), ancho = Math.max(1, k * 0.6);
       const paso = Math.sin(run.t * 18 + i) > 0 ? 1 : 0;           // el trote: sube y baja un pixel
       px(pie.x - ancho / 2, pie.y - alto - paso, ancho, alto, '#1c2226');
       px(pie.x - ancho / 2, pie.y - alto - paso, ancho, Math.max(1, ancho), '#c9a27a');   // la cara
     }
   }
+}
+
+// LA PINTA DE LAS ESTRUCTURAS: hormigon y chapa militar. No sale del tema a proposito — una base no
+// cambia de color con el clima como el pasto; lo que la acerca al cielo es la bruma (`haze`).
+const EST = {
+  cuerpo: '#6c6856', sombra: '#4a473b', techo: '#4f5a45', techoL: '#65705a',
+  oscuro: '#26281f', luz: '#cfd6a2', tanque: '#8b8a7c', tanqueL: '#a9a898', bruma: '#8f999c',
+};
+
+/** UNA ESTRUCTURA en el mundo, parada sobre su piso (`baseY`, pantalla). Cada pieza ocupa sus columnas
+ *  del perfil y mide lo que el perfil dice que mide ahi (el maximo de sus columnas): la altura que ve
+ *  el jugador es la altura contra la que la bomba pega o pasa larga. */
+function drawEstructura(est, cx, len, baseY, k, haze) {
+  const p = PERFIL[est.clase];
+  const n = p.length, col = len / n;
+  const c = x => mez(x, EST.bruma, haze);
+  for (const pz of est.piezas) {
+    const x0 = cx - len / 2 + pz.de * col, w = (pz.a - pz.de + 1) * col;
+    let hmax = 0;
+    for (let i = pz.de; i <= pz.a; i++) hmax = Math.max(hmax, p[i]);
+    const h = hmax * BL.LEN * k;
+    const top = baseY - h;
+    const u = Math.max(1, k * 0.5);
+    switch (pz.tipo) {
+      case 'cerco':   // postes y alambre, bajitos
+        px(x0, baseY - h * 0.15, w, Math.max(1, u * 0.5), c(EST.oscuro));
+        for (let x = x0; x < x0 + w; x += Math.max(2, col * 0.5)) px(x, top, Math.max(1, u * 0.4), h, c(EST.oscuro));
+        break;
+      case 'tanque': {  // cilindros de combustible
+        const n2 = Math.max(1, pz.a - pz.de + 1), tw = w / n2;
+        for (let j = 0; j < n2; j++) {
+          const tx = x0 + j * tw + tw * 0.08;
+          px(tx, top, tw * 0.84, h, c(EST.tanque));
+          px(tx, top, tw * 0.84, Math.max(1, h * 0.14), c(EST.tanqueL));
+          px(tx + tw * 0.6, top, tw * 0.24, h, c(EST.sombra));
+        }
+        break;
+      }
+      case 'barraca':   // cuerpo bajo y techo a dos aguas
+      case 'deposito': {
+        const cuerpo = pz.tipo === 'barraca' ? h * 0.62 : h * 0.8;
+        px(x0 + col * 0.05, baseY - cuerpo, w - col * 0.1, cuerpo, c(EST.cuerpo));
+        ctx.fillStyle = c(EST.techo);
+        ctx.beginPath(); ctx.moveTo(x0, baseY - cuerpo); ctx.lineTo(x0 + w / 2, top); ctx.lineTo(x0 + w, baseY - cuerpo); ctx.closePath(); ctx.fill();
+        if (pz.tipo === 'deposito') px(x0 + w * 0.35, baseY - cuerpo * 0.7, w * 0.3, cuerpo * 0.7, c(EST.oscuro));
+        else for (let x = x0 + col * 0.3; x < x0 + w - col * 0.3; x += col * 0.7) px(x, baseY - cuerpo * 0.65, Math.max(1, col * 0.22), Math.max(1, cuerpo * 0.2), c(EST.luz));
+        break;
+      }
+      case 'hangar': {  // la boveda: paredes bajas y el techo curvo
+        const pared = h * 0.45;
+        px(x0, baseY - pared, w, pared, c(EST.cuerpo));
+        ctx.fillStyle = c(EST.techo);
+        ctx.beginPath(); ctx.moveTo(x0, baseY - pared);
+        ctx.quadraticCurveTo(x0 + w / 2, top - (h - pared) * 0.9, x0 + w, baseY - pared); ctx.closePath(); ctx.fill();
+        px(x0 + w * 0.12, baseY - pared * 0.85, w * 0.76, pared * 0.85, c(EST.oscuro));   // el porton abierto
+        break;
+      }
+      case 'torre': {   // la torre de control: fuste y la cabina vidriada arriba
+        const fw = w * 0.45, fx = x0 + (w - fw) / 2, cab = Math.max(2, h * 0.2);
+        px(fx, top + cab, fw, h - cab, c(EST.cuerpo));
+        px(fx + fw * 0.7, top + cab, fw * 0.3, h - cab, c(EST.sombra));
+        px(x0 + w * 0.08, top, w * 0.84, cab, c(EST.techoL));
+        px(x0 + w * 0.14, top + cab * 0.3, w * 0.72, Math.max(1, cab * 0.45), c(EST.luz));
+        break;
+      }
+      case 'antena': {  // el mastil del radar con sus travesaños
+        const mx = x0 + w / 2;
+        px(mx - u * 0.3, top, Math.max(1, u * 0.6), h, c(EST.oscuro));
+        for (let j = 1; j <= 3; j++) px(mx - w * 0.25 * (1 - j * 0.2), top + h * j * 0.18, w * 0.5 * (1 - j * 0.2), Math.max(1, u * 0.4), c(EST.oscuro));
+        break;
+      }
+    }
+  }
+  // la sombra del conjunto sobre la explanada: lo apoya en el piso
+  const a0 = ctx.globalAlpha;
+  ctx.globalAlpha = a0 * 0.35;
+  px(cx - len / 2, baseY - 1, len, Math.max(1, k * 0.6), '#11140f');
+  ctx.globalAlpha = a0;
 }
 
 const FUEGO_CADA = 0.35;   // segundos de mundo entre un foco nuevo y el siguiente
@@ -130,13 +220,13 @@ const CORCHETES_Z = BL.VISIBLE_Z;
 function corchetes(listo, alt) {
   if (blanco.z > BL.VISIBLE_Z || blanco.z < PZ) return;
   const z = zVista(blanco.z);
-  const s = proj(BL.X, AGUA, z), k = s.k;
+  const s = proj(BL.X, blanco.base, z), k = s.k;
   // CON TAMAÑO MINIMO: a la distancia de suelta la zona real mide 14 x 4 px y los corchetes se
   // confundian con las marcas de la mira. Nunca mas chicos que 20 x 8: de lejos dicen "ahi", de
   // cerca abrazan la zona exacta.
-  const cx = s.x, mw = Math.max(10, (proj(BL.X + BL.LEN * BL.CENTRO, AGUA, z).x - cx));
+  const cx = s.x, mw = Math.max(10, (proj(BL.X + BL.LEN * BL.CENTRO, blanco.base, z).x - cx));
   const xl = cx - mw, xr = cx + mw;
-  const bot = s.y + 1, top = Math.min(bot - 8, proj(BL.X, AGUA + altoEn(BL.X) * 0.55, z).y);
+  const bot = s.y + 1, top = Math.min(bot - 8, proj(BL.X, blanco.base + altoEn(BL.X) * 0.55, z).y);
   // MAS GRUESOS (pedido del autor, 26/9). Eran k*0.35 con piso de 1 px, o sea una linea de un
   // pixel casi siempre: al lado de la mira verde no se leian como un marco sino como ruido.
   const t = Math.max(2, Math.round(k * 0.7)), a = Math.max(4, (xr - xl) * 0.25);
@@ -197,10 +287,10 @@ export function drawBlancoHud(h) {
 function mira() {
   if (blanco.z > BL.VISIBLE_Z || blanco.z < PZ) return;
   const z = zVista(blanco.z);
-  const s = proj(BL.X, AGUA, z);
+  const s = proj(BL.X, blanco.base, z);
   // la MISMA caja que `corchetes` — misma proyeccion, mismo top, mismo bot— en vez de a ojo: el
   // dia que los corchetes se muevan, la mira se muda con ellos.
-  const bot = s.y + 1, top = Math.min(bot - 8, proj(BL.X, AGUA + altoEn(BL.X) * 0.55, z).y);
+  const bot = s.y + 1, top = Math.min(bot - 8, proj(BL.X, blanco.base + altoEn(BL.X) * 0.55, z).y);
   // EL LATIDO DEL TABLERO, el mismo reloj que los corchetes, el altimetro y el estante: o el
   // rincon se lee como tres avisos distintos. Va en el ALFA y no en el color porque la mira es un
   // dibujo tenido de un solo tono: apagarla a medias late igual y no la despinta.
@@ -223,11 +313,11 @@ function mira() {
 function cuentaAtras(c) {
   if (blanco.z > BL.VISIBLE_Z || blanco.z < PZ) return;
   const z = zVista(blanco.z);
-  const s = proj(BL.X, AGUA, z);
+  const s = proj(BL.X, blanco.base, z);
   // ADENTRO DE LOS CORCHETES (pedido del autor, 26/9), y por eso la caja se calcula IGUAL que en
   // `corchetes` — misma proyeccion, mismo `top`, mismo `bot`— en vez de a ojo: el dia que los
   // corchetes se muevan, el numero se muda con ellos.
-  const bot = s.y + 1, top = Math.min(bot - 8, proj(BL.X, AGUA + altoEn(BL.X) * 0.55, z).y);
+  const bot = s.y + 1, top = Math.min(bot - 8, proj(BL.X, blanco.base + altoEn(BL.X) * 0.55, z).y);
   const y = Math.round((top + bot) / 2);
   // EL LATIDO DEL TABLERO, el mismo reloj: la cuenta, los corchetes, el altimetro y el estante
   // titilan JUNTOS o el rincon se lee como cuatro avisos distintos (ver `corchetes`).

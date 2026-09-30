@@ -569,29 +569,37 @@ G1 toca `render/world.js`, `systems/spawn.js`, `systems/flight.js` y `setRunObje
 `game.js`; G5 toca `pruebas_misiones.js`. **Antes de cada fase: `git status`, releer el archivo
 justo antes de editarlo, y commitear lo propio por nombre, en commits chicos.**
 
-## 11. EL BLANCO ESTRUCTURA — lo que falta, y por qué no se hizo acá *(29/9/2026)*
+## 11. EL BLANCO ESTRUCTURA *(29/9/2026 — HECHO, con t18)*
 
-El objetivo hoy es SIEMPRE un buque, y el agua está supuesta en todos lados: la suelta mide contra
-`AGUA = 1` (`core/blanco.js`), el casco sale de `PERFIL[clase]` por `SHIP_CLASS[nombre]`, el sprite es
-la hoja `buque_<clase>` con su espuma y su `hundido_`, y `climaxDeclarado` (`data/missions.js`) solo
-deja llegar a la suelta a `goal.kind === 'ship'`. **No se tocó** porque `core/blanco.js`,
-`systems/blanco.js`, `strings.js`, `hud.js` y `game.js` están en la tanda sin commitear de la otra
-sesión (bombas nuevas): meterse ahí era pisar trabajo a medio hacer. La costura, relevada:
+Pedido del autor: *"Hagamos el objetivo estructura en otra misión small que contenga un poco de
+todo esto, que sea misión ida y vuelta small 2"*. Es la MISMA suelta; lo que cambió:
 
-1. **`data/estructuras.js`** (nuevo): una tabla como la de las clases de buque — `{ hoja, perfil[20],
-   len, centro, defensa, textos }` por estructura (base, depósito, pista, radar…).
-2. **`game.js`**: `GOALS.estructura = { needsMomentum: true, dist: g => g.dist, label: g => g.nombre,
-   setup: () => {} }` (fuera de `useShip`), y pasar el tipo a `blancoSys.preparar`.
-3. **`data/missions.js`**: `climaxDeclarado` y `SHIP_MISSIONS` — la estructura va siempre a la suelta
-   (`drawApproachBarge`, la pasada, la arena y el pulso quedan afuera: no hace falta tocarlos).
-4. **`core/blanco.js`**: `AGUA` pasa a ser `base()` — `AGUA` para un buque, **`alturaBlanco()` + el
-   margen de siempre** para una estructura—; `altoEn` lee el perfil de la tabla que corresponda.
-5. **`systems/blanco.js`**: la misma sustitución (`columnaBomba`, el humo, la salpicadura → polvo), y
-   el veredicto 'hundido' con su texto de estructura ('destruido').
-6. **`render/blanco.js`**: proyectar en `base()` y un `drawEstructura` sin espuma ni `hundido_`.
-7. **`core/balistica.js:33`**, `systems/collision.js` (la bomba que pega en el suelo), y la altura de
-   lanzamiento de las defensas (`SW_ALTO` en seawolf).
-8. **`strings.js`** (los veredictos de estructura) y **`hud.js`** (cómo se rotula el objetivo).
+1. **`data/estructuras.js`** (nuevo): la tabla de estructuras — `clase` (un perfil de 20 alturas,
+   `PERFIL.base` en `data/blanco.js`) y `piezas` (qué se dibuja en cada tramo del perfil). Hoy una:
+   `BASE COSTERA` (cerco, tanques, barracas, depósitos, hangar y torre al centro, antena).
+2. **`core/blanco.js`**: `blanco.tipo` ('buque' | 'estructura') y **`blanco.base`**, el piso contra el
+   que se mide todo (antes la constante `AGUA`). La cuenta de la suelta (`simular`) pregunta el suelo
+   REAL delante del blanco (`pisoEn`: la tierra de la geografía, con sus lomas) — suponerlo plano a la
+   altura de la base prometía en verde bombas que se comía una loma.
+3. **`systems/blanco.js`**: `preparar` elige la clase por la tabla y pone el piso
+   (`alturaBlanco()` + `TIERRA`); todo `AGUA` pasó a `blanco.base` (el golpe, la columna —de tierra—,
+   el humo, el salto, la corta); **`altIdeal()`**: la banda de soltar corrida con el piso. Sonda
+   `__bombas()` (las bombas en vuelo).
+4. **`render/blanco.js`**: `drawEstructura` pinta la estructura DESDE el perfil (sin hoja horneada):
+   lo que se ve es lo que la bomba encuentra.
+5. **`systems/collision.js`**: con geografía la bomba detona contra la ALTURA del suelo (una isla, una
+   loma, la explanada), no a 0,3 del mar.
+6. **`game.js`**: `GOALS.estructura`; sin Sea Cat/Sea Wolf salvo que la misión declare `defensa:`.
+   **`data/missions.js`**: `climaxDeclarado` manda una estructura siempre a la suelta.
+7. **t18 · IDA Y VUELTA SMALL 2** (`data/pruebas_misiones.js`, fila en PRUEBAS): la t17 con la base de
+   blanco y la geografía en km — niebla, costa, isla, estrecho con puente; la base en su tierra; canal,
+   turba con acantilado y farallón en la vuelta.
 
-La data de una misión con estructura ya se puede escribir y validar:
-`goal: { kind: 'estructura', nombre: '...', dist }` + `geografia: { ..., blanco: { km: 0.8, suelo: 'isla', alto: 8 } }`.
+**Para buques no cambia nada**: su piso es `AGUA`, su banda la de siempre, su cuenta la de siempre (el
+unit test "subir el piso es bajar el avión" lo ata: el mismo perfil como buque y como estructura da
+lo mismo corrido por la diferencia de piso). Lo verifica `npm run geografia` soltando de verdad sobre
+la base de t18.
+
+**Pendiente, anotado:** el altímetro del HUD pinta la banda verde con `BL.ALT_IDEAL` fijo (no con
+`altIdeal()`): sobre una explanada a 2 m la diferencia es de un metro y medio. Está en `render/hud.js`,
+que es de la otra sesión.

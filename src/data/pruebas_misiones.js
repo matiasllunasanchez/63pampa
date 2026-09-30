@@ -256,6 +256,53 @@ const t17 = {
   par: 4000,   // t15 x 6/29, redondeado
 };
 
+// ---------------------------------------------------------------------------------------------
+// t18 · IDA Y VUELTA SMALL 2 — la t17 con UNA BASE EN TIERRA de blanco y un poco de toda la
+// geografia (pedido del autor 29/9: "hagamos el objetivo estructura en otra mision small que contenga
+// un poco de todo esto").
+//
+// ES t17 (mismas fases, radio, ruta, Chancha, CAP, 6 km por tramo) con dos cosas propias:
+//   · EL BLANCO ES UNA ESTRUCTURA (data/estructuras.js): la BASE COSTERA, parada en una explanada de
+//     tierra. Se juega con la misma suelta que el buque —altura, soltar, pasarle por encima—, sin
+//     Sea Cat ni Sea Wolf (son de buque).
+//   · LA GEOGRAFIA EN KILOMETROS (docs/sistemas/GUIA_GEOGRAFIA.md), antes y despues del blanco: la
+//     niebla, una costa, una isla que se sobrevuela, un estrecho de acantilados con un puente; el
+//     blanco en su tierra; y en la vuelta una isla con canal, tierra con lomas y un farallon.
+//
+// EL TRAZADO ES DE PRUEBA, no historico: las misiones de verdad las define el autor (29/9: "despues
+// definire bien yo cada mision, mas o menos la distancia total y en que zona poner que cosa").
+const t18 = {
+  ...t17,
+  id: 't18', name: 'IDA Y VUELTA SMALL 2',
+  goal: { kind: 'estructura', nombre: 'BASE COSTERA', dist: 6000 },
+  climax: 'suelta',
+  geografia: {
+    ida: [
+      { km: 0.8, suelo: 'mar' },
+      { km: 0.5, suelo: 'mar', niebla: 1 },            // un banco puesto, en mar abierto
+      { km: 0.3, suelo: 'mar' },
+      { km: 0.7, suelo: 'costa', lado: 'izq' },        // la costa entra por la izquierda
+      { km: 0.3, suelo: 'mar' },
+      { km: 0.5, suelo: 'isla', alto: 12 },            // se sobrevuela (fase rasante, techo 20)
+      { km: 0.3, suelo: 'mar' },
+      { km: 0.3, suelo: 'mar', paredes: 'izq' },       // el estrecho: primero un lado...
+      { km: 0.5, suelo: 'mar', paredes: 'ambos', barrera: 'puente' },   // ...despues los dos, con un puente
+      { suelo: 'mar' },                                // y el filo (techo 6) en mar abierto hasta el blanco
+    ],
+    blanco: { km: 0.8, suelo: 'tierra', lomas: 2 },    // la base, en su explanada
+    vuelta: [
+      { km: 0.4, suelo: 'mar' },
+      { km: 0.5, suelo: 'isla', alto: 10, ancho: 0.55, x: -17 },   // por encima o por el canal
+      { km: 0.5, suelo: 'mar' },
+      { km: 0.8, suelo: 'tierra', lomas: 4, paredes: 'izq' },       // turba con acantilado
+      { km: 0.4, suelo: 'mar' },
+      { km: 0.3, suelo: 'isla', alto: 14, borde: 'acantilado' },   // farallon: por arriba
+      { suelo: 'mar' },
+    ],
+  },
+  par: 4000,
+};
+
 /** Las misiones que NO son la campaña. `game.js` las concatena a `MISSIONS` para resolver una
  *  mision por id o por indice; nada que recorra la campaña las mira. */
-export const MISIONES_PRUEBA = [t15, t16, t17];
+export const MISIONES_PRUEBA = [t15, t16, t17, t18];

@@ -471,7 +471,10 @@ export const MISSIONS = [
  *  esten apartados juegan el suplente. Reescribir los renglones habria borrado la decision del
  *  autor y despues nadie se acuerda de cuales eran; asi, levantar la cuarentena es sacar una
  *  entrada de data/cuarentena.js y la campaña vuelve sola a lo que decia. */
-export const climaxDeclarado = m => m.goal.kind !== 'ship' ? null : (m.climax || 'pasada');
+// (UNA ESTRUCTURA —data/estructuras.js— va siempre a LA SUELTA: la pasada, la arena y el pulso son
+// de buques y de sus hojas, y no tienen una estructura que dibujar)
+export const climaxDeclarado = m => m.goal.kind === 'estructura' ? 'suelta'
+  : m.goal.kind !== 'ship' ? null : (m.climax || 'pasada');
 export const climaxOf = m => {
   const c = climaxDeclarado(m);
   return c && climaxEnCuarentena(c) ? CLIMAX_SUPLENTE : c;

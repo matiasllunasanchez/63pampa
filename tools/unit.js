@@ -3603,3 +3603,79 @@ test('geografia G5 · la EXPLANADA: bajo el blanco el suelo es un piso, y altura
     assert.equal(sueloBlanco(), null);
   } finally { setGeografia(null, 0); }
 });
+
+// ---------------------------------------------------------------------------------------------
+// EL BLANCO ESTRUCTURA (data/estructuras.js, PLAN_GEOGRAFIA §11)
+// ---------------------------------------------------------------------------------------------
+test('estructura · la tabla: cada una tiene perfil, y sus piezas cubren las 20 columnas sin huecos ni solapes', async () => {
+  const { ESTRUCTURAS } = await import('../src/data/estructuras.js');
+  const { PERFIL } = await import('../src/data/blanco.js');
+  for (const [n, e] of Object.entries(ESTRUCTURAS)) {
+    const p = PERFIL[e.clase];
+    assert.ok(p && p.length === 20, `${n}: su clase '${e.clase}' tiene perfil de 20 franjas`);
+    const cubre = new Array(20).fill(0);
+    for (const pz of e.piezas) {
+      assert.ok(['cerco', 'tanque', 'barraca', 'deposito', 'hangar', 'torre', 'antena'].includes(pz.tipo), `${n}: tipo '${pz.tipo}'`);
+      for (let i = pz.de; i <= pz.a; i++) cubre[i]++;
+    }
+    assert.deepEqual(cubre, new Array(20).fill(1), `${n}: cada columna del perfil tiene UNA pieza que la dibuja`);
+  }
+});
+
+test('estructura · la suelta mide contra el PISO del blanco: subir el piso es bajar el avion', async () => {
+  const cb = await import('../src/core/blanco.js');
+  // el mismo perfil ('base') como buque (piso = agua) y como estructura en tierra LLANA (lomas 0):
+  // la tierra detona a 0,3 y el agua a 1, asi que soltar Δ m (−0,7) contra la estructura tiene que
+  // dar exactamente lo mismo que contra el buque
+  setGeografia({ ida: [{ suelo: 'tierra', lomas: 0 }] }, 6000, 6000);
+  try {
+    const { alturaBlanco } = await import('../src/core/geografia.js');
+    const base = alturaBlanco() + cb.TIERRA;
+    const D = base - cb.AGUA;
+    for (const [y, zB, spd] of [[10, 160, 100], [14, 200, 120], [8, 140, 76], [18, 260, 140], [3, 90, 100]]) {
+      cb.resetBlanco(true, 'X', 'base', 'buque');
+      const buque = cb.predecir(0, y, 0, 0, spd, zB, 0);
+      cb.resetBlanco(true, 'BASE COSTERA', 'base', 'estructura', base);
+      assert.equal(cb.blanco.tipo, 'estructura');
+      const est = cb.predecir(0, y + D, 0, 0, spd, zB, 0);
+      assert.equal(est, buque, `a ${y} m / ${zB} / ${spd}: buque '${buque}', estructura '${est}'`);
+    }
+  } finally { setGeografia(null, 0); }
+  cb.resetBlanco(false);
+  assert.equal(cb.blanco.base, cb.AGUA, 'sin piso, el de siempre: el agua');
+  assert.equal(cb.blanco.tipo, 'buque');
+});
+
+test('estructura · el climax: una estructura va siempre a la suelta, y t18 la declara bien', async () => {
+  const { MISIONES_PRUEBA: MP } = await import('../src/data/pruebas_misiones.js');
+  const { climaxDeclarado: cd } = await import('../src/data/missions.js');
+  const { estructura } = await import('../src/data/estructuras.js');
+  const t18 = MP.find(m => m.id === 't18');
+  assert.ok(t18, 't18 existe');
+  assert.equal(t18.goal.kind, 'estructura');
+  assert.ok(estructura(t18.goal.nombre), `'${t18.goal.nombre}' esta en data/estructuras.js`);
+  assert.equal(cd(t18), 'suelta');
+  assert.equal(cd({ goal: { kind: 'estructura' }, climax: 'pasada' }), 'suelta', 'aunque pida otro climax: la pasada es de buques');
+  // toda mision con estructura nombra una que existe
+  for (const m of [...MISSIONS, ...MP]) if (m.goal.kind === 'estructura') assert.ok(estructura(m.goal.nombre), m.id);
+});
+
+test('estructura · la cuenta ve las lomas, y en el terreno de t18 igual hay sueltas buenas', async () => {
+  // t18: la base en tierra con lomas 2. La cuenta de la suelta pregunta el suelo REAL delante del
+  // blanco (`pisoEn`), asi que lo que da por bueno no se come una loma — por construccion. Lo que se
+  // cuida aca es el otro lado: que con las lomas la ventana no desaparezca.
+  const cb = await import('../src/core/blanco.js');
+  const { alturaBlanco } = await import('../src/core/geografia.js');
+  const { MISIONES_PRUEBA: MP } = await import('../src/data/pruebas_misiones.js');
+  const t18 = MP.find(m => m.id === 't18');
+  setGeografia(t18.geografia, 6000, 6000);
+  try {
+    cb.resetBlanco(true, 'BASE COSTERA', 'base', 'estructura', alturaBlanco() + cb.TIERRA);
+    let buenas = 0;
+    for (const x of [-20, 0, 12]) for (const y of [9, 12, 16, 19]) for (const spd of [76, 100, 130]) for (let zB = 80; zB < 420; zB += 20) {
+      const r = cb.predecir(x, y, 0, 0, spd, zB, 0);
+      if (r === 'centro' || r === 'extremo') buenas++;
+    }
+    assert.ok(buenas > 20, `la cuenta tiene que encontrar sueltas buenas (${buenas})`);
+  } finally { setGeografia(null, 0); cb.resetBlanco(false); }
+});

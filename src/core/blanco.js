@@ -5,11 +5,19 @@
 // render no puede importar sistemas (`npm run lint:layers`). El objeto se MUTA, nunca se reasigna
 // (`npm run lint:state`).
 import { BL, PERFIL } from '../data/blanco.js';
+import { geo, alturaSuelo, esTierraEn } from './geografia.js';
 import { BOMBA_G, BOMBA_PLANEO, BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_REL_MAX } from '../data/tuning.js';
 
 export const blanco = {
   on: false,          // hay buque en este pasillo
   clase: 't21',
+  // QUE BLANCO ES (data/estructuras.js): 'buque' en el agua, o 'estructura' en tierra — una base, un
+  // edificio. La suelta es la misma; cambian el piso y el dibujo.
+  tipo: 'buque',
+  // EL PISO DEL BLANCO: la altura contra la que se mide todo — donde apoya el casco o la estructura,
+  // donde la bomba "se queda corta", cuanto hay que saltar. Un buque, la flotacion (`AGUA`); una
+  // estructura, la explanada que la geografia le aplana debajo (`alturaBlanco()` + la tierra).
+  base: 1,
   nombre: '',
   z: 0, zPrev: 0,     // profundidad de camara, este cuadro y el anterior (el cruce se mide entre los dos)
   dano: 0,
@@ -52,8 +60,10 @@ export const blanco = {
   tardeT: -1, tardeX: 0, tardeY: 0,
 };
 
-export function resetBlanco(on, nombre, clase) {
+export function resetBlanco(on, nombre, clase, tipo, base) {
   blanco.on = !!on; blanco.nombre = nombre || ''; blanco.clase = PERFIL[clase] ? clase : 't21';
+  blanco.tipo = tipo === 'estructura' ? 'estructura' : 'buque';
+  blanco.base = typeof base === 'number' ? base : AGUA;
   blanco.z = 0; blanco.zPrev = 0; blanco.dano = 0; blanco.hundido = false; blanco.sinkT = 0;
   blanco.pasada = 0; blanco.marcas.length = 0; blanco.res = ''; blanco.resT = -9;
   blanco.cues.length = 0; for (const k in blanco.dicho) delete blanco.dicho[k];
@@ -83,8 +93,21 @@ export const zonaEn = x => Math.abs(x - BL.X) <= BL.LEN * BL.CENTRO ? 'centro' :
 const Z_REAL = 200, Z_P = 0.25;
 export const zVista = z => z <= Z_REAL ? z : Z_REAL * (1 + (Math.pow(z / Z_REAL, Z_P) - 1) / Z_P);
 
-/** LA FLOTACION: la misma altura contra la que detona la bomba sobre agua (collision.js). */
+/** LA FLOTACION: la misma altura contra la que detona la bomba sobre agua (collision.js). Es el
+ *  piso de un BUQUE; el de una estructura es `blanco.base` (ver arriba). */
 export const AGUA = 1;
+/** Sobre la tierra la bomba detona a esto del suelo (collision.js): el piso de una estructura es la
+ *  explanada mas esto. */
+export const TIERRA = 0.3;
+
+/** EL SUELO a `dz` metros del blanco (negativo: antes), en la columna `x`: donde detonaria una bomba
+ *  que cae ahi. Un buque, el agua; una estructura, la tierra de la geografia (+ lo que la bomba
+ *  detona arriba de ella) o el agua si ahi no hay tierra. */
+function pisoEn(x, dz) {
+  if (blanco.tipo !== 'estructura') return blanco.base;
+  const wz = geo.obj + dz;
+  return esTierraEn(x, wz) ? alturaSuelo(x, wz) + TIERRA : AGUA;
+}
 
 /** SIMULA LA SUELTA desde el estado actual del avion, con la MISMA integracion que collision.js, y
  *  dice que pasaria: 'dormida' (pega sin armar), 'corta' (cae al agua antes), 'larga' (pasa por
@@ -163,11 +186,14 @@ function simular(px, py, vy, vx, spd, zBuque, extra, acc) {
     if (zAntes < zsAntes && z >= zs) {
       const h = altoEn(x);
       if (h < 0) return 'costado';
-      if (y > AGUA + h) return 'larga';
+      if (y > blanco.base + h) return 'larga';
       if (t < blanco.armaT) return 'dormida';
       return zonaEn(x);
     }
-    if (y <= AGUA) return 'corta';
+    // CONTRA EL SUELO DE VERDAD, el mismo contra el que detona la bomba (collision.js): el agua de un
+    // buque, o —delante de una estructura— la tierra con sus lomas. Suponerla plana a la altura de
+    // la base prometia en verde una bomba que despues se comia una loma antes de la explanada.
+    if (y <= pisoEn(x, z - zs)) return 'corta';
   }
   return 'corta';
 }

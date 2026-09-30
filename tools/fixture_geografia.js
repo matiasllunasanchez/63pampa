@@ -15,6 +15,7 @@
 //   · G3: los acantilados POR TRAMO — contra la pared de un lado se muere y por el otro se pasa, y
 //         la barrera PUESTA se pasa por donde deja (un puente por abajo) y mata por donde no.
 //   · G5: la geografia escrita EN KILOMETROS (ida y vuelta por separado) cae donde dice.
+//   · EL BLANCO ESTRUCTURA (t18): la base en su explanada, soltar en la ventana la destruye.
 //   · G4: la ISLA se ve venir (la cumbre asoma sobre el horizonte desde donde nace lo que viene),
 //         por encima se pasa, la parcial deja pasar por el canal, y a ras contra ella se choca.
 //
@@ -45,8 +46,8 @@ const tap = async k => { down(k); await sleep(60); up(k); await sleep(110); };
 
 /** Entra a t17 por URL y espera a estar volando. La primera fase congela el juego con una linea
  *  de radio (`pausa: true`): se la despeja con Enter hasta que el odometro camine. */
-async function volar(extra) {
-  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?mision=t17' + (extra || ''));
+async function volar(extra, mision) {
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?mision=' + (mision || 't17') + (extra || ''));
   for (let i = 0; i < 80; i++) { if (await estado() === 'play') break; await tap('Return'); await sleep(250); }
   if (await estado() !== 'play') return false;
   for (let i = 0; i < 12; i++) {
@@ -341,6 +342,36 @@ app.whenReady().then(async () => {
     const gn = await G();
     if (!gn.activa) ok('?geo=ninguna: la mision sin geografia');
     else bad('?geo=ninguna dejo una geografia cargada');
+  }
+
+  // ---------- EL BLANCO ESTRUCTURA (t18 · IDA Y VUELTA SMALL 2) ----------
+  // La BASE COSTERA en su explanada de tierra, con la misma suelta que el buque. Se encara a 12 m y
+  // se suelta ADENTRO de la ventana (no en su primer cuadro: ahi el envion que hace falta es todo el
+  // presupuesto, y el avion sostenido a mano por la sonda cae un poco mientras la tecla esta apretada).
+  console.log('\nEL BLANCO ESTRUCTURA (t18):');
+  if (!await volar('', 't18')) bad('no se pudo volar t18');
+  else {
+    const OBJ18 = (await G()).obj;
+    const bajo = await J('__geoen(1, 0)');
+    await en(1 - 1500 / OBJ18, 12, 0, 200);
+    let s = await J('__suelta()');
+    if (bajo.tierra && s.enAtaque && s.altIdeal && s.altIdeal[0] > 8)
+      ok(`la base esta en tierra (explanada a ${bajo.altura} m) y la banda de soltar se corre con el piso (${s.altIdeal.map(v => v.toFixed(1)).join('–')} m)`);
+    else bad(`el blanco estructura no se armo (${JSON.stringify({ bajo, enAtaque: s.enAtaque, alt: s.altIdeal })})`);
+    // a 700 m: de 1500 al alcance de la ventana son ~18 s de vuelo, mas que lo que dura el lazo
+    await en(1 - 700 / OBJ18, 12, 0, 120);
+    let solto = false, res = '';
+    for (let i = 0; i < 600; i++) {
+      await js('__seaclear(); __seaput(12, 0)');
+      s = await J('__suelta()');
+      if (!solto && s.listo && s.extra < 110) { down('Z'); await js('__seaput(12, 0)'); await sleep(30); up('Z'); solto = true; }
+      if (s.res === 'hundido' || s.hundido) { res = 'hundido'; break; }
+      if (s.st !== 'play' || s.d < 10) { res = s.res; break; }
+      await sleep(25);
+    }
+    if (OUT) await shot('geo_15_base_destruida');
+    if (solto && res === 'hundido') ok('soltando en la ventana, la bomba le pega a la base y la destruye');
+    else bad(`la suelta contra la base: solto ${solto}, resultado '${res}'`);
   }
 
   console.log('\nconsola: ' + (errors.length ? errors.length + ' error(es)' : 'sin errores'));
