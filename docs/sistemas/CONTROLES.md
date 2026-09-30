@@ -89,7 +89,7 @@ pasillo y cabeceo en el clímax, pero en los dos **el avión sube**. Ningún mod
 | **mira fija / móvil** | `CAPS LOCK` | — (con mando es **siempre fija**) | pasillo y barcaza |
 | **cámara lenta** (MOMENTUM) | `4` | **SELECT** | solo pasillo |
 | **LA CHANCHA** (reabastecer) | `5` | **cruceta ↑** ¹ | solo pasillo, y no en los modos de clímax suelto. Con ruta: fuera del radar, por tramo (ver [SPEC_NAFTA_ALCANCE §5](SPEC_NAFTA_ALCANCE.md)) |
-| **SOLTAR TANQUES** | `3` | **L3** (en vuelo) | solo pasillo y en misiones con ruta: primero el par de ala, después el central ([SPEC_NAFTA_ALCANCE §6](SPEC_NAFTA_ALCANCE.md)) |
+| **SOLTAR TANQUES** | `3` | **L3** (en vuelo) | solo pasillo, en cualquier misión con tanques: primero el par de ala, después el central ([SPEC_NAFTA_ALCANCE §6](SPEC_NAFTA_ALCANCE.md)) |
 | **invertir el eje Y** | OPCIONES → EJE Y | `△` | **todo el juego a la vez** (ver §6) |
 | **pista musical** | `1` / `2` | **L3** / **R3** | cualquier pantalla (**L3 en vuelo es soltar tanques**) |
 | **navegar menús** | flechas · `ENTER` · `ESC` | cruceta/sticks · `✕` · `◯` | todas |

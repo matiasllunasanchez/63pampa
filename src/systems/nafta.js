@@ -18,14 +18,44 @@ import { RAS_GASTO_F } from '../data/tuning.js';
 
 /** Llena el tanque para la carga `id` al empezar la corrida (o lo apaga con `id` null). Lo llama
  *  `setRunObjective()`, donde ya se sabe si la mision tiene ruta y con que carga despega. */
-export function preparar(id) {
-  if (!id) { run.tanque = null; run.naftaCap = 0; return; }
+// DESDE EL 30/9 EL TANQUE EXISTE EN TODAS LAS MISIONES ("aplicalo tambien en las misiones sin ruta"):
+// lo que cuelga pesa y se suelta en cualquiera. Lo que sigue siendo SOLO DE LA RUTA es la cuenta en
+// km (gasto por km, zonas de altura, bingo, el reloj en km): eso pregunta `activo()`. Sin ruta el %
+// por segundo de siempre manda, y `sincronizar()` lo traslada al tanque — por eso los externos se
+// vacian primero y aliviana quemarlos, igual que con ruta.
+
+/** Llena el tanque para la carga `id` (o lo apaga con `id` null). `km`: la cuenta en km (con ruta). */
+export function preparar(id, km = true) {
+  if (!id) { run.tanque = null; run.naftaCap = run.naftaCap0 = 0; run.naftaKm = false; return; }
   run.tanque = tanqueInicial(id);
-  run.naftaCap = capacidadKm(id);
+  run.naftaCap = run.naftaCap0 = capacidadKm(id);
+  run.naftaKm = !!km;
   run.fuel = 100; run.fuelSync = 100;
 }
 
-export const activo = () => !!run.tanque;
+/** La cuenta de la nafta es en KM (la mision tiene ruta). */
+export const activo = () => !!run.tanque && run.naftaKm;
+/** Hay tanque con pilones (cualquier mision con carga): pesa y se puede soltar. */
+export const hayTanque = () => !!run.tanque;
+
+/** Lo que OTROS le hicieron al % desde el cuadro anterior (la Chancha, piruetas, golpes, y sin ruta
+ *  el gasto por segundo), llevado a km del tanque; despues el % se reescribe desde el tanque. */
+export function sincronizar() {
+  if (!run.tanque) return;
+  const d = run.fuel - run.fuelSync;
+  if (d > 1e-9) run.tanque = cargar(run.tanque, d / 100 * run.naftaCap);
+  else if (d < -1e-9) run.tanque = gastar(run.tanque, -d / 100 * run.naftaCap);
+  reflejar();
+}
+function reflejar() {
+  run.fuel = run.naftaCap > 0 ? Math.max(0, Math.min(100, kmQuedan(run.tanque) / run.naftaCap * 100)) : 0;
+  run.fuelSync = run.fuel;
+}
+
+/** SIN RUTA, cuanto se estira el gasto en % por segundo: el % se mide contra la capacidad de AHORA,
+ *  y despues de soltar un tanque es mas chica. Sin esto soltar vacios subiria el reloj y lo haria
+ *  bajar igual de lento — nafta gratis. Asi se quema lo mismo en litros. */
+export const escalaGasto = () => (run.tanque && run.naftaCap > 0 ? run.naftaCap0 / run.naftaCap : 1);
 
 /** Los km de crucero que quedan en el tanque. */
 export const kmRestan = () => (run.tanque ? kmQuedan(run.tanque) : 0);
@@ -35,15 +65,10 @@ export const kmRestan = () => (run.tanque ? kmQuedan(run.tanque) : 0);
  *  Devuelve 'seco' el cuadro en que el tanque llega a cero — quien decide que pasa es game.js. */
 export function step(km, y, colgado, r, ras) {
   if (!run.tanque) return null;
-  // lo que OTROS le hicieron al % desde el cuadro anterior (Chancha, piruetas, golpes), a km
-  const d = run.fuel - run.fuelSync;
-  if (d > 1e-9) run.tanque = cargar(run.tanque, d / 100 * run.naftaCap);
-  else if (d < -1e-9) run.tanque = gastar(run.tanque, -d / 100 * run.naftaCap);
+  sincronizar();
   run.tanque = gastar(run.tanque, gastoKm(km, y, colgado, r, ras));
-  const quedan = kmQuedan(run.tanque);
-  run.fuel = run.naftaCap > 0 ? Math.max(0, Math.min(100, quedan / run.naftaCap * 100)) : 0;
-  run.fuelSync = run.fuel;
-  return quedan <= 0 ? 'seco' : null;
+  reflejar();
+  return kmQuedan(run.tanque) <= 0 ? 'seco' : null;
 }
 
 /** La zona de gasto en la que vuela el avion ahora (para el HUD). */
@@ -65,18 +90,16 @@ export function soltarTanques() {
   const r = soltar(run.tanque, pilon);
   run.tanque = r.tanque;
   run.naftaCap = capacidadDe(run.tanque);
-  run.fuel = run.naftaCap > 0 ? Math.max(0, Math.min(100, kmQuedan(run.tanque) / run.naftaCap * 100)) : 0;
-  run.fuelSync = run.fuel;
+  reflejar();
   return { pilon, soltados: r.soltados };
 }
 
 /** ¿Le queda algo para soltar? (el HUD y la tecla lo preguntan) */
 export const quedaParaSoltar = () => !!run.tanque && !!proximoPilon(run.tanque);
 
-/** CUANTO MAS RAPIDO VA SEGUN LO QUE CUELGA (PLAN_NAFTA_ALCANCE §3.7: "sin bombas, el avion va mas
- *  rapido", y ahora tambien sin tanques). La cuenta es `velRelativa` (core/nafta.js). Solo con ruta;
- *  sin ella 1, y el vuelo de siempre no cambia ni un decimal. */
-export const velCarga = colgado => (run.tanque ? velRelativa(colgado) : 1);
+/** CUANTO MAS RAPIDO VA SEGUN LO QUE CUELGA (PLAN_NAFTA_ALCANCE §3.7 y el peso del 30/9). La cuenta
+ *  es `velRelativa` (core/nafta.js). Con tanque —cualquier mision con carga—; sin el, 1. */
+export const velCarga = colgado => (run.tanque ? velRelativa(colgado) : 1);   // (con o sin ruta, desde el 30/9)
 
 /** LO QUE CUELGA AHORA, con lo que sabe el tanque: cuantos externos siguen y cuanta nafta les queda
  *  (el peso, ver velRelativa). `bombas` y `bombaKg` los pone quien sabe de bombas (el vuelo). null

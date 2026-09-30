@@ -1741,8 +1741,8 @@ export const ARRASTRE_TANQUE = 0.1;
 //     (arrastre base / arrastre)^VEL_ARRASTRE_EXP × (masa base / masa)^VEL_PESO_EXP
 // Con estos numeros: la base con los tanques ya secos +7%, soltados +14%, limpio del todo +20%;
 // 3 bombas +4%, 1 bomba sola +14%. El turbo multiplica ENCIMA (y no se cobra lo que da el peso).
-// Solo con `ruta` (sin ella el vuelo es el de siempre). Con los dos exponentes en 0 soltar no
-// acelera nada. Los kg son del A-4B/C redondeados: la velocidad es juego, no tabla de performance.
+// EN TODAS LAS MISIONES Y MODOS, con o sin `ruta`, primera o tercera persona (pedido 30/9: el avion
+// del pasillo es uno solo). Con los dos exponentes en 0 soltar no acelera nada. Los kg son del A-4B/C redondeados: la velocidad es juego, no tabla de performance.
 export const VEL_ARRASTRE_EXP = 0.25;
 export const VEL_PESO_EXP = 0.35;
 export const PESO_AVION_KG = 7000;         // vacio + el interno + piloto y cañones (constante)

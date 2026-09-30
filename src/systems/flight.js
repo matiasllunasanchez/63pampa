@@ -162,9 +162,10 @@ export function flightSystem(dt, deps) {
       streaks.push({ a, r: 20 + Math.random() * 18, v: 320 + Math.random() * 220, life: 0.5 });
     }
   }
-  // LO QUE CUELGA DE LOS PILONES (solo con ruta, PLAN_NAFTA_ALCANCE): pesa en la nafta y, desde N5,
-  // en la velocidad — soltar tanques o bombas deja el avion mas rapido. Sin ruta, null y x1.
-  // Desde el 30/9 pesa de verdad: la nafta que queda en cada tanque y los kg de la bomba de la mision.
+  // LO QUE CUELGA DE LOS PILONES (PLAN_NAFTA_ALCANCE): pesa en la VELOCIDAD — soltar tanques o
+  // bombas, o quemar la nafta de los externos, deja el avion mas rapido (velRelativa, 30/9: arrastre y
+  // kg, con la nafta que le queda a cada tanque y la bomba de la mision). EN TODAS LAS MISIONES Y
+  // MODOS, con o sin ruta; en la nafta pesa solo con ruta (la cuenta en km). null sin carga: x1.
   const colgado = naftaSys.colgadoAhora(deps.climax === 'suelta' ? run.msl : bombasDe(cfg.carga),
     bombaInfo(blanco.bomba).kg);
   const velC = colgado ? naftaSys.velCarga(colgado) : 1;
@@ -344,7 +345,9 @@ export function flightSystem(dt, deps) {
     const fase = fsVal('nafta', 1);
     const base = FUEL_RATE * (ras ? Math.min(fase, RAS_GASTO_F) : fase);
     run.fuel -= (base + (run.boost ? extraTurboPorSeg(base, turboR) : 0)) * (cfg.fuelScale || 1) * dt
-      * (CHV_FUEL_FREEZE ? cvAvance() : 1);
+      * (CHV_FUEL_FREEZE ? cvAvance() : 1) * naftaSys.escalaGasto();
+    // …y el % pasa al tanque (externos primero): asi quemarlos aliviana, como con ruta (30/9)
+    naftaSys.sincronizar();
   }
   if (run.fuel <= 0) run.fuel = 0;
   // ---- LA CAMA DE VUELO (systems/vuelo.js): integrar, topes, camara y actitudes con peso. Estas

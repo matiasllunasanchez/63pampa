@@ -613,12 +613,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       else chanchaDice(r === 'early' ? 'ch_early' : r === 'used' ? 'ch_used' : 'ch_nozone');
     }
 
-    /** SOLTAR LOS TANQUES (tecla 3 / L3, PLAN_NAFTA_ALCANCE N5). Solo en el pasillo y con ruta, que
-     *  es donde el tanque tiene pilones. Sale el par de ala si sigue colgado, si no el del centro.
+    /** SOLTAR LOS TANQUES (tecla 3 / L3, PLAN_NAFTA_ALCANCE N5). En el pasillo de cualquier mision
+     *  (con o sin ruta desde el 30/9). Sale el par de ala si sigue colgado, si no el del centro.
      *  Si alguno iba con nafta se avisa cuanta se fue al mar: soltar lleno es una decision cara, y
      *  el jugador tiene que enterarse en el momento. */
     function soltarTanquesAccion() {
-      if (S.state !== 'play' || !naftaSys.activo()) return;
+      if (S.state !== 'play' || !naftaSys.hayTanque()) return;
       // lo que acelera (el peso y el arrastre que se van, core/nafta.js velRelativa): se avisa en el cartel
       const bombasAhora = runClimax() === 'suelta' ? run.msl : bombasDe(cfg.carga);
       const velAntes = velRelativa(naftaSys.colgadoAhora(bombasAhora));
@@ -1505,9 +1505,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           dificultad: curMission() && curMission().dificultad, bomba: bombaDeLaMision(),
           // el piso de una ESTRUCTURA: la explanada que la geografia le aplana debajo (0 sin geografia)
           piso: alturaBlanco() });
-      // LA NAFTA COMO ALCANCE (PLAN_NAFTA_ALCANCE N3): con ruta, el tanque se llena en km segun la
-      // carga YA RESUELTA (la bomba del buque incluida). Va despues de la suelta por eso mismo.
-      naftaSys.preparar(rutaSys.hay() ? cfg.carga : null);
+      // LA NAFTA COMO ALCANCE (PLAN_NAFTA_ALCANCE N3): el tanque se llena segun la carga YA RESUELTA
+      // (la bomba del buque incluida). Va despues de la suelta por eso mismo. EN TODAS LAS MISIONES
+      // Y MODOS desde el 30/9 (lo que cuelga pesa y se suelta igual en cualquiera); la cuenta en km,
+      // solo con ruta.
+      naftaSys.preparar(cfg.carga, rutaSys.hay());
     }
 
     // ---------- EL HANGAR (estado 'carga', PLAN_NAFTA_ALCANCE N7) ----------
@@ -4774,7 +4776,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // UNA SOLA CURVA (28/9): la bomba y los tanques caen con la misma balistica, asi que la misma
         // trayectoria sirve para los dos. Con la mira puesta es la de la bomba; con [B] sola, la de
         // los tanques (desde el centro). Entera si algo de eso saldria; a media luz si no.
-        const hayTanque = naftaSys.activo() && !!run.tanque && !!proximoPilon(run.tanque);
+        const hayTanque = naftaSys.hayTanque() && !!proximoPilon(run.tanque);
         if (run.apuntaBomba) drawTrayectoria(trayectoria(bombaSale(), run.spd, suelo), hayBomba() || (run.apuntaTanque && hayTanque));
         else if (run.apuntaTanque) drawTrayectoria(trayectoria(Object.assign(tanquesSalen('centro', 1)[0], { x: plane.x }), run.spd, suelo), hayTanque);
         if (hzW) ctx.restore();

@@ -164,7 +164,17 @@ La base (2 tanques **llenos** + MK-17) vale ×1. La bomba pesa lo que dice `data
   llega de a poco (el avión converge a la nueva velocidad como a cualquier otra).
 - Tirar bombas del ala (LA SUELTA) también acelera: cuentan las que quedan en `run.msl`.
 - Lo que cuelga ahora lo arma `systems/nafta.js colgadoAhora(bombas, bombaKg)`: lo usan el vuelo y
-  el bingo. **Solo con ruta**; sin ella el vuelo es el de siempre. El interno no pesa (constante).
+  el bingo. El interno no pesa (constante).
+- **En todas las misiones y modos** (30/9: "el funcionamiento del avión en pasillo o ruta tiene que
+  ser idéntico en cualquier modo, primera o tercera persona"). El pasillo vuela con un solo código
+  (`systems/flight.js`); la cámara solo cambia el dibujo. Por eso el **tanque con sus pilones existe
+  siempre** que hay carga (`preparar(carga, conRuta)`), y la tecla 3 / L3 suelta en cualquier misión.
+  Lo que sigue siendo **solo de la ruta** es la cuenta en km: `activo()` (gasto por km, zonas de
+  altura, bingo, reloj en km). `hayTanque()` pregunta por los pilones.
+- **Sin ruta**, el % por segundo de siempre se traslada al tanque cada cuadro (`sincronizar()`, los
+  externos se vacían primero), así que quemarlos aliviana igual. Al soltar, el % se mide contra una
+  capacidad más chica: `escalaGasto()` (capacidad al despegar / actual) estira el gasto por segundo
+  para que se queme lo mismo en litros — si no, soltar vacíos regalaría nafta.
 
 ### 3.4 · El HUD
 
@@ -240,7 +250,7 @@ tuyo por cita; seca, se va. Lleno el tanque, también se va.
 
 ## 6 · Soltar los tanques — y los tanques como arma
 
-**Tecla 3** (mando: **L3** en vuelo — afuera del vuelo L3 sigue siendo la pista musical anterior). **Solo con ruta.**
+**Tecla 3** (mando: **L3** en vuelo — afuera del vuelo L3 sigue siendo la pista musical anterior). **En cualquier misión con tanques** (con o sin ruta, desde el 30/9).
 
 - Primer toque: el **par de ala**; segundo: el **central**. Cada tanque se va **con lo que tenía
   adentro**: la capacidad baja y, si iba con nafta, un cartel dice cuántos km se fueron al mar.

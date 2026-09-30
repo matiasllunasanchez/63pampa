@@ -2840,8 +2840,26 @@ test('tanques: soltarlos en la corrida baja la capacidad, conserva lo de adentro
   assert.ok(nafta.velCarga({ bombas: 1, tanques: 0 }) > 1, 'sin tanques va mas rapido');
   assert.ok(nafta.velCarga({ bombas: 0, tanques: 0 }) > nafta.velCarga({ bombas: 1, tanques: 0 }), 'limpio, mas');
   nafta.preparar(null);
-  assert.equal(nafta.velCarga({ bombas: 0, tanques: 0 }), 1, 'sin ruta la velocidad no cambia');
+  assert.equal(nafta.velCarga({ bombas: 0, tanques: 0 }), 1, 'sin carga la velocidad no cambia');
 });
+
+test('peso sin ruta: el tanque existe, el % pasa a los externos primero y soltar no regala nafta (30/9)', async () => {
+  const nafta = await import('../src/systems/nafta.js');
+  const { run } = await import('../src/core/run.js');
+  nafta.preparar('tanques_bomba', false);
+  assert.equal(nafta.activo(), false, 'sin ruta no hay cuenta en km (ni su HUD)');
+  assert.equal(nafta.hayTanque(), true, 'pero los pilones estan');
+  run.fuel -= 20; nafta.sincronizar();                   // el gasto por segundo de siempre
+  near(run.fuel, 80, 1e-9, 'el % no cambia por pasar al tanque');
+  assert.ok(run.tanque.interno === 1700 && run.tanque.tanques[0] < 450, 'se quemo de los externos');
+  const antes = nafta.velCarga(nafta.colgadoAhora(1)); run.fuel -= 20; nafta.sincronizar();
+  assert.ok(nafta.velCarga(nafta.colgadoAhora(1)) > antes, 'quemarlos aliviana');
+  const km = nafta.kmRestan(); nafta.soltarTanques();
+  assert.ok(nafta.escalaGasto() > 1, 'con menos capacidad, cada % vale menos km: se gasta mas % por segundo');
+  assert.ok(nafta.kmRestan() <= km && nafta.kmRestan() === run.tanque.interno, 'lo de los externos se fue con ellos');
+  nafta.preparar(null);
+});
+
 
 // ---------- EL HANGAR (PLAN_NAFTA_ALCANCE N7) ----------
 test('hangar: las cargas elegibles existen, llevan la bomba del buque y tienen sus textos', async () => {
