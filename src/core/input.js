@@ -19,8 +19,8 @@ import { S, cfg } from './state.js';
 import { W, H } from '../render/ctx.js';
 import { audio } from '../systems/audio.js';
 
-// `brake` es el FRENO del ARENA (L2 en el mando; el teclado frena con [F], que llega por `sink`).
-// Campo propio y no `sink` a secas para que L2 no mueva el paneo de camara del PASILLO.
+// `brake` es el FRENO del mundo 3D —arena y pasada— (L2 en el mando, [G] en el teclado). Campo
+// propio y no `sink` para que frenar no mueva el paneo de la camara, que en 3D tambien mira.
 export const inp = { l: 0, r: 0, u: 0, d: 0, rise: 0, sink: 0, brake: 0, fire: false, turbo: false, msl: false, tanq: false,
   // LA MIRA DE LA BOMBA (27/9): mantener [F] o el clic derecho apunta; con ella puesta, ESPACIO
   // (el cañon) tira la bomba en vez de disparar. Ver flight.js.
@@ -139,7 +139,9 @@ export function initInput(cv, a) {
     if (taps.length && now - taps[taps.length - 1].t > COMBO_WIN) taps.length = 0;
     taps.push({ d, t: now });
     if (taps.length > COMBO_MAX) taps.shift();
-    if (S.state !== 'play') return;
+    // (tambien en el ARENA: sus controles son los del pasillo, y la MEDIA VUELTA sale con el combo
+    // del SPLIT-S — ver `combo` en game.js)
+    if (S.state !== 'play' && S.state !== 'arena') return;
     for (let n = taps.length; n >= 2; n--) {
       if (a.combo(taps.slice(-n).map(x => x.d).join(''))) { taps.length = 0; return; }
     }
@@ -308,7 +310,7 @@ export function initInput(cv, a) {
     // PIRUETAS: cada toque fresco alimenta el detector de combos (ver dirTap). Sale del CAMPO que
     // la tecla escribe, no de la tecla: asi A/D dan 'l'/'r' o 'L'/'R' segun en que vida esten.
     const kf = keyField(e.code);
-    if (!e.repeat && TAPTOK[kf] && (S.state === 'play' || S.state === 'pulso')) dirTap(TAPTOK[kf]);
+    if (!e.repeat && TAPTOK[kf] && (S.state === 'play' || S.state === 'pulso' || S.state === 'arena')) dirTap(TAPTOK[kf]);
     // anyPress solo con pulsaciones FRESCAS (!e.repeat): el auto-repeat de una tecla sostenida no
     // debe saltear pantallas (historia, derribado, transiciones). inp si se re-setea siempre.
     // VOLVER ATRAS en el dialogo: flecha izquierda o Backspace. Se marca ANTES de anyPress para
@@ -319,13 +321,12 @@ export function initInput(cv, a) {
     if (isFire(e.code)) { inp.fire = true; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }
     if (isTurbo(e.code)) { inp.turbo = true; if (!e.repeat) flags.anyPress = true; }
     if (e.code === 'KeyV' && !e.repeat) a.cycleCamera();                 // cicla las 4 camaras
-    // VIRAJE DE COMBATE del ARENA (media vuelta guionada, PLAN_MINUTOS_SAGRADOS E3). [R] esta
-    // libre ahi: `rise` es el paneo de camara del PASILLO y el arena no lo lee. Tecla propia y no
-    // un combo de dos toques a proposito — el repo ya aprendio que con dos toques las maniobras
-    // salen solas maniobrando (ver el encabezado de data/moves.js).
-    if (e.code === 'KeyR' && !e.repeat) a.combatTurn();
-    // REPARTO DE ENERGIA del ARENA (S1). [G] libre en todo el juego; [TAB] NO servia (es misil).
-    if (e.code === 'KeyG' && !e.repeat) a.cyclePip();
+    // EL 3D VUELA CON LOS CONTROLES DEL PASILLO (pedido del autor, 30/9). [R] ya no es la media
+    // vuelta del arena: es mirar, como en el pasillo (la media vuelta sale con el combo del SPLIT-S,
+    // ↑↓↓, en game.js). Y [G] ya no es el reparto de energia (que paso al boton del poder del modo,
+    // [3] / cruceta ↑, el de la Chancha): es EL FRENO del arena y la pasada, que antes vivia en [F]
+    // — y [F] en el pasillo es la mira de la bomba. El pasillo no tiene freno: la tecla ahi no hace nada.
+    if (e.code === 'KeyG') inp.brake = 1;
     // EL TREN [T] — solo lo escucha la aproximacion final (§4 del plan de las cinco fases). La
     // tecla estaba libre y es la inicial de TREN, que en un juego en español es la mnemotecnia
     // buena; el resto del vuelo la accion se ignora sola.
@@ -363,6 +364,7 @@ export function initInput(cv, a) {
     if (e.code === 'KeyZ' || e.code === 'Tab') inp.msl = false;
     if (e.code === 'KeyB') inp.tanq = false;
     if (e.code === 'KeyF') inp.apunta = false;
+    if (e.code === 'KeyG') inp.brake = 0;
   });
 
   // tactil: arrastre a la izquierda = volar; derecha arriba = fuego; derecha abajo = turbo
@@ -570,7 +572,8 @@ export function initInput(cv, a) {
       // habia aca decia que invertia el eje "y lo GUARDA", y era falso — dos cosas falsas, porque
       // ademas el eje ya no se guarda. Se deja la llamada por si el gancho vuelve a usarse.
       if (hit(3)) a.throttleInvert();
-      if (hit(1)) a.combatTurn();                              // ◯ = viraje de combate (solo lo lee el ARENA)
+      // (◯ ya no es la media vuelta del arena: el 3D vuela con los controles del pasillo, y la media
+      // vuelta sale con el combo del SPLIT-S, ↑↓↓ — con los sticks, igual que en el teclado)
       // CRUCETA ARRIBA = EL PODER DEL RECURSO DEL MODO: reparto de energia en el arena, LA CHANCHA
       // en el pasillo. Quien decide cual es game.js (`modePower`) — aca no se sabe de modos.
       // SQUADRONS_UPDATE §6 daba la cruceta por ocupada ("es esquive"), pero eso vale para 14/15.

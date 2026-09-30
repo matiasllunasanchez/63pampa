@@ -37,7 +37,7 @@ import { MOM_LAYOUTS, SHIP_CLASS } from '../data/ships.js';
 import { W, HOR } from '../render/ctx.js';
 import { boom, beep, sfxOne, duck, engineFly } from './audio.js';
 import * as world3D from './three-arena.js';
-import { forward, stepFlight, drifting, stepVel } from '../core/aero.js';
+import { forward, stepFlight, drifting, stepVel, mandoPasillo, mirar, planeo } from '../core/aero.js';
 import { AR } from '../data/arena.js';
 import { PS, ENTRY_D, ENTRY_ALT, ENTRY_LAT_MAX, LANE_PARALLAX, BOMB, HOSE } from '../data/pasada.js';
 // AVERIAS: el escalon de daño entra por el mismo `io` que el resto de las palancas. El modelo de
@@ -869,22 +869,13 @@ export function update(dt, inp) {
   A.hitFx = Math.max(0, A.hitFx - dt * 5);
   A.zoomPunch = Math.max(0, A.zoomPunch - dt * 3.5);
 
-  // ---------- MANDO: identico al arena (modelo E1/E2, angulos comandados) ----------
-  // W/S piden CABECEO, Q/E y el stick derecho piden BANQUEO —y banquear ES virar—, A/D derrapan
-  // fino, [F]/L2 frena. El EJE Y viene ya resuelto de core/input.js (cfg.invY, uno para todo el
-  // juego): la pasada NO se lo da vuelta por su cuenta, o volaria al reves que el pasillo.
-  // NO hay reparto de energia (S1) ni media vuelta (E3): son sistemas del ARENA, y el spec pide
-  // "ningun control nuevo" en la pasada, no "todos los controles del arena".
-  // EL GAS SE SIENTE COMO EN EL PASILLO (playtest 16/8). Sin comando, el morro cae solo: soltar
-  // W hace bajar, igual que en el pasillo, en vez de dejar la actitud clavada. Es UNA constante,
-  // pero es la diferencia entre que la mano siga funcionando al cruzar al climax o que no.
-  const io = {
-    pitch: inp.u - inp.d,
-    roll: (inp.rollR || 0) - (inp.rollL || 0) + (inp.rollAx || 0),
-    slip: inp.r - inp.l,
-    brake: !!(inp.sink || inp.brake),
-    boost: !!(inp.turbo && run.fuel > 0),
-  };
+  // ---------- MANDO: LOS CONTROLES DEL PASILLO, identicos al arena (pedido del autor, 30/9) ----------
+  // `mandoPasillo` (core/aero.js), la misma funcion que el arena: W gas —soltarlo, el avion CAE,
+  // que es lo que el playtest del 16/8 ya habia pedido y hasta hoy solo decia este comentario—, S
+  // picada, A/D y Q/E banquean y viran, [G]/L2 frenan, R/F miran. NO hay reparto de energia ni media
+  // vuelta: son sistemas del ARENA, y el spec pide "ningun control nuevo" en la pasada.
+  const io = mandoPasillo(inp, run.fuel > 0, A, dt);
+  mirar(A, inp, dt);
   const av = dmg.fx();
   io.turboMul = av.spd;
   io.accMul = av.agil;
@@ -901,7 +892,7 @@ export function update(dt, inp) {
     while (dyaw > Math.PI) dyaw -= Math.PI * 2;
     while (dyaw < -Math.PI) dyaw += Math.PI * 2;
     io.roll = Math.max(-1, Math.min(1, dyaw * 1.6));
-    io.pitch = 0; io.slip = 0; io.brake = false; io.boost = false;
+    io.pitchTgt = 0; io.vyTgt = 0; io.slip = 0; io.brake = false; io.boost = false;   // la correa vuela nivelado
     if (rad < PS.ZONE_R * AUTO_OFF && Math.abs(dyaw) < 0.5) { A.auto = 0; A.outT = 0; }
   }
 
@@ -910,7 +901,7 @@ export function update(dt, inp) {
   stepFlight(A, io, dt);
   A.fwd = forward(A.yaw, A.pitch);
   stepVel(A.vel, A.fwd, A.drift, dt);
-  A.vy = A.vel.y * A.spd;             // la vy es CONSECUENCIA de por donde VIAJA el avion
+  A.vy = A.vel.y * A.spd + planeo(A, io, dt);   // por donde VIAJA + el PLANEO del gas (core/aero.js)
   A.up = { x: 0, y: 1, z: 0 };
 
   // ---------- POSICION ----------

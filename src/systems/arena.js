@@ -47,7 +47,7 @@ import * as world3D from './three-arena.js';
 // picar sobre el buque era la herencia del scroll lateral (plan §2.2 y §3).
 import {
   forward, stepFlight, vyOf, slipAngle,
-  startUturn, stepUturn, drifting, stepVel, driftAngle,
+  startUturn, stepUturn, drifting, stepVel, driftAngle, mandoPasillo, mirar, planeo,
 } from '../core/aero.js';
 import { AR } from '../data/arena.js';
 // AVERIAS: quien decide si un impacto MATA o solo lastima es systems/damage.js, segun el modelo
@@ -415,22 +415,17 @@ export function update(dt, inp) {
   run.mslCd = Math.max(0, run.mslCd - dt);
   // (la regeneracion automatica de misiles se saco en E5: ahora se gana con la PASADA LIMPIA)
 
-  // ---------- MANDO (modelo E1/E2: angulos comandados) ----------
-  // W/S piden CABECEO, Q/E y el stick derecho piden BANQUEO — y banquear ES virar. A/D derrapan
-  // fino. [F]/L2 frenan. Nada de suavizar el input antes de usarlo: la cadena corta es la ley.
-  // EL EJE Y NO SE INVIERTE ACA. `inp.u` ya viene con el eje que el jugador eligio (core/input.js,
-  // cfg.invY), igual que en el pasillo: si el arena se lo diera vuelta por su cuenta, la misma
-  // partida tendria dos ejes distintos segun la fase — que es el bug que esto vino a matar.
-  const io = {
-    pitch: inp.u - inp.d,
-    roll: (inp.rollR || 0) - (inp.rollL || 0) + (inp.rollAx || 0),
-    slip: inp.r - inp.l,
-    brake: !!(inp.sink || inp.brake),
-    boost: !!(inp.turbo && run.fuel > 0),
-    // el reparto de energia (S1) entra por aca: MOTOR compra punta y aceleracion, ARMAS las
-    // regala (turbo 1.0 = no hay turbo) y se las cobra al cañon en la otra punta del update
-    turboMul: pipCfg().turbo, accMul: pipCfg().acc,
-  };
+  // ---------- MANDO: LOS CONTROLES DEL PASILLO (pedido del autor, 30/9) ----------
+  // W gas (soltarlo, cae) · S picada · A/D y Q/E banquean, y banquear ES virar · [G]/L2 frenan ·
+  // R/F y el stick derecho vertical miran. Ver `mandoPasillo` en core/aero.js: es la MISMA funcion
+  // que usa la pasada, asi el 3D no puede volarse distinto en dos fases.
+  // La MEDIA VUELTA (E3) sale con el combo del SPLIT-S del pasillo (↑↓↓) y el REPARTO DE ENERGIA
+  // con el boton del poder del modo ([3] / cruceta ↑), el de la Chancha: ver game.js.
+  const io = mandoPasillo(inp, run.fuel > 0, A, dt);
+  mirar(A, inp, dt);
+  // el reparto de energia (S1) entra por aca: MOTOR compra punta y aceleracion, ARMAS las
+  // regala (turbo 1.0 = no hay turbo) y se las cobra al cañon en la otra punta del update
+  io.turboMul = pipCfg().turbo; io.accMul = pipCfg().acc;
   // AVERIAS: el escalon multiplica punta y respuesta, y puede sacar el turbo. Entra por el mismo
   // `io` que los pips — el modelo de vuelo no sabe de daño, solo de palancas.
   const av = dmg.fx();
@@ -452,7 +447,7 @@ export function update(dt, inp) {
     while (dyaw > Math.PI) dyaw -= Math.PI * 2;
     while (dyaw < -Math.PI) dyaw += Math.PI * 2;
     io.roll = Math.max(-1, Math.min(1, dyaw * 1.6));
-    io.pitch = 0; io.slip = 0; io.brake = false; io.boost = false;
+    io.pitchTgt = 0; io.vyTgt = 0; io.slip = 0; io.brake = false; io.boost = false;   // la correa vuela nivelado
     if (rad < RING * AUTO_OFF && Math.abs(dyaw) < 0.5) { A.auto = 0; A.outT = 0; }
   }
 
@@ -475,7 +470,9 @@ export function update(dt, inp) {
   // rayo del cañon, la mira y el vector de vuelo son el mismo. Derrapando queda atras: el morro
   // apunta al buque mientras el avion todavia viaja para donde venia.
   stepVel(A.vel, A.fwd, A.drift, dt);
-  A.vy = A.vel.y * A.spd;                // la vy es CONSECUENCIA de por donde VIAJA (la leen flak y sonda)
+  // la vy es CONSECUENCIA de por donde VIAJA (la leen flak y sonda) + EL PLANEO: lo que el gas sube
+  // o baja sin tocar el morro (los controles del pasillo, core/aero.js `planeo`)
+  A.vy = A.vel.y * A.spd + planeo(A, io, dt);
   A.up = { x: 0, y: 1, z: 0 };
 
   // sonda: ¿el buque esta encuadrado? (cono de ~15° al centro del casco). Las transiciones
@@ -768,7 +765,7 @@ if (typeof window !== 'undefined') window.__akill = () => {
 };
 if (typeof window !== 'undefined') window.__adbg = () => A && JSON.stringify({
   x: A.pos.x | 0, y: A.pos.y | 0, z: A.pos.z | 0, r: Math.hypot(A.pos.x, A.pos.z) | 0,
-  yaw: +A.yaw.toFixed(2), pitch: +A.pitch.toFixed(2), roll: +A.roll.toFixed(2),
+  yaw: +A.yaw.toFixed(2), pitch: +A.pitch.toFixed(2), roll: +A.roll.toFixed(2), look: +(A.look || 0).toFixed(2),
   spd: A.spd | 0, vx: +A.vx.toFixed(1), vy: +A.vy.toFixed(1),
   slip: +(slipAngle(A.vx, A.spd) * 180 / Math.PI).toFixed(1),
   mv: A.mv && A.mv.id, drift: A.drift, pip: AR.PIP_ORDER[pip],

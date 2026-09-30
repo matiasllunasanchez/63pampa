@@ -35,6 +35,8 @@ import { DUOTONO3D_FUERZA } from '../data/tuning.js';
 import * as bruma3d from './bruma3d.js';
 import * as aves3d from './aves3d.js';
 import * as tierra3d from './tierra3d.js';
+import { forward } from '../core/aero.js';   // la camara de atras: el rumbo con MEDIO cabeceo (AR.CAM_PITCH_K)
+import { AR } from '../data/arena.js';   // LOOK_MAX: cuanto inclina la camara el mirar (controles del pasillo)
 
 const THREE = window.THREE || null;
 
@@ -314,6 +316,9 @@ export function frame(w) {
   const f = A.fwd;
   const dt3 = Math.max(0, Math.min(0.05, w.t - (A3.lastT || w.t))); A3.lastT = w.t;
   if (w.view === 3) {
+    // LA CAMARA DE ATRAS acompaña solo parte del cabeceo (AR.CAM_PITCH_K): el avion se inclina MAS
+    // que la vista, asi que trepando se le ve la panza y la mira se mueve menos que la nariz
+    const f = forward(A.yaw, A.pitch * AR.CAM_PITCH_K);
     const tx = px - f.x * 26, ty = py - f.y * 26 + 9, tz = pz - f.z * 26;
     const lx = px + f.x * 60, ly = py + f.y * 60 + 1.5, lz = pz + f.z * 60;
     if (!A3.cs) A3.cs = { x: tx, y: ty, z: tz, lx, ly, lz };
@@ -326,17 +331,25 @@ export function frame(w) {
     // escondia la informacion que ahora gobierna el avion. El pasillo ya rola el horizonte
     // entero por default (HORIZONTE: TOTAL); esto es lo mismo dicho en 3D.
     A3.cam.rotateZ(-A.roll);
+    mirarCam(A);
   } else {
     A3.cs = null;                                // al volver a 3a, el resorte arranca fresco
     A3.cam.position.set(px + f.x * 2, py + f.y * 2, pz + f.z * 2);
     A3.cam.lookAt(px + f.x * 80, py + f.y * 80, pz + f.z * 80);
     A3.cam.rotateZ(-A.roll);
+    mirarCam(A);
   }
   A3.sun.quaternion.copy(A3.cam.quaternion);   // billboard: el sol siempre de frente
 
   r.render(A3.scene, A3.cam);
   A3.on = true;
   return true;
+}
+
+/** MIRAR ARRIBA / ABAJO (los controles del pasillo en 3D, core/aero.js `mirar`): la camara se
+ *  inclina sobre su propio eje, despues del alabeo — mirar es mover la cabeza, no el avion. */
+function mirarCam(A) {
+  if (A.look) A3.cam.rotateX(-A.look * AR.LOOK_MAX);
 }
 
 // ---------- interfaz para el juego ----------

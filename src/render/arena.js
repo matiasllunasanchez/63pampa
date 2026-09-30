@@ -52,7 +52,11 @@ export function drawThirdPlane(A, selPlane) {
   // el banqueo del sprite se normaliza al ROLL_MAX del modelo: banqueo pleno = hoja al tope
   const bank = Math.max(-1, Math.min(1, A.roll / AR.ROLL_MAX));
   const col = Math.round((1 - bank) / 2 * (SHEET_NF - 1));
-  const row = A.pitch > PITCH_ROW ? 0 : A.pitch < -PITCH_ROW ? 2 : 1;
+  // LA FILA sale del cabeceo NORMALIZADO a la nariz plena de los controles del pasillo (AR.NOSE_UP),
+  // como en el pasillo sale de su -1..1: con W sostenido se le ve la PANZA. Antes se media en
+  // radianes contra el umbral del pasillo (0,33 = 19°) y hacia falta una trepada casi vertical.
+  const pn = A.pitch / AR.NOSE_UP;
+  const row = pn > PITCH_ROW ? 0 : pn < -PITCH_ROW ? 2 : 1;
   const spW = 84, spH = 84;
   // el avion se dibuja DONDE ESTA (proyectando su posicion real), no clavado a un punto fijo de
   // la pantalla: la camara lo sigue con resorte, asi que al maniobrar el avion se DESPLAZA dentro

@@ -24,6 +24,7 @@
 // suavizados intermedios. Era lo que hacia suelto al modelo anterior y es la vara de feeltest.
 
 import { AR } from '../data/arena.js';
+import { PITCH_DELAY, PITCH_RAMP } from './physics.js';   // el cabeceo del pasillo: mantener mueve la trompa
 
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 
@@ -40,7 +41,12 @@ export function forward(yaw, pitch) {
  */
 export function stepFlight(st, io, dt) {
   // inputs normalizados: un io PARCIAL ({ pitch: 1 } solo) es valido — API pura, se defiende sola
-  const inP = clamp(io.pitch || 0, -1, 1), inR = clamp(io.roll || 0, -1, 1), inS = clamp(io.slip || 0, -1, 1);
+  // UN ANGULO PEDIDO (`pitchTgt`, los controles del pasillo — ver AR.GAS_PITCH) se convierte aca
+  // en el mismo comando de cabeceo de siempre, proporcional al error: asi el morro llega al angulo
+  // con el PITCH_RATE, la autoridad y el acople con el banqueo del modelo, sin una fisica aparte.
+  const inP = typeof io.pitchTgt === 'number'
+    ? clamp((io.pitchTgt - st.pitch) * AR.PITCH_K, -1, 1)
+    : clamp(io.pitch || 0, -1, 1), inR = clamp(io.roll || 0, -1, 1), inS = clamp(io.slip || 0, -1, 1);
 
   // ALABEO: el stick pide un ANGULO objetivo y el banqueo lo persigue con resorte. Roll > 0 =
   // ala derecha abajo. Soltar el stick es pedir alas niveladas: el avion se endereza solo.
@@ -84,6 +90,63 @@ export function stepFlight(st, io, dt) {
 
 /** velocidad vertical EMERGENTE del cabeceo: la consecuencia, no el comando. */
 export const vyOf = st => Math.sin(st.pitch) * st.spd;
+
+/** LOS CONTROLES DEL PASILLO, EN EL MUNDO 3D (pedido del autor, 30/9: "que sean exactamente los
+ *  mismos que se usan en PASILLO"). Traduce `inp` —el mismo que vuela el pasillo— al mando del
+ *  modelo, para TODO lo que vuela en 3D (el arena y la pasada): una sola funcion, asi no pueden
+ *  divergir entre ellos ni con el pasillo.
+ *
+ *    W / S · stick izq ↕   GAS y PICADA: W sube, soltarlo PLANEA bajando, S baja rapido —
+ *                          con el MORRO AL FRENTE: la mira no se mueve (AR.VY_GAS y cia.)
+ *    A / D · stick izq ↔   lo que en el pasillo es esquivar: aca BANQUEA, y banquear es VIRAR
+ *    Q / E · flechas ←→ · stick der ↔   rolar: lo mismo (como en la barcaza, rolan las dos manos)
+ *    turbo                 el de siempre
+ *    freno                 [G] y L2 (el pasillo no tiene freno; [F] es la mira de la bomba)
+ *
+ *  El EJE Y ya viene resuelto de core/input.js (cfg.invY): aca no se da vuelta nada. */
+export function mandoPasillo(inp, conNafta, st, dt) {
+  const roll = (inp.r || 0) - (inp.l || 0) + (inp.rollR || 0) - (inp.rollL || 0) + (inp.rollAx || 0);
+  const v = (inp.u || 0) - (inp.d || 0);
+  // CUANTO HACE QUE SE MANTIENE la misma tecla vertical: la regla del cabeceo del pasillo. Los
+  // toques de gas no mueven la trompa; mantenerla, si (`ramp` 0 → 1 despues de PITCH_DELAY).
+  let ramp = 0;
+  if (st) {
+    st.vHold = v !== 0 && v === st.vPrev ? (st.vHold || 0) + (dt || 0) : 0;
+    st.vPrev = v;
+    ramp = Math.max(0, Math.min(1, (st.vHold - PITCH_DELAY) / PITCH_RAMP));
+  }
+  return {
+    // EL MORRO AL FRENTE mientras se bombea (la mira no cabecea con el gas); SOSTENIDO, la nariz
+    // sube (o baja con S) hasta NOSE_UP — y ahi se le ve la panza…
+    pitchTgt: v > 0 ? ramp * AR.NOSE_UP : v < 0 ? -ramp * AR.NOSE_DOWN : 0,
+    // …y W / nada / S piden una VELOCIDAD VERTICAL (`planeo`). Con la nariz arriba la subida la hace
+    // el morro, asi que el planeo se retira a medida que la nariz llega: no se suman las dos.
+    vyTgt: (v > 0 ? AR.VY_GAS : v < 0 ? AR.VY_PICA : AR.VY_PLANEO) * (v !== 0 ? 1 - ramp : 1),
+    roll: clamp(roll, -1, 1),
+    slip: 0,
+    brake: !!inp.brake,
+    boost: !!(inp.turbo && conNafta),
+  };
+}
+
+/** EL PLANEO: la velocidad vertical que pidio la mano (`io.vyTgt`), con resorte. Va APARTE del morro
+ *  —se suma a la del vuelo— y es lo que hace que el gas suba y baje el avion sin cabecear la mira,
+ *  como en el pasillo. Deja el valor en `st.vyG` y lo devuelve. Sin `vyTgt`, se apaga solo. */
+export function planeo(st, io, dt) {
+  const tgt = typeof io.vyTgt === 'number' ? io.vyTgt : 0;
+  st.vyG = (st.vyG || 0) + (tgt - (st.vyG || 0)) * Math.min(1, dt * AR.VY_RESP);
+  return st.vyG;
+}
+
+/** MIRAR ARRIBA / ABAJO en 3D: el mismo paneo que el pasillo (`stepVuelo`: R/F, flechas ↑↓ con la
+ *  mira fija, stick derecho vertical), con resorte. Deja en `st.look` un valor en [-1, 1] —positivo
+ *  mira ABAJO— que la camara (systems/three-arena.js) convierte en inclinacion. */
+export function mirar(st, inp, dt) {
+  const pan = inp.camAx || ((inp.camD || 0) + (inp.rise || 0)) - ((inp.camU || 0) + (inp.apunta ? 0 : (inp.sink || 0)));
+  const tgt = clamp(pan, -1, 1);
+  st.look = (st.look || 0) + (tgt - (st.look || 0)) * Math.min(1, dt * AR.LOOK_RESP);
+  return st.look;
+}
 
 /** SWEET SPOT (S3): cuanto aprieta el viraje a `spd`. Campana centrada en AR.SWEET_SPD — vale 1
  *  lejos de ella, asi el modelo E2 medido en crucero no se mueve. */

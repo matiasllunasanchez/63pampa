@@ -2513,6 +2513,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // sufijo mas largo (core/input.js) resuelve el caso contrario —que una corta sea el FINAL de
       // una larga, como '←←' dentro de '↓←←'— pero los prefijos hay que evitarlos por diseño.
       combo: seq => {
+        // EL ARENA VUELA CON LOS CONTROLES DEL PASILLO (30/9): su MEDIA VUELTA sale con el combo del
+        // SPLIT-S del pasillo (↑↓↓, el stick que vuela) — que es exactamente eso, una media vuelta:
+        // medio tonel y media rizada. El mismo gesto, la misma maniobra, en los dos mundos.
+        if (S.state === 'arena') {
+          if (seq === 'udd' && arena.active()) { arena.combatTurn(); return true; }
+          return false;
+        }
         if (S.state !== 'play') return false;
         // EL BANCO DEL PICHON: en campaña solo disparan las piruetas APRENDIDAS (el guion las
         // inventa una por una). El tonel clasico no pasa por aca (startRoll) y queda siempre.
@@ -2597,7 +2604,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         beep(r === 'on' ? 330 : 520, 0.09, 'square', 0.05, r === 'on' ? -160 : 160);   // slide abajo = el tiempo cae
         cartel(r === 'on' ? T('tempoOn') : T('tempoOff'), P.accent);
       },
-      chanchaCall: () => pedirChancha(),
+      // [3]: el poder del modo, como la cruceta ↑ — la CHANCHA en el pasillo, el REPARTO DE ENERGIA
+      // en el arena (el 3D vuela con los controles del pasillo, 30/9: la energia dejo la [G])
+      chanchaCall: () => { if (S.state === 'arena') { if (arena.active()) arena.cyclePip(); return; } pedirChancha(); },
       soltarTanques: () => soltarTanquesAccion(),
       /** EL PODER RASANTE (tecla 6). Funcion con nombre y no cuerpo de la accion, por el mismo
        *  motivo que `pedirChancha`: la sonda del fixture tiene que apretar EXACTAMENTE lo que

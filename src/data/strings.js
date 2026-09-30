@@ -358,9 +358,9 @@ export const STRINGS = {
     // estante del tablero la dibuja—. MISIL quedo para lo que te tiran a vos.
     ctrlMsl: 'BOMBA',           ctrlMslK: 'Z   ·   TAB',        ctrlMslP: 'L1   ·   □',
     ctrlBoost: 'POSCOMBUSTION', ctrlBoostK: 'SHIFT   ·   C',    ctrlBoostP: 'gatillo',
-    ctrlBrake: 'FRENO',         ctrlBrakeK: 'F',                ctrlBrakeP: 'L2',
-    ctrlTurn: 'VIRAJE DE COMBATE', ctrlTurnK: 'R',              ctrlTurnP: '◯',
-    ctrlPips: 'REPARTO DE ENERGIA', ctrlPipsK: 'G',             ctrlPipsP: 'cruceta ARRIBA',
+    ctrlBrake: 'FRENO (3D)',    ctrlBrakeK: 'G',                ctrlBrakeP: 'L2',
+    ctrlTurn: 'MEDIA VUELTA (3D)', ctrlTurnK: 'W  S  S',          ctrlTurnP: 'stick izq ↑ ↓ ↓',
+    ctrlPips: 'REPARTO DE ENERGIA (3D)', ctrlPipsK: '3',        ctrlPipsP: 'cruceta ARRIBA',
     ctrlRoll: 'ROLAR / GIRO 360°', ctrlRollK: '← →  ·  Q E',    ctrlRollP: 'stick der ← →',
     ctrlPan: 'MIRAR ARR / ABAJO', ctrlPanK: '↑ ↓  ·  R F',      ctrlPanP: 'stick der ↑ ↓',
     ctrlMoves: 'PIRUETAS',      ctrlMovesK: 'secuencias de toques', ctrlMovesP: 'los dos sticks',
@@ -368,7 +368,7 @@ export const STRINGS = {
     ctrlHands: 'zigzag: mano izq · rolidos: mano der', ctrlHandsK: '', ctrlHandsP: '',
     ctrlWasd: 'con MIRA MOVIL, las flechas vuelven a volar', ctrlWasdK: '', ctrlWasdP: '',
     // en la PASADA no hay controles nuevos: el mismo boton suelta la ristra entera
-    ctrlArena: 'FRENO, VIRAJE y ENERGIA: solo en el climax', ctrlArenaK: '', ctrlArenaP: '',
+    ctrlArena: 'en 3D se vuela IGUAL: A D viran, soltar W cae', ctrlArenaK: '', ctrlArenaP: '',
     ctrlBombs: 'en la PASADA, la BOMBA suelta la ristra', ctrlBombsK: '', ctrlBombsP: '',
     ctrlSame: 'esta tabla vale IGUAL en los cuatro modos', ctrlSameK: '', ctrlSameP: '',
     ctrlBoth: 'todo se juega con teclado O con joystick, sin excepcion', ctrlBothK: '', ctrlBothP: '',
@@ -439,7 +439,7 @@ export const STRINGS = {
     mom_title: 'M O M E N T U M', mom_hint: 'MANTENE LA MIRA EN LA ZONA Y DISPARA [X]',
     mom_pass: 'PASADA {n}/{m}', mom_clear: 'PASADA COMPLETA!', mom_next: 'PROXIMA PASADA >>',
     // ARENA: el asalto volado en 3D (climax con three.js; sin 3D rige el momentum clasico)
-    arena_hint: 'MORRO [W]/[S] · ROLA Y VIRA [Q]/[E] · FRENO [F] · MEDIA VUELTA [R] · ENERGIA [G] · [X] FUEGO · [Z] PINTA Y SOLTA',
+    arena_hint: 'GAS [W] · PICADA [S] · VIRA [A]/[D] · FRENO [G] · MEDIA VUELTA [W][S][S] · ENERGIA [3] · [X] FUEGO · [Z] PINTA Y SOLTA',
     arena_uturn: 'MEDIA VUELTA', arena_sweet: 'GIRO CORTO', arena_reload: 'PASADA LIMPIA  ·  +1 BOMBA',
     // reparto de energia (S1): los nombres son cortos porque comparten renglon con el tablero
     arena_pip_eq: 'EQUILIBRADO', arena_pip_mot: 'MOTOR', arena_pip_arm: 'ARMAS',
@@ -533,7 +533,7 @@ export const STRINGS = {
     // El cartel de controles es el del arena MENOS lo que la pasada no tiene (media vuelta y
     // reparto de energia son sistemas del arena) y MAS lo suyo: la suelta.
     pasada_title: 'P A S A D A',
-    pasada_hint: 'MORRO [W]/[S] · ROLA Y VIRA [Q]/[E] · FRENO [F] · [Z] SUELTA',
+    pasada_hint: 'GAS [W] · PICADA [S] · VIRA [A]/[D] · FRENO [G] · [Z] SUELTA',
     pasada_run: 'CORRIDA',
     // LA VENTANA DE SUELTA: las tres bandas y sus dos desenlaces con nombre propio. "NO DESPERTO"
     // es historico y le da titulo a la m6 del guion.
@@ -1445,16 +1445,16 @@ export const STRINGS = {
     ctrlGun: 'CANNON',          ctrlGunK: 'X · SPACE · K',      ctrlGunP: 'R1   ·   ✕',
     ctrlMsl: 'BOMB',            ctrlMslK: 'Z   ·   TAB',        ctrlMslP: 'L1   ·   □',
     ctrlBoost: 'AFTERBURNER', ctrlBoostK: 'SHIFT   ·   C',    ctrlBoostP: 'trigger',
-    ctrlBrake: 'AIRBRAKE',      ctrlBrakeK: 'F',                ctrlBrakeP: 'L2',
-    ctrlTurn: 'COMBAT TURN',    ctrlTurnK: 'R',                 ctrlTurnP: '◯',
-    ctrlPips: 'ENERGY PIPS',    ctrlPipsK: 'G',                 ctrlPipsP: 'd-pad UP',
+    ctrlBrake: 'AIRBRAKE (3D)', ctrlBrakeK: 'G',                ctrlBrakeP: 'L2',
+    ctrlTurn: 'COMBAT TURN (3D)', ctrlTurnK: 'W  S  S',          ctrlTurnP: 'left stick ↑ ↓ ↓',
+    ctrlPips: 'ENERGY PIPS (3D)', ctrlPipsK: '3',               ctrlPipsP: 'd-pad UP',
     ctrlRoll: 'ROLL / 360° ROLL', ctrlRollK: '← →  ·  Q E',     ctrlRollP: 'right stick ← →',
     ctrlPan: 'LOOK UP / DOWN',  ctrlPanK: '↑ ↓  ·  R F',        ctrlPanP: 'right stick ↑ ↓',
     ctrlMoves: 'MANEUVERS',     ctrlMovesK: 'tap sequences',    ctrlMovesP: 'both sticks',
     ctrlTonel: 'BARREL ROLL',   ctrlTonelK: '← ← ←  ·  Q Q Q',  ctrlTonelP: 'right stick: 3 taps',
     ctrlHands: 'zigzags: left hand · rolls: right hand', ctrlHandsK: '', ctrlHandsP: '',
     ctrlWasd: 'with FREE SIGHT, the arrows fly again', ctrlWasdK: '', ctrlWasdP: '',
-    ctrlArena: 'AIRBRAKE, TURN and PIPS: climax only', ctrlArenaK: '', ctrlArenaP: '',
+    ctrlArena: 'in 3D you fly the SAME: A D turn, let go of W and you sink', ctrlArenaK: '', ctrlArenaP: '',
     ctrlBombs: 'in the PASS, the BOMB drops the stick', ctrlBombsK: '', ctrlBombsP: '',
     ctrlSame: 'this table is the SAME in all four modes', ctrlSameK: '', ctrlSameP: '',
     ctrlBoth: 'everything is playable on keyboard OR gamepad, no exceptions', ctrlBothK: '', ctrlBothP: '',
@@ -1511,7 +1511,7 @@ export const STRINGS = {
     mom_title: 'M O M E N T U M', mom_hint: 'KEEP THE SIGHT ON THE ZONE AND FIRE [X]',
     mom_pass: 'PASS {n}/{m}', mom_clear: 'PASS COMPLETE!', mom_next: 'NEXT PASS >>',
     // ARENA: the flown 3D assault (three.js climax; without 3D the classic momentum runs)
-    arena_hint: 'NOSE [W]/[S] · ROLL & TURN [Q]/[E] · BRAKE [F] · U-TURN [R] · POWER [G] · [X] FIRE · [Z] PAINT & RELEASE',
+    arena_hint: 'THROTTLE [W] · DIVE [S] · TURN [A]/[D] · BRAKE [G] · U-TURN [W][S][S] · POWER [3] · [X] FIRE · [Z] PAINT & RELEASE',
     arena_uturn: 'U-TURN', arena_sweet: 'TIGHT TURN', arena_reload: 'CLEAN PASS  ·  +1 BOMB',
     arena_pip_eq: 'BALANCED', arena_pip_mot: 'ENGINE', arena_pip_arm: 'WEAPONS',
     arena_open: '! EXPOSED !', arena_bubble: 'CLOSE-IN DEFENCE',

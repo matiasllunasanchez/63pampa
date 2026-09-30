@@ -1,7 +1,9 @@
 # CONTROLES — teclado y joystick, modo por modo
 
 > **Estado: normativo.** Esta tabla es lo que `src/core/input.js` *hace*, leído del código el
-> 22/8/2026. Si cambiás un binding, cambiás este documento **y** la tabla `ctrl*` de
+> 22/8/2026 y puesto al día el **30/9/2026**: el mundo 3D (ARENA y PASADA) pasó a volar con **los
+> controles del pasillo** (§3, pedido del autor), y las teclas de los poderes se corrieron el 25/9
+> (la CHANCHA a `3`, RASANTE a `5`, soltar tanques a `B`, el pack de señales en `6`–`0`). Si cambiás un binding, cambiás este documento **y** la tabla `ctrl*` de
 > `src/data/strings.js` en los dos idiomas (esa tabla es la pantalla CONTROLES del juego).
 
 ---
@@ -16,9 +18,10 @@ gira el horizonte y mueve la cámara. En el mando son los dos sticks; en teclado
 aparato: si una tecla hace algo, hay un botón que hace lo mismo, y al revés. Es una regla, no una
 coincidencia — cuando se agregue una acción nueva, entra por los dos lados o no entra.
 
-**El esquema no cambia entre modos.** Los cuatro modos jugables leen los mismos campos de `inp`.
-Lo único que cambia es *qué significa* ese campo en el mundo de cada modo — `W` es gas en el
-pasillo y cabeceo en el clímax, pero en los dos **el avión sube**. Ningún modo re-mapea nada.
+**El esquema no cambia entre modos.** Los cuatro modos jugables leen los mismos campos de `inp`, y
+desde el 30/9 el mundo 3D además los **interpreta igual que el pasillo** (*"que sean exactamente los
+mismos que se usan en PASILLO"*): `W` es gas y si lo soltás el avión cae, `S` pica, `A`/`D` son la
+mano que te lleva a los costados. Ningún modo re-mapea nada.
 
 ---
 
@@ -52,31 +55,43 @@ pasillo y cabeceo en el clímax, pero en los dos **el avión sube**. Ningún mod
 
 `•` = hace eso · `—` = no existe en ese modo (la tecla no hace nada)
 
-| acción | teclado | joystick | PASILLO | ARENA | PASADA | BARCAZA |
-|---|---|---|:--:|:--:|:--:|:--:|
-| **subir** | `W` · `↑`¹ | stick izq **arriba** | gas² | cabeceo | cabeceo | sube la mira |
-| **bajar** | `S` · `↓`¹ | stick izq **abajo** | picada | cabeceo | cabeceo | baja la mira |
-| **izq / der** | `A` `D` · `←` `→`¹ | stick izq · cruceta ←→ | esquivar³ | derrape fino | derrape fino | rola |
-| **rolar** (girar el horizonte) | `Q` `E` · `←` `→`⁴ | stick der ←→ (analógico) | • | banquea = **vira** | banquea = **vira** | • ⁵ |
-| **mirar arriba/abajo** | `R` `F` · `↑` `↓`⁴ | stick der ↑↓ (analógico) | • | — | — | — |
-| **cañón** | `X` · `ESPACIO` · `K` · click izq | **R1** · `✕` | • | • | —⁶ | • |
-| **misil** | `Z` · `TAB` · click der⁷ | **L1** · `□` | • | • | **suelta las bombas** | • |
-| **turbo** | `SHIFT` · `C` | gatillo (R2) | • | • | • | — |
-| **freno** | `F`⁸ | **L2** | — | • | • | — |
-| **viraje de combate** (media vuelta) | `R`⁸ | `◯` | — | • | — | — |
-| **reparto de energía** (pips) | `G` | cruceta **arriba** ¹ | — | • | — | — |
-| **piruetas** | combos direccionales | ídem, los dos sticks | • | —⁹ | —⁹ | —⁹ |
+| acción | teclado | joystick | PASILLO | 3D (ARENA · PASADA) | BARCAZA |
+|---|---|---|:--:|:--:|:--:|
+| **subir** | `W` · `↑`¹ | stick izq **arriba** | gas² | gas² (sube; el morro NO se mueve) | sube la mira |
+| **bajar** | `S` · `↓`¹ | stick izq **abajo** | picada | picada (baja rapido; ídem) | baja la mira |
+| **izq / der** | `A` `D` · `←` `→`¹ | stick izq · cruceta ←→ | esquivar³ | banquea = **vira** | rola |
+| **rolar** (girar el horizonte) | `Q` `E` · `←` `→`⁴ | stick der ←→ (analógico) | • | banquea = **vira** | • ⁵ |
+| **mirar arriba/abajo** | `R` · `↑` `↓`⁴ | stick der ↑↓ (analógico) | • | • | — |
+| **cañón** | `X` · `ESPACIO` · `K` · click izq | **R1** · `✕` | • | • (en la PASADA no)⁶ | • |
+| **misil / bomba** | `Z` · `TAB` · click der⁷ | **L1** · `□` | • | • (en la PASADA suelta las bombas) | • |
+| **turbo** | `SHIFT` · `C` | gatillo (R2) | • | • | — |
+| **freno** | `G` | **L2** | — | • | — |
+| **media vuelta** (viraje de combate) | `W` `S` `S` (el SPLIT-S) | stick izq ↑↓↓ | es el SPLIT-S | • (solo ARENA) | — |
+| **reparto de energía** (pips) | `3` | cruceta **arriba** ¹ | (ahí es LA CHANCHA) | • (solo ARENA) | — |
+| **piruetas** | combos direccionales | ídem, los dos sticks | • | solo la media vuelta ⁹ | — |
 
 1. Las flechas vuelan **solo con MIRA MÓVIL**. Ver §5.
-2. **Si soltás `W`, el avión cae**: la gravedad tira siempre. Es la mecánica central del pasillo.
+2. **Si soltás `W`, el avión cae**: la gravedad tira siempre. Es la mecánica central del pasillo, y
+   desde el 30/9 también la del 3D — y como en el pasillo, **el gas mueve la ALTURA, no el morro**:
+   la mira queda firme al frente. W sube, soltar todo **planea** bajando levemente, S baja rápido
+   (`AR.VY_GAS`, `VY_PLANEO`, `VY_PICA` en `data/arena.js`, con resorte `VY_RESP`: bombear gas no da
+   tirones). *(La primera versión, el mismo 30/9, pedía ángulos de morro y la mira cabeceaba con cada
+   toque de gas; el autor: "la mira debería quedar firme, el avión debería planear".)* **Pero
+   sostenido, la nariz sí se mueve** — la regla del cabeceo del pasillo (`PITCH_DELAY`/`PITCH_RAMP`):
+   W mantenido más de 0,3 s levanta la trompa hasta `AR.NOSE_UP` (~20°) y la trepada la hace el morro;
+   en tercera persona **se le ve la panza**, porque la cámara acompaña solo la mitad del cabeceo
+   (`AR.CAM_PITCH_K`). Con S sostenido, la trompa baja igual. Una sola función arma el mando de los
+   dos modos 3D: `mandoPasillo` + `planeo` en `core/aero.js`.
 3. Con **CONTROL POR ALABEO** (OPCIONES), `A`/`D` banquean y el desplazamiento sale del banqueo.
 4. Las flechas rolan y panean **solo con MIRA FIJA** (el default). Ver §5.
 5. La barcaza no tiene desplazamiento lateral, así que rolan **las dos**: `A`/`D` y `Q`/`E`.
 6. **En la PASADA no hay cañón**: la pasada es bombas. El botón del misil suelta la ristra.
 7. El click derecho lanza misil en PASILLO, BARCAZA y ARENA — **no** en la PASADA.
-8. `F` y `R` tienen dos trabajos que **nunca coinciden en el mismo modo**: en el PASILLO panean la
-   cámara (no hay freno ni media vuelta que hacer), en el clímax frenan y viran.
-9. Los combos solo se detectan en `play`. El clímax tiene sus propias maniobras (`aero.js`).
+8. *(nota vieja: hasta el 30/9 `F` y `R` frenaban y viraban en el clímax. Ya no: `R` mira en los dos
+   mundos, `F` es la mira de la bomba del pasillo, el freno está en `G`.)*
+9. En el ARENA el detector de combos escucha **una** secuencia: `↑↓↓`, el SPLIT-S del pasillo, que en
+   3D es la media vuelta — el mismo gesto, la misma maniobra. El resto de las piruetas son del
+   pasillo (`play`).
 
 ---
 
@@ -88,16 +103,16 @@ pasillo y cabeceo en el clímax, pero en los dos **el avión sube**. Ningún mod
 | **cámara** | `V` | cruceta **abajo** | arena y pasada: **cabina ↔ 3ª persona**. En el pasillo **no hace nada visible**: los zooms 1.5×–2.5× están desactivados (partían el raster del mar en rayas, ver `CAM_ZOOMS` en `game.js`) |
 | **mira fija / móvil** | `CAPS LOCK` | — (con mando es **siempre fija**) | pasillo y barcaza |
 | **cámara lenta** (MOMENTUM) | `4` | **SELECT** | solo pasillo |
-| **LA CHANCHA** (reabastecer) | `5` | **cruceta ↑** ¹ | solo pasillo, y no en los modos de clímax suelto. Con ruta: fuera del radar, por tramo (ver [SPEC_NAFTA_ALCANCE §5](SPEC_NAFTA_ALCANCE.md)) |
-| **SOLTAR TANQUES** | `3` | **L3** (en vuelo) | solo pasillo, en cualquier misión con tanques: primero el par de ala, después el central ([SPEC_NAFTA_ALCANCE §6](SPEC_NAFTA_ALCANCE.md)) |
+| **LA CHANCHA** (reabastecer) | `3` | **cruceta ↑** ¹ | solo pasillo, y no en los modos de clímax suelto. Con ruta: fuera del radar, por tramo (ver [SPEC_NAFTA_ALCANCE §5](SPEC_NAFTA_ALCANCE.md)) |
+| **SOLTAR TANQUES** | `B` | **L3** (en vuelo) | solo pasillo, en cualquier misión con tanques: primero el par de ala, después el central ([SPEC_NAFTA_ALCANCE §6](SPEC_NAFTA_ALCANCE.md)) |
 | **invertir el eje Y** | OPCIONES → EJE Y | `△` | **todo el juego a la vez** (ver §6) |
 | **pista musical** | `1` / `2` | **L3** / **R3** | cualquier pantalla (**L3 en vuelo es soltar tanques**) |
 | **navegar menús** | flechas · `ENTER` · `ESC` | cruceta/sticks · `✕` · `◯` | todas |
 
-¹ **La cruceta ↑ es "el poder del recurso del modo"**: reparto de energía en el ARENA, LA CHANCHA
-en el PASILLO. Es un botón para dos poderes porque son la misma pregunta —administrar lo que te
-queda— y **nunca coexisten**. El teclado los tiene separados (`G` y `5`) porque ahí no falta
-espacio; lo que importa es que ninguna acción viva en un solo aparato.
+¹ **La cruceta ↑ —y `3` en el teclado— es "el poder del recurso del modo"**: reparto de energía en
+el ARENA, LA CHANCHA en el PASILLO. Es un botón para dos poderes porque son la misma pregunta
+—administrar lo que te queda— y **nunca coexisten**. Desde el 30/9 el teclado también los tiene en la
+misma tecla (antes `G` y `5`): los controles del 3D son los del pasillo.
 | **elegir avión** | `←` `→` · `ENTER` | cruceta ←→ · `✕` | pantalla de avión |
 | **ver la ficha histórica** | `H` | `□` | selector de misiones |
 | **idioma** | OPCIONES → IDIOMA | ídem | *(la vieja tecla `L` ya no existe)* |
@@ -155,8 +170,8 @@ Se alterna con `CAPS LOCK` o desde OPCIONES; las dos vías escriben el mismo `cf
   stick izq  ↔  esquivar               stick der  ↕  mirar arriba/abajo (analógico)
 
   R1 (5)  cañón            L1 (4)  misil / bombas
-  R2 (7)  turbo            L2 (6)  freno (clímax)
-  ✕ (0)   cañón · OK       ◯ (1)   viraje de combate · VOLVER en menús
+  R2 (7)  turbo            L2 (6)  freno (3D)
+  ✕ (0)   cañón · OK       ◯ (1)   VOLVER en menús (la media vuelta del 3D es el combo ↑↓↓)
   □ (2)   misil            △ (3)   invertir el eje Y
   cruceta ↑ (12)  el poder del modo (energía / La Chancha)
   cruceta ↓ (13)  cámara            SELECT (8)  cámara lenta (MOMENTUM)

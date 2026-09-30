@@ -16,6 +16,30 @@ export const AR = {
   PITCH_MAX: 0.9,      // ±51.6°: alcanza para picar sobre el buque y trepar de verdad
   PITCH_RATE: 1.4,     // rad/s → morro pleno en 0.64 s
   LEVEL_EASE: 0.8,     // al soltar, el morro vuelve solo al horizonte (a 480x270 perderlo es perderse)
+  // ---- LOS CONTROLES DEL PASILLO en el 3D (pedido del autor, 30/9: "que sean exactamente los mismos
+  // que se usan en PASILLO"). W es GAS y S picada, pero —como en el pasillo— MUEVEN LA ALTURA, NO EL
+  // MORRO: "la mira siempre esta fija en pasillo y aca cada vez que apreto gas sube y baja; la mira
+  // deberia quedar firme, el avion deberia PLANEAR". El morro queda al frente (angulo pedido 0) y la
+  // altura cambia por una velocidad vertical propia que persigue, con resorte, la que pide la mano:
+  //   VY_GAS     W apretado: sube
+  //   VY_PLANEO  NADA: planea bajando LEVEMENTE ("ir cayendo levemente")
+  //   VY_PICA    S: baja rapido
+  //   VY_RESP    el resorte: bombear gas no da tirones, la subida entra y sale suave
+  // (Primero se hizo con ANGULOS de morro —W nariz arriba, soltar nariz abajo— y la mira cabeceaba
+  // con cada toque de gas: el playtest lo volteo el mismo dia.)
+  VY_GAS: 14, VY_PLANEO: -5, VY_PICA: -24, VY_RESP: 2.5,
+  // …PERO SOSTENIDO, LA NARIZ SI SE MUEVE ("si presiono W por bastante tiempo la nariz deberia apuntar
+  // hacia arriba", "deberia verle la panza"). Es la regla del cabeceo del PASILLO (PITCH_DELAY y
+  // PITCH_RAMP de core/physics.js): los toques de gas no mueven la trompa; mantener la tecla, si. A
+  // pleno, la nariz llega a NOSE_UP (o NOSE_DOWN con S) y la subida la hace el morro en vez del planeo.
+  NOSE_UP: 0.35, NOSE_DOWN: 0.35,
+  // LA CAMARA DE ATRAS acompaña solo esta fraccion del cabeceo: el avion se inclina MAS que la vista
+  // —trepando se le ve la panza— y la mira se mueve menos que la nariz.
+  CAM_PITCH_K: 0.5,
+  PITCH_K: 4,          // cuanto aprieta el morro hacia el angulo pedido (antes de topar en PITCH_RATE)
+  // MIRAR ARRIBA / ABAJO (R/F, flechas ↑↓ con la mira fija, stick derecho vertical): la camara se
+  // inclina hasta esto, con este resorte. Es el paneo del pasillo dicho en 3D.
+  LOOK_MAX: 0.32, LOOK_RESP: 6,
   // ---- alabeo que vira (E2): Q/E y stick derecho piden ANGULO de banqueo ----
   ROLL_MAX: 1.4,       // 80°: viraje escarpado sin llegar a invertir
   ROLL_RESP: 6,        // resorte del banqueo: pleno en ~0.5 s
