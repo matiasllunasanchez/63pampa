@@ -77,3 +77,10 @@ export const quedaParaSoltar = () => !!run.tanque && !!proximoPilon(run.tanque);
  *  rapido", y ahora tambien sin tanques). La cuenta es `velRelativa` (core/nafta.js). Solo con ruta;
  *  sin ella 1, y el vuelo de siempre no cambia ni un decimal. */
 export const velCarga = colgado => (run.tanque ? velRelativa(colgado) : 1);
+
+/** LO QUE CUELGA AHORA, con lo que sabe el tanque: cuantos externos siguen y cuanta nafta les queda
+ *  (el peso, ver velRelativa). `bombas` y `bombaKg` los pone quien sabe de bombas (el vuelo). null
+ *  sin ruta. */
+export const colgadoAhora = (bombas, bombaKg) => (run.tanque
+  ? { bombas, bombaKg, tanques: run.tanque.tanques.length, nafta: run.tanque.tanques.reduce((s, k) => s + k, 0) }
+  : null);

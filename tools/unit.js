@@ -2862,9 +2862,31 @@ test('hangar: las cargas elegibles existen, llevan la bomba del buque y tienen s
 test('hangar: la velocidad relativa es 1 en la base, y mas rapida con menos colgado', async () => {
   const { velRelativa, colgadoDe } = await import('../src/core/nafta.js');
   near(velRelativa(colgadoDe('tanques_bomba')), 1);
-  near(velRelativa(colgadoDe('tres_bombas')), 1, 1e-9);     // mismo arrastre: tres piezas
-  assert.ok(velRelativa(colgadoDe('bomba')) > 1.05);
+  // mismo arrastre (tres piezas) pero tres bombas pesan menos que dos tanques llenos y una bomba
+  assert.ok(velRelativa(colgadoDe('tres_bombas')) > 1 && velRelativa(colgadoDe('tres_bombas')) < 1.08);
+  assert.ok(velRelativa(colgadoDe('bomba')) > velRelativa(colgadoDe('tres_bombas')));
+  assert.ok(velRelativa(colgadoDe('bomba')) > 1.1);
 });
+
+test('peso: la nafta de los tanques, las bombas y soltar cambian la velocidad (pedido 30/9)', async () => {
+  const { velRelativa, masaDe } = await import('../src/core/nafta.js');
+  const { TANQUE_EXTRA_KM, PESO_BOMBA_KG } = await import('../src/data/tuning.js');
+  const llenos = { bombas: 1, tanques: 2, nafta: 2 * TANQUE_EXTRA_KM };
+  const secos = { ...llenos, nafta: 0 };
+  near(velRelativa(llenos), 1, 1e-12, 'la base llena es la referencia');
+  assert.ok(velRelativa(secos) > 1.04, 'quemar la nafta de los externos aliviana');
+  assert.ok(masaDe(llenos) - masaDe(secos) > 1500, 'dos tanques llenos pesan como tres bombas');
+  // soltar: el tanque se va entero, lleno o vacio llegas al mismo avion (lo lleno se perdio al mar)
+  const sinTanques = { bombas: 1, tanques: 0, nafta: 0 };
+  assert.ok(velRelativa(sinTanques) / velRelativa(llenos) > velRelativa(sinTanques) / velRelativa(secos), 'soltar lleno acelera mas');
+  assert.ok(velRelativa(sinTanques) > velRelativa(secos), 'soltar los vacios igual acelera: el arrastre y la chapa');
+  // la bomba: tirarla acelera, y la BRP (250 kg) pesa la mitad que la MK-17
+  assert.ok(velRelativa({ bombas: 0, tanques: 0, nafta: 0 }) > velRelativa(sinTanques), 'sin la bomba, mas');
+  assert.ok(velRelativa({ ...sinTanques, bombaKg: 250 }) > velRelativa({ ...sinTanques, bombaKg: PESO_BOMBA_KG }), 'BRP mas liviana');
+  // el techo: limpio del todo no pasa de +25% (es juego, no un cohete)
+  assert.ok(velRelativa({ bombas: 0, tanques: 0, nafta: 0 }) < 1.25);
+});
+
 
 // ---------- LOS TANQUES COMO ARMA (PLAN_NAFTA_ALCANCE N6) ----------
 test('tanques-arma: lleno mata y enciende lo explosivo; vacio voltea lo que vuela y toca lo demas', async () => {

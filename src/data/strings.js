@@ -86,6 +86,7 @@ export const STRINGS = {
     // SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5)
     tanques_fuera: 'TANQUES FUERA', tanque_fuera: 'TANQUE CENTRAL FUERA', tanques_nada: 'NO QUEDAN TANQUES',
     tanques_nafta: 'IBAN CON NAFTA: {km} KM AL MAR',
+    tanques_vel: '+{v}% VELOCIDAD',
     tq_tocado: 'TOCADO',
     // RF-15: la derrota de la PASADA. No te derribaron — se acabo la escuadrilla y el buque
     // seguia ahi. Que la pantalla de fin diga ESO y no "chocaste" es media leccion del modo.
@@ -1247,6 +1248,7 @@ export const STRINGS = {
     sq_seco: '{c} ON RESERVE — RETURNING TO BASE',
     tanques_fuera: 'TANKS AWAY', tanque_fuera: 'CENTER TANK AWAY', tanques_nada: 'NO TANKS LEFT',
     tanques_nafta: 'THEY HAD FUEL: {km} KM INTO THE SEA',
+    tanques_vel: '+{v}% SPEED',
     tq_tocado: 'HIT',
     death_pasada: 'The squadron was spent and the ship sailed on',
     death_caza: 'A Sea Harrier got on your tail',

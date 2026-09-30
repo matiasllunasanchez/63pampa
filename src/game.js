@@ -619,6 +619,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  el jugador tiene que enterarse en el momento. */
     function soltarTanquesAccion() {
       if (S.state !== 'play' || !naftaSys.activo()) return;
+      // lo que acelera (el peso y el arrastre que se van, core/nafta.js velRelativa): se avisa en el cartel
+      const bombasAhora = runClimax() === 'suelta' ? run.msl : bombasDe(cfg.carga);
+      const velAntes = velRelativa(naftaSys.colgadoAhora(bombasAhora));
       const r = naftaSys.soltarTanques();
       if (!r) { beep(150, 0.09, 'square', 0.05); cartel(T('tanques_nada'), P.dim); return; }
       // (la carga se usa aca abajo, en tanquesSalen; despues vuelve a cero para el proximo par)
@@ -631,7 +634,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       run.cargaTanque = 0;
       beep(240, 0.12, 'square', 0.06, 90);
       run.shake = Math.max(run.shake, 1.5);
-      cartel(T(r.pilon === 'ala' ? 'tanques_fuera' : 'tanque_fuera'), P.accent, tirados >= 1 ? T('tanques_nafta', { km: Math.round(tirados) }) : null);
+      const gana = Math.round((velRelativa(naftaSys.colgadoAhora(bombasAhora)) / velAntes - 1) * 100);
+      const sub = [gana > 0 ? T('tanques_vel', { v: gana }) : null, tirados >= 1 ? T('tanques_nafta', { km: Math.round(tirados) }) : null].filter(Boolean).join('  ·  ');
+      cartel(T(r.pilon === 'ala' ? 'tanques_fuera' : 'tanque_fuera'), P.accent, sub || null);
+      // y se VE: las rayas de velocidad, como un turbo chico (el empujon llega de a poco, flight.js)
+      for (let i = 0; i < 6 + gana; i++) streaks.push({ a: Math.random() * 6.283, r: 20 + Math.random() * 18, v: 260 + Math.random() * 160, life: 0.4 });
     }
 
     /** Las señales de LA CHANCHA vueltas cosas que se ven y se oyen. Vive en el orquestador —y no
@@ -4919,7 +4926,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // ida incluye llegar al blanco y volver: es lo que dice si vas a necesitar a la Chancha.
         nafta: naftaSys.activo() ? {
           km: naftaSys.kmRestan(), cap: run.naftaCap,
-          bingo: bingoKm(rutaSys.aCasa(), { bombas: runClimax() === 'suelta' ? run.msl : bombasDe(cfg.carga), tanques: run.tanque.tanques.length }),
+          bingo: bingoKm(rutaSys.aCasa(), naftaSys.colgadoAhora(runClimax() === 'suelta' ? run.msl : bombasDe(cfg.carga))),
         } : null,
         // la zona de gasto a esta altura, para el altimetro (solo con ruta: sin ella la nafta no mira
         // la altura y marcar zonas seria mentir)

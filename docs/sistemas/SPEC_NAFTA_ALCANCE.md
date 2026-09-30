@@ -138,8 +138,33 @@ km gastados = km recorridos × fAltura(y) × fCarga(colgado) × fVelocidad(r)
 
 ### 3.3 · Cuánto corre el avión
 
-Con menos arrastre, más rápido: `velRelativa = (arrastre base / arrastre actual) ^ VEL_ARRASTRE_EXP`
-(0,5). Sin el par de tanques, ~+10%; limpio, ~+16%. **Solo con ruta.**
+**Más liviano, más rápido** (pedido del autor 30/9: "tirar los tanques y/o las bombas hacen que el
+avión sea más liviano, por ende más rápido"). Frenan dos cosas: el **arrastre** de lo que cuelga y
+el **peso** (`masaDe`, core/nafta.js):
+
+    masa = PESO_AVION_KG + bombas × kg de la bomba + tanques × PESO_TANQUE_VACIO_KG + km en los externos × PESO_NAFTA_KG_KM
+    velRelativa = (arrastre base / arrastre)^VEL_ARRASTRE_EXP × (masa base / masa)^VEL_PESO_EXP
+
+La base (2 tanques **llenos** + MK-17) vale ×1. La bomba pesa lo que dice `data/bombas.js` (MK-17
+500 kg, BRP-250 250 kg). Lo que da:
+
+| Estado | Velocidad |
+|---|---|
+| Base, tanques llenos | ×1 |
+| Tres bombas | +4% |
+| Base con los externos ya quemados | +7% (se aliviana solo, mientras se gastan) |
+| Tanques soltados (o carga "1 bomba") | +14% |
+| Limpio del todo (tanques + bomba fuera) | +20% |
+
+- **Soltar lleno acelera más que soltar vacío** (se va la nafta con el tanque), y la Chancha, al
+  llenar los externos, te vuelve un poco más pesado.
+- **El turbo multiplica encima**, y la nafta cobra solo lo que acelera el turbo (`turboR` divide por
+  la velocidad sin turbo **con** el peso): ir liviano no se paga.
+- Al soltar, el cartel dice cuánto ganaste (`+N% VELOCIDAD`) y salen rayas de velocidad. El empujón
+  llega de a poco (el avión converge a la nueva velocidad como a cualquier otra).
+- Tirar bombas del ala (LA SUELTA) también acelera: cuentan las que quedan en `run.msl`.
+- Lo que cuelga ahora lo arma `systems/nafta.js colgadoAhora(bombas, bombaKg)`: lo usan el vuelo y
+  el bingo. **Solo con ruta**; sin ella el vuelo es el de siempre. El interno no pesa (constante).
 
 ### 3.4 · El HUD
 
@@ -278,7 +303,8 @@ validada en los dos). `VIENTO: NO` del menú lo apaga todo. El viento visual (pa
 | `TANQUE_LLENO_FRAC` | 0,5 | umbral lleno/vacío al soltar |
 | `ZONAS_GASTO` | ×1 / ×1,8 / ×3 | las tres zonas |
 | `ARRASTRE_LIMPIO` / `_BOMBA` / `_TANQUE` | 0,85 / 0,1 / 0,1 | el arrastre |
-| `VEL_ARRASTRE_EXP` | 0,5 | cuánto acelera soltar |
+| `VEL_ARRASTRE_EXP` / `VEL_PESO_EXP` | 0,25 / 0,35 | cuánto acelera el arrastre / el peso que se va |
+| `PESO_AVION_KG` / `PESO_TANQUE_VACIO_KG` / `PESO_NAFTA_KG_KM` / `PESO_BOMBA_KG` | 7000 / 120 / 2 / 500 | los kg |
 | `RUTA_RADAR_RAMPA_M` | 900 | la rampa del horizonte de radar |
 | `CH_ETA_RUTA` | 6 s | llegada de la Chancha con ruta |
 | `CH_ENGANCHE` | 1,5 s | sostenerse antes de cargar |

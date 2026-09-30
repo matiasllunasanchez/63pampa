@@ -37,6 +37,8 @@ import * as naftaSys from './nafta.js';
 import { kmPorM } from './ruta.js';
 import { extraTurboPorSeg } from '../core/nafta.js';
 import { bombasDe } from '../data/cargas.js';
+import { bombaInfo } from '../data/bombas.js';
+import { blanco } from '../core/blanco.js';
 import * as est from './estrellas.js';
 import { PORT_H } from '../data/runways.js';
 // EL SUELO TIENE ALTURA (T3): la misma funcion que levanta el pasto y las estructuras es la que
@@ -162,8 +164,9 @@ export function flightSystem(dt, deps) {
   }
   // LO QUE CUELGA DE LOS PILONES (solo con ruta, PLAN_NAFTA_ALCANCE): pesa en la nafta y, desde N5,
   // en la velocidad — soltar tanques o bombas deja el avion mas rapido. Sin ruta, null y x1.
-  const colgado = naftaSys.activo()
-    ? { bombas: deps.climax === 'suelta' ? run.msl : bombasDe(cfg.carga), tanques: run.tanque.tanques.length } : null;
+  // Desde el 30/9 pesa de verdad: la nafta que queda en cada tanque y los kg de la bomba de la mision.
+  const colgado = naftaSys.colgadoAhora(deps.climax === 'suelta' ? run.msl : bombasDe(cfg.carga),
+    bombaInfo(blanco.bomba).kg);
   const velC = colgado ? naftaSys.velCarga(colgado) : 1;
   const spdTarget = speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: run.boost, afterTier: run.afterTier }) * av.spd * velC;
   // CUANTO ACELERA EL TURBO (PLAN_NAFTA_ALCANCE §3.2): la velocidad con turbo contra la misma sin

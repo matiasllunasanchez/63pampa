@@ -18,7 +18,8 @@
 // use (N3) lo va a llamar con los mismos numeros que las pruebas.
 import {
   TANQUE_INTERNO_KM, TANQUE_EXTRA_KM, TANQUE_LLENO_FRAC, ZONAS_GASTO, RAS_GASTO_F,
-  ARRASTRE_LIMPIO, ARRASTRE_BOMBA, ARRASTRE_TANQUE, VEL_ARRASTRE_EXP, TQ_BUQUE, TQ_DANO_VACIO, TQ_AIRE, TQ_EXPLOSIVOS,
+  ARRASTRE_LIMPIO, ARRASTRE_BOMBA, ARRASTRE_TANQUE, VEL_ARRASTRE_EXP, VEL_PESO_EXP,
+  PESO_AVION_KG, PESO_TANQUE_VACIO_KG, PESO_NAFTA_KG_KM, PESO_BOMBA_KG, TQ_BUQUE, TQ_DANO_VACIO, TQ_AIRE, TQ_EXPLOSIVOS,
 } from '../data/tuning.js';
 import { tanquesDe, bombasDe, cargaDe, CARGA_BASE } from '../data/cargas.js';
 
@@ -124,12 +125,23 @@ export const fAltura = y => zonaGasto(y).f;
 export const fCarga = ({ bombas = 0, tanques = 0 } = {}) =>
   ARRASTRE_LIMPIO + bombas * ARRASTRE_BOMBA + tanques * ARRASTRE_TANQUE;
 
-/** Lo que cuelga de la carga `id` recien despegado. */
-export const colgadoDe = id => ({ bombas: bombasDe(id), tanques: tanquesDe(id) });
+/** Lo que cuelga de la carga `id` recien despegado: los tanques LLENOS y la bomba de referencia.
+ *  `nafta` (km en los externos) y `bombaKg` solo los mira el peso; el arrastre cuenta piezas. */
+export const colgadoDe = id => ({ bombas: bombasDe(id), tanques: tanquesDe(id), nafta: tanquesDe(id) * TANQUE_EXTRA_KM, bombaKg: PESO_BOMBA_KG });
 
-/** CUANTO MAS RAPIDO VA con `colgado` puesto, relativo a la carga BASE (2 tanques + bomba = 1):
- *  (arrastre base / arrastre actual) ^ VEL_ARRASTRE_EXP. Lo usan el vuelo (con ruta) y el hangar. */
-export const velRelativa = colgado => (fCarga(colgadoDe(CARGA_BASE)) / fCarga(colgado)) ** VEL_ARRASTRE_EXP;
+/** LO QUE PESA EL AVION con `colgado` puesto, en kg. Sin `nafta`, los tanques cuentan llenos; sin
+ *  `bombaKg`, la bomba de referencia. */
+export const masaDe = ({ bombas = 0, tanques = 0, nafta = tanques * TANQUE_EXTRA_KM, bombaKg = PESO_BOMBA_KG } = {}) =>
+  PESO_AVION_KG + bombas * bombaKg + tanques * PESO_TANQUE_VACIO_KG + nafta * PESO_NAFTA_KG_KM;
+
+/** CUANTO MAS RAPIDO VA con `colgado` puesto, relativo a la carga BASE (2 tanques llenos + bomba = 1):
+ *  menos arrastre y menos peso (ver VEL_PESO_EXP en data/tuning.js). Lo usan el vuelo (con ruta) y el
+ *  hangar. Soltar, quemar la nafta de los externos o tirar una bomba lo sube; la Chancha, al
+ *  llenarlos, lo baja un poco — cargado se vuela mas pesado. */
+export function velRelativa(colgado) {
+  const base = colgadoDe(CARGA_BASE);
+  return (fCarga(base) / fCarga(colgado)) ** VEL_ARRASTRE_EXP * (masaDe(base) / masaDe(colgado)) ** VEL_PESO_EXP;
+}
 
 /** El TURBO, por km. `r` = velocidad con turbo / velocidad sin turbo (1 sin turbo, 1.5 con el de
  *  siempre, mas con el `after` apilado). La resistencia crece con el cuadrado de la velocidad.

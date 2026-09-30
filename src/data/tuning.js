@@ -1731,11 +1731,24 @@ export const RAS_GASTO_F = 1;
 export const ARRASTRE_LIMPIO = 0.85;
 export const ARRASTRE_BOMBA = 0.1;
 export const ARRASTRE_TANQUE = 0.1;
-// …Y LA VELOCIDAD QUE DA SOLTAR (N5). El avion va a (arrastre de la carga base / arrastre actual)
-// elevado a esto: con 0.5, limpio va ~16% mas rapido que con dos tanques y una bomba, y soltar solo
-// el par de tanques ~10%. Es la mitad de por que se sueltan; la otra es la nafta que se ahorra.
-// Solo con `ruta` (sin ella el vuelo es el de siempre). En 0 soltar no acelera nada.
-export const VEL_ARRASTRE_EXP = 0.5;
+// …Y LA VELOCIDAD QUE DA SOLTAR (N5, y con PESO desde el 30/9: "tirar los tanques y/o las bombas
+// hacen que el avion sea mas liviano, por ende mas rapido"). Dos cosas frenan al avion cargado:
+//   el ARRASTRE de lo que cuelga (tanque lleno o vacio, arrastra igual), y
+//   el PESO: el avion, cada bomba con sus kg (MK-17 500, BRP-250 250, data/bombas.js), cada tanque
+//   vacio y LA NAFTA QUE LE QUEDA ADENTRO. Por eso un tanque se aliviana mientras se quema, y soltar
+//   uno lleno acelera mas que uno vacio (y tira la nafta: la decision cara, PLAN §3.7).
+// La velocidad relativa a la carga base (2 tanques llenos + MK-17 = x1) es
+//     (arrastre base / arrastre)^VEL_ARRASTRE_EXP × (masa base / masa)^VEL_PESO_EXP
+// Con estos numeros: la base con los tanques ya secos +7%, soltados +14%, limpio del todo +20%;
+// 3 bombas +4%, 1 bomba sola +14%. El turbo multiplica ENCIMA (y no se cobra lo que da el peso).
+// Solo con `ruta` (sin ella el vuelo es el de siempre). Con los dos exponentes en 0 soltar no
+// acelera nada. Los kg son del A-4B/C redondeados: la velocidad es juego, no tabla de performance.
+export const VEL_ARRASTRE_EXP = 0.25;
+export const VEL_PESO_EXP = 0.35;
+export const PESO_AVION_KG = 7000;         // vacio + el interno + piloto y cañones (constante)
+export const PESO_TANQUE_VACIO_KG = 120;   // el tanque de ala, la chapa sola
+export const PESO_NAFTA_KG_KM = 2;         // kg de nafta por km de alcance (450 km ≈ 900 kg, 1100 l)
+export const PESO_BOMBA_KG = 500;          // la bomba de referencia (MK-17) si nadie dice cual
 
 // ---- LOS TANQUES COMO ARMA (PLAN_NAFTA_ALCANCE §3.7, N6) ----
 // Pedido del autor: "la bomba tiene daño letal, el tanque lleno daño grave y [explota] si es algun
