@@ -1,10 +1,76 @@
 # RASANTE — Estado del proyecto
 
-_Documento de continuidad. **Encabezado al día: 27 de septiembre de 2026** (§00 es lo nuevo; §0 es
-del 12/9). El cuerpo (§1 en adelante) es de julio y **está viejo en varias partes**: se conserva
+_Documento de continuidad. **Encabezado al día: 30 de septiembre de 2026** (§000 es lo nuevo, §00 es
+del 27/9 y §0 del 12/9). El cuerpo (§1 en adelante) es de julio y **está viejo en varias partes**: se conserva
 porque el relato de cómo se llegó hasta acá sigue sirviendo, pero donde contradiga a este
 encabezado, **manda el encabezado**. Lo que quedó desactualizado está listado abajo, en "§0.4 Qué
 leer con pinzas"._
+
+---
+
+## 000. Al día 30/9/2026 — lo que cambió desde el 27/9
+
+### 000.1 El enemigo: defensas navales y antiaéreos de tierra
+
+- **Defensa cercana del buque** (`src/data/defensas.js`, `systems/seawolf.js`, `render/seawolf.js`):
+  un solo sistema con dos perfiles. **Sea Cat** (misiones 1–9): lento, guiado a mano, se esquiva
+  corriéndose temprano. **Sea Wolf** (10 en adelante, `DESDE_WOLF`): rápido, copia tu velocidad, se
+  esquiva quebrando en su tramo ciego. Tiene tres fases, **fija → salva → recarga**, y los misiles
+  dejan estela. Si cambiás de piloto con misiles en el aire, persiguen al que se retira.
+- **Sea Dart**: es el misil del RADAR (subir de más). **Sea Slug**: reemplaza a la "bomba del
+  cielo": entra en picada diagonal desde un costado y la sombra marca dónde pega.
+- **Antiaéreos de tierra rehechos con fotos de San Carlos**: el nido AA es un **lanzador Rapier**
+  (tambor, radar arriba, cuatro misiles, plato de seguimiento, un servidor al lado). El camión AA
+  lleva el mismo lanzador, y los dos restos también. **Enemigo nuevo `manpad`**: dos soldados en un
+  pozo con red, uno con el tubo Blowpipe y otro con prismáticos. Tira un misil cada 4,2 s, muere
+  con un tiro y se le pasa por encima sin morir. Es el 40 % de los Rapier sembrados (`MANPAD_P`).
+  El rig de soldados suma la pose de **rodilla en tierra** (`rodilla` en `tools/models/soldiers.js`).
+
+### 000.2 La eyección, horneada
+
+`tools/models/eyeccion.js`, hoja `assets/world/enemies/eyectado.png` (3 filas). Primero **el asiento
+Martin-Baker dando tumbos** con el piloto sentado. A los `EYEC_ASIENTO_T` (0,6 s) **se abre la
+cúpula de gajos**, que se infla y se hamaca. Ahí **el asiento vacío cae aparte** (nace en
+`core/fx.js`) y debajo del piloto **cuelga el equipo de supervivencia** con el bote. Hay dos pilotos:
+**el argentino** (mameluco verde oliva, casco blanco, cúpula naranja y blanca: `arg: true`, tu
+eyección) y **el británico** (cúpula verde y arena, los que salen de un avión enemigo). El dibujo a
+mano queda de respaldo.
+
+### 000.3 La misión: geografía, estructuras, bombas y nafta (otra sesión)
+
+- **Geografía por tramos** (**[../sistemas/PLAN_GEOGRAFIA.md](../sistemas/PLAN_GEOGRAFIA.md)**,
+  G0–G6; guía en `GUIA_GEOGRAFIA.md`): una misión pasa por mar, costa, tierra e isla, con niebla,
+  acantilados y barreras por tramo, escrito **en km** (`geografia: { ida, blanco, vuelta }`).
+  Se fue la barra NIEBLA del HUD.
+- **Estructuras** (`src/data/estructuras.js`): blancos en tierra (bases, depósitos, hangares) con
+  `goal: { kind: 'estructura' }`. Se juegan con la misma suelta, sobre una explanada. Prueba
+  **`t18` IDA Y VUELTA SMALL 2**.
+- **Las dos bombas del buque** (`src/data/bombas.js`): **MK-17** inglesa de 500 kg o **BRP-250**
+  española. Pueden **no explotar** o **explotar tarde**, como pasó en San Carlos.
+- **Chocar el buque en el cruce** pierde el avión (en campaña, averiado a la base) y **el siguiente
+  de la fila re-encara el mismo buque**, aunque esté hundido (suma puntos).
+- **La nafta pesa**: tanques (con su nafta) y bombas frenan el avión; soltarlos acelera y el cartel
+  dice cuánto. Vale en todos los modos, con o sin ruta.
+- **La Chancha de la ida** viene sola al entrar a su zona, avisa su piloto (indicativo CHANCHA) y
+  baja de arriba recién cuando subís; se despide en la línea del radar.
+- **La mira de bombardeo** (27/9): [F] o clic derecho mantenido muestra la caída; **ESPACIO** tira
+  la bomba y **[B]** los tanques. [Z] y L1 siguen siendo mantener-apunta, soltar-tira. La barra de
+  ayuda del pie de página se puso al día el 30/9: había quedado con "F: freno" y los números
+  viejos de la Chancha y los tanques.
+
+### 000.4 Pendientes y abiertos
+
+- **La bomba con clic derecho + espacio**: el autor dice que no le sale. En Electron, con eventos
+  reales, funciona (las dos formas). No se reprodujo: falta saber dónde le pasa (pasillo o suelta)
+  y si usa mouse o trackpad.
+- **Aermacchi MB-339A 4-A-115**: pendiente en el ROADMAP §10.2. Es ese avión, con su matrícula.
+- **Las cargas** (tanques y bombas como capas horneadas, 23/9): falta decidir qué combinaciones
+  quedan, si las bombas se regeneran o se reserva una para el clímax, dónde se elige y cómo se lee
+  en el sprite (2–3 px desde la cámara del pasillo).
+- **Rapier**: al destruirlo, la pieza firma del despiece sigue siendo el `canon` (el caño de cuando
+  era un nido de cañones).
+- Siguen abiertas las del §00.4 (nafta arcade: el peso ya está hecho; silencio de radio; señas de
+  compañeros; `npm run rasante` roto).
 
 ---
 
