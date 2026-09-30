@@ -819,9 +819,14 @@ export function drawCarga(w) {
     ctx.fillText(r.desc, x + 12, y + 32);
     if (r.aviso) { ctx.fillStyle = P.warn; ctx.font = labelFont(9); ctx.fillText(r.aviso, x + 12, y + 45); }
   }
+  // LA BOMBA DEL BUQUE de hoy, con su dato curioso (data/bombas.js): no se elige — la trae la fecha
+  if (w.bomba) {
+    ctx.textAlign = 'center'; ctx.fillStyle = P.dim; ctx.font = labelFont(9);
+    ctx.fillText(w.bomba, NW / 2, y0 + w.rows.length * (hCard + 8) + 1);
+  }
   if (Math.sin(w.t * 4) > -0.3) {
     ctx.fillStyle = P.dim; ctx.font = descFont(11); ctx.textAlign = 'center';
-    ctx.fillText(T('modeHint'), NW / 2, NH - 14);
+    ctx.fillText(T('modeHint'), NW / 2, w.bomba ? NH - 4 : NH - 14);   // con la ficha de la bomba, mas abajo
   }
   ctx.textAlign = 'left';
 }

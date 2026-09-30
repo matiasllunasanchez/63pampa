@@ -38,10 +38,14 @@ export const DERROTAS = {
 /** Lo que dice la pantalla para la causa `causa`. `veredicto` es el de la ultima bomba sobre el
  *  buque (blanco.res) y solo cuenta cuando se perdio por errar la suelta. Devuelve { que, hist }
  *  con CLAVES de strings (null = no hay). */
-export function derrota(causa, veredicto) {
+// (`bomba` es la de la mision, 'mk17' | 'brp' — data/bombas.js: sin dormida, el dato es el de ESA
+// bomba, su origen incluido)
+export function derrota(causa, veredicto, bomba) {
   if (causa === 'death_fallo_blanco' || causa === 'death_suelta') {
     const v = ['dormida', 'corta', 'larga', 'costado', 'averiado'].includes(veredicto) ? veredicto : 'nada';
-    return { que: 'que_bomba_' + v, hist: v === 'dormida' ? 'hist_bomba_dormida' : 'hist_bomba' };
+    const hist = v === 'dormida' ? 'hist_bomba_dormida'
+      : bomba === 'mk17' || bomba === 'brp' ? 'hist_bomba_' + bomba : 'hist_bomba';
+    return { que: 'que_bomba_' + v, hist };
   }
   return DERROTAS[causa] || { que: null, hist: null };
 }

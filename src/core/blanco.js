@@ -43,6 +43,13 @@ export const blanco = {
   buenaAlt: false,    // estas en la banda de BL.ALT_IDEAL
   tuvoVentana: false, // la ventana de esta pasada llego a abrirse (para saber si se PASO)
   perdidaT: -1,       // reloj del MOMENTO PERDIDO (fundido + piloto automatico), -1 = no
+  // LA BOMBA DE LA MISION (data/bombas.js): 'mk17' | 'brp', y cuanto tarda SU espoleta en armarse
+  bomba: 'brp', armaT: BL.ARMA_T,
+  // EL ATAQUE CUMPLIDO: una bomba pego en el casco y cuenta — estallo, o es una MK-17 que no
+  // detono. `hundido` es solo lo primero; el cruce y el escape miran esto.
+  cumplido: false,
+  // LA QUE DETONA DESPUES (MK-17): segundos que faltan, y donde pego. -1 = ninguna
+  tardeT: -1, tardeX: 0, tardeY: 0,
 };
 
 export function resetBlanco(on, nombre, clase) {
@@ -53,7 +60,7 @@ export function resetBlanco(on, nombre, clase) {
   blanco.lento = false; blanco.negroT = -1; blanco.salidaT = -1; blanco.pendiente = null; blanco.altPiso = -1;
   blanco.ala = null; blanco.alaN = 0; blanco.centroN = 0; blanco.pred = null; blanco.listo = false;
   blanco.extra = 0; blanco.enDist = false; blanco.buenaAlt = false; blanco.tuvoVentana = false; blanco.perdidaT = -1;
-  blanco.escapando = false;
+  blanco.escapando = false; blanco.cumplido = false; blanco.tardeT = -1;
 }
 
 /** Altura del casco (unidades de mundo, sobre la flotacion) en la coordenada lateral `x`, o -1 si
@@ -157,7 +164,7 @@ function simular(px, py, vy, vx, spd, zBuque, extra, acc) {
       const h = altoEn(x);
       if (h < 0) return 'costado';
       if (y > AGUA + h) return 'larga';
-      if (t < BL.ARMA_T) return 'dormida';
+      if (t < blanco.armaT) return 'dormida';
       return zonaEn(x);
     }
     if (y <= AGUA) return 'corta';

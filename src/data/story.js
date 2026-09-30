@@ -1011,6 +1011,28 @@ export const SCENES = {
         es: 'A la Patria patria, ¿eh? La de los pibes y los pastelitos. No a la de los despachos, que esos se consigan su propio barco.', en: '' },
     ],
   },
+  // LAS ESPAÑOLAS (pedido del autor 29/9: las BRP "con espoletas modificadas, hay que agregarlo al
+  // guion"). Es la bisagra de data/bombas.js: hasta M6 se vuela con MK-17 —inglesas, que casi nunca
+  // explotan—; desde hoy, 25 de mayo, con BRP-250 españolas y la espoleta rehecha. Va ANTES del
+  // Vasco a proposito: el dia de moral mas alta del juego tambien es el dia en que las bombas andan.
+  M07_ESPOLETAS: {
+    id: 'M07_ESPOLETAS', tipo: 'VN',
+    titulo: 'LAS ESPAÑOLAS', placa: 'hangar_dia',
+    lineas: [
+      { id: 'M07_ESPOLETAS_010', personaje: null, cara: null, hold: 1.2,
+        es: 'En la plataforma hay bombas nuevas. Más chicas que las de siempre, con la punta pintada y una inscripción en el costado que no es de acá.', en: '' },
+      { id: 'M07_ESPOLETAS_020', personaje: 'EL TURCO', cara: 'turco_orgullo', hold: 0.8,
+        es: 'BRP, doscientos cincuenta kilos. Españolas. Las espoletas se las rehicieron en dos semanas, chango: arman al segundo y esperan adentro del barco.', en: '' },
+      { id: 'M07_ESPOLETAS_030', personaje: 'PICHÓN', cara: 'pichon_sonrisa', hold: 0.6,
+        es: 'Ya no importa que la suelten al ras. Pega, entra, y revienta adentro.', en: '' },
+      { id: 'M07_ESPOLETAS_040', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0.4,
+        es: '¿Y las MK-17? ¿Las inglesas?', en: '' },
+      { id: 'M07_ESPOLETAS_050', personaje: 'EL TURCO', cara: 'turco_neutro', hold: 1.0,
+        es: 'Al depósito. Quinientos kilos de fierro inglés que no quiere explotar contra los ingleses.', en: '' },
+      { id: 'M07_ESPOLETAS_060', personaje: 'PUMA', cara: 'puma_neutro', hold: 1.5,
+        es: 'Entonces hoy no hay excusa. Si le pegamos, se hunde.', en: '' },
+    ],
+  },
   M07_2: {
     id: 'M07_2', tipo: 'VN',
     titulo: 'EL VASCO HABLA', placa: 'vestuario', img: 'M07_2',
@@ -2169,6 +2191,8 @@ export const SCENES = {
     lineas: [
       { id: 'M07_OBJETIVO_010', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.6,
         es: 'Escuadrilla Zorzal, aquí Cóndor. Destructor en el estrecho.', en: '' },
+      { id: 'M07_OBJETIVO_015', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 0.8,
+        es: 'Hoy cuelgan las españolas, con la espoleta nueva. Si pega, explota.', en: '' },
       { id: 'M07_OBJETIVO_020', personaje: 'CÓNDOR', cara: 'condor_radio', hold: 1.2,
         es: 'Feliz veinticinco, muchachos. A ver si me lo bajan. Buen vuelo.', en: '' },
     ],
@@ -2537,6 +2561,21 @@ export const SCENES = {
         es: 'Tocado. Con eso no alcanza.', en: '' },
     ],
   },
+  // LAS DOS BOMBAS (data/bombas.js): la MK-17 que pega y no explota, y la que explota despues
+  AV_T16_FALLA: {
+    id: 'AV_T16_FALLA', tipo: 'AVISO', titulo: 'PUMA · NO EXPLOTÓ',
+    lineas: [
+      { id: 'AV_T16_FALLA_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Pegó y no explotó. Hiciste todo bien, Tero: fue la bomba.', en: '' },
+    ],
+  },
+  AV_T16_TARDE: {
+    id: 'AV_T16_TARDE', tipo: 'AVISO', titulo: 'PUMA · EXPLOTÓ',
+    lineas: [
+      { id: 'AV_T16_TARDE_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: '¡Explotó! Tarde, pero explotó.', en: '' },
+    ],
+  },
   AV_T16_HUNDIDO: {
     id: 'AV_T16_HUNDIDO', tipo: 'AVISO', titulo: 'PUMA · ¡LE DISTE!',
     lineas: [
@@ -2659,7 +2698,7 @@ export const SECUENCIAS = {
   epiM5: ['M05_EPI', 'M05_ESCUCHA', 'M05_CARTA', 'M05_HIST'],
   storyM6: ['M06_1', 'M06_2', 'M06_TARJETA'],
   epiM6: ['M06_EPI', 'M06_CHANCHA', 'M06_CARTA', 'M06_HIST'],
-  storyM7: ['M07_1', 'M07_2', 'M07_TARJETA'],
+  storyM7: ['M07_1', 'M07_ESPOLETAS', 'M07_2', 'M07_TARJETA'],
   epiM7: ['M07_EPI', 'M07_LOCKER1', 'M07_LOCKER2', 'M07_CARTA', 'M07_HIST'],
   storyM8: ['M08_1', 'M08_2', 'M08_TARJETA'],
   epiM8: ['M08_SOBREVUELO', 'M08_TESIS', 'M08_CARTA', 'M08_HIST'],

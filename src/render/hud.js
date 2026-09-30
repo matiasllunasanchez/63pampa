@@ -2053,6 +2053,12 @@ export function drawHUD(h) {
     bordePlaca(xRack, yc - 4, RACK_W, 9, on && !r.bloqueada && verde ? SUELTA_COL : P.warn);
     iconoEn(cx, yc, 'bomba', !on ? '#2e3c45' : verde ? SUELTA_COL : r.bloqueada ? '#6b7680' : null,
       undefined, !on || verde || r.bloqueada);
+    // QUE BOMBA ES (data/bombas.js): el nombre corto encima del estante — MK-17 o BRP
+    if (r.bomba) {
+      ctx.font = 'bold 5px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.dim;
+      ctx.fillText(r.bomba === 'mk17' ? 'MK17' : 'BRP', xRack + RACK_W / 2, CUADROS_Y - 2);
+      ctx.textAlign = 'left';
+    }
   } else if (pide(run.msl < MSL_MAX)) {
     plate(xRack, CUADROS_Y, RACK_W, CUADRO);
     // CADA PIP ES LA BOMBA, 10x5 y de la tabla de iconos (12/9, con foto de la maqueta del autor):

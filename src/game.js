@@ -143,6 +143,7 @@ import { cartel, tickCarteles, limpiarCarteles } from './core/cartel.js';
 import { CARA_DE_RADIO } from './core/voz.js';
 import { derrota } from './data/derrotas.js';
 import { defensaDe } from './data/defensas.js';
+import { BOMBAS, bombaDe, bombaInfo } from './data/bombas.js';
 import { pose as poseSenal } from './core/senales.js';
 import * as zigzag from './systems/zigzag.js';
 import * as zigzagCore from './core/zigzag.js';
@@ -1480,7 +1481,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       escapeSys.resetFuga(); senas = null;
       blancoSys.preparar(hayBlanco, objectiveShip, objectiveDist, { PZ, W }, cfg.carga,
         { pasadas: curMission() && curMission().pasadas, vuelta: fases.hayVuelta(),
-          dificultad: curMission() && curMission().dificultad });
+          dificultad: curMission() && curMission().dificultad, bomba: bombaDeLaMision() });
       // LA NAFTA COMO ALCANCE (PLAN_NAFTA_ALCANCE N3): con ruta, el tanque se llena en km segun la
       // carga YA RESUELTA (la bomba del buque incluida). Va despues de la suelta por eso mismo.
       naftaSys.preparar(rutaSys.hay() ? cfg.carga : null);
@@ -1511,6 +1512,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       prepararCarga();
       beep(880, 0.12, 'square', 0.06);
       run.t = 0; fadeT = 1.0; setState(afterBrief()); sfxOne('lv1');
+    }
+    /** LA BOMBA DEL BUQUE de esta mision (data/bombas.js): MK-17 hasta el 25 de mayo, BRP-250 desde
+     *  ahi; la mision la puede decir y `?bomba=mk17|brp` la pisa. */
+    function bombaDeLaMision() {
+      let q = null; try { q = new URLSearchParams(location.search).get('bomba'); } catch (e) { }
+      return BOMBAS[q] ? q : bombaDe(curMission(), MISSIONS.indexOf(curMission()));
+    }
+    /** El renglon del hangar con la bomba de hoy y su dato curioso (el origen). */
+    function fichaBomba() {
+      const id = bombaDeLaMision(), b = bombaInfo(id);
+      return T('bomba_ficha', { n: b.nombre, kg: b.kg, o: getLang() === 'en' ? b.en : b.es.toUpperCase() });
     }
     /** Las tarjetas del hangar, con los numeros ya hechos: el dibujo no sabe de nafta. */
     function filasCarga() {
@@ -3244,7 +3256,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function die(cause) {
       setState('dead'); deathCause = cause; deathT = 0;
       // …y POR QUE: la bomba errada se explica por su ultimo veredicto sobre el buque
-      deathPorque = derrota(cause, blancoSys.estado().res);
+      deathPorque = derrota(cause, blancoSys.estado().res, blancoSys.estado().bomba);
       // …la pantalla ya esta en negro (el de la pasada errada): sube directo, sin "show del destrozo"
       if (erroSuelta(cause)) deathT = DEATH_REVEAL;
       // POR LA PATRIA: el derribado ES el fin del "nivel" → estrellas por puntaje. En campaña/ciclo
@@ -4643,7 +4655,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // LA VISTA sale de la trayectoria: alejandose derecho se la ve de cola; cayendo, de costado.
         const rel = Math.max(5, pm.vz - run.spd);
         const v = Math.atan2(Math.abs(pm.vy), rel * 0.12) / (Math.PI / 2);
-        const caja = Math.max(6, k * 3.6);   // chica de cerca (es un tercio del avion), legible de lejos
+        // LA BOMBA DEL BUQUE (data/bombas.js): la MK-17 de 500 kg es un tercio mas grande que la BRP de 250
+        const kBomba = runClimax() === 'suelta' ? (blancoSys.estado().bomba === 'mk17' ? 1.15 : 0.8) : 1;
+        const caja = Math.max(6, k * 3.6) * kBomba;   // chica de cerca (es un tercio del avion), legible de lejos
         const bx = Math.round(s.x), by = Math.round(s.y);
         // la hoja la tiene nariz ARRIBA; cayendo de costado va nariz ABAJO
         const vuelta = pm.vy < 0 && v > 0.45;
@@ -5022,7 +5036,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EL BANCO DEL PICHON: pantalla de mejora entre misiones. Desde M8 (muerto el Pichon,
       // indice 7) las mejoras salen de su libreta y la pantalla cambia de nombre.
       if (S.state === 'upgrade') menus.drawUpgrade({ offer: upgOffer, sel: upgSel, t: upgT, libreta: curLevel >= 7 });
-      if (S.state === 'carga') menus.drawCarga({ rows: filasCarga(), sel: cargaSel, t: cargaT });
+      if (S.state === 'carga') menus.drawCarga({ rows: filasCarga(), sel: cargaSel, t: cargaT, bomba: fichaBomba() });
       // PAUSA: overlay en nativas, encima de todo lo del mundo (el fade de historia va despues,
       // pero con el juego pausado nunca conviven)
       if (paused) menus.drawPause({

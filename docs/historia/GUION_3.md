@@ -1266,6 +1266,27 @@ más alta del juego… elegido a propósito para el primer gran golpe.
 **GITANO:** A la Patria patria, ¿eh? La de los pibes y los pastelitos. No a los de los
 despachos, que esos que se consigan su propio barco.
 
+### Las españolas _(29/9/2026 — la bisagra de las bombas, ver src/data/bombas.js)_
+
+_En la plataforma hay bombas nuevas. Más chicas que las de siempre, con la punta pintada y
+una inscripción en el costado que no es de acá._
+
+**EL TURCO:** _(orgulloso)_ BRP, doscientos cincuenta kilos. Españolas. Las espoletas se las
+rehicieron en dos semanas, chango: arman al segundo y esperan adentro del barco.
+
+**PICHÓN:** Ya no importa que la suelten al ras. Pega, entra, y revienta adentro.
+
+**GITANO:** ¿Y las MK-17? ¿Las inglesas?
+
+**EL TURCO:** Al depósito. Quinientos kilos de fierro inglés que no quiere explotar contra
+los ingleses.
+
+**PUMA:** Entonces hoy no hay excusa. Si le pegamos, se hunde.
+
+_(En vuelo, Cóndor lo confirma: "Hoy cuelgan las españolas, con la espoleta nueva. Si pega,
+explota." De M1 a M6 se vuela con MK-17 —se emboca de milagro y casi nunca explota—; de
+M7 en adelante, con BRP-250.)_
+
 **VASCO:** _(hablando más que en las seis misiones anteriores juntas, sobre nada: el
 chocolate, el frío, una anécdota de la escuela de aviación)_ …y el tipo me hace repetir el
 aterrizaje cuatro veces. Cuatro. Yo tenía diecinueve años y el tipo me hace repetirlo

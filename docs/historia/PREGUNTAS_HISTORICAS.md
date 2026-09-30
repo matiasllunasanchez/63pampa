@@ -1245,3 +1245,26 @@ propósito — sin fechas, nombres ni cifras exactas — pero conviene que un hi
    útil contra aviones rasantes; en Malvinas se usó en modo superficie contra tierra (el *Glamorgan*
    contra el aeropuerto de Puerto Argentino). El fuego naval contra tierra fue sobre todo de cañones
    de 4,5". ¿Qué representa mejor esas bombas: cañoneo naval o Sea Slug?
+
+---
+
+## LAS DOS BOMBAS: MK-17 y BRP-250 _(29/9/2026 — src/data/bombas.js)_
+
+**Lo que el juego afirma:** hasta el 25 de mayo (M1–M6) el escuadrón vuela con **MK-17 de
+500 kg, de origen inglés**: difíciles de embocar al ras, casi nunca explotan (las que pegan
+no detonan o detonan después). Desde el **25 de mayo (M7)**, con **BRP-250 de 250 kg, de
+origen español**, con la espoleta rehecha: explotan en el casco, visibles. El origen de cada
+una se muestra como dato curioso (hangar y pantalla de derrota).
+
+**A verificar:**
+1. **El origen de la MK-17.** La designación "Mk 17" es de la US Navy (bomba de 1000 lb);
+   el autor la da como inglesa. ¿Las de la FAA eran de fabricación británica (compradas al
+   Reino Unido) o norteamericanas? ¿"500 kg" es el redondeo de 1000 lb (454 kg)?
+2. **Qué significa BRP.** Si es "Bomba Retardada por Paracaídas" (Expal), la ventaja al ras
+   venía del **paracaídas** que la frenaba y le daba tiempo a la espoleta, además de la
+   espoleta modificada. El juego hoy solo modela la espoleta.
+3. **El retardo.** MEJORAS_PICHON §3 dice que a las BR-250 les pusieron **12 s de retardo**
+   ("la explosión llega cuando ya te fuiste"). El juego, por pedido del autor, las hace
+   explotar **a la vista** en el casco. Es licencia de juego.
+4. **La fecha exacta** del cambio (el juego usa el 25 de mayo, M7).
+

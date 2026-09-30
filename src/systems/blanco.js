@@ -9,8 +9,8 @@
 // las bombas: aca solo se juzga lo que la bomba hizo.
 import { plane } from '../core/state.js';
 import { run } from '../core/run.js';
-import { pmissiles, missiles } from '../core/world.js';
-import { popup, explodeAt, columnaBomba, proj } from '../core/fx.js';
+import { pmissiles, missiles, obstacles } from '../core/world.js';
+import { popup, explodeAt, columnaBomba, proj, onda } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { BL } from '../data/blanco.js';
@@ -18,6 +18,7 @@ import { BOMBA_PANZA, BOMBA_DERIVA } from '../data/tuning.js';
 import { blanco, resetBlanco, altoEn, zonaEn, predecir, holgura, AGUA } from '../core/blanco.js';
 import { SHIP_CLASS } from '../data/ships.js';
 import { cargaDe } from '../data/cargas.js';
+import { bombaInfo } from '../data/bombas.js';
 import { buqueTanque } from '../core/nafta.js';
 import { beep, boom } from './audio.js';
 
@@ -37,6 +38,12 @@ export function preparar(on, nombre, objectiveDist, geo, carga, opts) {
   // la ultima, y el aviso de la suelta es parte de como esta escrita — no una preferencia que se
   // elige en OPCIONES. Sin campo, NORMAL.
   holguraMax = BL.HOLGURA[o.dificultad] === undefined ? BL.HOLGURA.normal : BL.HOLGURA[o.dificultad];
+  // LA BOMBA DE LA MISION (data/bombas.js): su espoleta y su parte de la holgura. La MK-17 achica la
+  // ventana (se emboca de milagro); la BRP la agranda y arma antes.
+  const bi = bombaInfo(o.bomba);
+  blanco.bomba = o.bomba && bombaInfo(o.bomba) === bi ? o.bomba : 'brp';
+  blanco.armaT = bi.armaT;
+  holguraMax *= bi.holgura;
   spdPrev = -1; spdRate = 0;   // corrida nueva: el acelerador de la anterior no cuenta
   blanco.conVuelta = !!o.vuelta;
   if (geo) { PZ = geo.PZ; W = geo.W; }
@@ -124,7 +131,7 @@ export function golpe(pm, z0) {
   // por lo que lleva. Lleno vale una bomba y revienta; vacio vale media y no enciende nada — el PAR
   // vacio al centro es lo que lo hunde.
   const f = pm.tanque ? buqueTanque(pm.tanque) : 1;
-  if (!pm.tanque && (pm.t || 0) < BL.ARMA_T) {
+  if (!pm.tanque && (pm.t || 0) < blanco.armaT) {
     // LA BOMBA QUE NO DESPERTO: pega, rebota en la chapa y no pasa nada. Chispas y un golpe seco —
     // el sonido de haber hecho todo bien menos la altura.
     veredicto('dormida', pm.x, pm.y, blanco.z, P.warn);
@@ -132,9 +139,31 @@ export function golpe(pm, z0) {
     beep(1400, 0.05, 'square', 0.05, -600);
     return true;
   }
+  const bi = bombaInfo(blanco.bomba);
+  // LA MK-17 ARMADA TAMPOCO ES SEGURA (pedido del autor 29/9: "generalmente no explotan, y las que
+  // embocaban no detonaban o detonaban luego"). Se sortea al pegar: estalla, estalla DESPUES, o se
+  // queda adentro del casco sin detonar. Las dos ultimas CUENTAN como ataque cumplido — el piloto
+  // hizo todo bien; fallo la bomba, como en la guerra — y no hunden en el acto.
+  if (!pm.tanque && !blanco.hundido) {
+    const r = sorteo();
+    if (r !== 'explota') {
+      explodeAt(pm.x, pm.y, blanco.z, false, true, true);   // chispas contra la chapa, nada mas
+      beep(900, 0.06, 'square', 0.05, -500);
+      blanco.lento = true; blanco.cumplido = true;
+      run.score += BL.PTS_AVERIA;
+      if (r === 'tarde') {
+        const [a, b] = bi.tardeT;
+        blanco.tardeT = a + Math.random() * (b - a);
+        blanco.tardeX = pm.x; blanco.tardeY = Math.max(AGUA + 1, pm.y);
+      }
+      veredicto('falla', pm.x, pm.y, blanco.z, P.warn);
+      return true;
+    }
+  }
   if (pm.tanque === 'vacio') explodeAt(pm.x, pm.y, blanco.z, false, true, true);   // chapa contra chapa
-  else { explodeAt(pm.x, pm.y, blanco.z, true); columnaBomba(pm.x, AGUA, blanco.z, true); }
+  else estalla(pm.x, pm.y, !pm.tanque && bi.grande);
   blanco.lento = true;   // MOMENTUM OBLIGADO: de aca al cruce, el mundo a BL.LENTO
+  blanco.cumplido = true;
   blanco.marcas.push({ x: pm.x, y: Math.max(AGUA + 1, pm.y), t: run.t });
   // YA HUNDIDO (lo pego otro de la fila antes): el impacto suma puntos y fuego, nada mas
   if (blanco.hundido) {
@@ -142,7 +171,8 @@ export function golpe(pm, z0) {
     boom(0.12); run.shake = Math.min(8, run.shake + 2);
     return true;
   }
-  blanco.dano += (zn === 'centro' ? BL.DANO_CENTRO : BL.DANO_EXTREMO) * f;
+  const dano = pm.tanque ? (zn === 'centro' ? BL.DANO_CENTRO : BL.DANO_EXTREMO) : bi.dano[zn];
+  blanco.dano += dano * f;
   if (blanco.dano >= 100) {
     blanco.hundido = true; blanco.sinkT = 0;
     run.score += BL.PTS_HUNDIDO;
@@ -153,6 +183,52 @@ export function golpe(pm, z0) {
     veredicto('averiado', pm.x, pm.y, blanco.z, P.accent);
   }
   return true;
+}
+
+/** QUE HACE LA ESPOLETA de una bomba que pego armada: 'explota', 'tarde' o 'falla'. La sonda
+ *  `?espoleta=explota|tarde|falla` lo fija (para probar cada caso sin sortear). */
+function sorteo() {
+  let q = null; try { q = new URLSearchParams(location.search).get('espoleta'); } catch (e) { }
+  if (q === 'explota' || q === 'tarde' || q === 'falla') return q;
+  const bi = bombaInfo(blanco.bomba), r = Math.random();
+  return r < bi.explota ? 'explota' : r < bi.explota + bi.tarde ? 'tarde' : 'falla';
+}
+
+/** LA BOMBA QUE REVIENTA EN EL CASCO. `grande` es la de la BRP (pedido del autor 29/9: "EXPLOSION
+ *  VISIBLE en el barco, con sonido explosivo y todo"): la bola, la onda y una cadena de secundarias
+ *  que viajan con el buque — las mismas del derribo (core/fx.js), que ya saben ir con el mundo. */
+function estalla(x, y, grande) {
+  explodeAt(x, y, blanco.z, true); columnaBomba(x, AGUA, blanco.z, true);
+  if (!grande) return;
+  onda(x, Math.max(AGUA + 1, y), blanco.z);
+  // LA BOLA GRANDE, bien por encima de la de siempre: a 130 de distancia la comun es un punto
+  obstacles.push({ type: 'airboom', x, y: Math.max(AGUA + 3, y + 4), z: blanco.z, boomT: 0, scale: 2.4, done: true });
+  // …y las secundarias corriendo por la eslora, cada vez mas lejos del impacto
+  for (let i = 0; i < 7; i++) obstacles.push({
+    type: 'sec', done: true,
+    x: x + (i % 2 ? 1 : -1) * (4 + i * 4 + Math.random() * 4), y: AGUA + 2 + Math.random() * 10, z: blanco.z,
+    t: 0.1 + i * 0.13 + Math.random() * 0.08, grande: i < 4,
+  });
+  obstacles.push({ type: 'humo', done: true, x, y: 0, z: blanco.z, humoT: 0, humoMax: 8 });
+  boom(0.28); run.shake = Math.min(9, run.shake + 5);
+}
+
+/** LA MK-17 QUE DETONA DESPUES: corre su reloj y, al cumplirse, revienta donde pego y lo hunde —
+ *  este o no el buque todavia a la vista. */
+function tarde(dt) {
+  if (blanco.tardeT < 0) return;
+  blanco.tardeT -= dt;
+  if (blanco.tardeT > 0) return;
+  blanco.tardeT = -1;
+  if (blanco.hundido) return;
+  if (blanco.z > PZ) { estalla(blanco.tardeX, blanco.tardeY, false); blanco.marcas.push({ x: blanco.tardeX, y: blanco.tardeY, t: run.t }); }
+  blanco.dano = Math.max(blanco.dano, 100);
+  blanco.hundido = true; blanco.sinkT = 0;
+  run.score += BL.PTS_HUNDIDO - BL.PTS_AVERIA;   // la averia ya la habia cobrado al pegar
+  // a la vista, el cartelito sobre el buque; ya cruzado, solo lo canta Puma
+  if (blanco.z > PZ) veredicto('tarde', blanco.tardeX, blanco.tardeY, blanco.z, P.accent);
+  else { blanco.res = 'tarde'; blanco.resT = run.t; seña('tarde'); }
+  boom(0.2); run.shake = Math.min(8, run.shake + 3);
 }
 
 /** La bomba `pm` toco el agua. Si fue ANTES del buque, se lo dice: "corta" es la mitad de la
@@ -176,6 +252,7 @@ export function step(dt) {
   blanco.zPrev = blanco.z;
   blanco.z -= run.spd * dt;
   if (blanco.hundido) blanco.sinkT += dt;
+  tarde(dt);
   // EL NEGRO ES TREGUA: lo que no se ve no puede matarte. Saltar el buque puede dejarte arriba del
   // techo del radar, y un misil lanzado ahi pegaba en pleno negro (medido: derribo sin ver nada).
   // Mientras dura el negro —y su apertura— no hay misiles en vuelo y el radar no carga.
@@ -218,11 +295,12 @@ export function step(dt) {
     // …SALVO QUE LO HAYAS HUNDIDO EN UNA MISION CON VUELTA (PLAN_VUELTA_REAL V0): ahi no hay negro.
     // Pasaste a traves y el pasillo sigue: arranca EL ESCAPE. game.js te pone en todas las
     // estrellas y el viraje llega cuando las pierdas. El salto se sigue cobrando igual (abajo).
-    const escape = blanco.hundido && blanco.conVuelta;
+    // (CUMPLIDO y no HUNDIDO: una MK-17 que pego y no detono tambien cuenta — el ataque se hizo)
+    const escape = blanco.cumplido && blanco.conVuelta;
     if (escape) blanco.escapando = true;
     else {
       blanco.negroT = 0;
-      if (blanco.hundido) blanco.pendiente = 'hundido';
+      if (blanco.cumplido) blanco.pendiente = 'hundido';
       else {
         blanco.pasada++;
         // EN UNA MISION (una pasada por avion): errar no decide aca —decide game.js si queda un
@@ -292,7 +370,7 @@ export function step(dt) {
   const cerca = puede && !blanco.enDist && (pRef === 'larga' || pRef === 'dormida');
   // (con el buque ya hundido no hay pasada que perder: la mision ya esta cumplida, y este avion solo
   // suma si le pega)
-  if (blanco.tuvoVentana && cerca && blanco.centroN > 0 && !blanco.hundido) {
+  if (blanco.tuvoVentana && cerca && blanco.centroN > 0 && !blanco.cumplido) {
     blanco.perdidaT = 0;
     blanco.altPiso = plane.y;
     blanco.pasada++;
@@ -409,7 +487,7 @@ export const estado = () => blanco;
  *  de soltar (todo lo que titila en verde) y el ESTANTE — que hay en cada pilon. */
 export function hud() {
   if (!blanco.on) return null;
-  const vivo = !blanco.hundido && !blanco.lento && blanco.negroT < 0 && blanco.perdidaT < 0;
+  const vivo = !blanco.cumplido && !blanco.lento && blanco.negroT < 0 && blanco.perdidaT < 0;
   return {
     listo: vivo && blanco.listo,
     // QUE CORREGIR DE LA ALTURA: -1 hay que BAJAR, 1 hay que SUBIR, 0 estas en la banda.
@@ -420,7 +498,7 @@ export function hud() {
     alt: vivo && aTiro()
       ? (plane.y > BL.ALT_IDEAL[1] ? -1 : plane.y < BL.ALT_IDEAL[0] ? 1 : 0) : 0,
     enAtaque: vivo && aTiro(),
-    rack: { ala: blanco.ala, alaN: blanco.alaN, centroN: blanco.centroN, bloqueada: !aTiro() },
+    rack: { ala: blanco.ala, alaN: blanco.alaN, centroN: blanco.centroN, bloqueada: !aTiro(), bomba: blanco.bomba },
     // LA ALTURA DEL SALTO: desde que soltaste hasta el cruce, cuanto mide el buque justo debajo de
     // tu linea — por encima de eso pasas limpio. La marca amarilla del altimetro.
     salto: blanco.negroT < 0 && blanco.z > PZ && (blanco.dicho.sali || blanco.lento)
