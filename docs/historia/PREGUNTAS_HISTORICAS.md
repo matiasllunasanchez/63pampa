@@ -379,6 +379,29 @@ quede corto ni se pase).
 
 **Fuente principal:** [Diario Crónica — la historia del ARA Narwal](https://www.diariocronica.com.ar/)
 
+## ⚠ "POSCOMBUSTIÓN" — el A-4B no tenía. Decisión del autor, 30/9/2026
+
+**Qué cambió:** la mecánica de aceleración, que el jugador leía como **TURBO**, pasa a llamarse
+**POSCOMBUSTIÓN** (en inglés, `AFTERBURNER`). Pedido directo del autor.
+
+**El problema histórico, dicho de frente:** *poscombustión* es exactamente el nombre castellano
+del **afterburner**, y el **A-4B Skyhawk no tenía uno**. Monta un **Wright J65, turborreactor sin
+postquemador** — está documentado en
+[AVIONES_CATALOGO.md](AVIONES_CATALOGO.md) y el propio código lo modela así: el comentario de
+`src/render/plane.js` dice que el turbo *"no alarga nada: pone la boca MÁS BLANCA"*, justamente
+porque no hay postquemador que alargue una llama. Con este cambio, **el castellano pasa a afirmar
+un sistema que ese avión no tenía** — antes decía `TURBINA`, que era vago y por eso zafaba.
+
+**Estado: decisión tomada, no duda abierta.** Manda la regla del proyecto: *la prioridad es el
+juego, no la historia*. Queda anotado acá para que nadie lo "descubra" dentro de seis meses y lo
+revierta creyendo que fue un descuido — **fue elegido**.
+
+**Si alguna vez se quiere honestidad histórica sin perder el nombre**, hay dos salidas que no
+piden rediseñar nada: llamarlo **MILITAR** o **MÁXIMA** (así se llama de verdad el máximo empuje
+en un motor sin postquemador), o dejar `POSCOMBUSTIÓN` y que algún Fiel lo diga como chiste de
+escuadrilla — que es como los pilotos le ponen nombre a las cosas que no tienen nombre. Ninguna
+de las dos es necesaria; son la puerta de salida si el tema vuelve.
+
 ## La frase de las turbinas (M5) — ⚠ SIN FUENTE
 
 **Texto usado, literal:** *"Si estás en guerra con Argentina y escuchás el ruido de las

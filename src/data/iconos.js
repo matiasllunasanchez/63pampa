@@ -281,7 +281,7 @@ export const ICONOS = {
 };
 
 /** CLASE DE BUQUE → su icono. La clase la da `SHIP_CLASS` (data/ships.js). */
-export const ICONO_BUQUE = { t42: 'buque_t42', t21: 'buque_t21', log: 'buque_log' };
+export const ICONO_BUQUE = { t42: 'buque_t42', t21: 'buque_t21', log: 'buque_log', cv: 'buque_cv' };
 
 /** EXCEPCIONES POR NOMBRE, cuando la clase del mundo es una aproximacion y el icono puede ser fiel.
  *  El Atlantic Conveyor era un PORTACONTENEDORES; el mundo lo dibuja con la hoja de desembarco

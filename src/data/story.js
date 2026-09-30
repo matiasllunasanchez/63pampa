@@ -2640,10 +2640,10 @@ export const SCENES = {
     ],
   },
   LEC_M1_TURBO: {
-    id: 'LEC_M1_TURBO', tipo: 'LECCION', titulo: 'GITANO · EL TURBO',
+    id: 'LEC_M1_TURBO', tipo: 'LECCION', titulo: 'GITANO · LA POSCOMBUSTIÓN',
     lineas: [
       { id: 'LEC_M1_TURBO_010', personaje: 'GITANO', cara: 'gitano_sonrisa', hold: 0,
-        es: '¿Más velocidad? Le metimos turbo. Pero ojo, que chupa más que el Vasco en un asado. Así que... de a poquito.', en: '' },
+        es: '¿Más velocidad? Poscombustión. Pero ojo, que chupa más que el Vasco en un asado. Así que... de a poquito.', en: '' },
     ],
   },
   LEC_M1_ARMAS: {

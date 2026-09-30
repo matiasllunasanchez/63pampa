@@ -51,12 +51,15 @@ const FILES = {
   buque_t42: '../assets/world/enemies/buque_t42.png',
   buque_t21: '../assets/world/enemies/buque_t21.png',
   buque_log: '../assets/world/enemies/buque_log.png',
+  buque_cv: '../assets/world/enemies/buque_cv.png',
   proa_t42: '../assets/world/enemies/proa_t42.png',
   proa_t21: '../assets/world/enemies/proa_t21.png',
   proa_log: '../assets/world/enemies/proa_log.png',
+  proa_cv: '../assets/world/enemies/proa_cv.png',
   hundido_t42: '../assets/world/enemies/hundido_t42.png',
   hundido_t21: '../assets/world/enemies/hundido_t21.png',
   hundido_log: '../assets/world/enemies/hundido_log.png',
+  hundido_cv: '../assets/world/enemies/hundido_cv.png',
 };
 
 // EL `wu` DE LOS JETS ESTABA MAL, y era la mitad del problema. Medido: el contenido del sprite
@@ -151,9 +154,9 @@ const ARTE = {
   // vive en `drawApproachBarge` y termina en una ESLORA EN PIXELES. Con wu = 1, pasarle esa eslora
   // como escala hace que el contenido mida exactamente eso. Es la unica familia de hojas que se
   // dibuja asi, y es a proposito: la alternativa era duplicar la cuenta.
-  buque_t42: { wu: 1 }, buque_t21: { wu: 1 }, buque_log: { wu: 1 },
-  proa_t42: { wu: 1 }, proa_t21: { wu: 1 }, proa_log: { wu: 1 },
-  hundido_t42: { wu: 1 }, hundido_t21: { wu: 1 }, hundido_log: { wu: 1 },
+  buque_t42: { wu: 1 }, buque_t21: { wu: 1 }, buque_log: { wu: 1 }, buque_cv: { wu: 1 },
+  proa_t42: { wu: 1 }, proa_t21: { wu: 1 }, proa_log: { wu: 1 }, proa_cv: { wu: 1 },
+  hundido_t42: { wu: 1 }, hundido_t21: { wu: 1 }, hundido_log: { wu: 1 }, hundido_cv: { wu: 1 },
 };
 
 // La union de las dos mitades: lo medido y lo decidido. Si el horno agrega una hoja sin entrada

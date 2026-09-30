@@ -103,21 +103,24 @@ BAKE.modelos('buques', (THREE, K) => {
 
   /** MASTIL con cruceta. `radomos` le cuelga los dos domos del Tipo 42, que a esta escala son
    *  DOS PELOTAS BLANCAS arriba de todo — y son lo unico que dice "destructor de misiles". */
-  function mastil(g, alto, y, z, radomos) {
-    POST(g, 0.035, 0.06, alto, C.metal, 0, y + alto / 2, z, 6);
-    B(g, 0.5, 0.04, 0.05, C.metal, 0, y + alto * 0.72, z);                    // cruceta
+  //  `x` es el desplazamiento LATERAL, y existe por el portaaviones: es el unico buque del
+  //  catalogo cuya isla no esta en el eje, y sin esto el palo le quedaba plantado en el medio de
+  //  la cubierta, separado de su propia isla. Por defecto 0 — los otros tres ni se enteran.
+  function mastil(g, alto, y, z, radomos, x = 0) {
+    POST(g, 0.035, 0.06, alto, C.metal, x, y + alto / 2, z, 6);
+    B(g, 0.5, 0.04, 0.05, C.metal, x, y + alto * 0.72, z);                    // cruceta
     if (radomos) {
-      DOME(g, 0.19, '#a8b0b4', 0, y + alto * 0.92, z - 0.22, 1, 0.9, 1);
-      DOME(g, 0.15, '#98a0a4', 0, y + alto * 0.62, z + 0.3, 1, 0.9, 1);
+      DOME(g, 0.19, '#a8b0b4', x, y + alto * 0.92, z - 0.22, 1, 0.9, 1);
+      DOME(g, 0.15, '#98a0a4', x, y + alto * 0.62, z + 0.3, 1, 0.9, 1);
     } else {
-      B(g, 0.34, 0.05, 0.06, C.metal, 0, y + alto * 0.98, z);                 // la antena de barra
+      B(g, 0.34, 0.05, 0.06, C.metal, x, y + alto * 0.98, z);                 // la antena de barra
     }
   }
 
   /** CHIMENEA con sombrerete negro. */
-  function chimenea(g, w, alto, y, z) {
-    const m = B(g, w, alto, w * 1.3, C.supD, 0, y + alto / 2, z); m.rotation.x = -0.08;
-    B(g, w * 1.15, alto * 0.12, w * 1.45, C.metal, 0, y + alto, z);
+  function chimenea(g, w, alto, y, z, x = 0) {
+    const m = B(g, w, alto, w * 1.3, C.supD, x, y + alto / 2, z); m.rotation.x = -0.08;
+    B(g, w * 1.15, alto * 0.12, w * 1.45, C.metal, x, y + alto, z);
   }
 
   /** TORRETA con su cañon apuntando alto: el buque no espera, esta tirando. */
@@ -212,7 +215,68 @@ BAKE.modelos('buques', (THREE, K) => {
     return g;
   }
 
-  const CLASES = { t42, t21, log };
+  /** PORTAAVIONES LIGERO CLASE INVINCIBLE — HMS INVINCIBLE, HMS HERMES.
+   *
+   *  ES EL BUQUE QUE ROMPE LA REGLA DE LAS OTRAS TRES, y a proposito. Las otras se distinguen por
+   *  DONDE tienen el peso (el 42 al medio, el 21 adelante, el logistico a popa); este se distingue
+   *  por no tener peso arriba del eje en ningun lado: es una TABLA. A la distancia a la que se lo
+   *  ve, tres cosas y nada mas:
+   *
+   *    1. LA CUBIERTA CORRIDA, de proa a popa, sin una torreta ni un mastil que la interrumpan.
+   *       Ninguna de las otras clases tiene el lomo limpio.
+   *    2. LA RAMPA DE SALTO (ski-jump) en la proa. Es la firma de la clase y no la tiene ningun
+   *       otro barco de la guerra: la trompa se LEVANTA en vez de bajar al agua.
+   *    3. LA ISLA CORRIDA A ESTRIBOR. Todo el resto del juego es simetrico respecto del eje; esta
+   *       no. Vista de proa —que es como la ve el jugador— la asimetria es lo que la delata al
+   *       instante, antes de que se lean la rampa o la cubierta.
+   *
+   *  Y ES ANCHO. No mas LARGO: la eslora del pasillo ya cruza el carril entero (BL.LEN = 80 contra
+   *  FLY_X = 38), asi que agrandarlo a lo largo no se veria — no hay a donde. Lo que si se nota es
+   *  la MANGA, y ahi va la diferencia: 1.9 contra 1.15 del destructor. */
+  function cv(g) {
+    const manga = 1.9, franco = 0.78;
+    casco(g, L, manga, franco, 0.04, 0.02);                                   // proa casi recta, cuerpo lleno
+
+    // LA CUBIERTA DE VUELO: una sola plancha de punta a punta, MAS ANCHA QUE EL CASCO (vuela sobre
+    // los costados, como la de verdad). El canto claro contra el cielo es lo que la dibuja de lejos.
+    B(g, manga * 1.06, 0.07, L * 0.98, C.deck,  0, franco + 0.035, 0);
+    B(g, manga * 1.08, 0.04, L * 0.98, C.deckL, 0, franco + 0.085, 0);
+
+    // LA RAMPA DE SALTO. Es la ultima decima de proa levantada: un prisma corto inclinado, con su
+    // canto claro encima para que la linea del lomo se vea QUEBRARSE hacia arriba y no se lea
+    // como una proa mas.
+    // OJO CON LA ALTURA: la rampa NACE de la cubierta, no se apoya encima. Puesta con su centro
+    // por arriba del nivel de cubierta quedaba FLOTANDO —se leia como una pasarela suelta— que es
+    // lo que salio de la primera horneada. Con el centro EN la cubierta, la mitad de popa se hunde
+    // en la plancha (se funden, es el mismo color) y solo asoma la punta levantada, que es lo unico
+    // que hay que ver.
+    const rampa = B(g, manga * 1.02, 0.07, L * 0.22, C.deck, 0, franco + 0.05, -L * 0.40);
+    rampa.rotation.x = -0.30;
+    const rampaL = B(g, manga * 1.04, 0.04, L * 0.22, C.deckL, 0, franco + 0.09, -L * 0.40);
+    rampaL.rotation.x = -0.30;
+
+    // LA ISLA, CORRIDA A ESTRIBOR. Es lo unico asimetrico del catalogo: no se usa `bloque()`,
+    // que centra en el eje, sino cajas puestas a mano con su desplazamiento.
+    const ix = manga * 0.42, iy = franco + 0.10;
+    for (const [w, h, lg, dy] of [[0.40, 0.44, L * 0.24, 0], [0.32, 0.34, L * 0.17, 0.44],
+                                  [0.24, 0.24, L * 0.11, 0.78]]) {
+      B(g, manga * w, h, lg, C.sup,  ix, iy + dy + h / 2, L * 0.10);
+      B(g, manga * w * 0.3, h, lg * 0.98, C.supL, ix - manga * w * 0.33, iy + dy + h / 2, L * 0.10);
+      B(g, manga * w * 1.02, 0.04, lg * 1.02, C.deck, ix, iy + dy + h, L * 0.10);
+    }
+    B(g, manga * 0.22, 0.06, 0.34, C.win, ix, iy + 0.30, L * 0.02);           // el puente, encendido
+    chimenea(g, manga * 0.16, 0.34, iy + 0.44, L * 0.17, ix);
+    mastil(g, 1.25, iy + 1.02, L * 0.10, true, ix);                           // radomos: es un buque de mando
+
+    // EL SEA DART en la proa, DEBAJO de la rampa: el unico armamento que se ve, y va abajo del
+    // nivel de la cubierta — que es otra forma de decir que arriba no hay nada.
+    // …y va PEGADO al casco, sin los rieles del Tipo 42: a esta escala dos cilindros finos colgando
+    // de la proa no se leen como un lanzador, se leen como dos patas debajo del barco.
+    B(g, manga * 0.26, 0.16, 0.36, C.sup, 0, franco - 0.08, -L * 0.43);
+    return g;
+  }
+
+  const CLASES = { t42, t21, log, cv };
 
   /** UN BUQUE, en el estado que se pida.
    *  `hundido`: 0 = navegando · 1 = escorado de PROA (se va de nariz) · 2 = escorado de POPA.
@@ -253,6 +317,7 @@ BAKE.modelos('buques', (THREE, K) => {
 
   return {
     t42: () => buque('t42', 0), t21: () => buque('t21', 0), log: () => buque('log', 0),
+    cv: () => buque('cv', 0),
     hundido: (clase, n) => buque(clase, n),
   };
 });

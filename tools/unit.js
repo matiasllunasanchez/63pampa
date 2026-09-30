@@ -1623,7 +1623,7 @@ test('buques: cada clase del juego tiene sus tres vistas horneadas', async () =>
   const { CAJAS } = await import('../src/data/cajas.js');
   const { SHIP_CLASS } = await import('../src/data/ships.js');
   const clases = [...new Set(Object.values(SHIP_CLASS))];
-  assert.deepEqual(clases.sort(), ['log', 't21', 't42'], 'aparecio una clase de buque nueva');
+  assert.deepEqual(clases.sort(), ['cv', 'log', 't21', 't42'], 'aparecio una clase de buque nueva');
   for (const c of clases) {
     // Si falta una, el buque de esa clase cae al casco generico y se vuelve indistinguible de los
     // otros dos — que es exactamente el problema que B2 vino a arreglar, y en silencio.
@@ -2860,7 +2860,6 @@ test('peso sin ruta: el tanque existe, el % pasa a los externos primero y soltar
   nafta.preparar(null);
 });
 
-
 // ---------- EL HANGAR (PLAN_NAFTA_ALCANCE N7) ----------
 test('hangar: las cargas elegibles existen, llevan la bomba del buque y tienen sus textos', async () => {
   const { CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE, cargaDe, CARGAS } = await import('../src/data/cargas.js');
@@ -2904,7 +2903,6 @@ test('peso: la nafta de los tanques, las bombas y soltar cambian la velocidad (p
   // el techo: limpio del todo no pasa de +25% (es juego, no un cohete)
   assert.ok(velRelativa({ bombas: 0, tanques: 0, nafta: 0 }) < 1.25);
 });
-
 
 // ---------- LOS TANQUES COMO ARMA (PLAN_NAFTA_ALCANCE N6) ----------
 test('tanques-arma: lleno mata y enciende lo explosivo; vacio voltea lo que vuela y toca lo demas', async () => {
@@ -3076,6 +3074,31 @@ test('derrotas: la bomba errada se explica por su veredicto, y toda clave existe
   for (const d of Object.values(DERROTAS)) { if (d.que) claves.add(d.que); if (d.hist) claves.add(d.hist); }
   for (const v of ['dormida', 'corta', 'larga', 'costado', 'averiado', 'nada']) claves.add('que_bomba_' + v);
   for (const k of claves) for (const l of ['es', 'en']) assert.ok(STRINGS[l][k], `falta ${k} en ${l}`);
+});
+
+// ---------- EL NOMBRE DE LA POSCOMBUSTION (pedido del autor, 30/9/2026) ----------
+test('poscombustion: el jugador no lee "turbo" en ningun idioma', async () => {
+  // La mecanica se llama POSCOMBUSTION en castellano y AFTERBURNER en ingles. "Turbo" quedo como
+  // nombre INTERNO (run.boost, ESTELA_TURBO, SPD_TURBO...) y esta bien que siga: renombrarlo es un
+  // diff mecanico enorme sin efecto para el jugador. Lo que no puede volver es a la PANTALLA.
+  //
+  // POR QUE UNA PRUEBA Y NO UN RECORDATORIO: el nombre viejo esta en cincuenta lugares del codigo,
+  // asi que escribir 'turbo' en un texto nuevo es la equivocacion mas facil del repo. Esta prueba
+  // es la unica forma de que no vuelva de contrabando.
+  const { STRINGS } = await import('../src/data/strings.js');
+  const culpables = [];
+  for (const lang of ['es', 'en']) {
+    for (const [k, v] of Object.entries(STRINGS[lang])) {
+      if (typeof v !== 'string') continue;
+      // 'turborreactor' es otra cosa (el motor del Skyhawk) y puede aparecer: se excluye sola.
+      const limpio = v.replace(/turborreactor/gi, '');
+      // en ingles TAMBIEN se vigila "boost": el renombre dejo tres textos a medias la primera vez
+      // (el pie de la pagina, el consejo y el cartel de averia) y ninguna prueba los vio.
+      const viejo = lang === 'en' ? /\bturbos?\b|\bboost(s|ing|ed)?\b/i : /\bturbos?\b/i;
+      if (viejo.test(limpio)) culpables.push(`${lang}.${k}: ${v.slice(0, 70)}`);
+    }
+  }
+  assert.deepEqual(culpables, [], 'quedo "turbo" a la vista del jugador:\n  ' + culpables.join('\n  '));
 });
 
 // ---------------------------------------------------------------------------------------------

@@ -65,4 +65,16 @@ export const SHIP_CLASS = {
   // El Broadsword era Tipo 22 y el Glamorgan clase County: t21/t42 son la aproximacion
   // jugable (fragata / destructor), no la ficha tecnica.
   'RFA SIR TRISTRAM': 'log', 'HMS BROADSWORD': 't21', 'HMS GLAMORGAN': 't42',
+
+  // PORTAAVIONES (clase Invincible). Es la clase que rompe la regla de las otras tres: no se
+  // distingue por DONDE tiene el peso sino por no tenerlo en ningun lado — una cubierta corrida,
+  // la rampa de salto en la proa y la isla a estribor. Ver tools/models/buques.js.
+  //
+  // El Hermes era clase Centaur y no Invincible; `cv` es la aproximacion JUGABLE (portaaviones),
+  // igual que t21/t42 lo son para el Broadsword y el Glamorgan. Es la regla de esta tabla.
+  'HMS INVINCIBLE': 'cv', 'HMS HERMES': 'cv',
+
+  // FRAGATAS TIPO 21. El AVENGER era hermana de la ARDENT y la ANTELOPE: misma clase, misma hoja,
+  // mismo perfil de casco. No hizo falta nada nuevo — la clase ya existia desde el primer dia.
+  'HMS AVENGER': 't21',
 };

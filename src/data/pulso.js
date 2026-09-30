@@ -278,6 +278,9 @@ export const PULSO_CLASE = {
   t42: { sink: 1.2, humo: 1, blast: 1.1, str: 'pulso_c_t42' },   // destructor: grande, se va lento
   t21: { sink: 0.9, humo: 0.9, blast: 1, str: 'pulso_c_t21' },   // fragata: mas chica, escora y se va
   log: { sink: 1.45, humo: 1.7, blast: 1.25, str: 'pulso_c_log' },   // logistico: la carga arde
+  // PORTAAVIONES: el que mas tarda en irse, y por lejos. No es una perilla de dificultad — es lo
+  // unico que separa hundir un portaaviones de hundir una fragata cuando la bomba ya salio.
+  cv: { sink: 1.9, humo: 2.0, blast: 1.4, str: 'pulso_c_cv' },
 };
 export const CLASE_DEF = PULSO_CLASE.t21;
 

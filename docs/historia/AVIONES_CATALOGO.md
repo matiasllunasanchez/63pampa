@@ -151,9 +151,12 @@ espoletas mejores, habríamos perdido"**.
 > cierre**, junto a los 323 del Belgrano y el Narwal: es de las pocas citas británicas del
 > juego que tienen fuente de verdad.
 
-> ⚠️ **Bug vivo:** el HUD anuncia `AFTERBURNER x{n}` en inglés (`strings.js`). El A-4B **no
-> tiene posquemador**. En castellano dice `TURBINA` y zafa; el inglés afirma un sistema que
-> ese avión no tenía. Cambio de una línea.
+> ⚠️ **Sabido y elegido (30/9/2026):** el juego llama **POSCOMBUSTIÓN** / `AFTERBURNER` a la
+> aceleración, y el A-4B **no tenía postquemador** (Wright J65, turborreactor puro). Antes el
+> castellano decía `TURBINA` y zafaba; ahora afirma el sistema. **No es un bug: es una decisión
+> del autor**, con su entrada y sus salidas alternativas en
+> [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md). No lo "arregles" sin preguntar.
+> El render, eso sí, sigue siendo honesto: la boca se pone más blanca, no le crece una llama.
 
 ---
 

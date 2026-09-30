@@ -190,6 +190,11 @@ export const PERFIL = {
   t21: [0.081, 0.094, 0.121, 0.101, 0.154, 0.174, 0.336, 0.174, 0.174, 0.168, 0.168, 0.101, 0.107, 0.101, 0.067, 0.060, 0.060, 0.060, 0.054, 0.054],
   t42: [0.089, 0.089, 0.104, 0.115, 0.083, 0.099, 0.141, 0.313, 0.313, 0.266, 0.099, 0.141, 0.141, 0.104, 0.099, 0.099, 0.099, 0.057, 0.057, 0.052],
   log: [0.126, 0.126, 0.230, 0.225, 0.209, 0.209, 0.162, 0.162, 0.220, 0.204, 0.199, 0.152, 0.152, 0.152, 0.204, 0.215, 0.304, 0.257, 0.094, 0.089],
+  // PORTAAVIONES: se lee distinto a los tres de arriba y el perfil lo dice solo — una meseta
+  // pareja y BAJA de punta a punta (la cubierta corrida) con UN pico tardio, que es la isla
+  // corrida a popa. Los otros tienen el pico al medio o adelante. Medido con
+  // `npx electron tools/perfil_buques.js`, que reproduce exacto los tres de arriba.
+  cv: [0.109, 0.109, 0.114, 0.130, 0.135, 0.104, 0.098, 0.098, 0.093, 0.135, 0.166, 0.316, 0.311, 0.187, 0.130, 0.083, 0.078, 0.078, 0.078, 0.073],
   // LAS ESTRUCTURAS EN TIERRA (data/estructuras.js). No salen de una hoja horneada sino al reves: el
   // dibujo se hace DESDE este perfil, columna por columna, asi que la bomba pega donde se ve edificio
   // por construccion. Las alturas son sobre el piso de la explanada, no sobre el agua.

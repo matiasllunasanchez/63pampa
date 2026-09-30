@@ -97,6 +97,29 @@ export const PRUEBAS = [
     setup: a => a.recarga('?no3d&qa'),
   },
 
+  // LOS BUQUES. Existe porque una clase de buque nueva no se puede VER sin una mision que la
+  // apunte, y escribir una mision para mirar una silueta es al reves. Cada momento carga el
+  // pasillo de m4 y le cambia el objetivo con la misma sonda que usan la consola y los fixtures,
+  // despues salta al 93 % del camino — que es donde el buque ya esta entero y todavia no lo
+  // cruzaste. Sirve para lo que la silueta tiene que contestar sola: "¿que clase es eso?".
+  { head: 'prSecBuques' },
+  {
+    id: 'buqueCv', titulo: 'BUQUE · PORTAAVIONES', desc: 'Cubierta corrida, rampa de salto y la isla a estribor · HMS INVINCIBLE',
+    setup: a => { a.mision('m4'); a.luego(1.2, g => { g.sonda('buqueSet', 'HMS INVINCIBLE'); g.sonda('wjump', 0.93); }); },
+  },
+  {
+    id: 'buqueT21', titulo: 'BUQUE · FRAGATA TIPO 21', desc: 'Proa de clipper y la popa vacia · HMS AVENGER',
+    setup: a => { a.mision('m4'); a.luego(1.2, g => { g.sonda('buqueSet', 'HMS AVENGER'); g.sonda('wjump', 0.93); }); },
+  },
+  {
+    id: 'buqueT42', titulo: 'BUQUE · DESTRUCTOR TIPO 42', desc: 'Torreta a proa, isla al medio y los radomos · HMS SHEFFIELD',
+    setup: a => { a.mision('m4'); a.luego(1.2, g => { g.sonda('buqueSet', 'HMS SHEFFIELD'); g.sonda('wjump', 0.93); }); },
+  },
+  {
+    id: 'buqueLog', titulo: 'BUQUE · LOGISTICO', desc: 'Casco alto, carga adelante y la isla entera a popa · RFA SIR GALAHAD',
+    setup: a => { a.mision('m4'); a.luego(1.2, g => { g.sonda('buqueSet', 'RFA SIR GALAHAD'); g.sonda('wjump', 0.93); }); },
+  },
+
   { head: 'prSecCola' },
   {
     id: 'colaAviso', titulo: 'LA COLA · EL AVISO', desc: 'El Harrier se te pone atras, con el pasillo vacio',
