@@ -15,6 +15,7 @@ import { hzWorld, tiltFade } from '../core/horizon.js';
 import { bendW, paredH } from '../core/zigzag.js';
 import { techoLadera } from './paredes.js';
 import { techoIsla } from './islas.js';
+import { drawColinas } from './colinas.js';   // las lomadas de afuera del carril (30/9)
 // EL MAR VIVE EN core/sea.js — puro, sin canvas ni stores — porque la colision de las olas tiene
 // que evaluar la MISMA superficie que se dibuja, y un sistema no puede importar del render.
 import { seaH as seaBase, olaBump, climaDe, resaca } from '../core/sea.js';
@@ -548,6 +549,7 @@ export function drawSea() {
     // puntos del oleaje donde hay agua. Se saltean enteras si en pantalla no hay nada de lo suyo.
     if (nTierra || nCosta || nPlaya) drawLand(false, true);
     if (nMar || nCosta || nPlaya) drawSeaDots(landVisible, false, true);
+    lomadas();
     return;
   }
   if (landMode) drawLand();
@@ -556,7 +558,22 @@ export function drawSea() {
     drawSeaDots(landVisible, true);    // oleaje solo del lado del agua (limite por fila)
     drawFleet();                       // la flota de desembarco en el horizonte
   } else drawSeaDots(landVisible);
+  lomadas();
 }
+
+/** LAS LOMADAS de afuera del carril (render/colinas.js): despues del suelo y sus matas, que tapan.
+ *  Se mide lo que cuestan (la sonda `__colinas`): son miles de preguntas al terreno por cuadro. */
+const costoColinas = { ms: 0, n: 0, pintadas: 0 };
+function lomadas() {
+  const t0 = performance.now();
+  costoColinas.pintadas = drawColinas();
+  costoColinas.ms += performance.now() - t0; costoColinas.n++;
+}
+if (typeof window !== 'undefined') window.__colinas = () => {
+  const r = { msPorCuadro: +(costoColinas.ms / Math.max(1, costoColinas.n)).toFixed(3), cuadros: costoColinas.n, rebanadas: costoColinas.pintadas };
+  costoColinas.ms = 0; costoColinas.n = 0;
+  return JSON.stringify(r);
+};
 
 /** Cuantas filas de cada suelo pinto el ultimo cuadro. La lee la sonda `__geofilas`: es la
  *  prueba de que la tierra SE VE VENIR — con el avion sobre el mar, el cuadro ya tiene filas de

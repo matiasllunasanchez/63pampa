@@ -567,6 +567,35 @@ export function islaEn(wz, margen) {
   return null;
 }
 
+/** CUANTA TIERRA "HECHA" HAY a `wz`, de 0 a 1: 1 tierra adentro, bajando a 0 en la playa que cruza
+ *  el carril. La usan LAS LOMADAS de los costados (render/colinas.js): sin esto nacerian enteras en
+ *  la raya de la playa, una pared de cerros apareciendo de un metro al otro. Sin geografia es 1 (el
+ *  mapa entero es su suelo); en una COSTA tambien —ahi la orilla ya entra desde el costado y las
+ *  lomadas se alejan de ella solas (COLINA_ORILLA)—; en el mar, 0. */
+export function rampaTierra(wz) {
+  if (geo.tramos === null) return 1;
+  const r = tramoEn(wz);
+  if (!r || r.isla) return 0;
+  if (r.suelo === 'coast') return 1;
+  if (r.suelo !== 'land') return 0;
+  const L = costura(r, GEO_COSTURA);
+  let rampa = 1;
+  if (r.prev && r.prev.suelo !== 'land') rampa = Math.min(rampa, suave((wz - r.d0 - GEO_PLAYA) / L));
+  if (r.next && r.next.suelo !== 'land') rampa = Math.min(rampa, suave((r.d1 - GEO_PLAYA - wz) / L));
+  return rampa;
+}
+
+/** ¿HAY LOMADAS de este lado (-1 izquierda, +1 derecha) a `wz`? En [0,1]: lo lee el MARCO lateral, que
+ *  se aparta donde las hay — como con los acantilados: un velo encima de una lomada es una lomada
+ *  borrosa, y la lomada ya dice donde termina el carril. Tierra: las dos, con su rampa. Costa: solo
+ *  el lado de la tierra. Mar: ninguno. */
+export function lomadasDe(wz, lado) {
+  const suelo = sueloEn(wz);
+  if (suelo === 'land') return rampaTierra(wz);
+  if (suelo === 'coast') return (lado < 0) === (ladoEn(wz) > 0) ? 1 : 0;
+  return 0;
+}
+
 /** Cuanto de la loma de T3 hay a `wz`, de 0 a lomas/TIERRA_AMP. La usa tambien el sombreado del
  *  raster, que es por fila y no por punto. */
 export function escalaRelieve(wz) {

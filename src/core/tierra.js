@@ -8,7 +8,7 @@
 // rasante sobre turba era MAS FACIL que sobre el mar (que ya tiene campo de altura y olas). Con
 // esto, ir a ras de la tierra pasa a ser SEGUIR EL TERRENO, que es la habilidad que el mapa de
 // tierra nunca cobro.
-import { TIERRA_AMP, TIERRA_LZ, TIERRA_LZ2, TIERRA_LX,
+import { TIERRA_AMP, TIERRA_LZ, TIERRA_LZ2, TIERRA_LX, COLINA_X0, COLINA_SUBE, COLINA_H, COLINA_CELDA,
   PEDRERO_CADA, PEDRERO_HW, PEDRERO_SERP, TURBAL_CADA, TURBAL_L, TURBAL_HW } from '../data/tuning.js';
 
 /** ALTURA DEL SUELO en un punto del mundo, en metros. Siempre >= 0.
@@ -40,6 +40,32 @@ export function tierraPend(wx, wz) {
  *  levantarles el suelo por debajo seria mover tres sistemas para ganar una loma que ademas
  *  taparia el mar. Se pasa el cfg —no se importa— para que el modulo siga siendo puro. */
 export const hayRelieve = cfg => TIERRA_AMP > 0 && cfg.terrain === 'land';
+
+/** LAS LOMADAS de afuera del carril (ver COLINA_* en data/tuning.js): cuantos metros se levanta la
+ *  tierra en (wx, wz) por encima del suelo de siempre. 0 adentro del carril — ahi manda `tierraH`.
+ *
+ *  Ruido de valor en dos escalas, interpolado suave (como `paredH` del zigzag, pero en dos ejes:
+ *  estas no son una pared a lo largo del pasillo sino un campo de lomas). Determinista por posicion:
+ *  la loma no titila ni se muda, y dos corridas ven el mismo campo. `lado` separa las dos semillas,
+ *  asi la izquierda y la derecha no son un espejo. */
+export function colinaH(wx, wz) {
+  const d = Math.abs(wx) - COLINA_X0;
+  if (d <= 0) return 0;
+  const u = Math.min(1, d / COLINA_SUBE), falda = u * u * (3 - 2 * u);
+  const sd = wx < 0 ? 1259 : 7717;
+  const macizo = ruido(wx / (COLINA_CELDA * 3), wz / (COLINA_CELDA * 3), sd + 101);   // lo largo
+  const loma = ruido(wx / COLINA_CELDA, wz / COLINA_CELDA, sd);                         // la lomada
+  const filo = ruido(wx / (COLINA_CELDA * 0.3), wz / (COLINA_CELDA * 0.3), sd + 55);   // lo que la quiebra
+  return COLINA_H * falda * (0.25 + macizo * 1.05) * (0.45 + loma * 0.7) * (0.88 + filo * 0.24);
+}
+
+/** Ruido de valor 2D en [0,1], interpolado suave entre las esquinas de la celda. */
+function ruido(x, z, sd) {
+  const ix = Math.floor(x), iz = Math.floor(z), fx = x - ix, fz = z - iz;
+  const sx = fx * fx * (3 - 2 * fx), sz = fz * fz * (3 - 2 * fz);
+  const a = hash2(ix + sd, iz), b = hash2(ix + 1 + sd, iz), c = hash2(ix + sd, iz + 1), e = hash2(ix + 1 + sd, iz + 1);
+  return (a + (b - a) * sx) + ((c + (e - c) * sx) - (a + (b - a) * sx)) * sz;
+}
 
 // hash entero → [0,1). Copia de bolsillo del de `render/world.js`: este modulo es PURO y no puede
 // importar del render, y el accidente inverso —que el terreno dependa del dibujo— es peor que

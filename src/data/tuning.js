@@ -860,6 +860,22 @@ export const TIERRA_LZ2 = 17;       // ondulado corto (~107 m)
 export const TIERRA_LX = 29;        // termino en X: la loma no es un tubo, cruzarla tiene lados
 export const TIERRA_LUZ = 0.16;     // cuanto ilumina/oscurece la pendiente al raster (0 = plano visual)
 
+// ---------- LAS LOMADAS (30/9/2026) ----------
+// "Me gustaria que los terrenos no sean completamente planos… el terreno de Malvinas era irregular,
+// no eran super montañas pero tampoco todo era plano." La tierra fuera del carril se levanta en
+// lomadas IRREGULARES —la logica de los acantilados: macizos largos, lomas y un filo que las quiebra,
+// sin repetirse— que se recortan contra el horizonte. Adentro del carril el suelo es el de siempre
+// (TIERRA_*): el vuelo a ras no cambia. Empiezan en COLINA_X0, afuera de todo lo que nace o se mueve
+// (SPAWN_X = 44), asi que no tapan nada que se juegue ni hay contra que chocar.
+export const COLINA_X0 = 50;        // m del eje donde empieza a subir la tierra
+export const COLINA_SUBE = 60;      // m en los que llega a su altura plena (la falda)
+// m de las lomadas plenas (varian de ~0,15 a ~1,4 de esto: promedio ~15). Empezo en 14 y no se
+// veian: con la camara a 4 m, una lomada de 9 m a 150 m son cinco pixeles sobre el suelo
+export const COLINA_H = 24;
+export const COLINA_CELDA = 70;     // m de la celda del ruido: el tamaño de una lomada
+export const COLINA_ORILLA = 25;    // m tierra adentro desde la orilla antes de levantarse (costa)
+export const COLINA_Z = 1300;       // hasta donde se dibujan
+
 // ---------- LA GEOGRAFIA DEL PASILLO (PLAN_GEOGRAFIA) ----------
 // Una misma mision con etapas de terreno: mar, costa, tierra. Las perillas son de LAS COSTURAS,
 // porque es lo unico nuevo: cada suelo ya tiene las suyas (agua, T1-T6). La regla que las ordena

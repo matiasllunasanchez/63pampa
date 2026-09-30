@@ -166,6 +166,10 @@ Ejemplo completo: **t18** en `data/pruebas_misiones.js` (PRUEBAS → IDA Y VUELT
   con dar gas sobre la arena; con turbo, un poco antes (20 m). Un farallón no se trepa.
 - **La isla se ve venir**, pero es chica de lejos: a 320 m son 3–4 píxeles de alto (la escala de
   la cámara). Se lee bien desde unos 200 m.
+- **La tierra no es plana a los costados**: fuera del carril (más allá de 50 m del eje) se levanta en
+  lomadas irregulares de 5 a 30 m (`COLINA_*` en `data/tuning.js`), en los tramos de tierra y del lado
+  de tierra de las costas. Nacen con la tierra (crecen desde la playa) y no se pueden chocar: están
+  más allá de todo lo que vuela. Adentro del carril, las lomas suaves de siempre (`lomas`).
 - **El techo del radar** es 20 m (6 en un filo): una isla más alta no se cruza sin que te vean.
   No pongas islas en un tramo de filo.
 

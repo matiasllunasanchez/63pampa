@@ -25,6 +25,7 @@ import { cam, cfg } from '../core/state.js';
 import { MARCO_X, MARCO_REACH, MARCO_A, MARCO_COL, MARCO_SKY } from '../data/tuning.js';
 import { bendW, paredesTapan } from '../core/zigzag.js';
 import { run } from '../core/run.js';
+import { lomadasDe } from '../core/geografia.js';
 
 // margen de dibujo hacia afuera de la pantalla: con el HORIZONTE GIRATORIO el mundo rota y las
 // esquinas dejan de estar tapadas por el borde. Mismo motivo que el -70/W+140 del cielo.
@@ -44,13 +45,16 @@ function hexA(c, k) {
 // cuando la ladera entra en cuadro.
 const MARCO_PAREDES_Z = 80;
 const tapa = () => paredesTapan(run.dist + MARCO_PAREDES_Z);
-const marcoOn = () => (cfg.marco === 'bruma' || cfg.marco === 'focus') && tapa() < 1;
+// …Y LAS LOMADAS (render/colinas.js, 30/9), POR COSTADO: donde la tierra de afuera se levanta, el velo
+// se aparta de ese lado — en una costa queda del lado del agua, que es donde todavia hace falta
+const tapaLado = lado => Math.max(tapa(), lomadasDe(run.dist + MARCO_PAREDES_Z, lado));
+const marcoOn = () => (cfg.marco === 'bruma' || cfg.marco === 'focus') && Math.min(tapaLado(-1), tapaLado(1)) < 1;
 
 /** El velo lateral. Se dibuja DENTRO del giro del horizonte (es aire del mundo, rola con el) y
  *  ANTES del avion, la lluvia y los popups: el marco esta afuera, nunca sobre tu propio avion. */
 export function drawMarco() {
   if (!marcoOn()) return;
-  const col = MARCO_COL[cfg.marco], aMax = MARCO_A[cfg.marco] * (1 - tapa());
+  const col = MARCO_COL[cfg.marco], aL = MARCO_A[cfg.marco] * (1 - tapaLado(-1)), aR = MARCO_A[cfg.marco] * (1 - tapaLado(1));
   const reachMax = W * MARCO_REACH;
 
   if (cam.y <= 0.1) return;   // camara al ras: la fila no tiene profundidad y la cuenta se dispara
@@ -86,13 +90,13 @@ export function drawMarco() {
       // el alfa cae con lo que queda de velo: donde la cuña se cierra, en vez de terminar en una
       // astilla dura, se apaga
       const gl = ctx.createLinearGradient(xL - rL, 0, xL, 0);
-      gl.addColorStop(0, hexA(col, aMax * aFade * Math.min(1, rL / reachMax)));
+      gl.addColorStop(0, hexA(col, aL * aFade * Math.min(1, rL / reachMax)));
       gl.addColorStop(1, hexA(col, 0));
       ctx.fillStyle = gl; ctx.fillRect(-OVER, y, xL + OVER, 1);
     }
     if (rR > 0) {
       const gr = ctx.createLinearGradient(xR + rR, 0, xR, 0);
-      gr.addColorStop(0, hexA(col, aMax * aFade * Math.min(1, rR / reachMax)));
+      gr.addColorStop(0, hexA(col, aR * aFade * Math.min(1, rR / reachMax)));
       gr.addColorStop(1, hexA(col, 0));
       ctx.fillStyle = gr; ctx.fillRect(xR, y, W + OVER - xR, 1);
     }
