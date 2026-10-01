@@ -957,6 +957,27 @@ En el ROADMAP, sin cargar todavía:
   🟡 de época. El opuesto de perfil a todo el roster actual.
 - **Aermacchi MB-339** (#10.2) — jet liviano de la Aviación Naval; el ataque en solitario del
   Teniente Owen Crippa a la HMS Argonaut. 🟡 de época.
+- **English Electric Canberra B.62** *(pedido del autor 30/9/2026, a futuro)* — el
+  **bombardero**: bastante más grande que todo el roster, bimotor, y lleva **cuatro bombas de
+  500 kg** en vez de una — **MK-17**, confirmado por el autor (30/9); son las MK-17 del juego,
+  `src/data/bombas.js`, con su espoleta que, aun soltada perfecta, falla la mitad de las veces. 🟡 de época. Lo que lo
+  separa mecánicamente del A-4: **una sola pasada con cuatro bombas en fila** —más chances de
+  embocar, pero un blanco enorme y lento para el radar y el Sea Dart—, y la ironía que sirve de
+  dato curioso: **avión británico tirando bombas británicas contra buques británicos**. Ya
+  figura en `docs/sistemas/VELOCIDAD_MACH.md` (Mk.62, 930 km/h). Referencia visual: la
+  lámina del B-109 con las cuatro bombas debajo del fuselaje (la trajo el autor).
+- **Lockheed C-130 / KC-130H Hércules — MANEJABLE** *(pedido del autor 30/9/2026, a futuro)* —
+  hoy es **la Chancha**, un aliado que no se vuela (`systems/chancha.js`, piloto propio sin
+  cara). A futuro tiene que poder **pilotearse**. Su oficio en la guerra, y el eje de su modo:
+  **exploración marítima** — salían a **buscar y marcar buques** de la flota para que atacaran
+  los cazas. 🟡 de época. Lo que lo separa de todo el roster: **no ataca** (o casi: ver abajo),
+  es enorme, lento y no esquiva — su juego es **encontrar** el blanco y volver, escondiéndose
+  del radar y de las CAP de Sea Harrier **volando en RASANTE, igual que los cazas** (confirmado
+  por el autor, 30/9): la misma regla del pasillo —pegado al agua no te ven—, con un avión que
+  tarda mucho más en subir y en bajar. El mismo
+  avión sirve de tanquero (KC-130H, el reabastecimiento que ya existe) y de transporte
+  (el puente aéreo a Puerto Argentino).
+  *(Dudas en PREGUNTAS_HISTORICAS, "LAS DOS BOMBAS" ítem 6.)*
 
 ## ⚠ Para verificar antes de fijar nada de esto
 
@@ -969,3 +990,6 @@ Todo lo histórico de arriba va contra
   identidad mecánica: si es falso, hay que rediseñarlo)*.
 - Fecha exacta del primer vuelo del IA-63 Pampa.
 - Cantidad de Super Étendard y de Exocet entregados antes del embargo.
+- Canberra: carga real por salida (¿cuatro Mk 17 en la bodega, o más?), unidad (Grupo 2 de
+  Bombardeo), base y perfil de ataque —alto o rasante, de día o de noche—. *(anotado en
+  PREGUNTAS_HISTORICAS, "LAS DOS BOMBAS")*

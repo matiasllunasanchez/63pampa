@@ -9,11 +9,16 @@
 // DOS GEOMETRIAS, UNA SOLA ARMA:
 //
 //   'cola'    te lo tira el Harrier que tenes atras (LA COLA, systems/caza.js). Te sigue de a poco
-//             y NO se lo saca moviendose: copia todo lo que hagas. La unica salida es una MANIOBRA
-//             (una pirueta del catalogo, `run.mv`) hecha cuando ya esta CERCA — ahi pierde el
-//             blanco y SIGUE DE LARGO. Antes de eso, una pirueta no le hace nada: el buscador
-//             todavia tiene tiempo de corregir. Es exactamente el truco de los pilotos del 82
-//             contra el AIM-9L: quebrar tarde, cuando al misil ya no le da el radio de giro.
+//             y NO se lo saca corriendose: copia todo lo que hagas. Tiene DOS salidas:
+//               · una MANIOBRA (una pirueta del catalogo, `run.mv`) hecha cuando ya esta CERCA — ahi
+//                 pierde el blanco y SIGUE DE LARGO. Antes no le hace nada: todavia puede corregir.
+//                 Es el truco de los pilotos del 82 contra el AIM-9L: quebrar tarde, cuando al misil
+//                 ya no le da el radio de giro.
+//               · LA POSCOMBUSTION CON MOVIMIENTOS BRUSCOS (pedido del autor, 30/9): mientras quemas y
+//                 quebras, el misil se ATRASA —su buscador se queda cada vez mas lejos de tus
+//                 quiebres y deja de acortar— hasta que te pierde. Es la salida cara (la
+//                 poscombustion se come la nafta) y la que no pide puntería de reloj.
+//             Si te alcanza, TE ELIMINA (pedido del autor, 30/9): no es daño, es el avion.
 //
 //   'frente'  te lo tira un caza del pasillo que viene de cara (systems/collision.js). Sale
 //             APUNTADO a donde estabas y corrige POCO: se inclina pero no quiebra. Se esquiva
@@ -31,9 +36,10 @@
 // PURO: no importa stores ni canvas. Quien llama le pasa el blanco (`b`) ya resuelto — asi lo
 // mide `npm run unit` en node y lo usa collision.js en el juego con la MISMA cuenta.
 //
-//   b = { x, y, vx, vy, spd, pz, maniobra, tight }
+//   b = { x, y, vx, vy, spd, pz, maniobra, tight, boost }
 //       la posicion y velocidad del avion, `run.spd`, la profundidad del avion (PZ), si hay una
-//       pirueta en curso (`!!run.mv`) y si esa pirueta encoge el perfil (`mvTight`).
+//       pirueta en curso (`!!run.mv`), si esa pirueta encoge el perfil (`mvTight`) y si la
+//       POSCOMBUSTION esta encendida (`run.boost`).
 import { AIM9 } from '../data/tuning.js';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -50,7 +56,9 @@ export function lanzarCola(desde, b, P = AIM9) {
     // lo vea CORREGIR en vez de moverse pegado como una calcomania. Se apaga al llegar.
     ax: b.x, ay: b.y,
     vx: 0, vy: 0, vz: 0,
+    u: 0,                     // el avance del camino, 0..1 (integrado: la evasion lo frena)
     zona: false,              // ya entro a la ventana de quiebre (el aviso se da una vez)
+    ...evasionInicial(b),
     seed: (desde.x * 7.13 + desde.z * 3.1) % 6.283,   // desfase del cabeceo, sin azar
     tr: [], trT: 0,           // la estela (ver `estela`)
   };
@@ -71,6 +79,7 @@ export function lanzarFrente(desde, b, P = AIM9) {
     vx: (b.x - desde.x) / tti, vy: (b.y - desde.y) / tti, vz: 0,
     // y la correccion, que arranca en cero y se gana despacio (FRENTE_ACC)
     cx: 0, cy: 0,
+    ...evasionInicial(b),
     seed: (desde.x * 5.3 + desde.z * 1.7) % 6.283,
     tr: [], trT: 0,
   };
@@ -115,23 +124,70 @@ export function velAire(m, spd, P = AIM9) {
   return { x: m.vx, y: m.vy, z: m.vz + spd };
 }
 
-/** Fraccion del camino recorrido (cola): 0 al salir, 1 al llegar. */
-export const avance = (m, P = AIM9) => clamp(m.t / P.COLA_T, 0, 1);
+/** Fraccion del camino recorrido (cola): 0 al salir, 1 al llegar. Se INTEGRA y no sale del reloj:
+ *  la evasion con poscombustion lo frena (ver `evasion`). */
+export const avance = m => m.u || 0;
+
+/** El estado de la evasion con que nace cualquier Sidewinder: sin presion, y con la velocidad del
+ *  avion de ese cuadro como referencia para medir la primera aceleracion. */
+function evasionInicial(b) {
+  return { eva: 0, acc: 0, pvx: b.vx || 0, pvy: b.vy || 0 };
+}
+
+/** LA EVASION CON POSCOMBUSTION (pedido del autor, 30/9/2026): "si el avion aplica posquemado y
+ *  realiza movimientos bruscos, el misil empieza a tener mas delay y puede evitarse tambien".
+ *
+ *  BRUSCO ES ACELERAR, NO IR RAPIDO. Quebrar, zigzaguear, bombear el gas: cambiar de velocidad de
+ *  golpe, de costado o de altura. Deslizarse parejo de costado da aceleracion CERO y no cuenta —
+ *  si contara, la evasion seria apretar dos teclas y mantenerlas. Se mide la aceleracion del avion
+ *  cuadro a cuadro, suavizada (EVA_TAU): un zigzag sostenido cuenta entero y un volantazo suelto
+ *  no. Con el alabeo, rolar de lado a lado da ~100 u/s²; el umbral es EVA_A.
+ *
+ *  `m.eva` (0..1) SUBE solo con las DOS cosas a la vez —poscombustion encendida Y brusco— y baja
+ *  si falta cualquiera. Lo que hace con el misil lo decide cada geometria (pasoCola / pasoFrente). */
+function evasion(m, dt, b, P) {
+  const idt = 1 / Math.max(dt, 1e-4), vx = b.vx || 0, vy = b.vy || 0;
+  const acc = Math.hypot((vx - m.pvx) * idt, (vy - m.pvy) * idt);
+  m.pvx = vx; m.pvy = vy;
+  m.acc += (acc - m.acc) * clamp(dt / P.EVA_TAU, 0, 1);
+  const sube = b.boost && m.acc >= P.EVA_A;
+  m.eva = clamp(m.eva + (sube ? P.EVA_SUBE : -P.EVA_BAJA) * dt, 0, 1);
+}
+
+/** PIERDE EL BLANCO y sigue de largo: con la velocidad que traia (no puede copiar lo que hiciste:
+ *  por eso te perdio), adelantandose rapido, y abriendose hacia el lado del que vino — si no,
+ *  pasaria justo por encima de tu avion y un esquive se leeria como un impacto. `porque` dice como
+ *  lo perdiste ('maniobra' | 'quemado'): la radio lo festeja distinto. */
+function perder(m, P, porque) {
+  m.fase = 'perdido'; m.tp = 0; m.porque = porque;
+  const lado = m.dx0 >= 0 ? 1 : -1;
+  m.vx = m.vx + lado * P.PASA_KICK;
+  m.vy = m.vy * 0.5 + P.PASA_KICK * 0.25;
+  m.vz = P.PASA_VZ;
+  return 'pierde';
+}
 
 function pasoCola(m, dt, b, P) {
   if (m.fase === 'perdido') return seVa(m, dt, P);
-  const u = avance(m, P);
-  // EL BUSCADOR, un pelo atrasado (cosmetico: el impacto no depende de esto, ver abajo)
-  const k = clamp(dt / P.COLA_LAG, 0, 1);
+  evasion(m, dt, b, P);
+  // EL AVANCE, frenado por la evasion: mientras quemas y quebras no te alcanza (EVA_FRENO)
+  m.u = Math.min(1, m.u + dt / P.COLA_T * (1 - P.EVA_FRENO * m.eva));
+  const u = m.u;
+  // EL BUSCADOR, atrasado. Un pelo siempre —se lo ve corregir en vez de ir pegado como una
+  // calcomania— y MUCHO MAS con la evasion: ese es el "mas delay" del pedido, y es lo que despues lo
+  // deja corrido de tu avion.
+  const k = clamp(dt / (P.COLA_LAG + P.EVA_LAG * m.eva), 0, 1);
   m.ax += (b.x - m.ax) * k; m.ay += (b.y - m.ay) * k;
-  // el atraso se apaga al llegar: en el ultimo tramo el misil ESTA en tu cola, no cerca de ella
-  const w = 1 - u * u;
+  // el atraso BASE se apaga al llegar (en el ultimo tramo el misil ESTA en tu cola, no cerca); el
+  // de la evasion NO se apaga: si al final todavia te viene persiguiendo atrasado, llega corrido
+  const w = Math.max(1 - u * u, m.eva);
   const bx = b.x + (m.ax - b.x) * w, by = b.y + (m.ay - b.y) * w;
   // EL CAMINO. De costado y de altura cierra con (1-u)^2 —rapido al principio, fino al final: se
   // pone en tu cola enseguida y despues se te viene encima—, y de profundidad cierra parejo, que
   // es lo que en pantalla se lee como "se va acercando".
   const q = (1 - u) * (1 - u);
-  const cab = Math.sin(m.t * 9.5 + m.seed) * P.COLA_WOB * (1 - u);   // el buscador cabecea
+  // el buscador cabecea; con la evasion, CAZA — se lo ve dudar, que es el aviso de que lo estas perdiendo
+  const cab = Math.sin(m.t * 9.5 + m.seed) * (P.COLA_WOB * (1 - u) + P.EVA_WOB * m.eva);
   const x = bx + m.dx0 * q + cab, y = by + m.dy0 * q + cab * 0.45;
   const z = b.pz + m.dz0 * (1 - u);
   // VELOCIDAD, medida del propio camino: la necesita el dibujo (hacia donde apunta la nariz) y la
@@ -143,23 +199,23 @@ function pasoCola(m, dt, b, P) {
   m.vz += ((z - m.z) * idt - m.vz) * s;
   m.x = x; m.y = y; m.z = z;
 
+  // LA EVASION LLENA: te perdio. Quemaste y quebraste hasta que el buscador no te encontro mas.
+  if (m.eva >= 1) return perder(m, P, 'quemado');
   let ev = null;
   if (!m.zona && u >= P.COLA_ZONA) { m.zona = true; ev = 'zona'; }
   // LA REGLA DE LA COLA: una pirueta con el misil en la zona lo pierde. Vale cualquiera del
   // catalogo, y vale si ya venias haciendola al entrar — lo que cuenta es estar maniobrando
   // CUANDO esta cerca, no el cuadro exacto en que apretaste.
-  if (m.zona && b.maniobra) {
-    m.fase = 'perdido'; m.tp = 0;
-    // SIGUE DE LARGO: con la velocidad que traia (no puede copiar tu quiebre: por eso lo perdio),
-    // adelantandose rapido, y abriendose hacia el lado del que vino — si no, pasaria justo por
-    // encima de tu avion y un esquive se leeria como un impacto.
-    const lado = m.dx0 >= 0 ? 1 : -1;
-    m.vx = m.vx + lado * P.PASA_KICK;
-    m.vy = m.vy * 0.5 + P.PASA_KICK * 0.25;
-    m.vz = P.PASA_VZ;
-    return 'pierde';
+  if (m.zona && b.maniobra) return perder(m, P, 'maniobra');
+  if (u >= 1) {
+    // LLEGO. Sin evasion esta exactamente sobre vos y pega; con evasion a medias puede llegar
+    // CORRIDO por el atraso de su buscador, y entonces pasa de largo. Es la misma caja que
+    // cualquier misil que te cruza.
+    if (Math.abs(m.x - b.x) < P.CAJA.rx && Math.abs(m.y - b.y) < P.CAJA.ry) {
+      m.fase = 'impacto'; m.done = true; return 'impacto';
+    }
+    return perder(m, P, 'quemado');
   }
-  if (u >= 1) { m.fase = 'impacto'; m.done = true; return 'impacto'; }
   return ev;
 }
 
@@ -172,6 +228,7 @@ function seVa(m, dt, P) {
 
 function pasoFrente(m, dt, b, P) {
   m.z -= (b.spd + P.FRENTE_V) * dt;
+  if (m.fase === 'guia') evasion(m, dt, b, P);
   if (m.fase === 'guia') {
     // LA CORRECCION: hacia donde estas AHORA, pero con dos topes — cuanto puede corregir
     // (FRENTE_LAT) y que tan rapido puede cambiar de idea (FRENTE_ACC). El segundo es el que
@@ -179,7 +236,8 @@ function pasoFrente(m, dt, b, P) {
     const tti = Math.max(0.15, (m.z - b.pz) / Math.max(1, b.spd + P.FRENTE_V));
     const qx = clamp((b.x - (m.x + m.vx * tti)) / tti, -P.FRENTE_LAT, P.FRENTE_LAT);
     const qy = clamp((b.y - (m.y + m.vy * tti)) / tti, -P.FRENTE_LAT, P.FRENTE_LAT);
-    const a = P.FRENTE_ACC * dt;
+    // ...y con la EVASION tarda todavia mas: quemando y quebrando, ya casi no te acompaña
+    const a = P.FRENTE_ACC * (1 - m.eva) * dt;
     m.cx += clamp(qx - m.cx, -a, a);
     m.cy += clamp(qy - m.cy, -a, a);
   }

@@ -14,11 +14,13 @@ import { geoActiva, esTierraEn, alturaSuelo } from '../core/geografia.js';   // 
 // AVERIAS: los impactos por DISPARO (bomba, misil, trazadora) pueden no matar, segun el modelo
 // de vida elegido en OPCIONES. Chocar algo sigue matando siempre — ver core/damage.js.
 import * as dmg from './damage.js';
-import { obstacles, soldiers, bullets, missiles, pmissiles, parts, prune } from '../core/world.js';
+import { obstacles, soldiers, bullets, missiles, pmissiles, parts, prune, estallidos } from '../core/world.js';
 import * as blancoSys from './blanco.js';
 import { BOMBA_G, BOMBA_PLANEO, BOMBA_REL_MAX, SPAWN_Z, TQ_ONDA_X, TQ_ONDA_Z } from '../data/tuning.js';
 import { golpeTanque } from '../core/nafta.js';
-import { proj, popup, explodeAt, bloodBurst, columnaBomba, morir, stepDestruccion } from '../core/fx.js';
+import { proj, popup, explodeAt, bloodBurst, columnaBomba, morir, stepDestruccion, estallido } from '../core/fx.js';
+import { ESTALLIDO } from '../data/tuning.js';
+import { bombaInfo } from '../data/bombas.js';
 import { CHUNK_LIFE, ONDA_T } from '../data/despiece.js';
 import { sfxOne, beep, boom } from '../systems/audio.js';
 import { T } from '../core/i18n.js';
@@ -56,7 +58,34 @@ function softHit(msgKey, f) {
   boom(0.1 * m); if (m > 0.5) sfxOne('waveFly');
 }
 
+/** PASAR POR UNA EXPLOSION (ESTALLIDO en data/tuning.js): cada una viaja con el mundo y se cobra
+ *  UNA vez, cuando llega a la profundidad del avion — o en el acto, si nacio pegada a el ("explota
+ *  a la par"). Recien nacida mata; joven, saca vida; vieja, es humo. Devuelve la causa si mata. */
+function cruzarEstallidos(dt) {
+  let muerte = null;
+  for (const e of estallidos) {
+    e.z -= run.spd * dt; e.t += dt;
+    if (e.cobrado || muerte || e.z > PZ + 1) continue;
+    e.cobrado = true;
+    if (e.z < PZ - 4) continue;                                   // nacio atras tuyo: no la cruzas
+    if (Math.abs(plane.x - e.x) > e.r || Math.abs(plane.y - e.y) > e.r * ESTALLIDO.ALTO) continue;
+    if (e.t < ESTALLIDO.MATA_T) muerte = 'death_estallido';
+    else if (e.t < ESTALLIDO.DANA_T) {
+      // "QUITARTE VIDA NOMAS": con salud (INTEGRIDAD/VISUAL) cuesta un tercio; en ESCUADRON, donde
+      // cualquier impacto se lleva el avion, es la onda de siempre —sacude, frena y quema nafta—,
+      // la misma del hongo de la bomba. Si no, la diferencia con "te elimina" no existiria.
+      if (dmg.shown()) {
+        const s = proj(plane.x, plane.y, PZ); popup(s.x, s.y - 14, T('hitBlast'), P.warn);
+        if (dmg.takeHit('death_onda')) muerte = 'death_onda';
+      } else softHit('hitBlast');
+    }
+  }
+  prune(estallidos, e => e.z > PZ - 6);
+  return muerte;
+}
+
 export function collisionSystem(dt) {
+  { const m = cruzarEstallidos(dt); if (m) return { death: m }; }
   // soldados: corren y se acercan; atropellarlos a ras del suelo = MUCHÍSIMOS puntos
   for (const sd of soldiers) {
     if (sd.dead) continue;
@@ -581,7 +610,11 @@ export function collisionSystem(dt) {
     // impacto con obstáculos aéreos (hitbox amplio, one-shot)
     for (const o of obstacles) {
       if (o.hp === undefined || o.z < z0 - 4 || o.z > pm.z + 4) continue;
-      if (Math.abs(pm.x - o.x) < 8 && Math.abs(pm.y - o.y) < 5) {
+      // LO ALTO SE PEGA A CUALQUIER ALTURA: la torre no tiene `y` (se para en el suelo con su `h`),
+      // y con `pm.y - undefined` la bomba la atravesaba siempre. El centro es su mitad, y el alto
+      // que cuenta es el suyo si pasa de los 5 de siempre.
+      const oy = o.y != null ? o.y : (o.h || 0) / 2;
+      if (Math.abs(pm.x - o.x) < 8 && Math.abs(pm.y - oy) < Math.max(5, (o.h || 0) / 2)) {
         // UN TANQUE SOLTADO (PLAN_NAFTA_ALCANCE N6) no es una bomba: lleno mata y, contra algo
         // explosivo, enciende a los vecinos; vacio voltea lo que vuela y a lo demas lo deja tocado.
         if (pm.tanque) { pegaTanque(pm, o); pm.z = 9999; break; }
@@ -645,6 +678,24 @@ export function collisionSystem(dt) {
           }
         }
         if (hit) { const pts = hit * 130; run.score += pts; stats.soldiers += hit; const s = proj(pm.x, 0, pm.z); popup(s.x, s.y - 10, '+' + pts, P.warn); }
+        // LA BOMBA ROMPE LO QUE TIENE CERCA (pedido del autor 30/9: "falta agregar explosion de cosas
+        // destructibles"). Antes solo mataba soldados: un deposito a dos metros del cráter quedaba
+        // entero. Ahora todo lo destructible dentro de su radio (data/bombas.js, `radio`) revienta
+        // con su muerte de siempre —bola, humo, restos, cadena— y queda atravesable como cualquier
+        // cosa destruida. Y la bomba deja SU zona: soltada muy cerca, te comes tu propia explosion.
+        const bi = bombaInfo(blancoSys.estado().bomba), sy = enTierra ? gy : 1;
+        for (const o of obstacles) {
+          if (o.done || o.hp === undefined || o.hp <= 0) continue;
+          if (Math.abs(o.x - pm.x) > bi.radio || Math.abs(o.z - pm.z) > bi.radio) continue;
+          const oy = o.y != null ? o.y : (o.h || 0) / 2;
+          if (oy - (o.h || 0) / 2 > sy + bi.radio) continue;          // lo que vuela alto no lo toca
+          const pts = 150;
+          run.score += pts; stats.air++;
+          const s = proj(o.x, oy, o.z); popup(s.x, s.y - 8, '+' + pts, P.accent);
+          morir(o, { vz: 20, vy: 10 }, 0, 'misil');
+          o.z = -99; o.done = true; o.hp = 0;
+        }
+        if (!pm.tanque) estallido(pm.x, sy, pm.z, bi.onda);
         pm.z = 9999;
       }
     }

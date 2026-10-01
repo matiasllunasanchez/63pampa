@@ -17,25 +17,36 @@ import { run } from '../core/run.js';
 import { proj } from '../core/fx.js';
 import { bendW, paredH } from '../core/zigzag.js';
 import { colinaH } from '../core/tierra.js';
-import { esTierraEn, rampaTierra, islaEn, sueloEn } from '../core/geografia.js';
+import { esTierraEn, rampaTierra, islaEn, sueloEn, orillaS, ladoEn } from '../core/geografia.js';
 import { theme } from './theme.js';
 import { caraLadera, tierraArriba, mez } from './paredes.js';
-import { COLINA_X0, COLINA_Z, COLINA_ORILLA } from '../data/tuning.js';
+import { COLINA_X0, COLINA_Z, COLINA_ORILLA, COLINA_PLAYA } from '../data/tuning.js';
 
 // LA GRILLA EN X ES FIJA EN EL MUNDO (y mas densa cerca del carril): la misma x en todas las
 // rebanadas, asi la franja entre dos rebanadas es un pedazo de suelo de verdad y su pendiente se puede
 // medir — que es lo que la hace VISIBLE. Pintada de un solo color, cada rebanada era del color del
 // pasto y la lomada se camuflaba contra la tierra plana de atras (primera version, 30/9).
-const N = 14, X_MAX = 2600;
+const N = 24, X_MAX = 2600;
 const AX = Array.from({ length: N }, (_, i) => COLINA_X0 * Math.pow(X_MAX / COLINA_X0, i / (N - 1)));
 const HS = new Float64Array(N), PX = new Float64Array(N), PY = new Float64Array(N);
 const HP = new Float64Array(N), QX = new Float64Array(N), QY = new Float64Array(N);   // la rebanada anterior
 const NIEBLA_Z0 = 220, NIEBLA_MAX = 0.8;              // se funde con la lejania, sin borrarse del todo
 const MATA_PASO = 7, MATA_Z = 130;
 
-/** ¿Hay tierra "adentro" en esta x? Tierra aca, y tambien a COLINA_ORILLA de cada lado: asi la lomada
- *  se aleja de la orilla de una costa en vez de levantarse pegada al agua. */
-const tierraAdentro = (x, wz) => esTierraEn(x, wz) && esTierraEn(x - COLINA_ORILLA, wz) && esTierraEn(x + COLINA_ORILLA, wz);
+/** CUANTA LOMADA hay en este punto, de 0 a 1. En una COSTA es un fundido por la distancia a la
+ *  orilla: nada pegado al agua, y subiendo de a poco tierra adentro (COLINA_ORILLA + COLINA_PLAYA).
+ *  Ese borde ademas SERPENTEA a lo largo de z — con un si/no de "hay tierra" la lomada terminaba en
+ *  una pared vertical contra el mar y se leia como un bloque (30/9). En el resto, tierra o no. */
+const suave = u => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
+function tierraAdentro(x, wz, costa) {
+  if (costa) {
+    const d = orillaS(wz) - ladoEn(wz) * x;          // metros tierra adentro desde la orilla
+    // siempre >= 0: el borde se aleja de la orilla, nunca se mete en el agua
+    const vaiven = COLINA_PLAYA * 0.6 * (0.75 + 0.45 * Math.sin(wz * 0.011 + x * 0.004) + 0.3 * Math.sin(wz * 0.031 - 1.7));
+    return suave((d - COLINA_ORILLA - vaiven) / COLINA_PLAYA);
+  }
+  return esTierraEn(x, wz) ? 1 : 0;
+}
 
 /** Las lomadas del cuadro. Va despues del suelo (raster + matas) y antes de todo lo que se levanta. */
 export function drawColinas() {
@@ -52,9 +63,11 @@ export function drawColinas() {
       const rampa = rampaTierra(wz);
       if (rampa <= 0.01 || islaEn(wz) || paredH(wz, lado) > 0) { hay = false; continue; }
       let hMax = 0;
+      const costa = sueloEn(wz) === 'coast';
       for (let i = 0; i < N; i++) {
         const x = lado * AX[i];
-        HS[i] = tierraAdentro(x, wz) ? colinaH(x, wz) * rampa : 0;
+        const t = tierraAdentro(x, wz, costa);
+        HS[i] = t > 0 ? colinaH(x, wz) * rampa * t : 0;
         if (HS[i] > hMax) hMax = HS[i];
         const p = proj(x, HS[i], camZ);
         PX[i] = p.x; PY[i] = p.y;
@@ -106,8 +119,9 @@ function matas(lado, iz, camZ, rampa, T) {
     if (h1 < 0.6) continue;
     const h2 = hash2(ia * lado + 911, iz - 307);
     const x = lado * (ia * MATA_PASO + (h2 - 0.5) * MATA_PASO);
-    if (!tierraAdentro(x, wz)) continue;
-    const gy = colinaH(x, wz) * rampa;
+    const t = tierraAdentro(x, wz, sueloEn(wz) === 'coast');
+    if (t <= 0) continue;
+    const gy = colinaH(x, wz) * rampa * t;
     if (gy < 0.6) continue;
     const s = proj(x, gy, camZ);
     const w = Math.max(1, k * 0.8), hh = Math.max(1, k * (0.6 + h2 * 0.8));

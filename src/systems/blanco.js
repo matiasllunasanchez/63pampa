@@ -10,7 +10,7 @@
 import { plane } from '../core/state.js';
 import { run } from '../core/run.js';
 import { pmissiles, missiles, obstacles } from '../core/world.js';
-import { popup, explodeAt, columnaBomba, proj, onda } from '../core/fx.js';
+import { popup, explodeAt, columnaBomba, proj, onda, estallido } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { BL } from '../data/blanco.js';
@@ -19,7 +19,7 @@ import { blanco, resetBlanco, altoEn, zonaEn, predecir, holgura, AGUA, TIERRA } 
 import { SHIP_CLASS } from '../data/ships.js';
 import { estructura } from '../data/estructuras.js';
 import { cargaDe } from '../data/cargas.js';
-import { bombaInfo } from '../data/bombas.js';
+import { bombaInfo, chanceDetona } from '../data/bombas.js';
 import { buqueTanque } from '../core/nafta.js';
 import { beep, boom } from './audio.js';
 
@@ -48,6 +48,7 @@ export function preparar(on, nombre, objectiveDist, geo, carga, opts) {
   const bi = bombaInfo(o.bomba);
   blanco.bomba = o.bomba && bombaInfo(o.bomba) === bi ? o.bomba : 'brp';
   blanco.armaT = bi.armaT;
+  fallidas = 0;   // corrida nueva: la racha arranca de cero
   holguraMax *= bi.holgura;
   spdPrev = -1; spdRate = 0;   // corrida nueva: el acelerador de la anterior no cuenta
   blanco.conVuelta = !!o.vuelta;
@@ -145,12 +146,12 @@ export function golpe(pm, z0) {
     return true;
   }
   const bi = bombaInfo(blanco.bomba);
-  // LA MK-17 ARMADA TAMPOCO ES SEGURA (pedido del autor 29/9: "generalmente no explotan, y las que
+  // LA MK-17 ARMADA TAMPOCO ES SEGURA — detona segun lo que cayo (30/9, `pDet`; 29/9: "generalmente no explotan, y las que
   // embocaban no detonaban o detonaban luego"). Se sortea al pegar: estalla, estalla DESPUES, o se
   // queda adentro del casco sin detonar. Las dos ultimas CUENTAN como ataque cumplido — el piloto
   // hizo todo bien; fallo la bomba, como en la guerra — y no hunden en el acto.
   if (!pm.tanque && !blanco.hundido) {
-    const r = sorteo();
+    const r = sorteo(pm.t || 0);
     if (r !== 'explota') {
       explodeAt(pm.x, pm.y, blanco.z, false, true, true);   // chispas contra la chapa, nada mas
       beep(900, 0.06, 'square', 0.05, -500);
@@ -161,7 +162,10 @@ export function golpe(pm, z0) {
         blanco.tardeT = a + Math.random() * (b - a);
         blanco.tardeX = pm.x; blanco.tardeY = Math.max(blanco.base + 1, pm.y);
       }
-      veredicto('falla', pm.x, pm.y, blanco.z, P.warn);
+      // DOS FALLAS DISTINTAS para Puma: si cayo lo que tenia que caer, "fue la bomba" (la
+      // frustracion, sin consejo que dar); si cayo poco, que la suelte mas alto y mas temprano.
+      const bien = (pm.t || 0) >= bi.pDet[2];
+      veredicto(bien ? 'falla' : 'fallacaida', pm.x, pm.y, blanco.z, P.warn);
       return true;
     }
   }
@@ -190,14 +194,23 @@ export function golpe(pm, z0) {
   return true;
 }
 
-/** QUE HACE LA ESPOLETA de una bomba que pego armada: 'explota', 'tarde' o 'falla'. La sonda
- *  `?espoleta=explota|tarde|falla` lo fija (para probar cada caso sin sortear). */
-function sorteo() {
+/** QUE HACE LA ESPOLETA de una bomba que pego armada tras caer `t` segundos: 'explota', 'tarde' o
+ *  'falla'. La sonda `?espoleta=explota|tarde|falla` lo fija (para probar cada caso sin sortear).
+ *
+ *  UN DADO DE VERDAD (30/9, el autor: "la idea es transmitir la frustracion — aunque hagas todo
+ *  bien, la bomba no detonaba"): la chance sale de lo que cayo (`chanceDetona`) y las rachas malas
+ *  son parte del diseño. El unico tope es `racha` (data/bombas.js): tantas armadas seguidas sin
+ *  detonar, y la siguiente detona. Un segundo dado dice cual de las que detonan lo hace TARDE. */
+function sorteo(t) {
   let q = null; try { q = new URLSearchParams(location.search).get('espoleta'); } catch (e) { }
   if (q === 'explota' || q === 'tarde' || q === 'falla') return q;
-  const bi = bombaInfo(blanco.bomba), r = Math.random();
-  return r < bi.explota ? 'explota' : r < bi.explota + bi.tarde ? 'tarde' : 'falla';
+  const bi = bombaInfo(blanco.bomba);
+  const topo = bi.racha > 0 && fallidas >= bi.racha;
+  if (!topo && Math.random() >= chanceDetona(blanco.bomba, t)) { fallidas++; return 'falla'; }
+  fallidas = 0;
+  return Math.random() < bi.tarde ? 'tarde' : 'explota';
 }
+let fallidas = 0;   // armadas seguidas que no detonaron (ver `racha` en data/bombas.js)
 
 /** LA BOMBA QUE REVIENTA EN EL CASCO. `grande` es la de la BRP (pedido del autor 29/9: "EXPLOSION
  *  VISIBLE en el barco, con sonido explosivo y todo"): la bola, la onda y una cadena de secundarias
@@ -206,6 +219,11 @@ function estalla(x, y, grande) {
   // (la columna es de AGUA contra un buque y de TIERRA contra una estructura: el ultimo parametro)
   const B = blanco.base, agua = blanco.tipo !== 'estructura';
   explodeAt(x, y, blanco.z, true); columnaBomba(x, B, blanco.z, agua);
+  // LA ZONA Y EL BOQUETE (pedido del autor 30/9): lo que revento se puede atravesar — pero no recien
+  // reventado (la zona, ESTALLIDO en data/tuning.js) — y esa franja del casco deja de ser palos
+  const bi = bombaInfo(blanco.bomba);
+  estallido(x, Math.max(B + 1, y), blanco.z, bi.onda);
+  blanco.boquetes.push({ x, r: bi.boquete });
   if (!grande) return;
   onda(x, Math.max(B + 1, y), blanco.z);
   // LA BOLA GRANDE, bien por encima de la de siempre: a 130 de distancia la comun es un punto
@@ -237,6 +255,9 @@ function tarde(dt) {
   else { blanco.res = 'tarde'; blanco.resT = run.t; seña('tarde'); }
   boom(0.2); run.shake = Math.min(8, run.shake + 3);
 }
+
+/** `x` cae en una franja del casco que una explosion ya volo (ver `estalla`). */
+const enBoquete = x => blanco.boquetes.some(b => Math.abs(x - b.x) <= b.r);
 
 /** La bomba `pm` toco el agua. Si fue ANTES del buque, se lo dice: "corta" es la mitad de la
  *  lectura — sin esto errar por corto y errar por largo se ven igual. */
@@ -322,7 +343,8 @@ export function step(dt) {
     // del fuego, pero no de las COSAS FISICAS — la silueta medida de la hoja (`altoEn`), de proa a
     // popa: por encima de lo que hay en esa franja, o por la proa o la popa, limpio. game.js lo
     // resuelve (explota; el siguiente de la fila vuelve a encarar, o se pierde).
-    const h = altoEn(plane.x), roce = h >= 0 && plane.y < blanco.base + h
+    // (…salvo por un BOQUETE: donde revento una bomba se pasa entre el humo y el fuego)
+    const h = altoEn(plane.x), roce = h >= 0 && plane.y < blanco.base + h && !enBoquete(plane.x)
     // …y el piso del negro: donde quedaste, y si rozaste, del otro lado de los palos (en el escape
     // no hay negro ni piso: el avion es tuyo desde el primer cuadro)
     if (!escape) blanco.altPiso = Math.max(plane.y, 6 + blanco.base - AGUA, roce ? blanco.base + h + 1 : 0);

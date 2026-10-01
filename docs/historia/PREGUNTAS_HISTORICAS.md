@@ -1274,20 +1274,32 @@ propósito — sin fechas, nombres ni cifras exactas — pero conviene que un hi
 ## LAS DOS BOMBAS: MK-17 y BRP-250 _(29/9/2026 — src/data/bombas.js)_
 
 **Lo que el juego afirma:** hasta el 25 de mayo (M1–M6) el escuadrón vuela con **MK-17 de
-500 kg, de origen inglés**: difíciles de embocar al ras, casi nunca explotan (las que pegan
-no detonan o detonan después). Desde el **25 de mayo (M7)**, con **BRP-250 de 250 kg, de
+500 kg, de origen inglés**: difíciles de embocar al ras, la espoleta necesita **más de 0,5 s de caída**
+para armarse, y aun así detona según lo que cayó —10% recién armada, **50% pasado el segundo,
+que es el techo**—: aunque hagas todo bien, la mitad no explota (la frustración es el diseño,
+pedido del autor 30/9). Dato que trajo el autor: *"debían lanzarlas desde una altura mínima de
+entre 150 y 200 metros, o contar con un tiempo de caída libre superior a 0,5 o 1 segundo a
+velocidades de combate"*; el juego usa el tiempo de caída porque su altura está comprimida. Desde el **25 de mayo (M7)**, con **BRP-250 de 250 kg, de
 origen español**, con la espoleta rehecha: explotan en el casco, visibles. El origen de cada
 una se muestra como dato curioso (hangar y pantalla de derrota).
 
 **A verificar:**
-1. **El origen de la MK-17.** La designación "Mk 17" es de la US Navy (bomba de 1000 lb);
-   el autor la da como inglesa. ¿Las de la FAA eran de fabricación británica (compradas al
-   Reino Unido) o norteamericanas? ¿"500 kg" es el redondeo de 1000 lb (454 kg)?
-2. **Qué significa BRP.** Si es "Bomba Retardada por Paracaídas" (Expal), la ventaja al ras
-   venía del **paracaídas** que la frenaba y le daba tiempo a la espoleta, además de la
-   espoleta modificada. El juego hoy solo modela la espoleta.
+1. ✅ **El origen de la MK-17** — RESUELTO en ARMAMENTO_1982.md §4: **británica**, marcada
+   *MADE IN ENGLAND*, compradas en 1970; 454 kg (1000 lb), que el juego redondea a 500.
+2. ✅ **Qué es la BRP** — RESUELTO en ARMAMENTO_1982.md §4: la **BRP-250** (Expal) es la de
+   **freno de paracaídas**; la de cola lisa es la **BR-250**. La ventaja al ras venía del
+   paracaídas además de la espoleta. El juego hoy solo modela la espoleta.
 3. **El retardo.** MEJORAS_PICHON §3 dice que a las BR-250 les pusieron **12 s de retardo**
    ("la explosión llega cuando ya te fuiste"). El juego, por pedido del autor, las hace
    explotar **a la vista** en el casco. Es licencia de juego.
 4. **La fecha exacta** del cambio (el juego usa el 25 de mayo, M7).
+5. **El Canberra** *(avión a futuro, 30/9)*: el autor lo anota con **cuatro bombas de 500 kg**,
+   y confirma que eran **MK-17** (coincide con ARMAMENTO_1982.md §4). ¿Cuántas llevaba de verdad
+   por salida (la bodega del B.62 admite hasta seis de 1000
+   lb)? ¿Atacó buques al ras o solo de altura y de noche? ¿Cuántos se perdieron y cómo?
+6. **El Hércules explorador** *(avión manejable a futuro, 30/9)*: ¿qué C-130 hicieron
+   exploración marítima, desde cuándo y con qué método (radar propio o a ojo)? El autor confirma
+   que **también volaban en rasante**. Se recuerda uno **derribado por un Sea Harrier el 1 de junio** en una de esas
+   salidas, y ataques a buques tirando bombas **por la rampa trasera** — confirmar los dos antes
+   de usarlos.
 

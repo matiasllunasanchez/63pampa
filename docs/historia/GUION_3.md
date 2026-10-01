@@ -1284,7 +1284,7 @@ los ingleses.
 **PUMA:** Entonces hoy no hay excusa. Si le pegamos, se hunde.
 
 _(En vuelo, Cóndor lo confirma: "Hoy cuelgan las españolas, con la espoleta nueva. Si pega,
-explota." De M1 a M6 se vuela con MK-17 —se emboca de milagro y casi nunca explota—; de
+explota." De M1 a M6 se vuela con MK-17 —se emboca de milagro y, aun soltada perfecta, la mitad no explota—; de
 M7 en adelante, con BRP-250.)_
 
 **VASCO:** _(hablando más que en las seis misiones anteriores juntas, sobre nada: el

@@ -7,9 +7,9 @@
 import { cam, cfg, plane, stats } from './state.js';
 import { run } from './run.js';
 import { geoActiva, esTierraEn } from './geografia.js';   // G1: agua o tierra, por punto
-import { parts, popups, obstacles } from './world.js';
+import { parts, popups, obstacles, estallidos } from './world.js';
 import { P } from '../data/palette.js';
-import { POLVO_ABRE, POLVO_BAJA, POLVO_BARRIDO } from '../data/tuning.js';
+import { POLVO_ABRE, POLVO_BAJA, POLVO_BARRIDO, ESTALLIDO } from '../data/tuning.js';
 import { recetaDe, CHUNKS_MAX, CHUNK_LIFE, SEC_N, SEC_T,
   ONDA_T, ONDA_R, ONDA_PUSH, CERCA, FLASH_T,
   CHAIN_R, CHAIN_DEPTH, CHAIN_DELAY, DESPIECE, PARTS_MAX,
@@ -373,6 +373,12 @@ export let ULTIMA_VARIANTE = null;
 /** Cuantos "se van muriendo" hay en el aire ahora mismo. */
 const moribundosVivos = () => obstacles.reduce((n, c) => n + (c.moribundo ? 1 : 0), 0);
 
+/** UNA EXPLOSION QUE SE PUEDE ATRAVESAR (ver ESTALLIDO en data/tuning.js): la deja en el mundo y
+ *  collision.js la cobra cuando el avion la cruza, segun su edad. Solo la regla, sin dibujo. */
+export function estallido(x, y, z, r) {
+  estallidos.push({ x, y, z, r, t: 0, cobrado: false });
+}
+
 export function morir(o, imp, depth, killer) {
   const d0 = depth || 0;
   // EL ACTA Y LA VARIANTE (v2). Se arman ACA, en el unico punto de entrada de la muerte, y no en
@@ -395,6 +401,9 @@ export function morir(o, imp, depth, killer) {
   // LA BOLA — y su ausencia. Que la carpa no tenga es tan parte de su muerte como que el deposito
   // tenga la grande: una lona que revienta en llamas miente sobre de que esta hecha.
   if (r.bola) explodeAt(o.x, y0, o.z, r.bola === 'grande', false, true);   // el sacudon lo pone golpe()
+  // …Y SU ZONA: lo que revienta con bola se puede atravesar, pero no recien reventado. EMBESTIDO
+  // no: ahi el choque ya cobro lo suyo, y la explosion nace pegada al avion.
+  if (r.bola && killer !== 'choque') estallido(o.x, y0, o.z, r.bola === 'grande' ? ESTALLIDO.R_GRANDE : ESTALLIDO.R_CHICA);
   else boom(0.06);
   chispazo(o.x, y0, o.z, r.chispa);
   // D3 — LA ONDA Y EL GOLPE. Lo grande manda onda; todo manda golpe, escalado por CUAN CERCA fue.
@@ -575,7 +584,10 @@ export function stepDestruccion(o, dt) {
     // SECUNDARIA: espera su turno y revienta. El retardo ES la lectura (plan §3) — sin el, cinco
     // explosiones juntas son una sola explosion mas grande.
     o.t -= dt;
-    if (o.t <= 0) { explodeAt(o.x, o.y, o.z, o.grande); o.type = 'airboom'; o.boomT = 0; o.scale = o.grande ? 0.5 : 0.3; }
+    if (o.t <= 0) {
+      explodeAt(o.x, o.y, o.z, o.grande); o.type = 'airboom'; o.boomT = 0; o.scale = o.grande ? 0.5 : 0.3;
+      estallido(o.x, o.y, o.z, o.grande ? ESTALLIDO.R_CHICA : ESTALLIDO.R_CHICA * 0.7);
+    }
     return true;
   }
   if (o.type === 'onda') { o.ondaT += dt; return true; }

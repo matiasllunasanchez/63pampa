@@ -2567,6 +2567,17 @@ export const SCENES = {
     lineas: [
       { id: 'AV_T16_FALLA_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
         es: 'Pegó y no explotó. Hiciste todo bien, Tero: fue la bomba.', en: '' },
+      { id: 'AV_T16_FALLA_020', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'Otra más que no despierta. La tiraste perfecta. Es la bomba, Tero, no vos.', en: '' },
+      { id: 'AV_T16_FALLA_030', personaje: 'GITANO', cara: 'gitano_ceno', hold: 0,
+        es: 'Adentro del casco y nada. Quinientos kilos de fierro inglés durmiendo la siesta.', en: '' },
+    ],
+  },
+  AV_T16_FALLACAIDA: {
+    id: 'AV_T16_FALLACAIDA', tipo: 'AVISO', titulo: 'PUMA · NO EXPLOTÓ',
+    lineas: [
+      { id: 'AV_T16_FALLACAIDA_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'No explotó. Cayó poco: más alto y más temprano, que tenga tiempo de caer.', en: '' },
     ],
   },
   AV_T16_TARDE: {
@@ -2651,6 +2662,15 @@ export const SCENES = {
     lineas: [
       { id: 'LEC_M1_ARMAS_010', personaje: 'VASCO', cara: 'vasco_neutro', hold: 0,
         es: 'Armas. Cañón para lo que se mueve. Bombas para lo que no. Ninguna al agua.', en: '' },
+    ],
+  },
+  // LA ESPOLETA (30/9, el autor: "que se explique en el tutorial, pero que sea dificil"). Dice la
+  // regla entera —caer mas de un segundo— y la mala noticia, sin suavizarla: aun asi, falla.
+  LEC_M1_ESPOLETA: {
+    id: 'LEC_M1_ESPOLETA', tipo: 'LECCION', titulo: 'PUMA · LA ESPOLETA',
+    lineas: [
+      { id: 'LEC_M1_ESPOLETA_010', personaje: 'PUMA', cara: 'puma_neutro', hold: 0,
+        es: 'La bomba tiene que caer para armarse: soltala alta y temprano, que caiga más de un segundo. Y aun haciéndolo perfecto, estas inglesas fallan la mitad de las veces.', en: '' },
     ],
   },
   LEC_M1_TONEL: {

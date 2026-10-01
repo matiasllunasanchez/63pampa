@@ -58,6 +58,9 @@ export const blanco = {
   cumplido: false,
   // LA QUE DETONA DESPUES (MK-17): segundos que faltan, y donde pego. -1 = ninguna
   tardeT: -1, tardeX: 0, tardeY: 0,
+  // LOS BOQUETES: donde reventó una bomba, esa franja del casco es humo y fuego — en el cruce se
+  // pasa por ahi sin llevarse los palos. { x, r } (centro y media anchura).
+  boquetes: [],
 };
 
 export function resetBlanco(on, nombre, clase, tipo, base) {
@@ -70,7 +73,7 @@ export function resetBlanco(on, nombre, clase, tipo, base) {
   blanco.lento = false; blanco.negroT = -1; blanco.salidaT = -1; blanco.pendiente = null; blanco.altPiso = -1;
   blanco.ala = null; blanco.alaN = 0; blanco.centroN = 0; blanco.pred = null; blanco.listo = false;
   blanco.extra = 0; blanco.enDist = false; blanco.buenaAlt = false; blanco.tuvoVentana = false; blanco.perdidaT = -1;
-  blanco.escapando = false; blanco.cumplido = false; blanco.tardeT = -1;
+  blanco.escapando = false; blanco.cumplido = false; blanco.tardeT = -1; blanco.boquetes.length = 0;
 }
 
 /** Altura del casco (unidades de mundo, sobre la flotacion) en la coordenada lateral `x`, o -1 si

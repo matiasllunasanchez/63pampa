@@ -18,6 +18,8 @@ export const DERROTAS = {
   death_bldg: CHOQUE, death_depot: CHOQUE, death_radar: CHOQUE, death_aagun: CHOQUE, death_lcu: CHOQUE,
   death_balloon: CHOQUE, death_barrera: CHOQUE,
   death_palos: { que: 'que_palos', hist: 'hist_palos' },
+  death_estallido: { que: 'que_estallido', hist: 'hist_estallido' },
+  death_onda: { que: 'que_estallido', hist: 'hist_estallido' },
   death_helo: { que: 'que_aire', hist: 'hist_choque' }, death_jet: { que: 'que_aire', hist: 'hist_choque' },
   death_missile: { que: 'que_misil', hist: 'hist_misil' },
   death_seadart: { que: 'que_seadart', hist: 'hist_misil' },

@@ -42,6 +42,10 @@ export const DMG = {
   // EL ESCAPE: la artilleria de popa del buque que dejaste atras (PLAN_VUELTA_REAL V2). Como el
   // antiaereo: tres y estas en el piso.
   death_popa: 34,
+  // LA ONDA: atravesar una explosion que todavia no se apago (ESTALLIDO en data/tuning.js) — "un
+  // poco mas cerca del luego, quitarte vida nomas". Recien reventada no esta aca: `death_estallido`
+  // no tiene numero, asi que mata como un choque.
+  death_onda: 34,
 };
 
 /** ¿Esta causa mata SIEMPRE, sin importar el modo? (todo lo que no sea "te dispararon") */

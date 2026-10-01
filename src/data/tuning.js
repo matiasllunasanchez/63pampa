@@ -139,6 +139,17 @@ export const BOMBA_PANZA = 1.2;
  *  venias cruzado. Con 1 la bomba se va de carril en un segundo; con 0 cae en la vertical exacta. */
 export const BOMBA_DERIVA = 0.5;
 
+/** PASAR POR UNA EXPLOSION (pedido del autor 30/9/2026): "si pasas JUSTO cuando explota, te daña;
+ *  si explota a la par, te elimina. Si explota Y LUEGO pasas no pasa nada; si esta un poco mas
+ *  cerca del 'luego', deberia quitarte vida nomas". Lo que decide es la EDAD de la explosion cuando
+ *  el avion la cruza (segundos de mundo — en camara lenta se estira como todo lo demas):
+ *    MATA_T  mas joven que esto: te elimina (estaba explotando a tu lado)
+ *    DANA_T  mas joven que esto: te saca vida (`death_onda`, data/damage: un tercio)
+ *            mas vieja: humo y fuego, pasas limpio
+ *  Y cuan cerca: dentro de su radio de costado, y de `r * ALTO` de alto. Los radios los pone quien
+ *  explota (R_GRANDE/R_CHICA para lo que se destruye; la bomba, el suyo en data/bombas.js). */
+export const ESTALLIDO = { MATA_T: 0.22, DANA_T: 0.8, ALTO: 1, R_GRANDE: 7, R_CHICA: 4 };
+
 // ALTURA DE DETECCION del radar enemigo: por encima de esto la barra CARGA y por debajo se
 // descarga (systems/flight.js). Es el techo del "corredor seguro" — abajo aprietan los
 // obstaculos y el roce, arriba aprieta el radar. Vive aca y no suelto en flight.js porque lo
@@ -869,11 +880,13 @@ export const TIERRA_LUZ = 0.16;     // cuanto ilumina/oscurece la pendiente al r
 // (SPAWN_X = 44), asi que no tapan nada que se juegue ni hay contra que chocar.
 export const COLINA_X0 = 50;        // m del eje donde empieza a subir la tierra
 export const COLINA_SUBE = 60;      // m en los que llega a su altura plena (la falda)
-// m de las lomadas plenas (varian de ~0,15 a ~1,4 de esto: promedio ~15). Empezo en 14 y no se
-// veian: con la camara a 4 m, una lomada de 9 m a 150 m son cinco pixeles sobre el suelo
-export const COLINA_H = 24;
+// m de las lomadas plenas (varian de ~0,15 a ~1,4 de esto: promedio ~25). Empezo en 14 y no se
+// veian: con la camara a 4 m, una lomada de 9 m a 150 m son cinco pixeles sobre el suelo. 24 se
+// veian pero poco; 40 (30/9)
+export const COLINA_H = 40;
 export const COLINA_CELDA = 70;     // m de la celda del ruido: el tamaño de una lomada
 export const COLINA_ORILLA = 25;    // m tierra adentro desde la orilla antes de levantarse (costa)
+export const COLINA_PLAYA = 90;     // m en los que la lomada de una costa crece desde ahi (el borde serpentea)
 export const COLINA_Z = 1300;       // hasta donde se dibujan
 
 // ---------- LA GEOGRAFIA DEL PASILLO (PLAN_GEOGRAFIA) ----------

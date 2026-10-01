@@ -9,7 +9,7 @@
 
 import { cfg, stats } from '../core/state.js';
 import { run } from '../core/run.js';
-import { obstacles, soldiers, popups, bullets, missiles, pmissiles } from '../core/world.js';
+import { obstacles, soldiers, popups, bullets, missiles, pmissiles, estallidos } from '../core/world.js';
 import { OLA_H, OLA_RATE, OLA_GAP_MIN, OLA_H_VAR, OLA_WZ, OLA_WZ_VAR, OLA_ROMP_P, OLA_ROMP_HW, OLA_REB_P, OLA_REB_D0,
   OLA_COSTA_P, OLA_COSTA_OFF } from '../data/tuning.js';
 import { inBank } from './fog.js';
@@ -665,7 +665,7 @@ if (typeof window !== 'undefined') window.__listas = () => JSON.stringify({
 });
 
 if (typeof window !== 'undefined') window.__pasilloLimpio = () => {
-  obstacles.length = 0; soldiers.length = 0;
+  obstacles.length = 0; soldiers.length = 0; estallidos.length = 0;
   bullets.length = 0; missiles.length = 0; pmissiles.length = 0;
   return true;
 };

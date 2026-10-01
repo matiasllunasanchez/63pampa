@@ -17,7 +17,7 @@ import { dlg, seqFromScreens } from './core/dialogue.js';
 import { SCENES, SECUENCIAS } from './data/story.js';
 import { S, setState, cfg, cam, plane, stats, resetPlane, resetStats, CTRL_DIRECT, CTRL_BANK } from './core/state.js';
 import { hzWorld, stepHorizon } from './core/horizon.js';
-import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts,
+import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts, estallidos,
          prune, clearWorld } from './core/world.js';
 import { run, resetRun } from './core/run.js';
 import { proj, popup, explodeAt, polvoSuelo, bloodBurst, despiece, morir, actaDe, stepDestruccion, capParts, MUERTES } from './core/fx.js';
@@ -4259,7 +4259,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // duelo que la calma existe para mirar. Borrarlo con el resto dejaba la cola sin dientes justo
       // en la sonda que la mide.
       if (cazaCalma) {
-        obstacles.length = 0; soldiers.length = 0; run.detection = 0;
+        obstacles.length = 0; soldiers.length = 0; estallidos.length = 0; run.detection = 0;
         for (let i = missiles.length - 1; i >= 0; i--) if (missiles[i].tipo !== 'aim9') missiles.splice(i, 1);
       }
       if (cazaProbe && !cazaArmed && run.t > 1.5) { cazaArmed = true; caza.start(cazaProbe); }
@@ -5431,7 +5431,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // apaga lo que no esta midiendo. En el juego normal esto no existe: que arriba te vean es
       // justamente el precio del poder (RF-05), y eso se prueba aparte.
       window.__chacalma = () => {
-        obstacles.length = 0; missiles.length = 0; soldiers.length = 0;
+        obstacles.length = 0; missiles.length = 0; soldiers.length = 0; estallidos.length = 0;
         run.detection = 0; run.integ = 100;
         return true;
       };

@@ -19,6 +19,11 @@ export const popups = [];      // textos flotantes de puntaje
 export const streaks = [];     // lineas de velocidad radiales
 export const wake = [];        // estela sobre el agua
 export const gusts = [];       // rafagas de viento cruzando el cielo
+// LAS EXPLOSIONES COMO ZONA (pedido del autor 30/9): cada estallido que se puede atravesar deja su
+// { x, y, z, r, t } viajando con el mundo; collision.js lo cobra cuando el avion lo cruza, segun
+// cuanto hace que exploto (ESTALLIDO en data/tuning.js). Aparte de `obstacles` a proposito: no se
+// dibuja — lo que se ve es la bola de fuego de siempre —, es solo la regla.
+export const estallidos = [];
 
 /** Filtra EN EL LUGAR: conserva los elementos que cumplen `keep` y descarta el resto.
  *  Reemplaza a `arr = arr.filter(keep)`, que rompia la identidad del array.
@@ -34,6 +39,6 @@ export function prune(arr, keep) {
  *  que hace falta al entrar al MOMENTUM: se limpian los obstaculos para la cinematica pero las
  *  explosiones en curso tienen que terminar de dibujarse. */
 export function clearWorld({ keepFx = false } = {}) {
-  for (const a of [obstacles, soldiers, bullets, missiles, pmissiles, streaks, gusts]) a.length = 0;
+  for (const a of [obstacles, soldiers, bullets, missiles, pmissiles, streaks, gusts, estallidos]) a.length = 0;
   if (!keepFx) for (const a of [parts, popups, wake]) a.length = 0;
 }

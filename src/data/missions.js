@@ -165,6 +165,8 @@ export const MISSIONS = [
       { en: 0.45, dice: 'LEC_M1_TABLERO', foco: ['vel', 'horizonte', 'alt', 'gas'] },
       { en: 0.55, dice: 'LEC_M1_TURBO', foco: ['vel'], teclas: ['Boost'] },
       { en: 0.65, dice: 'LEC_M1_ARMAS', foco: ['canon', 'rack'], teclas: ['Gun', 'Msl'] },
+      // la espoleta: la regla del segundo de caida y que la MK-17 falla igual (data/bombas.js)
+      { en: 0.72, dice: 'LEC_M1_ESPOLETA', foco: ['alt', 'rack'] },
       { en: 0.80, dice: 'LEC_M1_TONEL', teclas: ['Tonel'] },
       { en: 'aterrizaje', dice: 'LEC_M1_PISTA' },
     ],
