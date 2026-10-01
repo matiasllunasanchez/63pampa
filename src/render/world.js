@@ -1346,14 +1346,15 @@ function dibujarObstaculo(o) {
     // (cuerpo entero y cola extendida). No son dos dibujos: es UNO que se estira por escorzo.
     const yaw = clamp01((HELO_TURN_FAR - o.z) / (HELO_TURN_FAR - HELO_TURN_NEAR));
     const dir = o.ph > 3 ? 1 : -1;                     // hacia que lado se abre (fijo por bicho)
-    if (enemyArt.ready('helo')) {
+    const hoja = enemyArt.heloDe(o);   // cual de los cinco britanicos (render/enemies.js)
+    if (enemyArt.ready(hoja)) {
       // HOJA HORNEADA: columna por yaw (0 = de frente → 7 = de perfil), fila por fase del rotor
       // (dos poses alternando = el rotor BATE). La hoja tiene la cola hacia la IZQUIERDA a yaw
       // pleno, asi que se espeja cuando este helo abre hacia la derecha.
-      const col = Math.round(yaw * (enemyArt.SHEETS.helo.cols - 1));
+      const col = Math.round(yaw * (enemyArt.SHEETS[hoja].cols - 1));
       const row = ((run.t * 16) | 0) % 2;
       const fl = !!(o.hitT && run.t - o.hitT < 0.09);   // impacto: el sprite entero destella
-      enemyArt.drawFrame(ctx, 'helo', col, row, s.x, { centerY: s.y }, kk, dir > 0, fl);
+      enemyArt.drawFrame(ctx, hoja, col, row, s.x, { centerY: s.y }, kk, dir > 0, fl);
       drawHpBar(s.x, s.y - 3.8 * kk, kk, o);
       return;
     }

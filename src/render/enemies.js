@@ -19,6 +19,11 @@ import { CAJAS } from '../data/cajas.js';
 // '../assets/...' — un `BASE + nombre` armado en runtime no lo encontraria y el build fallaria.
 const FILES = {
   helo: '../assets/world/enemies/helo.png',
+  helo_seaking: '../assets/world/enemies/helo_seaking.png',
+  helo_wessex: '../assets/world/enemies/helo_wessex.png',
+  helo_sealynx: '../assets/world/enemies/helo_sealynx.png',
+  helo_gazelle: '../assets/world/enemies/helo_gazelle.png',
+  helo_scout: '../assets/world/enemies/helo_scout.png',
   jet: '../assets/world/enemies/jet.png',
   harrier: '../assets/world/enemies/harrier.png',
   harrier_rear: '../assets/world/enemies/harrier_rear.png',
@@ -99,6 +104,16 @@ const FILES = {
 // su sprite se ampliaba 5.4x mientras el tuyo se dibuja a 0.85x.
 const ARTE = {
   helo: { wu: 11.5 },
+  // LOS CINCO HELICOPTEROS BRITANICOS (30/9). Se hornean con la MISMA camara, asi que la hoja ya
+  // trae el tamaño real relativo; el `wu` lo APLASTA: el Sea King se queda con el 11.5 del helo de
+  // siempre y los chicos no bajan de ~9.4. A escala real el Scout seria la mitad, y los cinco
+  // comparten la caja de choque (core/hitbox.js): te chocaria un pedazo de helicoptero que no se ve.
+  // La cuenta: wu = 11.5 * (0.55 + 0.45 * ancho_real / ancho_Sea_King).
+  helo_seaking: { wu: 11.5 },
+  helo_wessex: { wu: 10.8 },
+  helo_sealynx: { wu: 10.0 },
+  helo_gazelle: { wu: 9.4 },
+  helo_scout: { wu: 9.4 },
   jet: { wu: 4.2 },
   // EL SEA HARRIER (B3) hereda el `wu` del jet al que reemplaza, y a proposito: cambiarlo seria
   // cambiar cuanto ocupa el perseguidor en pantalla, o sea el juego. Esto es arte.
@@ -246,4 +261,15 @@ export function drawFrame(ctx, k, col, row, cx, { bottomY, centerY }, k2, flip, 
   if (flip) ctx.scale(-1, 1);
   ctx.drawImage(img, sx, sy, s.fw, s.fh, -cxf, top, W, H);
   ctx.restore();
+}
+
+/** QUE HELICOPTERO ES `o`: uno de los cinco britanicos, fijo por bicho (sale de su `ph`, que se
+ *  sortea al nacer), con los pesos de lo que mas volaba: Sea King y Wessex, despues el Lynx de las
+ *  fragatas, y los dos chicos del Ejercito. Si la hoja de ese tipo no cargo, el helo de siempre. */
+const HELOS = [['helo_seaking', 30], ['helo_wessex', 25], ['helo_sealynx', 20], ['helo_gazelle', 15], ['helo_scout', 10]];
+const HELOS_TOT = HELOS.reduce((a, h) => a + h[1], 0);
+export function heloDe(o) {
+  let u = ((o.ph || 0) * 7.31 % 1) * HELOS_TOT;
+  for (const [k, p] of HELOS) { if (u < p) return ready(k) ? k : 'helo'; u -= p; }
+  return 'helo';
 }

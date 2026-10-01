@@ -35,6 +35,7 @@
   <script src="models/enemies.js"></script>
   <script src="models/soldiers.js"></script>
   <script src="models/eyeccion.js"></script>
+  <script src="models/helos.js"></script>
   <script src="models/restos.js"></script>
   <script src="models/buques.js"></script>
   <script src="models/harrier.js"></script>
@@ -91,6 +92,7 @@
     // al enemigo es la que despues lo ve tirado. Dos hornos serian dos luces.
     const R = BAKE.familia('restos');
     const EY = BAKE.familia('eyeccion');
+    const HE = BAKE.familia('helos');
     // LOS BUQUES (B2): las tres clases del juego, en tools/models/buques.js.
     const BQ = BAKE.familia('buques');
     // EL SEA HARRIER (B3): el perseguidor de LA COLA, en tools/models/harrier.js. Va aparte de los
@@ -113,6 +115,15 @@
           return f;
         })(), cols: 8,
       },
+      // LOS CINCO HELICOPTEROS BRITANICOS (30/9, tools/models/helos.js): el mismo encuadre y las
+      // mismas 8 columnas de yaw x 2 filas de rotor que `helo`, uno por tipo. La camara es LA MISMA
+      // para los cinco, asi que el ancho en pixeles de cada hoja es su tamaño real relativo; el
+      // tamaño en pantalla lo decide el `wu` de render/enemies.js.
+      ...Object.fromEntries(['seaKing', 'wessex', 'seaLynx', 'gazelle', 'scout'].map(m => ['helo_' + m.toLowerCase(), {
+        fw: 128, fh: 96, dist: 19, lookY: 0.3,
+        frames: [0, 1].flatMap(ph => Array.from({ length: 8 }, (_, i) => ({ model: () => HE[m](ph), yaw: i / 7 * Math.PI / 2 }))),
+        cols: 8,
+      }])),
       // LOS TRES JETS VAN AL DOBLE DE RESOLUCION que el resto (128x96 contra 64x48). No es
       // capricho: el Harrier es el UNICO enemigo que se te pone a z=6 —mas cerca de la camara que
       // tu propio avion, que vuela a 14— y ahi su sprite se amplia 5.4x mientras el tuyo se dibuja
