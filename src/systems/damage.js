@@ -12,13 +12,16 @@
 // el juego ni cuanto aguanta: eso lo decide este modulo con cfg.dmgMode.
 import { run } from '../core/run.js';
 import { cartel } from '../core/cartel.js';
-import { cfg, stats } from '../core/state.js';
-import { popup } from '../core/fx.js';
+import { cfg, stats, plane } from '../core/state.js';
+import { parts } from '../core/world.js';
+import { popup, proj } from '../core/fx.js';
+import { AVERIA_HUMO_DT } from '../data/tuning.js';
+import { PZ } from '../render/ctx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { W } from '../render/ctx.js';
 import { boom, beep, sfxOne } from './audio.js';
-import { applyHit, effects, tierOf, isFatal, absorber, dmgRoce, recargar, ESCUDO, DMG } from '../core/damage.js';
+import { applyHit, effects, tierOf, isFatal, absorber, dmgRoce, recargar, ESCUDO, DMG, agonia } from '../core/damage.js';
 import { tickDesgaste } from '../core/desgaste.js';
 
 /** Avion nuevo: chapa sana y escudo lleno. La llama el arranque de corrida Y el relevo del
@@ -41,6 +44,27 @@ export const tier = () => tierOf(run.integ);
 
 /** ¿Hay que dibujar la integridad? En 'squad' no existe: la barra de vida es el escuadron. */
 export const shown = () => cfg.dmgMode !== 'squad';
+
+
+/** EL HUMO DEL AVION ROTO (pedido del autor 1/10): por debajo de AVERIA_HUMO la cola larga
+ *  bocanadas — grises al principio, negras y mas seguidas cuanto mas cerca del cero. Salen del
+ *  escape y se quedan atras: el mundo (y la camara) se las lleva hacia abajo y hacia vos. */
+let humoT = 0;
+export function humoAveria(dt) {
+  const a = run.integ > 0 && agonia(run.integ, cfg.dmgMode);
+  if (!a) { humoT = 0; return; }
+  humoT -= dt;
+  if (humoT > 0) return;
+  humoT = AVERIA_HUMO_DT * (3 - 2 * a);
+  const s = proj(plane.x, plane.y, PZ);
+  const g = Math.round(0x6a - 0x40 * a), c = '#' + [g, g, g - 4].map(v => Math.max(0, v).toString(16).padStart(2, '0')).join('');
+  // tres bocanadas chicas por vez, desde la tobera (debajo del centro del sprite) hacia abajo y
+  // hacia afuera: visto de atras, el humo que deja el avion viene HACIA LA CAMARA, y en pantalla eso
+  // es una estela que se abre por debajo. Grandes y encima del avion le tapaban la cola.
+  for (let i = 0; i < 3; i++) parts.push({ x: s.x + (Math.random() - 0.5) * s.k * 0.5, y: s.y + s.k * 0.35,
+    vx: (Math.random() - 0.5) * 26, vy: 4 + Math.random() * 10, life: 0.5 + 0.6 * a, c,
+    r: Math.max(1.5, s.k * (0.22 + 0.25 * a) * (0.7 + Math.random() * 0.6)) });
+}
 
 /**
  * Un impacto. Devuelve TRUE si el avion cae (el que llama arma su `{ death }` como siempre).

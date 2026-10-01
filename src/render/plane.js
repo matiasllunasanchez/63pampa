@@ -27,12 +27,13 @@ import { ALA_PX, ROCIADA_ABRE, ROCIADA_BAJA, ROCIADA_RAS_ABRE, ROCIADA_ALT,
          CORTINA_ABRE, CORTINA_ANCHO, CORTINA_BAJA, CORTINA_RAS_ABRE, CORTINA_N, CORTINA_ALT,
          ROCIADA_TURBO, CORTINA_TURBO,
          ROCIADA_VERTICE, ROCIADA_FILAS, ROCIADA_REVUELTO, ROCIADA_REVUELTO_V,
-         ROCIADA_RAS_CORTE } from '../data/tuning.js';
+         ROCIADA_RAS_CORTE, AVERIA_TAMBALEO } from '../data/tuning.js';
 import { skinOf } from '../data/skins.js';
 import { alMando } from '../core/squad.js';
 import { pilotName, rosterActive } from '../systems/squad.js';
 import { nivel } from '../core/desgaste.js';   // el avion remendado — GUION_3 §9d, ley 4
 import { MOVES } from '../data/moves.js';
+import { agonia } from '../core/damage.js';
 
 const MIRA_SIZE = 17;   // lado de la mira en pixeles de mundo (480x270)
 const AIM_PITCH = 5;    // cuanto sube/baja la mira FIJA con el cabeceo (unidades de mundo)
@@ -722,6 +723,11 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   const bobY = alive ? Math.sin(run.t * 3.1) * BOB_Y * 0.6 + Math.sin(run.t * 1.7) * BOB_Y * 0.4 : 0;
   const bobX = alive ? Math.sin(run.t * 2.3 + 1.1) * BOB_X : 0;
   const wob  = alive ? (Math.sin(run.t * 2.3) * 0.7 + Math.sin(run.t * 3.7) * 0.3) * WOBBLE : 0;
+  // EL TAMBALEO DEL AVION ROTO (pedido del autor 1/10): con la integridad en AVERIA_HUMO o menos, las
+  // alas se bambolean — dos senos rapidos y desparejos, que no lean como el vaiven de siempre — y
+  // crece hacia el cero. Va sumado a `wob`, asi lo ve tambien la estela de punta de ala.
+  const ago = alive ? agonia(run.integ, cfg.dmgMode) : 0;
+  const wobT = wob + (ago ? (Math.sin(run.t * 5.3) * 0.6 + Math.sin(run.t * 8.9 + 1.3) * 0.4) * AVERIA_TAMBALEO * (0.35 + 0.65 * ago) : 0);
   // VIBRACION al rozar la superficie: temblor rapido del fuselaje (el avion, no la camara)
   const vx2 = run.scrapeVib ? (Math.random() - 0.5) * 4.8 * run.scrapeVib : 0;
   const vy2 = run.scrapeVib ? (Math.random() - 0.5) * 3.6 * run.scrapeVib : 0;
@@ -773,9 +779,9 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // punta en el agua. Lo corrige la HOJA (cabeceo y alabeo compensados en el horneado), que es el
   // unico lugar donde se puede inclinar una cosa sin inclinar la otra.
   const spinTot = rolling ? run.mvRoll + hz
-    : run.mvRoll ? run.mvRoll + hz + wob
-    : useSheet ? wob
-    : bank * 0.42 + wob;
+    : run.mvRoll ? run.mvRoll + hz + wobT
+    : useSheet ? wobT
+    : bank * 0.42 + wobT;
   ctx.rotate(spinTot + (run.senalT > 0 ? run.senalRot : 0));   // + lo que la SEÑA pide mas alla de la hoja (la panza)
   if (rolling) ctx.scale(0.94 + 0.06 * Math.cos(prRoll * Math.PI * 2), 1);   // leve pulso: vende el giro
   else if (!run.mvRoll && !useSheet) ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);

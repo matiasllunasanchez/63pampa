@@ -19,6 +19,8 @@
 // Puro y sin imports de stores: lo corre tools/unit.js igual que el juego.
 
 /** Los tres modelos, en el orden en que los ofrece OPCIONES. */
+import { AVERIA_HUMO } from '../data/tuning.js';
+
 export const DMG_MODES = ['squad', 'integ', 'visual'];
 
 /** Daño por causa (sobre 100 de integridad). Lo que NO esta aca es una colision: mata siempre. */
@@ -65,6 +67,11 @@ export const TIERS = [
   { id: 'crit', min: 0, spd: 0.78, agil: 0.76, turbo: false, moves: false },
 ];
 const NOMINAL = TIERS[0];
+
+/** CUANTO SE ESTA MURIENDO el avion (pedido del autor 1/10): 0 por encima de AVERIA_HUMO, 1 con la
+ *  integridad en 0. En ESCUADRON no hay integridad: siempre 0. Lo leen el humo (systems/damage.js) y
+ *  el tambaleo del dibujo (render/plane.js), asi los dos crecen juntos. */
+export const agonia = (integ, mode) => mode === 'squad' || integ > AVERIA_HUMO ? 0 : 1 - Math.max(0, integ) / AVERIA_HUMO;
 
 /** El escalon que corresponde a `integ` (0..100). */
 export const tierOf = integ => TIERS.find(t => integ > t.min) || TIERS[TIERS.length - 1];

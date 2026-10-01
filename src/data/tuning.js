@@ -1936,3 +1936,25 @@ export const AIM9 = {
   ESTELA_DT: 0.03, ESTELA_N: 48, ESTELA_VIDA: 1.4,
   PTS: 150,            // esquivar uno: el doble que un misil de tierra — este te buscaba a vos
 };
+
+// ---------------- EL AVION QUE SE ESTA POR MORIR (pedido del autor 1/10) ----------------
+// Con la integridad en AVERIA_HUMO o menos, el avion larga HUMO por la cola y TAMBALEA las alas:
+// lo que avisa que el proximo golpe lo baja, sin mirar el reloj de salud. Los dos crecen a medida
+// que la integridad baja hacia 0. El tambaleo es solo dibujo (render/plane.js): no toca el manejo.
+// Solo en los modos con chapa (INTEGRIDAD y VISUAL); en ESCUADRON no hay integridad.
+export const AVERIA_HUMO = 40;          // % de integridad desde el que humea y tambalea
+export const AVERIA_HUMO_DT = 0.05;     // s entre bocanada y bocanada, con la integridad en 0 (al 40: el triple)
+export const AVERIA_TAMBALEO = 0.16;    // rad de alabeo del tambaleo, con la integridad en 0
+
+// ---------------- LA RAFAGA DEL HARRIER (pedido del autor 1/10) ----------------
+// "Algunos disparos de metralleta esquivables: un par en una determinada posicion; el jugador puede
+// moverse, y si no se mueve se come la metralleta y muere." Los dos cañones ADEN de 30 mm del Sea
+// Harrier, desde la cola: el Harrier ASOMA, FIJA el punto donde estas ese instante, lo MARCA
+// (AVISO s, el aro rojo sobre tu avion) y tira N tiros AHI, separados por GAP. No te siguen: si te
+// corriste mas de R_X / R_Y del punto, pasan de largo. Si no, te matan (death_aden no esta en la
+// tabla de daño de core/damage.js: es fatal en los tres modos, como el Sidewinder).
+// Sale en las asomadas que NO tiran Sidewinder (la primera, y las que siguen cuando no le quedan o
+// tiene uno en el aire), una por asomada, y no la tira el ahuyentado (humo) ni el manso.
+//   ESPERA  s que el ala lleva en pantalla antes de fijar (primero se lo ve, despues apunta)
+//   T       s que tarda un tiro desde el cañon hasta tu profundidad (despues sigue de largo PASA s)
+export const ADEN = { ESPERA: 0.35, AVISO: 0.6, N: 2, GAP: 0.14, T: 0.16, PASA: 0.45, R_X: 1.8, R_Y: 1.4, PTS: 60 };

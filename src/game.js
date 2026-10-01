@@ -67,6 +67,7 @@ import * as blancoSys from './systems/blanco.js';
 import * as seawolfSys from './systems/seawolf.js';
 import { drawZonaSW, drawEngancheSW, drawMisilSW, drawHumoSW } from './render/seawolf.js';
 import { drawAim9 } from './render/aim9.js';   // el Sidewinder de los Harrier
+import { drawAden, drawAvisoAden } from './render/aden.js';   // la rafaga de los Harrier
 import * as escapeSys from './systems/escape.js';
 import { drawTirosPopa, drawCap } from './render/escape.js';
 import { BL as BL_BLANCO, FASE_ESCAPE, SENAS, CIELO_VUELTA, CAP } from './data/blanco.js';
@@ -4124,6 +4125,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const fuelAntes = run.fuel;
       const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist, needsMomentum, climax: runClimax() });
       squad.gastoLider(fuelAntes - run.fuel);
+      damage.humoAveria(dt);   // el avion roto larga humo (por debajo de AVERIA_HUMO de integridad)
       // EL ROTULO QUE PASA VOLANDO (render/rotulo.js): en el cuadro en que el poder RASANTE se
       // prende —y con el, cambia la camara—, la palabra cruza la pantalla. Reloj de pared.
       { const ra = rasante.active(); if (ra && !rasPrev) rotuloT0 = performance.now(); rasPrev = ra; }
@@ -4630,6 +4632,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // el de frente, y el de atras que perdio el blanco y se te adelanto. El que viene de atras
         // va en la segunda pasada, despues del avion.
         if (m.tipo === 'aim9') { if (m.z >= PZ) drawAim9(m); continue; }
+        if (m.tipo === 'aden') { if (m.z >= PZ) drawAden(m); continue; }   // la rafaga del Harrier, ya pasada
         const s = proj(m.x, m.y, m.z), k = s.k;
         if (m.tracer) {
           const s2 = proj(m.x, m.y, m.z + 5);
@@ -4812,6 +4815,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // …Y EL SIDEWINDER QUE TE TIRO, por la misma razon: viene de atras, entre la camara y vos,
       // y se te pone en la cola por ENCIMA del avion (render/aim9.js)
       for (const m of missiles) if (m.tipo === 'aim9' && m.z < PZ) drawAim9(m);
+      // …Y LA RAFAGA: el aro del punto fijado y los tiros que todavia vienen de atras (render/aden.js)
+      for (const a of caza.avisosAden()) drawAvisoAden(a);
+      for (const m of missiles) if (m.tipo === 'aden' && m.z < PZ) drawAden(m);
       // la FORMACION del escuadron: SOLO en el despegue y en su salida de plano al CONTROL
       // LIBRE. Nunca durante el PASILLO en si — es costo de render que no aporta y taparia el juego.
       {

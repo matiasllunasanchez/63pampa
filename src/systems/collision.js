@@ -41,7 +41,7 @@ import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER, isSoftStruct } from '../c
 import { mvTight } from '../data/moves.js';
 // EL SIDEWINDER (30/9/2026): la cuenta de su vuelo, pura, y la voz de Puma que avisa cuando quebrar
 import { lanzarFrente, pasoAim9 } from '../core/aim9.js';
-import { AIM9 } from '../data/tuning.js';
+import { AIM9, ADEN } from '../data/tuning.js';
 import { hablar } from '../core/voz.js';
 
 /** Golpe NO letal (nube de explosion, bandada): sacude, frena y quema combustible — castiga sin
@@ -451,6 +451,23 @@ export function collisionSystem(dt) {
 
   // misiles
   for (const m of missiles) {
+    // LA RAFAGA DEL HARRIER (systems/caza.js, ADEN en data/tuning.js): cada tiro va en linea recta
+    // del cañon al punto FIJADO, llega a tu profundidad en ADEN.T y sigue de largo. No te sigue: si
+    // en el aviso te corriste del punto, pasa; si seguis ahi, te mata.
+    if (m.tipo === 'aden') {
+      m.t += dt;
+      const u = m.t / ADEN.T;
+      m.x = m.x0 + (m.tx - m.x0) * u; m.y = m.y0 + (m.ty - m.y0) * u; m.z = m.z0 + (PZ - m.z0) * u;
+      if (!m.done && u >= 1) {
+        m.done = true;
+        if (Math.abs(plane.x - m.tx) < ADEN.R_X && Math.abs(plane.y - m.ty) < ADEN.R_Y) {
+          explodeAt(plane.x, plane.y, PZ + 0.6, false, true, true);
+          if (dmg.takeHit('death_aden')) return { death: 'death_aden' };
+        } else { run.score += ADEN.PTS; stats.dodges++; }
+      }
+      if (m.t > ADEN.T + ADEN.PASA) m.z = 0;      // el prune de abajo se lo lleva
+      continue;
+    }
     // EL SIDEWINDER de los Harrier (core/aim9.js): el que te tira LA COLA desde atras y el que te
     // tiran los cazas de frente. Se resuelve ENTERO aca y no pasa por el bloque comun de abajo: el
     // de atras no te cruza de frente —llega desde la camara—, y los dos tienen su propia regla.

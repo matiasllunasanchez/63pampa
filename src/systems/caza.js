@@ -74,7 +74,7 @@ import {
   CAZA_V_MERGE, CAZA_V_FUGA, CAZA_V_FUGA_MIN,
   CAZA_AMAGUES, CAZA_AMAGUE_T, CAZA_AMAGUE_GAP, CAZA_AMAGUE_TIRA,
   CAZA_Z_ASOMA, CAZA_X_ASOMA, CAZA_X_ESCONDE,
-  AIM9,
+  AIM9, ADEN,
   CAZA_FINALES, CAZA_CAIDA_G, CAZA_CAIDA_MAX,
   CAZA_SOL_AVISO, CAZA_SOL_POST,
   CAZA_HIT_RX, CAZA_HIT_RY, CAZA_PTS, CAZA_MV_FUERZA,
@@ -145,6 +145,9 @@ export function start(opts = {}) {
     bank: 0, xPrev: plane.x,
     fx: [],
     humoT: 0, estT: 0, tiroT: 0,
+    // LA RAFAGA (ADEN): `gunT` el reloj de la asomada, `gunHecho` si ya tiro en esta, `rafaga` la que
+    // esta en curso ({ tx, ty, t, n }: el punto fijado, el reloj y cuantos tiros salieron)
+    gunT: 0, gunHecho: false, rafaga: null,
     // LOS SIDEWINDER que le quedan y el que tiene en el aire. Nunca dos a la vez: el segundo sale
     // recien cuando el primero se resolvio (te pego, o lo perdiste de una maniobra).
     aim9: AIM9.POR_HARRIER, misil: null, libreT: 0,
@@ -168,7 +171,7 @@ export function start(opts = {}) {
  *  store compartido y se muta, no se reasigna. */
 export function resetCaza() {
   fleet.length = 0; C = null; D = null;
-  for (let i = missiles.length - 1; i >= 0; i--) if (missiles[i].tipo === 'aim9' && missiles[i].modo === 'cola') missiles.splice(i, 1);
+  for (let i = missiles.length - 1; i >= 0; i--) if ((missiles[i].tipo === 'aim9' && missiles[i].modo === 'cola') || missiles[i].tipo === 'aden') missiles.splice(i, 1);
 }
 
 // ---------------- H4: EL REGLAMENTO (cuando aparece) ----------------
@@ -266,6 +269,34 @@ function lanzarAim9() {
   beep(220, 0.32, 'sawtooth', 0.05, 900);   // el siseo del motor cohete
 }
 
+/** LA RAFAGA DEL HARRIER (pedido del autor 1/10): FIJA el punto donde estas ahora y lo marca. Los
+ *  tiros salen despues (`stepRafaga`), todos a ese punto: no te siguen. Moverse en el aviso salva. */
+function armarRafaga() {
+  C.gunHecho = true;
+  C.rafaga = { tx: plane.x, ty: plane.y, t: 0, n: 0 };
+  beep(980, 0.06, 'square', 0.04);   // el clic del aviso: te fijo
+}
+
+/** Un cuadro de la rafaga en curso: pasado el AVISO, un tiro cada GAP al punto fijado. Los tiros
+ *  viven con los demas misiles (tipo 'aden'); collision.js los mueve y decide si te pegaron. */
+function stepRafaga(dt) {
+  const r = C.rafaga;
+  if (!r) return;
+  r.t += dt;
+  if (r.n < ADEN.N && r.t >= ADEN.AVISO + r.n * ADEN.GAP) {
+    r.n++;
+    const x0 = C.x, y0 = C.y - 0.3, z0 = C.z;
+    missiles.push({ tipo: 'aden', x0, y0, z0, x: x0, y: y0, z: z0, tx: r.tx, ty: r.ty, t: 0, done: false });
+    C.fx.push({ k: 'humo', x: x0, y: y0, z: z0, life: 0.25, r: 0.6 });
+    beep(160, 0.07, 'square', 0.06, 90);   // el golpe seco del 30 mm
+  }
+  if (r.n >= ADEN.N) C.rafaga = null;
+}
+
+/** EL PUNTO FIJADO de las rafagas en AVISO, para el dibujo: { x, y, u } (u = 0..1 del aviso). */
+export const avisosAden = () => fleet.filter(h => h.rafaga && h.rafaga.n === 0)
+  .map(h => ({ x: h.rafaga.tx, y: h.rafaga.ty, u: Math.min(1, h.rafaga.t / ADEN.AVISO) }));
+
 // EL FX DEL HARRIER: humo y estela. Queda todo en el aire y se lo lleva el mundo a `run.spd`.
 function stepFx(dt) {
   for (const f of C.fx) {
@@ -323,10 +354,16 @@ function stepAmague(dt) {
     C.tiroT -= dt;
     if (C.tiroT <= 0) lanzarAim9();
   }
+  // LA RAFAGA: en las asomadas que no son del Sidewinder (ver ADEN en data/tuning.js)
+  const tocaAim9 = C.amague + 1 >= CAZA_AMAGUE_TIRA && C.aim9 > 0 && !misilVivo();
+  if (C.asoma && !C.humo && !C.manso && !C.gunHecho && !C.rafaga && !tocaAim9 && pilonAVista()) {
+    C.gunT -= dt;
+    if (C.gunT <= 0) armarRafaga();
+  }
   C.amT -= dt;
   if (C.amT > 0) return;
   if (C.asoma) { C.asoma = false; C.amague++; C.amT = entre(CAZA_AMAGUE_GAP); }
-  else { C.asoma = true; C.amT = entre(CAZA_AMAGUE_T); C.tiroT = 0.25; }
+  else { C.asoma = true; C.amT = entre(CAZA_AMAGUE_T); C.tiroT = 0.25; C.gunT = ADEN.ESPERA; C.gunHecho = false; }
 }
 
 /** Entra a PRESION y rearma el ciclo de amagues. Se llama desde la entrada, desde la recola y
@@ -638,6 +675,7 @@ export function cazaSystem(dt) {
     C.libreT = misilVivo() ? 0 : C.libreT + dt;
     if (comboFuerza()) { C.pase++; ir('sobrepaso', CAZA_OVER_T); golpeDelPase(); }
     if (C.fase === 'presion') stepAmague(dt);
+    stepRafaga(dt);
     stepPos(dt);
     stepFx(dt);
     stepTiro();
