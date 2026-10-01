@@ -4300,6 +4300,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         intensidad: pisoEstrella('caza', tramos.val('caza', fases.val('caza', cfg.caza)), run.estrellas),
         voces: fases.val('voces', true),
         dist: run.dist, meta: objectiveDist, ciego: inBank(), jets: run.jets,
+        // EL RADAR ENCIMA suma Harriers a la patrulla (pedido del autor 1/10): uno mas por estrella
+        refuerzo: run.estrellas,
       });
       // PERSECUCION (PLAN_HARRIERS_PERSECUCION, PLAN B). Corre en el mismo lugar que LA COLA y por
       // la misma razon: es una variante del PASILLO, y no tenerle otro sitio desde donde correr es

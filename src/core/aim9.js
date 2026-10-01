@@ -46,8 +46,13 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 /** Un AIM-9L que sale desde ATRAS (el Harrier de LA COLA, asomado en `desde`).
  *  Guarda el camino relativo al avion: de donde sale respecto de vos. */
-export function lanzarCola(desde, b, P = AIM9) {
+export function lanzarCola(desde, b, P = AIM9, zona = null) {
   return {
+    // LA ZONA DEL AVION por la que se acerca (pedido del autor 1/10): con varios misiles en el aire,
+    // cada uno viene por un lado distinto —arriba, abajo, un ala, la otra— y "cuanto mas cerca, mas
+    // hacia el centro". Es un corrimiento que se cierra parejo con el camino (ver pasoCola). Sin
+    // zona (un solo misil) vale cero y el camino es el de siempre.
+    sx: zona ? zona.x : 0, sy: zona ? zona.y : 0,
     tipo: 'aim9', modo: 'cola', fase: 'guia', t: 0, done: false,
     x: desde.x, y: desde.y, z: desde.z,
     // el camino: el corrimiento con que nace, que se va cerrando hasta cero (ver pasoCola)
@@ -91,6 +96,7 @@ export function lanzarFrente(desde, b, P = AIM9) {
  *    'pierde'    (cola) maniobraste en la zona: perdio el blanco y sigue de largo.
  *    'impacto'   te alcanzo (cola: llego sin que rompieras · frente: te cruzo dentro de la caja).
  *    'cruza'     (frente) te cruzo por afuera de la caja: lo esquivaste.
+ *    'choca'     (cola) se dio con otro misil despues de un quiebre grupal (ver `quiebreGrupal`).
  *    'fin'       ya no juega (se fue lejos, se apago): hay que sacarlo del mundo.
  *
  *  Muta `m`. Las fases terminales ('perdido', 'pasa') siguen moviendolo hasta 'fin' para que se
@@ -109,7 +115,7 @@ function estela(m, dt, b, P) {
   for (const p of m.tr) { p.z -= b.spd * dt; p.e += dt; }
   while (m.tr.length && (m.tr[0].e > P.ESTELA_VIDA || m.tr[0].z < 1)) m.tr.shift();
   m.trT -= dt;
-  if (m.trT <= 0 && m.fase !== 'impacto') {
+  if (m.trT <= 0 && m.fase !== 'impacto' && m.fase !== 'estallido') {
     m.trT = P.ESTELA_DT;
     m.tr.push({ x: m.x, y: m.y, z: m.z, e: 0 });
     if (m.tr.length > P.ESTELA_N) m.tr.shift();
@@ -171,8 +177,76 @@ function perder(m, P, porque) {
   return 'pierde';
 }
 
+/** EL QUIEBRE CON VARIOS MISILES EN LA COLA (pedido del autor 1/10): "que con algun movimiento
+ *  brusco o un giro de 360° pueda hacer que los misiles que vienen atras estallen entre ellos, y yo
+ *  seguir".
+ *
+ *  La regla: si estas MANIOBRANDO y hay DOS o mas misiles de atras que ya vienen a media distancia
+ *  (avance >= CHOQUE_U), pierden el blanco a la vez — y como venian cerrando hacia el mismo punto
+ *  desde lados distintos, se cruzan y se dan entre ellos. Con varios, el quiebre sirve ANTES que con
+ *  uno solo (no hace falta esperar la zona): es lo que deja que estallen LEJOS. Uno solo sigue con
+ *  su regla de siempre — quebrar cuando esta encima, y se va de largo sin explotar. Los que todavia
+ *  vienen lejos no entran: siguen viniendo y piden otra maniobra.
+ *
+ *  DONDE ESTALLAN: ATRAS TUYO Y LEJOS, donde venian (el autor, 1/10: "tienen que estar mas lejos
+ *  para estallar… no encima mio… si explotan tiene que ser detras mio, adelante me podrian
+ *  lastimar"). El encuentro queda CHOQUE_ATRAS por detras del avion y corrido CHOQUE_X hacia el
+ *  costado del que venia el primero — nunca en tu eje: ahi la bola de fuego te tapaba.
+ *
+ *  Marca a los que chocan (fase 'choque', con el punto de encuentro RELATIVO al avion) y los
+ *  devuelve. Se llama UNA vez por cuadro, antes de moverlos. */
+export function quiebreGrupal(ms, b, P = AIM9) {
+  if (!b.maniobra) return [];
+  const g = ms.filter(m => m.tipo === 'aim9' && m.modo === 'cola' && m.fase === 'guia' && m.u >= P.CHOQUE_U);
+  if (g.length < 2) return [];
+  const lado = g[0].x - b.x >= 0 ? 1 : -1;
+  // EL PRIMERO LLEVA LA EXPLOSION: cuando se encuentran, los demas se borran y este queda como el
+  // estallido — viajando con vos, que es lo que deja verlo (ver `seChoca` y `arde`)
+  g[0].lider = g.length;
+  for (const m of g) {
+    m.fase = 'choque'; m.tc = 0; m.porque = 'choque';
+    // todo relativo al avion del cuadro del quiebre: el punto no te sigue (por eso te perdieron)
+    m.ox = m.x - b.x; m.oy = m.y - b.y; m.oz = m.z - b.pz;
+    m.qx = lado * P.CHOQUE_X; m.qy = P.CHOQUE_Y; m.qz = -P.CHOQUE_ATRAS;
+    m.bx0 = b.x; m.by0 = b.y;
+  }
+  return g;
+}
+
+/** El que va a chocarse con los otros: del lugar donde estaba al punto de encuentro, en CHOQUE_T.
+ *  El punto quedo fijo donde estabas al quebrar (no te sigue: por eso te perdieron). */
+function seChoca(m, dt, b, P) {
+  m.tc += dt;
+  const k = Math.min(1, m.tc / P.CHOQUE_T), e = k * k;        // acelera hacia el encuentro
+  const x = m.bx0 + m.ox + (m.qx - m.ox) * e, y = m.by0 + m.oy + (m.qy - m.oy) * e;
+  const z = b.pz + m.oz + (m.qz - m.oz) * e;
+  const idt = 1 / Math.max(dt, 1e-4);
+  m.vx = (x - m.x) * idt; m.vy = (y - m.y) * idt; m.vz = (z - m.z) * idt;
+  m.x = x; m.y = y; m.z = z;
+  if (k >= 1) {
+    m.done = true;
+    if (m.lider) { m.fase = 'estallido'; m.te = 0; m.ez = m.z - b.pz; }
+    return 'choca';
+  }
+  return null;
+}
+
+/** EL ESTALLIDO, que es el misil lider despues del choque (el autor, 1/10: "tiene que ser una BUENA
+ *  explosion"). No se queda clavado en el mundo: los misiles venian a TU velocidad y lo que revienta
+ *  sigue viniendo, frenandose de a poco — por eso se lo ve arder ESTALLIDO_T segundos detras tuyo en
+ *  vez de irse por el borde en un cuadro. De costado y de altura queda donde exploto. */
+function arde(m, dt, b, P) {
+  m.te += dt;
+  m.ez -= P.ESTALLIDO_DERIVA * dt;
+  m.z = Math.max(2.5, b.pz + m.ez);
+  m.vx = m.vy = m.vz = 0;
+  return m.te >= P.ESTALLIDO_T ? 'fin' : null;
+}
+
 function pasoCola(m, dt, b, P) {
   if (m.fase === 'perdido') return seVa(m, dt, P);
+  if (m.fase === 'choque') return seChoca(m, dt, b, P);
+  if (m.fase === 'estallido') return arde(m, dt, b, P);
   evasion(m, dt, b, P);
   // EL AVANCE, frenado por la evasion: mientras quemas y quebras no te alcanza (EVA_FRENO)
   m.u = Math.min(1, m.u + dt / P.COLA_T * (1 - P.EVA_FRENO * m.eva));
@@ -192,7 +266,9 @@ function pasoCola(m, dt, b, P) {
   const q = (1 - u) * (1 - u);
   // el buscador cabecea; con la evasion, CAZA — se lo ve dudar, que es el aviso de que lo estas perdiendo
   const cab = Math.sin(m.t * 9.5 + m.seed) * (P.COLA_WOB * (1 - u) + P.EVA_WOB * m.eva);
-  const x = bx + m.dx0 * q + cab, y = by + m.dy0 * q + cab * 0.45;
+  // + LA ZONA por la que viene (varios misiles): se cierra PAREJO, mas lento que el camino — se
+  // los ve repartidos alrededor del avion hasta el final, y recien ahi juntarse en el centro
+  const x = bx + m.dx0 * q + (m.sx || 0) * (1 - u) + cab, y = by + m.dy0 * q + (m.sy || 0) * (1 - u) + cab * 0.45;
   const z = b.pz + m.dz0 * (1 - u);
   // VELOCIDAD, medida del propio camino: la necesita el dibujo (hacia donde apunta la nariz) y la
   // necesita el quiebre (con que se va de largo). Suavizada, y medida ANTES de que el cuadro del

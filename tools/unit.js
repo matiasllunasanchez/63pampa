@@ -3908,4 +3908,50 @@ test('estructura · la cuenta ve las lomas, y en el terreno de t18 igual hay sue
     assert.ok(!/function rafaga\(/.test(caza), 'volvio la rafaga que erra en la cola');
     assert.ok(!/gun: 2/.test(spawn), 'volvieron las trazadoras del caza de frente');
   });
+  // ---- VARIOS SIDEWINDER EN LA COLA (pedido del autor 1/10): las zonas y el choque entre ellos ----
+  /** N misiles de cola, cada uno por su zona, avanzados hasta los avances `us` (sin maniobrar). */
+  function salva(us) {
+    const b = { x: 0, y: 20, vx: 0, vy: 0, spd: 110, pz: PZ9, maniobra: false, tight: false, boost: false };
+    const ms = us.map((_, i) => A9.lanzarCola({ x: i % 2 ? 9 : -9, y: 19, z: 6 }, b, P9, { x: P9.ZONAS[i][0], y: P9.ZONAS[i][1] }));
+    ms.forEach((m, i) => { for (let k = 0; k < 4000 && m.u < us[i]; k++) A9.pasoAim9(m, DT9, b); });
+    return { b, ms };
+  }
+
+  test('varios sidewinder: cada uno viene por su zona y cierra hacia el centro', () => {
+    const lejos = salva([0.15, 0.15, 0.15, 0.15]), cerca = salva([0.95, 0.95, 0.95, 0.95]);
+    const d = (m, b) => Math.hypot(m.x - b.x, m.y - b.y);
+    // lejos estan REPARTIDOS: a los dos lados, y arriba y abajo
+    assert.ok(lejos.ms[0].x < lejos.b.x - 2 && lejos.ms[1].x > lejos.b.x + 2, 'los dos primeros tienen que venir uno por cada ala');
+    assert.ok(lejos.ms[2].y > lejos.b.y + 2 && lejos.ms[3].y < lejos.b.y - 1, 'el tercero por arriba y el cuarto por abajo');
+    // ...y cerca, todos encima
+    for (let i = 0; i < 4; i++) assert.ok(d(cerca.ms[i], cerca.b) < d(lejos.ms[i], lejos.b) * 0.35,
+      `el misil ${i} no cerro hacia el centro: ${d(lejos.ms[i], lejos.b).toFixed(1)} → ${d(cerca.ms[i], cerca.b).toFixed(1)}`);
+  });
+
+  test('varios sidewinder: una maniobra hace chocar a los que vienen cerca, detras y lejos del avion', () => {
+    const { b, ms } = salva([0.7, 0.5, 0.2]);
+    b.maniobra = true;
+    const g = A9.quiebreGrupal(ms, b, P9);
+    assert.equal(g.length, 2, 'chocan los dos que vienen cerca; el lejano (0.2) sigue viniendo');
+    assert.equal(ms[2].fase, 'guia', 'el que venia lejos no entra al choque');
+    const ev = [[], []];
+    for (let k = 0; k < 400; k++) g.forEach((m, i) => { if (!m.done) { const e = A9.pasoAim9(m, DT9, b); if (e) ev[i].push(e); } });
+    assert.deepEqual(ev, [['choca'], ['choca']], 'cada uno tiene que terminar en un choque, y nada mas');
+    assert.ok(Math.hypot(g[0].x - g[1].x, g[0].y - g[1].y, g[0].z - g[1].z) < 0.01, 'tienen que encontrarse en el mismo punto');
+    assert.ok(g[0].z < PZ9 - 3, 'el estallido tiene que quedar DETRAS del avion, y no pegado');
+    assert.ok(Math.abs(g[0].x - b.x) > 5, '...y corrido de costado: no encima tuyo');
+    assert.ok(g[0].tc <= P9.CHOQUE_T + DT9 * 1.5, 'tardaron mas que CHOQUE_T en juntarse');
+  });
+
+  test('varios sidewinder: sin maniobra, con uno solo cerca o con todos lejos, nadie choca', () => {
+    let s1 = salva([0.7, 0.5]);
+    assert.equal(A9.quiebreGrupal(s1.ms, s1.b, P9).length, 0, 'sin maniobra no puede haber choque');
+    s1 = salva([0.7, 0.2]); s1.b.maniobra = true;
+    assert.equal(A9.quiebreGrupal(s1.ms, s1.b, P9).length, 0, 'con UNO solo cerca no hay con quien chocar: ese sigue de largo');
+    assert.equal(A9.pasoAim9(s1.ms[0], DT9, s1.b), 'pierde', 'el que estaba en la zona se pierde como siempre');
+    s1 = salva([0.3, 0.2]); s1.b.maniobra = true;
+    assert.equal(A9.quiebreGrupal(s1.ms, s1.b, P9).length, 0, 'si todos vienen lejos todavia, la maniobra es temprana y no sirve');
+    s1 = salva([0.5, 0.45]); s1.b.maniobra = true;
+    assert.equal(A9.quiebreGrupal(s1.ms, s1.b, P9).length, 2, 'con varios, el quiebre sirve a media distancia: es lo que deja que estallen lejos');
+  });
 }

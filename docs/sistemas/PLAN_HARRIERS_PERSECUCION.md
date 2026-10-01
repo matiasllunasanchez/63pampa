@@ -194,6 +194,16 @@ estela signifique algo.
 
 1. **No lock-on, no tono, no recuadros de fijado** — la mira de siempre y los ojos.
 2. **No enjambres**: UN Harrier es un evento. Dos juntos es exclusivo del final.
+   > **CAMBIADO el 1/10/2026 por el autor.** *"Generalmente las patrullas de Harrier eran de a 2,
+   > entonces era normal que 2 Harriers persigan un avión y disparen hasta 4 misiles. Y si sube la
+   > dificultad con el radar activo, más todavía."* Ahora **el duelo es de a DOS** (`cazaDirector`
+   > arma la patrulla: el segundo entra por el otro lado y un poco más atrás), el radar encima suma
+   > uno por estrella de búsqueda (hasta `CAZA_DIR_MAX`), y **el caza que te pasó de frente y no
+   > bajaste se queda en tu cola**. Con dos o más, cada uno tira sus dos Sidewinder sin esperar
+   > (`AIM9.PATRULLA_GAP`), cada misil se acerca por una zona distinta del avión (`AIM9.ZONAS`) y
+   > cierra hacia el centro, y **una maniobra con dos o más ya a media distancia hace que los que
+   > vienen cerca se den entre ellos, detrás tuyo y a un costado** (`quiebreGrupal`, `core/aim9.js`). Sigue sin ser un enjambre
+   > de 5+: el tope es cuatro.
 3. **No duelo imperdible ni imposible**: siempre sobrevivible a ras + quebrando; siempre
    peligroso recto y alto. La tesis, otra vez.
 4. **No tocar el feel del vuelo**: el duelo lee tu estado, jamás escribe tu física.

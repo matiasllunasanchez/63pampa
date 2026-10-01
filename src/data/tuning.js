@@ -1926,6 +1926,25 @@ export const AIM9 = {
   PERDIDO_T: 2.6,      // s que se lo ve irse antes de borrarlo
   FIN_Z: 260,          // ...o hasta esta profundidad, lo que llegue primero
   POR_HARRIER: 2,      // la carga real de un Sea Harrier FRS.1: dos AIM-9L. Nunca mas de dos.
+  // ---- VARIOS MISILES EN LA COLA (pedido del autor 1/10; `quiebreGrupal` en core/aim9.js) ----
+  // Las patrullas de Harrier eran de a DOS: con dos en la cola pueden venir hasta cuatro misiles.
+  // Cada uno se acerca por una ZONA distinta del avion (ZONAS, en unidades, x a la derecha e y hacia
+  // arriba: un ala, la otra, arriba, abajo) y cierra hacia el centro. Una maniobra con uno ya en la
+  // zona de quiebre hace que TODOS los que vienen cerca (avance >= CHOQUE_U) se den entre ellos.
+  ZONAS: [[-7, 1.5], [7, 1.5], [0, 6], [0, -4.5]],
+  CHOQUE_U: 0.35,      // desde que avance un misil entra al choque grupal (los mas lejanos siguen viniendo)
+  CHOQUE_T: 0.4,       // s que tardan en cruzarse y estallar
+  // DONDE se cruzan, relativo al avion: ATRAS tuyo (hacia la camara), corridos de costado hacia el
+  // lado del que venian y un poco arriba. Nunca en tu eje ni adelante: "no encima mio", y adelante
+  // "me podrian lastimar" (el autor, 1/10)
+  CHOQUE_ATRAS: 6, CHOQUE_X: 8, CHOQUE_Y: 2,
+  // LA EXPLOSION del choque ("tiene que ser una BUENA explosion"): dura ESTALLIDO_T y se va quedando
+  // atras a ESTALLIDO_DERIVA u/s — viaja con vos, frenandose. El dibujo es render/aim9.js.
+  ESTALLIDO_T: 1.6, ESTALLIDO_DERIVA: 1.6,
+  CHOQUE_PTS: 400,     // puntos POR MISIL que se chocó (perder uno solo vale PTS)
+  // s minimos entre un Sidewinder y el siguiente DEL MISMO Harrier cuando son PATRULLA (dos o mas en
+  // la cola): ahi no espera a que el primero se resuelva, y es lo que junta varios en el aire
+  PATRULLA_GAP: 0.9,
   // s entre que se RESOLVIO uno (te pego o lo perdiste) y que el mismo Harrier puede tirar el
   // segundo. Sin esto salia en la asomada siguiente, 0,4 s despues, y en la practica llega en la
   // pasada que sigue: un misil por pasada.

@@ -22,7 +22,7 @@ import { proj, popup, explodeAt, bloodBurst, columnaBomba, morir, stepDestruccio
 import { ESTALLIDO } from '../data/tuning.js';
 import { bombaInfo } from '../data/bombas.js';
 import { CHUNK_LIFE, ONDA_T } from '../data/despiece.js';
-import { sfxOne, beep, boom } from '../systems/audio.js';
+import { sfxOne, beep, boom, duck } from '../systems/audio.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { PZ } from '../render/ctx.js';
@@ -40,7 +40,7 @@ import { olaBump } from '../core/sea.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER, isSoftStruct } from '../core/hitbox.js';
 import { mvTight } from '../data/moves.js';
 // EL SIDEWINDER (30/9/2026): la cuenta de su vuelo, pura, y la voz de Puma que avisa cuando quebrar
-import { lanzarFrente, pasoAim9 } from '../core/aim9.js';
+import { lanzarFrente, pasoAim9, quiebreGrupal } from '../core/aim9.js';
 import { AIM9, ADEN } from '../data/tuning.js';
 import { hablar } from '../core/voz.js';
 
@@ -450,6 +450,19 @@ export function collisionSystem(dt) {
     && !(o.type === 'onda' && o.ondaT > ONDA_T));
 
   // misiles
+  // VARIOS SIDEWINDER EN LA COLA Y UNA MANIOBRA (pedido del autor 1/10): los que vienen cerca se dan
+  // entre ellos (core/aim9.js, `quiebreGrupal`). Se decide ACA, una vez por cuadro y antes de mover a
+  // ninguno: si cada uno lo resolviera por su cuenta, el primero ya se habria ido de largo.
+  if (run.mv) {
+    const g = quiebreGrupal(missiles, { x: plane.x, y: plane.y, pz: PZ, maniobra: true });
+    if (g.length) {
+      stats.dodges += g.length;
+      run.score += AIM9.CHOQUE_PTS * g.length;
+      const s = proj(plane.x, plane.y, PZ);
+      popup(s.x, s.y - 14, T('aim9_choque_pop', { n: g.length }) + ' +' + AIM9.CHOQUE_PTS * g.length, P.accent, true);
+      if (g.some(m => m.rompe)) hablar('PUMA', T('aim9_chocaron'));
+    }
+  }
   for (const m of missiles) {
     // LA RAFAGA DEL HARRIER (systems/caza.js, ADEN en data/tuning.js): cada tiro va en linea recta
     // del cañon al punto FIJADO, llega a tu profundidad en ADEN.T y sigue de largo. No te sigue: si
@@ -495,6 +508,22 @@ export function collisionSystem(dt) {
         explodeAt(m.x, m.y, Math.max(m.z, PZ + 0.6), false, false, true);
         m.z = 0;                                    // el prune de abajo se lo lleva
         if (dmg.takeHit('death_sidewinder')) return { death: 'death_sidewinder' };
+        continue;
+      }
+      if (ev === 'choca') {
+        // SE DIERON ENTRE ELLOS, atras tuyo y a un costado (AIM9.CHOQUE_*). El LIDER del grupo queda
+        // vivo como el estallido (core/aim9.js, `arde`; lo dibuja render/aim9.js) y pone el golpe:
+        // chispas, sacudon, el trueno y el ducking. Los demas se borran — ya son parte de esa bola.
+        if (m.fase === 'estallido') {
+          const s = proj(m.x, m.y, m.z);
+          for (let i = 0; i < 26; i++) {
+            const a = Math.random() * 6.283, v = (40 + Math.random() * 110) * Math.min(1.8, s.k / 3 + 0.4);
+            parts.push({ x: s.x, y: s.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 20, life: 0.5 + Math.random() * 0.7,
+              c: Math.random() < 0.5 ? '#ffd98a' : Math.random() < 0.6 ? P.accent : '#fff6d8', r: Math.max(1, s.k * 0.28) });
+          }
+          run.shake = Math.min(8, run.shake + 4.5); boom(0.2, true); duck(0.5);
+          sfxOne('exMedium');
+        } else m.z = 0;
         continue;
       }
       if (ev === 'fin') m.z = 0;

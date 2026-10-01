@@ -140,7 +140,7 @@ export function start(opts = {}) {
     // NACE POR DEBAJO: sube a tu altura mientras se acerca (ver la fase 'aviso')
     bx: plane.x, by: Math.max(0.8, plane.y - CAZA_Y_ENTRA),
     x: plane.x, y: Math.max(0.8, plane.y - CAZA_Y_ENTRA), z: CAZA_Z_LEJOS,
-    lado: Math.random() < 0.5 ? -1 : 1,
+    lado: opts.lado || (Math.random() < 0.5 ? -1 : 1),
     seed: Math.random() * 6.283,   // desfase propio: dos Harriers de la flota no bandean igual
     bank: 0, xPrev: plane.x,
     fx: [],
@@ -150,7 +150,7 @@ export function start(opts = {}) {
     gunT: 0, gunHecho: false, rafaga: null,
     // LOS SIDEWINDER que le quedan y el que tiene en el aire. Nunca dos a la vez: el segundo sale
     // recien cuando el primero se resolvio (te pego, o lo perdiste de una maniobra).
-    aim9: AIM9.POR_HARRIER, misil: null, libreT: 0,
+    aim9: AIM9.POR_HARRIER, misil: null, libreT: 0, tiroHace: 99,
     // LOS AMAGUES. `amague` cuenta las asomadas hechas, `asoma` dice si esta afuera AHORA y
     // `asomaK` es cuanto (0..1, suavizado) — de ese numero salen la posicion y la visibilidad.
     amague: 0, asoma: false, asomaK: 0, amT: entre(CAZA_AMAGUE_GAP),
@@ -160,8 +160,19 @@ export function start(opts = {}) {
     vyC: 0, vzC: 0,   // velocidad de la caida (ver stepCaida)
     muerto: false,
   };
+  // EL SEGUNDO DE LA PATRULLA entra un poco mas atras: se los ve llegar de a uno, no encimados
+  if (opts.atras) h.z += opts.atras;
   fleet.push(h);
   if (!h.mudo) hablar('PUMA', T('caza_warn', { c: miIndicativo() }));   // lo grita Puma (28/9)
+  // EL QUE YA TE PASO DE FRENTE Y QUEDO VIVO (pedido del autor 1/10: "si un Harrier viene de frente
+  // y no lo mato, queda yendo y viniendo"): no entra por el horizonte — ya esta atras tuyo. Va
+  // directo a la cola, escondido, y empieza sus amagues como cualquiera.
+  if (opts.dePaso) {
+    const prev = C; C = h;
+    h.z = CAZA_Z_COLA; h.bx = h.x = plane.x + h.lado * CAZA_X_ESCONDE; h.by = h.y = plane.y;
+    irPresion();
+    C = prev;
+  }
   return true;
 }
 
@@ -180,9 +191,21 @@ let D = null;
 export function cazaDirector(dt, o) {
   if (!D) D = { hechos: 0, prox: entre(CAZA_DIR_INIT) };
   const int = Math.max(0, Math.min(2, o.intensidad | 0));
-  if (!int) return;
+  if (!int) { if (D) D.jets = o.jets; return; }
+  // LA PATRULLA (pedido del autor 1/10): los Harrier volaban de a DOS, asi que el duelo es de a dos;
+  // y con el radar encima (`o.refuerzo`: las estrellas de busqueda) pueden juntarse mas. `tope` es
+  // cuantos puede haber en tu cola a la vez.
+  const tope = Math.min(CAZA_DIR_MAX, 2 + Math.max(0, o.refuerzo | 0));
+  // EL QUE PASO DE FRENTE Y NO BAJASTE se queda: da la vuelta y se suma a la cola (hasta el tope).
+  // `o.jets` cuenta los que te cruzaron vivos (collision.js); cada uno nuevo es uno que se queda.
+  if (D.jets === undefined) D.jets = o.jets;
+  if (o.jets > D.jets) {
+    D.jets = o.jets;
+    if (fleet.length && fleet.length < tope && !o.ciego && !(o.meta && o.meta - o.dist < CAZA_DIR_FIN))
+      start({ mudo: true, dePaso: true, lado: -fleet[fleet.length - 1].lado });
+  }
   if (D.prox > 0) D.prox -= dt * (0.5 + int * 0.75);
-  if (fleet.length >= CAZA_DIR_MAX || D.prox > 0) return;
+  if (fleet.length >= tope || D.prox > 0) return;
   if (o.dist < CAZA_DIR_D0) return;
   if (o.jets < CAZA_DIR_JETS) return;
   if (o.meta && o.meta - o.dist < CAZA_DIR_FIN) return;
@@ -195,7 +218,11 @@ export function cazaDirector(dt, o) {
   // Es lo que hace que el silencio de radio de una fase (PLAN_MISION_CINCO_FASES §11.2) alcance
   // tambien a LA COLA sin que este archivo tenga que saber que es una fase: le llega un valor ya
   // resuelto en el mismo paquete que la intensidad, igual que `ciego` o `jets`.
-  start({ mudo: o.voces === false || Math.random() < CAZA_MUDO_P[int] });
+  const mudo = o.voces === false || Math.random() < CAZA_MUDO_P[int];
+  const lado = Math.random() < 0.5 ? -1 : 1;
+  start({ mudo, lado });
+  // …y su numeral, por el otro lado y un poco mas atras (callado: el aviso ya lo dio el primero)
+  if (fleet.length < tope) start({ mudo: true, lado: -lado, atras: 70 });
 }
 
 /** Pasa a la fase `f` con su duracion. */
@@ -247,14 +274,30 @@ function pilonAVista() {
  *
  *  Uno por vez y dos por avion (AIM9.POR_HARRIER): "un misil, o maximo dos por Harrier". */
 function lanzarAim9() {
-  if (C.manso || C.aim9 <= 0 || misilVivo()) return;
+  // EN PATRULLA (dos o mas en la cola) no espera a que su primer misil se resuelva: con
+  // AIM9.PATRULLA_GAP entre uno y otro alcanza, y es lo que junta varios en el aire a la vez
+  const patrulla = fleet.length >= 2;
+  const enAire = missiles.filter(m => m.tipo === 'aim9' && m.modo === 'cola' && m.fase === 'guia');
+  if (C.manso || C.aim9 <= 0) return;
+  if (patrulla ? (C.tiroHace < AIM9.PATRULLA_GAP || enAire.length >= AIM9.ZONAS.length) : misilVivo()) return;
   // EL RESPIRO entre el primero y el segundo: medido en el juego, sin esto el segundo salia 0,4 s
   // despues de perder el primero —en la asomada siguiente— y le pisaba al jugador el "¡se fue de
   // largo!" justo cuando se lo ganaba. Con el respiro, el segundo llega en la pasada que sigue.
-  if (C.aim9 < AIM9.POR_HARRIER && C.libreT < AIM9.COLA_RESPIRO) return;
-  C.aim9--;
+  if (!patrulla && C.aim9 < AIM9.POR_HARRIER && C.libreT < AIM9.COLA_RESPIRO) return;
+  C.aim9--; C.tiroHace = 0;
   const p = pilon();
-  const m = lanzarCola(p, { x: plane.x, y: plane.y, vx: plane.vx, vy: plane.vy || 0, pz: PZ });
+  // LA ZONA por la que se acerca: con otro misil ya en el aire (o siendo patrulla), cada uno toma la
+  // primera libre de AIM9.ZONAS — un ala, la otra, arriba, abajo — y cierra hacia el centro. El
+  // misil solitario de siempre no lleva zona: viene derecho desde el pilon.
+  let zona = null;
+  if (patrulla || enAire.length) {
+    const usadas = enAire.map(m => m.zonaI);
+    let i = AIM9.ZONAS.findIndex((_, k) => !usadas.includes(k));
+    if (i < 0) i = enAire.length % AIM9.ZONAS.length;
+    zona = { x: AIM9.ZONAS[i][0], y: AIM9.ZONAS[i][1], i };
+  }
+  const m = lanzarCola(p, { x: plane.x, y: plane.y, vx: plane.vx, vy: plane.vy || 0, pz: PZ }, AIM9, zona);
+  if (zona) m.zonaI = zona.i;
   // LA VOZ DEL AVISO, armada ACA: el que sabe si el duelo es mudo es este archivo, y el que sabe
   // cuando el misil entra en la zona es collision.js. Se le deja el texto hecho y alla solo se dice.
   // El duelo MUDO no avisa ni el disparo ni el quiebre: en ese hay que mirar el misil.
@@ -267,6 +310,8 @@ function lanzarAim9() {
   // EL FOGONAZO DEL MOTOR al encenderse bajo el ala: lo primero que se ve del misil
   C.fx.push({ k: 'humo', x: p.x, y: p.y, z: p.z, life: 0.7, r: 1.6 });
   beep(220, 0.32, 'sawtooth', 0.05, 900);   // el siseo del motor cohete
+  // en patrulla, el segundo sale en esta misma asomada, PATRULLA_GAP despues
+  if (patrulla && C.aim9 > 0) C.tiroT = AIM9.PATRULLA_GAP;
 }
 
 /** LA RAFAGA DEL HARRIER (pedido del autor 1/10): FIJA el punto donde estas ahora y lo marca. Los
@@ -673,6 +718,7 @@ export function cazaSystem(dt) {
     stepSolucion(dt);
     // cuanto hace que no tiene un Sidewinder suyo en el aire (el respiro de `lanzarAim9`)
     C.libreT = misilVivo() ? 0 : C.libreT + dt;
+    C.tiroHace += dt;
     if (comboFuerza()) { C.pase++; ir('sobrepaso', CAZA_OVER_T); golpeDelPase(); }
     if (C.fase === 'presion') stepAmague(dt);
     stepRafaga(dt);

@@ -23,6 +23,7 @@ import { cam } from '../core/state.js';
 import { run } from '../core/run.js';
 import { velAire } from '../core/aim9.js';
 import { AIM9 } from '../data/tuning.js';
+import * as blastArt from './blast.js';
 
 const HOJA = { src: '../assets/ammo/aim9.png', img: new Image(), ready: false };
 HOJA.img.onload = () => { HOJA.ready = true; };
@@ -126,8 +127,82 @@ function motor(sx, sy, k, m, th) {
 /** Un Sidewinder, con su estela. Lo llama game.js en DOS pasadas —como a LA COLA—: el que esta
  *  mas lejos que tu avion va con el mundo, y el que viene de atras (mas cerca de la camara que el
  *  avion) va DESPUES del avion, encima. */
+/** EL ESTALLIDO DE LOS MISILES QUE SE DIERON ENTRE ELLOS (el autor, 1/10: "tiene que ser una BUENA
+ *  explosion"). Va por capas, de atras hacia adelante, y cada una tiene su momento:
+ *    · EL HUMO que queda: bocanadas oscuras que se abren y suben, desde los 0,35 s hasta el final
+ *    · LA ONDA: un aro claro que se abre rapido en el primer tercio de segundo
+ *    · LAS BOLAS DE FUEGO: la hoja de explosiones de frente (render/blast.js), DOS —una por misil,
+ *      la segunda desfasada y corrida— mas una tercera chica si eran tres o cuatro
+ *    · LAS ESQUIRLAS: pedazos de misil con cola de fuego, saliendo en abanico y cayendo
+ *    · EL DESTELLO blanco del primer instante
+ *  Todo sale de `m.te` (el reloj del estallido) y de `m.seed`: sin azar, el mismo estallido se dibuja
+ *  igual cuadro a cuadro. */
+function drawEstallido(m) {
+  const s = proj(m.x, m.y, m.z), k = s.k, t = m.te, n = m.lider || 2;
+  const U = k * 1.0;                                   // una unidad de mundo, en pixeles
+  ctx.save();
+  // EL HUMO (atras de todo)
+  if (t > 0.35) {
+    const p = (t - 0.35) / (AIM9.ESTALLIDO_T - 0.35);
+    for (let i = 0; i < 9; i++) {
+      const a = m.seed + i * 2.4, rr = (1.2 + p * 3.2) * U * (0.5 + ((i * 37) % 7) / 9);
+      const sz = Math.max(2, (1.1 + p * 1.6) * U * (0.6 + ((i * 13) % 5) / 8));
+      ctx.globalAlpha = Math.max(0, 0.6 * (1 - p) * (1 - p * 0.3));
+      px(s.x + Math.cos(a) * rr - sz / 2, s.y + Math.sin(a) * rr * 0.7 - p * 2.2 * U - sz / 2, sz, sz,
+        i % 3 ? '#2f2d2a' : '#4a4640');
+    }
+  }
+  // LA ONDA
+  if (t < 0.38) {
+    const p = t / 0.38;
+    ctx.globalAlpha = (1 - p) * 0.8;
+    ctx.strokeStyle = '#fff2c8'; ctx.lineWidth = Math.max(1, (1 - p) * 0.5 * U);
+    ctx.beginPath(); ctx.ellipse(s.x, s.y, (1 + p * 9) * U, (1 + p * 9) * U * 0.82, 0, 0, 6.2832); ctx.stroke();
+    ctx.lineWidth = 1;
+  }
+  ctx.globalAlpha = 1;
+  // LAS BOLAS DE FUEGO
+  const bolas = [[0, 0, 0, 0.62], [0.12, 1.6, -0.7, 0.5], [0.22, -1.3, 0.9, 0.38], [0.3, 0.4, 1.4, 0.34]].slice(0, Math.max(2, n));
+  for (const [t0, dx, dy, esc] of bolas) {
+    if (t < t0) continue;
+    if (blastArt.isReady()) blastArt.drawBlast(ctx, proj, { x: m.x + dx, y: m.y + dy, z: m.z, boomT: t - t0, scale: esc }, k);
+    else if (t - t0 < 0.9) {
+      const p = (t - t0) / 0.9, R = (1 + p * 3) * U * esc * 2;
+      ctx.globalAlpha = 1 - p;
+      ctx.beginPath(); ctx.arc(s.x + dx * U, s.y - dy * U, R, 0, 6.2832); ctx.fillStyle = p < 0.4 ? '#ffd98a' : '#d9652b'; ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+  // LAS ESQUIRLAS: salen rapido, frenan y caen; la cola es el tramo que acaban de recorrer
+  if (t < 0.95) {
+    const pos = (i, tt) => {
+      const a = m.seed * 3 + i * 0.57 + ((i * 7919) % 11) * 0.09, v = (7 + ((i * 31) % 9)) * U;
+      const d = v * (1 - Math.exp(-tt * 3.2)) / 3.2 * 2.2;
+      return [s.x + Math.cos(a) * d, s.y + Math.sin(a) * d * 0.8 + tt * tt * 5 * U];
+    };
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 11; i++) {
+      const [x1, y1] = pos(i, t), [x0, y0] = pos(i, Math.max(0, t - 0.09));
+      ctx.globalAlpha = Math.max(0, 1 - t / 0.95);
+      ctx.strokeStyle = t < 0.35 ? '#ffd98a' : '#e8823a'; ctx.lineWidth = Math.max(1, 0.22 * U);
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+      const c = Math.max(1, 0.3 * U);
+      px(x1 - c / 2, y1 - c / 2, c, c, i % 2 ? '#2e3336' : '#fff2c8');
+    }
+    ctx.lineWidth = 1;
+  }
+  // EL DESTELLO
+  if (t < 0.12) {
+    ctx.globalAlpha = 1 - t / 0.12;
+    ctx.beginPath(); ctx.arc(s.x, s.y, (2.2 + t * 14) * U, 0, 6.2832); ctx.fillStyle = '#fffbe8'; ctx.fill();
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
 export function drawAim9(m) {
   if (m.z <= 2) return;
+  if (m.fase === 'estallido') { drawEstallido(m); return; }
   estela(m);
   const s = proj(m.x, m.y, m.z), k = s.k;
   const caja = CAJA * k;
