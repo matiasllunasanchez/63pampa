@@ -25,6 +25,12 @@ leer con pinzas"._
   pozo con red, uno con el tubo Blowpipe y otro con prismáticos. Tira un misil cada 4,2 s, muere
   con un tiro y se le pasa por encima sin morir. Es el 40 % de los Rapier sembrados (`MANPAD_P`).
   El rig de soldados suma la pose de **rodilla en tierra** (`rodilla` en `tools/models/soldiers.js`).
+- **El Sidewinder de los Harrier** (`core/aim9.js`, `render/aim9.js`, bloque `AIM9` de
+  `data/tuning.js`; **[../sistemas/PLAN_HARRIERS_PERSECUCION.md](../sistemas/PLAN_HARRIERS_PERSECUCION.md) §12**):
+  el Harrier ya no tira ráfagas ni trazadoras. Tira **uno o dos AIM-9L** con estela roja: el de LA
+  COLA desde atrás y los cazas armados del pasillo de frente. **De atrás** se lo pierde con una
+  pirueta cuando ya está encima, o quemando **poscombustión con quiebres bruscos** desde temprano;
+  **de frente**, corriéndose. **Si te alcanza, te elimina** (en los tres modos de salud).
 
 ### 000.2 La eyección, horneada
 
@@ -47,6 +53,9 @@ mano queda de respaldo.
   **`t18` IDA Y VUELTA SMALL 2**.
 - **Las dos bombas del buque** (`src/data/bombas.js`): **MK-17** inglesa de 500 kg o **BRP-250**
   española. Pueden **no explotar** o **explotar tarde**, como pasó en San Carlos.
+- **La bomba ya no "intercepta" misiles** (30/9): era una regla de cuando el arma secundaria eran
+  misiles guiados, y la bomba del buque se gastaba contra un Sea Cat que venía hacia vos — `+400` y
+  la pasada errada, sin llegar al casco. Ahora cruza la salva y llega.
 - **Chocar el buque en el cruce** pierde el avión (en campaña, averiado a la base) y **el siguiente
   de la fila re-encara el mismo buque**, aunque esté hundido (suma puntos).
 - **La nafta pesa**: tanques (con su nafta) y bombas frenan el avión; soltarlos acelera y el cartel
@@ -300,7 +309,8 @@ te frena (viento), te expone (radar) y te sacude (turbulencia). No hay refugio g
     contra el suelo o cerca de soldados con **splash** (mata varios), +130 por soldado.
 - **Misiles del jugador** (arma secundaria): tecla `Z` o botón táctil `#msl` (abajo-izq, solo en juego).
   Munición limitada `msl` (máx `MSL_MAX`=3, recarga 1 cada 7 s, cooldown 0.5 s), pips en el HUD. One-shot con
-  hitbox amplio + guiado leve; +100 de bonus sobre el valor del blanco; interceptan misiles enemigos.
+  hitbox amplio + guiado leve; +100 de bonus sobre el valor del blanco; ~~interceptan misiles enemigos~~
+  *(30/9: ya no — desde la suelta del 20/9 en `pmissiles` viajan bombas, y una bomba no intercepta: ver §000.3)*.
   Array **propio** `pmissiles`, **jamás** chequeado contra el hitbox del avión (no pueden autoeliminarte).
 - **🐞 FIX (bug de munición = choque):** al derribar un obstáculo/misil con munición se seteaba `o.z=-99`
   pero NO `o.done`, así que el frame siguiente el loop de colisión del avión procesaba el objeto muerto y,

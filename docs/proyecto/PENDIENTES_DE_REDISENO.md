@@ -150,8 +150,10 @@ Los enemigos ahora **se mueven solos**, y eso condiciona qué tiene que expresar
 - **globos** inclinados al viento sobre su cable (el ancla queda fija),
 - **helicópteros** patrullando — solo el 55%, porque la mezcla de quietos y móviles confunde más,
 - **cazas** que tejen **y corrigen hacia tu carril** (2.2 u/s): por eso el alabeo del sprite tiene
-  que corresponder a hacia dónde va de verdad. **El 45% viene ARMADO** (`gun`): suelta 2 trazadoras
-  en su pasada de ataque (banda z 70–190, gatillo en `systems/collision.js`), con fogonazos de ala,
+  que corresponder a hacia dónde va de verdad. **El 45% viene ARMADO** (~~`gun`: suelta 2 trazadoras
+  en su pasada de ataque (banda z 70–190, gatillo en `systems/collision.js`), con fogonazos de ala~~ desde el
+  30/9 `aim9`: suelta uno o dos SIDEWINDER de frente desde la banda `AIM9.FRENTE_Z`, gatillo en
+  `systems/collision.js` — PLAN_HARRIERS_PERSECUCION §12),
 - **vehículos** (radar, camión AA) rodando con rebote contra la orilla real,
 - **mástiles-fragata** navegando.
 
@@ -409,7 +411,7 @@ las piruetas, horneada para los 6 aviones (§1).
 
 ### 13.1 Los cazas enemigos te PERSIGUEN
 
-Hoy el `jet` viene **de frente**, cruza y se va (el 45% suelta dos trazadoras en la pasada). Nunca
+Hoy el `jet` viene **de frente**, cruza y se va (el 45% suelta ~~dos trazadoras~~ uno o dos Sidewinder en la pasada — 30/9). Nunca
 se te pone atrás, así que no hay presión sostenida: el peligro dura el segundo del cruce.
 
 > **→ (16/8) Esto ya tiene plan propio por fases:** [PLAN_HARRIERS_PERSECUCION.md](../sistemas/PLAN_HARRIERS_PERSECUCION.md)
@@ -438,6 +440,11 @@ El aviso **de que viene** es otra cosa y sale de la radio: ver §13.2.
 > buscador por la misma razón. Está anotado como divergencia H5.1 de ese plan.
 > Y hay un caso que sólo existe gracias a esa regla: el **duelo mudo** (`CAZA_MUDO_P`), en el que la
 > radio no llega y las trazadoras son el único aviso.
+>
+> **→ (30/9) Y otra vuelta: las trazadoras se fueron.** El Harrier tira un SIDEWINDER (uno o dos)
+> que se ve salir del ala y venir con su estela roja: ése es ahora el aviso que no depende de la
+> radio, también en el duelo mudo. De atrás se lo pierde con una pirueta cuando ya está encima, o
+> quemando poscombustión y quebrando; si te alcanza, te elimina (PLAN_HARRIERS_PERSECUCION §12).
 
 > Dónde tocaría *(previsión de julio)*: `systems/spawn.js`, `systems/collision.js`, `render/hud.js`,
 > `render/ammo.js`.
@@ -476,7 +483,7 @@ enemigo, y también la fuente del spawn:
 > **→ HECHO PARA EL HARRIER, y sólo para él.** El duelo de LA COLA implementa las dos mitades de
 > esta idea: el aviso por radio (`caza_warn`, `caza_break`) **y el silencio** — `CAZA_MUDO_P` sortea
 > duelos mudos, con más probabilidad en las misiones de clima cerrado y las nocturnas, que es donde
-> el que mira no ve. Un duelo mudo se anuncia sólo con las trazadoras.
+> el que mira no ve. Un duelo mudo se anuncia sólo con ~~las trazadoras~~ lo que se ve (desde el 30/9, el Sidewinder y su estela).
 >
 > **Lo que sigue abierto es la generalización**: hoy la radio no anuncia el resto del spawn (helos,
 > jets de frente, la flota, el clima) — eso sigue siendo el sistema nuevo que este §13.2 pide, y el
@@ -493,7 +500,7 @@ haya **combos propios de contraataque**, no solo de esquive:
 |---|---|
 | **BREAK TURN** (↓← / ↓→) | lo obliga a **pasarse de largo** (overshoot): te quedás vos atrás |
 | **SPLIT-S** (↓↓ alto) | lo perdés por abajo — el clásico para romper el contacto |
-| **JINK** (↑← / ↑→) | le arruina la solución de tiro: falla las ráfagas mientras dura |
+| **JINK** (↑← / ↑→) | le arruina la solución de tiro: ~~falla las ráfagas mientras dura~~ (30/9: ya no hay ráfagas; contra el Sidewinder vale cualquier pirueta en la zona) |
 | **HIGH YO-YO** (↑↑ alto) | lo dejás pasar por debajo y recaés sobre él |
 | **TERRAIN MASKING** (↓↓ bajo) | ya descarga el radar; debería **romper el lock** del misil |
 
@@ -555,11 +562,11 @@ Piezas del pedido:
 |---|---|
 | 🟥 **Caza enemigo visto DESDE ATRÁS** (cola a cámara) | **LO ÚNICO QUE BLOQUEA HOY.** El duelo funciona con placeholder (el `jet` de frente oscurecido 50% y angostado 74%, con llama de tobera) y por la regla P2 no bloquea nada — pero el placeholder se nota. Al llegar la hoja se van tres constantes de `render/caza.js` |
 | 🟥 **Poses de viraje del caza** (se invierte para ponerse en tu cola) | hoy la recola se resuelve con la trayectoria (sube y vuelve por atrás) y no con el sprite. Con la hoja, el giro se dibuja |
-| ❌ **Aviso de perseguidor en el HUD** — arco/radar trasero, luz de alerta | **DESCARTADO por diseño**, no pendiente: el §6.1 del plan lo prohíbe (sin radar ni RWR, el aviso es humano o no es). Su lugar lo ocupan las trazadoras y la radio |
+| ❌ **Aviso de perseguidor en el HUD** — arco/radar trasero, luz de alerta | **DESCARTADO por diseño**, no pendiente: el §6.1 del plan lo prohíbe (sin radar ni RWR, el aviso es humano o no es). Su lugar lo ocupan ~~las trazadoras~~ el Sidewinder que se ve venir (30/9) y la radio |
 | **Línea de radio en el HUD** (§13.2) — franja de mensaje con el emisor, tipografía de teletipo | la voz de la base tiene que leerse sin tapar el vuelo; conviene un lugar fijo y reconocible |
 | **Retícula de candado** — corchetes que se cierran + estado enganchado | la mira actual (`miras.webp`) es fija, no tiene estados |
 | **Bengalas / flares** | FX nuevo: racimo de luces cayendo hacia atrás |
-| ✅ **Trazadoras entrantes desde atrás** | **HECHO** (`render/caza.js`): dos chorros, el frío de aviso y el rojo apuntado. Muestreo largo — 7 tramos de 5,5 unidades, porque a 340 u/s con menos se leen como caspa sobre el mar |
+| ~~✅ **Trazadoras entrantes desde atrás**~~ | ~~**HECHO** (`render/caza.js`): dos chorros, el frío de aviso y el rojo apuntado. Muestreo largo — 7 tramos de 5,5 unidades, porque a 340 u/s con menos se leen como caspa sobre el mar~~ — **se fueron el 30/9**: el Harrier tira Sidewinder (`render/aim9.js`, PLAN_HARRIERS_PERSECUCION §12) |
 
 > Prioridad *(julio)*: después de la barcaza del momentum. **La previsión se cumplió al revés de lo
 > esperado y conviene dejarlo escrito:** dijimos "arranca con diseño, no con arte: sin el aviso de

@@ -137,17 +137,21 @@ function evasionInicial(b) {
 /** LA EVASION CON POSCOMBUSTION (pedido del autor, 30/9/2026): "si el avion aplica posquemado y
  *  realiza movimientos bruscos, el misil empieza a tener mas delay y puede evitarse tambien".
  *
- *  BRUSCO ES ACELERAR, NO IR RAPIDO. Quebrar, zigzaguear, bombear el gas: cambiar de velocidad de
- *  golpe, de costado o de altura. Deslizarse parejo de costado da aceleracion CERO y no cuenta —
- *  si contara, la evasion seria apretar dos teclas y mantenerlas. Se mide la aceleracion del avion
- *  cuadro a cuadro, suavizada (EVA_TAU): un zigzag sostenido cuenta entero y un volantazo suelto
- *  no. Con el alabeo, rolar de lado a lado da ~100 u/s²; el umbral es EVA_A.
+ *  BRUSCO ES ACELERAR, NO IR RAPIDO. Quebrar de un lado al otro: cambiar de velocidad de golpe.
+ *  Deslizarse parejo de costado da aceleracion CERO y no cuenta — si contara, la evasion seria
+ *  apretar dos teclas y mantenerlas. Se mide la aceleracion del avion cuadro a cuadro, suavizada
+ *  (EVA_TAU): un zigzag sostenido cuenta entero y un volantazo suelto no. Medido con los dos
+ *  controles: cambiar de lado da ~100-115 u/s² (el umbral, EVA_A, es la mitad); bombear gas y
+ *  picada da 33-52 y NO llega solo — el que sostiene la altura con el gas no esta quebrando. Lo
+ *  vertical suma si va junto con un quiebre: la aceleracion es una sola, de costado y de altura.
  *
  *  `m.eva` (0..1) SUBE solo con las DOS cosas a la vez —poscombustion encendida Y brusco— y baja
  *  si falta cualquiera. Lo que hace con el misil lo decide cada geometria (pasoCola / pasoFrente). */
 function evasion(m, dt, b, P) {
   const idt = 1 / Math.max(dt, 1e-4), vx = b.vx || 0, vy = b.vy || 0;
-  const acc = Math.hypot((vx - m.pvx) * idt, (vy - m.pvy) * idt);
+  // un golpe de UN cuadro —chocar la pared, el arranque de una pirueta— no llena el promedio solo:
+  // lo que pase de dos veces el umbral cuenta como dos veces el umbral
+  const acc = Math.min(2 * P.EVA_A, Math.hypot((vx - m.pvx) * idt, (vy - m.pvy) * idt));
   m.pvx = vx; m.pvy = vy;
   m.acc += (acc - m.acc) * clamp(dt / P.EVA_TAU, 0, 1);
   const sube = b.boost && m.acc >= P.EVA_A;

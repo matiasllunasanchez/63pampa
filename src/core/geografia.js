@@ -18,10 +18,10 @@
 // mismo que contestaba `cfg.terrain` antes de que existiera. Hay un unit test que lo recorre.
 
 import { cfg } from './state.js';
-import { tierraH, hayRelieve } from './tierra.js';
+import { tierraH, hayRelieve, ruido } from './tierra.js';
 import { shoreAt, TIERRA_AMP, GEO_COSTURA, GEO_PLAYA, GEO_PLAYA_ONDA, GEO_ORILLA_ENTRA, GEO_ORILLA_LEJOS,
   GEO_EXPLANADA, GEO_EXPLANADA_BORDE, GEO_ISLA_ALTO, GEO_ISLA_ALTO_MAX, GEO_ISLA_PENDIENTE, GEO_ISLA_CARA, GEO_ISLA_FLANCO, GEO_ISLA_PLAYA,
-  FLY_X } from '../data/tuning.js';
+  GEO_ISLA_MELLA_Z, GEO_ISLA_MELLA_X, GEO_ISLA_PUNTA, GEO_ISLA_AFUERA, GEO_ISLA_LOMO_M, GEO_ISLA_LLANA, GEO_ISLA_LOMO_AFUERA, FLY_X } from '../data/tuning.js';
 
 /** Los suelos de la data (en castellano, que es como se escribe una mision) y el codigo interno
  *  con el que el juego ya los conocia (`cfg.terrain`). Traducir aca y no en cada lector es lo que
@@ -532,22 +532,65 @@ export function sueloBlanco() {
  *  van por separado porque suben distinto: la entrada es la pendiente de `borde`, el costado que da
  *  al canal es un flanco empinado. */
 function islaBorde(x, wz, r) {
-  return Math.min(Math.min(wz - r.d0, r.d1 - wz), r.isla.m - Math.abs(x - r.isla.cx));
+  const B = bordes(x, wz, r);
+  return Math.min(B.sz, B.sx);
+}
+
+/** LOS BORDES DE UNA ISLA NO SON RECTAS (30/9: la isla parcial, 500 m de largo por 40 de ancho con
+ *  los bordes derechos, se leia como "una pista de aterrizaje de tierra"). La entrada y la salida se
+ *  mellan a lo largo de x. Del lado del CANAL el borde se mella a lo largo de z y la isla se AFINA
+ *  hacia las puntas — solo hacia adentro: el canal que abrio la data queda igual o mas ancho. Y del
+ *  lado de AFUERA, si la isla ya llega al borde del carril, sigue mas alla en bulbos de hasta
+ *  GEO_ISLA_AFUERA m: eso no se vuela (FLY_X), asi que es pura forma — la de una isla y no la de una
+ *  franja. Si ese borde cae adentro del carril, se mella como el del canal: un paso que la data dejo
+ *  nunca se cierra. */
+const MELLA = { sz: 0, sx: 0 };
+function bordes(x, wz, r) {
+  const I = r.isla;
+  const sz0 = Math.min(wz - r.d0, r.d1 - wz);
+  const fz = wz > (r.d0 + r.d1) / 2 ? 61 : 13;   // cada punta con su propia mella
+  MELLA.sz = sz0 - GEO_ISLA_MELLA_Z * (0.55 * ruido(x / 13, fz, 401) + 0.45 * ruido(x / 45, fz, 409));
+  if (I.m === Infinity) { MELLA.sx = Infinity; return MELLA; }
+  const canal = I.cx <= 0 ? 1 : -1;               // de que lado queda el canal
+  const lado = x >= I.cx ? 1 : -1;
+  const fx = lado > 0 ? 29 : 7;
+  const punta = suave(sz0 / GEO_ISLA_PUNTA);      // 0 en las puntas, 1 en el cuerpo
+  let m = I.m;
+  if (lado !== canal && Math.abs(I.cx - canal * I.m) >= FLY_X - 1) {
+    m += GEO_ISLA_AFUERA * punta * (0.6 * ruido(wz / 110, fx, 233) + 0.4 * ruido(wz / 35, fx, 239));
+  } else {
+    m -= Math.min(GEO_ISLA_MELLA_X, I.m * 0.5) * (0.55 * ruido(wz / 20, fx, 211) + 0.45 * ruido(wz / 75, fx, 223))
+      + I.m * 0.45 * (1 - punta);
+  }
+  MELLA.sx = m - Math.abs(x - I.cx);
+  return MELLA;
+}
+
+/** Las x que puede ocupar una isla parcial (con los bulbos de afuera): lo que recorre el dibujo. */
+export function islaX(r) {
+  const I = r.isla;
+  if (I.m === Infinity) return null;
+  const canal = I.cx <= 0 ? 1 : -1;
+  const afuera = Math.abs(I.cx - canal * I.m) >= FLY_X - 1 ? GEO_ISLA_AFUERA : 0;
+  return canal > 0 ? [I.cx - I.m - afuera, I.cx + I.m] : [I.cx - I.m, I.cx + I.m + afuera];
 }
 
 /** La altura de la tierra de una isla en (x, wz). 0 afuera. */
 export function islaAltura(x, wz, r) {
   const I = r.isla;
-  const sz = Math.min(wz - r.d0, r.d1 - wz);
-  const sx = I.m - Math.abs(x - I.cx);
+  const { sz, sx } = bordes(x, wz, r);
   if (sz < 0 || sx < 0) return 0;
   const cara = I.borde === 'acantilado';
   const pie = cara ? GEO_ISLA_PLAYA * 0.4 : GEO_ISLA_PLAYA;
   // la arena: apenas sobre el agua (el roce ahi es roce de playa, no de agua)
   // (en 4 m: con 3, la rampita de la arena era lo mas empinado de toda la entrada — 0,083)
   const arena = 0.25 * Math.min(1, Math.min(sz, sx) / 4);
-  const subeZ = Math.max(0, sz - pie) * (cara ? GEO_ISLA_CARA : GEO_ISLA_PENDIENTE);
-  const subeX = Math.max(0, sx - pie * 0.5) * GEO_ISLA_FLANCO;
+  // (la rampa de playa sube a GEO_ISLA_LLANA de la pendiente de la data: el resto lo usan las
+  // hondonadas del lomo, que tambien estan en la subida — sumadas nunca pasan la pendiente)
+  const subeZ = Math.max(0, sz - pie) * (cara ? GEO_ISLA_CARA : GEO_ISLA_PENDIENTE * GEO_ISLA_LLANA);
+  // el flanco del canal tampoco es parejo: a lo largo de z va de empinado (la data) a tendido —nunca
+  // mas empinado que GEO_ISLA_FLANCO, asi que se roza igual o menos— y su sombra no es una raya recta
+  const subeX = Math.max(0, sx - pie * 0.5) * GEO_ISLA_FLANCO * (0.35 + 0.65 * ruido(wz / 45, 3, 307));
   const sube = Math.min(subeZ, subeX);
   // LA CUMBRE: el lomo con el relieve de la turba encima (entre 0.8 y 1 de `alto`)
   const tn = TIERRA_AMP > 0 ? tierraH(x, wz) / TIERRA_AMP : 0;   // aprox. -1..1
@@ -556,7 +599,17 @@ export function islaAltura(x, wz, r) {
   // subida lineal hasta el 70% de la cumbre y despues se acuesta (derivada continua, nunca mayor)
   const t = sube / C;
   const f = t < 0.7 ? t : 0.7 + 0.3 * (1 - Math.exp(-(t - 0.7) / 0.3));
-  return Math.max(arena, explanada(C * f, wz));
+  // EL LOMO NO ES UN PLANO (30/9: "¿una pista de aterrizaje de tierra?"). Adentro del carril solo
+  // HONDONADAS de hasta GEO_ISLA_LOMO_M: la isla nunca pasa su `alto` —el techo del radar que la data
+  // midio— y la cumbre sigue cerca de el. Rapidas de costado y largas a lo largo de z: subiendo, su
+  // pendiente cabe en lo que la rampa le deja libre (GEO_ISLA_LLANA). Afuera del carril, donde no se
+  // vuela, el lomo sube y baja de verdad (GEO_ISLA_LOMO_AFUERA de `alto`).
+  const n = ruido(x / 18, wz / 220, 17) * 0.6 + ruido(x / 8, wz / 140, 5) * 0.4;     // 0..1
+  const afuera = suave((Math.abs(x) - FLY_X) / 45);
+  const nA = ruido(x / 50, wz / 60, 77);
+  const lomo = (1 - afuera) * Math.min(GEO_ISLA_LOMO_M, I.alto * 0.2) * (n - 1)
+    + afuera * I.alto * GEO_ISLA_LOMO_AFUERA * (nA - 0.35);
+  return Math.max(arena, explanada(C * f + suave(t / 0.5) * lomo, wz));
 }
 
 /** La ISLA que esta a `wz` (o a menos de `margen` metros), o null. La usan la siembra (no plantar

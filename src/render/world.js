@@ -562,18 +562,13 @@ export function drawSea() {
 }
 
 /** LAS LOMADAS de afuera del carril (render/colinas.js): despues del suelo y sus matas, que tapan.
- *  Se mide lo que cuestan (la sonda `__colinas`): son miles de preguntas al terreno por cuadro. */
-const costoColinas = { ms: 0, n: 0, pintadas: 0 };
+ *  Solo lo que esta MAS LEJOS que la isla mas lejana: lo de adelante lo sigue `drawIslas`, entre isla
+ *  e isla, para que la silueta de una isla lejana no pinte encima de una lomada cercana. */
 function lomadas() {
-  const t0 = performance.now();
-  costoColinas.pintadas = drawColinas();
-  costoColinas.ms += performance.now() - t0; costoColinas.n++;
+  let corte = 0;
+  for (const r of geo.islas) corte = Math.max(corte, r.d1 - run.dist);
+  drawColinas(corte);
 }
-if (typeof window !== 'undefined') window.__colinas = () => {
-  const r = { msPorCuadro: +(costoColinas.ms / Math.max(1, costoColinas.n)).toFixed(3), cuadros: costoColinas.n, rebanadas: costoColinas.pintadas };
-  costoColinas.ms = 0; costoColinas.n = 0;
-  return JSON.stringify(r);
-};
 
 /** Cuantas filas de cada suelo pinto el ultimo cuadro. La lee la sonda `__geofilas`: es la
  *  prueba de que la tierra SE VE VENIR — con el avion sobre el mar, el cuadro ya tiene filas de

@@ -218,7 +218,8 @@ app.whenReady().then(async () => {
   const cima = +(await J('__geoen(1.54, 0)')).altura;
   await en(1.535, cima + 5, 0, 900);
   const ge = await G(), eE = await estado();
-  if (eE === 'play' && ge.tierraBajo && ge.altura > 6) ok(`por encima se pasa: abajo hay isla (${ge.altura} m de tierra) y el avion sigue volando`);
+  // (> 4 m: desde el 30/9 el lomo tiene hondonadas — lo que se mide es que abajo HAY isla)
+  if (eE === 'play' && ge.tierraBajo && ge.altura > 4) ok(`por encima se pasa: abajo hay isla (${ge.altura} m de tierra) y el avion sigue volando`);
   else bad(`sobre la isla: estado ${eE}, tierra ${ge.tierraBajo}, altura ${ge.altura}`);
   if (OUT) { await en(1.52, cima + 4, 0, 120); await shot('geo_12_isla_encima'); }
   // LA PARCIAL: por el canal de la derecha se pasa a ras, sin subir

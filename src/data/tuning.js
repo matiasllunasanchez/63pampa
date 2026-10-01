@@ -909,6 +909,16 @@ export const GEO_ISLA_PENDIENTE = 0.07; // pendiente de una isla con `borde: 'pl
 export const GEO_ISLA_CARA = 2.6;      // pendiente del farallon de `borde: 'acantilado'`: no se trepa, se choca
 export const GEO_ISLA_FLANCO = 1.4;    // pendiente de los COSTADOS de una isla parcial (la pared del canal)
 export const GEO_ISLA_PLAYA = 10;      // m de arena al pie, antes de que el terreno suba (4 con acantilado)
+// LA ISLA NO ES UNA PISTA (30/9: "¿que es esto, una pista de aterrizaje de tierra?"). Los bordes se
+// mellan —la entrada hasta MELLA_Z m, el costado del canal hasta MELLA_X, siempre hacia adentro: el
+// canal solo se ensancha— y el lomo tiene relieve: en el carril hondonadas de hasta LOMO_M metros (nunca mas
+// alto que la data: el techo del radar), afuera lomas de -0,35 a +0,65 de LOMO_AFUERA de `alto`. La
+// rampa de playa sube a LLANA de GEO_ISLA_PENDIENTE: el resto es lo que suman las hondonadas.
+export const GEO_ISLA_MELLA_Z = 30, GEO_ISLA_MELLA_X = 12;
+// y en planta: del lado del canal se afina en las PUNTA m de cada extremo; del de afuera (si llega al
+// borde del carril) sigue en bulbos de hasta AFUERA m mas alla
+export const GEO_ISLA_PUNTA = 160, GEO_ISLA_AFUERA = 110;
+export const GEO_ISLA_LOMO_M = 2, GEO_ISLA_LLANA = 0.75, GEO_ISLA_LOMO_AFUERA = 0.75;
 export const GEO_ISLA_IMPACTO = 2;     // m por DEBAJO del suelo que ya no son roce sino choque: la cara de la isla
 // Hasta donde se DIBUJA, y como se funde con la distancia. No es la niebla de las laderas (que a 210 m
 // ya las borra): la cumbre TIENE que verse desde donde nace lo que viene (SPAWN_Z = 320), o la isla es
@@ -1920,6 +1930,20 @@ export const AIM9 = {
   // segundo. Sin esto salia en la asomada siguiente, 0,4 s despues, y en la practica llega en la
   // pasada que sigue: un misil por pasada.
   COLA_RESPIRO: 2.5,
+  // ---- LA EVASION CON POSCOMBUSTION (pedido del autor 30/9; `evasion` en core/aim9.js) ----
+  // La otra salida de atras: POSCOMBUSTION y quiebres BRUSCOS a la vez. Brusco es ACELERAR (cambiar
+  // de lado de golpe), no ir rapido: deslizarse parejo no cuenta. Medido en node contra el vuelo
+  // real (los dos controles): zigzagueando cada 0,35-0,8 s desde los primeros ~1,5-2 s del disparo,
+  // te pierde en ~1,6 s de quemar; un zigzag lento (1,2 s por lado), la poscombustion derecha,
+  // quebrar sin poscombustion o una rafaga corta (<1 s) NO lo sacan. Tarde (ya en la zona), queda la
+  // maniobra. La poscombustion se come la nafta: es la salida cara.
+  EVA_A: 55,           // u/s² de aceleracion (suavizada) desde la que el movimiento es brusco
+  EVA_TAU: 0.35,       // s del suavizado: un zigzag sostenido cuenta entero, un volantazo suelto no
+  EVA_SUBE: 0.8,       // cuanto sube la evasion por segundo de poscombustion + brusco (llena en 1,25 s)
+  EVA_BAJA: 0.5,       // ...y cuanto baja por segundo si falta cualquiera de las dos
+  EVA_LAG: 0.7,        // s de atraso EXTRA del buscador con la evasion llena: el "mas delay" del pedido
+  EVA_FRENO: 0.75,     // con la evasion llena cierra al 25%: mientras quemas y quebras no te alcanza
+  EVA_WOB: 1.2,        // cuanto CAZA el buscador con la evasion: se lo ve dudar (el aviso de que va)
   // ---- DE FRENTE (los cazas armados del pasillo) ----
   FRENTE_V: 80,        // velocidad propia hacia vos, que se SUMA a la tuya (cierra de frente)
   FRENTE_LAT: 6,       // cuanto puede CORREGIR, u/s. Se inclina, no quiebra: vos haces 30 de lado

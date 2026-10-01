@@ -3511,7 +3511,8 @@ test('geografia G4 · la parcial deja un canal: por ahi se pasa sin subir', () =
   try {
     const c = 0.44 * G4_OBJ;
     // tapa de -18-22.8 a -18+22.8: el canal va de ~5 a 38
-    assert.ok(alturaSuelo(-25, c) > 8, 'sobre la isla hay cerro');
+    // (> la mitad de `alto`: desde el 30/9 el lomo tiene hondonadas y la rampa es mas llana)
+    assert.ok(alturaSuelo(-25, c) > 6, `sobre la isla hay cerro (${alturaSuelo(-25, c).toFixed(1)} m)`);
     for (const x of [8, 20, 30, FLY_X_U]) {
       assert.equal(alturaSuelo(x, c), 0, `en el canal (x ${x}) es agua`);
       assert.equal(esTierraEn(x, c), false);
@@ -3820,6 +3821,52 @@ test('estructura · la cuenta ve las lomas, y en el terreno de t18 igual hay sue
     const t0 = tZona - MV.tonel.dur - 0.02, t1 = t0 + MV.tonel.dur + CD9 + 0.02;
     assert.ok(t1 < P9.COLA_T, `el reintento (${t1.toFixed(2)} s) llega despues del impacto (${P9.COLA_T} s)`);
     assert.ok(cola('tonel', t1).some(e => e.e === 'pierde'), 'el reintento tras el enfriamiento no lo pierde');
+  });
+
+  /** Vuela uno de LA COLA con un piloto: `piloto(t)` dice hacia donde rola (-1/0/+1) y si quema
+   *  poscombustion. El avion es el del ALABEO de core/physics.js, igual que el de frente. */
+  function colaQuemando(piloto) {
+    const b = { x: 0, y: 5, vx: 0, vy: 0, spd: 74, pz: PZ9, maniobra: false, tight: false, boost: false };
+    const m = A9.lanzarCola({ x: 15, y: 6.5, z: 10.5 }, b);
+    let t = 0, bank = 0;
+    for (let i = 0; i < 1200; i++) {
+      t += DT9;
+      const p = piloto(t);
+      bank = bStep(bank, p.dir, DT9); b.vx = bVx(bank); b.x += b.vx * DT9; b.boost = p.boost;
+      const e = A9.pasoAim9(m, DT9, b);
+      if (e === 'impacto' || e === 'pierde') return { e, t, porque: m.porque };
+    }
+    return { e: null };
+  }
+  /** Quebrar de lado a lado cada `per` s, desde `desde`. */
+  const zig9 = (desde, per = 0.5) => t => (t < desde ? 0 : Math.floor((t - desde) / per) % 2 ? -1 : 1);
+
+  test('sidewinder de atras: POSCOMBUSTION y quiebres bruscos lo atrasan hasta perderte', () => {
+    // "si el avion aplica posquemado y realiza movimientos bruscos, el misil empieza a tener mas
+    // delay y puede evitarse tambien" (el autor, 30/9). Empezando en el primer segundo y medio.
+    for (const desde of [0, 1, 1.5]) {
+      const r = colaQuemando(t => ({ dir: zig9(desde)(t), boost: t >= desde }));
+      assert.equal(r.e, 'pierde', `quemando y quebrando desde los ${desde} s no lo saco (${r.e} a los ${r.t && r.t.toFixed(2)} s)`);
+      assert.equal(r.porque, 'quemado', 'lo perdio, pero no por la poscombustion');
+    }
+  });
+
+  test('sidewinder de atras: cada mitad SOLA no lo saca — y tarde, lo que queda es la maniobra', () => {
+    const tarde = P9.COLA_T * P9.COLA_ZONA + 0.3;
+    const casos = {
+      'quemar derecho': () => ({ dir: 0, boost: true }),
+      'quebrar sin poscombustion': t => ({ dir: zig9(0)(t), boost: false }),
+      'deslizarse parejo quemando': () => ({ dir: 1, boost: true }),
+      'una rafaga corta (0,6 s) y soltar': t => ({ dir: t < 0.6 ? zig9(0)(t) : 0, boost: t < 0.6 }),
+      'empezar ya en la zona': t => ({ dir: zig9(tarde)(t), boost: t >= tarde }),
+    };
+    for (const [n, piloto] of Object.entries(casos)) assert.equal(colaQuemando(piloto).e, 'impacto', `${n} lo saco`);
+  });
+
+  test('sidewinder: si te alcanza, te ELIMINA en los tres modos (no es daño)', async () => {
+    const D9 = await import('../src/core/damage.js');
+    assert.ok(D9.isFatal('death_sidewinder'), 'volvio a la tabla de daño: "si el misil me impacta me elimina"');
+    for (const modo of D9.DMG_MODES) assert.ok(D9.applyHit(100, 'death_sidewinder', modo).down, `en ${modo} no te elimina`);
   });
 
   /** Vuela uno DE FRENTE. `tr`: a los cuantos segundos del disparo el avion empieza a rolar. */

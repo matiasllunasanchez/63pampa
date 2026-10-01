@@ -1,6 +1,10 @@
 # PLAN — Los Harrier en la cola (estilo After Burner) + el modo PERSECUCIÓN
 
 > **Estado: PLAN A COMPLETO (H0–H5, arte incluido) · PLAN B COMPLETO hasta N3, más N5 · PLAN C sin empezar.**
+> **30/9/2026 — EL SIDEWINDER (§12): el Harrier dejó de tirar ráfagas y tira UNO o DOS AIM-9L, de
+> atrás y de frente, y si te alcanza te elimina.** Lo que este plan dice de trazadoras que pasan,
+> ráfagas que te alcanzan y el modo `manso` "sin ráfagas" quedó como historia de por qué se llegó
+> acá (está tachado donde lo afirmaba como vigente); lo que rige está en el **§12**.
 > Implementado el 16/8; N5 y LA REGLA DEL AMIGO el 17/8; hojas `jet_rear` y `jet_turn`
 > horneadas el 17/8. `npm run check` verde, `npm run caza` verde (13 secciones),
 > `npm run persec` verde (13 secciones) y `npm run feel` **idéntico al baseline** —
@@ -38,6 +42,8 @@ Se miraron frames de la referencia (After Burner Climax, arcade 2006). Lo que en
 - El AVISO llega antes que el avión: primero **las trazadoras que te pasan de largo**
   (ráfagas que cruzan desde atrás hacia adelante, a los costados tuyos), después el caza.
   Es el "tell" clásico — no hace falta ver al enemigo para saber que está.
+  *(30/9: en RASANTE el aviso pasó a ser el misil mismo — la estela roja del Sidewinder que se
+  ve salir del Harrier y venir, §12.)*
 - El enemigo de atrás **no se queda atrás**: presiona unos segundos y **te sobrepasa**
   (overshoot), y ahí se convierte en blanco de frente por una ventana corta. El ciclo es
   presión → sobrepaso → ventana → se reencola o se va.
@@ -54,7 +60,7 @@ Se miraron frames de la referencia (After Burner Climax, arcade 2006). Lo que en
 
 | de After Burner | RASANTE |
 |---|---|
-| trazadoras que te pasan ANTES que el avión | ✅ tal cual — es el aviso visual canónico |
+| trazadoras que te pasan ANTES que el avión | ~~✅ tal cual — es el aviso visual canónico~~ **reemplazadas el 30/9 por el Sidewinder** (§12): el aviso es la estela roja del misil que viene |
 | presión → sobrepaso → ventana de frente | ✅ el ciclo entero |
 | la velocidad relativa como verbo | ✅ adaptado: turbo y piruetas (no hay freno en PASILLO) |
 | cámara lenta cargable para el caos | ✅ ya existe: MOMENTUM |
@@ -70,7 +76,7 @@ Se miraron frames de la referencia (After Burner Climax, arcade 2006). Lo que en
 | Los A-4 escapaban ABAJO: a ras del mar la solución de tiro y el ambiente degradaban al cazador | **Volar en la banda del ×10 degrada su puntería** — la tesis del juego otra vez: los valientes vuelan abajo, y abajo el halcón no agarra |
 | La CAP tenía minutos de estación (los portaaviones estaban lejos) | El duelo tiene RELOJ: si sobrevivís N pasadas, el Harrier **se va** — salida honesta y alivio dramático |
 | Ningún Harrier cayó en combate aire-aire (confirmar en PREGUNTAS_HISTORICAS) | Default: al Harrier **se lo ahuyenta** (con impactos rompe el ataque y se va humeando — puntos). El DERRIBO existe pero es carísimo y raro: la hazaña, no la rutina |
-| Sin radar ni RWR: los ojos y la radio | El aviso es de Cóndor/el escuadrón… **y a veces no llega** (canon §13). Las trazadoras pasando son el único aviso garantizado |
+| Sin radar ni RWR: los ojos y la radio | El aviso es de Cóndor/el escuadrón… **y a veces no llega** (canon §13). ~~Las trazadoras pasando son el único aviso garantizado~~ **El misil que se ve venir es el único aviso garantizado** (30/9, §12) |
 
 **Mentiras permitidas:** que el Harrier haga pasadas repetidas "a la After Burner" (real:
 un pase y control de energía); la ventana frontal generosa; el ahuyentado con cañón de
@@ -81,11 +87,14 @@ un pase y control de energía); la ventana frontal generosa; el ahuyentado con c
 **El ciclo completo (uno solo por vez, es un EVENTO):**
 
 1. **El aviso** — Cóndor o un Fiel: `"¡Rápido por la cola, {indicativo}!"` … o silencio
-   (sin radar). Las trazadoras empiezan a pasarte.
+   (sin radar). ~~Las trazadoras empiezan a pasarte.~~ *(30/9: sin trazadoras — §12)*
 2. **La presión** (5–8 s) — el Harrier atrás, invisible o asomando en los bordes. Su
    SOLUCIÓN de tiro madura mientras tu rumbo/altura sean predecibles; cada quiebre la
-   resetea; **a ras casi no progresa**. Si madura: ráfaga que te alcanza → avería o
-   muerte (embudo `onDeath` de siempre — el relevo aplica).
+   resetea; **a ras casi no progresa**. ~~Si madura: ráfaga que te alcanza → avería o
+   muerte (embudo `onDeath` de siempre — el relevo aplica).~~ **Desde el 30/9 no hay ráfaga:
+   desde su segunda asomada te tira un SIDEWINDER (uno por pasada, dos como mucho por Harrier),
+   que se pierde con una pirueta cuando ya está encima o con poscombustión y quiebres bruscos;
+   si te alcanza, te elimina (§12).**
 3. **El sobrepaso** — por reloj, o FORZADO por un combo de contraataque (BREAK TURN /
    JINK / S-TURN — ¡las mejoras del Pichón encuentran su verdadero para qué!): el Harrier
    te pasa ENORME por un costado (el cruce cercano del video: sprite grande, estela,
@@ -101,8 +110,8 @@ un pase y control de energía); la ventana frontal generosa; el ahuyentado con c
 | fase | entrega | criterio de cierre |
 |---|---|---|
 | ✅ **H0** | Cimiento: `systems/caza.js` (estado local del duelo, señales `{death}`, nunca llama arriba) + perillas `CAZA_*` en `data/tuning.js` + sonda `?caza` / `__czdbg()` + strings es/en | se entra al duelo por sonda; `check` verde |
-| ✅ **H1** | **El pase fantasma** (SIN daño): la coreografía entera legible — trazadoras que pasan, sobrepaso con sprite grande + doppler + shake, ventana frontal, salida. Arte: placeholder del jet actual escalado/oscurecido para la cola a cámara (la hoja real es de producción) | mirada muda: se entiende el ciclo sin leer nada |
-| ✅ **H2** | **La presión con dientes**: modelo de solución de tiro (madura con rumbo predecible, se resetea con quiebres, **degradada a ras** — perilla `CAZA_RAS_ALT = 4.5`, la banda del ×10), ráfagas con daño → averías/relevo/muerte (`death_caza`) | fixture: recto te alcanza; quebrando sobrevivís; a ras casi no progresa |
+| ✅ **H1** | **El pase fantasma** (SIN daño): la coreografía entera legible — trazadoras que pasan *(30/9: se fueron, §12)*, sobrepaso con sprite grande + doppler + shake, ventana frontal, salida. Arte: placeholder del jet actual escalado/oscurecido para la cola a cámara (la hoja real es de producción) | mirada muda: se entiende el ciclo sin leer nada |
+| ✅ **H2** | **La presión con dientes**: modelo de solución de tiro (madura con rumbo predecible, se resetea con quiebres, **degradada a ras** — perilla `CAZA_RAS_ALT = 4.5`, la banda del ×10), ~~ráfagas con daño → averías/relevo/muerte (`death_caza`)~~ → **el Sidewinder, que elimina (`death_sidewinder`, §12)** | fixture: recto te alcanza; quebrando sobrevivís; a ras casi no progresa |
 | ✅ **H3** | **El contraataque**: ventana frontal tirable, ahuyentado por impactos (humo + huida + puntos), derribo raro (`CAZA_HP` alto), combos BREAK/JINK/S-TURN fuerzan sobrepaso (gate: en campaña solo si están aprendidas), MOMENTUM interactúa gratis (escala dt) | fixture: ahuyentar suma; derribar es hazaña; el combo corta la presión |
 | ✅ **H4** | **Reglamento**: aparición por misión (`caza` en `missions.js` como dato — intensidad 0..2; m1=0), 1 duelo a la vez, reloj CAP, aviso-o-silencio según canon, sin duelos dentro de la niebla ciega ni durante ARENA/PASADA, puntaje | en m2 aparece UNA vez scripted; en PATRIA cada tanto; jamás en m1 |
 | ✅ **H5** | Legibilidad + audio + arte real: hojas `jet_rear` (5 alabeos de cola) y `jet_turn` (5 yaws de viraje con banqueo) horneadas por el mismo pipeline 3D; render con cascada (`jet_turn` → `jet_rear` → `jet` → silueta P2); fixture `npm run caza` completo (13 secciones) | gate total + capturas |
@@ -236,6 +245,10 @@ archivo: la única diferencia entre corridas es el PID de node en el warning de
 | momentum | barra llena 1.00 con 650 pts · lanzamiento 3.02 s |
 
 ### Divergencias
+
+> **30/9/2026:** las trazadoras, las ráfagas y `CAZA_MISS` de H0.3, H1.4, H1.5, H2.1, H2.2, H5.1 y
+> H5.2 ya no existen: el Harrier tira Sidewinder (§12). Se dejan como estaban porque son el porqué
+> de lo que se construyó; lo que quedó lo dice el §12.
 
 **H0 — el cimiento**
 
@@ -609,7 +622,7 @@ al agua le seguís el tren cómodo y volando alto te descolgás**. Nadie tuvo qu
 
 | cómo | qué se ve |
 |---|---|
-| `?caza` en la URL | un duelo apenas arranca el pasillo. `?caza=mudo` sin aviso por radio; `?caza=manso` sin las ráfagas que matan (el pase fantasma de H1, para mirar la coreografía) |
+| `?caza` en la URL | un duelo apenas arranca el pasillo. `?caza=mudo` sin aviso por radio; `?caza=manso` sin el Sidewinder (el pase fantasma de H1, para mirar la coreografía) |
 | cualquier misión de campaña salvo m1 | el duelo aparece solo, según `caza` de `data/missions.js` |
 | JUEGO RÁPIDO → **PERSECUCIÓN** | el modo infinito de volar de numeral, con la banda apretándose |
 | campaña **m1 «CON SAL EN LAS ALAS»** | se vuela de numeral detrás de PUMA (`persec: 1`) |
@@ -626,9 +639,12 @@ dejó tres lecciones idénticas (H1.10, N1.7, N2.5) que dicen lo mismo: *lo que 
 juzgar hay que mirarlo*. Y hay un escalón más arriba de mirar, que es **jugar**. Las preguntas
 concretas que sólo el playtest contesta:
 
-- **¿El grito de radio alcanza como aviso?** Es casi un segundo entre `CAZA_SOL_AVISO` y el
+- ~~**¿El grito de radio alcanza como aviso?** Es casi un segundo entre `CAZA_SOL_AVISO` y el
   disparo. En el papel es una eternidad; con un mástil viniendo de frente puede que no se lea.
-  Si no alcanza: subir `CAZA_SOL_AVISO` (avisa antes) o `CAZA_SOL_T` (madura más lento).
+  Si no alcanza: subir `CAZA_SOL_AVISO` (avisa antes) o `CAZA_SOL_T` (madura más lento).~~
+  **(30/9) ¿El "¡QUEBRÁ!" del Sidewinder alcanza?** Ahora lo grita el misil al entrar en la zona,
+  ~1,2 s antes de alcanzarte. Si no alcanza: `AIM9.COLA_ZONA` ↓ (la zona empieza antes) o
+  `AIM9.COLA_T` ↑ (llega más lento). Ver §12.
 - **¿Ahuyentar al Harrier se siente posible?** Seis impactos en una ventana de 3 s con el cañón,
   contra un blanco que teje en tres ejes. Puede ser demasiado. Perilla: `CAZA_HP.ahuyenta`.
 - **¿La banda de PERSECUCIÓN es tensa o es tarea?** `PURS_V_AMP` (±16%) es lo que obliga a dosificar
@@ -713,17 +729,20 @@ explícitamente no construirla y no se construyó.
 | **`run.shake` es lo único que estos sistemas le escriben al jugador** (H0.5 y N1.3) | `caza.js:golpeDelPase`, `persec.js:banda` | no se paga, se **vigila**: es feedback de cámara, no física, y `npm run feel` no lo mira. La regla es que no crezca |
 | **`caerLider()` no tiene todavía quién la llame** — la puerta del guion existe y está probada, pero ninguna misión la usa | `systems/persec.js`, `src/game.js` (la señal `{ guion }`) | cuando exista la campaña scripted (§5 C3, el Vasco en m7). Hasta entonces es una puerta cerrada con la llave puesta, a propósito |
 | **El líder no puede ser tocado por balas por AUSENCIA de código, no por una regla** (N5.7) | `systems/persec.js` | se **vigila**: si alguien mete al líder en `obstacles` o en el barrido de impactos, nada se pone rojo |
-| **El modo `manso`** (duelo sin ráfagas letales) | `systems/caza.js` | es un instrumento de prueba, no una dificultad. Si algún día se ofrece al jugador, que sea una decisión explícita y no una filtración |
+| **El modo `manso`** (duelo sin el Sidewinder) | `systems/caza.js` | es un instrumento de prueba, no una dificultad. Si algún día se ofrece al jugador, que sea una decisión explícita y no una filtración |
 | **Agregar un modo al menú JUEGO RÁPIDO rompe `tools/smoke.js`** (N2.4) | `tools/smoke.js`, dos `for` con número fijo de flechas | cada vez que se agregue un modo. Ya está anotado en ARQUITECTURA |
 
 ### 11.8 — Las perillas, y cuál mover primero
 
-Todas en `src/data/tuning.js`, en sus dos bloques (`CAZA_*` y `PURS_*`), cada una con su porqué
-escrito al lado. Las que más mueven la aguja:
+Todas en `src/data/tuning.js`, en sus bloques (`CAZA_*`, `AIM9` y `PURS_*`), cada una con su
+porqué escrito al lado. Las que más mueven la aguja:
 
 | si el playtest dice… | mover |
 |---|---|
-| "el Harrier me mata sin que pueda hacer nada" | `CAZA_SOL_AVISO` ↑ (avisa antes) · `CAZA_SOL_T` ↑ (madura más lento) |
+| ~~"el Harrier me mata sin que pueda hacer nada"~~ | ~~`CAZA_SOL_AVISO` ↑ · `CAZA_SOL_T` ↑~~ (la solución ya no dispara: 30/9) |
+| "el Sidewinder me mata sin que pueda hacer nada" | `AIM9.COLA_T` ↑ (llega más lento) · `AIM9.COLA_ZONA` ↓ (se puede quebrar antes) · `AIM9.EVA_SUBE` ↑ (la poscombustión lo sacude antes) |
+| "sacudirlo con poscombustión es demasiado fácil / imposible" | `AIM9.EVA_A` (cuán brusco hay que quebrar) · `AIM9.EVA_SUBE` / `EVA_BAJA` · `AIM9.EVA_FRENO` — medir en node antes de tocar (§12) |
+| "el de frente no se puede esquivar / no hace nada" | `AIM9.FRENTE_LAT` y `AIM9.FRENTE_ACC` (cuánto y qué tan rápido corrige) |
 | "volar a ras no me salva lo suficiente" | el factor `0.12` de `stepSolucion` (no es perilla todavía: **si se toca, hacerlo perilla**) |
 | "nunca lo puedo ahuyentar" | `CAZA_HP.ahuyenta` ↓ · `CAZA_WINDOW` ↑ |
 | "el sobrepaso no impresiona" | `CAZA_OVER_T` y la curva `f^2.2` de `stepPos` — la **curva importa más que la duración** (H1.1) |
@@ -732,3 +751,70 @@ escrito al lado. Las que más mueven la aguja:
 | "no entiendo si me estoy yendo o volviendo" | `PURS_CIERRE_MAX` ↓ (el riel reacciona antes) · `PURS_CIERRE_S` ↑ (menos temblor) |
 | "la formación es aburrida / imposible" | `PURS_V_AMP` — es **la** perilla del modo |
 | "el modo infinito se pone difícil muy rápido / muy lento" | `PURS_TIGHT_D` |
+
+---
+
+## 12. EL SIDEWINDER *(30/9/2026 — reemplaza las ráfagas y las trazadoras)*
+
+> Pedido del autor, 30/9: el Harrier deja de "tirar y errar" y te lanza **un AIM-9L, o como mucho
+> dos**, térmicos, que te siguen — de atrás y de frente. De atrás se esquiva con **una de las
+> maniobras predefinidas cuando ya está cerca**; de frente, **corriéndose**: lo sigue y se inclina,
+> pero no gira bruscamente. El mismo día, dos agregados: **"si el misil me impacta me elimina"**, y
+> **"si el avión aplica poscombustión y realiza movimientos bruscos, el misil empieza a tener más
+> delay y puede evitarse también"**.
+
+**Lo que se fue:** la `rafaga` de la cola (y su veda `CAZA_GOLPE_CD`), las trazadoras de los cazas
+armados del pasillo, `CAZA_TRAC_*` y `CAZA_MISS`, y las `CAZA_MSL_*`, que ningún archivo leía. La
+solución de tiro (§3 paso 2, H2) **sigue midiéndose** —acerca al Harrier en el aviso y la prueba el
+fixture §9— pero ya no dispara nada.
+
+**Lo que hay** — la matemática pura en `src/core/aim9.js` (la mide `npm run unit` con el mismo vuelo
+del juego), el dibujo en `src/render/aim9.js`, los números en el bloque `AIM9` de `data/tuning.js`:
+
+| | de ATRÁS (`modo: 'cola'`) | de FRENTE (`modo: 'frente'`) |
+|---|---|---|
+| quién lo tira | el Harrier de LA COLA, desde el pilón que se ve, a partir de su segunda asomada (`CAZA_AMAGUE_TIRA`) | los cazas armados del pasillo (`FRENTE_P` 45 %; de ésos, `FRENTE_P2` 25 % traen dos), al cruzar la banda `FRENTE_Z` |
+| cuántos | uno por pasada (`COLA_RESPIRO`), **dos como mucho por Harrier** (`POR_HARRIER`) | uno o dos, separados `FRENTE_GAP` |
+| cómo viene | se te pone en la cola y se acerca de a poco: te alcanza en `COLA_T` 3,2 s si no hacés nada. **Copia lo que hagas**: deslizarse de costado no lo saca | sale apuntado a donde estabas y corrige poco (`FRENTE_LAT` 6 u/s, `FRENTE_ACC` 9 u/s²) |
+| cómo se esquiva | **(1)** una pirueta del catálogo —cualquiera— con el misil en la ZONA (los últimos ~1,2 s, `COLA_ZONA` 0,62; el "¡QUEBRÁ!" lo grita el misil al entrar) · **(2)** poscombustión **y** quiebres bruscos a la vez, desde temprano | corriéndose de su línea; una pirueta que no lo choque también vale (el perfil se encoge) |
+| al perderte | sigue de largo y se te adelanta hasta perderse (se lo ve irse) | te cruza por afuera de la caja |
+
+**Si te alcanza, TE ELIMINA** en los tres modos de salud: `death_sidewinder` no está en la tabla `DMG`
+de `core/damage.js` (como el Sea Dart). Lo justo es que se lo pudo esquivar. Esquivar uno paga
+`AIM9.PTS` (150).
+
+**La salida por poscombustión (`evasion` en `core/aim9.js`, perillas `EVA_*`).** "Brusco" es
+**acelerar**, no ir rápido: se mide la aceleración del avión cuadro a cuadro, suavizada (`EVA_TAU`), y
+cuenta desde `EVA_A` (55 u/s²). Cambiar de lado da ~100-115 u/s² con los dos controles; deslizarse
+parejo da cero, y bombear gas y picada (33-52) no llega solo. Con poscombustión y brusco a la vez,
+la evasión sube (`EVA_SUBE`, llena en 1,25 s); si falta cualquiera de las dos, baja (`EVA_BAJA`).
+Mientras sube, el buscador se atrasa (`EVA_LAG`: el "más delay"), el misil deja de acortar
+(`EVA_FRENO`) y se lo ve dudar (`EVA_WOB`). Llena, te pierde; y si llega con la evasión a medias,
+llega corrido de tu avión y pasa de largo. **Medido en node contra el vuelo real** (los dos
+controles): zigzagueando cada 0,35-0,8 s desde los primeros ~1,5-2 s del disparo, te pierde en
+~1,6 s de quemar; **no lo sacan** la poscombustión derecha, quebrar sin poscombustión, deslizarse
+parejo, un zigzag lento (1,2 s por lado) ni una ráfaga corta (<1 s). Empezar ya en la zona es tarde:
+ahí lo que queda es la maniobra. Las dos salidas no compiten: la maniobra es la barata y de reloj;
+la poscombustión, la cara (se come la nafta) y sin puntería.
+
+**La radio:** `aim9_tira` al disparo, `caza_break` al entrar en la zona, y al perderte
+`aim9_perdido` (por la maniobra) o `aim9_sacudido` (por la poscombustión). El duelo mudo no dice nada.
+
+**El dibujo:** la hoja horneada `assets/ammo/aim9.png` (10 vistas, de cola a nariz; modelo en
+`tools/models/ammo.js`), la estela ROJA en el marco del mundo con el ancho de la perspectiva y el
+motor como anillos de llama chicos. Va en las dos pasadas del caza (`z >= PZ` con el mundo; `z < PZ`
+después de `drawCaza(false)`).
+
+**Cómo se prueba:** `npm run unit` (la cuenta: que pegue sin hacer nada y avise una vez, que
+corriéndose no se escape, que toda pirueta en la zona lo pierda y ninguna temprana, que la
+poscombustión con quiebres lo saque y cada mitad sola no, que elimine en los tres modos, y el de
+frente: quieto pega, corriéndose no, corrige sin girar bruscamente) y `npm run caza` §10, en el
+juego: (a) sin maniobra te elimina con chapa y escudo llenos, de a un misil; (b) un tonel en la zona
+lo pierde y se va adelante; (c) volando con poscombustión (C) y de lado a lado (A/D) lo sacude. Las
+sondas: `__aim9()` (todos los vivos, con fase, zona, evasión y por qué te perdió) y
+`__jetarmado(z, x, n)`.
+
+**Lo que contesta el playtest (11.2):** si la ventana de la poscombustión —los primeros ~2 s— se
+descubre sin que nadie la explique (la pantalla de derrota, `que_sidewinder`, ya la cuenta); si el
+"¡QUEBRÁ!" llega a tiempo con algo viniendo de frente; y si quemar nafta para sacudirlo se siente
+como una decisión o como un impuesto.

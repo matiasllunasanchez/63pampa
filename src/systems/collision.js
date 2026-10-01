@@ -425,7 +425,7 @@ export function collisionSystem(dt) {
         // fogonazos de CAÑON en las raices del ala (render/world.js), y esto no es un cañonazo.
         o.acd = AIM9.FRENTE_GAP; o.aim9--;
         const px0 = o.x + (o.aim9 % 2 ? -2.4 : 2.4);
-        missiles.push(lanzarFrente({ x: px0, y: o.y - 0.5, z: o.z }, { x: plane.x, y: plane.y, spd: run.spd, pz: PZ }));
+        missiles.push(lanzarFrente({ x: px0, y: o.y - 0.5, z: o.z }, { x: plane.x, y: plane.y, vx: plane.vx, vy: plane.vy || 0, spd: run.spd, pz: PZ }));
         // EL FOGONAZO de la ignicion bajo el ala: lo primero que se ve, antes que el misil
         const s = proj(px0, o.y - 0.5, o.z);
         for (let i = 0; i < 5; i++) parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 30,
@@ -477,16 +477,21 @@ export function collisionSystem(dt) {
         m.done = true; m.z -= (run.spd + AIM9.FRENTE_V) * dt;
         continue;
       }
+      // `boost`: LA POSCOMBUSTION, que con quiebres bruscos lo va atrasando hasta perderte (la otra
+      // salida de atras, ademas de la maniobra en la zona — ver `evasion` en core/aim9.js)
       const ev = pasoAim9(m, dt, { x: plane.x, y: plane.y, vx: plane.vx, vy: plane.vy || 0,
-        spd: run.spd, pz: PZ, maniobra: !!run.mv, tight: mvTight(run.mv) });
+        spd: run.spd, pz: PZ, maniobra: !!run.mv, tight: mvTight(run.mv), boost: run.boost });
       // LA ZONA: ahora una pirueta lo pierde. El grito lo armo quien lo tiro (systems/caza.js), que
       // es el que sabe si el duelo es mudo — sin texto, no se dice nada y queda el misil latiendo.
       if (ev === 'zona' && m.rompe) hablar('PUMA', m.rompe);
       if (ev === 'pierde' || ev === 'cruza') {
         run.score += AIM9.PTS; stats.dodges++; boom(0.08, true);
-        if (ev === 'pierde' && m.rompe) hablar('PUMA', T('aim9_perdido'));
+        // la radio lo festeja segun COMO lo perdiste: quebrando encima, o quemando y sacudiendolo
+        if (ev === 'pierde' && m.rompe) hablar('PUMA', T(m.porque === 'quemado' ? 'aim9_sacudido' : 'aim9_perdido'));
       }
       if (ev === 'impacto') {
+        // TE ELIMINA (pedido del autor 30/9): `death_sidewinder` no esta en la tabla de daño de
+        // core/damage.js, asi que es fatal en los tres modos, como el Sea Dart. Se lo pudo sacar.
         explodeAt(m.x, m.y, Math.max(m.z, PZ + 0.6), false, false, true);
         m.z = 0;                                    // el prune de abajo se lo lleva
         if (dmg.takeHit('death_sidewinder')) return { death: 'death_sidewinder' };
@@ -645,17 +650,13 @@ export function collisionSystem(dt) {
       }
     }
     if (pm.z >= 9999) continue;
-    // intercepta misiles enemigos
-    for (const m of missiles) {
-      if (m.z < z0 - 4 || m.z > pm.z + 4) continue;
-      if (Math.abs(pm.x - m.x) < 6 && Math.abs(pm.y - m.y) < 4) {
-        run.score += 400; stats.air++;
-        const s = proj(m.x, m.y, m.z); popup(s.x, s.y - 8, '+400', P.warn);
-        explodeAt(m.x, m.y, m.z, true);
-        m.z = -99; m.done = true; pm.z = 9999; break;
-      }
-    }
-    if (pm.z >= 9999) continue;
+    // (LA BOMBA YA NO INTERCEPTA MISILES ENEMIGOS. Era la regla de cuando aca viajaban los MISILES
+    // del jugador: un hitbox de 6 x 4 que derribaba lo que se le cruzara, +400. Desde la suelta
+    // (20/9) aca solo hay bombas y tanques, y la regla se habia quedado — y el misil que viene hacia
+    // vos converge justo donde se descuelga la bomba: la del BUQUE se gastaba contra un Sea Cat a
+    // doscientos metros del casco, +400 y la pasada errada. El autor, 30/9: "lance la bomba, pego, me
+    // dio 400 de puntos pero no pude pasar a traves ganando". Una bomba que cae no caza nada: lo
+    // cruza. A los misiles se los baja a tiros (las balas, mas arriba).)
     // EL BUQUE DE LA SUELTA (systems/blanco.js): si la bomba cruzo el casco este cuadro, el sistema
     // la juzga —armada, dormida, larga— y la da por terminada. Sin buque en el pasillo no hace nada.
     if (blancoSys.golpe(pm, z0)) { pm.z = 9999; continue; }

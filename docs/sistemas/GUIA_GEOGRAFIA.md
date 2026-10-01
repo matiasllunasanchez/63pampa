@@ -85,8 +85,15 @@ geografia: {
 | `borde` | `'playa'`: se entra por una loma que se sube con el gas · `'acantilado'`: un farallón que no se trepa, se choca | playa |
 | `expone` | `true` para permitir una isla más alta que el techo del radar (20 m). Es a propósito: cruzarla obliga a que te vean | — |
 
-Para que la cumbre llegue a su `alto` con entrada de playa, la isla necesita unos **450 m** (sube
-al 7 %). Más corta, queda más baja: nunca más empinada.
+Para que la cumbre llegue a su `alto` con entrada de playa, la isla necesita unos **600 m** (la
+rampa sube al 5 % y las hondonadas del lomo suman hasta el 7 %). Más corta, queda más baja: nunca
+más empinada.
+
+**La forma no es la de la data, es una isla** (30/9): los bordes se mellan, el lomo tiene hondonadas
+de hasta 2 m (nunca pasa su `alto`) y una parcial se afina hacia las puntas del lado del canal. Si
+llega al borde del carril, del lado de afuera sigue en bulbos de hasta 110 m que no se vuelan. Todo
+eso solo achica la isla adentro del carril: un canal nunca queda más angosto que lo que dice `ancho`
+(`GEO_ISLA_*` en `data/tuning.js`).
 
 ---
 

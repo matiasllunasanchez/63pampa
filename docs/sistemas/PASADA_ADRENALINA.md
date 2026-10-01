@@ -107,6 +107,8 @@ tirar a matar) · `HOSE_N 2` · `HOSE_SWEEP_S 3.5` · `NEARMISS_R 14` · `ENTRY_
 - Las **mangueras de trazadoras** de R2 son primas de las columnas del agua (T3) y de las
   trazadoras que pasan de largo del plan Harrier — misma familia de lenguaje visual: el
   fuego enemigo siempre es un chorro legible en el espacio, nunca un dado invisible.
+  *(30/9: las del Harrier se fueron — tira Sidewinder, PLAN_HARRIERS_PERSECUCION §12—, y la
+  familia sigue: su estela roja también es un camino legible en el espacio.)*
 
 ## 6. Divergencias del rescate *(completar durante la implementación)*
 

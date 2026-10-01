@@ -17,16 +17,20 @@ import { cam } from '../core/state.js';
 import { run } from '../core/run.js';
 import { proj } from '../core/fx.js';
 import { bendW } from '../core/zigzag.js';
-import { geo, islaAltura } from '../core/geografia.js';
+import { geo, islaAltura, islaX } from '../core/geografia.js';
 import { theme } from './theme.js';
 import { caraLadera, tierraArriba, mez } from './paredes.js';
+import { colinasHasta } from './colinas.js';
 import { GEO_ISLA_Z, GEO_ISLA_NIEBLA_Z0, GEO_ISLA_NIEBLA_FULL, GEO_ISLA_NIEBLA_MAX } from '../data/tuning.js';
 
-const MUESTRAS = 22;        // puntos por rebanada: el perfil de costado a costado
+const MUESTRAS = 28;        // puntos por rebanada: el perfil de costado a costado
 const BANDA = 7;            // m de mundo entre surco y surco del lomo
 const MATA_PASO = 5;        // m de la grilla de las matas
 const MATA_Z = 150;         // hasta donde se plantan: mas lejos serian un pixel sucio
 const XS = new Float64Array(MUESTRAS), HS = new Float64Array(MUESTRAS);
+// la rebanada anterior ya proyectada: el sombreado va en las franjas ENTRE rebanadas (como las lomadas)
+const QX = new Float64Array(MUESTRAS), QY = new Float64Array(MUESTRAS), HP = new Float64Array(MUESTRAS);
+const PX = new Float64Array(MUESTRAS), PY = new Float64Array(MUESTRAS);
 
 // lo que dibujo el ultimo cuadro, para la sonda (y el fixture: "la cumbre se ve desde SPAWN_Z")
 const ultimo = { rebanadas: 0, lejos: 0, cumbreY: null, hor: 0 };
@@ -35,7 +39,7 @@ const ultimo = { rebanadas: 0, lejos: 0, cumbreY: null, hor: 0 };
  *  carril entero, lo que se ve de costado a costado (con margen: sin el, al rolar se ve el corte). */
 function tramoX(r, camZ) {
   const I = r.isla;
-  if (I.m !== Infinity) return [I.cx - I.m, I.cx + I.m];
+  if (I.m !== Infinity) return islaX(r);   // con los bulbos de afuera
   const k = F / camZ, b = bendW(camZ);
   const med = (W / 2 + 90) / k;
   return [cam.x - b - med, cam.x - b + med];
@@ -45,15 +49,19 @@ function tramoX(r, camZ) {
  *  esta mas cerca) y antes de las laderas y de lo que vuela. */
 export function drawIslas() {
   ultimo.rebanadas = 0; ultimo.lejos = 0; ultimo.cumbreY = null; ultimo.hor = HOR;
-  if (!geo.islas.length) return;
+  if (!geo.islas.length) { colinasHasta(0); return; }
   const dv = run.dist;
   const T = tierraArriba(), L = caraLadera();
   const arena = theme.cland.near, arenaL = theme.cland.far;
   const fondo = theme.water.base0;
-  for (const r of geo.islas) {
+  // DE LA MAS LEJANA A LA MAS CERCANA, y antes de cada una las LOMADAS que estan detras de ella
+  // (render/colinas.js): el suelo solo pinto las que quedan mas lejos que la isla mas lejana.
+  for (let j = geo.islas.length - 1; j >= 0; j--) {
+    const r = geo.islas[j];
+    colinasHasta(r.d1 - dv);
     if (r.d1 - dv <= 3 || r.d0 - dv >= GEO_ISLA_Z) continue;
     const zLejos = Math.min(GEO_ISLA_Z, r.d1 - dv), zCerca = Math.max(3, r.d0 - dv);
-    let hPrev = null, izPrev = null;
+    let hPrev = null, izPrev = null, zPrev = 0;
     for (let camZ = zLejos; camZ >= zCerca; camZ -= Math.max(1.5, camZ * 0.022)) {
       const wz = dv + camZ;
       const [xa, xb] = tramoX(r, camZ);
@@ -90,6 +98,7 @@ export function drawIslas() {
       let top = Infinity;
       for (let i = 0; i < MUESTRAS; i++) {
         const p = proj(XS[i], HS[i], camZ);
+        PX[i] = p.x; PY[i] = p.y;
         ctx.lineTo(p.x, p.y);
         if (p.y < top) top = p.y;
       }
@@ -97,6 +106,32 @@ export function drawIslas() {
       ctx.lineTo(a1.x, a1.y + 1);
       ctx.closePath();
       ctx.fill();
+      // EL VOLUMEN DE COSTADO (30/9). Un color por rebanada leia el lomo como un plano —"¿una pista
+      // de aterrizaje de tierra?"—: cada franja entre esta rebanada y la anterior se aclara o se
+      // oscurece por SU pendiente, la de adelante (te mira o te da la espalda) y la de costado (la
+      // ladera que mira a la izquierda, a la luz, o a la derecha, a la sombra).
+      if (hPrev !== null && zPrev > camZ && hMax >= 0.5) {
+        const dz = zPrev - camZ;
+        for (let i = 0; i < MUESTRAS - 1; i++) {
+          if (HS[i] + HS[i + 1] + HP[i] + HP[i + 1] < 1) continue;
+          const cara = ((HP[i] + HP[i + 1]) - (HS[i] + HS[i + 1])) / (2 * dz);
+          // (lat > 0: sube hacia la derecha, la ladera mira a la izquierda — a la luz. El flanco del
+          // canal mira a la derecha y queda en SOMBRA: iluminado era una franja clara y larga que se
+          // leia como un camino)
+          const lat = (HS[i + 1] - HS[i]) / Math.max(0.5, XS[i + 1] - XS[i]);
+          const luz = cara * 1.2 + Math.max(-0.5, Math.min(0.5, lat)) * 0.6;
+          if (luz > -0.03 && luz < 0.03) continue;
+          const c2 = luz > 0 ? mez(col, T.corona, Math.min(0.45, luz * 1.4))
+            : mez(col, L.som, Math.min(0.6, -luz * 2));
+          ctx.fillStyle = mez(c2, fondo, niebla);
+          ctx.beginPath();
+          ctx.moveTo(QX[i], QY[i]); ctx.lineTo(QX[i + 1], QY[i + 1]);
+          ctx.lineTo(PX[i + 1], PY[i + 1] + 0.6); ctx.lineTo(PX[i], PY[i] + 0.6);
+          ctx.closePath(); ctx.fill();
+        }
+      }
+      for (let i = 0; i < MUESTRAS; i++) { QX[i] = PX[i]; QY[i] = PY[i]; HP[i] = HS[i]; }
+      zPrev = camZ;
       // LAS MATAS, cuando la rebanada cruza una fila de la grilla de mundo: se plantan encima de lo
       // que acaba de pintarse y debajo de lo que viene mas cerca, asi que el lomo de adelante las
       // tapa como corresponde. Deterministas por celda: no titilan ni se mudan.
@@ -108,6 +143,7 @@ export function drawIslas() {
       if (ultimo.cumbreY === null || top < ultimo.cumbreY) ultimo.cumbreY = top;
     }
   }
+  colinasHasta(0);   // las lomadas que quedan mas cerca que todas las islas
 }
 
 /** Una fila de matas sobre el lomo, a la profundidad `camZ` (fila `iz` de la grilla de mundo). Solo

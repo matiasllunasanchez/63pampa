@@ -59,8 +59,9 @@ export function colinaH(wx, wz) {
   return COLINA_H * falda * (0.25 + macizo * 1.05) * (0.45 + loma * 0.7) * (0.88 + filo * 0.24);
 }
 
-/** Ruido de valor 2D en [0,1], interpolado suave entre las esquinas de la celda. */
-function ruido(x, z, sd) {
+/** Ruido de valor 2D en [0,1], interpolado suave entre las esquinas de la celda. Lo usan tambien las
+ *  islas (core/geografia.js): su lomo y sus bordes. */
+export function ruido(x, z, sd) {
   const ix = Math.floor(x), iz = Math.floor(z), fx = x - ix, fz = z - iz;
   const sx = fx * fx * (3 - 2 * fx), sz = fz * fz * (3 - 2 * fz);
   const a = hash2(ix + sd, iz), b = hash2(ix + 1 + sd, iz), c = hash2(ix + sd, iz + 1), e = hash2(ix + 1 + sd, iz + 1);

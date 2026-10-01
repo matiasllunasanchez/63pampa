@@ -86,8 +86,8 @@ Cada fila es una perilla. La columna **DÓNDE** dice qué constante o sistema to
 | | `ARCADE` | `1982` | DÓNDE |
 |---|---|---|---|
 | Alerta de misil | sí (sonido + indicador) | **no hay alerta de ningún tipo** | nuevo: `RWR_ON` |
-| Misil enemigo | lento, se ve venir | mismo dibujo, **sin aviso previo** | `CAZA_MSL_*` |
-| Trazadoras de aviso | sí | menos, y algunas **sí hacen daño** | `CAZA_MSL_*`, trazadoras |
+| Misil enemigo | lento, se ve venir | mismo dibujo, **sin aviso previo** | ~~`CAZA_MSL_*`~~ `AIM9` (el Sidewinder de los Harrier, 30/9) |
+| ~~Trazadoras de aviso~~ | ~~sí~~ | ~~menos, y algunas **sí hacen daño**~~ | ~~`CAZA_MSL_*`, trazadoras~~ — 30/9: el Harrier ya no tira trazadoras; el aviso es el Sidewinder que se ve venir (PLAN_HARRIERS_PERSECUCION §12) |
 | Chaff | — | consumible **de las mejoras**, y **soltarlo te frena** (iba en el aerofreno) | nuevo |
 
 > El «no hay alerta» es el dato más sólido de toda la investigación: le preguntaron a Carballo

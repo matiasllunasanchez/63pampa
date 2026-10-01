@@ -254,7 +254,7 @@ function lanzarAim9() {
   if (C.aim9 < AIM9.POR_HARRIER && C.libreT < AIM9.COLA_RESPIRO) return;
   C.aim9--;
   const p = pilon();
-  const m = lanzarCola(p, { x: plane.x, y: plane.y, pz: PZ });
+  const m = lanzarCola(p, { x: plane.x, y: plane.y, vx: plane.vx, vy: plane.vy || 0, pz: PZ });
   // LA VOZ DEL AVISO, armada ACA: el que sabe si el duelo es mudo es este archivo, y el que sabe
   // cuando el misil entra en la zona es collision.js. Se le deja el texto hecho y alla solo se dice.
   // El duelo MUDO no avisa ni el disparo ni el quiebre: en ese hay que mirar el misil.
@@ -734,11 +734,13 @@ export function dbg() {
 
 // __aim9 (QUITAR): TODOS los Sidewinder vivos —los de la cola y los de los cazas de frente—, con lo
 // que hace falta para afirmar la regla desde afuera: de donde vino, en que fase esta, si ya entro a
-// la zona y donde cae en la pantalla. Vive aca y no en collision.js porque es el archivo de LA
+// la zona, cuanta EVASION lleva (la poscombustion con quiebres), por que te perdio ('maniobra' |
+// 'quemado') y donde cae en la pantalla. Vive aca y no en collision.js porque es el archivo de LA
 // COLA, que es donde se entiende la regla; los de frente salen en la misma lista.
 if (typeof window !== 'undefined') window.__aim9 = () => JSON.stringify(missiles.filter(m => m.tipo === 'aim9').map(m => {
   const s = proj(m.x, m.y, Math.max(0.5, m.z));
   return { modo: m.modo, fase: m.fase, zona: !!m.zona, t: +m.t.toFixed(2), z: +m.z.toFixed(1),
+    eva: +(m.eva || 0).toFixed(2), porque: m.porque || null,
     sx: Math.round(s.x), sy: Math.round(s.y), tr: (m.tr || []).length };
 }));
 

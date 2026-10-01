@@ -28,8 +28,6 @@ import { COLINA_X0, COLINA_Z, COLINA_ORILLA, COLINA_PLAYA } from '../data/tuning
 // pasto y la lomada se camuflaba contra la tierra plana de atras (primera version, 30/9).
 const N = 24, X_MAX = 2600;
 const AX = Array.from({ length: N }, (_, i) => COLINA_X0 * Math.pow(X_MAX / COLINA_X0, i / (N - 1)));
-const HS = new Float64Array(N), PX = new Float64Array(N), PY = new Float64Array(N);
-const HP = new Float64Array(N), QX = new Float64Array(N), QY = new Float64Array(N);   // la rebanada anterior
 const NIEBLA_Z0 = 220, NIEBLA_MAX = 0.8;              // se funde con la lejania, sin borrarse del todo
 const MATA_PASO = 7, MATA_Z = 130;
 
@@ -48,22 +46,52 @@ function tierraAdentro(x, wz, costa) {
   return esTierraEn(x, wz) ? 1 : 0;
 }
 
-/** Las lomadas del cuadro. Va despues del suelo (raster + matas) y antes de todo lo que se levanta. */
-export function drawColinas() {
-  let pintadas = 0;
+// EL CUADRO SE PINTA POR TRAMOS DE PROFUNDIDAD (30/9). Las lomadas van despues del suelo, pero las
+// ISLAS (render/islas.js) se dibujan mas tarde, despues del buque: una isla a un kilometro pintaba su
+// silueta ENCIMA de la lomada que esta a cien metros — una raya del horizonte cruzando el cerro. Asi
+// que el recorrido de rebanadas (de lejos a cerca, los dos costados juntos) se puede cortar: el
+// suelo pinta lo que esta mas lejos que la isla mas lejana, y `drawIslas` sigue, isla por isla,
+// pintando las lomadas que quedan entre una y otra antes de cada una. Las rebanadas son las mismas:
+// cortar no cambia el dibujo, solo el orden.
+const POR_LADO = [-1, 1].map(lado => ({
+  lado, hay: false, zPrev: 0, izPrev: null,
+  HS: new Float64Array(N), PX: new Float64Array(N), PY: new Float64Array(N),
+  HP: new Float64Array(N), QX: new Float64Array(N), QY: new Float64Array(N),   // la rebanada anterior
+}));
+const cuadro = { activo: false, camZ: 0, pintadas: 0, T: null, L: null, lejos: '', ms: 0, n: 0, ultimas: 0 };
+
+/** Arranca las lomadas del cuadro. Va despues del suelo (raster + matas) y antes de todo lo que se
+ *  levanta; pinta hasta `zCorte` (lo que queda mas cerca lo pinta `colinasHasta`). */
+export function drawColinas(zCorte) {
+  const t0 = performance.now();
+  cuadro.activo = false; cuadro.pintadas = 0;
   const dv = run.dist;
   // ¿hay tierra en algun lado de lo que se ve? Barato y primero: el mapa de mar no paga nada.
-  if (sueloEn(dv + 60) === 'sea' && sueloEn(dv + 400) === 'sea' && sueloEn(dv + COLINA_Z) === 'sea') return 0;
-  const T = tierraArriba(), L = caraLadera();
-  const lejos = sueloEn(dv + COLINA_Z) === 'land' ? theme.land.far : theme.water.base0;
-  for (const lado of [-1, 1]) {
-    let hay = false, zPrev = 0, izPrev = null;
-    for (let camZ = COLINA_Z; camZ >= 6; camZ -= Math.max(2.5, camZ * 0.028)) {
-      const wz = dv + camZ;
-      const rampa = rampaTierra(wz);
-      if (rampa <= 0.01 || islaEn(wz) || paredH(wz, lado) > 0) { hay = false; continue; }
+  if (!(sueloEn(dv + 60) === 'sea' && sueloEn(dv + 400) === 'sea' && sueloEn(dv + COLINA_Z) === 'sea')) {
+    cuadro.activo = true; cuadro.camZ = COLINA_Z;
+    cuadro.T = tierraArriba(); cuadro.L = caraLadera();
+    cuadro.lejos = sueloEn(dv + COLINA_Z) === 'land' ? theme.land.far : theme.water.base0;
+    for (const S of POR_LADO) { S.hay = false; S.zPrev = 0; S.izPrev = null; }
+  }
+  cuadro.ms += performance.now() - t0; cuadro.n++;
+  colinasHasta(zCorte || 0);
+}
+
+/** Sigue pintando las lomadas del cuadro, de donde quedaron, hasta `zCorte` (camZ). */
+export function colinasHasta(zCorte) {
+  if (!cuadro.activo) return;
+  const t0 = performance.now();
+  const dv = run.dist, T = cuadro.T, L = cuadro.L, lejos = cuadro.lejos;
+  let camZ = cuadro.camZ;
+  for (; camZ >= 6 && camZ >= zCorte; camZ -= Math.max(2.5, camZ * 0.028)) {
+    const wz = dv + camZ;
+    const rampa = rampaTierra(wz);
+    const isla = rampa > 0.01 && islaEn(wz);
+    const costa = sueloEn(wz) === 'coast';
+    for (const S of POR_LADO) {
+      const lado = S.lado, HS = S.HS, PX = S.PX, PY = S.PY, HP = S.HP, QX = S.QX, QY = S.QY;
+      if (rampa <= 0.01 || isla || paredH(wz, lado) > 0) { S.hay = false; continue; }
       let hMax = 0;
-      const costa = sueloEn(wz) === 'coast';
       for (let i = 0; i < N; i++) {
         const x = lado * AX[i];
         const t = tierraAdentro(x, wz, costa);
@@ -72,11 +100,11 @@ export function drawColinas() {
         const p = proj(x, HS[i], camZ);
         PX[i] = p.x; PY[i] = p.y;
       }
-      if (hay && hMax > 0.05) {
+      if (S.hay && hMax > 0.05) {
         // LA NIEBLA de la distancia, por rebanada: se funde con la lejania sin borrarse del todo
         const niebla = Math.max(0, Math.min(1, (camZ - NIEBLA_Z0) / (COLINA_Z - NIEBLA_Z0))) * NIEBLA_MAX;
         const base = camZ < 180 ? T.cerca : T.lejos;
-        const dz = zPrev - camZ;
+        const dz = S.zPrev - camZ;
         for (let i = 0; i < N - 1; i++) {
           // fuera de cuadro (o todo al ras): nada que pintar
           if (Math.min(PX[i], PX[i + 1], QX[i], QX[i + 1]) > W + 40 || Math.max(PX[i], PX[i + 1], QX[i], QX[i + 1]) < -40) continue;
@@ -97,21 +125,30 @@ export function drawColinas() {
           ctx.lineTo(PX[i + 1], PY[i + 1] + 0.6); ctx.lineTo(PX[i], PY[i] + 0.6);
           ctx.closePath(); ctx.fill();
         }
-        pintadas++;
+        cuadro.pintadas++;
         // LAS MATAS de cerca, cuando la rebanada cruza una fila de la grilla de mundo
         const iz = Math.floor(wz / MATA_PASO);
-        if (camZ < MATA_Z && iz !== izPrev) matas(lado, iz, camZ, rampa, T);
-        izPrev = iz;
+        if (camZ < MATA_Z && iz !== S.izPrev) matas(lado, iz, camZ, rampa, T, costa);
+        S.izPrev = iz;
       }
       for (let i = 0; i < N; i++) { HP[i] = HS[i]; QX[i] = PX[i]; QY[i] = PY[i]; }
-      hay = true; zPrev = camZ;
+      S.hay = true; S.zPrev = camZ;
     }
   }
-  return pintadas;
+  cuadro.camZ = camZ;
+  if (camZ < 6) { cuadro.activo = false; cuadro.ultimas = cuadro.pintadas; }
+  cuadro.ms += performance.now() - t0;
 }
 
+// ---------- SONDA: lo que cuestan (son miles de preguntas al terreno por cuadro) ----------
+if (typeof window !== 'undefined') window.__colinas = () => {
+  const r = { msPorCuadro: +(cuadro.ms / Math.max(1, cuadro.n)).toFixed(3), cuadros: cuadro.n, rebanadas: cuadro.ultimas };
+  cuadro.ms = 0; cuadro.n = 0;
+  return JSON.stringify(r);
+};
+
 /** Una fila de matas sobre las lomadas de un costado. Deterministas por celda: no titilan. */
-function matas(lado, iz, camZ, rampa, T) {
+function matas(lado, iz, camZ, rampa, T, costa) {
   const k = F / camZ, wz = iz * MATA_PASO;
   const borde = Math.abs(cam.x - bendW(camZ)) + (W / 2 + 20) / k;
   for (let ia = Math.ceil(COLINA_X0 / MATA_PASO); ia * MATA_PASO <= borde; ia++) {
@@ -119,7 +156,7 @@ function matas(lado, iz, camZ, rampa, T) {
     if (h1 < 0.6) continue;
     const h2 = hash2(ia * lado + 911, iz - 307);
     const x = lado * (ia * MATA_PASO + (h2 - 0.5) * MATA_PASO);
-    const t = tierraAdentro(x, wz, sueloEn(wz) === 'coast');
+    const t = tierraAdentro(x, wz, costa);
     if (t <= 0) continue;
     const gy = colinaH(x, wz) * rampa * t;
     if (gy < 0.6) continue;

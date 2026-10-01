@@ -179,7 +179,7 @@ de REGRESO** (`AIR_START_Y`) · el pasillo y su siembra (`SPAWN_*`) · el techo 
 (`RADAR_ALT`) · niebla completa (`FOG_*`) · **la Chancha entera** (`CH_*`) · el Pulso ·
 la pasada y el arena (en cuarentena, recuperables por dato) · el cañón con calor (`GUN_*`) ·
 3 tiros pesados (`MSL_MAX`) · reencare con costo (`REATTACK_*`) · vida de enemigos
-(`ENEMY_HP`) · la cola de Harriers y sus misiles (`CAZA_MSL_*`) · acantilados y costa
+(`ENEMY_HP`) · la cola de Harriers y sus misiles (~~`CAZA_MSL_*`~~ `CAZA_*` y `AIM9`, el Sidewinder: 30/9) · acantilados y costa
 (`CLIFF_*`, `SHORE_X`) · el tren (`GEAR_T`) · piruetas y mejoras · charlas en vuelo.
 
 ### Falta
@@ -259,7 +259,7 @@ CONTEXTO DE ARQUITECTURA — leelo antes de escribir código:
 - data/ no importa lógica del juego. Datos puros.
 - Ya existen y NO hay que reescribir: el pasillo y su siembra (SPAWN_*), el techo de radar
   (RADAR_ALT), la niebla (FOG_*), la Chancha (CH_*), el Pulso, el cañón (GUN_*), MSL_MAX,
-  REATTACK_*, ENEMY_HP, la cola de cazas (CAZA_MSL_*), el despegue (runways.js, PORT_H) y
+  REATTACK_*, ENEMY_HP, la cola de cazas (CAZA_* y su Sidewinder, AIM9), el despegue (runways.js, PORT_H) y
   AIR_START_Y, que ya existe justamente para "misiones de REGRESO".
 
 QUÉ HAY QUE HACER:
@@ -324,7 +324,7 @@ Leé, en este orden, y no empieces hasta terminarlos:
   3. src/data/missions.js  ← mirá cómo una misión declara su cfg con el helper C(over).
   4. src/data/pruebas.js  ← acá va tu misión nueva.
   5. src/data/tuning.js  ← buscá y entendé: SPAWN_*, RADAR_ALT, FOG_*, CH_*, GUN_*, MSL_MAX,
-     REATTACK_*, ENEMY_HP, CAZA_MSL_*, GEAR_T.
+     REATTACK_*, ENEMY_HP, CAZA_* y AIM9, GEAR_T.
   6. src/data/runways.js  ← PORT_H y AIR_START_Y.
 Después buscá en el código quién consume cfg y dónde se siembran los enemigos del pasillo.
 
@@ -369,7 +369,7 @@ PASO 2 — La misión t15.
 PASO 3 — Lo que cada fase cambia.
   a) SIEMBRA EN LA VUELTA. Hoy la siembra termina en el buque; la fase 'vuelta' tiene que
      sembrar con ~2x la densidad de la ida, y los cazas tienen que venir DE FRENTE, no solo
-     por la cola como hace hoy CAZA_MSL_*.
+     por la cola como hace hoy LA COLA (CAZA_*, con su Sidewinder: AIM9).
   b) CORTE DE RADIO. En 'descenso', 'rasante' y 'blanco' el escuadrón no habla: solo Cóndor.
      Al entrar en 'vuelta' vuelven las voces. Sin cartel y sin aviso: es puramente la ausencia
      y el regreso del sonido. Este efecto es narrativo y es el que más me importa.

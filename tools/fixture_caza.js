@@ -8,7 +8,7 @@
 // ESTADO: H0-H4 cubiertos (cimiento, pase fantasma, dientes, contraataque y reglamento), y desde
 // el 30/9 el SIDEWINDER que te tira desde la cola (seccion 10).
 //
-// LAS SECCIONES 1-8 CORREN EL DUELO EN MODO **MANSO** (sin las rafagas que matan) y no es una
+// LAS SECCIONES 1-8 CORREN EL DUELO EN MODO **MANSO** (sin el Sidewinder, que mata) y no es una
 // trampa: es el criterio de siempre del repo — la seccion que mide una cosa apaga lo que no esta
 // midiendo. Lo que miden es la COREOGRAFIA, y no se puede juzgar un sobrepaso desde la pantalla de
 // derribado. Los dientes tienen sus propias secciones (9 en adelante) y ahi el duelo va entero.
@@ -270,35 +270,42 @@ app.whenReady().then(async () => {
   // que lo mueva collision.js, que pegue por el embudo de siempre y que una pirueta de verdad lo
   // saque. La cuenta fina —cuando empieza la zona, el peor caso del panico, que valgan todas las
   // piruetas— es de `npm run unit`, que la mide contra el vuelo real sin pilotear nada.
-  console.log('\n10. el Sidewinder de la cola: sin maniobra te pega, con una a tiempo sigue de largo:');
+  console.log('\n10. el Sidewinder de la cola: sin maniobra te elimina; con una a tiempo, o quemando y quebrando, lo perdes:');
   const AIM9 = async () => JSON.parse(await js('__aim9()')).filter(m => m.modo === 'cola');
-  // (a) SIN HACER NADA TE ALCANZA — y de a uno
+  // (a) SIN HACER NADA TE ALCANZA — y TE ELIMINA, y de a uno. "Si el misil me impacta me elimina"
+  // (el autor, 30/9): no es daño. Se corre CON CHAPA (INTEGRIDAD, escudo lleno) a proposito: es el
+  // modo en que un misil comun no te voltea de un golpe, asi que si aca caes, caes en los tres. Con
+  // vidas de sobra, para que la caida sea un RELEVO y no el fin de la partida.
   await js('__czfin()');
   await js(`__czmodo('integ')`);
+  await js('__vidas(9)');
   await js('__czalto(30)');
   await js('__czstart({ mudo: 1 })');
-  const n0 = await js('__czinteg()');
-  let maxVivos = 0, sale = null, pego = null, vioAcercarse = false;
-  for (let i = 0; i < 160 && !pego; i++) {
+  const Est = async () => JSON.parse(await js('__estado()')).st;
+  let maxVivos = 0, sale = null, cayo = null, vioAcercarse = false;
+  for (let i = 0; i < 160 && !cayo; i++) {
     const s = await C();
     const vivos = (await AIM9()).filter(m => m.fase === 'guia');
     maxVivos = Math.max(maxVivos, vivos.length);
     if (!sale && s && s.misil) sale = { amague: s.amague, asoma: s.asoma };
     if (vivos.length && vivos[0].t > 1.2 && !vioAcercarse) { vioAcercarse = true; await shot('h2_a_sidewinder_viene'); }
-    if (s && s.misil === 'impacto') pego = s;
-    await sleep(200);
+    // la caida se lee en el ESTADO de la partida (el relevo se lleva el duelo: el `misil` de la sonda
+    // puede no llegar a verse en 'impacto') y la causa en la ultima muerte (la muestra `__seawolf`)
+    const st = await Est();
+    if (st !== 'play') cayo = { st, causa: JSON.parse(await js('__seawolf()')).causa };
+    else await sleep(200);
   }
-  const n1 = await js('__czinteg()');
   if (!sale) bad('el Harrier no tiro ningun Sidewinder en todo el ciclo');
   else if (sale.asoma < 0.3) bad(`el misil salio de un Harrier ESCONDIDO (asoma ${sale.asoma}): tiene que salir del que se ve`);
   else ok(`sale del Harrier asomado, en su asomada numero ${sale.amague + 1}`);
-  // Se exige que BAJE, no un numero: el golpe (45, como cualquier misil enganchado) entra por el
-  // embudo de siempre y ahi el ESCUDO se come una parte antes de la chapa (systems/damage.js).
-  if (!pego) bad(`el Sidewinder nunca llego a pegar (integridad ${n0} → ${n1})`);
-  else if (n1 < n0) ok(`SIN MANIOBRA TE ALCANZA: integridad ${n0} → ${n1} (el escudo se comio una parte)`);
-  else bad(`dice que pego pero la integridad no se movio (${n0} → ${n1})`);
+  if (!cayo) bad('el Sidewinder nunca te alcanzo: el avion siguio volando todo el ciclo');
+  else if (cayo.causa !== 'death_sidewinder') bad(`caiste, pero por otra cosa (${cayo.causa}, estado ${cayo.st})`);
+  else if (cayo.st === 'relevo' || cayo.st === 'dead') ok(`SIN MANIOBRA TE ALCANZA Y TE ELIMINA: con chapa y escudo llenos, la partida pasa a '${cayo.st}'`);
+  else bad(`el Sidewinder pego pero la partida quedo en '${cayo.st}'`);
   if (maxVivos <= 1) ok('de a uno: nunca hubo dos Sidewinder del mismo Harrier en el aire');
   else bad(`hubo ${maxVivos} Sidewinder del mismo Harrier a la vez`);
+  // el relevo congela el mundo: el duelo de (b) no avanzaria. Se espera a que vuelva a volar.
+  for (let i = 0; i < 60 && (await Est()) !== 'play'; i++) await sleep(200);
 
   // (b) CON UNA PIRUETA CUANDO YA ESTA CERCA, SIGUE DE LARGO
   await js('__czfin()');
@@ -332,6 +339,45 @@ app.whenReady().then(async () => {
     else ok(`UN TONEL EN LA ZONA LO PIERDE: sigue de largo y la chapa no se mueve (${m0} → ${m1})`);
     if (lejos && lejos.z > 14) ok(`y se va ADELANTE tuyo (z ${lejos.z}): se lo ve perderse`);
     else if (perdido) bad(`perdido, pero no se adelanto (${JSON.stringify(lejos)})`);
+  }
+
+  // (c) CON POSCOMBUSTION Y QUIEBRES BRUSCOS LO SACUDIS (el autor, 30/9): la otra salida de atras.
+  // Se suelta el avion —la sonda de altura le clava el rumbo y asi no hay quiebre posible— y se
+  // vuela como un jugador: poscombustion apretada (C) y de lado a lado (A/D) cada 0,4 s desde que
+  // sale el misil. La cuenta fina —cuanto tarda, que cada mitad sola no alcance— es de `npm run
+  // unit`; lo que se prueba aca es el CABLE: que la poscombustion del juego le llegue al misil.
+  await js('__czfin()');
+  await js(`__czmodo('integ')`);
+  await js('__czalto(30)');
+  await js('__czstart({ mudo: 1 })');
+  let salio = null;
+  for (let i = 0; i < 400 && !salio; i++) {
+    salio = (await AIM9()).find(m => m.fase === 'guia');
+    if (!salio) await sleep(80);
+  }
+  if (!salio) bad('(c) el Harrier no tiro el Sidewinder');
+  else {
+    await js('__czalto(null)');
+    const key = (type, keyCode) => win.webContents.sendInputEvent({ type, keyCode });
+    key('keyDown', 'c');
+    let lado = 'd', sacudido = null, cayoC = false, evaMax = 0;
+    for (let i = 0; i < 30 && !sacudido && !cayoC; i++) {
+      key('keyUp', lado === 'd' ? 'a' : 'd'); key('keyDown', lado);
+      lado = lado === 'd' ? 'a' : 'd';
+      for (let k = 0; k < 4 && !sacudido && !cayoC; k++) {   // 4 x 100 ms: un quiebre cada 0,4 s
+        const m = (await AIM9()).find(x => x.modo === 'cola');
+        if (m) evaMax = Math.max(evaMax, m.eva);
+        if (m && m.fase === 'perdido') sacudido = m;
+        else if ((await Est()) !== 'play') cayoC = true;
+        else await sleep(100);
+      }
+    }
+    for (const k of ['c', 'a', 'd']) key('keyUp', k);
+    await shot('h2_d_sidewinder_sacudido');
+    if (sacudido && sacudido.porque === 'quemado') ok(`CON POSCOMBUSTION Y QUIEBRES LO SACUDIS: perdio el blanco quemando (evasion ${evaMax})`);
+    else if (sacudido) bad(`lo perdio, pero por '${sacudido.porque}' y no por la poscombustion`);
+    else bad(`quemando y quebrando no lo saco${cayoC ? ' — te elimino' : ''} (evasion maxima ${evaMax}): ¿le llega la poscombustion al misil?`);
+    for (let i = 0; i < 60 && (await Est()) !== 'play'; i++) await sleep(200);
   }
   await js('__czfin()');
   await js(`__czmodo('squad')`);
