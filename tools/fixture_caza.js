@@ -5,7 +5,8 @@
 // segundos de VUELO de verdad, y lo que prueba no es una formula sino que el duelo entero funcione
 // adentro del juego.
 //
-// ESTADO: H0-H4 cubiertos (cimiento, pase fantasma, dientes, contraataque y reglamento).
+// ESTADO: H0-H4 cubiertos (cimiento, pase fantasma, dientes, contraataque y reglamento), y desde
+// el 30/9 el SIDEWINDER que te tira desde la cola (seccion 10).
 //
 // LAS SECCIONES 1-8 CORREN EL DUELO EN MODO **MANSO** (sin las rafagas que matan) y no es una
 // trampa: es el criterio de siempre del repo — la seccion que mide una cosa apaga lo que no esta
@@ -259,34 +260,80 @@ app.whenReady().then(async () => {
   if (!(q1 < q0)) bad(`quebrando la solucion no baja (${q0} → ${q1}): la maniobra no salva`);
   else ok(`QUEBRANDO se la borras: ${q0} → ${q1}`);
 
-  // ---------- 10. EL HARRIER NO TE DISPARA ----------
-  // La regla dura del sistema, y la razon de que exista este test: el Harrier NO ataca, en ninguna
-  // fase. Antes te mataba desde lejos en el acercamiento y te morias sin haber llegado a verlo.
-  // Se lo deja correr un ciclo ENTERO (entrada de frente, cruce, sobrepaso, ventana, recola) con la
-  // altura y el rumbo clavados, y la integridad no se tiene que mover un punto.
+  // ---------- 10. EL SIDEWINDER DE LA COLA (30/9/2026) ----------
+  // Hasta el 30/9 esta seccion afirmaba lo contrario —"el Harrier NO te dispara: un ciclo entero
+  // sin tocarte"— y avisaba que el dia que volviera a tener dientes habia que reescribirla A MANO,
+  // a proposito. Ese dia llego: el autor pidio que el Harrier tire UNO o DOS Sidewinder que te
+  // siguen, y que se esquivan con una MANIOBRA hecha cuando el misil ya esta cerca.
   //
-  // SI ALGUN DIA VUELVE A TENER DIENTES, este es el test que hay que reescribir a mano — a
-  // proposito. No es un detalle de tuneo: es la decision de diseño, y tiene que doler cambiarla.
-  console.log('\n10. el Harrier NO te dispara: un ciclo entero sin tocarte:');
+  // Aca se prueba que el cableado llegue punta a punta: que el misil salga del Harrier ASOMADO,
+  // que lo mueva collision.js, que pegue por el embudo de siempre y que una pirueta de verdad lo
+  // saque. La cuenta fina —cuando empieza la zona, el peor caso del panico, que valgan todas las
+  // piruetas— es de `npm run unit`, que la mide contra el vuelo real sin pilotear nada.
+  console.log('\n10. el Sidewinder de la cola: sin maniobra te pega, con una a tiempo sigue de largo:');
+  const AIM9 = async () => JSON.parse(await js('__aim9()')).filter(m => m.modo === 'cola');
+  // (a) SIN HACER NADA TE ALCANZA — y de a uno
   await js('__czfin()');
   await js(`__czmodo('integ')`);
   await js('__czalto(30)');
   await js('__czstart({ mudo: 1 })');
   const n0 = await js('__czinteg()');
-  const ciclo = [];
-  for (let i = 0; i < 60; i++) {
+  let maxVivos = 0, sale = null, pego = null, vioAcercarse = false;
+  for (let i = 0; i < 160 && !pego; i++) {
     const s = await C();
-    if (s && ciclo[ciclo.length - 1] !== s.fase) ciclo.push(s.fase);
-    if (ciclo.includes('recola')) break;
-    await sleep(400);
+    const vivos = (await AIM9()).filter(m => m.fase === 'guia');
+    maxVivos = Math.max(maxVivos, vivos.length);
+    if (!sale && s && s.misil) sale = { amague: s.amague, asoma: s.asoma };
+    if (vivos.length && vivos[0].t > 1.2 && !vioAcercarse) { vioAcercarse = true; await shot('h2_a_sidewinder_viene'); }
+    if (s && s.misil === 'impacto') pego = s;
+    await sleep(200);
   }
   const n1 = await js('__czinteg()');
+  if (!sale) bad('el Harrier no tiro ningun Sidewinder en todo el ciclo');
+  else if (sale.asoma < 0.3) bad(`el misil salio de un Harrier ESCONDIDO (asoma ${sale.asoma}): tiene que salir del que se ve`);
+  else ok(`sale del Harrier asomado, en su asomada numero ${sale.amague + 1}`);
+  // Se exige que BAJE, no un numero: el golpe (45, como cualquier misil enganchado) entra por el
+  // embudo de siempre y ahi el ESCUDO se come una parte antes de la chapa (systems/damage.js).
+  if (!pego) bad(`el Sidewinder nunca llego a pegar (integridad ${n0} → ${n1})`);
+  else if (n1 < n0) ok(`SIN MANIOBRA TE ALCANZA: integridad ${n0} → ${n1} (el escudo se comio una parte)`);
+  else bad(`dice que pego pero la integridad no se movio (${n0} → ${n1})`);
+  if (maxVivos <= 1) ok('de a uno: nunca hubo dos Sidewinder del mismo Harrier en el aire');
+  else bad(`hubo ${maxVivos} Sidewinder del mismo Harrier a la vez`);
+
+  // (b) CON UNA PIRUETA CUANDO YA ESTA CERCA, SIGUE DE LARGO
   await js('__czfin()');
-  console.log('      recorrido: ' + ciclo.join(' → '));
-  if (!ciclo.includes('recola')) bad(`el ciclo no llego a recola (${ciclo.join(' → ')}): no se midio nada`);
-  else if (n1 < n0) bad(`te saco integridad durante el ciclo (${n0} → ${n1}): el Harrier NO tiene que disparar`);
-  else ok(`CICLO ENTERO SIN UN RASGUÑO: integridad ${n0} → ${n1}`);
-  await shot('h2_a_sin_fuego');
+  await js(`__czmodo('integ')`);
+  await js('__czstart({ mudo: 1 })');
+  const m0 = await js('__czinteg()');
+  let enZona = null;
+  for (let i = 0; i < 400 && !enZona; i++) {
+    const s = await C();
+    if (s && s.zona && s.misil === 'guia') enZona = s;
+    else await sleep(80);
+  }
+  if (!enZona) bad('el Sidewinder nunca llego a la zona de quiebre');
+  else {
+    await shot('h2_b_sidewinder_zona');
+    const tonel = JSON.parse(await js(`__mv('tonel')`));
+    let perdido = null, pegoIgual = false;
+    for (let i = 0; i < 40 && !perdido && !pegoIgual; i++) {
+      const s = await C();
+      if (s && s.misil === 'perdido') perdido = s;
+      if (s && s.misil === 'impacto') pegoIgual = true;
+      if (!perdido && !pegoIgual) await sleep(40);
+    }
+    await sleep(350);
+    await shot('h2_c_sidewinder_de_largo');
+    const lejos = (await AIM9()).find(m => m.fase === 'perdido');
+    const m1 = await js('__czinteg()');
+    if (!tonel.ok) bad(`el tonel no arranco (${JSON.stringify(tonel)}): no se probo nada`);
+    else if (!perdido) bad(`un tonel con el misil en la zona no lo perdio${pegoIgual ? ' — te pego igual' : ''}`);
+    else if (m1 !== m0) bad(`lo perdiste pero la integridad se movio (${m0} → ${m1})`);
+    else ok(`UN TONEL EN LA ZONA LO PIERDE: sigue de largo y la chapa no se mueve (${m0} → ${m1})`);
+    if (lejos && lejos.z > 14) ok(`y se va ADELANTE tuyo (z ${lejos.z}): se lo ve perderse`);
+    else if (perdido) bad(`perdido, pero no se adelanto (${JSON.stringify(lejos)})`);
+  }
+  await js('__czfin()');
   await js(`__czmodo('squad')`);
   await js('__czalto(null)');
 

@@ -1,7 +1,8 @@
 // Runner headless del horneado de MUNICION:
 //   npx electron tools/bake_ammo_run.js   (o `npm run ammo`)
-// Abre tools/bake_ammo.html en una ventana oculta, ejecuta __bake() y escribe la hoja en
-// assets/ammo/municion.png (6 vistas x 2 municiones, frames de 16x16).
+// Abre tools/bake_ammo.html en una ventana oculta, ejecuta __bake() y escribe las hojas en
+// assets/ammo/: municion.png (6 vistas x 2 municiones, frames de 16x16) y aim9.png (el Sidewinder
+// de los Harrier: 10 vistas de cola a nariz, frames de 32x32).
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');

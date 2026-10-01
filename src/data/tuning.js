@@ -1044,7 +1044,7 @@ export const CAZA_V_FUGA_MIN = 45;  // piso de la resta. Sin el, con turbo a fon
 export const CAZA_AMAGUES = 3;              // cuantas veces asoma antes de comprometerse
 export const CAZA_AMAGUE_T = [1.1, 1.7];    // s que se queda asomado. LENTO: hay que poder verlo
 export const CAZA_AMAGUE_GAP = [0.7, 1.2];  // s escondido entre amague y amague
-export const CAZA_AMAGUE_TIRA = 2;          // desde que amague empieza a tirarte (y a errar)
+export const CAZA_AMAGUE_TIRA = 2;          // desde que amague te tira el Sidewinder (ver AIM9, al final)
 // GEOMETRIA DEL AMAGUE. Asoma DETRAS tuyo (z por debajo de PZ = 14) y bien corrido del carril:
 // a z 10,5 la escala es F/10,5 = 12,9, asi que 15 unidades son ~193 px del centro y el sprite
 // (10,5 de ancho = 135 px) entra en cuadro por la mitad. Eso es lo que se busca — MEDIO Harrier
@@ -1053,15 +1053,9 @@ export const CAZA_Z_ASOMA = 10.5;
 export const CAZA_X_ASOMA = 15;    // corrimiento con el amague afuera
 export const CAZA_X_ESCONDE = 32;  // ...y escondido: fuera del cuadro, a 413 px del centro
 
-// LAS TRAZADORAS QUE PASAN LEJOS. El Harrier vuelve a disparar, pero SIN dientes: no hacen daño y
-// no pueden hacerlo — no hay codigo de impacto para ellas. Son el TELL, y que pasen LEJOS es el
-// contenido del tell: desde atras y en mala posicion, el tiro sale apurado y erra. Ver el
-// encabezado de systems/caza.js — la regla no es "no dispara", es "no te puede pegar".
-export const CAZA_TRAC_V = 340;          // velocidad propia: se ve CRUZAR, no flotar
-export const CAZA_TRAC_N = [4, 7];       // proyectiles por rafaga
-export const CAZA_TRAC_GAP = [0.32, 0.6];// s entre rafagas mientras esta asomado
-export const CAZA_MISS = [13, 25];       // a cuanto de tu ala pasan. El avion mide ~4 de
-                                         // envergadura util: a 13 ya erro por tres aviones.
+// (Aca vivian las TRAZADORAS QUE PASAN LEJOS —CAZA_TRAC_*, CAZA_MISS—: rafagas desde la cola sin
+// codigo de impacto. Se fueron el 30/9/2026 con el pedido del autor de cambiar el "tira y erra" por
+// el SIDEWINDER. El misil y sus perillas estan al final del archivo, en AIM9.)
 
 // ---------- COMO CAEN ----------
 // Tres finales distintos, sorteados al ARMAR cada Harrier. Que el desenlace no sea siempre el
@@ -1094,16 +1088,9 @@ export const CAZA_PTS = {
 // gratis, porque una pirueta que no aprendiste no se puede ejecutar.
 export const CAZA_MV_FUERZA = ['breakt', 'jink', 'sturn'];
 
-// MISILES RASTREADORES (desde la cola). La solucion de tiro madura igual que antes, pero en vez de
-// la rafaga letal sale un MISIL lento que el jugador ve acercarse y esquiva con una pirueta. Asi la
-// presion trasera es esquivable visualmente (en vez de morir por algo que no ves) y el daño real
-// viene de frente, donde el intercambio es justo.
-export const CAZA_MSL_VZ = 5;          // velocidad z (lento a proposito: se tiene que VER venir)
-export const CAZA_MSL_TURN = 18;       // aceleracion lateral de tracking (u/s²)
-export const CAZA_MSL_VMAX = 10;       // velocidad lateral maxima (u/s)
-export const CAZA_MSL_LIFE = 4;        // s de vida (se apaga si no llega)
-export const CAZA_MSL_RX = 4.0;        // semiancho del impacto x
-export const CAZA_MSL_RY = 3.2;        // semialto del impacto y
+// (Aca estaban CAZA_MSL_* — "un misil lento desde la cola que se esquiva con una pirueta" — y
+// NINGUN archivo del juego las leia: la idea quedo escrita y nunca se construyo. Se construyo el
+// 30/9/2026 como el SIDEWINDER, y sus perillas son AIM9, al final de este archivo.)
 
 // EL REGLAMENTO (H4). Cuando APARECE el duelo, que es una decision de nivel y no del duelo.
 //
@@ -1894,3 +1881,45 @@ export const SW_VEL = 230;        // lo que se le suma a la velocidad del mundo:
 export const SW_CIEGO = 95;       // a cuanto del avion deja de corregir: el tramo donde el quiebre sirve
 export const SW_LAT = 70;         // tope de su velocidad lateral y vertical mientras corrige
 export const SW_ALTO = 9;         // de que altura sale (la cubierta del buque)
+
+// ---------------- EL SIDEWINDER: el misil de los Sea Harrier (core/aim9.js) ----------------
+// Pedido del autor (30/9/2026): el Harrier deja de "tirar y errar" y te tira UNO o DOS AIM-9L por
+// avion. Termicos, que te siguen. La fisica y el porque estan en el encabezado de core/aim9.js; aca
+// estan los numeros, medidos contra el vuelo real con la simulacion de node (ver el unit test).
+export const AIM9 = {
+  // ---- DE ATRAS (el Harrier de LA COLA) ----
+  // Cuanto tarda en alcanzarte si no haces nada. Es LENTO a proposito: el pedido es que "de a
+  // poco se vaya acercando", y el jugador tiene que poder verlo ponerse en su cola y venir.
+  COLA_T: 3.2,
+  // Desde que fraccion del camino una pirueta lo PIERDE — "cuando el misil este bastante cerca".
+  // 0.62 deja los ultimos ~1,2 s: un tonel (0,55 s) lanzado en cualquier momento de ahi, o un
+  // poco antes y todavia en curso al entrar, lo saca. Antes no sirve: todavia puede corregir.
+  COLA_ZONA: 0.62,
+  COLA_LAG: 0.16,      // s que el buscador se queda atras de lo que hace el avion (se lo ve corregir)
+  COLA_WOB: 0.9,       // el cabeceo del buscador, en unidades; se apaga al llegar
+  // PERDIDO: sigue de largo con lo que traia y se te adelanta hasta perderse.
+  PASA_VZ: 55,         // a cuanto se te adelanta (u/s relativas: el misil va a Mach 2,5 y vos no)
+  PASA_KICK: 7,        // cuanto se abre hacia el lado del que vino (si no, pasaria por encima tuyo)
+  PERDIDO_T: 2.6,      // s que se lo ve irse antes de borrarlo
+  FIN_Z: 260,          // ...o hasta esta profundidad, lo que llegue primero
+  POR_HARRIER: 2,      // la carga real de un Sea Harrier FRS.1: dos AIM-9L. Nunca mas de dos.
+  // s entre que se RESOLVIO uno (te pego o lo perdiste) y que el mismo Harrier puede tirar el
+  // segundo. Sin esto salia en la asomada siguiente, 0,4 s despues, y en la practica llega en la
+  // pasada que sigue: un misil por pasada.
+  COLA_RESPIRO: 2.5,
+  // ---- DE FRENTE (los cazas armados del pasillo) ----
+  FRENTE_V: 80,        // velocidad propia hacia vos, que se SUMA a la tuya (cierra de frente)
+  FRENTE_LAT: 6,       // cuanto puede CORREGIR, u/s. Se inclina, no quiebra: vos haces 30 de lado
+  FRENTE_ACC: 9,       // que tan rapido cambia de idea (u/s²): tarda en acompañar un quiebre
+  FRENTE_Z: [150, 235],// banda en la que el caza suelta: de lejos, a distancia de verlo salir
+  FRENTE_P: 0.45,      // que fraccion de los cazas del pasillo viene armada (la de las trazadoras)
+  FRENTE_P2: 0.25,     // de los armados, cuantos traen el SEGUNDO
+  FRENTE_GAP: 0.55,    // s entre el primero y el segundo del mismo caza
+  // LA CAJA DE IMPACTO de frente: la MISMA que cualquier misil que cruza tu plano en collision.js
+  // (3 x 2,2), y la misma que se encoge con una pirueta de alas de canto (`tight`: 1,6 x 1,2).
+  CAJA: { rx: 3, ry: 2.2, rxT: 1.6, ryT: 1.2 },
+  VIDA: 6,             // tope de vida de uno de frente (por si nunca cruza)
+  // LA ESTELA ROJA (render/aim9.js): un punto cada ESTELA_DT, que vive ESTELA_VIDA segundos.
+  ESTELA_DT: 0.03, ESTELA_N: 48, ESTELA_VIDA: 1.4,
+  PTS: 150,            // esquivar uno: el doble que un misil de tierra — este te buscaba a vos
+};

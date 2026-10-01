@@ -3742,3 +3742,123 @@ test('estructura · la cuenta ve las lomas, y en el terreno de t18 igual hay sue
     assert.ok(buenas > 20, `la cuenta tiene que encontrar sueltas buenas (${buenas})`);
   } finally { setGeografia(null, 0); cb.resetBlanco(false); }
 });
+
+// ---------- EL SIDEWINDER (core/aim9.js) ----------
+// El pedido del autor (30/9/2026), escrito como reglas y medido contra el vuelo REAL: el alabeo de
+// core/physics.js y la duracion de las piruetas de data/moves.js, no numeros copiados. Si alguien
+// retoca el tonel, el enfriamiento o la velocidad lateral del avion, esto dice si el misil sigue
+// siendo esquivable — que es lo unico que importa de el.
+{
+  const A9 = await import('../src/core/aim9.js');
+  const { AIM9: P9 } = await import('../src/data/tuning.js');
+  const { bankStep: bStep, bankVx: bVx } = await import('../src/core/physics.js');
+  const { MOVES: MV } = await import('../src/data/moves.js');
+  const PZ9 = 14, DT9 = 1 / 60, CD9 = 1.15;   // PZ de render/ctx.js · MV_CD de systems/moves.js
+
+  /** Vuela un misil de LA COLA. `mv` y `t0`: la pirueta que se lanza y cuando (null = ninguna).
+   *  `lat` = el avion corriendose de costado a esa velocidad todo el tiempo. */
+  function cola(mv, t0, lat = 0) {
+    const b = { x: 0, y: 5, vx: lat, vy: 0, spd: 74, pz: PZ9, maniobra: false, tight: false };
+    const m = A9.lanzarCola({ x: 15, y: 6.5, z: 10.5 }, b);
+    const ev = [];
+    let t = 0, mvT = -1;
+    for (let i = 0; i < 1200 && m.fase !== 'impacto'; i++) {
+      t += DT9; b.x += lat * DT9;
+      if (mv && mvT < 0 && t >= t0 && t < t0 + DT9 * 1.5) mvT = 0;
+      if (mvT >= 0) { mvT += DT9; if (mvT >= MV[mv].dur) mvT = -2; }
+      b.maniobra = mvT >= 0;
+      const e = A9.pasoAim9(m, DT9, b);
+      if (e) ev.push({ e, t: +t.toFixed(3), z: m.z });
+      if (e === 'fin') break;
+    }
+    return ev;
+  }
+
+  test('sidewinder de atras: si no haces nada, te alcanza — y avisa UNA vez antes', () => {
+    const ev = cola(null);
+    const zona = ev.filter(e => e.e === 'zona'), imp = ev.find(e => e.e === 'impacto');
+    assert.ok(imp, 'sin maniobra tiene que pegar');
+    assert.ok(Math.abs(imp.t - P9.COLA_T) < 0.05, `pega a los ${imp.t} s y el camino dura ${P9.COLA_T}`);
+    assert.equal(zona.length, 1, 'la zona (el momento de quebrar) se avisa una sola vez');
+    assert.ok(imp.t - zona[0].t > 0.9, `entre el aviso y el impacto tiene que haber tiempo de reaccionar (${(imp.t - zona[0].t).toFixed(2)} s)`);
+  });
+
+  test('sidewinder de atras: NO se lo saca corriendose — copia todo lo que hagas', () => {
+    // el avion a fondo de costado (30 u/s, lo maximo que da el alabeo) no lo deja atras
+    const ev = cola(null, 0, bVx(Math.PI / 3));
+    assert.ok(ev.some(e => e.e === 'impacto'), 'corriendose de costado se escapaba: la maniobra sobraria');
+  });
+
+  test('sidewinder de atras: el tonel CERCA lo pierde, y sigue de largo hasta perderse', () => {
+    const tZona = P9.COLA_T * P9.COLA_ZONA;
+    for (const t0 of [tZona - MV.tonel.dur * 0.5, tZona + 0.2, P9.COLA_T - 0.2]) {
+      const ev = cola('tonel', t0);
+      assert.ok(ev.some(e => e.e === 'pierde'), `un tonel a los ${t0.toFixed(2)} s (zona desde ${tZona.toFixed(2)}) no lo perdio`);
+      assert.ok(!ev.some(e => e.e === 'impacto'), `un tonel a los ${t0.toFixed(2)} s y te pego igual`);
+      const fin = ev.find(e => e.e === 'fin');
+      assert.ok(fin && fin.z > PZ9, 'perdido tiene que irse ADELANTE tuyo, no quedarse encima');
+    }
+  });
+
+  test('sidewinder de atras: TODAS las piruetas del catalogo lo pierden en la zona', () => {
+    // "si el avion hace UNA de las maniobras predefinidas" — cualquiera, no una lista
+    const tZona = P9.COLA_T * P9.COLA_ZONA;
+    for (const id of Object.keys(MV)) {
+      const ev = cola(id, tZona + 0.1);
+      assert.ok(ev.some(e => e.e === 'pierde'), `${id} en la zona no lo perdio`);
+    }
+  });
+
+  test('sidewinder de atras: la maniobra temprana no sirve, pero el reintento tras el enfriamiento llega', () => {
+    // el que entra en panico y tonelea apenas sale el misil: esa no cuenta (todavia corrige)…
+    const temprano = cola('tonel', 0.1);
+    assert.ok(temprano.some(e => e.e === 'impacto'), 'un tonel a los 0,1 s ya lo perdia: la zona no significa nada');
+    // …pero si aprieta de nuevo apenas se le enfria la pirueta, todavia llega. Se mide el PEOR
+    // caso: el tonel que termina justo en el borde de la zona, y el segundo recien despues del
+    // enfriamiento. Si esto falla, apurarse te condena sin segunda oportunidad.
+    const tZona = P9.COLA_T * P9.COLA_ZONA;
+    const t0 = tZona - MV.tonel.dur - 0.02, t1 = t0 + MV.tonel.dur + CD9 + 0.02;
+    assert.ok(t1 < P9.COLA_T, `el reintento (${t1.toFixed(2)} s) llega despues del impacto (${P9.COLA_T} s)`);
+    assert.ok(cola('tonel', t1).some(e => e.e === 'pierde'), 'el reintento tras el enfriamiento no lo pierde');
+  });
+
+  /** Vuela uno DE FRENTE. `tr`: a los cuantos segundos del disparo el avion empieza a rolar. */
+  function frente(zL, tr) {
+    const b = { x: 0, y: 5, vx: 0, vy: 0, spd: 74, pz: PZ9, maniobra: false, tight: false };
+    const m = A9.lanzarFrente({ x: 3, y: 20, z: zL }, b);
+    let t = 0, bank = 0, maxC = 0;
+    for (let i = 0; i < 600; i++) {
+      t += DT9;
+      bank = bStep(bank, tr !== null && t >= tr ? 1 : 0, DT9);
+      b.vx = bVx(bank); b.x += b.vx * DT9;
+      const e = A9.pasoAim9(m, DT9, b);
+      maxC = Math.max(maxC, Math.abs(m.cx), Math.abs(m.cy));
+      if (e === 'impacto' || e === 'cruza') return { e, t, maxC };
+    }
+    return { e: null };
+  }
+
+  test('sidewinder de frente: quieto te pega; corriendote a tiempo lo esquivas', () => {
+    for (const zL of P9.FRENTE_Z) {
+      assert.equal(frente(zL, null).e, 'impacto', `lanzado a ${zL}, un avion quieto tiene que recibirlo`);
+      assert.equal(frente(zL, 0.3).e, 'cruza', `lanzado a ${zL}, rolar a los 0,3 s tiene que alcanzar`);
+    }
+  });
+
+  test('sidewinder de frente: te sigue un poco pero NO gira bruscamente', () => {
+    const r = frente(P9.FRENTE_Z[1], 0.3);
+    assert.ok(r.maxC > 0.5, 'no corrige nada: no te "sigue"');
+    assert.ok(r.maxC <= P9.FRENTE_LAT + 1e-9, `corrigio ${r.maxC.toFixed(2)} u/s y el tope es ${P9.FRENTE_LAT}`);
+    assert.ok(P9.FRENTE_LAT < bVx(Math.PI / 3) * 0.5, 'si corrige casi tanto como vos te moves, de frente no se esquiva');
+  });
+
+  test('sidewinder: uno, o como mucho DOS por Harrier', () => {
+    assert.ok(P9.POR_HARRIER >= 1 && P9.POR_HARRIER <= 2, `la cola carga ${P9.POR_HARRIER}`);
+    const spawn = readFileSync(new URL('../src/systems/spawn.js', import.meta.url), 'utf8');
+    assert.match(spawn, /aim9: Math\.random\(\) < AIM9\.FRENTE_P2 \? 2 : 1/, 'el caza de frente tiene que cargar 1 o 2');
+    // y lo que se fue, no vuelve: ni rafagas que erran en la cola ni trazadoras en el caza de frente
+    const caza = readFileSync(new URL('../src/systems/caza.js', import.meta.url), 'utf8');
+    assert.ok(!/function rafaga\(/.test(caza), 'volvio la rafaga que erra en la cola');
+    assert.ok(!/gun: 2/.test(spawn), 'volvieron las trazadoras del caza de frente');
+  });
+}

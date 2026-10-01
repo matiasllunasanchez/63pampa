@@ -94,6 +94,11 @@ export const STRINGS = {
     // LA COLA (PLAN_HARRIERS_PERSECUCION §3). El aviso es HUMANO: lo grita Condor o un Fiel, y a
     // veces no llega (§2 — no habia radar ni RWR). Nada de tonos ni de recuadros de fijado.
     death_caza: 'Te engancho un Sea Harrier',
+    death_sidewinder: 'Te alcanzo un Sidewinder',
+    // EL SIDEWINDER DE LA COLA (30/9): el disparo, y cuando una maniobra lo hizo seguir de largo.
+    // El "¡QUEBRA!" del momento de maniobrar es `caza_break`, que ahora lo grita el misil.
+    aim9_tira: '¡MISIL EN LA COLA, {c}!',
+    aim9_perdido: '¡Se fue de largo! Lo perdiste.',
     caza_warn: '¡RAPIDO POR LA COLA, {c}!',
     caza_out: 'Se quedo sin nafta el ingles.',
     caza_break: '¡QUEBRA, {c}, QUEBRA!',
@@ -500,6 +505,7 @@ export const STRINGS = {
     que_fuego: 'Te alcanzo el fuego antiaereo.',
     que_popa: 'Te alejaste en linea recta y el artillero de popa te acomodo la punteria.',
     que_caza: 'Un Sea Harrier se te puso en la cola y no lo pudiste sacar de encima.',
+    que_sidewinder: 'Un Harrier te tiro un Sidewinder y no lo sacudiste. De atras se lo pierde con una maniobra cuando ya esta encima; de frente, corriendose.',
     que_nafta: 'El tanque se vacio antes de volver.',
     hist_bomba: 'En Malvinas muchas bombas no explotaban o no daban directo en el blanco: los aviones no tenian sistemas modernos de punteria y todo dependia de la habilidad del piloto.',
     hist_bomba_dormida: 'Varias bombas argentinas atravesaron buques britanicos sin estallar: lanzadas tan bajo, la espoleta no tenia tiempo de armarse.',
@@ -1253,6 +1259,9 @@ export const STRINGS = {
     tq_tocado: 'HIT',
     death_pasada: 'The squadron was spent and the ship sailed on',
     death_caza: 'A Sea Harrier got on your tail',
+    death_sidewinder: 'A Sidewinder got you',
+    aim9_tira: 'MISSILE ON YOUR SIX, {c}!',
+    aim9_perdido: 'It overshot! You lost it.',
     caza_warn: 'BREAK, {c}! ON YOUR SIX!',
     caza_out: 'The Brit ran out of fuel.',
     caza_break: 'BREAK, {c}, BREAK!',
@@ -1562,6 +1571,7 @@ export const STRINGS = {
     que_fuego: 'Anti-aircraft fire got you.',
     que_popa: 'You flew away in a straight line and the stern gunner found his aim.',
     que_caza: 'A Sea Harrier got on your tail and you could not shake it.',
+    que_sidewinder: 'A Harrier fired a Sidewinder and you did not shake it. From behind, break with a maneuver when it is right on you; head-on, just get out of its way.',
     que_nafta: 'The tank ran dry before you made it back.',
     hist_bomba: 'In the Falklands many bombs did not explode or did not hit squarely: the planes had no modern aiming systems and everything depended on the pilot\'s skill.',
     hist_bomba_dormida: 'Several Argentine bombs went through British ships without exploding: dropped so low, the fuze had no time to arm.',

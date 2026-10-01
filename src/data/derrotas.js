@@ -28,6 +28,8 @@ export const DERROTAS = {
   death_bomb: { que: 'que_seaslug', hist: 'hist_seaslug' },
   death_popa: { que: 'que_popa', hist: 'hist_popa' },
   death_caza: { que: 'que_caza', hist: 'hist_caza' },
+  // el dato historico es el mismo del Sea Harrier: ya habla de los Sidewinder de ultima generacion
+  death_sidewinder: { que: 'que_sidewinder', hist: 'hist_caza' },
   death_fuel: NAFTA, death_seco: NAFTA,
   death_eyecto_rescate: { que: null, hist: 'hist_eyeccion' },
   death_eyecto_mar: { que: null, hist: 'hist_eyeccion' },

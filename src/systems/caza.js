@@ -4,20 +4,23 @@
 // la dinamica de After Burner — de ahi sale cada regla de abajo — y el §2 la verdad historica que
 // la sostiene. El §6 dice lo que NO se hace, y conviene tenerlo a mano al tocar esto.
 //
-// EL HARRIER NO TE PUEDE PEGAR. Esa es la regla, y no es la misma que "no dispara".
+// EL HARRIER TE TIRA EL SIDEWINDER (30/9/2026, pedido del autor). Hasta aca la regla era "no te
+// puede pegar": desde la cola tiraba rafagas que cruzaban lejos, sin codigo de impacto — el aviso
+// era el contenido. Eso se fue. Ahora cada Harrier lleva DOS AIM-9L (la carga real del FRS.1,
+// AIM9.POR_HARRIER) y te los tira desde la cola, de a uno, cuando asoma.
 //
-// DISPARA Y ERRA. Desde la cola, en mala posicion y apurado, sus rafagas cruzan LEJOS — a trece o
-// veinticinco unidades de tu ala, cuando el avion mide cuatro de envergadura util. No hay codigo
-// de impacto para esas balas: no te pueden tocar ni por accidente. Son el TELL, y errar es el
-// contenido del tell — te dice que lo tenes ahi atras y que todavia no te encontro.
+// EL MISIL SE VE Y SE ESQUIVA — que es la leccion de la vez anterior que tuvo dientes: sus rafagas
+// te mataban desde lejos en el acercamiento, sin haber llegado a ver el avion, y por eso se le
+// sacaron. El Sidewinder es lo contrario: sale del avion que acabas de ver asomar, se te pone en la
+// cola DE A POCO, y tiene una sola salida que el jugador controla —una MANIOBRA hecha cuando ya
+// esta cerca, que lo hace seguir de largo—. La regla y los numeros viven en core/aim9.js; el misil
+// vive con los demas misiles (collision.js lo mueve y lo resuelve). Este archivo solo lo LANZA.
 //
-// Lo que NO vuelve es el fuego que hacia daño. Cuando lo tuvo, te mataba desde lejos en el
-// acercamiento —tres rafagas de 34% de integridad cada una— y el jugador se moria sin haber
-// llegado a ver el avion del que se trataba todo. El duelo es una COREOGRAFIA que tenes que poder
-// MIRAR. Si algun dia vuelve a tener dientes, que sea de frente y a distancia de ver.
+// El duelo sigue sin poder matarte POR SI MISMO: `cazaSystem` no devuelve muerte. Te mata su misil,
+// y el misil entra por el embudo de todos los misiles.
 //
 // No hay lock-on, no hay tono, no hay recuadro de fijado (§6.1): los A-4 no tenian nada. Los ojos
-// y la radio, y a veces ni la radio.
+// y la radio, y a veces ni la radio — el duelo mudo tampoco avisa el misil.
 //
 // EL CICLO, que es todo el sistema:
 //
@@ -27,8 +30,8 @@
 //   aviso      LA ENTRADA. Es EL AVION el que avisa: aparece chiquito en el horizonte, viene de
 //              frente creciendo y te cruza. Termina cuando te paso — no cuando suena un reloj.
 //   presion    LOS TRES AMAGUES. Ya esta en tu cola. Asoma despacio por un costado, se esconde,
-//              vuelve (y a partir del segundo te tira y erra), se esconde, y a la TERCERA se
-//              compromete. Es el corazon del ritmo y la razon de que exista: ver mas abajo.
+//              vuelve (y a partir del segundo te tira un Sidewinder), se esconde, y a la TERCERA
+//              se compromete. Es el corazon del ritmo y la razon de que exista: ver mas abajo.
 //   sobrepaso  el que estaba atras NO se queda atras — te pasa ENORME por un costado y queda
 //              adelante. Es la moneda del juego (§1: "el cruce cercano ES el juego").
 //   ventana    unos segundos ADELANTE TUYO Y DE COLA, esquivandose: es tu turno de tirarle (H3).
@@ -57,7 +60,9 @@
 import { plane, cfg, stats } from '../core/state.js';
 import { run } from '../core/run.js';
 import { hablar } from '../core/voz.js';
-import { bullets } from '../core/world.js';
+import { bullets, missiles } from '../core/world.js';
+// EL SIDEWINDER: la cuenta de su vuelo es pura y vive aparte (la usa tambien el caza de frente).
+import { lanzarCola } from '../core/aim9.js';
 import { popup, proj, chispazo, explodeAt } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
@@ -69,7 +74,7 @@ import {
   CAZA_V_MERGE, CAZA_V_FUGA, CAZA_V_FUGA_MIN,
   CAZA_AMAGUES, CAZA_AMAGUE_T, CAZA_AMAGUE_GAP, CAZA_AMAGUE_TIRA,
   CAZA_Z_ASOMA, CAZA_X_ASOMA, CAZA_X_ESCONDE,
-  CAZA_TRAC_V, CAZA_TRAC_N, CAZA_TRAC_GAP, CAZA_MISS,
+  AIM9,
   CAZA_FINALES, CAZA_CAIDA_G, CAZA_CAIDA_MAX,
   CAZA_SOL_AVISO, CAZA_SOL_POST,
   CAZA_HIT_RX, CAZA_HIT_RY, CAZA_PTS, CAZA_MV_FUERZA,
@@ -107,8 +112,10 @@ const miIndicativo = () => pilotName(alMando(run));
 export function active() { return fleet.length > 0; }
 
 /** ARMA UN HARRIER. Lo agrega a la flota — pueden haber varios simultaneos.
- *  `opts.mudo` entra sin aviso por radio. `opts.manso` quedo INERTE desde que el Harrier no
- *  dispara — se conserva porque las sondas y `?caza=manso` lo siguen pasando. */
+ *  `opts.mudo` entra sin aviso por radio. `opts.manso` NO TIRA SIDEWINDER: es el duelo sin
+ *  dientes con el que el fixture mide la COREOGRAFIA (secciones 1-8 de `npm run caza`), y vuelve a
+ *  significar lo que decia su nombre desde que el Harrier volvio a tirar (30/9). En el juego
+ *  normal nunca es manso: lo arma el director. */
 export function start(opts = {}) {
   const h = {
     fase: 'aviso',
@@ -137,7 +144,10 @@ export function start(opts = {}) {
     seed: Math.random() * 6.283,   // desfase propio: dos Harriers de la flota no bandean igual
     bank: 0, xPrev: plane.x,
     fx: [],
-    humoT: 0, estT: 0, tracT: 0,
+    humoT: 0, estT: 0, tiroT: 0,
+    // LOS SIDEWINDER que le quedan y el que tiene en el aire. Nunca dos a la vez: el segundo sale
+    // recien cuando el primero se resolvio (te pego, o lo perdiste de una maniobra).
+    aim9: AIM9.POR_HARRIER, misil: null, libreT: 0,
     // LOS AMAGUES. `amague` cuenta las asomadas hechas, `asoma` dice si esta afuera AHORA y
     // `asomaK` es cuanto (0..1, suavizado) — de ese numero salen la posicion y la visibilidad.
     amague: 0, asoma: false, asomaK: 0, amT: entre(CAZA_AMAGUE_GAP),
@@ -152,8 +162,14 @@ export function start(opts = {}) {
   return true;
 }
 
-/** Corta TODO y olvida lo que el director llevaba contado. */
-export function resetCaza() { fleet.length = 0; C = null; D = null; }
+/** Corta TODO y olvida lo que el director llevaba contado — los Sidewinder que el duelo tenia en
+ *  el aire incluidos: son del duelo, y un misil sin el Harrier que lo tiro seguiria viniendo a
+ *  pegarle a una corrida que ya no tiene nada que ver con el. Se sacan con splice: `missiles` es un
+ *  store compartido y se muta, no se reasigna. */
+export function resetCaza() {
+  fleet.length = 0; C = null; D = null;
+  for (let i = missiles.length - 1; i >= 0; i--) if (missiles[i].tipo === 'aim9' && missiles[i].modo === 'cola') missiles.splice(i, 1);
+}
 
 // ---------------- H4: EL REGLAMENTO (cuando aparece) ----------------
 let D = null;
@@ -195,45 +211,64 @@ function stepSolucion(dt) {
   C.sol = Math.min(1, C.sol + (dt / CAZA_SOL_T) * ras);
 
   if (C.fase !== 'presion' && C.fase !== 'aviso') return;
-  if (C.sol >= CAZA_SOL_AVISO && !C.grito) {
-    C.grito = true;
-    if (!C.mudo) hablar('PUMA', T('caza_break', { c: miIndicativo() }));
-  }
+  // EL "¡QUEBRA!" YA NO SALE DE ACA (30/9). Lo gritaba la solucion madura aunque no viniera nada,
+  // y con el Sidewinder esa palabra pasa a querer decir "HACE LA MANIOBRA YA": gritarla sin misil
+  // le haria gastar al jugador la pirueta —y su enfriamiento de 1,15 s— contra el aire, justo
+  // antes de necesitarla. Ahora la grita el MISIL, al entrar en la zona donde quebrar lo pierde
+  // (collision.js, con el texto que se le deja armado en `lanzarAim9`).
+  if (C.sol >= CAZA_SOL_AVISO && !C.grito) C.grito = true;
   if (C.sol >= 1) { C.sol = CAZA_SOL_POST; C.grito = false; }
 }
 
-/** UNA RAFAGA QUE ERRA. Sale desde atras tuyo y cruza hacia adelante, a CAZA_MISS unidades de tu
- *  ala — o sea a tres o seis envergaduras. NO HAY CODIGO DE IMPACTO para estas balas y no lo va a
- *  haber: no es que sea dificil que te peguen, es que no pueden. Ver el encabezado del archivo.
- *
- *  Se dispara solo mientras esta ASOMADO, que es lo que la ata al tell: el fuego aparece cuando
- *  aparece el avion, asi que la rafaga no es ruido de fondo — es EL, ahi, ahora. */
-function rafaga() {
-  const n = Math.round(entre(CAZA_TRAC_N));
-  const miss = C.lado * entre(CAZA_MISS);
-  for (let i = 0; i < n; i++) {
-    C.fx.push({
-      k: 'trac',
-      x: plane.x + miss + (Math.random() - 0.5) * 4,
-      y: plane.y + (Math.random() - 0.5) * 5,
-      z: 2,
-      wait: i * 0.05,
-      vz: CAZA_TRAC_V * (0.94 + Math.random() * 0.12),
-      life: 1.6 + i * 0.05,
-    });
-  }
-  beep(1500 + Math.random() * 500, 0.05, 'square', 0.03, 700);
+/** ¿Tiene un Sidewinder suyo todavia persiguiendote? Lo que no esta mas en `missiles` (lo limpio
+ *  un relevo, una sonda) o ya se resolvio (te pego, o lo perdiste) no cuenta. */
+const misilVivo = () => !!C.misil && C.misil.fase === 'guia' && missiles.indexOf(C.misil) >= 0;
+
+/** DE DONDE SALE: el pilon INTERIOR del ala, la mitad que mira hacia vos. Asomado, el Harrier
+ *  muestra medio avion por el borde (ver CAZA_X_ASOMA) y su centro puede quedar fuera de cuadro;
+ *  el ala de adentro es la parte que SE VE. */
+const pilon = () => ({ x: C.x - C.lado * CAZA_SEMI * 0.55, y: C.y - 0.4, z: C.z });
+
+/** ¿El pilon esta EN PANTALLA? Medido en el juego: a los 0,25 s de empezar a asomar el Harrier
+ *  todavia viene deslizandose desde afuera (su centro en -246 px) y el misil nacia fuera de cuadro:
+ *  aparecia de la nada un segundo despues. El reloj del disparo corre solo mientras esto es cierto. */
+function pilonAVista() {
+  const p = pilon(), s = proj(p.x, p.y, p.z);
+  return s.x > 10 && s.x < W - 10;
 }
 
-// EL FX DEL HARRIER: trazadoras, humo y estela. Las trazadoras son las UNICAS que tienen velocidad
-// propia (cruzan hacia adelante); el resto queda en el aire y se lo lleva el mundo a `run.spd`.
+/** EL SIDEWINDER. Sale del Harrier ASOMADO —de donde esta el avion que acabas de ver— y se te
+ *  pone en la cola de a poco (core/aim9.js). Se tira solo asomado por lo mismo que antes se tiraba
+ *  asi la rafaga: lo que aparece es EL, ahi, ahora; un misil que naciera de un Harrier escondido
+ *  fuera de cuadro seria una emboscada.
+ *
+ *  Uno por vez y dos por avion (AIM9.POR_HARRIER): "un misil, o maximo dos por Harrier". */
+function lanzarAim9() {
+  if (C.manso || C.aim9 <= 0 || misilVivo()) return;
+  // EL RESPIRO entre el primero y el segundo: medido en el juego, sin esto el segundo salia 0,4 s
+  // despues de perder el primero —en la asomada siguiente— y le pisaba al jugador el "¡se fue de
+  // largo!" justo cuando se lo ganaba. Con el respiro, el segundo llega en la pasada que sigue.
+  if (C.aim9 < AIM9.POR_HARRIER && C.libreT < AIM9.COLA_RESPIRO) return;
+  C.aim9--;
+  const p = pilon();
+  const m = lanzarCola(p, { x: plane.x, y: plane.y, pz: PZ });
+  // LA VOZ DEL AVISO, armada ACA: el que sabe si el duelo es mudo es este archivo, y el que sabe
+  // cuando el misil entra en la zona es collision.js. Se le deja el texto hecho y alla solo se dice.
+  // El duelo MUDO no avisa ni el disparo ni el quiebre: en ese hay que mirar el misil.
+  if (!C.mudo) {
+    m.rompe = T('caza_break', { c: miIndicativo() });
+    hablar('PUMA', T('aim9_tira', { c: miIndicativo() }));
+  }
+  missiles.push(m);
+  C.misil = m;
+  // EL FOGONAZO DEL MOTOR al encenderse bajo el ala: lo primero que se ve del misil
+  C.fx.push({ k: 'humo', x: p.x, y: p.y, z: p.z, life: 0.7, r: 1.6 });
+  beep(220, 0.32, 'sawtooth', 0.05, 900);   // el siseo del motor cohete
+}
+
+// EL FX DEL HARRIER: humo y estela. Queda todo en el aire y se lo lleva el mundo a `run.spd`.
 function stepFx(dt) {
   for (const f of C.fx) {
-    if (f.k === 'trac') {
-      if (f.wait > 0) { f.wait -= dt; continue; }
-      f.z += f.vz * dt; f.life -= dt;
-      continue;
-    }
     f.life -= dt; f.z -= run.spd * dt;
   }
   let n = 0;
@@ -278,20 +313,20 @@ function stepFx(dt) {
  *  cuadro tardan medio segundo cada uno, y eso es lo que hace que la asomada se LEA como una
  *  maniobra en vez de un parpadeo. LENTO es el pedido: hay que poder verlo llegar.
  *
- *  Desde el segundo amague ademas tira, y ERRA (ver `rafaga`). El fuego arranca 0,25 s despues de
- *  asomar y no en el mismo cuadro: primero se lo ve, despues dispara. Al reves seria una emboscada
- *  con luces. */
+ *  Desde el segundo amague ademas te tira un SIDEWINDER (ver `lanzarAim9`). Sale cuando el ala
+ *  lleva 0,25 s EN PANTALLA, y no en el cuadro en que asoma: primero se lo ve, despues dispara. Al
+ *  reves seria una emboscada con luces. Uno por asomada como mucho, y el humo (ahuyentado) no tira. */
 function stepAmague(dt) {
   const meta = C.asoma ? 1 : 0;
   C.asomaK += (meta - C.asomaK) * Math.min(1, dt * 3.2);
-  if (C.asoma && C.amague + 1 >= CAZA_AMAGUE_TIRA && !C.humo) {
-    C.tracT -= dt;
-    if (C.tracT <= 0) { C.tracT = entre(CAZA_TRAC_GAP); rafaga(); }
+  if (C.asoma && C.amague + 1 >= CAZA_AMAGUE_TIRA && !C.humo && C.tiroT > 0 && pilonAVista()) {
+    C.tiroT -= dt;
+    if (C.tiroT <= 0) lanzarAim9();
   }
   C.amT -= dt;
   if (C.amT > 0) return;
   if (C.asoma) { C.asoma = false; C.amague++; C.amT = entre(CAZA_AMAGUE_GAP); }
-  else { C.asoma = true; C.amT = entre(CAZA_AMAGUE_T); C.tracT = 0.25; }
+  else { C.asoma = true; C.amT = entre(CAZA_AMAGUE_T); C.tiroT = 0.25; }
 }
 
 /** Entra a PRESION y rearma el ciclo de amagues. Se llama desde la entrada, desde la recola y
@@ -599,6 +634,8 @@ export function cazaSystem(dt) {
       continue;
     }
     stepSolucion(dt);
+    // cuanto hace que no tiene un Sidewinder suyo en el aire (el respiro de `lanzarAim9`)
+    C.libreT = misilVivo() ? 0 : C.libreT + dt;
     if (comboFuerza()) { C.pase++; ir('sobrepaso', CAZA_OVER_T); golpeDelPase(); }
     if (C.fase === 'presion') stepAmague(dt);
     stepPos(dt);
@@ -651,8 +688,21 @@ export function dbg() {
     semi: +(CAZA_SEMI * proj(h.x, h.y, h.z).k).toFixed(1), w: W,
     amague: h.amague, asoma: +h.asomaK.toFixed(2), final: h.final,
     n: fleet.length,
+    // LOS SIDEWINDER: cuantos le quedan y en que anda el que tiro (guia / perdido / impacto), y si
+    // ya esta en la ZONA donde una pirueta lo pierde
+    aim9: h.aim9, misil: h.misil ? h.misil.fase : null, zona: h.misil ? !!h.misil.zona : null,
   });
 }
+
+// __aim9 (QUITAR): TODOS los Sidewinder vivos —los de la cola y los de los cazas de frente—, con lo
+// que hace falta para afirmar la regla desde afuera: de donde vino, en que fase esta, si ya entro a
+// la zona y donde cae en la pantalla. Vive aca y no en collision.js porque es el archivo de LA
+// COLA, que es donde se entiende la regla; los de frente salen en la misma lista.
+if (typeof window !== 'undefined') window.__aim9 = () => JSON.stringify(missiles.filter(m => m.tipo === 'aim9').map(m => {
+  const s = proj(m.x, m.y, Math.max(0.5, m.z));
+  return { modo: m.modo, fase: m.fase, zona: !!m.zona, t: +m.t.toFixed(2), z: +m.z.toFixed(1),
+    sx: Math.round(s.x), sy: Math.round(s.y), tr: (m.tr || []).length };
+}));
 
 /** ¿HAY UNO ASOMADO EN TU COLA AHORA MISMO? Devuelve su indice en la flota, o -1.
  *

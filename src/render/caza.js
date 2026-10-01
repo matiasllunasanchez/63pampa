@@ -1,6 +1,6 @@
-// EL DIBUJO DE LA COLA: los Harriers del duelo, sus trazadoras, su humo y su estela. Las
-// trazadoras ERRAN siempre y no tienen codigo de impacto — el porque, y por que se dibujan frias,
-// esta en el encabezado de systems/caza.js.
+// EL DIBUJO DE LA COLA: los Harriers del duelo, su humo y su estela. El Sidewinder que te tiran
+// NO se dibuja aca: vive con los demas misiles y lo pinta render/aim9.js (30/9/2026 — antes aca se
+// dibujaban las trazadoras que erraban, que se fueron con el pedido del misil).
 //
 // Plan: docs/sistemas/PLAN_HARRIERS_PERSECUCION.md, PLAN A. La logica vive en systems/caza.js;
 // aca solo se LEE su snapshot y se pinta (convencion 4 de ARQUITECTURA).
@@ -22,33 +22,6 @@ import * as enemyArt from './enemies.js';
 import { snapshot } from '../systems/caza.js';
 
 const PH_DARK = 0.5, PH_SQUASH = 0.74;
-
-// LAS TRAZADORAS QUE ERRAN. Vuelven a existir, y se dibujan FRIAS a proposito: blanco azulado,
-// nada de naranja. El naranja es el color de lo que te va a lastimar en este juego (la llama, las
-// explosiones, el fuego letal que el Harrier ya no tiene), y estas balas no pueden tocarte. Que se
-// lean distinto no es decoracion — es la diferencia entre un aviso y una amenaza.
-const HOT = ['#fdfefe', '#d8ecff', '#9ec8f0', '#5f8fc0'];
-const TRAC_N = 7, TRAC_Z = 5.5;
-
-function drawTrac(f) {
-  // la COLA de la trazadora: siete muestras hacia atras de su propio recorrido, cada una mas
-  // tenue. Es lo que hace que se lea como algo que CRUZA y no como un punto que aparece.
-  for (let i = TRAC_N; i >= 1; i--) {
-    const z = f.z - i * TRAC_Z;
-    if (z <= 1.5) continue;
-    const p = proj(f.x, f.y, z);
-    const w = Math.max(1, Math.round(p.k * 0.1));
-    ctx.globalAlpha = 0.75 * (1 - i / (TRAC_N + 2));
-    px(p.x - w / 2, p.y - w / 2, w, w, HOT[Math.min(HOT.length - 1, i >> 1)]);
-  }
-  ctx.globalAlpha = 1;
-  const s = proj(f.x, f.y, f.z);
-  const w = Math.max(2, Math.round(s.k * 0.17));
-  ctx.globalAlpha = 0.5;
-  px(s.x - w / 2 - 1, s.y - w / 2 - 1, w + 2, w + 2, HOT[2]);
-  ctx.globalAlpha = 1;
-  px(s.x - w / 2, s.y - w / 2, w, w, HOT[0]);
-}
 
 function drawHumo(f) {
   const s = proj(f.x, f.y, f.z);
@@ -147,8 +120,7 @@ export function drawCaza(lejos) {
   for (const H of fleet) {
     for (const f of H.fx) {
       if ((f.z > corte) !== !!lejos) continue;
-      if (f.k === 'trac') { if (!(f.wait > 0)) drawTrac(f); }
-      else if (f.k === 'humo') drawHumo(f);
+      if (f.k === 'humo') drawHumo(f);
       else drawEstela(f);
     }
     // `enCola` lo decide el sistema: ya te paso y esta detras tuyo, asi que no hay nada que

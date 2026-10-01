@@ -15,7 +15,13 @@
 
      POR QUE 16 px Y NO 84. La municion se dibuja entre 4 y 16 px en pantalla. Horneada a 84 habria
      que reducirla 5x y lo que llega es puré: en pixel art el asset se hornea CERCA del tamaño al
-     que se dibuja. A 16 entra la silueta —cuerpo, ojiva y aletas— que es todo lo que se lee. -->
+     que se dibuja. A 16 entra la silueta —cuerpo, ojiva y aletas— que es todo lo que se lee.
+
+     Y UNA SEGUNDA HOJA, assets/ammo/aim9.png: EL SIDEWINDER de los Harrier (30/9/2026). Va aparte
+     porque su grilla es otra: 10 vistas de 0° (de cola) a 180° (DE NARIZ), en frames de 32. La hoja
+     de arriba solo tiene vistas de cola porque su municion siempre se aleja; al Sidewinder se lo ve
+     venir de frente (el de un caza del pasillo) y alejarse hacia tu avion (el de LA COLA), y se lo
+     dibuja mas grande — el de atras nace a 10 unidades de la camara. -->
 <head>
   <meta charset="utf-8">
   <title>bake_ammo — RASANTE</title>
@@ -37,6 +43,12 @@
     // la camara. 0 es de cola pura (lo que ves cuando se aleja derecho).
     const VISTAS = [0, 15, 30, 45, 62, 80];
     const FILAS = ['bomba', 'misil'];
+    // EL SIDEWINDER: su propia grilla (ver el encabezado). 0 = de cola, 180 = de nariz. El render
+    // (src/render/aim9.js) repite estas vistas — si se cambian aca, se cambian alla.
+    const AIM9_FW = 32, AIM9_VISTAS = [0, 20, 40, 60, 80, 100, 120, 140, 160, 180];
+    // MAS LEJOS que la camara de la municion chica: de costado (90°) el misil queda PARADO en el
+    // frame y tiene que entrar entero — 2,9 de largo contra los ~2,95 que ve la camara de arriba.
+    const AIM9_CAM = { fov: 26, pos: [0, 0.3, 7.4], lookY: 0, near: 0.5, far: 60 };
 
     // EL HORNO ES COMPARTIDO (tools/bake_common.js). MISMA LUZ QUE LOS AVIONES: si la municion
     // se iluminara distinta se leeria como pegada de otro juego. Atardecer del Atlantico —
@@ -81,7 +93,34 @@
         bx.drawImage(sheet, 0, 0, big.width, big.height);
         outEl.appendChild(h); outEl.appendChild(big);
       }
-      return { municion: out };
+      return { municion: out, aim9: bakeAim9(outEl) };
+    }
+
+    /** La hoja del Sidewinder: una fila, AIM9_VISTAS columnas. Mismo horno y misma luz. */
+    function bakeAim9(outEl) {
+      const R = BAKE.renderer(THREE, AIM9_FW, AIM9_FW), cam = BAKE.camara(THREE, AIM9_FW, AIM9_FW, AIM9_CAM);
+      const sheet = document.createElement('canvas');
+      sheet.width = AIM9_FW * AIM9_VISTAS.length; sheet.height = AIM9_FW;
+      const x2 = sheet.getContext('2d');
+      const sc = makeScene(), model = MODELS.aim9();
+      sc.add(model);
+      AIM9_VISTAS.forEach((v, col) => {
+        // igual que arriba: se inclina el MODELO. En 90° la nariz queda ARRIBA en el frame — el
+        // render rota el sprite para que ese "arriba" apunte hacia donde va el misil.
+        model.rotation.x = v * Math.PI / 180;
+        R.render(sc, cam);
+        x2.drawImage(R.domElement, col * AIM9_FW, 0);
+      });
+      if (outEl) {
+        const h = document.createElement('h2');
+        h.textContent = `aim9 — ${AIM9_VISTAS.length} vistas de ${AIM9_FW}x${AIM9_FW} · de cola (0°) a de nariz (180°)`;
+        const big = document.createElement('canvas'); big.className = 'sheet';
+        big.width = sheet.width * 4; big.height = sheet.height * 4;
+        const bx = big.getContext('2d'); bx.imageSmoothingEnabled = false;
+        bx.drawImage(sheet, 0, 0, big.width, big.height);
+        outEl.appendChild(h); outEl.appendChild(big);
+      }
+      return sheet.toDataURL('image/png');
     }
     window.__bake = __bake;
     if (!navigator.userAgent.includes('Electron')) __bake();

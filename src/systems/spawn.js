@@ -47,7 +47,7 @@ const valEst = (clave, base) => pisoEst(clave, val(clave, base), nivelEst());
 import { sembrar as cvSembrar } from './charla.js';
 import { carrilLibre } from './persec.js';
 import { carrilSeguro, puestoLadera, barreraCerca } from '../core/zigzag.js';
-import { ZZ_PARED_TALUD, ZZ_LADERA_P } from '../data/tuning.js';
+import { ZZ_PARED_TALUD, ZZ_LADERA_P, AIM9 } from '../data/tuning.js';
 import { plane } from '../core/state.js';
 import { scrapeLimit } from '../core/physics.js';
 import { olaBump, climaDe } from '../core/sea.js';
@@ -100,10 +100,12 @@ function mov(type, x) {
     case 'helo': return sway(x, [4, 8], [0.4, 0.75], 0.55);
     // caza de frente: teje SIEMPRE, y ademas busca tu carril (home, en u/s — collision.js
     // lo aplica sobre el ancla). Es el unico que te persigue: cierra rapido y encima corrige.
-    // ALGUNOS (45%) vienen ARMADOS: tiran una rafaga corta de trazadoras en su pasada
-    // (gun = tiros que le quedan; el gatillo vive en collision.js).
+    // ALGUNOS (AIM9.FRENTE_P) vienen ARMADOS: en su pasada te tiran un SIDEWINDER, y algunos de
+    // esos (FRENTE_P2) un segundo — nunca mas de dos, que es lo que cargaba un Sea Harrier. Hasta
+    // el 30/9 tiraban una rafaga de trazadoras. (aim9 = los que le quedan; el gatillo vive en
+    // collision.js, y la cuenta del vuelo en core/aim9.js.)
     case 'jet': return { ...sway(x, [2.5, 4.5], [0.8, 1.3], 1), home: 2.2,
-      ...(Math.random() < 0.45 ? { gun: 2, gcd: 0.2 } : {}) };
+      ...(Math.random() < AIM9.FRENTE_P ? { aim9: Math.random() < AIM9.FRENTE_P2 ? 2 : 1, acd: 0 } : {}) };
     // vehiculos: ruedan por su carril y rebotan en los bordes
     case 'radar': return drive(1.6, 3.2);
     case 'aatruck': return drive(1.4, 2.8);
@@ -591,6 +593,16 @@ export function spawnSystem(dt, objectiveDist) {
     }
   }
 }
+
+// __jetarmado (QUITAR): un caza de frente ARMADO con `n` Sidewinder (1 o 2), a `z` y en el carril
+// `x`. Existe por lo mismo que __ola: los cazas salen por sorteo y solo el 45% viene armado, asi
+// que ver el tiro de frente por las buenas es esperar dos sorteos seguidos volando.
+if (typeof window !== 'undefined') window.__jetarmado = (z, x, n) => {
+  const o = { type: 'jet', x: x || 0, y: spawnY('jet'), z: z || SPAWN_Z, ...hpOf('jet'), ...mov('jet', x || 0),
+    done: false, ph: 0, aim9: n === 2 ? 2 : 1, acd: 0 };
+  obstacles.push(o);
+  return JSON.stringify({ z: o.z, x: o.x, y: +o.y.toFixed(1), aim9: o.aim9 });
+};
 
 // SONDAS de desarrollo (SPEC_AGUA_OLAS §4) — QUITAR al cerrar el agua.
 // __ola: inyecta una ola a SPAWN_Z SALTEANDO el clima y el GAP. Existe porque probar la mecanica

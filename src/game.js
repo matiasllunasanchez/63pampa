@@ -66,6 +66,7 @@ import * as muni from './render/municion.js';
 import * as blancoSys from './systems/blanco.js';
 import * as seawolfSys from './systems/seawolf.js';
 import { drawZonaSW, drawEngancheSW, drawMisilSW, drawHumoSW } from './render/seawolf.js';
+import { drawAim9 } from './render/aim9.js';   // el Sidewinder de los Harrier
 import * as escapeSys from './systems/escape.js';
 import { drawTirosPopa, drawCap } from './render/escape.js';
 import { BL as BL_BLANCO, FASE_ESCAPE, SENAS, CIELO_VUELTA, CAP } from './data/blanco.js';
@@ -2166,9 +2167,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // SONDA DE LA COLA (PLAN_HARRIERS_PERSECUCION §3, fase H0) — QUITAR al cerrar el plan.
     //   ?caza          arma UN duelo apenas arranca el pasillo, con aviso por radio.
     //   ?caza=mudo     el mismo duelo SIN aviso por radio (el canon del §2: a veces no llega).
-    //   ?caza=manso    INERTE. Apagaba las rafagas letales, y el Harrier ya no dispara nunca (ver
-    //                  el encabezado de systems/caza.js). Se acepta todavia porque las sondas y
-    //                  las capturas viejas lo pasan; no cambia nada.
+    //   ?caza=manso    el duelo SIN DIENTES: el Harrier no tira su Sidewinder. Estuvo inerte
+    //                  mientras el Harrier no disparaba; desde el 30/9 vuelve a apagar el fuego,
+    //                  y es con lo que el fixture mide la coreografia (secciones 1-8).
     // Sin el parametro, cazaProbe es null y nada cambia. El duelo TAMBIEN se arma a mano con
     // __czstart() desde la consola, que es lo que usan las capturas.
     const cazaProbe = (() => {
@@ -4254,7 +4255,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // que `__pdef(0)` en la pasada — la seccion que mide una cosa apaga lo que no esta midiendo.
       // Sin esto, juzgar la coreografia del sobrepaso depende de no comerse un mastil en el medio,
       // y el ciclo entero dura casi un minuto. En el juego normal `cazaCalma` es siempre false.
-      if (cazaCalma) { obstacles.length = 0; missiles.length = 0; soldiers.length = 0; run.detection = 0; }
+      // …MENOS EL SIDEWINDER (30/9): desde que el Harrier te tira el suyo, el misil es PARTE del
+      // duelo que la calma existe para mirar. Borrarlo con el resto dejaba la cola sin dientes justo
+      // en la sonda que la mide.
+      if (cazaCalma) {
+        obstacles.length = 0; soldiers.length = 0; run.detection = 0;
+        for (let i = missiles.length - 1; i >= 0; i--) if (missiles[i].tipo !== 'aim9') missiles.splice(i, 1);
+      }
       if (cazaProbe && !cazaArmed && run.t > 1.5) { cazaArmed = true; caza.start(cazaProbe); }
       // LOS ACTORES: los Fieles que entraron a hacer una pirueta en escena. Corren con el dt del
       // MUNDO —si el tiempo se dilata, la figura se dilata con el— y no devuelven señal: no pueden
@@ -4619,6 +4626,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       for (const m of missiles) {
         if (m.z <= 3) continue;
         if (m.tipo === 'wolf') { drawMisilSW(m); continue; }   // el Sea Wolf, blanco y celeste (render/seawolf.js)
+        // el SIDEWINDER de los Harrier (render/aim9.js): aca solo el que esta mas lejos que vos —
+        // el de frente, y el de atras que perdio el blanco y se te adelanto. El que viene de atras
+        // va en la segunda pasada, despues del avion.
+        if (m.tipo === 'aim9') { if (m.z >= PZ) drawAim9(m); continue; }
         const s = proj(m.x, m.y, m.z), k = s.k;
         if (m.tracer) {
           const s2 = proj(m.x, m.y, m.z + 5);
@@ -4795,9 +4806,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EL GLOBO DE TU SEÑA (data/senales.js), encima del avion: el ala de canto tapaba el texto
       if (S.state === 'play' && senalGlobo) squadRender.drawSenalPropia(senalGlobo);
       // LA COLA, segunda pasada: lo que quedo MAS CERCA que el avion — el sobrepaso enorme
-      // cruzandote y las trazadoras que te estan pasando ahora. Va DESPUES del sprite porque
-      // efectivamente esta entre vos y la camara: dibujarlo antes lo dejaria por detras del ala.
+      // cruzandote. Va DESPUES del sprite porque efectivamente esta entre vos y la camara:
+      // dibujarlo antes lo dejaria por detras del ala.
       drawCaza(false);
+      // …Y EL SIDEWINDER QUE TE TIRO, por la misma razon: viene de atras, entre la camara y vos,
+      // y se te pone en la cola por ENCIMA del avion (render/aim9.js)
+      for (const m of missiles) if (m.tipo === 'aim9' && m.z < PZ) drawAim9(m);
       // la FORMACION del escuadron: SOLO en el despegue y en su salida de plano al CONTROL
       // LIBRE. Nunca durante el PASILLO en si — es costo de render que no aporta y taparia el juego.
       {

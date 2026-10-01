@@ -114,6 +114,8 @@ def main():
     # INTERFAZ: emblema de las Malvinas (4a estrella) y hoja de miras (3x3)
     # MUNICION: una sola hoja horneada para bombas y misiles (tools/bake_ammo.html).
     js, ok = sub_path(js, '../assets/ammo/municion.png', uri(ASSETS / 'ammo' / 'municion.png', 'image/png')); n += ok
+    # ...y el SIDEWINDER de los Harrier, que tiene su propia hoja (otra grilla: de cola a nariz)
+    js, ok = sub_path(js, '../assets/ammo/aim9.png', uri(ASSETS / 'ammo' / 'aim9.png', 'image/png')); n += ok
     js, ok = sub_path(js, '../assets/ui/malvinas.webp', uri(ASSETS / 'ui' / 'malvinas.webp', 'image/webp')); n += ok
     js, ok = sub_path(js, '../assets/ui/miras.webp', uri(ASSETS / 'ui' / 'miras.webp', 'image/webp')); n += ok
     # ILUSTRACIONES de portada y de fin (assets/photos/{ppal,win,lose}/): NO entran en

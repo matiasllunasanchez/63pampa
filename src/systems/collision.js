@@ -37,6 +37,10 @@ import { scrapeLimit } from '../core/physics.js';
 import { olaBump } from '../core/sea.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER, isSoftStruct } from '../core/hitbox.js';
 import { mvTight } from '../data/moves.js';
+// EL SIDEWINDER (30/9/2026): la cuenta de su vuelo, pura, y la voz de Puma que avisa cuando quebrar
+import { lanzarFrente, pasoAim9 } from '../core/aim9.js';
+import { AIM9 } from '../data/tuning.js';
+import { hablar } from '../core/voz.js';
 
 /** Golpe NO letal (nube de explosion, bandada): sacude, frena y quema combustible — castiga sin
  *  derribar. El daño real del juego sigue siendo binario (chocar = morir); esto es friccion. */
@@ -381,15 +385,23 @@ export function collisionSystem(dt) {
         }
       }
     }
-    // CAZA ARMADO (spawn.js sortea cuales): en su pasada de ataque suelta una rafaga corta de
-    // trazadoras — las mismas del puesto: rapidas y casi rectas, se esquivan moviendose. La
-    // banda de tiro (70-190) hace que dispare de lejos y las trazadoras te lleguen antes que el.
-    if (o.type === 'jet' && o.gun > 0 && !o.done && o.hp > 0 && o.z > 70 && o.z < 190) {
-      o.gcd -= dt;
-      if (o.gcd <= 0) {
-        o.gcd = 0.5; o.gun--; o.fireT = run.t;
-        missiles.push({ x: o.x, y: o.y, z: o.z, done: false, tracer: true });
-        beep(320, 0.05, 'square', 0.04);
+    // CAZA ARMADO (spawn.js sortea cuales): en su pasada de ataque te tira un SIDEWINDER, o dos
+    // (30/9/2026 — antes era una rafaga de trazadoras). Sale DE LEJOS, en la banda AIM9.FRENTE_Z,
+    // para que se vea salir del caza y venir: apuntado a donde estabas y corrigiendo poco, se
+    // esquiva corriendose (core/aim9.js). El segundo, si lo trae, sale AIM9.FRENTE_GAP despues.
+    if (o.type === 'jet' && o.aim9 > 0 && !o.done && o.hp > 0 && o.z > AIM9.FRENTE_Z[0] && o.z < AIM9.FRENTE_Z[1]) {
+      o.acd -= dt;
+      if (o.acd <= 0) {
+        // SALE DEL PILON DE UN ALA, y el segundo del otro. Sin `o.fireT`: esa marca enciende los
+        // fogonazos de CAÑON en las raices del ala (render/world.js), y esto no es un cañonazo.
+        o.acd = AIM9.FRENTE_GAP; o.aim9--;
+        const px0 = o.x + (o.aim9 % 2 ? -2.4 : 2.4);
+        missiles.push(lanzarFrente({ x: px0, y: o.y - 0.5, z: o.z }, { x: plane.x, y: plane.y, spd: run.spd, pz: PZ }));
+        // EL FOGONAZO de la ignicion bajo el ala: lo primero que se ve, antes que el misil
+        const s = proj(px0, o.y - 0.5, o.z);
+        for (let i = 0; i < 5; i++) parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 30,
+          life: 0.25 + Math.random() * 0.15, c: i < 2 ? '#fff1c8' : '#f06a2a', r: Math.max(1, s.k * 0.7) });
+        beep(220, 0.3, 'sawtooth', 0.04, 900);   // el siseo del motor cohete
       }
     }
     // PUESTO con soldados adentro: una rafaga corta de trazadoras (rapidas, casi rectas) que
@@ -410,6 +422,33 @@ export function collisionSystem(dt) {
 
   // misiles
   for (const m of missiles) {
+    // EL SIDEWINDER de los Harrier (core/aim9.js): el que te tira LA COLA desde atras y el que te
+    // tiran los cazas de frente. Se resuelve ENTERO aca y no pasa por el bloque comun de abajo: el
+    // de atras no te cruza de frente —llega desde la camara—, y los dos tienen su propia regla.
+    if (m.tipo === 'aim9') {
+      if (m.senuelo) {
+        // CAMBIO DE PILOTO: ya se fue detras del que se retiro; sigue de largo y no te puede pegar
+        m.done = true; m.z -= (run.spd + AIM9.FRENTE_V) * dt;
+        continue;
+      }
+      const ev = pasoAim9(m, dt, { x: plane.x, y: plane.y, vx: plane.vx, vy: plane.vy || 0,
+        spd: run.spd, pz: PZ, maniobra: !!run.mv, tight: mvTight(run.mv) });
+      // LA ZONA: ahora una pirueta lo pierde. El grito lo armo quien lo tiro (systems/caza.js), que
+      // es el que sabe si el duelo es mudo — sin texto, no se dice nada y queda el misil latiendo.
+      if (ev === 'zona' && m.rompe) hablar('PUMA', m.rompe);
+      if (ev === 'pierde' || ev === 'cruza') {
+        run.score += AIM9.PTS; stats.dodges++; boom(0.08, true);
+        if (ev === 'pierde' && m.rompe) hablar('PUMA', T('aim9_perdido'));
+      }
+      if (ev === 'impacto') {
+        explodeAt(m.x, m.y, Math.max(m.z, PZ + 0.6), false, false, true);
+        m.z = 0;                                    // el prune de abajo se lo lleva
+        if (dmg.takeHit('death_sidewinder')) return { death: 'death_sidewinder' };
+        continue;
+      }
+      if (ev === 'fin') m.z = 0;
+      continue;
+    }
     if (m.tipo === 'wolf') {
       // EL SEA WOLF (systems/seawolf.js): mucho mas rapido, y guiado de verdad — copia TU velocidad
       // lateral y vertical y corrige hacia donde estas, asi que moverse parejo o volar bajo no lo
