@@ -16,6 +16,15 @@
 //     fraccion 1                       → blancoKm (el buque)
 //     la ultima fase de la vuelta      → 2 × blancoKm (casa: se vuelve por donde se vino)
 //
+// LA VUELTA ES ESPEJO DE LA IDA (pedido del autor 2/10). Hasta entonces los 700 km de vuelta se
+// repartian PAREJOS sobre el pasillo de regreso, y en la IDA Y VUELTA SMALL eso era 0,117 km por
+// metro justo despues del buque —el doble que la corrida final— con el escape obligandote al ras
+// (la zona que quema x3): medido, 45 km de tanque por segundo, y el avion se secaba a los diez o
+// quince segundos de pegarle. Ahora cada ancla de la ida tiene su gemela en la vuelta, del otro lado
+// del blanco: la fraccion 1 − p de la ida queda en 1 + (fin − 1)(1 − p), a 2 × blancoKm − km. El
+// escape bajo el radar se estira como la llegada, y los 520 km de crucero alto quedan comprimidos
+// al final, como al principio.
+//
 // Entre ancla y ancla, lineal. Asi los 520 km del crucero alto caben en el tramo corto del
 // transito y los 70 del rasante ocupan casi todo el pasillo: la mision dura lo que tiene que
 // durar donde pasan cosas. Una fase que falta no ancla nada y ese tramo se estira entre sus
@@ -54,7 +63,11 @@ export function anclas(ruta, fases) {
   if (ruta.potenciaKm) pon(primera('blanco'), ruta.potenciaKm);
   a.push({ p: 1, km: ruta.blancoKm });
   const fin = fases[fases.length - 1].hasta;
-  if (fin > 1) a.push({ p: fin, km: 2 * ruta.blancoKm });
+  if (fin > 1) {
+    // EL ESPEJO (ver arriba): las anclas de la ida, del otro lado del blanco
+    for (const x of a.slice()) if (x.p > 0 && x.p < 1) a.push({ p: 1 + (fin - 1) * (1 - x.p), km: 2 * ruta.blancoKm - x.km });
+    a.push({ p: fin, km: 2 * ruta.blancoKm });
+  }
   return a.sort((x, y) => x.p - y.p);
 }
 

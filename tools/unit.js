@@ -2611,13 +2611,26 @@ const FASES_T = [
 test('ruta: las anclas caen en los bordes de fase, y entre ellas es lineal', async () => {
   const { anclas, posKm } = await import('../src/core/ruta.js');
   const a = anclas(RUTA_T, FASES_T);
-  assert.deepEqual(a, [{ p: 0, km: 0 }, { p: 0.2, km: 520 }, { p: 0.3, km: 580 }, { p: 0.9, km: 650 }, { p: 1, km: 700 }, { p: 2, km: 1400 }]);
+  // la vuelta es ESPEJO de la ida (2/10): cada ancla tiene su gemela del otro lado del blanco
+  const r = a.map(x => ({ p: +x.p.toFixed(6), km: x.km }));
+  assert.deepEqual(r, [{ p: 0, km: 0 }, { p: 0.2, km: 520 }, { p: 0.3, km: 580 }, { p: 0.9, km: 650 }, { p: 1, km: 700 },
+    { p: 1.1, km: 750 }, { p: 1.7, km: 820 }, { p: 1.8, km: 880 }, { p: 2, km: 1400 }]);
   near(posKm(0, a), 0);
   near(posKm(0.1, a), 260);                // la mitad del crucero comprimido
   near(posKm(0.2, a), 520);                // el horizonte de radar: 180 km al blanco
   near(posKm(1, a), 700);
-  near(posKm(1.5, a), 1050);               // la mitad de la vuelta
+  near(posKm(1.8, a), 880);                // el gemelo del radar: 180 km del blanco, de vuelta
+  near(posKm(1.9, a), 1140);               // la mitad del crucero de vuelta, comprimido como el de ida
   near(posKm(9, a), 1400);                 // pasado casa, el odometro no sigue
+});
+
+test('ruta: la vuelta es espejo de la ida — despues del blanco se quema lo mismo que antes', async () => {
+  const { anclas, kmPorMetro } = await import('../src/core/ruta.js');
+  const a = anclas(RUTA_T, FASES_T), obj = 10000;
+  // el metro justo despues del buque vale lo mismo que el justo antes (la corrida final, espejada)
+  near(kmPorMetro(1.05, a, obj), kmPorMetro(0.95, a, obj), 1e-9);
+  // y el crucero de vuelta se comprime igual que el de ida
+  near(kmPorMetro(1.9, a, obj), kmPorMetro(0.1, a, obj), 1e-9);
 });
 
 test('ruta: el crucero se comprime y el rasante no', async () => {

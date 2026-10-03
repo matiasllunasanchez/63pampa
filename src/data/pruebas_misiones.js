@@ -178,9 +178,12 @@ const t15 = {
     // ── LA VUELTA: LA GUERRA ───────────────────────────────────────────────────────────────
     // Sin `solo` y sin `bombs: 0`: aca nace todo lo que el pasillo sabe hacer —helicopteros,
     // barcazas, aviones— y ahora SI te bombardean, porque ahora si te vieron.
+    // LA VUELTA ES ESPEJO DE LA IDA (core/ruta.js, 2/10): el radar te cubre hasta 1.84 —el gemelo del
+    // descenso de la ida— y recien ahi se puede subir, llamar a la Chancha y cruzar barato el crucero
+    // alto. Por eso la Chancha de la vuelta habla ahi y no antes (adentro del radar no existe).
     { tipo: 'vuelta', hasta: 1.30, radio: 'fase_vuelta', bidones: false },
-    { tipo: 'vuelta', hasta: 1.45, radio: 'fase_cazas', bidones: false },
-    { tipo: 'vuelta', hasta: 1.60, radio: 'fase_chancha_vuelta', bidones: false },
+    { tipo: 'vuelta', hasta: 1.84, radio: 'fase_cazas', bidones: false },
+    { tipo: 'vuelta', hasta: 1.95, radio: 'fase_chancha_vuelta', bidones: false },
     { tipo: 'vuelta', hasta: 2.0, radio: 'fase_casa', bidones: false },
   ],
   // NO HAY `charla:` ACA, Y ES A PROPOSITO. Se probo una (M01_GANSOS) para tener a la vista el
