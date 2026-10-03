@@ -863,15 +863,6 @@ export const OLA_ROMP_Z = 60;       // z donde EMPIEZA A ROMPER (se enrula y rug
 // no es un evento, es una emboscada.
 export const OLA_REB_P = 0.22;      // fraccion de las olas de TORMENTA que salen rebeldes
 export const OLA_REB_D0 = 400;      // m de vuelo antes de la primera posible (§F7.1)
-// espuma / viento (F2)
-export const SEA_FOAM_TH = { calm: 0.88, breeze: 0.78, storm: 0.62 };  // umbral de cresta con espuma
-export const SEA_WIND_AMP = 0.45;   // termino direccional de viento en seaH
-// ---------- EL RELIEVE DE LA TIERRA (PLAN_TIERRA_COSTA T3) ----------
-// Las lomas de la turba. Es la fase de JUEGO del suelo: `groundY` deja de ser una constante y pasa
-// a ser este campo, o sea que a ras de tierra hay que SEGUIR EL TERRENO.
-//
-// LA AMPLITUD ES CHICA A PROPOSITO. El avion vuela a 60-90 m/s: con 2.2 m de loma y longitudes de
-// onda de cientos de metros, la pendiente maxima queda en ~4% (unos 3.5 m/s de trepada pedida a
 /** EL MAR VARIADO (`mar: 'variado'` en el cfg de la mision; pedido del autor 2/10: "quitar globos y
  *  agregar mas variedad de olas y de alturas" en las IDA Y VUELTA). Tres cosas, y ninguna toca el
  *  reglamento de justicia de las olas (OLA_GAP_MIN, dos vivas, nunca en la niebla):
@@ -885,6 +876,15 @@ export const OLA_VARIADO = {
   rate: 1.7, rebelde: 0.1,
   var: { marejada: { lo: 0.55, hi: 2.3 }, rompiente: { lo: 0.7, hi: 1.5 }, rebelde: { lo: 0.9, hi: 1.2 } },
 };
+// espuma / viento (F2)
+export const SEA_FOAM_TH = { calm: 0.88, breeze: 0.78, storm: 0.62 };  // umbral de cresta con espuma
+export const SEA_WIND_AMP = 0.45;   // termino direccional de viento en seaH
+// ---------- EL RELIEVE DE LA TIERRA (PLAN_TIERRA_COSTA T3) ----------
+// Las lomas de la turba. Es la fase de JUEGO del suelo: `groundY` deja de ser una constante y pasa
+// a ser este campo, o sea que a ras de tierra hay que SEGUIR EL TERRENO.
+//
+// LA AMPLITUD ES CHICA A PROPOSITO. El avion vuela a 60-90 m/s: con 2.2 m de loma y longitudes de
+// onda de cientos de metros, la pendiente maxima queda en ~4% (unos 3.5 m/s de trepada pedida a
 // toda velocidad), que se sigue con el gas y no obliga a memorizar. Una loma agresiva no seria mas
 // dificil, seria una pared invisible — la ola ya cubre el evento brusco, la tierra es lo continuo.
 export const TIERRA_AMP = 2.2;      // altura maxima de la loma (m). En 0 el suelo vuelve a ser plano
