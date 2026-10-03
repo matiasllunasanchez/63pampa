@@ -102,7 +102,7 @@ import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, update
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack,
          setRasante } from './systems/audio.js';
 import * as world3D from './legacy/three-world.js';
-import { cv, ctx, W, H, DH, HOR, F, PZ, SC, px, panel, U } from './render/ctx.js';
+import { cv, ctx, W, H, DH, HOR, F, PZ, SC, px, panel, U, pxFino } from './render/ctx.js';
 import * as screens from './render/screens.js';
 import { decir as decirRadio, apuntar as apuntarRadio, callar as callarRadio, tickRadio, radio as radioBox, restante as radioRest, visible as radioVis, log as radioLog } from './core/radioVN.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
@@ -4850,7 +4850,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // en momentum/arena, particulas y popups los dibuja su propio render (nivelados, sobre el
       // barco); dibujarlos tambien aca dejaria una copia fantasma
       if (S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada') {
-        for (const p of parts) { ctx.globalAlpha = Math.min(1, p.life * 2); px(p.x, p.y, p.r, p.r, p.c); }
+        for (const p of parts) { ctx.globalAlpha = Math.min(1, p.life * 2); pxFino(p.x, p.y, p.r, p.r, p.c); }
         ctx.globalAlpha = 1;
 
         ctx.textAlign = 'center';

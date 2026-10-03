@@ -78,11 +78,12 @@ export function drawIslas() {
       const pend = hPrev === null ? 0 : (hPrev - hMed) / Math.max(1.5, camZ * 0.022);
       hPrev = hMed;
       let col;
-      if (hMax < 0.5) col = camZ < 120 ? arena : arenaL;                 // la playa al pie
+      // (los tonos de cerca y de lejos, en FUNDIDO: un corte a distancia fija es una raya quieta en pantalla)
+      if (hMax < 0.5) col = mez(arena, arenaL, (camZ - 70) / 110);       // la playa al pie
       else if (pend > 0.35) col = mez(L.cuerpo, L.luz, Math.min(1, (pend - 0.35) * 0.6));   // farallon
       else if (pend > 0.04) col = mez(T.cerca, L.cuerpo, Math.min(1, (pend - 0.04) / 0.31));
       else if (pend < -0.04) col = mez(T.lejos, L.som, Math.min(0.6, -pend * 3));          // la sombra de atras
-      else col = camZ < 160 ? T.cerca : T.lejos;
+      else col = mez(T.cerca, T.lejos, (camZ - 100) / 140);
       // LOS SURCOS: bandas de mundo cada BANDA metros, apenas mas oscuras. Sin esto el lomo es un
       // plano de un solo color y, volando encima, no hay nada que diga a que altura ni a que
       // velocidad vas — el mismo problema que la meseta de las laderas resolvio con sus matas.

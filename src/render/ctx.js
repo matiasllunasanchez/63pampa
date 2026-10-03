@@ -42,6 +42,14 @@ export function px(x, y, w, h, c) {
   ctx.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
 }
 
+/** Como `px`, pero al PIXEL REAL del buffer (1/SC de pixel de mundo): lo usan las particulas, que
+ *  desde el 2/10 son granos de medio pixel (PART_* en data/tuning.js). `px` redondea al pixel de
+ *  mundo y nunca baja de 1: con el, una gota de 0,5 se dibujaba igual que una de 1. */
+export function pxFino(x, y, w, h, c) {
+  ctx.fillStyle = c;
+  ctx.fillRect(Math.round(x * SC) / SC, Math.round(y * SC) / SC, Math.max(1, Math.round(w * SC)) / SC, Math.max(1, Math.round(h * SC)) / SC);
+}
+
 /** Velo semitransparente sobre todo el mundo: la base de las pantallas de menu y de fin. */
 export function panel() { ctx.fillStyle = '#0d1216cc'; ctx.fillRect(0, 0, W, H); }
 

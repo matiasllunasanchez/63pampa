@@ -103,7 +103,7 @@ export function colinasHasta(zCorte) {
       if (S.hay && hMax > 0.05) {
         // LA NIEBLA de la distancia, por rebanada: se funde con la lejania sin borrarse del todo
         const niebla = Math.max(0, Math.min(1, (camZ - NIEBLA_Z0) / (COLINA_Z - NIEBLA_Z0))) * NIEBLA_MAX;
-        const base = camZ < 180 ? T.cerca : T.lejos;
+        const base = mez(T.cerca, T.lejos, (camZ - 110) / 160);   // fundido: un corte por distancia es una raya quieta en pantalla
         const dz = S.zPrev - camZ;
         for (let i = 0; i < N - 1; i++) {
           // fuera de cuadro (o todo al ras): nada que pintar

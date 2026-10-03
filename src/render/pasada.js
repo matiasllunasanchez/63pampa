@@ -16,7 +16,7 @@
 //
 // ESTA ES LA FASE P0: tablero minimo. La banda de armado en el HUD, los corchetes calientes de la
 // ventana y los avisos por capa llegan en P5 (legibilidad), que es su fase.
-import { ctx, W, H, px } from './ctx.js';
+import { ctx, W, H, px, pxFino } from './ctx.js';
 import { P } from '../data/palette.js';
 import { T } from '../core/i18n.js';
 import { run } from '../core/run.js';
@@ -376,7 +376,7 @@ export function drawPasada(w) {
   }
 
   // particulas y popups
-  for (const p of parts) { ctx.globalAlpha = Math.min(1, p.life * 2); px(p.x, p.y, p.r, p.r, p.c); }
+  for (const p of parts) { ctx.globalAlpha = Math.min(1, p.life * 2); pxFino(p.x, p.y, p.r, p.r, p.c); }
   ctx.globalAlpha = 1;
   ctx.textAlign = 'center';
   for (const p of popups) {

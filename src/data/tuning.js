@@ -610,7 +610,7 @@ export const AGUA_RAS_GRADOS = 45;
 //
 // Son MULTIPLICADORES: 1 = el turbo no cambia nada en ese efecto.
 // ⚠ EL ROCIO NO MULTIPLICA LA CANTIDAD, MULTIPLICA EL TAMANO, y no es un capricho: el presupuesto
-// de particulas es PARTS_MAX = 260 (data/despiece.js) y volando a ras el agua sola ya se come unas
+// de particulas era PARTS_MAX = 260 (hoy 780, con PART_DIV = 3: la misma cuenta, abajo; data/despiece.js) y volando a ras el agua sola ya se come unas
 // 144 —medido: 238 vivas sin turbo, o sea a un pelo del tope—. Subiendo la CANTIDAD no aparece ni
 // una gota mas: `capParts()` corta por el frente, asi que lo unico que se consigue es desalojar
 // chispas, sangre y escombros de otros sistemas. El tamano es gratis.
@@ -619,6 +619,15 @@ export const ROCIADA_TURBO = 1.4;    // brazos y lengua mas gordos
 export const CORTINA_TURBO = 1.7;    // lo que ya hacia: cortinas mas gordas
 export const ESTELA_TURBO = 1.45;    // lo que ya hacia: estela mas ancha
 export const ESTELA_TURBO_A = 1.3;   // …y mas blanca
+
+// ---- LAS PARTICULAS, MAS CHICAS Y MAS (2/10: "las particulas generales del juego, quiza del agua o del
+// humo, MAS CHICAS y mas cantidad") ----------------------------------------------------------------
+// No se toca cada efecto (son cuarenta lugares que empujan a `parts`): `capParts()` (core/fx.js), que
+// corre una vez por cuadro en todos los estados, PARTE cada particula nueva en PART_DIV, cada una a
+// PART_TAMANO de su tamaño (nunca menos de PART_MIN px de mundo: medio pixel es UN pixel real del
+// buffer 2x) y con un poco de dispersion —posicion, velocidad (PART_ABRE px/s) y vida— para que no
+// salgan en racimos identicos. El tope (PARTS_MAX, data/despiece.js) sube en la misma proporcion.
+export const PART_DIV = 3, PART_TAMANO = 0.55, PART_MIN = 0.5, PART_ABRE = 7;
 
 // ---- EL ROCIO (systems/vuelo.js) ----------------------------------------------------------------
 //
@@ -901,6 +910,19 @@ export const COLINA_CELDA = 70;     // m de la celda del ruido: el tamaño de un
 export const COLINA_ORILLA = 25;    // m tierra adentro desde la orilla antes de levantarse (costa)
 export const COLINA_PLAYA = 90;     // m en los que la lomada de una costa crece desde ahi (el borde serpentea)
 export const COLINA_Z = 1300;       // hasta donde se dibujan
+
+// ---------- LA PROFUNDIDAD DEL MAR (render/world.js `profundidad`, 2/10) ----------
+// Manchas fijas al mundo sobre el mar abierto: lo hondo mas oscuro, los bajios mas claros. Tres
+// escalas en metros (el tono largo, las manchas, las vetas) con su PESO; cada una se apaga cuando
+// una fila de pantalla ya abarca mas de un cuarto de su CELDA (titilaria). CORTE: cuanto se aparta
+// del medio el ruido para cada nivel de cada lado; HONDO y BAJO: el alfa de cada nivel (negro sobre
+// lo hondo, el `deep` del agua sobre los bajios). DZ/DZ_REL: cuanto puede cambiar la profundidad
+// dentro de una franja; PASO: px por muestra.
+export const MAR_HONDO = {
+  CELDA: [600, 60, 22], PESO: [0.45, 0.35, 0.2],
+  CORTE: [0.04, 0.1, 0.17], HONDO: [0.16, 0.32, 0.48], BAJO: [0.12, 0.24, 0.36],
+  DZ: 0.6, DZ_REL: 0.04, PASO: 6,
+};
 
 // ---------- LA GEOGRAFIA DEL PASILLO (PLAN_GEOGRAFIA) ----------
 // Una misma mision con etapas de terreno: mar, costa, tierra. Las perillas son de LAS COSTURAS,

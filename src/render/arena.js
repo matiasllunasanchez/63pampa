@@ -14,7 +14,7 @@
 //
 // En un espacio abierto la legibilidad es requisito, no adorno: sin la flecha al buque y el
 // altimetro, a los tres segundos no sabes donde estas.
-import { ctx, W, H, px, HOR } from './ctx.js';
+import { ctx, W, H, px, HOR, pxFino } from './ctx.js';
 import { P } from '../data/palette.js';
 import { T } from '../core/i18n.js';
 import { run } from '../core/run.js';
@@ -282,7 +282,7 @@ export function drawArena(w) {
   }
 
   // particulas y popups
-  for (const p of parts) { ctx.globalAlpha = Math.min(1, p.life * 2); px(p.x, p.y, p.r, p.r, p.c); }
+  for (const p of parts) { ctx.globalAlpha = Math.min(1, p.life * 2); pxFino(p.x, p.y, p.r, p.r, p.c); }
   ctx.globalAlpha = 1;
   ctx.textAlign = 'center';
   for (const p of popups) {

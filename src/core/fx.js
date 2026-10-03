@@ -9,7 +9,7 @@ import { run } from './run.js';
 import { geoActiva, esTierraEn } from './geografia.js';   // G1: agua o tierra, por punto
 import { parts, popups, obstacles, estallidos } from './world.js';
 import { P } from '../data/palette.js';
-import { POLVO_ABRE, POLVO_BAJA, POLVO_BARRIDO, ESTALLIDO } from '../data/tuning.js';
+import { POLVO_ABRE, POLVO_BAJA, POLVO_BARRIDO, ESTALLIDO, PART_DIV, PART_TAMANO, PART_MIN, PART_ABRE } from '../data/tuning.js';
 import { recetaDe, CHUNKS_MAX, CHUNK_LIFE, SEC_N, SEC_T,
   ONDA_T, ONDA_R, ONDA_PUSH, CERCA, FLASH_T,
   CHAIN_R, CHAIN_DEPTH, CHAIN_DELAY, DESPIECE, PARTS_MAX,
@@ -610,11 +610,36 @@ export function stepDestruccion(o, dt) {
   return false;
 }
 
+/** MAS CHICAS Y MAS (2/10). Cada particula que nacio este cuadro se parte en PART_DIV granos de
+ *  PART_TAMANO de su tamaño, con dispersion (ver PART_* en data/tuning.js). Se marca `fino` para no
+ *  volver a partirla. Corre adentro de `capParts`, que todos los estados ya llaman una vez por
+ *  cuadro despues de podar: asi ningun efecto tiene que saberlo. */
+function partir() {
+  const n0 = parts.length;
+  for (let i = 0; i < n0; i++) {
+    const p = parts[i];
+    if (p.fino) continue;
+    p.fino = true;
+    const r0 = p.r || 1, d = r0 * 1.4;
+    p.r = Math.max(PART_MIN, r0 * PART_TAMANO);
+    for (let j = 1; j < PART_DIV; j++) {
+      parts.push({
+        ...p,
+        x: p.x + (Math.random() - 0.5) * d, y: p.y + (Math.random() - 0.5) * d,
+        vx: p.vx * (0.85 + Math.random() * 0.3) + (Math.random() - 0.5) * PART_ABRE,
+        vy: p.vy * (0.85 + Math.random() * 0.3) + (Math.random() - 0.5) * PART_ABRE,
+        life: p.life * (0.75 + Math.random() * 0.45),
+      });
+    }
+  }
+}
+
 /** TOPE DE PARTICULAS (D5). Se llama despues de podar las muertas, en el mismo lugar y el mismo
  *  cuadro: si la poblacion se paso del presupuesto, se van las mas viejas — que estan al final de
  *  su vida y ya casi no se ven. `parts` se MUTA con splice (nunca se reasigna: lo vigila
  *  `npm run lint:state`). */
 export function capParts() {
+  partir();
   const sobran = parts.length - PARTS_MAX;
   if (sobran > 0) parts.splice(0, sobran);
 }

@@ -13,7 +13,7 @@ import { wake, obstacles, soldiers } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { hzWorld, tiltFade } from '../core/horizon.js';
 import { bendW, paredH } from '../core/zigzag.js';
-import { techoLadera } from './paredes.js';
+import { techoLadera, mez } from './paredes.js';
 import { techoIsla } from './islas.js';
 import { drawColinas } from './colinas.js';   // las lomadas de afuera del carril (30/9)
 // EL MAR VIVE EN core/sea.js — puro, sin canvas ni stores — porque la colision de las olas tiene
@@ -21,7 +21,7 @@ import { drawColinas } from './colinas.js';   // las lomadas de afuera del carri
 import { seaH as seaBase, olaBump, climaDe, resaca } from '../core/sea.js';
 // EL RELIEVE (T3): hermano de core/sea.js. Lo que levanta el pasto y las estructuras aca es lo
 // mismo que decide el choque contra el suelo en systems/flight.js.
-import { tierraH, tierraPend, hayRelieve, pedreroAt, turbalAt } from '../core/tierra.js';
+import { tierraH, tierraPend, hayRelieve, pedreroAt, turbalAt, ruido } from '../core/tierra.js';
 // LA GEOGRAFIA (PLAN_GEOGRAFIA G1): el suelo por tramos. Sin geografia, cada pregunta de ahi
 // contesta lo que contestaba cfg.terrain — y aca, ademas, ni se hace: ver `geoOn` en drawSea.
 import { geoActiva, sueloEn, orillaS, ladoEn, playaCerca, playaClase, alturaSuelo, escalaRelieve,
@@ -29,7 +29,7 @@ import { geoActiva, sueloEn, orillaS, ladoEn, playaCerca, playaClase, alturaSuel
 import { P, LAND, CLAND, SKY_ASTRO, RADAR_VERDE } from '../data/palette.js';
 import { CHUNK_LIFE, ONDA_T, ONDA_R, EYEC_ASIENTO_T } from '../data/despiece.js';
 import { drawParte, yawDe, colorDe } from './partes.js';
-import { SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
+import { MAR_HONDO, SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
   ALAMBRE_CADA, ALAMBRE_POSTE, ALAMBRE_H, MOJADO_A, CHARCO_P, CHARCO_H, PASTO_LEAN, PASTO_ONDA, PASTO_V, PASTO_KX, PASTO_KZ, PASTO_ACOSTAR, RACHA_N, RACHA_T, RACHA_A, ESTELA_ABRE, ESTELA_EDAD, ESTELA_TURBO, ESTELA_TURBO_A } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { SHIP_CLASS } from '../data/ships.js';
@@ -58,6 +58,19 @@ function groundCol(st, f) {
   const [a, b, t] = f < 0.5 ? [st.far, st.mid, f / 0.5] : [st.mid, st.near, (f - 0.5) / 0.5];
   return 'rgb(' + (a[0] + (b[0] - a[0]) * t | 0) + ',' + (a[1] + (b[1] - a[1]) * t | 0) + ',' + (a[2] + (b[2] - a[2]) * t | 0) + ')';
 }
+// EL AGUA DE BASE, TAMBIEN EN DEGRADADO (2/10: "renglones completamente horizontales y rectos, que
+// quedan estaticos mientras se vuela"). Eran tres tonos con corte duro en f = 0,22 y 0,5 —el mismo
+// error que el suelo ya habia corregido (arriba)— y como `f` es la fila de pantalla, los dos cortes
+// eran dos rayas clavadas en el vidrio. Mismos tres tonos, ahora interpolados por fila. Igual la
+// arena de la playa (corte en 0,4) y la roca del acantilado.
+let palAgua = null, AGUA_ST = null;
+function aguaCol(f) {
+  if (theme.water !== palAgua) { palAgua = theme.water; AGUA_ST = [hex2rgb(palAgua.base0), hex2rgb(palAgua.base1), hex2rgb(palAgua.base2)]; }
+  const [a, b, t] = f < 0.36 ? [AGUA_ST[0], AGUA_ST[1], (f - 0.1) / 0.26] : [AGUA_ST[1], AGUA_ST[2], (f - 0.36) / 0.4];
+  const u = t <= 0 ? 0 : t >= 1 ? 1 : t;
+  return 'rgb(' + (a[0] + (b[0] - a[0]) * u | 0) + ',' + (a[1] + (b[1] - a[1]) * u | 0) + ',' + (a[2] + (b[2] - a[2]) * u | 0) + ')';
+}
+const arenaCol = f => mez('#7d7154', '#8f8163', (f - 0.3) / 0.2);
 /** MOTEADO: manchas claras/oscuras ancladas al MUNDO (banda de 6 unidades en wz + posicion x por
  *  hash) → parches irregulares que scrollean con el terreno, no ruido que titila. */
 function groundMottle(y, wz, k, xEnd, cx = cam.x) {
@@ -200,8 +213,7 @@ function portRow(y, wz, k, x0, x1, f) {
  *  base esta elevada (cfg.cliff); `f` oscurece hacia el fondo, que es lo que le da profundidad. */
 function cliffFace(y, k, x0, x1, f) {
   if (x1 <= x0) return;
-  const t = f < 0.35 ? 0 : f < 0.7 ? 1 : 2;
-  px(x0, y, x1 - x0, rowH, ['#4a453a', '#3b382f', '#2e2c26'][t]);
+  px(x0, y, x1 - x0, rowH, f < 0.5 ? mez('#4a453a', '#3b382f', (f - 0.2) / 0.3) : mez('#3b382f', '#2e2c26', (f - 0.5) / 0.35));
   ctx.globalAlpha = 0.35;                                            // vetas verticales de la roca
   for (let sx = Math.ceil(x0 / 9) * 9; sx < x1; sx += 9) px(sx, y, Math.max(1, 0.3 * k), 1, '#22201b');
   ctx.globalAlpha = 1;
@@ -399,6 +411,7 @@ export function drawSea() {
   // Sin acantilado camH === cam.y, zP === z, y esas filas no existen: el caso degenera al de antes.
   const camH = cfg.cliff ? cam.y - PORT_H : cam.y;
   const yEnd = rowEnd();
+  marFila.fill(0);
   for (let y = HOR + 1; y < yEnd; y++) {
     const dy = y - HOR;
     const z = cam.y * F / dy;
@@ -425,7 +438,7 @@ export function drawSea() {
       const zbS = bendW(z) * k, zbP = bendW(wzP - dv) * kP;
       ZB = zbS;
       const f = fRow;   // ya viene clampeado en 1 (ver fRow)
-      px(-70, y, W + 140, rowH, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
+      px(-70, y, W + 140, rowH, aguaCol(f));
       let land0 = null, rock0 = null, foam0 = null;
       const flush = (sx) => {
         if (land0 !== null) { ZB = zbP; portRow(y, wzP, kP, land0, sx, f); ZB = zbS; land0 = null; }
@@ -514,7 +527,7 @@ export function drawSea() {
       groundMottle(y, wz, k, sandSx, camX);
       // playa: arena mojada cerca del agua, seca contra la tierra
       const sandW2 = Math.max(1, shoreSx - sandSx);
-      px(sandSx, y, sandW2, 1, f < 0.4 ? '#7d7154' : '#8f8163');
+      px(sandSx, y, sandW2, 1, arenaCol(f));
       // LA RESACA (T4). El agua SUBE por la arena y se retira: la lengua de esta fila sale de
       // `resaca()`, que tiene fase por posicion a lo largo de la orilla — asi la playa no rompe
       // toda junta y se ve la lengua correr por la costa.
@@ -524,8 +537,8 @@ export function drawSea() {
       // el agua de ahora. Va del lado de TIERRA del filo —es lo que el agua dejo atras— y es la
       // mitad que hace legible el movimiento: sin ella sube y baja una raya blanca sola.
       const maxSx = shoreSx - sandW2 * RESACA_MAX;
-      px(maxSx, y, Math.max(0, swashSx - maxSx), 1, f < 0.4 ? '#5d5546' : '#6a6254');
-      px(swashSx, y, Math.max(0, W + 70 - swashSx), 1, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
+      px(maxSx, y, Math.max(0, swashSx - maxSx), 1, mez('#5d5546', '#6a6254', (f - 0.3) / 0.2));
+      px(swashSx, y, Math.max(0, W + 70 - swashSx), 1, aguaCol(f));
       // KELP (T4.3): el alga del bajo. Malvinas es kelp puro, y ademas le da textura al agua
       // somera, que sin esto es una banda lisa de color.
       kelpRow(y, wz, k, shoreW, camX);
@@ -539,10 +552,12 @@ export function drawSea() {
       continue;
     }
     nMar++;
+    marFila[y] = 1;   // la PROFUNDIDAD (manchas de hondo y bajio) va despues, en su pasada
     // base oscura del mar (degradado por profundidad) para que los puntos resalten
     const f = fRow;   // ya viene clampeado en 1 (ver fRow)
-    px(-70, y, W + 140, rowH, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
+    px(-70, y, W + 140, rowH, aguaCol(f));
   }
+  if (nMar) profundidad(HOR + 1, yEnd, dv);
   geoFilas.mar = nMar; geoFilas.tierra = nTierra; geoFilas.costa = nCosta; geoFilas.playa = nPlaya;
   if (geoOn) {
     // CON GEOGRAFIA cada pasada recorre SU suelo banda por banda: las matas donde hay tierra, los
@@ -559,6 +574,71 @@ export function drawSea() {
     drawFleet();                       // la flota de desembarco en el horizonte
   } else drawSeaDots(landVisible);
   lomadas();
+}
+
+// ---------------------------------------------------------------- LA PROFUNDIDAD DEL MAR
+// (2/10: "¿podemos mejorar el efecto del mar para dibujar profundidad? Algunos lugares mas claros o
+// mas oscuros"). El mar abierto era un degradado parejo de horizonte a primer plano: plano, sin
+// fondo. Ahora tiene MANCHAS fijas al mundo —lo hondo mas oscuro, los bajios mas claros, con el
+// `deep` de cada paleta de agua— en tres escalas: el tono largo de una fosa contra una plataforma
+// (cientos de metros: cambia mientras volas), las manchas, y las vetas finas. Se posterizan en tres
+// niveles de cada lado, que es el idioma del pixel del resto del agua: el borde de una mancha baja
+// en escalones y no corta de golpe.
+//
+// LO QUE NO SE PUEDE: con el ojo a cuatro metros una fila cerca del horizonte abarca decenas de
+// metros de mar, y una mancha mas chica que eso titila de cuadro a cuadro. Asi que cada escala se
+// apaga sola cuando la fila ya es mas larga que ella (MAR_HONDO.CELDA), y lo que queda contra el
+// horizonte es solo el tono largo.
+//
+// SE PINTA EN FRANJAS, no por fila: abajo de la pantalla cientos de filas caen en los mismos pocos
+// metros de mar, y se juntan mientras la profundidad cambie menos que MAR_HONDO.DZ. Va despues del
+// raster y antes de las olas (los puntos quedan encima). Solo en filas de MAR (`marFila`): la costa,
+// la playa y la orilla del puerto tienen su propio tratamiento.
+const marFila = new Uint8Array(H + UNDER + 2);   // (con el mundo girado se dibuja por debajo del borde)
+function profundidad(y0, y1, dv) {
+  const M = MAR_HONDO, k0 = cam.y * F;
+  const claro = theme.water.deep;
+  let y = y0;
+  while (y < y1) {
+    if (!marFila[y]) { y++; continue; }
+    const z = k0 / (y - HOR);
+    // la franja: filas de mar seguidas mientras el mar cambie menos de DZ (relativo a su distancia)
+    let yb = y + 1;
+    const zTope = z - Math.max(M.DZ, z * M.DZ_REL);
+    while (yb < y1 && marFila[yb] && k0 / (yb - HOR) > zTope) yb++;
+    // cuanto mar abarca UNA fila aca: lo que decide que escalas se pueden ver sin titilar
+    const dzFila = z * z / k0;
+    const w1 = Math.max(0, Math.min(1, 1.6 - dzFila / (M.CELDA[1] * 0.25)));
+    const w2 = Math.max(0, Math.min(1, 1.6 - dzFila / (M.CELDA[2] * 0.25)));
+    // y la escala de todo junto, para que ninguna capa mande la cuenta sola
+    const wT = M.PESO[0] + M.PESO[1] * w1 + M.PESO[2] * w2;
+    const zm = (z + k0 / (yb - 1 - HOR + 1e-6)) * 0.5, wz = zm + dv;
+    const k = F / zm, zb = bendW(zm) * k;
+    const alto = yb - y + (rowH - 1);
+    let nivel0 = 0, x0 = -70;
+    for (let sx = -70; sx <= W + 70 + M.PASO; sx += M.PASO) {
+      let nivel = 0;
+      if (sx <= W + 70) {
+        const wx = (sx - W / 2 - zb) / k + cam.x;
+        let n = M.PESO[0] * ruido(wx / M.CELDA[0], wz / M.CELDA[0], 811);
+        if (w1 > 0) n += M.PESO[1] * w1 * ruido(wx / M.CELDA[1], wz / M.CELDA[1], 823);
+        if (w2 > 0) n += M.PESO[2] * w2 * ruido(wx / M.CELDA[2], wz / M.CELDA[2], 829);
+        // el nivel: cuantos CORTES pasa el ruido de cada lado del medio (- hondo, + bajio)
+        const v = n / wT - 0.5, a = Math.abs(v);
+        let c = 0;
+        while (c < M.CORTE.length && a > M.CORTE[c]) c++;
+        nivel = v < 0 ? -c : c;
+      }
+      if (nivel === nivel0) continue;
+      if (nivel0 !== 0) {
+        ctx.globalAlpha = nivel0 < 0 ? M.HONDO[-nivel0 - 1] : M.BAJO[nivel0 - 1];
+        px(x0, y, sx - x0, alto, nivel0 < 0 ? '#000000' : claro);
+      }
+      nivel0 = nivel; x0 = sx;
+    }
+    y = yb;
+  }
+  ctx.globalAlpha = 1;
 }
 
 /** LAS LOMADAS de afuera del carril (render/colinas.js): despues del suelo y sus matas, que tapan.
@@ -582,8 +662,8 @@ const geoFilas = { mar: 0, tierra: 0, costa: 0, playa: 0 };
 function playaRow(y, z, wz, f, pl) {
   const k = F / z;
   ZB = bendW(z) * k;
-  px(-70, y, W + 140, rowH, f < 0.22 ? theme.water.base0 : f < 0.5 ? theme.water.base1 : theme.water.base2);
-  const arena = f < 0.4 ? '#7d7154' : '#8f8163', turba = groundCol(LAND_ST, f);
+  px(-70, y, W + 140, rowH, aguaCol(f));
+  const arena = arenaCol(f), turba = groundCol(LAND_ST, f);
   const PASO = 3;
   let clase = -1, x0 = -70;
   for (let sx = -70; sx <= W + 70 + PASO; sx += PASO) {

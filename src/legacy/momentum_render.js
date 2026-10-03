@@ -23,7 +23,7 @@
 // Como el resto del render, recibe `w`: un snapshot de solo lectura. Ademas de valores, trae tres
 // FUNCIONES del momentum (momCam, momShipGeom, momZoneRect) porque la geometria cambia por frame
 // y hay que consultarla al dibujar, no antes.
-import { ctx, W, H, px, panel } from '../render/ctx.js';
+import { ctx, W, H, px, panel, pxFino } from '../render/ctx.js';
 import { P } from '../data/palette.js';
 import { T } from '../core/i18n.js';
 import { MOM_AX, MOM_AY, MSL_MAX, REATTACK_DUR } from '../data/tuning.js';
@@ -559,7 +559,7 @@ export function drawMomentum(w) {
   ctx.globalAlpha = 1;
 
   // particulas y popups en espacio-MUNDO (anclados al barco/zonas), antes de la cabina
-  for (const p of parts) { ctx.globalAlpha = Math.min(1, p.life * 2); px(p.x, p.y, p.r, p.r, p.c); }
+  for (const p of parts) { ctx.globalAlpha = Math.min(1, p.life * 2); pxFino(p.x, p.y, p.r, p.r, p.c); }
   ctx.globalAlpha = 1;
   ctx.font = '7px monospace'; ctx.textAlign = 'center';
   for (const p of popups) { ctx.globalAlpha = Math.min(1, p.life); ctx.fillStyle = p.c; ctx.fillText(p.txt, p.x, p.y); }

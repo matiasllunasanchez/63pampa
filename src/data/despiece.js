@@ -43,7 +43,9 @@ export const CHUNK_LIFE = 4;
 // son las que se disparan de a decenas por muerte — tres muertes encadenadas con secundarias y
 // columnas de humo son cientos. Al pasarse se van las MAS VIEJAS, que son las que ya casi se
 // apagaron: el reventon que acaba de nacer nunca se recorta.
-export const PARTS_MAX = 260;
+// (260 hasta el 2/10; desde entonces cada particula nace partida en PART_DIV = 3 mas chicas —ver
+// data/tuning.js—, y el tope sube en la misma proporcion: la misma cuenta, en granos mas finos)
+export const PARTS_MAX = 780;
 // SECUNDARIAS del deposito (plan §3): 3-5 reventones en 1.5 s. El pop-pop-pop es lo que convierte
 // "exploto" en "se esta incendiando el combustible" — la muerte dura mas que el frame del impacto.
 export const SEC_N = [3, 5];
