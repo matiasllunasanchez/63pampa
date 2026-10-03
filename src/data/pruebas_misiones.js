@@ -87,6 +87,9 @@ const t15 = {
     // ida, la decision de CUANDO pedirla es de verdad: gastarla temprano te deja sin red para el
     // regreso, que es la mitad donde te buscan.
     fuelScale: 0.065,
+    // SIN GLOBOS Y CON MAR VARIADO (pedido del autor 2/10: "quitar globos y agregar mas variedad de
+    // olas y de alturas, en la IDA Y VUELTA, la SMALL y la SMALL 2"). Las dos SMALL copian este cfg.
+    globos: false, mar: 'variado',
   }),
   // …Y POR ESO LA CHANCHA TIENE QUE PODER PEDIRSE EN EL TRANSITO. `CH_MIN_T` son 240 s, un numero
   // pensado contra misiones cuyo pasillo dura medio minuto: ahi la espera dice "esto es un recurso

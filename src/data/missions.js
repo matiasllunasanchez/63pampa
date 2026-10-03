@@ -28,7 +28,10 @@ const F3 = ['TERO', 'PUMA', 'GITANO'];
 //            la pantalla entera y lo reemplaza por avisos hablados — ver el aviso `radar`
 //   poderes  MOMENTUM y el RASANTE de la racha. En false no se cargan, no se dibujan y sus teclas
 //            no hacen nada: el tutorial se vuela a mano y los poderes debutan en M2 (M1_CAMBIOS 10)
-export const CFG_SIN_MISION = { radar: 'normal', poderes: true };
+//   globos   en false no nace ningun globo de barrera, en ninguna fase (systems/spawn.js lo re-sortea)
+//   mar      'normal' o 'variado': MAS olas, alturas mas repartidas y alguna rebelde aunque no sea
+//            tormenta (OLA_VARIADO en data/tuning.js). Pedido del autor 2/10 para las IDA Y VUELTA.
+export const CFG_SIN_MISION = { radar: 'normal', poderes: true, globos: true, mar: 'normal' };
 
 // OPCIONES DEL JUGADOR QUE UNA MISION PUEDE PISAR (COMBUSTIBLE: SI/NO y su escala). No van en los
 // defaults de `C` —eso le pisaria la opcion al jugador en TODAS las misiones—: la mision que las

@@ -1303,3 +1303,22 @@ una se muestra como dato curioso (hangar y pantalla de derrota).
    salidas, y ataques a buques tirando bombas **por la rampa trasera** — confirmar los dos antes
    de usarlos.
 
+---
+
+## LA VELOCIDAD DE CRUCERO EN RASANTE _(2/10/2026)_
+
+**Dato del autor:** crucero en vuelo rasante **420 nudos = 777,84 km/h** (la cuenta da:
+420 × 1,852). El juego hoy muestra ~330-370 km/h de crucero en el pasillo (el HUD pasa
+unidades a km/h con `KMH_U = 4.2`, data/tuning.js) y ~630 con poscombustión.
+
+**A verificar:**
+1. ¿Los 420 nudos son del **Dagger** (Mirage 5, más rápido y limpio) o también del **A-4B**
+   cargado? Un A-4B con bomba y dos tanques de 1.400 l es un avión pesado y con mucha
+   resistencia; cabe que su crucero de ataque fuera menor que el del Dagger.
+2. ¿Velocidad de crucero de la ruta, o de la corrida final de ataque (que suele ser mayor)?
+3. **¿Qué velocidades MÁXIMAS manejaban?** El A-4B, el Dagger (y el resto del roster), al ras
+   y cargados: el techo real de cada uno en la corrida de ataque y escapando, para fijar el
+   tope del juego (hoy ~630 km/h con poscombustión).
+
+**Decisión del autor (2/10):** por ahora queda como duda; el juego no cambia de velocidad.
+

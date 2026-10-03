@@ -863,6 +863,19 @@ export const SEA_WIND_AMP = 0.45;   // termino direccional de viento en seaH
 //
 // LA AMPLITUD ES CHICA A PROPOSITO. El avion vuela a 60-90 m/s: con 2.2 m de loma y longitudes de
 // onda de cientos de metros, la pendiente maxima queda en ~4% (unos 3.5 m/s de trepada pedida a
+/** EL MAR VARIADO (`mar: 'variado'` en el cfg de la mision; pedido del autor 2/10: "quitar globos y
+ *  agregar mas variedad de olas y de alturas" en las IDA Y VUELTA). Tres cosas, y ninguna toca el
+ *  reglamento de justicia de las olas (OLA_GAP_MIN, dos vivas, nunca en la niebla):
+ *    rate     cuanto se multiplica OLA_RATE: con brisa, de una ola cada 7-10 s a una cada ~5
+ *    rebelde  la fraccion de olas que sale REBELDE aunque no haya tormenta (en tormenta, OLA_REB_P)
+ *    var      bandas de altura mas ANCHAS que OLA_H_VAR, y sorteadas PLANO (no al cuadrado): en el
+ *             mar normal casi todas son chicas; aca hay de todas las alturas
+ *               marejada  1,7 .. 6,9   (la normal: 2,4 .. 5,9)
+ *               rompiente 3,5 .. 7,5   (la normal: 4,3 .. 6,5) */
+export const OLA_VARIADO = {
+  rate: 1.7, rebelde: 0.1,
+  var: { marejada: { lo: 0.55, hi: 2.3 }, rompiente: { lo: 0.7, hi: 1.5 }, rebelde: { lo: 0.9, hi: 1.2 } },
+};
 // toda velocidad), que se sigue con el gas y no obliga a memorizar. Una loma agresiva no seria mas
 // dificil, seria una pared invisible — la ola ya cubre el evento brusco, la tierra es lo continuo.
 export const TIERRA_AMP = 2.2;      // altura maxima de la loma (m). En 0 el suelo vuelve a ser plano

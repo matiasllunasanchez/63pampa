@@ -47,7 +47,7 @@ const valEst = (clave, base) => pisoEst(clave, val(clave, base), nivelEst());
 import { sembrar as cvSembrar } from './charla.js';
 import { carrilLibre } from './persec.js';
 import { carrilSeguro, puestoLadera, barreraCerca } from '../core/zigzag.js';
-import { ZZ_PARED_TALUD, ZZ_LADERA_P, AIM9 } from '../data/tuning.js';
+import { ZZ_PARED_TALUD, ZZ_LADERA_P, AIM9, OLA_VARIADO } from '../data/tuning.js';
 import { plane } from '../core/state.js';
 import { scrapeLimit } from '../core/physics.js';
 import { olaBump, climaDe } from '../core/sea.js';
@@ -169,11 +169,15 @@ function olaOk() {
 /** ¿Toca REBELDE (F7)? Solo en tormenta, solo pasados los primeros metros, y solo si no hay otra
  *  ola viva — la rebelde no comparte el mar con nadie. */
 function rebeldeOk() {
-  if (climaDe(cfg) !== 'storm') return false;
+  // EL MAR VARIADO (OLA_VARIADO) la deja salir tambien sin tormenta, menos seguido
+  const tormenta = climaDe(cfg) === 'storm';
+  if (!tormenta && !variado()) return false;
   if (run.dist < OLA_REB_D0) return false;
   for (const o of obstacles) if (o.type === 'ola') return false;
-  return Math.random() < OLA_REB_P;
+  return Math.random() < (tormenta ? OLA_REB_P : OLA_VARIADO.rebelde);
 }
+/** La mision pidio MAR VARIADO (`mar: 'variado'` en su cfg — ver OLA_VARIADO). */
+const variado = () => cfg.mar === 'variado';
 
 /** LA ROMPIENTE DE LA COSTA (T4.2): la ola parcial puesta donde el mar de verdad rompe — unos
  *  metros mar adentro de la orilla, que SERPENTEA, asi que se consulta a la profundidad de
@@ -193,9 +197,11 @@ export function rompienteCostera() {
 export function spawnOla(kind, hFijo) {
   // ALTURA SORTEADA CON SESGO (ver OLA_H_VAR): t al cuadrado tira el reparto hacia abajo, asi que
   // lo normal es una ola modesta y de vez en cuando viene una que hay que tomarse en serio.
+  // (EN EL MAR VARIADO, bandas mas anchas y sorteo PLANO: hay olas de todas las alturas)
   const t = Math.random();
-  const v = OLA_H_VAR[kind] || OLA_H_VAR.marejada;
-  const f = v.lo + t * t * (v.hi - v.lo);
+  const tabla = variado() ? OLA_VARIADO.var : OLA_H_VAR;
+  const v = tabla[kind] || tabla.marejada;
+  const f = v.lo + (variado() ? t : t * t) * (v.hi - v.lo);
   const h = hFijo || OLA_H[kind] * f;
   const o = {
     type: 'ola', kind, h, x: 0, z: SPAWN_Z, done: false, ph: Math.random() * 6,
@@ -414,7 +420,7 @@ function spawn() {
   // en el reparto de porcentajes le habria robado densidad a los enemigos segun el clima, que es
   // una consecuencia que nadie pidio.
   sondaSpawns++;
-  if (olaOk() && Math.random() < OLA_RATE[climaDe(cfg)]) {
+  if (olaOk() && Math.random() < OLA_RATE[climaDe(cfg)] * (variado() ? OLA_VARIADO.rate : 1)) {
     sondaOlas++;
     // QUE CLASE DE OLA. La marejada es la normal —el gesto vertical, la tesis del item— y cada
     // tanto sale una ROMPIENTE, que es la otra pregunta: parcial, no se salta, se esquiva. Y en
@@ -526,6 +532,17 @@ export function spawnSystem(dt, objectiveDist) {
         spawn();
       }
     }
+    // SIN GLOBOS (`globos: false` en el cfg de la mision; pedido del autor 2/10). Mismo recurso que
+    // `solo`: si salio un globo se deshace y se vuelve a sortear, y despues de seis se deja el hueco.
+    // Va aca y no en los seis `push` del globo de `spawn()` por lo mismo que `favor`: una sola regla
+    // que no puede divergir de la mezcla que se juega.
+    if (cfg.globos === false) {
+      for (let i = 0; i < 6 && obstacles.length > n0 && obstacles[n0].type === 'balloon'; i++) {
+        obstacles.length = n0; soldiers.length = s0;
+        spawn();
+      }
+      if (obstacles.length > n0 && obstacles[n0].type === 'balloon') { obstacles.length = n0; soldiers.length = s0; }
+    }
     // SOLO: la lista BLANCA de la fase (PLAN_MISION_CINCO_FASES §11). `favor` INCLINA la mezcla;
     // esta la RECORTA — lo que no esta en la lista no aparece, y punto. Existe porque la ida de
     // t15 pide algo que un sesgo no puede dar: "en la IDA solo deben aparecer obstaculos, OLAS,
@@ -535,7 +552,9 @@ export function spawnSystem(dt, objectiveDist) {
     // SE REINTENTA UN PUÑADO DE VECES y despues se deja el hueco. Sin reintentos la densidad se
     // desplomaria (cada sorteo fallido seria un hueco), y con reintentos infinitos una lista mal
     // escrita colgaria el frame. Seis alcanza para que la densidad se parezca a la pedida.
-    const solo = listaCon(val('solo', null), nivelEst());
+    // (y de la lista blanca de la fase tambien: si no, el re-sorteo de `solo` lo volveria a aceptar)
+    let solo = listaCon(val('solo', null), nivelEst());
+    if (solo && cfg.globos === false) solo = solo.filter(t => t !== 'balloon');
     if (solo) {
       for (let i = 0; i < 6 && obstacles.length > n0; i++) {
         const tipo = obstacles[n0].type;

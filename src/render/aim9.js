@@ -57,6 +57,11 @@ function estela(m) {
   const pts = [];
   for (const p of tr) if (p.z > 2.5) pts.push(p);
   const s0 = proj(m.x, m.y, m.z);
+  // EL DE FRENTE SE TIENE QUE VER VENIR (pedido del autor, 2/10: "hacelo mas visible desde lejos").
+  // Sale a 230 del avion, donde la perspectiva deja la estela en un pelo: era un punto con una
+  // rayita, perdido contra el horizonte hasta tenerlo encima. Para ese el trazo tiene un piso mas
+  // ancho y se apaga menos — el de la cola no cambia, que de cerca ya se lee solo.
+  const fr = m.modo === 'frente';
   ctx.save();
   ctx.lineCap = 'round';
   for (let pass = 0; pass < 2; pass++) {
@@ -67,8 +72,8 @@ function estela(m) {
       const u = Math.min(1, a.e / AIM9.ESTELA_VIDA);
       const cerca = Math.min(1, Math.max(0, (a.z - 2.5) / 6));   // pegado a la camara, se desvanece
       const r = pass === 0 ? 0.22 + u * 0.3 : 0.08;               // radio del humo, en unidades
-      ctx.lineWidth = Math.min(9, Math.max(pass === 0 ? 2.2 : 1, r * 2 * pa.k));
-      ctx.globalAlpha = (pass === 0 ? 0.34 : 0.85) * (1 - u) * (1 - u * 0.4) * cerca;
+      ctx.lineWidth = Math.min(9, Math.max(pass === 0 ? (fr ? 4 : 2.2) : (fr ? 1.8 : 1), r * 2 * pa.k));
+      ctx.globalAlpha = Math.min(1, (pass === 0 ? (fr ? 0.6 : 0.34) : (fr ? 1 : 0.85)) * (1 - u) * (1 - u * 0.4) * cerca);
       if (ctx.globalAlpha < 0.02) continue;
       ctx.strokeStyle = pass === 0 ? (u < 0.5 ? ROJO.halo : ROJO.viejo) : (u < 0.35 ? ROJO.nucleo : ROJO.medio);
       ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
@@ -226,12 +231,26 @@ export function drawAim9(m) {
   }
   // DE LEJOS: el punto del Sea Dart, en chico — ojiva oscura con la corona que late
   const fl = 0.75 + Math.sin(run.t * 30 + m.z) * 0.25;
-  const w = Math.max(1.5, 1.1 * k * fl);
-  ctx.globalAlpha = 0.55;
+  // EL DE FRENTE, DE LEJOS: un piso de tamaño (no menos de 7 px de corona), un resplandor y UN ARO
+  // ROJO QUE LATE alrededor — a 230 el punto de siempre media un pixel y medio. El aro y no la
+  // estela, porque viniendo de punta la estela queda escondida atras del propio misil.
+  const fr = m.modo === 'frente';
+  if (fr) {
+    const h = Math.max(15, 3 * k) * (0.8 + fl * 0.3);
+    ctx.globalAlpha = 0.34;
+    px(s.x - h / 2, s.y - h / 2, h, h, '#ff5b3a');
+    const lat = 0.5 + 0.5 * Math.sin(run.t * 16 + (m.seed || 0));
+    ctx.globalAlpha = 0.35 + lat * 0.6;
+    ctx.strokeStyle = '#ff3b24'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(s.x, s.y, Math.max(9, 2.2 * k) + lat * 2.5, 0, 6.2832); ctx.stroke();
+    ctx.lineWidth = 1;
+  }
+  const w = Math.max(fr ? 7 : 1.5, 1.1 * k * fl);
+  ctx.globalAlpha = fr ? 0.9 : 0.55;
   px(s.x - w / 2, s.y - w / 2, w, w, '#f0582a');
   ctx.globalAlpha = 1;
-  const b = Math.max(1, 0.7 * k);
+  const b = Math.max(fr ? 4 : 1, 0.7 * k);
   px(s.x - b / 2, s.y - b / 2, b, b, '#2e3336');
-  const e = Math.max(1, 0.35 * k);
-  px(s.x - e / 2, s.y - e / 2, e, e, '#ffe6c0');
+  const e = Math.max(fr ? 2.5 : 1, 0.35 * k);
+  px(s.x - e / 2, s.y - e / 2, e, e, '#fff6d8');
 }
