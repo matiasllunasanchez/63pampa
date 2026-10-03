@@ -620,6 +620,51 @@ export function islaEn(wz, margen) {
   return null;
 }
 
+/** EL BAJIO (2/10: "aclara el agua alrededor de las islas y costas"). Cuantos metros hay desde el
+ *  punto (x, wz) hasta la tierra mas cercana, topado en `max`: 0 sobre tierra. Lo lee el render de la
+ *  profundidad del mar (render/world.js), que aclara el agua cuanto mas cerca esta — la plataforma
+ *  que rodea una isla o una costa es agua baja, y el mar hondo esta lejos de todo.
+ *
+ *  En DOS PASOS porque se pregunta miles de veces por cuadro: `bajioFila(wz, max)` junta UNA VEZ por
+ *  franja lo que solo depende de la profundidad —la tierra de adelante o de atras (la playa que cruza
+ *  el carril), la orilla de una costa, las islas que estan cerca— y `bajioEn(x)` resuelve cada punto
+ *  con eso. Mide la tierra del VUELO (la de `esTierraEn`), sin la ondulacion de la playa: es un
+ *  tono, no una colision. */
+const BAJIO = { max: 0, dz: 0, costa: false, s: 1, S: 0, islas: [], wz: 0, plano: 0 };
+export function bajioFila(wz, max) {
+  const B = BAJIO;
+  B.max = max; B.wz = wz; B.dz = max; B.costa = false; B.islas.length = 0; B.plano = -1;
+  if (geo.tramos === null) {
+    // sin geografia: la costa de siempre (tierra a la izquierda de shoreAt), o todo de un suelo
+    if (cfg.terrain === 'coast') { B.costa = true; B.s = 1; B.S = shoreAt(wz); }
+    else B.plano = cfg.terrain === 'land' ? 0 : max;
+    return B;
+  }
+  const r = tramoEn(wz);
+  if (r && r.suelo === 'land') { B.plano = 0; return B; }
+  if (r && r.suelo === 'coast') { B.costa = true; B.s = r.s; B.S = orillaS(wz); }
+  // la tierra de adelante y de atras: los tramos de tierra (o de costa) a menos de `max` en z
+  for (const t of geo.tramos) {
+    if (t.isla || (t.suelo !== 'land' && t.suelo !== 'coast') || t === r) continue;
+    const d = wz < t.d0 ? t.d0 - wz : wz > t.d1 ? wz - t.d1 : 0;
+    if (d < B.dz) B.dz = d;
+  }
+  for (const t of geo.islas) if (wz > t.d0 - max && wz < t.d1 + max) B.islas.push(t);
+  return B;
+}
+export function bajioEn(x) {
+  const B = BAJIO;
+  if (B.plano >= 0) return B.plano;
+  let d = B.dz;
+  if (B.costa) d = Math.min(d, Math.max(0, B.s * x - B.S));
+  for (const r of B.islas) {
+    const M = bordes(x, B.wz, r);
+    const a = Math.max(0, -M.sz), b = M.sx === Infinity ? 0 : Math.max(0, -M.sx);
+    d = Math.min(d, a > 0 && b > 0 ? Math.hypot(a, b) : a + b);
+  }
+  return Math.min(d, B.max);
+}
+
 /** CUANTA TIERRA "HECHA" HAY a `wz`, de 0 a 1: 1 tierra adentro, bajando a 0 en la playa que cruza
  *  el carril. La usan LAS LOMADAS de los costados (render/colinas.js): sin esto nacerian enteras en
  *  la raya de la playa, una pared de cerros apareciendo de un metro al otro. Sin geografia es 1 (el

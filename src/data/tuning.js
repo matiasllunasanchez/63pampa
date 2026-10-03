@@ -916,11 +916,14 @@ export const COLINA_Z = 1300;       // hasta donde se dibujan
 // escalas en metros (el tono largo, las manchas, las vetas) con su PESO; cada una se apaga cuando
 // una fila de pantalla ya abarca mas de un cuarto de su CELDA (titilaria). CORTE: cuanto se aparta
 // del medio el ruido para cada nivel de cada lado; HONDO y BAJO: el alfa de cada nivel (negro sobre
-// lo hondo, el `deep` del agua sobre los bajios). DZ/DZ_REL: cuanto puede cambiar la profundidad
+// lo hondo, el `deep` del agua sobre los bajios; lo hondo tiene un nivel menos). DZ/DZ_REL: cuanto puede cambiar la profundidad
 // dentro de una franja; PASO: px por muestra.
 export const MAR_HONDO = {
   CELDA: [600, 60, 22], PESO: [0.45, 0.35, 0.2],
-  CORTE: [0.04, 0.1, 0.17], HONDO: [0.16, 0.32, 0.48], BAJO: [0.12, 0.24, 0.36],
+  CORTE: [0.04, 0.1, 0.17, 0.27], HONDO: [0.16, 0.32, 0.48], BAJO: [0.12, 0.24, 0.36, 0.5],
+  // EL BAJIO: a menos de BAJIO_D m de tierra el agua se corre hacia lo claro, hasta BAJIO_K pegado
+  // a la orilla (el cuarto nivel de BAJO solo se alcanza ahi)
+  BAJIO_D: 150, BAJIO_K: 0.34,
   DZ: 0.6, DZ_REL: 0.04, PASO: 6,
 };
 

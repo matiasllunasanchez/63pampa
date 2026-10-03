@@ -24,7 +24,7 @@ import { seaH as seaBase, olaBump, climaDe, resaca } from '../core/sea.js';
 import { tierraH, tierraPend, hayRelieve, pedreroAt, turbalAt, ruido } from '../core/tierra.js';
 // LA GEOGRAFIA (PLAN_GEOGRAFIA G1): el suelo por tramos. Sin geografia, cada pregunta de ahi
 // contesta lo que contestaba cfg.terrain — y aca, ademas, ni se hace: ver `geoOn` en drawSea.
-import { geoActiva, sueloEn, orillaS, ladoEn, playaCerca, playaClase, alturaSuelo, escalaRelieve,
+import { geoActiva, sueloEn, orillaS, ladoEn, playaCerca, playaClase, alturaSuelo, escalaRelieve, bajioFila, bajioEn,
   esTierraEn, geo } from '../core/geografia.js';
 import { P, LAND, CLAND, SKY_ASTRO, RADAR_VERDE } from '../data/palette.js';
 import { CHUNK_LIFE, ONDA_T, ONDA_R, EYEC_ASIENTO_T } from '../data/despiece.js';
@@ -469,7 +469,7 @@ export function drawSea() {
     // filo esta despeinado y a la misma profundidad hay agua, espuma, arena y turba.
     if (geoOn) {
       const pl = playaCerca(wz);
-      if (pl) { playaRow(y, z, wz, fRow, pl); nPlaya++; continue; }
+      if (pl) { playaRow(y, z, wz, fRow, pl); nPlaya++; marFila[y] = 2; continue; }
     }
     if (suelo === 'land') {                                              // TIERRA: gradiente continuo
       nTierra++;
@@ -506,6 +506,7 @@ export function drawSea() {
       // COSTA: cada fila se parte en la LINEA DE COSTA — que SERPENTEA (shoreAt(wz), senos en
       // coordenadas de mundo): tierra arenosa a la izquierda, playa ancha, rompiente, y mar.
       nCosta++;
+      marFila[y] = 2;   // fila MIXTA: la profundidad pinta solo del lado del agua
       const k = F / z;
       ZB = bendW(z) * k;
       // CON GEOGRAFIA la orilla ENTRA y SALE corriendose desde el costado (orillaS), y la tierra
@@ -557,7 +558,7 @@ export function drawSea() {
     const f = fRow;   // ya viene clampeado en 1 (ver fRow)
     px(-70, y, W + 140, rowH, aguaCol(f));
   }
-  if (nMar) profundidad(HOR + 1, yEnd, dv);
+  if (nMar || nCosta || nPlaya) profundidad(HOR + 1, yEnd, dv);
   geoFilas.mar = nMar; geoFilas.tierra = nTierra; geoFilas.costa = nCosta; geoFilas.playa = nPlaya;
   if (geoOn) {
     // CON GEOGRAFIA cada pasada recorre SU suelo banda por banda: las matas donde hay tierra, los
@@ -592,8 +593,13 @@ export function drawSea() {
 //
 // SE PINTA EN FRANJAS, no por fila: abajo de la pantalla cientos de filas caen en los mismos pocos
 // metros de mar, y se juntan mientras la profundidad cambie menos que MAR_HONDO.DZ. Va despues del
-// raster y antes de las olas (los puntos quedan encima). Solo en filas de MAR (`marFila`): la costa,
-// la playa y la orilla del puerto tienen su propio tratamiento.
+// raster y antes de las olas (los puntos quedan encima).
+//
+// EL BAJIO (2/10: "aclara el agua alrededor de las islas y costas"): el agua se aclara cuanto mas
+// cerca de tierra esta (`bajioEn`, core/geografia.js) —la plataforma de una isla o de una costa es
+// agua baja— y pegado a la orilla llega a un cuarto nivel de claro que el mar abierto no alcanza.
+// Por eso entran tambien las filas de COSTA y de PLAYA (`marFila` = 2, mixtas): ahi se pinta solo
+// el lado del agua. La orilla del puerto sigue con su propio dibujo.
 const marFila = new Uint8Array(H + UNDER + 2);   // (con el mundo girado se dibuja por debajo del borde)
 function profundidad(y0, y1, dv) {
   const M = MAR_HONDO, k0 = cam.y * F;
@@ -605,7 +611,8 @@ function profundidad(y0, y1, dv) {
     // la franja: filas de mar seguidas mientras el mar cambie menos de DZ (relativo a su distancia)
     let yb = y + 1;
     const zTope = z - Math.max(M.DZ, z * M.DZ_REL);
-    while (yb < y1 && marFila[yb] && k0 / (yb - HOR) > zTope) yb++;
+    let mixta = marFila[y] === 2;
+    while (yb < y1 && marFila[yb] && k0 / (yb - HOR) > zTope) { if (marFila[yb] === 2) mixta = true; yb++; }
     // cuanto mar abarca UNA fila aca: lo que decide que escalas se pueden ver sin titilar
     const dzFila = z * z / k0;
     const w1 = Math.max(0, Math.min(1, 1.6 - dzFila / (M.CELDA[1] * 0.25)));
@@ -614,6 +621,7 @@ function profundidad(y0, y1, dv) {
     const wT = M.PESO[0] + M.PESO[1] * w1 + M.PESO[2] * w2;
     const zm = (z + k0 / (yb - 1 - HOR + 1e-6)) * 0.5, wz = zm + dv;
     const k = F / zm, zb = bendW(zm) * k;
+    bajioFila(wz, M.BAJIO_D);   // la tierra cercana a esta profundidad (islas, costa, playa)
     const alto = yb - y + (rowH - 1);
     let nivel0 = 0, x0 = -70;
     for (let sx = -70; sx <= W + 70 + M.PASO; sx += M.PASO) {
@@ -624,10 +632,17 @@ function profundidad(y0, y1, dv) {
         if (w1 > 0) n += M.PESO[1] * w1 * ruido(wx / M.CELDA[1], wz / M.CELDA[1], 823);
         if (w2 > 0) n += M.PESO[2] * w2 * ruido(wx / M.CELDA[2], wz / M.CELDA[2], 829);
         // el nivel: cuantos CORTES pasa el ruido de cada lado del medio (- hondo, + bajio)
-        const v = n / wT - 0.5, a = Math.abs(v);
-        let c = 0;
-        while (c < M.CORTE.length && a > M.CORTE[c]) c++;
-        nivel = v < 0 ? -c : c;
+        // EL BAJIO: cuanto mas cerca de tierra, mas claro (y lo hondo se apaga). En una fila mixta
+        // —costa, playa— lo que ya es tierra no se pinta
+        const d = bajioEn(wx);
+        if (mixta && (d < 2 || (d < 14 && esTierraEn(wx, wz)))) nivel = 0;
+        else {
+          const b = 1 - d / M.BAJIO_D;
+          const v = n / wT - 0.5 + M.BAJIO_K * b * Math.sqrt(b), a = Math.abs(v);
+          let c = 0;
+          while (c < M.CORTE.length && a > M.CORTE[c]) c++;
+          nivel = v < 0 ? -Math.min(c, M.HONDO.length) : c;
+        }
       }
       if (nivel === nivel0) continue;
       if (nivel0 !== 0) {
