@@ -220,6 +220,8 @@ export function updateMusic(state) {
   if (muted) { if (eng) eng.g.gain.value = 0; return; }
   // pistas: HISTORIA (himno epico) / lobby / juego (la pista del reproductor o la del nivel)
   const gm = gameTrack();
+  // EL ARRANQUE DEL FICHIN retiene la musica hasta que entra la ficha (ver `retenerMusica`)
+  if (musicaRetenida) { for (const m of [musLobby, musStory, ...PLAYLIST]) if (!m.paused) m.pause(); return; }
   const want = state === 'story' ? musStory : inLobby(state) ? musLobby : gm;
   for (const m of [musLobby, musStory, ...PLAYLIST]) if (m !== want && !m.paused) m.pause();
   if (musicStarted && want.paused && (want !== musStory || MUSIC_STORY)) {
@@ -243,7 +245,65 @@ export function updateMusic(state) {
   const tv = (rasOn ? RAS_MUS : state === 'momentum' ? 0.10 : 0.30) * (duckT > 0 ? 0.45 : 1);
   gm.volume += (tv - gm.volume) * 0.08;
 }
-function startMusicOnce(state) { if (musicStarted || muted) return; musicStarted = true; updateMusic(state || 'modeselect'); }
+function startMusicOnce(state) { if (musicStarted || muted || musicaRetenida) return; musicStarted = true; updateMusic(state || 'modeselect'); }
+
+// ---------- EL ARRANQUE DEL FICHIN (pedido del autor, 3/10/2026) ----------
+// Al abrir el programa: negro, se ve el gabinete, el tubo SE PRENDE como un televisor y suena un
+// INSERT COIN de 8 bits — y recien ahi el juego, con su musica. La parte visual es de
+// render/arranque.js; aca viven los dos sonidos (sintetizados: no hay archivo que cargar ni que
+// pueda faltar) y el freno de la musica, que si no arrancaria sola al cargar (ARRANQUE INMEDIATO).
+let musicaRetenida = false;
+/** Frena (true) o suelta (false) la musica del juego. Al soltar arranca como si recien cargara. */
+export function retenerMusica(v) {
+  musicaRetenida = !!v;
+  if (!musicaRetenida) startMusicOnce(lastState || 'title');
+}
+
+/** El AudioContext, creado si hace falta. En Electron no espera un gesto (autoplayPolicy). */
+function ctxAudio() {
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } }
+  if (AC && AC.state === 'suspended') AC.resume();
+  return AC;
+}
+/** Una nota agendada a `t` segundos de ahora: ataque seco y caida exponencial, como un chip. */
+function nota(f, t, dur, type, vol, slide) {
+  const o = AC.createOscillator(), g = AC.createGain(), t0 = AC.currentTime + t;
+  o.type = type; o.frequency.setValueAtTime(f, t0);
+  if (slide) o.frequency.exponentialRampToValueAtTime(slide, t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(AC.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+}
+
+/** EL TUBO QUE SE PRENDE: el golpe grave del rele, el chisporroteo de la estatica del vidrio y el
+ *  silbido fino del fly-back, que queda un rato y se va. */
+export function sonidoTubo() {
+  if (muted || !ctxAudio()) return;
+  try {
+    nota(110, 0, 0.22, 'sine', 0.28, 38);                 // el golpe
+    const n = AC.sampleRate * 0.4, buf = AC.createBuffer(1, n, AC.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2) * (Math.random() < 0.3 ? 1 : 0.25);
+    const s = AC.createBufferSource(), g = AC.createGain(), fl = AC.createBiquadFilter();
+    fl.type = 'highpass'; fl.frequency.value = 2400; g.gain.value = 0.07;
+    s.buffer = buf; s.connect(fl); fl.connect(g); g.connect(AC.destination); s.start();
+    nota(9200, 0.05, 1.3, 'sine', 0.008);                 // el silbido
+  } catch (e) { }
+}
+
+/** INSERT COIN, propio: la moneda (dos notas, la segunda sostenida) y un arpegio corto de onda
+ *  cuadrada que sube y remata una octava arriba — el "listo, jugá" de cualquier fichin. */
+export function sonidoFicha() {
+  if (muted || !ctxAudio()) return;
+  try {
+    nota(988, 0, 0.07, 'square', 0.07);                   // si
+    nota(1319, 0.07, 0.32, 'square', 0.07);               // mi, sostenido
+    const arp = [784, 988, 1175, 1568];                   // sol si re sol
+    arp.forEach((f, i) => nota(f, 0.42 + i * 0.065, 0.07, 'square', 0.05));
+    nota(2093, 0.42 + arp.length * 0.065, 0.3, 'square', 0.055);   // do, arriba
+    nota(1047, 0.42 + arp.length * 0.065, 0.3, 'triangle', 0.08);  // con el bajo
+  } catch (e) { }
+}
 
 // ARRANQUE INMEDIATO: se intenta hacer sonar la musica apenas carga el juego, sin esperar a que el
 // jugador toque algo. En Electron funciona (autoplayPolicy en electron/main.js); en el navegador la
@@ -251,7 +311,7 @@ function startMusicOnce(state) { if (musicStarted || muted) return; musicStarted
 // de audio() sigue siendo el camino. Por eso se comprueba si la pista realmente quedo sonando.
 (() => {
   const tryStart = () => {
-    if (musicStarted || muted) return;
+    if (musicStarted || muted || musicaRetenida) return;
     musicStarted = true;
     updateMusic('title');
     const want = musLobby;                    // al abrir siempre estamos en la portada

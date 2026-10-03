@@ -62,6 +62,8 @@ import * as pulsoRender from './render/pulso.js';
 import * as machRender from './render/mach.js';
 import * as cine from './systems/cine.js';
 import { drawCine } from './render/cine.js';
+import { setFondo, FONDOS, setZoomFichin, ZOOMS } from './render/ambiente.js';
+import { arrancar, arranqueActivo } from './render/arranque.js';
 import * as muni from './render/municion.js';
 import * as blancoSys from './systems/blanco.js';
 import * as seawolfSys from './systems/seawolf.js';
@@ -98,6 +100,7 @@ import * as world from './render/world.js';
 import { drawMarco } from './render/marco.js';
 import * as soldierArt from './render/soldiers.js';
 import { theme, applyTheme } from './render/theme.js';
+import { retenerMusica, sonidoTubo, sonidoFicha } from './systems/audio.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack,
          setRasante } from './systems/audio.js';
@@ -174,6 +177,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // MOMENTUM en segundos (tools/smoke.js). Sin el flag no cambia nada: QA_DIST vale 1.
     // Misma idea que el ?no3d de abajo: una costura de prueba, explicita y sin efecto en el juego.
     const QA_DIST = /\bqa\b/.test(location.search) ? 0.06 : 1;
+
+    // EL FONDO alrededor del juego (render/ambiente.js), con el de fabrica; si hay uno guardado lo
+    // pone loadOpts() al leer la fila de OPCIONES
+    setZoomFichin(cfg.fichinZoom);
+    setFondo(cfg.fondo);
+    // EL ARRANQUE DEL FICHIN (render/arranque.js): negro, el gabinete, el tubo que se prende, el
+    // BIOS, INSERTE FICHA, la ficha y PRESIONE CUALQUIER TECLA.
+    // La musica de la portada espera a que el jugador "continue".
+    retenerMusica(true);
+    arrancar({ alPrender: sonidoTubo, alFicha: sonidoFicha, alTerminar: () => retenerMusica(false) });
 
     // three.js vive ahora en systems/three-world.js (resuelve window.THREE y el guard ?no3d por
     // su cuenta). Aca ya no hace falta saber nada de WebGL: el 3D entra por world3D.frame().
@@ -1639,6 +1652,15 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       { head: 'optSecJuego' },
       { label: () => T('optLang'), opts: LANGS, names: () => LANGS.map(l => STRINGS[l].langName),
         get: () => getLang(), set: v => { setLang(v); applyChrome(); } },
+      // EL FONDO ALREDEDOR DEL JUEGO (3/10): lo que llena el marco que deja la escala entera en una
+      // ventana que no es multiplo del buffer — negro, el resplandor del propio juego o el gabinete.
+      { label: () => T('optFondo'), opts: FONDOS, names: () => FONDOS.map(f => T('optFondo_' + f)),
+        // clave '2': la primera ('rasante_fondo') se grabo con NEGRO de fabrica; con clave nueva todos
+        // arrancan en el FICHIN, que paso a ser el default (autor, 3/10)
+        get: () => cfg.fondo, set: v => { cfg.fondo = v; setFondo(v); }, save: 'rasante_fondo2' },
+      // CUAN CERCA DEL FICHIN (3/10): 1 el gabinete entero, 2 y 3 acercan y el juego crece
+      { label: () => T('optZoom'), opts: ZOOMS, names: () => ZOOMS.map(String),
+        get: () => cfg.fichinZoom, set: v => { cfg.fichinZoom = v; setZoomFichin(v); }, save: 'rasante_fichin_zoom2' },   // '2': con el default nuevo, todos arrancan en el 2
 
       { head: 'optSecControl' },
       // TODO lo que toca al AVION —piruetas, mira, ejes, esquema de control— se mudó a MEJORAS DEL
@@ -2417,6 +2439,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
 
     initInput(cv, {
+      bloqueado: arranqueActivo,   // el arranque del fichin se queda con el mando (render/arranque.js)
       modeNav: dir => { modeSel = (modeSel + dir + MODES.length) % MODES.length; beep(520, 0.05, 'square', 0.04); },
       confirm: () => confirmMode(),
       // el tap y el menu estan los dos en coordenadas de MUNDO (480x270), asi que no hay
@@ -5467,6 +5490,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // dos veces (PERSECUCION y PRUEBAS): ahora se puede navegar HASTA una fila por nombre.
       modo: MODES[modeSel], quick: (quickRows()[quickSel] || {}).id || null,
       prueba: (prbRows()[prbSel] || {}).id || null, test: S.test,
+      // …y OPCIONES, por la misma razon. Las filas no tienen `id`, pero si un nombre estable: la que
+      // abre una sub-pantalla dice cual (`open`) y la que se guarda, su clave (`save`). Paso el
+      // 3/10/2026: una fila nueva entre IDIOMA y MEJORAS (FONDO) corrio la flecha que el smoke
+      // apretaba de memoria y la prueba fallo lejos, con un mensaje que no hablaba de menus.
+      opcion: (OPT_ROWS[optRow] || {}).open || (OPT_ROWS[optRow] || {}).save || null,
       // el reloj de la corrida y las sondas diferidas que faltan disparar: sin esto, un momento
       // que "no hace nada" no se distingue de una sonda que fallo (paso, y costo media hora)
       t: +run.t.toFixed(2), tareas: prbTasks.length,

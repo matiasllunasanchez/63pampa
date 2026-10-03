@@ -253,6 +253,8 @@ export const STRINGS = {
     pressStart: 'APRETA UNA TECLA PARA EMPEZAR', modeQuit: 'SALIR', modeQuitDesc: 'Cerrar el juego',
     modeOptions: 'OPCIONES', modeOptionsDesc: 'Idioma y ajustes del juego',
     optTitle: 'OPCIONES', optLang: 'IDIOMA',
+    optFondo: 'FONDO', optFondo_negro: 'NEGRO', optFondo_resplandor: 'RESPLANDOR', optFondo_fichin: 'FICHIN',
+    optZoom: 'ACERCAMIENTO DEL FICHIN',
     // HORIZONTE GIRATORIO (ver core/horizon.js). Los nombres describen CUANDO gira, no un si/no:
     // el jugador que lo apaga suele hacerlo por mareo, y PIRUETAS es el termino medio.
     optHorizon: 'HORIZONTE',
@@ -1381,6 +1383,8 @@ export const STRINGS = {
     pressStart: 'PRESS ANY KEY TO START', modeQuit: 'QUIT', modeQuitDesc: 'Close the game',
     modeOptions: 'OPTIONS', modeOptionsDesc: 'Language and game settings',
     optTitle: 'OPTIONS', optLang: 'LANGUAGE',
+    optFondo: 'BACKDROP', optFondo_negro: 'BLACK', optFondo_resplandor: 'GLOW', optFondo_fichin: 'ARCADE',
+    optZoom: 'ARCADE ZOOM',
     optHorizon: 'HORIZON',
     optHzFix: 'FIXED', optHzMoves: 'ON MANEUVERS', optHzAll: 'FULL',
     optHzFree: 'FREE 360°  [Q] [E]',

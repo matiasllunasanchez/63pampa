@@ -171,6 +171,12 @@ export const cfg = {
   // bombas—, y los de atras vuelan a crucero economico. PRENDIDO de fabrica desde el 27/9 (pedido
   // del autor). En false el escuadron es, cuadro por cuadro, el de antes de que existiera.
   cambioPiloto: true,
+  // EL FONDO ALREDEDOR DEL JUEGO (3/10): 'negro' | 'resplandor' | 'fichin' — ver render/ambiente.js.
+  // EL FICHIN DE FABRICA, siempre (pedido del autor): los otros dos se eligen en OPCIONES.
+  fondo: 'fichin',
+  // …y cuan cerca se lo mira: 1 el gabinete entero, 2 hasta la mitad de las manos, 3 un poco mas.
+  // El 2 de fabrica (autor, 3/10).
+  fichinZoom: 2,
   // QUE LE PASA AL RELEVADO (SPEC_MODO_PASADA RF-15.5). Es TONO, no cuenta: el avion sale de la
   // partida en los tres casos, y lo unico que cambia es lo que ves y lo que dice la radio.
   //   'auto'  como venia: campaña = averiado que vuelve a la base (norma 3/8 del guion, donde los

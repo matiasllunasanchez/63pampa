@@ -187,9 +187,176 @@
     box-shadow: none;
   }
 
+  /* EL FONDO alrededor del juego: OPCIONES -> FONDO pone una clase en el body (fondo-negro,
+     fondo-resplandor, fondo-fichin) y aca solo se muestra la capa que corresponde.
+
+     EL RESPLANDOR (render/ambiente.js): una copia de 32x18 del juego, estirada a toda la ventana
+     DETRAS de todo. El blur se come los pixeles, el brillo bajo lo deja de fondo y no de figura, y
+     la viñeta oscurece los bordes para que la mirada vuelva al centro. El scale tapa el halo
+     oscuro que el blur deja en los bordes de la imagen. Pisa la regla general de `canvas` (que es
+     para el juego): este SI se suaviza, no tiene fondo ni cursor. */
+  #ambiente {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    display: none;
+  }
+  body.fondo-resplandor #ambiente {
+    display: block;
+  }
+  /* EL FICHIN: el gabinete de arcade. El tamaño y la posicion los pone render/ambiente.js para que
+     el agujero de la pantalla caiga justo sobre el juego; si la imagen no esta, no se ve nada. */
+  #fichin {
+    position: fixed;
+    z-index: -2;   /* debajo del resplandor, que en este modo le tiñe el marco */
+    pointer-events: none;
+    display: none;
+    background: url('../assets/ui/fondo_fichin.jpg') center / 100% 100% no-repeat;
+  }
+  body.fondo-fichin #fichin {
+    display: block;
+  }
+  #ambiente canvas {
+    width: 100%;
+    height: 100%;
+    image-rendering: auto;
+    background: none;
+    cursor: default;
+    filter: blur(36px) saturate(1.3) brightness(.65);
+    transform: scale(1.25);
+  }
+  #ambiente::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, .6) 100%);
+  }
+
+  /* EL FICHIN CON AMBILIGHT (3/10, "darle forma ambilight a los bordes"). Dos cosas:
+     1. LA LUZ DEL JUEGO SOBRE EL GABINETE: el mismo resplandor, pero del tamaño del juego y un poco
+        mas (ambiente.js lo calza), ENCIMA de la imagen y en modo `screen` — solo aclara: el marco
+        del monitor y la madera toman el color de lo que pasa en pantalla, y las bandas negras del
+        tubo se iluminan como el vidrio de un CRT. Sin viñeta ni recorte: el blur tiene que salir.
+     2. EL JUEGO CON FORMA DE TUBO: esquinas redondeadas y el borde hundido en sombra, para que no
+        sea un rectangulo pegado encima de una curva. */
+  body.fondo-fichin #ambiente {
+    display: block;
+    inset: auto;
+    overflow: visible;
+    mix-blend-mode: screen;
+    opacity: .7;
+  }
+  body.fondo-fichin #ambiente::after {
+    display: none;
+  }
+  body.fondo-fichin #ambiente canvas {
+    filter: blur(28px) saturate(1.5) brightness(.95);
+    transform: none;
+  }
+  /* el encabezado y el pie de la pagina web no tienen lugar en el mueble (en Electron ya no estan) */
+  body.fondo-fichin > header,
+  body.fondo-fichin > footer {
+    display: none;
+  }
+  body.fondo-fichin .stage {
+    position: fixed;   /* clavado en el tubo: left/top los pone ambiente.js */
+    margin: 0;
+    border-radius: 3% / 5%;
+    overflow: hidden;
+  }
+  body.fondo-fichin .stage::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 18px 4px rgba(0, 0, 0, .7);
+    pointer-events: none;
+  }
+
+  /* EL ARRANQUE (render/arranque.js): negro → se funde el gabinete con el tubo apagado → el tubo SE
+     PRENDE como un televisor. Las clases del body ya vienen del HTML, asi el primer pintado es negro.
+     El fundido (1.4s) es ARRANQUE.FUNDE: si se cambia uno, el otro. */
+  #arranque {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: #000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.4s ease-in-out;
+  }
+  body.arranque-negro #arranque {
+    opacity: 1;
+    transition: none;
+  }
+  #ambiente {
+    transition: opacity .8s ease-out;
+  }
+  body.arranque-apagado .stage {
+    visibility: hidden;
+  }
+  /* EL BIOS (render/arranque.js): un canvas de 320x180 encima del juego, estirado pixelado —las
+     letras salen con pixel gordo—. Al continuar se funde en ARRANQUE.APAGA (0.3s). */
+  #bios {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: none;
+    background: #000;
+    cursor: default;
+    transition: opacity .3s ease-out;
+  }
+  body.arranque-bios #bios {
+    display: block;
+  }
+  body.arranque-sale #bios {
+    opacity: 0;
+  }
+  /* el parlante y el reproductor son del juego: con el BIOS en pantalla no estan */
+  body.arranque-bios .sndbtn,
+  body.arranque-bios .player {
+    visibility: hidden;
+  }
+  body.arranque-apagado #ambiente {
+    opacity: 0;
+  }
+  /* EL TUBO: un punto que se abre en una raya horizontal, la raya que se abre hacia arriba y abajo
+     con un rebote, y un fogonazo blanco azulado que se apaga mientras aparece la imagen. */
+  .stage.tubo-prende {
+    animation: tuboPrende .8s cubic-bezier(.2, .7, .3, 1) both;
+  }
+  .stage.tubo-prende::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border-radius: inherit;
+    background: #e6f3ff;
+    pointer-events: none;
+    animation: tuboFogonazo .8s ease-out both;
+  }
+  @keyframes tuboPrende {
+    0% { transform: scale(.02, .004); }
+    28% { transform: scale(1, .006); }
+    58% { transform: scale(1, 1.03); }
+    74% { transform: scale(1, .985); }
+    100% { transform: scale(1, 1); }
+  }
+  @keyframes tuboFogonazo {
+    0%, 40% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
   canvas:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 4px;
+  }
+  /* EN ELECTRON EL JUEGO ES LA APP ENTERA: el anillo de foco de teclado no marca nada y se veia como
+     un borde amarillo raro alrededor de la pantalla (autor, 3/10). En la web queda. */
+  body.electron canvas:focus-visible {
+    outline: none;
   }
 
   /* BOTON DE SONIDO: icono suelto, sin caja ni relieve — el recuadro con borde y fondo lo hacia

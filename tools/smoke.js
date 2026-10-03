@@ -112,7 +112,9 @@ app.whenReady().then(async () => {
   // que te diga"). Ahi se exige lo contrario —que no salga nada— y no por cortesia: es la unica
   // prueba de que el bloqueo tapa TODOS los caminos. Al volver la perilla a false, este chequeo
   // vuelve solo a exigir que suene; no hay nada que acordarse de descomentar.
-  const bloqueado = /AUDIO_BLOQUEADO\s*=\s*true/.test(fs.readFileSync(path.join(ROOT, 'src', 'data', 'sonido.js'), 'utf8'));
+  // el VALOR exportado, no la primera mencion: el comentario de cabecera dice "AUDIO_BLOQUEADO = true
+  // silencia TODO" y con la regex suelta el smoke creia que seguia bloqueado (3/10)
+  const bloqueado = /export const AUDIO_BLOQUEADO\s*=\s*true/.test(fs.readFileSync(path.join(ROOT, 'src', 'data', 'sonido.js'), 'utf8'));
   if (bloqueado) {
     if (!win.webContents.isCurrentlyAudible()) pass('sonido BLOQUEADO (data/sonido.js): el juego esta mudo');
     else fail('el sonido esta bloqueado en data/sonido.js y aun asi el juego suena');
@@ -209,8 +211,15 @@ app.whenReady().then(async () => {
     if (JSON.parse(await win.webContents.executeJavaScript('__pausedbg()')).modo === 'options') break;
     await tap(win, 'Down');
   }
-  await tap(win, 'Return');
-  await tap(win, 'Down');                                         // IDIOMA → MEJORAS DEL PICHON
+  await tap(win, 'Return');                                       // → OPCIONES
+  // MEJORAS TAMBIEN POR NOMBRE, no contando flechas. Era "IDIOMA → una flecha → MEJORAS"; el
+  // 3/10/2026 entro la fila FONDO en el medio, la flecha cayo en FONDO y la prueba fallo con "no
+  // abrio MEJORAS" — que suena a sub-pantalla rota y no a menu reordenado. Se arreglo primero con
+  // una segunda flecha, que vuelve a romperse con la proxima fila. `opcion` es la fila donde esta
+  // el cursor, por su nombre estable (ver __pausedbg en game.js).
+  const opcion = async () => JSON.parse(await win.webContents.executeJavaScript('__pausedbg()')).opcion;
+  for (let i = 0; i < 40 && (await opcion()) !== 'mejoras'; i++) await tap(win, 'Down');
+  if ((await opcion()) !== 'mejoras') fail(`no se encontro la fila MEJORAS en OPCIONES (el cursor quedo en: ${await opcion()})`);
   await tap(win, 'Return');                                       // abrir la sub-pantalla
   await sleep(500);
   const mej = await win.webContents.executeJavaScript('JSON.parse(__pausedbg()).state');

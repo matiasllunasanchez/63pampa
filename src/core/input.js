@@ -496,6 +496,10 @@ export function initInput(cv, a) {
     padLast = now;
 
     const pressed = gp.buttons.map(b => b.pressed);
+    // EL ARRANQUE DEL FICHIN (render/arranque.js) se queda con el mando mientras corre: el boton que
+    // dice "continuar" no puede llegar tambien a la portada. Se anota como ya visto, asi soltarlo
+    // despues no es un flanco nuevo.
+    if (a.bloqueado && a.bloqueado()) { btnPrev = pressed; requestAnimationFrame(pollGamepad); return; }
     const down = i => pressed[i];
     const hit = i => pressed[i] && !btnPrev[i];                 // flanco de subida
     const ax = i => { const v = gp.axes[i] || 0; return Math.abs(v) < AX_DZ ? 0 : v; };

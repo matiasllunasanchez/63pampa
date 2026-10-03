@@ -142,11 +142,22 @@ const rowFont = i => {
   return f ? uiFont(f, TRY_PX[f] || 15, '') : descFont(DESC_PX);
 };
 
+/** El logotipo del selector de modo, mas chico que en la portada (autor, 3/10: "mas chico"). */
+const MODE_TITULO_PX = 20;
+
 export function drawModeSelect(w) {
   panel();
+  const { y0: yLista } = MODE_ROWS;
+  // EL MISMO AIRE ARRIBA Y ABAJO DEL LOGO (autor, 3/10): del borde de arriba a RASANTE, lo mismo
+  // que de RASANTE a "ELEGI MODO DE JUEGO". Se mide con la fuente cargada —las alturas de Kirana y
+  // GlimpR no son las del monospace de respaldo— y el logo se acomoda en el medio del hueco.
+  ctx.font = labelFont(13);
+  const topeRotulo = yLista - 20 - ctx.measureText(T('modePrompt')).actualBoundingBoxAscent;
   ctx.textAlign = 'center';
-  ctx.fillStyle = P.accent; ctx.font = titleFont(26);   // mismo logotipo que la portada
-  ctx.fillText(T('title'), NW / 2, 40);
+  ctx.fillStyle = P.accent; ctx.font = titleFont(MODE_TITULO_PX);   // mismo logotipo que la portada
+  const mt = ctx.measureText(T('title')), altoLogo = mt.actualBoundingBoxAscent + mt.actualBoundingBoxDescent;
+  const aire = Math.max(0, (topeRotulo - altoLogo) / 2);
+  ctx.fillText(T('title'), NW / 2, aire + mt.actualBoundingBoxAscent);
 
   // opciones CHICAS, pegadas a la IZQUIERDA y centradas verticalmente. La ultima es SALIR.
   // el orden tiene que coincidir con MODES en game.js: la fila que se toca sale de ese indice

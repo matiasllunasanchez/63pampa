@@ -55,10 +55,23 @@ cv.height = H * SC;
 // enteros que en el vidrio no lo son, que es justo lo que se vino a evitar.
 const stage = cv.parentElement;
 const MARGEN = 16;   // el aire que el body deja arriba y abajo del stage, en px CSS
+// EL AREA QUE MANDA, cuando no es la ventana (3/10): con el fondo FICHIN el juego tiene que caber
+// en la PANTALLA del gabinete, y esa la sabe render/ambiente.js. Devuelve { w, h } en px CSS, o
+// null para volver a la ventana. Es un enganche y no un import porque ambiente.js importa de aca.
+let areaJuego = null;
+export function setAreaJuego(fn) { areaJuego = fn; ajustarEscala(); }
 
 export function ajustarEscala() {
   if (!stage) return;
   const dpr = window.devicePixelRatio || 1;
+  // ADENTRO DEL GABINETE el juego mide lo que mide el tubo, sin escalones: la imagen cubre la
+  // pantalla entera y el mueble pone la medida (pedido del autor, 3/10). Es la unica escala no
+  // entera que queda, y es a sabiendas: el fichin a pantalla llena vale mas que el pixel exacto.
+  const area = areaJuego && areaJuego();
+  if (area) {
+    stage.style.width = area.w + 'px';
+    return;
+  }
   // el alto disponible es la ventana MENOS lo que ocupa la pagina alrededor (encabezado, pie y los
   // margenes). Se mide, no se adivina: cambia con el idioma y con el ancho de la ventana, porque el
   // pie es texto que se reacomoda.
