@@ -15,7 +15,7 @@ import { cartel } from '../core/cartel.js';
 import { cfg, stats, plane } from '../core/state.js';
 import { parts } from '../core/world.js';
 import { popup, proj } from '../core/fx.js';
-import { AVERIA_HUMO_DT } from '../data/tuning.js';
+import { nuevoHumo, apagarHumo, humoFocos } from '../core/humo.js';
 import { PZ } from '../render/ctx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
@@ -46,24 +46,27 @@ export const tier = () => tierOf(run.integ);
 export const shown = () => cfg.dmgMode !== 'squad';
 
 
-/** EL HUMO DEL AVION ROTO (pedido del autor 1/10): por debajo de AVERIA_HUMO la cola larga
- *  bocanadas — grises al principio, negras y mas seguidas cuanto mas cerca del cero. Salen del
- *  escape y se quedan atras: el mundo (y la camara) se las lleva hacia abajo y hacia vos. */
-let humoT = 0;
+/** EL HUMO DEL AVION ROTO (pedido del autor 1/10): por debajo de AVERIA_HUMO el avion larga
+ *  bocanadas — grises al principio, negras y mas seguidas cuanto mas cerca del cero. Salen y se
+ *  quedan atras: el mundo (y la camara) se las lleva hacia abajo y hacia vos.
+ *
+ *  DE VARIOS LUGARES (2/10, el autor: "desde las turbinas quiza, y variar cantidad y lugares"): la
+ *  tobera, las dos tomas de aire y las dos alas (AVERIA_FOCO). Cada avion sortea el ORDEN de sus
+ *  focos al romperse y los prende de a uno segun empeora; el avion siguiente del escuadron sortea el
+ *  suyo. Los puntos salen de las puntas de ala que el dibujo publica cada cuadro (run.alaLx…), asi
+ *  que el humo gira con el alabeo y sale del ala que se ve, no de un lugar fijo de la pantalla. */
+const humo = nuevoHumo();
 export function humoAveria(dt) {
   const a = run.integ > 0 && agonia(run.integ, cfg.dmgMode);
-  if (!a) { humoT = 0; return; }
-  humoT -= dt;
-  if (humoT > 0) return;
-  humoT = AVERIA_HUMO_DT * (3 - 2 * a);
+  if (!a) { apagarHumo(humo); return; }   // sano (o avion nuevo): el proximo que se rompa sortea de nuevo
   const s = proj(plane.x, plane.y, PZ);
-  const g = Math.round(0x6a - 0x40 * a), c = '#' + [g, g, g - 4].map(v => Math.max(0, v).toString(16).padStart(2, '0')).join('');
-  // tres bocanadas chicas por vez, desde la tobera (debajo del centro del sprite) hacia abajo y
-  // hacia afuera: visto de atras, el humo que deja el avion viene HACIA LA CAMARA, y en pantalla eso
-  // es una estela que se abre por debajo. Grandes y encima del avion le tapaban la cola.
-  for (let i = 0; i < 3; i++) parts.push({ x: s.x + (Math.random() - 0.5) * s.k * 0.5, y: s.y + s.k * 0.35,
-    vx: (Math.random() - 0.5) * 26, vy: 4 + Math.random() * 10, life: 0.5 + 0.6 * a, c,
-    r: Math.max(1.5, s.k * (0.22 + 0.25 * a) * (0.7 + Math.random() * 0.6)) });
+  // EL MARCO DEL AVION EN PANTALLA: centro y semi-ala desde las puntas publicadas; si el dibujo no
+  // las publico hace poco (otro estado), una semi-ala horizontal del tamaño de siempre
+  const fresco = run.t - run.alaT < 0.25;
+  humoFocos(humo, dt, a, {
+    cx: fresco ? (run.alaLx + run.alaRx) / 2 : s.x, cy: fresco ? (run.alaLy + run.alaRy) / 2 : s.y,
+    ux: fresco ? (run.alaRx - run.alaLx) / 2 : s.k * 1.6, uy: fresco ? (run.alaRy - run.alaLy) / 2 : 0, k: s.k,
+  }, { vx: 0, vy: 9 });
 }
 
 /**

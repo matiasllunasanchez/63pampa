@@ -2026,6 +2026,25 @@ export const AIM9 = {
 export const AVERIA_HUMO = 40;          // % de integridad desde el que humea y tambalea
 export const AVERIA_HUMO_DT = 0.05;     // s entre bocanada y bocanada, con la integridad en 0 (al 40: el triple)
 export const AVERIA_TAMBALEO = 0.16;    // rad de alabeo del tambaleo, con la integridad en 0
+/** DE DONDE SALE EL HUMO (pedido del autor 2/10: "agregarle mas humo desde otro lado, desde las
+ *  turbinas quiza, y variar cantidad y lugares"). Cada avion averiado sortea UNA VEZ el orden de sus
+ *  focos y los va prendiendo a medida que empeora — uno al entrar en averia, dos pasando AVERIA_FOCOS[0]
+ *  de agonia, tres pasando [1] —, asi que dos aviones rotos no humean igual pero ninguno parpadea.
+ *    f, p   donde: `f` a lo largo del ala (-1 punta izq, 0 fuselaje, 1 punta der) y `p` hacia la panza,
+ *           en fraccion de la semi-envergadura (las puntas las publica el dibujo: run.alaLx…)
+ *    cada   factor sobre AVERIA_HUMO_DT (mas chico = mas seguido)
+ *    tam    factor de tamaño de la bocanada
+ *    col    'negro' (aceite, de la tobera y las tomas), 'gris', 'blanco' (nafta que se vaporiza del ala)
+ *    chispa probabilidad de una chispa naranja por bocanada (la turbina que se esta comiendo)
+ *  Las tomas de aire del A-4 van a los costados del fuselaje, a la altura de la raiz del ala. */
+export const AVERIA_FOCOS = [0.4, 0.75];
+export const AVERIA_FOCO = {
+  tobera:    { f: 0,     p: 0.16, cada: 1,   tam: 1,    col: 'negro', chispa: 0 },
+  tomaIzq:   { f: -0.2,  p: 0.04, cada: 1.3, tam: 0.85, col: 'negro', chispa: 0.25 },
+  tomaDer:   { f: 0.2,   p: 0.04, cada: 1.3, tam: 0.85, col: 'negro', chispa: 0.25 },
+  alaIzq:    { f: -0.62, p: 0.06, cada: 1.1, tam: 0.9,  col: 'blanco', chispa: 0 },
+  alaDer:    { f: 0.62,  p: 0.06, cada: 1.1, tam: 0.9,  col: 'blanco', chispa: 0 },
+};
 
 // ---------------- LA RAFAGA DEL HARRIER (pedido del autor 1/10) ----------------
 // "Algunos disparos de metralleta esquivables: un par en una determinada posicion; el jugador puede
