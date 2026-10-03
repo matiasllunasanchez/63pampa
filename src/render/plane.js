@@ -18,6 +18,8 @@ import { proj } from '../core/fx.js';
 import { hzSprite, hzWorld } from '../core/horizon.js';
 import { P } from '../data/palette.js';
 import { drawCono, drawVaporAla, drawCruce } from './mach.js';
+import { luz } from './brillo.js';
+import { drawBorde } from './borde.js';
 import { drawMira } from './miras.js';
 import { anchorSpray, drawSpray } from './rain.js';
 import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H, SHEET3_FW, SHEET3_FH } from '../data/planes.js';
@@ -133,6 +135,10 @@ function tobera(x, y0, f, esc) {
   ctx.fillStyle = g;
   ctx.beginPath(); ctx.ellipse(x, y0, R, R * 0.72, 0, 0, 6.2832); ctx.fill();
   ctx.globalAlpha = 1;
+  // …Y LA BOCA AL ROJO DERRAMA LUZ (render/brillo.js). El resplandor de arriba es la boca misma;
+  // esto es lo que esa boca le hace al AIRE de alrededor. Crece con `f`, o sea con la poscombustion:
+  // es la manera de que acelerar se VEA ademas de oirse.
+  luz(ctx, x, y0, R * 2.6, [255, 150, 70], 0.6 * k);
 }
 
 /** La intensidad de ESTE cuadro, suavizada. Sin la rampa, apretar turbo hacia SALTAR la llama de
@@ -321,6 +327,8 @@ function muzzle(x, y) {
     px(x - 3, y, 1, 1, '#d97a26'); px(x + 3, y, 1, 1, '#d97a26');
   }
   if (Math.random() < 0.5) px(x + (Math.random() < 0.5 ? -2 : 2), y + 2, 1, 1, '#c9631f');   // chispa
+  // el fogonazo ILUMINA un instante (render/brillo.js): es lo que hace que una rafaga se sienta
+  luz(ctx, x, y, big ? 9 : 6, [255, 190, 90], big ? 0.85 : 0.55);
 }
 
 /** TREN DE ATERRIZAJE (`g`: 1 bajado en la pista → 0 recogido). Vista trasera: las dos patas
@@ -853,6 +861,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
     drawGear(run.gear, 1);   // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma
     ctx.drawImage(img, sx4, sy4, FW4, FH4, -spW / 2, -spH / 2, spW, spH);
+    drawBorde(ctx, img, sx4, sy4, FW4, FH4, -spW / 2, -spH / 2, spW, spH);   // a contraluz (render/borde.js)
     // LA CARGA, encima del avion y en el MISMO recorte: cada capa esta horneada con la camara y la
     // pose de la hoja que se esta dibujando, y el avion ya le recorto de fabrica lo que el ala le
     // tapa (ver hornearCapas en tools/bake_planes.html). Por eso no hay ancla ni offset: si el

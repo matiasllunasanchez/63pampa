@@ -40,6 +40,8 @@ export const SIZE = 26;
 const H_REF = 85;
 
 /** Dibuja la bola de fuego de `o` (usa o.boomT y o.scale) a la escala de pantalla `k`. */
+import { luz } from './brillo.js';
+
 export function drawBlast(ctx, proj, o, k) {
   const t = o.boomT / DUR;
   if (t >= 1) return;                                  // ya termino: no dibuja nada
@@ -51,4 +53,9 @@ export function drawBlast(ctx, proj, o, k) {
   ctx.imageSmoothingEnabled = true;
   ctx.drawImage(sheet, f.x, f.y, f.w, f.h, Math.round(s.x - w / 2), Math.round(s.y - h / 2), Math.round(w), Math.round(h));
   ctx.restore();
+  // LA LUZ DE LA BOLA (render/brillo.js): un DESTELLO al reventar, que se apaga con la bola. El
+  // primer 15 % es el fogonazo y va entero; despues cae mas rapido que la bola misma, porque lo que
+  // queda dando vueltas al final ya es humo, y el humo no ilumina.
+  const fl = t < 0.15 ? 1 : Math.pow(1 - (t - 0.15) / 0.85, 1.6);
+  luz(ctx, s.x, s.y, Math.max(w, h) * 1.1, [255, 150, 60], fl);
 }

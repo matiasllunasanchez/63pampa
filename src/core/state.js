@@ -67,6 +67,11 @@ export const cfg = {
   // un handicap. Se puede apagar por dos motivos honestos: es lo unico del juego que pega un
   // pegado de pantalla completa por cuadro, y el movimiento periferico le cae mal a mucha gente.
   desenfoque: 'on',
+  // EL RESPLANDOR (render/brillo.js): lo que brilla se derrama. Prendido de fabrica: es parte del
+  // look, no una opcion de rendimiento. Se apaga en OPCIONES -> AMBIENTE para comparar.
+  brillo: 'on',
+  // LA LUZ DE BORDE (render/borde.js): el avion a contraluz. Su propio interruptor para comparar.
+  borde: 'on',
   // COMO SE VE LA RADIO EN VUELO (SPEC_CHARLAS_VUELO §0b): 'toast' = una linea que entra y se va ·
   // 'panel' = las ultimas cuatro, como un chat. Las dos viven en la MISMA banda libre y ninguna
   // toca la UI: lo que cambia es si lo dicho se puede releer.

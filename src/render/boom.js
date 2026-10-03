@@ -30,6 +30,8 @@ export const DUR = 6;
 export const H_WORLD = 40;
 
 /** Dibuja el hongo de `o` a la escala `k`, anclado al piso. */
+import { luz } from './brillo.js';
+
 export function drawBoom(ctx, px, proj, o, k) {
   const t = Math.max(0, Math.min(0.999, o.boomT / DUR));
   const f = FRAMES[(t * FRAMES.length) | 0];
@@ -43,4 +45,8 @@ export function drawBoom(ctx, px, proj, o, k) {
   ctx.globalAlpha = o.boomT > DUR - 1.2 ? Math.max(0, (DUR - o.boomT) / 1.2) : 1;   // se disipa
   ctx.drawImage(sheet, f.x, f.y, f.w, f.h, Math.round(base.x - w / 2), Math.round(base.y - h), Math.round(w), Math.round(h));
   ctx.restore();
+  // LA LUZ DEL HONGO: el fuego de la base, no el humo de arriba — por eso el centro va bajo, a un
+  // tercio del alto. Ilumina fuerte los primeros dos segundos y se apaga; el hongo sigue seis, pero
+  // lo que queda despues de esos dos es una columna de humo, que no da luz.
+  luz(ctx, base.x, base.y - h * 0.3, h * 0.8, [255, 140, 50], Math.max(0, 1 - o.boomT / 2.2));
 }

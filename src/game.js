@@ -111,6 +111,7 @@ import { decir as decirRadio, apuntar as apuntarRadio, callar as callarRadio, ti
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
 import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
 import { drawDesenfoque, BLUR_DBG } from './render/desenfoque.js';   // BLUR_DBG: QUITAR con __blurdbg
+import { drawBrillo, inicioLuz } from './render/brillo.js';
 import { drawAureola, AURA_NORMAL, AURA_DBG } from './render/aureola.js';   // AURA_DBG: QUITAR con __auradbg
 import * as menus from './render/menus.js';
 import { stepRain, stepSpray, drawRain, RAIN_N } from './render/rain.js';
@@ -1773,6 +1774,15 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       { label: () => T('optBlur'), opts: ['on', 'off'],
         names: () => [T('optBlurOn'), T('optBlurOff')],
         get: () => cfg.desenfoque, set: v => cfg.desenfoque = v, save: 'rasante_desenfoque' },
+      // EL RESPLANDOR (render/brillo.js). Va al lado del desenfoque porque son lo mismo de dos
+      // maneras: un efecto de LENTE sobre el mundo que no toca el tablero.
+      { label: () => T('optBrillo'), opts: ['on', 'off'],
+        names: () => [T('optBlurOn'), T('optBlurOff')],
+        get: () => cfg.brillo, set: v => cfg.brillo = v, save: 'rasante_brillo' },
+      // LA LUZ DE BORDE (render/borde.js): el avion a contraluz, con el filo del lado del sol encendido.
+      { label: () => T('optBorde'), opts: ['on', 'off'],
+        names: () => [T('optBlurOn'), T('optBlurOff')],
+        get: () => cfg.borde, set: v => cfg.borde = v, save: 'rasante_borde' },
       // LLUVIA: ambiente puro (ver cfg.rain en core/state.js y render/rain.js). Va acá y no en el
       // bloque de MAPA justamente porque NO cambia cómo se juega — MAPA es donde vive el VIENTO,
       // que sí te corta la velocidad.
@@ -4396,6 +4406,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     const MARCO_STATES = ['play', 'takeoff', 'landing', 'dead', 'relevo', 'pulso'];
 
     function draw() {
+      inicioLuz();   // la capa de luz del resplandor arranca vacia (ver render/brillo.js)
       ctx.setTransform(SC, 0, 0, SC, 0, 0);   // buffer 2×: todo el dibujo sigue en coords 320×180
       const sx = (Math.random() - 0.5) * run.shake, sy = (Math.random() - 0.5) * run.shake;
       const cm = momentum.cam();
@@ -4923,6 +4934,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // A MEDIA LUZ EN VUELO NORMAL Y ENTERA CON EL PODER: los dos niveles los define el render
       // (AURA_NORMAL); aca solo se dice cual de los dos corresponde. La rampa del modulo hace que
       // el salto entre uno y otro se VEA crecer.
+      // EL RESPLANDOR (render/brillo.js): lo que brilla se derrama. ANTES de la aureola —que es
+      // el destello propio del sol y se derramaria dos veces— y antes de los tintes y del HUD.
+      drawBrillo();
       drawAureola(solPant, rasante.active() ? 1 : AURA_NORMAL);
       // MOMENTUM: tinte frio + viñeta mientras el tiempo esta partido. Va sobre el MUNDO y bajo
       // el HUD: la cabina sigue nitida — es el aire el que cambia, no los instrumentos.

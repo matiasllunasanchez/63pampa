@@ -311,7 +311,7 @@ export const STRINGS = {
     optDuo3D: 'BUQUE CON EL CLIMA', optDuo3D_on: 'si', optDuo3D_off: 'no',
     optBruma3D: 'BRUMA EN CAPAS', optBruma3D_on: 'si', optBruma3D_off: 'no',
     optAves3D: 'BANDADAS', optAves3D_on: 'si', optAves3D_off: 'no',
-    optBlur: 'DESENFOQUE DE POSCOMBUSTION', optBlurOn: 'si', optBlurOff: 'no',
+    optBlur: 'DESENFOQUE DE POSCOMBUSTION', optBrillo: 'RESPLANDOR', optBorde: 'LUZ DE BORDE', optBlurOn: 'si', optBlurOff: 'no',
     optRain: 'LLUVIA', optRainOff: 'NO', optRainDrizzle: 'GARUA', optRainRain: 'LLUVIA', optRainStorm: 'TORMENTA',
     // NIEBLA DE GUERRA: el velo de los COSTADOS (render/marco.js). Es preferencia, no dificultad
     // — no tapa nada que te pueda pegar. La otra NIEBLA, la de abajo, si.
@@ -1427,7 +1427,7 @@ export const STRINGS = {
     optDuo3D: 'SHIP TAKES THE WEATHER', optDuo3D_on: 'yes', optDuo3D_off: 'no',
     optBruma3D: 'LAYERED HAZE', optBruma3D_on: 'yes', optBruma3D_off: 'no',
     optAves3D: 'BIRD FLOCKS', optAves3D_on: 'yes', optAves3D_off: 'no',
-    optBlur: 'AFTERBURNER BLUR', optBlurOn: 'yes', optBlurOff: 'no',
+    optBlur: 'AFTERBURNER BLUR', optBrillo: 'BLOOM', optBorde: 'RIM LIGHT', optBlurOn: 'yes', optBlurOff: 'no',
     optRain: 'RAIN', optRainOff: 'NO', optRainDrizzle: 'DRIZZLE', optRainRain: 'RAIN', optRainStorm: 'STORM',
     optMarco: 'WAR FOG',
     optMarco_off: 'OFF', optMarco_bruma: 'HAZE', optMarco_focus: 'FOCUS',

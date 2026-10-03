@@ -35,6 +35,10 @@ lee `../RESUELTOS_GUION.md`.
 
 **Estado:** ⬜ · **Toca:** `missions.js`, UI del radar · **Alcance: toda la campaña**
 
+> **⚠ 3/10:** el autor movió la explicación del radar a M1 — ver `M1_CAMBIOS.md`, segunda ronda,
+> pedido 15. El radar sigue existiendo en M2, pero **ya no es donde se enseña.** Este pedido queda
+> abierto hasta que se cierre aquel.
+
 **Pedido del autor, textual:**
 
 > *"A partir de la misión 2, donde ya el objetivo es real y el radar existe, ahí sí se explica. Si
@@ -191,6 +195,115 @@ idea de que el escuadrón encoge.
 ---
 ---
 
+# SEGUNDA RONDA — 3/10/2026
+
+**El pedido del autor, textual y completo:**
+
+> *"En mision 2, ya es la mecanica completa, debe haber y explicarse el silencio de radio porqe
+> realmente la idea no es llamar la atencion. cuando se entra en zona de radar se calla la boca, si
+> nos reconoce el radar se activan los harriers y nos disparan y vienen y debemos bajar para ahcer
+> creer al enemigo que nos derroto (es cuando se van todas las alarmas)*
+>
+> *La mecanica qe se aprende es intentar tirar la bomba, errar muchas veces, intentar varias veces,
+> qe no detone, y demas. El islote hoy existe, ya hay mecanica para eso en pasillo.*
+>
+> *TODO EL JUEGO OCURRIRA EN PASILLO POR AHORA CON TODAS SUS VARIANTES, momentum y pulso y arena y
+> demas no se usan en nignuna mision"*
+
+---
+
+# 7 · El silencio de radio existe en M2, y se explica
+
+**Estado:** ⬜ · **Toca:** `story.js`, charlas en vuelo, lecciones
+
+> *"debe haber y explicarse el silencio de radio porqe realmente la idea no es llamar la atencion.
+> cuando se entra en zona de radar se calla la boca"*
+
+**Es el espejo exacto de M1.** En M1 la radio abierta es la táctica, porque quieren que los vean
+(`M1_CAMBIOS.md`, segunda ronda, 17). En M2 es al revés: **al entrar a la zona de radar, nadie
+habla.** El jugador ya vio la otra cara en la misión anterior, así que la regla se entiende sola.
+
+**Nota para quien implemente:** las charlas en vuelo de M2 tienen que quedar **antes** de la zona
+de radar o **después** de que se pierden las alarmas. Adentro, silencio.
+
+---
+
+# 8 · Si el radar te ve, vienen los Harriers — y se los engaña bajando
+
+**Estado:** ⬜ · **Toca:** radar, estrellas, `estrellas.js`
+
+> *"si nos reconoce el radar se activan los harriers y nos disparan y vienen y debemos bajar para
+> ahcer creer al enemigo que nos derroto (es cuando se van todas las alarmas)"*
+
+**La regla:** te detectan → suben las alarmas → **vienen los Harriers y te disparan**. Y la salida
+no es escapar: es **bajar**, pegarse al agua, para que el enemigo crea que te derribó. **Ahí se van
+todas las alarmas.**
+
+**Se cruza con M1:** en `M1_CAMBIOS.md`, segunda ronda, 15, quedó la duda de **cómo se pierden
+las estrellas**. Esta es la respuesta para M2 en adelante: bajando hasta que te den por muerto. Si
+también vale para M1, el pedido 15 de M1 se cierra con esto.
+
+---
+
+# 9 · ⚠ Lo que se aprende en M2: tirar la bomba, y que salga mal
+
+**Estado:** ⬜ · **Toca:** `missions.js` (`bombs` propias en m2), lecciones · **⚠ cambia lo
+escrito**
+
+> *"La mecanica qe se aprende es intentar tirar la bomba, errar muchas veces, intentar varias
+> veces, qe no detone, y demas."*
+
+**⚠ Esto da vuelta lo que decía `M2_LECTURA.md`:** *"Sin bombas propias, sin Pulso. Todo se
+resuelve con el cañón."* **En M2 hay bomba propia, y es lo que se enseña.** Ya quedó marcado en la
+lectura.
+
+**El aprendizaje es el fracaso:** errar, volver a intentar, que la bomba no detone. **La mecánica
+de que no se arme ya existe:** en `blanco.js`, *"por debajo la bomba no alcanza a armarse"*.
+
+**Una cosa a tener en cuenta, no para cambiarla:** "la bomba que no detona" es también el corazón
+de **M6** (*La bomba que no despertó*). En M2 se aprende que pasa; en M6 pasa cuando más duele.
+
+---
+
+# 10 · El islote ya existe como mecánica — M2 sólo tiene que pedirlo
+
+**Estado:** ⬜ · **Toca:** `missions.js` (m2), `estructuras.js`
+
+> *"El islote hoy existe, ya hay mecanica para eso en pasillo."*
+
+**Tenía razón el autor y yo lo tenía mal.** En `M2_LECTURA.md` y en el panorama escribí que el
+blanco de M2 "no existe en el código". **La mecánica existe:** `estructuras.js` (29/9) permite
+blancos que no son buques, con `goal: { kind: 'estructura', nombre, dist }` — se encara, se suelta
+y se le pasa por encima, igual que a un barco. **Lo que falta es que M2 lo pida:** hoy M2 sigue
+declarando `goal: { kind: 'distance', meters: 2600 }`.
+
+**Nota para quien implemente:** hoy hay **una sola** estructura en la tabla, `BASE COSTERA`, y
+ninguna misión la usa. Tiene antena. Decidir si el puesto del islote **es** esa base, o si es un
+renglón nuevo más chico.
+
+---
+
+# 11 · 🔴 REGLA DE CAMPAÑA: todo el juego ocurre en PASILLO
+
+**Estado:** ⬜ · 🔵 dos dudas · **Alcance: las catorce**
+
+> *"TODO EL JUEGO OCURRIRA EN PASILLO POR AHORA CON TODAS SUS VARIANTES, momentum y pulso y arena y
+> demas no se usan en nignuna mision"*
+
+**Lo que toca hoy en el código:** M5 (*El callejón de las bombas*) y M14 (*El Tero*) declaran
+`climax: 'arena'`. **Las dos tienen que dejar de hacerlo.** Pulso no lo pide ninguna misión.
+
+**Dos dudas:**
+
+- **La PASADA.** Hoy el final de toda misión con barco es *pasillo + pasada*: `pasada` es el
+  `climax` por defecto. ¿La pasada cuenta como una variante del pasillo y queda, o también sale?
+- **"Momentum".** En el código la palabra nombra dos cosas: el **minijuego** de zonas críticas de
+  cada barco (`ships.js`) y uno de los dos **poderes** (*Momentum y el Rasante*, `poderes` en
+  `missions.js`). El pedido 2 de este documento dice que **el Momentum debuta como poder en M2**.
+  ¿Sale sólo el minijuego, o también el poder?
+
+---
+
 ## Resumen para la sesión que implementa
 
 | # | Qué | Dónde toca |
@@ -201,6 +314,11 @@ idea de que el escuadrón encoge.
 | 4 | Cóndor cierra antes de jugar — falta escribir la línea | `story.js`, `SECUENCIAS` |
 | 5 | 🔵 La Chancha: ¿primera vez en la vuelta de M2? | **esperando confirmación** |
 | 6 | 🔵 Morir y relevo: qué pasa de M2 en adelante | **esperando decisión · toda la campaña** |
+| 7 | El silencio de radio existe y se explica — espejo de M1 | `story.js`, charlas |
+| 8 | Si el radar te ve vienen los Harriers; se los engaña bajando | radar, `estrellas.js` |
+| 9 | ⚠ Se aprende a tirar la bomba, y que salga mal — **hay bomba propia** | `missions.js`, lecciones |
+| 10 | El islote ya existe como mecánica: M2 tiene que pedirlo | `missions.js`, `estructuras.js` |
+| 11 | 🔵 **Regla de campaña: todo en pasillo.** Salen arena, pulso y momentum | **las catorce** · dos dudas |
 
 ## Y lo que ya sabemos que hay que tocar igual
 

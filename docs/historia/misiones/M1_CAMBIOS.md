@@ -418,3 +418,162 @@ del pedido 5 terminó siendo un corte a negro, por pedido posterior del autor.
 **Pendientes chicos que aparecieron en el camino, sin tocar:** `M01_7_020` usa `turco_ternura`, que
 no existe · `M01_RITUAL` y `M01_OBJETIVO` terminan los dos en «Buen vuelo» y `M01_PISTA` también
 (decisión del autor: se repite en todas) · la narración `M01_3_010` (ver el 4).
+
+
+---
+---
+
+# SEGUNDA RONDA — 3/10/2026
+
+*M1 ya está implementada. Esto es lo que el autor pidió después, para trabajarlo más adelante.
+Nada de esto está hecho.*
+
+**El pedido del autor, textual y completo:**
+
+> *"M1: A esteban le dicen TERO hace mucho, no le ponen el apodo ahi. Ya conoce al turco.  Esta
+> mision puede llamarse mision de diversion y explicar lo que era esta mision de diversion.
+> Basicamente arranca como tutorial y luego se les dice desde CONDOR qe se extiendan a tal pnuto
+> (ahi cambiamos el objetivo) y vamos hacia una zona donde si hay radar, la idea es qe el radar nos
+> reconozca y mantenernos ahi un rato y volver. No van a aparecer enemigos, y los personajes pueden
+> hablar durantre la mision sin respetar el silencio de radio dentro de la zopna de radar porque la
+> idea era llamar la atencion de los radares para que vengan los aviones. La idea es llegar a las 4
+> alarmas e irnos, y depaso explicar la mecanica de las alarmas y el radar.*
+>
+> *En esta mision se aprende lo basico del manejo de avion, los controles y altimetros, y luego el
+> radar y las estrellas y como perderlas. No hay enemigos porqe se hace a mucha altura en una zona
+> generalmente libre pero con acceso al radar para llamar la atencion del enemigo y qe tengan qe
+> "mover" equipamiento y personal para irlos a buscar. Los pilotos se van antes de que puedan
+> llegar los harriers o cualquier enemigo (en realidad nunca llegan)*
+>
+> *Basicamente seria mantener la misma mision de hoy pero en vez de finalziarla al final hay qe
+> extenderla un poco mas y en esa etapa se explica la mecanica del radar y las estrellas."*
+
+---
+
+## 12 · Tero y el Turco ya se conocen
+
+**Estado:** ✅ **ya está así en el código** — es el pedido 4 de este mismo documento.
+
+En `M01_3` el Turco lo recibe con *«Tero querido, ¿cómo estás? Tanto tiempo»* y Puma le dice *«Oí
+que a vos te dicen Tero»*. Nadie le pone el apodo en M1. **El error estaba en
+`PANORAMA_CAMPANA.md`, que decía "le ponen el apodo"; ya está corregido.**
+
+---
+
+## 13 · 🔵 Es una misión de diversión
+
+**Estado:** 🔵 una duda
+
+> *"Esta mision puede llamarse mision de diversion y explicar lo que era esta mision de diversion."*
+
+**La duda:** ¿cambia el **título** de la misión —hoy *CON SAL EN LAS ALAS*— o el título queda y
+lo que cambia es **qué tipo de misión es**, dicho en la tarjeta y por Cóndor? Y la explicación de
+qué era una misión de diversión, ¿quién la da: Cóndor por radio, Puma antes de subir, o la
+tarjeta?
+
+---
+
+## 14 · La misión no termina donde termina hoy: Cóndor los manda más lejos
+
+**Estado:** ⬜ · **Toca:** `missions.js` (`fases` de m1), `story.js`
+
+> *"arranca como tutorial y luego se les dice desde CONDOR qe se extiendan a tal pnuto (ahi
+> cambiamos el objetivo)"* · *"mantener la misma mision de hoy pero en vez de finalziarla al final
+> hay qe extenderla un poco mas"*
+
+**Lo que queda igual:** todo lo que hoy es M1 — el tutorial, las nueve lecciones, la ida.
+
+**Lo que se agrega:** donde hoy la misión termina, entra Cóndor por radio, **cambia el objetivo**
+y los manda a una zona con radar enemigo. Recién después de esa zona, la vuelta.
+
+**Nota para quien implemente:** M1 ya declara `fases` (tránsito · descenso · rasante · vuelta).
+Esto es **una fase nueva entre el rasante y la vuelta**. Y hay que escribir la línea de Cóndor que
+cambia el objetivo — **proponer y mostrar antes de pegar.**
+
+---
+
+## 15 · ⚠ En la zona: que el radar los vea, llegar a las cuatro alarmas, e irse
+
+**Estado:** ⬜ · **Toca:** radar de M1, sistema de estrellas, lecciones · **⚠ choca con decisiones
+anteriores**
+
+> *"la idea es qe el radar nos reconozca y mantenernos ahi un rato y volver"* · *"La idea es llegar
+> a las 4 alarmas e irnos, y depaso explicar la mecanica de las alarmas y el radar"* · *"luego el
+> radar y las estrellas y como perderlas"*
+
+**Lo que se enseña en M1, entonces:** primero el manejo del avión, los controles y los altímetros
+(lo que ya está); después **el radar, las estrellas, y cómo perderlas.**
+
+**⚠ Esto da vuelta dos decisiones que ya están implementadas o asentadas:**
+
+- **El pedido 6 de este documento:** *"El radar NO aparece en M1 — sólo hablan de él"*. Hoy M1
+  tiene `radar: 'voz'`, sin barra ni interfaz. **Con este pedido, en la zona nueva el radar sí
+  aparece**, con su interfaz.
+- **`M2_CAMBIOS.md` · 1:** *"El radar existe de M2 en adelante, y se explica acá"*. **La explicación
+  del radar se muda a M1.** M2 sigue teniendo radar, pero ya no es donde se enseña.
+
+**Tres dudas que cambian cómo se arma:**
+
+- **La altura.** Dijiste *"se hace a mucha altura"*, y todo lo anterior de M1 enseña a ir pegado
+  al agua para que no te vean. ¿En la zona nueva **se sube a propósito** para que el radar los
+  agarre? Si es así, es lindo: la misión enseña a esconderse y después a mostrarse.
+- **Las "4 alarmas".** En el código, lo que tiene cinco niveles —de cero a cuatro— son **las
+  estrellas de búsqueda** (`estrellas.js`). La cuarta es *"TODOS ENCIMA"*. ¿Las cuatro alarmas
+  son las cuatro estrellas, o son otra cosa del radar?
+- **"Cómo perderlas".** ¿Se enseña a perder las estrellas **antes de irse** —bajar, esconderse,
+  que se apaguen— o se enseña en el camino de vuelta?
+
+---
+
+## 16 · Sin enemigos: los Harriers nunca llegan
+
+**Estado:** ⬜ · **Toca:** `estrellas.js` / su aplicación en M1
+
+> *"No van a aparecer enemigos"* · *"Los pilotos se van antes de que puedan llegar los harriers o
+> cualquier enemigo (en realidad nunca llegan)"*
+
+**⚠ Nota para quien implemente, importante:** hoy las estrellas **traen enemigos solas**. Según
+`estrellas.js`, con una estrella ya cae algo del cielo y se habilita la cola; con tres llegan los
+Harriers; con cuatro, la antiaérea. **En M1 las estrellas tienen que subir sin que aparezca
+nada** — el jugador ve que lo están buscando, pero los que vienen no llegan nunca. Hace falta que
+M1 pueda mostrar las estrellas **sin aplicar su tabla de enemigos**.
+
+---
+
+## 17 · En la zona de radar se puede hablar
+
+**Estado:** ⬜ · **Toca:** `story.js`, charlas en vuelo
+
+> *"los personajes pueden hablar durantre la mision sin respetar el silencio de radio dentro de la
+> zopna de radar porque la idea era llamar la atencion de los radares para que vengan los aviones"*
+
+**La razón es diegética:** el silencio de radio existe para no ser detectado. Acá quieren ser
+detectados, así que **hablar es parte de la misión.** Es el único lugar de la campaña donde la radio
+abierta es la táctica.
+
+**Nota:** encaja con que en esta zona se enseñe el radar — las lecciones las puede dar el
+escuadrón hablando, sin romper ninguna regla. Recordar la regla de M1: **ningún personaje nombra
+una tecla.**
+
+---
+
+## 18 · ⚠ Una cosa que va a aparecer sola: la nafta
+
+**Estado:** ⬜ · **No es pedido tuyo, es una consecuencia**
+
+M1 hoy tiene `fuelScale: 0.25`. Si la misión se alarga, **hay que recalibrar el combustible**, o
+el jugador se queda seco en la zona nueva. Y la Chancha en M1 está apagada (`chancha: false`).
+
+---
+
+### Resumen de la segunda ronda
+
+| # | Qué | Estado |
+|---|---|---|
+| 12 | Tero y el Turco ya se conocen | ✅ ya estaba |
+| 13 | Es una misión de diversión — ¿título o tipo? | 🔵 |
+| 14 | Cóndor cambia el objetivo y los manda a una zona con radar | ⬜ |
+| 15 | En la zona: que los vean, cuatro alarmas, irse · se enseña radar y estrellas | ⬜ · 🔵 tres dudas |
+| 16 | Sin enemigos: las estrellas suben y nadie llega | ⬜ |
+| 17 | En la zona de radar se puede hablar | ⬜ |
+| 18 | Recalibrar la nafta para la misión más larga | ⬜ |

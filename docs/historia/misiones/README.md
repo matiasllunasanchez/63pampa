@@ -41,12 +41,15 @@ sesión con acceso directo al código.
 | Regla | Estado | Dónde está escrita |
 |---|---|---|
 | **Cóndor cierra siempre.** La última voz antes de que el jugador tome el control es la suya, en las catorce | ✅ en M1 · ⬜ las otras trece | `M1_CAMBIOS.md` · 3 · `M2_CAMBIOS.md` · 4 |
-| **El radar no existe en M1.** Sólo avisos de voz. De M2 en adelante existe de verdad, con su interfaz, y se explica ahí | ✅ M1 hecho · ⬜ falta la explicación en M2 | `M1_CAMBIOS.md` · 6 · `M2_CAMBIOS.md` · 1 |
+| ~~**El radar no existe en M1.**~~ **Cambió el 3/10:** M1 se extiende a una zona con radar, y ahí se enseñan el radar y las estrellas | ⬜ por rehacer | `M1_CAMBIOS.md` · segunda ronda, 15 |
 | **Si hay objetivo, hay cinemática.** De M2 en adelante, toda misión con blanco real lleva su cinemática entre el objetivo y la vuelta | ⬜ por implementar | `M2_CAMBIOS.md` · 3 |
 | **Los poderes se enseñan en M2**, no en M1 | ✅ apagados en M1 · ⬜ falta enseñarlos en M2 | `M1_CAMBIOS.md` · 10 · `M2_CAMBIOS.md` · 2 |
 | **La foto de La Casada se ve en M1 y no se vuelve a ver hasta que muere el Vasco** | ✅ en M1 · ⏳ choca con `M04_FOTO`, se resuelve en M4 | `M1_CAMBIOS.md` · 1 |
 | **Cada misión abre con su indicativo de ave por radio** y tiene su cartel de despegue con rumbo propio | ✅ las catorce | `../RESUELTOS_GUION.md` · G-08 |
 | **Ningún personaje nombra una tecla.** Las teclas las muestra el juego durante la pausa | ✅ en M1 · molde para el resto | `M1_CAMBIOS.md` · 8 |
+| **Todo el juego ocurre en PASILLO.** Momentum, Pulso y Arena no se usan en ninguna misión. M5 y M14 dejan de declarar `climax: 'arena'` | ⬜ · 🔵 ¿la pasada queda? ¿sale también el poder Momentum? | `M2_CAMBIOS.md` · 11 |
+| **Silencio de radio:** en M1 la radio abierta es la táctica (quieren que los vean); de M2 en adelante, en zona de radar no habla nadie | ⬜ | `M1_CAMBIOS.md` · 17 · `M2_CAMBIOS.md` · 7 |
+| **Las alarmas se pierden bajando**, para que el enemigo crea que te derribó | ⬜ | `M2_CAMBIOS.md` · 8 |
 | **O tres bombas, o tanques.** El jugador elige la carga antes de salir; la Chancha se llama en la ida y en la vuelta; sin bombas el avión va más rápido | ✅ aprobado · backlog de sistemas | `../../sistemas/PLAN_CARGA_Y_CHANCHA.md` |
 
 ### Y una que está en el aire, y es grande
@@ -64,8 +67,8 @@ catorce y el sistema de relevo se cae entero. Ver `M2_CAMBIOS.md` · 6.
 | | Misión | Lectura | Cambios | Código |
 |---|---|---|---|---|
 | **M0** | El prólogo | ✅ | ⬜ vacío | — |
-| **M1** | Con sal en las alas | ✅ | ✅ 11 pedidos | ✅ **implementada 18-19/9** |
-| **M2** | El bautismo de fuego | ✅ *(al día, 19/9)* | 🔵 4 pedidos + 2 decisiones | ⬜ |
+| **M1** | Con sal en las alas | ✅ | ✅ 11 pedidos · ⬜ **segunda ronda, 7 más (3/10)** | ✅ implementada 18-19/9 · ⬜ falta la segunda ronda |
+| **M2** | El bautismo de fuego | ✅ *(al día, 19/9)* | 🔵 6 pedidos + 2 decisiones · ⬜ **segunda ronda, 5 más (3/10)** | ⬜ |
 | **M3** | El invento | ✅ | ⬜ vacío | ⬜ |
 | **M4** | El día que sangró el mar | ✅ | ⬜ vacío | ⬜ |
 | M5 | El callejón de las bombas | ⬜ | ⬜ | ⬜ |

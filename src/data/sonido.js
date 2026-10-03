@@ -11,10 +11,11 @@
 //   20/9/2026  el autor la destraba
 //   21/9/2026  el autor la vuelve a bloquear: "lo volveremos a activar en un futuro"
 //   3/10/2026  el autor la destraba ("activar sonido por ahora"), con el arranque del fichin
+//   3/10/2026  y la vuelve a bloquear el mismo dia ("muteame el juego entero")
 //
 // ES TEMPORAL Y VUELVE: el dia que el autor lo pida, esto va a `false` y el smoke se adapta solo —
 // con `true` exige que el juego este MUDO, con `false` exige que SUENE. No hay nada mas que tocar.
 //
 // La preferencia del jugador (el mute del boton, en localStorage) no se pisa: al volver esto a
 // false, cada uno vuelve a como lo tenia.
-export const AUDIO_BLOQUEADO = false;
+export const AUDIO_BLOQUEADO = true;

@@ -65,7 +65,8 @@
 
 ### Lo que falta
 
-- **El objetivo real.** Hoy es distancia. Tiene que ser **el puesto avanzado del islote**.
+- **El objetivo real.** Hoy es distancia. Tiene que ser **el puesto avanzado del islote**. **La
+  mecánica ya existe** (`estructuras.js`, `goal: { kind: 'estructura' }`): falta que M2 la pida.
 - **La forma ida / objetivo / vuelta.** M2 no declara `fases`. M1 sí — es el molde a copiar.
 - **El cierre de Cóndor** antes de jugar (`M02_PISTA`). No existe.
 - **La línea de Cóndor está escrita para la misión vieja:** *"Entran, cruzan y vuelven. Nada
@@ -161,7 +162,9 @@ disponibles. Se muere, y si te matan cambiás de piloto.
 - **La vuelta es la guerra.** Acá te tiran por primera vez en toda la campaña, y **acá caen bombas
   por primera vez**. No es dificultad porque sí: una bomba cayendo significa una sola cosa, que te
   vieron. Después de reventar el puesto, ya no sos un fantasma.
-- Sin bombas propias, sin Pulso. Todo se resuelve con el cañón.
+- ~~Sin bombas propias, sin Pulso. Todo se resuelve con el cañón.~~ **⚠ Cambió el 3/10:** en M2
+  hay bomba propia, y tirarla —y errar, y que no detone— es lo que se aprende. Ver
+  `M2_CAMBIOS.md` · 9.
 
 ### Cuándo habla cada uno, y si frena el juego
 

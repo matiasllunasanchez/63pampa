@@ -1085,6 +1085,36 @@ export const PASTO_ACOSTAR = 0.2;   // cuanto se ACHATA el matojo con la racha e
 export const RACHA_N = 5, RACHA_T = 3.4, RACHA_A = 0.2;
 // camino del sol (F6)
 export const SUN_GLINT_HALF = 26;   // semiancho del cono de destellos (unidades de mundo en x)
+// ---- EL RESPLANDOR (bloom, render/brillo.js) -------------------------------------------------
+// La luz la EMITE cada fuente (explosion, tobera, fogonazo) en una capa aparte; aca solo se dice
+// como se derrama esa capa. Las intensidades y colores de cada fuente viven con la fuente.
+//   RADIO   ancho del desenfoque, en pixeles de la capa (x ESCALA = pixeles reales del buffer)
+//   FUERZA  cuanto se suma arriba del mundo. 0 lo apaga sin tocar codigo.
+//   ESCALA  a que fraccion de la resolucion vive la capa. 4 es barato y la luz no lo nota.
+export const BRILLO_RADIO = 3;
+export const BRILLO_FUERZA = 0.9;
+export const BRILLO_ESCALA = 4;
+
+// ---- LA LUZ DE BORDE (rim light, render/borde.js) --------------------------------------------
+// El filo de la silueta del avion que mira al sol se enciende: el avion esta a contraluz.
+//   ANCHO   grosor del filo, en pixeles de la HOJA (84 por cuadro). A la escala del juego 2 son
+//           ~1,5 pixeles de pantalla: se lee como luz sobre el canto, no como un contorno pintado.
+//   FUERZA  cuanto se suma, a pleno contraluz.
+//   CIELO   CUANTO CONTRALUZ DA CADA CIELO. Es una tabla y no se saca del color del sol, y se probo:
+//           la primera version usaba el brillo de `theme.sky.sun` y en el cielo NUBLADO el borde
+//           salia mas fuerte que al atardecer — su "sol" es el disco blanco del cielo cubierto
+//           (#e6eae2). Pero con el cielo cubierto no hay contraluz: la luz es difusa y no enciende
+//           ningun filo. Lo que decide el borde es si hay SOL DIRECTO, y eso es un dato del cielo.
+//           Un cielo que no este en la tabla cae en BORDE_CIELO_DEF.
+export const BORDE_ANCHO = 2;
+export const BORDE_FUERZA = 0.7;
+export const BORDE_CIELO = {
+  dusk: 1, dawn: 1,          // sol bajo y adelante: contraluz de libro
+  sun: 0.8, clear: 0.8,      // sol alto: el filo de arriba se enciende igual, menos dramatico
+  moon: 0.45, night: 0.25,   // luz de luna: un filo frio y tenue
+  cloudy: 0.15, storm: 0.1,  // cielo cubierto: luz difusa, casi nada
+};
+export const BORDE_CIELO_DEF = 0.4;   // semiancho del cono de destellos (unidades de mundo en x)
 
 // ---------- LA COLA: EL HARRIER EN LA COLA (PLAN A) ----------
 // Plan y porque: docs/sistemas/PLAN_HARRIERS_PERSECUCION.md — §1 la dinamica (de donde sale cada
