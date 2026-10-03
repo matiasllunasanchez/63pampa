@@ -29,6 +29,9 @@
 //
 // `{ head }` = encabezado de seccion; el cursor no se para ahi (mismo criterio que el menu de
 // HISTORIA y que OPCIONES).
+/** ¿El juego ya cargo con ese `?horno=…`? (fuera del navegador —las pruebas en node— no hay URL) */
+const enHorno = re => typeof location !== 'undefined' && re.test(location.search);
+
 export const PRUEBAS = [
   { head: 'prSecMision' },
   {
@@ -213,6 +216,24 @@ export const PRUEBAS = [
   {
     id: 'tempo', titulo: 'EL MOMENTUM CARGADO', desc: 'La barra llena: la camara lenta lista para la tecla 4',
     setup: a => { a.patria(); a.luego(1.5, g => g.sonda('tcharge')); },
+  },
+
+  // EL HORNO DE BLENDER (experimento 3/10/2026): el A-4 nuevo, modelado y horneado en Blender
+  // (tools/blender/), contra el de siempre. Lo que cambia se resuelve AL CARGAR (data/horno.js),
+  // asi que la primera vez la fila RECARGA el juego con el parametro; ya cargado, te pone a volar
+  // POR LA PATRIA en el A-4. HORNO DE SIEMPRE recarga sin el parametro.
+  { head: 'prSecHorno' },
+  {
+    id: 'a4blender', titulo: 'A-4 DE BLENDER (CON CONTORNO)', desc: 'El Skyhawk nuevo en POR LA PATRIA · la 1a vez recarga el juego',
+    setup: a => (enHorno(/\bhorno=blender\b(?!-)/) ? (a.sonda('avion', 0), a.patria()) : a.recarga('?horno=blender')),
+  },
+  {
+    id: 'a4blenderSin', titulo: 'A-4 DE BLENDER (SIN CONTORNO)', desc: 'El mismo, sin el filo oscuro · la 1a vez recarga el juego',
+    setup: a => (enHorno(/\bhorno=blender-sin\b/) ? (a.sonda('avion', 0), a.patria()) : a.recarga('?horno=blender-sin')),
+  },
+  {
+    id: 'a4clasico', titulo: 'EL HORNO DE SIEMPRE', desc: 'Vuelve a las hojas de three.js (recarga el juego)',
+    setup: a => a.recarga('?'),
   },
 
   { head: 'prSecHistoria' },

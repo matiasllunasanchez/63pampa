@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<!-- EXPERIMENTO BLENDER (3/10/2026): vuelca los modelos de three.js a JSON para que Blender los
+     levante IDENTICOS (tools/blender/hornear.py). No hornea nada: es solo el puente.
+     Lo corre `npx electron tools/blender/exportar_run.js`. -->
+<head><meta charset="utf-8"><title>exportar — RASANTE</title></head>
+<body>
+  <script src="../../src/vendor/three.global.js"></script>
+  <script src="../bake_common.js"></script>
+  <script src="../models/planes.js"></script>
+  <script>
+    'use strict';
+    const MODELS = BAKE.familia('planes');
+    /** Un modelo a JSON: cada malla con sus vertices YA en el espacio del modelo (la matriz de
+     *  cada pieza aplicada), sus caras, su color (hex sRGB) y si es EMISIVA (MeshBasicMaterial: la
+     *  turbina, que no toma luz). Sin posar: las poses las pone Blender, igual que el horno. */
+    window.__exportar = key => {
+      const root = MODELS[key]();
+      root.updateMatrixWorld(true);
+      const piezas = [];
+      root.traverse(o => {
+        if (!o.isMesh) return;
+        const g = o.geometry.index ? o.geometry : o.geometry;
+        const pos = g.attributes.position, v = new THREE.Vector3(), verts = [];
+        for (let i = 0; i < pos.count; i++) {
+          v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+          verts.push([+v.x.toFixed(5), +v.y.toFixed(5), +v.z.toFixed(5)]);
+        }
+        const tris = [];
+        if (g.index) for (let i = 0; i < g.index.count; i += 3) tris.push([g.index.getX(i), g.index.getX(i + 1), g.index.getX(i + 2)]);
+        else for (let i = 0; i < pos.count; i += 3) tris.push([i, i + 1, i + 2]);
+        piezas.push({ color: '#' + o.material.color.getHexString(), emisiva: o.material.type === 'MeshBasicMaterial',
+          verts, tris });
+      });
+      return JSON.stringify({ key, piezas });
+    };
+  </script>
+</body>
+</html>

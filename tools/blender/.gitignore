@@ -1,0 +1,4 @@
+# Lo que hornea el experimento (cuadros sueltos, hojas de prueba y laminas): se regenera con
+# hornear.py + armar_hoja.py, no se versiona.
+out/
+__pycache__/

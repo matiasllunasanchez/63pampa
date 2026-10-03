@@ -1,5 +1,6 @@
 // AVIONES jugables: datos y precarga de sus imagenes.
 import { CAPAS_CARGA } from './cargas.js';
+import { HORNO_ALT } from './horno.js';
 //
 // Cada avion tiene DOS imagenes: `src` es la ilustracion grande del menu de seleccion, y
 // `sheet` el sprite sheet que se usa en vuelo (9 columnas de alabeo x 3 filas de cabeceo,
@@ -45,6 +46,14 @@ export const SHEET3_FW = 168, SHEET3_FH = 168;
 // ESTO y no contra SHEET_FH — si no, queda flotando a 18 px de la cola.
 export const SHEET_BODY_H = 48;
 PLANES.forEach(pl => {
+  // EL INTERRUPTOR DEL HORNO (data/horno.js): con `?horno=blender` el A-4 vuela con las hojas
+  // horneadas en Blender. Las capas de carga lo siguen solas: se piden de la carpeta de `sheet`.
+  if (HORNO_ALT && pl.key === 'sky') {
+    // (la carpeta sale de la hoja de siempre y no de un literal: tools/build_web.py re-embebe cada
+    // '../assets/…' que encuentra, y una ruta armada a medias lo hace fallar)
+    const d = pl.sheet.slice(0, pl.sheet.lastIndexOf('/') + 1) + HORNO_ALT + '/';
+    pl.sheet = d + 'sheet.png'; pl.sheet2 = d + 'sheet2.png'; pl.sheet3 = d + 'sheet3.png';
+  }
   pl.img = new Image(); pl.ready = false; pl.w = 977; pl.h = 471;
   pl.img.onload = () => { pl.ready = true; pl.w = pl.img.naturalWidth; pl.h = pl.img.naturalHeight; };
   pl.img.src = pl.src;

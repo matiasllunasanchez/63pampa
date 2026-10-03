@@ -8,6 +8,11 @@
 // ⚠ NO EDITAR src/data/anclas_horno.js: lo reescribe `npx electron tools/bake_planes_run.js`
 //   entero, cada vez. Lo que se escribe ACA queda.
 import { HORNO } from './anclas_horno.js';
+// …o las del A-4 horneado en Blender, con el interruptor `?horno=blender` (data/horno.js). La tabla
+// es UNA para todo el roster (se mide sobre el A-4), asi que mientras se prueba el A-4 nuevo los
+// otros aviones usan sus anclas: pueden correrse un pixel. Es una prueba, no el juego.
+import { HORNO_BLENDER } from './anclas_blender.js';
+import { HORNO_ALT } from './horno.js';
 
 // ---------------------------------------------------------------------------------------------
 // AJUSTES A MANO — vacio quiere decir "el horno tiene razon en todo".
@@ -58,4 +63,4 @@ function conAjustes(H) {
   return out;
 }
 
-export const ANCLAS = conAjustes(HORNO);
+export const ANCLAS = conAjustes(HORNO_ALT ? HORNO_BLENDER : HORNO);

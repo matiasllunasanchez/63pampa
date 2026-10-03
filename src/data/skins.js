@@ -21,6 +21,10 @@
 // tools/build_web.py reemplaza por un data: muerto para dejar las skins afuera del build web.
 // El prefijo 'skin_' va ACA y no en cada entrada para que esa sustitucion tenga un solo blanco.
 const DIR = '../assets/planes/a4-skyhawk/skin_';
+// EL INTERRUPTOR DEL HORNO (data/horno.js): con el A-4 de Blender a prueba, los Fieles vuelan TODOS
+// la hoja nueva — sus skins son del horno de siempre, y si no se apagaran aca, en el escuadron
+// (PRUEBAS, campaña) se seguiria viendo el avion viejo.
+import { HORNO_ALT } from './horno.js';
 // nombre de piloto (el de data/pilots.js FIELES) -> archivo base de su variante
 const ARCHIVO = {
   TERO: 'tero', PUMA: 'puma', GITANO: 'gitano',
@@ -46,6 +50,7 @@ const lista = im => im.complete && im.naturalWidth > 0;
 /** La skin de `nombre` (TERO, PUMA…) o null si no hay. `null` es una respuesta valida: el que
  *  dibuja cae a la hoja generica. Nunca tira. */
 export function skinOf(nombre) {
+  if (HORNO_ALT) return null;
   const s = cache[nombre];
   if (!s || !lista(s.img)) return null;
   return { sheetImg: s.img, sheet2Img: lista(s.img2) ? s.img2 : null,
