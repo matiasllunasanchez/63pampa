@@ -5,12 +5,12 @@
 // dejo aplicados los transforms de camara/roll/zoom antes de llamar aca. El cielo alto (degradado,
 // sol, nubes, islas) y los loops de entidades del jugador siguen inline en el orquestador.
 
-import { ctx, px, W, H, HOR, F, PZ } from './ctx.js';
+import { ctx, px, pxFino, W, H, HOR, F, PZ } from './ctx.js';
 import { theme, applyTheme } from './theme.js';
 import { cam, cfg, S, plane } from '../core/state.js';
 import { run } from '../core/run.js';
 import { wake, obstacles, soldiers } from '../core/world.js';
-import { proj } from '../core/fx.js';
+import { proj, piques } from '../core/fx.js';
 import { hzWorld, tiltFade } from '../core/horizon.js';
 import { bendW, paredH } from '../core/zigzag.js';
 import { techoLadera, mez } from './paredes.js';
@@ -29,7 +29,7 @@ import { geoActiva, sueloEn, orillaS, ladoEn, playaCerca, playaClase, alturaSuel
 import { P, LAND, CLAND, SKY_ASTRO, RADAR_VERDE } from '../data/palette.js';
 import { CHUNK_LIFE, ONDA_T, ONDA_R, EYEC_ASIENTO_T } from '../data/despiece.js';
 import { drawParte, yawDe, colorDe } from './partes.js';
-import { MAR_HONDO, SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
+import { MAR_HONDO, MAR_GRANO, OLA_CRESTA, PIQUE, SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
   ALAMBRE_CADA, ALAMBRE_POSTE, ALAMBRE_H, MOJADO_A, CHARCO_P, CHARCO_H, PASTO_LEAN, PASTO_ONDA, PASTO_V, PASTO_KX, PASTO_KZ, PASTO_ACOSTAR, RACHA_N, RACHA_T, RACHA_A, ESTELA_ABRE, ESTELA_EDAD, ESTELA_TURBO, ESTELA_TURBO_A } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { SHIP_CLASS } from '../data/ships.js';
@@ -71,6 +71,21 @@ function aguaCol(f) {
   return 'rgb(' + (a[0] + (b[0] - a[0]) * u | 0) + ',' + (a[1] + (b[1] - a[1]) * u | 0) + ',' + (a[2] + (b[2] - a[2]) * u | 0) + ')';
 }
 const arenaCol = f => mez('#7d7154', '#8f8163', (f - 0.3) / 0.2);
+// LA RAMPA DE LA SUPERFICIE (2/10): los puntos del mar se pintaban con tres colores segun la altura
+// (deep / mid / crest, cortes en 0,42 y 0,72); ahora OLA_TONOS tonos de valle a cresta, por clima.
+const OLA_TONOS = 8;
+let palOla = null, RAMPA_OLA = null;
+function rampaOla() {
+  if (theme.water !== palOla) {
+    palOla = theme.water;
+    const w = palOla;
+    RAMPA_OLA = Array.from({ length: OLA_TONOS }, (_, i) => {
+      const t = (i + 0.5) / OLA_TONOS;
+      return t < 0.5 ? mez(w.deep, w.mid, t / 0.5) : mez(w.mid, w.crest, (t - 0.5) / 0.5);
+    });
+  }
+  return RAMPA_OLA;
+}
 /** MOTEADO: manchas claras/oscuras ancladas al MUNDO (banda de 6 unidades en wz + posicion x por
  *  hash) → parches irregulares que scrollean con el terreno, no ruido que titila. */
 function groundMottle(y, wz, k, xEnd, cx = cam.x) {
@@ -566,6 +581,7 @@ export function drawSea() {
     if (nTierra || nCosta || nPlaya) drawLand(false, true);
     if (nMar || nCosta || nPlaya) drawSeaDots(landVisible, false, true);
     lomadas();
+    drawPiques();
     return;
   }
   if (landMode) drawLand();
@@ -575,6 +591,56 @@ export function drawSea() {
     drawFleet();                       // la flota de desembarco en el horizonte
   } else drawSeaDots(landVisible);
   lomadas();
+  drawPiques();
+}
+
+/** LOS PIQUES de las municiones que cayeron (core/fx.js `piqueMunicion`): un penacho en V corta que
+ *  CRECE desde el agua hacia arriba (PIQUE.SUBE), con espuma en la base, y despues se apaga y se
+ *  achata hasta su VIDA. Del color de la espuma del agua y no blanco puro, con el brillo de la base
+ *  tenue: tiene que leerse como agua levantada, no como una luz. Va con el suelo, antes de lo que vuela. */
+function drawPiques() {
+  const C = PIQUE;
+  for (let i = piques.length - 1; i >= 0; i--) {
+    const p = piques[i], edad = run.t - p.t0, vida = C.VIDA * (0.7 + 0.3 * p.alto), z = p.wz - run.dist;
+    if (edad < 0 || edad > vida || z < 2) { piques.splice(i, 1); continue; }
+    const s = proj(p.x, p.tierra ? 0.3 : C.Y, z), k = s.k;
+    if (s.x < -40 || s.x > W + 40) continue;
+    const u = edad / vida, t = Math.min(1, edad / C.SUBE), sube = 1 - (1 - t) * (1 - t);   // sale rapido y frena
+    const a = Math.min(1, edad / 0.04) * (1 - u) * (1 - u * 0.5) * (p.tierra ? 0.7 : 1);
+    // DE ABAJO HACIA ARRIBA: la altura arranca en cero; con minimos para que de lejos siga siendo raya
+    // …y despues SE DERRUMBA: el agua que subio vuelve a caer mientras se apaga
+    const alto = Math.max(6, Math.min(C.ALTO_PX, k * C.ALTO * p.alto)) * sube * (1 - 0.6 * u * u);
+    if (alto < 0.5) continue;
+    const abajo = Math.max(1, k * C.BOCA * p.ancho);
+    const arriba = Math.max(1.4, k * C.ABRE * p.ancho) * (0.7 + 0.3 * sube + 0.4 * u);   // la V se abre
+    const rgb = p.tierra ? '122,106,76' : C.AGUA_RGB;
+    // el penacho: una V corta, opaca abajo y que se pierde arriba
+    const g = ctx.createLinearGradient(0, s.y, 0, s.y - alto);
+    g.addColorStop(0, 'rgba(' + rgb + ',' + (0.85 * a).toFixed(3) + ')');
+    g.addColorStop(0.55, 'rgba(' + rgb + ',' + (0.5 * a).toFixed(3) + ')');
+    g.addColorStop(1, 'rgba(' + rgb + ',0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(s.x - abajo, s.y); ctx.lineTo(s.x - arriba, s.y - alto);
+    ctx.lineTo(s.x + arriba, s.y - alto); ctx.lineTo(s.x + abajo, s.y);
+    ctx.closePath(); ctx.fill();
+    // el alma: una raya central un poco mas clara y mas corta (espuma, no luz)
+    const g2 = ctx.createLinearGradient(0, s.y, 0, s.y - alto * 0.75);
+    g2.addColorStop(0, 'rgba(' + C.ESPUMA_RGB + ',' + (0.7 * a).toFixed(3) + ')');
+    g2.addColorStop(1, 'rgba(' + C.ESPUMA_RGB + ',0)');
+    ctx.fillStyle = g2;
+    const al = Math.max(1, abajo * 0.6);
+    ctx.fillRect(s.x - al / 2, s.y - alto * 0.75, al, alto * 0.75);
+    // la espuma de la base, achatada sobre el agua (tenue: el brillo fuerte la hacia una lampara)
+    const r = Math.max(3, k * C.BRILLO * p.ancho);
+    ctx.save(); ctx.translate(s.x, s.y); ctx.scale(1, 0.3);
+    const rg = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    rg.addColorStop(0, 'rgba(' + C.ESPUMA_RGB + ',' + (0.6 * a).toFixed(3) + ')');
+    rg.addColorStop(0.5, 'rgba(' + rgb + ',' + (0.3 * a).toFixed(3) + ')');
+    rg.addColorStop(1, 'rgba(' + rgb + ',0)');
+    ctx.fillStyle = rg; ctx.fillRect(-r, -r, 2 * r, 2 * r);
+    ctx.restore();
+  }
 }
 
 // ---------------------------------------------------------------- LA PROFUNDIDAD DEL MAR
@@ -1053,10 +1119,12 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
   // paso ADAPTATIVO: cerca muestrea a SPZ/SPX plenos; lejos el paso crece para mantener
   // ~1px de separacion en pantalla (los puntos subpixel no se ven y este loop corre
   // TODO el vuelo — el mar es 2D siempre fuera del momentum)
+  const G = MAR_GRANO, rampa = rampaOla();
   let wz = startZ;
   while (wz < dv + farZ) {
-    const camZ = wz - dv;
-    wz += Math.max(SPZ, camZ * camZ * 0.0019);
+    const camZ = wz - dv, wzFila = wz;
+    const pasoZ = Math.max(SPZ, camZ * camZ * 0.0019);
+    wz += pasoZ;
     // sin puntos sobre tierra ni rompiente. La orilla del puerto SERPENTEA (portJut), asi que a
     // esta profundidad puede haber columnas de agua y columnas de tierra: solo se descarta la fila
     // entera cuando esta toda del lado de tierra; el resto se decide adentro, por columna.
@@ -1074,7 +1142,11 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
     const k = F / camZ;
     const fade = Math.min(1, (camZ - 3) / 9) * (1 - (camZ / farZ) * 0.8);
     if (fade <= 0.03) continue;
-    const dotW = Math.max(1, k * 0.12);   // 1/4 del tamaño clasico (0.48)
+    // EL GRANO (2/10: "reducir las particulas del mar y multiplicarlas"): de medio pixel a 1,5 —antes
+    // `k * 0.12` sin tope, y a tres metros de la camara cada punto era un cuadrado de cinco pixeles—
+    // y se dibuja al pixel real del buffer (pxFino). Lo que falta de densidad lo ponen los GRANOS
+    // de abajo, que solo nacen donde la grilla de muestreo queda abierta en pantalla.
+    const dotW = Math.min(G.TAM_MAX, Math.max(G.TAM_MIN, k * G.TAM));
     // franja acorde al FRUSTUM: el ancho visible crece con la distancia (antes era ±74 fijo
     // y el mar quedaba "cortito" a lo lejos, p.ej. detras de la pista durante el despegue)
     const half = Math.min(320, (W / 2 + 10) * camZ / F + 6);
@@ -1087,6 +1159,12 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
     if (!geoOn) { if (coastMode) xL = Math.max(xL, shoreAt(wz) + 1); }
     else if (costa) { if (sL > 0) xL = Math.max(xL, S + 1); else xR = Math.min(xR, -S - 1); }
     const sx3 = Math.max(SPX, camZ * 0.011);                   // paso x adaptativo (~1px)
+    // EL TONO DE LA PROFUNDIDAD (2/10: "las particulas del mar son demasiado brillosas, variar
+    // tonalidades de profundidad"): el grano sigue las MISMAS manchas de hondo y bajio que pinta
+    // `profundidad` (mismas escalas y semillas): en lo hondo baja de tono y se apaga, en el bajio
+    // sube. Y con la distancia se apaga y se enfria. La escala larga va una vez por fila.
+    const lejosK = Math.min(1, camZ / G.LEJOS_Z);
+    const hondoLargo = ruido(cx / MAR_HONDO.CELDA[0], wzFila / MAR_HONDO.CELDA[0], 811);
     const x0 = Math.ceil(xL / sx3) * sx3;
     const portRow2 = landVisible && wz < cfg.coast + PORT_AMP + PORT_FOAM;
     for (let wx = x0; wx < xR; wx += sx3) {
@@ -1113,7 +1191,12 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
       // bandas de luz que viajan por la superficie (movimiento visible aun en la distancia)
       const shimmer = Math.sin(wz * 0.06 - run.t * 2.6 + wx * 0.045);
       if (shimmer > 0.6) hn = Math.min(1, hn + 0.24);
-      let col = hn > 0.72 ? theme.water.crest : hn > 0.42 ? theme.water.mid : theme.water.deep;
+      // el color por ALTURA en rampa continua (valle oscuro, lomo, cresta clara) y no en tres saltos,
+      // corrido por la profundidad del lugar y por la distancia
+      const hondo = (MAR_HONDO.PESO[0] * hondoLargo + MAR_HONDO.PESO[1] * ruido(wx / MAR_HONDO.CELDA[1], wzFila / MAR_HONDO.CELDA[1], 823))
+        / (MAR_HONDO.PESO[0] + MAR_HONDO.PESO[1]) - 0.5;            // -0,5 hondo .. +0,5 bajio
+      const hnT = hn + hondo * G.HONDO_TONO - lejosK * G.LEJOS_TONO;
+      let col = rampa[Math.max(0, Math.min(OLA_TONOS - 1, (hnT * OLA_TONOS) | 0))];
       // LA OLA SE TIENE QUE LEER COMO UNA PARED QUE VIENE, no como textura mas brillante. Dos
       // cosas la separan del mar: la CRESTA se pinta con el color de cresta pase lo que pase con
       // la altura normalizada, y la CARA —el lado que mira a la camara— se oscurece. Ese contraste
@@ -1128,8 +1211,29 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
       // OPACIDAD por cuadrado = SEA_ALPHA2D (perilla global, 0.5) x fade (entrada 3..12u y
       // caida por lejania) x altura de ola: 0.25 de piso en el valle + hasta 0.6 por la
       // cresta (hn 0..1) + 0.15 si lo cruza una banda de luz → rango 12%..50%
-      ctx.globalAlpha = SEA_ALPHA2D * fade * (0.25 + hn * 0.6 + (shimmer > 0.6 ? 0.15 : 0));
-      px(s.x - dotW / 2, s.y, dotW, dotW, col);
+      const alfa = Math.min(1, G.ALFA * SEA_ALPHA2D * fade * (0.25 + hn * 0.6 + (shimmer > 0.6 ? 0.15 : 0))
+        * Math.max(0.3, 1 + hondo * G.HONDO_ALFA) * (1 - lejosK * G.LEJOS_ALFA));
+      ctx.globalAlpha = alfa;
+      pxFino(s.x - dotW / 2, s.y, dotW, dotW, col);
+      // LOS GRANOS: donde dos muestras quedan a mas de G.PX pixeles (cerca de la camara), se siembran
+      // granos en la celda, con la altura de la muestra. Deterministas por celda de mundo (no
+      // titilan), cada uno con su brillo; en lo alto de la cresta, algunos salen ESPUMA.
+      const nG = Math.min(G.MAX, Math.floor(k * sx3 / G.PX));
+      if (nG > 0) {
+        const ix = Math.round(wx / sx3), iz = Math.round(wzFila / SPZ);
+        for (let j = 0; j < nG; j++) {
+          const h1 = hash2(ix * 7 + j * 131, iz * 3 - j * 71), h2 = hash2(ix * 5 - j * 37, iz * 11 + j * 53);
+          const h3 = hash2(ix + j * 911, iz - j * 433);
+          const zG = camZ + (h2 - 0.5) * pasoZ;
+          if (zG < 2.5) continue;
+          const sg = proj(wx + (h1 - 0.5) * sx3, h, zG);
+          const hnG = hnT + (h3 - 0.5) * G.JIT;
+          const espuma = hn + (h3 - 0.5) * G.JIT > G.ESPUMA && h3 > 0.6;
+          ctx.globalAlpha = espuma ? Math.min(1, alfa * 1.3) : alfa * (0.6 + h3 * 0.5);
+          const wG = dotW * (0.6 + h2 * 0.6);
+          pxFino(sg.x - wG / 2, sg.y, wG, wG, espuma ? theme.water.crest : rampa[Math.max(0, Math.min(OLA_TONOS - 1, (hnG * OLA_TONOS) | 0))]);
+        }
+      }
       // ESPUMA DE LA OLA: motas extra sobre el lomo. Determinista por celda (trampa §1.3 — con
       // Math.random() por cuadro esto seria un hervidero que titila), y sin depender de `k`: la
       // ola tiene que verse de LEJOS, que es justamente donde el destello normal no se dibuja.
@@ -1139,13 +1243,13 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
         // el lomo y CAE HACIA ADELANTE: la mota se corre hacia la camara (abajo en pantalla) y
         // se agranda con el tiempo desde que rompio. Es la diferencia entre una pared de agua
         // que avanza y una que se te viene encima.
-        let cy = s.y - 1, cw = dotW + 2;
+        let cy = s.y - 1, cw = dotW + 1;
         if (olaDom.breakT) {
           const rot = Math.min(1.6, run.t - olaDom.breakT);
           cy += rot * 3.2 * Math.min(3, k);        // cae hacia adelante, mas al estar cerca
           cw += rot * 1.6;
         }
-        px(s.x - dotW / 2 - 1, cy, cw, Math.max(1, dotW * 0.8), theme.water.spark);
+        pxFino(s.x - dotW / 2 - 0.5, cy, cw, Math.max(0.5, dotW * 0.8), theme.water.spark);
       }
       // ESPUMA DEL MAR (F2). Distinta del destello de abajo en las dos cosas que importan:
       // NO titila (no lleva `run.t`, asi que la mota se queda pegada a la cresta mientras la
@@ -1158,7 +1262,7 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
       // repartida pareja. Es el mismo seno que peina la superficie en core/sea.js.
       if (hn > foamTh && Math.sin(wx * 3.7 + wz * 2.9) > foamGate(wx, wz)) {
         ctx.globalAlpha = SEA_ALPHA2D * fade * (clima === 'storm' ? 1.15 : 0.85);
-        px(s.x - dotW / 2, s.y - 1, Math.max(1, dotW), Math.max(1, dotW * 0.7), theme.water.spark);
+        pxFino(s.x - dotW / 2, s.y - 0.5, dotW, Math.max(0.5, dotW * 0.7), theme.water.spark);
       }
       // destello en las crestas cercanas (titileo determinista, sin flicker feo)
       //
@@ -1175,11 +1279,70 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
       if (hn > 0.78 && (enSol || k > 1.6)
           && Math.sin(wx * 12.9 + wz * 7.3 + run.t * 6) > (enSol ? -0.5 : 0.7)) {
         ctx.globalAlpha = Math.min(1, SEA_ALPHA2D * fade * (enSol ? 1.6 : 0.55));
-        px(s.x - dotW / 2 - 1, s.y - 1, dotW + 2, Math.max(1, dotW * 0.6), theme.water.spark);
+        pxFino(s.x - dotW / 2 - 0.5, s.y - 0.5, dotW + 1, Math.max(0.5, dotW * 0.6), theme.water.spark);
       }
     }
   }
+  crestas(olasConCresta(), dv, clima);
   ctx.globalAlpha = 1;
+}
+
+/** Las olas cuya cresta se dibuja: TODAS hasta OLA_CRESTA.Z_MAX, no solo las del campo de puntos
+ *  (SEA_FAR_Z): de lejos la ola es eso, una raya de espuma en el horizonte (2/10: "que se vean
+ *  desde mas lejos"). Array reusado. */
+const conCresta = [];
+function olasConCresta() {
+  conCresta.length = 0;
+  for (const o of obstacles) if (o.type === 'ola' && o.z > 3 && o.z < OLA_CRESTA.Z_MAX) conCresta.push(o);
+  return conCresta;
+}
+
+// LA CRESTA DE ESPUMA DE LAS OLAS QUE SE CHOCAN (2/10: "a las olas ALTAS o que pueden chocarse, una
+// buena cresta de espuma arriba para que sean facilmente identificables del resto"). Todas las de
+// `olas` se chocan (systems/collision.js: por debajo de su cresta, roce o muerte), asi que todas la
+// llevan: una franja de espuma CONTINUA a lo largo del filo, a la altura de la ola (la misma
+// `olaBump` contra la que choca el avion), mas gruesa cuanto mas alta. Se afina y se apaga donde la
+// ola se apaga —la BRECHA de una marejada, los costados de una rompiente—, asi que tambien dice por
+// donde se pasa. El borde de arriba HIERVE (un ruido suave a lo largo del filo que cambia OLA_CRESTA.HIERVE
+// veces por segundo: no titila cuadro a cuadro), abajo se deshace en la cara, con alguna salpicadura suelta; y la rompiente, al romper,
+// derrama la espuma hacia adelante. De lejos queda una raya blanca fina sobre el mar: se la
+// identifica desde que nace.
+function crestas(olas, dv, clima) {
+  const C = OLA_CRESTA, blanco = theme.water.spark;
+  for (const o of olas) {
+    const camZ = o.z;
+    if (camZ < 3 || camZ > C.Z_MAX) continue;
+    const k = F / camZ;
+    const fade = Math.min(1, (camZ - 3) / 9) * (1 - (camZ / C.Z_MAX) * 0.45);
+    const wzR = dv + camZ;
+    const cx = cam.x - bendW(camZ);
+    const half = Math.min(320, (W / 2 + 10) / k + 6);
+    const paso = C.PASO_PX / k;                                    // m de mundo por columna
+    const grosor = Math.max(0.5, k * (C.GROSOR + C.GROSOR_H * o.h));   // px de mundo
+    const rompe = o.breakT ? Math.min(1.6, run.t - o.breakT) * C.ROMPE * Math.min(3, k) : 0;
+    const hervor = Math.floor(run.t * C.HIERVE) * 7 + ((o.ph * 1000) | 0);
+    for (let wx = Math.ceil((cx - half) / paso) * paso; wx < cx + half; wx += paso) {
+      const a = olaBump(o, wx - o.x, 0);
+      const f = a / o.h;
+      if (f < C.MIN) continue;
+      const s = proj(wx, seaBase(wx, wzR, run.t, clima) + a, camZ);
+      if (s.x < -4 || s.x > W + 4) continue;
+      const fuerza = (f - C.MIN) / (1 - C.MIN);                    // 0 en el borde de la brecha, 1 plena
+      // el borde: ruido SUAVE a lo largo del filo (un hash por columna era un peine de barras)
+      const hv = ruido(wx / (paso * 4), hervor, 613);
+      const g = grosor * (0.5 + 0.5 * fuerza) * (0.65 + hv * 0.7);
+      const af = Math.min(1, fade * (0.5 + 0.5 * fuerza));
+      ctx.globalAlpha = af;
+      pxFino(s.x - C.PASO_PX / 2, s.y - g, C.PASO_PX + 0.5, g + rompe, blanco);
+      // y debajo la espuma se deshace en la cara de la ola: una franja mas tenue
+      ctx.globalAlpha = af * 0.4;
+      pxFino(s.x - C.PASO_PX / 2, s.y + rompe, C.PASO_PX + 0.5, Math.max(0.5, g * 0.6), P.foam);
+      if (hash2(Math.round(wx / paso), hervor) > 0.88) {          // la salpicadura que vuela del filo
+        ctx.globalAlpha = fade * 0.75;
+        pxFino(s.x, s.y - g - (0.5 + hv * 1.5) * Math.min(2.5, 0.5 + k * 0.3), 0.5, 0.5, P.foam);   // (sube mas donde el borde esta alto)
+      }
+    }
+  }
 }
 
 // ESTELA del avion sobre el agua. Antes cada punto eran tres barras planas identicas y la

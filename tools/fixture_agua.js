@@ -115,12 +115,15 @@ app.whenReady().then(async () => {
   // cambia altura por velocidad, la ola tarda mucho mas en cruzar y la prueba se ponia roja sola
   // por quedarse sin tiempo, no por la mecanica.
   const alt = JSON.parse(inj).h;
-  let yTop = 0, paso = false, gasOn = false;
+  let yTop = 0, paso = false, gasOn = false, zAntes = Infinity;
   for (let k = 0; k < 120; k++) {
     const s = await S();
     if (!s) break;
     yTop = Math.max(yTop, s.y);
-    if (!s.ola) { paso = true; break; }
+    // CRUZO cuando no queda ola, o cuando la mas cercana pasa a ser OTRA, mas lejos: desde el 2/10
+    // hay mas olas (OLA_MAS) y alguna nace sola mientras esta se salta
+    if (!s.ola || s.ola.z > zAntes + 20) { paso = true; break; }
+    zAntes = s.ola.z;
     // se sostiene la altura de salto con toques, no con el gas clavado
     const quiere = s.y < alt + 2.5;
     if (quiere && !gasOn) { down('Up'); gasOn = true; }

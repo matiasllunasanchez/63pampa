@@ -610,7 +610,7 @@ export const AGUA_RAS_GRADOS = 45;
 //
 // Son MULTIPLICADORES: 1 = el turbo no cambia nada en ese efecto.
 // ⚠ EL ROCIO NO MULTIPLICA LA CANTIDAD, MULTIPLICA EL TAMANO, y no es un capricho: el presupuesto
-// de particulas era PARTS_MAX = 260 (hoy 780, con PART_DIV = 3: la misma cuenta, abajo; data/despiece.js) y volando a ras el agua sola ya se come unas
+// de particulas era PARTS_MAX = 260 (hoy 1500, con PART_DIV = 3 y lugar para lo demas; data/despiece.js) y volando a ras el agua sola ya se come unas
 // 144 —medido: 238 vivas sin turbo, o sea a un pelo del tope—. Subiendo la CANTIDAD no aparece ni
 // una gota mas: `capParts()` corta por el frente, asi que lo unico que se consigue es desalojar
 // chispas, sangre y escombros de otros sistemas. El tamano es gratis.
@@ -925,6 +925,59 @@ export const MAR_HONDO = {
   // a la orilla (el cuarto nivel de BAJO solo se alcanza ahi)
   BAJIO_D: 150, BAJIO_K: 0.34,
   DZ: 0.6, DZ_REL: 0.04, PASO: 6,
+};
+
+// ---------- EL GRANO DE LA SUPERFICIE (render/world.js `drawSeaDots`, 2/10) ----------
+// "Reducir las particulas del mar y multiplicarlas; variar colores o brillos de la superficie de las
+// olas contra las partes mas bajas; simular espuma". Cada punto mide k*TAM px de mundo, entre
+// TAM_MIN y TAM_MAX (medio pixel = un pixel real del buffer). Donde la grilla de muestreo queda a
+// mas de PX pixeles en pantalla (cerca de la camara) se siembran hasta MAX granos por muestra, con
+// el brillo corrido hasta ±JIT/2 de altura; los que pasan ESPUMA de altura pueden salir espuma.
+// ALFA: cuanto mas opaco que antes es cada grano (mas chico, tiene que pesar un poco mas).
+// HONDO_TONO / HONDO_ALFA: cuanto baja (o sube) de tono y de opacidad el grano en lo hondo (o el bajio)
+// de las manchas de MAR_HONDO; LEJOS_TONO / LEJOS_ALFA: cuanto se apaga hacia LEJOS_Z m (2/10:
+// "demasiado brillosas, variar tonalidades de profundidad").
+export const MAR_GRANO = { TAM: 0.05, TAM_MIN: 0.5, TAM_MAX: 1.5, PX: 2.5, MAX: 8, JIT: 0.3, ESPUMA: 0.86, ALFA: 1.1,
+  HONDO_TONO: 0.9, HONDO_ALFA: 1.2, LEJOS_Z: 160, LEJOS_TONO: 0.2, LEJOS_ALFA: 0.35 };
+
+// ---------- LA CRESTA DE ESPUMA DE LAS OLAS (render/world.js `crestas`, 2/10) ----------
+// Una franja de espuma a lo largo del filo de cada ola que se choca. PASO_PX: ancho de columna en
+// pantalla; GROSOR + GROSOR_H * altura: metros de espuma (de lejos, nunca menos de medio pixel); MIN:
+// desde que fraccion de su altura la ola lleva espuma (en la brecha y los costados se apaga);
+// HIERVE: veces por segundo que cambia el borde; ROMPE: cuanto se derrama hacia adelante al romper.
+// Z_MAX: hasta donde se dibuja la cresta — mas alla del campo de puntos del mar (SEA_FAR_Z = 190): de
+// lejos la ola es solo eso, una raya de espuma.
+export const OLA_CRESTA = { PASO_PX: 1.5, GROSOR: 0.22, GROSOR_H: 0.07, MIN: 0.45, HIERVE: 4, ROMPE: 3.2, Z_MAX: 720 };
+// ---------- MAS OLAS (systems/spawn.js, 2/10: "muchas mas olas por mision, y que se vean desde mas lejos") ----------
+// RATE_K multiplica OLA_RATE (brisa y tormenta); CALMA es la tasa con mar en calma: 0, y a proposito
+// — protege a m1, el tutorial (una ola ahi seria enseñar dos cosas a la vez; fixture agua §1);
+// VIVAS: cuantas a la vez (eran 2); GAP_K achica OLA_GAP_MIN; LEJOS_P:
+// que fraccion nace mas lejos, entre LEJOS_Z[0] y [1] m (las demas, a SPAWN_Z): se las ve venir por
+// la cresta. Las reglas de justicia quedan: nunca en la niebla, la rebelde va sola.
+export const OLA_MAS = { RATE_K: 2, CALMA: 0, VIVAS: 3, GAP_K: 0.7, LEJOS_P: 0.35, LEJOS_Z: [500, 700] };
+
+// ---------- EL PIQUE DE LAS MUNICIONES (core/fx.js `piqueMunicion`, render/world.js `drawPiques`, 2/10) ----------
+// Lo que cae al agua salpica: tus balas, la rafaga del Harrier que no te dio, los misiles y trazadoras
+// esquivados que pasaron BAJO (a menos de BAJO m) y el Sidewinder perdido, que se cae en arco (CAE_G
+// m/s²). El pique es un penacho en V corta que CRECE desde el agua (SUBE s) y dura VIDA s, mas gotas
+// que salpican en diagonal a los costados (no una lluvia de particulas: "parecen burbujas"; y del
+// color de la espuma, no blanco: "que no parezca una luz"). Y: la superficie; ALTO: metros del
+// penacho (ALTO_PX de tope en pantalla); BOCA: metros de ancho abajo; ABRE: metros que se abre la V
+// arriba; BRILLO: radio de la espuma de la base; GOTAS: cuantas, y GOTAS_ALTO: hasta que fraccion del
+// penacho suben; TIPO: altura y ancho de cada municion (multiplican ALTO, BOCA, ABRE, BRILLO); MAX:
+// piques vivos; BALA_SIGUE: metros que la bala sigue bajo el agua (lo que esta en la linea de
+// flotacion igual recibe); Z_MAX: mas lejos no se ve; ADELANTE (+ hasta ADELANTE_VAR): metros delante
+// del avion donde se clava lo que te paso de largo (detras no se veria: la camara lo pasa en una decima).
+export const PIQUE = {
+  Y: 0.9, ALTO: 5, ALTO_PX: 70, BOCA: 0.25, ABRE: 0.55, BRILLO: 1.4, SUBE: 0.14, VIDA: 0.85, MAX: 60,
+  GOTAS: 14, GOTAS_ALTO: 0.32, AGUA_RGB: '196,220,216', ESPUMA_RGB: '232,242,239',
+  TIPO: {
+    bala: { alto: 0.35, ancho: 0.45 },
+    aden: { alto: 0.6, ancho: 0.6 },
+    trazadora: { alto: 0.55, ancho: 0.55 },
+    misil: { alto: 1.25, ancho: 1.6 },
+  },
+  Z_MAX: 260, BAJO: 9, CAE_G: 14, BALA_SIGUE: 6, ADELANTE: 25, ADELANTE_VAR: 40,
 };
 
 // ---------- LA GEOGRAFIA DEL PASILLO (PLAN_GEOGRAFIA) ----------

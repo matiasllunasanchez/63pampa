@@ -18,7 +18,7 @@ import { obstacles, soldiers, bullets, missiles, pmissiles, parts, prune, estall
 import * as blancoSys from './blanco.js';
 import { BOMBA_G, BOMBA_PLANEO, BOMBA_REL_MAX, SPAWN_Z, TQ_ONDA_X, TQ_ONDA_Z } from '../data/tuning.js';
 import { golpeTanque } from '../core/nafta.js';
-import { proj, popup, explodeAt, bloodBurst, columnaBomba, morir, stepDestruccion, estallido } from '../core/fx.js';
+import { proj, popup, explodeAt, bloodBurst, columnaBomba, morir, stepDestruccion, estallido, piqueMunicion } from '../core/fx.js';
 import { ESTALLIDO } from '../data/tuning.js';
 import { bombaInfo } from '../data/bombas.js';
 import { CHUNK_LIFE, ONDA_T } from '../data/despiece.js';
@@ -41,7 +41,7 @@ import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER, isSoftStruct } from '../c
 import { mvTight } from '../data/moves.js';
 // EL SIDEWINDER (30/9/2026): la cuenta de su vuelo, pura, y la voz de Puma que avisa cuando quebrar
 import { lanzarFrente, pasoAim9, quiebreGrupal } from '../core/aim9.js';
-import { AIM9, ADEN } from '../data/tuning.js';
+import { AIM9, ADEN, PIQUE } from '../data/tuning.js';
 import { hablar } from '../core/voz.js';
 
 /** Golpe NO letal (nube de explosion, bandada): sacude, frena y quema combustible — castiga sin
@@ -83,6 +83,11 @@ function cruzarEstallidos(dt) {
   prune(estallidos, e => e.z > PZ - 6);
   return muerte;
 }
+
+
+/** A que profundidad pega en el agua lo que te paso de largo: delante del avion, a PIQUE.ADELANTE m
+ *  mas un poco al azar (ver `piqueMunicion`). */
+const piqueAdelante = () => PZ + PIQUE.ADELANTE + Math.random() * PIQUE.ADELANTE_VAR;
 
 export function collisionSystem(dt) {
   { const m = cruzarEstallidos(dt); if (m) return { death: m }; }
@@ -476,7 +481,13 @@ export function collisionSystem(dt) {
         if (Math.abs(plane.x - m.tx) < ADEN.R_X && Math.abs(plane.y - m.ty) < ADEN.R_Y) {
           explodeAt(plane.x, plane.y, PZ + 0.6, false, true, true);
           if (dmg.takeHit('death_aden')) return { death: 'death_aden' };
-        } else { run.score += ADEN.PTS; stats.dodges++; }
+        } else {
+          run.score += ADEN.PTS; stats.dodges++;
+          // EL TIRO QUE NO TE DIO PEGA EN EL AGUA, CORTO, delante tuyo (2/10): la rafaga levanta su
+          // fila de piques — como en las fotos. (Delante y no donde "caeria" de verdad, detras: a
+          // esta velocidad la camara lo pasa en una decima y no se lo veria nunca.)
+          piqueMunicion(m.tx + (Math.random() - 0.5) * 4, piqueAdelante(), 'aden');
+        }
       }
       if (m.t > ADEN.T + ADEN.PASA) m.z = 0;      // el prune de abajo se lo lleva
       continue;
@@ -497,8 +508,18 @@ export function collisionSystem(dt) {
       // LA ZONA: ahora una pirueta lo pierde. El grito lo armo quien lo tiro (systems/caza.js), que
       // es el que sabe si el duelo es mudo — sin texto, no se dice nada y queda el misil latiendo.
       if (ev === 'zona' && m.rompe) hablar('PUMA', m.rompe);
+      // EL PERDIDO SE CAE (2/10): sin blanco, el motor no lo sostiene para siempre — se va hundiendo
+      // en arco hasta clavarse en el mar adelante, con su columna de agua. (Solo el ya perdido: el que
+      // te esta siguiendo no cambia.)
+      if (m.fase === 'perdido') {
+        m.cae = (m.cae || 0) + PIQUE.CAE_G * dt;
+        m.y -= m.cae * dt;
+        if (m.y <= PIQUE.Y) { piqueMunicion(m.x, m.z, 'misil'); m.z = 0; continue; }
+      }
       if (ev === 'pierde' || ev === 'cruza') {
         run.score += AIM9.PTS; stats.dodges++; boom(0.08, true);
+        // el de frente que te cruzo BAJO termina en el agua, atras tuyo (2/10)
+        if (ev === 'cruza' && m.y < PIQUE.BAJO) { piqueMunicion(m.x, piqueAdelante(), 'misil'); m.z = 0; continue; }
         // la radio lo festeja segun COMO lo perdiste: quebrando encima, o quemando y sacudiendolo
         if (ev === 'pierde' && m.rompe) hablar('PUMA', T(m.porque === 'quemado' ? 'aim9_sacudido' : 'aim9_perdido'));
       }
@@ -573,6 +594,15 @@ export function collisionSystem(dt) {
       // SIN CARTEL (12/9): el misil que pasa de largo ya se ve y se escucha pasar; la palabra
       // ESQUIVADO encima tapaba justo la zona por donde venia. Los 75 puntos siguen estando.
       run.score += 75; stats.dodges++; boom(0.06, true);
+      // EL QUE PASO DE LARGO BAJO CAE AL AGUA (2/10: "que las municiones caigan en el agua y
+      // salpiquen"): se clava CORTO, delante tuyo (detras, la camara lo pasaria en una decima y no se
+      // veria). Ya esta resuelto, asi que es puro decorado; el que pasa alto sigue de largo.
+      if (m.y < PIQUE.BAJO) {
+        piqueMunicion(m.x + (m.vx || 0) * 0.04 + (Math.random() - 0.5) * 3, piqueAdelante(),
+          m.tracer ? 'trazadora' : 'misil');
+        m.z = 0;
+        continue;
+      }
     }
     if (Math.random() < 0.6) {
       const s = proj(m.x, m.y, m.z + 2);
@@ -590,7 +620,12 @@ export function collisionSystem(dt) {
       // en funcion del avance en z; pasa exacto por la mira a z=110 y sigue derecho
       const f = (b.z - b.z0) / (110 - b.z0);
       b.x = b.x0 + (b.tx - b.x0) * f;
-      b.y = Math.max(0, b.y0 + (b.ty - b.y0) * f);
+      const yLibre = b.y0 + (b.ty - b.y0) * f;
+      b.y = Math.max(0, yLibre);
+      // LA BALA QUE DA EN EL AGUA SALPICA (2/10) y se hunde unos metros mas alla — esos metros dejan
+      // que todavia le pegue a lo que esta justo en la linea de flotacion
+      if (yLibre <= PIQUE.Y && !b.hunde) { b.hunde = b.z + PIQUE.BALA_SIGUE; piqueMunicion(b.x, b.z, 'bala'); }
+      if (b.hunde && b.z > b.hunde) { b.z = 999; continue; }
     } else if (b.ty !== undefined) b.y += (b.ty - b.y) * Math.min(1, dt * 14);
     for (const o of obstacles) {
       if (o.hp === undefined) continue;

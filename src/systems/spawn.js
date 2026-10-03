@@ -10,7 +10,7 @@
 import { cfg, stats } from '../core/state.js';
 import { run } from '../core/run.js';
 import { obstacles, soldiers, popups, bullets, missiles, pmissiles, estallidos } from '../core/world.js';
-import { OLA_H, OLA_RATE, OLA_GAP_MIN, OLA_H_VAR, OLA_WZ, OLA_WZ_VAR, OLA_ROMP_P, OLA_ROMP_HW, OLA_REB_P, OLA_REB_D0,
+import { OLA_MAS, OLA_H, OLA_RATE, OLA_GAP_MIN, OLA_H_VAR, OLA_WZ, OLA_WZ_VAR, OLA_ROMP_P, OLA_ROMP_HW, OLA_REB_P, OLA_REB_D0,
   OLA_COSTA_P, OLA_COSTA_OFF } from '../data/tuning.js';
 import { inBank } from './fog.js';
 // TRAMOS (SPEC_TRAMOS RF-02): el guion de spawn por mision. Se LEE, nunca se escribe: `val`
@@ -152,13 +152,14 @@ let censo = { n: 0, tipos: {} };
  *   · JAMAS dentro del banco de niebla (§6.3): ahi ya se juega a otra cosa y una ola invisible es
  *     una muerte injusta. Es la regla "no matar sin telegrafo", aplicada.
  */
-function olaOk() {
+function olaOk(zNace = SPAWN_Z) {
   if (inBank()) return false;
   let n = 0;
   for (const o of obstacles) {
     if (o.type !== 'ola') continue;
-    if (++n >= 2) return false;
-    if (Math.abs(o.z - SPAWN_Z) < OLA_GAP_MIN) return false;
+    // (MAS OLAS, 2/10: hasta OLA_MAS.VIVAS y mas pegadas — ver OLA_MAS en data/tuning.js)
+    if (++n >= OLA_MAS.VIVAS) return false;
+    if (Math.abs(o.z - zNace) < OLA_GAP_MIN * OLA_MAS.GAP_K) return false;
     // CON UNA REBELDE VIVA NO ENTRA NADA MAS (§6.4). Es EL evento del temporal: compartir
     // pantalla con otra ola lo convertiria en una pared doble, que ya no se lee — se sufre.
     if (o.kind === 'rebelde') return false;
@@ -420,12 +421,22 @@ function spawn() {
   // en el reparto de porcentajes le habria robado densidad a los enemigos segun el clima, que es
   // una consecuencia que nadie pidio.
   sondaSpawns++;
-  if (olaOk() && Math.random() < OLA_RATE[climaDe(cfg)] * (variado() ? OLA_VARIADO.rate : 1)) {
+  // MAS OLAS Y ALGUNAS DE MAS LEJOS (2/10: "muchas mas olas por mision, y que se vean desde mas
+  // lejos algunas"). La tasa del clima por OLA_MAS.RATE_K (la calma sigue sin olas: m1), y una
+  // parte nace a OLA_MAS.LEJOS_Z en vez de a SPAWN_Z: su cresta de espuma se ve desde ahi
+  // (render/world.js `crestas`), mucho antes que el mar que levanta.
+  const clima = climaDe(cfg);
+  const lejos = Math.random() < OLA_MAS.LEJOS_P;
+  const zNace = lejos ? OLA_MAS.LEJOS_Z[0] + Math.random() * (OLA_MAS.LEJOS_Z[1] - OLA_MAS.LEJOS_Z[0]) : SPAWN_Z;
+  const tasa = (clima === 'calm' ? OLA_MAS.CALMA : OLA_RATE[clima] * OLA_MAS.RATE_K) * (variado() ? OLA_VARIADO.rate : 1);
+  if (olaOk(zNace) && Math.random() < tasa) {
     sondaOlas++;
     // QUE CLASE DE OLA. La marejada es la normal —el gesto vertical, la tesis del item— y cada
     // tanto sale una ROMPIENTE, que es la otra pregunta: parcial, no se salta, se esquiva. Y en
     // TORMENTA, de vez en cuando, la REBELDE: ancho completo y ocho metros, sin respuesta barata.
-    spawnOla(rebeldeOk() ? 'rebelde' : Math.random() < OLA_ROMP_P ? 'rompiente' : 'marejada');
+    // En CALMA solo marejada.
+    const o = spawnOla(clima === 'calm' ? 'marejada' : rebeldeOk() ? 'rebelde' : Math.random() < OLA_ROMP_P ? 'rompiente' : 'marejada');
+    o.z = zNace;
     return;
   }
 

@@ -9,7 +9,7 @@ import { run } from './run.js';
 import { geoActiva, esTierraEn } from './geografia.js';   // G1: agua o tierra, por punto
 import { parts, popups, obstacles, estallidos } from './world.js';
 import { P } from '../data/palette.js';
-import { POLVO_ABRE, POLVO_BAJA, POLVO_BARRIDO, ESTALLIDO, PART_DIV, PART_TAMANO, PART_MIN, PART_ABRE } from '../data/tuning.js';
+import { POLVO_ABRE, POLVO_BAJA, POLVO_BARRIDO, ESTALLIDO, PIQUE, PART_DIV, PART_TAMANO, PART_MIN, PART_ABRE } from '../data/tuning.js';
 import { recetaDe, CHUNKS_MAX, CHUNK_LIFE, SEC_N, SEC_T,
   ONDA_T, ONDA_R, ONDA_PUSH, CERCA, FLASH_T,
   CHAIN_R, CHAIN_DEPTH, CHAIN_DELAY, DESPIECE, PARTS_MAX,
@@ -152,6 +152,39 @@ export function piqueAgua(x, y, z) {
       vx: (Math.random() - 0.5) * 10 * e, vy: -(25 + Math.random() * 30) * e,
       life: 0.35 + Math.random() * 0.25, c: Math.random() < 0.6 ? '#e6efec' : '#8fb0ad',
       r: Math.max(1, s.k * 0.3),
+    });
+  }
+}
+
+/** EL PIQUE DE UNA MUNICION QUE CAE (2/10: "volando rasante cerca de los Sea Wolf o Sea Cat, que las
+ *  municiones —misiles, disparos de la barcaza o de los aviones, incluso mis balas— caigan en el agua
+ *  y salpiquen"). No es una lluvia de gotas —la primera version "parecen burbujas"—: es la raya de
+ *  las fotos de un tiro que da en el mar, un penacho en V corta que CRECE desde el agua hacia arriba
+ *  y se desvanece, con su espuma en la base. Aca se anota en el mundo (x y la z ABSOLUTA, asi queda
+ *  atras al volar) y lo dibuja render/world.js (`drawPiques`). Cada municion tiene su altura y su
+ *  ancho (PIQUE.TIPO: una bala es una raya finita, un misil una columna gorda), con algo de azar.
+ *  Y salpica a los costados: unas gotas leves que salen en DIAGONAL, de abajo hacia arriba, mas bajas
+ *  que el penacho — lo que lo hace agua y no una luz. Sobre tierra es polvo del color del suelo. */
+export const piques = [];
+export function piqueMunicion(x, z, tipo = 'bala') {
+  if (!(z > 2.5 && z < PIQUE.Z_MAX)) return;
+  const T = PIQUE.TIPO[tipo] || PIQUE.TIPO.bala;
+  const wz = run.dist + z, tierra = esTierraEn(x, wz);
+  const alto = T.alto * (0.8 + Math.random() * 0.4), ancho = T.ancho * (0.8 + Math.random() * 0.4);
+  piques.push({ x, wz, t0: run.t, alto, ancho, tierra });
+  if (piques.length > PIQUE.MAX) piques.shift();
+  // LAS GOTAS DE LOS COSTADOS: en diagonal, hacia afuera y arriba, hasta un tercio del penacho
+  const s = proj(x, tierra ? 0.3 : PIQUE.Y, z), k = s.k;
+  const techo = Math.min(PIQUE.ALTO_PX, k * PIQUE.ALTO * alto) * PIQUE.GOTAS_ALTO;
+  for (let i = 0, n = Math.round(PIQUE.GOTAS * (0.5 + 0.5 * ancho)); i < n; i++) {
+    const lado = i % 2 ? 1 : -1;
+    const vy = -Math.sqrt(2 * 90 * techo * (0.3 + Math.random() * 0.7));
+    parts.push({
+      x: s.x + lado * Math.max(0.5, k * PIQUE.BOCA * ancho * 0.5), y: s.y,
+      vx: lado * (0.4 + Math.random() * 0.8) * -vy * (0.6 + 0.4 * ancho), vy,
+      life: Math.min(0.9, (-2 * vy / 90) * (0.8 + Math.random() * 0.3)),
+      c: tierra ? (Math.random() < 0.5 ? '#7a6a4c' : '#5e5240') : (Math.random() < 0.55 ? '#d6e8e4' : '#9dbcb8'),
+      r: Math.max(0.6, k * 0.09 * (0.7 + 0.3 * ancho)),
     });
   }
 }
