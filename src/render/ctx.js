@@ -35,6 +35,80 @@ export const ctx = cv.getContext('2d');
 cv.width = W * SC;
 cv.height = H * SC;
 
+// ---------------- EL JUEGO EN PANTALLA: ESCALA ENTERA, VECINO MAS CERCANO ----------------
+//
+// El buffer mide W*SC x H*SC (960x540) y el CSS lo estira al tamaño de la caja con
+// `image-rendering: pixelated`, o sea VECINO MAS CERCANO. Eso ya estaba. Lo que NO estaba es que
+// la caja creciera: `.stage` era `min(96vw, 960px)`, asi que en una ventana de 1512 el juego se
+// dibujaba a 960x540 con escala 1.0 — cero ampliacion — y en un monitor 4K a pantalla completa
+// seguia siendo la misma cajita. Medido antes de tocar nada.
+//
+// POR QUE ENTERA Y NO LLENANDO LA PANTALLA. Con vecino mas cercano y un factor fraccionario, unos
+// pixeles del buffer ocupan 2 pixeles de pantalla y otros 3. En arte quieto casi no se nota; en
+// ESTE juego, que es casi todo raster corriendo hacia la camara (el mar, el suelo, la estela), se
+// lee como hormigueo. Con factor entero cada pixel del buffer es un cuadrado identico al de al
+// lado, siempre. Se paga con barras negras cuando la pantalla no es multiplo exacto — 1440p es el
+// caso incomodo (x2.667) — y es un precio que se ve mucho menos que el hormigueo.
+//
+// EL FACTOR SE CALCULA EN PIXELES FISICOS, no en CSS. En una pantalla con devicePixelRatio 2 una
+// escala CSS de 1.0 ya son 2 pixeles fisicos por pixel del buffer: razonar en CSS daria factores
+// enteros que en el vidrio no lo son, que es justo lo que se vino a evitar.
+const stage = cv.parentElement;
+const MARGEN = 16;   // el aire que el body deja arriba y abajo del stage, en px CSS
+
+export function ajustarEscala() {
+  if (!stage) return;
+  const dpr = window.devicePixelRatio || 1;
+  // el alto disponible es la ventana MENOS lo que ocupa la pagina alrededor (encabezado, pie y los
+  // margenes). Se mide, no se adivina: cambia con el idioma y con el ancho de la ventana, porque el
+  // pie es texto que se reacomoda.
+  // EL ALTO DE ALREDEDOR SE MIDE DE LOS ELEMENTOS, NO DEL DOCUMENTO. La primera version lo sacaba
+  // de `scrollHeight - alto del stage`, y eso es un LAZO: el alto del stage sale del ancho que esta
+  // funcion acaba de fijar, asi que cada medicion devolvia un numero mas chico y el observador la
+  // volvia a llamar hasta colapsar el juego al minimo. Medido: paso de 960x540 a 480x270.
+  // El encabezado y el pie, en cambio, no dependen del stage — solo del ancho de la ventana.
+  const alto = e => (e && e.offsetParent !== null ? e.getBoundingClientRect().height : 0);
+  // EL PIE NO CUENTA, Y ES A PROPOSITO. Medido en una ventana de 1280x720: el encabezado ocupa 14 px
+  // y el pie 205 — la barra de ayuda es texto que se reacomoda en cuatro o cinco renglones. Restarlo
+  // dejaba el juego en x1 cuando antes andaba en x2: una REGRESION disfrazada de prolijidad. Y la
+  // pagina ya se desbordaba de antes (960 de stage + 220 de pagina no entran en 688), asi que el pie
+  // siempre vivio abajo del pliegue. Queda igual: el juego no se achica por la ayuda.
+  // A pantalla completa el pie es `display:none` y aporta 0 solo, sin un caso especial aca.
+  const alrededor = alto(document.querySelector('header')) + MARGEN;
+  const dispW = window.innerWidth * dpr;
+  const dispH = Math.max(0, window.innerHeight - alrededor) * dpr;
+  const k = Math.floor(Math.min(dispW / cv.width, dispH / cv.height));
+  const ancho = cv.width * k / dpr;                    // lo que mediria con factor entero, en px CSS
+
+  // LA ESCALA ENTERA SOLO SI ES MAS GRANDE QUE LO DE ANTES. Es la regla que impide que "prolijo"
+  // signifique "mas chico": en una ventana de 900 px el primer escalon entero cae en x1 —480x270,
+  // la MITAD de lo que el CSS daba— y el jugador no cambiaria nitidez por eso. Medido.
+  // Entonces: si el escalon entero no llega a lo que daria el CSS de siempre, se suelta la medida a
+  // mano y manda el CSS. Ahi la escala vuelve a ser fraccionaria —con su hormigueo— pero el juego
+  // nunca sale mas chico que como salia. En ventana grande y a pantalla completa, que es donde el
+  // juego se va a jugar de verdad, el entero gana por lejos y queda pixel perfecto.
+  const comoAntes = Math.min(window.innerWidth * 0.96, cv.width);   // el `min(96vw, 960px)` del CSS
+  if (k < 1 || ancho < comoAntes) { stage.style.width = ''; return; }
+  stage.style.width = ancho + 'px';
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('resize', ajustarEscala);
+  // el pie es texto que se reacomoda al cambiar de idioma y mueve el alto disponible
+  // el pie es texto que se reacomoda al cambiar de idioma y mueve el alto disponible. El guard de
+  // re-entrada no es ceremonia: esta funcion ESCRIBE un ancho, y escribirlo dispara al observador.
+  let dentro = false;
+  if (window.ResizeObserver) new ResizeObserver(() => {
+    if (dentro) return;
+    dentro = true;
+    try { ajustarEscala(); } finally { requestAnimationFrame(() => { dentro = false; }); }
+  }).observe(document.body);
+  ajustarEscala();
+  // una pasada mas cuando la pagina termino de maquetar: al correr este modulo el pie todavia
+  // puede no tener su alto final, y el primer calculo saldria con un alrededor de menos.
+  window.addEventListener('load', ajustarEscala);
+}
+
 /** Rectangulo de pixeles alineado a la grilla. Es la primitiva mas usada del juego (~160 sitios):
  *  redondea para que el arte quede pegado al pixel y nunca dibuja menos de 1x1. */
 export function px(x, y, w, h, c) {

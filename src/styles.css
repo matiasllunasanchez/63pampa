@@ -143,8 +143,12 @@
     font-weight: 600;
   }
 
+  /* El ancho lo fija `ajustarEscala()` de render/ctx.js con un MULTIPLO ENTERO del buffer (ver
+     el comentario largo alla). Esto queda como respaldo: si el script no corre, o si no entra ni
+     una vez el buffer, manda este `min()` y el juego se ve como se veia siempre. */
   .stage {
     width: min(96vw, 960px);
+    margin: 0 auto;
     aspect-ratio: 16/9;
     position: relative;
     border: 1px solid #1c262c;
@@ -160,6 +164,27 @@
     background: #2a3540;
     touch-action: none;
     cursor: crosshair;
+  }
+
+  /* PANTALLA COMPLETA (F11): se va la pagina de alrededor y queda el juego sobre negro, centrado.
+     No es cosmetica — el encabezado y el pie se comen alto, y ese alto es lo que decide si entra
+     un x2 o se queda en x1. En 1080p son exactamente los que separan 960x540 de 1920x1080.
+     El pie no se pierde: las mismas teclas estan en OPCIONES -> CONTROLES, adentro del juego. */
+  body.pantalla-completa {
+    margin: 0;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+  body.pantalla-completa > header,
+  body.pantalla-completa > footer {
+    display: none;
+  }
+  body.pantalla-completa .stage {
+    border: none;
+    box-shadow: none;
   }
 
   canvas:focus-visible {

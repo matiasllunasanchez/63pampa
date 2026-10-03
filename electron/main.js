@@ -28,6 +28,14 @@ function createWindow() {
 
   win.once('ready-to-show', () => win.show());
 
+  // LE AVISA A LA PAGINA cuando esta a pantalla completa, para que se saque el encabezado y el pie
+  // y el juego pueda crecer un escalon entero mas (ver `ajustarEscala` en src/render/ctx.js).
+  // Va por clase en el body y no por IPC: es una sola linea de presentacion, no un canal.
+  const pleno = on => win.webContents.executeJavaScript(
+    `document.body.classList.${on ? 'add' : 'remove'}('pantalla-completa'); window.dispatchEvent(new Event('resize'));`).catch(() => {});
+  win.on('enter-full-screen', () => pleno(true));
+  win.on('leave-full-screen', () => pleno(false));
+
   // F11 alterna pantalla completa; Escape sale de fullscreen
   win.webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return;
