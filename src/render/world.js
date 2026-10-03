@@ -581,7 +581,6 @@ export function drawSea() {
     if (nTierra || nCosta || nPlaya) drawLand(false, true);
     if (nMar || nCosta || nPlaya) drawSeaDots(landVisible, false, true);
     lomadas();
-    drawPiques();
     return;
   }
   if (landMode) drawLand();
@@ -591,14 +590,15 @@ export function drawSea() {
     drawFleet();                       // la flota de desembarco en el horizonte
   } else drawSeaDots(landVisible);
   lomadas();
-  drawPiques();
 }
 
 /** LOS PIQUES de las municiones que cayeron (core/fx.js `piqueMunicion`): un penacho en V corta que
  *  CRECE desde el agua hacia arriba (PIQUE.SUBE), con espuma en la base, y despues se apaga y se
  *  achata hasta su VIDA. Del color de la espuma del agua y no blanco puro, con el brillo de la base
  *  tenue: tiene que leerse como agua levantada, no como una luz. Va con el suelo, antes de lo que vuela. */
-function drawPiques() {
+// (3/10, el autor: "los efectos de las balas en el suelo no se ven"): ya no van con el suelo — las
+// matas y las lomadas los tapaban. Los llama game.js despues de los obstaculos, antes de la niebla.
+export function drawPiques() {
   const C = PIQUE;
   for (let i = piques.length - 1; i >= 0; i--) {
     const p = piques[i], edad = run.t - p.t0, vida = C.VIDA * (0.7 + 0.3 * p.alto), z = p.wz - run.dist;
@@ -606,7 +606,7 @@ function drawPiques() {
     const s = proj(p.x, p.y0, z), k = s.k;
     if (s.x < -40 || s.x > W + 40) continue;
     const u = edad / vida, t = Math.min(1, edad / C.SUBE), sube = 1 - (1 - t) * (1 - t);   // sale rapido y frena
-    const a = Math.min(1, edad / 0.04) * (1 - u) * (1 - u * 0.5) * (p.tierra ? 0.85 : 1);
+    const a = Math.min(1, edad / 0.04) * (1 - u) * (1 - u * 0.5) * (p.tierra ? C.TIERRA_A : 1);
     // DE ABAJO HACIA ARRIBA: la altura arranca en cero; con minimos para que de lejos siga siendo raya
     // …y despues SE DERRUMBA: el agua que subio vuelve a caer mientras se apaga
     const alto = Math.max(6, Math.min(C.ALTO_PX, k * C.ALTO * p.alto)) * sube * (1 - 0.6 * u * u);

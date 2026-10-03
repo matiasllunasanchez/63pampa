@@ -98,7 +98,7 @@ export function polvoSuelo(x, z, prob) {
     // el envion hacia arriba se queda (la rueda patea la tierra para arriba); lo que se le suma es
     // el arrastre hacia atras, que en pantalla es HACIA ABAJO — el mundo viene hacia la camara.
     vy: -(15 + Math.random() * 25) + (POLVO_BAJA / n) * barrido,
-    life: 0.4, c: '#6b6f62', r: 1.2,
+    life: 0.4, c: '#6b6f62', r: 1.2, fondo: true,   // detras del avion (game.js, PARTS_FONDO_A)
   });
 }
 
@@ -166,11 +166,18 @@ export function piqueAgua(x, y, z) {
  *  Y salpica a los costados: unas gotas leves que salen en DIAGONAL, de abajo hacia arriba, mas bajas
  *  que el penacho — lo que lo hace agua y no una luz. Sobre tierra, terrones y polvo de ESE suelo. */
 export const piques = [];
+// __piques (QUITAR): cuantos piques hay vivos y cuantos en tierra — sin esto "no se ven" no distingue
+// entre que no nacen y que nacen y no se dibujan
+if (typeof window !== 'undefined') window.__piques = () => JSON.stringify({ n: piques.length, tierra: piques.filter(p => p.tierra).length, parts: parts.length });
+if (typeof window !== 'undefined') window.__piqueEn = (x, z, tipo) => { piqueMunicion(+x, +z, tipo || 'bala'); return window.__piques(); };
 export function piqueMunicion(x, z, tipo = 'bala') {
   if (!(z > 2.5 && z < PIQUE.Z_MAX)) return;
   const T = PIQUE.TIPO[tipo] || PIQUE.TIPO.bala;
   const wz = run.dist + z, tierra = esTierraEn(x, wz);
-  const alto = T.alto * (0.8 + Math.random() * 0.4), ancho = T.ancho * (0.8 + Math.random() * 0.4);
+  // EN TIERRA, MAS GRANDE (3/10, el autor: "los efectos de las balas en el suelo no se ven"): contra
+  // el pasto y las matas el penacho del tamaño del agua se perdia
+  const enT = tierra ? PIQUE.TIERRA_X : 1;
+  const alto = T.alto * enT * (0.8 + Math.random() * 0.4), ancho = T.ancho * enT * (0.8 + Math.random() * 0.4);
   // EN TIERRA (2/10: "lo mismo del agua pero para la tierra, con mas particulas alrededor y color
   // marron segun tierra"): nace a la altura del SUELO (las lomas), con el color de ESE suelo —la arena
   // de una costa, la turba adentro— y en vez de gotas levanta terrones y una nube de polvo baja.
@@ -192,6 +199,7 @@ export function piqueMunicion(x, z, tipo = 'bala') {
       life: Math.min(0.9, (-2 * vy / 90) * (0.8 + Math.random() * 0.3)),
       c: tierra ? C.terron[(Math.random() * C.terron.length) | 0] : (Math.random() < 0.55 ? '#d6e8e4' : '#9dbcb8'),
       r: Math.max(0.6, k * (tierra ? 0.12 : 0.09) * (0.7 + 0.3 * ancho)),
+      fondo: tierra,   // los terrones van detras del avion (game.js); las gotas del agua no se tocaron
     });
   }
   // …Y EN TIERRA, EL POLVO: una nube baja que se abre al ras y tarda en irse
@@ -200,7 +208,7 @@ export function piqueMunicion(x, z, tipo = 'bala') {
       parts.push({ x: s.x + (Math.random() - 0.5) * k * 0.6 * ancho, y: s.y - Math.random() * 2,
         vx: (Math.random() - 0.5) * k * 2.2 * ancho, vy: -(3 + Math.random() * 9) * Math.min(2.5, 0.5 + k * 0.25),
         life: 0.7 + Math.random() * 0.6, c: C.polvo[(Math.random() * C.polvo.length) | 0],
-        r: Math.max(0.8, k * 0.22 * (0.6 + 0.4 * ancho)) });
+        r: Math.max(0.8, k * 0.22 * (0.6 + 0.4 * ancho)), fondo: true });
     }
   }
 }

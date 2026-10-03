@@ -584,11 +584,22 @@ app.whenReady().then(async () => {
   const temprano = await js(`__czdir({ intensidad: 1, dist: 250, meta: 12000, ciego: false, jets: 1 }, 400)`);
   if (!temprano) bad('con 250 m y UN jet visto todavia no arranca: el duelo sigue llegando tarde');
   else ok('con 250 m recorridos y UN jet visto YA aparece: el duelo llega a jugarse');
-  // el techo por mision: en campaña (meta finita) la intensidad ES cuantos duelos hay
+  // LAS PATRULLAS (3/10, data/patrullas.js): "vienen de a dos, tiran, se van —o mueren— y al rato
+  // otros dos". Ya no hay techo de duelos por mision: cada vez que la pareja se fue, llega otra.
   await js('__czfin()');
-  const techo = await js(`__czdirN({ intensidad: 1, dist: 9000, meta: 12000, ciego: false, jets: 99 }, 6)`);
-  if (techo !== 1) bad(`en campaña con intensidad 1 se armaron ${techo} duelos: el techo por mision es la intensidad`);
-  else ok('en campaña el techo de duelos ES la intensidad: intensidad 1 → un solo duelo por mision');
+  const seguidas = await js(`__czdirN({ intensidad: 1, dist: 9000, meta: 12000, ciego: false, jets: 99 }, 6)`);
+  if (seguidas !== 6) bad(`con la pareja ida, el director armo ${seguidas} de 6: las parejas tienen que seguir llegando`);
+  else ok('cada vez que una pareja se va, al rato llega otra (6 de 6)');
+  // …pero mientras la pareja sigue en tu cola NO se acumulan: dos Harriers, ni uno mas
+  await js('__czfin()');
+  const juntos = await js(`__czdirPar({ intensidad: 2, dist: 9000, meta: 12000, ciego: false, jets: 99, refuerzo: 3 }, 8)`);
+  if (juntos !== 2) bad(`con una pareja en la cola el director junto ${juntos} Harriers (aun con 3 estrellas): tienen que ser 2`);
+  else ok('con la pareja en la cola no se acumulan: 2 Harriers, aun con el radar encima');
+  // …salvo la mision que pide mas (la ultima: `harriers: { pares: 3 }`)
+  await js('__czfin()');
+  const muchos = await js(`__czdirPar({ intensidad: 2, dist: 9000, meta: 12000, ciego: false, jets: 99, pares: 3 }, 8)`);
+  if (muchos !== 6) bad(`con tres parejas pedidas se juntaron ${muchos} Harriers: tienen que ser 6`);
+  else ok('la mision que pide tres parejas tiene seis Harriers en la cola');
   await js('__czfin()');
 
   clearInterval(gas);

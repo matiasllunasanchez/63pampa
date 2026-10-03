@@ -453,6 +453,9 @@ export const MISSIONS = [
     climax: 'arena',   // ver la nota de arriba
     cfg: C({ sky: 'night', obstacles: 1.7, bombs: 2, fog: 1, fogLen: 2, squad: 3, caza: 2 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
+    // MUCHOS MAS HARRIERS QUE DE COSTUMBRE (pedido del autor 3/10): tres parejas a la vez en vez de
+    // una (data/patrullas.js). Es la ultima mision: el cielo esta lleno.
+    harriers: { pares: 3 },
     roster: F3, par: 14000, story: 'storyM14', brief: 'briefM14', epi: 'epiM14',
   },
 ];

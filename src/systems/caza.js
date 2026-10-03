@@ -53,9 +53,11 @@
 // se lo ve DE FRENTE mientras viene hacia vos (aviso y presion) y DE COLA desde el instante en que
 // te pasa hasta que se pierde en el horizonte (sobrepaso, ventana, recola, salida). Nunca al reves.
 //
-// MULTIPLES HARRIERS SIMULTANEOS. El director sigue sumando Harriers hasta CAZA_DIR_MAX. Cada uno
-// cicla independientemente hasta que lo ahuyentes o lo derriben — si no los eliminas, se acumulan
-// como moscas. Es la presion dramatica de la cola: el pasillo se llena si no te defendes.
+// LAS PATRULLAS (3/10, el autor: "venian de a dos, tiran sus misiles, disparan y se van —o mueren—
+// y al rato otros dos"). El director manda PAREJAS (data/patrullas.js): una a la vez salvo que la
+// mision pida mas, y la siguiente recien cuando la anterior se fue o cayo. Cada Harrier de una
+// patrulla se va (`salida`) cuando gasto sus dos Sidewinder o cumplio PATRULLA.PASES pasadas. Los
+// que arma una sonda (`__czstart`) no son patrulla: ciclan sin fin, como el fixture los mide.
 
 import { plane, cfg, stats } from '../core/state.js';
 import { run } from '../core/run.js';
@@ -78,7 +80,7 @@ import {
   CAZA_FINALES, CAZA_CAIDA_G, CAZA_CAIDA_MAX,
   CAZA_SOL_AVISO, CAZA_SOL_POST,
   CAZA_HIT_RX, CAZA_HIT_RY, CAZA_PTS, CAZA_MV_FUERZA,
-  CAZA_DIR_D0, CAZA_DIR_FIN, CAZA_DIR_INIT, CAZA_DIR_GAP, CAZA_DIR_MAX, CAZA_DIR_JETS, CAZA_MUDO_P,
+  CAZA_DIR_D0, CAZA_DIR_FIN, CAZA_DIR_INIT, CAZA_DIR_JETS, CAZA_MUDO_P,
   CAZA_SOBRE_TERRENO, ZZ_PARED_TALUD, ZZ_PARED_LIBRE,
 } from '../data/tuning.js';
 import { beep, boom, duck, sfxOne } from './audio.js';
@@ -88,6 +90,7 @@ import { pilotName } from './squad.js';
 import { enPared, paredH } from '../core/zigzag.js';
 import { tierraH, hayRelieve } from '../core/tierra.js';
 import { alMando } from '../core/squad.js';
+import { PATRULLA } from '../data/patrullas.js';
 
 // ---- estado privado ----
 // FLOTA DE HARRIERS. Cada elemento es un Harrier independiente que cicla hasta eliminarse.
@@ -159,6 +162,8 @@ export function start(opts = {}) {
     final: CAZA_FINALES[(Math.random() * CAZA_FINALES.length) | 0],
     vyC: 0, vzC: 0,   // velocidad de la caida (ver stepCaida)
     muerto: false,
+    // DE UNA PATRULLA (la arma el director): se va cuando gasto sus misiles o sus pasadas
+    patrulla: !!opts.patrulla,
   };
   // EL SEGUNDO DE LA PATRULLA entra un poco mas atras: se los ve llegar de a uno, no encimados
   if (opts.atras) h.z += opts.atras;
@@ -195,24 +200,34 @@ export function cazaDirector(dt, o) {
   // LA PATRULLA (pedido del autor 1/10): los Harrier volaban de a DOS, asi que el duelo es de a dos;
   // y con el radar encima (`o.refuerzo`: las estrellas de busqueda) pueden juntarse mas. `tope` es
   // cuantos puede haber en tu cola a la vez.
-  const tope = Math.min(CAZA_DIR_MAX, 2 + Math.max(0, o.refuerzo | 0));
+  // (3/10: de a PAREJAS — `o.pares` por mision, data/patrullas.js. Las estrellas ya no suman
+  // Harriers a la vez: acortan la espera de la pareja siguiente, mas abajo)
+  const tope = 2 * Math.max(1, o.pares | 0 || PATRULLA.PARES);
   // EL QUE PASO DE FRENTE Y NO BAJASTE se queda: da la vuelta y se suma a la cola (hasta el tope).
   // `o.jets` cuenta los que te cruzaron vivos (collision.js); cada uno nuevo es uno que se queda.
   if (D.jets === undefined) D.jets = o.jets;
   if (o.jets > D.jets) {
     D.jets = o.jets;
     if (fleet.length && fleet.length < tope && !o.ciego && !(o.meta && o.meta - o.dist < CAZA_DIR_FIN))
-      start({ mudo: true, dePaso: true, lado: -fleet[fleet.length - 1].lado });
+      start({ mudo: true, dePaso: true, patrulla: true, lado: -fleet[fleet.length - 1].lado });
   }
-  if (D.prox > 0) D.prox -= dt * (0.5 + int * 0.75);
-  if (fleet.length >= tope || D.prox > 0) return;
+  // LA ESPERA ENTRE PAREJAS corre recien cuando hay lugar para una pareja entera: mientras la
+  // anterior sigue en tu cola, el reloj se rearma. Asi "al rato otros dos" es al rato DE IRSE.
+  const lugar = fleet.length <= tope - 2;
+  if (!lugar) { D.ocupado = true; return; }
+  if (D.ocupado) { D.ocupado = false; D.prox = Math.max(D.prox, entre(PATRULLA.GAP)); }
+  if (D.prox > 0) D.prox -= dt * (0.5 + int * 0.75) * (1 + 0.5 * Math.max(0, o.refuerzo | 0));
+  if (D.prox > 0) return;
   if (o.dist < CAZA_DIR_D0) return;
   if (o.jets < CAZA_DIR_JETS) return;
   if (o.meta && o.meta - o.dist < CAZA_DIR_FIN) return;
   if (o.ciego) return;
-  if (o.meta && D.hechos >= int) return;
+  // (sin tope de duelos por mision desde el 3/10: las parejas siguen llegando mientras dure el
+  // vuelo — "al rato otros dos, y asi")
   D.hechos++;
-  D.prox = entre(CAZA_DIR_GAP);
+  // la siguiente: si todavia hay lugar (varias parejas), escalonada; si no, la espera larga la arma
+  // la salida de alguna (arriba, `ocupado`)
+  D.prox = entre(PATRULLA.ESCALON);
   // EL DUELO MUDO YA EXISTIA como sorteo (`CAZA_MUDO_P`: a mas intensidad, mas chance de que
   // nadie te avise). `o.voces === false` no agrega una mecanica nueva — CLAVA esa moneda en cruz.
   // Es lo que hace que el silencio de radio de una fase (PLAN_MISION_CINCO_FASES §11.2) alcance
@@ -220,9 +235,9 @@ export function cazaDirector(dt, o) {
   // resuelto en el mismo paquete que la intensidad, igual que `ciego` o `jets`.
   const mudo = o.voces === false || Math.random() < CAZA_MUDO_P[int];
   const lado = Math.random() < 0.5 ? -1 : 1;
-  start({ mudo, lado });
+  start({ mudo, lado, patrulla: true });
   // …y su numeral, por el otro lado y un poco mas atras (callado: el aviso ya lo dio el primero)
-  if (fleet.length < tope) start({ mudo: true, lado: -lado, atras: 70 });
+  if (fleet.length < tope) start({ mudo: true, lado: -lado, atras: 70, patrulla: true });
 }
 
 /** Pasa a la fase `f` con su duracion. */
@@ -674,6 +689,9 @@ function avanzar() {
       return false;
     case 'ventana':
       C.lado = Math.random() < 0.5 ? -1 : 1;
+      // LA PATRULLA SE VA (3/10): sin Sidewinder (y sin uno suyo todavia en el aire) o con sus
+      // pasadas cumplidas, termina la pasada y se va en vez de volver a tu cola
+      if (C.patrulla && ((C.aim9 <= 0 && !misilVivo()) || C.pase >= PATRULLA.PASES)) { ir('salida', CAZA_SALIDA_T); return false; }
       ir('recola', CAZA_RECOLA_T);
       return false;
     case 'recola':
@@ -835,6 +853,14 @@ export function dirN(o, n) {
     if (fleet.length > before) { k++; fleet.length = 0; }
   }
   return k;
+}
+
+/** LAS PAREJAS SIN IRSE (sonda, QUITAR): corre el director `n` veces sin vaciar la flota y dice
+ *  cuantos Harriers quedaron a la vez — con `o.pares` 1 tiene que ser una pareja, y no acumularse. */
+export function dirPar(o, n) {
+  resetCaza();
+  for (let i = 0; i < n; i++) cazaDirector(400, o);
+  return fleet.length;
 }
 
 export function forceFase(f) {

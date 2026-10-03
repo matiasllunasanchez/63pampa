@@ -968,12 +968,19 @@ export const OLA_MAS = { RATE_K: 2, CALMA: 0, VIVAS: 3, GAP_K: 0.7, LEJOS_P: 0.3
 // piques vivos; BALA_SIGUE: metros que la bala sigue bajo el agua (lo que esta en la linea de
 // flotacion igual recibe); Z_MAX: mas lejos no se ve; ADELANTE (+ hasta ADELANTE_VAR): metros delante
 // del avion donde se clava lo que te paso de largo (detras no se veria: la camara lo pasa en una decima).
+/** EL POLVO Y LOS TERRONES DETRAS DEL AVION (pedido del autor 3/10: "las particulas de polvo o
+ *  tierra estan POR ENCIMA del avion: ponerlas por detras y dejarlas al 60%"). Las particulas
+ *  marcadas `fondo` (los piques en tierra, el polvo del ras) se dibujan antes del avion, con esto de
+ *  opacidad. */
+export const PARTS_FONDO_A = 0.6;
 export const PIQUE = {
   Y: 0.9, ALTO: 5, ALTO_PX: 70, BOCA: 0.25, ABRE: 0.55, BRILLO: 1.4, SUBE: 0.14, VIDA: 0.85, MAX: 60,
   GOTAS: 14, GOTAS_ALTO: 0.32, AGUA_RGB: '196,220,216', ESPUMA_RGB: '232,242,239',
   // EN TIERRA: TERRONES en vez de gotas y una nube de POLVO; los colores de cada suelo (la arena de
   // una costa, la turba de adentro): el penacho (rgb), los terrones y el polvo
   TERRONES: 20, POLVO: 10,
+  // …y mas grande que en el agua (3/10: "no se ven"), y con mas cuerpo al dibujarlo
+  TIERRA_X: 1.7, TIERRA_A: 1,
   // (el penacho y el polvo CLAROS, de tierra seca levantada: oscuros, contra la turba no se veian)
   TURBA: { rgb: '168,146,108', terron: ['#4a3d2a', '#6b5638', '#2f281c', '#8a7652'], polvo: ['#a08a64', '#b39c74', '#8c7856'] },
   ARENA: { rgb: '196,180,140', terron: ['#7d7154', '#6a5f47', '#a89a78'], polvo: ['#b8a882', '#c8b890', '#a8996f'] },

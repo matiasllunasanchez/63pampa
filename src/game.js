@@ -71,7 +71,7 @@ import { drawAden, drawAvisoAden } from './render/aden.js';   // la rafaga de lo
 import * as escapeSys from './systems/escape.js';
 import { drawTirosPopa, drawCap } from './render/escape.js';
 import { BL as BL_BLANCO, FASE_ESCAPE, SENAS, CIELO_VUELTA, CAP } from './data/blanco.js';
-import { EYEC_KM_CASA, EYEC_KM_ISLA } from './data/tuning.js';
+import { EYEC_KM_CASA, EYEC_KM_ISLA, PARTS_FONDO_A } from './data/tuning.js';
 import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE } from './data/cargas.js';
 import { AUDIO_BLOQUEADO } from './data/sonido.js';
 import { bingoKm, capacidadKm, colgadoDe, velRelativa, estadoTanque, proximoPilon } from './core/nafta.js';
@@ -147,6 +147,7 @@ import { CARA_DE_RADIO } from './core/voz.js';
 import { derrota } from './data/derrotas.js';
 import { defensaDe } from './data/defensas.js';
 import { BOMBAS, bombaDe, bombaInfo } from './data/bombas.js';
+import { paresDe } from './data/patrullas.js';
 import { pose as poseSenal } from './core/senales.js';
 import * as zigzag from './systems/zigzag.js';
 import * as zigzagCore from './core/zigzag.js';
@@ -4300,8 +4301,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         intensidad: pisoEstrella('caza', tramos.val('caza', fases.val('caza', cfg.caza)), run.estrellas),
         voces: fases.val('voces', true),
         dist: run.dist, meta: objectiveDist, ciego: inBank(), jets: run.jets,
-        // EL RADAR ENCIMA suma Harriers a la patrulla (pedido del autor 1/10): uno mas por estrella
+        // EL RADAR ENCIMA apura a la pareja siguiente (1/10; desde el 3/10 no trae mas a la vez)
         refuerzo: run.estrellas,
+        // DE A PAREJAS (3/10, data/patrullas.js): cuantas a la vez, por mision
+        pares: paresDe(curMission()),
       });
       // PERSECUCION (PLAN_HARRIERS_PERSECUCION, PLAN B). Corre en el mismo lugar que LA COLA y por
       // la misma razon: es una variante del PASILLO, y no tenerle otro sitio desde donde correr es
@@ -4723,6 +4726,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       }
       // NIEBLA: al final del mundo y ADENTRO del giro. Va acá y no antes porque tiene que tapar
       // los obstáculos — que es lo único que la vuelve una mecánica y no un filtro de color.
+      // LOS PIQUES DE LAS MUNICIONES (render/world.js): encima del suelo, sus matas y lo que esta
+      // plantado — si iban con el suelo, el pasto los tapaba (3/10) —, y debajo de la niebla
+      world.drawPiques();
       world.drawFog();
       }   // ---- fin mundo 2D ----
 
@@ -4742,6 +4748,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // fin del HORIZONTE GIRATORIO: de aca en adelante todo va NIVELADO — el avion, su mira, la
       // formacion y los popups son el lado "cabina", igual que en el momentum.
       if (hzW) ctx.restore();
+
+      // EL POLVO Y LOS TERRONES (las particulas `fondo`: los piques en tierra y el polvo que levanta el
+      // avion al ras) van DETRAS del avion y al 60% (pedido del autor 3/10: "estan POR ENCIMA del
+      // avion"). El resto de las particulas sigue encima, mas abajo.
+      if (S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada') {
+        for (const p of parts) if (p.fondo) { ctx.globalAlpha = Math.min(1, p.life * 2) * PARTS_FONDO_A; pxFino(p.x, p.y, p.r, p.r, p.c); }
+        ctx.globalAlpha = 1;
+      }
 
       // LLUVIA: entre vos y el mundo, pero DETRAS de tu propio avion. Va fuera del giro a
       // proposito — lo que rota es la direccion de caida (ver render/rain.js).
@@ -4850,7 +4864,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // en momentum/arena, particulas y popups los dibuja su propio render (nivelados, sobre el
       // barco); dibujarlos tambien aca dejaria una copia fantasma
       if (S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada') {
-        for (const p of parts) { ctx.globalAlpha = Math.min(1, p.life * 2); pxFino(p.x, p.y, p.r, p.r, p.c); }
+        for (const p of parts) { if (p.fondo) continue; ctx.globalAlpha = Math.min(1, p.life * 2); pxFino(p.x, p.y, p.r, p.r, p.c); }
         ctx.globalAlpha = 1;
 
         ctx.textAlign = 'center';
@@ -5351,6 +5365,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // respuesta correcta a cada puerta cerrada es "no armes nada".
       window.__czdir = (o, s) => caza.dirPaso(o, +s);
       window.__czdirN = (o, n) => caza.dirN(o, +n);
+      window.__czdirPar = (o, n) => caza.dirPar(o, +n);
       // ---------- SONDAS DE LA PERSECUCION (QUITAR al cerrar PLAN B) ----------
       //   __psdbg()      el estado del lider: distancia, banda, gracia, velocidad suya y tuya
       //   __psdist(d)    lo pone a esa distancia — mirar los extremos de la banda sin volar hasta
