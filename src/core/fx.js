@@ -186,6 +186,10 @@ export function piqueMunicion(x, z, tipo = 'bala') {
   const C = tierra ? (arena ? PIQUE.ARENA : PIQUE.TURBA) : null;
   piques.push({ x, wz, y0, t0: run.t, alto, ancho, tierra, rgb: C ? C.rgb : PIQUE.AGUA_RGB });
   if (piques.length > PIQUE.MAX) piques.shift();
+  // EN TIERRA, SOLO EL PENACHO (3/10, el autor: "oculta las particulas de tierra y deja solo el efecto
+  // similar al agua pero con el color de tierra"): sin terrones ni nube de polvo. El penacho lo dibuja
+  // render/world.js (`drawPiques`) con el color de ese suelo.
+  if (tierra) return;
   const s = proj(x, y0, z), k = s.k;
   const techo = Math.min(PIQUE.ALTO_PX, k * PIQUE.ALTO * alto) * PIQUE.GOTAS_ALTO;
   // LAS GOTAS (o los TERRONES) DE LOS COSTADOS: en diagonal, hacia afuera y arriba, mas bajas que el penacho
