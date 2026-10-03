@@ -603,17 +603,17 @@ function drawPiques() {
   for (let i = piques.length - 1; i >= 0; i--) {
     const p = piques[i], edad = run.t - p.t0, vida = C.VIDA * (0.7 + 0.3 * p.alto), z = p.wz - run.dist;
     if (edad < 0 || edad > vida || z < 2) { piques.splice(i, 1); continue; }
-    const s = proj(p.x, p.tierra ? 0.3 : C.Y, z), k = s.k;
+    const s = proj(p.x, p.y0, z), k = s.k;
     if (s.x < -40 || s.x > W + 40) continue;
     const u = edad / vida, t = Math.min(1, edad / C.SUBE), sube = 1 - (1 - t) * (1 - t);   // sale rapido y frena
-    const a = Math.min(1, edad / 0.04) * (1 - u) * (1 - u * 0.5) * (p.tierra ? 0.7 : 1);
+    const a = Math.min(1, edad / 0.04) * (1 - u) * (1 - u * 0.5) * (p.tierra ? 0.85 : 1);
     // DE ABAJO HACIA ARRIBA: la altura arranca en cero; con minimos para que de lejos siga siendo raya
     // …y despues SE DERRUMBA: el agua que subio vuelve a caer mientras se apaga
     const alto = Math.max(6, Math.min(C.ALTO_PX, k * C.ALTO * p.alto)) * sube * (1 - 0.6 * u * u);
     if (alto < 0.5) continue;
     const abajo = Math.max(1, k * C.BOCA * p.ancho);
     const arriba = Math.max(1.4, k * C.ABRE * p.ancho) * (0.7 + 0.3 * sube + 0.4 * u);   // la V se abre
-    const rgb = p.tierra ? '122,106,76' : C.AGUA_RGB;
+    const rgb = p.rgb;   // el agua, o el color de ESE suelo (arena, turba)
     // el penacho: una V corta, opaca abajo y que se pierde arriba
     const g = ctx.createLinearGradient(0, s.y, 0, s.y - alto);
     g.addColorStop(0, 'rgba(' + rgb + ',' + (0.85 * a).toFixed(3) + ')');
@@ -626,8 +626,9 @@ function drawPiques() {
     ctx.closePath(); ctx.fill();
     // el alma: una raya central un poco mas clara y mas corta (espuma, no luz)
     const g2 = ctx.createLinearGradient(0, s.y, 0, s.y - alto * 0.75);
-    g2.addColorStop(0, 'rgba(' + C.ESPUMA_RGB + ',' + (0.7 * a).toFixed(3) + ')');
-    g2.addColorStop(1, 'rgba(' + C.ESPUMA_RGB + ',0)');
+    const alma = p.tierra ? rgb : C.ESPUMA_RGB;
+    g2.addColorStop(0, 'rgba(' + alma + ',' + (0.7 * a).toFixed(3) + ')');
+    g2.addColorStop(1, 'rgba(' + alma + ',0)');
     ctx.fillStyle = g2;
     const al = Math.max(1, abajo * 0.6);
     ctx.fillRect(s.x - al / 2, s.y - alto * 0.75, al, alto * 0.75);
@@ -635,7 +636,7 @@ function drawPiques() {
     const r = Math.max(3, k * C.BRILLO * p.ancho);
     ctx.save(); ctx.translate(s.x, s.y); ctx.scale(1, 0.3);
     const rg = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-    rg.addColorStop(0, 'rgba(' + C.ESPUMA_RGB + ',' + (0.6 * a).toFixed(3) + ')');
+    rg.addColorStop(0, 'rgba(' + alma + ',' + (0.6 * a).toFixed(3) + ')');
     rg.addColorStop(0.5, 'rgba(' + rgb + ',' + (0.3 * a).toFixed(3) + ')');
     rg.addColorStop(1, 'rgba(' + rgb + ',0)');
     ctx.fillStyle = rg; ctx.fillRect(-r, -r, 2 * r, 2 * r);

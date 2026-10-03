@@ -6,7 +6,7 @@
 
 import { cam, cfg, plane, stats } from './state.js';
 import { run } from './run.js';
-import { geoActiva, esTierraEn } from './geografia.js';   // G1: agua o tierra, por punto
+import { geoActiva, esTierraEn, alturaSuelo, sueloEn } from './geografia.js';   // G1: agua o tierra, por punto
 import { parts, popups, obstacles, estallidos } from './world.js';
 import { P } from '../data/palette.js';
 import { POLVO_ABRE, POLVO_BAJA, POLVO_BARRIDO, ESTALLIDO, PIQUE, PART_DIV, PART_TAMANO, PART_MIN, PART_ABRE } from '../data/tuning.js';
@@ -164,28 +164,44 @@ export function piqueAgua(x, y, z) {
  *  atras al volar) y lo dibuja render/world.js (`drawPiques`). Cada municion tiene su altura y su
  *  ancho (PIQUE.TIPO: una bala es una raya finita, un misil una columna gorda), con algo de azar.
  *  Y salpica a los costados: unas gotas leves que salen en DIAGONAL, de abajo hacia arriba, mas bajas
- *  que el penacho — lo que lo hace agua y no una luz. Sobre tierra es polvo del color del suelo. */
+ *  que el penacho — lo que lo hace agua y no una luz. Sobre tierra, terrones y polvo de ESE suelo. */
 export const piques = [];
 export function piqueMunicion(x, z, tipo = 'bala') {
   if (!(z > 2.5 && z < PIQUE.Z_MAX)) return;
   const T = PIQUE.TIPO[tipo] || PIQUE.TIPO.bala;
   const wz = run.dist + z, tierra = esTierraEn(x, wz);
   const alto = T.alto * (0.8 + Math.random() * 0.4), ancho = T.ancho * (0.8 + Math.random() * 0.4);
-  piques.push({ x, wz, t0: run.t, alto, ancho, tierra });
+  // EN TIERRA (2/10: "lo mismo del agua pero para la tierra, con mas particulas alrededor y color
+  // marron segun tierra"): nace a la altura del SUELO (las lomas), con el color de ESE suelo —la arena
+  // de una costa, la turba adentro— y en vez de gotas levanta terrones y una nube de polvo baja.
+  const arena = tierra && sueloEn(wz) === 'coast';
+  const y0 = tierra ? alturaSuelo(x, wz) + 0.2 : PIQUE.Y;
+  const C = tierra ? (arena ? PIQUE.ARENA : PIQUE.TURBA) : null;
+  piques.push({ x, wz, y0, t0: run.t, alto, ancho, tierra, rgb: C ? C.rgb : PIQUE.AGUA_RGB });
   if (piques.length > PIQUE.MAX) piques.shift();
-  // LAS GOTAS DE LOS COSTADOS: en diagonal, hacia afuera y arriba, hasta un tercio del penacho
-  const s = proj(x, tierra ? 0.3 : PIQUE.Y, z), k = s.k;
+  const s = proj(x, y0, z), k = s.k;
   const techo = Math.min(PIQUE.ALTO_PX, k * PIQUE.ALTO * alto) * PIQUE.GOTAS_ALTO;
-  for (let i = 0, n = Math.round(PIQUE.GOTAS * (0.5 + 0.5 * ancho)); i < n; i++) {
+  // LAS GOTAS (o los TERRONES) DE LOS COSTADOS: en diagonal, hacia afuera y arriba, mas bajas que el penacho
+  const n = Math.round((tierra ? PIQUE.TERRONES : PIQUE.GOTAS) * (0.5 + 0.5 * ancho));
+  for (let i = 0; i < n; i++) {
     const lado = i % 2 ? 1 : -1;
-    const vy = -Math.sqrt(2 * 90 * techo * (0.3 + Math.random() * 0.7));
+    const vy = -Math.sqrt(2 * 90 * techo * (tierra ? 0.5 + Math.random() * 0.9 : 0.3 + Math.random() * 0.7));
     parts.push({
       x: s.x + lado * Math.max(0.5, k * PIQUE.BOCA * ancho * 0.5), y: s.y,
-      vx: lado * (0.4 + Math.random() * 0.8) * -vy * (0.6 + 0.4 * ancho), vy,
+      vx: lado * (0.4 + Math.random() * (tierra ? 1.3 : 0.8)) * -vy * (0.6 + 0.4 * ancho), vy,
       life: Math.min(0.9, (-2 * vy / 90) * (0.8 + Math.random() * 0.3)),
-      c: tierra ? (Math.random() < 0.5 ? '#7a6a4c' : '#5e5240') : (Math.random() < 0.55 ? '#d6e8e4' : '#9dbcb8'),
-      r: Math.max(0.6, k * 0.09 * (0.7 + 0.3 * ancho)),
+      c: tierra ? C.terron[(Math.random() * C.terron.length) | 0] : (Math.random() < 0.55 ? '#d6e8e4' : '#9dbcb8'),
+      r: Math.max(0.6, k * (tierra ? 0.12 : 0.09) * (0.7 + 0.3 * ancho)),
     });
+  }
+  // …Y EN TIERRA, EL POLVO: una nube baja que se abre al ras y tarda en irse
+  if (tierra) {
+    for (let i = 0, m = Math.round(PIQUE.POLVO * (0.5 + 0.5 * ancho)); i < m; i++) {
+      parts.push({ x: s.x + (Math.random() - 0.5) * k * 0.6 * ancho, y: s.y - Math.random() * 2,
+        vx: (Math.random() - 0.5) * k * 2.2 * ancho, vy: -(3 + Math.random() * 9) * Math.min(2.5, 0.5 + k * 0.25),
+        life: 0.7 + Math.random() * 0.6, c: C.polvo[(Math.random() * C.polvo.length) | 0],
+        r: Math.max(0.8, k * 0.22 * (0.6 + 0.4 * ancho)) });
+    }
   }
 }
 

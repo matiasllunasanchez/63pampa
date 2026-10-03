@@ -624,7 +624,10 @@ export function collisionSystem(dt) {
       b.y = Math.max(0, yLibre);
       // LA BALA QUE DA EN EL AGUA SALPICA (2/10) y se hunde unos metros mas alla — esos metros dejan
       // que todavia le pegue a lo que esta justo en la linea de flotacion
-      if (yLibre <= PIQUE.Y && !b.hunde) { b.hunde = b.z + PIQUE.BALA_SIGUE; piqueMunicion(b.x, b.z, 'bala'); }
+      // (en tierra, el suelo es la loma de ese punto, no el nivel del mar)
+      if (!b.hunde && yLibre <= (yLibre < PIQUE.Y + 2.5 && esTierraEn(b.x, run.dist + b.z) ? alturaSuelo(b.x, run.dist + b.z) + 0.2 : PIQUE.Y)) {
+        b.hunde = b.z + PIQUE.BALA_SIGUE; piqueMunicion(b.x, b.z, 'bala');
+      }
       if (b.hunde && b.z > b.hunde) { b.z = 999; continue; }
     } else if (b.ty !== undefined) b.y += (b.ty - b.y) * Math.min(1, dt * 14);
     for (const o of obstacles) {
