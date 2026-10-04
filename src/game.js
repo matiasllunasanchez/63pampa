@@ -3837,6 +3837,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (S.state === 'victory') levelT += dt;
         parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
         prune(parts, p => p.life > 0); capParts();
+        // LAS LINEAS DE VELOCIDAD siguen su camino fuera de 'play' (autor, 4/10: "cuando se hace un relevo
+        // se congelan las flechitas del turbo o de la velocidad"): se dibujan en todos los estados pero
+        // solo se movian en el vuelo, asi que en el relevo y el derribado quedaban clavadas en pantalla.
+        // No nacen nuevas: las que habia salen hacia afuera y se apagan.
+        streaks.forEach(s => { s.r += s.v * dt; s.life -= dt; });
+        prune(streaks, s => s.life > 0 && s.r < (s.rmax || 260));
         // las explosiones siguen VIVAS fuera de 'play' (su reloj lo lleva collisionSystem, que
         // aca no corre): sin esto la bola de fuego del derribado quedaria congelada en el frame 0
         for (const o of obstacles) {
@@ -3947,7 +3953,18 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           // mundo NO se congela: corre a media maquina para que la escena respire — pero flight
           // y collision no corren, asi que la invulnerabilidad de la ventana es estructural:
           // aca no hay nadie que pueda devolver { death }.
-          const adv = run.spd * 0.4 * dt;
+          // EL CHOQUE FRENA LA CAMARA (autor, 4/10: "cuando colisiono con un puente, una base o un barco
+          // el terreno sigue avanzando, pero el avion y contra lo que choque se quedan en el lugar — no
+          // debe suceder, que FRENE ahi la camara"). Con un CHOQUE (no el cambio de piloto ni la suelta
+          // errada, que no rompen nada) el mundo no avanza durante los restos: la camara queda con el
+          // avion y con lo que choco. Despues retoma de a poco la media maquina del relevo.
+          const rr0 = squad.relevo();
+          const choque = rr0 && !rr0.cambio && !rr0.solo;
+          const retoma = !choque ? 1 : (() => {
+            const u = Math.max(0, Math.min(1, (rr0.t - RELEVO_WRECK) / 0.5));
+            return u * u * (3 - 2 * u);
+          })();
+          const adv = run.spd * 0.4 * dt * retoma;
           run.dist += adv;                     // la mision sigue: el escuadron no deja de volar
           for (const o of obstacles) if (o.type !== 'chunk' && o.type !== 'airboom') o.z -= adv;
           for (const sd of soldiers) sd.z -= adv;
