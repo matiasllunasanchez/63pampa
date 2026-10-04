@@ -3,8 +3,9 @@
 //   1. NEGRO, y se FUNDE el gabinete con el tubo apagado.
 //   2. El tubo SE PRENDE como un televisor (la animacion es de styles.css, el sonido de audio.js).
 //   3. Texto de BIOS, "como cuando arrancaba una PC vieja", tipeandose.
-//   4. La pantalla vacia, y INSERTE FICHA bien grande en el medio.
-//   5. Al segundo, PRESIONE CUALQUIER TECLA PARA CONTINUAR.
+//   4. La pantalla vacia, y INSERTE FICHA bien grande en el medio, SOLO. Despues suena el insert coin
+//      (el mp3, `alCargado`), y cuando termina el cartel CAMBIA por PRESIONE CUALQUIER TECLA PARA
+//      CONTINUAR, en el mismo lugar (autor, 4/10: primero el cartel, despues el sonido).
 //   6. La tecla ES la ficha (autor, 3/10: "que el sonido de ficha suene cuando presiono enter"):
 //      suena la moneda, aparece CREDITO 1, y enseguida la portada de siempre, con su musica.
 //
@@ -33,7 +34,8 @@ export const ARRANQUE = {
   BIOS_DESDE: 0.5,                        // desde que prende el tubo hasta la primera letra
   LINEA: 0.2, MEMORIA: 0.7, CARGA: 0.9,   // cada renglon, el conteo de memoria, los puntos de CARGANDO
   VACIO: 0.7,                             // el BIOS se borra y queda negro antes del cartel
-  FICHA: 1.0,                             // INSERTE FICHA solo, antes de que aparezca el aviso
+  SUENA: 0.45,                            // INSERTE FICHA solo, hasta que suena el insert coin
+  FICHA: 0.45 + 1.25,                     // …y lo que dura el sonido (1,23 s): ahi cambia al aviso
   CREDITO: 0.9,                           // de la ficha a la portada: lo que dura la moneda
   APAGA: 0.3,                             // el fundido del #bios al continuar (styles.css)
 };
@@ -61,8 +63,8 @@ let activo = false;
 /** ¿Esta corriendo? Mientras si, el mando no le llega al juego (core/input.js). */
 export const arranqueActivo = () => activo;
 
-/** Corre la secuencia. `alPrender` (el tubo), `alCargado` (termino la carga del BIOS: aparece
- *  INSERTE FICHA, o se salto directo al aviso), `alFicha` (la moneda) y `alTerminar` (ya se ve la
+/** Corre la secuencia. `alPrender` (el tubo), `alCargado` (el insert coin: INSERTE FICHA ya esta
+ *  en pantalla), `alFicha` (la moneda) y `alTerminar` (ya se ve la
  *  portada) son los ganchos de sonido y musica de game.js. */
 export function arrancar({ alPrender, alCargado, alFicha, alTerminar } = {}) {
   const b = typeof document !== 'undefined' && document.body, stage = cv && cv.parentElement;
@@ -82,10 +84,7 @@ export function arrancar({ alPrender, alCargado, alFicha, alTerminar } = {}) {
   const ahora = () => performance.now() / 1000;
   let fase = 'espera', desde = ahora(), prendido = false, ficha = false, padPrev = true;
   let cargado = false;
-  const pasarA = f => {
-    fase = f; desde = ahora();
-    if ((f === 'ficha' || f === 'aviso') && !cargado) { cargado = true; if (alCargado) alCargado(); }
-  };
+  const pasarA = f => { fase = f; desde = ahora(); };
   const relojes = [];
   const despues = (s, fn) => relojes.push(setTimeout(fn, s * 1000));
 
@@ -114,13 +113,14 @@ export function arrancar({ alPrender, alCargado, alFicha, alTerminar } = {}) {
     setTimeout(() => b.classList.remove('arranque-bios', 'arranque-sale'), ARRANQUE.APAGA * 1000);
     if (alTerminar) alTerminar();
   };
-  // CUALQUIER TECLA: antes del aviso, adelanta hasta el aviso; en el aviso, ES LA FICHA. No llega
-  // al juego — si no, la misma tecla saltearia tambien la portada.
+  // CUALQUIER TECLA: antes del cartel, adelanta hasta el cartel (que igual hace su INSERTE FICHA,
+  // su sonido y su cambio: son dos segundos); en el aviso, ES LA FICHA. No llega al juego — si no,
+  // la misma tecla saltearia tambien la portada.
   const avanzar = () => {
     if (fase === 'aviso') { echarFicha(); return; }
-    if (fase === 'credito') return;
+    if (fase === 'credito' || fase === 'ficha') return;
     prender();
-    pasarA('aviso');
+    pasarA('ficha');
   };
   function tecla(e) {
     e.preventDefault(); e.stopImmediatePropagation();
@@ -147,7 +147,8 @@ export function arrancar({ alPrender, alCargado, alFicha, alTerminar } = {}) {
     const t = ahora() - desde;
     if (fase === 'bios' && t > ARRANQUE.BIOS_DESDE + BIOS_T + 0.5) pasarA('vacio');
     else if (fase === 'vacio' && t > ARRANQUE.VACIO) pasarA('ficha');
-    else if (fase === 'ficha' && t > ARRANQUE.FICHA) pasarA('aviso');
+    else if (fase === 'ficha' && t > ARRANQUE.SUENA && !cargado) { cargado = true; if (alCargado) alCargado(); }
+    if (fase === 'ficha' && t > ARRANQUE.FICHA) pasarA('aviso');
     dibujar(g, fase, ahora() - desde, durRenglon);
     if (activo) requestAnimationFrame(cuadro);
   };
@@ -187,13 +188,17 @@ function dibujar(g, fase, t, durRenglon) {
     }
     if (parpadeo(0.5)) { g.fillStyle = COL.texto; g.fillRect(cursorX, cursorY + 6, 5, 1); }
   } else if (fase === 'ficha' || fase === 'aviso' || fase === 'credito') {
-    // EL CARTEL: INSERTE FICHA grande y titilando; debajo, en el aviso, la invitacion. Cuando cae la
-    // ficha el cartel queda quieto, el aviso se va y aparece el credito.
-    g.textAlign = 'center';
-    g.font = avisoFont(30); g.fillStyle = COL.ficha;
-    if (fase === 'credito' || parpadeo(0.9)) g.fillText('INSERTE FICHA', BW / 2, BH / 2 - 22);
+    // EL CARTEL, UNO SOLO Y EN EL MEDIO: INSERTE FICHA fijo mientras suena el insert coin; al
+    // terminar el sonido lo REEMPLAZA la invitacion, del mismo porte y titilando. Cuando cae la
+    // ficha la invitacion queda quieta y aparece el credito.
+    g.textAlign = 'center'; g.fillStyle = COL.ficha;
+    if (fase === 'ficha') { g.font = avisoFont(30); g.fillText('INSERTE FICHA', BW / 2, BH / 2 - 22); }
+    else if (fase === 'credito' || parpadeo(1.0)) {
+      g.font = avisoFont(16);
+      g.fillText('PRESIONE CUALQUIER TECLA', BW / 2, BH / 2 - 20, BW - 16);
+      g.fillText('PARA CONTINUAR', BW / 2, BH / 2 + 2, BW - 16);
+    }
     g.font = 'bold 7px monospace';
-    if (fase === 'aviso' && parpadeo(1.0)) { g.fillStyle = COL.aviso; g.fillText('PRESIONE CUALQUIER TECLA PARA CONTINUAR', BW / 2, BH / 2 + 18); }
     if (fase === 'credito') { g.textAlign = 'right'; g.fillStyle = COL.texto; g.fillText('CREDITO 1', BW - 10, BH - 14); }
   }
 }
