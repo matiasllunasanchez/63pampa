@@ -2646,6 +2646,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           case 'DLUR': return mvOk('barrel') && moves.startMove('barrel', -1);
           case 'dLL': return mvOk('spin') && moves.startMove('spin', -1);      // picas con el izquierdo, rolas con el derecho
           case 'dRR': return mvOk('spin') && moves.startMove('spin', 1);
+          // ---- STICK DERECHO: LOS FRENOS (autor, 4/10: "arma una combinacion de teclas para COBRA,
+          // DERRAPE y MORTAL"). Tambien salen con [G]/L2 (+ direccion / + arriba); esto es el combo.
+          // Van sin `mvOk`: son `legado`, controles como el tonel, no poderes que se aprenden.
+          //   ↑↓↑  COBRA: levantar la trompa, plantarla y volver a levantar — se planta
+          //   ↑↑↓  MORTAL: arriba, arriba (pasa por encima) y abajo (vuelve a nivel)
+          //   ←→←  DERRAPE: el zigzag con la mano que rola; el primer canto va hacia el primer toque
+          // Mayusculas: con la mano derecha. En minusculas ←→← es el S-TURN, que es otra cosa.
+          case 'UDU': return moves.startMove('cobra', 1);
+          case 'UUD': return moves.startMove('mortal', 1);
+          case 'LRL': return moves.startMove('derrape', -1);
+          case 'RLR': return moves.startMove('derrape', 1);
           // ---- LOS DOS STICKS: EL ASCENSOR ----
           // Mirar hacia donde vas a ir y despues empujar dos veces para alla. Es el unico gesto del
           // juego que usa las dos manos, y por eso es el que mueve el avion de BANDA de altura en

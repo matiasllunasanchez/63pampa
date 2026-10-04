@@ -39,6 +39,8 @@
 //     ⟳←←←   TONEL izquierda           ⟳→→→   TONEL derecha
 //     ⟳↓→↑←  TONEL BARRIL horario      ⟳↓←↑→  TONEL BARRIL antihorario
 //     ↓⟳←←   TIRABUZON izquierda       ↓⟳→→   TIRABUZON derecha   (picas con el izq, rolas con el der)
+//     ⟳↑↓↑   COBRA                     ⟳↑↑↓   MORTAL
+//     ⟳←→←   DERRAPE izquierda         ⟳→←→   DERRAPE derecha     (tambien [G]/L2: solo, + ↑, + dir)
 //
 //   LOS DOS STICKS — el ASCENSOR (mirar hacia donde vas y empujar dos veces)
 //     ⟳↓ ↓↓  TERRAIN MASKING           ⟳↑ ↑↑  ASCENSO / SOBRE EL RADAR   (segun ALTURA)
