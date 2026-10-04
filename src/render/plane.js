@@ -324,7 +324,42 @@ function muzzles(bank) {
   }
 }
 
-/** FOGONAZO del canon. Antes eran dos rectangulos blancos de 3x2 que a esta resolucion se leian
+// LOS FOGONAZOS ESTRELLA (autor, 4/10: "apliquemos los fogonazos del avion con los que hicimos de
+// Blender, o hacer nuevos tipo estrella, y que se vean tambien en rasante"). Las mismas cinco capas del
+// fuego horneado (tools/blender/modelos_fuego.py, CAPAS: rojo apagado afuera → nucleo casi blanco),
+// ahora como ESTRELLA de puntas que cambian en cada disparo — la boca encendida vista de punta.
+//
+// DONDE: en las raices de las alas, sacadas de las PUNTAS que mide el horno para la hoja y la pose que
+// se esta dibujando (`tips`). Antes iban a ±5 px fijos y debajo del sprite: en la hoja del poder
+// RASANTE (tres cuartos de costado) ese lugar es el fuselaje, y no se veian nunca.
+const FOGON = ['#cf4d16', '#f07c22', '#ffb43c', '#ffe08a', '#fff6d8'];
+const FOGON_RAIZ = 0.24;                           // de la raiz a la punta: donde van los cañones del A-4
+function fogonazos(spW, spH, tp) {
+  if (!tp) return;
+  const k = spW / 84;                              // la escala del sprite (84 = el cuadro de la hoja base)
+  for (const [tx, ty] of [[tp[0], tp[1]], [tp[2], tp[3]]]) estrellaFogon(tx * spW * FOGON_RAIZ, ty * spH * FOGON_RAIZ, k);
+}
+function estrellaFogon(x, y, k) {
+  const big = Math.random() < 0.45;                // no todos los disparos son iguales
+  const r = (big ? 7 : 5) * k * (0.85 + Math.random() * 0.3);
+  const puntas = Math.random() < 0.5 ? 4 : 5, giro = Math.random() * Math.PI;
+  for (let i = 0; i < FOGON.length; i++) {
+    const kk = 1 - i * 0.19;
+    ctx.globalAlpha = i === 0 ? 0.75 : 1;
+    ctx.fillStyle = FOGON[i];
+    ctx.beginPath();
+    for (let j = 0; j < puntas * 2; j++) {
+      const a = giro + j * Math.PI / puntas;
+      const rr = (j % 2 ? r * 0.3 : r * (0.8 + 0.4 * Math.random())) * kk;
+      ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.85);
+    }
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  luz(ctx, x, y, (big ? 11 : 8) * k, [255, 190, 90], big ? 0.9 : 0.6);
+}
+
+/** FOGONAZO del canon (el de antes: queda para el avion sin hoja horneada). Antes eran dos rectangulos blancos de 3x2 que a esta resolucion se leian
  *  como dos ladrillos. Ahora es un fogonazo de verdad: nucleo caliente, petalos en cruz que
  *  cambian por disparo, y un halo tenue. Todo en pixeles enteros — nada de degrade. */
 function muzzle(x, y) {
@@ -938,10 +973,10 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     }
     // POSTQUEMADOR pegado a la TOBERA. Antes salia de spH/2 (el borde del frame) y al pasar el
     // frame a cuadrado la llama quedo flotando 12 px detras del avion.
-    // ORDEN DE CAPAS. Los FOGONAZOS van DEBAJO del avion: la boca del canon esta en la raiz del
-    // ala, del otro lado del fuselaje, asi que el fuego tiene que asomar por detras y no taparlo.
+    // ORDEN DE CAPAS. Los FOGONAZOS iban DEBAJO del avion (la boca del cañon esta del otro lado del
+    // ala); desde el 4/10 son ESTRELLAS y van ENCIMA, despues de la carga (ver `fogonazos`): debajo,
+    // con la hoja del poder RASANTE quedaban tapados por el fuselaje y no se veian.
     // La LLAMA del turbo va ENCIMA: sale de la tobera, que apunta a la camara.
-    if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
     drawGear(run.gear, 1);   // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma
     ctx.drawImage(img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
     drawBorde(ctx, img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);   // a contraluz (render/borde.js)
@@ -970,6 +1005,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
       ctx.drawImage(im, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
       if (mitad) ctx.restore();
     }
+    // LOS FOGONAZOS, en las bocas de los cañones de ESTA hoja y ESTA pose (anclas medidas por el horno)
+    if (inp.fire && !run.overheat && run.fireT > 0.06 && !hoja4) fogonazos(spW, spH, AN.tips[rowPose][colPose]);
     // LA CHAPERIA, ENCIMA DE LA CHAPA. Va aca —despues del frame y antes de la tobera— porque es
     // pintura sobre el avion, no un efecto en el aire: tiene que taparse con el humo del escape y
     // con el vapor del ala, igual que se taparia la pintura de verdad.
