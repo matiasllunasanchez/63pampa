@@ -86,5 +86,5 @@ export const SFX_DEF = {
   alarm: { f: ['general/incoming_alarm.wav'], v: 0.45, loop: true },   // a la par del MOMENTUM
   // el arranque del fichin: suena al terminar la carga del BIOS, cuando aparece INSERTE FICHA
   // (antes de la moneda propia de audio.js, que es la tecla) — pedido del autor, 4/10
-  insertCoin: { f: ['general/insert_coin.mp3'], v: 0.8, m: 1 },
+  insertCoin: { f: ['general/insert_coin.mp3'], v: 0.5, m: 1 },
 };

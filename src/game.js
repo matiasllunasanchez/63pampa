@@ -5034,6 +5034,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // LA NOCHE (render/noche.js, 4/10): todo oscuro y la luz de cada fuente lo abre. Va ANTES del
       // resplandor, que de noche se pega mas fuerte: ahi la luz es todo lo que se ve.
       const noche = nocheDe(cfg.sky);
+      // LA VISION DEL RADAR (ver mas abajo), DE NOCHE VA ANTES DE LA OSCURIDAD (4/10, el autor:
+      // "oscurece el tinte verde del radar de noche"): asi la misma noche lo apaga, y queda un verde
+      // tenue en vez de una pantalla verde encendida en medio de lo negro.
+      const tinteRadar = () => {
+        if (cfg.radarNet && cfg.radar !== 'voz' && rutaSys.enAlcance()) {
+          world.drawRadarTinte(fases.techoRadar(RADAR_ALT));
+          // EL ESCANEO al entrar a la zona: la linea que barre y el velo que deja (world.ESC_*)
+          if (radarScanT >= 0) world.drawRadarEscaneo(run.t - radarScanT);
+        }
+      };
+      if (noche) tinteRadar();
       // (con el GIRO del horizonte: la franja clara, las luces lejanas y el reflejo rolan con el mundo)
       drawNoche(noche, solPant, hzW ? { a: hzW, cx: W / 2 + cm.x, cy: H / 2 + cm.y } : null);
       drawBrillo(noche ? NOCHE.BRILLO : undefined);
@@ -5050,11 +5061,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // LA VISION DEL RADAR: la escena en verde mientras te ven (ver world.drawRadarTinte). Mismo
       // escalon que el tinte del momentum —sobre el mundo, bajo el HUD— y colgada de la misma opcion
       // que la red: quien apago RED DE RADAR no quiere que el radar le pinte la pantalla.
-      if (cfg.radarNet && cfg.radar !== 'voz' && rutaSys.enAlcance()) {
-        world.drawRadarTinte(fases.techoRadar(RADAR_ALT));
-        // EL ESCANEO al entrar a la zona: la linea que barre y el velo que deja (world.ESC_*)
-        if (radarScanT >= 0) world.drawRadarEscaneo(run.t - radarScanT);
-      }
+      // (de noche ya se dibujo, ANTES de la oscuridad — ver `tinteRadar` arriba)
+      if (!noche) tinteRadar();
       // HUD en GRILLA DE DISEÑO (320x180): se dibuja con ctx.scale(U). Ver la nota de DW/DH en
       // render/ctx.js — U x SC da 3 exacto, asi que no hay medio pixel ni borroneo.
       // LA CINTA DE FORMACION va ADENTRO del ctx.scale(U): es HUD, o sea grilla de DISEÑO (320x180),
