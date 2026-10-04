@@ -39,9 +39,26 @@ def hoja(k):
     for i in range(n):
         h.paste(Image.open(os.path.join(OUT, k, 'f_%d.png' % i)).convert('RGBA'), ((i % cols) * fw, (i // cols) * fh))
     A.FW, A.FH = fw, fh
+    if S.get('contorno2'): return contorno2(h, fw, fh, *S['contorno2'])
     # `contorno=False` (la municion): a 16-32 px el cuerpo de un misil mide 1-2 px y es TODO borde —
     # el contorno lo oscurecia entero y el misil blanco salia gris
     return A.contorno(h, lineas=True) if S.get('contorno', True) else h
+
+def contorno2(h, fw, fh, claro, oscuro):
+    """EL CONTORNO DE DOS TONOS de bake_common.js (`BAKE.contorno`), celda por celda: un filo de 1 px
+    AFUERA del contenido, CLARO donde el cuerpo esta abajo o a la derecha (el lado del sol) y OSCURO del
+    otro lado. Uno de los dos siempre pelea contra el fondo: el soldado se lee sobre turba y sobre nieve."""
+    hx = lambda c: tuple(int(c[i:i + 2], 16) for i in (1, 3, 5)) + (255,)
+    L, O = hx(claro), hx(oscuro)
+    orig = h.copy().load(); px = h.load(); W, H = h.size
+    for y in range(H):
+        for x in range(W):
+            if orig[x, y][3] > 8: continue
+            cx, cy = x // fw, y // fh
+            op = lambda xx, yy: 0 <= xx < W and 0 <= yy < H and xx // fw == cx and yy // fh == cy and orig[xx, yy][3] > 8
+            if op(x, y + 1) or op(x + 1, y): px[x, y] = L
+            elif op(x, y - 1) or op(x - 1, y): px[x, y] = O
+    return h
 
 def medir(h, fw, fh):
     """BAKE.medir de tools/bake_common.js: la caja del contenido en la UNION de las poses."""
@@ -95,6 +112,7 @@ def archivar(claves, cajas):
                 print('archivado en three/:', k)
             continue
         if k in viejas: continue
+        if k not in cajas: continue        # una hoja NUEVA (el Harrier de cola): no hay version de three.js
         subprocess.run(['git', 'mv', os.path.join(ENEM, k + '.png'), os.path.join(tres, k + '.png')], cwd=RAIZ, check=True)
         viejas[k] = cajas[k]
         print('archivado en three/:', k)

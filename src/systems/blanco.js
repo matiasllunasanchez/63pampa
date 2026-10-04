@@ -325,11 +325,15 @@ export function step(dt) {
     // estrellas y el viraje llega cuando las pierdas. El salto se sigue cobrando igual (abajo).
     // (CUMPLIDO y no HUNDIDO: una MK-17 que pego y no detono tambien cuenta — el ataque se hizo)
     const escape = blanco.cumplido && blanco.conVuelta;
+    // HUNDIDO = SIN NEGRO (pedido del autor, 4/10: "si le erre hace fade out, pero si no le erre que
+    // no pase nada y me deje seguir"). El negro es para cuando la pasada se perdio; si le pegaste, se
+    // resuelve en el acto y la vuelta arranca de corrido. Va despues del salto (abajo): `acierto`.
+    let acierto = false;
     if (escape) blanco.escapando = true;
+    else if (blanco.cumplido) acierto = true;
     else {
       blanco.negroT = 0;
-      if (blanco.cumplido) blanco.pendiente = 'hundido';
-      else {
+      {
         blanco.pasada++;
         // EN UNA MISION (una pasada por avion): errar no decide aca —decide game.js si queda un
         // avion en la fila (`enFila`) o si es la derrota. Con varias pasadas (la prueba t16), la de
@@ -347,10 +351,14 @@ export function step(dt) {
     const h = altoEn(plane.x), roce = h >= 0 && plane.y < blanco.base + h && !enBoquete(plane.x)
     // …y el piso del negro: donde quedaste, y si rozaste, del otro lado de los palos (en el escape
     // no hay negro ni piso: el avion es tuyo desde el primer cuadro)
-    if (!escape) blanco.altPiso = Math.max(plane.y, 6 + blanco.base - AGUA, roce ? blanco.base + h + 1 : 0);
+    // (…y si le pegaste pero te comiste los palos, vuelve el camino de siempre: negro y 'hundido'
+    // pendiente, que es lo que el relevo de game.js espera para cerrar del otro lado)
+    if (acierto && roce) { blanco.negroT = 0; blanco.pendiente = 'hundido'; }
+    const conNegro = !escape && (!acierto || roce);
+    if (conNegro) blanco.altPiso = Math.max(plane.y, 6 + blanco.base - AGUA, roce ? blanco.base + h + 1 : 0);
     else if (roce) plane.y = Math.max(plane.y, blanco.base + h + 1);
     if (roce) { seña('roce'); return { roce: 'death_palos', escape }; }
-    return escape ? 'escape' : null;
+    return escape ? 'escape' : acierto ? 'hundido' : null;
   }
   // LA PREDICCION, una vez por cuadro: la leen las señas de Puma y el HUD (lo que titila en verde).
   // el ritmo del acelerador, antes de cualquier prediccion de este cuadro

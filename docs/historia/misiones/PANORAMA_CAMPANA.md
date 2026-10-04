@@ -46,10 +46,9 @@ todos están vivos y nada duele.
 ### M2 · EL BAUTISMO DE FUEGO
 **1 de mayo de 1982 · Chimango · escuadrón 5**
 
-**Qué se ataca:** hoy nada —cruzar la costa y volver, 2.600 m—. **Tiene que ser el puesto del
-islote.** La mecánica ya existe (blancos que no son buques, `estructuras.js`); falta que M2 la pida.
-**Se aprende a tirar la bomba, y que salga mal:** errar, reintentar, que no detone. Y el silencio
-de radio: si el radar te ve vienen los Harriers, y se los engaña bajando.
+**Qué se ataca:** nada. **Es la segunda misión de diversión, más lejos que la primera** (decidido
+el 4/10). Se aprenden el Momentum, el turbo y **la Chancha**, y aparecen los enemigos: **cada
+estrella trae un Harrier.** Ver `ESCALERA_DE_APRENDIZAJE.md`.
 
 **Qué está pasando:** la brecha. Puma dice la tesis del juego en voz alta: *"Ellos tienen la
 máquina. Nosotros tenemos las manos."* La ronda del mate, el THANK YOU del Gitano. Vuelven
@@ -61,8 +60,10 @@ vez en todo el día y que el subteniente Bordón tiene la carpa llena de cajas.
 ### M3 · EL INVENTO
 **Primeros días de mayo · Benteveo · escuadrón 5**
 
-**Qué se ataca:** boyas de señalización y un radar portátil *"si aparece"*. **Hoy no existen:** es
-distancia pura, 2.400 m.
+**Qué se ataca:** **el puesto de una isla** — la primera misión con objetivo (decidido el 4/10;
+antes eran boyas). Se aprenden **las bombas**: errar, reintentar, que no detone. Larga, "real", y
+con bombas el avión va más lento. **Al terminar, la primera mejora**, servida: *"Pichón encontró
+una mejora para tu avión y Turco la aplicó."*
 
 **Qué está pasando:** el Pichón le toca el avión a Esteban y el Turco, después de tres segundos
 de silencio, decide escucharlo. El invento explota y le vuela el gorro al Turco. El Gitano cuenta
@@ -106,8 +107,9 @@ Lo saben."*
 
 **Qué está pasando:** el problema real de 1982: tiran tan bajo que las bombas no alcanzan a
 armarse. Le pegan igual. El Antelope explota de noche, cuando un artificiero británico intentaba
-desactivar la bomba dormida. *"Que Dios lo tenga en la gloria. Al de allá también."* Y acá
-aparece la Chancha.
+desactivar la bomba dormida. *"Que Dios lo tenga en la gloria. Al de allá también."* Y en la
+vuelta, sin nafta, la Chancha rescata al Gitano dentro del radar y la rompen: **desde M7 ya no
+entra al radar.**
 
 ---
 
@@ -161,7 +163,7 @@ juntos es un cuarto de lo que hay ahí adentro.
 **5 de junio de 1982 · Chingolo · escuadrón 3**
 
 **Qué se ataca:** nada fijo. Reconocimiento armado: *"Salen, miran, si hay algo lo tocan, y
-vuelven."* **El enemigo es el clima y la nafta,** y la Chancha no baja más al sur.
+vuelven."* **El enemigo es el clima y la nafta.**
 
 **Qué está pasando:** la línea de vuelo antes del amanecer, con un lugar vacío: el avión del
 Pichón abierto en canal y el Turco metido adentro hasta los hombros, sacándole lo que sirve. Y en
@@ -233,10 +235,9 @@ minijuego Momentum—, así que lo que distingue un barco de otro es su perfil, 
 bomba, y no un minijuego propio. Lo que cambia entre misiones es el nombre, el clima y la
 dificultad; lo que hacen tus manos lo tienen que cambiar las `fases` de cada una.
 
-**Las dos que hoy están vacías de verdad son M2 y M3.** Las únicas dos cuyo objetivo es
-literalmente un número de metros, sin nada al final. **El blanco de M2 sí existe como mecánica**
-—estructuras en tierra, `estructuras.js`—, sólo que M2 no lo pide. El de M3, las boyas, todavía
-no.
+**Desde el 4/10, la escalera está clara:** M1 a M4 enseñan todo —M1 rasante y radar, M2 Momentum,
+turbo, Chancha y enemigos, M3 bombas y la primera mejora, M4 todo junto contra el buque— y **de M5
+en adelante no aparece ninguna mecánica nueva.** Ver `ESCALERA_DE_APRENDIZAJE.md`.
 
 **Y una contradicción para resolver:** `M3_LECTURA.md` dice que *"a partir de la misión ocho,
 muerto el Pichón, las mejoras las construye el Turco solo"*. Pero el Pichón está vivo en la ocho y

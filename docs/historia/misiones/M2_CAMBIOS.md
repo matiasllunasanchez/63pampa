@@ -212,9 +212,9 @@ idea de que el escuadrón encoge.
 
 ---
 
-# 7 · El silencio de radio existe en M2, y se explica
+# 7 · ~~El silencio de radio existe en M2, y se explica~~
 
-**Estado:** ⬜ · **Toca:** `story.js`, charlas en vuelo, lecciones
+**Estado:** ❌ **sin efecto desde el 4/10** — en M2 se habla (pedido 15). El silencio de radio pasa a M3. · **Toca:** `story.js`, charlas en vuelo, lecciones
 
 > *"debe haber y explicarse el silencio de radio porqe realmente la idea no es llamar la atencion.
 > cuando se entra en zona de radar se calla la boca"*
@@ -320,6 +320,75 @@ misión el minijuego Momentum de zonas del barco, ni Pulso, ni Arena. M5 y M14 d
 
 ---
 
+# TERCERA RONDA — 4/10/2026 · M2 es otra misión de diversión
+
+*El autor reordenó qué se aprende en cada misión de M1 a M4. Está entero en
+**`ESCALERA_DE_APRENDIZAJE.md`**. Lo que toca a M2:*
+
+> *"Mision 2 mas larga, momentum, turbo, chancha (no podnria objetivo, haria mision de difversion 2
+> pero mas lejos y por eso aparece chancha) Aparecen ya enemigos a partir de la alarma 1 viene un
+> harrier al ratito, cada alarma trae un harrier. Y si el harrier muere pero la cantidad de alamras
+> sigue vuelve a aparecer otro al ratito."*
+>
+> *"en mision 2 vamos a aprender el concepto de chancha seguramente, qe va a estar al inicio de
+> cada mision, en la parte previa a entrar al radar, para arrancar la zona de radar y vuelta con
+> nafta cargada, y aprender el concepto de qe podemos llamar a la chancha llegando al final de la
+> zona de radar. mostrando el control correspondiente, qe hasta esta mision no apareceria."*
+
+# 12 · M2 es misión de diversión 2: más lejos, sin objetivo
+
+**Estado:** ⬜ · **⚠ Reemplaza los pedidos 9 y 10 de la segunda ronda**
+
+**Sin objetivo y sin bombas.** Es otra diversión, más lejos que M1 — y por eso hace falta la
+Chancha. **La bomba (pedido 9) y el islote (pedido 10) se mudan a M3** (`M3_CAMBIOS.md`).
+
+**Y el pedido 3** (*"si hay objetivo, hay cinemática"*) **ya no arranca en M2**, porque M2 no tiene
+objetivo: arranca en M3.
+
+# 13 · Se aprenden el Momentum, el turbo y la Chancha
+
+**Estado:** ⬜ · **Toca:** lecciones de M2, `missions.js`
+
+- **Momentum** — confirma el pedido 2 y el 11.
+- **Turbo** — sale de M1, donde hoy se enseña (`LEC_M1_TURBO`).
+- **La Chancha** — ✅ **cierra el pedido 5**: debuta en M2. Está **al principio, antes de entrar a
+  la zona de radar**, para cargar nafta para la zona y la vuelta; y **se la puede volver a llamar
+  al final de la zona de radar.** **El control para llamarla aparece recién acá** — hasta M1 no se
+  muestra. Regla de campaña: ningún personaje nombra la tecla, la muestra el juego en la pausa.
+
+# 14 · Aparecen los enemigos: un Harrier por estrella
+
+**Estado:** ⬜ · **Toca:** `estrellas.js` · ✅ duda resuelta
+
+Desde la **primera** estrella viene un Harrier al rato. **Cada estrella trae uno.** Si un Harrier
+muere pero las estrellas siguen, **vuelve a aparecer otro al rato.**
+
+**⚠ Esto no es lo que hace hoy `estrellas.js`:** ahí la cola se habilita en ★1 pero los Harriers
+recién llegan en ★3.
+
+**Respuesta del autor (4/10), textual:** *"Para M2, esta bien, qe lleguen 2 por alarma entonces en el resto de las misiones qe no sean la 2"*
+
+✅ **Queda así:** **en M2, un Harrier por estrella. En todas las demás misiones, dos por estrella.**
+(En M1 no llega ninguno: es la diversión donde nunca llegan.) Se reponen igual: si muere uno y las
+estrellas siguen, viene otro al rato.
+
+# 15 · En M2 se habla — no hay silencio de radio
+
+**Estado:** ⬜ · ✅ duda resuelta
+
+El pedido 7 (3/10) dice que en M2 **se calla la boca** al entrar a la zona de radar, *"porque la
+idea no es llamar la atención"*. Pero ahora M2 es **misión de diversión** — y en M1 la diversión es
+justamente hablar para que te vean. **¿En M2 se habla o se calla?**
+
+**Respuesta del autor (4/10), textual:** *"M1 y M2 se habla y es tutorial ayuda a eso."*
+
+✅ **En M2 se habla.** Como en M1: las dos son diversión y las dos son tutorial, y que el escuadrón
+hable es lo que permite enseñar. **⚠ Esto deja sin efecto el pedido 7** (silencio de radio en M2).
+**El silencio de radio arranca en M3**, la primera misión con objetivo — es la consecuencia
+directa, a confirmar cuando lleguemos a M3.
+
+---
+
 ## Resumen para la sesión que implementa
 
 | # | Qué | Dónde toca |
@@ -328,12 +397,16 @@ misión el minijuego Momentum de zonas del barco, ni Pulso, ni Arena. M5 y M14 d
 | 2 | Los poderes se enseñan en M2 — faltan las lecciones | diseño, `story.js`, `upgrades.js` |
 | 3 | Si hay objetivo, hay cinemática | flujo de misión · regla de campaña |
 | 4 | Cóndor cierra antes de jugar — falta escribir la línea | `story.js`, `SECUENCIAS` |
-| 5 | 🔵 La Chancha: ¿primera vez en la vuelta de M2? | **esperando confirmación** |
+| 5 | ✅ La Chancha debuta en M2 — resuelto en el 13 | — |
 | 6 | 🔵 Morir y relevo: qué pasa de M2 en adelante | **esperando decisión · toda la campaña** |
-| 7 | El silencio de radio existe y se explica — espejo de M1 | `story.js`, charlas |
+| ~~7~~ | ~~Silencio de radio en M2~~ → **sin efecto: en M2 se habla** (15) | — |
 | 8 | Si el radar te ve vienen los Harriers; se los engaña bajando | radar, `estrellas.js` |
-| 9 | ⚠ Se aprende a tirar la bomba, y que salga mal — **hay bomba propia** | `missions.js`, lecciones |
-| 10 | El islote ya existe como mecánica: M2 tiene que pedirlo | `missions.js`, `estructuras.js` |
+| ~~9~~ | ~~Se aprende a tirar la bomba~~ → **se mudó a M3** (pedido 12) | — |
+| ~~10~~ | ~~El islote~~ → **se mudó a M3** (pedido 12) | — |
+| 12 | **M2 es diversión 2, más lejos, sin objetivo** — la bomba y el islote se mudan a M3 | `missions.js` · ⚠ reemplaza 9 y 10 |
+| 13 | Se aprenden Momentum, turbo y la Chancha (cierra el 5) | lecciones, `missions.js` |
+| 14 | Un Harrier por estrella en M2 (dos en el resto), y se reponen | `estrellas.js` |
+| 15 | En M2 se habla: es tutorial (deja sin efecto el 7) | `story.js` |
 | 11 | **Regla de campaña: sólo pasillo.** Salen pasada, arena, pulso y el minijuego Momentum; el poder Momentum queda | **las catorce** · ✅ dudas resueltas |
 
 ## Y lo que ya sabemos que hay que tocar igual

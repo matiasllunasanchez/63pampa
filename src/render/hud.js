@@ -86,8 +86,15 @@ function cinta(o) {
   // (POR LA PATRIA sin record) no se estira nada: el toast se defiende solo con el mismo minimo.
   const min = vozMin();
   if (conLinea && conNombre() < min) { const falta = min - conNombre(); linea += falta; ancho += falta; }
-  const total = conNombre();
+  let total = conNombre();
   const bx0 = Math.round(W / 2 - total / 2);
+  // …Y SE ESTIRA HASTA EL BORDE DERECHO (4/10, el autor: "usar el resto de barra que tiene a la
+  // derecha"). Arranca donde arrancaba —centrada con su ancho justo— y lo que sobra hasta el margen se
+  // lo lleva la LINEA: mas recorrido, mas resolucion para leer donde estas y donde empieza el radar.
+  if (conLinea) {
+    const libre = Math.max(0, W - MARGEN - (bx0 + total));
+    linea += libre; ancho += libre; total += libre;
+  }
   const py = MARGEN, y = py + 5;                     // la fila, al medio de una placa de 11
   plate(bx0, py, ancho, 11);
   // LA SUELTA: es el momento de soltar → el borde de la cinta titila en verde (y el avion, abajo)
@@ -107,8 +114,17 @@ function cinta(o) {
   if (conLinea) {
     const x0 = kx, x1 = x0 + linea;
     // via PUNTEADA (pendiente) que se va rellenando continua (recorrido): lee como ruta de mapa
-    for (let dx3 = 0; dx3 < linea; dx3 += 4) px(x0 + dx3, y, 2, 1, '#2e3c45');
-    px(x0, y, Math.round(linea * o.prog), 1, P.accent);
+    // DESDE LA MARCA DEL RADAR, EN VERDE (4/10, el autor): el tramo bajo radar se lee de un vistazo —
+    // la via pendiente en verde apagado y lo recorrido en el verde de la marca.
+    const rFr = o.radar != null && o.radar > 0 && o.radar < 1 ? o.radar : null;
+    const xr = rFr === null ? Infinity : Math.round(x0 + linea * rFr);
+    for (let dx3 = 0; dx3 < linea; dx3 += 4) px(x0 + dx3, y, 2, 1, x0 + dx3 >= xr ? '#2f5a35' : '#2e3c45');
+    const hecho = Math.round(linea * o.prog);
+    px(x0, y, Math.min(hecho, xr - x0), 1, P.accent);
+    if (x0 + hecho > xr) px(xr, y, x0 + hecho - xr, 1, SUELTA_COL);
+    // DONDE EMPIEZA EL RADAR (4/10, el autor): una marca verde sobre la ruta. Solo existe con `ruta`
+    // y `radarKm` — sin eso el radar esta desde el despegue y no hay linea que marcar.
+    if (rFr !== null) px(xr, y - 2, 1, 5, SUELTA_COL);
     // LAS PUNTAS. Con buque: el muelle y la silueta de SU clase. Por distancia: el muelle y una
     // BANDERA — antes terminaba en un destructor aunque no hubiera barco. En POR LA PATRIA: el cero
     // y la bandera de la marca a batir (ver drawCorridaBar).
@@ -184,7 +200,7 @@ export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta, sol
       rot: T('hud_home'), prog: Math.max(0, Math.min(1, ruta ? fR / ruta.blanco : falta / vuelta.total)),
       meta: 'distancia', flip,
       a: ruta ? kmTxt(fR) : (falta / 1000).toFixed(1), b: '/ ' + (ruta ? kmTxt(ruta.blanco) : (vuelta.total / 1000).toFixed(1)),
-      uni: 'km', uniCol: P.warn, boost: run.boost,
+      uni: 'km', uniCol: P.warn, boost: run.boost, radar: radarFr(ruta),
     });
     return;
   }
@@ -200,9 +216,12 @@ export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta, sol
     // 'km' en MINUSCULA y del color del total: mas chica sin bajar de cuerpo, y es ademas el simbolo
     // correcto del kilometro (el SI no lo escribe en mayuscula)
     uni: 'km', uniCol: P.warn,
-    boost: run.boost, solta,
+    boost: run.boost, solta, radar: radarFr(ruta),
   });
 }
+/** La linea del radar en fraccion de la cinta: `radarKm` antes del blanco. En la vuelta la cinta
+ *  cuenta lo que falta para casa y el radar se termina a `radarKm` del blanco: cae en el mismo punto. */
+const radarFr = ruta => (ruta && ruta.radarKm && ruta.blanco > 0 ? (ruta.blanco - ruta.radarKm) / ruta.blanco : null);
 
 /** POR LA PATRIA: contra tu record. Sin objetivo no hay ruta, pero la pregunta del renglon es la
  *  misma —¿como va esta corrida?— y las tres cosas que la contestan son la misma info: el
@@ -989,16 +1008,18 @@ function drawCartel() {
   const { k } = a, c = { ...a.c, txt: limpio(a.c.txt), sub: limpio(a.c.sub) }, col = c.col || P.ink;
   ctx.font = avisoFont(8);
   const w1 = ctx.measureText(c.txt).width;
-  ctx.font = F_VAL;
+  // LA LINEA BLANCA VA CHICA (4/10, el autor): en 6 px competia con el titulo. 4 px la deja de nota.
+  const SUB_PX = 4, fSub = `${SUB_PX}px monospace`;
+  ctx.font = fSub;
   const w2 = c.sub ? ctx.measureText(c.sub).width : 0;
-  const w = Math.round(Math.max(w1, w2) + 12), h = c.sub ? 20 : 12;
+  const w = Math.round(Math.max(w1, w2) + 12), h = c.sub ? 12 + SUB_PX + 2 : 12;
   const x = Math.round(W / 2 - w / 2), y = Math.round(MARGEN + CARTEL_Y * k - (1 - k) * h);
   plate(x, y, w, h);
   bordePlaca(x, y, w, h, col);
   ctx.textAlign = 'center';
   ctx.font = avisoFont(8); ctx.fillStyle = col;
   ctx.fillText(c.txt, W / 2, y + 9);
-  if (c.sub) { ctx.font = F_VAL; ctx.fillStyle = P.foam; ctx.fillText(c.sub, W / 2, y + 17); }
+  if (c.sub) { ctx.font = fSub; ctx.fillStyle = P.foam; ctx.fillText(c.sub, W / 2, y + 11 + SUB_PX); }
   ctx.textAlign = 'left';
 }
 

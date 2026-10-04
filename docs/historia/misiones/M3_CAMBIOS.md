@@ -9,7 +9,7 @@
 > código. Acá sólo se transcribe lo que pidió el autor y se marca qué toca cada cosa.
 
 **Abierto el:** 27/9/2026, después de poner `M3_LECTURA.md` en el formato de M1 y M2.
-**Estado general:** ⬜ esperando tus comentarios.
+**Estado general:** ⬜ cinco pedidos (4/10).
 
 ---
 
@@ -43,48 +43,84 @@ Cada pedido lleva un estado, y lo actualizo yo:
 
 # PEDIDOS
 
-## 1 ·
+## Lo que pidió el autor el 4/10 — la escalera de aprendizaje
 
-**Estado:** ⬜
+*Está entero en **`ESCALERA_DE_APRENDIZAJE.md`**. Lo que toca a M3:*
 
-**Tu pedido:**
+> *"Mision 3: Ya hay objetivo, se aprende concepto de bombas, en las otras dos misiones no llevamos
+> bombas, la velocidad era mas rapida, ahora es mas lento, El obejtivo es el puesto de una isla
+> quiza, aprendemos el concepto de lanzar bomba y secuencia uno a uno de diferents oportunidades,
+> la distancia es mucho mas larga, "real". Se suma la chancha y demas. Al finalizar la mision 3 se
+> aprenden los conceptos de MEJORAS DE PICHON, se gana una mejora del estilo "Pichón encontró una
+> mejora para tu avion y Turco la aplicó"*
+>
+> *Cada cierto tiempo pichón y turco te sugerirán mejoras qe podrás elegir, bla bla bla, roguelike.*
+>
+> *(REVISAR las mejoras) A partir de cada fin de mision de todas las qe siguen hay mejoras
+> seleccionables, el usuario selecciona entre 2 mejoras."*
 
-
----
-
-## 2 ·
-
-**Estado:** ⬜
-
-**Tu pedido:**
-
-
----
-
-## 3 ·
-
-**Estado:** ⬜
-
-**Tu pedido:**
-
+**⚠ Esto da vuelta lo que decía `M3_LECTURA.md`:** M3 deja de ser *"la misión más liviana de la
+campaña, sin enemigos ni bombas"*. **Las escenas del hangar no se tocan.**
 
 ---
 
-## 4 ·
+## 1 · Primera misión con objetivo: el puesto de una isla
 
-**Estado:** ⬜
+**Estado:** ⬜ · **Toca:** `missions.js` (m3), `estructuras.js`
 
-**Tu pedido:**
+**El blanco es, probablemente, el puesto de una isla** —el autor dijo *"quizá"*—. **Viene de M2:**
+es el islote que el 3/10 se había puesto en M2 (`M2_CAMBIOS.md` · 10). **La mecánica existe:**
+`goal: { kind: 'estructura' }`, con la única estructura cargada hoy, `BASE COSTERA`.
 
+**Reemplaza a las boyas y el radar portátil** que había en el guion.
 
----
+**Y con objetivo, hay cinemática** (regla de `M2_CAMBIOS.md` · 3): **la primera es en M3.**
 
-## 5 ·
+## 2 · Se aprenden las bombas — y salen mal
 
-**Estado:** ⬜
+**Estado:** ⬜ · **Toca:** `missions.js`, lecciones
 
-**Tu pedido:**
+Lanzar la bomba, **oportunidad por oportunidad**: errar, volver a intentar, que no detone. **Viene
+de M2** (`M2_CAMBIOS.md` · 9, 3/10). Que la bomba no se arme por tirarla bajo **ya existe**
+(`blanco.js`).
 
+## 3 · Con bombas, el avión va más lento
+
+**Estado:** ⬜ · **Toca:** física de carga
+
+En M1 y M2 se vuela sin bombas y más rápido. **Desde M3, más lento.** Coincide con lo ya aprobado
+en `../../sistemas/PLAN_CARGA_Y_CHANCHA.md` (sin bombas, más rápido).
+
+## 4 · La distancia es mucho más larga, "real" — y está la Chancha
+
+**Estado:** ⬜ · **Toca:** `missions.js` (m3: `goal`, `fases`)
+
+Hoy M3 es una tirada de 2.400 m. Pasa a ser **mucho más larga**, con forma de ida, objetivo y
+vuelta, y **la Chancha**, como en todas desde M2.
+
+## 6 · Primera misión con silencio de radio, y con dos Harriers por estrella
+
+**Estado:** ⬜ · *Consecuencia de lo decidido el 4/10 para M2 — a confirmar*
+
+- **Silencio de radio.** En M1 y M2 se habla porque son diversión y tutorial. **M3 es la primera
+  misión con objetivo**, así que es la primera donde, al entrar en zona de radar, nadie habla. Lo
+  que el 3/10 se había pedido para M2 (`M2_CAMBIOS.md` · 7) viene a parar acá.
+- **Dos Harriers por estrella**, como en todas las misiones salvo M2 (`M2_CAMBIOS.md` · 14).
+
+## 5 · Al terminar, la primera mejora — servida
+
+**Estado:** ⬜ · **Toca:** `upgrades.js`, escena de cierre · *(el autor marcó: REVISAR las mejoras)*
+
+*"Pichón encontró una mejora para tu avión y Turco la aplicó."* **Es la primera de la campaña, y no
+se elige.** **De M4 en adelante**, al final de cada misión, **se elige una entre dos.**
+
+**Cambia el calendario de `upgrades.js`:** hoy es *M2 una servida, M3+ a elegir*; pasa a ser *M3
+una servida, M4+ a elegir.*
+
+**Encaja solo con la historia:** *El invento* —el Pichón trepado al avión de Esteban y el Turco
+diciendo *"a ver, mostrame"*— abre esta misma misión. **La mejora que se gana al final es la que el
+pibe estaba tocando.** Ojo con una cosa: *El primer fracaso glorioso* muestra un invento que
+explota; la mejora que funciona tiene que ser otra, o la arandela tiene que ir antes.
 
 ---
 ---

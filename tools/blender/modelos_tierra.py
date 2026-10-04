@@ -87,8 +87,10 @@ def soldado(padre, K, x, z, ry, arma='prismaticos', y=0.0):
     pieza('mochila', s, equipo, (0.16, 0.30, 0.32), (0.19, YC + 0.40, 0))
     elipsoide('cuello', (-0.01, YC + YH + 0.07, 0), (0.06, 0.06, 0.06), s, piel, seg=8, anillos=6)
     elipsoide('cabeza', (-0.02, YC + YH + 0.20, 0), (0.105, 0.115, 0.10), s, piel, seg=12, anillos=8)
-    elipsoide('casco', (-0.01, YC + YH + 0.28, 0), (0.15, 0.10, 0.15), s, casco_m, seg=14, anillos=8)
-    elipsoide('ala', (-0.01, YC + YH + 0.24, 0), (0.17, 0.02, 0.17), s, casco_m, seg=14, anillos=4)
+    # LA BOINA verde de los comandos (pedido del autor 4/10: boinas, no cascos)
+    b = elipsoide('boina', (0, 0, 0), (0.15, 0.055, 0.14), s, K['mat_cel']('boina_verde', '#3f5a36'), seg=14, anillos=8)
+    b.rotation_euler = (0.45, 0, 0.25); b.location = (0.01, YC + YH + 0.32, 0.04)
+    elipsoide('banda', (-0.02, YC + YH + 0.285, 0), (0.115, 0.022, 0.105), s, K['mat_cel']('banda', '#2a2118'), seg=12, anillos=4)
     # las PIERNAS: la de aca con la rodilla al piso, la de alla con el pie adelante (rodilla() de three)
     for zz, rod, pie in ((-0.11, (0.18, 0.13), (0.66, 0.15)), (0.11, (-0.51, 0.51), (-0.48, 0.03))):
         hueso('muslo', s, oscuro, (0, YC, zz), (rod[0], rod[1], zz), 0.085, 0.07)

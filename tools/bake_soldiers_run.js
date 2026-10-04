@@ -17,7 +17,9 @@ app.whenReady().then(async () => {
   await win.loadFile(path.join(__dirname, 'bake_soldiers.html'));
   try {
     const sheets = await win.webContents.executeJavaScript('__bake()');
-    const dir = path.join(ROOT, 'assets', 'world', 'soldats');
+    // DESDE EL 4/10/2026 LA HOJA DEL JUEGO LA HORNEA BLENDER (tools/blender/, fase 6): este horno
+    // escribe la suya en soldats/three/, la que el juego usa con `?horno=three` (src/data/horno.js).
+    const dir = path.join(ROOT, 'assets', 'world', 'soldats', 'three');
     fs.mkdirSync(dir, { recursive: true });
     for (const key in sheets) {
       const b64 = sheets[key].split('base64,')[1];

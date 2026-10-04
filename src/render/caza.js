@@ -20,7 +20,6 @@ import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
 import * as enemyArt from './enemies.js';
 import { snapshot } from '../systems/caza.js';
-import * as fuego from './fuego.js';
 
 const PH_DARK = 0.5, PH_SQUASH = 0.74;
 
@@ -56,14 +55,36 @@ const FL = ['#cf4d16', '#f07c22', '#ffb43c', '#ffe08a', '#fff6d8'];
 function drawTobera(sx, sy, k, t) {
   const fl = 0.74 + Math.sin(t * 31) * 0.16 + Math.random() * 0.1;   // late cuadro a cuadro
   const w = Math.max(1, 1.05 * k * fl);
-  // LA BOCA HORNEADA (render/fuego.js): la estrella que late, en vez de los cuadrados concentricos
-  if (fuego.tobera(sx, sy, Math.max(3, 1.5 * k * fl), t)) return;
   ctx.globalAlpha = 0.26;                                            // resplandor sobre el fuselaje
   px(sx - w, sy - w * 0.5, w * 2, Math.max(1, w), FL[2]);
   ctx.globalAlpha = 1;
   for (let i = 0; i < FL.length; i++) {
     const ww = Math.max(1, w * (1 - i * 0.18));
     px(sx - ww / 2, sy - ww * 0.28, ww, Math.max(1, ww * 0.56), FL[i]);
+  }
+}
+
+/** EL RESPLANDOR DE LAS TOBERAS (pedido del autor 4/10: "quiza conviene quitar el fuego de atras y
+ *  hacer el resplandor como tiene mi avion"). Las dos toberas calientes ya vienen dibujadas en la hoja,
+ *  a los costados de la cintura; esto es solo la LUZ que derraman: un degrade sin borde, como
+ *  `tobera()` de render/plane.js, que late y se apaga al cabecear (si no ves la boca, no brilla). La
+ *  estrella horneada del centro se fue: el Harrier no tiene tobera de cola, y se leia como un
+ *  incendio pegado en la espalda. */
+function resplandor(sx, sy, k, H) {
+  const cara = 1 - Math.min(1, Math.abs(H.pitch || 0) / 0.45);
+  if (cara <= 0.02) return;
+  const a = (H.bank || 0) * Math.PI / 3;                 // el alabeo de la pose (±60°): las bocas rotan con el avion
+  const p = 0.86 + 0.10 * Math.sin(H.t * 30) + Math.random() * 0.04;
+  const R = Math.max(2, 0.55 * k * p);
+  for (const sg of [-1, 1]) {
+    const dx = sg * 0.62 * k, dy = 0.24 * k;
+    const x = sx + dx * Math.cos(a) + dy * Math.sin(a), y = sy - dx * Math.sin(a) + dy * Math.cos(a);
+    const g = ctx.createRadialGradient(x, y, 0, x, y, R);
+    g.addColorStop(0, `rgba(255,170,90,${0.40 * cara})`);
+    g.addColorStop(0.45, `rgba(224,110,36,${0.24 * cara})`);
+    g.addColorStop(1, 'rgba(180,70,22,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(x, y, R, R * 0.72, 0, 0, 6.2832); ctx.fill();
   }
 }
 
@@ -92,6 +113,18 @@ function drawCazaSprite(H) {
     const g = Math.max(0, Math.min(1, H.t / H.dur));
     enemyArt.drawFrame(ctx, 'harrier_turn', Math.min(sh.cols - 1, Math.round(g * (sh.cols - 1))), 0,
       s.x, { centerY: s.y }, k, false, false, 0);
+  } else if (trasero && enemyArt.ready('harrier_cola')) {
+    // DE COLA, CON LA MOVILIDAD DE TU AVION (pedido del autor 4/10): la hoja `harrier_cola` esta
+    // horneada como la del jugador — 9 alabeos de -60 a +60 y los cabeceos en filas (0 trepa, 1
+    // nivelado, 2 pica). La pose sale del movimiento real (bank, pitch). Las filas de las piruetas
+    // (3 y 4, ±32°) estan horneadas pero NO se usan: el Harrier no hace piruetas, y con ellas se lo
+    // veia de arriba ("muy vertical").
+    const col = Math.max(0, Math.min(8, Math.round((H.bank * 0.5 + 0.5) * 8)));
+    const p = H.pitch || 0;
+    const fila = p > 0.45 ? 0 : p < -0.45 ? 2 : 1;
+    enemyArt.drawFrame(ctx, 'harrier_cola', col, fila, s.x, { centerY: s.y }, k, false, false, 0);
+    resplandor(s.x, s.y, k, H);
+    return;
   } else if (trasero && enemyArt.ready('harrier_rear')) {
     enemyArt.drawFrame(ctx, 'harrier_rear', pose(enemyArt.SHEETS.harrier_rear.cols), 0, s.x,
       { centerY: s.y }, k, false, false, 0);

@@ -540,8 +540,18 @@ anteriores**
 - **Se queda un rato dando vueltas** en el aire hasta juntar las cuatro, y **en M1 tienen que
   tardar más en subir que en el resto de la campaña.** Nota para quien implemente: es un ritmo de
   carga propio de M1, más lento.
-- **Cómo se pierden:** lo resolvió el autor en `M2_CAMBIOS.md` · 8 — **bajando, para que el
-  enemigo crea que te derribó.** Falta confirmar si en M1 también se enseña o si sólo se van.
+- **Cómo se pierden — también se enseña en M1.** Respuesta del autor (4/10), textual:
+
+  > *"en M1 tambien pero te lo menciona, debes mantenerte un tiempo fuera del alcance del radar en
+  > rasante para ir perdiendo de a una"*
+
+  **Queda así:** después de juntar las cuatro, **alguien te lo dice** —no se descubre solo—: hay
+  que bajar a rasante, por debajo del alcance del radar, y **sostenerse ahí un tiempo.** Las
+  estrellas **se van de a una**, no todas juntas. Es la misma regla que M2 (`M2_CAMBIOS.md` · 8),
+  presentada en M1 para que en M2 ya se sepa.
+
+  **Con esto M1 enseña el ciclo entero:** esconderse en rasante → subir para que te vean → juntar
+  las cuatro → bajar y aguantar hasta perderlas → volver.
 
 **Las tres dudas originales, para el registro:**
 
@@ -604,7 +614,39 @@ el jugador se queda seco en la zona nueva. Y la Chancha en M1 está apagada (`ch
 | 12 | Tero y el Turco ya se conocen | ✅ ya estaba |
 | 13 | Es una misión de diversión: se explica en el mapa antes de salir | ⬜ · duda resuelta |
 | 14 | Cóndor cambia el objetivo y los manda a una zona con radar | ⬜ |
-| 15 | Zona sin radar (rasante) y zona con radar (subir) · cuatro estrellas, lentas · irse | ⬜ · dudas resueltas |
+| 15 | Zona sin radar (rasante) y zona con radar (subir) · cuatro estrellas, lentas · se pierden de a una bajando, y alguien te lo dice | ⬜ · ✅ todas las dudas resueltas |
 | 16 | Sin enemigos: las estrellas suben y nadie llega | ⬜ |
 | 17 | En la zona de radar se puede hablar | ⬜ |
 | 18 | Recalibrar la nafta para la misión más larga | ⬜ |
+
+
+---
+---
+
+# TERCERA RONDA — 4/10/2026 · la escalera de aprendizaje
+
+*El autor reordenó qué se aprende en cada misión de M1 a M4. Está entero en
+**`ESCALERA_DE_APRENDIZAJE.md`**. Lo que toca a M1:*
+
+> *"Mision 1 distancia mas corta, aprender a volar en rasante, concepto de radar y algunos
+> controles, no momentum no turbo."*
+
+## 19 · Distancia más corta
+
+**Estado:** ⬜ · Ojo: se suma a la **extensión** del pedido 14 (la zona de radar). M1 queda más
+corta en total, pero con la zona de radar adentro.
+
+## 20 · ⚠ Sin turbo en M1
+
+**Estado:** ⬜ · **Toca:** `missions.js` (la lección `LEC_M1_TURBO`), combustible de M1
+
+**⚠ Hoy M1 enseña el turbo** (`LEC_M1_TURBO`), y la nafta de M1 (`fuelScale: 0.25`) se calibró el
+23/9 contando el turbo. **Sale la lección y hay que recalibrar la nafta.** El turbo pasa a M2.
+
+## 21 · Sin Momentum en M1
+
+**Estado:** ✅ ya está así (`poderes: false`).
+
+## 22 · Sin mejoras al terminar M1
+
+**Estado:** ✅ ya está así en `upgrades.js`.

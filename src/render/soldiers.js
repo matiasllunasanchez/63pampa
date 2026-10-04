@@ -21,10 +21,12 @@
 // LOS DOS NUMEROS DE ABAJO SON EL CONTRATO con tools/bake_soldiers.html, que los declara igual.
 // Hay una prueba en `npm run unit` que los compara: si el horneador cambia el encuadre y esto no,
 // el soldado flota o se entierra y no hay error de runtime que lo delate.
+import { HORNO_VIEJO } from '../data/horno.js';
 const SRC = '../assets/world/soldats/soldados.png';
 
 export const sheet = new Image();
-sheet.src = SRC;
+// EL HORNO DE BLENDER (fase 6, 4/10/2026): la de three.js quedo en soldats/three/ (`?horno=three`)
+sheet.src = HORNO_VIEJO ? SRC.replace('/soldats/', '/soldats/three/') : SRC;
 /** ¿La hoja esta lista? Se PREGUNTA a la imagen en vez de guardar un flag en un `export let`:
  *  un flag depende de que nadie pise `onload` y de que el bundler propague la referencia viva.
  *  Las dos cosas ya fallaron una vez. `complete && naturalWidth` no depende de ninguna. */
@@ -38,6 +40,9 @@ export const COL_TIERRA = PASOS;
 /** Filas: 0 = guarnicion (mochila chica) · 1 = desembarco (bergen). La UNICA diferencia entre las
  *  dos es la silueta de la espalda, y alcanza: a 12 px no se lee otra cosa. */
 export const FILA_BERGEN = 1;
+/** Fila 2 = EL CONSCRIPTO ARGENTINO (4/10/2026): casco M1, verde oliva liso, flaco y mas petiso —
+ *  pibes de 18 años. Horneada y lista; todavia no hay quien la pida en el juego. */
+export const FILA_ARGENTINO = 2;
 
 // SUAVIZADO al achicar. La celda viene a 24 px y en juego el soldado mide 8-20: es una reduccion
 // de 1.2x-3x. Con nearest-neighbour se caen filas enteras y el soldado TITILA al cambiar de frame

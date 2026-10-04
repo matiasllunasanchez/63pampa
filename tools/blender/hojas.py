@@ -123,12 +123,37 @@ HOJAS = {
     'fuego': dict(fw=32, fh=48, pos=(0, 1.42, 10), fov=18, lookY=1.42, cols=8, cajas=False, contorno=False,
                   destino='assets/world/explosions/fuego.png',
                   frames=[dict(modelo='bl:llama:%d:%d' % (f, v), rots=[]) for v in (0, 1) for f in range(8)]),
-    # LA TOBERA DE PUNTA: 8 cuadros
-    'tobera': dict(fw=24, fh=24, pos=(0, 0, 10), fov=13, lookY=0, cols=8, cajas=False, contorno=False,
-                   destino='assets/world/explosions/tobera.png',
-                   frames=[dict(modelo='bl:tobera_fuego:%d' % f, rots=[]) for f in range(8)]),
     # LAS BOCANADAS DE HUMO: 8 formas x 2 tonos (fila 0 negro de incendio, fila 1 gris). Con luz: si.
     'humo': dict(fw=32, fh=32, pos=(0, 0.1, 10), fov=15, lookY=0.1, cols=8, cajas=False, contorno=False,
                  destino='assets/world/explosions/humo.png',
                  frames=[dict(modelo='bl:bocanada:%d:%s' % (v, t), rots=[]) for t in ('negro', 'gris') for v in range(8)]),
+    # ---------------- EL HARRIER, HORNEADO COMO TU AVION (4/10/2026) ----------------
+    # Pedido del autor: "hornea a los Harrier de la misma forma que esta horneado mi avion, porque va a
+    # verse detras y tiene que tener la misma movilidad". LA MISMA CAMARA que tools/blender/hornear.py
+    # usa para las hojas de los aviones jugables (cola, (0, 2.4, 12.5) mirando a 0.15, 24° recalculados
+    # para el cuadro cuadrado de 84 → 40.81° verticales), los MISMOS 9 alabeos (-60..+60) y los cabeceos
+    # de las dos hojas del jugador en una sola: filas 0-2 = +14, 0, -14 (sheet.png) y 3-4 = +32, -32
+    # (sheet2.png, las piruetas). La pose como en hornear.py: cabeceo en X y alabeo en Z, sin volteo.
+    'harrier_cola': dict(fw=84, fh=84, pos=(0, 2.4, 12.5), fov=40.8078, lookY=0.15, cols=9,
+                         frames=[dict(modelo='bl:harrier:atras', rots=[('X', p * R), ('Z', a * R)])
+                                 for p in (14, 0, -14, 32, -32) for a in (-60, -45, -30, -15, 0, 15, 30, 45, 60)]),
+    # ---------------- FASE 6: LOS SOLDADOS Y LA EYECCION (4/10/2026, tools/blender/modelos_soldados.py) ----------------
+    # LA INFANTERIA: el encuadre de tools/bake_soldiers.html — la celda es una VENTANA FIJA de 2,9 unidades
+    # con el suelo en la fila 20 (el juego ancla por la celda, no por una caja), de perfil mirando a la
+    # izquierda. 7 columnas (6 del paso + cuerpo a tierra) x 2 filas (guarnicion / desembarco con bergen).
+    # Con EL CONTORNO DE DOS TONOS de bake_common.js (claro arriba-izquierda, oscuro abajo-derecha): el
+    # soldado tiene que leerse sobre turba, arena y nieve en la misma partida.
+    'soldados': dict(fw=24, fh=24, pos=(0, 0.9667, 6.8217), fov=24, lookY=0.9667, cols=7, cajas=False, contorno=False,
+                     contorno2=('#a8aa78', '#12150c'), destino='assets/world/soldats/soldados.png',
+                     # fila 2: EL CONSCRIPTO ARGENTINO (casco M1, oliva liso, 90 % de alto), sin bergen
+                     frames=[dict(modelo=m, rots=[]) for b, bando in ((0, 'brit'), (1, 'brit'), (0, 'arg'))
+                             for m in ['bl:soldado_corre:%d:%d:%s' % (i, b, bando) for i in range(6)] + ['bl:soldado_tierra:%d:%s' % (b, bando)]]),
+    # LA EYECCION: el encuadre de bake_enemies.html. Filas 0 (el argentino) y 1 (el britanico): 4 cuadros
+    # del asiento dando tumbos y 3 bajo la cupula hamacandose; fila 2, el asiento VACIO cayendo aparte.
+    # El punto 0 es EL ARNES (el origen del modelo): el juego ancla los dos actos ahi.
+    'eyectado': dict(fw=48, fh=76, dist=22, lookY=1.5, quarter=0.3, cols=7, puntos=[(0, 0, 0)],
+                     frames=[f for b in ('arg', 'brit') for f in
+                             [dict(modelo='bl:asiento:' + b, roll=n * math.pi / 2) for n in range(4)] +
+                             [dict(modelo='bl:cupula:' + b, roll=a) for a in (-0.1, 0, 0.1)]] +
+                            [dict(modelo='bl:asientoSolo', roll=n * math.pi / 2) for n in range(4)]),
 }

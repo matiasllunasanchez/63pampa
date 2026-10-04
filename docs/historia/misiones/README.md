@@ -34,6 +34,19 @@ sesión con acceso directo al código.
 
 ---
 
+## LA ESCALERA DE APRENDIZAJE — decidida el 4/10
+
+**M1 a M4 enseñan todo; de M5 en adelante no aparece ninguna mecánica nueva.** Qué se aprende en
+cada una, y lo que eso cambia, está en **`ESCALERA_DE_APRENDIZAJE.md`**.
+
+| | |
+|---|---|
+| **M1** | Diversión, corta · rasante, controles, radar y estrellas · sin turbo ni Momentum |
+| **M2** | Diversión 2, más lejos, sin objetivo · se habla · Momentum, turbo, **Chancha** · un Harrier por estrella |
+| **M3** | Primer objetivo (el puesto de una isla) · **silencio de radio** · **bombas**, más lento, larga · dos Harriers por estrella · **primera mejora, servida** |
+| **M4** | Todo junto, contra el buque · **desde acá, una mejora entre dos al final de cada misión** |
+| **M5+** | Cambian terreno, enemigos, distancias y blancos. **Nunca la mecánica** |
+
 ## LAS REGLAS DE CAMPAÑA QUE YA SALIERON
 
 *Esto es lo que hay que revisar dos veces, porque no afecta a una misión sino a todas.*
@@ -48,8 +61,10 @@ sesión con acceso directo al código.
 | **Cada misión abre con su indicativo de ave por radio** y tiene su cartel de despegue con rumbo propio | ✅ las catorce | `../RESUELTOS_GUION.md` · G-08 |
 | **Ningún personaje nombra una tecla.** Las teclas las muestra el juego durante la pausa | ✅ en M1 · molde para el resto | `M1_CAMBIOS.md` · 8 |
 | **Todo el juego es PASILLO, sin pasada.** No se usan ni la pasada, ni Arena, ni Pulso, ni el minijuego Momentum. M5 y M14 dejan de declarar `climax: 'arena'`. **El poder Momentum queda:** se enseña en M2, en M1 no se muestra | ⬜ | `M2_CAMBIOS.md` · 11 |
-| **Silencio de radio:** en M1 la radio abierta es la táctica (quieren que los vean); de M2 en adelante, en zona de radar no habla nadie | ⬜ | `M1_CAMBIOS.md` · 17 · `M2_CAMBIOS.md` · 7 |
+| **La radio:** en M1 y M2 se habla —son diversión y tutorial—. **Desde M3**, en zona de radar no habla nadie | ⬜ | `M2_CAMBIOS.md` · 15 · `ESCALERA_DE_APRENDIZAJE.md` |
+| **Harriers por estrella:** M1 ninguno · M2 uno · el resto dos. Se reponen mientras sigan las estrellas | ⬜ | `M2_CAMBIOS.md` · 14 |
 | **Las alarmas se pierden bajando**, para que el enemigo crea que te derribó | ⬜ | `M2_CAMBIOS.md` · 8 |
+| **La Chancha está al principio de cada misión desde M2**, antes de la zona de radar. Hasta M6 también se la llama adentro, al final de la zona. **Desde M7, sólo en la ida**: la rompen rescatando al Gitano dentro del radar en M6 (antes era desde M10) | ⬜ | `ESCALERA_DE_APRENDIZAJE.md` |
 | **O tres bombas, o tanques.** El jugador elige la carga antes de salir; la Chancha se llama en la ida y en la vuelta; sin bombas el avión va más rápido | ✅ aprobado · backlog de sistemas | `../../sistemas/PLAN_CARGA_Y_CHANCHA.md` |
 
 ### Y una que está en el aire, y es grande
@@ -69,8 +84,8 @@ catorce y el sistema de relevo se cae entero. Ver `M2_CAMBIOS.md` · 6.
 | **M0** | El prólogo | ✅ | ⬜ vacío | — |
 | **M1** | Con sal en las alas | ✅ | ✅ 11 pedidos · ⬜ **segunda ronda, 7 más (3/10)** | ✅ implementada 18-19/9 · ⬜ falta la segunda ronda |
 | **M2** | El bautismo de fuego | ✅ *(al día, 19/9)* | 🔵 6 pedidos + 2 decisiones · ⬜ **segunda ronda, 5 más (3/10)** | ⬜ |
-| **M3** | El invento | ✅ | ⬜ vacío | ⬜ |
-| **M4** | El día que sangró el mar | ✅ | ⬜ vacío | ⬜ |
+| **M3** | El invento | ✅ | ⬜ 5 pedidos (4/10) | ⬜ |
+| **M4** | El día que sangró el mar | ✅ | ⬜ 1 pedido (4/10) | ⬜ |
 | M5 | El callejón de las bombas | ⬜ | ⬜ | ⬜ |
 | M6 | La bomba que no despertó | ⬜ | ⬜ | ⬜ |
 | M7 | Pastelitos | ⬜ | ⬜ | ⬜ |

@@ -35,6 +35,7 @@ const FILES = {
   jet: '../assets/world/enemies/jet.png',
   harrier: '../assets/world/enemies/harrier.png',
   harrier_rear: '../assets/world/enemies/harrier_rear.png',
+  harrier_cola: '../assets/world/enemies/harrier_cola.png',
   harrier_turn: '../assets/world/enemies/harrier_turn.png',
   radar: '../assets/world/enemies/radar.png',
   aatruck: '../assets/world/enemies/aatruck.png',
@@ -127,6 +128,9 @@ const ARTE = {
   // cambiar cuanto ocupa el perseguidor en pantalla, o sea el juego. Esto es arte.
   harrier: { wu: 4.2 },
   harrier_rear: { wu: 4.2 },
+  // EL HARRIER DE COLA HORNEADO COMO TU AVION (4/10/2026): 9 alabeos x 5 cabeceos, la camara de las
+  // hojas del jugador. Mismo `wu` que la vista de cola a la que reemplaza: no cambia de tamaño.
+  harrier_cola: { wu: 4.2 },
   harrier_turn: { wu: 4.2 },
   radar: { wu: 6.2 },
   aatruck: { wu: 6.6 },

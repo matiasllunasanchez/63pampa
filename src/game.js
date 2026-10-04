@@ -3112,7 +3112,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EL CORTE A NEGRO (pedido del autor, 17/9): la pantalla se va a negro, se queda ~0,8 s y
       // vuelve con el avion YA volando para el otro lado. `fadeT` es un fundido DESDE negro con
       // alfa `fadeT / 1.4`: todo lo que pase de 1.4 es el rato en negro pleno.
-      setState('play'); fadeT = 2.2;
+      // …SALVO DESDE LA SUELTA (4/10, el autor: "si no le erre, que no pase nada y me deje seguir"):
+      // ahi el climax se juega en el mismo pasillo, no hubo cambio de camara que tapar, y la vuelta
+      // arranca de corrido.
+      const deCorrido = runClimax() === 'suelta';
+      setState('play'); fadeT = deCorrido ? 0 : 2.2;
+      if (deCorrido) cartel(T('bl_le_diste'), P.warn, T('bl_escapa'));   // rojo, arriba: el autor 4/10
       // el mundo lo vacio el `enter()` del climax; se vuelve al pasillo con el contador de siembra
       // recien puesto para que la vuelta no herede el ultimo intervalo de la aproximacion.
       run.nextSpawn = 320; run.nextBomb = 260; run.nextSoldier = 60;
@@ -3121,7 +3126,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // …Y LA VOZ, del otro lado del negro. Va con el retraso del fundido para que la linea empiece
       // cuando hay algo que ver: dicha en el negro, el jugador la lee sin saber donde esta.
       const av = curMission() && curMission().avisos;
-      if (av && av.vuelta) setTimeout(() => avisar(av, 'vuelta'), 1200);
+      if (av && av.vuelta) setTimeout(() => avisar(av, 'vuelta'), deCorrido ? 0 : 1200);
       // …y unos segundos despues, la Chancha NOMBRADA: no se puede pedir en esta mision, pero esta
       // es la parte del vuelo donde algun dia va a hacer falta, y es donde la frase significa algo.
       if (av && av.chancha) setTimeout(() => avisar(av, 'chancha'), 7200);
@@ -4272,6 +4277,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // encima. No hay negro: en ese cuadro te ven todos —todas las estrellas, el radar en rojo, la
         // alarma que ya sonaba— y el pasillo sigue. La fase del escape tapa a las de la vuelta.
         if (b === 'escape' || (b && b.escape)) empezarEscape();
+        if (b === 'escape') cartel(T('bl_le_diste'), P.warn, T('bl_escapa'));
         // …Y EL VIRAJE: sin estrellas, escapaste. Es la bisagra entre las dos mitades, y el pasillo
         // no la puede mostrar —no rota—, asi que la cuenta un video (ver `viraje`).
         if (blancoSys.escapando() && run.estrellas <= 0 && !vir) { vir = { fase: 'perdimos', t: 0 }; radioTramo('vir_perdimos'); missiles.length = 0; }
@@ -5030,7 +5036,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           : null,
         // …Y LOS KM REALES, si la mision declara `ruta` (PLAN_NAFTA_ALCANCE N1): la barra cuenta
         // 520 / 700 km en vez de los metros del pasillo. null = la barra de siempre.
-        ruta: rutaSys.hay() ? { pos: blancoSys.escapando() ? rutaSys.dato().blancoKm : rutaSys.pos(), blanco: rutaSys.dato().blancoKm } : null,
+        ruta: rutaSys.hay() ? { pos: blancoSys.escapando() ? rutaSys.dato().blancoKm : rutaSys.pos(), blanco: rutaSys.dato().blancoKm, radarKm: rutaSys.dato().radarKm || 0 } : null,
         // fuera del horizonte de radar: la placa FUERA DE RADAR y sin marca de techo en el altimetro
         fueraRadar: S.state === 'play' && !rutaSys.enAlcance(),
         // LA CITA DE IDA DISPONIBLE (planificada, sin barra): el reloj de la Chancha se pone en LISTA

@@ -146,6 +146,9 @@ export function start(opts = {}) {
     lado: opts.lado || (Math.random() < 0.5 ? -1 : 1),
     seed: Math.random() * 6.283,   // desfase propio: dos Harriers de la flota no bandean igual
     bank: 0, xPrev: plane.x,
+    // EL CABECEO, leido del movimiento vertical como el alabeo del horizontal: elige la FILA de la hoja
+    // de cola (`harrier_cola`, horneada como la del jugador: trepa / nivelado / pica, y las piruetas)
+    pitch: 0, yPrev: Math.max(0.8, plane.y - CAZA_Y_ENTRA),
     fx: [],
     humoT: 0, estT: 0, tiroT: 0,
     // LA RAFAGA (ADEN): `gunT` el reloj de la asomada, `gunHecho` si ya tiro en esta, `rafaga` la que
@@ -661,6 +664,13 @@ function stepPos(dt) {
   const vx = (C.x - C.xPrev) / Math.max(dt, 1e-4);
   C.xPrev = C.x;
   C.bank += (Math.max(-1, Math.min(1, vx / 26)) - C.bank) * Math.min(1, dt * 6);
+  // EL CABECEO, con la misma receta: de para donde se esta yendo DE VERDAD en vertical. 30 u/s ≈ un
+  // cabeceo entero, y suavizado lento: con 14 u/s el bandeo vertical (que es un vaiven, no una
+  // trepada) lo dejaba casi siempre en la fila de trepada y el Harrier se veia DE ARRIBA, "muy
+  // vertical" (el autor, 4/10). Ahora solo cabecea cuando trepa o pica de verdad.
+  const vy = (C.y - C.yPrev) / Math.max(dt, 1e-4);
+  C.yPrev = C.y;
+  C.pitch += (Math.max(-1, Math.min(1, vy / 30)) - C.pitch) * Math.min(1, dt * 2.5);
 }
 
 /** EL CICLO — infinito hasta que lo elimines. */
@@ -766,7 +776,7 @@ export function snapshot() {
   return fleet.map(h => ({
     fase: h.fase, t: h.t, dur: h.dur, pase: h.pase, sol: h.sol,
     x: h.x, y: h.y, z: h.z, lado: h.lado, humo: h.humo, fx: h.fx,
-    deFrente: deFrente(h), enCola: enCola(h), bank: h.bank,
+    deFrente: deFrente(h), enCola: enCola(h), bank: h.bank, pitch: h.pitch,
     asoma: h.asomaK, amague: h.amague, final: h.final,
   }));
 }

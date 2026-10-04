@@ -37,48 +37,18 @@ Cada pedido lleva un estado, y lo actualizo yo:
 
 # PEDIDOS
 
-## 1 ·
+## 1 · Todo junto: se ataca al buque
 
-**Estado:** ⬜
+**Estado:** ⬜ · *Del 4/10 — está entero en **`ESCALERA_DE_APRENDIZAJE.md`***
 
-**Tu pedido:**
+> *"M4: Todo junto, se ataca al buque."*
 
+M4 es la primera misión que **usa todo lo aprendido**: rasante, radar y estrellas, Momentum,
+turbo, Chancha, bombas. **No se enseña nada nuevo.** Y **al terminar, la primera elección de
+mejora: una entre dos.**
 
----
-
-## 2 ·
-
-**Estado:** ⬜
-
-**Tu pedido:**
-
-
----
-
-## 3 ·
-
-**Estado:** ⬜
-
-**Tu pedido:**
-
-
----
-
-## 4 ·
-
-**Estado:** ⬜
-
-**Tu pedido:**
-
-
----
-
-## 5 ·
-
-**Estado:** ⬜
-
-**Tu pedido:**
-
+**Y es la última que suma algo:** *"desde el 5 en adelante, variarán terrenos, enemigos, cantidades
+de enemigos, distancias, buques o objetivos finales, terrenos, pero no mecanicas de juego."*
 
 ---
 ---

@@ -160,7 +160,7 @@ def main():
                       uri(ASSETS / 'world' / 'explosions' / 'partes.png', 'image/png')); n += ok
     # EL FUEGO Y EL HUMO horneados en Blender (render/fuego.js, 4/10/2026): SI entran — son tres hojas
     # chicas, y sin ellas la web vuelve a los rectangulos naranjas que vinieron a reemplazar
-    for hoja in ('fuego', 'tobera', 'humo'):
+    for hoja in ('fuego', 'humo'):
         js, ok = sub_path(js, f'../assets/world/explosions/{hoja}.png',
                           uri(ASSETS / 'world' / 'explosions' / f'{hoja}.png', 'image/png')); n += ok
 
