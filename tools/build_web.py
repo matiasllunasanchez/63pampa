@@ -158,6 +158,11 @@ def main():
     # siempre, en render/world.js) esta puesto justamente para eso.
     js, ok = sub_path(js, '../assets/world/explosions/partes.png',
                       uri(ASSETS / 'world' / 'explosions' / 'partes.png', 'image/png')); n += ok
+    # EL FUEGO Y EL HUMO horneados en Blender (render/fuego.js, 4/10/2026): SI entran — son tres hojas
+    # chicas, y sin ellas la web vuelve a los rectangulos naranjas que vinieron a reemplazar
+    for hoja in ('fuego', 'tobera', 'humo'):
+        js, ok = sub_path(js, f'../assets/world/explosions/{hoja}.png',
+                          uri(ASSETS / 'world' / 'explosions' / f'{hoja}.png', 'image/png')); n += ok
 
     # re-embeber audio: mp3 del juego -> m4a comprimida (o '' para las que no entran en la web)
     for mp3, m4a in WEB_AUDIO.items():

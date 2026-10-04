@@ -97,11 +97,12 @@ HOJAS = {
                       frames=[dict(modelo='bl:restoLcu:%d' % n) for n in range(2)]),
     'resto_balloon': dict(fw=48, fh=48, dist=13, lookY=-0.6, quarter=0.4, cols=1, frames=[dict(modelo='bl:restoBalloon')]),
     # ---------------- FASE 5: LAS PARTES DEL DESPIECE ----------------
+    # (remodeladas en Blender el 4/10/2026, como la municion: tools/blender/modelos_partes.py)
     # una fila por pieza EN EL ORDEN DE data/despiece.js (PARTES_HOJA), ocho giros por fila; la pieza
     # volcada en 3/4 (x 0.42, z 0.2) y girando adentro — los grupos de bake_partes.html
     'partes': dict(fw=48, fh=48, pos=(0, 1.5, 5.9), fov=26, lookY=0, cols=8, cajas=False,
                    destino='assets/world/explosions/partes.png',
-                   frames=[dict(modelo='puente:parte-' + n, rots=[('X', 0.42), ('Z', 0.2), ('Y', y * R)])
+                   frames=[dict(modelo='bl:parte:' + n, rots=[('X', 0.42), ('Z', 0.2), ('Y', y * R)])
                            for n in ('ala', 'deriva', 'estab', 'morro', 'cola', 'fuselaje', 'cabina', 'tanque', 'tren', 'panel',
                                      'rotor', 'botalon', 'plato', 'canon', 'motor', 'tambor', 'rueda', 'rampa', 'funda', 'cable')
                            for y in (0, 45, 90, 135, 180, 225, 270, 315)]),
@@ -109,9 +110,25 @@ HOJAS = {
     # SIN CONTORNO: a este tamaño el cuerpo es todo borde (ver armar_enemigos.py)
     'municion': dict(fw=16, fh=16, pos=(0, 0.55, 6.4), fov=26, lookY=0, cols=6, cajas=False, contorno=False,
                      destino='assets/ammo/municion.png',
-                     frames=[dict(modelo='puente:' + m, rots=[('X', v * R)]) for m in ('bomba', 'misil')
+                     frames=[dict(modelo='bl:municion_' + m, rots=[('X', v * R)]) for m in ('bomba', 'misil')
                              for v in (0, 15, 30, 45, 62, 80)]),
     'aim9': dict(fw=32, fh=32, pos=(0, 0.3, 7.4), fov=26, lookY=0, cols=10, cajas=False, contorno=False,
                  destino='assets/ammo/aim9.png',
-                 frames=[dict(modelo='puente:aim9', rots=[('X', v * R)]) for v in range(0, 181, 20)]),
+                 frames=[dict(modelo='bl:municion_aim9', rots=[('X', v * R)]) for v in range(0, 181, 20)]),
+    # ---------------- EL FUEGO Y EL HUMO (4/10/2026, tools/blender/modelos_fuego.py) ----------------
+    # HOJAS NUEVAS: hasta hoy el fuego y el humo se dibujaban por codigo con rectangulos. De frente y sin
+    # volteo (`rots` vacio), sin contorno (el fuego no tiene borde oscuro) y sin caja (la grilla la sabe
+    # render/fuego.js).
+    # LA LLAMA: 8 cuadros de parpadeo x 2 variantes (filas), la base al pie del cuadro
+    'fuego': dict(fw=32, fh=48, pos=(0, 1.42, 10), fov=18, lookY=1.42, cols=8, cajas=False, contorno=False,
+                  destino='assets/world/explosions/fuego.png',
+                  frames=[dict(modelo='bl:llama:%d:%d' % (f, v), rots=[]) for v in (0, 1) for f in range(8)]),
+    # LA TOBERA DE PUNTA: 8 cuadros
+    'tobera': dict(fw=24, fh=24, pos=(0, 0, 10), fov=13, lookY=0, cols=8, cajas=False, contorno=False,
+                   destino='assets/world/explosions/tobera.png',
+                   frames=[dict(modelo='bl:tobera_fuego:%d' % f, rots=[]) for f in range(8)]),
+    # LAS BOCANADAS DE HUMO: 8 formas x 2 tonos (fila 0 negro de incendio, fila 1 gris). Con luz: si.
+    'humo': dict(fw=32, fh=32, pos=(0, 0.1, 10), fov=15, lookY=0.1, cols=8, cajas=False, contorno=False,
+                 destino='assets/world/explosions/humo.png',
+                 frames=[dict(modelo='bl:bocanada:%d:%s' % (v, t), rots=[]) for t in ('negro', 'gris') for v in range(8)]),
 }

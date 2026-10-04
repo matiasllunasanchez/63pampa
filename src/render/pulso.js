@@ -20,6 +20,7 @@ import { padInfo } from '../core/input.js';
 import { bargeGeom } from './world.js';
 import * as momRender from '../legacy/momentum_render.js';
 import { nuevoReguero, humear, MISIL } from './reguero.js';
+import * as fuego from './fuego.js';
 import * as muni from './municion.js';
 // QUE SUELTA EL AVION EN EL PREMIO. El plan del PULSO dice bombas («el arma son las bombas, no un
 // misil», §3) y el catalogo horneado tiene las dos: cambiar de una a otra es esta palabra. Va en
@@ -288,7 +289,13 @@ function drawCineMundo(Q, c, t, cab) {
     }
     // FUEGO: lengua que titila en el punto de impacto (y en la flotacion si volo la carga)
     const fw = uh * (0.7 + humo * 0.5);
-    for (let i = 0; i < 7; i++) {
+    // las LLAMAS horneadas (render/fuego.js): tres focos desfasados a lo ancho del impacto
+    let horneado = false;
+    for (let i = 0; i < 3; i++) {
+      horneado = fuego.llama(im.x - fw / 2 + (i + 0.5) * fw / 3, im.y + uh * 0.15,
+        uh * (1.7 + (i === 1 ? 0.6 : 0) + humo * 0.4), t, i * 5 + 1) || horneado;
+    }
+    for (let i = 0; i < 7 && !horneado; i++) {
       const fl = Math.abs(Math.sin(t * (7 + i) + i * 1.7));
       ctx.globalAlpha = 0.5 + fl * 0.4;
       px(im.x - fw / 2 + (i / 7) * fw, im.y - uh * 0.8 * fl - 1,
@@ -307,8 +314,10 @@ function drawCineMundo(Q, c, t, cab) {
       const sube = Math.min(1, c.tParte * (0.9 + humo * 0.5)) * f;
       const sw = uh * (0.8 + f * 3.2) * humo;
       ctx.globalAlpha = 0.92 - f * 0.62;
-      px(im.x - sw / 2 + Math.sin(t * 0.7 + i * 1.3) * uh * 1.1 + sube * uh * 3.4,
-        im.y - sube * uh * 13 - uh, sw, Math.max(2, sw * 0.85), i % 3 ? '#171b1f' : '#2b3238');
+      const hx = im.x + Math.sin(t * 0.7 + i * 1.3) * uh * 1.1 + sube * uh * 3.4;
+      const hy = im.y - sube * uh * 13 - uh;
+      // la BOCANADA horneada (render/fuego.js); el cuadrado de siempre si la hoja no esta
+      if (!fuego.humo(hx, hy + sw * 0.42, sw * 1.35, i * 3)) px(hx - sw / 2, hy, sw, Math.max(2, sw * 0.85), i % 3 ? '#171b1f' : '#2b3238');
     }
     ctx.globalAlpha = 1;
   }

@@ -20,6 +20,7 @@ import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
 import * as enemyArt from './enemies.js';
 import { snapshot } from '../systems/caza.js';
+import * as fuego from './fuego.js';
 
 const PH_DARK = 0.5, PH_SQUASH = 0.74;
 
@@ -55,6 +56,8 @@ const FL = ['#cf4d16', '#f07c22', '#ffb43c', '#ffe08a', '#fff6d8'];
 function drawTobera(sx, sy, k, t) {
   const fl = 0.74 + Math.sin(t * 31) * 0.16 + Math.random() * 0.1;   // late cuadro a cuadro
   const w = Math.max(1, 1.05 * k * fl);
+  // LA BOCA HORNEADA (render/fuego.js): la estrella que late, en vez de los cuadrados concentricos
+  if (fuego.tobera(sx, sy, Math.max(3, 1.5 * k * fl), t)) return;
   ctx.globalAlpha = 0.26;                                            // resplandor sobre el fuselaje
   px(sx - w, sy - w * 0.5, w * 2, Math.max(1, w), FL[2]);
   ctx.globalAlpha = 1;

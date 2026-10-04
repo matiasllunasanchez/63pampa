@@ -67,14 +67,7 @@ export const PRUEBAS = [
     // la carga de ala es lo unico que cambia: la del centro (la del buque) la llevan todos
     setup: a => a.mision('t16', { carga: 'tres_bombas' }),
   },
-  {
-    id: 'pasada', titulo: 'LA PASADA', desc: 'A ras, saltar, soltar y salir · HMS SHEFFIELD',
-    setup: a => a.pasada('m3'),
-  },
-  {
-    id: 'pasadaSinCorte', titulo: 'LA PASADA SIN CORTE', desc: 'El pasillo desembocando solo en la corrida',
-    setup: a => { a.mision('m3'); a.luego(1.2, g => g.sonda('wjump', 0.93)); },
-  },
+  // (LA PASADA y LA PASADA SIN CORTE salieron del catalogo el 4/10, a pedido del autor)
   {
     id: 'arena', titulo: 'EL ARENA', desc: 'Vuelo libre alrededor del buque · HMS ARDENT',
     setup: a => a.arena('m4'),
@@ -92,10 +85,7 @@ export const PRUEBAS = [
     // Medido: m1 y m3 → 0 compases · m6 → 4 · m9 → 8 · m12 → 12.
     setup: a => a.pulso('m9'),
   },
-  {
-    id: 'momentumViejo', titulo: 'EL MOMENTUM VIEJO', desc: 'El climax en riel 2D (recarga sin 3D)',
-    setup: a => a.recarga('?no3d&qa'),
-  },
+  // (EL MOMENTUM VIEJO —el climax en riel 2D, `?no3d`— salio del catalogo el 4/10: ya no funciona)
 
   // LOS BUQUES. Existe porque una clase de buque nueva no se puede VER sin una mision que la
   // apunte, y escribir una mision para mirar una silueta es al reves. Cada momento carga el

@@ -18,6 +18,7 @@ import { mez } from './paredes.js';
 import { flechaIn } from './rotulo.js';
 import * as enemyArt from './enemies.js';
 import { drawMira } from './miras.js';
+import * as fuego from './fuego.js';
 // EL VERDE DE LA SUELTA, el mismo que titila en el tablero (SUELTA_COL de render/hud.js).
 const VERDE_SUELTA = '#7fe07a';
 
@@ -194,9 +195,13 @@ function llama(f, u, semilla) {
     const sube = ((run.t * 0.9 + j / 5 + semilla * 0.13) % 1);
     ctx.globalAlpha = (1 - sube) * 0.55;
     const r = u * (1.2 + sube * 3);
-    px(f.x - r / 2 + Math.sin(run.t * 2 + j + semilla) * u, f.y - u * 2 - sube * u * 14, r, r, '#1b1a18');
+    const hx = f.x + Math.sin(run.t * 2 + j + semilla) * u, hy = f.y - u * 2 - sube * u * 14;
+    // la BOCANADA horneada (render/fuego.js); el cuadrado de siempre si la hoja no esta
+    if (!fuego.humo(hx, hy, r * 1.5, semilla * 3 + j)) px(hx - r / 2, hy, r, r, '#1b1a18');
   }
   ctx.globalAlpha = 1;
+  // LA LLAMA horneada; los dos rectangulos de siempre si la hoja no esta
+  if (fuego.llama(f.x, f.y, u * 3.6, run.t, semilla)) return;
   px(f.x - u * 1.4, f.y - u * 1.6 * fl, u * 2.8, u * 1.6 * fl, '#e8842a');
   px(f.x - u * 0.6, f.y - u * fl, u * 1.2, u * fl, '#ffd479');
 }

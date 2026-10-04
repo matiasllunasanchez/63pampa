@@ -89,7 +89,7 @@ def archivar(claves, cajas):
         if not HOJAS[k].get('cajas', True):
             # sin caja: la marca de "ya archivada" es que exista la de three
             nueva, vieja = destino(k)
-            if not os.path.exists(vieja):
+            if not os.path.exists(vieja) and subprocess.run(['git', 'ls-files', '--error-unmatch', nueva], cwd=RAIZ, capture_output=True).returncode == 0:
                 os.makedirs(os.path.dirname(vieja), exist_ok=True)
                 subprocess.run(['git', 'mv', nueva, vieja], cwd=RAIZ, check=True)
                 print('archivado en three/:', k)
@@ -128,7 +128,9 @@ if __name__ == '__main__':
         h = hoja(k)
         nueva, vieja = destino(k)
         h.save(nueva)
-        paneles += [(k + ' — HOY (three.js)', Image.open(vieja).convert('RGBA')), (k + ' — BLENDER', h)]
+        # (las hojas NUEVAS —el fuego, el humo— no tienen version de three.js con que comparar)
+        if os.path.exists(vieja): paneles.append((k + ' — HOY (three.js)', Image.open(vieja).convert('RGBA')))
+        paneles.append((k + ' — BLENDER', h))
         if not S.get('cajas', True):
             print('OK %s -> %s' % (k, os.path.relpath(nueva, RAIZ)))
             continue
