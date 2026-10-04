@@ -65,34 +65,37 @@ HOJAS = {
     'lcu': dict(fw=72, fh=48, dist=17, lookY=0.9, quarter=-0.55, cols=3, nivelado=1,
                 frames=[dict(modelo='bl:lcu', roll=a) for a in (-0.09, 0, 0.09)]),
     # ---------------- FASE 4: TIERRA ----------------
+    # TODO LO DEL TERRENO VA SIN CONTORNO (el autor, 4/10: "a todo lo del terreno conviene quitarle
+    # contorno"): las instalaciones, sus restos y la vegetacion se asientan en el suelo en vez de
+    # recortarse encima. Lo que vuela o flota lo conserva.
     # (remodelado en Blender el 4/10/2026: tools/blender/modelos_tierra.py)
     # todos en 3/4 (`quarter`): de frente los caños y los misiles apuntan a la camara y son palitos
-    'radar': dict(fw=48, fh=48, dist=17, lookY=1.7, quarter=0.5, cols=4,
+    'radar': dict(contorno=False, fw=48, fh=48, dist=17, lookY=1.7, quarter=0.5, cols=4,
                   frames=[dict(modelo='bl:radar:%r' % (i * math.pi / 4)) for i in range(4)]),
-    'aatruck': dict(fw=56, fh=48, dist=16, lookY=1.3, quarter=0.5, cols=3,
+    'aatruck': dict(contorno=False, fw=56, fh=48, dist=16, lookY=1.3, quarter=0.5, cols=3,
                     frames=[dict(modelo='bl:camion_aa:%r' % a) for a in (-0.5, 0, 0.5)]),
     'balloon': dict(fw=48, fh=48, dist=11, lookY=0, quarter=0.4, cols=3,
                     frames=[dict(modelo='bl:globo', roll=a) for a in (-0.12, 0, 0.12)]),
-    'aa': dict(fw=48, fh=48, dist=14, lookY=1.2, quarter=0.45, cols=2,
+    'aa': dict(contorno=False, fw=48, fh=48, dist=14, lookY=1.2, quarter=0.45, cols=2,
                frames=[dict(modelo='bl:nido_rapier:%r' % a) for a in (0.55, 0.8)]),
-    'manpad': dict(fw=48, fh=48, dist=9, lookY=0.7, quarter=0.45, cols=2,
+    'manpad': dict(contorno=False, fw=48, fh=48, dist=9, lookY=0.7, quarter=0.45, cols=2,
                    frames=[dict(modelo='bl:manpad:%r' % a) for a in (0.7, 1.0)]),
-    'tent': dict(fw=48, fh=48, dist=12, lookY=0.6, quarter=0.35, cols=1, frames=[dict(modelo='bl:carpa')]),
-    'depot': dict(fw=64, fh=48, dist=15, lookY=1.0, quarter=0.4, cols=1, frames=[dict(modelo='bl:deposito')]),
-    'bldg': dict(fw=64, fh=48, dist=14, lookY=1.4, quarter=0.35, cols=1, frames=[dict(modelo='bl:puesto')]),
+    'tent': dict(contorno=False, fw=48, fh=48, dist=12, lookY=0.6, quarter=0.35, cols=1, frames=[dict(modelo='bl:carpa')]),
+    'depot': dict(contorno=False, fw=64, fh=48, dist=15, lookY=1.0, quarter=0.4, cols=1, frames=[dict(modelo='bl:deposito')]),
+    'bldg': dict(contorno=False, fw=64, fh=48, dist=14, lookY=1.4, quarter=0.35, cols=1, frames=[dict(modelo='bl:puesto')]),
     # ---------------- FASE 5: LOS RESTOS ----------------
     # (remodelados en Blender el 4/10/2026: tools/blender/modelos_restos.py, con los modelos nuevos; cuatro
     # con la camara un paso mas atras: el resto desparramado es mas ancho que el vivo, y el `wu` los empareja)
-    'resto_aa': dict(fw=48, fh=48, dist=18, lookY=0.8, quarter=0.45, cols=1, frames=[dict(modelo='bl:restoAA')]),
-    'resto_manpad': dict(fw=48, fh=48, dist=13, lookY=0.4, quarter=0.45, cols=1, frames=[dict(modelo='bl:restoManpad')]),
-    'resto_aatruck': dict(fw=56, fh=48, dist=16, lookY=0.9, quarter=0.5, cols=1, frames=[dict(modelo='bl:restoAATruck')]),
-    'resto_radar': dict(fw=48, fh=48, dist=18, lookY=1.0, quarter=0.5, cols=1, frames=[dict(modelo='bl:restoRadar')]),
-    'resto_depot': dict(fw=64, fh=48, dist=15, lookY=0.8, quarter=0.4, cols=1, frames=[dict(modelo='bl:restoDepot')]),
-    'resto_bldg': dict(fw=64, fh=48, dist=14, lookY=1.0, quarter=0.35, cols=3,
+    'resto_aa': dict(contorno=False, fw=48, fh=48, dist=18, lookY=0.8, quarter=0.45, cols=1, frames=[dict(modelo='bl:restoAA')]),
+    'resto_manpad': dict(contorno=False, fw=48, fh=48, dist=13, lookY=0.4, quarter=0.45, cols=1, frames=[dict(modelo='bl:restoManpad')]),
+    'resto_aatruck': dict(contorno=False, fw=56, fh=48, dist=16, lookY=0.9, quarter=0.5, cols=1, frames=[dict(modelo='bl:restoAATruck')]),
+    'resto_radar': dict(contorno=False, fw=48, fh=48, dist=18, lookY=1.0, quarter=0.5, cols=1, frames=[dict(modelo='bl:restoRadar')]),
+    'resto_depot': dict(contorno=False, fw=64, fh=48, dist=15, lookY=0.8, quarter=0.4, cols=1, frames=[dict(modelo='bl:restoDepot')]),
+    'resto_bldg': dict(contorno=False, fw=64, fh=48, dist=14, lookY=1.0, quarter=0.35, cols=3,
                        frames=[dict(modelo='bl:restoBldg:%d' % n) for n in range(3)]),
-    'resto_tent': dict(fw=48, fh=48, dist=12, lookY=0.25, quarter=0.35, cols=1, frames=[dict(modelo='bl:restoTent')]),
-    'resto_helo': dict(fw=64, fh=48, dist=16.5, lookY=1.15, quarter=0.4, cols=1, frames=[dict(modelo='bl:restoHelo')]),
-    'resto_jet': dict(fw=64, fh=48, dist=16, lookY=0.6, quarter=0.35, cols=1, frames=[dict(modelo='bl:restoJet')]),
+    'resto_tent': dict(contorno=False, fw=48, fh=48, dist=12, lookY=0.25, quarter=0.35, cols=1, frames=[dict(modelo='bl:restoTent')]),
+    'resto_helo': dict(contorno=False, fw=64, fh=48, dist=16.5, lookY=1.15, quarter=0.4, cols=1, frames=[dict(modelo='bl:restoHelo')]),
+    'resto_jet': dict(contorno=False, fw=64, fh=48, dist=16, lookY=0.6, quarter=0.35, cols=1, frames=[dict(modelo='bl:restoJet')]),
     'resto_lcu': dict(fw=72, fh=48, dist=17, lookY=0.5, quarter=-0.55, cols=2,
                       frames=[dict(modelo='bl:restoLcu:%d' % n) for n in range(2)]),
     'resto_balloon': dict(fw=48, fh=48, dist=13, lookY=-0.6, quarter=0.4, cols=1, frames=[dict(modelo='bl:restoBalloon')]),
@@ -163,7 +166,7 @@ HOJAS = {
     #   entre verdes, amarillos y marrones claros segun el dia y la luz
     #   3 las FLORES del tojo solas (la mata de oclusor), en su amarillo, para dibujar encima sin teñir
     #   4 la cortadera (en gris)     5 las piedras blancas de cuarcita, en su color
-    'matas': dict(nueva=True, fw=32, fh=32, pos=(0, 1.7, 8), fov=20, lookY=1.2, cols=6, cajas=False,
+    'matas': dict(contorno=False, nueva=True, fw=32, fh=32, pos=(0, 1.7, 8), fov=20, lookY=1.2, cols=6, cajas=False,
                   destino='assets/world/elements/matas.png',
                   frames=[dict(modelo='bl:%s:%d%s' % (m, v, x), rots=[('Y', v * 1.1)])
                           for m, x in (('pasto', ''), ('murtilla', ''), ('tojo', ':0'), ('tojo', ':1'), ('cortadera', ''), ('piedra', ''))
@@ -171,7 +174,7 @@ HOJAS = {
     # EL PASTO DEL SUELO (4/10/2026, brizna() en modelos_vegetacion.py): 8 matojos x 3 estados de viento
     # (fila 0 parado, 1 doblado, 2 acostado), en gris — los tiñe render/world.js con los tonos de pasto
     # del clima. 24x24 con el suelo al pie; la camara apenas por arriba, como se ve el campo volando.
-    'pasto': dict(nueva=True, fw=24, fh=24, pos=(0, 0.62, 4), fov=15.6, lookY=0.45, cols=8, cajas=False,
+    'pasto': dict(contorno=False, nueva=True, fw=24, fh=24, pos=(0, 0.62, 4), fov=15.6, lookY=0.45, cols=8, cajas=False,
                   destino='assets/world/elements/pasto.png',
                   frames=[dict(modelo='bl:brizna:%d:%d' % (v, w), rots=[]) for w in range(3) for v in range(8)]),
 }

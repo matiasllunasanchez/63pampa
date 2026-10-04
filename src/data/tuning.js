@@ -1008,6 +1008,8 @@ export const REC = {
   // LEJOS: de las que NO rozan, que fraccion pica lejos (a cuanto de costado y cuanto adelante). En
   // total: 60% rozan, 25% pican pegadas, 15% lejos — la mayoria cerca, no todas.
   LEJOS: 0.38, LEJOS_X: [7, 16], LEJOS_Z: [10, 80],
+  // MAS ADELANTE: otra tanda por rafaga que pica mas lejos delante tuyo, cerca de tu linea
+  MAS_N: [2, 4], MAS_X: [1.5, 7], MAS_Z: [28, 75],
   DESTELLO_T: 0.12, MAX: 40,
 };
 

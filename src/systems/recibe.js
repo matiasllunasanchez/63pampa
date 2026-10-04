@@ -69,6 +69,15 @@ export function stepRecibe(dt, negro, PZ) {
       recibe.tiros.push({ ox: ex, oy: ey, oz: blanco.z, dx, dy: 0, dz: PZ + rnd(...(lejos ? REC.LEJOS_Z : REC.PICA_Z)), t: -i * REC.ENTRE, T });
     }
   }
-  recibe.destellos.push({ x: ex, y: ey, t: REC.DESTELLO_T + n * REC.ENTRE, T: REC.DESTELLO_T + n * REC.ENTRE });
+  // OTRA TANDA, MAS ADELANTE (4/10, el autor): la misma rafaga sigue y estas pican mas lejos delante
+  // tuyo, cerca de tu linea — el agua se ve picada por delante y uno vuela hacia los piques.
+  const m = Math.round(rnd(...REC.MAS_N));
+  for (let j = 0; j < m; j++) {
+    const i = n + j, T = Math.max(REC.T_MIN, Math.min(REC.T_MAX, d / REC.V));
+    const dx = plane.x + (Math.random() < 0.5 ? -1 : 1) * rnd(...REC.MAS_X);
+    recibe.tiros.push({ ox: ex, oy: ey, oz: blanco.z, dx, dy: 0, dz: PZ + rnd(...REC.MAS_Z), t: -i * REC.ENTRE, T });
+  }
+  const dura = REC.DESTELLO_T + (n + m) * REC.ENTRE;
+  recibe.destellos.push({ x: ex, y: ey, t: dura, T: dura });
   if (recibe.tiros.length > REC.MAX) recibe.tiros.splice(0, recibe.tiros.length - REC.MAX);
 }
