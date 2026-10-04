@@ -170,6 +170,12 @@ export function initInput(cv, a) {
       if (!e.repeat) a.dlgAceptar();
       e.preventDefault(); return;
     }
+    // …Y LA CHARLA EN VUELO, que tambien frena el mundo (4/10): cualquier tecla completa el tipeo y
+    // la siguiente pasa de linea. Mismo criterio de `e.repeat` y misma razon de ir antes del ESC.
+    if (a.isCharla && a.isCharla()) {
+      if (!e.repeat) a.charlaTecla();
+      e.preventDefault(); return;
+    }
     // PAUSA: mientras esta abierta se come TODO el teclado (navegar/confirmar/volver) — asi las
     // flechas no alimentan el vuelo ni el detector de combos con el juego congelado.
     if (a.isPaused()) {
@@ -533,6 +539,14 @@ export function initInput(cv, a) {
     if (inGame && a.isDlgPausa && a.isDlgPausa()) {
       for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx']) setPad(f, 0);
       if (hit(0) || hit(1) || hit(9)) a.dlgAceptar();
+      btnPrev = pressed;
+      requestAnimationFrame(pollGamepad);
+      return;
+    }
+    // la CHARLA EN VUELO con el mando: los mismos botones completan y pasan de linea
+    if (inGame && a.isCharla && a.isCharla()) {
+      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx']) setPad(f, 0);
+      if (hit(0) || hit(1) || hit(9)) a.charlaTecla();
       btnPrev = pressed;
       requestAnimationFrame(pollGamepad);
       return;

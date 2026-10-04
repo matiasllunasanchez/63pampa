@@ -13,7 +13,7 @@ import { multOf } from './core/util.js';
 import { pos as aguPos, ancho as aguAncho, margen as aguMargen, ventana as aguVentana } from './core/aguante.js';
 import { armadoDbg as aguArmado } from './systems/aguante.js';
 import * as dialogue from './core/dialogue.js';
-import { dlg, seqFromScreens } from './core/dialogue.js';
+import { dlg, seqFromScreens, TYPE_CPS } from './core/dialogue.js';
 import { SCENES, SECUENCIAS } from './data/story.js';
 import { S, setState, cfg, cam, plane, stats, resetPlane, resetStats, CTRL_DIRECT, CTRL_BANK } from './core/state.js';
 import { hzWorld, stepHorizon } from './core/horizon.js';
@@ -337,6 +337,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     //     sin vencerse nunca: fondo negro sin una letra, para siempre. Ver la rama en frame().
     //   · Y NO DEPENDE de PAUSABLE() ni de cfg.devcam: no la abre el jugador, la abre la DATA.
     let dlgPausa = false;
+    // EL TIPEO DEL DIALOGO CONGELADO (autor, 4/10: "si aprieto una tecla se tiene que escribir completo,
+    // si presiono de nuevo continua, como en los dialogos fuera del juego"). Caracteres escritos de la
+    // linea, a TYPE_CPS como la historia (core/dialogue.js). Infinity = entera (fuera de la congelada).
+    let dlgTyped = Infinity;
+    const dlgTotal = () => radioBox.wrap.reduce((s, l) => s + l.length + 1, 0);
     let dlgT = 0;                    // reloj propio de PARED (run.t y pauseT estan congelados)
     // El de la CHARLA EN VUELO congelada. No reemplaza a `run.t`: lo EXTIENDE. Las cajas de voz
     // (render/screens.js) miden su entrada con un reloj que tiene que seguir corriendo con el mundo
@@ -374,13 +379,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  pausa enganche ANTES de que el dialogo arranque, no a mitad. */
     function dlgFreeze(key) {
       radioTramo(key);
-      dlgPausa = true; dlgT = 0;
+      dlgPausa = true; dlgT = 0; dlgTyped = 0;
       engineOff();                   // igual que pauseToggle: el motor no ruge con el mundo quieto
     }
     /** El jugador leyo y sigue. La linea NO se calla: termina su reloj en vuelo y se funde sola,
      *  como cualquier radio del pasillo. */
     function dlgAceptar() {
-      if (!dlgPausa || dlgT < DLG_GRACIA) return;
+      if (!dlgPausa) return;
+      // PRIMERO COMPLETA, DESPUES CONTINUA — como la historia (pressDialogue: "completar, nunca
+      // saltear"). Completar no pide la gracia entera: solo que no sea la misma tecla que la abrio.
+      if (dlgTyped < dlgTotal()) { if (dlgT > 0.12) { dlgTyped = Infinity; beep(500, 0.05, 'square', 0.04); } return; }
+      if (dlgT < DLG_GRACIA) return;
       dlgPausa = false;
       // UNA LECCION SE CALLA AL SOLTARLA: ya se leyo con el mundo quieto, y si siguiera sonando en
       // vuelo la proxima de la cadena tendria que esperarla — el corte de Condor, lo de Puma y el
@@ -854,6 +863,20 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const liAntes = dlg.li, siAntes = dlg.si;
       if (dialogue.stepDialogue(dt) === 'auto' && dialogue.advance() === 'end') charlaFin = true;
       if (dlg.li !== liAntes || dlg.si !== siAntes) anotarCharla();
+    }
+
+    /** LA TECLA EN UNA CHARLA EN VUELO (autor, 4/10). Las charlas frenan el mundo y avanzaban solas,
+     *  con el reloj; ahora tambien con la mano, como la historia: el primer toque completa el tipeo y
+     *  el segundo pasa a la linea siguiente (`pressDialogue`). El auto-avance sigue: si nadie toca,
+     *  la charla se dice sola igual que antes. Devuelve true si la tecla fue de la charla. */
+    function charlaTecla() {
+      if (!charla.hablando() || dlgPausa || dlg.seqT < 0.3) return charla.hablando();
+      const li0 = dlg.li, si0 = dlg.si;
+      const r = dialogue.pressDialogue();
+      if (r === 'end') charlaFin = true;
+      if (r) beep(500, 0.05, 'square', 0.04);
+      if (r !== 'end' && (dlg.li !== li0 || dlg.si !== si0)) anotarCharla();   // la linea nueva, al historial
+      return true;
     }
 
     /** UN CUADRO DE LA CHARLA EN VUELO: el motor de dialogo y la maquina de fases, en ese orden.
@@ -2526,6 +2549,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // congelada update() no corre — o sea que anyPress no se prende ni se limpia nunca.
       isDlgPausa: () => dlgPausa,
       dlgAceptar: () => dlgAceptar(),
+      isCharla: () => charla.hablando() && !dlgPausa,
+      charlaTecla: () => charlaTecla(),
       pauseToggle: () => pauseToggle(),
       pauseNav: dir => pauseNav(dir),
       pauseConfirm: () => pauseConfirm(),
@@ -3489,7 +3514,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       decirRadio(ln.personaje + ': ' + dialogue.txtOf(ln), () => ln.cara);
       if (pausa) {
         lecFoco = { foco: lec.foco || [], teclas: lec.teclas || [] };
-        dlgPausa = true; dlgT = 0;
+        dlgPausa = true; dlgT = 0; dlgTyped = 0;
         engineOff();
       }
     }
@@ -5229,7 +5254,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         ctx.save(); ctx.scale(U, U);
         const caja = screens.cajaVN({
           personaje: radioBox.personaje, cara: radioBox.cara, wrap: radioBox.wrap,
-          ease: radioBox.ease, cursor: dlgT > DLG_GRACIA, parpadeo: dlgT, barra: null, arriba,
+          ease: radioBox.ease, cursor: dlgT > DLG_GRACIA && dlgTyped === Infinity, parpadeo: dlgT, barra: null, arriba,
+          typed: dlgTyped,
         });
         // LAS TECLAS: las pone el juego, no el personaje. Salen de la tabla de CONTROLES (la misma de
         // OPCIONES → CONTROLES) en su version de teclado o de mando, segun haya uno conectado.
@@ -6233,6 +6259,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // vale cero aca.
       if (dlgPausa) {
         dlgT += raw;
+        // el tipeo, con el mismo tic de las letras que la historia
+        const antes = Math.floor(dlgTyped);
+        dlgTyped += raw * TYPE_CPS;   // (Infinity + algo sigue siendo Infinity: la linea ya esta entera)
+        if (dlgTyped !== Infinity && dlgTyped >= dlgTotal()) dlgTyped = Infinity;
+        if (dlgTyped !== Infinity && Math.floor(dlgTyped) > antes && !isMuted()) beep(1300 + Math.random() * 1100, 0.014, 'square', 0.013);
         tickRadio(raw, true);
         if (dlgT > DLG_TOPE) dlgAceptar();   // salida de emergencia: sin foco, sin teclado, sin nada
         draw(); updateMusic(S.state);

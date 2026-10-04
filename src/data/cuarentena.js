@@ -22,7 +22,8 @@ export const CLIMAX_SUPLENTE = 'pulso';
  *  el codigo: dejan de tener una fila desde donde entrar. Las sondas y el catalogo de PRUEBAS
  *  siguen llegando (`?pasada=`, `__prb('arena')`, `npm run pasada`) — a proposito: son la red
  *  que avisa si algo de lo apartado se rompe. */
-export const MODOS_EN_CUARENTENA = ['arena', 'pasadas'];
+// 'persec' desde el 4/10 (autor: "no funciona bien y no queda claro"): queda en PRUEBAS → IDEAS VIEJAS.
+export const MODOS_EN_CUARENTENA = ['arena', 'pasadas', 'persec'];
 
 export const climaxEnCuarentena = c => CLIMAX_EN_CUARENTENA.includes(c);
 export const modoEnCuarentena = id => MODOS_EN_CUARENTENA.includes(id);

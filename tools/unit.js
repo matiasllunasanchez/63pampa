@@ -603,8 +603,9 @@ test('cuarentena: HOY no queda ninguna mision jugando algo apartado', () => {
   assert.ok(conBuque.length > 0, 'la campaña tiene misiones con buque');
   assert.ok(conBuque.every(m => !climaxEnCuarentena(climaxOf(m))), 'ninguna mision entra a un climax apartado');
   assert.equal(MISSIONS.filter(m => m.goal.kind !== 'ship').every(m => climaxOf(m) === null), true);
-  // y los modos apartados no pueden ser cualquier cosa: son los dos que el plan nombra
-  assert.deepEqual([...MODOS_EN_CUARENTENA].sort(), ['arena', 'pasadas'], 'los modos apartados son MINUTOS SAGRADOS y PASADAS MORTALES');
+  // y los modos apartados no pueden ser cualquier cosa: los dos que el plan nombra, y la PERSECUCION
+  // desde el 4/10 (autor: "no funciona bien y no queda claro")
+  assert.deepEqual([...MODOS_EN_CUARENTENA].sort(), ['arena', 'pasadas', 'persec'], 'los modos apartados son MINUTOS SAGRADOS, PASADAS MORTALES y PERSECUCION');
   assert.ok(modoEnCuarentena('arena') && modoEnCuarentena('pasadas') && !modoEnCuarentena('cycle'));
 });
 

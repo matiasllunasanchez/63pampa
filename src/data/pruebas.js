@@ -125,10 +125,6 @@ export const PRUEBAS = [
       a.luego(2.2, g => g.sonda('czfase', 'ventana'));
     },
   },
-  {
-    id: 'persec', titulo: 'LA PERSECUCION', desc: 'Volar de numeral, en la banda del lider',
-    setup: a => a.persec(),
-  },
 
   { head: 'prSecDestr' },
   {
@@ -213,6 +209,12 @@ export const PRUEBAS = [
     // y mostraba una pantalla donde no hay nada que jugar. En m9 la libreta trae 8 compases.
     // Medido: m1 y m3 → 0 compases · m6 → 4 · m9 → 8 · m12 → 12.
     setup: a => a.pulso('m9'),
+  },
+  // LA PERSECUCION (autor, 4/10: "no funciona bien y no queda claro"): sale de LA COLA y de JUEGO
+  // RAPIDO (data/cuarentena.js) y queda aca, a mano para cuando se retome.
+  {
+    id: 'persec', titulo: 'LA PERSECUCION', desc: 'Volar de numeral, en la banda del lider',
+    setup: a => a.persec(),
   },
   {
     id: 'chancha', titulo: 'LA CHANCHA CON LA NAFTA JUSTA', desc: 'El KC-130 pedido al 8% de tanque: el momento dramatico',
