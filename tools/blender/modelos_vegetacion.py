@@ -174,16 +174,18 @@ DOBLEZ = (0.0, 0.34, 0.68)
 def brizna(T, K, variante='0', viento='0'):
     v, w = int(variante), DOBLEZ[int(viento)]
     g = vacio(T, 'matojo')
-    tonos = [K['mat_cel']('briz%d' % i, c) for i, c in enumerate(('#8a8a84', '#b0b0a8', '#e0ded2'))]
+    # gris CLARO: el tinte multiplica, y con un gris medio el matojo salia mas oscuro que el trazo de
+    # antes — en la captura se leian palitos secos
+    tonos = [K['mat_cel']('briz%d' % i, c) for i, c in enumerate(('#c4c4bc', '#dcdcd4', '#f6f4ea'))]
     alto = 0.55 + 0.12 * math.sin(v * 1.9)
-    N = 24 + (v % 3) * 4
+    N = 40 + (v % 3) * 6                                           # TUPIDO: un matojo, no tres palitos
     for i in range(N):
         a = i * AUREO + v
         r0 = 0.06 * math.sqrt((i + 0.5) / N)
         inc = 0.10 + 0.55 * ((i * 7 + v) % 9) / 9                 # cuanto se abre cada brizna
         largo = alto * (0.65 + 0.35 * ((i * 5 + v) % 7) / 7)
         p = (math.cos(a) * r0, 0.0, math.sin(a) * r0)
-        for k, (f, r) in enumerate(((0.45, 0.016), (0.33, 0.011), (0.22, 0.006))):
+        for k, (f, r) in enumerate(((0.45, 0.028), (0.33, 0.020), (0.22, 0.011))):
             # la apertura propia de la brizna + EL VIENTO, que la dobla hacia +x mas cuanto mas arriba
             ang = inc * (0.4 + 0.5 * k)
             dx, dz = math.cos(a) * math.sin(ang), math.sin(a) * math.sin(ang)

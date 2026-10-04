@@ -103,6 +103,9 @@ def archivar(claves, cajas):
     os.makedirs(tres, exist_ok=True)
     viejas = leer_three()
     for k in claves:
+        # una hoja NUEVA (`nueva=True`: el fuego, el humo, la vegetacion) no tiene version de three.js
+        # que guardar — aunque ya este commiteada, la que hay es la de Blender
+        if HOJAS[k].get('nueva'): continue
         if not HOJAS[k].get('cajas', True):
             # sin caja: la marca de "ya archivada" es que exista la de three
             nueva, vieja = destino(k)

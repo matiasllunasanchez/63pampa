@@ -120,11 +120,11 @@ HOJAS = {
     # volteo (`rots` vacio), sin contorno (el fuego no tiene borde oscuro) y sin caja (la grilla la sabe
     # render/fuego.js).
     # LA LLAMA: 8 cuadros de parpadeo x 2 variantes (filas), la base al pie del cuadro
-    'fuego': dict(fw=32, fh=48, pos=(0, 1.42, 10), fov=18, lookY=1.42, cols=8, cajas=False, contorno=False,
+    'fuego': dict(nueva=True, fw=32, fh=48, pos=(0, 1.42, 10), fov=18, lookY=1.42, cols=8, cajas=False, contorno=False,
                   destino='assets/world/explosions/fuego.png',
                   frames=[dict(modelo='bl:llama:%d:%d' % (f, v), rots=[]) for v in (0, 1) for f in range(8)]),
     # LAS BOCANADAS DE HUMO: 8 formas x 2 tonos (fila 0 negro de incendio, fila 1 gris). Con luz: si.
-    'humo': dict(fw=32, fh=32, pos=(0, 0.1, 10), fov=15, lookY=0.1, cols=8, cajas=False, contorno=False,
+    'humo': dict(nueva=True, fw=32, fh=32, pos=(0, 0.1, 10), fov=15, lookY=0.1, cols=8, cajas=False, contorno=False,
                  destino='assets/world/explosions/humo.png',
                  frames=[dict(modelo='bl:bocanada:%d:%s' % (v, t), rots=[]) for t in ('negro', 'gris') for v in range(8)]),
     # ---------------- EL HARRIER, HORNEADO COMO TU AVION (4/10/2026) ----------------
@@ -163,7 +163,7 @@ HOJAS = {
     #   entre verdes, amarillos y marrones claros segun el dia y la luz
     #   3 las FLORES del tojo solas (la mata de oclusor), en su amarillo, para dibujar encima sin teñir
     #   4 la cortadera (en gris)     5 las piedras blancas de cuarcita, en su color
-    'matas': dict(fw=32, fh=32, pos=(0, 1.7, 8), fov=20, lookY=1.2, cols=6, cajas=False,
+    'matas': dict(nueva=True, fw=32, fh=32, pos=(0, 1.7, 8), fov=20, lookY=1.2, cols=6, cajas=False,
                   destino='assets/world/elements/matas.png',
                   frames=[dict(modelo='bl:%s:%d%s' % (m, v, x), rots=[('Y', v * 1.1)])
                           for m, x in (('pasto', ''), ('murtilla', ''), ('tojo', ':0'), ('tojo', ':1'), ('cortadera', ''), ('piedra', ''))
@@ -171,7 +171,7 @@ HOJAS = {
     # EL PASTO DEL SUELO (4/10/2026, brizna() en modelos_vegetacion.py): 8 matojos x 3 estados de viento
     # (fila 0 parado, 1 doblado, 2 acostado), en gris — los tiñe render/world.js con los tonos de pasto
     # del clima. 24x24 con el suelo al pie; la camara apenas por arriba, como se ve el campo volando.
-    'pasto': dict(fw=24, fh=24, pos=(0, 0.62, 4), fov=15.6, lookY=0.45, cols=8, cajas=False,
+    'pasto': dict(nueva=True, fw=24, fh=24, pos=(0, 0.62, 4), fov=15.6, lookY=0.45, cols=8, cajas=False,
                   destino='assets/world/elements/pasto.png',
                   frames=[dict(modelo='bl:brizna:%d:%d' % (v, w), rots=[]) for w in range(3) for v in range(8)]),
 }

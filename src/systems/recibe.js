@@ -31,7 +31,7 @@ export function stepRecibe(dt, negro, PZ) {
   for (let i = recibe.tiros.length - 1; i >= 0; i--) {
     const tr = recibe.tiros[i];
     tr.t += dt;
-    if (tr.t >= tr.T) { if (!tr.roza) piqueMunicion(tr.dx, tr.dz, 'trazadora'); recibe.tiros.splice(i, 1); }
+    if (tr.t >= tr.T) { piqueMunicion(tr.dx, tr.dz, 'trazadora'); recibe.tiros.splice(i, 1); }
   }
   for (let i = recibe.destellos.length - 1; i >= 0; i--) {
     if ((recibe.destellos[i].t -= dt) <= 0) recibe.destellos.splice(i, 1);
@@ -54,12 +54,14 @@ export function stepRecibe(dt, negro, PZ) {
     // `t` arranca NEGATIVO: es la demora de cada bala dentro de la rafaga (el render no dibuja t < 0)
     const T = Math.max(REC.T_MIN, Math.min(REC.T_MAX, d / REC.V));
     // ROZANDO (4/10, el autor: "tienen que ir cerca del avion, como si pasaran rozando"): la mayoria
-    // pasa al lado tuyo, a tu altura, y se pierde atras hacia la camara —sin pique, ya te paso—; el
-    // resto se clava en el agua pegado a vos. Nunca menos de ROZA[0] de costado: rozar, no pegar.
+    // baja hasta tu altura pegada a tu costado y pica apenas delante tuyo; el resto se clava en el agua
+    // cerca o lejos. Nunca menos de ROZA[0] de costado: rozar, no pegar.
     if (Math.random() < REC.ROZAN) {
       const dx = plane.x + lado * rnd(...REC.ROZA) + i * lado * 0.3;
       const dy = Math.max(0.5, plane.y + rnd(-1.2, 1.8));
-      recibe.tiros.push({ ox: ex, oy: ey, oz: blanco.z, dx, dy, dz: REC.ROZA_Z, t: -i * REC.ENTRE, T, roza: true });
+      // (y terminan ADELANTE tuyo, no atras: el autor 4/10, "deben verse mas adelante del avion, para
+      // que se vean pasar" — atras las tapaba la camara. Al llegar pican, asi el efecto queda a la vista)
+      recibe.tiros.push({ ox: ex, oy: ey, oz: blanco.z, dx, dy, dz: PZ + rnd(...REC.ROZA_Z), t: -i * REC.ENTRE, T });
     } else {
       // …y alguna se va LEJOS (el autor: "la mayoria, no todas"): si todas rozan, el tiro parece guiado
       const lejos = Math.random() < REC.LEJOS;

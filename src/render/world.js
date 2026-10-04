@@ -987,7 +987,9 @@ function drawLand(coastMode, geoOn) {
         // matojo mide lo mismo, y el pasto doblado es mas bajo que el pasto parado.
         // DE CERCA, EL MATOJO HORNEADO (render/vegetacion.js): briznas de verdad, en el estado de viento
         // que toca. De lejos un matojo mide uno o dos pixeles y el trazo ya es lo correcto.
-        if (k > 2.5 && veg.matojo(s.x, s.y, k * (0.65 + h2 * 0.6) * 1.8, h2, lean, TF[ci])) continue;
+        // (teñido con el tono de la PUNTA, el claro: la hoja ya trae la base mas oscura, y con el tono
+        // de la base el matojo salia mas oscuro que el trazo de antes — palitos secos)
+        if (k > 2.5 && veg.matojo(s.x, s.y, k * (0.65 + h2 * 0.6) * 2.3, h2, lean, TT[ci])) continue;
         const hh = Math.max(1, k * (0.65 + h2 * 0.6) * (1 - PASTO_ACOSTAR * lean));
         const bx = s.x - w / 2, by = s.y - hh;
         const dx = lean * hh;                                            // corrimiento de la punta, en px
@@ -1016,8 +1018,10 @@ function drawLand(coastMode, geoOn) {
  *  proyectar el borde de adelante y el de atras), deterministas por celda de mundo: no titilan, y el
  *  campo tiene siempre las mismas manchas en el mismo lugar. Los colores salen del TEMA: cambian con el
  *  cielo y la luz, como el resto del suelo. */
-const MANCHA_PASO = 9;
-const MANCHA_TONOS = [[0xc9, 0xb2, 0x66, 0.55], [0x6b, 0x3a, 0x2c, 0.55], [0x9a, 0x7e, 0x52, 0.5], [0x3a, 0x30, 0x24, 0.45]];
+const MANCHA_PASO = 7;
+// el tono de cada mancha y CUANTO se corre del suelo: poco — en la primera captura eran discos amarillos
+// pegados en la pantalla; una mancha de campo es una diferencia de tono, no una calcomania
+const MANCHA_TONOS = [[0xc9, 0xb2, 0x66, 0.32], [0x6b, 0x3a, 0x2c, 0.34], [0x9a, 0x7e, 0x52, 0.28], [0x3a, 0x30, 0x24, 0.30]];
 function drawManchones(dv, farZ, coastMode, geoOn, relieve) {
   const base = hex2rgb(theme.land.near);
   const startZ = Math.ceil((dv + 4) / MANCHA_PASO) * MANCHA_PASO;
@@ -1034,20 +1038,24 @@ function drawManchones(dv, farZ, coastMode, geoOn, relieve) {
       const jx = wx + (h2 - 0.5) * MANCHA_PASO, jz = wz + (h3 - 0.5) * MANCHA_PASO;
       if (!geoOn && coastMode && jx > shoreAt(jz) - SAND_W - 2) continue;
       const gy = geoOn ? (escalaRelieve(jz) > 0 ? alturaSuelo(jx, jz) : 0) : (relieve ? tierraH(jx, jz) : 0);
-      const R = 2.2 + h2 * 4.5;
-      const c = proj(jx, gy, jz - dv), a = proj(jx, gy, jz - dv - R * 0.55), b = proj(jx, gy, jz - dv + R * 0.55);
-      const rx = R * F / (jz - dv), ry = Math.max(1, Math.abs(a.y - b.y) / 2);
-      if (c.x + rx < 0 || c.x - rx > W || c.y < HOR) continue;
       const t = MANCHA_TONOS[(h3 * MANCHA_TONOS.length) | 0];
       const col = 'rgb(' + [0, 1, 2].map(i => Math.round(base[i] + (t[i] - base[i]) * t[3])).join(',') + ')';
-      ctx.globalAlpha = Math.min(1, camZ / 12) * (0.45 + h1 * 0.35);
-      // a FILAS de pixel, con el borde mordido: una elipse lisa se leeria como una calcomania
-      const filas = Math.max(1, Math.round(ry * 2));
-      for (let i = 0; i < filas; i++) {
-        const v = (i + 0.5) / filas * 2 - 1;
-        const muerde = 0.82 + 0.18 * hash2(ix * 31 + i, iz);
-        const hw = rx * Math.sqrt(Math.max(0, 1 - v * v)) * muerde;
-        if (hw >= 0.5) px(c.x - hw, c.y - ry + i * (ry * 2 / filas), hw * 2, Math.max(1, ry * 2 / filas + 0.5), col);
+      ctx.globalAlpha = Math.min(1, camZ / 14) * (0.35 + h1 * 0.25);
+      // UN RACIMO de tres manchitas y no una elipse grande: el borde queda irregular, como el de un
+      // manchon de pasto seco de verdad
+      for (let m = 0; m < 3; m++) {
+        const R = (1.0 + h2 * 1.8) * (m ? 0.65 : 1);
+        const mx = jx + (m ? Math.cos(m * 2.4 + h3 * 6) * R * 1.1 : 0), mz = jz + (m ? Math.sin(m * 2.4 + h3 * 6) * R * 0.9 : 0);
+        const c = proj(mx, gy, mz - dv), a = proj(mx, gy, mz - dv - R * 0.55), b = proj(mx, gy, mz - dv + R * 0.55);
+        const rx = R * F / (mz - dv), ry = Math.max(1, Math.abs(a.y - b.y) / 2);
+        if (c.x + rx < 0 || c.x - rx > W || c.y < HOR) continue;
+        const filas = Math.max(1, Math.round(ry * 2));
+        for (let i = 0; i < filas; i++) {
+          const v = (i + 0.5) / filas * 2 - 1;
+          const muerde = 0.75 + 0.25 * hash2(ix * 31 + i + m * 7, iz);
+          const hw = rx * Math.sqrt(Math.max(0, 1 - v * v)) * muerde;
+          if (hw >= 0.5) px(c.x - hw, c.y - ry + i * (ry * 2 / filas), hw * 2, Math.max(1, ry * 2 / filas + 0.5), col);
+        }
       }
     }
   }
