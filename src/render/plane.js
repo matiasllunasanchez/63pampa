@@ -107,7 +107,7 @@ const TOBERA_F = 7 / 84;
  *
  *  @param f 0..1 — 0.3 es ralenti, 1 es turbo (ver stepFlame)
  */
-function tobera(x, y0, f, esc) {
+export function tobera(x, y0, f, esc) {
   if (f <= 0.01) return;
   // SE APAGA AL CABECEAR. Cuando el avion trepa o pica, la hoja cambia de fila y el sprite ya no
   // muestra el cano de frente: el ancla fija de TOBERA_F cae sobre el LOMO del avion y el circulo
@@ -144,6 +144,8 @@ function tobera(x, y0, f, esc) {
 /** La intensidad de ESTE cuadro, suavizada. Sin la rampa, apretar turbo hacia SALTAR la llama de
  *  3 a 9 px en un cuadro y se leia como un parpadeo, no como una aceleracion. */
 let flameF = 0;
+/** La intensidad de la tobera de ESTE cuadro, para el escuadron: despegan con vos, a la par. */
+export const llama = () => flameF;
 function stepFlame() {
   // SOLO CON TURBO (pedido de Matias, 18/8). Al ralenti el 0.3 pintaba la cola con un naranja que
   // no le corresponde: la tobera APAGADA ya viene dibujada en la hoja horneada, con su color. Que

@@ -413,7 +413,7 @@ export const STRINGS = {
     pruebasTitle: 'PRUEBAS  ·  ELEGI UN MOMENTO',
     prBadge: 'PRUEBA',
     prSecMision: 'LA MISION ENTERA', prSecClimax: 'LOS CLIMAX', prSecCola: 'LA COLA Y EL NUMERAL', prSecDestr: 'LA DESTRUCCION',
-    prSecAgua: 'EL AGUA Y EL CLIMA', prSecPoder: 'LOS PODERES', prSecHorno: 'EL HORNO DE BLENDER', prSecHistoria: 'LA HISTORIA',
+    prSecAgua: 'EL AGUA Y EL CLIMA', prSecPoder: 'LOS PODERES', prSecHorno: 'EL HORNO: BLENDER O THREE.JS', prSecHistoria: 'LA HISTORIA',
     prSecCallejon: 'EL CALLEJON', prSecBuques: 'LOS BUQUES',
     // CINEMATICAS (docs/sistemas/PLAN_DIRECTOR_CINEMATICAS.md): la puerta hermana de PRUEBAS. Los
     // titulos de cada cinematica tampoco estan aca — viven con su timeline, en data/cines.js.
@@ -1506,7 +1506,7 @@ export const STRINGS = {
     pruebasTitle: 'TEST BENCH  ·  PICK A MOMENT',
     prBadge: 'TEST',
     prSecMision: 'THE WHOLE MISSION', prSecClimax: 'THE CLIMAXES', prSecCola: 'THE TAIL AND THE WINGMAN', prSecDestr: 'DESTRUCTION',
-    prSecAgua: 'WATER AND WEATHER', prSecPoder: 'THE POWERS', prSecHorno: 'THE BLENDER BAKE', prSecHistoria: 'THE STORY',
+    prSecAgua: 'WATER AND WEATHER', prSecPoder: 'THE POWERS', prSecHorno: 'THE BAKE: BLENDER OR THREE.JS', prSecHistoria: 'THE STORY',
     prSecCallejon: 'THE ALLEY', prSecBuques: 'THE SHIPS',
     modeCines: 'CUTSCENES', modeCinesDesc: 'Play a single cutscene, no grinding to get there',
     modeManiobras: 'MANEUVERS', modeManiobrasDesc: 'Every aerobatic move, in its three presentations',

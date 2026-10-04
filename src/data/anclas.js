@@ -5,14 +5,12 @@
 // picada. Asi que la medicion es la BASE y no la ultima palabra: acá se puede pisar cualquier
 // valor a mano, y el ajuste sobrevive a la proxima horneada.
 //
-// ⚠ NO EDITAR src/data/anclas_horno.js: lo reescribe `npx electron tools/bake_planes_run.js`
+// ⚠ NO EDITAR src/data/anclas_horno.js: lo reescribe tools/blender/armar_juego.py (el horno de Blender)
 //   entero, cada vez. Lo que se escribe ACA queda.
 import { HORNO } from './anclas_horno.js';
-// …o las del A-4 horneado en Blender, con el interruptor `?horno=blender` (data/horno.js). La tabla
-// es UNA para todo el roster (se mide sobre el A-4), asi que mientras se prueba el A-4 nuevo los
-// otros aviones usan sus anclas: pueden correrse un pixel. Es una prueba, no el juego.
-import { HORNO_BLENDER } from './anclas_blender.js';
-import { HORNO_ALT } from './horno.js';
+// …o las del horno viejo de three.js, con `?horno=three` (data/horno.js), para comparar.
+import { HORNO_THREE } from './anclas_three.js';
+import { HORNO_VIEJO } from './horno.js';
 
 // ---------------------------------------------------------------------------------------------
 // AJUSTES A MANO — vacio quiere decir "el horno tiene razon en todo".
@@ -63,4 +61,4 @@ function conAjustes(H) {
   return out;
 }
 
-export const ANCLAS = conAjustes(HORNO_ALT ? HORNO_BLENDER : HORNO);
+export const ANCLAS = conAjustes(HORNO_VIEJO ? HORNO_THREE : HORNO);

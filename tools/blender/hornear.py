@@ -465,7 +465,7 @@ if __name__ == '__main__':
         K = dict(mat_cel=mat_cel, mat_cel_nodo=mat_cel_nodo, mat_emisivo=mat_emisivo, lin=lin,
                  perilla=perilla, mezcla=mezcla, ocultar_si=ocultar_si,
                  cargas=bool(GUARDAR or CAPA), controles=CONTROLES)
-        raiz = getattr(mod, MODELO)(T, K)
+        raiz = mod.construir(MODELO, T, K) if MODELO in getattr(mod, 'FICHAS', {}) else getattr(mod, MODELO)(T, K)
         if CAPA:
             # LA CAPA: solo sus piezas (la carga y su pilon) se pintan; el avion queda de OCLUSOR
             mias = set()

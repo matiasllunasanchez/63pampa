@@ -1,16 +1,18 @@
-// EL INTERRUPTOR DEL HORNO (experimento 3/10/2026, pedido del autor: "probalo en el juego con el
-// interruptor"). Cambia las hojas del A-4 SKYHAWK por las horneadas en Blender (tools/blender/),
-// SIN PISAR las de siempre: viven al lado, en assets/planes/a4-skyhawk/blender*/.
+// EL HORNO DE LOS AVIONES: BLENDER (desde el 3/10/2026) o el viejo de three.js, para comparar.
 //
-//   ?horno=blender       el A-4 nuevo CON el contorno de pixel
-//   ?horno=blender-sin   el A-4 nuevo sin contorno
-//   (sin parametro)      el horno de siempre
+// Las hojas de los aviones se hornean con Blender (tools/blender/: modelos con forma, luz en bandas
+// y contorno de pixel, a la manera de Dead Cells) y viven donde vivieron siempre. Lo que horneaba
+// three.js no se tiro: quedo al lado, en assets/planes/<carpeta>/three/, con sus anclas en
+// data/anclas_three.js.
+//
+//   (sin parametro)   el horno de Blender
+//   ?horno=three      el horno viejo de three.js
 //
 // Se resuelve UNA vez, al CARGAR — las imagenes se piden al importar data/planes.js —, asi que lo
-// prende y lo apaga PRUEBAS recargando el juego con el parametro (`a.recarga`).
+// cambia PRUEBAS recargando el juego con el parametro (`a.recarga`).
 const pedido = (() => {
   try { return new URLSearchParams(location.search).get('horno'); } catch (e) { return null; }
 })();
 
-/** La carpeta de las hojas alternativas del A-4 ('blender' | 'blender_sin'), o null. */
-export const HORNO_ALT = pedido === 'blender' ? 'blender' : pedido === 'blender-sin' ? 'blender_sin' : null;
+/** ¿Se pidio el horno viejo de three.js? */
+export const HORNO_VIEJO = pedido === 'three';

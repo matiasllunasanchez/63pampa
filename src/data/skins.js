@@ -21,10 +21,10 @@
 // tools/build_web.py reemplaza por un data: muerto para dejar las skins afuera del build web.
 // El prefijo 'skin_' va ACA y no en cada entrada para que esa sustitucion tenga un solo blanco.
 const DIR = '../assets/planes/a4-skyhawk/skin_';
-// EL INTERRUPTOR DEL HORNO (data/horno.js): con el A-4 de Blender a prueba, los Fieles vuelan TODOS
-// la hoja nueva — sus skins son del horno de siempre, y si no se apagaran aca, en el escuadron
-// (PRUEBAS, campaña) se seguiria viendo el avion viejo.
-import { HORNO_ALT } from './horno.js';
+// EL HORNO VIEJO (data/horno.js): con `?horno=three` las skins son las de three.js, guardadas en
+// a4-skyhawk/three/. Se arma desde DIR (y no con otro literal) por la misma razon de arriba.
+import { HORNO_VIEJO } from './horno.js';
+const DIR_HOJAS = HORNO_VIEJO ? DIR.replace('skin_', 'three/skin_') : DIR;
 // nombre de piloto (el de data/pilots.js FIELES) -> archivo base de su variante
 const ARCHIVO = {
   TERO: 'tero', PUMA: 'puma', GITANO: 'gitano',
@@ -34,12 +34,12 @@ const ARCHIVO = {
 const cache = {};
 for (const nombre in ARCHIVO) {
   const s = { img: new Image(), img2: new Image(), img3: new Image() };
-  s.img.src = DIR + ARCHIVO[nombre] + '.png';
-  s.img2.src = DIR + ARCHIVO[nombre] + '2.png';
+  s.img.src = DIR_HOJAS + ARCHIVO[nombre] + '.png';
+  s.img2.src = DIR_HOJAS + ARCHIVO[nombre] + '2.png';
   // la 3 es la del PODER RASANTE (otro punto de vista). La skin del piloto tiene que existir
   // tambien ahi: la marca del ala es la unica señal de que ya no estas volando tu avion, y
   // perderla justo durante los 12 s del poder seria perderla cuando mas se ve el avion.
-  s.img3.src = DIR + ARCHIVO[nombre] + '3.png';
+  s.img3.src = DIR_HOJAS + ARCHIVO[nombre] + '3.png';
   cache[nombre] = s;
 }
 
@@ -50,7 +50,6 @@ const lista = im => im.complete && im.naturalWidth > 0;
 /** La skin de `nombre` (TERO, PUMA…) o null si no hay. `null` es una respuesta valida: el que
  *  dibuja cae a la hoja generica. Nunca tira. */
 export function skinOf(nombre) {
-  if (HORNO_ALT) return null;
   const s = cache[nombre];
   if (!s || !lista(s.img)) return null;
   return { sheetImg: s.img, sheet2Img: lista(s.img2) ? s.img2 : null,

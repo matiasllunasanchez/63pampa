@@ -285,7 +285,7 @@ renglón nuevo más chico.
 
 # 11 · 🔴 REGLA DE CAMPAÑA: todo el juego ocurre en PASILLO
 
-**Estado:** ⬜ · 🔵 dos dudas · **Alcance: las catorce**
+**Estado:** ⬜ · ✅ dudas resueltas el 4/10 · **Alcance: las catorce**
 
 > *"TODO EL JUEGO OCURRIRA EN PASILLO POR AHORA CON TODAS SUS VARIANTES, momentum y pulso y arena y
 > demas no se usan en nignuna mision"*
@@ -297,10 +297,26 @@ renglón nuevo más chico.
 
 - **La PASADA.** Hoy el final de toda misión con barco es *pasillo + pasada*: `pasada` es el
   `climax` por defecto. ¿La pasada cuenta como una variante del pasillo y queda, o también sale?
+
+  **Respuesta del autor (4/10), textual:** *"No ya no seran mas pasillo"*
+
+  **Confirmado por el autor (4/10), textual:** *"No sera nmas pasillo con pasada, solo pasillo"*
+
+  ✅ **La pasada sale.** Ninguna misión termina en pasada: **sólo pasillo.**
 - **"Momentum".** En el código la palabra nombra dos cosas: el **minijuego** de zonas críticas de
   cada barco (`ships.js`) y uno de los dos **poderes** (*Momentum y el Rasante*, `poderes` en
   `missions.js`). El pedido 2 de este documento dice que **el Momentum debuta como poder en M2**.
   ¿Sale sólo el minijuego, o también el poder?
+
+  **Respuesta del autor (4/10), textual:** *"Momentum efecto poder si. Esta bien qe enseñemos el
+  poder momentum en la mision 2"* · *"En la mision 1 no lo mostramos"*
+
+  ✅ **Sale el minijuego, queda el poder.** El poder Momentum **se enseña en M2** —confirma el
+  pedido 2— y **en M1 no se muestra**, que es como ya está (`poderes: false`).
+
+**Cómo queda la regla, cerrada:** todo el juego es **pasillo, sin pasada**. No se usan en ninguna
+misión el minijuego Momentum de zonas del barco, ni Pulso, ni Arena. M5 y M14 dejan de declarar
+`climax: 'arena'`, y ninguna misión declara `climax`. **El poder Momentum sigue existiendo.**
 
 ---
 
@@ -318,7 +334,7 @@ renglón nuevo más chico.
 | 8 | Si el radar te ve vienen los Harriers; se los engaña bajando | radar, `estrellas.js` |
 | 9 | ⚠ Se aprende a tirar la bomba, y que salga mal — **hay bomba propia** | `missions.js`, lecciones |
 | 10 | El islote ya existe como mecánica: M2 tiene que pedirlo | `missions.js`, `estructuras.js` |
-| 11 | 🔵 **Regla de campaña: todo en pasillo.** Salen arena, pulso y momentum | **las catorce** · dos dudas |
+| 11 | **Regla de campaña: sólo pasillo.** Salen pasada, arena, pulso y el minijuego Momentum; el poder Momentum queda | **las catorce** · ✅ dudas resueltas |
 
 ## Y lo que ya sabemos que hay que tocar igual
 

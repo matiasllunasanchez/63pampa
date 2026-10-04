@@ -47,7 +47,7 @@ sesión con acceso directo al código.
 | **La foto de La Casada se ve en M1 y no se vuelve a ver hasta que muere el Vasco** | ✅ en M1 · ⏳ choca con `M04_FOTO`, se resuelve en M4 | `M1_CAMBIOS.md` · 1 |
 | **Cada misión abre con su indicativo de ave por radio** y tiene su cartel de despegue con rumbo propio | ✅ las catorce | `../RESUELTOS_GUION.md` · G-08 |
 | **Ningún personaje nombra una tecla.** Las teclas las muestra el juego durante la pausa | ✅ en M1 · molde para el resto | `M1_CAMBIOS.md` · 8 |
-| **Todo el juego ocurre en PASILLO.** Momentum, Pulso y Arena no se usan en ninguna misión. M5 y M14 dejan de declarar `climax: 'arena'` | ⬜ · 🔵 ¿la pasada queda? ¿sale también el poder Momentum? | `M2_CAMBIOS.md` · 11 |
+| **Todo el juego es PASILLO, sin pasada.** No se usan ni la pasada, ni Arena, ni Pulso, ni el minijuego Momentum. M5 y M14 dejan de declarar `climax: 'arena'`. **El poder Momentum queda:** se enseña en M2, en M1 no se muestra | ⬜ | `M2_CAMBIOS.md` · 11 |
 | **Silencio de radio:** en M1 la radio abierta es la táctica (quieren que los vean); de M2 en adelante, en zona de radar no habla nadie | ⬜ | `M1_CAMBIOS.md` · 17 · `M2_CAMBIOS.md` · 7 |
 | **Las alarmas se pierden bajando**, para que el enemigo crea que te derribó | ⬜ | `M2_CAMBIOS.md` · 8 |
 | **O tres bombas, o tanques.** El jugador elige la carga antes de salir; la Chancha se llama en la ida y en la vuelta; sin bombas el avión va más rápido | ✅ aprobado · backlog de sistemas | `../../sistemas/PLAN_CARGA_Y_CHANCHA.md` |

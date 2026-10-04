@@ -228,8 +228,8 @@ abierto queda a la izquierda y el HUD marca la ruta a casa.
 
 **La historia y la fecha están atadas; el verbo no.** Nueve de las catorce atacan un barco real en
 su fecha real. Pero **sólo M1 declara `fases`**: las otras trece son "volá tantos metros y al final
-hay un barco". **Y desde el 3/10 todo el juego ocurre en pasillo** —Momentum, Pulso y Arena no se
-usan en ninguna misión—, así que lo que distingue un barco de otro es su perfil, dónde pega la
+hay un barco". **Y desde el 3/10 todo el juego es pasillo, sin pasada** —ni Arena, ni Pulso, ni el
+minijuego Momentum—, así que lo que distingue un barco de otro es su perfil, dónde pega la
 bomba, y no un minijuego propio. Lo que cambia entre misiones es el nombre, el clima y la
 dificultad; lo que hacen tus manos lo tienen que cambiar las `fases` de cada una.
 

@@ -13,7 +13,9 @@ import { proj } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
-import { PLANE_SCALE, drawGear, drawShadow } from './plane.js';
+import { tobera, llama, PLANE_SCALE, drawGear, drawShadow } from './plane.js';
+import { drawBorde } from './borde.js';
+import { ANCLAS } from '../data/anclas.js';
 import { drawSquadPips } from './hud.js';
 import { formationSlots, detras, RELEVO_WRECK, RELEVO_DUR, puestoFormacion } from '../core/squad.js';
 import { pilotName, planeName, rosterActive, fallenPos } from '../systems/squad.js';
@@ -85,6 +87,12 @@ export function drawFormation({ selPlane, exit }) {
       const w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
       ctx.drawImage(hoja, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH,
         s.x - w / 2, s.y - h / 2, w, h);
+      // LOS MISMOS BRILLOS QUE EL TUYO (autor, 3/10): la luz de borde del contraluz y la tobera al
+      // rojo. Son las funciones del lider, no copias — con la escala de ESTE compañero y con la
+      // intensidad de tu tobera, porque despegan a la par. Se van con la formacion al CONTROL LIBRE.
+      drawBorde(ctx, hoja, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH, s.x - w / 2, s.y - h / 2, w, h);
+      const tb = ANCLAS.base.tob[row] && ANCLAS.base.tob[row][col];
+      if (tb) { ctx.save(); ctx.translate(s.x, s.y); tobera(tb[0] * w, tb[1] * h, llama(), w / 84 * 2.4); ctx.restore(); }
     } else if (pl.ready) {
       const w = 76 * PLANE_SCALE * f, h = w * pl.h / pl.w;
       ctx.drawImage(pl.img, s.x - w / 2, s.y - h / 2, w, h);

@@ -460,9 +460,21 @@ que a vos te dicen Tero»*. Nadie le pone el apodo en M1. **El error estaba en
 
 ---
 
-## 13 · 🔵 Es una misión de diversión
+## 13 · Es una misión de diversión — y se explica en el mapa, antes de salir
 
-**Estado:** 🔵 una duda
+**Estado:** ⬜ · **Toca:** `story.js`, la escena previa al despegue · ✅ duda resuelta el 4/10
+
+**Respuesta del autor (4/10), textual:**
+
+> *"Mision de diversion es algo qe explica condor o quien sea en el mapa antes de arrancar o algo
+> asi."*
+
+**Queda así:** el título *Con sal en las alas* no cambia. "Misión de diversión" es **lo que se
+explica antes de despegar, sobre el mapa** — Cóndor o quien corresponda. **Nota para quien
+implemente:** M1 declara `brief: 'briefM1'` y esa secuencia no existe. Éste es exactamente el lugar
+para escribirla. **Proponer el texto y mostrarlo antes de pegar.**
+
+**La duda original, para el registro:**
 
 > *"Esta mision puede llamarse mision de diversion y explicar lo que era esta mision de diversion."*
 
@@ -512,7 +524,26 @@ anteriores**
 - **`M2_CAMBIOS.md` · 1:** *"El radar existe de M2 en adelante, y se explica acá"*. **La explicación
   del radar se muda a M1.** M2 sigue teniendo radar, pero ya no es donde se enseña.
 
-**Tres dudas que cambian cómo se arma:**
+**Respuestas del autor (4/10), textuales:**
+
+> *"Podemos hacer una zona sin radar y otra con radar, los personajes nos dicen de ir rasante hasta
+> cierto punto donde necesitamos subir para qe el radar nos vean."*
+>
+> *"Las alarmas son las estrellas y esta bien qe nos qedemos un rato boludeando en el aire ahsta
+> obtener las 4 alarmas y qe tarde un poco mas en obtener las 4."*
+
+**Queda así:**
+
+- **Dos zonas.** Primero una **sin radar**, donde los personajes piden ir rasante. Después, a partir
+  de un punto, una **con radar**, donde **hay que subir a propósito** para que los vean.
+- **Las cuatro alarmas son las estrellas de búsqueda** (`estrellas.js`), de cero a cuatro.
+- **Se queda un rato dando vueltas** en el aire hasta juntar las cuatro, y **en M1 tienen que
+  tardar más en subir que en el resto de la campaña.** Nota para quien implemente: es un ritmo de
+  carga propio de M1, más lento.
+- **Cómo se pierden:** lo resolvió el autor en `M2_CAMBIOS.md` · 8 — **bajando, para que el
+  enemigo crea que te derribó.** Falta confirmar si en M1 también se enseña o si sólo se van.
+
+**Las tres dudas originales, para el registro:**
 
 - **La altura.** Dijiste *"se hace a mucha altura"*, y todo lo anterior de M1 enseña a ir pegado
   al agua para que no te vean. ¿En la zona nueva **se sube a propósito** para que el radar los
@@ -571,9 +602,9 @@ el jugador se queda seco en la zona nueva. Y la Chancha en M1 está apagada (`ch
 | # | Qué | Estado |
 |---|---|---|
 | 12 | Tero y el Turco ya se conocen | ✅ ya estaba |
-| 13 | Es una misión de diversión — ¿título o tipo? | 🔵 |
+| 13 | Es una misión de diversión: se explica en el mapa antes de salir | ⬜ · duda resuelta |
 | 14 | Cóndor cambia el objetivo y los manda a una zona con radar | ⬜ |
-| 15 | En la zona: que los vean, cuatro alarmas, irse · se enseña radar y estrellas | ⬜ · 🔵 tres dudas |
+| 15 | Zona sin radar (rasante) y zona con radar (subir) · cuatro estrellas, lentas · irse | ⬜ · dudas resueltas |
 | 16 | Sin enemigos: las estrellas suben y nadie llega | ⬜ |
 | 17 | En la zona de radar se puede hablar | ⬜ |
 | 18 | Recalibrar la nafta para la misión más larga | ⬜ |

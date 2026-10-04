@@ -41,7 +41,10 @@ app.whenReady().then(async () => {
       for (const [name, data] of [[base + '.png', sheets[key].sheet], [base + '2.png', sheets[key].sheet2],
                                   [base + '3.png', sheets[key].sheet3], ...capas]) {
         const b64 = data.split('base64,')[1];
-        fs.writeFileSync(path.join(ROOT, 'assets', 'planes', dir, name), Buffer.from(b64, 'base64'));
+        // EL HORNO VIEJO ESCRIBE EN three/ (desde el 3/10/2026 las hojas del juego las hornea Blender,
+        // tools/blender/): asi correrlo para comparar no pisa nada.
+        fs.mkdirSync(path.join(ROOT, 'assets', 'planes', dir, 'three'), { recursive: true });
+        fs.writeFileSync(path.join(ROOT, 'assets', 'planes', dir, 'three', name), Buffer.from(b64, 'base64'));
         console.log(`OK ${dir}/${name} (${(b64.length * 3 / 4 / 1024).toFixed(1)} KB)`);
       }
     }
@@ -86,13 +89,13 @@ app.whenReady().then(async () => {
 //   alto                                     cuanto ocupa el avion en vertical dentro del frame
 //                                            nivelado. Lo usan los parches para reescalar sus
 //                                            alturas de una hoja a la otra.
-export const HORNO = {
+export const HORNO_THREE = {
   base: { tips: ${tabla(A.base.tips)}, tob: ${tobT(A.base.tob)}, box: ${tabla(A.base.box)}, perfil: ${fila(A.base.perfil.map(p => p || [0, 0]))}, alto: ${A.base.alto} },
   ras:  { tips: ${tabla(A.ras.tips)}, tob: ${tobT(A.ras.tob)}, box: ${tabla(A.ras.box)}, perfil: ${fila(A.ras.perfil.map(p => p || [0, 0]))}, alto: ${A.ras.alto} },
 };
 `;
-    fs.writeFileSync(path.join(ROOT, 'src', 'data', 'anclas_horno.js'), ANCLAS_JS);
-    console.log(`\nANCLAS MEDIDAS -> src/data/anclas_horno.js  (base alto ${A.base.alto} · ras alto ${A.ras.alto})`);
+    fs.writeFileSync(path.join(ROOT, 'src', 'data', 'anclas_three.js'), ANCLAS_JS);
+    console.log(`\nANCLAS MEDIDAS -> src/data/anclas_three.js  (base alto ${A.base.alto} · ras alto ${A.ras.alto})`);
     console.log('Horneado completo.');
   } catch (e) {
     console.error('ERROR al hornear:', e.message);
