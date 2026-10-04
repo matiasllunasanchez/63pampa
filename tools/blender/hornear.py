@@ -61,7 +61,9 @@ if VISTA == 'empinada':
 # no cambian, asi que la cobra lee la hoja igual que antes.
 COBRA_K = 1.5
 if VISTA == 'cobra':
-    PITCHES = [40, 75, 100, 130, 160, 190, 220, 250, 280, 310, 335]
+    # …y al FINAL la del DERRAPE (4/10, "no tan hacia arriba la trompa"): 25°, la cobra a medias. Va
+    # ultima para no correr las filas que ya leen la cobra y el mortal.
+    PITCHES = [40, 75, 100, 130, 160, 190, 220, 250, 280, 310, 335, 25]
     FW = FH = int(arg('--px', str(round(84 * COBRA_K))))
     CAM = dict(CAM, ref=CAM['ref'] * COBRA_K)
 if VISTA == 'ras':

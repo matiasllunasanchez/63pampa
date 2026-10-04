@@ -952,7 +952,9 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // primeros y ultimos 20°) vuelve a la hoja de siempre.
     const enMortal = run.mvMortal > 20 && run.mvMortal < 350;
     const hoja4 = (run.mvCobra > 0.05 || enMortal) ? (sk ? sk.sheet4Img : (pl.sheet4Ok ? pl.sheet4Img : null)) : null;
+    // EL DERRAPE tiene su fila propia: la ultima, 25° (autor, 4/10: "que no quede tan hacia arriba la trompa")
     const filaCobra = enMortal ? filaMortal(run.mvMortal)
+      : run.mv === 'derrape' ? FILA_DERRAPE
       : run.mvCobra < 0.45 ? 0 : run.mvCobra < 0.85 ? 1 : 2;
     let K4 = 1;                                   // escala del cuadro: 1,5 con la hoja 4 (ver SHEET4_K)
     if (hoja4) { img = hoja4; row = filaCobra; F3 = SHEET4_FW; K4 = SHEET4_K; }
@@ -1164,7 +1166,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
 
 // LOS CABECEOS DE LA HOJA 4 (tools/blender/hornear.py, vista 'cobra'): la fila mas cercana a un angulo
 // de la vuelta del MORTAL.
-const CABECEOS_4 = [40, 75, 100, 130, 160, 190, 220, 250, 280, 310, 335];
+const CABECEOS_4 = [40, 75, 100, 130, 160, 190, 220, 250, 280, 310, 335, 25];
+const FILA_DERRAPE = 11;                           // la de 25°, la del DERRAPE
 function filaMortal(g) {
   let mejor = 0;
   for (let i = 1; i < CABECEOS_4.length; i++) if (Math.abs(CABECEOS_4[i] - g) < Math.abs(CABECEOS_4[mejor] - g)) mejor = i;

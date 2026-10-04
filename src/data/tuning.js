@@ -1069,7 +1069,8 @@ export const COBRA_INV = { GIRA: 0.34, VUELVE: 4.24, DUR: 4.6, SUBE: 3, FRENO: 0
 //            hoja); a ENDEREZA_U unidades de tener que derrapar se pone derecho.
 //   DERRAPA  cuando lo que patinaria (v²/2·DESACEL) alcanza lo que le falta al borde (BORDE·FLY_X),
 //            DOBLA DE GOLPE (la pose entra a ATAQUE 1/s): la cola contra el borde, la trompa al centro
-//            de arriba (GIRA rad en pantalla y COBRA de la hoja 4), y SIGUE DE COSTADO por la inercia
+//            de arriba (GIRA rad en pantalla —45° desde el 4/10: "no tan hacia arriba la trompa, 45 grados"— y
+//            COBRA de la hoja 4, la fila de 40°), y SIGUE DE COSTADO por la inercia
 //            mientras DESACEL se come la velocidad lateral — el patinazo. Ahi levanta el abanico.
 //   …y cuando la velocidad lateral se da vuelta, ya esta saliendo para el otro lado: la pose se
 //   suelta a SUELTA 1/s mientras acelera. CANTOS derrapes (3 = lado, contra, lado) y al final suelta.
@@ -1087,7 +1088,7 @@ export const COBRA_INV = { GIRA: 0.34, VUELVE: 4.24, DUR: 4.6, SUBE: 3, FRENO: 0
 // ACERCA: cuanto se viene hacia la camara en cada frenada (unidades de z; PZ es 14) — el que tenia la
 // cobra hasta el 4/10 ("el que hoy es de cobra para el zigzag").
 export const DERRAPE = { CANTOS: 3, BORDE: 0.9, ACEL: 1400, VMAX: 240, DESACEL: 25, ROCE: 12, MENGUA: 0.72, ACERCA: 6, BANK_CRUCE: 0.7,
-  BANK_RATE: 18, ENDEREZA_U: 14, ATAQUE: 20, SUELTA: 6, COBRA: 0.38, GIRA: 0.62,
+  BANK_RATE: 18, ENDEREZA_U: 14, ATAQUE: 20, SUELTA: 6, COBRA: 0.38, GIRA: 0.785,
   FRENO: 1.1, FRENO_FINAL: 0.5, CORTE: 0.3, CAM_SIGUE: 0.75, CAM_RATE: 5,
   SPRAY_ALT: 9, SPRAY_N: 9, ABANICO_V: 26, ABANICO_G: 60 };
 
