@@ -88,7 +88,7 @@ export function drawBorde(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh) {
   ctx.drawImage(O, 0, 0, sw, sh, dx, dy, dw, dh);
   ctx.globalAlpha = 1;
   destellos(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh, A, lx, ly, esc);
-  if (vid) destelloCabina(ctx, img, sx, sw, vid, dx, dy, dw, dh, A, esc);
+  if (vid) destelloCabina(ctx, img, sx, sw, sh, vid, dx, dy, dw, dh, A, esc);
   ctx.restore();
 }
 
@@ -122,7 +122,7 @@ function vidrio(img, sx, sy, sw, sh) {
   porImg.set(clave, v);
   return v;
 }
-function destelloCabina(ctx, img, sx, sw, vid, dx, dy, dw, dh, A, esc) {
+function destelloCabina(ctx, img, sx, sw, sh, vid, dx, dy, dw, dh, A, esc) {
   const V = BORDE_VIDRIO;
   const cols = Math.max(1, Math.round(img.width / sw)), mid = (cols - 1) / 2;
   const u = mid > 0 ? Math.abs(Math.round(sx / sw) - mid) / mid : 0;   // 0 nivelado .. 1 extremo

@@ -161,3 +161,36 @@ def piedra(T, K, variante='0'):
         _ruido(b, 0.14, 0.4, 'roca')
         b.location = (math.cos(a) * d, r * 0.62, math.sin(a) * d * 0.7); b.rotation_euler = (0.3 * i, a, 0.2 * (i % 2))
     return g
+
+# ============================ EL PASTO DEL SUELO ============================
+# Pedido del autor el mismo dia ("¿conviene alguna tecnica para el pasto?" — "dale, hace el pasto"). Los
+# matojos del suelo eran trazos de color (render/world.js, miles por cuadro); ahora, de cerca, son
+# MATOJOS DE VERDAD: un manojo de briznas finas que se abren desde la base, la punta mas clara. En GRIS
+# (los tiñe el juego con los seis tonos de pasto del clima) y en TRES ESTADOS DE VIENTO: parado, doblado y
+# acostado por la tormenta — el juego elige con el mismo `pastoLean` que ya doblaba los trazos, asi la
+# racha que cruza el campo se ve. El viento empuja hacia +x (el mismo lado del corrimiento de la punta).
+DOBLEZ = (0.0, 0.34, 0.68)
+
+def brizna(T, K, variante='0', viento='0'):
+    v, w = int(variante), DOBLEZ[int(viento)]
+    g = vacio(T, 'matojo')
+    tonos = [K['mat_cel']('briz%d' % i, c) for i, c in enumerate(('#8a8a84', '#b0b0a8', '#e0ded2'))]
+    alto = 0.55 + 0.12 * math.sin(v * 1.9)
+    N = 24 + (v % 3) * 4
+    for i in range(N):
+        a = i * AUREO + v
+        r0 = 0.06 * math.sqrt((i + 0.5) / N)
+        inc = 0.10 + 0.55 * ((i * 7 + v) % 9) / 9                 # cuanto se abre cada brizna
+        largo = alto * (0.65 + 0.35 * ((i * 5 + v) % 7) / 7)
+        p = (math.cos(a) * r0, 0.0, math.sin(a) * r0)
+        for k, (f, r) in enumerate(((0.45, 0.016), (0.33, 0.011), (0.22, 0.006))):
+            # la apertura propia de la brizna + EL VIENTO, que la dobla hacia +x mas cuanto mas arriba
+            ang = inc * (0.4 + 0.5 * k)
+            dx, dz = math.cos(a) * math.sin(ang), math.sin(a) * math.sin(ang)
+            dy = math.cos(ang)
+            vk = w * (0.6 + 0.9 * k)                                 # el doblez crece hacia la punta
+            dx, dy = dx * math.cos(vk) + dy * math.sin(vk), dy * math.cos(vk) - dx * math.sin(vk)
+            q = (p[0] + dx * largo * f, p[1] + dy * largo * f, p[2] + dz * largo * f)
+            hueso('brizna', g, tonos[k], p, q, r, r * 0.7, seg=4)
+            p = q
+    return g

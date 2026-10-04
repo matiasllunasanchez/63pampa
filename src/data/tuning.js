@@ -993,6 +993,24 @@ export const PIQUE = {
   Z_MAX: 260, BAJO: 9, CAE_G: 14, BALA_SIGUE: 6, ADELANTE: 25, ADELANTE_VAR: 40,
 };
 
+// ---------- EL RECIBIMIENTO (systems/recibe.js) ----------
+// Las ametralladoras del buque que te esperan y TE ERRAN (pedido del autor, 4/10). Pura decoracion:
+// adrenalina, no daño. D_MIN/D_MAX: entre que distancias al buque tiran (unidades de camara); CADA: s
+// entre rafagas lejos (cerca baja al 40%); BALAS: por rafaga; ENTRE: s entre bala y bala; V: u/s de la
+// bala, con T_MIN/T_MAX de vuelo; ERRA_MIN/MAX: a cuanto de costado tuyo pica la que va al agua
+// (nunca encima); PICA_Z: cuanto delante tuyo (atras no se veria); DESTELLO_T: cuanto dura el fogonazo; MAX: balas vivas.
+export const REC = {
+  D_MIN: 70, D_MAX: 1500, CADA: [0.9, 1.8], BALAS: [3, 6], ENTRE: 0.07,
+  V: 1300, T_MIN: 0.3, T_MAX: 1.1, ERRA_MIN: 2.5, ERRA_MAX: 6, PICA_Z: [4, 30],
+  // ROZANDO: que fraccion pasa al lado tuyo a tu altura (sin pique), a cuanto de costado, y en que z
+  // de camara termina (detras tuyo: PZ es 14, asi que 5 ya te paso y todavia se proyecta bien)
+  ROZAN: 0.6, ROZA: [1.6, 3.5], ROZA_Z: 5,
+  // LEJOS: de las que NO rozan, que fraccion pica lejos (a cuanto de costado y cuanto adelante). En
+  // total: 60% rozan, 25% pican pegadas, 15% lejos — la mayoria cerca, no todas.
+  LEJOS: 0.38, LEJOS_X: [7, 16], LEJOS_Z: [10, 80],
+  DESTELLO_T: 0.12, MAX: 40,
+};
+
 // ---------- LA GEOGRAFIA DEL PASILLO (PLAN_GEOGRAFIA) ----------
 // Una misma mision con etapas de terreno: mar, costa, tierra. Las perillas son de LAS COSTURAS,
 // porque es lo unico nuevo: cada suelo ya tiene las suyas (agua, T1-T6). La regla que las ordena

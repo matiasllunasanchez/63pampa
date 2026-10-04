@@ -72,6 +72,8 @@ import { drawAim9 } from './render/aim9.js';   // el Sidewinder de los Harrier
 import { drawAden, drawAvisoAden } from './render/aden.js';   // la rafaga de los Harrier
 import * as escapeSys from './systems/escape.js';
 import { drawTirosPopa, drawCap } from './render/escape.js';
+import { stepRecibe } from './systems/recibe.js';
+import { drawRecibe } from './render/recibe.js';
 import { BL as BL_BLANCO, FASE_ESCAPE, SENAS, CIELO_VUELTA, CAP } from './data/blanco.js';
 import { EYEC_KM_CASA, EYEC_KM_ISLA, PARTS_FONDO_A } from './data/tuning.js';
 import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE } from './data/cargas.js';
@@ -4233,6 +4235,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // se miden contra el casco de este mismo cuadro.
       if (runClimax() === 'suelta') {
         const b = blancoSys.step(dt);
+        // EL RECIBIMIENTO: las ametralladoras del buque que te erran (decoracion, systems/recibe.js)
+        stepRecibe(dt, blancoSys.negro(), PZ);
         // LAS SEÑAS, a la radio: lo que Puma canta de la aproximacion. La de OTRA PASADA espera al
         // otro lado del negro, igual que la linea de la vuelta en volverDelBlanco().
         const av = curMission() && curMission().avisos;
@@ -4640,7 +4644,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // render de la cabina, lo decide el sistema, y los junta aca — que es el trabajo de este
       // archivo. Se pide ANTES de dibujar porque el buque va primero: es mundo.
       // LA SUELTA: el buque es MUNDO (render/blanco.js) y reemplaza al de la aproximacion pintada.
-      if (runClimax() === 'suelta') { drawBlanco(); const sws = seawolfSys.snapshot(PZ); drawHumoSW(sws); drawZonaSW(sws, PZ); }
+      if (runClimax() === 'suelta') { drawBlanco(); drawRecibe(); const sws = seawolfSys.snapshot(PZ); drawHumoSW(sws); drawZonaSW(sws, PZ); }
       else world.drawApproachBarge(objectiveDist, objectiveShip,
         S.state === 'pulso' ? pulso.shipFx(pulsoRender.ventana(cine.state(), run.t)) : null,
         runClimax() === 'pasada' && S.state !== 'pulso');

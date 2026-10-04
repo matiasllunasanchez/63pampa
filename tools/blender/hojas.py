@@ -168,4 +168,10 @@ HOJAS = {
                   frames=[dict(modelo='bl:%s:%d%s' % (m, v, x), rots=[('Y', v * 1.1)])
                           for m, x in (('pasto', ''), ('murtilla', ''), ('tojo', ':0'), ('tojo', ':1'), ('cortadera', ''), ('piedra', ''))
                           for v in range(6)]),
+    # EL PASTO DEL SUELO (4/10/2026, brizna() en modelos_vegetacion.py): 8 matojos x 3 estados de viento
+    # (fila 0 parado, 1 doblado, 2 acostado), en gris — los tiñe render/world.js con los tonos de pasto
+    # del clima. 24x24 con el suelo al pie; la camara apenas por arriba, como se ve el campo volando.
+    'pasto': dict(fw=24, fh=24, pos=(0, 0.62, 4), fov=15.6, lookY=0.45, cols=8, cajas=False,
+                  destino='assets/world/elements/pasto.png',
+                  frames=[dict(modelo='bl:brizna:%d:%d' % (v, w), rots=[]) for w in range(3) for v in range(8)]),
 }

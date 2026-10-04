@@ -80,3 +80,34 @@ export function piedras(x, sueloY, alto, h) {
   celda(HOJA.img, FILA.piedra, Math.floor(h * 991) % VARIANTES, x, sueloY, alto);
   return true;
 }
+
+// ============================ EL PASTO DEL SUELO ============================
+// assets/world/elements/pasto.png (tools/blender/modelos_vegetacion.py, `brizna`): 8 matojos x 3 estados
+// de viento (fila 0 parado, 1 doblado, 2 acostado), 24x24 en gris, el suelo a 2,15 px del pie. Los tiñe
+// el color de pasto que render/world.js ya elige para cada matojo (los seis tonos del clima).
+const PASTO = { src: '../assets/world/elements/pasto.png', img: new Image() };
+if (!HORNO_VIEJO) PASTO.img.src = PASTO.src;
+const PFW = 24, PIE_PASTO = 21.85 / 24, ACOSTADO = 0.68;
+const cachePasto = new Map();
+
+/** UN MATOJO con la base en (x, sueloY): `alto` el alto de la CELDA en pantalla (el matojo ocupa la
+ *  mitad), `h` (0..1) elige cual de los ocho, `lean` es el `pastoLean` de render/world.js (0 parado ..
+ *  0,68 acostado) y elige la fila de viento, `color` el tono de pasto. false si la hoja no esta. */
+export function matojo(x, sueloY, alto, h, lean, color) {
+  if (HORNO_VIEJO || !PASTO.img.complete || !PASTO.img.naturalWidth) return false;
+  let cv = cachePasto.get(color);
+  if (!cv) {
+    if (cachePasto.size > 32) cachePasto.clear();
+    cv = document.createElement('canvas');
+    cv.width = PASTO.img.naturalWidth; cv.height = PASTO.img.naturalHeight;
+    const g = cv.getContext('2d');
+    g.drawImage(PASTO.img, 0, 0);
+    g.globalCompositeOperation = 'multiply'; g.fillStyle = color; g.fillRect(0, 0, cv.width, cv.height);
+    g.globalCompositeOperation = 'destination-in'; g.drawImage(PASTO.img, 0, 0);
+    cachePasto.set(color, cv);
+  }
+  const fila = lean < ACOSTADO * 0.25 ? 0 : lean < ACOSTADO * 0.75 ? 1 : 2;
+  const c = Math.floor(h * 977) % 8;
+  ctx.drawImage(cv, c * PFW, fila * PFW, PFW, PFW, x - alto / 2, sueloY - alto * PIE_PASTO, alto, alto);
+  return true;
+}
