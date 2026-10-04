@@ -41,10 +41,29 @@ const FICHIN = { W: 1376, H: 768, ancho: 600, cx: 686, cy: 333 };
 /** LOS TRES ACERCAMIENTOS (autor, 3/10): `k` cuanto se acerca la camara sobre lo que ya cubre la
  *  ventana, y `abajo` hasta que fila de la imagen llega el borde de abajo de la pantalla. 1 es el
  *  gabinete entero; 2 corta a la mitad de las manos y el juego crece; 3, un poco mas. El tubo queda
- *  arriba del centro a proposito: abajo estan los mandos, que es lo que dice "esto es un fichin". */
-const ZOOM = { 1: { k: 1, abajo: 768 }, 2: { k: 1.25, abajo: 670 }, 3: { k: 1.5, abajo: 615 } };
+ *  arriba del centro a proposito: abajo estan los mandos, que es lo que dice "esto es un fichin".
+ *  …SALVO EN EL 3 (autor, 4/10: "deberia verse centrado, esta cortado arriba"): tan cerca, apoyarlo
+ *  abajo dejaba el marco de arriba del tubo pegado al borde de la ventana. `centro` es cuanto manda
+ *  el centro del tubo sobre `abajo` para ubicarlo en vertical (0 apoyado abajo, 1 centrado). */
+const ZOOM = { 1: { k: 1, abajo: 768, centro: 0 }, 2: { k: 1.25, abajo: 670, centro: 0 }, 3: { k: 1.5, abajo: 615, centro: 1 } };
 export const ZOOMS = [1, 2, 3];
-let zoom = 2;
+
+/** EL ACERCAMIENTO DE FABRICA DEPENDE DE LA PANTALLA (autor, 4/10): notebook el 3, un monitor de
+ *  1920 el 2, uno 4K el 1 — cuanto mas grande el vidrio, mas gabinete entra sin que el juego quede
+ *  chico. Se mira el ancho del monitor en px CSS (lo que el sistema llama "resolucion" en una Mac
+ *  escalada) y en pixeles fisicos (para reconocer un 4K aunque este escalado al doble):
+ *    · menos de 1700 CSS → notebook (una MacBook dice 1512) ............ 3
+ *    · 3800 fisicos o mas → 4K, este o no escalado ...................... 1
+ *    · el resto → la clase 1920 ......................................... 2
+ *  Es solo el de fabrica: lo que el jugador elija en OPCIONES se guarda y manda. */
+export function zoomDePantalla() {
+  if (typeof screen === 'undefined') return 3;
+  const css = screen.width, fis = css * (window.devicePixelRatio || 1);
+  if (css < 1700) return 3;
+  if (fis >= 3800) return 1;
+  return 2;
+}
+let zoom = 3;
 /** Cuanto se sale la luz del juego por cada lado en el FICHIN, en fraccion del juego. */
 const LUZ_SALE = 0.22;
 /** …salvo ARRIBA, donde casi no sale (autor, 4/10): ahi el tubo tiene encima el marco del monitor, y
@@ -75,7 +94,8 @@ export function acercarFichin() {
   const paso = now => {
     const u = Math.min(1, (now - t0) / 1000 / ACERCA_T);
     const e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
-    vista = { k: de.k + (a.k - de.k) * e, abajo: de.abajo + (a.abajo - de.abajo) * e };
+    vista = { k: de.k + (a.k - de.k) * e, abajo: de.abajo + (a.abajo - de.abajo) * e,
+      centro: (de.centro || 0) + ((a.centro || 0) - (de.centro || 0)) * e };
     recalzar();
     if (u < 1) anim = requestAnimationFrame(paso);
     else { vista = null; anim = 0; recalzar(); }
@@ -118,9 +138,11 @@ function apagarResplandor() {
 function geoFichin() {
   const iw = window.innerWidth, ih = window.innerHeight, z = zoomVigente();
   const s = Math.max(iw / FICHIN.W, ih / FICHIN.H) * z.k;
-  // centrada en el tubo a lo ancho y apoyada en `abajo`; y en ningun caso deja ver fuera de la imagen
+  // centrada en el tubo a lo ancho; en vertical, entre apoyada en `abajo` y con el tubo al centro
+  // segun `centro`; y en ningun caso deja ver fuera de la imagen
   const x0 = Math.min(0, Math.max(iw - FICHIN.W * s, iw / 2 - FICHIN.cx * s));
-  const y0 = Math.min(0, Math.max(ih - FICHIN.H * s, ih - z.abajo * s));
+  const yAbajo = ih - z.abajo * s, yCentro = ih / 2 - FICHIN.cy * s, c = z.centro || 0;
+  const y0 = Math.min(0, Math.max(ih - FICHIN.H * s, yAbajo + (yCentro - yAbajo) * c));
   const w = FICHIN.ancho * s, h = w * 9 / 16;
   return { s, x0, y0, w, h, x: x0 + FICHIN.cx * s - w / 2, y: y0 + FICHIN.cy * s - h / 2 };
 }

@@ -62,7 +62,7 @@ import * as pulsoRender from './render/pulso.js';
 import * as machRender from './render/mach.js';
 import * as cine from './systems/cine.js';
 import { drawCine } from './render/cine.js';
-import { fichinEntero, acercarFichin, setFondo, FONDOS, setZoomFichin, ZOOMS } from './render/ambiente.js';
+import { fichinEntero, acercarFichin, setFondo, FONDOS, setZoomFichin, ZOOMS, zoomDePantalla } from './render/ambiente.js';
 import { arrancar, arranqueActivo } from './render/arranque.js';
 import * as muni from './render/municion.js';
 import * as blancoSys from './systems/blanco.js';
@@ -181,6 +181,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
     // EL FONDO alrededor del juego (render/ambiente.js), con el de fabrica; si hay uno guardado lo
     // pone loadOpts() al leer la fila de OPCIONES
+    // el acercamiento de fabrica sale del monitor (render/ambiente.js); si hay uno elegido en OPCIONES,
+    // loadOpts() lo pone despues
+    cfg.fichinZoom = zoomDePantalla();
     setZoomFichin(cfg.fichinZoom);
     setFondo(cfg.fondo);
     // EL ARRANQUE DEL FICHIN (render/arranque.js): negro, el gabinete, el tubo que se prende, el
@@ -1685,7 +1688,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         get: () => cfg.fondo, set: v => { cfg.fondo = v; setFondo(v); }, save: 'rasante_fondo2' },
       // CUAN CERCA DEL FICHIN (3/10): 1 el gabinete entero, 2 y 3 acercan y el juego crece
       { label: () => T('optZoom'), opts: ZOOMS, names: () => ZOOMS.map(String),
-        get: () => cfg.fichinZoom, set: v => { cfg.fichinZoom = v; setZoomFichin(v); }, save: 'rasante_fichin_zoom2' },   // '2': con el default nuevo, todos arrancan en el 2
+        get: () => cfg.fichinZoom, set: v => { cfg.fichinZoom = v; setZoomFichin(v); }, save: 'rasante_fichin_zoom4' },   // la clave cambia con cada default nuevo (3/10 el 2; 4/10 el 3, despues segun el monitor): asi todos arrancan en el nuevo
       // PANTALLA COMPLETA o VENTANA (autor, 4/10). El juego abre a pantalla completa (electron/main.js);
       // si lo guardado es VENTANA, loadOpts() lo pide al cargar. En la web no hay a quien pedirselo.
       { label: () => T('optPantalla'), opts: ['completa', 'ventana'], names: () => [T('optPantalla_completa'), T('optPantalla_ventana')],

@@ -180,8 +180,8 @@ export const cfg = {
   // EL FICHIN DE FABRICA, siempre (pedido del autor): los otros dos se eligen en OPCIONES.
   fondo: 'fichin',
   // …y cuan cerca se lo mira: 1 el gabinete entero, 2 hasta la mitad de las manos, 3 un poco mas.
-  // El 2 de fabrica (autor, 3/10).
-  fichinZoom: 2,
+  // El 2 de fabrica el 3/10; el 3 desde el 4/10 (autor).
+  fichinZoom: 3,   // al arrancar lo pisa zoomDePantalla() (render/ambiente.js): notebook 3, 1920 el 2, 4K el 1
   // PANTALLA COMPLETA o VENTANA (4/10): completa de fabrica; la aplica Electron (electron/main.js)
   pantalla: 'completa',
   // QUE LE PASA AL RELEVADO (SPEC_MODO_PASADA RF-15.5). Es TONO, no cuenta: el avion sale de la

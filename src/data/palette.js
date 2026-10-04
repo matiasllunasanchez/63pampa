@@ -79,7 +79,11 @@ export const SKY_PRESETS = {
 // CIELOS CON ASTRO A LA VISTA (SPEC_AGUA_OLAS F6): los unicos que dejan CAMINO DE LUZ sobre el
 // agua. En un temporal o con el cielo tapado no hay columna que reflejar, y dibujarla igual seria
 // el error de siempre — el efecto lindo puesto donde no corresponde.
-export const SKY_ASTRO = { sun: 1, clear: 1, dawn: 1, moon: 1 };
+// …y EL ATARDECER TAMBIEN (autor, 4/10: "el reflejo del sol en blanco sobre el agua"). Es el cielo
+// por defecto y tiene el sol enorme en el centro, con rayos: era el unico astro a la vista sin su
+// camino de luz. (Que su AGUA no sea la dorada —WATER_AUTO, arriba— es otra cuenta: el camino es de
+// motas blancas sobre el mar de siempre, no un mar teñido.)
+export const SKY_ASTRO = { sun: 1, clear: 1, dawn: 1, moon: 1, dusk: 1 };
 // LA TURBA (PLAN_TIERRA_COSTA T1). Igual que el agua: el suelo NO puede ser el mismo verde bajo
 // una tormenta, de noche y con sol pleno. Cada estilo son los mismos seis tonos —far/mid/near son
 // las tres bandas del raster por distancia, `tuft` el pasto base, `rock` la piedra y `furrow` el

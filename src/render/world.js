@@ -1280,7 +1280,12 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
       if (hn > 0.78 && (enSol || k > 1.6)
           && Math.sin(wx * 12.9 + wz * 7.3 + run.t * 6) > (enSol ? -0.5 : 0.7)) {
         ctx.globalAlpha = Math.min(1, SEA_ALPHA2D * fade * (enSol ? 1.6 : 0.55));
-        pxFino(s.x - dotW / 2 - 0.5, s.y - 0.5, dotW + 1, Math.max(0.5, dotW * 0.6), theme.water.spark);
+        // EL DESTELLO DEL CAMINO DEL SOL VA GRUESO (autor, 4/10). Con el grano fino del 3/10 (dea79ff)
+        // los destellos se achicaron a medio pixel como el resto del mar, y el camino —que es un
+        // fenomeno de motas SUELTAS— se perdio entre el grano. Adentro del cono vuelven a pixel
+        // entero y un poco mas grandes que antes del grano; afuera, el destello fino de siempre.
+        if (enSol) px(s.x - dotW / 2 - 1.5, s.y - 1, dotW + 3, Math.max(1.5, dotW * 0.8), theme.water.spark);
+        else pxFino(s.x - dotW / 2 - 0.5, s.y - 0.5, dotW + 1, Math.max(0.5, dotW * 0.6), theme.water.spark);
       }
     }
   }

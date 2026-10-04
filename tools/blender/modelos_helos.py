@@ -96,7 +96,9 @@ def deriva(raiz, mat, y0, y1, z0, cuerda0, z1, cuerda1, grosor=0.12):
 # EL GRANDE: casco de BOTE (anfibio de verdad: la panza es una quilla con los sponsons de flotacion a
 # los costados, y ahi van las ruedas), los dos motores en el lomo, el radomo del radar, el botalon
 # que sube y rotor de cinco palas. Gris azulado de la Royal Navy. `verde`: el HC.4 de los comandos.
-def seaKing(T, K, ph='0', verde=False):
+def seaKing(T, K, ph='0', verde=False, roto=False):
+    """`roto` (el resto, tools/blender/modelos_restos.py): el botalon cortado a un tercio, sin cola
+    ni rotor — esas piezas las tira el resto por separado."""
     ph = int(ph)
     exterior = _raiz(T, 'Sea King')
     raiz = exterior
@@ -119,11 +121,12 @@ def seaKing(T, K, ph='0', verde=False):
     oscuro = K['mat_cel']('oscuro', '#2f363c')
     # EL CASCO: seccion cuadrada (expo alto), la nariz redonda, el lomo alto, y la cola que se afina
     # SUBIENDO hacia el botalon (la quilla del bote es la linea de abajo)
-    _subdiv(loft('fuselaje', [(-3.20, 0.10, 0.10, -0.08), (-3.05, 0.48, 0.44, -0.04), (-2.75, 0.76, 0.70, 0.02),
-                              (-2.30, 0.92, 0.88, 0.07), (-1.50, 0.97, 0.94, 0.10), (0.20, 0.97, 0.94, 0.10),
-                              (1.00, 0.88, 0.82, 0.18), (1.60, 0.62, 0.56, 0.38), (2.30, 0.38, 0.34, 0.58),
-                              (3.30, 0.25, 0.24, 0.74), (4.05, 0.21, 0.21, 0.80)],
-                 raiz, piel, n=20, expo=3.0, cerrar=(True, True)), 2)
+    est = [(-3.20, 0.10, 0.10, -0.08), (-3.05, 0.48, 0.44, -0.04), (-2.75, 0.76, 0.70, 0.02),
+           (-2.30, 0.92, 0.88, 0.07), (-1.50, 0.97, 0.94, 0.10), (0.20, 0.97, 0.94, 0.10),
+           (1.00, 0.88, 0.82, 0.18), (1.60, 0.62, 0.56, 0.38), (2.30, 0.38, 0.34, 0.58),
+           (3.30, 0.25, 0.24, 0.74), (4.05, 0.21, 0.21, 0.80)]
+    if roto: est = est[:8] + [(1.85, 0.52, 0.47, 0.45)]
+    _subdiv(loft('fuselaje', est, raiz, piel, n=20, expo=3.0, cerrar=(True, True)), 2)
     # los dos motores en el lomo, en un carenado, y el radomo detras del rotor
     _subdiv(loft('motores', [(-2.05, 0.05, 0.05, 0.98), (-1.80, 0.50, 0.26, 1.02), (-0.10, 0.52, 0.28, 1.04),
                              (0.40, 0.30, 0.18, 1.00), (0.70, 0.05, 0.05, 0.98)], raiz, piel, n=14, expo=2.4, cerrar=(True, True)), 1)
@@ -135,13 +138,14 @@ def seaKing(T, K, ph='0', verde=False):
         _subdiv(loft('sponson', [(-0.90, 0.04, 0.04, -0.36), (-0.70, 0.22, 0.16, -0.38), (0.25, 0.24, 0.17, -0.38),
                                  (0.55, 0.05, 0.05, -0.34)], raiz, piel, n=12, expo=2.4, cerrar=(True, True), x0=sg * 1.08), 1)
         rueda(raiz, K, sg * 1.10, -0.70, -0.25, 0.22, 0.16)
+    escarapela(raiz, K, 0.965, 0.40, 0.25, 0.28)
+    if roto: return exterior
     # LA COLA: deriva (con la punta en flecha), el estabilizador chico a un costado y el rotor de cola
     deriva(raiz, piel, 0.60, 1.85, 3.55, 0.85, 3.95, 0.48, 0.14)
     superficie('estab', [(0.10, 3.70, 0.40, 0.12, 1.20), (0.75, 3.80, 0.30, 0.12, 1.22)], raiz, piel, eje='x')
     rotor_cola(raiz, K, 0.62, 5, 0.18, 1.45, 4.00, ph)
     _pieza('pata_cola', raiz, oscuro, (0.07, 0.75, 0.07), (0, 0.15 - 0.62, 3.10))
     rueda(raiz, K, 0, -0.55, 3.10, 0.16, 0.12)
-    escarapela(raiz, K, 0.965, 0.40, 0.25, 0.28)
     rotor(raiz, K, 3.0, 5, 1.6, -0.6, ph)
     return exterior
 
