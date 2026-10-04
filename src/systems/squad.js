@@ -118,7 +118,7 @@ export function cambiar() {
   resetAguante();
   run.afterT = 0; run.afterTier = 0; run.afterGrace = 0; run.boost = false;
   run.heat = 0; run.overheat = false; run.rollCd = 0;
-  run.mv = null; run.mvT = 0; run.mvRoll = 0; run.mvGiro = 0; run.mvSteep = 0; run.mvCobra = 0; run.mvFreno = 0;
+  run.mv = null; run.mvT = 0; run.mvRoll = 0; run.mvGiro = 0; run.mvSteep = 0; run.mvCobra = 0; run.mvMortal = 0; run.mvFreno = 0;
   run.scrapeT = 0; run.scrapeVib = 0;
   run.cambioCd = CAMBIO_CD;
   beep(520, 0.06, 'square', 0.04, 160);
@@ -214,7 +214,7 @@ export function startRelevo(cause, spent) {
   run.boost = false; run.throttle = 0;
   run.heat = 0; run.overheat = false;                   // canon propio, frio
   run.rollCd = 0;
-  run.mv = null; run.mvT = 0; run.mvRoll = 0; run.mvGiro = 0; run.mvSteep = 0; run.mvCobra = 0; run.mvFreno = 0;
+  run.mv = null; run.mvT = 0; run.mvRoll = 0; run.mvGiro = 0; run.mvSteep = 0; run.mvCobra = 0; run.mvMortal = 0; run.mvFreno = 0;
   run.bloodSplat = 0;
   run.gear = 0;                                         // llega volando: tren recogido
   run.spd = Math.max(56, Math.min(run.spd, 110));       // entra a velocidad de crucero

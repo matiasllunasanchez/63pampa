@@ -188,7 +188,11 @@ export function flightSystem(dt, deps) {
   // en velocidad, trepar la gasta. Es lo que arma el pendulo (bajar rapido → rasar → trepar).
   // El arrastre hacia spdTarget se AFLOJA (3 → ENERGY_DRAG) porque con el lerp rapido de antes
   // lo que ganabas picando se evaporaba en medio segundo y no se acumulaba nada.
-  run.spd = cfg.energy ? applyEnergy(run.spd, spdTarget, plane.vy, dt) : applyDrag(run.spd, spdTarget, dt);
+  // EL MORTAL NO CAMBIA ALTURA POR VELOCIDAD: su vuelta sube y baja lo mismo, y es un FRENO. Medido
+  // con el intercambio puesto, la trepada se comia contra el piso de SPD_MIN y la bajada devolvia de
+  // mas: salia a 120 de una maniobra de freno.
+  const vyEnergia = run.mv === 'mortal' ? 0 : plane.vy;
+  run.spd = cfg.energy ? applyEnergy(run.spd, spdTarget, vyEnergia, dt) : applyDrag(run.spd, spdTarget, dt);
   // turbulencia: el viento sacude el avión
   let windRock = 0;   // con CONTROL POR ALABEO la rafaga va a las ALAS, no a vx (ver mas abajo)
   if (run.windF < 0.97) {

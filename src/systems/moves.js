@@ -17,7 +17,7 @@ import { proj, popup } from '../core/fx.js';
 import { sfxOne, beep } from './audio.js';
 import { P } from '../data/palette.js';
 import { PZ, W, H } from '../render/ctx.js';
-import { FLY_X, FLY_TOP, FUEL_PIRUETA, COBRA, DERRAPE, PIQUE } from '../data/tuning.js';
+import { FLY_X, FLY_TOP, FUEL_PIRUETA, COBRA, DERRAPE, MORTAL, PIQUE } from '../data/tuning.js';
 import { MOVES } from '../data/moves.js';
 
 const MV_CD = 1.15;          // cooldown compartido con el tonel (mismo valor que startRoll)
@@ -67,7 +67,7 @@ export function startMove(id, dir, tgt, act) {
   // Y solo con COMBUSTIBLE: SI — con el tanque infinito las piruetas siguen siendo gratis, que es
   // lo que las mantiene libres en los modos donde la nafta no es el tema.
   if (B === plane && cfg.fuelOn) run.fuel = Math.max(0, run.fuel - FUEL_PIRUETA);
-  E.mvRoll = 0; E.mvGiro = 0; E.mvSteep = 0; E.mvCobra = 0; E.mvFreno = 0; E.mvSeed = (Math.random() * 9999) | 0;
+  E.mvRoll = 0; E.mvGiro = 0; E.mvSteep = 0; E.mvCobra = 0; E.mvMortal = 0; E.mvFreno = 0; E.mvSeed = (Math.random() * 9999) | 0;
   // feedback de entrada: nombre de la maniobra sobre el velocimetro + rafaga de aire. Es del
   // JUGADOR: el rotulo y el sonido dicen "vos hiciste esto". Un actor los apaga (`act.mudo`) o la
   // escena se llenaria de carteles anunciando piruetas que no hizo nadie.
@@ -105,9 +105,26 @@ export function stepCobraCam(dt) {
   // LA CAMARA-DRON (el autor, 4/10: "como un dron FPV que sigue al avion: si frena, el dron tarda un
   // poco en frenar"): el objetivo es acercarse en proporcion a CUANTO se esta frenando — sea la cobra
   // o el derrape —, y el resorte pone el retraso y el pasarse al salir.
-  const obj = -COBRA.ACERCA * (run.mv ? run.mvFreno / COBRA.CORTE : 0);
-  camV += ((obj - camDz) * COBRA.K - camV * COBRA.AMORT) * dt;
-  camDz += camV * dt;
+  // EL DERRAPE SE ACERCA EN CADA FRENADA (autor, 4/10: "debe acercarse el avion en cada frenada, para
+  // hacer el efecto de freno"): ahi no se mide por `mvFreno` —el patinazo frena el avance poco, y
+  // acercaba casi nada— sino por la POSE del patinazo: entra de golpe al doblar, se sostiene en el
+  // arrastre lento y se suelta al salir disparado (el resorte pone el pasarse hacia adelante).
+  // EL MORTAL tiene su propio acercamiento, chico: el de la cobra (7.2) con el avion trepando y pasando
+  // boca abajo lo ponia enorme arriba y, con el pasarse del resorte, debajo del cuadro en la bajada.
+  const obj = run.mv === 'derrape' ? -DERRAPE.ACERCA * run.mvPose
+    : run.mv === 'mortal' ? -MORTAL.ACERCA * run.mvFreno / MORTAL.CORTE
+    : -COBRA.ACERCA * (run.mv ? run.mvFreno / COBRA.CORTE : 0);
+  // ACERCANDOSE: exponencial — rapido al principio y lento en los ultimos momentos, los mas cerca de
+  // la camara. VOLVIENDO: el resorte de siempre (velocidad normal y el pasarse hacia adelante). La
+  // velocidad del tramo exponencial se le pasa al resorte para que el empalme no tenga salto.
+  if (obj < camDz) {
+    const nuevo = camDz + (obj - camDz) * Math.min(1, dt * COBRA.ENTRA);
+    camV = (nuevo - camDz) / Math.max(dt, 1e-4);
+    camDz = nuevo;
+  } else {
+    camV += ((obj - camDz) * COBRA.K - camV * COBRA.AMORT) * dt;
+    camDz += camV * dt;
+  }
   if (Math.abs(camDz) < 0.01 && Math.abs(camV) < 0.01 && !run.mv) camDz = camV = 0;
   stepDerrapeCam(dt);
 }
@@ -128,6 +145,20 @@ function stepDerrapeCam(dt) {
  *  quedaba afuera. Sumarle vx/7 al objetivo cancela ese atraso solo mientras dura el derrape. */
 export const derrapeLead = () => camLib
   ? (plane.x * (DERRAPE.CAM_SIGUE - 0.86) + plane.vx * DERRAPE.CAM_SIGUE / 7) * camLib : 0;
+
+/** EL PERFIL DE LA VUELTA DEL MORTAL: grados para una fraccion p de la maniobra, por tramos de Hermite
+ *  entre los puntos de MORTAL.VUELTA ([p, grados, pendiente]). */
+function vueltaMortal(p) {
+  const K = MORTAL.VUELTA;
+  if (p <= 0) return 0;
+  for (let i = 0; i < K.length - 1; i++) {
+    const [p0, g0, m0] = K[i], [p1, g1, m1] = K[i + 1];
+    if (p > p1 && i < K.length - 2) continue;
+    const h = p1 - p0, t = Math.min(1, (p - p0) / h), t2 = t * t, t3 = t2 * t;
+    return (2 * t3 - 3 * t2 + 1) * g0 + (t3 - 2 * t2 + t) * h * m0 + (-2 * t3 + 3 * t2) * g1 + (t3 - t2) * h * m1;
+  }
+  return 360;
+}
 
 // perfil suave 0→1→0 (campana) — la base de los empujes que entran y salen con peso
 const bell = p => Math.sin(Math.PI * Math.max(0, Math.min(1, p)));
@@ -205,7 +236,8 @@ export function movesSystem(dt, inp, act) {
       // PLANTADA contra el aire con la turbina a fondo empujando para atras —ahi se pierde la
       // velocidad—, y BAJA de vuelta a nivel. La pose la lee el render (`mvCobra`, hoja 4).
       const ss = t => { const c = Math.max(0, Math.min(1, t)); return c * c * (3 - 2 * c); };
-      E.mvCobra = p < COBRA.SUBE ? ss(p / COBRA.SUBE) : p < COBRA.BAJA ? 1 : 1 - ss((p - COBRA.BAJA) / (1 - COBRA.BAJA));
+      // la trompa sube RAPIDO y frena al llegar (1−(1−x)²), se sostiene, y baja suave
+      E.mvCobra = p < COBRA.SUBE ? 1 - Math.pow(1 - p / COBRA.SUBE, 2) : p < COBRA.BAJA ? 1 : 1 - ss((p - COBRA.BAJA) / (1 - COBRA.BAJA));
       E.mvFreno = COBRA.CORTE * E.mvCobra;
       // EL FRENO es proporcional a cuanta panza le mostras al aire: nada al arrancar, todo plantado.
       // Escribe `spd` como el split-S; flight.js lo devuelve despues al crucero con su arrastre de
@@ -217,6 +249,30 @@ export function movesSystem(dt, inp, act) {
       B.bank = 0; B.pitch = Math.min(1, E.mvCobra * 1.5);
       // la turbina a fondo contra el freno: tiembla todo
       if (B === plane && E.mvCobra > 0.6) run.shake = Math.min(5, run.shake + dt * 9);
+      break;
+    }
+    case 'mortal': {
+      // EL MORTAL HACIA ATRAS (el Kulbit): la cobra que no se detiene en la vertical. La trompa sube, pasa
+      // la vertical, sigue de espaldas, cruza BOCA ABAJO arriba de todo —ahi frena a fondo y la camara-dron
+      // se le viene encima— y baja picando hasta nivelar. La vuelta es un perfil suave (despacio al
+      // levantar y al nivelar, rapido arriba) — desde el 4/10 al reves: RAPIDO al levantar, LENTO
+      // sobre lo alto, normal al bajar (MORTAL.VUELTA); la altura sigue a la vuelta: (1−cos θ)/2 de SUBE, asi
+      // vuelve a la altura de la que salio. La pose la lee el render (`mvMortal`, hoja 4 extendida).
+      const g = vueltaMortal(p);
+      const th = g * Math.PI / 180;
+      E.mvMortal = Math.min(360, g);
+      // EL FRENO DE LA COBRA, en la PANZA AL SOL (MORTAL.FRENA): entra mientras la trompa sube, pleno
+      // con la panza plantada contra el aire, y se suelta al seguir la vuelta.
+      const [f0, f1, f2, f3] = MORTAL.FRENA;
+      const sm = x => { const c = Math.max(0, Math.min(1, x)); return c * c * (3 - 2 * c); };
+      const freno = sm((g - f0) / (f1 - f0)) * (1 - sm((g - f2) / (f3 - f2)));
+      E.mvFreno = MORTAL.CORTE * freno;
+      E.spd *= Math.exp(-MORTAL.FRENO * freno * dt);
+      const yObj = E.mvY0 + MORTAL.SUBE * Math.pow((1 - Math.cos(th)) / 2, MORTAL.FORMA);
+      B.vy = (yObj - B.y) / Math.max(dt, 1 / 240);
+      B.vx *= Math.max(0, 1 - dt * 4);
+      B.bank = 0; B.pitch = 0;
+      if (B === plane && freno > 0.6) run.shake = Math.min(5, run.shake + dt * 7);
       break;
     }
     case 'derrape': {
@@ -435,7 +491,7 @@ export function movesSystem(dt, inp, act) {
   }
 
   if (E.mvT >= M.dur) {                       // fin: devuelve el avion y arranca el cooldown
-    E.mv = null; E.mvRoll = 0; E.mvGiro = 0; E.mvSteep = 0; E.mvCobra = 0; E.mvFreno = 0; E.rollCd = MV_CD;
+    E.mv = null; E.mvRoll = 0; E.mvGiro = 0; E.mvSteep = 0; E.mvCobra = 0; E.mvMortal = 0; E.mvFreno = 0; E.rollCd = MV_CD;
     E.mvFase = ''; E.mvPose = 0;
     if (B === plane) run.derrapeAgua = 0;
     B.pitch = Math.max(-1, Math.min(1, B.pitch));
@@ -487,7 +543,7 @@ if (typeof window !== 'undefined') window.__mvdbg = () => {
 // una que existe para el jugador y no para el que mide.
 if (typeof window !== 'undefined') window.__mvreset = (y, spd) => {
   run.mv = null; run.mvT = 0; run.mvRoll = 0; run.mvGiro = 0; run.mvSteep = 0; run.mvCobra = 0; run.mvFreno = 0;
-  run.mvFase = ''; run.mvPose = 0; run.derrapeAgua = 0;
+  run.mvFase = ''; run.mvPose = 0; run.derrapeAgua = 0; run.mvMortal = 0;
   run.rollCd = 0;
   plane.x = 0; plane.vx = 0; plane.vy = 0; plane.bank = 0; plane.pitch = 0;
   plane.y = y === undefined ? 24 : +y;

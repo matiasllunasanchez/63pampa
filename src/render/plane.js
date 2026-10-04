@@ -912,8 +912,13 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // LA COBRA (el freno, hoja 4): gana sobre todo — es la pose mas extrema y la acaba de pedir el
     // jugador. Tres cabeceos (40/75/100°) segun cuanto se levanto la trompa. Sin la hoja 4 (build web,
     // horno viejo) cae a la trepada fuerte de la hoja 2: la maniobra frena igual, se pierde la pose.
-    const hoja4 = run.mvCobra > 0.05 ? (sk ? sk.sheet4Img : (pl.sheet4Ok ? pl.sheet4Img : null)) : null;
-    const filaCobra = run.mvCobra < 0.45 ? 0 : run.mvCobra < 0.85 ? 1 : 2;
+    // EL MORTAL lee la MISMA hoja, extendida (4/10): despues de las tres de la cobra sigue la vuelta
+    // entera — 130, 160, 190 (boca abajo), 220, 250, 280 (picando), 310 y 335°. Cerca de nivel (los
+    // primeros y ultimos 20°) vuelve a la hoja de siempre.
+    const enMortal = run.mvMortal > 20 && run.mvMortal < 350;
+    const hoja4 = (run.mvCobra > 0.05 || enMortal) ? (sk ? sk.sheet4Img : (pl.sheet4Ok ? pl.sheet4Img : null)) : null;
+    const filaCobra = enMortal ? filaMortal(run.mvMortal)
+      : run.mvCobra < 0.45 ? 0 : run.mvCobra < 0.85 ? 1 : 2;
     let K4 = 1;                                   // escala del cuadro: 1,5 con la hoja 4 (ver SHEET4_K)
     if (hoja4) { img = hoja4; row = filaCobra; F3 = SHEET4_FW; K4 = SHEET4_K; }
     else if (run.mvCobra > 0.05 && hoja2) { img = hoja2; row = 0; }
@@ -990,7 +995,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     if (hoja4) {
       const AC = ANCLAS.cobra;
       const tc = AC && (AC.tob[row][col] || [0, AC.box[row][col][1] * 0.92]);
-      if (tc) tobera(tc[0] * dW, tc[1] * dH, Math.max(ff, 1.6) * run.mvCobra, spW / 84 * 3.2, true);
+      // en el MORTAL la llama va normal: a fondo (la de la cobra) tapaba al avion toda la vuelta
+      if (tc) tobera(tc[0] * dW, tc[1] * dH, enMortal ? ff : Math.max(ff, 1.6) * run.mvCobra, spW / 84 * (enMortal ? 2.4 : 3.2), !enMortal);
     } else {
       parches(spW, spH, AN.tips[rowPose][colPose], nivel(), AN);
       const tb = AN.tob[rowPose][colPose];
@@ -1117,4 +1123,13 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
       ctx.globalAlpha = 1;
     }
   }
+}
+
+// LOS CABECEOS DE LA HOJA 4 (tools/blender/hornear.py, vista 'cobra'): la fila mas cercana a un angulo
+// de la vuelta del MORTAL.
+const CABECEOS_4 = [40, 75, 100, 130, 160, 190, 220, 250, 280, 310, 335];
+function filaMortal(g) {
+  let mejor = 0;
+  for (let i = 1; i < CABECEOS_4.length; i++) if (Math.abs(CABECEOS_4[i] - g) < Math.abs(CABECEOS_4[mejor] - g)) mejor = i;
+  return mejor;
 }

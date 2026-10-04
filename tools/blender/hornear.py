@@ -55,9 +55,13 @@ if VISTA == 'empinada':
 # mando). Vertical, el avion mide su LARGO en el cuadro y no su envergadura, y no entra en 84: el
 # cuadro va a 126 (x1,5) con la camara abierta en la misma proporcion, asi que el avion sale con los
 # MISMOS pixeles que en la hoja base y el juego lo dibuja x1,5.
+# EL MORTAL (4/10, "la cobra pero va hacia arriba y hace una vuelta tipo loop hacia atras, un mortal
+# hacia atras, con freno"): la misma hoja sigue de largo la vuelta entera — 130° ya de espaldas, 190°
+# boca abajo con la trompa hacia la camara, 280° picando, 335° casi nivelado. Las tres primeras filas
+# no cambian, asi que la cobra lee la hoja igual que antes.
 COBRA_K = 1.5
 if VISTA == 'cobra':
-    PITCHES = [40, 75, 100]
+    PITCHES = [40, 75, 100, 130, 160, 190, 220, 250, 280, 310, 335]
     FW = FH = int(arg('--px', str(round(84 * COBRA_K))))
     CAM = dict(CAM, ref=CAM['ref'] * COBRA_K)
 if VISTA == 'ras':

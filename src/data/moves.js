@@ -128,6 +128,13 @@ export const MOVES = {
   // Desde el 4/10 es LA MOTO DE AGUA: fisica de costado (DERRAPE en data/tuning.js), asi que dura lo que
   // tarda en patinar sus CANTOS (~2,7 s desde el centro) y TERMINA SOLA; `dur` es solo el tope.
   derrape: { dur: 3.4, name: 'DERRAPE', steer: null, fire: true, turbo: false, tight: true, legado: true },
+  // EL MORTAL: el freno HACIA ARRIBA (pedido del autor 4/10: "similar a la cobra pero en vez de frenar va
+  // hacia arriba y hace un freno con vuelta tipo loop hacia atras — un mortal hacia atras — con freno").
+  // Es el Kulbit del Su-27: la cobra que no se detiene en la vertical y sigue de largo la vuelta entera,
+  // trepando, pasando boca abajo arriba de todo y bajando a nivel, mientras pierde velocidad. La pose la
+  // pone la hoja 4 extendida (11 cabeceos, 40…335°). Se pide con FRENO + mirar ARRIBA ([G]+[↑] / L2 +
+  // stick derecho arriba). Sin disparo ni turbo, como la cobra.
+  mortal: { dur: 1.6, name: 'MORTAL', steer: null, fire: false, turbo: false, tight: false, legado: true },
 };
 
 /** ¿La maniobra activa encoge el perfil de colision? (la consultan collision y el overlay) */

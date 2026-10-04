@@ -997,14 +997,44 @@ export const PIQUE = {
 // SUBE: fraccion de la maniobra en que la trompa llega arriba; BAJA: desde cuando vuelve a nivel.
 // FRENO: 1/s de caida de velocidad mientras la panza esta plantada (exponencial: con 0.75 sobre los
 // ~0.8 s del medio se pierde ~45%); SUBE_VY: lo poco que trepa el avion al sentarse.
-export const COBRA = { SUBE: 0.3, BAJA: 0.72, FRENO: 0.75, SUBE_VY: 5,
+// SUBE: hasta que fraccion de la maniobra levanta la trompa — RAPIDO y frenando al llegar (autor, 4/10:
+// "la levantada de trompa es rapida"; antes 0.3 con arranque suave).
+export const COBRA = { SUBE: 0.12, BAJA: 0.72, FRENO: 0.75, SUBE_VY: 5,
   // CORTE: cuanto baja el objetivo de velocidad del vuelo con la trompa plantada (systems/flight.js)
   CORTE: 0.55,
   // LA CAMARA DEL FRENO (el autor, 4/10: "que se acerque el avion, y al arrancar dejarlo avanzar un poco
   // y que vuelva a su posicion"): un RESORTE sobre la profundidad DIBUJADA del avion. ACERCA: cuanto
   // se viene hacia la camara con la trompa plantada (unidades de z; PZ es 14). K y AMORT: el resorte;
   // poco amortiguado a proposito, asi al soltar se pasa hacia adelante y vuelve solo.
-  ACERCA: 4.8, K: 26, AMORT: 3.2 };   // medido en Node: se acerca ~6.3, al salir pasa ~1.6 adelante y vuelve en ~1 s
+  // 4.8 → 7.2 (autor, 4/10: "cobra debe escalar mucho mas para que el efecto freno sea mas acorde a la
+  // frenada"; el 4.8 de antes paso al DERRAPE).
+  // EL ACERCAMIENTO YA NO ES EL RESORTE (autor, 4/10: "cuando se empieza a acercar es rapido hasta que
+  // los ultimos momentos, donde esta mas cerca de la camara, es lento, y luego vuelve a velocidad
+  // estandar — para todos los efectos de este estilo"): al ACERCARSE va exponencial a ENTRA 1/s —rapido
+  // al principio, lento al llegar— y solo la VUELTA usa el resorte (el pasarse hacia adelante sigue).
+  // Sin el pasarse de entrada (~30%) el objetivo sube para llegar a lo mismo: 9.4 → z ≈ 4,6 (x3).
+  ACERCA: 9.4, ENTRA: 5, K: 26, AMORT: 3.2 };
+
+// ---------- EL MORTAL: el freno con vuelta hacia atras (data/moves.js, systems/moves.js) ----------
+// La vuelta entera de cabeceo (0→360°). VUELTA: el perfil, en tramos [fraccion, grados, grados por unidad
+// de fraccion] unidos con curvas de Hermite. El autor, 4/10: "el mortal debe ser mas rapido salvo cuando
+// se pone panza al sol, donde frena y se acerca la camara, y luego retoma velocidad normal al terminar de
+// girar"; y "debe FRENAR como la cobra antes de volver de la mortal"). PANZA AL SOL es la pose de la
+// cobra: pasada la vertical, la panza mira adelante, al sol. Asi que: la trompa sube RAPIDO hasta ~100°,
+// se QUEDA ahi frenando como la cobra (100…115°, lento) con la camara viniendose encima, y despues
+// suelta y cierra la vuelta a velocidad normal hasta nivelar.
+// FRENA: [entra desde, plena en, suelta desde, cero en] en grados — la ventana del freno y del
+// acercamiento sobre la vuelta.
+// SUBE: cuanto trepa en lo alto de la vuelta (u, como plane.y). FRENO: 1/s de caida de la velocidad con
+// el freno pleno (el pico es boca abajo, arriba de todo); CORTE: lo que lee la camara-dron — con el de la
+// cobra (0.55) baja el objetivo de velocidad como ella. ACERCA: cuanto se viene hacia la camara en lo alto
+// (unidades de z), propio: con el de la cobra (y el freno arriba de todo) quedaba enorme y se iba del
+// cuadro al bajar; ahora el acercamiento es en la panza al sol, antes de trepar del todo.
+// FORMA: exponente de la altura sobre la vuelta, ((1−cos θ)/2)^FORMA — con 1 trepaba 6 u ya en la panza
+// al sol y se iba por arriba del cuadro; con 3 se SIENTA como la cobra mientras frena (~2 u) y la trepada
+// grande es la de la vuelta. FRENO: el de la cobra.
+export const MORTAL = { SUBE: 11, FORMA: 3, FRENO: 0.75, CORTE: 0.55, ACERCA: 6, FRENA: [40, 95, 120, 170],
+  VUELTA: [[0, 0, 1100], [0.12, 100, 40], [0.45, 115, 40], [1, 360, 200]] };
 
 // ---------- EL DERRAPE: el freno de costado (data/moves.js, systems/moves.js) ----------
 // LA MOTO DE AGUA (autor, 4/10: "que se comporte como una moto de agua al ras del mar, el derrape de
@@ -1029,7 +1059,9 @@ export const COBRA = { SUBE: 0.3, BAJA: 0.72, FRENO: 0.75, SUBE_VY: 5,
 // proporcional a la velocidad: a fondo pierde casi todo de golpe y despues se arrastra despacio con la
 // pose puesta. Ese arrastre es "el lento". Lo que patina desde v: v/ROCE − DESACEL/ROCE²·ln(1+ROCE·v/DESACEL).
 // MENGUA: cada zigzag tiene ese tope de VMAX del anterior ("reduce velocidad entre zigzag y zigzag").
-export const DERRAPE = { CANTOS: 3, BORDE: 0.9, ACEL: 1400, VMAX: 240, DESACEL: 25, ROCE: 12, MENGUA: 0.72, BANK_CRUCE: 0.7,
+// ACERCA: cuanto se viene hacia la camara en cada frenada (unidades de z; PZ es 14) — el que tenia la
+// cobra hasta el 4/10 ("el que hoy es de cobra para el zigzag").
+export const DERRAPE = { CANTOS: 3, BORDE: 0.9, ACEL: 1400, VMAX: 240, DESACEL: 25, ROCE: 12, MENGUA: 0.72, ACERCA: 6, BANK_CRUCE: 0.7,
   BANK_RATE: 18, ENDEREZA_U: 14, ATAQUE: 20, SUELTA: 6, COBRA: 0.38, GIRA: 0.62,
   FRENO: 1.1, FRENO_FINAL: 0.5, CORTE: 0.3, CAM_SIGUE: 0.75, CAM_RATE: 5,
   SPRAY_ALT: 9, SPRAY_N: 9, ABANICO_V: 26, ABANICO_G: 60 };

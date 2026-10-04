@@ -4232,11 +4232,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // En el FLANCO, no mientras se mantiene: es una maniobra, no un pedal. Las averias criticas la
       // apagan como a toda pirueta.
       // CON UNA DIRECCION APRETADA es EL DERRAPE, el freno de costado: el primer canto va para ese lado.
+      // MIRANDO ARRIBA es EL MORTAL, el freno con vuelta hacia atras.
       if (inp.brake && !frenoAntes && damage.fx().moves) {
         // la direccion de CUALQUIERA de las dos manos: A/D (o flechas con la mira movil) o el stick que rola
         const izq = inp.l > 0.3 || inp.rollL > 0.3 || inp.rollAx < -0.4, der = inp.r > 0.3 || inp.rollR > 0.3 || inp.rollAx > 0.4;
         const lado = izq && !der ? -1 : der && !izq ? 1 : 0;
-        moves.startMove(lado ? 'derrape' : 'cobra', lado || 1);
+        // …y MIRANDO ARRIBA ([↑] / stick derecho arriba) es EL MORTAL, el freno con vuelta hacia atras.
+        // Con la mano que mira y no con [W]: el gas se mantiene apretado para volar, y asi la cobra
+        // seguiria siendo imposible de pedir.
+        const arriba = inp.camU > 0.3 || inp.camAx < -0.4;
+        moves.startMove(arriba && !lado ? 'mortal' : lado ? 'derrape' : 'cobra', lado || 1);
       }
       moves.stepCobraCam(dt);
       frenoAntes = !!inp.brake;

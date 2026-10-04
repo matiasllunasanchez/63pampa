@@ -37,8 +37,9 @@ CELULAS = ('sky', 'a4q', 'dagger', 'supere', 'pampa', 'mirage')
 CAPAS = ('tanques_ala', 'bombas_ala', 'tanque_centro', 'bomba_centro')
 VISTAS = {  # vista -> (filas, lado del cuadro, sufijo, simetrizar)
     'base': (3, 84, '', True), 'empinada': (2, 84, '2', True), 'ras': (3, 168, '3', False),
-    # LA COBRA (4/10): 40/75/100° de cabeceo, cuadro de 126 (x1,5: vertical, el avion mide su largo)
-    'cobra': (3, 126, '4', True),
+    # LA COBRA (4/10): 40/75/100° de cabeceo, cuadro de 126 (x1,5: vertical, el avion mide su largo);
+    # desde el MORTAL sigue la vuelta entera: 130…335° (once filas, ver hornear.py)
+    'cobra': (11, 126, '4', True),
 }
 # `VISTAS=cobra .venv-art/bin/python3 armar_juego.py`: arma SOLO esas vistas (las anclas de las otras
 # se leen de lo que ya escribio la ultima armada completa — ver escribir_anclas)
