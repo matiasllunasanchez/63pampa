@@ -134,6 +134,16 @@ export function tobera(x, y0, f, esc) {
   g.addColorStop(1, 'rgba(180,70,22,0)');
   ctx.fillStyle = g;
   ctx.beginPath(); ctx.ellipse(x, y0, R, R * 0.72, 0, 0, 6.2832); ctx.fill();
+  // EL FONDO DE LA TURBINA (autor, 4/10: "otro brillo mas chico encima del que ya esta, naranja /
+  // amarillo, bien adentro"). Un segundo resplandor, de un tercio del radio, centrado en la boca:
+  // amarillo en el centro que se va a naranja. Late con el mismo pulso y tampoco tiene borde neto.
+  const r2 = R * 0.34;
+  const g2 = ctx.createRadialGradient(x, y0, 0, x, y0, r2);
+  g2.addColorStop(0, `rgba(255,240,150,${0.75 * k})`);
+  g2.addColorStop(0.5, `rgba(255,180,60,${0.5 * k})`);
+  g2.addColorStop(1, 'rgba(240,120,30,0)');
+  ctx.fillStyle = g2;
+  ctx.beginPath(); ctx.ellipse(x, y0, r2, r2 * 0.72, 0, 0, 6.2832); ctx.fill();
   ctx.globalAlpha = 1;
   // …Y LA BOCA AL ROJO DERRAMA LUZ (render/brillo.js). El resplandor de arriba es la boca misma;
   // esto es lo que esa boca le hace al AIRE de alrededor. Crece con `f`, o sea con la poscombustion:

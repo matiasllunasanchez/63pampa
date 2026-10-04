@@ -115,7 +115,8 @@ import { drawBrillo, inicioLuz } from './render/brillo.js';
 import { drawAureola, AURA_NORMAL, AURA_DBG } from './render/aureola.js';   // AURA_DBG: QUITAR con __auradbg
 import * as menus from './render/menus.js';
 import { stepRain, stepSpray, drawRain, RAIN_N } from './render/rain.js';
-import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit } from './systems/fog.js';
+import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit, fogFade } from './systems/fog.js';
+import { setNiebla } from './render/borde.js';
 import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './legacy/momentum_render.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
@@ -4446,6 +4447,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     const MARCO_STATES = ['play', 'takeoff', 'landing', 'dead', 'relevo', 'pulso'];
 
     function draw() {
+      setNiebla(fogFade());   // el brillo del filo se apaga en la niebla (render/borde.js)
       inicioLuz();   // la capa de luz del resplandor arranca vacia (ver render/brillo.js)
       ctx.setTransform(SC, 0, 0, SC, 0, 0);   // buffer 2×: todo el dibujo sigue en coords 320×180
       const sx = (Math.random() - 0.5) * run.shake, sy = (Math.random() - 0.5) * run.shake;

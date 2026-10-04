@@ -13,6 +13,7 @@
 // `wu` = cuantas unidades de MUNDO abarca el ancho del CONTENIDO. Es la perilla de tamaño por
 // enemigo: subirla agranda al bicho en pantalla sin tocar la colision (los hitboxes viven en
 // core/hitbox.js y no leen nada de aca). Esa SI es a mano, porque no es una medida.
+import { drawBorde } from './borde.js';
 import { CAJAS as CAJAS_HORNO } from '../data/cajas.js';
 import { CAJAS_THREE } from '../data/cajas_three.js';
 import { HORNO_VIEJO } from '../data/horno.js';
@@ -241,6 +242,13 @@ export function anclaje(k, i, cx, { bottomY, centerY }, k2) {
  *  `dark` (0..1) lo OSCURECE conservando su forma: mismo mecanismo que el flash pero con
  *  'source-atop' y azul de sombra. Nacio para el Harrier de cola (PLAN_HARRIERS_PERSECUCION H1)
  *  y se queda como respaldo si `harrier_rear` no cargo. Sirve para cualquier bicho a contraluz. */
+/** LO QUE VUELA BRILLA (autor, 4/10: "que se repita en los Harriers y demas cosas que tengan
+ *  brillos"). La luz de borde y sus destellos (render/borde.js) se dibujan sobre estas hojas igual
+ *  que sobre tu avion: mismo sol, mismo clima, misma niebla. Son los aviones y helicopteros — la
+ *  chapa que vuela a contraluz—; lo de tierra y los buques quedan afuera a proposito. */
+const BRILLAN = new Set(['jet', 'harrier', 'harrier_rear', 'harrier_cola', 'harrier_turn', 'chancha',
+  'helo', 'helo_seaking', 'helo_wessex', 'helo_sealynx', 'helo_gazelle', 'helo_scout']);
+
 export function drawFrame(ctx, k, col, row, cx, { bottomY, centerY }, k2, flip, flash, dark) {
   const s = SHEETS[k], b = s.box;
   const cw = b.x1 - b.x0 + 1, ch = b.y1 - b.y0 + 1;
@@ -274,6 +282,9 @@ export function drawFrame(ctx, k, col, row, cx, { bottomY, centerY }, k2, flip, 
   ctx.translate(cx, 0);
   if (flip) ctx.scale(-1, 1);
   ctx.drawImage(img, sx, sy, s.fw, s.fh, -cxf, top, W, H);
+  // el filo se calcula sobre la HOJA (no sobre el tinte): la silueta es la misma, y asi la cache de
+  // destellos de render/borde.js es una sola por cuadro aunque el bicho este a contraluz o golpeado
+  if (BRILLAN.has(k) && !flash) drawBorde(ctx, s.img, col * s.fw, row * s.fh, s.fw, s.fh, -cxf, top, W, H);
   ctx.restore();
 }
 

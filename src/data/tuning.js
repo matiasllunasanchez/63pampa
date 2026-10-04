@@ -1111,10 +1111,29 @@ export const BORDE_FUERZA = 0.7;
 export const BORDE_CIELO = {
   dusk: 1, dawn: 1,          // sol bajo y adelante: contraluz de libro
   sun: 0.8, clear: 0.8,      // sol alto: el filo de arriba se enciende igual, menos dramatico
-  moon: 0.45, night: 0.25,   // luz de luna: un filo frio y tenue
-  cloudy: 0.15, storm: 0.1,  // cielo cubierto: luz difusa, casi nada
+  moon: 0.45, night: 0.2,    // luz de luna: un filo frio y tenue; sin luna, menos
+  cloudy: 0.15, storm: 0.04, // cielo cubierto: luz difusa — y la tormenta (oscura, de noche) casi nada
 };
 export const BORDE_CIELO_DEF = 0.4;
+// LOS DESTELLOS DEL FILO (autor, 4/10: "el efecto del turbo cerca de la turbina, mas chico y amarillo,
+// repetido en todo el contorno que brilla"). Sobre el filo encendido se reparten resplandores chicos
+// que laten como la boca de la tobera. `celda` reparte: uno por celda de esa medida (px de la hoja de
+// 84) — mas chica, mas destellos. `radio` en px de la hoja; `alfa` el pico; `pulso` la velocidad del
+// latido. En 0 de alfa no hay destellos (la luz de borde sigue igual).
+export const BORDE_DESTELLO = { celda: 9, radio: 2.6, alfa: 0.55, pulso: 26 };
+// EL COLOR DEL BRILLO POR CIELO (autor, 4/10: "si es noche cambiar el color, si hay luna llena…").
+// `filo` el del borde (null = el sol del cielo, `theme.sky.sun`); `nucleo` y `halo` los dos tonos de
+// cada destello (RGB). Un cielo que no este aca usa `sol`.
+export const BORDE_LUZ = {
+  sol: { filo: null, nucleo: [255, 236, 140], halo: [255, 200, 70] },          // amarillo de tobera
+  moon: { filo: '#d6e4ff', nucleo: [235, 244, 255], halo: [170, 200, 255] },   // luna llena: plata fria
+  night: { filo: '#8fa6d0', nucleo: [200, 215, 255], halo: [110, 140, 210] },  // noche sin luna: azul tenue
+  storm: { filo: '#9aa6ae', nucleo: [220, 228, 235], halo: [140, 155, 170] },  // tormenta: gris
+  cloudy: { filo: '#c8cfd2', nucleo: [240, 244, 246], halo: [180, 190, 196] },  // cubierto: blanco difuso
+};
+// CON NIEBLA EL BRILLO SE APAGA: el filo y los destellos se multiplican por (1 - NIEBLA x niebla), con
+// la niebla del banco de 0 a 1 (systems/fog.js `fogFade`). En 0,8 a niebla plena queda un quinto.
+export const BORDE_NIEBLA = 0.8;
 
 // ---- LA VISION DEL RADAR, EN EL MARCO (render/world.js, drawRadarTinte) ----------------------
 // Cuando el radar te ve, la escena se tiñe de verde y aparecen las lineas del tubo. Hasta el
