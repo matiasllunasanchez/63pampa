@@ -110,10 +110,27 @@ export function sfxOne(key, vol) {
   return true;
 }
 
-/** Corta en seco un one-shot que este sonando (todas sus variantes y copias del pool). */
-export function sfxStop(key) {
+/** Apaga un one-shot que este sonando (todas sus variantes y copias del pool) con un fundido de
+ *  `fo` segundos —no en seco: un corte a pleno volumen es un clic—. Toma el token del fundido, asi
+ *  el de `playFaded` que estuviera corriendo se retira. */
+export function sfxStop(key, fo) {
   const d = sfxSrc(key); if (!d) return;
-  for (const rel of d.f) { const pool = sfxPool[rel]; if (pool) pool.a.forEach(a => { if (a && !a.paused) a.pause(); }); }
+  const dur = fo === undefined ? 0.08 : fo;
+  for (const rel of d.f) {
+    const pool = sfxPool[rel]; if (!pool) continue;
+    for (const a of pool.a) {
+      if (!a || a.paused) continue;
+      const tok = a.fadeTok = ++fadeTok, v0 = a.volume, t0 = performance.now();
+      const tick = () => {
+        if (a.fadeTok !== tok) return;
+        const u = (performance.now() - t0) / 1000 / dur;
+        if (u >= 1) { a.volume = 0; a.pause(); return; }
+        a.volume = v0 * (1 - u);
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }
+  }
 }
 
 // FUNDIDO de entrada/salida de un one-shot (`fi`/`fo` del catalogo, en segundos).
@@ -152,7 +169,8 @@ function sfxLoop(key) {
 let engAltT = 0;   // temporizador del crossfade normal↔normal2
 // LA DESCARGA DE LA METRALLA (autor, 4/10). Se detecta por FLANCO, aca y no en el sistema de armas,
 // porque es puro sonido: cada vez que la metralla DEJA de tirar —soltaste el boton o se recalento—
-// suena la descarga; cada vez que vuelve a tirar, la descarga se corta en seco y entra la rafaga
+// suena la descarga, que se apaga en fundido (`fo` en data/sfx.js); cada vez que vuelve a tirar, la
+// descarga se va en un fundido cortito (sfxStop) y entra la rafaga
 // (el loop `gun`) de una, a su volumen, sin el fundido de entrada de los loops. (Hubo una CARGA al
 // apretar, antes de la rafaga: el autor la saco el mismo dia.)
 let tirabaPrev = false;

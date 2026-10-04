@@ -1686,6 +1686,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // CUAN CERCA DEL FICHIN (3/10): 1 el gabinete entero, 2 y 3 acercan y el juego crece
       { label: () => T('optZoom'), opts: ZOOMS, names: () => ZOOMS.map(String),
         get: () => cfg.fichinZoom, set: v => { cfg.fichinZoom = v; setZoomFichin(v); }, save: 'rasante_fichin_zoom2' },   // '2': con el default nuevo, todos arrancan en el 2
+      // PANTALLA COMPLETA o VENTANA (autor, 4/10). El juego abre a pantalla completa (electron/main.js);
+      // si lo guardado es VENTANA, loadOpts() lo pide al cargar. En la web no hay a quien pedirselo.
+      { label: () => T('optPantalla'), opts: ['completa', 'ventana'], names: () => [T('optPantalla_completa'), T('optPantalla_ventana')],
+        get: () => cfg.pantalla, save: 'rasante_pantalla',
+        set: v => { cfg.pantalla = v; if (window.rasanteVentana) window.rasanteVentana.pantallaCompleta(v === 'completa'); } },
 
       { head: 'optSecControl' },
       // TODO lo que toca al AVION —piruetas, mira, ejes, esquema de control— se mudó a MEJORAS DEL

@@ -182,6 +182,8 @@ export const cfg = {
   // …y cuan cerca se lo mira: 1 el gabinete entero, 2 hasta la mitad de las manos, 3 un poco mas.
   // El 2 de fabrica (autor, 3/10).
   fichinZoom: 2,
+  // PANTALLA COMPLETA o VENTANA (4/10): completa de fabrica; la aplica Electron (electron/main.js)
+  pantalla: 'completa',
   // QUE LE PASA AL RELEVADO (SPEC_MODO_PASADA RF-15.5). Es TONO, no cuenta: el avion sale de la
   // partida en los tres casos, y lo unico que cambia es lo que ves y lo que dice la radio.
   //   'auto'  como venia: campaña = averiado que vuelve a la base (norma 3/8 del guion, donde los

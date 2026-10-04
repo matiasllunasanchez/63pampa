@@ -1,6 +1,6 @@
 // Proceso principal de Electron: crea la ventana y carga el juego (src/index.html).
 // El juego es una app canvas autocontenida; Electron solo la envuelve en una ventana nativa.
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('path');
 
 function createWindow() {
@@ -12,6 +12,9 @@ function createWindow() {
     backgroundColor: '#0d1216',   // igual al --bg del juego: sin flash blanco al abrir
     title: 'RASANTE',
     show: false,          // se muestra recién cuando el contenido está listo (evita parpadeo)
+    // A PANTALLA COMPLETA DE ENTRADA (autor, 4/10). Si el jugador eligio VENTANA en OPCIONES, la pagina
+    // lo pide apenas carga (ver `pantalla-completa` abajo y la fila PANTALLA en src/game.js).
+    fullscreen: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,     // seguridad estándar
@@ -35,14 +38,22 @@ function createWindow() {
     `document.body.classList.${on ? 'add' : 'remove'}('pantalla-completa'); window.dispatchEvent(new Event('resize'));`).catch(() => {});
   win.on('enter-full-screen', () => pleno(true));
   win.on('leave-full-screen', () => pleno(false));
+  // abrir YA a pantalla completa no dispara 'enter-full-screen': la clase se pone al cargar
+  win.webContents.on('did-finish-load', () => pleno(win.isFullScreen()));
 
-  // F11 alterna pantalla completa; Escape sale de fullscreen
+  // F11 alterna pantalla completa. ESCAPE YA NO SACA DE PANTALLA COMPLETA (autor, 4/10): es la tecla
+  // de pausa y de volver en los menus, y se la comia la ventana. Para salir: OPCIONES -> PANTALLA, o F11.
   win.webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return;
     if (input.key === 'F11') { win.setFullScreen(!win.isFullScreen()); event.preventDefault(); }
-    else if (input.key === 'Escape' && win.isFullScreen()) { win.setFullScreen(false); event.preventDefault(); }
   });
 }
+
+// OPCIONES -> PANTALLA: la pagina pide completa (true) o ventana (false) — ver electron/preload.js
+ipcMain.on('pantalla-completa', (e, v) => {
+  const w = BrowserWindow.fromWebContents(e.sender);
+  if (w && w.isFullScreen() !== !!v) w.setFullScreen(!!v);
+});
 
 app.whenReady().then(() => {
   createWindow();

@@ -49,20 +49,21 @@ HOJAS = {
                          frames=[dict(modelo='bl:harrier', yaw=d * R, roll=r * R)
                                  for d, r in zip((0, 40, 90, 140, 180), (0, -25, -35, -25, 0))]),
     # ---------------- FASE 3: LOS BUQUES ----------------
+    # (remodelados en Blender el 4/10/2026: tools/blender/modelos_buques.py)
     # El teleobjetivo casi ortografico (2,42° a 90 unidades) y `clipY: 0`: nada bajo la flotacion,
     # asi el borde de abajo del contenido ES la linea de agua (ver bake_enemies.html).
     **{('buque_' + c): dict(fw=240, fh=72, dist=90, fov=2.42, lookY=1.76, clipY=0, baseYaw=0, quarter=math.pi / 2,
-                            cols=3, nivelado=1, frames=[dict(modelo='puente:' + c, roll=a) for a in (-0.04, 0, 0.04)])
+                            cols=3, nivelado=1, frames=[dict(modelo='bl:' + c, roll=a) for a in (-0.04, 0, 0.04)])
        for c in ('t42', 't21', 'log', 'cv')},
     **{('proa_' + c): dict(fw=56, fh=72, dist=90, fov=2.42, lookY=1.64, clipY=0, baseYaw=0, quarter=0,
-                           cols=3, nivelado=1, frames=[dict(modelo='puente:' + c, roll=a) for a in (-0.05, 0, 0.05)])
+                           cols=3, nivelado=1, frames=[dict(modelo='bl:' + c, roll=a) for a in (-0.05, 0, 0.05)])
        for c in ('t42', 't21', 'log', 'cv')},
     **{('hundido_' + c): dict(fw=240, fh=72, dist=90, fov=3.15, lookY=2.0, clipY=0, baseYaw=0, quarter=math.pi / 2,
-                              cols=2, frames=[dict(modelo='puente:hundido_%s_%d' % (c, n)) for n in (1, 2)])
+                              cols=2, frames=[dict(modelo='bl:hundido:%s:%d' % (c, n)) for n in (1, 2)])
        for c in ('t42', 't21', 'log', 'cv')},
-    'fragata': dict(fw=64, fh=48, dist=16, lookY=1.0, quarter=0.15, cols=1, frames=[dict(modelo='puente:modelFragata')]),
+    'fragata': dict(fw=64, fh=48, dist=16, lookY=1.0, quarter=0.15, cols=1, frames=[dict(modelo='bl:fragata')]),
     'lcu': dict(fw=72, fh=48, dist=17, lookY=0.9, quarter=-0.55, cols=3, nivelado=1,
-                frames=[dict(modelo='puente:modelLcu', roll=a) for a in (-0.09, 0, 0.09)]),
+                frames=[dict(modelo='bl:lcu', roll=a) for a in (-0.09, 0, 0.09)]),
     # ---------------- FASE 4: TIERRA ----------------
     # todos en 3/4 (`quarter`): de frente los caños y los misiles apuntan a la camara y son palitos
     'radar': dict(fw=48, fh=48, dist=16, lookY=1.6, quarter=0.5, cols=4,

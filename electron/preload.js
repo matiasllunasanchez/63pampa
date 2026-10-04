@@ -5,8 +5,10 @@
 // EL JUEGO DE VERDAD, no una prueba: las herramientas (tools/smoke.js y los fixtures) abren el juego
 // sin este preload. Lo lee render/arranque.js para correr el arranque del fichin, que espera una
 // tecla y trabaria a cualquier prueba que apriete teclas apenas carga.
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('RASANTE_APP', true);
+// OPCIONES -> PANTALLA (src/game.js): pantalla completa o ventana. Lo aplica electron/main.js.
+contextBridge.exposeInMainWorld('rasanteVentana', { pantallaCompleta: v => ipcRenderer.send('pantalla-completa', !!v) });
 
 window.addEventListener('DOMContentLoaded', () => {
   document.body.classList.add('electron');
