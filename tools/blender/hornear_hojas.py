@@ -19,7 +19,9 @@ BLENDER = '/Applications/Blender.app/Contents/MacOS/Blender'
 # que catalogo de tools/models/ tiene cada modelo del puente
 FAMILIA = {'modelHelo': 'enemies', 'modelHercules': 'enemies', 'modelJet': 'enemies',
            'seaKing': 'helos', 'wessex': 'helos', 'seaLynx': 'helos', 'gazelle': 'helos', 'scout': 'helos',
-           'harrier': 'harrier', 'harrierRear': 'harrier'}
+           'harrier': 'harrier', 'harrierRear': 'harrier',
+           't42': 'buques', 't21': 'buques', 'log': 'buques', 'cv': 'buques', 'hundido': 'buques',
+           'modelFragata': 'enemies', 'modelLcu': 'enemies'}
 
 def puente(hojas):
     pedidos = set()

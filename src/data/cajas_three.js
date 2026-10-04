@@ -3,7 +3,12 @@
 // tools/bake_enemies_run.js (el horno viejo, que desde la fase 2 escribe esas hojas en
 // assets/world/enemies/three/). El juego las usa con `?horno=three` (data/horno.js).
 export const CAJAS_THREE = {
+  buque_cv: { fw: 240, fh: 72, cols: 3, rows: 1, box: { x0: 23, y0: 8, x1: 216, y1: 69 }, margen: 2 },
+  buque_log: { fw: 240, fh: 72, cols: 3, rows: 1, box: { x0: 24, y0: 8, x1: 215, y1: 69 }, margen: 2 },
+  buque_t21: { fw: 240, fh: 72, cols: 3, rows: 1, box: { x0: 47, y0: 20, x1: 196, y1: 69 }, margen: 2 },
+  buque_t42: { fw: 240, fh: 72, cols: 3, rows: 1, box: { x0: 24, y0: 10, x1: 216, y1: 69 }, margen: 2 },
   chancha: { fw: 160, fh: 112, cols: 3, rows: 1, box: { x0: 6, y0: 23, x1: 153, y1: 88 }, margen: 6, puntos: [[44.7, 71.84], [62.65, 71.84], [97.35, 71.84], [115.3, 71.84], [100.47, 70.85]] },
+  fragata: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 14, y0: 13, x1: 52, y1: 35 }, margen: 11 },
   harrier: { fw: 128, fh: 96, cols: 5, rows: 1, box: { x0: 32, y0: 26, x1: 95, y1: 67 }, margen: 26 },
   harrier_rear: { fw: 128, fh: 96, cols: 5, rows: 1, box: { x0: 28, y0: 28, x1: 99, y1: 75 }, margen: 20 },
   harrier_turn: { fw: 128, fh: 96, cols: 5, rows: 1, box: { x0: 22, y0: 29, x1: 114, y1: 66 }, margen: 13 },
@@ -13,5 +18,14 @@ export const CAJAS_THREE = {
   helo_seaking: { fw: 128, fh: 96, cols: 8, rows: 2, box: { x0: 9, y0: 27, x1: 107, y1: 65 }, margen: 9 },
   helo_sealynx: { fw: 128, fh: 96, cols: 8, rows: 2, box: { x0: 21, y0: 33, x1: 91, y1: 64 }, margen: 21 },
   helo_wessex: { fw: 128, fh: 96, cols: 8, rows: 2, box: { x0: 13, y0: 29, x1: 98, y1: 66 }, margen: 13 },
+  hundido_cv: { fw: 240, fh: 72, cols: 2, rows: 1, box: { x0: 51, y0: 17, x1: 189, y1: 64 }, margen: 7 },
+  hundido_log: { fw: 240, fh: 72, cols: 2, rows: 1, box: { x0: 52, y0: 14, x1: 188, y1: 64 }, margen: 7 },
+  hundido_t21: { fw: 240, fh: 72, cols: 2, rows: 1, box: { x0: 68, y0: 17, x1: 174, y1: 64 }, margen: 7 },
+  hundido_t42: { fw: 240, fh: 72, cols: 2, rows: 1, box: { x0: 52, y0: 17, x1: 189, y1: 64 }, margen: 7 },
   jet: { fw: 128, fh: 96, cols: 5, rows: 1, box: { x0: 29, y0: 26, x1: 98, y1: 63 }, margen: 26 },
+  lcu: { fw: 72, fh: 48, cols: 3, rows: 1, box: { x0: 9, y0: 11, x1: 52, y1: 33 }, margen: 9 },
+  proa_cv: { fw: 56, fh: 72, cols: 3, rows: 1, box: { x0: 7, y0: 5, x1: 51, y1: 68 }, margen: 3 },
+  proa_log: { fw: 56, fh: 72, cols: 3, rows: 1, box: { x0: 13, y0: 7, x1: 42, y1: 68 }, margen: 3 },
+  proa_t21: { fw: 56, fh: 72, cols: 3, rows: 1, box: { x0: 18, y0: 18, x1: 37, y1: 68 }, margen: 3 },
+  proa_t42: { fw: 56, fh: 72, cols: 3, rows: 1, box: { x0: 16, y0: 9, x1: 39, y1: 68 }, margen: 3 },
 };

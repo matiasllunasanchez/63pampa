@@ -74,6 +74,25 @@ def translucido(m, op):
     if hasattr(m, 'surface_render_method'): m.surface_render_method = 'BLENDED'
     else: m.blend_method = 'BLEND'
 
+def recortar(clip):
+    """EL PLANO DE RECORTE de bake_common.js (`clipY`): nada por debajo de esa altura del MUNDO de
+    three (la z de Blender) se hornea. Lo piden los buques: el borde de abajo del contenido ES la
+    linea de flotacion, y de ahi se ancla el sprite. Va en cada material: lo de abajo, transparente."""
+    for m in bpy.data.materials:
+        if not m.use_nodes: continue
+        nt = m.node_tree; N = nt.nodes; L = nt.links
+        out = next((n for n in N if n.type == 'OUTPUT_MATERIAL'), None)
+        if not out or not out.inputs['Surface'].links: continue
+        sup = out.inputs['Surface'].links[0].from_socket
+        geo = N.new('ShaderNodeNewGeometry')
+        z = N.new('ShaderNodeSeparateXYZ'); L.new(geo.outputs['Position'], z.inputs[0])
+        arriba = N.new('ShaderNodeMath'); arriba.operation = 'GREATER_THAN'; arriba.inputs[1].default_value = clip
+        L.new(z.outputs['Z'], arriba.inputs[0])
+        tr = N.new('ShaderNodeBsdfTransparent')
+        mx = N.new('ShaderNodeMixShader')
+        L.new(arriba.outputs[0], mx.inputs[0]); L.new(tr.outputs[0], mx.inputs[1]); L.new(sup, mx.inputs[2])
+        L.new(mx.outputs[0], out.inputs['Surface'])
+
 def construir(fuente, T):
     tipo, nombre = fuente.split(':', 1)
     if tipo == 'puente':
@@ -127,6 +146,7 @@ if __name__ == '__main__':
     fuentes = {}
     for fr in S['frames']:
         if fr['modelo'] not in fuentes: fuentes[fr['modelo']] = construir(fr['modelo'], T)
+    if 'clipY' in S: recortar(S['clipY'])
     def mostrar(raiz):
         for r in fuentes.values():
             for o in [r] + list(r.children_recursive): o.hide_render = o.hide_viewport = r is not raiz

@@ -10,6 +10,8 @@
 #
 # FASE 2 (3/10/2026): los aviones enemigos — el helicoptero, los cinco britanicos, la Chancha, el
 # caza del pasillo y las tres hojas del Sea Harrier.
+# FASE 3 (3/10/2026): los buques — las cuatro clases de costado, de proa y hundiendose (buques.js),
+# el casco de la fragata del mastil de mar y la barcaza.
 import math
 
 R = math.pi / 180
@@ -38,4 +40,19 @@ HOJAS = {
     'harrier_turn': dict(fw=128, fh=96, dist=18, lookY=0.2, baseYaw=0, cols=5,
                          frames=[dict(modelo='bl:harrier', yaw=d * R, roll=r * R)
                                  for d, r in zip((0, 40, 90, 140, 180), (0, -25, -35, -25, 0))]),
+    # ---------------- FASE 3: LOS BUQUES ----------------
+    # El teleobjetivo casi ortografico (2,42° a 90 unidades) y `clipY: 0`: nada bajo la flotacion,
+    # asi el borde de abajo del contenido ES la linea de agua (ver bake_enemies.html).
+    **{('buque_' + c): dict(fw=240, fh=72, dist=90, fov=2.42, lookY=1.76, clipY=0, baseYaw=0, quarter=math.pi / 2,
+                            cols=3, nivelado=1, frames=[dict(modelo='puente:' + c, roll=a) for a in (-0.04, 0, 0.04)])
+       for c in ('t42', 't21', 'log', 'cv')},
+    **{('proa_' + c): dict(fw=56, fh=72, dist=90, fov=2.42, lookY=1.64, clipY=0, baseYaw=0, quarter=0,
+                           cols=3, nivelado=1, frames=[dict(modelo='puente:' + c, roll=a) for a in (-0.05, 0, 0.05)])
+       for c in ('t42', 't21', 'log', 'cv')},
+    **{('hundido_' + c): dict(fw=240, fh=72, dist=90, fov=3.15, lookY=2.0, clipY=0, baseYaw=0, quarter=math.pi / 2,
+                              cols=2, frames=[dict(modelo='puente:hundido_%s_%d' % (c, n)) for n in (1, 2)])
+       for c in ('t42', 't21', 'log', 'cv')},
+    'fragata': dict(fw=64, fh=48, dist=16, lookY=1.0, quarter=0.15, cols=1, frames=[dict(modelo='puente:modelFragata')]),
+    'lcu': dict(fw=72, fh=48, dist=17, lookY=0.9, quarter=-0.55, cols=3, nivelado=1,
+                frames=[dict(modelo='puente:modelLcu', roll=a) for a in (-0.09, 0, 0.09)]),
 }

@@ -12,7 +12,7 @@ const fs = require('fs');
 const claves = process.argv.slice(2).filter(a => !a.startsWith('-') && !a.endsWith('.js'));
 const OUT = path.join(__dirname, 'out');
 
-app.whenReady().then(async () => {
+app.whenReady().then(async () => { try {
   const win = new BrowserWindow({ width: 400, height: 300, show: false });
   await win.loadFile(path.join(__dirname, 'exportar.html'));
   fs.mkdirSync(OUT, { recursive: true });
@@ -20,7 +20,7 @@ app.whenReady().then(async () => {
     if (k.includes(':')) {
       const [fam, nombre, ...args] = k.split(':');
       const json = await win.webContents.executeJavaScript(
-        `__exportarModelo(${JSON.stringify(fam)}, ${JSON.stringify(nombre)}, ${JSON.stringify(args.map(Number))})`);
+        `__exportarModelo(${JSON.stringify(fam)}, ${JSON.stringify(nombre)}, ${JSON.stringify(args.map(a => isNaN(+a) ? a : +a))})`);
       fs.mkdirSync(path.join(OUT, 'puente'), { recursive: true });
       fs.writeFileSync(path.join(OUT, 'puente', [nombre, ...args].join('_') + '.json'), json);
       console.log('OK', k, (json.length / 1024).toFixed(0) + ' KB');
@@ -31,4 +31,9 @@ app.whenReady().then(async () => {
     console.log('OK', k, (json.length / 1024).toFixed(0) + ' KB');
   }
   app.exit(0);
+  } catch (e) {
+    // sin esto un modelo que falla (un catalogo sin cargar en exportar.html) deja a Electron colgado
+    console.error('ERROR al exportar:', e.message);
+    app.exit(1);
+  }
 });
