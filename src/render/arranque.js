@@ -10,9 +10,9 @@
 //      suena la moneda, aparece CREDITO 1, y enseguida la portada de siempre, con su musica.
 //
 // Es DOM y un canvas propio (#bios, encima del juego y adentro de su caja), no el canvas del juego:
-// el juego ya corre debajo desde el primer cuadro y esto solo decide que se ve. El #bios se dibuja a
-// la grilla de diseño (320x180) y el CSS lo estira pixelado: las letras salen con pixel gordo, como
-// en un monitor de fichin. El estado vive en clases del <body> que ya vienen puestas desde el HTML,
+// el juego ya corre debajo desde el primer cuadro y esto solo decide que se ve. El #bios se dibuja en
+// la grilla de diseño (320x180) pero a RES veces su tamaño (autor, 4/10: "la resolucion de las letras
+// es muy baja"): las cuentas siguen en 320x180 y las letras salen nitidas. El estado vive en clases del <body> que ya vienen puestas desde el HTML,
 // asi el primer pintado ya es negro:
 //   arranque-negro    el telon negro (#arranque) tapa todo
 //   arranque-apagado  el tubo esta apagado: no se ve nada adentro del gabinete
@@ -56,7 +56,7 @@ const BIOS = [
   ['', ''],
   ['CARGANDO RASANTE', 'carga'],
 ];
-const BW = 320, BH = 180;
+const BW = 320, BH = 180, RES = 4;
 const COL = { texto: '#aab8bc', cab: '#e8eef0', ok: '#7fe07f', ficha: '#e8a33d', aviso: '#e8eef0' };
 
 let activo = false;
@@ -77,7 +77,7 @@ export function arrancar({ alPrender, alCargado, alFicha, alTerminar } = {}) {
   }
   activo = true;
   b.classList.add('arranque-bios');
-  bios.width = BW; bios.height = BH;
+  bios.width = BW * RES; bios.height = BH * RES;
   const g = bios.getContext('2d');
 
   // EL RELOJ: `fase` y el momento en que empezo, en segundos de pared
@@ -157,6 +157,7 @@ export function arrancar({ alPrender, alCargado, alFicha, alTerminar } = {}) {
 
 /** Un cuadro del #bios. */
 function dibujar(g, fase, t, durRenglon) {
+  g.setTransform(RES, 0, 0, RES, 0, 0);
   g.fillStyle = '#000'; g.fillRect(0, 0, BW, BH);
   g.textBaseline = 'top';
   const parpadeo = periodo => (t % periodo) < periodo * 0.6;

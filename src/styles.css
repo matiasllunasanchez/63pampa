@@ -297,8 +297,8 @@
   body.arranque-apagado .stage {
     visibility: hidden;
   }
-  /* EL BIOS (render/arranque.js): un canvas de 320x180 encima del juego, estirado pixelado —las
-     letras salen con pixel gordo—. Al continuar se funde en ARRANQUE.APAGA (0.3s). */
+  /* EL BIOS (render/arranque.js): un canvas encima del juego, la grilla de 320x180 dibujada a 4x —las
+     letras salen nitidas—. Al continuar se funde en ARRANQUE.APAGA (0.3s). */
   #bios {
     position: absolute;
     inset: 0;
