@@ -2332,7 +2332,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // …y lo mismo, sin parametro, en IDA Y VUELTA: es el banco de pruebas del pasillo largo
       // (pruebas_misiones.js t15) y el poder es una de las cosas que se van a probar ahi. Pedido
       // del autor, 12/9. PROVISORIO — se saca junto con `rasanteProbe` al cerrar el plan.
-      if (rasanteProbe || curMission().id === 't15' || curMission().id === 't17' || curMission().id === 't18') rasante.cargar();   // arranca con la barra llena
+      if (rasanteProbe || ['t15', 't17', 't18', 't19', 't20'].includes(curMission().id)) rasante.cargar();   // arranca con la barra llena
       veilOut = 0; veilPrev = '';   // el telon del cordon, cerrado y sin reloj
       arena.resetArena();
       pasada.resetPasada();

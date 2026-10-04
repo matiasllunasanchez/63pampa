@@ -54,6 +54,16 @@ export const PRUEBAS = [
     // escrita en km — niebla, costa, isla, acantilados con puente, y en la vuelta canal y farallon.
     setup: a => a.mision('t18', { start: 'runway' }),
   },
+  {
+    id: 'idayvueltaNoche', titulo: 'IDA Y VUELTA NOCHE', desc: 'La IDA Y VUELTA de noche; se vuelve con luna · ~6 min',
+    // t19: la t15 con el cielo de noche (4/10). La vuelta pasa sola a luna.
+    setup: a => a.mision('t19', { start: 'runway' }),
+  },
+  {
+    id: 'idayvueltaSmallNoche', titulo: 'IDA Y VUELTA SMALL NOCHE', desc: 'La SMALL de noche; se vuelve con luna · ~4 min',
+    // t20: la t17 con el cielo de noche (4/10).
+    setup: a => a.mision('t20', { start: 'runway' }),
+  },
 
   { head: 'prSecClimax' },
   {

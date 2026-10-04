@@ -309,6 +309,16 @@ const t18 = {
   par: 4000,
 };
 
+// ---------------------------------------------------------------------------------------------
+// t19 · IDA Y VUELTA NOCHE y t20 · IDA Y VUELTA SMALL NOCHE (pedido del autor 4/10: "armemos una
+// mision ida y vuelta noche… small tambien"). Son t15 y t17 tal cual —fases, radio, ruta, Chancha,
+// CAP, suelta, mar variado y sin globos— con el cielo de NOCHE. El mar sigue al cielo (`water:
+// 'auto'`), y la vuelta pasa sola a cielo de LUNA (CIELO_VUELTA en data/blanco.js: night → moon) y al
+// video del viraje de noche.
+const noche = cfg => ({ ...cfg, sky: 'night' });
+const t19 = { ...t15, id: 't19', name: 'IDA Y VUELTA NOCHE', cfg: noche(t15.cfg) };
+const t20 = { ...t17, id: 't20', name: 'IDA Y VUELTA SMALL NOCHE', cfg: noche(t17.cfg) };
+
 /** Las misiones que NO son la campaña. `game.js` las concatena a `MISSIONS` para resolver una
  *  mision por id o por indice; nada que recorra la campaña las mira. */
-export const MISIONES_PRUEBA = [t15, t16, t17, t18];
+export const MISIONES_PRUEBA = [t15, t16, t17, t18, t19, t20];
