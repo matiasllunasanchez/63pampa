@@ -23,8 +23,10 @@
 // El preload de Electron marca `RASANTE_APP`, y las pruebas abren el juego sin preload. En el
 // navegador se puede forzar con `?intro`. Sin ninguno de los dos, termina en el acto.
 //
-// SALTEAR: una tecla antes del aviso va directo al aviso (sin ficha: la ficha es la tecla que
-// continua). Las teclas, los clics y los botones del mando no llegan al juego mientras esto corre.
+// NO SE SALTEA (autor, 4/10: "no se puede adelantar, hay que esperar; recien se toma cualquier tecla
+// cuando la pantalla diga presionar cualquier tecla"): antes una tecla adelantaba hasta el aviso; ahora
+// solo cuenta EN el aviso, y ahi es la ficha. Las teclas, los clics y los botones del mando no llegan
+// al juego mientras esto corre.
 import { cv, avisoFont } from './ctx.js';
 
 /** Los tiempos, en segundos. FUNDE es el de styles.css (#arranque): si se cambia uno, el otro. */
@@ -56,10 +58,12 @@ const BIOS = [
   ['', ''],
   ['CARGANDO RASANTE', 'carga'],
 ];
-// RES_CARTEL: desde INSERTE FICHA el canvas va al doble (autor, 4/10: "la carga de pantalla esta bien
-// que se vea borrosa, y el insertar ficha y demas un poquito menos borroso"). El BIOS sigue a RES: a
-// pantalla completa el tubo estira el canvas 2-3 veces y eso lo ablanda, que es lo que gusta ahi.
-const BW = 320, BH = 180, RES = 4, RES_CARTEL = 8;
+// LA CALIDAD DE CADA PANTALLA (veces la grilla de 320x180; todas pedidas por el autor el 4/10). RES: el BIOS,
+// a 1x — la grilla del juego, tosco a proposito ("bajale la calidad a la primera pantalla", "menos
+// calidad"). RES_FICHA y RES_AVISO: los dos carteles — subieron a 8 ("un poquito menos borroso") y
+// despues bajaron ("a INSERTE FICHA bajarle un poco mas de calidad, y a presione cualquier tecla un
+// poco tambien"). A pantalla completa el tubo estira el canvas, asi que menos es mas tosco.
+const BW = 320, BH = 180, RES = 1, RES_FICHA = 3, RES_AVISO = 4;
 const COL = { texto: '#aab8bc', cab: '#e8eef0', ok: '#7fe07f', ficha: '#e8a33d', aviso: '#e8eef0' };
 
 let activo = false;
@@ -91,9 +95,8 @@ export function arrancar({ alPrender, alCargado, alFicha, alTerminar } = {}) {
     fase = f; desde = ahora();
     // el cartel, mas nitido: el canvas se agranda una sola vez al entrar a la ficha (o a lo que siga,
     // si una tecla salteo el BIOS)
-    if ((f === 'ficha' || f === 'aviso' || f === 'credito') && bios.width !== BW * RES_CARTEL) {
-      bios.width = BW * RES_CARTEL; bios.height = BH * RES_CARTEL;
-    }
+    const res = f === 'ficha' ? RES_FICHA : f === 'aviso' || f === 'credito' ? RES_AVISO : RES;
+    if (bios.width !== BW * res) { bios.width = BW * res; bios.height = BH * res; }
   };
   const relojes = [];
   const despues = (s, fn) => relojes.push(setTimeout(fn, s * 1000));
@@ -123,14 +126,11 @@ export function arrancar({ alPrender, alCargado, alFicha, alTerminar } = {}) {
     setTimeout(() => b.classList.remove('arranque-bios', 'arranque-sale'), ARRANQUE.APAGA * 1000);
     if (alTerminar) alTerminar();
   };
-  // CUALQUIER TECLA: antes del cartel, adelanta hasta el cartel (que igual hace su INSERTE FICHA,
-  // su sonido y su cambio: son dos segundos); en el aviso, ES LA FICHA. No llega al juego — si no,
-  // la misma tecla saltearia tambien la portada.
+  // CUALQUIER TECLA: solo en el aviso ("PRESIONE CUALQUIER TECLA"), y ahi ES LA FICHA. Antes de eso se
+  // traga y no hace nada — la secuencia no se adelanta. No llega al juego: si no, la misma tecla
+  // saltearia tambien la portada.
   const avanzar = () => {
-    if (fase === 'aviso') { echarFicha(); return; }
-    if (fase === 'credito' || fase === 'ficha') return;
-    prender();
-    pasarA('ficha');
+    if (fase === 'aviso') echarFicha();
   };
   function tecla(e) {
     e.preventDefault(); e.stopImmediatePropagation();

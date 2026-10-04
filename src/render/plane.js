@@ -973,10 +973,12 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     }
     // POSTQUEMADOR pegado a la TOBERA. Antes salia de spH/2 (el borde del frame) y al pasar el
     // frame a cuadrado la llama quedo flotando 12 px detras del avion.
-    // ORDEN DE CAPAS. Los FOGONAZOS iban DEBAJO del avion (la boca del cañon esta del otro lado del
-    // ala); desde el 4/10 son ESTRELLAS y van ENCIMA, despues de la carga (ver `fogonazos`): debajo,
-    // con la hoja del poder RASANTE quedaban tapados por el fuselaje y no se veian.
+    // ORDEN DE CAPAS. Los FOGONAZOS van DEBAJO del avion (autor, 4/10: "los brillos de las balas deben
+    // estar DETRAS del avion, el avion por encima segun la vision"): la boca del cañon esta del otro lado
+    // del ala. Son ESTRELLAS en las raices medidas de la hoja (ver `fogonazos`), asi que asoman alrededor
+    // del ala tambien con la hoja del poder RASANTE.
     // La LLAMA del turbo va ENCIMA: sale de la tobera, que apunta a la camara.
+    if (inp.fire && !run.overheat && run.fireT > 0.06 && !hoja4) fogonazos(spW, spH, AN.tips[rowPose][colPose]);
     drawGear(run.gear, 1);   // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma
     ctx.drawImage(img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
     drawBorde(ctx, img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);   // a contraluz (render/borde.js)
@@ -1005,8 +1007,6 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
       ctx.drawImage(im, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
       if (mitad) ctx.restore();
     }
-    // LOS FOGONAZOS, en las bocas de los cañones de ESTA hoja y ESTA pose (anclas medidas por el horno)
-    if (inp.fire && !run.overheat && run.fireT > 0.06 && !hoja4) fogonazos(spW, spH, AN.tips[rowPose][colPose]);
     // LA CHAPERIA, ENCIMA DE LA CHAPA. Va aca —despues del frame y antes de la tobera— porque es
     // pintura sobre el avion, no un efecto en el aire: tiene que taparse con el humo del escape y
     // con el vapor del ala, igual que se taparia la pintura de verdad.
