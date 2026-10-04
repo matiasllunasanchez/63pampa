@@ -43,6 +43,7 @@ WEB_DROP = [
     'pmetal_acero_blanco.mp3', 'pmetal_aundepie.mp3', 'pmetal_aurora.mp3',
     'pmetal_malvinas.mp3', 'pmetal_malvinas_2triumph.mp3', 'pmetal_revolucion_mayo.mp3',
     'pmetal_sangre_albiceleste.mp3', 'pmetal_soldado.mp3',
+    'soundtrack/Zona rasante.m4a',   # ZONA RASANTE: la de las pruebas, solo en Electron
 ]
 
 

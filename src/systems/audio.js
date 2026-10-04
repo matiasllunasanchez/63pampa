@@ -42,11 +42,18 @@ const MUSIC_ADR = [
 const musAdr = MUSIC_ADR.filter(Boolean)
   .map(src => { const a = new Audio(src); a.loop = true; a.volume = 0.30; return a; });
 
+// ZONA RASANTE (soundtrack propio, 4/10): la pista PRINCIPAL de las partidas de PRUEBAS (el autor: "pone
+// zona rasante como track principal de las partidas de prueba"). Va en el reproductor como una mas —
+// en una prueba arranca ella, y ◄ ► siguen cambiando —. En el build web no entra (tools/build_web.py).
+const MUSIC_ZONA = '../assets/music/soundtrack/Zona rasante.m4a';
+const musZona = new Audio(MUSIC_ZONA); musZona.volume = 0.30;
+
 // PLAYLIST del REPRODUCTOR: la base del juego + el pool adrenalina, presentadas como TRACK 1..N.
 // Es la lista que se puede cambiar en vuelo (modos que NO son historia) y de la que la campaña
 // saca una pista por nivel. El lobby (musLobby) y las pantallas de historia (musStory) quedan
 // aparte: no entran en el reproductor.
-const PLAYLIST = [musGame, ...musAdr];
+const PLAYLIST = [musGame, ...musAdr, musZona];
+const ZONA_IDX = PLAYLIST.indexOf(musZona);
 // Pista del REPRODUCTOR: la que suena en CICLO DE MUERTE y POR LA PATRIA. Se sortea al cargar y
 // desde ahi encadena sola (termina una, sigue la proxima; despues de la ultima vuelve a la primera).
 // No se re-sortea al reiniciar un nivel — asi la musica CONTINUA en vez de cortarse.
@@ -450,12 +457,20 @@ export function tickDuck(dt) { duckT = Math.max(0, duckT - dt); }
  *  - CICLO / POR LA PATRIA: usa la pista sorteada del reproductor, y NO la re-sortea — asi al
  *    reiniciar un nivel la musica CONTINUA en vez de arrancar otra.
  *
+ *  - PRUEBAS (`prueba`): arranca ZONA RASANTE, aunque la prueba vuele una mision de campaña; el
+ *    reproductor queda libre para cambiarla.
+ *
  *  `keep` = REINTENTO tras morir: la pista NO se corta, sigue sonando desde donde venia. Es la
  *  UNICA excepcion; empezar un mapa por cualquier otra via arranca la musica de cero. */
-export function setRunMusic(isCampaign, level, keep) {
+export function setRunMusic(isCampaign, level, keep, prueba) {
   // HISTORIA: siempre game.mp3 (PLAYLIST[0]) durante el juego real — las cinematicas tienen la
   // suya (musStory) y el lobby la propia. Antes la pista salia del numero de nivel.
-  scriptedIdx = isCampaign ? 0 : null;
+  scriptedIdx = isCampaign && !prueba ? 0 : null;
+  if (prueba && !keep && trackIdx !== ZONA_IDX) {
+    const antes = gameTrack();
+    if (!antes.paused) antes.pause();
+    trackIdx = ZONA_IDX;
+  }
   // MAPA NUEVO = la pista arranca de cero. Se la pausa y se limpia curTrack para que el proximo
   // updateMusic la relance desde el principio. Con `keep` no se toca: sigue sonando (durante la
   // pantalla de derribado nunca se pauso, asi que el reintento es continuo, sin corte).

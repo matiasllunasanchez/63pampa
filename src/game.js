@@ -1686,7 +1686,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // MUSICA: campaña usa game.mp3; ciclo y supervivencia mantienen la pista elegida en el
       // reproductor (no la re-sortean). Arranca de cero al empezar el mapa, SALVO al reintentar
       // tras morir: ahi continua donde venia, sin corte.
-      setRunMusic(gameMode === 'campaign', curLevel, keepMusic);
+      setRunMusic(gameMode === 'campaign', curLevel, keepMusic, !!S.test);   // S.test: PRUEBAS y el selector de misiones → ZONA RASANTE
     }
 
     // ---------- OPCIONES: LA pantalla de configuración ----------
