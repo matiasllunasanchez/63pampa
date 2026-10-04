@@ -84,7 +84,8 @@ import { blanco } from './core/blanco.js';
 import { drawTrayectoria } from './render/trayectoria.js';
 const BL_ALT_IDEAL = BL_BLANCO.ALT_IDEAL;
 import { drawBlanco, drawBlancoHud } from './render/blanco.js';
-import { drawRotuloVuelo, ROTULO_T, ROTULO_NOMBRE } from './render/rotulo.js';
+import { drawRotuloVuelo, ROTULO, ROTULO_T, ROTULO_NOMBRE } from './render/rotulo.js';
+import { tarjetaPiloto, TARJETA_LADO, tarjetaLugar } from './render/hud.js';
 import { PULSO } from './data/pulso.js';
 import { spawnSystem } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
@@ -5339,8 +5340,19 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // solo bajo la X del Vasco (sola y en fuego parecia una marca de error). El piloto va en
         // minuscula con inicial: es una persona, no una chapa. "Toma el mando" arriba estuvo y el
         // autor lo oculto: el string (rot_toma) y el parametro `sobre` quedan por si vuelve.
-        const pil = squad.pilotName(rv.next), piloto = pil.charAt(0) + pil.slice(1).toLowerCase();
-        if (nom) drawRotuloVuelo(nom, rv.t - RELEVO_WRECK, 'fuego', piloto, null, ROTULO_NOMBRE);
+        // EL PILOTO YA NO VA ESCRITO (autor, 4/10): su TARJETA —cara y nombre— entra desde la izquierda
+        // a SU LUGAR DEL HUD, del mismo tamaño, cuando el nombre del avion llega, y se queda: al volver
+        // el HUD, la de drawPiloto la reemplaza en el mismo lugar, sin salto.
+        const pil = squad.pilotName(rv.next), tr = rv.t - RELEVO_WRECK;
+        if (nom) {
+          drawRotuloVuelo(nom, tr, 'fuego', null, null, ROTULO_NOMBRE);
+          if (tr >= 0) {
+            const { ENTRA } = ROTULO, L = tarjetaLugar(), fuera = -TARJETA_LADO - 2;
+            const x = tr < ENTRA ? fuera + (L.x - fuera) * (1 - Math.pow(1 - tr / ENTRA, 3)) : L.x;
+            // en las coordenadas del HUD (que se dibuja escalado por U): mismo lugar y mismo tamaño
+            ctx.save(); ctx.scale(U, U); tarjetaPiloto(pil, x, L.y); ctx.restore();
+          }
+        }
       }
 
       // EL VIDEO DEL VIRAJE, a pantalla completa y con bandas si el formato no calza

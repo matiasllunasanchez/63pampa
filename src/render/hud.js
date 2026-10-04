@@ -1200,6 +1200,28 @@ function drawPiloto(charlaVoz) {
 }
 
 
+/** LA TARJETA DE UN PILOTO con su esquina de arriba a la izquierda en (x, y): la misma caja que la del
+ *  que vuela (drawPiloto) — su cara y su nombre —, pero de CUALQUIER piloto y sin gestos. La usa el
+ *  relevo (game.js): la tarjeta del que entra llega desde la izquierda a SU LUGAR DEL HUD y se queda
+ *  ahi, asi que cuando vuelve el HUD la de drawPiloto la reemplaza sin salto (pedido del autor, 4/10).
+ *  Devuelve false si ese piloto no tiene retrato. */
+export function tarjetaPiloto(nombre, x, y) {
+  const base = CARA_PILOTO[sinTilde(nombre)];
+  if (!base) return false;
+  x = Math.round(x);
+  plate(x, y, PILOTO.lado, PILOTO.alto);
+  const im = retrato(base + '_neutro');
+  if (im) ctx.drawImage(im, x + 2, y + 2, PILOTO.cara, PILOTO.cara);
+  else silueta(x + 2, y + 2, PILOTO.cara);
+  ctx.font = F_ROT; ctx.textAlign = 'center'; ctx.fillStyle = P.foam;
+  ctx.fillText(nombre, x + PILOTO.lado / 2, y + PILOTO.alto - 2, PILOTO.lado - 2);
+  ctx.textAlign = 'left';
+  return true;
+}
+export const TARJETA_LADO = PILOTO.lado;
+/** Donde va la tarjeta del piloto en el HUD (la misma cuenta que drawPiloto). */
+export const tarjetaLugar = () => ({ x: MARGEN, y: CUADROS_Y - AIRE - PILOTO.alto });
+
 // TABLERO DEL ESCUADRON: un avion por vida — los caidos quedan TACHADOS, no desaparecen.
 // Que el avion siga ahi, oscuro y cruzado, es lo que hace que una vida menos sea un companero
 // menos y no un numero menos. Al lado, el indicativo del piloto al mando.

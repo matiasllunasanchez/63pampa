@@ -217,14 +217,18 @@ function portRow(y, wz, k, x0, x1, f) {
   // ahora interpolados, y encima las manchas redondas y el grano del campo (groundMottle).
   const vl = Math.max(-1, Math.min(1, (Math.sin(wz * 0.22) + Math.sin(wz * 0.07)) / 1.6));
   px(x0, y, x1 - x0, rowH, vl > 0 ? mez('#323a2b', '#39402f', vl) : mez('#323a2b', '#2b3226', -vl));
-  groundMottle(y, wz, k, x1);
+  // (SIN el grano de groundMottle: en la base, de cerca, las motas se estiraban con el paralaje y se
+  // leia LLUVIA — el autor, 4/10. El campo de la base lleva matojos y matas: ver drawBaseVeg)
   // --- PISTA --- solo se pinta la parte del tramo que le toca (recorte contra [x0,x1))
   const a = W / 2 + (-R.hw - cam.x) * k + ZB, b = W / 2 + (R.hw - cam.x) * k + ZB;
   const ra = Math.max(a, x0), rb = Math.min(b, x1);
   const bw = Math.max(1, 0.5 * k);
   if (rb > ra) {
     px(ra, y, rb - ra, 1, R.surf);
-    if (R.center && Math.floor(wz / 9) % 2 === 0) {                  // eje discontinuo
+    if (R.center === 'amarilla') {                                    // la linea AMARILLA continua (BAM Malvinas)
+      const lw = Math.max(1, 0.32 * k), ex = W / 2 + (0 - cam.x) * k + ZB - lw / 2;
+      if (ex >= x0 && ex + lw <= x1) px(ex, y, lw, 1, '#d6b23c');
+    } else if (R.center && Math.floor(wz / 9) % 2 === 0) {           // eje discontinuo
       const ex = W / 2 + (0 - cam.x) * k + ZB - bw / 2;
       if (ex >= x0 && ex + bw <= x1) px(ex, y, bw, 1, '#9aa39b');
     }
@@ -243,6 +247,48 @@ function portRow(y, wz, k, x0, x1, f) {
     if (a - bw >= x0 && a <= x1) px(a - bw, y, bw, 1, P.accent);
     if (b >= x0 && b + bw <= x1) px(b, y, bw, 1, P.accent);
   }
+}
+
+/** EL CAMPO DE LA BASE (4/10/2026, pedido del autor: "en el pasto del despegue el efecto parece
+ *  lluvia — conviene ponerle directamente los arbustos como tienen los otros terrenos"): matojos del
+ *  pasto (en su estado de viento), matas de las islas y alguna piedra, sobre la turba de la base y a
+ *  los costados de la pista — nunca encima de ella ni de su banquina. La misma grilla de mundo que el
+ *  campo de TIERRA (drawLand): deterministas, no titilan. */
+function drawBaseVeg(dv) {
+  const R = RUNWAYS[cfg.runway] || RUNWAYS[0];
+  if (R.ground === 'asphalt') return;                       // plataforma de asfalto: no hay campo
+  const gy = cfg.cliff ? PORT_H : 0;
+  const fin = Math.min(cfg.coast - PORT_AMP - 2, dv + 150);
+  const climaP = climaDe(cfg), quieto = (PASTO_LEAN[climaP] || 0) === 0;
+  const SP = 2.8;
+  for (let wz = Math.ceil((fin) / SP) * SP; wz > dv + 3; wz -= SP) {        // de atras hacia adelante
+    const camZ = wz - dv, k = F / camZ, iz = Math.round(wz / SP);
+    const halfW = Math.min(300, (W / 2 + 20) * camZ / F);
+    const cx = cam.x - bendW(camZ);
+    for (let wx = Math.ceil((cx - halfW) / SP) * SP; wx < cx + halfW; wx += SP) {
+      if (Math.abs(wx) < R.hw + 3) continue;                // la pista y su banquina, limpias
+      const ix = Math.round(wx / SP);
+      const h1 = hash2(ix * 3 + 11, iz * 7 - 5);
+      if (h1 < 0.52) continue;
+      const h2 = hash2(ix + 401, iz - 77), h3 = hash2(ix - 19, iz + 233);
+      const jx = wx + (h2 - 0.5) * SP, jz = wz + (h3 - 0.5) * SP;
+      const s = proj(jx, gy, jz - dv);
+      if (s.x < -10 || s.x > W + 10 || s.y < HOR) continue;
+      ctx.globalAlpha = Math.min(1, camZ / 8) * Math.max(0.35, 1 - camZ / 170);
+      if (h1 > 0.975) veg.piedras(s.x, s.y, k * 2.0, h2);
+      else if (h1 > 0.93) veg.mata(s.x, s.y, k * 2.3, h2, theme.land.tuft);
+      else if (k > 2.5) {
+        const ci = (h3 * TUFTS.length) | 0;
+        const lean = quieto ? 0 : pastoLean(jx, jz, run.t, climaP);
+        veg.matojo(s.x, s.y, k * (0.65 + h2 * 0.6) * 2.3, h2, lean, TUFT_TIP[ci]);
+      } else {                                              // lejos: el trazo de siempre
+        const ci = (h3 * TUFTS.length) | 0, w = Math.max(1, k * 0.55), hh = Math.max(1, k * (0.65 + h2 * 0.6));
+        px(s.x - w / 2, s.y - hh, w, hh, TUFTS[ci]);
+        px(s.x - w / 2, s.y - hh, w, Math.max(1, hh * 0.4), TUFT_TIP[ci]);
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
 }
 
 /** Pared del ACANTILADO: la roca entre el borde de la meseta y el agua. Solo se dibuja cuando la
@@ -602,6 +648,7 @@ export function drawSea() {
     const f = fRow;   // ya viene clampeado en 1 (ver fRow)
     px(-70, y, W + 140, rowH, aguaCol(f));
   }
+  if (landVisible) drawBaseVeg(dv);
   if (nMar || nCosta || nPlaya) profundidad(HOR + 1, yEnd, dv);
   geoFilas.mar = nMar; geoFilas.tierra = nTierra; geoFilas.costa = nCosta; geoFilas.playa = nPlaya;
   if (geoOn) {
@@ -708,7 +755,11 @@ function profundidad(y0, y1, dv) {
     let yb = y + 1;
     const zTope = z - Math.max(M.DZ, z * M.DZ_REL);
     let mixta = marFila[y] === 2;
-    while (yb < y1 && marFila[yb] && k0 / (yb - HOR) > zTope) { if (marFila[yb] === 2) mixta = true; yb++; }
+    // A LO SUMO TRES FILAS por grupo (el autor, 4/10: "la costa tiene cuadrados"): cerca de la camara
+    // la profundidad cambia poco por fila y un grupo juntaba decenas — cada bloque de PASO px quedaba
+    // altisimo y el bajio se leia en escalones. Con tres filas el bloque es una baldosa chica que
+    // sigue la curva.
+    while (yb < y1 && yb - y < 3 && marFila[yb] && k0 / (yb - HOR) > zTope) { if (marFila[yb] === 2) mixta = true; yb++; }
     // cuanto mar abarca UNA fila aca: lo que decide que escalas se pueden ver sin titilar
     const dzFila = z * z / k0;
     const w1 = Math.max(0, Math.min(1, 1.6 - dzFila / (M.CELDA[1] * 0.25)));
@@ -719,8 +770,11 @@ function profundidad(y0, y1, dv) {
     const k = F / zm, zb = bendW(zm) * k;
     bajioFila(wz, M.BAJIO_D);   // la tierra cercana a esta profundidad (islas, costa, playa)
     const alto = yb - y + (rowH - 1);
-    let nivel0 = 0, x0 = -70;
-    for (let sx = -70; sx <= W + 70 + M.PASO; sx += M.PASO) {
+    // …Y CADA GRUPO ARRANCA CORRIDO un poco (fijo por profundidad de mundo, no titila): con todos
+    // empezando en la misma columna, los bordes de los grupos se alineaban en escalera
+    const corr = -70 - ((hash2(Math.floor(wz * 3), 5) * M.PASO) | 0);
+    let nivel0 = 0, x0 = corr;
+    for (let sx = corr; sx <= W + 70 + M.PASO; sx += M.PASO) {
       let nivel = 0;
       if (sx <= W + 70) {
         const wx = (sx - W / 2 - zb) / k + cam.x;

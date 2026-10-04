@@ -104,7 +104,10 @@ export function formationSlots(n) {
   for (let i = 1; i < n; i++) {
     const side = i % 2 === 1 ? -1 : 1;
     const rank = Math.ceil(i / 2);
-    slots.push({ dx: side * 5.5 * rank, dz: -1.6 * rank, dy: 0.55 * rank });
+    // EN COLUMNA SOBRE LA PISTA (el autor, 4/10: "los que estan fuera de la pista, detras de los dos de
+    // los costados"): la segunda fila ya no se abre a 11 m —quedaba en el pasto, la pista mide 7 de
+    // semiancho— sino que va DETRAS de la primera, en su misma linea. Solo la usan el despegue y su polvo.
+    slots.push({ dx: side * 5.5, dz: -1.6 * rank * (rank > 1 ? 2.8 : 1), dy: 0.55 * rank });
   }
   return slots;
 }

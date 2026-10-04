@@ -385,13 +385,15 @@ export function drawParedes() {
         // Cada franja se estira medio pixel hacia abajo (tapa la juntura con la de abajo) y la de
         // arriba, ademas, medio hacia arriba (tapa la juntura con la meseta, que se dibujo antes).
         // Es el remedio clasico de esta clase de costura y no cuesta nada.
-        for (const [a, b, col] of franjas) {
-          ctx.globalAlpha = aBase;
-          ctx.fillStyle = col;
-          const sb = b >= 0.99 ? SOLAPE : 0;
-          quad(ctx, pX(b), pY(b) - sb, cX(b), cY(b) - sb,
-            cX(a), cY(a) + SOLAPE, pX(a), pY(a) + SOLAPE);
-        }
+        // UN SOLO DEGRADE de abajo hacia arriba en vez de tres franjas de corte duro: el pie en sombra,
+        // el cuerpo de tierra y el hombro al sol se FUNDEN (el autor, 4/10: las franjas, rebanada tras
+        // rebanada, armaban un damero en las laderas del zigzag)
+        ctx.globalAlpha = aBase;
+        const gyA = (pY(0) + cY(0)) / 2, gyB = (pY(1) + cY(1)) / 2;
+        const gr = ctx.createLinearGradient(0, gyA, 0, gyB === gyA ? gyA - 1 : gyB);
+        gr.addColorStop(0, franjas[0][2]); gr.addColorStop(0.5, franjas[1][2]); gr.addColorStop(1, franjas[2][2]);
+        ctx.fillStyle = gr;
+        quad(ctx, pX(1), pY(1) - SOLAPE, cX(1), cY(1) - SOLAPE, cX(0), cY(0) + SOLAPE, pX(0), pY(0) + SOLAPE);
         // LA TEXTURA DE LA CARA. Tres franjas planas dan volumen pero no dan MATERIA: la ladera se
         // leia como cartulina doblada. En vez de modelar relieve de verdad —que en este motor
         // seria caro y ademas se veria peor— se pinta TEXTURA: manchones de tierra mas clara y mas

@@ -86,7 +86,10 @@ export function colinasHasta(zCorte) {
   const t0 = performance.now();
   const dv = run.dist, T = cuadro.T, L = cuadro.L, lejos = cuadro.lejos;
   let camZ = cuadro.camZ;
-  for (; camZ >= 6 && camZ >= zCorte; camZ -= Math.max(2.5, camZ * 0.028)) {
+  // REBANADAS MAS FINAS A LO LEJOS (el autor, 4/10: "las colinas estan ESCALONADAS"): a 300 m el paso
+  // del 2,8 % eran 8 m por rebanada, y cada una dejaba un escalon horizontal en la silueta. Con 1,4 %
+  // el perfil se lee continuo; cerca el piso de 2 m ya alcanzaba.
+  for (; camZ >= 6 && camZ >= zCorte; camZ -= Math.max(2.0, camZ * 0.014)) {
     const wz = dv + camZ;
     const rampa = rampaTierra(wz);
     const isla = rampa > 0.01 && islaEn(wz);

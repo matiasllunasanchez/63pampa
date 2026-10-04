@@ -62,7 +62,9 @@ export function drawIslas() {
     if (r.d1 - dv <= 3 || r.d0 - dv >= GEO_ISLA_Z) continue;
     const zLejos = Math.min(GEO_ISLA_Z, r.d1 - dv), zCerca = Math.max(3, r.d0 - dv);
     let hPrev = null, izPrev = null, zPrev = 0;
-    for (let camZ = zLejos; camZ >= zCerca; camZ -= Math.max(1.5, camZ * 0.022)) {
+    // REBANADAS MAS FINAS A LO LEJOS: con el 2,2 % la silueta de una isla lejana se leia ESCALONADA
+    // (el autor, 4/10). Mismo arreglo que las lomadas de render/colinas.js.
+    for (let camZ = zLejos; camZ >= zCerca; camZ -= Math.max(1.5, camZ * 0.012)) {
       const wz = dv + camZ;
       const [xa, xb] = tramoX(r, camZ);
       let hMax = 0, hMed = 0;

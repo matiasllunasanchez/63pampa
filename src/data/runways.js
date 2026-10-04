@@ -13,8 +13,10 @@
 //   edge   balizas amarillas del borde de pista
 //   skid   marcas de frenada (dos pares de manchas oscuras, en la zona de toma de contacto)
 export const RUNWAYS = [
-  { id: 'bam', name: 'BAM MALVINAS', ground: 'turf', hw: 7, surf: '#41474b', center: true, edge: true, skid: false },
-  { id: 'worn', name: 'GASTADA', ground: 'turf', hw: 7, surf: '#41474b', center: false, edge: false, skid: true },
+  // BAM MALVINAS como en las fotos de Puerto Argentino (pedido del autor 4/10: "no tipo calle"): el
+  // hormigon CLARO, sin los bordes naranjas de ruta, y UNA linea AMARILLA continua por el medio
+  { id: 'bam', name: 'BAM MALVINAS', ground: 'turf', hw: 7, surf: '#5c6164', center: 'amarilla', edge: false, skid: false },
+  { id: 'worn', name: 'GASTADA', ground: 'turf', hw: 7, surf: '#565b5e', center: false, edge: false, skid: true },
   { id: 'dirt', name: 'TIERRA', ground: 'turf', hw: 7, surf: '#6e5c43', center: false, edge: false, skid: true },
   { id: 'field', name: 'PASTO', ground: 'land', hw: null, surf: null, center: false, edge: false, skid: false },
   { id: 'apron', name: 'ASFALTO', ground: 'asphalt', hw: null, surf: '#3d4348', center: false, edge: false, skid: false },
