@@ -56,7 +56,10 @@ const BIOS = [
   ['', ''],
   ['CARGANDO RASANTE', 'carga'],
 ];
-const BW = 320, BH = 180, RES = 4;
+// RES_CARTEL: desde INSERTE FICHA el canvas va al doble (autor, 4/10: "la carga de pantalla esta bien
+// que se vea borrosa, y el insertar ficha y demas un poquito menos borroso"). El BIOS sigue a RES: a
+// pantalla completa el tubo estira el canvas 2-3 veces y eso lo ablanda, que es lo que gusta ahi.
+const BW = 320, BH = 180, RES = 4, RES_CARTEL = 8;
 const COL = { texto: '#aab8bc', cab: '#e8eef0', ok: '#7fe07f', ficha: '#e8a33d', aviso: '#e8eef0' };
 
 let activo = false;
@@ -84,7 +87,14 @@ export function arrancar({ alPrender, alCargado, alFicha, alTerminar } = {}) {
   const ahora = () => performance.now() / 1000;
   let fase = 'espera', desde = ahora(), prendido = false, ficha = false, padPrev = true;
   let cargado = false;
-  const pasarA = f => { fase = f; desde = ahora(); };
+  const pasarA = f => {
+    fase = f; desde = ahora();
+    // el cartel, mas nitido: el canvas se agranda una sola vez al entrar a la ficha (o a lo que siga,
+    // si una tecla salteo el BIOS)
+    if ((f === 'ficha' || f === 'aviso' || f === 'credito') && bios.width !== BW * RES_CARTEL) {
+      bios.width = BW * RES_CARTEL; bios.height = BH * RES_CARTEL;
+    }
+  };
   const relojes = [];
   const despues = (s, fn) => relojes.push(setTimeout(fn, s * 1000));
 
@@ -157,7 +167,8 @@ export function arrancar({ alPrender, alCargado, alFicha, alTerminar } = {}) {
 
 /** Un cuadro del #bios. */
 function dibujar(g, fase, t, durRenglon) {
-  g.setTransform(RES, 0, 0, RES, 0, 0);
+  const k = g.canvas.width / BW;
+  g.setTransform(k, 0, 0, k, 0, 0);
   g.fillStyle = '#000'; g.fillRect(0, 0, BW, BH);
   g.textBaseline = 'top';
   const parpadeo = periodo => (t % periodo) < periodo * 0.6;

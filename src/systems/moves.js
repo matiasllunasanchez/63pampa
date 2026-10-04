@@ -17,7 +17,7 @@ import { proj, popup } from '../core/fx.js';
 import { sfxOne, beep } from './audio.js';
 import { P } from '../data/palette.js';
 import { PZ, W, H } from '../render/ctx.js';
-import { FLY_X, FLY_TOP, FUEL_PIRUETA, COBRA, DERRAPE, MORTAL, PIQUE } from '../data/tuning.js';
+import { FLY_X, FLY_TOP, FUEL_PIRUETA, COBRA, DERRAPE, MORTAL, POPUP, PIQUE } from '../data/tuning.js';
 import { MOVES } from '../data/moves.js';
 
 const MV_CD = 1.15;          // cooldown compartido con el tonel (mismo valor que startRoll)
@@ -214,7 +214,11 @@ export function movesSystem(dt, inp, act) {
       // Escrita con el tiempo TRANSCURRIDO (p) en vez del restante, que es la convencion de este
       // modulo; `0.45 + (1 - p)` es la misma recta.
       B.vx = dir * 40 * (0.45 + (1 - p));
-      E.mvRoll = dir * p * Math.PI * 2;
+      // GIRA EL AVION, NO EL MUNDO (autor, 4/10: "que no gire el mundo, solo el avion en su eje, y el
+      // mundo y la camara queden fijos"): el giro va a `mvGiro`, que es SOLO DEL DIBUJO — `mvRoll` lo
+      // toma el horizonte giratorio y daba vuelta el mundo entero con el avion derecho.
+      E.mvRoll = 0;
+      E.mvGiro = dir * p * Math.PI * 2;
       B.bank = 0; B.pitch = 0;
       break;
     }
@@ -373,7 +377,10 @@ export function movesSystem(dt, inp, act) {
       const w = Math.PI * 2 / M.dur;                  // velocidad angular del circulo
       B.vx = dir * BARREL_R * Math.cos(th) * w;
       B.vy = BARREL_R * Math.sin(th) * w;
-      E.mvRoll = dir * th;                          // el rolido acompaña al circulo: arriba, invertido
+      // el rolido acompaña al circulo (arriba, invertido) — SOLO EN EL DIBUJO, como el tonel (4/10):
+      // el mundo y la camara quedan fijos
+      E.mvRoll = 0;
+      E.mvGiro = dir * th;
       B.bank = 0; B.pitch = 0;
       E.spd = Math.max(40, E.spd - E.spd * 0.09 * dt);   // el circulo cuesta energia
       break;
@@ -452,7 +459,12 @@ export function movesSystem(dt, inp, act) {
       B.vy = 30 * (1 - p);
       B.vx = sx; B.bank = B.vx / 40; B.pitch = 1;
       E.mvSteep = p < 0.75 ? 1 : 0;
-      E.spd = Math.max(40, E.spd - E.spd * 0.10 * dt);
+      // …y con la trompa arriba FRENA UN POCO, como una cobra chica (POPUP, autor 4/10): `mvFreno`
+      // baja el objetivo de velocidad y acerca la camara-dron; al soltar, el resorte la devuelve.
+      const ssP = x => { const c = Math.max(0, Math.min(1, x)); return c * c * (3 - 2 * c); };
+      const frenoP = ssP(p / POPUP.ENTRA) * (1 - ssP((p - POPUP.SUELTA) / (0.75 - POPUP.SUELTA)));
+      E.mvFreno = POPUP.CORTE * frenoP;
+      E.spd = Math.max(40, E.spd * Math.exp(-POPUP.FRENO * frenoP * dt) - E.spd * 0.10 * dt);
       break;
     }
     case 'climb': case 'climbmax': {

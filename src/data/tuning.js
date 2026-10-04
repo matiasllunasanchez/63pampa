@@ -1015,6 +1015,15 @@ export const COBRA = { SUBE: 0.12, BAJA: 0.72, FRENO: 0.75, SUBE_VY: 5,
   // Sin el pasarse de entrada (~30%) el objetivo sube para llegar a lo mismo: 9.4 → z ≈ 4,6 (x3).
   ACERCA: 9.4, ENTRA: 5, K: 26, AMORT: 3.2 };
 
+// ---------- EL POP-UP: la trepada que frena un poco (systems/moves.js) ----------
+// El autor, 4/10: "el popup es como la cobra pero no frena tanto, es mas para subir rapidamente, pero
+// al poner el avion asi te frena un poco, asi que tiene que generar un poco de resorte a la camara".
+// CORTE: cuanto baja el objetivo de velocidad con la trompa arriba (la cobra 0.55) — y por la misma
+// cuenta, cuanto se acerca la camara-dron (CORTE/0.55 del acercamiento de la cobra: ~1/4). FRENO: 1/s
+// de caida de la velocidad (la cobra 0.75). ENTRA y SUELTA: fracciones de la maniobra en que la pose
+// frena de lleno y en que empieza a soltar — al soltar vuelve con el resorte de la camara.
+export const POPUP = { CORTE: 0.14, FRENO: 0.3, ENTRA: 0.15, SUELTA: 0.55 };
+
 // ---------- EL MORTAL: el freno con vuelta hacia atras (data/moves.js, systems/moves.js) ----------
 // La vuelta entera de cabeceo (0→360°). VUELTA: el perfil, en tramos [fraccion, grados, grados por unidad
 // de fraccion] unidos con curvas de Hermite. El autor, 4/10: "el mortal debe ser mas rapido salvo cuando
