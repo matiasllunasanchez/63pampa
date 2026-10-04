@@ -5988,7 +5988,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // se distingan, y eso no se puede afirmar volando tres misiones distintas y acordandose de como
     // se veia la primera. Cambia el buque objetivo sin recargar; el pasillo sigue igual.
     if (typeof window !== 'undefined') window.__buqueSet = nombre => {
-      if (nombre) { objectiveShip = nombre; pulso.setShip(nombre); }
+      if (nombre) {
+        objectiveShip = nombre; pulso.setShip(nombre);
+        // …Y EL DE LA SUELTA (4/10): el catalogo de BUQUES ahora bombardea en la ida y vuelta, y el
+        // casco del pasillo toma su clase AL ARRANCAR la mision — sin esto se veia siempre el mismo.
+        // Se muta el objeto de core/blanco.js (nunca se reasigna: lint:state).
+        const clase = SHIP_CLASS[nombre];
+        if (runClimax() === 'suelta' && blanco.on) { blanco.nombre = nombre; if (clase) blanco.clase = clase; }
+      }
       return JSON.stringify({ buque: objectiveShip, clase: SHIP_CLASS[objectiveShip] || null,
         dist: Math.round(objectiveDist), p: +(run.dist / Math.max(1, objectiveDist)).toFixed(3) });
     };

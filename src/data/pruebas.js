@@ -78,46 +78,30 @@ export const PRUEBAS = [
     setup: a => a.mision('t16', { carga: 'tres_bombas' }),
   },
   // (LA PASADA y LA PASADA SIN CORTE salieron del catalogo el 4/10, a pedido del autor)
-  {
-    id: 'arena', titulo: 'EL ARENA', desc: 'Vuelo libre alrededor del buque · HMS ARDENT',
-    setup: a => a.arena('m4'),
-  },
-  {
-    id: 'arenaBurbuja', titulo: 'ARENA · DEFENSA CERCANA', desc: 'Adentro de la burbuja, con todo el fuego encima',
-    setup: a => { a.arena('m4'); a.luego(1.5, g => g.sonda('aset', 190, 70, 0, 0)); },
-  },
-  {
-    id: 'pulso', titulo: 'EL PULSO', desc: 'El QTE de destreza y su cinematica',
-    // M9 Y NO M3, y no es un capricho: EL PULSO arma su examen con las piruetas APRENDIDAS, y la
-    // libreta de m3 tiene una sola —TERRAIN MASKING, que no es un compas— asi que la prueba salia
-    // con un unico `Z` y las tres zonas identicas. O sea: el momento existia para mostrar el modo
-    // y mostraba una pantalla donde no hay nada que jugar. En m9 la libreta trae 8 compases.
-    // Medido: m1 y m3 → 0 compases · m6 → 4 · m9 → 8 · m12 → 12.
-    setup: a => a.pulso('m9'),
-  },
   // (EL MOMENTUM VIEJO —el climax en riel 2D, `?no3d`— salio del catalogo el 4/10: ya no funciona)
 
   // LOS BUQUES. Existe porque una clase de buque nueva no se puede VER sin una mision que la
-  // apunte, y escribir una mision para mirar una silueta es al reves. Cada momento carga el
-  // pasillo de m4 y le cambia el objetivo con la misma sonda que usan la consola y los fixtures,
-  // despues salta al 93 % del camino — que es donde el buque ya esta entero y todavia no lo
-  // cruzaste. Sirve para lo que la silueta tiene que contestar sola: "¿que clase es eso?".
+  // apunte, y escribir una mision para mirar una silueta es al reves. DESDE EL 4/10 (autor) ES LA
+  // SUELTA DE SIEMPRE y en la IDA Y VUELTA entera (t15, la de distancia completa): se carga la
+  // mision, se le cambia el buque con la misma sonda de la consola y los fixtures, y se salta al
+  // 93 % de la ida — el buque ya asomando—. Se lo bombardea como a cualquiera y DESPUES SIGUE LA
+  // VUELTA. (Antes cargaba m4, cuyo climax en cuarentena caia en EL PULSO.)
   { head: 'prSecBuques' },
   {
     id: 'buqueCv', titulo: 'BUQUE · PORTAAVIONES', desc: 'Cubierta corrida, rampa de salto y la isla a estribor · HMS INVINCIBLE',
-    setup: a => { a.mision('m4'); a.luego(1.2, g => { g.sonda('buqueSet', 'HMS INVINCIBLE'); g.sonda('wjump', 0.93); }); },
+    setup: a => { a.mision('t15'); a.luego(1.2, g => { g.sonda('buqueSet', 'HMS INVINCIBLE'); g.sonda('wjump', 0.93); }); },
   },
   {
     id: 'buqueT21', titulo: 'BUQUE · FRAGATA TIPO 21', desc: 'Proa de clipper y la popa vacia · HMS AVENGER',
-    setup: a => { a.mision('m4'); a.luego(1.2, g => { g.sonda('buqueSet', 'HMS AVENGER'); g.sonda('wjump', 0.93); }); },
+    setup: a => { a.mision('t15'); a.luego(1.2, g => { g.sonda('buqueSet', 'HMS AVENGER'); g.sonda('wjump', 0.93); }); },
   },
   {
     id: 'buqueT42', titulo: 'BUQUE · DESTRUCTOR TIPO 42', desc: 'Torreta a proa, isla al medio y los radomos · HMS SHEFFIELD',
-    setup: a => { a.mision('m4'); a.luego(1.2, g => { g.sonda('buqueSet', 'HMS SHEFFIELD'); g.sonda('wjump', 0.93); }); },
+    setup: a => { a.mision('t15'); a.luego(1.2, g => { g.sonda('buqueSet', 'HMS SHEFFIELD'); g.sonda('wjump', 0.93); }); },
   },
   {
     id: 'buqueLog', titulo: 'BUQUE · LOGISTICO', desc: 'Casco alto, carga adelante y la isla entera a popa · RFA SIR GALAHAD',
-    setup: a => { a.mision('m4'); a.luego(1.2, g => { g.sonda('buqueSet', 'RFA SIR GALAHAD'); g.sonda('wjump', 0.93); }); },
+    setup: a => { a.mision('t15'); a.luego(1.2, g => { g.sonda('buqueSet', 'RFA SIR GALAHAD'); g.sonda('wjump', 0.93); }); },
   },
 
   { head: 'prSecCola' },
@@ -202,7 +186,34 @@ export const PRUEBAS = [
     setup: a => { a.patria({ obstacles: 0 }); a.luego(1.2, g => g.cfg({ zigzag: 2 })); },
   },
 
-  { head: 'prSecPoder' },
+  { head: 'prSecHistoria' },
+  {
+    id: 'locker', titulo: 'EL LOCKER (M07)', desc: 'La escena VN: tipeo, holds, retratos y placa',
+    setup: a => a.escena('M07_LOCKER'),
+  },
+
+  // IDEAS VIEJAS (autor, 4/10): lo que ya no esta en el juego pero sigue andando, aparte para que no
+  // se mezcle con lo vigente — EL ARENA y EL PULSO (climax en cuarentena, data/cuarentena.js), el
+  // MOMENTUM CARGADO y LA CHANCHA CON LA NAFTA JUSTA, y el horno viejo de three.js (el de Blender es el
+  // de fabrica para todo).
+  { head: 'prSecViejas' },
+  {
+    id: 'arena', titulo: 'EL ARENA', desc: 'Vuelo libre alrededor del buque · HMS ARDENT',
+    setup: a => a.arena('m4'),
+  },
+  {
+    id: 'arenaBurbuja', titulo: 'ARENA · DEFENSA CERCANA', desc: 'Adentro de la burbuja, con todo el fuego encima',
+    setup: a => { a.arena('m4'); a.luego(1.5, g => g.sonda('aset', 190, 70, 0, 0)); },
+  },
+  {
+    id: 'pulso', titulo: 'EL PULSO', desc: 'El QTE de destreza y su cinematica',
+    // M9 Y NO M3, y no es un capricho: EL PULSO arma su examen con las piruetas APRENDIDAS, y la
+    // libreta de m3 tiene una sola —TERRAIN MASKING, que no es un compas— asi que la prueba salia
+    // con un unico `Z` y las tres zonas identicas. O sea: el momento existia para mostrar el modo
+    // y mostraba una pantalla donde no hay nada que jugar. En m9 la libreta trae 8 compases.
+    // Medido: m1 y m3 → 0 compases · m6 → 4 · m9 → 8 · m12 → 12.
+    setup: a => a.pulso('m9'),
+  },
   {
     id: 'chancha', titulo: 'LA CHANCHA CON LA NAFTA JUSTA', desc: 'El KC-130 pedido al 8% de tanque: el momento dramatico',
     setup: a => {
@@ -214,11 +225,9 @@ export const PRUEBAS = [
     id: 'tempo', titulo: 'EL MOMENTUM CARGADO', desc: 'La barra llena: la camara lenta lista para la tecla 4',
     setup: a => { a.patria(); a.luego(1.5, g => g.sonda('tcharge')); },
   },
-
   // EL HORNO: desde el 3/10/2026 los aviones se hornean en Blender (tools/blender/). El de three.js
   // quedo guardado para comparar; lo que cambia se resuelve AL CARGAR (data/horno.js), asi que cada
   // fila RECARGA el juego con su parametro.
-  { head: 'prSecHorno' },
   {
     id: 'hornoViejo', titulo: 'EL HORNO VIEJO (THREE.JS)', desc: 'Los aviones como se horneaban antes · recarga el juego',
     setup: a => a.recarga('?horno=three'),
@@ -226,12 +235,6 @@ export const PRUEBAS = [
   {
     id: 'hornoNuevo', titulo: 'EL HORNO NUEVO (BLENDER)', desc: 'Vuelve a los aviones de Blender · recarga el juego',
     setup: a => a.recarga('?'),
-  },
-
-  { head: 'prSecHistoria' },
-  {
-    id: 'locker', titulo: 'EL LOCKER (M07)', desc: 'La escena VN: tipeo, holds, retratos y placa',
-    setup: a => a.escena('M07_LOCKER'),
   },
 
   { id: 'back', back: true },   // la salida, a la vista (mismo criterio que quickRows)
