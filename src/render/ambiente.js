@@ -50,6 +50,36 @@ const LUZ_SALE = 0.22;
 
 let reloj = null, fondo = 'negro', observado = false;
 
+/** LA VISTA DEL ARRANQUE (autor, 3/10): mientras el fichin arranca se ve el GABINETE ENTERO; al
+ *  echar la ficha la camara se ACERCA hasta el acercamiento elegido en OPCIONES. `vista` pisa a
+ *  ZOOM[zoom] mientras dura; null = manda el de OPCIONES. */
+let vista = null, anim = 0;
+const ACERCA_T = 1.4;   // segundos del acercamiento: arranca con la ficha y aterriza con la portada
+const zoomVigente = () => vista || ZOOM[zoom] || ZOOM[1];
+function recalzar() { if (fondo === 'fichin') { setAreaJuego(areaFichin); calzarFichin(); } }
+
+/** El gabinete entero, hasta que se eche la ficha. */
+export function fichinEntero() {
+  if (anim) cancelAnimationFrame(anim);
+  anim = 0; vista = ZOOM[1]; recalzar();
+}
+
+/** De la vista entera al acercamiento elegido, con aceleracion y frenado (como una camara, no un
+ *  corte). No hace nada si no se estaba en la vista entera o si ya esta andando. */
+export function acercarFichin() {
+  if (!vista || anim) return;
+  const de = vista, a = ZOOM[zoom] || ZOOM[1], t0 = performance.now();
+  const paso = now => {
+    const u = Math.min(1, (now - t0) / 1000 / ACERCA_T);
+    const e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+    vista = { k: de.k + (a.k - de.k) * e, abajo: de.abajo + (a.abajo - de.abajo) * e };
+    recalzar();
+    if (u < 1) anim = requestAnimationFrame(paso);
+    else { vista = null; anim = 0; recalzar(); }
+  };
+  anim = requestAnimationFrame(paso);
+}
+
 /** Copia el juego al resplandor, mezclando con lo que ya habia. */
 function copiar(g, gm, mid, primera) {
   if (document.hidden) return;
@@ -83,7 +113,7 @@ function apagarResplandor() {
  *  entera: adentro del fichin, el que pone la medida es el mueble. Devuelve la escala de la imagen,
  *  su esquina y la caja del juego, todo en px CSS. */
 function geoFichin() {
-  const iw = window.innerWidth, ih = window.innerHeight, z = ZOOM[zoom] || ZOOM[1];
+  const iw = window.innerWidth, ih = window.innerHeight, z = zoomVigente();
   const s = Math.max(iw / FICHIN.W, ih / FICHIN.H) * z.k;
   // centrada en el tubo a lo ancho y apoyada en `abajo`; y en ningun caso deja ver fuera de la imagen
   const x0 = Math.min(0, Math.max(iw - FICHIN.W * s, iw / 2 - FICHIN.cx * s));

@@ -62,7 +62,7 @@ import * as pulsoRender from './render/pulso.js';
 import * as machRender from './render/mach.js';
 import * as cine from './systems/cine.js';
 import { drawCine } from './render/cine.js';
-import { setFondo, FONDOS, setZoomFichin, ZOOMS } from './render/ambiente.js';
+import { fichinEntero, acercarFichin, setFondo, FONDOS, setZoomFichin, ZOOMS } from './render/ambiente.js';
 import { arrancar, arranqueActivo } from './render/arranque.js';
 import * as muni from './render/municion.js';
 import * as blancoSys from './systems/blanco.js';
@@ -187,7 +187,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // BIOS, INSERTE FICHA, la ficha y PRESIONE CUALQUIER TECLA.
     // La musica de la portada espera a que el jugador "continue".
     retenerMusica(true);
-    arrancar({ alPrender: sonidoTubo, alFicha: sonidoFicha, alTerminar: () => retenerMusica(false) });
+    // …y el GABINETE ENTERO hasta la ficha: al echarla, la camara se acerca a como se juega
+    // (render/ambiente.js). Tambien al terminar, por si el arranque se salteo (pruebas, sin ?intro).
+    fichinEntero();
+    arrancar({ alPrender: sonidoTubo,
+      alFicha: () => { sonidoFicha(); acercarFichin(); },
+      alTerminar: () => { retenerMusica(false); acercarFichin(); } });
 
     // three.js vive ahora en systems/three-world.js (resuelve window.THREE y el guard ?no3d por
     // su cuenta). Aca ya no hace falta saber nada de WebGL: el 3D entra por world3D.frame().
