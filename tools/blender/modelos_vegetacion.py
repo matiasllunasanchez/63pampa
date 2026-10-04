@@ -196,3 +196,70 @@ def brizna(T, K, variante='0', viento='0'):
             hueso('brizna', g, tonos[k], p, q, r, r * 0.7, seg=4)
             p = q
     return g
+
+# ============================ LOS CRESTONES (los acantilados que se esquivan) ============================
+# Pedido del autor (4/10): "las colinas chicas que sirven para esquivar son horribles, parecen
+# edificios — hacelas mejor con Blender". El obstaculo `cliff` se dibujaba con seis lajas rectangulares.
+# Ahora es un CRESTON de las islas: bloques de roca APILADOS Y QUEBRADOS (cuarcita gris clara tierra
+# adentro, arenisca en capas en la costa) que suben a una cumbre corrida a un costado, sobre una
+# FALDA de turba con pasto. Tres formas segun la proporcion del obstaculo: `baja` (una loma larga),
+# `media` y `alta` (el risco). Sin contorno: es terreno.
+FORMAS = {'baja': (8.0, 2.0), 'media': (6.0, 3.0), 'alta': (4.5, 4.5)}
+
+def creston(T, K, forma='media', variante='0', costa='0'):
+    v, costa = int(variante), costa == '1'
+    W, H = FORMAS[forma]
+    g = vacio(T, 'creston')
+    if costa:
+        roca = mat_pintura(K, 'arenisca', dict(arriba=['#a8916a', '#8c7652'], corte=0.5, escala=1.2, panza='#6e5c40',
+                                               marcas=[dict(y=(y0, y0 + 0.08), color='#5e4e36', arriba=False) for y0 in (0.5, 1.1, 1.7, 2.4, 3.1, 3.8)]))
+        falda = mat_pintura(K, 'falda_c', dict(arriba=['#a8956c', '#8f8a58'], corte=0.5, escala=1.5, panza='#7a6a4a'))
+    else:
+        roca = mat_pintura(K, 'cuarcita', dict(arriba=['#c4c1b4', '#b1ae a2'.replace(' ', '')], corte=0.55, escala=3.5, panza='#77746a'))
+        falda = mat_pintura(K, 'falda_t', dict(arriba=['#5d6a3a', '#7a7444'], corte=0.5, escala=1.5, panza='#4a5030'))
+    # LA FALDA: la turba (o la arena) que sube a encontrar la roca — baja e irregular, no un plato
+    _ruido(elipsoide('falda', (0, -0.05, 0), (W * 0.50, H * 0.14 + 0.15, 1.5), g, falda, seg=28, anillos=10), 0.22, 0.45, 'falda')
+    # LA MASA: UNA sola roca a lo largo (un loft de secciones casi cuadradas que sube a una cumbre
+    # corrida a un costado), con relieve fuerte y SOMBREADO PLANO — se lee quebrada y angulosa
+    import bpy as _bpy
+    peak = 0.3 + 0.4 * ((v * 0.618) % 1)
+    est = []
+    for k in range(13):
+        u = k / 12
+        fall = peak + 0.2 if u < peak else 1.2 - peak
+        env = max(0.12, 1 - abs(u - peak) / fall) ** 0.7
+        h = H * env * (0.9 + 0.15 * math.sin(k * 2.1 + v))
+        est.append((-W * 0.45 + W * 0.9 * u, 0.55 + 0.25 * env, h / 2, h / 2))
+    eje = vacio(g, 'eje', (0, 0, 0), (0, math.pi / 2, 0))
+    masa = M.loft('masa', [(z, d, hh, yc) for (z, d, hh, yc) in est], eje, roca, n=12, expo=3.5, cerrar=(True, True))
+    M._subdiv(masa, 1)
+    _ruido(masa, 0.35, 0.55, 'masa%d' % (v % 3))
+    masa.data.shade_flat()
+    # LOS BLOQUES DIACLASADOS: losas casi cubicas, inclinadas, montadas en la cresta y en la cara —
+    # asi son los crestones de las islas: roca partida en bloques por las juntas
+    for i in range(9 if forma != 'baja' else 7):
+        u = (i + 0.5) / (9 if forma != 'baja' else 7)
+        fall = peak + 0.2 if u < peak else 1.2 - peak
+        env = max(0.15, 1 - abs(u - peak) / fall) ** 0.7
+        x = -W * 0.45 + W * 0.9 * u
+        lado = 0.35 + 0.25 * ((i * 3 + v) % 3) / 2
+        y = H * env * (0.55 + 0.35 * ((i * 5 + v) % 4) / 3)
+        b = M.caja('bloque', (0, 0, 0), (lado * 1.1, lado * (1.0 + 0.6 * (forma == 'alta')), lado * 0.9), g, roca)
+        _ruido(b, 0.06, 0.3, 'bloque')
+        b.data.shade_flat()
+        b.location = (x, y, 0.35 * math.sin(i * 1.3 + v) + 0.25)
+        b.rotation_euler = (0.25 * math.sin(i + v), 0.6 * math.sin(i * 2.1 + v), 0.30 * math.sin(i * 1.9 + v))
+    # EL PEDREGAL: bloques sueltos al pie, que desbordan la roca y la apoyan en el suelo
+    for i in range(5):
+        x = -W * 0.46 + W * 0.92 * ((i * 0.618 + v * 0.31) % 1)
+        r = 0.25 + 0.15 * ((i * 3 + v) % 3)
+        b = elipsoide('suelta', (0, 0, 0), (r, r * 0.7, r * 0.8), g, roca, seg=6, anillos=4)
+        b.data.shade_flat(); _ruido(b, 0.08, 0.3, 'suelta')
+        b.location = (x, r * 0.5, 0.9 + 0.3 * math.sin(i + v))
+    # PASTO en la falda (los mismos matojos del suelo, chicos)
+    if not costa:
+        for i in range(7):
+            x = -W * 0.46 + W * 0.92 * ((i * 0.381 + v * 0.17) % 1)
+            m = vacio(g, 'mata', (x, 0.15, 1.1 + 0.25 * math.sin(i * 2 + v)), (0, 0, 0), escala=0.9)
+            brizna(m, K, str((i + v) % 8), '0')
+    return g

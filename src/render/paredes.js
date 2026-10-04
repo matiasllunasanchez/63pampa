@@ -344,7 +344,9 @@ export function drawParedes() {
         //
         // El TONO CAMBIA POR BANDA (hash sobre la profundidad): dos cerros vecinos no son el mismo
         // gris. Sin esto la sierra entera parece una sola pieza extruida.
-        const tinte = ((wz / 55) | 0) * 2654435761 % 100 / 100;
+        // EL TONO VARIA EN CONTINUO con la distancia (antes saltaba por bloques de 55 m y de 3 m, y la
+        // ladera se leia en baldosas — "no quiero que se vea cuadrado", el autor 4/10)
+        const tinte = 0.5 + 0.5 * Math.sin(wz / 37 + (lado > 0 ? 1.7 : 0));
         const FOG = nieblaCol();
         // cada franja se funde con la niebla POR SEPARADO: asi el volumen del cerro se sigue
         // leyendo mientras se aleja, en vez de aplanarse de golpe a un solo tono.
@@ -368,7 +370,7 @@ export function drawParedes() {
         const pY = t => prev.base.y + (prev.top.y - prev.base.y) * t;
         const cX = t => base.x + (top.x - base.x) * t;
         const cY = t => base.y + (top.y - base.y) * t;
-        const est = hash2(Math.floor(wz / 3), 77 + (lado > 0 ? 5 : 0));
+        const est = 0.52 + 0.3 * Math.sin(wz * 0.21 + (lado > 0 ? 2.1 : 0)) + 0.12 * Math.sin(wz * 0.57);
         const estriar = c => est < 0.42 ? mez(c, L.som, (0.42 - est) * 0.55)
           : est > 0.62 ? mez(c, L.luz, (est - 0.62) * 0.45) : c;
         const cuerpo = estriar(L.cuerpo);
@@ -398,16 +400,24 @@ export function drawParedes() {
         // No son ruido: cada manchon abarca una banda de ~9 m a lo largo del camino, asi que al
         // volar se ven pasar como vetas y afloramientos, y le dan ESCALA al cerro — sin una marca
         // asi, uno de 10 m y uno de 40 se ven exactamente igual.
-        const bandaT = Math.floor(wz / 9);
+        // LAS RAYAS DE LA LADERA (el autor, 4/10: "las manchas del terreno en las montañas y costados,
+        // pero rayas, irregulares"): vetas de PASTO SECO, TURBA y MURTILLA que corren a lo largo de la
+        // ladera. Cada una ONDULA (su altura sale de un seno de la distancia, no de un escalon) y se
+        // AFINA en las puntas (alfa que nace y muere dentro de su tramo) — no son rectangulos.
         const alfaT = aBase * (1 - niebla);
-        for (let m = 0; m < 3; m++) {
-          const hm = hash2(bandaT, m * 271 + (lado > 0 ? 61 : 17));
-          if (hm < 0.42) continue;                              // la cara no se cubre entera
-          const y0 = 0.08 + hash2(bandaT, m * 271 + 7) * 0.72;
-          const y1 = Math.min(1, y0 + 0.07 + hm * 0.15);
-          const claro = hash2(bandaT, m * 271 + 33) > 0.55;
-          ctx.globalAlpha = alfaT * (claro ? 0.22 : 0.3);
-          ctx.fillStyle = claro ? L.luz : L.veta;
+        const RAYAS = [L.luz, L.veta, '#c9b266', '#3a3024', '#6b3a2c'];
+        for (let m = 0; m < 4; m++) {
+          const largo = 14 + m * 5, fase = (lado > 0 ? 3.1 : 0) + m * 1.9;
+          const tramo = Math.floor((wz + m * 7) / largo), u = ((wz + m * 7) / largo) - tramo;
+          const hm = hash2(tramo, m * 271 + (lado > 0 ? 61 : 17));
+          if (hm < 0.40) continue;                              // la cara no se cubre entera
+          const centro = 0.15 + 0.7 * (0.5 + 0.5 * Math.sin(wz * 0.09 + fase + hm * 4));
+          const ancho = (0.04 + hm * 0.09) * Math.sin(Math.PI * u);
+          const y0 = Math.max(0, centro - ancho), y1 = Math.min(1, centro + ancho);
+          if (y1 - y0 < 0.01) continue;
+          const col = RAYAS[(hash2(tramo, m * 271 + 33) * RAYAS.length) | 0];
+          ctx.globalAlpha = alfaT * 0.26 * Math.sin(Math.PI * u);
+          ctx.fillStyle = col;
           quad(ctx, pX(y1), pY(y1), cX(y1), cY(y1), cX(y0), cY(y0), pX(y0), pY(y0));
         }
         // NO HAY CORONA. Era una franja de pasto dibujada en la cresta de CADA columna, y ese es

@@ -378,3 +378,61 @@ def lcu(T, K):
     for i in range(3):
         bloque('carga', raiz, K['mat_cel']('carga', '#7d7455'), (-0.6 + i * 0.6, 1.17, -1.2), (0.5, 0.32, 0.42), bisel=0.04)
     return raiz
+
+# ============================ LOS CIVILES (4/10/2026) ============================
+# Pedido del autor: "podriamos poner barcos pesqueros o mas civiles, cada tanto". Salen en lugar de la
+# fragata del mar abierto (el obstaculo `mast`) una de cada tantas veces: mismo lugar, misma caja de
+# choque — cambia el barco, no el juego. Los dos de las islas en el 82:
+
+def pesquero(T, K):
+    """EL PESQUERO (arrastrero): casco ROJO de proa alta, la timonera blanca ADELANTE, el palo, y a popa
+    el PORTICO de arrastre con los tangones y las boyas naranjas."""
+    raiz = _raiz(T, 'Pesquero')
+    franco, manga, largo = 0.70, 1.45, 6.0
+    casco(raiz, pintura_casco(K, gris='#8a2a22', cubierta='#4a3a32', franco=franco), largo, manga, franco, 0.06, 0.03, arrufo=0.30)
+    blanco = K['mat_cel']('blanco', '#d8d8d0')
+    bloque('timonera', raiz, blanco, (0, franco + 0.45, -1.3), (manga * 0.62, 0.62, 1.2), bisel=0.05)
+    bloque('techo', raiz, K['mat_cel']('techo', '#b8b8b0'), (0, franco + 0.82, -1.35), (manga * 0.66, 0.08, 1.3), bisel=0.02)
+    for sg in (-1, 1): pieza('ventana', raiz, K['mat_cel']('vidrio_osc', '#2b4552'), (0.02, 0.18, 0.8), (sg * manga * 0.31 + sg * 0.01, franco + 0.58, -1.3))
+    pieza('ventana_frente', raiz, K['mat_cel']('vidrio_osc', '#2b4552'), (manga * 0.5, 0.18, 0.02), (0, franco + 0.58, -1.91))
+    m = K['mat_cel']('metal', METAL)
+    poste('palo', raiz, m, 0, franco + 0.86, franco + 2.2, -1.0, 0.05, 0.03)
+    pieza('verga', raiz, m, (0.8, 0.04, 0.04), (0, franco + 1.9, -1.0))
+    # EL PORTICO DE ARRASTRE a popa y los dos tangones abiertos
+    for sg in (-1, 1):
+        poste('portico', raiz, K['mat_cel']('portico', '#c9a23a'), sg * 0.55, franco, franco + 1.5, 2.6, 0.06, 0.05)
+        hueso_ = TI_hueso()
+        hueso_('tangon', raiz, m, (sg * 0.3, franco + 1.6, 0.4), (sg * 1.6, franco + 0.6, 0.6), 0.035, 0.03)
+    pieza('portico_trav', raiz, K['mat_cel']('portico', '#c9a23a'), (1.2, 0.08, 0.08), (0, franco + 1.5, 2.6))
+    for i in range(3):
+        elipsoide('boya', (-0.4 + i * 0.4, franco + 0.15, 1.8), (0.12, 0.12, 0.12), raiz, K['mat_cel']('boya', '#e0702a'), seg=10, anillos=6)
+    return raiz
+
+def costero(T, K):
+    """EL COSTERO de las islas (como los barcos de la Falkland Islands Company): casco NEGRO, la
+    superestructura blanca A POPA con la chimenea ROJA de tope negro, dos palos de carga con sus
+    plumas sobre la bodega de proa."""
+    raiz = _raiz(T, 'Costero')
+    franco, manga, largo = 0.80, 1.35, 7.2
+    casco(raiz, pintura_casco(K, gris='#26292a', cubierta='#5a4a38', franco=franco, faja=0.06), largo, manga, franco, 0.04, 0.02, arrufo=0.18)
+    blanco = K['mat_cel']('blanco', '#dcdcd4')
+    bloque('caseta', raiz, blanco, (0, franco + 0.30, 2.1), (manga * 0.78, 0.60, 1.9), bisel=0.04)
+    bloque('puente', raiz, blanco, (0, franco + 0.82, 1.9), (manga * 0.62, 0.44, 1.1), bisel=0.04)
+    ventanal(raiz, K, 0, franco + 0.86, 1.33, manga * 0.5)
+    chimenea(raiz, K, 0, franco + 0.60, 2.75, 0.22, 0.30, 0.55)
+    for o in raiz.children:
+        if o.name.startswith('chimenea'): o.data.materials[0] = K['mat_cel']('roja', '#b02a20')
+    bloque('escotilla', raiz, K['mat_cel']('escotilla', '#4a4036'), (0, franco + 0.12, -1.2), (manga * 0.6, 0.22, 2.2), bisel=0.03)
+    m = K['mat_cel']('metal', METAL)
+    hueso_ = TI_hueso()
+    for z in (-2.3, -0.1):
+        poste('palo_carga', raiz, m, 0, franco, franco + 1.8, z, 0.06, 0.04)
+        hueso_('pluma', raiz, m, (0, franco + 0.3, z), (0, franco + 1.4, z + (0.9 if z < -1 else -0.9)), 0.03, 0.025)
+    return raiz
+
+def TI_hueso():
+    """El `hueso` de modelos_tierra (un caño de punto a punto), cargado aca adentro (modelos_tierra
+    importa este modulo: traerlo arriba seria circular)."""
+    spec = importlib.util.spec_from_file_location('modelos_bl_tierra_bq', os.path.join(AQUI, 'modelos_tierra.py'))
+    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+    return m.hueso

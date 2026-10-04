@@ -37,6 +37,9 @@ const FILES = {
   harrier: '../assets/world/enemies/harrier.png',
   harrier_rear: '../assets/world/enemies/harrier_rear.png',
   harrier_cola: '../assets/world/enemies/harrier_cola.png',
+  roca_baja: '../assets/world/enemies/roca_baja.png',
+  roca_media: '../assets/world/enemies/roca_media.png',
+  roca_alta: '../assets/world/enemies/roca_alta.png',
   harrier_turn: '../assets/world/enemies/harrier_turn.png',
   radar: '../assets/world/enemies/radar.png',
   aatruck: '../assets/world/enemies/aatruck.png',
@@ -49,6 +52,8 @@ const FILES = {
   depot: '../assets/world/enemies/depot.png',
   bldg: '../assets/world/enemies/bldg.png',
   fragata: '../assets/world/enemies/fragata.png',
+  pesquero: '../assets/world/enemies/pesquero.png',
+  costero: '../assets/world/enemies/costero.png',
   chancha: '../assets/world/enemies/chancha.png',
   // LOS RESTOS (B1): el estado roto de cada cosa. Mismas rutas literales, mismo motivo.
   resto_aa: '../assets/world/enemies/resto_aa.png',
@@ -132,6 +137,9 @@ const ARTE = {
   // EL HARRIER DE COLA HORNEADO COMO TU AVION (4/10/2026): 9 alabeos x 5 cabeceos, la camara de las
   // hojas del jugador. Mismo `wu` que la vista de cola a la que reemplaza: no cambia de tamaño.
   harrier_cola: { wu: 4.2 },
+  // LOS CRESTONES (el `cliff` que se esquiva, 4/10/2026): NO usan `wu` — render/world.js estira el
+  // contenido al rectangulo de choque del obstaculo (hw x h), que es lo que hay que esquivar
+  roca_baja: { wu: 1 }, roca_media: { wu: 1 }, roca_alta: { wu: 1 },
   harrier_turn: { wu: 4.2 },
   radar: { wu: 6.2 },
   aatruck: { wu: 6.6 },
@@ -152,6 +160,8 @@ const ARTE = {
   depot: { wu: 8.2, href: 5.5 },
   bldg: { wu: 6.8, href: 9.5 },
   fragata: { wu: 11 },
+  // LOS CIVILES que salen en lugar de la fragata cada tanto (4/10/2026): mas chicos que ella
+  pesquero: { wu: 7 }, costero: { wu: 8.5 },
   // LA CHANCHA: el unico avion AMIGO horneado, y el objeto mas grande del juego. `wu` 26 es
   // el mismo ancho que ya usaba su dibujo procedural, asi que la cita no se re-ajusta.
   chancha: { wu: 26 },

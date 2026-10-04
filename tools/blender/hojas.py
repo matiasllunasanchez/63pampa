@@ -61,7 +61,12 @@ HOJAS = {
     **{('hundido_' + c): dict(fw=240, fh=72, dist=90, fov=3.15, lookY=2.0, clipY=0, baseYaw=0, quarter=math.pi / 2,
                               cols=2, frames=[dict(modelo='bl:hundido:%s:%d' % (c, n)) for n in (1, 2)])
        for c in ('t42', 't21', 'log', 'cv')},
-    'fragata': dict(fw=64, fh=48, dist=16, lookY=1.0, quarter=0.15, cols=1, frames=[dict(modelo='bl:fragata')]),
+    # LA FRAGATA DEL MAR ABIERTO (el obstaculo `mast`), DE COSTADO desde el 4/10: cruza el pasillo
+    # navegando de lado, y vista casi de proa era un bulto gris ("¿estos barquitos estan horneados bien?"
+    # — no). Es el Tipo 21, con la PROA A LA DERECHA (el juego la espeja cuando navega a la izquierda).
+    # Y los CIVILES que salen en su lugar cada tanto: el pesquero y el costero de las islas.
+    **{k: dict(fw=64, fh=48, dist=16, lookY=1.3, clipY=0, baseYaw=0, quarter=-math.pi / 2, cols=1, frames=[dict(modelo=m)])
+       for k, m in (('fragata', 'bl:t21'), ('pesquero', 'bl:pesquero'), ('costero', 'bl:costero'))},
     'lcu': dict(fw=72, fh=48, dist=17, lookY=0.9, quarter=-0.55, cols=3, nivelado=1,
                 frames=[dict(modelo='bl:lcu', roll=a) for a in (-0.09, 0, 0.09)]),
     # ---------------- FASE 4: TIERRA ----------------
@@ -177,4 +182,12 @@ HOJAS = {
     'pasto': dict(contorno=False, nueva=True, fw=24, fh=24, pos=(0, 0.62, 4), fov=15.6, lookY=0.45, cols=8, cajas=False,
                   destino='assets/world/elements/pasto.png',
                   frames=[dict(modelo='bl:brizna:%d:%d' % (v, w), rots=[]) for w in range(3) for v in range(8)]),
+    # ---------------- LOS CRESTONES (4/10/2026, creston() en modelos_vegetacion.py) ----------------
+    # El obstaculo `cliff` (se esquiva): tres hojas por FORMA (baja / media / alta: el juego elige por la
+    # proporcion del obstaculo), 4 variantes x 2 filas (0 tierra adentro: cuarcita; 1 costa: arenisca).
+    # Con caja medida: el juego estira el CONTENIDO al rectangulo de choque, asi que la caja importa.
+    # Sin contorno (es terreno). De frente y apenas por arriba.
+    **{'roca_' + f: dict(fw=96, fh=64, pos=(0, 3.2, 26), fov=15.5, lookY=2.15, cols=4, contorno=False, nueva=True,
+                         frames=[dict(modelo='bl:creston:%s:%d:%d' % (f, v, c), rots=[]) for c in (0, 1) for v in range(4)])
+       for f in ('baja', 'media', 'alta')},
 }

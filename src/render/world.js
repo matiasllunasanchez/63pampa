@@ -90,15 +90,34 @@ function rampaOla() {
 /** MOTEADO: manchas claras/oscuras ancladas al MUNDO (banda de 6 unidades en wz + posicion x por
  *  hash) → parches irregulares que scrollean con el terreno, no ruido que titila. */
 function groundMottle(y, wz, k, xEnd, cx = cam.x) {
-  const band = Math.floor(wz / 6);
-  for (let i = 0; i < 5; i++) {
+  // MANCHAS REDONDAS, no franjas (el autor, 4/10: "no quiero que se vea cuadrado"): cada mancha
+  // abarca varias filas y su ancho en ESTA fila sale de una elipse (angosta arriba y abajo, ancha al
+  // medio). Antes cada fila pintaba una tira de ancho fijo y el suelo se leia en renglones.
+  const band = Math.floor(wz / 6), u = (wz / 6 - band) * 2 - 1;      // -1..1 dentro de la banda
+  const forma = Math.sqrt(Math.max(0, 1 - u * u));
+  if (forma > 0.05) for (let i = 0; i < 5; i++) {
     const h1 = hash2(band, i * 131);
     if (h1 < 0.45) continue;
     const wxP = (hash2(band, i * 131 + 7) * 2 - 1) * 330;
-    const sxP = W / 2 + (wxP - cx) * k + ZB, wP = (6 + h1 * 14) * k;
+    const wP = (6 + h1 * 14) * k * forma * (0.85 + 0.15 * hash2(band, i * 131 + Math.floor(wz * 3)));
+    const sxP = W / 2 + (wxP - cx) * k + ZB - wP / 2;
     if (sxP + wP < -70 || sxP > xEnd) continue;
-    ctx.globalAlpha = 0.10 + h1 * 0.06;
+    ctx.globalAlpha = 0.08 + h1 * 0.05;
     px(sxP, y, Math.min(wP, xEnd - sxP), 1, h1 > 0.72 ? '#0a0c08' : '#f4eede');
+  }
+  // EL GRANO, como el del mar (el autor: "algo similar a lo del mar con tonalidades mas similares"):
+  // motas de un pixel apenas mas claras u oscuras, fijas en el MUNDO — se mueven con el suelo y no
+  // titilan. Pocas por fila y con alfa bajo: textura, no ruido.
+  const iz = Math.floor(wz * 2.3);
+  const n = Math.min(26, Math.max(4, (W / (k * 2.2)) | 0));
+  for (let i = 0; i < n; i++) {
+    const h = hash2(iz, i * 977 + 13);
+    if (h < 0.5) continue;
+    const wx = cx + ((hash2(iz, i * 977 + 29) * 2 - 1) * (W / 2 + 40)) / k;
+    const sx = W / 2 + (wx - cx) * k + ZB;
+    if (sx > xEnd) continue;
+    ctx.globalAlpha = 0.12 + (h - 0.5) * 0.16;
+    px(sx, y, Math.max(1, Math.min(3, k * 0.2)), 1, h > 0.78 ? '#f4eede' : '#0a0c08');   // GRANO: nunca un cuadrado
   }
   ctx.globalAlpha = 1;
 }
@@ -183,9 +202,6 @@ function portRow(y, wz, k, x0, x1, f) {
   // --- SUELO ---
   if (R.ground === 'land') {          // PASTO: el mismo campo del mapa de TIERRA, sin base
     px(x0, y, x1 - x0, rowH, groundCol(LAND_ST, f));
-    if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) {
-      ctx.globalAlpha = 0.4; px(x0, y, x1 - x0, 1, theme.land.furrow); ctx.globalAlpha = 1;
-    }
     groundMottle(y, wz, k, x1);
     return;                           // no hay franja de pista: se despega del campo
   }
@@ -196,8 +212,12 @@ function portRow(y, wz, k, x0, x1, f) {
     ctx.globalAlpha = 1;
     return;
   }
-  const vl = Math.sin(wz * 0.22) + Math.sin(wz * 0.07);              // turba malvinense
-  px(x0, y, x1 - x0, rowH, vl > 0.8 ? '#39402f' : vl < -0.8 ? '#2b3226' : '#323a2b');
+  // TURBA MALVINENSE, en DEGRADE: eran tres tonos con corte duro segun la fila, y el campo de la base
+  // se leia en franjas horizontales ("en la pista lo mismo", el autor 4/10). Los mismos tres tonos,
+  // ahora interpolados, y encima las manchas redondas y el grano del campo (groundMottle).
+  const vl = Math.max(-1, Math.min(1, (Math.sin(wz * 0.22) + Math.sin(wz * 0.07)) / 1.6));
+  px(x0, y, x1 - x0, rowH, vl > 0 ? mez('#323a2b', '#39402f', vl) : mez('#323a2b', '#2b3226', -vl));
+  groundMottle(y, wz, k, x1);
   // --- PISTA --- solo se pinta la parte del tramo que le toca (recorte contra [x0,x1))
   const a = W / 2 + (-R.hw - cam.x) * k + ZB, b = W / 2 + (R.hw - cam.x) * k + ZB;
   const ra = Math.max(a, x0), rb = Math.min(b, x1);
@@ -507,7 +527,15 @@ export function drawSea() {
         }
       }
       if (Math.sin(wz * 0.13) + Math.sin(wz * 0.05) < -0.95) {           // surco SUAVE (antes corte duro)
-        ctx.globalAlpha = 0.4; px(-70, y, W + 140, 1, theme.land.furrow); ctx.globalAlpha = 1;
+        // PUNTEADO, no una raya de lado a lado: una linea entera cruzando la pantalla es un renglon
+        ctx.globalAlpha = 0.32;
+        const kS = F / z, iS = Math.floor(wz * 1.7);
+        for (let j = 0; j < 14; j++) {
+          if (hash2(iS, j * 53) < 0.4) continue;
+          const x0 = (j / 14) * (W + 140) - 70 + hash2(iS, j * 53 + 1) * 20;
+          px(x0, y, (W + 140) / 14 * (0.4 + hash2(iS, j * 53 + 2) * 0.5), 1, theme.land.furrow);
+        }
+        ctx.globalAlpha = 1;
       }
       turbalRow(y, wz, k);                                               // T5: los cortes de turba
       // LA LLUVIA MOJA EL SUELO (T6). Es un VELO sobre el color resuelto, no una paleta nueva:
@@ -962,6 +990,8 @@ function drawLand(coastMode, geoOn) {
       // PIEDRA DEL PEDRERO (T5): adentro del rio casi todo es piedra; en el borde se mezcla con
       // el pasto, que es como termina un pedrero de verdad — no con un filo.
       if (ped > 0.2 && h3 < 0.2 + ped * 0.72) {
+        // LA PIEDRA HORNEADA (render/vegetacion.js, la cuarcita de las islas) en vez del bloque de pixeles
+        if (veg.piedras(s.x, s.y, k * (1.6 + h2 * 1.2), h2)) { ctx.globalAlpha = 1; continue; }
         const w = Math.max(1, k * (0.5 + h2 * 0.7)), hh = Math.max(1, k * (0.3 + h2 * 0.35));
         const rx = s.x - w / 2, ry = s.y - hh;
         px(rx, ry, w, hh, '#736f63');                                    // la piedra del pedrero es GRIS, no marron
@@ -971,6 +1001,7 @@ function drawLand(coastMode, geoOn) {
         continue;
       }
       if (h1 > 0.93) {                                                   // roca ocasional (con volumen)
+        if (veg.piedras(s.x, s.y, k * 2.2, h2)) continue;
         const w = Math.max(1, k * 0.75), hh = Math.max(1, k * 0.55), rx = s.x - w / 2, ry = s.y - hh;
         px(rx, ry, w, hh, theme.land.rock);
         px(rx, ry, w, Math.max(1, hh * 0.4), '#6b6552');                 // cara iluminada (arriba)
@@ -1049,13 +1080,17 @@ function drawManchones(dv, farZ, coastMode, geoOn, relieve) {
         const c = proj(mx, gy, mz - dv), a = proj(mx, gy, mz - dv - R * 0.55), b = proj(mx, gy, mz - dv + R * 0.55);
         const rx = R * F / (mz - dv), ry = Math.max(1, Math.abs(a.y - b.y) / 2);
         if (c.x + rx < 0 || c.x - rx > W || c.y < HOR) continue;
-        const filas = Math.max(1, Math.round(ry * 2));
-        for (let i = 0; i < filas; i++) {
-          const v = (i + 0.5) / filas * 2 - 1;
-          const muerde = 0.75 + 0.25 * hash2(ix * 31 + i + m * 7, iz);
-          const hw = rx * Math.sqrt(Math.max(0, 1 - v * v)) * muerde;
-          if (hw >= 0.5) px(c.x - hw, c.y - ry + i * (ry * 2 / filas), hw * 2, Math.max(1, ry * 2 / filas + 0.5), col);
-        }
+        // BORDE SUAVE: un degrade radial achatado, sin filas — pintado a filas de pixel, de cerca cada
+        // fila era un rectangulo y el campo se leia "cuadrado" (el autor, 4/10)
+        const gr = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, rx);
+        // (se apaga hacia SU color con alfa 0: hacia el negro transparente el borde se ensuciaba y
+        // quedaba un anillo oscuro alrededor de cada mancha)
+        gr.addColorStop(0, col); gr.addColorStop(0.6, col); gr.addColorStop(1, col.replace('rgb(', 'rgba(').replace(')', ',0)'));
+        ctx.save();
+        ctx.translate(c.x, c.y); ctx.scale(1, ry / Math.max(0.5, rx)); ctx.translate(-c.x, -c.y);
+        ctx.fillStyle = gr;
+        ctx.beginPath(); ctx.arc(c.x, c.y, rx, 0, 6.2832); ctx.fill();
+        ctx.restore();
       }
     }
   }
@@ -1612,8 +1647,15 @@ function dibujarObstaculo(o) {
     // clavados en el agua en vez de como buques. Ahora se dibuja el BUQUE, y lo unico que queda
     // de aquel palo es la luz roja de tope, arriba de la superestructura.
     const base = proj(o.x, o.gy || 0, o.z);
-    if (enemyArt.ready('fragata')) {
-      enemyArt.drawFrame(ctx, 'fragata', 0, 0, base.x, { bottomY: base.y }, k, o.vx < 0);
+    // CIVILES CADA TANTO (el autor, 4/10: "podriamos poner barcos pesqueros o mas civiles"): tres de
+    // cada diez son un pesquero o un costero de las islas. Mismo obstaculo, misma caja: cambia el barco.
+    const sorteo = (o.ph * 7.13) % 1;
+    const hoja = sorteo < 0.15 ? 'pesquero' : sorteo < 0.30 ? 'costero' : 'fragata';
+    let topeY = base.y - SHIP_H * k;
+    if (enemyArt.ready(hoja)) {
+      enemyArt.drawFrame(ctx, hoja, 0, 0, base.x, { bottomY: base.y }, k, o.vx < 0);
+      const sh = enemyArt.SHEETS[hoja], b = sh.box;
+      topeY = base.y - (b.y1 - b.y0 + 1) * sh.wu * k / (b.x1 - b.x0 + 1);     // la luz, en el tope del barco
       // ESTELA de proa: la fragata NAVEGA (cfg.enemyMove) — sin espuma parece fondeada
       if (o.vx) {
         ctx.globalAlpha = 0.45;
@@ -1632,7 +1674,7 @@ function dibujarObstaculo(o) {
     // avisa que ahi adelante hay un barco. LATE, y cada una en su fase (o.ph), porque una luz fija
     // de 1 px se pierde contra el moteado del oleaje.
     const lit = 0.5 + 0.5 * Math.sin(run.t * 2.4 + o.ph);
-    const ly = base.y - SHIP_H * k;
+    const ly = topeY;
     ctx.globalAlpha = 0.3 * lit;
     px(base.x - 1.1 * k, ly - 1.1 * k, 2.2 * k, 2.2 * k, P.warn);                             // halo
     ctx.globalAlpha = 1;
@@ -1740,6 +1782,41 @@ function dibujarObstaculo(o) {
     const arenisca = cfg.terrain === 'coast';
     const base = proj(o.x, o.gy || 0, o.z);
     const hw = Math.max(1.5, o.hw * k), th = Math.max(2, o.h * k);
+    // EL CRESTON HORNEADO (pedido del autor 4/10: "las colinas chicas son horribles, parecen
+    // edificios"): roca de las islas hecha en Blender. Se elige la FORMA por la proporcion del
+    // obstaculo (loma larga, risco medio, risco alto) y se estira el contenido al rectangulo que se
+    // esquiva — el dibujo ocupa exactamente lo que choca. Las lajas de abajo quedan de respaldo.
+    //
+    // ENCIMADOS UNO AL LADO DEL OTRO (el autor, 4/10): un obstaculo ANCHO no es un creston estirado
+    // sino una CADENA de dos o tres, solapados, de alturas distintas — todos ADENTRO del rectangulo
+    // que se esquiva (ninguna roca asoma donde no choca). Se pintan los bajos primero y el alto
+    // adelante; cual va donde sale del `seed`, asi la cadena es estable y no se parece a la vecina.
+    if (enemyArt.ready('roca_media')) {
+      const asp = o.hw * 2 / o.h;
+      const n = asp > 3.2 ? 3 : asp > 1.9 ? 2 : 1;
+      const seed = o.seed | 0;
+      const piezas = [];
+      for (let i = 0; i < n; i++) {
+        // ancho de cada uno (solapan ~25 %), y el alto: el mas alto en la posicion `cima`
+        const cima = seed % n, w = n === 1 ? 1 : n === 2 ? 0.62 : 0.46;
+        const x0 = n === 1 ? 0 : i * (1 - w) / (n - 1);
+        const alto = i === cima ? 1 : 0.62 + 0.25 * hash2(seed, i * 13);
+        piezas.push({ x0, w, alto, i });
+      }
+      piezas.sort((a, b) => a.alto - b.alto);
+      for (const p of piezas) {
+        const pw = hw * 2 * p.w, ph = th * p.alto;
+        const a = pw / ph;
+        const forma = a > 3 ? 'roca_baja' : a > 1.6 ? 'roca_media' : 'roca_alta';
+        const sh = enemyArt.SHEETS[forma], b = sh.box;
+        if (!enemyArt.ready(forma)) continue;
+        const ex = pw / (b.x1 - b.x0 + 1), ey = ph / (b.y1 - b.y0 + 1);
+        const col = (seed + p.i * 3) % sh.cols, fila = arenisca ? 1 : 0;
+        ctx.drawImage(sh.img, col * sh.fw, fila * sh.fh, sh.fw, sh.fh,
+          base.x - hw + p.x0 * hw * 2 - b.x0 * ex, base.y - (b.y1 + 1) * ey, sh.fw * ex, sh.fh * ey);
+      }
+      return;
+    }
     // el sol pega desde la IZQUIERDA: la roca se apaga de laja en laja hacia la derecha (lerp,
     // no dos bloques planos — con el corte duro cada laja se leia como un edificio aparte)
     // roca CALIDA (piedra, no hormigon): con el gris azulado leia a edificio contra el pasto
