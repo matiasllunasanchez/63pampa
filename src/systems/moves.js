@@ -17,7 +17,7 @@ import { proj, popup } from '../core/fx.js';
 import { sfxOne, beep } from './audio.js';
 import { P } from '../data/palette.js';
 import { PZ, W, H } from '../render/ctx.js';
-import { FLY_X, FLY_TOP, FUEL_PIRUETA, COBRA, DERRAPE, MORTAL, POPUP, PIQUE } from '../data/tuning.js';
+import { FLY_X, FLY_TOP, FUEL_PIRUETA, COBRA, DERRAPE, MORTAL, COBRA_INV, POPUP, PIQUE } from '../data/tuning.js';
 import { MOVES } from '../data/moves.js';
 
 const MV_CD = 1.15;          // cooldown compartido con el tonel (mismo valor que startRoll)
@@ -113,6 +113,7 @@ export function stepCobraCam(dt) {
   // boca abajo lo ponia enorme arriba y, con el pasarse del resorte, debajo del cuadro en la bajada.
   const obj = run.mv === 'derrape' ? -DERRAPE.ACERCA * run.mvPose
     : run.mv === 'mortal' ? -MORTAL.ACERCA * run.mvFreno / MORTAL.CORTE
+    : run.mv === 'cobrainv' ? -COBRA_INV.ACERCA * run.mvFreno / COBRA_INV.CORTE
     : -COBRA.ACERCA * (run.mv ? run.mvFreno / COBRA.CORTE : 0);
   // ACERCANDOSE: exponencial — rapido al principio y lento en los ultimos momentos, los mas cerca de
   // la camara. VOLVIENDO: el resorte de siempre (velocidad normal y el pasarse hacia adelante). La
@@ -148,9 +149,8 @@ export const derrapeLead = () => camLib
 
 /** EL PERFIL DE LA VUELTA DEL MORTAL: grados para una fraccion p de la maniobra, por tramos de Hermite
  *  entre los puntos de MORTAL.VUELTA ([p, grados, pendiente]). */
-function vueltaMortal(p) {
-  const K = MORTAL.VUELTA;
-  if (p <= 0) return 0;
+function vueltaMortal(p, K = MORTAL.VUELTA) {
+  if (p <= K[0][0]) return K[0][1];
   for (let i = 0; i < K.length - 1; i++) {
     const [p0, g0, m0] = K[i], [p1, g1, m1] = K[i + 1];
     if (p > p1 && i < K.length - 2) continue;
@@ -273,6 +273,32 @@ export function movesSystem(dt, inp, act) {
       E.mvFreno = MORTAL.CORTE * freno;
       E.spd *= Math.exp(-MORTAL.FRENO * freno * dt);
       const yObj = E.mvY0 + MORTAL.SUBE * Math.pow((1 - Math.cos(th)) / 2, MORTAL.FORMA);
+      B.vy = (yObj - B.y) / Math.max(dt, 1 / 240);
+      B.vx *= Math.max(0, 1 - dt * 4);
+      B.bank = 0; B.pitch = 0;
+      if (B === plane && freno > 0.6) run.shake = Math.min(5, run.shake + dt * 7);
+      break;
+    }
+    case 'cobrainv': {
+      // LA COBRA MORTAL INVERTIDA. Tres cosas encadenadas: ROLA panza arriba (sin freno), la VUELTA del
+      // mortal pero invertida —tirar de la palanca invertido lleva la trompa hacia ABAJO; ahi, con la
+      // punta abajo, frena como la cobra y la camara se acerca; despues pasa de frente a la camara y
+      // cierra la vuelta— y sigue invertida un momento hasta ROLAR de vuelta a derecho.
+      // EL DIBUJO NO PIDE HOJAS NUEVAS: un avion invertido visto de atras es el mismo cuadro girado 180°
+      // en pantalla, asi que es la hoja 4 de la vuelta (`mvMortal`) con el giro del dibujo (`mvGiro`).
+      const C = COBRA_INV;
+      const sm = x => { const c = Math.max(0, Math.min(1, x)); return c * c * (3 - 2 * c); };
+      const t = E.mvT;                                                      // en segundos (COBRA_INV)
+      const rola = sm(t / C.GIRA) + sm((t - C.VUELVE) / (C.DUR - C.VUELVE));  // 0 → 1 (panza arriba) → 2 (derecho)
+      E.mvGiro = dir * Math.PI * rola;
+      E.mvRoll = 0;
+      const g = vueltaMortal(t, C.VUELTA);
+      E.mvMortal = g > 0.5 && g < 359.5 ? g : 0;
+      const [f0, f1, f2, f3] = C.FRENA;
+      const freno = sm((g - f0) / (f1 - f0)) * (1 - sm((g - f2) / (f3 - f2)));
+      E.mvFreno = C.CORTE * freno;
+      E.spd *= Math.exp(-C.FRENO * freno * dt);
+      const yObj = E.mvY0 + C.SUBE * (1 - Math.cos(g * Math.PI / 180)) / 2;
       B.vy = (yObj - B.y) / Math.max(dt, 1 / 240);
       B.vx *= Math.max(0, 1 - dt * 4);
       B.bank = 0; B.pitch = 0;

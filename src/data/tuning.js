@@ -1045,6 +1045,22 @@ export const POPUP = { CORTE: 0.14, FRENO: 0.3, ENTRA: 0.15, SUELTA: 0.55 };
 export const MORTAL = { SUBE: 11, FORMA: 3, FRENO: 0.75, CORTE: 0.55, ACERCA: 6, FRENA: [40, 95, 120, 170],
   VUELTA: [[0, 0, 1100], [0.12, 100, 40], [0.45, 115, 40], [1, 360, 200]] };
 
+// ---------- LA COBRA MORTAL INVERTIDA (data/moves.js, systems/moves.js) ----------
+// El autor, 4/10: "desde estado normal gira panza arriba, hace el freno como el de la cobra pero queda
+// la punta del avion hacia abajo, avanza de frente hacia la camara y hace una vuelta completa de mortal,
+// y sigue hacia adelante (sentido normal, misma velocidad, panza arriba), y luego de un momento vuelve a
+// estado normal. Apenas gira no se frena; recien frena cuando queda con la punta para abajo".
+// Todo en SEGUNDOS desde que empieza: GIRA, lo que tarda en rolar panza arriba (sin freno); VUELTA, el
+// cabeceo en tramos de Hermite como el del MORTAL [segundo, grados, grados por segundo] — arranca un
+// segundo despues de quedar invertido (el autor, 4/10: "mantengamos unos segundos mas con el avion
+// panza arriba, tanto al arrancar como al terminar"); VUELVE, cuando empieza a rolar de vuelta a
+// derecho (otro segundo invertido despues de cerrar la vuelta), y DUR, el total (data/moves.js). FRENA, FRENO, CORTE: el freno sobre el cabeceo, como el MORTAL; ACERCA: la camara.
+// SUBE: lo poco que se levanta durante la vuelta — invertido, "tirar" es hacia el AGUA, y una vuelta
+// entera hacia abajo volando a ras era chocar: el juego manda y la dibuja en el lugar.
+export const COBRA_INV = { GIRA: 0.34, VUELVE: 4.24, DUR: 4.6, SUBE: 3, FRENO: 0.75, CORTE: 0.55, ACERCA: 7,
+  FRENA: [40, 95, 120, 170],
+  VUELTA: [[1.34, 0, 423], [1.55, 100, 15], [2.04, 115, 15], [2.87, 360, 0]] };
+
 // ---------- EL DERRAPE: el freno de costado (data/moves.js, systems/moves.js) ----------
 // LA MOTO DE AGUA (autor, 4/10: "que se comporte como una moto de agua al ras del mar, el derrape de
 // una moto de agua con ese efecto"). Reemplaza al esquiador de posiciones suavizadas, que llegaba al

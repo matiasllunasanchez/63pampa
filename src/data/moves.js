@@ -39,7 +39,7 @@
 //     ⟳←←←   TONEL izquierda           ⟳→→→   TONEL derecha
 //     ⟳↓→↑←  TONEL BARRIL horario      ⟳↓←↑→  TONEL BARRIL antihorario
 //     ↓⟳←←   TIRABUZON izquierda       ↓⟳→→   TIRABUZON derecha   (picas con el izq, rolas con el der)
-//     ⟳↑↓↑   COBRA                     ⟳↑↑↓   MORTAL
+//     ⟳↑↓↑   COBRA                     ⟳↑↑↓   MORTAL              ⟳↓↓↑  COBRA MORTAL INVERTIDA
 //     ⟳←→←   DERRAPE izquierda         ⟳→←→   DERRAPE derecha     (tambien [G]/L2: solo, + ↑, + dir)
 //
 //   LOS DOS STICKS — el ASCENSOR (mirar hacia donde vas y empujar dos veces)
@@ -136,6 +136,10 @@ export const MOVES = {
   // trepando, pasando boca abajo arriba de todo y bajando a nivel, mientras pierde velocidad. La pose la
   // pone la hoja 4 extendida (11 cabeceos, 40…335°). Se pide con FRENO + mirar ARRIBA ([G]+[↑] / L2 +
   // stick derecho arriba). Sin disparo ni turbo, como la cobra.
+  // LA COBRA MORTAL INVERTIDA: rola panza arriba, frena como la cobra con la trompa hacia ABAJO, da la
+  // vuelta entera de mortal (pasa de frente a la camara) y sigue invertida un momento antes de volver
+  // a derecho (COBRA_INV en data/tuning.js). [G]+[↓] / L2 + stick derecho abajo, o ↓↓↑ con la derecha.
+  cobrainv: { dur: 4.6, name: 'COBRA MORTAL INVERTIDA', steer: null, fire: false, turbo: false, tight: false, legado: true },
   mortal: { dur: 1.6, name: 'MORTAL', steer: null, fire: false, turbo: false, tight: false, legado: true },
 };
 
@@ -172,6 +176,9 @@ const COMBO = {
   jink: '↑←→ · ↑→←', sturn: '←→← · →←→', mask: '⟳↓↓↓ · ↑↓↓ (bajo)', popup: '↓↑↑ (bajo)',
   climb: '⟳↑↑↑', climbmax: '⟳↑↑↑ (contra el radar)', spin: '↓⟳←← · ↓⟳→→',
   barrel: '⟳↓→↑← · ⟳↓←↑→', tonel: '⟳←←← · ⟳→→→',
+  // LOS FRENOS (4/10): la tecla de freno ([G] / L2), sola o con la mano derecha, y su combo
+  cobra: '[G] · ⟳↑↓↑', mortal: '[G]+⟳↑ · ⟳↑↑↓', cobrainv: '[G]+⟳↓ · ⟳↓↓↑',
+  derrape: '[G]+←/→ · ⟳←→← · ⟳→←→',
 };
 
 /** Las filas del menu MANIOBRAS: la pirueta, con que se pide y que hace.

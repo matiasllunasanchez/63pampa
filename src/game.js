@@ -2655,6 +2655,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           // Mayusculas: con la mano derecha. En minusculas ←→← es el S-TURN, que es otra cosa.
           case 'UDU': return moves.startMove('cobra', 1);
           case 'UUD': return moves.startMove('mortal', 1);
+          case 'DDU': return moves.startMove('cobrainv', 1);   // ↓↓↑  el MORTAL dado vuelta: la COBRA MORTAL INVERTIDA
           case 'LRL': return moves.startMove('derrape', -1);
           case 'RLR': return moves.startMove('derrape', 1);
           // ---- LOS DOS STICKS: EL ASCENSOR ----
@@ -4252,7 +4253,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // Con la mano que mira y no con [W]: el gas se mantiene apretado para volar, y asi la cobra
         // seguiria siendo imposible de pedir.
         const arriba = inp.camU > 0.3 || inp.camAx < -0.4;
-        moves.startMove(arriba && !lado ? 'mortal' : lado ? 'derrape' : 'cobra', lado || 1);
+        // …y MIRANDO ABAJO, LA COBRA MORTAL INVERTIDA (rola panza arriba y la vuelta va hacia abajo)
+        const abajo = inp.camD > 0.3 || inp.camAx > 0.4;
+        moves.startMove(arriba && !lado ? 'mortal' : abajo && !lado ? 'cobrainv' : lado ? 'derrape' : 'cobra', lado || 1);
       }
       moves.stepCobraCam(dt);
       frenoAntes = !!inp.brake;
