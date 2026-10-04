@@ -107,7 +107,9 @@ export function formationSlots(n) {
     // EN COLUMNA SOBRE LA PISTA (el autor, 4/10: "los que estan fuera de la pista, detras de los dos de
     // los costados"): la segunda fila ya no se abre a 11 m —quedaba en el pasto, la pista mide 7 de
     // semiancho— sino que va DETRAS de la primera, en su misma linea. Solo la usan el despegue y su polvo.
-    slots.push({ dx: side * 5.5, dz: -1.6 * rank * (rank > 1 ? 2.8 : 1), dy: 0.55 * rank });
+    // 2.8 → 1.9 (autor, 4/10: "los otros dos, un poco mas cerca del resto y lejos de la camara, estan
+    // muy cerca"): dz negativo es hacia la camara — la segunda fila quedaba a 9 m atras, encima del lente.
+    slots.push({ dx: side * 5.5, dz: -1.6 * rank * (rank > 1 ? 1.9 : 1), dy: 0.55 * rank });
   }
   return slots;
 }
