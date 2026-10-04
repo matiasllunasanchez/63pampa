@@ -16,6 +16,7 @@
 // la cabina y las hojas de aviones: un asset que falta nunca deja un agujero en la pantalla.
 import { HORNO_VIEJO } from '../data/horno.js';
 import { ctx } from './ctx.js';
+import { drawBorde } from './borde.js';
 
 const HOJA = { src: '../assets/ammo/municion.png', img: new Image(), ready: false };
 HOJA.img.onload = () => { HOJA.ready = true; };
@@ -45,6 +46,8 @@ export function dibujar(fila, v, x, y, caja) {
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(HOJA.img, col * FW, fila * FH, FW, FH,
     Math.round(x - s / 2), Math.round(y - s / 2), s, s);
+  // los MISILES brillan a contraluz como el Sidewinder (render/borde.js); las bombas no
+  if (fila === MISIL) drawBorde(ctx, HOJA.img, col * FW, fila * FH, FW, FH, Math.round(x - s / 2), Math.round(y - s / 2), s, s);
   ctx.imageSmoothingEnabled = sm;
   return true;
 }

@@ -104,7 +104,7 @@ def construir(fuente, T):
     # los modelos hechos en Blender: los aviones enemigos (modelos_enemigos.py), los helicopteros
     # (modelos_helos.py), los buques (modelos_buques.py), lo de tierra (modelos_tierra.py), los restos (modelos_restos.py) y las partes y la municion
     # (modelos_partes.py)
-    for archivo in ('modelos_enemigos.py', 'modelos_helos.py', 'modelos_buques.py', 'modelos_tierra.py', 'modelos_restos.py', 'modelos_partes.py', 'modelos_fuego.py', 'modelos_soldados.py'):
+    for archivo in ('modelos_enemigos.py', 'modelos_helos.py', 'modelos_buques.py', 'modelos_tierra.py', 'modelos_restos.py', 'modelos_partes.py', 'modelos_fuego.py', 'modelos_soldados.py', 'modelos_vegetacion.py'):
         mod = _cargar(archivo[:-3] + '_bl', archivo)
         if hasattr(mod, nom): return getattr(mod, nom)(T, K, *args)
     raise KeyError('no hay modelo de Blender que se llame ' + nom)

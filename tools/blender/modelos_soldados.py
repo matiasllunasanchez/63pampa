@@ -43,12 +43,18 @@ Y_HOMBRO, Y_CADERA, MUSLO, PIERNA, BRAZO, ANTEBRAZO, ANCHO = 1.60, 1.02, 0.52, 0
 
 # EL CONSCRIPTO ARGENTINO (pedido del autor 4/10: "los soldados argentinos tienen cascos y son mas
 # petisos"): verde oliva LISO (sin camuflaje), el casco M1 redondo con su ala, el FAL, y un 90 % de alto.
-ARG = dict(U='#5b5f3d', UL='#6f7450', UD='#474a30', HELM='#4f5435')
+# Con la foto que paso el autor: la parka y el pantalon VERDE GRISACEO, todo liso, y las ANTIPARRAS
+# sobre el casco.
+ARG = dict(U='#5d6551', UL='#6b7360', UD='#4e5545', HELM='#4f5640', GEAR='#454b3a')
 ESC_ARG = 0.90
 
 def _mats(K, bando='brit'):
     if bando == 'arg':
         m = {k: K['mat_cel']('arg_' + k, ARG.get(k, v)) for k, v in C.items()}
+        m['ANTIPARRA'] = K['mat_cel']('antiparra', '#c98a4a', True)
+        m['BANDA'] = K['mat_cel']('banda_antiparras', '#2a2c24')
+        # la FUNDA DE RED del casco: el verde manchado de la red sobre el acero
+        m['HELM'] = mat_pintura(K, 'casco_red', dict(arriba=['#565c46', '#434836'], corte=0.5, escala=14.0, panza='#4a503d'))
         return m
     m = {k: K['mat_cel']('sold_' + k, v) for k, v in C.items()}
     # EL DPM DE LA FOTO: manchones grandes MARRONES sobre verde caqui (el de 1982 es mucho mas marron
@@ -62,7 +68,7 @@ def _mats(K, bando='brit'):
 # hacia un costado, con la banda de cuero y el escudo.
 # Con la foto que paso el autor (dos Royal Marines en Malvinas): la boina de comando es un verde MUY
 # oscuro, casi negro, grande y tirada sobre un costado.
-BOINAS = {'verde': '#25311f', 'bordo': '#6e2630'}
+BOINAS = {'verde': '#25311f', 'bordo': '#8a1f2c'}     # la de los paracaidistas, ROJA (el autor, 4/10)
 
 def boina(padre, K, color, x, y, z=0.0):
     b = elipsoide('boina', (0, 0, 0), (0.17, 0.06, 0.16), padre, K['mat_cel']('boina_' + color, BOINAS[color]), seg=14, anillos=8)
@@ -71,15 +77,26 @@ def boina(padre, K, color, x, y, z=0.0):
     elipsoide('escudo', (x - 0.10, y - 0.01, z - 0.03), (0.02, 0.025, 0.02), padre, K['mat_cel']('escudo', '#c9b98a'), seg=6, anillos=4)
 
 def casco_m1(padre, m, x, y, z=0.0):
-    """El casco M1 del conscripto: la cupula redonda que baja sobre las orejas y el ala corta. Le
-    queda GRANDE: son pibes de 18 años (la clase 63), y el casco es del talle de un adulto."""
-    elipsoide('casco', (x, y, z), (0.18, 0.14, 0.18), padre, m['HELM'], seg=14, anillos=8)
-    elipsoide('ala', (x, y - 0.065, z), (0.195, 0.025, 0.195), padre, m['HELM'], seg=14, anillos=4)
+    """EL CASCO M1 del conscripto (rehecho 4/10 con la foto del autor: "es horrible el casco, hace un
+    casco mas asi"): la CUPULA ALTA Y REDONDA —mas alta que una bocha aplastada—, el borde en CAMPANA
+    que se abre apenas en los costados y la nuca, la funda de RED (manchado) y LAS ANTIPARRAS: la banda
+    que lo rodea y los dos vidrios redondos al frente (-x, hacia donde mira). Le queda GRANDE: baja
+    hasta las cejas y sobresale de la cabeza."""
+    cupula = [(-0.105, 0.232, 0.240), (-0.090, 0.222, 0.230), (-0.060, 0.210, 0.216), (-0.010, 0.206, 0.210),
+              (0.050, 0.195, 0.198), (0.100, 0.165, 0.168), (0.140, 0.115, 0.118), (0.165, 0.055, 0.056), (0.172, 0.012, 0.012)]
+    TI.columna('casco', padre, m['HELM'], x, z, [(y + dy, w, d) for dy, w, d in cupula], expo=2.0)
+    # el borde de la campana, un filo apenas mas oscuro
+    TI.columna('borde', padre, m['GEAR'], x, z, [(y - 0.112, 0.236, 0.244), (y - 0.098, 0.236, 0.244)], expo=2.0)
+    # LAS ANTIPARRAS: la banda elastica alrededor y los dos vidrios ambar con su marco
+    TI.columna('banda', padre, m['BANDA'], x, z, [(y - 0.035, 0.212, 0.217), (y + 0.010, 0.208, 0.212)], expo=2.0)
+    for dz in (-0.075, 0.075):
+        elipsoide('marco', (x - 0.205, y - 0.010, z + dz), (0.03, 0.058, 0.058), padre, m['BANDA'], seg=12, anillos=6)
+        elipsoide('antiparra', (x - 0.222, y - 0.010, z + dz), (0.022, 0.045, 0.045), padre, m['ANTIPARRA'], seg=12, anillos=6)
 
 def _cabeza(padre, m, y, x=0.0, K=None, color='verde'):
     elipsoide('cuello', (x - 0.01, y + 0.09, 0), (0.06, 0.06, 0.07), padre, m['SKIN'], seg=8, anillos=6)
     elipsoide('cabeza', (x - 0.02, y + 0.23, 0), (0.11, 0.12, 0.10), padre, m['SKIN'], seg=12, anillos=8)
-    if color == 'casco': casco_m1(padre, m, x - 0.01, y + 0.30)
+    if color == 'casco': casco_m1(padre, m, x - 0.01, y + 0.31)
     else: boina(padre, K, color, x - 0.01, y + 0.33)
 
 def soldado_corre(T, K, paso='0', bergen='0', bando='brit'):
@@ -89,10 +106,26 @@ def soldado_corre(T, K, paso='0', bergen='0', bando='brit'):
     yc = Y_HOMBRO - Y_CADERA
     # EL CONSCRIPTO ES UN PIBE DE 18 AÑOS (el autor, 4/10): flaco y desgarbado — torso angosto,
     # brazos y piernas finos, la mochila chica. El casco le queda grande (ver casco_m1).
-    f = 0.78 if bando == 'arg' else 1.0
+    # Y LOS BRITANICOS MAS ROBUSTOS (el autor, 4/10): torso y miembros un 12 % mas gruesos. El
+    # conscripto lleva la PARKA inflada encima del cuerpo flaco: torso mas lleno, miembros finos.
+    f = 0.80 if bando == 'arg' else 1.12
+    ft = 0.98 if bando == 'arg' else 1.12
     tr = vacio(g, 'tronco', (0, Y_CADERA, 0), (0, 0, 0.16))                    # inclinado hacia adelante
-    elipsoide('torso', (0.0, yc / 2 - 0.02, 0), (0.17 * f, yc / 2 + 0.10, ANCHO / 2 * f), tr, m['U'], seg=14, anillos=10)
-    elipsoide('cinto', (0.0, yc - 0.30, 0), (0.18 * f, 0.05, (ANCHO / 2 + 0.01) * f), tr, m['GEAR'], seg=12, anillos=6)
+    elipsoide('torso', (0.0, yc / 2 - 0.02, 0), (0.17 * ft, yc / 2 + 0.10, ANCHO / 2 * ft), tr, m['U'], seg=14, anillos=10)
+    if bando == 'arg':                      # la capucha de la parka, caida en la nuca
+        elipsoide('capucha', (0.10, yc + 0.02, 0), (0.10, 0.08, 0.15), tr, m['U'], seg=10, anillos=6)
+    # EL PARCHE DE LA BANDERA en el hombro que mira a la camara (+z): celeste-blanco-celeste el
+    # argentino, el rojo de la Union Jack el britanico. A 24 px es un pixel de color, y es el que dice
+    # de quien es el soldado.
+    zp = ANCHO / 2 * ft + 0.012
+    if bando == 'arg':
+        for k, col in enumerate(('#7fb2d8', '#e8eef0', '#7fb2d8')):
+            pieza('bandera', tr, K['mat_cel']('bandera%d' % k, col), (0.11, 0.035, 0.02), (0.0, yc - 0.06 - 0.035 * k, zp))
+    else:
+        pieza('bandera', tr, K['mat_cel']('union_azul', '#2d4a8a'), (0.12, 0.09, 0.02), (0.0, yc - 0.10, zp))
+        pieza('bandera', tr, K['mat_cel']('union_roja', '#c4302a'), (0.12, 0.03, 0.025), (0.0, yc - 0.10, zp))
+        pieza('bandera', tr, K['mat_cel']('union_roja', '#c4302a'), (0.035, 0.09, 0.025), (0.0, yc - 0.10, zp))
+    elipsoide('cinto', (0.0, yc - 0.30, 0), (0.18 * ft, 0.05, (ANCHO / 2 + 0.01) * ft), tr, m['GEAR'], seg=12, anillos=6)
     if bando != 'arg':                       # la BUFANDA oscura al cuello (la de la foto)
         elipsoide('bufanda', (-0.02, yc + 0.04, 0), (0.12, 0.06, 0.13), tr, K['mat_cel']('bufanda', '#2e2b22'), seg=12, anillos=6)
     if bergen: bloque('bergen', tr, m['GEAR'], (0.26, yc - 0.20, 0), (0.28, 0.64, ANCHO * 0.84), bisel=0.06)
@@ -129,7 +162,7 @@ def soldado_tierra(T, K, bergen='0', bando='brit'):
     pieza('botas', g, m['BOOT'], (0.24, 0.14, ANCHO * 0.94), (LARGO / 2 + 0.06, Y - 0.02, 0))
     bloque('mochila', g, m['GEAR'], (0.16, Y + 0.17, 0), (0.52 if bergen else 0.34, 0.19, ANCHO * 0.8), bisel=0.04)
     elipsoide('cabeza', (-LARGO / 2 + 0.06, Y + 0.17, 0), (0.11, 0.10, 0.10), g, m['SKIN'], seg=12, anillos=8)
-    if bando == 'arg': casco_m1(g, m, -LARGO / 2 + 0.03, Y + 0.24)
+    if bando == 'arg': casco_m1(g, m, -LARGO / 2 + 0.03, Y + 0.27)
     else: boina(g, K, 'bordo' if bergen else 'verde', -LARGO / 2 + 0.03, Y + 0.27)
     hueso('fusil', g, m['GUN'], (-LARGO / 2 - 0.15, Y + 0.06, -ANCHO * 0.3), (-LARGO / 2 + 0.35, Y + 0.06, -ANCHO * 0.3), 0.03, 0.03, seg=6)
     return g

@@ -156,4 +156,16 @@ HOJAS = {
                              [dict(modelo='bl:asiento:' + b, roll=n * math.pi / 2) for n in range(4)] +
                              [dict(modelo='bl:cupula:' + b, roll=a) for a in (-0.1, 0, 0.1)]] +
                             [dict(modelo='bl:asientoSolo', roll=n * math.pi / 2) for n in range(4)]),
+    # ---------------- LA VEGETACION (4/10/2026, tools/blender/modelos_vegetacion.py) ----------------
+    # HOJA NUEVA, sin caja (la grilla la sabe render/vegetacion.js). SIN ARBOLES: en las islas casi no
+    # hay (el autor). 32x32 con la camara cerca y el suelo al pie; 6 variantes por fila:
+    #   0 el pasto blanco / tussac   1 la murtilla   2 el tojo   — los tres EN GRIS: los tiñe el juego,
+    #   entre verdes, amarillos y marrones claros segun el dia y la luz
+    #   3 las FLORES del tojo solas (la mata de oclusor), en su amarillo, para dibujar encima sin teñir
+    #   4 la cortadera (en gris)     5 las piedras blancas de cuarcita, en su color
+    'matas': dict(fw=32, fh=32, pos=(0, 1.7, 8), fov=20, lookY=1.2, cols=6, cajas=False,
+                  destino='assets/world/elements/matas.png',
+                  frames=[dict(modelo='bl:%s:%d%s' % (m, v, x), rots=[('Y', v * 1.1)])
+                          for m, x in (('pasto', ''), ('murtilla', ''), ('tojo', ':0'), ('tojo', ':1'), ('cortadera', ''), ('piedra', ''))
+                          for v in range(6)]),
 }

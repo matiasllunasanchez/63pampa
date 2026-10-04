@@ -1134,6 +1134,11 @@ export const BORDE_LUZ = {
 // CON NIEBLA EL BRILLO SE APAGA: el filo y los destellos se multiplican por (1 - NIEBLA x niebla), con
 // la niebla del banco de 0 a 1 (systems/fog.js `fogFade`). En 0,8 a niebla plena queda un quinto.
 export const BORDE_NIEBLA = 0.8;
+// EL DESTELLO DE LA CABINA (render/borde.js): el sol en el vidrio cuando el avion se inclina.
+// `pico` el alabeo (0 nivelado .. 1 extremo de la hoja) donde mas brilla y `ancho` cuanto dura
+// alrededor; `base` lo que queda nivelado. `radio` en px de la hoja de 84 (es el largo de la estrella);
+// `alfa` el maximo. En 0 de alfa, sin destello.
+export const BORDE_VIDRIO = { pico: 0.55, ancho: 0.45, base: 0.12, radio: 9, alfa: 0.9 };
 
 // ---- LA VISION DEL RADAR, EN EL MARCO (render/world.js, drawRadarTinte) ----------------------
 // Cuando el radar te ve, la escena se tiñe de verde y aparecen las lineas del tubo. Hasta el

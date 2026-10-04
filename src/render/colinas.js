@@ -20,6 +20,7 @@ import { colinaH } from '../core/tierra.js';
 import { esTierraEn, rampaTierra, islaEn, sueloEn, orillaS, ladoEn } from '../core/geografia.js';
 import { theme } from './theme.js';
 import { caraLadera, tierraArriba, mez } from './paredes.js';
+import * as veg from './vegetacion.js';
 import { COLINA_X0, COLINA_Z, COLINA_ORILLA, COLINA_PLAYA } from '../data/tuning.js';
 
 // LA GRILLA EN X ES FIJA EN EL MUNDO (y mas densa cerca del carril): la misma x en todas las
@@ -161,6 +162,8 @@ function matas(lado, iz, camZ, rampa, T, costa) {
     const gy = colinaH(x, wz) * rampa * t;
     if (gy < 0.6) continue;
     const s = proj(x, gy, camZ);
+    // la MATA HORNEADA (render/vegetacion.js); los rectangulos de siempre si la hoja no esta
+    if (veg.mata(s.x, s.y, k * 2.3, h2, T.mata)) continue;
     const w = Math.max(1, k * 0.8), hh = Math.max(1, k * (0.6 + h2 * 0.8));
     px(s.x - w / 2, s.y - hh, w, hh, T.corona);
     px(s.x - w / 2, s.y - hh, w, Math.max(1, hh * 0.45), T.mata);

@@ -25,6 +25,7 @@ import { run } from '../core/run.js';
 import { velAire } from '../core/aim9.js';
 import { AIM9 } from '../data/tuning.js';
 import * as blastArt from './blast.js';
+import { drawBorde } from './borde.js';
 
 const HOJA = { src: '../assets/ammo/aim9.png', img: new Image(), ready: false };
 HOJA.img.onload = () => { HOJA.ready = true; };
@@ -223,6 +224,9 @@ export function drawAim9(m) {
     const sm = ctx.imageSmoothingEnabled;
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(HOJA.img, col * FW, 0, FW, FW, -tam / 2, -tam / 2, tam, tam);
+    // EL MISIL TAMBIEN BRILLA (autor, 4/10): el caño de metal a contraluz, con sus destellos —y se
+    // lo ve venir antes (render/borde.js)
+    drawBorde(ctx, HOJA.img, col * FW, 0, FW, FW, -tam / 2, -tam / 2, tam, tam);
     ctx.imageSmoothingEnabled = sm;
     ctx.restore();
     // la llama va en la COLA: de cola pura es el centro; de costado, medio largo hacia atras

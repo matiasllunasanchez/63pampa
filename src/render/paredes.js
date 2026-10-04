@@ -17,6 +17,7 @@
 // La `x` es constante en el MARCO DEL CARRIL (±ZZ_PARED_X) y toda la curvatura entra por `proj()`,
 // que ya suma `bendW(z)`. Por eso las laderas doblan solas con el camino: no saben que existe el
 // zigzag, igual que no lo sabe el resto del mundo.
+import * as veg from './vegetacion.js';
 import { ctx, px, W, H, HOR, F } from './ctx.js';
 import { cam } from '../core/state.js';
 import { run } from '../core/run.js';
@@ -104,6 +105,9 @@ function vegetacion(T, wx0, wz, camZ, gy, lado, alpha) {
     const k = s.k;
     if (k < 0.55) continue;                                   // demasiado lejos: seria un pixel sucio
     ctx.globalAlpha = alpha;
+    // LA VEGETACION HORNEADA (render/vegetacion.js): matas de las islas teñidas con el clima, y en vez
+    // del arbol de antes un afloramiento de piedras blancas — "en las islas no hay arboles" (el autor)
+    if (h1 > 0.955 ? veg.piedras(s.x, s.y, k * 3.6, h2) : veg.mata(s.x, s.y, k * 2.3, h2, T.mata)) continue;
     if (h1 > 0.955) {
       // UN ARBOL. En Malvinas casi no hay, y por eso son raros a proposito: uno cada tanto le da
       // escala al cerro sin convertirlo en un bosque que ahi no existiria.

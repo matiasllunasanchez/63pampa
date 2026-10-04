@@ -25,7 +25,7 @@
 // cielo, no el que miraba al cielo con el avion derecho.
 import { theme } from './theme.js';
 import { cfg } from '../core/state.js';
-import { BORDE_ANCHO, BORDE_FUERZA, BORDE_CIELO, BORDE_CIELO_DEF, BORDE_DESTELLO, BORDE_LUZ, BORDE_NIEBLA } from '../data/tuning.js';
+import { BORDE_ANCHO, BORDE_FUERZA, BORDE_CIELO, BORDE_CIELO_DEF, BORDE_DESTELLO, BORDE_LUZ, BORDE_NIEBLA, BORDE_VIDRIO } from '../data/tuning.js';
 import { luz } from './brillo.js';
 
 // EL BRILLO DEPENDE DEL CLIMA (autor, 4/10: "el brillo no se refleja si hay niebla, hay que bajarle la
@@ -68,10 +68,15 @@ export function drawBorde(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh) {
   const m = ctx.getTransform(), det = m.a * m.d - m.b * m.c || 1;
   let lx = m.c / det, ly = -m.a / det;
   const n = Math.hypot(lx, ly) || 1; lx /= n; ly /= n;
-  const ox = -lx * BORDE_ANCHO, oy = -ly * BORDE_ANCHO;
+  // LAS MEDIDAS SON DE UNA HOJA DE 84 (la del avion). Una hoja de otro tamaño —los enemigos van en
+  // 128, los misiles en 16 y 32— las escala, si no a un misil de 16 px un filo de 2 le comia medio cuerpo
+  const esc = sw / 84;
+  const ancho = Math.max(1, Math.round(BORDE_ANCHO * esc));
+  const ox = -lx * ancho, oy = -ly * ancho;
   o.imageSmoothingEnabled = false;
   o.globalCompositeOperation = 'copy';
   o.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+  const vid = vidrio(img, sx, sy, sw, sh);   // la cabina, leida del cuadro limpio (antes de pintarlo)
   o.globalCompositeOperation = 'source-in';
   o.fillStyle = A.filo;
   o.fillRect(0, 0, sw, sh);
@@ -82,8 +87,74 @@ export function drawBorde(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh) {
   ctx.globalAlpha = Math.min(1, A.fuerza);
   ctx.drawImage(O, 0, 0, sw, sh, dx, dy, dw, dh);
   ctx.globalAlpha = 1;
-  destellos(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh, A, lx, ly);
+  destellos(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh, A, lx, ly, esc);
+  if (vid) destelloCabina(ctx, img, sx, sw, vid, dx, dy, dw, dh, A, esc);
   ctx.restore();
+}
+
+// EL DESTELLO DE LA CABINA (autor, 4/10). Cuando el avion se inclina, el sol pega en el vidrio y
+// salta UN destello fuerte — el clasico del avion que pasa. Funciona en todo lo que tenga cabina
+// en su hoja: el tuyo, el escuadron, el lider, los Harriers.
+//
+// EL VIDRIO SE ENCUENTRA POR COLOR, como el horno encuentra la tobera por su naranja: es el celeste
+// de la cupula (medido en las hojas: ~146,208,218 y ~106,162,191 — verde y azul muy por encima del
+// rojo). El azul gris de la panza (~123,147,179) no pasa: le falta verde. Se guarda el centroide por
+// cuadro. Si un cuadro no muestra vidrio (de cola pura, por ejemplo) no hay destello.
+//
+// CUANTO BRILLA sale de la COLUMNA del cuadro, que en todas las hojas es el alabeo (o el giro):
+// nivelado casi nada, inclinado a mitad de camino el pico, y en el extremo vuelve a bajar — el
+// vidrio ya mira para otro lado. Late apenas, como un reflejo que tiembla.
+const vidrios = new WeakMap();   // img -> Map('sx,sy' -> [x, y, n] | null)
+function vidrio(img, sx, sy, sw, sh) {
+  if (!(BORDE_VIDRIO.alfa > 0)) return null;
+  let porImg = vidrios.get(img);
+  if (!porImg) { porImg = new Map(); vidrios.set(img, porImg); }
+  const clave = sx + ',' + sy;
+  if (porImg.has(clave)) return porImg.get(clave);
+  const d = o.getImageData(0, 0, sw, sh).data;
+  let n = 0, mx = 0, my = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    if (d[i + 3] < 200 || b < 150 || b - r < 45 || g - r < 40) continue;
+    const p = i >> 2; mx += p % sw; my += (p / sw) | 0; n++;
+  }
+  const v = n >= 2 ? [mx / n, my / n, n] : null;
+  porImg.set(clave, v);
+  return v;
+}
+function destelloCabina(ctx, img, sx, sw, vid, dx, dy, dw, dh, A, esc) {
+  const V = BORDE_VIDRIO;
+  const cols = Math.max(1, Math.round(img.width / sw)), mid = (cols - 1) / 2;
+  const u = mid > 0 ? Math.abs(Math.round(sx / sw) - mid) / mid : 0;   // 0 nivelado .. 1 extremo
+  const pico = Math.max(0, 1 - Math.abs(u - V.pico) / V.ancho);
+  const f = (V.base + (1 - V.base) * pico) * Math.min(1, A.fuerza * 1.4);
+  if (f < 0.03) return;
+  const t = performance.now() / 1000;
+  const a = V.alfa * f * (0.85 + 0.15 * Math.sin(t * 9));
+  const ex = dw / sw, ey = dh / sh;
+  const cx = dx + (vid[0] + 0.5) * ex, cy = dy + (vid[1] + 0.5) * ey;
+  const r = V.radio * esc * Math.abs(ex) * (0.6 + 0.4 * f);
+  const [n0, n1, n2] = A.nucleo;
+  // el nucleo, redondo y sin borde…
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.5);
+  g.addColorStop(0, `rgba(255,255,255,${a})`);
+  g.addColorStop(0.5, `rgba(${n0},${n1},${n2},${a * 0.6})`);
+  g.addColorStop(1, `rgba(${n0},${n1},${n2},0)`);
+  ctx.fillStyle = g;
+  ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  // …y la ESTRELLA de cuatro puntas: dos rayas finas que se afinan, la firma del destello
+  const raya = (w, h) => {
+    const gr = ctx.createLinearGradient(cx - w, cy - h, cx + w, cy + h);
+    gr.addColorStop(0, `rgba(${n0},${n1},${n2},0)`);
+    gr.addColorStop(0.5, `rgba(255,255,255,${a * 0.9})`);
+    gr.addColorStop(1, `rgba(${n0},${n1},${n2},0)`);
+    ctx.fillStyle = gr;
+    if (w > h) ctx.fillRect(cx - w, cy - Math.max(0.5, h), w * 2, Math.max(1, h * 2));
+    else ctx.fillRect(cx - Math.max(0.5, w), cy - h, Math.max(1, w * 2), h * 2);
+  };
+  raya(r, r * 0.06);
+  raya(r * 0.06, r * 0.7);
+  luz(ctx, cx, cy, r * 1.6, A.nucleo, a * 0.6);
 }
 
 // LOS DESTELLOS DEL FILO (autor, 4/10). El mismo resplandor que late en la boca de la tobera con el
@@ -97,17 +168,18 @@ export function drawBorde(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh) {
 // leer los pixeles de cada uno en cada cuadro era el costo; el filo de un cuadro con la misma luz es
 // siempre el mismo.
 const puntosDe = new WeakMap();   // img -> Map(clave -> [[x, y, k]...])
-function puntos(img, sx, sy, sw, sh, lx, ly) {
+function puntos(img, sx, sy, sw, sh, lx, ly, esc) {
   let porImg = puntosDe.get(img);
   if (!porImg) { porImg = new Map(); puntosDe.set(img, porImg); }
   const clave = sx + ',' + sy + ',' + Math.round(lx * 8) + ',' + Math.round(ly * 8);
   let lista = porImg.get(clave);
   if (lista) return lista;
   const D = BORDE_DESTELLO, px = o.getImageData(0, 0, sw, sh).data, celdas = new Map();
+  const celda = Math.max(3, D.celda * esc);
   for (let y = 0; y < sh; y++) {
     for (let x = 0; x < sw; x++) {
       if (px[(y * sw + x) * 4 + 3] < 90) continue;
-      const k = ((y / D.celda) | 0) * 1000 + ((x / D.celda) | 0);
+      const k = ((y / celda) | 0) * 1000 + ((x / celda) | 0);
       if (!celdas.has(k)) celdas.set(k, [x, y, k]);
     }
   }
@@ -116,15 +188,15 @@ function puntos(img, sx, sy, sw, sh, lx, ly) {
   porImg.set(clave, lista);
   return lista;
 }
-function destellos(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh, A, lx, ly) {
+function destellos(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh, A, lx, ly, esc) {
   const D = BORDE_DESTELLO;
   if (!(D.alfa > 0)) return;
   const t = performance.now() / 1000, ex = dw / sw, ey = dh / sh;
   const [n0, n1, n2] = A.nucleo, [h0, h1, h2] = A.halo;
-  for (const [x, y, k] of puntos(img, sx, sy, sw, sh, lx, ly)) {
+  for (const [x, y, k] of puntos(img, sx, sy, sw, sh, lx, ly, esc)) {
     // el latido de la tobera (parejo y rapido, un resto de azar), desfasado por celda
     const p = 0.7 + 0.3 * Math.sin(t * D.pulso + k * 1.7) + Math.random() * 0.06;
-    const cx = dx + (x + 0.5) * ex, cy = dy + (y + 0.5) * ey, r = D.radio * Math.abs(ex) * p;
+    const cx = dx + (x + 0.5) * ex, cy = dy + (y + 0.5) * ey, r = D.radio * Math.max(0.4, esc) * Math.abs(ex) * p;
     const a = D.alfa * Math.min(1, A.fuerza * 1.4) * p;
     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
     g.addColorStop(0, `rgba(${n0},${n1},${n2},${a})`);
