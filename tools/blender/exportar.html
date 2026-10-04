@@ -8,14 +8,22 @@
   <script src="../../src/vendor/three.global.js"></script>
   <script src="../bake_common.js"></script>
   <script src="../models/planes.js"></script>
+  <script src="../models/enemies.js"></script>
+  <script src="../models/helos.js"></script>
+  <script src="../models/harrier.js"></script>
   <script>
     'use strict';
     const MODELS = BAKE.familia('planes');
     /** Un modelo a JSON: cada malla con sus vertices YA en el espacio del modelo (la matriz de
      *  cada pieza aplicada), sus caras, su color (hex sRGB) y si es EMISIVA (MeshBasicMaterial: la
      *  turbina, que no toma luz). Sin posar: las poses las pone Blender, igual que el horno. */
-    window.__exportar = key => {
-      const root = MODELS[key]();
+    window.__exportar = key => volcar(key, MODELS[key]());
+    /** CUALQUIER MODELO DEL HORNO (fase 2, los enemigos): `familia` es el catalogo
+     *  (tools/models/<familia>.js), `nombre` su constructor y `args` lo que recibe (la fase del
+     *  rotor de los helicopteros). */
+    window.__exportarModelo = (familia, nombre, args) =>
+      volcar(nombre, BAKE.familia(familia)[nombre](...(args || [])));
+    function volcar(key, root) {
       root.updateMatrixWorld(true);
       const piezas = [];
       root.traverse(o => {
@@ -29,11 +37,15 @@
         const tris = [];
         if (g.index) for (let i = 0; i < g.index.count; i += 3) tris.push([g.index.getX(i), g.index.getX(i + 1), g.index.getX(i + 2)]);
         else for (let i = 0; i < pos.count; i += 3) tris.push([i, i + 1, i + 2]);
-        piezas.push({ color: '#' + o.material.color.getHexString(), emisiva: o.material.type === 'MeshBasicMaterial',
-          verts, tris });
+        // una pieza ESPEJADA (escala negativa) da vuelta el orden de sus vertices: se corrige aca
+        // para que las normales sigan mirando para afuera
+        if (o.matrixWorld.determinant() < 0) for (const t of tris) t.reverse();
+        const m = o.material;
+        piezas.push({ color: '#' + m.color.getHexString(), emisiva: m.type === 'MeshBasicMaterial',
+          opacidad: m.transparent ? m.opacity : 1, verts, tris });
       });
       return JSON.stringify({ key, piezas });
-    };
+    }
   </script>
 </body>
 </html>

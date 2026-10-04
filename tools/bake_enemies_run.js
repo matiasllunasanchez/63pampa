@@ -21,6 +21,19 @@ const ROOT = path.join(__dirname, '..');
 const OUT = path.join(ROOT, 'assets', 'world', 'enemies');
 const CAJAS_JSON = path.join(OUT, 'cajas.json');
 const CAJAS_JS = path.join(ROOT, 'src', 'data', 'cajas.js');
+// EL HORNO DE BLENDER (fase 2, 3/10/2026): las hojas que hoy hornea Blender (tools/blender/hojas.py)
+// son las que tienen caja en src/data/cajas_three.js. De esas, este horno escribe la hoja en
+// assets/world/enemies/three/ y la caja en cajas_three.js — las de Blender no se tocan.
+const CAJAS_THREE = path.join(ROOT, 'src', 'data', 'cajas_three.js');
+const DE_BLENDER = new Set(fs.existsSync(CAJAS_THREE)
+  ? [...fs.readFileSync(CAJAS_THREE, 'utf8').matchAll(/^  (\w+): \{/gm)].map(m => m[1]) : []);
+const linea = (k, c) => {
+  // `puntos` solo aparece en las hojas que declararon anclas (hoy, las helices de la Chancha):
+  // una clave vacia en las otras 38 seria ruido en un archivo generado que se lee a mano.
+  const pts = c.puntos ? `, puntos: [${c.puntos.map(p => `[${p[0]}, ${p[1]}]`).join(', ')}]` : '';
+  return `  ${k}: { fw: ${c.fw}, fh: ${c.fh}, cols: ${c.cols}, rows: ${c.rows}, ` +
+    `box: { x0: ${c.box.x0}, y0: ${c.box.y0}, x1: ${c.box.x1}, y1: ${c.box.y1} }, margen: ${c.margen}${pts} },`;
+};
 
 const CABECERA = `// CAJAS DE LAS HOJAS DE SPRITES — GENERADO, NO EDITAR A MANO.
 // Lo escribe \`npx electron tools/bake_enemies_run.js\` midiendo el alfa de cada hoja recien
@@ -49,21 +62,28 @@ app.whenReady().then(async () => {
     fs.mkdirSync(OUT, { recursive: true });
     for (const key in sheets) {
       const b64 = sheets[key].split('base64,')[1];
-      fs.writeFileSync(path.join(OUT, key + '.png'), Buffer.from(b64, 'base64'));
-      console.log(`OK enemies/${key}.png (${(b64.length * 3 / 4 / 1024).toFixed(1)} KB)`);
+      const dir = DE_BLENDER.has(key) ? path.join(OUT, 'three') : OUT;
+      fs.writeFileSync(path.join(dir, key + '.png'), Buffer.from(b64, 'base64'));
+      console.log(`OK enemies/${DE_BLENDER.has(key) ? 'three/' : ''}${key}.png (${(b64.length * 3 / 4 / 1024).toFixed(1)} KB)`);
     }
 
-    const cajas = await win.webContents.executeJavaScript('__cajas()');
+    const medidas = await win.webContents.executeJavaScript('__cajas()');
+    // las de Blender se quedan con su caja (la midio tools/blender/armar_enemigos.py); las de three
+    // de esas hojas van a cajas_three.js
+    const previas = fs.existsSync(CAJAS_JSON) ? JSON.parse(fs.readFileSync(CAJAS_JSON, 'utf8')) : {};
+    const cajas = {}, three = {};
+    for (const k of Object.keys(medidas).sort()) {
+      if (DE_BLENDER.has(k)) { three[k] = medidas[k]; cajas[k] = previas[k] || medidas[k]; }
+      else cajas[k] = medidas[k];
+    }
     fs.writeFileSync(CAJAS_JSON, JSON.stringify(cajas, null, 2) + '\n');
-    const cuerpo = Object.keys(cajas).sort().map(k => {
-      const c = cajas[k];
-      // `puntos` solo aparece en las hojas que declararon anclas (hoy, las helices de la Chancha):
-      // una clave vacia en las otras 38 seria ruido en un archivo generado que se lee a mano.
-      const pts = c.puntos ? `, puntos: [${c.puntos.map(p => `[${p[0]}, ${p[1]}]`).join(', ')}]` : '';
-      return `  ${k}: { fw: ${c.fw}, fh: ${c.fh}, cols: ${c.cols}, rows: ${c.rows}, ` +
-        `box: { x0: ${c.box.x0}, y0: ${c.box.y0}, x1: ${c.box.x1}, y1: ${c.box.y1} }, margen: ${c.margen}${pts} },`;
-    }).join('\n');
+    const cuerpo = Object.keys(cajas).sort().map(k => linea(k, cajas[k])).join('\n');
     fs.writeFileSync(CAJAS_JS, `${CABECERA}export const CAJAS = {\n${cuerpo}\n};\n`);
+    if (DE_BLENDER.size) {
+      const viejo = fs.readFileSync(CAJAS_THREE, 'utf8');
+      fs.writeFileSync(CAJAS_THREE, viejo.slice(0, viejo.indexOf('export const CAJAS_THREE = {')) +
+        `export const CAJAS_THREE = {\n${Object.keys(three).sort().map(k => linea(k, three[k])).join('\n')}\n};\n`);
+    }
 
     console.log('\nCAJAS MEDIDAS → assets/world/enemies/cajas.json + src/data/cajas.js');
     let flacas = 0;

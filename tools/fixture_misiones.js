@@ -181,9 +181,13 @@ app.whenReady().then(async () => {
   // que empezar donde empieza una persona — en la portada.
   await win.reload(); await sleep(2600);
   await tap('Return', 400);                                     // portada → menu
+  // DESDE EL 3/10 MISIONES VIVE EN EL MODO DEV: menu principal → MODO DEV → MISIONES
   let fila = '';
-  for (let i = 0; i < 8; i++) { fila = (await estado()).modo; if (fila === 'misiones') break; await tap('Down'); }
-  if (fila !== 'misiones') bad('no hay fila MISIONES en el menu principal');
+  for (let i = 0; i < 8; i++) { fila = (await estado()).modo; if (fila === 'dev') break; await tap('Down'); }
+  if (fila !== 'dev') bad('no hay fila MODO DEV en el menu principal');
+  await tap('Return', 400);
+  for (let i = 0; i < 8; i++) { fila = (await estado()).quick; if (fila === 'misiones') break; await tap('Down'); }
+  if (fila !== 'misiones') bad('no hay fila MISIONES en el MODO DEV');
   await tap('Return', 400);
   if ((await estado()).state !== 'misiones') bad('ENTER en la fila no abre el selector');
   else ok('la fila MISIONES abre el selector');

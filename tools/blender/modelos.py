@@ -256,7 +256,7 @@ def mat_pintura(K, nombre, P, bandera=None):
         vt.convert_from = 'WORLD'; vt.convert_to = 'OBJECT'
         L.new(geo.outputs['Normal'], vt.inputs['Vector'])
         nor = N.new('ShaderNodeSeparateXYZ'); L.new(vt.outputs['Vector'], nor.inputs['Vector'])
-        abajo = N.new('ShaderNodeMath'); abajo.operation = 'LESS_THAN'; abajo.inputs[1].default_value = -0.28
+        abajo = N.new('ShaderNodeMath'); abajo.operation = 'LESS_THAN'; abajo.inputs[1].default_value = P.get('umbral_panza', -0.28)
         L.new(nor.outputs['Y'], abajo.inputs[0])
         def capa(Q):
             arr = Q['arriba']
@@ -317,7 +317,7 @@ def jet(T, K, S):
     raiz.parent = T
     P = S['pintura']
     piel = mat_pintura(K, 'pintura', P)
-    deriva = mat_pintura(K, 'deriva', S.get('pintura_deriva', P), bandera=S['bandera'])
+    deriva = mat_pintura(K, 'deriva', S.get('pintura_deriva', P), bandera=S.get('bandera'))
     vidrio = K['mat_cel']('vidrio', CANOPY, brillo=True)
     oscuro = K['mat_cel']('metal', S.get('metal', '#3a3f38'))
     boca = K['mat_emisivo']('boca', '#14170f')
@@ -335,7 +335,11 @@ def jet(T, K, S):
         ob = loft('toma%d' % sg, [(z, w, h, Tm['yc']) for (z, w, h) in Tm['est']], raiz, tomas, n=14, expo=2.0, cerrar=(False, True), x0=x0)
         _subdiv(ob, 1)
         z0 = Tm['est'][0][0]
-        disco('boca%d' % sg, (x0, Tm['yc'], z0 - 0.005), Tm['est'][0][1] * 0.78, raiz, boca).rotation_euler = (math.pi, 0, 0)
+        b = disco('boca%d' % sg, (x0, Tm['yc'], z0 - 0.005), Tm['est'][0][1] * 0.78, raiz, boca)
+        # (el giro es alrededor del ORIGEN del modelo y manda el disco atras, adentro del fuselaje:
+        # de cola no se nota, y las hojas de los aviones jugables quedaron horneadas asi. Los que
+        # se ven DE FRENTE — el caza del pasillo — lo dejan en la boca.)
+        if not S.get('de_frente'): b.rotation_euler = (math.pi, 0, 0)
         if Tm.get('cono'):
             _subdiv(loft('cono%d' % sg, [(z0 - 0.22, 0.01, 0.01, Tm['yc']), (z0 - 0.05, 0.08, 0.08, Tm['yc']), (z0 + 0.05, 0.10, 0.10, Tm['yc'])],
                          raiz, oscuro, n=10, expo=2.0, cerrar=(True, False), x0=x0), 1)

@@ -406,6 +406,7 @@ export const STRINGS = {
     menuBack: 'ATRAS', menuBackDesc: 'Volver al menu principal',
     modeQuick: 'JUEGO RAPIDO', modeQuickDesc: 'Partidas sueltas, sin guion',
     quickTitle: 'JUEGO RAPIDO',
+    modeDev: 'MODO DEV', modeDevDesc: 'Pruebas, cinematicas, maniobras y misiones sueltas', devTitle: 'MODO DEV',
     // MODO PRUEBAS (docs/proyecto/COMO_PROBAR.md §4): el catalogo de MOMENTOS. Los titulos de cada
     // momento NO estan aca — viven en data/pruebas.js, como los nombres de campaña, porque son
     // rotulos de una herramienta de autor. Aca esta el MARCO, que si es pantalla del juego.
@@ -1502,6 +1503,7 @@ export const STRINGS = {
     menuBack: 'BACK', menuBackDesc: 'Back to the main menu',
     modeQuick: 'QUICK GAME', modeQuickDesc: 'Single runs, no story',
     quickTitle: 'QUICK GAME',
+    modeDev: 'DEV MODE', modeDevDesc: 'Test bench, cutscenes, manoeuvres and single missions', devTitle: 'DEV MODE',
     modePruebas: 'TEST BENCH', modePruebasDesc: 'The catalogue of moments, no grinding to get there',
     pruebasTitle: 'TEST BENCH  ·  PICK A MOMENT',
     prBadge: 'TEST',

@@ -128,6 +128,9 @@ export function drawFallen({ selPlane, rv }) {
     const jx = rv.cambio ? 0 : Math.sin(rv.t * 31) * f * 0.7, jy = rv.cambio ? 0 : Math.cos(rv.t * 27) * f * 0.6;
     const w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
     ctx.drawImage(hoja, col * SHEET_FW, SHEET_FH, SHEET_FW, SHEET_FH, s.x - w / 2 + jx, s.y - h / 2 + jy, w, h);
+    // LA LUZ DE BORDE, como cualquier avion en este cielo (autor, 3/10). La tobera NO: solo brilla con
+    // poscombustion (regla del 18/8), y el que se retira —roto o cediendo el puesto— no la lleva.
+    drawBorde(ctx, hoja, col * SHEET_FW, SHEET_FH, SHEET_FW, SHEET_FH, s.x - w / 2 + jx, s.y - h / 2 + jy, w, h);
   } else if (pl.ready) {
     const w = 76 * PLANE_SCALE * f, h = w * pl.h / pl.w;
     ctx.drawImage(pl.img, s.x - w / 2, s.y - h / 2, w, h);
@@ -215,6 +218,9 @@ export function drawSenas(sn, selPlane) {
     const w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
     ctx.save(); ctx.translate(s.x, s.y); if (p.rot) ctx.rotate(p.rot);
     ctx.drawImage(hoja, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH, -w / 2, -h / 2, w, h);
+    // la luz de borde tambien aca: va adentro del giro, asi que el filo encendido sigue mirando al
+    // cielo cuando el compañero se inclina para irse
+    drawBorde(ctx, hoja, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH, -w / 2, -h / 2, w, h);
     ctx.restore();
   }
   ctx.imageSmoothingEnabled = smooth;

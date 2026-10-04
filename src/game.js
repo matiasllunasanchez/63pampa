@@ -283,7 +283,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // CINEMATICAS va JUSTO DEBAJO de PRUEBAS porque es la misma herramienta con otro catalogo:
     // una lista de cosas para mirar sin jugar hasta ellas. Separarlas con MISIONES en el medio
     // hubiera roto la lectura de "las dos puertas de autor, juntas".
-    const MODES = ['campaign', 'quick', 'pruebas', 'cines', 'maniobras', 'misiones', 'options', 'quit'];
+    // MODO DEV (autor, 3/10): PRUEBAS, CINEMATICAS, MANIOBRAS y MISIONES —las herramientas de autor—
+    // se mudaron a un submenu propio, al nivel de HISTORIA y JUEGO RAPIDO. Ver `subMenu`.
+    const MODES = ['campaign', 'quick', 'dev', 'options', 'quit'];
     // Los modos de adentro de JUEGO RAPIDO. `arena` y `pasadas` son los dos BANCOS DE PRUEBAS del
     // climax: entran DIRECTO al buque, sin cruzar el pasillo, y existen para poder tunear cada
     // fase sin jugar una mision entera cada vez.
@@ -292,9 +294,20 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // LA CUARENTENA FILTRA ACA (PLAN_REFACTOR §4b): las filas de MINUTOS SAGRADOS y PASADAS
     // MORTALES siguen escritas —no se borro nada— pero data/cuarentena.js las saca de la lista.
     // Se filtra en vez de comentarlas para que la vuelta sea un renglon de DATO y no un diff.
-    const quickRows = () => [{ id: 'cycle' }, { id: 'survival' }, { id: 'persec' }, { id: 'arena' }, { id: 'pasadas' }]
-      .filter(r => !modoEnCuarentena(r.id))
+    // EL SUBMENU DE FILAS ES UNO SOLO Y SIRVE A DOS PUERTAS: JUEGO RAPIDO y MODO DEV. Misma pantalla,
+    // mismo cursor, mismo teclado/mando/mouse (estado 'quickmenu'); lo que cambia es la lista, que
+    // sale de `subMenu`. Asi el MODO DEV no tuvo que cablear un estado nuevo en cada entrada.
+    let subMenu = 'quick';
+    const DEV_ROWS = [{ id: 'pruebas' }, { id: 'cines' }, { id: 'maniobras' }, { id: 'misiones' }];
+    const quickRows = () => (subMenu === 'dev' ? DEV_ROWS
+      : [{ id: 'cycle' }, { id: 'survival' }, { id: 'persec' }, { id: 'arena' }, { id: 'pasadas' }]
+        .filter(r => !modoEnCuarentena(r.id)))
       .concat([{ id: 'back', back: true }]);
+    /** Vuelve de una herramienta del MODO DEV a su submenu, con el cursor en ella. */
+    function volverADev(id) {
+      subMenu = 'dev'; quickSel = Math.max(0, DEV_ROWS.findIndex(r => r.id === id));
+      setState('quickmenu'); beep(400, 0.06, 'square', 0.05);
+    }
 
     // ---------- PAUSA ----------
     // NO es un estado de S: es una BANDERA ortogonal. Con `paused` el frame() saltea update()
@@ -952,11 +965,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const m = MODES[modeSel];
       // HISTORIA ya no arranca directo: pasa por su submenu (CONTINUAR / campañas)
       if (m === 'campaign') { campSel = campFirstSel(); setState('campmenu'); beep(600, 0.08, 'square', 0.05); }
-      else if (m === 'quick') { quickSel = 0; setState('quickmenu'); beep(600, 0.08, 'square', 0.05); }
-      else if (m === 'pruebas') { prbSel = prbFirstSel(); setState('pruebas'); beep(600, 0.08, 'square', 0.05); }
-      else if (m === 'cines') { cinSel = 0; setState('cines'); beep(600, 0.08, 'square', 0.05); }
-      else if (m === 'maniobras') { mvSel = 0; setState('maniobras'); beep(600, 0.08, 'square', 0.05); }
-      else if (m === 'misiones') { setState('misiones'); beep(600, 0.08, 'square', 0.05); }
+      else if (m === 'quick' || m === 'dev') { subMenu = m; quickSel = 0; setState('quickmenu'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'options') { setState('options'); beep(600, 0.06, 'square', 0.05); }
       else if (m === 'quit') quitGame();
     }
@@ -967,8 +976,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
     function quickConfirm() {
       const id = quickRows()[quickSel].id;
-      if (id === 'back') { modeSel = MODES.indexOf('quick'); setState('modeselect'); beep(400, 0.06, 'square', 0.05); return; }
-      if (id === 'cycle') goCycle();
+      if (id === 'back') { modeSel = MODES.indexOf(subMenu); setState('modeselect'); beep(400, 0.06, 'square', 0.05); return; }
+      // MODO DEV: cada fila abre su herramienta, como lo hacia antes el menu principal
+      if (id === 'pruebas') { prbSel = prbFirstSel(); setState('pruebas'); beep(600, 0.08, 'square', 0.05); }
+      else if (id === 'cines') { cinSel = 0; setState('cines'); beep(600, 0.08, 'square', 0.05); }
+      else if (id === 'maniobras') { mvSel = 0; setState('maniobras'); beep(600, 0.08, 'square', 0.05); }
+      else if (id === 'misiones') { setState('misiones'); beep(600, 0.08, 'square', 0.05); }
+      else if (id === 'cycle') goCycle();
       else if (id === 'arena') goArena();
       else if (id === 'pasadas') goPasadas();
       else if (id === 'persec') goPersec();
@@ -1096,7 +1110,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function misConfirm() {
       const r = misRows()[misSel];
       if (!r) return;
-      if (r.back) { modeSel = MODES.indexOf('misiones'); setState('modeselect'); beep(400, 0.06, 'square', 0.05); return; }
+      if (r.back) { volverADev('misiones'); return; }
       beep(700, 0.08, 'square', 0.05);
       const modo = MIS_MODOS[misModo];
       abrirMision(r.i, {
@@ -1155,7 +1169,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function prbConfirm() {
       const r = prbRows()[prbSel];
       if (!r || r.head) return;
-      if (r.back) { modeSel = MODES.indexOf('pruebas'); setState('modeselect'); S.test = false; beep(400, 0.06, 'square', 0.05); return; }
+      if (r.back) { S.test = false; volverADev('pruebas'); return; }
       prbTasks.length = 0;
       prbNeutro();
       S.test = true;                       // el sello del HUD y el candado de records (S2)
@@ -1182,7 +1196,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function cinConfirm() {
       const r = cinRows()[cinSel];
       if (!r) return;
-      if (r.back) { modeSel = MODES.indexOf('cines'); setState('modeselect'); S.test = false; beep(400, 0.06, 'square', 0.05); return; }
+      if (r.back) { S.test = false; volverADev('cines'); return; }
       // una cinematica sin `ver` esta declarada pero todavia no se puede mirar suelta: se avisa y
       // no pasa nada, en vez de dejar la pantalla en negro sin explicacion
       if (typeof r.ver !== 'function') { console.warn('[cines] la cinematica ' + r.id + ' no declara como mirarse (`ver`)'); beep(200, 0.12, 'square', 0.05); return; }
@@ -1213,7 +1227,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function mvConfirm() {
       const r = mvRows()[mvSel];
       if (!r) return;
-      if (r.back) { modeSel = MODES.indexOf('maniobras'); setState('modeselect'); S.test = false; beep(400, 0.06, 'square', 0.05); return; }
+      if (r.back) { S.test = false; volverADev('maniobras'); return; }
       mvPick = r; mvVarSel = 0; setState('mvvars'); beep(600, 0.08, 'square', 0.05);
     }
     function mvVarNav(dir) {
@@ -2476,6 +2490,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // en PRUEBAS la salida es el CATALOGO, no el menu principal: el modo es elegir momento
         // tras momento, y hacerte volver a entrar por la puerta cada vez lo vuelve inutilizable.
         if (S.test) { salirTest(); beep(400, 0.06, 'square', 0.05); return; }
+        // desde una herramienta del MODO DEV, ESC vuelve a su submenu y no al menu principal
+        if (DEV_ROWS.some(r => r.id === S.state)) { volverADev(S.state); return; }
         const suelto = gameMode === 'cycle' || gameMode === 'survival' || gameMode === 'arena' || gameMode === 'pasadas';
         setState(S.state === 'menu' && suelto ? 'quickmenu' : 'modeselect');
         beep(400, 0.06, 'square', 0.05);
@@ -5143,7 +5159,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t });
       // submenu de HISTORIA y lista de partidas: nativas como el selector de modos (puro texto)
       if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t });
-      if (S.state === 'quickmenu') menus.drawQuickMenu({ sel: quickSel, rows: quickRows(), t: run.t });
+      if (S.state === 'quickmenu') menus.drawQuickMenu({ sel: quickSel, rows: quickRows(), dev: subMenu === 'dev', t: run.t });
       if (S.state === 'pruebas') menus.drawPruebasMenu({ sel: prbSel, rows: prbRows(), t: run.t });
       if (S.state === 'cines') menus.drawCinesMenu({ sel: cinSel, rows: cinRows(), t: run.t });
       if (S.state === 'maniobras') menus.drawManiobrasMenu({ sel: mvSel, rows: mvRows(), t: run.t });

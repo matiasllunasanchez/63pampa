@@ -19,6 +19,7 @@ def arg(n, d=None):
 
 COLS, FILAS = 9, 3
 FW = int(arg('--fw', '84'))          # 84 la hoja base, 168 la del poder RASANTE
+FH = None                            # el alto del cuadro, si no es cuadrado (las hojas de enemigos)
 
 def hoja(carpeta):
     s = Image.new('RGBA', (FW * COLS, FW * FILAS), (0, 0, 0, 0))
@@ -42,18 +43,19 @@ def oscurecer(c, k):
 
 def contorno(s, lineas=False):
     px = s.load(); W, H = s.size
+    fh = FH or FW
     orig = s.copy().load()
-    op = lambda x, y: 0 <= x < W and 0 <= y < H and orig[x, y][3] > 8 and (x // FW == cx and y // FW == cy)
+    op = lambda x, y: 0 <= x < W and 0 <= y < H and orig[x, y][3] > 8 and (x // FW == cx and y // fh == cy)
     lum = lambda c: 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]
     for y in range(H):
         for x in range(W):
             c = orig[x, y]
             if c[3] <= 8: continue
             global cx, cy
-            cx, cy = x // FW, y // FW
+            cx, cy = x // FW, y // fh
             borde = not all(op(x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
             if borde:
-                px[x, y] = oscurecer(c, 0.45)
+                px[x, y] = oscurecer(c, 0.45)[:3] + (c[3],)   # el alfa se respeta (el barrido del rotor)
             elif lineas:
                 # una linea INTERIOR donde la luz salta de golpe entre vecinos (dos piezas): se marca
                 # el pixel MAS OSCURO del par, que es el que esta "detras"

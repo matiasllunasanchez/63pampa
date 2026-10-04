@@ -13,7 +13,15 @@
 // `wu` = cuantas unidades de MUNDO abarca el ancho del CONTENIDO. Es la perilla de tamaño por
 // enemigo: subirla agranda al bicho en pantalla sin tocar la colision (los hitboxes viven en
 // core/hitbox.js y no leen nada de aca). Esa SI es a mano, porque no es una medida.
-import { CAJAS } from '../data/cajas.js';
+import { CAJAS as CAJAS_HORNO } from '../data/cajas.js';
+import { CAJAS_THREE } from '../data/cajas_three.js';
+import { HORNO_VIEJO } from '../data/horno.js';
+
+// EL HORNO DE BLENDER (fase 2, 3/10/2026): las hojas de los aviones enemigos (helicopteros, caza,
+// Harrier, Chancha) las hornea tools/blender/ y viven en las rutas de siempre. Las de three.js
+// quedaron en assets/world/enemies/three/, con sus cajas en data/cajas_three.js: con `?horno=three`
+// (data/horno.js) se vuelve a esas.
+const CAJAS = HORNO_VIEJO ? { ...CAJAS_HORNO, ...CAJAS_THREE } : CAJAS_HORNO;
 
 // Rutas como LITERALES SUELTOS: tools/build_web.py re-embebe buscando el literal exacto
 // '../assets/...' — un `BASE + nombre` armado en runtime no lo encontraria y el build fallaria.
@@ -186,7 +194,9 @@ for (const k in CAJAS) {
 for (const k in SHEETS) {
   const s = SHEETS[k];
   s.img = new Image();
-  if (FILES[k]) s.img.src = FILES[k];   // build web sin hoja: src vacio, ready() da false y listo
+  // (con el horno viejo, las que hornea Blender se piden de three/: la ruta se arma desde la literal)
+  const ruta = HORNO_VIEJO && CAJAS_THREE[k] && FILES[k] ? FILES[k].replace('/enemies/', '/enemies/three/') : FILES[k];
+  if (ruta) s.img.src = ruta;   // build web sin hoja: src vacio, ready() da false y listo
 }
 
 /** ¿La hoja de `k` esta lista para dibujar? Si no, world.js cae a su dibujo a mano. */

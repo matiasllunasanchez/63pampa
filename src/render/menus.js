@@ -169,10 +169,7 @@ export function drawModeSelect(w) {
   const opts = [
     { name: T('modeCampaign'), desc: T('modeCampaignDesc') },
     { name: T('modeQuick'), desc: T('modeQuickDesc') },
-    { name: T('modePruebas'), desc: T('modePruebasDesc') },
-    { name: T('modeCines'), desc: T('modeCinesDesc') },
-    { name: T('modeManiobras'), desc: T('modeManiobrasDesc') },
-    { name: T('modeMisiones'), desc: T('modeMisionesDesc') },
+    { name: T('modeDev'), desc: T('modeDevDesc') },
     { name: T('modeOptions'), desc: T('modeOptionsDesc') },
     { name: T('modeQuit'), desc: T('modeQuitDesc'), quit: true },
   ];
@@ -573,6 +570,11 @@ function quickText(r) {
   if (r.id === 'survival') return { name: T('modeSurvival'), desc: T('modeSurvivalDesc') };
   if (r.id === 'persec') return { name: T('modePersec'), desc: T('modePersecDesc') };
   if (r.id === 'arena') return { name: T('modeArena'), desc: T('modeArenaDesc') };
+  // las cuatro del MODO DEV: los mismos rotulos que tenian en el menu principal
+  if (r.id === 'pruebas') return { name: T('modePruebas'), desc: T('modePruebasDesc') };
+  if (r.id === 'cines') return { name: T('modeCines'), desc: T('modeCinesDesc') };
+  if (r.id === 'maniobras') return { name: T('modeManiobras'), desc: T('modeManiobrasDesc') };
+  if (r.id === 'misiones') return { name: T('modeMisiones'), desc: T('modeMisionesDesc') };
   return { name: T('modePasada'), desc: T('modePasadaDesc') };
 }
 // JUEGO RAPIDO tiene GEOMETRIA PROPIA, y es por una cuenta: con la entrada de PERSECUCION son SEIS
@@ -581,7 +583,7 @@ function quickText(r) {
 // arranque, la sexta termina en 255 y el resalte cierra en 261. La campaña conserva su paso porque
 // sus filas llevan encabezados de seccion y ahi el aire hace falta.
 export const QUICK_ROWS = { y0: 92, rh: 29, headH: 20 };
-export function drawQuickMenu(w) { drawRowMenu(w, 'quickTitle', quickText, QUICK_ROWS); }
+export function drawQuickMenu(w) { drawRowMenu(w, w.dev ? 'devTitle' : 'quickTitle', quickText, QUICK_ROWS); }
 
 // ---------- PRUEBAS (el catalogo de momentos, COMO_PROBAR §4) ----------
 // Los textos de cada momento vienen en la propia fila (`titulo`/`desc` de data/pruebas.js): a
