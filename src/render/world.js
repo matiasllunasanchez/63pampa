@@ -29,7 +29,7 @@ import { geoActiva, sueloEn, orillaS, ladoEn, playaCerca, playaClase, alturaSuel
 import { P, LAND, CLAND, SKY_ASTRO, RADAR_VERDE } from '../data/palette.js';
 import { CHUNK_LIFE, ONDA_T, ONDA_R, EYEC_ASIENTO_T } from '../data/despiece.js';
 import { drawParte, yawDe, colorDe } from './partes.js';
-import { MAR_HONDO, MAR_GRANO, OLA_CRESTA, PIQUE, SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
+import { MAR_HONDO, MAR_GRANO, OLA_CRESTA, PIQUE, SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, RADAR_MARCO_LIBRE, RADAR_MARCO_LLENO, RADAR_MARCO_LINEAS, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
   ALAMBRE_CADA, ALAMBRE_POSTE, ALAMBRE_H, MOJADO_A, CHARCO_P, CHARCO_H, PASTO_LEAN, PASTO_ONDA, PASTO_V, PASTO_KX, PASTO_KZ, PASTO_ACOSTAR, RACHA_N, RACHA_T, RACHA_A, ESTELA_ABRE, ESTELA_EDAD, ESTELA_TURBO, ESTELA_TURBO_A } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { SHIP_CLASS } from '../data/ships.js';
@@ -3325,15 +3325,48 @@ export function drawRadarTinte(techo) {
   tinteVis += (want - tinteVis) * Math.min(1, dt * 5);
   if (tinteVis < 0.02) return;
   const a = tinteVis * (TINTE_BASE + TINTE_CARGA * Math.max(0, Math.min(1, run.detection)));
+  // EN EL MARCO, NO EN TODA LA PANTALLA (ver RADAR_MARCO_* en data/tuning.js). El verde va con una
+  // elipse que deja el centro limpio: se arma en un espacio estirado (scale(1, H/W)) para que un
+  // circulo cubra el cuadro de 16:9 como una elipse.
   ctx.save();
   ctx.globalCompositeOperation = 'color';
   ctx.globalAlpha = a;
-  ctx.fillStyle = RADAR_VERDE.cerca;
-  ctx.fillRect(0, 0, W, H);
-  // las lineas del tubo, una cada dos filas y apenas: son lo que dice "pantalla" y no "filtro"
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.globalAlpha = a * 0.12;
-  ctx.fillStyle = '#000';
-  for (let y = 0; y < H; y += 2) ctx.fillRect(0, y, W, 1);
+  ctx.translate(W / 2, H / 2); ctx.scale(1, H / W);
+  ctx.fillStyle = mascaraMarco(ctx, RADAR_VERDE.cerca);
+  ctx.fillRect(-W / 2, -W / 2, W, W);
   ctx.restore();
+  // las lineas del tubo, una cada dos filas: son lo que dice "pantalla" y no "filtro". Ahora solo
+  // en el marco, como el verde — sobre el centro eran rayas finas cruzando justo lo que se mira.
+  ctx.save();
+  ctx.globalAlpha = a * RADAR_MARCO_LINEAS;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(lineasMarco(), 0, 0, W, H);
+  ctx.restore();
+}
+
+/** El degrade del marco del radar: transparente adentro de LIBRE, entero desde LLENO. En el
+ *  espacio estirado de drawRadarTinte (centro en 0,0, radio W/2 = el borde del cuadro). */
+function mascaraMarco(c, color) {
+  const R = W / 2;
+  const g = c.createRadialGradient(0, 0, R * RADAR_MARCO_LIBRE, 0, 0, Math.max(R * RADAR_MARCO_LIBRE + 0.01, R * RADAR_MARCO_LLENO));
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, color);
+  return g;
+}
+
+/** Las lineas del tubo YA ENMASCARADAS por el marco, armadas UNA vez: son siempre las mismas, y
+ *  dibujar 135 rectangulos y una mascara por cuadro seria tirar trabajo. */
+let lineasCache = null;
+function lineasMarco() {
+  if (lineasCache) return lineasCache;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  g.fillStyle = '#000';
+  for (let y = 0; y < H; y += 2) g.fillRect(0, y, W, 1);
+  g.globalCompositeOperation = 'destination-in';
+  g.translate(W / 2, H / 2); g.scale(1, H / W);
+  g.fillStyle = mascaraMarco(g, 'rgba(0,0,0,1)');
+  g.fillRect(-W / 2, -W / 2, W, W);
+  lineasCache = c;
+  return c;
 }

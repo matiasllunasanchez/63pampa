@@ -1114,7 +1114,21 @@ export const BORDE_CIELO = {
   moon: 0.45, night: 0.25,   // luz de luna: un filo frio y tenue
   cloudy: 0.15, storm: 0.1,  // cielo cubierto: luz difusa, casi nada
 };
-export const BORDE_CIELO_DEF = 0.4;   // semiancho del cono de destellos (unidades de mundo en x)
+export const BORDE_CIELO_DEF = 0.4;
+
+// ---- LA VISION DEL RADAR, EN EL MARCO (render/world.js, drawRadarTinte) ----------------------
+// Cuando el radar te ve, la escena se tiñe de verde y aparecen las lineas del tubo. Hasta el
+// 3/10/2026 eso cubria TODA la pantalla: el atardecer naranja, los cerros y el mar quedaban en una
+// sola pasta verde, justo cuando mas hay que leer lo que viene. Ahora la señal vive en el MARCO
+// —verde y lineas en los bordes, el centro con su color— y se lee igual: el contraste entre un
+// centro natural y un borde verde llama MAS la atencion que una pantalla toda verde.
+//   LIBRE   hasta que fraccion del medio-ancho el centro queda limpio (elipse del cuadro)
+//   LLENO   desde donde el verde y las lineas van enteros
+//   LINEAS  cuanto oscurecen las lineas del tubo (eran 0.12 sobre toda la pantalla)
+// Con LIBRE y LLENO en 0 se vuelve a la pantalla entera.
+export const RADAR_MARCO_LIBRE = 0.42;
+export const RADAR_MARCO_LLENO = 1.0;
+export const RADAR_MARCO_LINEAS = 0.2;   // semiancho del cono de destellos (unidades de mundo en x)
 
 // ---------- LA COLA: EL HARRIER EN LA COLA (PLAN A) ----------
 // Plan y porque: docs/sistemas/PLAN_HARRIERS_PERSECUCION.md — §1 la dinamica (de donde sale cada

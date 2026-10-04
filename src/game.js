@@ -337,7 +337,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // EL NEGRO DE UN DIALOGO QUE PARA EL MUNDO. Lo usan los DOS: la pausa de dialogo (que ademas le
     // hace agujeros para el foco de una leccion) y la charla en vuelo. Un solo numero: el dia que
     // el velo cambie, cambia en los dos o se ven distintos el mismo negro.
-    const VELO_DLG = '#070a0dd2';
+    // EL VELO DEL DIALOGO (charla en vuelo y lecciones que pausan). Era '#070a0dd2' —negro al 82 %—
+    // y el mundo congelado de atras quedaba en 53/255 de maximo: la escena desaparecia y cada
+    // arranque de mision se veia como una pantalla negra con texto. Al 61 % el dialogo sigue
+    // mandando —el texto y los agujeros de la leccion se leen igual— pero el mundo queda AHI,
+    // quieto, que es lo que dice "el juego esta pausado" y no "se apago". (3/10/2026)
+    const VELO_DLG = '#070a0d9c';
     const DLG_GRACIA = 0.6;          // no se acepta antes: se entra con el gatillo ya apretado
     const DLG_TOPE = 14;             // SALIDA DE EMERGENCIA: nadie se puede quedar colgado
 

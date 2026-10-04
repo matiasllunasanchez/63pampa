@@ -238,9 +238,22 @@ def main():
         if p.is_file() and p.suffix.lower() in MIME:
             rel = p.relative_to(ASSETS).as_posix()
             css = css.replace(f"url('../assets/{rel}')", "url('" + uri(p, MIME[p.suffix.lower()]) + "')")
+    # IMAGENES DEL CSS (3/10/2026). Hasta aca el CSS solo pedia tipografias; el FICHIN —el gabinete
+    # de arcade, que es el fondo POR DEFECTO— es la primera imagen, y el build fallaba con "quedaron
+    # rutas sin re-embeber". Se embebe cualquier imagen que el CSS pida, en general, en vez de
+    # nombrar esta: la proxima que alguien agregue no tiene que acordarse de venir aca. Si el archivo
+    # no existe, cae en la red de abajo y el build dice cual.
+    IMG = {'.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp'}
+    for rel in sorted(set(re.findall(r"url\('\.\./assets/([^']+)'\)", css))):
+        f = ASSETS / rel
+        if f.is_file() and f.suffix.lower() in IMG:
+            css = css.replace(f"url('../assets/{rel}')", "url('" + uri(f, IMG[f.suffix.lower()]) + "')")
+            print(f'  css: {rel} embebida ({f.stat().st_size // 1024} KB)')
     # misma red de seguridad que el bundle: si aparece un asset nuevo en el CSS y nadie lo
     # embebe, el build FALLA en vez de publicar una pagina que pide un archivo que no existe.
     if '../assets/' in css:
+        for rel in sorted(set(re.findall(r"\.\./assets/([^'\")]+)", css))):
+            print(f'  falta embeber: assets/{rel}')
         raise SystemExit('ERROR: quedaron rutas ../assets/ sin re-embeber en styles.css')
     three = (SRC / 'vendor' / 'three.global.js').read_text(encoding='utf-8')
     html = (SRC / 'index.html').read_text(encoding='utf-8')
