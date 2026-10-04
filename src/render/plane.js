@@ -12,7 +12,7 @@ import { BL as BL_BLANCO } from '../data/blanco.js';
 import { ctx, px, PZ, U, W, H, HOR } from './ctx.js';
 import { plane, cfg, S } from '../core/state.js';
 import { run } from '../core/run.js';
-import { geoActiva, esTierraEn } from '../core/geografia.js';   // G1: agua o tierra, por punto
+import { geoActiva, esTierraEn, sueloEn } from '../core/geografia.js';   // G1: agua o tierra, por punto
 import { inp } from '../core/input.js';
 import { proj } from '../core/fx.js';
 import { hzSprite, hzWorld } from '../core/horizon.js';
@@ -29,7 +29,7 @@ import { ALA_PX, ROCIADA_ABRE, ROCIADA_BAJA, ROCIADA_RAS_ABRE, ROCIADA_ALT,
          CORTINA_ABRE, CORTINA_ANCHO, CORTINA_BAJA, CORTINA_RAS_ABRE, CORTINA_N, CORTINA_ALT,
          ROCIADA_TURBO, CORTINA_TURBO,
          ROCIADA_VERTICE, ROCIADA_FILAS, ROCIADA_REVUELTO, ROCIADA_REVUELTO_V,
-         ROCIADA_RAS_CORTE, AVERIA_TAMBALEO } from '../data/tuning.js';
+         ROCIADA_RAS_CORTE, AVERIA_TAMBALEO, PIQUE } from '../data/tuning.js';
 import { skinOf } from '../data/skins.js';
 import { alMando } from '../core/squad.js';
 import { pilotName, rosterActive } from '../systems/squad.js';
@@ -602,8 +602,10 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // pantalla; ahora es una lengua de agua bajo el fuselaje, dos brazos en V que se abren hacia
   // atras y gotas sueltas — que es como se lee el agua batida en pixel art.
   const churn = Math.max(0, 1 - plane.y / ROCIADA_ALT);
-  // el rocio es de AGUA: con geografia, se pregunta que hay bajo el avion (G1)
-  if (churn > 0 && S.state === 'play' && (geoActiva() ? !esTierraEn(plane.x, run.dist + PZ) : cfg.terrain !== 'land')) {
+  // el rocio es de AGUA: con geografia, se pregunta que hay bajo el avion (G1). Una sola vez: lo
+  // usan la rociada, las cortinas y la erupcion del roce — sobre tierra ninguna es de agua (4/10)
+  const seco = geoActiva() ? esTierraEn(plane.x, run.dist + PZ) : cfg.terrain === 'land';
+  if (churn > 0 && S.state === 'play' && !seco) {
     // el turbo engorda el chorro: entra por el `pulse`, que ya multiplica el ancho de los brazos
     // y de la lengua, asi que el gesto entero crece sin tocar la geometria de la V.
     const pulse = (0.8 + 0.2 * Math.sin(run.t * 22)) * (run.boost ? ROCIADA_TURBO : 1);
@@ -695,7 +697,9 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // `mojado` y no `ras`: asi se llamaba, y TAPABA el parametro `ras` de drawPlane —que dice si
     // el poder esta puesto— con lo cual adentro de todo el bloque de agua era imposible
     // preguntarlo. Renombrarlo es lo que deja que la rociada y las cortinas tengan variante.
-    const mojado = Math.max(0, 1 - plane.y / CORTINA_ALT);
+    // SOBRE TIERRA NO HAY CORTINAS (4/10): son agua arrancada por los vortices. El polvo del ras lo
+    // levanta systems/vuelo.js (`polvoRas`) como particulas, con su propio gesto.
+    const mojado = seco ? 0 : Math.max(0, 1 - plane.y / CORTINA_ALT);
     if (mojado > 0) {
       const gordo = run.boost ? CORTINA_TURBO : 1;           // con turbo arranca mas agua
       for (const sg of [-1, 1]) {
@@ -723,14 +727,28 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // esta consumiendo" sin mirar un instrumento, y va aca y no en el HUD por eso mismo.
     if (run.scrapeT > 0 && run.scrapeVib > 0) {
       const er = Math.min(1, run.scrapeVib);
-      for (let i = 0; i < 9; i++) {
-        const dx = (Math.random() - 0.5) * 30, dy = -Math.random() * 9;
-        ctx.globalAlpha = er * (0.35 + Math.random() * 0.55);
-        px(sh.x + dx, sh.y + dy, Math.random() < 0.35 ? 2 : 1, Math.random() < 0.3 ? 2 : 1,
-           Math.random() < 0.6 ? '#f4fbff' : P.crest);
+      // …y SOBRE TIERRA (4/10) no explota agua: salta tierra. Mas baja y mas ancha —la tierra no sube
+      // como un chorro—, con terrones oscuros y el polvo claro de ese suelo, sin el cuello blanco.
+      if (seco) {
+        const C = sueloEn(run.dist + PZ) === 'coast' ? PIQUE.ARENA : PIQUE.TURBA;
+        for (let i = 0; i < 11; i++) {
+          const dx = (Math.random() - 0.5) * 40, dy = -Math.random() * 5;
+          const terron = Math.random() < 0.4;
+          ctx.globalAlpha = er * (terron ? 0.9 : 0.3 + Math.random() * 0.4);
+          const lista = terron ? C.terron : C.polvo;
+          px(sh.x + dx, sh.y + dy, terron ? 1 : 2 + (Math.random() < 0.4 ? 1 : 0), terron ? 1 : 2,
+             lista[(Math.random() * lista.length) | 0]);
+        }
+      } else {
+        for (let i = 0; i < 9; i++) {
+          const dx = (Math.random() - 0.5) * 30, dy = -Math.random() * 9;
+          ctx.globalAlpha = er * (0.35 + Math.random() * 0.55);
+          px(sh.x + dx, sh.y + dy, Math.random() < 0.35 ? 2 : 1, Math.random() < 0.3 ? 2 : 1,
+             Math.random() < 0.6 ? '#f4fbff' : P.crest);
+        }
+        ctx.globalAlpha = er * 0.85;                          // el cuello del chorro, pegado al avion
+        px(sh.x - 7, sh.y - 4, 14, 2, P.foam);
       }
-      ctx.globalAlpha = er * 0.85;                          // el cuello del chorro, pegado al avion
-      px(sh.x - 7, sh.y - 4, 14, 2, P.foam);
     }
   }
   ctx.globalAlpha = 1;

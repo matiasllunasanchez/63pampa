@@ -23,7 +23,8 @@ import { P } from '../data/palette.js';
 import { PZ, W } from '../render/ctx.js';
 import { FLY_X, FLY_TOP, ALA_PX, ROCIO_ABRE, ROCIO_BAJA, ROCIO_RAS_ABRE, ROCIO_RAS_BAJA,
          ROCIO_BARRIDO, ROCIO_PUNTA, ROCIO_COLUMNA, ROCIO_RAS_COLUMNA,
-         AGUA_RAS_GRADOS, ESTELA_ALT, ROCIO_TURBO, BANDA_ALT } from '../data/tuning.js';
+         AGUA_RAS_GRADOS, ESTELA_ALT, ROCIO_TURBO, BANDA_ALT, RAS_POLVO, PIQUE } from '../data/tuning.js';
+import { sueloEn } from '../core/geografia.js';
 import { PITCH_LERP } from '../core/physics.js';
 
 // cuanto sube la camara con turbo (unidades de mundo): el efecto de 'alejarse'
@@ -139,6 +140,40 @@ const SALTO = 0;
 // (El reparto de la poblacion —PUNTA y COLUMNA— y la velocidad del barrido viven en data/tuning.js
 //  junto con el resto de las perillas del agua.)
 
+/** EL POLVO QUE LEVANTAS al volar a ras sobre TIERRA (autor, 4/10: "no hacer exactamente el mismo que
+ *  el agua"). Nada de columnas ni de V: una nube baja que rueda hacia atras y a los costados y queda
+ *  flotando, del color de ese suelo —la arena de una costa, la turba adentro—, y si vas muy bajo, algun
+ *  terron pateado. Va detras del avion (`fondo`), como el polvo de las ruedas. */
+function polvoRas(nAgua, ancho, cerca, alt) {
+  const R = RAS_POLVO;
+  const C = sueloEn(run.dist + PZ) === 'coast' ? PIQUE.ARENA : PIQUE.TURBA;
+  const barrido = run.spd * R.BAJA, gordo = run.boost ? ROCIO_TURBO : 1;
+  const n = Math.round(nAgua * R.N + (nAgua > 0 ? Math.random() * 0.6 : 0));
+  for (let i = 0; i < n; i++) {
+    const lado = Math.random() < 0.5 ? -1 : 1;
+    const s = proj(plane.x + (Math.random() - 0.5) * ancho * 1.6, 0, PZ - Math.random() * cerca);
+    const bx = s.x + lado * ALA_PX * Math.random();          // de cualquier punto bajo el ala, no de la punta
+    parts.push({
+      x: bx, y: s.y - 1,
+      vx: lado * (R.ABRE * (0.4 + Math.random() * 0.8)),
+      vy: -R.SUBE * (0.3 + Math.random() * 0.9) + barrido * (0.6 + Math.random() * 0.5),
+      life: R.VIDA * (0.6 + Math.random() * 0.6),
+      c: C.polvo[(Math.random() * C.polvo.length) | 0],
+      r: R.TAM * (0.7 + Math.random() * 0.7) * gordo,
+      fondo: true,
+    });
+    // EL TERRON: solo muy bajo, y sale con envion (el polvo flota; la tierra cae)
+    if (alt < 2.8 && Math.random() < R.TERRON) {
+      parts.push({
+        x: bx, y: s.y - 1,
+        vx: lado * (12 + Math.random() * 26), vy: -(45 + Math.random() * 55),
+        life: 0.3 + Math.random() * 0.25,
+        c: C.terron[(Math.random() * C.terron.length) | 0], r: 0.8 + Math.random() * 0.5, fondo: true,
+      });
+    }
+  }
+}
+
 /** EL AGUA QUE LEVANTAS al volar a ras: la estela sobre el mar y el rocio que salta.
  *
  *  Vive aca por la misma razon que el resto de la cama: era codigo de `flight.js` y hace falta
@@ -185,7 +220,11 @@ export function estelaVuelo(dt, o) {
   //   `abre`   cuanto se ABRE cada gota, proporcional a lo lejos del centro que nacio. Es lo que
   //            convierte una nube que sube en dos cortinas que se van a los costados.
   const ancho = o.ancho || 4, cerca = o.cerca || 2, abre = o.abre || 0;
-  for (let i = 0; i < nSpray; i++) {
+  // SOBRE TIERRA NO ES AGUA EN MARRON (autor, 4/10): es otro gesto. Ver RAS_POLVO en data/tuning.js.
+  // (sin `return`: el temblor del final vale igual sobre tierra)
+  const seca = !!(o.tierra || o.pista);
+  if (seca) polvoRas(nSpray, ancho, cerca, alt);
+  for (let i = 0; i < (seca ? 0 : nSpray); i++) {
     const nace = (Math.random() - 0.5) * ancho;                  // de que lado del eje nacio
     const s = proj(plane.x + nace, 0, PZ - Math.random() * cerca);
     // TIERRA ES TODO LO QUE NO ES AGUA, y eso incluye la PISTA. Los dos datos existen porque dicen

@@ -1154,6 +1154,20 @@ export const BORDE_LUZ = {
 // CON NIEBLA EL BRILLO SE APAGA: el filo y los destellos se multiplican por (1 - NIEBLA x niebla), con
 // la niebla del banco de 0 a 1 (systems/fog.js `fogFade`). En 0,8 a niebla plena queda un quinto.
 export const BORDE_NIEBLA = 0.8;
+
+// ---- EL POLVO DEL RAS, sobre tierra (systems/vuelo.js, autor 4/10) -------------------------------
+// "Ojo con hacer el efecto del agua en la tierra: cambiarlo, pero no hacer exactamente el mismo."
+// Sobre el agua el vuelo a ras levanta COLUMNAS que el aire abre en V. Sobre tierra levanta una NUBE
+// BAJA que rueda hacia atras y a los costados y se queda flotando —el polvo es liviano y lento, la
+// gota cae—, con algun TERRON pateado cuando vas muy bajo. Del color de ese suelo (PIQUE.TURBA/ARENA).
+//   N        cuantas motas por cada gota que habria sido de agua (menos: cada una es mas grande)
+//   SUBE     el envion hacia arriba (px/s), chico: el polvo no salta, se levanta
+//   ABRE     la velocidad hacia el costado (px/s), la que lo hace rodar afuera
+//   BAJA     cuanto del barrido de la velocidad se lo lleva hacia atras (abajo en pantalla)
+//   VIDA     segundos, larga: la nube se queda
+//   TAM      tamaño de cada mota (antes del turbo)
+//   TERRON   probabilidad por mota de patear un terron, solo por debajo de 2,8 m
+export const RAS_POLVO = { N: 0.7, SUBE: 16, ABRE: 26, BAJA: 0.35, VIDA: 1.1, TAM: 2.2, TERRON: 0.25 };
 // EL DESTELLO DE LA CABINA (render/borde.js): el sol en el vidrio cuando el avion se inclina.
 // `pico` el alabeo (0 nivelado .. 1 extremo de la hoja) donde mas brilla y `ancho` cuanto dura
 // alrededor; `base` lo que queda nivelado. `radio` en px de la hoja de 84 (es el largo de la estrella);
