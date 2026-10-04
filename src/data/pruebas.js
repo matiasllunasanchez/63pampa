@@ -182,11 +182,7 @@ export const PRUEBAS = [
     setup: a => { a.patria({ obstacles: 0 }); a.luego(1.2, g => g.cfg({ zigzag: 2 })); },
   },
 
-  { head: 'prSecHistoria' },
-  {
-    id: 'locker', titulo: 'EL LOCKER (M07)', desc: 'La escena VN: tipeo, holds, retratos y placa',
-    setup: a => a.escena('M07_LOCKER'),
-  },
+  // (LA HISTORIA —EL LOCKER de M07— salio del catalogo el 4/10, a pedido del autor)
 
   // IDEAS VIEJAS (autor, 4/10): lo que ya no esta en el juego pero sigue andando, aparte para que no
   // se mezcle con lo vigente — EL ARENA y EL PULSO (climax en cuarentena, data/cuarentena.js), el
