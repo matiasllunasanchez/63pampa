@@ -33,13 +33,14 @@ const ARCHIVO = {
 
 const cache = {};
 for (const nombre in ARCHIVO) {
-  const s = { img: new Image(), img2: new Image(), img3: new Image() };
+  const s = { img: new Image(), img2: new Image(), img3: new Image(), img4: new Image() };
   s.img.src = DIR_HOJAS + ARCHIVO[nombre] + '.png';
   s.img2.src = DIR_HOJAS + ARCHIVO[nombre] + '2.png';
   // la 3 es la del PODER RASANTE (otro punto de vista). La skin del piloto tiene que existir
   // tambien ahi: la marca del ala es la unica señal de que ya no estas volando tu avion, y
   // perderla justo durante los 12 s del poder seria perderla cuando mas se ve el avion.
   s.img3.src = DIR_HOJAS + ARCHIVO[nombre] + '3.png';
+  if (!HORNO_VIEJO) s.img4.src = DIR_HOJAS + ARCHIVO[nombre] + '4.png';   // LA COBRA (el freno; three no la tiene)
   cache[nombre] = s;
 }
 
@@ -53,5 +54,5 @@ export function skinOf(nombre) {
   const s = cache[nombre];
   if (!s || !lista(s.img)) return null;
   return { sheetImg: s.img, sheet2Img: lista(s.img2) ? s.img2 : null,
-           sheet3Img: lista(s.img3) ? s.img3 : null };
+           sheet3Img: lista(s.img3) ? s.img3 : null, sheet4Img: lista(s.img4) ? s.img4 : null };
 }

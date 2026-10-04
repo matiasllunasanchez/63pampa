@@ -16,6 +16,7 @@
 
 import { ctx, px, PZ } from './ctx.js';
 import { proj } from '../core/fx.js';
+import { luzNoche } from './noche.js';
 
 // del nucleo encendido al rescoldo. El indice 0 es la cabeza; de ahi para atras, enfriando.
 const HOT = ['#fffdf2', '#ffeeb4', '#ffcf62', '#f59a2e', '#cf6418', '#8d3d10'];
@@ -52,6 +53,8 @@ export function drawBullet(b) {
   px(s.x - w / 2 - 1, s.y - w / 2 - 1, w + 2, w + 2, HOT[2]);
   ctx.globalAlpha = 1;
   px(s.x - w / 2, s.y - w / 2, w, w, HOT[0]);
+  // DE NOCHE LA TRAZADORA ILUMINA (render/noche.js, 4/10): un halo chico que abre la oscuridad
+  luzNoche(ctx, s.x, s.y, 4 + s.k * 0.8, [255, 180, 90], 0.55);
   // DESTELLO en cruz, solo BIEN de cerca (los primeros metros tras la boca). Mas lejos la cabeza
   // ya es un pixel y la cruz la volveria a engordar, que es justo lo que se estaba corrigiendo.
   if (s.k > 4.5) {

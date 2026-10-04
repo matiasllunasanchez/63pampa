@@ -50,6 +50,16 @@ VISTA = arg('--vista', 'base')
 RAS_YAW, RAS_ELEV, RAS_PITCH, RAS_ROLL = 35.5, -10, 20, -8
 if VISTA == 'empinada':
     PITCHES = [32, -32]            # la HOJA 2 (sheet2.png): los cabeceos de las piruetas
+# `--vista cobra`: LA HOJA 4 (sheet4.png), la de LA COBRA (el freno, pedido del autor 4/10/2026): la
+# trompa sube hasta pasar la vertical — 40°, 75° y 100° (un poco hacia atras, como en la foto que
+# mando). Vertical, el avion mide su LARGO en el cuadro y no su envergadura, y no entra en 84: el
+# cuadro va a 126 (x1,5) con la camara abierta en la misma proporcion, asi que el avion sale con los
+# MISMOS pixeles que en la hoja base y el juego lo dibuja x1,5.
+COBRA_K = 1.5
+if VISTA == 'cobra':
+    PITCHES = [40, 75, 100]
+    FW = FH = int(arg('--px', str(round(84 * COBRA_K))))
+    CAM = dict(CAM, ref=CAM['ref'] * COBRA_K)
 if VISTA == 'ras':
     FW = FH = int(arg('--px', '168'))
     _d = math.hypot(CAM['pos'][1] - CAM['lookY'], CAM['pos'][2])

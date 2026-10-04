@@ -17,7 +17,7 @@ import { proj, popup } from '../core/fx.js';
 import { sfxOne, beep } from './audio.js';
 import { P } from '../data/palette.js';
 import { PZ, W, H } from '../render/ctx.js';
-import { FLY_X, FLY_TOP, FUEL_PIRUETA } from '../data/tuning.js';
+import { FLY_X, FLY_TOP, FUEL_PIRUETA, COBRA, DERRAPE, PIQUE } from '../data/tuning.js';
 import { MOVES } from '../data/moves.js';
 
 const MV_CD = 1.15;          // cooldown compartido con el tonel (mismo valor que startRoll)
@@ -57,7 +57,7 @@ export function startMove(id, dir, tgt, act) {
   if (B === plane && !cfg.moves && !MOVES[id].legado) return false;
   if (E.mv || E.rollCd > 0) return false;
   const M = MOVES[id]; if (!M) return false;
-  E.mv = id; E.mvT = 0; E.mvDir = dir || 1; E.mvY0 = B.y; E.mvTgt = tgt || 0;
+  E.mv = id; E.mvT = 0; E.mvDir = dir || 1; E.mvY0 = B.y; E.mvX0 = B.x; E.mvTgt = tgt || 0;
   // EL PICO DE NAFTA (PLAN_MISION_CINCO_FASES §3: "si no cuestan, el jugador vuela haciendo
   // toneles"). Va ACA, en el unico lugar por donde entran TODAS las piruetas —el tonel legado
   // incluido, que llega por `startMove('tonel')`—, asi que no hay forma de estrenar una maniobra
@@ -67,7 +67,7 @@ export function startMove(id, dir, tgt, act) {
   // Y solo con COMBUSTIBLE: SI — con el tanque infinito las piruetas siguen siendo gratis, que es
   // lo que las mantiene libres en los modos donde la nafta no es el tema.
   if (B === plane && cfg.fuelOn) run.fuel = Math.max(0, run.fuel - FUEL_PIRUETA);
-  E.mvRoll = 0; E.mvSteep = 0; E.mvSeed = (Math.random() * 9999) | 0;
+  E.mvRoll = 0; E.mvGiro = 0; E.mvSteep = 0; E.mvCobra = 0; E.mvFreno = 0; E.mvSeed = (Math.random() * 9999) | 0;
   // feedback de entrada: nombre de la maniobra sobre el velocimetro + rafaga de aire. Es del
   // JUGADOR: el rotulo y el sonido dicen "vos hiciste esto". Un actor los apaga (`act.mudo`) o la
   // escena se llenaria de carteles anunciando piruetas que no hizo nadie.
@@ -94,6 +94,23 @@ export const mvAllowsTurbo = () => !run.mv || MOVES[run.mv].turbo;
  *  diferencia es parte de como se siente. Al mudarlo al catalogo, esta bandera es lo que la
  *  conserva: el tonel impone SOLO su rafaga lateral y el resto del avion se sigue volando. */
 export const mvLegado = () => !!(run.mv && MOVES[run.mv].legado);
+
+// ---------------- LA CAMARA DE LA COBRA (solo dibujo) ----------------
+// Un resorte sobre la profundidad a la que se DIBUJA el avion: la fisica sigue en PZ. Mientras la
+// trompa esta plantada el objetivo es acercarse a la camara; al bajarla el objetivo vuelve a cero y,
+// como el resorte esta poco amortiguado, el avion se pasa hacia adelante y regresa — el frenazo y la
+// salida. Vive aca porque es parte de la maniobra; game.js lo avanza y se lo pasa a drawPlane.
+let camDz = 0, camV = 0;
+export function stepCobraCam(dt) {
+  // LA CAMARA-DRON (el autor, 4/10: "como un dron FPV que sigue al avion: si frena, el dron tarda un
+  // poco en frenar"): el objetivo es acercarse en proporcion a CUANTO se esta frenando — sea la cobra
+  // o el derrape —, y el resorte pone el retraso y el pasarse al salir.
+  const obj = -COBRA.ACERCA * (run.mv ? run.mvFreno / COBRA.CORTE : 0);
+  camV += ((obj - camDz) * COBRA.K - camV * COBRA.AMORT) * dt;
+  camDz += camV * dt;
+  if (Math.abs(camDz) < 0.01 && Math.abs(camV) < 0.01 && !run.mv) camDz = camV = 0;
+}
+export const cobraDz = () => camDz;
 
 // perfil suave 0→1→0 (campana) — la base de los empujes que entran y salen con peso
 const bell = p => Math.sin(Math.PI * Math.max(0, Math.min(1, p)));
@@ -164,6 +181,121 @@ export function movesSystem(dt, inp, act) {
       E.spd += 30 * dt * bell(p);                   // la picada paga velocidad
       B.bank = 0; B.pitch = -0.8;
       E.mvSteep = -1;
+      break;
+    }
+    case 'cobra': {
+      // LA COBRA, EL FRENO. Tres tiempos: la trompa SUBE hasta pasar la vertical, la panza queda
+      // PLANTADA contra el aire con la turbina a fondo empujando para atras —ahi se pierde la
+      // velocidad—, y BAJA de vuelta a nivel. La pose la lee el render (`mvCobra`, hoja 4).
+      const ss = t => { const c = Math.max(0, Math.min(1, t)); return c * c * (3 - 2 * c); };
+      E.mvCobra = p < COBRA.SUBE ? ss(p / COBRA.SUBE) : p < COBRA.BAJA ? 1 : 1 - ss((p - COBRA.BAJA) / (1 - COBRA.BAJA));
+      E.mvFreno = COBRA.CORTE * E.mvCobra;
+      // EL FRENO es proporcional a cuanta panza le mostras al aire: nada al arrancar, todo plantado.
+      // Escribe `spd` como el split-S; flight.js lo devuelve despues al crucero con su arrastre de
+      // siempre, asi que la velocidad perdida se recupera de a poco y no de golpe.
+      E.spd *= Math.exp(-COBRA.FRENO * E.mvCobra * dt);
+      // se SIENTA: sube apenas, no pierde altura (es lo que la hace un freno y no una trepada)
+      B.vy = COBRA.SUBE_VY * E.mvCobra;
+      B.vx *= Math.max(0, 1 - dt * 4);
+      B.bank = 0; B.pitch = Math.min(1, E.mvCobra * 1.5);
+      // la turbina a fondo contra el freno: tiembla todo
+      if (B === plane && E.mvCobra > 0.6) run.shake = Math.min(5, run.shake + dt * 9);
+      break;
+    }
+    case 'derrape': {
+      // EL ESQUIADOR (autor, 4/10: "es SUPER LENTO… es rapido en la bajada, en la curva frena un poco,
+      // luego sigue, frena cuando gira… entre zig y zag que cubra TODO el ancho del pasillo y en el
+      // extremo final haga el freno chico"). Antes era un seno de velocidad lateral: ~8 unidades por
+      // canto en un pasillo de 76, con el freno repartido parejo — se leia como flotar de costado.
+      //
+      // Ahora son TRAMOS y GIROS, como una bajada de esqui:
+      //   TRAMO  cruza el pasillo de borde a borde (el primero, desde donde estabas hasta el borde del
+      //          lado pedido). Sale lanzado y llega al borde frenando un poco: la posicion sigue una
+      //          curva que arranca rapida y se aplasta al final. Va inclinado hacia donde va, sin freno.
+      //   GIRO   en el borde: de canto, la trompa a medias (la pose de la cobra), FRENA la velocidad y
+      //          levanta el abanico; despues sale para el otro lado. El ultimo giro es el FRENO CHICO.
+      // La posicion la manda la maniobra (vx = lo que falta para llegar), y flight.js la integra con
+      // su tope de siempre en FLY_X.
+      const D = DERRAPE, X = FLY_X * D.BORDE;
+      // en que tramo/giro estamos, contando el ultimo giro mas corto
+      let t = E.mvT, k = 0, fase = 'tramo', u = 0;
+      for (k = 0; k < D.CANTOS; k++) {
+        if (t < D.T_TRAMO) { fase = 'tramo'; u = t / D.T_TRAMO; break; }
+        t -= D.T_TRAMO;
+        const tg = k === D.CANTOS - 1 ? D.T_FINAL : D.T_GIRO;
+        if (t < tg) { fase = 'giro'; u = t / tg; break; }
+        t -= tg;
+      }
+      if (k >= D.CANTOS) { k = D.CANTOS - 1; fase = 'giro'; u = 1; }
+      const hacia = dir * (k % 2 === 0 ? 1 : -1);              // el borde al que va este tramo
+      const desde = k === 0 ? E.mvX0 : -hacia * X;
+      // LA POSE DEL BORDE (autor, 4/10): llegando al borde el avion se planta EN DIAGONAL — la trompa
+      // levantada como la cobra pero no tanto (la fila de 40°) y girada hacia el CENTRO DE ARRIBA de la
+      // pantalla, la turbina pegada abajo contra el borde. Al salir para el otro lado se ENDEREZA de a
+      // poco hacia el centro. `pose` es cuanto de eso hay (0..1) y `bordePose` de que lado; el giro en
+      // pantalla es contra el borde (en el derecho, antihorario: la trompa mira a la izquierda).
+      const ss = v => { const c = Math.max(0, Math.min(1, v)); return c * c * (3 - 2 * c); };
+      let xObj, canto, pose = 0, bordePose = hacia, alabeo = 0;
+      if (fase === 'tramo') {
+        // rapida al salir, se aplasta al llegar: el "freno un poco" antes de la curva
+        const e = 1 - Math.pow(1 - u, D.LLEGADA);
+        xObj = desde + (hacia * X - desde) * e;
+        canto = 0;
+        E.mvFreno = 0;
+        // EL CRUCE, en cuatro tiempos (autor, 4/10: "hace la animacion de girar hacia la derecha, antes
+        // de llegar se pone derecho y dobla bruscamente a la izquierda levantando la trompa… luego se
+        // vuelve a enderezar la trompa hacia adelante y vuelve al estado inicial"):
+        //   1. sale del borde anterior bajando la trompa (la pose se suelta)
+        //   2. se INCLINA hacia donde va —el alabeo de la hoja— y cruza inclinado
+        //   3. antes de llegar se ENDEREZA
+        //   4. y en el borde DOBLA DE GOLPE contra el, levantando la trompa: la cobra en diagonal
+        const sale = k > 0 ? 1 - ss(u / D.SUELTA) : 0;
+        const inclina = ss((u - D.INCLINA_DESDE) / D.INCLINA) * (1 - ss((u - D.ENDEREZA_DESDE) / D.ENDEREZA));
+        const llega = ss((u - D.DOBLA_DESDE) / (1 - D.DOBLA_DESDE));
+        if (sale > llega) { pose = sale; bordePose = -hacia; } else pose = llega;
+        alabeo = hacia * D.BANK_CRUCE * inclina;
+      } else {
+        // el giro: clavado en el borde, con un pasarse de nada (el esqui que patina antes de agarrar)
+        xObj = hacia * X * (1 + D.PATINA * Math.sin(u * Math.PI));
+        canto = Math.sin(u * Math.PI);                          // entra, frena a fondo, sale
+        const fin = k === D.CANTOS - 1;
+        // el ULTIMO giro suelta la pose al final (devuelve el control derecho); los otros la sostienen
+        pose = fin ? 1 - ss((u - 0.4) / 0.6) : 1;
+        E.spd *= Math.exp(-D.FRENO * canto * (fin ? D.FRENO_FINAL : 1) * dt);
+        E.mvFreno = D.CORTE * canto * (fin ? D.FRENO_FINAL : 1);
+      }
+      B.bank = alabeo;                                         // el alabeo del cruce; en la pose, alas parejas
+      // EL GIRO ES DEL DIBUJO (`mvGiro`), no un rolido: con el horizonte giratorio, `mvRoll` lo toma el
+      // MUNDO y el avion queda derecho — medido en captura, se inclinaba el horizonte y no el avion.
+      E.mvRoll = 0;
+      E.mvGiro = -bordePose * D.GIRA * pose;
+      E.mvCobra = D.COBRA * pose;
+      B.vx = Math.max(-D.VX_MAX, Math.min(D.VX_MAX, (xObj - B.x) / Math.max(dt, 1 / 240)));
+      B.vy *= Math.max(0, 1 - dt * 6); B.pitch = 0;
+      // UN PISO, como el del masking: el derrape es para hacerlo PEGADO AL AGUA (ahi salpica), y sin
+      // control no se puede salir del roce — medido, a 2,3 las olas lo mataban en pleno zigzag. Lo
+      // sostiene apenas arriba de la cresta; mas alto, no toca nada.
+      const piso = (geoActiva() ? !esTierraEn(B.x, run.dist + PZ) : cfg.terrain === 'sea') ? 2.8 : 2.2;
+      if (B.y < piso) B.vy = Math.max(B.vy, (piso - B.y) * 6);
+      if (B === plane) E.scrapeT = 0;
+      // EL ABANICO: en el GIRO, pegado al agua, el ala de abajo la levanta hacia AFUERA del canto, como
+      // el esqui la nieve. Gotas de pantalla (las mismas `parts` del roce), mas cuanto mas canto y mas bajo.
+      const lado = hacia;
+      if (B === plane && canto > 0.35 && B.y < D.SPRAY_ALT) {
+        const agua = geoActiva() ? !esTierraEn(B.x, run.dist + PZ) : cfg.terrain === 'sea';
+        const kk = canto * (1 - B.y / D.SPRAY_ALT);
+        const n = Math.round(D.SPRAY_N * kk + Math.random());
+        for (let i = 0; i < n; i++) {
+          const sp = proj(B.x + lado * (1.5 + Math.random() * 2.5), PIQUE.Y, PZ + (Math.random() - 0.3) * 2);
+          parts.push({
+            x: sp.x, y: sp.y,
+            vx: lado * (25 + Math.random() * 55) * (0.6 + kk), vy: -(35 + Math.random() * 60) * (0.5 + kk),
+            life: 0.35 + Math.random() * 0.35, r: Math.max(1, sp.k * 0.12),
+            c: agua ? (Math.random() < 0.6 ? '#d6e8e4' : '#9dbcb8') : (Math.random() < 0.5 ? '#6b5638' : '#8c7856'),
+            fondo: !agua,
+          });
+        }
+      }
       break;
     }
     case 'barrel': {
@@ -296,7 +428,7 @@ export function movesSystem(dt, inp, act) {
   }
 
   if (E.mvT >= M.dur) {                       // fin: devuelve el avion y arranca el cooldown
-    E.mv = null; E.mvRoll = 0; E.mvSteep = 0; E.rollCd = MV_CD;
+    E.mv = null; E.mvRoll = 0; E.mvGiro = 0; E.mvSteep = 0; E.mvCobra = 0; E.mvFreno = 0; E.rollCd = MV_CD;
     B.pitch = Math.max(-1, Math.min(1, B.pitch));
   }
 }
@@ -345,7 +477,7 @@ if (typeof window !== 'undefined') window.__mvdbg = () => {
 // maniobra. Es de la MISMA familia que `__qhold` del PULSO: no cambia una regla, saca de en medio
 // una que existe para el jugador y no para el que mide.
 if (typeof window !== 'undefined') window.__mvreset = (y, spd) => {
-  run.mv = null; run.mvT = 0; run.mvRoll = 0; run.mvSteep = 0;
+  run.mv = null; run.mvT = 0; run.mvRoll = 0; run.mvGiro = 0; run.mvSteep = 0; run.mvCobra = 0; run.mvFreno = 0;
   run.rollCd = 0;
   plane.x = 0; plane.vx = 0; plane.vy = 0; plane.bank = 0; plane.pitch = 0;
   plane.y = y === undefined ? 24 : +y;

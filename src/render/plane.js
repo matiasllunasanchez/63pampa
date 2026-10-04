@@ -22,7 +22,7 @@ import { luz } from './brillo.js';
 import { drawBorde } from './borde.js';
 import { drawMira } from './miras.js';
 import { anchorSpray, drawSpray } from './rain.js';
-import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H, SHEET3_FW, SHEET3_FH } from '../data/planes.js';
+import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H, SHEET3_FW, SHEET3_FH, SHEET4_FW, SHEET4_FH, SHEET4_K } from '../data/planes.js';
 import { ANCLAS } from '../data/anclas.js';
 import { capasDe } from '../data/cargas.js';
 import { ALA_PX, ROCIADA_ABRE, ROCIADA_BAJA, ROCIADA_RAS_ABRE, ROCIADA_ALT,
@@ -107,7 +107,7 @@ const TOBERA_F = 7 / 84;
  *
  *  @param f 0..1 — 0.3 es ralenti, 1 es turbo (ver stepFlame)
  */
-export function tobera(x, y0, f, esc) {
+export function tobera(x, y0, f, esc, forzar) {
   if (f <= 0.01) return;
   // SE APAGA AL CABECEAR. Cuando el avion trepa o pica, la hoja cambia de fila y el sprite ya no
   // muestra el cano de frente: el ancla fija de TOBERA_F cae sobre el LOMO del avion y el circulo
@@ -116,7 +116,8 @@ export function tobera(x, y0, f, esc) {
   // si no ves el cano, no hay nada que brille. El umbral es el mismo con el que el sprite cambia
   // de fila (0.33 de cabeceo), asi que el resplandor se va justo cuando la pose se pitcha.
   const pitch = Math.min(1, Math.abs(plane.pitch) / 0.33);
-  const cara = (1 - pitch) * (run.mvSteep ? 0 : 1);
+  // (`forzar`: LA COBRA, que trae su propia ancla medida en la hoja 4 — ahi el cano SI se ve)
+  const cara = forzar ? 1 : (1 - pitch) * (run.mvSteep ? 0 : 1);
   if (cara <= 0.02) return;
   const u = esc || 1;                          // media del sprite: la boca escala con el avion
   // PULSO de la turbina: parejo y rapido, con un resto chico de azar para que no sea un metronomo.
@@ -820,7 +821,9 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     : run.mvRoll ? run.mvRoll + hz + wobT
     : useSheet ? wobT
     : bank * 0.42 + wobT;
-  ctx.rotate(spinTot + (run.senalT > 0 ? run.senalRot : 0));   // + lo que la SEÑA pide mas alla de la hoja (la panza)
+  // + lo que la SEÑA pide mas alla de la hoja (la panza), + el giro SOLO DEL DIBUJO de una maniobra
+  // (`mvGiro`: la diagonal del derrape), que el horizonte giratorio no se come como al `mvRoll`
+  ctx.rotate(spinTot + (run.senalT > 0 ? run.senalRot : 0) + (run.mvGiro || 0));
   if (rolling) ctx.scale(0.94 + 0.06 * Math.cos(prRoll * Math.PI * 2), 1);   // leve pulso: vende el giro
   else if (!run.mvRoll && !useSheet) ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
   // Todo este bloque esta authorado para la grilla de 320x180 (fogonazos, fallback de rects,
@@ -870,11 +873,20 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // estado de fondo — perder la pose de una maniobra que estas haciendo se nota mucho mas que
     // perder el escorzo por segundo y medio.
     let F3 = 0;                                   // != 0 cuando se esta dibujando con la hoja 3
-    if (run.mvSteep && hoja2) { img = hoja2; row = run.mvSteep > 0 ? 0 : 1; }
+    // LA COBRA (el freno, hoja 4): gana sobre todo — es la pose mas extrema y la acaba de pedir el
+    // jugador. Tres cabeceos (40/75/100°) segun cuanto se levanto la trompa. Sin la hoja 4 (build web,
+    // horno viejo) cae a la trepada fuerte de la hoja 2: la maniobra frena igual, se pierde la pose.
+    const hoja4 = run.mvCobra > 0.05 ? (sk ? sk.sheet4Img : (pl.sheet4Ok ? pl.sheet4Img : null)) : null;
+    const filaCobra = run.mvCobra < 0.45 ? 0 : run.mvCobra < 0.85 ? 1 : 2;
+    let K4 = 1;                                   // escala del cuadro: 1,5 con la hoja 4 (ver SHEET4_K)
+    if (hoja4) { img = hoja4; row = filaCobra; F3 = SHEET4_FW; K4 = SHEET4_K; }
+    else if (run.mvCobra > 0.05 && hoja2) { img = hoja2; row = 0; }
+    else if (run.mvSteep && hoja2) { img = hoja2; row = run.mvSteep > 0 ? 0 : 1; }
     else if (run.mvSteep) row = run.mvSteep > 0 ? 0 : 2;
     else if (hoja3) { img = hoja3; F3 = SHEET3_FW; }
-    const FW4 = F3 || SHEET_FW, FH4 = F3 ? SHEET3_FH : SHEET_FH;
+    const FW4 = F3 || SHEET_FW, FH4 = hoja4 ? SHEET4_FH : F3 ? SHEET3_FH : SHEET_FH;
     const sx4 = col * FW4, sy4 = row * FH4;
+    const dW = spW * K4, dH = spH * K4;           // lo que se dibuja (x1,5 con la hoja de la cobra)
     // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas
     if (rolling) for (let gi = 2; gi >= 1; gi--) {
       ctx.save();
@@ -890,13 +902,13 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // La LLAMA del turbo va ENCIMA: sale de la tobera, que apunta a la camara.
     if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
     drawGear(run.gear, 1);   // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma
-    ctx.drawImage(img, sx4, sy4, FW4, FH4, -spW / 2, -spH / 2, spW, spH);
-    drawBorde(ctx, img, sx4, sy4, FW4, FH4, -spW / 2, -spH / 2, spW, spH);   // a contraluz (render/borde.js)
+    ctx.drawImage(img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
+    drawBorde(ctx, img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);   // a contraluz (render/borde.js)
     // LA CARGA, encima del avion y en el MISMO recorte: cada capa esta horneada con la camara y la
     // pose de la hoja que se esta dibujando, y el avion ya le recorto de fabrica lo que el ala le
     // tapa (ver hornearCapas en tools/bake_planes.html). Por eso no hay ancla ni offset: si el
     // frame es el mismo, calza.
-    const vista = F3 ? 2 : img === hoja2 ? 1 : 0;
+    const vista = hoja4 ? 3 : F3 ? 2 : img === hoja2 ? 1 : 0;
     for (const nom of capasDe(cfg.carga)) {
       const im = pl.capas && pl.capas[nom] && pl.capas[nom][vista];
       if (!(im && im.complete && im.naturalWidth)) continue;
@@ -913,8 +925,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
         if (nom === 'carga_bomba_centro' && blanco.centroN <= 0) continue;
         if (nom === 'carga_bombas_ala') { if (blanco.alaN <= 0) continue; if (blanco.alaN === 1) mitad = 1; }
       }
-      if (mitad) { ctx.save(); ctx.beginPath(); ctx.rect(0, -spH / 2, spW / 2, spH); ctx.clip(); }
-      ctx.drawImage(im, sx4, sy4, FW4, FH4, -spW / 2, -spH / 2, spW, spH);
+      if (mitad) { ctx.save(); ctx.beginPath(); ctx.rect(0, -dH / 2, dW / 2, dH); ctx.clip(); }
+      ctx.drawImage(im, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
       if (mitad) ctx.restore();
     }
     // LA CHAPERIA, ENCIMA DE LA CHAPA. Va aca —despues del frame y antes de la tobera— porque es
@@ -936,9 +948,18 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // BASE desde siempre: el ancla era UNA sola para las tres filas, asi que trepando —con el caño
     // a 0.179 del centro— la llama seguia saliendo de 0.083, o sea doce pixeles adelante del caño.
     // Con la tabla medida por pose el fuego sale de donde esta el fuego.
-    parches(spW, spH, AN.tips[rowPose][colPose], nivel(), AN);
-    const tb = AN.tob[rowPose][colPose];
-    if (tb) tobera(tb[0] * spW, tb[1] * spH, ff, spW / 84 * 2.4);
+    // EN LA COBRA, sin parches (sus alturas estan contadas sobre la vista trasera nivelada) y con la
+    // turbina A FONDO: el empuje va todo al freno. La tobera de la hoja 4 solo se ve en la primera
+    // fila; mas arriba queda abajo de la panza, y la llama sale del pie del avion (la caja medida).
+    if (hoja4) {
+      const AC = ANCLAS.cobra;
+      const tc = AC && (AC.tob[row][col] || [0, AC.box[row][col][1] * 0.92]);
+      if (tc) tobera(tc[0] * dW, tc[1] * dH, Math.max(ff, 1.6) * run.mvCobra, spW / 84 * 3.2, true);
+    } else {
+      parches(spW, spH, AN.tips[rowPose][colPose], nivel(), AN);
+      const tb = AN.tob[rowPose][colPose];
+      if (tb) tobera(tb[0] * spW, tb[1] * spH, ff, spW / 84 * 2.4);
+    }
   } else if (pl.ready) {
     const PW = 54, PH = Math.round(PW * pl.h / pl.w);
     // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas (estela cinematica)
@@ -1021,7 +1042,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // OJO CON EL ESPACIO: esto corre DESPUES del `restore()`, o sea en pixeles de MUNDO, y el
     // sprite se dibujo con `spW`/`spH`. Las fracciones van contra ESO y nada mas.
     const T = AN.tips[rowPose][colPose];
-    const cs = Math.cos(spinTot), sn = Math.sin(spinTot);
+    const giroT = spinTot + (run.mvGiro || 0);   // con el giro del dibujo (mvGiro), igual que el sprite
+    const cs = Math.cos(giroT), sn = Math.sin(giroT);
     const gx = (fx, fy) => cx + fx * spW * cs - fy * spH * sn;
     const gy = (fx, fy) => cy + fx * spW * sn + fy * spH * cs;
     const alaLx = gx(T[0] * TIP_OUT, T[1]), alaLy = gy(T[0] * TIP_OUT, T[1]);

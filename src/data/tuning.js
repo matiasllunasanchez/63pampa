@@ -993,6 +993,50 @@ export const PIQUE = {
   Z_MAX: 260, BAJO: 9, CAE_G: 14, BALA_SIGUE: 6, ADELANTE: 25, ADELANTE_VAR: 40,
 };
 
+// ---------- LA COBRA: el freno (data/moves.js, systems/moves.js) ----------
+// SUBE: fraccion de la maniobra en que la trompa llega arriba; BAJA: desde cuando vuelve a nivel.
+// FRENO: 1/s de caida de velocidad mientras la panza esta plantada (exponencial: con 0.75 sobre los
+// ~0.8 s del medio se pierde ~45%); SUBE_VY: lo poco que trepa el avion al sentarse.
+export const COBRA = { SUBE: 0.3, BAJA: 0.72, FRENO: 0.75, SUBE_VY: 5,
+  // CORTE: cuanto baja el objetivo de velocidad del vuelo con la trompa plantada (systems/flight.js)
+  CORTE: 0.55,
+  // LA CAMARA DEL FRENO (el autor, 4/10: "que se acerque el avion, y al arrancar dejarlo avanzar un poco
+  // y que vuelva a su posicion"): un RESORTE sobre la profundidad DIBUJADA del avion. ACERCA: cuanto
+  // se viene hacia la camara con la trompa plantada (unidades de z; PZ es 14). K y AMORT: el resorte;
+  // poco amortiguado a proposito, asi al soltar se pasa hacia adelante y vuelve solo.
+  ACERCA: 4.8, K: 26, AMORT: 3.2 };   // medido en Node: se acerca ~6.3, al salir pasa ~1.6 adelante y vuelve en ~1 s
+
+// ---------- EL DERRAPE: el freno de costado (data/moves.js, systems/moves.js) ----------
+// El zigzag del esquiador que frena (pedido del autor 4/10): el avion se tira de canto a un lado y
+// despues al otro, y en cada canto frena y, si esta cerca del agua, la levanta en abanico. FRENO: 1/s
+// de caida con el canto pleno; CORTE: cuanto baja el objetivo de velocidad (mitad que la cobra:
+// "medio que frena"); VX: lo que se corre de costado en cada canto; SOBRE: alabeo de mas sobre el de
+// la hoja (rad); SPRAY_ALT: por debajo de esta altura salpica; SPRAY_N: gotas por cuadro con canto pleno.
+// COBRA: cuanto de la pose de la cobra toma con el canto pleno (<0.45 = la fila de 40°, la intermedia).
+// CANTOS: cuantos medios zigzags (3 = lado, contra, lado: termina corrido hacia el lado pedido, que es
+// el ESQUIVE); BANK: fraccion del alabeo de la hoja (0.75 = ±45°). El autor, 4/10: "ir frenando
+// haciendo zigzag, menos inclinacion, un freno medio con esquive".
+// EL ESQUIADOR (autor, 4/10: "SUPER LENTO… rapido en la bajada, en la curva frena un poco, frena cuando
+// gira… que cubra TODO el ancho del pasillo y en el extremo final el freno chico"): TRAMOS de borde a
+// borde y GIROS en cada borde (systems/moves.js). BORDE: hasta que fraccion de FLY_X llega; T_TRAMO,
+// T_GIRO y T_FINAL: segundos de cada cruce, de cada giro y del ultimo (el freno chico) — la duracion de
+// la maniobra en data/moves.js TIENE que ser CANTOS·T_TRAMO + (CANTOS−1)·T_GIRO + T_FINAL. LLEGADA:
+// cuanto se aplasta el cruce al llegar al borde (1 = parejo; mas = sale mas lanzado y llega frenando).
+// FRENO: 1/s de caida de la
+// velocidad con el canto pleno; FRENO_FINAL: el ultimo giro frena esa fraccion. PATINA: cuanto se pasa
+// del borde en el giro. VX_MAX: tope de la velocidad lateral (u/s).
+// LA POSE DEL BORDE (autor, 4/10): en cada borde el avion queda en diagonal — trompa levantada
+// (COBRA: <0.45 = la fila de 40° de la hoja 4) y girado GIRA radianes contra el borde, la trompa al centro
+// de arriba y la turbina abajo contra el borde.
+// EL CRUCE en fracciones del tramo: SUELTA, hasta donde baja la trompa del borde anterior; INCLINA_DESDE e
+// INCLINA, cuando y en cuanto se inclina hacia donde va (BANK_CRUCE: cuanto, de la hoja); ENDEREZA_DESDE
+// y ENDEREZA, cuando y en cuanto se endereza antes de llegar; DOBLA_DESDE, desde donde dobla de golpe
+// contra el borde (cuanto mas cerca de 1, mas brusco).
+export const DERRAPE = { CANTOS: 3, BORDE: 0.9, T_TRAMO: 0.5, T_GIRO: 0.24, T_FINAL: 0.16, LLEGADA: 1.8,
+  COBRA: 0.38, GIRA: 0.62, SUELTA: 0.2, INCLINA_DESDE: 0.15, INCLINA: 0.14, BANK_CRUCE: 0.7,
+  ENDEREZA_DESDE: 0.6, ENDEREZA: 0.14, DOBLA_DESDE: 0.84, FRENO: 1.1, FRENO_FINAL: 0.5, CORTE: 0.3,
+  PATINA: 0.04, VX_MAX: 260, SPRAY_ALT: 9, SPRAY_N: 6 };
+
 // ---------- EL RECIBIMIENTO (systems/recibe.js) ----------
 // Las ametralladoras del buque que te esperan y TE ERRAN (pedido del autor, 4/10). Pura decoracion:
 // adrenalina, no daño. D_MIN/D_MAX: entre que distancias al buque tiran (unidades de camara); CADA: s

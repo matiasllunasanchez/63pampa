@@ -40,6 +40,10 @@ export const SHEET_FW = 84, SHEET_FH = 84, SHEET_NF = 9, SHEET_ROWS = 3;
 // la hoja de 84. Con 168 vuelve a 1,7 — exactamente la nitidez que el avion tiene en el pasillo.
 // Lo unico que cambia en el render es el RECTANGULO DE ORIGEN del recorte; el tamaño dibujado no.
 export const SHEET3_FW = 168, SHEET3_FH = 168;
+// HOJA 4 (LA COBRA, el freno): 9 alabeos x 3 cabeceos de 40/75/100°, cuadro de 126. Vertical el avion
+// mide su LARGO y no entraba en 84, asi que se horneo con la camara abierta x1,5: el avion tiene los
+// mismos pixeles que en la hoja base, y el render dibuja el cuadro x1,5 (SHEET4_K) para que calce.
+export const SHEET4_FW = 126, SHEET4_FH = 126, SHEET4_K = 1.5;
 // ALTO DEL AVION dentro del frame. El frame es cuadrado (84) pero el avion sigue ocupando los
 // mismos 48 px de siempre: el resto es aire transparente, arriba y abajo, para que quepa girado.
 // Todo lo que se dibuje PEGADO al avion (llama de la turbina, fogonazos) tiene que medirse contra
@@ -54,6 +58,9 @@ PLANES.forEach(pl => {
     const viejo = r => r && r.slice(0, r.lastIndexOf('/') + 1) + 'three/' + r.slice(r.lastIndexOf('/') + 1);
     pl.sheet = viejo(pl.sheet); pl.sheet2 = viejo(pl.sheet2); pl.sheet3 = viejo(pl.sheet3);
   }
+  // LA HOJA 4 sale de la misma carpeta que la base. three.js nunca la horneo: con el horno viejo no
+  // hay cobra dibujada y el render cae a la trepada de la hoja 2 (fallback real, como las otras).
+  if (pl.sheet && !pl.sheet4 && !HORNO_VIEJO) pl.sheet4 = pl.sheet.replace(/sheet\.png$/, 'sheet4.png');
   pl.img = new Image(); pl.ready = false; pl.w = 977; pl.h = 471;
   pl.img.onload = () => { pl.ready = true; pl.w = pl.img.naturalWidth; pl.h = pl.img.naturalHeight; };
   pl.img.src = pl.src;
@@ -84,13 +91,19 @@ PLANES.forEach(pl => {
       pl.sheet3Img.onload = () => { pl.sheet3Ok = true; };
       pl.sheet3Img.src = pl.sheet3;
     }
+    pl.sheet4Ok = false;
+    if (pl.sheet4) {
+      pl.sheet4Img = new Image();
+      pl.sheet4Img.onload = () => { pl.sheet4Ok = true; };
+      pl.sheet4Img.src = pl.sheet4;
+    }
     // LAS CAPAS DE CARGA (tanques y bombas), una por pieza y por vista — ver data/cargas.js. Viven
     // en la misma carpeta que las hojas y llevan el mismo sufijo: '' / '2' / '3'. Si una capa no
     // cargo, simplemente no se pinta: el avion vuela limpio, que es el fallback natural.
     const dir = pl.sheet.slice(0, pl.sheet.lastIndexOf('/') + 1);
     pl.capas = {};
     for (const nom of CAPAS_CARGA) {
-      pl.capas[nom] = ['', '2', '3'].map(suf => { const im = new Image(); im.src = dir + nom + suf + '.png'; return im; });
+      pl.capas[nom] = ['', '2', '3', '4'].map(suf => { const im = new Image(); im.src = dir + nom + suf + '.png'; return im; });
     }
   }
 });

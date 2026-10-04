@@ -1322,3 +1322,20 @@ unidades a km/h con `KMH_U = 4.2`, data/tuning.js) y ~630 con poscombustión.
 
 **Decisión del autor (2/10):** por ahora queda como duda; el juego no cambia de velocidad.
 
+
+---
+
+## LA COBRA: ¿PODÍA FRENAR ASÍ UN A-4? _(4/10/2026)_
+
+**Pedido del autor:** el freno del juego es una **Cobra de Pugachev** — la trompa sube hasta pasar
+la vertical, la panza se planta contra el aire y el avión pierde velocidad de golpe sin perder
+altura (data/moves.js `cobra`, tecla de freno [G] / L2). La referencia que mandó es un F-22.
+
+**A verificar:**
+1. La cobra pide **empuje vectorial** o una célula inestable con mucho margen de ángulo de
+   ataque (Su-27, F-22). Un A-4B o un Dagger de 1982 no la podían hacer: entraban en pérdida.
+2. ¿Cómo frenaba de verdad un A-4 en rasante? Tenía **aerofrenos** a los costados del fuselaje
+   trasero (dos paneles que se abrían): ¿se usaban en la corrida de ataque o en la formación?
+
+**Decisión del autor (4/10):** el juego manda — la cobra queda como el freno, aunque no sea
+histórica.

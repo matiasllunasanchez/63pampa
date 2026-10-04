@@ -49,7 +49,7 @@ export function inicioLuz() {
   if (!emitio || !gl) return;
   gl.setTransform(1, 0, 0, 1, 0, 0);
   gl.clearRect(0, 0, L.width, L.height);
-  emitio = false;
+  emitio = false; difusa = false;
 }
 
 /** UNA FUENTE DE LUZ. Coordenadas de MUNDO, las mismas con las que la fuente se esta dibujando:
@@ -72,21 +72,34 @@ export function luz(c, x, y, r, rgb, a) {
   gl.globalCompositeOperation = 'lighter';
   gl.fillStyle = g;
   gl.fillRect(x - r, y - r, r * 2, r * 2);
-  emitio = true;
+  emitio = true; difusa = false;
 }
 
-/** Pega la luz del cuadro arriba del mundo. */
-export function drawBrillo() {
-  if (!emitio || cfg.brillo === 'off' || BRILLO_FUERZA <= 0) return;
-  gb.setTransform(1, 0, 0, 1, 0, 0);
-  gb.globalCompositeOperation = 'copy';
-  gb.filter = `blur(${BRILLO_RADIO}px)`;
-  gb.drawImage(L, 0, 0);
-  gb.filter = 'none';
+/** La capa de luz del cuadro YA DESENFOCADA, o null si nada emitio. La usa LA NOCHE (render/noche.js)
+ *  como mascara: donde hay luz, la oscuridad se abre. Se desenfoca una sola vez por cuadro. */
+let difusa = false;
+export function capaLuz() {
+  if (!emitio || cfg.brillo === 'off') return null;
+  if (!difusa) {
+    gb.setTransform(1, 0, 0, 1, 0, 0);
+    gb.globalCompositeOperation = 'copy';
+    gb.filter = `blur(${BRILLO_RADIO}px)`;
+    gb.drawImage(L, 0, 0);
+    gb.filter = 'none';
+    difusa = true;
+  }
+  return B;
+}
+
+/** Pega la luz del cuadro arriba del mundo. `fuerza` la pisa (la NOCHE la sube: ahi la luz es todo). */
+export function drawBrillo(fuerza) {
+  const f = fuerza === undefined ? BRILLO_FUERZA : fuerza;
+  if (!emitio || cfg.brillo === 'off' || f <= 0) return;
+  capaLuz();
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalCompositeOperation = 'screen';
-  ctx.globalAlpha = BRILLO_FUERZA;
+  ctx.globalAlpha = Math.min(1, f);
   ctx.imageSmoothingEnabled = true;   // el halo es luz, no pixel art: estirarlo suave es lo correcto
   ctx.drawImage(B, 0, 0, cv.width, cv.height);
   ctx.restore();

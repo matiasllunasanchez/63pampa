@@ -64,6 +64,11 @@ export const PRUEBAS = [
     // t20: la t17 con el cielo de noche (4/10).
     setup: a => a.mision('t20', { start: 'runway' }),
   },
+  {
+    id: 'idayvueltaSmallLuna', titulo: 'IDA Y VUELTA SMALL LUNA', desc: 'La SMALL de noche CON luna: se ve el mar y el reflejo · ~4 min',
+    // t21: la t17 con luna desde el despegue (4/10), para comparar con la SIN luna (t20)
+    setup: a => a.mision('t21', { start: 'runway' }),
+  },
 
   { head: 'prSecClimax' },
   {

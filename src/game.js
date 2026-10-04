@@ -115,6 +115,8 @@ import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.
 import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
 import { drawDesenfoque, BLUR_DBG } from './render/desenfoque.js';   // BLUR_DBG: QUITAR con __blurdbg
 import { drawBrillo, inicioLuz } from './render/brillo.js';
+import { nocheDe, drawNoche, tableroNoche, luzNoche } from './render/noche.js';
+import { NOCHE } from './data/noche.js';
 import { drawAureola, AURA_NORMAL, AURA_DBG } from './render/aureola.js';   // AURA_DBG: QUITAR con __auradbg
 import * as menus from './render/menus.js';
 import { stepRain, stepSpray, drawRain, RAIN_N } from './render/rain.js';
@@ -2299,6 +2301,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     let machHold = null;   // sonda de LO TRANSONICO (QUITAR): fija velocidad/alabeo cuadro a cuadro
     let altHold = null;    // sonda de LOS RESTOS (QUITAR): fija la altura cuadro a cuadro
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
+    let frenoAntes = false;   // la tecla de freno el cuadro anterior: la COBRA sale en el flanco
     let rotuloT0 = -1, rasPrev = false;   // el rotulo RASANTE: cuando arranco (performance.now) y el flanco
     let toT = 0, toCount = 4;
     // EL ATERRIZAJE (§4). Viven con la maquina de estados y no en `run` por la misma regla que los
@@ -2356,7 +2359,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // …y lo mismo, sin parametro, en IDA Y VUELTA: es el banco de pruebas del pasillo largo
       // (pruebas_misiones.js t15) y el poder es una de las cosas que se van a probar ahi. Pedido
       // del autor, 12/9. PROVISORIO — se saca junto con `rasanteProbe` al cerrar el plan.
-      if (rasanteProbe || ['t15', 't17', 't18', 't19', 't20'].includes(curMission().id)) rasante.cargar();   // arranca con la barra llena
+      if (rasanteProbe || ['t15', 't17', 't18', 't19', 't20', 't21'].includes(curMission().id)) rasante.cargar();   // arranca con la barra llena
       veilOut = 0; veilPrev = '';   // el telon del cordon, cerrado y sin reloj
       arena.resetArena();
       pasada.resetPasada();
@@ -4224,6 +4227,19 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // LA FILA: la espera entre cambios, y lo que gasta el que manda — los de atras gastan una
       // fraccion de eso (systems/squad.js). Se mide alrededor del vuelo porque ahi se cobra la nafta.
       squad.tickFila(dt);
+      // LA COBRA: EL FRENO DEL PASILLO (4/10). La tecla de freno ([G] / L2) era solo del ARENA y la
+      // PASADA; en el pasillo no hacia nada. Ahora planta la trompa y frena (data/moves.js `cobra`).
+      // En el FLANCO, no mientras se mantiene: es una maniobra, no un pedal. Las averias criticas la
+      // apagan como a toda pirueta.
+      // CON UNA DIRECCION APRETADA es EL DERRAPE, el freno de costado: el primer canto va para ese lado.
+      if (inp.brake && !frenoAntes && damage.fx().moves) {
+        // la direccion de CUALQUIERA de las dos manos: A/D (o flechas con la mira movil) o el stick que rola
+        const izq = inp.l > 0.3 || inp.rollL > 0.3 || inp.rollAx < -0.4, der = inp.r > 0.3 || inp.rollR > 0.3 || inp.rollAx > 0.4;
+        const lado = izq && !der ? -1 : der && !izq ? 1 : 0;
+        moves.startMove(lado ? 'derrape' : 'cobra', lado || 1);
+      }
+      moves.stepCobraCam(dt);
+      frenoAntes = !!inp.brake;
       const fuelAntes = run.fuel;
       const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist, needsMomentum, climax: runClimax() });
       squad.gastoLider(fuelAntes - run.fuel);
@@ -4745,6 +4761,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (m.tipo === 'aim9') { if (m.z >= PZ) drawAim9(m); continue; }
         if (m.tipo === 'aden') { if (m.z >= PZ) drawAden(m); continue; }   // la rafaga del Harrier, ya pasada
         const s = proj(m.x, m.y, m.z), k = s.k;
+        // DE NOCHE lo que te tiran ILUMINA (render/noche.js, 4/10): el misil con su motor, la trazadora con su halo
+        luzNoche(ctx, s.x, s.y, m.tracer ? 4 + k : 8 + k * 2.2, m.tracer ? [255, 200, 120] : [255, 150, 70], m.tracer ? 0.5 : 0.85);
         if (m.tracer) {
           const s2 = proj(m.x, m.y, m.z + 5);
           ctx.strokeStyle = P.accent; ctx.globalAlpha = 0.55;
@@ -4902,7 +4920,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // naranja es de lo que lastima, y esto no puede lastimar a nadie (ver render/teatro.js).
       drawTiros(teatro.state());
       if (!rasante.enCabina()
-        && (chase || (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active(), squad.cambioDz());
+        && (chase || (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active(), squad.cambioDz() + moves.cobraDz());
       // LAS TRAZADORAS DE POPA (el escape, V2): vienen de atras, o sea MAS CERCA que el avion, y
       // por eso van despues del sprite. Adentro del giro del horizonte, como el resto del mundo.
       if (S.state === 'play' && blancoSys.escapando()) {
@@ -5008,8 +5026,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // el salto entre uno y otro se VEA crecer.
       // EL RESPLANDOR (render/brillo.js): lo que brilla se derrama. ANTES de la aureola —que es
       // el destello propio del sol y se derramaria dos veces— y antes de los tintes y del HUD.
-      drawBrillo();
-      drawAureola(solPant, rasante.active() ? 1 : AURA_NORMAL);
+      // LA NOCHE (render/noche.js, 4/10): todo oscuro y la luz de cada fuente lo abre. Va ANTES del
+      // resplandor, que de noche se pega mas fuerte: ahi la luz es todo lo que se ve.
+      const noche = nocheDe(cfg.sky);
+      // (con el GIRO del horizonte: la franja clara, las luces lejanas y el reflejo rolan con el mundo)
+      drawNoche(noche, solPant, hzW ? { a: hzW, cx: W / 2 + cm.x, cy: H / 2 + cm.y } : null);
+      drawBrillo(noche ? NOCHE.BRILLO : undefined);
+      // (de noche la luna no es el sol: su aureola va apenas — NOCHE.AUREOLA)
+      drawAureola(solPant, (rasante.active() ? 1 : AURA_NORMAL) * (noche ? NOCHE.AUREOLA : 1));
       // MOMENTUM: tinte frio + viñeta mientras el tiempo esta partido. Va sobre el MUNDO y bajo
       // el HUD: la cabina sigue nitida — es el aire el que cambia, no los instrumentos.
       if (S.state === 'play' && tempo.active()) {
@@ -5102,7 +5126,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         busqueda: fases.hayFases(),
           // EL PODER RASANTE va por snapshot (convencion 4): el lint de capas prohibe que el
           // render importe de systems, y la lista de excepciones solo puede achicarse.
-          ras: { on: rasante.active(), resta: rasante.restante(), dur: rasante.duracion() } }); if (!perdidaUI) drawCinta(); ctx.restore();
+          ras: { on: rasante.active(), resta: rasante.restante(), dur: rasante.duracion() } }); if (!perdidaUI) drawCinta();
+        // EL TABLERO DE NOCHE: los relojes en ambar, como la cabina de la foto (render/noche.js). Las
+        // zonas son las del tablero en la grilla de DISEÑO (320x180): la fila de relojes, la de arriba
+        // y la cara del piloto.
+        tableroNoche(nocheDe(cfg.sky), [{ x: 0, y: hud.HUD_TECHO - 2, w: 320, h: 180 }, { x: 0, y: 0, w: 320, h: 22 }, { x: 0, y: hud.HUD_TECHO - 50, w: 36, h: 48 }]);
+        ctx.restore();
         // LA RADIO EN VUELO va en el espacio de DISEÑO (320x180) y se dibuja al final: es lo
         // ultimo que entra, arriba de todo. QUE FORMA tiene la elige el jugador en OPCIONES —
         // TOAST (una linea que pasa) o PANEL (las ultimas cuatro, como un chat). Las dos respetan

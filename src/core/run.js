@@ -140,8 +140,12 @@ export const run = {
   mvT: 0,          // tiempo transcurrido de la maniobra
   mvDir: 1,        // sentido elegido (donde aplica)
   mvY0: 0,         // altura al entrar (los yo-yos vuelven a ella)
+  mvX0: 0,         // donde estaba de costado al entrar (el derrape cruza el pasillo desde ahi)
   mvRoll: 0,       // rotacion EXTRA del sprite en pantalla (split-s invierte, break turn exagera)
   mvSteep: 0,      // pose empinada: 1 trepada fuerte / -1 picada fuerte / 0 normal (usa sheet2)
+  mvGiro: 0,       // giro SOLO DEL DIBUJO del avion (rad): el horizonte giratorio no lo toma — la diagonal del derrape
+  mvCobra: 0,      // LA COBRA: cuanto se levanto la trompa, 0 nivel → 1 pasada la vertical (usa sheet4)
+  mvFreno: 0,      // cuanto esta frenando la maniobra ahora (0..1): lo leen el vuelo (objetivo) y la camara-dron
   mvSeed: 0,       // semilla del jink (sus quiebres son aleatorios pero estables por ejecucion)
   mvTgt: 0,        // altura OBJETIVO de las maniobras que trepan a un techo (ASCENSO / SOBRE EL RADAR)
   // PANEO DE CAMARA (stick derecho vertical · [R]/[F]): unidades de mundo que se le suman al
@@ -208,7 +212,7 @@ export function resetRun() {
     windT: 0, windF: 1,
     fireT: 0, msl: MSL_MAX, mslCd: 0, mslRegen: 0,
     rollCd: 0,
-    mv: null, mvT: 0, mvY0: 0, mvRoll: 0, mvSteep: 0, mvSeed: 0, mvTgt: 0, camPan: 0,
+    mv: null, mvT: 0, mvY0: 0, mvX0: 0, mvRoll: 0, mvGiro: 0, mvSteep: 0, mvCobra: 0, mvFreno: 0, mvSeed: 0, mvTgt: 0, camPan: 0,
     // alabeo VIVO del control por ALABEO (cfg.control = 1), en radianes. Es el estado del avion:
   // plane.vx sale de aca, no al reves. Ver core/physics.js.
   bankA: 0,

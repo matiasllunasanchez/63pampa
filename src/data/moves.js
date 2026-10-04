@@ -112,6 +112,21 @@ export const MOVES = {
   // TONEL BARRIL: la O grande — se abre, sube, pasa boca arriba y vuelve. Trayectoria cerrada,
   // asi que tampoco se controla: corregirla la dejaria de cerrar.
   barrel: { dur: 1.4, name: 'TONEL BARRIL', steer: null, fire: true, turbo: false, tight: true },
+  // LA COBRA: EL FRENO (pedido del autor 4/10/2026, con la foto de un F-22: "el unico freno que me
+  // sirve es tirar la trompa para arriba hasta que quede mirando un poco hacia atras, y prender las
+  // turbinas para hacer potencia para el lado contrario"). La trompa pasa la vertical, la panza se
+  // planta contra el aire y el avion pierde velocidad de golpe sin perder altura — la Cobra de
+  // Pugachev. Un A-4 de verdad no podia (hace falta empuje vectorial): el juego manda (ver
+  // docs/historia/PREGUNTAS_HISTORICAS.md). Se pide con la tecla de FRENO ([G] / L2), no con un combo:
+  // un freno que hay que tipear no es un freno. `legado`: no la apaga la perilla de maniobras — es un
+  // control, como el tonel. Sin disparo (mirando al cielo) ni turbo (el empuje ya va todo al freno).
+  cobra: { dur: 1.4, name: 'COBRA', steer: null, fire: false, turbo: false, tight: false, legado: true },
+  // EL DERRAPE: el freno DE COSTADO (pedido del autor 4/10: "como el zigzag de un esquiador que frena
+  // y salpica nieve — lo mismo con agua"). Canto a un lado, canto al otro: en cada canto frena (la
+  // mitad que la cobra) y, pegado al agua, levanta un abanico. Se pide con FRENO + una direccion: el
+  // primer canto va hacia ese lado. Deja disparar (vas mirando adelante), no el turbo.
+  // dur = CANTOS·T_TRAMO + (CANTOS−1)·T_GIRO + T_FINAL de DERRAPE (data/tuning.js): 3·0,5 + 2·0,24 + 0,16
+  derrape: { dur: 2.14, name: 'DERRAPE', steer: null, fire: true, turbo: false, tight: true, legado: true },
 };
 
 /** ¿La maniobra activa encoge el perfil de colision? (la consultan collision y el overlay) */

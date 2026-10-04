@@ -37,7 +37,12 @@ CELULAS = ('sky', 'a4q', 'dagger', 'supere', 'pampa', 'mirage')
 CAPAS = ('tanques_ala', 'bombas_ala', 'tanque_centro', 'bomba_centro')
 VISTAS = {  # vista -> (filas, lado del cuadro, sufijo, simetrizar)
     'base': (3, 84, '', True), 'empinada': (2, 84, '2', True), 'ras': (3, 168, '3', False),
+    # LA COBRA (4/10): 40/75/100° de cabeceo, cuadro de 126 (x1,5: vertical, el avion mide su largo)
+    'cobra': (3, 126, '4', True),
 }
+# `VISTAS=cobra .venv-art/bin/python3 armar_juego.py`: arma SOLO esas vistas (las anclas de las otras
+# se leen de lo que ya escribio la ultima armada completa — ver escribir_anclas)
+if os.environ.get('VISTAS'): VISTAS = {k: v for k, v in VISTAS.items() if k in os.environ['VISTAS'].split(',')}
 
 def hoja(carpeta, filas, fw, sim):
     A.FW, A.FILAS = fw, filas
@@ -110,7 +115,19 @@ def anclas(h, fw, filas, tips):
         perfil.append([0, 0] if hi < 0 else [round((lo - fh / 2) / fh, 3), round((hi - fh / 2) / fh, 3)])
     return dict(tips=tips, tob=tob, box=box, perfil=perfil, alto=alto)
 
-def escribir_anclas(B, R):
+def anclas_previas():
+    """Las anclas que ya estan escritas, para armar solo algunas vistas sin perder las otras."""
+    import re
+    src = open(os.path.join(RAIZ, 'src', 'data', 'anclas_horno.js')).read()
+    out = {}
+    for vista in ('base', 'ras', 'cobra'):
+        m = re.search(r'\n  %s: *\{ tips: (\[.*?\]), tob: (\[.*?\]), box: (\[.*?\]), perfil: (\[.*?\]), alto: ([0-9.]+) \},' % vista, src, re.S)
+        if m:
+            j = lambda t: json.loads(re.sub(r',\s*\]', ']', t))
+            out[vista] = dict(tips=j(m.group(1)), tob=j(m.group(2)), box=j(m.group(3)), perfil=j(m.group(4)), alto=float(m.group(5)))
+    return out
+
+def escribir_anclas(B, R, C=None):
     js = lambda v: json.dumps(v, separators=(',', ':'))
     tabla = lambda t: '[\n' + ''.join('  ' + js(f) + ',\n' for f in t) + ']'
     linea = lambda M: '{ tips: %s, tob: %s, box: %s, perfil: %s, alto: %s }' % (tabla(M['tips']), tabla(M['tob']), tabla(M['box']), js(M['perfil']), M['alto'])
@@ -132,13 +149,13 @@ def escribir_anclas(B, R):
 //   alto                                     cuanto ocupa el avion en vertical en el frame nivelado.
 export const HORNO = {
   base: %s,
-  ras:  %s,
+  ras:  %s,%s
 };
-""" % (linea(B), linea(R)))
+""" % (linea(B), linea(R), ('\n  cobra: %s,' % linea(C)) if C else ''))
 
 if __name__ == '__main__':
     archivar_three()
-    medidas = {}
+    medidas = anclas_previas()
     for clave, (carpeta, base) in DESTINO.items():
         dest = os.path.join(PLANES, carpeta)
         for vista, (filas, fw, suf, sim) in VISTAS.items():
@@ -148,9 +165,9 @@ if __name__ == '__main__':
                 for capa in CAPAS:
                     c = hoja(os.path.join(OUT, clave, 'capas', '%s_%s' % (capa, vista)), filas, fw, sim)
                     con_contorno(c, filas, fw).save(os.path.join(dest, 'carga_%s%s.png' % (capa, suf)))
-            if clave == 'sky' and vista in ('base', 'ras'):
+            if clave == 'sky' and vista in ('base', 'ras', 'cobra'):
                 tips = json.load(open(os.path.join(OUT, clave, vista, 'tips.json')))['tips']
                 medidas[vista] = anclas(h, fw, filas, tips)
         print('OK', clave)
-    escribir_anclas(medidas['base'], medidas['ras'])
+    escribir_anclas(medidas['base'], medidas['ras'], medidas.get('cobra'))
     print('ANCLAS -> src/data/anclas_horno.js  (base alto %s · ras alto %s)' % (medidas['base']['alto'], medidas['ras']['alto']))

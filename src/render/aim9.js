@@ -26,6 +26,7 @@ import { velAire } from '../core/aim9.js';
 import { AIM9 } from '../data/tuning.js';
 import * as blastArt from './blast.js';
 import { drawBorde } from './borde.js';
+import { luzNoche } from './noche.js';
 
 const HOJA = { src: '../assets/ammo/aim9.png', img: new Image(), ready: false };
 HOJA.img.onload = () => { HOJA.ready = true; };
@@ -213,6 +214,8 @@ export function drawAim9(m) {
   if (m.fase === 'estallido') { drawEstallido(m); return; }
   estela(m);
   const s = proj(m.x, m.y, m.z), k = s.k;
+  // DE NOCHE EL MOTOR ILUMINA (render/noche.js): el misil se ve venir por su luz
+  luzNoche(ctx, s.x, s.y, 8 + k * 2, [255, 120, 60], 0.8);
   const caja = CAJA * k;
   const { col, rot, th } = pose(m);
   // la cola del misil: donde sale la llama, medio largo atras de su centro sobre el eje proyectado

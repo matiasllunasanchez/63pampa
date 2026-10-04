@@ -11,6 +11,7 @@
 // El render no importa sistemas: todo llega por parametro (`sw` es `seawolf.snapshot()`).
 import { ctx, px } from './ctx.js';
 import { proj } from '../core/fx.js';
+import { luzNoche } from './noche.js';
 import { run } from '../core/run.js';
 import { zVista } from '../core/blanco.js';
 import { BL } from '../data/blanco.js';
@@ -107,6 +108,7 @@ export function drawMisilSW(m) {
   const cat = m.def === 'cat', SEAWOLF_COL = colDefensa(m.def);
   const P3 = (x, y, z) => proj(x, y, zVista(z));
   const s = P3(m.x, m.y, m.z), k = s.k;
+  luzNoche(ctx, s.x, s.y, 8 + k * 2, cat ? [255, 150, 80] : [230, 235, 255], 0.75);   // de noche, el motor ilumina
   ctx.save();
   const tr = (m.tr || []).filter(p => p.z > 3);
   if (tr.length) {

@@ -26,7 +26,7 @@ import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
 import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE, GEO_ISLA_IMPACTO,
          GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
-         FUEL_RATE, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE, RAS_GASTO_F } from '../data/tuning.js';
+         FUEL_RATE, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE, RAS_GASTO_F, COBRA } from '../data/tuning.js';
 // LAS FASES (PLAN_MISION_CINCO_FASES §11). Se LEEN, nunca se escriben, igual que los tramos en el
 // sembrador: `fsVal` contesta lo que rige a esta altura del vuelo y cae al valor de siempre cuando
 // la mision no declara fases — que es como se cumple la regla suprema (sin fases, este archivo se
@@ -169,7 +169,12 @@ export function flightSystem(dt, deps) {
   const colgado = naftaSys.colgadoAhora(deps.climax === 'suelta' ? run.msl : bombasDe(cfg.carga),
     bombaInfo(blanco.bomba).kg);
   const velC = colgado ? naftaSys.velCarga(colgado) : 1;
-  const spdTarget = speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: run.boost, afterTier: run.afterTier }) * av.spd * velC;
+  // LA COBRA (el freno, systems/moves.js) tambien baja el OBJETIVO mientras la panza esta plantada:
+  // el freno de la maniobra solo era una fuerza, y con el arrastre rapido (sin ENERGIA) el crucero se
+  // la comia en el acto — medido, frenaba 13%. Con el objetivo abajo frena igual con los dos modelos.
+  // (y EL DERRAPE, el freno de costado: cada maniobra de freno escribe `mvFreno` ya con su corte)
+  const cobraF = run.mv ? 1 - run.mvFreno : 1;
+  const spdTarget = speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: run.boost, afterTier: run.afterTier }) * av.spd * velC * cobraF;
   // lo que la carga y las averias le sacan a tu velocidad, a la vista de la PERSECUCION: el lider
   // vuela en el mismo cielo con la misma carga, y sin esto con bombas colgadas lo perdias siempre
   run.factorVel = av.spd * velC;

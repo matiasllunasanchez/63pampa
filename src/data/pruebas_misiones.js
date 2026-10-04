@@ -318,7 +318,10 @@ const t18 = {
 const noche = cfg => ({ ...cfg, sky: 'night' });
 const t19 = { ...t15, id: 't19', name: 'IDA Y VUELTA NOCHE', cfg: noche(t15.cfg) };
 const t20 = { ...t17, id: 't20', name: 'IDA Y VUELTA SMALL NOCHE', cfg: noche(t17.cfg) };
+// t21 · CON LUNA (4/10: "haria una prueba CON y SIN luna"): la SMALL con luna desde el despegue. La de
+// arriba es la SIN luna (la ida; la vuelta ya sale con luna por CIELO_VUELTA).
+const t21 = { ...t17, id: 't21', name: 'IDA Y VUELTA SMALL LUNA', cfg: { ...t17.cfg, sky: 'moon' } };
 
 /** Las misiones que NO son la campaña. `game.js` las concatena a `MISSIONS` para resolver una
  *  mision por id o por indice; nada que recorra la campaña las mira. */
-export const MISIONES_PRUEBA = [t15, t16, t17, t18, t19, t20];
+export const MISIONES_PRUEBA = [t15, t16, t17, t18, t19, t20, t21];

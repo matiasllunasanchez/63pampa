@@ -11,7 +11,10 @@ from concurrent.futures import ThreadPoolExecutor
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 BLENDER = '/Applications/Blender.app/Contents/MacOS/Blender'
-VISTAS = ('base', 'empinada', 'ras')
+VISTAS = ('base', 'empinada', 'ras', 'cobra')
+# `VISTAS=cobra python3 hornear_todo.py`: hornea SOLO esas vistas (la cobra se sumo el 4/10 y no hacia
+# falta rehornear las otras tres para estrenarla)
+if os.environ.get('VISTAS'): VISTAS = tuple(os.environ['VISTAS'].split(','))
 CAPAS = ('tanques_ala', 'bombas_ala', 'tanque_centro', 'bomba_centro')
 CELULAS = ('sky', 'a4q', 'dagger', 'supere', 'pampa', 'mirage')   # las que llevan capas de carga
 TODAS = CELULAS + ('skin_tero', 'skin_puma', 'skin_gitano', 'skin_pichon', 'skin_vasco')
