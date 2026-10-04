@@ -41,7 +41,8 @@ export const COL_TIERRA = PASOS;
  *  dos es la silueta de la espalda, y alcanza: a 12 px no se lee otra cosa. */
 export const FILA_BERGEN = 1;
 /** Fila 2 = EL CONSCRIPTO ARGENTINO (4/10/2026): casco M1, verde oliva liso, flaco y mas petiso —
- *  pibes de 18 años. Horneada y lista; todavia no hay quien la pida en el juego. */
+ *  pibes de 18 años. Son PROPIOS: no se los ataca. Estan en la base, al costado de la pista del
+ *  despegue (render/world.js, drawBaseVeg): tendidos en sus posiciones y alguno corriendo. */
 export const FILA_ARGENTINO = 2;
 
 // SUAVIZADO al achicar. La celda viene a 24 px y en juego el soldado mide 8-20: es una reduccion
@@ -76,4 +77,10 @@ export function drawRunBack(ctx, x, y, k, ph, dir, bergen) {
 /** Soldado cuerpo a tierra. */
 export function drawProne(ctx, x, y, k, dir, bergen) {
   celda(ctx, COL_TIERRA, bergen ? FILA_BERGEN : 0, x, y, k, dir);
+}
+
+/** EL CONSCRIPTO ARGENTINO (fila 2): corriendo (fase `ph`) o, con `tendido`, cuerpo a tierra. */
+export function drawArgentino(ctx, x, y, k, ph, dir, tendido) {
+  const col = tendido ? COL_TIERRA : ((ph | 0) % PASOS + PASOS) % PASOS;
+  celda(ctx, col, FILA_ARGENTINO, x, y, k, dir);
 }

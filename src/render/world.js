@@ -8,6 +8,7 @@
 import { ctx, px, pxFino, W, H, HOR, F, PZ } from './ctx.js';
 import { theme, applyTheme } from './theme.js';
 import * as veg from './vegetacion.js';
+import * as soldierArt from './soldiers.js';
 import { cam, cfg, S, plane } from '../core/state.js';
 import { run } from '../core/run.js';
 import { wake, obstacles, soldiers } from '../core/world.js';
@@ -275,7 +276,21 @@ function drawBaseVeg(dv) {
       const s = proj(jx, gy, jz - dv);
       if (s.x < -10 || s.x > W + 10 || s.y < HOR) continue;
       ctx.globalAlpha = Math.min(1, camZ / 8) * Math.max(0.35, 1 - camZ / 170);
-      if (h1 > 0.975) veg.piedras(s.x, s.y, k * 2.0, h2);
+      // LOS CONSCRIPTOS (4/10, pedido del autor: usar la fila argentina): la guarnicion de la base.
+      // Cerca de la pista, raros; la mayoria tendidos en su posicion mirando hacia afuera, y alguno
+      // trotando en el lugar de la celda, de un lado a otro (va y viene: nunca aparece de la nada).
+      if (h1 > 0.972 && Math.abs(wx) < R.hw + 30 && soldierArt.isReady()) {
+        const dir = wx < 0 ? -1 : 1;
+        if (h2 < 0.7) soldierArt.drawArgentino(ctx, s.x, s.y, s.k, 0, dir, true);
+        else {
+          const T = 6 + h3 * 4, f = ((run.t + h2 * 40) % (2 * T)) / T, ida = f < 1;
+          const u = ida ? f : 2 - f, ox = (u - 0.5) * SP * 1.6;
+          const r = proj(jx + ox, gy, jz - dv);
+          soldierArt.drawArgentino(ctx, r.x, r.y, r.k, run.t * 9 + h3 * 6, ida ? 1 : -1, false);
+        }
+        continue;
+      }
+      if (h1 > 0.962) veg.piedras(s.x, s.y, k * 2.0, h2);
       else if (h1 > 0.93) veg.mata(s.x, s.y, k * 2.3, h2, theme.land.tuft);
       else if (k > 2.5) {
         const ci = (h3 * TUFTS.length) | 0;
