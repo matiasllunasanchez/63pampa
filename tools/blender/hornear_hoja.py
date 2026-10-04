@@ -97,26 +97,39 @@ def construir(fuente, T):
     tipo, nombre = fuente.split(':', 1)
     if tipo == 'puente':
         return modelo_puente(nombre, T)
-    mod = _cargar('modelos_enemigos_bl', 'modelos_enemigos.py')
     K = dict(mat_cel=H.mat_cel, mat_cel_nodo=H.mat_cel_nodo, mat_emisivo=H.mat_emisivo, lin=H.lin,
-             perilla=H.perilla, mezcla=H.mezcla, ocultar_si=H.ocultar_si, controles=bool(GUARDAR))
+             perilla=H.perilla, mezcla=H.mezcla, ocultar_si=H.ocultar_si, controles=bool(GUARDAR),
+             translucido=translucido)
     nom, *args = nombre.split(':')
-    return getattr(mod, nom)(T, K, *args)
+    # los modelos hechos en Blender: los aviones enemigos (modelos_enemigos.py) y los helicopteros
+    # (modelos_helos.py)
+    for archivo in ('modelos_enemigos.py', 'modelos_helos.py'):
+        mod = _cargar(archivo[:-3] + '_bl', archivo)
+        if hasattr(mod, nom): return getattr(mod, nom)(T, K, *args)
+    raise KeyError('no hay modelo de Blender que se llame ' + nom)
 
 # ---------------- la camara del horno de enemigos ----------------
 def camara(T):
     """makeCam de bake_enemies.html: (0, 2.0, dist) inclinada `elev` grados por DEBAJO del objeto
     (girando sobre el, la distancia se conserva), mirando a (0, lookY, 0), con el fov VERTICAL de la
     hoja tal cual (sin `ref`: el aspecto del cuadro es el de siempre)."""
-    e = math.radians(S.get('elev', 0)); d = S['dist']
+    e = math.radians(S.get('elev', 0)); d = S.get('dist', 0)
+    # `pos` (las PARTES y la MUNICION): la camara fija de su horneador, tal cual
     cam = dict(fov=S.get('fov', 24), ref=S['fw'] / S['fh'],
-               pos=(0, 2.0 * math.cos(e) - d * math.sin(e), d * math.cos(e)),
+               pos=S.get('pos') or (0, 2.0 * math.cos(e) - d * math.sin(e), d * math.cos(e)),
                lookY=S.get('lookY', 0.2))
     return H.camara(T, cam)
 
 def posar(raiz, fr):
     """Las tres capas de rotacion del horno de three, de adentro hacia afuera: el volteo hacia la
     camara (baseYaw + quarter), el ALABEO sobre su eje y el YAW por fuera."""
+    if 'rots' in fr:
+        # LAS PARTES Y LA MUNICION no se dan vuelta hacia la camara: sus horneadores encadenan sus
+        # propios giros (de afuera hacia adentro, como los grupos de three)
+        m = Matrix.Identity(4)
+        for eje, ang in fr['rots']: m = m @ Matrix.Rotation(ang, 4, eje)
+        raiz.matrix_basis = m
+        return
     base = S.get('baseYaw', math.pi) + S.get('quarter', 0)
     raiz.matrix_basis = (Matrix.Rotation(fr.get('yaw', 0), 4, 'Y') @ Matrix.Rotation(fr.get('roll', 0), 4, 'Z')
                          @ Matrix.Rotation(base, 4, 'Y'))
@@ -137,7 +150,9 @@ def puntos(cam_T):
     return out
 
 if __name__ == '__main__':
-    H.FW, H.FH = S['fw'], S['fh']
+    # `--escala N`: el mismo encuadre N veces mas grande (para mirar el MODELO, no la hoja)
+    esc = int(H.arg('--escala', '1'))
+    H.FW, H.FH = S['fw'] * esc, S['fh'] * esc
     sc = H.limpiar()
     T = H.vacio_tres()
     camara(T)

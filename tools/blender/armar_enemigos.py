@@ -39,7 +39,9 @@ def hoja(k):
     for i in range(n):
         h.paste(Image.open(os.path.join(OUT, k, 'f_%d.png' % i)).convert('RGBA'), ((i % cols) * fw, (i // cols) * fh))
     A.FW, A.FH = fw, fh
-    return A.contorno(h, lineas=True)
+    # `contorno=False` (la municion): a 16-32 px el cuerpo de un misil mide 1-2 px y es TODO borde —
+    # el contorno lo oscurecia entero y el misil blanco salia gris
+    return A.contorno(h, lineas=True) if S.get('contorno', True) else h
 
 def medir(h, fw, fh):
     """BAKE.medir de tools/bake_common.js: la caja del contenido en la UNION de las poses."""
@@ -71,12 +73,27 @@ def escribir_cajas(cajas):
     cuerpo = '\n'.join(linea_js(k, limpio[k]) for k in sorted(limpio))
     open(CAJAS_JS, 'w').write(cabecera + 'export const CAJAS = {\n' + cuerpo + '\n};\n')
 
+def destino(k):
+    """Donde vive la hoja en el juego, y donde queda la de three.js. Las de enemigos van en
+    assets/world/enemies/; las que declaran `destino` (las partes, la municion), ahi."""
+    d = HOJAS[k].get('destino')
+    nueva = os.path.join(RAIZ, d) if d else os.path.join(ENEM, k + '.png')
+    return nueva, os.path.join(os.path.dirname(nueva), 'three', os.path.basename(nueva))
+
 def archivar(claves, cajas):
     """La PRIMERA vez de cada hoja: la de three.js a three/ (git mv) y su caja a cajas_three.js."""
     tres = os.path.join(ENEM, 'three')
     os.makedirs(tres, exist_ok=True)
     viejas = leer_three()
     for k in claves:
+        if not HOJAS[k].get('cajas', True):
+            # sin caja: la marca de "ya archivada" es que exista la de three
+            nueva, vieja = destino(k)
+            if not os.path.exists(vieja):
+                os.makedirs(os.path.dirname(vieja), exist_ok=True)
+                subprocess.run(['git', 'mv', nueva, vieja], cwd=RAIZ, check=True)
+                print('archivado en three/:', k)
+            continue
         if k in viejas: continue
         subprocess.run(['git', 'mv', os.path.join(ENEM, k + '.png'), os.path.join(tres, k + '.png')], cwd=RAIZ, check=True)
         viejas[k] = cajas[k]
@@ -109,15 +126,18 @@ if __name__ == '__main__':
     for k in claves:
         S = HOJAS[k]
         h = hoja(k)
-        h.save(os.path.join(ENEM, k + '.png'))
+        nueva, vieja = destino(k)
+        h.save(nueva)
+        paneles += [(k + ' — HOY (three.js)', Image.open(vieja).convert('RGBA')), (k + ' — BLENDER', h)]
+        if not S.get('cajas', True):
+            print('OK %s -> %s' % (k, os.path.relpath(nueva, RAIZ)))
+            continue
         c = medir(h, S['fw'], S['fh'])
         p = json.load(open(os.path.join(OUT, k, 'puntos.json')))['puntos']
         if p: c['puntos'] = p
         cajas[k] = c
         aviso = '  ⚠ MARGEN %d px (el plan pide 2)' % c['margen'] if c['margen'] < 2 else ''
         print('OK %s: box %s · margen %d%s' % (k, c['box'], c['margen'], aviso))
-        paneles += [(k + ' — HOY (three.js)', Image.open(os.path.join(ENEM, 'three', k + '.png')).convert('RGBA')),
-                    (k + ' — BLENDER', h)]
     escribir_cajas(cajas)
     if arg('--lamina'):
         A.lamina(paneles, os.path.join(AQUI, arg('--lamina')), esc=int(arg('--esc', '2')))

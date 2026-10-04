@@ -13,7 +13,9 @@ app.whenReady().then(async () => {
   await win.loadFile(path.join(__dirname, 'bake_ammo.html'));
   try {
     const sheets = await win.webContents.executeJavaScript('__bake()');
-    const dir = path.join(ROOT, 'assets', 'ammo');
+    // DESDE EL 4/10/2026 LAS HOJAS DEL JUEGO LAS HORNEA BLENDER (tools/blender/, fase 5): este horno
+    // escribe las suyas en ammo/three/, las que el juego usa con `?horno=three` (src/data/horno.js).
+    const dir = path.join(ROOT, 'assets', 'ammo', 'three');
     fs.mkdirSync(dir, { recursive: true });
     for (const key in sheets) {
       const b64 = sheets[key].split('base64,')[1];

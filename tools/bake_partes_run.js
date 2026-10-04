@@ -11,7 +11,9 @@ const path = require('path');
 const fs = require('fs');
 
 const ROOT = path.join(__dirname, '..');
-const DEST = path.join(ROOT, 'assets', 'world', 'explosions', 'partes.png');
+// DESDE EL 4/10/2026 LA HOJA DEL JUEGO LA HORNEA BLENDER (tools/blender/, fase 5): este horno escribe
+// la suya en explosions/three/, la que el juego usa con `?horno=three` (src/data/horno.js).
+const DEST = path.join(ROOT, 'assets', 'world', 'explosions', 'three', 'partes.png');
 
 app.whenReady().then(async () => {
   const win = new BrowserWindow({ width: 800, height: 600, show: false });

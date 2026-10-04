@@ -170,6 +170,9 @@ export function flightSystem(dt, deps) {
     bombaInfo(blanco.bomba).kg);
   const velC = colgado ? naftaSys.velCarga(colgado) : 1;
   const spdTarget = speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: run.boost, afterTier: run.afterTier }) * av.spd * velC;
+  // lo que la carga y las averias le sacan a tu velocidad, a la vista de la PERSECUCION: el lider
+  // vuela en el mismo cielo con la misma carga, y sin esto con bombas colgadas lo perdias siempre
+  run.factorVel = av.spd * velC;
   // CUANTO ACELERA EL TURBO (PLAN_NAFTA_ALCANCE §3.2): la velocidad con turbo contra la misma sin
   // turbo ni after. Es lo que la nafta cobra — 1.5 el turbo de siempre, mas con el after apilado —
   // y solo eso: la velocidad que sube sola con la racha no se paga.

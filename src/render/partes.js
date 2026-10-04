@@ -13,10 +13,12 @@
 // siempre. Es la regla de la casa — ninguna pieza depende de que un PNG exista.
 
 import { P } from '../data/palette.js';
+import { HORNO_VIEJO } from '../data/horno.js';
 
 const SRC = '../assets/world/explosions/partes.png';
 export const sheet = new Image();
-sheet.src = SRC;
+// EL HORNO DE BLENDER (fase 5): la de three.js quedo en explosions/three/ (`?horno=three`, data/horno.js)
+sheet.src = HORNO_VIEJO ? SRC.replace('/explosions/', '/explosions/three/') : SRC;
 export const isReady = () => sheet.complete && sheet.naturalWidth > 0;
 
 export const FW = 48, FH = 48;

@@ -63,7 +63,7 @@ import { pilotName } from './squad.js';
 import { alMando } from '../core/squad.js';
 import { FLY_X, FLY_TOP } from '../data/tuning.js';
 import {
-  PURS_D, PURS_D0, PURS_V_F, PURS_V_AMP, PURS_V_T,
+  PURS_D, PURS_D0, PURS_V_F, PURS_V_AMP, PURS_V_T, PURS_V_INERCIA,
   PURS_SAFE, PURS_LOOK, PURS_AGIL,
   PURS_GRACE, PURS_WASH_D, PURS_WASH_SHAKE, PURS_CHOQUE_D, PURS_AVISO_T, PURS_PTS_S,
   PURS_TIGHT_D, PURS_TIGHT_F, PURS_TIGHT_MIN, PURS_ROTA_D,
@@ -114,6 +114,7 @@ export function startPersec(opts = {}) {
     tirF: 0,                    // 0 esperando · 1 avisado · 2 quemando
     tirOk: true,                // ¿aguantaste EN BANDA todo el tiron? (el premio es todo o nada)
     cierre: 0,                  // u/s a las que te acercas (>0) o te alejas (<0), suavizado
+    v: null,                    // SU velocidad, con inercia (PURS_V_INERCIA): null = arranca a tu par
   };
   return true;
 }
@@ -135,9 +136,14 @@ export function resetPersec() { L = null; }
  *
  *  Encima, los dos senos: el patron se puede ANTICIPAR, que es distinto de adivinar. */
 function velocidad(t) {
+  // REVISADO (4/10, medido en Node): la referencia era rasLevel 0 y mult 1, y volar abajo —lo que el
+  // juego paga— te daba +10% fijo, +12% por escalon de racha encima, SIN FRENO: te lo comias si o
+  // si. Ahora el lider vuela como si fuera pegado al agua (mult 10) y con TU racha, asi que abajo
+  // vas a su par y arriba te descolgas — la tesis se mantiene, sin castigarte por hacerla. Y con tu
+  // carga y tus averias (`run.factorVel`), que con bombas colgadas lo perdias siempre.
   const nominal = speedTarget({
-    t: run.t, rasLevel: 0, mult: 1, windF: run.windF, boost: false, afterTier: 0,
-  });
+    t: run.t, rasLevel: run.rasLevel, mult: 10, windF: run.windF, boost: false, afterTier: 0,
+  }) * (run.factorVel || 1);
   const respiro = Math.sin(t / PURS_V_T[0] * 6.283) * 0.65 + Math.sin(t / PURS_V_T[1] * 6.283) * 0.35;
   // EL TIRON multiplica encima de todo lo demas: el respiro sigue corriendo abajo, asi que dos
   // tirones no se sienten calcados aunque duren lo mismo.
@@ -224,7 +230,12 @@ export function persecSystem(dt) {
   // LA DISTANCIA ES LA DIFERENCIA DE VELOCIDADES, y no hay mas modelo que ese. Si el lider va mas
   // rapido se aleja; si vos vas mas rapido, se acerca. Es lo que hace que el modo se juegue con el
   // acelerador y no con el timon — el §4 lo dice con todas las letras.
-  const v = velocidad(L.t);
+  // SU VELOCIDAD TIENE INERCIA, la misma que la tuya (ver PURS_V_INERCIA): un avion no frena 30% en
+  // un cuadro, y si el lider pudiera y vos no, el final de cada tiron era un choque garantizado.
+  const vt = velocidad(L.t);
+  if (L.v === null) L.v = vt;
+  L.v += (vt - L.v) * Math.min(1, dt * PURS_V_INERCIA);
+  const v = L.v;
   L.d += (v - run.spd) * dt;
   // EL CIERRE (N5): la misma resta, pero SUAVIZADA y guardada para que el HUD la pueda mostrar. Es
   // la lectura anticipada del modo — ver «EL CIERRE» en data/tuning.js.
@@ -394,7 +405,7 @@ export function snapshot() {
 /** El estado del lider, en JSON. Lo lee el fixture. */
 export function dbgPersec() {
   return JSON.stringify(L ? {
-    nombre: L.nombre, d: +L.d.toFixed(1), v: +velocidad(L.t).toFixed(1),
+    nombre: L.nombre, d: +L.d.toFixed(1), v: +(L.v ?? velocidad(L.t)).toFixed(1),
     lo: L.lo, hi: L.hi, dentro: L.d >= L.lo && L.d <= L.hi,
     fuera: +L.fuera.toFixed(2), gracia: PURS_GRACE, segs: +L.banda.toFixed(1),   // segundos acumulados DENTRO de banda
     x: +L.x.toFixed(1), y: +L.y.toFixed(1), z: +L.z.toFixed(1),

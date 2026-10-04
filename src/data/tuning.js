@@ -1318,6 +1318,13 @@ export const PURS_V_AMP = 0.16;     // cuanto respira alrededor: +-16%. Es lo qu
 // pero tampoco es ruido — se puede ANTICIPAR, que es distinto de adivinar. Con un solo seno el
 // lider se vuelve un metronomo a los 20 segundos.
 export const PURS_V_T = [7.3, 3.1];
+// LA INERCIA DEL LIDER (4/10, revision de jugabilidad). Su velocidad iba al objetivo AL INSTANTE y
+// la tuya no: con la energia puesta tu velocidad se arrastra al objetivo a 0.7/s (ENERGY_DRAG en
+// core/physics.js). Medido en Node: al terminar un tiron el lider caia 30% en un cuadro mientras vos
+// seguias a 1.5x tres segundos mas, y te lo comias. Hasta un jugador que anticipa mirando la flecha
+// del cierre chocaba a los 20-45 s. Con la MISMA inercia que vos, el que anticipa aguanta 3 min en
+// banda y el que reacciona tarde lo pierde entre 25 y 80 s — que es la curva de habilidad del modo.
+export const PURS_V_INERCIA = 0.7;
 // EL CARRIL RESERVADO. El §4 pide que el spawner CONOZCA su linea: nada de lo que siembra la cruza.
 // Se implementa como un corredor propio — el lider reclama una franja y el sembrador la respeta.
 export const PURS_SAFE = 9;         // semiancho del carril reservado del lider (el avion mide ~4)

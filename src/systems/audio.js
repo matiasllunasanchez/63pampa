@@ -110,6 +110,12 @@ export function sfxOne(key, vol) {
   return true;
 }
 
+/** Corta en seco un one-shot que este sonando (todas sus variantes y copias del pool). */
+export function sfxStop(key) {
+  const d = sfxSrc(key); if (!d) return;
+  for (const rel of d.f) { const pool = sfxPool[rel]; if (pool) pool.a.forEach(a => { if (a && !a.paused) a.pause(); }); }
+}
+
 // FUNDIDO de entrada/salida de un one-shot (`fi`/`fo` del catalogo, en segundos).
 // Un sample cortado en seco salta de silencio a amplitud plena en una muestra: eso NO es el ataque
 // del sonido, es un CLIC, y se escucha por encima del efecto. Igual del otro lado al terminar.
@@ -144,11 +150,18 @@ function sfxLoop(key) {
   return (sfxLoopA[key] = a);
 }
 let engAltT = 0;   // temporizador del crossfade normal↔normal2
+// LA DESCARGA DE LA METRALLA (autor, 4/10). Se detecta por FLANCO, aca y no en el sistema de armas,
+// porque es puro sonido: cada vez que la metralla DEJA de tirar —soltaste el boton o se recalento—
+// suena la descarga; cada vez que vuelve a tirar, la descarga se corta en seco y entra la rafaga
+// (el loop `gun`) de una, a su volumen, sin el fundido de entrada de los loops. (Hubo una CARGA al
+// apretar, antes de la rafaga: el autor la saco el mismo dia.)
+let tirabaPrev = false;
 // `w` es un snapshot de solo lectura del mundo. Antes esto leia 7 variables del closure de
 // game.js; pasarlas explicitas deja el modulo probable por si solo y sin dependencias ocultas.
 export function updateSfx(dt, w) {
   for (const k of SFX_LOOP_KEYS) sfxTgt[k] = 0;
   const flying = w.state === 'play' || w.state === 'takeoff';
+  if (!flying) tirabaPrev = false;   // fuera de vuelo no hay rafaga que soltar (la descarga no suena al volver)
   if (!muted) {
     if (flying && w.plane) {
       // motor: crossfade lento entre las dos tomas de crucero
@@ -161,7 +174,15 @@ export function updateSfx(dt, w) {
       // apaga: motor y agua. Que el agua SUBA mientras todo lo demas baja es lo que hace que el
       // silencio no se lea como que se rompio el sonido — se lee como que te acercaste al mar.
       if (w.state === 'play' && w.plane.y <= BANDA_ALT) sfxTgt.waterNear = SFX_DEF.waterNear.v * (rasOn ? RAS_AGUA : 1);
-      if (w.state === 'play' && w.firing && !w.overheat) sfxTgt.gun = SFX_DEF.gun.v;       // metralla
+      const tirando = w.state === 'play' && w.firing && !w.overheat;
+      if (tirando) {
+        sfxTgt.gun = SFX_DEF.gun.v;                                       // metralla
+        if (!tirabaPrev) {                                                // APRETASTE: corta la descarga y entra la rafaga ya
+          sfxStop('descarga');
+          const g = sfxLoop('gun'); if (g) g.volume = SFX_DEF.gun.v * SFX_MASTER;
+        }
+      } else if (tirabaPrev) sfxOne('descarga');                          // SOLTASTE (o se recalento)
+      tirabaPrev = tirando;
       // AMBIENTE POR CONTEXTO DEL MAPA — y con el poder puesto, NADA. La tormenta, la batalla y el
       // viento son el MUNDO, y el mundo es justo lo que el poder apaga: quedan el motor y el agua,
       // que son el avion. Se saltea el bloque entero en vez de bajarle el volumen a cada capa para

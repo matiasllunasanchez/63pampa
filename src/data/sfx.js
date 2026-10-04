@@ -10,6 +10,10 @@ export const SFXB = '../assets/sfx/';
 export const SFX_DEF = {
   // armas
   gun: { f: ['ammo/machinegun_slow.mp3'], v: 0.65, loop: true },      // metralla: loop mientras disparas (+30%)
+  // LA DESCARGA de la metralla (autor, 4/10): suena cada vez que deja de tirar (soltaste o se
+  // recalento) y se corta al volver a apretar — ver systems/audio.js. (ammo/carga.mp3 queda en
+  // disco: hubo una carga al apretar y el autor la saco.)
+  descarga: { f: ['ammo/descarga2.mov'], v: 0.55 },
   // misiles: +30% de volumen y arranca 1s adentro del sample (offset) para que el impacto suene
   // antes, sin la entrada lenta del archivo.
   msl: { f: ['ammo/misil.mp3', 'ammo/misil2.wav'], v: 0.91, offset: 1 },

@@ -276,7 +276,9 @@ app.whenReady().then(async () => {
   await shot('n5_a_aviso');
   const vAntes = t1 ? t1.v : 0;
   await js('__pstiron(2)');
-  await sleep(300);
+  // 1.5 s y no 0.3: desde el 4/10 la velocidad del lider tiene INERCIA (PURS_V_INERCIA, la misma que
+  // la tuya), asi que el tiron arranca en rampa — a los 0.3 s todavia no se despego
+  await sleep(1500);
   const t2 = await L();
   if (!t2) bad('el lider se perdio durante el tiron');
   else if (t2.tir !== 2) bad(`no llego a quemar (fase ${t2.tir})`);

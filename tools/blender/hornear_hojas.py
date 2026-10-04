@@ -21,7 +21,15 @@ FAMILIA = {'modelHelo': 'enemies', 'modelHercules': 'enemies', 'modelJet': 'enem
            'seaKing': 'helos', 'wessex': 'helos', 'seaLynx': 'helos', 'gazelle': 'helos', 'scout': 'helos',
            'harrier': 'harrier', 'harrierRear': 'harrier',
            't42': 'buques', 't21': 'buques', 'log': 'buques', 'cv': 'buques', 'hundido': 'buques',
-           'modelFragata': 'enemies', 'modelLcu': 'enemies'}
+           'modelFragata': 'enemies', 'modelLcu': 'enemies',
+           'modelRadar': 'enemies', 'modelAATruck': 'enemies', 'modelBalloon': 'enemies', 'modelAA': 'enemies',
+           'modelManpad': 'enemies', 'modelTent': 'enemies', 'modelDepot': 'enemies', 'modelBldg': 'enemies',
+           'bomba': 'ammo', 'misil': 'ammo', 'aim9': 'ammo'}
+# los RESTOS (tools/models/restos.js) y las PARTES (tools/models/partes.js) van por prefijo
+def familia(nom):
+    if nom.startswith('resto'): return 'restos'
+    if nom.startswith('parte-'): return 'partes'
+    return FAMILIA[nom]
 
 def puente(hojas):
     pedidos = set()
@@ -30,7 +38,8 @@ def puente(hojas):
             tipo, nombre = fr['modelo'].split(':', 1)
             if tipo != 'puente': continue
             nom, *args = nombre.split('_')
-            pedidos.add(':'.join([FAMILIA[nom], nom] + args))
+            fam = familia(nom)
+            pedidos.add(':'.join([fam, nom[6:] if fam == 'partes' else nom] + args))
     if pedidos:
         subprocess.run(['npx', 'electron', 'tools/blender/exportar_run.js'] + sorted(pedidos), cwd=RAIZ, check=True,
                        stdout=subprocess.DEVNULL)

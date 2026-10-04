@@ -17,6 +17,7 @@
 //     radio — el duelo mudo no te grita, y ahi el misil tiene que decirlo solo.
 //
 // El render no manda: lee el misil como lo dejo el sistema (convencion 4).
+import { HORNO_VIEJO } from '../data/horno.js';
 import { ctx, px } from './ctx.js';
 import { proj } from '../core/fx.js';
 import { cam } from '../core/state.js';
@@ -27,7 +28,8 @@ import * as blastArt from './blast.js';
 
 const HOJA = { src: '../assets/ammo/aim9.png', img: new Image(), ready: false };
 HOJA.img.onload = () => { HOJA.ready = true; };
-HOJA.img.src = HOJA.src;
+// EL HORNO DE BLENDER (fase 5): la de three.js quedo en ammo/three/ (`?horno=three`, data/horno.js)
+HOJA.img.src = HORNO_VIEJO ? HOJA.src.replace('/ammo/', '/ammo/three/') : HOJA.src;
 const lista = () => HOJA.ready && HOJA.img.naturalWidth > 0;
 
 // LA GRILLA DE LA HOJA: la MISMA de tools/bake_ammo.html (AIM9_VISTAS). 0° = de cola, 180° = de

@@ -9,9 +9,13 @@
   <script src="../bake_common.js"></script>
   <script src="../models/planes.js"></script>
   <script src="../models/enemies.js"></script>
+  <script src="../models/soldiers.js"></script>
   <script src="../models/helos.js"></script>
   <script src="../models/harrier.js"></script>
   <script src="../models/buques.js"></script>
+  <script src="../models/restos.js"></script>
+  <script src="../models/partes.js"></script>
+  <script src="../models/ammo.js"></script>
   <script>
     'use strict';
     const MODELS = BAKE.familia('planes');
@@ -22,8 +26,11 @@
     /** CUALQUIER MODELO DEL HORNO (fase 2, los enemigos): `familia` es el catalogo
      *  (tools/models/<familia>.js), `nombre` su constructor y `args` lo que recibe (la fase del
      *  rotor de los helicopteros). */
-    window.__exportarModelo = (familia, nombre, args) =>
-      volcar(nombre, BAKE.familia(familia)[nombre](...(args || [])));
+    window.__exportarModelo = (familia, nombre, args) => {
+      // las PARTES del despiece no devuelven un grupo: se arman ADENTRO del que reciben
+      if (familia === 'partes') { const g = new THREE.Group(); BAKE.familia(familia)[nombre](g); return volcar(nombre, g); }
+      return volcar(nombre, BAKE.familia(familia)[nombre](...(args || [])));
+    };
     function volcar(key, root) {
       root.updateMatrixWorld(true);
       const piezas = [];

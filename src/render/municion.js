@@ -14,11 +14,13 @@
 // SIEMPRE HAY PLAN B. Si la hoja no cargo —build web sin el asset, primer cuadro antes del
 // onload— `lista()` da false y quien dibuja cae a su receta de rectangulos. Es la misma regla que
 // la cabina y las hojas de aviones: un asset que falta nunca deja un agujero en la pantalla.
+import { HORNO_VIEJO } from '../data/horno.js';
 import { ctx } from './ctx.js';
 
 const HOJA = { src: '../assets/ammo/municion.png', img: new Image(), ready: false };
 HOJA.img.onload = () => { HOJA.ready = true; };
-HOJA.img.src = HOJA.src;
+// EL HORNO DE BLENDER (fase 5): la de three.js quedo en ammo/three/ (`?horno=three`, data/horno.js)
+HOJA.img.src = HORNO_VIEJO ? HOJA.src.replace('/ammo/', '/ammo/three/') : HOJA.src;
 
 const FW = 16, FH = 16, VISTAS = 6;
 export const BOMBA = 0, MISIL = 1;

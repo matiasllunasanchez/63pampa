@@ -47,6 +47,9 @@ export const ZOOMS = [1, 2, 3];
 let zoom = 2;
 /** Cuanto se sale la luz del juego por cada lado en el FICHIN, en fraccion del juego. */
 const LUZ_SALE = 0.22;
+/** …salvo ARRIBA, donde casi no sale (autor, 4/10): ahi el tubo tiene encima el marco del monitor, y
+ *  la luz que subia lo teñia en una franja ancha por encima del logo, que no se alineaba con nada. */
+const LUZ_ARRIBA = 0.03;
 
 let reloj = null, fondo = 'negro', observado = false;
 
@@ -138,9 +141,9 @@ function calzarFichin() {
   // de mas por lado, que es hasta donde llega a teñir el marco del monitor
   const a = document.getElementById('ambiente');
   if (a) {
-    const mx = r.width * LUZ_SALE, my = r.height * LUZ_SALE;
-    a.style.left = (r.left - mx) + 'px'; a.style.top = (r.top - my) + 'px';
-    a.style.width = (r.width + mx * 2) + 'px'; a.style.height = (r.height + my * 2) + 'px';
+    const mx = r.width * LUZ_SALE, my = r.height * LUZ_SALE, arriba = r.height * LUZ_ARRIBA;
+    a.style.left = (r.left - mx) + 'px'; a.style.top = (r.top - arriba) + 'px';
+    a.style.width = (r.width + mx * 2) + 'px'; a.style.height = (r.height + arriba + my) + 'px';
   }
 }
 

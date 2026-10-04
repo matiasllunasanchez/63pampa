@@ -22,7 +22,8 @@ app.whenReady().then(async () => { try {
       const json = await win.webContents.executeJavaScript(
         `__exportarModelo(${JSON.stringify(fam)}, ${JSON.stringify(nombre)}, ${JSON.stringify(args.map(a => isNaN(+a) ? a : +a))})`);
       fs.mkdirSync(path.join(OUT, 'puente'), { recursive: true });
-      fs.writeFileSync(path.join(OUT, 'puente', [nombre, ...args].join('_') + '.json'), json);
+      // las partes van con prefijo: sus nombres (`cola`, `motor`...) chocarian con otros modelos
+      fs.writeFileSync(path.join(OUT, 'puente', (fam === 'partes' ? 'parte-' : '') + [nombre, ...args].join('_') + '.json'), json);
       console.log('OK', k, (json.length / 1024).toFixed(0) + ' KB');
       continue;
     }

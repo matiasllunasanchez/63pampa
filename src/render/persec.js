@@ -20,6 +20,7 @@ import { P } from '../data/palette.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
 import { PURS_WASH_D, PURS_F_MIN } from '../data/tuning.js';
 import { PLANE_SCALE } from './plane.js';
+import { drawBorde } from './borde.js';
 import { snapshot } from '../systems/persec.js';
 
 /** Un cuadro del lider. Va en la capa del MUNDO (antes del avion del jugador): siempre esta mas
@@ -72,6 +73,8 @@ export function drawPersec(selPlane) {
     const w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
     ctx.drawImage(pl.sheetImg, col * SHEET_FW, SHEET_FH, SHEET_FW, SHEET_FH,
       s.x - w / 2, s.y - h / 2, w, h);
+    // la luz de borde, igual que tu avion y el escuadron: es el mismo A-4 y tiene que verse igual
+    drawBorde(ctx, pl.sheetImg, col * SHEET_FW, SHEET_FH, SHEET_FW, SHEET_FH, s.x - w / 2, s.y - h / 2, w, h);
   } else if (pl.ready) {
     const w = 76 * PLANE_SCALE * f, h = w * pl.h / pl.w;
     ctx.drawImage(pl.img, s.x - w / 2, s.y - h / 2, w, h);
