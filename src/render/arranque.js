@@ -61,9 +61,10 @@ let activo = false;
 /** ¿Esta corriendo? Mientras si, el mando no le llega al juego (core/input.js). */
 export const arranqueActivo = () => activo;
 
-/** Corre la secuencia. `alPrender` (el tubo), `alFicha` (la moneda) y `alTerminar` (ya se ve la
+/** Corre la secuencia. `alPrender` (el tubo), `alCargado` (termino la carga del BIOS: aparece
+ *  INSERTE FICHA, o se salto directo al aviso), `alFicha` (la moneda) y `alTerminar` (ya se ve la
  *  portada) son los ganchos de sonido y musica de game.js. */
-export function arrancar({ alPrender, alFicha, alTerminar } = {}) {
+export function arrancar({ alPrender, alCargado, alFicha, alTerminar } = {}) {
   const b = typeof document !== 'undefined' && document.body, stage = cv && cv.parentElement;
   const bios = b && document.getElementById('bios');
   const deVerdad = typeof window !== 'undefined' && (window.RASANTE_APP || /[?&]intro\b/.test(location.search));
@@ -80,7 +81,11 @@ export function arrancar({ alPrender, alFicha, alTerminar } = {}) {
   // EL RELOJ: `fase` y el momento en que empezo, en segundos de pared
   const ahora = () => performance.now() / 1000;
   let fase = 'espera', desde = ahora(), prendido = false, ficha = false, padPrev = true;
-  const pasarA = f => { fase = f; desde = ahora(); };
+  let cargado = false;
+  const pasarA = f => {
+    fase = f; desde = ahora();
+    if ((f === 'ficha' || f === 'aviso') && !cargado) { cargado = true; if (alCargado) alCargado(); }
+  };
   const relojes = [];
   const despues = (s, fn) => relojes.push(setTimeout(fn, s * 1000));
 

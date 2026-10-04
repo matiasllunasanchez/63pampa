@@ -199,7 +199,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // …y el GABINETE ENTERO hasta la ficha: al echarla, la camara se acerca a como se juega
     // (render/ambiente.js). Tambien al terminar, por si el arranque se salteo (pruebas, sin ?intro).
     fichinEntero();
-    arrancar({ alPrender: sonidoTubo,
+    arrancar({ alPrender: sonidoTubo, alCargado: () => sfxOne('insertCoin'),
       alFicha: () => { sonidoFicha(); acercarFichin(); },
       alTerminar: () => { retenerMusica(false); acercarFichin(); } });
 
