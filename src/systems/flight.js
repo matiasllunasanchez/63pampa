@@ -60,7 +60,7 @@ import * as agu from './aguante.js';
 import { AGU } from '../core/aguante.js';
 // BOOST_LIFT y CAM_PAN se mudaron a systems/vuelo.js con la camara que los usa.
 import { multOf } from '../core/util.js';
-import { movesSystem, mvAllowsFire, mvAllowsTurbo, mvLegado } from './moves.js';
+import { movesSystem, mvAllowsFire, mvAllowsTurbo, mvLegado, derrapeLead } from './moves.js';
 import { stepVuelo, estelaVuelo } from './vuelo.js';
 import * as zigzag from './zigzag.js';
 import { enPared, enBarrera, paredCara, pared as paredCfg } from '../core/zigzag.js';
@@ -389,7 +389,8 @@ export function flightSystem(dt, deps) {
     // EL ZIGZAG (PLAN_PASILLO_ZIGZAG Z2). Los dos valen 0 con el pasillo recto, que es lo que
     // hace que `npm run feel` de identico — la misma mecanica que `ras`, que devuelve null.
     deriva: zigzag.derivaZigzag(),
-    lead: zigzag.leadZigzag(),
+    // …y EL DERRAPE afloja el seguimiento lateral para que el cruce se vea (systems/moves.js)
+    lead: zigzag.leadZigzag() + derrapeLead(),
     // EL CALLEJON CORRE EL TOPE hasta la roca: sin esto el avion se frena en FLY_X, que esta
     // MAS ADENTRO que la cara de la ladera, y la pared no se puede chocar (medido: el avion
     // clavado en 38 con la roca empezando en 42). Null sin paredes.

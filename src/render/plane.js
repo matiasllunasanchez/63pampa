@@ -29,7 +29,7 @@ import { ALA_PX, ROCIADA_ABRE, ROCIADA_BAJA, ROCIADA_RAS_ABRE, ROCIADA_ALT,
          CORTINA_ABRE, CORTINA_ANCHO, CORTINA_BAJA, CORTINA_RAS_ABRE, CORTINA_N, CORTINA_ALT,
          ROCIADA_TURBO, CORTINA_TURBO,
          ROCIADA_VERTICE, ROCIADA_FILAS, ROCIADA_REVUELTO, ROCIADA_REVUELTO_V,
-         ROCIADA_RAS_CORTE, AVERIA_TAMBALEO, PIQUE } from '../data/tuning.js';
+         ROCIADA_RAS_CORTE, AVERIA_TAMBALEO, PIQUE, DERRAPE } from '../data/tuning.js';
 import { skinOf } from '../data/skins.js';
 import { alMando } from '../core/squad.js';
 import { pilotName, rosterActive } from '../systems/squad.js';
@@ -751,6 +751,42 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
         px(sh.x - 7, sh.y - 4, 14, 2, P.foam);
       }
     }
+  }
+  // EL ABANICO DEL DERRAPE (4/10, "el derrape de una moto de agua con ese efecto"). Mientras patina
+  // de costado (systems/moves.js escribe `run.derrapeAgua` y contra que borde esta la cola, `mvLado`),
+  // el casco tira el agua HACIA ADELANTE y HACIA ADENTRO — hacia donde ya apunta la trompa, en el
+  // borde derecho adelante y a la izquierda (el autor, 4/10: "debe acompañar, tirar agua hacia
+  // adelante y hacia la izquierda"). Son chorros parabolicos en el MUNDO, relativos al avion, y se
+  // proyectan: asi "adelante" se va hacia el horizonte achicandose y el abanico viaja CON el avion.
+  // Va dibujado y no en particulas porque tiene que leerse como UNA pared; las gotas sueltas si son
+  // particulas (las tira el mismo derrape).
+  const dA = run.mv === 'derrape' ? run.derrapeAgua || 0 : 0;
+  if (dA > 0.03 && S.state === 'play') {
+    const haciaX = -(run.mvLado || 1);                       // hacia el centro: donde mira la trompa
+    const G = DERRAPE.ABANICO_G, NS = 13, NP = 14, cuadro = Math.floor(run.t * 24);
+    const hash = (a, b) => { const h = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return h - Math.floor(h); };
+    for (let i = 0; i < NS; i++) {
+      const f = i / (NS - 1);
+      const az = 0.25 + f * 1.05;                            // de casi de costado (14°) a casi derecho adelante (75°)
+      const el = 0.55 + 0.4 * hash(i, 2);                    // cuanto sube cada chorro
+      const vS = DERRAPE.ABANICO_V * (0.8 + 0.4 * hash(i, 1) + 0.15 * hash(i, cuadro)) * (0.45 + dA);
+      const vh = Math.cos(el) * vS, vy = Math.sin(el) * vS, T = 2 * vy / G;
+      for (let j = 1; j <= NP; j++) {
+        const tt = j / NP, t = tt * T;
+        const h = vy * t - 0.5 * G * t * t;
+        if (h < 0) break;                                    // ya cayo al agua
+        const q = proj(plane.x + haciaX * Math.cos(az) * vh * t, h, zP - 0.4 + Math.sin(az) * vh * t);
+        const u = q.k / 9.6, r = hash(i * 31 + j, cuadro);
+        const w = Math.max(1, (4 - 2.6 * tt) * u * (0.6 + dA) * (0.7 + 0.6 * r));
+        ctx.globalAlpha = dA * (0.95 - 0.7 * tt) * (0.7 + 0.3 * r);
+        px(q.x - w / 2, q.y - w / 2, w, Math.max(1, w * 0.8), tt < 0.3 ? '#f4fbff' : r < 0.5 ? P.crest : P.foam);
+      }
+    }
+    // la raiz: el agua apilada contra el casco, maciza, del lado hacia donde sale
+    const u0 = sh.k / 9.6;
+    ctx.globalAlpha = Math.min(1, dA * 1.3);
+    px(sh.x - (haciaX < 0 ? 10 * u0 : 0), sh.y - 1 - 3 * u0, 10 * u0, 3 * u0, '#f4fbff');
+    px(sh.x - (haciaX < 0 ? 14 * u0 : 0), sh.y - 2, 14 * u0, 2, P.foam);
   }
   ctx.globalAlpha = 1;
 

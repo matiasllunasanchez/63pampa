@@ -125,8 +125,9 @@ export const MOVES = {
   // y salpica nieve — lo mismo con agua"). Canto a un lado, canto al otro: en cada canto frena (la
   // mitad que la cobra) y, pegado al agua, levanta un abanico. Se pide con FRENO + una direccion: el
   // primer canto va hacia ese lado. Deja disparar (vas mirando adelante), no el turbo.
-  // dur = CANTOS·T_TRAMO + (CANTOS−1)·T_GIRO + T_FINAL de DERRAPE (data/tuning.js): 3·0,5 + 2·0,24 + 0,16
-  derrape: { dur: 2.14, name: 'DERRAPE', steer: null, fire: true, turbo: false, tight: true, legado: true },
+  // Desde el 4/10 es LA MOTO DE AGUA: fisica de costado (DERRAPE en data/tuning.js), asi que dura lo que
+  // tarda en patinar sus CANTOS (~2,7 s desde el centro) y TERMINA SOLA; `dur` es solo el tope.
+  derrape: { dur: 3.4, name: 'DERRAPE', steer: null, fire: true, turbo: false, tight: true, legado: true },
 };
 
 /** ¿La maniobra activa encoge el perfil de colision? (la consultan collision y el overlay) */

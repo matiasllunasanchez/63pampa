@@ -57,7 +57,7 @@ export function startMove(id, dir, tgt, act) {
   if (B === plane && !cfg.moves && !MOVES[id].legado) return false;
   if (E.mv || E.rollCd > 0) return false;
   const M = MOVES[id]; if (!M) return false;
-  E.mv = id; E.mvT = 0; E.mvDir = dir || 1; E.mvY0 = B.y; E.mvX0 = B.x; E.mvTgt = tgt || 0;
+  E.mv = id; E.mvT = 0; E.mvDir = dir || 1; E.mvY0 = B.y; E.mvX0 = B.x; E.mvTgt = tgt || 0; E.mvFase = '';
   // EL PICO DE NAFTA (PLAN_MISION_CINCO_FASES §3: "si no cuestan, el jugador vuela haciendo
   // toneles"). Va ACA, en el unico lugar por donde entran TODAS las piruetas —el tonel legado
   // incluido, que llega por `startMove('tonel')`—, asi que no hay forma de estrenar una maniobra
@@ -109,8 +109,25 @@ export function stepCobraCam(dt) {
   camV += ((obj - camDz) * COBRA.K - camV * COBRA.AMORT) * dt;
   camDz += camV * dt;
   if (Math.abs(camDz) < 0.01 && Math.abs(camV) < 0.01 && !run.mv) camDz = camV = 0;
+  stepDerrapeCam(dt);
 }
 export const cobraDz = () => camDz;
+
+// LA CAMARA SE QUEDA QUIETA EN EL DERRAPE (4/10). En vuelo la camara persigue 0,86 de la x del avion
+// (systems/vuelo.js), y con eso los cruces de borde a borde casi no se veian: corria el MUNDO, no el
+// avion. Mientras dura el derrape sigue solo DERRAPE.CAM_SIGUE, asi la moto de agua cruza la pantalla
+// de punta a punta; entra y sale suave (CAM_RATE) para que la vuelta al encuadre no sea un salto.
+let camLib = 0;
+function stepDerrapeCam(dt) {
+  camLib += ((run.mv === 'derrape' ? 1 : 0) - camLib) * Math.min(1, dt * DERRAPE.CAM_RATE);
+  if (camLib < 0.002 && run.mv !== 'derrape') camLib = 0;
+}
+/** lo que se corre el objetivo de la camara (se suma al `lead` del vuelo): de 0,86·x a CAM_SIGUE·x.
+ *  Mas la ANTICIPACION: la camara persigue con un lerp de 7/s (systems/vuelo.js), y a 150 u/s eso la
+ *  deja ~16 u atras — medido en captura, el avion se iba contra el borde de la pantalla y el abanico
+ *  quedaba afuera. Sumarle vx/7 al objetivo cancela ese atraso solo mientras dura el derrape. */
+export const derrapeLead = () => camLib
+  ? (plane.x * (DERRAPE.CAM_SIGUE - 0.86) + plane.vx * DERRAPE.CAM_SIGUE / 7) * camLib : 0;
 
 // perfil suave 0→1→0 (campana) — la base de los empujes que entran y salen con peso
 const bell = p => Math.sin(Math.PI * Math.max(0, Math.min(1, p)));
@@ -203,98 +220,82 @@ export function movesSystem(dt, inp, act) {
       break;
     }
     case 'derrape': {
-      // EL ESQUIADOR (autor, 4/10: "es SUPER LENTO… es rapido en la bajada, en la curva frena un poco,
-      // luego sigue, frena cuando gira… entre zig y zag que cubra TODO el ancho del pasillo y en el
-      // extremo final haga el freno chico"). Antes era un seno de velocidad lateral: ~8 unidades por
-      // canto en un pasillo de 76, con el freno repartido parejo — se leia como flotar de costado.
-      //
-      // Ahora son TRAMOS y GIROS, como una bajada de esqui:
-      //   TRAMO  cruza el pasillo de borde a borde (el primero, desde donde estabas hasta el borde del
-      //          lado pedido). Sale lanzado y llega al borde frenando un poco: la posicion sigue una
-      //          curva que arranca rapida y se aplasta al final. Va inclinado hacia donde va, sin freno.
-      //   GIRO   en el borde: de canto, la trompa a medias (la pose de la cobra), FRENA la velocidad y
-      //          levanta el abanico; despues sale para el otro lado. El ultimo giro es el FRENO CHICO.
-      // La posicion la manda la maniobra (vx = lo que falta para llegar), y flight.js la integra con
-      // su tope de siempre en FLY_X.
+      // LA MOTO DE AGUA (autor, 4/10: "que se comporte como una moto de agua al ras del mar… el derrape
+      // de una moto de agua con ese efecto"). Lo de antes eran posiciones suavizadas: llegaba al borde
+      // ya frenado y recien ahi ponia la pose — quieto, sin patinar. Una moto de agua dobla CON la
+      // velocidad encima: tira la cola para afuera, la trompa ya mira para el otro lado y el casco SIGUE
+      // DE COSTADO por la inercia, frenando contra el agua y tirandola en abanico; cuando se le acaba
+      // el patinazo ya esta saliendo disparada para el otro lado. Por eso aca manda la velocidad
+      // lateral, no la posicion (DERRAPE en data/tuning.js cuenta las tres fases).
       const D = DERRAPE, X = FLY_X * D.BORDE;
-      // en que tramo/giro estamos, contando el ultimo giro mas corto
-      let t = E.mvT, k = 0, fase = 'tramo', u = 0;
-      for (k = 0; k < D.CANTOS; k++) {
-        if (t < D.T_TRAMO) { fase = 'tramo'; u = t / D.T_TRAMO; break; }
-        t -= D.T_TRAMO;
-        const tg = k === D.CANTOS - 1 ? D.T_FINAL : D.T_GIRO;
-        if (t < tg) { fase = 'giro'; u = t / tg; break; }
-        t -= tg;
-      }
-      if (k >= D.CANTOS) { k = D.CANTOS - 1; fase = 'giro'; u = 1; }
-      const hacia = dir * (k % 2 === 0 ? 1 : -1);              // el borde al que va este tramo
-      const desde = k === 0 ? E.mvX0 : -hacia * X;
-      // LA POSE DEL BORDE (autor, 4/10): llegando al borde el avion se planta EN DIAGONAL — la trompa
-      // levantada como la cobra pero no tanto (la fila de 40°) y girada hacia el CENTRO DE ARRIBA de la
-      // pantalla, la turbina pegada abajo contra el borde. Al salir para el otro lado se ENDEREZA de a
-      // poco hacia el centro. `pose` es cuanto de eso hay (0..1) y `bordePose` de que lado; el giro en
-      // pantalla es contra el borde (en el derecho, antihorario: la trompa mira a la izquierda).
-      const ss = v => { const c = Math.max(0, Math.min(1, v)); return c * c * (3 - 2 * c); };
-      let xObj, canto, pose = 0, bordePose = hacia, alabeo = 0;
-      if (fase === 'tramo') {
-        // rapida al salir, se aplasta al llegar: el "freno un poco" antes de la curva
-        const e = 1 - Math.pow(1 - u, D.LLEGADA);
-        xObj = desde + (hacia * X - desde) * e;
-        canto = 0;
-        E.mvFreno = 0;
-        // EL CRUCE, en cuatro tiempos (autor, 4/10: "hace la animacion de girar hacia la derecha, antes
-        // de llegar se pone derecho y dobla bruscamente a la izquierda levantando la trompa… luego se
-        // vuelve a enderezar la trompa hacia adelante y vuelve al estado inicial"):
-        //   1. sale del borde anterior bajando la trompa (la pose se suelta)
-        //   2. se INCLINA hacia donde va —el alabeo de la hoja— y cruza inclinado
-        //   3. antes de llegar se ENDEREZA
-        //   4. y en el borde DOBLA DE GOLPE contra el, levantando la trompa: la cobra en diagonal
-        const sale = k > 0 ? 1 - ss(u / D.SUELTA) : 0;
-        const inclina = ss((u - D.INCLINA_DESDE) / D.INCLINA) * (1 - ss((u - D.ENDEREZA_DESDE) / D.ENDEREZA));
-        const llega = ss((u - D.DOBLA_DESDE) / (1 - D.DOBLA_DESDE));
-        if (sale > llega) { pose = sale; bordePose = -hacia; } else pose = llega;
-        alabeo = hacia * D.BANK_CRUCE * inclina;
+      if (!E.mvFase) { E.mvFase = 'carva'; E.mvCanto = 0; E.mvPose = 0; E.mvLado = dir; }
+      const hacia = dir * (E.mvCanto % 2 === 0 ? 1 : -1);      // el borde al que va
+      const falta = (hacia * X - B.x) * hacia;                  // lo que le queda hasta ese borde (u)
+      const v = B.vx * hacia;                                    // lo que va hacia ese borde (u/s)
+      const patina = v > 0 ? v * v / (2 * D.DESACEL) : 0;       // lo que correria de costado si dobla ya
+      const acerca = (a, b, r) => a + (b - a) * Math.min(1, r * dt);
+      let poseObj = 0, bankObj = 0, canto = 0;
+      if (E.mvFase === 'carva') {
+        // acelera hacia el borde inclinado hacia donde va; justo antes de doblar se pone DERECHO
+        B.vx = Math.max(-D.VMAX, Math.min(D.VMAX, B.vx + hacia * D.ACEL * dt));
+        bankObj = falta - patina < D.ENDEREZA_U ? 0 : hacia * D.BANK_CRUCE;
+        // DOBLA cuando lo que patinaria (ya con la velocidad de este cuadro) llega justo al borde
+        const v1 = B.vx * hacia;
+        if (v1 > 0 && v1 * v1 / (2 * D.DESACEL) >= falta) { E.mvFase = 'derrapa'; E.mvLado = hacia; }
+      } else if (E.mvFase === 'derrapa') {
+        // DE COSTADO: la cola contra el borde, la trompa al centro de arriba, y la inercia lo sigue
+        // llevando mientras el agua le come la velocidad lateral
+        poseObj = 1;
+        B.vx -= hacia * D.DESACEL * dt;
+        canto = Math.max(0, Math.min(1, v / D.VMAX));
+        if (B.vx * hacia <= 0) {                                 // se acabo el patinazo
+          E.mvCanto++;
+          E.mvFase = E.mvCanto >= D.CANTOS ? 'fin' : 'carva';    // …y ya sale para el otro lado
+        }
       } else {
-        // el giro: clavado en el borde, con un pasarse de nada (el esqui que patina antes de agarrar)
-        xObj = hacia * X * (1 + D.PATINA * Math.sin(u * Math.PI));
-        canto = Math.sin(u * Math.PI);                          // entra, frena a fondo, sale
-        const fin = k === D.CANTOS - 1;
-        // el ULTIMO giro suelta la pose al final (devuelve el control derecho); los otros la sostienen
-        pose = fin ? 1 - ss((u - 0.4) / 0.6) : 1;
-        E.spd *= Math.exp(-D.FRENO * canto * (fin ? D.FRENO_FINAL : 1) * dt);
-        E.mvFreno = D.CORTE * canto * (fin ? D.FRENO_FINAL : 1);
+        // EL FINAL: se queda del lado pedido, suelta la pose y devuelve el avion
+        B.vx *= Math.max(0, 1 - dt * 8);
+        if (E.mvPose < 0.04) E.mvT = M.dur;                      // termina (el cierre de abajo lo limpia)
       }
-      B.bank = alabeo;                                         // el alabeo del cruce; en la pose, alas parejas
+      E.mvPose = acerca(E.mvPose, poseObj, poseObj > E.mvPose ? D.ATAQUE : D.SUELTA);
+      B.bank = acerca(B.bank, bankObj, D.BANK_RATE);
       // EL GIRO ES DEL DIBUJO (`mvGiro`), no un rolido: con el horizonte giratorio, `mvRoll` lo toma el
       // MUNDO y el avion queda derecho — medido en captura, se inclinaba el horizonte y no el avion.
+      // Contra el borde derecho es antihorario: la trompa mira a la izquierda, la turbina abajo a la derecha.
       E.mvRoll = 0;
-      E.mvGiro = -bordePose * D.GIRA * pose;
-      E.mvCobra = D.COBRA * pose;
-      B.vx = Math.max(-D.VX_MAX, Math.min(D.VX_MAX, (xObj - B.x) / Math.max(dt, 1 / 240)));
+      E.mvGiro = -E.mvLado * D.GIRA * E.mvPose;
+      E.mvCobra = D.COBRA * E.mvPose;
+      // el patinazo frena el avance; el ultimo, el freno chico
+      const fin = E.mvCanto >= D.CANTOS - 1;
+      E.spd *= Math.exp(-D.FRENO * canto * (fin ? D.FRENO_FINAL : 1) * dt);
+      E.mvFreno = D.CORTE * canto * (fin ? D.FRENO_FINAL : 1);
       B.vy *= Math.max(0, 1 - dt * 6); B.pitch = 0;
       // UN PISO, como el del masking: el derrape es para hacerlo PEGADO AL AGUA (ahi salpica), y sin
       // control no se puede salir del roce — medido, a 2,3 las olas lo mataban en pleno zigzag. Lo
       // sostiene apenas arriba de la cresta; mas alto, no toca nada.
-      const piso = (geoActiva() ? !esTierraEn(B.x, run.dist + PZ) : cfg.terrain === 'sea') ? 2.8 : 2.2;
+      const agua = geoActiva() ? !esTierraEn(B.x, run.dist + PZ) : cfg.terrain === 'sea';
+      const piso = agua ? 2.8 : 2.2;
       if (B.y < piso) B.vy = Math.max(B.vy, (piso - B.y) * 6);
       if (B === plane) E.scrapeT = 0;
-      // EL ABANICO: en el GIRO, pegado al agua, el ala de abajo la levanta hacia AFUERA del canto, como
-      // el esqui la nieve. Gotas de pantalla (las mismas `parts` del roce), mas cuanto mas canto y mas bajo.
-      const lado = hacia;
-      if (B === plane && canto > 0.35 && B.y < D.SPRAY_ALT) {
-        const agua = geoActiva() ? !esTierraEn(B.x, run.dist + PZ) : cfg.terrain === 'sea';
-        const kk = canto * (1 - B.y / D.SPRAY_ALT);
-        const n = Math.round(D.SPRAY_N * kk + Math.random());
-        for (let i = 0; i < n; i++) {
-          const sp = proj(B.x + lado * (1.5 + Math.random() * 2.5), PIQUE.Y, PZ + (Math.random() - 0.3) * 2);
-          parts.push({
-            x: sp.x, y: sp.y,
-            vx: lado * (25 + Math.random() * 55) * (0.6 + kk), vy: -(35 + Math.random() * 60) * (0.5 + kk),
-            life: 0.35 + Math.random() * 0.35, r: Math.max(1, sp.k * 0.12),
-            c: agua ? (Math.random() < 0.6 ? '#d6e8e4' : '#9dbcb8') : (Math.random() < 0.5 ? '#6b5638' : '#8c7856'),
-            fondo: !agua,
-          });
-        }
+      // LAS GOTAS DEL ABANICO (el abanico lo dibuja render/plane.js): salen hacia ADELANTE y HACIA
+      // ADENTRO —hacia donde ya mira la trompa— y ACOMPAÑAN al avion: llevan entera su velocidad en
+      // pantalla, asi no quedan atras cuando sale disparado para el otro lado (el autor, 4/10).
+      // GORDAS y sin partir (`fino`): partidas en tres se perdian como polvo.
+      const kk = B.y < D.SPRAY_ALT ? canto * (1 - B.y / D.SPRAY_ALT) : 0;
+      if (B === plane) run.derrapeAgua = agua ? kk : 0;          // la estela lo marca como patinazo
+      if (B === plane && kk > 0.05) {
+        const adentro = -E.mvLado, f60 = dt * 60;
+        const sp0 = proj(B.x, 0, PZ);
+        const acompana = B.vx * sp0.k * (1 - D.CAM_SIGUE);
+        const color = () => agua ? (Math.random() < 0.45 ? '#f4fbff' : Math.random() < 0.6 ? P.foam : P.crest)
+          : (Math.random() < 0.5 ? '#6b5638' : '#8c7856');
+        const tira = (n, fn) => { for (let i = 0, m = Math.floor(n + Math.random()); i < m; i++) parts.push(fn()); };
+        tira(D.SPRAY_N * kk * f60, () => {
+          const sp = proj(B.x + adentro * Math.random() * 1.5, PIQUE.Y, PZ + Math.random() * 1.5);
+          return { x: sp.x, y: sp.y, vx: adentro * (20 + Math.random() * 80) * (0.5 + kk) + acompana,
+            vy: -(60 + Math.random() * 90) * (0.55 + 0.6 * kk), life: 0.5 + Math.random() * 0.4,
+            r: Math.max(2, sp.k * (0.2 + Math.random() * 0.12)), c: color(), fondo: !agua, fino: true };
+        });
       }
       break;
     }
@@ -429,6 +430,8 @@ export function movesSystem(dt, inp, act) {
 
   if (E.mvT >= M.dur) {                       // fin: devuelve el avion y arranca el cooldown
     E.mv = null; E.mvRoll = 0; E.mvGiro = 0; E.mvSteep = 0; E.mvCobra = 0; E.mvFreno = 0; E.rollCd = MV_CD;
+    E.mvFase = ''; E.mvPose = 0;
+    if (B === plane) run.derrapeAgua = 0;
     B.pitch = Math.max(-1, Math.min(1, B.pitch));
   }
 }
@@ -478,6 +481,7 @@ if (typeof window !== 'undefined') window.__mvdbg = () => {
 // una que existe para el jugador y no para el que mide.
 if (typeof window !== 'undefined') window.__mvreset = (y, spd) => {
   run.mv = null; run.mvT = 0; run.mvRoll = 0; run.mvGiro = 0; run.mvSteep = 0; run.mvCobra = 0; run.mvFreno = 0;
+  run.mvFase = ''; run.mvPose = 0; run.derrapeAgua = 0;
   run.rollCd = 0;
   plane.x = 0; plane.vx = 0; plane.vy = 0; plane.bank = 0; plane.pitch = 0;
   plane.y = y === undefined ? 24 : +y;

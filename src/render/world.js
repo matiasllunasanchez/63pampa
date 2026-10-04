@@ -1520,6 +1520,18 @@ export function drawWake() {
       ctx.globalAlpha = a * 0.7;
       px(s.x - s.k * 0.45 * wAnch, s.y - 1, Math.max(1, s.k * 0.9 * wAnch), 1, '#f2f7fb');
     }
+    // EL PATINAZO DEL DERRAPE (4/10): donde la moto de agua patino de costado el agua queda batida —
+    // la curva de la S que deja en el mar. Motas de espuma desparramadas por hash del seed (estables
+    // entre cuadros), no una barra: apiladas, las barras se leian como una escalera gris.
+    if (wp.d > 0.05) {
+      const ancho = s.k * (1.2 + 2.4 * wp.d) * (1 + age * 0.5), sd = wp.seed || 0;
+      const n = 3 + Math.round(4 * wp.d);
+      for (let i = 0; i < n; i++) {
+        const h = Math.sin(sd * 7.13 + i * 41.7) * 43758.5453, f = h - Math.floor(h);
+        ctx.globalAlpha = Math.min(0.9, 0.3 + wp.d * 0.6) * (1 - age * 0.75) * (0.55 + 0.45 * f);
+        px(s.x + (f * 2 - 1) * ancho, s.y + (i % 2), f > 0.7 ? 2 : 1, 1, f > 0.45 ? P.crest : P.foam);
+      }
+    }
     // BRAZOS de la V: cresta clara con espuma corrida un pixel abajo y afuera (le da relieve);
     // el dash se acorta al envejecer — la V se deshilacha en vez de seguir siendo un riel
     const alen = Math.max(1, s.k * (1.5 - age * 0.8));

@@ -189,7 +189,7 @@ export function estelaVuelo(dt, o) {
   // estela sobre el agua
   const lowI = Math.max(0, 1 - alt / ESTELA_ALT);
   if (lowI > 0 && !o.pista && !o.tierra) {
-    wake.push({ x: plane.x, z: PZ, i: lowI, seed: Math.random() * 100 });   // seed: motas estables
+    wake.push({ x: plane.x, z: PZ, i: lowI, seed: Math.random() * 100, d: run.derrapeAgua || 0 });   // seed: motas estables · d: patinazo del derrape
     if (wake.length > 150) wake.shift();
   }
   for (const wp of wake) wp.z -= run.spd * dt;

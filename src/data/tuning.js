@@ -1007,35 +1007,27 @@ export const COBRA = { SUBE: 0.3, BAJA: 0.72, FRENO: 0.75, SUBE_VY: 5,
   ACERCA: 4.8, K: 26, AMORT: 3.2 };   // medido en Node: se acerca ~6.3, al salir pasa ~1.6 adelante y vuelve en ~1 s
 
 // ---------- EL DERRAPE: el freno de costado (data/moves.js, systems/moves.js) ----------
-// El zigzag del esquiador que frena (pedido del autor 4/10): el avion se tira de canto a un lado y
-// despues al otro, y en cada canto frena y, si esta cerca del agua, la levanta en abanico. FRENO: 1/s
-// de caida con el canto pleno; CORTE: cuanto baja el objetivo de velocidad (mitad que la cobra:
-// "medio que frena"); VX: lo que se corre de costado en cada canto; SOBRE: alabeo de mas sobre el de
-// la hoja (rad); SPRAY_ALT: por debajo de esta altura salpica; SPRAY_N: gotas por cuadro con canto pleno.
-// COBRA: cuanto de la pose de la cobra toma con el canto pleno (<0.45 = la fila de 40°, la intermedia).
-// CANTOS: cuantos medios zigzags (3 = lado, contra, lado: termina corrido hacia el lado pedido, que es
-// el ESQUIVE); BANK: fraccion del alabeo de la hoja (0.75 = ±45°). El autor, 4/10: "ir frenando
-// haciendo zigzag, menos inclinacion, un freno medio con esquive".
-// EL ESQUIADOR (autor, 4/10: "SUPER LENTO… rapido en la bajada, en la curva frena un poco, frena cuando
-// gira… que cubra TODO el ancho del pasillo y en el extremo final el freno chico"): TRAMOS de borde a
-// borde y GIROS en cada borde (systems/moves.js). BORDE: hasta que fraccion de FLY_X llega; T_TRAMO,
-// T_GIRO y T_FINAL: segundos de cada cruce, de cada giro y del ultimo (el freno chico) — la duracion de
-// la maniobra en data/moves.js TIENE que ser CANTOS·T_TRAMO + (CANTOS−1)·T_GIRO + T_FINAL. LLEGADA:
-// cuanto se aplasta el cruce al llegar al borde (1 = parejo; mas = sale mas lanzado y llega frenando).
-// FRENO: 1/s de caida de la
-// velocidad con el canto pleno; FRENO_FINAL: el ultimo giro frena esa fraccion. PATINA: cuanto se pasa
-// del borde en el giro. VX_MAX: tope de la velocidad lateral (u/s).
-// LA POSE DEL BORDE (autor, 4/10): en cada borde el avion queda en diagonal — trompa levantada
-// (COBRA: <0.45 = la fila de 40° de la hoja 4) y girado GIRA radianes contra el borde, la trompa al centro
-// de arriba y la turbina abajo contra el borde.
-// EL CRUCE en fracciones del tramo: SUELTA, hasta donde baja la trompa del borde anterior; INCLINA_DESDE e
-// INCLINA, cuando y en cuanto se inclina hacia donde va (BANK_CRUCE: cuanto, de la hoja); ENDEREZA_DESDE
-// y ENDEREZA, cuando y en cuanto se endereza antes de llegar; DOBLA_DESDE, desde donde dobla de golpe
-// contra el borde (cuanto mas cerca de 1, mas brusco).
-export const DERRAPE = { CANTOS: 3, BORDE: 0.9, T_TRAMO: 0.5, T_GIRO: 0.24, T_FINAL: 0.16, LLEGADA: 1.8,
-  COBRA: 0.38, GIRA: 0.62, SUELTA: 0.2, INCLINA_DESDE: 0.15, INCLINA: 0.14, BANK_CRUCE: 0.7,
-  ENDEREZA_DESDE: 0.6, ENDEREZA: 0.14, DOBLA_DESDE: 0.84, FRENO: 1.1, FRENO_FINAL: 0.5, CORTE: 0.3,
-  PATINA: 0.04, VX_MAX: 260, SPRAY_ALT: 9, SPRAY_N: 6 };
+// LA MOTO DE AGUA (autor, 4/10: "que se comporte como una moto de agua al ras del mar, el derrape de
+// una moto de agua con ese efecto"). Reemplaza al esquiador de posiciones suavizadas, que llegaba al
+// borde frenado y ahi recien hacia la pose: quieto, no patinaba. Ahora es FISICA de costado:
+//   CARVA    acelera hacia el borde (ACEL, tope VMAX u/s), inclinado hacia donde va (BANK_CRUCE de la
+//            hoja); a ENDEREZA_U unidades de tener que derrapar se pone derecho.
+//   DERRAPA  cuando lo que patinaria (v²/2·DESACEL) alcanza lo que le falta al borde (BORDE·FLY_X),
+//            DOBLA DE GOLPE (la pose entra a ATAQUE 1/s): la cola contra el borde, la trompa al centro
+//            de arriba (GIRA rad en pantalla y COBRA de la hoja 4), y SIGUE DE COSTADO por la inercia
+//            mientras DESACEL se come la velocidad lateral — el patinazo. Ahi levanta el abanico.
+//   …y cuando la velocidad lateral se da vuelta, ya esta saliendo para el otro lado: la pose se
+//   suelta a SUELTA 1/s mientras acelera. CANTOS derrapes (3 = lado, contra, lado) y al final suelta.
+// FRENO: 1/s de caida de la velocidad de avance con el patinazo pleno (FRENO_FINAL: el ultimo, el freno
+// chico); CORTE: cuanto lee la camara-dron. CAM_SIGUE: cuanto de la x del avion sigue la camara durante
+// el derrape (el vuelo normal sigue 0,86 — con eso el cruce casi no se veia en pantalla), y CAM_RATE la
+// rapidez con que entra y sale. SPRAY_ALT: por debajo salpica; SPRAY_N: gotas sueltas por cuadro de 60 Hz
+// con el patinazo pleno. EL ABANICO (render/plane.js) va en el mundo, relativo al avion, hacia adelante y
+// hacia adentro: ABANICO_V, la velocidad de los chorros (u/s), y ABANICO_G, su gravedad (u/s²).
+export const DERRAPE = { CANTOS: 3, BORDE: 0.9, ACEL: 520, VMAX: 150, DESACEL: 420, BANK_CRUCE: 0.7,
+  BANK_RATE: 12, ENDEREZA_U: 14, ATAQUE: 20, SUELTA: 6, COBRA: 0.38, GIRA: 0.62,
+  FRENO: 1.1, FRENO_FINAL: 0.5, CORTE: 0.3, CAM_SIGUE: 0.75, CAM_RATE: 5,
+  SPRAY_ALT: 9, SPRAY_N: 9, ABANICO_V: 26, ABANICO_G: 60 };
 
 // ---------- EL RECIBIMIENTO (systems/recibe.js) ----------
 // Las ametralladoras del buque que te esperan y TE ERRAN (pedido del autor, 4/10). Pura decoracion:
