@@ -232,22 +232,28 @@ export function movesSystem(dt, inp, act) {
       const hacia = dir * (E.mvCanto % 2 === 0 ? 1 : -1);      // el borde al que va
       const falta = (hacia * X - B.x) * hacia;                  // lo que le queda hasta ese borde (u)
       const v = B.vx * hacia;                                    // lo que va hacia ese borde (u/s)
-      const patina = v > 0 ? v * v / (2 * D.DESACEL) : 0;       // lo que correria de costado si dobla ya
+      // lo que correria de costado si dobla ya, frenando contra el agua (DESACEL + ROCE·v)
+      const patinaDe = w => w > 0 ? w / D.ROCE - D.DESACEL / (D.ROCE * D.ROCE) * Math.log(1 + D.ROCE * w / D.DESACEL) : 0;
+      const patina = patinaDe(v);
       const acerca = (a, b, r) => a + (b - a) * Math.min(1, r * dt);
       let poseObj = 0, bankObj = 0, canto = 0;
       if (E.mvFase === 'carva') {
-        // acelera hacia el borde inclinado hacia donde va; justo antes de doblar se pone DERECHO
-        B.vx = Math.max(-D.VMAX, Math.min(D.VMAX, B.vx + hacia * D.ACEL * dt));
+        // acelera hacia el borde inclinado hacia donde va; justo antes de doblar se pone DERECHO.
+        // CADA ZIGZAG MAS LENTO que el anterior (autor, 4/10: "reduce velocidad entre zigzag y zigzag
+        // hasta reducir la velocidad"): el tope cae MENGUA por canto — va frenando de a escalones.
+        const vmax = D.VMAX * Math.pow(D.MENGUA, E.mvCanto);
+        B.vx = Math.max(-vmax, Math.min(vmax, B.vx + hacia * D.ACEL * dt));
         bankObj = falta - patina < D.ENDEREZA_U ? 0 : hacia * D.BANK_CRUCE;
         // DOBLA cuando lo que patinaria (ya con la velocidad de este cuadro) llega justo al borde
         const v1 = B.vx * hacia;
-        if (v1 > 0 && v1 * v1 / (2 * D.DESACEL) >= falta) { E.mvFase = 'derrapa'; E.mvLado = hacia; }
+        if (v1 > 0 && patinaDe(v1) >= falta) { E.mvFase = 'derrapa'; E.mvLado = hacia; }
       } else if (E.mvFase === 'derrapa') {
         // DE COSTADO: la cola contra el borde, la trompa al centro de arriba, y la inercia lo sigue
-        // llevando mientras el agua le come la velocidad lateral
+        // llevando mientras el agua le come la velocidad lateral: de golpe al principio y despues se
+        // arrastra despacio — el freno lento. `canto` va con la raiz para que el arrastre siga mojando.
         poseObj = 1;
-        B.vx -= hacia * D.DESACEL * dt;
-        canto = Math.max(0, Math.min(1, v / D.VMAX));
+        B.vx -= hacia * Math.min(Math.max(0, v), (D.DESACEL + D.ROCE * Math.max(0, v)) * dt);
+        canto = Math.sqrt(Math.max(0, Math.min(1, v / D.VMAX)));
         if (B.vx * hacia <= 0) {                                 // se acabo el patinazo
           E.mvCanto++;
           E.mvFase = E.mvCanto >= D.CANTOS ? 'fin' : 'carva';    // …y ya sale para el otro lado

@@ -1024,8 +1024,13 @@ export const COBRA = { SUBE: 0.3, BAJA: 0.72, FRENO: 0.75, SUBE_VY: 5,
 // rapidez con que entra y sale. SPRAY_ALT: por debajo salpica; SPRAY_N: gotas sueltas por cuadro de 60 Hz
 // con el patinazo pleno. EL ABANICO (render/plane.js) va en el mundo, relativo al avion, hacia adelante y
 // hacia adentro: ABANICO_V, la velocidad de los chorros (u/s), y ABANICO_G, su gravedad (u/s²).
-export const DERRAPE = { CANTOS: 3, BORDE: 0.9, ACEL: 520, VMAX: 150, DESACEL: 420, BANK_CRUCE: 0.7,
-  BANK_RATE: 12, ENDEREZA_U: 14, ATAQUE: 20, SUELTA: 6, COBRA: 0.38, GIRA: 0.62,
+// EL RITMO (autor, 4/10: "el zig zag debe ser rapido, y el frenado el lento… rapido y luego lento"):
+// el cruce es corto y violento (ACEL, VMAX) y el patinazo frena CONTRA EL AGUA — DESACEL fijo mas ROCE
+// proporcional a la velocidad: a fondo pierde casi todo de golpe y despues se arrastra despacio con la
+// pose puesta. Ese arrastre es "el lento". Lo que patina desde v: v/ROCE − DESACEL/ROCE²·ln(1+ROCE·v/DESACEL).
+// MENGUA: cada zigzag tiene ese tope de VMAX del anterior ("reduce velocidad entre zigzag y zigzag").
+export const DERRAPE = { CANTOS: 3, BORDE: 0.9, ACEL: 1400, VMAX: 240, DESACEL: 25, ROCE: 12, MENGUA: 0.72, BANK_CRUCE: 0.7,
+  BANK_RATE: 18, ENDEREZA_U: 14, ATAQUE: 20, SUELTA: 6, COBRA: 0.38, GIRA: 0.62,
   FRENO: 1.1, FRENO_FINAL: 0.5, CORTE: 0.3, CAM_SIGUE: 0.75, CAM_RATE: 5,
   SPRAY_ALT: 9, SPRAY_N: 9, ABANICO_V: 26, ABANICO_G: 60 };
 
