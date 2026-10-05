@@ -894,7 +894,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     : bank * 0.42 + wobT;
   // + lo que la SEÑA pide mas alla de la hoja (la panza), + el giro SOLO DEL DIBUJO de una maniobra
   // (`mvGiro`: la diagonal del derrape), que el horizonte giratorio no se come como al `mvRoll`
-  ctx.rotate(spinTot + (run.senalT > 0 ? run.senalRot : 0) + (run.mvGiro || 0));
+  // + el GIRO LIBRE de [Q]/[E] (`freeRoll`, core/horizon.js): tambien solo del dibujo — el mundo queda quieto
+  ctx.rotate(spinTot + (run.senalT > 0 ? run.senalRot : 0) + (run.mvGiro || 0) + (run.freeRoll || 0));
   if (rolling) ctx.scale(0.94 + 0.06 * Math.cos(prRoll * Math.PI * 2), 1);   // leve pulso: vende el giro
   else if (!run.mvRoll && !useSheet) ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
   // Todo este bloque esta authorado para la grilla de 320x180 (fogonazos, fallback de rects,
@@ -1123,7 +1124,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // OJO CON EL ESPACIO: esto corre DESPUES del `restore()`, o sea en pixeles de MUNDO, y el
     // sprite se dibujo con `spW`/`spH`. Las fracciones van contra ESO y nada mas.
     const T = AN.tips[rowPose][colPose];
-    const giroT = spinTot + (run.mvGiro || 0);   // con el giro del dibujo (mvGiro), igual que el sprite
+    const giroT = spinTot + (run.mvGiro || 0) + (run.freeRoll || 0);   // con los giros del dibujo, igual que el sprite
     const cs = Math.cos(giroT), sn = Math.sin(giroT);
     const gx = (fx, fy) => cx + fx * spW * cs - fy * spH * sn;
     const gy = (fx, fy) => cy + fx * spW * sn + fy * spH * cs;

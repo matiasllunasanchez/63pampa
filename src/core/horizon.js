@@ -104,7 +104,8 @@ export function horizonRoll(mode, roll, bank, free, zz) {
   // a una opcion que ya existe. Durante una pirueta se descuenta, igual que el banqueo: ahi el
   // mundo ya esta dando la vuelta y sumarle la curva metia un temblor.
   const c = mode >= HZ_ALL && !roll ? (zz || 0) : 0;
-  const a = roll + b + c + (mode === HZ_FREE ? free || 0 : 0);
+  // el GIRO LIBRE ([Q]/[E]) ya no entra aca: desde el 4/10 lo rola SOLO el avion (ver stepHorizon)
+  const a = roll + b + c;
   return a ? -a : 0;   // el `? :` evita devolver -0, que no rompe nada pero ensucia comparaciones
 }
 
@@ -161,9 +162,14 @@ const FREE_LEVEL = 2.2;
  *
  *  El peso (entra y sale interpolado) esta copiado del alabeo del MOMENTUM a proposito: es el
  *  mismo gesto en las dos fases del juego y tiene que sentirse igual. */
+//
+// SOLO GIRA EL AVION (autor, 4/10: "el giro de Q y E hacelo, pero sin girar el mundo, que solo gire el
+// avion"). Antes existia solo con el horizonte en LIBRE y lo que rolaba era el MUNDO; ahora anda en
+// cualquier modo y `run.freeRoll` es un giro del DIBUJO del avion (render/plane.js), como el del tonel.
+// El horizonte artificial del HUD lo sigue leyendo (`attitude`): el avion SI esta rolado.
 export function stepHorizon(dt, d) {
-  if (hzMode() !== HZ_FREE) {
-    // al salir del modo (o de 'play') el mundo vuelve derecho, no se queda torcido para siempre
+  if (S.state !== 'play' && S.state !== 'pulso') {
+    // fuera del vuelo el avion vuelve derecho, no se queda torcido para siempre
     run.freeRoll = 0; run.freeRollV = 0;
     return;
   }

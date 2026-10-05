@@ -195,18 +195,18 @@ test('actitud: el instrumento lee el alabeo REAL, no el amortiguado del fondo', 
   run.mvRoll = 0;
 });
 
-test('horizonte LIBRE: el giro a voluntad solo cuenta en LIBRE, y SE SUMA a la pirueta', () => {
-  assert.equal(horizonRoll(HZ_MOVES, 0, 0, 4), 0, 'fuera de LIBRE el giro libre no existe');
+// EL GIRO LIBRE ([Q]/[E]) YA NO GIRA EL MUNDO (autor, 4/10: "que solo gire el avion"): lo rola el dibujo
+// del avion (render/plane.js) y `horizonRoll` no lo cuenta en ningun modo.
+test('horizonte: el giro libre NO gira el mundo, en ningun modo', () => {
+  assert.equal(horizonRoll(HZ_MOVES, 0, 0, 4), 0);
   assert.equal(horizonRoll(HZ_ALL, 0, 0, 4), 0);
-  near(horizonRoll(HZ_FREE, 0, 0, Math.PI), -Math.PI, 1e-9);   // boca abajo y ahi se queda
-  near(horizonRoll(HZ_FREE, 1, 0, 2), -3);                     // pirueta + giro = dos vueltas
-  // sin tope: dar tres vueltas tiene que valer tres vueltas, no quedar envuelto en una
-  near(horizonRoll(HZ_FREE, 0, 0, 6 * Math.PI), -6 * Math.PI, 1e-9);
+  assert.equal(horizonRoll(HZ_FREE, 0, 0, Math.PI), 0, 'boca abajo a voluntad: el mundo sigue derecho');
+  near(horizonRoll(HZ_FREE, 1, 0, 2), -1);                     // la pirueta si, el giro libre no
 });
 
-test('horizonte: girando libre, el banqueo sigue sumando; en pirueta no', () => {
-  near(horizonRoll(HZ_FREE, 0, 1, Math.PI), -(Math.PI + BANK_TILT));
-  near(horizonRoll(HZ_FREE, 0.5, 1, Math.PI), -(Math.PI + 0.5));   // la pirueta anula el banqueo
+test('horizonte: en LIBRE el banqueo sigue sumando; en pirueta no', () => {
+  near(horizonRoll(HZ_FREE, 0, 1, Math.PI), -BANK_TILT);
+  near(horizonRoll(HZ_FREE, 0.5, 1, Math.PI), -0.5);           // la pirueta anula el banqueo
 });
 
 // La RED DE RADAR se funde cuando el mundo se inclina (render/world.js la consulta). El borde que
