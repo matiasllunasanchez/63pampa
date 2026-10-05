@@ -452,7 +452,17 @@ function relojSalud(x, y) {
 // era un rectangulo translucido distinto — se leia como debug, no como instrumento.
 
 /** Placa de instrumento: fondo oscuro + borde fino + esquinas remarcadas. */
+// LAS PLACAS DE ESTE CUADRO: cada instrumento que se dibuja anota su caja. Las usa EL TABLERO DE NOCHE
+// (render/noche.js) para teñir de ambar EXACTAMENTE los instrumentos — antes eran tres rectangulos
+// grandes (la banda de los relojes, la de arriba y la cara) que oscurecian tambien el mundo entre reloj y
+// reloj: "un velo desprolijo arriba" (el autor, 4/10). Se vacia al empezar cada drawHUD.
+const placas = [];
+/** Las cajas de los instrumentos del ultimo drawHUD (y la de la cara), en la grilla de DISEÑO. */
+export function placasHud() {
+  return cajaPiloto ? placas.concat([{ x: cajaPiloto.x, y: cajaPiloto.y, w: cajaPiloto.lado, h: cajaPiloto.alto }]) : placas;
+}
 function plate(x, y, w, h) {
+  placas.push({ x, y, w, h });
   ctx.fillStyle = '#0a0e11bb'; ctx.fillRect(x, y, w, h);
   ctx.fillStyle = '#2e3c45';
   ctx.fillRect(x, y, w, 1); ctx.fillRect(x, y + h - 1, w, 1);
@@ -950,6 +960,7 @@ const IMPACTO = [7, 7];
 const PUNTA_IZQ = [5, 3, 3, 1, 1];      // filas de arriba: cuanto se come desde la izquierda
 const PUNTA_DER = [1, 2, 2, 4, 5];      // filas de abajo: cuanto se come desde la derecha
 function plateRota(x, y, w, h) {
+  placas.push({ x, y, w, h });
   const izq = j => (j < PUNTA_IZQ.length ? PUNTA_IZQ[j] : 0);
   const der = j => (j >= h - PUNTA_DER.length ? w - 1 - PUNTA_DER[j - (h - PUNTA_DER.length)] : w - 1);
   ctx.fillStyle = '#0a0e11bb';
@@ -1649,6 +1660,7 @@ export function drawHUD(h) {
   focoIds = h.foco || [];
   soloTero = !!h.unaVida;
   cajaCinta = null;   // ver cintaCaja: una caja de otro cuadro no cuenta
+  placas.length = 0;  // ver placasHud: las de este cuadro
   cajaPiloto = null;  // idem: la cara de la que sale mi voz es la de ESTE cuadro
       const { best, gameMode, objectiveDist, objectiveShip } = h;
   // EL PODER RASANTE llega POR SNAPSHOT y no por import, a diferencia de sus dos hermanos: el

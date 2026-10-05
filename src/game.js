@@ -5173,10 +5173,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           // EL PODER RASANTE va por snapshot (convencion 4): el lint de capas prohibe que el
           // render importe de systems, y la lista de excepciones solo puede achicarse.
           ras: { on: rasante.active(), resta: rasante.restante(), dur: rasante.duracion() } }); if (!perdidaUI) drawCinta();
-        // EL TABLERO DE NOCHE: los relojes en ambar, como la cabina de la foto (render/noche.js). Las
-        // zonas son las del tablero en la grilla de DISEÑO (320x180): la fila de relojes, la de arriba
-        // y la cara del piloto.
-        tableroNoche(nocheDe(cfg.sky), [{ x: 0, y: hud.HUD_TECHO - 2, w: 320, h: 180 }, { x: 0, y: 0, w: 320, h: 22 }, { x: 0, y: hud.HUD_TECHO - 50, w: 36, h: 48 }]);
+        // EL TABLERO DE NOCHE: los relojes en ambar, como la cabina de la foto (render/noche.js) — en
+        // las cajas EXACTAS de cada instrumento que se dibujo en este cuadro (hud.placasHud), no en
+        // bandas: las bandas teñian tambien el mundo entre reloj y reloj.
+        tableroNoche(nocheDe(cfg.sky), hud.placasHud());
         ctx.restore();
         // LA RADIO EN VUELO va en el espacio de DISEÑO (320x180) y se dibuja al final: es lo
         // ultimo que entra, arriba de todo. QUE FORMA tiene la elige el jugador en OPCIONES —
