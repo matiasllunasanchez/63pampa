@@ -3964,9 +3964,15 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             const u = Math.max(0, Math.min(1, (rr0.t - RELEVO_WRECK) / 0.5));
             return u * u * (3 - 2 * u);
           })();
-          const adv = run.spd * 0.4 * dt * retoma;
+          // …Y CUANDO ENTRA EL RELEVO, LA CAMARA SIGUE CON EL (autor, 4/10: "la camara debe detenerse en
+          // el choque pero CONTINUAR con el relevo de atras que llega… o dejarlo pasar y seguir al
+          // relevo"): tras un choque retoma a la velocidad de VUELO —no a la media maquina— y TODO lo
+          // del choque (los restos, la bola de fuego, lo que se choco, el buque) se mueve con el mundo
+          // y queda atras. Antes los restos no avanzaban y quedaban clavados mientras el mar corria.
+          const adv = run.spd * (choque ? 1 : 0.4) * dt * retoma;
           run.dist += adv;                     // la mision sigue: el escuadron no deja de volar
-          for (const o of obstacles) if (o.type !== 'chunk' && o.type !== 'airboom') o.z -= adv;
+          for (const o of obstacles) if (choque || (o.type !== 'chunk' && o.type !== 'airboom')) o.z -= adv;
+          if (choque && adv > 0 && blanco.on) blancoSys.alOdometro();
           for (const sd of soldiers) sd.z -= adv;
           popups.forEach(p => { p.y -= p.vy * dt; p.life -= dt; });
           prune(popups, p => p.life > 0);
@@ -5419,6 +5425,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // a SU LUGAR DEL HUD, del mismo tamaño, cuando el nombre del avion llega, y se queda: al volver
         // el HUD, la de drawPiloto la reemplaza en el mismo lugar, sin salto.
         const pil = squad.pilotName(rv.next), tr = rv.t - RELEVO_WRECK;
+        // EL AVERIADO, en el mismo rotulo (autor, 4/10: "el texto de averia de arriba en rojo, cambiarlo
+        // a usar el texto del nombre del avion — nombre de avion y texto blanco 'AVERIADO, vuelve a
+        // base'"). Va en el PRIMER tiempo (los restos): el rotulo entero comprimido a RELEVO_WRECK, asi
+        // termina justo cuando entra el nombre del que toma el mando y no se pisan.
+        if (squadRender.relevoAveriado(rv) && rv.t < RELEVO_WRECK)
+          drawRotuloVuelo(squad.planeName(rv.fallen), rv.t * ROTULO_T / RELEVO_WRECK, 'fuego', T('sq_dmg_sub'), null, ROTULO_NOMBRE);
         if (nom) {
           drawRotuloVuelo(nom, tr, 'fuego', null, null, ROTULO_NOMBRE);
           if (tr >= 0) {

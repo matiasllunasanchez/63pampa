@@ -1275,7 +1275,9 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
   // EL CAMINO DEL SOL (F6): la columna de luz sobre el agua, solo con astro a la vista. Es un
   // CONO y no una franja — se angosta hacia vos y se abre hacia el horizonte, que es como se ve
   // un reflejo de verdad: el punto de fuga del camino es el ojo que lo mira.
-  const astro = !!SKY_ASTRO[cfg.sky];
+  // …salvo la LUNA (autor, 4/10: "el reflejo de la luna esta feo, este largo, quitalo"): de noche el
+  // camino de luz se leia como una escalera de bloques blancos hasta el avion.
+  const astro = !!SKY_ASTRO[cfg.sky] && cfg.sky !== 'moon';
   const startZ = Math.ceil((dv + 4) / SPZ) * SPZ;
   // paso ADAPTATIVO: cerca muestrea a SPZ/SPX plenos; lejos el paso crece para mantener
   // ~1px de separacion en pantalla (los puntos subpixel no se ven y este loop corre

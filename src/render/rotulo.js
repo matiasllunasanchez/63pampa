@@ -166,7 +166,11 @@ export function flechaIn(cx, puntaY, u, verde, dir) {
   const F = ['KKKKKKKKKKK', 'K111111111K', 'K222222222K', '.K3333333K.', '..K44444K..', '...K555K...', '....K5K....', '.....K.....'];
   // `verde`: EL MOMENTO DE SOLTAR (LA SUELTA). La misma flecha en el verde de la señal, con su
   // degrade de claro a oscuro, para que lata junto con el tablero.
-  const COL = verde
+  // `verde === 'blanco'`: LA DE METAL SLUG (autor, 4/10: "la flecha que indica la Chancha, mas clara,
+  // como la de Metal Slug, blanca") — blanca con el filo oscuro, que se lee sobre cualquier cielo.
+  const COL = verde === 'blanco'
+    ? { K: '#14181d', 1: '#ffffff', 2: '#f4f6f8', 3: '#e2e6ea', 4: '#c9cfd6', 5: '#aab2bc' }
+    : verde
     ? { K: '#0b2410', 1: '#e6ffd8', 2: '#b6f5a4', 3: '#7fe07a', 4: '#4fbf52', 5: '#2e8f3a' }
     : { K: '#1c0804', 1: '#fff6a8', 2: '#ffd02c', 3: '#f7a020', 4: '#f27a18', 5: '#c8300f' };
   // `dir`: 1 (default) la de siempre — ancha arriba, punta abajo, o sea APUNTANDO HACIA ABAJO.

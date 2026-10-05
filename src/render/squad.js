@@ -138,6 +138,10 @@ export function drawFallen({ selPlane, rv }) {
   ctx.imageSmoothingEnabled = smooth;
 }
 
+/** ¿Es un relevo de AVERIADO con chapa? (campaña: nadie muere, el avion vuelve a la base). Ahi el titular
+ *  no va arriba en rojo: es el ROTULO del nombre del avion con el aviso en blanco (game.js). */
+export const relevoAveriado = rv => !!(rv && !rv.solo && !rv.cambio && !rv.spent && rosterActive() && planeName(rv.fallen));
+
 /** Sobreimpresion de la cinematica del relevo (grilla de diseño). El texto vive ACA y no en
  *  popups: es informacion de escena, fija mientras dura — un popup se iria flotando. */
 export function drawRelevo(rv) {
@@ -159,7 +163,10 @@ export function drawRelevo(rv) {
   // Sin comillas (autor: "sacale los piquitos"). Fuera de campaña no hay chapa con nombre y
   // queda el indicativo de siempre, abajo, como antes.
   const nom = i => planeName(i) || pilotName(i);
-  if (rv.solo) ctx.fillText(T('pasada_turn', { c: pilotName(rv.next) }), DW / 2, 10);
+  // EL AVERIADO YA NO VA ARRIBA EN ROJO (autor, 4/10): con chapa, su NOMBRE cruza la pantalla como el
+  // rotulo del que entra, con "AVERIADO, vuelve a base" en blanco abajo (game.js, `relevoAveriado`)
+  if (relevoAveriado(rv)) { /* lo dibuja el rotulo */ }
+  else if (rv.solo) ctx.fillText(T('pasada_turn', { c: pilotName(rv.next) }), DW / 2, 10);
   else ctx.fillText(T(rv.cambio ? 'sq_atras' : rv.spent === 'seco' ? 'sq_seco' : rv.spent ? 'sq_spent' : rosterActive() ? 'sq_dmg' : 'sq_down', { c: nom(rv.fallen) }), DW / 2, 10);
   // LA CAUSA NO SE DICE ACA (12/9). Estaba en rv.cause y se imprimia debajo del titular, pero
   // sobre el juego en marcha es una linea de texto mas que leer mientras el companero entra: el

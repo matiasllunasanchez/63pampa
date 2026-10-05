@@ -13,7 +13,9 @@ export const NOCHE = {
     // que no este TAN negro. Y con luna es brillo blanco")
     night: { rgb: [6, 14, 38], a: 0.85, horiz: 0.72, lejanas: 0.9, luna: false, tablero: 'rgb(214,140,62)' },
     storm: { rgb: [5, 11, 28], a: 0.85, horiz: 0.8, lejanas: 0.25, luna: false, tablero: 'rgb(214,140,62)' },
-    moon: { rgb: [26, 30, 40], a: 0.6, horiz: 0.7, lejanas: 0.7, luna: true, tablero: 'rgb(226,160,84)' },
+    // luna: false desde el 4/10 (autor: "el reflejo de la luna esta feo, quitalo") — la columna de rayas
+    // de render/noche.js queda escrita, apagada; el camino de luz del mar tampoco va con luna (world.js)
+    moon: { rgb: [26, 30, 40], a: 0.6, horiz: 0.7, lejanas: 0.7, luna: false, tablero: 'rgb(226,160,84)' },
   },
   LEJANAS: 14,     // cuantas luces lejanas sobre el horizonte
   ABRE: 2,         // pasadas de la mascara de luz (mas = la luz abre mas la oscuridad)

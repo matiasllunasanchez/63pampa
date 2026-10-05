@@ -14,6 +14,7 @@ import { CH_BOX, CH_DERIVA_V } from '../data/tuning.js';
 const CAJA_VERDE = '#7fe07a';
 import { snapshot } from '../systems/chancha.js';
 import * as enemyArt from './enemies.js';
+import { flechaIn } from './rotulo.js';
 
 /** El Hercules, la manguera y la canasta. Se llama desde draw() en 'play', despues del mundo. */
 export function drawChancha() {
@@ -139,9 +140,10 @@ export function drawChancha() {
   // apagaba la flecha justo en el tramo en que mas sirve — cuando ya subiste y la estas buscando
   // de costado. Se apaga sola al enganchar, que es cuando estorba.)
   if (c.fase === 'cita' && !c.conn) {
-    const mx = Math.max(12, Math.min(W - 12, s.x));
-    ctx.globalAlpha = 0.5 + 0.5 * Math.sin(run.t * 6);
-    for (let i = 0; i < 4; i++) px(mx - (3 - i), HOR + 12 + i * 2, 2 * (i + 1) - 1, 2, P.accent);
-    ctx.globalAlpha = 1;
+    // LA FLECHA DE METAL SLUG (4/10): blanca, gorda, con filo oscuro, punta ARRIBA (la Chancha esta
+    // arriba tuyo) y titilando prendida/apagada como el "GO" — no el triangulito naranja de antes, que
+    // en un cielo de atardecer no se veia.
+    const mx = Math.max(16, Math.min(W - 16, s.x));
+    if (Math.sin(run.t * 9) > -0.3) flechaIn(mx, HOR + 8, 2, 'blanco', -1);
   }
 }

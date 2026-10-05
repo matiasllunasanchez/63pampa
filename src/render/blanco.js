@@ -19,6 +19,7 @@ import { flechaIn } from './rotulo.js';
 import * as enemyArt from './enemies.js';
 import { drawMira } from './miras.js';
 import * as fuego from './fuego.js';
+import { nocheDe, luzNoche } from './noche.js';
 // EL VERDE DE LA SUELTA, el mismo que titila en el tablero (SUELTA_COL de render/hud.js).
 const VERDE_SUELTA = '#7fe07a';
 
@@ -68,6 +69,8 @@ export function drawBlanco() {
     ctx.globalAlpha = 1;
   }
   ctx.restore();
+  // DE NOCHE, CON LUCES (autor, 4/10: "crear luces en la barcaza final o base objetivo en noche")
+  if (nocheDe(cfg.sky)) lucesNoche(z, k, apE, !!est);
 
   // EL FUEGO donde pegaron, y QUE SE PROPAGA: cada impacto arranca con un foco y con los segundos
   // (de mundo: en la camara lenta, despacio) se le suman llamas a los costados sobre la cubierta.
@@ -104,6 +107,44 @@ export function drawBlanco() {
       px(pie.x - ancho / 2, pie.y - alto - paso, ancho, Math.max(1, ancho), '#c9a27a');   // la cara
     }
   }
+}
+
+// LAS LUCES DEL BLANCO DE NOCHE (autor, 4/10). Lo que hace que un buque o una base se lean en lo negro
+// antes de la silueta, como de verdad: una fila calida de ojos de buey / ventanas (algunas apagadas,
+// fijas por indice para que no titilen al azar), la luz de TOPE en lo mas alto del perfil y, en el
+// buque, las de NAVEGACION en las puntas — roja y verde. En la base el tope es la BALIZA roja de la
+// antena, que titila. Cada una derrama su luz (`luzNoche`): abre la oscuridad a su alrededor.
+// Van montadas en el PERFIL (`altoEn`), el mismo que usa la bomba: estan donde esta la chapa.
+function lucesNoche(z, k, ap, esBase) {
+  let alto = 0, xAlto = BL.X;
+  for (let i = 0; i < 24; i++) {
+    const xw = BL.X + (i / 23 - 0.5) * BL.LEN * 0.96, h = altoEn(xw);
+    if (h > alto) { alto = h; xAlto = xw; }
+  }
+  const r = Math.max(1, k * 0.45), N = 9;
+  ctx.save();
+  ctx.globalAlpha = ap;
+  for (let i = 0; i < N; i++) {
+    if ((i * 7) % 5 === 0) continue;                               // las apagadas
+    const xw = BL.X + ((i + 0.5) / N - 0.5) * BL.LEN * 0.86, h = altoEn(xw);
+    if (h < 0) continue;
+    const p = proj(xw, blanco.base + Math.min(h, BL.LEN * 0.05) * 0.45, z);
+    px(p.x - r / 2, p.y - r / 2, r, r, '#ffd890');
+    luzNoche(ctx, p.x, p.y, 3 + k * 1.2, [255, 200, 120], 0.35 * ap);
+  }
+  if (!esBase || Math.sin(run.t * 4) > 0) {                         // la baliza de la base titila
+    const pt = proj(xAlto, blanco.base + alto + BL.LEN * 0.01, z);
+    px(pt.x - r / 2, pt.y - r, r, r, esBase ? '#ff5040' : '#f4f8ff');
+    luzNoche(ctx, pt.x, pt.y, 5 + k * 1.6, esBase ? [255, 70, 50] : [230, 240, 255], 0.6 * ap);
+  }
+  if (!esBase) for (const [f, c, rgb] of [[-0.46, '#ff4a3a', [255, 70, 50]], [0.46, '#4aff7a', [70, 255, 120]]]) {
+    const xw = BL.X + f * BL.LEN, h = altoEn(xw);
+    if (h < 0) continue;
+    const p = proj(xw, blanco.base + Math.min(h, BL.LEN * 0.06), z);
+    px(p.x - r / 2, p.y - r / 2, r, r, c);
+    luzNoche(ctx, p.x, p.y, 4 + k * 1.3, rgb, 0.5 * ap);
+  }
+  ctx.restore();
 }
 
 // LA PINTA DE LAS ESTRUCTURAS: hormigon y chapa militar. No sale del tema a proposito — una base no
