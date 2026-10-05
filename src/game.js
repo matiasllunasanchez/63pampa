@@ -115,7 +115,7 @@ import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.
 import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
 import { drawDesenfoque, BLUR_DBG } from './render/desenfoque.js';   // BLUR_DBG: QUITAR con __blurdbg
 import { drawBrillo, inicioLuz } from './render/brillo.js';
-import { nocheDe, drawNoche, tableroNoche, luzNoche } from './render/noche.js';
+import { nocheDe, drawNoche, tableroNoche, luzNoche, drawReflejoLuna } from './render/noche.js';
 import { NOCHE } from './data/noche.js';
 import { drawAureola, AURA_NORMAL, AURA_DBG } from './render/aureola.js';   // AURA_DBG: QUITAR con __auradbg
 import * as menus from './render/menus.js';
@@ -4743,6 +4743,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // lleva su propia flecha de cerca — dos marcas para lo mismo eran "muchas flechas" (23/9).
       if (runClimax() !== 'suelta') world.drawObjectiveMarker(objectiveDist);
       world.drawWake();
+      // EL REFLEJO DE LA LUNA, con el agua y debajo de lo que vuela (render/noche.js, 4/10)
+      drawReflejoLuna(nocheDe(cfg.sky), solPant);
       // malla del techo de deteccion del radar. NO en EL PULSO: es un instrumento del PASILLO —
       // dice a que altura te ven— y en la cinematica del premio no hay nada que decidir con eso.
       // Aparecio sola cuando la salida paso a trepar de verdad (la trepada cruza RADAR_ALT) y lo

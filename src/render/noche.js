@@ -12,8 +12,9 @@
 //   luna                        un azul tenue en vez de negro, y el reflejo de la luna en el agua
 //
 // El tablero va aparte (`tableroNoche`): los instrumentos se ven como en la foto, en ambar y oscuros.
-import { cv, ctx, W, H, HOR, px } from './ctx.js';
-import { cam, cfg } from '../core/state.js';
+import { cv, ctx, W, H, HOR, F, px } from './ctx.js';
+import { cam, cfg, S } from '../core/state.js';
+import { geoActiva, esTierraEn } from '../core/geografia.js';
 import { run } from '../core/run.js';
 import { capaLuz, luz } from './brillo.js';
 import { NOCHE } from '../data/noche.js';
@@ -87,20 +88,7 @@ export function drawNoche(n, astro, giro) {
   // LO QUE ESTA EN EL MUNDO rola con el horizonte (el mismo giro que game.js le aplica al mundo)
   ctx.save();
   if (giro) { ctx.translate(giro.cx, giro.cy); ctx.rotate(giro.a); ctx.translate(-giro.cx, -giro.cy); }
-  // EL REFLEJO DE LA LUNA en el agua: una columna que tiembla debajo del astro, hecha de rayas
-  if (n.luna && astro && astro.x > -40 && astro.x < W + 40) {
-    ctx.save();
-    ctx.globalCompositeOperation = 'screen';
-    for (let y = HOR + 2, i = 0; y < H; y += 2, i++) {
-      const u = (y - HOR) / (H - HOR);
-      const ancho = 3 + u * 26, temb = Math.sin(run.t * 3 + i * 1.7) * (1 + u * 5);
-      const al = NOCHE.REFLEJO * (1 - u * 0.75) * (0.55 + 0.45 * Math.sin(run.t * 5.3 + i * 2.9));
-      if (al <= 0.02) continue;
-      ctx.globalAlpha = al;
-      px(astro.x - ancho / 2 + temb, y, ancho * (0.4 + 0.6 * Math.abs(Math.sin(i * 7.1))), 1, '#e4e8ee');
-    }
-    ctx.restore();
-  }
+  // (el REFLEJO DE LA LUNA ya no va aca: va DEBAJO de los aviones — ver `drawReflejoLuna`)
   // LAS LUCES LEJANAS, encima de la oscuridad: puntos chicos y nitidos con un halo minimo
   ctx.save();
   for (const l of lejanas) {
@@ -117,6 +105,38 @@ export function drawNoche(n, astro, giro) {
   }
   ctx.restore();
   ctx.restore();   // el giro
+}
+
+/** EL REFLEJO DE LA LUNA en el agua: una columna que tiembla debajo del astro, hecha de rayas.
+ *
+ *  VA CON EL MUNDO, DEBAJO DE LOS AVIONES (autor, 4/10: "la luna se ve por encima del avion, y el
+ *  reflejo nunca cambia, esta fijo"). Antes se pintaba despues de la oscuridad, encima de todo — el
+ *  avion incluido — y sobre cualquier suelo: en el despegue la columna bajaba por la PISTA. Ahora:
+ *    · se llama con el agua (game.js, despues de la estela) y lo que vuela la tapa;
+ *    · cada raya pregunta si en ESE punto hay agua (G1): sobre tierra no hay reflejo;
+ *    · la oscuridad de la noche la cubre despues, asi que se pinta mas fuerte en la cuenta exacta
+ *      (1 / (1 − a)) para quedar con el mismo brillo que tenia encima.
+ *  `astro` = la luna en pantalla. El giro del horizonte ya lo trae el contexto del mundo. */
+export function drawReflejoLuna(n, astro) {
+  if (!n || !n.luna || !astro || astro.x < -40 || astro.x > W + 40) return;
+  if (S.state === 'takeoff' || S.state === 'landing') return;      // la pista no refleja
+  const kOsc = 1 / Math.max(0.15, 1 - n.a);
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  for (let y = HOR + 2, i = 0; y < H; y += 2, i++) {
+    // ¿hay agua en esta raya? la profundidad sale de invertir la proyeccion sobre el suelo (h = 0)
+    const z = F * cam.y / Math.max(0.5, y - HOR);
+    const wx = cam.x + (astro.x - W / 2) * z / F;
+    const seco = geoActiva() ? esTierraEn(wx, run.dist + z) : cfg.terrain === 'land';
+    if (seco) continue;
+    const u = (y - HOR) / (H - HOR);
+    const ancho = 3 + u * 26, temb = Math.sin(run.t * 3 + i * 1.7) * (1 + u * 5);
+    const al = Math.min(1, NOCHE.REFLEJO * kOsc * (1 - u * 0.75) * (0.55 + 0.45 * Math.sin(run.t * 5.3 + i * 2.9)));
+    if (al <= 0.02) continue;
+    ctx.globalAlpha = al;
+    px(astro.x - ancho / 2 + temb, y, ancho * (0.4 + 0.6 * Math.abs(Math.sin(i * 7.1))), 1, '#e4e8ee');
+  }
+  ctx.restore();
 }
 
 /** UNA LUZ SOLO DE NOCHE: las balas, los misiles y lo que de dia no hace falta que derrame (con
