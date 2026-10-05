@@ -84,6 +84,9 @@ def main():
         ext = PLANE_PREVIEW_EXT.get(key, 'webp')
         js, ok = sub_path(js, f'../assets/planes/{d}/preview.{ext}',
                           uri(ASSETS / 'planes' / d / f'preview.{ext}', 'image/' + ext)); n += ok
+        # LA ILUSTRACION DEL SELECTOR horneada en Blender (4/10): reemplazo de preview.*
+        js, ok = sub_path(js, f'../assets/planes/{d}/seleccion.png',
+                          uri(ASSETS / 'planes' / d / 'seleccion.png', 'image/png')); n += ok
         js, ok = sub_path(js, f'../assets/planes/{d}/sheet.png',
                           uri(ASSETS / 'planes' / d / 'sheet.png', 'image/png')); n += ok
     # HOJA 2 (cabeceos empinados de las piruetas): NO entra en la web — son ~120 KB entre las 6 y

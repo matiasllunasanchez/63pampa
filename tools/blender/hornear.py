@@ -66,6 +66,14 @@ if VISTA == 'cobra':
     PITCHES = [40, 75, 100, 130, 160, 190, 220, 250, 280, 310, 335, 25]
     FW = FH = int(arg('--px', str(round(84 * COBRA_K))))
     CAM = dict(CAM, ref=CAM['ref'] * COBRA_K)
+# `--vista seleccion`: LA ILUSTRACION DEL SELECTOR DE AVION (CICLO DE MUERTE / POR LA PATRIA; pedido del
+# autor 4/10: "los aviones del selector, armar nuevos segun lo hecho en Blender, uno para cada variante").
+# Una sola pose —de cola, un poco desde arriba— a 130 px: el menu la dibuja a 130 unidades de
+# diseño (= 390 px reales), asi que tools/blender/armar_seleccion.py la agranda x3 con vecino mas cercano
+# y sale pixel art nitido a la MISMA densidad del juego (el metodo de Dead Cells: renderizar chico).
+if VISTA == 'seleccion':
+    ANGLES, PITCHES = [0], [22]      # la trompa arriba: se ve el LOMO, el camuflaje y el ala entera
+    FW = FH = int(arg('--px', '130'))
 if VISTA == 'ras':
     FW = FH = int(arg('--px', '168'))
     _d = math.hypot(CAM['pos'][1] - CAM['lookY'], CAM['pos'][2])
