@@ -1060,7 +1060,10 @@ export const SENUELO_TQ = { VEL: 260, GIRO: 6, RADIO: 3, PTS: 150 };
 //   INERCIA    1/s con que la nube pierde la velocidad del avion (sale con ella y el aire la frena):
 //              con 0.6 se ve quedar atras ~1 s a crucero — la camara esta a 14 u del avion, y una
 //              nube quieta en el mundo la pasaria en una decima, sin que nadie la vea
-//   LARGO      el largo de cada tira, en la escala de la proyeccion (8/10: "la mitad de largas": era 0.9)
+//   LARGO      el largo de cada tira, en u de mundo: 7 CM (8/10, el autor: "los tubos tenian 16 cm pero las
+//              tiras eran menos, de 7 cm" — y La Nacion: 7 cm, la medida del radar del Sea Dart). Con
+//              1 u ≈ 2 m son 0.035 u: a la distancia del avion, un destello de un pixel o dos, como el
+//              chaff de verdad visto de lejos. (Fue 0.9, despues 0.45: "la mitad de largas".)
 //   TUBOS      cuantos TUBOS larga cada carga (autor, 8/10: "son tubos de 16 centimetros… cada carga
 //              tenia 30 cartuchos, 30 barritas"). Cada tubo sale expulsado hacia
 //              atras, y a los TUBO_ABRE s revienta en su propia nubecita de tiras
@@ -1083,7 +1086,7 @@ export const CHAPITAS = {
   CARGAS: 2, CARGAS_MIN: 1, CARGAS_MAX: 4,
   ENGANA: ['dart', 'wolf'],
   ALCANCE_Z: 160, VIDA: 4, INERCIA: 0.6,
-  LARGO: 0.45, BRILLO: 2, DESTELLO_R: 0.7,
+  LARGO: 0.035, BRILLO: 2, DESTELLO_R: 0.7,
   TUBOS: 30, TUBO_M: 0.08, TUBO_ABRE: 0.2, TUBO_SALE: 9, TIRAS_TUBO: 4, DESTELLA: 0.7,
   VEL: 260, GIRO: 6, RADIO: 3,
   CERCA: 8, SOFT: 0.35,
@@ -1098,14 +1101,15 @@ export const CHAPITAS = {
   EXPLOTA: 0.5, LADO: [2.5, 6],
   // LA BENGALA del cartucho (8/10: "un cartucho de chafitas tenia 30 chafitas y UNA bengala dentro";
   // La Nacion: una bengala con paracaidas en cada cartucho del Canberra; ardia a 500 °C unos 15 s).
-  // UNA por carga: se enciende cuando los tubos revientan y cae debajo de la nube: CAE u/s (la de verdad
-  // colgaba de un paracaidas; el autor la prefiere "una bengalita marron con fuego y humo saliendo, y
-  // un poco de brillo": sin paracaidas, cae un poco mas rapido); ALTO es el alto del dibujo (u). Es lo que se lleva a los misiles INFRARROJOS (el Sidewinder), tambien a los de LA
+  // UNA por carga: se enciende cuando los tubos revientan, EN EL MEDIO DE LA NUBE (8/10: "debe verse la
+  // bengala brillando entre medio de la nube") y baja con ella; CAE u/s es lo que ademas se descuelga
+  // por debajo (0: no se separa). La de verdad colgaba de un paracaidas; el autor la prefiere "una
+  // bengalita marron con fuego y humo saliendo, y un poco de brillo". ALTO: el alto del dibujo (u). Es lo que se lleva a los misiles INFRARROJOS (el Sidewinder), tambien a los de LA
   // COLA, que vienen de atras: ALCANCE_Z para los dos lados. LUZ: el radio del halo (u). HALO_A el
   // tope del halo y LUZ_A / NOCHE_A el de su luz derramada, de dia y de noche — el autor: "transparencia
   // del 20 o 30% maximo", para que se vean las chapitas; en el centro va el fueguito de la turbina.
   // HUMO_CADA / HUMO_VIDA: el hilo de humo que deja.
-  BENGALA: { CAE: 1.4, ALTO: 0.35, LUZ: 0.9, HALO_A: 0.25, LUZ_A: 0.25, NOCHE_A: 0.3, HUMO_CADA: 0.06, HUMO_VIDA: 1.1 },
+  BENGALA: { CAE: 0, ALTO: 0.35, LUZ: 0.9, HALO_A: 0.25, LUZ_A: 0.25, NOCHE_A: 0.3, HUMO_CADA: 0.06, HUMO_VIDA: 1.1 },
 };
 
 // ---------- EL BREAK TURN y EL JINK, con fisica de avion (systems/moves.js) ----------

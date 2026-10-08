@@ -509,7 +509,9 @@ export function collisionSystem(dt) {
           explodeAt(c.x, c.y, c.z, false, true, true);
           boom(0.18, true); run.shake = Math.min(8, run.shake + 2.5);
           const s = proj(c.x, c.y, c.z);
-          popup(s.x, s.y - 12, T(c.esBengala ? 'chapitas_bengala' : c.chapitas ? 'chapitas_senuelo' : 'tanque_senuelo') + ' +' + S.PTS, P.accent, true);
+          // (la BENGALA no dice nada, 8/10: "no debe decir texto BENGALA, debe verse la bengala brillando
+          // entre medio de la nube" — el estallido ahi ya es la noticia)
+          if (!c.esBengala) popup(s.x, s.y - 12, T(c.chapitas ? 'chapitas_senuelo' : 'tanque_senuelo') + ' +' + S.PTS, P.accent, true);
           if (!c.chapitas) c.z = 9999;
           else if (Math.hypot(c.x - plane.x, c.y - plane.y, c.z - PZ) < S.CERCA) softHit(null, S.SOFT);
           m.z = 0; m.done = true;
