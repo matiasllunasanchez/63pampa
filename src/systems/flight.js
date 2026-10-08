@@ -24,6 +24,7 @@ import { proj, popup } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
+import { TURBO } from '../data/tuning.js';
 import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE, GEO_ISLA_IMPACTO,
          GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
          FUEL_RATE, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE, RAS_GASTO_F, COBRA } from '../data/tuning.js';
@@ -126,6 +127,7 @@ function vertRasante(dt, inp, G, TH, DIVE) {
 const GUN_X = 0.9;
 let gunSide = 1;   // de que cañon sale el proximo tiro; se turnan
 
+let reac = 1;   // la reaccion de los controles: 1 sin turbo, TURBO.REACCION con (ver abajo)
 export function flightSystem(dt, deps) {
   // PIRUETA activa: systems/moves.js toma el control del avion este frame (escribe vx/vy/bank/
   // pitch); mas abajo el bloque de control normal se saltea. Todo lo demas — energia, roce,
@@ -272,16 +274,20 @@ export function flightSystem(dt, deps) {
   // rafaga lateral que escribio la maniobra, se vuela el avion como siempre, y se devuelve la
   // rafaga al final. Sin esto, tirar un tonel apagaria el motor durante medio segundo.
   const rollVx = mvLegado() ? plane.vx : null;
+  // EL TURBO SACRIFICA REACCION (8/10, TURBO en data/tuning.js): con la poscombustion prendida la
+  // respuesta de costado y vertical cae a TURBO.REACCION — cuesta mas arrancar, frenar y cambiar de
+  // altura. Entra y sale suave (REAC_RATE); los topes de velocidad no cambian.
+  reac += ((run.boost ? TURBO.REACCION : 1) - reac) * Math.min(1, dt * TURBO.REAC_RATE);
   if (run.mv && rollVx === null) { /* la pirueta ya escribio vx/vy */ } else if (pointer.steer) {
     const wx = (pointer.steer.x - W / 2) / (F / PZ) + cam.x;
     const wy = cam.y - (pointer.steer.y - HOR) / (F / PZ);
-    plane.vx = Math.max(-30, Math.min(30, (wx - plane.x) * 5));
-    plane.vy = Math.max(-24, Math.min(24, (wy - plane.y) * 5));
+    plane.vx = Math.max(-30, Math.min(30, (wx - plane.x) * 5 * reac));
+    plane.vy = Math.max(-24, Math.min(24, (wy - plane.y) * 5 * reac));
   } else if (cfg.control === CTRL_BANK) {
     // CONTROL POR ALABEO: ←/→ ROLAN y el desplazamiento lateral sale del banqueo (core/physics.js).
     // El viento entra por el mismo lado: en vez de empujar el avion de costado le SACUDE LAS ALAS,
     // que es lo que despues lo mueve. Si no, la rafaga escribia vx y la linea de abajo la borraba.
-    run.bankA = bankStep(run.bankA, inp.r - inp.l, dt) + windRock;
+    run.bankA = bankStep(run.bankA, inp.r - inp.l, dt * reac) + windRock;
     run.bankA = Math.max(-BANK_MAX, Math.min(BANK_MAX, run.bankA));
     plane.vx = bankVx(run.bankA);
     const G = 22, TH = 55, DIVE = 30;
@@ -291,12 +297,12 @@ export function flightSystem(dt, deps) {
     if (rasante.active()) vertRasante(dt, inp, G, TH, DIVE);
     else if (agu.activo()) agu.vertClavado(dt);
     else {
-      plane.vy += (((inp.u && run.fuel > 0) ? TH : 0) - G - (inp.d ? DIVE : 0)) * dt;
+      plane.vy += (((inp.u && run.fuel > 0) ? TH * reac : 0) - G - (inp.d ? DIVE * reac : 0)) * dt;
       plane.vy = Math.max(-20, Math.min(18, plane.vy));
     }
   } else {
-    plane.vx += (inp.r - inp.l) * 115 * dt;
-    if (!inp.r && !inp.l) plane.vx *= Math.max(0, 1 - 4.5 * dt);
+    plane.vx += (inp.r - inp.l) * 115 * reac * dt;
+    if (!inp.r && !inp.l) plane.vx *= Math.max(0, 1 - 4.5 * reac * dt);
     plane.vx = Math.max(-30, Math.min(30, plane.vx));
     // gas: mantener ARRIBA empuja hacia arriba; al soltar, la gravedad gana y el avión cae
     const G = 22, TH = 55, DIVE = 30;
@@ -306,7 +312,7 @@ export function flightSystem(dt, deps) {
     if (rasante.active()) vertRasante(dt, inp, G, TH, DIVE);
     else if (agu.activo()) agu.vertClavado(dt);
     else {
-      plane.vy += (((inp.u && run.fuel > 0) ? TH : 0) - G - (inp.d ? DIVE : 0)) * dt;
+      plane.vy += (((inp.u && run.fuel > 0) ? TH * reac : 0) - G - (inp.d ? DIVE * reac : 0)) * dt;
       plane.vy = Math.max(-20, Math.min(18, plane.vy));
     }
   }

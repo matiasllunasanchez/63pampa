@@ -1022,6 +1022,15 @@ export const COBRA = { SUBE: 0.12, BAJA: 0.72, FRENO: 0.75, SUBE_VY: 5,
   // Sin el pasarse de entrada (~30%) el objetivo sube para llegar a lo mismo: 9.4 → z ≈ 4,6 (x3).
   ACERCA: 9.4, ENTRA: 5, K: 26, AMORT: 3.2 };
 
+// ---------- EL TURBO: mas lejos y menos maniobrable (systems/vuelo.js, systems/flight.js) ----------
+// El autor, 8/10: "el turbo deberia alejar mi avion un poco mas —que vaya mas adelante o se vea un
+// poco mas chico— y limitar un poco la velocidad de reaccion: sacrifica velocidad recta por reaccion en
+// los otros ejes". ALEJA: cuantas unidades de profundidad se DIBUJA mas lejos el avion con turbo (PZ es
+// 14: 4 lo deja ~0,78 del tamaño); CAM_RATE: 1/s con que entra y sale. REACCION: la fraccion de la
+// respuesta lateral y vertical que queda con turbo (aceleracion de costado, frenado lateral, gas y
+// pique, rolido, mouse); REAC_RATE: 1/s con que cambia. Los topes de velocidad no se tocan.
+export const TURBO = { ALEJA: 4, CAM_RATE: 2.5, REACCION: 0.55, REAC_RATE: 4 };
+
 // ---------- LOS TANQUES COMO SEÑUELO (game.js soltarTanquesAccion, systems/collision.js) ----------
 // El autor, 8/10: "si un misil te esta persiguiendo, soltar los tanques —vacios o llenos— permite que el
 // misil le pegue a eso y evitar que te pegue". Al soltar, cada misil GUIADO en el aire (no trazadoras

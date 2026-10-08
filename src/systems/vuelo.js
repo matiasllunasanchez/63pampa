@@ -26,6 +26,7 @@ import { FLY_X, FLY_TOP, ALA_PX, ROCIO_ABRE, ROCIO_BAJA, ROCIO_RAS_ABRE, ROCIO_R
          AGUA_RAS_GRADOS, ESTELA_ALT, ROCIO_TURBO, BANDA_ALT, RAS_POLVO, PIQUE } from '../data/tuning.js';
 import { sueloEn } from '../core/geografia.js';
 import { PITCH_LERP } from '../core/physics.js';
+import { TURBO } from '../data/tuning.js';
 
 // cuanto sube la camara con turbo (unidades de mundo): el efecto de 'alejarse'
 export const BOOST_LIFT = 2.2;
@@ -56,8 +57,13 @@ export const CAM_PAN = 6;
  *                     una salida trepando lo que hacia era FRENAR el avion contra un vidrio
  *                     invisible justo cuando la escena pide que se vaya (playtest 8/2026).
  */
+// EL TURBO ALEJA AL AVION (8/10, TURBO en data/tuning.js): una profundidad de DIBUJO que entra y sale
+// suave con la poscombustion. game.js la suma al `dz` de drawPlane, como el acercamiento de la cobra.
+let turboZ = 0;
+export const turboDz = () => turboZ;
 export function stepVuelo(dt, o) {
   o = o || {};
+  turboZ += ((run.boost ? TURBO.ALEJA : 0) - turboZ) * Math.min(1, dt * TURBO.CAM_RATE);
   const techo = o.techo === undefined ? FLY_TOP : o.techo;
   // ---- INTEGRAR. `moves.js` y el bloque de control escriben VELOCIDADES; la posicion se integra
   // en un solo lugar, y este es. Sin esto una pirueta es un sprite rotando sobre una foto.

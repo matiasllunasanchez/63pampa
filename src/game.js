@@ -170,6 +170,7 @@ import { drawIslas } from './render/islas.js';   // PLAN_GEOGRAFIA G4: la tierra
 import * as charla from './systems/charla.js';
 import { FIELES } from './data/pilots.js';
 import * as squadRender from './render/squad.js';
+import { turboDz } from './systems/vuelo.js';
 // LAS PIRUETAS DE ACTOR (PLAN_MANIOBRAS_FASES M1): un Fiel entra, vuela una maniobra y se va. Es
 // puesta en escena — no dispara, no choca y no toca al jugador (regla §3.7 del plan).
 import * as wingmv from './systems/wingmv.js';
@@ -4050,7 +4051,18 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           // EL SEÑUELO DEL CAMBIO DE PILOTO (28/9): los misiles que venian hacia vos persiguen al que
           // se retira y pasan de largo — el los esquiva. Collision no corre en la cinematica, asi que
           // se mueven aca.
-          if (rr && rr.cambio) {
+          // …Y EN TODO RELEVO CON UN AVION QUE SE VA (8/10: "los Harriers y los misiles quedan estaticos en
+          // el cambio de piloto"): collision no corre, asi que los misiles se quedaban clavados en el
+          // aire. Los guiados se van detras del que cae o se retira (señuelo, como en el cambio) y las
+          // trazadoras y rafagas siguen de largo. Y los Harriers siguen volando (caza.cazaEscena).
+          if (rr && !rr.solo) {
+            caza.cazaEscena(dt);
+            for (const m of missiles) {
+              if (!m.senuelo && !m.tracer && m.tipo !== 'aden') { m.senuelo = true; m.cebo = null; }
+              if (!m.senuelo) { m.done = true; m.z -= (run.spd * 0.4 + 150) * dt; }
+            }
+          }
+          if (rr && !rr.solo) {
             const fp = squad.fallenPos(rr);
             for (const m of missiles) if (m.senuelo) {
               m.z -= (run.spd * 0.4 + 160) * dt;
@@ -5066,7 +5078,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (hzW) ctx.restore();
       }
       if (!rasante.enCabina()
-        && (chase || (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active(), squad.cambioDz() + moves.cobraDz());
+        && (chase || (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active(), squad.cambioDz() + moves.cobraDz() + turboDz());
       // LAS TRAZADORAS DE POPA (el escape, V2): vienen de atras, o sea MAS CERCA que el avion, y
       // por eso van despues del sprite. Adentro del giro del horizonte, como el resto del mundo.
       if (S.state === 'play' && blancoSys.escapando()) {

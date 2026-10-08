@@ -759,6 +759,20 @@ export function cazaSystem(dt) {
   return;
 }
 
+/** EN EL RELEVO (8/10, el autor: "los Harriers, cuando hay cambio de piloto, quedan estaticos en el
+ *  lugar — horrible"): cazaSystem no corre en la cinematica (nadie tira, nadie pega), y la flota se
+ *  quedaba congelada en el aire. Esto la sigue VOLANDO —posicion y efectos— sin solucion de tiro, sin
+ *  rafagas, sin combos y sin cambiar de fase: es escena, no combate. */
+export function cazaEscena(dt) {
+  for (let i = fleet.length - 1; i >= 0; i--) {
+    C = fleet[i];
+    C.t += dt;
+    stepPos(dt); stepFx(dt);
+    if (C.muerto) fleet.splice(i, 1);
+  }
+  C = null;
+}
+
 /** ¿Se lo esta viendo de frente? Solo mientras VIENE hacia vos. Desde el sobrepaso hasta que se
  *  pierde en el horizonte se le ve la cola, sin excepcion. El render no decide esto. */
 const deFrente = h => h.fase === 'aviso';
