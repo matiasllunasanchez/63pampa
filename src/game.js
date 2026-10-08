@@ -2730,6 +2730,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       cambioPiloto: () => pedirCambio(),
       tempoToggle: () => {
         if (S.state !== 'play' || cfg.devcam || cfg.poderes === false) return;
+        // con el MOMENTUM OBLIGADO de la suelta corriendo, el tuyo no se suma (8/10: se multiplicaban
+        // las dos camaras lentas)
+        if (blancoSys.lento()) { beep(140, 0.09, 'square', 0.05); return; }
         const r = tempo.toggle(nivelMomentum());
         if (r === 'empty') { beep(140, 0.09, 'square', 0.05); return; }
         beep(r === 'on' ? 330 : 520, 0.09, 'square', 0.05, r === 'on' ? -160 : 160);   // slide abajo = el tiempo cae
@@ -6447,6 +6450,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // PAUSA: se saltea update() ENTERO (y el reloj del momentum, y el del telon) — el mundo
       // queda clavado tal cual se ve. draw() sigue corriendo: dibuja el frame congelado y el
       // menu encima. pauseT es el unico reloj vivo (parpadeos del overlay).
+      // NADIE QUEDA COLGADO (8/10, el autor: "aprieto escape al momento de perder y se tilda"): la pausa
+      // vive solo en un estado pausable, y la de dialogo solo en el vuelo (o la corta final) y con su
+      // caja a la vista. Si el estado cambio por debajo, o la radio ya no se ve, se sueltan: un mundo
+      // congelado sin menu ni caja que lo explique ES un cuelgue, aunque el codigo este esperando.
+      if (paused && !PAUSABLE()) paused = false;
+      if (dlgPausa && ((S.state !== 'play' && S.state !== 'landing') || (dlgT > 1 && !radioVis()))) { dlgPausa = false; lecFoco = null; }
       if (paused) {
         pauseT += raw;
         draw(); updateMusic(S.state);
