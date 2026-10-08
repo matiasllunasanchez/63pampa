@@ -73,6 +73,8 @@ del avión, que brillan "como brillan los aviones con la luz, pero el doble".
 | `PTS` | 150 | por misil que revienta en la nube o la bengala |
 | `EXPLOTA` / `LADO` | 0,5 / 2,5–6 u | la probabilidad de reventar ahí; si no, a qué distancia del costado se desvía |
 | `BENGALA` | `CAE` 0 · `ALTO` 0,35 · `LUZ` 0,9 · `HALO_A` 0,25 · `LUZ_A` 0,25 · `NOCHE_A` 0,3 · `HUMO_CADA` 0,06 s · `HUMO_VIDA` 1,1 s | cómo cae, su tamaño, su luz y su humo. La luz es la de la turbina del avión: un halo sin borde con tope del 25% ("20 o 30% máximo", el autor) y en el centro el fueguito amarillo-naranja; así se ven las chapitas |
+| `TIRA_MIN_PX` / `NUBE` | 3 px / ×1,4 | el largo mínimo de una tira en pantalla, para que se lea la cinta ("agrandá un poco, muy poco"), y cuánto se abre la nube ("un poco más grande") |
+| `BRILLO_NUCLEO` / `BRILLO_HALO` | blanco / blanco frío | el color de los destellos de tiras y tubos: blancos, no del color del cielo |
 | `DESTELLO_R` | 0,7 | el radio de cada destello de tira o tubo, en veces el de la chapa del avión (~2 px). Las tiras no derraman halo: brillan como la chapa |
 
 ## 4 · Cómo probarlo

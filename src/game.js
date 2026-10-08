@@ -727,7 +727,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function drawChapitas() {
       const A = luzDelCielo(), D = BORDE_DESTELLO, K = CHAPITAS.BRILLO;
       const fz = Math.min(1, A.fuerza * K);
-      const [n0, n1, n2] = A.nucleo, [h0, h1, h2] = A.halo;
+      // LOS BRILLOS, BLANCOS (8/10, el autor: "los brillos deberian ser quiza blancos"): el aluminio
+      // devuelve la luz blanca, no del color del cielo — los destellos del avion son del sol; los de
+      // las chapitas, CHAPITAS.BRILLO_NUCLEO / BRILLO_HALO
+      const [n0, n1, n2] = CHAPITAS.BRILLO_NUCLEO, [h0, h1, h2] = CHAPITAS.BRILLO_HALO;
       // el destello de la chapa (nucleo + halo, latiendo) y su luz derramada, en (x, y)
       // `derrama`: si ademas suma su LUZ DERRAMADA (render/brillo.js). Cada tira destella COMO LA CHAPA
       // DEL AVION —su destello propio, sin halo grande (autor, 8/10: "dejar ver las chapitas brillantes
@@ -740,7 +743,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         g.addColorStop(1, `rgba(${h0},${h1},${h2},0)`);
         ctx.globalAlpha = 1; ctx.fillStyle = g;
         ctx.fillRect(x - r, y - r, r * 2, r * 2);
-        if (derrama) luz(ctx, x, y, r * 2.2, A.halo, a * 0.5);
+        if (derrama) luz(ctx, x, y, r * 2.2, CHAPITAS.BRILLO_HALO, a * 0.5);
       };
       const raya = (s, L, ang, col, wid) => {
         ctx.strokeStyle = col; ctx.lineWidth = wid;
@@ -756,7 +759,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         const t = n.t, a0 = Math.min(1, n.vida);
         if (a0 <= 0) continue;
         // DONDE ESTA CADA TUBO: salio escupido y el aire lo frena hasta que revienta (TUBO_ABRE)
-        const tv = Math.min(t, CHAPITAS.TUBO_ABRE), sale = CHAPITAS.TUBO_SALE * tv * (1 - tv / (2 * CHAPITAS.TUBO_ABRE + 0.3));
+        const tv = Math.min(t, CHAPITAS.TUBO_ABRE), sale = CHAPITAS.TUBO_SALE * CHAPITAS.NUBE * tv * (1 - tv / (2 * CHAPITAS.TUBO_ABRE + 0.3));
         const tubo = q => ({ x: n.x + q.vx * sale, y: n.y + q.vy * sale, z: n.z + q.vz * sale });
         if (t < CHAPITAS.TUBO_ABRE) {
           // LOS TUBOS, todavia cerrados: 16 cm de chapa que giran y agarran la luz
@@ -775,7 +778,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           continue;
         }
         // …REVENTADOS: cada tubo abre su nubecita de tiras, que se abre, gira y cae
-        const te = t - CHAPITAS.TUBO_ABRE, abre = 0.35 + te * 1.6;
+        const te = t - CHAPITAS.TUBO_ABRE, abre = (0.35 + te * 1.6) * CHAPITAS.NUBE;
         // …Y LA BENGALA DEL CARTUCHO (8/10: "un cartucho de chafitas tenia 30 chafitas y UNA bengala
         // dentro"): una sola por carga, colgada de su paracaidas debajo de la nube —donde la pone el
         // sistema, que es tambien donde revienta el misil de calor— dejando un hilo de humo. Primero el
@@ -828,7 +831,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           const ang = q.a + q.w * te, cara = Math.abs(Math.cos(ang * 2 + i));
           ctx.globalAlpha = a0 * cerca(z);
           // LA CINTA HORNEADA (render/chafita.js: aluminio arrugado, la foto del autor); sin la hoja, la raya
-          const L = Math.max(1.5, s.k * CHAPITAS.LARGO);
+          const L = Math.max(CHAPITAS.TIRA_MIN_PX, s.k * CHAPITAS.LARGO);
           if (!chafita.dibujarTira(i, Math.abs(Math.sin(q.a * 0.9 + q.w * 0.5 * te)), ang, s.x, s.y, L))
             raya(s, L, ang, cara > 0.6 && A.filo ? A.filo : cara > 0.3 ? '#c9d6dd' : '#8fa3ae', Math.max(1, s.k * 0.07));
           if (cara < CHAPITAS.DESTELLA || !(fz > 0) || !(D.alfa > 0)) return;

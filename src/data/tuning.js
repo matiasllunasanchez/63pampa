@@ -1073,6 +1073,13 @@ export const SENUELO_TQ = { VEL: 260, GIRO: 6, RADIO: 3, PTS: 150 };
 //   TIRAS_TUBO cuantas tiras dibuja cada tubo al reventar (la nube: "termina generando una nube de
 //              chafitas brillantes"). Las de verdad eran miles; 4 por tubo (120 por carga) alcanzan
 //   DESTELLA   desde que tan de cara a la luz (0..1) una tira o un tubo destella: mas bajo, mas titila
+//   TIRA_MIN_PX el largo minimo de una tira en pantalla (8/10: "agranda un poco las tiras para que se lean,
+//              pero muy poco"): a la distancia del avion los 7 cm son menos de un pixel; con 3 se
+//              alcanza a leer la cinta arrugada. Las que pasan cerca de la camara siguen a escala
+//   NUBE       cuanto se abre la nube: multiplica lo que se separan los tubos y sus tiras ("un poco mas
+//              grande la nube", 8/10). Es dibujo: el blanco del misil sigue siendo el centro
+//   BRILLO_NUCLEO / BRILLO_HALO  el color de los destellos de tiras y tubos: BLANCO ("los brillos
+//              deberian ser quiza blancos"), no el del cielo como la chapa del avion
 //   DESTELLO_R el radio de cada destello, en veces BORDE_DESTELLO.radio: chico, del tamaño de los de la
 //              chapa del avion (~2 px). Con la escala del mundo salian de 12 px y cien juntos eran una mancha
 //   BRILLO     cuanto brillan contra los aviones: la luz del cielo de render/borde.js por esto (8/10:
@@ -1086,7 +1093,8 @@ export const CHAPITAS = {
   CARGAS: 2, CARGAS_MIN: 1, CARGAS_MAX: 4,
   ENGANA: ['dart', 'wolf'],
   ALCANCE_Z: 160, VIDA: 4, INERCIA: 0.6,
-  LARGO: 0.035, BRILLO: 2, DESTELLO_R: 0.7,
+  LARGO: 0.035, TIRA_MIN_PX: 3, NUBE: 1.4, BRILLO: 2, DESTELLO_R: 0.7,
+  BRILLO_NUCLEO: [255, 255, 255], BRILLO_HALO: [215, 232, 255],
   TUBOS: 30, TUBO_M: 0.08, TUBO_ABRE: 0.2, TUBO_SALE: 9, TIRAS_TUBO: 4, DESTELLA: 0.7,
   VEL: 260, GIRO: 6, RADIO: 3,
   CERCA: 8, SOFT: 0.35,
