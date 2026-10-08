@@ -84,7 +84,7 @@ import { blanco } from './core/blanco.js';
 import { drawTrayectoria } from './render/trayectoria.js';
 const BL_ALT_IDEAL = BL_BLANCO.ALT_IDEAL;
 import { drawBlanco, drawBlancoHud } from './render/blanco.js';
-import { drawRotuloVuelo, ROTULO, ROTULO_T, ROTULO_NOMBRE } from './render/rotulo.js';
+import { drawRotuloVuelo, ROTULO, ROTULO_T, ROTULO_NOMBRE, ROTULO_ESCAPE, ROTULO_FALLO } from './render/rotulo.js';
 import { tarjetaPiloto, TARJETA_LADO, tarjetaLugar } from './render/hud.js';
 import { PULSO } from './data/pulso.js';
 import { spawnSystem } from './systems/spawn.js';
@@ -2302,6 +2302,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     let altHold = null;    // sonda de LOS RESTOS (QUITAR): fija la altura cuadro a cuadro
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
     let frenoAntes = false;   // la tecla de freno el cuadro anterior: la COBRA sale en el flanco
+    // LOS ROTULOS GRANDES DEL DESENLACE (¡LE DISTE! ¡ESCAPÁ YA!, ¡MUY LARGA! ¡FALLASTE!, ¡LE ERRASTE!):
+    // OCULTOS por ahora (autor, 8/10: "creo que no quedan bien los mensajes grandes, ocultalos y
+    // manejemos todo en el cuadrado de arriba"). El codigo queda: `true` los vuelve a mostrar.
+    const ROTULOS_SUELTA = false;
+    let errarT0 = -1;   // el rotulo ¡LE ERRASTE! antes del negro (performance.now; -1 = no)
+    let lentoPrev = false;   // el flanco de la camara lenta de la suelta (para el cartel ¡LE DISTE!)
+    let falloT0 = -1;    // el rotulo ¡MUY LARGA! ¡FALLASTE! (performance.now; -1 = no)
+    let escapaT0 = -1;   // el rotulo LE DISTE! ESCAPA YA! (cuando arranco, performance.now; -1 = no)
     let rotuloT0 = -1, rasPrev = false;   // el rotulo RASANTE: cuando arranco (performance.now) y el flanco
     let toT = 0, toCount = 4;
     // EL ATERRIZAJE (§4). Viven con la maquina de estados y no en `run` por la misma regla que los
@@ -3035,6 +3043,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
     /** EL ESCAPE ARRANCA (PLAN_VUELTA_REAL §2.B): el cruce con el buque hundido. */
     function empezarEscape() {
+      // LE DISTE! ESCAPA YA! (autor, 7/10): apenas pasaste sobre el buque que le pegaste, el rotulo
+      // cruza la pantalla como RASANTE, en verde
+      // (8/10: el rotulo grande queda oculto — ROTULOS_SUELTA — y lo dice el cartel de arriba)
+      // (8/10: el ¡LE DISTE! ya salio arriba durante la camara lenta; al salir de ella, GRANDE, ¡ESCAPÁ YA!)
+      escapaT0 = performance.now();
       fases.tapar(FASE_ESCAPE);
       estrellas.llenar(EST_MAX);
       // EL RADAR ENTERO EN ROJO, pero en 0,99 y no en 1: el 1 dispara la oleada de misiles EN EL
@@ -3161,7 +3174,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // arranca de corrido.
       const deCorrido = runClimax() === 'suelta';
       setState('play'); fadeT = deCorrido ? 0 : 2.2;
-      if (deCorrido) cartel(T('bl_le_diste'), P.warn, T('bl_escapa'));   // rojo, arriba: el autor 4/10
+      // EL CARTEL DEL ACIERTO tambien cuando la vuelta arranca de corrido sin escape (8/10: "le pegue
+      // al barco, pase y no aparecio el cartelito"): el mismo de `empezarEscape`
+      if (deCorrido) escapaT0 = performance.now();
       // el mundo lo vacio el `enter()` del climax; se vuelve al pasillo con el contador de siembra
       // recien puesto para que la vuelta no herede el ultimo intervalo de la aproximacion.
       run.nextSpawn = 320; run.nextBomb = 260; run.nextSoldier = 60;
@@ -3269,7 +3284,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  (y al soltar, tryLaunchMissile dice por que no salio). */
     function hayBomba() {
       if (S.state !== 'play' || run.mslCd > 0) return false;
-      if (runClimax() === 'suelta') return (blanco.ala === 'bomba' && blanco.alaN > 0) || (blanco.centroN > 0 && !blancoSys.bloqueada());
+      if (runClimax() === 'suelta') return (blanco.ala === 'bomba' && blanco.alaN > 0) || (blanco.centroN > 0 && !blancoSys.bloqueada() && !blancoSys.trabada());
       return run.msl > 0;
     }
     /** COMO SALEN LOS TANQUES del pilon `pilon` (`n` tanques): cada uno desde su pilon, CON LA MISMA
@@ -3297,6 +3312,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (runClimax() === 'suelta') {
         if (!blancoSys.tomarBomba()) {
           if (blancoSys.bloqueada()) { cartel(T('bl_bloqueada'), P.warn); beep(180, 0.08, 'square', 0.04); run.mslCd = 0.5; }
+          // TRABADA (autor, 8/10): la del buque no salio — el clac del pilon y el cartel
+          else if (blancoSys.trabada()) { cartel(T('bl_trabada'), P.warn); beep(120, 0.12, 'square', 0.05, -40); run.mslCd = 0.5; }
           return;
         }
       } else if (run.msl <= 0) return;
@@ -4233,7 +4250,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (rutaSys.hay()) {
         const alc = rutaSys.enAlcance();
         if (alcanceAntes !== null && alc !== alcanceAntes) {
-          cartel(T(alc ? 'radarEntra' : 'radarSale'), alc ? P.warn : P.accent);
+          // (8/10: entrar en NARANJA —es un aviso, el rojo queda para lo que mata— y salir en BLANCO: el
+          // verde ya es del radar —su tinte, su placa— y de los mensajes buenos, y no se mezclan)
+          cartel(T(alc ? 'radarEntra' : 'radarSale'), alc ? P.accent : P.ink);
           // …y en la IDA un compañero te lo marca con el avion: abajo, y sin radio (SENAS_COMP.radar)
           if (alc && run.dist < objectiveDist) senaCompanero('radar', 1);
           // …y EL ESCANEO: la linea que barre la pantalla y la red que respira (world.ESC_*)
@@ -4319,15 +4338,24 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // se miden contra el casco de este mismo cuadro.
       if (runClimax() === 'suelta') {
         const b = blancoSys.step(dt);
+        // ¡LE DISTE! MIENTRAS DURA LA CAMARA LENTA (autor, 8/10): arranca con el impacto armado, en el
+        // cartel de arriba; cuando la camara lenta termina (el cruce) sale grande el ¡ESCAPÁ YA!
+        { const ln = blancoSys.lento(); if (ln && !lentoPrev) cartel(T('rot_ledi'), '#7fe07a', null, { alerta: true }); lentoPrev = ln; }
         // EL RECIBIMIENTO: las ametralladoras del buque que te erran (decoracion, systems/recibe.js)
         stepRecibe(dt, blancoSys.negro(), PZ);
         // LAS SEÑAS, a la radio: lo que Puma canta de la aproximacion. La de OTRA PASADA espera al
         // otro lado del negro, igual que la linea de la vuelta en volverDelBlanco().
         const av = curMission() && curMission().avisos;
-        if (av) for (const c of blancoSys.cues()) {
-          if (!av['bl_' + c]) continue;
-          avisar(av, 'bl_' + c);
-        } else blancoSys.cues();
+        for (const c of blancoSys.cues()) {
+          // LA LARGA SE ESCRIBE GRANDE (autor, 7/10): el rotulo gris ¡MUY LARGA! ¡FALLASTE!
+          if (c === 'larga') { if (ROTULOS_SUELTA) falloT0 = performance.now(); cartel(T('rot_larga'), '#c9ced3', T('rot_fallaste'), { alerta: true, subCol: '#ff6a50' }); }
+          // ¡LE ERRASTE! antes del negro (8/10) — salvo que el ¡MUY LARGA! todavia este en pantalla
+          if (c === 'errado' && falloT0 < 0 && blancoSys.estado().res !== 'larga') {
+            if (ROTULOS_SUELTA) errarT0 = performance.now();
+            cartel(T('rot_erraste'), '#ff6a50', null, { alerta: true });
+          }
+          if (av && av['bl_' + c]) avisar(av, 'bl_' + c);
+        }
         // EL CRUCE es el fin del ataque: se le pasa por encima al buque y corta a negro. Hundido,
         // cierra por el embudo de siempre (la vuelta si la mision la tiene, si no el recuento).
         // (el negro lo pinta el propio sistema —blancoSys.negro()— debajo de la radio: aca solo se
@@ -4366,7 +4394,6 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // encima. No hay negro: en ese cuadro te ven todos —todas las estrellas, el radar en rojo, la
         // alarma que ya sonaba— y el pasillo sigue. La fase del escape tapa a las de la vuelta.
         if (b === 'escape' || (b && b.escape)) empezarEscape();
-        if (b === 'escape') cartel(T('bl_le_diste'), P.warn, T('bl_escapa'));
         // …Y EL VIRAJE: sin estrellas, escapaste. Es la bisagra entre las dos mitades, y el pasillo
         // no la puede mostrar —no rota—, asi que la cuenta un video (ver `viraje`).
         if (blancoSys.escapando() && run.estrellas <= 0 && !vir) { vir = { fase: 'perdimos', t: 0 }; radioTramo('vir_perdimos'); missiles.length = 0; }
@@ -5411,6 +5438,28 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         const tr = (performance.now() - rotuloT0) / 1000;
         if (tr > ROTULO_T || (S.state !== 'play' && S.state !== 'relevo')) rotuloT0 = -1;
         else drawRotuloVuelo(T('rot_rasante'), tr);
+      }
+      // ¡MUY LARGA! y despues ¡FALLASTE! (autor, 7/10): como el de abajo, en gris y mas chico
+      if (falloT0 >= 0) {
+        const tr = (performance.now() - falloT0) / 1000;
+        // (solo en vuelo: en el relevo cruza el nombre del avion que entra y se pisaban)
+        if (tr > 2 * ROTULO_T || S.state !== 'play') falloT0 = -1;
+        else if (tr < ROTULO_T) drawRotuloVuelo(T('rot_larga'), tr, 'gris', null, null, ROTULO_FALLO);
+        else drawRotuloVuelo(T('rot_fallaste'), tr - ROTULO_T, 'gris', null, null, ROTULO_FALLO);
+      }
+      // ¡LE ERRASTE! (autor, 8/10): el que cruzo sin pegarle, antes de que el cuadro se vaya a negro
+      if (errarT0 >= 0) {
+        const tr = (performance.now() - errarT0) / 1000;
+        if (tr > ROTULO_T || S.state !== 'play') errarT0 = -1;
+        else drawRotuloVuelo(T('rot_erraste'), tr, 'gris', null, null, ROTULO_ESCAPE);
+      }
+      // ¡LE DISTE! y despues ¡ESCAPÁ YA! (autor, 7/10): DOS rotulos que vuelan uno detras del otro,
+      // mas chicos que RASANTE — el primero en verde, la orden en rojo
+      if (escapaT0 >= 0) {
+        const tr = (performance.now() - escapaT0) / 1000;
+        // (8/10: solo el ¡ESCAPÁ YA!, grande y en rojo; el ¡LE DISTE! va en el cartel de arriba)
+        if (tr > ROTULO_T || S.state !== 'play') escapaT0 = -1;
+        else drawRotuloVuelo(T('rot_escapa'), tr, 'rojo', null, null, ROTULO_ESCAPE);
       }
       // EL NOMBRE DEL AVION QUE ENTRA (27/9): en campaña, cuando el compañero asume, el nombre
       // pintado de su avion cruza la pantalla como RASANTE, en letras de fuego. Arranca con el

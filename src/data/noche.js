@@ -21,5 +21,8 @@ export const NOCHE = {
   ABRE: 2,         // pasadas de la mascara de luz (mas = la luz abre mas la oscuridad)
   REFLEJO: 0.32,   // cuanto brilla el reflejo de la luna en el agua
   BRILLO: 1.6,     // el resplandor de noche (de dia es BRILLO_FUERZA, 0.9)
+  TOBERA: 0.35,    // la turbina encendida de noche, sin turbo: un tercio de la llama (7/10)
+  LUNA_R: 34,      // el disco de la luna (unidades de mundo): ahi la oscuridad se abre entera (7/10)
+  LUNA_HALO: 1.8,  // …y se va cerrando hasta este multiplo del radio
   AUREOLA: 0.3,    // la aureola del astro de noche: la luna brilla, pero "no como el sol" (el autor)
 };

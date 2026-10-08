@@ -1015,23 +1015,59 @@ function drawCartel() {
   // la letra de los avisos no tiene raya (—): quedaba un hueco en «EN RADAR — AL AGUA»
   // …y SIN SIGNOS (28/9, el autor): la caja ya dice que es un aviso — los "! … !" y "¡…!" y los
   // "~ … ~" de cuando eran textos sueltos sobraban adentro.
-  const limpio = t => t && String(t).replace(/[!¡~]/g, '').replace(/\s*—\s*/g, ' - ').replace(/\s+/g, ' ').trim();
-  const { k } = a, c = { ...a.c, txt: limpio(a.c.txt), sub: limpio(a.c.sub) }, col = c.col || P.ink;
+  // …y SIN TILDES (8/10): la letra de los avisos no tiene las vocales acentuadas y "ESCAPÁ" salia
+  // "ESCAP". Se sacan los acentos y se deja la virgulilla (U+0303) para que la Ñ siga siendo Ñ.
+  const limpio = t => t && String(t).normalize('NFD').replace(/[\u0300-\u0302\u0304-\u036f]/g, '').normalize('NFC')
+    .replace(/[!¡~]/g, '').replace(/\s*—\s*/g, ' - ').replace(/\s+/g, ' ').trim();
+  // (el de ALERTA conserva los signos de la segunda linea — 8/10, el autor: "exclamaciones en ESCAPA YA")
+  const conSignos = t => t && limpio(String(t).replace(/¡/g, '\u0001').replace(/!/g, '\u0002')).replace(/\u0001/g, '¡').replace(/\u0002/g, '!');
+  const { k } = a, c = { ...a.c, txt: a.c.alerta ? conSignos(a.c.txt) : limpio(a.c.txt), sub: a.c.alerta ? conSignos(a.c.sub) : limpio(a.c.sub) }, col = c.col || P.ink;
   ctx.font = avisoFont(8);
   const w1 = ctx.measureText(c.txt).width;
   // LA LINEA BLANCA VA CHICA (4/10, el autor): en 6 px competia con el titulo. 4 px la deja de nota.
-  const SUB_PX = 4, fSub = `${SUB_PX}px monospace`;
+  // (el de ALERTA lleva la segunda linea en la letra de los avisos, como el titulo: es una orden)
+  const SUB_PX = c.alerta ? 8 : 4, fSub = c.alerta ? avisoFont(7) : `${SUB_PX}px monospace`;
   ctx.font = fSub;
   const w2 = c.sub ? ctx.measureText(c.sub).width : 0;
-  const w = Math.round(Math.max(w1, w2) + 12), h = c.sub ? 12 + SUB_PX + 2 : 12;
+  const w = Math.round(Math.max(w1, w2) + (c.alerta ? 20 : 12)), h = c.sub ? 12 + SUB_PX + 2 : 12;
   const x = Math.round(W / 2 - w / 2), y = Math.round(MARGEN + CARTEL_Y * k - (1 - k) * h);
   plate(x, y, w, h);
+  // LA ALERTA (8/10): la caja late en su color, el borde va doble, y dos flechas a los costados
+  // apuntan a la caja titilando — lo que antes hacia el rotulo grande, adentro del cuadrado de arriba
+  const late = c.alerta ? 0.5 + 0.5 * Math.sin(performance.now() / 70) : 0;
+  if (c.alerta) {
+    ctx.globalAlpha = 0.14 + 0.16 * late; ctx.fillStyle = col; ctx.fillRect(x + 1, y + 1, w - 2, h - 2); ctx.globalAlpha = 1;
+    bordePlaca(x - 1, y - 1, w + 2, h + 2, col);
+    if (late > 0.35) {
+      const my = Math.round(y + h / 2);
+      for (let i = 0; i < 4; i++) {
+        ctx.fillStyle = col;
+        ctx.fillRect(x - 4 - i, my - i, 1, 2 * i + 1);          // ▶ a la izquierda, apuntando a la caja
+        ctx.fillRect(x + w + 3 + i, my - i, 1, 2 * i + 1);      // ◀ a la derecha
+      }
+    }
+  }
   bordePlaca(x, y, w, h, col);
   ctx.textAlign = 'center';
   ctx.font = avisoFont(8); ctx.fillStyle = col;
-  ctx.fillText(c.txt, W / 2, y + 9);
-  if (c.sub) { ctx.font = fSub; ctx.fillStyle = P.foam; ctx.fillText(c.sub, W / 2, y + 11 + SUB_PX); }
+  conApertura(c.txt, W / 2, y + 9, 8);
+  if (c.sub) {
+    ctx.font = fSub; ctx.fillStyle = c.subCol || P.foam;
+    conApertura(c.sub, W / 2, y + 11 + SUB_PX - (c.alerta ? 1 : 0), SUB_PX);
+  }
   ctx.textAlign = 'left';
+}
+
+/** Escribe `t` centrado en `cx`. LA LETRA DE LOS AVISOS NO TRAE "¡" (8/10): si el texto la lleva,
+ *  se escribe el resto y la apertura se dibuja como un "!" dado vuelta, girado alrededor del centro
+ *  de las mayusculas para que quede a su altura. Usa la fuente y el color ya puestos. */
+function conApertura(t, cx, y, px0) {
+  if (t[0] !== '¡') { ctx.fillText(t, cx, y); return; }
+  const resto = t.slice(1), wr = ctx.measureText(resto).width, wb = ctx.measureText('!').width;
+  ctx.fillText(resto, cx + wb / 2, y);
+  const capH = ctx.measureText('E').actualBoundingBoxAscent || px0 * 0.7;
+  ctx.save(); ctx.translate(cx - wr / 2 + wb / 2 - 0.5, y - capH / 2); ctx.rotate(Math.PI);
+  ctx.textAlign = 'center'; ctx.fillText('!', 0, capH / 2); ctx.restore();
 }
 
 function bordePlaca(x, y, w, h, col) {
@@ -2108,6 +2144,11 @@ export function drawHUD(h) {
     bordePlaca(xRack, yc - 4, RACK_W, 9, on && !r.bloqueada && verde ? SUELTA_COL : P.warn);
     iconoEn(cx, yc, 'bomba', !on ? '#2e3c45' : verde ? SUELTA_COL : r.bloqueada ? '#6b7680' : null,
       undefined, !on || verde || r.bloqueada);
+    // TRABADA (autor, 8/10): la del buque no salio — una cruz roja encima, que titila, y queda
+    if (on && r.trabada && Math.sin(Date.now() / 90) > -0.4) {
+      ctx.fillStyle = '#e8321e';
+      for (let i = -3; i <= 3; i++) { ctx.fillRect(cx + i, yc + i, 1, 1); ctx.fillRect(cx + i, yc - i, 1, 1); }
+    }
     // QUE BOMBA ES (data/bombas.js): el nombre corto encima del estante — MK-17 o BRP
     if (r.bomba) {
       ctx.font = 'bold 5px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.dim;

@@ -46,6 +46,9 @@ export const BL = {
    *    PERDIDA_SUBE  unidades/s que el piloto automatico sube. Se ve irse, que es la idea: el que
    *                  erro la pasada abre y deja el lugar. */
   PERDIDA_T: 1.6,
+  /** ¡LE ERRASTE! (autor, 8/10: "antes de la pantalla en negro debe decir LE ERRASTE"): segundos
+   *  de vuelo entre el cruce sin acierto y el fundido, para que el rotulo llegue a leerse. */
+  ERRADO_T: 1.4,
   PERDIDA_SUBE: 9,
 
   /** LA ESPOLETA: segundos de vuelo que la bomba necesita para armarse. Es lo que hace que la

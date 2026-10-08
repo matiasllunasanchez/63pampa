@@ -75,6 +75,7 @@ function armar() {
   blanco.ala = c.ala; blanco.alaN = c.ala === 'bomba' ? 2 : 0; blanco.centroN = 1;
   blanco.tuvoVentana = false;   // pasada nueva: la ventana de la anterior no cuenta
   blanco.perdidaT = -1;
+  blanco.trabada = false;       // avion nuevo, pilon nuevo
   run.msl = mslAntes = blanco.alaN + blanco.centroN;
 }
 
@@ -89,12 +90,25 @@ const aTiro = () => blanco.on && blanco.z > PZ && blanco.z < BL.VISIBLE_Z && bla
  *  del buque—; si no, una del ala. La del centro NUNCA sale lejos del buque: esta bloqueada para
  *  eso y nada mas. Devuelve false si no hay nada que soltar (vacio o solo queda la bloqueada). */
 export function tomarBomba() {
-  if (aTiro() && blanco.centroN > 0) blanco.centroN--;
+  if (aTiro() && blanco.centroN > 0) {
+    // LA BOMBA TRABADA (autor, 8/10): ya trabada no sale; y al soltarla puede trabarse (data/bombas.js,
+    // `traba`; la sonda `?traba=1` la traba siempre). game.js pregunta `trabada()` para decirlo.
+    if (blanco.trabada) return false;
+    let q = null; try { q = new URLSearchParams(location.search).get('traba'); } catch (e) { }
+    if (q === '1' || Math.random() < (bombaInfo(blanco.bomba).traba || 0)) {
+      blanco.trabada = true;
+      seña('trabada');
+      return false;
+    }
+    blanco.centroN--;
+  }
   else if (blanco.alaN > 0) blanco.alaN--;
   else return false;
   run.msl = blanco.alaN + blanco.centroN;
   return true;
 }
+/** La bomba del buque se trabo en esta pasada. */
+export const trabada = () => blanco.on && blanco.trabada && blanco.centroN > 0;
 /** Solo queda la bomba del buque, y el buque no esta a tiro. */
 export const bloqueada = () => blanco.on && blanco.alaN === 0 && blanco.centroN > 0 && !aTiro();
 
@@ -114,6 +128,8 @@ const veredicto = (clave, x, y, z, col) => {
   // ¡HUNDIDO! NO SE ESCRIBE (pedido del autor, 23/9: "el texto hundido quitalo"): lo cuentan la
   // explosion, la camara lenta y Puma. Los demas veredictos si, porque dicen para donde corregir.
   if (clave === 'hundido') return;
+  // …NI LA LARGA (autor, 7/10): esa la cuenta el rotulo gris ¡MUY LARGA! ¡FALLASTE! (game.js)
+  if (clave === 'larga') return;
   const s = proj(x, y, z);
   popup(Math.max(40, Math.min(W - 40, s.x)), s.y - 14, T('bl_' + clave), col);
 };
@@ -305,6 +321,12 @@ export function step(dt) {
   if (blanco.altPiso >= 0) plane.y = Math.max(plane.y, blanco.altPiso);
   // EL FUNDIDO DE SALIDA de una pasada nueva: corre solo, el juego ya sigue.
   if (blanco.salidaT >= 0) { blanco.salidaT += dt; if (blanco.salidaT >= BL.SALIDA_T) blanco.salidaT = -1; }
+  // ¡LE ERRASTE!: el avion sigue volando ERRADO_T segundos despues del cruce y recien ahi el fundido
+  if (blanco.preNegroT >= 0) {
+    blanco.preNegroT -= dt;
+    if (blanco.preNegroT < 0) { blanco.preNegroT = -1; blanco.negroT = 0; }
+    return null;
+  }
   // EL NEGRO SOSTENIDO: el cruce ya paso; se espera NEGRO_T con Puma encima y recien ahi se resuelve.
   if (blanco.negroT >= 0) {
     blanco.negroT += dt;
@@ -332,7 +354,8 @@ export function step(dt) {
     if (escape) blanco.escapando = true;
     else if (blanco.cumplido) acierto = true;
     else {
-      blanco.negroT = 0;
+      // (el negro no arranca en el acto: primero ¡LE ERRASTE! — ver `preNegroT`)
+      blanco.preNegroT = BL.ERRADO_T; seña('errado');
       {
         blanco.pasada++;
         // EN UNA MISION (una pasada por avion): errar no decide aca —decide game.js si queda un
@@ -368,7 +391,8 @@ export function step(dt) {
     spdRate += ((run.spd - spdPrev) / dt - spdRate) * k;
     spdPrev = run.spd;
   }
-  const puede = aTiro() && !blanco.lento && run.msl > 0;
+  // (con la del buque TRABADA y sin bombas de ala no hay nada que soltar: ni luz verde ni cuenta)
+  const puede = aTiro() && !blanco.lento && run.msl > 0 && !(blanco.trabada && blanco.alaN === 0);
   const hit = r => r === 'centro' || r === 'extremo';
   const vxB = plane.vx * BOMBA_DERIVA;
   // LA VENTANA ES DE DISTANCIA, NO DE TU ALTURA (26/9/2026). La primera version la definia con la
@@ -410,6 +434,7 @@ export function step(dt) {
   // suma si le pega)
   if (blanco.tuvoVentana && cerca && blanco.centroN > 0 && !blanco.cumplido) {
     blanco.perdidaT = 0;
+    seña('errado');   // el momento perdido tambien es un ¡LE ERRASTE!
     blanco.altPiso = plane.y;
     blanco.pasada++;
     // EL MISMO `pendiente` que el cruce: game.js no se entera de que el desenlace llego antes
@@ -436,7 +461,7 @@ export const perdida = () => blanco.on && blanco.perdidaT >= 0;
 export function enFila() {
   // (tambien despues de un choque en el cruce: el escape y el negro que ese cruce habia armado se
   // desarman — el que viene encara de nuevo)
-  blanco.escapando = false; blanco.lento = false; blanco.negroT = -1; blanco.salidaT = -1;
+  blanco.escapando = false; blanco.lento = false; blanco.negroT = -1; blanco.salidaT = -1; blanco.preNegroT = -1;
   blanco.pendiente = null; blanco.altPiso = -1;
   run.dist = objetivo - BL.FILA_M;
   blanco.z = blanco.zPrev = PZ + BL.FILA_M;
@@ -544,7 +569,7 @@ export function hud() {
     alt: vivo && aTiro()
       ? (plane.y > altIdeal()[1] ? -1 : plane.y < altIdeal()[0] ? 1 : 0) : 0,
     enAtaque: vivo && aTiro(),
-    rack: { ala: blanco.ala, alaN: blanco.alaN, centroN: blanco.centroN, bloqueada: !aTiro(), bomba: blanco.bomba },
+    rack: { ala: blanco.ala, alaN: blanco.alaN, centroN: blanco.centroN, bloqueada: !aTiro(), bomba: blanco.bomba, trabada: blanco.trabada },
     // LA ALTURA DEL SALTO: desde que soltaste hasta el cruce, cuanto mide el buque justo debajo de
     // tu linea — por encima de eso pasas limpio. La marca amarilla del altimetro.
     salto: blanco.negroT < 0 && blanco.z > PZ && (blanco.dicho.sali || blanco.lento)

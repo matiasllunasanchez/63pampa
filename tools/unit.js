@@ -2592,9 +2592,10 @@ test('nafta: el trueque de la carga sale solo de los numeros (PLAN §4)', async 
   // dos tanques + bomba: autonomia — vuelve sola, aun con turbo en la corrida final
   assert.ok(perfilMision('tanques_bomba').vuelve > 0);
   assert.ok(perfilMision('tanques_bomba', { turbo: true }).vuelve > 0);
-  // tres bombas: llega, pero no vuelve sin la Chancha
+  // tres bombas: llega, y vuelve JUSTA volando de manual (desde el 8/10 el ras quema x1,5 y no x3:
+  // "es IMPOSIBLE la cantidad de gasolina"); con mucho menos margen que la base
   assert.ok(perfilMision('tres_bombas').llega > 0);
-  assert.ok(perfilMision('tres_bombas').vuelve < 0);
+  assert.ok(perfilMision('tres_bombas').vuelve < perfilMision('tanques_bomba').vuelve / 3);
   // el turbo se paga
   assert.ok(perfilMision('tanques_bomba', { turbo: true }).llega < perfilMision('tanques_bomba').llega);
   // soltar los tanques con nafta adentro la tira: se llega con menos
@@ -2952,13 +2953,15 @@ test('calibracion: en t15 el trueque de la carga se sostiene a la velocidad del 
   assert.equal(vueloRuta(t15, 'tanques_bomba', { turboFinal: true }).seco, null);
   // tres bombas: sola se seca; sin la de la ida no llega viva a la zona de la vuelta; con la de la
   // ida vuelve, pero justa
-  assert.notEqual(vueloRuta(t15, 'tres_bombas').seco, null);
-  assert.notEqual(vueloRuta(t15, 'tres_bombas', { chVuelta: true }).seco, null);
+  // (8/10: con el ras a x1,5 tres bombas ya no se seca sola volando el perfil; vuelve con menos que
+  // la base, que es el trueque que queda)
+  assert.ok(vueloRuta(t15, 'tres_bombas').casa < vueloRuta(t15, 'tanques_bomba').casa, 'tres bombas vuelve con menos');
   const ida = vueloRuta(t15, 'tres_bombas', { chIda: true });
   assert.equal(ida.seco, null, 'con la de la ida, tres bombas vuelve');
   assert.ok(ida.casa < vueloRuta(t15, 'tanques_bomba', { chIda: true }).casa, 'pero con menos que la base');
   // una bomba: sola no vuelve; con cualquiera de las dos Chanchas, si
-  assert.notEqual(vueloRuta(t15, 'bomba').seco, null);
+  // (8/10: con el ras a x1,5 una bomba sola tambien vuelve volando el perfil, pero con menos que la base)
+  assert.ok(vueloRuta(t15, 'bomba').casa < vueloRuta(t15, 'tanques_bomba').casa, 'una bomba vuelve con menos');
   assert.equal(vueloRuta(t15, 'bomba', { chIda: true }).seco, null);
   assert.equal(vueloRuta(t15, 'bomba', { chVuelta: true }).seco, null);
   // la zona de la Chancha de la ida dura segundos, no un instante

@@ -19,6 +19,8 @@ import { hzSprite, hzWorld } from '../core/horizon.js';
 import { P } from '../data/palette.js';
 import { drawCono, drawVaporAla, drawCruce } from './mach.js';
 import { luz } from './brillo.js';
+import { nocheDe } from './noche.js';
+import { NOCHE } from '../data/noche.js';
 import { drawBorde } from './borde.js';
 import { drawMira } from './miras.js';
 import { anchorSpray, drawSpray } from './rain.js';
@@ -162,7 +164,10 @@ function stepFlame() {
   // no le corresponde: la tobera APAGADA ya viene dibujada en la hoja horneada, con su color. Que
   // el asset mande cuando el motor no esta empujando — el efecto es para lo que el asset no puede
   // hacer, que es encenderse.
-  const quiere = run.fuel > 0 && run.boost ? 1 : 0;
+  // …SALVO DE NOCHE (autor, 7/10: "la parte de la turbina deberia brillar un poco porque esta
+  // prendida, no tanto como turbo pero que ilumine algo"): ahi no hay asset que se vea, y la turbina
+  // encendida es una brasa — un piso NOCHE.TOBERA de la llama, que tambien derrama su luz.
+  const quiere = run.fuel <= 0 ? 0 : run.boost ? 1 : nocheDe(cfg.sky) ? NOCHE.TOBERA : 0;
   flameF += (quiere - flameF) * 0.18;
   return flameF;
 }

@@ -947,7 +947,8 @@ export const MAR_GRANO = { TAM: 0.05, TAM_MIN: 0.5, TAM_MAX: 1.5, PX: 2.5, MAX: 
 // HIERVE: veces por segundo que cambia el borde; ROMPE: cuanto se derrama hacia adelante al romper.
 // Z_MAX: hasta donde se dibuja la cresta — mas alla del campo de puntos del mar (SEA_FAR_Z = 190): de
 // lejos la ola es solo eso, una raya de espuma.
-export const OLA_CRESTA = { PASO_PX: 1.5, GROSOR: 0.22, GROSOR_H: 0.07, MIN: 0.45, HIERVE: 4, ROMPE: 3.2, Z_MAX: 720 };
+// CUERPO: que tan opaca es la cara de la ola, del filo hasta el mar (8/10: "a veces parece transparente")
+export const OLA_CRESTA = { PASO_PX: 1.5, GROSOR: 0.22, GROSOR_H: 0.07, MIN: 0.45, HIERVE: 4, ROMPE: 3.2, Z_MAX: 720, CUERPO: 0.92 };
 // ---------- MAS OLAS (systems/spawn.js, 2/10: "muchas mas olas por mision, y que se vean desde mas lejos") ----------
 // RATE_K multiplica OLA_RATE (brisa y tormenta); CALMA es la tasa con mar en calma: 0, y a proposito
 // — protege a m1, el tutorial (una ola ahi seria enseñar dos cosas a la vez; fixture agua §1);
@@ -2041,10 +2042,13 @@ export const TANQUE_LLENO_FRAC = 0.5;
 //     quema, y una sola linea del altimetro dice las dos cosas.
 //   · la de arriba es CH_ALT (48): la cita con la Chancha cae en la zona barata.
 // Si se mueven, mover tambien los carteles del HUD (N3), que se pintan con estas mismas alturas.
+// (8/10, el autor: "es IMPOSIBLE la cantidad de gasolina que manejo"): el ras quemaba x3 y una ida al
+// ras dejaba 200 km de los 2.600 — la vuelta pedia 2.000. Ahora x1,5: la mision entera al ras entra con
+// lo justo, volar alto en el transito sobra, y la Chancha es ayuda, no obligacion. El medio va entre los dos.
 export const ZONAS_GASTO = [
   { id: 'menor', desde: CH_ALT, f: 1 },
-  { id: 'medio', desde: RADAR_ALT, f: 1.8 },
-  { id: 'mayor', desde: -Infinity, f: 3 },
+  { id: 'medio', desde: RADAR_ALT, f: 1.25 },
+  { id: 'mayor', desde: -Infinity, f: 1.5 },
 ];
 
 // SOSTENER EL RASANTE TE DEVUELVE EL VUELO NORMAL (pedido del autor, 26/9/2026): "mantener el efecto

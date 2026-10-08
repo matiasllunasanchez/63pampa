@@ -1500,6 +1500,18 @@ function crestas(olas, dv, clima) {
       const hv = ruido(wx / (paso * 4), hervor, 613);
       const g = grosor * (0.5 + 0.5 * fuerza) * (0.65 + hv * 0.7);
       const af = Math.min(1, fade * (0.5 + 0.5 * fuerza));
+      // EL CUERPO DE LA OLA (autor, 8/10: "darle mas cuerpo interno, a veces parece transparente y
+      // cuando se choca no se entiende con que me choque"). La ola era el campo de puntos levantado
+      // —agua salpicada de huecos— y la cresta; ahora la CARA, del filo hasta el mar, va llena: arriba
+      // el verde del agua iluminada, abajo el hondo. Detras de la espuma, que se pinta encima.
+      const base = proj(wx, seaBase(wx, wzR, run.t, clima), camZ);
+      const alto = base.y - s.y;
+      if (alto > 0.6) {
+        const ab = Math.min(1, fade * C.CUERPO * (0.35 + 0.65 * fuerza));
+        ctx.globalAlpha = ab;
+        pxFino(s.x - C.PASO_PX / 2, s.y, C.PASO_PX + 0.5, alto * 0.45, theme.water.mid);
+        pxFino(s.x - C.PASO_PX / 2, s.y + alto * 0.45, C.PASO_PX + 0.5, alto * 0.55 + 0.5, theme.water.deep);
+      }
       ctx.globalAlpha = af;
       pxFino(s.x - C.PASO_PX / 2, s.y - g, C.PASO_PX + 0.5, g + rompe, blanco);
       // y debajo la espuma se deshace en la cara de la ola: una franja mas tenue

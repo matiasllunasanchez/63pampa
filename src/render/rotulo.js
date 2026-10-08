@@ -23,6 +23,26 @@ const ESTILOS = {
     borde: '#0a1034', filo: '#223a94',
     estela: ['#ffffff', '#a8c6ff'],
   },
+  // EL DE "LE DISTE! ESCAPA YA!" (autor, 7/10: "un texto similar a RASANTE, de otro color"): el
+  // verde de la señal de soltar (la flecha `verde` de abajo), de claro a oscuro, con su filo.
+  verde: {
+    stops: [[0, '#f0ffe8'], [0.3, '#b6f5a4'], [0.62, '#4fbf52'], [1, '#1f6e2a']],
+    borde: '#0b2410', filo: '#14501c',
+    estela: ['#e6ffd8', '#7fe07a'],
+  },
+  // EL "¡ESCAPÁ YA!" (autor, 7/10: "y luego ESCAPÁ YA!, en rojo"): rojo de alarma, de claro a oscuro
+  rojo: {
+    stops: [[0, '#ffe2d8'], [0.3, '#ff8a70'], [0.62, '#e8321e'], [1, '#8c0e08']],
+    borde: '#240402', filo: '#5c0a06',
+    estela: ['#ffd0c4', '#ff6a50'],
+  },
+  // EL "¡MUY LARGA! ¡FALLASTE!" (autor, 7/10: "como el LE DISTE pero en gris, mas chico"): acero,
+  // de claro a oscuro, sin color — el que no le pego no se lleva un color de premio ni de alarma
+  gris: {
+    stops: [[0, '#f4f5f6'], [0.32, '#c9ced3'], [0.64, '#8b939b'], [1, '#4c535a']],
+    borde: '#101315', filo: '#2c3136',
+    estela: ['#e8eaec', '#a4abb2'],
+  },
   // LAS LINEAS CHICAS del nombre del avion (autor, 27/9: "en blanco"): relleno liso, con el mismo
   // contorno casi negro del fuego para que se despeguen del cielo y del agua.
   blanco: {
@@ -94,6 +114,10 @@ export const ROTULO_T = ROTULO.ENTRA + ROTULO.QUEDA + ROTULO.SALE;
 const ROTULO_TAM = 30;
 /** El NOMBRE DEL AVION que entra: la mitad que RASANTE (autor, 27/9) — es un nombre, no un poder. */
 export const ROTULO_NOMBRE = 15;
+/** El tamaño del ¡LE DISTE! / ¡ESCAPÁ YA! (autor, 7/10: "mas chico el texto"). */
+export const ROTULO_ESCAPE = 20;
+/** …y el ¡MUY LARGA! / ¡FALLASTE!, mas chico todavia (autor, 7/10). */
+export const ROTULO_FALLO = 16;
 const ROTULO_SUB = 12;   // las lineas chicas de arriba y abajo ("Toma el mando" / el piloto)
 
 /** Un cuadro del rotulo, `t` segundos despues de que arranco (reloj de pared: la camara lenta no

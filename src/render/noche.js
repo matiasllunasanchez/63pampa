@@ -81,6 +81,22 @@ export function drawNoche(n, astro, giro) {
     gd.imageSmoothingEnabled = true;
     for (let i = 0; i < NOCHE.ABRE; i++) gd.drawImage(L, 0, 0, D.width, D.height);
   }
+  // …Y LA LUNA NO VA DEBAJO DEL VELO (autor, 7/10: "la luz de la luna no brilla tan bien, tiene un
+  // VELO por encima del brillo, quitar"): la oscuridad se abre entera sobre el disco y se va cerrando
+  // en su halo. Con el giro del horizonte, en el mismo lugar del cielo girado.
+  if (n.luna && astro) {
+    gd.save();
+    gd.setTransform(sx, 0, 0, sy, 0, 0);
+    if (giro) { gd.translate(giro.cx, giro.cy); gd.rotate(giro.a); gd.translate(-giro.cx, -giro.cy); }
+    gd.globalCompositeOperation = 'destination-out';
+    const R = NOCHE.LUNA_R, gl = gd.createRadialGradient(astro.x, astro.y, 0, astro.x, astro.y, R * NOCHE.LUNA_HALO);
+    gl.addColorStop(0, 'rgba(0,0,0,1)');
+    gl.addColorStop(1 / NOCHE.LUNA_HALO, 'rgba(0,0,0,1)');
+    gl.addColorStop(1, 'rgba(0,0,0,0)');
+    gd.fillStyle = gl;
+    gd.fillRect(astro.x - R * NOCHE.LUNA_HALO, astro.y - R * NOCHE.LUNA_HALO, 2 * R * NOCHE.LUNA_HALO, 2 * R * NOCHE.LUNA_HALO);
+    gd.restore();
+  }
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.drawImage(D, 0, 0);

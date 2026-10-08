@@ -38,6 +38,8 @@
 //   dano     lo que hace si estalla: { centro, extremo } — el 100 hunde. La MK-17 que estalla
 //            destruye donde sea; la BRP necesita la zona de maquinas, o dos.
 //   grande   la explosion en el casco se ve grande y con secundarias (la BRP: "EXPLOSION VISIBLE")
+//   traba    la chance de que la bomba del buque SE TRABE al soltarla (autor, 8/10: "a veces se
+//            trababan"): no sale, queda marcada rota en el estante y esa pasada ya no se tira
 //   radio    cuanto rompe al reventar en el pasillo: todo lo destructible a esta distancia vuela
 //   onda     el radio de la explosion para el AVION que la atraviesa (ESTALLIDO en data/tuning.js)
 //   boquete  la media franja del buque que la explosion convierte en humo y fuego: por ahi se pasa
@@ -46,12 +48,12 @@ export const BOMBAS = {
   mk17: {
     nombre: 'MK-17', kg: 500, es: 'de origen inglés', en: 'British-made',
     armaT: 0.5, holgura: 0.5, pDet: [0.5, 0.1, 1.0, 0.5], racha: 3, tarde: 0.5, tardeT: [0.5, 1.1],
-    dano: { centro: 100, extremo: 100 }, grande: false, radio: 14, onda: 9, boquete: 10,
+    dano: { centro: 100, extremo: 100 }, grande: false, traba: 0.12, radio: 14, onda: 9, boquete: 10,
   },
   brp: {
     nombre: 'BRP-250', kg: 250, es: 'de origen español', en: 'Spanish-made',
     armaT: 0.5, holgura: 1.4, pDet: [0.5, 1, 1, 1], racha: 0, tarde: 0, tardeT: [0, 0],
-    dano: { centro: 100, extremo: 55 }, grande: true, radio: 10, onda: 8, boquete: 8,
+    dano: { centro: 100, extremo: 55 }, grande: true, traba: 0.06, radio: 10, onda: 8, boquete: 8,
   },
 };
 

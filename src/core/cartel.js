@@ -16,12 +16,19 @@ const DUR = CARTEL_ENTRA + CARTEL_QUEDA + CARTEL_SALE;
 const TOPE = 4;   // si se amontonan, se descartan los del medio: el que esta y el ultimo quedan
 
 /** Encola un cartel: `txt` el texto, `col` su color, `sub` una segunda linea (o nada). El mismo
- *  texto ya en la cola no se repite. */
-export function cartel(txt, col, sub) {
+ *  texto ya en la cola no se repite.
+ *
+ *  `o.alerta` (8/10, el autor: "manejemos todo en el cuadrado de arriba, con otras marcas o formas
+ *  de llamar la atencion"): el desenlace de la suelta. El cartel SE ADELANTA al que se este viendo
+ *  —no espera turno—, la caja late en su color y lleva flechas a los costados que titilan, y la
+ *  segunda linea va grande y en `o.subCol`. */
+export function cartel(txt, col, sub, o) {
   if (!txt) return;
   const c = carteles.cola;
   if (c.some(x => x.txt === txt && x.sub === (sub || null))) return;
-  c.push({ txt, col: col || null, sub: sub || null });
+  const item = { txt, col: col || null, sub: sub || null, alerta: !!(o && o.alerta), subCol: (o && o.subCol) || null };
+  if (item.alerta) { c.splice(0, c.length > 0 ? 1 : 0, item); carteles.t0 = -1; }
+  else c.push(item);
   while (c.length > TOPE) c.splice(1, 1);
 }
 

@@ -61,6 +61,11 @@ export const blanco = {
   // LOS BOQUETES: donde reventó una bomba, esa franja del casco es humo y fuego — en el cruce se
   // pasa por ahi sin llevarse los palos. { x, r } (centro y media anchura).
   boquetes: [],
+  // ¡LE ERRASTE! ANTES DEL NEGRO (autor, 8/10): segundos que faltan para que arranque el fundido
+  // despues de cruzar sin pegarle (-1 = no). Mientras corre el avion sigue volando y se lee el rotulo.
+  preNegroT: -1,
+  // LA BOMBA TRABADA (autor, 8/10: "a veces se trababan"): la del buque no salio y no va a salir
+  trabada: false,
 };
 
 export function resetBlanco(on, nombre, clase, tipo, base) {
@@ -71,6 +76,7 @@ export function resetBlanco(on, nombre, clase, tipo, base) {
   blanco.pasada = 0; blanco.marcas.length = 0; blanco.res = ''; blanco.resT = -9;
   blanco.cues.length = 0; for (const k in blanco.dicho) delete blanco.dicho[k];
   blanco.lento = false; blanco.negroT = -1; blanco.salidaT = -1; blanco.pendiente = null; blanco.altPiso = -1;
+  blanco.preNegroT = -1; blanco.trabada = false;
   blanco.ala = null; blanco.alaN = 0; blanco.centroN = 0; blanco.pred = null; blanco.listo = false;
   blanco.extra = 0; blanco.enDist = false; blanco.buenaAlt = false; blanco.tuvoVentana = false; blanco.perdidaT = -1;
   blanco.escapando = false; blanco.cumplido = false; blanco.tardeT = -1; blanco.boquetes.length = 0;
