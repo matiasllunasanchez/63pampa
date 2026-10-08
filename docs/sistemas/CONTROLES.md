@@ -105,7 +105,7 @@ mano que te lleva a los costados. Ningún modo re-mapea nada.
 | **cámara lenta** (MOMENTUM) | `4` | **SELECT** | solo pasillo |
 | **LA CHANCHA** (reabastecer) | `3` | **cruceta ↑** ¹ | solo pasillo, y no en los modos de clímax suelto. Con ruta: fuera del radar, por tramo (ver [SPEC_NAFTA_ALCANCE §5](SPEC_NAFTA_ALCANCE.md)) |
 | **SOLTAR TANQUES** | `B` | **L3** (en vuelo) | solo pasillo, en cualquier misión con tanques: primero el par de ala, después el central ([SPEC_NAFTA_ALCANCE §6](SPEC_NAFTA_ALCANCE.md)) |
-| **CHAPITAS** (chaff) | `H` | **◯** (en vuelo) | solo pasillo, dos por avión: desvía los misiles de radar y, si te veían, bajar del radar enseguida borra las alarmas ([SPEC_CHAPITAS](SPEC_CHAPITAS.md)) |
+| **CHAFITAS** (chaff) | `H` | **◯** (en vuelo) | solo pasillo, dos por avión: desvía los misiles de radar y, si te veían, bajar del radar enseguida borra las alarmas ([SPEC_CHAPITAS](SPEC_CHAPITAS.md)) |
 | **invertir el eje Y** | OPCIONES → EJE Y | `△` | **todo el juego a la vez** (ver §6) |
 | **pista musical** | `1` / `2` | **L3** / **R3** | cualquier pantalla (**L3 en vuelo es soltar tanques**) |
 | **navegar menús** | flechas · `ENTER` · `ESC` | cruceta/sticks · `✕` · `◯` | todas |

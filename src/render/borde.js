@@ -48,6 +48,10 @@ function atmosfera() {
   return { fuerza, filo, nucleo: L.nucleo, halo: L.halo };
 }
 
+/** LA LUZ DE AHORA, para quien brilla sin ser un sprite (las chapitas, render en game.js): la misma
+ *  fuerza y los mismos colores que el filo y los destellos de los aviones. */
+export const luzDelCielo = () => atmosfera();
+
 let O = null, o = null;
 
 /** El borde de UN cuadro de la hoja. Recibe exactamente los argumentos con los que se dibujo el

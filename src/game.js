@@ -114,20 +114,20 @@ import { decir as decirRadio, apuntar as apuntarRadio, callar as callarRadio, ti
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
 import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
 import { drawDesenfoque, BLUR_DBG } from './render/desenfoque.js';   // BLUR_DBG: QUITAR con __blurdbg
-import { drawBrillo, inicioLuz } from './render/brillo.js';
+import { drawBrillo, inicioLuz, luz } from './render/brillo.js';
 import { nocheDe, drawNoche, tableroNoche, luzNoche, drawReflejoLuna } from './render/noche.js';
 import { NOCHE } from './data/noche.js';
 import { drawAureola, AURA_NORMAL, AURA_DBG } from './render/aureola.js';   // AURA_DBG: QUITAR con __auradbg
 import * as menus from './render/menus.js';
 import { stepRain, stepSpray, drawRain, RAIN_N } from './render/rain.js';
 import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit, fogFade } from './systems/fog.js';
-import { setNiebla } from './render/borde.js';
+import { setNiebla, luzDelCielo } from './render/borde.js';
 import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './legacy/momentum_render.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
 import { BOMBA_CARGA_T, BOMBA_CARGA_VZ } from './data/tuning.js';
-import { BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_PANZA, BOMBA_DERIVA, SPAWN_Z as BOMBA_Z_TOPE, TQ_ALA_X, CH_ETA_RUTA, CHAPITAS } from './data/tuning.js';
+import { BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_PANZA, BOMBA_DERIVA, SPAWN_Z as BOMBA_Z_TOPE, TQ_ALA_X, CH_ETA_RUTA, CHAPITAS, BORDE_DESTELLO } from './data/tuning.js';
 import { LAND_APPROACH_M, LAND_ALT0, LAND_SPD_MIN, LAND_SPD_MAX, LAND_SPD_OK,
          LAND_VY_SUAVE, LAND_VY_DURO, LAND_PITCH_OK, LAND_GEAR_DRAG, LAND_GEAR_MIN_T,
          LAND_COSTO_CHAPA, LAND_PTS, FUGA_Y } from './data/tuning.js';
@@ -715,25 +715,69 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       for (let i = 0; i < 6 + gana; i++) streaks.push({ a: Math.random() * 6.283, r: 20 + Math.random() * 18, v: 260 + Math.random() * 160, life: 0.4 });
     }
 
-    /** LA NUBE DE CHAPITAS en el aire: tiras largas de aluminio que se abren, giran cada una a su
-     *  ritmo y destellan al agarrar la luz — plateado, blanco, plateado. Se apaga en el ultimo segundo. */
+    /** LA NUBE DE CHAPITAS en el aire: tiras cortas de aluminio que se abren y giran cada una a su
+     *  ritmo. BRILLAN COMO LOS AVIONES, AL DOBLE (autor, 8/10): la misma luz del cielo que enciende el
+     *  filo de los aviones (render/borde.js — su color y su fuerza segun el cielo y la niebla), por
+     *  CHAPITAS_BRILLO. Cada tira se pinta del color del filo cuanto mas de cara a la luz queda, y
+     *  cuando la agarra de lleno DESTELLA: el mismo destello de la chapa —nucleo y halo, latiendo— y
+     *  su luz derramada. Al girar, cada una se prende y se apaga: eso es lo que hace titilar la nube. */
     function drawChapitas() {
+      const A = luzDelCielo(), D = BORDE_DESTELLO, K = CHAPITAS.BRILLO;
+      const fz = Math.min(1, A.fuerza * K);
+      const [n0, n1, n2] = A.nucleo, [h0, h1, h2] = A.halo;
+      // el destello de la chapa (nucleo + halo, latiendo) y su luz derramada, en (x, y)
+      const destella = (x, y, r, a) => {
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, `rgba(${n0},${n1},${n2},${a})`);
+        g.addColorStop(0.45, `rgba(${h0},${h1},${h2},${a * 0.5})`);
+        g.addColorStop(1, `rgba(${h0},${h1},${h2},0)`);
+        ctx.globalAlpha = 1; ctx.fillStyle = g;
+        ctx.fillRect(x - r, y - r, r * 2, r * 2);
+        luz(ctx, x, y, r * 2.2, A.halo, a * 0.5);
+      };
+      const raya = (s, L, ang, col, wid) => {
+        ctx.strokeStyle = col; ctx.lineWidth = wid;
+        ctx.beginPath();
+        ctx.moveTo(s.x - Math.cos(ang) * L / 2, s.y - Math.sin(ang) * L / 2);
+        ctx.lineTo(s.x + Math.cos(ang) * L / 2, s.y + Math.sin(ang) * L / 2);
+        ctx.stroke();
+      };
+      const pulso = i => 0.7 + 0.3 * Math.sin(run.t * D.pulso + i * 1.7);
+      // lo que ya paso al lado de la camara se apaga: pegado al lente, la perspectiva lo haria un palo
+      const cerca = z => Math.max(0, Math.min(1, (z - 3) / 5));
       for (const n of chapitasSys.nubesEnElAire()) {
-        const t = n.t, abre = 0.35 + t * 1.6, a0 = Math.min(1, n.vida);
+        const t = n.t, a0 = Math.min(1, n.vida);
         if (a0 <= 0) continue;
+        // DONDE ESTA CADA TUBO: salio escupido y el aire lo frena hasta que revienta (TUBO_ABRE)
+        const tv = Math.min(t, CHAPITAS.TUBO_ABRE), sale = CHAPITAS.TUBO_SALE * tv * (1 - tv / (2 * CHAPITAS.TUBO_ABRE + 0.3));
+        const tubo = q => ({ x: n.x + q.vx * sale, y: n.y + q.vy * sale, z: n.z + q.vz * sale });
+        if (t < CHAPITAS.TUBO_ABRE) {
+          // LOS TUBOS, todavia cerrados: 16 cm de chapa que giran y agarran la luz
+          n.tubos.forEach((q, j) => {
+            const p = tubo(q);
+            if (p.z < 3) return;
+            const s = proj(p.x, p.y, p.z), ang = q.a + q.w * t, cara = Math.abs(Math.cos(ang * 2 + j));
+            ctx.globalAlpha = a0 * cerca(p.z);
+            raya(s, Math.max(2, s.k * CHAPITAS.TUBO_M), ang, cara > 0.6 && A.filo ? A.filo : '#c9d6dd', Math.max(1, s.k * 0.04));
+            if (cara > 0.82 && fz > 0 && D.alfa > 0)
+              destella(s.x, s.y, Math.max(1.5, D.radio * s.k * 0.2 * K), Math.min(1, D.alfa * K * Math.min(1, A.fuerza * 1.4) * pulso(j)) * a0 * cerca(p.z));
+          });
+          continue;
+        }
+        // …REVENTADOS: cada tubo abre su nubecita de tiras, que se abre, gira y cae
+        const te = t - CHAPITAS.TUBO_ABRE, abre = 0.35 + te * 1.6;
         n.tiras.forEach((q, i) => {
-          const z = n.z + q.dz * abre;
-          if (z < 2) return;
-          const s = proj(n.x + q.dx * abre, n.y + q.dy * abre - q.cae * t * t, z);
-          const L = Math.max(2, s.k * 0.9), ang = q.a + q.w * t;
-          const fase = (Math.floor(run.t * 22) + i) % 5;
-          ctx.globalAlpha = a0 * (fase === 0 ? 1 : 0.75);
-          ctx.strokeStyle = fase === 0 ? '#ffffff' : fase < 3 ? '#c9d6dd' : '#8fa3ae';
-          ctx.lineWidth = Math.max(1, s.k * 0.07);
-          ctx.beginPath();
-          ctx.moveTo(s.x - Math.cos(ang) * L / 2, s.y - Math.sin(ang) * L / 2);
-          ctx.lineTo(s.x + Math.cos(ang) * L / 2, s.y + Math.sin(ang) * L / 2);
-          ctx.stroke();
+          const c = tubo(n.tubos[q.tubo]);
+          const z = c.z + q.dz * abre;
+          if (z < 3) return;
+          const s = proj(c.x + q.dx * abre, c.y + q.dy * abre - q.cae * te * te, z);
+          const ang = q.a + q.w * te, cara = Math.abs(Math.cos(ang * 2 + i));
+          ctx.globalAlpha = a0 * cerca(z);
+          raya(s, Math.max(1.5, s.k * CHAPITAS.LARGO), ang, cara > 0.6 && A.filo ? A.filo : cara > 0.3 ? '#c9d6dd' : '#8fa3ae', Math.max(1, s.k * 0.07));
+          if (cara < 0.82 || !(fz > 0) || !(D.alfa > 0)) return;
+          const p = pulso(i);
+          destella(s.x, s.y, Math.max(1.5, D.radio * s.k * 0.25 * K * p),
+            Math.min(1, D.alfa * K * Math.min(1, A.fuerza * 1.4) * p) * a0 * cerca(z) * (cara - 0.82) / 0.18);
         });
       }
       ctx.globalAlpha = 1;

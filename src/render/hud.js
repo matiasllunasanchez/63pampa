@@ -11,6 +11,7 @@
 import { ctx, px, DW as W, DH as H, PZ, U, avisoFont } from './ctx.js';
 import { cartelesAhora } from '../core/cartel.js';
 import { plane, cfg } from '../core/state.js';
+import { cargaDe } from '../data/cargas.js';
 import { run } from '../core/run.js';
 import { shown as dmgShown } from '../systems/damage.js';
 import { proj } from '../core/fx.js';
@@ -597,8 +598,11 @@ const VEL_TOPE = 1400;              // km/h: pasa Mach 1 (1200) con aire; la pos
 // El Mach arranca en 0,2 y no en 0,4: el crucero anda por 0,26 a 0,5, y con la escala en 0,4 la
 // aguja pasaba media mision clavada en cero, que en un tablero se lee como un instrumento roto.
 const MACH_DE = 0.2, MACH_A = 1.4;
-const RACK_W = 12;
-const BOMBA_W = 10;          // la bomba del estante: 10x5, y la placa mide 12 (1 px de aire a cada lado)
+// EL ESTANTE (8/10, el autor: "los dos tanques en un mismo slot con un 2, luego el misil, y debajo
+// el espacio para las chapitas"): tres filas —el par de ala, el centro, las chapitas— y en cada una
+// el icono con CUANTOS lleva al costado. 1 de aire, el icono de 10, 1, el numero de 3, 1 de aire.
+const RACK_W = 16;
+const BOMBA_W = 10;          // la bomba del estante: 10x5, al lado su numero
 // LOS DOS MAXIMOS DEL AVION, en km/h: sin turbo y con turbo, con la racha y el tiempo de vuelo al
 // tope y sin viento en contra. Son las dos marcas de la escala de velocidad (ver drawHUD). Salen de
 // `speedTarget`, la misma cuenta con la que vuela: si algun dia cambia la fisica, las marcas la
@@ -1318,8 +1322,7 @@ const nombrePlaca = i => planeName(i) || pilotName(i);
 export function anchoSquad() {
   const nombre = nombrePlaca(alMando(run));
   ctx.font = F_VAL;
-  const wFila = Math.max(2, avionesEnPlaca()) * SQ_PASO + 3 + ctx.measureText(nombre).width
-    + (run.chapitasMax > 0 ? CHAPITAS_W : 0);
+  const wFila = Math.max(2, avionesEnPlaca()) * SQ_PASO + 3 + ctx.measureText(nombre).width;
   return Math.max(ALERTA_MIN_W, Math.round(wFila) + 6);
 }
 
@@ -1344,7 +1347,6 @@ export function drawSquadPips(x, y) {
   // era una etiqueta mas. Es la unica persona que hay en el HUD: va del color del que manda.
   ctx.fillStyle = P.accent; ctx.font = F_VAL;
   ctx.fillText(nombre, x + 5 + avionesEnPlaca() * SQ_PASO, y + 8);
-  chapitasQuedan(x + anchoSquad(), y);
 }
 
 /** NIVEL DE ALERTA — cuantos te estan buscando (PLAN_ESTRELLAS_BUSQUEDA §7).
@@ -1456,18 +1458,6 @@ function chapitasRadar(x, y) {
   ctx.restore();
 }
 
-// LAS CHAPITAS QUE QUEDAN, en la placa del ESCUADRON: son de CADA AVION (el relevo trae las suyas), y
-// esa placa es la de quien vuela. Tiritas plateadas paradas al final de la fila, una por carga
-// (CHAPITAS.CARGAS), destellando de a una; la gastada queda como un surco gris. `x` es el canto
-// derecho de la placa.
-const CHAPITAS_W = 6;
-function chapitasQuedan(xDer, y) {
-  if (!(run.chapitasMax > 0)) return;
-  for (let i = 0; i < run.chapitasMax; i++) {
-    const on = i < run.chapitas;
-    px(xDer - 4 - i * 2, y + 2, 1, SQUAD_H - 4, on ? (Math.floor(run.t * 3 + i) % 4 ? '#c9d6dd' : '#ffffff') : BAL_APAGADA);
-  }
-}
 
 // LA BALIZA: 7x7, una cupula de cinco filas sobre su pie de dos. Tan alta como ancha a proposito:
 // con cuatro filas salia un bombin, y lo que la hace BALIZA es la cupula parada. El brillo que la
@@ -1790,6 +1780,80 @@ function misilChico(x, y, on) {
   iconoEn(x + (MSL_ICO_W - 1) / 2, y, 'misil', vivo ? '#e9edf0' : '#2e3c45', vivo ? P.accent : '#2e3c45');
 }
 
+// LOS NUMEROS DEL ESTANTE: 3x5, de pixel, como todo el tablero (la fuente de 5 px no se lee a este
+// tamaño). Del 0 al 4: lo mas que cuelga de un pilon, o las chapitas al tope (CHAPITAS.CARGAS_MAX).
+const DIG = {
+  0: ['###', '#.#', '#.#', '#.#', '###'], 1: ['.#.', '##.', '.#.', '.#.', '###'],
+  2: ['###', '..#', '###', '#..', '###'], 3: ['###', '..#', '.##', '..#', '###'],
+  4: ['#.#', '#.#', '###', '..#', '..#'],
+};
+function digito(x, y, n, col) {
+  const d = DIG[Math.max(0, Math.min(4, n | 0))];
+  for (let j = 0; j < 5; j++) for (let i = 0; i < 3; i++) if (d[j][i] === '#') px(x + i, y + j, 1, 1, col);
+}
+
+/** EL ESTANTE: LO QUE CUELGA DEL AVION, tres filas (8/10).
+ *    arriba   EL PAR DE ALA: tanques o bombas, con su 2 (las bombas de ala salen de a una: 2, 1).
+ *             Soltados, la silueta queda en gris: el hueco dice que falta ESO.
+ *    medio    EL CENTRO: en LA SUELTA la bomba del buque (enmarcada en rojo, apagada lejos del buque,
+ *             la cruz si se trabo); en las demas, las bombas de la tecla de bomba, con cuantas quedan.
+ *    abajo    LAS CHAPITAS, con su 2. Un avion sin chapitas deja la fila VACIA.
+ *  Cuando es el momento de soltar (la suelta), lo que se puede soltar titila en verde. */
+function drawEstante(h) {
+  const r = h.rack, verde = !!(r && h.sueltaYa && titilaSuelta());
+  const c = cargaDe(cfg.carga);
+  const hayAla = !!(r ? r.ala : c.ala);
+  if (!r && !hayAla && !(run.chapitasMax > 0) && !pide(run.msl < MSL_MAX)) return;
+  plate(X_RACK, CUADROS_Y, RACK_W, CUADRO);
+  const cx = X_RACK + 1 + (BOMBA_W - 1) / 2, xd = X_RACK + 1 + BOMBA_W + 1;
+  const VACIO = '#2e3c45';
+  const fila = (yy, ico, n, col, mono, colDig) => {
+    iconoEn(cx, yy, ico, col, undefined, mono);
+    if (n !== null) digito(xd, yy - 2, n, colDig || (n > 0 ? P.foam : VACIO));
+  };
+  // ARRIBA: el par de ala
+  const ya = CUADROS_Y + 5, ala = r ? r.ala : c.ala;
+  if (ala === 'tanque') {
+    const cuelga = !run.tanque || (run.tanque.pilones || []).includes('ala');
+    fila(ya, 'tanque', cuelga ? 2 : 0, cuelga ? '#8d9a78' : VACIO);
+  } else if (ala === 'bomba') {
+    const n = r ? r.alaN : 2;
+    fila(ya, 'bomba', n, n > 0 ? (verde ? SUELTA_COL : null) : VACIO, !(n > 0) || verde);
+  }
+  // EL MEDIO: el centro
+  const yc = CUADROS_Y + 13;
+  if (r) {
+    const on = r.centroN > 0;
+    bordePlaca(X_RACK, yc - 4, RACK_W, 9, on && !r.bloqueada && verde ? SUELTA_COL : P.warn);
+    fila(yc, 'bomba', r.centroN, !on ? VACIO : verde ? SUELTA_COL : r.bloqueada ? '#6b7680' : null,
+      !on || verde || r.bloqueada);
+    // TRABADA (autor, 8/10): la del buque no salio — una cruz roja encima, que titila, y queda
+    if (on && r.trabada && Math.sin(Date.now() / 90) > -0.4) {
+      ctx.fillStyle = '#e8321e';
+      for (let i = -3; i <= 3; i++) { ctx.fillRect(cx + i, yc + i, 1, 1); ctx.fillRect(cx + i, yc - i, 1, 1); }
+    }
+    // QUE BOMBA ES (data/bombas.js): el nombre corto encima del estante — MK-17 o BRP
+    if (r.bomba) {
+      ctx.font = 'bold 5px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.dim;
+      ctx.fillText(r.bomba === 'mk17' ? 'MK17' : 'BRP', X_RACK + RACK_W / 2, CUADROS_Y - 2);
+      ctx.textAlign = 'left';
+    }
+  } else if (c.centro === 'tanque') {
+    const cuelga = !run.tanque || (run.tanque.pilones || []).includes('centro');
+    fila(yc, 'tanque', cuelga ? 1 : 0, cuelga ? '#8d9a78' : VACIO);
+  } else {
+    // las bombas de la tecla de bomba (MSL_MAX, se recargan): cargada blanca con la punta amarilla,
+    // sin ninguna la misma silueta en el gris de la placa
+    fila(yc, 'bomba', run.msl, run.msl > 0 ? null : VACIO, !(run.msl > 0));
+  }
+  // ABAJO: las chapitas (vacio si el avion no trae)
+  const yb = CUADROS_Y + 21;
+  if (run.chapitasMax > 0) {
+    const n = run.chapitas;
+    fila(yb, 'chapitas', n, n > 0 ? '#c9d6dd' : VACIO, !(n > 0) || Math.floor(run.t * 3) % 4 !== 0);
+  }
+}
+
 export function drawHUD(h) {
   focoIds = h.foco || [];
   soloTero = !!h.unaVida;
@@ -1811,7 +1875,9 @@ export function drawHUD(h) {
   // segundos, y los puntos se cobran cuando la corrida termina, con una pantalla entera para
   // decirse. En POR LA PATRIA si esta —ahi el puntaje ES el juego— pero adentro de la cinta, junto
   // al kilometraje y al record, porque los tres contestan la misma pregunta.
-  let ty = 3;
+  // ARRANCA EN EL MISMO MARGEN QUE LA CINTA Y LA PLACA DEL BLANCO (8/10, el autor: "esto tiene que estar
+  // alineado"): en 3 la placa del escuadron quedaba un pixel mas arriba que el resto de la fila.
+  let ty = MARGEN;
   // vidas del escuadron. Con 1 avion no se dibuja: seria un tablero de nada
   if (run.squad > 1) { drawSquadPips(MARGEN, ty); ty += SQUAD_H + AIRE; }
   // …Y JUSTO DEBAJO, EL NIVEL DE ALERTA. A NIVEL CERO TAMBIEN, por pedido del autor (11/9): que el
@@ -2221,45 +2287,7 @@ export function drawHUD(h) {
   // el centro). La del centro es LA DEL BUQUE: va enmarcada en rojo —el color del blanco— y, lejos
   // del buque, apagada (bloqueada). Las de ala pueden ser bombas o tanques. Cuando es el momento de
   // soltar, lo que se puede soltar titila en verde con el mismo latido que la cinta y el altimetro.
-  if (h.rack) {
-    const r = h.rack, verde = h.sueltaYa && titilaSuelta();
-    plate(xRack, CUADROS_Y, RACK_W, CUADRO);
-    const cx = xRack + 1 + (BOMBA_W - 1) / 2;
-    const ala = i => {
-      const yy = CUADROS_Y + 5 + i * 8;
-      if (r.ala === 'tanque') iconoEn(cx, yy, 'tanque', '#8d9a78');
-      else if (r.ala === 'bomba') {
-        const on = (i === 0 ? r.alaN >= 2 : r.alaN >= 1);
-        iconoEn(cx, yy, 'bomba', on ? (verde ? SUELTA_COL : null) : '#2e3c45', undefined, !on || verde);
-      }
-    };
-    ala(0); ala(2);
-    const yc = CUADROS_Y + 13, on = r.centroN > 0;
-    bordePlaca(xRack, yc - 4, RACK_W, 9, on && !r.bloqueada && verde ? SUELTA_COL : P.warn);
-    iconoEn(cx, yc, 'bomba', !on ? '#2e3c45' : verde ? SUELTA_COL : r.bloqueada ? '#6b7680' : null,
-      undefined, !on || verde || r.bloqueada);
-    // TRABADA (autor, 8/10): la del buque no salio — una cruz roja encima, que titila, y queda
-    if (on && r.trabada && Math.sin(Date.now() / 90) > -0.4) {
-      ctx.fillStyle = '#e8321e';
-      for (let i = -3; i <= 3; i++) { ctx.fillRect(cx + i, yc + i, 1, 1); ctx.fillRect(cx + i, yc - i, 1, 1); }
-    }
-    // QUE BOMBA ES (data/bombas.js): el nombre corto encima del estante — MK-17 o BRP
-    if (r.bomba) {
-      ctx.font = 'bold 5px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.dim;
-      ctx.fillText(r.bomba === 'mk17' ? 'MK17' : 'BRP', xRack + RACK_W / 2, CUADROS_Y - 2);
-      ctx.textAlign = 'left';
-    }
-  } else if (pide(run.msl < MSL_MAX)) {
-    plate(xRack, CUADROS_Y, RACK_W, CUADRO);
-    // CADA PIP ES LA BOMBA, 10x5 y de la tabla de iconos (12/9, con foto de la maqueta del autor):
-    // cuerpo gordo, punta pintada y aletas de cola cuadradas. La anterior media 7x3 —una rayita con
-    // un pixel de ojiva— y a ese tamaño no era nada. Cargada va blanca con la punta amarilla;
-    // vacia, la MISMA silueta en el gris de la placa: el hueco dice que falta ESO.
-    for (let i = 0; i < MSL_MAX; i++) {
-      const on = i < run.msl;
-      iconoEn(xRack + 1 + (BOMBA_W - 1) / 2, CUADROS_Y + 5 + i * 8, 'bomba', on ? null : '#2e3c45', undefined, !on);
-    }
-  }
+  drawEstante(h);
 
   // (LA PALANCA DE GAS del borde derecho se fue al reloj de GAS, en el centro de la fila: 11/9.)
 }

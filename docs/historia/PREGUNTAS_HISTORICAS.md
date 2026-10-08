@@ -745,7 +745,21 @@ higiénico y cinta, y en los Canberra los cartuchos de arranque de motor reusado
   a reconstrucción del buscador. El juego toma solo la idea general (un cartucho que sale expulsado
   hacia atrás, un soplo de humo, y la nube que abre el viento).
 
+**Y después, en el chat (8/10), sin fuente:**
+- **Tubos de 16 cm**, varios por carga; **"un avión suele llevar entre 1 y 4 cargadores (de 30 a 120
+  cargas en total); cada carga tenía 30 cartuchos, 30 barritas"**. El juego lo usa así (30 tubos por
+  carga, de 1 a 4 cargas por avión como mejora), pero **las cifras no tienen fuente**: confirmar
+  antes de nombrarlas en una placa. Ojo que choca con lo verificado para Mirage y Dagger (cartuchos
+  de 1,5" en el freno) y para el Canberra (siete lanzadores en la cola): quizás sea de otro avión, o
+  de un sistema de fábrica posterior.
+
 **Lo que CONTRADICE lo verificado — no va al juego:**
+- **"Chaff… una técnica inventada por los estadounidenses"** (el autor, 8/10, para el guion). No: lo
+  desarrollaron casi a la vez los **británicos** ("Window", usado por primera vez sobre Hamburgo en
+  julio de 1943) y los **alemanes** ("Düppel"), que no lo usaron antes por miedo a que se lo copiaran.
+  **"Chaff" es el nombre estadounidense.** En el juego queda "los estadounidenses le dicen chaff" —
+  que es cierto— y el nombre del Pichón, **CHAFITAS** ("son chapitas, pero más finitas"). Si se
+  quiere la frase de la invención, que la diga un personaje que se equivoca, no la placa.
 - **"Los activaban cuando el detector de radar les avisaba que un misil los buscaba."** El capitán
   Carballo dijo que sus aviones *no tenían receptor de alerta radar*. El juego no te avisa con un
   instrumento que no existía: el aviso es la barra del radar (lo que ve el que te busca) y la radio.

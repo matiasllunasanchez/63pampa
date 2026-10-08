@@ -2924,6 +2924,19 @@ test('chapitas: el sigilo pide estar visto al soltar Y bajar del radar dentro de
   assert.equal(borraAlarmas({ vistoAlSoltar: true, bajoTecho: true, desde: CHAPITAS.VENTANA + 0.1 }), false, 'tarde: ya te reencontraron');
 });
 
+test('chapitas: los numeros del autor (8/10): 30 tubos de 16 cm por carga, de 1 a 4 cargas', async () => {
+  const { CHAPITAS } = await import('../src/data/tuning.js');
+  assert.equal(CHAPITAS.TUBOS, 30, '"cada carga tenia 30 cartuchos, 30 barritas"');
+  near(CHAPITAS.TUBO_M, 0.08, 1e-9, '16 cm con 1 u ≈ 2 m (la envergadura del avion)');
+  assert.ok(CHAPITAS.CARGAS_MIN === 1 && CHAPITAS.CARGAS_MAX === 4, '"mejorable de 1 a 4 max"');
+  assert.ok(CHAPITAS.CARGAS >= CHAPITAS.CARGAS_MIN && CHAPITAS.CARGAS <= CHAPITAS.CARGAS_MAX);
+  const sys = await import('../src/systems/chapitas.js');
+  sys.reset(); sys.soltar(0, 10, 14, false);
+  const n = sys.nubesEnElAire()[0];
+  assert.equal(n.tubos.length, 30); assert.equal(n.tiras.length, 60, 'dos tiras por tubo');
+  sys.reset();
+});
+
 test('chapitas: el sistema gasta cargas, engancha a los de radar y avisa el sigilo', async () => {
   const sys = await import('../src/systems/chapitas.js');
   const { run } = await import('../src/core/run.js');

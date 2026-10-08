@@ -36,6 +36,20 @@ export const UPGRADES = [
   { id: 'barrel', name: 'TONEL BARRIL', seq: 'rolar: abajo der arriba izq', desc: 'La O grande: vuelve al punto exacto', quote: 'Para cuando haya que volver a buscar a alguien.' },
 ];
 
+/** LAS CHAFITAS (8/10/2026) — la primera mejora del banco que NO es una pirueta, y por eso vive fuera
+ *  de UPGRADES (que son claves de data/moves.js). Hoy estan activas en todas las misiones con
+ *  CHAPITAS.CARGAS; colgarlas del banco —de CHAPITAS.CARGAS_MIN a CARGAS_MAX— esta pendiente
+ *  (docs/sistemas/SPEC_CHAPITAS.md). La tarjeta ya tiene su texto, del autor:
+ *  "en el guion o descripcion le vamos a indicar que se llaman chaff segun los estadounidenses, pero
+ *  el Pichon les va a poner chafitas porque son chapitas pero mas finitas" — literal, menos "una
+ *  tecnica inventada por ellos": el chaff lo desarrollaron a la vez los britanicos (Window) y los
+ *  alemanes (Düppel); los estadounidenses le pusieron el nombre (ver PREGUNTAS_HISTORICAS). */
+export const MEJORA_CHAFITAS = {
+  id: 'chafitas', name: 'CHAFITAS', seq: 'H / circulo',
+  desc: 'Los estadounidenses le dicen chaff. El Pichon les dice chafitas: son chapitas, pero mas finitas. Desvian los misiles de radar y te borran del radar si bajas',
+  quote: 'Chaff le dicen los yanquis. Yo les digo chafitas: son chapitas, pero mas finitas.',
+};
+
 /** ¿Puede SALIR esta pirueta? Son dos preguntas distintas que se responden juntas porque quien
  *  juega las vive como una sola: TENERLA (en campaña se gana una por mision) y QUERERLA (MEJORAS
  *  DEL PICHON las prende y las apaga desde el menu). Fuera de campaña se tienen todas.

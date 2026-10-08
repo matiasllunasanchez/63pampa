@@ -213,6 +213,16 @@ export const ICONOS = {
     '.########.',
     '..#####...',
   ] },
+  // LAS CHAPITAS (8/10, el chaff): tiras sueltas en diagonal con la punta que destella ('+'), del
+  // tamaño de la bomba (10x5) para que el estante tenga tres filas iguales. Sin silueta de objeto a
+  // proposito: el chaff no es una cosa, es una nube — se distingue de la bomba y del tanque por eso.
+  chapitas: { letra: 'C', png: null, col2: '#ffffff', pix: [
+    '....+...+.',
+    '...#...#..',
+    '..#...#...',
+    '.#...#...#',
+    '#...#...#.',
+  ] },
   // LAS SEÑAS (PLAN_VUELTA_REAL V4, "mirame la panza"): lo que el compañero te dice con la mano.
   // 9x9, en el color que les pase quien dibuja; '+' es el segundo color.
   sena_ok: { letra: 'OK', png: null, pix: [       // el pulgar arriba: estas sano

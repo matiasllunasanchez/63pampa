@@ -38,9 +38,16 @@ export function soltar(x, y, pz, visto) {
   if (!(run.chapitas > 0)) return null;
   run.chapitas--;
   const n = nubeNueva(x, y, pz);
-  // LAS TIRAS, para el dibujo: largas y brillantes, abiertas en abanico, girando cada una a su ritmo
-  n.tiras = Array.from({ length: 46 }, () => ({ dx: (Math.random() - 0.5) * 7, dy: (Math.random() - 0.5) * 4,
-    dz: (Math.random() - 0.5) * 6, a: Math.random() * 6.283, w: (Math.random() - 0.5) * 9, cae: 0.6 + Math.random() * 1.4 }));
+  // PARA EL DIBUJO: los TUBOS (CHAPITAS.TUBOS de 16 cm) que el cartucho escupe hacia atras en abanico,
+  // girando, y las TIRAS de cada uno —repartidas entre los tubos— para cuando revienta
+  n.tubos = Array.from({ length: CHAPITAS.TUBOS }, (_, j) => {
+    const an = (j / CHAPITAS.TUBOS) * 6.283 + Math.random() * 0.6;
+    return { vx: Math.cos(an) * (0.4 + Math.random() * 0.6), vy: Math.sin(an) * (0.3 + Math.random() * 0.5),
+      vz: -(0.6 + Math.random() * 0.4), a: Math.random() * 6.283, w: (Math.random() - 0.5) * 30 };
+  });
+  n.tiras = Array.from({ length: 2 * CHAPITAS.TUBOS }, (_, i) => ({ tubo: i % CHAPITAS.TUBOS, dx: (Math.random() - 0.5) * 2.4,
+    dy: (Math.random() - 0.5) * 1.6, dz: (Math.random() - 0.5) * 2.4, a: Math.random() * 6.283,
+    w: (Math.random() - 0.5) * 9, cae: 0.6 + Math.random() * 1.4 }));
   nubes.push(n);
   run.chapitasOnda = 1;
   ventana = { desde: 0, visto: !!visto };

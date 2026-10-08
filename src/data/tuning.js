@@ -1047,7 +1047,10 @@ export const SENUELO_TQ = { VEL: 260, GIRO: 6, RADIO: 3, PTS: 150 };
 // docs/historia/MEJORAS_PICHON.md §1 («Fideos»): iba EN EL FRENO AERODINAMICO, y soltarlo era abrir
 // el freno — EL PRECIO es perder velocidad justo cuando mas se la necesita.
 //
-//   CARGAS     por avion (cada uno del escuadron trae las suyas: el relevo no las hereda)
+//   CARGAS     por avion (cada uno del escuadron trae las suyas: el relevo no las hereda). El autor,
+//              8/10: "un avion suele llevar entre 1 y 4 cargadores; podria ser mejorable de 1 a 4 max".
+//              Hoy salen con CARGAS; cuando la mejora del Pichon exista, arranca en CARGAS_MIN y sube
+//              hasta CARGAS_MAX (el estante dibuja hasta 4)
 //   ENGANA     que misiles engaña: los GUIADOS POR RADAR. El Sea Dart (radar semiactivo) y el Sea
 //              Wolf (lo sigue un radar de a bordo). NO el Sea Cat (un operador a ojo), NO el
 //              Sidewinder (infrarrojo: para ese son las bengalas, «Quince segundos»), NO las
@@ -1057,15 +1060,26 @@ export const SENUELO_TQ = { VEL: 260, GIRO: 6, RADIO: 3, PTS: 150 };
 //   INERCIA    1/s con que la nube pierde la velocidad del avion (sale con ella y el aire la frena):
 //              con 0.6 se ve quedar atras ~1 s a crucero — la camara esta a 14 u del avion, y una
 //              nube quieta en el mundo la pasaria en una decima, sin que nadie la vea
+//   LARGO      el largo de cada tira, en la escala de la proyeccion (8/10: "la mitad de largas": era 0.9)
+//   TUBOS      cuantos TUBOS larga cada carga (autor, 8/10: "son tubos de 16 centimetros… cada carga
+//              tenia 30 cartuchos, 30 barritas"). Cada tubo sale expulsado hacia
+//              atras, y a los TUBO_ABRE s revienta en su propia nubecita de tiras
+//   TUBO_M     el largo del tubo en unidades de mundo: 16 cm a la escala del avion (8,4 m de
+//              envergadura ≈ 4,2 u → 1 u ≈ 2 m), o sea un pixel o dos a la distancia del avion
+//   TUBO_SALE  u/s con que el cartucho lo escupe hacia atras y a los costados (el aire lo frena)
+//   BRILLO     cuanto brillan contra los aviones: la luz del cielo de render/borde.js por esto (8/10:
+//              "deben brillar como brillan los aviones con la luz, pero el doble")
 //   VEL/GIRO/RADIO  como va el misil contra la nube (los del señuelo de tanque: la misma cuenta)
 //   CERCA      si revienta a menos de esto de vos te sacude: SOFT (0-1) del golpe no letal
 //   FRENO      la fraccion de velocidad que se pierde al abrir el freno (de un golpe; se recupera sola)
 //   VENTANA    segundos despues de soltar en los que BAJAR DEL RADAR borra las alarmas
 //   PTS        por misil engañado
 export const CHAPITAS = {
-  CARGAS: 2,
+  CARGAS: 2, CARGAS_MIN: 1, CARGAS_MAX: 4,
   ENGANA: ['dart', 'wolf'],
   ALCANCE_Z: 160, VIDA: 4, INERCIA: 0.6,
+  LARGO: 0.45, BRILLO: 2,
+  TUBOS: 30, TUBO_M: 0.08, TUBO_ABRE: 0.2, TUBO_SALE: 9,
   VEL: 260, GIRO: 6, RADIO: 3,
   CERCA: 8, SOFT: 0.35,
   FRENO: 0.15,

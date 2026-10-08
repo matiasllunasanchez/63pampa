@@ -54,7 +54,8 @@ el freno en vuelo.
 > necesitás.** Es la mejora perfecta para el sistema de LA COLA — y es literalmente cómo
 > funcionaba.
 
-> **ESTADO (8/10/2026): implementada como LAS CHAPITAS, activa desde ya** (tecla H / ◯, dos
+> **ESTADO (8/10/2026): implementada como las CHAFITAS** (el nombre del Pichón: "son chapitas, pero más
+> finitas"; los estadounidenses le dicen chaff), **activa desde ya** (tecla H / ◯, dos
 > cargas por avión; [SPEC_CHAPITAS](../sistemas/SPEC_CHAPITAS.md)). Falta colgarla del banco del
 > Pichón: hoy el banco solo entrega piruetas (`data/upgrades.js`), así que es la primera mejora que
 > no lo es. Ojo con LA COLA: ahí te persigue un Sidewinder, que es **infrarrojo** — las chapitas no
