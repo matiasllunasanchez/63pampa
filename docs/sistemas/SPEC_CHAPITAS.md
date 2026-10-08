@@ -47,6 +47,8 @@ del avión, que brillan "como brillan los aviones con la luz, pero el doble".
 | `src/game.js` | `chapitasAccion` (la tecla), el paso por cuadro y el sigilo junto a las estrellas, `drawChapitas` |
 | `src/render/hud.js` | `chapitasRadar` (la mancha), la de la barra en `drawRadar`, `drawEstante` (el estante de tres filas con sus números) |
 | `src/data/iconos.js` | el icono `chapitas` del estante |
+| `tools/blender/modelos_partes.py` `municion_chafita` + `hojas.py` `chafita` | **el tubo horneado en Blender** (8/10: "son cilindros de 16 cm"): aluminio con dos costuras, la faja de cinta y la tapa de cartón; 16 × 3,8 cm (el cartucho de 1,5" del Mirage), 6 vistas de punta a costado → `assets/ammo/chafita.png`. Rehornear: `python3 tools/blender/hornear_hojas.py chafita` y `.venv-art/bin/python3 tools/blender/armar_enemigos.py chafita` |
+| `src/render/chafita.js` | dibuja el tubo con esa hoja (girado, tumbándose, con el filo de luz de los aviones); sin la hoja, la raya de antes |
 | `src/render/borde.js` | `luzDelCielo`: la luz con que brillan (la de los aviones) |
 | `src/core/run.js` | `chapitas`, `chapitasMax`, `chapitasOnda` |
 | `src/systems/squad.js` | la ficha del relevo lleva `chapitas` |

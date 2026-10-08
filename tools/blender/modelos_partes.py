@@ -291,3 +291,21 @@ def municion_aim9(T, K):
     for i, (c, f) in enumerate((('#b8341a', 1.05), ('#f07a22', 0.75), ('#ffe6a8', 0.40))):
         disco('fuego%d' % i, (0, 0, 1.48 + 0.02 * i), r * f, g, K['mat_emisivo']('fuego%d' % i, c))
     return g
+
+def municion_chafita(T, K):
+    """UN TUBO DE CHAFITAS (8/10/2026, el autor: "son cilindros de 16 cm"; el chaff de la maquina de
+    fideos, docs/sistemas/SPEC_CHAPITAS.md). 16 cm de largo y 3,8 de diametro —el cartucho de 1,5"
+    que va verificado para el Mirage y el Dagger—, modelado a x10 para que la camara lo encuadre como a
+    la municion (el juego lo escala a CHAPITAS.TUBO_M). El cuerpo de aluminio con las dos costuras del
+    enrollado, la FAJA DE CINTA que lo cierra, y la TAPA de carton en la punta que sale primero."""
+    g = vacio(T, 'chafita')
+    L, r = 0.8, 0.19                                   # medio largo y radio, a x10
+    alu = K['mat_cel']('aluminio', '#d4dce1')
+    loft('cuerpo', [(-L, r, r, 0), (L, r, r, 0)], g, alu, n=16, cerrar=(False, False))
+    costura = K['mat_cel']('costura', '#8f9aa1')
+    for z in (-0.42, 0.42):
+        loft('costura', [(z - 0.02, r + 0.004, r + 0.004, 0), (z + 0.02, r + 0.004, r + 0.004, 0)], g, costura, n=16, cerrar=(False, False))
+    loft('cinta', [(-0.10, r + 0.008, r + 0.008, 0), (0.10, r + 0.008, r + 0.008, 0)], g, K['mat_cel']('cinta', '#e2dcc4'), n=16, cerrar=(False, False))
+    disco('tapa', (0, 0, L + 0.005), r * 0.98, g, K['mat_cel']('carton', '#a8865a'))
+    disco('culo', (0, 0, -L - 0.005), r * 0.98, g, K['mat_cel']('culo', '#7d878d'))
+    return g

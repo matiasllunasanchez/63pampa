@@ -125,6 +125,13 @@ HOJAS = {
     'aim9': dict(fw=32, fh=32, pos=(0, 0.3, 7.4), fov=26, lookY=0, cols=10, cajas=False, contorno=False,
                  destino='assets/ammo/aim9.png',
                  frames=[dict(modelo='bl:municion_aim9', rots=[('X', v * R)]) for v in range(0, 181, 20)]),
+    # LAS CHAFITAS (8/10/2026, el autor: "en Blender tienen que estar horneados tambien, son cilindros de
+    # 16 cm"): el tubo que larga cada carga, nuevo y solo de Blender. Seis vistas como la municion —de
+    # punta (0) a de costado (5)—; el giro en el plano y el destello los pone el juego (game.js
+    # drawChapitas, render/chafita.js). Sin contorno: a este tamaño el tubo es todo borde.
+    'chafita': dict(nueva=True, fw=16, fh=16, pos=(0, 0.0, 6.4), fov=26, lookY=0, cols=6, cajas=False, contorno=False,
+                    destino='assets/ammo/chafita.png',
+                    frames=[dict(modelo='bl:municion_chafita', rots=[('X', v * R)]) for v in (0, 18, 36, 54, 72, 90)]),
     # ---------------- EL FUEGO Y EL HUMO (4/10/2026, tools/blender/modelos_fuego.py) ----------------
     # HOJAS NUEVAS: hasta hoy el fuego y el humo se dibujaban por codigo con rectangulos. De frente y sin
     # volteo (`rots` vacio), sin contorno (el fuego no tiene borde oscuro) y sin caja (la grilla la sabe

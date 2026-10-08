@@ -122,6 +122,7 @@ import * as menus from './render/menus.js';
 import { stepRain, stepSpray, drawRain, RAIN_N } from './render/rain.js';
 import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit, fogFade } from './systems/fog.js';
 import { setNiebla, luzDelCielo } from './render/borde.js';
+import * as chafita from './render/chafita.js';
 import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './legacy/momentum_render.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
@@ -758,7 +759,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             if (p.z < 3) return;
             const s = proj(p.x, p.y, p.z), ang = q.a + q.w * t, cara = Math.abs(Math.cos(ang * 2 + j));
             ctx.globalAlpha = a0 * cerca(p.z);
-            raya(s, Math.max(2, s.k * CHAPITAS.TUBO_M), ang, cara > 0.6 && A.filo ? A.filo : '#c9d6dd', Math.max(1, s.k * 0.04));
+            // EL TUBO HORNEADO (render/chafita.js, la hoja de Blender), tumbandose; sin la hoja, la raya
+            const L = Math.max(2, s.k * CHAPITAS.TUBO_M), tumba = Math.abs(Math.sin(q.a * 1.3 + q.w * 0.6 * t));
+            if (!chafita.dibujar(tumba, ang, s.x, s.y, L))
+              raya(s, L, ang, cara > 0.6 && A.filo ? A.filo : '#c9d6dd', Math.max(1, s.k * 0.04));
             if (cara > 0.82 && fz > 0 && D.alfa > 0)
               destella(s.x, s.y, Math.max(1.5, D.radio * s.k * 0.2 * K), Math.min(1, D.alfa * K * Math.min(1, A.fuerza * 1.4) * pulso(j)) * a0 * cerca(p.z));
           });
