@@ -502,6 +502,8 @@ export const STRINGS = {
     hist_seaslug: 'El Sea Slug era un misil antiaereo de los destructores clase County. Contra aviones que volaban rasante servia poco, y en Malvinas se lo uso contra objetivos en tierra.',
     que_seadart: 'Subiste y el radar te vio: el Sea Dart castiga volar alto. Pegado al agua no te encuentra.',
     que_seawolf: 'El Sea Wolf no se esquiva volando bajo: hay que quebrar hacia un costado justo antes del impacto, entrar en su recarga, o cambiar de piloto para que persiga al otro.',
+    // LA DEBILIDAD DEL SEA DART (8/10, el autor la trae de un piloto): la guia se cortaba a los dos segundos
+    hist_seadart: 'El Sea Dart tenia un punto debil: dos segundos despues del lanzamiento dejaba de recibir la posicion del avion y seguia solo. Si veias el disparo —el humo de dia, el fogonazo de noche—, habia que esperar esos dos segundos, quebrar con violencia y largar chaff y bengalas para confundirlo.',
     hist_seawolf: 'El Sea Wolf de las fragatas britanicas estaba hecho para blancos bajos. Su punto debil era la saturacion: con varios aviones cruzandose, el sistema podia confundirse y no disparar.',
     // POR QUE PERDISTE (data/derrotas.js): lo que paso, y el dato de la guerra de ESE caso
     que_bomba_dormida: 'La bomba pego en el casco pero no exploto: la soltaste demasiado cerca y la espoleta no alcanzo a armarse.',
@@ -1591,6 +1593,7 @@ export const STRINGS = {
     hist_seaslug: 'The Sea Slug was an anti-aircraft missile on County-class destroyers. Against low-flying aircraft it was of little use, and in the Falklands it was fired at targets on land.',
     que_seadart: 'You climbed and the radar saw you: the Sea Dart punishes flying high. Down on the water it cannot find you.',
     que_seawolf: 'The Sea Wolf is not dodged by flying low: break hard to one side right before impact, slip in during its reload, or switch pilots so it chases the other plane.',
+    hist_seadart: 'The Sea Dart had a weak point: two seconds after launch it stopped receiving the aircraft position and flew on alone. If you saw the launch (the smoke by day, the flash by night), you waited those two seconds, broke hard and fired chaff and flares to confuse it.',
     hist_seawolf: 'The Sea Wolf on British frigates was built for low targets. Its weak point was saturation: with several aircraft crossing, the system could get confused and fail to fire.',
     que_bomba_dormida: 'The bomb hit the hull but did not go off: you dropped it too close and the fuze had no time to arm.',
     que_bomba_corta: 'The bomb fell into the sea short of the ship: you dropped it too far out or too low.',

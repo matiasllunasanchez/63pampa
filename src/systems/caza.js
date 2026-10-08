@@ -193,6 +193,16 @@ export function resetCaza() {
   for (let i = missiles.length - 1; i >= 0; i--) if ((missiles[i].tipo === 'aim9' && missiles[i].modo === 'cola') || missiles[i].tipo === 'aden') missiles.splice(i, 1);
 }
 
+/** SE QUEDAN DEL OTRO LADO (8/10, el autor: "erre el objetivo, la camara fue atras y se arrastro el Harrier
+ *  que me perseguia, que tambien habia pasado el objetivo — eso no debe pasar"). El rebobinado de la
+ *  suelta errada corre el MUNDO para atras, y el Harrier vive en coordenadas de camara: se iba con ella.
+ *  Los que estaban en el aire pasaron el buque con el que erro — se sacan, con sus misiles. A
+ *  diferencia de resetCaza, el director NO se olvida: las patrullas que ya pasaron cuentan. */
+export function despejar() {
+  fleet.length = 0; C = null;
+  for (let i = missiles.length - 1; i >= 0; i--) if ((missiles[i].tipo === 'aim9' && missiles[i].modo === 'cola') || missiles[i].tipo === 'aden') missiles.splice(i, 1);
+}
+
 // ---------------- H4: EL REGLAMENTO (cuando aparece) ----------------
 let D = null;
 

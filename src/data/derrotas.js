@@ -22,7 +22,7 @@ export const DERROTAS = {
   death_onda: { que: 'que_estallido', hist: 'hist_estallido' },
   death_helo: { que: 'que_aire', hist: 'hist_choque' }, death_jet: { que: 'que_aire', hist: 'hist_choque' },
   death_missile: { que: 'que_misil', hist: 'hist_misil' },
-  death_seadart: { que: 'que_seadart', hist: 'hist_misil' },
+  death_seadart: { que: 'que_seadart', hist: 'hist_seadart' },
   death_seawolf: { que: 'que_seawolf', hist: 'hist_seawolf' },
   death_seacat: { que: 'que_seacat', hist: 'hist_seacat' },
   death_pintado: { que: 'que_pintado', hist: 'hist_misil' },

@@ -2309,7 +2309,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // pantalla de fin. DEATH_REVEAL es cuanto dura ese show antes de que aparezca "DERRIBADO".
     // 1.5 y no 1.0: los restos siguen de largo con la inercia y rebotan hasta ~1.2 s despues del
     // impacto — cortar en 1.0 dejaba el patinazo a mitad de camino, justo lo que vale la pena ver.
-    const DEATH_REVEAL = 1.5;
+    // (8/10, el autor: "cuando explota mi avion se detiene todo el mundo; el Harrier y demas cosas deben
+    // seguir, y meter fade negro"): 2 y no 1.5 — el mundo sigue corriendo y se funde a negro en
+    // MUERTE_NEGRO..DEATH_REVEAL; la pantalla de fin sube del negro.
+    const DEATH_REVEAL = 2;
+    const MUERTE_NEGRO = 1.1;     // cuando empieza el fundido a negro del derribo
+    const MUERTE_AVANCE = 0.55;   // a que fraccion de tu velocidad sigue corriendo el mundo sin vos
     // POR LA PATRIA (survival) no tiene par de mision: la corrida entera es el "nivel", asi que las
     // estrellas del derribado se miden contra esto. Es una estimacion — perilla para calibrar jugando.
     const SURVIVAL_PAR = 6000;
@@ -3550,8 +3555,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // causa) el que tiene que hacerle llegar la causa real — y ahi el acta ya lo va a esperar.
       const oPlane = { type: 'plane', x: plane.x, y: plane.y, z: PZ };
       despiece(oPlane, actaDe(oPlane, { vz: spd0 }, 'choque'));
+      // la salpicadura del agua, solo si reventaste ABAJO: en el aire (un misil, un Harrier) no hay mar que salte
       const s = proj(plane.x, 0, PZ);
-      for (let i = 0; i < 16; i++) parts.push({ x: s.x + (Math.random() - 0.5) * 24, y: s.y, vx: (Math.random() - 0.5) * 40, vy: -40 - Math.random() * 60, life: 0.6, c: P.foam, r: 1.6 });
+      if (plane.y < 3) for (let i = 0; i < 16; i++) parts.push({ x: s.x + (Math.random() - 0.5) * 24, y: s.y, vx: (Math.random() - 0.5) * 40, vy: -40 - Math.random() * 60, life: 0.6, c: P.foam, r: 1.6 });
       // CHISPAS de pantalla del primer impacto: el reventon inmediato alrededor del avion.
       // Menos y mas cortas que antes: el cuerpo del destrozo ahora lo llevan los chunk de mundo.
       const ps = proj(plane.x, plane.y, PZ);
@@ -4151,6 +4157,24 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             }
           }
         } else if (S.state === 'dead') {
+          // EL MUNDO NO SE DETIENE CUANDO REVENTAS (8/10, el autor: "se detiene todo el mundo y el Harrier;
+          // el Harrier y demas cosas deben seguir, y meter fade negro"). Mismo criterio que el relevo: el
+          // mundo corre a MUERTE_AVANCE de tu velocidad, tus restos y tu bola de fuego siguen con su
+          // propia inercia (no los arrastra el mundo), los Harriers siguen volando su escena y los
+          // misiles siguen de largo. Collision no corre: nada mas puede pasarte. Arriba, el fundido.
+          if (!erroSuelta(deathCause) && gameMode !== 'arena' && gameMode !== 'pasadas') {
+            const adv = run.spd * MUERTE_AVANCE * dt;
+            run.dist += adv;
+            for (const o of obstacles) if (o.type !== 'chunk' && o.type !== 'airboom') o.z -= adv;
+            for (const sd of soldiers) sd.z -= adv;
+            if (blanco.on) blancoSys.alOdometro();
+            caza.cazaEscena(dt);
+            // los que venian de frente pasan de largo hacia atras; los de la cola, hacia adelante
+            for (const m of missiles) { m.done = true; m.z += (m.z > PZ ? -1 : 1) * (adv / dt + 150) * dt; }
+            for (let i = missiles.length - 1; i >= 0; i--) if (missiles[i].z < -20 || missiles[i].z > 320) missiles.splice(i, 1);
+            popups.forEach(p => { p.y -= p.vy * dt; p.life -= dt; });
+            prune(popups, p => p.life > 0);
+          }
           // solo se puede reintentar una vez que subio la pantalla (paso el show del destrozo)
           // reintenta (mismo modo/nivel). La musica NO se reinicia: sigue desde donde venia.
           if (deathT > DEATH_REVEAL && flags.anyPress) {
@@ -4226,7 +4250,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           }
           if (squad.updateRelevo(dt) === 'done') {
             // …el que viene tras un CHOQUE EN EL CRUCE encara de nuevo el mismo buque (ver arriba)
-            if (reencareTrasChoque) { reencareTrasChoque = false; blancoSys.enFila(); fadeT = 0.55; }
+            if (reencareTrasChoque) { reencareTrasChoque = false; blancoSys.enFila(); caza.despejar(); fadeT = 0.55; }
             // lo que cruzo el plano del avion DURANTE la cinematica ya paso de largo: sin esto,
             // collision lo veria "sin resolver" en el primer frame y podria matar en el handoff
             for (const o of obstacles) if (o.z <= PZ + 1.5) o.done = true;
@@ -4584,6 +4608,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (b === 'errado') {
           if (canRelevo(run.lives)) {
             blancoSys.enFila(); onPassSpent({ spent: 'suelta', why: 'death_fallo_blanco' });
+            caza.despejar();   // los Harriers que te seguian pasaron el buque con vos: no se rebobinan (8/10)
             // EL REBOBINADO: `enFila` ya dejo el buque a FILA_M; la cinematica arranca con el pasillo
             // corrido hasta REBOBINA_Z y lo devuelve (ver el bloque del relevo)
             const rr = squad.relevo();
@@ -5523,6 +5548,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (S.state === 'menu') {
         menus.drawMenu({ selPlane, gameMode, t: run.t });
         // ahora se hace aca, antes de dibujar
+      }
+      // EL DERRIBO SE FUNDE A NEGRO mientras el mundo sigue (8/10, el autor: "meter fade negro"): de
+      // MUERTE_NEGRO a DEATH_REVEAL, y la pantalla de fin sube del negro. A pantalla entera, sin la escala.
+      if (S.state === 'dead' && !erroSuelta(deathCause) && deathT > MUERTE_NEGRO) {
+        const u = Math.min(1, (deathT - MUERTE_NEGRO) / (DEATH_REVEAL - MUERTE_NEGRO));
+        ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalAlpha = u * u * (3 - 2 * u); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.restore();
       }
       // DERRIBADO: esperar a que se vea el destrozo; despues la pantalla sube con un fade corto
       if (S.state === 'dead' && deathT > DEATH_REVEAL)
