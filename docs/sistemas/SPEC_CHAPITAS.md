@@ -72,7 +72,8 @@ del avión, que brillan "como brillan los aviones con la luz, pero el doble".
 | `VENTANA` | 4 s | para bajar del radar y que se borren las alarmas |
 | `PTS` | 150 | por misil que revienta en la nube o la bengala |
 | `EXPLOTA` / `LADO` | 0,5 / 2,5–6 u | la probabilidad de reventar ahí; si no, a qué distancia del costado se desvía |
-| `BENGALA` | `CAE` 1,4 · `ALTO` 0,35 · `LUZ` 1 · `LUZ_A` 0,3 · `NOCHE_A` 0,6 · `HUMO_CADA` 0,06 s · `HUMO_VIDA` 1,1 s | cómo cae, su tamaño, su brillo (de día y de noche) y su humo |
+| `BENGALA` | `CAE` 1,4 · `ALTO` 0,35 · `LUZ` 0,9 · `HALO_A` 0,25 · `LUZ_A` 0,25 · `NOCHE_A` 0,3 · `HUMO_CADA` 0,06 s · `HUMO_VIDA` 1,1 s | cómo cae, su tamaño, su luz y su humo. La luz es la de la turbina del avión: un halo sin borde con tope del 25% ("20 o 30% máximo", el autor) y en el centro el fueguito amarillo-naranja; así se ven las chapitas |
+| `DESTELLO_R` | 0,7 | el radio de cada destello de tira o tubo, en veces el de la chapa del avión (~2 px). Las tiras no derraman halo: brillan como la chapa |
 
 ## 4 · Cómo probarlo
 
@@ -88,6 +89,6 @@ del avión, que brillan "como brillan los aviones con la luz, pero el doble".
 - **Colgarla del banco del Pichón**, de 1 a 4 cargas (`CARGAS_MIN` / `CARGAS_MAX`). Hoy está activa en todas las misiones, con 2. El banco
   (`data/upgrades.js`) solo sabe de piruetas: hace falta que acepte una mejora que no lo es.
 - **La explicación real para el guion** (lo verificado y lo que no): [MEJORAS_PICHON.md §1](../historia/MEJORAS_PICHON.md), «LA EXPLICACIÓN REAL». El autor: "quizá por cada mejora puede (o no) cambiar el guion".
-- **El destello del primer instante:** cuando la carga se abre pegada al avión, la nube y la bengala lo tapan un par de décimas. Si molesta jugando: `BRILLO`, `DESTELLA` o `BENGALA.LUZ_A`.
+- **El brillo** (8/10): la mancha amarilla que tapaba el avión al abrirse la carga eran los destellos de las tiras con radio de mundo (~12 px cada uno) y su halo, más el halo de la bengala. Ahora: destellos de ~2 px como los de la chapa, sin halo, y la bengala con tope del 25%. Si hace falta, se ajusta en `BRILLO`, `DESTELLO_R`, `DESTELLA` y `BENGALA`.
 - **Dudas históricas:** cómo cargaba el chaff el A-4 (las fuentes lo dicen para Mirage y Dagger),
   y los datos sin verificar del 8/10 (ver PREGUNTAS_HISTORICAS).

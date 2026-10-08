@@ -1070,6 +1070,8 @@ export const SENUELO_TQ = { VEL: 260, GIRO: 6, RADIO: 3, PTS: 150 };
 //   TIRAS_TUBO cuantas tiras dibuja cada tubo al reventar (la nube: "termina generando una nube de
 //              chafitas brillantes"). Las de verdad eran miles; 4 por tubo (120 por carga) alcanzan
 //   DESTELLA   desde que tan de cara a la luz (0..1) una tira o un tubo destella: mas bajo, mas titila
+//   DESTELLO_R el radio de cada destello, en veces BORDE_DESTELLO.radio: chico, del tamaño de los de la
+//              chapa del avion (~2 px). Con la escala del mundo salian de 12 px y cien juntos eran una mancha
 //   BRILLO     cuanto brillan contra los aviones: la luz del cielo de render/borde.js por esto (8/10:
 //              "deben brillar como brillan los aviones con la luz, pero el doble")
 //   VEL/GIRO/RADIO  como va el misil contra la nube (los del señuelo de tanque: la misma cuenta)
@@ -1081,7 +1083,7 @@ export const CHAPITAS = {
   CARGAS: 2, CARGAS_MIN: 1, CARGAS_MAX: 4,
   ENGANA: ['dart', 'wolf'],
   ALCANCE_Z: 160, VIDA: 4, INERCIA: 0.6,
-  LARGO: 0.45, BRILLO: 2,
+  LARGO: 0.45, BRILLO: 2, DESTELLO_R: 0.7,
   TUBOS: 30, TUBO_M: 0.08, TUBO_ABRE: 0.2, TUBO_SALE: 9, TIRAS_TUBO: 4, DESTELLA: 0.7,
   VEL: 260, GIRO: 6, RADIO: 3,
   CERCA: 8, SOFT: 0.35,
@@ -1099,9 +1101,11 @@ export const CHAPITAS = {
   // UNA por carga: se enciende cuando los tubos revientan y cae debajo de la nube: CAE u/s (la de verdad
   // colgaba de un paracaidas; el autor la prefiere "una bengalita marron con fuego y humo saliendo, y
   // un poco de brillo": sin paracaidas, cae un poco mas rapido); ALTO es el alto del dibujo (u). Es lo que se lleva a los misiles INFRARROJOS (el Sidewinder), tambien a los de LA
-  // COLA, que vienen de atras: ALCANCE_Z para los dos lados. LUZ: el radio del resplandor (u); LUZ_A y
-  // NOCHE_A su pico de dia y de noche. HUMO_CADA / HUMO_VIDA: el hilo de humo que deja.
-  BENGALA: { CAE: 1.4, ALTO: 0.35, LUZ: 1.0, LUZ_A: 0.3, NOCHE_A: 0.6, HUMO_CADA: 0.06, HUMO_VIDA: 1.1 },
+  // COLA, que vienen de atras: ALCANCE_Z para los dos lados. LUZ: el radio del halo (u). HALO_A el
+  // tope del halo y LUZ_A / NOCHE_A el de su luz derramada, de dia y de noche — el autor: "transparencia
+  // del 20 o 30% maximo", para que se vean las chapitas; en el centro va el fueguito de la turbina.
+  // HUMO_CADA / HUMO_VIDA: el hilo de humo que deja.
+  BENGALA: { CAE: 1.4, ALTO: 0.35, LUZ: 0.9, HALO_A: 0.25, LUZ_A: 0.25, NOCHE_A: 0.3, HUMO_CADA: 0.06, HUMO_VIDA: 1.1 },
 };
 
 // ---------- EL BREAK TURN y EL JINK, con fisica de avion (systems/moves.js) ----------

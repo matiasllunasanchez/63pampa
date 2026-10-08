@@ -729,9 +729,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const fz = Math.min(1, A.fuerza * K);
       const [n0, n1, n2] = A.nucleo, [h0, h1, h2] = A.halo;
       // el destello de la chapa (nucleo + halo, latiendo) y su luz derramada, en (x, y)
-      // `derrama`: si ademas suma su LUZ DERRAMADA (render/brillo.js). Cada tira destella, pero el halo
-      // grande lo pone una de cada cuatro (y uno de cada tres tubos): con las 150 a la vez el resplandor
-      // sumado tapaba el avion entero en el instante en que se abren
+      // `derrama`: si ademas suma su LUZ DERRAMADA (render/brillo.js). Cada tira destella COMO LA CHAPA
+      // DEL AVION —su destello propio, sin halo grande (autor, 8/10: "dejar ver las chapitas brillantes
+      // como la chapa del avion")—; el halo lo ponen solo uno de cada seis tubos, todavia cerrados: con
+      // las 150 a la vez, la luz sumada tapaba el avion y las mismas chapitas
       const destella = (x, y, r, a, derrama = true) => {
         const g = ctx.createRadialGradient(x, y, 0, x, y, r);
         g.addColorStop(0, `rgba(${n0},${n1},${n2},${a})`);
@@ -769,7 +770,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             if (!chafita.dibujar(tumba, ang, s.x, s.y, L))
               raya(s, L, ang, cara > 0.6 && A.filo ? A.filo : '#c9d6dd', Math.max(1, s.k * 0.04));
             if (cara > CHAPITAS.DESTELLA && fz > 0 && D.alfa > 0)
-              destella(s.x, s.y, Math.max(1.5, D.radio * s.k * 0.2 * K), Math.min(1, D.alfa * K * Math.min(1, A.fuerza * 1.4) * pulso(j)) * a0 * cerca(p.z), j % 3 === 0);
+              destella(s.x, s.y, CHAPITAS.DESTELLO_R * D.radio, Math.min(1, D.alfa * K * Math.min(1, A.fuerza * 1.4) * pulso(j)) * a0 * cerca(p.z), j % 6 === 0);
           });
           continue;
         }
@@ -799,11 +800,25 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           const s = proj(bg.x, bg.y, bg.z), late = 0.75 + 0.25 * Math.sin(run.t * 31);
           ctx.globalAlpha = a0 * cerca(bg.z);
           if (!chafita.dibujarBengala(Math.floor(run.t * 12), s.x, s.y, s.k * B.ALTO * 32 / 22)) px(s.x - 1, s.y - 1, 2, 2, '#fff7dc');
-          // la bola a 500 °C: su luz derramada (de dia y de noche), naranja con el corazon blanco
-          const r = Math.max(4, s.k * B.LUZ) * late;
+          // SU LUZ, COMO LA TURBINA DEL AVION (autor, 8/10: "brilla demasiado y no deja ver las chapitas:
+          // el halo de luz con transparencia del 20 o 30% maximo, y mas en el centro, como la turbina,
+          // un fueguito"). El HALO, sin borde y a lo sumo B.HALO_A; adentro EL FUEGUITO, de un tercio
+          // del radio, amarillo que se va a naranja (render/plane.js, el fondo de la turbina). La luz
+          // derramada, con el mismo tope: lo que tiene que brillar alrededor son las chapitas.
+          const k = late * a0 * cerca(bg.z), R = Math.max(4, s.k * B.LUZ) * late;
           ctx.globalAlpha = 1;
-          luz(ctx, s.x, s.y, r, [255, 196, 120], B.LUZ_A * late * a0 * cerca(bg.z));
-          luzNoche(ctx, s.x, s.y, r * 1.6, [255, 170, 90], B.NOCHE_A * late * a0 * cerca(bg.z));
+          const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, R);
+          g.addColorStop(0, `rgba(255,170,90,${B.HALO_A * k})`);
+          g.addColorStop(0.45, `rgba(224,110,36,${B.HALO_A * 0.6 * k})`);
+          g.addColorStop(1, 'rgba(180,70,22,0)');
+          ctx.fillStyle = g; ctx.fillRect(s.x - R, s.y - R, R * 2, R * 2);
+          const r2 = R * 0.34, g2 = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, r2);
+          g2.addColorStop(0, `rgba(255,240,150,${0.75 * k})`);
+          g2.addColorStop(0.5, `rgba(255,180,60,${0.5 * k})`);
+          g2.addColorStop(1, 'rgba(240,120,30,0)');
+          ctx.fillStyle = g2; ctx.fillRect(s.x - r2, s.y - r2, r2 * 2, r2 * 2);
+          luz(ctx, s.x, s.y, R * 1.6, [255, 170, 90], B.LUZ_A * k);
+          luzNoche(ctx, s.x, s.y, R * 1.6, [255, 170, 90], B.NOCHE_A * k);
         }
         n.tiras.forEach((q, i) => {
           const c = tubo(n.tubos[q.tubo]);
@@ -818,8 +833,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             raya(s, L, ang, cara > 0.6 && A.filo ? A.filo : cara > 0.3 ? '#c9d6dd' : '#8fa3ae', Math.max(1, s.k * 0.07));
           if (cara < CHAPITAS.DESTELLA || !(fz > 0) || !(D.alfa > 0)) return;
           const p = pulso(i);
-          destella(s.x, s.y, Math.max(1.5, D.radio * s.k * 0.25 * K * p),
-            Math.min(1, D.alfa * K * Math.min(1, A.fuerza * 1.4) * p) * a0 * cerca(z) * (cara - CHAPITAS.DESTELLA) / (1 - CHAPITAS.DESTELLA), i % 4 === 0);
+          destella(s.x, s.y, CHAPITAS.DESTELLO_R * D.radio * p,
+            Math.min(1, D.alfa * K * Math.min(1, A.fuerza * 1.4) * p) * a0 * cerca(z) * (cara - CHAPITAS.DESTELLA) / (1 - CHAPITAS.DESTELLA), false);
         });
       }
       ctx.globalAlpha = 1;
