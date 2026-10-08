@@ -1022,6 +1022,31 @@ export const COBRA = { SUBE: 0.12, BAJA: 0.72, FRENO: 0.75, SUBE_VY: 5,
   // Sin el pasarse de entrada (~30%) el objetivo sube para llegar a lo mismo: 9.4 → z ≈ 4,6 (x3).
   ACERCA: 9.4, ENTRA: 5, K: 26, AMORT: 3.2 };
 
+// ---------- EL BREAK TURN y EL JINK, con fisica de avion (systems/moves.js) ----------
+// El autor, 5/10: "el JINK y el BREAK TURN estan siendo demasiado arcade / rapidos; tienen que tener una
+// continuidad mas fluida, como las ultimas maniobras". Antes clavaban la velocidad lateral y el alabeo
+// en el primer cuadro (un corte, no un viraje). Ahora son lo que hace un avion: ROLA hacia el lado con
+// una velocidad de rolido limitada (ROLA, 1/s de acercamiento al alabeo pedido) y la sustentacion
+// inclinada lo EMPUJA de costado — la aceleracion lateral es ACEL·alabeo, contra un ROCE (1/s) que la
+// frena. La velocidad lateral sale continua, va detras del alabeo y se apaga sola al nivelar.
+//   QUIEBRE (break turn) — desde el 5/10 es OTRA COSA que un viraje (autor: "un poco mas rapido, quiza
+//     con turbo; que se diferencie de una vuelta normal, y que frene con la panza apuntando hacia el
+//     lado, haciendo como una U: _ y luego <|D"). Dos tiempos, en fracciones de la maniobra:
+//     · DASH (hasta DASH): casi NIVELADO (BANK_DASH de alabeo) y con la POSCOMBUSTION prendida, se
+//       tira de costado: EMPUJE u/s² contra ROCE 1/s. Es el "_".
+//     · CANTO (hasta CANTO): rola de golpe A CUCHILLO (90° en pantalla, a GIRA_RATE 1/s) con la PANZA
+//       hacia donde iba — el "<|D" — y la sustentacion, que ahora apunta para el otro lado, TIRA para
+//       atras: TIRON u/s² le come la velocidad lateral y lo devuelve un poco. Esa es la U. Frena el
+//       avance (FRENO 1/s) y la camara-dron se acerca (CORTE, como la cobra).
+//     · y vuelve a nivel, con la velocidad lateral apagandose (ROCE_SALE 1/s).
+export const QUIEBRE = { DASH: 0.33, CANTO: 0.75, BANK_DASH: 0.25, ROLA: 14, EMPUJE: 230, ROCE: 2.5,
+  GIRA_RATE: 16, TIRON: 190, ROCE_SALE: 3, FRENO: 1.0, CORTE: 0.2 };
+//   JINK: QUIEBRES alternados (el lado del primero lo pide el combo), cada uno con su fuerza (0.75-1 de
+//     alabeo, por la semilla); en la ultima fraccion (desde FIN) nivela. ACEL crece con la velocidad
+//     del avion (ACEL + ACEL_V·spd): mas rapido, mas violento — la misma regla de siempre. El PRIMER
+//     quiebre dura la mitad: asi la ese queda centrada en el carril en vez de derivar para un lado.
+export const JINK = { QUIEBRES: 3, ROLA: 8, ACEL: 130, ACEL_V: 1.9, ROCE: 2.6, FIN: 0.86 };
+
 // ---------- EL POP-UP: la trepada que frena un poco (systems/moves.js) ----------
 // El autor, 4/10: "el popup es como la cobra pero no frena tanto, es mas para subir rapidamente, pero
 // al poner el avion asi te frena un poco, asi que tiene que generar un poco de resorte a la camara".
@@ -1569,6 +1594,12 @@ export const M_CONO_FULL = 1.05;
 // respiracion del cono (Hz): el regimen transonico es INESTABLE — se forma, se aprieta y revienta.
 // No es un temporizador: es lo que hace que no se lea como una calcomania pegada al avion.
 export const CONO_HZ = 1.9;
+// EL PARPADEO DE MACH 1 (autor, 5/10, con un video de un F-14 cruzando la barrera: "a Mach 1 se arma
+// como un efecto parpadeante, medio de sonido, alrededor del avion — ese vapor"). Un halo de vapor que
+// envuelve al avion entero y TITILA: se prende y se apaga a saltos irregulares. Entra en M_PARPADEO,
+// pleno en M_PARPADEO_FULL; PARPADEO_HZ son los saltos por segundo; PARPADEO_APAGA, la fraccion de
+// saltos en que se corta del todo (lo que lo hace parpadeo y no latido).
+export const M_PARPADEO = 0.98, M_PARPADEO_FULL = 1.04, PARPADEO_HZ = 14, PARPADEO_APAGA = 0.25;
 
 // ---------------- LAS CHARLAS EN VUELO (SPEC_CHARLAS_VUELO §2) ----------------
 // Dialogo DURANTE la mision jugable. NACIO como "una pausa sin pausa" —el mundo seguia corriendo y

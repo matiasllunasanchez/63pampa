@@ -127,7 +127,21 @@ juego de propaganda.
 
 ## M09 · EL PIBE
 
-> Muere el Pichón. La placa **no habla de él** —eso lo hizo el epílogo— sino del lugar.
+> ✅ **ESCRITA Y PEGADA (8/10/2026) — pero NO es la de abajo.** En `src/data/story.js` M09_HIST
+> es ahora **el pie de trinchera** (ver [INFANTERIA_BRITANICA_1982.md](INFANTERIA_BRITANICA_1982.md) §3A),
+> y está enganchada en `epiM9` después de `M09_CARTA`.
+>
+> **Por qué se cambió el borrador.** No es gusto: **se pisaba con `M05_1`**, que ya dice, cuatro
+> misiones antes, que los británicos desembarcan y que a eso lo bautizaron el Callejón de las
+> Bombas. Repetirlo acá gastaba la única placa de M09 en un dato que el jugador ya tenía.
+>
+> El pie de trinchera, en cambio, **contesta la línea que Mateo acaba de escribir** en la carta
+> inmediatamente anterior —*«tengo miedo, pero no del frío ni del hambre»*— y la contesta con el
+> enemigo: el frío y el barro estaban haciendo lo mismo del otro lado de la línea. La placa **no
+> nombra a Mateo**: el jugador ata el cabo solo.
+>
+> *El borrador viejo queda abajo por si alguna vez se quiere para otra misión, pero no está en
+> el juego.*
 
 ```js
   M09_HIST: {
@@ -206,5 +220,10 @@ juego de propaganda.
 - **Verificar M02.** Que el 1 de mayo empezaron los combates y que bombardearon la pista está
   fuera de discusión; **"varios no volvieron" conviene cambiarlo por el número exacto** una
   vez que se verifique, o dejarlo así de vago a propósito.
-- **M09 no lleva número de aviones perdidos** justamente porque las cifras que circulan no
-  coinciden. Si se verifica una, la línea gana muchísimo.
+- ~~**M09 no lleva número de aviones perdidos**~~ — ya no aplica: la placa de M09 cambió de
+  tema (pie de trinchera). La advertencia vale igual para cualquier placa que quiera cifras de
+  aviones perdidos en San Carlos: las que circulan no coinciden.
+- **La cifra de la placa de M09** —dos de cada tres soldados de infantería con lesiones por
+  frío— está medida sobre veteranos **británicos** y sale de una sola fuente. No se encontró la
+  equivalente argentina, y por eso la última línea solo dice que la infantería argentina estaba
+  en la misma turba, que es geografía y no estadística.

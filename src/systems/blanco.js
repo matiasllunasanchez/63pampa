@@ -184,7 +184,8 @@ export function golpe(pm, z0) {
     if (r !== 'explota') {
       explodeAt(pm.x, pm.y, blanco.z, false, true, true);   // chispas contra la chapa, nada mas
       beep(900, 0.06, 'square', 0.05, -500);
-      blanco.lento = true; blanco.cumplido = true;
+      if (blanco.z >= PZ) blanco.lento = true;   // (ver `lento` abajo: de atras no frena)
+      blanco.cumplido = true;
       run.score += BL.PTS_AVERIA;
       if (r === 'tarde') {
         const [a, b] = bi.tardeT;
@@ -200,7 +201,10 @@ export function golpe(pm, z0) {
   }
   if (pm.tanque === 'vacio') explodeAt(pm.x, pm.y, blanco.z, false, true, true);   // chapa contra chapa
   else estalla(pm.x, pm.y, !pm.tanque && bi.grande);
-  blanco.lento = true;   // MOMENTUM OBLIGADO: de aca al cruce, el mundo a BL.LENTO
+  // MOMENTUM OBLIGADO: de aca al cruce, el mundo a BL.LENTO — SOLO si el cruce todavia no paso. Lo
+  // apaga el cruce y nada mas, asi que una bomba soltada pasando por encima que le pega DESPUES del
+  // cruce lo dejaba prendido para siempre (autor, 8/10: "le pegue, se activo el momentum y nunca se fue").
+  if (blanco.z >= PZ) blanco.lento = true;
   blanco.cumplido = true;
   blanco.marcas.push({ x: pm.x, y: Math.max(blanco.base + 1, pm.y), t: run.t });
   // YA HUNDIDO (lo pego otro de la fila antes): el impacto suma puntos y fuego, nada mas
@@ -315,6 +319,9 @@ export function step(dt) {
   }
   blanco.zPrev = blanco.z;
   blanco.z -= run.spd * dt;
+  // RED DE SEGURIDAD de la camara lenta obligada: con el buque ya detras del avion no hay cruce que la
+  // apague (un relevo o un salto de odometro pueden pasarlo por encima del cuadro del cruce).
+  if (blanco.lento && blanco.zPrev < PZ) blanco.lento = false;
   if (blanco.hundido) blanco.sinkT += dt;
   tarde(dt);
   // EL NEGRO ES TREGUA: lo que no se ve no puede matarte. Saltar el buque puede dejarte arriba del

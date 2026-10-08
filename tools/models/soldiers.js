@@ -60,8 +60,16 @@ BAKE.modelos('soldiers', (THREE, K) => {
   }
 
   /** EL CASCO, que es la firma. A 12 px de alto no se lee una cara ni un fusil: se lee un bulto
-   *  redondo y ancho encima de una silueta angosta. Es el Mk. II británico —el "plato de sopa"
-   *  con ala— y el ala es justamente lo que lo separa de una cabeza pelada a esta escala. */
+   *  redondo y ancho encima de una silueta angosta. Es el casco de ACERO CON ALA —el "plato de
+   *  sopa", con funda DPM y red encima— y el ala es justamente lo que lo separa de una cabeza
+   *  pelada a esta escala.
+   *
+   *  ⚠ NO LO "MODERNICEN" A UN Mk6. El Mk6 —el casco redondo sin ala que todo el mundo dibuja
+   *  cuando dibuja a un británico— entra en servicio en 1986: cuatro años DESPUES de esta
+   *  guerra. Es el error mas comun de las laminas de internet y ya vino una a pedirlo. El de
+   *  1982 es este. (La designacion exacta baila entre Mk IV y Mk V segun la fuente, por un lio
+   *  viejo de numeracion; a esta escala es la misma silueta. Ver
+   *  docs/historia/INFANTERIA_BRITANICA_1982.md §1.) */
   function casco(g, y, x) {
     x = x || 0;
     const d = DOME(g, 0.155, C.HELM, x, y, 0, 1, 0.72, 1);

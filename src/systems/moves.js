@@ -17,7 +17,7 @@ import { proj, popup } from '../core/fx.js';
 import { sfxOne, beep } from './audio.js';
 import { P } from '../data/palette.js';
 import { PZ, W, H } from '../render/ctx.js';
-import { FLY_X, FLY_TOP, FUEL_PIRUETA, COBRA, DERRAPE, MORTAL, COBRA_INV, POPUP, PIQUE } from '../data/tuning.js';
+import { FLY_X, FLY_TOP, FUEL_PIRUETA, COBRA, DERRAPE, MORTAL, COBRA_INV, POPUP, QUIEBRE, JINK, PIQUE } from '../data/tuning.js';
 import { MOVES } from '../data/moves.js';
 
 const MV_CD = 1.15;          // cooldown compartido con el tonel (mismo valor que startRoll)
@@ -86,6 +86,8 @@ export function startMove(id, dir, tgt, act) {
  *  actores son escena, no gameplay), asi que no tiene a quien contestarle. */
 export const mvAllowsFire = () => !run.mv || MOVES[run.mv].fire;
 export const mvAllowsTurbo = () => !run.mv || MOVES[run.mv].turbo;
+/** ¿La maniobra PRENDE la poscombustion sola? El DASH del break turn (5/10, "quiza debe activar turbo"). */
+export const mvTurboForzado = () => run.mv === 'breakt' && run.mvFase === 'dash';
 
 /** ¿La maniobra activa del jugador es LEGADA (el tonel)? Lo pregunta flight.js.
  *
@@ -412,12 +414,25 @@ export function movesSystem(dt, inp, act) {
       break;
     }
     case 'breakt': {
-      // tiron lateral violento que decae; banqueo clavado a fondo y un extra de rotacion
-      B.vx = dir * 58 * (1 - p * 0.55);
-      B.vy = sy;
-      B.bank = dir; B.pitch = 0;
-      E.mvRoll = dir * 0.3 * bell(p);
-      E.spd = Math.max(40, E.spd - E.spd * 0.16 * dt);
+      // EL BREAK TURN (QUIEBRE en data/tuning.js; autor 5/10: "_ y luego <|D", una U con la panza hacia el
+      // lado): un DASH casi nivelado con poscombustion, y despues A CUCHILLO con la panza hacia donde iba,
+      // tirando para atras — frena la deriva y lo devuelve un poco. Lo lateral sale de la fisica (empuje
+      // y despues la sustentacion de canto), asi que la U se dibuja sola. El canto es un giro del DIBUJO
+      // (`mvGiro`): visto de atras, un avion de canto es el mismo cuadro girado 90°. Al otro lado, `dir`.
+      const Q = QUIEBRE;
+      const fase = p < Q.DASH ? 'dash' : p < Q.CANTO ? 'canto' : 'sale';
+      E.mvFase = fase;
+      const acerca = (v, obj, r) => v + (obj - v) * Math.min(1, r * dt);
+      B.bank = acerca(B.bank, fase === 'dash' ? dir * Q.BANK_DASH : 0, Q.ROLA);
+      // a cuchillo: la PANZA hacia `dir` = la cabina hacia el otro lado (antihorario yendo a la derecha)
+      E.mvGiro = acerca(E.mvGiro, fase === 'canto' ? -dir * Math.PI / 2 : 0, Q.GIRA_RATE);
+      E.mvRoll = 0;
+      if (fase === 'dash') B.vx += (dir * Q.EMPUJE - Q.ROCE * B.vx) * dt;
+      else if (fase === 'canto') B.vx -= dir * Q.TIRON * dt;
+      else B.vx *= Math.max(0, 1 - Q.ROCE_SALE * dt);
+      E.mvFreno = fase === 'canto' ? Q.CORTE : 0;
+      if (fase === 'canto') E.spd *= Math.exp(-Q.FRENO * dt);
+      B.vy = sy; B.pitch = 0;
       break;
     }
     case 'hiyo': {
@@ -438,27 +453,22 @@ export function movesSystem(dt, inp, act) {
       break;
     }
     case 'jink': {
-      // 4 quiebres ALTERNADOS (si no alternan, el jink deriva para un lado y es un dash); lo
-      // aleatorio son el lado inicial (mvDir del combo) y la fuerza de cada quiebre (semilla).
-      //
-      // CONTINUIDAD. Antes B.vx se CLAVABA en el valor del quiebre, asi que cuatro veces por
-      // maniobra la velocidad lateral saltaba de golpe ~90 u/s y el avion se teletransportaba de
-      // costado. Ahora el quiebre es un objetivo que se PERSIGUE con aceleracion limitada: la
-      // velocidad lateral queda continua y el gesto se lee como un latigazo en vez de un corte.
-      //
-      // Y escala con la VELOCIDAD REAL del avion: mas rapido = mas recorrido lateral y mas
-      // autoridad para cambiarlo. Un jink a 40 u/s es suave; a 110 es violento. La proporcion
-      // entre `amp` y `rate` esta elegida para que el barrido tarde ~un segmento a cualquier
-      // velocidad — asi el ritmo de la maniobra no cambia, solo su amplitud.
-      const seg = Math.min(3, (p * 4) | 0);
+      // EL JINK, como lo vuela un avion (JINK en data/tuning.js, autor 5/10: "menos arcade, mas fluido,
+      // como un avion de verdad"). Antes eran cuatro quiebres en 0,85 s —uno cada dos decimas—, que se
+      // leian como un temblor. Ahora son QUIEBRES alternados mas largos: rola hacia un lado (rolido
+      // limitado), la sustentacion inclinada lo empuja para alla, rola para el otro… y el empuje sale
+      // del alabeo, asi que la velocidad lateral va siempre detras y dibuja eses en vez de zetas.
+      // Lo aleatorio sigue siendo el lado del primero (mvDir del combo) y la fuerza de cada uno (semilla).
+      const J = JINK, n = J.QUIEBRES;
+      // el primero dura MEDIO quiebre (la ese queda centrada); despues, quiebres enteros
+      const seg = Math.min(n - 1, Math.floor(p / J.FIN * (n - 0.5) + 0.5));
       const sgn = E.mvDir * (seg % 2 ? -1 : 1);
-      const amp = 22 + E.spd * 0.34 + ((E.mvSeed + seg * 31) % 9);
-      const rate = 320 + E.spd * 2.9;                    // u/s²: cuanto puede cambiar vx por segundo
-      const tgt = sgn * amp;
-      B.vx += Math.max(-rate * dt, Math.min(rate * dt, tgt - B.vx));
-      // bamboleo vertical suave (antes eran 5 Hz de temblor, que era la mitad de lo "brusco")
-      B.vy += (Math.sin(E.mvT * 9 + E.mvSeed) * 3 - B.vy) * Math.min(1, dt * 6);
-      B.bank = Math.max(-1, Math.min(1, B.vx / Math.max(18, amp)));   // el alabeo sigue a vx real
+      const fuerza = 0.75 + ((E.mvSeed + seg * 31) % 9) / 36;
+      const bObj = p < J.FIN ? sgn * fuerza : 0;
+      B.bank += (bObj - B.bank) * Math.min(1, J.ROLA * dt);
+      B.vx += ((J.ACEL + E.spd * J.ACEL_V) * B.bank - J.ROCE * B.vx) * dt;
+      // un bamboleo vertical chico, al compas de los quiebres
+      B.vy += (Math.sin(E.mvT * 5 + E.mvSeed) * 2.5 - B.vy) * Math.min(1, dt * 4);
       B.pitch = 0;
       break;
     }

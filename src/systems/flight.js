@@ -60,7 +60,7 @@ import * as agu from './aguante.js';
 import { AGU } from '../core/aguante.js';
 // BOOST_LIFT y CAM_PAN se mudaron a systems/vuelo.js con la camara que los usa.
 import { multOf } from '../core/util.js';
-import { movesSystem, mvAllowsFire, mvAllowsTurbo, mvLegado, derrapeLead } from './moves.js';
+import { movesSystem, mvAllowsFire, mvAllowsTurbo, mvTurboForzado, mvLegado, derrapeLead } from './moves.js';
 import { stepVuelo, estelaVuelo } from './vuelo.js';
 import * as zigzag from './zigzag.js';
 import { enPared, enBarrera, paredCara, pared as paredCfg } from '../core/zigzag.js';
@@ -136,7 +136,8 @@ export function flightSystem(dt, deps) {
   // AVERIAS (core/damage.js): el escalon de daño puede sacarte el turbo y bajar la punta. En el
   // modo de siempre ('squad') y en el visual, `av` es nominal y esto no cambia nada.
   const av = dmg.fx();
-  run.boost = inp.turbo && run.fuel > 0 && mvAllowsTurbo() && av.turbo;
+  // (el DASH del break turn la prende solo: moves.mvTurboForzado)
+  run.boost = ((inp.turbo && mvAllowsTurbo()) || mvTurboForzado()) && run.fuel > 0 && av.turbo;
   // viento en contra: cuanto más tiempo arriba, más resistencia (hasta -35%)
   // SOLO DONDE UN TRAMO O UNA FASE LO DECLARA (`viento: true`, pedido del autor 23/9). Soplaba en
   // todo el cielo, y con la nafta como alcance (PLAN_NAFTA_ALCANCE) el crucero ALTO pasa a ser el

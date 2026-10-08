@@ -4,7 +4,7 @@
 // por eso se puede probar en node (`npm run unit`). Lo que decide CUANDO aparece el vapor y el
 // cono no puede vivir enterrado en el render: es la vara del efecto entero, y si se corre, el
 // efecto deja de significar lo que dice significar.
-import { A_MAR, KMH_U, M_VAPOR, M_CONO, M_CONO_FULL } from '../data/tuning.js';
+import { A_MAR, KMH_U, M_VAPOR, M_CONO, M_CONO_FULL, M_PARPADEO, M_PARPADEO_FULL } from '../data/tuning.js';
 
 /** Mach a NIVEL DEL MAR a partir de la velocidad del juego. RASANTE se juega entre 0 y 68 m, asi
  *  que no hay corrección por altura: el mar es el unico sitio donde pasa esto. */
@@ -25,6 +25,13 @@ export function conoAmt(spd) {
   const m = machNow(spd);
   if (m < M_CONO) return 0;
   return Math.min(1, (m - M_CONO) / (M_CONO_FULL - M_CONO));
+}
+
+/** 0..1 — cuanto PARPADEO de Mach 1 corresponde (el halo que titila, render/mach.js). */
+export function parpadeoAmt(spd) {
+  const m = machNow(spd);
+  if (m < M_PARPADEO) return 0;
+  return Math.min(1, (m - M_PARPADEO) / (M_PARPADEO_FULL - M_PARPADEO));
 }
 
 /** ¿Se cruzo hacia el regimen del cono entre dos cuadros? Es el disparador del CRUCE (V3) — el

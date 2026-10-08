@@ -83,13 +83,13 @@ export const MOVES = {
   // el jugador vive como la misma cosa (dar vuelta el avion).
   splits: { dur: 1.15, name: 'SPLIT-S', steer: 'x', fire: true, turbo: false, tight: true, drift: 24 },
   // viraje quebrado: tiron lateral violento sostenido, banqueo a fondo
-  breakt: { dur: 0.7, name: 'BREAK TURN', steer: 'y', fire: true, turbo: false, tight: true },
+  breakt: { dur: 1.0, name: 'BREAK TURN', steer: 'y', fire: true, turbo: false, tight: true },
   // sube, cuelga y recae: esquive vertical que sangra velocidad
   hiyo: { dur: 1.0, name: 'HIGH YO-YO', steer: 'x', fire: true, turbo: false, tight: false },
   // pica y remonta: convierte altura en VELOCIDAD (el unico combo que acelera)
   loyo: { dur: 1.0, name: 'LOW YO-YO', steer: 'x', fire: true, turbo: true, tight: false },
   // zigzag de esquive: 4 quiebres laterales secos, rumbo impredecible — no se controla nada
-  jink: { dur: 0.85, name: 'JINK', steer: null, fire: true, turbo: false, tight: true },
+  jink: { dur: 1.3, name: 'JINK', steer: null, fire: true, turbo: false, tight: true },
   // barrido en S: se abre a un lado y vuelve — esquiva sin perder el carril
   sturn: { dur: 1.1, name: 'S-TURN', steer: 'y', fire: true, turbo: false, tight: true },
   // pegarse al terreno: clava el avion a ras, congela el roce y DESCARGA el radar enemigo

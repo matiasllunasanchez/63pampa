@@ -13,8 +13,8 @@
 import { ctx, px } from './ctx.js';
 import { P } from '../data/palette.js';
 import { cfg } from '../core/state.js';
-import { conoAmt, vaporAmt } from '../core/mach.js';
-import { CONO_HZ } from '../data/tuning.js';
+import { conoAmt, vaporAmt, parpadeoAmt } from '../core/mach.js';
+import { CONO_HZ, PARPADEO_HZ, PARPADEO_APAGA } from '../data/tuning.js';
 
 /** LA RESPIRACION del cono. El regimen transonico es INESTABLE: la nube se forma, se aprieta,
  *  revienta y se rehace. Sin esto el cono es una calcomania pegada al avion — que es exactamente
@@ -73,6 +73,56 @@ export function drawCono(spW, spH, spd, t) {
   }
   ctx.restore();
   ctx.globalAlpha = 1; ctx.lineWidth = 1;
+}
+
+/** EL PARPADEO DE MACH 1 (autor, 5/10 — el video del F-14 cruzando la barrera). Pasando Mach 0,98 el
+ *  avion queda envuelto en un HALO de vapor que se arma y se desarma a saltos: no respira como el
+ *  cono, TITILA. Va detras del sprite (regla 4 del plan: gana el avion) y en la misma matriz que el
+ *  cono, asi que sigue el alabeo y el bob.
+ *
+ *  Los saltos salen de un hash del reloj partido en PARPADEO_HZ — NADA de Math.random() por cuadro
+ *  (trampa §1.3): asi cada salto dura lo mismo y el patron no hierve. En PARPADEO_APAGA de los saltos
+ *  el halo se corta del todo; en los demas prende con fuerza distinta. Los JIRONES sueltos alrededor
+ *  de las alas tienen su propio salto, desfasado, para que no prenda todo junto como una lampara. */
+const hashP = n => { const h = Math.sin(n * 12.9898 + 4.1) * 43758.5453; return h - Math.floor(h); };
+export function drawParpadeo(spW, spH, spd, t) {
+  if (cfg.mach !== 'todo') return;
+  const k = parpadeoAmt(spd);
+  if (k <= 0.01) return;
+  const salto = Math.floor(t * PARPADEO_HZ);
+  const h = hashP(salto);
+  ctx.save();
+  if (h >= PARPADEO_APAGA) {
+    const fuerza = k * (0.45 + 0.75 * (h - PARPADEO_APAGA) / (1 - PARPADEO_APAGA));
+    const rx = spW * (0.62 + 0.14 * hashP(salto + 101)), ry = rx * 0.6;
+    const g = ctx.createRadialGradient(0, 0, rx * 0.12, 0, 0, rx);
+    g.addColorStop(0, `rgba(236,246,244,${0.30 * fuerza})`);
+    g.addColorStop(0.55, `rgba(226,240,238,${0.42 * fuerza})`);
+    g.addColorStop(0.85, `rgba(214,232,230,${0.16 * fuerza})`);
+    g.addColorStop(1, 'rgba(207,227,223,0)');
+    ctx.fillStyle = g;
+    ctx.save(); ctx.scale(1, ry / rx);
+    ctx.beginPath(); ctx.arc(0, 0, rx, 0, 6.2832); ctx.fill();
+    ctx.restore();
+  }
+  // LOS JIRONES: vapor suelto sobre las alas y detras de la cabina, cada uno con su salto propio
+  const N = 7;
+  for (let i = 0; i < N; i++) {
+    const s2 = Math.floor(t * PARPADEO_HZ * 0.8 + i * 0.37);
+    const q = hashP(s2 * 7 + i * 13);
+    if (q < 0.45) continue;
+    const lado = i % 2 ? 1 : -1, f = (i + 1) / N;
+    const x = lado * spW * (0.08 + f * 0.36), y = spH * (0.02 - 0.06 * hashP(i + 3));
+    const w = spW * (0.12 + 0.1 * q), hh = Math.max(1, spH * (0.03 + 0.03 * q));
+    // en PIXELES, como el vapor de ala: una lente de tres filas (la del medio mas ancha), no un ovalo liso
+    ctx.globalAlpha = k * (q - 0.45) * 1.3;
+    px(x - w / 2, y - hh / 2, w, hh, '#eef8f6');
+    ctx.globalAlpha *= 0.6;
+    px(x - w * 0.32, y - hh * 1.5, w * 0.64, hh, P.foam);
+    px(x - w * 0.32, y + hh / 2, w * 0.64, hh, P.foam);
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
 }
 
 /** EL VAPOR DE ALA (V1): las mechas que se levantan del extrados al cargar G.

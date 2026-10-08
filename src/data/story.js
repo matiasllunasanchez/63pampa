@@ -1383,6 +1383,32 @@ export const SCENES = {
         es: 'Tengo miedo, te lo digo por primera vez. Mucho miedo. Pero no del frío ni del hambre: miedo de no verte más. Si pasa algo, quiero que sepas que no te guardo nada. Sé que moviste todo. Un padre no puede más que todo. Mateo.', en: '' },
     ],
   },
+  // LA PLACA DE M09 — EL PIE DE TRINCHERA (docs/historia/INFANTERIA_BRITANICA_1982.md §3A).
+  //
+  // POR QUE VA ACA Y NO EN OTRA MISION. Viene inmediatamente despues de la carta de Mateo, que
+  // termina diciendo «tengo miedo, pero no del frio ni del hambre». La placa contesta lo que el
+  // pibe acaba de nombrar al pasar, y lo contesta con el enemigo: el frio y el barro estaban
+  // haciendo lo mismo del otro lado de la linea. El jugador ata el cabo solo — por eso la placa
+  // NO nombra a Mateo. Las placas cuentan la guerra; la historia la cuentan las escenas.
+  //
+  // LO QUE NO DICE, A PROPOSITO. No hay cifra argentina. La del 64% esta medida sobre veteranos
+  // BRITANICOS y no se encontro la equivalente de este lado, asi que la ultima linea solo dice
+  // que la infanteria argentina estaba en la misma turba — que es geografia, no estadistica. La
+  // regla es la de ARMAMENTO_1982: lo verificado se afirma, lo demas no se afirma.
+  M09_HIST: {
+    id: 'M09_HIST', tipo: 'VN',
+    titulo: 'LA TURBA · MAYO Y JUNIO DE 1982', placa: 'radio', img: 'M09_HIST',
+    lineas: [
+      { id: 'M09_HIST_010', personaje: null, cara: null, hold: 0,
+        es: 'Las botas del ejército británico no eran impermeables. Después de semanas de caminar y dormir en la turba mojada, los pies se hinchaban, perdían el color y dejaban de sentir.', en: '' },
+      { id: 'M09_HIST_020', personaje: null, cara: null, hold: 0,
+        es: 'Se llama pie de trinchera. No aparecía en una guerra desde hacía sesenta y cinco años.', en: '' },
+      { id: 'M09_HIST_030', personaje: null, cara: null, hold: 0,
+        es: 'Dos de cada tres soldados de infantería volvieron con alguna lesión por frío. Las botas nuevas se empezaron a entregar en 1984, dos años tarde.', en: '' },
+      { id: 'M09_HIST_040', personaje: null, cara: null, hold: 3.0,
+        es: 'En esa misma turba, del otro lado de la línea, estaba la infantería argentina.', en: '' },
+    ],
+  },
   M11_1: {
     id: 'M11_1', tipo: 'VN',
     titulo: 'TRES DONDE HUBO CINCO', placa: 'linea_amanecer', img: 'M11_1',
@@ -2723,7 +2749,7 @@ export const SECUENCIAS = {
   storyM8: ['M08_1', 'M08_2', 'M08_TARJETA'],
   epiM8: ['M08_SOBREVUELO', 'M08_TESIS', 'M08_CARTA', 'M08_HIST'],
   storyM9: ['M09_1', 'M09_2', 'M09_TARJETA'],
-  epiM9: ['M09_EPI', 'M09_LIBRETA', 'M09_CARTA'],
+  epiM9: ['M09_EPI', 'M09_LIBRETA', 'M09_CARTA', 'M09_HIST'],
   storyM10: ['M10_HUECO', 'M10_TARJETA'],
   epiM10: ['M10_TANDIL', 'M10_NOTICIA', 'M10_CUADERNO', 'M10_MIRAGE'],
   storyM11: ['M11_1', 'M11_TARJETA'],
