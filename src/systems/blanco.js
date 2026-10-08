@@ -300,7 +300,9 @@ export function step(dt) {
   // EL NEGRO ES TREGUA: lo que no se ve no puede matarte. Saltar el buque puede dejarte arriba del
   // techo del radar, y un misil lanzado ahi pegaba en pleno negro (medido: derribo sin ver nada).
   // Mientras dura el negro —y su apertura— no hay misiles en vuelo y el radar no carga.
-  if (blanco.negroT >= 0 || blanco.salidaT >= 0 || blanco.perdidaT >= 0) { missiles.length = 0; run.detection = 0; }
+  // (…y el ¡LE ERRASTE! antes del negro tambien es tregua — 8/10, el autor: "si le erre no debe
+  // aparecer mi relevo ni detenerse la camara: velo negro y la camara va hacia atras al siguiente")
+  if (blanco.negroT >= 0 || blanco.salidaT >= 0 || blanco.perdidaT >= 0 || blanco.preNegroT >= 0) { missiles.length = 0; run.detection = 0; }
   // EN EL NEGRO, UN PISO: sin ver nada nadie maneja, y sin piso el avion se iba solo al agua en pleno
   // negro (medido). Va ANTES del negro sostenido, que sale temprano. Fuera del negro no hay piso: el
   // salto es del jugador.
@@ -380,7 +382,9 @@ export function step(dt) {
     const conNegro = !escape && (!acierto || roce);
     if (conNegro) blanco.altPiso = Math.max(plane.y, 6 + blanco.base - AGUA, roce ? blanco.base + h + 1 : 0);
     else if (roce) plane.y = Math.max(plane.y, blanco.base + h + 1);
-    if (roce) { seña('roce'); return { roce: 'death_palos', escape }; }
+    // ERRASTE: no hay choque que cobrar — el piso del negro ya te pasa por encima de los palos y lo que
+    // sigue es el negro y la camara hacia atras, al de la fila (8/10). El choque es de quien le pego.
+    if (roce && (acierto || escape)) { seña('roce'); return { roce: 'death_palos', escape }; }
     return escape ? 'escape' : acierto ? 'hundido' : null;
   }
   // LA PREDICCION, una vez por cuadro: la leen las señas de Puma y el HUD (lo que titila en verde).

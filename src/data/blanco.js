@@ -172,7 +172,8 @@ export const BL = {
    *  te ponen en todas las estrellas y el pasillo sigue hasta que las pierdas; recien ahi, el
    *  viraje. `EST_S` es cuanto hay que aguantar escondido por estrella — el general
    *  (EST_PERDER_S, 20 s) daria 80 s al ras, que es un tramo y no un escape. */
-  ESCAPE_EST_S: 9,
+  ESCAPE_EST_S: 6,   // (8/10: era 9 — con 4 estrellas eran 36 s de escape; ahora dos estrellas, 12 s)
+  ESCAPE_EST: 2,     // con cuantas estrellas arranca el escape (eran todas: EST_MAX = 4)
   /** EL VIRAJE (pedido del autor, 24/9): sin estrellas, Puma dice "los perdimos" y se deja LEER
    *  (`VIR_LEER`); despues "comencemos la vuelta a casa" mientras el cuadro se funde a negro
    *  (`VIR_NEGRO`, el fundido dura `VIR_FUNDE`); y ahi el video del viraje, de dia o de noche. */
@@ -210,7 +211,9 @@ export const PERFIL = {
  *  `fases.val()` como a cualquier otra. SIN RADIO: el silencio arranca con el impacto, y el ultimo
  *  grito es el de Puma ("¡por encima de los palos!"). Sin siembra propia: lo que te cae encima lo
  *  decide la tabla de las estrellas, que en el cruce quedan al tope. */
-export const FASE_ESCAPE = { tipo: 'vuelta', radio: null, bidones: false, radar: 6 };
+// (8/10, el autor: "mi avion se convierte en una cortadora de pasto, termina arrastrandose, nunca logro
+// escapar"): el techo a 6 obligaba a ir rozando el agua 36 s. Ahora a 12 — bajo, pero se vuela.
+export const FASE_ESCAPE = { tipo: 'vuelta', radio: null, bidones: false, radar: 12 };
 // …Y EL TECHO A 6 (V2): "bajaban la nariz de inmediato para volver a pegarse a las olas". Arriba de
 // 6 el radar carga y las estrellas no bajan: el escape se juega al ras.
 
@@ -225,6 +228,10 @@ export const ESC = {
   RECTA_T: 12,        // segundos de fuego de popa desde el cruce
   GRACIA: 2.2,        // segundos sin que el radar complete la barra: el salto te deja alto un rato
   CARRIL: 8,          // media anchura del carril alrededor de donde cruzaste
+  // CUANTO MAS LEJOS, PEOR PUNTERIA (8/10, el autor: "deberia dispararte asi, pero a medida que escapas
+  // mas lejos es mas dificil que te pegue — igual que cuando llegas, cuando te vas"): toda dispersion se
+  // multiplica por 1 + LEJOS_K por segundo de escape. A los 4 s el doble, a los 12 s cuatro veces.
+  LEJOS_K: 0.25,
   RAFAGA_CADA: 0.9,
   POR_RAFAGA: 2,
   SIGMA_RECTA: 12,    // dispersion yendo derecho: medido, ~1 golpe de escudo en los 12 s

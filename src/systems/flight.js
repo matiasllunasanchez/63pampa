@@ -100,7 +100,11 @@ function waveNow() { return 1.1 + Math.sin(run.t * 1.1) * 0.5 + Math.sin(run.t *
  *  garantia dura de que no se cruza; la rampa es la que hace que no se note.
  */
 function vertRasante(dt, inp, G, TH, DIVE) {
-  const yr = rasante.alt(), techo = rasante.ceil(), k = rasante.spring();
+  // LA ALTURA DEL PODER ES SOBRE EL SUELO QUE TENES DEBAJO (8/10, el autor: "estoy sobre la tierra y no
+  // puedo levantar vuelo"): el asiento (2,4) y el techo (17) eran sobre el NIVEL DEL MAR, y sobre una
+  // loma o una isla quedaban adentro de la tierra — el poder te apretaba contra el suelo hasta el roce.
+  const suelo = esTierraEn(plane.x, run.dist + PZ) ? alturaSuelo(plane.x, run.dist + PZ) : 0;
+  const yr = suelo + rasante.alt(), techo = suelo + rasante.ceil(), k = rasante.spring();
   if (inp.u && run.fuel > 0) {
     const suave = Math.max(0, Math.min(1, (techo - plane.y) / 3));
     plane.vy += (TH * suave - G) * dt;
@@ -668,7 +672,9 @@ export function flightSystem(dt, deps) {
     if (!run.radarSeen) {
       run.radarSeen = true;
       cartel(T('radarLock'), P.warn, T('radarLock2'));
-    } else if (n > 1) cartel(T('radarWave', { n }), P.warn);
+    }
+    // (el cartel OLEADA xN se fue el 8/10: el tamaño de la oleada lo dice la ultima baliza encendida, `x2`,
+    // `x3`… — render/hud.js, balizasAlerta)
     run.shake = Math.min(7, run.shake + 1 + n * 0.5);
     beep(880, 0.12, 'square', 0.06); setTimeout(() => beep(880, 0.12, 'square', 0.06), 160);
   }

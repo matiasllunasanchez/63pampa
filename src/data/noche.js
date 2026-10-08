@@ -18,9 +18,9 @@ export const NOCHE = {
     moon: { rgb: [26, 30, 40], a: 0.6, horiz: 0.7, lejanas: 0.7, luna: false, tablero: 'rgb(226,160,84)' },
   },
   LEJANAS: 14,     // cuantas luces lejanas sobre el horizonte
-  ABRE: 2,         // pasadas de la mascara de luz (mas = la luz abre mas la oscuridad)
+  ABRE: 2,         // pasadas de la mascara de luz: la oscuridad se abre SOLO donde ilumina (8/10: con 4 se iba todo el velo)
   REFLEJO: 0.32,   // cuanto brilla el reflejo de la luna en el agua
-  BRILLO: 1.6,     // el resplandor de noche (de dia es BRILLO_FUERZA, 0.9)
+  BRILLO: 0.75,    // el resplandor de noche, SUMADO (aditivo): con 'screen' a 1,6 lavaba a gris (8/10)
   TOBERA: 0.35,    // la turbina encendida de noche, sin turbo: un tercio de la llama (7/10)
   LUNA_R: 34,      // el disco de la luna (unidades de mundo): ahi la oscuridad se abre entera (7/10)
   LUNA_HALO: 1.8,  // …y se va cerrando hasta este multiplo del radio

@@ -3,6 +3,10 @@
 const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('path');
 
+// EL MODO DEV (8/10): `yarn start` -> dev (sin el arranque del fichin, audio en mute, con el MODO DEV
+// en el menu); `yarn start --prod` -> el juego de verdad. Empaquetado es siempre el de verdad.
+const DEV = !app.isPackaged && !process.argv.includes('--prod');
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
@@ -17,6 +21,7 @@ function createWindow() {
     fullscreen: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      additionalArguments: DEV ? ['--rasante-dev'] : [],   // lo lee el preload (window.RASANTE_DEV)
       contextIsolation: true,     // seguridad estándar
       nodeIntegration: false,     // el renderer NO tiene acceso a Node
       // El juego arranca la música al cargar, sin esperar un gesto. Electron YA permite autoplay

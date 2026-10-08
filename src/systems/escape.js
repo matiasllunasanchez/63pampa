@@ -47,6 +47,8 @@ function rafaga(n, cx, cy, s) {
 }
 
 let xAnt = 0;
+/** La puntería empeora con la distancia al buque: cuanto mas escapaste, mas se abren los tiros (ESC.LEJOS_K). */
+const lejos = () => 1 + escape.t * ESC.LEJOS_K;
 export function step(dt) {
   if (!escape.on) return null;
   escape.t += dt;
@@ -73,7 +75,7 @@ export function step(dt) {
     else escape.sol = Math.min(1, escape.sol + dt / ESC.SOL_T);
     // SOLUCION COMPLETA: rafaga precisa con plomo, adonde vas a estar
     if (escape.sol >= 1) {
-      rafaga(ESC.POR_SOLUCION, plane.x + vx * ESC.PLOMO, plane.y, escape.panza ? ESC.SIGMA_PANZA : ESC.SIGMA_SOL);
+      rafaga(ESC.POR_SOLUCION, plane.x + vx * ESC.PLOMO, plane.y, (escape.panza ? ESC.SIGMA_PANZA : ESC.SIGMA_SOL) * lejos());
       escape.sol = 0;
     }
   }
@@ -85,7 +87,7 @@ export function step(dt) {
       escape.rafT = ESC.RAFAGA_CADA * (0.8 + Math.random() * 0.4);
       const s = escape.panza ? ESC.SIGMA_PANZA
         : vib ? ESC.SIGMA_RECTA + (ESC.SIGMA_SOL - ESC.SIGMA_RECTA) * escape.sol : ESC.SIGMA_RECTA;
-      rafaga(ESC.POR_RAFAGA, plane.x, plane.y, s);
+      rafaga(ESC.POR_RAFAGA, plane.x, plane.y, s * lejos());
     }
   }
   let hit = false;

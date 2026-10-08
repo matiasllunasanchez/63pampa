@@ -367,11 +367,14 @@ export function sonidoFicha() {
   if (document.readyState === 'complete') tryStart();
   else window.addEventListener('load', tryStart, { once: true });
 })();
-export function setMuted(v) {
+// EN MODO DEV ARRANCA EN MUTE (8/10, core/dev.js) sin tocar lo que el jugador guardo: el juego de
+// verdad vuelve a sonar como lo dejo.
+if (typeof window !== 'undefined' && window.RASANTE_DEV) setTimeout(() => setMuted(true, true), 0);
+export function setMuted(v, sinGuardar) {
   // con el bloqueo puesto el boton no destraba nada, pero lo que se GUARDA es lo que el jugador
   // eligio: al levantar el bloqueo, cada uno vuelve a como lo tenia
   muted = AUDIO_BLOQUEADO || v;
-  try { localStorage.setItem('rasante_muted', v ? '1' : '0'); } catch (e) { }
+  if (!sinGuardar) try { localStorage.setItem('rasante_muted', v ? '1' : '0'); } catch (e) { }
   const b = document.getElementById('snd'); if (b) b.classList.toggle('muted', muted);
   if (muted) { musLobby.pause(); musStory.pause(); PLAYLIST.forEach(m => m.pause()); if (eng) eng.g.gain.value = 0; }
   else { startMusicOnce(); updateMusic(lastState); }

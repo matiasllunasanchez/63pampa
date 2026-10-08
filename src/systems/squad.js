@@ -182,9 +182,13 @@ export function startRelevo(cause, spent) {
   // camara vuelve por el pasillo hasta el de la fila, que viene lejos (game.js)— y despues el
   // siguiente entra desde atras como en el cambio de piloto. La cuenta es la del relevo.
   const sano = spent === 'suelta';
-  const t0 = sano ? RELEVO_WRECK - REBOBINA_T : 0;
+  // EL AVERIADO NO FRENA LA CAMARA (8/10, el autor: "nada que se detenga la camara significa averiado"):
+  // en campaña, el que vuelve roto a la base no se queda filmado — la camara sigue al que entra desde el
+  // primer cuadro, y el roto se ve irse de costado con su humo. El primer tiempo se acorta a la mitad.
+  const averiado = !!roster && !sano && !spent;
+  const t0 = sano ? RELEVO_WRECK - REBOBINA_T : averiado ? RELEVO_WRECK * 0.5 : 0;
   rv = {
-    t: t0, t0, cambio: sano, solo: sano, cause,
+    t: t0, t0, cambio: sano, solo: sano, cause, averiado,
     // RF-15: `spent` = la pasada se gasto (soltaste o secaste el tanque), NO te derribaron. Cambia
     // el titular de la cinematica y nada mas — la cuenta es la misma. Sin esto la pantalla decia
     // "DERRIBADO" sobre un avion al que nadie toco, que es la clase de mentira que rompe un juego.
@@ -285,7 +289,7 @@ export function updateRelevo(dt) {
   // CAMARA. Primer tiempo: clavada en los restos — ver caer al companero ES la escena. Segundo
   // tiempo: persigue al avion nuevo con el mismo lerp del vuelo, un poco mas lento (pasa por el
   // humo del lider en el camino, no corta seco).
-  if (ph.beat === 'wreck') {
+  if (ph.beat === 'wreck' && !rv.averiado) {
     cam.x += (rv.wx * 0.86 - cam.x) * Math.min(1, dt * 4);
     cam.y += (rv.wy + 2.6 - cam.y) * Math.min(1, dt * 4);
   } else {

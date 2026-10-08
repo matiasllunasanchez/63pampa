@@ -40,6 +40,14 @@ export const DERROTAS = {
   death_pasada: { que: 'que_pasada', hist: 'hist_bomba' },
 };
 
+/** LOS CHOQUES CONTRA UN OBJETO: el avion se dio contra una COSA —un mastil, una torre, un edificio,
+ *  otra aeronave, los palos del buque—, de las que frenan la camara en los restos. Sale de los mismos
+ *  grupos de arriba. En CAMPAÑA un choque asi no deja al avion averiado: revienta y se pierde la mision
+ *  (game.js). El MAR y el TERRENO no entran (8/10, el autor: "contra objetos que necesiten frenar la
+ *  camara, no contra el mar"): esos siguen siendo un averiado. */
+const QUE_CHOQUE = ['que_choque', 'que_palos', 'que_aire'];
+export const esChoque = causa => !!DERROTAS[causa] && QUE_CHOQUE.includes(DERROTAS[causa].que);
+
 /** Lo que dice la pantalla para la causa `causa`. `veredicto` es el de la ultima bomba sobre el
  *  buque (blanco.res) y solo cuenta cuando se perdio por errar la suelta. Devuelve { que, hist }
  *  con CLAVES de strings (null = no hay). */

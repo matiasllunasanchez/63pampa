@@ -126,7 +126,7 @@ export const STRINGS = {
     freeControl: 'CONTROL LIBRE!', rasante: 'RASANTE!', afterburner: 'POSCOMBUSTION!',   // rasante: sin uso desde el 12/9 (lo dice la palabra al lado del avion)
     aimFixed: 'MIRA FIJA', aimFree: 'MIRA LIBRE',
     thrDown: 'PALANCA: ↓ SUBE', thrUp: 'PALANCA: ↑ SUBE',
-    scrape: '! PELIGRO !',
+    scrape: '¡PELIGRO!', scrapeSub: 'BAJA ALTURA',
     // dodgeMissile: sin uso desde el 12/9 — el misil que pasa de largo ya no pone cartel.
     pickFuel: '+COMB', dodgeMissile: 'ESQUIVADO',
     takeoffTitle: 'DESPEGUE · PUERTO ARGENTINO · BAM MALVINAS', takeoffWord: 'DESPEGUE',
@@ -547,7 +547,7 @@ export const STRINGS = {
     bl_hundido: '¡HUNDIDO!', bl_averiado: 'AVERIADO', bl_dormida: 'NO DESPERTÓ', bl_falla: 'NO EXPLOTÓ', bl_fallacaida: 'NO EXPLOTÓ', bl_tarde: 'EXPLOTÓ TARDE',
     bl_corta: 'CORTA', bl_larga: 'LARGA', bl_reencare: 'SIGUE A FLOTE · OTRA PASADA',
     rot_rasante: 'RASANTE',
-    rot_ledi: '¡LE DISTE!', rot_escapa: '¡ESCAPÁ YA!',
+    rot_ledi: '¡LE DISTE!', rot_escapa: '¡ESCAPEN YA!',
     rot_larga: '¡MUY LARGA!', rot_fallaste: '¡FALLASTE!',
     rot_erraste: '¡LE ERRASTE!', bl_trabada: 'BOMBA TRABADA',
     bl_bloqueada: 'NECESITAS UNA BOMBA PARA EL BUQUE',
@@ -1304,7 +1304,7 @@ export const STRINGS = {
     freeControl: 'FREE CONTROL!', rasante: 'LOW PASS!', afterburner: 'AFTERBURNER!',
     aimFixed: 'AIM LOCKED', aimFree: 'AIM FREE',
     thrDown: 'PITCH: ↓ CLIMB', thrUp: 'PITCH: ↑ CLIMB',
-    scrape: '! DANGER !',
+    scrape: 'DANGER!', scrapeSub: 'TOO LOW',
     pickFuel: '+FUEL', dodgeMissile: 'DODGED',
     takeoffTitle: 'TAKEOFF · PUERTO ARGENTINO · BAM MALVINAS', takeoffWord: 'TAKEOFF',
     takeoffHeading: 'heading for San Carlos Strait',

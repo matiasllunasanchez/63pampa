@@ -76,7 +76,8 @@ export const arranqueActivo = () => activo;
 export function arrancar({ alPrender, alCargado, alFicha, alTerminar } = {}) {
   const b = typeof document !== 'undefined' && document.body, stage = cv && cv.parentElement;
   const bios = b && document.getElementById('bios');
-  const deVerdad = typeof window !== 'undefined' && (window.RASANTE_APP || /[?&]intro\b/.test(location.search));
+  // (en MODO DEV no hay arranque: directo al juego — 8/10, ver core/dev.js)
+  const deVerdad = typeof window !== 'undefined' && !window.RASANTE_DEV && (window.RASANTE_APP || /[?&]intro\b/.test(location.search));
   if (!b || !stage || !bios || !deVerdad) {
     if (b) b.classList.remove('arranque-negro', 'arranque-apagado', 'arranque-bios');
     if (alTerminar) alTerminar();

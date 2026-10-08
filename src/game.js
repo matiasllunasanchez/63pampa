@@ -152,9 +152,10 @@ import * as estrellas from './systems/estrellas.js';
 import { piso as pisoEstrella } from './core/estrellas.js';
 import { EST_MAX } from './data/tuning.js';
 import { SENALES, SENAL_GLOBO_T, SENAL_ARMADA_T, SENAS_COMP } from './data/senales.js';
-import { cartel, tickCarteles, limpiarCarteles } from './core/cartel.js';
+import { cartel, cartelSostenido, tickCarteles, limpiarCarteles } from './core/cartel.js';
 import { CARA_DE_RADIO } from './core/voz.js';
-import { derrota } from './data/derrotas.js';
+import { derrota, esChoque } from './data/derrotas.js';
+import { DEV } from './core/dev.js';
 import { defensaDe } from './data/defensas.js';
 import { BOMBAS, bombaDe, bombaInfo } from './data/bombas.js';
 import { paresDe } from './data/patrullas.js';
@@ -201,7 +202,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     fichinEntero();
     arrancar({ alPrender: sonidoTubo, alCargado: () => sfxOne('insertCoin'),
       alFicha: () => { sonidoFicha(); acercarFichin(); },
-      alTerminar: () => { retenerMusica(false); acercarFichin(); } });
+      alTerminar: () => { retenerMusica(false); acercarFichin();
+        // EN MODO DEV, DIRECTO AL MENU (8/10, core/dev.js): sin portada que pida una tecla
+        if (typeof window !== 'undefined' && window.RASANTE_DEV && S.state === 'title') setState('modeselect');
+      } });
 
     // three.js vive ahora en systems/three-world.js (resuelve window.THREE y el guard ?no3d por
     // su cuenta). Aca ya no hace falta saber nada de WebGL: el 3D entra por world3D.frame().
@@ -294,7 +298,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // hubiera roto la lectura de "las dos puertas de autor, juntas".
     // MODO DEV (autor, 3/10): PRUEBAS, CINEMATICAS, MANIOBRAS y MISIONES —las herramientas de autor—
     // se mudaron a un submenu propio, al nivel de HISTORIA y JUEGO RAPIDO. Ver `subMenu`.
-    const MODES = ['campaign', 'quick', 'dev', 'options', 'quit'];
+    // (el MODO DEV solo aparece en dev — `yarn start`; con `--prod` no: core/dev.js)
+    const MODES = ['campaign', 'quick', 'dev', 'options', 'quit'].filter(m => m !== 'dev' || DEV);
     // Los modos de adentro de JUEGO RAPIDO. `arena` y `pasadas` son los dos BANCOS DE PRUEBAS del
     // climax: entran DIRECTO al buque, sin cruzar el pasillo, y existen para poder tunear cada
     // fase sin jugar una mision entera cada vez.
@@ -2306,6 +2311,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // OCULTOS por ahora (autor, 8/10: "creo que no quedan bien los mensajes grandes, ocultalos y
     // manejemos todo en el cuadrado de arriba"). El codigo queda: `true` los vuelve a mostrar.
     const ROTULOS_SUELTA = false;
+    let golpesPopa = 0;   // tiros de popa que aguanto ESTE avion en el escape (en escuadron; ver ESC_GOLPES)
+    const ESC_GOLPES = 3;
     let errarT0 = -1;   // el rotulo ¡LE ERRASTE! antes del negro (performance.now; -1 = no)
     let lentoPrev = false;   // el flanco de la camara lenta de la suelta (para el cartel ¡LE DISTE!)
     let falloT0 = -1;    // el rotulo ¡MUY LARGA! ¡FALLASTE! (performance.now; -1 = no)
@@ -3049,13 +3056,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // (8/10: el ¡LE DISTE! ya salio arriba durante la camara lenta; al salir de ella, GRANDE, ¡ESCAPÁ YA!)
       escapaT0 = performance.now();
       fases.tapar(FASE_ESCAPE);
-      estrellas.llenar(EST_MAX);
+      estrellas.llenar(BL_BLANCO.ESCAPE_EST);   // (8/10: eran todas — el escape era imposible)
       // EL RADAR ENTERO EN ROJO, pero en 0,99 y no en 1: el 1 dispara la oleada de misiles EN EL
       // ACTO, y el avion todavia esta arriba por el salto — medido, un misil lo bajaba medio segundo
       // despues del cruce. La presion la ponen las cuatro estrellas, con su siembra de siempre; la
       // barra llena dice "te vieron" y se vacia sola cuando bajas al agua.
       run.detection = 0.99;
       escapeSys.empezar(PZ);           // la linea recta: el carril y la artilleria de popa (V2)
+      golpesPopa = 0;
     }
     /** EL VIRAJE (PLAN_VUELTA_REAL §2.C): perdiste las estrellas, Puma lo dijo, el cuadro se fue a
      *  negro. La media vuelta la cuenta UN VIDEO —el pasillo nunca rota—: la silueta del avion
@@ -3437,7 +3445,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // campaña: el ultimo avion tampoco explota — la escuadrilla entera quedo averiada y la
       // mision se pierde (la pantalla de fin lo dice); en arcade, el derribo clasico
       if (erroSuelta(cause)) { /* sano: nada que romper */ }
-      else if (relevoRompe()) dmgFX(); else crashFX();
+      // (…salvo un CHOQUE, que en campaña tambien revienta — 8/10, ver onDeath)
+      // EL ULTIMO AVION EXPLOTA (8/10, el autor: "si me queda un solo avion y me da un misil, debo explotar
+      // antes de mostrar la pantalla de perder"): el averiado que vuelve a la base es para el que tiene
+      // quien lo releve; el ultimo no vuelve — revienta, y recien despues la pantalla.
+      else crashFX();
       // EL RECORD (S2): en las herramientas no se toca ni en memoria — si solo se salteara el
       // localStorage, el HUD mostraria un record que se evapora al cerrar el juego.
       //
@@ -3470,9 +3482,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // SECO ES PERDER (PLAN_NAFTA_ALCANCE §3.8, decision del autor): sin relevo, porque el tanque es
       // de la corrida y el compañero heredaria el mismo cero — caerian uno detras del otro.
       if (cause === 'death_seco') { sinCombustible(); return; }
+      // EN CAMPAÑA, UN CHOQUE NO ES UN AVERIADO (8/10, el autor: "si un avion CHOCA fisicamente un
+      // objeto, no puede detenerse ahi la camara y que el avion salga averiado — tiene que EXPLOTAR, y
+      // si explota se pierde la mision"). Contra el agua, la tierra, un objeto o los palos del buque, el
+      // avion revienta y la mision se reinicia: en la campaña nadie muere fuera del guion, asi que un
+      // choque no puede costar un Fiel y seguir. Lo que no es choque (misiles, fuego) sigue averiado.
+      if (relevoRompe() && esChoque(cause)) { die(cause); return; }
       if (canRelevo(run.lives)) {
         // en campaña el lider NO revienta: queda averiado y vuelve (norma 3/8, GUION_2)
         if (relevoRompe()) dmgFX(); else crashFX();
+        golpesPopa = 0;                // el que entra trae la chapa sana
         squad.startRelevo(cause);      // la mision sigue: descuenta y prepara al companero
         setState('relevo');
       } else die(cause);
@@ -4383,7 +4402,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // segun el guion"): ahi el avion queda AVERIADO y vuelve a la base — `relevoRompe`, el mismo
         // criterio de todo relevo. Fuera de la campaña, explota.
         if (b && b.roce) {
-          if (relevoRompe()) dmgFX(); else crashFX();
+          // (en campaña el choque contra el buque revienta y se pierde la mision — ver onDeath)
+          if (relevoRompe()) { die(b.roce); return; }
+          crashFX();
           if (canRelevo(run.lives)) {
             squad.startRelevo(b.roce); setState('relevo');
             reencareTrasChoque = true;   // al terminar la cinematica, el buque vuelve a la fila (abajo)
@@ -4402,7 +4423,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         const es = blancoSys.escapando() && !vir ? escapeSys.step(dt) : null;
         if (es === 'hit') {
           escapeSys.limpiar();
-          if (damage.takeHit('death_popa')) { onDeath('death_popa'); return; }
+          // EN ESCUADRON (el modo de siempre) UN TIRO DE POPA NO ES UN DERRIBO (8/10, el autor: "me matan
+          // todo el tiempo"): ahi cualquier impacto se llevaba el avion, y el artillero —pensado para
+          // sacar escudo— bajaba cinco aviones en trece segundos. Ahora es un golpe de chapa, y recien
+          // el ESC.GOLPES-esimo de ESTE avion lo baja. Con salud (INTEGRIDAD/VISUAL), la cuenta de siempre.
+          if (!damage.shown()) {
+            golpesPopa++; dmgFX();
+            if (golpesPopa >= ESC_GOLPES) { golpesPopa = 0; onDeath('death_popa'); return; }
+          } else if (damage.takeHit('death_popa')) { onDeath('death_popa'); return; }
           escapeSys.perforar();          // aguantaste el tiro: ¿te perforo un tanque? (V4)
         }
         // LA VIBORA (V3): el unico aviso es un cartel y no una radio — rige el silencio. Dice QUE
@@ -4990,16 +5018,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // …y sus tiros, en el mismo plano y con el mismo criterio de pintor. Se dibujan FRIOS: el
       // naranja es de lo que lastima, y esto no puede lastimar a nadie (ver render/teatro.js).
       drawTiros(teatro.state());
-      if (!rasante.enCabina()
-        && (chase || (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active(), squad.cambioDz() + moves.cobraDz());
-      // LAS TRAZADORAS DE POPA (el escape, V2): vienen de atras, o sea MAS CERCA que el avion, y
-      // por eso van despues del sprite. Adentro del giro del horizonte, como el resto del mundo.
-      if (S.state === 'play' && blancoSys.escapando()) {
-        if (hzW) { ctx.save(); const hcx = W / 2 + cm.x, hcy = H / 2 + cm.y; ctx.translate(hcx, hcy); ctx.rotate(hzW); ctx.translate(-hcx, -hcy); }
-        drawTirosPopa(PZ);
-        if (hzW) ctx.restore();
-      }
-      // LA MIRA DE BOMBARDEO (27/9): con la tecla de la bomba o la de los tanques apretada, el camino
+      // LA MIRA DE BOMBARDEO (27/9), DETRAS DEL AVION (8/10, el autor: "la linea blanca por detras
+      // del avion, el png del avion por encima"): con la tecla de la bomba o la de los tanques apretada, el camino
       // hasta donde cae (core/balistica.js). Adentro del giro del horizonte: es mundo.
       if (S.state === 'play' && (run.apuntaBomba || run.apuntaTanque)) {
         const suelo = cfg.terrain === 'land' || cfg.terrain === 'coast' ? 0.3 : 1.0;
@@ -5011,8 +5031,19 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // trayectoria sirve para los dos. Con la mira puesta es la de la bomba; con [B] sola, la de
         // los tanques (desde el centro). Entera si algo de eso saldria; a media luz si no.
         const hayTanque = naftaSys.hayTanque() && !!proximoPilon(run.tanque);
-        if (run.apuntaBomba) drawTrayectoria(trayectoria(bombaSale(), run.spd, suelo), hayBomba() || (run.apuntaTanque && hayTanque));
+        // (en verde cuando el blanco esta en verde: soltar ahora pega — systems/blanco.js `hud().listo`)
+        const verdeBlanco = runClimax() === 'suelta' && !!(blancoSys.hud() || {}).listo;
+        if (run.apuntaBomba) drawTrayectoria(trayectoria(bombaSale(), run.spd, suelo), hayBomba() || (run.apuntaTanque && hayTanque), verdeBlanco);
         else if (run.apuntaTanque) drawTrayectoria(trayectoria(Object.assign(tanquesSalen('centro', 1)[0], { x: plane.x }), run.spd, suelo), hayTanque);
+        if (hzW) ctx.restore();
+      }
+      if (!rasante.enCabina()
+        && (chase || (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active(), squad.cambioDz() + moves.cobraDz());
+      // LAS TRAZADORAS DE POPA (el escape, V2): vienen de atras, o sea MAS CERCA que el avion, y
+      // por eso van despues del sprite. Adentro del giro del horizonte, como el resto del mundo.
+      if (S.state === 'play' && blancoSys.escapando()) {
+        if (hzW) { ctx.save(); const hcx = W / 2 + cm.x, hcy = H / 2 + cm.y; ctx.translate(hcx, hcy); ctx.rotate(hzW); ctx.translate(-hcx, -hcy); }
+        drawTirosPopa(PZ);
         if (hzW) ctx.restore();
       }
       // EL HUD DE LA SUELTA: cabina, nivelado, sobre el avion (la foto la arma el sistema).
@@ -5113,7 +5144,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (noche) tinteRadar();
       // (con el GIRO del horizonte: la franja clara, las luces lejanas y el reflejo rolan con el mundo)
       drawNoche(noche, solPant, hzW ? { a: hzW, cx: W / 2 + cm.x, cy: H / 2 + cm.y } : null);
-      drawBrillo(noche ? NOCHE.BRILLO : undefined);
+      drawBrillo(noche ? NOCHE.BRILLO : undefined, !!noche);
       // (de noche la luna no es el sol: su aureola va apenas — NOCHE.AUREOLA)
       drawAureola(solPant, (rasante.active() ? 1 : AURA_NORMAL) * (noche ? NOCHE.AUREOLA : 1));
       // MOMENTUM: tinte frio + viñeta mientras el tiempo esta partido. Va sobre el MUNDO y bajo
@@ -5433,6 +5464,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // pantalla— y el de mision tiene que poder tapar al de la escena.
       drawCine(cine.state());
 
+      // LA MARCA DE MODO DEV (8/10, core/dev.js): una etiqueta chica en la esquina, para no confundir
+      // nunca una partida de prueba con el juego de verdad. Solo con `yarn start` (no en las pruebas)
+      if (typeof window !== 'undefined' && window.RASANTE_DEV) {
+        ctx.save(); ctx.font = 'bold 7px monospace'; ctx.textAlign = 'right';
+        ctx.globalAlpha = 0.85; ctx.fillStyle = '#0a0e11'; ctx.fillRect(W - 26, H - 10, 24, 9);
+        ctx.fillStyle = '#ff6a50'; ctx.fillText('DEV', W - 5, H - 3); ctx.restore();
+      }
       // EL ROTULO QUE PASA VOLANDO, arriba de todo menos del fundido de mision
       if (rotuloT0 >= 0) {
         const tr = (performance.now() - rotuloT0) / 1000;
@@ -5797,6 +5835,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // el contador de busqueda y su reloj de escondite, mas la puerta para ponerlo a mano: sin
       // esto, probar el nivel 3 exige volar alto hasta que el radar cargue tres veces.
       window.__estdbg = () => estrellas.dbg();
+      window.__radarWaveSet = n => { run.radarWave = n | 0; return run.radarWave; };   // QUITAR: la oleada para la captura del xN
       window.__estset = n => { run.estrellas = Math.max(0, Math.min(EST_MAX, n | 0)); return estrellas.dbg(); };
       window.__vuelta = () => { run.climaxHecho = 1; return JSON.stringify({ climaxHecho: run.climaxHecho, hayVuelta: fases.hayVuelta() }); };
     }
@@ -6388,6 +6427,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // como es adentro del rAF, se lleva puesto el loop entero. Nadie lo veia porque en la portada
       // no suena el motor; aparecio al entrar DERECHO al pasillo con la sonda de la PASADA.
       const raw = Math.max(0, Math.min(0.033, (now - last) / 1000)); last = now;
+      // EL PELIGRO DEL ROCE, arriba en la pila y titilando mientras dure (8/10, el autor: "PELIGRO deberia
+      // mostrarse en el cuadro de arriba, parpadeando"). Antes era texto suelto sobre los relojes.
+      // (8/10: PELIGRO en rojo y debajo, en blanco, BAJA ALTURA)
+      cartelSostenido('peligro', S.state === 'play' && run.scrapeVib > 0.6, T('scrape'), P.warn, { alerta: true, subCol: P.ink }, T('scrapeSub'));
       tickCarteles(now / 1000);   // los carteles del pasillo (core/cartel.js): reloj de pared
       // PAUSA: se saltea update() ENTERO (y el reloj del momentum, y el del telon) — el mundo
       // queda clavado tal cual se ve. draw() sigue corriendo: dibuja el frame congelado y el

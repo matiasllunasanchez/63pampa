@@ -2,6 +2,7 @@
 //
 // Igual que las demas pantallas: reciben `w`, un snapshot chico de solo lectura. No leen estado
 // global ni lo modifican — la seleccion la maneja el input; aca solo se dibuja.
+import { DEV } from '../core/dev.js';
 import { ctx, DW as W, DH as H, W as NW, H as NH, px, panel, titleFont, menuFont, descFont, labelFont, uiFont, wrapText, FONT_OTHERS } from './ctx.js';
 import { drawMira } from './miras.js';
 import { P } from '../data/palette.js';
@@ -169,7 +170,7 @@ export function drawModeSelect(w) {
   const opts = [
     { name: T('modeCampaign'), desc: T('modeCampaignDesc') },
     { name: T('modeQuick'), desc: T('modeQuickDesc') },
-    { name: T('modeDev'), desc: T('modeDevDesc') },
+    ...(DEV ? [{ name: T('modeDev'), desc: T('modeDevDesc') }] : []),   // solo en dev (core/dev.js)
     { name: T('modeOptions'), desc: T('modeOptionsDesc') },
     { name: T('modeQuit'), desc: T('modeQuitDesc'), quit: true },
   ];

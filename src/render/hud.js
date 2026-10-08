@@ -9,7 +9,7 @@
 // otras pantallas (render/screens.js, render/menus.js).
 
 import { ctx, px, DW as W, DH as H, PZ, U, avisoFont } from './ctx.js';
-import { cartelAhora } from '../core/cartel.js';
+import { cartelesAhora } from '../core/cartel.js';
 import { plane, cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { shown as dmgShown } from '../systems/damage.js';
@@ -1010,8 +1010,16 @@ function vidrioRoto(x, y) {
  *  borde va en el color del aviso: rojo es peligro, ambar es informacion. */
 const CARTEL_Y = 13;   // cuanto baja: justo debajo de la cinta (11 de alto) con aire
 function drawCartel() {
-  const a = cartelAhora(performance.now() / 1000);
-  if (!a || a.k <= 0) return;
+  // LA PILA (8/10): el primero va arriba, debajo de la cinta, y cada uno se apoya debajo del anterior.
+  // La altura de cada lugar se SUAVIZA (c.y): cuando entra uno nuevo, los demas bajan, no saltan.
+  let techo = MARGEN + CARTEL_Y;
+  for (const a of cartelesAhora(performance.now() / 1000)) {
+    if (a.k <= 0) continue;
+    const h = drawUnCartel(a, techo);
+    techo += (h + 2) * a.k;
+  }
+}
+function drawUnCartel(a, techo) {
   // la letra de los avisos no tiene raya (—): quedaba un hueco en «EN RADAR — AL AGUA»
   // …y SIN SIGNOS (28/9, el autor): la caja ya dice que es un aviso — los "! … !" y "¡…!" y los
   // "~ … ~" de cuando eran textos sueltos sobraban adentro.
@@ -1030,7 +1038,10 @@ function drawCartel() {
   ctx.font = fSub;
   const w2 = c.sub ? ctx.measureText(c.sub).width : 0;
   const w = Math.round(Math.max(w1, w2) + (c.alerta ? 20 : 12)), h = c.sub ? 12 + SUB_PX + 2 : 12;
-  const x = Math.round(W / 2 - w / 2), y = Math.round(MARGEN + CARTEL_Y * k - (1 - k) * h);
+  // el lugar en la pila, suavizado (lo guarda el propio cartel del store: es estado de dibujo, nada mas)
+  if (a.c.y == null) a.c.y = techo;
+  a.c.y += (techo - a.c.y) * 0.25;
+  const x = Math.round(W / 2 - w / 2), y = Math.round(a.c.y - CARTEL_Y + CARTEL_Y * k - (1 - k) * h);
   plate(x, y, w, h);
   // LA ALERTA (8/10): la caja late en su color, el borde va doble, y dos flechas a los costados
   // apuntan a la caja titilando — lo que antes hacia el rotulo grande, adentro del cuadrado de arriba
@@ -1056,6 +1067,7 @@ function drawCartel() {
     conApertura(c.sub, W / 2, y + 11 + SUB_PX - (c.alerta ? 1 : 0), SUB_PX);
   }
   ctx.textAlign = 'left';
+  return h;
 }
 
 /** Escribe `t` centrado en `cx`. LA LETRA DE LOS AVISOS NO TRAE "¡" (8/10): si el texto la lleva,
@@ -1521,10 +1533,15 @@ export function drawAlerta(x, y, w, n, prog, fuera) {
     ctx.textAlign = 'left';
   }
   if (alertaK > 0) {
+    // (8/10, el autor: "achica el ancho de las alarmas, que tengan el espacio suficiente")
+    const wa = Math.min(w, ANCHO_ALARMAS);
     // entra rapido y frena al llegar, recortada al canto del radar: sale DE ATRAS de el
-    const e = 1 - Math.pow(1 - alertaK, 3), dx = Math.round(-(1 - e) * (w - RADAR_W + 1));
+    const e = 1 - Math.pow(1 - alertaK, 3), dx = Math.round(-(1 - e) * (wa - RADAR_W + 1));
     ctx.save(); ctx.beginPath(); ctx.rect(x + RADAR_W - 1, y - 3, W, ALERTA_H + 6); ctx.clip();
-    balizasAlerta(x, y, w, n, prog, dx, visto);
+    // EL CUADRO DE LA OLEADA, DETRAS: sale de izquierda a derecha de atras de las alarmas cuando la tanda
+    // crece (x2, x3…), titila un par de segundos y vuelve a entrar. Del mismo tamaño que el del radar.
+    olaCuadro(x + wa - 1 + dx, y);
+    balizasAlerta(x, y, wa, n, prog, dx, visto);
     ctx.restore();
   }
   // EL RADAR, ENCIMA y quieto: es lo unico que queda cuando no suena nada
@@ -1543,14 +1560,39 @@ export function drawAlerta(x, y, w, n, prog, fuera) {
   }
 }
 
+/** Lo que miden las alarmas: el radar, las cuatro balizas a paso fijo y aire a los costados. */
+const ANCHO_ALARMAS = 15 + (EST_MAX - 1) * (BAL_W + 3) + BAL_W + 5;
+/** EL CUADRO DE LA OLEADA (8/10): `x` es el canto derecho de las alarmas. Cuando el tamaño de la tanda
+ *  sube (systems/flight.js: un misil mas cada tres oleadas) asoma por atras, se queda OLA_VER s
+ *  titilando con el xN adentro, y vuelve. Va dibujado ANTES que las alarmas: lo que no asomo, lo tapan. */
+const OLA_VER = 2.4, OLA_SALE = 0.22;
+let olaPrev = 0, olaT = -9;
+function olaCuadro(x, y) {
+  const ola = run.radarWave > 0 ? 1 + Math.floor((run.radarWave - 1) / 3) : 0;
+  if (ola < olaPrev) olaPrev = ola;                 // corrida nueva
+  if (ola > olaPrev) { olaPrev = ola; if (ola > 1) olaT = run.t; }
+  const t = run.t - olaT;
+  if (t < 0 || t > OLA_VER + OLA_SALE || olaPrev < 2) return;
+  const k = t < OLA_SALE ? t / OLA_SALE : t > OLA_VER ? 1 - (t - OLA_VER) / OLA_SALE : 1;
+  const e = 1 - Math.pow(1 - Math.max(0, Math.min(1, k)), 3);
+  const sx = Math.round(x - RADAR_W + e * RADAR_W);
+  plate(sx, y, RADAR_W, ALERTA_H);
+  const on = Math.floor(t * 6) % 2 === 0;
+  bordePlaca(sx, y, RADAR_W, ALERTA_H, on ? P.warn : '#5a2418');
+  ctx.font = 'bold 6px monospace'; ctx.textAlign = 'center';
+  ctx.fillStyle = on ? P.warn : '#8a3a26'; ctx.fillText('x' + olaPrev, sx + RADAR_W / 2, y + 10);
+  ctx.textAlign = 'left';
+}
+
 /** La seccion de las BALIZAS del panel, corrida `dx` por la entrada (ver drawAlerta). */
 function balizasAlerta(x, y, w, n, prog, dx, visto) {
   plate(x + RADAR_W - 1 + dx, y, w - RADAR_W + 1, ALERTA_H);
   // las cuatro, repartidas en lo que deja el radar y centradas ahi: la placa mide lo que mide el
   // escuadron, que depende del nombre del piloto, asi que el paso se acomoda y no la placa
   const x0 = x + 15 + dx, libre = w - 18;
-  const paso = Math.max(BAL_W + 1, Math.min(BAL_W + 4, Math.floor((libre - BAL_W) / (EST_MAX - 1))));
-  const bx0 = x0 + Math.max(0, Math.floor((libre - BAL_W - paso * (EST_MAX - 1)) / 2));
+  const paso = BAL_W + 3;   // (8/10: angostas — el panel mide lo que necesitan, ver ANCHO_ALARMAS)
+  // (8/10: corridas a la IZQUIERDA, para dejar a la derecha el cuadrado rojo de la oleada)
+  const bx0 = x0;
   // EL PARPADEO DEL FINAL, UNO SOLO PARA LA BARRA Y LAS BALIZAS. En el ultimo cuarto del reloj del
   // escondite —cinco segundos de veinte— la barra titila, y ACELERA HASTA APAGARSE (pedido del autor,
   // 11/9): de TITILA_HZ[0] a TITILA_HZ[1]. La fase se INTEGRA sobre lo que va del cuarto (u, de 0 a
@@ -1773,12 +1815,8 @@ export function drawHUD(h) {
   // De abajo hacia arriba: el aviso de roce (piso-8) y la niebla.
   const piso = h.charlaTecho == null ? CUADROS_Y : h.charlaTecho;
   const warnY = piso - 8;
-  if (scraping) {
-    ctx.textAlign = 'center'; ctx.font = 'bold 8px monospace';
-    // parpadeo rapido: la urgencia se lee en el ritmo, no solo en el texto
-    ctx.fillStyle = Math.sin(run.t * 30) > 0 ? P.warn : '#7d2f1e';
-    ctx.fillText(T('scrape'), W / 2, warnY);
-  }
+  // (el PELIGRO del roce ya no va aca: es un cartel SOSTENIDO arriba, que parpadea — 8/10, game.js)
+  void scraping; void warnY;
 
   // (NIEBLA: aca iba una barra que se vaciaba — cuanto faltaba para salir del banco. Se fue el
   // 29/9 por pedido del autor: no hace falta mostrar cuanto tarda en irse, el jugador se da cuenta

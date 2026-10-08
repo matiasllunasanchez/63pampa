@@ -7,6 +7,8 @@
 // tecla y trabaria a cualquier prueba que apriete teclas apenas carga.
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('RASANTE_APP', true);
+// EL MODO DEV (8/10): lo pasa electron/main.js como argumento (`yarn start` dev, `yarn start --prod` no)
+contextBridge.exposeInMainWorld('RASANTE_DEV', process.argv.includes('--rasante-dev'));
 // OPCIONES -> PANTALLA (src/game.js): pantalla completa o ventana. Lo aplica electron/main.js.
 contextBridge.exposeInMainWorld('rasanteVentana', { pantallaCompleta: v => ipcRenderer.send('pantalla-completa', !!v) });
 

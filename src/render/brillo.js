@@ -91,14 +91,17 @@ export function capaLuz() {
   return B;
 }
 
-/** Pega la luz del cuadro arriba del mundo. `fuerza` la pisa (la NOCHE la sube: ahi la luz es todo). */
-export function drawBrillo(fuerza) {
+/** Pega la luz del cuadro arriba del mundo. `fuerza` la pisa (la NOCHE la sube: ahi la luz es todo).
+ *  `aditiva`: de NOCHE la luz se SUMA ('lighter') en vez de 'screen' (8/10, el autor: "cuando algo se
+ *  ilumina el velo gris sigue; la luz justamente lo corta, le da contraste y brillo"). 'screen' aclara
+ *  todo parejo hacia el blanco —el velo lechoso—; sumar agrega el COLOR de la fuente sobre lo oscuro. */
+export function drawBrillo(fuerza, aditiva) {
   const f = fuerza === undefined ? BRILLO_FUERZA : fuerza;
   if (!emitio || cfg.brillo === 'off' || f <= 0) return;
   capaLuz();
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.globalCompositeOperation = 'screen';
+  ctx.globalCompositeOperation = aditiva ? 'lighter' : 'screen';
   ctx.globalAlpha = Math.min(1, f);
   ctx.imageSmoothingEnabled = true;   // el halo es luz, no pixel art: estirarlo suave es lo correcto
   ctx.drawImage(B, 0, 0, cv.width, cv.height);
