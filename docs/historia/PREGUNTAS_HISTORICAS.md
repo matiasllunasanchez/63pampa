@@ -745,10 +745,29 @@ higiénico y cinta, y en los Canberra los cartuchos de arranque de motor reusado
   a reconstrucción del buscador. El juego toma solo la idea general (un cartucho que sale expulsado
   hacia atrás, un soplo de humo, y la nube que abre el viento).
 
+**✅ VERIFICADO CON LA NACIÓN (15/4/2024) y con la foto del autor (8/10):**
+- La foto del museo muestra el cartel **"MÁQUINA DE PASTAS DONADA POR LA FÁBRICA 'VÍA NAPOLI'"**; la
+  nota dice "Nápoli". Está en la **Sala Histórica de la II Brigada Aérea "Brigadier Ricardo Solá
+  Claret"** (Paraná). El chaff se hizo para los Canberra desplegados en **Trelew**: eso resuelve la
+  discrepancia Paraná / Comodoro (la máquina es de la II Brigada; el despliegue, Trelew).
+- **Rezoagli** (mayor, ingeniero, jefe del Escuadrón Control); la máquina la propuso el suboficial
+  mayor **Tomasso**; cortaron a mano sus hijos de 15 y 13 años y sus compañeros.
+- **Tiras de 7 cm**, "un cuarto de la longitud de onda" del radar de guiado. El ancho, el del tallarín
+  (la nota no da la cifra). La foto del autor: **cintas planas de aluminio, arrugadas** — así están
+  horneadas (`tools/blender/modelos_partes.py` `municion_tira`).
+- Contra el **Sea Dart** (el del HMS Coventry). Táctica: esperar ~2 s tras el lanzamiento y quebrar
+  el rumbo mientras se soltaban chaff y bengalas.
+- **Cómo se cargaba (Canberra):** en los cartuchos de arranque de motor, primero una bengala con
+  paracaídas, después chaff hasta llenar y una tapa plástica; un cilindro con **siete cartuchos**,
+  cada uno con su llave y su luz roja, disparados desde el tablero del navegador.
+- Efectividad, en palabras de Rezoagli: *"No volvieron a derribarnos un avión durante muchas
+  misiones"*; los dos Canberra derribados no habían soltado chaff ni bengala.
+
 **Y después, en el chat (8/10), sin fuente:**
 - **Tubos de 16 cm**, varios por carga; **"un avión suele llevar entre 1 y 4 cargadores (de 30 a 120
   cargas en total); cada carga tenía 30 cartuchos, 30 barritas"**. El juego lo usa así (30 tubos por
-  carga, de 1 a 4 cargas por avión como mejora), pero **las cifras no tienen fuente**: confirmar
+  carga, de 1 a 4 cargas por avión como mejora), pero **las cifras no tienen fuente** — **la nota de
+  La Nación no las trae** (dice siete cartuchos por cilindro, en el Canberra): confirmar
   antes de nombrarlas en una placa. Ojo que choca con lo verificado para Mirage y Dagger (cartuchos
   de 1,5" en el freno) y para el Canberra (siete lanzadores en la cola): quizás sea de otro avión, o
   de un sistema de fábrica posterior.

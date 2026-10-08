@@ -15,7 +15,13 @@ const HOJA = { src: '../assets/ammo/chafita.png', img: new Image(), ready: false
 HOJA.img.onload = () => { HOJA.ready = true; };
 HOJA.img.src = HOJA.src;
 
-const FW = 16, FH = 16, VISTAS = 6;
+// …Y LAS TIRAS que salen del tubo y hacen la nube (hojas.py `tira`, con la foto del autor: cintas de
+// aluminio arrugadas): 4 variantes (filas) x 6 vistas, la cinta llenando casi todo el cuadro
+const TIRA = { src: '../assets/ammo/tira.png', img: new Image(), ready: false };
+TIRA.img.onload = () => { TIRA.ready = true; };
+TIRA.img.src = TIRA.src;
+
+const FW = 16, FH = 16, VISTAS = 6, VARIANTES = 4;
 
 export const lista = () => HOJA.ready && HOJA.img.naturalWidth > 0;
 
@@ -33,6 +39,24 @@ export function dibujar(v, ang, x, y, largo) {
   ctx.translate(Math.round(x), Math.round(y)); ctx.rotate(ang);
   ctx.drawImage(HOJA.img, col * FW, 0, FW, FH, -s / 2, -s / 2, s, s);
   drawBorde(ctx, HOJA.img, col * FW, 0, FW, FH, -s / 2, -s / 2, s, s);
+  ctx.restore();
+  ctx.imageSmoothingEnabled = sm;
+  return true;
+}
+
+/** Dibuja UNA TIRA centrada en (x, y): la variante `var` (0-3), vista `v` (0..1), girada `ang`, de
+ *  `largo` px. Lleva el filo de luz como el tubo. false si la hoja no cargo. */
+export function dibujarTira(variante, v, ang, x, y, largo) {
+  if (!(TIRA.ready && TIRA.img.naturalWidth > 0)) return false;
+  const col = Math.max(0, Math.min(VISTAS - 1, Math.round(v * (VISTAS - 1))));
+  const fila = ((variante | 0) % VARIANTES + VARIANTES) % VARIANTES;
+  const s = Math.max(2, Math.round(largo * 1.15));
+  const sm = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
+  ctx.save();
+  ctx.translate(Math.round(x), Math.round(y)); ctx.rotate(ang);
+  ctx.drawImage(TIRA.img, col * FW, fila * FH, FW, FH, -s / 2, -s / 2, s, s);
+  drawBorde(ctx, TIRA.img, col * FW, fila * FH, FW, FH, -s / 2, -s / 2, s, s);
   ctx.restore();
   ctx.imageSmoothingEnabled = sm;
   return true;

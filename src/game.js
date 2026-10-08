@@ -763,7 +763,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             const L = Math.max(2, s.k * CHAPITAS.TUBO_M), tumba = Math.abs(Math.sin(q.a * 1.3 + q.w * 0.6 * t));
             if (!chafita.dibujar(tumba, ang, s.x, s.y, L))
               raya(s, L, ang, cara > 0.6 && A.filo ? A.filo : '#c9d6dd', Math.max(1, s.k * 0.04));
-            if (cara > 0.82 && fz > 0 && D.alfa > 0)
+            if (cara > CHAPITAS.DESTELLA && fz > 0 && D.alfa > 0)
               destella(s.x, s.y, Math.max(1.5, D.radio * s.k * 0.2 * K), Math.min(1, D.alfa * K * Math.min(1, A.fuerza * 1.4) * pulso(j)) * a0 * cerca(p.z));
           });
           continue;
@@ -777,11 +777,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           const s = proj(c.x + q.dx * abre, c.y + q.dy * abre - q.cae * te * te, z);
           const ang = q.a + q.w * te, cara = Math.abs(Math.cos(ang * 2 + i));
           ctx.globalAlpha = a0 * cerca(z);
-          raya(s, Math.max(1.5, s.k * CHAPITAS.LARGO), ang, cara > 0.6 && A.filo ? A.filo : cara > 0.3 ? '#c9d6dd' : '#8fa3ae', Math.max(1, s.k * 0.07));
-          if (cara < 0.82 || !(fz > 0) || !(D.alfa > 0)) return;
+          // LA CINTA HORNEADA (render/chafita.js: aluminio arrugado, la foto del autor); sin la hoja, la raya
+          const L = Math.max(1.5, s.k * CHAPITAS.LARGO);
+          if (!chafita.dibujarTira(i, Math.abs(Math.sin(q.a * 0.9 + q.w * 0.5 * te)), ang, s.x, s.y, L))
+            raya(s, L, ang, cara > 0.6 && A.filo ? A.filo : cara > 0.3 ? '#c9d6dd' : '#8fa3ae', Math.max(1, s.k * 0.07));
+          if (cara < CHAPITAS.DESTELLA || !(fz > 0) || !(D.alfa > 0)) return;
           const p = pulso(i);
           destella(s.x, s.y, Math.max(1.5, D.radio * s.k * 0.25 * K * p),
-            Math.min(1, D.alfa * K * Math.min(1, A.fuerza * 1.4) * p) * a0 * cerca(z) * (cara - 0.82) / 0.18);
+            Math.min(1, D.alfa * K * Math.min(1, A.fuerza * 1.4) * p) * a0 * cerca(z) * (cara - CHAPITAS.DESTELLA) / (1 - CHAPITAS.DESTELLA));
         });
       }
       ctx.globalAlpha = 1;

@@ -2933,7 +2933,7 @@ test('chapitas: los numeros del autor (8/10): 30 tubos de 16 cm por carga, de 1 
   const sys = await import('../src/systems/chapitas.js');
   sys.reset(); sys.soltar(0, 10, 14, false);
   const n = sys.nubesEnElAire()[0];
-  assert.equal(n.tubos.length, 30); assert.equal(n.tiras.length, 60, 'dos tiras por tubo');
+  assert.equal(n.tubos.length, 30); assert.equal(n.tiras.length, 30 * CHAPITAS.TIRAS_TUBO, 'la nube: tiras por tubo');
   sys.reset();
 });
 

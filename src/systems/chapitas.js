@@ -45,7 +45,7 @@ export function soltar(x, y, pz, visto) {
     return { vx: Math.cos(an) * (0.4 + Math.random() * 0.6), vy: Math.sin(an) * (0.3 + Math.random() * 0.5),
       vz: -(0.6 + Math.random() * 0.4), a: Math.random() * 6.283, w: (Math.random() - 0.5) * 30 };
   });
-  n.tiras = Array.from({ length: 2 * CHAPITAS.TUBOS }, (_, i) => ({ tubo: i % CHAPITAS.TUBOS, dx: (Math.random() - 0.5) * 2.4,
+  n.tiras = Array.from({ length: CHAPITAS.TIRAS_TUBO * CHAPITAS.TUBOS }, (_, i) => ({ tubo: i % CHAPITAS.TUBOS, dx: (Math.random() - 0.5) * 2.4,
     dy: (Math.random() - 0.5) * 1.6, dz: (Math.random() - 0.5) * 2.4, a: Math.random() * 6.283,
     w: (Math.random() - 0.5) * 9, cae: 0.6 + Math.random() * 1.4 }));
   nubes.push(n);

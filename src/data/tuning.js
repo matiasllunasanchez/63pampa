@@ -1067,6 +1067,9 @@ export const SENUELO_TQ = { VEL: 260, GIRO: 6, RADIO: 3, PTS: 150 };
 //   TUBO_M     el largo del tubo en unidades de mundo: 16 cm a la escala del avion (8,4 m de
 //              envergadura ≈ 4,2 u → 1 u ≈ 2 m), o sea un pixel o dos a la distancia del avion
 //   TUBO_SALE  u/s con que el cartucho lo escupe hacia atras y a los costados (el aire lo frena)
+//   TIRAS_TUBO cuantas tiras dibuja cada tubo al reventar (la nube: "termina generando una nube de
+//              chafitas brillantes"). Las de verdad eran miles; 4 por tubo (120 por carga) alcanzan
+//   DESTELLA   desde que tan de cara a la luz (0..1) una tira o un tubo destella: mas bajo, mas titila
 //   BRILLO     cuanto brillan contra los aviones: la luz del cielo de render/borde.js por esto (8/10:
 //              "deben brillar como brillan los aviones con la luz, pero el doble")
 //   VEL/GIRO/RADIO  como va el misil contra la nube (los del señuelo de tanque: la misma cuenta)
@@ -1079,7 +1082,7 @@ export const CHAPITAS = {
   ENGANA: ['dart', 'wolf'],
   ALCANCE_Z: 160, VIDA: 4, INERCIA: 0.6,
   LARGO: 0.45, BRILLO: 2,
-  TUBOS: 30, TUBO_M: 0.08, TUBO_ABRE: 0.2, TUBO_SALE: 9,
+  TUBOS: 30, TUBO_M: 0.08, TUBO_ABRE: 0.2, TUBO_SALE: 9, TIRAS_TUBO: 4, DESTELLA: 0.7,
   VEL: 260, GIRO: 6, RADIO: 3,
   CERCA: 8, SOFT: 0.35,
   FRENO: 0.15,

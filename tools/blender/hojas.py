@@ -132,6 +132,13 @@ HOJAS = {
     'chafita': dict(nueva=True, fw=16, fh=16, pos=(0, 0.0, 6.4), fov=26, lookY=0, cols=6, cajas=False, contorno=False,
                     destino='assets/ammo/chafita.png',
                     frames=[dict(modelo='bl:municion_chafita', rots=[('X', v * R)]) for v in (0, 18, 36, 54, 72, 90)]),
+    # …Y LAS TIRAS que salen de el y forman la nube (la foto del autor, 8/10: cintas de aluminio
+    # arrugadas): 4 variantes (filas) x 6 vistas, cada una volteada en dos ejes para que no sean la misma
+    # cinta girando
+    'tira': dict(nueva=True, fw=16, fh=16, pos=(0, 0.0, 1.7), fov=26, lookY=0, cols=6, cajas=False, contorno=False,
+                 destino='assets/ammo/tira.png',
+                 frames=[dict(modelo='bl:municion_tira:%d' % v, rots=[('X', a * R), ('Y', a * 0.7 * R)])
+                         for v in range(4) for a in (0, 30, 60, 90, 120, 150)]),
     # ---------------- EL FUEGO Y EL HUMO (4/10/2026, tools/blender/modelos_fuego.py) ----------------
     # HOJAS NUEVAS: hasta hoy el fuego y el humo se dibujaban por codigo con rectangulos. De frente y sin
     # volteo (`rots` vacio), sin contorno (el fuego no tiene borde oscuro) y sin caja (la grilla la sabe

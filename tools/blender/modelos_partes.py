@@ -300,7 +300,7 @@ def municion_chafita(T, K):
     enrollado, la FAJA DE CINTA que lo cierra, y la TAPA de carton en la punta que sale primero."""
     g = vacio(T, 'chafita')
     L, r = 0.8, 0.19                                   # medio largo y radio, a x10
-    alu = K['mat_cel']('aluminio', '#d4dce1')
+    alu = K['mat_cel']('aluminio', '#d4dce1', True)      # con el destello duro: es chapa
     loft('cuerpo', [(-L, r, r, 0), (L, r, r, 0)], g, alu, n=16, cerrar=(False, False))
     costura = K['mat_cel']('costura', '#8f9aa1')
     for z in (-0.42, 0.42):
@@ -308,4 +308,35 @@ def municion_chafita(T, K):
     loft('cinta', [(-0.10, r + 0.008, r + 0.008, 0), (0.10, r + 0.008, r + 0.008, 0)], g, K['mat_cel']('cinta', '#e2dcc4'), n=16, cerrar=(False, False))
     disco('tapa', (0, 0, L + 0.005), r * 0.98, g, K['mat_cel']('carton', '#a8865a'))
     disco('culo', (0, 0, -L - 0.005), r * 0.98, g, K['mat_cel']('culo', '#7d878d'))
+    return g
+
+def municion_tira(T, K, var=0):
+    """UNA TIRA DE CHAFITAS (8/10/2026, con la foto del autor: un puñado de cintas de aluminio
+    arrugadas). Lo que sale del tubo y forma la NUBE: una CINTA PLANA —el ancho de un tallarin, salieron
+    de la maquina de la fabrica Napoli—, de 7 cm de largo (La Nacion, 15/4/2024: un cuarto de la onda
+    del radar del Sea Dart), RETORCIDA y ARRUGADA, cada variante `var` a su manera. Modelada a x10 como
+    el tubo. Con el destello duro del material: lo que la hace brillar es que la cinta, al doblarse,
+    agarra la luz en un pedazo y no en otro — eso es la nube titilando."""
+    import random
+    rnd = random.Random(1000 + int(var))
+    g = vacio(T, 'tira%d' % int(var))
+    Lm, w, n = 0.35, 0.05, 18                         # medio largo, medio ancho (x10), tramos
+    giro = rnd.uniform(1.5, 4.0) * rnd.choice((-1, 1))
+    olas = [(rnd.uniform(0.03, 0.09), rnd.uniform(6, 14), rnd.uniform(0, 6.28)) for _ in range(2)]
+    dobla = rnd.uniform(-0.6, 0.6)
+    bm = bmesh.new(); filas = []
+    for i in range(n + 1):
+        u = i / n; z = -Lm + 2 * Lm * u
+        th = giro * u + rnd.uniform(-0.25, 0.25)            # se retuerce, con quiebres
+        y0 = sum(a * math.sin(k * z + f) for a, k, f in olas)   # la arruga
+        x0 = dobla * (u - 0.5) ** 2                          # y se curva
+        fila = []
+        for sgn in (-1, 1):
+            ww = w * (1 + rnd.uniform(-0.25, 0.15))            # el canto irregular del corte
+            fila.append(bm.verts.new((x0 + sgn * ww * math.cos(th), y0 + sgn * ww * math.sin(th), z)))
+        filas.append(fila)
+    for a, b in zip(filas, filas[1:]): bm.faces.new((a[0], a[1], b[1], b[0]))
+    me = bpy.data.meshes.new('tira'); bm.to_mesh(me); bm.free()
+    ob = _obj('tira', me, g, K['mat_cel']('aluminio', '#d4dce1', True))
+    sol = ob.modifiers.new('espesor', 'SOLIDIFY'); sol.thickness = 0.008     # que se vea de los dos lados
     return g
